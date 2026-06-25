@@ -202,9 +202,27 @@ public class MerchantChatbotProductService {
             return data;
         }
         boolean repayMode = isMerchantUrlPayCheckoutRepay(merchantOrgUnitId);
+        boolean splitPayMode = isMerchantUrlPayCheckoutSplitPay(merchantOrgUnitId);
         String pgVendor = resolveChatbotCheckoutPgVendor(merchantOrgUnitId);
         data.put("chatbotCheckoutPgVendor", pgVendor);
         data.put("urlPayCheckoutMode", resolveUrlPayCheckoutModeForMerchant(merchantOrgUnitId));
+        if (splitPayMode) {
+            Optional<MerchantProfile> mpOpt = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId);
+            boolean enabled = mpOpt.map(com.pg.splitpay.SplitPayMerchantUtil::isEnabled).orElse(false);
+            data.put("splitPayEnabledYn", enabled ? "Y" : "N");
+            data.put("urlPayConfigured", enabled && pgVendor != null && !pgVendor.isBlank());
+            if (!enabled) {
+                data.put("urlPayConfigurationHintKo",
+                        "챗봇 URL 분할결제는 가맹 「URL 분할결제」사용 ON 이 필요합니다.");
+            } else if (pgVendor == null || pgVendor.isBlank()) {
+                data.put("urlPayConfigurationHintKo",
+                        "챗봇 URL 분할결제는 운영(Y)·연동용도 URL결제 PG 바인딩(ChillPay·JPAY)이 필요합니다.");
+            } else {
+                data.put("urlPayConfigurationHintKo",
+                        "챗봇 URL 분할결제입니다. 고객은 분할결제 신청 화면에서 회차·기간을 선택한 뒤 1회차부터 결제합니다.");
+            }
+            return data;
+        }
         if ("JPAY".equals(pgVendor)) {
             return enrichJpayUrlPayFactsForChatbotLlm(data, merchantOrgUnitId, repayMode);
         }
@@ -294,6 +312,21 @@ public class MerchantChatbotProductService {
         return UrlPayCheckoutModeUtil.isRepay(resolveUrlPayCheckoutModeForMerchant(orgUnitId));
     }
 
+    @Transactional(readOnly = true)
+    public boolean isMerchantUrlPayCheckoutSplitPay(Long orgUnitId) {
+        return UrlPayCheckoutModeUtil.isSplitPay(resolveUrlPayCheckoutModeForMerchant(orgUnitId));
+    }
+
+    @Transactional(readOnly = true)
+    public String resolveSplitPayEnabledYnForMerchant(Long orgUnitId) {
+        if (orgUnitId == null) {
+            return "N";
+        }
+        return merchantProfileRepository.findByOrgUnitId(orgUnitId)
+                .map(mp -> com.pg.splitpay.SplitPayMerchantUtil.isEnabled(mp) ? "Y" : "N")
+                .orElse("N");
+    }
+
     /**
      * 챗봇 결제 진입 시 사용할 PG — 운영 WEB·URL결제 바인딩 1건 기준.
      * 재결제 모드는 ChillPay 전용({@code pay.html?variant=repay}).
@@ -323,6 +356,9 @@ public class MerchantChatbotProductService {
     /** 챗봇 결제 프리필 URL — JPAY 운영 바인딩이면 {@code jpay-pay.html}, 아니면 {@code pay.html}. */
     public String buildChatbotPayPrefillUrl(String publicBaseTrimmed, Long orgUnitId, String compCode,
                                             String title, String amountPlain, String currencyIso, String orderNo) {
+        if (isMerchantUrlPayCheckoutSplitPay(orgUnitId)) {
+            return buildChatbotSplitPaySetupUrl(publicBaseTrimmed, compCode, title, amountPlain, currencyIso, null);
+        }
         boolean repayMode = isMerchantUrlPayCheckoutRepay(orgUnitId);
         String page = resolveChatbotPayPageFile(orgUnitId, repayMode);
         StringBuilder q = new StringBuilder();
@@ -348,6 +384,39 @@ public class MerchantChatbotProductService {
             q.append("&currency=").append(urlEncode(c));
         }
         String path = "/" + page + "?" + q;
+        String base = trimSlash(publicBaseTrimmed);
+        if (base.isBlank()) {
+            return path;
+        }
+        return base + path;
+    }
+
+    /** 챗봇 URL 분할결제 — {@code /split-pay/{compId}?entry=chatbot} 분할결제 신청 화면. */
+    public String buildChatbotSplitPaySetupUrl(String publicBaseTrimmed, String compCode,
+                                               String title, String amountPlain, String currencyIso,
+                                               String returnUrl) {
+        String cid = compCode != null ? compCode.trim() : "";
+        if (cid.isEmpty()) {
+            return "";
+        }
+        StringBuilder q = new StringBuilder();
+        q.append("entry=chatbot");
+        String t = title != null ? title.trim() : "";
+        if (!t.isEmpty()) {
+            q.append("&item=").append(urlEncode(t.length() > 500 ? t.substring(0, 500) : t));
+        }
+        String a = amountPlain != null ? amountPlain.trim() : "";
+        if (!a.isEmpty()) {
+            q.append("&amount=").append(urlEncode(a.length() > 40 ? a.substring(0, 40) : a));
+        }
+        String c = currencyIso != null ? currencyIso.trim().toUpperCase(Locale.ROOT) : "";
+        if (!c.isEmpty()) {
+            q.append("&currency=").append(urlEncode(c));
+        }
+        if (returnUrl != null && !returnUrl.isBlank()) {
+            q.append("&return=").append(urlEncode(returnUrl.trim()));
+        }
+        String path = "/split-pay/" + urlEncode(cid) + "?" + q;
         String base = trimSlash(publicBaseTrimmed);
         if (base.isBlank()) {
             return path;

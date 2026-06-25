@@ -113,6 +113,7 @@
           '&amount=' + encodeURIComponent(d.amount || d.currentAmount || '') +
           '&item=' + encodeURIComponent('SplitPay ' + (d.contractNo || '')) +
           '&splitPay=1';
+        if (String(d.contractChannel || '').toUpperCase() === 'CHATBOT') payUrl += '&entry=chatbot';
         if (d.currencyCode) payUrl += '&currency=' + encodeURIComponent(d.currencyCode);
         if (d.customerEmail) payUrl += '&email=' + encodeURIComponent(d.customerEmail);
         if (d.customerName) payUrl += '&buyerName=' + encodeURIComponent(d.customerName);

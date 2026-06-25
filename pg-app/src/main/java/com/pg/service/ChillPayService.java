@@ -3089,8 +3089,8 @@ public class ChillPayService {
      * 문서 §6 Table 6.1–6.2: URL {@code /api/v1/void/request}, 본문 {@code TransactionId}+{@code Checksum},
      * Checksum = {@code MD5(TransactionId + MD5 Secret Key)}.
      */
-    public void requestChillPayVoid(long merchantOrgUnitId, long chillPayTransactionId) {
-        postChillPayTxnMutate(merchantOrgUnitId, chillPayTransactionId, false);
+    public String requestChillPayVoid(long merchantOrgUnitId, long chillPayTransactionId) {
+        return postChillPayTxnMutate(merchantOrgUnitId, chillPayTransactionId, false);
     }
 
     /**
@@ -3098,12 +3098,12 @@ public class ChillPayService {
      * 문서 §7 Table 7.1–7.2: URL {@code /api/v1/refund/request}; 선택 {@code RefundAmount},{@code RequestNote} 미전송 시 전액 환불.
      * Checksum 은 표 7.2 비고와 같이 {@code TransactionId + MD5 Secret Key} 만 연결 후 MD5 (현재 구현은 전액 환불만).
      */
-    public void requestChillPayRefund(long merchantOrgUnitId, long chillPayTransactionId) {
-        postChillPayTxnMutate(merchantOrgUnitId, chillPayTransactionId, true);
+    public String requestChillPayRefund(long merchantOrgUnitId, long chillPayTransactionId) {
+        return postChillPayTxnMutate(merchantOrgUnitId, chillPayTransactionId, true);
     }
 
     @SuppressWarnings("unchecked")
-    private void postChillPayTxnMutate(long merchantOrgUnitId, long chillPayTransactionId, boolean refund) {
+    private String postChillPayTxnMutate(long merchantOrgUnitId, long chillPayTransactionId, boolean refund) {
         Config cfg = resolveConfig(merchantOrgUnitId);
         if (cfg.apiKey() == null || cfg.apiKey().isEmpty()) {
             throw new IllegalStateException("ChillPay API Key가 설정되지 않았습니다.");
@@ -3128,12 +3128,24 @@ public class ChillPayService {
         try {
             Map<String, Object> body = restTemplate.postForObject(url, entity, Map.class);
             assertChillPayTxnMutateOk(body);
+            return chillPayTxnMutateMessage(body);
         } catch (IllegalStateException e) {
             throw e;
         } catch (Exception e) {
             String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
             throw new IllegalStateException("ChillPay API 호출 실패: " + msg, e);
         }
+    }
+
+    private static String chillPayTxnMutateMessage(Map<String, Object> body) {
+        if (body == null) {
+            return "OK";
+        }
+        Object msg = body.get("message");
+        if (msg == null) {
+            msg = body.get("Message");
+        }
+        return msg != null && !String.valueOf(msg).isBlank() ? String.valueOf(msg).trim() : "OK";
     }
 
     private static void assertChillPayTxnMutateOk(Map<String, Object> body) {

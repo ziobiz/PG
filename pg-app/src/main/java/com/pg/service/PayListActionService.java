@@ -8,11 +8,13 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.service.settlement.SettlementArrearsService;
 import com.pg.util.JpayNotifyStatusResolver;
+import com.pg.util.TxnOutcomeReasonApplier;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
+import java.util.Optional;
 
 /**
  * 결제내역 그리드 후속조치 ({@code tb_hq_notify_env_config} 자동무효·이메일무효·자동환불·강제환불 — 본사설정 전산설정관리에서 편집).
@@ -42,6 +44,7 @@ public class PayListActionService {
     private final SettlementArrearsService settlementArrearsService;
     private final JpayManualFollowUpNotifyService jpayManualFollowUpNotifyService;
     private final JpayTradeApiService jpayTradeApiService;
+    private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
 
     public PayListActionService(PayFollowPolicyService payFollowPolicyService,
                                 PgTrnsctnRepository trnsctnRepository,
@@ -50,7 +53,8 @@ public class PayListActionService {
                                 PayFollowEmailVoidService payFollowEmailVoidService,
                                 SettlementArrearsService settlementArrearsService,
                                 JpayManualFollowUpNotifyService jpayManualFollowUpNotifyService,
-                                JpayTradeApiService jpayTradeApiService) {
+                                JpayTradeApiService jpayTradeApiService,
+                                OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator) {
         this.payFollowPolicyService = payFollowPolicyService;
         this.trnsctnRepository = trnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
@@ -59,10 +63,16 @@ public class PayListActionService {
         this.settlementArrearsService = settlementArrearsService;
         this.jpayManualFollowUpNotifyService = jpayManualFollowUpNotifyService;
         this.jpayTradeApiService = jpayTradeApiService;
+        this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
     }
 
     @Transactional
     public void apply(Authentication authentication, String trnId, String actionRaw) {
+        apply(authentication, trnId, actionRaw, null);
+    }
+
+    @Transactional
+    public void apply(Authentication authentication, String trnId, String actionRaw, String adminReason) {
         if (trnId == null || trnId.isBlank()) {
             throw new IllegalArgumentException("거래번호(trnId)가 필요합니다.");
         }
@@ -92,6 +102,7 @@ public class PayListActionService {
         String prevStatus = t.getStatus();
         String prevSettledYn = t.getSettledYn();
         String actor = user != null ? user.getUsername() : null;
+        String apiDetail = null;
 
         switch (action) {
             case EMAIL_VOID -> payFollowEmailVoidService.sendVoidRequestMail(t, actor);
@@ -99,16 +110,19 @@ public class PayListActionService {
                 long ouId = resolveMerchantOrgUnitId(t);
                 long chillTxn = parseChillPayTransactionId(t);
                 requireChillPayVan(t);
-                chillPayService.requestChillPayVoid(ouId, chillTxn);
+                apiDetail = chillPayService.requestChillPayVoid(ouId, chillTxn);
             }
             case AUTO_REFUND, FORCE_REFUND -> {
                 if (jpay) {
-                    jpayTradeApiService.requestRefund(t, null, action == PayFollowAction.FORCE_REFUND ? "icopay force refund" : "icopay refund");
+                    String refundReason = adminReason != null && !adminReason.isBlank()
+                            ? adminReason.trim()
+                            : (action == PayFollowAction.FORCE_REFUND ? "icopay force refund" : "icopay refund");
+                    apiDetail = jpayTradeApiService.requestRefund(t, null, refundReason);
                 } else {
                     long ouId = resolveMerchantOrgUnitId(t);
                     long chillTxn = parseChillPayTransactionId(t);
                     requireChillPayVan(t);
-                    chillPayService.requestChillPayRefund(ouId, chillTxn);
+                    apiDetail = chillPayService.requestChillPayRefund(ouId, chillTxn);
                 }
             }
             case MANUAL_VOID, MANUAL_REFUND -> requireJpayVan(t);
@@ -132,7 +146,9 @@ public class PayListActionService {
             t.setChillPaymentStatus(JpayNotifyStatusResolver.chillPaymentStatusLabel(nextStatus, rc));
             t.setPaidAt(null);
         }
+        Optional<String> recordedReason = TxnOutcomeReasonApplier.applyIcopayFollowUp(t, prevStatus, nextStatus, action.name(), actor, adminReason, apiDetail);
         trnsctnRepository.save(t);
+        outcomeReasonWarmCoordinator.onRecorded(recordedReason);
 
         try {
             settlementArrearsService.registerPostSettlementRecoveryIfDue(prevStatus, prevSettledYn, t);

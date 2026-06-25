@@ -815,7 +815,7 @@
     },
 
     payList: function (params) {
-      return get('/api/calc/payList', params).then(function (r) { return r.data; });
+      return get('/api/calc/payList', params, { headers: acceptLanguageHeaders({}) }).then(function (r) { return r.data; });
     },
     /** 노티매핑 반영: 결제내역 계열 화면별 그리드 레이아웃·표시 제목 */
     payListScreenLayout: function (pageUrl) {
@@ -2130,8 +2130,8 @@
       return post('/api/hq/orgViewColumnAllowance/customColumns/delete', body || {}).then(function (r) { return r.data; });
     },
 
-    payAction: function (trnId, action) {
-      return post('/api/calc/payAction', { trnId: trnId, action: action }).then(function (r) { return r.data; });
+    payAction: function (trnId, action, reason) {
+      return post('/api/calc/payAction', { trnId: trnId, action: action, reason: reason || '' }).then(function (r) { return r.data; });
     },
     hqPermissionMng: function (params) {
       return get('/api/hq/permissionMng', params).then(function (r) { return r.data; });

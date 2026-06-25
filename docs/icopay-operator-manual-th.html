@@ -1,0 +1,345 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICOPAY คู่มือการตั้งค่าผู้ดูแลระบบ — สำนักงานใหญ่สูงสุด</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sarabun', 'Tahoma', sans-serif; font-size: 11pt; line-height: 1.85; color: #1a1a1a; background: #f0f2f8; }
+  .page-wrap { max-width: 900px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 18px rgba(0,0,0,.11); overflow: hidden; }
+  .cover { background: linear-gradient(135deg, #0d2137 0%, #1a4f8a 55%, #1976d2 100%); color: #fff; padding: 48px 52px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+  .cover-body { flex: 1; }
+  .cover-logo { flex-shrink: 0; display: flex; align-items: flex-start; padding-top: 4px; }
+  .cover-logo img { height: 64px; background: rgba(255,255,255,.92); padding: 10px 18px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.20); }
+  .cover .logo-line { font-size: 13pt; font-weight: 700; letter-spacing: 2px; opacity: .85; margin-bottom: 14px; }
+  .cover h1 { font-size: 21pt; font-weight: 900; line-height: 1.4; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 11pt; opacity: .82; margin-bottom: 24px; }
+  .cover .meta { font-size: 9.5pt; opacity: .65; border-top: 1px solid rgba(255,255,255,.25); padding-top: 14px; }
+  .body { padding: 44px 52px 64px; }
+  .toc { background: #f0f4ff; border-left: 4px solid #1565c0; border-radius: 0 8px 8px 0; padding: 20px 26px; margin-bottom: 44px; }
+  .toc h2 { font-size: 12pt; font-weight: 700; color: #1565c0; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { font-size: 10pt; line-height: 2.2; color: #1a3a5c; }
+  .toc a { color: #1565c0; text-decoration: none; }
+  h2.section-title { font-size: 14pt; font-weight: 800; color: #0d2137; border-bottom: 2.5px solid #1565c0; padding-bottom: 7px; margin: 48px 0 18px; page-break-after: avoid; }
+  h3.sub-title { font-size: 12pt; font-weight: 700; color: #1565c0; margin: 26px 0 10px; page-break-after: avoid; }
+  p { margin-bottom: 10px; }
+  .info-box  { background: #e3f0ff; border: 1px solid #90caf9; border-left: 4px solid #1565c0; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1a3a5c; }
+  .warn-box  { background: #fff8e1; border: 1px solid #ffe082; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #5d4037; }
+  .check-box { background: #e8f5e9; border: 1px solid #a5d6a7; border-left: 4px solid #2e7d32; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1b5e20; }
+  .block-box { background: #fce4ec; border: 1px solid #f48fb1; border-left: 4px solid #c62828; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #b71c1c; }
+  .hq-only   { background: #ede7f6; border: 1px solid #ce93d8; border-left: 4px solid #7b1fa2; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #4a148c; }
+  .r-all  { display: inline-block; background: #1a237e; color: #fff; font-size: 8pt; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+  .r-dist { display: inline-block; background: #1565c0; color: #fff; font-size: 8pt; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+  .r-no   { display: inline-block; background: #757575; color: #fff; font-size: 8pt; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 22px; font-size: 10pt; page-break-inside: avoid; }
+  th { background: #1a3a5c; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #12274a; }
+  td { padding: 8px 12px; border: 1px solid #cfd8dc; vertical-align: middle; }
+  tr:nth-child(even) td { background: #f4f7ff; }
+  td.center, th.center { text-align: center; }
+  td.icon { text-align: center; font-size: 13pt; }
+  .menu-path { display: inline-block; background: #eceff1; border: 1px solid #cfd8dc; border-radius: 5px; padding: 3px 12px; font-size: 9.5pt; color: #37474f; font-weight: 600; margin-bottom: 12px; }
+  .menu-path::before { content: "📌 เมนู: "; }
+  .flow { background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; padding: 18px 22px; margin: 14px 0 20px; font-size: 10pt; page-break-inside: avoid; }
+  .flow-row { display: flex; align-items: flex-start; margin-bottom: 6px; }
+  .flow-num { display: inline-block; min-width: 28px; font-weight: 800; color: #1565c0; flex-shrink: 0; }
+  .flow-desc { color: #37474f; }
+  .faq-item { border: 1px solid #e0e6f0; border-radius: 8px; margin-bottom: 14px; page-break-inside: avoid; }
+  .faq-q { background: #e8edf8; padding: 11px 16px; font-weight: 700; font-size: 10.5pt; color: #1a3a5c; border-radius: 8px 8px 0 0; }
+  .faq-q::before { content: "ถาม: "; color: #1565c0; }
+  .faq-a { padding: 11px 16px; font-size: 10pt; color: #37474f; background: #fff; border-radius: 0 0 8px 8px; }
+  .faq-a::before { content: "ตอบ: "; font-weight: 700; color: #2e7d32; }
+  hr.rule { border: none; border-top: 1px dashed #c5cae9; margin: 40px 0; }
+  ul, ol { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+  .footer { background: #0d2137; color: rgba(255,255,255,.6); text-align: center; font-size: 9pt; padding: 18px 24px; }
+  @media print {
+    body { background: #fff; font-size: 10pt; }
+    .page-wrap { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; }
+    .cover { padding: 28px 36px 24px; }
+    .body { padding: 28px 36px 36px; }
+    .faq-item, table, .flow { page-break-inside: avoid; }
+    .footer { display: none; }
+    @page { size: A4; margin: 18mm 16mm; }
+  }
+</style>
+</head>
+<body>
+<style id="print-btn-style">
+  .print-btn { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #1565c0; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 10.5pt; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(21,101,192,.45); display: flex; align-items: center; gap: 9px; transition: background .18s, box-shadow .18s; text-decoration: none; }
+  .print-btn:hover { background: #0d47a1; box-shadow: 0 6px 20px rgba(13,71,161,.5); }
+  @media print { .print-btn { display: none !important; } }
+</style>
+<button class="print-btn" onclick="window.print()">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
+<div class="page-wrap">
+  <div class="cover">
+    <div class="cover-body">
+      <div class="logo-line">ICOPAY · Payment Gateway</div>
+      <h1>คู่มือการตั้งค่าผู้ดูแลระบบ<br>สำนักงานใหญ่สูงสุด</h1>
+      <div class="subtitle">คู่มือฉบับสมบูรณ์สำหรับผู้ดูแลระบบสูงสุด — การลงทะเบียนร้านค้า การชำระเงินเว็บ การสมัครสมาชิก การซื้อซ้ำ การแบ่งชำระ และการชำระผ่านแชทบอท</div>
+      <div class="meta">อ้างอิง: การตั้งค่าสิทธิ์ ICOPAY &nbsp;|&nbsp; กลุ่มเป้าหมาย: ผู้ดูแลระบบสูงสุด &nbsp;|&nbsp; เผยแพร่: มิถุนายน 2569</div>
+    </div>
+    <div class="cover-logo">
+      <img src="./logo-ontheline.png" alt="On The Line">
+    </div>
+  </div>
+
+  <div class="body">
+
+    <div class="warn-box" style="margin-bottom:36px;">
+      <strong>📋 คำอธิบายสัญลักษณ์สิทธิ์</strong><br><br>
+      <span class="r-all">เฉพาะสำนักงานใหญ่สูงสุด</span> เข้าถึงได้เฉพาะผู้ดูแลระบบสูงสุด &nbsp;&nbsp;
+      <span class="r-dist">ทุกบทบาท</span> ทุกบทบาทเข้าถึงได้ &nbsp;&nbsp;
+      <span class="r-no">ไม่มีสิทธิ์</span> บทบาทนั้นไม่สามารถเข้าถึงได้
+    </div>
+
+    <h2 class="section-title" id="perm">0. สรุปสิทธิ์การเข้าถึงเมนูตามบทบาท</h2>
+    <p>ICOPAY มีบทบาทผู้ดูแลระบบ 3 ระดับ: <strong>สำนักงานใหญ่สูงสุด · สำนักงานใหญ่ · ตัวแทนจำหน่าย</strong><br>
+    <strong>สำนักงานใหญ่และตัวแทนจำหน่ายมีสิทธิ์เข้าถึงเหมือนกัน</strong> มีเพียงผู้ดูแลระบบสูงสุดเท่านั้นที่เข้าถึงเมนูทั้งหมดได้</p>
+
+    <table>
+      <thead>
+        <tr><th>เมนูหลัก</th><th>เมนูย่อย</th><th class="center">สูงสุด</th><th class="center">สนญ.</th><th class="center">ตัวแทน</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>การตั้งค่าสำนักงานใหญ่</strong></td><td>ทุกเมนู</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+        <tr><td rowspan="5"><strong>การจัดการการชำระเงิน</strong></td><td>การชำระเงินรวม</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+        <tr><td>ดำเนินการชำระเงิน</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+        <tr><td>แจกจ่ายการชำระเงิน</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+        <tr><td>การชำระเงินที่รอดำเนินการ</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+        <tr><td>เมนูการชำระเงินอื่นๆ</td><td class="icon">✅</td><td class="icon">✅</td><td class="icon">✅</td></tr>
+        <tr><td><strong>การจัดการการแจ้งเตือน</strong></td><td>ทุกเมนู</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+        <tr><td rowspan="2"><strong>การจัดการผู้ใช้</strong></td><td>การจัดการลำดับรายการเมนู</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+        <tr><td>เมนูการจัดการผู้ใช้อื่นๆ</td><td class="icon">✅</td><td class="icon">✅</td><td class="icon">✅</td></tr>
+        <tr><td rowspan="5"><strong>การจัดการการดำเนินงาน</strong></td><td>การจัดการการดำเนินงาน</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+        <tr><td>รายงาน TAX</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+        <tr><td>รายงานการตรวจสอบ</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+        <tr><td>ประวัติธุรกรรมตัวแทน</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+        <tr><td>เมนูการดำเนินงานอื่นๆ</td><td class="icon">✅</td><td class="icon">✅</td><td class="icon">✅</td></tr>
+        <tr><td rowspan="2"><strong>การตั้งค่าการเผยแพร่</strong></td><td>เอกสาร API</td><td class="icon">✅</td><td class="icon">✅</td><td class="icon">✅</td></tr>
+        <tr><td>เมนูการเผยแพร่อื่นๆ</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+        <tr><td><strong>การจัดการแชทบอท</strong></td><td>ทุกเมนู (รวมการลบ)</td><td class="icon">✅</td><td class="icon">✅</td><td class="icon">✅</td></tr>
+        <tr><td rowspan="2"><strong>การจัดการแบ่งชำระ</strong></td><td>การตั้งค่าอีเมล</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+        <tr><td>เมนูแบ่งชำระอื่นๆ</td><td class="icon">✅</td><td class="icon">✅</td><td class="icon">✅</td></tr>
+      </tbody>
+    </table>
+
+    <div class="hq-only"><strong>💡 สำนักงานใหญ่และตัวแทนจำหน่ายมีสิทธิ์เหมือนกัน</strong><br>มีเพียงผู้ดูแลระบบสูงสุดเท่านั้นที่เข้าถึงเมนูทั้งหมดได้</div>
+
+    <div class="toc">
+      <h2>📋 สารบัญ</h2>
+      <ul>
+        <li><a href="#perm">0. สรุปสิทธิ์การเข้าถึงเมนูตามบทบาท</a></li>
+        <li><a href="#merchant">1. การลงทะเบียนร้านค้า</a></li>
+
+        <li><a href="#fee">2. การตั้งค่าค่าธรรมเนียม</a></li>
+        <li><a href="#webpay">3. การตั้งค่าการชำระเงินเว็บ</a></li>
+        <li><a href="#subscribe">4. การตั้งค่าการชำระเงินแบบสมัครสมาชิก</a></li>
+        <li><a href="#repurchase">5. การตั้งค่าการซื้อซ้ำ</a></li>
+        <li><a href="#splitpay">6. การตั้งค่าการแบ่งชำระผ่าน URL</a></li>
+        <li><a href="#chatbot">7. การตั้งค่าการชำระเงินผ่านแชทบอท</a></li>
+      </ul>
+    </div>
+
+    <hr class="rule">
+
+    <h2 class="section-title" id="merchant">1. การลงทะเบียนร้านค้า</h2>
+    <span class="menu-path">การจัดการร้านค้า &gt; ลงทะเบียนร้านค้า / ข้อมูลร้านค้า</span>
+
+    <h3 class="sub-title">1-1. ขั้นตอนการลงทะเบียนร้านค้าใหม่</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">ไปที่ <strong>การจัดการร้านค้า &gt; ลงทะเบียนร้านค้า</strong></span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">กรอกข้อมูลพื้นฐาน — ชื่อธุรกิจ, เลขทะเบียน, ผู้แทน, ติดต่อ, อีเมล, ที่อยู่</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">ตั้งค่าโครงสร้างการชำระเงิน — รอบการชำระ, อัตราค่าธรรมเนียม, บัญชีธนาคาร</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">เปิดใช้งานบริการชำระเงินที่ต้องการ (ดูรายละเอียดแต่ละบริการด้านล่าง)</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc"><strong>บันทึก</strong> → รหัสร้านค้าถูกสร้างอัตโนมัติ → ตรวจสอบ URL การชำระเงิน</span></div>
+      <div class="flow-row"><span class="flow-num">⑥</span><span class="flow-desc">สร้างบัญชีร้านค้า (ID + รหัสผ่านชั่วคราว) และแจ้งให้ร้านค้าทราบ</span></div>
+    </div>
+
+    <h3 class="sub-title">1-2. บริการชำระเงินที่เปิดใช้งานได้เมื่อลงทะเบียน</h3>
+    <table>
+      <thead><tr><th>บริการ</th><th>ฟิลด์การเปิดใช้งาน</th><th>หมายเหตุ</th></tr></thead>
+      <tbody>
+        <tr><td>การชำระเงินเว็บ (URL)</td><td>เปิดใช้งานการชำระเงินเว็บ <code>Y/N</code></td><td>ใช้การเชื่อมต่อ ChillPay</td></tr>
+        <tr><td>การชำระเงินแบบสมัครสมาชิก</td><td>เปิดใช้งานการสมัครสมาชิก <code>Y/N</code></td><td>ต้องตั้งค่าแผนบริการ</td></tr>
+        <tr><td>การซื้อซ้ำ</td><td>เปิดใช้งานการซื้อซ้ำ <code>Y/N</code></td><td>ใช้โทเค็นการชำระเงินที่บันทึกไว้</td></tr>
+        <tr><td>การแบ่งชำระผ่าน URL</td><td>เปิดใช้งานการแบ่งชำระ <code>Y/N</code></td><td>ต้องตั้งค่าสัญญาใน Split Pay</td></tr>
+        <tr><td>การชำระเงินผ่านแชทบอท</td><td>เปิดใช้งานแชทบอท <code>Y/N</code></td><td>ต้องตั้งค่าเพิ่มเติมใน Chatbot Mgmt</td></tr>
+      </tbody>
+    </table>
+    <div class="info-box">การตั้งค่าเป็น <code>Y</code> จะทำให้ URL การชำระเงินปรากฏในพอร์ทัลร้านค้า หากตั้งเป็น <code>N</code> URL จะถูกซ่อน</div>
+
+    <hr class="rule">
+
+
+    
+    <!-- ══════════════════════════════════════════
+         2. การตั้งค่าค่าธรรมเนียม
+    ══════════════════════════════════════════ -->
+    <h2 class="section-title" id="fee">2. การตั้งค่าค่าธรรมเนียม</h2>
+
+    <p>โครงสร้างค่าธรรมเนียมของ ICOPAY แบ่งเป็น 2 ระดับ: <strong>ค่าธรรมเนียมนโยบายพื้นฐาน</strong> (ค่าเริ่มต้นของระบบทั้งหมด) และ <strong>ค่าธรรมเนียมรายร้านค้า</strong> (สำหรับร้านค้าเฉพาะ)<br>
+    ขอบเขตที่สามารถจัดการได้จะแตกต่างกันตามสิทธิ์การเข้าถึง</p>
+
+    <table>
+      <tr><th>ประเภทค่าธรรมเนียม</th><th>เส้นทางเมนู</th><th class="center">ซูเปอร์แอดมิน</th><th class="center">สำนักงานใหญ่</th><th class="center">ตัวแทน</th></tr>
+      <tr><td>ค่าธรรมเนียมนโยบายพื้นฐาน (ค่าเริ่มต้นระบบ)</td><td>การตั้งค่าสำนักงานใหญ่ &gt; การตั้งค่าค่าธรรมเนียม</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+      <tr><td>ค่าธรรมเนียมรายร้านค้า</td><td>การจัดการผู้ค้า &gt; การจัดการค่าธรรมเนียม</td><td class="icon">✅</td><td class="icon">✅</td><td class="icon">✅</td></tr>
+    </table>
+
+    <h3 class="sub-title">2-1. การตั้งค่าค่าธรรมเนียมนโยบายพื้นฐาน <span class="r-all">ซูเปอร์แอดมินเท่านั้น</span></h3>
+    <span class="menu-path">การตั้งค่าสำนักงานใหญ่ &gt; การตั้งค่าค่าธรรมเนียม</span>
+    <p>ตั้งค่านโยบายค่าธรรมเนียมพื้นฐานที่ใช้กับระบบทั้งหมด ร้านค้าที่ไม่มีค่าธรรมเนียมรายร้านค้าจะถูกใช้ค่าเริ่มต้นนี้โดยอัตโนมัติ</p>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc"><strong>การตั้งค่าสำนักงานใหญ่ &gt; การตั้งค่าค่าธรรมเนียม</strong> เข้าเมนู (ซูเปอร์แอดมินเท่านั้น)</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">ป้อนอัตราค่าธรรมเนียมพื้นฐานแต่ละวิธีชำระเงิน (เช่น บัตรเครดิต 2.5%, โอนกระเป๋าเงิน 1.8%)</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">ตั้งค่านโยบายค่าธรรมเนียมแต่ละสกุลเงิน (THB, USD, KRW เป็นต้น)</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">บันทึก → สะท้อนทันทีในบัญชีร้านค้าที่ยังไม่ได้ตั้งค่าค่าธรรมเนียมรายร้านค้า</span></div>
+    </div>
+    <table>
+      <thead><tr><th>รายการ</th><th>คำอธิบาย</th><th class="center">สิทธิ์การเข้าถึง</th></tr></thead>
+      <tbody>
+        <tr><td>อัตราค่าธรรมเนียมพื้นฐาน</td><td>อัตราค่าธรรมเนียมพื้นฐานของระบบแต่ละวิธีชำระเงิน (%)</td><td class="center"><span class="r-all">ซูเปอร์แอดมิน</span></td></tr>
+        <tr><td>นโยบายค่าธรรมเนียมแต่ละสกุลเงิน</td><td>เกณฑ์ค่าธรรมเนียมแต่ละสกุลเงิน THB/USD/KRW</td><td class="center"><span class="r-all">ซูเปอร์แอดมิน</span></td></tr>
+        <tr><td>วันที่เริ่มใช้ค่าธรรมเนียม</td><td>วันที่ค่าธรรมเนียมที่เปลี่ยนแปลงจะเริ่มมีผล</td><td class="center"><span class="r-all">ซูเปอร์แอดมิน</span></td></tr>
+      </tbody>
+    </table>
+    <div class="hq-only">
+      <strong>⚠ ค่าธรรมเนียมนโยบายพื้นฐานสำหรับซูเปอร์แอดมินเท่านั้น</strong><br>
+      หากตั้งค่าค่าธรรมเนียมรายร้านค้าไว้ จะ<strong>ถูกใช้ก่อน</strong>ค่าธรรมเนียมนโยบายพื้นฐาน
+    </div>
+
+    <h3 class="sub-title">2-2. การตั้งค่าค่าธรรมเนียมรายร้านค้า <span class="r-dist">ทุกบทบาท</span></h3>
+    <span class="menu-path">การจัดการผู้ค้า &gt; การจัดการค่าธรรมเนียม</span>
+    <p>ตั้งค่าอัตราค่าธรรมเนียมรายบุคคลที่ใช้กับร้านค้าเฉพาะเจาะจง ใช้กับร้านค้าที่ต้องการเงื่อนไขต่างจากค่าธรรมเนียมนโยบายพื้นฐาน</p>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc"><strong>การจัดการผู้ค้า &gt; การจัดการค่าธรรมเนียม</strong> เข้าเมนู</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">เลือกร้านค้าที่ต้องการตั้งค่าค่าธรรมเนียม</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">ป้อนอัตราค่าธรรมเนียมรายบุคคลแต่ละวิธีชำระเงิน</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">ตั้งค่าระยะเวลาใช้งาน (วันเริ่มต้น·วันสิ้นสุด) (สามารถใช้ค่าธรรมเนียมโปรโมชั่นระยะเวลาจำกัด)</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc">บันทึก → ใช้กับร้านค้าที่เลือกทันที</span></div>
+    </div>
+    <table>
+      <thead><tr><th>รายการ</th><th>คำอธิบาย</th><th class="center">สิทธิ์การเข้าถึง</th></tr></thead>
+      <tbody>
+        <tr><td>อัตราค่าธรรมเนียมรายร้านค้า</td><td>อัตราค่าธรรมเนียมรายบุคคลต่างจากนโยบายพื้นฐาน (%)</td><td class="center"><span class="r-dist">ทุกบทบาท</span></td></tr>
+        <tr><td>การตั้งค่าแต่ละวิธีชำระเงิน</td><td>การใช้รายบุคคลแยกตามบัตรเครดิต·โอนกระเป๋าเงิน·QR</td><td class="center"><span class="r-dist">ทุกบทบาท</span></td></tr>
+        <tr><td>การตั้งค่าระยะเวลาใช้งาน</td><td>การตั้งค่าเงื่อนไขค่าธรรมเนียมระยะเวลาจำกัด</td><td class="center"><span class="r-dist">ทุกบทบาท</span></td></tr>
+        <tr><td>ดูประวัติการเปลี่ยนแปลงค่าธรรมเนียม</td><td>ตรวจสอบประวัติการเปลี่ยนแปลงค่าธรรมเนียมรายร้านค้า</td><td class="center"><span class="r-dist">ทุกบทบาท</span></td></tr>
+      </tbody>
+    </table>
+    <div class="info-box">
+      เมื่อลงทะเบียนค่าธรรมเนียมรายร้านค้าแล้ว จะ<strong>ถูกใช้ก่อน</strong>ค่าธรรมเนียมนโยบายพื้นฐาน
+      หลังจากค่าธรรมเนียมรายบุคคลหมดอายุ ร้านค้าจะกลับไปใช้ค่าธรรมเนียมนโยบายพื้นฐานโดยอัตโนมัติ
+    </div>
+
+    <hr class="rule">
+    
+    <h2 class="section-title" id="webpay">3. การตั้งค่าการชำระเงินเว็บ</h2>
+    <span class="menu-path">การจัดการร้านค้า &gt; ข้อมูลร้านค้า &gt; แท็บการตั้งค่าการชำระเงิน</span>
+
+    <h3 class="sub-title">3-1. เปิดใช้งานการชำระเงินเว็บ</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">เลือกร้านค้าใน <strong>การจัดการร้านค้า &gt; ข้อมูลร้านค้า</strong></span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">แท็บการตั้งค่าการชำระเงิน → ตั้ง <strong>เปิดใช้งานการชำระเงินเว็บ</strong> เป็น <code>Y</code></span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">บันทึก → URL ถูกสร้างอัตโนมัติ (<code>https://icopay.co.kr/pay/{รหัสร้านค้า}</code>)</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">แจ้ง URL ให้ร้านค้าหรือฝังในหน้าชำระเงิน</span></div>
+    </div>
+    <div class="block-box"><strong>🔒 การตั้งค่า Notify URL เป็นสิทธิ์เฉพาะผู้ดูแลระบบสูงสุดเท่านั้น</strong><br>สำนักงานใหญ่และตัวแทนไม่สามารถเข้าถึงการจัดการการแจ้งเตือน</div>
+
+    <hr class="rule">
+
+    <h2 class="section-title" id="subscribe">4. การชำระเงินแบบสมัครสมาชิก</h2>
+    <span class="menu-path">การจัดการร้านค้า &gt; ข้อมูลร้านค้า &gt; แท็บการตั้งค่าการชำระเงิน</span>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">ตั้ง <strong>เปิดใช้งานการสมัครสมาชิก</strong> เป็น <code>Y</code> แล้วบันทึก</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">ตั้งค่าแผนบริการ: ชื่อแผน, รอบการชำระ (รายเดือน/รายปี), จำนวนเงิน, สกุลเงิน</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">แชร์ URL การสมัครสมาชิกกับร้านค้า</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">ระบบจะเรียกเก็บเงินอัตโนมัติตามรอบที่กำหนด</span></div>
+    </div>
+    <div class="info-box">การชำระเงินครั้งแรกจะบันทึกโทเค็นบัตร จากนั้นระบบจะเรียกเก็บอัตโนมัติตามรอบ</div>
+
+    <hr class="rule">
+
+    <h2 class="section-title" id="repurchase">5. การซื้อซ้ำ</h2>
+    <span class="menu-path">การจัดการร้านค้า &gt; ข้อมูลร้านค้า &gt; แท็บการตั้งค่าการชำระเงิน</span>
+    <p>การซื้อซ้ำช่วยให้ลูกค้าใช้โทเค็นบัตรที่บันทึกไว้จากการชำระเงินก่อนหน้าเพื่อชำระเงินใหม่ได้ทันทีโดยไม่ต้องกรอกข้อมูลบัตรอีกครั้ง</p>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">ตั้ง <strong>เปิดใช้งานการซื้อซ้ำ</strong> เป็น <code>Y</code> แล้วบันทึก</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">หน้าชำระเงินจะแสดงตัวเลือก "ชำระด้วยบัตรที่บันทึกไว้"</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">ลูกค้าเลือกซื้อซ้ำ → ระบบประมวลผลด้วยโทเค็นที่บันทึกไว้ทันที</span></div>
+    </div>
+    <div class="warn-box"><strong>ความปลอดภัย:</strong> โทเค็นบัตรถูกเข้ารหัสตามมาตรฐาน PCI-DSS ไม่มีการบันทึกหมายเลขบัตรจริง</div>
+
+    <hr class="rule">
+
+    <h2 class="section-title" id="splitpay">6. การแบ่งชำระผ่าน URL</h2>
+    <span class="menu-path">การจัดการการแบ่งชำระ</span>
+    <div class="block-box"><strong>🔒 การตั้งค่าอีเมลในการจัดการการแบ่งชำระ เป็นสิทธิ์เฉพาะผู้ดูแลระบบสูงสุด</strong></div>
+
+    <h3 class="sub-title">6-1. เปิดใช้งานการแบ่งชำระสำหรับร้านค้า</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">ตั้ง <strong>เปิดใช้งานการแบ่งชำระ</strong> เป็น <code>Y</code> แล้วบันทึก</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">URL การแบ่งชำระจะปรากฏในพอร์ทัลร้านค้า</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">สร้างสัญญาการแบ่งชำระสำหรับร้านค้าในเมนูการจัดการการแบ่งชำระ</span></div>
+    </div>
+
+    <h3 class="sub-title">6-2. การสร้างสัญญาการแบ่งชำระ</h3>
+    <span class="menu-path">การจัดการการแบ่งชำระ &gt; ลงทะเบียนสัญญา</span>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">เลือกร้านค้า</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">กำหนดยอดรวมและจำนวนงวด (เช่น 9,000 บาท / 3 งวด → 3,000 บาท × 3)</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">กำหนดวันครบกำหนดของแต่ละงวด</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">บันทึกสัญญา → URL การชำระแต่ละงวดถูกสร้างอัตโนมัติ</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc">ส่ง URL แต่ละงวดให้ลูกค้าทางอีเมล, SMS หรือลิงก์</span></div>
+    </div>
+
+    <hr class="rule">
+
+    <h2 class="section-title" id="chatbot">7. การชำระเงินผ่านแชทบอท</h2>
+    <span class="menu-path">การจัดการแชทบอท</span>
+    <div class="check-box"><strong>✅ การจัดการแชทบอทเข้าถึงได้ทุกบทบาท (รวมการลบ)</strong></div>
+
+    <h3 class="sub-title">7-1. เปิดใช้งานแชทบอทสำหรับร้านค้า</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">ตั้ง <strong>เปิดใช้งานการชำระเงินผ่านแชทบอท</strong> เป็น <code>Y</code> แล้วบันทึก</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">ไปที่การจัดการแชทบอท → เลือกร้านค้า</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">เลือกโหมดการทำงาน</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">กำหนดจำนวนสล็อตสินค้า (จำนวนสินค้าสูงสุดที่ร้านค้าลงทะเบียนได้)</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc">แจ้ง URL แชทบอท (<code>https://icopay.co.kr/chatbot-pay/{รหัสร้านค้า}</code>) ให้ร้านค้า</span></div>
+    </div>
+
+    <h3 class="sub-title">7-2. โหมดการทำงานของแชทบอท</h3>
+    <table>
+      <thead><tr><th>โหมด</th><th>คำอธิบาย</th><th>เวลาชำระเงิน</th></tr></thead>
+      <tbody>
+        <tr><td>SALE_PREPAID</td><td>ขาย — ชำระก่อน</td><td>ชำระเงินทันทีที่สั่งซื้อ</td></tr>
+        <tr><td>SALE_POSTPAID</td><td>ขาย — ชำระหลัง</td><td>รับสินค้าก่อน ชำระภายหลัง</td></tr>
+        <tr><td>RESERVATION_PREPAID</td><td>จอง — ชำระก่อน</td><td>ชำระเต็มจำนวนเมื่อจอง</td></tr>
+        <tr><td>RESERVATION_POSTPAID</td><td>จอง — ชำระหลัง</td><td>ยืนยันการจอง ชำระที่หน้างาน</td></tr>
+        <tr><td>HYBRID_RESERVATION_PREPAID</td><td>ไฮบริด — ชำระก่อน</td><td>มัดจำก่อน ส่วนที่เหลือชำระภายหลัง</td></tr>
+        <tr><td>FACE_TO_FACE_POSTPAID</td><td>พบหน้า — ชำระหลัง</td><td>บริการแล้วส่งลิงก์ชำระเงิน</td></tr>
+      </tbody>
+    </table>
+
+    <div class="block-box"><strong>🔒 การตั้งค่า LINE Notify และอีเมลแจ้งเตือน เป็นสิทธิ์เฉพาะผู้ดูแลระบบสูงสุด</strong><br>สำนักงานใหญ่และตัวแทนไม่สามารถเข้าถึงเมนูการจัดการการแจ้งเตือน</div>
+
+    <hr class="rule">
+
+    <h2 class="section-title">คำถามที่พบบ่อย (FAQ)</h2>
+    <div class="faq-item"><div class="faq-q">เมนูการจัดการการแจ้งเตือนไม่แสดงในบัญชีสำนักงานใหญ่</div><div class="faq-a">การจัดการการแจ้งเตือนเป็นเมนูเฉพาะผู้ดูแลระบบสูงสุด สำนักงานใหญ่และตัวแทนมีสิทธิ์เหมือนกันและไม่สามารถเข้าถึงได้ กรุณาติดต่อผู้ดูแลระบบสูงสุด</div></div>
+    <div class="faq-item"><div class="faq-q">ร้านค้าไม่สามารถเห็น URL การชำระเงินหลังจากเปิดใช้งาน</div><div class="faq-a">ตรวจสอบว่าฟิลด์เปิดใช้งานบริการใน ข้อมูลร้านค้า ตั้งเป็น <code>Y</code> หากเป็น <code>N</code> URL จะถูกซ่อนในพอร์ทัลร้านค้า</div></div>
+    <div class="faq-item"><div class="faq-q">ไม่สามารถเพิ่มสินค้าแชทบอทได้อีกแล้ว</div><div class="faq-a">ร้านค้าถึงขีดจำกัดสล็อตสินค้าแล้ว เพิ่มจำนวนสล็อตใน ข้อมูลร้านค้า &gt; การตั้งค่าแชทบอท</div></div>
+    <div class="faq-item"><div class="faq-q">ดูเอกสาร API ได้ที่ไหน</div><div class="faq-a">ไปที่ การตั้งค่าการเผยแพร่ &gt; เอกสาร API เมนูนี้ทุกบทบาทเข้าถึงได้</div></div>
+  </div>
+
+  <div class="footer">
+    ICOPAY Payment Gateway · คู่มือการตั้งค่าผู้ดูแลระบบ (สำนักงานใหญ่สูงสุด) · มิถุนายน 2569<br>
+    เนื้อหาอ้างอิงจากการตั้งค่าสิทธิ์ ICOPAY และอาจเปลี่ยนแปลงตามการอัปเดตระบบ
+  </div>
+</div>
+</body>
+</html>
+
+

@@ -1212,22 +1212,33 @@
         });
       }
 
-      /** 기존 밑줄 링크(안내 저장 전)와 동일: `{api}/{pay|jpay-pay}.html?m={compId}&entry=chatbot` + 복귀용 return */
+      function cbIsSplitPayCheckoutMode() {
+        return String(window.cbUrlPayCheckoutMode || '').toUpperCase() === 'SPLIT_PAY';
+      }
+
+      /** 기존 밑줄 링크(안내 저장 전)와 동일: pay/jpay-pay 또는 분할결제 신청(split-pay) */
       function cbChatbotPayPageName() {
+        if (cbIsSplitPayCheckoutMode()) return 'split-pay-setup.html';
         return String(window.cbChatbotCheckoutPgVendor || '').toUpperCase() === 'JPAY' ? 'jpay-pay.html' : 'pay.html';
       }
 
       function barePayChatbotUrl() {
         var c = (typeof compId === 'string' ? compId : '').trim();
         if (!c) return '';
+        var ret = '';
+        try {
+          ret = (window.location && window.location.href) ? String(window.location.href).split('#')[0] : '';
+        } catch (eRet) { /* ignore */ }
+        if (cbIsSplitPayCheckoutMode()) {
+          var sp = resolvedApiBase() + '/split-pay/' + encodeURIComponent(c) + '?entry=chatbot';
+          if (ret) sp += '&return=' + encodeURIComponent(ret);
+          return sp;
+        }
         var base = resolvedApiBase() + '/' + cbChatbotPayPageName() + '?m=' + encodeURIComponent(c) + '&entry=chatbot';
         if (String(window.cbUrlPayCheckoutMode || '').toUpperCase() === 'REPAY') {
           base += '&variant=repay';
         }
-        try {
-          var ret = (window.location && window.location.href) ? String(window.location.href).split('#')[0] : '';
-          if (ret) base += '&return=' + encodeURIComponent(ret);
-        } catch (eRet) { /* ignore */ }
+        if (ret) base += '&return=' + encodeURIComponent(ret);
         return base;
       }
 
@@ -2403,10 +2414,31 @@
           var x = new URL(cbNormalizePayHtmlHref(href), resolvedApiBase());
           var path = String(x.pathname || '');
           var low = path.toLowerCase();
+          if (low.endsWith('/split-pay-setup.html') || low === 'split-pay-setup.html' || low.indexOf('/split-pay/') >= 0) {
+            var mFromPath = '';
+            var seg = path.split('/').filter(function (s) { return s && s.length; });
+            if (seg.length && seg[seg.length - 1].toLowerCase() !== 'split-pay-setup.html' && seg.indexOf('split-pay') >= 0) {
+              var spIdx = -1;
+              for (var si = 0; si < seg.length; si++) {
+                if (seg[si].toLowerCase() === 'split-pay') { spIdx = si; break; }
+              }
+              if (spIdx >= 0 && spIdx + 1 < seg.length) mFromPath = decodeURIComponent(seg[spIdx + 1]);
+            }
+            return {
+              path: path,
+              kind: 'split',
+              m: String(x.searchParams.get('m') || mFromPath || '').trim(),
+              entry: String(x.searchParams.get('entry') || '').trim().toLowerCase(),
+              item: decodeURIComponent(String(x.searchParams.get('item') || '').replace(/\+/g, ' ')).trim(),
+              amount: String(x.searchParams.get('amount') || '').trim(),
+              currency: String(x.searchParams.get('currency') || '').trim().toUpperCase()
+            };
+          }
           if (!low.endsWith('/pay.html') && low !== 'pay.html'
               && !low.endsWith('/jpay-pay.html') && low !== 'jpay-pay.html') return null;
           return {
             path: path,
+            kind: 'pay',
             m: String(x.searchParams.get('m') || '').trim(),
             entry: String(x.searchParams.get('entry') || '').trim().toLowerCase(),
             item: decodeURIComponent(String(x.searchParams.get('item') || '').replace(/\+/g, ' ')).trim(),

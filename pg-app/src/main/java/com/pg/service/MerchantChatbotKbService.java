@@ -407,7 +407,7 @@ public class MerchantChatbotKbService {
                 + "가격·약속은 쓰지 마세요. 따옴표·제목 없이 본문 한 덩어리만 출력하세요.";
 
         List<Map<String, String>> msgs = List.of(Map.of("role", "user", "content", task));
-        String out = chatbotLlmCompletionService.completeChat(cfg, sys, msgs);
+        String out = chatbotLlmCompletionService.completeChat(cfg, sys, msgs, com.pg.util.ChatbotLlmUsage.GENERAL);
         return clampText(out, MAX_WELCOME_HINT).trim();
     }
 
@@ -440,7 +440,8 @@ public class MerchantChatbotKbService {
                 : "**판매 상품·서비스 안내**(개요) 초안을 한국어로 작성하세요. 문단 또는 짧은 글머리 기호 형태. 구체적인 가격·약속은 피하고 개요 중심. 다른 설명 없이 본문만 출력하세요.";
 
         List<Map<String, String>> msgs = List.of(Map.of("role", "user", "content", task));
-        String out = chatbotLlmCompletionService.completeChat(cfg, sys, msgs);
+        String out = chatbotLlmCompletionService.completeChat(cfg, sys, msgs,
+                intro ? com.pg.util.ChatbotLlmUsage.GENERAL : com.pg.util.ChatbotLlmUsage.CATALOG);
         return clampText(out, intro ? MAX_INTRO : MAX_PRODUCT).trim();
     }
 

@@ -134,6 +134,7 @@ public class SplitPayContractService {
                                                 Integer intervalValue,
                                                 String currencyCode,
                                                 String customerLocale,
+                                                String entryChannel,
                                                 HttpServletRequest request) {
         OrgUnit ou = resolveMerchant(compCode);
         assertSplitPayEnabled(ou.getId());
@@ -178,9 +179,11 @@ public class SplitPayContractService {
         c.setSnapSplitFixedTotal(fixedTotal);
         c.setContractDate(contractDate);
         c.setStatus(SplitPayContract.STATUS_ACTIVE);
+        c.setChannel(resolveContractChannel(entryChannel));
         contractRepository.save(c);
 
         String base = publicCustomerSiteBaseService.resolvePublicCustomerSiteBase(request).replaceAll("/+$", "");
+        String contractChannel = c.getChannel();
         List<Map<String, Object>> instRows = new ArrayList<>();
         SplitPayInstallment firstInst = null;
         for (int i = 0; i < installmentCount; i++) {
@@ -208,7 +211,7 @@ public class SplitPayContractService {
             row.put("orderNo", inst.getOrderNo());
             row.put("amount", inst.getAmount());
             row.put("dueDate", inst.getDueDateAdjusted().toString());
-            row.put("payUrl", base + "/split-pay.html?token=" + inst.getPayToken());
+            row.put("payUrl", appendChatbotPayEntryIfNeeded(base + "/split-pay.html?token=" + inst.getPayToken(), contractChannel));
             instRows.add(row);
         }
 
@@ -217,7 +220,8 @@ public class SplitPayContractService {
         out.put("installments", instRows);
         if (firstInst != null) {
             out.put("firstPayToken", firstInst.getPayToken());
-            out.put("firstPayUrl", base + "/split-pay.html?token=" + firstInst.getPayToken());
+            out.put("firstPayUrl", appendChatbotPayEntryIfNeeded(
+                    base + "/split-pay.html?token=" + firstInst.getPayToken(), contractChannel));
             if (SplitPayContract.FIRST_LINK.equalsIgnoreCase(firstMode)) {
                 splitPayMailService.sendInstallmentLink(c, firstInst, base, "CREATE");
             }
@@ -264,6 +268,7 @@ public class SplitPayContractService {
         m.put("status", inst.getStatus());
         m.put("payToken", inst.getPayToken());
         m.put("checkoutKind", "SPLIT_PAY");
+        m.put("contractChannel", c.getChannel() != null ? c.getChannel() : "URL");
         String opPg = chillPayService.resolveUrlPayOperationalPgCd(c.getOrgUnitId());
         m.put("operationalPgCd", opPg != null ? opPg : "");
         m.put("checkoutPage", SplitPayCheckoutPageUtil.resolveCheckoutPage(opPg));
@@ -375,6 +380,30 @@ public class SplitPayContractService {
 
     private static String newToken() {
         return UUID.randomUUID().toString().replace("-", "");
+    }
+
+    static String resolveContractChannel(String entryChannel) {
+        if (entryChannel == null || entryChannel.isBlank()) {
+            return "URL";
+        }
+        String v = entryChannel.trim().toLowerCase(Locale.ROOT);
+        if ("chatbot".equals(v) || "CHATBOT".equalsIgnoreCase(entryChannel.trim())) {
+            return "CHATBOT";
+        }
+        return "URL";
+    }
+
+    static String appendChatbotPayEntryIfNeeded(String payUrl, String contractChannel) {
+        if (payUrl == null || payUrl.isBlank()) {
+            return payUrl;
+        }
+        if (contractChannel == null || !"CHATBOT".equalsIgnoreCase(contractChannel.trim())) {
+            return payUrl;
+        }
+        if (payUrl.contains("entry=chatbot")) {
+            return payUrl;
+        }
+        return payUrl + (payUrl.contains("?") ? "&" : "?") + "entry=chatbot";
     }
 
     private static String yn(String v) {

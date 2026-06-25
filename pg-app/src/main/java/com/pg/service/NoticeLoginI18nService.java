@@ -44,7 +44,8 @@ public class NoticeLoginI18nService {
             String system = buildSystemPrompt();
             String userMsg = "TITLE:\n" + t + "\n\nBODY:\n" + b;
             List<Map<String, String>> dialogue = List.of(Map.of("role", "user", "content", userMsg));
-            String reply = chatbotLlmCompletionService.completeChat(rawConfig, system, dialogue);
+            String reply = chatbotLlmCompletionService.completeChat(rawConfig, system, dialogue,
+                    com.pg.util.ChatbotLlmUsage.PLATFORM);
             String json = extractJsonObject(reply);
             if (json != null && validateShape(json)) {
                 return json;

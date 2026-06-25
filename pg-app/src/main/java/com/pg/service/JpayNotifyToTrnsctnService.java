@@ -17,6 +17,7 @@ import com.pg.util.JpayBuyerContactApplier;
 import com.pg.util.JpaySignatureUtil;
 import com.pg.util.JpayNotifyStatusResolver;
 import com.pg.util.JpayTransactionIdApplier;
+import com.pg.util.TxnOutcomeReasonApplier;
 import com.pg.util.NotifyToTxnStatusMerge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +58,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
     private final SettlementArrearsService settlementArrearsService;
     private final SplitPayPaymentHookService splitPayPaymentHookService;
     private final MerchantOutboundNotifyService merchantOutboundNotifyService;
+    private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
 
     public JpayNotifyToTrnsctnService(PgTrnsctnRepository pgTrnsctnRepository,
                                       PgAgencyRepository pgAgencyRepository,
@@ -66,7 +68,8 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
                                       NotifyIdempotencyLock notifyIdempotencyLock,
                                       SettlementArrearsService settlementArrearsService,
                                       SplitPayPaymentHookService splitPayPaymentHookService,
-                                      MerchantOutboundNotifyService merchantOutboundNotifyService) {
+                                      MerchantOutboundNotifyService merchantOutboundNotifyService,
+                                      OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.settlementCalcService = settlementCalcService;
@@ -76,6 +79,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         this.settlementArrearsService = settlementArrearsService;
         this.splitPayPaymentHookService = splitPayPaymentHookService;
         this.merchantOutboundNotifyService = merchantOutboundNotifyService;
+        this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
     }
 
     @Override
@@ -205,6 +209,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         }
         t.setStatus(merged);
         t.setChillPaymentStatus(JpayNotifyStatusResolver.chillPaymentStatusLabel(merged, ret));
+        Optional<String> recordedReason = TxnOutcomeReasonApplier.applyFromJpayNotifyForm(t, prevStatus, merged, form);
         applyPaidAtForNotifyOutcome(t, merged);
         if (t.getSettledYn() == null || t.getSettledYn().isBlank()) {
             t.setSettledYn("N");
@@ -220,6 +225,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         JpayBuyerContactApplier.mergeFromNotifyForm(t, form);
 
         pgTrnsctnRepository.save(t);
+        outcomeReasonWarmCoordinator.onRecorded(recordedReason);
         hookSplitPayInstallment(t);
         try {
             settlementArrearsService.registerPostSettlementRecoveryIfDue(prevStatus, prevSettledYn, t);
@@ -269,6 +275,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
             return false;
         }
         PgTrnsctn t = ex.get();
+        String prevStatus = t.getStatus();
         JpayTransactionIdApplier.apply(t, first(form, "transaction_id"));
         t.setNotifyChannelType(ch);
         String next = JpayNotifyStatusResolver.resolve(ret, first(form, "_middleware_manualfollowup"), paySt);
@@ -281,9 +288,11 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         }
         t.setStatus(merged);
         t.setChillPaymentStatus(JpayNotifyStatusResolver.chillPaymentStatusLabel(merged, ret));
+        Optional<String> recordedReason2 = TxnOutcomeReasonApplier.applyFromJpayNotifyForm(t, prevStatus, merged, form);
         applyPaidAtForNotifyOutcome(t, merged);
         JpayBuyerContactApplier.mergeFromNotifyForm(t, form);
         pgTrnsctnRepository.save(t);
+        outcomeReasonWarmCoordinator.onRecorded(recordedReason2);
         hookSplitPayInstallment(t);
         if (ST_PAID.equals(merged)) {
             try {

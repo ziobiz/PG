@@ -616,8 +616,7 @@ public class MerchantProfile {
 
     public String getChatbotUrlPayCheckoutMode() { return chatbotUrlPayCheckoutMode; }
     public void setChatbotUrlPayCheckoutMode(String chatbotUrlPayCheckoutMode) {
-        this.chatbotUrlPayCheckoutMode = chatbotUrlPayCheckoutMode != null && !chatbotUrlPayCheckoutMode.isBlank()
-                ? chatbotUrlPayCheckoutMode.trim().toUpperCase(java.util.Locale.ROOT) : "STANDARD";
+        this.chatbotUrlPayCheckoutMode = com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(chatbotUrlPayCheckoutMode);
     }
     public String getChatbotPaymentUseYn() { return chatbotPaymentUseYn; }
     public void setChatbotPaymentUseYn(String chatbotPaymentUseYn) { this.chatbotPaymentUseYn = chatbotPaymentUseYn; }

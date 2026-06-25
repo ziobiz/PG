@@ -1,0 +1,30 @@
+unzip -p /home/ftpuser/pg-app/build/libs/pg-app-0.0.1-SNAPSHOT.jar \
+  BOOT-INF/classes/scripts/jpay-portal-export.js \
+  > /home/ftpuser/pg-app/scripts/jpay-portal-export.js
+
+
+grep SCRIPT_VERSION /home/ftpuser/pg-app/scripts/jpay-portal-export.js
+grep "panel not found" /home/ftpuser/pg-app/scripts/jpay-portal-export.js
+grep "drawer not found" /home/ftpuser/pg-app/scripts/jpay-portal-export.js
+
+
+cd /home/ftpuser/pg-app/scripts
+export JPAY_PORTAL_USER='jjpy2ds@cardrole.com'
+export JPAY_PORTAL_PASSWORD='Ht0*Zy2v'
+export JPAY_EXPORT_HEADED=1
+export JPAY_SKIP_DATE=1
+
+xvfb-run -a node jpay-portal-export.js \
+  --from=2026-06-23 --to=2026-06-23 --out=/tmp/jpay-test.xlsx
+
+
+cd /home/ftpuser/pg-app
+pkill -f "pg-app-0.0.1-SNAPSHOT.jar" || true
+sleep 2
+export DB_HOST=localhost
+export DB_USER=pgadmin
+export DB_PASSWORD='line2025!@'
+export SPRING_PROFILES_ACTIVE=prod
+export PG_SCRIPTS_DIR=/home/ftpuser/pg-app/scripts
+nohup java -jar build/libs/pg-app-0.0.1-SNAPSHOT.jar \
+  --spring.profiles.active=prod --server.port=8080 >> pg-app.log 2>&1 &

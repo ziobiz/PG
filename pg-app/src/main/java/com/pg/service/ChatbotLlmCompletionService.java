@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.pg.util.ChatbotLlmProviderOrderUtil;
+import com.pg.util.ChatbotLlmUsage;
+import com.pg.util.LlmProviderSlot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -52,29 +55,121 @@ public class ChatbotLlmCompletionService {
         this.mapper = mapper;
     }
 
+    /**
+     * 결제내역 처리사유 번역 — ICOPAY 그외 서비스 순위의 2순위 → 1순위. 모두 실패 시 {@code null}(호출부가 원문 유지).
+     */
+    public String translateOutcomeReason(Map<String, Object> rawAiConfig, String text, String targetLanguageName) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+        if (targetLanguageName == null || targetLanguageName.isBlank()) {
+            return null;
+        }
+        List<LlmProviderSlot> slots = ChatbotLlmProviderOrderUtil.resolveOrderSlots(rawAiConfig, ChatbotLlmUsage.PLATFORM);
+        List<LlmProviderSlot> trySlots = outcomeReasonSlotTryOrder(slots, rawAiConfig);
+        if (trySlots.isEmpty()) {
+            return null;
+        }
+        String system = "You translate payment-gateway failure/cancel/refund messages for admin staff. "
+                + "Output ONLY the translated text in " + targetLanguageName
+                + ". No quotes, labels, or explanation.";
+        String user = text.trim();
+        Exception last = null;
+        for (LlmProviderSlot slot : trySlots) {
+            try {
+                String reply = invokeProvider(slot, rawAiConfig, system,
+                        List.of(Map.of("role", "user", "content", user)));
+                if (reply != null && !reply.isBlank()) {
+                    return reply.trim();
+                }
+                log.warn("outcome reason translate provider={} model={} returned empty",
+                        slot.provider(), slot.resolvedModel(rawAiConfig));
+            } catch (Exception e) {
+                last = e;
+                log.warn("outcome reason translate provider={} failed: {}", slot.provider(), abbrev(e.getMessage(), 500));
+            }
+        }
+        if (last != null) {
+            log.debug("outcome reason translate exhausted providers: {}", abbrev(last.getMessage(), 200));
+        }
+        return null;
+    }
+
+    /**
+     * 처리사유 번역용 시도 순서 — 설정 순위의 2순위 → 1순위(비사용·키 없음은 제외).
+     */
+    public static List<LlmProviderSlot> outcomeReasonSlotTryOrder(List<LlmProviderSlot> order, Map<String, Object> cfg) {
+        List<LlmProviderSlot> available = filterAvailableSlots(order != null ? order : List.of(), cfg);
+        List<LlmProviderSlot> tryOrder = new ArrayList<>(2);
+        if (available.size() >= 2) {
+            tryOrder.add(available.get(1));
+            tryOrder.add(available.get(0));
+        } else if (available.size() == 1) {
+            tryOrder.add(available.get(0));
+        }
+        return tryOrder;
+    }
+
+    /** @deprecated {@link #outcomeReasonSlotTryOrder(List, Map)} */
+    @Deprecated
+    public static List<String> outcomeReasonProviderTryOrder(List<String> orderRaw, Map<String, Object> cfg) {
+        List<LlmProviderSlot> slots = new ArrayList<>();
+        if (orderRaw != null) {
+            for (String prov : orderRaw) {
+                slots.add(new LlmProviderSlot(prov, LlmProviderSlot.defaultModelForProvider(prov, cfg)));
+            }
+        }
+        List<String> out = new ArrayList<>();
+        for (LlmProviderSlot slot : outcomeReasonSlotTryOrder(slots, cfg)) {
+            out.add(slot.provider());
+        }
+        return out;
+    }
+
+    private static List<LlmProviderSlot> filterAvailableSlots(List<LlmProviderSlot> order, Map<String, Object> cfg) {
+        List<LlmProviderSlot> available = new ArrayList<>();
+        for (LlmProviderSlot slot : order) {
+            if (slot == null || !slot.isUsable()) {
+                continue;
+            }
+            if (isProviderDisabled(slot.provider(), cfg)) {
+                continue;
+            }
+            if (!providerHasApiKey(slot.provider(), cfg)) {
+                continue;
+            }
+            available.add(slot);
+        }
+        return available;
+    }
+
     public String completeChat(Map<String, Object> rawAiConfig,
                                String systemPrompt,
                                List<Map<String, String>> dialogueMessages) throws Exception {
+        return completeChat(rawAiConfig, systemPrompt, dialogueMessages, ChatbotLlmUsage.CATALOG);
+    }
+
+    public String completeChat(Map<String, Object> rawAiConfig,
+                               String systemPrompt,
+                               List<Map<String, String>> dialogueMessages,
+                               ChatbotLlmUsage usage) throws Exception {
         if (systemPrompt == null) {
             systemPrompt = "";
         }
         List<Map<String, String>> trimmed = trimMessages(dialogueMessages, 24);
-        @SuppressWarnings("unchecked")
-        List<String> orderRaw = rawAiConfig.get("report_provider_order") instanceof List<?> ls
-                ? (List<String>) rawAiConfig.get("report_provider_order")
-                : List.of();
-        List<String> order = normalizeOrder(orderRaw);
-        ArrayDeque<String> queue = new ArrayDeque<>();
-        for (String prov : order) {
-            if (isProviderDisabled(prov, rawAiConfig)) {
-                log.debug("chatbot llm skip provider={} (disabled in HQ AI settings)", prov);
+        List<LlmProviderSlot> slots = ChatbotLlmProviderOrderUtil.resolveOrderSlots(rawAiConfig,
+                usage != null ? usage : ChatbotLlmUsage.CATALOG);
+        ArrayDeque<LlmProviderSlot> queue = new ArrayDeque<>();
+        for (LlmProviderSlot slot : slots) {
+            if (isProviderDisabled(slot.provider(), rawAiConfig)) {
+                log.debug("chatbot llm skip provider={} (disabled in HQ AI settings)", slot.provider());
                 continue;
             }
-            if (!providerHasApiKey(prov, rawAiConfig)) {
-                log.debug("chatbot llm skip provider={} (no API key configured)", prov);
+            if (!providerHasApiKey(slot.provider(), rawAiConfig)) {
+                log.debug("chatbot llm skip provider={} (no API key configured)", slot.provider());
                 continue;
             }
-            queue.addLast(prov);
+            queue.addLast(slot);
         }
         if (queue.isEmpty()) {
             throw new IllegalStateException(
@@ -85,19 +180,20 @@ public class ChatbotLlmCompletionService {
         Exception last = null;
         int invokedWithKey = 0;
         while (!queue.isEmpty() && invokedWithKey < maxAttempts) {
-            String prov = queue.pollFirst();
+            LlmProviderSlot slot = queue.pollFirst();
             invokedWithKey++;
             try {
-                String reply = invokeProvider(prov, rawAiConfig, systemPrompt, trimmed);
+                String reply = invokeProvider(slot, rawAiConfig, systemPrompt, trimmed);
                 if (reply != null && !reply.isBlank()) {
                     return reply.trim();
                 }
-                log.warn("chatbot llm provider={} returned empty completion", prov);
+                log.warn("chatbot llm provider={} model={} returned empty completion",
+                        slot.provider(), slot.resolvedModel(rawAiConfig));
             } catch (Exception e) {
                 last = e;
-                log.warn("chatbot llm provider={} failed: {}", prov, abbrev(e.getMessage(), 500));
+                log.warn("chatbot llm provider={} failed: {}", slot.provider(), abbrev(e.getMessage(), 500));
                 if (shouldRotateProviderForHybrid(e) && !queue.isEmpty()) {
-                    queue.addLast(prov);
+                    queue.addLast(slot);
                 }
             }
         }
@@ -192,8 +288,23 @@ public class ChatbotLlmCompletionService {
         return out;
     }
 
+    private String invokeProvider(LlmProviderSlot slot,
+                                  Map<String, Object> cfg,
+                                  String systemPrompt,
+                                  List<Map<String, String>> messages) throws Exception {
+        return invokeProvider(slot.provider(), cfg, slot.resolvedModel(cfg), systemPrompt, messages);
+    }
+
     private String invokeProvider(String provider,
                                   Map<String, Object> cfg,
+                                  String systemPrompt,
+                                  List<Map<String, String>> messages) throws Exception {
+        return invokeProvider(provider, cfg, null, systemPrompt, messages);
+    }
+
+    private String invokeProvider(String provider,
+                                  Map<String, Object> cfg,
+                                  String modelOverride,
                                   String systemPrompt,
                                   List<Map<String, String>> messages) throws Exception {
         return switch (provider) {
@@ -201,24 +312,24 @@ public class ChatbotLlmCompletionService {
                     "groq",
                     "https://api.groq.com/openai/v1/chat/completions",
                     stringVal(cfg.get("report_groq_api_key")),
-                    firstNonBlank(stringVal(cfg.get("report_groq_model")), "llama-3.1-8b-instant"),
+                    firstNonBlank(modelOverride, "llama-3.1-8b-instant"),
                     systemPrompt,
                     messages);
             case "openai" -> openAiCompatible(
                     "openai",
                     "https://api.openai.com/v1/chat/completions",
                     stringVal(cfg.get("report_openai_api_key")),
-                    firstNonBlank(stringVal(cfg.get("report_openai_model")), "gpt-4o-mini"),
+                    firstNonBlank(modelOverride, "gpt-4o-mini"),
                     systemPrompt,
                     messages);
             case "anthropic" -> anthropic(
                     stringVal(cfg.get("report_anthropic_api_key")),
-                    firstNonBlank(stringVal(cfg.get("report_anthropic_model")), "claude-3-5-sonnet-20241022"),
+                    firstNonBlank(modelOverride, "claude-3-5-sonnet-20241022"),
                     systemPrompt,
                     messages);
             case "gemini" -> gemini(
                     stringVal(cfg.get("report_gemini_api_key")),
-                    firstNonBlank(stringVal(cfg.get("report_gemini_model")), "gemini-3-flash-preview"),
+                    firstNonBlank(modelOverride, "gemini-3.5-flash"),
                     systemPrompt,
                     messages);
             default -> throw new IllegalArgumentException("unknown provider " + provider);

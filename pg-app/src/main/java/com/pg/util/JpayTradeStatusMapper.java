@@ -19,6 +19,7 @@ public final class JpayTradeStatusMapper {
             case "SUCCESS", "SUCCEEDED", "PAID" -> PgNotifyInternalStatusMapper.ST_PAID;
             case "REFUND", "REFUNDED" -> PgNotifyInternalStatusMapper.ST_REFUND;
             case "FAIL", "FAILED" -> PgNotifyInternalStatusMapper.ST_FAIL;
+            case "UNPAID" -> PgNotifyInternalStatusMapper.ST_CANCEL;
             default -> null;
         };
     }
@@ -44,9 +45,23 @@ public final class JpayTradeStatusMapper {
             return PgNotifyInternalStatusMapper.ST_FAIL;
         }
         if (t.contains("unpaid")) {
-            return "08";
+            return PgNotifyInternalStatusMapper.ST_CANCEL;
         }
         return null;
+    }
+
+    /** JPAY 포털·API 매핑 후 {@code chillPaymentStatus} / returncode 표시용 */
+    public static String returnCodeForInternalStatus(String internalStatus) {
+        if (internalStatus == null || internalStatus.isBlank()) {
+            return "";
+        }
+        return switch (internalStatus.trim()) {
+            case PgNotifyInternalStatusMapper.ST_PAID -> "00";
+            case PgNotifyInternalStatusMapper.ST_CANCEL -> "08";
+            case PgNotifyInternalStatusMapper.ST_REFUND, "31" -> "09";
+            case PgNotifyInternalStatusMapper.ST_FAIL -> "2";
+            default -> "";
+        };
     }
 
     private static boolean isYes(String raw) {

@@ -1160,6 +1160,7 @@
     masterDistBaseCur: { EN: 'Dist. base ccy', JP: '総販基準通貨', CH: '总代基准货币', TH: 'สกุลฐานตัวแทนหลัก' },
     merchantBaseCur: { EN: 'Merchant base ccy', JP: '加盟店基準通貨', CH: '商户基准货币', TH: 'สกุลฐานร้านค้า' },
     chillPaymentStatus: { EN: 'Status', JP: '状態', CH: '状态', TH: 'สถานะ' },
+    outcomeReasonPreview: { EN: 'Outcome reason', JP: '処理理由', CH: '处理原因', TH: 'เหตุผลการดำเนินการ' },
     statusNm: { EN: 'Status', JP: '状態', CH: '状态', TH: 'สถานะ' },
     amount: { EN: 'Payment amount', JP: '決済金額', CH: '支付金额', TH: 'ยอดชำระ' },
     payCur: { EN: 'Pay ccy', JP: '決済通貨', CH: '支付币种', TH: 'สกุลชำระ' },

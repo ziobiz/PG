@@ -1,0 +1,212 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICOPAY 运营者设置手册 — 本部</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Microsoft YaHei', 'PingFang SC', 'SimHei', sans-serif; font-size: 11pt; line-height: 1.8; color: #1a1a1a; background: #f0f2f8; }
+  .page-wrap { max-width: 900px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 18px rgba(0,0,0,.11); overflow: hidden; }
+  .cover { background: linear-gradient(135deg, #1a3a5c 0%, #1976d2 55%, #42a5f5 100%); color: #fff; padding: 48px 52px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+  .cover-body { flex: 1; }
+  .cover-logo { flex-shrink: 0; display: flex; align-items: flex-start; padding-top: 4px; }
+  .cover-logo img { height: 64px; background: rgba(255,255,255,.92); padding: 10px 18px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.20); }
+  .cover .logo-line { font-size: 13pt; font-weight: 700; letter-spacing: 2px; opacity: .85; margin-bottom: 14px; }
+  .cover h1 { font-size: 22pt; font-weight: 900; line-height: 1.32; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 11pt; opacity: .82; margin-bottom: 24px; }
+  .cover .meta { font-size: 9.5pt; opacity: .65; border-top: 1px solid rgba(255,255,255,.25); padding-top: 14px; }
+  .body { padding: 44px 52px 64px; }
+  .toc { background: #f0f4ff; border-left: 4px solid #1565c0; border-radius: 0 8px 8px 0; padding: 20px 26px; margin-bottom: 44px; }
+  .toc h2 { font-size: 12pt; font-weight: 700; color: #1565c0; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { font-size: 10pt; line-height: 2.2; color: #1a3a5c; }
+  .toc a { color: #1565c0; text-decoration: none; }
+  h2.section-title { font-size: 14pt; font-weight: 800; color: #1a3a5c; border-bottom: 2.5px solid #1565c0; padding-bottom: 7px; margin: 48px 0 18px; page-break-after: avoid; }
+  h3.sub-title { font-size: 12pt; font-weight: 700; color: #1565c0; margin: 26px 0 10px; }
+  p { margin-bottom: 10px; }
+  .info-box { background: #e3f0ff; border: 1px solid #90caf9; border-left: 4px solid #1565c0; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1a3a5c; }
+  .warn-box { background: #fff8e1; border: 1px solid #ffe082; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #5d4037; }
+  .check-box { background: #e8f5e9; border: 1px solid #a5d6a7; border-left: 4px solid #2e7d32; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1b5e20; }
+  .block-box { background: #fce4ec; border: 1px solid #f48fb1; border-left: 4px solid #c62828; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #b71c1c; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 22px; font-size: 10pt; page-break-inside: avoid; }
+  th { background: #1a3a5c; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #12274a; }
+  td { padding: 8px 12px; border: 1px solid #cfd8dc; vertical-align: middle; }
+  tr:nth-child(even) td { background: #f4f7ff; }
+  .menu-path { display: inline-block; background: #eceff1; border: 1px solid #cfd8dc; border-radius: 5px; padding: 3px 12px; font-size: 9.5pt; color: #37474f; font-weight: 600; margin-bottom: 12px; }
+  .menu-path::before { content: "📌 菜单: "; }
+  .flow { background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; padding: 18px 22px; margin: 14px 0 20px; font-size: 10pt; page-break-inside: avoid; }
+  .flow-row { display: flex; align-items: flex-start; margin-bottom: 6px; }
+  .flow-num { display: inline-block; min-width: 28px; font-weight: 800; color: #1565c0; flex-shrink: 0; }
+  .flow-desc { color: #37474f; }
+  .faq-item { border: 1px solid #e0e6f0; border-radius: 8px; margin-bottom: 14px; }
+  .faq-q { background: #e8edf8; padding: 11px 16px; font-weight: 700; font-size: 10.5pt; color: #1a3a5c; border-radius: 8px 8px 0 0; }
+  .faq-q::before { content: "问: "; color: #1565c0; }
+  .faq-a { padding: 11px 16px; font-size: 10pt; color: #37474f; background: #fff; border-radius: 0 0 8px 8px; }
+  .faq-a::before { content: "答: "; font-weight: 700; color: #2e7d32; }
+  hr.rule { border: none; border-top: 1px dashed #c5cae9; margin: 40px 0; }
+  ul, ol { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+  .footer { background: #1a3a5c; color: rgba(255,255,255,.6); text-align: center; font-size: 9pt; padding: 18px 24px; }
+  @media print { body { background: #fff; } .page-wrap { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; } .footer { display: none; } @page { size: A4; margin: 18mm 16mm; } }
+</style>
+</head>
+<body>
+<style id="print-btn-style">
+  .print-btn { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #1565c0; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 10.5pt; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(21,101,192,.45); display: flex; align-items: center; gap: 9px; transition: background .18s, box-shadow .18s; text-decoration: none; }
+  .print-btn:hover { background: #0d47a1; box-shadow: 0 6px 20px rgba(13,71,161,.5); }
+  @media print { .print-btn { display: none !important; } }
+</style>
+<button class="print-btn" onclick="window.print()">🖨️ 打印 / 保存为PDF</button>
+<div class="page-wrap">
+  <div class="cover">
+    <div class="cover-body">
+      <div class="logo-line">ICOPAY · Payment Gateway</div>
+      <h1>运营者设置手册<br>本部管理员</h1>
+      <div class="subtitle">本部管理员指南 — 商家注册、网页支付、订阅、再购买、分期付款及聊天机器人支付设置</div>
+      <div class="meta">参考: ICOPAY 总部权限设置 — 本部角色 &nbsp;|&nbsp; 适用对象: 本部管理员 &nbsp;|&nbsp; 发布: 2026年6月</div>
+    </div>
+    <div class="cover-logo"><img src="./logo-ontheline.png" alt="On The Line"></div>
+  </div>
+  <div class="body">
+    <div class="block-box" style="margin-bottom:36px;">
+      <strong>🔒 本部管理员访问限制说明</strong><br><br>
+      本部管理员无法访问以下菜单，如需使用请联系总本部超级管理员。<br><br>
+      <ul style="margin:6px 0 0; padding-left:18px;">
+        <li><strong>总部设置</strong> — 无权限访问所有菜单</li>
+        <li><strong>结算管理</strong> — 综合结算、执行结算、分发结算、待处理结算：无权限</li>
+        <li><strong>通知管理</strong> — 无权限访问所有菜单（含通知URL、警报设置）</li>
+        <li><strong>用户管理</strong> — 菜单项目顺序管理：无权限</li>
+        <li><strong>运营管理</strong> — 运营管理、TAX报告、验证报告、代理交易记录：无权限</li>
+        <li><strong>部署设置</strong> — 仅API文档可访问，其余均无权限</li>
+        <li><strong>分期付款管理</strong> — 邮件设置：无权限</li>
+      </ul>
+    </div>
+    <div class="toc">
+      <h2>📋 目录</h2>
+      <ul>
+        <li><a href="#merchant">1. 商家注册</a></li>
+
+        <li><a href="#fee">2. 费率设置</a></li>
+        <li><a href="#webpay">3. 网页支付设置</a></li>
+        <li><a href="#subscribe">4. 订阅支付设置</a></li>
+        <li><a href="#repurchase">5. 再购买支付设置</a></li>
+        <li><a href="#splitpay">6. URL分期付款设置</a></li>
+        <li><a href="#chatbot">7. 聊天机器人支付设置</a></li>
+      </ul>
+    </div>
+    <hr class="rule">
+    <h2 class="section-title" id="merchant">1. 商家注册</h2>
+    <span class="menu-path">商家管理 &gt; 注册商家 / 商家信息</span>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">进入商家管理 &gt; 注册商家</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">填写基本信息 — 名称、营业执照、法人代表、联系、邮箱、地址</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">配置结算 — 周期、手续费率、银行账户</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">启用所需支付服务</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc">保存 → 商家代码生成 → 创建账号通知商家</span></div>
+    </div>
+    <div class="info-box">设为 <code>Y</code> 后商家门户显示URL，<code>N</code> 则隐藏。</div>
+    <div class="warn-box"><strong>注意：</strong>用户管理内的菜单项目顺序管理为总本部专属。</div>
+    <hr class="rule">
+
+    
+    <!-- ══════════════════════════════════════════
+         2. 费率设置
+    ══════════════════════════════════════════ -->
+    <h2 class="section-title" id="fee">2. 费率设置</h2>
+
+    <p>ICOPAY费率体系分为两级：<strong>基础政策费率</strong>（系统全局默认）和<strong>商户个别费率</strong>（特定商户专用）。</p>
+
+    <table>
+      <tr><th>费率类型</th><th>菜单路径</th><th class="center">可访问</th></tr>
+      <tr><td>基础政策费率（系统默认值）</td><td>总部设置 &gt; 费率设置</td><td class="icon">❌</td></tr>
+      <tr><td>商户个别费率</td><td>商户管理 &gt; 费率管理</td><td class="icon">✅</td></tr>
+    </table>
+
+    <div class="block-box">
+      <strong>🔒 无法访问基础政策费率（总部设置 &gt; 费率设置）</strong><br>
+      总部设置菜单仅限超级管理员使用。如需更改基础费率政策，请联系超级管理员。
+    </div>
+
+    <h3 class="sub-title">2-1. 商户个别费率设置</h3>
+    <span class="menu-path">商户管理 &gt; 费率管理</span>
+    <p>设置仅适用于特定商户的个别费率。用于需要与基础政策费率不同条件的商户。</p>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc"><strong>商户管理 &gt; 费率管理</strong> 进入菜单</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">选择要设置费率的商户</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">按支付方式输入个别费率</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">设置适用期间（开始日期·结束日期）（可设置限时优惠费率）</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc">保存 → 即时适用于该商户</span></div>
+    </div>
+    <table>
+      <thead><tr><th>项目</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>商户个别费率</td><td>与基础政策不同的个别费率（%）</td></tr>
+        <tr><td>各支付方式设置</td><td>信用卡·电子钱包·QR各支付方式的个别适用</td></tr>
+        <tr><td>适用期间设置</td><td>设置限时费率条件</td></tr>
+        <tr><td>费率变更历史查询</td><td>确认商户费率变更历史</td></tr>
+      </tbody>
+    </table>
+    <div class="info-box">
+      商户个别费率一旦登记，将<strong>优先于</strong>基础政策费率执行。
+      未登记个别费率的商户将自动适用基础政策费率。
+    </div>
+
+    <hr class="rule">
+    
+    <h2 class="section-title" id="webpay">3. 网页支付设置</h2>
+    <span class="menu-path">商家管理 &gt; 商家信息 &gt; 支付设置选项卡</span>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">选择商家 → 将 启用网页支付 设为 <code>Y</code> → 保存</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">URL自动生成 → 告知商家</span></div>
+    </div>
+    <div class="block-box"><strong>🔒 通知URL设置仅限总本部超级管理员。</strong><br>本部无法访问通知管理，如需修改请联系总本部。</div>
+    <hr class="rule">
+    <h2 class="section-title" id="subscribe">4. 订阅支付设置</h2>
+    <span class="menu-path">商家管理 &gt; 商家信息 &gt; 支付设置选项卡</span>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">将 启用订阅支付 设为 <code>Y</code> 并保存</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">配置计划：名称、计费周期（月/年）、金额、货币</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">将订阅URL分享给商家</span></div>
+    </div>
+    <hr class="rule">
+    <h2 class="section-title" id="repurchase">5. 再购买支付设置</h2>
+    <p>允许客户复用已保存的支付令牌，无需重新输入卡片信息即可完成新支付。</p>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">将 启用再购买支付 设为 <code>Y</code> 并保存</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">结账页显示"用已保存的卡支付"选项</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">客户选择再购买 → 立即使用令牌完成支付</span></div>
+    </div>
+    <div class="warn-box"><strong>安全提示：</strong>令牌按PCI-DSS加密存储，不保存实际卡号。</div>
+    <hr class="rule">
+    <h2 class="section-title" id="splitpay">6. URL分期付款设置</h2>
+    <span class="menu-path">分期付款管理</span>
+    <div class="block-box"><strong>🔒 分期付款管理 &gt; 邮件设置仅限总本部超级管理员。</strong></div>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">将 启用分期付款 设为 <code>Y</code> 并保存</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">创建分期合同（金额、期数、截止日期）</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">向客户发送每期支付URL</span></div>
+    </div>
+    <hr class="rule">
+    <h2 class="section-title" id="chatbot">7. 聊天机器人支付设置</h2>
+    <span class="menu-path">聊天机器人管理</span>
+    <div class="check-box"><strong>✅ 聊天机器人管理本部管理员可完全访问（含删除）。</strong></div>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">将 启用聊天机器人支付 设为 <code>Y</code> 并保存</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">聊天机器人管理 → 选择商家 → 选择运营模式 → 设置槽位上限</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">将聊天机器人URL告知商家</span></div>
+    </div>
+    <div class="block-box"><strong>🔒 LINE Notify和邮件通知设置仅限总本部超级管理员。</strong></div>
+    <hr class="rule">
+    <h2 class="section-title">常见问题（FAQ）</h2>
+    <div class="faq-item"><div class="faq-q">通知管理菜单不可见。</div><div class="faq-a">通知管理为总本部专属。如需修改Notify URL请联系总本部。</div></div>
+    <div class="faq-item"><div class="faq-q">商家看不到支付URL。</div><div class="faq-a">确认商家信息中该服务已设为 <code>Y</code>。</div></div>
+    <div class="faq-item"><div class="faq-q">无法继续添加聊天机器人商品。</div><div class="faq-a">已达槽位上限，在商家信息中增加槽位数量。</div></div>
+    <div class="faq-item"><div class="faq-q">在哪里查看API文档？</div><div class="faq-a">部署设置 &gt; API文档，所有角色均可访问。</div></div>
+  </div>
+  <div class="footer">ICOPAY Payment Gateway · 运营者设置手册（本部管理员） · 2026年6月发行</div>
+</div>
+</body>
+</html>
+
+

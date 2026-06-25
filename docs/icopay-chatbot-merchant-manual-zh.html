@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICOPAY 聊天机器人支付 商家使用手册</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Microsoft YaHei', 'PingFang SC', 'Noto Sans SC', sans-serif; font-size: 11pt; line-height: 1.8; color: #1a1a1a; background: #f5f6fa; }
+  .page-wrap { max-width: 860px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 16px rgba(0,0,0,.10); overflow: hidden; }
+  .cover { background: linear-gradient(135deg, #1a3a5c 0%, #1565c0 60%, #1e88e5 100%); color: #fff; padding: 48px 52px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+  .cover-body { flex: 1; }
+  .cover-logo { flex-shrink: 0; display: flex; align-items: flex-start; padding-top: 4px; }
+  .cover-logo img { height: 64px; background: rgba(255,255,255,0.92); padding: 10px 18px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.20); }
+  .cover .logo-line { font-size: 13pt; font-weight: 700; letter-spacing: 2px; opacity: .85; margin-bottom: 14px; }
+  .cover h1 { font-size: 24pt; font-weight: 900; line-height: 1.3; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 11pt; opacity: .82; margin-bottom: 24px; }
+  .cover .meta { font-size: 9.5pt; opacity: .65; border-top: 1px solid rgba(255,255,255,.25); padding-top: 14px; }
+  .body { padding: 44px 52px 60px; }
+  .toc { background: #f0f4ff; border-left: 4px solid #1565c0; border-radius: 0 8px 8px 0; padding: 20px 26px; margin-bottom: 40px; }
+  .toc h2 { font-size: 12pt; font-weight: 700; color: #1565c0; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { font-size: 10pt; line-height: 2.1; color: #1a3a5c; }
+  .toc a { color: #1565c0; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  h2.section-title { font-size: 15pt; font-weight: 800; color: #1a3a5c; border-bottom: 2.5px solid #1565c0; padding-bottom: 7px; margin: 42px 0 16px; page-break-after: avoid; }
+  h3.sub-title { font-size: 12pt; font-weight: 700; color: #1565c0; margin: 24px 0 10px; page-break-after: avoid; }
+  p { margin-bottom: 10px; }
+  .info-box { background: #e3f0ff; border: 1px solid #90caf9; border-left: 4px solid #1565c0; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1a3a5c; }
+  .warn-box { background: #fff8e1; border: 1px solid #ffe082; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #5d4037; }
+  .check-box { background: #e8f5e9; border: 1px solid #a5d6a7; border-left: 4px solid #2e7d32; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1b5e20; }
+  .hq-box { background: #fce4ec; border: 1px solid #f48fb1; border-left: 4px solid #c62828; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #b71c1c; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 20px; font-size: 10pt; page-break-inside: avoid; }
+  th { background: #1565c0; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #1245a0; }
+  td { padding: 8px 12px; border: 1px solid #cfd8dc; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f7ff; }
+  td.center, th.center { text-align: center; }
+  .perm-full { display: inline-block; background: #2e7d32; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 7px; border-radius: 4px; }
+  .perm-view { display: inline-block; background: #1565c0; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 7px; border-radius: 4px; }
+  .perm-none { display: inline-block; background: #9e9e9e; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 7px; border-radius: 4px; }
+  pre { background: #1e2a38; color: #cdd9e5; font-family: 'Consolas', monospace; font-size: 9.5pt; line-height: 1.6; padding: 16px 20px; border-radius: 8px; margin: 12px 0 18px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; page-break-inside: avoid; }
+  code { background: #e8edf5; color: #c0392b; font-family: 'Consolas', monospace; font-size: 9pt; padding: 1px 5px; border-radius: 3px; }
+  .flow { background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; padding: 20px 24px; margin: 14px 0 20px; font-size: 10pt; page-break-inside: avoid; }
+  .flow-row { display: flex; align-items: flex-start; margin-bottom: 7px; }
+  .flow-actor { display: inline-block; min-width: 90px; font-weight: 700; color: #1565c0; flex-shrink: 0; }
+  .flow-arrow { color: #888; margin: 0 10px; font-size: 13pt; flex-shrink: 0; }
+  .flow-desc { color: #37474f; }
+  .step-badge { display: inline-block; background: #1565c0; color: #fff; font-weight: 800; font-size: 9pt; padding: 2px 10px; border-radius: 20px; margin-right: 8px; vertical-align: middle; }
+  .faq-item { border: 1px solid #e0e6f0; border-radius: 8px; margin-bottom: 14px; page-break-inside: avoid; }
+  .faq-q { background: #e8edf8; padding: 11px 16px; font-weight: 700; font-size: 10.5pt; color: #1a3a5c; border-radius: 8px 8px 0 0; }
+  .faq-q::before { content: "Q. "; color: #1565c0; }
+  .faq-a { padding: 11px 16px; font-size: 10pt; color: #37474f; background: #fff; border-radius: 0 0 8px 8px; }
+  .faq-a::before { content: "A. "; font-weight: 700; color: #2e7d32; }
+  .badge-req { display: inline-block; background: #e53935; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 4px; }
+  .badge-opt { display: inline-block; background: #757575; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 4px; }
+  .menu-path { display: inline-block; background: #ececec; border: 1px solid #d0d0d0; border-radius: 5px; padding: 3px 11px; font-size: 9.5pt; color: #37474f; font-weight: 600; margin-bottom: 12px; }
+  .menu-path::before { content: "📌 菜单: "; }
+  hr.section-rule { border: none; border-top: 1px dashed #c5cae9; margin: 36px 0; }
+  .footer { background: #1a3a5c; color: rgba(255,255,255,.65); text-align: center; font-size: 9pt; padding: 18px 24px; }
+  ul { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+  @media print {
+    body { background: #fff; font-size: 10pt; }
+    .page-wrap { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; }
+    .cover { padding: 28px 36px 24px; }
+    .body { padding: 28px 36px 36px; }
+    .faq-item, pre, table, .flow { page-break-inside: avoid; }
+    .footer, .no-print { display: none; }
+    @page { size: A4; margin: 18mm 16mm; }
+  }
+</style>
+</head>
+<body>
+<style id="print-btn-style">
+  .print-btn { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #1565c0; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 10.5pt; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(21,101,192,.45); display: flex; align-items: center; gap: 9px; transition: background .18s, box-shadow .18s; text-decoration: none; }
+  .print-btn:hover { background: #0d47a1; box-shadow: 0 6px 20px rgba(13,71,161,.5); }
+  @media print { .print-btn { display: none !important; } }
+</style>
+<button class="print-btn" onclick="window.print()">🖨️ 打印 / 保存为PDF</button>
+<div class="page-wrap">
+  <div class="cover">
+    <div class="cover-body">
+      <div class="logo-line">ICOPAY · Payment Gateway</div>
+      <h1>聊天机器人支付<br>商家使用手册</h1>
+      <div class="subtitle">商家视角 — 商家可直接操作的一切：配置AI聊天机器人、管理商品和查看订单</div>
+      <div class="meta">参考: ICOPAY商家权限级别 &nbsp;|&nbsp; 适用对象: 使用聊天机器人支付的商家 &nbsp;|&nbsp; 发布: 2026年6月</div>
+    </div>
+    <div class="cover-logo">
+      <img src="./logo-ontheline.png" alt="On The Line">
+    </div>
+  </div>
+
+  <div class="body">
+
+    <div class="warn-box" style="margin-bottom:28px;">
+      <strong>📋 商家菜单权限概览</strong><br><br>
+      <table style="margin:8px 0 0;">
+        <tr><th>菜单</th><th class="center">权限</th><th>备注</th></tr>
+        <tr><td>商家管理 &gt; 我的公司信息</td><td class="center"><span class="perm-view">仅查看</span></td><td>可查看和复制URL/QR/脚本 / 不能修改设置</td></tr>
+        <tr><td>聊天机器人管理 &gt; 基本设置</td><td class="center"><span class="perm-full">全权限</span></td><td>商家可直接更改运营模式、业务类型、预约设置</td></tr>
+        <tr><td>聊天机器人管理 &gt; 商品管理</td><td class="center"><span class="perm-full">全权限</span></td><td>商家可直接添加、编辑、删除商品</td></tr>
+        <tr><td>聊天机器人管理 &gt; 订单管理</td><td class="center"><span class="perm-view">仅查看</span></td><td>只能查看订单 / 不能修改或删除</td></tr>
+        <tr><td>商家注册等</td><td class="center"><span class="perm-none">无权限</span></td><td>总部/经销商专用菜单</td></tr>
+      </table>
+    </div>
+
+    <div class="toc">
+      <h2>目 录</h2>
+      <ol>
+        <li><a href="#s1">什么是聊天机器人支付？</a></li>
+        <li><a href="#s2">开始之前（需要总部激活）</a></li>
+        <li><a href="#s3">STEP 1 — 查看聊天机器人信息（仅查看）</a></li>
+        <li><a href="#s4">STEP 2 — 聊天机器人基本设置（商家自主操作）</a></li>
+        <li><a href="#s5">STEP 3 — 商品管理（商家自主操作）</a></li>
+        <li><a href="#s6">STEP 4 — 支付URL发布方法</a></li>
+        <li><a href="#s7">STEP 5 — 查看订单（仅查看）</a></li>
+        <li><a href="#s8">各运营模式流程概要</a></li>
+        <li><a href="#s9">常见问题（FAQ）</a></li>
+      </ol>
+    </div>
+
+    <h2 class="section-title" id="s1">1. 什么是聊天机器人支付？</h2>
+    <p>ICOPAY聊天机器人支付是AI聊天机器人与客户对话，在一个流程中完成<strong>商品介绍 → 接收订单 → 支付</strong>的服务。无需开发独立的购物网站或应用程序，仅凭一个聊天机器人URL即可运营在线销售、预约和支付。</p>
+
+    <h3 class="sub-title">客户支付流程（示例：预付模式）</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-actor">客户</span><span class="flow-arrow">→</span><span class="flow-desc">访问商家发布的聊天机器人URL（点击链接/扫描QR码）</span></div>
+      <div class="flow-row"><span class="flow-actor">AI聊天机器人</span><span class="flow-arrow">→</span><span class="flow-desc">介绍商家注册的商品并引导选择</span></div>
+      <div class="flow-row"><span class="flow-actor">客户</span><span class="flow-arrow">→</span><span class="flow-desc">选择商品并填写订单信息</span></div>
+      <div class="flow-row"><span class="flow-actor">AI聊天机器人</span><span class="flow-arrow">→</span><span class="flow-desc">引导至支付页面</span></div>
+      <div class="flow-row"><span class="flow-actor">客户</span><span class="flow-arrow">→</span><span class="flow-desc">完成银行卡支付</span></div>
+      <div class="flow-row"><span class="flow-actor">商家</span><span class="flow-arrow">→</span><span class="flow-desc">在订单管理页面查看订单</span></div>
+    </div>
+
+    <h3 class="sub-title">商家能直接操作的 vs 总部管理的</h3>
+    <table>
+      <tr><th>商家可直接操作</th><th>总部（HQ）管理</th></tr>
+      <tr><td>聊天机器人运营模式、业务类型、预约设置</td><td>聊天机器人支付的激活/停用</td></tr>
+      <tr><td>商品的添加、编辑、删除</td><td>商品注册上限设置</td></tr>
+      <tr><td>查看订单列表</td><td>审批邮件/LINE Notify通知设置</td></tr>
+      <tr><td>查看和复制聊天机器人URL/QR/嵌入脚本</td><td>公司基本信息变更</td></tr>
+    </table>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s2">2. 开始之前（需要总部激活）</h2>
+    <p>聊天机器人支付需要<strong>总部在商家账户上激活</strong>才能使用。请确认以下内容：</p>
+    <table>
+      <tr><th>确认项目</th><th>确认方法</th></tr>
+      <tr><td>侧边栏是否显示<strong>聊天机器人管理</strong>菜单？</td><td>显示则已激活。未显示则联系总部。</td></tr>
+      <tr><td>我的公司信息中是否显示<strong>聊天机器人支付URL</strong>？</td><td>有URL显示则账户可用。</td></tr>
+    </table>
+    <div class="hq-box">
+      <strong>需要请求总部处理的事项</strong><br>
+      以下内容商家无法直接更改，请联系ICOPAY总部负责人：<br><br>
+      • 聊天机器人支付的激活/停用<br>
+      • 支付审批邮件通知设置<br>
+      • LINE Notify通知设置<br>
+      • 商品注册上限的调整<br>
+      • 公司基本信息变更（商号、地址等）
+    </div>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s3">3. <span class="step-badge">STEP 1</span> 查看聊天机器人信息 <small style="font-size:10pt;font-weight:400;color:#888;">（仅查看）</small></h2>
+    <div class="menu-path">商家管理 &gt; 我的公司信息</div>
+    <div class="info-box">此页面为<strong>仅查看模式</strong>。商家可以<strong>查看和复制</strong>信息，但不能直接修改任何设置。</div>
+
+    <h3 class="sub-title">3-1. 查看并复制聊天机器人支付URL</h3>
+    <p>总部激活后，将自动显示以下格式的URL：</p>
+    <pre>https://pay.icopay.co.kr/chatbot-pay/{商家代码}</pre>
+    <table>
+      <tr><th>操作</th><th>方法</th></tr>
+      <tr><td>复制URL</td><td>点击URL字段旁的<strong>复制</strong>按钮 → 保存到剪贴板</td></tr>
+      <tr><td>下载QR码</td><td>点击QR图像旁的<strong>保存</strong>按钮 → 下载为PNG文件</td></tr>
+    </table>
+    <div class="warn-box">如果总部将聊天机器人支付设为停用，URL将不会显示。请联系总部负责人申请激活。</div>
+
+    <h3 class="sub-title">3-2. 复制网站浮动小部件脚本</h3>
+    <p>要在网站上显示聊天机器人图标，请从我的公司信息中复制<strong>聊天机器人浮动小部件</strong>代码：</p>
+    <pre>&lt;!-- 复制的代码示例 — 粘贴到所有页面的&lt;/body&gt;标签前 --&gt;
+&lt;script src="https://pay.icopay.co.kr/v1/embed-chatbot/{商家代码}"
+        async defer charset="utf-8"&gt;&lt;/script&gt;</pre>
+    <div class="info-box">在我的公司信息页面按<strong>复制</strong>按钮，即可直接复制包含商家代码的完整代码。</div>
+
+    <h3 class="sub-title">3-3. QR码的使用</h3>
+    <ul>
+      <li>将下载的PNG文件发送给印刷店，或用于海报和名片设计</li>
+      <li>张贴在店内桌卡、指示牌和菜单上</li>
+      <li>客户扫描QR码 → 直接进入聊天机器人支付页面</li>
+    </ul>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s4">4. <span class="step-badge">STEP 2</span> 聊天机器人基本设置 <small style="font-size:10pt;font-weight:400;color:#2e7d32;">✔ 商家自主操作</small></h2>
+    <div class="menu-path">聊天机器人管理 &gt; 基本设置</div>
+    <div class="check-box">商家可<strong>直接配置并保存</strong>此菜单中的设置。</div>
+
+    <h3 class="sub-title">4-1. 选择运营模式</h3>
+    <p>选择适合业务类型和付款时机的模式，AI将引导客户完成相应的对话流程。</p>
+    <table>
+      <tr><th>运营模式</th><th>说明</th><th>适合行业示例</th></tr>
+      <tr><td><strong>商品销售 · 预付</strong></td><td>选择商品后立即付款</td><td>在线商店、商品销售</td></tr>
+      <tr><td><strong>商品销售 · 后付</strong></td><td>接收订单后稍后付款</td><td>定制订单、B2B供货</td></tr>
+      <tr><td><strong>预约方式 · 预付</strong></td><td>预约时立即付款</td><td>按摩、美发店、自习室</td></tr>
+      <tr><td><strong>预约方式 · 后付</strong></td><td>接受预约 → 到店后付款</td><td>餐厅、咨询服务</td></tr>
+      <tr><td><strong>混合型（销售+预约）</strong></td><td>普通销售商品和预约商品混合</td><td>复合服务业</td></tr>
+      <tr><td><strong>面对面交易（销售+预约·后付）</strong></td><td>现场确认后付款</td><td>VIP俱乐部、面对面服务</td></tr>
+    </table>
+
+    <h3 class="sub-title">4-2. 选择业务性质</h3>
+    <p>AI聊天机器人将自动构建适合行业的提问流程。请选择最接近您业务的类型。</p>
+    <table>
+      <tr><th>业务性质</th><th>AI响应特点</th></tr>
+      <tr><td>一般销售 / 电商</td><td>重点收集商品名称、数量、配送地址</td></tr>
+      <tr><td>按摩（一般/俱乐部）</td><td>收集预约日期、时间、套餐、人数</td></tr>
+      <tr><td>餐厅</td><td>收集用餐人数、日期、时间、特殊要求</td></tr>
+      <tr><td>咨询/服务业</td><td>收集咨询主题、希望时间、联系方式</td></tr>
+      <tr><td>房地产/汽车销售</td><td>收集感兴趣的物件、预算、可参观日期</td></tr>
+      <tr><td>VIP俱乐部</td><td>以会员资格和预约套餐为中心提供指引</td></tr>
+    </table>
+    <div class="info-box"><strong>业务性质补充备注（可选）：</strong> 输入特殊行业中必须收集的信息或应避免的表达方式，这些内容将反映在AI响应中。</div>
+
+    <h3 class="sub-title">4-3. 填写商家基本信息</h3>
+    <p>AI在回答客户询问时参考的基本信息。若留空，将按商家注册信息进行说明。</p>
+    <ul>
+      <li>商家名称 / 地址 / 电话号码</li>
+      <li>营业时间</li>
+      <li>其他说明（停车场、交通方式等）</li>
+    </ul>
+
+    <h3 class="sub-title">4-4. 预约设置（预约模式时）</h3>
+    <table>
+      <tr><th>设置项</th><th>说明</th></tr>
+      <tr><td>预约基本时段（分钟）</td><td>预约时间单位：15 / 30 / 45 / 60 / 90 / 120 / 180 / 240分钟<br><span style="color:#757575;font-size:9pt;">各商品需要不同时段时，可在商品管理中单独设置</span></td></tr>
+      <tr><td>预约时区（IANA）</td><td>参考时区（默认值：<code>Asia/Shanghai</code>）</td></tr>
+    </table>
+    <div class="info-box">若所选时段已有预约，AI将自动建议其他时间。系统将按时段单位自动阻止重复预约。</div>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s5">5. <span class="step-badge">STEP 3</span> 商品管理 <small style="font-size:10pt;font-weight:400;color:#2e7d32;">✔ 商家自主操作</small></h2>
+    <div class="menu-path">聊天机器人管理 &gt; 商品管理</div>
+    <div class="check-box">商家可<strong>直接添加、编辑和删除</strong>商品。</div>
+
+    <h3 class="sub-title">5-1. 商品类型</h3>
+    <table>
+      <tr><th>类型代码</th><th>说明</th></tr>
+      <tr><td><strong>SALE</strong></td><td>普通销售商品 — 按数量购买</td></tr>
+      <tr><td><strong>RESERVATION_TIME</strong></td><td>时间预约商品 — 指定日期和时间进行预约</td></tr>
+      <tr><td><strong>RESERVATION_PLACE</strong></td><td>场所预约商品 — 预约特定空间（房间、座位等）</td></tr>
+    </table>
+    <div class="hq-box">可用的商品类型可能受总部政策限制。</div>
+
+    <h3 class="sub-title">5-2. 商品注册字段</h3>
+    <table>
+      <tr><th>字段</th><th class="center">必填</th><th>说明</th></tr>
+      <tr><td>商品名称</td><td class="center"><span class="badge-req">必填</span></td><td>聊天机器人向客户介绍的商品名称</td></tr>
+      <tr><td>价格</td><td class="center"><span class="badge-req">必填</span></td><td>支付金额（适用商家基准货币）</td></tr>
+      <tr><td>商品描述</td><td class="center"><span class="badge-opt">可选</span></td><td>AI响应时使用的详细说明</td></tr>
+      <tr><td>商品图片</td><td class="center"><span class="badge-opt">可选</span></td><td>最多1~4张（上限由总部政策决定）</td></tr>
+      <tr><td>销售数量上限</td><td class="center"><span class="badge-opt">可选</span></td><td>需要库存管理时填写</td></tr>
+      <tr><td>预约时段（分钟）</td><td class="center">仅预约</td><td>与基本设置不同时，按商品单独设定</td></tr>
+      <tr><td>销售期间</td><td class="center"><span class="badge-opt">可选</span></td><td>限时销售时设置开始和结束日期</td></tr>
+      <tr><td>激活状态</td><td class="center"><span class="badge-req">必填</span></td><td>停用时，该商品不会在客户聊天机器人中显示</td></tr>
+    </table>
+    <div class="hq-box">每个商家可注册的商品数量在总部设定的<strong>商品注册上限</strong>以内。超出时请删除不必要的商品或向总部申请提高上限。</div>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s6">6. <span class="step-badge">STEP 4</span> 支付URL发布方法</h2>
+    <p>将STEP 1中获取的URL、QR码和嵌入脚本发布给客户。</p>
+
+    <h3 class="sub-title">6-1. 直接分享URL</h3>
+    <pre>https://pay.icopay.co.kr/chatbot-pay/{商家代码}</pre>
+    <table>
+      <tr><th>发布渠道</th><th>使用方法</th></tr>
+      <tr><td>微信 / LINE</td><td>在消息中附上链接发送给客户</td></tr>
+      <tr><td>SNS主页</td><td>在Instagram、微博等主页链接中注册</td></tr>
+      <tr><td>邮件签名</td><td>在邮件底部签名中插入链接</td></tr>
+      <tr><td>网站按钮</td><td>将"立即订购"/"立即预约"按钮的href设置为该URL</td></tr>
+    </table>
+
+    <h3 class="sub-title">6-2. QR码印刷品</h3>
+    <table>
+      <tr><th>使用场景</th><th>示例</th></tr>
+      <tr><td>店内</td><td>桌面QR码卡片、收银台指示牌</td></tr>
+      <tr><td>印刷品</td><td>海报、横幅、菜单、传单</td></tr>
+      <tr><td>名片</td><td>名片背面的QR码</td></tr>
+    </table>
+
+    <h3 class="sub-title">6-3. 网站浮动小部件</h3>
+    <p>当客户访问网站时，聊天机器人图标将自动显示在屏幕底部。将STEP 1中复制的脚本代码粘贴到网站所有页面的<code>&lt;/body&gt;</code>标签前即可。</p>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s7">7. <span class="step-badge">STEP 5</span> 查看订单 <small style="font-size:10pt;font-weight:400;color:#888;">（仅查看）</small></h2>
+    <div class="menu-path">聊天机器人管理 &gt; 订单管理</div>
+    <div class="info-box">订单管理页面为<strong>仅查看模式</strong>。商家可以查看订单详情和客户信息，但不能修改或删除订单。</div>
+
+    <h3 class="sub-title">可查看的订单信息</h3>
+    <table>
+      <tr><th>字段</th><th>说明</th></tr>
+      <tr><td>订单编号</td><td>ICOPAY生成的订单识别号</td></tr>
+      <tr><td>客户姓名 / 联系方式</td><td>客户在聊天机器人下单时输入的信息</td></tr>
+      <tr><td>商品名称 / 数量</td><td>已订购的商品和数量</td></tr>
+      <tr><td>订单备注</td><td>客户在聊天机器人中输入的特殊要求</td></tr>
+      <tr><td>预约日期时间</td><td>预约模式订单选择的日期和时间</td></tr>
+      <tr><td>支付状态</td><td>待支付 / 已完成 / 已取消等</td></tr>
+    </table>
+
+    <h3 class="sub-title">支付记录查看</h3>
+    <ul>
+      <li>查看已批准的支付金额、银行卡信息、批准编号等详情</li>
+      <li>按日期范围和状态筛选搜索</li>
+      <li>支持Excel下载</li>
+    </ul>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s8">8. 各运营模式流程概要</h2>
+
+    <h3 class="sub-title">预付模式 — 立即付款</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-actor">客户</span><span class="flow-arrow">→</span><span class="flow-desc">访问聊天机器人URL</span></div>
+      <div class="flow-row"><span class="flow-actor">AI</span><span class="flow-arrow">→</span><span class="flow-desc">介绍商家注册的商品</span></div>
+      <div class="flow-row"><span class="flow-actor">客户</span><span class="flow-arrow">→</span><span class="flow-desc">选择商品 + 填写订单信息</span></div>
+      <div class="flow-row"><span class="flow-actor">AI</span><span class="flow-arrow">→</span><span class="flow-desc">引导至支付页面 → 完成银行卡支付</span></div>
+      <div class="flow-row"><span class="flow-actor">商家</span><span class="flow-arrow">→</span><span class="flow-desc">在订单管理中查看订单（若总部已配置，可收到Email/LINE通知）</span></div>
+    </div>
+
+    <h3 class="sub-title">后付模式 — 接收订单，稍后付款</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-actor">客户</span><span class="flow-arrow">→</span><span class="flow-desc">访问聊天机器人URL → 选择商品并提交订单信息</span></div>
+      <div class="flow-row"><span class="flow-actor">商家</span><span class="flow-arrow">→</span><span class="flow-desc">在订单管理中确认订单 → 联系客户</span></div>
+      <div class="flow-row"><span class="flow-actor">付款</span><span class="flow-arrow">→</span><span class="flow-desc">通过其他方式处理（现场、银行转账等）</span></div>
+    </div>
+
+    <h3 class="sub-title">预约模式 — 选择日期和时间</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-actor">客户</span><span class="flow-arrow">→</span><span class="flow-desc">访问聊天机器人URL</span></div>
+      <div class="flow-row"><span class="flow-actor">AI</span><span class="flow-arrow">→</span><span class="flow-desc">显示可预约的日期和时间（基于基本设置中的时段）</span></div>
+      <div class="flow-row"><span class="flow-actor">客户</span><span class="flow-arrow">→</span><span class="flow-desc">选择日期、时间、人数 + 填写个人信息</span></div>
+      <div class="flow-row"><span class="flow-actor">预付</span><span class="flow-arrow">→</span><span class="flow-desc">立即完成支付 → 确认预约</span></div>
+      <div class="flow-row"><span class="flow-actor">后付</span><span class="flow-arrow">→</span><span class="flow-desc">接受预约 → 到店后付款</span></div>
+      <div class="flow-row"><span class="flow-actor">商家</span><span class="flow-arrow">→</span><span class="flow-desc">在订单管理中查看预约日期时间和客户信息</span></div>
+    </div>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s9">9. 常见问题（FAQ）</h2>
+
+    <div class="faq-item">
+      <div class="faq-q">侧边栏中没有显示聊天机器人管理菜单。</div>
+      <div class="faq-a">总部尚未在您的商家账户上激活聊天机器人支付。请联系ICOPAY总部负责人申请激活。商家无法直接更改此设置。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">我的公司信息中没有显示聊天机器人支付URL。</div>
+      <div class="faq-a">这意味着总部将聊天机器人支付设为停用。URL仅在总部激活后才会显示。请联系总部负责人。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">我想修改公司信息。</div>
+      <div class="faq-a">我的公司信息对商家来说是<strong>仅查看模式</strong>。如需更新任何信息，请联系ICOPAY总部负责人。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">我想在支付获批时收到邮件或LINE通知。</div>
+      <div class="faq-a">通知设置无法由商家直接更改。请<strong>联系总部负责人</strong>，提供您的邮箱地址或LINE Notify令牌进行配置。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">已注册商品但在聊天机器人中不显示。</div>
+      <div class="faq-a">请在商品管理中检查该商品的<strong>激活状态</strong>。停用状态的商品不会在客户聊天机器人中显示。如果设置了销售期间，还请确认当前日期是否在该期间内。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">预约会重复吗？</div>
+      <div class="faq-a">若所选时段已有预约，AI将自动建议其他时间。系统将按基本设置中配置的时段单位自动阻止重复预约。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">无法继续注册新商品。</div>
+      <div class="faq-a">已达到总部设定的商品注册上限。请删除不必要的商品或向总部申请提高上限。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">我想修改或删除某个订单。</div>
+      <div class="faq-a">订单管理对商家来说是<strong>仅查看模式</strong>。如需变更订单，请联系ICOPAY总部负责人。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">聊天机器人能否用多种语言回应客户？</div>
+      <div class="faq-a">ICOPAY聊天机器人根据客户浏览器的语言设置自动响应。无需额外设置，即支持多语言（中文、韩语、英语、日语、泰语等）。</div>
+    </div>
+  </div>
+
+  <div class="footer">ICOPAY 聊天机器人支付 商家手册 &nbsp;|&nbsp; icopay.co.kr &nbsp;|&nbsp; 联系: ICOPAY总部负责人</div>
+</div>
+
+<div style="text-align:center;margin:24px 0 40px;" class="no-print">
+  <button onclick="window.print()" style="background:#1565c0;color:#fff;border:none;padding:12px 36px;font-size:12pt;font-weight:700;border-radius:8px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18);">🖨️ 打印 / 保存为PDF</button>
+  <p style="color:#888;font-size:9pt;margin-top:8px;">在浏览器打印对话框中选择"保存为PDF"即可保存为PDF文件。</p>
+</div>
+<style>@media print { .no-print { display: none !important; } }</style>
+</body>
+</html>
+

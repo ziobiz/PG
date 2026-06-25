@@ -22,6 +22,7 @@ import com.pg.util.JpayNotifyStatusResolver;
 import com.pg.util.NotifyAmountParse;
 import com.pg.util.NotifyChannelMerge;
 import com.pg.util.NotifyToTxnStatusMerge;
+import com.pg.util.TxnOutcomeReasonApplier;
 import com.pg.util.PgNotifyInternalStatusMapper;
 import com.pg.util.PgTrnsctnNotifyDisplayHelper;
 
@@ -167,18 +168,21 @@ public class HqNotifyMappingService {
     private final PgNotifyInboundRepository pgNotifyInboundRepository;
     private final MerchantPgBindingRepository merchantPgBindingRepository;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
+    private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public HqNotifyMappingService(HqNotifyMappingConfigRepository repository,
                                   NotifyMappingAiService notifyMappingAiService,
                                   PgNotifyInboundRepository pgNotifyInboundRepository,
                                   MerchantPgBindingRepository merchantPgBindingRepository,
-                                  HqLedgerSysSettingsService hqLedgerSysSettingsService) {
+                                  HqLedgerSysSettingsService hqLedgerSysSettingsService,
+                                  OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator) {
         this.repository = repository;
         this.notifyMappingAiService = notifyMappingAiService;
         this.pgNotifyInboundRepository = pgNotifyInboundRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
+        this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
     }
 
     public boolean isNotifyMappingAiConfigured() {
@@ -857,6 +861,7 @@ public class HqNotifyMappingService {
             x.setTrnId(newTrnId());
             return x;
         });
+        String prevStatusSnap = t.getStatus();
 
         BigDecimal amountBd;
         if (NotifyAmountParse.isPositive(amountOpt)) {
@@ -1023,6 +1028,8 @@ public class HqNotifyMappingService {
         } else if (t.getSettledYn() == null || t.getSettledYn().isBlank()) {
             t.setSettledYn("N");
         }
+        Optional<String> recordedReason = TxnOutcomeReasonApplier.applyFromMappedNotify(t, prevStatusSnap, mergedStatus, notifyRoot, vendorCode, null);
+        outcomeReasonWarmCoordinator.onRecorded(recordedReason);
         return Optional.of(t);
     }
 

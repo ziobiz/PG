@@ -91,6 +91,7 @@ public class PayListService {
     private final CommissionService commissionService;
     private final FeeListTxnAmountService feeListTxnAmountService;
     private final com.pg.service.settlement.PgTrnsctnSummaryScanFetcher pgTrnsctnSummaryScanFetcher;
+    private final OutcomeReasonTranslateService outcomeReasonTranslateService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -110,7 +111,8 @@ public class PayListService {
                           SettlementBusinessHolidayService settlementBusinessHolidayService,
                           CommissionService commissionService,
                           FeeListTxnAmountService feeListTxnAmountService,
-                          com.pg.service.settlement.PgTrnsctnSummaryScanFetcher pgTrnsctnSummaryScanFetcher) {
+                          com.pg.service.settlement.PgTrnsctnSummaryScanFetcher pgTrnsctnSummaryScanFetcher,
+                          OutcomeReasonTranslateService outcomeReasonTranslateService) {
         this.trnsctnRepository = trnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
@@ -127,6 +129,7 @@ public class PayListService {
         this.commissionService = commissionService;
         this.feeListTxnAmountService = feeListTxnAmountService;
         this.pgTrnsctnSummaryScanFetcher = pgTrnsctnSummaryScanFetcher;
+        this.outcomeReasonTranslateService = outcomeReasonTranslateService;
     }
 
     /**
@@ -294,6 +297,7 @@ public class PayListService {
             rowIdx++;
             list.add(row);
         }
+        outcomeReasonTranslateService.applyToPayListRows(list, req.getAdminUiLocale());
         PageResult<Map<String, Object>> pr = new PageResult<>();
         pr.setList(list);
         pr.setPage(result.getNumber() + 1);

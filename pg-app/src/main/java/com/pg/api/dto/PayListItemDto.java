@@ -14,6 +14,7 @@ import com.pg.util.MerchantFeeVatUtil;
 import com.pg.util.PayListStatusBarBuckets;
 import com.pg.util.RouteNoDisplayUtil;
 import com.pg.util.TrnTimeDualZoneDisplay;
+import com.pg.util.TxnOutcomeReasonApplier;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -87,6 +88,9 @@ public class PayListItemDto {
         row.put("status", t.getStatus() != null ? t.getStatus() : "");
         row.put("chillPaymentStatus", chillStatusLabel(t));
         row.put("settledYn", t.getSettledYn() != null && !t.getSettledYn().isBlank() ? t.getSettledYn().trim() : "N");
+        row.put("outcomeReason", t.getOutcomeReason() != null ? t.getOutcomeReason().trim() : "");
+        row.put("outcomeReasonPreview", TxnOutcomeReasonApplier.preview(t.getOutcomeReason()));
+        row.put("outcomeReasonSource", t.getOutcomeReasonSource() != null ? t.getOutcomeReasonSource().trim() : "");
 
         /** 표준 그리드: 번호·업체명·업체코드 중 업체명 */
         row.put("compNm", compNm);

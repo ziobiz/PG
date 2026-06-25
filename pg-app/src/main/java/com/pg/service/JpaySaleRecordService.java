@@ -9,6 +9,7 @@ import com.pg.util.JpayBuyerContactApplier;
 import com.pg.util.JpayTransactionIdApplier;
 import com.pg.splitpay.SplitPayPaymentHookService;
 import com.pg.util.RouteNoDisplayUtil;
+import com.pg.util.TxnOutcomeReasonApplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -42,17 +43,20 @@ public class JpaySaleRecordService {
     private final SettlementCalcService settlementCalcService;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
     private final SplitPayPaymentHookService splitPayPaymentHookService;
+    private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
 
     public JpaySaleRecordService(PgTrnsctnRepository pgTrnsctnRepository,
                                  OrgUnitRepository orgUnitRepository,
                                  SettlementCalcService settlementCalcService,
                                  HqLedgerSysSettingsService hqLedgerSysSettingsService,
-                                 SplitPayPaymentHookService splitPayPaymentHookService) {
+                                 SplitPayPaymentHookService splitPayPaymentHookService,
+                                 OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.settlementCalcService = settlementCalcService;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
         this.splitPayPaymentHookService = splitPayPaymentHookService;
+        this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
     }
 
     @Transactional
@@ -218,6 +222,7 @@ public class JpaySaleRecordService {
                 return;
             }
             PgTrnsctn t = ex.get();
+            String prevStatus = t.getStatus();
             if (status == 0) {
                 t.setStatus(ST_PAID);
                 ZoneId wall = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
@@ -228,6 +233,12 @@ public class JpaySaleRecordService {
                 t.setStatus(ST_FAIL);
                 t.setPaidAt(null);
                 t.setChillPaymentStatus("2");
+                Optional<String> recordedReason = TxnOutcomeReasonApplier.applyJpaySyncFail(t, prevStatus, ST_FAIL, msg);
+                JpayTransactionIdApplier.apply(t, jpayTransactionId);
+                pgTrnsctnRepository.save(t);
+                outcomeReasonWarmCoordinator.onRecorded(recordedReason);
+                hookSplitPay(t);
+                return;
             }
             JpayTransactionIdApplier.apply(t, jpayTransactionId);
             /* status==1 (3DS): pending 유지 */

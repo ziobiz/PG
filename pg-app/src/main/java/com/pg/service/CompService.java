@@ -2733,7 +2733,7 @@ public class CompService {
         mp.setJpayPhoneDialCodeYn(jpayPhoneDialCodeYn.trim());
     }
 
-    /** 가맹점 챗봇 결제 URL 방식 (STANDARD | REPAY). */
+    /** 가맹점 챗봇 결제 URL 방식 (STANDARD | REPAY | SPLIT_PAY). */
     private void applyMerchantChatbotUrlPayCheckoutMode(MerchantProfile mp, Long orgUnitId, String chatbotUrlPayCheckoutMode) {
         if (mp == null || orgUnitId == null || chatbotUrlPayCheckoutMode == null || chatbotUrlPayCheckoutMode.isBlank()) {
             return;
@@ -2742,7 +2742,23 @@ public class CompService {
         if (com.pg.urlpay.UrlPayCheckoutModeUtil.isRepay(norm)) {
             validateUrlPayRepayModeAllowed(orgUnitId);
         }
+        if (com.pg.urlpay.UrlPayCheckoutModeUtil.isSplitPay(norm)) {
+            validateChatbotSplitPayModeAllowed(orgUnitId);
+        }
         mp.setChatbotUrlPayCheckoutMode(norm);
+    }
+
+    private void validateChatbotSplitPayModeAllowed(Long orgUnitId) {
+        com.pg.entity.MerchantProfile mp = merchantProfileRepository.findByOrgUnitId(orgUnitId).orElse(null);
+        if (!com.pg.splitpay.SplitPayMerchantUtil.isEnabled(mp)) {
+            throw new IllegalArgumentException(
+                    "챗봇 URL 분할결제를 사용하려면 가맹 「URL 분할결제」사용을 켜 주세요.");
+        }
+        String opPg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
+        if (!com.pg.splitpay.SplitPayCheckoutPageUtil.hasSupportedOperationalPg(opPg)) {
+            throw new IllegalArgumentException(
+                    "챗봇 URL 분할결제를 사용하려면 운영(Y)·연동용도 URL결제 결제대행사 바인딩(ChillPay·JPAY)이 필요합니다.");
+        }
     }
 
     private void validateUrlPayRepayModeAllowed(Long orgUnitId) {

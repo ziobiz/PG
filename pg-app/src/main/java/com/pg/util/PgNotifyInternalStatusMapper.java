@@ -192,6 +192,9 @@ public final class PgNotifyInternalStatusMapper {
             if ("failed".equals(p) || "fail".equals(p) || "failure".equals(p)) {
                 return ST_FAIL;
             }
+            if ("unpaid".equals(p)) {
+                return ST_CANCEL;
+            }
         }
         boolean chill = PgVendor.isChillPayVendorCode(vendorCode);
         return mapPaymentAndStatus(paymentStatus, statusField, chill);

@@ -1643,6 +1643,41 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   font-weight: 500;
 }
 
+/* 결제내역 처리사유 — 출처 배지 없이 본문만, 검은색·UI 언어(locale)별 폰트 */
+.pg-outcome-reason-preview {
+  color: #000;
+  font-style: normal;
+  font-weight: 400;
+  max-width: 420px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 4.5em;
+  overflow: hidden;
+  line-height: 1.45;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+}
+html[lang="ko"] .pg-outcome-reason-preview {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+}
+html[lang="en"] .pg-outcome-reason-preview {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+html[lang="ja"] .pg-outcome-reason-preview {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Yu Gothic UI", "Noto Sans JP", sans-serif;
+}
+html[lang="zh-Hans"] .pg-outcome-reason-preview {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+html[lang="th"] .pg-outcome-reason-preview {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Thai", sans-serif;
+}
+.pg-outcome-reason-modal-text {
+  max-width: none;
+  max-height: 70vh;
+  background: #fff;
+  border-color: #dee2e6;
+}
+
 #contentsMain .screen-pay-list .table thead tr:first-child th {
   background: #eaf4ff;
   color: #275a84;

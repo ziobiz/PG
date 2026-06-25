@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICOPAY คู่มือการชำระเงินผ่านแชทบอทสำหรับร้านค้า</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sarabun', 'Noto Sans Thai', 'Tahoma', sans-serif; font-size: 11pt; line-height: 1.9; color: #1a1a1a; background: #f5f6fa; }
+  .page-wrap { max-width: 860px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 16px rgba(0,0,0,.10); overflow: hidden; }
+  .cover { background: linear-gradient(135deg, #1a3a5c 0%, #1565c0 60%, #1e88e5 100%); color: #fff; padding: 48px 52px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+  .cover-body { flex: 1; }
+  .cover-logo { flex-shrink: 0; display: flex; align-items: flex-start; padding-top: 4px; }
+  .cover-logo img { height: 64px; background: rgba(255,255,255,0.92); padding: 10px 18px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.20); }
+  .cover .logo-line { font-size: 13pt; font-weight: 700; letter-spacing: 2px; opacity: .85; margin-bottom: 14px; }
+  .cover h1 { font-size: 22pt; font-weight: 900; line-height: 1.45; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 11pt; opacity: .82; margin-bottom: 24px; }
+  .cover .meta { font-size: 9.5pt; opacity: .65; border-top: 1px solid rgba(255,255,255,.25); padding-top: 14px; }
+  .body { padding: 44px 52px 60px; }
+  .toc { background: #f0f4ff; border-left: 4px solid #1565c0; border-radius: 0 8px 8px 0; padding: 20px 26px; margin-bottom: 40px; }
+  .toc h2 { font-size: 12pt; font-weight: 700; color: #1565c0; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { font-size: 10pt; line-height: 2.3; color: #1a3a5c; }
+  .toc a { color: #1565c0; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  h2.section-title { font-size: 14pt; font-weight: 800; color: #1a3a5c; border-bottom: 2.5px solid #1565c0; padding-bottom: 7px; margin: 42px 0 16px; page-break-after: avoid; }
+  h3.sub-title { font-size: 12pt; font-weight: 700; color: #1565c0; margin: 24px 0 10px; page-break-after: avoid; }
+  p { margin-bottom: 10px; }
+  .info-box { background: #e3f0ff; border: 1px solid #90caf9; border-left: 4px solid #1565c0; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1a3a5c; }
+  .warn-box { background: #fff8e1; border: 1px solid #ffe082; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #5d4037; }
+  .check-box { background: #e8f5e9; border: 1px solid #a5d6a7; border-left: 4px solid #2e7d32; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1b5e20; }
+  .hq-box { background: #fce4ec; border: 1px solid #f48fb1; border-left: 4px solid #c62828; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #b71c1c; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 20px; font-size: 10pt; page-break-inside: avoid; }
+  th { background: #1565c0; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #1245a0; }
+  td { padding: 8px 12px; border: 1px solid #cfd8dc; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f7ff; }
+  td.center, th.center { text-align: center; }
+  .perm-full { display: inline-block; background: #2e7d32; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 7px; border-radius: 4px; }
+  .perm-view { display: inline-block; background: #1565c0; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 7px; border-radius: 4px; }
+  .perm-none { display: inline-block; background: #9e9e9e; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 7px; border-radius: 4px; }
+  pre { background: #1e2a38; color: #cdd9e5; font-family: 'Consolas', monospace; font-size: 9.5pt; line-height: 1.6; padding: 16px 20px; border-radius: 8px; margin: 12px 0 18px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; page-break-inside: avoid; }
+  code { background: #e8edf5; color: #c0392b; font-family: 'Consolas', monospace; font-size: 9pt; padding: 1px 5px; border-radius: 3px; }
+  .flow { background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; padding: 20px 24px; margin: 14px 0 20px; font-size: 10pt; page-break-inside: avoid; }
+  .flow-row { display: flex; align-items: flex-start; margin-bottom: 8px; }
+  .flow-actor { display: inline-block; min-width: 110px; font-weight: 700; color: #1565c0; flex-shrink: 0; }
+  .flow-arrow { color: #888; margin: 0 10px; font-size: 13pt; flex-shrink: 0; }
+  .flow-desc { color: #37474f; }
+  .step-badge { display: inline-block; background: #1565c0; color: #fff; font-weight: 800; font-size: 9pt; padding: 2px 10px; border-radius: 20px; margin-right: 8px; vertical-align: middle; }
+  .faq-item { border: 1px solid #e0e6f0; border-radius: 8px; margin-bottom: 14px; page-break-inside: avoid; }
+  .faq-q { background: #e8edf8; padding: 11px 16px; font-weight: 700; font-size: 10.5pt; color: #1a3a5c; border-radius: 8px 8px 0 0; }
+  .faq-q::before { content: "Q. "; color: #1565c0; }
+  .faq-a { padding: 11px 16px; font-size: 10pt; color: #37474f; background: #fff; border-radius: 0 0 8px 8px; }
+  .faq-a::before { content: "A. "; font-weight: 700; color: #2e7d32; }
+  .badge-req { display: inline-block; background: #e53935; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 4px; }
+  .badge-opt { display: inline-block; background: #757575; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 4px; }
+  .menu-path { display: inline-block; background: #ececec; border: 1px solid #d0d0d0; border-radius: 5px; padding: 3px 11px; font-size: 9.5pt; color: #37474f; font-weight: 600; margin-bottom: 12px; }
+  .menu-path::before { content: "📌 เมนู: "; }
+  hr.section-rule { border: none; border-top: 1px dashed #c5cae9; margin: 36px 0; }
+  .footer { background: #1a3a5c; color: rgba(255,255,255,.65); text-align: center; font-size: 9pt; padding: 18px 24px; }
+  ul { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+  @media print {
+    body { background: #fff; font-size: 10pt; }
+    .page-wrap { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; }
+    .cover { padding: 28px 36px 24px; }
+    .body { padding: 28px 36px 36px; }
+    .faq-item, pre, table, .flow { page-break-inside: avoid; }
+    .footer, .no-print { display: none; }
+    @page { size: A4; margin: 18mm 16mm; }
+  }
+</style>
+</head>
+<body>
+<style id="print-btn-style">
+  .print-btn { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #1565c0; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 10.5pt; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(21,101,192,.45); display: flex; align-items: center; gap: 9px; transition: background .18s, box-shadow .18s; text-decoration: none; }
+  .print-btn:hover { background: #0d47a1; box-shadow: 0 6px 20px rgba(13,71,161,.5); }
+  @media print { .print-btn { display: none !important; } }
+</style>
+<button class="print-btn" onclick="window.print()">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
+<div class="page-wrap">
+  <div class="cover">
+    <div class="cover-body">
+      <div class="logo-line">ICOPAY · Payment Gateway</div>
+      <h1>คู่มือการชำระเงินผ่านแชทบอท<br>สำหรับร้านค้า</h1>
+      <div class="subtitle">มุมมองของร้านค้า — ทุกสิ่งที่ร้านค้าดำเนินการได้โดยตรง: ตั้งค่าแชทบอท จัดการสินค้า และตรวจสอบคำสั่งซื้อ</div>
+      <div class="meta">อ้างอิงจาก: ระดับสิทธิ์ร้านค้า ICOPAY &nbsp;|&nbsp; กลุ่มเป้าหมาย: ร้านค้าที่ใช้ระบบแชทบอท &nbsp;|&nbsp; เผยแพร่: มิถุนายน 2026</div>
+    </div>
+    <div class="cover-logo">
+      <img src="./logo-ontheline.png" alt="On The Line">
+    </div>
+  </div>
+
+  <div class="body">
+
+    <div class="warn-box" style="margin-bottom:28px;">
+      <strong>📋 สรุปสิทธิ์เมนูสำหรับร้านค้า</strong><br><br>
+      <table style="margin:8px 0 0;">
+        <tr><th>เมนู</th><th class="center">สิทธิ์</th><th>หมายเหตุ</th></tr>
+        <tr><td>จัดการร้านค้า &gt; ข้อมูลบริษัทของฉัน</td><td class="center"><span class="perm-view">ดูเท่านั้น</span></td><td>ดูและคัดลอก URL/QR/สคริปต์ได้ / ไม่สามารถแก้ไขการตั้งค่า</td></tr>
+        <tr><td>จัดการแชทบอท &gt; การตั้งค่าพื้นฐาน</td><td class="center"><span class="perm-full">เต็มสิทธิ์</span></td><td>ร้านค้าเปลี่ยนรูปแบบการดำเนินงาน ประเภทธุรกิจ การตั้งค่าการจองได้โดยตรง</td></tr>
+        <tr><td>จัดการแชทบอท &gt; จัดการสินค้า</td><td class="center"><span class="perm-full">เต็มสิทธิ์</span></td><td>ร้านค้าเพิ่ม แก้ไข ลบสินค้าได้โดยตรง</td></tr>
+        <tr><td>จัดการแชทบอท &gt; จัดการคำสั่งซื้อ</td><td class="center"><span class="perm-view">ดูเท่านั้น</span></td><td>ดูคำสั่งซื้อได้เท่านั้น / ไม่สามารถแก้ไขหรือลบ</td></tr>
+        <tr><td>ลงทะเบียนร้านค้า ฯลฯ</td><td class="center"><span class="perm-none">ไม่มีสิทธิ์</span></td><td>เฉพาะสำนักงานใหญ่ / ตัวแทนจำหน่าย</td></tr>
+      </table>
+    </div>
+
+    <div class="toc">
+      <h2>สารบัญ</h2>
+      <ol>
+        <li><a href="#s1">แชทบอทชำระเงินคืออะไร?</a></li>
+        <li><a href="#s2">ก่อนเริ่มต้น (ต้องให้สำนักงานใหญ่เปิดใช้งาน)</a></li>
+        <li><a href="#s3">STEP 1 — ตรวจสอบข้อมูลแชทบอทของคุณ (ดูเท่านั้น)</a></li>
+        <li><a href="#s4">STEP 2 — การตั้งค่าพื้นฐานแชทบอท (ร้านค้าดำเนินการเอง)</a></li>
+        <li><a href="#s5">STEP 3 — การจัดการสินค้า (ร้านค้าดำเนินการเอง)</a></li>
+        <li><a href="#s6">STEP 4 — วิธีการแจกจ่าย URL ชำระเงิน</a></li>
+        <li><a href="#s7">STEP 5 — การตรวจสอบคำสั่งซื้อ (ดูเท่านั้น)</a></li>
+        <li><a href="#s8">สรุปขั้นตอนตามรูปแบบการดำเนินงาน</a></li>
+        <li><a href="#s9">คำถามที่พบบ่อย (FAQ)</a></li>
+      </ol>
+    </div>
+
+    <h2 class="section-title" id="s1">1. แชทบอทชำระเงินคืออะไร?</h2>
+    <p>ระบบแชทบอทชำระเงิน ICOPAY คือบริการที่ AI แชทบอทสนทนากับลูกค้าและดำเนินการ<strong>แนะนำสินค้า → รับคำสั่งซื้อ → ชำระเงิน</strong>ในขั้นตอนเดียว ไม่ต้องสร้างร้านค้าออนไลน์หรือแอปแยกต่างหาก</p>
+
+    <h3 class="sub-title">ขั้นตอนการชำระเงินของลูกค้า (ตัวอย่าง: ชำระก่อน)</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-actor">ลูกค้า</span><span class="flow-arrow">→</span><span class="flow-desc">เข้าถึง URL แชทบอทที่ร้านค้าแจกจ่าย (คลิกลิงก์ / สแกน QR)</span></div>
+      <div class="flow-row"><span class="flow-actor">AI แชทบอท</span><span class="flow-arrow">→</span><span class="flow-desc">แนะนำสินค้าที่ร้านค้าลงทะเบียนไว้ และกระตุ้นให้เลือก</span></div>
+      <div class="flow-row"><span class="flow-actor">ลูกค้า</span><span class="flow-arrow">→</span><span class="flow-desc">เลือกสินค้าและกรอกข้อมูลคำสั่งซื้อ</span></div>
+      <div class="flow-row"><span class="flow-actor">AI แชทบอท</span><span class="flow-arrow">→</span><span class="flow-desc">นำไปยังหน้าชำระเงิน</span></div>
+      <div class="flow-row"><span class="flow-actor">ลูกค้า</span><span class="flow-arrow">→</span><span class="flow-desc">ชำระเงินด้วยบัตรสำเร็จ</span></div>
+      <div class="flow-row"><span class="flow-actor">ร้านค้า</span><span class="flow-arrow">→</span><span class="flow-desc">ตรวจสอบคำสั่งซื้อในหน้าจัดการคำสั่งซื้อ</span></div>
+    </div>
+
+    <h3 class="sub-title">สิ่งที่ร้านค้าทำได้เอง vs สิ่งที่สำนักงานใหญ่จัดการ</h3>
+    <table>
+      <tr><th>ร้านค้าทำได้โดยตรง</th><th>สำนักงานใหญ่ (HQ) จัดการ</th></tr>
+      <tr><td>รูปแบบการดำเนินงาน ประเภทธุรกิจ การตั้งค่าการจอง</td><td>การเปิด / ปิดการใช้งานแชทบอทชำระเงิน</td></tr>
+      <tr><td>เพิ่ม แก้ไข ลบสินค้า</td><td>ขีดจำกัดการลงทะเบียนสินค้า</td></tr>
+      <tr><td>ดูรายการคำสั่งซื้อ</td><td>การตั้งค่าการแจ้งเตือนทาง Email / LINE Notify</td></tr>
+      <tr><td>ดูและคัดลอก URL / QR / สคริปต์ฝัง</td><td>การเปลี่ยนข้อมูลพื้นฐานของบริษัท</td></tr>
+    </table>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s2">2. ก่อนเริ่มต้น (ต้องให้สำนักงานใหญ่เปิดใช้งาน)</h2>
+    <p>แชทบอทชำระเงินต้องให้<strong>สำนักงานใหญ่เปิดใช้งานในบัญชีร้านค้า</strong>ก่อน ตรวจสอบรายการต่อไปนี้:</p>
+    <table>
+      <tr><th>รายการตรวจสอบ</th><th>วิธีตรวจสอบ</th></tr>
+      <tr><td>เมนู <strong>จัดการแชทบอท</strong> แสดงในแถบด้านข้างหรือไม่?</td><td>ถ้าแสดง = เปิดใช้งานแล้ว ถ้าไม่แสดง = ติดต่อสำนักงานใหญ่</td></tr>
+      <tr><td>มี <strong>URL แชทบอทชำระเงิน</strong> แสดงในข้อมูลบริษัทหรือไม่?</td><td>ถ้ามี URL = บัญชีพร้อมใช้งาน</td></tr>
+    </table>
+    <div class="hq-box">
+      <strong>รายการที่ต้องแจ้งสำนักงานใหญ่</strong><br>
+      รายการต่อไปนี้ร้านค้าไม่สามารถเปลี่ยนแปลงได้เอง — กรุณาติดต่อผู้ดูแลสำนักงานใหญ่ ICOPAY:<br><br>
+      • การเปิด / ปิดใช้งานแชทบอทชำระเงิน<br>
+      • การตั้งค่าการแจ้งเตือนอนุมัติทาง Email<br>
+      • การตั้งค่าการแจ้งเตือน LINE Notify<br>
+      • การเพิ่มขีดจำกัดการลงทะเบียนสินค้า<br>
+      • การเปลี่ยนข้อมูลพื้นฐานของบริษัท (ชื่อ ที่อยู่ ฯลฯ)
+    </div>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s3">3. <span class="step-badge">STEP 1</span> ตรวจสอบข้อมูลแชทบอทของคุณ <small style="font-size:10pt;font-weight:400;color:#888;">(ดูเท่านั้น)</small></h2>
+    <div class="menu-path">จัดการร้านค้า &gt; ข้อมูลบริษัทของฉัน</div>
+    <div class="info-box">หน้าจอนี้เป็น<strong>สำหรับดูเท่านั้น</strong> ร้านค้าสามารถ<strong>ดูและคัดลอก</strong>ข้อมูลได้ แต่ไม่สามารถแก้ไขการตั้งค่าใดๆ โดยตรง</div>
+
+    <h3 class="sub-title">3-1. ดูและคัดลอก URL แชทบอทชำระเงิน</h3>
+    <p>เมื่อสำนักงานใหญ่เปิดใช้งาน URL ต่อไปนี้จะแสดงโดยอัตโนมัติ:</p>
+    <pre>https://pay.icopay.co.kr/chatbot-pay/{รหัสร้านค้า}</pre>
+    <table>
+      <tr><th>การดำเนินการ</th><th>วิธีการ</th></tr>
+      <tr><td>คัดลอก URL</td><td>คลิกปุ่ม <strong>คัดลอก</strong> ถัดจากช่อง URL → บันทึกลงคลิปบอร์ด</td></tr>
+      <tr><td>บันทึก QR โค้ด</td><td>คลิกปุ่ม <strong>บันทึก</strong> ถัดจากภาพ QR → ดาวน์โหลดเป็นไฟล์ PNG</td></tr>
+    </table>
+    <div class="warn-box">หากสำนักงานใหญ่ตั้งค่าแชทบอทชำระเงินเป็นปิดใช้งาน URL จะไม่แสดง กรุณาติดต่อผู้ดูแลสำนักงานใหญ่เพื่อขอเปิดใช้งาน</div>
+
+    <h3 class="sub-title">3-2. คัดลอกสคริปต์วิดเจ็ตแบบลอยสำหรับเว็บไซต์</h3>
+    <p>เพื่อแสดงไอคอนแชทบอทบนเว็บไซต์ ให้คัดลอกโค้ด <strong>วิดเจ็ตแบบลอยแชทบอท</strong> จากข้อมูลบริษัทของฉัน:</p>
+    <pre>&lt;!-- ตัวอย่างโค้ดที่คัดลอก — วางก่อนแท็ก &lt;/body&gt; ในทุกหน้า --&gt;
+&lt;script src="https://pay.icopay.co.kr/v1/embed-chatbot/{รหัสร้านค้า}"
+        async defer charset="utf-8"&gt;&lt;/script&gt;</pre>
+    <div class="info-box">กดปุ่ม <strong>คัดลอก</strong> บนหน้าจอข้อมูลบริษัทของฉัน เพื่อคัดลอกโค้ดสมบูรณ์พร้อมรหัสร้านค้าได้ทันที</div>
+
+    <h3 class="sub-title">3-3. การใช้ QR โค้ด</h3>
+    <ul>
+      <li>ส่งไฟล์ PNG ที่บันทึกไปยังร้านพิมพ์ หรือใช้ในการออกแบบโปสเตอร์และนามบัตร</li>
+      <li>ติดบนการ์ดโต๊ะ ป้ายบอกทาง และเมนูในร้าน</li>
+      <li>ลูกค้าสแกน QR → เข้าสู่หน้าชำระเงินแชทบอทโดยตรง</li>
+    </ul>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s4">4. <span class="step-badge">STEP 2</span> การตั้งค่าพื้นฐานแชทบอท <small style="font-size:10pt;font-weight:400;color:#2e7d32;">✔ ร้านค้าดำเนินการเอง</small></h2>
+    <div class="menu-path">จัดการแชทบอท &gt; การตั้งค่าพื้นฐาน</div>
+    <div class="check-box">ร้านค้าสามารถ<strong>ตั้งค่าและบันทึก</strong>เมนูนี้ได้โดยตรง</div>
+
+    <h3 class="sub-title">4-1. เลือกรูปแบบการดำเนินงาน</h3>
+    <p>เลือกรูปแบบที่เหมาะกับประเภทธุรกิจและเวลาชำระเงิน AI จะแนะนำลูกค้าด้วยขั้นตอนการสนทนาที่เหมาะสม</p>
+    <table>
+      <tr><th>รูปแบบ</th><th>คำอธิบาย</th><th>ตัวอย่างธุรกิจที่เหมาะสม</th></tr>
+      <tr><td><strong>ขายสินค้า · ชำระก่อน</strong></td><td>ชำระทันทีหลังเลือกสินค้า</td><td>ร้านค้าออนไลน์ ขายสินค้า</td></tr>
+      <tr><td><strong>ขายสินค้า · ชำระหลัง</strong></td><td>รับคำสั่งซื้อก่อน ชำระภายหลัง</td><td>สั่งทำพิเศษ จัดส่ง B2B</td></tr>
+      <tr><td><strong>จองล่วงหน้า · ชำระก่อน</strong></td><td>ชำระทันทีเมื่อจอง</td><td>นวด ร้านทำผม ห้องเรียน</td></tr>
+      <tr><td><strong>จองล่วงหน้า · ชำระหลัง</strong></td><td>รับการจอง → ชำระเมื่อมาถึง</td><td>ร้านอาหาร ที่ปรึกษา</td></tr>
+      <tr><td><strong>ผสมผสาน (ขาย+จอง)</strong></td><td>สินค้าขายทั่วไปและสินค้าจองผสม</td><td>ธุรกิจบริการหลายรูปแบบ</td></tr>
+      <tr><td><strong>ธุรกรรมแบบตัวต่อตัว (ขาย+จอง·ชำระหลัง)</strong></td><td>ยืนยันที่หน้างานก่อนชำระ</td><td>VIP คลับ บริการแบบพบหน้า</td></tr>
+    </table>
+
+    <h3 class="sub-title">4-2. เลือกประเภทธุรกิจ</h3>
+    <p>AI แชทบอทจะสร้างขั้นตอนการถามคำถามที่เหมาะกับธุรกิจโดยอัตโนมัติ เลือกประเภทที่ใกล้เคียงที่สุดกับธุรกิจของคุณ</p>
+    <table>
+      <tr><th>ประเภทธุรกิจ</th><th>ลักษณะการตอบสนองของ AI</th></tr>
+      <tr><td>ขายทั่วไป / อีคอมเมิร์ซ</td><td>รวบรวมชื่อสินค้า จำนวน ที่อยู่จัดส่ง</td></tr>
+      <tr><td>นวด (ทั่วไป / คลับ)</td><td>รวบรวมวันจอง เวลา คอร์ส จำนวนคน</td></tr>
+      <tr><td>ร้านอาหาร / ภัตตาคาร</td><td>รวบรวมจำนวนคน วันที่ เวลา ข้อกำหนดพิเศษ</td></tr>
+      <tr><td>ที่ปรึกษา / การบริการ</td><td>รวบรวมหัวข้อ ตารางเวลาที่ต้องการ ข้อมูลติดต่อ</td></tr>
+      <tr><td>อสังหาริมทรัพย์ / ขายรถ</td><td>รวบรวมทรัพย์สินที่สนใจ งบประมาณ วันที่สะดวก</td></tr>
+      <tr><td>VIP คลับ</td><td>คำแนะนำเน้นสมาชิกภาพและคอร์สการจอง</td></tr>
+    </table>
+    <div class="info-box"><strong>บันทึกเสริมประเภทธุรกิจ (ไม่บังคับ):</strong> ป้อนข้อมูลที่ต้องรวบรวมหรือสำนวนที่ควรหลีกเลี่ยง ข้อมูลนี้จะสะท้อนในการตอบสนองของ AI</div>
+
+    <h3 class="sub-title">4-3. กรอกข้อมูลพื้นฐานของร้านค้า</h3>
+    <p>ข้อมูลที่ AI อ้างอิงเมื่อตอบคำถามลูกค้า หากเว้นว่าง จะใช้ข้อมูลที่ลงทะเบียนร้านค้าไว้</p>
+    <ul>
+      <li>ชื่อร้านค้า / ที่อยู่ / หมายเลขโทรศัพท์</li>
+      <li>เวลาทำการ</li>
+      <li>ข้อมูลเพิ่มเติม (ที่จอดรถ การเดินทาง ฯลฯ)</li>
+    </ul>
+
+    <h3 class="sub-title">4-4. การตั้งค่าการจอง (สำหรับรูปแบบการจอง)</h3>
+    <table>
+      <tr><th>การตั้งค่า</th><th>คำอธิบาย</th></tr>
+      <tr><td>ช่วงเวลาการจองพื้นฐาน (นาที)</td><td>หน่วยเวลาการจอง: 15 / 30 / 45 / 60 / 90 / 120 / 180 / 240 นาที<br><span style="color:#757575;font-size:9pt;">สินค้าแต่ละรายการสามารถตั้งช่วงเวลาแยกได้ในการจัดการสินค้า</span></td></tr>
+      <tr><td>เขตเวลาการจอง (IANA)</td><td>เขตเวลาอ้างอิง (ค่าเริ่มต้น: <code>Asia/Bangkok</code>)</td></tr>
+    </table>
+    <div class="info-box">หากช่วงเวลาที่เลือกมีการจองอยู่แล้ว AI จะแนะนำเวลาอื่นโดยอัตโนมัติ การจองซ้ำจะถูกบล็อกอัตโนมัติตามหน่วยช่วงเวลา</div>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s5">5. <span class="step-badge">STEP 3</span> การจัดการสินค้า <small style="font-size:10pt;font-weight:400;color:#2e7d32;">✔ ร้านค้าดำเนินการเอง</small></h2>
+    <div class="menu-path">จัดการแชทบอท &gt; จัดการสินค้า</div>
+    <div class="check-box">ร้านค้าสามารถ<strong>เพิ่ม แก้ไข และลบ</strong>สินค้าได้โดยตรง</div>
+
+    <h3 class="sub-title">5-1. ประเภทสินค้า</h3>
+    <table>
+      <tr><th>รหัสประเภท</th><th>คำอธิบาย</th></tr>
+      <tr><td><strong>SALE</strong></td><td>สินค้าขายทั่วไป — ซื้อตามจำนวน</td></tr>
+      <tr><td><strong>RESERVATION_TIME</strong></td><td>สินค้าจองตามเวลา — ระบุวันและเวลาสำหรับการจอง</td></tr>
+      <tr><td><strong>RESERVATION_PLACE</strong></td><td>สินค้าจองสถานที่ — จองพื้นที่เฉพาะ (ห้อง ที่นั่ง ฯลฯ)</td></tr>
+    </table>
+    <div class="hq-box">ประเภทสินค้าที่ใช้งานได้อาจถูกจำกัดตามนโยบายของสำนักงานใหญ่</div>
+
+    <h3 class="sub-title">5-2. ช่องข้อมูลการลงทะเบียนสินค้า</h3>
+    <table>
+      <tr><th>ช่องข้อมูล</th><th class="center">บังคับ</th><th>คำอธิบาย</th></tr>
+      <tr><td>ชื่อสินค้า</td><td class="center"><span class="badge-req">บังคับ</span></td><td>ชื่อสินค้าที่ AI แชทบอทแนะนำให้ลูกค้า</td></tr>
+      <tr><td>ราคา</td><td class="center"><span class="badge-req">บังคับ</span></td><td>จำนวนเงินชำระ (สกุลเงินพื้นฐานของร้านค้า)</td></tr>
+      <tr><td>รายละเอียดสินค้า</td><td class="center"><span class="badge-opt">ไม่บังคับ</span></td><td>คำอธิบายโดยละเอียดที่ AI ใช้ในการตอบสนอง</td></tr>
+      <tr><td>ภาพสินค้า</td><td class="center"><span class="badge-opt">ไม่บังคับ</span></td><td>สูงสุด 1–4 ภาพ (จำกัดตามนโยบายสำนักงานใหญ่)</td></tr>
+      <tr><td>จำนวนจำกัด</td><td class="center"><span class="badge-opt">ไม่บังคับ</span></td><td>กรอกสำหรับการจัดการสต็อก</td></tr>
+      <tr><td>ช่วงเวลาจอง (นาที)</td><td class="center">เฉพาะจอง</td><td>ตั้งค่าแยกหากต่างจากการตั้งค่าพื้นฐาน</td></tr>
+      <tr><td>ระยะเวลาขาย</td><td class="center"><span class="badge-opt">ไม่บังคับ</span></td><td>ตั้งวันเริ่มต้นและสิ้นสุดสำหรับการขายจำกัดเวลา</td></tr>
+      <tr><td>สถานะเปิดใช้งาน</td><td class="center"><span class="badge-req">บังคับ</span></td><td>สินค้าที่ปิดใช้งานจะไม่แสดงในแชทบอทของลูกค้า</td></tr>
+    </table>
+    <div class="hq-box">จำนวนสินค้าต่อร้านค้าถูกจำกัดตาม<strong>ขีดจำกัดการลงทะเบียนสินค้า</strong>ที่กำหนดโดยสำนักงานใหญ่ ลบสินค้าที่ไม่จำเป็นหรือขอเพิ่มขีดจำกัดจากสำนักงานใหญ่</div>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s6">6. <span class="step-badge">STEP 4</span> วิธีการแจกจ่าย URL ชำระเงิน</h2>
+    <p>แจกจ่าย URL, QR โค้ด และสคริปต์ที่ได้จาก STEP 1 ให้กับลูกค้า</p>
+
+    <h3 class="sub-title">6-1. แชร์ URL โดยตรง</h3>
+    <pre>https://pay.icopay.co.kr/chatbot-pay/{รหัสร้านค้า}</pre>
+    <table>
+      <tr><th>ช่องทาง</th><th>วิธีใช้</th></tr>
+      <tr><td>LINE / KakaoTalk</td><td>แนบลิงก์ในข้อความส่งให้ลูกค้า</td></tr>
+      <tr><td>โปรไฟล์ SNS</td><td>ลงทะเบียนเป็นลิงก์โปรไฟล์บน Instagram Facebook ฯลฯ</td></tr>
+      <tr><td>ลายเซ็น Email</td><td>แทรกลิงก์ในลายเซ็นท้าย Email</td></tr>
+      <tr><td>ปุ่มบนเว็บไซต์</td><td>ตั้งค่า href ของปุ่ม "สั่งซื้อเลย" / "จองเลย" เป็น URL นี้</td></tr>
+    </table>
+
+    <h3 class="sub-title">6-2. สื่อพิมพ์ QR โค้ด</h3>
+    <table>
+      <tr><th>สถานที่ใช้</th><th>ตัวอย่าง</th></tr>
+      <tr><td>ภายในร้าน</td><td>การ์ด QR บนโต๊ะ ป้ายที่เคาน์เตอร์</td></tr>
+      <tr><td>สื่อพิมพ์</td><td>โปสเตอร์ แบนเนอร์ เมนู ใบปลิว</td></tr>
+      <tr><td>นามบัตร</td><td>QR บนด้านหลังนามบัตร</td></tr>
+    </table>
+
+    <h3 class="sub-title">6-3. วิดเจ็ตแบบลอยบนเว็บไซต์</h3>
+    <p>เมื่อลูกค้าเยี่ยมชมเว็บไซต์ ไอคอนแชทบอทจะปรากฏที่ด้านล่างของหน้าจอโดยอัตโนมัติ วางโค้ดสคริปต์ที่คัดลอกจาก STEP 1 ก่อนแท็ก <code>&lt;/body&gt;</code> ในทุกหน้าของเว็บไซต์</p>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s7">7. <span class="step-badge">STEP 5</span> การตรวจสอบคำสั่งซื้อ <small style="font-size:10pt;font-weight:400;color:#888;">(ดูเท่านั้น)</small></h2>
+    <div class="menu-path">จัดการแชทบอท &gt; จัดการคำสั่งซื้อ</div>
+    <div class="info-box">หน้าจัดการคำสั่งซื้อเป็น<strong>สำหรับดูเท่านั้น</strong> ร้านค้าสามารถดูรายละเอียดคำสั่งซื้อและข้อมูลลูกค้าได้ แต่ไม่สามารถแก้ไขหรือลบคำสั่งซื้อ</div>
+
+    <h3 class="sub-title">ข้อมูลคำสั่งซื้อที่สามารถดูได้</h3>
+    <table>
+      <tr><th>รายการ</th><th>คำอธิบาย</th></tr>
+      <tr><td>หมายเลขคำสั่งซื้อ</td><td>หมายเลขระบุคำสั่งซื้อที่ ICOPAY ออกให้</td></tr>
+      <tr><td>ชื่อลูกค้า / ข้อมูลติดต่อ</td><td>ข้อมูลที่ลูกค้ากรอกระหว่างการสั่งซื้อผ่านแชทบอท</td></tr>
+      <tr><td>ชื่อสินค้า / จำนวน</td><td>สินค้าที่สั่งและจำนวน</td></tr>
+      <tr><td>บันทึกคำสั่งซื้อ</td><td>คำขอพิเศษที่ลูกค้ากรอกในแชทบอท</td></tr>
+      <tr><td>วันเวลาจอง</td><td>วันและเวลาที่เลือกสำหรับคำสั่งซื้อแบบจอง</td></tr>
+      <tr><td>สถานะการชำระเงิน</td><td>รอดำเนินการ / สำเร็จ / ยกเลิก ฯลฯ</td></tr>
+    </table>
+
+    <h3 class="sub-title">ประวัติการชำระเงิน</h3>
+    <ul>
+      <li>ดูจำนวนเงินที่อนุมัติ ข้อมูลบัตร และหมายเลขการอนุมัติโดยละเอียด</li>
+      <li>กรองตามช่วงวันที่และสถานะ</li>
+      <li>รองรับการดาวน์โหลด Excel</li>
+    </ul>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s8">8. สรุปขั้นตอนตามรูปแบบการดำเนินงาน</h2>
+
+    <h3 class="sub-title">รูปแบบชำระก่อน — ชำระทันที</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-actor">ลูกค้า</span><span class="flow-arrow">→</span><span class="flow-desc">เข้าถึง URL แชทบอท</span></div>
+      <div class="flow-row"><span class="flow-actor">AI</span><span class="flow-arrow">→</span><span class="flow-desc">แนะนำสินค้าที่ร้านค้าลงทะเบียนไว้</span></div>
+      <div class="flow-row"><span class="flow-actor">ลูกค้า</span><span class="flow-arrow">→</span><span class="flow-desc">เลือกสินค้า + กรอกข้อมูลคำสั่งซื้อ</span></div>
+      <div class="flow-row"><span class="flow-actor">AI</span><span class="flow-arrow">→</span><span class="flow-desc">นำไปยังหน้าชำระเงิน → ชำระเงินด้วยบัตรสำเร็จ</span></div>
+      <div class="flow-row"><span class="flow-actor">ร้านค้า</span><span class="flow-arrow">→</span><span class="flow-desc">ตรวจสอบคำสั่งซื้อ (รับ Email/LINE แจ้งเตือนหากสำนักงานใหญ่ตั้งค่าไว้)</span></div>
+    </div>
+
+    <h3 class="sub-title">รูปแบบชำระหลัง — รับคำสั่งซื้อ ชำระภายหลัง</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-actor">ลูกค้า</span><span class="flow-arrow">→</span><span class="flow-desc">เข้าถึง URL แชทบอท → เลือกสินค้าและยืนยันคำสั่งซื้อ</span></div>
+      <div class="flow-row"><span class="flow-actor">ร้านค้า</span><span class="flow-arrow">→</span><span class="flow-desc">ตรวจสอบคำสั่งซื้อ → ติดต่อลูกค้า</span></div>
+      <div class="flow-row"><span class="flow-actor">ชำระ</span><span class="flow-arrow">→</span><span class="flow-desc">ดำเนินการแยกต่างหาก (ที่หน้างาน โอนเงิน ฯลฯ)</span></div>
+    </div>
+
+    <h3 class="sub-title">รูปแบบการจอง — เลือกวันและเวลา</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-actor">ลูกค้า</span><span class="flow-arrow">→</span><span class="flow-desc">เข้าถึง URL แชทบอท</span></div>
+      <div class="flow-row"><span class="flow-actor">AI</span><span class="flow-arrow">→</span><span class="flow-desc">แสดงวันและเวลาที่ว่าง (ตามการตั้งค่าช่วงเวลาในการตั้งค่าพื้นฐาน)</span></div>
+      <div class="flow-row"><span class="flow-actor">ลูกค้า</span><span class="flow-arrow">→</span><span class="flow-desc">เลือกวัน เวลา จำนวน + กรอกข้อมูลส่วนตัว</span></div>
+      <div class="flow-row"><span class="flow-actor">ชำระก่อน</span><span class="flow-arrow">→</span><span class="flow-desc">ชำระทันที → ยืนยันการจอง</span></div>
+      <div class="flow-row"><span class="flow-actor">ชำระหลัง</span><span class="flow-arrow">→</span><span class="flow-desc">รับการจอง → ชำระเมื่อมาถึง</span></div>
+      <div class="flow-row"><span class="flow-actor">ร้านค้า</span><span class="flow-arrow">→</span><span class="flow-desc">ตรวจสอบวันเวลาจองและข้อมูลลูกค้าในจัดการคำสั่งซื้อ</span></div>
+    </div>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s9">9. คำถามที่พบบ่อย (FAQ)</h2>
+
+    <div class="faq-item">
+      <div class="faq-q">เมนูจัดการแชทบอทไม่แสดงในแถบด้านข้าง</div>
+      <div class="faq-a">สำนักงานใหญ่ยังไม่ได้เปิดใช้งานแชทบอทชำระเงินในบัญชีร้านค้าของคุณ ติดต่อผู้ดูแลสำนักงานใหญ่ ICOPAY เพื่อขอเปิดใช้งาน ร้านค้าไม่สามารถเปลี่ยนการตั้งค่านี้ได้เอง</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">ไม่มี URL แชทบอทชำระเงินแสดงในข้อมูลบริษัทของฉัน</div>
+      <div class="faq-a">หมายความว่าแชทบอทชำระเงินถูกตั้งเป็นปิดใช้งานโดยสำนักงานใหญ่ URL จะแสดงเฉพาะหลังจากสำนักงานใหญ่เปิดใช้งาน กรุณาติดต่อผู้ดูแลสำนักงานใหญ่</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">ต้องการแก้ไขข้อมูลบริษัท</div>
+      <div class="faq-a">ข้อมูลบริษัทของฉันเป็น<strong>สำหรับดูเท่านั้น</strong>สำหรับร้านค้า หากต้องการอัปเดตข้อมูลใดๆ กรุณาติดต่อผู้ดูแลสำนักงานใหญ่ ICOPAY</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">ต้องการรับการแจ้งเตือนทาง Email หรือ LINE เมื่อมีการชำระเงิน</div>
+      <div class="faq-a">การตั้งค่าการแจ้งเตือนไม่สามารถเปลี่ยนแปลงได้โดยร้านค้าเอง <strong>ติดต่อผู้ดูแลสำนักงานใหญ่</strong>และให้ที่อยู่ Email หรือ LINE Notify token เพื่อให้ดำเนินการตั้งค่า</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">ลงทะเบียนสินค้าแล้วแต่ไม่แสดงในแชทบอท</div>
+      <div class="faq-a">ตรวจสอบ<strong>สถานะเปิดใช้งาน</strong>ของสินค้าในจัดการสินค้า สินค้าที่ปิดใช้งานจะไม่แสดงให้ลูกค้าเห็น นอกจากนี้ตรวจสอบว่าวันที่ปัจจุบันอยู่ในช่วงระยะเวลาขายที่ตั้งไว้</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">การจองซ้อนทับกันได้หรือไม่?</div>
+      <div class="faq-a">หากช่วงเวลาที่เลือกมีการจองอยู่แล้ว AI จะแนะนำเวลาอื่นโดยอัตโนมัติ การจองซ้ำจะถูกบล็อกอัตโนมัติตามหน่วยช่วงเวลาที่ตั้งในการตั้งค่าพื้นฐาน</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">ไม่สามารถลงทะเบียนสินค้าเพิ่มเติมได้</div>
+      <div class="faq-a">ถึงขีดจำกัดการลงทะเบียนสินค้าที่กำหนดโดยสำนักงานใหญ่แล้ว ลบสินค้าที่ไม่จำเป็นหรือขอเพิ่มขีดจำกัดจากสำนักงานใหญ่</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">ต้องการแก้ไขหรือลบคำสั่งซื้อ</div>
+      <div class="faq-a">จัดการคำสั่งซื้อเป็น<strong>สำหรับดูเท่านั้น</strong>สำหรับร้านค้า หากต้องการเปลี่ยนแปลงคำสั่งซื้อ กรุณาติดต่อผู้ดูแลสำนักงานใหญ่ ICOPAY</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">แชทบอทสามารถตอบสนองลูกค้าได้หลายภาษาหรือไม่?</div>
+      <div class="faq-a">แชทบอท ICOPAY ตอบสนองโดยอัตโนมัติในภาษาของเบราว์เซอร์ลูกค้า รองรับหลายภาษา (ไทย เกาหลี อังกฤษ ญี่ปุ่น จีน ฯลฯ) โดยไม่ต้องตั้งค่าเพิ่มเติม</div>
+    </div>
+  </div>
+
+  <div class="footer">คู่มือแชทบอทชำระเงิน ICOPAY สำหรับร้านค้า &nbsp;|&nbsp; icopay.co.kr &nbsp;|&nbsp; ติดต่อ: ผู้ดูแลสำนักงานใหญ่ ICOPAY</div>
+</div>
+
+<div style="text-align:center;margin:24px 0 40px;" class="no-print">
+  <button onclick="window.print()" style="background:#1565c0;color:#fff;border:none;padding:12px 36px;font-size:12pt;font-weight:700;border-radius:8px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18);">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
+  <p style="color:#888;font-size:9pt;margin-top:8px;">ในกล่องโต้ตอบการพิมพ์ของเบราว์เซอร์ เลือก "บันทึกเป็น PDF" เพื่อบันทึกเป็นไฟล์ PDF</p>
+</div>
+<style>@media print { .no-print { display: none !important; } }</style>
+</body>
+</html>
+

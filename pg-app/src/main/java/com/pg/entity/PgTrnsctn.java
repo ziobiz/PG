@@ -125,6 +125,19 @@ public class PgTrnsctn {
     @Column(name = "display_amt", precision = 20, scale = 8)
     private BigDecimal displayAmt;
 
+    /** 실패·취소·무효·환불 등 상태 변경 처리사유(V185) */
+    @Column(name = "outcome_reason", columnDefinition = "TEXT")
+    private String outcomeReason;
+
+    @Column(name = "outcome_reason_code", length = 64)
+    private String outcomeReasonCode;
+
+    @Column(name = "outcome_reason_source", length = 32)
+    private String outcomeReasonSource;
+
+    @Column(name = "outcome_reason_at")
+    private LocalDateTime outcomeReasonAt;
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
@@ -192,4 +205,13 @@ public class PgTrnsctn {
     public void setDisplayCurType(String displayCurType) { this.displayCurType = displayCurType; }
     public BigDecimal getDisplayAmt() { return displayAmt; }
     public void setDisplayAmt(BigDecimal displayAmt) { this.displayAmt = displayAmt; }
+
+    public String getOutcomeReason() { return outcomeReason; }
+    public void setOutcomeReason(String outcomeReason) { this.outcomeReason = outcomeReason; }
+    public String getOutcomeReasonCode() { return outcomeReasonCode; }
+    public void setOutcomeReasonCode(String outcomeReasonCode) { this.outcomeReasonCode = outcomeReasonCode; }
+    public String getOutcomeReasonSource() { return outcomeReasonSource; }
+    public void setOutcomeReasonSource(String outcomeReasonSource) { this.outcomeReasonSource = outcomeReasonSource; }
+    public LocalDateTime getOutcomeReasonAt() { return outcomeReasonAt; }
+    public void setOutcomeReasonAt(LocalDateTime outcomeReasonAt) { this.outcomeReasonAt = outcomeReasonAt; }
 }

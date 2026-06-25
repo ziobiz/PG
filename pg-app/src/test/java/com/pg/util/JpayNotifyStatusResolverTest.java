@@ -62,6 +62,14 @@ class JpayNotifyStatusResolverTest {
     }
 
     @Test
+    void paymentStatusUnpaid_mapsToCancel() {
+        assertEquals(JpayNotifyStatusResolver.ST_CANCEL,
+                JpayNotifyStatusResolver.resolve("", "", "Unpaid"));
+        assertEquals(JpayNotifyStatusResolver.ST_CANCEL,
+                JpayNotifyStatusResolver.resolve("", "", "unpaid"));
+    }
+
+    @Test
     void returncode2_mapsToFail_notChillPayCancel() {
         assertEquals(JpayNotifyStatusResolver.ST_FAIL, JpayNotifyStatusResolver.fromReturnCode("2"));
         assertNotEquals("20", JpayNotifyStatusResolver.fromReturnCode("2"));

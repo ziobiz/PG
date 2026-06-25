@@ -40,6 +40,8 @@ public class PayListSearchRequest {
     private boolean skipMeta;
     /** true — 페이지당 최대 15_000건까지 조회(모두다운로드) */
     private boolean listExport;
+    /** 관리자 UI 언어(KO/EN/JP/CH/TH) — 처리사유 번역용. API 파라미터가 아닌 컨트롤러에서 설정 */
+    private String adminUiLocale;
     private int page = 1;
     private int size = 20;
 
@@ -185,6 +187,8 @@ public class PayListSearchRequest {
     public void setSkipMeta(boolean skipMeta) { this.skipMeta = skipMeta; }
     public boolean isListExport() { return listExport; }
     public void setListExport(boolean listExport) { this.listExport = listExport; }
+    public String getAdminUiLocale() { return adminUiLocale; }
+    public void setAdminUiLocale(String adminUiLocale) { this.adminUiLocale = adminUiLocale; }
 
     /** 일별 집계 등: 검색 조건만 복제(날짜·페이지는 호출부에서 덮어씀). */
     public static PayListSearchRequest shallowCopy(PayListSearchRequest src) {
@@ -217,6 +221,7 @@ public class PayListSearchRequest {
         r.size = src.size;
         r.skipMeta = src.skipMeta;
         r.listExport = src.listExport;
+        r.adminUiLocale = src.adminUiLocale;
         return r;
     }
 }

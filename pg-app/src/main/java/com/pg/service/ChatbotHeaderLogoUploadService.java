@@ -169,7 +169,8 @@ public class ChatbotHeaderLogoUploadService {
                     + "recommended maximum width-or-height in pixels for a JPEG logo shown in a small circular bubble on mobile.";
             String user = "Target final file soft limit about " + targetMaxKb + " KB after server-side JPEG optimization.";
             List<Map<String, String>> msgs = List.of(Map.of("role", "user", "content", user));
-            String reply = chatbotLlmCompletionService.completeChat(rawCfg, sys, msgs);
+            String reply = chatbotLlmCompletionService.completeChat(rawCfg, sys, msgs,
+                    com.pg.util.ChatbotLlmUsage.GENERAL);
             return parseFirstIntClamp(reply, 420, 1200);
         } catch (Exception e) {
             log.warn("chatbot logo LLM tuning skipped: {}", e.getMessage());

@@ -111,7 +111,7 @@ public class JpayTradeApiService {
         return out;
     }
 
-    public void requestRefund(PgTrnsctn t, BigDecimal refundAmount, String reason) {
+    public String requestRefund(PgTrnsctn t, BigDecimal refundAmount, String reason) {
         requireJpayTxn(t);
         if (t.getOrderNo() == null || t.getOrderNo().isBlank()) {
             throw new IllegalStateException("주문번호가 없어 JPAY 환불 API를 호출할 수 없습니다.");
@@ -157,7 +157,9 @@ public class JpayTradeApiService {
             String msg = body.path("refund_message").asText(body.path("msg").asText("JPAY 환불 실패"));
             throw new IllegalStateException(msg);
         }
+        String successMsg = body.path("refund_message").asText(body.path("msg").asText(refundReason));
         log.info("JPAY refund OK orderNo={} transactionId={} refund={}", t.getOrderNo(), txnId, refund);
+        return successMsg;
     }
 
     private JsonNode postTradeQuery(TradeCtx ctx, String orderNo) {

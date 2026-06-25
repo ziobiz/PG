@@ -110,6 +110,9 @@ public class ApiPubChatbotController {
         data.put("compId", ou.get().getCode());
         data.put("urlPayCheckoutMode", productService.resolveUrlPayCheckoutModeForMerchant(ou.get().getId()));
         data.put("chatbotCheckoutPgVendor", productService.resolveChatbotCheckoutPgVendor(ou.get().getId()));
+        if (productService.isMerchantUrlPayCheckoutSplitPay(ou.get().getId())) {
+            data.put("splitPayEnabledYn", productService.resolveSplitPayEnabledYnForMerchant(ou.get().getId()));
+        }
         data.put("chatbotCommerceHold", commerceHold);
         data.put("items", items);
         data.put("promotionItems", promotionItemsOut);
@@ -349,7 +352,8 @@ public class ApiPubChatbotController {
                 .append("- 고객이 발송 여부를 물으면: 채팅만으로는 전송되지 않았고, 주문 시트에서 해당 옵션을 켠 뒤 제출했는지 확인하라고 안내하세요.\n");
 
         try {
-            String reply = chatbotLlmCompletionService.completeChat(aiCfg, sys.toString(), messages);
+            String reply = chatbotLlmCompletionService.completeChat(aiCfg, sys.toString(), messages,
+                    com.pg.util.ChatbotLlmProviderOrderUtil.resolvePublicChatUsage(messages));
             Map<String, Object> data = new LinkedHashMap<>();
             data.put("reply", sanitizeChatbotPayReplyMarkdown(reply));
             return ResponseEntity.ok(ApiResponse.ok(data));

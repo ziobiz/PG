@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICOPAY 챗봇결제 가맹점 사용 메뉴얼</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; font-size: 11pt; line-height: 1.7; color: #1a1a1a; background: #f5f6fa; }
+  .page-wrap { max-width: 860px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 16px rgba(0,0,0,.10); overflow: hidden; }
+  .cover { background: linear-gradient(135deg, #1a3a5c 0%, #1565c0 60%, #1e88e5 100%); color: #fff; padding: 48px 52px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+  .cover-body { flex: 1; }
+  .cover-logo { flex-shrink: 0; display: flex; align-items: flex-start; padding-top: 4px; }
+  .cover-logo img { height: 64px; background: rgba(255,255,255,0.92); padding: 10px 18px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.20); }
+  .cover .logo-line { font-size: 13pt; font-weight: 700; letter-spacing: 2px; opacity: .85; margin-bottom: 14px; }
+  .cover h1 { font-size: 26pt; font-weight: 900; line-height: 1.25; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 11.5pt; opacity: .82; margin-bottom: 24px; }
+  .cover .meta { font-size: 9.5pt; opacity: .65; border-top: 1px solid rgba(255,255,255,.25); padding-top: 14px; }
+  .body { padding: 44px 52px 60px; }
+  .toc { background: #f0f4ff; border-left: 4px solid #1565c0; border-radius: 0 8px 8px 0; padding: 20px 26px; margin-bottom: 40px; }
+  .toc h2 { font-size: 12pt; font-weight: 700; color: #1565c0; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { font-size: 10pt; line-height: 2.1; color: #1a3a5c; }
+  .toc a { color: #1565c0; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  h2.section-title { font-size: 15pt; font-weight: 800; color: #1a3a5c; border-bottom: 2.5px solid #1565c0; padding-bottom: 7px; margin: 42px 0 16px; page-break-after: avoid; }
+  h3.sub-title { font-size: 12pt; font-weight: 700; color: #1565c0; margin: 24px 0 10px; page-break-after: avoid; }
+  p { margin-bottom: 10px; }
+  .info-box { background: #e3f0ff; border: 1px solid #90caf9; border-left: 4px solid #1565c0; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1a3a5c; }
+  .warn-box { background: #fff8e1; border: 1px solid #ffe082; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #5d4037; }
+  .check-box { background: #e8f5e9; border: 1px solid #a5d6a7; border-left: 4px solid #2e7d32; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1b5e20; }
+  .hq-box { background: #fce4ec; border: 1px solid #f48fb1; border-left: 4px solid #c62828; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #b71c1c; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 20px; font-size: 10pt; page-break-inside: avoid; }
+  th { background: #1565c0; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #1245a0; }
+  td { padding: 8px 12px; border: 1px solid #cfd8dc; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f7ff; }
+  td.center, th.center { text-align: center; }
+  .perm-full { display: inline-block; background: #2e7d32; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 7px; border-radius: 4px; }
+  .perm-view { display: inline-block; background: #1565c0; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 7px; border-radius: 4px; }
+  .perm-none { display: inline-block; background: #9e9e9e; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 7px; border-radius: 4px; }
+  pre { background: #1e2a38; color: #cdd9e5; font-family: 'Consolas', 'D2Coding', monospace; font-size: 9.5pt; line-height: 1.6; padding: 16px 20px; border-radius: 8px; margin: 12px 0 18px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; page-break-inside: avoid; }
+  code { background: #e8edf5; color: #c0392b; font-family: 'Consolas', monospace; font-size: 9pt; padding: 1px 5px; border-radius: 3px; }
+  .flow { background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; padding: 20px 24px; margin: 14px 0 20px; font-size: 10pt; page-break-inside: avoid; }
+  .flow-row { display: flex; align-items: flex-start; margin-bottom: 7px; }
+  .flow-actor { display: inline-block; min-width: 80px; font-weight: 700; color: #1565c0; flex-shrink: 0; padding-top: 1px; }
+  .flow-arrow { color: #888; margin: 0 10px; font-size: 13pt; flex-shrink: 0; }
+  .flow-desc { color: #37474f; }
+  .step-badge { display: inline-block; background: #1565c0; color: #fff; font-weight: 800; font-size: 9pt; padding: 2px 10px; border-radius: 20px; margin-right: 8px; vertical-align: middle; }
+  .faq-item { border: 1px solid #e0e6f0; border-radius: 8px; margin-bottom: 14px; page-break-inside: avoid; }
+  .faq-q { background: #e8edf8; padding: 11px 16px; font-weight: 700; font-size: 10.5pt; color: #1a3a5c; border-radius: 8px 8px 0 0; }
+  .faq-q::before { content: "Q. "; color: #1565c0; }
+  .faq-a { padding: 11px 16px; font-size: 10pt; color: #37474f; background: #fff; border-radius: 0 0 8px 8px; }
+  .faq-a::before { content: "A. "; font-weight: 700; color: #2e7d32; }
+  .badge-req { display: inline-block; background: #e53935; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 4px; }
+  .badge-opt { display: inline-block; background: #757575; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 4px; }
+  .menu-path { display: inline-block; background: #ececec; border: 1px solid #d0d0d0; border-radius: 5px; padding: 3px 11px; font-size: 9.5pt; color: #37474f; font-weight: 600; margin-bottom: 12px; }
+  .menu-path::before { content: "📌 메뉴: "; }
+  hr.section-rule { border: none; border-top: 1px dashed #c5cae9; margin: 36px 0; }
+  .footer { background: #1a3a5c; color: rgba(255,255,255,.65); text-align: center; font-size: 9pt; padding: 18px 24px; }
+  ul { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+  @media print {
+    body { background: #fff; font-size: 10pt; }
+    .page-wrap { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; }
+    .cover { padding: 28px 36px 24px; }
+    .body { padding: 28px 36px 36px; }
+    .faq-item, pre, table, .flow { page-break-inside: avoid; }
+    .footer, .no-print { display: none; }
+    @page { size: A4; margin: 18mm 16mm; }
+  }
+</style>
+</head>
+<body>
+<style id="print-btn-style">
+  .print-btn { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #1565c0; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 10.5pt; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(21,101,192,.45); display: flex; align-items: center; gap: 9px; transition: background .18s, box-shadow .18s; text-decoration: none; }
+  .print-btn:hover { background: #0d47a1; box-shadow: 0 6px 20px rgba(13,71,161,.5); }
+  @media print { .print-btn { display: none !important; } }
+</style>
+<button class="print-btn" onclick="window.print()">🖨️ 인쇄 / PDF 저장</button>
+<div class="page-wrap">
+  <div class="cover">
+    <div class="cover-body">
+      <div class="logo-line">ICOPAY · Payment Gateway</div>
+      <h1>챗봇결제<br>가맹점 사용 메뉴얼</h1>
+      <div class="subtitle">가맹점 기준 — AI 챗봇으로 상품 안내부터 결제까지, 가맹점이 직접 운영하는 모든 것</div>
+      <div class="meta">작성 기준: ICOPAY 가맹점 권한 기준 &nbsp;|&nbsp; 대상: 챗봇결제 사용 가맹점 &nbsp;|&nbsp; 발행: 2026년 6월</div>
+    </div>
+    <div class="cover-logo">
+      <img src="./logo-ontheline.png" alt="On The Line">
+    </div>
+  </div>
+
+  <div class="body">
+
+    <!-- 권한 요약 -->
+    <div class="warn-box" style="margin-bottom:28px;">
+      <strong>📋 가맹점 메뉴 권한 요약</strong><br><br>
+      <table style="margin:8px 0 0;">
+        <tr><th>메뉴</th><th class="center">권한</th><th>설명</th></tr>
+        <tr><td>업체관리 &gt; 내 업체정보</td><td class="center"><span class="perm-view">조회만</span></td><td>URL·QR·스크립트 확인·복사 가능 / 설정 변경 불가</td></tr>
+        <tr><td>챗봇관리 &gt; 기본설정</td><td class="center"><span class="perm-full">전체</span></td><td>운영방식·업종·예약설정 직접 변경 가능</td></tr>
+        <tr><td>챗봇관리 &gt; 상품관리</td><td class="center"><span class="perm-full">전체</span></td><td>상품 등록·수정·삭제 직접 가능</td></tr>
+        <tr><td>챗봇관리 &gt; 주문관리</td><td class="center"><span class="perm-view">조회만</span></td><td>주문 내역 확인만 가능 / 수정·삭제 불가</td></tr>
+        <tr><td>업체등록·업체관리 등</td><td class="center"><span class="perm-none">접근불가</span></td><td>본사·총판 전용 메뉴</td></tr>
+      </table>
+    </div>
+
+    <div class="toc">
+      <h2>목 차</h2>
+      <ol>
+        <li><a href="#s1">챗봇결제란?</a></li>
+        <li><a href="#s2">시작 전 확인 사항 (본사 활성화 필요)</a></li>
+        <li><a href="#s3">STEP 1 — 내 챗봇결제 정보 확인 (조회 전용)</a></li>
+        <li><a href="#s4">STEP 2 — 챗봇 기본설정 (가맹점 직접 운영)</a></li>
+        <li><a href="#s5">STEP 3 — 상품 등록·관리 (가맹점 직접 운영)</a></li>
+        <li><a href="#s6">STEP 4 — 결제 URL 배포 방법</a></li>
+        <li><a href="#s7">STEP 5 — 주문 내역 확인 (조회 전용)</a></li>
+        <li><a href="#s8">운영방식별 사용 흐름</a></li>
+        <li><a href="#s9">자주 묻는 질문 (FAQ)</a></li>
+      </ol>
+    </div>
+
+    <h2 class="section-title" id="s1">1. 챗봇결제란?</h2>
+    <p>ICOPAY 챗봇결제는 AI 챗봇이 고객과 대화하며 <strong>상품 안내 → 주문 수집 → 결제</strong>까지 한 흐름으로 처리해 주는 서비스입니다. 별도 쇼핑몰·앱 없이 챗봇 URL 하나로 온라인 판매·예약·결제를 운영할 수 있습니다.</p>
+
+    <h3 class="sub-title">고객 결제 흐름 (예: 선불 판매)</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-actor">고객</span><span class="flow-arrow">→</span><span class="flow-desc">가맹점이 배포한 챗봇 URL 접속 (링크 클릭 / QR 스캔)</span></div>
+      <div class="flow-row"><span class="flow-actor">AI 챗봇</span><span class="flow-arrow">→</span><span class="flow-desc">가맹점이 등록한 상품 안내 및 선택 유도</span></div>
+      <div class="flow-row"><span class="flow-actor">고객</span><span class="flow-arrow">→</span><span class="flow-desc">상품 선택 + 주문 정보 입력</span></div>
+      <div class="flow-row"><span class="flow-actor">AI 챗봇</span><span class="flow-arrow">→</span><span class="flow-desc">결제 페이지로 안내</span></div>
+      <div class="flow-row"><span class="flow-actor">고객</span><span class="flow-arrow">→</span><span class="flow-desc">카드 결제 완료</span></div>
+      <div class="flow-row"><span class="flow-actor">가맹점</span><span class="flow-arrow">→</span><span class="flow-desc">주문관리 화면에서 주문 내역 조회</span></div>
+    </div>
+
+    <h3 class="sub-title">가맹점이 직접 운영하는 범위</h3>
+    <table>
+      <tr><th>가맹점 직접 가능</th><th>본사(HQ)가 설정</th></tr>
+      <tr><td>챗봇 운영방식·업종·예약 설정</td><td>챗봇결제 활성화 여부 (사용/미사용)</td></tr>
+      <tr><td>상품 등록·수정·삭제</td><td>상품 등록 한도 설정</td></tr>
+      <tr><td>주문 내역 조회</td><td>결제 승인 이메일·LINE 알림 설정</td></tr>
+      <tr><td>챗봇 URL·QR·스크립트 확인·복사</td><td>업체 기본 정보 변경</td></tr>
+    </table>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s2">2. 시작 전 확인 사항 (본사 활성화 필요)</h2>
+    <p>챗봇결제는 <strong>본사가 가맹점 계정에 활성화</strong>를 해 주어야 사용할 수 있습니다. 아래 조건을 확인하세요.</p>
+    <table>
+      <tr><th>확인 항목</th><th>확인 방법</th></tr>
+      <tr><td>사이드바에 <strong>챗봇관리</strong> 메뉴가 보이는가?</td><td>보이면 활성화 완료. 보이지 않으면 본사에 문의</td></tr>
+      <tr><td>내 업체정보에 <strong>챗봇결제 URL</strong>이 표시되는가?</td><td>URL이 있으면 사용 가능 상태</td></tr>
+    </table>
+    <div class="hq-box">
+      <strong>본사에 요청해야 하는 사항</strong><br>
+      아래 항목은 가맹점이 직접 변경할 수 없으며, ICOPAY 본사 담당자에게 요청해야 합니다.<br><br>
+      • 챗봇결제 활성화 / 비활성화<br>
+      • 결제 승인 이메일 알림 설정<br>
+      • LINE Notify 알림 설정<br>
+      • 상품 등록 한도 변경<br>
+      • 업체 기본 정보(상호·주소 등) 변경
+    </div>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s3">3. <span class="step-badge">STEP 1</span> 내 챗봇결제 정보 확인 <small style="font-size:10pt;font-weight:400;color:#888;">(조회 전용)</small></h2>
+    <div class="menu-path">업체관리 &gt; 내 업체정보</div>
+    <div class="info-box">이 화면은 <strong>조회 전용</strong>입니다. 가맹점은 이 페이지에서 정보를 <strong>확인하고 복사</strong>할 수 있지만, 내용을 직접 변경할 수는 없습니다.</div>
+
+    <h3 class="sub-title">3-1. 챗봇결제 URL 확인 및 복사</h3>
+    <p>본사가 챗봇결제를 활성화하면 아래 형식의 URL이 자동으로 표시됩니다.</p>
+    <pre>https://pay.icopay.co.kr/chatbot-pay/{업체코드}</pre>
+    <table>
+      <tr><th>동작</th><th>방법</th></tr>
+      <tr><td>URL 복사</td><td>URL 입력 필드 옆의 <strong>복사</strong> 버튼 클릭 → 클립보드에 저장</td></tr>
+      <tr><td>QR코드 저장</td><td>QR 이미지 옆의 <strong>저장</strong> 버튼 클릭 → PNG 파일로 다운로드</td></tr>
+    </table>
+    <div class="warn-box">챗봇결제가 본사에서 미사용으로 설정된 경우, URL이 표시되지 않습니다. 본사 담당자에게 활성화를 요청하세요.</div>
+
+    <h3 class="sub-title">3-2. 홈페이지 플로팅 위젯 스크립트 복사</h3>
+    <p>홈페이지에 챗봇 아이콘을 표시하려면, 내 업체정보에서 <strong>챗봇 플로팅 위젯</strong> 코드를 복사합니다.</p>
+    <pre>&lt;!-- 복사된 코드 예시 — 모든 페이지의 &lt;/body&gt; 직전에 붙여넣기 --&gt;
+&lt;script src="https://pay.icopay.co.kr/v1/embed-chatbot/{업체코드}"
+        async defer charset="utf-8"&gt;&lt;/script&gt;</pre>
+    <div class="info-box">내 업체정보 화면에서 <strong>복사</strong> 버튼을 누르면 업체코드가 포함된 완성 코드를 바로 복사할 수 있습니다.</div>
+
+    <h3 class="sub-title">3-3. QR코드 활용</h3>
+    <ul>
+      <li>저장한 PNG 파일을 인쇄소에 전달하거나 포스터·명함 제작에 사용</li>
+      <li>매장 내 테이블 카드, 안내판, 메뉴판 등에 부착</li>
+      <li>고객이 QR 스캔 → 챗봇 결제 페이지로 바로 이동</li>
+    </ul>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s4">4. <span class="step-badge">STEP 2</span> 챗봇 기본설정 <small style="font-size:10pt;font-weight:400;color:#2e7d32;">✔ 가맹점 직접 운영</small></h2>
+    <div class="menu-path">챗봇관리 &gt; 기본설정</div>
+    <div class="check-box">이 메뉴는 가맹점이 <strong>직접 설정·저장</strong>할 수 있습니다.</div>
+
+    <h3 class="sub-title">4-1. 운영방식 선택</h3>
+    <p>업종과 결제 시점에 맞는 방식을 선택하면 AI가 그에 맞는 대화 흐름으로 고객을 안내합니다.</p>
+    <table>
+      <tr><th>운영방식</th><th>설명</th><th>적합 업종 예시</th></tr>
+      <tr><td><strong>상품판매 · 선불</strong></td><td>상품 선택 후 즉시 결제</td><td>온라인 쇼핑몰, 굿즈 판매</td></tr>
+      <tr><td><strong>상품판매 · 후불</strong></td><td>주문 접수 후 나중에 결제</td><td>주문 제작, B2B 납품</td></tr>
+      <tr><td><strong>예약방식 · 선불</strong></td><td>예약 시 즉시 결제</td><td>마사지, 헤어샵, 스터디룸</td></tr>
+      <tr><td><strong>예약방식 · 후불</strong></td><td>예약 접수 → 방문 후 결제</td><td>레스토랑, 컨설팅</td></tr>
+      <tr><td><strong>하이브리드 (판매+예약)</strong></td><td>일반 판매 + 예약 상품 혼용</td><td>복합 서비스업</td></tr>
+      <tr><td><strong>대면거래 (판매+예약·후불)</strong></td><td>현장 확인 후 결제</td><td>VIP 클럽, 대면 서비스</td></tr>
+    </table>
+
+    <h3 class="sub-title">4-2. 업체성격 선택</h3>
+    <p>AI 챗봇이 업종에 맞는 질문 흐름을 자동 구성합니다. 가맹점의 업종에 가장 가까운 항목을 선택하세요.</p>
+    <table>
+      <tr><th>업체성격</th><th>AI 응대 특성</th></tr>
+      <tr><td>일반판매 / 이커머스</td><td>상품명·수량·배송지 중심으로 수집</td></tr>
+      <tr><td>마사지 (일반·클럽)</td><td>예약 날짜·시간·코스·인원 수집</td></tr>
+      <tr><td>음식점 / 레스토랑</td><td>방문 인원·날짜·시간·특이사항 수집</td></tr>
+      <tr><td>컨설팅 / 서비스업</td><td>상담 주제·희망 일정·연락처 수집</td></tr>
+      <tr><td>부동산 / 자동차판매</td><td>관심 매물·예산·방문 가능일 수집</td></tr>
+      <tr><td>VIP 클럽</td><td>멤버십·예약 코스 중심 안내</td></tr>
+    </table>
+    <div class="info-box"><strong>업체성격 보조 메모 (선택):</strong> 반드시 수집해야 할 정보나 AI가 피해야 할 표현을 자유 텍스트로 입력하면 응대에 반영됩니다.</div>
+
+    <h3 class="sub-title">4-3. 업체 기본 안내 정보</h3>
+    <p>AI가 고객 문의에 답변할 때 참조하는 정보입니다. 비워두면 업체등록 정보와 동일하게 안내됩니다.</p>
+    <ul>
+      <li>업체명 / 주소 / 전화번호</li>
+      <li>영업시간</li>
+      <li>기타 안내사항 (주차, 대중교통 등)</li>
+    </ul>
+
+    <h3 class="sub-title">4-4. 예약 설정 (예약방식 운영 시)</h3>
+    <table>
+      <tr><th>항목</th><th>설명</th></tr>
+      <tr><td>예약 기본 슬롯 (분)</td><td>예약 단위 시간: 15 / 30 / 45 / 60 / 90 / 120 / 180 / 240분 중 선택<br><span style="color:#757575;font-size:9pt;">상품별로 다른 슬롯이 필요하면 상품관리에서 개별 설정 가능</span></td></tr>
+      <tr><td>예약 타임존 (IANA)</td><td>예약 기준 시간대 입력 (기본값: <code>Asia/Seoul</code>)</td></tr>
+    </table>
+    <div class="info-box">같은 날짜·시간대에 이미 예약이 있으면 AI가 자동으로 다른 시간을 안내합니다. 슬롯 단위로 중복 예약이 자동 차단됩니다.</div>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s5">5. <span class="step-badge">STEP 3</span> 상품 등록·관리 <small style="font-size:10pt;font-weight:400;color:#2e7d32;">✔ 가맹점 직접 운영</small></h2>
+    <div class="menu-path">챗봇관리 &gt; 상품관리</div>
+    <div class="check-box">이 메뉴는 가맹점이 <strong>직접 등록·수정·삭제</strong>할 수 있습니다.</div>
+
+    <h3 class="sub-title">5-1. 상품 유형</h3>
+    <table>
+      <tr><th>유형 코드</th><th>설명</th></tr>
+      <tr><td><strong>SALE</strong></td><td>일반 판매 상품 — 수량 단위로 구매</td></tr>
+      <tr><td><strong>RESERVATION_TIME</strong></td><td>시간 예약 상품 — 날짜·시간 지정 후 예약</td></tr>
+      <tr><td><strong>RESERVATION_PLACE</strong></td><td>장소 예약 상품 — 특정 공간 (룸·좌석 등) 예약</td></tr>
+    </table>
+    <div class="hq-box">사용 가능한 상품 유형은 본사 정책에 따라 제한될 수 있습니다.</div>
+
+    <h3 class="sub-title">5-2. 상품 등록 항목</h3>
+    <table>
+      <tr><th>항목</th><th class="center">필수</th><th>설명</th></tr>
+      <tr><td>상품명</td><td class="center"><span class="badge-req">필수</span></td><td>AI 챗봇이 고객에게 소개하는 상품 이름</td></tr>
+      <tr><td>가격</td><td class="center"><span class="badge-req">필수</span></td><td>결제 금액 (가맹점 기준통화 적용)</td></tr>
+      <tr><td>상품 설명</td><td class="center"><span class="badge-opt">선택</span></td><td>AI 안내 시 활용되는 상세 설명</td></tr>
+      <tr><td>상품 이미지</td><td class="center"><span class="badge-opt">선택</span></td><td>최대 1~4장 (본사 정책에 따라 상한 결정)</td></tr>
+      <tr><td>판매 수량 한도</td><td class="center"><span class="badge-opt">선택</span></td><td>재고 관리가 필요한 경우 입력</td></tr>
+      <tr><td>예약 슬롯 (분)</td><td class="center">예약 시</td><td>기본설정과 다를 경우 상품별 개별 지정</td></tr>
+      <tr><td>판매 기간</td><td class="center"><span class="badge-opt">선택</span></td><td>기간 한정 판매 시 시작·종료일 설정</td></tr>
+      <tr><td>활성화 여부</td><td class="center"><span class="badge-req">필수</span></td><td>비활성 시 챗봇에서 해당 상품이 고객에게 보이지 않음</td></tr>
+    </table>
+    <div class="hq-box">등록 가능한 상품 수는 본사가 지정한 <strong>상품등록 한도</strong> 이내입니다. 한도 초과 시 기존 상품을 삭제하거나 본사에 한도 상향을 요청하세요.</div>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s6">6. <span class="step-badge">STEP 4</span> 결제 URL 배포 방법</h2>
+    <p>STEP 1에서 확인한 URL·QR·스크립트를 고객에게 배포합니다.</p>
+
+    <h3 class="sub-title">6-1. URL 직접 공유</h3>
+    <pre>https://pay.icopay.co.kr/chatbot-pay/{업체코드}</pre>
+    <table>
+      <tr><th>배포 채널</th><th>활용 방법</th></tr>
+      <tr><td>카카오톡 · LINE</td><td>메시지에 링크를 첨부하여 고객에게 전송</td></tr>
+      <tr><td>SNS 프로필</td><td>인스타그램·네이버 블로그·페이스북 프로필 링크에 등록</td></tr>
+      <tr><td>이메일 서명</td><td>이메일 하단 서명에 링크 삽입</td></tr>
+      <tr><td>홈페이지 버튼</td><td>「지금 주문하기」「예약하기」 버튼의 href에 연결</td></tr>
+    </table>
+
+    <h3 class="sub-title">6-2. QR코드 인쇄물</h3>
+    <table>
+      <tr><th>활용처</th><th>예시</th></tr>
+      <tr><td>매장 내부</td><td>테이블 위 QR 카드, 카운터 안내판</td></tr>
+      <tr><td>인쇄물</td><td>포스터·배너·메뉴판·전단지</td></tr>
+      <tr><td>명함</td><td>명함 뒷면 QR 삽입</td></tr>
+    </table>
+
+    <h3 class="sub-title">6-3. 홈페이지 플로팅 위젯</h3>
+    <p>고객이 홈페이지를 방문하면 화면 하단에 챗봇 아이콘이 자동으로 표시됩니다. STEP 1에서 복사한 스크립트 코드를 홈페이지 모든 페이지의 <code>&lt;/body&gt;</code> 직전에 붙여넣으면 됩니다.</p>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s7">7. <span class="step-badge">STEP 5</span> 주문 내역 확인 <small style="font-size:10pt;font-weight:400;color:#888;">(조회 전용)</small></h2>
+    <div class="menu-path">챗봇관리 &gt; 주문관리</div>
+    <div class="info-box">주문관리 화면은 <strong>조회 전용</strong>입니다. 주문 내역을 확인하고 고객 정보를 열람할 수 있지만, 주문을 수정하거나 삭제할 수는 없습니다.</div>
+
+    <h3 class="sub-title">확인 가능한 주문 정보</h3>
+    <table>
+      <tr><th>항목</th><th>설명</th></tr>
+      <tr><td>주문번호</td><td>ICOPAY 채번 주문 식별번호</td></tr>
+      <tr><td>고객명 · 연락처</td><td>챗봇 주문 시 고객이 직접 입력한 정보</td></tr>
+      <tr><td>상품명 · 수량</td><td>주문된 상품 및 수량</td></tr>
+      <tr><td>주문 메모</td><td>고객이 챗봇에서 입력한 특이사항·요청사항</td></tr>
+      <tr><td>예약 일시</td><td>예약 방식 주문의 경우 선택된 날짜·시간</td></tr>
+      <tr><td>결제 상태</td><td>결제 대기 / 결제 완료 / 취소 등</td></tr>
+    </table>
+
+    <h3 class="sub-title">결제 내역 조회 (결제관리 화면)</h3>
+    <ul>
+      <li>승인된 결제 금액, 카드 정보, 승인번호 상세 확인</li>
+      <li>기간·상태별 필터 검색</li>
+      <li>엑셀 다운로드 지원</li>
+    </ul>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s8">8. 운영방식별 사용 흐름</h2>
+
+    <h3 class="sub-title">선불 방식 — 즉시 결제</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-actor">고객</span><span class="flow-arrow">→</span><span class="flow-desc">챗봇 URL 접속</span></div>
+      <div class="flow-row"><span class="flow-actor">AI</span><span class="flow-arrow">→</span><span class="flow-desc">가맹점이 등록한 상품 안내</span></div>
+      <div class="flow-row"><span class="flow-actor">고객</span><span class="flow-arrow">→</span><span class="flow-desc">상품 선택 + 주문 정보 입력</span></div>
+      <div class="flow-row"><span class="flow-actor">AI</span><span class="flow-arrow">→</span><span class="flow-desc">결제 화면 안내 → 카드 결제 완료</span></div>
+      <div class="flow-row"><span class="flow-actor">가맹점</span><span class="flow-arrow">→</span><span class="flow-desc">주문관리 화면에서 주문 조회 (본사 설정에 따라 이메일/LINE 알림 수신)</span></div>
+    </div>
+
+    <h3 class="sub-title">후불 방식 — 주문 접수 후 별도 결제</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-actor">고객</span><span class="flow-arrow">→</span><span class="flow-desc">챗봇 URL 접속 → 상품 선택·주문 정보 입력</span></div>
+      <div class="flow-row"><span class="flow-actor">가맹점</span><span class="flow-arrow">→</span><span class="flow-desc">주문관리에서 주문 확인 → 고객 연락</span></div>
+      <div class="flow-row"><span class="flow-actor">결제</span><span class="flow-arrow">→</span><span class="flow-desc">현장·계좌이체 등 별도 방법으로 처리</span></div>
+    </div>
+
+    <h3 class="sub-title">예약 방식 — 날짜·시간 선택</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-actor">고객</span><span class="flow-arrow">→</span><span class="flow-desc">챗봇 URL 접속</span></div>
+      <div class="flow-row"><span class="flow-actor">AI</span><span class="flow-arrow">→</span><span class="flow-desc">예약 가능한 날짜·시간 안내 (기본설정의 슬롯 기준)</span></div>
+      <div class="flow-row"><span class="flow-actor">고객</span><span class="flow-arrow">→</span><span class="flow-desc">날짜·시간·인원 선택 + 개인정보 입력</span></div>
+      <div class="flow-row"><span class="flow-actor">선불</span><span class="flow-arrow">→</span><span class="flow-desc">즉시 결제 완료 → 예약 확정</span></div>
+      <div class="flow-row"><span class="flow-actor">후불</span><span class="flow-arrow">→</span><span class="flow-desc">예약 접수 → 방문 후 결제</span></div>
+      <div class="flow-row"><span class="flow-actor">가맹점</span><span class="flow-arrow">→</span><span class="flow-desc">주문관리에서 예약 일시·고객 정보 조회</span></div>
+    </div>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s9">9. 자주 묻는 질문 (FAQ)</h2>
+
+    <div class="faq-item">
+      <div class="faq-q">챗봇관리 메뉴가 사이드바에 보이지 않습니다.</div>
+      <div class="faq-a">본사에서 가맹점 계정의 챗봇결제를 아직 활성화하지 않은 상태입니다. ICOPAY 본사 담당자에게 활성화를 요청하세요. 가맹점은 이 설정을 직접 변경할 수 없습니다.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">내 업체정보에 챗봇결제 URL이 표시되지 않습니다.</div>
+      <div class="faq-a">본사에서 챗봇결제 사용여부가 미사용으로 설정되어 있기 때문입니다. URL은 본사가 활성화한 후에만 표시됩니다. 본사 담당자에게 문의하세요.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">내 업체정보를 수정하고 싶습니다.</div>
+      <div class="faq-a">내 업체정보 화면은 <strong>조회 전용</strong>으로, 가맹점이 직접 수정할 수 없습니다. 정보 변경이 필요하면 ICOPAY 본사 담당자에게 요청하세요.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">결제 승인 시 이메일 또는 LINE 알림을 받고 싶습니다.</div>
+      <div class="faq-a">결제 알림 설정은 가맹점이 직접 변경할 수 없으며, <strong>본사 담당자에게 요청</strong>해야 합니다. 이메일 주소 또는 LINE Notify 토큰을 본사에 전달하면 설정해 드립니다.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">상품을 등록했는데 챗봇에서 보이지 않습니다.</div>
+      <div class="faq-a">상품관리 화면에서 해당 상품의 <strong>활성화 여부</strong>를 확인하세요. 비활성 상태이면 고객 챗봇에 표시되지 않습니다. 판매 기간이 설정된 경우 현재 날짜가 기간 내인지도 확인하세요.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">예약이 겹치게 들어올 수 있나요?</div>
+      <div class="faq-a">같은 날짜·시간에 이미 예약이 있으면 AI가 자동으로 다른 시간을 안내합니다. 기본설정에서 지정한 슬롯 단위로 중복 예약이 자동 차단됩니다.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">상품을 더 이상 등록할 수 없다고 나옵니다.</div>
+      <div class="faq-a">본사가 설정한 상품 등록 한도에 도달한 상태입니다. 불필요한 상품을 삭제하거나, 한도 상향을 본사 담당자에게 요청하세요.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">주문 내역을 수정하거나 삭제하고 싶습니다.</div>
+      <div class="faq-a">주문관리는 <strong>조회 전용</strong>입니다. 주문 수정·삭제가 필요한 경우 ICOPAY 본사 담당자에게 문의하세요.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">챗봇이 고객에게 응대하는 언어를 바꿀 수 있나요?</div>
+      <div class="faq-a">ICOPAY 챗봇은 고객 브라우저의 언어 설정에 따라 자동으로 다국어 응대합니다. 별도 설정 없이 한국어·영어·일본어·중국어·태국어 등이 지원됩니다.</div>
+    </div>
+  </div>
+
+  <div class="footer">ICOPAY 챗봇결제 가맹점 메뉴얼 &nbsp;|&nbsp; icopay.co.kr &nbsp;|&nbsp; 문의: ICOPAY 본사 담당자</div>
+</div>
+
+<div style="text-align:center;margin:24px 0 40px;" class="no-print">
+  <button onclick="window.print()" style="background:#1565c0;color:#fff;border:none;padding:12px 36px;font-size:12pt;font-weight:700;border-radius:8px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18);">🖨️ 인쇄 / PDF 저장</button>
+  <p style="color:#888;font-size:9pt;margin-top:8px;">브라우저 인쇄 창에서 「PDF로 저장」을 선택하면 PDF 파일로 저장됩니다.</p>
+</div>
+<style>@media print { .no-print { display: none !important; } }</style>
+</body>
+</html>
+

@@ -1,0 +1,230 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICOPAY 運営者設定マニュアル — 総販</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Meiryo', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif; font-size: 11pt; line-height: 1.8; color: #1a1a1a; background: #f0f2f8; }
+  .page-wrap { max-width: 900px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 18px rgba(0,0,0,.11); overflow: hidden; }
+  .cover { background: linear-gradient(135deg, #1a3a5c 0%, #1976d2 55%, #42a5f5 100%); color: #fff; padding: 48px 52px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+  .cover-body { flex: 1; }
+  .cover-logo { flex-shrink: 0; display: flex; align-items: flex-start; padding-top: 4px; }
+  .cover-logo img { height: 64px; background: rgba(255,255,255,.92); padding: 10px 18px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.20); }
+  .cover .logo-line { font-size: 13pt; font-weight: 700; letter-spacing: 2px; opacity: .85; margin-bottom: 14px; }
+  .cover h1 { font-size: 22pt; font-weight: 900; line-height: 1.35; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 11pt; opacity: .82; margin-bottom: 24px; }
+  .cover .meta { font-size: 9.5pt; opacity: .65; border-top: 1px solid rgba(255,255,255,.25); padding-top: 14px; }
+  .body { padding: 44px 52px 64px; }
+  .toc { background: #f0f4ff; border-left: 4px solid #1565c0; border-radius: 0 8px 8px 0; padding: 20px 26px; margin-bottom: 44px; }
+  .toc h2 { font-size: 12pt; font-weight: 700; color: #1565c0; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { font-size: 10pt; line-height: 2.2; color: #1a3a5c; }
+  .toc a { color: #1565c0; text-decoration: none; }
+  h2.section-title { font-size: 14pt; font-weight: 800; color: #1a3a5c; border-bottom: 2.5px solid #1565c0; padding-bottom: 7px; margin: 48px 0 18px; page-break-after: avoid; }
+  h3.sub-title { font-size: 12pt; font-weight: 700; color: #1565c0; margin: 26px 0 10px; page-break-after: avoid; }
+  p { margin-bottom: 10px; }
+  .info-box { background: #e3f0ff; border: 1px solid #90caf9; border-left: 4px solid #1565c0; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1a3a5c; }
+  .warn-box { background: #fff8e1; border: 1px solid #ffe082; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #5d4037; }
+  .check-box { background: #e8f5e9; border: 1px solid #a5d6a7; border-left: 4px solid #2e7d32; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1b5e20; }
+  .block-box { background: #fce4ec; border: 1px solid #f48fb1; border-left: 4px solid #c62828; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #b71c1c; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 22px; font-size: 10pt; page-break-inside: avoid; }
+  th { background: #1a3a5c; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #12274a; }
+  td { padding: 8px 12px; border: 1px solid #cfd8dc; vertical-align: middle; }
+  tr:nth-child(even) td { background: #f4f7ff; }
+  .menu-path { display: inline-block; background: #eceff1; border: 1px solid #cfd8dc; border-radius: 5px; padding: 3px 12px; font-size: 9.5pt; color: #37474f; font-weight: 600; margin-bottom: 12px; }
+  .menu-path::before { content: "📌 メニュー: "; }
+  .flow { background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; padding: 18px 22px; margin: 14px 0 20px; font-size: 10pt; page-break-inside: avoid; }
+  .flow-row { display: flex; align-items: flex-start; margin-bottom: 6px; }
+  .flow-num { display: inline-block; min-width: 28px; font-weight: 800; color: #1565c0; flex-shrink: 0; }
+  .flow-desc { color: #37474f; }
+  .faq-item { border: 1px solid #e0e6f0; border-radius: 8px; margin-bottom: 14px; page-break-inside: avoid; }
+  .faq-q { background: #e8edf8; padding: 11px 16px; font-weight: 700; font-size: 10.5pt; color: #1a3a5c; border-radius: 8px 8px 0 0; }
+  .faq-q::before { content: "Q. "; color: #1565c0; }
+  .faq-a { padding: 11px 16px; font-size: 10pt; color: #37474f; background: #fff; border-radius: 0 0 8px 8px; }
+  .faq-a::before { content: "A. "; font-weight: 700; color: #2e7d32; }
+  hr.rule { border: none; border-top: 1px dashed #c5cae9; margin: 40px 0; }
+  ul, ol { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+  .footer { background: #1a3a5c; color: rgba(255,255,255,.6); text-align: center; font-size: 9pt; padding: 18px 24px; }
+  @media print { body { background: #fff; } .page-wrap { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; } .footer { display: none; } @page { size: A4; margin: 18mm 16mm; } }
+</style>
+</head>
+<body>
+<style id="print-btn-style">
+  .print-btn { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #1565c0; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 10.5pt; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(21,101,192,.45); display: flex; align-items: center; gap: 9px; transition: background .18s, box-shadow .18s; text-decoration: none; }
+  .print-btn:hover { background: #0d47a1; box-shadow: 0 6px 20px rgba(13,71,161,.5); }
+  @media print { .print-btn { display: none !important; } }
+</style>
+<button class="print-btn" onclick="window.print()">🖨️ 印刷 / PDFで保存</button>
+<div class="page-wrap">
+  <div class="cover">
+    <div class="cover-body">
+      <div class="logo-line">ICOPAY · Payment Gateway</div>
+      <h1>運営者設定マニュアル<br>総販</h1>
+      <div class="subtitle">総販運営者向けガイド — 加盟店登録・Web決済・定期購読・再購入・分割決済・チャットボット決済設定</div>
+      <div class="meta">参照: ICOPAY 本社権限設定 — 総販ロール &nbsp;|&nbsp; 対象: 総販運営者 &nbsp;|&nbsp; 発行: 2026年6月</div>
+    </div>
+    <div class="cover-logo"><img src="./logo-ontheline.png" alt="On The Line"></div>
+  </div>
+  <div class="body">
+    <div class="block-box" style="margin-bottom:36px;">
+      <strong>🔒 総販ロールのアクセス制限</strong><br><br>
+      総販運営者は以下のメニューにアクセスできません。必要な場合は総本社に依頼してください。<br><br>
+      <ul style="margin:6px 0 0; padding-left:18px;">
+        <li><strong>本社設定</strong> — 全メニューアクセス不可</li>
+        <li><strong>精算管理</strong> — 統合精算・精算実行・精算配布・精算待機：アクセス不可</li>
+        <li><strong>通知管理</strong> — 全メニューアクセス不可（決済通知URL・アラート設定含む）</li>
+        <li><strong>ユーザー管理</strong> — メニュー項目順序管理：アクセス不可</li>
+        <li><strong>運営管理</strong> — 運営管理・TAXレポート・検証レポート・代行取引履歴：アクセス不可</li>
+        <li><strong>配布設定</strong> — API配布ドキュメントのみアクセス可、その他は全てアクセス不可</li>
+        <li><strong>分割管理</strong> — メール設定：アクセス不可</li>
+      </ul>
+    </div>
+    <div class="toc">
+      <h2>📋 目次</h2>
+      <ul>
+        <li><a href="#merchant">1. 加盟店登録</a></li>
+
+        <li><a href="#fee">2. 手数料設定</a></li>
+        <li><a href="#webpay">3. Web決済設定</a></li>
+        <li><a href="#subscribe">4. 定期購読決済設定</a></li>
+        <li><a href="#repurchase">5. 再購入決済設定</a></li>
+        <li><a href="#splitpay">6. URL分割決済設定</a></li>
+        <li><a href="#chatbot">7. チャットボット決済設定</a></li>
+      </ul>
+    </div>
+    <hr class="rule">
+    <h2 class="section-title" id="merchant">1. 加盟店登録</h2>
+    <span class="menu-path">加盟店管理 &gt; 加盟店登録 / 加盟店情報</span>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc"><strong>加盟店管理 &gt; 加盟店登録</strong>へ移動</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">基本情報入力 — 店舗名、事業者番号、代表者名、連絡先、メール、住所</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">精算構造設定 — 周期・手数料率・口座</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">決済サービスを有効化</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc">保存 → 加盟店コード自動生成 → 決済URL確認</span></div>
+      <div class="flow-row"><span class="flow-num">⑥</span><span class="flow-desc">加盟店アカウント（ID・仮パスワード）を作成し担当者へ通知</span></div>
+    </div>
+    <div class="info-box"><code>Y</code>設定でURLが加盟店ポータルに表示されます。<code>N</code>の場合は非表示です。</div>
+    <div class="warn-box"><strong>注意:</strong> ユーザー管理内のメニュー項目順序管理は総総本社専用です。</div>
+    <hr class="rule">
+
+    
+    <!-- ══════════════════════════════════════════
+         2. 手数料設定
+    ══════════════════════════════════════════ -->
+    <h2 class="section-title" id="fee">2. 手数料設定</h2>
+
+    <p>ICOPAYの手数料体系は<strong>基本ポリシー手数料</strong>（システム全体のデフォルト）と<strong>加盟店別個別手数料</strong>（特定加盟店専用）の2段階で構成されます。</p>
+
+    <table>
+      <tr><th>手数料タイプ</th><th>メニューパス</th><th class="center">アクセス可否</th></tr>
+      <tr><td>基本ポリシー手数料（システムデフォルト）</td><td>本社設定 &gt; 手数料設定</td><td class="icon">❌</td></tr>
+      <tr><td>加盟店別個別手数料</td><td>業者管理 &gt; 手数料管理</td><td class="icon">✅</td></tr>
+    </table>
+
+    <div class="block-box">
+      <strong>🔒 基本ポリシー手数料（本社設定 &gt; 手数料設定）へのアクセス不可</strong><br>
+      本社設定メニューはスーパー管理者専用です。基本手数料ポリシーの変更が必要な場合はスーパー管理者にお問い合わせください。
+    </div>
+
+    <h3 class="sub-title">2-1. 加盟店別個別手数料設定</h3>
+    <span class="menu-path">業者管理 &gt; 手数料管理</span>
+    <p>特定の加盟店にのみ適用される個別手数料率を設定します。基本ポリシー手数料とは異なる条件が必要な加盟店に使用します。</p>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc"><strong>業者管理 &gt; 手数料管理</strong> メニューへ進む</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">手数料を設定する加盟店を選択</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">決済手段別の個別手数料率を入力</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">適用期間（開始日・終了日）を設定（期間限定プロモーション手数料の適用が可能）</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc">保存 → 対象加盟店のみに即時適用</span></div>
+    </div>
+    <table>
+      <thead><tr><th>項目</th><th>説明</th></tr></thead>
+      <tbody>
+        <tr><td>加盟店別手数料率</td><td>基本ポリシーと異なる個別手数料率（%）</td></tr>
+        <tr><td>決済手段別設定</td><td>クレジットカード・ウォレット・QR別の個別適用</td></tr>
+        <tr><td>適用期間設定</td><td>期間指定手数料条件の設定</td></tr>
+        <tr><td>手数料変更履歴照会</td><td>加盟店別手数料変更履歴の確認</td></tr>
+      </tbody>
+    </table>
+    <div class="info-box">
+      加盟店別個別手数料が登録されると、基本ポリシー手数料より<strong>優先適用</strong>されます。
+      個別手数料未登録の加盟店は自動的に基本ポリシー手数料が適用されます。
+    </div>
+
+    <hr class="rule">
+    
+    <h2 class="section-title" id="webpay">3. Web決済設定</h2>
+    <span class="menu-path">加盟店管理 &gt; 加盟店情報 &gt; 決済設定タブ</span>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">対象加盟店を選択 → 決済設定タブ → <strong>Web決済利用可否</strong>を<code>Y</code>に変更</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">保存 → Web決済URL自動生成</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">URLを加盟店に案内</span></div>
+    </div>
+    <div class="block-box"><strong>🔒 通知（Notify）URL設定は総総本社専用です。</strong><br>通知管理は総販ではアクセスできません。変更は総本社に依頼してください。</div>
+    <hr class="rule">
+    <h2 class="section-title" id="subscribe">4. 定期購読決済設定</h2>
+    <span class="menu-path">加盟店管理 &gt; 加盟店情報 &gt; 決済設定タブ</span>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc"><strong>定期購読利用可否</strong>を<code>Y</code>に設定して保存</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">プラン設定：名称・周期（月次/年次）・金額・通貨</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">購読URLを加盟店に共有</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">設定周期で自動請求</span></div>
+    </div>
+    <hr class="rule">
+    <h2 class="section-title" id="repurchase">5. 再購入決済設定</h2>
+    <span class="menu-path">加盟店管理 &gt; 加盟店情報 &gt; 決済設定タブ</span>
+    <p>過去の決済で登録したカードトークンを再利用し、カード情報を再入力せずに決済する機能です。</p>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc"><strong>再購入利用可否</strong>を<code>Y</code>に設定して保存</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">決済画面に「保存済みカードで決済」オプションが表示</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">顧客が選択 → 保存済みトークンで即決済</span></div>
+    </div>
+    <div class="warn-box"><strong>セキュリティ:</strong> カードトークンはPCI-DSS準拠で暗号化。実際のカード番号は保存されません。</div>
+    <hr class="rule">
+    <h2 class="section-title" id="splitpay">6. URL分割決済設定</h2>
+    <span class="menu-path">分割管理</span>
+    <div class="block-box"><strong>🔒 分割管理 &gt; メール設定は総総本社専用です。</strong></div>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc"><strong>分割決済利用可否</strong>を<code>Y</code>に設定して保存</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">分割管理で契約を作成（金額・回数・各回期日）</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">各回の決済URLを顧客に送付</span></div>
+    </div>
+    <hr class="rule">
+    <h2 class="section-title" id="chatbot">7. チャットボット決済設定</h2>
+    <span class="menu-path">チャットボット管理</span>
+    <div class="check-box"><strong>✅ チャットボット管理は総販ロールも全てアクセス可能（削除含む）。</strong></div>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc"><strong>チャットボット決済利用可否</strong>を<code>Y</code>に設定して保存</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">チャットボット管理 → 加盟店選択 → 運営モード選択</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">商品スロット数を設定</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">チャットボットURLを加盟店に案内</span></div>
+    </div>
+    <table>
+      <thead><tr><th>モード</th><th>説明</th><th>決済タイミング</th></tr></thead>
+      <tbody>
+        <tr><td>SALE_PREPAID</td><td>販売 — 前払い</td><td>注文時即決済</td></tr>
+        <tr><td>SALE_POSTPAID</td><td>販売 — 後払い</td><td>商品提供後請求</td></tr>
+        <tr><td>RESERVATION_PREPAID</td><td>予約 — 前払い</td><td>予約時全額決済</td></tr>
+        <tr><td>RESERVATION_POSTPAID</td><td>予約 — 後払い</td><td>現地決済</td></tr>
+        <tr><td>HYBRID_RESERVATION_PREPAID</td><td>ハイブリッド予約</td><td>予約金前払い+残額後払い</td></tr>
+        <tr><td>FACE_TO_FACE_POSTPAID</td><td>対面 — 後払い</td><td>現地サービス後リンク送付</td></tr>
+      </tbody>
+    </table>
+    <div class="block-box"><strong>🔒 LINE Notify・メール通知設定は総総本社専用です。</strong></div>
+    <hr class="rule">
+    <h2 class="section-title">よくある質問（FAQ）</h2>
+    <div class="faq-item"><div class="faq-q">通知管理メニューが表示されません。</div><div class="faq-a">通知管理は総総本社専用です。変更が必要な場合は総本社に依頼してください。</div></div>
+    <div class="faq-item"><div class="faq-q">分割決済のメール設定がグレーアウトされています。</div><div class="faq-a">メール設定は総総本社専用です。総本社にお問い合わせください。</div></div>
+    <div class="faq-item"><div class="faq-q">加盟店が決済URLを確認できません。</div><div class="faq-a">該当サービスの利用可否が<code>Y</code>に設定されているか確認してください。</div></div>
+    <div class="faq-item"><div class="faq-q">チャットボットの商品を追加できません。</div><div class="faq-a">スロット上限に達しています。加盟店情報でスロット数を増やしてください。</div></div>
+  </div>
+  <div class="footer">ICOPAY Payment Gateway · 運営者設定マニュアル（本社） · 2026年6月発行</div>
+</div>
+</body>
+</html>
+
+
+
+

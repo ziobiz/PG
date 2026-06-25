@@ -3464,6 +3464,17 @@
     }
   }
 
+  function pgIsMerchantOwnCompViewer(pane) {
+    return !!(pane && pane.classList && pane.classList.contains('pg-merchant-own-comp-viewer'));
+  }
+  window.pgIsMerchantOwnCompViewer = pgIsMerchantOwnCompViewer;
+
+  function pgCompFormYnIsY(pane, fieldName) {
+    if (!pane || !pane.querySelector || !fieldName) return false;
+    var el = pane.querySelector('[name="' + fieldName + '"]');
+    return !!(el && String(el.value || '').trim().toUpperCase() === 'Y');
+  }
+
   function pgRefreshSplitPayUrl(pane, compId) {
     if (!pane) return;
     var el = pane.querySelector('#splitPayUrlDisplay');
@@ -3509,6 +3520,83 @@
   }
   window.pgRefreshSplitPayUrl = pgRefreshSplitPayUrl;
 
+  /** 챗봇결제 URL·임베드 스크립트 — 가맹점 본인 조회 시 chatbotPaymentUseYn 이 Y 일 때만 노출 */
+  function pgRefreshChatbotPaymentUrl(pane, compId) {
+    if (!pane) return;
+    var chatbotUrlEl = pane.querySelector('#chatbotPaymentUrlDisplay');
+    var embedEl = pane.querySelector('#chatbotEmbedScriptDisplay');
+    var copyBtn = pane.querySelector('#chatbotPaymentUrlCopyBtn');
+    var copyEmbBtn = pane.querySelector('#chatbotEmbedScriptCopyBtn');
+    var cid = compId != null ? String(compId).trim() : pgResolveCompIdFromPane(pane);
+    var merchantOwn = pgIsMerchantOwnCompViewer(pane);
+    var chatOn = pgCompFormYnIsY(pane, 'chatbotPaymentUseYn');
+    var showUrl = !!cid && (!merchantOwn || chatOn);
+    var base = pgResolvePaymentBaseUrl().replace(/\/$/, '');
+    function lockChatbotUrlField(el, copy, placeholderKey) {
+      if (!el) return;
+      if (!el._pgChatbotUrlPlaceholderKey) {
+        el._pgChatbotUrlPlaceholderKey = el.getAttribute('data-pg-ui-placeholder') || '가맹점 저장 후 조회';
+      }
+      el.value = '';
+      el.disabled = true;
+      el.readOnly = true;
+      el.setAttribute('data-pg-chatbot-payment-url-locked', 'Y');
+      el.setAttribute('data-pg-ui-placeholder', placeholderKey || '챗봇결제 사용을 켜 주세요');
+      if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
+        try { window.PG_UI_I18N.applyDom(el); } catch (eCbDom) { /* ignore */ }
+      }
+      if (copy) {
+        copy.disabled = true;
+        copy.setAttribute('aria-disabled', 'true');
+        copy.classList.add('disabled');
+      }
+    }
+    function unlockChatbotUrlField(el, copy, value) {
+      if (!el) return;
+      if (!el._pgChatbotUrlPlaceholderKey) {
+        el._pgChatbotUrlPlaceholderKey = el.getAttribute('data-pg-ui-placeholder') || '가맹점 저장 후 조회';
+      }
+      el.value = value || '';
+      el.disabled = false;
+      el.readOnly = true;
+      el.removeAttribute('data-pg-chatbot-payment-url-locked');
+      el.setAttribute('data-pg-ui-placeholder', el._pgChatbotUrlPlaceholderKey);
+      if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
+        try { window.PG_UI_I18N.applyDom(el); } catch (eCbDom2) { /* ignore */ }
+      }
+      if (copy) {
+        copy.disabled = !value;
+        if (value) {
+          copy.removeAttribute('aria-disabled');
+          copy.classList.remove('disabled');
+        } else {
+          copy.setAttribute('aria-disabled', 'true');
+          copy.classList.add('disabled');
+        }
+      }
+    }
+    if (showUrl) {
+      unlockChatbotUrlField(chatbotUrlEl, copyBtn, base + '/chatbot-pay/' + encodeURIComponent(cid));
+      if (embedEl && typeof window.pgBuildChatbotEmbedScriptTag === 'function') {
+        unlockChatbotUrlField(embedEl, copyEmbBtn, window.pgBuildChatbotEmbedScriptTag(base, cid));
+      } else if (embedEl) {
+        unlockChatbotUrlField(embedEl, copyEmbBtn, '');
+      }
+    } else if (merchantOwn) {
+      lockChatbotUrlField(chatbotUrlEl, copyBtn, '챗봇결제 사용을 켜 주세요');
+      lockChatbotUrlField(embedEl, copyEmbBtn, '챗봇결제 사용을 켜 주세요');
+    } else {
+      unlockChatbotUrlField(chatbotUrlEl, copyBtn, '');
+      unlockChatbotUrlField(embedEl, copyEmbBtn, '');
+    }
+    if (typeof window.pgRefreshChatbotQrUiInPane === 'function') {
+      var divEl = pane.querySelector('[name="compDiv"]');
+      var div = divEl && divEl.value ? divEl.value : 'MERCHANT';
+      window.pgRefreshChatbotQrUiInPane(pane, cid, div);
+    }
+  }
+  window.pgRefreshChatbotPaymentUrl = pgRefreshChatbotPaymentUrl;
+
   /** 가맹 결제 URL·URL 재결제 URL — {@link pgUrlPayCheckoutPagePath}·{@link pgUrlPayRepayUrlEnabled} (PG 공통 플랫폼). */
   function pgRefreshCompDetailPaymentUrls(pane, compId) {
     if (!pane || !compId) return;
@@ -3521,10 +3609,42 @@
     var paymentRepayUrlEl = pane.querySelector('#paymentRepayUrlDisplay');
     var copyBtn = pane.querySelector('#paymentUrlCopyBtn');
     var copyRepayBtn = pane.querySelector('#paymentRepayUrlCopyBtn');
+    var merchantOwn = pgIsMerchantOwnCompViewer(pane);
+    var webUseOn = !merchantOwn || pgCompFormYnIsY(pane, 'webPaymentUseYn');
     if (paymentUrlEl) {
-      paymentUrlEl.value = base + payPath + encodeURIComponent(cid);
-      paymentUrlEl.disabled = false;
-      paymentUrlEl.removeAttribute('title');
+      if (!paymentUrlEl._pgPaymentUrlPlaceholderKey) {
+        paymentUrlEl._pgPaymentUrlPlaceholderKey = paymentUrlEl.getAttribute('data-pg-ui-placeholder') || '가맹점 저장 후 조회';
+      }
+      if (webUseOn) {
+        paymentUrlEl.value = base + payPath + encodeURIComponent(cid);
+        paymentUrlEl.disabled = false;
+        paymentUrlEl.readOnly = true;
+        paymentUrlEl.removeAttribute('title');
+        paymentUrlEl.removeAttribute('data-pg-payment-url-locked');
+        paymentUrlEl.setAttribute('data-pg-ui-placeholder', paymentUrlEl._pgPaymentUrlPlaceholderKey);
+        if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
+          try { window.PG_UI_I18N.applyDom(paymentUrlEl); } catch (ePayDom) { /* ignore */ }
+        }
+        if (copyBtn) {
+          copyBtn.disabled = false;
+          copyBtn.removeAttribute('aria-disabled');
+          copyBtn.classList.remove('disabled');
+        }
+      } else {
+        paymentUrlEl.value = '';
+        paymentUrlEl.disabled = true;
+        paymentUrlEl.readOnly = true;
+        paymentUrlEl.setAttribute('data-pg-payment-url-locked', 'Y');
+        paymentUrlEl.setAttribute('data-pg-ui-placeholder', '웹결제 사용을 켜 주세요');
+        if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
+          try { window.PG_UI_I18N.applyDom(paymentUrlEl); } catch (ePayDom2) { /* ignore */ }
+        }
+        if (copyBtn) {
+          copyBtn.disabled = true;
+          copyBtn.setAttribute('aria-disabled', 'true');
+          copyBtn.classList.add('disabled');
+        }
+      }
     }
     if (paymentRepayUrlEl) {
       if (!paymentRepayUrlEl._pgRepayPlaceholderKey) {
@@ -3572,10 +3692,25 @@
         }
       }
     }
-    if (copyBtn) copyBtn.disabled = false;
     pgRefreshSplitPayUrl(pane, cid);
+    pgRefreshChatbotPaymentUrl(pane, cid);
   }
   window.pgRefreshCompDetailPaymentUrls = pgRefreshCompDetailPaymentUrls;
+
+  function pgIsPaymentUrlLocked(pane) {
+    var el = pane && pane.querySelector ? pane.querySelector('#paymentUrlDisplay') : null;
+    return !!(el && el.getAttribute('data-pg-payment-url-locked') === 'Y');
+  }
+
+  function pgIsChatbotPaymentUrlLocked(pane) {
+    var el = pane && pane.querySelector ? pane.querySelector('#chatbotPaymentUrlDisplay') : null;
+    return !!(el && el.getAttribute('data-pg-chatbot-payment-url-locked') === 'Y');
+  }
+
+  function pgIsSplitPayUrlLocked(pane) {
+    var el = pane && pane.querySelector ? pane.querySelector('#splitPayUrlDisplay') : null;
+    return !!(el && el.getAttribute('data-pg-split-pay-url-locked') === 'Y');
+  }
 
   function pgIsRepayUrlLockedByJpay(pane) {
     var el = pane && pane.querySelector ? pane.querySelector('#paymentRepayUrlDisplay') : null;
@@ -3595,6 +3730,13 @@
    */
   function pgApplyMerchantOwnCompUrlSectionsViewer(pane) {
     if (!pane || !pane.classList || !pane.classList.contains('pg-merchant-own-comp-viewer')) return;
+    function compUrlCopyLocked(id) {
+      if (id === 'paymentUrlCopyBtn') return pgIsPaymentUrlLocked(pane);
+      if (id === 'chatbotPaymentUrlCopyBtn' || id === 'chatbotEmbedScriptCopyBtn') return pgIsChatbotPaymentUrlLocked(pane);
+      if (id === 'splitPayUrlCopyBtn') return pgIsSplitPayUrlLocked(pane);
+      if (id === 'chatbotQrDownloadBtn' || id === 'chatbotQrOpenPng') return pgIsChatbotPaymentUrlLocked(pane);
+      return false;
+    }
     function lockCard(cardSel) {
       var card = pane.querySelector(cardSel);
       if (!card) return;
@@ -3612,12 +3754,33 @@
           el.classList.add('disabled');
           return;
         }
+        if (id === 'paymentUrlDisplay' && pgIsPaymentUrlLocked(pane)) {
+          el.disabled = true;
+          el.readOnly = true;
+          return;
+        }
+        if ((id === 'chatbotPaymentUrlDisplay' || id === 'chatbotEmbedScriptDisplay') && pgIsChatbotPaymentUrlLocked(pane)) {
+          el.disabled = true;
+          el.readOnly = true;
+          return;
+        }
+        if (id === 'splitPayUrlDisplay' && pgIsSplitPayUrlLocked(pane)) {
+          el.disabled = true;
+          el.readOnly = true;
+          return;
+        }
         if (id === 'paymentUrlDisplay' || id === 'paymentRepayUrlDisplay' || id === 'chatbotPaymentUrlDisplay' || id === 'chatbotEmbedScriptDisplay' || id === 'splitPayUrlDisplay') {
           el.disabled = false;
           if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.readOnly = true;
           return;
         }
         if (id === 'paymentUrlCopyBtn' || id === 'paymentRepayUrlCopyBtn' || id === 'chatbotPaymentUrlCopyBtn' || id === 'chatbotEmbedScriptCopyBtn' || id === 'chatbotQrDownloadBtn' || id === 'splitPayUrlCopyBtn') {
+          if (compUrlCopyLocked(id)) {
+            el.disabled = true;
+            el.setAttribute('aria-disabled', 'true');
+            el.classList.add('disabled');
+            return;
+          }
           el.disabled = false;
           el.removeAttribute('aria-disabled');
           el.classList.remove('disabled');
@@ -3636,9 +3799,14 @@
       if (!c) return;
       var a = c.querySelector('#chatbotQrOpenPng');
       if (a) {
-        a.removeAttribute('aria-disabled');
-        a.classList.remove('disabled');
-        a.style.pointerEvents = '';
+        if (pgIsChatbotPaymentUrlLocked(pane)) {
+          a.setAttribute('aria-disabled', 'true');
+          a.classList.add('disabled');
+        } else {
+          a.removeAttribute('aria-disabled');
+          a.classList.remove('disabled');
+          a.style.pointerEvents = '';
+        }
       }
     });
   }
@@ -3776,8 +3944,10 @@
     if (!row) return;
     var div = String(compDiv || '').trim().toUpperCase();
     var cid = String(compId || '').trim();
-    pane._pgChatbotQrCompIdForDownload = (div === 'MERCHANT' && cid) ? cid : '';
-    if (div !== 'MERCHANT' || !cid) {
+    var merchantOwn = pgIsMerchantOwnCompViewer(pane);
+    var chatOn = pgCompFormYnIsY(pane, 'chatbotPaymentUseYn');
+    pane._pgChatbotQrCompIdForDownload = (div === 'MERCHANT' && cid && (!merchantOwn || chatOn)) ? cid : '';
+    if (div !== 'MERCHANT' || !cid || (merchantOwn && !chatOn)) {
       row.style.display = 'none';
       if (img) {
         img.removeAttribute('src');
@@ -3869,7 +4039,7 @@
       var cbUcm = pane.querySelector('[name="chatbotUrlPayCheckoutMode"]');
       if (cbUcm) {
         var cbMode = String(d.chatbotUrlPayCheckoutMode || 'STANDARD').trim().toUpperCase();
-        cbUcm.value = cbMode === 'REPAY' ? 'REPAY' : 'STANDARD';
+        cbUcm.value = (cbMode === 'REPAY' || cbMode === 'SPLIT_PAY') ? cbMode : 'STANDARD';
       }
       var apiUcm = pane.querySelector('[name="apiUrlPayCheckoutMode"]');
       if (apiUcm) {
@@ -3913,33 +4083,9 @@
         }
       }
       var divM = String(d.compDiv || '').trim().toUpperCase() === 'MERCHANT';
-      var base = pgResolvePaymentBaseUrl();
-      if (divM && d.compId) pgRefreshCompDetailPaymentUrls(pane, d.compId);
-      var chatbotUrlEl = pane.querySelector('#chatbotPaymentUrlDisplay');
-      if (chatbotUrlEl && divM && d.compId) {
-        chatbotUrlEl.value = base.replace(/\/$/, '') + '/chatbot-pay/' + encodeURIComponent(String(d.compId).trim());
-        chatbotUrlEl.disabled = false;
-        chatbotUrlEl.removeAttribute('title');
-      }
-      var embedEl = pane.querySelector('#chatbotEmbedScriptDisplay');
-      if (embedEl && divM && d.compId && typeof window.pgBuildChatbotEmbedScriptTag === 'function') {
-        embedEl.value = window.pgBuildChatbotEmbedScriptTag(base, d.compId);
-        embedEl.disabled = false;
-        embedEl.removeAttribute('title');
-      } else if (embedEl) {
-        embedEl.value = '';
-      }
-      var copyBtn = pane.querySelector('#paymentUrlCopyBtn');
-      if (copyBtn) copyBtn.disabled = false;
-      var copyCbBtn = pane.querySelector('#chatbotPaymentUrlCopyBtn');
-      if (copyCbBtn) copyCbBtn.disabled = false;
-      var copyEmbBtn = pane.querySelector('#chatbotEmbedScriptCopyBtn');
-      if (copyEmbBtn) copyEmbBtn.disabled = false;
-      if (typeof window.pgRefreshChatbotQrUiInPane === 'function') {
-        window.pgRefreshChatbotQrUiInPane(pane, d.compId, d.compDiv);
-      }
       pgApplyUrlPayWebSettingsCardState(pane);
       if (divM && d.compId) pgRefreshCompDetailPaymentUrls(pane, d.compId);
+      else if (typeof window.pgRefreshChatbotPaymentUrl === 'function') window.pgRefreshChatbotPaymentUrl(pane, '');
       if (pane.classList && pane.classList.contains('pg-merchant-own-comp-viewer')) {
         pgApplyMerchantOwnCompUrlSectionsViewer(pane);
       }
@@ -12107,6 +12253,14 @@
                   }
                   if (isPayScr && c.key === 'chillPaymentStatus' && typeof pgUi.payGridStatusBadge === 'function' && typeof pgUi.resolvePayRowTone === 'function') {
                     cellInner = pgUi.payGridStatusBadge(val, pgUi.resolvePayRowTone(row), row);
+                  } else if (isPayScr && c.key === 'outcomeReasonPreview') {
+                    var orPrev = val == null ? '' : String(val);
+                    if (orPrev) {
+                      cellInner = '<span class="pg-outcome-reason-preview d-inline-block text-start" title="' +
+                        escHtmlTitle(pgAdminUiT('더블클릭하면 전체 처리사유를 볼 수 있습니다.')) + '">' + escHtmlBody(orPrev) + '</span>';
+                    } else {
+                      cellInner = '';
+                    }
                   } else if ((url === '/calc/chillPayTrList' || url === '/calc/chillPaySettlementList') && c.key === 'status' && typeof pgUi.payGridStatusBadge === 'function' && typeof pgUi.resolveChillTrRowTone === 'function') {
                     cellInner = pgUi.payGridStatusBadge(val, pgUi.resolveChillTrRowTone(row), row);
                   }
@@ -12970,9 +13124,48 @@
         if (row && row.targetUrl) parts.push(pgAdminUiT('통보URL') + ': ' + row.targetUrl);
         meta.textContent = parts.join(' | ');
       }
-      if (pre) pre.textContent = formatted;
+      if (pre) {
+        pre.textContent = formatted;
+        pre.className = 'border rounded p-2 bg-light mb-0 small font-monospace';
+        pre.style.whiteSpace = 'pre-wrap';
+        pre.style.wordBreak = 'break-all';
+        pre.style.maxHeight = '70vh';
+        pre.style.overflow = 'auto';
+      }
       if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
         try { window.PG_UI_I18N.applyDom(modalEl); } catch (eI18n) {}
+      }
+      if (window.bootstrap && bootstrap.Modal) {
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+      }
+    }
+    function showPayOutcomeReasonModal(row) {
+      var modalEl = ensureNotifyWebhookPayloadModal();
+      if (!modalEl || !row) return;
+      var original = row.outcomeReason == null ? '' : String(row.outcomeReason);
+      var display = row.outcomeReasonDisplay || row.outcomeReasonPreview || original || '';
+      var payload = display;
+      if (original && display && original !== display) {
+        payload = display + '\n\n---\n' + pgAdminUiT('원문') + ':\n' + original;
+      }
+      var titleEl = modalEl.querySelector('.modal-title');
+      if (titleEl) titleEl.textContent = pgAdminUiT('처리사유');
+      var meta = modalEl.querySelector('#notifyWebhookPayloadMeta');
+      var pre = modalEl.querySelector('#notifyWebhookPayloadPre');
+      if (meta) {
+        var parts = [];
+        if (row.compNm) parts.push(pgAdminUiT('업체명') + ': ' + row.compNm);
+        if (row.orderNo) parts.push(pgAdminUiT('주문번호') + ': ' + row.orderNo);
+        if (row.trnId) parts.push(pgAdminUiT('거래번호') + ': ' + row.trnId);
+        meta.textContent = parts.join(' | ');
+      }
+      if (pre) {
+        pre.textContent = payload;
+        pre.className = 'border rounded p-2 mb-0 small pg-outcome-reason-preview pg-outcome-reason-modal-text';
+        pre.style.whiteSpace = 'pre-wrap';
+        pre.style.wordBreak = 'break-all';
+        pre.style.maxHeight = '70vh';
+        pre.style.overflow = 'auto';
       }
       if (window.bootstrap && bootstrap.Modal) {
         bootstrap.Modal.getOrCreateInstance(modalEl).show();
@@ -15053,8 +15246,13 @@
       if (updBtn) {
         updBtn.style.display = selfServeBranding ? '' : 'none';
       }
-      if (pane.classList.contains('pg-merchant-own-comp-viewer') && typeof window.pgApplyMerchantOwnCompUrlSectionsViewer === 'function') {
-        window.pgApplyMerchantOwnCompUrlSectionsViewer(pane);
+      if (pane.classList.contains('pg-merchant-own-comp-viewer')) {
+        if (cid && typeof window.pgRefreshCompDetailPaymentUrls === 'function') {
+          window.pgRefreshCompDetailPaymentUrls(pane, cid);
+        }
+        if (typeof window.pgApplyMerchantOwnCompUrlSectionsViewer === 'function') {
+          window.pgApplyMerchantOwnCompUrlSectionsViewer(pane);
+        }
       }
     }
     window.applyReadOnlyCompInfoDetailIfOwn = applyReadOnlyCompInfoDetailIfOwn;
@@ -15891,7 +16089,6 @@
           paymentInfoCard.style.display = (data.compDiv === 'MERCHANT') ? '' : 'none';
           if (data.compId && data.compDiv === 'MERCHANT' && typeof window.pgRefreshCompDetailPaymentUrls === 'function') {
             window.pgRefreshCompDetailPaymentUrls(pane, data.compId);
-            if (typeof window.pgRefreshSplitPayUrl === 'function') window.pgRefreshSplitPayUrl(pane, data.compId);
           } else {
             var paymentUrlElClr = pane.querySelector('#paymentUrlDisplay');
             if (paymentUrlElClr) paymentUrlElClr.value = '';
@@ -15902,19 +16099,6 @@
         var chatbotPayCard = pane.querySelector('#chatbotPaymentCard');
         if (chatbotPayCard) {
           chatbotPayCard.style.display = (data.compDiv === 'MERCHANT') ? '' : 'none';
-        }
-        var chatbotUrlFill = pane.querySelector('#chatbotPaymentUrlDisplay');
-        if (chatbotUrlFill && data.compId && data.compDiv === 'MERCHANT') {
-          var baseCb = pgResolvePaymentBaseUrl();
-          chatbotUrlFill.value = baseCb.replace(/\/$/, '') + '/chatbot-pay/' + encodeURIComponent(String(data.compId).trim());
-        } else if (chatbotUrlFill) chatbotUrlFill.value = '';
-        var embedFill = pane.querySelector('#chatbotEmbedScriptDisplay');
-        if (embedFill && data.compId && data.compDiv === 'MERCHANT' && typeof window.pgBuildChatbotEmbedScriptTag === 'function') {
-          var baseEmb = pgResolvePaymentBaseUrl();
-          embedFill.value = window.pgBuildChatbotEmbedScriptTag(baseEmb, data.compId);
-        } else if (embedFill) embedFill.value = '';
-        if (typeof window.pgRefreshChatbotQrUiInPane === 'function') {
-          window.pgRefreshChatbotQrUiInPane(pane, data.compId, data.compDiv);
         }
         (function () {
           var scopeId = null;
@@ -16897,25 +17081,6 @@
         if (chatbotPayCardD) {
           var divForCb = apiCompDiv || storedCompDiv;
           chatbotPayCardD.style.display = (divForCb === 'MERCHANT') ? '' : 'none';
-        }
-        var chatbotUrlFillD = pane.querySelector('#chatbotPaymentUrlDisplay');
-        if (chatbotUrlFillD) {
-          var divForCbU = apiCompDiv || storedCompDiv;
-          var baseDet2 = pgResolvePaymentBaseUrl();
-          if (data.compId && divForCbU === 'MERCHANT') {
-            chatbotUrlFillD.value = baseDet2.replace(/\/$/, '') + '/chatbot-pay/' + encodeURIComponent(String(data.compId).trim());
-          } else chatbotUrlFillD.value = '';
-        }
-        var embedFillD = pane.querySelector('#chatbotEmbedScriptDisplay');
-        if (embedFillD) {
-          var divEmb = apiCompDiv || storedCompDiv;
-          var baseEmbD = pgResolvePaymentBaseUrl();
-          if (data.compId && divEmb === 'MERCHANT' && typeof window.pgBuildChatbotEmbedScriptTag === 'function') {
-            embedFillD.value = window.pgBuildChatbotEmbedScriptTag(baseEmbD, data.compId);
-          } else embedFillD.value = '';
-        }
-        if (typeof window.pgRefreshChatbotQrUiInPane === 'function') {
-          window.pgRefreshChatbotQrUiInPane(pane, data.compId, apiCompDiv || storedCompDiv);
         }
         var copyBtn = pane.querySelector('#paymentUrlCopyBtn');
         if (copyBtn && !copyBtn._bound) {
@@ -19338,58 +19503,11 @@
     if (url === '/hq/chatbotAiSettings') {
       var dimmAi = document.getElementById('dimm');
       var PRESETS_AI = {
-        gemini: ['gemini-3-flash-preview', 'gemini-3.1-pro-preview', 'gemini-3.1-flash-lite', 'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'],
+        gemini: ['gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-3.1-pro-preview', 'gemini-3.1-flash-lite', 'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-1.5-flash-lite', 'gemini-1.5-flash', 'gemini-1.5-pro'],
         groq: ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile', 'llama-3.1-70b-versatile', 'mixtral-8x7b-32768'],
         anthropic: ['claude-sonnet-4-5', 'claude-3-5-sonnet-20241022', 'claude-3-opus-20240229', 'claude-3-haiku-20240307'],
         openai: ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-4']
       };
-      function syncHiddenFromSel(prov) {
-        var sel = pane.querySelector('.hq-ai-model-sel[data-hq-ai-prov="' + prov + '"]');
-        var hid = pane.querySelector('.hq-ai-model-hidden[data-hq-ai-prov="' + prov + '"]');
-        var cus = pane.querySelector('.hq-ai-model-custom[data-hq-ai-prov="' + prov + '"]');
-        if (!sel || !hid || !cus) return;
-        if (sel.value === 'custom') {
-          cus.style.display = '';
-          hid.value = (cus.value || '').trim();
-        } else {
-          cus.style.display = 'none';
-          hid.value = sel.value || '';
-        }
-      }
-      function bindHqAiModelSelsOnce() {
-        if (pane._hqAiMdlSelsBound) return;
-        pane._hqAiMdlSelsBound = true;
-        pane.querySelectorAll('.hq-ai-model-sel').forEach(function (sel) {
-          sel.addEventListener('change', function () { syncHiddenFromSel(sel.getAttribute('data-hq-ai-prov')); });
-        });
-        pane.querySelectorAll('.hq-ai-model-custom').forEach(function (cus) {
-          cus.addEventListener('input', function () {
-            var p = cus.getAttribute('data-hq-ai-prov');
-            if (pane.querySelector('.hq-ai-model-sel[data-hq-ai-prov="' + p + '"]').value === 'custom') {
-              pane.querySelector('.hq-ai-model-hidden[data-hq-ai-prov="' + p + '"]').value = (cus.value || '').trim();
-            }
-          });
-        });
-      }
-      function setModelUi(prov, modelVal) {
-        var presets = PRESETS_AI[prov] || [];
-        var sel = pane.querySelector('.hq-ai-model-sel[data-hq-ai-prov="' + prov + '"]');
-        var hid = pane.querySelector('.hq-ai-model-hidden[data-hq-ai-prov="' + prov + '"]');
-        var cus = pane.querySelector('.hq-ai-model-custom[data-hq-ai-prov="' + prov + '"]');
-        if (!sel || !hid || !cus) return;
-        var mv = modelVal ? String(modelVal).trim() : '';
-        hid.value = mv;
-        if (!mv || presets.indexOf(mv) >= 0) {
-          sel.value = mv;
-          cus.style.display = 'none';
-          cus.value = '';
-          if (!mv && sel.querySelector && !sel.querySelector('option[value=""]')) { /* noop */ }
-        } else {
-          sel.value = 'custom';
-          cus.style.display = '';
-          cus.value = mv;
-        }
-      }
       function bindHqAiKeyMaskOnce() {
         if (pane._hqAiKeyMaskBound) return;
         pane._hqAiKeyMaskBound = true;
@@ -19408,25 +19526,131 @@
           });
         });
       }
-      function fillHqAi(data) {
-        if (!data) return;
-        for (var j = 1; j <= 4; j++) {
-          var sx0 = pane.querySelector('[name="hqAiProvOrder_' + j + '"]');
-          if (sx0) sx0.value = '';
+      function hqAiOrderRankSel(usageKey, rank, suffix) {
+        return pane.querySelector('[name="hqAiProvOrder_' + usageKey + '_' + rank + '_' + suffix + '"]');
+      }
+      function rebuildOrderRankModelOptions(usageKey, rank, prov, modelVal) {
+        var sel = hqAiOrderRankSel(usageKey, rank, 'model');
+        var cus = hqAiOrderRankSel(usageKey, rank, 'model_custom');
+        if (!sel) return;
+        var presets = PRESETS_AI[prov] || [];
+        sel.innerHTML = '<option value="">' + pgAdminUiT('자동(제공자 기본)') + '</option>';
+        for (var pi = 0; pi < presets.length; pi++) {
+          var mid = presets[pi];
+          var opt = document.createElement('option');
+          opt.value = mid;
+          opt.textContent = (prov === 'gemini' && mid.indexOf('gemini-') === 0) ? mid : mid;
+          sel.appendChild(opt);
         }
-        var order = data.report_provider_order;
-        var i = 1;
-        if (Array.isArray(order)) {
-          order.forEach(function (p) {
-            if (i <= 4) {
-              var s = pane.querySelector('[name="hqAiProvOrder_' + i + '"]');
-              if (s) s.value = p || '';
-              i++;
+        var customOpt = document.createElement('option');
+        customOpt.value = 'custom';
+        customOpt.textContent = pgAdminUiT('기타(직접입력)');
+        sel.appendChild(customOpt);
+        if (!cus) return;
+        var mv = modelVal ? String(modelVal).trim() : '';
+        if (!prov) {
+          sel.value = '';
+          cus.style.display = 'none';
+          cus.value = '';
+          return;
+        }
+        if (!mv || presets.indexOf(mv) >= 0) {
+          sel.value = mv;
+          cus.style.display = 'none';
+          cus.value = '';
+        } else if (mv) {
+          sel.value = 'custom';
+          cus.style.display = '';
+          cus.value = mv;
+        } else {
+          sel.value = '';
+          cus.style.display = 'none';
+          cus.value = '';
+        }
+      }
+      function readOrderRankModel(usageKey, rank) {
+        var sel = hqAiOrderRankSel(usageKey, rank, 'model');
+        var cus = hqAiOrderRankSel(usageKey, rank, 'model_custom');
+        if (!sel) return '';
+        if (sel.value === 'custom') return cus ? String(cus.value || '').trim() : '';
+        return String(sel.value || '').trim();
+      }
+      function bindHqAiOrderSlotsOnce() {
+        if (pane._hqAiOrderSlotsBound) return;
+        pane._hqAiOrderSlotsBound = true;
+        pane.querySelectorAll('.hq-ai-order-prov').forEach(function (provSel) {
+          provSel.addEventListener('change', function () {
+            var usageKey = provSel.getAttribute('data-hq-ai-order-usage');
+            var rank = provSel.getAttribute('data-hq-ai-order-rank');
+            rebuildOrderRankModelOptions(usageKey, rank, provSel.value || '', '');
+          });
+        });
+        pane.querySelectorAll('.hq-ai-order-model-sel').forEach(function (mdlSel) {
+          mdlSel.addEventListener('change', function () {
+            var usageKey = mdlSel.getAttribute('data-hq-ai-order-usage');
+            var rank = mdlSel.getAttribute('data-hq-ai-order-rank');
+            var cus = hqAiOrderRankSel(usageKey, rank, 'model_custom');
+            if (!cus) return;
+            if (mdlSel.value === 'custom') {
+              cus.style.display = '';
+            } else {
+              cus.style.display = 'none';
+              cus.value = '';
             }
           });
+        });
+      }
+      function normalizeOrderSlotsFromApi(orderArr) {
+        var out = [];
+        if (!Array.isArray(orderArr)) return out;
+        orderArr.forEach(function (item) {
+          if (!item) return;
+          if (typeof item === 'string') {
+            if (item) out.push({ provider: item, model: '' });
+            return;
+          }
+          if (typeof item === 'object') {
+            var prov = item.provider || item.prov || '';
+            var model = item.model != null ? String(item.model) : '';
+            if (prov) out.push({ provider: String(prov), model: model });
+          }
+        });
+        return out;
+      }
+      function fillHqAiProvOrderSlots(usageKey, orderArr) {
+        for (var j = 1; j <= 4; j++) {
+          var provSel = hqAiOrderRankSel(usageKey, j, 'prov');
+          if (provSel) provSel.value = '';
+          rebuildOrderRankModelOptions(usageKey, j, '', '');
         }
+        var slots = normalizeOrderSlotsFromApi(orderArr);
+        for (var i = 0; i < slots.length && i < 4; i++) {
+          var rank = i + 1;
+          var slot = slots[i];
+          var psel = hqAiOrderRankSel(usageKey, rank, 'prov');
+          if (psel) psel.value = slot.provider || '';
+          rebuildOrderRankModelOptions(usageKey, rank, slot.provider || '', slot.model || '');
+        }
+      }
+      function readHqAiProvOrderSlots(usageKey) {
+        var ord = [];
+        for (var r = 1; r <= 4; r++) {
+          var provSel = hqAiOrderRankSel(usageKey, r, 'prov');
+          var prov = provSel && provSel.value ? String(provSel.value).trim() : '';
+          if (!prov) continue;
+          var model = readOrderRankModel(usageKey, r);
+          ord.push({ provider: prov, model: model });
+        }
+        return ord;
+      }
+      function fillHqAi(data) {
+        if (!data) return;
+        var legacy = data.report_provider_order;
+        fillHqAiProvOrderSlots('catalog', data.report_provider_order_catalog || legacy);
+        fillHqAiProvOrderSlots('short', data.report_provider_order_short || legacy);
+        fillHqAiProvOrderSlots('general', data.report_provider_order_general || legacy);
+        fillHqAiProvOrderSlots('platform', data.report_provider_order_platform || data.report_provider_order_short || legacy);
         ['gemini', 'groq', 'anthropic', 'openai'].forEach(function (p) {
-          setModelUi(p, data['report_' + p + '_model']);
           var dk = 'report_' + p + '_disabled';
           var disCb = pane.querySelector('input.hq-ai-prov-disabled[name="' + dk + '"]');
           if (disCb) {
@@ -19490,7 +19714,7 @@
           }
         });
       }
-      bindHqAiModelSelsOnce();
+      bindHqAiOrderSlotsOnce();
       bindHqAiKeyMaskOnce();
       if (dimmAi) dimmAi.style.display = 'flex';
       window.PG_API.hqChatbotAiSettings().then(function (data) { fillHqAi(data); })
@@ -19502,21 +19726,20 @@
       if (hqAiSav && !hqAiSav._hqAiSaveBound) {
         hqAiSav._hqAiSaveBound = true;
         hqAiSav.addEventListener('click', function () {
-          ['gemini', 'groq', 'anthropic', 'openai'].forEach(function (p) { syncHiddenFromSel(p); });
           var body = {};
-          var ord = [];
-          for (var r = 1; r <= 4; r++) {
-            var sx = pane.querySelector('[name="hqAiProvOrder_' + r + '"]');
-            if (sx && sx.value) ord.push(sx.value);
-          }
-          if (ord.length) body.report_provider_order = ord;
+          var ordCatalog = readHqAiProvOrderSlots('catalog');
+          var ordShort = readHqAiProvOrderSlots('short');
+          var ordGeneral = readHqAiProvOrderSlots('general');
+          var ordPlatform = readHqAiProvOrderSlots('platform');
+          if (ordCatalog.length) body.report_provider_order_catalog = ordCatalog;
+          if (ordShort.length) body.report_provider_order_short = ordShort;
+          if (ordGeneral.length) body.report_provider_order_general = ordGeneral;
+          if (ordPlatform.length) body.report_provider_order_platform = ordPlatform;
           ['gemini', 'groq', 'anthropic', 'openai'].forEach(function (p) {
             var fk = 'report_' + p + '_api_key';
             var inp = pane.querySelector('input.hq-ai-api-key-inp[name="' + fk + '"]');
             var raw = inp && inp.value ? String(inp.value).trim() : '';
             if (raw && raw !== '********') body[fk] = raw;
-            var mh = pane.querySelector('.hq-ai-model-hidden[data-hq-ai-prov="' + p + '"]');
-            if (mh) body['report_' + p + '_model'] = (mh.value || '').trim();
             var disCb = pane.querySelector('input.hq-ai-prov-disabled[name="report_' + p + '_disabled"]');
             body['report_' + p + '_disabled'] = disCb && disCb.checked ? 'Y' : 'N';
           });
@@ -25000,6 +25223,11 @@
         if (!window.confirm(pgAdminUiTFmtN('거래 {0}에 대해 [{1}] 를 실행할까요?', [trn,
           (window.PG_PAY_LIST_I18N && typeof window.PG_PAY_LIST_I18N.payFollowLabel === 'function')
             ? window.PG_PAY_LIST_I18N.payFollowLabel(act) : act]))) return;
+        var adminReason = '';
+        if (act === 'FORCE_REFUND' || act === 'EMAIL_VOID' || act === 'MANUAL_VOID' || act === 'MANUAL_REFUND') {
+          adminReason = window.prompt(pgAdminUiT('처리 사유를 입력하세요 (선택).'), '');
+          if (adminReason === null) return;
+        }
         var dimmP = document.getElementById('dimm');
         if (dimmP) dimmP.style.display = 'flex';
         var done = function (msg) {
@@ -25012,9 +25240,31 @@
           }).catch(function (err) { alert(pgErrMsg(err, '실패')); }).finally(function () { if (dimmP) dimmP.style.display = 'none'; });
           return;
         }
-        window.PG_API.payAction(trn, act).then(function () {
+        window.PG_API.payAction(trn, act, adminReason).then(function () {
           done(pgAdminUiT('처리되었습니다.'));
         }).catch(function (err) { alert(pgErrMsg(err, '실패')); }).finally(function () { if (dimmP) dimmP.style.display = 'none'; });
+      });
+    }
+    if ((url === '/calc/payList' || url === '/calc/payNotiList' || url === '/calc/paySuccessList' || url === '/calc/payFailList'
+        || url === '/calc/payRefundList' || url === '/calc/payForceRefundList' || url === '/calc/payCancelList'
+        || url === '/calc/payVoidList' || url === '/calc/payEmailVoidList' || url === '/calc/offsetCancList'
+        || url === '/pay/easyPay' || url === '/pay/chatbotPay' || url === '/pay/splitPay') && !pane._payOutcomeReasonDblclickBound) {
+      pane._payOutcomeReasonDblclickBound = true;
+      pane.addEventListener('dblclick', function (e) {
+        var tr = e.target && e.target.closest ? e.target.closest('tr') : null;
+        if (!tr || !tr.closest('#grid_' + tabId)) return;
+        if (tr.querySelector('.empty-state-cell') || tr.classList.contains('empty-state-cell')) return;
+        if (e.target && e.target.closest && e.target.closest('.grid-row-check, input, button, .pay-follow, .pay-follow-pill')) return;
+        var idx = parseInt(tr.getAttribute('data-row-idx') || '-1', 10);
+        var list = pane._lastGridList || [];
+        if (idx < 0 || idx >= list.length) return;
+        var row = list[idx] || {};
+        var payload = row.outcomeReason || row.outcomeReasonDisplay || row.outcomeReasonPreview || '';
+        if (!payload || !String(payload).trim()) {
+          alert(pgAdminUiT('저장된 처리사유가 없습니다.'));
+          return;
+        }
+        showPayOutcomeReasonModal(row);
       });
     }
     /** 본사 결제대행사로직 — JPAY 포털 총판별 계정 */
@@ -31044,6 +31294,24 @@
         }
         if (pane.classList && pane.classList.contains('pg-merchant-own-comp-viewer')
           && ((btn.id || '') === 'paymentUrlCopyBtn' || (btn.id || '') === 'paymentRepayUrlCopyBtn' || (btn.id || '') === 'chatbotPaymentUrlCopyBtn' || (btn.id || '') === 'chatbotEmbedScriptCopyBtn' || (btn.id || '') === 'chatbotQrDownloadBtn' || (btn.id || '') === 'splitPayUrlCopyBtn')) {
+          if ((btn.id || '') === 'paymentUrlCopyBtn' && pgIsPaymentUrlLocked(pane)) {
+            btn.disabled = true;
+            btn.setAttribute('aria-disabled', 'true');
+            btn.classList.add('disabled');
+            return;
+          }
+          if (((btn.id || '') === 'chatbotPaymentUrlCopyBtn' || (btn.id || '') === 'chatbotEmbedScriptCopyBtn' || (btn.id || '') === 'chatbotQrDownloadBtn') && pgIsChatbotPaymentUrlLocked(pane)) {
+            btn.disabled = true;
+            btn.setAttribute('aria-disabled', 'true');
+            btn.classList.add('disabled');
+            return;
+          }
+          if ((btn.id || '') === 'splitPayUrlCopyBtn' && pgIsSplitPayUrlLocked(pane)) {
+            btn.disabled = true;
+            btn.setAttribute('aria-disabled', 'true');
+            btn.classList.add('disabled');
+            return;
+          }
           btn.disabled = false;
           btn.removeAttribute('aria-disabled');
           btn.classList.remove('disabled');
@@ -31056,6 +31324,11 @@
       pane.querySelectorAll('a.btn').forEach(function (a) {
         if (!a) return;
         if (pane.classList && pane.classList.contains('pg-merchant-own-comp-viewer') && (a.id || '') === 'chatbotQrOpenPng') {
+          if (pgIsChatbotPaymentUrlLocked(pane)) {
+            a.setAttribute('aria-disabled', 'true');
+            a.classList.add('disabled');
+            return;
+          }
           a.removeAttribute('aria-disabled');
           a.classList.remove('disabled');
           return;
@@ -31089,7 +31362,27 @@
           if (observerAllowTarget(t)) return;
           if (t.closest('[data-pg-list-search-btn], #searchBtn, .screen-search-btn, #excelBtn, #excelDownBtn, #listExcelDownBtn, #excelAllDownBtn, #payListRefreshBtn, #printBtn, .quick-date, .pagination-size-opt, .pagination-num, .daily-detail-sort-dir-btn, [data-notice-write-btn], #compDevTreeRemoveBtn, #compAdminResetOrgBtn, .screen-list-sort-dir-menu, .settlement-execute-recent-mode-btn')) return;
           if (pane.classList && pane.classList.contains('pg-merchant-own-comp-viewer')
-            && (t.closest('#paymentUrlCopyBtn') || t.closest('#paymentRepayUrlCopyBtn') || t.closest('#chatbotPaymentUrlCopyBtn') || t.closest('#chatbotEmbedScriptCopyBtn') || t.closest('#chatbotQrOpenPng') || t.closest('#chatbotQrDownloadBtn') || t.closest('#splitPayUrlCopyBtn'))) return;
+            && (t.closest('#paymentUrlCopyBtn') || t.closest('#paymentRepayUrlCopyBtn') || t.closest('#chatbotPaymentUrlCopyBtn') || t.closest('#chatbotEmbedScriptCopyBtn') || t.closest('#chatbotQrOpenPng') || t.closest('#chatbotQrDownloadBtn') || t.closest('#splitPayUrlCopyBtn'))) {
+            if (t.closest('#paymentUrlCopyBtn') && pgIsPaymentUrlLocked(pane)) {
+              e.preventDefault();
+              e.stopPropagation();
+              e.stopImmediatePropagation();
+              return;
+            }
+            if ((t.closest('#chatbotPaymentUrlCopyBtn') || t.closest('#chatbotEmbedScriptCopyBtn') || t.closest('#chatbotQrOpenPng') || t.closest('#chatbotQrDownloadBtn')) && pgIsChatbotPaymentUrlLocked(pane)) {
+              e.preventDefault();
+              e.stopPropagation();
+              e.stopImmediatePropagation();
+              return;
+            }
+            if (t.closest('#splitPayUrlCopyBtn') && pgIsSplitPayUrlLocked(pane)) {
+              e.preventDefault();
+              e.stopPropagation();
+              e.stopImmediatePropagation();
+              return;
+            }
+            return;
+          }
           if (pane.classList && pane.classList.contains('pg-merchant-api-portal-viewer')
             && (t.closest('.merchant-api-portal-secret-view') || t.closest('.merchant-api-portal-secret-copy')
               || t.closest('.merchant-api-portal-plain-copy') || t.closest('.merchant-api-portal-dl-link')

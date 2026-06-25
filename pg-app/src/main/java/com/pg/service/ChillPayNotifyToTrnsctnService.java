@@ -21,6 +21,7 @@ import com.pg.util.NotifyChannelMerge;
 import com.pg.util.PgTrnsctnNotifyDisplayHelper;
 import com.pg.util.NotifyToTxnStatusMerge;
 import com.pg.util.PgNotifyInternalStatusMapper;
+import com.pg.util.TxnOutcomeReasonApplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -77,6 +78,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
     private final MerchantChatbotOrderService merchantChatbotOrderService;
     private final NotifyIdempotencyLock notifyIdempotencyLock;
     private final SplitPayPaymentHookService splitPayPaymentHookService;
+    private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
 
     public ChillPayNotifyToTrnsctnService(PgTrnsctnRepository pgTrnsctnRepository,
                                          MerchantPgBindingRepository merchantPgBindingRepository,
@@ -88,7 +90,8 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
                                          HqLedgerSysSettingsService hqLedgerSysSettingsService,
                                          MerchantChatbotOrderService merchantChatbotOrderService,
                                          NotifyIdempotencyLock notifyIdempotencyLock,
-                                         SplitPayPaymentHookService splitPayPaymentHookService) {
+                                         SplitPayPaymentHookService splitPayPaymentHookService,
+                                         OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
         this.orgUnitRepository = orgUnitRepository;
@@ -100,6 +103,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         this.merchantChatbotOrderService = merchantChatbotOrderService;
         this.notifyIdempotencyLock = notifyIdempotencyLock;
         this.splitPayPaymentHookService = splitPayPaymentHookService;
+        this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
     }
 
     @Override
@@ -357,8 +361,10 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
 
         applyMerchantFromIcopayCompInPayload(in, root, raw, t);
         PgTrnsctnNotifyDisplayHelper.mergeFromChillPayJson(root, t);
+        Optional<String> recordedReason = TxnOutcomeReasonApplier.applyFromChillPayJson(t, prevStatusSnap, mergedStatus, root);
 
         pgTrnsctnRepository.save(t);
+        outcomeReasonWarmCoordinator.onRecorded(recordedReason);
         try {
             settlementArrearsService.registerPostSettlementRecoveryIfDue(prevStatusSnap, prevSettledYnSnap, t);
         } catch (Exception ex) {

@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICOPAY チャットボット決済 加盟店利用マニュアル</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Meiryo', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif; font-size: 11pt; line-height: 1.8; color: #1a1a1a; background: #f5f6fa; }
+  .page-wrap { max-width: 860px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 16px rgba(0,0,0,.10); overflow: hidden; }
+  .cover { background: linear-gradient(135deg, #1a3a5c 0%, #1565c0 60%, #1e88e5 100%); color: #fff; padding: 48px 52px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+  .cover-body { flex: 1; }
+  .cover-logo { flex-shrink: 0; display: flex; align-items: flex-start; padding-top: 4px; }
+  .cover-logo img { height: 64px; background: rgba(255,255,255,0.92); padding: 10px 18px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.20); }
+  .cover .logo-line { font-size: 13pt; font-weight: 700; letter-spacing: 2px; opacity: .85; margin-bottom: 14px; }
+  .cover h1 { font-size: 23pt; font-weight: 900; line-height: 1.35; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 11pt; opacity: .82; margin-bottom: 24px; }
+  .cover .meta { font-size: 9.5pt; opacity: .65; border-top: 1px solid rgba(255,255,255,.25); padding-top: 14px; }
+  .body { padding: 44px 52px 60px; }
+  .toc { background: #f0f4ff; border-left: 4px solid #1565c0; border-radius: 0 8px 8px 0; padding: 20px 26px; margin-bottom: 40px; }
+  .toc h2 { font-size: 12pt; font-weight: 700; color: #1565c0; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { font-size: 10pt; line-height: 2.2; color: #1a3a5c; }
+  .toc a { color: #1565c0; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  h2.section-title { font-size: 14pt; font-weight: 800; color: #1a3a5c; border-bottom: 2.5px solid #1565c0; padding-bottom: 7px; margin: 42px 0 16px; page-break-after: avoid; }
+  h3.sub-title { font-size: 12pt; font-weight: 700; color: #1565c0; margin: 24px 0 10px; page-break-after: avoid; }
+  p { margin-bottom: 10px; }
+  .info-box { background: #e3f0ff; border: 1px solid #90caf9; border-left: 4px solid #1565c0; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1a3a5c; }
+  .warn-box { background: #fff8e1; border: 1px solid #ffe082; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #5d4037; }
+  .check-box { background: #e8f5e9; border: 1px solid #a5d6a7; border-left: 4px solid #2e7d32; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1b5e20; }
+  .hq-box { background: #fce4ec; border: 1px solid #f48fb1; border-left: 4px solid #c62828; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #b71c1c; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 20px; font-size: 10pt; page-break-inside: avoid; }
+  th { background: #1565c0; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #1245a0; }
+  td { padding: 8px 12px; border: 1px solid #cfd8dc; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f7ff; }
+  td.center, th.center { text-align: center; }
+  .perm-full { display: inline-block; background: #2e7d32; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 7px; border-radius: 4px; }
+  .perm-view { display: inline-block; background: #1565c0; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 7px; border-radius: 4px; }
+  .perm-none { display: inline-block; background: #9e9e9e; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 7px; border-radius: 4px; }
+  pre { background: #1e2a38; color: #cdd9e5; font-family: 'Consolas', monospace; font-size: 9.5pt; line-height: 1.6; padding: 16px 20px; border-radius: 8px; margin: 12px 0 18px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; page-break-inside: avoid; }
+  code { background: #e8edf5; color: #c0392b; font-family: 'Consolas', monospace; font-size: 9pt; padding: 1px 5px; border-radius: 3px; }
+  .flow { background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; padding: 20px 24px; margin: 14px 0 20px; font-size: 10pt; page-break-inside: avoid; }
+  .flow-row { display: flex; align-items: flex-start; margin-bottom: 7px; }
+  .flow-actor { display: inline-block; min-width: 100px; font-weight: 700; color: #1565c0; flex-shrink: 0; }
+  .flow-arrow { color: #888; margin: 0 10px; font-size: 13pt; flex-shrink: 0; }
+  .flow-desc { color: #37474f; }
+  .step-badge { display: inline-block; background: #1565c0; color: #fff; font-weight: 800; font-size: 9pt; padding: 2px 10px; border-radius: 20px; margin-right: 8px; vertical-align: middle; }
+  .faq-item { border: 1px solid #e0e6f0; border-radius: 8px; margin-bottom: 14px; page-break-inside: avoid; }
+  .faq-q { background: #e8edf8; padding: 11px 16px; font-weight: 700; font-size: 10.5pt; color: #1a3a5c; border-radius: 8px 8px 0 0; }
+  .faq-q::before { content: "Q. "; color: #1565c0; }
+  .faq-a { padding: 11px 16px; font-size: 10pt; color: #37474f; background: #fff; border-radius: 0 0 8px 8px; }
+  .faq-a::before { content: "A. "; font-weight: 700; color: #2e7d32; }
+  .badge-req { display: inline-block; background: #e53935; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 4px; }
+  .badge-opt { display: inline-block; background: #757575; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 4px; }
+  .menu-path { display: inline-block; background: #ececec; border: 1px solid #d0d0d0; border-radius: 5px; padding: 3px 11px; font-size: 9.5pt; color: #37474f; font-weight: 600; margin-bottom: 12px; }
+  .menu-path::before { content: "📌 メニュー: "; }
+  hr.section-rule { border: none; border-top: 1px dashed #c5cae9; margin: 36px 0; }
+  .footer { background: #1a3a5c; color: rgba(255,255,255,.65); text-align: center; font-size: 9pt; padding: 18px 24px; }
+  ul { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+  @media print {
+    body { background: #fff; font-size: 10pt; }
+    .page-wrap { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; }
+    .cover { padding: 28px 36px 24px; }
+    .body { padding: 28px 36px 36px; }
+    .faq-item, pre, table, .flow { page-break-inside: avoid; }
+    .footer, .no-print { display: none; }
+    @page { size: A4; margin: 18mm 16mm; }
+  }
+</style>
+</head>
+<body>
+<style id="print-btn-style">
+  .print-btn { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #1565c0; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 10.5pt; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(21,101,192,.45); display: flex; align-items: center; gap: 9px; transition: background .18s, box-shadow .18s; text-decoration: none; }
+  .print-btn:hover { background: #0d47a1; box-shadow: 0 6px 20px rgba(13,71,161,.5); }
+  @media print { .print-btn { display: none !important; } }
+</style>
+<button class="print-btn" onclick="window.print()">🖨️ 印刷 / PDFで保存</button>
+<div class="page-wrap">
+  <div class="cover">
+    <div class="cover-body">
+      <div class="logo-line">ICOPAY · Payment Gateway</div>
+      <h1>チャットボット決済<br>加盟店利用マニュアル</h1>
+      <div class="subtitle">加盟店視点 — AIチャットボット設定から商品管理・注文確認まで、加盟店が直接操作できること</div>
+      <div class="meta">作成基準: ICOPAY 加盟店権限レベル &nbsp;|&nbsp; 対象: チャットボット決済利用加盟店 &nbsp;|&nbsp; 発行: 2026年6月</div>
+    </div>
+    <div class="cover-logo">
+      <img src="./logo-ontheline.png" alt="On The Line">
+    </div>
+  </div>
+
+  <div class="body">
+
+    <div class="warn-box" style="margin-bottom:28px;">
+      <strong>📋 加盟店メニュー権限の概要</strong><br><br>
+      <table style="margin:8px 0 0;">
+        <tr><th>メニュー</th><th class="center">権限</th><th>備考</th></tr>
+        <tr><td>業者管理 &gt; 自社情報</td><td class="center"><span class="perm-view">閲覧のみ</span></td><td>URL・QR・スクリプトの確認・コピーが可能 / 設定変更は不可</td></tr>
+        <tr><td>チャットボット管理 &gt; 基本設定</td><td class="center"><span class="perm-full">全権限</span></td><td>運営方式・業種・予約設定を直接変更可能</td></tr>
+        <tr><td>チャットボット管理 &gt; 商品管理</td><td class="center"><span class="perm-full">全権限</span></td><td>商品の登録・修正・削除が直接可能</td></tr>
+        <tr><td>チャットボット管理 &gt; 注文管理</td><td class="center"><span class="perm-view">閲覧のみ</span></td><td>注文内容の確認のみ / 修正・削除は不可</td></tr>
+        <tr><td>業者登録・業者管理 など</td><td class="center"><span class="perm-none">アクセス不可</span></td><td>本部・総販専用メニュー</td></tr>
+      </table>
+    </div>
+
+    <div class="toc">
+      <h2>目 次</h2>
+      <ol>
+        <li><a href="#s1">チャットボット決済とは？</a></li>
+        <li><a href="#s2">利用開始前の確認（本部による有効化が必要）</a></li>
+        <li><a href="#s3">STEP 1 — 自社チャットボット情報の確認（閲覧のみ）</a></li>
+        <li><a href="#s4">STEP 2 — チャットボット基本設定（加盟店が直接運営）</a></li>
+        <li><a href="#s5">STEP 3 — 商品登録・管理（加盟店が直接運営）</a></li>
+        <li><a href="#s6">STEP 4 — 決済URLの配布方法</a></li>
+        <li><a href="#s7">STEP 5 — 注文内容の確認（閲覧のみ）</a></li>
+        <li><a href="#s8">運営方式別フロー概要</a></li>
+        <li><a href="#s9">よくある質問（FAQ）</a></li>
+      </ol>
+    </div>
+
+    <h2 class="section-title" id="s1">1. チャットボット決済とは？</h2>
+    <p>ICOPAY チャットボット決済は、AIチャットボットが顧客と会話しながら<strong>商品案内 → 注文受付 → 決済</strong>まで一連の流れで処理するサービスです。ショッピングサイトやアプリを開発しなくても、チャットボットURLひとつでオンライン販売・予約・決済を運営できます。</p>
+
+    <h3 class="sub-title">顧客の決済フロー（例：前払い販売）</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-actor">顧客</span><span class="flow-arrow">→</span><span class="flow-desc">加盟店が配布したチャットボットURLにアクセス（リンクタップ / QRスキャン）</span></div>
+      <div class="flow-row"><span class="flow-actor">AIチャット</span><span class="flow-arrow">→</span><span class="flow-desc">加盟店が登録した商品を案内・選択を促す</span></div>
+      <div class="flow-row"><span class="flow-actor">顧客</span><span class="flow-arrow">→</span><span class="flow-desc">商品を選択し、注文情報を入力</span></div>
+      <div class="flow-row"><span class="flow-actor">AIチャット</span><span class="flow-arrow">→</span><span class="flow-desc">決済ページへ案内</span></div>
+      <div class="flow-row"><span class="flow-actor">顧客</span><span class="flow-arrow">→</span><span class="flow-desc">カード決済完了</span></div>
+      <div class="flow-row"><span class="flow-actor">加盟店</span><span class="flow-arrow">→</span><span class="flow-desc">注文管理画面で注文内容を確認</span></div>
+    </div>
+
+    <h3 class="sub-title">加盟店が直接操作できる範囲 vs 本部が管理する範囲</h3>
+    <table>
+      <tr><th>加盟店が直接できること</th><th>本部（HQ）が管理すること</th></tr>
+      <tr><td>チャットボット運営方式・業種・予約設定</td><td>チャットボット決済の有効化 / 無効化</td></tr>
+      <tr><td>商品の登録・修正・削除</td><td>商品登録上限数の設定</td></tr>
+      <tr><td>注文一覧の閲覧</td><td>承認メール・LINE Notify通知の設定</td></tr>
+      <tr><td>チャットボットURL・QR・スクリプトの確認・コピー</td><td>会社基本情報の変更</td></tr>
+    </table>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s2">2. 利用開始前の確認（本部による有効化が必要）</h2>
+    <p>チャットボット決済は、<strong>本部が加盟店アカウントを有効化</strong>することで利用可能になります。以下を確認してください。</p>
+    <table>
+      <tr><th>確認項目</th><th>確認方法</th></tr>
+      <tr><td>サイドバーに<strong>チャットボット管理</strong>メニューが表示されているか？</td><td>表示されていれば有効化済み。表示されない場合は本部に連絡</td></tr>
+      <tr><td>自社情報に<strong>チャットボット決済URL</strong>が表示されているか？</td><td>URLが表示されていれば利用可能な状態</td></tr>
+    </table>
+    <div class="hq-box">
+      <strong>本部への依頼が必要な事項</strong><br>
+      以下は加盟店が直接変更できません。ICOPAY本部担当者にご依頼ください。<br><br>
+      • チャットボット決済の有効化 / 無効化<br>
+      • 決済承認メール通知の設定<br>
+      • LINE Notify通知の設定<br>
+      • 商品登録上限数の変更<br>
+      • 会社基本情報の変更（商号・住所など）
+    </div>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s3">3. <span class="step-badge">STEP 1</span> 自社チャットボット情報の確認 <small style="font-size:10pt;font-weight:400;color:#888;">（閲覧のみ）</small></h2>
+    <div class="menu-path">業者管理 &gt; 自社情報</div>
+    <div class="info-box">この画面は<strong>閲覧専用</strong>です。情報の<strong>確認・コピー</strong>は可能ですが、内容を直接変更することはできません。</div>
+
+    <h3 class="sub-title">3-1. チャットボット決済URLの確認・コピー</h3>
+    <p>本部が有効化すると、以下の形式のURLが自動的に表示されます。</p>
+    <pre>https://pay.icopay.co.kr/chatbot-pay/{加盟店コード}</pre>
+    <table>
+      <tr><th>操作</th><th>方法</th></tr>
+      <tr><td>URLのコピー</td><td>URLフィールド横の<strong>コピー</strong>ボタンをクリック → クリップボードに保存</td></tr>
+      <tr><td>QRコードの保存</td><td>QR画像横の<strong>保存</strong>ボタンをクリック → PNGファイルとしてダウンロード</td></tr>
+    </table>
+    <div class="warn-box">本部でチャットボット決済が無効に設定されている場合、URLは表示されません。本部担当者に有効化をご依頼ください。</div>
+
+    <h3 class="sub-title">3-2. フローティングウィジェットスクリプトのコピー</h3>
+    <p>Webサイトにチャットボットアイコンを表示するには、自社情報の<strong>チャットボット フローティングウィジェット</strong>欄からコードをコピーします。</p>
+    <pre>&lt;!-- コピーされたコード例 — すべてのページの &lt;/body&gt; 直前に貼り付け --&gt;
+&lt;script src="https://pay.icopay.co.kr/v1/embed-chatbot/{加盟店コード}"
+        async defer charset="utf-8"&gt;&lt;/script&gt;</pre>
+    <div class="info-box">自社情報画面の<strong>コピー</strong>ボタンを押すと、加盟店コード入りの完成コードをそのままコピーできます。</div>
+
+    <h3 class="sub-title">3-3. QRコードの活用</h3>
+    <ul>
+      <li>保存したPNGファイルを印刷業者に渡すか、ポスター・名刺デザインに活用</li>
+      <li>店内のテーブルカード・案内板・メニュー表に貼付</li>
+      <li>顧客がQRをスキャン → チャットボット決済ページへ直接アクセス</li>
+    </ul>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s4">4. <span class="step-badge">STEP 2</span> チャットボット基本設定 <small style="font-size:10pt;font-weight:400;color:#2e7d32;">✔ 加盟店が直接運営</small></h2>
+    <div class="menu-path">チャットボット管理 &gt; 基本設定</div>
+    <div class="check-box">このメニューは加盟店が<strong>直接設定・保存</strong>できます。</div>
+
+    <h3 class="sub-title">4-1. 運営方式の選択</h3>
+    <p>業種と支払いタイミングに合った方式を選ぶと、AIが適切な会話フローで顧客を案内します。</p>
+    <table>
+      <tr><th>運営方式</th><th>説明</th><th>適合業種の例</th></tr>
+      <tr><td><strong>商品販売 · 前払い</strong></td><td>商品選択後に即時決済</td><td>オンラインショップ、グッズ販売</td></tr>
+      <tr><td><strong>商品販売 · 後払い</strong></td><td>注文受付後に後日決済</td><td>受注製作、B2B納品</td></tr>
+      <tr><td><strong>予約方式 · 前払い</strong></td><td>予約時に即時決済</td><td>マッサージ、ヘアサロン、自習室</td></tr>
+      <tr><td><strong>予約方式 · 後払い</strong></td><td>予約受付 → 来店後に決済</td><td>レストラン、コンサルティング</td></tr>
+      <tr><td><strong>ハイブリッド（販売＋予約）</strong></td><td>通常販売と予約商品を混在</td><td>複合サービス業</td></tr>
+      <tr><td><strong>対面取引（販売＋予約・後払い）</strong></td><td>現場確認後に決済</td><td>VIPクラブ、対面サービス</td></tr>
+    </table>
+
+    <h3 class="sub-title">4-2. 業種の選択</h3>
+    <p>AIチャットボットが業種に合った質問フローを自動構成します。最も近い業種を選択してください。</p>
+    <table>
+      <tr><th>業種</th><th>AI応対の特徴</th></tr>
+      <tr><td>一般販売 / Eコマース</td><td>商品名・数量・配送先を中心に収集</td></tr>
+      <tr><td>マッサージ（一般・クラブ）</td><td>予約日時・コース・人数を収集</td></tr>
+      <tr><td>飲食店 / レストラン</td><td>来店人数・日時・特記事項を収集</td></tr>
+      <tr><td>コンサルティング / サービス業</td><td>相談テーマ・希望日程・連絡先を収集</td></tr>
+      <tr><td>不動産 / 自動車販売</td><td>関心物件・予算・来場可能日を収集</td></tr>
+      <tr><td>VIPクラブ</td><td>メンバーシップ・予約コース中心の案内</td></tr>
+    </table>
+    <div class="info-box"><strong>業種補足メモ（任意）：</strong> 特定業種で必ず収集すべき情報や避けるべき表現を入力すると、AI応対に反映されます。</div>
+
+    <h3 class="sub-title">4-3. 店舗基本情報の入力</h3>
+    <p>AIが顧客の問い合わせに答える際に参照する情報です。空白の場合は登録情報と同様に案内されます。</p>
+    <ul>
+      <li>店舗名 / 住所 / 電話番号</li>
+      <li>営業時間</li>
+      <li>その他案内（駐車場・交通アクセスなど）</li>
+    </ul>
+
+    <h3 class="sub-title">4-4. 予約設定（予約方式の場合）</h3>
+    <table>
+      <tr><th>項目</th><th>説明</th></tr>
+      <tr><td>予約基本スロット（分）</td><td>予約単位: 15 / 30 / 45 / 60 / 90 / 120 / 180 / 240分から選択<br><span style="color:#757575;font-size:9pt;">商品ごとに異なるスロットが必要な場合は商品管理で個別設定可能</span></td></tr>
+      <tr><td>予約タイムゾーン（IANA）</td><td>基準タイムゾーン（デフォルト: <code>Asia/Seoul</code>）</td></tr>
+    </table>
+    <div class="info-box">同じ日時にすでに予約がある場合、AIが自動的に他の時間を案内します。スロット単位での重複予約は自動ブロックされます。</div>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s5">5. <span class="step-badge">STEP 3</span> 商品登録・管理 <small style="font-size:10pt;font-weight:400;color:#2e7d32;">✔ 加盟店が直接運営</small></h2>
+    <div class="menu-path">チャットボット管理 &gt; 商品管理</div>
+    <div class="check-box">このメニューは加盟店が<strong>直接登録・修正・削除</strong>できます。</div>
+
+    <h3 class="sub-title">5-1. 商品タイプ</h3>
+    <table>
+      <tr><th>タイプコード</th><th>説明</th></tr>
+      <tr><td><strong>SALE</strong></td><td>通常販売商品 — 数量単位で購入</td></tr>
+      <tr><td><strong>RESERVATION_TIME</strong></td><td>時間予約商品 — 日時を指定して予約</td></tr>
+      <tr><td><strong>RESERVATION_PLACE</strong></td><td>場所予約商品 — 特定スペース（部屋・席など）を予約</td></tr>
+    </table>
+    <div class="hq-box">利用可能な商品タイプは本部のポリシーによって制限される場合があります。</div>
+
+    <h3 class="sub-title">5-2. 商品登録項目</h3>
+    <table>
+      <tr><th>項目</th><th class="center">必須</th><th>説明</th></tr>
+      <tr><td>商品名</td><td class="center"><span class="badge-req">必須</span></td><td>AIチャットボットが顧客に紹介する商品名</td></tr>
+      <tr><td>価格</td><td class="center"><span class="badge-req">必須</span></td><td>決済金額（加盟店の基準通貨適用）</td></tr>
+      <tr><td>商品説明</td><td class="center"><span class="badge-opt">任意</span></td><td>AI案内時に使用する詳細説明</td></tr>
+      <tr><td>商品画像</td><td class="center"><span class="badge-opt">任意</span></td><td>最大1〜4枚（本部ポリシーで上限決定）</td></tr>
+      <tr><td>販売数量上限</td><td class="center"><span class="badge-opt">任意</span></td><td>在庫管理が必要な場合に入力</td></tr>
+      <tr><td>予約スロット（分）</td><td class="center">予約のみ</td><td>基本設定と異なる場合に商品ごとに個別設定</td></tr>
+      <tr><td>販売期間</td><td class="center"><span class="badge-opt">任意</span></td><td>期間限定販売の場合に開始・終了日を設定</td></tr>
+      <tr><td>有効化状態</td><td class="center"><span class="badge-req">必須</span></td><td>無効の場合は顧客チャットボットに表示されない</td></tr>
+    </table>
+    <div class="hq-box">登録可能な商品数は本部が設定した<strong>商品登録上限</strong>以内です。超過時は既存商品を削除するか、本部に上限引き上げをご依頼ください。</div>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s6">6. <span class="step-badge">STEP 4</span> 決済URLの配布方法</h2>
+    <p>STEP 1で確認したURL・QR・スクリプトを顧客に配布します。</p>
+
+    <h3 class="sub-title">6-1. URL直接シェア</h3>
+    <pre>https://pay.icopay.co.kr/chatbot-pay/{加盟店コード}</pre>
+    <table>
+      <tr><th>配布チャネル</th><th>活用方法</th></tr>
+      <tr><td>カカオトーク・LINE</td><td>メッセージにリンクを添付して顧客に送信</td></tr>
+      <tr><td>SNSプロフィール</td><td>Instagram・Facebookのプロフィールリンクに登録</td></tr>
+      <tr><td>メール署名</td><td>メールフッター署名にリンクを挿入</td></tr>
+      <tr><td>WebサイトボタンのURL</td><td>「今すぐ注文」「予約する」ボタンのhrefに設定</td></tr>
+    </table>
+
+    <h3 class="sub-title">6-2. QRコード印刷物</h3>
+    <table>
+      <tr><th>活用場所</th><th>例</th></tr>
+      <tr><td>店内</td><td>テーブル用QRカード・カウンター案内板</td></tr>
+      <tr><td>印刷物</td><td>ポスター・バナー・メニュー表・チラシ</td></tr>
+      <tr><td>名刺</td><td>名刺裏面へのQR掲載</td></tr>
+    </table>
+
+    <h3 class="sub-title">6-3. WebサイトへのフローティングウィジェットURL埋め込み</h3>
+    <p>顧客がWebサイトを訪問すると、画面下部にチャットボットアイコンが自動表示されます。STEP 1でコピーしたスクリプトコードをWebサイト全ページの<code>&lt;/body&gt;</code>直前に貼り付けてください。</p>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s7">7. <span class="step-badge">STEP 5</span> 注文内容の確認 <small style="font-size:10pt;font-weight:400;color:#888;">（閲覧のみ）</small></h2>
+    <div class="menu-path">チャットボット管理 &gt; 注文管理</div>
+    <div class="info-box">注文管理画面は<strong>閲覧専用</strong>です。注文内容・顧客情報の確認はできますが、修正・削除はできません。</div>
+
+    <h3 class="sub-title">確認できる注文情報</h3>
+    <table>
+      <tr><th>項目</th><th>説明</th></tr>
+      <tr><td>注文番号</td><td>ICOPAYが採番した注文識別番号</td></tr>
+      <tr><td>顧客名・連絡先</td><td>チャットボット注文時に顧客が入力した情報</td></tr>
+      <tr><td>商品名・数量</td><td>注文された商品と数量</td></tr>
+      <tr><td>注文メモ</td><td>顧客がチャットボットで入力したリクエスト事項</td></tr>
+      <tr><td>予約日時</td><td>予約方式注文の場合に選択された日時</td></tr>
+      <tr><td>決済ステータス</td><td>決済待ち / 完了 / キャンセルなど</td></tr>
+    </table>
+
+    <h3 class="sub-title">決済履歴の確認</h3>
+    <ul>
+      <li>承認済み決済金額・カード情報・承認番号などを詳細確認</li>
+      <li>期間・ステータス別フィルター検索</li>
+      <li>Excelダウンロード対応</li>
+    </ul>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s8">8. 運営方式別フロー概要</h2>
+
+    <h3 class="sub-title">前払い方式 — 即時決済</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-actor">顧客</span><span class="flow-arrow">→</span><span class="flow-desc">チャットボットURLにアクセス</span></div>
+      <div class="flow-row"><span class="flow-actor">AI</span><span class="flow-arrow">→</span><span class="flow-desc">加盟店が登録した商品を案内</span></div>
+      <div class="flow-row"><span class="flow-actor">顧客</span><span class="flow-arrow">→</span><span class="flow-desc">商品を選択し、注文情報を入力</span></div>
+      <div class="flow-row"><span class="flow-actor">AI</span><span class="flow-arrow">→</span><span class="flow-desc">決済画面へ案内 → カード決済完了</span></div>
+      <div class="flow-row"><span class="flow-actor">加盟店</span><span class="flow-arrow">→</span><span class="flow-desc">注文管理画面で注文を確認（本部設定によりメール/LINE通知も受信）</span></div>
+    </div>
+
+    <h3 class="sub-title">後払い方式 — 注文受付後に別途決済</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-actor">顧客</span><span class="flow-arrow">→</span><span class="flow-desc">チャットボットURLにアクセス → 商品選択・注文情報入力</span></div>
+      <div class="flow-row"><span class="flow-actor">加盟店</span><span class="flow-arrow">→</span><span class="flow-desc">注文管理で注文を確認 → 顧客に連絡</span></div>
+      <div class="flow-row"><span class="flow-actor">決済</span><span class="flow-arrow">→</span><span class="flow-desc">現場・銀行振込など別の方法で処理</span></div>
+    </div>
+
+    <h3 class="sub-title">予約方式 — 日時選択</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-actor">顧客</span><span class="flow-arrow">→</span><span class="flow-desc">チャットボットURLにアクセス</span></div>
+      <div class="flow-row"><span class="flow-actor">AI</span><span class="flow-arrow">→</span><span class="flow-desc">予約可能な日時を案内（基本設定のスロット基準）</span></div>
+      <div class="flow-row"><span class="flow-actor">顧客</span><span class="flow-arrow">→</span><span class="flow-desc">日時・人数を選択し、個人情報を入力</span></div>
+      <div class="flow-row"><span class="flow-actor">前払い</span><span class="flow-arrow">→</span><span class="flow-desc">即時決済完了 → 予約確定</span></div>
+      <div class="flow-row"><span class="flow-actor">後払い</span><span class="flow-arrow">→</span><span class="flow-desc">予約受付完了 → 来店後に決済</span></div>
+      <div class="flow-row"><span class="flow-actor">加盟店</span><span class="flow-arrow">→</span><span class="flow-desc">注文管理で予約日時・顧客情報を確認</span></div>
+    </div>
+
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s9">9. よくある質問（FAQ）</h2>
+
+    <div class="faq-item">
+      <div class="faq-q">チャットボット管理メニューがサイドバーに表示されません。</div>
+      <div class="faq-a">本部がまだ加盟店アカウントのチャットボット決済を有効化していない状態です。ICOPAY本部担当者に有効化をご依頼ください。加盟店側でこの設定を直接変更することはできません。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">自社情報にチャットボット決済URLが表示されません。</div>
+      <div class="faq-a">本部でチャットボット決済が無効に設定されているためです。URLは本部が有効化した後にのみ表示されます。本部担当者にお問い合わせください。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">自社情報を修正したいのですが。</div>
+      <div class="faq-a">自社情報画面は加盟店にとって<strong>閲覧専用</strong>です。情報の変更が必要な場合はICOPAY本部担当者にご依頼ください。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">決済承認時にメールまたはLINE通知を受け取りたいのですが。</div>
+      <div class="faq-a">通知設定は加盟店が直接変更できません。<strong>本部担当者にご依頼</strong>いただき、メールアドレスまたはLINE Notifyトークンをお伝えください。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">商品を登録したのにチャットボットに表示されません。</div>
+      <div class="faq-a">商品管理画面で対象商品の<strong>有効化状態</strong>をご確認ください。無効状態の商品は顧客チャットボットに表示されません。販売期間が設定されている場合は、現在の日付が期間内かどうかも確認してください。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">予約が重複して受け付けられることはありますか？</div>
+      <div class="faq-a">同じ日時にすでに予約がある場合、AIが自動的に他の時間を案内します。基本設定で指定したスロット単位での重複予約は自動的にブロックされます。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">これ以上商品を登録できないと表示されます。</div>
+      <div class="faq-a">本部が設定した商品登録上限に達しています。不要な商品を削除するか、本部に上限引き上げをご依頼ください。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">注文を修正または削除したいのですが。</div>
+      <div class="faq-a">注文管理は加盟店にとって<strong>閲覧専用</strong>です。注文の変更が必要な場合はICOPAY本部担当者にお問い合わせください。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">チャットボットの応対言語を変更できますか？</div>
+      <div class="faq-a">ICOPAYチャットボットは顧客のブラウザ言語設定に応じて自動で多言語応対します。設定不要で日本語・英語・韓国語・中国語・タイ語などに対応しています。</div>
+    </div>
+  </div>
+
+  <div class="footer">ICOPAY チャットボット決済 加盟店マニュアル &nbsp;|&nbsp; icopay.co.kr &nbsp;|&nbsp; お問合せ: ICOPAY本部担当者</div>
+</div>
+
+<div style="text-align:center;margin:24px 0 40px;" class="no-print">
+  <button onclick="window.print()" style="background:#1565c0;color:#fff;border:none;padding:12px 36px;font-size:12pt;font-weight:700;border-radius:8px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18);">🖨️ 印刷 / PDFで保存</button>
+  <p style="color:#888;font-size:9pt;margin-top:8px;">ブラウザの印刷ダイアログで「PDFとして保存」を選択するとPDFファイルとして保存できます。</p>
+</div>
+<style>@media print { .no-print { display: none !important; } }</style>
+</body>
+</html>
+

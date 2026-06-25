@@ -97,6 +97,24 @@
 
   function compId() { return (qs().get('m') || qs().get('compId') || '').trim(); }
 
+  function splitPayEntry() { return String(qs().get('entry') || window._splitPayEntry || '').trim().toLowerCase(); }
+
+  function applyQueryPrefill() {
+    var entry = splitPayEntry();
+    if (entry === 'chatbot') window._splitPayEntry = 'chatbot';
+    var amtEl = document.getElementById('totalAmount');
+    var amt = qs().get('amount');
+    if (amtEl && amt) amtEl.value = String(amt).trim();
+    var item = qs().get('item');
+    if (item) {
+      var nameEl = document.getElementById('customerName');
+      if (nameEl && !String(nameEl.value || '').trim()) {
+        try { nameEl.value = decodeURIComponent(String(item).replace(/\+/g, ' ')).trim(); } catch (eItem) { nameEl.value = String(item); }
+      }
+    }
+    window._splitPayCurrencyCode = String(qs().get('currency') || '').trim().toUpperCase();
+  }
+
   function isMultiMode() { return merchantMultiMax > 0; }
 
   function showMsg(text, bad) {
@@ -161,11 +179,13 @@
 
       totalAmount: document.getElementById('totalAmount').value,
 
-      currencyCode: 'JPY',
+      currencyCode: window._splitPayCurrencyCode || 'JPY',
 
       locale: LANG
 
     };
+
+    if (splitPayEntry() === 'chatbot') payload.entry = 'chatbot';
 
     if (isMultiMode()) {
 
@@ -386,6 +406,8 @@
   });
 
   function boot() {
+
+    applyQueryPrefill();
 
     var cid = compId();
 

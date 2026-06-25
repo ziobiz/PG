@@ -39,6 +39,9 @@ public final class JpayNotifyStatusResolver {
         if (isJpaySuccessPaymentStatus(paymentStatus)) {
             return ST_PAID;
         }
+        if (isJpayUnpaidPaymentStatus(paymentStatus)) {
+            return ST_CANCEL;
+        }
         return null;
     }
 
@@ -135,6 +138,15 @@ public final class JpayNotifyStatusResolver {
         }
         String p = raw.trim().toLowerCase(Locale.ROOT);
         return "succeeded".equals(p) || "success".equals(p) || "paid".equals(p) || "00".equals(p);
+    }
+
+    /** JPAY 포털·노티 — 미결제(UNPAID)는 칠페이 미완료 취소와 동일하게 취소(20)로 처리 */
+    private static boolean isJpayUnpaidPaymentStatus(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return false;
+        }
+        String p = raw.trim().toLowerCase(Locale.ROOT);
+        return "unpaid".equals(p);
     }
 
     private static String first(Map<String, String> m, String key) {

@@ -17,7 +17,7 @@
       'payCompletedAt', 'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'currency',
       'payCustomerIndicator', 'displayPaySummary', 'displayPayCur', 'displayPayAmt',
       'regionalBaseCur', 'masterDistBaseCur', 'merchantBaseCur',
-      'chillPaymentStatus', 'settledYn', 'payDivNm', 'cardAprvNo', 'productNm', 'customerNm',
+      'chillPaymentStatus', 'outcomeReasonPreview', 'settledYn', 'payDivNm', 'cardAprvNo', 'productNm', 'customerNm',
       'payActions', 'payRemark'
     ],
     /**
@@ -31,7 +31,7 @@
         'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'currency',
         'payCustomerIndicator', 'displayPaySummary', 'displayPayCur', 'displayPayAmt',
         'regionalBaseCur', 'masterDistBaseCur', 'merchantBaseCur',
-        'chillPaymentStatus', 'settledYn',
+        'chillPaymentStatus', 'outcomeReasonPreview', 'settledYn',
         'payDivNm', 'cardAprvNo', 'productNm', 'customerNm', 'customerEmail', 'customerTel', 'regionalNm', 'masterNm', 'branchNm',
         'compRegNo', 'payCard', 'instalMonth', 'payMethod', 'pgNm', 'pgApproveAmt', 'payAprv',
         'holdAmt', 'holdDttm', 'feeCnt', 'feeRate', 'settleAmt', 'calcDt', 'pgApproveNo', 'corpNm', 'terminalId', 'calcCycle',
@@ -42,7 +42,7 @@
         'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'currency',
         'payCustomerIndicator', 'displayPaySummary', 'displayPayCur', 'displayPayAmt',
         'regionalBaseCur', 'masterDistBaseCur', 'merchantBaseCur',
-        'chillPaymentStatus', 'settledYn',
+        'chillPaymentStatus', 'outcomeReasonPreview', 'settledYn',
         'payDivNm', 'cardAprvNo', 'productNm', 'customerNm', 'customerEmail', 'customerTel', 'regionalNm', 'masterNm', 'branchNm',
         'compRegNo', 'payMethod', 'pgNm', 'pgApproveAmt', 'payAprv', 'holdAmt', 'holdDttm', 'feeCnt', 'feeRate',
         'settleAmt', 'calcDt', 'pgApproveNo'
@@ -52,7 +52,7 @@
         'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'currency',
         'payCustomerIndicator', 'displayPaySummary', 'displayPayCur', 'displayPayAmt',
         'regionalBaseCur', 'masterDistBaseCur', 'merchantBaseCur',
-        'chillPaymentStatus', 'settledYn',
+        'chillPaymentStatus', 'outcomeReasonPreview', 'settledYn',
         'payDivNm', 'cardAprvNo', 'productNm', 'customerNm', 'payActions', 'payRemark'
       ]
     },
@@ -94,6 +94,7 @@
       { key: 'masterDistBaseCur', label: '총판기준통화' },
       { key: 'merchantBaseCur', label: '가맹기준통화' },
       { key: 'chillPaymentStatus', label: '상태' },
+      { key: 'outcomeReasonPreview', label: '처리사유' },
       { key: 'settledYn', label: '정산' },
       { key: 'compRegNo', label: '사업자번호' },
       { key: 'payDivNm', label: '구분' },

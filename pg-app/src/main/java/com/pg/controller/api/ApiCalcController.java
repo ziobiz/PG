@@ -14,6 +14,7 @@ import com.pg.service.HqNotifyMappingService;
 import com.pg.service.OrgAccessService;
 import com.pg.service.JpayIntegratedListService;
 import com.pg.service.JpayTradeApiService;
+import com.pg.service.LoginNoticePublicService;
 import com.pg.service.PayListActionService;
 import com.pg.service.PayListService;
 import com.pg.util.PayDisplayCurrency;
@@ -148,8 +149,10 @@ public class ApiCalcController {
     @GetMapping("/payList")
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> payList(
             @RequestParam Map<String, String> params,
+            @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage,
             Authentication authentication) {
         PayListSearchRequest req = PayListSearchRequest.fromParams(params);
+        req.setAdminUiLocale(LoginNoticePublicService.pickLangBucket(acceptLanguage));
         PageResult<Map<String, Object>> result = payListService.search(req, authentication);
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
@@ -783,7 +786,8 @@ public class ApiCalcController {
         try {
             String trnId = body != null ? body.get("trnId") : null;
             String action = body != null ? body.get("action") : null;
-            payListActionService.apply(SecurityContextHolder.getContext().getAuthentication(), trnId, action);
+            String reason = body != null ? body.get("reason") : null;
+            payListActionService.apply(SecurityContextHolder.getContext().getAuthentication(), trnId, action, reason);
             return ResponseEntity.ok(ApiResponse.ok(Map.of("message", "처리되었습니다.")));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));

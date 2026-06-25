@@ -396,6 +396,23 @@
     };
   }
 
+  function merchantChatbotUrlPayCheckoutModeSelectRow(col) {
+    return [{
+      label: 'URL 결제 방식',
+      type: 'select',
+      name: 'chatbotUrlPayCheckoutMode',
+      options: [
+        { v: 'STANDARD', t: '일반 URL 결제' },
+        { v: 'REPAY', t: '재결제 URL (저장 카드)' },
+        { v: 'SPLIT_PAY', t: 'URL 분할결제' }
+      ],
+      col: col != null ? col : 3
+    }];
+  }
+
+  var MERCHANT_CHATBOT_PAYMENT_NOTICE =
+    '미사용이면 로그인한 가맹점 관리자에게 챗봇관리의 상품관리 메뉴가 표시되지 않습니다. 「URL 결제 방식」은 챗봇 주문·카탈로그 결제에만 적용되며 공개 URL·API 중계와 별도로 선택할 수 있습니다. 재결제 URL 은 본사 URL 재결제 기능 ON 및 URL재결제 PG 바인딩이 필요합니다. URL 분할결제 는 가맹 「URL 분할결제」사용 ON 및 운영 URL PG 바인딩이 필요하며, 고객은 분할결제 신청 화면(split-pay-setup)으로 이동합니다. 챗봇결제 URL은 챗봇 쇼핑·주문 진입용입니다.';
+
   /** read-only 챗봇결제 URL (컨테이너마다 고유 id가 필요하면 별도 템플릿으로 분리) */
   function merchantChatbotPaymentUrlRowHtml(placeholderKo) {
     var ph = placeholderKo || '가맹점 저장 후 조회';
@@ -954,73 +971,51 @@
 
   /** 본사 AI챗봇설정 — ziobiz/Stock php-web/pages/ai.php 리포트 API 키·모델·순위와 동일 필드명 */
   function hqChatbotAiSettingsFormHtml() {
-    var geminiModelLabels = {
-      'gemini-3-flash-preview': 'Gemini 3 Flash',
-      'gemini-3.1-pro-preview': 'Gemini 3.1 Pro',
-      'gemini-3.1-flash-lite': 'Gemini 3.1 Flash-Lite',
-      'gemini-2.5-pro': 'Gemini 2.5 Pro',
-      'gemini-2.5-flash': 'Gemini 2.5 Flash',
-      'gemini-2.5-flash-lite': 'Gemini 2.5 Flash-Lite',
-      'gemini-2.0-flash': 'Gemini 2.0 Flash',
-      'gemini-1.5-flash': 'Gemini 1.5 Flash',
-      'gemini-1.5-pro': 'Gemini 1.5 Pro'
-    };
-    function geminiModelOptionLabel(id) {
-      return geminiModelLabels[id] ? geminiModelLabels[id] + ' (' + id + ')' : id;
-    }
-    function modelSelectHtml(prov, presets) {
-      var opts = '<option value="" data-pg-ui-t="자동(기본)">' + escUi(L('자동(기본)')) + '</option>';
-      for (var i = 0; i < presets.length; i++) {
-        var m = presets[i];
-        var lab = (prov === 'gemini') ? geminiModelOptionLabel(m) : m;
-        opts += '<option value="' + escUi(m) + '">' + escUi(lab) + '</option>';
-      }
-      opts += '<option value="custom" data-pg-ui-t="기타(직접입력)">' + escUi(L('기타(직접입력)')) + '</option>';
-      return (
-        '<div class="mb-2">' +
-        '<label class="form-label small mb-1" data-pg-ui-t="모델(버전)">' + escUi(L('모델(버전)')) + '</label>' +
-        '<div class="d-flex flex-wrap gap-2 align-items-center">' +
-        '<select name="' + escUi(prov) + '_model_sel" class="form-select form-select-sm hq-ai-model-sel" data-hq-ai-prov="' + escUi(prov) + '" style="min-width:12rem">' + opts + '</select>' +
-        '<input type="text" name="' + escUi(prov) + '_model_custom" class="form-control form-control-sm hq-ai-model-custom" data-hq-ai-prov="' + escUi(prov) + '" data-pg-ui-placeholder="모델명 직접입력" placeholder="' + escUi(L('모델명 직접입력')) + '" style="max-width:16rem;display:none">' +
-        '<input type="hidden" name="report_' + escUi(prov) + '_model" class="hq-ai-model-hidden" data-hq-ai-prov="' + escUi(prov) + '" value="">' +
-        '</div>' +
-        '<div class="form-check mt-2">' +
-        '<input class="form-check-input hq-ai-prov-disabled" type="checkbox" name="report_' + escUi(prov) + '_disabled" id="hq_ai_dis_' + escUi(prov) + '" value="Y">' +
-        '<label class="form-check-label small" for="hq_ai_dis_' + escUi(prov) + '"><span data-pg-ui-t="이 제공자·모델 사용중지">' + escUi(L('이 제공자·모델 사용중지')) + '</span></label>' +
-        '<span class="small text-muted d-block ms-4" data-pg-ui-t="체크 시 챗봇·상품안내 LLM에서 이 API 키·모델 조합을 호출하지 않습니다.">' + escUi(L('체크 시 챗봇·상품안내 LLM에서 이 API 키·모델 조합을 호출하지 않습니다.')) + '</span>' +
-        '</div></div>'
-      );
-    }
-    var gemPre = ['gemini-3-flash-preview', 'gemini-3.1-pro-preview', 'gemini-3.1-flash-lite', 'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
-    var groqPre = ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile', 'llama-3.1-70b-versatile', 'mixtral-8x7b-32768'];
-    var antPre = ['claude-sonnet-4-5', 'claude-3-5-sonnet-20241022', 'claude-3-opus-20240229', 'claude-3-haiku-20240307'];
-    var oaiPre = ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-4'];
-    function provBlk(label, prov, presets, placeholder) {
+    function provBlk(label, prov, placeholder) {
       var keyNm = 'report_' + prov + '_api_key';
       return (
         '<div class="col-md-6 mb-3">' +
         '<label class="form-label"><span data-pg-ui-t="' + escUi(label) + '">' + escUi(L(label)) + '</span></label>' +
         '<input type="password" name="' + escUi(keyNm) + '" class="form-control form-control-sm hq-ai-api-key-inp" autocomplete="off" data-hq-ai-key-def-ph="' + escUi(L(placeholder)) + '" placeholder="' + escUi(L(placeholder)) + '">' +
         '<span class="small text-muted d-block mt-1 hq-ai-key-hint" data-hq-ai-hint="' + escUi(keyNm) + '"></span>' +
-        modelSelectHtml(prov, presets) +
-        '</div>'
+        '<div class="form-check mt-2">' +
+        '<input class="form-check-input hq-ai-prov-disabled" type="checkbox" name="report_' + escUi(prov) + '_disabled" id="hq_ai_dis_' + escUi(prov) + '" value="Y">' +
+        '<label class="form-check-label small" for="hq_ai_dis_' + escUi(prov) + '"><span data-pg-ui-t="이 제공자 사용중지">' + escUi(L('이 제공자 사용중지')) + '</span></label>' +
+        '<span class="small text-muted d-block ms-4" data-pg-ui-t="체크 시 용도별 순위에 등록된 이 API 키(브랜드)를 호출하지 않습니다.">' + escUi(L('체크 시 용도별 순위에 등록된 이 API 키(브랜드)를 호출하지 않습니다.')) + '</span>' +
+        '</div></div>'
       );
     }
-    var ordSel = '';
-    var pvLabels = [['gemini', 'Google Gemini'], ['groq', 'Groq'], ['anthropic', 'Anthropic(Claude)'], ['openai', 'OpenAI']];
-    for (var r = 1; r <= 4; r++) {
-      ordSel += '<label class="me-2 small"><span data-pg-ui-t="' + escUi(String(r) + '순위') + '">' + escUi(L(String(r) + '순위')) + '</span></label><select name="hqAiProvOrder_' + r + '" class="form-select form-select-sm d-inline-block me-3 mb-2" style="width:auto;min-width:9rem">';
-      ordSel += '<option value="" data-pg-ui-t="비사용">' + escUi(L('비사용')) + '</option>';
-      for (var j = 0; j < pvLabels.length; j++) {
-        ordSel += '<option value="' + escUi(pvLabels[j][0]) + '">' + escUi(pvLabels[j][1]) + '</option>';
+    function provOrderBlk(usageKey, title, hint) {
+      var pvLabels = [['gemini', 'Google Gemini'], ['groq', 'Groq'], ['anthropic', 'Anthropic(Claude)'], ['openai', 'OpenAI']];
+      var rows = '';
+      for (var r = 1; r <= 4; r++) {
+        var provOpts = '<option value="" data-pg-ui-t="비사용">' + escUi(L('비사용')) + '</option>';
+        for (var j = 0; j < pvLabels.length; j++) {
+          provOpts += '<option value="' + escUi(pvLabels[j][0]) + '">' + escUi(pvLabels[j][1]) + '</option>';
+        }
+        rows +=
+          '<div class="d-flex flex-wrap align-items-center gap-2 mb-2 hq-ai-order-rank-row" data-hq-ai-order-usage="' + escUi(usageKey) + '" data-hq-ai-order-rank="' + String(r) + '">' +
+          '<span class="small text-nowrap" style="min-width:3rem"><span data-pg-ui-t="' + escUi(String(r) + '순위') + '">' + escUi(L(String(r) + '순위')) + '</span></span>' +
+          '<select name="hqAiProvOrder_' + escUi(usageKey) + '_' + r + '_prov" class="form-select form-select-sm hq-ai-order-prov" data-hq-ai-order-usage="' + escUi(usageKey) + '" data-hq-ai-order-rank="' + String(r) + '" style="min-width:10rem">' + provOpts + '</select>' +
+          '<select name="hqAiProvOrder_' + escUi(usageKey) + '_' + r + '_model" class="form-select form-select-sm hq-ai-order-model-sel" data-hq-ai-order-usage="' + escUi(usageKey) + '" data-hq-ai-order-rank="' + String(r) + '" style="min-width:13rem">' +
+          '<option value="" data-pg-ui-t="자동(제공자 기본)">' + escUi(L('자동(제공자 기본)')) + '</option>' +
+          '</select>' +
+          '<input type="text" name="hqAiProvOrder_' + escUi(usageKey) + '_' + r + '_model_custom" class="form-control form-control-sm hq-ai-order-model-custom" data-hq-ai-order-usage="' + escUi(usageKey) + '" data-hq-ai-order-rank="' + String(r) + '" data-pg-ui-placeholder="모델명 직접입력" placeholder="' + escUi(L('모델명 직접입력')) + '" style="max-width:14rem;display:none">' +
+          '</div>';
       }
-      ordSel += '</select>';
+      return (
+        '<div class="mb-3 pb-2 border-bottom border-light">' +
+        '<label class="form-label mb-1"><span data-pg-ui-t="' + escUi(title) + '">' + escUi(L(title)) + '</span></label>' +
+        (hint ? '<p class="small text-muted mb-2" data-pg-ui-t="' + escUi(hint) + '">' + escUi(L(hint)) + '</p>' : '') +
+        rows +
+        '</div>'
+      );
     }
     return (
       '<div class="hq-chatbot-ai-settings">' +
       '<p class="small text-muted mb-3">' +
-      '<span data-pg-ui-t="ziobiz/Stock AI 페이지와 동일한 JSON 키(report_*_api_key, report_*_model, report_provider_order, report_*_disabled)로 저장합니다. 챗봇·상품 안내(LLM 호출 시 서버에서 이 설정을 참조합니다).">' +
-      escUi(L('ziobiz/Stock AI 페이지와 동일한 JSON 키(report_*_api_key, report_*_model, report_provider_order, report_*_disabled)로 저장합니다. 챗봇·상품 안내(LLM 호출 시 서버에서 이 설정을 참조합니다).')) +
+      '<span data-pg-ui-t="API 키는 브랜드별로 등록하고, 모델(버전)은 아래 용도별 순위(1~4순위)에서 브랜드와 함께 지정합니다.">' +
+      escUi(L('API 키는 브랜드별로 등록하고, 모델(버전)은 아래 용도별 순위(1~4순위)에서 브랜드와 함께 지정합니다.')) +
       '</span>' +
       '<br><span class="text-muted" data-pg-ui-t="챗봇 상단 로고 자동축소( config_json 최상위, 선택 ): chatbot_logo_target_max_bytes(기본 2097152), chatbot_logo_max_edge_px(기본 1024), chatbot_logo_jpeg_quality_start(0~1, 기본 0.92), chatbot_logo_llm_tune_yn=Y(순위 LLM이 권장 변 길이 제안 → 서버 JPEG 재압축).">' +
       escUi(L('챗봇 상단 로고 자동축소( config_json 최상위, 선택 ): chatbot_logo_target_max_bytes(기본 2097152), chatbot_logo_max_edge_px(기본 1024), chatbot_logo_jpeg_quality_start(0~1, 기본 0.92), chatbot_logo_llm_tune_yn=Y(순위 LLM이 권장 변 길이 제안 → 서버 JPEG 재압축).')) +
@@ -1028,14 +1023,22 @@
       '</p>' +
       '<h6 class="border-bottom pb-2 mb-3" data-pg-ui-t="리포트 API 키(챗봇·상품안내 공용)">' + escUi(L('리포트 API 키(챗봇·상품안내 공용)')) + '</h6>' +
       '<div class="row">' +
-      provBlk('Google Gemini API 키', 'gemini', gemPre, 'AIzaSy…') +
-      provBlk('Groq API 키', 'groq', groqPre, 'gsk_…') +
-      provBlk('Anthropic(Claude) API 키', 'anthropic', antPre, 'sk-ant-…') +
-      provBlk('OpenAI API 키', 'openai', oaiPre, 'sk-…') +
+      provBlk('Google Gemini API 키', 'gemini', 'AIzaSy…') +
+      provBlk('Groq API 키', 'groq', 'gsk_…') +
+      provBlk('Anthropic(Claude) API 키', 'anthropic', 'sk-ant-…') +
+      provBlk('OpenAI API 키', 'openai', 'sk-…') +
       '</div>' +
       '<div class="mb-4">' +
-      '<label class="form-label" data-pg-ui-t="챗봇용 AI 제공자 순위 (1순위부터, 비사용은 건너뜀)">' + escUi(L('챗봇용 AI 제공자 순위 (1순위부터, 비사용은 건너뜀)')) + '</label>' +
-      '<div class="d-flex flex-wrap align-items-center">' + ordSel + '</div>' +
+      '<h6 class="mb-3" data-pg-ui-t="챗봇용 AI 제공자 순위 (용도별)">' + escUi(L('챗봇용 AI 제공자 순위 (용도별)')) + '</h6>' +
+      provOrderBlk('catalog', '상품안내 (품질 중시)', '공개 챗봇 상품·카탈로그 안내, 상품 초안 제안 등. 권장 모델: gemini-3.5-flash 또는 gemini-3-flash-preview.') +
+      provOrderBlk('short', '짧은 문장 (챗봇)', '챗봇에서 짧게 응답해야 하는 대화. 권장 모델: gemini-2.5-flash-lite 또는 gemini-3.1-flash-lite.') +
+      provOrderBlk('general', '결제안내 및 기타 (챗봇)', '결제·환불·분할 관련 챗봇 질의, 환영 문구·로고 LLM 등.') +
+      '</div>' +
+      '<div class="mb-4">' +
+      '<h6 class="mb-3" data-pg-ui-t="ICOPAY 그외 서비스 AI 순위">' + escUi(L('ICOPAY 그외 서비스 AI 순위')) + '</h6>' +
+      '<p class="small text-muted mb-2" data-pg-ui-t="챗봇결제가 아닌 ICOPAY 관리·운영 기능에서 사용하는 AI입니다. 실패내역 처리사유 번역, 로그인 공지 다국어 등이 포함됩니다.">' +
+      escUi(L('챗봇결제가 아닌 ICOPAY 관리·운영 기능에서 사용하는 AI입니다. 실패내역 처리사유 번역, 로그인 공지 다국어 등이 포함됩니다.')) + '</p>' +
+      provOrderBlk('platform', '그외 서비스', '처리사유 번역은 2순위 → 1순위 순으로 시도합니다. 권장 모델: gemini-2.5-flash-lite 또는 gemini-3.1-flash-lite.') +
       '</div>' +
       '<h6 class="border-bottom pb-2 mb-3" data-pg-ui-t="프롬프트 (챗봇)">' + escUi(L('프롬프트 (챗봇)')) + '</h6>' +
       '<div class="mb-3">' +
@@ -3466,7 +3469,7 @@
           title: '챗봇결제 설정',
           id: 'chatbotPaymentCard',
           merchantOnly: true,
-          notice: '미사용이면 로그인한 가맹점 관리자에게 챗봇관리의 상품관리 메뉴가 표시되지 않습니다. 「URL 결제 방식」은 챗봇 주문·카탈로그 결제에만 적용되며 공개 URL·API 중계와 별도로 선택할 수 있습니다. 재결제 URL 은 본사 URL 재결제 기능 ON 및 URL재결제 PG 바인딩이 필요합니다. 챗봇결제 URL은 챗봇 쇼핑·주문 진입용입니다.',
+          notice: MERCHANT_CHATBOT_PAYMENT_NOTICE,
           rows: [
             [{ label: '챗봇결제 사용여부', type: 'select', name: 'chatbotPaymentUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 },
               { label: '챗봇 상품등록 한도(건)', type: 'select', name: 'chatbotProductSlotLimit', col: 2,
@@ -3494,7 +3497,7 @@
               }
             }],
             [{ label: '챗봇 관리자(로그인ID·중복검사)', type: 'text', name: 'chatbotAdminUsername', col: 12, button: '중복확인', placeholder: '가맹당 1명 · 없는 ID는 저장 시 자동 등록(초기비밀번호: ID+1!) · 공개 챗봇 상품관리 로그인에는 OTP 필요 · 비우면 해제' }],
-            [{ label: 'URL 결제 방식', type: 'select', name: 'chatbotUrlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 3 }],
+            merchantChatbotUrlPayCheckoutModeSelectRow(3),
             [{ type: 'customHtml', col: 12, html: function () { return merchantChatbotPaymentUrlRowHtml('가맹점 저장 후 조회'); } }],
             [{ type: 'customHtml', col: 12, html: function () { return merchantChatbotEmbedScriptRowHtml('가맹점 저장 후 조회'); } }],
             [{ type: 'customHtml', col: 12, html: function () { return merchantChatbotQrRowHtml(); } }],
@@ -3882,7 +3885,7 @@
           title: '챗봇결제 설정',
           id: 'chatbotPaymentCard',
           merchantOnly: true,
-          notice: '미사용이면 로그인한 가맹점 관리자에게 챗봇관리의 상품관리 메뉴가 표시되지 않습니다. 「URL 결제 방식」은 챗봇 주문·카탈로그 결제에만 적용되며 공개 URL·API 중계와 별도로 선택할 수 있습니다. 재결제 URL 은 본사 URL 재결제 기능 ON 및 URL재결제 PG 바인딩이 필요합니다. 챗봇결제 URL은 챗봇 쇼핑·주문 진입용입니다.',
+          notice: MERCHANT_CHATBOT_PAYMENT_NOTICE,
           rows: [
             [{ label: '챗봇결제 사용여부', type: 'select', name: 'chatbotPaymentUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 },
               { label: '챗봇 상품등록 한도(건)', type: 'select', name: 'chatbotProductSlotLimit', col: 2,
@@ -3910,7 +3913,7 @@
               }
             }],
             [{ label: '챗봇 관리자(로그인ID·중복검사)', type: 'text', name: 'chatbotAdminUsername', col: 12, button: '중복확인', placeholder: '가맹당 1명 · 없는 ID는 저장 시 자동 등록(초기비밀번호: ID+1!) · 공개 챗봇 상품관리 로그인에는 OTP 필요 · 비우면 해제' }],
-            [{ label: 'URL 결제 방식', type: 'select', name: 'chatbotUrlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 3 }],
+            merchantChatbotUrlPayCheckoutModeSelectRow(3),
             [{ type: 'customHtml', col: 12, html: function () { return merchantChatbotPaymentUrlRowHtml('가맹점 저장 후 조회'); } }],
             [{ type: 'customHtml', col: 12, html: function () { return merchantChatbotEmbedScriptRowHtml('가맹점 저장 후 조회'); } }],
             [{ type: 'customHtml', col: 12, html: function () { return merchantChatbotQrRowHtml(); } }],
@@ -4229,7 +4232,7 @@
           title: '챗봇결제 설정',
           id: 'chatbotPaymentCard',
           merchantOnly: true,
-          notice: '미사용이면 로그인한 가맹점 관리자에게 챗봇관리의 상품관리 메뉴가 표시되지 않습니다. 「URL 결제 방식」은 챗봇 주문·카탈로그 결제에만 적용되며 공개 URL·API 중계와 별도로 선택할 수 있습니다. 재결제 URL 은 본사 URL 재결제 기능 ON 및 URL재결제 PG 바인딩이 필요합니다. 챗봇결제 URL은 챗봇 쇼핑·주문 진입용입니다.',
+          notice: MERCHANT_CHATBOT_PAYMENT_NOTICE,
           rows: [
             [{ label: '챗봇결제 사용여부', type: 'select', name: 'chatbotPaymentUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 },
               { label: '챗봇 상품등록 한도(건)', type: 'select', name: 'chatbotProductSlotLimit', col: 2,
@@ -4257,7 +4260,7 @@
               }
             }],
             [{ label: '챗봇 관리자(로그인ID·중복검사)', type: 'text', name: 'chatbotAdminUsername', col: 12, button: '중복확인', placeholder: '가맹당 1명 · 없는 ID는 저장 시 자동 등록(초기비밀번호: ID+1!) · 공개 챗봇 상품관리 로그인에는 OTP 필요 · 비우면 해제' }],
-            [{ label: 'URL 결제 방식', type: 'select', name: 'chatbotUrlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 3 }],
+            merchantChatbotUrlPayCheckoutModeSelectRow(3),
             [{ type: 'customHtml', col: 12, html: function () { return merchantChatbotPaymentUrlRowHtml('가맹점 선택 후 조회'); } }],
             [{ type: 'customHtml', col: 12, html: function () { return merchantChatbotEmbedScriptRowHtml('가맹점 선택 후 조회'); } }],
             [{ type: 'customHtml', col: 12, html: function () { return merchantChatbotQrRowHtml(); } }],

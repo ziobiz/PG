@@ -458,9 +458,9 @@ public class JpayIntegratedListService {
 
                 t.setStatus(mapped);
 
+                String rc = JpayTradeStatusMapper.returnCodeForInternalStatus(mapped);
                 t.setChillPaymentStatus(JpayNotifyStatusResolver.chillPaymentStatusLabel(mapped,
-
-                        mapped.equals("30") ? "09" : (mapped.equals("31") ? "09" : "00")));
+                        rc.isBlank() ? "00" : rc));
 
                 if (!"10".equals(mapped)) {
 

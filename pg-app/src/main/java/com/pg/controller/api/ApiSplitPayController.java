@@ -62,6 +62,7 @@ public class ApiSplitPayController {
                     intObj(body, "intervalValue"),
                     str(body, "currencyCode"),
                     firstNonBlank(str(body, "locale"), str(body, "lang"), str(body, "customerLocale")),
+                    firstNonBlank(str(body, "entry"), str(body, "channel")),
                     request)));
         } catch (IllegalStateException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), e.getMessage()));
