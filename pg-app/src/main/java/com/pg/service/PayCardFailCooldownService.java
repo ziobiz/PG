@@ -61,7 +61,9 @@ public class PayCardFailCooldownService {
         }
         PayCardFailCooldown row = rowOpt.get();
         int failCount = row.getFailCount();
-        if (failCount >= policy.autoBlacklistTriggerTier()) {
+        // 자동등록 트리거: N차 결제 시도 시점(이전 실패 N-1건 후 재시도)에 발동 — N번째 실패 후가 아님
+        if (shouldBlockOnAttemptTrigger(failCount, policy.autoBlacklistTriggerTier())) {
+            registerAutoBlacklistOnAttempt(pg, pan, row, policy, orgUnitId);
             return Optional.of(inactiveCardBlock(langNorm));
         }
 
@@ -173,12 +175,8 @@ public class PayCardFailCooldownService {
         row.setLastFailAt(LocalDateTime.now());
         row.setLastOutcomeCode(outcomeCode != null ? outcomeCode.trim() : null);
 
-        if (nextCount == policy.autoBlacklistTriggerTier()) {
-            String mk = row.getPanMaskKey();
-            if (mk != null && !mk.isBlank()) {
-                payCardPolicyService.addBlacklistAutoMask(pg, mk,
-                        "AUTO_FAIL_COOLDOWN(" + policy.autoBlacklistTriggerTier() + "차 FAIL/UNPAID)", orgUnitId);
-            }
+        if (nextCount >= policy.autoBlacklistTriggerTier()) {
+            registerAutoBlacklistOnAttempt(pg, null, row, policy, orgUnitId);
         }
 
         int minutes = policy.tierMinutes(Math.min(nextCount, 4));
@@ -190,6 +188,31 @@ public class PayCardFailCooldownService {
         } else if (nextCount >= policy.autoBlacklistTriggerTier()) {
             row.setBlockedUntil(LocalDateTime.now().plusYears(10));
         }
+        cooldownRepository.save(row);
+    }
+
+    /** 다음 결제 시도 회차(이전 실패 건수 + 1)가 자동등록 트리거 회차 이상이면 해당 시도에서 차단 */
+    static boolean shouldBlockOnAttemptTrigger(int failCount, int autoBlacklistTriggerTier) {
+        if (autoBlacklistTriggerTier < 1) {
+            return false;
+        }
+        return failCount + 1 >= autoBlacklistTriggerTier;
+    }
+
+    private void registerAutoBlacklistOnAttempt(String pg, String pan, PayCardFailCooldown row,
+                                              CardRiskPolicyEffective policy, Long orgUnitId) {
+        String mk = row.getPanMaskKey();
+        if ((mk == null || mk.isBlank()) && pan != null && !pan.isBlank()) {
+            mk = PayCardMaskKeyUtil.maskKeyFromPan(PayCardBrandDetector.normalizePan(pan));
+            if (mk != null && !mk.isBlank()) {
+                row.setPanMaskKey(mk.trim());
+            }
+        }
+        if (mk != null && !mk.isBlank()) {
+            payCardPolicyService.addBlacklistAutoMask(pg, mk,
+                    "AUTO_FAIL_COOLDOWN(" + policy.autoBlacklistTriggerTier() + "차 ATTEMPT)", orgUnitId);
+        }
+        row.setBlockedUntil(LocalDateTime.now().plusYears(10));
         cooldownRepository.save(row);
     }
 
