@@ -9,6 +9,7 @@ import com.pg.util.JpayBuyerContactApplier;
 import com.pg.util.JpayTransactionIdApplier;
 import com.pg.util.NotifyToTxnStatusMerge;
 import com.pg.util.PayCardBrandDetector;
+import com.pg.util.PayCardFailOutcomeRules;
 import com.pg.util.PayCardPanHashUtil;
 import com.pg.splitpay.SplitPayPaymentHookService;
 import com.pg.util.RouteNoDisplayUtil;
@@ -251,9 +252,7 @@ public class JpaySaleRecordService {
                 pgTrnsctnRepository.save(t);
                 outcomeReasonWarmCoordinator.onRecorded(recordedReason);
                 hookSplitPay(t);
-                String pan = resolvePanForCooldown(panDigits, t);
-                payCardFailCooldownService.recordQualifyingFailure(PgVendor.JPAY, pan, "FAIL", msg,
-                        resolveOrgUnitId(t));
+                recordSyncNonSuccessCooldown(t, msg, panDigits);
                 return;
             }
             JpayTransactionIdApplier.apply(t, jpayTransactionId);
@@ -340,6 +339,20 @@ public class JpaySaleRecordService {
             return null;
         }
         return orgUnitRepository.findByCode(t.getMerchantId().trim()).map(OrgUnit::getId).orElse(null);
+    }
+
+    private void recordSyncNonSuccessCooldown(PgTrnsctn t, String msg, String panDigits) {
+        Long orgUnitId = resolveOrgUnitId(t);
+        String pan = resolvePanForCooldown(panDigits, t);
+        if (pan.length() >= 10) {
+            payCardFailCooldownService.recordQualifyingFailure(PgVendor.JPAY, pan, PayCardFailOutcomeRules.OUTCOME_FAIL,
+                    msg, orgUnitId, t.getCustomerNm());
+            return;
+        }
+        if (t.getCardPanHash() != null && !t.getCardPanHash().isBlank()) {
+            payCardFailCooldownService.recordFromTxnHash(PgVendor.JPAY, t.getCardPanHash().trim(),
+                    t.getCardPanDisplay(), PayCardFailOutcomeRules.OUTCOME_FAIL, msg, orgUnitId, t.getCustomerNm());
+        }
     }
 
     private static String resolvePanForCooldown(String panDigits, PgTrnsctn t) {

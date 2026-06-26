@@ -21,6 +21,7 @@ import com.pg.util.ChillPayNotifyOutcomeAdjust;
 import com.pg.util.JpayNotifyStatusResolver;
 import com.pg.util.NotifyAmountParse;
 import com.pg.util.NotifyChannelMerge;
+import com.pg.util.NotifyTxnPaidAtUtil;
 import com.pg.util.NotifyToTxnStatusMerge;
 import com.pg.util.TxnOutcomeReasonApplier;
 import com.pg.util.PgNotifyInternalStatusMapper;
@@ -31,6 +32,7 @@ import java.math.BigDecimal;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -1019,7 +1021,8 @@ public class HqNotifyMappingService {
         }
         if ("10".equals(mergedStatus)) {
             LocalDateTime paid = parsePaymentDate(firstNonBlank(byKey, "payCompletedAt", "paidAt", "paymentDate"));
-            t.setPaidAt(paid != null ? paid : LocalDateTime.now(hqLedgerSysSettingsService.resolveLedgerDisplayZoneId()));
+            ZoneId wall = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+            t.setPaidAt(NotifyTxnPaidAtUtil.resolvePaidAtForApproval(t, paid, wall));
         } else {
             t.setPaidAt(null);
         }

@@ -243,7 +243,12 @@ public class ApiPayController {
         String pan = firstNonBlankStr(safe, "pan", "payCardno", "cardno");
         String brand = firstNonBlankStr(safe, "cardBrand", "payCardBrand");
         String lang = firstNonBlankStr(safe, "lang", "language");
-        Map<String, Object> result = payCardPolicyService.validateForSale(pg, pan, brand, lang, orgUnitId);
+        String holderName = firstNonBlankStr(safe, "holderName", "customerNm");
+        if (holderName == null || holderName.isBlank()) {
+            holderName = joinPayerName(firstNonBlankStr(safe, "payFirstname", "firstname"),
+                    firstNonBlankStr(safe, "payLastname", "lastname"));
+        }
+        Map<String, Object> result = payCardPolicyService.validateForSale(pg, pan, brand, lang, orgUnitId, holderName);
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
@@ -848,6 +853,18 @@ public class ApiPayController {
             }
         }
         return null;
+    }
+
+    private static String joinPayerName(String first, String last) {
+        String f = first != null ? first.trim() : "";
+        String l = last != null ? last.trim() : "";
+        if (f.isEmpty()) {
+            return l;
+        }
+        if (l.isEmpty()) {
+            return f;
+        }
+        return f + " " + l;
     }
 
     /** ChillPay 요청 본문 Amount 정수(392·410=주단위 정수, 그 외=주단위×100) — 적재용 보조 */

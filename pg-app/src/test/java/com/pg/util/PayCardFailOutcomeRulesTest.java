@@ -8,11 +8,23 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PayCardFailOutcomeRulesTest {
 
     @Test
-    void countsFailAndUnpaid() {
+    void countsFailCancelUnpaidAndRequest() {
         assertTrue(PayCardFailOutcomeRules.shouldCountQualifyingFailure("FAIL", "declined"));
+        assertTrue(PayCardFailOutcomeRules.shouldCountQualifyingFailure("CANCEL", null));
         assertTrue(PayCardFailOutcomeRules.shouldCountQualifyingFailure("UNPAID", null));
+        assertTrue(PayCardFailOutcomeRules.shouldCountQualifyingFailure("REQUEST", null));
         assertTrue(PayCardFailOutcomeRules.shouldCountQualifyingFailure(
                 NotifyToTxnStatusMerge.OUTCOME_CODE_UNPAID_PROVISIONAL, null));
+    }
+
+    @Test
+    void txnStatusMapsToRiskOutcome() {
+        assertTrue(PayCardFailOutcomeRules.outcomeCodeForTxnRiskCount("99", null)
+                .filter(PayCardFailOutcomeRules.OUTCOME_FAIL::equals).isPresent());
+        assertTrue(PayCardFailOutcomeRules.outcomeCodeForTxnRiskCount("20", null)
+                .filter(PayCardFailOutcomeRules.OUTCOME_CANCEL::equals).isPresent());
+        assertTrue(PayCardFailOutcomeRules.outcomeCodeForTxnRiskCount("10", null).isEmpty());
+        assertTrue(PayCardFailOutcomeRules.outcomeCodeForTxnRiskCount("08", null).isEmpty());
     }
 
     @Test

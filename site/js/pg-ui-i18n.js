@@ -8667,6 +8667,39 @@
       CH: 'JPAY 门户登录账户在<strong>总部设置 &gt; 支付机构逻辑</strong>按总代(MASTER_DIST)注册。下方仅设同步期间。服务器(VPS)需 <code>Node.js</code> 与 Playwright Chromium。',
       TH: 'บัญชีล็อกอินพอร์ทัล JPAY ลงทะเบียนต่อ MASTER_DIST ที่ <strong>ตั้งค่า HQ &gt; ตรรกะผู้ให้บริการชำระ</strong> ด้านล่างตั้งช่วงซิงค์เท่านั้น เซิร์ฟเวอร์(VPS)ต้องมี <code>Node.js</code> และ Playwright Chromium'
     },
+    'JPAY 통합조회 스케줄': {
+      EN: 'JPAY integrated list sync schedule',
+      JP: 'JPAY統合照会スケジュール',
+      CH: 'JPAY 整合查询计划',
+      TH: 'ตารางซิงค์รายการรวม JPAY'
+    },
+    '설정한 주기마다 서버가 JPAY 포털 Export 동기화를 자동 실행합니다(관리자 로그인 없이). 예: 6시간이면 하루 4회(6시간 간격) 실행됩니다. 동기화 기간·포털 계정은 위 카드·결제대행사로직 설정을 따릅니다. 진행 중인 동기화가 있으면 다음 주기까지 건너뜁니다.': {
+      EN: 'The server runs JPAY portal Export sync automatically at the configured interval (no admin login). Example: 6 hours = 4 runs per day. Sync period and portal accounts follow the cards above and Payment acquirer logic. Skips the tick if a sync is already running.',
+      JP: '設定した周期ごとにサーバーがJPAYポータルExport同期を自動実行します（管理者ログイン不要）。例：6時間なら1日4回（6時間間隔）。同期期間・ポータルアカウントは上のカード・決済代行ロジックに従います。同期実行中は次の周期までスキップします。',
+      CH: '服务器按设定周期自动执行 JPAY 门户 Export 同步（无需管理员登录）。例：6 小时 = 每天 4 次（间隔 6 小时）。同步期间与门户账户遵循上方卡片及支付机构逻辑。若同步进行中则跳过至下一周期。',
+      TH: 'เซิร์ฟเวอร์ซิงค์ Export พอร์ทัล JPAY อัตโนมัติตามรอบที่ตั้ง (ไม่ต้องล็อกอินผู้ดูแล) ตัวอย่าง 6 ชม. = 4 ครั้ง/วัน ช่วงซิงค์และบัญชีพอร์ทัลตามการ์ดด้านบนและตรรกะผู้ให้บริการชำระ ข้ามรอบถ้ากำลังซิงค์อยู่'
+    },
+    '자동 동기화 주기': {
+      EN: 'Auto sync interval',
+      JP: '自動同期間隔',
+      CH: '自动同步间隔',
+      TH: 'รอบซิงค์อัตโนมัติ'
+    },
+    '사용 안 함': {
+      EN: 'Disabled',
+      JP: '使用しない',
+      CH: '不使用',
+      TH: 'ไม่ใช้'
+    },
+    '10분': { EN: '10 minutes', JP: '10分', CH: '10 分钟', TH: '10 นาที' },
+    '30분': { EN: '30 minutes', JP: '30分', CH: '30 分钟', TH: '30 นาที' },
+    '4시간': { EN: '4 hours', JP: '4時間', CH: '4 小时', TH: '4 ชั่วโมง' },
+    '5시간': { EN: '5 hours', JP: '5時間', CH: '5 小时', TH: '5 ชั่วโมง' },
+    '7시간': { EN: '7 hours', JP: '7時間', CH: '7 小时', TH: '7 ชั่วโมง' },
+    '8시간': { EN: '8 hours', JP: '8時間', CH: '8 小时', TH: '8 ชั่วโมง' },
+    '9시간': { EN: '9 hours', JP: '9時間', CH: '9 小时', TH: '9 ชั่วโมง' },
+    '10시간': { EN: '10 hours', JP: '10時間', CH: '10 小时', TH: '10 ชั่วโมง' },
+    '11시간': { EN: '11 hours', JP: '11時間', CH: '11 小时', TH: '11 ชั่วโมง' },
     '포털 ID': { EN: 'Portal ID', JP: 'ポータルID', CH: '门户 ID', TH: 'Portal ID' },
     '포털 비밀번호': { EN: 'Portal password', JP: 'ポータルパスワード', CH: '门户密码', TH: 'รหัสผ่านพอร์ทัล' },
     '계정 저장': { EN: 'Save account', JP: 'アカウント保存', CH: '保存账户', TH: 'บันทึกบัญชี' },
@@ -12122,6 +12155,72 @@
       JP: 'マスク例 489788***9416',
       CH: '掩码示例 489788***9416',
       TH: 'ตัวอย่าง 489788***9416'
+    },
+    '재반영 거래일': {
+      EN: 'Replay transaction date',
+      JP: '再反映 取引日',
+      CH: '重放交易日期',
+      TH: 'วันที่ทำรายการ replay'
+    },
+    '재반영 거래일 placeholder': {
+      EN: 'YYYY-MM-DD — overwrites paid_at date',
+      JP: 'YYYY-MM-DD — paid_at の日付を上書き',
+      CH: 'YYYY-MM-DD — 覆盖 paid_at 日期',
+      TH: 'YYYY-MM-DD — ทับวันที่ paid_at'
+    },
+    '노티수령 재처리 결과 거래일 덮어쓰기': {
+      EN: 'Replay result — transaction date overwrite',
+      JP: '再処理結果 — 取引日上書き',
+      CH: '重处理结果 — 交易日期覆盖',
+      TH: 'ผล replay — ทับวันที่ทำรายการ'
+    },
+    '통합체크': {
+      EN: 'Integrated check',
+      JP: '統合チェック',
+      CH: '整合核对',
+      TH: 'ตรวจสอบรวม'
+    },
+    '운영사': {
+      EN: 'Operator',
+      JP: '運営者',
+      CH: '运营方',
+      TH: 'ผู้ให้บริการ'
+    },
+    '최근동기화': {
+      EN: 'Last sync',
+      JP: '最終同期',
+      CH: '最近同步',
+      TH: 'ซิงค์ล่าสุด'
+    },
+    '번째': {
+      EN: 'th',
+      JP: '回目',
+      CH: '次',
+      TH: 'ครั้ง'
+    },
+    '최근동기화 없음': {
+      EN: 'No sync yet',
+      JP: '同期履歴なし',
+      CH: '尚无同步',
+      TH: 'ยังไม่มีการซิงค์'
+    },
+    '최근동기화 표시 대기': {
+      EN: 'Last sync — pending',
+      JP: '最終同期 — 待機',
+      CH: '最近同步 — 待显示',
+      TH: 'ซิงค์ล่าสุด — รอแสดง'
+    },
+    'Ok': {
+      EN: 'Ok',
+      JP: 'Ok',
+      CH: 'Ok',
+      TH: 'Ok'
+    },
+    'Check': {
+      EN: 'Check',
+      JP: 'Check',
+      CH: 'Check',
+      TH: 'Check'
     },
     '수신 본문 (편집 가능)': {
       EN: 'Received body (editable)',
@@ -18381,6 +18480,25 @@
     '카드번호(마스킹)': { EN: 'Card no. (masked)', JP: 'カード番号(マスク)', CH: '卡号(掩码)', TH: 'เลขบัตร (ปิดบางส่วน)' },
     '카드번호(앞 6자리 + *** + 뒤 4자리)': { EN: 'Card no. (first 6 + *** + last 4)', JP: 'カード番号(先頭6桁 + *** + 下4桁)', CH: '卡号(前6位 + *** + 后4位)', TH: 'เลขบัตร (6 หลักแรก + *** + 4 หลักท้าย)' },
     '등록카드': { EN: 'Registered card', JP: '登録カード', CH: '登记卡', TH: 'บัตรที่ลงทะเบียน' },
+    'AI': { EN: 'AI', JP: 'AI', CH: 'AI', TH: 'AI' },
+    '리스크 자동등록(결제 시도) — {0}': {
+      EN: 'Risk auto-register (payment attempt) — {0}',
+      JP: 'リスク自動登録(決済試行) — {0}',
+      CH: '风险自动登记(支付尝试) — {0}',
+      TH: 'ลงทะเบียนอัตโนมัติความเสี่ยง(ลองชำระ) — {0}'
+    },
+    '리스크 자동등록(실패/미결제) — {0}': {
+      EN: 'Risk auto-register (fail/unpaid) — {0}',
+      JP: 'リスク自動登録(失敗/未決済) — {0}',
+      CH: '风险自动登记(失败/未支付) — {0}',
+      TH: 'ลงทะเบียนอัตโนมัติความเสี่ยง(ล้มเหลว/ค้างชำระ) — {0}'
+    },
+    '리스크 자동등록(실패·취소 누적) — {0}': {
+      EN: 'Risk auto-register (fail/cancel accumulated) — {0}',
+      JP: 'リスク自動登録(失敗・取消累積) — {0}',
+      CH: '风险自动登记(失败/取消累计) — {0}',
+      TH: 'ลงทะเบียนอัตโนมัติความเสี่ยง(ล้มเหลว/ยกเลิกสะสม) — {0}'
+    },
     '해지됨': { EN: 'Released', JP: '解除済', CH: '已解除', TH: 'ยกเลิกแล้ว' },
     '총본사·본사·총판(ADMIN 포함) 운영자용입니다. 메뉴 접근은 본사권한설정에서 부여합니다.': {
       EN: 'For root HQ, regional HQ, master distributor (incl. ADMIN). Grant menu access in HQ permissions.',
@@ -18543,6 +18661,33 @@
     },
     '해지일시': { EN: 'Released at', JP: '解除日時', CH: '解除时间', TH: 'วันที่ยกเลิก' },
     '해지자': { EN: 'Released by', JP: '解除者', CH: '解除人', TH: 'ผู้ยกเลิก' },
+    '해지사유': { EN: 'Release reason', JP: '解除理由', CH: '解除原因', TH: 'เหตุผลยกเลิก' },
+    '해지 사유': { EN: 'Release reason', JP: '解除理由', CH: '解除原因', TH: 'เหตุผลยกเลิก' },
+    '해지 사유를 입력하세요.': {
+      EN: 'Enter a release reason.',
+      JP: '解除理由を入力してください。',
+      CH: '请输入解除原因。',
+      TH: 'กรุณากรอกเหตุผลยกเลิก'
+    },
+    '비활성 카드 해지': { EN: 'Release inactive card', JP: '非活性カード解除', CH: '解除非活跃卡', TH: 'ยกเลิกบัตรปิดใช้' },
+    '관리자 아이디는 자동으로 앞에 붙습니다. | 뒤 내용만 입력하세요.': {
+      EN: 'Your admin ID is added automatically. Enter only the text after |.',
+      JP: '管理者IDは自動で先頭に付きます。| の後の内容のみ入力してください。',
+      CH: '管理员ID会自动加在前面。请只输入 | 后面的内容。',
+      TH: 'รหัสผู้ดูแลจะถูกเติมให้อัตโนมัติ กรอกเฉพาะข้อความหลัง |'
+    },
+    '해지자는 목록의 해지자 열에 별도 표시됩니다.': {
+      EN: 'The releaser is shown separately in the Released by column.',
+      JP: '解除者は一覧の解除者列に別途表示されます。',
+      CH: '解除人在列表的解除人列单独显示。',
+      TH: 'ผู้ยกเลิกแสดงแยกในคอลัมน์ผู้ยกเลิก'
+    },
+    '예: 가맹점 요청으로': {
+      EN: 'e.g. Merchant request',
+      JP: '例: 加盟店依頼により',
+      CH: '例: 商户要求',
+      TH: 'เช่น ตามคำขอร้านค้า'
+    },
     '등록된 비활성 카드가 없습니다.': {
       EN: 'No inactive cards registered.',
       JP: '登録された非活性カードはありません。',

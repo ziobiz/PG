@@ -111,6 +111,10 @@ public class HqLedgerSysSettings {
     @Column(name = "jpay_tr_recent_sync_days", nullable = false)
     private Integer jpayTrRecentSyncDays = 7;
 
+    /** JPAY 통합조회 포털 Export 자동 동기화 주기(분). 0=미사용 */
+    @Column(name = "jpay_tr_sync_schedule_min", nullable = false)
+    private Integer jpayTrSyncScheduleMin = 0;
+
     @Column(name = "app_log_memory_retention_days", nullable = false)
     private Integer appLogMemoryRetentionDays = 30;
 
@@ -269,6 +273,8 @@ public class HqLedgerSysSettings {
     public void setJpayTrInitSyncMonths(Integer jpayTrInitSyncMonths) { this.jpayTrInitSyncMonths = jpayTrInitSyncMonths; }
     public Integer getJpayTrRecentSyncDays() { return jpayTrRecentSyncDays; }
     public void setJpayTrRecentSyncDays(Integer jpayTrRecentSyncDays) { this.jpayTrRecentSyncDays = jpayTrRecentSyncDays; }
+    public Integer getJpayTrSyncScheduleMin() { return jpayTrSyncScheduleMin; }
+    public void setJpayTrSyncScheduleMin(Integer jpayTrSyncScheduleMin) { this.jpayTrSyncScheduleMin = jpayTrSyncScheduleMin; }
     public Integer getAppLogMemoryRetentionDays() { return appLogMemoryRetentionDays; }
     public void setAppLogMemoryRetentionDays(Integer appLogMemoryRetentionDays) { this.appLogMemoryRetentionDays = appLogMemoryRetentionDays; }
     public Integer getAppLogFileRetentionDays() { return appLogFileRetentionDays; }

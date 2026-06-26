@@ -375,7 +375,7 @@
       id: 'cardRiskTriggerCard',
       merchantOnly: true,
       cardExtraClass: 'card-risk-trigger-card',
-      notice: '동일 카드 FAIL·UNPAID 누적 시 JPAY 호출 전 일시 차단합니다. CVV·카드번호 형식 오류는 집계하지 않습니다. 본사정책 따름 시 [본사설정 → 리스크설정]을 사용하며, 별도정책은 본사보다 우선합니다. 미사용 시 해당 가맹의 위험관리를 끕니다.',
+      notice: '동일 카드 FAIL·취소·미결제 등 비성공이 누적되면 JPAY 호출 전 일시 차단(1~4차 대기)합니다. CVV·카드번호 형식 오류는 집계하지 않습니다. 자동 등록 트리거 N차: 비성공 N회가 완료되는 즉시 비활성카드에 등록되며 (N+1)번째 결제 시도부터 차단됩니다(2차→1·2회 후·3번째부터, 3차→1·2·3회 후·4번째부터, 1·4차도 동일). 본사정책 따름 시 [본사설정 → 리스크설정]을 사용하며, 별도정책은 본사보다 우선합니다. 미사용 시 해당 가맹의 위험관리를 끕니다.',
       rows: [
         [{ label: '위험 정책', type: 'select', name: 'cardRiskPolicyMode', col: 3,
           options: [
@@ -1930,6 +1930,25 @@
     '<button type="button" class="btn btn-primary btn-sm" id="opsIcEditSaveBtn" data-pg-ui-t="저장">저장</button>' +
     '</div></div></div></div>';
 
+  var OPS_INACTIVE_CARD_RELEASE_MODAL_HTML = '<div class="modal fade" id="opsIcReleaseModal" tabindex="-1" aria-hidden="true">' +
+    '<div class="modal-dialog modal-dialog-centered"><div class="modal-content">' +
+    '<div class="modal-header py-2"><h6 class="modal-title" data-pg-ui-t="비활성 카드 해지">비활성 카드 해지</h6>' +
+    '<button type="button" class="btn-close" data-bs-dismiss="modal" data-pg-ui-aria-label="닫기"></button></div>' +
+    '<div class="modal-body">' +
+    '<input type="hidden" id="opsIcReleaseId">' +
+    '<div class="mb-2"><label class="form-label small mb-0" data-pg-ui-t="해지 사유">해지 사유</label>' +
+    '<input type="text" class="form-control form-control-sm" id="opsIcReleaseReason" maxlength="500" ' +
+    'data-pg-ui-placeholder="예: 가맹점 요청으로" placeholder="' + escUi(L('예: 가맹점 요청으로')) + '" autocomplete="off">' +
+    '<div class="form-text small text-muted" data-pg-ui-t="해지자는 목록의 해지자 열에 별도 표시됩니다.">' +
+    escUi(L('해지자는 목록의 해지자 열에 별도 표시됩니다.')) + '</div></div>' +
+    '<div class="mb-0"><label class="form-label small mb-0" data-pg-ui-t="Google OTP">Google OTP</label>' +
+    '<input type="text" class="form-control form-control-sm font-monospace" id="opsIcReleaseOtp" maxlength="6" ' +
+    'inputmode="numeric" autocomplete="one-time-code" data-pg-ui-placeholder="6자리" placeholder="' + escUi(L('6자리')) + '"></div>' +
+    '</div><div class="modal-footer py-2">' +
+    '<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" data-pg-ui-t="취소">취소</button>' +
+    '<button type="button" class="btn btn-danger btn-sm" id="opsIcReleaseConfirmBtn" data-pg-ui-t="해지">해지</button>' +
+    '</div></div></div></div>';
+
   var API_MERCHANT_DEPLOY_REG_HTML = '<div class="api-merchant-deploy-reg text-body">' +
     '<h5 class="fw-semibold mb-2" data-pg-ui-t="1. API 가맹점 등록">1. API 가맹점 등록</h5>' +
     '<div class="alert alert-light border small mb-3">' +
@@ -2319,7 +2338,7 @@
       formSections: [
         {
           title: '리스크설정',
-          notice: '동일 카드 FAIL·UNPAID 누적 시 JPAY 호출 전 일시 차단합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 아래에서 선택한 차수에서 자동으로 비활성카드(마스킹)에 등록됩니다.',
+          notice: '동일 카드 FAIL·취소·미결제 등 비성공이 누적되면 JPAY 호출 전 일시 차단(1~4차 대기)합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 자동 등록 트리거 N차: 비성공 N회가 완료되는 즉시 비활성카드(마스킹)에 등록되며 (N+1)번째 결제 시도부터 차단됩니다(2차→1·2회 후·3번째부터, 3차→1·2·3회 후·4번째부터, 1·4차도 동일). 동기 응답·노티 확정 모두 반영하며 3DS 대기(08)는 제외합니다.',
           rows: [
             [{ label: '위험관리 사용', type: 'select', name: 'enabledYn', col: 2,
               options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }] },
@@ -2510,7 +2529,7 @@
       formSections: [
         {
           title: '노티 수령 정보',
-          notice: '노티미들웨어·PG(칠페이 등)가 본 시스템의 노티 수신 URL(<code>/api/open/pg-notify/…</code>)로 전송한 요청을 저장한 로그입니다. 목록의 채널 열은 수신 경로 정보 표시용입니다. 대상코드·채널은 신규 수신 건부터 채워집니다(V72). 노티 대상에 연결 총판이 있으면 동일 MID라도 그 총판 트리 안에서만 분기하며, 총판 기준통화와 본문 통화가 다르면 처리 열에 통화불일치(수신경로)로 격리됩니다. <strong>수신성격</strong>은 NOTI가 요청 시 <code>X-Icopay-Notify-Delivery: LIVE|RETRY</code> 또는 <code>X-Noti-Attempt</code>(1=라이브, 2+=재전송) 헤더를 보낼 때만 구분되며, 없으면 「미표시」입니다. 바인딩·매핑을 고친 뒤 과거 건을 결제내역에 붙이려면 본문 보기 모달에서 <strong>본문을 수정·저장</strong>한 뒤 <strong>결제내역 재반영</strong>을 사용하세요(원문이 잘린 건은 불가). 공통 MID 재처리 시 본문에 <code>icopayCompId=업체코드</code> 를 추가하거나 재반영 업체코드 입력란을 사용하세요. 노티에 고객명·카드번호가 없을 때는 재반영 모달에서 <strong>재반영 고객명</strong>·<strong>재반영 카드번호</strong>를 입력한 뒤 재반영하면 결제내역에 반영됩니다.',
+          notice: '노티미들웨어·PG(칠페이 등)가 본 시스템의 노티 수신 URL(<code>/api/open/pg-notify/…</code>)로 전송한 요청을 저장한 로그입니다. 목록의 채널 열은 수신 경로 정보 표시용입니다. 대상코드·채널은 신규 수신 건부터 채워집니다(V72). 노티 대상에 연결 총판이 있으면 동일 MID라도 그 총판 트리 안에서만 분기하며, 총판 기준통화와 본문 통화가 다르면 처리 열에 통화불일치(수신경로)로 격리됩니다. <strong>수신성격</strong>은 NOTI가 요청 시 <code>X-Icopay-Notify-Delivery: LIVE|RETRY</code> 또는 <code>X-Noti-Attempt</code>(1=라이브, 2+=재전송) 헤더를 보낼 때만 구분되며, 없으면 「미표시」입니다. 바인딩·매핑을 고친 뒤 과거 건을 결제내역에 붙이려면 본문 보기 모달에서 <strong>본문을 수정·저장</strong>한 뒤 <strong>결제내역 재반영</strong>을 사용하세요(원문이 잘린 건은 불가). 공통 MID 재처리 시 본문에 <code>icopayCompId=업체코드</code> 를 추가하거나 재반영 업체코드 입력란을 사용하세요. 노티에 고객명·카드번호가 없을 때는 재반영 모달에서 <strong>재반영 고객명</strong>·<strong>재반영 카드번호</strong>를 입력한 뒤 재반영하면 결제내역에 반영됩니다. 노티 재전송으로 성공 처리됐으나 거래일이 재전송일로 잡힌 경우 <strong>재반영 거래일</strong>에 원래 거래일(예: 2026-06-23)을 넣고 재반영하면 <code>paid_at</code> 날짜가 덮어써집니다.',
           rows: [
             [{ type: 'customHtml', col: 12, html: '<div class="row g-2 align-items-end mb-2 ni-inbound-toolbar">' +
               '<div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="수신일(부터)">' + escUi(L('수신일(부터)')) + '</label><input type="date" lang="en-CA" name="niSearchFrom" class="form-control form-control-sm pg-date-input-iso" autocomplete="off"></div>' +
@@ -2559,6 +2578,8 @@
               '<input type="text" class="form-control form-control-sm" id="hqNiReplayCustomerEmail" maxlength="100" data-pg-ui-placeholder="재반영 이메일 placeholder" placeholder="test01@example.com" style="min-width:12rem"></div>' +
               '<div><label class="form-label small mb-0" for="hqNiReplayCardPan" data-pg-ui-t="재반영 카드번호">재반영 카드번호</label>' +
               '<input type="text" class="form-control form-control-sm" id="hqNiReplayCardPan" maxlength="32" data-pg-ui-placeholder="재반영 카드번호 placeholder" placeholder="489788***9416" style="min-width:11rem"></div>' +
+              '<div><label class="form-label small mb-0" for="hqNiReplayTrnDate" data-pg-ui-t="재반영 거래일">재반영 거래일</label>' +
+              '<input type="date" class="form-control form-control-sm" id="hqNiReplayTrnDate" data-pg-ui-placeholder="재반영 거래일 placeholder" style="min-width:9.5rem"></div>' +
               '</div>' +
               '<label class="form-label small mb-0" for="hqNiDetailBody" data-pg-ui-t="수신 본문 (편집 가능)">수신 본문 (편집 가능)</label>' +
               '<textarea id="hqNiDetailBody" class="form-control font-monospace small" rows="16" spellcheck="false"></textarea></div>' +
@@ -2662,6 +2683,30 @@
           rows: [
             [{ label: 'JPAY 초기화 동기화(개월)', type: 'number', name: 'jpayTrInitSyncMonths', col: 3, placeholder: '기본 3' },
              { label: 'JPAY 최근 동기화 범위(일)', type: 'number', name: 'jpayTrRecentSyncDays', col: 3, placeholder: '기본 7(최소 7일)' }]
+          ]
+        },
+        {
+          title: 'JPAY 통합조회 스케줄',
+          notice: '설정한 주기마다 서버가 JPAY 포털 Export 동기화를 자동 실행합니다(관리자 로그인 없이). 예: 6시간이면 하루 4회(6시간 간격) 실행됩니다. 동기화 기간·포털 계정은 위 카드·결제대행사로직 설정을 따릅니다. 진행 중인 동기화가 있으면 다음 주기까지 건너뜁니다.',
+          rows: [
+            [{ label: '자동 동기화 주기', type: 'select', name: 'jpayTrSyncScheduleMin', col: 4,
+              options: [
+                { v: '0', t: '사용 안 함' },
+                { v: '10', t: '10분' },
+                { v: '30', t: '30분' },
+                { v: '60', t: '1시간' },
+                { v: '120', t: '2시간' },
+                { v: '180', t: '3시간' },
+                { v: '240', t: '4시간' },
+                { v: '300', t: '5시간' },
+                { v: '360', t: '6시간' },
+                { v: '420', t: '7시간' },
+                { v: '480', t: '8시간' },
+                { v: '540', t: '9시간' },
+                { v: '600', t: '10시간' },
+                { v: '660', t: '11시간' },
+                { v: '720', t: '12시간' }
+              ] }]
           ]
         },
         {
@@ -2781,6 +2826,7 @@
               { label: '설정 대상 화면', type: 'select', name: 'targetPageUrl', col: 4, options: [
                 /* 결제관리 — 사이드 메뉴(menu-structure·index) 순서·표기와 동일 */
                 { v: '/calc/chillPayTrList', t: '통합내역' },
+                { v: '/calc/integratedCheck', t: '통합체크' },
                 { v: '/calc/jpayTrList', t: '통합조회' },
                 { v: '/calc/queryIntegrated', t: '조회통합' },
                 { v: '/pay/splitPay', t: '분할결제내역' },
@@ -4694,11 +4740,77 @@
       ],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
+    '/calc/integratedCheck': {
+      isIntegratedCheckScreen: true,
+      showJpaySyncInfo: true,
+      listSortDirAnchor: 'refresh',
+      paginationSizeOptions: [50, 100, 300, 500],
+      paginationDefaultSize: 500,
+      searchFormClass: 'screen-search-form pay-mng-search-form',
+      searchRows: [
+        [
+          { label: '거래일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+          { type: 'quickdate', quickdateLabels: ['당일', '당월', '전일', '1주', '2주', '전월'], quickdateRanges: ['day', 'month', 'prevDay', 'week', 'week2', 'prevMonth'] }
+        ],
+        [
+          { label: '검색구분', type: 'select', name: 'searchFieldType', options: [
+            { v: 'ALL', t: '전체' },
+            { v: 'ORDER_NO', t: '주문번호' },
+            { v: 'APPROVAL_NO', t: '승인번호' },
+            { v: 'MID', t: 'MID' }
+          ], size: 11 },
+          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 22 },
+          { label: '상태구분', type: 'select', name: 'searchPayDivCd', options: [
+            { v: '', t: '전체' },
+            { v: '10', t: '성공' },
+            { v: '30', t: '환불' },
+            { v: '31', t: '강제환불' },
+            { v: '99', t: '실패' }
+          ], size: 11 },
+          { type: 'searchBtn', label: '검색' },
+          { type: 'button', name: 'searchReset', label: '검색 초기화' }
+        ]
+      ],
+      noticeList: [
+        'JPAY(조회통합·DB Export 캐시·거래일)와 ICOPAY(일별결제·노티 적재일)를 같은 거래일자 구간에서 일자별로 나란히 비교합니다. 값이 같으면 Ok, 다르면 불일치 셀만 강조·Check로 표시됩니다.',
+        'JPAY는 통합조회와 동일하게 DB(tb_jpay_portal_export_cache)에 저장되며, 본사설정 전산설정관리의 JPAY 통합조회 스케줄로 자동 동기화됩니다. 로그인 후 [검색]만으로 조회할 수 있고, 즉시 갱신이 필요할 때만 [JPAY 동기화]를 사용하세요. 조회 기간은 최대 93일입니다.'
+      ],
+      summary: ['건수'],
+      buttons: [
+        { id: 'jpayTrSyncBtn', label: 'JPAY 동기화', cls: 'btn-primary' },
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
+        { id: 'excelDownBtn', label: '엑셀다운로드', cls: 'btn-info' },
+        { id: 'searchBtn', label: '검색', cls: 'btn-primary' }
+      ],
+      tableExtraClass: 'integrated-check-grid',
+      columns: [
+        { key: 'rowNo', label: '번호' },
+        { key: 'day', label: '일자' },
+        { key: 'operator', label: '운영사' },
+        { key: 'totalCount', label: '총건수' },
+        { statusBucketKey: 'SUCCESS', label: '성공' },
+        { statusBucketKey: 'FAIL', label: '실패' },
+        { statusBucketKey: 'CANCEL', label: '취소' },
+        { statusBucketKey: 'VOID', label: '무효' },
+        { statusBucketKey: 'EMAIL_VOID', label: '이메일 무효' },
+        { statusBucketKey: 'REFUND', label: '환불' },
+        { statusBucketKey: 'FORCE_REFUND', label: '강제환불' },
+        { statusBucketKey: 'OTHER', label: '기타' },
+        { key: 'payCur_THB', label: 'THB', currencyCode: 'THB' },
+        { key: 'payCur_JPY', label: 'JPY', currencyCode: 'JPY' },
+        { key: 'payCur_KRW', label: 'KRW', currencyCode: 'KRW' },
+        { key: 'payCur_USD', label: 'USD', currencyCode: 'USD' },
+        { key: 'payCur_CNY', label: 'CNY', currencyCode: 'CNY' },
+        { key: 'checkStatus', label: '상태' }
+      ],
+      emptyMessage: '거래일자를 지정한 뒤 [검색]을 누르세요. JPAY 캐시가 없으면 전산설정 스케줄 또는 [JPAY 동기화]를 확인하세요.'
+    },
     '/calc/jpayTrList': {
       listSortDirAnchor: 'refresh',
-      paginationSizeOptions: [50, 100, 300],
-      paginationDefaultSize: 50,
+      paginationSizeOptions: [50, 100, 300, 500],
+      paginationDefaultSize: 500,
       payListStatusBar: true,
+      payListFinancialInline: true,
       tableColumnGuide: true,
       /** VIEW SETTING에서 숨길 수 없는 열: 번호·업체·거래일시만 고정(통합내역과 동일 패턴) */
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'trnDate', 'trnTime'],
@@ -4736,9 +4848,10 @@
         '본사설정 > 결제대행사로직에서 총판별 JPAY 포털 계정을 등록하고, 전산설정관리에서 동기화 기간을 설정하세요. VPS에 Node.js·Playwright(Chromium)가 필요합니다.',
         '[JPAY 동기화]는 포털 Export 후 캐시를 갱신합니다. 화면 거래일이 하루(당일)여도 동기화는 본사설정의 최근 동기화 범위(최소 7일)만큼 포털에서 받아옵니다. 목록 조회는 화면에 선택한 거래일자로 필터됩니다.',
         '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·업체명·업체코드·거래일·거래시간은 그리드에 항상 표시되며 VIEW SETTING 목록에는 나오지 않습니다. 열 너비는 헤더 경계를 드래그해 조절할 수 있습니다.',
-        '동기화한 포털 Export 목록은 DB(tb_jpay_portal_export_cache)에 저장됩니다. 로그아웃·재로그인·서버 재시작 후에도 [검색]만으로 마지막 동기화 목록을 조회할 수 있습니다. 포털 최신 반영이 필요할 때만 [JPAY 동기화]를 실행하세요.'
+        '동기화한 포털 Export 목록은 DB(tb_jpay_portal_export_cache)에 저장됩니다. 로그아웃·재로그인·서버 재시작 후에도 [검색]만으로 마지막 동기화 목록을 조회할 수 있습니다. 전산설정관리에서 JPAY 통합조회 스케줄을 켜 두면 서버가 주기적으로 동기화합니다. 즉시 반영이 필요할 때만 [JPAY 동기화]를 수동 실행하세요.'
       ],
       summary: ['건수'],
+      showJpaySyncInfo: true,
       buttons: [
         { id: 'jpayTrSyncBtn', label: 'JPAY 동기화', cls: 'btn-primary' },
         { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
@@ -4772,6 +4885,9 @@
     '/calc/queryIntegrated': {
       isDailySummaryScreen: true,
       dailySummaryKind: 'jpay',
+      dailySummaryShowPagination: true,
+      paginationSizeOptions: [50, 100, 300, 500],
+      paginationDefaultSize: 500,
       listSortDirAnchor: 'refresh',
       searchFormClass: 'screen-search-form pay-mng-search-form',
       searchRows: [
@@ -4802,6 +4918,7 @@
         '조회 기간은 최대 93일입니다. 당월 등으로 종료일이 오늘 이후이면 표시는 전산 기준일(오늘)까지만 합니다(미래 일자 미표시). 통합조회 화면에서 [JPAY 동기화]로 캐시를 갱신한 뒤 조회하세요.'
       ],
       summary: ['건수'],
+      showJpaySyncInfo: true,
       buttons: [
         { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
         { id: 'excelDownBtn', label: '엑셀다운로드', cls: 'btn-info' },
@@ -5114,7 +5231,7 @@
         ]
       ],
       noticeList: [
-        '결제내역(/calc/payList, INTEGRATED)과 동일 필터·조직 범위로, 적재일(createdAt) 기준 일자별 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 전체 건 기준입니다. 일자 행을 더블클릭하면 아래 「선택 일자 상세」에 해당 일 전체 결제내역·총거래~추정결산 요약이 표시됩니다(거래일 열 없음).',
+        '결제내역(/calc/payList, INTEGRATED)과 동일 필터·조직 범위로, 적재일(createdAt) 기준 일자별 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 전체 건 기준입니다. 통화 열(JPY 등)은 결제내역 상단 「승인」과 동일한 성공(승인) 금액 합계입니다(추정정산 아님). 일자 행을 더블클릭하면 아래 「선택 일자 상세」에 해당 일 전체 결제내역·총거래~추정결산 요약이 표시됩니다(거래일 열 없음).',
         '조회 기간은 최대 93일입니다. 당월 등으로 종료일이 오늘 이후이면 표시는 전산 기준일(오늘)까지만 합니다(미래 일자 미표시).'
       ],
       summary: ['건수'],
@@ -6429,14 +6546,14 @@
       paginationSizeOptions: [20, 50, 100],
       columnGuideFixedKeys: ['rowNo', 'registeredAt', 'compNm', 'compId', '_inactiveCardEdit', '_inactiveCardRelease'],
       viewSettingDefaultSelectedKeys: [
-        'lastModifiedAt', 'registeredBy', 'regTypeLabel', 'holderName', 'panDisplay', 'pgVendor', 'reason', 'activeYn', 'releasedAt', 'releasedBy'
+        'lastModifiedAt', 'registeredBy', 'regTypeLabel', 'holderName', 'panDisplay', 'pgVendor', 'reason', 'activeYn', 'releasedAt', 'releasedBy', 'releasedReason'
       ],
       noticeList: [
         '총본사·본사·총판(ADMIN 포함) 운영자용입니다. 메뉴 접근은 본사권한설정에서 부여합니다.',
         '등록·해지·수정은 본사권한설정에서 이 화면 권한을 삭제(전체) 또는 수정으로 부여한 계정만 가능합니다.',
         '카드번호는 마스킹 형식(앞 6자리 + *** + 뒤 4자리)으로 등록합니다. 업체코드·업체명은 출처 표시용이며, 등록된 카드는 전 가맹점 결제에서 차단됩니다.',
         '등록 구분: 수동=운영자 직접 등록, 자동=리스크 트리거 자동 등록. 본사설정 리스크설정의 수동등록·자동등록 건수에 반영됩니다.',
-        '해지는 목록 「해지」 버튼에서 실행합니다. Google OTP 6자리가 필요합니다. 수정은 「수정」 버튼에서 내용을 변경하며, 최근일시에 반영됩니다.'
+        '해지는 목록 「해지」 버튼에서 실행합니다. 해지 사유(필수)·Google OTP 6자리가 필요합니다. 해지자는 해지자 열에, 사유는 해지사유 열에 각각 표시됩니다.'
       ],
       searchRows: [[
         { label: '상태', type: 'select', name: 'searchActiveYn', col: 2,
@@ -6461,7 +6578,8 @@
         { key: 'releasedAt', label: '해지일시' },
         { key: 'releasedBy', label: '해지자' },
         { key: '_inactiveCardEdit', type: 'inactiveCardEdit', label: '수정', columnGuideLabel: '수정' },
-        { key: '_inactiveCardRelease', type: 'inactiveCardRelease', label: '해지', columnGuideLabel: '해지(Google OTP 필요)' }
+        { key: '_inactiveCardRelease', type: 'inactiveCardRelease', label: '해지', columnGuideLabel: '해지(Google OTP 필요)' },
+        { key: 'releasedReason', label: '해지사유', columnGuideLabel: '해지 시 입력한 사유 본문' }
       ]
     },
     '/ops/mailLog': {
@@ -7825,8 +7943,9 @@
     var fmt = cfg.summaryFormat !== undefined ? cfg.summaryFormat : '0';
     var payAggInline = !!(cfg && cfg.payListFinancialInline);
     var payStatusInline = !!(cfg && cfg.payListStatusBar && !payAggInline);
+    var showJpaySync = !!(cfg && cfg.showJpaySyncInfo);
     var summaryHtml = '';
-    if (items.length > 0 || payAggInline || payStatusInline) {
+    if (items.length > 0 || payAggInline || payStatusInline || showJpaySync) {
       summaryHtml = '<div class="summary-total-bar' + ((payAggInline || payStatusInline) ? ' summary-total-bar--pay-list-aggregate' : '') + '">';
       items.forEach(function (s) {
         var sk = String(s);
@@ -7846,6 +7965,12 @@
           summaryHtml += '<span class="pay-list-status-bar__pipe pay-list-aggregate-inline-sep" aria-hidden="true">ㅣ</span>';
         }
         summaryHtml += '<div class="pay-list-status-bar pay-list-status-bar--empty" id="payListStatusBar_' + tSt + '" role="status" aria-live="polite"></div>';
+      }
+      if (cfg.showJpaySyncInfo) {
+        if (items.length > 0 || payAggInline || payStatusInline) {
+          summaryHtml += '<span class="pay-list-status-bar__pipe pay-list-aggregate-inline-sep jpay-sync-info-sep" aria-hidden="true">ㅣ</span>';
+        }
+        summaryHtml += '<span class="summary-total-item jpay-sync-info-item text-muted small" id="jpaySyncInfo_' + (tabId || '') + '" data-pg-ui-t="최근동기화 표시 대기">—</span>';
       }
       summaryHtml += '</div>';
     }
@@ -8337,7 +8462,7 @@
         if (cfg.payListStatusBar && cfg.payListFinancialInline) html += renderPayListStatusBarSlot(tabId);
         if (cfg.columns && cfg.columns.length > 0) html += renderTableColumnGuide(cfg);
         html += renderTable(cfg, tabId);
-        if (!cfg.isDailySummaryScreen) {
+        if (!cfg.isDailySummaryScreen || cfg.dailySummaryShowPagination) {
         html += renderPagination(tabId, cfg);
         }
         if (cfg.hasCommissionHistoryTable) {
@@ -8520,6 +8645,7 @@
   window.PG_CALC_CYCLE_SEARCH_OPTIONS = CALC_CYCLE_SEARCH_OPTIONS;
   window.PG_SCREENS = {
     getOpsInactiveCardEditModalHtml: function () { return OPS_INACTIVE_CARD_EDIT_MODAL_HTML; },
+    getOpsInactiveCardReleaseModalHtml: function () { return OPS_INACTIVE_CARD_RELEASE_MODAL_HTML; },
     getScreenHtml: getScreenHtml,
     getMenuScreens: function () { return MENU_SCREENS; },
     buildDistributionListTheadHtml: buildDistributionListTheadHtml,

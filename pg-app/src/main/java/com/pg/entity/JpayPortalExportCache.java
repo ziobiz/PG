@@ -33,6 +33,13 @@ public class JpayPortalExportCache {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    /** 당일 동기화 횟수 집계 기준일(전산 타임존) */
+    @Column(name = "sync_count_date")
+    private LocalDate syncCountDate;
+
+    @Column(name = "sync_count_today", nullable = false)
+    private int syncCountToday;
+
     @PrePersist
     @PreUpdate
     protected void touchUpdatedAt() {
@@ -59,4 +66,10 @@ public class JpayPortalExportCache {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public LocalDate getSyncCountDate() { return syncCountDate; }
+    public void setSyncCountDate(LocalDate syncCountDate) { this.syncCountDate = syncCountDate; }
+
+    public int getSyncCountToday() { return syncCountToday; }
+    public void setSyncCountToday(int syncCountToday) { this.syncCountToday = syncCountToday; }
 }

@@ -32,6 +32,8 @@ import java.util.Set;
 @Service
 public class PayCardPolicyService {
 
+    public static final String AUTO_REGISTERED_BY = "AI";
+
     public static final String MATCH_MODE_FULL_PAN = "FULL_PAN";
     public static final String MATCH_MODE_MASK_6_4 = "MASK_6_4";
 
@@ -134,6 +136,11 @@ public class PayCardPolicyService {
 
     public Map<String, Object> validateForSale(String pgVendorRaw, String panRaw, String selectedBrandRaw, String lang,
                                                Long orgUnitId) {
+        return validateForSale(pgVendorRaw, panRaw, selectedBrandRaw, lang, orgUnitId, null);
+    }
+
+    public Map<String, Object> validateForSale(String pgVendorRaw, String panRaw, String selectedBrandRaw, String lang,
+                                               Long orgUnitId, String holderName) {
         String pg = normalizePgVendor(pgVendorRaw);
         String pan = PayCardBrandDetector.normalizePan(panRaw);
         String langNorm = lang != null ? lang.trim() : "KO";
@@ -146,7 +153,8 @@ public class PayCardPolicyService {
             return fail("INACTIVE_CARD", "INACTIVE_CARD", langNorm);
         }
 
-        Optional<Map<String, Object>> cooldown = payCardFailCooldownService.checkBlocked(pg, pan, langNorm, orgUnitId);
+        Optional<Map<String, Object>> cooldown = payCardFailCooldownService.checkBlocked(
+                pg, pan, langNorm, orgUnitId, holderName);
         if (cooldown.isPresent()) {
             return cooldown.get();
         }
@@ -348,6 +356,12 @@ public class PayCardPolicyService {
 
     @Transactional
     public HqPayCardBlacklist addBlacklistAutoMask(String pgVendor, String maskKey, String reason, Long orgUnitId) {
+        return addBlacklistAutoMask(pgVendor, maskKey, reason, orgUnitId, null);
+    }
+
+    @Transactional
+    public HqPayCardBlacklist addBlacklistAutoMask(String pgVendor, String maskKey, String reason, Long orgUnitId,
+                                                   String holderName) {
         String mk = PayCardMaskKeyUtil.normalizeMaskInput(maskKey);
         if (!PayCardMaskKeyUtil.isValidMaskKey(mk)) {
             return null;
@@ -363,6 +377,8 @@ public class PayCardPolicyService {
         row.setMatchMode(MATCH_MODE_MASK_6_4);
         row.setSource("AUTO");
         row.setReason(reason != null ? reason.trim() : "AUTO_FAIL_COOLDOWN");
+        row.setHolderName(trimHolder(holderName));
+        row.setRegisteredBy(AUTO_REGISTERED_BY);
         row.setRegisteredOrgUnitId(orgUnitId);
         applyRegisteredMerchantSnapshot(row, orgUnitId, null, null);
         row.setActiveYn("Y");
@@ -371,15 +387,32 @@ public class PayCardPolicyService {
 
     @Transactional
     public HqPayCardBlacklist releaseBlacklist(long id, String releasedBy) {
+        return releaseBlacklist(id, releasedBy, null);
+    }
+
+    @Transactional
+    public HqPayCardBlacklist releaseBlacklist(long id, String releasedBy, String releaseReasonText) {
         HqPayCardBlacklist row = blacklistRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("등록 건을 찾을 수 없습니다."));
         if (!"Y".equalsIgnoreCase(String.valueOf(row.getActiveYn()).trim())) {
             throw new IllegalStateException("이미 해지된 카드입니다.");
         }
+        String reasonBody = releaseReasonText != null ? releaseReasonText.trim() : "";
+        if (reasonBody.isEmpty()) {
+            throw new IllegalArgumentException("해지 사유를 입력하세요.");
+        }
+        String by = releasedBy != null && !releasedBy.isBlank() ? releasedBy.trim() : "";
         row.setActiveYn("N");
         row.setReleasedAt(java.time.LocalDateTime.now());
-        row.setReleasedBy(releasedBy != null && !releasedBy.isBlank() ? releasedBy.trim() : null);
+        row.setReleasedBy(by.isEmpty() ? null : by);
+        row.setReleasedReason(formatReleaseReason(reasonBody));
         return blacklistRepository.save(row);
+    }
+
+    /** 해지 사유 본문만 저장 — 해지자는 released_by 컬럼에 별도 기록 */
+    static String formatReleaseReason(String releaseReasonText) {
+        String body = releaseReasonText != null ? releaseReasonText.trim() : "";
+        return body.isEmpty() ? null : body;
     }
 
     @Transactional
@@ -436,6 +469,7 @@ public class PayCardPolicyService {
         row.setMatchMode(MATCH_MODE_FULL_PAN);
         row.setSource("AUTO");
         row.setReason(reason != null ? reason.trim() : "AUTO_FRAUD");
+        row.setRegisteredBy(AUTO_REGISTERED_BY);
         row.setRegisteredOrgUnitId(orgUnitId);
         applyRegisteredMerchantSnapshot(row, orgUnitId, null, null);
         row.setActiveYn("Y");

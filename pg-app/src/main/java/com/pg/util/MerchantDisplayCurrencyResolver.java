@@ -6,6 +6,7 @@ import com.pg.entity.PgTrnsctn;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * 결제내역·통합조회 그리드 통화 표시 — 가맹 {@link MerchantProfile#getBaseCurrency()} 와
@@ -75,6 +76,36 @@ public final class MerchantDisplayCurrencyResolver {
             }
         }
         return "";
+    }
+
+    /**
+     * JPAY 통합조회 — 보강된 행 Map에서 집계·상태바용 통화.
+     * 그리드 통화 열( currency → originalCurrency 폴백)과 동일 우선순위로 맞춥니다.
+     */
+    public static String resolveJpayRowCurrencyFromMap(Map<String, Object> row) {
+        if (row == null || row.isEmpty()) {
+            return "";
+        }
+        String cur = normalizeToken(String.valueOf(row.getOrDefault("currency", "")));
+        String orig = normalizeToken(String.valueOf(row.getOrDefault("originalCurrency", "")));
+        if (!cur.isBlank() && !looksLikeWeakDefaultKrw(cur)) {
+            return cur;
+        }
+        if (!orig.isBlank() && !looksLikeWeakDefaultKrw(orig)) {
+            return orig;
+        }
+        String base = String.valueOf(row.getOrDefault("merchantBaseCur", "")).trim();
+        if (!base.isBlank()) {
+            String first = base.contains("/") ? base.substring(0, base.indexOf('/')).trim() : base;
+            String fromBase = normalizeToken(first);
+            if (!fromBase.isBlank()) {
+                return fromBase;
+            }
+        }
+        if (!cur.isBlank()) {
+            return cur;
+        }
+        return orig;
     }
 
     /** 업체관리 목록 baseCurrency 와 동일 토큰(총판 프로필 기준) */

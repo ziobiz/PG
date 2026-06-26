@@ -160,7 +160,8 @@ public class JpayPaymentService {
                 str(body.get("payCardno")),
                 str(body.get("payCardBrand")),
                 str(body.get("payLanguage")),
-                orgUnitId);
+                orgUnitId,
+                joinPayerName(str(body.get("payFirstname")), str(body.get("payLastname"))));
         if (!Boolean.TRUE.equals(cardVal.get("valid"))) {
             String msg = cardVal.get("message") != null ? cardVal.get("message").toString() : "카드번호를 확인해 주세요.";
             String code = cardVal.get("errorCode") != null ? cardVal.get("errorCode").toString() : "CARD_POLICY";
@@ -974,6 +975,18 @@ public class JpayPaymentService {
 
     private static String str(Object o) {
         return o == null ? "" : o.toString().trim();
+    }
+
+    private static String joinPayerName(String first, String last) {
+        String f = first != null ? first.trim() : "";
+        String l = last != null ? last.trim() : "";
+        if (f.isEmpty()) {
+            return l;
+        }
+        if (l.isEmpty()) {
+            return f;
+        }
+        return f + " " + l;
     }
 
     private static BigDecimal parseAmount(Object o) {

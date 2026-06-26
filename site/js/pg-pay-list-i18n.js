@@ -497,11 +497,11 @@
         'คอลัมน์ตั้งค่า VIEW SETTING (บันทึกต่อผู้ใช้) ลำดับ·ชื่อ/รหัสร้าน·วัน/เวลาทำรายการแสดงเสมอ ลากขอบหัวตารางปรับความกว้าง'
       ),
       packN(
-        '동기화한 포털 Export 목록은 DB에 저장됩니다. 로그아웃·재로그인·서버 재시작 후에도 [검색]만으로 마지막 동기화 목록을 조회할 수 있습니다. 포털 최신 반영이 필요할 때만 [JPAY 동기화]를 실행하세요.',
-        'Synced portal Export list is stored in DB. After logout, re-login, or server restart, use [Search] to view the last sync without re-syncing. Run [JPAY sync] only when you need fresh portal data.',
-        '同期したポータルExport一覧はDBに保存。ログアウト・再ログイン・サーバー再起動後も[検索]で最終同期一覧を表示。ポータル最新が必要なときのみ[JPAY同期]。',
-        '同步的门户 Export 列表存入 DB。登出、重登或服务器重启后仅 [搜索] 即可查看上次同步。仅在需要门户最新数据时执行 [JPAY 同步]。',
-        'รายการ Export พอร์ทัลหลังซิงค์เก็บใน DB หลังล็อกเอาท์/ล็อกอินใหม่/รีสตาร์ทเซิร์ฟเวอร์ ใช้ [ค้นหา] ดูรายการซิงค์ล่าสุดได้ ซิงค์ใหม่เมื่อต้องการข้อมูลล่าสุดจากพอร์ทัล'
+        '동기화한 포털 Export 목록은 DB(tb_jpay_portal_export_cache)에 저장됩니다. 로그아웃·재로그인·서버 재시작 후에도 [검색]만으로 마지막 동기화 목록을 조회할 수 있습니다. 전산설정관리에서 JPAY 통합조회 스케줄을 켜 두면 서버가 주기적으로 동기화합니다. 즉시 반영이 필요할 때만 [JPAY 동기화]를 수동 실행하세요.',
+        'Synced portal Export list is stored in DB (tb_jpay_portal_export_cache). After logout, re-login, or server restart, use [Search] for the last sync. Enable JPAY integrated list sync schedule in Ledger system settings for periodic server sync. Run [JPAY sync] manually only when you need immediate refresh.',
+        '同期したポータルExport一覧はDB(tb_jpay_portal_export_cache)に保存。ログアウト・再ログイン・サーバー再起動後も[検索]で最終同期一覧を表示。全算設定でJPAY統合照会スケジュールを有効にするとサーバーが定期同期。即時反映が必要なときのみ[JPAY同期]を手動実行。',
+        '同步的门户 Export 列表存入 DB(tb_jpay_portal_export_cache)。登出、重登或服务器重启后可用 [搜索] 查看上次同步。在账务系统设置中启用 JPAY 整合查询计划后服务器将定期同步。仅在需要立即更新时手动 [JPAY 同步]。',
+        'รายการ Export พอร์ทัลหลังซิงค์เก็บใน DB (tb_jpay_portal_export_cache) หลังล็อกเอาท์/ล็อกอินใหม่/รีสตาร์ทเซิร์ฟเวอร์ ใช้ [ค้นหา] ดูรายการซิงค์ล่าสุดได้ เปิดตารางซิงค์รายการรวม JPAY ในระบบบัญชีให้เซิร์ฟเวอร์ซิงค์เป็นระยะ กด [ซิงค์ JPAY] เองเมื่อต้องการทันที'
       ),
       packN(
         '고객 열은 포털 Export의 이메일·성명을 「이메일 | 성명」으로 표시합니다(VIEW SETTING에서 토글). 거래일·거래시간·고객 등은 1차로 엑셀 값을 쓰고, 해당 행이 엑셀에 있으나 일부만 비어 있을 때만 ICOPAY 결제내역(pg_trnsctn)으로 보강합니다. 엑셀에 없는 결제내역 건을 목록에 추가하지 않습니다.',
@@ -516,6 +516,13 @@
         '通貨列はまずポータルExportのTransaction Currency。空またはKRW(410)等の弱い既定値のみの場合は、業者管理の基準通貨（業者コード・MID・総販コード）で補完。決済一覧と同様、弱いKRW既定だけでJPY・USD加盟店をKRW表示しません。',
         '货币列优先使用门户 Export 的 Transaction Currency；若为空或仅为 KRW(410) 等弱默认值，则按企业管理中的基准货币（商户代码、MID、总代代码）补全，与支付历史相同，不会因弱 KRW 默认将 JPY/USD 商户显示为 KRW。',
         'คอลัมน์สกุลเงินใช้ Transaction Currency จาก Export ก่อน หากว่างหรือมีแค่ KRW(410) ค่าเริ่มต้นอ่อน จะเติมจากสกุลฐานในการจัดการร้าน (รหัสร้าน MID รหัสตัวแทนหลัก) ตามกฎเดียวกับประวัติชำระเงิน'
+      ),
+      packN(
+        '상단 한 줄: 건수·통화별 총거래·승인·취소·수수료·담보·부가세·추정결산(결제내역·수수료내역과 동일 산식). ICOPAY 매칭 건은 정책 기준 수수료·담보·부가세, 미매칭은 포털 Export fee 합산. 아래: 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 상태 pill.',
+        'Top row: count and per-currency total txn, approve, cancel, fees, collateral, VAT, est. settlement (same rules as payment/fee list). Matched ICOPAY rows use policy fees; unmatched use portal Export fee sum. Below: status pills (success, fail, cancel, invalid, email invalid, refund, forced refund, other).',
+        '上段: 件数・通貨別総取引・承認・取消・手数料・担保・消費税・推定決算（決済・手数料一覧と同じ算式）。ICOPAY照合行は政策手数料、未照合はポータルExport fee合計。下段: 成功・失敗等の状態 pill。',
+        '首行：件数及分币种总交易、批准、取消、手续费、担保、增值税、预估结算（与支付/手续费明细相同算法）。已匹配 ICOPAY 行按政策计费，未匹配则汇总门户 Export fee。下方：成功/失败等状态 pill。',
+        'แถวบน: จำนวนและยอดตามสกุล รวมธุรกรรม อนุมัติ ยกเลิก ค่าธรรมเนียม หลักประกัน VAT ประมาณการชำระ (สูตรเดียวกับรายการชำระ/ค่าธรรมเนียม) แถวที่จับคู่ ICOPAY ใช้นโยบาย ไม่จับคู่รวม fee จาก Export ด้านล่าง pill สถานะ'
       )
     ],
     '/calc/splitPayList': [
@@ -699,6 +706,22 @@
         'FinalPayAfterRemittance = ยอดจ่ายหลังค่าธรรมเนียมโอน ใช้เทียบกับโอนจริง'
       )
     ],
+    '/calc/integratedCheck': [
+      packN(
+        'JPAY(조회통합·포털 Export 캐시·거래일)와 ICOPAY(일별결제·노티 적재일)를 같은 거래일자 구간에서 일자별로 나란히 비교합니다. 값이 같으면 Ok, 다르면 불일치 셀만 강조·Check로 표시됩니다.',
+        'Compare JPAY (integrated query · portal Export cache · transaction date) vs ICOPAY (daily pay · notify ingest date) side by side per day. Matching rows show Ok; mismatched cells are highlighted with Check.',
+        'JPAY（照会統合・Exportキャッシュ・取引日）と ICOPAY（日別決済・ノティ取込日）を同一取引日範囲で日別に並べて比較します。一致は Ok、不一致セルのみ強調し Check と表示します。',
+        '在同一交易日期区间内并排比较 JPAY（整合查询·门户 Export 缓存·交易日）与 ICOPAY（日别支付·通知入库日）。一致显示 Ok，不一致单元格高亮并显示 Check。',
+        'เทียบ JPAY กับ ICOPAY รายวันในช่วงวันที่เดียวกัน ตรงกันแสดง Ok ไม่ตรงเน้นเซลล์และแสดง Check'
+      ),
+      packN(
+        'JPAY는 통합조회와 동일하게 DB(tb_jpay_portal_export_cache)에 저장되며, 본사설정 전산설정관리의 JPAY 통합조회 스케줄로 자동 동기화됩니다. 로그인 후 [검색]만으로 조회할 수 있고, 즉시 갱신이 필요할 때만 [JPAY 동기화]를 사용하세요. 조회 기간은 최대 93일입니다.',
+        'JPAY is stored in DB (tb_jpay_portal_export_cache) like Integrated query and auto-synced via Ledger settings → JPAY integrated list schedule. After login, use [Search] only; use [JPAY sync] when you need an immediate refresh. Query window up to 93 days.',
+        'JPAYは統合照会と同様DB(tb_jpay_portal_export_cache)に保存され、本社設定のJPAY統合照会スケジュールで自動同期されます。ログイン後は[検索]のみで照会でき、即時更新が必要なときだけ[JPAY同期]を使います。照会期間は最大93日です。',
+        'JPAY 与整合查询相同存入 DB(tb_jpay_portal_export_cache)，由本社设置中的 JPAY 整合查询计划自动同步。登录后仅 [搜索] 即可；需立即刷新时再使用 [JPAY 同步]。查询区间最长 93 天。',
+        'JPAY เก็บใน DB เหมือนค้นหารวม ซิงค์อัตโนมัติตามตารางในการตั้งค่าระบบบัญชี หลังล็อกอินกด [ค้นหา] ได้เลย ใช้ [JPAY sync] เมื่อต้องการอัปเดตทันที ช่วงสูงสุด 93 วัน'
+      )
+    ],
     '/calc/queryIntegrated': [
       packN(
         '통합조회(JPAY Export 캐시)와 동일 필터로, 거래일(trnDate) 구간을 일 단위로 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 전체 건 기준입니다. 일자 행을 더블클릭하면 아래에 해당 일 통합조회 전체·금액 요약이 표시됩니다.',
@@ -733,11 +756,11 @@
     ],
     '/calc/dailyPay': [
       packN(
-        '결제내역(tb_pg_trnsctn, 적재일)과 동일 필터로 일자별 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 전체 건 기준입니다. 일자 행을 더블클릭하면 아래에 해당 일 결제내역 전체·총거래~추정결산 요약이 표시됩니다.',
-        'Same filters as payment history (tb_pg_trnsctn, ingest date), aggregated by day. Per-day bucket counts are for all rows that day. Double-click a date row to load all payment rows and the financial summary for that day below.',
-        '決済履歴（tb_pg_trnsctn、取込日）と同一フィルタで日別集計します。日付行をダブルクリックすると当日の決済履歴と総取引〜推定決算の要約を下に表示します。',
-        '与支付历史（tb_pg_trnsctn，入库日）相同筛选，按日汇总。双击日期行可在下方加载该日全部支付明细及总交易〜预估结算摘要。',
-        'สรุปรายวันด้วยตัวกรองเดียวกับประวัติการชำระ ดับเบิลคลิกวันที่เพื่อโหลดรายการและสรุปยอดของวันนั้น'
+        '결제내역(tb_pg_trnsctn, 적재일)과 동일 필터로 일자별 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 전체 건 기준입니다. 통화 열(JPY 등)은 결제내역 상단 「승인」과 동일한 성공(승인) 금액 합계입니다(추정정산 아님). 일자 행을 더블클릭하면 아래에 해당 일 결제내역 전체·총거래~추정결산 요약이 표시됩니다.',
+        'Same filters as payment history (tb_pg_trnsctn, ingest date), aggregated by day. Per-day bucket counts are for all rows that day. Currency columns (JPY, etc.) show approved (success) totals matching the payment-history “Approve” line—not estimated settlement. Double-click a date row to load all payment rows and the financial summary for that day below.',
+        '決済履歴（tb_pg_trnsctn、取込日）と同一フィルタで日別集計します。通貨列（JPY等）は決済履歴上段の「承認」と同じ成功（承認）金額合計です（推定決算ではありません）。日付行をダブルクリックすると当日の決済履歴と総取引〜推定決算の要約を下に表示します。',
+        '与支付历史（tb_pg_trnsctn，入库日）相同筛选，按日汇总。币种列（JPY 等）为与支付历史上方「批准」一致的成功（批准）金额合计，非预估结算。双击日期行可在下方加载该日全部支付明细及总交易〜预估结算摘要。',
+        'สรุปรายวันด้วยตัวกรองเดียวกับประวัติการชำระ คอลัมน์สกุลเงิน (JPY ฯลฯ) คือยอดอนุมัติ (สำเร็จ) ตรงกับแถว「อนุมัติ」ในประวัติการชำระ ไม่ใช่ประมาณการชำระบัญชี ดับเบิลคลิกวันที่เพื่อโหลดรายการและสรุปยอดของวันนั้น'
       ),
       packN(
         '조회 기간은 최대 93일입니다.',
@@ -1041,11 +1064,11 @@
         'ประเภท: มือ=ผู้ดำเนินการ อัตโนมัติ=ทริกเกอร์ความเสี่ยง นับในการตั้งค่าความเสี่ยง HQ'
       ),
       packN(
-        '해지는 목록 「해지」 버튼에서 실행합니다. Google OTP 6자리가 필요합니다. 수정은 「수정」 버튼에서 내용을 변경하며, 최근일시에 반영됩니다.',
-        'Release via the Release button in the list (Google OTP, 6 digits). Edit content via Edit; last modified time is shown separately.',
-        '解除は一覧の「解除」ボタンから実行(Google OTP 6桁)。修正は「修正」ボタンで内容を変更し、最終更新日時に反映されます。',
-        '请在列表「解除」按钮执行解除(需 Google OTP 6 位)。「修改」按钮可改内容，最近修改时间单独显示。',
-        'ยกเลิกที่ปุ่ม「ยกเลิก」ในรายการ (Google OTP 6 หลัก) แก้ไขที่ปุ่ม「แก้ไข」 เวลาแก้ไขล่าสุดแสดงแยก'
+        '해지는 목록 「해지」 버튼에서 실행합니다. 해지 사유(필수)·Google OTP 6자리가 필요합니다. 해지자는 해지자 열에, 사유는 해지사유 열에 각각 표시됩니다.',
+        'Release via the Release button. Release reason (required) and Google OTP (6 digits) are needed. Releaser and reason appear in separate columns.',
+        '解除は一覧の「解除」ボタンから実行します。解除理由(必須)と Google OTP 6桁が必要です。解除者と理由は各列に表示されます。',
+        '请在列表「解除」按钮执行。须填写解除理由并输入 Google OTP 6 位。解除人与理由分列显示。',
+        'ยกเลิกที่ปุ่ม「ยกเลิก」 ต้องระบุเหตุผลและ Google OTP 6 หลัก ผู้ยกเลิกและเหตุผลแสดงคนละคอลัมน์'
       )
     ],
     '/ops/integratedReport': [
@@ -1587,7 +1610,7 @@
   var _screenSnap = null;
 
   /** 결제내역 동기 URL 외 — 검색폼·안내 스냅/로케일 적용 대상 */
-  var EXTRA_I18N_SCREEN_SNAP_URLS = ['/calc/dailyIntegrated', '/calc/queryIntegrated', '/calc/dailyPay', '/calc/dailyFee', '/calc/feeList', '/settlement/feeList', '/calc/exCalcList', '/settlement/execute',
+  var EXTRA_I18N_SCREEN_SNAP_URLS = ['/calc/dailyIntegrated', '/calc/queryIntegrated', '/calc/integratedCheck', '/calc/dailyPay', '/calc/dailyFee', '/calc/feeList', '/settlement/feeList', '/calc/exCalcList', '/settlement/execute',
     '/settlement/settlementResultDistribute', '/settlement/settlementResultHold', '/calc/calcGmList', '/settlement/franchiseList',
     '/calc/paySettlementHoldList', '/settlement/paySettlementHoldList', '/ops/integratedReport', '/ops/verifyReport', '/ops/agencyTxnList',
     '/comp/compMngTree', '/comp/myCompMng', '/comp/compReg', '/comp/compDetail', '/comp/compInfo', '/comp/compMng',
@@ -2072,7 +2095,7 @@
     var integrated = w.PG_SCREENS && w.PG_SCREENS.getPayListIntegratedSyncUrls ? w.PG_SCREENS.getPayListIntegratedSyncUrls() : [];
     if (integrated.indexOf(url) !== -1) return true;
     return url === '/calc/calcList' || url === '/settlement/distributionList'
-      || url === '/calc/dailyIntegrated' || url === '/calc/queryIntegrated' || url === '/calc/dailyPay' || url === '/calc/dailyFee'
+      || url === '/calc/dailyIntegrated' || url === '/calc/queryIntegrated' || url === '/calc/integratedCheck' || url === '/calc/dailyPay' || url === '/calc/dailyFee'
       || url === '/calc/feeList' || url === '/settlement/feeList'
       || url === '/calc/exCalcList' || url === '/settlement/execute'
       || url === '/calc/calcGmList' || url === '/settlement/franchiseList'

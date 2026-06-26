@@ -27,6 +27,7 @@ import com.pg.repository.PgNotifyInboundRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.util.JpayCardPanMaskUtil;
 import com.pg.util.NotifyIngressDeliveryKindResolver;
+import com.pg.util.NotifyTxnPaidAtUtil;
 import com.pg.util.PgNotifyInboundSanitizer;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -2022,13 +2023,14 @@ public class PgNotifyReceiveService {
      */
     @Transactional
     public Map<String, Object> replayInboundProcessing(long inboundId, String icopayCompIdOverride, String rawBodyOverride) {
-        return replayInboundProcessing(inboundId, icopayCompIdOverride, rawBodyOverride, null, null, null);
+        return replayInboundProcessing(inboundId, icopayCompIdOverride, rawBodyOverride, null, null, null, null);
     }
 
     /**
      * @param customerNmOverride    재반영 시 수동 입력 고객명(결제내역 customer_nm)
      * @param customerEmailOverride 재반영 시 수동 입력 이메일(결제내역 customer_id — guest 등 기존 값 대체)
      * @param cardPanOverride       재반영 시 수동 입력 카드번호(마스킹·일반 PAN — card_pan_display)
+     * @param trnDateOverride       재반영 시 거래일(YYYY-MM-DD) — paid_at 날짜 덮어쓰기(시각은 유지)
      */
     @Transactional
     public Map<String, Object> replayInboundProcessing(long inboundId,
@@ -2036,7 +2038,8 @@ public class PgNotifyReceiveService {
                                                        String rawBodyOverride,
                                                        String customerNmOverride,
                                                        String customerEmailOverride,
-                                                       String cardPanOverride) {
+                                                       String cardPanOverride,
+                                                       String trnDateOverride) {
         PgNotifyInbound in = inboundRepository.findById(inboundId)
                 .orElseThrow(() -> new IllegalArgumentException("수신 로그를 찾을 수 없습니다: " + inboundId));
         if (rawBodyOverride != null && !rawBodyOverride.isBlank()) {
@@ -2081,7 +2084,7 @@ public class PgNotifyReceiveService {
         boolean manualApplied = false;
         if (!dispatchFailed) {
             manualApplied = applyReplayManualTxnOverrides(
-                    in, customerNmOverride, customerEmailOverride, cardPanOverride);
+                    in, customerNmOverride, customerEmailOverride, cardPanOverride, trnDateOverride);
         }
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("inboundId", in.getId());
@@ -2094,18 +2097,24 @@ public class PgNotifyReceiveService {
         m.put("dispatchFailed", dispatchFailed);
         m.put("dispatchError", dispatchFailed ? "pg_trnsctn post-process failed" : null);
         m.put("manualTxnOverrideApplied", manualApplied);
+        if (trnDateOverride != null && !trnDateOverride.isBlank()) {
+            m.put("trnDateOverride", trnDateOverride.trim());
+        }
         return m;
     }
 
-    /** 노티 재반영 후 수동 입력 고객명·이메일·카드번호를 pg_trnsctn 에 반영(기존 guest 등은 대체) */
+    /** 노티 재반영 후 수동 입력 고객명·이메일·카드번호·거래일을 pg_trnsctn 에 반영 */
     private boolean applyReplayManualTxnOverrides(PgNotifyInbound in,
                                                   String customerNm,
                                                   String customerEmail,
-                                                  String cardPanRaw) {
+                                                  String cardPanRaw,
+                                                  String trnDateOverrideRaw) {
         boolean hasNm = customerNm != null && !customerNm.isBlank();
         boolean hasEmail = customerEmail != null && !customerEmail.isBlank();
         boolean hasCard = cardPanRaw != null && !cardPanRaw.isBlank();
-        if (!hasNm && !hasEmail && !hasCard) {
+        LocalDate trnDateOverride = NotifyTxnPaidAtUtil.parseTrnDateOverride(trnDateOverrideRaw);
+        boolean hasDate = trnDateOverride != null;
+        if (!hasNm && !hasEmail && !hasCard && !hasDate) {
             return false;
         }
         if (in == null || in.getMerchantId() == null || in.getMerchantId().isBlank()) {
@@ -2135,9 +2144,13 @@ public class PgNotifyReceiveService {
                 t.setCardPanDisplay(masked.length() > 32 ? masked.substring(0, 32) : masked);
             }
         }
+        if (hasDate && "10".equals(t.getStatus())) {
+            ZoneId wall = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+            NotifyTxnPaidAtUtil.applyTrnDateOverride(t, trnDateOverride, wall);
+        }
         pgTrnsctnRepository.save(t);
-        log.info("노티 재반영 수동 보정 trnId={} merchantId={} customerNm={} customerEmail={} cardPan={}",
-                t.getTrnId(), t.getMerchantId(), hasNm, hasEmail, hasCard);
+        log.info("노티 재반영 수동 보정 trnId={} merchantId={} customerNm={} customerEmail={} cardPan={} trnDate={}",
+                t.getTrnId(), t.getMerchantId(), hasNm, hasEmail, hasCard, hasDate ? trnDateOverride : null);
         return true;
     }
 
@@ -2205,7 +2218,7 @@ public class PgNotifyReceiveService {
                 continue;
             }
             try {
-                Map<String, Object> r = replayInboundProcessing(inboundId.get(), comp);
+                Map<String, Object> r = replayInboundProcessing(inboundId.get(), comp, null, null, null, null, date.toString());
                 r.put("orderNo", on);
                 perOrder.add(r);
                 boolean parsed = "PARSED".equalsIgnoreCase(String.valueOf(r.get("processStatus")).trim());

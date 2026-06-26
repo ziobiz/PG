@@ -30,6 +30,7 @@ import com.pg.service.settlement.SettlementExpectedDateResolver;
 import com.pg.entity.CommissionPolicy;
 import com.pg.util.FeeCurrencyRoundResolver;
 import com.pg.util.FeeListRoundingPolicy;
+import com.pg.util.MerchantDisplayCurrencyResolver;
 import com.pg.util.PayDisplayCurrency;
 import com.pg.util.PayListStatusBarBuckets;
 import jakarta.persistence.EntityManager;
@@ -777,6 +778,177 @@ public class PayListService {
         }
         return packPayListFinancialSummaryPayload(totalTxn, approve, cancel, approveCountByCur, cancelCountByCur,
                 totalFeeSum, holdSum, vatSum, successCount, false, primaryNorm, currencyOrder, effectiveMultiCurrency);
+    }
+
+    /**
+     * JPAY 통합조회 — 결제내역과 동일 키의 상단 금액 요약(총거래·승인·취소·수수료·담보·부가세·추정결산).
+     * ICOPAY 매칭(trnId) 건은 수수료·담보·VAT를 정책 기준으로 계산하고, 미매칭은 포털 Export fee 합산.
+     */
+    public Map<String, Object> buildJpayFinancialSummary(List<Map<String, Object>> rows,
+                                                         Authentication authentication) {
+        List<Map<String, Object>> list = rows != null ? rows : List.of();
+        AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
+        OrgLevel level = PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository);
+        boolean multi = PayListStatusBarBuckets.isMultiCurrencyViewer(level);
+        String primary = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(user, orgUnitRepository, commissionPolicyRepository,
+                hqLedgerPayDisplayCurrencyAlpha());
+        String primaryNorm = PayListStatusBarBuckets.normalizeCurrency(primary);
+        boolean baseCurrencyConfigured = isViewerBaseCurrencyConfigured(user);
+        final List<String> currencyOrder;
+        if (baseCurrencyConfigured) {
+            currencyOrder = resolveViewerDisplayCurrencyOrder(user, multi);
+        } else {
+            currencyOrder = new ArrayList<>();
+        }
+        Set<String> allowedCur = baseCurrencyConfigured ? new HashSet<>(currencyOrder) : null;
+        boolean effectiveMultiCurrency = multi || !baseCurrencyConfigured;
+
+        Map<String, BigDecimal> totalTxn = new HashMap<>();
+        Map<String, BigDecimal> approve = new HashMap<>();
+        Map<String, BigDecimal> cancel = new HashMap<>();
+        Map<String, Long> approveCountByCur = new HashMap<>();
+        Map<String, Long> cancelCountByCur = new HashMap<>();
+        Map<String, BigDecimal> totalFeeSum = new HashMap<>();
+        Map<String, BigDecimal> holdSum = new HashMap<>();
+        Map<String, BigDecimal> vatSum = new HashMap<>();
+        long successCount = 0;
+
+        Set<String> trnIds = new HashSet<>();
+        for (Map<String, Object> row : list) {
+            String tid = jpayRowTrnId(row);
+            if (tid != null && !tid.isBlank()) {
+                trnIds.add(tid);
+            }
+        }
+        Map<String, PgTrnsctn> txnById = new HashMap<>();
+        if (!trnIds.isEmpty()) {
+            for (PgTrnsctn t : trnsctnRepository.findAllById(trnIds)) {
+                if (t.getTrnId() != null) {
+                    txnById.put(t.getTrnId(), t);
+                }
+            }
+        }
+        Map<String, PayListRowContext> ctxByMerchant = new HashMap<>();
+        if (!txnById.isEmpty()) {
+            Set<String> mids = new HashSet<>();
+            txnById.values().forEach(t -> {
+                if (t.getMerchantId() != null && !t.getMerchantId().isBlank()) {
+                    mids.add(t.getMerchantId().trim());
+                }
+            });
+            if (!mids.isEmpty()) {
+                ctxByMerchant.putAll(buildPayListRowContextMap(mids));
+            }
+        }
+        FeeCurrencyRoundResolver feeResolver = FeeCurrencyRoundResolver.from(hqLedgerSysSettingsService.getOrCreate());
+        Map<String, Long> monthCbCountCache = new HashMap<>();
+        Map<Long, List<ChargebackFeeTier>> tiersByPolicyId = new HashMap<>();
+        Map<String, CommissionPolicy> polCache = new HashMap<>();
+
+        for (Map<String, Object> row : list) {
+            String bucket = jpayRowAggregateBucket(row);
+            String cur = jpayRowAggregateCurrency(row);
+            if (allowedCur != null && !allowedCur.contains(cur)) {
+                continue;
+            }
+            BigDecimal amt = PayListStatusBarBuckets.parseMoney(row.get("amount"));
+            totalTxn.merge(cur, amt, BigDecimal::add);
+            if (PayListStatusBarBuckets.SUCCESS.equals(bucket)) {
+                successCount++;
+                approveCountByCur.merge(cur, 1L, Long::sum);
+                approve.merge(cur, amt, BigDecimal::add);
+            } else if (isJpayCancelFinancialBucket(bucket)) {
+                cancelCountByCur.merge(cur, 1L, Long::sum);
+                cancel.merge(cur, amt, BigDecimal::add);
+            }
+            BigDecimal fee = PayListStatusBarBuckets.parseMoney(row.get("fee"));
+            BigDecimal hold = BigDecimal.ZERO;
+            BigDecimal vat = BigDecimal.ZERO;
+            String tid = jpayRowTrnId(row);
+            PgTrnsctn txn = tid != null ? txnById.get(tid) : null;
+            if (txn != null && txn.getMerchantId() != null && !txn.getMerchantId().isBlank()) {
+                String compId = txn.getMerchantId().trim();
+                PayListRowContext ctx = ctxByMerchant.get(compId);
+                CommissionPolicy pol = polCache.computeIfAbsent(compId,
+                        id -> commissionService.resolveCommissionPolicyForSettlement(id));
+                String payCurKey = PayListItemDto.payCurKeyForFeeCompute(txn, ctx);
+                FeeListTxnAmountService.FeeListTxnAmounts amts = feeListTxnAmountService.compute(
+                        txn, ctx, pol, payCurKey, feeResolver, monthCbCountCache, tiersByPolicyId);
+                fee = amts.totalFee();
+                hold = amts.rollingHoldEst();
+                vat = amts.feeVat();
+            }
+            if (fee.signum() != 0) {
+                totalFeeSum.merge(cur, fee, BigDecimal::add);
+            }
+            if (hold.signum() != 0) {
+                holdSum.merge(cur, hold, BigDecimal::add);
+            }
+            if (vat.signum() != 0) {
+                vatSum.merge(cur, vat, BigDecimal::add);
+            }
+        }
+
+        if (!baseCurrencyConfigured) {
+            Set<String> union = new HashSet<>();
+            union.addAll(totalTxn.keySet());
+            union.addAll(approve.keySet());
+            union.addAll(cancel.keySet());
+            union.addAll(totalFeeSum.keySet());
+            union.addAll(holdSum.keySet());
+            union.addAll(vatSum.keySet());
+            currencyOrder.clear();
+            currencyOrder.addAll(union);
+            PayListStatusBarBuckets.sortCurrencyCodes(currencyOrder);
+        }
+        if (currencyOrder.isEmpty()) {
+            currencyOrder.add(primaryNorm);
+        }
+        return packPayListFinancialSummaryPayload(totalTxn, approve, cancel, approveCountByCur, cancelCountByCur,
+                totalFeeSum, holdSum, vatSum, successCount, false, primaryNorm, currencyOrder, effectiveMultiCurrency);
+    }
+
+    private static String jpayRowTrnId(Map<String, Object> row) {
+        if (row == null) {
+            return null;
+        }
+        Object id = row.get("trnId");
+        if (id == null) {
+            return null;
+        }
+        String s = String.valueOf(id).trim();
+        return s.isEmpty() ? null : s;
+    }
+
+    private static String jpayRowAggregateBucket(Map<String, Object> row) {
+        String st = String.valueOf(row.getOrDefault("icopayStatus", "")).trim();
+        if (st.isEmpty()) {
+            st = String.valueOf(row.getOrDefault("dbStatus", "")).trim();
+        }
+        if (st.isEmpty()) {
+            st = String.valueOf(row.getOrDefault("status", "")).trim();
+        }
+        String bucket = PayListStatusBarBuckets.bucketForPgStatus(st);
+        if (PayListStatusBarBuckets.OTHER.equals(bucket) && !st.isEmpty()) {
+            bucket = PayListStatusBarBuckets.bucketForChillStatus(st);
+        }
+        return bucket;
+    }
+
+    private static String jpayRowAggregateCurrency(Map<String, Object> row) {
+        String cur = MerchantDisplayCurrencyResolver.resolveJpayRowCurrencyFromMap(row);
+        if (cur == null || cur.isBlank()) {
+            return PayListStatusBarBuckets.normalizeCurrency(String.valueOf(row.getOrDefault("currency", "")));
+        }
+        return PayListStatusBarBuckets.normalizeCurrency(cur);
+    }
+
+    private static boolean isJpayCancelFinancialBucket(String bucket) {
+        return PayListStatusBarBuckets.CANCEL.equals(bucket)
+                || PayListStatusBarBuckets.REFUND.equals(bucket)
+                || PayListStatusBarBuckets.VOID.equals(bucket)
+                || PayListStatusBarBuckets.EMAIL_VOID.equals(bucket)
+                || PayListStatusBarBuckets.FORCE_REFUND.equals(bucket);
     }
 
     private static boolean isChillCancelFinancialBucket(String bucket) {

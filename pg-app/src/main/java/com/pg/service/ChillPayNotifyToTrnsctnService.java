@@ -19,6 +19,7 @@ import com.pg.util.ChillPayNotifyOutcomeAdjust;
 import com.pg.util.NotifyAmountParse;
 import com.pg.util.NotifyChannelMerge;
 import com.pg.util.PgTrnsctnNotifyDisplayHelper;
+import com.pg.util.NotifyTxnPaidAtUtil;
 import com.pg.util.NotifyToTxnStatusMerge;
 import com.pg.util.PgNotifyInternalStatusMapper;
 import com.pg.util.TxnOutcomeReasonApplier;
@@ -350,7 +351,8 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
 
         if (STATUS_PAID.equals(mergedStatus)) {
             LocalDateTime paid = parsePaymentDate(root);
-            t.setPaidAt(paid != null ? paid : LocalDateTime.now(hqLedgerSysSettingsService.resolveLedgerDisplayZoneId()));
+            ZoneId wall = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+            t.setPaidAt(NotifyTxnPaidAtUtil.resolvePaidAtForApproval(t, paid, wall));
         } else {
             t.setPaidAt(null);
         }

@@ -48,6 +48,7 @@ public final class PageMenuCatalog {
         add(list, "/comp/compMngTree", "M0209", "업체관리", "업체관리");
         add(list, "/commission/commisionList", "M0210", "수수료관리", "업체관리");
         add(list, "/comp/compInfoHistList", "M0214", "업체변경이력", "업체관리");
+        add(list, "/calc/integratedCheck", "M0332", "통합체크", "결제관리");
         add(list, "/calc/chillPayTrList", "M0319", "통합내역", "결제관리");
         add(list, "/calc/jpayTrList", "M0328", "통합조회", "결제관리");
         add(list, "/calc/queryIntegrated", "M0331", "조회통합", "결제관리");

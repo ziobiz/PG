@@ -6,6 +6,7 @@ import com.pg.entity.OrgLevel;
 import com.pg.repository.HqLedgerSysSettingsRepository;
 import com.pg.repository.SettlementSettingRepository;
 import com.pg.util.FeeCurrencyRoundResolver;
+import com.pg.util.JpayTrSyncSchedule;
 import com.pg.util.PayDisplayCurrency;
 import com.pg.util.ReceivableRecoveryModeUtil;
 import com.pg.util.VoidRefundSettlementModeUtil;
@@ -167,6 +168,8 @@ public class HqLedgerSysSettingsService {
         m.put("jpayPortalPasswordSet", s.getJpayPortalPassword() != null && !s.getJpayPortalPassword().isBlank());
         m.put("jpayTrInitSyncMonths", ledgerIntOr(s.getJpayTrInitSyncMonths(), 3));
         m.put("jpayTrRecentSyncDays", ledgerIntOr(s.getJpayTrRecentSyncDays(), 7));
+        m.put("jpayTrSyncScheduleMin", JpayTrSyncSchedule.clampMinutes(s.getJpayTrSyncScheduleMin()));
+        m.put("jpayTrSyncScheduleOptions", JpayTrSyncSchedule.optionRows());
         m.put("appLogMemoryRetentionDays", ledgerIntOr(s.getAppLogMemoryRetentionDays(), 30));
         m.put("appLogFileRetentionDays", ledgerIntOr(s.getAppLogFileRetentionDays(), 90));
         m.put("feeListDecimalPlaces", ledgerIntOr(s.getFeeListDecimalPlaces(), 2));
@@ -269,6 +272,9 @@ public class HqLedgerSysSettingsService {
         }
         if (body.containsKey("jpayTrRecentSyncDays")) {
             s.setJpayTrRecentSyncDays(clampInt(body.get("jpayTrRecentSyncDays"), 7, 7, 365));
+        }
+        if (body.containsKey("jpayTrSyncScheduleMin")) {
+            s.setJpayTrSyncScheduleMin(JpayTrSyncSchedule.clampMinutes(parseScheduleMinutes(body.get("jpayTrSyncScheduleMin"))));
         }
         if (body.containsKey("appLogMemoryRetentionDays")) {
             s.setAppLogMemoryRetentionDays(clampInt(body.get("appLogMemoryRetentionDays"), 30, 1, 3650));
@@ -423,6 +429,17 @@ public class HqLedgerSysSettingsService {
 
     private static int ledgerIntOr(Integer v, int def) {
         return v != null && v > 0 ? v : def;
+    }
+
+    private static Integer parseScheduleMinutes(Object o) {
+        if (o == null || String.valueOf(o).trim().isEmpty()) {
+            return JpayTrSyncSchedule.OFF;
+        }
+        try {
+            return Integer.parseInt(String.valueOf(o).trim());
+        } catch (NumberFormatException e) {
+            return JpayTrSyncSchedule.OFF;
+        }
     }
 
     private static int clampInt(Object o, int defaultVal, int min, int max) {

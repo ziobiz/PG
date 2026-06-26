@@ -19,7 +19,9 @@ import com.pg.util.JpayDisputeNotifyStatusResolver;
 import com.pg.util.JpayNotifyStatusResolver;
 import com.pg.util.JpaySignatureUtil;
 import com.pg.util.JpayTransactionIdApplier;
+import com.pg.util.NotifyTxnPaidAtUtil;
 import com.pg.util.NotifyToTxnStatusMerge;
+import com.pg.util.PayCardFailOutcomeRules;
 import com.pg.util.TxnOutcomeReasonApplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -218,7 +220,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         t.setStatus(merged);
         t.setChillPaymentStatus(JpayNotifyStatusResolver.chillPaymentStatusLabel(merged, ret));
         Optional<String> recordedReason = TxnOutcomeReasonApplier.applyFromJpayNotifyForm(t, prevStatus, merged, form);
-        applyPaidAtForNotifyOutcome(t, merged);
+        applyPaidAtForNotifyOutcome(t, merged, form);
         if (t.getSettledYn() == null || t.getSettledYn().isBlank()) {
             t.setSettledYn("N");
         }
@@ -298,7 +300,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         t.setStatus(merged);
         t.setChillPaymentStatus(JpayNotifyStatusResolver.chillPaymentStatusLabel(merged, ret));
         Optional<String> recordedReason2 = TxnOutcomeReasonApplier.applyFromJpayNotifyForm(t, prevStatus, merged, form);
-        applyPaidAtForNotifyOutcome(t, merged);
+        applyPaidAtForNotifyOutcome(t, merged, form);
         JpayBuyerContactApplier.mergeFromNotifyForm(t, form);
         pgTrnsctnRepository.save(t);
         outcomeReasonWarmCoordinator.onRecorded(recordedReason2);
@@ -327,13 +329,33 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         }
     }
 
-    private void applyPaidAtForNotifyOutcome(PgTrnsctn t, String merged) {
+    private void applyPaidAtForNotifyOutcome(PgTrnsctn t, String merged, Map<String, String> form) {
         if (ST_PAID.equals(merged)) {
             ZoneId wall = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
-            t.setPaidAt(LocalDateTime.now(wall));
+            LocalDateTime parsed = parseJpayPaymentDateFromForm(form);
+            t.setPaidAt(NotifyTxnPaidAtUtil.resolvePaidAtForApproval(t, parsed, wall));
         } else if (ST_FAIL.equals(merged) || "08".equals(merged)) {
             t.setPaidAt(null);
         }
+    }
+
+    private static LocalDateTime parseJpayPaymentDateFromForm(Map<String, String> form) {
+        if (form == null || form.isEmpty()) {
+            return null;
+        }
+        for (String key : new String[]{
+                "paymentdate", "payment_date", "paydate", "transactiondate", "transaction_date",
+                "paidat", "paid_at", "paycompletedat", "pay_completed_at"
+        }) {
+            String v = first(form, key);
+            if (!v.isBlank()) {
+                LocalDateTime p = NotifyTxnPaidAtUtil.parsePaymentDateString(v);
+                if (p != null) {
+                    return p;
+                }
+            }
+        }
+        return null;
     }
 
     private static String firstNonBlank(String a, String b) {
@@ -523,15 +545,12 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
             payCardFailCooldownService.clearOnSuccessByHash(PgVendor.JPAY, hash, orgUnitId);
             return;
         }
-        if (ST_FAIL.equals(merged)) {
-            payCardFailCooldownService.recordFromTxnHash(PgVendor.JPAY, hash, mask, "FAIL", t.getOutcomeReason(), orgUnitId);
+        Optional<String> riskCode = PayCardFailOutcomeRules.outcomeCodeForTxnRiskCount(merged, t.getOutcomeReasonCode());
+        if (riskCode.isEmpty()) {
             return;
         }
-        String oc = t.getOutcomeReasonCode();
-        if (oc != null && NotifyToTxnStatusMerge.OUTCOME_CODE_UNPAID_PROVISIONAL.equalsIgnoreCase(oc.trim())) {
-            payCardFailCooldownService.recordFromTxnHash(PgVendor.JPAY, hash, mask,
-                    NotifyToTxnStatusMerge.OUTCOME_CODE_UNPAID_PROVISIONAL, t.getOutcomeReason(), orgUnitId);
-        }
+        payCardFailCooldownService.recordFromTxnHash(PgVendor.JPAY, hash, mask, riskCode.get(),
+                t.getOutcomeReason(), orgUnitId, t.getCustomerNm());
     }
 
     private Long resolveOrgUnitId(PgTrnsctn t) {

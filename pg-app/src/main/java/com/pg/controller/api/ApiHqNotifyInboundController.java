@@ -89,6 +89,7 @@ public class ApiHqNotifyInboundController {
             String customerNm = null;
             String customerEmail = null;
             String cardPanDisplay = null;
+            String trnDate = null;
             if (body != null) {
                 if ((comp == null || comp.isBlank()) && body.get("icopayCompId") != null) {
                     comp = String.valueOf(body.get("icopayCompId")).trim();
@@ -105,10 +106,13 @@ public class ApiHqNotifyInboundController {
                 if (body.get("cardPanDisplay") != null) {
                     cardPanDisplay = String.valueOf(body.get("cardPanDisplay")).trim();
                 }
+                if (body.get("trnDate") != null) {
+                    trnDate = String.valueOf(body.get("trnDate")).trim();
+                }
             }
             return ResponseEntity.ok(ApiResponse.ok(
                     pgNotifyReceiveService.replayInboundProcessing(
-                            id, comp, rawOverride, customerNm, customerEmail, cardPanDisplay)));
+                            id, comp, rawOverride, customerNm, customerEmail, cardPanDisplay, trnDate)));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "BAD_REQUEST"));
         }

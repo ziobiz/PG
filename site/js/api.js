@@ -910,6 +910,9 @@
     dailyJpayIntegratedSummary: function (params) {
       return get('/api/calc/dailyJpayIntegratedSummary', params).then(function (r) { return r.data; });
     },
+    integratedCheckSummary: function (params) {
+      return get('/api/calc/integratedCheckSummary', params).then(function (r) { return r.data; });
+    },
     dailyPaySummary: function (params) {
       return get('/api/calc/dailyPaySummary', params).then(function (r) { return r.data; });
     },
@@ -1842,6 +1845,9 @@
       }
       if (opts.cardPanDisplay != null && String(opts.cardPanDisplay).trim() !== '') {
         payload.cardPanDisplay = String(opts.cardPanDisplay).trim();
+      }
+      if (opts.trnDate != null && String(opts.trnDate).trim() !== '') {
+        payload.trnDate = String(opts.trnDate).trim();
       }
       if (opts.icopayCompId && !q) {
         payload.icopayCompId = opts.icopayCompId;

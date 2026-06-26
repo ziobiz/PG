@@ -58,6 +58,8 @@ import org.springframework.context.annotation.Lazy;
 
 import org.springframework.stereotype.Service;
 
+import org.springframework.security.core.Authentication;
+
 import org.springframework.transaction.annotation.Transactional;
 
 
@@ -69,6 +71,8 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 
 import java.time.LocalDateTime;
+
+import java.time.ZoneId;
 
 import java.time.format.DateTimeFormatter;
 
@@ -87,6 +91,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 
 import java.util.List;
 
@@ -140,6 +145,8 @@ public class JpayIntegratedListService {
 
     private final MasterDistSettlementCronZoneService masterDistSettlementCronZoneService;
 
+    private final PayListService payListService;
+
     private final ObjectMapper objectMapper;
 
 
@@ -147,6 +154,10 @@ public class JpayIntegratedListService {
     private volatile LocalDateTime lastSyncAt;
 
     private volatile String lastSyncMessage = "";
+
+    private volatile LocalDate syncCountDate;
+
+    private volatile int syncCountToday;
 
     private volatile List<Map<String, Object>> cachedRows = List.of();
 
@@ -204,6 +215,8 @@ public class JpayIntegratedListService {
 
                                      MasterDistSettlementCronZoneService masterDistSettlementCronZoneService,
 
+                                     PayListService payListService,
+
                                      ObjectMapper objectMapper) {
 
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
@@ -229,6 +242,8 @@ public class JpayIntegratedListService {
         this.merchantPgBindingRepository = merchantPgBindingRepository;
 
         this.masterDistSettlementCronZoneService = masterDistSettlementCronZoneService;
+
+        this.payListService = payListService;
 
         this.objectMapper = objectMapper;
 
@@ -260,6 +275,11 @@ public class JpayIntegratedListService {
 
     }
 
+    /** 통합조회·조회통합·통합체크 조회 전 DB(tb_jpay_portal_export_cache) → 메모리 복원 */
+    public synchronized void ensureExportCacheLoaded() {
+        loadCacheFromDatabaseIfEmpty();
+    }
+
 
 
     private boolean applyCacheEntity(JpayPortalExportCache ent) {
@@ -281,6 +301,10 @@ public class JpayIntegratedListService {
             lastSyncAt = ent.getSyncedAt();
 
             lastSyncMessage = ent.getLastSyncMessage() != null ? ent.getLastSyncMessage() : "";
+
+            syncCountDate = ent.getSyncCountDate();
+
+            syncCountToday = ent.getSyncCountToday();
 
             return true;
 
@@ -313,6 +337,10 @@ public class JpayIntegratedListService {
             ent.setExportTo(exportTo);
 
             ent.setRowsJson(objectMapper.writeValueAsString(cachedRows));
+
+            ent.setSyncCountDate(syncCountDate);
+
+            ent.setSyncCountToday(syncCountToday);
 
             exportCacheRepository.save(ent);
 
@@ -439,6 +467,8 @@ public class JpayIntegratedListService {
         cachedRows = List.copyOf(repairEnrichedRows(cachedRows));
 
         lastSyncAt = LocalDateTime.now();
+
+        recordSyncCountForToday();
 
         StringBuilder msg = new StringBuilder();
 
@@ -578,7 +608,9 @@ public class JpayIntegratedListService {
 
                                                   boolean triggerSyncIfEmpty,
 
-                                                  String searchFieldType) throws Exception {
+                                                  String searchFieldType,
+
+                                                  Authentication authentication) throws Exception {
 
         if (cachedRows.isEmpty()) {
 
@@ -634,11 +666,9 @@ public class JpayIntegratedListService {
 
         meta.put("jpayIntegrated", true);
 
-        meta.put("lastSyncAt", lastSyncAt != null ? lastSyncAt.toString() : "");
+        meta.putAll(jpaySyncMetaMap());
 
         meta.put("lastSyncMessage", lastSyncMessage);
-
-        meta.put("cachedTotal", cachedRows.size());
 
         long missingTrnDate = cachedRows.stream()
 
@@ -651,7 +681,9 @@ public class JpayIntegratedListService {
         meta.put("feeCurrencyFormatByCur",
                 FeeCurrencyRoundResolver.from(hqLedgerSysSettingsService.getOrCreate()).toClientByCurrencyMap());
 
-        meta.put("payListFinancialSummary", aggregateFinancialSummary(filtered));
+        meta.put("payListFinancialSummary", payListService.buildJpayFinancialSummary(filtered, authentication));
+
+        meta.put("payListStatusBar", aggregateStatusBar(filtered));
 
         pr.setMeta(meta);
 
@@ -784,6 +816,8 @@ public class JpayIntegratedListService {
 
         m.put("lastSyncMessage", lastSyncMessage);
 
+        m.put("syncCountToday", syncCountToday);
+
         m.put("cachedTotal", cachedRows.size());
 
         if (syncJobResult != null) {
@@ -794,6 +828,31 @@ public class JpayIntegratedListService {
 
         return m;
 
+    }
+
+
+
+    /** 통합조회·조회통합·통합체크 요약 — 최근 동기화 시각·당일 횟수 */
+    public Map<String, Object> jpaySyncMetaMap() {
+        ensureExportCacheLoaded();
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("lastSyncAt", lastSyncAt != null ? lastSyncAt.toString() : "");
+        m.put("syncCountToday", syncCountToday);
+        m.put("cachedTotal", cachedRows.size());
+        return m;
+    }
+
+
+
+    private void recordSyncCountForToday() {
+        ZoneId ledgerTz = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+        LocalDate today = LocalDate.now(ledgerTz);
+        if (syncCountDate != null && syncCountDate.equals(today)) {
+            syncCountToday++;
+        } else {
+            syncCountDate = today;
+            syncCountToday = 1;
+        }
     }
 
 
@@ -972,7 +1031,11 @@ public class JpayIntegratedListService {
 
             }
 
-            currency = PayListStatusBarBuckets.normalizeCurrency(currency);
+            if (!currency.isBlank()) {
+
+                currency = PayListStatusBarBuckets.normalizeCurrency(currency);
+
+            }
 
             if (!originalCurrency.isBlank()) {
 
@@ -1276,6 +1339,7 @@ public class JpayIntegratedListService {
     public Map<String, Object> buildDailyIntegratedSummary(LocalDate tFrom, LocalDate tTo, LocalDate effectiveTo,
                                                            String searchKeyword, String searchOrderNo,
                                                            String searchPayDivCd, String searchOrderDir) {
+        ensureExportCacheLoaded();
         List<Map<String, Object>> filtered = filterRows(cachedRows, searchKeyword, searchOrderNo, searchPayDivCd,
                 tFrom, effectiveTo, null);
         Map<LocalDate, JpayDayAgg> byDay = new LinkedHashMap<>();
@@ -1304,7 +1368,7 @@ public class JpayIntegratedListService {
             }
             String bucket = PayListStatusBarBuckets.bucketForPgStatus(st);
             agg.bucketCount.merge(bucket, 1L, Long::sum);
-            String cur = PayListStatusBarBuckets.normalizeCurrency(String.valueOf(row.getOrDefault("currency", "")));
+            String cur = resolveJpayAggregateCurrency(row);
             BigDecimal amt = PayListStatusBarBuckets.parseMoney(row.get("amount"));
             agg.totalTxn.merge(cur, amt, BigDecimal::add);
             if (PayListStatusBarBuckets.SUCCESS.equals(bucket)) {
@@ -1333,12 +1397,12 @@ public class JpayIntegratedListService {
         payload.put("list", rows);
         Map<String, Object> meta = new LinkedHashMap<>();
         meta.put("jpayIntegrated", true);
-        meta.put("cachedTotal", cachedRows.size());
-        meta.put("lastSyncAt", lastSyncAt != null ? lastSyncAt.toString() : "");
+        meta.putAll(jpaySyncMetaMap());
         meta.put("dailyJpayNote",
                 "일자별 상세는 동일 조건으로 jpayTrSearch(통합조회)에 해당 일자만 지정해 조회합니다.");
         if (cachedRows.isEmpty()) {
-            meta.put("note", "캐시된 통합조회 데이터가 없습니다. 통합조회 화면에서 [JPAY 동기화]를 실행하세요.");
+            meta.put("note",
+                    "저장된 JPAY Export 캐시가 없습니다. 전산설정관리 JPAY 통합조회 스케줄을 켜거나 [JPAY 동기화]를 실행하세요.");
         }
         payload.put("meta", meta);
         return payload;
@@ -1554,7 +1618,7 @@ public class JpayIntegratedListService {
                 bucket = PayListStatusBarBuckets.bucketForChillStatus(st);
             }
             agg.bucketCount.merge(bucket, 1L, Long::sum);
-            String cur = PayListStatusBarBuckets.normalizeCurrency(String.valueOf(row.getOrDefault("currency", "")));
+            String cur = resolveJpayAggregateCurrency(row);
             BigDecimal amt = PayListStatusBarBuckets.parseMoney(row.get("amount"));
             agg.totalTxn.merge(cur, amt, BigDecimal::add);
             if (PayListStatusBarBuckets.SUCCESS.equals(bucket)) {
@@ -1567,6 +1631,50 @@ public class JpayIntegratedListService {
             }
         }
         return agg.toFinancialSummary();
+    }
+
+    private static Map<String, Object> aggregateStatusBar(List<Map<String, Object>> rows) {
+        PayListStatusBarBuckets.MutableRollup roll = new PayListStatusBarBuckets.MutableRollup();
+        Set<String> currencies = new LinkedHashSet<>();
+        if (rows != null) {
+            for (Map<String, Object> row : rows) {
+                String bucket = resolveJpayAggregateBucket(row);
+                String cur = resolveJpayAggregateCurrency(row);
+                currencies.add(cur);
+                BigDecimal amt = PayListStatusBarBuckets.parseMoney(row.get("amount"));
+                roll.add(bucket, cur, amt, 1L);
+            }
+        }
+        roll.mergeBucketInto(PayListStatusBarBuckets.FORCE_REFUND, PayListStatusBarBuckets.REFUND);
+        List<String> currencyOrder = new ArrayList<>(currencies);
+        PayListStatusBarBuckets.sortCurrencyCodes(currencyOrder);
+        boolean multi = currencyOrder.size() > 1;
+        String primary = currencyOrder.isEmpty() ? "JPY" : currencyOrder.get(0);
+        return roll.toPayload(multi, primary, false, true, currencyOrder);
+    }
+
+    private static String resolveJpayAggregateBucket(Map<String, Object> row) {
+        String st = String.valueOf(row.getOrDefault("icopayStatus", "")).trim();
+        if (st.isEmpty()) {
+            st = String.valueOf(row.getOrDefault("dbStatus", "")).trim();
+        }
+        if (st.isEmpty()) {
+            st = String.valueOf(row.getOrDefault("status", "")).trim();
+        }
+        String bucket = PayListStatusBarBuckets.bucketForPgStatus(st);
+        if (PayListStatusBarBuckets.OTHER.equals(bucket) && !st.isEmpty()) {
+            bucket = PayListStatusBarBuckets.bucketForChillStatus(st);
+        }
+        return bucket;
+    }
+
+    private static String resolveJpayAggregateCurrency(Map<String, Object> row) {
+        String cur = MerchantDisplayCurrencyResolver.resolveJpayRowCurrencyFromMap(row);
+        if (cur == null || cur.isBlank()) {
+            return PayListStatusBarBuckets.normalizeCurrency(
+                    String.valueOf(row.getOrDefault("currency", "")));
+        }
+        return PayListStatusBarBuckets.normalizeCurrency(cur);
     }
 
     private void resolveCurrencyOnRow(Map<String, Object> m, Optional<PgTrnsctn> txn,
@@ -1591,6 +1699,11 @@ public class JpayIntegratedListService {
                 masterMp);
         if (!resolved.isBlank()) {
             m.put("currency", resolved);
+        } else {
+            String fromMap = MerchantDisplayCurrencyResolver.resolveJpayRowCurrencyFromMap(m);
+            if (!fromMap.isBlank()) {
+                m.put("currency", fromMap);
+            }
         }
         String baseCur = masterMp != null
                 ? MerchantDisplayCurrencyResolver.primaryFromMerchantProfile(masterMp)

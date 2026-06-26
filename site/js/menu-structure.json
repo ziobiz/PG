@@ -47,6 +47,7 @@
       "label": "결제관리",
       "icon": "bi-credit-card",
       "children": [
+        { "label": "통합체크", "url": "/calc/integratedCheck", "menuId": "M0332" },
         { "label": "통합내역", "url": "/calc/chillPayTrList", "menuId": "M0319" },
         { "label": "통합조회", "url": "/calc/jpayTrList", "menuId": "M0328" },
         { "label": "조회통합", "url": "/calc/queryIntegrated", "menuId": "M0331" },

@@ -1,14 +1,18 @@
 package com.pg.service;
 
 import com.pg.entity.PayCardFailCooldown;
+import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.PgVendor;
+import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PayCardFailCooldownRepository;
+import com.pg.repository.PgTrnsctnRepository;
 import com.pg.util.NotifyToTxnStatusMerge;
 import com.pg.util.PayCardBrandDetector;
 import com.pg.util.PayCardFailOutcomeRules;
 import com.pg.util.PayCardMaskKeyUtil;
 import com.pg.util.PayCardPanHashUtil;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,16 +30,27 @@ public class PayCardFailCooldownService {
     private final HqRiskCardPolicyService hqRiskCardPolicyService;
     private final PayCardFailCooldownRepository cooldownRepository;
     private final PayCardPolicyService payCardPolicyService;
+    private final PgTrnsctnRepository pgTrnsctnRepository;
+    private final OrgUnitRepository orgUnitRepository;
 
     public PayCardFailCooldownService(HqRiskCardPolicyService hqRiskCardPolicyService,
                                       PayCardFailCooldownRepository cooldownRepository,
-                                      @Lazy PayCardPolicyService payCardPolicyService) {
+                                      @Lazy PayCardPolicyService payCardPolicyService,
+                                      PgTrnsctnRepository pgTrnsctnRepository,
+                                      OrgUnitRepository orgUnitRepository) {
         this.hqRiskCardPolicyService = hqRiskCardPolicyService;
         this.cooldownRepository = cooldownRepository;
         this.payCardPolicyService = payCardPolicyService;
+        this.pgTrnsctnRepository = pgTrnsctnRepository;
+        this.orgUnitRepository = orgUnitRepository;
     }
 
     public Optional<Map<String, Object>> checkBlocked(String pgVendorRaw, String panRaw, String lang, Long orgUnitId) {
+        return checkBlocked(pgVendorRaw, panRaw, lang, orgUnitId, null);
+    }
+
+    public Optional<Map<String, Object>> checkBlocked(String pgVendorRaw, String panRaw, String lang, Long orgUnitId,
+                                                      String holderName) {
         CardRiskPolicyEffective policy = hqRiskCardPolicyService.resolveForOrgUnit(orgUnitId);
         if (!policy.enabled()) {
             return Optional.empty();
@@ -61,9 +76,10 @@ public class PayCardFailCooldownService {
         }
         PayCardFailCooldown row = rowOpt.get();
         int failCount = row.getFailCount();
-        // 자동등록 트리거: N차 결제 시도 시점(이전 실패 N-1건 후 재시도)에 발동 — N번째 실패 후가 아님
-        if (shouldBlockOnAttemptTrigger(failCount, policy.autoBlacklistTriggerTier())) {
-            registerAutoBlacklistOnAttempt(pg, pan, row, policy, orgUnitId);
+        int triggerTier = policy.autoBlacklistTriggerTier();
+        // N차 트리거(1·2·3·4 동일): 비성공 N회 완료 직후 등록 → (N+1)번째 시도부터 차단
+        if (shouldRegisterAutoBlacklistAfterFailures(failCount, triggerTier)) {
+            registerAutoBlacklistOnAttempt(pg, pan, hash, row, policy, orgUnitId, holderName, "THRESHOLD");
             return Optional.of(inactiveCardBlock(langNorm));
         }
 
@@ -103,6 +119,12 @@ public class PayCardFailCooldownService {
     @Transactional
     public void recordQualifyingFailure(String pgVendorRaw, String panRaw, String outcomeCode, String outcomeMsg,
                                         Long orgUnitId) {
+        recordQualifyingFailure(pgVendorRaw, panRaw, outcomeCode, outcomeMsg, orgUnitId, null);
+    }
+
+    @Transactional
+    public void recordQualifyingFailure(String pgVendorRaw, String panRaw, String outcomeCode, String outcomeMsg,
+                                        Long orgUnitId, String holderName) {
         CardRiskPolicyEffective policy = hqRiskCardPolicyService.resolveForOrgUnit(orgUnitId);
         if (!policy.enabled() || !PayCardFailOutcomeRules.shouldCountQualifyingFailure(outcomeCode, outcomeMsg)) {
             return;
@@ -116,7 +138,7 @@ public class PayCardFailCooldownService {
         if (hash.isEmpty()) {
             return;
         }
-        applyFailure(pg, hash, PayCardMaskKeyUtil.maskKeyFromPan(pan), orgUnitId, policy, outcomeCode);
+        applyFailure(pg, hash, PayCardMaskKeyUtil.maskKeyFromPan(pan), orgUnitId, policy, outcomeCode, holderName);
     }
 
     @Transactional
@@ -150,6 +172,12 @@ public class PayCardFailCooldownService {
     @Transactional
     public void recordFromTxnHash(String pgVendorRaw, String cardPanHash, String panMaskKey,
                                   String outcomeCode, String outcomeMsg, Long orgUnitId) {
+        recordFromTxnHash(pgVendorRaw, cardPanHash, panMaskKey, outcomeCode, outcomeMsg, orgUnitId, null);
+    }
+
+    @Transactional
+    public void recordFromTxnHash(String pgVendorRaw, String cardPanHash, String panMaskKey,
+                                  String outcomeCode, String outcomeMsg, Long orgUnitId, String holderName) {
         if (cardPanHash == null || cardPanHash.isBlank()) {
             return;
         }
@@ -158,11 +186,11 @@ public class PayCardFailCooldownService {
             return;
         }
         String pg = payCardPolicyService.normalizePgVendor(pgVendorRaw);
-        applyFailure(pg, cardPanHash.trim(), panMaskKey, orgUnitId, policy, outcomeCode);
+        applyFailure(pg, cardPanHash.trim(), panMaskKey, orgUnitId, policy, outcomeCode, holderName);
     }
 
     private void applyFailure(String pg, String hash, String panMaskKey, Long orgUnitId,
-                              CardRiskPolicyEffective policy, String outcomeCode) {
+                              CardRiskPolicyEffective policy, String outcomeCode, String holderName) {
         PayCardFailCooldown row = findRow(pg, hash, orgUnitId).orElseGet(PayCardFailCooldown::new);
         row.setPgVendor(pg);
         row.setPanHash(hash);
@@ -175,32 +203,38 @@ public class PayCardFailCooldownService {
         row.setLastFailAt(LocalDateTime.now());
         row.setLastOutcomeCode(outcomeCode != null ? outcomeCode.trim() : null);
 
-        if (nextCount >= policy.autoBlacklistTriggerTier()) {
-            registerAutoBlacklistOnAttempt(pg, null, row, policy, orgUnitId);
+        if (shouldRegisterAutoBlacklistAfterFailures(nextCount, policy.autoBlacklistTriggerTier())) {
+            registerAutoBlacklistOnAttempt(pg, null, hash, row, policy, orgUnitId, holderName, "COMPLETE");
         }
 
         int minutes = policy.tierMinutes(Math.min(nextCount, 4));
-        if (minutes <= 0 && nextCount < policy.autoBlacklistTriggerTier()) {
+        int triggerTier = policy.autoBlacklistTriggerTier();
+        if (minutes <= 0 && !shouldRegisterAutoBlacklistAfterFailures(nextCount, triggerTier)) {
             minutes = 1;
         }
-        if (minutes > 0) {
-            row.setBlockedUntil(LocalDateTime.now().plusMinutes(minutes));
-        } else if (nextCount >= policy.autoBlacklistTriggerTier()) {
+        if (shouldRegisterAutoBlacklistAfterFailures(nextCount, triggerTier)) {
             row.setBlockedUntil(LocalDateTime.now().plusYears(10));
+        } else if (minutes > 0) {
+            row.setBlockedUntil(LocalDateTime.now().plusMinutes(minutes));
         }
         cooldownRepository.save(row);
     }
 
-    /** 다음 결제 시도 회차(이전 실패 건수 + 1)가 자동등록 트리거 회차 이상이면 해당 시도에서 차단 */
-    static boolean shouldBlockOnAttemptTrigger(int failCount, int autoBlacklistTriggerTier) {
+    /**
+     * 자동등록 트리거 N차(1·2·3·4 동일): 비성공 N회가 누적 완료되면 즉시 비활성 등록.
+     * 2차→1·2회 후 즉시 등록·3번째 시도부터 차단, 3차→1·2·3회 후 즉시 등록·4번째 시도부터 차단.
+     */
+    static boolean shouldRegisterAutoBlacklistAfterFailures(int completedFailureCount,
+                                                           int autoBlacklistTriggerTier) {
         if (autoBlacklistTriggerTier < 1) {
             return false;
         }
-        return failCount + 1 >= autoBlacklistTriggerTier;
+        return completedFailureCount >= autoBlacklistTriggerTier;
     }
 
-    private void registerAutoBlacklistOnAttempt(String pg, String pan, PayCardFailCooldown row,
-                                              CardRiskPolicyEffective policy, Long orgUnitId) {
+    private void registerAutoBlacklistOnAttempt(String pg, String pan, String panHash, PayCardFailCooldown row,
+                                              CardRiskPolicyEffective policy, Long orgUnitId, String holderName,
+                                              String reasonKind) {
         String mk = row.getPanMaskKey();
         if ((mk == null || mk.isBlank()) && pan != null && !pan.isBlank()) {
             mk = PayCardMaskKeyUtil.maskKeyFromPan(PayCardBrandDetector.normalizePan(pan));
@@ -208,12 +242,36 @@ public class PayCardFailCooldownService {
                 row.setPanMaskKey(mk.trim());
             }
         }
+        String resolvedHolder = resolveHolderName(holderName, panHash != null ? panHash : row.getPanHash(), orgUnitId);
         if (mk != null && !mk.isBlank()) {
+            String kind = reasonKind != null && !reasonKind.isBlank() ? reasonKind.trim() : "ATTEMPT";
             payCardPolicyService.addBlacklistAutoMask(pg, mk,
-                    "AUTO_FAIL_COOLDOWN(" + policy.autoBlacklistTriggerTier() + "차 ATTEMPT)", orgUnitId);
+                    "AUTO_FAIL_COOLDOWN(" + policy.autoBlacklistTriggerTier() + "차 " + kind + ")",
+                    orgUnitId, resolvedHolder);
         }
         row.setBlockedUntil(LocalDateTime.now().plusYears(10));
         cooldownRepository.save(row);
+    }
+
+    private String resolveHolderName(String holderName, String panHash, Long orgUnitId) {
+        if (holderName != null && !holderName.isBlank()) {
+            return holderName.trim();
+        }
+        if (panHash == null || panHash.isBlank() || orgUnitId == null) {
+            return null;
+        }
+        return orgUnitRepository.findById(orgUnitId)
+                .map(ou -> ou.getCode())
+                .filter(code -> code != null && !code.isBlank())
+                .flatMap(code -> pgTrnsctnRepository
+                        .findRecentWithCustomerNmByCardPanHashAndMerchantId(
+                                panHash.trim(), code.trim(), PageRequest.of(0, 1))
+                        .stream()
+                        .findFirst()
+                        .map(PgTrnsctn::getCustomerNm)
+                        .filter(nm -> nm != null && !nm.isBlank()))
+                .map(String::trim)
+                .orElse(null);
     }
 
     private Optional<PayCardFailCooldown> findRow(String pg, String hash, Long orgUnitId) {

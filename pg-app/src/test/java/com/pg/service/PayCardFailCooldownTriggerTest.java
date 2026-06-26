@@ -8,26 +8,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PayCardFailCooldownTriggerTest {
 
     @Test
-    void triggerFiresOnNthAttemptNotAfterNthFailure() {
-        int trigger = 3;
-        assertFalse(PayCardFailCooldownService.shouldBlockOnAttemptTrigger(0, trigger));
-        assertFalse(PayCardFailCooldownService.shouldBlockOnAttemptTrigger(1, trigger));
-        assertTrue(PayCardFailCooldownService.shouldBlockOnAttemptTrigger(2, trigger));
-        assertTrue(PayCardFailCooldownService.shouldBlockOnAttemptTrigger(3, trigger));
-    }
-
-    @Test
-    void triggerAtSecondTierBlocksOnSecondAttempt() {
+    void tier2RegistersAfterTwoFailuresBlocksThirdAttempt() {
         int trigger = 2;
-        assertFalse(PayCardFailCooldownService.shouldBlockOnAttemptTrigger(0, trigger));
-        assertTrue(PayCardFailCooldownService.shouldBlockOnAttemptTrigger(1, trigger));
+        assertFalse(PayCardFailCooldownService.shouldRegisterAutoBlacklistAfterFailures(1, trigger));
+        assertTrue(PayCardFailCooldownService.shouldRegisterAutoBlacklistAfterFailures(2, trigger));
     }
 
     @Test
-    void oldBugWouldHaveBlockedOneAttemptLater() {
+    void tier3RegistersAfterThreeFailuresBlocksFourthAttempt() {
         int trigger = 3;
-        int failCountBeforeThirdAttempt = 2;
-        assertFalse(failCountBeforeThirdAttempt >= trigger);
-        assertTrue(PayCardFailCooldownService.shouldBlockOnAttemptTrigger(failCountBeforeThirdAttempt, trigger));
+        assertFalse(PayCardFailCooldownService.shouldRegisterAutoBlacklistAfterFailures(2, trigger));
+        assertTrue(PayCardFailCooldownService.shouldRegisterAutoBlacklistAfterFailures(3, trigger));
+    }
+
+    @Test
+    void allTiersUseSameRule() {
+        assertTrue(PayCardFailCooldownService.shouldRegisterAutoBlacklistAfterFailures(1, 1));
+        assertTrue(PayCardFailCooldownService.shouldRegisterAutoBlacklistAfterFailures(4, 4));
     }
 }

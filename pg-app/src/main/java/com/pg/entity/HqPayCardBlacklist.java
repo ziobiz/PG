@@ -48,6 +48,10 @@ public class HqPayCardBlacklist {
     @Column(name = "released_by", length = 64)
     private String releasedBy;
 
+    /** 해지 사유 본문(해지자는 released_by 별도) */
+    @Column(name = "released_reason", length = 500)
+    private String releasedReason;
+
     @Column(name = "registered_org_unit_id")
     private Long registeredOrgUnitId;
 
@@ -109,6 +113,8 @@ public class HqPayCardBlacklist {
     public void setReleasedAt(LocalDateTime releasedAt) { this.releasedAt = releasedAt; }
     public String getReleasedBy() { return releasedBy; }
     public void setReleasedBy(String releasedBy) { this.releasedBy = releasedBy; }
+    public String getReleasedReason() { return releasedReason; }
+    public void setReleasedReason(String releasedReason) { this.releasedReason = releasedReason; }
     public Long getRegisteredOrgUnitId() { return registeredOrgUnitId; }
     public void setRegisteredOrgUnitId(Long registeredOrgUnitId) { this.registeredOrgUnitId = registeredOrgUnitId; }
     public String getRegisteredCompId() { return registeredCompId; }

@@ -189,8 +189,12 @@ public class OpsInactiveCardService {
             throw new IllegalArgumentException("id가 필요합니다.");
         }
         long id = Long.parseLong(idObj.toString().trim());
+        String releaseReason = body.get("releaseReason") != null ? body.get("releaseReason").toString().trim() : "";
+        if (releaseReason.isEmpty() && body.get("releaseReasonText") != null) {
+            releaseReason = body.get("releaseReasonText").toString().trim();
+        }
         HqPayCardBlacklist row = payCardPolicyService.releaseBlacklist(
-                id, user != null ? user.getUsername() : null);
+                id, user != null ? user.getUsername() : null, releaseReason);
         return toRowMap(row);
     }
 
@@ -233,6 +237,7 @@ public class OpsInactiveCardService {
         m.put("lastModifiedAt", row.getContentUpdatedAt() != null ? row.getContentUpdatedAt().toString() : null);
         m.put("lastModifiedBy", row.getContentUpdatedBy());
         m.put("releasedBy", row.getReleasedBy());
+        m.put("releasedReason", row.getReleasedReason());
         m.put("releasedAt", row.getReleasedAt() != null ? row.getReleasedAt().toString() : null);
         return m;
     }

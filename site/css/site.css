@@ -1825,6 +1825,34 @@ html[lang="th"] .pg-outcome-reason-preview {
   background: #ef4444;
   color: #fff;
 }
+
+/* 통합체크 — JPAY·ICOPAY 일별 대조 (불일치 일자도 동일 행 배경, 불일치 셀만 강조) */
+#contentsMain table.integrated-check-grid tbody tr.integrated-check-row--jpay {
+  background: #fff4ed !important;
+}
+#contentsMain table.integrated-check-grid tbody tr.integrated-check-row--icopay {
+  background: #ecfdf3 !important;
+}
+#contentsMain table.integrated-check-grid td.integrated-check-meta-cell {
+  background: #fff !important;
+  color: #1f2937 !important;
+}
+#contentsMain table.integrated-check-grid td.integrated-check-cell--mismatch {
+  background: #eceff3 !important;
+  color: #dc2626 !important;
+  font-weight: 600;
+}
+#contentsMain table.integrated-check-grid td.integrated-check-status--ok {
+  background: #fef9c3 !important;
+  color: #1f2937 !important;
+  font-weight: 700;
+}
+#contentsMain table.integrated-check-grid td.integrated-check-status--check {
+  background: #eceff3 !important;
+  color: #dc2626 !important;
+  font-weight: 700;
+}
+
 .pay-grid-status-badge--pending {
   background: #94a3b8;
   color: #fff;

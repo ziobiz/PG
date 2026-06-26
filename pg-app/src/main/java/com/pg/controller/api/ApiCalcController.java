@@ -11,6 +11,7 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.service.ChillPayService;
 import com.pg.service.HqLedgerSysSettingsService;
 import com.pg.service.HqNotifyMappingService;
+import com.pg.service.IntegratedCheckService;
 import com.pg.service.OrgAccessService;
 import com.pg.service.JpayIntegratedListService;
 import com.pg.service.JpayTradeApiService;
@@ -51,6 +52,7 @@ public class ApiCalcController {
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
     private final OrgAccessService orgAccessService;
     private final JpayIntegratedListService jpayIntegratedListService;
+    private final IntegratedCheckService integratedCheckService;
     private final JpayTradeApiService jpayTradeApiService;
     private final OutcomeReasonTranslateService outcomeReasonTranslateService;
 
@@ -60,6 +62,7 @@ public class ApiCalcController {
                              HqLedgerSysSettingsService hqLedgerSysSettingsService,
                              OrgAccessService orgAccessService,
                              JpayIntegratedListService jpayIntegratedListService,
+                             IntegratedCheckService integratedCheckService,
                              JpayTradeApiService jpayTradeApiService,
                              OutcomeReasonTranslateService outcomeReasonTranslateService) {
         this.payListService = payListService;
@@ -71,6 +74,7 @@ public class ApiCalcController {
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
         this.orgAccessService = orgAccessService;
         this.jpayIntegratedListService = jpayIntegratedListService;
+        this.integratedCheckService = integratedCheckService;
         this.jpayTradeApiService = jpayTradeApiService;
         this.outcomeReasonTranslateService = outcomeReasonTranslateService;
     }
@@ -509,6 +513,56 @@ public class ApiCalcController {
         }
     }
 
+    /** 통합체크 — JPAY 일별(조회통합) vs ICOPAY 일별(일별결제) 대조 */
+    @GetMapping("/integratedCheckSummary")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> integratedCheckSummary(
+            @RequestParam Map<String, String> params,
+            @RequestParam(required = false) String searchOrderDir,
+            @RequestParam(required = false) String searchKeyword,
+            @RequestParam(required = false) String searchOrderNo,
+            @RequestParam(required = false) String searchFieldType,
+            @RequestParam(required = false) String searchPayDivCd,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
+            Authentication authentication) {
+        try {
+            String sk = searchKeyword != null ? searchKeyword.trim() : "";
+            String son = searchOrderNo != null ? searchOrderNo.trim() : "";
+            String sft = searchFieldType != null ? searchFieldType.trim().toUpperCase(Locale.ROOT) : "";
+            if (!sft.isEmpty() && !sk.isEmpty()) {
+                switch (sft) {
+                    case "ORDER_NO" -> {
+                        son = sk;
+                        sk = "";
+                    }
+                    case "APPROVAL_NO", "MID" -> { /* searchKeyword blob filter */ }
+                    case "ALL" -> { /* keep sk */ }
+                    default -> { /* keep sk */ }
+                }
+            }
+            LocalDate tFrom = searchFromDate;
+            LocalDate tTo = searchToDate;
+            if (tFrom == null || tTo == null) {
+                return ResponseEntity.ok(ApiResponse.fail("거래일자(searchFromDate, searchToDate)는 필수입니다.", "VALIDATION"));
+            }
+            if (tFrom.isAfter(tTo)) {
+                return ResponseEntity.ok(ApiResponse.fail("거래일자 시작이 종료보다 늦을 수 없습니다.", "VALIDATION"));
+            }
+            long span = ChronoUnit.DAYS.between(tFrom, tTo) + 1;
+            if (span > DAILY_CHILL_SUMMARY_MAX_DAYS) {
+                return ResponseEntity.ok(ApiResponse.fail("조회 기간은 " + DAILY_CHILL_SUMMARY_MAX_DAYS + "일 이내로 지정해 주세요.", "VALIDATION"));
+            }
+            PayListSearchRequest payReq = PayListSearchRequest.fromParams(params);
+            Map<String, Object> payload = integratedCheckService.buildIntegratedCheckSummary(
+                    tFrom, tTo, sk, son, searchPayDivCd, searchOrderDir, payReq, authentication);
+            return ResponseEntity.ok(ApiResponse.ok(payload));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "JPAY"));
+        }
+    }
+
     private static Map<String, Long> statusBucketCountsFromPayListStatusBar(Map<String, Object> meta) {
         Map<String, Long> out = new LinkedHashMap<>();
         if (meta == null) {
@@ -810,7 +864,8 @@ public class ApiCalcController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
             @RequestParam(required = false) String searchFieldType,
-            @RequestParam(defaultValue = "false") boolean autoSync) {
+            @RequestParam(defaultValue = "false") boolean autoSync,
+            Authentication authentication) {
         try {
             LocalDate tFrom = searchFromDate;
             LocalDate tTo = searchToDate;
@@ -822,7 +877,8 @@ public class ApiCalcController {
             }
             /* 조회(GET)는 캐시만 읽음. Playwright Export 동기화는 POST /jpayTrSync 전용(504 방지). */
             PageResult<Map<String, Object>> r = jpayIntegratedListService.search(
-                    page, size, searchKeyword, searchOrderNo, searchPayDivCd, tFrom, tTo, false, searchFieldType);
+                    page, size, searchKeyword, searchOrderNo, searchPayDivCd, tFrom, tTo, false, searchFieldType,
+                    authentication);
             return ResponseEntity.ok(ApiResponse.ok(r));
         } catch (IllegalStateException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "JPAY"));
