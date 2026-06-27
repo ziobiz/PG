@@ -640,3 +640,24 @@ ALTER TABLE tb_hq_pay_card_blacklist
 ALTER TABLE tb_merchant_profile
     ALTER COLUMN card_risk_policy_mode SET DEFAULT 'DISABLED';
 
+-- V197: 전산설정 — 운영 시간대(IANA) — db/V197_ledger_operational_timezone.sql 과 동일
+ALTER TABLE tb_hq_ledger_sys_settings ADD COLUMN IF NOT EXISTS operational_timezone VARCHAR(64);
+UPDATE tb_hq_ledger_sys_settings
+SET operational_timezone = 'Asia/Tokyo'
+WHERE operational_timezone IS NULL OR BTRIM(operational_timezone) = '';
+
+-- V198: NOTI 유령 오승인(10) 정정 — db/V198_noti_ghost_success_without_approval_fix.sql 과 동일
+UPDATE pg_trnsctn
+SET status = '21',
+    paid_at = NULL,
+    chill_payment_status = '21',
+    outcome_reason = '불안전한 파라미터 정보 오류',
+    outcome_reason_code = 'INCOMPLETE_PARAMS',
+    outcome_reason_source = 'ICOPAY',
+    outcome_reason_at = CURRENT_TIMESTAMP
+WHERE status = '10'
+  AND UPPER(TRIM(COALESCE(origin, ''))) = 'NOTI'
+  AND (chill_transaction_id IS NULL OR BTRIM(chill_transaction_id) = '')
+  AND (approval_no IS NULL OR BTRIM(approval_no) = '')
+  AND (card_pan_display IS NULL OR BTRIM(card_pan_display) = '');
+

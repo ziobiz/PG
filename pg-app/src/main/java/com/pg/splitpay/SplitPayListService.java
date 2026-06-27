@@ -7,6 +7,8 @@ import com.pg.repository.SplitPayContractRepository;
 import com.pg.repository.SplitPayInstallmentRepository;
 import jakarta.persistence.criteria.Predicate;
 import com.pg.service.OrgAccessService;
+import com.pg.service.HqLedgerSysSettingsService;
+import com.pg.util.ViewDisplayTimezoneResolver;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -23,6 +25,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.time.ZoneId;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -31,13 +35,16 @@ public class SplitPayListService {
     private final SplitPayContractRepository contractRepository;
     private final SplitPayInstallmentRepository installmentRepository;
     private final OrgAccessService orgAccessService;
+    private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
 
     public SplitPayListService(SplitPayContractRepository contractRepository,
                                SplitPayInstallmentRepository installmentRepository,
-                               OrgAccessService orgAccessService) {
+                               OrgAccessService orgAccessService,
+                               HqLedgerSysSettingsService hqLedgerSysSettingsService) {
         this.contractRepository = contractRepository;
         this.installmentRepository = installmentRepository;
         this.orgAccessService = orgAccessService;
+        this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
     }
 
     @Transactional(readOnly = true)
@@ -100,7 +107,19 @@ public class SplitPayListService {
         m.put("intervalValue", c.getIntervalValue());
         m.put("status", c.getStatus());
         m.put("contractDate", c.getContractDate() != null ? c.getContractDate().toString() : "");
-        m.put("createdAt", c.getCreatedAt() != null ? c.getCreatedAt().toString().replace('T', ' ') : "");
+        m.put("createdAt", formatSplitPayDateTime(c.getCreatedAt()));
         return m;
+    }
+
+    private String formatSplitPayDateTime(LocalDateTime naive) {
+        if (naive == null) {
+            return "";
+        }
+        ZoneId standard = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+        Optional<ZoneId> view = ViewDisplayTimezoneResolver.currentRequestOverride();
+        if (view.isEmpty()) {
+            return naive.toString().replace('T', ' ');
+        }
+        return ViewDisplayTimezoneResolver.formatNaiveAsWallDateTime(naive, standard, view);
     }
 }

@@ -21,6 +21,7 @@ import com.pg.util.JpaySignatureUtil;
 import com.pg.util.JpayTransactionIdApplier;
 import com.pg.util.NotifyTxnPaidAtUtil;
 import com.pg.util.NotifyToTxnStatusMerge;
+import com.pg.util.PaidApprovalEvidenceGuard;
 import com.pg.util.PayCardFailOutcomeRules;
 import com.pg.util.TxnOutcomeReasonApplier;
 import org.slf4j.Logger;
@@ -217,9 +218,25 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         if (merged == null || merged.isBlank()) {
             merged = next;
         }
+        Map<String, String> evidenceKeys = new LinkedHashMap<>();
+        if (!txnId.isBlank()) {
+            evidenceKeys.put("chillTransactionId", txnId.trim());
+        }
+        String statusBeforeGuard = merged;
+        merged = PaidApprovalEvidenceGuard.adjustIfPaidWithoutEvidence(
+                merged, t, null, evidenceKeys, PgVendor.JPAY, ret);
+        boolean voidFromIncompleteParams = PaidApprovalEvidenceGuard.wasDowngradedFromPaid(statusBeforeGuard, merged);
+        if (voidFromIncompleteParams) {
+            log.warn("JPAY 노티 승인 근거 없음 → 무효(21) trnId={} orderNo={} returncode={}",
+                    t.getTrnId(), orderKey, ret);
+        }
         t.setStatus(merged);
-        t.setChillPaymentStatus(JpayNotifyStatusResolver.chillPaymentStatusLabel(merged, ret));
-        Optional<String> recordedReason = TxnOutcomeReasonApplier.applyFromJpayNotifyForm(t, prevStatus, merged, form);
+        t.setChillPaymentStatus(voidFromIncompleteParams
+                ? PaidApprovalEvidenceGuard.ST_VOID
+                : JpayNotifyStatusResolver.chillPaymentStatusLabel(merged, ret));
+        Optional<String> recordedReason = voidFromIncompleteParams
+                ? TxnOutcomeReasonApplier.applyIncompletePaidParams(t, prevStatus, merged, TxnOutcomeReasonApplier.SOURCE_JPAY)
+                : TxnOutcomeReasonApplier.applyFromJpayNotifyForm(t, prevStatus, merged, form);
         applyPaidAtForNotifyOutcome(t, merged, form);
         if (t.getSettledYn() == null || t.getSettledYn().isBlank()) {
             t.setSettledYn("N");
@@ -297,9 +314,25 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         if (merged == null || merged.isBlank()) {
             merged = next;
         }
+        String syncTxnId = first(form, "transaction_id");
+        Map<String, String> evidenceKeys = new LinkedHashMap<>();
+        if (!syncTxnId.isBlank()) {
+            evidenceKeys.put("chillTransactionId", syncTxnId.trim());
+        }
+        String statusBeforeGuard = merged;
+        merged = PaidApprovalEvidenceGuard.adjustIfPaidWithoutEvidence(
+                merged, t, null, evidenceKeys, PgVendor.JPAY, ret);
+        boolean voidFromIncompleteParams = PaidApprovalEvidenceGuard.wasDowngradedFromPaid(statusBeforeGuard, merged);
+        if (voidFromIncompleteParams) {
+            log.warn("JPAY 3DS 동기 복귀 승인 근거 없음 → 무효(21) trnId={} orderNo={}", t.getTrnId(), on);
+        }
         t.setStatus(merged);
-        t.setChillPaymentStatus(JpayNotifyStatusResolver.chillPaymentStatusLabel(merged, ret));
-        Optional<String> recordedReason2 = TxnOutcomeReasonApplier.applyFromJpayNotifyForm(t, prevStatus, merged, form);
+        t.setChillPaymentStatus(voidFromIncompleteParams
+                ? PaidApprovalEvidenceGuard.ST_VOID
+                : JpayNotifyStatusResolver.chillPaymentStatusLabel(merged, ret));
+        Optional<String> recordedReason2 = voidFromIncompleteParams
+                ? TxnOutcomeReasonApplier.applyIncompletePaidParams(t, prevStatus, merged, TxnOutcomeReasonApplier.SOURCE_JPAY)
+                : TxnOutcomeReasonApplier.applyFromJpayNotifyForm(t, prevStatus, merged, form);
         applyPaidAtForNotifyOutcome(t, merged, form);
         JpayBuyerContactApplier.mergeFromNotifyForm(t, form);
         pgTrnsctnRepository.save(t);
@@ -334,7 +367,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
             ZoneId wall = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
             LocalDateTime parsed = parseJpayPaymentDateFromForm(form);
             t.setPaidAt(NotifyTxnPaidAtUtil.resolvePaidAtForApproval(t, parsed, wall));
-        } else if (ST_FAIL.equals(merged) || "08".equals(merged)) {
+        } else {
             t.setPaidAt(null);
         }
     }

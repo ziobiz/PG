@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDate;
 import java.util.Map;
 
-/** 운영관리 — 대행거래내역(PG 계약 원가 건별 + 정산유무). */
+/** 검수관리 — 통합수수료(PG 계약 원가 건별 + 정산유무). */
 @RestController
 @RequestMapping("/api/ops/agencyTxnList")
 public class ApiOpsAgencyTxnListController {

@@ -12,6 +12,8 @@ import com.pg.repository.MerchantChatbotProductRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.util.ChillPayDirectCreditUtil;
+import com.pg.util.ViewDisplayTimezoneResolver;
+import com.pg.api.dto.PayListItemDto;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,19 +48,22 @@ public class MerchantChatbotOrderService {
     private final MerchantChatbotProductRepository productRepository;
     private final MerchantChatbotProductService productService;
     private final ChatbotPayLinkDeliveryService chatbotPayLinkDeliveryService;
+    private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
 
     public MerchantChatbotOrderService(MerchantChatbotOrderRepository orderRepository,
                                        OrgUnitRepository orgUnitRepository,
                                        MerchantProfileRepository merchantProfileRepository,
                                        MerchantChatbotProductRepository productRepository,
                                        MerchantChatbotProductService productService,
-                                       ChatbotPayLinkDeliveryService chatbotPayLinkDeliveryService) {
+                                       ChatbotPayLinkDeliveryService chatbotPayLinkDeliveryService,
+                                       HqLedgerSysSettingsService hqLedgerSysSettingsService) {
         this.orderRepository = orderRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.productRepository = productRepository;
         this.productService = productService;
         this.chatbotPayLinkDeliveryService = chatbotPayLinkDeliveryService;
+        this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
     }
 
     /**
@@ -125,7 +130,7 @@ public class MerchantChatbotOrderService {
         return out;
     }
 
-    private static Map<String, Object> toAdminRow(MerchantChatbotOrder o) {
+    private Map<String, Object> toAdminRow(MerchantChatbotOrder o) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id", o.getId());
         m.put("status", o.getStatus());
@@ -148,9 +153,22 @@ public class MerchantChatbotOrderService {
         m.put("checkoutOrderNo", nz(o.getCheckoutOrderNo()));
         m.put("pgTrnId", nz(o.getPgTrnId()));
         m.put("orderMemo", nz(o.getOrderMemo()));
-        m.put("createdAt", o.getCreatedAt() != null ? o.getCreatedAt().toString() : "");
-        m.put("updatedAt", o.getUpdatedAt() != null ? o.getUpdatedAt().toString() : "");
+        m.put("createdAt", formatChatbotOrderDateTime(o.getCreatedAt()));
+        m.put("updatedAt", formatChatbotOrderDateTime(o.getUpdatedAt()));
         return m;
+    }
+
+    private String formatChatbotOrderDateTime(Instant instant) {
+        if (instant == null) {
+            return "";
+        }
+        ZoneId standard = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+        LocalDateTime naive = LocalDateTime.ofInstant(instant, standard);
+        Optional<ZoneId> view = ViewDisplayTimezoneResolver.currentRequestOverride();
+        if (view.isEmpty()) {
+            return naive.toString();
+        }
+        return ViewDisplayTimezoneResolver.formatNaiveAsWallDateTime(naive, standard, view);
     }
 
     /**

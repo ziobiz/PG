@@ -1,69 +1,96 @@
 package com.pg.util;
 
+import com.pg.api.dto.TxnDualLineSpec;
+
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
  * 거래·정산 시각 2줄 표시.
- * <p>레거시: {@link #formatDualLineTimeOnly} 등은 JP(UTC+9)·TH(UTC+7) 고정 오프셋.</p>
- * <p>총판 설정: {@link #formatConfigurableDualLineTimeOnly} 등은 태그·{@link ZoneId} 두 줄(동일 Zone이면 1줄).</p>
- * {@code naiveInterpretZone}은 naive {@link LocalDateTime}의 벽시계(전산설정 {@code display_timezone} 등)로 Instant를 구합니다.
+ * <p>1줄=운영 시간대(전산설정 {@code operational_timezone}), 2줄=표준 시간대(ICOPAY {@code display_timezone}).</p>
+ * {@code naiveInterpretZone}은 naive {@link LocalDateTime}의 벽시계(표준 시간대)로 Instant를 구합니다.
  */
 public final class TrnTimeDualZoneDisplay {
 
-    private static final ZoneOffset DISPLAY_JP = ZoneOffset.ofHours(9);
-    private static final ZoneOffset DISPLAY_TH = ZoneOffset.ofHours(7);
+    private static final ZoneId LEGACY_DEFAULT_OPERATIONAL = ZoneId.of("Asia/Tokyo");
+    private static final ZoneId LEGACY_DEFAULT_STANDARD = ZoneId.of("Asia/Bangkok");
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm:ss");
     private static final DateTimeFormatter DT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private TrnTimeDualZoneDisplay() {
     }
 
-    /** 1행: {@code JP HH:mm:ss}, 2행: {@code TH HH:mm:ss} */
+    /** 레거시 호환 — 운영=Tokyo, 표준=Bangkok IANA (고정 오프셋 아님). */
     public static String formatDualLineTimeOnly(LocalDateTime naiveWallClock, ZoneId naiveInterpretZone) {
-        if (naiveWallClock == null) {
-            return "";
-        }
-        ZoneId z = naiveInterpretZone != null ? naiveInterpretZone : ZoneId.of("Asia/Bangkok");
-        Instant instant = naiveWallClock.atZone(z).toInstant();
-        LocalTime jpLt = LocalTime.ofInstant(instant, DISPLAY_JP);
-        LocalTime thLt = LocalTime.ofInstant(instant, DISPLAY_TH);
-        return "JP " + TIME.format(jpLt) + "\n" + "TH " + TIME.format(thLt);
+        return formatConfigurableDualLineTimeOnly(naiveWallClock, naiveInterpretZone,
+                "JP", LEGACY_DEFAULT_OPERATIONAL, "TH", LEGACY_DEFAULT_STANDARD);
     }
 
-    /** 1행: {@code JP yyyy-MM-dd HH:mm:ss}, 2행: {@code TH ...} */
     public static String formatDualLineDateTime(LocalDateTime naiveWallClock, ZoneId naiveInterpretZone) {
-        if (naiveWallClock == null) {
-            return "";
-        }
-        ZoneId z = naiveInterpretZone != null ? naiveInterpretZone : ZoneId.of("Asia/Bangkok");
-        Instant instant = naiveWallClock.atZone(z).toInstant();
-        ZonedDateTime jp = ZonedDateTime.ofInstant(instant, DISPLAY_JP);
-        ZonedDateTime th = ZonedDateTime.ofInstant(instant, DISPLAY_TH);
-        return "JP " + jp.format(DT) + "\n" + "TH " + th.format(DT);
+        return formatConfigurableDualLineDateTime(naiveWallClock, naiveInterpretZone,
+                "JP", LEGACY_DEFAULT_OPERATIONAL, "TH", LEGACY_DEFAULT_STANDARD);
     }
 
-    /**
-     * 구간 시작·끝(naive, 동일 {@code naiveInterpretZone})을 JP·TH 두 줄로
-     * {@code JP 시작 ~ 끝} / {@code TH 시작 ~ 끝} 형태로 반환합니다.
-     */
     public static String formatDualLineDateTimeRange(LocalDateTime startNaive, LocalDateTime endNaive, ZoneId naiveInterpretZone) {
+        return formatDualLineDateTimeRange(startNaive, endNaive, naiveInterpretZone, null);
+    }
+
+    public static String formatDualLineDateTimeRange(LocalDateTime startNaive, LocalDateTime endNaive,
+                                                       ZoneId naiveInterpretZone, TxnDualLineSpec spec) {
         if (startNaive == null || endNaive == null) {
             return "";
         }
-        ZoneId z = naiveInterpretZone != null ? naiveInterpretZone : ZoneId.of("Asia/Bangkok");
+        if (spec == null) {
+            ZoneId z = naiveInterpretZone != null ? naiveInterpretZone : LEGACY_DEFAULT_STANDARD;
+            Instant si = startNaive.atZone(z).toInstant();
+            Instant ei = endNaive.atZone(z).toInstant();
+            ZonedDateTime sJp = ZonedDateTime.ofInstant(si, LEGACY_DEFAULT_OPERATIONAL);
+            ZonedDateTime eJp = ZonedDateTime.ofInstant(ei, LEGACY_DEFAULT_OPERATIONAL);
+            ZonedDateTime sTh = ZonedDateTime.ofInstant(si, LEGACY_DEFAULT_STANDARD);
+            ZonedDateTime eTh = ZonedDateTime.ofInstant(ei, LEGACY_DEFAULT_STANDARD);
+            return "JP " + sJp.format(DT) + " ~ " + eJp.format(DT) + "\n" + "TH " + sTh.format(DT) + " ~ " + eTh.format(DT);
+        }
+        ZoneId z = spec.displayZone2() != null ? spec.displayZone2() : LEGACY_DEFAULT_STANDARD;
         Instant si = startNaive.atZone(z).toInstant();
         Instant ei = endNaive.atZone(z).toInstant();
-        ZonedDateTime sJp = ZonedDateTime.ofInstant(si, DISPLAY_JP);
-        ZonedDateTime eJp = ZonedDateTime.ofInstant(ei, DISPLAY_JP);
-        ZonedDateTime sTh = ZonedDateTime.ofInstant(si, DISPLAY_TH);
-        ZonedDateTime eTh = ZonedDateTime.ofInstant(ei, DISPLAY_TH);
-        return "JP " + sJp.format(DT) + " ~ " + eJp.format(DT) + "\n" + "TH " + sTh.format(DT) + " ~ " + eTh.format(DT);
+        ZonedDateTime s1 = ZonedDateTime.ofInstant(si, spec.displayZone1());
+        ZonedDateTime e1 = ZonedDateTime.ofInstant(ei, spec.displayZone1());
+        ZonedDateTime s2 = ZonedDateTime.ofInstant(si, spec.displayZone2());
+        ZonedDateTime e2 = ZonedDateTime.ofInstant(ei, spec.displayZone2());
+        if (spec.displayZone1().equals(spec.displayZone2()) && spec.tag1().equalsIgnoreCase(spec.tag2())) {
+            return spec.tag1() + " " + s1.format(DT) + " ~ " + e1.format(DT);
+        }
+        return spec.tag1() + " " + s1.format(DT) + " ~ " + e1.format(DT) + "\n"
+                + spec.tag2() + " " + s2.format(DT) + " ~ " + e2.format(DT);
+    }
+
+    public static String formatDualLineDateTimeWithSpec(LocalDateTime naiveWallClock, ZoneId naiveInterpretZone,
+                                                        TxnDualLineSpec spec) {
+        if (spec == null) {
+            return formatDualLineDateTime(naiveWallClock, naiveInterpretZone);
+        }
+        return formatWithSpecDateTime(naiveWallClock, spec);
+    }
+
+    /** {@link TxnDualLineSpec} 2줄 — naive 벽시계는 항상 {@code displayZone2}(표준 시간대)로 해석. */
+    public static String formatWithSpecTimeOnly(LocalDateTime naiveWallClock, TxnDualLineSpec spec) {
+        if (spec == null) {
+            return formatDualLineTimeOnly(naiveWallClock, LEGACY_DEFAULT_STANDARD);
+        }
+        return formatConfigurableDualLineTimeOnly(naiveWallClock, spec.displayZone2(),
+                spec.tag1(), spec.displayZone1(), spec.tag2(), spec.displayZone2());
+    }
+
+    public static String formatWithSpecDateTime(LocalDateTime naiveWallClock, TxnDualLineSpec spec) {
+        if (spec == null) {
+            return formatDualLineDateTime(naiveWallClock, LEGACY_DEFAULT_STANDARD);
+        }
+        return formatConfigurableDualLineDateTime(naiveWallClock, spec.displayZone2(),
+                spec.tag1(), spec.displayZone1(), spec.tag2(), spec.displayZone2());
     }
 
     /** 총판 설정 2줄(시각만). 동일 {@link ZoneId}·동일 태그면 1줄. */
@@ -72,9 +99,9 @@ public final class TrnTimeDualZoneDisplay {
         if (naiveWallClock == null) {
             return "";
         }
-        ZoneId z = naiveInterpretZone != null ? naiveInterpretZone : ZoneId.of("Asia/Bangkok");
-        ZoneId d1 = display1 != null ? display1 : ZoneId.of("Asia/Tokyo");
-        ZoneId d2 = display2 != null ? display2 : ZoneId.of("Asia/Bangkok");
+        ZoneId z = naiveInterpretZone != null ? naiveInterpretZone : LEGACY_DEFAULT_STANDARD;
+        ZoneId d1 = display1 != null ? display1 : LEGACY_DEFAULT_OPERATIONAL;
+        ZoneId d2 = display2 != null ? display2 : LEGACY_DEFAULT_STANDARD;
         String t1 = tag1 != null && !tag1.isBlank() ? tag1.trim() : "JP";
         String t2 = tag2 != null && !tag2.isBlank() ? tag2.trim() : "TH";
         Instant instant = naiveWallClock.atZone(z).toInstant();
@@ -91,9 +118,9 @@ public final class TrnTimeDualZoneDisplay {
         if (naiveWallClock == null) {
             return "";
         }
-        ZoneId z = naiveInterpretZone != null ? naiveInterpretZone : ZoneId.of("Asia/Bangkok");
-        ZoneId d1 = display1 != null ? display1 : ZoneId.of("Asia/Tokyo");
-        ZoneId d2 = display2 != null ? display2 : ZoneId.of("Asia/Bangkok");
+        ZoneId z = naiveInterpretZone != null ? naiveInterpretZone : LEGACY_DEFAULT_STANDARD;
+        ZoneId d1 = display1 != null ? display1 : LEGACY_DEFAULT_OPERATIONAL;
+        ZoneId d2 = display2 != null ? display2 : LEGACY_DEFAULT_STANDARD;
         String t1 = tag1 != null && !tag1.isBlank() ? tag1.trim() : "JP";
         String t2 = tag2 != null && !tag2.isBlank() ? tag2.trim() : "TH";
         Instant instant = naiveWallClock.atZone(z).toInstant();

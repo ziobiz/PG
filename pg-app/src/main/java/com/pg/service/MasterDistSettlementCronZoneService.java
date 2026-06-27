@@ -3,6 +3,7 @@ package com.pg.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pg.api.dto.TxnDualLineSpec;
+import com.pg.util.LedgerZoneDisplayTag;
 import com.pg.entity.MasterDistSettlementCycleConfig;
 import com.pg.entity.MerchantProfile;
 import com.pg.entity.OrgLevel;
@@ -71,6 +72,7 @@ public class MasterDistSettlementCronZoneService {
         addTxnPreset(out, "SG", "SG (싱가포르)");
         addTxnPreset(out, "HK", "HK (홍콩)");
         addTxnPreset(out, "CH", "CH (중국)");
+        addTxnPreset(out, "VT", "VT (베트남)");
         return out;
     }
 
@@ -91,7 +93,7 @@ public class MasterDistSettlementCronZoneService {
             u = "USA";
         }
         return switch (u) {
-            case "KR", "JP", "USA", "TH", "SG", "HK", "CH" -> u;
+            case "KR", "JP", "USA", "TH", "SG", "HK", "CH", "VT" -> u;
             default -> "JP";
         };
     }
@@ -106,46 +108,14 @@ public class MasterDistSettlementCronZoneService {
             case "SG" -> ZoneId.of("Asia/Singapore");
             case "HK" -> ZoneId.of("Asia/Hong_Kong");
             case "CH" -> ZoneId.of("Asia/Shanghai");
+            case "VT" -> ZoneId.of("Asia/Ho_Chi_Minh");
             default -> ZoneId.of("Asia/Tokyo");
         };
     }
 
-    /** 정산 크론 ZoneId → 그리드 2줄 접두 태그(대표 IANA 매핑). */
+    /** 정산 크론 ZoneId → 그리드 2줄 접두 태그 — {@link LedgerZoneDisplayTag}. */
     public static String zoneIdToShortTag(ZoneId zoneId) {
-        if (zoneId == null) {
-            return "KR";
-        }
-        String id = zoneId.getId();
-        if ("Asia/Seoul".equals(id)) {
-            return "KR";
-        }
-        if ("Asia/Tokyo".equals(id)) {
-            return "JP";
-        }
-        if ("Asia/Bangkok".equals(id)) {
-            return "TH";
-        }
-        if ("America/New_York".equals(id)) {
-            return "USA";
-        }
-        if ("Asia/Singapore".equals(id)) {
-            return "SG";
-        }
-        if ("Asia/Hong_Kong".equals(id)) {
-            return "HK";
-        }
-        if ("Asia/Shanghai".equals(id)) {
-            return "CH";
-        }
-        if ("UTC".equals(id)) {
-            return "UTC";
-        }
-        int slash = id.lastIndexOf('/');
-        String tail = slash >= 0 ? id.substring(slash + 1) : id;
-        if (tail.length() > 4) {
-            tail = tail.substring(0, 4);
-        }
-        return tail.toUpperCase(Locale.ROOT);
+        return LedgerZoneDisplayTag.zoneIdToShortTag(zoneId);
     }
 
     /**

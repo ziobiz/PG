@@ -247,24 +247,34 @@
   };
 
   /**
-   * JPAY 통합조회 — ICOPAY dbStatus·icopayStatus 우선, 포털 Trading Status 텍스트 폴백.
+   * JPAY 통합조회 — 포털 Export Trading Status·icopayStatus 우선, ICOPAY DB는 폴백.
    * @returns {'success'|'cancel'|'void'|'refund'|'fail'|'pending'|'other'|'neutral'}
    */
   global.PG_UI.resolveJpayTrRowTone = function (row) {
     if (!row || typeof row !== 'object') return 'neutral';
-    var code = row.dbStatus != null ? String(row.dbStatus).trim() : '';
-    if (!code && row.icopayStatus != null) code = String(row.icopayStatus).trim();
+    var code = row.icopayStatus != null ? String(row.icopayStatus).trim() : '';
+    if (!code && row.status != null) {
+      var portal = String(row.status).trim();
+      if (!portal && row.tradingStatus != null) portal = String(row.tradingStatus).trim();
+      if (portal) return global.PG_UI.resolveChillTrRowTone({ status: portal });
+    }
     if (code) {
       return global.PG_UI.resolvePayRowTone({
         status: code,
         chillPaymentStatus: row.statusNm != null ? String(row.statusNm).trim() : ''
       });
     }
-    var portal = row.status != null ? String(row.status).trim() : '';
-    if (!portal && row.tradingStatus != null) portal = String(row.tradingStatus).trim();
-    if (!portal && row.statusNm != null) portal = String(row.statusNm).trim();
-    if (portal) {
-      return global.PG_UI.resolveChillTrRowTone({ status: portal });
+    var portalOnly = row.status != null ? String(row.status).trim() : '';
+    if (!portalOnly && row.tradingStatus != null) portalOnly = String(row.tradingStatus).trim();
+    if (portalOnly) {
+      return global.PG_UI.resolveChillTrRowTone({ status: portalOnly });
+    }
+    code = row.dbStatus != null ? String(row.dbStatus).trim() : '';
+    if (code) {
+      return global.PG_UI.resolvePayRowTone({
+        status: code,
+        chillPaymentStatus: row.statusNm != null ? String(row.statusNm).trim() : ''
+      });
     }
     return 'neutral';
   };

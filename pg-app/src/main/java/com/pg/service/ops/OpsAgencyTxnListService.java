@@ -4,12 +4,15 @@ import com.pg.api.dto.PageResult;
 import com.pg.api.dto.PayListItemDto;
 import com.pg.api.dto.PayListRowContext;
 import com.pg.entity.ChargebackFeeTier;
+import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgAgency;
 import com.pg.entity.PgAgencyCostPolicy;
 import com.pg.entity.PgTrnsctn;
+import com.pg.integration.pg.PgVendor;
 import com.pg.repository.HqLedgerSysSettingsRepository;
+import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgAgencyCostPolicyRepository;
 import com.pg.repository.PgAgencyRepository;
@@ -55,7 +58,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 운영관리 — 대행거래내역(수수료내역 패턴 + PG 대행수수료설정 + 맨 끝 정산유무).
+ * 검수관리 — 통합수수료(수수료내역 패턴 + PG 대행수수료설정 + 맨 끝 정산유무).
  */
 @Service
 public class OpsAgencyTxnListService {
@@ -71,6 +74,7 @@ public class OpsAgencyTxnListService {
     private final PgAgencyRepository pgAgencyRepository;
     private final PgAgencyCostTxnBreakdownCalculator pgAgencyCostTxnBreakdownCalculator;
     private final HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository;
+    private final MerchantPgBindingRepository merchantPgBindingRepository;
 
     public OpsAgencyTxnListService(TaxReportService taxReportService,
                                    OrgAccessService orgAccessService,
@@ -80,7 +84,8 @@ public class OpsAgencyTxnListService {
                                    PgAgencyCostPolicyRepository pgAgencyCostPolicyRepository,
                                    PgAgencyRepository pgAgencyRepository,
                                    PgAgencyCostTxnBreakdownCalculator pgAgencyCostTxnBreakdownCalculator,
-                                   HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository) {
+                                   HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository,
+                                   MerchantPgBindingRepository merchantPgBindingRepository) {
         this.taxReportService = taxReportService;
         this.orgAccessService = orgAccessService;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
@@ -90,6 +95,7 @@ public class OpsAgencyTxnListService {
         this.pgAgencyRepository = pgAgencyRepository;
         this.pgAgencyCostTxnBreakdownCalculator = pgAgencyCostTxnBreakdownCalculator;
         this.hqLedgerSysSettingsRepository = hqLedgerSysSettingsRepository;
+        this.merchantPgBindingRepository = merchantPgBindingRepository;
     }
 
     public Map<String, Object> accessMeta(Authentication authentication) {
@@ -188,13 +194,7 @@ public class OpsAgencyTxnListService {
                 policyByPgCd.putIfAbsent(p.getPgCd().trim().toUpperCase(Locale.ROOT), p);
             }
         }
-        Map<String, String> pgNmByCd = new HashMap<>();
-        for (PgAgency a : pgAgencyRepository.findAllByOrderByPgCdAsc()) {
-            if (a.getPgCd() != null && !a.getPgCd().isBlank()) {
-                String cd = a.getPgCd().trim().toUpperCase(Locale.ROOT);
-                pgNmByCd.putIfAbsent(cd, a.getPgNm() != null ? a.getPgNm().trim() : cd);
-            }
-        }
+        Map<String, String> pgNmByCd = buildPgDisplayNameByCd();
 
         Map<String, Long> monthCbCountCache = new HashMap<>();
         Map<Long, List<ChargebackFeeTier>> tiersByPolicyId = new HashMap<>();
@@ -205,6 +205,21 @@ public class OpsAgencyTxnListService {
                 .filter(s -> !s.isEmpty())
                 .distinct()
                 .collect(Collectors.toList());
+        Map<String, Long> orgIdByMerchantCode = new HashMap<>();
+        if (!mids.isEmpty()) {
+            for (OrgUnit ou : orgUnitRepository.findByCodeIn(mids)) {
+                if (ou.getCode() != null && !ou.getCode().isBlank() && ou.getId() != null) {
+                    orgIdByMerchantCode.put(ou.getCode().trim(), ou.getId());
+                }
+            }
+        }
+        Map<Long, List<MerchantPgBinding>> bindingsByOrgId = new HashMap<>();
+        if (!orgIdByMerchantCode.isEmpty()) {
+            for (MerchantPgBinding b : merchantPgBindingRepository
+                    .findByOrgUnitIdInOrderByOrgUnitIdAscSortOrderAsc(orgIdByMerchantCode.values())) {
+                bindingsByOrgId.computeIfAbsent(b.getOrgUnitId(), k -> new ArrayList<>()).add(b);
+            }
+        }
         Map<String, PayListRowContext> ctxByMerchant = mids.isEmpty()
                 ? Map.of() : payListService.buildPayListRowContextMap(mids);
 
@@ -216,7 +231,11 @@ public class OpsAgencyTxnListService {
             if (t.getMerchantId() == null || t.getMerchantId().isBlank()) {
                 continue;
             }
-            Map<String, Object> row = buildRow(t, ctxByMerchant, policyByPgCd, pgNmByCd, feeResolver,
+            String compId = t.getMerchantId().trim();
+            Long orgId = orgIdByMerchantCode.get(compId);
+            List<MerchantPgBinding> bindings = orgId != null
+                    ? bindingsByOrgId.getOrDefault(orgId, List.of()) : List.of();
+            Map<String, Object> row = buildRow(t, ctxByMerchant, bindings, policyByPgCd, pgNmByCd, feeResolver,
                     displayZone, monthCbCountCache, tiersByPolicyId, now);
             row.put("rowNo", rowNoStart + rowIdx);
             rowIdx++;
@@ -235,8 +254,26 @@ public class OpsAgencyTxnListService {
         return pr;
     }
 
+    private Map<String, String> buildPgDisplayNameByCd() {
+        Map<String, String> pgNmByCd = new HashMap<>();
+        for (PgAgency a : pgAgencyRepository.findAllByOrderByPgCdAsc()) {
+            if (a.getPgCd() == null || a.getPgCd().isBlank()) {
+                continue;
+            }
+            String cd = a.getPgCd().trim().toUpperCase(Locale.ROOT);
+            String nm = a.getPgNm() != null && !a.getPgNm().isBlank() ? a.getPgNm().trim() : cd;
+            pgNmByCd.putIfAbsent(cd, nm);
+            String norm = PgVendor.normalizePgCdKey(a.getPgCd());
+            if (!norm.isEmpty()) {
+                pgNmByCd.putIfAbsent(norm, nm);
+            }
+        }
+        return pgNmByCd;
+    }
+
     private Map<String, Object> buildRow(PgTrnsctn t,
                                          Map<String, PayListRowContext> ctxByMerchant,
+                                         List<MerchantPgBinding> merchantBindings,
                                          Map<String, PgAgencyCostPolicy> policyByPgCd,
                                          Map<String, String> pgNmByCd,
                                          FeeCurrencyRoundResolver feeResolver,
@@ -257,7 +294,7 @@ public class OpsAgencyTxnListService {
                         ? pol.getCurrencyCode().trim() : payCurKey);
 
         Map<String, Object> m = new LinkedHashMap<>();
-        m.put("pgCd", pgCd);
+        m.put("pgCd", resolveMerchantPgAcquirerLabel(t, merchantBindings, payCtx, pgNmByCd, pgCd));
         m.put("pgNm", pgCd.isEmpty() ? "—" : pgNmByCd.getOrDefault(pgCd, pgCd));
         m.put("compNm", payRow.get("compNm"));
         m.put("compId", payRow.get("compId"));
@@ -306,6 +343,193 @@ public class OpsAgencyTxnListService {
         return m;
     }
 
+    /**
+     * 업체관리 「결제대행사 설정」(tb_merchant_pg_binding)의 PG를 거래 van·루트·통화로 매칭해
+     * API연동설정(tb_pg_agency) 결제대행사명(예: JPAY API JPY)으로 표시.
+     */
+    private static String resolveMerchantPgAcquirerLabel(PgTrnsctn t,
+                                                         List<MerchantPgBinding> merchantBindings,
+                                                         PayListRowContext payCtx,
+                                                         Map<String, String> pgNmByCd,
+                                                         String vanKey) {
+        Optional<MerchantPgBinding> binding = resolveMerchantPgBindingForTxn(t, merchantBindings, payCtx, pgNmByCd, vanKey);
+        if (binding.isEmpty()) {
+            return vanKey == null || vanKey.isBlank() ? "—" : lookupPgDisplayName(pgNmByCd, vanKey);
+        }
+        String cd = binding.get().getPgCd();
+        return lookupPgDisplayName(pgNmByCd, cd != null ? cd.trim() : "");
+    }
+
+    /** 가맹점 결제대행사 설정 행 중 이번 거래에 해당하는 바인딩 */
+    private static Optional<MerchantPgBinding> resolveMerchantPgBindingForTxn(PgTrnsctn t,
+                                                                              List<MerchantPgBinding> merchantBindings,
+                                                                              PayListRowContext payCtx,
+                                                                              Map<String, String> pgNmByCd,
+                                                                              String vanKey) {
+        List<MerchantPgBinding> active = filterActiveBindings(merchantBindings);
+        if (active.isEmpty()) {
+            return bindingFromPayContext(payCtx);
+        }
+        List<MerchantPgBinding> matched = filterBindingsMatchingVan(active, vanKey);
+        if (matched.isEmpty()) {
+            matched = vanKey == null || vanKey.isBlank() ? active : List.of();
+        }
+        Optional<MerchantPgBinding> chosen = resolveBindingForTxn(matched, t);
+        if (chosen.isEmpty() && matched.size() > 1) {
+            chosen = disambiguateBindingByCurrency(matched, t, pgNmByCd);
+        }
+        if (chosen.isPresent()) {
+            return chosen;
+        }
+        return bindingFromPayContext(payCtx);
+    }
+
+    private static List<MerchantPgBinding> filterActiveBindings(List<MerchantPgBinding> bindings) {
+        if (bindings == null || bindings.isEmpty()) {
+            return List.of();
+        }
+        List<MerchantPgBinding> out = new ArrayList<>();
+        for (MerchantPgBinding b : bindings) {
+            if (b == null) {
+                continue;
+            }
+            String act = b.getActivationYn() != null ? b.getActivationYn().trim() : "";
+            if (!act.isEmpty() && "N".equalsIgnoreCase(act)) {
+                continue;
+            }
+            out.add(b);
+        }
+        return out;
+    }
+
+    private static Optional<MerchantPgBinding> bindingFromPayContext(PayListRowContext payCtx) {
+        if (payCtx == null || payCtx.getBinding() == null) {
+            return Optional.empty();
+        }
+        MerchantPgBinding b = payCtx.getBinding();
+        if (b.getPgCd() == null || b.getPgCd().isBlank()) {
+            return Optional.empty();
+        }
+        return Optional.of(b);
+    }
+
+    private static List<MerchantPgBinding> filterBindingsMatchingVan(List<MerchantPgBinding> bindings, String vanKey) {
+        if (bindings == null || bindings.isEmpty()) {
+            return List.of();
+        }
+        if (vanKey == null || vanKey.isBlank()) {
+            return bindings;
+        }
+        String vanNorm = PgVendor.normalizePgCdKey(vanKey);
+        List<MerchantPgBinding> matched = new ArrayList<>();
+        for (MerchantPgBinding b : bindings) {
+            if (bindingPgCdMatchesVan(b, vanKey, vanNorm)) {
+                matched.add(b);
+            }
+        }
+        return matched;
+    }
+
+    private static boolean bindingPgCdMatchesVan(MerchantPgBinding b, String vanKey, String vanNorm) {
+        if (b.getPgCd() == null || b.getPgCd().isBlank()) {
+            return false;
+        }
+        String cd = b.getPgCd().trim();
+        if (vanKey.equalsIgnoreCase(cd)) {
+            return true;
+        }
+        String cdNorm = PgVendor.normalizePgCdKey(cd);
+        if (vanNorm.equals(cdNorm)) {
+            return true;
+        }
+        if (PgVendor.isJpayFamily(vanKey) && PgVendor.isJpayFamily(cd)) {
+            return true;
+        }
+        if (PgVendor.isChillPayFamily(vanKey) && PgVendor.isChillPayFamily(cd)) {
+            return true;
+        }
+        return cdNorm.startsWith(vanNorm + "_") || cdNorm.startsWith(vanNorm);
+    }
+
+    private static Optional<MerchantPgBinding> disambiguateBindingByCurrency(List<MerchantPgBinding> list,
+                                                                             PgTrnsctn t,
+                                                                             Map<String, String> pgNmByCd) {
+        if (list == null || list.size() <= 1) {
+            return list == null || list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
+        }
+        String cur = firstNonBlankCurrency(t);
+        if (cur.isEmpty()) {
+            return Optional.empty();
+        }
+        for (MerchantPgBinding b : list) {
+            String cd = b.getPgCd() != null ? b.getPgCd().trim() : "";
+            String nm = lookupPgDisplayName(pgNmByCd, cd);
+            String cdU = cd.toUpperCase(Locale.ROOT);
+            String nmU = nm.toUpperCase(Locale.ROOT);
+            if (cdU.contains(cur) || nmU.contains(cur)) {
+                return Optional.of(b);
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static String firstNonBlankCurrency(PgTrnsctn t) {
+        if (t == null) {
+            return "";
+        }
+        if (t.getCurType() != null && !t.getCurType().isBlank()) {
+            return t.getCurType().trim().toUpperCase(Locale.ROOT);
+        }
+        return "";
+    }
+
+    private static Optional<MerchantPgBinding> resolveBindingForTxn(List<MerchantPgBinding> list, PgTrnsctn t) {
+        if (list == null || list.isEmpty()) {
+            return Optional.empty();
+        }
+        String rootNo = t.getRouteNo() != null ? t.getRouteNo().trim() : "";
+        if (rootNo.isEmpty()) {
+            return preferOperationalBinding(list).or(() -> Optional.of(list.get(0)));
+        }
+        Optional<MerchantPgBinding> exact = list.stream()
+                .filter(b -> b.getRootNo() != null && rootNo.equals(b.getRootNo().trim()))
+                .findFirst();
+        if (exact.isPresent()) {
+            return exact;
+        }
+        return list.stream()
+                .filter(b -> b.getRootNo() == null || b.getRootNo().isBlank())
+                .findFirst()
+                .or(() -> preferOperationalBinding(list))
+                .or(() -> Optional.of(list.get(0)));
+    }
+
+    private static Optional<MerchantPgBinding> preferOperationalBinding(List<MerchantPgBinding> list) {
+        if (list == null || list.isEmpty()) {
+            return Optional.empty();
+        }
+        return list.stream()
+                .filter(b -> "Y".equalsIgnoreCase(String.valueOf(b.getOperationalYn()).trim()))
+                .findFirst();
+    }
+
+    private static String lookupPgDisplayName(Map<String, String> pgNmByCd, String cd) {
+        if (cd == null || cd.isBlank()) {
+            return "—";
+        }
+        String u = cd.trim().toUpperCase(Locale.ROOT);
+        String label = pgNmByCd.get(u);
+        if (label != null && !label.isBlank()) {
+            return label.trim();
+        }
+        String norm = PgVendor.normalizePgCdKey(cd);
+        label = pgNmByCd.get(norm);
+        if (label != null && !label.isBlank()) {
+            return label.trim();
+        }
+        return cd.trim();
+    }
+
     private static void putZeroFeeColumns(Map<String, Object> m) {
         for (String k : List.of("txnFixedFeesSum", "pctFeesSum", "usdtFee", "fxFee", "fee3dsFee",
                 "failFee", "cancelFee", "voidFee", "manualVoidFee", "refundFee", "chargebackFee",
@@ -327,7 +551,7 @@ public class OpsAgencyTxnListService {
                                                String statusGroup) {
         return (root, query, cb) -> {
             List<Predicate> parts = new ArrayList<>();
-            parts.add(cb.between(root.get("createdAt"), fromDt, toDt));
+            parts.add(cb.between(cb.coalesce(root.get("paidAt"), root.get("createdAt")), fromDt, toDt));
             parts.add(cb.isNotNull(root.get("merchantId")));
             parts.add(cb.notEqual(root.get("merchantId"), ""));
             if (allowedMerchants != null) {

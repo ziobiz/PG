@@ -18,6 +18,10 @@ public class HqLedgerSysSettings {
     @Column(name = "display_timezone", length = 64)
     private String displayTimezone;
 
+    /** 결제·정산 그리드 거래시간 1줄(운영) — 2줄은 {@link #displayTimezone} */
+    @Column(name = "operational_timezone", length = 64)
+    private String operationalTimezone;
+
     @Column(name = "ntp_sync_enabled_yn", nullable = false, length = 1)
     private String ntpSyncEnabledYn = "N";
 
@@ -215,6 +219,8 @@ public class HqLedgerSysSettings {
     public void setId(Long id) { this.id = id; }
     public String getDisplayTimezone() { return displayTimezone; }
     public void setDisplayTimezone(String displayTimezone) { this.displayTimezone = displayTimezone; }
+    public String getOperationalTimezone() { return operationalTimezone; }
+    public void setOperationalTimezone(String operationalTimezone) { this.operationalTimezone = operationalTimezone; }
     public String getNtpSyncEnabledYn() { return ntpSyncEnabledYn; }
     public void setNtpSyncEnabledYn(String ntpSyncEnabledYn) { this.ntpSyncEnabledYn = ntpSyncEnabledYn; }
     public String getNtpServerList() { return ntpServerList; }

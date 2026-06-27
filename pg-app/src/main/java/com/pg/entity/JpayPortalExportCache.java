@@ -40,6 +40,17 @@ public class JpayPortalExportCache {
     @Column(name = "sync_count_today", nullable = false)
     private int syncCountToday;
 
+    /** 당일 스케줄(SCHEDULED) 동기화 횟수 집계 기준일 */
+    @Column(name = "schedule_sync_count_date")
+    private LocalDate scheduleSyncCountDate;
+
+    @Column(name = "schedule_sync_count_today", nullable = false)
+    private int scheduleSyncCountToday;
+
+    /** 매일 00:00 기본 동기화(2일) 마지막 수행 기준일 */
+    @Column(name = "last_basic_sync_date")
+    private LocalDate lastBasicSyncDate;
+
     @PrePersist
     @PreUpdate
     protected void touchUpdatedAt() {
@@ -72,4 +83,13 @@ public class JpayPortalExportCache {
 
     public int getSyncCountToday() { return syncCountToday; }
     public void setSyncCountToday(int syncCountToday) { this.syncCountToday = syncCountToday; }
+
+    public LocalDate getScheduleSyncCountDate() { return scheduleSyncCountDate; }
+    public void setScheduleSyncCountDate(LocalDate scheduleSyncCountDate) { this.scheduleSyncCountDate = scheduleSyncCountDate; }
+
+    public int getScheduleSyncCountToday() { return scheduleSyncCountToday; }
+    public void setScheduleSyncCountToday(int scheduleSyncCountToday) { this.scheduleSyncCountToday = scheduleSyncCountToday; }
+
+    public LocalDate getLastBasicSyncDate() { return lastBasicSyncDate; }
+    public void setLastBasicSyncDate(LocalDate lastBasicSyncDate) { this.lastBasicSyncDate = lastBasicSyncDate; }
 }

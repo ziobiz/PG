@@ -6,6 +6,7 @@ import com.pg.entity.AppUser;
 import com.pg.merchantdeploy.MerchantApiDeploymentService;
 import com.pg.service.AuthService;
 import com.pg.service.CompService;
+import com.pg.util.MerchantNotifyUrlVisibility;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -79,7 +80,9 @@ public class ApiHqMerchantApiDeploymentController {
             HttpServletRequest req) {
         try {
             assertCanViewComp(compId);
-            return ResponseEntity.ok(ApiResponse.ok(deploymentService.buildKit(compId, vendorScope, req)));
+            Map<String, Object> kit = deploymentService.buildKit(compId, vendorScope, req);
+            applyRegisteredNotifyUrlVisibility(kit);
+            return ResponseEntity.ok(ApiResponse.ok(kit));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         }
@@ -92,7 +95,9 @@ public class ApiHqMerchantApiDeploymentController {
             HttpServletRequest req) {
         try {
             assertCanViewComp(compId);
-            return ResponseEntity.ok(ApiResponse.ok(deploymentService.buildDocsPortal(compId, req)));
+            Map<String, Object> portal = deploymentService.buildDocsPortal(compId, req);
+            applyRegisteredNotifyUrlVisibility(portal);
+            return ResponseEntity.ok(ApiResponse.ok(portal));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         }
@@ -140,6 +145,27 @@ public class ApiHqMerchantApiDeploymentController {
                 }
             }
         }
+    }
+
+    private void applyRegisteredNotifyUrlVisibility(Map<String, Object> kitOrPortal) {
+        if (canViewerSeeRegisteredNotifyUrls()) {
+            MerchantNotifyUrlVisibility.markMerchantNotifyUrlsVisible(kitOrPortal);
+            return;
+        }
+        MerchantNotifyUrlVisibility.redactMerchantNotifyUrlsFromKit(kitOrPortal);
+    }
+
+    private boolean canViewerSeeRegisteredNotifyUrls() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof AppUser u)) {
+            return false;
+        }
+        String orgLevel = "";
+        Map<String, Object> org = authService.getOrgInfo(u.getUsername());
+        if (org != null && org.get("orgLevel") != null) {
+            orgLevel = org.get("orgLevel").toString();
+        }
+        return MerchantNotifyUrlVisibility.canViewerSeeRegisteredNotifyUrls(u.getRole(), orgLevel);
     }
 
     private static String str(Object o) {

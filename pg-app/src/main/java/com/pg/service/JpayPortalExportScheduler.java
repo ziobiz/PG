@@ -11,7 +11,7 @@ import java.time.ZoneId;
 import java.util.Map;
 
 /**
- * JPAY 통합조회 — 전산설정 주기에 따라 포털 Export 자동 동기화.
+ * JPAY 통합조회 — 전산설정 주기 자동 동기화 + 매일 00:00 기본 동기화.
  * ICOPAY 접속 없이 서버가 {@link JpayIntegratedListService#startSyncJob} 을 실행합니다.
  */
 @Service
@@ -31,7 +31,18 @@ public class JpayPortalExportScheduler {
         this.jpayIntegratedListService = jpayIntegratedListService;
     }
 
-    /** 1분마다 전산설정 주기를 확인해 경과 시 동기화를 시작합니다. */
+    /** 매일 00:00(서울) — 스케줄과 별도 기본 동기화(어제·오늘 2일). */
+    @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
+    public void basicMidnightSync() {
+        try {
+            log.info("JPAY 통합조회 기본 동기화(00:00·2일) 시작");
+            jpayIntegratedListService.runBasicMidnightSyncIfDue();
+        } catch (Exception e) {
+            log.warn("JPAY 통합조회 기본 동기화 시작 실패: {}", e.getMessage());
+        }
+    }
+
+    /** 1분마다 전산설정 주기를 확인해 경과 시 증분 동기화를 시작합니다. */
     @Scheduled(fixedRate = 60_000, zone = "Asia/Seoul")
     public void tick() {
         int intervalMin = resolveIntervalMinutes();
@@ -49,10 +60,10 @@ public class JpayPortalExportScheduler {
         }
         lastTriggeredAt = now;
         try {
-            log.info("JPAY 통합조회 자동 동기화 시작 (주기 {}분)", intervalMin);
-            jpayIntegratedListService.startSyncJob(null, null);
+            log.info("JPAY 통합조회 스케줄 동기화 시작 (주기 {}분)", intervalMin);
+            jpayIntegratedListService.startSyncJob(null, null, JpaySyncTrigger.SCHEDULED);
         } catch (Exception e) {
-            log.warn("JPAY 통합조회 자동 동기화 시작 실패: {}", e.getMessage());
+            log.warn("JPAY 통합조회 스케줄 동기화 시작 실패: {}", e.getMessage());
         }
     }
 

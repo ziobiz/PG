@@ -1911,8 +1911,9 @@
     hqChatbotAiSettingsSave: function (body) {
       return post('/api/hq/chatbotAiSettings/save', body || {}).then(function (r) { return r.data; });
     },
-    chatbotOrdersList: function (compId) {
-      return get('/api/chatbot/orders', { compId: String(compId || '').trim() }).then(function (r) {
+    chatbotOrdersList: function (compId, extraParams) {
+      var params = Object.assign({ compId: String(compId || '').trim() }, extraParams || {});
+      return get('/api/chatbot/orders', params).then(function (r) {
         if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '목록 실패'));
         return Array.isArray(r.data) ? r.data : [];
       });

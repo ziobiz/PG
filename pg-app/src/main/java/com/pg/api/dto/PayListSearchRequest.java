@@ -42,6 +42,8 @@ public class PayListSearchRequest {
     private boolean listExport;
     /** 관리자 UI 언어(KO/EN/JP/CH/TH) — 처리사유 번역용. API 파라미터가 아닌 컨트롤러에서 설정 */
     private String adminUiLocale;
+    /** 목록 일시적 표시 시간대(IANA). 비우면 전산설정 표준 시간대 */
+    private String viewDisplayTimezone;
     private int page = 1;
     private int size = 20;
 
@@ -73,6 +75,7 @@ public class PayListSearchRequest {
         r.size = parseInt(raw.get("size"), 20);
         r.skipMeta = isTruthy(raw.get("skipMeta"));
         r.listExport = isTruthy(raw.get("listExport"));
+        r.viewDisplayTimezone = trimToNull(raw.get("viewDisplayTimezone"));
         return r;
     }
 
@@ -98,6 +101,7 @@ public class PayListSearchRequest {
         put(m, "searchOrderDir", searchOrderDir);
         put(m, "searchOrderBy", searchOrderBy);
         put(m, "payListVariant", payListVariant);
+        put(m, "viewDisplayTimezone", viewDisplayTimezone);
         m.put("page", String.valueOf(page));
         m.put("size", String.valueOf(size));
         return m;
@@ -135,6 +139,11 @@ public class PayListSearchRequest {
         if (s == null || s.isBlank()) return false;
         String v = s.trim();
         return "true".equalsIgnoreCase(v) || "1".equals(v) || "Y".equalsIgnoreCase(v);
+    }
+
+    private static String trimToNull(String s) {
+        if (s == null || s.isBlank()) return null;
+        return s.trim();
     }
 
     public String getSearchTranFactor() { return searchTranFactor; }
@@ -189,6 +198,8 @@ public class PayListSearchRequest {
     public void setListExport(boolean listExport) { this.listExport = listExport; }
     public String getAdminUiLocale() { return adminUiLocale; }
     public void setAdminUiLocale(String adminUiLocale) { this.adminUiLocale = adminUiLocale; }
+    public String getViewDisplayTimezone() { return viewDisplayTimezone; }
+    public void setViewDisplayTimezone(String viewDisplayTimezone) { this.viewDisplayTimezone = viewDisplayTimezone; }
 
     /** 일별 집계 등: 검색 조건만 복제(날짜·페이지는 호출부에서 덮어씀). */
     public static PayListSearchRequest shallowCopy(PayListSearchRequest src) {
@@ -222,6 +233,7 @@ public class PayListSearchRequest {
         r.skipMeta = src.skipMeta;
         r.listExport = src.listExport;
         r.adminUiLocale = src.adminUiLocale;
+        r.viewDisplayTimezone = src.viewDisplayTimezone;
         return r;
     }
 }

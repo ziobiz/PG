@@ -14,6 +14,7 @@ import com.pg.service.HqNotifyMappingService;
 import com.pg.service.IntegratedCheckService;
 import com.pg.service.OrgAccessService;
 import com.pg.service.JpayIntegratedListService;
+import com.pg.service.JpaySyncTrigger;
 import com.pg.service.JpayTradeApiService;
 import com.pg.service.LoginNoticePublicService;
 import com.pg.service.OutcomeReasonTranslateService;
@@ -836,9 +837,19 @@ public class ApiCalcController {
     @PostMapping("/jpayTrSync")
     public ResponseEntity<ApiResponse<Map<String, Object>>> jpayTrSync(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
+            @RequestParam(required = false, defaultValue = "false") boolean fullResync) {
         try {
-            return ResponseEntity.ok(ApiResponse.ok(jpayIntegratedListService.startSyncJob(searchFromDate, searchToDate)));
+            JpaySyncTrigger trigger;
+            if (fullResync) {
+                trigger = JpaySyncTrigger.FULL_RESYNC;
+            } else if (searchFromDate != null || searchToDate != null) {
+                trigger = JpaySyncTrigger.EXPLICIT_RANGE;
+            } else {
+                trigger = JpaySyncTrigger.MANUAL;
+            }
+            return ResponseEntity.ok(ApiResponse.ok(
+                    jpayIntegratedListService.startSyncJob(searchFromDate, searchToDate, trigger)));
         } catch (IllegalStateException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "JPAY"));
         } catch (Exception e) {

@@ -41,6 +41,11 @@ public final class PageMenuCatalog {
         add(list, "/hq/domainConfig", "M0115", "도메인구성설정", "본사설정");
         add(list, "/hq/serverManage", "M0116", "서버운영관리", "본사설정");
         add(list, "/hq/chatbotAiSettings", "M0126", "AI챗봇설정", "본사설정");
+        add(list, "/calc/integratedCheck", "M0332", "통합체크", "검수관리");
+        add(list, "/ops/agencyTxnList", "M0607", "통합수수료", "검수관리");
+        add(list, "/calc/jpayTrList", "M0328", "통합조회", "검수관리");
+        add(list, "/calc/queryIntegrated", "M0331", "일별조회", "검수관리");
+        add(list, "/risk/list", "M0701", "리스크 현황", "검수관리");
         add(list, "/system/noticeList", "M0201", "공지사항", "업체관리");
         add(list, "/comp/myCompMng", "M0202", "업체정보조회", "업체관리");
         add(list, "/comp/merchantApiPortal", "M0215", "가맹점API", "업체관리");
@@ -48,10 +53,7 @@ public final class PageMenuCatalog {
         add(list, "/comp/compMngTree", "M0209", "업체관리", "업체관리");
         add(list, "/commission/commisionList", "M0210", "수수료관리", "업체관리");
         add(list, "/comp/compInfoHistList", "M0214", "업체변경이력", "업체관리");
-        add(list, "/calc/integratedCheck", "M0332", "통합체크", "결제관리");
         add(list, "/calc/chillPayTrList", "M0319", "통합내역", "결제관리");
-        add(list, "/calc/jpayTrList", "M0328", "통합조회", "결제관리");
-        add(list, "/calc/queryIntegrated", "M0331", "조회통합", "결제관리");
         add(list, "/pay/splitPay", "M0330", "분할결제내역", "결제관리");
         add(list, "/calc/dailyIntegrated", "M0326", "일별통합", "결제관리");
         add(list, "/calc/payList", "M0301", "결제내역", "결제관리");
@@ -99,8 +101,6 @@ public final class PageMenuCatalog {
         add(list, "/ops/integratedReport", "M0604", "통합 리포트", "운영관리");
         add(list, "/ops/verifyReport", "M0605", "검증 리포트", "운영관리");
         add(list, "/ops/inactiveCard", "M0606", "비활성카드등록", "운영관리");
-        add(list, "/ops/agencyTxnList", "M0607", "대행거래내역", "운영관리");
-        add(list, "/risk/list", "M0701", "리스크 현황", "리스크관리");
         add(list, "/deploy/integrationPlan", "M0901", "연동 진행안", "배포설정");
         add(list, "/deploy/jpayWorkPlan", "M0902", "JPAY 단계 계획", "배포설정");
         add(list, "/deploy/merchantApiPolicy", "M0903", "가맹점 API 배포", "배포설정");

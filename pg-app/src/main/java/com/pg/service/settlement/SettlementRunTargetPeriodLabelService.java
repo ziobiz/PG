@@ -1,5 +1,6 @@
 package com.pg.service.settlement;
 
+import com.pg.api.dto.TxnDualLineSpec;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgTrnsctn;
 import com.pg.entity.SettlementRun;
@@ -50,8 +51,15 @@ public class SettlementRunTargetPeriodLabelService {
                 hqLedgerSysSettingsRepository.findFirstByOrderByIdAsc().orElse(null));
     }
 
+    private TxnDualLineSpec resolveLedgerTxnDualLineSpec() {
+        return HqLedgerSysSettingsService.resolveTxnDualLineSpecFromSettings(
+                hqLedgerSysSettingsRepository.findFirstByOrderByIdAsc().orElse(null));
+    }
+
     private String formatSettlementTargetRangeDual(LocalDateTime startDt, LocalDateTime endDt) {
-        return TrnTimeDualZoneDisplay.formatDualLineDateTimeRange(startDt, endDt, resolveLedgerDisplayZoneId());
+        TxnDualLineSpec spec = HqLedgerSysSettingsService.resolveTxnDualLineSpecFromSettings(
+                hqLedgerSysSettingsRepository.findFirstByOrderByIdAsc().orElse(null));
+        return TrnTimeDualZoneDisplay.formatDualLineDateTimeRange(startDt, endDt, resolveLedgerDisplayZoneId(), spec);
     }
 
     private static String appendSameSuffixToDualPeriodLines(String dualTwoLines, String suffix) {
@@ -152,7 +160,8 @@ public class SettlementRunTargetPeriodLabelService {
         if (closeAt == null) {
             return head + " / 마감 -";
         }
-        return head + "\n마감\n" + TrnTimeDualZoneDisplay.formatDualLineDateTime(closeAt, resolveLedgerDisplayZoneId());
+        return head + "\n마감\n" + TrnTimeDualZoneDisplay.formatDualLineDateTimeWithSpec(
+                closeAt, resolveLedgerDisplayZoneId(), resolveLedgerTxnDualLineSpec());
     }
 
     private Optional<PgTrnsctn> resolvePgTxnForRtRun(SettlementRun r) {
@@ -218,7 +227,8 @@ public class SettlementRunTargetPeriodLabelService {
             startDt = r.getPeriodFrom().atStartOfDay();
             if (SettlementCycleTiming.isPlainSubDailyGridClosingCode(calcCycleNorm)) {
                 return appendSameSuffixToDualPeriodLines(
-                        TrnTimeDualZoneDisplay.formatDualLineDateTime(startDt, resolveLedgerDisplayZoneId()),
+                        TrnTimeDualZoneDisplay.formatDualLineDateTimeWithSpec(
+                                startDt, resolveLedgerDisplayZoneId(), resolveLedgerTxnDualLineSpec()),
                         SETTLEMENT_GRID_MISSING_PERIOD_MSG);
             }
             endDt = r.getPeriodTo().atTime(23, 59, 59);

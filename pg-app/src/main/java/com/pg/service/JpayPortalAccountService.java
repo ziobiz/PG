@@ -74,23 +74,36 @@ public class JpayPortalAccountService {
             entity = repository.findById(id)
                     .orElseThrow(() -> new IllegalArgumentException("계정을 찾을 수 없습니다."));
         } else {
-            Optional<JpayPortalAccount> dup = repository.findByMasterOrgUnitId(masterOrgUnitId);
-            if (dup.isPresent()) {
-                throw new IllegalArgumentException("이 총판에 이미 JPAY 포털 계정이 등록되어 있습니다. 수정하세요.");
-            }
             entity = new JpayPortalAccount();
-        }
-        if (!masterOrgUnitId.equals(entity.getMasterOrgUnitId()) && id != null) {
-            Optional<JpayPortalAccount> dup = repository.findByMasterOrgUnitId(masterOrgUnitId);
-            if (dup.isPresent() && !dup.get().getId().equals(entity.getId())) {
-                throw new IllegalArgumentException("다른 행에 동일 총판 계정이 있습니다.");
-            }
         }
 
         String username = trim(body.get("portalUsername"));
         if (username.isEmpty()) {
             throw new IllegalArgumentException("JPAY 포털 ID를 입력하세요.");
         }
+        String pgCd = trim(body.get("pgCd")).toUpperCase(Locale.ROOT);
+        if (!pgCd.isEmpty() && !PgVendor.isJpayFamily(pgCd)) {
+            throw new IllegalArgumentException("JPAY 계열 PG코드만 선택할 수 있습니다.");
+        }
+
+        long sameMasterCount = repository.countByMasterOrgUnitId(masterOrgUnitId);
+        if (id != null && entity.getMasterOrgUnitId() != null && entity.getMasterOrgUnitId().equals(masterOrgUnitId)) {
+            sameMasterCount = Math.max(0, sameMasterCount - 1);
+        }
+        if (pgCd.isEmpty() && sameMasterCount > 0) {
+            throw new IllegalArgumentException("동일 총판에 추가 계정은 PG코드(JPY/USD 등)를 선택하세요.");
+        }
+        if (!pgCd.isEmpty()) {
+            Optional<JpayPortalAccount> dupPg = repository.findByMasterOrgUnitIdAndPgCd(masterOrgUnitId, pgCd);
+            if (dupPg.isPresent() && (id == null || !dupPg.get().getId().equals(id))) {
+                throw new IllegalArgumentException("이 총판·PG코드 조합이 이미 등록되어 있습니다.");
+            }
+        }
+        Optional<JpayPortalAccount> dupUser = repository.findByMasterOrgUnitIdAndPortalUsername(masterOrgUnitId, username);
+        if (dupUser.isPresent() && (id == null || !dupUser.get().getId().equals(id))) {
+            throw new IllegalArgumentException("이 총판에 동일 포털 ID가 이미 등록되어 있습니다.");
+        }
+
         String newPw = trim(body.get("portalPassword"));
         if (newPw.isEmpty() && (entity.getPortalPassword() == null || entity.getPortalPassword().isBlank())) {
             throw new IllegalArgumentException("JPAY 포털 비밀번호를 입력하세요.");
@@ -103,10 +116,6 @@ public class JpayPortalAccountService {
         entity.setMasterCompCode(masterCode);
         entity.setPortalUsername(username);
         entity.setLabel(trim(body.get("label")));
-        String pgCd = trim(body.get("pgCd")).toUpperCase(Locale.ROOT);
-        if (!pgCd.isEmpty() && !PgVendor.isJpayFamily(pgCd)) {
-            throw new IllegalArgumentException("JPAY 계열 PG코드만 선택할 수 있습니다.");
-        }
         entity.setPgCd(pgCd.isEmpty() ? null : pgCd);
         entity.setUseYn("Y".equalsIgnoreCase(trim(body.get("useYn"))) ? "Y" : "N");
         Integer sort = parseInt(body.get("sortOrder"));

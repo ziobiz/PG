@@ -5,6 +5,7 @@ import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.PgTrnsctn;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -14,13 +15,16 @@ import com.pg.util.MerchantFeeVatUtil;
 import com.pg.util.MerchantDisplayCurrencyResolver;
 import com.pg.util.PayListStatusBarBuckets;
 import com.pg.util.RouteNoDisplayUtil;
+import com.pg.util.PgTrnsctnTxnClock;
 import com.pg.util.TrnTimeDualZoneDisplay;
 import com.pg.util.TxnOutcomeReasonApplier;
+import com.pg.util.ViewDisplayTimezoneResolver;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
@@ -39,32 +43,42 @@ public class PayListItemDto {
     /**
      * 결제내역 그리드 시각: {@code ledgerNaiveWallClockZone} 은 본사 전산설정 표준시간대({@code display_timezone})와 동일하게 두고,
      * naive {@code paid_at}/{@code created_at} 을 그 벽시계로 해석합니다.
-     * 총판 {@code tb_master_dist_settlement_cycle_config} 행이 있으면 1줄=거래시간 프리셋·2줄=정산 크론 Zone, 없으면 JP·TH 고정 2줄.
+     * 총판 {@code tb_master_dist_settlement_cycle_config} 행이 있으면 해당 설정이 우선, 없으면 전산설정 운영·표준 2줄.
      */
     public static Map<String, Object> from(PgTrnsctn t, PayListRowContext ctx) {
         return from(t, ctx, ZoneId.of("Asia/Bangkok"));
     }
 
     public static Map<String, Object> from(PgTrnsctn t, PayListRowContext ctx, ZoneId ledgerNaiveWallClockZone) {
+        return from(t, ctx, ledgerNaiveWallClockZone, null);
+    }
+
+    public static Map<String, Object> from(PgTrnsctn t, PayListRowContext ctx,
+                                           ZoneId ledgerNaiveWallClockZone, ZoneId ledgerOperationalZone) {
         Map<String, Object> row = new HashMap<>();
         String compNm = ctx != null && ctx.getCompNm() != null ? ctx.getCompNm() : t.getMerchantId();
         MerchantProfile mp = ctx != null ? ctx.getProfile() : null;
         MerchantPgBinding b = ctx != null ? ctx.getBinding() : null;
 
-        LocalDateTime txnClock = t.getPaidAt() != null ? t.getPaidAt() : t.getCreatedAt();
-        ZoneId interpret = ledgerNaiveWallClockZone != null ? ledgerNaiveWallClockZone : ZoneId.of("Asia/Bangkok");
-        TxnDualLineSpec dual = ctx != null ? ctx.getTxnDualLineSpec() : null;
+        LocalDateTime txnClock = PgTrnsctnTxnClock.effectiveTxnDateTime(t);
+        TxnDualLineSpec dualBase = ctx != null ? ctx.getTxnDualLineSpec() : null;
+        ZoneId standard = ledgerNaiveWallClockZone != null ? ledgerNaiveWallClockZone : ZoneId.of("Asia/Bangkok");
+        ZoneId operational = ledgerOperationalZone != null ? ledgerOperationalZone : ZoneId.of("Asia/Tokyo");
+        Optional<ZoneId> viewOverride = ViewDisplayTimezoneResolver.currentRequestOverride();
+        Optional<TxnDualLineSpec> dualOpt = ViewDisplayTimezoneResolver.effectiveDualSpec(
+                dualBase, standard, operational, viewOverride);
+        TxnDualLineSpec dual = dualOpt.orElse(null);
+        ZoneId interpret = dual != null ? dual.displayZone2() : standard;
         String payDtStr = txnClock != null
                 ? (dual != null
-                ? TrnTimeDualZoneDisplay.formatConfigurableDualLineDateTime(txnClock, interpret,
-                dual.tag1(), dual.displayZone1(), dual.tag2(), dual.displayZone2())
+                ? TrnTimeDualZoneDisplay.formatWithSpecDateTime(txnClock, dual)
                 : TrnTimeDualZoneDisplay.formatDualLineDateTime(txnClock, interpret))
                 : "";
         if (txnClock != null) {
-            row.put("trnDate", txnClock.toLocalDate().format(TRN_DATE));
+            LocalDate displayDate = ViewDisplayTimezoneResolver.trnDateInZone(txnClock, interpret, viewOverride);
+            row.put("trnDate", ViewDisplayTimezoneResolver.formatIsoDate(displayDate));
             row.put("trnTime", dual != null
-                    ? TrnTimeDualZoneDisplay.formatConfigurableDualLineTimeOnly(txnClock, interpret,
-                    dual.tag1(), dual.displayZone1(), dual.tag2(), dual.displayZone2())
+                    ? TrnTimeDualZoneDisplay.formatWithSpecTimeOnly(txnClock, dual)
                     : TrnTimeDualZoneDisplay.formatDualLineTimeOnly(txnClock, interpret));
         } else {
             row.put("trnDate", "");

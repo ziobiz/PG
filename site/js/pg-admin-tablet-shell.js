@@ -21,6 +21,7 @@
     '/chatbot/orderMng',
     '/calc/chillPayTrList',
     '/pay/chatbotPay',
+    '/pay/splitPay',
     '/ops/integratedReport',
     '/ops/verifyReport',
     '/user/userMng'
@@ -41,6 +42,7 @@
     '/chatbot/orderMng': { icon: 'bi-bag-check-fill', tone: 'bot' },
     '/calc/chillPayTrList': { icon: 'bi-collection-fill', tone: 'pay' },
     '/pay/chatbotPay': { icon: 'bi-chat-square-text-fill', tone: 'bot' },
+    '/pay/splitPay': { icon: 'bi-layers-half', tone: 'pay' },
     '/ops/integratedReport': { icon: 'bi-bar-chart-line-fill', tone: 'ops' },
     '/ops/verifyReport': { icon: 'bi-clipboard2-check-fill', tone: 'ops' },
     '/user/userMng': { icon: 'bi-person-badge-fill', tone: 'user' }

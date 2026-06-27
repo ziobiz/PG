@@ -22,6 +22,7 @@ import com.pg.entity.SettlementSetting;
 import com.pg.util.ChillPayDirectCreditUtil;
 import com.pg.util.PayListStatusBarBuckets;
 import com.pg.util.TrnTimeDualZoneDisplay;
+import com.pg.util.ViewDisplayTimezoneResolver;
 import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.OrgUnitRepository;
@@ -2764,23 +2765,43 @@ public class ChillPayService {
         LocalDateTime tx = parseChillPayApiDateTime(firstNonBlankString(m, "transactionDate", "TransactionDate"));
         LocalDateTime pay = parseChillPayApiDateTime(firstNonBlankString(m, "paymentDate", "PaymentDate"));
         ZoneId primary = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
-        Optional<TxnDualLineSpec> dualOpt = resolveTxnDualLineForChillRow(m);
+        ZoneId operational = hqLedgerSysSettingsService.resolveOperationalDisplayZoneId();
+        java.util.Optional<ZoneId> viewOverride = ViewDisplayTimezoneResolver.currentRequestOverride();
+        java.util.Optional<TxnDualLineSpec> dualOpt = resolveTxnDualLineForChillRow(m)
+                .flatMap(d -> ViewDisplayTimezoneResolver.effectiveDualSpec(d, primary, operational, viewOverride));
         if (tx != null) {
-            m.put("trnDate", tx.toLocalDate().format(CHILL_TRN_DATE_GRID));
-            m.put("trnTime", dualOpt.map(d -> TrnTimeDualZoneDisplay.formatConfigurableDualLineTimeOnly(tx, primary,
-                            d.tag1(), d.displayZone1(), d.tag2(), d.displayZone2()))
-                    .orElseGet(() -> formatJstAndIctTimeSameCell(tx, primary)));
+            m.put("trnDate", ViewDisplayTimezoneResolver.formatIsoDate(
+                    ViewDisplayTimezoneResolver.trnDateInZone(tx, primary, viewOverride)));
+            m.put("trnTime", dualOpt.map(d -> TrnTimeDualZoneDisplay.formatWithSpecTimeOnly(tx, d))
+                    .orElseGet(() -> formatLedgerDualLineTimeOnly(tx, primary)));
         } else {
             m.put("trnDate", "");
             m.put("trnTime", "");
         }
         if (pay != null) {
-            m.put("payCompletedAt", dualOpt.map(d -> TrnTimeDualZoneDisplay.formatConfigurableDualLineDateTime(pay, primary,
-                            d.tag1(), d.displayZone1(), d.tag2(), d.displayZone2()))
-                    .orElseGet(() -> formatJstAndIctDateTimeSameCell(pay, primary)));
+            m.put("payCompletedAt", dualOpt.map(d -> TrnTimeDualZoneDisplay.formatWithSpecDateTime(pay, d))
+                    .orElseGet(() -> formatLedgerDualLineDateTime(pay, primary)));
         } else {
             m.put("payCompletedAt", "");
         }
+    }
+
+    private String formatLedgerDualLineTimeOnly(LocalDateTime naiveWallClock, ZoneId interpretAsZone) {
+        ZoneId primary = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+        ZoneId operational = hqLedgerSysSettingsService.resolveOperationalDisplayZoneId();
+        TxnDualLineSpec base = hqLedgerSysSettingsService.resolveLedgerTxnDualLineSpec();
+        TxnDualLineSpec spec = ViewDisplayTimezoneResolver.effectiveDualSpec(
+                base, primary, operational, ViewDisplayTimezoneResolver.currentRequestOverride()).orElse(base);
+        return TrnTimeDualZoneDisplay.formatWithSpecTimeOnly(naiveWallClock, spec);
+    }
+
+    private String formatLedgerDualLineDateTime(LocalDateTime naiveWallClock, ZoneId interpretAsZone) {
+        ZoneId primary = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+        ZoneId operational = hqLedgerSysSettingsService.resolveOperationalDisplayZoneId();
+        TxnDualLineSpec base = hqLedgerSysSettingsService.resolveLedgerTxnDualLineSpec();
+        TxnDualLineSpec spec = ViewDisplayTimezoneResolver.effectiveDualSpec(
+                base, primary, operational, ViewDisplayTimezoneResolver.currentRequestOverride()).orElse(base);
+        return TrnTimeDualZoneDisplay.formatWithSpecDateTime(naiveWallClock, spec);
     }
 
     private Optional<TxnDualLineSpec> resolveTxnDualLineForChillRow(Map<String, Object> m) {
@@ -2796,7 +2817,7 @@ public class ChillPayService {
         if (ou.isEmpty() || ou.get().getOrgLevel() != OrgLevel.MERCHANT) {
             return Optional.empty();
         }
-        return masterDistSettlementCronZoneService.resolveTxnDualLineSpecForOrgUnitId(ou.get().getId());
+        return java.util.Optional.of(hqLedgerSysSettingsService.resolveLedgerTxnDualLineSpec());
     }
 
     private void enrichChillPayTrRowOrg(Map<String, Object> m,
@@ -3056,14 +3077,6 @@ public class ChillPayService {
         } catch (DateTimeParseException e) {
             return null;
         }
-    }
-
-    private static String formatJstAndIctTimeSameCell(LocalDateTime naiveWallClock, ZoneId interpretAsZone) {
-        return TrnTimeDualZoneDisplay.formatDualLineTimeOnly(naiveWallClock, interpretAsZone);
-    }
-
-    private static String formatJstAndIctDateTimeSameCell(LocalDateTime naiveWallClock, ZoneId interpretAsZone) {
-        return TrnTimeDualZoneDisplay.formatDualLineDateTime(naiveWallClock, interpretAsZone);
     }
 
     private static void aliasIfMissing(Map<String, Object> m, String lowerKey, String pascalKey) {

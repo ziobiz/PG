@@ -133,6 +133,24 @@
       CH: '按日支付',
       TH: 'ชำระรายวัน'
     },
+    '일별조회': {
+      EN: 'Daily query',
+      JP: '日別照会',
+      CH: '按日查询',
+      TH: 'ค้นหารายวัน'
+    },
+    '목록 표시 시간대 안내': {
+      EN: 'Temporarily changes transaction date/time display for this list only. HQ settings and DB are unchanged.',
+      JP: 'この一覧の取引日・時刻表示のみ一時変更します。本社設定・DBは変わりません。',
+      CH: '仅临时更改本列表的交易日期/时间显示。不改变总部设置或数据库。',
+      TH: 'เปลี่ยนการแสดงวันที่/เวลาธุรกรรมของรายการนี้ชั่วคราวเท่านั้น ไม่แก้การตั้งค่าสำนักงานใหญ่หรือ DB'
+    },
+    '조회통합': {
+      EN: 'Daily query',
+      JP: '日別照会',
+      CH: '按日查询',
+      TH: 'ค้นหารายวัน'
+    },
     '일별수수료': {
       EN: 'Daily fees',
       JP: '日別手数料',
@@ -4865,11 +4883,11 @@
       CH: '按交易汇总（不含每次结算手续费）。结算手续费单独列。',
       TH: 'จากยอดรวมธุรกรรม (ไม่รวมค่าธรรมเนียมต่อรัน) ค่าธรรมเนียมรายบรรจุคอลัมน์แยก'
     },
-    '해당 실행의 집계 구간 요약(JP·TH 두 줄).': {
-      EN: 'Summary of this run’s aggregation window (two lines for JP/TH).',
-      JP: '当該実行の集計区間の要約（JP・THは2行）。',
-      CH: '该执行汇总区间的摘要（日泰两行）。',
-      TH: 'สรุปช่วงสรุปของรันนี้ (JP/TH สองบรรทัด)'
+    '해당 실행의 집계 구간 요약(운영·표준 두 줄).': {
+      EN: 'Summary of this run’s aggregation window (operational and standard timezones, two lines).',
+      JP: '当該実行の集計区間の要約（運用・標準の2行）。',
+      CH: '该执行汇总区间的摘要（运营·标准两行）。',
+      TH: 'สรุปช่วงสรุปของรันนี้ (เขตเวลาปฏิบัติการ·มาตรฐาน สองบรรทัด)'
     },
     '해당 정산 실행 지급액에서 미수금으로 차감된 금액': {
       EN: 'Amount deducted as receivable from this run’s payout.',
@@ -7629,11 +7647,17 @@
       CH: '运营管理',
       TH: 'จัดการปฏิบัติการ'
     },
+    검수관리: {
+      EN: 'Inspection management',
+      JP: '検収管理',
+      CH: '检收管理',
+      TH: 'จัดการตรวจสอบ'
+    },
     리스크관리: {
-      EN: 'Risk management',
-      JP: 'リスク管理',
-      CH: '风险管理',
-      TH: 'จัดการความเสี่ยง'
+      EN: 'Inspection management',
+      JP: '検収管理',
+      CH: '检收管理',
+      TH: 'จัดการตรวจสอบ'
     },
     배포설정: {
       EN: 'Deploy settings',
@@ -8711,6 +8735,23 @@
     '이 JPAY 포털 계정을 삭제할까요?': { EN: 'Delete this JPAY portal account?', JP: 'このJPAYポータルアカウントを削除しますか？', CH: '删除此 JPAY 门户账户？', TH: 'ลบบัญชีพอร์ทัล JPAY นี้หรือไม่' },
     '포털표시': { EN: 'Portal label', JP: 'ポータル表示', CH: '门户显示名', TH: 'ชื่อแสดงพอร์ทัล' },
     'JPAY상태': { EN: 'JPAY status', JP: 'JPAY状態', CH: 'JPAY 状态', TH: 'สถานะ JPAY' },
+    'JPAY 동기화': { EN: 'JPAY sync', JP: 'JPAY同期', CH: 'JPAY 同步', TH: 'ซิงค์ JPAY' },
+    '전체 재동기화': { EN: 'Full re-sync', JP: '全体再同期', CH: '全部重新同步', TH: 'ซิงค์ใหม่ทั้งหมด' },
+    'JPAY 동기화 진행 중입니다…': { EN: 'JPAY sync in progress…', JP: 'JPAY同期を実行中…', CH: 'JPAY 同步进行中…', TH: 'กำลังซิงค์ JPAY…' },
+    'JPAY 동기화가 완료되었습니다.': { EN: 'JPAY sync completed.', JP: 'JPAY同期が完了しました。', CH: 'JPAY 同步已完成。', TH: 'ซิงค์ JPAY เสร็จแล้ว' },
+    'JPAY 동기화 실패': { EN: 'JPAY sync failed', JP: 'JPAY同期失敗', CH: 'JPAY 同步失败', TH: 'ซิงค์ JPAY ล้มเหลว' },
+    'JPAY 동기화가 지연되고 있습니다. 잠시 후 [새로고침]으로 결과를 확인하세요.': {
+      EN: 'JPAY sync is taking longer than expected. Refresh shortly to see the result.',
+      JP: 'JPAY同期が遅延しています。しばらくして[更新]で結果を確認してください。',
+      CH: 'JPAY 同步耗时较长。请稍后点击 [刷新] 查看结果。',
+      TH: 'ซิงค์ JPAY ใช้เวลานาน กรุณากด [รีเฟรช] อีกครั้งในไม่ช้า'
+    },
+    '전체 재동기화는 전산설정의 초기화 동기화(개월) 구간을 포털에서 다시 받아 해당 기간 캐시를 교체합니다. 시간이 걸릴 수 있습니다. 계속할까요?': {
+      EN: 'Full re-sync re-fetches the init-sync month range from the portal and replaces cache for that period. This may take a while. Continue?',
+      JP: '全体再同期は全算設定の初期化同期(月)区間をポータルから再取得しキャッシュを置換します。時間がかかる場合があります。続行しますか？',
+      CH: '全部重新同步将从门户重新拉取账务设置中的初始化同步(月)区间并替换缓存。可能耗时较长。是否继续？',
+      TH: 'ซิงค์ใหม่ทั้งหมดจะดึงช่วงเดือนเริ่มต้นจากพอร์ทัลและแทนที่แคช อาจใช้เวลานาน ดำเนินการต่อหรือไม่'
+    },
     'URL출처': { EN: 'URL source', JP: 'URL出所', CH: 'URL 来源', TH: 'แหล่ง URL' },
     '동기화 후 조회됩니다. [JPAY 동기화]를 실행하세요.': {
       EN: 'Sync first, then search. Run [JPAY sync].',
@@ -10678,6 +10719,24 @@
       CH: '时间与同步',
       TH: 'เวลาและการซิงโครไนซ์'
     },
+    'ziobiz/NOTI 노티미들웨어의 시스템·환경설정(시간·NTP·동기화)과 동일 목적입니다. 실제 OS 시각 동기화는 VPS에서 chrony/systemd-timesyncd 등으로 수행합니다. 표준 시간대(IANA)는 ICOPAY 거래시간 2줄(표준)·노티 적재·배치·후속조치 경과 판단의 벽시계 기준입니다. 운영 시간대는 결제·정산 그리드 거래시간 1줄(운영) 표시입니다. 거래일(그리드·검색)은 결제완료 시각(paid_at) 우선·없으면 적재 시각이며, 표준 시간대 변경으로 거래일자는 바뀌지 않습니다. 거래시간 1줄=운영 태그, 2줄=표준 태그(TH·JP·CH·SG·VT 등). 신규·미설정 시 표준=Asia/Bangkok(TH), 운영=Asia/Tokyo(JP) 입니다.': {
+      EN: 'Same intent as ziobiz/NOTI middleware system settings (time, NTP, sync). OS clock sync runs on the VPS. Standard timezone (IANA) drives line 2 txn time, notify ingest, batch jobs, and pay-follow rules; operational timezone drives line 1. Transaction date (grid/search) uses paid_at when present, else created_at—it does not change when you switch standard timezone. Line 1 tag = operational; line 2 = standard (TH, JP, CH, SG, VT, …). Defaults: standard=Asia/Bangkok (TH), operational=Asia/Tokyo (JP).',
+      JP: 'ziobiz/NOTI と同目的。標準(IANA)は取引時刻2行目・ノティ等の壁時計、運用は1行目。取引日(一覧・検索)は paid_at 優先(なければ created_at)で、標準変更でも取引日は変わりません。1行目=運用タグ、2行目=標準タグ(TH/JP/CH/SG/VT等)。既定: 標準=Asia/Bangkok(TH), 運用=Asia/Tokyo(JP)。',
+      CH: '与 ziobiz/NOTI 系统设置目的一致。标准(IANA)为交易时间第2行等墙钟；运营为第1行。交易日期(列表/搜索)优先 paid_at，否则 created_at，更改标准时区不改变交易日期。第1行=运营标签，第2行=标准标签(TH/JP/CH/SG/VT等)。默认：标准=Asia/Bangkok(TH)，运营=Asia/Tokyo(JP)。',
+      TH: 'วัตถุประสงค์เดียวกับ ziobiz/NOTI มาตรฐาน(IANA)=เวลาแถว 2 ปฏิบัติการ=แถว 1 วันที่ธุรกรรม(ตาราง/ค้นหา)ใช้ paid_at ก่อน(ไม่มีใช้ created_at) เปลี่ยนมาตรฐานไม่เปลี่ยนวันที่ แถว 1=แท็กปฏิบัติการ แถว 2=มาตรฐาน (TH/JP/CH/SG/VT) ค่าเริ่มต้น: มาตรฐาน=Asia/Bangkok(TH) ปฏิบัติการ=Asia/Tokyo(JP)'
+    },
+    'ziobiz/NOTI 노티미들웨어의 시스템·환경설정(시간·NTP·동기화)과 동일 목적입니다. 실제 OS 시각 동기화는 VPS에서 chrony/systemd-timesyncd 등으로 수행합니다. 표준 시간대(IANA)는 ICOPAY 거래일·거래시간(2줄)·노티 적재·배치·후속조치 경과 판단의 벽시계 기준입니다. 운영 시간대는 결제·정산 그리드 거래시간 1줄(운영용) 표시입니다. 거래시간 1줄=운영 시간대 태그(TH·JP·CH·SG·VT 등), 2줄=표준 시간대 태그입니다. 표준 시간대를 변경하면 기존 거래의 DB 시각(naive)을 동일 시각(Instant) 기준으로 새 표준 벽시계로 변환합니다. 신규·미설정 시 표준=Asia/Bangkok(TH), 운영=Asia/Tokyo(JP) 입니다.': {
+      EN: 'Same intent as ziobiz/NOTI middleware system settings (time, NTP, sync). OS clock sync runs on the VPS. Standard timezone (IANA) is the ICOPAY wall clock for transaction date/time (line 2), notify ingest, batch jobs, and pay-follow rules. Operational timezone is line 1 on payment/settlement grids. Line 1 tag = operational (TH, JP, CH, SG, VT, …); line 2 tag = standard. Changing standard timezone converts existing naive DB timestamps at the same instant. Defaults: standard=Asia/Bangkok (TH), operational=Asia/Tokyo (JP).',
+      JP: 'ziobiz/NOTI と同目的。OS 同期は VPS。標準(IANA)は ICOPAY 取引日・時刻2行目・ノティ・バッチ・フォローの壁時計。運用は1行目。1行目タグ=運用(TH・JP・CH・SG・VT等)、2行目=標準。標準変更時は naive DB を同一 Instant で変換。既定: 標準=Asia/Bangkok(TH), 運用=Asia/Tokyo(JP)。',
+      CH: '与 ziobiz/NOTI 系统设置目的一致。标准(IANA)为 ICOPAY 交易日期/时间第2行等墙钟基准；运营为第1行。第1行标签=运营(TH/JP/CH/SG/VT等)，第2行=标准。更改标准时区按同一 Instant 转换 naive DB。默认：标准=Asia/Bangkok(TH)，运营=Asia/Tokyo(JP)。',
+      TH: 'วัตถุประสงค์เดียวกับ ziobiz/NOTI มาตรฐาน(IANA)=wall clock บรรทัด 2 ปฏิบัติการ=บรรทัด 1 แท็กบรรทัด 1=ปฏิบัติการ (TH/JP/CH/SG/VT) บรรทัด 2=มาตรฐาน เปลี่ยนมาตรฐานจะแปลง naive DB ที่ instant เดิม ค่าเริ่มต้น: มาตรฐาน=Asia/Bangkok(TH) ปฏิบัติการ=Asia/Tokyo(JP)'
+    },
+    'ziobiz/NOTI 노티미들웨어의 시스템·환경설정(시간·NTP·동기화)과 동일 목적입니다. 실제 OS 시각 동기화는 VPS에서 chrony/systemd-timesyncd 등으로 수행합니다. 표준 시간대(IANA)는 ICOPAY 거래일·거래시간(2줄)·노티 적재·배치·후속조치 경과 판단의 벽시계 기준입니다. 운영 시간대는 결제·정산 그리드 거래시간 1줄(운영용) 표시입니다. 표준 시간대를 변경하면 기존 거래의 DB 시각(naive)을 동일 시각(Instant) 기준으로 새 표준 벽시계로 변환합니다. 신규·미설정 시 표준=Asia/Bangkok, 운영=Asia/Tokyo 입니다.': {
+      EN: 'Same intent as ziobiz/NOTI middleware system settings (time, NTP, sync). OS clock sync runs on the VPS (chrony/systemd-timesyncd, etc.). Standard timezone (IANA) is the ICOPAY wall clock for transaction date/time (2nd line), notify ingest, batch jobs, and pay-follow elapsed rules. Operational timezone is the 1st line on payment/settlement grids. Changing standard timezone converts existing naive DB timestamps to the new standard wall clock at the same instant. Defaults: standard=Asia/Bangkok, operational=Asia/Tokyo.',
+      JP: 'ziobiz/NOTI ミドルウェアのシステム設定（時刻・NTP・同期）と同目的です。OS 同期は VPS で行います。標準タイムゾーン(IANA)は ICOPAY の取引日・取引時刻(2行目)・ノティ取込・バッチ・フォロー経過の壁時計基準です。運用タイムゾーンは決済・精算グリッドの1行目です。標準を変更すると既存 naive DB 時刻を同一 Instant で新標準壁時計に変換します。既定: 標準=Asia/Bangkok, 運用=Asia/Tokyo。',
+      CH: '与 ziobiz/NOTI 中间件系统设置目的一致。OS 对时在 VPS 完成。标准时区(IANA)为 ICOPAY 交易日期/时间(第2行)、通知入库、批处理、后续跟进判定的墙钟基准。运营时区为支付/结算网格第1行。更改标准时区会将现有 naive DB 时间按同一 Instant 转换为新标准墙钟。默认：标准=Asia/Bangkok，运营=Asia/Tokyo。',
+      TH: 'วัตถุประสงค์เดียวกับการตั้งค่าระบบ ziobiz/NOTI การซิงก์ OS ทำบน VPS เขตเวลามาตรฐาน(IANA) คือ wall clock ของ ICOPAY สำหรับวันที่/เวลา(บรรทัด 2) การรับ notify และ batch เขตเวลาปฏิบัติการคือบรรทัด 1 บนตารางชำระ/ชำระบัญชี เปลี่ยนมาตรฐานจะแปลง naive DB เป็น wall clock ใหม่ที่ instant เดิม ค่าเริ่มต้น: มาตรฐาน=Asia/Bangkok ปฏิบัติการ=Asia/Tokyo'
+    },
     'ziobiz/NOTI 노티미들웨어의 시스템·환경설정(시간·NTP·동기화)과 동일 목적입니다. 실제 OS 시각 동기화는 VPS에서 chrony/systemd-timesyncd 등으로 수행하고, 여기 표준시는 전산 배치·목록 표시·결제 후속조치(무효·이메일무효) 경과 판단의 기준 ZoneId로 사용합니다. 신규·미설정 시 기본은 태국(Asia/Bangkok)입니다.': {
       EN: 'Same intent as ziobiz/NOTI middleware system settings (time, NTP, sync). OS clock sync is done on the VPS (chrony/systemd-timesyncd, etc.). The timezone here is the ZoneId used for ledger batch jobs, list display, and pay-follow elapsed rules (auto void / email void). Default for new/unset installs is Thailand (Asia/Bangkok).',
       JP: 'ziobiz/NOTI ノティミドルウェアのシステム・環境設定（時刻・NTP・同期）と同じ目的です。OS時刻の同期はVPS側の chrony / systemd-timesyncd 等で行い、ここでは全算バッチ・一覧表示・決済フォロー（無効・メール無効）の経過判定に使う ZoneId です。新規・未設定時の既定はタイ（Asia/Bangkok）です。',
@@ -10685,10 +10744,28 @@
       TH: 'มีวัตถุประสงค์เดียวกับการตั้งค่าระบบของ ziobiz/NOTI middleware (เวลา NTP sync) การซิงก์เวลา OS ทำบน VPS (chrony/systemd-timesyncd ฯลฯ) ส่วนเขตเวลาที่นี่คือ ZoneId สำหรับแบตช์บัญชี การแสดงรายการ และกฎระยะเวลาติดตามการชำระ (void/void อีเมล) ค่าเริ่มต้นคือไทย (Asia/Bangkok)'
     },
     '표준 시간대 (IANA)': {
-      EN: 'Timezone (IANA)',
+      EN: 'Standard timezone (IANA)',
       JP: '標準タイムゾーン（IANA）',
       CH: '标准时区（IANA）',
-      TH: 'เขตเวลา (IANA)'
+      TH: 'เขตเวลามาตรฐาน (IANA)'
+    },
+    '운영 시간대': {
+      EN: 'Operational timezone',
+      JP: '運用タイムゾーン',
+      CH: '运营时区',
+      TH: 'เขตเวลาปฏิบัติการ'
+    },
+    '운영 시간대 태그': {
+      EN: 'Operational timezone tag',
+      JP: '運用タイムゾーンタグ',
+      CH: '运营时区标签',
+      TH: 'แท็กเขตเวลาปฏิบัติการ'
+    },
+    '표준 시간대 태그': {
+      EN: 'Standard timezone tag',
+      JP: '標準タイムゾーンタグ',
+      CH: '标准时区标签',
+      TH: 'แท็กเขตเวลามาตรฐาน'
     },
     'NTP 동기화 사용': {
       EN: 'Use NTP sync',
@@ -11238,17 +11315,29 @@
       CH: '主题会加上 [TEST]，正文顶部增加说明行。结果记录在<strong>运营管理 → 邮件日志</strong>。',
       TH: 'หัวข้อมี [TEST] และมีบรรทัดแนะนำด้านบนของเนื้อหา บันทึกที่<strong>ปฏิบัติการ → ล็อกอีเมล</strong>'
     },
+    'Asia/Bangkok — 태국 (TH, 기본)': {
+      EN: 'Asia/Bangkok — Thailand (TH, default)',
+      JP: 'Asia/Bangkok — タイ（TH・既定）',
+      CH: 'Asia/Bangkok — 泰国（TH，默认）',
+      TH: 'Asia/Bangkok — ไทย (TH, ค่าเริ่ม)'
+    },
     'Asia/Bangkok — 태국 (기본)': {
       EN: 'Asia/Bangkok — Thailand (default)',
       JP: 'Asia/Bangkok — タイ（既定）',
       CH: 'Asia/Bangkok — 泰国（默认）',
       TH: 'Asia/Bangkok — ไทย (ค่าเริ่ม)'
     },
-    'Asia/Seoul — 대한민국': {
-      EN: 'Asia/Seoul — South Korea',
-      JP: 'Asia/Seoul — 韓国',
-      CH: 'Asia/Seoul — 韩国',
-      TH: 'Asia/Seoul — เกาหลีใต้'
+    'Asia/Seoul — 대한민국 (KR)': {
+      EN: 'Asia/Seoul — South Korea (KR)',
+      JP: 'Asia/Seoul — 韓国（KR）',
+      CH: 'Asia/Seoul — 韩国（KR）',
+      TH: 'Asia/Seoul — เกาหลีใต้ (KR)'
+    },
+    'Asia/Tokyo — 일본 (JP)': {
+      EN: 'Asia/Tokyo — Japan (JP)',
+      JP: 'Asia/Tokyo — 日本（JP）',
+      CH: 'Asia/Tokyo — 日本（JP）',
+      TH: 'Asia/Tokyo — ญี่ปุ่น (JP)'
     },
     'Asia/Tokyo — 일본': {
       EN: 'Asia/Tokyo — Japan',
@@ -11256,11 +11345,17 @@
       CH: 'Asia/Tokyo — 日本',
       TH: 'Asia/Tokyo — ญี่ปุ่น'
     },
-    'Asia/Shanghai — 중국': {
-      EN: 'Asia/Shanghai — China',
-      JP: 'Asia/Shanghai — 中国',
-      CH: 'Asia/Shanghai — 中国',
-      TH: 'Asia/Shanghai — จีน'
+    'Asia/Shanghai — 중국 (CH)': {
+      EN: 'Asia/Shanghai — China (CH)',
+      JP: 'Asia/Shanghai — 中国（CH）',
+      CH: 'Asia/Shanghai — 中国（CH）',
+      TH: 'Asia/Shanghai — จีน (CH)'
+    },
+    'Asia/Ho_Chi_Minh — 베트남 (VT)': {
+      EN: 'Asia/Ho_Chi_Minh — Vietnam (VT)',
+      JP: 'Asia/Ho_Chi_Minh — ベトナム（VT）',
+      CH: 'Asia/Ho_Chi_Minh — 越南（VT）',
+      TH: 'Asia/Ho_Chi_Minh — เวียดนาม (VT)'
     },
     'Asia/Ho_Chi_Minh — 베트남': {
       EN: 'Asia/Ho_Chi_Minh — Vietnam',
@@ -11268,11 +11363,17 @@
       CH: 'Asia/Ho_Chi_Minh — 越南',
       TH: 'Asia/Ho_Chi_Minh — เวียดนาม'
     },
-    'Asia/Singapore — 싱가포르': {
-      EN: 'Asia/Singapore — Singapore',
-      JP: 'Asia/Singapore — シンガポール',
-      CH: 'Asia/Singapore — 新加坡',
-      TH: 'Asia/Singapore — สิงคโปร์'
+    'Asia/Singapore — 싱가포르 (SG)': {
+      EN: 'Asia/Singapore — Singapore (SG)',
+      JP: 'Asia/Singapore — シンガポール（SG）',
+      CH: 'Asia/Singapore — 新加坡（SG）',
+      TH: 'Asia/Singapore — สิงคโปร์ (SG)'
+    },
+    'Asia/Manila — 필리핀 (PP)': {
+      EN: 'Asia/Manila — Philippines (PP)',
+      JP: 'Asia/Manila — フィリピン（PP）',
+      CH: 'Asia/Manila — 菲律宾（PP）',
+      TH: 'Asia/Manila — ฟิลิปปินส์ (PP)'
     },
     'Asia/Manila — 필리핀': {
       EN: 'Asia/Manila — Philippines',
@@ -11280,29 +11381,47 @@
       CH: 'Asia/Manila — 菲律宾',
       TH: 'Asia/Manila — ฟิลิปปินส์'
     },
+    'Asia/Jakarta — 인도네시아 (IN)': {
+      EN: 'Asia/Jakarta — Indonesia (IN)',
+      JP: 'Asia/Jakarta — インドネシア（IN）',
+      CH: 'Asia/Jakarta — 印尼（IN）',
+      TH: 'Asia/Jakarta — อินโดนีเซีย (IN)'
+    },
     'Asia/Jakarta — 인도네시아(서)': {
       EN: 'Asia/Jakarta — Indonesia (Western)',
       JP: 'Asia/Jakarta — インドネシア（西部）',
       CH: 'Asia/Jakarta — 印尼（西部）',
       TH: 'Asia/Jakarta — อินโดนีเซีย (ตะวันตก)'
     },
-    'Asia/Dubai — UAE': {
-      EN: 'Asia/Dubai — UAE',
-      JP: 'Asia/Dubai — UAE',
-      CH: 'Asia/Dubai — 阿联酋',
-      TH: 'Asia/Dubai — สหรัฐอาหรับเอมิเรตส์'
+    'Asia/Dubai — UAE (UA)': {
+      EN: 'Asia/Dubai — UAE (UA)',
+      JP: 'Asia/Dubai — UAE（UA）',
+      CH: 'Asia/Dubai — 阿联酋（UA）',
+      TH: 'Asia/Dubai — สหรัฐอาหรับเอมิเรตส์ (UA)'
     },
-    'America/New_York (미 동부)': {
-      EN: 'America/New_York (US East)',
-      JP: 'America/New_York（米東部）',
-      CH: 'America/New_York（美东）',
-      TH: 'America/New_York (สหรัฐฝั่งตะวันออก)'
+    'Europe/London — 런던 (EU)': {
+      EN: 'Europe/London — London (EU)',
+      JP: 'Europe/London — ロンドン（EU）',
+      CH: 'Europe/London — 伦敦（EU）',
+      TH: 'Europe/London — ลอนดอน (EU)'
     },
-    'America/Los_Angeles (미 서부)': {
-      EN: 'America/Los_Angeles (US West)',
-      JP: 'America/Los_Angeles（米西部）',
-      CH: 'America/Los_Angeles（美西）',
-      TH: 'America/Los_Angeles (สหรัฐฝั่งตะวันตก)'
+    'America/New_York — 미 동부 (NY)': {
+      EN: 'America/New_York — US East (NY)',
+      JP: 'America/New_York — 米東部（NY）',
+      CH: 'America/New_York — 美东（NY）',
+      TH: 'America/New_York — สหรัฐตะวันออก (NY)'
+    },
+    'America/Los_Angeles — 미 서부 (LA)': {
+      EN: 'America/Los_Angeles — US West (LA)',
+      JP: 'America/Los_Angeles — 米西部（LA）',
+      CH: 'America/Los_Angeles — 美西（LA）',
+      TH: 'America/Los_Angeles — สหรัฐตะวันตก (LA)'
+    },
+    '표준 시간대 변경으로 거래 시각 {n}건이 변환되었습니다.': {
+      EN: '{n} transaction timestamp(s) converted for the new standard timezone.',
+      JP: '標準時間帯変更により取引時刻 {n} 件を変換しました。',
+      CH: '标准时区变更已转换 {n} 条交易时间。',
+      TH: 'เปลี่ยนเขตเวลามาตรฐานแล้ว แปลงเวลาธุรกรรม {n} รายการ'
     },
     '(전산 표준시와 동일)': {
       EN: '(Same as ledger timezone)',
@@ -18288,7 +18407,8 @@
     },
     '검증 리포트': { EN: 'Verify report', JP: '検証レポート', CH: '验证报表', TH: 'รายงานตรวจสอบ' },
     '비활성카드등록': { EN: 'Inactive card register', JP: '非活性カード登録', CH: '非活跃卡登记', TH: 'ลงทะเบียนบัตรปิดใช้' },
-    '대행거래내역': { EN: 'Agency transaction list', JP: '代行取引明細', CH: '代行交易明细', TH: 'รายการธุรกรรมตัวแทน' },
+    '통합수수료': { EN: 'Integrated fee', JP: '統合手数料', CH: '整合手续费', TH: 'ค่าธรรมเนียมรวม' },
+    '대행거래내역': { EN: 'Integrated fee', JP: '統合手数料', CH: '整合手续费', TH: 'ค่าธรรมเนียมรวม' },
     'PG정산유무': { EN: 'PG settlement due', JP: 'PG精算可否', CH: 'PG 是否应结算', TH: 'ครบกำหนด PG' },
     'PG명': { EN: 'PG name', JP: 'PG名', CH: 'PG 名称', TH: 'ชื่อ PG' },
     'PG코드': { EN: 'PG code', JP: 'PGコード', CH: 'PG 代码', TH: 'รหัส PG' },
@@ -18306,7 +18426,8 @@
     '본사설정': { EN: 'HQ settings', JP: '本社設定', CH: '总部设置', TH: 'ส่วนตั้งค่า HQ' },
     '배포설정': { EN: 'Deployment', JP: 'デプロイ設定', CH: '部署设置', TH: 'การใช้งานจริง' },
     '통보관리': { EN: 'Notifications', JP: '通知管理', CH: '通知管理', TH: 'การแจ้งเตือน' },
-    '리스크관리': { EN: 'Risk', JP: 'リスク管理', CH: '风险管理', TH: 'ความเสี่ยง' },
+    '검수관리': { EN: 'Inspection management', JP: '検収管理', CH: '检收管理', TH: 'จัดการตรวจสอบ' },
+    '리스크관리': { EN: 'Inspection management', JP: '検収管理', CH: '检收管理', TH: 'จัดการตรวจสอบ' },
     '리스크 현황': { EN: 'Risk dashboard', JP: 'リスク状況', CH: '风险看板', TH: 'ภาพรวมความเสี่ยง' },
     '비활성 카드 등록': { EN: 'Register inactive card', JP: '非活性カード登録', CH: '登记非活跃卡', TH: 'ลงทะเบียนบัตรปิดใช้' },
     '마스킹 카드번호(앞6+***+뒤4)·업체코드·업체명·이름(구분용)·사유를 입력하고 [등록]을 누르세요. 등록된 카드는 전 가맹점 결제에서 차단되며, 업체코드·업체명은 출처 표시용입니다.': {
@@ -18866,7 +18987,7 @@
       TH: 'ล้มเหลว·ยกเลิก·โมฆะ·คืนเงิน·ชาร์จแบ็ก'
     },
     '차감·지급': { EN: 'Deduction · Payout', JP: '控除・支払', CH: '扣减·拨付', TH: 'หัก·จ่าย' },
-    /* 대행거래내역 (/ops/agencyTxnList) — 2단 그룹 헤더·열 */
+    /* 통합수수료 (/ops/agencyTxnList) — 2단 그룹 헤더·열 */
     'PG·가맹': { EN: 'PG · Merchant', JP: 'PG・加盟店', CH: 'PG·商户', TH: 'PG·ร้านค้า' },
     '승인 / 대행수수료(%)': {
       EN: 'Approval / agency fee (%)',

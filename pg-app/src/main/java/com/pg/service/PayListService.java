@@ -33,6 +33,7 @@ import com.pg.util.FeeListRoundingPolicy;
 import com.pg.util.MerchantDisplayCurrencyResolver;
 import com.pg.util.PayDisplayCurrency;
 import com.pg.util.PayListStatusBarBuckets;
+import com.pg.util.PgTrnsctnTxnClock;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Tuple;
@@ -268,6 +269,7 @@ public class PayListService {
         HqNotifyMappingService.DisplayTransformCache displayCache = hqNotifyMappingService.loadDisplayTransformCache();
         AppUser payListViewer = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
         ZoneId ledgerTz = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+        ZoneId opTz = hqLedgerSysSettingsService.resolveOperationalDisplayZoneId();
         List<Map<String, Object>> list = new ArrayList<>();
         Map<Long, Set<LocalDate>> holidayCache = new HashMap<>();
         int rowNoStart = (page - 1) * size + 1;
@@ -282,7 +284,7 @@ public class PayListService {
         Map<Long, List<ChargebackFeeTier>> integratedTiersByPolicyId = integratedFeeListAligned ? new HashMap<>() : null;
         for (PgTrnsctn t : result.getContent()) {
             PayListRowContext ctx = ctxByCode.get(t.getMerchantId());
-            Map<String, Object> row = PayListItemDto.from(t, ctx, ledgerTz);
+            Map<String, Object> row = PayListItemDto.from(t, ctx, ledgerTz, opTz);
             if (integratedFeeListAligned && integratedFeeResolver != null) {
                 applyFeeListAmountsToPayRow(row, t, ctx, integratedFeeResolver, integratedPolCache,
                         integratedMonthCbCache, integratedTiersByPolicyId);
@@ -308,7 +310,7 @@ public class PayListService {
         if (!req.isSkipMeta()) {
             try {
                 Map<String, Object> meta = new LinkedHashMap<>();
-                /* 상태바는 단일 GROUP BY 집계라 가볍다 — 항상 계산한다. */
+                /* 상태바는 검색 범위 전 건을 가맹 기준통화 보강 규칙으로 집계한다(노티 KRW 기본값 → JPY 등). */
                 Map<String, Object> bar = computePgTxnStatusBar(req, authentication);
                 meta.put("payListStatusBar", bar);
                 /* 금액요약(건별 수수료·담보·부가세)은 거래를 적재해 행별로 계산하므로 건수에 비례해 무겁다.
@@ -378,11 +380,12 @@ public class PayListService {
         Map<String, PayListRowContext> ctxByCode = buildPayListRowContextMap(codes);
         HqNotifyMappingService.DisplayTransformCache displayCache = hqNotifyMappingService.loadDisplayTransformCache();
         ZoneId ledgerTz = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+        ZoneId opTz = hqLedgerSysSettingsService.resolveOperationalDisplayZoneId();
         List<Map<String, Object>> list = new ArrayList<>(txs.size());
         for (PgTrnsctn t : txs) {
             PayListRowContext base = ctxByCode.get(t.getMerchantId());
             PayListRowContext ctx = base != null ? base.withOmitSettlementFeeFromApprovedTxnBreakdown(true) : null;
-            Map<String, Object> row = PayListItemDto.from(t, ctx, ledgerTz);
+            Map<String, Object> row = PayListItemDto.from(t, ctx, ledgerTz, opTz);
             String pgCd = resolvePgCdForPayListRow(ctx, t);
             hqNotifyMappingService.applyDisplayTransform(displayCache, pgCd, row);
             row.put("payFollowRow", Boolean.FALSE);
@@ -481,14 +484,10 @@ public class PayListService {
             SettlementSetting ss = merchant == null ? null : settlementByOrgId.get(merchant.getId());
             String[] hier = hierarchyNames(merchant, byId);
             String[] hbc = hierarchyBaseCurrencies(merchant, byId, profileByOrgId);
-            TxnDualLineSpec dual = null;
-            if (merchant != null) {
-                dual = masterDistSettlementCronZoneService.resolveTxnDualLineSpecForOrgUnitId(merchant.getId())
-                        .orElse(null);
-            }
+            TxnDualLineSpec hqDual = hqLedgerSysSettingsService.resolveLedgerTxnDualLineSpec();
             ctxByCode.put(code, new PayListRowContext(compNm, profile, binding, dist, pol, ss,
                     hier[0], hier[1], hier[2],
-                    hbc[0], hbc[1], hbc[2], false, dual));
+                    hbc[0], hbc[1], hbc[2], false, hqDual));
         }
         return ctxByCode;
     }
@@ -1162,34 +1161,14 @@ public class PayListService {
     /**
      * 동일 검색 조건 전체 건 기준 상태·통화별 합계(페이지와 무관).
      */
+    /**
+     * 결제내역·통합 상단 상태바 — 버킷별 건수·금액.
+     * 통화는 그리드·금액요약과 동일하게 {@link PayListItemDto#payCurKeyForFeeCompute} 로 보강한다.
+     */
     private Map<String, Object> computePgTxnStatusBar(PayListSearchRequest req, Authentication authentication) {
         LocalDateTime from = req.getSearchFromDate() != null ? req.getSearchFromDate().atStartOfDay() : null;
         LocalDateTime to = req.getSearchToDate() != null ? req.getSearchToDate().atTime(LocalTime.MAX) : null;
         Specification<PgTrnsctn> spec = buildSpecification(req, from, to, authentication);
-        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-        CriteriaQuery<Tuple> cq = cb.createTupleQuery();
-        Root<PgTrnsctn> root = cq.from(PgTrnsctn.class);
-        jakarta.persistence.criteria.Path<String> st = root.get("status");
-        Expression<String> curExpr = cb.upper(cb.trim(CriteriaBuilder.Trimspec.BOTH,
-                cb.coalesce(root.get("curType"), cb.literal("KRW"))));
-        Expression<String> bucket = cb.<String>selectCase()
-                .when(cb.equal(st, "10"), cb.literal(PayListStatusBarBuckets.SUCCESS))
-                .when(cb.or(
-                        cb.equal(st, "F0"),
-                        cb.equal(cb.upper(st), "F0"),
-                        cb.equal(st, "99")
-                ), cb.literal(PayListStatusBarBuckets.FAIL))
-                .when(cb.or(cb.equal(st, "21"), cb.equal(st, "40")), cb.literal(PayListStatusBarBuckets.VOID))
-                .when(cb.or(cb.equal(st, "22"), cb.equal(st, "41")), cb.literal(PayListStatusBarBuckets.EMAIL_VOID))
-                .when(cb.or(cb.equal(st, "30"), cb.equal(st, "42")), cb.literal(PayListStatusBarBuckets.REFUND))
-                .when(cb.equal(st, "31"), cb.literal(PayListStatusBarBuckets.FORCE_REFUND))
-                .when(cb.equal(st, "20"), cb.literal(PayListStatusBarBuckets.CANCEL))
-                .otherwise(cb.literal(PayListStatusBarBuckets.OTHER));
-        cq.multiselect(bucket, curExpr, cb.count(root),
-                cb.sum(cb.coalesce(root.get("amtKrw"), cb.literal(BigDecimal.ZERO))));
-        cq.where(spec.toPredicate(root, cq, cb));
-        cq.groupBy(bucket, curExpr);
-        List<Tuple> tuples = entityManager.createQuery(cq).getResultList();
         AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
         OrgLevel level = PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository);
         boolean multi = PayListStatusBarBuckets.isMultiCurrencyViewer(level);
@@ -1199,28 +1178,40 @@ public class PayListService {
         List<String> displayOrder = baseCurrencyConfigured ? resolveViewerDisplayCurrencyOrder(user, multi) : null;
         Set<String> allowedCur = displayOrder != null ? new HashSet<>(displayOrder) : null;
         boolean effectiveMultiCurrency = multi || !baseCurrencyConfigured;
+
+        boolean capped = false;
+        List<PgTrnsctn> scanRows = fetchPayListFinancialSummaryRows(spec, req, PAY_LIST_FIN_SUMMARY_MAX_ROWS + 1);
+        if (scanRows.size() > PAY_LIST_FIN_SUMMARY_MAX_ROWS) {
+            capped = true;
+            scanRows = scanRows.subList(0, PAY_LIST_FIN_SUMMARY_MAX_ROWS);
+        }
+        List<String> scanMids = scanRows.stream()
+                .map(PgTrnsctn::getMerchantId)
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .distinct()
+                .toList();
+        Map<String, PayListRowContext> ctxByMerchant = scanMids.isEmpty()
+                ? Map.of() : buildPayListRowContextMap(scanMids);
+
         PayListStatusBarBuckets.MutableRollup roll = new PayListStatusBarBuckets.MutableRollup();
-        for (Tuple t : tuples) {
-            String b = t.get(0, String.class);
-            String cRaw = t.get(1, String.class);
-            String c = PayListStatusBarBuckets.normalizeCurrency(cRaw);
+        for (PgTrnsctn t : scanRows) {
+            String bucket = PayListStatusBarBuckets.bucketForPgStatus(t.getStatus());
+            String compId = t.getMerchantId() != null ? t.getMerchantId().trim() : "";
+            PayListRowContext ctx = !compId.isEmpty() ? ctxByMerchant.get(compId) : null;
+            String payCurKey = PayListItemDto.payCurKeyForFeeCompute(t, ctx);
+            String c = PayListStatusBarBuckets.normalizeCurrency(payCurKey);
             if (allowedCur != null && !allowedCur.contains(c)) {
                 continue;
             }
-            Long cnt = t.get(2, Long.class);
-            BigDecimal sum = t.get(3, BigDecimal.class);
-            if (cnt == null) {
-                cnt = 0L;
-            }
-            if (sum == null) {
-                sum = BigDecimal.ZERO;
-            }
-            roll.add(b, c, sum, cnt);
+            BigDecimal amt = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
+            roll.add(bucket, c, amt, 1L);
         }
         String variant = req.getPayListVariant() == null || req.getPayListVariant().isBlank()
                 ? "INTEGRATED" : req.getPayListVariant().trim().toUpperCase(Locale.ROOT);
         List<String> visibleBuckets = visiblePayListStatusBarBucketsForVariant(variant);
-        return roll.toPayload(effectiveMultiCurrency, primary, false, true, displayOrder, visibleBuckets);
+        return roll.toPayload(effectiveMultiCurrency, primary, capped, true, displayOrder, visibleBuckets);
     }
 
     /** 화면별로 상태바에 노출할 버킷(0건도 슬롯 표시). 통합·결제내역은 통합내역과 동일 8종. */
@@ -1288,6 +1279,11 @@ public class PayListService {
         return new String[] { regional, master, branch };
     }
 
+    private static jakarta.persistence.criteria.Expression<LocalDateTime> effectiveTxnDateTimeExpr(
+            Root<PgTrnsctn> root, CriteriaBuilder cb) {
+        return cb.coalesce(root.get("paidAt"), root.get("createdAt"));
+    }
+
     private Specification<PgTrnsctn> buildSpecification(PayListSearchRequest req, LocalDateTime fromDt, LocalDateTime toDt,
                                                         Authentication authentication) {
         Set<String> merchantCodes = resolveMerchantFilterCodes(req, authentication);
@@ -1306,10 +1302,10 @@ public class PayListService {
                 parts.add(root.get("merchantId").in(mcsFinal));
             }
             if (fromDt != null) {
-                parts.add(cb.greaterThanOrEqualTo(root.get("createdAt"), fromDt));
+                parts.add(cb.greaterThanOrEqualTo(effectiveTxnDateTimeExpr(root, cb), fromDt));
             }
             if (toDt != null) {
-                parts.add(cb.lessThanOrEqualTo(root.get("createdAt"), toDt));
+                parts.add(cb.lessThanOrEqualTo(effectiveTxnDateTimeExpr(root, cb), toDt));
             }
             parts.add(variantPredicate(root, cb, variant, query));
             addNotifyChannelPredicate(parts, root, cb, variant, req);
@@ -1697,7 +1693,7 @@ public class PayListService {
     }
 
     /**
-     * 운영관리 통합 리포트: 적재일(createdAt) 기준 일자별 전역 집계 + 가맹점 동적 열(해당 일 거래가 있는 가맹만, 업체코드 오름차순).
+     * 운영관리 통합 리포트: 거래일({@link PgTrnsctnTxnClock}) 기준 일자별 전역 집계 + 가맹점 동적 열(해당 일 거래가 있는 가맹만, 업체코드 오름차순).
      * 결제내역 통합(INTEGRATED)과 동일한 {@link #buildSpecification}·조직 가맹 범위를 사용합니다.
      */
     @Transactional(readOnly = true)
@@ -1773,23 +1769,25 @@ public class PayListService {
 
         CriteriaQuery<Tuple> cqRows = cb.createTupleQuery();
         Root<PgTrnsctn> root = cqRows.from(PgTrnsctn.class);
-        cqRows.multiselect(root.get("createdAt"), root.get("merchantId"), root.get("status"), root.get("curType"), root.get("amtKrw"));
+        cqRows.multiselect(root.get("paidAt"), root.get("createdAt"), root.get("merchantId"), root.get("status"), root.get("curType"), root.get("amtKrw"));
         cqRows.where(specFull.toPredicate(root, cqRows, cb));
         List<Tuple> rowTuples = entityManager.createQuery(cqRows).getResultList();
         for (Tuple tup : rowTuples) {
-                LocalDateTime cat = tup.get(0, LocalDateTime.class);
-                if (cat == null) {
+                LocalDateTime paidAt = tup.get(0, LocalDateTime.class);
+                LocalDateTime createdAt = tup.get(1, LocalDateTime.class);
+                LocalDateTime clock = paidAt != null ? paidAt : createdAt;
+                if (clock == null) {
                     continue;
                 }
-                LocalDate day = cat.toLocalDate();
+                LocalDate day = clock.toLocalDate();
                 OpsIntegratedDayAgg agg = byDay.get(day);
                 if (agg == null) {
                     continue;
                 }
-                String midRaw = tup.get(1, String.class);
-                String st = tup.get(2, String.class);
-                String curRaw = tup.get(3, String.class);
-                BigDecimal amt = tup.get(4, BigDecimal.class);
+                String midRaw = tup.get(2, String.class);
+                String st = tup.get(3, String.class);
+                String curRaw = tup.get(4, String.class);
+                BigDecimal amt = tup.get(5, BigDecimal.class);
                 if (amt == null) {
                     amt = BigDecimal.ZERO;
                 }
@@ -2033,7 +2031,7 @@ public class PayListService {
     }
 
     /**
-     * 결제내역과 동일 필터({@link PayListSearchRequest})로, 적재일(createdAt) 기준 일자별 건수·금액 요약.
+     * 결제내역과 동일 필터({@link PayListSearchRequest})로, 거래일({@link PgTrnsctnTxnClock}) 기준 일자별 건수·금액 요약.
      * 상세 목록은 클라이언트가 해당 일자로 {@code /api/calc/payList} 를 호출합니다.
      */
     @Transactional(readOnly = true)
@@ -2105,6 +2103,7 @@ public class PayListService {
         CriteriaQuery<Tuple> cqRows = cb.createTupleQuery();
         Root<PgTrnsctn> root = cqRows.from(PgTrnsctn.class);
         cqRows.multiselect(
+                root.get("paidAt"),
                 root.get("createdAt"),
                 root.get("merchantId"),
                 root.get("status"),
@@ -2113,26 +2112,36 @@ public class PayListService {
         cqRows.where(specFull.toPredicate(root, cqRows, cb));
         List<Tuple> rowTuples = entityManager.createQuery(cqRows).getResultList();
         for (Tuple tup : rowTuples) {
-            LocalDateTime cat = tup.get(0, LocalDateTime.class);
-            if (cat == null) {
+            LocalDateTime paidAt = tup.get(0, LocalDateTime.class);
+            LocalDateTime createdAt = tup.get(1, LocalDateTime.class);
+            LocalDateTime clock = paidAt != null ? paidAt : createdAt;
+            if (clock == null) {
                 continue;
             }
-            LocalDate day = cat.toLocalDate();
+            LocalDate day = clock.toLocalDate();
             PayDayFinancialAgg agg = byDay.get(day);
             if (agg == null) {
                 continue;
             }
-            String mid = tup.get(1, String.class);
-            String st = tup.get(2, String.class);
-            String curRaw = tup.get(3, String.class);
-            BigDecimal amt = tup.get(4, BigDecimal.class);
+            String mid = tup.get(2, String.class);
+            String st = tup.get(3, String.class);
+            String curRaw = tup.get(4, String.class);
+            BigDecimal amt = tup.get(5, BigDecimal.class);
             if (amt == null) {
                 amt = BigDecimal.ZERO;
             }
             agg.txnCount++;
             String bucket = PayListStatusBarBuckets.bucketForPgStatus(st);
             agg.bucketCount.merge(bucket, 1L, Long::sum);
-            String cur = PayListStatusBarBuckets.normalizeCurrency(curRaw);
+            String compId = mid != null && !mid.isBlank() ? mid.trim() : "";
+            PayListRowContext ctx = !compId.isEmpty() ? ctxMap.get(compId) : null;
+            PgTrnsctn t = new PgTrnsctn();
+            t.setMerchantId(compId);
+            t.setStatus(st);
+            t.setCurType(curRaw);
+            t.setAmtKrw(amt);
+            String payCurKey = PayListItemDto.payCurKeyForFeeCompute(t, ctx);
+            String cur = PayListStatusBarBuckets.normalizeCurrency(payCurKey);
             if (allowedCur != null && !allowedCur.contains(cur)) {
                 continue;
             }
@@ -2145,22 +2154,14 @@ public class PayListService {
                 agg.cancelCountByCur.merge(cur, 1L, Long::sum);
                 agg.cancel.merge(cur, amt, BigDecimal::add);
             }
-            if (mid == null || mid.isBlank()) {
+            if (compId.isEmpty()) {
                 continue;
             }
-            String compId = mid.trim();
-            PayListRowContext ctx = ctxMap.get(compId);
             CommissionPolicy pol = dailyPolCache.get(compId);
             if (pol == null) {
                 pol = commissionService.resolveCommissionPolicyForSettlement(compId);
                 dailyPolCache.put(compId, pol);
             }
-            PgTrnsctn t = new PgTrnsctn();
-            t.setMerchantId(compId);
-            t.setStatus(st);
-            t.setCurType(curRaw);
-            t.setAmtKrw(amt);
-            String payCurKey = PayListItemDto.payCurKeyForFeeCompute(t, ctx);
             FeeListTxnAmountService.FeeListTxnAmounts amts = feeListTxnAmountService.compute(
                     t, ctx, pol, payCurKey, dailyFeeResolver, dailyMonthCbCache, dailyTiersByPolicyId);
             agg.totalFeeSum.merge(cur, amts.totalFee(), BigDecimal::add);

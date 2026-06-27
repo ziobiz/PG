@@ -465,7 +465,7 @@
       packN('ChillPay API Transaction Services — Search Payment Transaction(실시간)입니다. ICOPAY 내부 DB(pg_trnsctn)가 아니라 칠페이 서버에서 직접 목록을 가져옵니다. ziobiz/NOTI 노티미들웨어의 종합거래·피지거래내역과 유사한 용도로 쓸 수 있습니다.', 'ChillPay API — live search; data comes from ChillPay, not ICOPAY pg_trnsctn. Similar use case to ziobiz/NOTI consolidated / ChillPay views.', 'ChillPay API からリアルタイム取得。ICOPAY DB ではありません。', 'ChillPay 接口实时查询，数据来自 ChillPay 服务器。', 'ดึงจาก ChillPay แบบเรียลไทม์ ไม่ใช่ DB ICOPAY'),
       packN('자격: 배포설정 > API배포설정 또는 tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스 여부를 사용합니다.', 'Credentials: deploy settings / tb_pg_agency (MerchantCode, ApiKey, MD5 secret, sandbox).', '認証情報は API 配備設定／tb_pg_agency を使用。', '凭据来自部署配置与 tb_pg_agency。', 'ใช้รหัสจากการตั้งค่า API'),
       packN('순서(내림차순·오름차순)는 [새로고침] 왼쪽 메뉴에서 고르며, 누르는 즉시 다시 조회됩니다(기본 내림차순). TransactionDate 범위는 검색 기간(날짜)을 ChillPay 형식(dd/MM/yyyy HH:mm:ss)으로 변환합니다. 문서: ChillPay-API-Transaction-Services-Document-EN_v1.0.6.', 'Sort order is next to [Refresh]. Default DESC. Date range is converted to ChillPay format per API doc v1.0.6.', '並び順は[再読込]左。期間は ChillPay 形式に変換。', '排序在刷新旁，日期按文档转 ChillPay 格式。', 'เรียงลำดับข้างรีเฟรช'),
-      packN('그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·승인번호·업체명·업체코드·거래일·거래시간(JP·TH 두 줄)·루트는 그리드에 항상 표시되며 VIEW SETTING 목록에는 나오지 않습니다. 거래일은 YYYY-MM-DD(예: 2026-05-09) 형식으로 표시됩니다. 본사설정 → 조직항목설정에서 화면「통합내역」 허용 열을 제한할 수 있습니다.', 'Columns via VIEW SETTING (per user). Fixed leading columns are always visible. Transaction date is shown as YYYY-MM-DD (e.g. 2026-05-09). Org column allowance in HQ settings.', '列は VIEW SETTING。固定列は常時表示。取引日は YYYY-MM-DD（例: 2026-05-09）形式。', '列通过 VIEW SETTING 调整，前列固定。交易日期以 YYYY-MM-DD（例：2026-05-09）显示。', 'คอลัมน์ตั้งค่า VIEW วันที่ทำรายการแสดงเป็น YYYY-MM-DD (เช่น 2026-05-09)')
+      packN('그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·승인번호·업체명·업체코드·거래일·거래시간(운영·표준 두 줄)·루트는 그리드에 항상 표시되며 VIEW SETTING 목록에는 나오지 않습니다. 거래일은 YYYY-MM-DD(예: 2026-05-09) 형식으로 표시됩니다. 본사설정 → 조직항목설정에서 화면「통합내역」 허용 열을 제한할 수 있습니다.', 'Columns via VIEW SETTING (per user). Fixed leading columns always visible. Transaction time shows two lines (operational · standard from ledger settings). Date as YYYY-MM-DD. Org column allowance in HQ settings.', '列は VIEW SETTING。固定列は常時表示。取引時刻は運用・標準の2行（全算設定）。取引日は YYYY-MM-DD。', '列通过 VIEW SETTING 调整，前列固定。交易时间显示运营·标准两行（账务设置）。日期 YYYY-MM-DD。', 'คอลัมน์ตั้งค่า VIEW เวลาทำรายการสองบรรทัด (ปฏิบัติการ·มาตรฐาน) วันที่ YYYY-MM-DD')
     ],
     '/calc/jpayTrList': [
       packN(
@@ -483,11 +483,11 @@
         'ลงทะเบียนบัญชีพอร์ทัล JPAY ต่อตัวแทนหลักที่ HQ > ตรรกะผู้ให้บริการชำระ ตั้งช่วงซิงค์ในระบบบัญชี VPS ต้องมี Node.js·Playwright'
       ),
       packN(
-        '[JPAY 동기화]는 포털 Export 후 캐시를 갱신합니다. 화면 거래일이 하루(당일)여도 동기화는 본사설정의 최근 동기화 범위(최소 7일)만큼 포털에서 받아옵니다. 목록 조회는 화면에 선택한 거래일자로 필터됩니다.',
-        '[JPAY sync] refreshes cache after portal Export. Even for a single-day search range, sync fetches at least the recent sync window (min. 7 days) from settings. List filter uses the dates on screen.',
-        '[JPAY同期]はポータルExport後キャッシュを更新。画面の取引日が当日でも同期は設定の最近同期範囲(最低7日)分を取得。一覧は画面の取引日でフィルタ。',
-        '[JPAY 同步] 门户 Export 后刷新缓存。即使画面交易日为单日，同步也会按最近同步范围（至少 7 天）从门户获取。列表按画面所选交易日期筛选。',
-        '[ซิงค์ JPAY] อัปเดตแคชหลัง Export พอร์ทัล แม้เลือกวันเดียวก็ซิงค์ตามช่วงล่าสุด (อย่างน้อย 7 วัน) รายการกรองตามวันที่บนหน้าจอ'
+        '[JPAY 동기화]는 화면에 지정한 거래일 구간(기본 당일)을 포털에서 받아 해당 기간 캐시를 교체합니다. 복수 포털 계정·동일 주문 중복은 승인번호·성공 건 우선으로 정리하며, 승인번호가 비어 있으면 ICOPAY 성공 건으로 보강합니다. [전체 재동기화]는 전산설정의 초기화 동기화(개월) 구간 전체를 다시 받습니다. 자동 스케줄은 당일 1회=어제·오늘 2일, 당일 2회째부터=당일만 교체하며, 매일 00:00에는 스케줄과 별도로 어제·오늘 2일 기본 동기화가 1회 실행됩니다.',
+        '[JPAY sync] fetches the on-screen date range from the portal. Duplicate rows keep success with approval numbers; missing approval numbers are filled from ICOPAY success txns. [Full re-sync] re-fetches the init-sync month range. Scheduled sync: 1st run each day = yesterday+today; 2nd+ = today only. At 00:00 daily, a separate basic 2-day sync runs once.',
+        '[JPAY同期]は画面の取引日範囲をポータルから取得。重複は成功・承認番号優先、承認番号欠落時はICOPAY成功で補完。[全体再同期]は初期化同期(月)区間。自動スケジュール当日1回=昨日・今日2日、2回目以降=当日のみ。毎日00:00に基本2日同期1回。',
+        '[JPAY 同步] 按画面交易日期从门户拉取。重复行优先成功与批准号；缺批准号时用 ICOPAY 成功交易补全。[全部重新同步] 为初始化同步(月)区间。自动计划：当日第 1 次=昨今 2 日，第 2 次起=仅当天。每天 00:00 另执行基本 2 日同步。',
+        '[ซิงค์ JPAY] ดึงช่วงวันที่จากพอร์ทัล แถวซ้ำเก็บสำเร็จ+เลขอนุมัติ ไม่มีเลขอนุมัติเติมจาก ICOPAY [ซิงค์ใหม่ทั้งหมด] ช่วงเดือนเริ่มต้น ตารางครั้งแรก=เมื่อวาน+วันนี้ ครั้งที่2+=วันนี้ 00:00 ซิงค์พื้นฐาน2วัน'
       ),
       packN(
         '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·업체명·업체코드·거래일·거래시간은 그리드에 항상 표시되며 VIEW SETTING 목록에는 나오지 않습니다. 열 너비는 헤더 경계를 드래그해 조절할 수 있습니다.',
@@ -708,10 +708,10 @@
     ],
     '/calc/integratedCheck': [
       packN(
-        'JPAY(조회통합·포털 Export 캐시·거래일)와 ICOPAY(일별결제·노티 적재일)를 같은 거래일자 구간에서 일자별로 나란히 비교합니다. 값이 같으면 Ok, 다르면 불일치 셀만 강조·Check로 표시됩니다.',
-        'Compare JPAY (integrated query · portal Export cache · transaction date) vs ICOPAY (daily pay · notify ingest date) side by side per day. Matching rows show Ok; mismatched cells are highlighted with Check.',
-        'JPAY（照会統合・Exportキャッシュ・取引日）と ICOPAY（日別決済・ノティ取込日）を同一取引日範囲で日別に並べて比較します。一致は Ok、不一致セルのみ強調し Check と表示します。',
-        '在同一交易日期区间内并排比较 JPAY（整合查询·门户 Export 缓存·交易日）与 ICOPAY（日别支付·通知入库日）。一致显示 Ok，不一致单元格高亮并显示 Check。',
+        'JPAY(일별조회·포털 Export 캐시·거래일)와 ICOPAY(일별결제·노티 적재일)를 같은 거래일자 구간에서 일자별로 나란히 비교합니다. 값이 같으면 Ok, 다르면 불일치 셀만 강조·Check로 표시됩니다.',
+        'Compare JPAY (daily query · portal Export cache · transaction date) vs ICOPAY (daily pay · notify ingest date) side by side per day. Matching rows show Ok; mismatched cells are highlighted with Check.',
+        'JPAY（日別照会・Exportキャッシュ・取引日）と ICOPAY（日別決済・ノティ取込日）を同一取引日範囲で日別に並べて比較します。一致は Ok、不一致セルのみ強調し Check と表示します。',
+        '在同一交易日期区间内并排比较 JPAY（按日查询·门户 Export 缓存·交易日）与 ICOPAY（按日支付·通知入库日）。一致显示 Ok，不一致单元格高亮并显示 Check。',
         'เทียบ JPAY กับ ICOPAY รายวันในช่วงวันที่เดียวกัน ตรงกันแสดง Ok ไม่ตรงเน้นเซลล์และแสดง Check'
       ),
       packN(
@@ -720,6 +720,13 @@
         'JPAYは統合照会と同様DB(tb_jpay_portal_export_cache)に保存され、本社設定のJPAY統合照会スケジュールで自動同期されます。ログイン後は[検索]のみで照会でき、即時更新が必要なときだけ[JPAY同期]を使います。照会期間は最大93日です。',
         'JPAY 与整合查询相同存入 DB(tb_jpay_portal_export_cache)，由本社设置中的 JPAY 整合查询计划自动同步。登录后仅 [搜索] 即可；需立即刷新时再使用 [JPAY 同步]。查询区间最长 93 天。',
         'JPAY เก็บใน DB เหมือนค้นหารวม ซิงค์อัตโนมัติตามตารางในการตั้งค่าระบบบัญชี หลังล็อกอินกด [ค้นหา] ได้เลย ใช้ [JPAY sync] เมื่อต้องการอัปเดตทันที ช่วงสูงสุด 93 วัน'
+      ),
+      packN(
+        '상단 「최근동기화」 시각·당일 횟수는 통합조회·일별조회와 동일합니다. 스케줄 또는 [JPAY 동기화] 완료 후 이 화면이 열려 있으면 자동으로 다시 조회됩니다.',
+        'The “Last sync” time and today’s count match Integrated query and Daily query. When this screen is open, a scheduled or manual [JPAY sync] completion triggers an automatic refresh.',
+        '上段の「最終同期」時刻・当日回数は統合照会・日別照会と同じです。スケジュールまたは[JPAY同期]完了後、この画面を開いたままなら自動で再照会します。',
+        '上方「最近同步」时间与当日次数与整合查询、按日查询相同。本页打开时，计划或 [JPAY 同步] 完成后会自动重新查询。',
+        'เวลา「ซิงค์ล่าสุด」และจำนวนวันนี้ตรงกับค้นหารวม·ค้นหารายวัน เมื่อเปิดหน้านี้อยู่ หลังซิงค์ตามตารางหรือ [JPAY sync] เสร็จจะรีเฟรชอัตโนมัติ'
       )
     ],
     '/calc/queryIntegrated': [
@@ -736,6 +743,13 @@
         '照会期間は最大93日です。統合照会画面で[JPAY同期]後に照会してください。終了日が今日以降の場合は今日まで表示します。',
         '查询区间最长93天。请先在整合查询屏执行 [JPAY 同步] 刷新缓存。结束日晚于今天则仅显示至今天。',
         'ช่วงสูงสุด 93 วัน ซิงค์แคชที่หน้าค้นหารวมก่อน ถ้าวันสิ้นสุดหลังวันนี้แสดงถึงวันนี้เท่านั้น'
+      ),
+      packN(
+        '상단 「최근동기화」 시각·당일 횟수는 통합조회와 동일합니다. 스케줄 또는 통합조회에서 [JPAY 동기화]가 끝나면 이 화면이 열려 있을 때 자동으로 다시 조회됩니다.',
+        '“Last sync” time and today’s count match Integrated query. When this screen is open, completing a scheduled or manual sync from Integrated query triggers an automatic refresh here.',
+        '上段の「最終同期」は統合照会と同じです。スケジュールまたは統合照会の[JPAY同期]完了後、この画面を開いたままなら自動再照会します。',
+        '上方「最近同步」时间与整合查询相同。本页打开时，计划或整合查询中的 [JPAY 同步] 完成后会自动重新查询。',
+        '「ซิงค์ล่าสุด」ตรงกับค้นหารวม เมื่อเปิดหน้านี้อยู่ หลังซิงค์ตามตารางหรือจากค้นหารวมเสร็จจะรีเฟรชอัตโนมัติ'
       )
     ],
     '/calc/dailyIntegrated': [
@@ -768,6 +782,13 @@
         '照会期間は最大93日です。',
         '查询区间最长93天。',
         'ช่วงสูงสุด 93 วัน'
+      ),
+      packN(
+        '통화 표시는 결제내역과 동일하게 가맹 기준통화·거래 통화 보강 규칙을 적용합니다. 노티 기본값(KRW 등)만 있는 거래는 실제 결제 통화(JPY 등)로 합산됩니다. 해당 일에 거래가 없는 통화 열은 — 로 표시됩니다.',
+        'Currency display uses the same merchant base-currency and txn-currency enrichment as payment history. Rows with only weak notify defaults (e.g. KRW) are summed under the real pay currency (e.g. JPY). Currency columns with no activity that day show an em dash.',
+        '通貨表示は決済履歴と同じ加盟店基準通貨・取引通貨補完ルールです。通知デフォルト(KRW等)のみの取引は実際の決済通貨(JPY等)に集計されます。その日に取引のない通貨列は「—」です。',
+        '币种显示与支付历史相同，采用商户基准货币与交易货币补全规则。仅有通知默认值（如 KRW）的交易会归入实际支付币种（如 JPY）。当日无交易的币种列显示「—」。',
+        'การแสดงสกุลเงินใช้กฎเดียวกับประวัติการชำระ ธุรกรรมที่มีแค่ค่าเริ่มต้นแจ้งเตือน (เช่น KRW) จะรวมในสกุลจริง (เช่น JPY) คอลัมน์ที่ไม่มีรายการในวันนั้นแสดง —'
       )
     ],
     '/calc/feeList': [
@@ -1020,11 +1041,11 @@
         'เฉพาะ HQ สูงสุด/ภูมิภาค/ตัวแทนหลักหรือ ADMIN ขอบเขตคือร้านใต้องค์กรที่ล็อกอิน'
       ),
       packN(
-        '수수료는 본사설정 「대행수수료설정」(PG코드=거래 van) 기준이며, 가맹 수수료내역·가맹 정산(settled_yn)과 별개입니다.',
-        'Fees use HQ Agency fee settings (PG code = txn van), separate from merchant fee list and merchant settlement (settled_yn).',
-        '手数料は本社設定「代行手数料設定」(PGコード=取引van)基準で、加盟店手数料明細・加盟店精算(settled_yn)とは別です。',
-        '手续费以总部「代行手续费设置」(PG代码=交易 van)为准，与商户手续费明细、商户结算(settled_yn)无关。',
-        'ค่าธรรมเนียมอิงตั้งค่าตัวแทน HQ (รหัส PG = van) แยกจากรายการค่าธรรมเนียมร้านและ settled_yn'
+        '결제대행사(PG) 계약 수수료를 건별로 표시합니다. 본사설정 「대행수수료설정」(PG코드=거래 van) 기준이며, 정산관리 수수료내역과 유사한 구조입니다. 가맹 수수료·가맹 정산(settled_yn)과 별개입니다.',
+        'Per-txn PG contract fees from HQ Agency fee settings (PG code = txn van), similar to settlement fee list. Separate from merchant fees and merchant settlement (settled_yn).',
+        '決済代行(PG)契約手数料を取引ごとに表示します。本社設定「代行手数料設定」(PGコード=取引van)基準で、精算管理の手数料明細と同型です。加盟店手数料・加盟店精算(settled_yn)とは別です。',
+        '按笔显示 PG 合同手续费，以总部「代行手续费设置」(PG代码=交易 van)为准，结构与结算手续费明细类似，与商户手续费及 settled_yn 无关。',
+        'แสดงค่าธรรมเนียมสัญญา PG รายรายการจากตั้งค่าตัวแทน HQ คล้ายรายการค่าธรรมเนียมชำระ แยกจากค่าธรรมเนียมร้านและ settled_yn'
       ),
       packN(
         '맨 오른쪽 「PG정산유무」는 대행수수료설정의 T/H/D·N·일괄시각으로 산출한 PG 계약 정산 도래 여부(Y=도래, N=미도래)입니다. 정책 없음·van 없음은 빈 칸입니다.',
@@ -1172,15 +1193,15 @@
     'rollingPctPlain,rollingDays,rollingHoldEst': { KO: '담보(롤링)', EN: 'Collateral (rolling)', JP: '担保(ロール)', CH: '担保(滚动)', TH: 'หลักประกัน (โรล)' },
     'failFee,cancelFee,voidFee,manualVoidFee,refundFee,chargebackFee': { KO: '실패·취소·무효·환불·차지백', EN: 'Fail·cancel·void·refund·CB', JP: '失敗・取消・無効・返金・CB', CH: '失败·取消·作废·退款·拒付', TH: 'ล้มเหลว·ยกเลิก·โมฆะ·คืน·CB' },
     'totalFee,feeVat,expectedPayout,settlementAmt': { KO: '차감·지급', EN: 'Deduction·payout', JP: '控除・支払', CH: '扣减·拨付', TH: 'หัก·จ่าย' },
-    /* 대행거래내역 (/ops/agencyTxnList) 2단 그룹 헤더 */
-    'pgNm,pgCd,compNm,compId': { KO: 'PG·가맹', EN: 'PG · Merchant', JP: 'PG・加盟店', CH: 'PG·商户', TH: 'PG·ร้านค้า' },
+    /* 통합수수료 (/ops/agencyTxnList) 2단 그룹 헤더 */
+    'pgNm,pgCd,compNm,compId': { KO: '기본정보', EN: 'Basic info', JP: '基本情報', CH: '基本信息', TH: 'ข้อมูลพื้นฐาน' },
     'trnDate,trnTime,routeNo,chillTransactionId,trnId,statusNm,amount': { KO: '거래', EN: 'Transaction', JP: '取引', CH: '交易', TH: 'ธุรกรรม' },
     'rollingHoldEst,totalAgencyFee,agencySettleYn': { KO: '합계·정산', EN: 'Total · settlement', JP: '合計・精算', CH: '合计·结算', TH: 'รวม·ชำระ' }
   };
 
-  /** 대행거래내역 — feeList 와 keys 일부 공유하나 그룹 라벨이 다른 항목 */
+  /** 통합수수료 — feeList 와 keys 일부 공유하나 그룹 라벨이 다른 항목 */
   var AGENCY_HG = {
-    'pgNm,pgCd,compNm,compId': { KO: 'PG·가맹', EN: 'PG · Merchant', JP: 'PG・加盟店', CH: 'PG·商户', TH: 'PG·ร้านค้า' },
+    'pgNm,pgCd,compNm,compId': { KO: '기본정보', EN: 'Basic info', JP: '基本情報', CH: '基本信息', TH: 'ข้อมูลพื้นฐาน' },
     'trnDate,trnTime,routeNo,chillTransactionId,trnId,statusNm,amount': { KO: '거래', EN: 'Transaction', JP: '取引', CH: '交易', TH: 'ธุรกรรม' },
     'txnFixedFeesSum,pctFeesSum': { KO: '승인 / 대행수수료(%)', EN: 'Approval / agency fee (%)', JP: '承認／代行手数料(%)', CH: '授权/代行手续费(%)', TH: 'อนุมัติ / ค่าธรรมเนียมตัวแทน (%)' },
     'usdtFee,fxFee,fee3dsFee,splitPayPctFee,splitPayFixedFee': { KO: '기타수수료', EN: 'Other fees', JP: 'その他手数料', CH: '其他手续费', TH: 'ค่าธรรมเนียมอื่น' },
@@ -1342,7 +1363,7 @@
 
   var AGENCY_COL = Object.assign({}, COL, {
     pgNm: { EN: 'PG name', JP: 'PG名', CH: 'PG 名称', TH: 'ชื่อ PG' },
-    pgCd: { EN: 'PG code', JP: 'PGコード', CH: 'PG 代码', TH: 'รหัส PG' },
+    pgCd: { EN: 'Payment processor', JP: '決済代行業者', CH: '支付服务机构', TH: 'ผู้ให้บริการชำระเงิน' },
     curType: { EN: 'Currency', JP: '通貨', CH: '币种', TH: 'สกุลเงิน' },
     totalAgencyFee: { EN: 'Agency fee total', JP: '代行手数료合計', CH: '代行手续费合计', TH: 'รวมค่าธรรมเนียมตัวแทน' },
     agencySettleYn: { EN: 'PG settlement due', JP: 'PG精算可否', CH: 'PG 是否应结算', TH: 'ครบกำหนด PG' }
@@ -1615,6 +1636,28 @@
     '/calc/paySettlementHoldList', '/settlement/paySettlementHoldList', '/ops/integratedReport', '/ops/verifyReport', '/ops/agencyTxnList',
     '/comp/compMngTree', '/comp/myCompMng', '/comp/compReg', '/comp/compDetail', '/comp/compInfo', '/comp/compMng',
     '/comp/compInfoHistList', '/comp/compChangeHistory', '/commission/commisionList'];
+
+  /**
+   * 언어 전환 시 pane innerHTML 전체 재생성(PG_APP_REFRESH_LOCALE_PANES)을 생략하고
+   * refreshOpenPayList* / applyDom 으로만 갱신할 화면.
+   */
+  var LOCALE_INPLACE_PANE_URLS = {
+    /* 통합조회·일별조회 등 검수/일별 집계 화면은 결제내역(/calc/payList)처럼
+       PG_APP_REFRESH_LOCALE_PANES 전체 재생성 경로로 번역한다.
+       in-place 부분 갱신은 검색폼의 퀵날짜(data-pg-i18n-qd)·옵션(data-pg-i18n-opt)을
+       QD/OPT 사전으로 복원하는데, 그 사전의 KO 값이 optMap 때문에 실제 한국어가 아니라
+       '전체' placeholder라서 KO로 전환할 때만 번역이 깨진다(다른 언어는 정상).
+       전체 재생성은 getScreenHtml + L()로 KO 포함 모든 언어를 정확히 렌더한다.
+       제외 대상: queryIntegrated/dailyIntegrated/dailyPay/dailyFee/integratedCheck/
+       integratedReport/verifyReport, jpayTrList. */
+    '/calc/splitPayList': 1,
+    '/splitpay/progressMng': 1,
+    '/splitpay/mailMng': 1
+  };
+
+  function getLocaleInplacePaneUrls() {
+    return Object.keys(LOCALE_INPLACE_PANE_URLS);
+  }
 
   /** 단일 헤더 그리드 — 로케일 변경 시 thead 재생성 */
   var COMP_GRID_SINGLE_HEADER_URLS = {
@@ -1897,7 +1940,7 @@
   function refreshDailySummaryOpenPane(pane, cfg, tid, loc) {
     if (!pane || !cfg || !cfg.isDailySummaryScreen || !tid) return;
     loc = loc || getLocale();
-    var kind = cfg.dailySummaryKind ? String(cfg.dailySummaryKind) : 'pay';
+    tid = (pane && pane.id) ? String(pane.id).trim() : String(tid || '').trim();
     var escHtml = function (s) {
       return (w.PG_UI_I18N && typeof w.PG_UI_I18N.t === 'function') ? w.PG_UI_I18N.t(String(s)) : String(s);
     };
@@ -1920,12 +1963,16 @@
       refreshDailyDetailCountLabel(detWrap.querySelector('#dailyDetailCount_' + tid));
       var lex = detWrap.querySelector('#listExcelDownBtn span[data-pg-ui-t]');
       if (lex) lex.textContent = escHtml(UI.listExcel[loc] || UI.listExcel.KO);
-      var hintTd = detWrap.querySelector('#grid_' + tid + '_detail tbody td.text-muted');
-      if (hintTd && hintTd.colSpan >= 8) {
-        hintTd.textContent = escHtml('위에서 일자를 더블클릭하세요.');
+      var hintTd = detWrap.querySelector('#grid_' + tid + '_detail tbody .daily-detail-hint-cell, #grid_' + tid + '_detail tbody td.text-muted');
+      if (hintTd && !pane._dailySelectedDay) {
+        var hintKey = '위에서 일자를 더블클릭하세요.';
+        hintTd.innerHTML = '<span data-pg-ui-t="' + hintKey.replace(/"/g, '&quot;') + '">' + escHtml(hintKey) + '</span>';
       }
       if (w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
         try { w.PG_UI_I18N.applyDom(detWrap); } catch (eDetWrapI18n) {}
+      }
+      if (pane._dailySelectedDay && typeof pane._pgReloadDailyDetail === 'function') {
+        try { pane._pgReloadDailyDetail(); } catch (eDailyDetRf) {}
       }
     }
     var irDetHost = pane.querySelector('#integratedReportDetail_' + tid);
@@ -2085,6 +2132,7 @@
         else if (id === 'settlementPublishHoldBtn') b.label = UI.settlementPublishHold[loc] || UI.settlementPublishHold.EN || b.label;
         else if (id === 'payoutHoldReleaseBtn') b.label = UI.payoutHoldReleaseBulk[loc] || UI.payoutHoldReleaseBulk.EN || b.label;
         else if (id === 'jpayTrSyncBtn') b.label = (w.PG_UI_I18N && typeof w.PG_UI_I18N.t === 'function') ? w.PG_UI_I18N.t('JPAY 동기화') : b.label;
+        else if (id === 'jpayTrFullResyncBtn') b.label = (w.PG_UI_I18N && typeof w.PG_UI_I18N.t === 'function') ? w.PG_UI_I18N.t('전체 재동기화') : b.label;
       });
     });
   }
@@ -2304,11 +2352,16 @@
             var tbPh = pane.querySelector('#grid_' + gid0 + ' tbody');
             if (tbPh) w.PG_UI_I18N.applyDom(tbPh);
           }
-          if (url === '/splitpay/progressMng' || url === '/splitpay/mailMng' || url === '/calc/splitPayList') {
+          if (url === '/splitpay/progressMng' || url === '/splitpay/mailMng' || url === '/calc/splitPayList'
+              || url === '/calc/jpayTrList') {
             var sfSp = pane.querySelector('.screen-search-form');
             if (sfSp) w.PG_UI_I18N.applyDom(sfSp);
             var actSp = pane.querySelector('.screen-summary-action-row');
             if (actSp) w.PG_UI_I18N.applyDom(actSp);
+            var noticeJ = pane.querySelector('.search-notice');
+            if (noticeJ) w.PG_UI_I18N.applyDom(noticeJ);
+            var cgJ = pane.querySelector('#tableColumnGuide');
+            if (cgJ) w.PG_UI_I18N.applyDom(cgJ);
           }
         } catch (eSeDom) {}
       }
@@ -2569,6 +2622,42 @@
       if (cfg && cfg.isForm && w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
         try { w.PG_UI_I18N.applyDom(pane); } catch (eFormPaneDom) {}
       }
+      if (url === '/calc/jpayTrList' && cfg && w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
+        try {
+          var sfJpay = pane.querySelector('.screen-search-form');
+          if (sfJpay) w.PG_UI_I18N.applyDom(sfJpay);
+          var actJpay = pane.querySelector('.screen-summary-action-row');
+          if (actJpay) w.PG_UI_I18N.applyDom(actJpay);
+          var barJpay = pane.querySelector('.summary-total-bar');
+          if (barJpay) w.PG_UI_I18N.applyDom(barJpay);
+          var noticeJpay = pane.querySelector('.search-notice');
+          if (noticeJpay) w.PG_UI_I18N.applyDom(noticeJpay);
+          var cgJpay = pane.querySelector('#tableColumnGuide');
+          if (cgJpay) w.PG_UI_I18N.applyDom(cgJpay);
+        } catch (eJpayPaneI18n) {}
+      }
+      if (url === '/calc/queryIntegrated' || url === '/calc/dailyIntegrated' || url === '/calc/dailyPay' || url === '/calc/dailyFee'
+          || url === '/calc/integratedCheck') {
+        if (w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
+          try {
+            var sfDaily = pane.querySelector('.screen-search-form');
+            if (sfDaily) w.PG_UI_I18N.applyDom(sfDaily);
+            var actDaily = pane.querySelector('.screen-summary-action-row');
+            if (actDaily) w.PG_UI_I18N.applyDom(actDaily);
+            var noticeDaily = pane.querySelector('.search-notice');
+            if (noticeDaily) w.PG_UI_I18N.applyDom(noticeDaily);
+          } catch (eDailyDomI18n) {}
+        }
+      }
+      if (cfg && cfg.showJpaySyncInfo && w.PG_API && typeof w.PG_API.jpayTrSyncStatus === 'function') {
+        try {
+          w.PG_API.jpayTrSyncStatus().then(function (st) {
+            if (st && typeof w.PG_updateJpaySyncInfoInPane === 'function') {
+              w.PG_updateJpaySyncInfoInPane(pane, st);
+            }
+          }).catch(function () {});
+        } catch (eJpaySyncLoc) {}
+      }
     });
     try { refreshPayGridOutcomeReasons(loc); } catch (eOrRf) {}
     if (typeof w.PG_refreshPayListAggregateBarsDom === 'function') {
@@ -2656,13 +2745,15 @@
     applyAgencyTxnListScreenLocale(loc);
     applyMerchantApiPortalScreenLocale(loc);
     applyChillListCatalogLocale(loc);
-    applyJpayListCatalogLocale(loc);
+    /* /calc/jpayTrList — COMP_GRID_SINGLE_HEADER + data-pg-ui-t(한글 키); applyJpayListCatalogLocale 생략 */
     applyMenuScreensSearchAndNoticesLocale(loc);
     applyScreenChromeLocale(loc);
     patchCalcCycleSearchOptionAll(loc);
-    refreshOpenPayListTheads(loc);
-    refreshOpenPayListPaneChrome(loc);
-    refreshOpenPayMngDomI18n(loc);
+    /* 아래 갱신 호출 중 하나가 예외를 던져도 PG_APP_REFRESH_LOCALE_PANES(전체 재생성)가
+       반드시 실행되도록 각각 try/catch로 격리한다. (한 화면의 i18n 오류가 전체 번역을 막지 않게) */
+    try { refreshOpenPayListTheads(loc); } catch (eTheads) { try { console.warn('[PG] refreshOpenPayListTheads', eTheads); } catch (e0) {} }
+    try { refreshOpenPayListPaneChrome(loc); } catch (eChrome) { try { console.warn('[PG] refreshOpenPayListPaneChrome', eChrome); } catch (e0c) {} }
+    try { refreshOpenPayMngDomI18n(loc); } catch (eMngDom) { try { console.warn('[PG] refreshOpenPayMngDomI18n', eMngDom); } catch (e0m) {} }
     if (!opts.silent) {
       try {
         w.dispatchEvent(new CustomEvent('pg-pay-list-locale-changed', { detail: { locale: loc } }));
@@ -2743,6 +2834,7 @@
     payFollowLabel: payFollowLabel,
     refreshOpenPayMngDomI18n: refreshOpenPayMngDomI18n,
     refreshOpenPayListPaneChrome: refreshOpenPayListPaneChrome,
+    getLocaleInplacePaneUrls: getLocaleInplacePaneUrls,
     refreshPayGridOutcomeReasons: refreshPayGridOutcomeReasons,
     isPayMngDomPaneUrl: isPayMngDomPaneUrl,
     formatVerifyReportDayNote: formatVerifyReportDayNote

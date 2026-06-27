@@ -21,6 +21,7 @@ import com.pg.util.NotifyChannelMerge;
 import com.pg.util.PgTrnsctnNotifyDisplayHelper;
 import com.pg.util.NotifyTxnPaidAtUtil;
 import com.pg.util.NotifyToTxnStatusMerge;
+import com.pg.util.PaidApprovalEvidenceGuard;
 import com.pg.util.PgNotifyInternalStatusMapper;
 import com.pg.util.TxnOutcomeReasonApplier;
 import org.slf4j.Logger;
@@ -278,7 +279,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
             t.setServiceType("NOTI");
             t.setOrigin(ORIGIN_NOTI);
         }
-        t.setStatus(mergedStatus);
+
         t.setCurType(firstCurrency(root));
         t.setAmtKrw(amountBd);
         t.setVan(PgVendor.CHILLPAY);
@@ -332,6 +333,22 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         }
 
         String chillPs = paymentStatus != null ? paymentStatus.trim() : (statusField != null ? statusField.trim() : null);
+
+        applyMerchantFromIcopayCompInPayload(in, root, raw, t);
+        PgTrnsctnNotifyDisplayHelper.mergeFromChillPayJson(root, t);
+
+        String statusBeforeGuard = mergedStatus;
+        mergedStatus = PaidApprovalEvidenceGuard.adjustIfPaidWithoutEvidence(
+                mergedStatus, t, root, null, PgVendor.CHILLPAY, null);
+        boolean voidFromIncompleteParams = PaidApprovalEvidenceGuard.wasDowngradedFromPaid(statusBeforeGuard, mergedStatus);
+        if (voidFromIncompleteParams) {
+            log.warn("ChillPay 노티 승인 근거 없음 → 무효(21) trnId={} orderNo={} echo={}",
+                    t.getTrnId(), t.getOrderNo(),
+                    PaidApprovalEvidenceGuard.isIcopayOutboundEchoClaimingPaid(root));
+            chillPs = PaidApprovalEvidenceGuard.ST_VOID;
+        }
+        t.setStatus(mergedStatus);
+
         /* 승인 숫자(0~4)만 남은 레거시 표기인데 병합 결과가 무효·취소 등이면 DB 표시 필드도 내부코드로 맞춤 */
         if (mergedStatus != null && NotifyToTxnStatusMerge.isTerminalOutcome(mergedStatus)
                 && !"10".equals(mergedStatus) && !"08".equals(mergedStatus)
@@ -361,9 +378,9 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
             t.setSettledYn("N");
         }
 
-        applyMerchantFromIcopayCompInPayload(in, root, raw, t);
-        PgTrnsctnNotifyDisplayHelper.mergeFromChillPayJson(root, t);
-        Optional<String> recordedReason = TxnOutcomeReasonApplier.applyFromChillPayJson(t, prevStatusSnap, mergedStatus, root);
+        Optional<String> recordedReason = voidFromIncompleteParams
+                ? TxnOutcomeReasonApplier.applyIncompletePaidParams(t, prevStatusSnap, mergedStatus)
+                : TxnOutcomeReasonApplier.applyFromChillPayJson(t, prevStatusSnap, mergedStatus, root);
 
         pgTrnsctnRepository.save(t);
         outcomeReasonWarmCoordinator.onRecorded(recordedReason);
@@ -709,15 +726,10 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         }
         if (orderNo != null && !orderNo.isBlank()) {
             String on = orderNo.trim();
-            Optional<PgTrnsctn> n = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(merchantId, on, ORIGIN_NOTI);
-            if (n.isPresent()) {
-                return n;
-            }
-            n = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(merchantId, on, ORIGIN_URL);
-            if (n.isPresent()) {
-                return n;
-            }
-            return pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(merchantId, on, ORIGIN_API);
+            Optional<PgTrnsctn> byNoti = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(merchantId, on, ORIGIN_NOTI);
+            Optional<PgTrnsctn> byUrl = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(merchantId, on, ORIGIN_URL);
+            Optional<PgTrnsctn> byApi = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(merchantId, on, ORIGIN_API);
+            return PaidApprovalEvidenceGuard.pickPreferredOrderRow(byNoti, byUrl, byApi);
         }
         return Optional.empty();
     }

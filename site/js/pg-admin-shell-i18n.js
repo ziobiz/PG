@@ -97,7 +97,8 @@
     통보관리: { EN: 'Notifications', JP: '通知管理', CH: '通知管理', TH: 'การแจ้งเตือน' },
     사용자관리: { EN: 'Users', JP: 'ユーザー管理', CH: '用户管理', TH: 'ผู้ใช้' },
     운영관리: { EN: 'Operations', JP: '運用管理', CH: '运营管理', TH: 'ปฏิบัติการ' },
-    리스크관리: { EN: 'Risk', JP: 'リスク管理', CH: '风险管理', TH: 'ความเสี่ยง' },
+    검수관리: { EN: 'Inspection management', JP: '検収管理', CH: '检收管理', TH: 'จัดการตรวจสอบ' },
+    리스크관리: { EN: 'Inspection management', JP: '検収管理', CH: '检收管理', TH: 'จัดการตรวจสอบ' },
     배포설정: { EN: 'Deployment', JP: 'デプロイ設定', CH: '部署设置', TH: 'การใช้งานจริง' }
   };
 
@@ -173,7 +174,7 @@
     '/hq/urlPayDeploy': T('URL payment', 'URL決済設定', 'URL 支付设置', 'ชำระเงิน URL'),
     '/hq/paymentOrchestration': T('Payment acquirer logic', '決済代行ロジック', '支付机构逻辑', 'ตรรกะผู้ให้บริการชำระ'),
     '/calc/jpayTrList': T('Integrated query', '統合照会', '整合查询', 'ค้นหารวม'),
-    '/calc/queryIntegrated': T('Query integrated (daily)', '照会統合', '查询整合', 'รวมรายวัน(ค้นหา)'),
+    '/calc/queryIntegrated': T('Daily query', '日別照会', '按日查询', 'ค้นหารายวัน'),
     '/calc/splitPayList': T('Contract management', '契約管理', '合同管理', 'จัดการสัญญา'),
     '/pay/splitPay': T('Split payment list', '分割決済一覧', '分次支付记录', 'รายการชำระแบ่งงวด'),
     '/splitpay/progressMng': T('Progress', '進行管理', '进度管理', 'ความคืบหน้า'),
@@ -251,7 +252,8 @@
     '/ops/opsMng': T('Operations', '運用管理', '运营管理', 'ปฏิบัติการ'),
     '/ops/mailLog': T('Mail log', 'メールログ', '邮件日志', 'บันทึกเมล'),
     '/ops/taxReport': T('TH tax report', 'タイ税務レポート', '泰国税务报表', 'รายงานภาษี TH'),
-    '/ops/agencyTxnList': T('Agency txn list', '代行取引明細', '代行交易明细', 'รายการธุรกรรมตัวแทน'),
+    '/ops/agencyTxnList': T('Integrated fee', '統合手数料', '整合手续费', 'ค่าธรรมเนียมรวม'),
+    '/calc/integratedCheck': T('Integrated check', '統合チェック', '整合检查', 'ตรวจสอบรวม'),
     '/ops/integratedReport': T('Integrated report', '統合レポート', '综合报表', 'รายงานรวม'),
     '/ops/verifyReport': T('Verify report', '検証レポート', '验证报表', 'รายงานตรวจสอบ'),
     '/ops/inactiveCard': T('Inactive card register', '非活性カード登録', '非活跃卡登记', 'ลงทะเบียนบัตรปิดใช้'),

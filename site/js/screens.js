@@ -771,7 +771,9 @@
       '</div>' +
       '<div class="col-auto pb-1">' +
       '<button type="button" class="btn btn-sm btn-primary mt-3 mt-md-4" id="chatbotOrderLoadBtn" data-pg-ui-t="불러오기">' + escUi(L('불러오기')) + '</button>' +
-      '</div></div>' +
+      '</div>' +
+      '<div class="col-auto pb-1 pg-view-display-tz-host" id="chatbotOrderTzHost"></div>' +
+      '</div>' +
       '<p class="small text-muted mb-0 mt-1" data-pg-ui-t="고객이 주문서를 제출하고 결제를 완료하면 접수(확정)됩니다. 예약 시간은 기본설정·상품별 슬롯으로 검증됩니다.">' +
       escUi(L('고객이 주문서를 제출하고 결제를 완료하면 접수(확정)됩니다. 예약 시간은 기본설정·상품별 슬롯으로 검증됩니다.')) +
       '</p></div>' +
@@ -1164,19 +1166,19 @@
 
   /** 전산설정관리: 표준시 — ziobiz/NOTI 시간·동기화 설정 대응 (신규 기본 Asia/Bangkok) */
   var HQ_LEDGER_DISPLAY_TZ_OPTIONS = [
-    { v: 'Asia/Bangkok', t: 'Asia/Bangkok — 태국 (기본)' },
-    { v: 'Asia/Seoul', t: 'Asia/Seoul — 대한민국' },
-    { v: 'Asia/Tokyo', t: 'Asia/Tokyo — 일본' },
-    { v: 'Asia/Shanghai', t: 'Asia/Shanghai — 중국' },
-    { v: 'Asia/Ho_Chi_Minh', t: 'Asia/Ho_Chi_Minh — 베트남' },
-    { v: 'Asia/Singapore', t: 'Asia/Singapore — 싱가포르' },
-    { v: 'Asia/Manila', t: 'Asia/Manila — 필리핀' },
-    { v: 'Asia/Jakarta', t: 'Asia/Jakarta — 인도네시아(서)' },
-    { v: 'Asia/Dubai', t: 'Asia/Dubai — UAE' },
+    { v: 'Asia/Bangkok', t: 'Asia/Bangkok — 태국 (TH, 기본)' },
+    { v: 'Asia/Seoul', t: 'Asia/Seoul — 대한민국 (KR)' },
+    { v: 'Asia/Tokyo', t: 'Asia/Tokyo — 일본 (JP)' },
+    { v: 'Asia/Shanghai', t: 'Asia/Shanghai — 중국 (CH)' },
+    { v: 'Asia/Ho_Chi_Minh', t: 'Asia/Ho_Chi_Minh — 베트남 (VT)' },
+    { v: 'Asia/Singapore', t: 'Asia/Singapore — 싱가포르 (SG)' },
+    { v: 'Asia/Manila', t: 'Asia/Manila — 필리핀 (PP)' },
+    { v: 'Asia/Jakarta', t: 'Asia/Jakarta — 인도네시아 (IN)' },
+    { v: 'Asia/Dubai', t: 'Asia/Dubai — UAE (UA)' },
     { v: 'UTC', t: 'UTC' },
-    { v: 'Europe/London', t: 'Europe/London' },
-    { v: 'America/New_York', t: 'America/New_York (미 동부)' },
-    { v: 'America/Los_Angeles', t: 'America/Los_Angeles (미 서부)' }
+    { v: 'Europe/London', t: 'Europe/London — 런던 (EU)' },
+    { v: 'America/New_York', t: 'America/New_York — 미 동부 (NY)' },
+    { v: 'America/Los_Angeles', t: 'America/Los_Angeles — 미 서부 (LA)' }
   ];
   /** 결제 후속조치: 승인 시각 기준 경과(시간) — 드롭다운 저장 */
   var HQ_PAY_FOLLOW_ELAPSED_HOUR_OPTIONS = [
@@ -2598,9 +2600,12 @@
       formSections: [
         {
           title: '시간 및 동기화 설정',
-          notice: 'ziobiz/NOTI 노티미들웨어의 시스템·환경설정(시간·NTP·동기화)과 동일 목적입니다. 실제 OS 시각 동기화는 VPS에서 chrony/systemd-timesyncd 등으로 수행하고, 여기 표준시는 전산 배치·목록 표시·결제 후속조치(무효·이메일무효) 경과 판단의 기준 ZoneId로 사용합니다. 신규·미설정 시 기본은 태국(Asia/Bangkok)입니다.',
+          notice: 'ziobiz/NOTI 노티미들웨어의 시스템·환경설정(시간·NTP·동기화)과 동일 목적입니다. 실제 OS 시각 동기화는 VPS에서 chrony/systemd-timesyncd 등으로 수행합니다. 표준 시간대(IANA)는 ICOPAY 거래시간 2줄(표준)·노티 적재·배치·후속조치 경과 판단의 벽시계 기준입니다. 운영 시간대는 결제·정산 그리드 거래시간 1줄(운영) 표시입니다. 거래일(그리드·검색)은 결제완료 시각(paid_at) 우선·없으면 적재 시각이며, 표준 시간대 변경으로 거래일자는 바뀌지 않습니다. 거래시간 1줄=운영 태그, 2줄=표준 태그(TH·JP·CH·SG·VT 등). 신규·미설정 시 표준=Asia/Bangkok(TH), 운영=Asia/Tokyo(JP) 입니다.',
           rows: [
             [{ label: '표준 시간대 (IANA)', type: 'select', name: 'displayTimezone', col: 5, options: HQ_LEDGER_DISPLAY_TZ_OPTIONS }],
+            [{ label: '운영 시간대', type: 'select', name: 'operationalTimezone', col: 5, options: HQ_LEDGER_DISPLAY_TZ_OPTIONS }],
+            [{ label: '운영 시간대 태그', type: 'text', name: 'operationalTimezoneTag', col: 2, readonly: true },
+             { label: '표준 시간대 태그', type: 'text', name: 'standardTimezoneTag', col: 2, readonly: true }],
             [{ label: 'NTP 동기화 사용', type: 'select', name: 'ntpSyncEnabledYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 },
              { label: '동기화 주기(분)', type: 'number', name: 'timeSyncIntervalMin', col: 2, placeholder: '예: 60' }],
             [{ label: 'NTP 서버 목록', type: 'text', name: 'ntpServerList', col: 8, placeholder: '쉼표 구분, 예: pool.ntp.org, time.google.com' }],
@@ -2679,15 +2684,20 @@
         },
         {
           title: 'JPAY 통합내역(동기화 기간)',
-          notice: 'JPAY 포털 로그인 계정은 <strong>본사설정 &gt; 결제대행사로직</strong>에서 총판(MASTER_DIST)별로 등록합니다. 아래는 동기화 기간만 설정합니다. 서버(VPS)에 <code>Node.js</code>·Playwright Chromium이 필요합니다.',
+          notice: 'JPAY 포털 로그인 계정은 <strong>본사설정 &gt; 결제대행사로직</strong>에서 총판(MASTER_DIST)별로 등록합니다. 아래는 동기화·스케줄 설정입니다. 캐시가 비어 있을 때만 「초기화 동기화(개월)」만큼 과거를 한 번에 받습니다. 이후 증분 동기화는 해당 일자 구간만 교체하고 과거 캐시는 유지합니다.',
           rows: [
-            [{ label: 'JPAY 초기화 동기화(개월)', type: 'number', name: 'jpayTrInitSyncMonths', col: 3, placeholder: '기본 3' },
-             { label: 'JPAY 최근 동기화 범위(일)', type: 'number', name: 'jpayTrRecentSyncDays', col: 3, placeholder: '기본 7(최소 7일)' }]
+            [{ label: 'JPAY 초기화 동기화(개월)', type: 'number', name: 'jpayTrInitSyncMonths', col: 3, placeholder: '기본 3(캐시 최초 적재)' },
+             { label: 'JPAY 조회 기본 범위(일)', type: 'number', name: 'jpayTrRecentSyncDays', col: 3, placeholder: '기본 7(목록 조회용)' }]
           ]
         },
         {
+          title: 'JPAY 기본 동기화 (00:00)',
+          notice: '스케줄과 별도로 매일 00:00(전산 타임존)에 1회 실행됩니다. 어제·오늘 2일 구간만 포털에서 받아 캐시 해당 구간을 교체합니다(과거 데이터 유지).',
+          rows: []
+        },
+        {
           title: 'JPAY 통합조회 스케줄',
-          notice: '설정한 주기마다 서버가 JPAY 포털 Export 동기화를 자동 실행합니다(관리자 로그인 없이). 예: 6시간이면 하루 4회(6시간 간격) 실행됩니다. 동기화 기간·포털 계정은 위 카드·결제대행사로직 설정을 따릅니다. 진행 중인 동기화가 있으면 다음 주기까지 건너뜁니다.',
+          notice: '설정한 주기마다 서버가 JPAY 포털 Export 증분 동기화를 자동 실행합니다. <strong>당일 스케줄 1회</strong>는 어제·오늘 2일, <strong>당일 스케줄 2회째부터</strong>는 당일만 포털에서 받아 해당 일자만 캐시에서 교체합니다. 매일 00:00에는 스케줄과 별도로 어제·오늘 2일 기본 동기화가 1회 실행됩니다. 진행 중인 동기화가 있으면 다음 주기까지 건너뜁니다.',
           rows: [
             [{ label: '자동 동기화 주기', type: 'select', name: 'jpayTrSyncScheduleMin', col: 4,
               options: [
@@ -2828,7 +2838,7 @@
                 { v: '/calc/chillPayTrList', t: '통합내역' },
                 { v: '/calc/integratedCheck', t: '통합체크' },
                 { v: '/calc/jpayTrList', t: '통합조회' },
-                { v: '/calc/queryIntegrated', t: '조회통합' },
+                { v: '/calc/queryIntegrated', t: '일별조회' },
                 { v: '/pay/splitPay', t: '분할결제내역' },
                 { v: '/calc/dailyIntegrated', t: '일별통합' },
                 { v: '/calc/payList', t: '결제내역' },
@@ -3168,7 +3178,7 @@
         },
         {
           title: 'JPAY 포털 통합내역 (총판별 계정)',
-          notice: 'JPAY는 목록 API가 없습니다. 총판(MASTER_DIST)마다 merchant.j-pay.net 포털 ID 1개를 등록하면, 동기화 시 계정을 순회해 Export 엑셀을 병합·대조합니다. (예: JPY 총판·USD 총판 각각 별도 계정) 비밀번호는 저장 시에만 갱신됩니다.',
+          notice: 'JPAY는 목록 API가 없습니다. 총판(MASTER_DIST)마다 merchant.j-pay.net 포털 계정을 <strong>복수</strong> 등록할 수 있습니다(예: 동일 총판에 JPY·USD PG코드별 ID). 동기화 시 활성 계정을 순회해 Export 엑셀을 병합·대조합니다. 비밀번호는 저장 시에만 갱신됩니다.',
           rows: [
             [{
               type: 'customHtml',
@@ -4705,7 +4715,7 @@
         'ChillPay API Transaction Services — Search Payment Transaction(실시간)입니다. ICOPAY 내부 DB(pg_trnsctn)가 아니라 칠페이 서버에서 직접 목록을 가져옵니다. ziobiz/NOTI 노티미들웨어의 종합거래·피지거래내역과 유사한 용도로 쓸 수 있습니다.',
         '자격: 배포설정 > API배포설정 또는 tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스 여부를 사용합니다.',
         '순서(내림차순·오름차순)는 [새로고침] 왼쪽 메뉴에서 고르며, 누르는 즉시 다시 조회됩니다(기본 내림차순). TransactionDate 범위는 검색 기간(날짜)을 ChillPay 형식(dd/MM/yyyy HH:mm:ss)으로 변환합니다. 문서: ChillPay-API-Transaction-Services-Document-EN_v1.0.6.',
-        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·승인번호·업체명·업체코드·거래일·거래시간(JP·TH 두 줄)·루트는 그리드에 항상 표시되며 VIEW SETTING 목록에는 나오지 않습니다. 거래일은 YYYY-MM-DD(예: 2026-05-09) 형식으로 표시됩니다. 본사설정 → 조직항목설정에서 화면「통합내역」 허용 열을 제한할 수 있습니다.'
+        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·승인번호·업체명·업체코드·거래일·거래시간(운영·표준 두 줄)·루트는 그리드에 항상 표시되며 VIEW SETTING 목록에는 나오지 않습니다. 거래일은 YYYY-MM-DD(예: 2026-05-09) 형식으로 표시됩니다. 본사설정 → 조직항목설정에서 화면「통합내역」 허용 열을 제한할 수 있습니다.'
       ],
       summary: ['건수'],
       buttons: [
@@ -4772,12 +4782,13 @@
         ]
       ],
       noticeList: [
-        'JPAY(조회통합·DB Export 캐시·거래일)와 ICOPAY(일별결제·노티 적재일)를 같은 거래일자 구간에서 일자별로 나란히 비교합니다. 값이 같으면 Ok, 다르면 불일치 셀만 강조·Check로 표시됩니다.',
+        'JPAY(일별조회·DB Export 캐시·거래일)와 ICOPAY(일별결제·노티 적재일)를 같은 거래일자 구간에서 일자별로 나란히 비교합니다. 값이 같으면 Ok, 다르면 불일치 셀만 강조·Check로 표시됩니다.',
         'JPAY는 통합조회와 동일하게 DB(tb_jpay_portal_export_cache)에 저장되며, 본사설정 전산설정관리의 JPAY 통합조회 스케줄로 자동 동기화됩니다. 로그인 후 [검색]만으로 조회할 수 있고, 즉시 갱신이 필요할 때만 [JPAY 동기화]를 사용하세요. 조회 기간은 최대 93일입니다.'
       ],
       summary: ['건수'],
       buttons: [
         { id: 'jpayTrSyncBtn', label: 'JPAY 동기화', cls: 'btn-primary' },
+        { id: 'jpayTrFullResyncBtn', label: '전체 재동기화', cls: 'btn-outline-primary' },
         { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
         { id: 'excelDownBtn', label: '엑셀다운로드', cls: 'btn-info' },
         { id: 'searchBtn', label: '검색', cls: 'btn-primary' }
@@ -4846,7 +4857,7 @@
       noticeList: [
         'JPAY 가맹 포털(merchant.j-pay.net)에 자동 로그인 → Export 다운로드 → ICOPAY 결제내역 대조·반영합니다. 목록 API가 없어 포털 Export 엑셀을 사용합니다.',
         '본사설정 > 결제대행사로직에서 총판별 JPAY 포털 계정을 등록하고, 전산설정관리에서 동기화 기간을 설정하세요. VPS에 Node.js·Playwright(Chromium)가 필요합니다.',
-        '[JPAY 동기화]는 포털 Export 후 캐시를 갱신합니다. 화면 거래일이 하루(당일)여도 동기화는 본사설정의 최근 동기화 범위(최소 7일)만큼 포털에서 받아옵니다. 목록 조회는 화면에 선택한 거래일자로 필터됩니다.',
+        '[JPAY 동기화]는 화면에 지정한 거래일 구간(기본 당일)을 포털에서 받아 해당 기간 캐시를 교체합니다. 복수 포털 계정·동일 주문 중복은 승인번호·성공 건 우선으로 정리하며, 승인번호가 비어 있으면 ICOPAY 성공 건으로 보강합니다. [전체 재동기화]는 전산설정의 초기화 동기화(개월) 구간 전체를 다시 받습니다. 자동 스케줄은 당일 1회=어제·오늘 2일, 당일 2회째부터=당일만 교체하며, 매일 00:00에는 스케줄과 별도로 어제·오늘 2일 기본 동기화가 1회 실행됩니다.',
         '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·업체명·업체코드·거래일·거래시간은 그리드에 항상 표시되며 VIEW SETTING 목록에는 나오지 않습니다. 열 너비는 헤더 경계를 드래그해 조절할 수 있습니다.',
         '동기화한 포털 Export 목록은 DB(tb_jpay_portal_export_cache)에 저장됩니다. 로그아웃·재로그인·서버 재시작 후에도 [검색]만으로 마지막 동기화 목록을 조회할 수 있습니다. 전산설정관리에서 JPAY 통합조회 스케줄을 켜 두면 서버가 주기적으로 동기화합니다. 즉시 반영이 필요할 때만 [JPAY 동기화]를 수동 실행하세요.'
       ],
@@ -4854,6 +4865,7 @@
       showJpaySyncInfo: true,
       buttons: [
         { id: 'jpayTrSyncBtn', label: 'JPAY 동기화', cls: 'btn-primary' },
+        { id: 'jpayTrFullResyncBtn', label: '전체 재동기화', cls: 'btn-outline-primary' },
         { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
         { id: 'excelDownBtn', label: '엑셀다운로드', cls: 'btn-info' }
       ],
@@ -5311,7 +5323,7 @@
         '「정산(이체)」열은 **승인 성공** 건에만 ChillPay Settled를 **정산완료 / 미정산**으로 보입니다. 실패·취소·환불·무효 등은 칸을 비웁니다. 「예정(ICOPAY)」가 채워져 있으면 서울 기준 그 시각 **이전**에는 예정일 미도래로 **미정산**만 보이고, 도래 후에는 ChillPay 값을 그대로 둡니다. Settled=false 는 이체 미완·주기 미지급 등이 흔합니다. **샌드박스**는 전부 false 인 경우도 많습니다. **결제 상태** 열은 노티(tb_pg_trnsctn) 보강이며 ChillPay 이체와 동일하지 않습니다.',
         '칠페이 정산 API 정렬 키는 통합내역과 같이 TransactionId(기본)·PaymentDate 등 문서 표를 따릅니다. 통합내역(결제 검색)과 동일하게 POJO·헤더·MD5 Checksum 규칙으로 호출합니다. 조회 응답 meta에 chillPaySandbox·chillPayTxnApiEnv(SANDBOX/PRODUCTION)가 포함되어 실제 호출 환경을 확인할 수 있습니다. 상단 [새로고침] 왼쪽에서 내림차순·오름차순(OrderDir)을 고릅니다. 첫째 줄에서 결제일 구간·빠른기간을 정한 뒤, 둘째 줄에서 검색구분·검색어·상태그룹을 맞추고 [검색]을 누릅니다. 「전체」는 해당 항목으로 좁히지 않습니다. 성공/실패/취소 등 상태그룹은 정산 API의 Settled(True/False)와 다르므로, 칠페이 응답에 결제 Status가 없을 때는 ICOPAY 노티 적재 건(tb_pg_trnsctn)으로 상태를 보강한 뒤 보조 필터합니다. 이때 상단 요약은 안내 문구대로 현재 페이지만 반영될 수 있습니다. 기간을 비우면 최근 30일 결제일로 조회합니다.',
         '자격: 배포설정 > API배포설정·tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스와 동일합니다.',
-        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호(No.)만 항상 표시됩니다. 거래일·거래시간·결제시각은 통합내역과 같이 거래일은 YYYY-MM-DD(예: 2026-05-09) 형식, 거래시간·결제시각은 JP(일본)·TH(태국) 두 줄로 표시합니다. SettleAmount·NetAmount·정산(이체)·이체일·컷오프·서비스료·환율·통화·승인번호·Merchant·고객·주문번호·PaymentChannel·결제금액·수수료·ICOPAY·Description·칠페이 원문 일시 등은 VIEW SETTING에서 켜고 끌 수 있습니다. 본사설정 → 조직항목설정에서 화면「통합정산」 허용 열을 제한할 수 있습니다.'
+        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호(No.)만 항상 표시됩니다. 거래일·거래시간·결제시각은 통합내역과 같이 거래일은 YYYY-MM-DD(예: 2026-05-09) 형식, 거래시간·결제시각은 운영·표준 두 줄(전산설정 시간대)로 표시합니다. SettleAmount·NetAmount·정산(이체)·이체일·컷오프·서비스료·환율·통화·승인번호·Merchant·고객·주문번호·PaymentChannel·결제금액·수수료·ICOPAY·Description·칠페이 원문 일시 등은 VIEW SETTING에서 켜고 끌 수 있습니다. 본사설정 → 조직항목설정에서 화면「통합정산」 허용 열을 제한할 수 있습니다.'
       ],
       summary: ['건수'],
       buttons: [
@@ -6665,15 +6677,17 @@
       searchFormClass: 'pay-mng-search-form',
       payMngDenseGrid: true,
       tableScrollable: true,
-      columnGuideFixedKeys: ['rowNo', 'pgNm', 'pgCd', 'compNm', 'compId', 'trnDate', 'agencySettleYn'],
+      tableColumnGuide: true,
+      columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'trnDate', 'agencySettleYn'],
       viewSettingDefaultSelectedKeys: [
+        'pgNm', 'pgCd',
         'trnTime', 'routeNo', 'chillTransactionId', 'trnId', 'statusNm', 'amount', 'curType', 'policyCur',
         'txnFixedFeesSum', 'pctFeesSum', 'usdtFee', 'fxFee', 'fee3dsFee', 'rollingHoldEst',
         'failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'chargebackFee', 'totalAgencyFee'
       ],
       noticeList: [
         '총본사·본사(REGIONAL)·총판(MASTER_DIST) 또는 ADMIN만 이용합니다. 조회 범위는 로그인 조직 하위 가맹 거래입니다.',
-        '수수료는 본사설정 「대행수수료설정」(PG코드=거래 van) 기준이며, 가맹 수수료내역·가맹 정산(settled_yn)과 별개입니다.',
+        '결제대행사(PG) 계약 수수료를 건별로 표시합니다. 본사설정 「대행수수료설정」(PG코드=거래 van) 기준이며, 정산관리 수수료내역과 유사한 구조입니다. 가맹 수수료·가맹 정산(settled_yn)과 별개입니다.',
         '맨 오른쪽 「PG정산유무」는 대행수수료설정의 T/H/D·N·일괄시각으로 산출한 PG 계약 정산 도래 여부(Y=도래, N=미도래)입니다. 정책 없음·van 없음은 빈 칸입니다.'
       ],
       searchRows: [
@@ -6716,7 +6730,7 @@
         { id: 'searchBtn', label: '검색', cls: 'btn-primary' }
       ],
       headerGroups: [
-        { label: 'PG·가맹', keys: ['pgNm', 'pgCd', 'compNm', 'compId'] },
+        { label: '기본정보', keys: ['pgNm', 'pgCd', 'compNm', 'compId'] },
         { label: '거래', keys: ['trnDate', 'trnTime', 'routeNo', 'chillTransactionId', 'trnId', 'statusNm', 'amount'] },
         { label: '승인 / 대행수수료(%)', keys: ['txnFixedFeesSum', 'pctFeesSum'] },
         { label: '기타수수료', keys: ['usdtFee', 'fxFee', 'fee3dsFee'] },
@@ -6726,7 +6740,7 @@
       columns: [
         { key: 'rowNo', label: '번호' },
         { key: 'pgNm', label: 'PG명' },
-        { key: 'pgCd', label: 'PG코드' },
+        { key: 'pgCd', label: '결제대행사' },
         { key: 'compNm', label: '업체명' },
         { key: 'compId', label: '업체코드' },
         { key: 'trnDate', label: '거래일' },
@@ -7991,10 +8005,16 @@
       buttonsHtml = '<div class="screen-action-buttons">';
       var tid = tabId || '';
       var sortPlaced = false;
+      var tzPlaced = false;
+      var showViewTz = typeof window.PG_VIEW_DISPLAY_TZ !== 'undefined' && window.PG_VIEW_DISPLAY_TZ.screenHasTxnDatetimeColumns(cfg);
       btns.forEach(function (b) {
         if (toolbarSortHtml && !sortPlaced) {
           var bid0 = String(b && b.id || '');
           if (anchorSort === 'refresh' && bid0 === 'payListRefreshBtn') {
+            if (showViewTz && !tzPlaced) {
+              buttonsHtml += window.PG_VIEW_DISPLAY_TZ.buildToolbarHtml(tabId);
+              tzPlaced = true;
+            }
             var bidRf = (b && b._viewSettingHello) ? ('viewSettingHelloBtn_' + tid) : (b.id || '');
             var labRf = String(b.label || '');
             buttonsHtml += '<button type="button" class="btn ' + (b.cls || 'btn-secondary') + ' btn-sm" id="' + bidRf + '">' + (labRf ? '<span data-pg-ui-t="' + escUi(labRf) + '">' + escUi(L(labRf)) + '</span>' : '') + '</button>';
@@ -8011,6 +8031,10 @@
             return;
           }
           if (anchorSort !== 'refresh' && bid0 === 'searchBtn') {
+            if (showViewTz && !tzPlaced) {
+              buttonsHtml += window.PG_VIEW_DISPLAY_TZ.buildToolbarHtml(tabId);
+              tzPlaced = true;
+            }
             buttonsHtml += toolbarSortHtml;
             sortPlaced = true;
           }
@@ -8018,6 +8042,10 @@
         var bid = (b && b._viewSettingHello) ? ('viewSettingHelloBtn_' + tid) : (b.id || '');
         var labB = String(b.label || '');
         var isListSearchBtn = bid === 'searchBtn';
+        if (showViewTz && !tzPlaced && bid === 'payListRefreshBtn') {
+          buttonsHtml += window.PG_VIEW_DISPLAY_TZ.buildToolbarHtml(tabId);
+          tzPlaced = true;
+        }
         buttonsHtml += '<button type="button" class="btn ' + (b.cls || 'btn-secondary') + ' btn-sm' + (isListSearchBtn ? ' screen-search-btn' : '') + '" id="' + bid + '"' + (isListSearchBtn ? ' data-pg-list-search-btn="1"' : '') + '>' + (labB ? '<span data-pg-ui-t="' + escUi(labB) + '">' + escUi(L(labB)) + '</span>' : '') + '</button>';
       });
       buttonsHtml += '</div>';

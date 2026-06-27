@@ -13,4 +13,10 @@ public interface JpayPortalAccountRepository extends JpaRepository<JpayPortalAcc
     List<JpayPortalAccount> findAllByOrderBySortOrderAscIdAsc();
 
     Optional<JpayPortalAccount> findByMasterOrgUnitId(Long masterOrgUnitId);
+
+    Optional<JpayPortalAccount> findByMasterOrgUnitIdAndPgCd(Long masterOrgUnitId, String pgCd);
+
+    Optional<JpayPortalAccount> findByMasterOrgUnitIdAndPortalUsername(Long masterOrgUnitId, String portalUsername);
+
+    long countByMasterOrgUnitId(Long masterOrgUnitId);
 }

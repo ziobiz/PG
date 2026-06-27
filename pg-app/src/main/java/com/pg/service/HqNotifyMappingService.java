@@ -23,9 +23,13 @@ import com.pg.util.NotifyAmountParse;
 import com.pg.util.NotifyChannelMerge;
 import com.pg.util.NotifyTxnPaidAtUtil;
 import com.pg.util.NotifyToTxnStatusMerge;
+import com.pg.util.PaidApprovalEvidenceGuard;
 import com.pg.util.TxnOutcomeReasonApplier;
 import com.pg.util.PgNotifyInternalStatusMapper;
 import com.pg.util.PgTrnsctnNotifyDisplayHelper;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -50,6 +54,8 @@ import java.util.UUID;
 
 @Service
 public class HqNotifyMappingService {
+
+    private static final Logger log = LoggerFactory.getLogger(HqNotifyMappingService.class);
 
     /** 노티 JSON → 거래 적재 시 기존 행 탐색 (칠페이 전용 레포 메서드와 동일 시그니처) */
     @FunctionalInterface
@@ -1008,10 +1014,21 @@ public class HqNotifyMappingService {
         if (mergedStatus == null || mergedStatus.isBlank()) {
             mergedStatus = "08";
         }
+        String statusBeforeGuard = mergedStatus;
+        mergedStatus = PaidApprovalEvidenceGuard.adjustIfPaidWithoutEvidence(
+                mergedStatus, t, notifyRoot, byKey, vendorCode, returnCodeForJpay);
+        boolean voidFromIncompleteParams = PaidApprovalEvidenceGuard.wasDowngradedFromPaid(statusBeforeGuard, mergedStatus);
+        if (voidFromIncompleteParams) {
+            log.warn("노티매핑 승인 근거 없음 → 무효(21) trnId={} orderNo={} vendor={} echo={}",
+                    t.getTrnId(), t.getOrderNo(), vendorCode,
+                    PaidApprovalEvidenceGuard.isIcopayOutboundEchoClaimingPaid(notifyRoot));
+        }
         t.setStatus(mergedStatus);
 
         String chillDisplay;
-        if (PgVendor.isJpayFamily(vendorCode)) {
+        if (voidFromIncompleteParams) {
+            chillDisplay = PaidApprovalEvidenceGuard.ST_VOID;
+        } else if (PgVendor.isJpayFamily(vendorCode)) {
             chillDisplay = JpayNotifyStatusResolver.chillPaymentStatusLabel(mergedStatus, returnCodeForJpay);
         } else {
             chillDisplay = resolveChillPaymentStatusForStorage(mappedPs, jsonPayStat, mergedStatus);
@@ -1032,7 +1049,9 @@ public class HqNotifyMappingService {
         } else if (t.getSettledYn() == null || t.getSettledYn().isBlank()) {
             t.setSettledYn("N");
         }
-        Optional<String> recordedReason = TxnOutcomeReasonApplier.applyFromMappedNotify(t, prevStatusSnap, mergedStatus, notifyRoot, vendorCode, null);
+        Optional<String> recordedReason = voidFromIncompleteParams
+                ? TxnOutcomeReasonApplier.applyIncompletePaidParams(t, prevStatusSnap, mergedStatus)
+                : TxnOutcomeReasonApplier.applyFromMappedNotify(t, prevStatusSnap, mergedStatus, notifyRoot, vendorCode, null);
         outcomeReasonWarmCoordinator.onRecorded(recordedReason);
         return Optional.of(t);
     }

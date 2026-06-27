@@ -83,6 +83,24 @@ public final class TxnOutcomeReasonApplier {
     }
 
     /**
+     * 승인(10) 근거 없이 노티·매핑으로 올라왔다가 무효(21)로 내린 건 — 실패(99)가 아닌 무효·고정 사유.
+     */
+    public static Optional<String> applyIncompletePaidParams(PgTrnsctn t, String prevStatus, String voidStatus) {
+        return applyIncompletePaidParams(t, prevStatus, voidStatus, SOURCE_ICOPAY);
+    }
+
+    public static Optional<String> applyIncompletePaidParams(PgTrnsctn t, String prevStatus, String voidStatus, String source) {
+        if (t == null || !PaidApprovalEvidenceGuard.ST_VOID.equals(norm(voidStatus))) {
+            return Optional.empty();
+        }
+        String src = source != null && !source.isBlank() ? source : SOURCE_ICOPAY;
+        return apply(t, prevStatus, voidStatus,
+                PaidApprovalEvidenceGuard.OUTCOME_REASON_INCOMPLETE_PARAMS,
+                PaidApprovalEvidenceGuard.OUTCOME_CODE_INCOMPLETE_PARAMS,
+                src);
+    }
+
+    /**
      * JPAY Trade Query·포털 Export 동기화로 확정된 터미널 상태.
      * UNPAID(노티 미수신) → 취소(20) 등 노티 없이 조회로만 반영되는 건의 처리사유.
      */

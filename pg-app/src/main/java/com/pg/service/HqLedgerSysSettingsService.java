@@ -1,10 +1,12 @@
 package com.pg.service;
 
+import com.pg.api.dto.TxnDualLineSpec;
 import com.pg.catalog.DataRetentionCatalog;
 import com.pg.entity.HqLedgerSysSettings;
 import com.pg.entity.OrgLevel;
 import com.pg.repository.HqLedgerSysSettingsRepository;
 import com.pg.repository.SettlementSettingRepository;
+import com.pg.util.LedgerZoneDisplayTag;
 import com.pg.util.FeeCurrencyRoundResolver;
 import com.pg.util.JpayTrSyncSchedule;
 import com.pg.util.PayDisplayCurrency;
@@ -52,6 +54,7 @@ public class HqLedgerSysSettingsService {
             HqLedgerSysSettings x = new HqLedgerSysSettings();
             x.setId(1L);
             x.setDisplayTimezone("Asia/Bangkok");
+            x.setOperationalTimezone("Asia/Tokyo");
             x.setSettlementAutoBatchMode(SETTLEMENT_AUTO_BATCH_INACTIVE);
             return repository.save(x);
         });
@@ -139,6 +142,17 @@ public class HqLedgerSysSettingsService {
                 m.put("displayTimezone", tz.trim());
             }
         }
+        {
+            String op = s.getOperationalTimezone();
+            if (op == null || op.isBlank()) {
+                m.put("operationalTimezone", "Asia/Tokyo");
+            } else {
+                m.put("operationalTimezone", op.trim());
+            }
+        }
+        TxnDualLineSpec dualSpec = resolveTxnDualLineSpecFromSettings(s);
+        m.put("operationalTimezoneTag", dualSpec.tag1());
+        m.put("standardTimezoneTag", dualSpec.tag2());
         m.put("ntpSyncEnabledYn", yn(s.getNtpSyncEnabledYn()));
         m.put("ntpServerList", nz(s.getNtpServerList()));
         m.put("timeSyncIntervalMin", s.getTimeSyncIntervalMin());
@@ -228,7 +242,12 @@ public class HqLedgerSysSettingsService {
         if (body == null) {
             return repository.save(s);
         }
-        s.setDisplayTimezone(trimToNull(body.get("displayTimezone")));
+        if (body.containsKey("displayTimezone")) {
+            s.setDisplayTimezone(trimToNull(body.get("displayTimezone")));
+        }
+        if (body.containsKey("operationalTimezone")) {
+            s.setOperationalTimezone(trimToNull(body.get("operationalTimezone")));
+        }
         s.setNtpSyncEnabledYn(parseYn(body.get("ntpSyncEnabledYn"), s.getNtpSyncEnabledYn()));
         s.setNtpServerList(trimToNull(body.get("ntpServerList")));
         s.setTimeSyncIntervalMin(parsePositiveInt(body.get("timeSyncIntervalMin")));
@@ -479,5 +498,41 @@ public class HqLedgerSysSettingsService {
     /** 단일 행 전산설정을 열어 표준 시간대를 반환합니다. */
     public ZoneId resolveLedgerDisplayZoneId() {
         return resolveDisplayZoneIdFromSettings(getOrCreate());
+    }
+
+    /** 운영 시간대 — 그리드 거래시간 1줄. 미설정 시 Asia/Tokyo. */
+    public static ZoneId resolveOperationalDisplayZoneIdFromSettings(HqLedgerSysSettings s) {
+        if (s == null) {
+            return ZoneId.of("Asia/Tokyo");
+        }
+        try {
+            String tz = s.getOperationalTimezone();
+            if (tz == null || tz.isBlank()) {
+                return ZoneId.of("Asia/Tokyo");
+            }
+            return ZoneId.of(tz.trim());
+        } catch (Exception e) {
+            return ZoneId.of("Asia/Tokyo");
+        }
+    }
+
+    public ZoneId resolveOperationalDisplayZoneId() {
+        return resolveOperationalDisplayZoneIdFromSettings(getOrCreate());
+    }
+
+    /**
+     * 전산설정 기본 2줄 시각 — 1줄=운영 시간대, 2줄=표준 시간대(ICOPAY 벽시계).
+     * 총판 {@code tb_master_dist_settlement_cycle_config} 가 있으면 그 설정이 우선.
+     */
+    public static TxnDualLineSpec resolveTxnDualLineSpecFromSettings(HqLedgerSysSettings s) {
+        ZoneId standard = resolveDisplayZoneIdFromSettings(s);
+        ZoneId operational = resolveOperationalDisplayZoneIdFromSettings(s);
+        String tagOp = LedgerZoneDisplayTag.zoneIdToShortTag(operational);
+        String tagStd = LedgerZoneDisplayTag.zoneIdToShortTag(standard);
+        return new TxnDualLineSpec(tagOp, operational, tagStd, standard);
+    }
+
+    public TxnDualLineSpec resolveLedgerTxnDualLineSpec() {
+        return resolveTxnDualLineSpecFromSettings(getOrCreate());
     }
 }

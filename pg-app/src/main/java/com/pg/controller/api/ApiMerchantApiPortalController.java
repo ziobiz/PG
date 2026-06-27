@@ -4,6 +4,7 @@ import com.pg.api.ApiResponse;
 import com.pg.entity.AppUser;
 import com.pg.merchantdeploy.MerchantApiDeploymentService;
 import com.pg.service.AuthService;
+import com.pg.util.MerchantNotifyUrlVisibility;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -45,8 +46,9 @@ public class ApiMerchantApiPortalController {
             }
             String orgLevel = org.get("orgLevel") != null ? org.get("orgLevel").toString().trim() : "";
             String compId = org.get("compId") != null ? org.get("compId").toString().trim() : "";
-            return ResponseEntity.ok(ApiResponse.ok(
-                    deploymentService.buildMerchantSelfPortal(req, compId, orgLevel)));
+            Map<String, Object> portal = deploymentService.buildMerchantSelfPortal(req, compId, orgLevel);
+            MerchantNotifyUrlVisibility.redactSelfPortal(portal);
+            return ResponseEntity.ok(ApiResponse.ok(portal));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         }

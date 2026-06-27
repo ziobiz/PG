@@ -4,6 +4,7 @@ import com.pg.api.ApiResponse;
 import com.pg.api.dto.PageResult;
 import com.pg.api.dto.PayListItemDto;
 import com.pg.api.dto.PayListRowContext;
+import com.pg.api.dto.TxnDualLineSpec;
 import com.pg.entity.AppUser;
 import com.pg.entity.BalanceDeduction;
 import com.pg.entity.ChargebackFeePolicy;
@@ -218,6 +219,16 @@ public class ApiSettlementController {
 
     private ZoneId resolveLedgerDisplayZoneId() {
         return HqLedgerSysSettingsService.resolveDisplayZoneIdFromSettings(
+                hqLedgerSysSettingsRepository.findFirstByOrderByIdAsc().orElse(null));
+    }
+
+    private ZoneId resolveOperationalDisplayZoneId() {
+        return HqLedgerSysSettingsService.resolveOperationalDisplayZoneIdFromSettings(
+                hqLedgerSysSettingsRepository.findFirstByOrderByIdAsc().orElse(null));
+    }
+
+    private TxnDualLineSpec resolveLedgerTxnDualLineSpec() {
+        return HqLedgerSysSettingsService.resolveTxnDualLineSpecFromSettings(
                 hqLedgerSysSettingsRepository.findFirstByOrderByIdAsc().orElse(null));
     }
 
@@ -2712,7 +2723,8 @@ public class ApiSettlementController {
         PayListRowContext payCtx = ctxByMerchant.get(compId);
         SettlementSetting feeVatSs = payCtx != null ? payCtx.getSettlement() : null;
         CommissionPolicy pol = polCache.computeIfAbsent(compId, this::resolveCommissionPolicyForMerchant);
-        Map<String, Object> payRow = PayListItemDto.from(t, payCtx, resolveLedgerDisplayZoneId());
+        Map<String, Object> payRow = PayListItemDto.from(t, payCtx, resolveLedgerDisplayZoneId(),
+                resolveOperationalDisplayZoneId());
         String payCurKey = PayListItemDto.payCurKeyForFeeCompute(t, payCtx);
         FeeListRoundingPolicy feeListRp = feeResolver.forCurrency(payCurKey);
         BigDecimal amountBd = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
@@ -3738,7 +3750,8 @@ public class ApiSettlementController {
             " ~ (미기록) — M/H 격자(H12 등)는 마감시각(period_end_at)이 있어야 12시간·N분 단위 구간으로 표시됩니다.";
 
     private String formatSettlementTargetRangeDual(LocalDateTime startDt, LocalDateTime endDt) {
-        return TrnTimeDualZoneDisplay.formatDualLineDateTimeRange(startDt, endDt, resolveLedgerDisplayZoneId());
+        return TrnTimeDualZoneDisplay.formatDualLineDateTimeRange(startDt, endDt, resolveLedgerDisplayZoneId(),
+                resolveLedgerTxnDualLineSpec());
     }
 
     private static String appendSameSuffixToDualPeriodLines(String dualTwoLines, String suffix) {
@@ -3805,7 +3818,8 @@ public class ApiSettlementController {
         if (closeAt == null) {
             return head + " / 마감 -";
         }
-        return head + "\n마감\n" + TrnTimeDualZoneDisplay.formatDualLineDateTime(closeAt, resolveLedgerDisplayZoneId());
+        return head + "\n마감\n" + TrnTimeDualZoneDisplay.formatDualLineDateTimeWithSpec(
+                closeAt, resolveLedgerDisplayZoneId(), resolveLedgerTxnDualLineSpec());
     }
 
     /**
@@ -3880,7 +3894,8 @@ public class ApiSettlementController {
             startDt = r.getPeriodFrom().atStartOfDay();
             if (SettlementCycleTiming.isPlainSubDailyGridClosingCode(calcCycleNorm)) {
                 return appendSameSuffixToDualPeriodLines(
-                        TrnTimeDualZoneDisplay.formatDualLineDateTime(startDt, resolveLedgerDisplayZoneId()),
+                        TrnTimeDualZoneDisplay.formatDualLineDateTimeWithSpec(
+                                startDt, resolveLedgerDisplayZoneId(), resolveLedgerTxnDualLineSpec()),
                         SETTLEMENT_GRID_MISSING_PERIOD_MSG);
             }
             endDt = r.getPeriodTo().atTime(23, 59, 59);

@@ -42,4 +42,38 @@ class TrnTimeDualZoneDisplayTest {
                 "JP", ZoneId.of("Asia/Tokyo"), "TH", ZoneId.of("Asia/Bangkok"));
         assertEquals("JP 14:00:00\nTH 12:00:00", s);
     }
+
+    @Test
+    void withSpec_standardSingapore_oneHourBehindJapan() {
+        LocalDateTime sgWall = LocalDateTime.of(2026, 6, 19, 21, 10, 9);
+        var spec = new com.pg.api.dto.TxnDualLineSpec(
+                "JP", ZoneId.of("Asia/Tokyo"),
+                "SG", ZoneId.of("Asia/Singapore"));
+        String s = TrnTimeDualZoneDisplay.formatWithSpecTimeOnly(sgWall, spec);
+        assertEquals("JP 22:10:09\nSG 21:10:09", s);
+    }
+
+    @Test
+    void withSpec_standardThailand_twoHoursBehindJapan() {
+        LocalDateTime bkkWall = LocalDateTime.of(2026, 6, 19, 20, 10, 9);
+        var spec = new com.pg.api.dto.TxnDualLineSpec(
+                "JP", ZoneId.of("Asia/Tokyo"),
+                "TH", ZoneId.of("Asia/Bangkok"));
+        String s = TrnTimeDualZoneDisplay.formatWithSpecTimeOnly(bkkWall, spec);
+        assertEquals("JP 22:10:09\nTH 20:10:09", s);
+    }
+
+    @Test
+    void sameInstant_thVsSg_standardLineDiffersByOneHour() {
+        LocalDateTime bkkWall = LocalDateTime.of(2026, 6, 19, 20, 10, 9);
+        var thSpec = new com.pg.api.dto.TxnDualLineSpec(
+                "JP", ZoneId.of("Asia/Tokyo"), "TH", ZoneId.of("Asia/Bangkok"));
+        var sgSpec = new com.pg.api.dto.TxnDualLineSpec(
+                "JP", ZoneId.of("Asia/Tokyo"), "SG", ZoneId.of("Asia/Singapore"));
+        String thLine = TrnTimeDualZoneDisplay.formatWithSpecTimeOnly(bkkWall, thSpec);
+        LocalDateTime sgWall = LocalDateTime.of(2026, 6, 19, 21, 10, 9);
+        String sgLine = TrnTimeDualZoneDisplay.formatWithSpecTimeOnly(sgWall, sgSpec);
+        assertEquals("JP 22:10:09\nTH 20:10:09", thLine);
+        assertEquals("JP 22:10:09\nSG 21:10:09", sgLine);
+    }
 }

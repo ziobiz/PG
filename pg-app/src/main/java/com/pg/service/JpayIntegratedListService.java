@@ -4,6 +4,8 @@ package com.pg.service;
 
 import com.pg.api.dto.PageResult;
 
+import com.pg.api.dto.PayListItemDto;
+
 import com.pg.entity.JpayPortalAccount;
 
 import com.pg.entity.JpayPortalExportCache;
@@ -159,6 +161,13 @@ public class JpayIntegratedListService {
 
     private volatile int syncCountToday;
 
+    private volatile LocalDate scheduleSyncCountDate;
+
+    private volatile int scheduleSyncCountToday;
+
+    /** 매일 00:00 기본 동기화 마지막 수행 기준일(전산 타임존) */
+    private volatile LocalDate lastBasicMidnightSyncDate;
+
     private volatile List<Map<String, Object>> cachedRows = List.of();
 
     /** @Transactional 프록시를 통해 백그라운드에서 동기화를 실행하기 위한 자기 참조 */
@@ -296,7 +305,7 @@ public class JpayIntegratedListService {
 
             }
 
-            cachedRows = List.copyOf(repairEnrichedRows(rows));
+            cachedRows = List.copyOf(dedupeJpayRows(repairEnrichedRows(rows)));
 
             lastSyncAt = ent.getSyncedAt();
 
@@ -305,6 +314,12 @@ public class JpayIntegratedListService {
             syncCountDate = ent.getSyncCountDate();
 
             syncCountToday = ent.getSyncCountToday();
+
+            scheduleSyncCountDate = ent.getScheduleSyncCountDate();
+
+            scheduleSyncCountToday = ent.getScheduleSyncCountToday();
+
+            lastBasicMidnightSyncDate = ent.getLastBasicSyncDate();
 
             return true;
 
@@ -342,6 +357,12 @@ public class JpayIntegratedListService {
 
             ent.setSyncCountToday(syncCountToday);
 
+            ent.setScheduleSyncCountDate(scheduleSyncCountDate);
+
+            ent.setScheduleSyncCountToday(scheduleSyncCountToday);
+
+            ent.setLastBasicSyncDate(lastBasicMidnightSyncDate);
+
             exportCacheRepository.save(ent);
 
         } catch (Exception ignored) {
@@ -354,49 +375,313 @@ public class JpayIntegratedListService {
 
 
 
-    @Transactional
+    private record JpayExportPlan(LocalDate exportFrom, LocalDate exportTo, JpaySyncTrigger trigger, boolean mergeIntoCache) {}
 
-    public Map<String, Object> syncFromPortal(LocalDate from, LocalDate to) throws Exception {
+    private ZoneId ledgerDisplayZone() {
+        return hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+    }
 
+    private int scheduleSyncCountForToday(LocalDate today) {
+        if (scheduleSyncCountDate != null && scheduleSyncCountDate.equals(today)) {
+            return scheduleSyncCountToday;
+        }
+        return 0;
+    }
+
+    private JpayExportPlan resolveExportPlan(LocalDate reqFrom, LocalDate reqTo, JpaySyncTrigger trigger) {
         var settings = hqLedgerSysSettingsService.getOrCreate();
+        LocalDate today = LocalDate.now(ledgerDisplayZone());
+        ensureExportCacheLoaded();
+        boolean cacheEmpty = cachedRows == null || cachedRows.isEmpty();
 
-        LocalDate tTo = to != null ? to : LocalDate.now();
-
-        LocalDate tFrom = from != null ? from : tTo;
-
-        int configured = settings.getJpayTrRecentSyncDays() != null ? settings.getJpayTrRecentSyncDays() : 7;
-
-        int syncDays = Math.max(7, Math.min(365, configured));
-
-        LocalDate exportTo = tTo;
-
-        LocalDate exportFrom = tFrom;
-
-        LocalDate widenFrom = exportTo.minusDays(Math.max(1, syncDays) - 1L);
-
-        if (exportFrom.isAfter(widenFrom)) {
-
-            exportFrom = widenFrom;
-
+        if (cacheEmpty) {
+            int months = settings.getJpayTrInitSyncMonths() != null ? settings.getJpayTrInitSyncMonths() : 3;
+            months = Math.max(1, Math.min(120, months));
+            return new JpayExportPlan(today.minusMonths(months), today, JpaySyncTrigger.INITIAL_BOOTSTRAP, false);
         }
 
+        if (trigger == JpaySyncTrigger.BASIC_MIDNIGHT) {
+            return new JpayExportPlan(today.minusDays(1), today, trigger, true);
+        }
 
+        if (trigger == JpaySyncTrigger.FULL_RESYNC) {
+            int months = settings.getJpayTrInitSyncMonths() != null ? settings.getJpayTrInitSyncMonths() : 3;
+            months = Math.max(1, Math.min(120, months));
+            return new JpayExportPlan(today.minusMonths(months), today, trigger, true);
+        }
+
+        if (trigger == JpaySyncTrigger.SCHEDULED) {
+            int countBefore = scheduleSyncCountForToday(today);
+            if (countBefore <= 0) {
+                return new JpayExportPlan(today.minusDays(1), today, trigger, true);
+            }
+            return new JpayExportPlan(today, today, trigger, true);
+        }
+
+        if (trigger == JpaySyncTrigger.EXPLICIT_RANGE && (reqFrom != null || reqTo != null)) {
+            LocalDate ef = reqFrom != null ? reqFrom : reqTo;
+            LocalDate et = reqTo != null ? reqTo : reqFrom;
+            if (ef.isAfter(et)) {
+                LocalDate swap = ef;
+                ef = et;
+                et = swap;
+            }
+            return new JpayExportPlan(ef, et, trigger, true);
+        }
+
+        if (trigger == JpaySyncTrigger.MANUAL) {
+            return new JpayExportPlan(today, today, trigger, true);
+        }
+
+        return new JpayExportPlan(today, today, trigger, true);
+    }
+
+    private static String syncTriggerLabel(JpaySyncTrigger trigger) {
+        if (trigger == null) {
+            return "";
+        }
+        return switch (trigger) {
+            case BASIC_MIDNIGHT -> "기본(00:00·2일)";
+            case SCHEDULED -> "스케줄";
+            case MANUAL -> "수동(당일)";
+            case FULL_RESYNC -> "전체재동기화";
+            case EXPLICIT_RANGE -> "기간지정";
+            case INITIAL_BOOTSTRAP -> "초기적재";
+        };
+    }
+
+    private List<Map<String, Object>> mergeCacheByTrnDateRange(List<Map<String, Object>> existing,
+                                                                 List<Map<String, Object>> incoming,
+                                                                 LocalDate from, LocalDate to) {
+        List<Map<String, Object>> kept = new ArrayList<>();
+        if (existing != null) {
+            for (Map<String, Object> row : existing) {
+                Optional<LocalDate> ld = JpayPortalDateParser.rowTrnDate(row);
+                if (ld.isPresent() && !ld.get().isBefore(from) && !ld.get().isAfter(to)) {
+                    continue;
+                }
+                kept.add(row);
+            }
+        }
+        if (incoming != null && !incoming.isEmpty()) {
+            kept.addAll(incoming);
+        }
+        return dedupeJpayRows(kept);
+    }
+
+    private synchronized void repairAndDedupeCachedRows() {
+        if (cachedRows == null || cachedRows.isEmpty()) {
+            return;
+        }
+        int before = cachedRows.size();
+        cachedRows = List.copyOf(dedupeJpayRows(repairEnrichedRows(new ArrayList<>(cachedRows))));
+        if (cachedRows.size() != before) {
+            persistCurrentCacheRows();
+        }
+    }
+
+    private void persistCurrentCacheRows() {
+        try {
+            JpayPortalExportCache ent = exportCacheRepository.findById(JpayPortalExportCache.DEFAULT_KEY)
+                    .orElseGet(JpayPortalExportCache::new);
+            ent.setCacheKey(JpayPortalExportCache.DEFAULT_KEY);
+            ent.setRowsJson(objectMapper.writeValueAsString(cachedRows));
+            if (lastSyncAt != null) {
+                ent.setSyncedAt(lastSyncAt);
+            }
+            ent.setLastSyncMessage(lastSyncMessage);
+            ent.setSyncCountDate(syncCountDate);
+            ent.setSyncCountToday(syncCountToday);
+            ent.setScheduleSyncCountDate(scheduleSyncCountDate);
+            ent.setScheduleSyncCountToday(scheduleSyncCountToday);
+            ent.setLastBasicSyncDate(lastBasicMidnightSyncDate);
+            exportCacheRepository.save(ent);
+        } catch (Exception ignored) {
+            /* DB 저장 실패해도 메모리 목록은 유지 */
+        }
+    }
+
+    /** 승인번호·주문번호 기준 중복 제거 — 성공·승인번호 있는 행 우선 */
+    static List<Map<String, Object>> dedupeJpayRows(List<Map<String, Object>> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return List.of();
+        }
+        Map<String, Map<String, Object>> byTxnId = new LinkedHashMap<>();
+        Map<String, Map<String, Object>> byOrderOnly = new LinkedHashMap<>();
+        List<Map<String, Object>> anon = new ArrayList<>();
+        for (Map<String, Object> row : rows) {
+            if (row == null) {
+                continue;
+            }
+            String txnKey = jpayTxnDedupKey(row);
+            if (!txnKey.isEmpty()) {
+                byTxnId.merge(txnKey, row, JpayIntegratedListService::preferJpayDuplicateRow);
+                continue;
+            }
+            String orderKey = jpayOrderDedupKey(row);
+            if (orderKey.isEmpty()) {
+                anon.add(row);
+            } else {
+                byOrderOnly.merge(orderKey, row, JpayIntegratedListService::preferJpayDuplicateRow);
+            }
+        }
+        Set<String> successOrders = new LinkedHashSet<>();
+        for (Map<String, Object> row : byTxnId.values()) {
+            if (jpayRowQualityScore(row) >= 500) {
+                String ok = jpayOrderDedupKey(row);
+                if (!ok.isEmpty()) {
+                    successOrders.add(ok);
+                }
+            }
+        }
+        List<Map<String, Object>> out = new ArrayList<>(byTxnId.values());
+        for (Map.Entry<String, Map<String, Object>> e : byOrderOnly.entrySet()) {
+            if (successOrders.contains(e.getKey()) && jpayRowQualityScore(e.getValue()) < 500) {
+                continue;
+            }
+            out.add(e.getValue());
+        }
+        out.addAll(anon);
+        return out;
+    }
+
+    static String jpayRowDedupKey(Map<String, Object> row) {
+        String txnKey = jpayTxnDedupKey(row);
+        if (!txnKey.isEmpty()) {
+            return txnKey;
+        }
+        return jpayOrderDedupKey(row);
+    }
+
+    private static String jpayTxnDedupKey(Map<String, Object> row) {
+        String txnId = String.valueOf(row.getOrDefault("transactionId", "")).trim();
+        if (txnId.isEmpty()) {
+            return "";
+        }
+        return "T:" + txnId;
+    }
+
+    private static String jpayOrderDedupKey(Map<String, Object> row) {
+        String orderNo = String.valueOf(row.getOrDefault("orderNo", "")).trim();
+        if (orderNo.isEmpty()) {
+            return "";
+        }
+        return "O:" + orderNo.toLowerCase(Locale.ROOT);
+    }
+
+    private static int jpayRowQualityScore(Map<String, Object> row) {
+        if (row == null) {
+            return 0;
+        }
+        int score = 0;
+        if (!String.valueOf(row.getOrDefault("transactionId", "")).trim().isEmpty()) {
+            score += 1000;
+        }
+        String code = resolveJpayRowStatusCode(row);
+        if ("10".equals(code)) {
+            score += 500;
+        } else if (PayListStatusBarBuckets.SUCCESS.equals(PayListStatusBarBuckets.bucketForPgStatus(code))) {
+            score += 500;
+        } else if (PayListStatusBarBuckets.VOID.equals(PayListStatusBarBuckets.bucketForPgStatus(code))
+                || PayListStatusBarBuckets.EMAIL_VOID.equals(PayListStatusBarBuckets.bucketForPgStatus(code))) {
+            score -= 300;
+        }
+        String trading = portalTradingText(row);
+        if (trading.toLowerCase(Locale.ROOT).contains("success")) {
+            score += 200;
+        }
+        return score;
+    }
+
+    private static Map<String, Object> preferJpayDuplicateRow(Map<String, Object> a, Map<String, Object> b) {
+        if (jpayRowQualityScore(b) > jpayRowQualityScore(a)) {
+            return new LinkedHashMap<>(b);
+        }
+        if (jpayRowQualityScore(b) < jpayRowQualityScore(a)) {
+            return new LinkedHashMap<>(a);
+        }
+        Map<String, Object> merged = new LinkedHashMap<>(a);
+        for (Map.Entry<String, Object> e : b.entrySet()) {
+            Object v = e.getValue();
+            if (v == null || String.valueOf(v).trim().isEmpty()) {
+                continue;
+            }
+            merged.put(e.getKey(), v);
+        }
+        String la = String.valueOf(a.getOrDefault("portalLabel", "")).trim();
+        String lb = String.valueOf(b.getOrDefault("portalLabel", "")).trim();
+        if (!la.isEmpty() && !lb.isEmpty() && !la.equals(lb)) {
+            merged.put("portalLabel", la + " / " + lb);
+        }
+        return merged;
+    }
+
+    private static List<Map<String, String>> dedupeJpayRawRows(List<Map<String, String>> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return List.of();
+        }
+        Map<String, Map<String, String>> byKey = new LinkedHashMap<>();
+        int anon = 0;
+        for (Map<String, String> row : rows) {
+            if (row == null) {
+                continue;
+            }
+            String txnId = resolvePortalTransactionId(row);
+            String key = txnId.isBlank()
+                    ? (resolvePortalOrderNo(row).isBlank()
+                    ? "@" + (anon++)
+                    : "O:" + resolvePortalOrderNo(row).trim().toLowerCase(Locale.ROOT))
+                    : "T:" + txnId.trim();
+            Map<String, String> prev = byKey.get(key);
+            if (prev == null || jpayRawRowQualityScore(row) > jpayRawRowQualityScore(prev)) {
+                byKey.put(key, row);
+            }
+        }
+        return new ArrayList<>(byKey.values());
+    }
+
+    private static int jpayRawRowQualityScore(Map<String, String> row) {
+        if (row == null) {
+            return 0;
+        }
+        int score = 0;
+        if (!resolvePortalTransactionId(row).isBlank()) {
+            score += 1000;
+        }
+        String trading = JpayOrderExcelParseService.col(row, "Trading Status", "trading_status");
+        if (trading.toLowerCase(Locale.ROOT).contains("success")) {
+            score += 500;
+        }
+        return score;
+    }
+
+    @Transactional
+    public Map<String, Object> syncFromPortal(LocalDate from, LocalDate to) throws Exception {
+        return syncFromPortal(from, to, JpaySyncTrigger.SCHEDULED);
+    }
+
+    @Transactional
+    public Map<String, Object> syncFromPortal(LocalDate from, LocalDate to, JpaySyncTrigger trigger) throws Exception {
+
+        if (trigger == null) {
+            trigger = JpaySyncTrigger.SCHEDULED;
+        }
+        ensureExportCacheLoaded();
+        JpayExportPlan plan = resolveExportPlan(from, to, trigger);
+        LocalDate exportFrom = plan.exportFrom();
+        LocalDate exportTo = plan.exportTo();
+        JpaySyncTrigger appliedTrigger = plan.trigger();
+        boolean mergeIntoCache = plan.mergeIntoCache();
 
         List<JpayPortalAccount> accounts = jpayPortalAccountService.listActiveForSync();
-
         List<Map<String, String>> allRaw = new ArrayList<>();
-
         int matched = 0;
-
         int updated = 0;
-
         int unmatched = 0;
-
         int parseScanned = 0;
-
         List<String> accountMessages = new ArrayList<>();
 
-
+        var settings = hqLedgerSysSettingsService.getOrCreate();
 
         if (accounts.isEmpty()) {
 
@@ -460,23 +745,40 @@ public class JpayIntegratedListService {
 
         }
 
+        allRaw = dedupeJpayRawRows(allRaw);
 
+        List<Map<String, Object>> fetchedRows = enrichRows(allRaw);
+        fetchedRows = repairEnrichedRows(fetchedRows);
 
-        cachedRows = enrichRows(allRaw);
+        if (mergeIntoCache) {
+            cachedRows = mergeCacheByTrnDateRange(cachedRows, fetchedRows, exportFrom, exportTo);
+        } else {
+            cachedRows = fetchedRows;
+        }
 
-        cachedRows = List.copyOf(repairEnrichedRows(cachedRows));
+        cachedRows = List.copyOf(dedupeJpayRows(repairEnrichedRows(cachedRows)));
 
-        lastSyncAt = LocalDateTime.now();
+        lastSyncAt = LocalDateTime.now(ledgerDisplayZone());
 
         recordSyncCountForToday();
 
+        if (appliedTrigger == JpaySyncTrigger.SCHEDULED) {
+            recordScheduleSyncCountForToday();
+        }
+
+        if (appliedTrigger == JpaySyncTrigger.BASIC_MIDNIGHT) {
+            lastBasicMidnightSyncDate = LocalDate.now(ledgerDisplayZone());
+        }
+
         StringBuilder msg = new StringBuilder();
 
+        msg.append('[').append(syncTriggerLabel(appliedTrigger)).append("] ");
         msg.append("JPAY 포털 Export ").append(allRaw.size()).append("건 (").append(String.join(", ", accountMessages))
-
                 .append(") — 조회 목록 ").append(cachedRows.size()).append("건 — ICOPAY DB 반영 ").append(updated).append("건");
-
-        msg.append(" [포털조회 ").append(exportFrom).append("~").append(exportTo).append("]");
+        msg.append(" [포털조회 ").append(exportFrom).append("~").append(exportTo).append(']');
+        if (mergeIntoCache) {
+            msg.append(" — 해당 구간만 캐시 교체·과거 데이터 유지");
+        }
 
         if (allRaw.isEmpty()) {
 
@@ -486,7 +788,7 @@ public class JpayIntegratedListService {
 
             } else {
 
-                msg.append(" — 해당 기간 포털 거래가 없습니다. 거래일자를 [1주]·[당월]로 넓혀 동기화하세요.");
+                msg.append(" — 해당 기간 포털 거래가 없습니다.");
 
             }
 
@@ -498,13 +800,17 @@ public class JpayIntegratedListService {
 
         Map<String, Object> out = new LinkedHashMap<>();
 
-        out.put("fromDate", tFrom.toString());
+        out.put("fromDate", exportFrom.toString());
 
-        out.put("toDate", tTo.toString());
+        out.put("toDate", exportTo.toString());
 
         out.put("exportFromDate", exportFrom.toString());
 
         out.put("exportToDate", exportTo.toString());
+
+        out.put("syncTrigger", appliedTrigger.name());
+
+        out.put("mergeIntoCache", mergeIntoCache);
 
         out.put("portalRows", allRaw.size());
 
@@ -620,13 +926,13 @@ public class JpayIntegratedListService {
 
         if (!cachedRows.isEmpty()) {
 
-            cachedRows = List.copyOf(repairEnrichedRows(cachedRows));
+            repairAndDedupeCachedRows();
 
         }
 
         if (cachedRows.isEmpty() && triggerSyncIfEmpty) {
 
-            syncFromPortal(from, to);
+            syncFromPortal(from, to, JpaySyncTrigger.EXPLICIT_RANGE);
 
         }
 
@@ -716,6 +1022,10 @@ public class JpayIntegratedListService {
      * HTTP 요청을 붙잡지 않으므로 프록시·게이트웨이 504(타임아웃)가 발생하지 않습니다.
      */
     public synchronized Map<String, Object> startSyncJob(LocalDate from, LocalDate to) {
+        return startSyncJob(from, to, JpaySyncTrigger.SCHEDULED);
+    }
+
+    public synchronized Map<String, Object> startSyncJob(LocalDate from, LocalDate to, JpaySyncTrigger trigger) {
 
         if (syncRunning) {
 
@@ -727,7 +1037,7 @@ public class JpayIntegratedListService {
 
         syncJobStatus = "RUNNING";
 
-        syncJobStartedAt = LocalDateTime.now();
+        syncJobStartedAt = LocalDateTime.now(ledgerDisplayZone());
 
         syncJobFinishedAt = null;
 
@@ -743,11 +1053,13 @@ public class JpayIntegratedListService {
 
         final LocalDate t = to;
 
+        final JpaySyncTrigger trig = trigger != null ? trigger : JpaySyncTrigger.SCHEDULED;
+
         syncExecutor.submit(() -> {
 
             try {
 
-                Map<String, Object> res = self.syncFromPortal(f, t);
+                Map<String, Object> res = self.syncFromPortal(f, t, trig);
 
                 syncJobResult = res;
 
@@ -765,7 +1077,7 @@ public class JpayIntegratedListService {
 
             } finally {
 
-                syncJobFinishedAt = LocalDateTime.now();
+                syncJobFinishedAt = LocalDateTime.now(ledgerDisplayZone());
 
                 syncRunning = false;
 
@@ -775,6 +1087,21 @@ public class JpayIntegratedListService {
 
         return syncJobStatusMap();
 
+    }
+
+    /**
+     * 매일 00:00 기본 동기화 — 스케줄과 별도, 어제·오늘 2일 구간만 포털에서 받아 캐시 해당 구간 교체.
+     */
+    public synchronized void runBasicMidnightSyncIfDue() {
+        LocalDate today = LocalDate.now(ledgerDisplayZone());
+        ensureExportCacheLoaded();
+        if (lastBasicMidnightSyncDate != null && lastBasicMidnightSyncDate.equals(today)) {
+            return;
+        }
+        if (syncRunning) {
+            return;
+        }
+        startSyncJob(null, null, JpaySyncTrigger.BASIC_MIDNIGHT);
     }
 
 
@@ -852,6 +1179,17 @@ public class JpayIntegratedListService {
         } else {
             syncCountDate = today;
             syncCountToday = 1;
+        }
+    }
+
+    private void recordScheduleSyncCountForToday() {
+        ZoneId ledgerTz = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+        LocalDate today = LocalDate.now(ledgerTz);
+        if (scheduleSyncCountDate != null && scheduleSyncCountDate.equals(today)) {
+            scheduleSyncCountToday++;
+        } else {
+            scheduleSyncCountDate = today;
+            scheduleSyncCountToday = 1;
         }
     }
 
@@ -987,12 +1325,97 @@ public class JpayIntegratedListService {
 
         if (orderNo != null && !orderNo.isBlank()) {
 
-            return pgTrnsctnRepository.findFirstByOrderNoOrderByCreatedAtDesc(orderNo.trim());
+            return findPreferredTxnByOrderNo(orderNo.trim());
 
         }
 
         return Optional.empty();
 
+    }
+
+    /** 동일 주문번호에 무효·성공 등 복수 건일 때 성공(10)+승인번호 우선 */
+    private Optional<PgTrnsctn> findPreferredTxnByOrderNo(String orderNo) {
+        List<PgTrnsctn> list = pgTrnsctnRepository.findByOrderNoOrderByCreatedAtDesc(orderNo);
+        if (list.isEmpty()) {
+            return Optional.empty();
+        }
+        for (PgTrnsctn t : list) {
+            if (isSuccessStatus(t.getStatus()) && hasChillTransactionId(t)) {
+                return Optional.of(t);
+            }
+        }
+        for (PgTrnsctn t : list) {
+            if (isSuccessStatus(t.getStatus())) {
+                return Optional.of(t);
+            }
+        }
+        return Optional.of(list.get(0));
+    }
+
+    private Optional<PgTrnsctn> findSuccessTxnByOrderNo(String orderNo) {
+        if (orderNo == null || orderNo.isBlank()) {
+            return Optional.empty();
+        }
+        List<PgTrnsctn> list = pgTrnsctnRepository.findByOrderNoOrderByCreatedAtDesc(orderNo.trim());
+        for (PgTrnsctn t : list) {
+            if (isSuccessStatus(t.getStatus()) && hasChillTransactionId(t)) {
+                return Optional.of(t);
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static boolean isSuccessStatus(String status) {
+        return status != null && "10".equals(status.trim());
+    }
+
+    private static boolean hasChillTransactionId(PgTrnsctn t) {
+        return t != null && t.getChillTransactionId() != null && !t.getChillTransactionId().isBlank();
+    }
+
+    /**
+     * 포털 Export에 승인번호가 없고 ICOPAY에 성공 건이 있으면 승인번호·성공 상태를 보강합니다.
+     */
+    private void alignRowWithSuccessTxnIfMissingApproval(Map<String, Object> m) {
+        if (m == null) {
+            return;
+        }
+        String txnId = String.valueOf(m.getOrDefault("transactionId", "")).trim();
+        if (!txnId.isEmpty()) {
+            return;
+        }
+        String orderNo = String.valueOf(m.getOrDefault("orderNo", "")).trim();
+        if (orderNo.isEmpty()) {
+            return;
+        }
+        Optional<PgTrnsctn> success = findSuccessTxnByOrderNo(orderNo);
+        if (success.isEmpty()) {
+            return;
+        }
+        PgTrnsctn t = success.get();
+        String cid = t.getChillTransactionId();
+        if (cid == null || cid.isBlank()) {
+            return;
+        }
+        m.put("transactionId", cid.trim());
+        if (!portalTradingIndicatesSuccess(m)) {
+            m.put("status", "Success, Notified");
+            m.put("tradingStatus", "Success, Notified");
+            m.put("icopayStatus", "10");
+        }
+        m.put("dbStatus", t.getStatus());
+        m.put("icopay", "Y");
+        if (!m.containsKey("compId") || String.valueOf(m.getOrDefault("compId", "")).isBlank()) {
+            m.put("compId", t.getMerchantId());
+        }
+    }
+
+    private static boolean portalTradingIndicatesSuccess(Map<String, Object> m) {
+        String mapped = JpayTradeStatusMapper.fromPortalTradingStatus(
+                portalTradingText(m),
+                String.valueOf(m.getOrDefault("chargeback", "")),
+                String.valueOf(m.getOrDefault("rdr", "")));
+        return "10".equals(mapped);
     }
 
 
@@ -1157,6 +1580,8 @@ public class JpayIntegratedListService {
 
             m.put("chargeback", JpayOrderExcelParseService.col(row, "Is it a chargeback?", "chargeback"));
 
+            m.put("rdr", JpayOrderExcelParseService.col(row, "RDR", "rdr"));
+
             m.put("urlSource", JpayOrderExcelParseService.col(row, "URL Source", "url_source"));
 
             m.put("cardBin", JpayOrderExcelParseService.col(row, "Card BIN", "card_bin"));
@@ -1164,6 +1589,8 @@ public class JpayIntegratedListService {
             fillTxnFallbacks(m, txn);
 
             resolveCurrencyOnRow(m, txn, profileCache);
+
+            alignRowWithSuccessTxnIfMissingApproval(m);
 
             applyStatusNm(m);
 
@@ -1225,11 +1652,9 @@ public class JpayIntegratedListService {
 
                     if (!status.isEmpty()) {
 
-                        String ic = String.valueOf(r.getOrDefault("icopayStatus", ""));
+                        String rowCode = resolveJpayRowStatusCode(r);
 
-                        String db = String.valueOf(r.getOrDefault("dbStatus", ""));
-
-                        if (!status.equals(ic) && !status.equals(db)) {
+                        if (!status.equals(rowCode)) {
 
                             return false;
 
@@ -1249,17 +1674,17 @@ public class JpayIntegratedListService {
 
                             LocalDate ld = ldOpt.get();
 
-                            if (from != null && ld.isBefore(from)) {
+                                if (from != null && ld.isBefore(from)) {
 
-                                return false;
+                                    return false;
 
-                            }
+                                }
 
-                            if (to != null && ld.isAfter(to)) {
+                                if (to != null && ld.isAfter(to)) {
 
-                                return false;
+                                    return false;
 
-                            }
+                                }
 
                         }
 
@@ -1299,23 +1724,23 @@ public class JpayIntegratedListService {
 
                                     + ord + " "
 
-                                    + r.getOrDefault("merchant", "") + " "
+                                + r.getOrDefault("merchant", "") + " "
 
-                                    + r.getOrDefault("compId", "") + " "
+                                + r.getOrDefault("compId", "") + " "
 
-                                    + r.getOrDefault("compNm", "") + " "
+                                + r.getOrDefault("compNm", "") + " "
 
-                                    + r.getOrDefault("masterDistCompId", "") + " "
+                                + r.getOrDefault("masterDistCompId", "") + " "
 
-                                    + r.getOrDefault("masterDistNm", "") + " "
+                                + r.getOrDefault("masterDistNm", "") + " "
 
-                                    + r.getOrDefault("portalLabel", "") + " "
+                                + r.getOrDefault("portalLabel", "") + " "
 
-                                    + r.getOrDefault("status", "")).toLowerCase(Locale.ROOT);
+                                + r.getOrDefault("status", "")).toLowerCase(Locale.ROOT);
 
-                            if (!blob.contains(kw)) {
+                        if (!blob.contains(kw)) {
 
-                                return false;
+                            return false;
 
                             }
 
@@ -1362,10 +1787,7 @@ public class JpayIntegratedListService {
                 continue;
             }
             agg.count++;
-            String st = String.valueOf(row.getOrDefault("icopayStatus", "")).trim();
-            if (st.isEmpty()) {
-                st = String.valueOf(row.getOrDefault("dbStatus", "")).trim();
-            }
+            String st = resolveJpayRowStatusCode(row);
             String bucket = PayListStatusBarBuckets.bucketForPgStatus(st);
             agg.bucketCount.merge(bucket, 1L, Long::sum);
             String cur = resolveJpayAggregateCurrency(row);
@@ -1540,19 +1962,18 @@ public class JpayIntegratedListService {
         }
         boolean trnDateBlank = fieldBlank(m, "trnDate");
         boolean trnTimeBlank = fieldBlank(m, "trnTime");
-        if (t.getPaidAt() != null) {
-            if (trnDateBlank) {
-                m.put("trnDate", t.getPaidAt().toLocalDate().toString());
-                trnDateBlank = false;
-            }
-            if (trnTimeBlank) {
-                m.put("trnTime", t.getPaidAt().toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
-            }
-        } else if (trnDateBlank && t.getCreatedAt() != null) {
-            m.put("trnDate", t.getCreatedAt().toLocalDate().toString());
-            if (trnTimeBlank) {
-                m.put("trnTime", t.getCreatedAt().toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
-            }
+        ZoneId ledgerTz = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+        ZoneId opTz = hqLedgerSysSettingsService.resolveOperationalDisplayZoneId();
+        Map<String, Object> payRow = PayListItemDto.from(t, null, ledgerTz, opTz);
+        if (trnDateBlank && payRow.get("trnDate") != null) {
+            m.put("trnDate", payRow.get("trnDate"));
+            trnDateBlank = false;
+        }
+        if (trnTimeBlank && payRow.get("trnTime") != null) {
+            m.put("trnTime", payRow.get("trnTime"));
+        }
+        if (fieldBlank(m, "payCompletedAt") && payRow.get("payCompletedAt") != null) {
+            m.put("payCompletedAt", payRow.get("payCompletedAt"));
         }
         if (fieldBlank(m, "customerEmail")) {
             String em = payerEmailFromTxn(t);
@@ -1606,13 +2027,7 @@ public class JpayIntegratedListService {
         }
         for (Map<String, Object> row : rows) {
             agg.count++;
-            String st = String.valueOf(row.getOrDefault("icopayStatus", "")).trim();
-            if (st.isEmpty()) {
-                st = String.valueOf(row.getOrDefault("dbStatus", "")).trim();
-            }
-            if (st.isEmpty()) {
-                st = String.valueOf(row.getOrDefault("status", "")).trim();
-            }
+            String st = resolveJpayRowStatusCode(row);
             String bucket = PayListStatusBarBuckets.bucketForPgStatus(st);
             if (PayListStatusBarBuckets.OTHER.equals(bucket) && !st.isEmpty()) {
                 bucket = PayListStatusBarBuckets.bucketForChillStatus(st);
@@ -1654,13 +2069,7 @@ public class JpayIntegratedListService {
     }
 
     private static String resolveJpayAggregateBucket(Map<String, Object> row) {
-        String st = String.valueOf(row.getOrDefault("icopayStatus", "")).trim();
-        if (st.isEmpty()) {
-            st = String.valueOf(row.getOrDefault("dbStatus", "")).trim();
-        }
-        if (st.isEmpty()) {
-            st = String.valueOf(row.getOrDefault("status", "")).trim();
-        }
+        String st = resolveJpayRowStatusCode(row);
         String bucket = PayListStatusBarBuckets.bucketForPgStatus(st);
         if (PayListStatusBarBuckets.OTHER.equals(bucket) && !st.isEmpty()) {
             bucket = PayListStatusBarBuckets.bucketForChillStatus(st);
@@ -1761,18 +2170,60 @@ public class JpayIntegratedListService {
         return loaded.orElse(null);
     }
 
+    /** JPAY 통합조회 — 포털 Export Trading Status 우선, ICOPAY DB는 폴백 */
+    static String resolveJpayRowStatusCode(Map<String, Object> m) {
+        if (m == null) {
+            return "";
+        }
+        refreshPortalIcopayStatus(m);
+        String ic = String.valueOf(m.getOrDefault("icopayStatus", "")).trim();
+        if (!ic.isEmpty()) {
+            return ic;
+        }
+        String trading = portalTradingText(m);
+        if (!trading.isEmpty()) {
+            String mapped = JpayTradeStatusMapper.fromPortalTradingStatus(trading,
+                    String.valueOf(m.getOrDefault("chargeback", "")),
+                    String.valueOf(m.getOrDefault("rdr", "")));
+            if (mapped != null) {
+                m.put("icopayStatus", mapped);
+                return mapped;
+            }
+        }
+        return String.valueOf(m.getOrDefault("dbStatus", "")).trim();
+    }
+
+    private static void refreshPortalIcopayStatus(Map<String, Object> m) {
+        String trading = portalTradingText(m);
+        if (trading.isEmpty()) {
+            return;
+        }
+        String mapped = JpayTradeStatusMapper.fromPortalTradingStatus(trading,
+                String.valueOf(m.getOrDefault("chargeback", "")),
+                String.valueOf(m.getOrDefault("rdr", "")));
+        if (mapped != null) {
+            m.put("icopayStatus", mapped);
+        }
+    }
+
+    private static String portalTradingText(Map<String, Object> m) {
+        String t = String.valueOf(m.getOrDefault("status", "")).trim();
+        if (t.isEmpty()) {
+            t = String.valueOf(m.getOrDefault("tradingStatus", "")).trim();
+        }
+        return t;
+    }
+
     private static void applyStatusNm(Map<String, Object> m) {
         if (m == null) {
             return;
         }
-        String db = String.valueOf(m.getOrDefault("dbStatus", "")).trim();
-        String ic = String.valueOf(m.getOrDefault("icopayStatus", "")).trim();
-        String code = !db.isEmpty() ? db : ic;
+        String code = resolveJpayRowStatusCode(m);
         if (!code.isEmpty()) {
             m.put("statusNm", PayListStatusBarBuckets.pgStatusDisplayLabel(code));
             return;
         }
-        String trading = String.valueOf(m.getOrDefault("status", "")).trim();
+        String trading = portalTradingText(m);
         if (!trading.isEmpty()) {
             m.put("statusNm", portalTradingStatusLabel(trading));
         }
@@ -1816,6 +2267,8 @@ public class JpayIntegratedListService {
         }
         String orderNo = String.valueOf(m.getOrDefault("orderNo", "")).trim();
         String txnId = String.valueOf(m.getOrDefault("transactionId", "")).trim();
+        alignRowWithSuccessTxnIfMissingApproval(m);
+        txnId = String.valueOf(m.getOrDefault("transactionId", "")).trim();
         Optional<PgTrnsctn> txn = findTxn(orderNo, txnId);
         if (txn.isPresent()) {
             PgTrnsctn t = txn.get();
@@ -1836,6 +2289,7 @@ public class JpayIntegratedListService {
         }
         fillTxnFallbacks(m, txn);
         resolveCurrencyOnRow(m, txn, profileCache);
+        refreshPortalIcopayStatus(m);
         applyStatusNm(m);
         return m;
     }

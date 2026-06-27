@@ -1299,6 +1299,17 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 #contentsMain .screen-calc-fee-list .table th[data-key="totalFee"],
 #contentsMain .screen-calc-fee-list .table th[data-key="feeVat"] { min-width: 96px; }
 
+/* 통합수수료: 거래번호·승인번호·결제대행사 등 열 겹침 방지(한 줄·최소 너비) */
+#contentsMain .tab-pane[formurl="/ops/agencyTxnList"] .table tbody td {
+  overflow: hidden;
+}
+#contentsMain .tab-pane[formurl="/ops/agencyTxnList"] .table th[data-key="trnId"] { min-width: 220px; }
+#contentsMain .tab-pane[formurl="/ops/agencyTxnList"] .table th[data-key="chillTransactionId"] { min-width: 130px; }
+#contentsMain .tab-pane[formurl="/ops/agencyTxnList"] .table th[data-key="pgCd"],
+#contentsMain .tab-pane[formurl="/ops/agencyTxnList"] .table th[data-key="pgNm"] { min-width: 140px; }
+#contentsMain .tab-pane[formurl="/ops/agencyTxnList"] .table th[data-key="compNm"] { min-width: 150px; }
+#contentsMain .tab-pane[formurl="/ops/agencyTxnList"] .table th[data-key="compId"] { min-width: 105px; }
+
 /* 결제내역(통합·파생): 테이블 헤더는 연한 블루, 상단 요약 바는 연한 블루 톤 */
 .summary-total-bar--pay-list-aggregate {
   align-items: center;

@@ -2,6 +2,8 @@ package com.pg.api.dto;
 
 
 
+import com.pg.api.dto.PayListRowContext;
+import com.pg.api.dto.TxnDualLineSpec;
 import com.pg.entity.PgTrnsctn;
 
 import com.pg.integration.pg.PgVendor;
@@ -144,5 +146,42 @@ class PayListItemDtoTimeInterpretTest {
 
     }
 
+    @Test
+    void dualSpec_standardSingapore_jpOperational_oneHourGap() {
+        LocalDateTime sgWall = LocalDateTime.of(2026, 6, 19, 21, 10, 9);
+        PgTrnsctn t = new PgTrnsctn();
+        t.setTrnId("T4");
+        t.setMerchantId("6000000001");
+        t.setCurType("JPY");
+        t.setPaidAt(sgWall);
+        TxnDualLineSpec dual = new TxnDualLineSpec(
+                "JP", ZoneId.of("Asia/Tokyo"),
+                "SG", ZoneId.of("Asia/Singapore"));
+        PayListRowContext ctx = new PayListRowContext(
+                "Test Merchant", null, null, null, null, null,
+                "", "", "", "", "", "", false, dual);
+
+        Map<String, Object> row = PayListItemDto.from(t, ctx, ZoneId.of("Asia/Bangkok"));
+        assertEquals("JP 22:10:09\nSG 21:10:09", row.get("trnTime"));
+    }
+
+    @Test
+    void dualSpec_standardThailand_twoHourGap() {
+        LocalDateTime bkkWall = LocalDateTime.of(2026, 6, 19, 20, 10, 9);
+        PgTrnsctn t = new PgTrnsctn();
+        t.setTrnId("T5");
+        t.setMerchantId("6000000001");
+        t.setCurType("JPY");
+        t.setPaidAt(bkkWall);
+        TxnDualLineSpec dual = new TxnDualLineSpec(
+                "JP", ZoneId.of("Asia/Tokyo"),
+                "TH", ZoneId.of("Asia/Bangkok"));
+        PayListRowContext ctx = new PayListRowContext(
+                "Test Merchant", null, null, null, null, null,
+                "", "", "", "", "", "", false, dual);
+
+        Map<String, Object> row = PayListItemDto.from(t, ctx, ZoneId.of("Asia/Singapore"));
+        assertEquals("JP 22:10:09\nTH 20:10:09", row.get("trnTime"));
+    }
 }
 

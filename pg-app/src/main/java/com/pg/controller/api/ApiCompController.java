@@ -13,7 +13,7 @@ import com.pg.service.AuthService;
 import com.pg.service.CompService;
 import com.pg.service.ExcelStyledExportService;
 import com.pg.util.ChatbotProductPricingUtil;
-import com.pg.util.NotifyUrlDisplayMask;
+import com.pg.util.MerchantNotifyUrlVisibility;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -157,54 +157,35 @@ public class ApiCompController {
             }
         }
         return compService.getDetail(compId)
-                .map(m -> maskJpayNotifyUrlsForMerchantSelfView(m, auth))
+                .map(m -> applyRegisteredNotifyUrlVisibility(m, auth))
                 .map(ApiResponse::ok)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.ok(ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND")));
     }
 
-    /**
-     * 가맹점이 본인 업체(/comp/myCompMng·업체정보)를 조회할 때 JPAY 수신통보 URL은 마킹만 노출.
-     * 총본사·본사·총판 등 상위 조직이 하위 가맹을 조회할 때는 원문 URL을 유지합니다.
-     */
-    private Map<String, Object> maskJpayNotifyUrlsForMerchantSelfView(Map<String, Object> detail, Authentication auth) {
-        if (detail == null || auth == null || !(auth.getPrincipal() instanceof AppUser u)) {
+    /** 등록된 가맹 결제 통보 URL — 총본사·본사·총판(및 ADMIN)만 원문 노출 */
+    private Map<String, Object> applyRegisteredNotifyUrlVisibility(Map<String, Object> detail, Authentication auth) {
+        if (detail == null) {
             return detail;
         }
-        if ("ADMIN".equalsIgnoreCase(u.getRole())) {
+        if (canViewerSeeRegisteredNotifyUrls(auth)) {
+            MerchantNotifyUrlVisibility.markCompDetailNotifyUrlsVisible(detail);
             return detail;
         }
-        Map<String, Object> org = authService.getOrgInfo(u.getUsername());
-        if (org == null) {
-            return detail;
-        }
-        String orgLevel = String.valueOf(org.getOrDefault("orgLevel", "")).trim().toUpperCase(Locale.ROOT);
-        if (!OrgLevel.MERCHANT.name().equals(orgLevel)) {
-            return detail;
-        }
-        String mine = org.get("compId") != null ? org.get("compId").toString().trim() : "";
-        String target = detail.get("compId") != null ? detail.get("compId").toString().trim() : "";
-        if (mine.isEmpty() || target.isEmpty() || !mine.equalsIgnoreCase(target)) {
-            return detail;
-        }
-        maskNotifyUrlField(detail, "jpayNotifyUrl");
-        maskNotifyUrlField(detail, "jpayCallbackUrl");
+        MerchantNotifyUrlVisibility.redactCompDetailNotifyUrlFields(detail);
         return detail;
     }
 
-    private static void maskNotifyUrlField(Map<String, Object> detail, String key) {
-        if (detail == null || key == null || !detail.containsKey(key)) {
-            return;
+    private boolean canViewerSeeRegisteredNotifyUrls(Authentication auth) {
+        if (auth == null || !(auth.getPrincipal() instanceof AppUser u)) {
+            return false;
         }
-        Object raw = detail.get(key);
-        if (raw == null) {
-            return;
+        String orgLevel = "";
+        Map<String, Object> org = authService.getOrgInfo(u.getUsername());
+        if (org != null && org.get("orgLevel") != null) {
+            orgLevel = org.get("orgLevel").toString();
         }
-        String s = raw.toString().trim();
-        if (s.isEmpty()) {
-            return;
-        }
-        detail.put(key, NotifyUrlDisplayMask.mask(s));
+        return MerchantNotifyUrlVisibility.canViewerSeeRegisteredNotifyUrls(u.getRole(), orgLevel);
     }
 
     @PostMapping("/register")
