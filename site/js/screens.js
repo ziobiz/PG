@@ -341,6 +341,32 @@
     ];
   }
 
+  function riskCardPolicyTrackPeriodModeOptions() {
+    return [
+      { v: 'NONE', t: '미사용' },
+      { v: 'DAY', t: '일' },
+      { v: 'MONTH', t: '월' },
+      { v: 'YEAR', t: '년' }
+    ];
+  }
+
+  /** 가맹점 추적기간 — 미사용 제외(기간정책에서 분리) */
+  function riskCardPolicyTrackPeriodModeOptionsNoNone() {
+    return [
+      { v: 'DAY', t: '일' },
+      { v: 'MONTH', t: '월' },
+      { v: 'YEAR', t: '년' }
+    ];
+  }
+
+  function merchantTrackPeriodPolicyOptions() {
+    return [
+      { v: 'NONE', t: '미사용' },
+      { v: 'FOLLOW_HQ', t: '본사정책 따름' },
+      { v: 'CUSTOM', t: '별도정책' }
+    ];
+  }
+
   function riskCardPolicyTierFormRow(n) {
     return [
       { label: n + '차 시간', type: 'select', name: 'tier' + n + 'Hours', options: riskCardPolicyHourOptions(), col: 1 },
@@ -354,9 +380,9 @@
       '<thead class="table-light"><tr>' +
       pgUiThT('가맹점이름') + pgUiThT('업체코드') +
       pgUiThT('1차') + pgUiThT('2차') + pgUiThT('3차') + pgUiThT('4차') +
-      pgUiThT('자동 등록 트리거') + pgUiThT('방식') + pgUiThT('수동등록') + pgUiThT('자동등록') + pgUiThT('최신등록') + pgUiThT('채널') +
+      pgUiThT('자동 등록 트리거') + pgUiThT('추적기간') + pgUiThT('방식') + pgUiThT('수동등록') + pgUiThT('자동등록') + pgUiThT('최신등록') + pgUiThT('채널') +
       '</tr></thead>' +
-      '<tbody id="hqRiskMerchantListTbody"><tr><td colspan="12" class="text-center text-muted py-3">' + escUi(L('불러오는 중…')) + '</td></tr></tbody></table></div>';
+      '<tbody id="hqRiskMerchantListTbody"><tr><td colspan="13" class="text-center text-muted py-3">' + escUi(L('불러오는 중…')) + '</td></tr></tbody></table></div>';
   }
 
   /** 가맹 등록·정보 — 리스크관리 트리거(쿨다운·자동 비활성) */
@@ -375,7 +401,7 @@
       id: 'cardRiskTriggerCard',
       merchantOnly: true,
       cardExtraClass: 'card-risk-trigger-card',
-      notice: '동일 카드 FAIL·취소·미결제 등 비성공이 누적되면 JPAY 호출 전 일시 차단(1~4차 대기)합니다. CVV·카드번호 형식 오류는 집계하지 않습니다. 자동 등록 트리거 N차: 비성공 N회가 완료되는 즉시 비활성카드에 등록되며 (N+1)번째 결제 시도부터 차단됩니다(2차→1·2회 후·3번째부터, 3차→1·2·3회 후·4번째부터, 1·4차도 동일). 본사정책 따름 시 [본사설정 → 리스크설정]을 사용하며, 별도정책은 본사보다 우선합니다. 미사용 시 해당 가맹의 위험관리를 끕니다.',
+      notice: '동일 카드 FAIL·취소·무효·미결제 등 비성공이 누적되면 JPAY 호출 전 일시 차단(1~4차 대기)합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 성공은 자동등록 트리거 원인이 되지 않습니다. 자동 등록 트리거 N차: 추적기간 안에서 비성공 N회가 완료되는 즉시 비활성카드(마스킹)에 등록되며 (N+1)번째 결제 시도부터 차단됩니다. 기간정책 — 미사용: 기간 제한 없이 서비스 기간 내내 누적(성공 시 초기화), 본사정책 따름: 본사 추적기간을 사용, 별도정책: 가맹점 추적기간(일·월·년)·설정기간을 본사보다 우선 적용. 위험 정책 본사정책 따름 시 [본사설정 → 리스크설정]을 사용하며, 별도정책은 본사보다 우선합니다. 미사용 시 해당 가맹의 위험관리를 끕니다.',
       rows: [
         [{ label: '위험 정책', type: 'select', name: 'cardRiskPolicyMode', col: 3,
           options: [
@@ -387,7 +413,13 @@
         tierRow(2),
         tierRow(3),
         tierRow(4),
-        [{ label: '자동 등록 트리거', type: 'select', name: 'cardRiskAutoBlacklistTier', options: tierOpts, col: 2, cardRiskCustomOnly: true }]
+        [{ label: '자동 등록 트리거', type: 'select', name: 'cardRiskAutoBlacklistTier', options: tierOpts, col: 2, cardRiskCustomOnly: true }],
+        [{ label: '기간정책', type: 'select', name: 'cardRiskTrackPeriodPolicy', col: 2, cardRiskCustomOnly: true,
+          options: merchantTrackPeriodPolicyOptions() },
+         { label: '추적기간', type: 'select', name: 'cardRiskTrackPeriodMode', col: 2, cardRiskCustomOnly: true,
+          options: riskCardPolicyTrackPeriodModeOptionsNoNone() },
+         { label: '설정기간', type: 'number', name: 'cardRiskTrackPeriodValue', col: 2, cardRiskCustomOnly: true,
+           placeholder: '1', min: 1, max: 9999, blockExtraClass: 'card-risk-track-period-value-block' }]
       ]
     };
   }
@@ -2340,12 +2372,16 @@
       formSections: [
         {
           title: '리스크설정',
-          notice: '동일 카드 FAIL·취소·미결제 등 비성공이 누적되면 JPAY 호출 전 일시 차단(1~4차 대기)합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 자동 등록 트리거 N차: 비성공 N회가 완료되는 즉시 비활성카드(마스킹)에 등록되며 (N+1)번째 결제 시도부터 차단됩니다(2차→1·2회 후·3번째부터, 3차→1·2·3회 후·4번째부터, 1·4차도 동일). 동기 응답·노티 확정 모두 반영하며 3DS 대기(08)는 제외합니다.',
+          notice: '동일 카드 FAIL·취소·무효·미결제 등 비성공이 누적되면 JPAY 호출 전 일시 차단(1~4차 대기)합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 성공은 자동등록 트리거 원인이 되지 않습니다. 자동 등록 트리거 N차: 추적기간 안에서 비성공 N회가 완료되는 즉시 비활성카드(마스킹)에 등록되며 (N+1)번째 결제 시도부터 차단됩니다. 추적기간 미사용 시 성공 전까지 기간 제한 없이 누적합니다. 동기 응답·노티 확정 모두 반영하며 3DS 대기(08)는 제외합니다.',
           rows: [
             [{ label: '위험관리 사용', type: 'select', name: 'enabledYn', col: 2,
               options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }] },
              { label: '자동 등록 트리거', type: 'select', name: 'autoBlacklistTriggerTier', col: 2,
               options: riskCardPolicyAutoTierOptions() }],
+            [{ label: '추적기간', type: 'select', name: 'trackPeriodMode', col: 2,
+              options: riskCardPolicyTrackPeriodModeOptions() },
+             { label: '설정기간', type: 'number', name: 'trackPeriodValue', col: 2,
+               placeholder: '1', min: 1, max: 9999, blockExtraClass: 'hq-risk-track-period-value-block' }],
             riskCardPolicyTierFormRow(1),
             riskCardPolicyTierFormRow(2),
             riskCardPolicyTierFormRow(3),
@@ -6565,11 +6601,12 @@
         '등록·해지·수정은 본사권한설정에서 이 화면 권한을 삭제(전체) 또는 수정으로 부여한 계정만 가능합니다.',
         '카드번호는 마스킹 형식(앞 6자리 + *** + 뒤 4자리)으로 등록합니다. 업체코드·업체명은 출처 표시용이며, 등록된 카드는 전 가맹점 결제에서 차단됩니다.',
         '등록 구분: 수동=운영자 직접 등록, 자동=리스크 트리거 자동 등록. 본사설정 리스크설정의 수동등록·자동등록 건수에 반영됩니다.',
-        '해지는 목록 「해지」 버튼에서 실행합니다. 해지 사유(필수)·Google OTP 6자리가 필요합니다. 해지자는 해지자 열에, 사유는 해지사유 열에 각각 표시됩니다.'
+        '해지는 목록 「해지」 버튼에서 실행합니다. 해지 사유(필수)·Google OTP 6자리가 필요합니다. 해지자는 해지자 열에, 사유는 해지사유 열에 각각 표시됩니다.',
+        '해지해도 등록 건은 삭제되지 않고 이력으로 남습니다. 해지된 건은 연두색으로 표시되며 해지일시·해지자·해지사유가 기록됩니다. 해지 건은 결제 차단(트리거)에 영향을 주지 않습니다.'
       ],
       searchRows: [[
         { label: '상태', type: 'select', name: 'searchActiveYn', col: 2,
-          options: [{ v: 'Y', t: '등록카드' }, { v: 'N', t: '해지됨' }, { v: 'ALL', t: '전체' }] },
+          options: [{ v: 'ALL', t: '전체' }, { v: 'Y', t: '등록카드' }, { v: 'N', t: '해지됨' }] },
         { type: 'searchBtn' }
       ]],
       summary: ['건수'],

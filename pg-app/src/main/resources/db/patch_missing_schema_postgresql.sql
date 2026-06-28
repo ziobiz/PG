@@ -640,6 +640,34 @@ ALTER TABLE tb_hq_pay_card_blacklist
 ALTER TABLE tb_merchant_profile
     ALTER COLUMN card_risk_policy_mode SET DEFAULT 'DISABLED';
 
+-- V202: 리스크 자동등록 추적기간 + 실패 이벤트 — db/V202_risk_card_track_period.sql 과 동일
+ALTER TABLE tb_hq_risk_card_policy
+    ADD COLUMN IF NOT EXISTS track_period_mode VARCHAR(8) NOT NULL DEFAULT 'NONE';
+
+ALTER TABLE tb_hq_risk_card_policy
+    ADD COLUMN IF NOT EXISTS track_period_value INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE tb_merchant_profile
+    ADD COLUMN IF NOT EXISTS card_risk_track_period_policy VARCHAR(16);
+
+ALTER TABLE tb_merchant_profile
+    ADD COLUMN IF NOT EXISTS card_risk_track_period_mode VARCHAR(8);
+
+ALTER TABLE tb_merchant_profile
+    ADD COLUMN IF NOT EXISTS card_risk_track_period_value INTEGER;
+
+CREATE TABLE IF NOT EXISTS tb_pay_card_fail_risk_event (
+    id           BIGSERIAL PRIMARY KEY,
+    pg_vendor    VARCHAR(16) NOT NULL,
+    pan_hash     VARCHAR(64) NOT NULL,
+    org_unit_id  BIGINT,
+    outcome_code VARCHAR(32),
+    occurred_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_pay_card_fail_risk_event_lookup
+    ON tb_pay_card_fail_risk_event (pg_vendor, pan_hash, COALESCE(org_unit_id, 0), occurred_at DESC);
+
 -- V197: 전산설정 — 운영 시간대(IANA) — db/V197_ledger_operational_timezone.sql 과 동일
 ALTER TABLE tb_hq_ledger_sys_settings ADD COLUMN IF NOT EXISTS operational_timezone VARCHAR(64);
 UPDATE tb_hq_ledger_sys_settings

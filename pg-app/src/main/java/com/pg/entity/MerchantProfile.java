@@ -482,6 +482,16 @@ public class MerchantProfile {
     @Column(name = "card_risk_auto_blacklist_tier")
     private Integer cardRiskAutoBlacklistTier;
 
+    /** NONE | FOLLOW_HQ | CUSTOM — 추적기간 기간정책(가맹점) */
+    @Column(name = "card_risk_track_period_policy", length = 16)
+    private String cardRiskTrackPeriodPolicy;
+
+    @Column(name = "card_risk_track_period_mode", length = 8)
+    private String cardRiskTrackPeriodMode;
+
+    @Column(name = "card_risk_track_period_value")
+    private Integer cardRiskTrackPeriodValue;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -872,6 +882,18 @@ public class MerchantProfile {
     public Integer getCardRiskAutoBlacklistTier() { return cardRiskAutoBlacklistTier; }
     public void setCardRiskAutoBlacklistTier(Integer cardRiskAutoBlacklistTier) {
         this.cardRiskAutoBlacklistTier = cardRiskAutoBlacklistTier;
+    }
+    public String getCardRiskTrackPeriodPolicy() { return cardRiskTrackPeriodPolicy; }
+    public void setCardRiskTrackPeriodPolicy(String cardRiskTrackPeriodPolicy) {
+        this.cardRiskTrackPeriodPolicy = cardRiskTrackPeriodPolicy;
+    }
+    public String getCardRiskTrackPeriodMode() { return cardRiskTrackPeriodMode; }
+    public void setCardRiskTrackPeriodMode(String cardRiskTrackPeriodMode) {
+        this.cardRiskTrackPeriodMode = cardRiskTrackPeriodMode;
+    }
+    public Integer getCardRiskTrackPeriodValue() { return cardRiskTrackPeriodValue; }
+    public void setCardRiskTrackPeriodValue(Integer cardRiskTrackPeriodValue) {
+        this.cardRiskTrackPeriodValue = cardRiskTrackPeriodValue;
     }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

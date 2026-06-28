@@ -5,7 +5,9 @@ public record CardRiskPolicyEffective(
         boolean enabled,
         int[] tierTotalMinutes,
         int autoBlacklistTriggerTier,
-        String policySource
+        String policySource,
+        String trackPeriodMode,
+        int trackPeriodValue
 ) {
     public int tierMinutes(int tier1Based) {
         if (tierTotalMinutes == null || tier1Based < 1 || tier1Based > tierTotalMinutes.length) {

@@ -207,6 +207,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         t.setNotifyChannelType(ch);
 
         String prevStatus = t.getStatus();
+        String prevOutcomeReasonCode = t.getOutcomeReasonCode();
         String prevSettledYn = t.getSettledYn();
         boolean icopayManualEcho = "Y".equalsIgnoreCase(first(form, JpayManualFollowUpNotifyService.ICOPAY_MANUAL_FOLLOWUP_FLAG));
 
@@ -253,7 +254,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
 
         pgTrnsctnRepository.save(t);
         outcomeReasonWarmCoordinator.onRecorded(recordedReason);
-        applyCardFailCooldownFromTxn(t, merged);
+        applyCardFailCooldownFromTxn(t, merged, prevStatus, prevOutcomeReasonCode);
         hookSplitPayInstallment(t);
         try {
             settlementArrearsService.registerPostSettlementRecoveryIfDue(prevStatus, prevSettledYn, t);
@@ -304,6 +305,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         }
         PgTrnsctn t = ex.get();
         String prevStatus = t.getStatus();
+        String prevOutcomeReasonCode = t.getOutcomeReasonCode();
         JpayTransactionIdApplier.apply(t, first(form, "transaction_id"));
         t.setNotifyChannelType(ch);
         String next = JpayNotifyStatusResolver.resolve(ret, first(form, "_middleware_manualfollowup"), paySt);
@@ -337,7 +339,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         JpayBuyerContactApplier.mergeFromNotifyForm(t, form);
         pgTrnsctnRepository.save(t);
         outcomeReasonWarmCoordinator.onRecorded(recordedReason2);
-        applyCardFailCooldownFromTxn(t, merged);
+        applyCardFailCooldownFromTxn(t, merged, prevStatus, prevOutcomeReasonCode);
         hookSplitPayInstallment(t);
         if (ST_PAID.equals(merged)) {
             try {
@@ -567,7 +569,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         return m;
     }
 
-    private void applyCardFailCooldownFromTxn(PgTrnsctn t, String merged) {
+    private void applyCardFailCooldownFromTxn(PgTrnsctn t, String merged, String prevStatus, String prevOutcomeReasonCode) {
         if (t == null || t.getCardPanHash() == null || t.getCardPanHash().isBlank()) {
             return;
         }
@@ -576,6 +578,10 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         Long orgUnitId = resolveOrgUnitId(t);
         if (ST_PAID.equals(merged)) {
             payCardFailCooldownService.clearOnSuccessByHash(PgVendor.JPAY, hash, orgUnitId);
+            return;
+        }
+        if (!PayCardFailOutcomeRules.shouldRecordNewRiskFailure(
+                prevStatus, prevOutcomeReasonCode, merged, t.getOutcomeReasonCode())) {
             return;
         }
         Optional<String> riskCode = PayCardFailOutcomeRules.outcomeCodeForTxnRiskCount(merged, t.getOutcomeReasonCode());

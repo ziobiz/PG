@@ -49,6 +49,18 @@ public final class PayCardFailOutcomeRules {
     }
 
     /**
+     * 동일 거래에 JPAY 동기 응답·웹훅 노티가 모두 오면 실패 1건이 두 번 집계될 수 있다.
+     * 이전 상태가 이미 리스크 집계 대상(실패·취소·미결제 등)이면 재집계하지 않는다.
+     */
+    public static boolean shouldRecordNewRiskFailure(String prevTxnStatus, String prevOutcomeReasonCode,
+                                                     String mergedTxnStatus, String mergedOutcomeReasonCode) {
+        if (outcomeCodeForTxnRiskCount(prevTxnStatus, prevOutcomeReasonCode).isPresent()) {
+            return false;
+        }
+        return outcomeCodeForTxnRiskCount(mergedTxnStatus, mergedOutcomeReasonCode).isPresent();
+    }
+
+    /**
      * 거래 상태·사유코드 → 리스크 집계용 outcome. 성공(10)·3DS대기(08)는 제외.
      * 취소·실패·미결제 및 그 외 비성공 확정 상태는 집계(동기 응답·노티 대기 없이 반영).
      */

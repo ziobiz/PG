@@ -8,6 +8,7 @@ import com.pg.repository.HqPayCardBlacklistRepository;
 import com.pg.repository.HqRiskCardPolicyRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
+import com.pg.util.CardRiskTrackPeriod;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,10 @@ public class HqRiskCardPolicyService {
     public static final String MODE_FOLLOW_HQ = "FOLLOW_HQ";
     public static final String MODE_CUSTOM = "CUSTOM";
     public static final String MODE_DISABLED = "DISABLED";
+
+    public static final String TRACK_POLICY_NONE = "NONE";
+    public static final String TRACK_POLICY_FOLLOW_HQ = "FOLLOW_HQ";
+    public static final String TRACK_POLICY_CUSTOM = "CUSTOM";
 
     private final HqRiskCardPolicyRepository riskCardPolicyRepository;
     private final MerchantProfileRepository merchantProfileRepository;
@@ -61,6 +66,9 @@ public class HqRiskCardPolicyService {
         m.put("tier4Hours", intOr(s.getTier4Hours(), 0));
         m.put("tier4Min", intOr(s.getTier4Min(), 0));
         m.put("autoBlacklistTriggerTier", clampTier(s.getAutoBlacklistTriggerTier(), 4));
+        m.put("trackPeriodMode", CardRiskTrackPeriod.normalizeMode(s.getTrackPeriodMode()));
+        m.put("trackPeriodValue", intOr(s.getTrackPeriodValue(), 0));
+        m.put("trackPeriodDisplay", CardRiskTrackPeriod.formatDisplay(s.getTrackPeriodMode(), s.getTrackPeriodValue()));
         m.put("tier1TotalMin", toTotalMinutes(s.getTier1Hours(), s.getTier1Min(), 5));
         m.put("tier2TotalMin", toTotalMinutes(s.getTier2Hours(), s.getTier2Min(), 10));
         m.put("tier3TotalMin", toTotalMinutes(s.getTier3Hours(), s.getTier3Min(), 60));
@@ -81,6 +89,13 @@ public class HqRiskCardPolicyService {
         if (body.containsKey("autoBlacklistTriggerTier")) {
             s.setAutoBlacklistTriggerTier(clampTier(parseInt(body.get("autoBlacklistTriggerTier")), 4));
         }
+        if (body.containsKey("trackPeriodMode")) {
+            s.setTrackPeriodMode(CardRiskTrackPeriod.normalizeMode(
+                    body.get("trackPeriodMode") != null ? body.get("trackPeriodMode").toString() : null));
+        }
+        if (body.containsKey("trackPeriodValue")) {
+            s.setTrackPeriodValue(parseTrackPeriodValue(body.get("trackPeriodValue")));
+        }
         return riskCardPolicyRepository.save(s);
     }
 
@@ -95,7 +110,8 @@ public class HqRiskCardPolicyService {
         MerchantProfile mp = mpOpt.get();
         String mode = normalizeMode(mp.getCardRiskPolicyMode());
         if (MODE_DISABLED.equals(mode)) {
-            return new CardRiskPolicyEffective(false, zeroTiers(), 0, MODE_DISABLED);
+            return new CardRiskPolicyEffective(false, zeroTiers(), 0, MODE_DISABLED,
+                    CardRiskTrackPeriod.MODE_NONE, 0);
         }
         if (MODE_CUSTOM.equals(mode)) {
             int[] tiers = new int[]{
@@ -105,7 +121,21 @@ public class HqRiskCardPolicyService {
                     toTotalMinutes(mp.getCardRiskTier4Hours(), mp.getCardRiskTier4Min(), 0)
             };
             int trigger = clampTier(mp.getCardRiskAutoBlacklistTier(), 4);
-            return new CardRiskPolicyEffective(true, tiers, trigger, MODE_CUSTOM);
+            String trackPolicy = effectiveTrackPolicy(mp);
+            String trackMode;
+            int trackValue;
+            if (TRACK_POLICY_FOLLOW_HQ.equals(trackPolicy)) {
+                HqRiskCardPolicy hq = getOrCreate();
+                trackMode = CardRiskTrackPeriod.normalizeMode(hq.getTrackPeriodMode());
+                trackValue = hq.getTrackPeriodValue() != null ? hq.getTrackPeriodValue() : 0;
+            } else if (TRACK_POLICY_CUSTOM.equals(trackPolicy)) {
+                trackMode = CardRiskTrackPeriod.normalizeMode(mp.getCardRiskTrackPeriodMode());
+                trackValue = mp.getCardRiskTrackPeriodValue() != null ? mp.getCardRiskTrackPeriodValue() : 0;
+            } else {
+                trackMode = CardRiskTrackPeriod.MODE_NONE;
+                trackValue = 0;
+            }
+            return new CardRiskPolicyEffective(true, tiers, trigger, MODE_CUSTOM, trackMode, trackValue);
         }
         return resolveHqOnly();
     }
@@ -113,7 +143,8 @@ public class HqRiskCardPolicyService {
     public CardRiskPolicyEffective resolveHqOnly() {
         HqRiskCardPolicy hq = getOrCreate();
         if (!"Y".equalsIgnoreCase(yn(hq.getEnabledYn()))) {
-            return new CardRiskPolicyEffective(false, zeroTiers(), 0, MODE_FOLLOW_HQ);
+            return new CardRiskPolicyEffective(false, zeroTiers(), 0, MODE_FOLLOW_HQ,
+                    CardRiskTrackPeriod.MODE_NONE, 0);
         }
         int[] tiers = new int[]{
                 toTotalMinutes(hq.getTier1Hours(), hq.getTier1Min(), 5),
@@ -121,7 +152,10 @@ public class HqRiskCardPolicyService {
                 toTotalMinutes(hq.getTier3Hours(), hq.getTier3Min(), 60),
                 toTotalMinutes(hq.getTier4Hours(), hq.getTier4Min(), 0)
         };
-        return new CardRiskPolicyEffective(true, tiers, clampTier(hq.getAutoBlacklistTriggerTier(), 4), MODE_FOLLOW_HQ);
+        String trackMode = CardRiskTrackPeriod.normalizeMode(hq.getTrackPeriodMode());
+        int trackValue = hq.getTrackPeriodValue() != null ? hq.getTrackPeriodValue() : 0;
+        return new CardRiskPolicyEffective(true, tiers, clampTier(hq.getAutoBlacklistTriggerTier(), 4),
+                MODE_FOLLOW_HQ, trackMode, trackValue);
     }
 
     public List<Map<String, Object>> listActiveMerchantRows() {
@@ -147,6 +181,7 @@ public class HqRiskCardPolicyService {
                 row.put("tier4Display", "—");
                 row.put("autoBlacklistTier", 0);
                 row.put("autoBlacklistTierLabel", "—");
+                row.put("trackPeriodDisplay", "—");
             } else {
                 row.put("tier1Display", formatDuration(eff.tierMinutes(1)));
                 row.put("tier2Display", formatDuration(eff.tierMinutes(2)));
@@ -154,6 +189,8 @@ public class HqRiskCardPolicyService {
                 row.put("tier4Display", formatDuration(eff.tierMinutes(4)));
                 row.put("autoBlacklistTier", eff.autoBlacklistTriggerTier());
                 row.put("autoBlacklistTierLabel", tierLabel(eff.autoBlacklistTriggerTier()));
+                row.put("trackPeriodDisplay", CardRiskTrackPeriod.formatDisplay(
+                        eff.trackPeriodMode(), eff.trackPeriodValue()));
             }
             long manualCnt = blacklistRepository.countByRegisteredOrgUnitIdAndActiveYnAndSource(ou.getId(), "Y", "MANUAL");
             long autoCnt = blacklistRepository.countByRegisteredOrgUnitIdAndActiveYnAndSource(ou.getId(), "Y", "AUTO");
@@ -181,6 +218,15 @@ public class HqRiskCardPolicyService {
         if (fields.containsKey("cardRiskAutoBlacklistTier")) {
             mp.setCardRiskAutoBlacklistTier(clampTier(parseInt(fields.get("cardRiskAutoBlacklistTier")), 4));
         }
+        if (fields.containsKey("cardRiskTrackPeriodPolicy")) {
+            mp.setCardRiskTrackPeriodPolicy(normalizeTrackPolicyForSave(fields.get("cardRiskTrackPeriodPolicy")));
+        }
+        if (fields.containsKey("cardRiskTrackPeriodMode")) {
+            mp.setCardRiskTrackPeriodMode(CardRiskTrackPeriod.normalizeMode(fields.get("cardRiskTrackPeriodMode")));
+        }
+        if (fields.containsKey("cardRiskTrackPeriodValue")) {
+            mp.setCardRiskTrackPeriodValue(parseTrackPeriodValue(fields.get("cardRiskTrackPeriodValue")));
+        }
     }
 
     public void putMerchantCardRiskOnMap(Map<String, Object> m, MerchantProfile mp) {
@@ -197,6 +243,9 @@ public class HqRiskCardPolicyService {
         m.put("cardRiskTier4Hours", mp.getCardRiskTier4Hours());
         m.put("cardRiskTier4Min", mp.getCardRiskTier4Min());
         m.put("cardRiskAutoBlacklistTier", mp.getCardRiskAutoBlacklistTier());
+        m.put("cardRiskTrackPeriodPolicy", effectiveTrackPolicy(mp));
+        m.put("cardRiskTrackPeriodMode", CardRiskTrackPeriod.normalizeMode(mp.getCardRiskTrackPeriodMode()));
+        m.put("cardRiskTrackPeriodValue", mp.getCardRiskTrackPeriodValue());
     }
 
     private void applyMerchantTier(MerchantProfile mp, Map<String, String> fields, int tier) {
@@ -337,6 +386,43 @@ public class HqRiskCardPolicyService {
 
     private static int intOr(Integer v, int def) {
         return v != null ? v : def;
+    }
+
+    /** 가맹점 추적기간 기간정책: 저장값이 없으면(레거시) 추적기간 mode로 추론 */
+    private String effectiveTrackPolicy(MerchantProfile mp) {
+        String norm = normalizeTrackPolicy(mp.getCardRiskTrackPeriodPolicy());
+        if (norm != null) {
+            return norm;
+        }
+        String mode = CardRiskTrackPeriod.normalizeMode(mp.getCardRiskTrackPeriodMode());
+        return CardRiskTrackPeriod.MODE_NONE.equals(mode) ? TRACK_POLICY_NONE : TRACK_POLICY_CUSTOM;
+    }
+
+    private static String normalizeTrackPolicy(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String u = raw.trim().toUpperCase(Locale.ROOT);
+        if (TRACK_POLICY_FOLLOW_HQ.equals(u) || TRACK_POLICY_CUSTOM.equals(u)) {
+            return u;
+        }
+        return TRACK_POLICY_NONE;
+    }
+
+    private static String normalizeTrackPolicyForSave(String raw) {
+        String n = normalizeTrackPolicy(raw);
+        return n != null ? n : TRACK_POLICY_NONE;
+    }
+
+    private static int parseTrackPeriodValue(Object o) {
+        if (o == null || o.toString().isBlank()) {
+            return 0;
+        }
+        try {
+            return Math.max(0, Math.min(Integer.parseInt(o.toString().trim()), 9999));
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     private static String yn(String v) {

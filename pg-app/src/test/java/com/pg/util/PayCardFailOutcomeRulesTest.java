@@ -34,4 +34,11 @@ class PayCardFailOutcomeRulesTest {
         assertTrue(PayCardFailOutcomeRules.shouldSkipValidateErrorCode("CARD_COOLDOWN"));
         assertTrue(PayCardFailOutcomeRules.shouldSkipValidateErrorCode("CARD_COOLDOWN_TIER_2"));
     }
+
+    @Test
+    void shouldRecordNewRiskFailureSkipsDuplicateFailNotify() {
+        assertFalse(PayCardFailOutcomeRules.shouldRecordNewRiskFailure("99", null, "99", null));
+        assertTrue(PayCardFailOutcomeRules.shouldRecordNewRiskFailure("08", null, "99", null));
+        assertTrue(PayCardFailOutcomeRules.shouldRecordNewRiskFailure("10", null, "99", null));
+    }
 }

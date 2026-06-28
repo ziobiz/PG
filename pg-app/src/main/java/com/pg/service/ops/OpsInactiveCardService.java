@@ -133,7 +133,7 @@ public class OpsInactiveCardService {
         assertAccess(authentication);
         int p = Math.max(1, page);
         int s = Math.min(Math.max(size, 1), 200);
-        String active = searchActiveYn != null ? searchActiveYn.trim().toUpperCase(Locale.ROOT) : "Y";
+        String active = searchActiveYn != null ? searchActiveYn.trim().toUpperCase(Locale.ROOT) : "ALL";
         Page<HqPayCardBlacklist> pg;
         if ("N".equals(active)) {
             pg = blacklistRepository.findByActiveYnOrderByIdDesc("N",

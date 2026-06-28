@@ -1,11 +1,14 @@
 package com.pg.service;
 
 import com.pg.entity.PayCardFailCooldown;
+import com.pg.entity.PayCardFailRiskEvent;
 import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.PgVendor;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PayCardFailCooldownRepository;
+import com.pg.repository.PayCardFailRiskEventRepository;
 import com.pg.repository.PgTrnsctnRepository;
+import com.pg.util.CardRiskTrackPeriod;
 import com.pg.util.NotifyToTxnStatusMerge;
 import com.pg.util.PayCardBrandDetector;
 import com.pg.util.PayCardFailOutcomeRules;
@@ -29,17 +32,20 @@ public class PayCardFailCooldownService {
 
     private final HqRiskCardPolicyService hqRiskCardPolicyService;
     private final PayCardFailCooldownRepository cooldownRepository;
+    private final PayCardFailRiskEventRepository riskEventRepository;
     private final PayCardPolicyService payCardPolicyService;
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final OrgUnitRepository orgUnitRepository;
 
     public PayCardFailCooldownService(HqRiskCardPolicyService hqRiskCardPolicyService,
                                       PayCardFailCooldownRepository cooldownRepository,
+                                      PayCardFailRiskEventRepository riskEventRepository,
                                       @Lazy PayCardPolicyService payCardPolicyService,
                                       PgTrnsctnRepository pgTrnsctnRepository,
                                       OrgUnitRepository orgUnitRepository) {
         this.hqRiskCardPolicyService = hqRiskCardPolicyService;
         this.cooldownRepository = cooldownRepository;
+        this.riskEventRepository = riskEventRepository;
         this.payCardPolicyService = payCardPolicyService;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
@@ -75,7 +81,7 @@ public class PayCardFailCooldownService {
             return Optional.empty();
         }
         PayCardFailCooldown row = rowOpt.get();
-        int failCount = row.getFailCount();
+        int failCount = syncAndGetFailureCount(pg, hash, orgUnitId, row, policy);
         int triggerTier = policy.autoBlacklistTriggerTier();
         // N차 트리거(1·2·3·4 동일): 비성공 N회 완료 직후 등록 → (N+1)번째 시도부터 차단
         if (shouldRegisterAutoBlacklistAfterFailures(failCount, triggerTier)) {
@@ -150,6 +156,7 @@ public class PayCardFailCooldownService {
         String pg = payCardPolicyService.normalizePgVendor(pgVendorRaw);
         String hash = PayCardPanHashUtil.hashPan(pan);
         findRow(pg, hash, orgUnitId).ifPresent(row -> {
+            clearRiskEvents(pg, hash, orgUnitId);
             row.setFailCount(0);
             row.setBlockedUntil(null);
             cooldownRepository.save(row);
@@ -162,7 +169,9 @@ public class PayCardFailCooldownService {
             return;
         }
         String pg = payCardPolicyService.normalizePgVendor(pgVendorRaw);
-        findRow(pg, cardPanHash.trim(), orgUnitId).ifPresent(row -> {
+        String hash = cardPanHash.trim();
+        findRow(pg, hash, orgUnitId).ifPresent(row -> {
+            clearRiskEvents(pg, hash, orgUnitId);
             row.setFailCount(0);
             row.setBlockedUntil(null);
             cooldownRepository.save(row);
@@ -191,6 +200,7 @@ public class PayCardFailCooldownService {
 
     private void applyFailure(String pg, String hash, String panMaskKey, Long orgUnitId,
                               CardRiskPolicyEffective policy, String outcomeCode, String holderName) {
+        LocalDateTime now = LocalDateTime.now();
         PayCardFailCooldown row = findRow(pg, hash, orgUnitId).orElseGet(PayCardFailCooldown::new);
         row.setPgVendor(pg);
         row.setPanHash(hash);
@@ -198,26 +208,74 @@ public class PayCardFailCooldownService {
         if (panMaskKey != null && !panMaskKey.isBlank()) {
             row.setPanMaskKey(panMaskKey.trim());
         }
-        int nextCount = row.getFailCount() + 1;
-        row.setFailCount(nextCount);
-        row.setLastFailAt(LocalDateTime.now());
+
+        appendRiskEvent(pg, hash, orgUnitId, outcomeCode, now);
+        pruneExpiredRiskEvents(pg, hash, orgUnitId, policy, now);
+        int failCount = countQualifyingFailures(pg, hash, orgUnitId, policy, now);
+        row.setFailCount(failCount);
+        row.setLastFailAt(now);
         row.setLastOutcomeCode(outcomeCode != null ? outcomeCode.trim() : null);
 
-        if (shouldRegisterAutoBlacklistAfterFailures(nextCount, policy.autoBlacklistTriggerTier())) {
+        if (shouldRegisterAutoBlacklistAfterFailures(failCount, policy.autoBlacklistTriggerTier())) {
             registerAutoBlacklistOnAttempt(pg, null, hash, row, policy, orgUnitId, holderName, "COMPLETE");
         }
 
-        int minutes = policy.tierMinutes(Math.min(nextCount, 4));
+        int minutes = policy.tierMinutes(Math.min(failCount, 4));
         int triggerTier = policy.autoBlacklistTriggerTier();
-        if (minutes <= 0 && !shouldRegisterAutoBlacklistAfterFailures(nextCount, triggerTier)) {
+        if (minutes <= 0 && !shouldRegisterAutoBlacklistAfterFailures(failCount, triggerTier)) {
             minutes = 1;
         }
-        if (shouldRegisterAutoBlacklistAfterFailures(nextCount, triggerTier)) {
+        if (shouldRegisterAutoBlacklistAfterFailures(failCount, triggerTier)) {
             row.setBlockedUntil(LocalDateTime.now().plusYears(10));
         } else if (minutes > 0) {
             row.setBlockedUntil(LocalDateTime.now().plusMinutes(minutes));
         }
         cooldownRepository.save(row);
+    }
+
+    private int syncAndGetFailureCount(String pg, String hash, Long orgUnitId,
+                                       PayCardFailCooldown row, CardRiskPolicyEffective policy) {
+        LocalDateTime now = LocalDateTime.now();
+        pruneExpiredRiskEvents(pg, hash, orgUnitId, policy, now);
+        int count = countQualifyingFailures(pg, hash, orgUnitId, policy, now);
+        if (row.getFailCount() != count) {
+            row.setFailCount(count);
+            cooldownRepository.save(row);
+        }
+        return count;
+    }
+
+    private void appendRiskEvent(String pg, String hash, Long orgUnitId, String outcomeCode, LocalDateTime now) {
+        PayCardFailRiskEvent ev = new PayCardFailRiskEvent();
+        ev.setPgVendor(pg);
+        ev.setPanHash(hash);
+        ev.setOrgUnitId(orgUnitId);
+        ev.setOutcomeCode(outcomeCode != null ? outcomeCode.trim() : null);
+        ev.setOccurredAt(now);
+        riskEventRepository.save(ev);
+    }
+
+    private void clearRiskEvents(String pg, String hash, Long orgUnitId) {
+        riskEventRepository.deleteAllForCard(pg, hash, orgUnitId);
+    }
+
+    private void pruneExpiredRiskEvents(String pg, String hash, Long orgUnitId,
+                                        CardRiskPolicyEffective policy, LocalDateTime now) {
+        LocalDateTime start = CardRiskTrackPeriod.windowStart(
+                policy.trackPeriodMode(), policy.trackPeriodValue(), now);
+        if (start != null) {
+            riskEventRepository.deleteOlderThanForCard(pg, hash, orgUnitId, start);
+        }
+    }
+
+    private int countQualifyingFailures(String pg, String hash, Long orgUnitId,
+                                        CardRiskPolicyEffective policy, LocalDateTime now) {
+        LocalDateTime start = CardRiskTrackPeriod.windowStart(
+                policy.trackPeriodMode(), policy.trackPeriodValue(), now);
+        if (start == null) {
+            return (int) riskEventRepository.countAllForCard(pg, hash, orgUnitId);
+        }
+        return (int) riskEventRepository.countSinceForCard(pg, hash, orgUnitId, start);
     }
 
     /**

@@ -41,6 +41,13 @@ public class HqRiskCardPolicy {
     @Column(name = "auto_blacklist_trigger_tier", nullable = false)
     private Integer autoBlacklistTriggerTier = 4;
 
+    /** NONE | DAY | MONTH | YEAR */
+    @Column(name = "track_period_mode", nullable = false, length = 8)
+    private String trackPeriodMode = "NONE";
+
+    @Column(name = "track_period_value", nullable = false)
+    private Integer trackPeriodValue = 0;
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
@@ -74,6 +81,10 @@ public class HqRiskCardPolicy {
     public void setAutoBlacklistTriggerTier(Integer autoBlacklistTriggerTier) {
         this.autoBlacklistTriggerTier = autoBlacklistTriggerTier;
     }
+    public String getTrackPeriodMode() { return trackPeriodMode; }
+    public void setTrackPeriodMode(String trackPeriodMode) { this.trackPeriodMode = trackPeriodMode; }
+    public Integer getTrackPeriodValue() { return trackPeriodValue; }
+    public void setTrackPeriodValue(Integer trackPeriodValue) { this.trackPeriodValue = trackPeriodValue; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

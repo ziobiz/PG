@@ -1719,6 +1719,46 @@ html[lang="th"] .pg-outcome-reason-preview {
 #contentsMain .screen-calc-fee-list .table tbody tr.pay-row-tone--success:nth-child(even) {
   background: #e6f7ec !important;
 }
+/* 비활성카드등록 — 해지된 건 파스텔 연두색 행 */
+#contentsMain .table tbody tr.ops-inactive-card-released,
+#contentsMain .table tbody tr.ops-inactive-card-released:nth-child(odd),
+#contentsMain .table tbody tr.ops-inactive-card-released:nth-child(even) {
+  background: #eaf7df !important;
+}
+#contentsMain .table tbody tr.ops-inactive-card-released > td {
+  background: transparent !important;
+}
+#contentsMain .table tbody tr.ops-inactive-card-released:hover {
+  background: #ddf0cb !important;
+}
+.ops-inactive-card-badge {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.ops-inactive-card-badge--active {
+  background: #e6f0ff;
+  color: #1d4ed8;
+}
+.ops-inactive-card-badge--released {
+  background: #cfeab2;
+  color: #3f6212;
+}
+.ops-inactive-card-edit-na {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #9ca3af;
+}
+.ops-inactive-card-release-done {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #3f6212;
+}
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--cancel,
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--cancel:nth-child(odd),
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--cancel:nth-child(even),
@@ -1837,11 +1877,11 @@ html[lang="th"] .pg-outcome-reason-preview {
   color: #fff;
 }
 
-/* 통합체크 — JPAY·ICOPAY 일별 대조 (불일치 일자도 동일 행 배경, 불일치 셀만 강조) */
-#contentsMain table.integrated-check-grid tbody tr.integrated-check-row--jpay {
+/* 통합체크 — 번호별 교차 색(홀=주황·짝=연두), 번호·일자는 흰색, 불일치 셀만 강조 */
+#contentsMain table.integrated-check-grid tbody tr.integrated-check-row--odd {
   background: #fff4ed !important;
 }
-#contentsMain table.integrated-check-grid tbody tr.integrated-check-row--icopay {
+#contentsMain table.integrated-check-grid tbody tr.integrated-check-row--even {
   background: #ecfdf3 !important;
 }
 #contentsMain table.integrated-check-grid td.integrated-check-meta-cell {
@@ -1851,10 +1891,15 @@ html[lang="th"] .pg-outcome-reason-preview {
 #contentsMain table.integrated-check-grid td.integrated-check-cell--mismatch {
   background: #eceff3 !important;
   color: #dc2626 !important;
-  font-weight: 600;
+  font-weight: 700;
 }
-#contentsMain table.integrated-check-grid td.integrated-check-status--ok {
-  background: #fef9c3 !important;
+#contentsMain table.integrated-check-grid td.integrated-check-status--ok.integrated-check-tone--odd {
+  background: #fff4ed !important;
+  color: #1f2937 !important;
+  font-weight: 700;
+}
+#contentsMain table.integrated-check-grid td.integrated-check-status--ok.integrated-check-tone--even {
+  background: #ecfdf3 !important;
   color: #1f2937 !important;
   font-weight: 700;
 }
