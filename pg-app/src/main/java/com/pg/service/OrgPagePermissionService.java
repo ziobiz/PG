@@ -124,7 +124,6 @@ public class OrgPagePermissionService {
         OrgLevel orgLevel = ou != null ? ou.getOrgLevel() : null;
         Map<String, String> roleDefault = resolveDefaultAssistantRoleMap(art, orgLevel, shell);
         Map<String, String> out = new LinkedHashMap<>();
-        String orgLevelCode = orgLevel != null ? orgLevel.name() : "";
         for (PageMenuCatalog.PageMenuItem item : PageMenuCatalog.items()) {
             String url = item.pageUrl();
             String ceiling = normalizePerm(orgCeiling.getOrDefault(url, P_DELETE));
@@ -135,7 +134,11 @@ public class OrgPagePermissionService {
                 out.put(url, intersectPermission(ceiling, roleWant));
             }
         }
-        enforceTabletExposureOnRoleMap(orgLevelCode, out);
+        /*
+         * 태블릿 노출 여부로 담당자 권한을 NONE 으로 덮어쓰지 않습니다.
+         * 검수관리·결제관리 등은 데스크톱 사이드바 메뉴이기도 하므로 권한은 담당자 매트릭스가 결정하고,
+         * 태블릿 사이드바 노출은 resolveTabletMenuUrlsForUser 에서 OrgTabletMenu(use_yn) 로 별도 통제합니다.
+         */
         return out;
     }
 
@@ -172,18 +175,6 @@ public class OrgPagePermissionService {
         this.payFollowPolicyService = payFollowPolicyService;
         this.hqNotifyEnvConfigRepository = hqNotifyEnvConfigRepository;
         this.orgTabletMenuService = orgTabletMenuService;
-    }
-
-    /** 태블릿설정에서 노출되지 않은 태블릿 전용 URL은 담당자 권한을 접근불가로 고정 */
-    private void enforceTabletExposureOnRoleMap(String orgLevel, Map<String, String> roleMap) {
-        if (roleMap == null || orgLevel == null || orgLevel.isBlank()) {
-            return;
-        }
-        for (String url : OrgTabletMenuService.TABLET_MENU_URLS) {
-            if (!orgTabletMenuService.isTabletUrlExposedForOrgLevel(orgLevel, url)) {
-                roleMap.put(url, P_NONE);
-            }
-        }
     }
 
     /**
@@ -261,7 +252,10 @@ public class OrgPagePermissionService {
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         Set<String> validLevels = Arrays.stream(OrgLevel.values()).map(Enum::name).collect(Collectors.toCollection(LinkedHashSet::new));
         AssistantMatrixStorage cleaned = AssistantMatrixStorage.fromClient(root).sanitize(catalogUrls, ASSISTANT_ROLE_TYPES, validLevels);
-        clampTabletMenusInAssistantStorage(cleaned);
+        /*
+         * 저장 시 태블릿 노출 여부로 담당자 권한을 NONE 으로 깎지 않습니다.
+         * (검수관리·결제관리 등은 데스크톱 메뉴이기도 하므로 담당자 매트릭스 값을 그대로 보존)
+         */
         if (cleaned.isEmpty()) {
             return null;
         }
@@ -285,7 +279,7 @@ public class OrgPagePermissionService {
             if (lvl != null) {
                 mergeRoleUrlOverlayInto(out, lvl.get(role));
             }
-            enforceTabletExposureOnRoleMap(orgLevel.name(), out);
+            /* 태블릿 노출로 담당자 기본 권한을 NONE 으로 고정하지 않습니다(권한은 매트릭스가 결정). */
         }
         return out;
     }
@@ -872,10 +866,11 @@ public class OrgPagePermissionService {
                 if (P_NONE.equals(ceiling)) {
                     continue;
                 }
-                if (OrgTabletMenuService.isTabletCatalogUrl(url)
-                        && !orgTabletMenuService.isTabletUrlExposedForOrgLevel(level, url)) {
-                    continue;
-                }
+                /*
+                 * 태블릿 노출 여부로 담당자 권한 저장을 건너뛰지 않습니다.
+                 * 검수관리·결제관리 등은 데스크톱 메뉴이기도 하므로 매트릭스 값을 그대로 저장하고,
+                 * 태블릿 사이드바 노출은 OrgTabletMenu(use_yn) 로 별도 통제합니다.
+                 */
                 String want = normalizePerm(pe.getValue());
                 String saved = intersectPermission(ceiling, want);
                 if (P_NONE.equals(saved) || saved.equals(ceiling)) {
@@ -1119,21 +1114,6 @@ public class OrgPagePermissionService {
         payload.put("payFollowLevelCaps", payFollowPolicyService.buildLevelCapsPayload());
         payload.put("tabletMenuExposureByLevel", orgTabletMenuService.buildTabletExposureByLevelForApi());
         return payload;
-    }
-
-    private void clampTabletMenusInAssistantStorage(AssistantMatrixStorage storage) {
-        if (storage == null) {
-            return;
-        }
-        for (Map.Entry<String, Map<String, Map<String, String>>> le : storage.byLevel.entrySet()) {
-            String lvl = le.getKey();
-            if (le.getValue() == null) {
-                continue;
-            }
-            for (Map<String, String> roleMap : le.getValue().values()) {
-                enforceTabletExposureOnRoleMap(lvl, roleMap);
-            }
-        }
     }
 
     @Transactional

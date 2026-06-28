@@ -110,6 +110,23 @@
     }
     return pgAdminUiT(t);
   }
+  /** 사이드바·본사권한설정·사용자설정 담당자 매트릭스 공통 대메뉴 순서 */
+  var PG_ORG_PERM_PARENT_GROUP_ORDER = [
+    '본사설정', '검수관리', '업체관리', '결제관리', '정산관리', '챗봇관리', '분할관리',
+    '통보관리', '사용자관리', '운영관리', '배포설정'
+  ];
+  function pgOrgPermSortParentGroups(groups) {
+    var orderIdx = {};
+    PG_ORG_PERM_PARENT_GROUP_ORDER.forEach(function (name, i) { orderIdx[name] = i; });
+    return (groups || []).slice().sort(function (a, b) {
+      var ak = a && a.key != null ? String(a.key) : '';
+      var bk = b && b.key != null ? String(b.key) : '';
+      var ia = orderIdx[ak] !== undefined ? orderIdx[ak] : 999;
+      var ib = orderIdx[bk] !== undefined ? orderIdx[bk] : 999;
+      if (ia !== ib) return ia - ib;
+      return ak.localeCompare(bk, 'ko');
+    });
+  }
   /** 업체변경이력: DB에 한글로 저장된 fieldLabel·값을 로케일별로 표시 */
   function translatePgBindingKoAuditLine(s) {
     if (s == null || s === '') return '';
@@ -20390,7 +20407,7 @@
           }
           groups[idx[g]].rows.push(row);
         });
-        return groups;
+        return pgOrgPermSortParentGroups(groups);
       }
       function hqAsstSyncLevelFromDom(pane, scope) {
         var st = hqAsstEnsureState(pane);
@@ -20412,8 +20429,13 @@
         });
       }
       function hqAsstSyncAllLevelsFromDom(pane) {
-        hqAsstSyncLevelFromDom(pane, 'asst');
+        /*
+         * 태블릿모드 섹션과 데스크톱 담당자 매트릭스는 같은 (단계·역할·URL) 저장키를 공유한다.
+         * 검수관리·결제관리 등은 양쪽에 모두 나오므로, 데스크톱 매트릭스를 최종 권위로 두기 위해
+         * 태블릿을 먼저, 데스크톱(asst)을 마지막에 동기화하여 같은 키는 데스크톱 값이 이긴다.
+         */
         hqAsstSyncLevelFromDom(pane, 'tablet');
+        hqAsstSyncLevelFromDom(pane, 'asst');
       }
       function hqAsstCollectMatrixPayload(pane) {
         hqAsstSyncAllLevelsFromDom(pane);
@@ -20448,9 +20470,9 @@
         if (!st.tabletOrgLevel || !st.byLevel[st.tabletOrgLevel]) st.tabletOrgLevel = firstKey;
         pane._hqUserTabletCatalog = data.assistantTabletMatrixCatalog ? data.assistantTabletMatrixCatalog.slice() : [];
         pane._hqUserTabletExposure = data.tabletMenuExposureByLevel || {};
-        var tset = hqTabletUrlSet(pane);
+        /* 데스크톱 담당자 매트릭스는 전체 카탈로그(검수·챗봇 등 태블릿 겸용 메뉴 포함). 태블릿 전용은 아래 태블릿모드 섹션. */
         pane._hqUserAsstCatalog = (data.assistantMatrixCatalog || []).filter(function (row) {
-          return row && row.pageUrl && !tset[row.pageUrl];
+          return row && row.pageUrl;
         });
       }
       function hqAsstFillOrgLevelTabs(pane, data) {
@@ -20477,12 +20499,9 @@
             '<input class="form-check-input hq-asst-bulk-role-cb" type="checkbox" value="' + role + '" id="' + id + '" checked>' +
             '<label class="form-check-label" for="' + id + '">' + pgAdminEscHtml(hqAsstRoleLabel(role)) + '</label></div>';
         });
-        var seen = {};
         var phtml = '<option value="' + HQ_ASST_BULK_ALL + '">' + pgAdminUiT('전체 메뉴') + '</option>';
-        (pane._hqUserAsstCatalog || []).forEach(function (row) {
-          var g = row.parentGroup != null ? String(row.parentGroup) : '';
-          if (seen[g]) return;
-          seen[g] = true;
+        hqAsstGroupCatalog(pane._hqUserAsstCatalog || []).forEach(function (grp) {
+          var g = grp.key != null ? String(grp.key) : '';
           phtml += '<option value="' + encodeURIComponent(g) + '">' + pgAdminEscHtml(pgOrgPermParentGroupLabel(g || '(미분류)')) + '</option>';
         });
         parentSel.innerHTML = phtml;
@@ -20583,10 +20602,8 @@
           HQ_ASST_MATRIX_ROLES.forEach(function (role) {
             var mv = (matrix[role] && matrix[role][url]) ? String(matrix[role][url]) : 'NONE';
             if (!isExposed) {
+              /* 비노출 메뉴는 표시만 NONE·비활성. 공유 상태(st.byLevel)는 변경하지 않는다(데스크톱 매트릭스 값 보존). */
               mv = 'NONE';
-              if (!st.byLevel[lvl]) st.byLevel[lvl] = hqAsstEmptyRoleMaps();
-              if (!st.byLevel[lvl][role]) st.byLevel[lvl][role] = {};
-              st.byLevel[lvl][role][url] = 'NONE';
             }
             var opts = HQ_ASST_PERM_OPTS.map(function (p) {
               return '<option value="' + p + '"' + (p === mv ? ' selected' : '') + '>' + pgAdminEscHtml(hqAsstPermLabel(p)) + '</option>';
@@ -33108,7 +33125,6 @@
       tr.classList.add('org-perm-row', 'org-perm-row--' + p);
       tr.setAttribute('data-perm', p);
     }
-    var ORG_PERM_GROUP_ORDER = ['본사설정', '검수관리', '업체관리', '결제관리', '정산관리', '통보관리', '사용자관리', '운영관리', '배포설정', '챗봇관리'];
     function buildOrgPermGroups(rows) {
       var by = {};
       (rows || []).forEach(function (row) {
@@ -33117,7 +33133,7 @@
         by[g].push(row);
       });
       var out = [];
-      ORG_PERM_GROUP_ORDER.forEach(function (name) {
+      PG_ORG_PERM_PARENT_GROUP_ORDER.forEach(function (name) {
         if (by[name] && by[name].length) {
           out.push({ name: name, rows: by[name] });
           delete by[name];
@@ -33290,8 +33306,6 @@
       modeEl.disabled = true;
     }
 
-    var ORG_PERM_GROUP_ORDER = ['본사설정', '검수관리', '업체관리', '결제관리', '정산관리', '통보관리', '사용자관리', '운영관리', '배포설정', '챗봇관리'];
-
     function escOrgPermHtml(s) {
       return String(s == null ? '' : s)
         .replace(/&/g, '&amp;')
@@ -33318,7 +33332,7 @@
         by[g].push(row);
       });
       var out = [];
-      ORG_PERM_GROUP_ORDER.forEach(function (name) {
+      PG_ORG_PERM_PARENT_GROUP_ORDER.forEach(function (name) {
         if (by[name] && by[name].length) {
           out.push({ name: name, rows: by[name] });
           delete by[name];

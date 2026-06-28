@@ -5612,6 +5612,10 @@ html.pg-admin--tablet #contentsMain {
   --pg-tablet-tile-bg: #e6faf5;
   --pg-tablet-tile-fg: #0ca678;
 }
+.pg-tablet-launch-tile--inspect {
+  --pg-tablet-tile-bg: #eef2ff;
+  --pg-tablet-tile-fg: #4f46e5;
+}
 .pg-tablet-launch-tile--user {
   --pg-tablet-tile-bg: #fcebec;
   --pg-tablet-tile-fg: #dc3545;
