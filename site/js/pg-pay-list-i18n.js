@@ -738,18 +738,18 @@
         'ใช้ตัวกรองเดียวกับค้นหารวม (แคช JPAY Export) สรุปรายวันตาม trnDate ดับเบิลคลิกวันที่เพื่อดูรายการและสรุปยอดของวันนั้น'
       ),
       packN(
-        '조회 기간은 최대 93일입니다. 통합조회 화면에서 [JPAY 동기화]로 캐시를 갱신한 뒤 조회하세요. 당월 등으로 종료일이 오늘 이후이면 표시는 전산 기준일(오늘)까지만 합니다.',
-        'The query window is up to 93 days. Refresh cache via [JPAY sync] on Integrated query first. If end date is after today, display stops at ledger today.',
-        '照会期間は最大93日です。統合照会画面で[JPAY同期]後に照会してください。終了日が今日以降の場合は今日まで表示します。',
-        '查询区间最长93天。请先在整合查询屏执行 [JPAY 同步] 刷新缓存。结束日晚于今天则仅显示至今天。',
-        'ช่วงสูงสุด 93 วัน ซิงค์แคชที่หน้าค้นหารวมก่อน ถ้าวันสิ้นสุดหลังวันนี้แสดงถึงวันนี้เท่านั้น'
+        '조회 기간은 최대 93일입니다. 본 화면 [JPAY 동기화]·[전체 재동기화] 또는 통합조회와 동일한 DB 캐시·스케줄로 갱신한 뒤 [검색]하세요. 당월 등으로 종료일이 오늘 이후이면 표시는 전산 기준일(오늘)까지만 합니다.',
+        'Query window up to 93 days. Refresh via [JPAY sync] / [Full re-sync] on this screen or the shared DB cache/schedule like Integrated query, then [Search]. If end date is after today, display stops at ledger today.',
+        '照会期間は最大93日です。本画面の[JPAY同期]・[全体再同期]または統合照会と同じDBキャッシュ・スケジュールで更新後[検索]してください。終了日が今日以降の場合は今日まで表示します。',
+        '查询区间最长93天。请在本屏 [JPAY 同步]/[全部重新同步] 或使用与整合查询相同的 DB 缓存与计划刷新后 [搜索]。结束日晚于今天则仅显示至今天。',
+        'ช่วงสูงสุด 93 วัน ซิงค์ด้วย [JPAY sync]/[Full re-sync] บนหน้านี้หรือแคช/ตารางเดียวกับค้นหารวม แล้ว [ค้นหา] ถ้าวันสิ้นสุดหลังวันนี้แสดงถึงวันนี้เท่านั้น'
       ),
       packN(
-        '상단 「최근동기화」 시각·당일 횟수는 통합조회와 동일합니다. 스케줄 또는 통합조회에서 [JPAY 동기화]가 끝나면 이 화면이 열려 있을 때 자동으로 다시 조회됩니다.',
-        '“Last sync” time and today’s count match Integrated query. When this screen is open, completing a scheduled or manual sync from Integrated query triggers an automatic refresh here.',
-        '上段の「最終同期」は統合照会と同じです。スケジュールまたは統合照会の[JPAY同期]完了後、この画面を開いたままなら自動再照会します。',
-        '上方「最近同步」时间与整合查询相同。本页打开时，计划或整合查询中的 [JPAY 同步] 完成后会自动重新查询。',
-        '「ซิงค์ล่าสุด」ตรงกับค้นหารวม เมื่อเปิดหน้านี้อยู่ หลังซิงค์ตามตารางหรือจากค้นหารวมเสร็จจะรีเฟรชอัตโนมัติ'
+        '상단 「최근동기화」 시각·당일 횟수는 통합조회·통합체크와 동일합니다. 스케줄 또는 [JPAY 동기화] 완료 후 이 화면이 열려 있으면 자동으로 다시 조회됩니다.',
+        '“Last sync” time and today’s count match Integrated query and Integrated check. When this screen is open, completing a scheduled or manual [JPAY sync] triggers an automatic refresh.',
+        '上段の「最終同期」時刻・当日回数は統合照会・統合チェックと同じです。スケジュールまたは[JPAY同期]完了後、この画面を開いたままなら自動再照会します。',
+        '上方「最近同步」时间与整合查询、整合核对相同。本页打开时，计划或 [JPAY 同步] 完成后会自动重新查询。',
+        '「ซิงค์ล่าสุด」และจำนวนวันนี้ตรงกับค้นหารวม·ตรวจสอบรวม เมื่อเปิดหน้านี้อยู่ หลังซิงค์ตามตารางหรือ [JPAY sync] เสร็จจะรีเฟรชอัตโนมัติ'
       )
     ],
     '/calc/dailyIntegrated': [
@@ -1053,6 +1053,20 @@
         '右端「PG精算可否」は代行手数料設定のT/H/D・N・一括時刻によるPG契約精算到来(Y/N)。政策なし・vanなしは空欄。',
         '最右「PG是否应结算」由代行手续费设置的 T/H/D·N·批处理时刻得出(Y/N)。无政策或无 van 为空。',
         'คอลัมน์ขวาสุด: ครบกำหนด PG จาก T/H/D นโยบายตัวแทน Y/N ว่างถ้าไม่มีนโยบายหรือ van'
+      ),
+      packN(
+        'JPAY 포털 Export 캐시(tb_jpay_portal_export_cache)는 통합조회·일별조회와 동일합니다. JPAY 건 검수·대조 전 본 화면 [JPAY 동기화]·[전체 재동기화]로 캐시를 갱신할 수 있습니다. 전산설정 JPAY 통합조회 스케줄로 자동 동기화됩니다.',
+        'JPAY portal Export cache (tb_jpay_portal_export_cache) is shared with Integrated query and Daily query. Use [JPAY sync] / [Full re-sync] on this screen before JPAY verification. Auto-sync via Ledger JPAY integrated list schedule.',
+        'JPAYポータルExportキャッシュ(tb_jpay_portal_export_cache)は統合照会・日別照会と同一です。JPAY検収・照合前に本画面の[JPAY同期]・[全体再同期]で更新できます。全算設定のJPAY統合照会スケジュールで自動同期します。',
+        'JPAY 门户 Export 缓存(tb_jpay_portal_export_cache) 与整合查询、按日查询共用。JPAY 核对前可在本屏 [JPAY 同步]/[全部重新同步] 刷新。由账务 JPAY 整合查询计划自动同步。',
+        'แคช Export พอร์ทัล JPAY (tb_jpay_portal_export_cache) ใช้ร่วมกับค้นหารวม·ค้นหารายวัน ก่อนตรวจ JPAY ใช้ [JPAY sync]/[Full re-sync] บนหน้านี้ ซิงค์อัตโนมัติตามตาราง JPAY ในระบบบัญชี'
+      ),
+      packN(
+        '상단 「최근동기화」 시각·당일 횟수는 통합조회와 동일합니다. 스케줄 또는 [JPAY 동기화] 완료 후 이 화면이 열려 있으면 자동으로 다시 조회됩니다.',
+        '“Last sync” time and today’s count match Integrated query. When this screen is open, completing a scheduled or manual [JPAY sync] triggers an automatic refresh.',
+        '上段の「最終同期」時刻・当日回数は統合照会と同じです。スケジュールまたは[JPAY同期]完了後、この画面を開いたままなら自動再照회します。',
+        '上方「最近同步」时间与整合查询相同。本页打开时，计划或 [JPAY 同步] 完成后会自动重新查询。',
+        '「ซิงค์ล่าสุด」และจำนวนวันนี้ตรงกับค้นหารวม เมื่อเปิดหน้านี้อยู่ หลังซิงค์ตามตารางหรือ [JPAY sync] เสร็จจะรีเฟรชอัตโนมัติ'
       )
     ],
     '/ops/inactiveCard': [
@@ -2619,8 +2633,17 @@
           if (tbUm) w.PG_UI_I18N.applyDom(tbUm);
         } catch (eUmPaneI18n) {}
       }
-      if (cfg && cfg.isForm && w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
+      if (cfg && (cfg.isForm || cfg.hasCompInfoDetailForm) && w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
         try { w.PG_UI_I18N.applyDom(pane); } catch (eFormPaneDom) {}
+      }
+      if ((url === '/comp/compDetail' || url === '/comp/compReg' || url === '/comp/myCompMng' || url === '/comp/compInfo')
+          && w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
+        try {
+          var compFormEl = pane.querySelector('#compDetailForm, #compRegForm, #compInfoDetailForm');
+          if (compFormEl) w.PG_UI_I18N.applyDom(compFormEl);
+          var pgBindTbl = pane.querySelector('#pgBindingCard, #pgBindingTable');
+          if (pgBindTbl) w.PG_UI_I18N.applyDom(pgBindTbl);
+        } catch (eCompPaneDom) {}
       }
       if (url === '/calc/jpayTrList' && cfg && w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
         try {

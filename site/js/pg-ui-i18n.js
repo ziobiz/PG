@@ -2428,6 +2428,18 @@
       CH: '结算截止时间',
       TH: 'เวลาปิดรอบชำระ'
     },
+    '이체주기(분)': {
+      EN: 'Transfer cycle (min)',
+      JP: '振込間隔(分)',
+      CH: '转账周期(分)',
+      TH: 'รอบโอน (นาที)'
+    },
+    '예: 5, 60': {
+      EN: 'e.g. 5, 60',
+      JP: '例: 5, 60',
+      CH: '例: 5, 60',
+      TH: 'เช่น 5, 60'
+    },
     '정산자동개시시간': {
       EN: 'Auto settlement start time',
       JP: '精算自動開始時刻',
@@ -2440,8 +2452,8 @@
       CH: '变更备注',
       TH: 'หมายเหตุการเปลี่ยนแปลง'
     },
-    '오전': { EN: 'AM', JP: '午前', CH: '上午', TH: 'ก่อนเที่ยง' },
-    '오후': { EN: 'PM', JP: '午後', CH: '下午', TH: 'หลังเที่ยง' },
+    '오전': { EN: 'AM', JP: 'AM', CH: 'AM', TH: 'AM' },
+    '오후': { EN: 'PM', JP: 'PM', CH: 'PM', TH: 'PM' },
     '이체시간': {
       EN: 'Transfer time',
       JP: '振込時刻',
@@ -3224,6 +3236,12 @@
       CH: '支付后续处理（商户管理员）',
       TH: 'การดำเนินการหลังชำระเงิน (ผู้ดูแลร้านค้า)'
     },
+    '후속조치 사용': {
+      EN: 'Follow-up actions',
+      JP: '後続対応',
+      CH: '后续处理',
+      TH: 'การดำเนินการต่อ'
+    },
     '정산방법': {
       EN: 'Settlement method',
       JP: '精算方法',
@@ -3271,6 +3289,12 @@
       JP: '即時適用',
       CH: '立即生效',
       TH: 'ใช้ทันที'
+    },
+    '정산주기 적용': {
+      EN: 'Settlement cycle apply',
+      JP: '精算サイクル適用',
+      CH: '结算周期应用',
+      TH: 'การใช้รอบชำระ'
     },
     '다음 정산 실행 후(예약)': {
       EN: 'After next settlement run (scheduled)',
@@ -5969,6 +5993,78 @@
       JP: '削除後は元に戻せません。加盟店の決済代行でこのPGを使用中の場合は削除できません。続行しますか？',
       CH: '删除后无法恢复。若商户仍在使用该 PG 作为支付机构则无法删除。是否继续？',
       TH: 'ลบแล้วกู้คืนไม่ได้ หากร้านยังใช้ PG นี้เป็นผู้ให้บริการชำระจะลบไม่ได้ ดำเนินต่อหรือไม่'
+    },
+    '이 결제대행사 연동을 삭제하시겠습니까?': {
+      EN: 'Delete this payment processor integration?',
+      JP: 'この決済代行連携を削除しますか？',
+      CH: '删除该支付机构对接吗？',
+      TH: 'ลบการเชื่อม PG นี้หรือไม่?'
+    },
+    '삭제하면 복구할 수 없습니다. 정말 삭제하시겠습니까?': {
+      EN: 'This cannot be undone. Delete anyway?',
+      JP: '削除すると復元できません。本当に削除しますか？',
+      CH: '删除后无法恢复，确定删除吗？',
+      TH: 'ลบแล้วกู้คืนไม่ได้ ต้องการลบหรือไม่?'
+    },
+    '추가 중인 행을 취소하시겠습니까?': {
+      EN: 'Cancel the row being added?',
+      JP: '追加中の行をキャンセルしますか？',
+      CH: '取消正在添加的行吗？',
+      TH: 'ยกเลิกแถวที่กำลังเพิ่มหรือไม่?'
+    },
+    '입력 내용이 사라집니다. 계속하시겠습니까?': {
+      EN: 'Your input will be lost. Continue?',
+      JP: '入力内容が失われます。続行しますか？',
+      CH: '输入内容将丢失，继续吗？',
+      TH: 'ข้อมูลที่กรอกจะหาย ดำเนินการต่อหรือไม่?'
+    },
+    '이 연동 정보를 수정하시겠습니까?': {
+      EN: 'Edit this integration?',
+      JP: 'この連携情報を修正しますか？',
+      CH: '修改该对接信息吗？',
+      TH: 'แก้ไขการเชื่อมนี้หรือไม่?'
+    },
+    '입력란이 활성화됩니다. 계속하시겠습니까?': {
+      EN: 'The field will be enabled. Continue?',
+      JP: '入力欄が有効になります。続行しますか？',
+      CH: '输入框将被启用，继续吗？',
+      TH: 'ช่องกรอกจะเปิดใช้ ดำเนินการต่อหรือไม่?'
+    },
+    '추가를 취소하시겠습니까?': {
+      EN: 'Cancel adding?',
+      JP: '追加をキャンセルしますか？',
+      CH: '取消添加吗？',
+      TH: 'ยกเลิกการเพิ่มหรือไม่?'
+    },
+    '입력 내용이 버려집니다. 계속하시겠습니까?': {
+      EN: 'Your input will be discarded. Continue?',
+      JP: '入力内容が破棄されます。続行しますか？',
+      CH: '输入内容将被丢弃，继续吗？',
+      TH: 'ข้อมูลที่กรอกจะทิ้ง ดำเนินการต่อหรือไม่?'
+    },
+    '수정을 취소하시겠습니까?': {
+      EN: 'Cancel editing?',
+      JP: '編集をキャンセルしますか？',
+      CH: '取消编辑吗？',
+      TH: 'ยกเลิกการแก้ไขหรือไม่?'
+    },
+    '저장되지 않은 변경이 사라집니다. 계속하시겠습니까?': {
+      EN: 'Unsaved changes will be lost. Continue?',
+      JP: '保存していない変更が失われます。続行しますか？',
+      CH: '未保存的更改将丢失，继续吗？',
+      TH: 'การเปลี่ยนแปลงที่ยังไม่บันทึกจะหาย ดำเนินการต่อหรือไม่?'
+    },
+    '이 결제대행사 연동을 저장하시겠습니까?': {
+      EN: 'Save this payment processor integration?',
+      JP: 'この決済代行連携を保存しますか？',
+      CH: '保存该支付机构对接吗？',
+      TH: 'บันทึกการเชื่อม PG นี้หรือไม่?'
+    },
+    '저장을 진행합니다. 계속하시겠습니까?': {
+      EN: 'Proceeding to save. Continue?',
+      JP: '保存を進めます。続行しますか？',
+      CH: '将进行保存，继续吗？',
+      TH: 'จะบันทึก ดำเนินการต่อหรือไม่?'
     },
     '삭제되었습니다.': {
       EN: 'Deleted.',
@@ -19108,16 +19204,16 @@
       TH: 'บัญชีร้านค้า: 이 การตั้งค่า을 변경할 수 없습니다.'
     },
     '가맹점 정보에서 결제 후속조치 사용이 꺼져 있습니다.': {
-      EN: 'merchant information에서 결제 후속조치 사용이 꺼져 있습니다.',
-      JP: '加盟店 情報에서 결제 후속조치 사용이 꺼져 있습니다.',
-      CH: '加盟店 信息에서 결제 후속조치 사용이 꺼져 있습니다.',
-      TH: 'ร้านค้า ข้อมูล에서 결제 후속조치 사용이 꺼져 있습니다.'
+      EN: 'Post-payment follow-up is disabled in merchant information.',
+      JP: '加盟店情報で決済後フォローがオフになっています。',
+      CH: '商户信息中已关闭支付后续处理。',
+      TH: 'ปิดการดำเนินการต่อหลังชำระในข้อมูลร้านค้าแล้ว'
     },
     '가맹점 정보에서 해당 후속조치가 허용되지 않습니다.': {
-      EN: 'merchant information에서 해당 후속조치가 허용되지 않습니다.',
-      JP: '加盟店 情報에서 해당 후속조치가 허용되지 않습니다.',
-      CH: '加盟店 信息에서 해당 후속조치가 허용되지 않습니다.',
-      TH: 'ร้านค้า ข้อมูล에서 해당 후속조치가 허용되지 않습니다.'
+      EN: 'This follow-up action is not allowed in merchant information.',
+      JP: '加盟店情報で当該後続対応は許可されていません。',
+      CH: '商户信息中不允许该后续处理。',
+      TH: 'ไม่อนุญาตการดำเนินการต่อนี้ในข้อมูลร้านค้า'
     },
     '가맹점 조직 정보가 없습니다.': {
       EN: 'merchant organization information가 없습니다.',
@@ -21980,13 +22076,8 @@
     return 'en-CA';
   }
 
-  /** type=time 네이티브 픽커의 오전/오후·표기를 UI 로케에 맞춤(브라우저/OS에 따라 다름). */
+  /** type=time 네이티브 픽커 — 모든 UI 로케일에서 AM/PM(en-US)로 통일. */
   function timeInputBcp47() {
-    var loc = getLocale();
-    if (loc === 'JP') return 'ja-JP';
-    if (loc === 'KO') return 'ko-KR';
-    if (loc === 'CH') return 'zh-CN';
-    if (loc === 'TH') return 'th-TH';
     return 'en-US';
   }
 
@@ -22004,6 +22095,145 @@
         el.setAttribute('lang', bcpTime);
       });
     } catch (eTm) {}
+    try { initTimeSelects(root); } catch (eTs) {}
+  }
+
+  /**
+   * 시간 입력 위젯(HTML): 네이티브 type=time 대신 시(24h)·분(10분 단위) 드롭다운 2개.
+   * - 숨김 input[name]이 "HH:MM" 값을 보관(폼 채우기/직렬화 호환).
+   * - 오전/오후(브라우저 로케일) 노출 없음.
+   */
+  function buildTimeSelectHtml(name, opts) {
+    opts = opts || {};
+    function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+    var cls = 'pg-time-select';
+    if (opts.inline) cls += ' pg-time-select-inline';
+    if (opts.wrapClass) cls += ' ' + String(opts.wrapClass);
+    var disAttr = opts.readonly ? ' disabled' : '';
+    var id = (opts.id != null) ? opts.id : name;
+    var nameAttr = name ? (' name="' + esc(name) + '"') : '';
+    var idAttr = id ? (' id="' + esc(id) + '"') : '';
+    var dfAttr = opts.dataField ? (' data-field="' + esc(opts.dataField) + '"') : '';
+    var titleAttr = '';
+    if (opts.titleKey) {
+      titleAttr = ' data-pg-ui-title="' + esc(opts.titleKey) + '" title="' + esc(t(opts.titleKey)) + '"';
+    }
+    var hhOpts = '<option value="">Hour</option>';
+    var h;
+    for (h = 0; h < 24; h++) {
+      var hv = ('0' + h).slice(-2);
+      hhOpts += '<option value="' + hv + '">' + hv + '</option>';
+    }
+    var mmOpts = '<option value="">Min</option>';
+    var m;
+    for (m = 0; m < 60; m += 10) {
+      var mv = ('0' + m).slice(-2);
+      mmOpts += '<option value="' + mv + '">' + mv + '</option>';
+    }
+    return '<div class="' + cls + '" data-pg-time-widget="1"' + titleAttr + '>' +
+      '<input type="hidden"' + nameAttr + idAttr + dfAttr + ' class="pg-time-hidden">' +
+      '<select class="form-control form-control-sm pg-time-hh" aria-label="Hour"' + disAttr + '>' + hhOpts + '</select>' +
+      '<span class="pg-time-sep">:</span>' +
+      '<select class="form-control form-control-sm pg-time-mm" aria-label="Min"' + disAttr + '>' + mmOpts + '</select>' +
+      '</div>';
+  }
+
+  var _pgTimeValDesc = (typeof HTMLInputElement !== 'undefined')
+    ? Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value') : null;
+  var _pgTimeDisDesc = (typeof HTMLInputElement !== 'undefined')
+    ? Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'disabled') : null;
+
+  function _pgTimeNativeGet(el) {
+    return _pgTimeValDesc ? String(_pgTimeValDesc.get.call(el) || '') : String(el.getAttribute('value') || '');
+  }
+
+  /** 시간 위젯 초기화: 채우기/직렬화/disabled/d-none 토글이 네이티브 input과 동일하게 동작하도록 래핑(멱등). */
+  function initTimeSelects(root) {
+    if (!root || typeof root.querySelectorAll !== 'function') return;
+    var widgets = [];
+    if (root.getAttribute && root.getAttribute('data-pg-time-widget')) widgets.push(root);
+    root.querySelectorAll('[data-pg-time-widget]').forEach(function (w) { widgets.push(w); });
+    widgets.forEach(function (w) {
+      var hidden = w.querySelector('.pg-time-hidden');
+      var hh = w.querySelector('.pg-time-hh');
+      var mm = w.querySelector('.pg-time-mm');
+      if (!hidden || !hh || !mm) return;
+
+      function ensureOpt(sel, val) {
+        if (!val) return;
+        var i;
+        for (i = 0; i < sel.options.length; i++) { if (sel.options[i].value === val) return; }
+        var o = document.createElement('option');
+        o.value = val; o.textContent = val;
+        sel.appendChild(o);
+      }
+      function syncFromHidden() {
+        var v = String(_pgTimeNativeGet(hidden) || '').trim();
+        var mt = v.match(/^(\d{1,2}):(\d{1,2})/);
+        if (mt) {
+          var H = ('0' + mt[1]).slice(-2);
+          var M = ('0' + mt[2]).slice(-2);
+          ensureOpt(hh, H); ensureOpt(mm, M);
+          hh.value = H; mm.value = M;
+        } else {
+          hh.value = ''; mm.value = '';
+        }
+      }
+
+      if (!w._pgTimeInit) {
+        w._pgTimeInit = true;
+        var writeHidden = function () {
+          var H = hh.value, M = mm.value;
+          var nv = (H !== '' && M !== '') ? (H + ':' + M) : '';
+          if (_pgTimeValDesc) _pgTimeValDesc.set.call(hidden, nv);
+          else hidden.setAttribute('value', nv);
+          try { hidden.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
+        };
+        hh.addEventListener('change', writeHidden);
+        mm.addEventListener('change', writeHidden);
+
+        if (_pgTimeValDesc && _pgTimeValDesc.configurable) {
+          Object.defineProperty(hidden, 'value', {
+            configurable: true,
+            get: function () { return _pgTimeValDesc.get.call(this); },
+            set: function (val) {
+              _pgTimeValDesc.set.call(this, val == null ? '' : String(val));
+              syncFromHidden();
+            }
+          });
+        }
+        if (_pgTimeDisDesc && _pgTimeDisDesc.configurable) {
+          Object.defineProperty(hidden, 'disabled', {
+            configurable: true,
+            get: function () { return _pgTimeDisDesc.get.call(this); },
+            set: function (val) {
+              _pgTimeDisDesc.set.call(this, val);
+              hh.disabled = !!val; mm.disabled = !!val;
+            }
+          });
+        }
+        try {
+          var mo = new MutationObserver(function () {
+            var hide = hidden.classList.contains('d-none');
+            hh.classList.toggle('d-none', hide);
+            mm.classList.toggle('d-none', hide);
+            var sep = w.querySelector('.pg-time-sep');
+            if (sep) sep.classList.toggle('d-none', hide);
+          });
+          mo.observe(hidden, { attributes: true, attributeFilter: ['class'] });
+        } catch (eMo) {}
+      }
+
+      syncFromHidden();
+      var dis = _pgTimeDisDesc ? !!_pgTimeDisDesc.get.call(hidden) : !!hidden.disabled;
+      if (!dis && (hh.hasAttribute('disabled') || mm.hasAttribute('disabled'))) dis = true;
+      hh.disabled = dis; mm.disabled = dis;
+      var hideNow = hidden.classList.contains('d-none');
+      hh.classList.toggle('d-none', hideNow);
+      mm.classList.toggle('d-none', hideNow);
+      var sep0 = w.querySelector('.pg-time-sep');
+      if (sep0) sep0.classList.toggle('d-none', hideNow);
+    });
   }
 
   function pickRow(row, loc) {
@@ -22177,6 +22407,9 @@
     applyDom: applyDom,
     initLoginPageI18n: initLoginPageI18n,
     dateInputBcp47: dateInputBcp47,
+    timeInputBcp47: timeInputBcp47,
+    buildTimeSelectHtml: buildTimeSelectHtml,
+    initTimeSelects: initTimeSelects,
     syncDateInputLangUnder: syncDateInputLangUnder,
     ensureAutoLocaleOnce: ensureAutoLocaleOnce,
     ensureNavigatorLocaleIfNotUserSet: ensureNavigatorLocaleIfNotUserSet

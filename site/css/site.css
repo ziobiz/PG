@@ -506,6 +506,33 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   min-width: 0;
   max-width: none;
 }
+/* 시간 선택 위젯: 네이티브 type=time 대신 시(24h)·분(10분) 드롭다운 2개 */
+.pg-time-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+.pg-time-select .pg-time-hh,
+.pg-time-select .pg-time-mm {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+  text-align: center;
+}
+.pg-time-select .pg-time-sep {
+  flex: 0 0 auto;
+  color: var(--bs-secondary-color, #6c757d);
+}
+.pg-time-select.pg-time-select-inline {
+  width: auto;
+}
+.pg-time-select.pg-time-select-inline .pg-time-hh,
+.pg-time-select.pg-time-select-inline .pg-time-mm {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 4.5rem;
+}
 /* 겹침 방지: 시간 필드 블록 자체를 넓혀 간격 유지 */
 .comp-reg-form .form-field-block.settle-time-wide-block {
   flex: 0 0 16.6667%;

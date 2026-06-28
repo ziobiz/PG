@@ -1307,9 +1307,9 @@
       '<td class="text-center"><select name="autoVoidYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
       '<td class="hq-pay-follow-void-times"><div class="d-flex flex-wrap align-items-center gap-1 gap-md-2">' +
       pgUiSpanT('시작', 'text-nowrap small') +
-      '<input type="time" step="60" name="autoVoidStartTime" class="' + timeInputCls + '" data-pg-ui-title="비우면 0:00 (당일 자정)" title="' + escA(L('비우면 0:00 (당일 자정)')) + '" />' +
+      window.PG_UI_I18N.buildTimeSelectHtml('autoVoidStartTime', { inline: true, titleKey: '비우면 0:00 (당일 자정)' }) +
       pgUiSpanT('~ 마감', 'text-nowrap small') +
-      '<input type="time" step="60" name="autoVoidEndTime" class="' + timeInputCls + '" data-pg-ui-title="비우면 21:00 — 태국·기준 Zone 당일 (JP 동일 시각 +2h → 23:00)" title="' + escA(L('비우면 21:00 — 태국·기준 Zone 당일 (JP 동일 시각 +2h → 23:00)')) + '" />' +
+      window.PG_UI_I18N.buildTimeSelectHtml('autoVoidEndTime', { inline: true, titleKey: '비우면 21:00 — 태국·기준 Zone 당일 (JP 동일 시각 +2h → 23:00)' }) +
       '</div></td>' +
       '<td class="text-center"><select name="autoVoidReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td></tr>' +
       '<tr>' +
@@ -1318,9 +1318,9 @@
       '<td class="text-center"><select name="emailVoidYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
       '<td class="hq-pay-follow-void-times"><div class="d-flex flex-wrap align-items-center gap-1 gap-md-2">' +
       pgUiSpanT('시작', 'text-nowrap small') +
-      '<input type="time" step="60" name="emailVoidStartTime" class="' + timeInputCls + '" />' +
+      window.PG_UI_I18N.buildTimeSelectHtml('emailVoidStartTime', { inline: true }) +
       pgUiSpanT('~ 마감', 'text-nowrap small') +
-      '<input type="time" step="60" name="emailVoidEndTime" class="' + timeInputCls + '" data-pg-ui-title="비우면 23:59" title="' + escA(L('비우면 23:59')) + '" />' +
+      window.PG_UI_I18N.buildTimeSelectHtml('emailVoidEndTime', { inline: true, titleKey: '비우면 23:59' }) +
       '</div><div class="small text-muted mt-1" data-pg-ui-html="' + escUi(emailVoidHintKey) + '">' + L(emailVoidHintKey) + '</div></td>' +
       '<td class="text-center"><select name="emailVoidReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td></tr>' +
       '<tr>' +
@@ -1329,7 +1329,7 @@
       '<td class="text-center"><select name="autoRefundYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
       '<td><div class="d-flex flex-wrap align-items-center gap-2">' +
       pgUiSpanT('익일 시작', 'text-nowrap small') +
-      '<input type="time" step="60" name="autoRefundWindowStartTime" class="' + timeInputCls + '" data-pg-ui-title="비우면 0:00" title="' + escA(L('비우면 0:00')) + '" />' +
+      window.PG_UI_I18N.buildTimeSelectHtml('autoRefundWindowStartTime', { inline: true, titleKey: '비우면 0:00' }) +
       '<select name="autoRefundAfterDays" class="form-select form-select-sm hq-pay-follow-sel-days">' + days + '</select></div></td>' +
       '<td class="text-center"><select name="autoRefundReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td></tr>' +
       '<tr>' +
@@ -4963,11 +4963,14 @@
       ],
       noticeList: [
         '통합조회(JPAY Export 캐시)와 동일 필터로, 거래일(trnDate) 구간을 일 단위로 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 전체 건 기준입니다. 일자 행을 더블클릭하면 아래 「선택 일자 상세」에 해당 일 통합조회 전체·금액 요약이 표시됩니다.',
-        '조회 기간은 최대 93일입니다. 당월 등으로 종료일이 오늘 이후이면 표시는 전산 기준일(오늘)까지만 합니다(미래 일자 미표시). 통합조회 화면에서 [JPAY 동기화]로 캐시를 갱신한 뒤 조회하세요.'
+        '조회 기간은 최대 93일입니다. 당월 등으로 종료일이 오늘 이후이면 표시는 전산 기준일(오늘)까지만 합니다(미래 일자 미표시). 본 화면 [JPAY 동기화]·[전체 재동기화] 또는 통합조회와 동일한 DB 캐시·스케줄로 갱신한 뒤 [검색]하세요.',
+        '상단 「최근동기화」 시각·당일 횟수는 통합조회·통합체크와 동일합니다. 스케줄 또는 [JPAY 동기화] 완료 후 이 화면이 열려 있으면 자동으로 다시 조회됩니다.'
       ],
       summary: ['건수'],
       showJpaySyncInfo: true,
       buttons: [
+        { id: 'jpayTrSyncBtn', label: 'JPAY 동기화', cls: 'btn-primary' },
+        { id: 'jpayTrFullResyncBtn', label: '전체 재동기화', cls: 'btn-outline-primary' },
         { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
         { id: 'excelDownBtn', label: '엑셀다운로드', cls: 'btn-info' },
         { id: 'searchBtn', label: '검색', cls: 'btn-primary' }
@@ -6725,7 +6728,9 @@
       noticeList: [
         '총본사·본사(REGIONAL)·총판(MASTER_DIST) 또는 ADMIN만 이용합니다. 조회 범위는 로그인 조직 하위 가맹 거래입니다.',
         '결제대행사(PG) 계약 수수료를 건별로 표시합니다. 본사설정 「대행수수료설정」(PG코드=거래 van) 기준이며, 정산관리 수수료내역과 유사한 구조입니다. 가맹 수수료·가맹 정산(settled_yn)과 별개입니다.',
-        '맨 오른쪽 「PG정산유무」는 대행수수료설정의 T/H/D·N·일괄시각으로 산출한 PG 계약 정산 도래 여부(Y=도래, N=미도래)입니다. 정책 없음·van 없음은 빈 칸입니다.'
+        '맨 오른쪽 「PG정산유무」는 대행수수료설정의 T/H/D·N·일괄시각으로 산출한 PG 계약 정산 도래 여부(Y=도래, N=미도래)입니다. 정책 없음·van 없음은 빈 칸입니다.',
+        'JPAY 포털 Export 캐시(tb_jpay_portal_export_cache)는 통합조회·일별조회와 동일합니다. JPAY 건 검수·대조 전 본 화면 [JPAY 동기화]·[전체 재동기화]로 캐시를 갱신할 수 있습니다. 전산설정 JPAY 통합조회 스케줄로 자동 동기화됩니다.',
+        '상단 「최근동기화」 시각·당일 횟수는 통합조회와 동일합니다. 스케줄 또는 [JPAY 동기화] 완료 후 이 화면이 열려 있으면 자동으로 다시 조회됩니다.'
       ],
       searchRows: [
         [
@@ -6762,7 +6767,10 @@
         ]
       ],
       summary: ['건수'],
+      showJpaySyncInfo: true,
       buttons: [
+        { id: 'jpayTrSyncBtn', label: 'JPAY 동기화', cls: 'btn-primary' },
+        { id: 'jpayTrFullResyncBtn', label: '전체 재동기화', cls: 'btn-outline-primary' },
         { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
         { id: 'searchBtn', label: '검색', cls: 'btn-primary' }
       ],
@@ -7643,8 +7651,11 @@
       var isWithdrawLimitTime = (name === 'withdrawRestrictStartTime' || name === 'withdrawRestrictEndTime' || name === 'withdrawStartTime' || name === 'withdrawEndTime');
       isWideTime = (isSettlementTime || isWithdrawLimitTime);
       var wideTime = isWideTime ? ' settle-time-wide' : '';
-      var tmPh = f.placeholder ? (' placeholder="' + escUi(L(String(f.placeholder))) + '" data-pg-ui-placeholder="' + escUi(String(f.placeholder)) + '"') : '';
-      inp = '<input type="time" class="form-control form-control-sm' + reqClass + wideTime + '" name="' + name + '" id="' + id + '"' + tmPh + '>';
+      if (window.PG_UI_I18N && typeof window.PG_UI_I18N.buildTimeSelectHtml === 'function') {
+        inp = window.PG_UI_I18N.buildTimeSelectHtml(name, { id: id, wrapClass: ('pg-time-select-field' + wideTime), readonly: (readonlyAttr || f.readonly) });
+      } else {
+        inp = '<input type="time" lang="en-US" class="form-control form-control-sm' + reqClass + wideTime + '" name="' + name + '" id="' + id + '"' + ro + '>';
+      }
     } else if (f.type === 'select') {
       var opts = (f.options || []).map(function (o) {
         var ok = String(o.t != null ? o.t : o.v || '');
