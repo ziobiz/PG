@@ -23,7 +23,7 @@ import java.util.Optional;
 
 /**
  * PG 무관 통합 가맹 REDIRECT checkout API.
- * buyer(email·phone·countryIso2) 필수, returnUrl(HTTPS) 필수 — 운영 WEB PG에 따라 ChillPay/JPAY 결제창으로 자동 분기.
+ * buyer(email·phone·countryIso2) 필수, returnUrl/cancelUrl body 금지 — 운영 WEB PG에 따라 ChillPay/JPAY 결제창으로 자동 분기.
  */
 @RestController
 @RequestMapping("/api/middleware/v1/merchant/checkout/redirect")

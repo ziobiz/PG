@@ -199,6 +199,10 @@ public class MerchantProfile {
     @Column(name = "url_pay_lang_menu_use_yn", nullable = false, length = 1)
     private String urlPayLangMenuUseYn = "Y";
 
+    /** URL·JPAY 공개 결제창 배송 주소 입력 — Y=표시·필수(FULL·1형), N=미표시(기본) */
+    @Column(name = "url_pay_shipping_address_use_yn", nullable = false, length = 1)
+    private String urlPayShippingAddressUseYn = "N";
+
     /** URL 공개 결제창 입력방식 — {@link com.pg.urlpay.UrlPayInputModeUtil} */
     @Column(name = "url_pay_input_mode", nullable = false, length = 16)
     private String urlPayInputMode = "GENERAL";
@@ -224,6 +228,10 @@ public class MerchantProfile {
     /** WordPress/WooCommerce 플러그인 연동 — 본사 apiWordpressPluginEnabledYn 과 함께 */
     @Column(name = "api_wordpress_use_yn", nullable = false, length = 1)
     private String apiWordpressUseYn = "N";
+
+    /** 모바일·embed 결제창 오버라이드 — NULL=본사 mobileCheckoutModeDefault */
+    @Column(name = "mobile_checkout_mode", length = 32)
+    private String mobileCheckoutMode;
 
     /**
      * JPAY URL 결제창(jpay-pay.html) 입력 필드 가맹 오버라이드 —
@@ -617,9 +625,15 @@ public class MerchantProfile {
         this.urlPayLangMenuUseYn = urlPayLangMenuUseYn != null && "Y".equalsIgnoreCase(urlPayLangMenuUseYn.trim()) ? "Y" : "N";
     }
 
+    public String getUrlPayShippingAddressUseYn() { return urlPayShippingAddressUseYn; }
+    public void setUrlPayShippingAddressUseYn(String urlPayShippingAddressUseYn) {
+        this.urlPayShippingAddressUseYn = urlPayShippingAddressUseYn != null
+                && "Y".equalsIgnoreCase(urlPayShippingAddressUseYn.trim()) ? "Y" : "N";
+    }
+
     public String getUrlPayInputMode() { return urlPayInputMode; }
     public void setUrlPayInputMode(String urlPayInputMode) {
-        this.urlPayInputMode = com.pg.urlpay.UrlPayInputModeUtil.normalize(urlPayInputMode);
+        this.urlPayInputMode = com.pg.urlpay.UrlPayInputModeUtil.normalizeMerchantStored(urlPayInputMode);
     }
 
     public String getApiUrlPayCheckoutMode() { return apiUrlPayCheckoutMode; }
@@ -644,6 +658,15 @@ public class MerchantProfile {
     public String getApiWordpressUseYn() { return apiWordpressUseYn; }
     public void setApiWordpressUseYn(String apiWordpressUseYn) {
         this.apiWordpressUseYn = apiWordpressUseYn != null && "Y".equalsIgnoreCase(apiWordpressUseYn.trim()) ? "Y" : "N";
+    }
+
+    public String getMobileCheckoutMode() { return mobileCheckoutMode; }
+    public void setMobileCheckoutMode(String mobileCheckoutMode) {
+        if (mobileCheckoutMode == null || mobileCheckoutMode.isBlank()) {
+            this.mobileCheckoutMode = null;
+            return;
+        }
+        this.mobileCheckoutMode = com.pg.urlpay.MobileCheckoutModeUtil.normalizeMerchantOverride(mobileCheckoutMode);
     }
 
     public String getJpayCheckoutFieldMode() { return jpayCheckoutFieldMode; }

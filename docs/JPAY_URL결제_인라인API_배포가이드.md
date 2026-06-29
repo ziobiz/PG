@@ -326,8 +326,10 @@ iframe → 가맹 부모 페이지. **origin 검증 필수** (`publicApiBaseUrl`
 
 | detail.phase | 의미 |
 |--------------|------|
-| `wait_authorize` | 3DS·리다이렉트 대기 |
+| `wait_authorize` | 3DS·리다이렉트 대기 — `detail.paymentUrl` 로 **부모 창(top)** 이동 필요 (iframe 내 3DS 금지) |
 | `finished` | 최종 결과 (`success` true/false) |
+
+**모바일 3DS (2026-06):** ICOPAY `icopay-checkout-3ds.js` 가 embed·결제창에서 3DS 시 top breakout·대기 UX를 처리합니다. 본사 **결제로직설정 → 모바일 결제창 기본값** · 가맹 **모바일 결제창** 으로 `MOBILE_REDIRECT`(스마트폰 payUrl) 설정 가능. 기본 `EMBED` 는 기존 iframe 동작 + 3DS만 상위 창 이동(하위 호환).
 
 ChillPay 인라인과 **동일 이벤트명**을 사용합니다. `icopay-checkout.js` 로 수신할 수 있습니다.
 

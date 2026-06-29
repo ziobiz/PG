@@ -3,11 +3,16 @@
 
   var cfg = window.icopayWcCheckout || {};
   var statusEl = document.getElementById('icopay-wc-status');
+  var C3 = window.IcopayCheckout3ds;
 
-  function showStatus(msg, isError) {
+  function msg(key, fallback) {
+    return (cfg.messages && cfg.messages[key]) ? cfg.messages[key] : fallback;
+  }
+
+  function showStatus(text, isError) {
     if (!statusEl) return;
     statusEl.hidden = false;
-    statusEl.textContent = msg || '';
+    statusEl.textContent = text || '';
     statusEl.className = 'icopay-wc-status' + (isError ? ' icopay-wc-status--error' : ' icopay-wc-status--info');
   }
 
@@ -58,20 +63,32 @@
     var phase = detail.phase || '';
 
     if (phase === 'wait_authorize') {
-      showStatus(cfg.messages && cfg.messages.processing ? cfg.messages.processing : 'Processing…', false);
+      var payUrl = detail.paymentUrl || detail.redirectUrl;
+      showStatus(msg('wait3ds', msg('processing', 'Processing…')), false);
+      if (payUrl) {
+        if (C3 && C3.navigateToPaymentUrl) {
+          C3.navigateToPaymentUrl(payUrl, { embed: true, waitMessage: msg('wait3ds', '') });
+        } else {
+          try {
+            (window.top || window).location.href = payUrl;
+          } catch (eTop) {
+            window.location.href = payUrl;
+          }
+        }
+      }
       return;
     }
 
     if (phase === 'finished') {
       if (detail.success) {
-        showStatus(cfg.messages && cfg.messages.processing ? cfg.messages.processing : 'Confirming…', false);
+        showStatus(msg('processing', 'Confirming…'), false);
         pollPaid(function (ok) {
           if (!ok && cfg.returnUrl) {
             window.location.href = cfg.returnUrl;
           }
         });
       } else {
-        showStatus(cfg.messages && cfg.messages.failed ? cfg.messages.failed : 'Payment failed.', true);
+        showStatus(msg('failed', 'Payment failed.'), true);
       }
     }
   }, false);

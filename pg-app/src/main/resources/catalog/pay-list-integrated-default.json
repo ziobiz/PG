@@ -1,16 +1,17 @@
 {
   "catalogId": "cat_pay_integrated_default",
   "displayTitle": "결제내역(기본)",
-  "viewSettingFixedKeys": ["rowNo", "compId", "compNm", "compDivNm", "trnDate", "trnTime", "routeNo"],
+  "viewSettingFixedKeys": ["rowNo", "compId", "compNm", "compDivNm", "trnDate", "trnTime"],
+  "viewSettingHiddenKeys": [
+    "chillFeeAmt", "feeCnt", "feeRate",
+    "cardAprvNo", "displayPayCur", "displayPayAmt", "customerNm", "corpNm", "payAprv", "pgApproveAmt"
+  ],
   "headerGroups": [
     { "label": "사업자번호", "keys": ["compRegNo"] },
-    { "label": "PG승인", "keys": ["pgApproveAmt", "payAprv"] },
+    { "label": "PG승인", "keys": ["pgApproveNo"] },
     { "label": "보류", "keys": ["holdAmt", "holdDttm"] },
-    { "label": "수수료", "keys": ["feeCnt", "feeRate"] },
     { "label": "고객표시", "keys": ["payCustomerIndicator"] },
-    { "label": "입력통화", "keys": ["displayPaySummary"] },
-    { "label": "고객통화", "keys": ["displayPayCur"] },
-    { "label": "고객금액", "keys": ["displayPayAmt"] }
+    { "label": "입력통화", "keys": ["displayPaySummary"] }
   ],
   "columns": [
     { "key": "_chk", "label": "선택", "visible": true, "order": 0 },

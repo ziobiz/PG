@@ -99,16 +99,9 @@ public class MerchantJpayRedirectCheckoutService {
             return fail(redirectDeny.get(), MerchantApiIntegrationChannelService.CODE_INTEGRATION_CHANNEL_DISABLED);
         }
 
-        String returnUrl = str(body != null ? body.get("returnUrl") : null);
-        if (returnUrl.isBlank()) {
-            return fail("returnUrl(HTTPS)이 필요합니다.", "INVALID_RETURN_URL");
-        }
-        if (!isHttpsUrl(returnUrl)) {
-            return fail("returnUrl은 HTTPS URL이어야 합니다.", "INVALID_RETURN_URL");
-        }
-        String cancelUrl = str(body != null ? body.get("cancelUrl") : null);
-        if (!cancelUrl.isBlank() && !isHttpsUrl(cancelUrl)) {
-            return fail("cancelUrl은 HTTPS URL이어야 합니다.", "INVALID_CANCEL_URL");
+        Optional<Map<String, Object>> returnUrlReject = MerchantRedirectCheckoutPrepareUtil.rejectMerchantReturnUrlsInBody(body);
+        if (returnUrlReject.isPresent()) {
+            return returnUrlReject.get();
         }
 
         String orderNo = normalizeOrderNo(str(body.get("orderNo")));
@@ -156,17 +149,13 @@ public class MerchantJpayRedirectCheckoutService {
 
         String base = trimSlash(productService.resolvePublicCustomerSiteBase(request));
         String payPath = buildJpayPayPath(ou.getCode(), sessionToken, orderNo, amountPlain, currency, productName,
-                langCode, returnUrl, cancelUrl);
+                langCode);
         String payUrl = base.isEmpty() ? payPath : base + payPath;
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.putAll(session.toPublicMap());
         data.put("sessionToken", sessionToken);
         data.put("payUrl", payUrl);
-        data.put("returnUrl", returnUrl);
-        if (!cancelUrl.isBlank()) {
-            data.put("cancelUrl", cancelUrl);
-        }
         data.put("redirectCheckoutPrepareUrl",
                 trimSlash(productService.resolvePublicCustomerSiteBase(request))
                         + "/api/middleware/v1/merchant/jpay/redirect-checkout/prepare");
@@ -175,9 +164,10 @@ public class MerchantJpayRedirectCheckoutService {
         if (langCode != null && !langCode.isBlank()) {
             data.put("langCode", langCode);
         }
-        data.put("redirectUsageHint",
-                "가맹점 서버에서 prepare 호출 후 payUrl로 브라우저를 리다이렉트하세요. "
-                        + "결제 완료·취소 시 returnUrl·cancelUrl로 복귀합니다.");
+        data.put("redirectUsageHint", MerchantRedirectCheckoutPrepareUtil.redirectUsageHintKo());
+        data.put("browserReturnNote",
+                "브라우저 복귀 URL은 prepare body에 넣지 않습니다. NOTI Result → 가맹 Result(브라우저), "
+                        + "서버 Callback은 NOTI → 가맹 webhook.");
 
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("success", true);
@@ -202,8 +192,7 @@ public class MerchantJpayRedirectCheckoutService {
     }
 
     private static String buildJpayPayPath(String compCode, String sessionToken, String orderNo,
-                                           String amountPlain, String currency, String productName, String langCode,
-                                           String returnUrl, String cancelUrl) {
+                                           String amountPlain, String currency, String productName, String langCode) {
         StringBuilder q = new StringBuilder();
         q.append("/jpay-pay/").append(urlEnc(compCode));
         q.append("?entry=merchant_api");
@@ -217,19 +206,7 @@ public class MerchantJpayRedirectCheckoutService {
         if (langCode != null && !langCode.isBlank()) {
             q.append("&lang=").append(urlEnc(langCode));
         }
-        q.append("&returnUrl=").append(urlEnc(returnUrl));
-        if (cancelUrl != null && !cancelUrl.isBlank()) {
-            q.append("&cancelUrl=").append(urlEnc(cancelUrl));
-        }
         return q.toString();
-    }
-
-    private static boolean isHttpsUrl(String url) {
-        if (url == null) {
-            return false;
-        }
-        String t = url.trim();
-        return t.regionMatches(true, 0, "https://", 0, 8) && t.length() > 8;
     }
 
     private static String normalizeOrderNo(String raw) {

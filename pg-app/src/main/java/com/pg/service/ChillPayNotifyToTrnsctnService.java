@@ -23,6 +23,7 @@ import com.pg.util.NotifyTxnPaidAtUtil;
 import com.pg.util.NotifyToTxnStatusMerge;
 import com.pg.util.PaidApprovalEvidenceGuard;
 import com.pg.util.PgNotifyInternalStatusMapper;
+import com.pg.util.PgTrnsctnOrderLookup;
 import com.pg.util.TxnOutcomeReasonApplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,6 +82,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
     private final NotifyIdempotencyLock notifyIdempotencyLock;
     private final SplitPayPaymentHookService splitPayPaymentHookService;
     private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
+    private final PgTrnsctnOrderDedupeService pgTrnsctnOrderDedupeService;
 
     public ChillPayNotifyToTrnsctnService(PgTrnsctnRepository pgTrnsctnRepository,
                                          MerchantPgBindingRepository merchantPgBindingRepository,
@@ -93,7 +95,8 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
                                          MerchantChatbotOrderService merchantChatbotOrderService,
                                          NotifyIdempotencyLock notifyIdempotencyLock,
                                          SplitPayPaymentHookService splitPayPaymentHookService,
-                                         OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator) {
+                                         OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator,
+                                         PgTrnsctnOrderDedupeService pgTrnsctnOrderDedupeService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
         this.orgUnitRepository = orgUnitRepository;
@@ -106,6 +109,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         this.notifyIdempotencyLock = notifyIdempotencyLock;
         this.splitPayPaymentHookService = splitPayPaymentHookService;
         this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
+        this.pgTrnsctnOrderDedupeService = pgTrnsctnOrderDedupeService;
     }
 
     @Override
@@ -185,6 +189,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
             if (mapped.isPresent()) {
                 pgTrnsctnRepository.save(mapped.get());
                 PgTrnsctn t = mapped.get();
+                purgeOrderDuplicates(t);
                 if (STATUS_PAID.equals(t.getStatus()) && t.getMerchantId() != null && !t.getMerchantId().isBlank()) {
                     try {
                         settlementCalcService.triggerRealtimeAutoSettlementIfDue(t.getMerchantId().trim(), t);
@@ -383,6 +388,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
                 : TxnOutcomeReasonApplier.applyFromChillPayJson(t, prevStatusSnap, mergedStatus, root);
 
         pgTrnsctnRepository.save(t);
+        purgeOrderDuplicates(t);
         outcomeReasonWarmCoordinator.onRecorded(recordedReason);
         try {
             settlementArrearsService.registerPostSettlementRecoveryIfDue(prevStatusSnap, prevSettledYnSnap, t);
@@ -710,28 +716,21 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         notifyIdempotencyLock.lock("CHILLPAY", key);
     }
 
+    private void purgeOrderDuplicates(PgTrnsctn t) {
+        if (t == null || t.getMerchantId() == null || t.getOrderNo() == null) {
+            return;
+        }
+        try {
+            pgTrnsctnOrderDedupeService.purgeGuestNotiDuplicatesIfCanonicalExists(
+                    t.getMerchantId(), t.getOrderNo());
+        } catch (Exception ex) {
+            log.warn("중복 NOTI·guest 정리 실패 trnId={}: {}", t.getTrnId(), ex.getMessage());
+        }
+    }
+
     private Optional<PgTrnsctn> findExisting(String merchantId, String chillTxnId, String orderNo) {
-        if (chillTxnId != null && !chillTxnId.isBlank()) {
-            String tid = chillTxnId.trim();
-            Optional<PgTrnsctn> byChill = pgTrnsctnRepository.findFirstByChillTransactionIdAndMerchantId(tid, merchantId);
-            if (byChill.isPresent()) {
-                return byChill;
-            }
-            Optional<PgTrnsctn> byChillGlobal = pgTrnsctnRepository.findFirstByChillTransactionIdOrderByCreatedAtDesc(tid);
-            if (byChillGlobal.isPresent()) {
-                log.info("Chill TransactionId={} 기존 행을 merchant 무관으로 매칭 (노티 merchantId={}, DB merchantId={})",
-                        tid, merchantId, byChillGlobal.get().getMerchantId());
-                return byChillGlobal;
-            }
-        }
-        if (orderNo != null && !orderNo.isBlank()) {
-            String on = orderNo.trim();
-            Optional<PgTrnsctn> byNoti = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(merchantId, on, ORIGIN_NOTI);
-            Optional<PgTrnsctn> byUrl = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(merchantId, on, ORIGIN_URL);
-            Optional<PgTrnsctn> byApi = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(merchantId, on, ORIGIN_API);
-            return PaidApprovalEvidenceGuard.pickPreferredOrderRow(byNoti, byUrl, byApi);
-        }
-        return Optional.empty();
+        return PgTrnsctnOrderLookup.findByMerchantChillTxnOrOrder(
+                pgTrnsctnRepository, merchantId, chillTxnId, orderNo);
     }
 
     private static String newTrnId() {

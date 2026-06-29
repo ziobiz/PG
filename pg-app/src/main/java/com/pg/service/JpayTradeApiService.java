@@ -19,7 +19,6 @@ import com.pg.util.PgNotifyInternalStatusMapper;
 import com.pg.util.TxnOutcomeReasonApplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -58,21 +57,21 @@ public class JpayTradeApiService {
     private final OrgUnitRepository orgUnitRepository;
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
+    private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
     private final RestTemplate restTemplate = createRestTemplate();
-
-    @Value("${app.jpay.pendingReconcile.staleMinutes:30}")
-    private int staleMinutes;
 
     public JpayTradeApiService(MerchantPgBindingRepository merchantPgBindingRepository,
                                PgAgencyRepository pgAgencyRepository,
                                OrgUnitRepository orgUnitRepository,
                                PgTrnsctnRepository pgTrnsctnRepository,
-                               OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator) {
+                               OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator,
+                               HqLedgerSysSettingsService hqLedgerSysSettingsService) {
         this.merchantPgBindingRepository = merchantPgBindingRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
+        this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
     }
 
     public Map<String, Object> queryAndApplyToTxn(String trnId) {
@@ -99,8 +98,9 @@ public class JpayTradeApiService {
         String returnCode = body.path("returncode").asText("");
         String mapped = JpayTradeStatusMapper.mapTradeQueryPaymentStatus(tradeState);
         String oldStatus = nz(t.getStatus());
-        if (mapped == null && JpayReconcileStatusPolicy.mayApplyStaleUnpaidProvisional(
-                oldStatus, tradeState, t.getCreatedAt(), staleMinutes, ZoneId.of("Asia/Seoul"))) {
+        int autoCancelMin = hqLedgerSysSettingsService.resolveJpayPendingAutoCancelMin();
+        if (mapped == null && autoCancelMin > 0 && JpayReconcileStatusPolicy.mayApplyStaleUnpaidProvisional(
+                oldStatus, tradeState, t.getCreatedAt(), autoCancelMin, ZoneId.of("Asia/Seoul"))) {
             mapped = PgNotifyInternalStatusMapper.ST_CANCEL;
             if (tradeState.isBlank()) {
                 tradeState = "UNPAID";

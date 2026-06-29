@@ -2147,6 +2147,9 @@
     hqOrgViewColumnRegionalBranches: function () {
       return get('/api/hq/orgViewColumnAllowance/regionalBranches').then(function (r) { return r.data || []; });
     },
+    hqOrgViewColumnPageCatalog: function () {
+      return get('/api/hq/orgViewColumnAllowance/pageCatalog').then(function (r) { return r.data || []; });
+    },
     hqOrgViewColumnAllowanceList: function (regionalOrgCode) {
       return get('/api/hq/orgViewColumnAllowance/list', { regionalOrgCode: regionalOrgCode || '' }).then(function (r) { return r.data || []; });
     },

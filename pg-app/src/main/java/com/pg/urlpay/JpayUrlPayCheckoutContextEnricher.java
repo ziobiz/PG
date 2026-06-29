@@ -15,9 +15,12 @@ import java.util.Optional;
 public class JpayUrlPayCheckoutContextEnricher implements UrlPayCheckoutContextEnricher {
 
     private final HqApiConfigRepository hqApiConfigRepository;
+    private final UrlPayInputModeService urlPayInputModeService;
 
-    public JpayUrlPayCheckoutContextEnricher(HqApiConfigRepository hqApiConfigRepository) {
+    public JpayUrlPayCheckoutContextEnricher(HqApiConfigRepository hqApiConfigRepository,
+                                             UrlPayInputModeService urlPayInputModeService) {
         this.hqApiConfigRepository = hqApiConfigRepository;
+        this.urlPayInputModeService = urlPayInputModeService;
     }
 
     @Override
@@ -35,7 +38,9 @@ public class JpayUrlPayCheckoutContextEnricher implements UrlPayCheckoutContextE
         Optional<HqApiConfig> hqOpt = hqApiConfigRepository.findAll().stream().findFirst();
         String hqMode = hqOpt.map(HqApiConfig::getJpayCheckoutFieldMode).orElse(null);
         String merchantMode = profile.map(MerchantProfile::getJpayCheckoutFieldMode).orElse(null);
-        String inputMode = profile.map(MerchantProfile::getUrlPayInputMode).orElse(UrlPayInputModeUtil.GENERAL);
+        String inputMode = data.containsKey("urlPayInputModeEffective")
+                ? String.valueOf(data.get("urlPayInputModeEffective"))
+                : urlPayInputModeService.resolveEffective(orgUnitId, request);
         inputMode = UrlPayInputModeUtil.normalize(inputMode);
         String resolved = JpayCheckoutFieldModeUtil.resolve(merchantMode, hqMode);
         if (UrlPayInputModeUtil.isMinimalForm(inputMode)) {
@@ -55,4 +60,3 @@ public class JpayUrlPayCheckoutContextEnricher implements UrlPayCheckoutContextE
         data.put("integrationMode", "INLINE");
     }
 }
-

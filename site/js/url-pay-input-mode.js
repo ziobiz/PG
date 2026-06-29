@@ -10,6 +10,8 @@
 
 
 
+  var FOLLOW_HQ = 'FOLLOW_HQ';
+
   var GENERAL = 'GENERAL';
 
   var TYPE_AA = 'TYPE_AA';
@@ -37,7 +39,7 @@
 
 
   var ALL_MODES = [
-
+    FOLLOW_HQ,
     GENERAL, TYPE_AA, TYPE_BA, TYPE_AN, TYPE_AG, TYPE_AF, TYPE_AE,
 
     TYPE_BN, TYPE_BG, TYPE_BF, TYPE_BE, TYPE_CN
@@ -51,6 +53,7 @@
   var DESC_KEYS = {
 
     GENERAL: '입력방식 일반 설명',
+    FOLLOW_HQ: '입력방식 본사정책 따름 설명',
 
     TYPE_AA: '입력방식 AA 타입 설명',
 
@@ -81,6 +84,8 @@
   function normalizeUrlPayInputMode(raw) {
 
     var mode = String(raw || GENERAL).trim().toUpperCase();
+
+    if (mode === 'FOLLOW_HQ' || mode === 'DEFAULT' || mode === 'HQ') return FOLLOW_HQ;
 
     if (mode === 'AA' || mode === 'TYPEAA') return TYPE_AA;
 
@@ -291,6 +296,7 @@
   g.PG_URL_PAY_INPUT_MODE = {
 
     GENERAL: GENERAL,
+    FOLLOW_HQ: FOLLOW_HQ,
 
     TYPE_AA: TYPE_AA,
 

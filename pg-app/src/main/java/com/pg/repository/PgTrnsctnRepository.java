@@ -24,6 +24,9 @@ public interface PgTrnsctnRepository extends JpaRepository<PgTrnsctn, String>, J
 
     Optional<PgTrnsctn> findFirstByMerchantIdAndOrderNoAndOrigin(String merchantId, String orderNo, String origin);
 
+    /** 동일 가맹·주문번호 복수 행 — URL·API 우선 병합·중복 NOTI guest 정리용 */
+    List<PgTrnsctn> findByMerchantIdAndOrderNoOrderByCreatedAtAsc(String merchantId, String orderNo);
+
     /** JPAY 인라인·URL 결제 등 — 주문번호만으로 최신 거래 1건(출처 무관) */
     Optional<PgTrnsctn> findFirstByOrderNoOrderByCreatedAtDesc(String orderNo);
 

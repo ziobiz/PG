@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.PgVendor;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -90,6 +91,81 @@ public final class PaidApprovalEvidenceGuard {
             return other;
         }
         return noti;
+    }
+
+    /** 동일 주문번호 후보 목록에서 URL·API·비게스트 NOTI 등 실거래 행을 우선합니다. */
+    public static Optional<PgTrnsctn> pickPreferredOrderRowFromList(List<PgTrnsctn> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return Optional.empty();
+        }
+        Optional<PgTrnsctn>[] opts = rows.stream()
+                .filter(t -> t != null)
+                .map(Optional::of)
+                .toArray(Optional[]::new);
+        if (opts.length == 0) {
+            return Optional.empty();
+        }
+        Optional<PgTrnsctn> withEvidence = Optional.empty();
+        Optional<PgTrnsctn> url = Optional.empty();
+        Optional<PgTrnsctn> api = Optional.empty();
+        Optional<PgTrnsctn> sub = Optional.empty();
+        Optional<PgTrnsctn> notiNonGuest = Optional.empty();
+        Optional<PgTrnsctn> noti = Optional.empty();
+        Optional<PgTrnsctn> other = Optional.empty();
+        for (Optional<PgTrnsctn> opt : opts) {
+            if (opt.isEmpty()) {
+                continue;
+            }
+            PgTrnsctn t = opt.get();
+            if (hasPaidEvidenceOnTxn(t)) {
+                withEvidence = opt;
+            }
+            String origin = normOrigin(t.getOrigin());
+            switch (origin) {
+                case "URL" -> url = opt;
+                case "MERCHANT_API" -> api = opt;
+                case "SUBSCRIPTION" -> sub = opt;
+                case "NOTI" -> {
+                    if (isGuestCustomer(t)) {
+                        noti = opt;
+                    } else {
+                        notiNonGuest = opt;
+                    }
+                }
+                default -> other = opt;
+            }
+        }
+        if (withEvidence.isPresent()) {
+            return withEvidence;
+        }
+        if (url.isPresent()) {
+            return url;
+        }
+        if (api.isPresent()) {
+            return api;
+        }
+        if (sub.isPresent()) {
+            return sub;
+        }
+        if (other.isPresent()) {
+            return other;
+        }
+        if (notiNonGuest.isPresent()) {
+            return notiNonGuest;
+        }
+        return noti;
+    }
+
+    public static boolean isGuestCustomer(PgTrnsctn t) {
+        if (t == null) {
+            return true;
+        }
+        String id = t.getCustomerId();
+        return id == null || id.isBlank() || "guest".equalsIgnoreCase(id.trim());
+    }
+
+    public static boolean isGuestNotiRow(PgTrnsctn t) {
+        return t != null && "NOTI".equals(normOrigin(t.getOrigin())) && isGuestCustomer(t);
     }
 
     public static boolean isIcopayOutboundEchoClaimingPaid(JsonNode root) {

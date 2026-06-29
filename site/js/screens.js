@@ -161,26 +161,31 @@
       escUi(L(key)) + '</p></div>';
   }
 
+  function urlPayInputModeTypeOptions() {
+    return [
+      { v: 'GENERAL', t: '일반' },
+      { v: 'TYPE_AA', t: 'AA 타입' },
+      { v: 'TYPE_BA', t: 'BA 타입' },
+      { v: 'TYPE_AN', t: 'AN 타입' },
+      { v: 'TYPE_AG', t: 'AG 타입' },
+      { v: 'TYPE_AF', t: 'AF 타입' },
+      { v: 'TYPE_AE', t: 'AE 타입' },
+      { v: 'TYPE_BN', t: 'BN 타입' },
+      { v: 'TYPE_BG', t: 'BG 타입' },
+      { v: 'TYPE_BF', t: 'BF 타입' },
+      { v: 'TYPE_BE', t: 'BE 타입' },
+      { v: 'TYPE_CN', t: 'CN 타입' }
+    ];
+  }
+
   /** 웹결제 카드 1행 — 웹결제·URL방식·입력방식 */
   function merchantWebPaymentCardPrimaryRow() {
     var ynUseOpts = [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }];
+    var inputOpts = [{ v: 'FOLLOW_HQ', t: '본사정책 따름' }].concat(urlPayInputModeTypeOptions());
     return [
       { label: '웹결제', type: 'select', name: 'webPaymentUseYn', options: ynUseOpts, col: 2 },
       { label: 'URL 결제 방식', type: 'select', name: 'urlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 2 },
-      { label: '입력방식', type: 'select', name: 'urlPayInputMode', options: [
-        { v: 'GENERAL', t: '일반' },
-        { v: 'TYPE_AA', t: 'AA 타입' },
-        { v: 'TYPE_BA', t: 'BA 타입' },
-        { v: 'TYPE_AN', t: 'AN 타입' },
-        { v: 'TYPE_AG', t: 'AG 타입' },
-        { v: 'TYPE_AF', t: 'AF 타입' },
-        { v: 'TYPE_AE', t: 'AE 타입' },
-        { v: 'TYPE_BN', t: 'BN 타입' },
-        { v: 'TYPE_BG', t: 'BG 타입' },
-        { v: 'TYPE_BF', t: 'BF 타입' },
-        { v: 'TYPE_BE', t: 'BE 타입' },
-        { v: 'TYPE_CN', t: 'CN 타입' }
-      ], col: 2 }
+      { label: '입력방식', type: 'select', name: 'urlPayInputMode', options: inputOpts, col: 2 }
     ];
   }
 
@@ -219,7 +224,8 @@
       [{ type: 'customHtml', col: 12, html: webPaymentHeaderLogoFieldBlock }],
       [{ label: '경고메세지', type: 'select', name: 'webPaymentHeaderSubtitleMode', options: [
         { v: 'DEFAULT', t: '기본(3DS 안전 결제)' }, { v: 'DISABLED', t: '비활성' }, { v: 'ACTIVE', t: '활성(직접 입력)' }
-      ], col: 3 }],
+      ], col: 3 },
+      { label: '배송주소', type: 'select', name: 'urlPayShippingAddressUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 3 }],
       [{ type: 'customHtml', col: 12, html: webPaymentHeaderSubtitleFieldBlock }],
       merchantWebPaymentDefaultProductRow(),
       [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml(urlPh); } },
@@ -238,6 +244,13 @@
         [{ label: 'API 인라인 연동', type: 'select', name: 'apiBrokerInlineUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 3 },
          { label: 'API 리다이렉트 연동', type: 'select', name: 'apiBrokerRedirectUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 3 },
          { label: 'WordPress/WooCommerce', type: 'select', name: 'apiWordpressUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 3 }],
+        [{ label: '모바일 결제창', type: 'select', name: 'mobileCheckoutMode', options: [
+          { v: '', t: '본사 기본' },
+          { v: 'EMBED', t: 'iframe (3DS 상위 이동)' },
+          { v: 'MOBILE_REDIRECT', t: '모바일 전체 페이지' },
+          { v: 'ALWAYS_REDIRECT', t: '항상 전체 페이지' }
+        ], col: 3 },
+         { label: '', type: 'note', col: 9, text: 'embed·API 인라인·URL·챗봇 결제창 동작. 기본(EMBED)은 iframe 유지 + 3DS 시 최상위 창 이동. MOBILE_REDIRECT/ALWAYS_REDIRECT 는 payUrl 전체 페이지(모바일 3DS 권장).' }],
         [{ label: '', type: 'note', col: 12, text: '가맹점 API 생성·배포문서·가맹점API 화면에는 여기서 켠 채널만 노출됩니다. prepare API도 비활성 채널은 INTEGRATION_CHANNEL_DISABLED 로 거부됩니다.' }]
       ]
     };
@@ -367,11 +380,21 @@
     ];
   }
 
-  function riskCardPolicyTierFormRow(n) {
+  function riskCardPolicyTierFormFields(n, extra) {
+    extra = extra || {};
     return [
-      { label: n + '차 시간', type: 'select', name: 'tier' + n + 'Hours', options: riskCardPolicyHourOptions(), col: 1 },
-      { label: n + '차 분', type: 'select', name: 'tier' + n + 'Min', options: riskCardPolicyMinOptions(), col: 1 }
+      Object.assign({ label: n + '차 시간', type: 'select', name: 'tier' + n + 'Hours', options: riskCardPolicyHourOptions(), col: 1 }, extra),
+      Object.assign({ label: n + '차 분', type: 'select', name: 'tier' + n + 'Min', options: riskCardPolicyMinOptions(), col: 1 }, extra)
     ];
+  }
+
+  function riskCardPolicyTierFormRow(n) {
+    return riskCardPolicyTierFormFields(n);
+  }
+
+  /** 1·2차 또는 3·4차 — 한 행에 좌(1차)·우(2차) 나열 */
+  function riskCardPolicyTierPairFormRow(n1, n2, extra) {
+    return riskCardPolicyTierFormFields(n1, extra).concat(riskCardPolicyTierFormFields(n2, extra));
   }
 
   function hqRiskCardPolicyMerchantTableHtml() {
@@ -390,7 +413,7 @@
     var hourOpts = riskCardPolicyHourOptions();
     var minOpts = riskCardPolicyMinOptions();
     var tierOpts = riskCardPolicyAutoTierOptions();
-    function tierRow(n) {
+    function tierFields(n) {
       return [
         { label: n + '차 시간', type: 'select', name: 'cardRiskTier' + n + 'Hours', options: hourOpts, col: 1, cardRiskCustomOnly: true },
         { label: n + '차 분', type: 'select', name: 'cardRiskTier' + n + 'Min', options: minOpts, col: 1, cardRiskCustomOnly: true }
@@ -409,10 +432,8 @@
             { v: 'FOLLOW_HQ', t: '본사정책 따름' },
             { v: 'CUSTOM', t: '별도정책' }
           ] }],
-        tierRow(1),
-        tierRow(2),
-        tierRow(3),
-        tierRow(4),
+        tierFields(1).concat(tierFields(2)),
+        tierFields(3).concat(tierFields(4)),
         [{ label: '자동 등록 트리거', type: 'select', name: 'cardRiskAutoBlacklistTier', options: tierOpts, col: 2, cardRiskCustomOnly: true }],
         [{ label: '기간정책', type: 'select', name: 'cardRiskTrackPeriodPolicy', col: 2, cardRiskCustomOnly: true,
           options: merchantTrackPeriodPolicyOptions() },
@@ -1595,6 +1616,29 @@
     { v: 'WK2WM', t: 'WK2WM' }
   ];
   var CALC_CYCLE_SEARCH_OPTIONS = [{ v: '', t: '전체' }].concat(CALC_CYCLE_OPTIONS.filter(function (o) { return o.v !== ''; }));
+  /** 일별집계(조회·통합·결제) VIEW SETTING 공통 — 상태 버킷·통화 열 */
+  var DAILY_SUMMARY_STATUS_BUCKET_COLS = [
+    { key: 'bucket_SUCCESS', statusBucketKey: 'SUCCESS', label: '성공' },
+    { key: 'bucket_FAIL', statusBucketKey: 'FAIL', label: '실패' },
+    { key: 'bucket_CANCEL', statusBucketKey: 'CANCEL', label: '취소' },
+    { key: 'bucket_VOID', statusBucketKey: 'VOID', label: '무효' },
+    { key: 'bucket_EMAIL_VOID', statusBucketKey: 'EMAIL_VOID', label: '이메일 무효' },
+    { key: 'bucket_REFUND', statusBucketKey: 'REFUND', label: '환불' },
+    { key: 'bucket_FORCE_REFUND', statusBucketKey: 'FORCE_REFUND', label: '강제환불' },
+    { key: 'bucket_OTHER', statusBucketKey: 'OTHER', label: '기타' }
+  ];
+  var DAILY_SUMMARY_PAY_CUR_COLS = [
+    { key: 'payCur_THB', label: 'THB', currencyCode: 'THB' },
+    { key: 'payCur_JPY', label: 'JPY', currencyCode: 'JPY' },
+    { key: 'payCur_KRW', label: 'KRW', currencyCode: 'KRW' },
+    { key: 'payCur_USD', label: 'USD', currencyCode: 'USD' },
+    { key: 'payCur_CNY', label: 'CNY', currencyCode: 'CNY' }
+  ];
+  var DAILY_SUMMARY_VIEW_DEFAULT_MIDDLE_KEYS = [
+    'bucket_SUCCESS', 'bucket_FAIL', 'bucket_CANCEL', 'bucket_VOID',
+    'bucket_EMAIL_VOID', 'bucket_REFUND', 'bucket_FORCE_REFUND', 'bucket_OTHER',
+    'payCur_THB', 'payCur_JPY', 'payCur_KRW', 'payCur_USD', 'payCur_CNY'
+  ];
 
   /** 무효·수동무효·환불·강제환불 정산 방식 — 본사·가맹 수수료정책 공통 */
   var VOID_REFUND_SETTLE_MODE_OPTIONS = [
@@ -2382,10 +2426,8 @@
               options: riskCardPolicyTrackPeriodModeOptions() },
              { label: '설정기간', type: 'number', name: 'trackPeriodValue', col: 2,
                placeholder: '1', min: 1, max: 9999, blockExtraClass: 'hq-risk-track-period-value-block' }],
-            riskCardPolicyTierFormRow(1),
-            riskCardPolicyTierFormRow(2),
-            riskCardPolicyTierFormRow(3),
-            riskCardPolicyTierFormRow(4)
+            riskCardPolicyTierPairFormRow(1, 2),
+            riskCardPolicyTierPairFormRow(3, 4)
           ]
         },
         {
@@ -2756,6 +2798,24 @@
           ]
         },
         {
+          title: 'JPAY 요청 자동취소',
+          notice: 'JPAY 결제 <strong>요청(08)</strong> 후 노티·Trade Query 응답이 없을 때, 아래에서 선택한 시간이 지나면 해당 건을 <strong>취소(20)</strong>로 자동 반영합니다. <strong>미사용</strong>이면 요청 상태를 그대로 유지합니다. 서버는 15분마다 대상 건을 JPAY Trade Query로 조회합니다.',
+          rows: [
+            [{ label: '무응답 자동취소', type: 'select', name: 'jpayPendingAutoCancelMin', col: 4,
+              options: [
+                { v: '0', t: '미사용' },
+                { v: '30', t: '30분' },
+                { v: '60', t: '1시간' },
+                { v: '120', t: '2시간' },
+                { v: '180', t: '3시간' },
+                { v: '240', t: '4시간' },
+                { v: '300', t: '5시간' },
+                { v: '360', t: '6시간' },
+                { v: '720', t: '12시간' }
+              ] }]
+          ]
+        },
+        {
           title: '수수료·정산 로직 (수수료내역)',
           notice: '통화별 표는 결제·정산 통화(알파 코드)마다 소수 자릿수·잘리는 자리 처리를 지정합니다. 소수 자릿수가 0이면 금액은 정수만 의미하므로 「잘리는 자리 처리」는 비활성화되며 저장 시 그대로(버림, DOWN)로 통일됩니다. 목록 API는 행의 결제통화·거래통화에 맞춰 이 설정을 적용합니다. JSON에 없는 통화는 아래 「기본(통화 미지정)」값을 따릅니다. 조직항목설정 VIEW SETTING의 통화 열은 가맹 정책통화·거래통화를 표시하며, 총판 하위 가맹이 쓰는 모든 통화가 데이터에 존재하면 각 행에 그대로 나타납니다.',
           rows: [
@@ -2859,7 +2919,7 @@
       formSections: [
         {
           title: '조직항목설정',
-          notice: '총본사가 각 본사(REGIONAL) 트리마다, 조직 유형·화면별로 VIEW SETTING에서 노출·선택 가능한 열을 지정합니다. 본사·총판·지사·대리점·영업점(동일 설정)·가맹점 네 가지로 나누어 저장합니다. 지사·대리점·영업점과 가맹점에 별도 저장이 없으면 해당 화면의 총판 설정을 그대로 따릅니다. <strong>결제관리</strong>(결제내역·분류 화면·URL/챗봇·상계 및 <strong>통합내역</strong>)과 <strong>정산관리</strong>의 <strong>통합정산</strong>은 화면·조직 유형을 바꿀 때 <strong>기본 체크안</strong>이 자동 적용되며(본사=전체 허용, 총판·지사·가맹 순으로 축소), 체크되지 않은 열은 목록에서 제거되지 않고 꺼진 상태로 둡니다. 서버에 이미 저장된 정책이 있으면 [불러오기]·정책 행 클릭 시 그대로 불러옵니다. 고정 열(번호·업체명·거래일·Route No·TransactionId 등)은 항상 표시되며 여기 목록에 나오지 않습니다. [불러오기]는 현재 선택한 본사·조직 유형·화면에 대해 서버에 저장된 체크 상태를 가져와 반영합니다. 아래 [추가 VIEW 항목]은 화면마다 다르게 본사 전용 열을 등록합니다. 등록된 항목은 해당 화면의 VIEW SETTING에 나타나며, 기본 체크안에 포함된 경우에만 조직 설정에서 자동 체크됩니다.',
+          notice: '총본사가 각 본사(REGIONAL) 트리마다, 조직 유형·화면별로 VIEW SETTING에서 노출·선택 가능한 열을 지정합니다. 본사·총판·지사·대리점·영업점(동일 설정)·가맹점 네 가지로 나누어 저장합니다. 지사·대리점·영업점과 가맹점에 별도 저장이 없으면 해당 화면의 총판 설정을 그대로 따릅니다. <strong>결제관리</strong>(결제내역·분류 화면·URL/챗봇·상계 및 <strong>통합내역</strong>)과 <strong>정산관리</strong>의 <strong>통합정산</strong>은 화면·조직 유형을 바꿀 때 <strong>기본 체크안</strong>이 자동 적용되며(본사=전체 허용, 총판·지사·가맹 순으로 축소), 체크되지 않은 열은 목록에서 제거되지 않고 꺼진 상태로 둡니다. 서버에 이미 저장된 정책이 있으면 [불러오기]·정책 행 클릭 시 그대로 불러옵니다. 고정 열(번호·업체명·거래일·승인번호·TransactionId 등)은 항상 표시되며 여기 목록에 나오지 않습니다. 루트(Route)는 VIEW SETTING·조직항목설정에서 켜고 끌 수 있습니다. [불러오기]는 현재 선택한 본사·조직 유형·화면에 대해 서버에 저장된 체크 상태를 가져와 반영합니다. 아래 [추가 VIEW 항목]은 화면마다 다르게 본사 전용 열을 등록합니다. 등록된 항목은 해당 화면의 VIEW SETTING에 나타나며, 기본 체크안에 포함된 경우에만 조직 설정에서 자동 체크됩니다.',
           rows: [
             [
               { label: '설정 대상 본사', type: 'select', name: 'regionalOrgCode', col: 4, options: [{ v: '', t: '선택' }], loadRegionalBranches: true },
@@ -2870,45 +2930,8 @@
                 { v: 'MERCHANT', t: '가맹점' }
               ] },
               { label: '설정 대상 화면', type: 'select', name: 'targetPageUrl', col: 4, options: [
-                /* 결제관리 — 사이드 메뉴(menu-structure·index) 순서·표기와 동일 */
-                { v: '/calc/chillPayTrList', t: '통합내역' },
-                { v: '/calc/integratedCheck', t: '통합체크' },
-                { v: '/calc/jpayTrList', t: '통합조회' },
-                { v: '/calc/queryIntegrated', t: '일별조회' },
-                { v: '/pay/splitPay', t: '분할결제내역' },
-                { v: '/calc/dailyIntegrated', t: '일별통합' },
-                { v: '/calc/payList', t: '결제내역' },
-                { v: '/calc/dailyPay', t: '일별결제' },
-                { v: '/calc/paySuccessList', t: '성공내역' },
-                { v: '/calc/payFailList', t: '실패내역' },
-                { v: '/calc/payCancelList', t: '취소내역' },
-                { v: '/calc/payVoidList', t: '무효처리' },
-                { v: '/calc/payEmailVoidList', t: '이메일 무효' },
-                { v: '/calc/payRefundList', t: '환불처리' },
-                { v: '/calc/payForceRefundList', t: '강제환불' },
-                { v: '/pay/easyPay', t: 'URL결제내역' },
-                { v: '/pay/chatbotPay', t: '챗봇결제내역' },
-                { v: '/pay/jpaySubscription', t: '구독결제내역' },
-                { v: '/calc/offsetCancList', t: '상계취소내역' },
-                /* 분할관리 */
-                { v: '/calc/splitPayList', t: '계약관리' },
-                { v: '/comp/compMngTree', t: '업체관리' },
-                { v: '/commission/commisionList', t: '수수료관리' },
-                /* 정산관리 — 사이드 메뉴 순서·표기 */
-                { v: '/calc/chillPaySettlementList', t: '통합정산' },
-                { v: '/calc/feeList', t: '수수료내역' },
-                { v: '/calc/dailyFee', t: '일별수수료' },
-                { v: '/calc/exCalcList', t: '정산실행' },
-                { v: '/settlement/settlementResultDistribute', t: '정산배포' },
-                { v: '/settlement/settlementResultHold', t: '정산대기' },
-                { v: '/calc/paySettlementHoldList', t: '정산보류내역' },
-                { v: '/calc/compPointMngList', t: '환수금내역' },
-                { v: '/calc/unpaidMng', t: '미수금내역' },
-                { v: '/calc/collateralList', t: '담보금내역' },
-                { v: '/calc/calcList', t: '유통망정산내역' },
-                { v: '/calc/calcGmList', t: '가맹점정산내역' },
-                { v: '/calc/settlementReport', t: '정산리포트' }
-              ] }
+                { v: '/calc/payList', t: '결제내역' }
+              ], hqOrgAllowPageCatalog: true },
             ],
             [{ type: 'customHtml', col: 12, html: '<div class="card border-secondary mb-3" id="hqViewCustomColCard">' +
               '<div class="card-header py-2 small fw-semibold" data-pg-ui-t="추가 VIEW 항목 (화면별 목록 · 본사 등록)">' + escUi(L('추가 VIEW 항목 (화면별 목록 · 본사 등록)')) + '</div>' +
@@ -3205,6 +3228,14 @@
              { label: 'API 중계형 REDIRECT 제공', type: 'select', name: 'apiBrokerRedirectEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'URL 결제형 INLINE 제공', type: 'select', name: 'urlPayInlineEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'URL 결제형 REDIRECT 제공', type: 'select', name: 'urlPayRedirectEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
+            [{ label: '모바일 결제창 기본값', type: 'select', name: 'mobileCheckoutModeDefault', options: [
+              { v: 'EMBED', t: 'iframe (3DS 상위 이동)' },
+              { v: 'MOBILE_REDIRECT', t: '모바일 전체 페이지' },
+              { v: 'ALWAYS_REDIRECT', t: '항상 전체 페이지' }
+            ], col: 3 },
+             { label: 'URL 입력방식 기본값', type: 'select', name: 'urlPayInputModeDefault', options: urlPayInputModeTypeOptions(), col: 3 },
+             { label: 'API 입력방식 기본값', type: 'select', name: 'apiUrlPayInputModeDefault', options: urlPayInputModeTypeOptions(), col: 3 }],
+            [{ label: '', type: 'note', col: 12, text: '모바일 결제창·입력방식은 가맹 「본사정책 따름」일 때 채널별로 적용됩니다. URL=공개 URL·챗봇·분할 URL, API=가맹 API 인라인(entry=merchant_api). 가맹에서 타입을 직접 고르면 URL·API 모두 그 값이 우선합니다.' }],
             [{ label: 'WordPress 플러그인 제공', type: 'select', name: 'apiWordpressPluginEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: '', type: 'note', col: 10, text: 'WooCommerce·일반 WordPress ZIP·REST webhook 채널 전역 on/off. 가맹별 오픈은 업체관리 → 가맹 「가맹 API 연동 채널」.' }],
             [{ label: 'URL 재결제형 제공', type: 'select', name: 'urlPayRepayEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
@@ -3804,6 +3835,7 @@
         { key: 'transferFee', label: '송금수수료' },
         { key: 'payIntegrationMode', label: '방식', title: '가맹 결제 연동: 웹결제(Y) 및 브로커 시크릿 발급 시 API, 미발급 시 URL', align: 'center' },
         { key: 'apiIntegrationChannel', label: '채널', title: '가맹 API 연동 채널: IN=INLINE, RE=REDIRECT, WO=WordPress/WooCommerce. 복수 사용 시 IN/RE 형식.', align: 'center' },
+        { key: 'urlPayInputModeLabel', label: '타입', title: '웹결제 입력방식: HQ=본사정책 따름, GN=일반, AA·BA…=타입 코드', align: 'center' },
         { key: 'calcCycle', label: '정산주기' },
         { key: 'calcProcType', label: '정산구분' },
         { key: 'transferType', label: '이체및송금' },
@@ -4704,8 +4736,10 @@
       payListStatusBar: true,
       payListFinancialInline: true,
       tableColumnGuide: true,
+      /** 칠페이 원문 일시는 trnDate·trnTime·payCompletedAt와 중복 — VIEW SETTING 제외 */
+      columnGuideHiddenKeys: ['transactionDate', 'paymentDate'],
       /** VIEW SETTING에서 숨길 수 없는 열: 결제내역 통합과 동일한 앞부분(번호·거래ID·업체·거래일시·Route) */
-      columnGuideFixedKeys: ['rowNo', 'transactionId', 'compNm', 'compId', 'trnDate', 'trnTime', 'routeNo'],
+      columnGuideFixedKeys: ['rowNo', 'transactionId', 'compNm', 'compId', 'trnDate', 'trnTime'],
       searchFormClass: 'screen-search-form pay-mng-search-form',
       searchRows: [
         [
@@ -4751,7 +4785,7 @@
         'ChillPay API Transaction Services — Search Payment Transaction(실시간)입니다. ICOPAY 내부 DB(pg_trnsctn)가 아니라 칠페이 서버에서 직접 목록을 가져옵니다. ziobiz/NOTI 노티미들웨어의 종합거래·피지거래내역과 유사한 용도로 쓸 수 있습니다.',
         '자격: 배포설정 > API배포설정 또는 tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스 여부를 사용합니다.',
         '순서(내림차순·오름차순)는 [새로고침] 왼쪽 메뉴에서 고르며, 누르는 즉시 다시 조회됩니다(기본 내림차순). TransactionDate 범위는 검색 기간(날짜)을 ChillPay 형식(dd/MM/yyyy HH:mm:ss)으로 변환합니다. 문서: ChillPay-API-Transaction-Services-Document-EN_v1.0.6.',
-        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·승인번호·업체명·업체코드·거래일·거래시간(운영·표준 두 줄)·루트는 그리드에 항상 표시되며 VIEW SETTING 목록에는 나오지 않습니다. 거래일은 YYYY-MM-DD(예: 2026-05-09) 형식으로 표시됩니다. 본사설정 → 조직항목설정에서 화면「통합내역」 허용 열을 제한할 수 있습니다.'
+        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·승인번호·업체명·업체코드·거래일·거래시간(운영·표준 두 줄)은 그리드에 항상 표시되며 VIEW SETTING 목록에는 나오지 않습니다. 루트(Route)는 VIEW SETTING에서 켜고 끌 수 있습니다. 거래일은 YYYY-MM-DD(예: 2026-05-09) 형식으로 표시됩니다. 본사설정 → 조직항목설정에서 화면「통합내역」 허용 열을 제한할 수 있습니다.'
       ],
       summary: ['건수'],
       buttons: [
@@ -4789,6 +4823,15 @@
     '/calc/integratedCheck': {
       isIntegratedCheckScreen: true,
       showJpaySyncInfo: true,
+      tableColumnGuide: true,
+      /** 번호·일자·운영사·상태(맨 끝 고정) — VIEW SETTING 목록에서 제외 */
+      columnGuideFixedKeys: ['rowNo', 'day', 'operator', 'checkStatus'],
+      columnGuideTailFixedKeys: ['checkStatus'],
+      viewSettingDefaultSelectedKeys: [
+        'totalCount', 'bucket_SUCCESS', 'bucket_FAIL', 'bucket_CANCEL', 'bucket_VOID',
+        'bucket_EMAIL_VOID', 'bucket_REFUND', 'bucket_FORCE_REFUND', 'bucket_OTHER',
+        'payCur_THB', 'payCur_JPY', 'payCur_KRW', 'payCur_USD', 'payCur_CNY'
+      ],
       listSortDirAnchor: 'refresh',
       paginationSizeOptions: [50, 100, 300, 500],
       paginationDefaultSize: 500,
@@ -4819,6 +4862,7 @@
       ],
       noticeList: [
         'JPAY(일별조회·DB Export 캐시·거래일)와 ICOPAY(일별결제·노티 적재일)를 같은 거래일자 구간에서 일자별로 나란히 비교합니다. 값이 같으면 Ok, 다르면 불일치 셀만 강조·Check로 표시됩니다.',
+        'JPAY 또는 ICOPAY 행을 더블클릭하면 아래 「선택 일자 상세」에 해당 일·운영사 거래 목록이 표시됩니다(JPAY=통합조회, ICOPAY=일별결제와 동일 API).',
         'JPAY는 통합조회와 동일하게 DB(tb_jpay_portal_export_cache)에 저장되며, 본사설정 전산설정관리의 JPAY 통합조회 스케줄로 자동 동기화됩니다. 로그인 후 [검색]만으로 조회할 수 있고, 즉시 갱신이 필요할 때만 [JPAY 동기화]를 사용하세요. 조회 기간은 최대 93일입니다.'
       ],
       summary: ['건수'],
@@ -4835,14 +4879,14 @@
         { key: 'day', label: '일자' },
         { key: 'operator', label: '운영사' },
         { key: 'totalCount', label: '총건수' },
-        { statusBucketKey: 'SUCCESS', label: '성공' },
-        { statusBucketKey: 'FAIL', label: '실패' },
-        { statusBucketKey: 'CANCEL', label: '취소' },
-        { statusBucketKey: 'VOID', label: '무효' },
-        { statusBucketKey: 'EMAIL_VOID', label: '이메일 무효' },
-        { statusBucketKey: 'REFUND', label: '환불' },
-        { statusBucketKey: 'FORCE_REFUND', label: '강제환불' },
-        { statusBucketKey: 'OTHER', label: '기타' },
+        { key: 'bucket_SUCCESS', statusBucketKey: 'SUCCESS', label: '성공' },
+        { key: 'bucket_FAIL', statusBucketKey: 'FAIL', label: '실패' },
+        { key: 'bucket_CANCEL', statusBucketKey: 'CANCEL', label: '취소' },
+        { key: 'bucket_VOID', statusBucketKey: 'VOID', label: '무효' },
+        { key: 'bucket_EMAIL_VOID', statusBucketKey: 'EMAIL_VOID', label: '이메일 무효' },
+        { key: 'bucket_REFUND', statusBucketKey: 'REFUND', label: '환불' },
+        { key: 'bucket_FORCE_REFUND', statusBucketKey: 'FORCE_REFUND', label: '강제환불' },
+        { key: 'bucket_OTHER', statusBucketKey: 'OTHER', label: '기타' },
         { key: 'payCur_THB', label: 'THB', currencyCode: 'THB' },
         { key: 'payCur_JPY', label: 'JPY', currencyCode: 'JPY' },
         { key: 'payCur_KRW', label: 'KRW', currencyCode: 'KRW' },
@@ -4934,6 +4978,10 @@
       isDailySummaryScreen: true,
       dailySummaryKind: 'jpay',
       dailySummaryShowPagination: true,
+      tableColumnGuide: true,
+      columnGuideFixedKeys: ['rowNo', 'day', 'note'],
+      columnGuideTailFixedKeys: ['note'],
+      viewSettingDefaultSelectedKeys: ['totalElements'].concat(DAILY_SUMMARY_VIEW_DEFAULT_MIDDLE_KEYS),
       paginationSizeOptions: [50, 100, 300, 500],
       paginationDefaultSize: 500,
       listSortDirAnchor: 'refresh',
@@ -4978,22 +5026,10 @@
       columns: [
         { key: 'rowNo', label: '번호' },
         { key: 'day', label: '일자' },
-        { key: 'totalElements', label: '총건수' },
-        { statusBucketKey: 'SUCCESS', label: '성공' },
-        { statusBucketKey: 'FAIL', label: '실패' },
-        { statusBucketKey: 'CANCEL', label: '취소' },
-        { statusBucketKey: 'VOID', label: '무효' },
-        { statusBucketKey: 'EMAIL_VOID', label: '이메일 무효' },
-        { statusBucketKey: 'REFUND', label: '환불' },
-        { statusBucketKey: 'FORCE_REFUND', label: '강제환불' },
-        { statusBucketKey: 'OTHER', label: '기타' },
-        { key: 'payCur_THB', label: 'THB', currencyCode: 'THB' },
-        { key: 'payCur_JPY', label: 'JPY', currencyCode: 'JPY' },
-        { key: 'payCur_KRW', label: 'KRW', currencyCode: 'KRW' },
-        { key: 'payCur_USD', label: 'USD', currencyCode: 'USD' },
-        { key: 'payCur_CNY', label: 'CNY', currencyCode: 'CNY' },
+        { key: 'totalElements', label: '총건수' }
+      ].concat(DAILY_SUMMARY_STATUS_BUCKET_COLS).concat(DAILY_SUMMARY_PAY_CUR_COLS).concat([
         { key: 'note', label: '비고' }
-      ],
+      ]),
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/calc/splitPayList': {
@@ -5170,6 +5206,10 @@
     '/calc/dailyIntegrated': {
       isDailySummaryScreen: true,
       dailySummaryKind: 'chill',
+      tableColumnGuide: true,
+      columnGuideFixedKeys: ['rowNo', 'day', 'note'],
+      columnGuideTailFixedKeys: ['note'],
+      viewSettingDefaultSelectedKeys: ['totalElements'].concat(DAILY_SUMMARY_VIEW_DEFAULT_MIDDLE_KEYS),
       listSortDirAnchor: 'refresh',
       searchFormClass: 'screen-search-form pay-mng-search-form',
       searchRows: [
@@ -5221,22 +5261,10 @@
       columns: [
         { key: 'rowNo', label: '번호' },
         { key: 'day', label: '일자' },
-        { key: 'totalElements', label: '총건수(칠페이)' },
-        { statusBucketKey: 'SUCCESS', label: '성공' },
-        { statusBucketKey: 'FAIL', label: '실패' },
-        { statusBucketKey: 'CANCEL', label: '취소' },
-        { statusBucketKey: 'VOID', label: '무효' },
-        { statusBucketKey: 'EMAIL_VOID', label: '이메일 무효' },
-        { statusBucketKey: 'REFUND', label: '환불' },
-        { statusBucketKey: 'FORCE_REFUND', label: '강제환불' },
-        { statusBucketKey: 'OTHER', label: '기타' },
-        { key: 'payCur_THB', label: 'THB', currencyCode: 'THB' },
-        { key: 'payCur_JPY', label: 'JPY', currencyCode: 'JPY' },
-        { key: 'payCur_KRW', label: 'KRW', currencyCode: 'KRW' },
-        { key: 'payCur_USD', label: 'USD', currencyCode: 'USD' },
-        { key: 'payCur_CNY', label: 'CNY', currencyCode: 'CNY' },
+        { key: 'totalElements', label: '총건수(칠페이)' }
+      ].concat(DAILY_SUMMARY_STATUS_BUCKET_COLS).concat(DAILY_SUMMARY_PAY_CUR_COLS).concat([
         { key: 'note', label: '비고' }
-      ],
+      ]),
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/calc/dailyPay': {
@@ -5244,6 +5272,9 @@
       dailySummaryKind: 'pay',
       payListVariant: 'INTEGRATED',
       detailPayListVariant: 'INTEGRATED',
+      tableColumnGuide: true,
+      columnGuideFixedKeys: ['rowNo', 'day'],
+      viewSettingDefaultSelectedKeys: ['txnCount'].concat(DAILY_SUMMARY_VIEW_DEFAULT_MIDDLE_KEYS),
       listSortDirAnchor: 'refresh',
       searchFormClass: 'pay-mng-search-form',
       searchRows: [
@@ -5294,21 +5325,8 @@
       columns: [
         { key: 'rowNo', label: '번호' },
         { key: 'day', label: '일자' },
-        { key: 'txnCount', label: '전체건수' },
-        { statusBucketKey: 'SUCCESS', label: '성공' },
-        { statusBucketKey: 'FAIL', label: '실패' },
-        { statusBucketKey: 'CANCEL', label: '취소' },
-        { statusBucketKey: 'VOID', label: '무효' },
-        { statusBucketKey: 'EMAIL_VOID', label: '이메일 무효' },
-        { statusBucketKey: 'REFUND', label: '환불' },
-        { statusBucketKey: 'FORCE_REFUND', label: '강제환불' },
-        { statusBucketKey: 'OTHER', label: '기타' },
-        { key: 'payCur_THB', label: 'THB', currencyCode: 'THB' },
-        { key: 'payCur_JPY', label: 'JPY', currencyCode: 'JPY' },
-        { key: 'payCur_KRW', label: 'KRW', currencyCode: 'KRW' },
-        { key: 'payCur_USD', label: 'USD', currencyCode: 'USD' },
-        { key: 'payCur_CNY', label: 'CNY', currencyCode: 'CNY' }
-      ],
+        { key: 'txnCount', label: '전체건수' }
+      ].concat(DAILY_SUMMARY_STATUS_BUCKET_COLS).concat(DAILY_SUMMARY_PAY_CUR_COLS),
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     /** ChillPay Transaction API — 통합정산(Search Settlement Transaction, ICOPAY 정산 DB 비사용) */
@@ -5320,6 +5338,8 @@
       payListStatusBar: true,
       payListFinancialInline: true,
       tableColumnGuide: true,
+      /** 칠페이 원문 일시는 trnDate·trnTime·payCompletedAt와 중복 — VIEW SETTING 제외 */
+      columnGuideHiddenKeys: ['transactionDate', 'paymentDate'],
       /** VIEW SETTING·조직항목설정 고정열: 번호만. 통화 포함 그 외 열은 VIEW SETTING에서 켜고 끔 */
       columnGuideFixedKeys: ['rowNo'],
       searchFormClass: 'screen-search-form pay-mng-search-form',
@@ -5616,6 +5636,13 @@
     '/calc/dailyFee': {
       isDailySummaryScreen: true,
       dailySummaryKind: 'fee',
+      tableColumnGuide: true,
+      columnGuideFixedKeys: ['rowNo', 'day'],
+      viewSettingDefaultSelectedKeys: [
+        'txnCount', 'txnFixedFeesSum', 'pctFeesSum', 'usdtFee', 'fxFee', 'fee3dsFee', 'rollingHoldEst',
+        'failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'chargebackFee',
+        'totalFee', 'feeVat', 'expectedPayout', 'settlementAmt', 'settlementStateLabel'
+      ],
       listSortDirAnchor: 'refresh',
       payMngDenseGrid: true,
       searchFormClass: 'pay-mng-search-form',
@@ -6817,6 +6844,7 @@
     '/ops/integratedReport': {
       isOpsIntegratedReport: true,
       opsIntegratedReportScreen: true,
+      tableColumnGuide: false,
       payListFinancialInline: true,
       listSortDirAnchor: 'refresh',
       searchFormClass: 'pay-mng-search-form',
@@ -6844,6 +6872,10 @@
     '/ops/verifyReport': {
       isOpsVerifyReport: true,
       opsVerifyReportScreen: true,
+      tableColumnGuide: true,
+      columnGuideFixedKeys: ['rowNo', 'day', 'note'],
+      columnGuideTailFixedKeys: ['note'],
+      viewSettingDefaultSelectedKeys: ['chillCount', 'matchedCount', 'mismatchCount'],
       listSortDirAnchor: 'refresh',
       searchFormClass: 'pay-mng-search-form',
       searchRows: [[
@@ -6947,6 +6979,9 @@
     if (P.columnGuideFixedKeys && P.columnGuideFixedKeys.length) {
       scr.columnGuideFixedKeys = P.columnGuideFixedKeys.slice();
     }
+    if (P.columnGuideHiddenKeys && P.columnGuideHiddenKeys.length) {
+      scr.columnGuideHiddenKeys = P.columnGuideHiddenKeys.slice();
+    }
   })();
 
   /** 결제관리: 통합 결제내역과 동일 UI, payListVariant만 다름 (docs/결제관리_기획_NOTI참고.md) */
@@ -7040,6 +7075,11 @@
       '분할결제내역: URL 분할결제 계약의 회차별 결제(pg_trnsctn)만 표시합니다. 통합 결제내역에도 포함되며, 여기서는 분할결제 회차 주문번호로만 조회합니다.',
       'URL결제내역·챗봇결제내역과 동일 API(/api/calc/payList)·그리드를 사용하며 payListVariant=SPLIT_PAY 로 구분합니다.'
     ]);
+    MENU_SCREENS['/calc/payOverview'] = cloneWith('PAY_OVERVIEW', [
+      '결제개요: 통합 결제내역과 동일 검색·VIEW SETTING·금액요약을 사용합니다.',
+      '단말기(PC·iPhone·Android 등)·위치(국가·도시, 예: KR, SEOUL)·IP·원인(JPAY 응답·ICOPAY 결제창 오류 포함) 열이 추가됩니다.',
+      '신규 JPAY 결제부터 단말기·위치·IP가 적재됩니다. 과거 건은 값이 없을 수 있습니다.'
+    ]);
     MENU_SCREENS['/pay/jpaySubscription'] = {
       emptyMessage: '조회된 구독이 없습니다.',
       paginationSizeOptions: [25, 50, 100],
@@ -7063,6 +7103,44 @@
         { key: 'cancelledAt', label: '해지', thClass: 'text-nowrap' }
       ]
     };
+  })();
+
+  /** 검수관리 결제개요 — PG_PAY_LIST_OVERVIEW 카탈로그 적용 */
+  (function applyPayListOverviewCatalog() {
+    var scr = MENU_SCREENS['/calc/payOverview'];
+    var P = typeof window !== 'undefined' ? window.PG_PAY_LIST_OVERVIEW : null;
+    if (!scr || !P || !P.columns || !P.headerGroups) {
+      if (typeof console !== 'undefined' && console.warn && scr) {
+        console.warn('PG_PAY_LIST_OVERVIEW missing; include pay-list-overview-catalog.js before screens.js');
+      }
+      return;
+    }
+    scr.headerGroups = JSON.parse(JSON.stringify(P.headerGroups));
+    scr.columns = P.columns.map(function (c) {
+      var o = { key: c.key, label: c.label };
+      if (c.gridType === 'checkbox') o.type = 'checkbox';
+      else if (c.gridType === 'payActions') {
+        o.type = 'payActions';
+        o.key = 'payActions';
+      }
+      else if (c.gridType === 'payRemark') {
+        o.type = 'payRemark';
+        o.key = 'payRemark';
+      }
+      return o;
+    });
+    if (P.columnGuideFixedKeys && P.columnGuideFixedKeys.length) {
+      scr.columnGuideFixedKeys = P.columnGuideFixedKeys.slice();
+    }
+    if (P.columnGuideHiddenKeys && P.columnGuideHiddenKeys.length) {
+      scr.columnGuideHiddenKeys = P.columnGuideHiddenKeys.slice();
+    }
+    if (P.viewSettingDefaultSelectedKeys && P.viewSettingDefaultSelectedKeys.length) {
+      scr.viewSettingDefaultSelectedKeys = P.viewSettingDefaultSelectedKeys.slice();
+    }
+    if (P.orgAllowanceDefaultKeysByScope) {
+      scr.orgAllowanceDefaultKeysByScope = JSON.parse(JSON.stringify(P.orgAllowanceDefaultKeysByScope));
+    }
   })();
 
   /** 정산보류내역: 가맹점정산내역과 동일 그리드 + [선택 해제]. 지급보류(Y) 가맹점의 정산 실행 건만 표시 */
@@ -7509,20 +7587,33 @@
 
   function renderTableColumnGuide(cfg) {
     if (cfg.tableColumnGuide === false || !cfg.columns || cfg.columns.length === 0) return '';
-    /** 기본: 번호·업체·거래일시·Route No 등 결제 그리드 고정열 — VIEW 토글 제외. 화면별로 columnGuideFixedKeys 로 덮어쓸 수 있음(API연동설정은 Route 등 토글 가능). */
-    var defaultFixed = ['rowNo', 'compId', 'compNm', 'compDivNm', 'trnDate', 'trnTime', 'routeNo'];
+    function gridColGuideKey(c) {
+      if (!c) return '';
+      if (c.key) return String(c.key);
+      if (c.statusBucketKey) return 'bucket_' + c.statusBucketKey;
+      if (c.currencyCode) return 'payCur_' + c.currencyCode;
+      return '';
+    }
+    /** 기본: 번호·업체·거래일시 등 결제 그리드 고정열 — VIEW 토글 제외. 루트(routeNo)는 VIEW SETTING 항목. */
+    var defaultFixed = ['rowNo', 'compId', 'compNm', 'compDivNm', 'trnDate', 'trnTime'];
     var fixedKeys = (cfg.columnGuideFixedKeys && cfg.columnGuideFixedKeys.length) ? cfg.columnGuideFixedKeys : defaultFixed;
+    var hiddenKeys = (cfg.columnGuideHiddenKeys && cfg.columnGuideHiddenKeys.length) ? cfg.columnGuideHiddenKeys : [];
+    var hiddenSet = {};
+    hiddenKeys.forEach(function (k) { if (k) hiddenSet[k] = true; });
     var cols = cfg.columns.filter(function (c) {
-      // payActions(후속조치)는 VIEW SETTING에서 토글 가능해야 함(통합 결제내역 등). 체크박스·인라인 액션만 제외.
+      if (!c) return false;
+      var gk = gridColGuideKey(c);
+      if (gk && hiddenSet[gk]) return false;
+      if (c.key && hiddenSet[c.key]) return false;
       if (c.type === 'checkbox' || c.type === 'commissionInlineActions' || c.type === 'accountAccessActions' || c.type === 'accountAccessDelete' || c.type === 'userResetPassword' || c.type === 'userDelete' || c.type === 'payoutHoldReleaseBtn' || c.type === 'pgApiMngRowActions') return false;
-      return fixedKeys.indexOf(c.key) === -1;
+      return fixedKeys.indexOf(gk) === -1 && fixedKeys.indexOf(c.key) === -1;
     });
     if (cols.length === 0) return '';
     var escGl = function (s) {
       return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
     };
     var items = cols.map(function (c) {
-      var key = c.key || '';
+      var key = gridColGuideKey(c);
       var label = c.columnGuideLabel || c.label || c.key;
       return '<label class="column-guide-item column-guide-item--on"><input type="checkbox" class="column-guide-check" data-key="' + escGl(key) + '" checked> <span class="column-guide-label">' + escGl(L(String(label))) + '</span></label>';
     }).join('');
@@ -8698,13 +8789,17 @@
   })();
 
   function syncPayListIntegratedScreenLabelsFromCatalog() {
-    var P = typeof window !== 'undefined' ? window.PG_PAY_LIST_INTEGRATED : null;
-    if (!P || !P.columns || !MENU_SCREENS) return;
+    syncPayListCatalogLabelsToScreens(window.PG_PAY_LIST_INTEGRATED, PAY_LIST_INTEGRATED_SYNC_URLS);
+    syncPayListCatalogLabelsToScreens(window.PG_PAY_LIST_OVERVIEW, ['/calc/payOverview']);
+  }
+
+  function syncPayListCatalogLabelsToScreens(P, urls) {
+    if (!P || !P.columns || !MENU_SCREENS || !urls || !urls.length) return;
     var labelByKey = {};
     P.columns.forEach(function (c) {
       if (c && c.key) labelByKey[c.key] = c.label;
     });
-    PAY_LIST_INTEGRATED_SYNC_URLS.forEach(function (u) {
+    urls.forEach(function (u) {
       if (u === '/calc/chillPayTrList' || u === '/calc/chillPaySettlementList' || u === '/ops/taxReport' || u === '/ops/integratedReport' || u === '/ops/verifyReport') return;
       var scr = MENU_SCREENS[u];
       if (!scr || !scr.columns) return;

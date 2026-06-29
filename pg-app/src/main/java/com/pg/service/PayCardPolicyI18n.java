@@ -73,6 +73,7 @@ public final class PayCardPolicyI18n {
             case "AMEX_LEN" -> "아메리칸 익스프레스는 15자리입니다.";
             case "CARD_LEN" -> "카드번호는 {0}자리여야 합니다.";
             case "INVALID_PAN" -> "카드번호를 확인해 주세요.";
+            case "LUHN_FAIL" -> "카드번호를 다시 확인해 주세요.";
             case "SELECT_BRAND" -> "카드 종류를 선택해 주세요.";
             default -> k;
         };
@@ -93,6 +94,7 @@ public final class PayCardPolicyI18n {
             case "AMEX_LEN" -> "American Express requires 15 digits.";
             case "CARD_LEN" -> "Card number must be {0} digits.";
             case "INVALID_PAN" -> "Please check the card number.";
+            case "LUHN_FAIL" -> "Please check the card number again.";
             case "SELECT_BRAND" -> "Please select a card brand.";
             default -> k;
         };
@@ -113,6 +115,7 @@ public final class PayCardPolicyI18n {
             case "AMEX_LEN" -> "American Expressは15桁です。";
             case "CARD_LEN" -> "カード番号は{0}桁である必要があります。";
             case "INVALID_PAN" -> "カード番号をご確認ください。";
+            case "LUHN_FAIL" -> "カード番号を再度ご確認ください。";
             case "SELECT_BRAND" -> "カードブランドを選択してください。";
             default -> k;
         };
@@ -133,6 +136,7 @@ public final class PayCardPolicyI18n {
             case "AMEX_LEN" -> "美国运通卡号为15位。";
             case "CARD_LEN" -> "卡号必须为{0}位。";
             case "INVALID_PAN" -> "请检查卡号。";
+            case "LUHN_FAIL" -> "请再次确认卡号。";
             case "SELECT_BRAND" -> "请选择卡品牌。";
             default -> k;
         };
@@ -153,6 +157,7 @@ public final class PayCardPolicyI18n {
             case "AMEX_LEN" -> "American Express ต้องมี 15 หลัก";
             case "CARD_LEN" -> "หมายเลขบัตรต้องมี {0} หลัก";
             case "INVALID_PAN" -> "กรุณาตรวจสอบหมายเลขบัตร";
+            case "LUHN_FAIL" -> "กรุณาตรวจสอบหมายเลขบัตรอีกครั้ง";
             case "SELECT_BRAND" -> "กรุณาเลือกแบรนด์บัตร";
             default -> k;
         };

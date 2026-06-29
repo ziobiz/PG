@@ -139,6 +139,12 @@
       CH: '按日查询',
       TH: 'ค้นหารายวัน'
     },
+    '결제개요': {
+      EN: 'Payment overview',
+      JP: '決済概要',
+      CH: '支付概览',
+      TH: 'ภาพรวมการชำระ'
+    },
     '목록 표시 시간대 안내': {
       EN: 'Temporarily changes transaction date/time display for this list only. HQ settings and DB are unchanged.',
       JP: 'この一覧の取引日・時刻表示のみ一時変更します。本社設定・DBは変わりません。',
@@ -2685,6 +2691,18 @@
       JP: '警告メッセージ文言',
       CH: '警告信息文案',
       TH: 'ข้อความเตือน'
+    },
+    '배송주소': {
+      EN: 'Shipping address',
+      JP: '配送先',
+      CH: '配送地址',
+      TH: 'ที่อยู่จัดส่ง'
+    },
+    '배송주소 사용 시 URL·JPAY 결제창(jpay-pay.html)에 배송 주소(주소·도시·우편번호) 입력란을 표시합니다. 기본은 미사용입니다.': {
+      EN: 'When enabled, shows shipping address fields (address, city, postcode) on URL/JPAY checkout (jpay-pay.html). Default: off.',
+      JP: '使用時は URL·JPAY 決済画面(jpay-pay.html)に配送先（住所・市区・郵便番号）を表示。既定は未使用。',
+      CH: '启用时在 URL/JPAY 支付页(jpay-pay.html)显示配送地址（地址·城市·邮编）。默认关闭。',
+      TH: 'เมื่อเปิดใช้ แสดงที่อยู่จัดส่งบนหน้า URL/JPAY (jpay-pay.html) ค่าเริ่มต้น: ปิด'
     },
     '기본(3DS 안전 결제)': {
       EN: 'Default (3DS secure payment)',
@@ -5897,7 +5915,7 @@
     '예정': { EN: 'Sched.', JP: '予定', CH: '预计', TH: 'กำหนด' },
     'D시각': { EN: 'D time', JP: 'D時刻', CH: 'D 时刻', TH: 'เวลา D' },
     '사용': { EN: 'Active', JP: '使用', CH: '使用', TH: 'ใช้งาน' },
-    '미사용': { EN: 'Inactive', JP: '未使用', CH: '未使用', TH: 'ไม่ใช้งาน' },
+    '미사용': { EN: 'Disabled', JP: '未使用', CH: '未使用', TH: 'ไม่ใช้' },
     '등록일': { EN: 'Registered', JP: '登録日', CH: '注册日期', TH: 'วันที่ลงทะเบียน' },
     '등록일자': { EN: 'Registered date', JP: '登録日付', CH: '注册日期', TH: 'วันที่ลงทะเบียน' },
     '수정일자': { EN: 'Last updated', JP: '更新日時', CH: '修改日期时间', TH: 'วันที่แก้ไข' },
@@ -8781,6 +8799,54 @@
       CH: 'JPAY 整合明细（同步期间）',
       TH: 'รายการรวม JPAY (ช่วงซิงค์)'
     },
+    'JPAY 포털 로그인 계정은 <strong>본사설정 &gt; 결제대행사로직</strong>에서 총판(MASTER_DIST)별로 등록합니다. 아래는 동기화·스케줄 설정입니다. 캐시가 비어 있을 때만 「초기화 동기화(개월)」만큼 과거를 한 번에 받습니다. 이후 증분 동기화는 해당 일자 구간만 교체하고 과거 캐시는 유지합니다.': {
+      EN: 'Register JPAY portal login accounts per MASTER_DIST under <strong>HQ settings &gt; Payment acquirer logic</strong>. Below are sync and schedule settings. When cache is empty, the init sync (months) range is fetched once. Incremental sync replaces only the date range involved; older cache is kept.',
+      JP: 'JPAYポータルログインは<strong>本社設定 &gt; 決済代行ロジック</strong>で総販(MASTER_DIST)別に登録します。以下は同期・スケジュール設定です。キャッシュが空のときのみ「初期化同期(月)」分の過去を一括取得します。以降の増分同期は該当日付区間のみ置換し、過去キャッシュは維持します。',
+      CH: 'JPAY 门户登录账户在<strong>总部设置 &gt; 支付机构逻辑</strong>按总代(MASTER_DIST)注册。下方为同步与计划设置。仅当缓存为空时一次性拉取「初始化同步(月)」范围的 past 数据。之后增量同步只替换对应日期区间，保留更早缓存。',
+      TH: 'ลงทะเบียนบัญชีล็อกอินพอร์ทัล JPAY ต่อ MASTER_DIST ที่ <strong>ตั้งค่า HQ &gt; ตรรกะผู้ให้บริการชำระ</strong> ด้านล่างตั้งค่าซิงค์และตาราง เมื่อแคชว่างจะดึงช่วง「ซิงค์เริ่มต้น(เดือน)」ครั้งเดียว ซิงค์เพิ่มจะแทนที่เฉพาะช่วงวันที่นั้น เก็บแคชเก่าไว้'
+    },
+    'JPAY 초기화 동기화(개월)': {
+      EN: 'JPAY init sync (months)',
+      JP: 'JPAY初期化同期(月)',
+      CH: 'JPAY 初始化同步(月)',
+      TH: 'ซิงค์เริ่มต้น JPAY (เดือน)'
+    },
+    'JPAY 조회 기본 범위(일)': {
+      EN: 'JPAY default query range (days)',
+      JP: 'JPAY照会デフォルト範囲(日)',
+      CH: 'JPAY 查询默认范围(天)',
+      TH: 'ช่วงค้นหา JPAY เริ่มต้น (วัน)'
+    },
+    '기본 3(캐시 최초 적재)': {
+      EN: 'Default 3 (initial cache load)',
+      JP: '既定 3（キャッシュ初回）',
+      CH: '默认 3（首次缓存）',
+      TH: 'ค่าเริ่มต้น 3 (โหลดแคชครั้งแรก)'
+    },
+    '기본 7(목록 조회용)': {
+      EN: 'Default 7 (list query)',
+      JP: '既定 7（一覧照会用）',
+      CH: '默认 7（列表查询）',
+      TH: 'ค่าเริ่มต้น 7 (สำหรับรายการ)'
+    },
+    'JPAY 기본 동기화 (00:00)': {
+      EN: 'JPAY default sync (00:00)',
+      JP: 'JPAY基本同期 (00:00)',
+      CH: 'JPAY 默认同步 (00:00)',
+      TH: 'ซิงค์ JPAY เริ่มต้น (00:00)'
+    },
+    '스케줄과 별도로 매일 00:00(전산 타임존)에 1회 실행됩니다. 어제·오늘 2일 구간만 포털에서 받아 캐시 해당 구간을 교체합니다(과거 데이터 유지).': {
+      EN: 'Runs once daily at 00:00 (ledger timezone), separate from the schedule. Fetches yesterday and today (2 days) from the portal and replaces that cache slice (older data kept).',
+      JP: 'スケジュールとは別に毎日00:00(全算タイムゾーン)に1回実行。昨日・今日の2日分のみポータルから取得し該当キャッシュを置換(過去データは維持)。',
+      CH: '与计划无关，每天在 00:00（账务时区）执行一次。从门户拉取昨天与今天共 2 天并替换对应缓存（保留更早数据）。',
+      TH: 'แยกจากตาราง รันวันละครั้งเวลา 00:00 (เขตเวลาบัญชี) ดึงเมื่อวาน·วันนี้ 2 วันจากพอร์ทัลและแทนที่แคชช่วงนั้น (เก็บข้อมูลเก่า)'
+    },
+    '설정한 주기마다 서버가 JPAY 포털 Export 증분 동기화를 자동 실행합니다. <strong>당일 스케줄 1회</strong>는 어제·오늘 2일, <strong>당일 스케줄 2회째부터</strong>는 당일만 포털에서 받아 해당 일자만 캐시에서 교체합니다. 매일 00:00에는 스케줄과 별도로 어제·오늘 2일 기본 동기화가 1회 실행됩니다. 진행 중인 동기화가 있으면 다음 주기까지 건너뜁니다.': {
+      EN: 'The server runs JPAY portal Export incremental sync at the configured interval. On the <strong>first scheduled run of the day</strong>, yesterday and today (2 days) are fetched; from the <strong>second run onward</strong>, only today replaces that date in cache. A separate default 2-day sync also runs daily at 00:00. Skips the tick if a sync is already running.',
+      JP: '設定周期ごとにサーバーがJPAYポータルExport増分同期を自動実行。<strong>当日スケジュール1回目</strong>は昨日・今日の2日、<strong>2回目以降</strong>は当日のみ該当日をキャッシュ置換。毎日00:00には別途2日基本同期が1回実行。同期実行中は次周期までスキップ。',
+      CH: '服务器按设定周期自动执行 JPAY 门户 Export 增量同步。<strong>当日第 1 次计划</strong>拉取昨天与今天 2 天；<strong>第 2 次起</strong>仅拉取当天并替换该日缓存。每天 00:00 另有一次 2 日默认同步。若同步进行中则跳过至下一周期。',
+      TH: 'เซิร์ฟเวอร์ซิงค์ Export พอร์ทัล JPAY ตามรอบที่ตั้ง <strong>รอบแรกของวัน</strong>ดึงเมื่อวาน·วันนี้ 2 วัน <strong>รอบที่ 2 เป็นต้นไป</strong>ดึงเฉพาะวันนี้ ทุก 00:00 มีซิงค์ 2 วันแยกต่างหาก ข้ามรอบถ้ากำลังซิงค์อยู่'
+    },
     'JPAY 포털 로그인 계정은 <strong>본사설정 &gt; 결제대행사로직</strong>에서 총판(MASTER_DIST)별로 등록합니다. 아래는 동기화 기간만 설정합니다. 서버(VPS)에 <code>Node.js</code>·Playwright Chromium이 필요합니다.': {
       EN: 'Register JPAY portal login accounts per MASTER_DIST under <strong>HQ settings &gt; Payment acquirer logic</strong>. Below sets sync period only. Server (VPS) needs <code>Node.js</code> and Playwright Chromium.',
       JP: 'JPAYポータルログインは<strong>本社設定 &gt; 決済代行ロジック</strong>で総販(MASTER_DIST)別に登録します。以下は同期期間のみ。サーバー(VPS)に <code>Node.js</code>・Playwright Chromium が必要です。',
@@ -8792,6 +8858,24 @@
       JP: 'JPAY統合照会スケジュール',
       CH: 'JPAY 整合查询计划',
       TH: 'ตารางซิงค์รายการรวม JPAY'
+    },
+    'JPAY 요청 자동취소': {
+      EN: 'JPAY request auto-cancel',
+      JP: 'JPAYリクエスト自動キャンセル',
+      CH: 'JPAY 请求自动取消',
+      TH: 'ยกเลิกคำขอ JPAY อัตโนมัติ'
+    },
+    '무응답 자동취소': {
+      EN: 'No-response auto-cancel',
+      JP: '無応答自動キャンセル',
+      CH: '无响应自动取消',
+      TH: 'ยกเลิกอัตโนมัติเมื่อไม่มีการตอบกลับ'
+    },
+    'JPAY 결제 <strong>요청(08)</strong> 후 노티·Trade Query 응답이 없을 때, 아래에서 선택한 시간이 지나면 해당 건을 <strong>취소(20)</strong>로 자동 반영합니다. <strong>미사용</strong>이면 요청 상태를 그대로 유지합니다. 서버는 15분마다 대상 건을 JPAY Trade Query로 조회합니다.': {
+      EN: 'When a JPAY payment <strong>request (08)</strong> has no notify or Trade Query response, after the selected time below the row is auto-updated to <strong>cancel (20)</strong>. With <strong>Disabled</strong>, requests stay unchanged. The server checks eligible rows via JPAY Trade Query every 15 minutes.',
+      JP: 'JPAY決済<strong>リクエスト(08)</strong>後にノティ・Trade Query応答がない場合、下で選択した時間経過後に<strong>キャンセル(20)</strong>へ自動反映します。<strong>未使用</strong>の場合はリクエスト状態を維持します。サーバーは15分ごとに対象をJPAY Trade Queryで確認します。',
+      CH: 'JPAY 支付<strong>请求(08)</strong>后若无通知或 Trade Query 响应，超过下方所选时间后自动更新为<strong>取消(20)</strong>。<strong>未使用</strong>则保持请求状态。服务器每 15 分钟通过 JPAY Trade Query 检查目标记录。',
+      TH: 'เมื่อ<strong>คำขอ(08)</strong>ชำระ JPAY ไม่มี notify หรือ Trade Query หลังเวลาที่เลือกด้านล่างจะอัปเดตเป็น<strong>ยกเลิก(20)</strong> อัตโนมัติ <strong>ไม่ใช้</strong>จะคงสถานะคำขอ เซิร์ฟเวอร์ตรวจทุก 15 นาทีด้วย JPAY Trade Query'
     },
     '설정한 주기마다 서버가 JPAY 포털 Export 동기화를 자동 실행합니다(관리자 로그인 없이). 예: 6시간이면 하루 4회(6시간 간격) 실행됩니다. 동기화 기간·포털 계정은 위 카드·결제대행사로직 설정을 따릅니다. 진행 중인 동기화가 있으면 다음 주기까지 건너뜁니다.': {
       EN: 'The server runs JPAY portal Export sync automatically at the configured interval (no admin login). Example: 6 hours = 4 runs per day. Sync period and portal accounts follow the cards above and Payment acquirer logic. Skips the tick if a sync is already running.',
@@ -9010,6 +9094,30 @@
       JP: '通常：保存された表示オプション・JPAY入力モードをそのまま使用。プリセット同期なし。',
       CH: '普通：按已保存的显示选项与 JPAY 字段模式，不同步预设。',
       TH: 'ทั่วไป: ใช้ตัวเลือกแสดงผลและโหมดฟิลด์ JPAY ตามที่บันทึก ไม่ซิงก์พรีเซ็ต'
+    },
+    '입력방식 본사정책 따름 설명': {
+      EN: 'Follow HQ policy: URL checkout (public URL, chatbot, split URL) uses HQ «URL input mode default»; API inline (entry=merchant_api) uses HQ «API input mode default». Merchant direct selection overrides both channels.',
+      JP: '本社ポリシーに従う：URL決済（公開URL・チャットボット・分割URL）は本社「URL入力方式デフォルト」、APIインライン（entry=merchant_api）は本社「API入力方式デフォルト」を適用。加盟店が直接選択した場合は両チャネルで優先。',
+      CH: '遵循总部政策：URL 支付（公开 URL、聊天机器人、分次 URL）用总部「URL 输入方式默认值」；API 内联（entry=merchant_api）用总部「API 输入方式默认值」。商户直接选择时两通道均以商户值为准。',
+      TH: 'ตามนโยบาย HQ: ชำระ URL (URL สาธารณะ/แชทบอท/แบ่งงวด) ใช้ค่าเริ่มต้น「โหมดป้อน URL» ของ HQ; API inline (entry=merchant_api) ใช้ค่าเริ่มต้น「โหมดป้อน API» ของ HQ หากร้านเลือกเองจะมี priority ทั้งสองช่องทาง'
+    },
+    'URL 입력방식 기본값': {
+      EN: 'URL input mode default',
+      JP: 'URL入力方式デフォルト',
+      CH: 'URL 输入方式默认值',
+      TH: 'ค่าเริ่มต้นโหมดป้อน URL'
+    },
+    'API 입력방식 기본값': {
+      EN: 'API input mode default',
+      JP: 'API入力方式デフォルト',
+      CH: 'API 输入方式默认值',
+      TH: 'ค่าเริ่มต้นโหมดป้อน API'
+    },
+    '모바일 결제창·입력방식은 가맹 「본사정책 따름」일 때 채널별로 적용됩니다. URL=공개 URL·챗봇·분할 URL, API=가맹 API 인라인(entry=merchant_api). 가맹에서 타입을 직접 고르면 URL·API 모두 그 값이 우선합니다.': {
+      EN: 'Mobile checkout and input mode apply per channel when merchant selects «Follow HQ policy». URL = public URL, chatbot, split URL; API = merchant API inline (entry=merchant_api). If merchant picks a type directly, that value wins for both URL and API.',
+      JP: 'モバイル決済画面・入力方式は加盟店が「本社ポリシーに従う」のときチャネル別に適用。URL=公開URL・チャットボット・分割URL、API=加盟店APIインライン(entry=merchant_api)。加盟店がタイプを直接選ぶとURL・APIともその値が優先。',
+      CH: '商户选「遵循总部政策」时，移动收银台与输入方式按通道应用。URL=公开 URL、聊天机器人、分次 URL；API=商户 API 内联(entry=merchant_api)。商户直接选类型则 URL·API 均以该值为准。',
+      TH: 'เมื่อร้านเลือก「ตามนโยบาย HQ» หน้าชำระมือถือ·โหมดป้อนใช้ตามช่องทาง URL=URL สาธารณะ/แชทบอท/แบ่งงวด API=inline API ร้าน(entry=merchant_api) หากร้านเลือกประเภทเอง ค่านั้นมี priority ทั้ง URL และ API'
     },
     '입력방식 AA 타입 설명': {
       EN: 'Type AA: Type AE + language menu active only.',
@@ -14379,11 +14487,11 @@
       CH: 'WordPress JPAY 插件 ZIP — 默认 inline；redirect 需 HQ REDIRECT Y',
       TH: 'WordPress JPAY plugin ZIP — inline ค่าเริ่มต้น redirect ต้อง HQ REDIRECT Y'
     },
-    '리다이렉트 checkout API — returnUrl/cancelUrl HTTPS 필수': {
-      EN: 'Redirect checkout API — HTTPS returnUrl/cancelUrl required',
-      JP: 'リダイレクト checkout API — returnUrl/cancelUrl は HTTPS 必須',
-      CH: '重定向 checkout API — returnUrl/cancelUrl 须 HTTPS',
-      TH: 'Redirect checkout API — ต้อง returnUrl/cancelUrl แบบ HTTPS'
+    '리다이렉트 checkout API — buyer 필수, returnUrl/cancelUrl body 금지(NOTI Result)': {
+      EN: 'Redirect checkout API — buyer required; no returnUrl/cancelUrl in body (NOTI Result)',
+      JP: 'リダイレクト checkout API — buyer 必須、returnUrl/cancelUrl body 禁止(NOTI Result)',
+      CH: '重定向 checkout API — buyer 必填，body 禁止 returnUrl/cancelUrl(NOTI Result)',
+      TH: 'Redirect checkout API — ต้องมี buyer ห้าม returnUrl/cancelUrl ใน body (NOTI Result)'
     },
     '결제 통보 (Webhook) 안내': {
       EN: 'Payment notify (webhook) guide',
@@ -16492,6 +16600,36 @@
       CH: '总部默认',
       TH: 'ค่าเริ่ม HQ'
     },
+    '모바일 결제창': {
+      EN: 'Mobile checkout',
+      JP: 'モバイル決済画面',
+      CH: '移动端结账',
+      TH: 'ชำระเงินมือถือ'
+    },
+    'iframe (3DS 상위 이동)': {
+      EN: 'iframe (3DS top breakout)',
+      JP: 'iframe (3DS 親ウィンドウ遷移)',
+      CH: 'iframe（3DS 顶层跳转）',
+      TH: 'iframe (3DS ไปหน้าต่างบน)'
+    },
+    '모바일 전체 페이지': {
+      EN: 'Mobile full page',
+      JP: 'モバイル全画面',
+      CH: '移动端全页',
+      TH: 'มือถือเต็มหน้า'
+    },
+    '항상 전체 페이지': {
+      EN: 'Always full page',
+      JP: '常に全画面',
+      CH: '始终全页',
+      TH: 'เต็มหน้าเสมอ'
+    },
+    'embed·API 인라인·URL·챗봇 결제창 동작. 기본(EMBED)은 iframe 유지 + 3DS 시 최상위 창 이동. MOBILE_REDIRECT/ALWAYS_REDIRECT 는 payUrl 전체 페이지(모바일 3DS 권장).': {
+      EN: 'Embed/API inline/URL/chatbot checkout. Default EMBED keeps iframe + 3DS top breakout. MOBILE_REDIRECT/ALWAYS_REDIRECT use full-page payUrl (recommended for mobile 3DS).',
+      JP: 'embed·APIインライン·URL·チャットボット決済画面。既定EMBEDはiframe維持+3DS時親ウィンドウ遷移。MOBILE_REDIRECT/ALWAYS_REDIRECTはpayUrl全画面（モバイル3DS推奨）。',
+      CH: 'embed/API 内联/URL/聊天机器人结账。默认 EMBED 保持 iframe，3DS 时顶层跳转。MOBILE_REDIRECT/ALWAYS_REDIRECT 使用 payUrl 全页（推荐移动端 3DS）。',
+      TH: 'embed/API inline/URL/chatbot ชำระเงิน ค่าเริ่ม EMBED คง iframe + 3DS ไปหน้าต่างบน MOBILE_REDIRECT/ALWAYS_REDIRECT ใช้ payUrl เต็มหน้า (แนะนำ 3DS มือถือ)'
+    },
     '저장되었습니다.': {
       EN: 'Saved.',
       JP: '保存しました。',
@@ -17321,6 +17459,18 @@
       EN: 'Remaining registration slots', JP: '残り登録スロット', CH: '剩余注册名额', TH: 'สล็อตลงทะเบียนคงเหลือ'
     },
     '챗봇결제': { EN: 'Chatbot payment', JP: 'チャットボット決済', CH: '聊天机器人支付', TH: 'ชำระแชทบอท' },
+    '챗봇결제 사용여부': {
+      EN: 'Chatbot payment in use',
+      JP: 'チャットボット決済の使用可否',
+      CH: '聊天机器人支付使用状态',
+      TH: 'การใช้งานชำระแชทบอท'
+    },
+    '챗봇결제 URL': {
+      EN: 'Chatbot payment URL',
+      JP: 'チャットボット決済URL',
+      CH: '聊天机器人支付 URL',
+      TH: 'URL ชำระแชทบอท'
+    },
     '고객 챗봇 문의 시 참고되는 안내입니다. 아래 비우면 1~5는 업체등록 정보와 동일하게 안내됩니다.': {
       EN: 'Guidance referenced when customers inquire via chatbot. If fields 1–5 below are empty, registration info is used instead.',
       JP: '顧客チャットボット問い合わせ時に参照される案内です。下を空にすると1~5は加盟店登録情報と同じ案内になります。',
@@ -18500,6 +18650,18 @@
       JP: '上の日付行をダブルクリックしてください。',
       CH: '请双击上方的日期行。',
       TH: 'ดับเบิลคลิกแถววันที่ด้านบน'
+    },
+    '위에서 JPAY 또는 ICOPAY 행을 더블클릭하세요.': {
+      EN: 'Double-click a JPAY or ICOPAY row above.',
+      JP: '上の JPAY または ICOPAY 行をダブルクリックしてください。',
+      CH: '请双击上方的 JPAY 或 ICOPAY 行。',
+      TH: 'ดับเบิลคลิกแถว JPAY หรือ ICOPAY ด้านบน'
+    },
+    '헬로 사용 시 VIEW SETTING 왼쪽에는 선택한 열이 아래 우선순위 순으로 표시됩니다. 오른쪽에서 추가 열을 선택할 수 있습니다.': {
+      EN: 'With Hello on, selected columns appear on the left in priority order below. Pick additional columns on the right.',
+      JP: 'Hello 使用時、VIEW SETTING 左側に選択列が下記の優先順で表示されます。右側で列を追加選択できます。',
+      CH: '启用 Hello 时，VIEW SETTING 左侧按下列优先顺序显示已选列，可在右侧勾选更多列。',
+      TH: 'เมื่อเปิด Hello คอลัมน์ที่เลือกจะอยู่ซ้ายตามลำดับความสำคัญด้านล่าง เลือกคอลัมน์เพิ่มได้ทางขวา'
     },
     '검증 리포트': { EN: 'Verify report', JP: '検証レポート', CH: '验证报表', TH: 'รายงานตรวจสอบ' },
     '비활성카드등록': { EN: 'Inactive card register', JP: '非活性カード登録', CH: '非活跃卡登记', TH: 'ลงทะเบียนบัตรปิดใช้' },

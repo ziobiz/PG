@@ -33,6 +33,57 @@
     return brand === 'AMEX' ? 15 : 16;
   }
 
+  /** AMEX 4-6-5, 그 외 4-4-4-4 */
+  function panFormatGroups(brand, pan) {
+    var b = String(brand || '').toUpperCase();
+    if (b === 'AUTO' || b === 'UNKNOWN') b = detectBrand(pan);
+    if (b === 'AMEX' || detectBrand(pan) === 'AMEX') {
+      return [4, 6, 5];
+    }
+    return [4, 4, 4, 4];
+  }
+
+  function formatPanWithDashes(pan, brand) {
+    if (!pan) return '';
+    var groups = panFormatGroups(brand, pan);
+    var parts = [];
+    var idx = 0;
+    for (var g = 0; g < groups.length; g++) {
+      if (idx >= pan.length) break;
+      var take = Math.min(groups[g], pan.length - idx);
+      parts.push(pan.substring(idx, idx + take));
+      idx += take;
+    }
+    return parts.join('-');
+  }
+
+  function maxFormattedPanLength(brand, pan) {
+    var groups = panFormatGroups(brand, pan);
+    var digits = 0;
+    for (var i = 0; i < groups.length; i++) digits += groups[i];
+    return digits + Math.max(0, groups.length - 1);
+  }
+
+  function cursorPosForDigitIndex(formatted, digitIndex) {
+    if (digitIndex <= 0) return 0;
+    var seen = 0;
+    for (var i = 0; i < formatted.length; i++) {
+      var c = formatted.charAt(i);
+      if (c >= '0' && c <= '9') {
+        seen++;
+        if (seen >= digitIndex) return i + 1;
+      }
+    }
+    return formatted.length;
+  }
+
+  function resolvePanBrand(brand, pan) {
+    var b = String(brand || 'AUTO').toUpperCase();
+    if (b === 'AUTO' || b === 'UNKNOWN') b = detectBrand(pan);
+    if (detectBrand(pan) === 'AMEX') return 'AMEX';
+    return b;
+  }
+
   function langKey(lang) {
     var u = String(lang || 'KO').toUpperCase();
     if (u === 'ENG' || u.indexOf('EN') === 0) return 'EN';
@@ -92,6 +143,23 @@
     return key;
   }
 
+  function luhnValid(pan) {
+    if (!pan || pan.length < 13) return false;
+    var sum = 0;
+    var shouldDouble = false;
+    for (var i = pan.length - 1; i >= 0; i--) {
+      var digit = parseInt(pan.charAt(i), 10);
+      if (isNaN(digit)) return false;
+      if (shouldDouble) {
+        digit *= 2;
+        if (digit > 9) digit -= 9;
+      }
+      sum += digit;
+      shouldDouble = !shouldDouble;
+    }
+    return sum % 10 === 0;
+  }
+
   function validate(policy, panRaw, selectedBrand, lang) {
     if (!policy) return { valid: true };
     var pan = digitsOnly(panRaw);
@@ -125,16 +193,44 @@
       var k = brand === 'AMEX' || detected === 'AMEX' ? 'AMEX_LEN' : 'CARD_LEN';
       return { valid: false, message: msg(policy, k, lang, exp), errorCode: k, messageKey: k, arg0: exp };
     }
+    if (pan.length === exp && !luhnValid(pan)) {
+      return { valid: false, message: msg(policy, 'LUHN_FAIL', lang), errorCode: 'LUHN_FAIL', messageKey: 'LUHN_FAIL' };
+    }
     return { valid: true, brand: brand, expectedLength: exp };
   }
 
   function formatPanInput(input, brand) {
     if (!input) return;
-    var pan = digitsOnly(input.value);
-    var max = expectedLen(brand && brand !== 'AUTO' && brand !== 'UNKNOWN' ? brand : detectBrand(pan));
+    var raw = input.value;
+    var selStart = input.selectionStart != null ? input.selectionStart : raw.length;
+    var digitsBeforeCursor = digitsOnly(raw.substring(0, selStart)).length;
+    var pan = digitsOnly(raw);
+    var resolvedBrand = resolvePanBrand(brand, pan);
+    var max = expectedLen(resolvedBrand === 'UNKNOWN' ? detectBrand(pan) : resolvedBrand);
     if (pan.length > max) pan = pan.substring(0, max);
-    input.value = pan;
-    input.maxLength = max + 4;
+    var formatted = formatPanWithDashes(pan, resolvedBrand);
+    input.value = formatted;
+    input.maxLength = maxFormattedPanLength(resolvedBrand, pan);
+    if (input.setSelectionRange) {
+      try {
+        var newPos = cursorPosForDigitIndex(formatted, digitsBeforeCursor);
+        input.setSelectionRange(newPos, newPos);
+      } catch (eSel) { /* ignore */ }
+    }
+  }
+
+  /** 카드번호 입력란 — 브랜드별 하이픈 자동 삽입 (정책 init 없이 단독 사용 가능) */
+  function attachPanFormatter(panInput, getBrandFn) {
+    if (!panInput) return;
+    function onFormat() {
+      var brand = typeof getBrandFn === 'function' ? getBrandFn() : 'AUTO';
+      formatPanInput(panInput, brand);
+    }
+    panInput.addEventListener('input', onFormat);
+    panInput.addEventListener('paste', function () {
+      setTimeout(onFormat, 0);
+    });
+    onFormat();
   }
 
   function brandOptionLabel(brand) {
@@ -356,6 +452,9 @@
           var k = (b === 'AMEX' || detectBrand(pan) === 'AMEX') ? 'AMEX_LEN' : 'CARD_LEN';
           return { valid: false, message: msg(policy, k, curLang, exp), errorCode: k, messageKey: k, arg0: exp };
         }
+        if (!luhnValid(pan)) {
+          return { valid: false, message: msg(policy, 'LUHN_FAIL', curLang), errorCode: 'LUHN_FAIL', messageKey: 'LUHN_FAIL' };
+        }
         if (lastServerBlock && lastServerBlock.valid === false) {
           return {
             valid: false,
@@ -378,8 +477,12 @@
   global.PG_CARD_PAY_POLICY = {
     init: init,
     validate: validate,
+    luhnValid: luhnValid,
     detectBrand: detectBrand,
     digitsOnly: digitsOnly,
+    formatPanWithDashes: formatPanWithDashes,
+    formatPanInput: formatPanInput,
+    attachPanFormatter: attachPanFormatter,
     syncBrandSelectOptions: syncBrandSelectOptions,
     brandOptionLabel: brandOptionLabel
   };

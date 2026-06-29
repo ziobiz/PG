@@ -3,6 +3,8 @@ package com.pg.urlpay;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.pg.util.PayerCountryIso2Util;
+
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -84,9 +86,6 @@ public final class JpayBuyerPrefillUtil {
     }
 
     public static String canonicalCountryIso2(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return "";
-        }
-        return raw.trim().toUpperCase(Locale.ROOT);
+        return PayerCountryIso2Util.normalize(raw);
     }
 }

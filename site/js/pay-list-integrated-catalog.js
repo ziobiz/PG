@@ -5,20 +5,32 @@
  */
 (function (w) {
   'use strict';
+  /** 결제내역·결제개요 등 — VIEW SETTING·그리드에서 숨김(수수료내역 /calc/feeList 전용) */
+  var PAY_LIST_FEE_VIEW_HIDDEN_KEYS = ['chillFeeAmt', 'feeCnt', 'feeRate'];
+  /** 동일 데이터·동일 의미 중복 열 — VIEW SETTING·조직항목설정에서 제외 */
+  var PAY_LIST_DUPLICATE_VIEW_HIDDEN_KEYS = [
+    'cardAprvNo', 'displayPayCur', 'displayPayAmt', 'customerNm', 'corpNm', 'payAprv', 'pgApproveAmt'
+  ];
+  w.PG_PAY_LIST_FEE_VIEW_HIDDEN_KEYS = PAY_LIST_FEE_VIEW_HIDDEN_KEYS.slice();
+  w.PG_PAY_LIST_DUPLICATE_VIEW_HIDDEN_KEYS = PAY_LIST_DUPLICATE_VIEW_HIDDEN_KEYS.slice();
+
   w.PG_PAY_LIST_INTEGRATED = {
     /** VIEW SETTING 체크 목록에서 제외되는 고정열 (renderTableColumnGuide) */
-    columnGuideFixedKeys: ['rowNo', 'compId', 'compNm', 'compDivNm', 'trnDate', 'trnTime', 'routeNo'],
+    columnGuideFixedKeys: ['rowNo', 'compId', 'compNm', 'compDivNm', 'trnDate', 'trnTime'],
+    /** VIEW SETTING·조직항목설정·그리드 토글에서 제외(수수료내역 화면만 수수료 열 사용) */
+    columnGuideHiddenKeys: PAY_LIST_FEE_VIEW_HIDDEN_KEYS.concat(PAY_LIST_DUPLICATE_VIEW_HIDDEN_KEYS),
     /**
      * 저장 전·초기화 시 결제관리 통합 그리드 VIEW SETTING 기본 체크(고정열 제외).
-     * 목록에 없는 열은 제거하지 않으며 체크만 꺼진 상태로 둡니다.
+     * 헬로 우선순위(viewSettingHelloPriorityKeys)와 동일 — 승인번호·거래번호·주문번호·정산주기·고객·통화·결제금액·카드번호·상태·후속조치.
      */
     viewSettingDefaultSelectedKeys: [
-      'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel',
-      'payCompletedAt', 'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'currency',
-      'payCustomerIndicator', 'displayPaySummary', 'displayPayCur', 'displayPayAmt',
-      'regionalBaseCur', 'masterDistBaseCur', 'merchantBaseCur',
-      'chillPaymentStatus', 'outcomeReasonPreview', 'settledYn', 'payDivNm', 'cardAprvNo', 'productNm', 'customerNm',
-      'payActions', 'payRemark'
+      'chillTransactionId', 'trnId', 'orderNo', 'calcCycle', 'chillCustomer',
+      'currency', 'chillAmount', 'payCardNo', 'chillPaymentStatus', 'payActions'
+    ],
+    /** 헬로 활성화 시 VIEW SETTING·그리드 토글 열 우선 순서(거래시간 등 고정열은 그 앞에 항상 표시) */
+    viewSettingHelloPriorityKeys: [
+      'chillTransactionId', 'trnId', 'orderNo', 'calcCycle', 'chillCustomer',
+      'currency', 'chillAmount', 'payCardNo', 'chillPaymentStatus', 'payActions'
     ],
     /**
      * 조직항목설정: 조직 유형별 허용 열 체크의 기본안(REGIONAL 은 런타임에서 전체 토글열로 확장).
@@ -27,44 +39,41 @@
     orgAllowanceDefaultKeysByScope: {
       REGIONAL: null,
       MASTER_DIST: [
-        'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel', 'payCompletedAt',
-        'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'currency',
-        'payCustomerIndicator', 'displayPaySummary', 'displayPayCur', 'displayPayAmt',
+        'routeNo', 'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel', 'payCompletedAt',
+        'chillAmount', 'icopayAmt', 'totalAmt', 'currency',
+        'payCustomerIndicator', 'displayPaySummary',
         'regionalBaseCur', 'masterDistBaseCur', 'merchantBaseCur',
         'chillPaymentStatus', 'outcomeReasonPreview', 'settledYn',
-        'payDivNm', 'cardAprvNo', 'productNm', 'customerNm', 'customerEmail', 'customerTel', 'regionalNm', 'masterNm', 'branchNm',
-        'compRegNo', 'payCard', 'instalMonth', 'payMethod', 'pgNm', 'pgApproveAmt', 'payAprv',
-        'holdAmt', 'holdDttm', 'feeCnt', 'feeRate', 'settleAmt', 'calcDt', 'pgApproveNo', 'corpNm', 'terminalId', 'calcCycle',
+        'payDivNm', 'productNm', 'customerEmail', 'customerTel', 'regionalNm', 'masterNm', 'branchNm',
+        'compRegNo', 'payCard', 'instalMonth', 'payMethod', 'pgNm', 'pgApproveNo',
+        'holdAmt', 'holdDttm', 'settleAmt', 'calcDt', 'terminalId', 'calcCycle',
         'payCardNo', 'payActions', 'payRemark'
       ],
       BRANCH_GROUP: [
-        'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel', 'payCompletedAt',
-        'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'currency',
-        'payCustomerIndicator', 'displayPaySummary', 'displayPayCur', 'displayPayAmt',
+        'routeNo', 'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel', 'payCompletedAt',
+        'chillAmount', 'icopayAmt', 'totalAmt', 'currency',
+        'payCustomerIndicator', 'displayPaySummary',
         'regionalBaseCur', 'masterDistBaseCur', 'merchantBaseCur',
         'chillPaymentStatus', 'outcomeReasonPreview', 'settledYn',
-        'payDivNm', 'cardAprvNo', 'productNm', 'customerNm', 'customerEmail', 'customerTel', 'regionalNm', 'masterNm', 'branchNm',
-        'compRegNo', 'payMethod', 'pgNm', 'pgApproveAmt', 'payAprv', 'holdAmt', 'holdDttm', 'feeCnt', 'feeRate',
-        'settleAmt', 'calcDt', 'pgApproveNo'
+        'payDivNm', 'productNm', 'customerEmail', 'customerTel', 'regionalNm', 'masterNm', 'branchNm',
+        'compRegNo', 'payMethod', 'pgNm', 'pgApproveNo', 'holdAmt', 'holdDttm',
+        'settleAmt', 'calcDt'
       ],
       MERCHANT: [
-        'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel', 'payCompletedAt',
-        'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'currency',
-        'payCustomerIndicator', 'displayPaySummary', 'displayPayCur', 'displayPayAmt',
+        'routeNo', 'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel', 'payCompletedAt',
+        'chillAmount', 'icopayAmt', 'totalAmt', 'currency',
+        'payCustomerIndicator', 'displayPaySummary',
         'regionalBaseCur', 'masterDistBaseCur', 'merchantBaseCur',
         'chillPaymentStatus', 'outcomeReasonPreview', 'settledYn',
-        'payDivNm', 'cardAprvNo', 'productNm', 'customerNm', 'payActions', 'payRemark'
+        'payDivNm', 'productNm', 'payActions', 'payRemark'
       ]
     },
     headerGroups: [
       { label: '사업자번호', keys: ['compRegNo'] },
-      { label: 'PG승인', keys: ['pgApproveAmt', 'payAprv'] },
+      { label: 'PG승인', keys: ['pgApproveNo'] },
       { label: '보류', keys: ['holdAmt', 'holdDttm'] },
-      { label: '수수료', keys: ['feeCnt', 'feeRate'] },
       { label: '고객표시', keys: ['payCustomerIndicator'] },
-      { label: '입력통화', keys: ['displayPaySummary'] },
-      { label: '고객통화', keys: ['displayPayCur'] },
-      { label: '고객금액', keys: ['displayPayAmt'] }
+      { label: '입력통화', keys: ['displayPaySummary'] }
     ],
     /** gridType: 'checkbox' | 'payActions' | 'payRemark', 그 외 일반 열 */
     columns: [
@@ -131,20 +140,18 @@
   /** 통합내역(/calc/chillPayTrList) VIEW SETTING·조직항목설정 기본안 (고정: 번호·TransactionId·업체·거래일·거래시간·Route) */
   w.PG_CHILL_PAY_TR_VIEW_DEFAULTS = {
     viewSettingDefaultSelectedKeys: [
-      'merchant', 'customer', 'orderNo', 'paymentChannel',
+      'routeNo', 'merchant', 'customer', 'orderNo', 'paymentChannel',
       'payCompletedAt', 'amount', 'fee', 'totalAmount', 'currency', 'status', 'settled', 'icopay'
     ],
     orgAllowanceDefaultKeysByScope: {
       REGIONAL: null,
       MASTER_DIST: [
-        'merchant', 'customer', 'orderNo', 'paymentChannel', 'payCompletedAt',
-        'amount', 'refundAmount', 'fee', 'discount', 'totalAmount', 'currency', 'status', 'settled', 'icopay', 'description',
-        'transactionDate', 'paymentDate'
+        'routeNo', 'merchant', 'customer', 'orderNo', 'paymentChannel', 'payCompletedAt',
+        'amount', 'refundAmount', 'fee', 'discount', 'totalAmount', 'currency', 'status', 'settled', 'icopay', 'description'
       ],
       BRANCH_GROUP: [
-        'merchant', 'customer', 'orderNo', 'paymentChannel', 'payCompletedAt',
-        'amount', 'fee', 'totalAmount', 'currency', 'status', 'settled', 'icopay', 'refundAmount',
-        'transactionDate', 'paymentDate'
+        'routeNo', 'merchant', 'customer', 'orderNo', 'paymentChannel', 'payCompletedAt',
+        'amount', 'fee', 'totalAmount', 'currency', 'status', 'settled', 'icopay', 'refundAmount'
       ],
       MERCHANT: [
         'merchant', 'customer', 'orderNo', 'paymentChannel', 'payCompletedAt',
@@ -173,14 +180,12 @@
       MASTER_DIST: [
         'transactionId', 'trnDate', 'trnTime', 'routeNo', 'merchant', 'customer', 'orderNo', 'paymentChannel', 'payCompletedAt',
         'settleAmount', 'netAmount', 'settled', 'transferDate', 'icopayExpectedSettleAt', 'cutOffTime', 'exchangeRate', 'serviceAmount', 'serviceVAT', 'serviceWHT',
-        'amount', 'refundAmount', 'fee', 'discount', 'totalAmount', 'icopay', 'currency', 'status', 'description',
-        'transactionDate', 'paymentDate'
+        'amount', 'fee', 'currency', 'status', 'icopay', 'description'
       ],
       BRANCH_GROUP: [
         'transactionId', 'trnDate', 'trnTime', 'routeNo', 'merchant', 'customer', 'orderNo', 'paymentChannel', 'payCompletedAt',
         'settleAmount', 'netAmount', 'settled', 'transferDate', 'icopayExpectedSettleAt', 'cutOffTime', 'exchangeRate', 'serviceAmount', 'serviceVAT', 'serviceWHT',
-        'amount', 'refundAmount', 'fee', 'discount', 'totalAmount', 'icopay', 'currency', 'status', 'description',
-        'transactionDate', 'paymentDate'
+        'amount', 'refundAmount', 'fee', 'discount', 'totalAmount', 'icopay', 'currency', 'status', 'description'
       ],
       MERCHANT: [
         'transactionId', 'trnDate', 'trnTime', 'routeNo', 'merchant', 'customer', 'orderNo', 'paymentChannel', 'payCompletedAt',

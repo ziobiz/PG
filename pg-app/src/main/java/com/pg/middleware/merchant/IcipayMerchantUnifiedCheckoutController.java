@@ -61,8 +61,10 @@ public class IcipayMerchantUnifiedCheckoutController {
     }
 
     @GetMapping("/session")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> session(@RequestParam("token") String token) {
-        Map<String, Object> result = unifiedCheckoutService.readSession(token);
+    public ResponseEntity<ApiResponse<Map<String, Object>>> session(
+            @RequestParam("token") String token,
+            HttpServletRequest request) {
+        Map<String, Object> result = unifiedCheckoutService.readSession(token, request);
         return MerchantApiResponseMapper.mapServiceResult(result);
     }
 

@@ -10,6 +10,7 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.util.OpsInactiveCardPanRules;
 import com.pg.util.PayCardBrand;
 import com.pg.util.PayCardBrandDetector;
+import com.pg.util.PayCardLuhnUtil;
 import com.pg.util.PayCardMaskKeyUtil;
 import com.pg.util.PayCardPanHashUtil;
 import org.springframework.context.annotation.Lazy;
@@ -113,6 +114,7 @@ public class PayCardPolicyService {
         msg.put("AMEX_LEN", PayCardPolicyI18n.allLang("AMEX_LEN"));
         msg.put("CARD_LEN", PayCardPolicyI18n.allLang("CARD_LEN", "{0}"));
         msg.put("INVALID_PAN", PayCardPolicyI18n.allLang("INVALID_PAN"));
+        msg.put("LUHN_FAIL", PayCardPolicyI18n.allLang("LUHN_FAIL"));
         msg.put("SELECT_BRAND", PayCardPolicyI18n.allLang("SELECT_BRAND"));
         out.put("messages", msg);
         return out;
@@ -193,6 +195,9 @@ public class PayCardPolicyService {
         if (pan.length() >= expected && pan.length() != expected) {
             String key = brand == PayCardBrand.AMEX ? "AMEX_LEN" : "CARD_LEN";
             return fail(key, key, langNorm, expected);
+        }
+        if (pan.length() == expected && !PayCardLuhnUtil.isValidLuhn(pan)) {
+            return fail("LUHN_FAIL", "LUHN_FAIL", langNorm);
         }
 
         Map<String, Object> ok = new LinkedHashMap<>();

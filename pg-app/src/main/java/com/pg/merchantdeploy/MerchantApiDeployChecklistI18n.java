@@ -154,26 +154,26 @@ public final class MerchantApiDeployChecklistI18n {
 
         list.add(textMap(new Bundle(
                 "통합 리다이렉트: POST " + base + "/api/middleware/v1/merchant/checkout/redirect/prepare "
-                        + "(buyer·returnUrl HTTPS·cancelUrl) → data.payUrl 브라우저 이동 → status/웹훅",
+                        + "(buyer 필수, returnUrl/cancelUrl body 금지) → payUrl → NOTI Result·status/웹훅",
                 "Unified redirect: POST " + base + "/api/middleware/v1/merchant/checkout/redirect/prepare "
-                        + "(buyer, HTTPS returnUrl/cancelUrl) → redirect to data.payUrl → status/webhook",
+                        + "(buyer required; no returnUrl/cancelUrl in body) → payUrl → NOTI Result·status/webhook",
                 "統合リダイレクト: POST " + base + "/api/middleware/v1/merchant/checkout/redirect/prepare "
-                        + "（buyer・returnUrl HTTPS）→ data.payUrl へ → status/Webhook",
+                        + "（buyer 必須、returnUrl/cancelUrl body 禁止）→ payUrl → NOTI Result·status/Webhook",
                 "统一重定向: POST " + base + "/api/middleware/v1/merchant/checkout/redirect/prepare "
-                        + "（buyer·HTTPS returnUrl）→ 跳转 data.payUrl → status/webhook",
+                        + "（buyer 必填，body 禁止 returnUrl/cancelUrl）→ payUrl → NOTI Result·status/webhook",
                 "Unified redirect: POST " + base + "/api/middleware/v1/merchant/checkout/redirect/prepare "
-                        + "→ redirect data.payUrl → status/webhook"
+                        + "→ payUrl → NOTI Result·status/webhook"
         )));
 
         list.add(textMap(new Bundle(
                 "JPAY 리다이렉트: POST " + base + "/api/middleware/v1/merchant/jpay/redirect-checkout/prepare "
-                        + "→ payUrl (returnUrl/cancelUrl HTTPS)",
+                        + "→ payUrl (returnUrl body 금지, NOTI Result 경유)",
                 "JPAY redirect: POST " + base + "/api/middleware/v1/merchant/jpay/redirect-checkout/prepare "
-                        + "→ payUrl (HTTPS returnUrl/cancelUrl)",
+                        + "→ payUrl (no returnUrl in body; browser via NOTI Result)",
                 "JPAY リダイレクト: POST " + base + "/api/middleware/v1/merchant/jpay/redirect-checkout/prepare "
-                        + "→ payUrl（returnUrl/cancelUrl HTTPS）",
+                        + "→ payUrl（returnUrl body 禁止・NOTI Result 経由）",
                 "JPAY 重定向: POST " + base + "/api/middleware/v1/merchant/jpay/redirect-checkout/prepare "
-                        + "→ payUrl（HTTPS returnUrl/cancelUrl）",
+                        + "→ payUrl（body 禁止 returnUrl，经 NOTI Result）",
                 "JPAY redirect: POST " + base + "/api/middleware/v1/merchant/jpay/redirect-checkout/prepare → payUrl"
         )));
 
@@ -222,11 +222,11 @@ public final class MerchantApiDeployChecklistI18n {
         )));
 
         list.add(textMap(new Bundle(
-                "returnUrl은 브라우저 복귀용 — 결제 확정은 Webhook 또는 Status API로 서버에서 확인",
-                "returnUrl is browser return only — confirm payment on the server via webhook or Status API",
-                "returnUrl はブラウザ復帰用 — 確定は Webhook または Status API でサーバー確認",
-                "returnUrl 仅浏览器返回 — 请在服务器通过 Webhook 或 Status API 确认",
-                "returnUrl สำหรับเบราว์เซอร์ — ยืนยันที่เซิร์ฟเวอร์ด้วย webhook หรือ Status API"
+                "브라우저 복귀 URL은 prepare body·PG에 넣지 않음 — NOTI Result → 가맹, 확정은 Webhook·Status API",
+                "Do not put browser return URL in prepare body or PG — NOTI Result → merchant; confirm via webhook/Status API",
+                "ブラウザ復帰 URL は prepare/PG に入れない — NOTI Result → 加盟店、確定は Webhook/Status API",
+                "浏览器返回 URL 勿放入 prepare/PG — NOTI Result → 商户，用 Webhook/Status API 确认",
+                "อย่าใส่ URL กลับเบราว์เซอร์ใน prepare/PG — NOTI Result → ร้าน ยืนยันด้วย webhook/Status API"
         )));
 
         return List.copyOf(list);

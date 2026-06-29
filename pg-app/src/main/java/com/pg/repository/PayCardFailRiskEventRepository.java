@@ -30,7 +30,7 @@ public interface PayCardFailRiskEventRepository extends JpaRepository<PayCardFai
                            @Param("orgUnitId") Long orgUnitId,
                            @Param("since") LocalDateTime since);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             DELETE FROM PayCardFailRiskEvent e
             WHERE e.pgVendor = :pg AND e.panHash = :hash
@@ -40,7 +40,7 @@ public interface PayCardFailRiskEventRepository extends JpaRepository<PayCardFai
                           @Param("hash") String hash,
                           @Param("orgUnitId") Long orgUnitId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             DELETE FROM PayCardFailRiskEvent e
             WHERE e.pgVendor = :pg AND e.panHash = :hash

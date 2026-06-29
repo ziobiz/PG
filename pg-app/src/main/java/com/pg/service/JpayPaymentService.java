@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pg.entity.HqApiConfig;
 import com.pg.entity.MerchantPgBinding;
+import com.pg.entity.OrgUnit;
 import com.pg.entity.PgAgency;
 import com.pg.integration.pg.PgVendor;
 import com.pg.middleware.notify.PgNotifyIngressPaths;
@@ -155,6 +156,20 @@ public class JpayPaymentService {
         if (amountBd == null || amountBd.compareTo(BigDecimal.ZERO) <= 0) {
             return failOut("amount는 0보다 커야 합니다.", "INVALID_AMOUNT");
         }
+        String currency = urlPayCheckoutCurrencyService.resolveCheckoutCurrency(orgUnitId, str(body.get("currency")));
+        com.pg.urlpay.PayerContextCapture.enrichSaleBody(body, req, clientIp);
+        String txnOrigin = resolveTxnOrigin(str(body.get("txnOrigin")));
+        BigDecimal shopperDisplayAmt = parseAmount(body.get("shopperDisplayAmount"));
+        String shopperDisplayCur = str(body.get("shopperDisplayCurrency"));
+        Optional<OrgUnit> ouForRecord = orgUnitRepository.findById(orgUnitId);
+        String merchantCode = ouForRecord.map(OrgUnit::getCode).orElse("");
+        jpaySaleRecordService.recordOrTouchPending(orgUnitId, orderNo, amountBd, currency, routeNo,
+                str(body.get("payEmailAddress")),
+                str(body.get("item")),
+                txnOrigin,
+                shopperDisplayAmt,
+                shopperDisplayCur,
+                body);
         Map<String, Object> cardVal = payCardPolicyService.validateForSale(
                 PgVendor.JPAY,
                 str(body.get("payCardno")),
@@ -165,9 +180,11 @@ public class JpayPaymentService {
         if (!Boolean.TRUE.equals(cardVal.get("valid"))) {
             String msg = cardVal.get("message") != null ? cardVal.get("message").toString() : "카드번호를 확인해 주세요.";
             String code = cardVal.get("errorCode") != null ? cardVal.get("errorCode").toString() : "CARD_POLICY";
+            if (!merchantCode.isBlank()) {
+                jpaySaleRecordService.applyIcopayPreSaleFail(merchantCode, orderNo, txnOrigin, msg, code);
+            }
             return failOut(msg, code);
         }
-        String currency = urlPayCheckoutCurrencyService.resolveCheckoutCurrency(orgUnitId, str(body.get("currency")));
 
         String payIndexUrl = resolvePayIndexUrl(agency);
         String bankCode = resolveBankCode(agency);
@@ -261,16 +278,6 @@ public class JpayPaymentService {
         if (ua != null && !ua.isBlank()) {
             form.add("pay_useragent", ua.length() > 512 ? ua.substring(0, 512) : ua);
         }
-
-        BigDecimal shopperDisplayAmt = parseAmount(body.get("shopperDisplayAmount"));
-        String shopperDisplayCur = str(body.get("shopperDisplayCurrency"));
-        jpaySaleRecordService.recordOrTouchPending(orgUnitId, orderNo, amountBd, currency, routeNo,
-                str(body.get("payEmailAddress")),
-                str(body.get("item")),
-                resolveTxnOrigin(str(body.get("txnOrigin"))),
-                shopperDisplayAmt,
-                shopperDisplayCur,
-                body);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -472,6 +479,7 @@ public class JpayPaymentService {
             form.add("pay_useragent", ua.length() > 512 ? ua.substring(0, 512) : ua);
         }
 
+        com.pg.urlpay.PayerContextCapture.enrichSaleBody(body, req, clientIp);
         jpaySaleRecordService.recordOrTouchPending(orgUnitId, orderNo, amountBd, currency, routeNo,
                 str(body.get("payEmailAddress")),
                 str(body.get("item")),

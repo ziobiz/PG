@@ -174,6 +174,7 @@
     '/hq/urlPayDeploy': T('URL payment', 'URL決済設定', 'URL 支付设置', 'ชำระเงิน URL'),
     '/hq/paymentOrchestration': T('Payment acquirer logic', '決済代行ロジック', '支付机构逻辑', 'ตรรกะผู้ให้บริการชำระ'),
     '/calc/jpayTrList': T('Integrated query', '統合照会', '整合查询', 'ค้นหารวม'),
+    '/calc/payOverview': T('Payment overview', '決済概要', '支付概览', 'ภาพรวมการชำระ'),
     '/calc/queryIntegrated': T('Daily query', '日別照会', '按日查询', 'ค้นหารายวัน'),
     '/calc/splitPayList': T('Contract management', '契約管理', '合同管理', 'จัดการสัญญา'),
     '/pay/splitPay': T('Split payment list', '分割決済一覧', '分次支付记录', 'รายการชำระแบ่งงวด'),

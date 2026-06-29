@@ -56,6 +56,20 @@ class PaidApprovalEvidenceGuardTest {
     }
 
     @Test
+    void pickPreferredOrderRowFromListPrefersUrlOverGuestNoti() {
+        PgTrnsctn noti = new PgTrnsctn();
+        noti.setOrigin("NOTI");
+        noti.setCustomerId("guest");
+        PgTrnsctn url = new PgTrnsctn();
+        url.setOrigin("URL");
+        url.setCustomerId("yamada@example.com");
+        Optional<PgTrnsctn> picked = PaidApprovalEvidenceGuard.pickPreferredOrderRowFromList(
+                java.util.List.of(noti, url));
+        assertTrue(picked.isPresent());
+        assertEquals("URL", picked.get().getOrigin());
+    }
+
+    @Test
     void pickPreferredOrderRowPrefersUrlOverNoti() {
         PgTrnsctn url = new PgTrnsctn();
         url.setOrigin("URL");

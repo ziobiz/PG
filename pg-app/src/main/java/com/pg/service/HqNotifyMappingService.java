@@ -158,6 +158,7 @@ public class HqNotifyMappingService {
     /** 결제관리 — 통합 결제내역과 동일 그리드·payListVariant 를 쓰는 화면 URL */
     public static final String[] PAY_LIST_LAYOUT_PAGE_URLS = {
             "/calc/payList",
+            "/calc/payOverview",
             "/calc/payNotiList",
             "/calc/paySuccessList",
             "/calc/payFailList",

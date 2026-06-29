@@ -2,6 +2,7 @@ package com.pg.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pg.catalog.PageMenuCatalog;
 import com.pg.entity.AppUser;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -34,6 +36,10 @@ public class OrgViewColumnAllowanceService {
             SCOPE_REGIONAL, SCOPE_MASTER_DIST, SCOPE_BRANCH_GROUP, SCOPE_MERCHANT);
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    private static final List<String> PAGE_CATALOG_PARENT_ORDER = List.of(
+            "본사설정", "검수관리", "업체관리", "결제관리", "정산관리", "챗봇관리", "분할관리",
+            "통보관리", "사용자관리", "운영관리", "배포설정");
 
     private final AuthService authService;
     private final OrgUnitRepository orgUnitRepository;
@@ -226,6 +232,36 @@ public class OrgViewColumnAllowanceService {
     private static String normalizeScope(String viewerScope) {
         String s = viewerScope == null ? "" : viewerScope.trim().toUpperCase();
         return s.isEmpty() ? SCOPE_REGIONAL : s;
+    }
+
+    public List<Map<String, String>> listPageCatalog() {
+        List<PageMenuCatalog.PageMenuItem> catalog = PageMenuCatalog.items();
+        Map<String, Integer> groupIdx = new LinkedHashMap<>();
+        for (int i = 0; i < PAGE_CATALOG_PARENT_ORDER.size(); i++) {
+            groupIdx.put(PAGE_CATALOG_PARENT_ORDER.get(i), i);
+        }
+        List<Map<String, String>> rows = new ArrayList<>();
+        for (int i = 0; i < catalog.size(); i++) {
+            PageMenuCatalog.PageMenuItem it = catalog.get(i);
+            Map<String, String> row = new LinkedHashMap<>();
+            row.put("pageUrl", it.pageUrl());
+            row.put("menuId", it.menuId());
+            row.put("menuName", it.menuName());
+            row.put("parentGroup", it.parentGroup());
+            row.put("sortIndex", String.valueOf(i));
+            rows.add(row);
+        }
+        rows.sort(Comparator
+                .comparingInt((Map<String, String> r) -> groupIdx.getOrDefault(r.get("parentGroup"), 999))
+                .thenComparingInt(r -> {
+                    try {
+                        return Integer.parseInt(r.getOrDefault("sortIndex", "0"));
+                    } catch (NumberFormatException e) {
+                        return 0;
+                    }
+                }));
+        rows.forEach(r -> r.remove("sortIndex"));
+        return rows;
     }
 
     private static String safe(String v) {

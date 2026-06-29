@@ -18,7 +18,8 @@
 | 고객 UX | 가맹 사이트 내 iframe | ICOPAY pay 페이지 전체 화면 |
 | prepare API | `…/inline-checkout/prepare` | `…/redirect-checkout/prepare` |
 | prepare 응답 핵심 | `sessionToken`, `embedScriptUrl` | `payUrl` |
-| 완료 감지 | postMessage + status + 웹훅 | returnUrl + status + 웹훅 |
+| 완료 감지 | postMessage + status + 웹훅 | **NOTI Result(브라우저)** + status + 웹훅 |
+| prepare body | buyer 등 | **returnUrl/cancelUrl 넣지 않음** |
 | 본사 스위치 | API 중계형 INLINE Y | API 중계형 REDIRECT Y |
 
 **기본값:** 모든 WordPress 플러그인은 `flow_mode=inline` — 기존 v1.0 WooCommerce 동작과 동일합니다.
@@ -34,18 +35,22 @@ sequenceDiagram
   participant ICOPAY as ICOPAY API
   participant Pay as jpay-pay (full page)
   participant JPAY as JPAY pay_index
+  participant NOTI as NOTI MW
 
   Shop->>MSrv: 결제 시작(주문/숏코드)
-  MSrv->>ICOPAY: POST redirect-checkout/prepare<br/>returnUrl, cancelUrl
+  MSrv->>ICOPAY: POST redirect-checkout/prepare<br/>(returnUrl 없음)
   ICOPAY-->>MSrv: payUrl
   MSrv-->>Shop: 302 payUrl
   Shop->>Pay: ICOPAY 결제 페이지
-  Pay->>JPAY: sale (서버 중계)
-  Pay-->>Shop: returnUrl 리다이렉트
+  Pay->>JPAY: sale (서버 중계, pay_callbackurl=NOTI)
+  JPAY-->>NOTI: 브라우저 3DS 복귀
+  NOTI-->>Shop: 가맹 Result URL (NOTI 설정)
   MSrv->>ICOPAY: GET redirect-checkout/status
   ICOPAY-->>MSrv: paymentStatus PAID
-  ICOPAY-->>MSrv: merchantNotifyUrls 웹훅
+  NOTI-->>MSrv: 가맹 Callback (서버 webhook)
 ```
+
+**가맹 도메인은 PG(JPAY) pay_index 전문에 노출되지 않습니다.** ICOPAY 업체관리 JPAY 수신통보 URL에는 NOTI 주소만 등록합니다.
 
 ---
 
@@ -59,6 +64,7 @@ sequenceDiagram
 | API 중계형 기본 방식 | REDIRECT 또는 가맹 플러그인에서 redirect 선택 |
 | 가맹 JPAY WEB PG 바인딩 | 운영 MID 등록 |
 | 가맹 웹결제 | Y |
+| 가맹 JPAY 수신통보 URL | NOTI callback/result **만** (가맹 URL 아님) |
 
 ChillPay Redirect: `…/chillpay/redirect-checkout/prepare` — WooCommerce vendor=chillpay + flow_mode=redirect
 
@@ -80,11 +86,13 @@ Header: X-Icopay-Merchant-Broker-Secret
   "amount": "100.00",
   "currency": "USD",
   "productName": "Sample",
-  "returnUrl": "https://shop.example/icopay-jpay/return/?order_no=ORD-001",
-  "cancelUrl": "https://shop.example/",
   "lang": "ENG"
 }
 ```
+
+- **`returnUrl` / `cancelUrl` 을 body에 넣으면 `MERCHANT_RETURN_URL_NOT_ALLOWED` 로 거부됩니다.**
+- 브라우저 복귀: **NOTI** 가맹 설정 → Result URL
+- 서버 확정: **NOTI → 가맹 Callback** + **status API**
 
 성공 응답 `data.payUrl` — 브라우저를 이 URL로 리다이렉트합니다.
 
@@ -104,22 +112,27 @@ Header: X-Icopay-Merchant-Broker-Secret
 ### icopay-jpay
 
 - **설정 → ICOPAY JPAY → Checkout flow: Redirect**
-- Return page 지정
-- prepare 시 `returnUrl` = `/icopay-jpay/return/?order_no=…`
+- prepare API에 returnUrl을 보내지 않음
+- 브라우저 복귀: NOTI Result → 가맹 Result 페이지(플러그인/NOTI 설정)
 
 ### icopay-woocommerce v1.1+
 
 - **WooCommerce → 설정 → 결제 → ICOPAY → Checkout flow: Redirect**
-- 복귀 URL: `?wc-api=icopay_return&order_id=&key=` (플러그인 자동 생성)
-- 웹훅: ` /wp-json/icopay/v1/webhook` (v1.0과 동일)
+- prepare API에 returnUrl을 보내지 않음
+- 인라인 결제 페이지의 `returnUrl`은 WooCommerce 주문 완료 UX용(플러그인 로컬)
+- 웹훅: `/wp-json/icopay/v1/webhook` (v1.0과 동일)
 
 ---
 
-## 6. returnUrl 요구사항
+## 6. 브라우저 복귀 (NOTI)
 
-- HTTPS 권장
-- 가맹 도메인 공개 URL (ICOPAY·PG 콜백 허용)
-- 복귀 후 **status API** 또는 **웹훅**으로 PAID 확인 (URL 파라미터만 신뢰하지 않음)
+| URL | 등록 위치 |
+|-----|-----------|
+| Callback (서버) | **NOTI** → 가맹 webhook |
+| Result (브라우저) | **NOTI** → 가맹 Result 페이지 |
+| JPAY pay_notifyurl / pay_callbackurl | **ICOPAY 업체관리** → NOTI 주소만 |
+
+복귀 후 **status API** 또는 **웹훅**으로 PAID 확인 (URL 파라미터만 신뢰하지 않음).
 
 ---
 
@@ -127,6 +140,7 @@ Header: X-Icopay-Merchant-Broker-Secret
 
 | errorCode | 조치 |
 |-----------|------|
+| `MERCHANT_RETURN_URL_NOT_ALLOWED` | prepare body에서 returnUrl/cancelUrl 제거 |
 | `REDIRECT_NOT_ENABLED` | HQ API 중계형 REDIRECT Y |
 | `BROKER_AUTH` | broker secret 확인 |
 | `URL_PAYMENT_PG_MISSING` | JPAY WEB 바인딩 |

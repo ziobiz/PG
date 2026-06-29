@@ -51,10 +51,13 @@ public class PayCardFailCooldownService {
         this.orgUnitRepository = orgUnitRepository;
     }
 
+  /** 만료 리스크 이벤트 정리 시 {@link PayCardFailRiskEventRepository} DELETE 가 동작하므로 트랜잭션 필수. */
+    @Transactional
     public Optional<Map<String, Object>> checkBlocked(String pgVendorRaw, String panRaw, String lang, Long orgUnitId) {
         return checkBlocked(pgVendorRaw, panRaw, lang, orgUnitId, null);
     }
 
+    @Transactional
     public Optional<Map<String, Object>> checkBlocked(String pgVendorRaw, String panRaw, String lang, Long orgUnitId,
                                                       String holderName) {
         CardRiskPolicyEffective policy = hqRiskCardPolicyService.resolveForOrgUnit(orgUnitId);
@@ -176,6 +179,17 @@ public class PayCardFailCooldownService {
             row.setBlockedUntil(null);
             cooldownRepository.save(row);
         });
+    }
+
+    /** JPAY 동기 승인·노티 등 — PAN 우선, 없으면 거래 cardPanHash 로 RESET */
+    @Transactional
+    public void clearOnSuccessForTxn(String pgVendorRaw, String panRaw, String cardPanHash, Long orgUnitId) {
+        String pan = PayCardBrandDetector.normalizePan(panRaw);
+        if (pan.length() >= 10) {
+            clearOnSuccess(pgVendorRaw, pan, orgUnitId);
+            return;
+        }
+        clearOnSuccessByHash(pgVendorRaw, cardPanHash, orgUnitId);
     }
 
     @Transactional

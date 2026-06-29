@@ -29,15 +29,18 @@ class JpayPendingReconcileSchedulerTest {
     @Mock
     private JpayTradeApiService jpayTradeApiService;
 
+    @Mock
+    private HqLedgerSysSettingsService hqLedgerSysSettingsService;
+
     @InjectMocks
     private JpayPendingReconcileScheduler scheduler;
 
     @Test
     void reconcileStalePending_queriesAndApplies() {
         ReflectionTestUtils.setField(scheduler, "enabled", true);
-        ReflectionTestUtils.setField(scheduler, "staleMinutes", 30);
         ReflectionTestUtils.setField(scheduler, "maxAgeDays", 14);
         ReflectionTestUtils.setField(scheduler, "batchSize", 10);
+        when(hqLedgerSysSettingsService.resolveJpayPendingAutoCancelMin()).thenReturn(30);
 
         PgTrnsctn t = new PgTrnsctn();
         t.setTrnId("T1");
@@ -58,6 +61,18 @@ class JpayPendingReconcileSchedulerTest {
     @Test
     void reconcileStalePending_skipsWhenDisabled() {
         ReflectionTestUtils.setField(scheduler, "enabled", false);
+
+        scheduler.reconcileStalePending();
+
+        verify(pgTrnsctnRepository, never()).findStaleJpayPendingForReconcile(
+                any(LocalDateTime.class), any(LocalDateTime.class), any(Pageable.class));
+        verify(jpayTradeApiService, never()).queryAndApplyToTxn(any());
+    }
+
+    @Test
+    void reconcileStalePending_skipsWhenLedgerSettingOff() {
+        ReflectionTestUtils.setField(scheduler, "enabled", true);
+        when(hqLedgerSysSettingsService.resolveJpayPendingAutoCancelMin()).thenReturn(0);
 
         scheduler.reconcileStalePending();
 

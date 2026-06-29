@@ -40,6 +40,9 @@ public final class JpayReconcileStatusPolicy {
         if (createdAt == null) {
             return false;
         }
+        if (staleMinutes <= 0) {
+            return false;
+        }
         String old = oldStatus != null ? oldStatus.trim() : "";
         if (!PgNotifyInternalStatusMapper.ST_AUTH_PENDING.equals(old)
                 && !PgNotifyInternalStatusMapper.ST_PAID.equals(old)) {

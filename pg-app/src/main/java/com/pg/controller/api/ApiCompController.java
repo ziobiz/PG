@@ -311,6 +311,7 @@ public class ApiCompController {
             @RequestParam(required = false) String urlPayProductNameUseYn,
             @RequestParam(required = false) String urlPayCompanyNameShowYn,
             @RequestParam(required = false) String urlPayLangMenuUseYn,
+            @RequestParam(required = false) String urlPayShippingAddressUseYn,
             @RequestParam(required = false) String urlPayInputMode,
             @RequestParam(required = false) String apiUrlPayCheckoutMode,
             @RequestParam(required = false) String chatbotUrlPayCheckoutMode,
@@ -318,6 +319,7 @@ public class ApiCompController {
             @RequestParam(required = false) String apiBrokerInlineUseYn,
             @RequestParam(required = false) String apiBrokerRedirectUseYn,
             @RequestParam(required = false) String apiWordpressUseYn,
+            @RequestParam(required = false) String mobileCheckoutMode,
             @RequestParam(required = false) String jpayCheckoutFieldMode,
             @RequestParam(required = false) String jpayPhoneDialCodeYn,
             @RequestParam(required = false) String tabletFeatureUseYn,
@@ -384,6 +386,7 @@ public class ApiCompController {
                 urlPayProductNameUseYn,
                 urlPayCompanyNameShowYn,
                 urlPayLangMenuUseYn,
+                urlPayShippingAddressUseYn,
                 urlPayInputMode,
                 apiUrlPayCheckoutMode,
                 chatbotUrlPayCheckoutMode,
@@ -400,6 +403,7 @@ public class ApiCompController {
                 cardRiskTier3Hours, cardRiskTier3Min,
                 cardRiskTier4Hours, cardRiskTier4Min,
                 cardRiskAutoBlacklistTier);
+        compService.patchMerchantMobileCheckoutMode(saved.getCode(), mobileCheckoutMode);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("compId", saved.getCode(), "compNm", saved.getName())));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
@@ -558,6 +562,7 @@ public class ApiCompController {
             @RequestParam(required = false) String urlPayProductNameUseYn,
             @RequestParam(required = false) String urlPayCompanyNameShowYn,
             @RequestParam(required = false) String urlPayLangMenuUseYn,
+            @RequestParam(required = false) String urlPayShippingAddressUseYn,
             @RequestParam(required = false) String urlPayInputMode,
             @RequestParam(required = false) String apiUrlPayCheckoutMode,
             @RequestParam(required = false) String chatbotUrlPayCheckoutMode,
@@ -565,6 +570,7 @@ public class ApiCompController {
             @RequestParam(required = false) String apiBrokerInlineUseYn,
             @RequestParam(required = false) String apiBrokerRedirectUseYn,
             @RequestParam(required = false) String apiWordpressUseYn,
+            @RequestParam(required = false) String mobileCheckoutMode,
             @RequestParam(required = false) String jpayCheckoutFieldMode,
             @RequestParam(required = false) String jpayPhoneDialCodeYn,
             @RequestParam(required = false) String tabletFeatureUseYn,
@@ -633,6 +639,7 @@ public class ApiCompController {
                     urlPayProductNameUseYn,
                     urlPayCompanyNameShowYn,
                     urlPayLangMenuUseYn,
+                    urlPayShippingAddressUseYn,
                     urlPayInputMode,
                     apiUrlPayCheckoutMode,
                     chatbotUrlPayCheckoutMode,
@@ -662,6 +669,9 @@ public class ApiCompController {
                     cardRiskTier3Hours, cardRiskTier3Min,
                     cardRiskTier4Hours, cardRiskTier4Min,
                     cardRiskAutoBlacklistTier);
+            if (ok) {
+                compService.patchMerchantMobileCheckoutMode(compId, mobileCheckoutMode);
+            }
             return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다."))
                     : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
         } catch (IllegalArgumentException e) {

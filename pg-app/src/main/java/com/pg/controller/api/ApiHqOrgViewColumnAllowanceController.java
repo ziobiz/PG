@@ -82,6 +82,18 @@ public class ApiHqOrgViewColumnAllowanceController {
         }
     }
 
+    @GetMapping("/pageCatalog")
+    public ResponseEntity<ApiResponse<List<Map<String, String>>>> pageCatalog() {
+        AppUser actor = tryActor();
+        if (actor == null) {
+            return ResponseEntity.ok(ApiResponse.fail("로그인이 필요합니다.", "AUTH"));
+        }
+        if (!allowanceService.canManageOrgViewAllowance(actor)) {
+            return ResponseEntity.ok(ApiResponse.fail("권한이 없습니다.", "FORBIDDEN"));
+        }
+        return ResponseEntity.ok(ApiResponse.ok(allowanceService.listPageCatalog()));
+    }
+
     @GetMapping("/customColumns")
     public ResponseEntity<ApiResponse<java.util.List<Map<String, Object>>>> customColumnsList(@RequestParam String pageUrl) {
         try {

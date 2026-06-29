@@ -1,9 +1,5 @@
 /**
- * ICOPAY 통합 인라인 결제 iframe 위젯 — 운영 PG(ChillPay/JPAY) 자동 분기.
- * 부트스트랩: /v1/embed-checkout/{compId}
- *
- * 1) POST .../merchant/checkout/prepare → sessionToken
- * 2) <script src="https://{BASE}/v1/embed-checkout/{compId}" data-session-token="{token}"></script>
+ * ICOPAY 통합 인라인 결제 iframe 위idget — 운영 PG(ChillPay/JPAY) 자동 분기.
  */
 (function () {
   'use strict';
@@ -34,7 +30,6 @@
   mount.style.cssText = 'width:100%;max-width:560px;min-height:640px;margin:0 auto;';
 
   var origin = String(cfg.origin).replace(/\/$/, '');
-  var compEnc = encodeURIComponent(String(cfg.compId).trim());
   var langCode = '';
   try {
     if (window.IcopayCheckoutLang && typeof window.IcopayCheckoutLang.resolveFromScript === 'function') {
@@ -42,62 +37,21 @@
     }
   } catch (eLang) { /* ignore */ }
 
-  function mountIframe(pgVendor) {
-    var vendor = String(pgVendor || 'CHILLPAY').toUpperCase();
-    var isJpay = vendor.indexOf('JPAY') === 0;
-    var pagePath = isJpay ? '/jpay-pay/' : '/pay/';
-    var frameSrc = origin + pagePath + compEnc
-        + '?entry=merchant_api&embed=1'
-        + '&session=' + encodeURIComponent(sessionToken);
-    if (langCode) {
-      frameSrc += '&lang=' + encodeURIComponent(langCode);
-    }
-    var iframe = document.createElement('iframe');
-    iframe.title = 'ICOPAY secure checkout';
-    iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
-    iframe.setAttribute('allow', 'payment *');
-    iframe.style.cssText = 'display:block;width:100%;min-height:640px;height:100%;border:0;background:#fff;border-radius:12px;';
-    iframe.src = frameSrc;
-    mount.appendChild(iframe);
+  if (!window.IcopayEmbedWidget) {
+    console.error('[ICOPAY] embed-checkout: IcopayEmbedWidget not loaded');
+    return;
   }
 
-  fetch(origin + '/api/middleware/v1/merchant/checkout/session?token=' + encodeURIComponent(sessionToken), {
-    credentials: 'omit',
-    headers: { Accept: 'application/json' }
-  })
-    .then(function (r) { return r.json(); })
-    .then(function (res) {
-      if (!res || !res.success || !res.data) {
-        throw new Error((res && res.message) || 'invalid session');
-      }
-      mountIframe(res.data.pgVendor);
-    })
-    .catch(function (err) {
-      console.error('[ICOPAY] embed-checkout session failed:', err);
-      mount.innerHTML = '<p style="color:#c00;font:14px sans-serif;padding:12px;">ICOPAY checkout session invalid.</p>';
-    });
-
-  function onPayMessage(ev) {
-    if (!ev || !ev.data || typeof ev.data !== 'object') {
-      return;
-    }
-    if (ev.data.type !== 'ICOPAY_INLINE_CHECKOUT') {
-      return;
-    }
-    try {
-      if (ev.origin !== origin) {
-        return;
-      }
-    } catch (eO) {
-      return;
-    }
-    var detail = ev.data.detail || {};
-    try {
-      mount.dispatchEvent(new CustomEvent('icopay-checkout', { detail: detail, bubbles: true }));
-    } catch (eEv) { /* ignore */ }
-    if (typeof window.onIcopayCheckout === 'function') {
-      window.onIcopayCheckout(detail);
-    }
-  }
-  window.addEventListener('message', onPayMessage, false);
+  window.IcopayEmbedWidget.fetchSessionAndMount({
+    cfg: cfg,
+    sessionToken: sessionToken,
+    mount: mount,
+    sessionUrl: origin + '/api/middleware/v1/merchant/checkout/session?token=' + encodeURIComponent(sessionToken),
+    pagePathForVendor: function (vendor) {
+      return String(vendor || '').indexOf('JPAY') === 0 ? '/jpay-pay/' : '/pay/';
+    },
+    langCode: langCode,
+    eventName: 'icopay-checkout',
+    globalCallbackName: 'onIcopayCheckout'
+  });
 })();

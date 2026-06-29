@@ -22,6 +22,7 @@ import com.pg.util.JpayTransactionIdApplier;
 import com.pg.util.NotifyTxnPaidAtUtil;
 import com.pg.util.NotifyToTxnStatusMerge;
 import com.pg.util.PaidApprovalEvidenceGuard;
+import com.pg.util.PgTrnsctnOrderLookup;
 import com.pg.util.PayCardFailOutcomeRules;
 import com.pg.util.TxnOutcomeReasonApplier;
 import org.slf4j.Logger;
@@ -66,6 +67,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
     private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
     private final PayCardFailCooldownService payCardFailCooldownService;
     private final OrgUnitRepository orgUnitRepository;
+    private final PgTrnsctnOrderDedupeService pgTrnsctnOrderDedupeService;
 
     public JpayNotifyToTrnsctnService(PgTrnsctnRepository pgTrnsctnRepository,
                                       PgAgencyRepository pgAgencyRepository,
@@ -78,7 +80,8 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
                                       MerchantOutboundNotifyService merchantOutboundNotifyService,
                                       OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator,
                                       PayCardFailCooldownService payCardFailCooldownService,
-                                      OrgUnitRepository orgUnitRepository) {
+                                      OrgUnitRepository orgUnitRepository,
+                                      PgTrnsctnOrderDedupeService pgTrnsctnOrderDedupeService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.settlementCalcService = settlementCalcService;
@@ -91,6 +94,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
         this.payCardFailCooldownService = payCardFailCooldownService;
         this.orgUnitRepository = orgUnitRepository;
+        this.pgTrnsctnOrderDedupeService = pgTrnsctnOrderDedupeService;
     }
 
     @Override
@@ -253,6 +257,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         JpayBuyerContactApplier.mergeFromNotifyForm(t, form);
 
         pgTrnsctnRepository.save(t);
+        purgeOrderDuplicates(t);
         outcomeReasonWarmCoordinator.onRecorded(recordedReason);
         applyCardFailCooldownFromTxn(t, merged, prevStatus, prevOutcomeReasonCode);
         hookSplitPayInstallment(t);
@@ -424,18 +429,19 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
     }
 
     private Optional<PgTrnsctn> findJpayTxn(String merchantId, String orderNo) {
-        Optional<PgTrnsctn> sub = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(
-                merchantId, orderNo, "SUBSCRIPTION");
-        if (sub.isPresent()) {
-            return sub;
+        return PgTrnsctnOrderLookup.findPreferredByMerchantAndOrder(pgTrnsctnRepository, merchantId, orderNo);
+    }
+
+    private void purgeOrderDuplicates(PgTrnsctn t) {
+        if (t == null || t.getMerchantId() == null || t.getOrderNo() == null) {
+            return;
         }
-        Optional<PgTrnsctn> api = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(
-                merchantId, orderNo, "MERCHANT_API");
-        if (api.isPresent()) {
-            return api;
+        try {
+            pgTrnsctnOrderDedupeService.purgeGuestNotiDuplicatesIfCanonicalExists(
+                    t.getMerchantId(), t.getOrderNo());
+        } catch (Exception ex) {
+            log.warn("중복 NOTI·guest 정리 실패 trnId={}: {}", t.getTrnId(), ex.getMessage());
         }
-        return pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(
-                merchantId, orderNo, ORIGIN_URL);
     }
 
     private Optional<PgAgency> findJpayAgencyByMerchantMid(String memberid) {
@@ -502,11 +508,13 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
     }
 
     private String resolveOriginForNewNotifyTxn(String merchantId, String orderNo) {
-        if (pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(merchantId, orderNo, "MERCHANT_API").isPresent()) {
-            return "MERCHANT_API";
-        }
-        if (pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(merchantId, orderNo, ORIGIN_URL).isPresent()) {
-            return ORIGIN_URL;
+        Optional<PgTrnsctn> preferred = PgTrnsctnOrderLookup.findPreferredByMerchantAndOrder(
+                pgTrnsctnRepository, merchantId, orderNo);
+        if (preferred.isPresent()) {
+            String origin = preferred.get().getOrigin();
+            if (origin != null && !origin.isBlank()) {
+                return origin.trim().toUpperCase(Locale.ROOT);
+            }
         }
         return ORIGIN_URL;
     }

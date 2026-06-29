@@ -32,6 +32,13 @@ class JpayReconcileStatusPolicyTest {
     }
 
     @Test
+    void staleUnpaidProvisional_blocksWhenFeatureOff() {
+        LocalDateTime created = LocalDateTime.now(SEOUL).minusMinutes(45);
+        assertFalse(JpayReconcileStatusPolicy.mayApplyStaleUnpaidProvisional(
+                "08", "UNPAID", created, 0, SEOUL));
+    }
+
+    @Test
     void mayApplyReconcileMapping_blocksPaid() {
         assertFalse(JpayReconcileStatusPolicy.mayApplyReconcileMapping("10"));
         assertTrue(JpayReconcileStatusPolicy.mayApplyReconcileMapping("20"));

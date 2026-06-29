@@ -29,42 +29,32 @@
   mount.setAttribute('data-icopay-jpay-sub-mounted', '1');
   mount.style.cssText = 'width:100%;max-width:560px;min-height:720px;margin:0 auto;';
 
-  var compEnc = encodeURIComponent(String(cfg.compId).trim());
+  var origin = String(cfg.origin).replace(/\/$/, '');
   var langCode = '';
   try {
     if (window.IcopayCheckoutLang && typeof window.IcopayCheckoutLang.resolveFromScript === 'function') {
       langCode = window.IcopayCheckoutLang.resolveFromScript(scriptEl);
     }
   } catch (eLang) { /* ignore */ }
-  var frameSrc = String(cfg.origin).replace(/\/$/, '')
-      + '/jpay-subscribe/' + compEnc
-      + '?entry=merchant_api&embed=1'
-      + '&session=' + encodeURIComponent(sessionToken);
-  if (langCode) {
-    frameSrc += '&lang=' + encodeURIComponent(langCode);
+
+  if (!window.IcopayEmbedWidget) {
+    console.error('[ICOPAY] embed-jpay-subscribe: IcopayEmbedWidget not loaded');
+    return;
   }
 
-  var iframe = document.createElement('iframe');
-  iframe.title = 'ICOPAY JPAY subscription';
-  iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
-  iframe.setAttribute('allow', 'payment *');
-  iframe.style.cssText = 'display:block;width:100%;min-height:720px;height:100%;border:0;background:#fff;border-radius:12px;';
-  iframe.src = frameSrc;
-  mount.appendChild(iframe);
-
-  window.addEventListener('message', function (ev) {
-    if (!ev || !ev.data || ev.data.type !== 'ICOPAY_INLINE_CHECKOUT') return;
-    try {
-      if (ev.origin !== String(cfg.origin).replace(/\/$/, '')) return;
-    } catch (eO) { return; }
-    var detail = ev.data.detail || {};
-    detail.pgVendor = detail.pgVendor || 'JPAY';
-    detail.checkoutKind = detail.checkoutKind || 'SUBSCRIPTION';
-    try {
-      mount.dispatchEvent(new CustomEvent('icopay-jpay-subscribe', { detail: detail, bubbles: true }));
-    } catch (eEv) { /* ignore */ }
-    if (typeof window.onIcopayJpaySubscribe === 'function') {
-      try { window.onIcopayJpaySubscribe(detail); } catch (eCb) { /* ignore */ }
+  window.IcopayEmbedWidget.fetchSessionAndMount({
+    cfg: cfg,
+    sessionToken: sessionToken,
+    mount: mount,
+    sessionUrl: null,
+    pagePathForVendor: function () { return '/jpay-subscribe/'; },
+    langCode: langCode,
+    iframeTitle: 'ICOPAY JPAY subscription',
+    eventName: 'icopay-jpay-subscribe',
+    globalCallbackName: 'onIcopayJpaySubscribe',
+    detailPatcher: function (d) {
+      d.pgVendor = d.pgVendor || 'JPAY';
+      d.checkoutKind = d.checkoutKind || 'SUBSCRIPTION';
     }
-  }, false);
+  });
 })();

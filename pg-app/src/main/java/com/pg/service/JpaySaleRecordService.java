@@ -12,6 +12,7 @@ import com.pg.util.PayCardBrandDetector;
 import com.pg.util.PayCardFailOutcomeRules;
 import com.pg.util.PayCardPanHashUtil;
 import com.pg.splitpay.SplitPayPaymentHookService;
+import com.pg.util.PgTrnsctnOrderLookup;
 import com.pg.util.RouteNoDisplayUtil;
 import com.pg.util.TxnOutcomeReasonApplier;
 import org.slf4j.Logger;
@@ -49,6 +50,7 @@ public class JpaySaleRecordService {
     private final SplitPayPaymentHookService splitPayPaymentHookService;
     private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
     private final PayCardFailCooldownService payCardFailCooldownService;
+    private final PgTrnsctnOrderDedupeService pgTrnsctnOrderDedupeService;
 
     public JpaySaleRecordService(PgTrnsctnRepository pgTrnsctnRepository,
                                  OrgUnitRepository orgUnitRepository,
@@ -56,7 +58,8 @@ public class JpaySaleRecordService {
                                  HqLedgerSysSettingsService hqLedgerSysSettingsService,
                                  SplitPayPaymentHookService splitPayPaymentHookService,
                                  OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator,
-                                 PayCardFailCooldownService payCardFailCooldownService) {
+                                 PayCardFailCooldownService payCardFailCooldownService,
+                                 PgTrnsctnOrderDedupeService pgTrnsctnOrderDedupeService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.settlementCalcService = settlementCalcService;
@@ -64,6 +67,7 @@ public class JpaySaleRecordService {
         this.splitPayPaymentHookService = splitPayPaymentHookService;
         this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
         this.payCardFailCooldownService = payCardFailCooldownService;
+        this.pgTrnsctnOrderDedupeService = pgTrnsctnOrderDedupeService;
     }
 
     @Transactional
@@ -139,7 +143,7 @@ public class JpaySaleRecordService {
             on = on.substring(0, 64);
         }
         String origin = resolveOrigin(txnOrigin);
-        Optional<PgTrnsctn> ex = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(merchantId, on, origin);
+        Optional<PgTrnsctn> ex = PgTrnsctnOrderLookup.findPreferredByMerchantAndOrder(pgTrnsctnRepository, merchantId, on);
         PgTrnsctn t = ex.orElseGet(() -> {
             PgTrnsctn x = new PgTrnsctn();
             x.setTrnId(newTrnId());
@@ -167,6 +171,7 @@ public class JpaySaleRecordService {
         if (saleBody != null && !saleBody.isEmpty()) {
             JpayBuyerContactApplier.applyFromSaleBody(t, saleBody);
             applyCardPanHashFromSaleBody(t, saleBody);
+            applyPayerContextFromSaleBody(t, saleBody);
         }
         String desc = "JPAY_URL";
         if (productName != null && !productName.isBlank()) {
@@ -184,6 +189,19 @@ public class JpaySaleRecordService {
             t.setSettledYn("N");
         }
         pgTrnsctnRepository.save(t);
+        purgeOrderDuplicates(t);
+    }
+
+    private void purgeOrderDuplicates(PgTrnsctn t) {
+        if (t == null || t.getMerchantId() == null || t.getOrderNo() == null) {
+            return;
+        }
+        try {
+            pgTrnsctnOrderDedupeService.purgeGuestNotiDuplicatesIfCanonicalExists(
+                    t.getMerchantId(), t.getOrderNo());
+        } catch (Exception ex) {
+            log.warn("중복 NOTI·guest 정리 실패 trnId={}: {}", t.getTrnId(), ex.getMessage());
+        }
     }
 
     @Transactional
@@ -260,8 +278,8 @@ public class JpaySaleRecordService {
             pgTrnsctnRepository.save(t);
             hookSplitPay(t);
             if (status == 0 && t.getMerchantId() != null && !t.getMerchantId().isBlank()) {
-                String panOk = resolvePanForCooldown(panDigits, t);
-                payCardFailCooldownService.clearOnSuccess(PgVendor.JPAY, panOk, resolveOrgUnitId(t));
+                payCardFailCooldownService.clearOnSuccessForTxn(PgVendor.JPAY, panDigits,
+                        t.getCardPanHash(), resolveOrgUnitId(t));
                 try {
                     settlementCalcService.triggerRealtimeAutoSettlementIfDue(t.getMerchantId().trim(), t);
                 } catch (Exception rtEx) {
@@ -303,18 +321,34 @@ public class JpaySaleRecordService {
             return pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(
                     merchantId, orderNo, ORIGIN_SUBSCRIPTION);
         }
-        Optional<PgTrnsctn> a = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(
-                merchantId, orderNo, ORIGIN_MERCHANT_API);
-        if (a.isPresent()) {
-            return a;
+        return PgTrnsctnOrderLookup.findPreferredByMerchantAndOrder(pgTrnsctnRepository, merchantId, orderNo);
+    }
+
+    /** ICOPAY 결제창 사전 검증(카드정책 등) 실패 — 거래·처리사유 적재 */
+    @Transactional
+    public void applyIcopayPreSaleFail(String merchantId, String orderNo, String txnOrigin,
+                                       String message, String errorCode) {
+        if (merchantId == null || merchantId.isBlank() || orderNo == null || orderNo.isBlank()) {
+            return;
         }
-        Optional<PgTrnsctn> sub = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(
-                merchantId, orderNo, ORIGIN_SUBSCRIPTION);
-        if (sub.isPresent()) {
-            return sub;
+        try {
+            Optional<PgTrnsctn> ex = findTxnForOrder(merchantId.trim(), orderNo.trim(), txnOrigin);
+            if (ex.isEmpty()) {
+                return;
+            }
+            PgTrnsctn t = ex.get();
+            String prevStatus = t.getStatus();
+            t.setStatus(ST_FAIL);
+            t.setPaidAt(null);
+            String code = errorCode != null && !errorCode.isBlank() ? errorCode.trim() : "CHECKOUT_VALIDATION";
+            String msg = message != null && !message.isBlank() ? message.trim() : code;
+            Optional<String> recorded = TxnOutcomeReasonApplier.apply(
+                    t, prevStatus, ST_FAIL, msg, code, TxnOutcomeReasonApplier.SOURCE_ICOPAY);
+            pgTrnsctnRepository.save(t);
+            outcomeReasonWarmCoordinator.onRecorded(recorded);
+        } catch (Exception e) {
+            log.warn("ICOPAY 사전검증 실패 반영 오류: {}", e.getMessage());
         }
-        return pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(
-                merchantId, orderNo, ORIGIN_URL);
     }
 
     private static void applyCardPanHashFromSaleBody(PgTrnsctn t, Map<String, Object> body) {
@@ -331,6 +365,40 @@ public class JpaySaleRecordService {
         String pan = PayCardBrandDetector.normalizePan(raw.toString());
         if (pan.length() >= 10) {
             t.setCardPanHash(PayCardPanHashUtil.hashPan(pan));
+        }
+    }
+
+    private static void applyPayerContextFromSaleBody(PgTrnsctn t, Map<String, Object> body) {
+        if (t == null || body == null || body.isEmpty()) {
+            return;
+        }
+        Object ip = body.get("_payerClientIp");
+        if (ip != null && !ip.toString().isBlank()) {
+            String v = ip.toString().trim();
+            t.setPayerClientIp(v.length() > 64 ? v.substring(0, 64) : v);
+        }
+        Object dev = body.get("_payerDeviceCategory");
+        if (dev != null && !dev.toString().isBlank()) {
+            String v = dev.toString().trim().toUpperCase(Locale.ROOT);
+            t.setPayerDeviceCategory(v.length() > 32 ? v.substring(0, 32) : v);
+        }
+        Object iso = body.get("_payerCountryIso2");
+        if (iso != null && !iso.toString().isBlank()) {
+            String v = com.pg.util.PayerCountryIso2Util.normalize(iso.toString());
+            if (!v.isBlank()) {
+                t.setPayerCountryIso2(v);
+            }
+        }
+        Object city = body.get("_payerCity");
+        if (city == null || city.toString().isBlank()) {
+            city = body.get("payCity");
+        }
+        if (city == null || city.toString().isBlank()) {
+            city = body.get("pay_city");
+        }
+        if (city != null && !city.toString().isBlank()) {
+            String v = city.toString().trim();
+            t.setPayerCity(v.length() > 128 ? v.substring(0, 128) : v);
         }
     }
 

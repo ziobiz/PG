@@ -1563,6 +1563,9 @@ public class ApiHqController {
         data.put("apiWordpressPluginEnabledYn", "Y");
         data.put("urlPayInlineEnabledYn", "Y");
         data.put("urlPayRedirectEnabledYn", "Y");
+        data.put("mobileCheckoutModeDefault", "EMBED");
+        data.put("urlPayInputModeDefault", "GENERAL");
+        data.put("apiUrlPayInputModeDefault", "TYPE_BA");
         data.put("urlPayRepayEnabledYn", "N");
         data.put("urlPayRepayPathTemplate", "/pay-repay/{compCode}");
         data.put("jpaySubscriptionEnabledYn", "N");
@@ -1602,6 +1605,18 @@ public class ApiHqController {
             if (c.getApiWordpressPluginEnabledYn() != null) data.put("apiWordpressPluginEnabledYn", c.getApiWordpressPluginEnabledYn());
             if (c.getUrlPayInlineEnabledYn() != null) data.put("urlPayInlineEnabledYn", c.getUrlPayInlineEnabledYn());
             if (c.getUrlPayRedirectEnabledYn() != null) data.put("urlPayRedirectEnabledYn", c.getUrlPayRedirectEnabledYn());
+            if (c.getMobileCheckoutModeDefault() != null) {
+                data.put("mobileCheckoutModeDefault",
+                        com.pg.urlpay.MobileCheckoutModeUtil.normalize(c.getMobileCheckoutModeDefault()));
+            }
+            if (c.getUrlPayInputModeDefault() != null) {
+                data.put("urlPayInputModeDefault",
+                        com.pg.urlpay.UrlPayInputModeUtil.normalize(c.getUrlPayInputModeDefault()));
+            }
+            if (c.getApiUrlPayInputModeDefault() != null) {
+                data.put("apiUrlPayInputModeDefault",
+                        com.pg.urlpay.UrlPayInputModeUtil.normalize(c.getApiUrlPayInputModeDefault()));
+            }
             if (c.getUrlPayRepayEnabledYn() != null) data.put("urlPayRepayEnabledYn", c.getUrlPayRepayEnabledYn());
             if (c.getUrlPayRepayPathTemplate() != null) data.put("urlPayRepayPathTemplate", c.getUrlPayRepayPathTemplate());
             if (c.getJpaySubscriptionEnabledYn() != null) data.put("jpaySubscriptionEnabledYn", c.getJpaySubscriptionEnabledYn());
@@ -1685,6 +1700,12 @@ public class ApiHqController {
         c.setApiWordpressPluginEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("apiWordpressPluginEnabledYn", "Y"))) ? "N" : "Y");
         c.setUrlPayInlineEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("urlPayInlineEnabledYn", "Y"))) ? "N" : "Y");
         c.setUrlPayRedirectEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("urlPayRedirectEnabledYn", "Y"))) ? "N" : "Y");
+        c.setMobileCheckoutModeDefault(com.pg.urlpay.MobileCheckoutModeUtil.normalize(
+                String.valueOf(body.getOrDefault("mobileCheckoutModeDefault", "EMBED"))));
+        c.setUrlPayInputModeDefault(com.pg.urlpay.UrlPayInputModeUtil.normalize(
+                String.valueOf(body.getOrDefault("urlPayInputModeDefault", "GENERAL"))));
+        c.setApiUrlPayInputModeDefault(com.pg.urlpay.UrlPayInputModeUtil.normalize(
+                String.valueOf(body.getOrDefault("apiUrlPayInputModeDefault", "TYPE_BA"))));
         c.setUrlPayRepayEnabledYn("Y".equalsIgnoreCase(String.valueOf(body.getOrDefault("urlPayRepayEnabledYn", "N"))) ? "Y" : "N");
         String repayPathTpl = body.get("urlPayRepayPathTemplate") != null ? body.get("urlPayRepayPathTemplate").toString().trim() : "";
         c.setUrlPayRepayPathTemplate(repayPathTpl.isEmpty() ? "/pay-repay/{compCode}" : repayPathTpl);

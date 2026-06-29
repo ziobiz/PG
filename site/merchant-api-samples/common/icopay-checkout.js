@@ -1,6 +1,5 @@
 /**
  * ICOPAY inline checkout iframe — postMessage handler (shared by PHP/JSP samples).
- * 사용: <script src="{publicApiBaseUrl}/merchant-api-samples/common/icopay-checkout.js"></script>
  */
 (function (global) {
   'use strict';
@@ -15,12 +14,23 @@
           if (ev.origin !== ok) return;
         } catch (eO) { return; }
       }
-      callback(ev.data.detail || {}, ev);
+      var detail = ev.data.detail || {};
+      if (global.IcopayCheckout3ds && global.IcopayCheckout3ds.handleInlineCheckoutMessage) {
+        global.IcopayCheckout3ds.handleInlineCheckoutMessage(detail, { embed: true });
+      }
+      callback(detail, ev);
     }, false);
   }
 
   global.IcopayCheckout = {
     onMessage: onCheckoutMessage,
-    lang: global.IcopayCheckoutLang || null
+    lang: global.IcopayCheckoutLang || null,
+    navigate3ds: function (url) {
+      if (global.IcopayCheckout3ds && global.IcopayCheckout3ds.navigateToPaymentUrl) {
+        global.IcopayCheckout3ds.navigateToPaymentUrl(url, { embed: true });
+      } else {
+        try { (global.top || global).location.href = url; } catch (e) { global.location.href = url; }
+      }
+    }
   };
 })(typeof window !== 'undefined' ? window : this);

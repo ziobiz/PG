@@ -13,6 +13,8 @@ import java.time.format.DateTimeFormatter;
 import com.pg.util.CommissionExtraFeeUtil;
 import com.pg.util.MerchantFeeVatUtil;
 import com.pg.util.MerchantDisplayCurrencyResolver;
+import com.pg.util.PayerCountryIso2Util;
+import com.pg.util.PayerDeviceCategoryUtil;
 import com.pg.util.PayListStatusBarBuckets;
 import com.pg.util.RouteNoDisplayUtil;
 import com.pg.util.PgTrnsctnTxnClock;
@@ -105,7 +107,14 @@ public class PayListItemDto {
         row.put("settledYn", t.getSettledYn() != null && !t.getSettledYn().isBlank() ? t.getSettledYn().trim() : "N");
         row.put("outcomeReason", t.getOutcomeReason() != null ? t.getOutcomeReason().trim() : "");
         row.put("outcomeReasonPreview", TxnOutcomeReasonApplier.preview(t.getOutcomeReason()));
+        row.put("outcomeCause", TxnOutcomeReasonApplier.preview(t.getOutcomeReason()));
         row.put("outcomeReasonSource", t.getOutcomeReasonSource() != null ? t.getOutcomeReasonSource().trim() : "");
+        row.put("payerClientIp", t.getPayerClientIp() != null ? t.getPayerClientIp().trim() : "");
+        row.put("payerDeviceCategory", t.getPayerDeviceCategory() != null ? t.getPayerDeviceCategory().trim() : "");
+        row.put("payerDeviceLabel", PayerDeviceCategoryUtil.displayLabel(t.getPayerDeviceCategory(), "KO"));
+        row.put("payerCountryIso2", PayerCountryIso2Util.normalize(t.getPayerCountryIso2()));
+        row.put("payerCity", t.getPayerCity() != null ? t.getPayerCity().trim() : "");
+        row.put("payerRegion", payerLocationLabel(t.getPayerCountryIso2(), t.getPayerCity(), "KO"));
 
         /** 표준 그리드: 번호·업체명·업체코드 중 업체명 */
         row.put("compNm", compNm);
@@ -423,6 +432,58 @@ public class PayListItemDto {
 
     private static String blank(String s) {
         return (s == null || s.isBlank()) ? "-" : s;
+    }
+
+    /** 결제개요 — 국가 ISO2 + 도시 (예: KR | SEOUL, KO UI: KR ㅣ SEOUL) */
+    public static String payerLocationLabel(String iso2, String city, String adminLang) {
+        String code = PayerCountryIso2Util.normalize(iso2);
+        String cityPart = "";
+        if (city != null && !city.isBlank()) {
+            cityPart = city.trim().toUpperCase(Locale.ROOT);
+        }
+        if (code.isEmpty() && cityPart.isEmpty()) {
+            return "-";
+        }
+        if (cityPart.isEmpty()) {
+            return code;
+        }
+        if (code.isEmpty()) {
+            return cityPart;
+        }
+        return code + payerLocationSeparator(adminLang) + cityPart;
+    }
+
+    private static String payerLocationSeparator(String adminLang) {
+        String lang = normalizeAdminLangForLocation(adminLang);
+        if ("KO".equals(lang)) {
+            return " \u3163 ";
+        }
+        return " | ";
+    }
+
+    private static String normalizeAdminLangForLocation(String lang) {
+        if (lang == null || lang.isBlank()) {
+            return "KO";
+        }
+        String u = lang.trim().toUpperCase(Locale.ROOT);
+        if (u.startsWith("EN")) {
+            return "EN";
+        }
+        if (u.startsWith("JA") || "JP".equals(u)) {
+            return "JP";
+        }
+        if (u.startsWith("ZH") || "CH".equals(u)) {
+            return "CH";
+        }
+        if (u.startsWith("TH")) {
+            return "TH";
+        }
+        return "KO";
+    }
+
+    /** @deprecated {@link #payerLocationLabel(String, String, String)} */
+    public static String payerRegionLabel(String iso2, String adminLang) {
+        return payerLocationLabel(iso2, null, adminLang);
     }
 
     /**

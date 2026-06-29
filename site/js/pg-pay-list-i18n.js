@@ -417,6 +417,11 @@
       packN('정산 주기 및 정산 수수료는 가맹점별로 상이할 수 있습니다.', 'Settlement cycle and fees may differ per merchant.', '精算サイクル・手数料は加盟店ごとに異なる場合があります。', '结算周期与手续费可能因商户而异。', 'รอบและค่าธรรมเนียมอาจต่างกันในแต่ละร้าน'),
       packN('상단 한 줄: 건수·통화별 총거래·승인·취소·수수료·담보·부가세·추정결산(승인−(취소+수수료+담보+부가세), 수수료내역과 동일 건별 산식). 아래: 성공·실패 등 상태 pill. 본사·총본사는 통화별 병기.', 'Top row: count and per-currency total txn, approve, cancel, fees, collateral, VAT, est. settlement (approve−(cancel+fees+collateral+VAT); same per-txn rules as fee list). Below: status pills. HQ shows multiple currencies.', '上段: 件数・通貨別総取引・承認・取消・手数料・担保・消費税・推定決算（承認−(取消+手数料+担保+消費税)）。下段: 状態 pill。', '首行：件数及分币种总交易、批准、取消、手续费、担保、增值税、预估结算（批准−(取消+手续费+担保+增值税)）。下方状态 pill。', 'แถวบน: จำนวนและยอดตามสกุล รวมธุรกรรม อนุมัติ ยกเลิก ค่าธรรมเนียม หลักประกัน VAT ประมาณการชำระ (อนุมัติ−(ยกเลิก+ค่าธรรมเนียม+หลักประกัน+VAT)) ด้านล่าง pill สถานะ')
     ],
+    '/calc/payOverview': [
+      packN('결제개요: 통합 결제내역과 동일 검색·VIEW SETTING·금액요약을 사용합니다.', 'Payment overview uses the same search, VIEW SETTING, and amount summary as integrated payment history.', '決済概要は統合決済履歴と同じ検索・VIEW SETTING・金額サマリーを使用します。', '支付概览与综合支付历史使用相同搜索、VIEW SETTING 与金额汇总。', 'ภาพรวมการชำระใช้การค้นหา VIEW SETTING และสรุปยอดเดียวกับประวัติรวม'),
+      packN('단말기(PC·iPhone·Android 등)·위치(국가·도시, 예: KR, SEOUL)·IP·원인(JPAY 응답·ICOPAY 결제창 오류 포함) 열이 추가됩니다.', 'Extra columns: device (PC/iPhone/Android), location (country and city, e.g. KR, SEOUL), IP, and cause (JPAY response / ICOPAY checkout errors).', '端末(PC・iPhone・Android 等)・位置(国・都市、例 KR, SEOUL)・IP・原因(JPAY 応答・ICOPAY 決済画面エラー)列が追加されます。', '新增列：终端(PC/iPhone/Android)、位置(国家·城市，如 KR, SEOUL)、IP、原因(JPAY 响应/ICOPAY 结账错误)。', 'คอลัมน์เพิ่ม: อุปกรณ์ (PC/iPhone/Android) ตำแหน่ง (ประเทศ·เมือง เช่น KR, SEOUL) IP และสาเหตุ (JPAY/ICOPAY)'),
+      packN('신규 JPAY 결제부터 단말기·위치·IP가 적재됩니다. 과거 건은 값이 없을 수 있습니다.', 'Device, location, and IP are captured from new JPAY payments onward; older rows may be empty.', '新規 JPAY 決済から端末・位置・IP を保存します。過去分は空の場合があります。', '自新 JPAY 支付起保存终端·位置·IP；历史记录可能为空。', 'บันทึกอุปกรณ์·ตำแหน่ง·IP ตั้งแต่ JPAY ใหม่ รายการเก่าอาจว่าง')
+    ],
     '/calc/payNotiList': [
       packN('노티내역: 통합 결제내역과 동일한 그리드입니다(칠페이 시트 컬럼·2단 헤더·요약바·후속조치 포함). 조회만 origin=NOTI(전산 노티 적재)로 제한됩니다.', 'Notify list uses the same grid as integrated payments; data is limited to origin=NOTI.', 'ノティ履歴は統合決済と同一グリッド。origin=NOTI のみ。', '通知列表与综合支付相同表格，仅 origin=NOTI。', 'รายการแจ้งเตือน: กริดเดียวกับรวม จำกัด origin=NOTI'),
       packN('ziobiz/NOTI 종합거래의 노티거래내역과 동일 성격의 데이터입니다.', 'Same nature as ziobiz/NOTI consolidated notify transactions.', 'ziobiz/NOTI 総合取引のノティ取引と同種。', '与 ziobiz/NOTI 综合交易的入账数据同类。', 'ลักษณะเดียวกับธุรกรรมแจ้งเตือน NOTI'),
@@ -713,6 +718,13 @@
         'JPAY（日別照会・Exportキャッシュ・取引日）と ICOPAY（日別決済・ノティ取込日）を同一取引日範囲で日別に並べて比較します。一致は Ok、不一致セルのみ強調し Check と表示します。',
         '在同一交易日期区间内并排比较 JPAY（按日查询·门户 Export 缓存·交易日）与 ICOPAY（按日支付·通知入库日）。一致显示 Ok，不一致单元格高亮并显示 Check。',
         'เทียบ JPAY กับ ICOPAY รายวันในช่วงวันที่เดียวกัน ตรงกันแสดง Ok ไม่ตรงเน้นเซลล์และแสดง Check'
+      ),
+      packN(
+        'JPAY 또는 ICOPAY 행을 더블클릭하면 아래 「선택 일자 상세」에 해당 일·운영사 거래 목록이 표시됩니다(JPAY=통합조회, ICOPAY=일별결제와 동일 API).',
+        'Double-click a JPAY or ICOPAY row to show that day’s transaction list below under “Selected date detail” (JPAY = integrated query, ICOPAY = daily pay — same APIs).',
+        'JPAY または ICOPAY 行をダブルクリックすると、下の「選択日詳細」にその日・運営社の取引一覧が表示されます（JPAY=統合照会、ICOPAY=日別決済と同一 API）。',
+        '双击 JPAY 或 ICOPAY 行可在下方「选择日期详情」显示该日·运营方交易列表（JPAY=整合查询，ICOPAY=按日支付，相同 API）。',
+        'ดับเบิลคลิกแถว JPAY หรือ ICOPAY เพื่อแสดงรายการธุรกรรมของวัน·ผู้ให้บริการด้านล่างใน「รายละเอียดวันที่เลือก」(JPAY=ค้นหารวม ICOPAY=รายวัน API เดียวกัน)'
       ),
       packN(
         'JPAY는 통합조회와 동일하게 DB(tb_jpay_portal_export_cache)에 저장되며, 본사설정 전산설정관리의 JPAY 통합조회 스케줄로 자동 동기화됩니다. 로그인 후 [검색]만으로 조회할 수 있고, 즉시 갱신이 필요할 때만 [JPAY 동기화]를 사용하세요. 조회 기간은 최대 93일입니다.',
@@ -1256,6 +1268,10 @@
     merchantBaseCur: { EN: 'Merchant base ccy', JP: '加盟店基準通貨', CH: '商户基准货币', TH: 'สกุลฐานร้านค้า' },
     chillPaymentStatus: { EN: 'Status', JP: '状態', CH: '状态', TH: 'สถานะ' },
     outcomeReasonPreview: { EN: 'Outcome reason', JP: '処理理由', CH: '处理原因', TH: 'เหตุผลการดำเนินการ' },
+    outcomeCause: { EN: 'Cause', JP: '原因', CH: '原因', TH: 'สาเหตุ' },
+    payerDeviceLabel: { EN: 'Device', JP: '端末', CH: '终端', TH: 'อุปกรณ์' },
+    payerRegion: { EN: 'Location', JP: '位置', CH: '位置', TH: 'ตำแหน่ง' },
+    payerClientIp: { EN: 'IP', JP: 'IP', CH: 'IP', TH: 'IP' },
     statusNm: { EN: 'Status', JP: '状態', CH: '状态', TH: 'สถานะ' },
     amount: { EN: 'Payment amount', JP: '決済金額', CH: '支付金额', TH: 'ยอดชำระ' },
     payCur: { EN: 'Pay ccy', JP: '決済通貨', CH: '支付币种', TH: 'สกุลชำระ' },
@@ -1474,14 +1490,35 @@
   }
 
   function applyCatalogLocale(loc) {
-    var P = w.PG_PAY_LIST_INTEGRATED;
+    applyOnePayListCatalogLocale(window.PG_PAY_LIST_INTEGRATED, loc);
+    applyOnePayListCatalogLocale(window.PG_PAY_LIST_OVERVIEW, loc);
+  }
+
+  function applyOnePayListCatalogLocale(P, loc) {
     if (!P || !P.columns) return;
-    ensureCatalogKoSnapshot();
-    if (loc === 'KO') {
-      restoreCatalogFromKoSnap();
+    if (P === window.PG_PAY_LIST_INTEGRATED) {
+      ensureCatalogKoSnapshot();
+      if (loc === 'KO') {
+        restoreCatalogFromKoSnap();
+        return;
+      }
+    } else if (!P._i18nKoSnap) {
+      P._i18nKoSnap = {
+        cols: P.columns.map(function (c) { return { key: c.key, label: c.label }; }),
+        hg: JSON.parse(JSON.stringify(P.headerGroups || []))
+      };
+    }
+    if (loc === 'KO' && P._i18nKoSnap) {
+      var snapKo = P._i18nKoSnap;
+      var byKeyKo = {};
+      snapKo.cols.forEach(function (x) { if (x && x.key) byKeyKo[x.key] = x.label; });
+      P.columns.forEach(function (c) {
+        if (c && c.key && byKeyKo[c.key] != null) c.label = byKeyKo[c.key];
+      });
+      P.headerGroups = JSON.parse(JSON.stringify(snapKo.hg || []));
       return;
     }
-    var snap = P._i18nKoSnap;
+    var snap = P._i18nKoSnap || { cols: P.columns.map(function (c) { return { key: c.key, label: c.label }; }), hg: P.headerGroups || [] };
     var byKey = {};
     snap.cols.forEach(function (x) { if (x && x.key) byKey[x.key] = x.label; });
     P.columns.forEach(function (c) {
@@ -2389,9 +2426,109 @@
     return t.substring(0, 200) + '\u2026';
   }
 
+  /** 결제개요 — 국가 ISO2 정규화(JA→JP, KO→KR 등) */
+  function normalizePayerCountryIso2(raw) {
+    var u = String(raw || '').trim().toUpperCase().replace(/[^A-Z]/g, '');
+    if (!u) return '';
+    var aliases = {
+      JPN: 'JP', KOR: 'KR', USA: 'US', GBR: 'GB', THA: 'TH', SGP: 'SG', HKG: 'HK', CHN: 'CN', CHE: 'CH',
+      JAP: 'JP', JA: 'JP', KO: 'KR', ZH: 'CN', EN: ''
+    };
+    if (aliases[u] !== undefined) return aliases[u];
+    if (u.length >= 3) {
+      var a3 = u.substring(0, 3);
+      if (aliases[a3] !== undefined) return aliases[a3];
+      var two = u.substring(0, 2);
+      if (aliases[two] !== undefined) return aliases[two];
+      return two;
+    }
+    return aliases[u] !== undefined ? aliases[u] : u;
+  }
+
+  function payerLocationSeparator(loc) {
+    loc = normalizeLocale(loc || getLocale());
+    return loc === 'KO' ? ' \u3163 ' : ' | ';
+  }
+
+  function formatPayerLocation(iso2, city, loc) {
+    var code = normalizePayerCountryIso2(iso2);
+    var cityPart = city ? String(city).trim().toUpperCase() : '';
+    if (!code && !cityPart) return '-';
+    if (!cityPart) return code;
+    if (!code) return cityPart;
+    return code + payerLocationSeparator(loc) + cityPart;
+  }
+
+  var PAYER_DEVICE_CAT_LABELS = {
+    PC: { KO: 'PC', EN: 'PC', JP: 'PC', CH: 'PC', TH: 'PC' },
+    MOBILE_IOS: { KO: 'iPhone', EN: 'iPhone', JP: 'iPhone', CH: 'iPhone', TH: 'iPhone' },
+    MOBILE_ANDROID: { KO: 'Android', EN: 'Android', JP: 'Android', CH: 'Android', TH: 'Android' },
+    MOBILE_OTHER: { KO: '모바일', EN: 'Mobile', JP: 'モバイル', CH: '手机', TH: 'มือถือ' },
+    TABLET: { KO: '태블릿', EN: 'Tablet', JP: 'タブレット', CH: '平板', TH: 'แท็บเล็ต' }
+  };
+
+  function formatPayerDeviceLabel(category, loc) {
+    loc = normalizeLocale(loc || getLocale());
+    var cat = String(category || '').trim().toUpperCase();
+    if (!cat) return '-';
+    var row = PAYER_DEVICE_CAT_LABELS[cat];
+    if (!row) return '-';
+    if (loc === 'KO') return row.KO || row.EN || '-';
+    return row[loc] || row.EN || row.KO || '-';
+  }
+
+  function updatePayGridColumnCells(pane, list, colKeys, valueFn, loc) {
+    var cols = pane._lastGridCols;
+    if (!cols || !cols.length || !list || !list.length) return;
+    var colIdxMap = {};
+    colKeys.forEach(function (key) {
+      for (var i = 0; i < cols.length; i++) {
+        if (cols[i] && cols[i].key === key) {
+          colIdxMap[key] = i;
+          break;
+        }
+      }
+    });
+    var tabId = pane.id || '';
+    if (!tabId) return;
+    var gridSel = '#grid_' + tabId + ' tbody tr[data-row-idx]';
+    pane.querySelectorAll(gridSel).forEach(function (tr) {
+      var idx = parseInt(tr.getAttribute('data-row-idx') || '-1', 10);
+      if (isNaN(idx) || idx < 0 || idx >= list.length) return;
+      var row = list[idx];
+      if (!row) return;
+      var tds = tr.querySelectorAll('td');
+      colKeys.forEach(function (key) {
+        var ci = colIdxMap[key];
+        if (ci == null || ci >= tds.length) return;
+        var val = valueFn(row, key, loc);
+        row[key] = val;
+        tds[ci].textContent = val != null ? String(val) : '';
+      });
+    });
+  }
+
+  /** UI 언어 전환 — 결제개요 위치·단말기 열 재표시 */
+  function refreshPayGridPayerOverviewFields(loc) {
+    loc = normalizeLocale(loc || getLocale());
+    document.querySelectorAll('.tab-pane.tabConDiv[formurl="/calc/payOverview"]').forEach(function (pane) {
+      var list = pane._lastGridList;
+      if (!list || !list.length) return;
+      updatePayGridColumnCells(pane, list, ['payerRegion', 'payerDeviceLabel'], function (row, key, l) {
+        if (key === 'payerRegion') {
+          return formatPayerLocation(row.payerCountryIso2, row.payerCity, l);
+        }
+        if (key === 'payerDeviceLabel') {
+          return formatPayerDeviceLabel(row.payerDeviceCategory, l);
+        }
+        return row[key] != null ? String(row[key]) : '';
+      }, loc);
+    });
+  }
+
   /** 결제내역 계열 — 처리사유 열이 있는 화면 */
   var PAY_LIST_OUTCOME_REASON_URLS = {
-    '/calc/payList': 1, '/calc/payNotiList': 1, '/calc/paySuccessList': 1, '/calc/payFailList': 1,
+    '/calc/payList': 1, '/calc/payOverview': 1, '/calc/payNotiList': 1, '/calc/paySuccessList': 1, '/calc/payFailList': 1,
     '/calc/payRefundList': 1, '/calc/payForceRefundList': 1, '/calc/payCancelList': 1, '/calc/payVoidList': 1,
     '/calc/payEmailVoidList': 1, '/calc/offsetCancList': 1, '/pay/easyPay': 1, '/pay/chatbotPay': 1, '/pay/splitPay': 1
   };
@@ -2683,6 +2820,7 @@
       }
     });
     try { refreshPayGridOutcomeReasons(loc); } catch (eOrRf) {}
+    try { refreshPayGridPayerOverviewFields(loc); } catch (ePayerOv) {}
     if (typeof w.PG_refreshPayListAggregateBarsDom === 'function') {
       try { w.PG_refreshPayListAggregateBarsDom(); } catch (eAgg) {}
     }
@@ -2859,6 +2997,9 @@
     refreshOpenPayListPaneChrome: refreshOpenPayListPaneChrome,
     getLocaleInplacePaneUrls: getLocaleInplacePaneUrls,
     refreshPayGridOutcomeReasons: refreshPayGridOutcomeReasons,
+    refreshPayGridPayerOverviewFields: refreshPayGridPayerOverviewFields,
+    formatPayerLocation: formatPayerLocation,
+    formatPayerDeviceLabel: formatPayerDeviceLabel,
     isPayMngDomPaneUrl: isPayMngDomPaneUrl,
     formatVerifyReportDayNote: formatVerifyReportDayNote
   };

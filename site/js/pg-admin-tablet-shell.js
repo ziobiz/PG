@@ -49,11 +49,11 @@
     '/calc/chillPayTrList': { icon: 'bi-collection-fill', tone: 'pay' },
     '/pay/chatbotPay': { icon: 'bi-chat-square-text-fill', tone: 'bot' },
     '/pay/splitPay': { icon: 'bi-layers-half', tone: 'pay' },
-    '/calc/integratedCheck': { icon: 'bi-check2-square-fill', tone: 'inspect' },
+    '/calc/integratedCheck': { icon: 'bi-check-square-fill', tone: 'inspect' },
     '/ops/agencyTxnList': { icon: 'bi-cash-coin', tone: 'inspect' },
     '/calc/jpayTrList': { icon: 'bi-binoculars-fill', tone: 'inspect' },
     '/calc/queryIntegrated': { icon: 'bi-calendar2-week-fill', tone: 'inspect' },
-    '/risk/list': { icon: 'bi-shield-exclamation-fill', tone: 'inspect' },
+    '/risk/list': { icon: 'bi-shield-fill-exclamation', tone: 'inspect' },
     '/ops/integratedReport': { icon: 'bi-bar-chart-line-fill', tone: 'ops' },
     '/ops/verifyReport': { icon: 'bi-clipboard2-check-fill', tone: 'ops' },
     '/user/userMng': { icon: 'bi-person-badge-fill', tone: 'user' }

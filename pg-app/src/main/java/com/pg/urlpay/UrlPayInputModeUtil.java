@@ -21,6 +21,9 @@ import java.util.Locale;
  */
 public final class UrlPayInputModeUtil {
 
+    /** 가맹 DB 저장값 — 본사 URL·API 입력방식 기본값을 채널별로 따름 */
+    public static final String FOLLOW_HQ = "FOLLOW_HQ";
+
     public static final String GENERAL = "GENERAL";
     public static final String TYPE_AA = "TYPE_AA";
     public static final String TYPE_AN = "TYPE_AN";
@@ -37,11 +40,19 @@ public final class UrlPayInputModeUtil {
     private UrlPayInputModeUtil() {
     }
 
+    /** 적용 채널 — URL=공개 URL·챗봇·분할 URL, API=가맹 API 인라인(entry=merchant_api) */
+    public enum Channel {
+        URL, API
+    }
+
     public static String normalize(String raw) {
         if (raw == null || raw.isBlank()) {
             return GENERAL;
         }
         String u = raw.trim().toUpperCase(Locale.ROOT);
+        if (FOLLOW_HQ.equals(u) || "DEFAULT".equals(u) || "HQ".equals(u)) {
+            return FOLLOW_HQ;
+        }
         return switch (u) {
             case TYPE_AA, "AA", "TYPEAA" -> TYPE_AA;
             case TYPE_AN, "AN", "TYPEAN", "TYPE_A", "A", "TYPEA" -> TYPE_AN;
@@ -58,7 +69,54 @@ public final class UrlPayInputModeUtil {
         };
     }
 
+    /** 가맹 DB 저장 — FOLLOW_HQ 유지, 그 외 normalize */
+    public static String normalizeMerchantStored(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return GENERAL;
+        }
+        String u = raw.trim().toUpperCase(Locale.ROOT);
+        if (FOLLOW_HQ.equals(u) || "DEFAULT".equals(u) || "HQ".equals(u)) {
+            return FOLLOW_HQ;
+        }
+        return normalize(u);
+    }
+
+    /** null 이면 본사 정책 따름(오버라이드 없음) */
+    public static String normalizeMerchantOverride(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String u = raw.trim().toUpperCase(Locale.ROOT);
+        if (FOLLOW_HQ.equals(u) || "DEFAULT".equals(u) || "HQ".equals(u)) {
+            return null;
+        }
+        return normalize(u);
+    }
+
+    public static String formatMerchantUiValue(String dbValue) {
+        if (dbValue == null || dbValue.isBlank()) {
+            return FOLLOW_HQ;
+        }
+        String u = dbValue.trim().toUpperCase(Locale.ROOT);
+        if (FOLLOW_HQ.equals(u) || "DEFAULT".equals(u) || "HQ".equals(u)) {
+            return FOLLOW_HQ;
+        }
+        return normalize(u);
+    }
+
+    public static String resolve(String merchantDbValue, String hqUrlDefault, String hqApiDefault, Channel channel) {
+        String override = normalizeMerchantOverride(merchantDbValue);
+        if (override != null) {
+            return override;
+        }
+        String hq = channel == Channel.API ? hqApiDefault : hqUrlDefault;
+        return normalize(hq != null ? hq : (channel == Channel.API ? TYPE_BA : GENERAL));
+    }
+
     public static String formatAuditLabel(String mode) {
+        if (FOLLOW_HQ.equals(normalize(mode))) {
+            return "본사정책 따름";
+        }
         return switch (normalize(mode)) {
             case TYPE_AA -> "AA 타입";
             case TYPE_AN -> "AN 타입";
@@ -72,6 +130,28 @@ public final class UrlPayInputModeUtil {
             case TYPE_BA -> "BA 타입";
             case TYPE_CN -> "CN 타입";
             default -> "일반";
+        };
+    }
+
+    /** 업체관리 목록 「타입」 컬럼 — 짧은 코드(HQ·GN·AA·BA …). 언어 공통 표기. */
+    public static String formatCompListLabel(String mode) {
+        String ui = formatMerchantUiValue(mode);
+        if (FOLLOW_HQ.equals(ui)) {
+            return "HQ";
+        }
+        return switch (normalize(ui)) {
+            case TYPE_AA -> "AA";
+            case TYPE_AN -> "AN";
+            case TYPE_AG -> "AG";
+            case TYPE_AF -> "AF";
+            case TYPE_AE -> "AE";
+            case TYPE_BN -> "BN";
+            case TYPE_BG -> "BG";
+            case TYPE_BF -> "BF";
+            case TYPE_BE -> "BE";
+            case TYPE_BA -> "BA";
+            case TYPE_CN -> "CN";
+            default -> "GN";
         };
     }
 

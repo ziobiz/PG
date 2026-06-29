@@ -21,11 +21,7 @@ public final class PhoneDialCodeCatalog {
     }
 
     public static String canonicalIso2(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return "";
-        }
-        String u = raw.trim().toUpperCase(Locale.ROOT);
-        return u.length() == 2 ? u : "";
+        return com.pg.util.PayerCountryIso2Util.normalize(raw);
     }
 
     private static Map<String, String> buildDialMap() {

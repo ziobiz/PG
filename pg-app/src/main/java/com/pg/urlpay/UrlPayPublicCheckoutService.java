@@ -39,6 +39,8 @@ public class UrlPayPublicCheckoutService {
     private final UrlPayCardCopyService urlPayCardCopyService;
     private final UrlPayVendorCapabilityRegistry capabilityRegistry;
     private final List<UrlPayCheckoutContextEnricher> contextEnrichers;
+    private final MobileCheckoutModeService mobileCheckoutModeService;
+    private final UrlPayInputModeService urlPayInputModeService;
 
     public UrlPayPublicCheckoutService(ChillPayService chillPayService,
                                        OrgUnitRepository orgUnitRepository,
@@ -50,7 +52,9 @@ public class UrlPayPublicCheckoutService {
                                        PaymentCurrencyScaleService paymentCurrencyScaleService,
                                        UrlPayCardCopyService urlPayCardCopyService,
                                        UrlPayVendorCapabilityRegistry capabilityRegistry,
-                                       List<UrlPayCheckoutContextEnricher> contextEnrichers) {
+                                       List<UrlPayCheckoutContextEnricher> contextEnrichers,
+                                       MobileCheckoutModeService mobileCheckoutModeService,
+                                       UrlPayInputModeService urlPayInputModeService) {
         this.chillPayService = chillPayService;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
@@ -62,6 +66,8 @@ public class UrlPayPublicCheckoutService {
         this.urlPayCardCopyService = urlPayCardCopyService;
         this.capabilityRegistry = capabilityRegistry;
         this.contextEnrichers = contextEnrichers;
+        this.mobileCheckoutModeService = mobileCheckoutModeService;
+        this.urlPayInputModeService = urlPayInputModeService;
     }
 
     /**
@@ -97,7 +103,7 @@ public class UrlPayPublicCheckoutService {
             data.put("urlPayProductNameUseYn", productNameUseYn);
             data.put("urlPayCompanyNameShowYn", p.getUrlPayCompanyNameShowYn() != null ? p.getUrlPayCompanyNameShowYn() : "Y");
             data.put("urlPayLangMenuUseYn", p.getUrlPayLangMenuUseYn() != null ? p.getUrlPayLangMenuUseYn() : "Y");
-            data.put("urlPayInputMode", UrlPayInputModeUtil.normalize(p.getUrlPayInputMode()));
+            data.put("urlPayShippingAddressUseYn", p.getUrlPayShippingAddressUseYn() != null ? p.getUrlPayShippingAddressUseYn() : "N");
             if (p.getBaseCurrency() != null && !p.getBaseCurrency().isBlank()) {
                 data.put("defaultCurrency", p.getBaseCurrency().trim().toUpperCase(Locale.ROOT));
             }
@@ -110,8 +116,9 @@ public class UrlPayPublicCheckoutService {
             data.put("urlPayProductNameUseYn", productNameUseYn);
             data.put("urlPayCompanyNameShowYn", "Y");
             data.put("urlPayLangMenuUseYn", "Y");
-            data.put("urlPayInputMode", UrlPayInputModeUtil.GENERAL);
+            data.put("urlPayShippingAddressUseYn", "N");
         }
+        urlPayInputModeService.putEffectiveIntoMap(data, orgUnitId, request);
         if (dp.isPresent()) {
             MerchantDefaultProduct p = dp.get();
             if ("Y".equalsIgnoreCase(productNameUseYn)
@@ -135,6 +142,7 @@ public class UrlPayPublicCheckoutService {
         data.put("urlPayResultPageUrl", chillPayService.resolveUrlPayResultAbsolute(request, ou.get().getCode()));
         data.put("urlPayCheckoutMode", merchantUrlPayCheckoutMode(orgUnitId));
         data.put("effectiveUrlPayVariant", repay ? UrlPayCheckoutModeUtil.REPAY : UrlPayCheckoutModeUtil.STANDARD);
+        mobileCheckoutModeService.putEffectiveIntoMap(data, orgUnitId);
         for (UrlPayCheckoutContextEnricher enricher : contextEnrichers) {
             if (enricher.supports(cap)) {
                 enricher.enrich(data, orgUnitId, prof, request);

@@ -1,9 +1,11 @@
 package com.pg.merchantdeploy;
 
 import com.pg.integration.pg.PgVendor;
+import com.pg.repository.OrgUnitRepository;
 import com.pg.service.ChillPayService;
 import com.pg.service.MerchantChatbotProductService;
 import com.pg.splitpay.SplitPayCheckoutModeGuard;
+import com.pg.urlpay.MobileCheckoutModeService;
 import com.pg.urlpay.IcipayBuyerContactUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,8 @@ public class MerchantUnifiedInlineCheckoutService {
     private final MerchantApiIntegrationChannelService integrationChannelService;
 
     private final SplitPayCheckoutModeGuard splitPayCheckoutModeGuard;
+    private final MobileCheckoutModeService mobileCheckoutModeService;
+    private final OrgUnitRepository orgUnitRepository;
 
     public MerchantUnifiedInlineCheckoutService(ChillPayService chillPayService,
                                                 MerchantInlineCheckoutService chillpayInlineCheckoutService,
@@ -34,7 +38,9 @@ public class MerchantUnifiedInlineCheckoutService {
                                                 MerchantInlineCheckoutTokenService tokenService,
                                                 MerchantChatbotProductService productService,
                                                 MerchantApiIntegrationChannelService integrationChannelService,
-                                                SplitPayCheckoutModeGuard splitPayCheckoutModeGuard) {
+                                                SplitPayCheckoutModeGuard splitPayCheckoutModeGuard,
+                                                MobileCheckoutModeService mobileCheckoutModeService,
+                                                OrgUnitRepository orgUnitRepository) {
         this.chillPayService = chillPayService;
         this.chillpayInlineCheckoutService = chillpayInlineCheckoutService;
         this.jpayInlineCheckoutService = jpayInlineCheckoutService;
@@ -42,6 +48,8 @@ public class MerchantUnifiedInlineCheckoutService {
         this.productService = productService;
         this.integrationChannelService = integrationChannelService;
         this.splitPayCheckoutModeGuard = splitPayCheckoutModeGuard;
+        this.mobileCheckoutModeService = mobileCheckoutModeService;
+        this.orgUnitRepository = orgUnitRepository;
     }
 
     public Map<String, Object> prepare(Long orgUnitId, Map<String, Object> body, HttpServletRequest request) {
@@ -78,16 +86,20 @@ public class MerchantUnifiedInlineCheckoutService {
             return fail("지원하지 않는 URL 결제 PG: " + opPg, "PG_NOT_SUPPORTED");
         }
 
-        patchUnifiedPrepareResponse(result, request, opPg);
+        patchUnifiedPrepareResponse(result, request, opPg, orgUnitId);
         return result;
     }
 
-    public Map<String, Object> readSession(String token) {
+    public Map<String, Object> readSession(String token, HttpServletRequest request) {
         return tokenService.parseValid(token)
                 .map(session -> {
+                    Map<String, Object> data = new LinkedHashMap<>(session.toPublicMap());
+                    data.put("sessionToken", token);
+                    orgUnitRepository.findByCode(session.compId()).ifPresent(ou ->
+                            mobileCheckoutModeService.enrichInlineSession(data, ou.getId(), request));
                     Map<String, Object> out = new LinkedHashMap<>();
                     out.put("success", true);
-                    out.put("data", session.toPublicMap());
+                    out.put("data", data);
                     return out;
                 })
                 .orElseGet(() -> fail("세션이 유효하지 않거나 만료되었습니다.", "INVALID_SESSION"));
@@ -108,7 +120,8 @@ public class MerchantUnifiedInlineCheckoutService {
     }
 
     @SuppressWarnings("unchecked")
-    private void patchUnifiedPrepareResponse(Map<String, Object> result, HttpServletRequest request, String opPg) {
+    private void patchUnifiedPrepareResponse(Map<String, Object> result, HttpServletRequest request,
+                                             String opPg, Long orgUnitId) {
         Object ok = result.get("success");
         if (!(ok instanceof Boolean) || !(Boolean) ok) {
             return;
@@ -128,6 +141,9 @@ public class MerchantUnifiedInlineCheckoutService {
                 base + "/api/middleware/v1/merchant/checkout/prepare");
         data.put("operationalPgCd", opPg);
         data.put("integrationMode", "INLINE_UNIFIED");
+        if (orgUnitId != null) {
+            mobileCheckoutModeService.putEffectiveIntoMap(data, orgUnitId);
+        }
         data.put("embedUsageHint",
                 "통합 prepare: buyer(email·phone·countryIso2) 필수. sessionToken → /v1/embed-checkout/{compId} "
                         + "(운영 PG 자동 분기). 레거시 /chillpay·/jpay 경로도 호환됩니다.");

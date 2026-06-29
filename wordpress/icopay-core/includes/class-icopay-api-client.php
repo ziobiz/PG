@@ -64,7 +64,7 @@ class ICOPAY_Core_Api_Client {
 	 * @param string $amount       Amount.
 	 * @param string $currency     Currency.
 	 * @param string $product_name Product label.
-	 * @param array  $opts         lang, returnUrl, cancelUrl, buyerPrefill.
+	 * @param array  $opts         lang, buyerPrefill (redirect: returnUrl/cancelUrl 미사용 — NOTI Result 경유).
 	 * @return array
 	 */
 	public function prepare_checkout( $flow, $order_no, $amount, $currency, $product_name, array $opts = array() ) {
@@ -83,14 +83,6 @@ class ICOPAY_Core_Api_Client {
 		if ( '' !== $lang ) {
 			$body['lang'] = $lang;
 		}
-		if ( ICOPAY_Flow::REDIRECT === ICOPAY_Flow::normalize( $flow ) ) {
-			if ( ! empty( $opts['returnUrl'] ) ) {
-				$body['returnUrl'] = (string) $opts['returnUrl'];
-			}
-			if ( ! empty( $opts['cancelUrl'] ) ) {
-				$body['cancelUrl'] = (string) $opts['cancelUrl'];
-			}
-		}
 		if ( ! empty( $opts['buyerPrefill'] ) && is_array( $opts['buyerPrefill'] ) ) {
 			$body['buyerPrefill'] = $opts['buyerPrefill'];
 		}
@@ -102,8 +94,8 @@ class ICOPAY_Core_Api_Client {
 		return $this->prepare_checkout( ICOPAY_Flow::INLINE, $order_no, $amount, $currency, $product_name, array( 'lang' => $lang ) );
 	}
 
-	/** Redirect prepare. */
-	public function prepare_redirect_checkout( $order_no, $amount, $currency, $product_name, $return_url, $cancel_url = '', $lang = '' ) {
+	/** Redirect prepare (browser return via NOTI Result — do not send merchant returnUrl). */
+	public function prepare_redirect_checkout( $order_no, $amount, $currency, $product_name, $return_url = '', $cancel_url = '', $lang = '' ) {
 		return $this->prepare_checkout(
 			ICOPAY_Flow::REDIRECT,
 			$order_no,
@@ -111,9 +103,7 @@ class ICOPAY_Core_Api_Client {
 			$currency,
 			$product_name,
 			array(
-				'lang'      => $lang,
-				'returnUrl' => $return_url,
-				'cancelUrl' => $cancel_url,
+				'lang' => $lang,
 			)
 		);
 	}

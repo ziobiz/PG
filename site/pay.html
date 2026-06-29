@@ -9,6 +9,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600&display=swap" rel="stylesheet">
   <link href="css/pay-inline.css?v=32" rel="stylesheet">
+  <script src="js/icopay-checkout-3ds.js?v=1"></script>
   <script>
     (function () {
       try {
@@ -456,6 +457,7 @@
       /** 본사 checkout-context: urlPayFlow INLINE|REDIRECT, urlPayFormMode FULL|SIMPLE */
       var urlPayFlow = 'INLINE';
       var urlPayFormMode = 'FULL';
+      var urlPayShippingAddressUse = false;
       /** checkout-context: CHILLPAY_CCD | UNSUPPORTED_INLINE (다중 PG 확장) */
       var urlPayInlineWidgetKind = 'CHILLPAY_CCD';
       var urlPayOperationalPgCd = '';
@@ -747,7 +749,6 @@
         var banner = document.getElementById('payRedirectBanner');
         var inlineOnly = document.getElementById('payInlineOnly');
         var ext = document.getElementById('payExtendedFields');
-        var ids = ['phoneNumber', 'custEmail', 'zipCode', 'country', 'city', 'addressLine'];
         var nameHint = document.getElementById('paySimpleNameHint');
 
         if (banner) {
@@ -758,14 +759,21 @@
         }
 
         var simple = formMode === 'SIMPLE';
+        var billingBlock = document.getElementById('payBillingBlock');
+        if (billingBlock) {
+          billingBlock.classList.toggle('d-none', simple || !urlPayShippingAddressUse);
+        }
         if (ext) {
           ext.classList.toggle('d-none', simple);
         }
         if (nameHint) {
           nameHint.classList.toggle('d-none', !simple || flow === 'REDIRECT');
         }
-        ids.forEach(function (id) {
+        ['phoneNumber', 'custEmail'].forEach(function (id) {
           setReqInput(id, !simple);
+        });
+        ['zipCode', 'country', 'city', 'addressLine'].forEach(function (id) {
+          setReqInput(id, !simple && urlPayShippingAddressUse);
         });
         var rememberWrap = document.getElementById('ccdinline-card-remember');
         if (rememberWrap) {
@@ -1854,6 +1862,7 @@
           }
           urlPayFlow = String(checkoutCtx.urlPayFlow || 'INLINE').toUpperCase();
           urlPayFormMode = String(checkoutCtx.urlPayFormMode || 'FULL').toUpperCase();
+          urlPayShippingAddressUse = String(checkoutCtx.urlPayShippingAddressUseYn || 'N').trim().toUpperCase() === 'Y';
           urlPayInlineWidgetKind = String(checkoutCtx.urlPayInlineWidgetKind || 'CHILLPAY_CCD').toUpperCase();
           urlPayOperationalPgCd = checkoutCtx.urlPayOperationalPgCd != null
             ? String(checkoutCtx.urlPayOperationalPgCd).trim() : '';
@@ -1979,7 +1988,11 @@
                   sessionStorage.removeItem('pg_pay_pending_txn');
                 }
               } catch (eSt) {}
-              window.location.href = d.paymentUrl;
+              if (window.IcopayCheckout3ds && IcopayCheckout3ds.navigateToPaymentUrl) {
+                IcopayCheckout3ds.navigateToPaymentUrl(d.paymentUrl, { embed: PAY_EMBED_MODE });
+              } else {
+                window.location.href = d.paymentUrl;
+              }
               return;
             }
             if (d && d.paymentStatus === 'Paid') {
@@ -2042,11 +2055,13 @@
         var ad = '';
         var phoneVal = '';
         var emailVal = '';
-        if (urlPayFormMode !== 'SIMPLE') {
+        if (urlPayFormMode !== 'SIMPLE' && urlPayShippingAddressUse) {
           z = document.getElementById('zipCode').value.trim();
           co = document.getElementById('country').value.trim();
           ci = document.getElementById('city').value.trim();
           ad = document.getElementById('addressLine').value.trim();
+        }
+        if (urlPayFormMode !== 'SIMPLE') {
           phoneVal = document.getElementById('phoneNumber').value.trim();
           emailVal = document.getElementById('custEmail').value.trim();
         }

@@ -29,22 +29,8 @@ public class EmbedJpaySubscribeWidgetController {
                     .body(err);
         }
         String jsonId = objectMapper.writeValueAsString(compId);
-        String body = "(function(){"
-                + "var cur=document.currentScript;"
-                + "if(!cur||!cur.src){console.error('[ICOPAY] embed-jpay-subscribe: no currentScript');return;}"
-                + "var u=new URL(cur.src);"
-                + "var origin=u.origin;"
-                + "window.__ICOPAY_EMBED_JPAY_SUB__={compId:" + jsonId + ",origin:origin,script:cur};"
-                + "var ls=document.createElement('script');"
-                + "ls.src=origin+'/js/icopay-checkout-lang.js?v=2';"
-                + "ls.charset='utf-8';"
-                + "ls.onload=function(){"
-                + "var s=document.createElement('script');"
-                + "s.src=origin+'/js/icopay-embed-jpay-subscribe-widget.js?v=1';"
-                + "s.async=true;s.defer=true;s.charset='utf-8';document.head.appendChild(s);"
-                + "};"
-                + "document.head.appendChild(ls);"
-                + "})();";
+        String body = EmbedWidgetBootstrapJs.build("__ICOPAY_EMBED_JPAY_SUB__", jsonId,
+                "icopay-embed-jpay-subscribe-widget.js", 2);
         return ResponseEntity.ok()
                 .contentType(MediaType.valueOf("application/javascript;charset=UTF-8"))
                 .cacheControl(CacheControl.maxAge(1, TimeUnit.HOURS).cachePublic())

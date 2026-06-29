@@ -149,9 +149,16 @@ class ICOPAY_Payment_Page {
 			ICOPAY_WC_VERSION
 		);
 		wp_enqueue_script(
+			'icopay-checkout-3ds',
+			$origin . '/js/icopay-checkout-3ds.js',
+			array(),
+			'1.0.0',
+			true
+		);
+		wp_enqueue_script(
 			'icopay-wc-checkout',
 			ICOPAY_WC_PLUGIN_URL . 'assets/js/checkout.js',
-			array( 'jquery' ),
+			array( 'jquery', 'icopay-checkout-3ds' ),
 			ICOPAY_WC_VERSION,
 			true
 		);
@@ -168,6 +175,7 @@ class ICOPAY_Payment_Page {
 				'orderNo'       => $order_no,
 				'messages'      => array(
 					'processing' => __( 'Confirming payment…', 'icopay-woocommerce' ),
+					'wait3ds'    => __( 'Redirecting to card authentication…', 'icopay-woocommerce' ),
 					'failed'     => __( 'Payment was not completed. Please try again or contact support.', 'icopay-woocommerce' ),
 				),
 			)

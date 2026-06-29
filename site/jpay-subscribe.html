@@ -11,6 +11,8 @@
   <script src="js/url-pay-input-mode.js?v=4"></script>
   <script src="js/url-pay-public-shell.js?v=11"></script>
   <script src="js/jpay-pay-msg-i18n.js?v=1"></script>
+  <script src="js/icopay-card-pay-policy.js?v=4"></script>
+  <script src="js/icopay-checkout-3ds.js?v=1"></script>
   <script>
     (function () {
       try {
@@ -428,6 +430,10 @@
 
       function boot() {
         applyI18n();
+        if (window.PG_CARD_PAY_POLICY && typeof PG_CARD_PAY_POLICY.attachPanFormatter === 'function') {
+          var panEl = document.getElementById('payCardno');
+          if (panEl) PG_CARD_PAY_POLICY.attachPanFormatter(panEl, function () { return 'AUTO'; });
+        }
         var compId = getCompId();
         if (!compId) { showErr(t('errMerchant')); return; }
         document.getElementById('compIdHidden').value = compId;
@@ -499,7 +505,9 @@
           amount: document.getElementById('amount').value.trim(),
           currency: cur,
           item: document.getElementById('item').value.trim(),
-          payCardno: document.getElementById('payCardno').value.replace(/\s/g, ''),
+          payCardno: window.PG_CARD_PAY_POLICY
+            ? PG_CARD_PAY_POLICY.digitsOnly(document.getElementById('payCardno').value)
+            : document.getElementById('payCardno').value.replace(/\D/g, ''),
           payCardmonth: document.getElementById('payCardmonth').value.trim(),
           payCardyear: document.getElementById('payCardyear').value.trim(),
           payCardcvv: document.getElementById('payCardcvv').value.trim(),
@@ -533,7 +541,11 @@
           var redirectUrl = jpayResolveRedirectUrl(d);
           if (redirectUrl && (st === 1 || st < 0)) {
             notifyParent({ phase: 'wait_authorize', success: true, orderNo: body.orderNo, paymentUrl: redirectUrl, pgVendor: 'JPAY' });
-            location.href = redirectUrl;
+            if (window.IcopayCheckout3ds && IcopayCheckout3ds.navigateToPaymentUrl) {
+              IcopayCheckout3ds.navigateToPaymentUrl(redirectUrl, { embed: PAY_EMBED_MODE });
+            } else {
+              location.href = redirectUrl;
+            }
             return;
           }
           if (st === 0) {

@@ -875,22 +875,20 @@ public class MerchantApiDeploymentService {
         block.put("prepareUrl", base + apiPath + "/prepare");
         block.put("statusUrl", base + apiPath + "/status?compId=" + compId + "&orderNo={orderNo}");
         block.put("payPagePathTemplate", base + payPath + compId
-                + "?entry=merchant_api&session={sessionToken}&returnUrl={returnUrlHttps}&cancelUrl={cancelUrlHttps}");
+                + "?entry=merchant_api&session={sessionToken}");
         block.put("prepareBodyExample", Map.of(
                 "compId", compId,
                 "orderNo", "ORD-001",
                 "amount", jpay ? 100 : 10000,
                 "currency", jpay ? "USD" : "JPY",
-                "productName", "Sample product",
-                "returnUrl", "https://merchant.example.com/payment/return",
-                "cancelUrl", "https://merchant.example.com/payment/cancel"
+                "productName", "Sample product"
         ));
         MerchantDeployL10n.putTextFields(block, "redirectUsageHint", new Bundle(
-                "prepare → data.payUrl 리다이렉트. 완료 후 returnUrl(?orderNo&icopay_status=paid). PAID는 status·웹훅.",
-                "prepare → redirect browser to data.payUrl. After payment, returnUrl with orderNo & icopay_status=paid. Confirm PAID via status or webhook.",
-                "prepare → data.payUrl へリダイレクト。完了後 returnUrl(?orderNo&icopay_status=paid)。PAID は status または Webhook。",
-                "prepare → 跳转 data.payUrl。完成后 returnUrl(?orderNo&icopay_status=paid)。PAID 用 status 或 webhook 确认。",
-                "prepare → redirect ไป data.payUrl หลังชำระ returnUrl(?orderNo&icopay_status=paid) ยืนยัน PAID ด้วย status/webhook"
+                "prepare → data.payUrl 리다이렉트. 브라우저 복귀는 NOTI Result 경유(가맹 URL은 prepare·PG에 넣지 않음). PAID는 status·웹훅.",
+                "prepare → redirect to data.payUrl. Browser return via NOTI Result (do not put merchant URL in prepare or PG). Confirm PAID via status or webhook.",
+                "prepare → data.payUrl へ。ブラウ저復帰は NOTI Result 経由（prepare·PG に加盟店 URL を入れない）。PAID は status/Webhook。",
+                "prepare → 跳转 data.payUrl。浏览器返回经 NOTI Result（勿在 prepare/PG 填商户 URL）。PAID 用 status/webhook。",
+                "prepare → redirect ไป data.payUrl กลับเบราว์เซอร์ผ่าน NOTI Result (อย่าใส่ URL ร้านใน prepare/PG) ยืนยัน PAID ด้วย status/webhook"
         ));
         MerchantDeployL10n.putTextFields(block, "wordpressPluginNote", new Bundle(
                 "WordPress: flow_mode=redirect — docs/WordPress_JPAY_플러그인_배포가이드.md",
@@ -907,11 +905,11 @@ public class MerchantApiDeploymentService {
         Map<String, Object> block = new LinkedHashMap<>();
         block.put("integrationMode", "REDIRECT_UNIFIED");
         MerchantDeployL10n.putDescription(block, new Bundle(
-                "PG 무관 통합 리다이렉트 — returnUrl/cancelUrl HTTPS 필수",
-                "Unified redirect — HTTPS returnUrl/cancelUrl required; routes by operational WEB PG",
-                "PG 非依存統合リダイレクト — returnUrl/cancelUrl は HTTPS 必須",
-                "PG 无关统一重定向 — returnUrl/cancelUrl 须 HTTPS",
-                "Unified redirect — ต้องมี returnUrl/cancelUrl แบบ HTTPS"
+                "PG 무관 통합 리다이렉트 — buyer 필수, returnUrl/cancelUrl body 금지(NOTI Result 경유)",
+                "Unified redirect — buyer required; do not send returnUrl/cancelUrl in body (browser via NOTI Result)",
+                "PG 非依存統合リダイレクト — buyer 必須、returnUrl/cancelUrl は body 禁止（NOTI Result 経由）",
+                "PG 无关统一重定向 — buyer 必填，body 禁止 returnUrl/cancelUrl（经 NOTI Result）",
+                "Unified redirect — ต้องมี buyer ห้าม returnUrl/cancelUrl ใน body (NOTI Result)"
         ));
         block.put("prepareUrl", base + "/api/middleware/v1/merchant/checkout/redirect/prepare");
         block.put("statusUrl", base + "/api/middleware/v1/merchant/checkout/redirect/status?compId=" + compId + "&orderNo={orderNo}");
@@ -1019,15 +1017,15 @@ public class MerchantApiDeploymentService {
                 "notifyIngressUrlMiddleware — JPAY/PG → ICOPAY HQ (ตั้งค่า HQ/PG) ไม่ใช่ Webhook ร้าน"
         ));
         MerchantDeployL10n.putTextFields(g, "returnUrlNote", new Bundle(
-                "returnUrl/cancelUrl — 리다이렉트 결제 후 브라우저 복귀용. Webhook이 아니며, "
-                        + "결제 확정은 Webhook(merchantNotifyUrls) 또는 Status API로 서버에서 확인하세요.",
-                "returnUrl/cancelUrl — browser return after redirect checkout, not a webhook. "
-                        + "Confirm payment on the server via webhook (merchantNotifyUrls) or Status API.",
-                "returnUrl/cancelUrl — リダイレクト後のブラウザ復帰用。Webhook ではない。"
-                        + "確定は Webhook または Status API でサーバー確認。",
-                "returnUrl/cancelUrl — 重定向后浏览器返回，非 Webhook。"
-                        + "请在服务器通过 Webhook 或 Status API 确认支付。",
-                "returnUrl/cancelUrl — กลับเบราว์เซอร์หลัง redirect ไม่ใช่ webhook ยืนยันที่เซิร์ฟเวอร์"
+                "브라우저 복귀 URL은 prepare body·PG 전문에 넣지 않습니다. NOTI Result → 가맹 Result(브라우저), "
+                        + "서버 Callback은 NOTI → 가맹 webhook. 결제 확정은 Status API·Webhook으로 서버에서 확인하세요.",
+                "Do not put browser return URLs in prepare body or PG payloads. Browser: NOTI Result → merchant Result; "
+                        + "server: NOTI → merchant webhook. Confirm payment on the server via Status API or webhook.",
+                "ブラウザ復帰 URL は prepare body・PG 電文に入れません。NOTI Result → 加盟店、サーバーは webhook。"
+                        + "確定は Status API/Webhook でサーバー確認。",
+                "浏览器返回 URL 勿放入 prepare body 或 PG 报文。NOTI Result → 商户；服务器用 webhook。"
+                        + "请在服务器通过 Status API/Webhook 确认。",
+                "อย่าใส่ URL กลับเบราว์เซอร์ใน prepare/PG — NOTI Result → ร้าน, webhook ที่เซิร์ฟเวอร์"
         ));
         g.put("woocommerceWebhookPath", "/wp-json/icopay/v1/webhook");
         g.put("generalWordPressWebhookPath", "/wp-json/icopay-jpay/v1/webhook");

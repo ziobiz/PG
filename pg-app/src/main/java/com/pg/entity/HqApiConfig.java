@@ -78,6 +78,27 @@ public class HqApiConfig {
     @Column(name = "url_pay_redirect_enabled_yn", length = 1)
     private String urlPayRedirectEnabledYn = "Y";
 
+    /**
+     * 모바일·embed 결제창 기본 — {@link com.pg.urlpay.MobileCheckoutModeUtil}.
+     * EMBED(기본) | MOBILE_REDIRECT | ALWAYS_REDIRECT
+     */
+    @Column(name = "mobile_checkout_mode_default", length = 32)
+    private String mobileCheckoutModeDefault = "EMBED";
+
+    /**
+     * 공개 URL·챗봇·분할 URL 결제창 입력방식 본사 기본 —
+     * {@link com.pg.urlpay.UrlPayInputModeUtil}. 가맹 FOLLOW_HQ 시 URL 채널.
+     */
+    @Column(name = "url_pay_input_mode_default", nullable = false, length = 16)
+    private String urlPayInputModeDefault = "GENERAL";
+
+    /**
+     * API 인라인(entry=merchant_api) 결제창 입력방식 본사 기본.
+     * 가맹 FOLLOW_HQ 시 API 채널.
+     */
+    @Column(name = "api_url_pay_input_mode_default", nullable = false, length = 16)
+    private String apiUrlPayInputModeDefault = "TYPE_BA";
+
     /** WordPress/WooCommerce 플러그인 ZIP·REST webhook 채널 전역 제공 */
     @Column(name = "api_wordpress_plugin_enabled_yn", length = 1)
     private String apiWordpressPluginEnabledYn = "Y";
@@ -280,6 +301,29 @@ public class HqApiConfig {
     public void setUrlPayInlineEnabledYn(String urlPayInlineEnabledYn) { this.urlPayInlineEnabledYn = urlPayInlineEnabledYn; }
     public String getUrlPayRedirectEnabledYn() { return urlPayRedirectEnabledYn; }
     public void setUrlPayRedirectEnabledYn(String urlPayRedirectEnabledYn) { this.urlPayRedirectEnabledYn = urlPayRedirectEnabledYn; }
+    public String getMobileCheckoutModeDefault() { return mobileCheckoutModeDefault; }
+    public void setMobileCheckoutModeDefault(String mobileCheckoutModeDefault) {
+        this.mobileCheckoutModeDefault = mobileCheckoutModeDefault != null && !mobileCheckoutModeDefault.isBlank()
+                ? mobileCheckoutModeDefault.trim().toUpperCase(java.util.Locale.ROOT) : "EMBED";
+    }
+    public String getUrlPayInputModeDefault() { return urlPayInputModeDefault; }
+    public void setUrlPayInputModeDefault(String urlPayInputModeDefault) {
+        String n = com.pg.urlpay.UrlPayInputModeUtil.normalize(
+                urlPayInputModeDefault != null ? urlPayInputModeDefault : com.pg.urlpay.UrlPayInputModeUtil.GENERAL);
+        if (com.pg.urlpay.UrlPayInputModeUtil.FOLLOW_HQ.equals(n)) {
+            n = com.pg.urlpay.UrlPayInputModeUtil.GENERAL;
+        }
+        this.urlPayInputModeDefault = n;
+    }
+    public String getApiUrlPayInputModeDefault() { return apiUrlPayInputModeDefault; }
+    public void setApiUrlPayInputModeDefault(String apiUrlPayInputModeDefault) {
+        String n = com.pg.urlpay.UrlPayInputModeUtil.normalize(
+                apiUrlPayInputModeDefault != null ? apiUrlPayInputModeDefault : com.pg.urlpay.UrlPayInputModeUtil.TYPE_BA);
+        if (com.pg.urlpay.UrlPayInputModeUtil.FOLLOW_HQ.equals(n)) {
+            n = com.pg.urlpay.UrlPayInputModeUtil.TYPE_BA;
+        }
+        this.apiUrlPayInputModeDefault = n;
+    }
     public String getApiWordpressPluginEnabledYn() { return apiWordpressPluginEnabledYn; }
     public void setApiWordpressPluginEnabledYn(String apiWordpressPluginEnabledYn) { this.apiWordpressPluginEnabledYn = apiWordpressPluginEnabledYn; }
     public String getUrlPayRepayEnabledYn() { return urlPayRepayEnabledYn; }

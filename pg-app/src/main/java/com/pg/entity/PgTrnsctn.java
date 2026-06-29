@@ -1,6 +1,8 @@
 package com.pg.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -141,6 +143,23 @@ public class PgTrnsctn {
     @Column(name = "outcome_reason_at")
     private LocalDateTime outcomeReasonAt;
 
+    /** 결제 고객 IP (V203) */
+    @Column(name = "payer_client_ip", length = 64)
+    private String payerClientIp;
+
+    /** PC / MOBILE_IOS / MOBILE_ANDROID 등 (V203) */
+    @Column(name = "payer_device_category", length = 32)
+    private String payerDeviceCategory;
+
+    /** 결제 접속·청구 국가 ISO2 (V203) — PostgreSQL bpchar(2) */
+    @JdbcTypeCode(SqlTypes.CHAR)
+    @Column(name = "payer_country_iso2", length = 2)
+    private String payerCountryIso2;
+
+    /** 결제 고객 도시 (V206) — JPAY payCity·CF-IPCity 등 */
+    @Column(name = "payer_city", length = 128)
+    private String payerCity;
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
@@ -219,4 +238,13 @@ public class PgTrnsctn {
     public void setOutcomeReasonSource(String outcomeReasonSource) { this.outcomeReasonSource = outcomeReasonSource; }
     public LocalDateTime getOutcomeReasonAt() { return outcomeReasonAt; }
     public void setOutcomeReasonAt(LocalDateTime outcomeReasonAt) { this.outcomeReasonAt = outcomeReasonAt; }
+
+    public String getPayerClientIp() { return payerClientIp; }
+    public void setPayerClientIp(String payerClientIp) { this.payerClientIp = payerClientIp; }
+    public String getPayerDeviceCategory() { return payerDeviceCategory; }
+    public void setPayerDeviceCategory(String payerDeviceCategory) { this.payerDeviceCategory = payerDeviceCategory; }
+    public String getPayerCountryIso2() { return payerCountryIso2; }
+    public void setPayerCountryIso2(String payerCountryIso2) { this.payerCountryIso2 = payerCountryIso2; }
+    public String getPayerCity() { return payerCity; }
+    public void setPayerCity(String payerCity) { this.payerCity = payerCity; }
 }

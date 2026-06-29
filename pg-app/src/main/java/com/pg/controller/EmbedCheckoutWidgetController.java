@@ -32,22 +32,8 @@ public class EmbedCheckoutWidgetController {
                     .body(err);
         }
         String jsonId = objectMapper.writeValueAsString(compId);
-        String body = "(function(){"
-                + "var cur=document.currentScript;"
-                + "if(!cur||!cur.src){console.error('[ICOPAY] embed-checkout: no currentScript');return;}"
-                + "var u=new URL(cur.src);"
-                + "var origin=u.origin;"
-                + "window.__ICOPAY_EMBED_CHECKOUT__={compId:" + jsonId + ",origin:origin,script:cur};"
-                + "var ls=document.createElement('script');"
-                + "ls.src=origin+'/js/icopay-checkout-lang.js?v=2';"
-                + "ls.charset='utf-8';"
-                + "ls.onload=function(){"
-                + "var s=document.createElement('script');"
-                + "s.src=origin+'/js/icopay-embed-checkout-widget.js?v=1';"
-                + "s.async=true;s.defer=true;s.charset='utf-8';document.head.appendChild(s);"
-                + "};"
-                + "document.head.appendChild(ls);"
-                + "})();";
+        String body = EmbedWidgetBootstrapJs.build("__ICOPAY_EMBED_CHECKOUT__", jsonId,
+                "icopay-embed-checkout-widget.js", 2);
         return ResponseEntity.ok()
                 .contentType(MediaType.valueOf("application/javascript;charset=UTF-8"))
                 .cacheControl(CacheControl.maxAge(1, TimeUnit.HOURS).cachePublic())

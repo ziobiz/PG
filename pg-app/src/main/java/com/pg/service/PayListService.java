@@ -31,6 +31,7 @@ import com.pg.entity.CommissionPolicy;
 import com.pg.util.FeeCurrencyRoundResolver;
 import com.pg.util.FeeListRoundingPolicy;
 import com.pg.util.MerchantDisplayCurrencyResolver;
+import com.pg.util.PayerCountryIso2Util;
 import com.pg.util.PayDisplayCurrency;
 import com.pg.util.PayListStatusBarBuckets;
 import com.pg.util.PgTrnsctnTxnClock;
@@ -301,6 +302,7 @@ public class PayListService {
             list.add(row);
         }
         outcomeReasonTranslateService.applyToPayListRows(list, req.getAdminUiLocale());
+        applyPayerOverviewLabels(list, req.getAdminUiLocale());
         PageResult<Map<String, Object>> pr = new PageResult<>();
         pr.setList(list);
         pr.setPage(result.getNumber() + 1);
@@ -560,7 +562,7 @@ public class PayListService {
             return true;
         }
         return switch (variant.trim().toUpperCase(Locale.ROOT)) {
-            case "INTEGRATED", "NOTI", "URL_PAY", "CHATBOT_PAY", "OFFSET_CANCEL" -> true;
+            case "INTEGRATED", "NOTI", "URL_PAY", "CHATBOT_PAY", "OFFSET_CANCEL", "PAY_OVERVIEW" -> true;
             default -> false;
         };
     }
@@ -2224,11 +2226,29 @@ public class PayListService {
         }
     }
 
+    private void applyPayerOverviewLabels(List<Map<String, Object>> list, String adminUiLocale) {
+        if (list == null || list.isEmpty()) {
+            return;
+        }
+        String loc = adminUiLocale != null && !adminUiLocale.isBlank() ? adminUiLocale.trim() : "KO";
+        for (Map<String, Object> row : list) {
+            Object preview = row.get("outcomeReasonPreview");
+            row.put("outcomeCause", preview != null ? preview : "");
+            String cat = row.get("payerDeviceCategory") != null ? row.get("payerDeviceCategory").toString() : "";
+            row.put("payerDeviceLabel", com.pg.util.PayerDeviceCategoryUtil.displayLabel(cat, loc));
+            String iso = row.get("payerCountryIso2") != null ? row.get("payerCountryIso2").toString() : "";
+            iso = PayerCountryIso2Util.normalize(iso);
+            row.put("payerCountryIso2", iso);
+            String city = row.get("payerCity") != null ? row.get("payerCity").toString() : "";
+            row.put("payerRegion", PayListItemDto.payerLocationLabel(iso, city, loc));
+        }
+    }
+
     private Predicate variantPredicate(jakarta.persistence.criteria.Root<PgTrnsctn> root,
                                        jakarta.persistence.criteria.CriteriaBuilder cb, String variant,
                                        jakarta.persistence.criteria.CriteriaQuery<?> query) {
         return switch (variant) {
-            case "INTEGRATED" -> cb.conjunction();
+            case "INTEGRATED", "PAY_OVERVIEW" -> cb.conjunction();
             case "SUCCESS" -> cb.equal(root.get("status"), "10");
             case "FAIL" -> root.get("status").in("F0", "99");
             case "REFUND" -> root.get("status").in("30", "42");

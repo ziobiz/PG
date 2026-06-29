@@ -13,7 +13,7 @@ public final class PayCardFailOutcomeRules {
 
     private static final Set<String> SKIP_VALIDATE_CODES = Set.of(
             "INVALID_PAN", "CARD_LEN", "AMEX_LEN", "BRAND_NOT_ALLOWED", "BLOCKED_PREFIX",
-            "BLACKLIST", "INACTIVE_CARD", "CARD_COOLDOWN", "SELECT_BRAND",
+            "BLACKLIST", "INACTIVE_CARD", "CARD_COOLDOWN", "SELECT_BRAND", "LUHN_FAIL",
             "UNION_NOT_62", "UNION_60_81", "CARD_POLICY");
 
     private PayCardFailOutcomeRules() {

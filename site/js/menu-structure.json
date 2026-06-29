@@ -38,6 +38,7 @@
         { "label": "통합체크", "url": "/calc/integratedCheck", "menuId": "M0332" },
         { "label": "통합수수료", "url": "/ops/agencyTxnList", "menuId": "M0607" },
         { "label": "통합조회", "url": "/calc/jpayTrList", "menuId": "M0328" },
+        { "label": "결제개요", "url": "/calc/payOverview", "menuId": "M0333" },
         { "label": "일별조회", "url": "/calc/queryIntegrated", "menuId": "M0331" },
         { "label": "리스크 현황", "url": "/risk/list", "menuId": "M0701" }
       ]

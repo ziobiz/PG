@@ -45,6 +45,11 @@ public class MerchantUnifiedRedirectCheckoutService {
         if (redirectDeny.isPresent()) {
             return fail(redirectDeny.get(), MerchantApiIntegrationChannelService.CODE_INTEGRATION_CHANNEL_DISABLED);
         }
+        Optional<Map<String, Object>> returnUrlReject = MerchantRedirectCheckoutPrepareUtil.rejectMerchantReturnUrlsInBody(body);
+        if (returnUrlReject.isPresent()) {
+            return returnUrlReject.get();
+        }
+
         Map<String, String> buyer;
         try {
             buyer = IcipayBuyerContactUtil.extractAndValidateRequired(body);
@@ -114,8 +119,8 @@ public class MerchantUnifiedRedirectCheckoutService {
         data.put("operationalPgCd", opPg);
         data.put("integrationMode", "REDIRECT_UNIFIED");
         data.put("redirectUsageHint",
-                "통합 REDIRECT prepare: buyer(email·phone·countryIso2) 필수, returnUrl(HTTPS) 필수. "
-                        + "payUrl로 브라우저 리다이렉트. 레거시 /chillpay·/jpay redirect 경로도 호환됩니다.");
+                "통합 REDIRECT prepare: buyer(email·phone·countryIso2) 필수. "
+                        + "returnUrl/cancelUrl은 body에 넣지 않음 — 브라우저 복귀는 NOTI Result 경유.");
     }
 
     private static Map<String, Object> fail(String message, String code) {

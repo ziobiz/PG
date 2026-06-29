@@ -43,6 +43,7 @@ public class OrgTabletMenuService {
             "/calc/integratedCheck",
             "/ops/agencyTxnList",
             "/calc/jpayTrList",
+            "/calc/payOverview",
             "/calc/queryIntegrated",
             "/risk/list",
             "/ops/integratedReport",

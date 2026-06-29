@@ -2,6 +2,7 @@ package com.pg.service;
 
 import com.pg.entity.PgTrnsctn;
 import com.pg.repository.PgTrnsctnRepository;
+import com.pg.util.JpayPendingAutoCancelSchedule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,6 +18,7 @@ import java.util.Map;
 /**
  * JPAY 요청(08) 대기 건 중 노티가 오지 않은 미완료 결제를 Trade Query로 주기 조회해
  * UNPAID 등 터미널 상태(주로 취소 20)로 자동 반영합니다.
+ * 대기 시간은 전산설정관리 {@code jpayPendingAutoCancelMin}(0=미사용)을 따릅니다.
  */
 @Service
 public class JpayPendingReconcileScheduler {
@@ -26,12 +28,10 @@ public class JpayPendingReconcileScheduler {
 
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final JpayTradeApiService jpayTradeApiService;
+    private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
 
     @Value("${app.jpay.pendingReconcile.enabled:true}")
     private boolean enabled;
-
-    @Value("${app.jpay.pendingReconcile.staleMinutes:30}")
-    private int staleMinutes;
 
     @Value("${app.jpay.pendingReconcile.maxAgeDays:14}")
     private int maxAgeDays;
@@ -40,9 +40,11 @@ public class JpayPendingReconcileScheduler {
     private int batchSize;
 
     public JpayPendingReconcileScheduler(PgTrnsctnRepository pgTrnsctnRepository,
-                                         JpayTradeApiService jpayTradeApiService) {
+                                         JpayTradeApiService jpayTradeApiService,
+                                         HqLedgerSysSettingsService hqLedgerSysSettingsService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.jpayTradeApiService = jpayTradeApiService;
+        this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
     }
 
     @Scheduled(cron = "${app.jpay.pendingReconcile.cron:0 */15 * * * *}", zone = "Asia/Seoul")
@@ -50,7 +52,10 @@ public class JpayPendingReconcileScheduler {
         if (!enabled) {
             return;
         }
-        int minutes = Math.max(1, staleMinutes);
+        int minutes = hqLedgerSysSettingsService.resolveJpayPendingAutoCancelMin();
+        if (!JpayPendingAutoCancelSchedule.isEnabled(minutes)) {
+            return;
+        }
         int days = Math.max(1, maxAgeDays);
         int limit = Math.min(200, Math.max(1, batchSize));
 
@@ -81,7 +86,7 @@ public class JpayPendingReconcileScheduler {
                         t.getTrnId(), t.getOrderNo(), e.getMessage());
             }
         }
-        log.info("JPAY pending reconcile: queried={} updated={} unchanged={} failed={}",
-                batch.size(), updated, unchanged, failed);
+        log.info("JPAY pending reconcile: queried={} updated={} unchanged={} failed={} staleMin={}",
+                batch.size(), updated, unchanged, failed, minutes);
     }
 }

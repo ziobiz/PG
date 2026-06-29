@@ -8,6 +8,7 @@ import com.pg.repository.HqLedgerSysSettingsRepository;
 import com.pg.repository.SettlementSettingRepository;
 import com.pg.util.LedgerZoneDisplayTag;
 import com.pg.util.FeeCurrencyRoundResolver;
+import com.pg.util.JpayPendingAutoCancelSchedule;
 import com.pg.util.JpayTrSyncSchedule;
 import com.pg.util.PayDisplayCurrency;
 import com.pg.util.ReceivableRecoveryModeUtil;
@@ -184,6 +185,8 @@ public class HqLedgerSysSettingsService {
         m.put("jpayTrRecentSyncDays", ledgerIntOr(s.getJpayTrRecentSyncDays(), 7));
         m.put("jpayTrSyncScheduleMin", JpayTrSyncSchedule.clampMinutes(s.getJpayTrSyncScheduleMin()));
         m.put("jpayTrSyncScheduleOptions", JpayTrSyncSchedule.optionRows());
+        m.put("jpayPendingAutoCancelMin", JpayPendingAutoCancelSchedule.clampMinutes(s.getJpayPendingAutoCancelMin()));
+        m.put("jpayPendingAutoCancelOptions", JpayPendingAutoCancelSchedule.optionRows());
         m.put("appLogMemoryRetentionDays", ledgerIntOr(s.getAppLogMemoryRetentionDays(), 30));
         m.put("appLogFileRetentionDays", ledgerIntOr(s.getAppLogFileRetentionDays(), 90));
         m.put("feeListDecimalPlaces", ledgerIntOr(s.getFeeListDecimalPlaces(), 2));
@@ -294,6 +297,9 @@ public class HqLedgerSysSettingsService {
         }
         if (body.containsKey("jpayTrSyncScheduleMin")) {
             s.setJpayTrSyncScheduleMin(JpayTrSyncSchedule.clampMinutes(parseScheduleMinutes(body.get("jpayTrSyncScheduleMin"))));
+        }
+        if (body.containsKey("jpayPendingAutoCancelMin")) {
+            s.setJpayPendingAutoCancelMin(JpayPendingAutoCancelSchedule.clampMinutes(parseScheduleMinutes(body.get("jpayPendingAutoCancelMin"))));
         }
         if (body.containsKey("appLogMemoryRetentionDays")) {
             s.setAppLogMemoryRetentionDays(clampInt(body.get("appLogMemoryRetentionDays"), 30, 1, 3650));
@@ -534,5 +540,14 @@ public class HqLedgerSysSettingsService {
 
     public TxnDualLineSpec resolveLedgerTxnDualLineSpec() {
         return resolveTxnDualLineSpecFromSettings(getOrCreate());
+    }
+
+    /** JPAY 요청(08) 무응답 자동취소 대기(분). 0=미사용 */
+    public int resolveJpayPendingAutoCancelMin() {
+        try {
+            return JpayPendingAutoCancelSchedule.clampMinutes(getOrCreate().getJpayPendingAutoCancelMin());
+        } catch (Exception e) {
+            return JpayPendingAutoCancelSchedule.OFF;
+        }
     }
 }
