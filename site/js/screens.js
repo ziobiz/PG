@@ -4549,7 +4549,7 @@
     '/commission/commisionList': {
       /** 페이지네이션 행 오른쪽에 [저장] (상단 저장과 동일 동작) */
       paginationTrailingSaveButton: true,
-      /** VIEW SETTING: 본사설정 조직항목설정과 동일 열 집합·키. 고정은 No·가맹점·업체코드만(체크·처리 열은 타입으로 제외). */
+      /** VIEW SETTING: 본사설정 조직항목설정과 동일 열 집합·키. 고정은 체크·No·가맹점·업체코드만. 관리(inlineActions)는 VIEW SETTING·조직항목설정에 포함. */
       tableColumnGuide: true,
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId'],
       searchRows: [
@@ -4589,8 +4589,7 @@
         { label: '지사', keys: ['branchNm', 'branchRate', 'branchPerTxFee'] },
         { label: '대리점', keys: ['agencyNm', 'agencyRate', 'agencyPerTxFee'] },
         { label: '영업점', keys: ['salesOfficeNm', 'salesOfficeRate', 'salesOfficePerTxFee'] },
-        { label: '합계', keys: ['totalNm', 'totalRate', 'totalPerTxFee'] },
-        { label: '처리', keys: ['inlineActions'] }
+        { label: '합계', keys: ['totalNm', 'totalRate', 'totalPerTxFee'] }
       ],
       columns: [
         { key: '_chk', type: 'checkbox' },
@@ -4605,8 +4604,8 @@
         { key: 'agencyNm', label: '업체명', columnGuideLabel: '대리점 · 업체명' }, { key: 'agencyRate', label: '요율%' }, { key: 'agencyPerTxFee', label: '건당료' },
         { key: 'salesOfficeNm', label: '업체명', columnGuideLabel: '영업점 · 업체명' }, { key: 'salesOfficeRate', label: '요율%' }, { key: 'salesOfficePerTxFee', label: '건당료' },
         { key: 'totalNm', label: '기준통화', columnGuideLabel: '합계 · 가맹 기준통화(프로필)' }, { key: 'totalRate', label: '요율%' }, { key: 'totalPerTxFee', label: '건당료' },
-        { key: 'applyDt', label: '적용시작일' },
-        { key: 'inlineActions', type: 'commissionInlineActions', label: '처리' }
+        { key: 'applyDt', label: '적용시작일', align: 'center' },
+        { key: 'inlineActions', type: 'commissionInlineActions', label: '관리', columnGuideLabel: '관리' }
       ],
       hasCommissionHistoryTable: true,
       commissionHistory: {
@@ -7605,7 +7604,7 @@
       var gk = gridColGuideKey(c);
       if (gk && hiddenSet[gk]) return false;
       if (c.key && hiddenSet[c.key]) return false;
-      if (c.type === 'checkbox' || c.type === 'commissionInlineActions' || c.type === 'accountAccessActions' || c.type === 'accountAccessDelete' || c.type === 'userResetPassword' || c.type === 'userDelete' || c.type === 'payoutHoldReleaseBtn' || c.type === 'pgApiMngRowActions') return false;
+      if (c.type === 'checkbox' || c.type === 'accountAccessActions' || c.type === 'accountAccessDelete' || c.type === 'userResetPassword' || c.type === 'userDelete' || c.type === 'payoutHoldReleaseBtn' || c.type === 'pgApiMngRowActions') return false;
       return fixedKeys.indexOf(gk) === -1 && fixedKeys.indexOf(c.key) === -1;
     });
     if (cols.length === 0) return '';

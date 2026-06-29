@@ -6650,7 +6650,7 @@
     var hiddenSet = payListColumnGuideHiddenKeySet(cfg);
     var cols = cfg.columns.filter(function (c) {
       if (!c || hiddenSet[c.key]) return false;
-      if (c.type === 'checkbox' || c.type === 'commissionInlineActions' || c.type === 'accountAccessActions' || c.type === 'accountAccessDelete' || c.type === 'userResetPassword' || c.type === 'userDelete' || c.type === 'payoutHoldReleaseBtn' || c.type === 'inactiveCardRelease' || c.type === 'inactiveCardEdit') return false;
+      if (c.type === 'checkbox' || c.type === 'accountAccessActions' || c.type === 'accountAccessDelete' || c.type === 'userResetPassword' || c.type === 'userDelete' || c.type === 'payoutHoldReleaseBtn' || c.type === 'inactiveCardRelease' || c.type === 'inactiveCardEdit') return false;
       return fixedKeys.indexOf(c.key) === -1;
     });
     var html = cols.map(function (c) {
@@ -9400,6 +9400,69 @@
         span.title = isExp ? '접기' : '펼치기';
       });
     }
+    /** 수수료관리: 상단 목록과 동일 VIEW SETTING 키(총본사~합계·통화). 변경자·이력 전용 열은 항상 노출 */
+    function commissionMainVisibleKeySet(pane) {
+      var set = Object.create(null);
+      var mainCols = pane && pane._lastGridCols;
+      if (mainCols && mainCols.length) {
+        mainCols.forEach(function (c) {
+          if (c && c.key && c.type !== 'checkbox') set[c.key] = true;
+        });
+        return set;
+      }
+      var fixed = ['rowNo', 'compNm', 'compId'];
+      fixed.forEach(function (k) { set[k] = true; });
+      if (pane && pane.querySelectorAll) {
+        pane.querySelectorAll('#tableColumnGuide .column-guide-check:checked').forEach(function (cb) {
+          var k = cb.getAttribute('data-key');
+          if (k) set[k] = true;
+        });
+      }
+      var cfg = window.PG_SCREENS && window.PG_SCREENS.getMenuScreens
+        ? window.PG_SCREENS.getMenuScreens()['/commission/commisionList'] : null;
+      if (cfg && cfg.columns && Object.keys(set).length <= fixed.length) {
+        cfg.columns.forEach(function (c) {
+          if (c && c.key && c.type !== 'checkbox' && fixed.indexOf(c.key) === -1) set[c.key] = true;
+        });
+      }
+      return set;
+    }
+    function commissionHistoryKeyFollowsMainList(key) {
+      if (!key || key === 'changedBy') return false;
+      if (key === 'policyCur') return true;
+      return /^(hq|regional|master|branch|agency|salesOffice|total)(Nm|Rate|PerTxFee)$/.test(key);
+    }
+    function resolveCommissionHistoryLayout(pane, hcfg) {
+      var mainKeys = commissionMainVisibleKeySet(pane);
+      var allHistCols = (hcfg && hcfg.columns) ? hcfg.columns : [];
+      var outCols = [];
+      allHistCols.forEach(function (c) {
+        if (!c || !c.key) return;
+        var k = c.key;
+        if (k === 'changedBy') return;
+        if (k === 'rowNo' || k === 'compNm' || k === 'startDttm' || k === 'endDttm') {
+          outCols.push(c);
+          return;
+        }
+        if (commissionHistoryKeyFollowsMainList(k) && mainKeys[k]) {
+          outCols.push(c);
+        }
+      });
+      var changedCol = null;
+      allHistCols.forEach(function (c) {
+        if (c && c.key === 'changedBy') changedCol = c;
+      });
+      if (changedCol) outCols.push(changedCol);
+      var visibleKeys = Object.create(null);
+      outCols.forEach(function (c) { if (c && c.key) visibleKeys[c.key] = true; });
+      var outGroups = (hcfg.headerGroups || []).map(function (g) {
+        return {
+          label: g.label,
+          keys: (g.keys || []).filter(function (k) { return visibleKeys[k]; })
+        };
+      }).filter(function (g) { return g.keys && g.keys.length > 0; });
+      return { columns: outCols, headerGroups: outGroups };
+    }
     function buildGroupedTheadFromConfig(groups, cols) {
       var escTh = function (s) {
         return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
@@ -9440,12 +9503,14 @@
       var cfg = window.PG_SCREENS && window.PG_SCREENS.getMenuScreens && window.PG_SCREENS.getMenuScreens()['/commission/commisionList'];
       if (!cfg || !cfg.commissionHistory) return;
       var hcfg = cfg.commissionHistory;
+      var histLayout = resolveCommissionHistoryLayout(pane, hcfg);
       var table = pane.querySelector('#grid_commissionHist_' + tid);
       if (!table) return;
       var thead = table.querySelector('thead');
       var tbody = table.querySelector('tbody');
-      var groups = hcfg.headerGroups || [];
-      var cols = hcfg.columns || [];
+      var groups = histLayout.headerGroups || [];
+      var cols = histLayout.columns || [];
+      pane._lastCommissionHistCols = cols;
       if (thead) thead.innerHTML = buildGroupedTheadFromConfig(groups, cols);
       var compId = pane._commissionHistCompId || '';
       var subEl = pane.querySelector('#commissionHistSubtitle_' + tid);
@@ -12850,8 +12915,8 @@
           fixedKeys = ['rowNo'];
         }
         if (url === '/commission/commisionList') {
-          /** 체크·No·가맹점·업체코드·처리(인라인 저장)만 항상 표시. 나머지는 VIEW SETTING·조직항목설정과 동일 키로 토글 */
-          fixedKeys = ['_chk', 'rowNo', 'compNm', 'compId', 'inlineActions'];
+          /** 체크·No·가맹점·업체코드만 항상 표시. 관리(inlineActions) 포함 나머지는 VIEW SETTING·조직항목설정과 동일 키로 토글 */
+          fixedKeys = ['_chk', 'rowNo', 'compNm', 'compId'];
         } else if (url === '/calc/feeList' || url === '/settlement/feeList') {
           /** 체크·번호·업체·거래일·통화 고정. 정산주기·거래시간·루트·승인번호·거래번호(우리) 등은 VIEW SETTING과 동일하게 토글 */
           fixedKeys = ['_chk', 'rowNo', 'compNm', 'compId', 'trnDate', 'curType'];
@@ -14039,7 +14104,7 @@
                       '<span class="commission-inline-view">' + cEscVal + '</span></td>';
                   } else if (c.key === 'applyDt') {
                     var cDateVal = val ? String(val).substring(0, 10) : '';
-                    html += '<td><input type="date" lang="en-CA" class="form-control form-control-sm pg-date-input-iso commission-inline-input text-center" data-key="applyDt" value="' + String(cDateVal).replace(/"/g, '&quot;') + '"></td>';
+                    html += '<td class="commission-apply-dt-cell text-center"><input type="date" lang="en-CA" class="form-control form-control-sm pg-date-input-iso commission-inline-input text-center" data-key="applyDt" value="' + String(cDateVal).replace(/"/g, '&quot;') + '"></td>';
                   } else {
                     if ((c.key === 'hqNm' || c.key === 'regionalNm' || c.key === 'masterNm' || c.key === 'branchNm' || c.key === 'agencyNm' || c.key === 'salesOfficeNm') && (!val || !String(val).trim())) {
                       var idMap = { hqNm: 'hqId', regionalNm: 'regionalId', masterNm: 'masterId', branchNm: 'branchId', agencyNm: 'agencyId', salesOfficeNm: 'salesOfficeId' };
@@ -24222,7 +24287,7 @@
           var fixedGk = hqOrgAllowFixedKeysForPage(pageUrl);
           var html = '';
           resolvedColDefs.forEach(function (c) {
-            if (!c.key || c.type === 'checkbox' || c.type === 'payActions' || c.type === 'commissionInlineActions' || fixedGk.indexOf(c.key) !== -1) return;
+            if (!c.key || c.type === 'checkbox' || c.type === 'payActions' || fixedGk.indexOf(c.key) !== -1) return;
             var label = c.columnGuideLabel || c.label || c.key;
             var labelT = pgAdminUiT(String(label));
             var on0 = hqAllowColDefaultChecked(pageUrl, c.key);
@@ -24246,7 +24311,7 @@
             var fixedGk2 = hqOrgAllowFixedKeysForPage(pageUrl);
             var html = '';
             resolvedColDefs.forEach(function (c) {
-              if (!c.key || c.type === 'checkbox' || c.type === 'payActions' || c.type === 'commissionInlineActions' || fixedGk2.indexOf(c.key) !== -1) return;
+              if (!c.key || c.type === 'checkbox' || c.type === 'payActions' || fixedGk2.indexOf(c.key) !== -1) return;
               var label = c.columnGuideLabel || c.label || c.key;
               var labelT1 = pgAdminUiT(String(label));
               var on1 = hqAllowColDefaultChecked(pageUrl, c.key);

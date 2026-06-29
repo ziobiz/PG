@@ -3420,6 +3420,42 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   text-align: center;
 }
 
+/* 수수료관리 적용시작일: 전역 date min-width(13.875rem)보다 우선 — 열·입력 폭 축소·가운데 정렬 */
+#contentsMain .commission-list-table-wrap .commission-split-grid thead th[data-key="applyDt"] {
+  width: 8.25rem;
+  max-width: 8.5rem;
+  min-width: 7.75rem;
+  text-align: center;
+  padding-left: 0.15rem;
+  padding-right: 0.15rem;
+}
+#contentsMain .commission-list-table-wrap .commission-split-grid td.commission-apply-dt-cell {
+  width: 8.25rem;
+  max-width: 8.5rem;
+  min-width: 7.75rem;
+  text-align: center;
+  padding-left: 0.15rem;
+  padding-right: 0.15rem;
+}
+#contentsMain .commission-list-table-wrap .commission-split-grid td.commission-apply-dt-cell input[type="date"].commission-inline-input {
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: 100%;
+  text-align: center;
+  margin: 0 auto;
+  padding-left: 0.15rem;
+  padding-right: 0.15rem;
+  box-sizing: border-box;
+}
+#contentsMain .commission-list-table-wrap .commission-split-grid td.commission-apply-dt-cell input[type="date"]::-webkit-datetime-edit,
+#contentsMain .commission-list-table-wrap .commission-split-grid td.commission-apply-dt-cell input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+  text-align: center;
+}
+#contentsMain .commission-list-table-wrap .commission-split-grid td.commission-apply-dt-cell input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+  display: inline-flex;
+  justify-content: center;
+}
+
 /* 수수료설정 모달: 격자·입력 — 결제내역 테이블과 동일 글자 크기 */
 #commissionSettingModal .modal-body .form-label {
   font-size: var(--app-table-font-size);
