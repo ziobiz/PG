@@ -253,7 +253,7 @@
     '/ops/opsMng': T('Operations', '運用管理', '运营管理', 'ปฏิบัติการ'),
     '/ops/mailLog': T('Mail log', 'メールログ', '邮件日志', 'บันทึกเมล'),
     '/ops/taxReport': T('TH tax report', 'タイ税務レポート', '泰国税务报表', 'รายงานภาษี TH'),
-    '/ops/agencyTxnList': T('Integrated fee', '統合手数料', '整合手续费', 'ค่าธรรมเนียมรวม'),
+    '/ops/agencyTxnList': T('Agency fees', '代行手数료', '代理手续费', 'ค่าธรรมเนียมตัวแทน'),
     '/calc/integratedCheck': T('Integrated check', '統合チェック', '整合检查', 'ตรวจสอบรวม'),
     '/ops/integratedReport': T('Integrated report', '統合レポート', '综合报表', 'รายงานรวม'),
     '/ops/verifyReport': T('Verify report', '検証レポート', '验证报表', 'รายงานตรวจสอบ'),

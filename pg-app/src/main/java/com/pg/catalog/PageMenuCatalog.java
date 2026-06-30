@@ -39,10 +39,10 @@ public final class PageMenuCatalog {
         add(list, "/hq/chatbotAiSettings", "M0126", "AI챗봇설정", "본사설정");
         /* 검수관리 */
         add(list, "/calc/integratedCheck", "M0332", "통합체크", "검수관리");
-        add(list, "/ops/agencyTxnList", "M0607", "통합수수료", "검수관리");
         add(list, "/calc/jpayTrList", "M0328", "통합개요", "검수관리");
         add(list, "/calc/payOverview", "M0333", "결제개요", "검수관리");
         add(list, "/calc/queryIntegrated", "M0331", "일별조회", "검수관리");
+        add(list, "/ops/agencyTxnList", "M0607", "대행수수료", "검수관리");
         add(list, "/risk/list", "M0701", "리스크 현황", "검수관리");
         /* 업체관리 */
         add(list, "/system/noticeList", "M0201", "공지사항", "업체관리");

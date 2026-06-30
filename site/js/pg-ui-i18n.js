@@ -18737,7 +18737,8 @@
     },
     '검증 리포트': { EN: 'Verify report', JP: '検証レポート', CH: '验证报表', TH: 'รายงานตรวจสอบ' },
     '비활성카드등록': { EN: 'Inactive card register', JP: '非活性カード登録', CH: '非活跃卡登记', TH: 'ลงทะเบียนบัตรปิดใช้' },
-    '통합수수료': { EN: 'Integrated fee', JP: '統合手数料', CH: '整合手续费', TH: 'ค่าธรรมเนียมรวม' },
+    '대행수수료': { EN: 'Agency fees', JP: '代行手数료', CH: '代理手续费', TH: 'ค่าธรรมเนียมตัวแทน' },
+    '통합수수료': { EN: 'Agency fees', JP: '代行手数료', CH: '代理手续费', TH: 'ค่าธรรมเนียมตัวแทน' },
     '대행거래내역': { EN: 'Integrated fee', JP: '統合手数料', CH: '整合手续费', TH: 'ค่าธรรมเนียมรวม' },
     'PG정산유무': { EN: 'PG settlement due', JP: 'PG精算可否', CH: 'PG 是否应结算', TH: 'ครบกำหนด PG' },
     'PG명': { EN: 'PG name', JP: 'PG名', CH: 'PG 名称', TH: 'ชื่อ PG' },
@@ -19333,7 +19334,8 @@
       TH: 'ล้มเหลว·ยกเลิก·โมฆะ·คืนเงิน·ชาร์จแบ็ก'
     },
     '차감·지급': { EN: 'Deduction · Payout', JP: '控除・支払', CH: '扣减·拨付', TH: 'หัก·จ่าย' },
-    /* 통합수수료 (/ops/agencyTxnList) — 2단 그룹 헤더·열 */
+    /* 대행수수료 (/ops/agencyTxnList) — 2단 그룹 헤더·열 */
+    '결제대행사': { EN: 'Payment agency', JP: '決済代行', CH: '支付代理', TH: 'ตัวแทนรับชำระ' },
     'PG·가맹': { EN: 'PG · Merchant', JP: 'PG・加盟店', CH: 'PG·商户', TH: 'PG·ร้านค้า' },
     '승인 / 대행수수료(%)': {
       EN: 'Approval / agency fee (%)',

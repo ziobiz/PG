@@ -24,10 +24,10 @@
     '/pay/splitPay',
     /* 검수관리 */
     '/calc/integratedCheck',
-    '/ops/agencyTxnList',
     '/calc/jpayTrList',
     '/calc/payOverview',
     '/calc/queryIntegrated',
+    '/ops/agencyTxnList',
     '/risk/list',
     '/ops/integratedReport',
     '/ops/verifyReport',

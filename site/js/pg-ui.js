@@ -226,6 +226,19 @@
   };
 
   /**
+   * 대행수수료(검수) — ICOPAY 거래 status·statusNm 기준 파스텔 행/뱃지 톤.
+   * @returns {'success'|'cancel'|'void'|'refund'|'fail'|'pending'|'other'|'neutral'}
+   */
+  global.PG_UI.resolveAgencyTxnRowTone = function (row) {
+    if (!row || typeof row !== 'object') return 'neutral';
+    return global.PG_UI.resolvePayRowTone({
+      status: row.status != null ? String(row.status).trim() : '',
+      statusNm: row.statusNm != null ? String(row.statusNm).trim() : '',
+      chillPaymentStatus: row.statusNm != null ? String(row.statusNm).trim() : ''
+    });
+  };
+
+  /**
    * 통합내역(ChillPay 실시간) — Status·PaymentStatus 숫자·영문 토큰.
    * @returns {'success'|'cancel'|'void'|'refund'|'fail'|'pending'|'neutral'}
    */

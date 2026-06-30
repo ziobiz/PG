@@ -6717,8 +6717,16 @@
       payMngDenseGrid: true,
       tableScrollable: true,
       tableColumnGuide: true,
-      columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'trnDate', 'agencySettleYn'],
+      /** VIEW SETTING·그리드: 번호·업체·거래일 고정, PG정산유무는 맨 끝 고정(수수료내역 curType·tail 패턴) */
+      columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'trnDate'],
+      columnGuideTailFixedKeys: ['agencySettleYn'],
       viewSettingDefaultSelectedKeys: [
+        'pgNm', 'pgCd',
+        'trnTime', 'routeNo', 'chillTransactionId', 'trnId', 'statusNm', 'amount', 'curType', 'policyCur',
+        'txnFixedFeesSum', 'pctFeesSum', 'usdtFee', 'fxFee', 'fee3dsFee', 'rollingHoldEst',
+        'failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'chargebackFee', 'totalAgencyFee'
+      ],
+      viewSettingHelloPriorityKeys: [
         'pgNm', 'pgCd',
         'trnTime', 'routeNo', 'chillTransactionId', 'trnId', 'statusNm', 'amount', 'curType', 'policyCur',
         'txnFixedFeesSum', 'pctFeesSum', 'usdtFee', 'fxFee', 'fee3dsFee', 'rollingHoldEst',
@@ -6726,8 +6734,8 @@
       ],
       noticeList: [
         '총본사·본사(REGIONAL)·총판(MASTER_DIST) 또는 ADMIN만 이용합니다. 조회 범위는 로그인 조직 하위 가맹 거래입니다.',
-        '결제대행사(PG) 계약 수수료를 건별로 표시합니다. 본사설정 「대행수수료설정」(PG코드=거래 van) 기준이며, 정산관리 수수료내역과 유사한 구조입니다. 가맹 수수료·가맹 정산(settled_yn)과 별개입니다.',
-        '맨 오른쪽 「PG정산유무」는 대행수수료설정의 T/H/D·N·일괄시각으로 산출한 PG 계약 정산 도래 여부(Y=도래, N=미도래)입니다. 정책 없음·van 없음은 빈 칸입니다.',
+        '결제대행사(PG) 계약 수수료를 건별로 표시합니다. 본사설정 「대행수수료설정」과 가맹 결제대행사 설정 PG코드·거래 통화로 정책을 찾아, <strong>과거 거래도 현재 설정 기준으로 재계산</strong>합니다. 정산관리 수수료내역과 유사한 구조이며 가맹 수수료·가맹 정산(settled_yn)과 별개입니다.',
+        '과거 거래도 현재 「대행수수료설정」 기준으로 건별 수수료를 재계산해 표시합니다. 정책이 없거나 PG코드·통화가 일치하지 않으면 수수료 열은 0 또는 빈 칸입니다.',
         'JPAY 포털 Export 캐시(tb_jpay_portal_export_cache)는 통합개요·일별조회와 동일합니다. JPAY 건 검수·대조 전 본 화면 [JPAY 동기화]·[전체 재동기화]로 캐시를 갱신할 수 있습니다. 전산설정 JPAY 통합개요 스케줄로 자동 동기화됩니다.',
         '상단 「최근동기화」 시각·당일 횟수는 통합개요와 동일합니다. 스케줄 또는 [JPAY 동기화] 완료 후 이 화면이 열려 있으면 자동으로 다시 조회됩니다.'
       ],
@@ -6774,20 +6782,18 @@
         { id: 'searchBtn', label: '검색', cls: 'btn-primary' }
       ],
       headerGroups: [
-        { label: '기본정보', keys: ['pgNm', 'pgCd', 'compNm', 'compId'] },
-        { label: '거래', keys: ['trnDate', 'trnTime', 'routeNo', 'chillTransactionId', 'trnId', 'statusNm', 'amount'] },
         { label: '승인 / 대행수수료(%)', keys: ['txnFixedFeesSum', 'pctFeesSum'] },
         { label: '기타수수료', keys: ['usdtFee', 'fxFee', 'fee3dsFee'] },
         { label: '실패·취소·무효·환불·차지백', keys: ['failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'chargebackFee'] },
-        { label: '합계·정산', keys: ['rollingHoldEst', 'totalAgencyFee', 'agencySettleYn'] }
+        { label: '합계·정산', keys: ['rollingHoldEst', 'totalAgencyFee'] }
       ],
       columns: [
         { key: 'rowNo', label: '번호' },
-        { key: 'pgNm', label: 'PG명' },
-        { key: 'pgCd', label: '결제대행사' },
         { key: 'compNm', label: '업체명' },
         { key: 'compId', label: '업체코드' },
         { key: 'trnDate', label: '거래일' },
+        { key: 'pgNm', label: 'PG명' },
+        { key: 'pgCd', label: '결제대행사' },
         { key: 'trnTime', label: '거래시간' },
         { key: 'routeNo', label: '루트' },
         { key: 'chillTransactionId', label: '승인번호' },
@@ -7610,6 +7616,9 @@
     /** 기본: 번호·업체·거래일시 등 결제 그리드 고정열 — VIEW 토글 제외. 루트(routeNo)는 VIEW SETTING 항목. */
     var defaultFixed = ['rowNo', 'compId', 'compNm', 'compDivNm', 'trnDate', 'trnTime'];
     var fixedKeys = (cfg.columnGuideFixedKeys && cfg.columnGuideFixedKeys.length) ? cfg.columnGuideFixedKeys : defaultFixed;
+    var tailKeys = (cfg.columnGuideTailFixedKeys && cfg.columnGuideTailFixedKeys.length) ? cfg.columnGuideTailFixedKeys : [];
+    var tailSet = {};
+    tailKeys.forEach(function (k) { if (k) tailSet[k] = true; });
     var hiddenKeys = (cfg.columnGuideHiddenKeys && cfg.columnGuideHiddenKeys.length) ? cfg.columnGuideHiddenKeys : [];
     var hiddenSet = {};
     hiddenKeys.forEach(function (k) { if (k) hiddenSet[k] = true; });
@@ -7619,7 +7628,8 @@
       if (gk && hiddenSet[gk]) return false;
       if (c.key && hiddenSet[c.key]) return false;
       if (c.type === 'checkbox' || c.type === 'accountAccessActions' || c.type === 'accountAccessDelete' || c.type === 'userResetPassword' || c.type === 'userDelete' || c.type === 'payoutHoldReleaseBtn' || c.type === 'pgApiMngRowActions') return false;
-      return fixedKeys.indexOf(gk) === -1 && fixedKeys.indexOf(c.key) === -1;
+      return fixedKeys.indexOf(gk) === -1 && fixedKeys.indexOf(c.key) === -1
+        && !tailSet[gk] && !tailSet[c.key];
     });
     if (cols.length === 0) return '';
     var escGl = function (s) {

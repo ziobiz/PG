@@ -58,7 +58,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 검수관리 — 통합수수료(수수료내역 패턴 + PG 대행수수료설정 + 맨 끝 정산유무).
+ * 검수관리 — 대행수수료(수수료내역 패턴 + PG 대행수수료설정 + 맨 끝 정산유무).
  */
 @Service
 public class OpsAgencyTxnListService {
@@ -188,13 +188,9 @@ public class OpsAgencyTxnListService {
         ZoneId displayZone = HqLedgerSysSettingsService.resolveDisplayZoneIdFromSettings(
                 hqLedgerSysSettingsRepository.findFirstByOrderByIdAsc().orElse(null));
 
-        Map<String, PgAgencyCostPolicy> policyByPgCd = new HashMap<>();
-        for (PgAgencyCostPolicy p : pgAgencyCostPolicyRepository.findAllByOrderByPgCdAsc()) {
-            if (p.getPgCd() != null && !p.getPgCd().isBlank()) {
-                policyByPgCd.putIfAbsent(p.getPgCd().trim().toUpperCase(Locale.ROOT), p);
-            }
-        }
         Map<String, String> pgNmByCd = buildPgDisplayNameByCd();
+        AgencyCostPolicyResolver policyResolver = AgencyCostPolicyResolver.from(
+                pgAgencyCostPolicyRepository.findAllByOrderByPgCdAsc());
 
         Map<String, Long> monthCbCountCache = new HashMap<>();
         Map<Long, List<ChargebackFeeTier>> tiersByPolicyId = new HashMap<>();
@@ -235,7 +231,7 @@ public class OpsAgencyTxnListService {
             Long orgId = orgIdByMerchantCode.get(compId);
             List<MerchantPgBinding> bindings = orgId != null
                     ? bindingsByOrgId.getOrDefault(orgId, List.of()) : List.of();
-            Map<String, Object> row = buildRow(t, ctxByMerchant, bindings, policyByPgCd, pgNmByCd, feeResolver,
+            Map<String, Object> row = buildRow(t, ctxByMerchant, bindings, policyResolver, pgNmByCd, feeResolver,
                     displayZone, monthCbCountCache, tiersByPolicyId, now);
             row.put("rowNo", rowNoStart + rowIdx);
             rowIdx++;
@@ -274,7 +270,7 @@ public class OpsAgencyTxnListService {
     private Map<String, Object> buildRow(PgTrnsctn t,
                                          Map<String, PayListRowContext> ctxByMerchant,
                                          List<MerchantPgBinding> merchantBindings,
-                                         Map<String, PgAgencyCostPolicy> policyByPgCd,
+                                         AgencyCostPolicyResolver policyResolver,
                                          Map<String, String> pgNmByCd,
                                          FeeCurrencyRoundResolver feeResolver,
                                          ZoneId displayZone,
@@ -285,17 +281,25 @@ public class OpsAgencyTxnListService {
         PayListRowContext payCtx = ctxByMerchant.get(compId);
         Map<String, Object> payRow = PayListItemDto.from(t, payCtx, displayZone);
 
-        String pgCd = t.getVan() != null && !t.getVan().isBlank()
+        String vanKey = t.getVan() != null && !t.getVan().isBlank()
                 ? t.getVan().trim().toUpperCase(Locale.ROOT) : "";
-        PgAgencyCostPolicy pol = pgCd.isEmpty() ? null : policyByPgCd.get(pgCd);
         String payCurKey = PayListItemDto.payCurKeyForFeeCompute(t, payCtx);
+        Optional<MerchantPgBinding> bindingOpt = resolveMerchantPgBindingForTxn(
+                t, merchantBindings, payCtx, pgNmByCd, vanKey);
+        String bindingPgCd = bindingOpt
+                .map(MerchantPgBinding::getPgCd)
+                .filter(cd -> cd != null && !cd.isBlank())
+                .map(String::trim)
+                .orElse("");
+        PgAgencyCostPolicy pol = policyResolver.resolve(bindingPgCd, vanKey, payCurKey, pgNmByCd);
+        String policyPgCd = pol != null && pol.getPgCd() != null ? pol.getPgCd().trim().toUpperCase(Locale.ROOT) : vanKey;
         FeeListRoundingPolicy feeListRp = feeResolver.forCurrency(
                 pol != null && pol.getCurrencyCode() != null && !pol.getCurrencyCode().isBlank()
                         ? pol.getCurrencyCode().trim() : payCurKey);
 
         Map<String, Object> m = new LinkedHashMap<>();
-        m.put("pgCd", resolveMerchantPgAcquirerLabel(t, merchantBindings, payCtx, pgNmByCd, pgCd));
-        m.put("pgNm", pgCd.isEmpty() ? "—" : pgNmByCd.getOrDefault(pgCd, pgCd));
+        m.put("pgCd", resolveMerchantPgAcquirerLabel(t, merchantBindings, payCtx, pgNmByCd, vanKey));
+        m.put("pgNm", policyPgCd.isEmpty() ? "—" : pgNmByCd.getOrDefault(policyPgCd, policyPgCd));
         m.put("compNm", payRow.get("compNm"));
         m.put("compId", payRow.get("compId"));
         m.put("trnDate", payRow.get("trnDate"));
@@ -303,6 +307,7 @@ public class OpsAgencyTxnListService {
         m.put("routeNo", payRow.get("routeNo"));
         m.put("chillTransactionId", payRow.get("chillTransactionId"));
         m.put("trnId", payRow.get("trnId"));
+        m.put("status", t.getStatus());
         m.put("statusNm", PayListStatusBarBuckets.pgStatusDisplayLabel(t.getStatus()));
         m.put("amount", t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO);
         m.put("curType", payCurKey);

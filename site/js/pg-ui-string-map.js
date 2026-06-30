@@ -633,7 +633,8 @@
   M['대표자명']={EN:'Representative',JP:'代表者名',CH:'负责人',TH:'ชื่อผู้แทน'};
   M['대표자명*']={EN:'Representative*',JP:'代表者名*',CH:'负责人*',TH:'ชื่อผู้แทน*'};
   M['대한민국 (Asia/Seoul)']={EN:'대한민국 (Asia/Seoul)',JP:'대한민국 (Asia/Seoul)',CH:'대한민국 (Asia/Seoul)',TH:'대한민국 (Asia/Seoul)'};
-  M['통합수수료']={EN:'Integrated fee',JP:'統合手数料',CH:'整合手续费',TH:'ค่าธรรมเนียมรวม'};
+  M['대행수수료']={EN:'Agency fees',JP:'代行手数료',CH:'代理手续费',TH:'ค่าธรรมเนียมตัวแทน'};
+  M['통합수수료']={EN:'Agency fees',JP:'代行手数료',CH:'代理手续费',TH:'ค่าธรรมเนียมตัวแทน'};
   M['대행거래내역']={EN:'Integrated fee',JP:'統合手数料',CH:'整合手续费',TH:'ค่าธรรมเนียมรวม'};
   M['대행수수료설정']={EN:'대행Commission settings',JP:'대행手数料設定',CH:'대행手续费设置',TH:'대행ตั้งค่าค่าธรรมเนียม'};
   M['대행수수료설정 T/H/D 기준 도래 Y/N']={EN:'대행Commission settings T/H/D 기준 도래 Y/N',JP:'대행手数料設定 T/H/D 기준 도래 Y/N',CH:'대행手续费设置 T/H/D 기준 도래 Y/N',TH:'대행ตั้งค่าค่าธรรมเนียม T/H/D 기준 도래 Y/N'};
