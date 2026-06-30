@@ -12,6 +12,7 @@ import com.pg.util.PayCardBrandDetector;
 import com.pg.util.PayCardFailOutcomeRules;
 import com.pg.util.PayCardPanHashUtil;
 import com.pg.splitpay.SplitPayPaymentHookService;
+import com.pg.util.PayerContactDisplayUtil;
 import com.pg.util.PgTrnsctnOrderLookup;
 import com.pg.util.RouteNoDisplayUtil;
 import com.pg.util.TxnOutcomeReasonApplier;
@@ -166,12 +167,20 @@ public class JpaySaleRecordService {
         if (routeStored != null) {
             t.setRouteNo(routeStored);
         }
-        String cid = customerHint != null && !customerHint.isBlank() ? customerHint.trim() : "guest";
-        t.setCustomerId(cid.length() > 100 ? cid.substring(0, 100) : cid);
         if (saleBody != null && !saleBody.isEmpty()) {
             JpayBuyerContactApplier.applyFromSaleBody(t, saleBody);
             applyCardPanHashFromSaleBody(t, saleBody);
             applyPayerContextFromSaleBody(t, saleBody);
+        }
+        if (customerHint != null && !customerHint.isBlank()) {
+            String hint = customerHint.trim();
+            if (t.getCustomerId() == null || t.getCustomerId().isBlank()
+                    || PayerContactDisplayUtil.isGuestMarker(t.getCustomerId())) {
+                t.setCustomerId(hint.length() > 100 ? hint.substring(0, 100) : hint);
+            }
+        }
+        if (t.getCustomerId() == null || t.getCustomerId().isBlank()) {
+            t.setCustomerId("guest");
         }
         String desc = "JPAY_URL";
         if (productName != null && !productName.isBlank()) {

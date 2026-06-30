@@ -145,6 +145,12 @@
       CH: '支付概览',
       TH: 'ภาพรวมการชำระ'
     },
+    '통합개요': {
+      EN: 'Integrated overview',
+      JP: '統合概要',
+      CH: '整合概览',
+      TH: 'ภาพรวมรวม'
+    },
     '목록 표시 시간대 안내': {
       EN: 'Temporarily changes transaction date/time display for this list only. HQ settings and DB are unchanged.',
       JP: 'この一覧の取引日・時刻表示のみ一時変更します。本社設定・DBは変わりません。',
@@ -8854,10 +8860,16 @@
       TH: 'บัญชีล็อกอินพอร์ทัล JPAY ลงทะเบียนต่อ MASTER_DIST ที่ <strong>ตั้งค่า HQ &gt; ตรรกะผู้ให้บริการชำระ</strong> ด้านล่างตั้งช่วงซิงค์เท่านั้น เซิร์ฟเวอร์(VPS)ต้องมี <code>Node.js</code> และ Playwright Chromium'
     },
     'JPAY 통합조회 스케줄': {
-      EN: 'JPAY integrated list sync schedule',
-      JP: 'JPAY統合照会スケジュール',
-      CH: 'JPAY 整合查询计划',
-      TH: 'ตารางซิงค์รายการรวม JPAY'
+      EN: 'JPAY integrated overview sync schedule',
+      JP: 'JPAY統合概要スケジュール',
+      CH: 'JPAY 整合概览计划',
+      TH: 'ตารางซิงค์ภาพรวมรวม JPAY'
+    },
+    'JPAY 통합개요 스케줄': {
+      EN: 'JPAY integrated overview sync schedule',
+      JP: 'JPAY統合概要スケジュール',
+      CH: 'JPAY 整合概览计划',
+      TH: 'ตารางซิงค์ภาพรวมรวม JPAY'
     },
     'JPAY 요청 자동취소': {
       EN: 'JPAY request auto-cancel',
@@ -12365,6 +12377,60 @@
       CH: '通知接收信息',
       TH: 'ข้อมูลรับแจ้งเตือน'
     },
+    '중복 노티 정리': {
+      EN: 'Clean duplicate notifies',
+      JP: '重複ノティ整理',
+      CH: '清理重复通知',
+      TH: 'ล้างแจ้งเตือนซ้ำ'
+    },
+    '노티수령 중복 정리 미리보기': {
+      EN: 'Notify inbound duplicate cleanup preview',
+      JP: 'ノティ受信重複整理プレビュー',
+      CH: '通知接收重复清理预览',
+      TH: 'ตัวอย่างการล้างแจ้งเตือนซ้ำ'
+    },
+    '아웃바운드 재유입·결제통보 echo': {
+      EN: 'Outbound echo (pg.payment.status re-ingress)',
+      JP: 'アウトバウンド再流入・決済通知echo',
+      CH: '出站回灌·支付通知 echo',
+      TH: 'echo ส่งกลับ (pg.payment.status)'
+    },
+    '동일 본문 중복(최초 1건 유지)': {
+      EN: 'Exact duplicate bodies (keep earliest)',
+      JP: '同一本文の重複（最古1件を保持）',
+      CH: '相同正文重复（保留最早一条）',
+      TH: 'เนื้อหาซ้ำ (เก็บรายการแรก)'
+    },
+    '합계 삭제 예정': {
+      EN: 'Total to delete',
+      JP: '削除予定合計',
+      CH: '预计删除合计',
+      TH: 'รวมที่จะลบ'
+    },
+    '삭제 후에는 복구할 수 없습니다. 계속할까요?': {
+      EN: 'Deleted rows cannot be restored. Continue?',
+      JP: '削除後は復元できません。続行しますか？',
+      CH: '删除后无法恢复。是否继续？',
+      TH: 'ลบแล้วกู้คืนไม่ได้ ดำเนินการต่อหรือไม่'
+    },
+    '노티수령 중복 정리 완료': {
+      EN: 'Notify inbound duplicate cleanup done',
+      JP: 'ノティ受信重複整理完了',
+      CH: '通知接收重复清理完成',
+      TH: 'ล้างแจ้งเตือนซ้ำเสร็จแล้ว'
+    },
+    '중복 노티 정리 실패': {
+      EN: 'Duplicate notify cleanup failed',
+      JP: '重複ノティ整理失敗',
+      CH: '重复通知清理失败',
+      TH: 'ล้างแจ้งเตือนซ้ำล้มเหลว'
+    },
+    '미리보기 결과가 없습니다.': {
+      EN: 'No preview result.',
+      JP: 'プレビュー結果がありません。',
+      CH: '无预览结果。',
+      TH: 'ไม่มีผลตัวอย่าง'
+    },
     '노티미들웨어·PG(칠페이 등)가 본 시스템의 노티 수신 URL(<code>/api/open/pg-notify/…</code>)로 전송한 요청을 저장한 로그입니다. 목록의 채널 열은 수신 경로 정보 표시용입니다. 대상코드·채널은 신규 수신 건부터 채워집니다(V72). 노티 대상에 연결 총판이 있으면 동일 MID라도 그 총판 트리 안에서만 분기하며, 총판 기준통화와 본문 통화가 다르면 처리 열에 통화불일치(수신경로)로 격리됩니다. <strong>수신성격</strong>은 NOTI가 요청 시 <code>X-Icopay-Notify-Delivery: LIVE|RETRY</code> 또는 <code>X-Noti-Attempt</code>(1=라이브, 2+=재전송) 헤더를 보낼 때만 구분되며, 없으면 「미표시」입니다. 바인딩·매핑을 고친 뒤 과거 건을 결제내역에 붙이려면 본문 보기 모달의 <strong>결제내역 재반영</strong>을 사용하세요(원문이 잘린 건은 불가).': {
       EN: 'Log of requests that the notify middleware and PSPs (e.g. ChillPay) sent to this system’s notify ingress URL (<code>/api/open/pg-notify/…</code>). The Channel column shows the ingress path. Target code and channel are populated from newly received rows onward (V72). When a master distributor is linked to the notify target, the same MID is routed only inside that distributor tree; if the distributor base currency differs from the payload currency, the Process column isolates the row as currency mismatch (ingress path). <strong>Ingress delivery kind</strong> is distinguished only when NOTI sends <code>X-Icopay-Notify-Delivery: LIVE|RETRY</code> or <code>X-Noti-Attempt</code> (1=live, 2+=retry); otherwise it shows 「Not shown」. To attach past rows to payment history after fixing bindings or mapping, use <strong>Replay to payment list</strong> in the body modal (not available if the stored body was truncated).',
       JP: 'ノティミドルウェア・PG（チルペイ等）が本システムのノティ受信URL（<code>/api/open/pg-notify/…</code>）へ送信したリクエストを保存したログです。一覧のチャネル列は受信経路の表示用です。対象コード・チャネルは新規受信分から埋まります（V72）。ノティ先に紐付け総販がある場合、同一MIDでもその総販ツリー内でのみ振り分けられ、総販の基準通貨と本文の通貨が異なると処理列に通貨不一致（受信経路）として隔離されます。<strong>受信性質</strong>は、NOTIがリクエスト時に<code>X-Icopay-Notify-Delivery: LIVE|RETRY</code>または<code>X-Noti-Attempt</code>（1=ライブ、2以上=再送）ヘッダを送った場合のみ区別され、無い場合は「非表示」です。バインディング・マッピング修正後に過去分を決済明細へ紐づけるには、本文表示モーダルの<strong>決済明細への再反映</strong>を使用してください（原文が切り詰められた件は不可）。',
@@ -12731,6 +12797,12 @@
       JP: 'マッピング完了',
       CH: '映射完成',
       TH: 'แมปเสร็จแล้ว'
+    },
+    '아웃바운드재유입(스킵)': {
+      EN: 'Outbound echo (skipped)',
+      JP: 'アウトバウンド再流入(スキップ)',
+      CH: '出站回环(已跳过)',
+      TH: 'เอคโคอาท์บาวด์ (ข้าม)'
     },
     가맹점미매핑: {
       EN: 'Merchant not mapped',

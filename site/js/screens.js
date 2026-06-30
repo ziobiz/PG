@@ -2620,7 +2620,8 @@
               '<div class="col-12 col-md-3"><label class="form-label small mb-0" data-pg-ui-t="검색어">' + escUi(L('검색어')) + '</label><input type="text" name="niSearchValue" class="form-control form-control-sm" data-pg-ui-placeholder="부분 일치" placeholder="' + escUi(L('부분 일치')) + '" autocomplete="off"></div>' +
               '<div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="채널">' + escUi(L('채널')) + '</label><select name="niSearchChannelType" class="form-select form-select-sm">' +
               '<option value="" data-pg-ui-t="전체">' + escUi(L('전체')) + '</option><option value="CALL" data-pg-ui-t="CALL (Callback URL)">' + escUi(L('CALL (Callback URL)')) + '</option><option value="RESULT" data-pg-ui-t="RESULT (Result URL)">' + escUi(L('RESULT (Result URL)')) + '</option><option value="BOTH" data-pg-ui-t="BOTH (전체)">' + escUi(L('BOTH (전체)')) + '</option></select></div>' +
-              '<div class="col-6 col-md-1 d-grid"><label class="form-label small mb-0 d-none d-md-block">&nbsp;</label><button type="button" id="hqNotifyInboundSearchBtn" class="btn btn-primary btn-sm" data-pg-ui-t="조회">' + escUi(L('조회')) + '</button></div></div>' +
+              '<div class="col-6 col-md-1 d-grid"><label class="form-label small mb-0 d-none d-md-block">&nbsp;</label><button type="button" id="hqNotifyInboundSearchBtn" class="btn btn-primary btn-sm" data-pg-ui-t="조회">' + escUi(L('조회')) + '</button></div>' +
+              '<div class="col-12 col-md-3 d-grid"><label class="form-label small mb-0 d-none d-md-block">&nbsp;</label><button type="button" id="hqNotifyInboundCleanupDupBtn" class="btn btn-outline-danger btn-sm" data-pg-ui-t="중복 노티 정리">중복 노티 정리</button></div></div>' +
               '<div class="table-responsive border rounded"><table class="table table-sm table-bordered align-middle mb-0" id="hqNotifyInboundTable">' +
               '<thead class="table-light"><tr><th style="width:3.5rem">ID</th><th class="text-nowrap" style="width:10rem" data-pg-ui-t="수신시각">수신시각</th><th style="width:4.5rem" data-pg-ui-t="채널">채널</th><th style="width:5.5rem" data-pg-ui-t="대상코드">대상코드</th><th style="width:7rem">MID</th><th style="width:4rem" data-pg-ui-t="루트">루트</th>' +
               '<th style="width:7rem" data-pg-ui-t="승인번호">승인번호</th><th style="width:7rem" data-pg-ui-t="가맹점코드">가맹점코드</th><th style="width:7.5rem" data-pg-ui-t="결제·처리">결제·처리</th><th style="width:5.5rem" data-pg-ui-t="수신성격">수신성격</th><th class="hq-ni-th-error" style="width:11rem;max-width:11rem" data-pg-ui-t="오류메시지">오류메시지</th><th style="min-width:14rem" data-pg-ui-t="본문 미리보기">본문 미리보기</th><th class="text-center" style="width:4rem" data-pg-ui-t="보기">보기</th></tr></thead>' +
@@ -2774,7 +2775,7 @@
           rows: []
         },
         {
-          title: 'JPAY 통합조회 스케줄',
+          title: 'JPAY 통합개요 스케줄',
           notice: '설정한 주기마다 서버가 JPAY 포털 Export 증분 동기화를 자동 실행합니다. <strong>당일 스케줄 1회</strong>는 어제·오늘 2일, <strong>당일 스케줄 2회째부터</strong>는 당일만 포털에서 받아 해당 일자만 캐시에서 교체합니다. 매일 00:00에는 스케줄과 별도로 어제·오늘 2일 기본 동기화가 1회 실행됩니다. 진행 중인 동기화가 있으면 다음 주기까지 건너뜁니다.',
           rows: [
             [{ label: '자동 동기화 주기', type: 'select', name: 'jpayTrSyncScheduleMin', col: 4,
@@ -4861,8 +4862,8 @@
       ],
       noticeList: [
         'JPAY(일별조회·DB Export 캐시·거래일)와 ICOPAY(일별결제·노티 적재일)를 같은 거래일자 구간에서 일자별로 나란히 비교합니다. 값이 같으면 Ok, 다르면 불일치 셀만 강조·Check로 표시됩니다.',
-        'JPAY 또는 ICOPAY 행을 더블클릭하면 아래 「선택 일자 상세」에 해당 일·운영사 거래 목록이 표시됩니다(JPAY=통합조회, ICOPAY=일별결제와 동일 API).',
-        'JPAY는 통합조회와 동일하게 DB(tb_jpay_portal_export_cache)에 저장되며, 본사설정 전산설정관리의 JPAY 통합조회 스케줄로 자동 동기화됩니다. 로그인 후 [검색]만으로 조회할 수 있고, 즉시 갱신이 필요할 때만 [JPAY 동기화]를 사용하세요. 조회 기간은 최대 93일입니다.'
+        'JPAY 또는 ICOPAY 행을 더블클릭하면 아래 「선택 일자 상세」에 해당 일·운영사 거래 목록이 표시됩니다(JPAY=통합개요, ICOPAY=일별결제와 동일 API).',
+        'JPAY는 통합개요와 동일하게 DB(tb_jpay_portal_export_cache)에 저장되며, 본사설정 전산설정관리의 JPAY 통합개요 스케줄로 자동 동기화됩니다. 로그인 후 [검색]만으로 조회할 수 있고, 즉시 갱신이 필요할 때만 [JPAY 동기화]를 사용하세요. 조회 기간은 최대 93일입니다.'
       ],
       summary: ['건수'],
       buttons: [
@@ -4902,12 +4903,7 @@
       payListStatusBar: true,
       payListFinancialInline: true,
       tableColumnGuide: true,
-      /** VIEW SETTING에서 숨길 수 없는 열: 번호·업체·거래일시만 고정(통합내역과 동일 패턴) */
-      columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'trnDate', 'trnTime'],
-      viewSettingDefaultSelectedKeys: [
-        'masterDistNm', 'portalLabel', 'merchant', 'orderNo', 'customer', 'amount', 'currency',
-        'icopay', 'statusNm', 'fee', 'refundStatus', 'chargeback', 'cardBin', 'urlSource'
-      ],
+      /** VIEW SETTING·그리드 열: pay-list-jpay-overview-catalog.js → applyJpayTrOverviewCatalog */
       searchFormClass: 'screen-search-form pay-mng-search-form',
       searchRows: [
         [
@@ -4937,8 +4933,8 @@
         'JPAY 가맹 포털(merchant.j-pay.net)에 자동 로그인 → Export 다운로드 → ICOPAY 결제내역 대조·반영합니다. 목록 API가 없어 포털 Export 엑셀을 사용합니다.',
         '본사설정 > 결제대행사로직에서 총판별 JPAY 포털 계정을 등록하고, 전산설정관리에서 동기화 기간을 설정하세요. VPS에 Node.js·Playwright(Chromium)가 필요합니다.',
         '[JPAY 동기화]는 화면에 지정한 거래일 구간(기본 당일)을 포털에서 받아 해당 기간 캐시를 교체합니다. 복수 포털 계정·동일 주문 중복은 승인번호·성공 건 우선으로 정리하며, 승인번호가 비어 있으면 ICOPAY 성공 건으로 보강합니다. [전체 재동기화]는 전산설정의 초기화 동기화(개월) 구간 전체를 다시 받습니다. 자동 스케줄은 당일 1회=어제·오늘 2일, 당일 2회째부터=당일만 교체하며, 매일 00:00에는 스케줄과 별도로 어제·오늘 2일 기본 동기화가 1회 실행됩니다.',
-        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·업체명·업체코드·거래일·거래시간은 그리드에 항상 표시되며 VIEW SETTING 목록에는 나오지 않습니다. 열 너비는 헤더 경계를 드래그해 조절할 수 있습니다.',
-        '동기화한 포털 Export 목록은 DB(tb_jpay_portal_export_cache)에 저장됩니다. 로그아웃·재로그인·서버 재시작 후에도 [검색]만으로 마지막 동기화 목록을 조회할 수 있습니다. 전산설정관리에서 JPAY 통합조회 스케줄을 켜 두면 서버가 주기적으로 동기화합니다. 즉시 반영이 필요할 때만 [JPAY 동기화]를 수동 실행하세요.'
+        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 결제개요와 동일한 항목 구성(단말기·위치·IP 제외)으로 JPAY 포털 Export와 ICOPAY 노티 결과를 비교할 수 있습니다.',
+        '동기화한 포털 Export 목록은 DB(tb_jpay_portal_export_cache)에 저장됩니다. 로그아웃·재로그인·서버 재시작 후에도 [검색]만으로 마지막 동기화 목록을 조회할 수 있습니다. 전산설정관리에서 JPAY 통합개요 스케줄을 켜 두면 서버가 주기적으로 동기화합니다. 즉시 반영이 필요할 때만 [JPAY 동기화]를 수동 실행하세요.'
       ],
       summary: ['건수'],
       showJpaySyncInfo: true,
@@ -4947,29 +4943,6 @@
         { id: 'jpayTrFullResyncBtn', label: '전체 재동기화', cls: 'btn-outline-primary' },
         { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
         { id: 'excelDownBtn', label: '엑셀다운로드', cls: 'btn-info' }
-      ],
-      columns: [
-        { key: 'rowNo', label: 'No.' },
-        { key: 'masterDistNm', label: '총판' },
-        { key: 'portalLabel', label: '포털표시' },
-        { key: 'transactionId', label: '승인번호' },
-        { key: 'compNm', label: '업체명' },
-        { key: 'compId', label: '업체코드' },
-        { key: 'trnDate', label: '거래일' },
-        { key: 'trnTime', label: '거래시간' },
-        { key: 'merchant', label: 'MID' },
-        { key: 'orderNo', label: '주문번호' },
-        { key: 'customer', label: '고객' },
-        { key: 'amount', label: '결제금액' },
-        { key: 'currency', label: '통화' },
-        { key: 'status', label: 'JPAY상태' },
-        { key: 'icopay', label: 'ICOPAY' },
-        { key: 'statusNm', label: '상태' },
-        { key: 'fee', label: '수수료' },
-        { key: 'refundStatus', label: '환불' },
-        { key: 'chargeback', label: '차지백' },
-        { key: 'cardBin', label: 'Card BIN' },
-        { key: 'urlSource', label: 'URL출처' }
       ],
       emptyMessage: '동기화 후 조회됩니다. [JPAY 동기화]를 실행하세요.'
     },
@@ -5009,9 +4982,9 @@
         ]
       ],
       noticeList: [
-        '통합조회(JPAY Export 캐시)와 동일 필터로, 거래일(trnDate) 구간을 일 단위로 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 전체 건 기준입니다. 일자 행을 더블클릭하면 아래 「선택 일자 상세」에 해당 일 통합조회 전체·금액 요약이 표시됩니다.',
-        '조회 기간은 최대 93일입니다. 당월 등으로 종료일이 오늘 이후이면 표시는 전산 기준일(오늘)까지만 합니다(미래 일자 미표시). 본 화면 [JPAY 동기화]·[전체 재동기화] 또는 통합조회와 동일한 DB 캐시·스케줄로 갱신한 뒤 [검색]하세요.',
-        '상단 「최근동기화」 시각·당일 횟수는 통합조회·통합체크와 동일합니다. 스케줄 또는 [JPAY 동기화] 완료 후 이 화면이 열려 있으면 자동으로 다시 조회됩니다.'
+        '통합개요(JPAY Export 캐시)와 동일 필터로, 거래일(trnDate) 구간을 일 단위로 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 전체 건 기준입니다. 일자 행을 더블클릭하면 아래 「선택 일자 상세」에 해당 일 통합개요 전체·금액 요약이 표시됩니다.',
+        '조회 기간은 최대 93일입니다. 당월 등으로 종료일이 오늘 이후이면 표시는 전산 기준일(오늘)까지만 합니다(미래 일자 미표시). 본 화면 [JPAY 동기화]·[전체 재동기화] 또는 통합개요와 동일한 DB 캐시·스케줄로 갱신한 뒤 [검색]하세요.',
+        '상단 「최근동기화」 시각·당일 횟수는 통합개요·통합체크와 동일합니다. 스케줄 또는 [JPAY 동기화] 완료 후 이 화면이 열려 있으면 자동으로 다시 조회됩니다.'
       ],
       summary: ['건수'],
       showJpaySyncInfo: true,
@@ -6755,8 +6728,8 @@
         '총본사·본사(REGIONAL)·총판(MASTER_DIST) 또는 ADMIN만 이용합니다. 조회 범위는 로그인 조직 하위 가맹 거래입니다.',
         '결제대행사(PG) 계약 수수료를 건별로 표시합니다. 본사설정 「대행수수료설정」(PG코드=거래 van) 기준이며, 정산관리 수수료내역과 유사한 구조입니다. 가맹 수수료·가맹 정산(settled_yn)과 별개입니다.',
         '맨 오른쪽 「PG정산유무」는 대행수수료설정의 T/H/D·N·일괄시각으로 산출한 PG 계약 정산 도래 여부(Y=도래, N=미도래)입니다. 정책 없음·van 없음은 빈 칸입니다.',
-        'JPAY 포털 Export 캐시(tb_jpay_portal_export_cache)는 통합조회·일별조회와 동일합니다. JPAY 건 검수·대조 전 본 화면 [JPAY 동기화]·[전체 재동기화]로 캐시를 갱신할 수 있습니다. 전산설정 JPAY 통합조회 스케줄로 자동 동기화됩니다.',
-        '상단 「최근동기화」 시각·당일 횟수는 통합조회와 동일합니다. 스케줄 또는 [JPAY 동기화] 완료 후 이 화면이 열려 있으면 자동으로 다시 조회됩니다.'
+        'JPAY 포털 Export 캐시(tb_jpay_portal_export_cache)는 통합개요·일별조회와 동일합니다. JPAY 건 검수·대조 전 본 화면 [JPAY 동기화]·[전체 재동기화]로 캐시를 갱신할 수 있습니다. 전산설정 JPAY 통합개요 스케줄로 자동 동기화됩니다.',
+        '상단 「최근동기화」 시각·당일 횟수는 통합개요와 동일합니다. 스케줄 또는 [JPAY 동기화] 완료 후 이 화면이 열려 있으면 자동으로 다시 조회됩니다.'
       ],
       searchRows: [
         [
@@ -7136,6 +7109,47 @@
     }
     if (P.viewSettingDefaultSelectedKeys && P.viewSettingDefaultSelectedKeys.length) {
       scr.viewSettingDefaultSelectedKeys = P.viewSettingDefaultSelectedKeys.slice();
+    }
+    if (P.orgAllowanceDefaultKeysByScope) {
+      scr.orgAllowanceDefaultKeysByScope = JSON.parse(JSON.stringify(P.orgAllowanceDefaultKeysByScope));
+    }
+  })();
+
+  /** 검수관리 통합개요 — PG_JPAY_TR_OVERVIEW 카탈로그 적용(결제개요와 동일, 단말기·위치·IP 제외) */
+  (function applyJpayTrOverviewCatalog() {
+    var scr = MENU_SCREENS['/calc/jpayTrList'];
+    var P = typeof window !== 'undefined' ? window.PG_JPAY_TR_OVERVIEW : null;
+    if (!scr || !P || !P.columns || !P.headerGroups) {
+      if (typeof console !== 'undefined' && console.warn && scr) {
+        console.warn('PG_JPAY_TR_OVERVIEW missing; include pay-list-jpay-overview-catalog.js before screens.js');
+      }
+      return;
+    }
+    scr.headerGroups = JSON.parse(JSON.stringify(P.headerGroups));
+    scr.columns = P.columns.map(function (c) {
+      var o = { key: c.key, label: c.label };
+      if (c.gridType === 'checkbox') o.type = 'checkbox';
+      else if (c.gridType === 'payActions') {
+        o.type = 'payActions';
+        o.key = 'payActions';
+      }
+      else if (c.gridType === 'payRemark') {
+        o.type = 'payRemark';
+        o.key = 'payRemark';
+      }
+      return o;
+    });
+    if (P.columnGuideFixedKeys && P.columnGuideFixedKeys.length) {
+      scr.columnGuideFixedKeys = P.columnGuideFixedKeys.slice();
+    }
+    if (P.columnGuideHiddenKeys && P.columnGuideHiddenKeys.length) {
+      scr.columnGuideHiddenKeys = P.columnGuideHiddenKeys.slice();
+    }
+    if (P.viewSettingDefaultSelectedKeys && P.viewSettingDefaultSelectedKeys.length) {
+      scr.viewSettingDefaultSelectedKeys = P.viewSettingDefaultSelectedKeys.slice();
+    }
+    if (P.viewSettingHelloPriorityKeys && P.viewSettingHelloPriorityKeys.length) {
+      scr.viewSettingHelloPriorityKeys = P.viewSettingHelloPriorityKeys.slice();
     }
     if (P.orgAllowanceDefaultKeysByScope) {
       scr.orgAllowanceDefaultKeysByScope = JSON.parse(JSON.stringify(P.orgAllowanceDefaultKeysByScope));
@@ -8790,6 +8804,7 @@
   function syncPayListIntegratedScreenLabelsFromCatalog() {
     syncPayListCatalogLabelsToScreens(window.PG_PAY_LIST_INTEGRATED, PAY_LIST_INTEGRATED_SYNC_URLS);
     syncPayListCatalogLabelsToScreens(window.PG_PAY_LIST_OVERVIEW, ['/calc/payOverview']);
+    syncPayListCatalogLabelsToScreens(window.PG_JPAY_TR_OVERVIEW, ['/calc/jpayTrList']);
   }
 
   function syncPayListCatalogLabelsToScreens(P, urls) {

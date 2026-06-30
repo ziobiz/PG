@@ -247,35 +247,53 @@
   };
 
   /**
-   * JPAY 통합조회 — 포털 Export Trading Status·icopayStatus 우선, ICOPAY DB는 폴백.
+   * JPAY 통합개요 — 포털 Export Trading Status·icopayStatus·statusNm 우선, ICOPAY DB는 폴백.
    * @returns {'success'|'cancel'|'void'|'refund'|'fail'|'pending'|'other'|'neutral'}
    */
   global.PG_UI.resolveJpayTrRowTone = function (row) {
     if (!row || typeof row !== 'object') return 'neutral';
-    var code = row.icopayStatus != null ? String(row.icopayStatus).trim() : '';
-    if (!code && row.status != null) {
-      var portal = String(row.status).trim();
-      if (!portal && row.tradingStatus != null) portal = String(row.tradingStatus).trim();
-      if (portal) return global.PG_UI.resolveChillTrRowTone({ status: portal });
-    }
-    if (code) {
+
+    function payTone(st, chillLab) {
       return global.PG_UI.resolvePayRowTone({
-        status: code,
-        chillPaymentStatus: row.statusNm != null ? String(row.statusNm).trim() : ''
+        status: st != null ? String(st).trim() : '',
+        chillPaymentStatus: chillLab || '',
+        statusNm: chillLab || '',
+        payDivNm: row.payDivNm
       });
     }
-    var portalOnly = row.status != null ? String(row.status).trim() : '';
-    if (!portalOnly && row.tradingStatus != null) portalOnly = String(row.tradingStatus).trim();
-    if (portalOnly) {
-      return global.PG_UI.resolveChillTrRowTone({ status: portalOnly });
+
+    var chillLab = row.chillPaymentStatus != null ? String(row.chillPaymentStatus).trim()
+      : (row.statusNm != null ? String(row.statusNm).trim() : '');
+    var ic = row.icopayStatus != null ? String(row.icopayStatus).trim() : '';
+    var db = row.dbStatus != null ? String(row.dbStatus).trim() : '';
+
+    if (ic) {
+      var tIc = payTone(ic, chillLab);
+      if (tIc !== 'neutral') return tIc;
     }
-    code = row.dbStatus != null ? String(row.dbStatus).trim() : '';
-    if (code) {
-      return global.PG_UI.resolvePayRowTone({
-        status: code,
-        chillPaymentStatus: row.statusNm != null ? String(row.statusNm).trim() : ''
-      });
+    if (db) {
+      var tDb = payTone(db, chillLab);
+      if (tDb !== 'neutral') return tDb;
     }
+
+    var st = row.status != null ? String(row.status).trim() : '';
+    if (/^(08|10|20|21|22|30|31|40|41|42|99|F0|f0)$/.test(st)) {
+      var tSt = payTone(st, chillLab);
+      if (tSt !== 'neutral') return tSt;
+    }
+
+    var portal = st;
+    if (!portal && row.tradingStatus != null) portal = String(row.tradingStatus).trim();
+    if (portal) {
+      var chillT = global.PG_UI.resolveChillTrRowTone({ status: portal });
+      if (chillT !== 'neutral') return chillT;
+    }
+
+    if (chillLab) {
+      var tLab = payTone('', chillLab);
+      if (tLab !== 'neutral') return tLab;
+    }
+
     return 'neutral';
   };
 

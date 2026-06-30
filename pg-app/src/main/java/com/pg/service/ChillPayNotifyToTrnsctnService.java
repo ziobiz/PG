@@ -176,6 +176,11 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         if (root == null || !root.isObject()) {
             return true;
         }
+        if (PaidApprovalEvidenceGuard.isIcopayOutboundPaymentStatusEcho(root)) {
+            log.info("ICOPAY outbound echo — ChillPay 핸들러 생략 inboundId={} merchantId={}",
+                    in.getId(), merchantCode);
+            return true;
+        }
 
         /* 동시 중복 노티 직렬화(best-effort): 같은 거래의 처리가 겹치지 않도록 거래키 단위 advisory lock.
          * 현재 @Transactional 종료 시 자동 해제되며, 실패해도 기존 흐름을 그대로 진행한다. */

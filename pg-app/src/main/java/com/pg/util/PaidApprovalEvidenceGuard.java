@@ -1,6 +1,7 @@
 package com.pg.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.PgVendor;
 
@@ -15,6 +16,8 @@ import java.util.Optional;
  * {@code status=10} 만으로 오승인되는 경우를 무효(21)로 내립니다.</p>
  */
 public final class PaidApprovalEvidenceGuard {
+
+    private static final ObjectMapper ECHO_JSON = new ObjectMapper();
 
     public static final String ST_VOID = "21";
     public static final String OUTCOME_CODE_INCOMPLETE_PARAMS = "INCOMPLETE_PARAMS";
@@ -168,16 +171,46 @@ public final class PaidApprovalEvidenceGuard {
         return t != null && "NOTI".equals(normOrigin(t.getOrigin())) && isGuestCustomer(t);
     }
 
+    /**
+     * ICOPAY 가맹점 결제통보({@code event=pg.payment.status})가 노티 ingress로 재유입된 경우.
+     * RESULT/BACKGROUND URL이 ICOPAY 자신을 가리키면 txn 후처리·재발송 무한 루프가 납니다.
+     */
+    public static boolean isIcopayOutboundPaymentStatusEcho(JsonNode root) {
+        if (root == null || !root.isObject()) {
+            return false;
+        }
+        if (!"pg.payment.status".equalsIgnoreCase(text(root, "event"))) {
+            return false;
+        }
+        return nonBlank(text(root, "trnId", "trn_id"))
+                && nonBlank(text(root, "compId", "comp_id"));
+    }
+
+    public static boolean isIcopayOutboundPaymentStatusEcho(String rawBody) {
+        if (rawBody == null || rawBody.isBlank()) {
+            return false;
+        }
+        String t = rawBody.trim();
+        if (!t.startsWith("{")) {
+            return false;
+        }
+        try {
+            JsonNode root = ECHO_JSON.readTree(t);
+            return isIcopayOutboundPaymentStatusEcho(root);
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    /** 승인(10) echo 중 승인번호·txnId 없이 성공만 주장하는 레거시 패턴 */
     public static boolean isIcopayOutboundEchoClaimingPaid(JsonNode root) {
         if (root == null || !root.isObject()) {
             return false;
         }
-        String event = text(root, "event");
-        if (!"pg.payment.status".equalsIgnoreCase(event)) {
+        if (!"pg.payment.status".equalsIgnoreCase(text(root, "event"))) {
             return false;
         }
-        String status = text(root, "status");
-        if (!PgNotifyInternalStatusMapper.ST_PAID.equals(status)) {
+        if (!PgNotifyInternalStatusMapper.ST_PAID.equals(text(root, "status"))) {
             return false;
         }
         String pgTxnId = text(root, "pgTxnId", "pgtxnid");

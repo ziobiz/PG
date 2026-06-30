@@ -13,6 +13,7 @@ import java.time.format.DateTimeFormatter;
 import com.pg.util.CommissionExtraFeeUtil;
 import com.pg.util.MerchantFeeVatUtil;
 import com.pg.util.MerchantDisplayCurrencyResolver;
+import com.pg.util.PayerContactDisplayUtil;
 import com.pg.util.PayerCountryIso2Util;
 import com.pg.util.PayerDeviceCategoryUtil;
 import com.pg.util.PayListStatusBarBuckets;
@@ -518,15 +519,9 @@ public class PayListItemDto {
         return s > 0 ? Math.min(8, Math.max(2, s)) : 0;
     }
 
-    /** 칠페이 Customer 컬럼용 — 식별자+표시명 (고객명과 동일 인물, 표기만 시트 형식) */
+    /** 칠페이 Customer 컬럼용 — 이메일 | 성명 ({@code guest} 미표시) */
     private static String chillCustomerLabel(PgTrnsctn t) {
-        String id = t.getCustomerId();
-        String nm = t.getCustomerNm();
-        boolean hasId = id != null && !id.isBlank();
-        boolean hasNm = nm != null && !nm.isBlank();
-        if (!hasId && !hasNm) return "-";
-        if (hasId && hasNm) return id.trim() + " | " + nm.trim();
-        return hasId ? id.trim() : nm.trim();
+        return PayerContactDisplayUtil.formatChillCustomer(t);
     }
 
     /** 그리드 고객명 — 결제자 이름만 (이메일은 customerEmail) */
@@ -538,11 +533,7 @@ public class PayListItemDto {
     }
 
     private static String payerEmailDisplay(PgTrnsctn t) {
-        String id = t.getCustomerId();
-        if (id == null || id.isBlank() || "guest".equalsIgnoreCase(id.trim())) {
-            return "-";
-        }
-        return id.trim();
+        return PayerContactDisplayUtil.payerEmailOrDash(t);
     }
 
     private static String payerTelDisplay(PgTrnsctn t) {

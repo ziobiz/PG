@@ -23,6 +23,33 @@ class PaidApprovalEvidenceGuardTest {
     }
 
     @Test
+    void icopayOutboundEchoWithPgTxnIdIsDetected() throws Exception {
+        var root = JSON.readTree("""
+                {"event":"pg.payment.status","compId":"6000000011","trnId":"BA93EE90E523487A9D5E",
+                "status":"10","pgTxnId":"429360835107","merchantNotifyTarget":"RESULT"}
+                """);
+        assertTrue(PaidApprovalEvidenceGuard.isIcopayOutboundPaymentStatusEcho(root));
+        assertFalse(PaidApprovalEvidenceGuard.isIcopayOutboundEchoClaimingPaid(root));
+    }
+
+    @Test
+    void icopayOutboundEchoFailStatusIsDetected() throws Exception {
+        var root = JSON.readTree("""
+                {"event":"pg.payment.status","compId":"6000000011","trnId":"AC860B4BA385479E9CE9",
+                "status":"99","pgTxnId":"754646817898"}
+                """);
+        assertTrue(PaidApprovalEvidenceGuard.isIcopayOutboundPaymentStatusEcho(root));
+    }
+
+    @Test
+    void chillPayNotifyIsNotOutboundEcho() throws Exception {
+        var root = JSON.readTree("""
+                {"MerchantCode":"M1","TransactionId":"803","OrderNo":"O1","PaymentStatus":"Paid"}
+                """);
+        assertFalse(PaidApprovalEvidenceGuard.isIcopayOutboundPaymentStatusEcho(root));
+    }
+
+    @Test
     void paidWithoutEvidenceDowngradesToVoid() throws Exception {
         var root = JSON.readTree("""
                 {"event":"pg.payment.status","status":"10","chillPaymentStatus":"10","pgTxnId":null}

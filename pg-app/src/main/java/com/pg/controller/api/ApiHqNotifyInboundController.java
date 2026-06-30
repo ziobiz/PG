@@ -2,9 +2,13 @@ package com.pg.controller.api;
 
 import com.pg.api.ApiResponse;
 import com.pg.api.dto.PageResult;
+import com.pg.entity.AppUser;
+import com.pg.service.AuthService;
+import com.pg.service.HqNotifyInboundDuplicateCleanupService;
 import com.pg.service.HqNotifyInboundQueryService;
 import com.pg.service.PgNotifyReceiveService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -28,11 +33,17 @@ public class ApiHqNotifyInboundController {
 
     private final HqNotifyInboundQueryService hqNotifyInboundQueryService;
     private final PgNotifyReceiveService pgNotifyReceiveService;
+    private final HqNotifyInboundDuplicateCleanupService duplicateCleanupService;
+    private final AuthService authService;
 
     public ApiHqNotifyInboundController(HqNotifyInboundQueryService hqNotifyInboundQueryService,
-                                        PgNotifyReceiveService pgNotifyReceiveService) {
+                                        PgNotifyReceiveService pgNotifyReceiveService,
+                                        HqNotifyInboundDuplicateCleanupService duplicateCleanupService,
+                                        AuthService authService) {
         this.hqNotifyInboundQueryService = hqNotifyInboundQueryService;
         this.pgNotifyReceiveService = pgNotifyReceiveService;
+        this.duplicateCleanupService = duplicateCleanupService;
+        this.authService = authService;
     }
 
     @GetMapping
@@ -147,6 +158,54 @@ public class ApiHqNotifyInboundController {
         } catch (Exception e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage() != null ? e.getMessage() : "replay failed", "ERROR"));
         }
+    }
+
+    /**
+     * 노티수령정보 중복 일괄 삭제 — OUTBOUND_ECHO·pg.payment.status 재유입, 동일 raw_body 중복.
+     * 본문: {@code confirm:true}(필수), {@code dryRun}(기본 false), {@code fromDate}/{@code toDate}(선택),
+     * {@code merchantId}(선택), {@code removeOutboundEcho}(기본 true), {@code removeExactRawBodyDuplicates}(기본 true).
+     */
+    @PostMapping("/cleanup-duplicates")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> cleanupDuplicates(
+            Authentication authentication,
+            @RequestBody Map<String, Object> body) {
+        if (!canResetOperationalData(authentication)) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "총본사(HEADQUARTERS) 또는 시스템 관리자만 실행할 수 있습니다.", "FORBIDDEN"));
+        }
+        if (body == null || body.get("confirm") == null || !Boolean.TRUE.equals(body.get("confirm"))) {
+            return ResponseEntity.ok(ApiResponse.fail("confirm:true 가 필요합니다.", "VALIDATION"));
+        }
+        try {
+            LocalDate from = parseLocalDate(body.get("fromDate") != null ? body.get("fromDate").toString() : null);
+            LocalDate to = parseLocalDate(body.get("toDate") != null ? body.get("toDate").toString() : null);
+            String merchantId = body.get("merchantId") != null ? body.get("merchantId").toString() : null;
+            boolean dryRun = body.get("dryRun") != null && Boolean.parseBoolean(body.get("dryRun").toString());
+            boolean removeEcho = body.get("removeOutboundEcho") == null
+                    || Boolean.parseBoolean(body.get("removeOutboundEcho").toString());
+            boolean removeDupes = body.get("removeExactRawBodyDuplicates") == null
+                    || Boolean.parseBoolean(body.get("removeExactRawBodyDuplicates").toString());
+            Map<String, Object> result = dryRun
+                    ? duplicateCleanupService.preview(from, to, merchantId, removeEcho, removeDupes)
+                    : duplicateCleanupService.cleanup(from, to, merchantId, removeEcho, removeDupes);
+            result.put("cleaned", !dryRun);
+            return ResponseEntity.ok(ApiResponse.ok(result));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage() != null ? e.getMessage() : "cleanup failed", "ERROR"));
+        }
+    }
+
+    private boolean canResetOperationalData(Authentication auth) {
+        if (auth == null || !(auth.getPrincipal() instanceof AppUser u)) {
+            return false;
+        }
+        if ("ADMIN".equalsIgnoreCase(u.getRole())) {
+            return true;
+        }
+        Map<String, Object> org = authService.getOrgInfo(u.getUsername());
+        return org != null && "HEADQUARTERS".equals(String.valueOf(org.getOrDefault("orgLevel", "")).trim().toUpperCase(Locale.ROOT));
     }
 
     private static LocalDate parseLocalDate(String s) {

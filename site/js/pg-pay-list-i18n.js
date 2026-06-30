@@ -495,18 +495,18 @@
         '[ซิงค์ JPAY] ดึงช่วงวันที่จากพอร์ทัล แถวซ้ำเก็บสำเร็จ+เลขอนุมัติ ไม่มีเลขอนุมัติเติมจาก ICOPAY [ซิงค์ใหม่ทั้งหมด] ช่วงเดือนเริ่มต้น ตารางครั้งแรก=เมื่อวาน+วันนี้ ครั้งที่2+=วันนี้ 00:00 ซิงค์พื้นฐาน2วัน'
       ),
       packN(
-        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·업체명·업체코드·거래일·거래시간은 그리드에 항상 표시되며 VIEW SETTING 목록에는 나오지 않습니다. 열 너비는 헤더 경계를 드래그해 조절할 수 있습니다.',
-        'Columns via VIEW SETTING (saved per user). No., merchant name/code, and txn date/time are always visible and not listed in VIEW SETTING. Drag column borders to resize.',
-        '列は VIEW SETTING で調整（ユーザー別保存）。番号・加盟店名・コード・取引日時は常時表示で VIEW SETTING には出ません。ヘッダ境界をドラッグして列幅調整。',
-        '列通过 VIEW SETTING 调整（按用户保存）。序号、商户名/代码、交易日期/时间始终显示且不在 VIEW SETTING 中。可拖拽表头边界调整列宽。',
-        'คอลัมน์ตั้งค่า VIEW SETTING (บันทึกต่อผู้ใช้) ลำดับ·ชื่อ/รหัสร้าน·วัน/เวลาทำรายการแสดงเสมอ ลากขอบหัวตารางปรับความกว้าง'
+        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 결제개요와 동일한 항목 구성(단말기·위치·IP 제외)으로 JPAY 포털 Export와 ICOPAY 노티 결과를 비교할 수 있습니다.',
+        'Columns via VIEW SETTING (saved per user). Same column set as Payment overview (excluding device, location, IP) so you can compare JPAY portal Export with ICOPAY notify results.',
+        '列は VIEW SETTING で調整（ユーザー別保存）。決済概要と同一項目（端末・位置・IP を除く）で JPAY ポータル Export と ICOPAY ノティ結果を比較できます。',
+        '列通过 VIEW SETTING 调整（按用户保存）。与支付概览相同栏目（不含终端、位置、IP），便于对比 JPAY 门户 Export 与 ICOPAY 通知结果。',
+        'คอลัมน์ตั้งค่า VIEW SETTING (บันทึกต่อผู้ใช้) ชุดเดียวกับภาพรวมการชำระ (ยกเว้นอุปกรณ์ ตำแหน่ง IP) เพื่อเทียบ Export พอร์ทัล JPAY กับผล notify ICOPAY'
       ),
       packN(
-        '동기화한 포털 Export 목록은 DB(tb_jpay_portal_export_cache)에 저장됩니다. 로그아웃·재로그인·서버 재시작 후에도 [검색]만으로 마지막 동기화 목록을 조회할 수 있습니다. 전산설정관리에서 JPAY 통합조회 스케줄을 켜 두면 서버가 주기적으로 동기화합니다. 즉시 반영이 필요할 때만 [JPAY 동기화]를 수동 실행하세요.',
-        'Synced portal Export list is stored in DB (tb_jpay_portal_export_cache). After logout, re-login, or server restart, use [Search] for the last sync. Enable JPAY integrated list sync schedule in Ledger system settings for periodic server sync. Run [JPAY sync] manually only when you need immediate refresh.',
-        '同期したポータルExport一覧はDB(tb_jpay_portal_export_cache)に保存。ログアウト・再ログイン・サーバー再起動後も[検索]で最終同期一覧を表示。全算設定でJPAY統合照会スケジュールを有効にするとサーバーが定期同期。即時反映が必要なときのみ[JPAY同期]を手動実行。',
-        '同步的门户 Export 列表存入 DB(tb_jpay_portal_export_cache)。登出、重登或服务器重启后可用 [搜索] 查看上次同步。在账务系统设置中启用 JPAY 整合查询计划后服务器将定期同步。仅在需要立即更新时手动 [JPAY 同步]。',
-        'รายการ Export พอร์ทัลหลังซิงค์เก็บใน DB (tb_jpay_portal_export_cache) หลังล็อกเอาท์/ล็อกอินใหม่/รีสตาร์ทเซิร์ฟเวอร์ ใช้ [ค้นหา] ดูรายการซิงค์ล่าสุดได้ เปิดตารางซิงค์รายการรวม JPAY ในระบบบัญชีให้เซิร์ฟเวอร์ซิงค์เป็นระยะ กด [ซิงค์ JPAY] เองเมื่อต้องการทันที'
+        '동기화한 포털 Export 목록은 DB(tb_jpay_portal_export_cache)에 저장됩니다. 로그아웃·재로그인·서버 재시작 후에도 [검색]만으로 마지막 동기화 목록을 조회할 수 있습니다. 전산설정관리에서 JPAY 통합개요 스케줄을 켜 두면 서버가 주기적으로 동기화합니다. 즉시 반영이 필요할 때만 [JPAY 동기화]를 수동 실행하세요.',
+        'Synced portal Export list is stored in DB (tb_jpay_portal_export_cache). After logout, re-login, or server restart, use [Search] for the last sync. Enable JPAY integrated overview sync schedule in Ledger system settings for periodic server sync. Run [JPAY sync] manually only when you need immediate refresh.',
+        '同期したポータルExport一覧はDB(tb_jpay_portal_export_cache)に保存。ログアウト・再ログイン・サーバー再起動後も[検索]で最終同期一覧を表示。全算設定でJPAY統合概要スケジュールを有効にするとサーバーが定期同期。即時反映が必要なときのみ[JPAY同期]を手動実行。',
+        '同步的门户 Export 列表存入 DB(tb_jpay_portal_export_cache)。登出、重登或服务器重启后可用 [搜索] 查看上次同步。在账务系统设置中启用 JPAY 整合概览计划后服务器将定期同步。仅在需要立即更新时手动 [JPAY 同步]。',
+        'รายการ Export พอร์ทัลหลังซิงค์เก็บใน DB (tb_jpay_portal_export_cache) หลังล็อกเอาท์/ล็อกอินใหม่/รีสตาร์ทเซิร์ฟเวอร์ ใช้ [ค้นหา] ดูรายการซิงค์ล่าสุดได้ เปิดตารางซิงค์ภาพรวมรวม JPAY ในระบบบัญชีให้เซิร์ฟเวอร์ซิงค์เป็นระยะ กด [ซิงค์ JPAY] เองเมื่อต้องการทันที'
       ),
       packN(
         '고객 열은 포털 Export의 이메일·성명을 「이메일 | 성명」으로 표시합니다(VIEW SETTING에서 토글). 거래일·거래시간·고객 등은 1차로 엑셀 값을 쓰고, 해당 행이 엑셀에 있으나 일부만 비어 있을 때만 ICOPAY 결제내역(pg_trnsctn)으로 보강합니다. 엑셀에 없는 결제내역 건을 목록에 추가하지 않습니다.',
@@ -720,48 +720,48 @@
         'เทียบ JPAY กับ ICOPAY รายวันในช่วงวันที่เดียวกัน ตรงกันแสดง Ok ไม่ตรงเน้นเซลล์และแสดง Check'
       ),
       packN(
-        'JPAY 또는 ICOPAY 행을 더블클릭하면 아래 「선택 일자 상세」에 해당 일·운영사 거래 목록이 표시됩니다(JPAY=통합조회, ICOPAY=일별결제와 동일 API).',
-        'Double-click a JPAY or ICOPAY row to show that day’s transaction list below under “Selected date detail” (JPAY = integrated query, ICOPAY = daily pay — same APIs).',
-        'JPAY または ICOPAY 行をダブルクリックすると、下の「選択日詳細」にその日・運営社の取引一覧が表示されます（JPAY=統合照会、ICOPAY=日別決済と同一 API）。',
-        '双击 JPAY 或 ICOPAY 行可在下方「选择日期详情」显示该日·运营方交易列表（JPAY=整合查询，ICOPAY=按日支付，相同 API）。',
-        'ดับเบิลคลิกแถว JPAY หรือ ICOPAY เพื่อแสดงรายการธุรกรรมของวัน·ผู้ให้บริการด้านล่างใน「รายละเอียดวันที่เลือก」(JPAY=ค้นหารวม ICOPAY=รายวัน API เดียวกัน)'
+        'JPAY 또는 ICOPAY 행을 더블클릭하면 아래 「선택 일자 상세」에 해당 일·운영사 거래 목록이 표시됩니다(JPAY=통합개요, ICOPAY=일별결제와 동일 API).',
+        'Double-click a JPAY or ICOPAY row to show that day’s transaction list below under “Selected date detail” (JPAY = integrated overview, ICOPAY = daily pay — same APIs).',
+        'JPAY または ICOPAY 行をダブルクリックすると、下の「選択日詳細」にその日・運営社の取引一覧が表示されます（JPAY=統合概要、ICOPAY=日別決済と同一 API）。',
+        '双击 JPAY 或 ICOPAY 行可在下方「选择日期详情」显示该日·运营方交易列表（JPAY=整合概览，ICOPAY=按日支付，相同 API）。',
+        'ดับเบิลคลิกแถว JPAY หรือ ICOPAY เพื่อแสดงรายการธุรกรรมของวัน·ผู้ให้บริการด้านล่างใน「รายละเอียดวันที่เลือก」(JPAY=ภาพรวมรวม ICOPAY=รายวัน API เดียวกัน)'
       ),
       packN(
-        'JPAY는 통합조회와 동일하게 DB(tb_jpay_portal_export_cache)에 저장되며, 본사설정 전산설정관리의 JPAY 통합조회 스케줄로 자동 동기화됩니다. 로그인 후 [검색]만으로 조회할 수 있고, 즉시 갱신이 필요할 때만 [JPAY 동기화]를 사용하세요. 조회 기간은 최대 93일입니다.',
-        'JPAY is stored in DB (tb_jpay_portal_export_cache) like Integrated query and auto-synced via Ledger settings → JPAY integrated list schedule. After login, use [Search] only; use [JPAY sync] when you need an immediate refresh. Query window up to 93 days.',
-        'JPAYは統合照会と同様DB(tb_jpay_portal_export_cache)に保存され、本社設定のJPAY統合照会スケジュールで自動同期されます。ログイン後は[検索]のみで照会でき、即時更新が必要なときだけ[JPAY同期]を使います。照会期間は最大93日です。',
-        'JPAY 与整合查询相同存入 DB(tb_jpay_portal_export_cache)，由本社设置中的 JPAY 整合查询计划自动同步。登录后仅 [搜索] 即可；需立即刷新时再使用 [JPAY 同步]。查询区间最长 93 天。',
-        'JPAY เก็บใน DB เหมือนค้นหารวม ซิงค์อัตโนมัติตามตารางในการตั้งค่าระบบบัญชี หลังล็อกอินกด [ค้นหา] ได้เลย ใช้ [JPAY sync] เมื่อต้องการอัปเดตทันที ช่วงสูงสุด 93 วัน'
+        'JPAY는 통합개요와 동일하게 DB(tb_jpay_portal_export_cache)에 저장되며, 본사설정 전산설정관리의 JPAY 통합개요 스케줄로 자동 동기화됩니다. 로그인 후 [검색]만으로 조회할 수 있고, 즉시 갱신이 필요할 때만 [JPAY 동기화]를 사용하세요. 조회 기간은 최대 93일입니다.',
+        'JPAY is stored in DB (tb_jpay_portal_export_cache) like Integrated overview and auto-synced via Ledger settings → JPAY integrated overview schedule. After login, use [Search] only; use [JPAY sync] when you need an immediate refresh. Query window up to 93 days.',
+        'JPAYは統合概要と同様DB(tb_jpay_portal_export_cache)に保存され、本社設定のJPAY統合概要スケジュールで自動同期されます。ログイン後は[検索]のみで照会でき、即時更新が必要なときだけ[JPAY同期]を使います。照会期間は最大93日です。',
+        'JPAY 与整合概览相同存入 DB(tb_jpay_portal_export_cache)，由本社设置中的 JPAY 整合概览计划自动同步。登录后仅 [搜索] 即可；需立即刷新时再使用 [JPAY 同步]。查询区间最长 93 天。',
+        'JPAY เก็บใน DB เหมือนภาพรวมรวม ซิงค์อัตโนมัติตามตารางภาพรวมรวม JPAY ในการตั้งค่าระบบบัญชี หลังล็อกอินกด [ค้นหา] ได้เลย ใช้ [JPAY sync] เมื่อต้องการอัปเดตทันที ช่วงสูงสุด 93 วัน'
       ),
       packN(
-        '상단 「최근동기화」 시각·당일 횟수는 통합조회·일별조회와 동일합니다. 스케줄 또는 [JPAY 동기화] 완료 후 이 화면이 열려 있으면 자동으로 다시 조회됩니다.',
-        'The “Last sync” time and today’s count match Integrated query and Daily query. When this screen is open, a scheduled or manual [JPAY sync] completion triggers an automatic refresh.',
-        '上段の「最終同期」時刻・当日回数は統合照会・日別照会と同じです。スケジュールまたは[JPAY同期]完了後、この画面を開いたままなら自動で再照会します。',
-        '上方「最近同步」时间与当日次数与整合查询、按日查询相同。本页打开时，计划或 [JPAY 同步] 完成后会自动重新查询。',
-        'เวลา「ซิงค์ล่าสุด」และจำนวนวันนี้ตรงกับค้นหารวม·ค้นหารายวัน เมื่อเปิดหน้านี้อยู่ หลังซิงค์ตามตารางหรือ [JPAY sync] เสร็จจะรีเฟรชอัตโนมัติ'
+        '상단 「최근동기화」 시각·당일 횟수는 통합개요·일별조회와 동일합니다. 스케줄 또는 [JPAY 동기화] 완료 후 이 화면이 열려 있으면 자동으로 다시 조회됩니다.',
+        'The “Last sync” time and today’s count match Integrated overview and Daily query. When this screen is open, a scheduled or manual [JPAY sync] completion triggers an automatic refresh.',
+        '上段の「最終同期」時刻・当日回数は統合概要・日別照会と同じです。スケジュールまたは[JPAY同期]完了後、この画面を開いたままなら自動で再照会します。',
+        '上方「最近同步」时间与当日次数与整合概览、按日查询相同。本页打开时，计划或 [JPAY 同步] 完成后会自动重新查询。',
+        'เวลา「ซิงค์ล่าสุด」และจำนวนวันนี้ตรงกับภาพรวมรวม·ค้นหารายวัน เมื่อเปิดหน้านี้อยู่ หลังซิงค์ตามตารางหรือ [JPAY sync] เสร็จจะรีเฟรชอัตโนมัติ'
       )
     ],
     '/calc/queryIntegrated': [
       packN(
-        '통합조회(JPAY Export 캐시)와 동일 필터로, 거래일(trnDate) 구간을 일 단위로 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 전체 건 기준입니다. 일자 행을 더블클릭하면 아래에 해당 일 통합조회 전체·금액 요약이 표시됩니다.',
-        'Same filters as Integrated query (JPAY Export cache), aggregated by calendar day on trnDate. Per-day bucket counts are for all rows that day. Double-click a date row to show all integrated query rows and amount summary for that day below.',
-        '統合照会（JPAY Exportキャッシュ）と同一フィルタで、取引日(trnDate)範囲を日単位で集計します。日付行をダブルクリックすると当日の統合照会と金額要約を下に表示します。',
-        '与「整合查询（JPAY Export 缓存）」相同筛选，按交易日(trnDate)区间做按日汇总。双击日期行可在下方显示该日全部整合查询及金额摘要。',
-        'ใช้ตัวกรองเดียวกับค้นหารวม (แคช JPAY Export) สรุปรายวันตาม trnDate ดับเบิลคลิกวันที่เพื่อดูรายการและสรุปยอดของวันนั้น'
+        '통합개요(JPAY Export 캐시)와 동일 필터로, 거래일(trnDate) 구간을 일 단위로 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 전체 건 기준입니다. 일자 행을 더블클릭하면 아래에 해당 일 통합개요 전체·금액 요약이 표시됩니다.',
+        'Same filters as Integrated overview (JPAY Export cache), aggregated by calendar day on trnDate. Per-day bucket counts are for all rows that day. Double-click a date row to show all integrated overview rows and amount summary for that day below.',
+        '統合概要（JPAY Exportキャッシュ）と同一フィルタで、取引日(trnDate)範囲を日単位で集計します。日付行をダブルクリックすると当日の統合概要と金額要約を下に表示します。',
+        '与「整合概览（JPAY Export 缓存）」相同筛选，按交易日(trnDate)区间做按日汇总。双击日期行可在下方显示该日全部整合概览及金额摘要。',
+        'ใช้ตัวกรองเดียวกับภาพรวมรวม (แคช JPAY Export) สรุปรายวันตาม trnDate ดับเบิลคลิกวันที่เพื่อดูรายการและสรุปยอดของวันนั้น'
       ),
       packN(
-        '조회 기간은 최대 93일입니다. 본 화면 [JPAY 동기화]·[전체 재동기화] 또는 통합조회와 동일한 DB 캐시·스케줄로 갱신한 뒤 [검색]하세요. 당월 등으로 종료일이 오늘 이후이면 표시는 전산 기준일(오늘)까지만 합니다.',
-        'Query window up to 93 days. Refresh via [JPAY sync] / [Full re-sync] on this screen or the shared DB cache/schedule like Integrated query, then [Search]. If end date is after today, display stops at ledger today.',
-        '照会期間は最大93日です。本画面の[JPAY同期]・[全体再同期]または統合照会と同じDBキャッシュ・スケジュールで更新後[検索]してください。終了日が今日以降の場合は今日まで表示します。',
-        '查询区间最长93天。请在本屏 [JPAY 同步]/[全部重新同步] 或使用与整合查询相同的 DB 缓存与计划刷新后 [搜索]。结束日晚于今天则仅显示至今天。',
-        'ช่วงสูงสุด 93 วัน ซิงค์ด้วย [JPAY sync]/[Full re-sync] บนหน้านี้หรือแคช/ตารางเดียวกับค้นหารวม แล้ว [ค้นหา] ถ้าวันสิ้นสุดหลังวันนี้แสดงถึงวันนี้เท่านั้น'
+        '조회 기간은 최대 93일입니다. 본 화면 [JPAY 동기화]·[전체 재동기화] 또는 통합개요와 동일한 DB 캐시·스케줄로 갱신한 뒤 [검색]하세요. 당월 등으로 종료일이 오늘 이후이면 표시는 전산 기준일(오늘)까지만 합니다.',
+        'Query window up to 93 days. Refresh via [JPAY sync] / [Full re-sync] on this screen or the shared DB cache/schedule like Integrated overview, then [Search]. If end date is after today, display stops at ledger today.',
+        '照会期間は最大93日です。本画面の[JPAY同期]・[全体再同期]または統合概要と同じDBキャッシュ・スケジュールで更新後[検索]してください。終了日が今日以降の場合は今日まで表示します。',
+        '查询区间最长93天。请在本屏 [JPAY 同步]/[全部重新同步] 或使用与整合概览相同的 DB 缓存与计划刷新后 [搜索]。结束日晚于今天则仅显示至今天。',
+        'ช่วงสูงสุด 93 วัน ซิงค์ด้วย [JPAY sync]/[Full re-sync] บนหน้านี้หรือแคช/ตารางเดียวกับภาพรวมรวม แล้ว [ค้นหา] ถ้าวันสิ้นสุดหลังวันนี้แสดงถึงวันนี้เท่านั้น'
       ),
       packN(
-        '상단 「최근동기화」 시각·당일 횟수는 통합조회·통합체크와 동일합니다. 스케줄 또는 [JPAY 동기화] 완료 후 이 화면이 열려 있으면 자동으로 다시 조회됩니다.',
-        '“Last sync” time and today’s count match Integrated query and Integrated check. When this screen is open, completing a scheduled or manual [JPAY sync] triggers an automatic refresh.',
-        '上段の「最終同期」時刻・当日回数は統合照会・統合チェックと同じです。スケジュールまたは[JPAY同期]完了後、この画面を開いたままなら自動再照会します。',
-        '上方「最近同步」时间与整合查询、整合核对相同。本页打开时，计划或 [JPAY 同步] 完成后会自动重新查询。',
-        '「ซิงค์ล่าสุด」และจำนวนวันนี้ตรงกับค้นหารวม·ตรวจสอบรวม เมื่อเปิดหน้านี้อยู่ หลังซิงค์ตามตารางหรือ [JPAY sync] เสร็จจะรีเฟรชอัตโนมัติ'
+        '상단 「최근동기화」 시각·당일 횟수는 통합개요·통합체크와 동일합니다. 스케줄 또는 [JPAY 동기화] 완료 후 이 화면이 열려 있으면 자동으로 다시 조회됩니다.',
+        '“Last sync” time and today’s count match Integrated overview and Integrated check. When this screen is open, completing a scheduled or manual [JPAY sync] triggers an automatic refresh.',
+        '上段の「最終同期」時刻・当日回数は統合概要・統合チェックと同じです。スケジュールまたは[JPAY同期]完了後、この画面を開いたままなら自動再照会します。',
+        '上方「最近同步」时间与整合概览、整合核对相同。本页打开时，计划或 [JPAY 同步] 完成后会自动重新查询。',
+        '「ซิงค์ล่าสุด」และจำนวนวันนี้ตรงกับภาพรวมรวม·ตรวจสอบรวม เมื่อเปิดหน้านี้อยู่ หลังซิงค์ตามตารางหรือ [JPAY sync] เสร็จจะรีเฟรชอัตโนมัติ'
       )
     ],
     '/calc/dailyIntegrated': [
@@ -1067,18 +1067,18 @@
         'คอลัมน์ขวาสุด: ครบกำหนด PG จาก T/H/D นโยบายตัวแทน Y/N ว่างถ้าไม่มีนโยบายหรือ van'
       ),
       packN(
-        'JPAY 포털 Export 캐시(tb_jpay_portal_export_cache)는 통합조회·일별조회와 동일합니다. JPAY 건 검수·대조 전 본 화면 [JPAY 동기화]·[전체 재동기화]로 캐시를 갱신할 수 있습니다. 전산설정 JPAY 통합조회 스케줄로 자동 동기화됩니다.',
-        'JPAY portal Export cache (tb_jpay_portal_export_cache) is shared with Integrated query and Daily query. Use [JPAY sync] / [Full re-sync] on this screen before JPAY verification. Auto-sync via Ledger JPAY integrated list schedule.',
-        'JPAYポータルExportキャッシュ(tb_jpay_portal_export_cache)は統合照会・日別照会と同一です。JPAY検収・照合前に本画面の[JPAY同期]・[全体再同期]で更新できます。全算設定のJPAY統合照会スケジュールで自動同期します。',
-        'JPAY 门户 Export 缓存(tb_jpay_portal_export_cache) 与整合查询、按日查询共用。JPAY 核对前可在本屏 [JPAY 同步]/[全部重新同步] 刷新。由账务 JPAY 整合查询计划自动同步。',
-        'แคช Export พอร์ทัล JPAY (tb_jpay_portal_export_cache) ใช้ร่วมกับค้นหารวม·ค้นหารายวัน ก่อนตรวจ JPAY ใช้ [JPAY sync]/[Full re-sync] บนหน้านี้ ซิงค์อัตโนมัติตามตาราง JPAY ในระบบบัญชี'
+        'JPAY 포털 Export 캐시(tb_jpay_portal_export_cache)는 통합개요·일별조회와 동일합니다. JPAY 건 검수·대조 전 본 화면 [JPAY 동기화]·[전체 재동기화]로 캐시를 갱신할 수 있습니다. 전산설정 JPAY 통합개요 스케줄로 자동 동기화됩니다.',
+        'JPAY portal Export cache (tb_jpay_portal_export_cache) is shared with Integrated overview and Daily query. Use [JPAY sync] / [Full re-sync] on this screen before JPAY verification. Auto-sync via Ledger JPAY integrated overview schedule.',
+        'JPAYポータルExportキャッシュ(tb_jpay_portal_export_cache)は統合概要・日別照会と同一です。JPAY検収・照合前に本画面の[JPAY同期]・[全体再同期]で更新できます。全算設定のJPAY統合概要スケジュールで自動同期します。',
+        'JPAY 门户 Export 缓存(tb_jpay_portal_export_cache) 与整合概览、按日查询共用。JPAY 核对前可在本屏 [JPAY 同步]/[全部重新同步] 刷新。由账务 JPAY 整合概览计划自动同步。',
+        'แคช Export พอร์ทัล JPAY (tb_jpay_portal_export_cache) ใช้ร่วมกับภาพรวมรวม·ค้นหารายวัน ก่อนตรวจ JPAY ใช้ [JPAY sync]/[Full re-sync] บนหน้านี้ ซิงค์อัตโนมัติตามตารางภาพรวมรวม JPAY ในระบบบัญชี'
       ),
       packN(
-        '상단 「최근동기화」 시각·당일 횟수는 통합조회와 동일합니다. 스케줄 또는 [JPAY 동기화] 완료 후 이 화면이 열려 있으면 자동으로 다시 조회됩니다.',
-        '“Last sync” time and today’s count match Integrated query. When this screen is open, completing a scheduled or manual [JPAY sync] triggers an automatic refresh.',
-        '上段の「最終同期」時刻・当日回数は統合照会と同じです。スケジュールまたは[JPAY同期]完了後、この画面を開いたままなら自動再照회します。',
-        '上方「最近同步」时间与整合查询相同。本页打开时，计划或 [JPAY 同步] 完成后会自动重新查询。',
-        '「ซิงค์ล่าสุด」และจำนวนวันนี้ตรงกับค้นหารวม เมื่อเปิดหน้านี้อยู่ หลังซิงค์ตามตารางหรือ [JPAY sync] เสร็จจะรีเฟรชอัตโนมัติ'
+        '상단 「최근동기화」 시각·당일 횟수는 통합개요와 동일합니다. 스케줄 또는 [JPAY 동기화] 완료 후 이 화면이 열려 있으면 자동으로 다시 조회됩니다.',
+        '“Last sync” time and today’s count match Integrated overview. When this screen is open, completing a scheduled or manual [JPAY sync] triggers an automatic refresh.',
+        '上段の「最終同期」時刻・当日回数は統合概要と同じです。スケジュールまたは[JPAY同期]完了後、この画面を開いたままなら自動再照회します。',
+        '上方「最近同步」时间与整合概览相同。本页打开时，计划或 [JPAY 同步] 完成后会自动重新查询。',
+        '「ซิงค์ล่าสุด」และจำนวนวันนี้ตรงกับภาพรวมรวม เมื่อเปิดหน้านี้อยู่ หลังซิงค์ตามตารางหรือ [JPAY sync] เสร็จจะรีเฟรชอัตโนมัติ'
       )
     ],
     '/ops/inactiveCard': [
@@ -1428,7 +1428,7 @@
     paymentDate: { EN: 'PaymentDate (raw)', JP: 'PaymentDate(原文)', CH: 'PaymentDate(原文)', TH: 'PaymentDate (ดิบ)' }
   });
 
-  /** 통합조회(/calc/jpayTrList) 그리드·VIEW SETTING 열 라벨 */
+  /** 통합개요(/calc/jpayTrList) 그리드·VIEW SETTING 열 라벨 — PG_JPAY_TR_OVERVIEW 카탈로그 */
   var JPAY_TR_COL = Object.assign({}, COL, {
     masterDistNm: { EN: 'Master dist.', JP: '総販', CH: '总代', TH: 'ตัวแทนหลัก' },
     portalLabel: { EN: 'Portal label', JP: 'ポータル表示', CH: '门户显示', TH: 'ป้ายพอร์ทัล' },
@@ -1492,6 +1492,7 @@
   function applyCatalogLocale(loc) {
     applyOnePayListCatalogLocale(window.PG_PAY_LIST_INTEGRATED, loc);
     applyOnePayListCatalogLocale(window.PG_PAY_LIST_OVERVIEW, loc);
+    applyOnePayListCatalogLocale(window.PG_JPAY_TR_OVERVIEW, loc);
   }
 
   function applyOnePayListCatalogLocale(P, loc) {
@@ -1660,23 +1661,22 @@
   }
 
   function applyJpayListCatalogLocale(loc) {
+    applyOnePayListCatalogLocale(window.PG_JPAY_TR_OVERVIEW, loc);
     var screens = w.PG_SCREENS && w.PG_SCREENS.getMenuScreens ? w.PG_SCREENS.getMenuScreens() : null;
     if (!screens) return;
     var scr = screens['/calc/jpayTrList'];
-    if (!scr || !scr.columns) return;
-    ensureChillColSnap(scr);
-    if (loc === 'KO') {
-      restoreChillColSnap(scr);
-      return;
-    }
-    var snap = scr._i18nColSnap;
-    var byKey = {};
-    snap.cols.forEach(function (x) { if (x && x.key) byKey[x.key] = x.label; });
-    scr.columns.forEach(function (c) {
-      if (!c || !c.key) return;
-      var row = JPAY_TR_COL[c.key];
-      c.label = tRow(row, loc, byKey[c.key] != null ? byKey[c.key] : c.label);
+    var P = window.PG_JPAY_TR_OVERVIEW;
+    if (!scr || !P || !P.columns) return;
+    var labelByKey = {};
+    P.columns.forEach(function (c) {
+      if (c && c.key) labelByKey[c.key] = c.label;
     });
+    (scr.columns || []).forEach(function (col) {
+      if (col && col.key && labelByKey[col.key] != null) col.label = labelByKey[col.key];
+    });
+    if (P.headerGroups && P.headerGroups.length) {
+      scr.headerGroups = JSON.parse(JSON.stringify(P.headerGroups));
+    }
   }
 
   var _screenSnap = null;
@@ -2528,7 +2528,7 @@
 
   /** 결제내역 계열 — 처리사유 열이 있는 화면 */
   var PAY_LIST_OUTCOME_REASON_URLS = {
-    '/calc/payList': 1, '/calc/payOverview': 1, '/calc/payNotiList': 1, '/calc/paySuccessList': 1, '/calc/payFailList': 1,
+    '/calc/payList': 1, '/calc/payOverview': 1, '/calc/jpayTrList': 1, '/calc/payNotiList': 1, '/calc/paySuccessList': 1, '/calc/payFailList': 1,
     '/calc/payRefundList': 1, '/calc/payForceRefundList': 1, '/calc/payCancelList': 1, '/calc/payVoidList': 1,
     '/calc/payEmailVoidList': 1, '/calc/offsetCancList': 1, '/pay/easyPay': 1, '/pay/chatbotPay': 1, '/pay/splitPay': 1
   };
@@ -2906,7 +2906,8 @@
     applyAgencyTxnListScreenLocale(loc);
     applyMerchantApiPortalScreenLocale(loc);
     applyChillListCatalogLocale(loc);
-    /* /calc/jpayTrList — COMP_GRID_SINGLE_HEADER + data-pg-ui-t(한글 키); applyJpayListCatalogLocale 생략 */
+    applyJpayListCatalogLocale(loc);
+    /* /calc/jpayTrList — 결제개요 동일 카탈로그 + applyJpayListCatalogLocale */
     applyMenuScreensSearchAndNoticesLocale(loc);
     applyScreenChromeLocale(loc);
     patchCalcCycleSearchOptionAll(loc);

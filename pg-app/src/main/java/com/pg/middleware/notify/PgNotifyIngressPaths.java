@@ -1,5 +1,7 @@
 package com.pg.middleware.notify;
 
+import java.util.Locale;
+
 /**
  * PG·NOTI 등에서 호출하는 <strong>공개 노티 수신</strong> URL 경로 접두.
  * 레거시({@value com.pg.middleware.notify.PgNotifyIngressPaths#OPEN_PREFIX})와
@@ -30,5 +32,14 @@ public final class PgNotifyIngressPaths {
         String base = publicBaseUrl != null ? publicBaseUrl.trim().replaceAll("/+$", "") : "";
         String tok = ingressToken != null ? ingressToken.trim() : "";
         return base + OPEN_PREFIX + tok;
+    }
+
+    /** 가맹점 결제통보 URL이 ICOPAY 노티 수신 경로를 가리키면 아웃바운드→인바운드 루프가 납니다. */
+    public static boolean isIcopayNotifyIngressUrl(String url) {
+        if (url == null || url.isBlank()) {
+            return false;
+        }
+        String lower = url.trim().toLowerCase(Locale.ROOT);
+        return lower.contains(OPEN_PREFIX) || lower.contains(MIDDLEWARE_PREFIX);
     }
 }

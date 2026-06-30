@@ -24,6 +24,7 @@ import com.pg.util.NotifyChannelMerge;
 import com.pg.util.NotifyTxnPaidAtUtil;
 import com.pg.util.NotifyToTxnStatusMerge;
 import com.pg.util.PaidApprovalEvidenceGuard;
+import com.pg.util.PayerContactDisplayUtil;
 import com.pg.util.TxnOutcomeReasonApplier;
 import com.pg.util.PgNotifyInternalStatusMapper;
 import com.pg.util.PgTrnsctnNotifyDisplayHelper;
@@ -929,16 +930,22 @@ public class HqNotifyMappingService {
         }
 
         String custId = firstNonBlank(byKey, "customerId");
-        if (custId == null || custId.isBlank() || "guest".equalsIgnoreCase(custId.trim())) {
+        if (custId == null || custId.isBlank() || PayerContactDisplayUtil.isGuestMarker(custId)) {
             String fromRawId = extractNotifyCustomerIdRaw(notifyRoot);
             if (fromRawId != null && !fromRawId.isBlank()) {
                 custId = fromRawId;
             }
         }
+        if (custId == null || custId.isBlank() || PayerContactDisplayUtil.isGuestMarker(custId)) {
+            String fromEmail = extractNotifyCustomerEmailRaw(notifyRoot);
+            if (fromEmail != null && !fromEmail.isBlank()) {
+                custId = fromEmail;
+            }
+        }
         if (custId != null && !custId.isBlank()) {
             t.setCustomerId(truncate(custId, 100));
         } else if (existingOpt.isPresent() && existingOpt.get().getCustomerId() != null
-                && !"guest".equalsIgnoreCase(existingOpt.get().getCustomerId().trim())) {
+                && !PayerContactDisplayUtil.isGuestMarker(existingOpt.get().getCustomerId())) {
             t.setCustomerId(existingOpt.get().getCustomerId());
         } else {
             t.setCustomerId("guest");
@@ -1496,6 +1503,23 @@ public class HqNotifyMappingService {
         for (String n : new String[] { "CustomerId", "customerId", "Customer", "customer" }) {
             String v = textDeep(notifyRoot, n);
             if (v != null && !v.isBlank()) {
+                return v.trim();
+            }
+        }
+        return null;
+    }
+
+    /** JPAY 노티·JSON — pay_email_address·email 등 (customerId 매핑 보강) */
+    private static String extractNotifyCustomerEmailRaw(JsonNode notifyRoot) {
+        if (notifyRoot == null || !notifyRoot.isObject()) {
+            return null;
+        }
+        for (String n : new String[] {
+                "email", "Email", "pay_email_address", "payEmailAddress",
+                "customer_email", "customerEmail", "Customer Email", "CustomerEmail"
+        }) {
+            String v = textDeep(notifyRoot, n);
+            if (v != null && !v.isBlank() && PayerContactDisplayUtil.looksLikeEmail(v)) {
                 return v.trim();
             }
         }

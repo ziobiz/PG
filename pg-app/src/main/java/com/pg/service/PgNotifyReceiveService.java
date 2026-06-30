@@ -28,6 +28,7 @@ import com.pg.repository.PgTrnsctnRepository;
 import com.pg.util.JpayCardPanMaskUtil;
 import com.pg.util.NotifyIngressDeliveryKindResolver;
 import com.pg.util.NotifyTxnPaidAtUtil;
+import com.pg.util.PaidApprovalEvidenceGuard;
 import com.pg.util.PgNotifyInboundSanitizer;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -259,6 +260,12 @@ public class PgNotifyReceiveService {
         }
 
         resolveAndFillInbound(in, parsed, body, contentType);
+        if (PaidApprovalEvidenceGuard.isIcopayOutboundPaymentStatusEcho(body)) {
+            in.setProcessStatus("OUTBOUND_ECHO");
+            in.setErrorMessage(null);
+            log.info("ICOPAY outbound echo — pg_trnsctn 후처리 생략 targetCode={} merchantId={}",
+                    trimNotifyTargetCode(notifyTargetCode), in.getMerchantId());
+        }
         PgNotifyInboundSanitizer.sanitize(in);
         try {
             in = inboundPersistService.saveInbound(in);
@@ -274,7 +281,10 @@ public class PgNotifyReceiveService {
                     buildNotifyApiJsonFailure(in, "INBOUND_SAVE_FAILED", msg, true),
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        boolean dispatchFailed = inboundPersistService.dispatchTxnUpdates(in.getId(), channelType);
+        boolean dispatchFailed = false;
+        if (!"OUTBOUND_ECHO".equalsIgnoreCase(String.valueOf(in.getProcessStatus()).trim())) {
+            dispatchFailed = inboundPersistService.dispatchTxnUpdates(in.getId(), channelType);
+        }
         String defaultOk = env.getNotifyOkResponse() != null ? env.getNotifyOkResponse() : "{\"result\":\"OK\"}";
         /* CALLBACK(cb)·RESULT(rs): 브라우저 GET/폼 POST 는 pay-result 로.
          * application/json POST 는 결제대행사 서버 노티 → 200 JSON 만(리다이렉트 없음). */
@@ -2072,6 +2082,10 @@ public class PgNotifyReceiveService {
         in.setProcessStatus("RECEIVED");
         in.setErrorMessage(null);
         resolveAndFillInbound(in, parsed, body, contentType);
+        if (PaidApprovalEvidenceGuard.isIcopayOutboundPaymentStatusEcho(body)) {
+            in.setProcessStatus("OUTBOUND_ECHO");
+            in.setErrorMessage(null);
+        }
         in = inboundPersistService.saveInbound(in);
         String channelType = in.getNotifyChannelType() != null && !in.getNotifyChannelType().isBlank()
                 ? in.getNotifyChannelType().trim()
@@ -2079,7 +2093,10 @@ public class PgNotifyReceiveService {
         if (channelType == null || channelType.isBlank()) {
             channelType = "CALLBACK";
         }
-        boolean dispatchFailed = inboundPersistService.dispatchTxnUpdates(in.getId(), channelType);
+        boolean dispatchFailed = false;
+        if (!"OUTBOUND_ECHO".equalsIgnoreCase(String.valueOf(in.getProcessStatus()).trim())) {
+            dispatchFailed = inboundPersistService.dispatchTxnUpdates(in.getId(), channelType);
+        }
         in = inboundRepository.findById(inboundId).orElse(in);
         boolean manualApplied = false;
         if (!dispatchFailed) {

@@ -5,6 +5,7 @@ package com.pg.service;
 import com.pg.api.dto.PageResult;
 
 import com.pg.api.dto.PayListItemDto;
+import com.pg.api.dto.PayListRowContext;
 
 import com.pg.entity.JpayPortalAccount;
 
@@ -32,8 +33,11 @@ import com.pg.repository.MerchantProfileRepository;
 
 import com.pg.repository.PgTrnsctnRepository;
 
+import com.pg.util.JpayBuyerContactApplier;
+import com.pg.util.JpayReturnedMessageUtil;
 import com.pg.util.JpayNotifyStatusResolver;
 import com.pg.util.JpayPortalDateParser;
+import com.pg.util.PayerContactDisplayUtil;
 
 import com.pg.util.JpayReconcileStatusPolicy;
 
@@ -102,6 +106,8 @@ import java.util.Set;
 import java.util.Locale;
 
 import java.util.Map;
+
+import java.util.Objects;
 
 import java.util.Optional;
 
@@ -1253,6 +1259,18 @@ public class JpayIntegratedListService {
 
             }
 
+            boolean contactUpdated = false;
+            String portalEmail = JpayOrderExcelParseService.col(row, "Customer Email", "customer_email");
+            String portalName = JpayOrderExcelParseService.col(row, "Customer Name", "customer_name");
+            String beforeEmail = t.getCustomerId();
+            JpayBuyerContactApplier.mergeFromPortalExportRow(t, portalEmail, portalName);
+            if (!Objects.equals(beforeEmail, t.getCustomerId())) {
+                contactUpdated = true;
+            }
+
+            String returnedMsg = JpayOrderExcelParseService.col(row, "Returned Messages", "returned_messages");
+            String prevStatusForReason = t.getStatus() != null ? t.getStatus().trim() : "";
+
             String trading = JpayOrderExcelParseService.col(row, "Trading Status");
 
             String chargeback = JpayOrderExcelParseService.col(row, "Is it a chargeback?");
@@ -1262,16 +1280,26 @@ public class JpayIntegratedListService {
             String mapped = JpayTradeStatusMapper.fromPortalTradingStatus(trading, chargeback, rdr);
 
             if (mapped == null || !JpayReconcileStatusPolicy.mayApplyReconcileMapping(mapped)) {
-
+                Optional<String> portalOnly = TxnOutcomeReasonApplier.applyJpayPortalReturnedMessage(
+                        t, prevStatusForReason, prevStatusForReason, returnedMsg);
+                if (contactUpdated || portalOnly.isPresent()) {
+                    if (portalOnly.isPresent()) {
+                        outcomeReasonWarmCoordinator.onRecorded(portalOnly);
+                    }
+                    pgTrnsctnRepository.save(t);
+                    updated++;
+                }
                 continue;
-
             }
 
             String old = t.getStatus() != null ? t.getStatus().trim() : "";
 
             String merged = NotifyToTxnStatusMerge.merge(old, mapped, "RESULT", t.getOutcomeReasonCode());
 
-            if (merged != null && !merged.equals(old)) {
+            boolean statusUpdated = merged != null && !merged.equals(old);
+            Optional<String> recordedReason = Optional.empty();
+
+            if (statusUpdated) {
 
                 t.setStatus(merged);
 
@@ -1291,14 +1319,24 @@ public class JpayIntegratedListService {
 
                 }
 
-                Optional<String> recordedReason = TxnOutcomeReasonApplier.applyJpayReconcileOutcome(
+                recordedReason = TxnOutcomeReasonApplier.applyJpayReconcileOutcome(
                         t, old, merged, trading);
-                outcomeReasonWarmCoordinator.onRecorded(recordedReason);
 
+            }
+
+            String statusForPortalMsg = statusUpdated && merged != null ? merged : old;
+            Optional<String> portalReason = TxnOutcomeReasonApplier.applyJpayPortalReturnedMessage(
+                    t, prevStatusForReason, statusForPortalMsg, returnedMsg);
+            if (portalReason.isPresent()) {
+                recordedReason = portalReason;
+            }
+
+            if (statusUpdated || contactUpdated || recordedReason.isPresent()) {
+                if (recordedReason.isPresent()) {
+                    outcomeReasonWarmCoordinator.onRecorded(recordedReason);
+                }
                 pgTrnsctnRepository.save(t);
-
                 updated++;
-
             }
 
         }
@@ -1425,6 +1463,8 @@ public class JpayIntegratedListService {
         List<Map<String, Object>> out = new ArrayList<>();
 
         Map<Long, Optional<MerchantProfile>> profileCache = new HashMap<>();
+
+        Map<String, PayListRowContext> ctxByMerchant = new HashMap<>();
 
         for (Map<String, String> row : raw) {
 
@@ -1586,6 +1626,8 @@ public class JpayIntegratedListService {
 
             m.put("cardBin", JpayOrderExcelParseService.col(row, "Card BIN", "card_bin"));
 
+            m.put("returnedMessages", JpayOrderExcelParseService.col(row, "Returned Messages", "returned_messages"));
+
             fillTxnFallbacks(m, txn);
 
             resolveCurrencyOnRow(m, txn, profileCache);
@@ -1593,6 +1635,8 @@ public class JpayIntegratedListService {
             alignRowWithSuccessTxnIfMissingApproval(m);
 
             applyStatusNm(m);
+
+            mergePayOverviewGridFields(m, txn, ctxByMerchant);
 
             out.add(m);
 
@@ -1821,10 +1865,10 @@ public class JpayIntegratedListService {
         meta.put("jpayIntegrated", true);
         meta.putAll(jpaySyncMetaMap());
         meta.put("dailyJpayNote",
-                "일자별 상세는 동일 조건으로 jpayTrSearch(통합조회)에 해당 일자만 지정해 조회합니다.");
+                "일자별 상세는 동일 조건으로 jpayTrSearch(통합개요)에 해당 일자만 지정해 조회합니다.");
         if (cachedRows.isEmpty()) {
             meta.put("note",
-                    "저장된 JPAY Export 캐시가 없습니다. 전산설정관리 JPAY 통합조회 스케줄을 켜거나 [JPAY 동기화]를 실행하세요.");
+                    "저장된 JPAY Export 캐시가 없습니다. 전산설정관리 JPAY 통합개요 스케줄을 켜거나 [JPAY 동기화]를 실행하세요.");
         }
         payload.put("meta", meta);
         return payload;
@@ -1992,14 +2036,7 @@ public class JpayIntegratedListService {
     }
 
     private static String payerEmailFromTxn(PgTrnsctn t) {
-        if (t == null) {
-            return "";
-        }
-        String id = t.getCustomerId();
-        if (id == null || id.isBlank() || "guest".equalsIgnoreCase(id.trim())) {
-            return "";
-        }
-        return id.trim();
+        return PayerContactDisplayUtil.resolvePayerEmail(t);
     }
 
     /** 그리드 고객 열 — 이메일 | 성명 (결제내역 chillCustomer와 동일 구분자) */
@@ -2248,15 +2285,29 @@ public class JpayIntegratedListService {
             return List.of();
         }
         Map<Long, Optional<MerchantProfile>> profileCache = new HashMap<>();
+        Set<String> merchantCodes = new LinkedHashSet<>();
+        for (Map<String, Object> row : rows) {
+            if (row == null) {
+                continue;
+            }
+            String mid = mapStr(row, "compId");
+            if (!mid.isBlank()) {
+                merchantCodes.add(mid);
+            }
+        }
+        Map<String, PayListRowContext> ctxByMerchant = merchantCodes.isEmpty()
+                ? Map.of()
+                : payListService.buildPayListRowContextMap(merchantCodes);
         List<Map<String, Object>> out = new ArrayList<>(rows.size());
         for (Map<String, Object> row : rows) {
-            out.add(repairEnrichedRow(row, profileCache));
+            out.add(repairEnrichedRow(row, profileCache, ctxByMerchant));
         }
         return out;
     }
 
     private Map<String, Object> repairEnrichedRow(Map<String, Object> src,
-                                                Map<Long, Optional<MerchantProfile>> profileCache) {
+                                                Map<Long, Optional<MerchantProfile>> profileCache,
+                                                Map<String, PayListRowContext> ctxByMerchant) {
         Map<String, Object> m = src instanceof LinkedHashMap ? src : new LinkedHashMap<>(src);
         String txnDate = String.valueOf(m.getOrDefault("trnDate", "")).trim();
         if (txnDate.isEmpty()) {
@@ -2291,7 +2342,95 @@ public class JpayIntegratedListService {
         resolveCurrencyOnRow(m, txn, profileCache);
         refreshPortalIcopayStatus(m);
         applyStatusNm(m);
+        mergePayOverviewGridFields(m, txn, ctxByMerchant);
         return m;
+    }
+
+    private void mergePayOverviewGridFields(Map<String, Object> m,
+                                            Optional<PgTrnsctn> txn,
+                                            Map<String, PayListRowContext> ctxByMerchant) {
+        if (m == null) {
+            return;
+        }
+        ZoneId ledgerTz = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+        ZoneId opTz = hqLedgerSysSettingsService.resolveOperationalDisplayZoneId();
+        if (txn.isPresent()) {
+            PgTrnsctn t = txn.get();
+            String mid = t.getMerchantId() != null ? t.getMerchantId().trim() : "";
+            PayListRowContext ctx = mid.isBlank() || ctxByMerchant == null ? null : ctxByMerchant.get(mid);
+            Map<String, Object> payRow = PayListItemDto.from(t, ctx, ledgerTz, opTz);
+            mergePayRowIntoJpayOverview(m, payRow);
+        } else {
+            mergePortalOnlyPayOverviewFields(m);
+        }
+        applyPortalReturnedMessageToOutcome(m);
+    }
+
+    private static void mergePayRowIntoJpayOverview(Map<String, Object> m, Map<String, Object> payRow) {
+        if (m == null || payRow == null || payRow.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<String, Object> e : payRow.entrySet()) {
+            String key = e.getKey();
+            if (key == null || key.isBlank()) {
+                continue;
+            }
+            if ("payerDeviceLabel".equals(key) || "payerRegion".equals(key) || "payerClientIp".equals(key)) {
+                continue;
+            }
+            m.put(key, e.getValue());
+        }
+    }
+
+    private static void mergePortalOnlyPayOverviewFields(Map<String, Object> m) {
+        if (m == null) {
+            return;
+        }
+        String txnId = mapStr(m, "transactionId");
+        if (!txnId.isBlank()) {
+            m.put("chillTransactionId", txnId);
+            m.put("approvalNo", txnId);
+        }
+        String amt = mapStr(m, "amount");
+        if (!amt.isBlank()) {
+            m.put("chillAmount", amt);
+        }
+        applyCustomerDisplay(m);
+        String cust = mapStr(m, "customer");
+        if (!cust.isBlank()) {
+            m.put("chillCustomer", cust);
+        }
+        String stNm = mapStr(m, "statusNm");
+        if (!stNm.isBlank()) {
+            m.put("chillPaymentStatus", stNm);
+        }
+        String mid = mapStr(m, "merchant");
+        if (!mid.isBlank() && fieldBlank(m, "paymentChannel")) {
+            m.put("paymentChannel", mid);
+        }
+    }
+
+    private static void applyPortalReturnedMessageToOutcome(Map<String, Object> m) {
+        if (m == null) {
+            return;
+        }
+        String returned = mapStr(m, "returnedMessages");
+        if (returned.isBlank()) {
+            return;
+        }
+        String portalFail = JpayReturnedMessageUtil.failureReasonOrNull(returned);
+        if (portalFail == null || portalFail.isBlank()) {
+            return;
+        }
+        m.put("outcomeCause", portalFail);
+        m.put("outcomeReasonPreview", TxnOutcomeReasonApplier.preview(portalFail));
+    }
+
+    private static String mapStr(Map<String, Object> m, String key) {
+        if (m == null || key == null) {
+            return "";
+        }
+        return String.valueOf(m.getOrDefault(key, "")).trim();
     }
 
 }

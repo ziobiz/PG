@@ -32,11 +32,27 @@ class TxnOutcomeReasonApplierTest {
     }
 
     @Test
-    void applyJpayReconcileOutcome_unpaidCancel() {
+    void jpayReplacesIcopayDuplicateOrderReasonWhenStatusUnchanged() {
         com.pg.entity.PgTrnsctn t = new com.pg.entity.PgTrnsctn();
-        TxnOutcomeReasonApplier.applyJpayReconcileOutcome(t, "08", "20", "UNPAID");
-        assertEquals("결제 미완료(UNPAID, 노티 미수신, 임시 취소)", t.getOutcomeReason());
-        assertEquals(NotifyToTxnStatusMerge.OUTCOME_CODE_UNPAID_PROVISIONAL, t.getOutcomeReasonCode());
+        t.setStatus("99");
+        t.setOutcomeReason("중복 주문! 주문을 다시 제출해 주세요.");
+        t.setOutcomeReasonSource("ICOPAY");
+        t.setOutcomeReasonCode("CHECKOUT_VALIDATION");
+        TxnOutcomeReasonApplier.applyJpaySyncFail(t, "99", "99",
+                "Fail Sorry, Your Credit card number or CVV or Expiration data is not vaild");
+        assertEquals("Fail Sorry, Your Credit card number or CVV or Expiration data is not vaild", t.getOutcomeReason());
+        assertEquals("JPAY", t.getOutcomeReasonSource());
+    }
+
+    @Test
+    void applyJpayPortalReturnedMessageUsesFailureText() {
+        com.pg.entity.PgTrnsctn t = new com.pg.entity.PgTrnsctn();
+        t.setStatus("99");
+        t.setOutcomeReason("중복 주문! 주문을 다시 제출해 주세요.");
+        t.setOutcomeReasonSource("ICOPAY");
+        TxnOutcomeReasonApplier.applyJpayPortalReturnedMessage(t, "99", "99",
+                "Fail Sorry, Your Credit card number or CVV or Expiration data is not vaild");
+        assertTrue(t.getOutcomeReason().contains("Credit card"));
         assertEquals("JPAY", t.getOutcomeReasonSource());
     }
 }

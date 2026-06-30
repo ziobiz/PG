@@ -22,6 +22,7 @@ import com.pg.util.JpayTransactionIdApplier;
 import com.pg.util.NotifyTxnPaidAtUtil;
 import com.pg.util.NotifyToTxnStatusMerge;
 import com.pg.util.PaidApprovalEvidenceGuard;
+import com.pg.util.PayerContactDisplayUtil;
 import com.pg.util.PgTrnsctnOrderLookup;
 import com.pg.util.PayCardFailOutcomeRules;
 import com.pg.util.TxnOutcomeReasonApplier;
@@ -246,7 +247,9 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         if (t.getSettledYn() == null || t.getSettledYn().isBlank()) {
             t.setSettledYn("N");
         }
-        if (t.getCustomerId() == null || t.getCustomerId().isBlank()) {
+        JpayBuyerContactApplier.mergeFromNotifyForm(t, form);
+        if (t.getCustomerId() == null || t.getCustomerId().isBlank()
+                || PayerContactDisplayUtil.isGuestMarker(t.getCustomerId())) {
             t.setCustomerId("guest");
         }
         t.setPaymentChannel("CARD");
@@ -254,7 +257,6 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
             String r = in.getRootNo().trim();
             t.setRouteNo(r.length() > 32 ? r.substring(0, 32) : r);
         }
-        JpayBuyerContactApplier.mergeFromNotifyForm(t, form);
 
         pgTrnsctnRepository.save(t);
         purgeOrderDuplicates(t);

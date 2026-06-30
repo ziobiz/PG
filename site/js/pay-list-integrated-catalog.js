@@ -160,7 +160,7 @@
     }
   };
 
-  /** 통합조회(/calc/jpayTrList) VIEW SETTING 기본안 (고정: 번호·업체·거래일시) */
+  /** 통합개요(/calc/jpayTrList) VIEW SETTING — PG_JPAY_TR_OVERVIEW 참고 */
   w.PG_JPAY_TR_VIEW_DEFAULTS = {
     viewSettingDefaultSelectedKeys: [
       'masterDistNm', 'portalLabel', 'merchant', 'orderNo', 'customer', 'amount', 'currency',

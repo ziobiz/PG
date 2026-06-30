@@ -895,7 +895,7 @@ public class ApiCalcController {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "JPAY"));
         } catch (Exception e) {
             String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-            return ResponseEntity.ok(ApiResponse.fail("통합조회 조회 실패: " + msg, "JPAY"));
+            return ResponseEntity.ok(ApiResponse.fail("통합개요 조회 실패: " + msg, "JPAY"));
         }
     }
 

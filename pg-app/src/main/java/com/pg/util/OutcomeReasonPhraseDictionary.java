@@ -42,6 +42,24 @@ public final class OutcomeReasonPhraseDictionary {
                 "JP", "取引失敗",
                 "CH", "交易失败",
                 "TH", "ธุรกรรมล้มเหลว");
+        putExact("Fail Sorry, Your Credit card number or CVV or Expiration data is not vaild",
+                "KO", "카드번호·CVV·유효기간이 올바르지 않습니다.",
+                "EN", "Sorry, your credit card number, CVV, or expiration date is not valid.",
+                "JP", "カード番号・CVV・有効期限が正しくありません。",
+                "CH", "卡号、CVV 或有效期不正确。",
+                "TH", "หมายเลขบัตร CVV หรือวันหมดอายุไม่ถูกต้อง");
+        putExact("Sorry, Your Credit card number or CVV or Expiration data is not vaild",
+                "KO", "카드번호·CVV·유효기간이 올바르지 않습니다.",
+                "EN", "Sorry, your credit card number, CVV, or expiration date is not valid.",
+                "JP", "カード番号・CVV・有効期限が正しくありません。",
+                "CH", "卡号、CVV 或有效期不正确。",
+                "TH", "หมายเลขบัตร CVV หรือวันหมดอายุไม่ถูกต้อง");
+        putExact("Sorry, your credit card number, CVV, or expiration date is not valid.",
+                "KO", "카드번호·CVV·유효기간이 올바르지 않습니다.",
+                "EN", "Sorry, your credit card number, CVV, or expiration date is not valid.",
+                "JP", "カード番号・CVV・有効期限が正しくありません。",
+                "CH", "卡号、CVV 或有效期不正确。",
+                "TH", "หมายเลขบัตร CVV หรือวันหมดอายุไม่ถูกต้อง");
     }
 
     private OutcomeReasonPhraseDictionary() {

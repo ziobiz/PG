@@ -226,6 +226,7 @@ public class HqNotifyInboundQueryService {
             case "COMP_NOT_URL_PAY_PG" -> "URL결제PG아님";
             case "BOUND_CURRENCY_MISMATCH" -> "통화불일치(수신경로)";
             case "INGRESS_ORG_SCOPE_MISMATCH" -> "수신경로업체불일치";
+            case "OUTBOUND_ECHO" -> "아웃바운드재유입(스킵)";
             default -> code.trim();
         };
     }

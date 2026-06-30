@@ -158,9 +158,7 @@ public final class TxnOutcomeReasonApplier {
         if (built.isBlank()) {
             return Optional.empty();
         }
-        boolean statusChanged = !Objects.equals(norm(prevStatus), norm(newStatus));
-        boolean emptyStored = t.getOutcomeReason() == null || t.getOutcomeReason().isBlank();
-        if (!statusChanged && !emptyStored) {
+        if (!shouldApplyReasonUpdate(t, prevStatus, newStatus, built, source)) {
             return Optional.empty();
         }
         String stored = truncate(built, MAX_REASON);
@@ -173,6 +171,59 @@ public final class TxnOutcomeReasonApplier {
         }
         t.setOutcomeReasonAt(LocalDateTime.now(ZoneId.of("Asia/Bangkok")));
         return Optional.of(stored);
+    }
+
+    /**
+     * JPAY·ChillPay 확정 사유는 ICOPAY 사전검증 등 낮은 우선순위 사유를 덮어씁니다.
+     * (동일 터미널 상태에서 notify·동기 응답·포털 Export가 늦게 도착하는 경우)
+     */
+    static boolean shouldApplyReasonUpdate(PgTrnsctn t, String prevStatus, String newStatus,
+                                           String incomingReason, String incomingSource) {
+        boolean statusChanged = !Objects.equals(norm(prevStatus), norm(newStatus));
+        boolean emptyStored = t.getOutcomeReason() == null || t.getOutcomeReason().isBlank();
+        if (statusChanged || emptyStored) {
+            return true;
+        }
+        String existingSource = t.getOutcomeReasonSource() != null
+                ? t.getOutcomeReasonSource().trim().toUpperCase(Locale.ROOT) : "";
+        String src = incomingSource != null ? incomingSource.trim().toUpperCase(Locale.ROOT) : "";
+        if ((SOURCE_JPAY.equals(src) || SOURCE_CHILLPAY.equals(src))
+                && SOURCE_ICOPAY.equals(existingSource)) {
+            return true;
+        }
+        if (SOURCE_JPAY.equals(src) && isWeakStoredOutcome(t.getOutcomeReason(), t.getOutcomeReasonCode())) {
+            return incomingReason != null && !incomingReason.isBlank();
+        }
+        return false;
+    }
+
+    /** ICOPAY 오분류·번역 오류로 보이는 저장 사유 — JPAY 원문으로 교체 대상 */
+    private static boolean isWeakStoredOutcome(String storedReason, String storedCode) {
+        if (storedReason == null || storedReason.isBlank()) {
+            return true;
+        }
+        String r = storedReason.trim().toLowerCase(Locale.ROOT);
+        if (r.contains("중복") && r.contains("주문")) {
+            return true;
+        }
+        if (r.contains("duplicate") && r.contains("order")) {
+            return true;
+        }
+        String code = storedCode != null ? storedCode.trim().toUpperCase(Locale.ROOT) : "";
+        return "CHECKOUT_VALIDATION".equals(code) || "ORDER_DUP".equals(code) || "DUPLICATE_ORDER".equals(code);
+    }
+
+    /** JPAY 포털 Export {@code Returned Messages} — 터미널 실패 사유 */
+    public static Optional<String> applyJpayPortalReturnedMessage(PgTrnsctn t, String prevStatus, String mergedStatus,
+                                                                  String returnedMessages) {
+        if (t == null || returnedMessages == null || returnedMessages.isBlank()) {
+            return Optional.empty();
+        }
+        String reason = JpayReturnedMessageUtil.failureReasonOrNull(returnedMessages);
+        if (reason == null) {
+            return Optional.empty();
+        }
+        return apply(t, prevStatus, mergedStatus, reason, "PORTAL_RETURN", SOURCE_JPAY);
     }
 
     private static Optional<String> applyFromJpayJsonNode(PgTrnsctn t, String prevStatus, String mergedStatus, JsonNode root) {

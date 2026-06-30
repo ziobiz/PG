@@ -133,8 +133,8 @@
             gwKo = 'JPAY 동기화 시간 초과(HTTP ' + res.status + '). Playwright Export에 5~15분 걸릴 수 있습니다. 서버 Nginx proxy_read_timeout(900초) 설정 후, 거래일자를 1~3일로 줄여 다시 시도하세요.';
             gwMsg = apiT(gwKo, 'JPAY sync timed out (HTTP ' + res.status + '). Export may take 5–15 min. Increase Nginx proxy_read_timeout (900s) and try a shorter date range (1–3 days).');
           } else if (url.indexOf('jpayTrSearch') >= 0) {
-            gwKo = '통합조회 시간 초과(HTTP ' + res.status + '). [JPAY 동기화]는 별도 실행하세요. 동기화 중 504면 Nginx proxy_read_timeout(900초)를 확인하세요.';
-            gwMsg = apiT(gwKo, 'Integrated query timed out (HTTP ' + res.status + '). Run [JPAY Sync] separately; if sync times out, check Nginx proxy_read_timeout (900s).');
+            gwKo = '통합개요 시간 초과(HTTP ' + res.status + '). [JPAY 동기화]는 별도 실행하세요. 동기화 중 504면 Nginx proxy_read_timeout(900초)를 확인하세요.';
+            gwMsg = apiT(gwKo, 'Integrated overview timed out (HTTP ' + res.status + '). Run [JPAY Sync] separately; if sync times out, check Nginx proxy_read_timeout (900s).');
           }
           if (gwMsg.indexOf('{0}') >= 0) gwMsg = gwMsg.replace('{0}', String(res.status));
           else if (url.indexOf('jpayTrSync') < 0 && url.indexOf('jpayTrSearch') < 0) {
@@ -1859,6 +1859,9 @@
     },
     hqNotifyInboundReplayOrders: function (payload) {
       return post('/api/hq/notifyInbound/replay-orders', payload || {}).then(function (r) { return r.data; });
+    },
+    hqNotifyInboundCleanupDuplicates: function (payload) {
+      return post('/api/hq/notifyInbound/cleanup-duplicates', payload || {}).then(function (r) { return r.data; });
     },
     hqLedgerSysSettings: function () {
       return get('/api/hq/ledgerSysSettings').then(function (r) { return r.data; });

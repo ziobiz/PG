@@ -108,7 +108,7 @@ public class IntegratedCheckService {
         meta.put("jpayIntegrated", true);
         meta.put("integratedCheckNote",
                 "JPAY(조회통합·DB Export 캐시·거래일)과 ICOPAY(일별결제·노티 적재일)를 일자별로 대조합니다. "
-                        + "JPAY는 전산설정 JPAY 통합조회 스케줄로 자동 동기화·DB 저장되며 로그인 후 [검색]만으로 조회됩니다. "
+                        + "JPAY는 전산설정 JPAY 통합개요 스케줄로 자동 동기화·DB 저장되며 로그인 후 [검색]만으로 조회됩니다. "
                         + "즉시 갱신이 필요할 때만 [JPAY 동기화]를 사용하세요.");
         Object cached = syncMeta.get("cachedTotal");
         if (cached instanceof Number n && n.longValue() == 0L) {

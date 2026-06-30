@@ -5,6 +5,8 @@ import com.pg.entity.PgTrnsctn;
 import java.util.Locale;
 import java.util.Map;
 
+import static com.pg.util.PayerContactDisplayUtil.isGuestMarker;
+
 /**
  * JPAY 결제·노티에서 구매자 연락처·마스킹 카드번호를 {@link PgTrnsctn}에 반영.
  * <ul>
@@ -31,6 +33,14 @@ public final class JpayBuyerContactApplier {
         applyResolved(t, email, JpayCardPanMaskUtil.formatBuyerName(first, last), tel, card, false);
     }
 
+    /** JPAY 포털 Export 행 — Customer Email·Name 보강(guest·빈 값만). */
+    public static void mergeFromPortalExportRow(PgTrnsctn t, String customerEmail, String customerName) {
+        if (t == null) {
+            return;
+        }
+        applyResolved(t, customerEmail, customerName, null, null, true);
+    }
+
     /** 노티·동기 복귀 — 값이 있을 때만 보강(기존 checkout 데이터 유지). */
     public static void mergeFromNotifyForm(PgTrnsctn t, Map<String, String> form) {
         if (t == null || form == null || form.isEmpty()) {
@@ -55,7 +65,7 @@ public final class JpayBuyerContactApplier {
                                       String tel,
                                       String cardRaw,
                                       boolean mergeOnly) {
-        if (!mergeOnly || isBlank(t.getCustomerId()) || "guest".equalsIgnoreCase(String.valueOf(t.getCustomerId()).trim())) {
+        if (!mergeOnly || isBlank(t.getCustomerId()) || isGuestMarker(String.valueOf(t.getCustomerId()))) {
             String em = JpayCardPanMaskUtil.truncate(email, 100);
             if (em != null && !em.isBlank()) {
                 t.setCustomerId(em);

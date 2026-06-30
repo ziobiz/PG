@@ -6,6 +6,7 @@ import com.pg.entity.OrgUnit;
 import com.pg.entity.PgNotifyInbound;
 import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.PgVendor;
+import com.pg.middleware.notify.PgNotifyIngressPaths;
 import com.pg.repository.MerchantNotifyUrlRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
@@ -265,6 +266,10 @@ public class MerchantOutboundNotifyService {
     }
 
     private PostOutcome postWithRetries(String url, String bodyJson, String secret) {
+        if (PgNotifyIngressPaths.isIcopayNotifyIngressUrl(url)) {
+            log.warn("결제통보 URL이 ICOPAY 노티 ingress — 루프 방지 스킵 url={}", url);
+            return new PostOutcome(true, 0, 200, "ICOPAY_INGRESS_LOOPBACK_SKIPPED");
+        }
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         if (secret != null && !secret.isBlank()) {
