@@ -100,13 +100,14 @@ public final class PageMenuCatalog {
         /* 사용자관리 */
         add(list, "/user/userMng", "M0502", "사용자관리", "사용자관리");
         add(list, "/set/gridSetMng", "M0505", "메뉴별항목순서관리", "사용자관리");
-        /* 운영관리 */
+        /* 운영관리 — 사이드바 순서 */
+        add(list, "/ops/inactiveCard", "M0606", "카드관리", "운영관리");
+        add(list, "/ops/notiProvision", "M0608", "노티관리", "운영관리");
+        add(list, "/ops/mailLog", "M0602", "메일관리", "운영관리");
         add(list, "/ops/opsMng", "M0601", "운영관리", "운영관리");
-        add(list, "/ops/mailLog", "M0602", "메일로그", "운영관리");
-        add(list, "/ops/taxReport", "M0603", "TAX 리포트", "운영관리");
-        add(list, "/ops/integratedReport", "M0604", "통합 리포트", "운영관리");
-        add(list, "/ops/verifyReport", "M0605", "검증 리포트", "운영관리");
-        add(list, "/ops/inactiveCard", "M0606", "비활성카드등록", "운영관리");
+        add(list, "/ops/integratedReport", "M0604", "통합리포트", "운영관리");
+        add(list, "/ops/verifyReport", "M0605", "검증리포트", "운영관리");
+        add(list, "/ops/taxReport", "M0603", "TAX리포트", "운영관리");
         /* 배포설정 */
         add(list, "/hq/pgApiMng", "M0101", "API연동설정", "배포설정");
         add(list, "/hq/apiMerchantDeployReg", "M0906", "API 가맹점 등록", "배포설정");

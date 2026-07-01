@@ -1,6 +1,6 @@
 ICOPAY 통합 Checkout Prepare API 요청 파라미터
 ==============================================
-문서 ID: ICOPAY-CHECKOUT-PREPARE-001 · v1.0
+문서 ID: ICOPAY-CHECKOUT-PREPARE-001 · v1.1
 
 HTML (한국어): {BASE}/merchant-api-samples/docs/unified-checkout-api-parameters.ko.html
 English:       {BASE}/merchant-api-samples/docs/unified-checkout-api-parameters.html

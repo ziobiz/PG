@@ -103,7 +103,7 @@ JPAY 필수: **(1) 카드·CVV (2) 성명 (3) 이메일 (4) 전화**. (5) 청구
 
 가맹별 오버라이드: **업체관리 → 가맹 상세 → 「JPAY 결제창 입력 필드」**.
 
-**3형 prepare 예시 (`buyerPrefill` 필수: email, phone):**
+**3형 prepare 예시 (`buyerPrefill` 필수: email, phone, countryIso2):**
 ```json
 {
   "orderNo": "ORD-001",

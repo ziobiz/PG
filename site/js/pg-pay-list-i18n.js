@@ -59,6 +59,20 @@
       JP: '選択実行の支給保留解除',
       CH: '解除所选记录的支付暂缓',
       TH: 'ปลดการพักจ่ายที่เลือก'
+    },
+    inactiveCardReleaseSelected: {
+      KO: '선택해지',
+      EN: 'Release selected',
+      JP: '選択解除',
+      CH: '解除所选',
+      TH: 'ยกเลิกที่เลือก'
+    },
+    inactiveCardReleaseAll: {
+      KO: '전체해지',
+      EN: 'Release all (filtered)',
+      JP: '一括解除',
+      CH: '全部解除(筛选)',
+      TH: 'ยกเลิกทั้งหมด(ตามตัวกรอง)'
     }
   };
 
@@ -106,6 +120,7 @@
     'drLbl:정산일': { KO: '정산일', EN: 'Settlement date', JP: '精算日', CH: '结算日', TH: 'วันชำระ' },
     'drLbl:기간': { KO: '기간', EN: 'Period', JP: '期間', CH: '期间', TH: 'ช่วงเวลา' },
     'drLbl:등록일자': { KO: '등록일자', EN: 'Registered date', JP: '登録日', CH: '登记日期', TH: 'วันที่ลงทะเบียน' },
+    'drLbl:등록일': { KO: '등록일', EN: 'Registered date', JP: '登録日', CH: '登记日期', TH: 'วันที่ลงทะเบียน' },
     'drLbl:적용일(담보)': { KO: '적용일(담보)', EN: 'As-of date (collateral)', JP: '適用日（担保）', CH: '适用日（保证金）', TH: 'วันที่มีผล (หลักประกัน)' },
     'drLbl:결제일자': { KO: '결제일자', EN: 'Payment date', JP: '決済日', CH: '支付日期', TH: 'วันที่ชำระ' },
     'drLbl:전송일자': { KO: '전송일자', EN: 'Send date', JP: '送信日', CH: '发送日期', TH: 'วันที่ส่ง' },
@@ -153,6 +168,13 @@
     searchCompQ: { KO: '업체명·코드', EN: 'Name or code', JP: '店名・コード', CH: '名称或代码', TH: 'ชื่อหรือรหัส' },
     searchMid: { KO: 'MID', EN: 'MID', JP: 'MID', CH: 'MID', TH: 'MID' },
     searchKeyword: { KO: '주문·거래·고객·칠페이 ID 등', EN: 'Order, txn, customer, ChillPay ID…', JP: '注文・取引・顧客・ChillPay ID 等', CH: '订单、交易、客户、ChillPay ID 等', TH: 'คำสั่งซื้อ ธุรกรรม ลูกค้า ChillPay ID ฯลฯ' },
+    searchInactiveCardKeyword: {
+      KO: '업체명·업체코드·이름·카드번호(3자리 이상)',
+      EN: 'Company name, code, holder, card (3+ digits)',
+      JP: '店名・コード・名義・カード番号（3桁以上）',
+      CH: '商户名、代码、姓名、卡号（至少3位数字）',
+      TH: 'ชื่อร้าน รหัส ชื่อผู้ถือบัตร เลขบัตร (ตัวเลข 3 หลักขึ้นไป)'
+    },
     searchKeywordShort: { KO: '검색어', EN: 'Keyword', JP: '検索語', CH: '关键词', TH: 'คำค้น' },
     searchChillTxnId: { KO: '승인번호(TransactionId)', EN: 'Approval no. (TransactionId)', JP: '承認番号(TransactionId)', CH: '授权号(TransactionId)', TH: 'เลขอนุมัติ (TransactionId)' },
     searchMerchantCode: { KO: 'MerchantCode', EN: 'MerchantCode', JP: 'MerchantCode', CH: 'MerchantCode', TH: 'MerchantCode' },
@@ -297,7 +319,7 @@
     'searchMailKind|VOID_TEST': optMap({ EN: 'VOID test', JP: 'VOIDテスト', CH: 'VOID 测试', TH: 'ทดสอบ VOID' }),
     'searchMailKind|VOID_TXN': optMap({ EN: 'Email void (txn)', JP: 'メール無効（取引）', CH: '邮件作废（交易）', TH: 'อีเมลโมฆะ (ธุรกรรม)' }),
     'searchActiveYn|Y': optMap({ EN: 'Registered card', JP: '登録カード', CH: '登记卡', TH: 'บัตรที่ลงทะเบียน' }),
-    'searchActiveYn|N': optMap({ EN: 'Released', JP: '解除済', CH: '已解除', TH: 'ยกเลิกแล้ว' }),
+    'searchActiveYn|N': optMap({ EN: 'Released card', JP: '解除カード', CH: '解除卡', TH: 'บัตรที่ยกเลิก' }),
     'searchActiveYn|ALL': optMap(),
     'searchMailStatus|': optMap(),
     'searchMailStatus|SUCCESS': optMap({ EN: 'Success', JP: '成功', CH: '成功', TH: 'สำเร็จ' }),
@@ -415,11 +437,12 @@
       packN('[후속조치]는 본사설정 > 전산설정관리에서 기능을 켠 경우에만 동작합니다 (NOTI 환경설정과 동일).', '[Follow-up] actions run only when enabled in HQ Settings > Ledger system settings (same as NOTI).', '[後続対応]は本社設定＞全算設定で有効化した場合のみ動作します（NOTI と同様）。', '[后续处理] 仅在「本社设置 > 账务系统设置」开启时生效（与 NOTI 相同）。', '[ดำเนินการต่อ] ทำงานเมื่อเปิดในตั้งค่าระบบบัญชีเท่านั้น (เหมือน NOTI)'),
       packN('취소 건에 대한 정산 수수료 및 부가세는 정산 주기에 따라 반영됩니다.', 'Settlement fees and VAT for cancelled items follow the settlement cycle.', '取消取引の精算手数料・消費税は精算サイクルに従って反映されます。', '取消交易的结算手续费与增值税按结算周期反映。', 'ค่าธรรมเนียมและ VAT ของรายการยกเลิกสะท้อนตามรอบชำระบัญชี'),
       packN('정산 주기 및 정산 수수료는 가맹점별로 상이할 수 있습니다.', 'Settlement cycle and fees may differ per merchant.', '精算サイクル・手数料は加盟店ごとに異なる場合があります。', '结算周期与手续费可能因商户而异。', 'รอบและค่าธรรมเนียมอาจต่างกันในแต่ละร้าน'),
-      packN('상단 한 줄: 건수·통화별 총거래·승인·취소·수수료·담보·부가세·추정결산(승인−(취소+수수료+담보+부가세), 수수료내역과 동일 건별 산식). 아래: 성공·실패 등 상태 pill. 본사·총본사는 통화별 병기.', 'Top row: count and per-currency total txn, approve, cancel, fees, collateral, VAT, est. settlement (approve−(cancel+fees+collateral+VAT); same per-txn rules as fee list). Below: status pills. HQ shows multiple currencies.', '上段: 件数・通貨別総取引・承認・取消・手数料・担保・消費税・推定決算（承認−(取消+手数料+担保+消費税)）。下段: 状態 pill。', '首行：件数及分币种总交易、批准、取消、手续费、担保、增值税、预估结算（批准−(取消+手续费+担保+增值税)）。下方状态 pill。', 'แถวบน: จำนวนและยอดตามสกุล รวมธุรกรรม อนุมัติ ยกเลิก ค่าธรรมเนียม หลักประกัน VAT ประมาณการชำระ (อนุมัติ−(ยกเลิก+ค่าธรรมเนียม+หลักประกัน+VAT)) ด้านล่าง pill สถานะ')
+      packN('상단 한 줄: 건수·통화별 총거래·승인·취소·수수료·담보·부가세·추정결산(승인−(취소+수수료+담보+부가세), 수수료내역과 동일 건별 산식). 아래: 성공·실패 등 상태 pill. 본사·총본사는 통화별 병기.', 'Top row: count and per-currency total txn, approve, cancel, fees, collateral, VAT, est. settlement (approve−(cancel+fees+collateral+VAT); same per-txn rules as fee list). Below: status pills. HQ shows multiple currencies.', '上段: 件数・通貨別総取引・承認・取消・手数料・担保・消費税・推定決算（承認−(取消+手数料+担保+消費税)）。下段: 状態 pill。', '首行：件数及分币种总交易、批准、取消、手续费、担保、增值税、预估结算（批准−(取消+手续费+担保+增值税)）。下方状态 pill。', 'แถวบน: จำนวนและยอดตามสกุล รวมธุรกรรม อนุมัติ ยกเลิก ค่าธรรมเนียม หลักประกัน VAT ประมาณการชำระ (อนุมัติ−(ยกเลิก+ค่าธรรมเนียม+หลักประกัน+VAT)) ด้านล่าง pill สถานะ'),
+      packN('VIEW SETTING에서 「단말기」(PC·iPhone·Android 등)·「위치」(예: KR | Seoul, 영어 고정) 열을 켤 수 있습니다. 결제개요와 동일 항목입니다.', 'In VIEW SETTING you can enable Device (PC/iPhone/Android) and Location (e.g. KR | Seoul, English only)—same as Payment overview.', 'VIEW SETTING で「端末」(PC・iPhone・Android 等)・「位置」(例 KR | Seoul、英語固定)列を表示できます。決済概要と同じ項目です。', '可在 VIEW SETTING 中开启「终端」(PC/iPhone/Android) 与「位置」(如 KR | Seoul，固定英文)，与支付概览相同。', 'เปิดคอลัมน์「อุปกรณ์」และ「ตำแหน่ง」(เช่น KR | Seoul ภาษาอังกฤษ) ใน VIEW SETTING — เหมือนภาพรวมการชำระ')
     ],
     '/calc/payOverview': [
       packN('결제개요: 통합 결제내역과 동일 검색·VIEW SETTING·금액요약을 사용합니다.', 'Payment overview uses the same search, VIEW SETTING, and amount summary as integrated payment history.', '決済概要は統合決済履歴と同じ検索・VIEW SETTING・金額サマリーを使用します。', '支付概览与综合支付历史使用相同搜索、VIEW SETTING 与金额汇总。', 'ภาพรวมการชำระใช้การค้นหา VIEW SETTING และสรุปยอดเดียวกับประวัติรวม'),
-      packN('단말기(PC·iPhone·Android 등)·위치(국가·도시, 예: KR, SEOUL)·IP·원인(JPAY 응답·ICOPAY 결제창 오류 포함) 열이 추가됩니다.', 'Extra columns: device (PC/iPhone/Android), location (country and city, e.g. KR, SEOUL), IP, and cause (JPAY response / ICOPAY checkout errors).', '端末(PC・iPhone・Android 等)・位置(国・都市、例 KR, SEOUL)・IP・原因(JPAY 応答・ICOPAY 決済画面エラー)列が追加されます。', '新增列：终端(PC/iPhone/Android)、位置(国家·城市，如 KR, SEOUL)、IP、原因(JPAY 响应/ICOPAY 结账错误)。', 'คอลัมน์เพิ่ม: อุปกรณ์ (PC/iPhone/Android) ตำแหน่ง (ประเทศ·เมือง เช่น KR, SEOUL) IP และสาเหตุ (JPAY/ICOPAY)'),
+      packN('단말기(PC·iPhone·Android 등)·위치(국가 ISO2·도시, 예: KR | Seoul, 영어 고정)·IP·원인(JPAY 응답·ICOPAY 결제창 오류 포함) 열이 추가됩니다.', 'Extra columns: device (PC/iPhone/Android), location (ISO2 and city, e.g. KR | Seoul, English only), IP, and cause (JPAY response / ICOPAY checkout errors).', '端末(PC・iPhone・Android 等)・位置(国 ISO2・都市、例 KR | Seoul、英語固定)・IP・原因(JPAY 応答・ICOPAY 決済画面エラー)列が追加されます。', '新增列：终端(PC/iPhone/Android)、位置(国家 ISO2·城市，如 KR | Seoul，固定英文)、IP、原因(JPAY 响应/ICOPAY 结账错误)。', 'คอลัมน์เพิ่ม: อุปกรณ์ (PC/iPhone/Android) ตำแหน่ง (ISO2·เมือง เช่น KR | Seoul ภาษาอังกฤษเท่านั้น) IP และสาเหตุ (JPAY/ICOPAY)'),
       packN('신규 JPAY 결제부터 단말기·위치·IP가 적재됩니다. 과거 건은 값이 없을 수 있습니다.', 'Device, location, and IP are captured from new JPAY payments onward; older rows may be empty.', '新規 JPAY 決済から端末・位置・IP を保存します。過去分は空の場合があります。', '自新 JPAY 支付起保存终端·位置·IP；历史记录可能为空。', 'บันทึกอุปกรณ์·ตำแหน่ง·IP ตั้งแต่ JPAY ใหม่ รายการเก่าอาจว่าง')
     ],
     '/calc/payNotiList': [
@@ -435,7 +458,8 @@
     ],
     '/calc/payFailList': [
       packN('실패내역: 통합 결제내역에서 실패·거절만 간추렸습니다.', 'Failed/rejected rows only.', '失敗・拒否のみ。', '仅失败/拒绝。', 'เฉพาะล้มเหลว/ปฏิเสธ'),
-      packN('상단은 건수와 해당 상태(실패) 요약 pill만 표시합니다(일별통합과 동일).', 'Top shows count and fail status pill only (like daily integrated).', '上段は件数と失敗 pill のみ。', '顶部仅显示件数与失败状态 pill。', 'ด้านบนแสดงจำนวนและ pill ล้มเหลวเท่านั้น')
+      packN('상단은 건수와 해당 상태(실패) 요약 pill만 표시합니다(일별통합과 동일).', 'Top shows count and fail status pill only (like daily integrated).', '上段は件数と失敗 pill のみ。', '顶部仅显示件数与失败状态 pill。', 'ด้านบนแสดงจำนวนและ pill ล้มเหลวเท่านั้น'),
+      packN('비활성카드·쿨다운 대기 중 재시도는 결제내역에 남기지 않습니다. 카드위험 트리거 N차까지의 유효 실패·JPAY 시도 완료 건만 표시됩니다.', 'Retries while card is inactive or in cooldown wait are not listed. Only qualifying failures up to the risk trigger tier and completed JPAY attempts appear.', '非活性カード・クールダウン待機中の再試行は決済履歴に残しません。リスクトリガー N 次までの有効失敗・J-Pay 試行完了分のみ表示します。', '非活跃卡或冷却等待期间的重复尝试不会写入支付历史。仅显示达到风险触发档位前的有效失败及已完成 J-Pay 尝试。', 'ไม่บันทึกการลองซ้ำระหว่างบัตรไม่ใช้งานหรือรอคูลดาวน์ แสดงเฉพาะความล้มเหลวที่นับถึงระดับทริกเกอร์และการลอง J-Pay ที่เสร็จสมบูรณ์')
     ],
     '/calc/payRefundList': [
       packN('환불처리: 통합 결제내역에서 일반·자동환불(내부 30·42)만 간추렸습니다.', 'Refund processing: refund states (30·42) only.', '返金処理: 30・42 のみ。', '退款处理：仅内部状态 30·42。', 'คืนเงิน: เฉพาะสถานะ 30·42'),
@@ -812,11 +836,11 @@
         'แถวบน: จำนวน ยอดรวมธุรกรรม อนุมัติ ยกเลิก ค่าธรรมเนียม หลักประกัน VAT ยอดจ่ายโดยประมาณ ประมาณการชำระบัญชี'
       ),
       packN(
-        '검색: 첫 줄에서 거래일·빠른기간을 정한 뒤, 둘째 줄에서 검색구분·검색어·상태그룹을 맞추고 오른쪽 [검색]을 누릅니다. 「전체」는 해당 조건으로 좁히지 않습니다. 앞쪽 열 순서(업체·거래일·거래시간·루트·승인번호·거래번호)는 통합 결제내역 기본과 같습니다. 건당수수료 열은 거래 성공 시 과금되는 성공(건당) 고정액만 표시합니다. 기타수수료: USDT·FX는 승인금액 대비 %(「결제(%)」 합계에 포함), 3DS는 정책통화 기준 건당 고정(합계 열에는 미포함·별도 열). 세 항목은 결제·건당 등과 별도로 동시 과금될 수 있습니다. 금액이 없으면 USDT·FX·3DS 열은 — 입니다. 정산 수수료는 정산 실행 시 1회 과금되며, 송금(이체) 수수료는 그 이후 송금 처리 시 과금되어 정산리포트에 정산 수수료·송금 수수료로 각각 표시됩니다. 이 화면의 총수수료·지급예상에는 정산·송금 건당액이 포함되지 않습니다. 결제(성공): 건당·%(승인 시 부과) 열, 담보(롤링%·추정액), 지급예상액, 정산액(지급예상−담보추정). 실패·취소·무효·환불 등은 상태별 수수료 규칙을 따르며, 무효·환불 계열은 성공 건과 동일한 건당·%가 추가로 과금될 수 있습니다(이중 과금). 차감(취소·환불·무효·실패 등): 지급예상액은 0, 총수수료·부가세는 과금액(양수), 정산액은 −(총수수료+부가세)입니다. 담보 추정은 승인 건에만 표시됩니다. 본사·총판 등은 로그인 조직 하위 가맹점만 조회됩니다.',
-        'Search: set transaction dates and quick range on the first row; on the second row set search field, keyword, and status group, then click [Search] on the right. [All] does not narrow that dimension. Leading columns (merchant, date, time, route, approval no., txn id) match the integrated payment list. The per-txn fee column shows only the flat success fee charged on successful transactions. Other fees: USDT·FX are % of approved amount (included in the Pay(%) total); 3DS is a fixed per-txn charge in policy currency (not in the sum totals, separate column). Those three may accrue alongside pay/per-txn fees. When there is no amount, USDT·FX·3DS show an em dash. Settlement fees are charged once per settlement run; wire/transfer fees are charged when the transfer is processed and appear separately on settlement reports as settlement fee and wire fee. This screen’s total fees and expected payout exclude settlement/wire per-txn rows. Pay (success): per-txn and % columns charged on approval; collateral (rolling % and estimate); expected payout; settlement amount (expected minus collateral estimate). Fail/cancel/void/refund follow state-specific fee rules; void/refund families may incur the same per-txn/% as success (double charge). Deductions (cancel/refund/void/fail, etc.): expected payout is 0; total fee and VAT are charged amounts (positive); settlement amount is −(total fee + VAT). Collateral estimate is shown only for approved transactions. HQ/distributors see only merchants under the logged-in organization.',
-        '検索：1行目で取引日・クイック期間を指定し、2行目で検索区分・キーワード・状態グループを合わせて右の［検索］を押します。「すべて」はその条件での絞り込みを行いません。先頭列（加盟店・取引日・時刻・ルート・承認番号・取引番号）は統合決済一覧と同じ順です。件当手数料列は取引成功時のみ課される成功（件当）固定額を表示します。その他手数料：USDT・FXは承認金額比の%（「決済(%)」合計に含む）、3DSは政策通貨基準の件当固定（合計列には含まず別列）。3つは決済・件当等とは別に同時課金され得ます。金額がない場合USDT・FX・3DSは「—」です。精算手数料は精算実行時に1回課金され、送金（振込）手数料はその後の送金処理で課金され精算レポートに精算手数料・送金手数料として表示されます。この画面の手数料合計・支払予定額には精算・送金の件当は含みません。決済（成功）：件当・%（承認時）列、担保（ロール%・見積額）、支払予定額、精算額（支払予定−担保見積）。失敗・取消・無効・返金等は状態別の手数料ルールに従い、無効・返金系は成功取引と同様の件当・%が追加課金され得ます（二重課金）。控除（取消・返金・無効・失敗等）：支払予定額は0、手数料合計・消費税は課金額（正）、精算額は−(手数料合計+消費税)です。担保見積は承認取引のみ表示されます。本社・総販等はログイン組織配下の加盟店のみ照会できます。',
-        '搜索：首行设交易日与快捷区间，次行设搜索字段、关键词、状态分组后点右侧【搜索】。「全部」不按该维度筛选。前列顺序（商户、交易日期、时间、路由、授权号、交易号）与综合支付列表一致。按笔手续费列仅显示成功交易时收取的固定成功费。其他费用：USDT·FX 为批准金额比例%（计入「支付(%)」合计）；3DS 为政策货币按笔固定（不计入合计列，单独列）。三者可与支付/按笔等同时计费。无金额时 USDT·FX·3DS 显示「—」。结算手续费在结算执行时收取一次；汇款（转账）手续费在后续汇款处理时收取并在结算报告中分列。本屏手续费合计与预计拨付不含结算/汇款按笔。支付（成功）：按笔与%（批准时）列、担保（滚动%·估计额）、预计拨付额、结算额（预计−担保估计）。失败·取消·作废·退款等按状态计费规则；作废·退款类可能与成功交易同样再收按笔/%（双重计费）。扣减（取消·退款·作废·失败等）：预计拨付为0；手续费合计与增值税为计费额（正）；结算额为−(手续费合计+增值税)。担保估计仅对批准交易显示。总部/总代等仅可查登录组织下属商户。',
-        'ค้นหา: แถวแรกตั้งวันที่และช่วงด่วน แถวสองตั้งฟิลด์ค้นหา คำค้น กลุ่มสถานะ แล้วกด [ค้นหา] ขวา 「ทั้งหมด」ไม่กรองมิตินั้น คอลัมน์หน้าเหมือนรายการชำระรวม ค่าธรรมเนียมต่อรายการแสดงเฉพาะค่าคงที่ตอนสำเร็จ USDT·FX เป็น % ของยอดอนุมัติ (รวมใน「ชำระ(%)」) 3DS เป็นคงที่ต่อรายการตามสกุลนโยบาย (คอลัมน์แยก) ค่าธรรมเนียมชำระบัญชี/โอนต่อรายการไม่รวมในยอดรวมหน้านี้ สำเร็จ: คอลัมน์ต่อรายการ·% หลักประกัน ยอดจ่ายโดยประมาณ ยอดชำระ (ประมาณ−หลักประกัน) ล้มเหลว·ยกเลิก·โมฆะ·คืนเงิน ตามกฎสถานะ โมฆะ/คืนอาจถูกเก็บซ้ำ หัก: ยอดจ่ายโดยประมาณ=0 รวม+Vat เป็นบวก ยอดชำระ=−(รวม+Vat) ประมาณหลักประกันเฉพาะอนุมัติ เห็นเฉพาะร้านใต้องค์กรที่ล็อกอิน'
+        '검색: 첫 줄에서 거래일·빠른기간을 정한 뒤, 둘째 줄에서 검색구분·검색어·상태그룹을 맞추고 오른쪽 [검색]을 누릅니다. 「전체」는 해당 조건으로 좁히지 않습니다. 앞쪽 열 순서(업체·거래일·거래시간·루트·승인번호·거래번호)는 통합 결제내역 기본과 같습니다. 건당수수료 열은 거래 성공 시 과금되는 성공(건당) 고정액만 표시합니다. 기타수수료: 「결제(%)」열은 결제수수료(%) 과금액만 표시하고, USDT·FX·3DS는 각각 별도 열에 표시합니다(3DS는 건당 고정). 세 항목은 결제·건당 등과 별도로 동시 과금될 수 있습니다. 금액이 없으면 USDT·FX·3DS 열은 — 입니다. 정산 수수료는 정산 실행 시 1회 과금되며, 송금(이체) 수수료는 그 이후 송금 처리 시 과금되어 정산리포트에 정산 수수료·송금 수수료로 각각 표시됩니다. 이 화면의 총수수료·지급예상에는 정산·송금 건당액이 포함되지 않습니다. 결제(성공): 건당·%(승인 시 부과) 열, 담보(롤링%·추정액), 지급예상액, 정산액(지급예상−담보추정). 실패·취소·무효·환불 등은 상태별 수수료 규칙을 따르며, 무효·환불 계열은 성공 건과 동일한 건당·%가 추가로 과금될 수 있습니다(이중 과금). 차감(취소·환불·무효·실패 등): 지급예상액은 0, 총수수료·부가세는 과금액(양수), 정산액은 −(총수수료+부가세)입니다. 담보 추정은 승인 건에만 표시됩니다. 본사·총판 등은 로그인 조직 하위 가맹점만 조회됩니다.',
+        'Search: set transaction dates and quick range on the first row; on the second row set search field, keyword, and status group, then click [Search] on the right. [All] does not narrow that dimension. Leading columns (merchant, date, time, route, approval no., txn id) match the integrated payment list. The per-txn fee column shows only the flat success fee charged on successful transactions. Other fees: Pay(%) shows payment-fee (%) charges only; USDT·FX·3DS each have their own column (3DS is fixed per txn). Those three may accrue alongside pay/per-txn fees. When there is no amount, USDT·FX·3DS show an em dash. Settlement fees are charged once per settlement run; wire/transfer fees are charged when the transfer is processed and appear separately on settlement reports as settlement fee and wire fee. This screen’s total fees and expected payout exclude settlement/wire per-txn rows. Pay (success): per-txn and % columns charged on approval; collateral (rolling % and estimate); expected payout; settlement amount (expected minus collateral estimate). Fail/cancel/void/refund follow state-specific fee rules; void/refund families may incur the same per-txn/% as success (double charge). Deductions (cancel/refund/void/fail, etc.): expected payout is 0; total fee and VAT are charged amounts (positive); settlement amount is −(total fee + VAT). Collateral estimate is shown only for approved transactions. HQ/distributors see only merchants under the logged-in organization.',
+        '検索：1行目で取引日・クイック期間を指定し、2行目で検索区分・キーワード・状態グループを合わせて右の［検索］を押します。「すべて」はその条件での絞り込みを行いません。先頭列（加盟店・取引日・時刻・ルート・承認番号・取引番号）は統合決済一覧と同じ順です。件当手数料列は取引成功時のみ課される成功（件当）固定額を表示します。その他手数料：「決済(%)」列は決済手数料(%)のみ、USDT・FX・3DSは各別列（3DSは件当固定）。3つは決済・件当等とは別に同時課金され得ます。金額がない場合USDT・FX・3DSは「—」です。精算手数料は精算実行時に1回課金され、送金（振込）手数料はその後の送金処理で課金され精算レポートに精算手数料・送金手数料として表示されます。この画面の手数料合計・支払予定額には精算・送金の件当は含みません。決済（成功）：件当・%（承認時）列、担保（ロール%・見積額）、支払予定額、精算額（支払予定−担保見積）。失敗・取消・無効・返金等は状態別の手数料ルールに従い、無効・返金系は成功取引と同様の件当・%が追加課金され得ます（二重課金）。控除（取消・返金・無効・失敗等）：支払予定額は0、手数料合計・消費税は課金額（正）、精算額は−(手数料合計+消費税)です。担保見積は承認取引のみ表示されます。本社・総販等はログイン組織配下の加盟店のみ照会できます。',
+        '搜索：首行设交易日与快捷区间，次行设搜索字段、关键词、状态分组后点右侧【搜索】。「全部」不按该维度筛选。前列顺序（商户、交易日期、时间、路由、授权号、交易号）与综合支付列表一致。按笔手续费列仅显示成功交易时收取的固定成功费。其他费用：「支付(%)」列仅显示支付手续费(%)，USDT·FX·3DS 分列显示（3DS 为按笔固定）。三者可与支付/按笔等同时计费。无金额时 USDT·FX·3DS 显示「—」。结算手续费在结算执行时收取一次；汇款（转账）手续费在后续汇款处理时收取并在结算报告中分列。本屏手续费合计与预计拨付不含结算/汇款按笔。支付（成功）：按笔与%（批准时）列、担保（滚动%·估计额）、预计拨付额、结算额（预计−担保估计）。失败·取消·作废·退款等按状态计费规则；作废·退款类可能与成功交易同样再收按笔/%（双重计费）。扣减（取消·退款·作废·失败等）：预计拨付为0；手续费合计与增值税为计费额（正）；结算额为−(手续费合计+增值税)。担保估计仅对批准交易显示。总部/总代等仅可查登录组织下属商户。',
+        'ค้นหา: แถวแรกตั้งวันที่และช่วงด่วน แถวสองตั้งฟิลด์ค้นหา คำค้น กลุ่มสถานะ แล้วกด [ค้นหา] ขวา 「ทั้งหมด」ไม่กรองมิตินั้น คอลัมน์หน้าเหมือนรายการชำระรวม ค่าธรรมเนียมต่อรายการแสดงเฉพาะค่าคงที่ตอนสำเร็จ USDT·FX·3DS แยกคอลัมน์ (ชำระ(%) แสดงเฉพาะค่าธรรมเนียมชำระ %) ค่าธรรมเนียมชำระบัญชี/โอนต่อรายการไม่รวมในยอดรวมหน้านี้ สำเร็จ: คอลัมน์ต่อรายการ·% หลักประกัน ยอดจ่ายโดยประมาณ ยอดชำระ (ประมาณ−หลักประกัน) ล้มเหลว·ยกเลิก·โมฆะ·คืนเงิน ตามกฎสถานะ โมฆะ/คืนอาจถูกเก็บซ้ำ หัก: ยอดจ่ายโดยประมาณ=0 รวม+Vat เป็นบวก ยอดชำระ=−(รวม+Vat) ประมาณหลักประกันเฉพาะอนุมัติ เห็นเฉพาะร้านใต้องค์กรที่ล็อกอิน'
       )
     ],
     '/settlement/feeList': [
@@ -828,11 +852,11 @@
         'แถวบน: จำนวน ยอดรวมธุรกรรม อนุมัติ ยกเลิก ค่าธรรมเนียม หลักประกัน VAT ยอดจ่ายโดยประมาณ ประมาณการชำระบัญชี'
       ),
       packN(
-        '검색: 첫 줄에서 거래일·빠른기간을 정한 뒤, 둘째 줄에서 검색구분·검색어·상태그룹을 맞추고 오른쪽 [검색]을 누릅니다. 「전체」는 해당 조건으로 좁히지 않습니다. 앞쪽 열 순서(업체·거래일·거래시간·루트·승인번호·거래번호)는 통합 결제내역 기본과 같습니다. 건당수수료 열은 거래 성공 시 과금되는 성공(건당) 고정액만 표시합니다. 기타수수료: USDT·FX는 승인금액 대비 %(「결제(%)」 합계에 포함), 3DS는 정책통화 기준 건당 고정(합계 열에는 미포함·별도 열). 세 항목은 결제·건당 등과 별도로 동시 과금될 수 있습니다. 금액이 없으면 USDT·FX·3DS 열은 — 입니다. 정산 수수료는 정산 실행 시 1회 과금되며, 송금(이체) 수수료는 그 이후 송금 처리 시 과금되어 정산리포트에 정산 수수료·송금 수수료로 각각 표시됩니다. 이 화면의 총수수료·지급예상에는 정산·송금 건당액이 포함되지 않습니다. 결제(성공): 건당·%(승인 시 부과) 열, 담보(롤링%·추정액), 지급예상액, 정산액(지급예상−담보추정). 실패·취소·무효·환불 등은 상태별 수수료 규칙을 따르며, 무효·환불 계열은 성공 건과 동일한 건당·%가 추가로 과금될 수 있습니다(이중 과금). 차감(취소·환불·무효·실패 등): 지급예상액은 0, 총수수료·부가세는 과금액(양수), 정산액은 −(총수수료+부가세)입니다. 담보 추정은 승인 건에만 표시됩니다. 본사·총판 등은 로그인 조직 하위 가맹점만 조회됩니다.',
-        'Search: set transaction dates and quick range on the first row; on the second row set search field, keyword, and status group, then click [Search] on the right. [All] does not narrow that dimension. Leading columns (merchant, date, time, route, approval no., txn id) match the integrated payment list. The per-txn fee column shows only the flat success fee charged on successful transactions. Other fees: USDT·FX are % of approved amount (included in the Pay(%) total); 3DS is a fixed per-txn charge in policy currency (not in the sum totals, separate column). Those three may accrue alongside pay/per-txn fees. When there is no amount, USDT·FX·3DS show an em dash. Settlement fees are charged once per settlement run; wire/transfer fees are charged when the transfer is processed and appear separately on settlement reports as settlement fee and wire fee. This screen’s total fees and expected payout exclude settlement/wire per-txn rows. Pay (success): per-txn and % columns charged on approval; collateral (rolling % and estimate); expected payout; settlement amount (expected minus collateral estimate). Fail/cancel/void/refund follow state-specific fee rules; void/refund families may incur the same per-txn/% as success (double charge). Deductions (cancel/refund/void/fail, etc.): expected payout is 0; total fee and VAT are charged amounts (positive); settlement amount is −(total fee + VAT). Collateral estimate is shown only for approved transactions. HQ/distributors see only merchants under the logged-in organization.',
-        '検索：1行目で取引日・クイック期間を指定し、2行目で検索区分・キーワード・状態グループを合わせて右の［検索］を押します。「すべて」はその条件での絞り込みを行いません。先頭列（加盟店・取引日・時刻・ルート・承認番号・取引番号）は統合決済一覧と同じ順です。件当手数料列は取引成功時のみ課される成功（件当）固定額を表示します。その他手数料：USDT・FXは承認金額比の%（「決済(%)」合計に含む）、3DSは政策通貨基準の件当固定（合計列には含まず別列）。3つは決済・件当等とは別に同時課金され得ます。金額がない場合USDT・FX・3DSは「—」です。精算手数料は精算実行時に1回課金され、送金（振込）手数料はその後の送金処理で課金され精算レポートに精算手数料・送金手数料として表示されます。この画面の手数料合計・支払予定額には精算・送金の件当は含みません。決済（成功）：件当・%（承認時）列、担保（ロール%・見積額）、支払予定額、精算額（支払予定−担保見積）。失敗・取消・無効・返金等は状態別の手数料ルールに従い、無効・返金系は成功取引と同様の件当・%が追加課金され得ます（二重課金）。控除（取消・返金・無効・失敗等）：支払予定額は0、手数料合計・消費税は課金額（正）、精算額は−(手数料合計+消費税)です。担保見積は承認取引のみ表示されます。本社・総販等はログイン組織配下の加盟店のみ照会できます。',
-        '搜索：首行设交易日与快捷区间，次行设搜索字段、关键词、状态分组后点右侧【搜索】。「全部」不按该维度筛选。前列顺序（商户、交易日期、时间、路由、授权号、交易号）与综合支付列表一致。按笔手续费列仅显示成功交易时收取的固定成功费。其他费用：USDT·FX 为批准金额比例%（计入「支付(%)」合计）；3DS 为政策货币按笔固定（不计入合计列，单独列）。三者可与支付/按笔等同时计费。无金额时 USDT·FX·3DS 显示「—」。结算手续费在结算执行时收取一次；汇款（转账）手续费在后续汇款处理时收取并在结算报告中分列。本屏手续费合计与预计拨付不含结算/汇款按笔。支付（成功）：按笔与%（批准时）列、担保（滚动%·估计额）、预计拨付额、结算额（预计−担保估计）。失败·取消·作废·退款等按状态计费规则；作废·退款类可能与成功交易同样再收按笔/%（双重计费）。扣减（取消·退款·作废·失败等）：预计拨付为0；手续费合计与增值税为计费额（正）；结算额为−(手续费合计+增值税)。担保估计仅对批准交易显示。总部/总代等仅可查登录组织下属商户。',
-        'ค้นหา: แถวแรกตั้งวันที่และช่วงด่วน แถวสองตั้งฟิลด์ค้นหา คำค้น กลุ่มสถานะ แล้วกด [ค้นหา] ขวา 「ทั้งหมด」ไม่กรองมิตินั้น คอลัมน์หน้าเหมือนรายการชำระรวม ค่าธรรมเนียมต่อรายการแสดงเฉพาะค่าคงที่ตอนสำเร็จ USDT·FX เป็น % ของยอดอนุมัติ (รวมใน「ชำระ(%)」) 3DS เป็นคงที่ต่อรายการตามสกุลนโยบาย (คอลัมน์แยก) ค่าธรรมเนียมชำระบัญชี/โอนต่อรายการไม่รวมในยอดรวมหน้านี้ สำเร็จ: คอลัมน์ต่อรายการ·% หลักประกัน ยอดจ่ายโดยประมาณ ยอดชำระ (ประมาณ−หลักประกัน) ล้มเหลว·ยกเลิก·โมฆะ·คืนเงิน ตามกฎสถานะ โมฆะ/คืนอาจถูกเก็บซ้ำ หัก: ยอดจ่ายโดยประมาณ=0 รวม+Vat เป็นบวก ยอดชำระ=−(รวม+Vat) ประมาณหลักประกันเฉพาะอนุมัติ เห็นเฉพาะร้านใต้องค์กรที่ล็อกอิน'
+        '검색: 첫 줄에서 거래일·빠른기간을 정한 뒤, 둘째 줄에서 검색구분·검색어·상태그룹을 맞추고 오른쪽 [검색]을 누릅니다. 「전체」는 해당 조건으로 좁히지 않습니다. 앞쪽 열 순서(업체·거래일·거래시간·루트·승인번호·거래번호)는 통합 결제내역 기본과 같습니다. 건당수수료 열은 거래 성공 시 과금되는 성공(건당) 고정액만 표시합니다. 기타수수료: 「결제(%)」열은 결제수수료(%) 과금액만 표시하고, USDT·FX·3DS는 각각 별도 열에 표시합니다(3DS는 건당 고정). 세 항목은 결제·건당 등과 별도로 동시 과금될 수 있습니다. 금액이 없으면 USDT·FX·3DS 열은 — 입니다. 정산 수수료는 정산 실행 시 1회 과금되며, 송금(이체) 수수료는 그 이후 송금 처리 시 과금되어 정산리포트에 정산 수수료·송금 수수료로 각각 표시됩니다. 이 화면의 총수수료·지급예상에는 정산·송금 건당액이 포함되지 않습니다. 결제(성공): 건당·%(승인 시 부과) 열, 담보(롤링%·추정액), 지급예상액, 정산액(지급예상−담보추정). 실패·취소·무효·환불 등은 상태별 수수료 규칙을 따르며, 무효·환불 계열은 성공 건과 동일한 건당·%가 추가로 과금될 수 있습니다(이중 과금). 차감(취소·환불·무효·실패 등): 지급예상액은 0, 총수수료·부가세는 과금액(양수), 정산액은 −(총수수료+부가세)입니다. 담보 추정은 승인 건에만 표시됩니다. 본사·총판 등은 로그인 조직 하위 가맹점만 조회됩니다.',
+        'Search: set transaction dates and quick range on the first row; on the second row set search field, keyword, and status group, then click [Search] on the right. [All] does not narrow that dimension. Leading columns (merchant, date, time, route, approval no., txn id) match the integrated payment list. The per-txn fee column shows only the flat success fee charged on successful transactions. Other fees: Pay(%) shows payment-fee (%) charges only; USDT·FX·3DS each have their own column (3DS is fixed per txn). Those three may accrue alongside pay/per-txn fees. When there is no amount, USDT·FX·3DS show an em dash. Settlement fees are charged once per settlement run; wire/transfer fees are charged when the transfer is processed and appear separately on settlement reports as settlement fee and wire fee. This screen’s total fees and expected payout exclude settlement/wire per-txn rows. Pay (success): per-txn and % columns charged on approval; collateral (rolling % and estimate); expected payout; settlement amount (expected minus collateral estimate). Fail/cancel/void/refund follow state-specific fee rules; void/refund families may incur the same per-txn/% as success (double charge). Deductions (cancel/refund/void/fail, etc.): expected payout is 0; total fee and VAT are charged amounts (positive); settlement amount is −(total fee + VAT). Collateral estimate is shown only for approved transactions. HQ/distributors see only merchants under the logged-in organization.',
+        '検索：1行目で取引日・クイック期間を指定し、2行目で検索区分・キーワード・状態グループを合わせて右の［検索］を押します。「すべて」はその条件での絞り込みを行いません。先頭列（加盟店・取引日・時刻・ルート・承認番号・取引番号）は統合決済一覧と同じ順です。件当手数料列は取引成功時のみ課される成功（件当）固定額を表示します。その他手数料：「決済(%)」列は決済手数料(%)のみ、USDT・FX・3DSは各別列（3DSは件当固定）。3つは決済・件当等とは別に同時課金され得ます。金額がない場合USDT・FX・3DSは「—」です。精算手数料は精算実行時に1回課金され、送金（振込）手数料はその後の送金処理で課金され精算レポートに精算手数料・送金手数料として表示されます。この画面の手数料合計・支払予定額には精算・送金の件当は含みません。決済（成功）：件当・%（承認時）列、担保（ロール%・見積額）、支払予定額、精算額（支払予定−担保見積）。失敗・取消・無効・返金等は状態別の手数料ルールに従い、無効・返金系は成功取引と同様の件当・%が追加課金され得ます（二重課金）。控除（取消・返金・無効・失敗等）：支払予定額は0、手数料合計・消費税は課金額（正）、精算額は−(手数料合計+消費税)です。担保見積は承認取引のみ表示されます。本社・総販等はログイン組織配下の加盟店のみ照会できます。',
+        '搜索：首行设交易日与快捷区间，次行设搜索字段、关键词、状态分组后点右侧【搜索】。「全部」不按该维度筛选。前列顺序（商户、交易日期、时间、路由、授权号、交易号）与综合支付列表一致。按笔手续费列仅显示成功交易时收取的固定成功费。其他费用：「支付(%)」列仅显示支付手续费(%)，USDT·FX·3DS 分列显示（3DS 为按笔固定）。三者可与支付/按笔等同时计费。无金额时 USDT·FX·3DS 显示「—」。结算手续费在结算执行时收取一次；汇款（转账）手续费在后续汇款处理时收取并在结算报告中分列。本屏手续费合计与预计拨付不含结算/汇款按笔。支付（成功）：按笔与%（批准时）列、担保（滚动%·估计额）、预计拨付额、结算额（预计−担保估计）。失败·取消·作废·退款等按状态计费规则；作废·退款类可能与成功交易同样再收按笔/%（双重计费）。扣减（取消·退款·作废·失败等）：预计拨付为0；手续费合计与增值税为计费额（正）；结算额为−(手续费合计+增值税)。担保估计仅对批准交易显示。总部/总代等仅可查登录组织下属商户。',
+        'ค้นหา: แถวแรกตั้งวันที่และช่วงด่วน แถวสองตั้งฟิลด์ค้นหา คำค้น กลุ่มสถานะ แล้วกด [ค้นหา] ขวา 「ทั้งหมด」ไม่กรองมิตินั้น คอลัมน์หน้าเหมือนรายการชำระรวม ค่าธรรมเนียมต่อรายการแสดงเฉพาะค่าคงที่ตอนสำเร็จ USDT·FX·3DS แยกคอลัมน์ (ชำระ(%) แสดงเฉพาะค่าธรรมเนียมชำระ %) ค่าธรรมเนียมชำระบัญชี/โอนต่อรายการไม่รวมในยอดรวมหน้านี้ สำเร็จ: คอลัมน์ต่อรายการ·% หลักประกัน ยอดจ่ายโดยประมาณ ยอดชำระ (ประมาณ−หลักประกัน) ล้มเหลว·ยกเลิก·โมฆะ·คืนเงิน ตามกฎสถานะ โมฆะ/คืนอาจถูกเก็บซ้ำ หัก: ยอดจ่ายโดยประมาณ=0 รวม+Vat เป็นบวก ยอดชำระ=−(รวม+Vat) ประมาณหลักประกันเฉพาะอนุมัติ เห็นเฉพาะร้านใต้องค์กรที่ล็อกอิน'
       )
     ],
     '/calc/exCalcList': [
@@ -1067,6 +1091,13 @@
         'ธุรกรรมเก่าคำนวณใหม่ตาม「ตั้งค่าค่าธรรมเนียมตัวแทน」ปัจจุบัน หากไม่มีนโยบายหรือรหัส PG/สกุลเงินไม่ตรง คอลัมน์ค่าธรรมเนียมเป็น 0 หรือว่าง'
       ),
       packN(
+        '「결제(%)」열은 본사설정 대행수수료설정의 결제수수료(%) 과금액만 표시합니다. USDT·FX·3DS는 「기타수수료」열에 각각 별도 표시되며, 대행수수료합에는 모두 포함됩니다.',
+        'Pay(%) shows payment-fee (%) charges from Agency fee settings only. USDT·FX·3DS are separate columns under Other fees; all are included in Total agency fee.',
+        '「決済(%)」列は代行手数料設定の決済手数料(%)のみ。USDT·FX·3DSは「その他手数料」列に個別表示し、代行手数料合計にはすべて含みます。',
+        '「支付(%)」列仅显示代行手续费设置中的支付手续费(%)，USDT·FX·3DS 在「其他费用」列分列显示，均计入代行手续费合计。',
+        '「ชำระ(%)」แสดงเฉพาะค่าธรรมเนียมชำระ(%) จากตั้งค่าตัวแทน USDT·FX·3DS แยกคอลัมน์ใน「ค่าธรรมเนียมอื่น」รวมในยอดรวมตัวแทน'
+      ),
+      packN(
         'JPAY 포털 Export 캐시(tb_jpay_portal_export_cache)는 통합개요·일별조회와 동일합니다. JPAY 건 검수·대조 전 본 화면 [JPAY 동기화]·[전체 재동기화]로 캐시를 갱신할 수 있습니다. 전산설정 JPAY 통합개요 스케줄로 자동 동기화됩니다.',
         'JPAY portal Export cache (tb_jpay_portal_export_cache) is shared with Integrated overview and Daily query. Use [JPAY sync] / [Full re-sync] on this screen before JPAY verification. Auto-sync via Ledger JPAY integrated overview schedule.',
         'JPAYポータルExportキャッシュ(tb_jpay_portal_export_cache)は統合概要・日別照会と同一です。JPAY検収・照合前に本画面の[JPAY同期]・[全体再同期]で更新できます。全算設定のJPAY統合概要スケジュールで自動同期します。',
@@ -1111,11 +1142,46 @@
         'ประเภท: มือ=ผู้ดำเนินการ อัตโนมัติ=ทริกเกอร์ความเสี่ยง นับในการตั้งค่าความเสี่ยง HQ'
       ),
       packN(
-        '해지는 목록 「해지」 버튼에서 실행합니다. 해지 사유(필수)·Google OTP 6자리가 필요합니다. 해지자는 해지자 열에, 사유는 해지사유 열에 각각 표시됩니다.',
-        'Release via the Release button. Release reason (required) and Google OTP (6 digits) are needed. Releaser and reason appear in separate columns.',
-        '解除は一覧の「解除」ボタンから実行します。解除理由(必須)と Google OTP 6桁が必要です。解除者と理由は各列に表示されます。',
-        '请在列表「解除」按钮执行。须填写解除理由并输入 Google OTP 6 位。解除人与理由分列显示。',
-        'ยกเลิกที่ปุ่ม「ยกเลิก」 ต้องระบุเหตุผลและ Google OTP 6 หลัก ผู้ยกเลิกและเหตุผลแสดงคนละคอลัมน์'
+        '해지는 목록 「해지」 버튼 또는 체크 후 [선택해지]·[전체해지]로 실행합니다. 해지 사유(필수)·Google OTP 6자리가 필요합니다. 해지자는 해지자 열에, 사유는 해지사유 열에 각각 표시됩니다.',
+        'Release via Release button or check rows then [Release selected] / [Release all]. Reason (required) and Google OTP (6 digits) are needed.',
+        '解除は一覧の「解除」またはチェック後 [選択解除]・[一括解除] から実行します。解除理由(必須)と Google OTP 6桁が必要です。',
+        '可通过列表「解除」或勾选后 [解除所选]/[全部解除]。须填写理由并输入 Google OTP 6 位。',
+        'ยกเลิกที่ปุ่ม「ยกเลิก」หรือเลือกแถวแล้ว [ยกเลิกที่เลือก]/[ยกเลิกทั้งหมด] ต้องมีเหตุผลและ Google OTP 6 หลัก'
+      ),
+      packN(
+        '[전체해지]는 현재 검색 조건(등록일·상태·검색어)에 맞는 등록 카드(상태=등록)만 한 번에 해지합니다. 페이지 구분 없이 조회 조건 전체가 대상입니다.',
+        '[Release all] releases all active (registered) cards matching current filters (date, status, keyword), across all pages.',
+        '[一括解除]は現在の検索条件(登録日・状態・検索語)に合う登録カードのみを一括解除します。ページを問わず条件全体が対象です。',
+        '[全部解除]按当前筛选(登记日、状态、关键词)一次性解除所有登记卡，不限页码。',
+        '[ยกเลิกทั้งหมด] ยกเลิกบัตรที่ลงทะเบียนตามตัวกรองปัจจุบัน (วันที่ สถานะ คำค้น) ทุกหน้า'
+      ),
+      packN(
+        '해지해도 등록 건은 삭제되지 않고 이력으로 남습니다. 해지된 건은 연두색으로 표시되며 해지일시·해지자·해지사유가 기록됩니다. 해지 건은 결제 차단(트리거)에 영향을 주지 않습니다.',
+        'Released rows remain as history (not deleted). Released rows are highlighted; release time, releaser, and reason are recorded. Released cards no longer block payments.',
+        '解除後も登録は削除されず履歴として残ります。解除行は色付きで、解除日時・解除者・理由が記録されます。解除済みは決済ブロックに影響しません。',
+        '解除后记录保留为历史。已解除行高亮显示解除时间、解除人、理由。已解除卡不再拦截支付。',
+        'หลังยกเลิกยังคงเป็นประวัติ แถวที่ยกเลิกจะไฮไลต์ บันทึกเวลา ผู้ยกเลิก และเหตุผล ไม่บล็อกชำระอีก'
+      ),
+      packN(
+        '카드 해지 시 동일 카드의 리스크 누적(실패 횟수·대기시간)도 함께 초기화되어 즉시 결제를 다시 시도할 수 있습니다.',
+        'Releasing a card also resets its risk accumulation (failure count and cooldown) so payment can be retried immediately.',
+        'カード解除時、同一カードのリスク累積(失敗回数・待機時間)も初期化され、すぐに決済を再試行できます。',
+        '解除卡时同步清零该卡的风险累计(失败次数与等待时间)，可立即重试支付。',
+        'เมื่อยกเลิกบัตร ระบบรีเซ็ตการสะสมความเสี่ยง(จำนวนความล้มเหลวและเวลารอ) เพื่อลองชำระใหม่ได้ทันที'
+      ),
+      packN(
+        '등록(비활성) 상태인 카드로 결제를 재시도해도 결제내역·실패내역에는 새 건이 남지 않습니다. 트리거 N차까지의 유효 실패·JPAY 시도 완료 건만 목록에 표시됩니다.',
+        'Retries with an inactive (registered) card are not added to payment or fail lists. Only qualifying failures up to the risk trigger tier and completed JPAY attempts are listed.',
+        '非活性(登録)カードでの再試行は決済・失敗一覧に新規行を残しません。リスクトリガー N 次までの有効失敗・J-Pay 試行完了分のみ表示します。',
+        '已登记(非活跃)卡的重复尝试不会写入支付/失败历史。仅显示达到风险触发档位前的有效失败及已完成 J-Pay 尝试。',
+        'การลองซ้ำด้วยบัตรที่ลงทะเบียน(ไม่ใช้งาน)จะไม่เพิ่มในรายการชำระ/ล้มเหลว แสดงเฉพาะความล้มเหลวที่นับถึงระดับทริกเกอร์และการลอง J-Pay ที่เสร็จสมบูรณ์'
+      ),
+      packN(
+        '목록 정렬은 등록일시 기준입니다. [헬로] 옆 「내림차순·오름차순」으로 최신·과거 순서를 바꿀 수 있습니다.',
+        'List sort is by registration time. Use Desc/Asc next to [Hello] for newest or oldest first.',
+        '一覧の並びは登録日時基準です。[ヘロ]横の降順・昇順で最新/過去の順を切り替えられます。',
+        '列表按登记时间排序。在 [Hello] 旁切换降序/升序。',
+        'เรียงตามเวลาลงทะเบียน สลับลำดับที่ปุ่มข้าง [Hello]'
       )
     ],
     '/ops/integratedReport': [
@@ -1265,8 +1331,8 @@
     chillPaymentStatus: { EN: 'Status', JP: '状態', CH: '状态', TH: 'สถานะ' },
     outcomeReasonPreview: { EN: 'Outcome reason', JP: '処理理由', CH: '处理原因', TH: 'เหตุผลการดำเนินการ' },
     outcomeCause: { EN: 'Cause', JP: '原因', CH: '原因', TH: 'สาเหตุ' },
-    payerDeviceLabel: { EN: 'Device', JP: '端末', CH: '终端', TH: 'อุปกรณ์' },
-    payerRegion: { EN: 'Location', JP: '位置', CH: '位置', TH: 'ตำแหน่ง' },
+    payerDeviceLabel: { KO: '단말기', EN: 'Device', JP: '端末', CH: '终端', TH: 'อุปกรณ์' },
+    payerRegion: { KO: '위치', EN: 'Location', JP: '位置', CH: '位置', TH: 'ตำแหน่ง' },
     payerClientIp: { EN: 'IP', JP: 'IP', CH: 'IP', TH: 'IP' },
     statusNm: { EN: 'Status', JP: '状態', CH: '状态', TH: 'สถานะ' },
     amount: { EN: 'Payment amount', JP: '決済金額', CH: '支付金额', TH: 'ยอดชำระ' },
@@ -2178,6 +2244,8 @@
         else if (id === 'settlementPublishDistributeBtn') b.label = UI.settlementPublishDistribute[loc] || UI.settlementPublishDistribute.EN || b.label;
         else if (id === 'settlementPublishHoldBtn') b.label = UI.settlementPublishHold[loc] || UI.settlementPublishHold.EN || b.label;
         else if (id === 'payoutHoldReleaseBtn') b.label = UI.payoutHoldReleaseBulk[loc] || UI.payoutHoldReleaseBulk.EN || b.label;
+        else if (id === 'opsIcReleaseSelectedBtn') b.label = UI.inactiveCardReleaseSelected[loc] || UI.inactiveCardReleaseSelected.EN || b.label;
+        else if (id === 'opsIcReleaseAllBtn') b.label = UI.inactiveCardReleaseAll[loc] || UI.inactiveCardReleaseAll.EN || b.label;
         else if (id === 'jpayTrSyncBtn') b.label = (w.PG_UI_I18N && typeof w.PG_UI_I18N.t === 'function') ? w.PG_UI_I18N.t('JPAY 동기화') : b.label;
         else if (id === 'jpayTrFullResyncBtn') b.label = (w.PG_UI_I18N && typeof w.PG_UI_I18N.t === 'function') ? w.PG_UI_I18N.t('전체 재동기화') : b.label;
       });
@@ -2331,6 +2399,10 @@
       if (url === '/calc/paySettlementHoldList' || url === '/settlement/paySettlementHoldList') {
         var phRel = pane.querySelector('#payoutHoldReleaseBtn');
         if (phRel) phRel.textContent = lblText(UI.payoutHoldReleaseBulk, loc, phRel.textContent);
+        var icRelSel = pane.querySelector('#opsIcReleaseSelectedBtn');
+        if (icRelSel) icRelSel.textContent = lblText(UI.inactiveCardReleaseSelected, loc, icRelSel.textContent);
+        var icRelAll = pane.querySelector('#opsIcReleaseAllBtn');
+        if (icRelAll) icRelAll.textContent = lblText(UI.inactiveCardReleaseAll, loc, icRelAll.textContent);
       }
       pane.querySelectorAll('[data-pg-list-search-btn]').forEach(function (searchBtnEl) {
         if (!searchBtnEl || searchBtnEl.id === 'searchBtn') return;
@@ -2446,13 +2518,73 @@
     return loc === 'KO' ? ' \u3163 ' : ' | ';
   }
 
-  function formatPayerLocation(iso2, city, loc) {
+  function titleCaseLocationEnglish(city) {
+    if (!city) return '';
+    var v = String(city).trim();
+    if (!v) return '';
+    if (v.length === 1) return v.toUpperCase();
+    return v.charAt(0).toUpperCase() + v.slice(1).toLowerCase();
+  }
+
+  function formatPayerLocation(iso2, city, loc, storedLabel, serverRegion) {
     var code = normalizePayerCountryIso2(iso2);
-    var cityPart = city ? String(city).trim().toUpperCase() : '';
+    var cityPart = titleCaseLocationEnglish(city);
+    if (serverRegion && String(serverRegion).trim() && String(serverRegion).trim() !== '-') {
+      var sr = String(serverRegion).trim();
+      var pipeIdx = sr.indexOf(' | ');
+      if (pipeIdx === 2 && sr.length > 5) {
+        return sr.substring(0, 2) + ' | ' + titleCaseLocationEnglish(sr.substring(pipeIdx + 3));
+      }
+      if (/^[A-Z]{2}$/.test(sr)) {
+        code = code || sr;
+        if (cityPart) return code + ' | ' + cityPart;
+        code = sr;
+      } else if (!/^[A-Z]{2} \| /.test(sr)) {
+        serverRegion = '';
+      }
+    }
+    if (serverRegion && String(serverRegion).trim() && String(serverRegion).trim() !== '-') {
+      var sr2 = String(serverRegion).trim();
+      if (/^[A-Z]{2} \| .+/.test(sr2)) {
+        var p2 = sr2.indexOf(' | ');
+        return sr2.substring(0, 2) + ' | ' + titleCaseLocationEnglish(sr2.substring(p2 + 3));
+      }
+    }
+    if (storedLabel && String(storedLabel).trim()) {
+      var s = String(storedLabel).trim();
+      if (/^[A-Z]{2} \| .+/.test(s)) {
+        var p = s.indexOf(' | ');
+        return s.substring(0, 2) + ' | ' + titleCaseLocationEnglish(s.substring(p + 3));
+      }
+      if (s.indexOf('-') > 0 && s.indexOf(' | ') < 0) {
+        var dash = s.indexOf('-');
+        var region = titleCaseLocationEnglish(s.substring(dash + 1));
+        var countryTok = s.substring(0, dash).trim().toUpperCase();
+        var isoFromName = {
+          JAPAN: 'JP', 'SOUTH KOREA': 'KR', KOREA: 'KR', CHINA: 'CN', THAILAND: 'TH',
+          '대한민국': 'KR', '한국': 'KR', '일본': 'JP', '中国': 'CN', '泰国': 'TH', '泰國': 'TH'
+        };
+        var c = isoFromName[countryTok] || isoFromName[s.substring(0, dash).trim()] || (countryTok.length === 2 ? countryTok : code);
+        if (c && region) return c + ' | ' + region;
+      }
+      if (/^[A-Z]{2}$/.test(s)) {
+        if (cityPart) return s + ' | ' + cityPart;
+        return s;
+      }
+      var isoFromName2 = {
+        JAPAN: 'JP', 'SOUTH KOREA': 'KR', KOREA: 'KR', CHINA: 'CN', THAILAND: 'TH',
+        '대한민국': 'KR', '한국': 'KR', '일본': 'JP'
+      };
+      var mapped = isoFromName2[s.toUpperCase()] || isoFromName2[s];
+      if (mapped) {
+        if (cityPart) return mapped + ' | ' + cityPart;
+        return mapped;
+      }
+    }
     if (!code && !cityPart) return '-';
-    if (!cityPart) return code;
+    if (!cityPart) return code || '-';
     if (!code) return cityPart;
-    return code + payerLocationSeparator(loc) + cityPart;
+    return code + ' | ' + cityPart;
   }
 
   var PAYER_DEVICE_CAT_LABELS = {
@@ -2504,15 +2636,24 @@
     });
   }
 
-  /** UI 언어 전환 — 결제개요 위치·단말기 열 재표시 */
+  /** UI 언어 전환 — 결제내역·결제개요 위치·단말기 열 재표시(위치는 항상 영어 고정) */
+  var PAY_PAYER_CONTEXT_FIELD_URLS = {
+    '/calc/payList': 1, '/calc/payOverview': 1, '/calc/jpayTrList': 1, '/calc/payNotiList': 1,
+    '/calc/paySuccessList': 1, '/calc/payFailList': 1, '/calc/payRefundList': 1, '/calc/payForceRefundList': 1,
+    '/calc/payCancelList': 1, '/calc/payVoidList': 1, '/calc/payEmailVoidList': 1, '/calc/offsetCancList': 1,
+    '/pay/easyPay': 1, '/pay/chatbotPay': 1, '/pay/splitPay': 1
+  };
+
   function refreshPayGridPayerOverviewFields(loc) {
     loc = normalizeLocale(loc || getLocale());
-    document.querySelectorAll('.tab-pane.tabConDiv[formurl="/calc/payOverview"]').forEach(function (pane) {
+    document.querySelectorAll('.tab-pane.tabConDiv[formurl]').forEach(function (pane) {
+      var formurl = pane.getAttribute('formurl') || '';
+      if (!PAY_PAYER_CONTEXT_FIELD_URLS[formurl]) return;
       var list = pane._lastGridList;
       if (!list || !list.length) return;
       updatePayGridColumnCells(pane, list, ['payerRegion', 'payerDeviceLabel'], function (row, key, l) {
         if (key === 'payerRegion') {
-          return formatPayerLocation(row.payerCountryIso2, row.payerCity, l);
+          return formatPayerLocation(row.payerCountryIso2, row.payerCity, l, row.payerLocationLabel, row.payerRegion);
         }
         if (key === 'payerDeviceLabel') {
           return formatPayerDeviceLabel(row.payerDeviceCategory, l);

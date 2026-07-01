@@ -104,6 +104,18 @@ app:
     route-no: ${CHILLPAY_ROUTE_NO:4}
     sandbox: ${CHILLPAY_SANDBOX:true}
   # JPAY 요청(08) 대기 — 노티 미수신 UNPAID 건 Trade Query 자동 동기화
+  # 결제개요 위치 — MaxMind GeoLite2-City.mmdb 로컬 조회(외부 API 없음). MMDB 없으면 즉시 skip.
+  geoip:
+    enabled: ${APP_GEOIP_ENABLED:true}
+    mmdb-path: ${PG_GEOIP_MMDB_PATH:/var/lib/pg/GeoLite2-City.mmdb}
+    cache-size: ${APP_GEOIP_CACHE_SIZE:10000}
+    backfill:
+      enabled: ${APP_GEOIP_BACKFILL_ENABLED:true}
+      cron: "${APP_GEOIP_BACKFILL_CRON:0 15 3 * * *}"
+      batch-size: ${APP_GEOIP_BACKFILL_BATCH_SIZE:250}
+    jpay-export-backfill:
+      enabled: ${APP_GEOIP_JPAY_EXPORT_BACKFILL_ENABLED:true}
+      batch-size: ${APP_GEOIP_JPAY_EXPORT_BACKFILL_BATCH_SIZE:500}
   jpay:
     pendingReconcile:
       enabled: ${APP_JPAY_PENDING_RECONCILE_ENABLED:true}

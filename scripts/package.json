@@ -5,7 +5,9 @@
   "scripts": {
     "login": "node fxhj-login-save-menu.js",
     "login:otp": "set FXHJ_OTP=%1 && node fxhj-login-save-menu.js",
-    "jpay-export": "node jpay-portal-export.js"
+    "jpay-export": "node jpay-portal-export.js",
+    "operator-manual-pdf": "node operator-manual-pdf/gen.mjs hq",
+    "operator-manual-pdf:all": "node operator-manual-pdf/gen.mjs all"
   },
   "dependencies": {
     "playwright": "^1.40.0"

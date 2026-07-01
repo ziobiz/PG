@@ -1,5 +1,5 @@
 /**
- * 검수관리 결제개요(/calc/payOverview) — 통합 결제내역 + 단말기·위치·IP·원인 열.
+ * 검수관리 결제개요(/calc/payOverview) — 통합 결제내역 + IP·원인 열(단말기·위치는 통합 카탈로그 공통).
  */
 (function (w) {
   'use strict';
@@ -29,12 +29,12 @@
   }
 
   var extraCols = [
-    { key: 'payerDeviceLabel', label: '단말기' },
-    { key: 'payerRegion', label: '위치' },
     { key: 'payerClientIp', label: 'IP' },
     { key: 'outcomeCause', label: '원인' }
   ];
-  var extraKeys = ['payerDeviceLabel', 'payerRegion', 'payerClientIp', 'outcomeCause'];
+  var overviewExtraKeys = ['payerClientIp', 'outcomeCause'];
+  var sharedPayerKeys = ['payerDeviceLabel', 'payerRegion'];
+  var allOverviewExtraKeys = sharedPayerKeys.concat(overviewExtraKeys);
   var helloPriorityBase = (base.viewSettingHelloPriorityKeys || base.viewSettingDefaultSelectedKeys || []).slice();
   var helloPriority = helloPriorityBase.slice();
   (function insertHelloKeysAfter(afterKey, keys) {
@@ -45,22 +45,22 @@
         helloPriority.splice(idx + 1 + i, 0, k);
       }
     });
-  })('paymentChannel', extraKeys);
+  })('paymentChannel', allOverviewExtraKeys);
 
   var cols = cloneArr(base.columns);
-  insertAfterKey(cols, 'paymentChannel', extraCols);
+  insertAfterKey(cols, 'payerRegion', extraCols);
 
   var scopes = base.orgAllowanceDefaultKeysByScope || {};
   w.PG_PAY_LIST_OVERVIEW = {
     columnGuideFixedKeys: (base.columnGuideFixedKeys || []).slice(),
     columnGuideHiddenKeys: (base.columnGuideHiddenKeys || []).slice(),
-    viewSettingDefaultSelectedKeys: addKeysToList(base.viewSettingDefaultSelectedKeys, extraKeys),
+    viewSettingDefaultSelectedKeys: addKeysToList(base.viewSettingDefaultSelectedKeys, allOverviewExtraKeys),
     viewSettingHelloPriorityKeys: helloPriority,
     orgAllowanceDefaultKeysByScope: {
       REGIONAL: null,
-      MASTER_DIST: addKeysToList(scopes.MASTER_DIST, extraKeys),
-      BRANCH_GROUP: addKeysToList(scopes.BRANCH_GROUP, extraKeys),
-      MERCHANT: addKeysToList(scopes.MERCHANT, extraKeys)
+      MASTER_DIST: addKeysToList(scopes.MASTER_DIST, overviewExtraKeys),
+      BRANCH_GROUP: addKeysToList(scopes.BRANCH_GROUP, overviewExtraKeys),
+      MERCHANT: addKeysToList(scopes.MERCHANT, overviewExtraKeys)
     },
     headerGroups: cloneArr(base.headerGroups),
     columns: cols

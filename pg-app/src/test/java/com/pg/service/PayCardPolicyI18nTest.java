@@ -30,7 +30,7 @@ class PayCardPolicyI18nTest {
     void inactiveCardMessageDiffersFromTierTwo() {
         String inactive = PayCardPolicyI18n.format("KO", "INACTIVE_CARD");
         String tier2 = PayCardPolicyI18n.format("KO", "CARD_COOLDOWN_TIER_2", 10);
-        assertTrue(inactive.contains("사용중지"));
+        assertTrue(inactive.contains("고위험"));
         assertTrue(tier2.contains("2차"));
     }
 }

@@ -2745,7 +2745,7 @@ public class ApiSettlementController {
         if ("10".equals(stRow) || "21".equals(stRow) || "22".equals(stRow) || "30".equals(stRow) || "31".equals(stRow)
                 || "40".equals(stRow) || "41".equals(stRow) || "42".equals(stRow)) {
             txnFixedFeesSum = br.perTxFee();
-            pctFeesSum = br.payFee() + br.usdtFee() + br.fxFee() + extraFeesSum;
+            pctFeesSum = br.payFee();
         } else {
             txnFixedFeesSum = 0d;
             pctFeesSum = 0d;

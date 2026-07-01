@@ -1,10 +1,15 @@
 package com.pg.controller.api;
 
 import com.pg.api.ApiResponse;
+import com.pg.entity.AppUser;
 import com.pg.service.HqNotifyEnvService;
 import com.pg.service.HqNotifyTargetService;
+import com.pg.service.HqNotiWebhookPartnerService;
+import com.pg.service.UserListService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -20,16 +25,32 @@ public class ApiHqNotifyEnvController {
 
     private final HqNotifyEnvService hqNotifyEnvService;
     private final HqNotifyTargetService hqNotifyTargetService;
+    private final HqNotiWebhookPartnerService hqNotiWebhookPartnerService;
+    private final UserListService userListService;
 
-    public ApiHqNotifyEnvController(HqNotifyEnvService hqNotifyEnvService, HqNotifyTargetService hqNotifyTargetService) {
+    public ApiHqNotifyEnvController(HqNotifyEnvService hqNotifyEnvService, HqNotifyTargetService hqNotifyTargetService,
+                                    HqNotiWebhookPartnerService hqNotiWebhookPartnerService,
+                                    UserListService userListService) {
         this.hqNotifyEnvService = hqNotifyEnvService;
         this.hqNotifyTargetService = hqNotifyTargetService;
+        this.hqNotiWebhookPartnerService = hqNotiWebhookPartnerService;
+        this.userListService = userListService;
     }
 
     @GetMapping
     public ResponseEntity<ApiResponse<Map<String, Object>>> get(HttpServletRequest req) {
         var c = hqNotifyEnvService.getOrCreate();
-        return ResponseEntity.ok(ApiResponse.ok(hqNotifyEnvService.toMap(c, req)));
+        Map<String, Object> m = hqNotifyEnvService.toMap(c, req);
+        AppUser actor = currentUserOrNull();
+        if (actor != null) {
+            m.put("canAssignSupervisorRole", userListService.canAssignSupervisorRole(actor) ? "Y" : "N");
+            if (userListService.canAssignSupervisorRole(actor)) {
+                m.put("supervisorUsers", userListService.listSupervisorUsers());
+            }
+        } else {
+            m.put("canAssignSupervisorRole", "N");
+        }
+        return ResponseEntity.ok(ApiResponse.ok(m));
     }
 
     @PostMapping("/save")
@@ -118,5 +139,108 @@ public class ApiHqNotifyEnvController {
         } catch (Exception e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         }
+    }
+
+    @GetMapping("/internalTargets")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> internalTargets() {
+        return ResponseEntity.ok(ApiResponse.ok(hqNotifyEnvService.listNotiInternalTargets()));
+    }
+
+    @GetMapping("/webhookPartners")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> webhookPartners() {
+        return ResponseEntity.ok(ApiResponse.ok(hqNotiWebhookPartnerService.listAll()));
+    }
+
+    @PostMapping("/webhookPartners/create")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> createWebhookPartner(@RequestBody Map<String, Object> body) {
+        try {
+            return ResponseEntity.ok(ApiResponse.ok(hqNotiWebhookPartnerService.create(body)));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
+
+    @DeleteMapping("/webhookPartners/{id}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> deleteWebhookPartner(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ApiResponse.ok(hqNotiWebhookPartnerService.delete(id)));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
+
+    @GetMapping("/supervisorUsers")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> supervisorUsers() {
+        try {
+            requireSupervisorAssignActor();
+            return ResponseEntity.ok(ApiResponse.ok(userListService.listSupervisorUsers()));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "FORBIDDEN"));
+        }
+    }
+
+    @GetMapping("/supervisorOrgs")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> supervisorOrgs() {
+        try {
+            requireSupervisorAssignActor();
+            return ResponseEntity.ok(ApiResponse.ok(userListService.listSupervisorEligibleOrgs()));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "FORBIDDEN"));
+        }
+    }
+
+    @GetMapping("/supervisorCandidates")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> supervisorCandidates(
+            @RequestParam(name = "orgUnitCode", required = false) String orgUnitCode) {
+        try {
+            requireSupervisorAssignActor();
+            return ResponseEntity.ok(ApiResponse.ok(userListService.listSupervisorAssignableUsers(orgUnitCode)));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
+
+    @PostMapping("/supervisor/assign")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> assignSupervisor(@RequestBody Map<String, Object> body) {
+        try {
+            AppUser actor = requireSupervisorAssignActor();
+            String username = body.get("userId") != null ? String.valueOf(body.get("userId")) : "";
+            userListService.assignSupervisorFromHqSettings(actor, username);
+            return ResponseEntity.ok(ApiResponse.ok(Map.of(
+                    "message", "SUPERVISOR 역할이 부여되었습니다.",
+                    "supervisorUsers", userListService.listSupervisorUsers())));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
+
+    @PostMapping("/supervisor/revoke")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> revokeSupervisor(@RequestBody Map<String, Object> body) {
+        try {
+            AppUser actor = requireSupervisorAssignActor();
+            Long id = parseOptionalLong(body.get("id"));
+            userListService.revokeSupervisorFromHqSettings(actor, id);
+            return ResponseEntity.ok(ApiResponse.ok(Map.of(
+                    "message", "SUPERVISOR 역할이 해제되었습니다.",
+                    "supervisorUsers", userListService.listSupervisorUsers())));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
+
+    private AppUser requireSupervisorAssignActor() {
+        AppUser actor = currentUserOrNull();
+        if (actor == null || !userListService.canAssignSupervisorRole(actor)) {
+            throw new IllegalArgumentException("SUPERVISOR 역할 부여·해제는 총본사(HEADQUARTERS) 또는 시스템 ADMIN만 가능합니다.");
+        }
+        return actor;
+    }
+
+    private static AppUser currentUserOrNull() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof AppUser user) {
+            return user;
+        }
+        return null;
     }
 }

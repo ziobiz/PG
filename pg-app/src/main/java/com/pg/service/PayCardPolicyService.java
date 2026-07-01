@@ -234,6 +234,30 @@ public class PayCardPolicyService {
         return null;
     }
 
+    /**
+     * 비활성카드·쿨다운 대기 중 재시도는 결제내역(실패목록)에 적재하지 않습니다.
+     * 트리거 N차까지의 유효 실패·JPAY 시도 완료 건만 노출합니다.
+     */
+    public static boolean suppressesPaymentListRecording(String errorCode) {
+        if (errorCode == null || errorCode.isBlank()) {
+            return false;
+        }
+        String c = errorCode.trim().toUpperCase(java.util.Locale.ROOT);
+        return "INACTIVE_CARD".equals(c) || "BLACKLIST".equals(c)
+                || "CARD_COOLDOWN".equals(c) || c.startsWith("CARD_COOLDOWN_TIER_");
+    }
+
+    public static boolean suppressesPaymentListRecording(Map<String, Object> validationResult) {
+        if (validationResult == null || validationResult.isEmpty()) {
+            return false;
+        }
+        if (Boolean.TRUE.equals(validationResult.get("skipPaymentListRecord"))) {
+            return true;
+        }
+        Object code = validationResult.get("errorCode");
+        return suppressesPaymentListRecording(code != null ? code.toString() : null);
+    }
+
     private static Map<String, Object> fail(String code, String messageKey, String lang, Object... args) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("valid", false);
@@ -241,6 +265,9 @@ public class PayCardPolicyService {
         m.put("messageKey", messageKey);
         m.put("message", PayCardPolicyI18n.format(lang, messageKey, args));
         m.put("messages", PayCardPolicyI18n.allLang(messageKey, args));
+        if (suppressesPaymentListRecording(code)) {
+            m.put("skipPaymentListRecord", true);
+        }
         return m;
     }
 
@@ -407,11 +434,25 @@ public class PayCardPolicyService {
             throw new IllegalArgumentException("해지 사유를 입력하세요.");
         }
         String by = releasedBy != null && !releasedBy.isBlank() ? releasedBy.trim() : "";
-        row.setActiveYn("N");
-        row.setReleasedAt(java.time.LocalDateTime.now());
-        row.setReleasedBy(by.isEmpty() ? null : by);
-        row.setReleasedReason(formatReleaseReason(reasonBody));
-        return blacklistRepository.save(row);
+        String panHash = row.getPanHash() != null ? row.getPanHash().trim() : "";
+        String panDisplay = row.getPanDisplay() != null ? row.getPanDisplay().trim() : "";
+        List<HqPayCardBlacklist> siblings = blacklistRepository.findActiveSiblingsByPanIdentity(panHash, panDisplay);
+        if (siblings.isEmpty()) {
+            siblings = List.of(row);
+        }
+        for (HqPayCardBlacklist sibling : siblings) {
+            if (!"Y".equalsIgnoreCase(String.valueOf(sibling.getActiveYn()).trim())) {
+                continue;
+            }
+            sibling.setActiveYn("N");
+            sibling.setReleasedAt(java.time.LocalDateTime.now());
+            sibling.setReleasedBy(by.isEmpty() ? null : by);
+            sibling.setReleasedReason(formatReleaseReason(reasonBody));
+            blacklistRepository.save(sibling);
+        }
+        payCardFailCooldownService.clearRiskStateOnInactiveCardRelease(
+                row.getPgVendor(), panHash, panDisplay);
+        return row;
     }
 
     /** 해지 사유 본문만 저장 — 해지자는 released_by 컬럼에 별도 기록 */

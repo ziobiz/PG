@@ -3,7 +3,7 @@
 | 항목 | 내용 |
 |------|------|
 | **문서 ID** | ICOPAY-CHECKOUT-PREPARE-001 |
-| **버전** | 1.0 |
+| **버전** | 1.1 |
 | **대상** | ICOPAY와 API 연동하는 가맹점(백엔드 개발자) |
 | **API** | `POST /api/middleware/v1/merchant/checkout/prepare` (통합, 권장) |
 | **연동 방식** | JSON(REST) · PHP(`IcopayMerchantApi.php`) |
@@ -51,7 +51,7 @@
 | 6 | productName | String | 500 | O | 상품명 | 결제창 표시 |
 | 7 | item | String | 500 | O | 상품명 별칭 | productName 없을 때 |
 | 8 | lang | String | 5 | O | 결제창 UI 언어 | **KOR · ENG · JPN · CHN · THA** (또는 ko/en/ja/zh/th). langCode·locale 동의어 |
-| 9 | buyer | Object | — | **M** | 구매자 정보 | **표 1.2** 참고. `buyerPrefill` 키도 동일 |
+| 9 | buyer | Object | — | **M** | 구매자 정보 | **표 1.2** 참고. 하위 **email·phone·countryIso2 필수**(JPAY·ICOPAY). `buyerPrefill` 키도 동일 |
 
 ### 요청 예시
 
@@ -77,13 +77,15 @@
 
 ## 4. 표 1.2 — buyer 객체 파라미터
 
-ICOPAY는 **email · phone · countryIso2** 를 모든 가맹 prepare 에서 **필수**로 수집합니다. 실제 PG(ChillPay/JPAY)로의 전송 여부는 ICOPAY가 운영 PG에 따라 처리합니다.
+표 1.1의 `buyer`는 **객체**이며, 이메일·전화·국가코드는 루트가 아니라 **아래 하위 필드**로 전달합니다. JPAY·ICOPAY 모두 **필수(M)** 입니다.
+
+ICOPAY는 **email · phone · countryIso2** 를 모든 가맹 prepare 에서 **필수**로 수집·검증합니다. JPAY 서버 직접 `sale` 호출 시에는 동일 정보를 `payEmailAddress` · `payTelephone` · `payCountryIsoCode2` 로 보냅니다.
 
 | No. | Parameter | Data Type | Length | M/O | Description | Remark |
 |-----|-----------|-----------|--------|-----|-------------|--------|
-| 1 | email | String | 254 | **M** | 구매자 이메일 | |
-| 2 | phone | String | 32 | **M** | 구매자 전화(로컬) | 국가번호 `+82` 등은 제거. 로컬 번호만 |
-| 3 | countryIso2 | String | 2 | **M** | 국가 ISO2 | KR, US, TH 등 **대문자 2자** |
+| 1 | email | String | 254 | **M** | 구매자 이메일 | JPAY·ICOPAY 필수. sale: `payEmailAddress` |
+| 2 | phone | String | 32 | **M** | 구매자 전화(로컬) | JPAY·ICOPAY 필수. 국가번호 `+82` 등 **제거**, 로컬 번호만. sale: `payTelephone` |
+| 3 | countryIso2 | String | 2 | **M** | 국가 ISO2 | JPAY·ICOPAY 필수. KR, US, TH 등 **대문자 2자**. sale: `payCountryIsoCode2` |
 | 4 | address | String | 200 | O | 배송 주소 1행 | shipping prefill (선택) |
 | 5 | address2 | String | 200 | O | 배송 주소 2행 | |
 | 6 | city | String | 100 | O | 도시 | |

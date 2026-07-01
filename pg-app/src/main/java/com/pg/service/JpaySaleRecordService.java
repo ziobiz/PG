@@ -52,6 +52,7 @@ public class JpaySaleRecordService {
     private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
     private final PayCardFailCooldownService payCardFailCooldownService;
     private final PgTrnsctnOrderDedupeService pgTrnsctnOrderDedupeService;
+    private final PayerLocationEnrichmentService payerLocationEnrichmentService;
 
     public JpaySaleRecordService(PgTrnsctnRepository pgTrnsctnRepository,
                                  OrgUnitRepository orgUnitRepository,
@@ -60,7 +61,8 @@ public class JpaySaleRecordService {
                                  SplitPayPaymentHookService splitPayPaymentHookService,
                                  OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator,
                                  PayCardFailCooldownService payCardFailCooldownService,
-                                 PgTrnsctnOrderDedupeService pgTrnsctnOrderDedupeService) {
+                                 PgTrnsctnOrderDedupeService pgTrnsctnOrderDedupeService,
+                                 PayerLocationEnrichmentService payerLocationEnrichmentService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.settlementCalcService = settlementCalcService;
@@ -69,6 +71,7 @@ public class JpaySaleRecordService {
         this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
         this.payCardFailCooldownService = payCardFailCooldownService;
         this.pgTrnsctnOrderDedupeService = pgTrnsctnOrderDedupeService;
+        this.payerLocationEnrichmentService = payerLocationEnrichmentService;
     }
 
     @Transactional
@@ -172,6 +175,7 @@ public class JpaySaleRecordService {
             applyCardPanHashFromSaleBody(t, saleBody);
             applyPayerContextFromSaleBody(t, saleBody);
         }
+        payerLocationEnrichmentService.enrichFromTxnContext(t);
         if (customerHint != null && !customerHint.isBlank()) {
             String hint = customerHint.trim();
             if (t.getCustomerId() == null || t.getCustomerId().isBlank()
@@ -337,6 +341,9 @@ public class JpaySaleRecordService {
     @Transactional
     public void applyIcopayPreSaleFail(String merchantId, String orderNo, String txnOrigin,
                                        String message, String errorCode) {
+        if (PayCardPolicyService.suppressesPaymentListRecording(errorCode)) {
+            return;
+        }
         if (merchantId == null || merchantId.isBlank() || orderNo == null || orderNo.isBlank()) {
             return;
         }

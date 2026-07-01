@@ -1948,6 +1948,136 @@
       '</ul></div>'
   };
 
+  var OPS_NOTI_PROVISION_HTML = '<div id="opsNotiProvisionRoot" class="ops-noti-provision-root">' +
+    '<div class="alert alert-warning d-none mb-3" id="opsNpAccessDenied" role="alert"></div>' +
+    '<div class="alert alert-info d-none mb-3" id="opsNpConfigHint" role="alert" data-pg-ui-t="본사설정 → 노티구성설정에서 NOTI Provision API 사용·베이스 URL·API 키를 저장한 뒤 이용하세요.">본사설정 → 노티구성설정에서 NOTI Provision API 사용·베이스 URL·API 키를 저장한 뒤 이용하세요.</div>' +
+    '<div class="card mb-3" id="opsNpFormCard">' +
+    '<div class="card-header py-2 fw-semibold" data-pg-ui-t="JPAY 노티 생성">JPAY 노티 생성</div>' +
+    '<div class="card-body">' +
+    '<p class="small text-muted mb-3" data-pg-ui-t="NOTI 관리자 JPAY 등록과 동일한 항목으로 가맹을 생성합니다. 발급 URL은 업체 JPAY 수신통보 URL에 자동 반영됩니다.">NOTI 관리자 JPAY 등록과 동일한 항목으로 가맹을 생성합니다. 발급 URL은 업체 JPAY 수신통보 URL에 자동 반영됩니다.</p>' +
+    '<div class="row g-2 align-items-end mb-2">' +
+    '<div class="col-12 col-md-3"><label class="form-label mb-0" for="opsNpCompId" data-pg-ui-t="가맹 업체코드">가맹 업체코드</label>' +
+    '<input type="text" class="form-control form-control-sm" id="opsNpCompId" autocomplete="off"></div>' +
+    '<div class="col-12 col-md-3"><label class="form-label mb-0" for="opsNpCompNm" data-pg-ui-t="업체명">업체명</label>' +
+    '<input type="text" class="form-control form-control-sm" id="opsNpCompNm" readonly></div>' +
+    '<div class="col-auto d-grid"><button type="button" class="btn btn-sm btn-outline-secondary" id="opsNpLoadCtxBtn" data-pg-ui-t="불러오기">불러오기</button></div></div>' +
+    '<div class="row g-2 align-items-end mb-2">' +
+    '<div class="col-12 col-md-3"><label class="form-label mb-0" for="opsNpMerchantId" data-pg-ui-t="가맹점 ID">가맹점 ID</label>' +
+    '<input type="text" class="form-control form-control-sm" id="opsNpMerchantId" autocomplete="off"></div>' +
+    '<div class="col-auto d-grid"><button type="button" class="btn btn-sm btn-outline-secondary" id="opsNpCheckMidBtn" data-pg-ui-t="중복검토">중복검토</button></div>' +
+    '<div class="col-12 col-md-3"><label class="form-label mb-0" for="opsNpBaseCurrency" data-pg-ui-t="기준화폐">기준화폐</label>' +
+    '<input type="text" class="form-control form-control-sm" id="opsNpBaseCurrency" readonly></div></div>' +
+    '<div class="row g-2 align-items-end mb-2">' +
+    '<div class="col-12 col-md-5"><label class="form-label mb-0" for="opsNpInternalTargetId" data-pg-ui-t="노티 정산대상(전산 대상 ID)">노티 정산대상(전산 대상 ID)</label>' +
+    '<select class="form-select form-select-sm" id="opsNpInternalTargetId"></select></div>' +
+    '<div class="col-12 col-md-2"><label class="form-label mb-0" for="opsNpJpaySlotNo" data-pg-ui-t="JPAY PG 노티 슬롯">JPAY PG 노티 슬롯</label>' +
+    '<input type="number" min="1" max="999" class="form-control form-control-sm" id="opsNpJpaySlotNo" autocomplete="off"></div>' +
+    '<div class="col-auto d-grid"><button type="button" class="btn btn-sm btn-outline-primary" id="opsNpAutoSlotBtn" data-pg-ui-t="자동">자동</button></div>' +
+    '<div class="col-auto d-grid"><button type="button" class="btn btn-sm btn-outline-secondary" id="opsNpCheckSlotBtn" data-pg-ui-t="슬롯검토">슬롯검토</button></div></div>' +
+    '<div class="row g-2 mb-2"><div class="col-12"><div class="small text-muted" id="opsNpSlotAutoHint" data-pg-ui-t="자동: JPY는 j200부터, USD는 j55부터 순번 할당(슬롯검토 생략). 수동 입력 시 슬롯검토를 실행하세요.">자동: JPY는 j200부터, USD는 j55부터 순번 할당(슬롯검토 생략). 수동 입력 시 슬롯검토를 실행하세요.</div>' +
+    '<div class="small text-muted" id="opsNpSlotPreview"></div></div></div>' +
+    '<div class="row g-2 mb-2">' +
+    '<div class="col-12 col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="opsNpEnableRelay" checked>' +
+    '<label class="form-check-label small" for="opsNpEnableRelay" data-pg-ui-t="가맹점 노티 사용">가맹점 노티 사용</label></div></div>' +
+    '<div class="col-12 col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="opsNpEnableInternal">' +
+    '<label class="form-check-label small" for="opsNpEnableInternal" data-pg-ui-t="전산 노티 사용">전산 노티 사용</label></div></div>' +
+    '<div class="col-12 col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="opsNpEnableDevInternal" checked>' +
+    '<label class="form-check-label small" for="opsNpEnableDevInternal" data-pg-ui-t="개발 노티 사용">개발 노티 사용</label></div></div></div>' +
+    '<div id="opsNpRelayOptionsWrap" class="border rounded p-2 mb-2 bg-body-tertiary">' +
+    '<div class="row g-2 align-items-end mb-0">' +
+    '<div class="col-12 col-md-3"><label class="form-label mb-0" for="opsNpRelayFormat" data-pg-ui-t="노티 방식">노티 방식</label>' +
+    '<select class="form-select form-select-sm" id="opsNpRelayFormat"><option value="RAW" data-pg-ui-t="일반">일반</option><option value="JSON">JSON</option><option value="FORM">FORM</option></select></div>' +
+    '<div class="col-12 col-md-3"><label class="form-label mb-0" for="opsNpRelayMode" data-pg-ui-t="릴레이 모드">릴레이 모드</label>' +
+    '<select class="form-select form-select-sm" id="opsNpRelayMode"><option value="RELAY" data-pg-ui-t="릴레이">릴레이</option><option value="ENHANCED" data-pg-ui-t="보강릴레이">보강릴레이</option></select></div>' +
+    '<div class="col-12 col-md-3"><label class="form-label mb-0" for="opsNpResultDelivery" data-pg-ui-t="RESULT 전달">RESULT 전달</label>' +
+    '<select class="form-select form-select-sm" id="opsNpResultDelivery"><option value="AUTO">AUTO</option><option value="AUTOT">AUTOT</option><option value="POST">POST</option><option value="POST_302">POST_302</option></select></div></div></div>' +
+    '<div class="row g-2 align-items-end mb-2" id="opsNpMerchantUrlWrap">' +
+    '<div class="col-12 col-md-6"><label class="form-label mb-0" for="opsNpCallbackUrl" data-pg-ui-t="가맹점 callback URL">가맹점 callback URL</label>' +
+    '<input type="text" class="form-control form-control-sm" id="opsNpCallbackUrl" autocomplete="off"></div>' +
+    '<div class="col-12 col-md-6"><label class="form-label mb-0" for="opsNpResultUrl" data-pg-ui-t="가맹점 result URL">가맹점 result URL</label>' +
+    '<input type="text" class="form-control form-control-sm" id="opsNpResultUrl" autocomplete="off"></div></div>' +
+    '<div class="alert alert-light border small d-none mb-2" id="opsNpDevUrlHint"></div>' +
+    '<div class="row g-2 align-items-end mb-2">' +
+    '<div class="col-12 col-md-4"><label class="form-label mb-0" for="opsNpDealmaiPartner" data-pg-ui-t="DEALMAI Partner 코드">DEALMAI Partner 코드</label>' +
+    '<select class="form-select form-select-sm" id="opsNpDealmaiPartner"><option value="__DEFAULT__" data-pg-ui-t="기본 Partner 코드">기본 Partner 코드</option></select></div>' +
+    '<div class="col-12 col-md-4 d-flex align-items-end"><div class="form-check mb-1">' +
+    '<input class="form-check-input" type="checkbox" id="opsNpEnableDealmaiWebhook" checked>' +
+    '<label class="form-check-label small" for="opsNpEnableDealmaiWebhook" data-pg-ui-t="DEALMAI 웹훅 사용">DEALMAI 웹훅 사용</label></div></div></div>' +
+    '<div class="row g-2 align-items-end mb-2 d-none" id="opsNpOtpWrap">' +
+    '<div class="col-12 col-md-4"><label class="form-label mb-0" for="opsNpProvisionOtp" data-pg-ui-t="Google OTP (노티생성)">Google OTP (노티생성)</label>' +
+    '<input type="text" class="form-control form-control-sm font-monospace" id="opsNpProvisionOtp" maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" data-pg-ui-placeholder="6자리"></div>' +
+    '<div class="col-12 col-md-8"><p class="small text-muted mb-0" id="opsNpOtpHint" data-pg-ui-t="노티생성 등록 시 Google OTP 6자리가 필요합니다. 성공 등록 후 20분 동안 재입력 없이 등록할 수 있습니다.">노티생성 등록 시 Google OTP 6자리가 필요합니다. 성공 등록 후 20분 동안 재입력 없이 등록할 수 있습니다.</p></div></div>' +
+    '<p class="small text-success mb-2 d-none" id="opsNpOtpGraceHint" data-pg-ui-t="OTP 인증 유효 중입니다. 추가 등록 시 OTP 입력이 생략됩니다(마지막 등록 후 20분).">OTP 인증 유효 중입니다. 추가 등록 시 OTP 입력이 생략됩니다(마지막 등록 후 20분).</p>' +
+    '<div class="d-flex flex-wrap gap-2 mb-0">' +
+    '<button type="button" class="btn btn-sm btn-outline-secondary" id="opsNpStatusBtn" data-pg-ui-t="NOTI 조회">NOTI 조회</button>' +
+    '<button type="button" class="btn btn-sm btn-primary" id="opsNpProvisionBtn" data-pg-ui-t="JPAY 노티 생성">JPAY 노티 생성</button></div></div></div>' +
+    '<div class="card d-none" id="opsNpResultCard">' +
+    '<div class="card-header py-2 fw-semibold" data-pg-ui-t="발급 결과">발급 결과</div>' +
+    '<div class="card-body small" id="opsNpResultBody"></div></div>' +
+    '<div class="card mt-3" id="opsNpListCard">' +
+    '<div class="card-header py-2 fw-semibold d-flex flex-wrap align-items-center gap-2">' +
+    '<span data-pg-ui-t="노티 생성 이력">노티 생성 이력</span>' +
+    '<div class="ms-auto d-flex flex-wrap gap-2 align-items-center">' +
+    '<input type="text" class="form-control form-control-sm" id="opsNpListSearchCompId" style="min-width:8rem" data-pg-ui-placeholder="업체코드" autocomplete="off">' +
+    '<button type="button" class="btn btn-sm btn-outline-secondary" id="opsNpListSearchBtn" data-pg-ui-t="조회">조회</button></div></div>' +
+    '<div class="table-responsive"><table class="table table-sm table-hover mb-0" id="grid_ops_np_provision_log">' +
+    '<thead><tr>' +
+    '<th class="text-nowrap" data-pg-ui-t="No">No</th>' +
+    '<th class="text-nowrap" data-pg-ui-t="생성일자">생성일자</th>' +
+    '<th class="text-nowrap" data-pg-ui-t="생성시각">생성시각</th>' +
+    '<th class="text-nowrap" data-pg-ui-t="업체코드">업체코드</th>' +
+    '<th class="text-nowrap" data-pg-ui-t="업체명">업체명</th>' +
+    '<th class="text-nowrap" data-pg-ui-t="NOTI 전산 대상 ID">NOTI 전산 대상 ID</th>' +
+    '<th class="text-nowrap" data-pg-ui-t="NOTI 슬롯">NOTI 슬롯</th>' +
+    '<th data-pg-ui-t="JPAY Notify URL">JPAY Notify URL</th>' +
+    '<th data-pg-ui-t="JPAY Callback URL">JPAY Callback URL</th>' +
+    '<th class="text-nowrap" data-pg-ui-t="DEALMAI Partner">DEALMAI Partner</th>' +
+    '<th class="text-nowrap" data-pg-ui-t="생성 여부">생성 여부</th>' +
+    '<th class="text-nowrap" data-pg-ui-t="처리자">처리자</th>' +
+    '<th class="text-nowrap text-center" style="min-width:7rem" data-pg-ui-t="관리">관리</th>' +
+    '</tr></thead><tbody id="opsNpListBody"></tbody></table></div>' +
+    '<div class="d-flex justify-content-between align-items-center px-3 py-2 border-top small">' +
+    '<span id="opsNpListTotal" class="text-muted"></span>' +
+    '<div class="d-flex gap-1 align-items-center">' +
+    '<button type="button" class="btn btn-sm btn-outline-secondary" id="opsNpListPrevBtn" data-pg-ui-t="이전">이전</button>' +
+    '<span id="opsNpListPageInfo" class="px-2 text-muted"></span>' +
+    '<button type="button" class="btn btn-sm btn-outline-secondary" id="opsNpListNextBtn" data-pg-ui-t="다음">다음</button></div></div></div></div>';
+
+  var OPS_NP_LOG_EDIT_MODAL_HTML = '<div class="modal fade" id="opsNpLogEditModal" tabindex="-1" aria-hidden="true">' +
+    '<div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">' +
+    '<div class="modal-header py-2"><h6 class="modal-title" data-pg-ui-t="노티 생성 이력 수정">노티 생성 이력 수정</h6>' +
+    '<button type="button" class="btn-close" data-bs-dismiss="modal" data-pg-ui-aria-label="닫기"></button></div>' +
+    '<div class="modal-body small">' +
+    '<input type="hidden" id="opsNpLogEditId">' +
+    '<div class="row g-2 mb-2"><div class="col-6"><span class="text-muted" data-pg-ui-t="업체코드">업체코드</span><div class="fw-semibold" id="opsNpLogEditCompId"></div></div>' +
+    '<div class="col-6"><span class="text-muted" data-pg-ui-t="NOTI 가맹점 ID">NOTI 가맹점 ID</span><div class="fw-semibold" id="opsNpLogEditMerchantId"></div></div></div>' +
+    '<div class="row g-2 mb-2"><div class="col-6"><span class="text-muted" data-pg-ui-t="생성일자">생성일자</span><div id="opsNpLogEditDate"></div></div>' +
+    '<div class="col-6"><span class="text-muted" data-pg-ui-t="NOTI 슬롯">NOTI 슬롯</span><div id="opsNpLogEditSlot"></div></div></div>' +
+    '<div class="mb-2"><label class="form-label mb-0" for="opsNpLogEditInternalTarget" data-pg-ui-t="NOTI 전산 대상 ID">NOTI 전산 대상 ID</label>' +
+    '<select class="form-select form-select-sm" id="opsNpLogEditInternalTarget"></select></div>' +
+    '<div class="row g-2 mb-2"><div class="col-md-6"><label class="form-label mb-0" for="opsNpLogEditDealmai" data-pg-ui-t="DEALMAI Partner 코드">DEALMAI Partner 코드</label>' +
+    '<select class="form-select form-select-sm" id="opsNpLogEditDealmai"></select></div>' +
+    '<div class="col-md-6 d-flex align-items-end"><div class="form-check mb-1">' +
+    '<input class="form-check-input" type="checkbox" id="opsNpLogEditDealmaiWebhook" checked>' +
+    '<label class="form-check-label" for="opsNpLogEditDealmaiWebhook" data-pg-ui-t="DEALMAI 웹훅 사용">DEALMAI 웹훅 사용</label></div></div></div>' +
+    '<div class="row g-2 mb-2"><div class="col-md-6"><label class="form-label mb-0" for="opsNpLogEditCallback" data-pg-ui-t="가맹점 callback URL">가맹점 callback URL</label>' +
+    '<input type="text" class="form-control form-control-sm" id="opsNpLogEditCallback" autocomplete="off"></div>' +
+    '<div class="col-md-6"><label class="form-label mb-0" for="opsNpLogEditResult" data-pg-ui-t="가맹점 result URL">가맹점 result URL</label>' +
+    '<input type="text" class="form-control form-control-sm" id="opsNpLogEditResult" autocomplete="off"></div></div>' +
+    '<div class="d-flex flex-wrap gap-3 mb-2">' +
+    '<div class="form-check"><input class="form-check-input" type="checkbox" id="opsNpLogEditRelay" checked>' +
+    '<label class="form-check-label" for="opsNpLogEditRelay" data-pg-ui-t="가맹점 노티 사용">가맹점 노티 사용</label></div>' +
+    '<div class="form-check"><input class="form-check-input" type="checkbox" id="opsNpLogEditInternal">' +
+    '<label class="form-check-label" for="opsNpLogEditInternal" data-pg-ui-t="전산 노티 사용">전산 노티 사용</label></div>' +
+    '<div class="form-check"><input class="form-check-input" type="checkbox" id="opsNpLogEditDevInternal" checked>' +
+    '<label class="form-check-label" for="opsNpLogEditDevInternal" data-pg-ui-t="개발 노티 사용">개발 노티 사용</label></div></div>' +
+    '<div class="d-none" id="opsNpLogEditOtpWrap"><label class="form-label mb-0" for="opsNpLogEditOtp" data-pg-ui-t="Google OTP (노티관리)">Google OTP (노티관리)</label>' +
+    '<input type="text" class="form-control form-control-sm font-monospace" id="opsNpLogEditOtp" maxlength="6" inputmode="numeric" autocomplete="one-time-code"></div>' +
+    '<p class="text-muted small mb-0" data-pg-ui-t="수정 시 NOTI 미들웨어 가맹 설정도 함께 반영됩니다.">수정 시 NOTI 미들웨어 가맹 설정도 함께 반영됩니다.</p>' +
+    '</div><div class="modal-footer py-2">' +
+    '<button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal" data-pg-ui-t="취소">취소</button>' +
+    '<button type="button" class="btn btn-sm btn-primary" id="opsNpLogEditSaveBtn" data-pg-ui-t="저장">저장</button></div></div></div></div>';
+
   /** 운영관리: 허브 안내 + 하위 메뉴에서 PG 연동·배포 정적 문서(배포설정과 동일 본문) */
   var OPS_MANAGEMENT_PLACEHOLDER_HTML = '<div class="ops-admin-placeholder text-muted small">' +
     '<h5 class="text-dark fw-semibold mb-3" data-pg-ui-t="운영관리">' + escUi(L('운영관리')) + '</h5>' +
@@ -2010,7 +2140,7 @@
 
   var OPS_INACTIVE_CARD_RELEASE_MODAL_HTML = '<div class="modal fade" id="opsIcReleaseModal" tabindex="-1" aria-hidden="true">' +
     '<div class="modal-dialog modal-dialog-centered"><div class="modal-content">' +
-    '<div class="modal-header py-2"><h6 class="modal-title" data-pg-ui-t="비활성 카드 해지">비활성 카드 해지</h6>' +
+    '<div class="modal-header py-2"><h6 class="modal-title" id="opsIcReleaseModalTitle" data-pg-ui-t="비활성 카드 해지">비활성 카드 해지</h6>' +
     '<button type="button" class="btn-close" data-bs-dismiss="modal" data-pg-ui-aria-label="닫기"></button></div>' +
     '<div class="modal-body">' +
     '<input type="hidden" id="opsIcReleaseId">' +
@@ -2491,6 +2621,39 @@
           ]
         },
         {
+          title: 'NOTI Provision API (JPAY 노티생성 연동)',
+          notice: '운영관리 「노티생성」 화면에서 NOTI 미들웨어 JPAY 가맹을 자동 등록할 때 사용합니다. NOTI 관리자 환경설정에서 발급한 Bearer API 키를 저장하고, ICOPAY 서버 egress IP를 NOTI 허용 IP에 등록하세요. 전산 대상 ID는 NOTI 노티 추가등록에 등록된 internal-targets ID입니다.',
+          rows: [
+            [{ label: 'Provision API 사용', type: 'select', name: 'notiProvisionEnabledYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 },
+             { label: 'NOTI 베이스 URL', type: 'text', name: 'notiProvisionBaseUrl', col: 4, placeholder: 'https://noti.icopay.net' }],
+            [{ label: 'Provision API 키', type: 'password', name: 'notiProvisionApiKey', col: 4, placeholder: 'NOTI에서 발급한 Bearer 키' },
+             { label: '기본 전산 대상 ID', type: 'text', name: 'notiProvisionDefaultInternalTargetId', col: 4, placeholder: '예: ONTL_HQ_JPY' }]
+          ]
+        },
+        {
+          title: '전산 대상 매핑 (노티생성 자동선택)',
+          notice: '가맹 기준화폐가 JPY이면 JPY 전산 대상 ID, USD이면 USD 전산 대상 ID를 노티생성 화면에 자동 제안합니다. NOTI internal-targets에 등록된 ID를 입력하세요.',
+          rows: [
+            [{ label: 'JPY 전산 대상 ID', type: 'text', name: 'notiProvisionInternalTargetJpy', col: 4, placeholder: '예: JPY API JPY 대응 ID' },
+             { label: 'USD 전산 대상 ID', type: 'text', name: 'notiProvisionInternalTargetUsd', col: 4, placeholder: '예: JPY API USD 대응 ID' }],
+            [{ type: 'customHtml', col: 12, html: '<p class="small text-muted mb-1" data-pg-ui-t="NOTI에 등록된 전산 대상 ID 목록입니다. 아래 ID를 JPY/USD 매핑에 입력하세요(표시명이 아닌 ID).">NOTI에 등록된 전산 대상 ID 목록입니다. 아래 ID를 JPY/USD 매핑에 입력하세요(표시명이 아닌 ID).</p>' +
+              '<div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0" id="hqNotiInternalTargetTable"><thead class="table-light"><tr>' +
+              '<th data-pg-ui-t="전산 대상 ID">전산 대상 ID</th><th data-pg-ui-t="표시명">표시명</th></tr></thead>' +
+              '<tbody id="hqNotiInternalTargetTbody"></tbody></table>' +
+              '<p class="text-muted small mb-0 d-none" id="hqNotiInternalTargetEmpty" data-pg-ui-t="NOTI 전산 대상 목록을 불러오지 못했습니다. Provision API 설정을 확인하세요.">NOTI 전산 대상 목록을 불러오지 못했습니다. Provision API 설정을 확인하세요.</p></div>' }]
+          ]
+        },
+        {
+          title: '노티웹훅구성 (DEALMAI Partner)',
+          notice: '운영관리 노티생성 화면의 DEALMAI Partner 코드 드롭다운에 노출할 목록입니다. 기본값은 아래 「기본 Partner 코드」에 저장합니다.',
+          rows: [
+            [{ label: '기본 Partner 코드', type: 'text', name: 'notiProvisionDefaultDealmaiPartner', col: 4, placeholder: '예: AV1-JA' },
+             { label: 'Partner 코드', type: 'text', name: 'newWebhookPartnerCode', col: 3, placeholder: '예: AV1-JA', button: 'Partner추가' },
+             { label: '표시명', type: 'text', name: 'newWebhookPartnerLabel', col: 3, placeholder: '선택' }],
+            [{ type: 'customHtml', col: 12, html: '<div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0" id="hqWebhookPartnerTable"><thead class="table-light"><tr><th data-pg-ui-t="Partner 코드">Partner 코드</th><th data-pg-ui-t="표시명">표시명</th><th class="text-center" style="width:5rem" data-pg-ui-t="삭제">삭제</th></tr></thead><tbody id="hqWebhookPartnerTbody"></tbody></table><p class="text-muted small mb-0 d-none" id="hqWebhookPartnerEmpty" data-pg-ui-t="등록된 Partner가 없습니다.">등록된 Partner가 없습니다.</p></div>' }]
+          ]
+        },
+        {
           title: '총판 노티 대상 생성',
           notice: '먼저 [연결 총판]에서 총판을 선택한 뒤 노티 대상명을 입력하고 [노티자동생성]을 누르세요. CALLBACK·RESULT URL이 발급되며 선택한 총판과 즉시 연결됩니다. 이때 해당 총판 업체 상세의 필수 노티(URL 1·2)도 발급 URL로 자동 반영됩니다(보조 URL 3·4는 유지). 목록의 [연결수정]으로 연결 총판을 바꾸면 동일하게 필수 노티가 갱신됩니다. 총판 저장 시 노티 URL에 동일 주소를 넣어 두면 저장 시 연결이 유지·갱신됩니다.',
           rows: [
@@ -2530,7 +2693,7 @@
                 '<div class="table-responsive hq-user-asst-matrix-scroll" style="max-height:28rem">' +
                 '<table class="table table-sm table-bordered align-middle mb-0 bg-white" id="hqUserAsstMatrixTable">' +
                 '<thead class="table-light sticky-top"><tr><th style="min-width:7rem" data-pg-ui-t="대메뉴">대메뉴</th><th style="min-width:8rem" data-pg-ui-t="메뉴">메뉴</th>' +
-                '<th class="text-center text-nowrap p-1" style="min-width:5.5rem" data-pg-ui-t="MANAGER">MANAGER</th><th class="text-center text-nowrap p-1" style="min-width:5.5rem" data-pg-ui-t="OPERATOR">OPERATOR</th>' +
+                '<th class="text-center text-nowrap p-1" style="min-width:5.5rem" data-pg-ui-t="SUPERVISOR">SUPERVISOR</th><th class="text-center text-nowrap p-1" style="min-width:5.5rem" data-pg-ui-t="MANAGER">MANAGER</th><th class="text-center text-nowrap p-1" style="min-width:5.5rem" data-pg-ui-t="OPERATOR">OPERATOR</th>' +
                 '<th class="text-center text-nowrap p-1" style="min-width:5.5rem" data-pg-ui-t="SETTLEMENT">SETTLEMENT</th><th class="text-center text-nowrap p-1" style="min-width:5.5rem" data-pg-ui-t="TECH">TECH</th>' +
                 '<th class="text-center text-nowrap p-1" style="min-width:5.5rem" data-pg-ui-t="CHATBOT">CHATBOT</th></tr></thead><tbody id="hqUserAsstMatrixTbody"></tbody></table></div>' +
                 '<div id="hqUserAsstBulkPanel" class="mt-3 p-2 border rounded bg-white small">' +
@@ -2548,6 +2711,28 @@
           ]
         },
         {
+          title: 'SUPERVISOR 사용자 부여',
+          notice: '총본사(HEADQUARTERS) 또는 시스템 ADMIN만 SUPERVISOR 역할을 부여·해제할 수 있습니다. 조직(총본사·본사·총판)을 선택한 뒤 해당 조직의 사용자 중 SUPERVISOR를 지정합니다. SUPERVISOR로 지정된 사용자만 운영관리 「노티관리」 메뉴에 접근할 수 있으며, 다른 관리자에게는 메뉴가 표시되지 않습니다.',
+          rows: [
+            [{
+              type: 'customHtml',
+              col: 12,
+              html: '<div id="hqSupervisorAssignRoot" class="border rounded p-2 bg-body-tertiary d-none">' +
+                '<div class="row g-2 align-items-end mb-2">' +
+                '<div class="col-12 col-md-4"><label class="form-label mb-0" for="hqSupervisorAssignOrg" data-pg-ui-t="조직 선택">조직 선택</label>' +
+                '<select class="form-select form-select-sm" id="hqSupervisorAssignOrg"><option value="" data-pg-ui-t="선택">선택</option></select></div>' +
+                '<div class="col-12 col-md-4"><label class="form-label mb-0" for="hqSupervisorAssignUserId" data-pg-ui-t="사용자 선택">사용자 선택</label>' +
+                '<select class="form-select form-select-sm" id="hqSupervisorAssignUserId" disabled><option value="" data-pg-ui-t="먼저 조직을 선택하세요.">먼저 조직을 선택하세요.</option></select></div>' +
+                '<div class="col-auto d-grid"><button type="button" class="btn btn-sm btn-primary" id="hqSupervisorAssignBtn" data-pg-ui-t="SUPERVISOR 부여">SUPERVISOR 부여</button></div></div>' +
+                '<div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0 bg-white" id="hqSupervisorUserTable">' +
+                '<thead class="table-light"><tr><th data-pg-ui-t="사용자ID">사용자ID</th><th data-pg-ui-t="사용자명">사용자명</th><th data-pg-ui-t="업체코드">업체코드</th><th data-pg-ui-t="업체명">업체명</th><th data-pg-ui-t="조직단계">조직단계</th><th class="text-center" style="width:6rem" data-pg-ui-t="해제">해제</th></tr></thead>' +
+                '<tbody id="hqSupervisorUserTbody"></tbody></table>' +
+                '<p class="text-muted small mb-0 d-none" id="hqSupervisorUserEmpty" data-pg-ui-t="등록된 SUPERVISOR 사용자가 없습니다.">등록된 SUPERVISOR 사용자가 없습니다.</p></div></div>' +
+                '<p class="text-muted small mb-0 d-none" id="hqSupervisorAssignDenied" data-pg-ui-t="SUPERVISOR 역할 부여·해제는 총본사(HEADQUARTERS) 또는 시스템 ADMIN만 가능합니다.">SUPERVISOR 역할 부여·해제는 총본사(HEADQUARTERS) 또는 시스템 ADMIN만 가능합니다.</p>'
+            }]
+          ]
+        },
+        {
           title: '태블릿모드 (담당자 권한)',
           notice: '태블릿 로그인·사이드바에 노출되는 메뉴만 담당자 역할별 기본 권한을 설정합니다. [태블릿설정]에서 해당 조직 단계에 노출하지 않은 메뉴는 접근불가(NONE)로 고정되며 선택이 비활성화됩니다(태블릿설정이 우선). 아래 조직 단계 탭으로 편집할 단계를 선택합니다.',
           rows: [
@@ -2560,7 +2745,7 @@
                 '<div class="table-responsive hq-user-tablet-matrix-scroll" style="max-height:22rem">' +
                 '<table class="table table-sm table-bordered align-middle mb-0 bg-white" id="hqUserTabletMatrixTable">' +
                 '<thead class="table-light sticky-top"><tr><th style="min-width:10rem" data-pg-ui-t="메뉴">메뉴</th>' +
-                '<th class="text-center text-nowrap p-1" style="min-width:5.5rem" data-pg-ui-t="MANAGER">MANAGER</th><th class="text-center text-nowrap p-1" style="min-width:5.5rem" data-pg-ui-t="OPERATOR">OPERATOR</th>' +
+                '<th class="text-center text-nowrap p-1" style="min-width:5.5rem" data-pg-ui-t="SUPERVISOR">SUPERVISOR</th><th class="text-center text-nowrap p-1" style="min-width:5.5rem" data-pg-ui-t="MANAGER">MANAGER</th><th class="text-center text-nowrap p-1" style="min-width:5.5rem" data-pg-ui-t="OPERATOR">OPERATOR</th>' +
                 '<th class="text-center text-nowrap p-1" style="min-width:5.5rem" data-pg-ui-t="SETTLEMENT">SETTLEMENT</th><th class="text-center text-nowrap p-1" style="min-width:5.5rem" data-pg-ui-t="TECH">TECH</th>' +
                 '<th class="text-center text-nowrap p-1" style="min-width:5.5rem" data-pg-ui-t="CHATBOT">CHATBOT</th></tr></thead><tbody id="hqUserTabletMatrixTbody"></tbody></table></div>' +
                 '<div id="hqUserTabletBulkPanel" class="mt-3 p-2 border rounded bg-white small">' +
@@ -4712,7 +4897,8 @@
         '[후속조치]는 본사설정 > 전산설정관리에서 기능을 켠 경우에만 동작합니다 (NOTI 환경설정과 동일).',
         '취소 건에 대한 정산 수수료 및 부가세는 정산 주기에 따라 반영됩니다.',
         '정산 주기 및 정산 수수료는 가맹점별로 상이할 수 있습니다.',
-        '상단 한 줄: 건수·통화별 총거래·승인·취소·수수료·담보·부가세·추정결산(승인−(취소+수수료+담보+부가세), 수수료내역과 동일 건별 산식)·아래 상태별 금액 pill. 본사·총본사는 통화별 병기, 총판·하위는 기준 통화 한 줄.'
+        '상단 한 줄: 건수·통화별 총거래·승인·취소·수수료·담보·부가세·추정결산(승인−(취소+수수료+담보+부가세), 수수료내역과 동일 건별 산식)·아래 상태별 금액 pill. 본사·총본사는 통화별 병기, 총판·하위는 기준 통화 한 줄.',
+        'VIEW SETTING에서 「단말기」(PC·iPhone·Android 등)·「위치」(예: KR | Seoul, 영어 고정) 열을 켤 수 있습니다. 결제개요와 동일 항목입니다.'
       ],
       summary: ['건수'],
       buttons: [
@@ -5705,7 +5891,7 @@
         'totalFee', 'feeVat', 'expectedPayout', 'settlementAmt', 'vatAppliedYn'
       ],
       noticeList: [
-        '검색: 첫 줄에서 거래일·빠른기간을 정한 뒤, 둘째 줄에서 검색구분·검색어·상태그룹을 맞추고 오른쪽 [검색]을 누릅니다. 「전체」는 해당 조건으로 좁히지 않습니다. VIEW SETTING에서 열 표시를 켜고 끌 수 있습니다. 앞쪽 열 순서(업체·거래일·거래시간·루트·승인번호·거래번호)는 통합 결제내역 기본과 같습니다. 건당수수료 열은 거래 성공 시 과금되는 성공(건당) 고정액만 표시합니다. 기타수수료: USDT·FX는 승인금액 대비 %(「결제(%)」 합계에 포함), 3DS는 정책통화 기준 건당 고정(합계 열에는 미포함·별도 열). 분할결제 거래는 분할(%)·분할수수료(% 과금액)·분할건당·분할고정(1회차에 분할건×회차수 합산)이 추가되며 총수수료·정산에 포함됩니다. 세 항목은 결제·건당 등과 별도로 동시 과금될 수 있습니다. 금액이 없으면 USDT·FX·3DS·분할 열은 — 입니다. 정산 수수료는 정산 실행 시 1회 과금되며, 송금(이체) 수수료는 그 이후 송금 처리 시 과금되어 정산리포트에 정산 수수료·송금 수수료로 각각 표시됩니다. 이 화면의 총수수료·지급예상에는 정산·송금 건당액이 포함되지 않습니다. 결제(성공): 건당·%(승인 시 부과) 열, 담보(롤링%·추정액), 지급예상액, 정산액(지급예상−담보추정). 실패·취소·무효·환불 등은 상태별 수수료 규칙을 따르며, 무효·환불 계열은 성공 건과 동일한 건당·%가 추가로 과금될 수 있습니다(이중 과금). 차감(취소·환불·무효·실패 등): 지급예상액은 0, 총수수료·부가세는 과금액(양수), 정산액은 −(총수수료+부가세)입니다. 담보 추정은 승인 건에만 표시됩니다. 본사·총판 등은 로그인 조직 하위 가맹점만 조회됩니다.'
+        '검색: 첫 줄에서 거래일·빠른기간을 정한 뒤, 둘째 줄에서 검색구분·검색어·상태그룹을 맞추고 오른쪽 [검색]을 누릅니다. 「전체」는 해당 조건으로 좁히지 않습니다. VIEW SETTING에서 열 표시를 켜고 끌 수 있습니다. 앞쪽 열 순서(업체·거래일·거래시간·루트·승인번호·거래번호)는 통합 결제내역 기본과 같습니다. 건당수수료 열은 거래 성공 시 과금되는 성공(건당) 고정액만 표시합니다. 기타수수료: 「결제(%)」열은 결제수수료(%) 과금액만 표시하고, USDT·FX·3DS는 각각 별도 열에 표시합니다(3DS는 건당 고정). 분할결제 거래는 분할(%)·분할수수료(% 과금액)·분할건당·분할고정(1회차에 분할건×회차수 합산)이 추가되며 총수수료·정산에 포함됩니다. 세 항목은 결제·건당 등과 별도로 동시 과금될 수 있습니다. 금액이 없으면 USDT·FX·3DS·분할 열은 — 입니다. 정산 수수료는 정산 실행 시 1회 과금되며, 송금(이체) 수수료는 그 이후 송금 처리 시 과금되어 정산리포트에 정산 수수료·송금 수수료로 각각 표시됩니다. 이 화면의 총수수료·지급예상에는 정산·송금 건당액이 포함되지 않습니다. 결제(성공): 건당·%(승인 시 부과) 열, 담보(롤링%·추정액), 지급예상액, 정산액(지급예상−담보추정). 실패·취소·무효·환불 등은 상태별 수수료 규칙을 따르며, 무효·환불 계열은 성공 건과 동일한 건당·%가 추가로 과금될 수 있습니다(이중 과금). 차감(취소·환불·무효·실패 등): 지급예상액은 0, 총수수료·부가세는 과금액(양수), 정산액은 −(총수수료+부가세)입니다. 담보 추정은 승인 건에만 표시됩니다. 본사·총판 등은 로그인 조직 하위 가맹점만 조회됩니다.'
       ],
       searchRows: [
         [
@@ -6589,12 +6775,19 @@
       summary: [],
       buttons: []
     },
+    '/ops/notiProvision': {
+      hideListGrid: true,
+      staticHtml: OPS_NOTI_PROVISION_HTML + OPS_NP_LOG_EDIT_MODAL_HTML,
+      summary: [],
+      buttons: []
+    },
     '/ops/inactiveCard': {
       listTopHtml: OPS_INACTIVE_CARD_REGISTER_HTML,
       emptyMessage: '등록된 비활성 카드가 없습니다.',
       paginationDefaultSize: 20,
       paginationSizeOptions: [20, 50, 100],
-      columnGuideFixedKeys: ['rowNo', 'registeredAt', 'compNm', 'compId', '_inactiveCardEdit', '_inactiveCardRelease'],
+      listSortDirToolbar: true,
+      columnGuideFixedKeys: ['_chk', 'rowNo', 'registeredAt', 'compNm', 'compId', '_inactiveCardEdit', '_inactiveCardRelease'],
       viewSettingDefaultSelectedKeys: [
         'lastModifiedAt', 'registeredBy', 'regTypeLabel', 'holderName', 'panDisplay', 'pgVendor', 'reason', 'activeYn', 'releasedAt', 'releasedBy', 'releasedReason'
       ],
@@ -6603,17 +6796,30 @@
         '등록·해지·수정은 본사권한설정에서 이 화면 권한을 삭제(전체) 또는 수정으로 부여한 계정만 가능합니다.',
         '카드번호는 마스킹 형식(앞 6자리 + *** + 뒤 4자리)으로 등록합니다. 업체코드·업체명은 출처 표시용이며, 등록된 카드는 전 가맹점 결제에서 차단됩니다.',
         '등록 구분: 수동=운영자 직접 등록, 자동=리스크 트리거 자동 등록. 본사설정 리스크설정의 수동등록·자동등록 건수에 반영됩니다.',
-        '해지는 목록 「해지」 버튼에서 실행합니다. 해지 사유(필수)·Google OTP 6자리가 필요합니다. 해지자는 해지자 열에, 사유는 해지사유 열에 각각 표시됩니다.',
-        '해지해도 등록 건은 삭제되지 않고 이력으로 남습니다. 해지된 건은 연두색으로 표시되며 해지일시·해지자·해지사유가 기록됩니다. 해지 건은 결제 차단(트리거)에 영향을 주지 않습니다.'
+        '해지는 목록 「해지」 버튼 또는 체크 후 [선택해지]·[전체해지]로 실행합니다. 해지 사유(필수)·Google OTP 6자리가 필요합니다. 해지자는 해지자 열에, 사유는 해지사유 열에 각각 표시됩니다.',
+        '[전체해지]는 현재 검색 조건(등록일·상태·검색어)에 맞는 등록 카드(상태=등록)만 한 번에 해지합니다. 페이지 구분 없이 조회 조건 전체가 대상입니다.',
+        '해지해도 등록 건은 삭제되지 않고 이력으로 남습니다. 해지된 건은 연두색으로 표시되며 해지일시·해지자·해지사유가 기록됩니다. 해지 건은 결제 차단(트리거)에 영향을 주지 않습니다.',
+        '카드 해지 시 동일 카드의 리스크 누적(실패 횟수·대기시간)도 함께 초기화되어 즉시 결제를 다시 시도할 수 있습니다.',
+        '등록(비활성) 상태인 카드로 결제를 재시도해도 결제내역·실패내역에는 새 건이 남지 않습니다. 트리거 N차까지의 유효 실패·JPAY 시도 완료 건만 목록에 표시됩니다.',
+        '목록 정렬은 등록일시 기준입니다. [헬로] 옆 「내림차순·오름차순」으로 최신·과거 순서를 바꿀 수 있습니다.'
       ],
       searchRows: [[
         { label: '상태', type: 'select', name: 'searchActiveYn', col: 2,
-          options: [{ v: 'ALL', t: '전체' }, { v: 'Y', t: '등록카드' }, { v: 'N', t: '해지됨' }] },
+          options: [{ v: 'ALL', t: '전체' }, { v: 'Y', t: '등록카드' }, { v: 'N', t: '해지카드' }] },
+        { label: '등록일', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+        { type: 'quickdate' },
+        { label: '검색어', type: 'text', name: 'searchKeyword', col: 4,
+          placeholder: '업체명·업체코드·이름·카드번호', i18nPhKey: 'searchInactiveCardKeyword' },
         { type: 'searchBtn' }
       ]],
       summary: ['건수'],
-      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }],
+      buttons: [
+        { id: 'opsIcReleaseSelectedBtn', label: '선택해지', cls: 'btn-warning', _insertBeforeHello: true },
+        { id: 'opsIcReleaseAllBtn', label: '전체해지', cls: 'btn-danger', _insertBeforeHello: true },
+        { id: 'searchBtn', label: '검색', cls: 'btn-primary' }
+      ],
       columns: [
+        { key: '_chk', type: 'checkbox' },
         { key: 'rowNo', label: '번호' },
         { key: 'registeredAt', label: '등록일시' },
         { key: 'lastModifiedAt', label: '최근일시', columnGuideLabel: '내용 수정 일시(등록일시와 별도)' },
@@ -7018,7 +7224,8 @@
     ])));
     MENU_SCREENS['/calc/payFailList'] = asStatusOnlyPayScreen(stripStatusDiv(cloneWith('FAIL', [
       '실패내역: 통합 결제내역에서 실패·거절만 간추렸습니다.',
-      '상단은 건수와 해당 상태(실패) 요약 pill만 표시합니다(일별통합과 동일).'
+      '상단은 건수와 해당 상태(실패) 요약 pill만 표시합니다(일별통합과 동일).',
+      '비활성카드·쿨다운 대기 중 재시도는 결제내역에 남기지 않습니다. 카드위험 트리거 N차까지의 유효 실패·JPAY 시도 완료 건만 표시됩니다.'
     ])));
     MENU_SCREENS['/calc/payRefundList'] = asStatusOnlyPayScreen(stripStatusDiv(cloneWith('REFUND', [
       '환불처리: 통합 결제내역에서 일반·자동환불(내부 30·42)만 간추렸습니다.',
@@ -7055,7 +7262,7 @@
     ]);
     MENU_SCREENS['/calc/payOverview'] = cloneWith('PAY_OVERVIEW', [
       '결제개요: 통합 결제내역과 동일 검색·VIEW SETTING·금액요약을 사용합니다.',
-      '단말기(PC·iPhone·Android 등)·위치(국가·도시, 예: KR, SEOUL)·IP·원인(JPAY 응답·ICOPAY 결제창 오류 포함) 열이 추가됩니다.',
+      '단말기(PC·iPhone·Android 등)·위치(국가 ISO2·도시, 예: KR | Seoul, 영어 고정)·IP·원인(JPAY 응답·ICOPAY 결제창 오류 포함) 열이 추가됩니다.',
       '신규 JPAY 결제부터 단말기·위치·IP가 적재됩니다. 과거 건은 값이 없을 수 있습니다.'
     ]);
     MENU_SCREENS['/pay/jpaySubscription'] = {
@@ -8083,7 +8290,12 @@
     } else if (refreshIdx >= 0) {
       out.splice(refreshIdx + 1, 0, hello);
     } else {
-      out.splice(0, 0, hello);
+      var insertAt = 0;
+      for (var pi = 0; pi < out.length; pi++) {
+        if (out[pi] && out[pi]._insertBeforeHello) insertAt = pi + 1;
+        else break;
+      }
+      out.splice(insertAt, 0, hello);
     }
     return out;
   }

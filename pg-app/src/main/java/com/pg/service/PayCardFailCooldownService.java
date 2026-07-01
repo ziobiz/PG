@@ -22,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -112,6 +114,7 @@ public class PayCardFailCooldownService {
         m.put("blockedUntil", until.toString());
         m.put("remainingMinutes", remainMin);
         m.put("cooldownTier", Math.min(Math.max(failCount, 1), 4));
+        m.put("skipPaymentListRecord", true);
         return Optional.of(m);
     }
 
@@ -122,6 +125,7 @@ public class PayCardFailCooldownService {
         m.put("messageKey", "INACTIVE_CARD");
         m.put("message", PayCardPolicyI18n.format(lang, "INACTIVE_CARD"));
         m.put("messages", PayCardPolicyI18n.allLang("INACTIVE_CARD"));
+        m.put("skipPaymentListRecord", true);
         return m;
     }
 
@@ -344,6 +348,41 @@ public class PayCardFailCooldownService {
                         .filter(nm -> nm != null && !nm.isBlank()))
                 .map(String::trim)
                 .orElse(null);
+    }
+
+    @Transactional
+    public void clearRiskStateOnInactiveCardRelease(String pgVendorRaw, String panHash, String panMaskKey) {
+        String hash = panHash != null ? panHash.trim() : "";
+        String mask = panMaskKey != null ? panMaskKey.trim() : "";
+        if (hash.isEmpty() && mask.isEmpty()) {
+            return;
+        }
+        for (String pg : pgScopesForInactiveCardRelease(pgVendorRaw)) {
+            for (PayCardFailCooldown row : cooldownRepository.findAllByPgAndPanIdentity(pg, hash, mask)) {
+                String rowHash = row.getPanHash();
+                if (rowHash != null && !rowHash.isBlank()) {
+                    riskEventRepository.deleteAllForCard(pg, rowHash.trim(), row.getOrgUnitId());
+                }
+                row.setFailCount(0);
+                row.setBlockedUntil(null);
+                row.setLastOutcomeCode(null);
+                cooldownRepository.save(row);
+            }
+        }
+    }
+
+    private static List<String> pgScopesForInactiveCardRelease(String pgVendorRaw) {
+        if (pgVendorRaw == null || pgVendorRaw.isBlank()) {
+            return List.of(PgVendor.JPAY, PgVendor.CHILLPAY);
+        }
+        String pg = pgVendorRaw.trim().toUpperCase(Locale.ROOT);
+        if (PgVendor.isJpayFamily(pg)) {
+            return List.of(PgVendor.JPAY);
+        }
+        if (PgVendor.isChillPayFamily(pg)) {
+            return List.of(PgVendor.CHILLPAY);
+        }
+        return List.of(pg);
     }
 
     private Optional<PayCardFailCooldown> findRow(String pg, String hash, Long orgUnitId) {

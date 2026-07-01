@@ -3,6 +3,7 @@ package com.pg.service;
 import com.pg.api.dto.PageResult;
 import com.pg.entity.AppUser;
 import com.pg.entity.HqNotifyEnvConfig;
+import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.UserCompAccess;
 import com.pg.repository.HqNotifyEnvConfigRepository;
@@ -10,6 +11,7 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.UserCompAccessRepository;
 import com.pg.repository.UserRepository;
 import com.pg.util.ChatbotMerchantAdminConstants;
+import com.pg.util.SupervisorAssistantConstants;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -17,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Order;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -213,7 +216,184 @@ public class UserListService {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("canManageUsers", canManage ? "Y" : "N");
         out.put("canResetPassword", canReset);
+        out.put("canAssignSupervisorRole", canAssignSupervisorRole(actor) ? "Y" : "N");
         return out;
+    }
+
+    public boolean canAssignSupervisorRole(AppUser actor) {
+        return isHeadquartersActor(actor);
+    }
+
+    public List<Map<String, Object>> listSupervisorUsers() {
+        return userRepository.findByAssistantRoleTypeIgnoreCase(SupervisorAssistantConstants.ASSISTANT_ROLE_TYPE)
+                .stream()
+                .map(this::toSupervisorRow)
+                .collect(Collectors.toList());
+    }
+
+    private static final List<OrgLevel> SUPERVISOR_ELIGIBLE_LEVELS =
+            List.of(OrgLevel.HEADQUARTERS, OrgLevel.REGIONAL, OrgLevel.MASTER_DIST);
+
+    /** SUPERVISOR 부여 대상 조직(총본사·본사·총판) 목록 */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> listSupervisorEligibleOrgs() {
+        List<OrgUnit> orgs = orgUnitRepository.findByOrgLevelInOrderByNameAsc(SUPERVISOR_ELIGIBLE_LEVELS);
+        orgs.sort((a, b) -> {
+            int la = supervisorOrgLevelOrder(a.getOrgLevel());
+            int lb = supervisorOrgLevelOrder(b.getOrgLevel());
+            if (la != lb) {
+                return Integer.compare(la, lb);
+            }
+            String na = a.getName() != null ? a.getName() : "";
+            String nb = b.getName() != null ? b.getName() : "";
+            return na.compareToIgnoreCase(nb);
+        });
+        return orgs.stream().map(this::toSupervisorOrgRow).collect(Collectors.toList());
+    }
+
+    /** 선택 조직의 SUPERVISOR 부여 후보 사용자 */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> listSupervisorAssignableUsers(String orgUnitCode) {
+        String code = safeTrim(orgUnitCode);
+        if (code.isEmpty()) {
+            return List.of();
+        }
+        OrgUnit ou = orgUnitRepository.findByCode(code)
+                .orElseThrow(() -> new IllegalArgumentException("조직을 찾을 수 없습니다: " + code));
+        if (!SupervisorAssistantConstants.isSupervisorEligibleOrgLevel(ou.getOrgLevel())) {
+            throw new IllegalArgumentException("SUPERVISOR 대상 조직이 아닙니다.");
+        }
+        return userRepository.findByOrgUnitCode(code).stream()
+                .filter(u -> u.getUsername() != null && !u.getUsername().isBlank())
+                .filter(u -> !"ADMIN".equalsIgnoreCase(safeTrim(u.getRole())))
+                .filter(u -> !SupervisorAssistantConstants.isSupervisorRoleType(u.getAssistantRoleType()))
+                .map(this::toSupervisorCandidateRow)
+                .collect(Collectors.toList());
+    }
+
+    private static int supervisorOrgLevelOrder(OrgLevel level) {
+        if (level == OrgLevel.HEADQUARTERS) {
+            return 0;
+        }
+        if (level == OrgLevel.REGIONAL) {
+            return 1;
+        }
+        if (level == OrgLevel.MASTER_DIST) {
+            return 2;
+        }
+        return 9;
+    }
+
+    private Map<String, Object> toSupervisorOrgRow(OrgUnit ou) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("orgUnitId", ou.getId());
+        row.put("compId", ou.getCode());
+        row.put("compNm", ou.getName() != null ? ou.getName() : ou.getCode());
+        row.put("orgLevel", ou.getOrgLevel() != null ? ou.getOrgLevel().name() : "");
+        return row;
+    }
+
+    private Map<String, Object> toSupervisorCandidateRow(AppUser u) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", u.getId());
+        row.put("userId", u.getUsername());
+        row.put("userNm", u.getName() != null ? u.getName() : "");
+        row.put("assistantRoleType", u.getAssistantRoleType() != null ? u.getAssistantRoleType() : "");
+        row.put("permissionGroupNm", u.getPermissionGroupNm() != null ? u.getPermissionGroupNm() : "");
+        return row;
+    }
+
+    @Transactional
+    public void assignSupervisorFromHqSettings(AppUser actor, String username) {
+        requireAssignSupervisor(actor);
+        String uid = safeTrim(username);
+        if (uid.isEmpty()) {
+            throw new IllegalArgumentException("SUPERVISOR로 지정할 사용자ID를 입력하세요.");
+        }
+        AppUser target = userRepository.findByUsernameIgnoreCase(uid)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자ID입니다."));
+        validateSupervisorTargetOrg(target);
+        if ("ADMIN".equalsIgnoreCase(safeTrim(target.getRole()))) {
+            throw new IllegalArgumentException("시스템 ADMIN 계정에는 SUPERVISOR 역할을 부여할 수 없습니다.");
+        }
+        target.setUserType("ASSISTANT");
+        target.setAssistantRoleType(SupervisorAssistantConstants.ASSISTANT_ROLE_TYPE);
+        target.setPermissionGroupNm(SupervisorAssistantConstants.PERMISSION_GROUP_NM);
+        userRepository.save(target);
+    }
+
+    @Transactional
+    public void revokeSupervisorFromHqSettings(AppUser actor, Long targetId) {
+        requireAssignSupervisor(actor);
+        if (targetId == null) {
+            throw new IllegalArgumentException("해제할 사용자 ID가 필요합니다.");
+        }
+        AppUser target = userRepository.findById(targetId)
+                .orElseThrow(() -> new IllegalArgumentException("해제할 사용자를 찾을 수 없습니다."));
+        if (!SupervisorAssistantConstants.isSupervisorRoleType(target.getAssistantRoleType())) {
+            throw new IllegalArgumentException("SUPERVISOR 역할이 아닌 사용자입니다.");
+        }
+        target.setAssistantRoleType("MANAGER");
+        target.setPermissionGroupNm(permissionGroupByAssistantRole("MANAGER"));
+        userRepository.save(target);
+    }
+
+    private void requireAssignSupervisor(AppUser actor) {
+        if (!canAssignSupervisorRole(actor)) {
+            throw new IllegalArgumentException("SUPERVISOR 역할 부여·해제는 총본사(HEADQUARTERS) 또는 시스템 ADMIN만 가능합니다.");
+        }
+    }
+
+    private void validateSupervisorTargetOrg(AppUser target) {
+        String code = safeTrim(target.getOrgUnitCode());
+        if (code.isEmpty()) {
+            throw new IllegalArgumentException("소속 조직이 없는 사용자에는 SUPERVISOR를 부여할 수 없습니다.");
+        }
+        OrgUnit ou = orgUnitRepository.findByCode(code)
+                .orElseThrow(() -> new IllegalArgumentException("사용자 소속 조직을 찾을 수 없습니다."));
+        if (!SupervisorAssistantConstants.isSupervisorEligibleOrgLevel(ou.getOrgLevel())) {
+            throw new IllegalArgumentException("SUPERVISOR는 총본사·본사·총판 조직 사용자에게만 부여할 수 있습니다.");
+        }
+    }
+
+    private boolean isHeadquartersActor(AppUser actor) {
+        if (actor == null) {
+            return false;
+        }
+        if ("ADMIN".equalsIgnoreCase(safeTrim(actor.getRole()))) {
+            return true;
+        }
+        String code = safeTrim(actor.getOrgUnitCode());
+        if (code.isEmpty()) {
+            return false;
+        }
+        return orgUnitRepository.findByCode(code)
+                .map(ou -> ou.getOrgLevel() == OrgLevel.HEADQUARTERS)
+                .orElse(false);
+    }
+
+    private Map<String, Object> toSupervisorRow(AppUser u) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", u.getId());
+        row.put("userId", u.getUsername());
+        row.put("userNm", u.getName() != null ? u.getName() : "");
+        String ouCode = safeTrim(u.getOrgUnitCode());
+        row.put("compId", ouCode.isEmpty() ? "-" : ouCode);
+        String compNm = "-";
+        String orgLevel = "";
+        if (!ouCode.isEmpty()) {
+            OrgUnit ou = orgUnitRepository.findByCode(ouCode).orElse(null);
+            if (ou != null) {
+                compNm = ou.getName() != null ? ou.getName() : ouCode;
+                orgLevel = ou.getOrgLevel() != null ? ou.getOrgLevel().name() : "";
+            } else {
+                compNm = ouCode;
+            }
+        }
+        row.put("compNm", compNm);
+        row.put("orgLevel", orgLevel);
+        row.put("userStatus", u.getUserStatus() != null ? u.getUserStatus() : "ACTIVE");
+        return row;
     }
 
     /**
@@ -224,6 +404,9 @@ public class UserListService {
                                  String username, String name, String mobile,
                                  String compId, String role, String userType, String assistantRoleType, String parentUsername) {
         requireManage(actor);
+        if (SupervisorAssistantConstants.isSupervisorRoleType(assistantRoleType)) {
+            throw new IllegalArgumentException("SUPERVISOR 역할은 본사설정 → 사용자설정에서만 부여할 수 있습니다.");
+        }
         String uid = safeTrim(username);
         if (uid.isEmpty()) throw new IllegalArgumentException("사용자ID를 입력하세요.");
         if (userRepository.findByUsername(uid).isPresent()) throw new IllegalArgumentException("이미 존재하는 사용자ID입니다.");
@@ -298,6 +481,13 @@ public class UserListService {
         applyUserStatus(target, newStatus);
         /* 대표(REPRESENTATIVE)는 권한그룹을 담당유형으로 덮어쓰지 않음(가맹 챗봇관리자·업체 대표 등 유지) */
         if ("ASSISTANT".equalsIgnoreCase(safeTrim(target.getUserType()))) {
+            if (SupervisorAssistantConstants.isSupervisorRoleType(assistantRoleType)) {
+                throw new IllegalArgumentException("SUPERVISOR 역할은 본사설정 → 사용자설정에서만 부여할 수 있습니다.");
+            }
+            if (SupervisorAssistantConstants.isSupervisorRoleType(target.getAssistantRoleType())
+                    && !SupervisorAssistantConstants.isSupervisorRoleType(assistantRoleType)) {
+                throw new IllegalArgumentException("SUPERVISOR 역할 해제는 본사설정 → 사용자설정에서만 가능합니다.");
+            }
             target.setAssistantRoleType(normalizeAssistantRole(assistantRoleType));
             target.setPermissionGroupNm(permissionGroupByAssistantRole(target.getAssistantRoleType()));
         }
@@ -402,7 +592,8 @@ public class UserListService {
         if ("ADMIN".equalsIgnoreCase(safeTrim(actor.getRole()))) {
             return true;
         }
-        return "MANAGER".equalsIgnoreCase(safeTrim(actor.getAssistantRoleType()));
+        return "MANAGER".equalsIgnoreCase(safeTrim(actor.getAssistantRoleType()))
+                || SupervisorAssistantConstants.isSupervisorRoleType(actor.getAssistantRoleType());
     }
 
     /**
@@ -416,7 +607,8 @@ public class UserListService {
         if ("ADMIN".equalsIgnoreCase(safeTrim(actor.getRole()))) {
             return true;
         }
-        if ("MANAGER".equalsIgnoreCase(safeTrim(actor.getAssistantRoleType()))) {
+        if ("MANAGER".equalsIgnoreCase(safeTrim(actor.getAssistantRoleType()))
+                || SupervisorAssistantConstants.isSupervisorRoleType(actor.getAssistantRoleType())) {
             return true;
         }
         String ut = safeTrim(actor.getUserType());
@@ -441,6 +633,9 @@ public class UserListService {
 
     private String normalizeAssistantRole(String assistantRoleType) {
         String t = safeTrim(assistantRoleType).toUpperCase(Locale.ROOT);
+        if (SupervisorAssistantConstants.isSupervisorRoleType(t)) {
+            throw new IllegalArgumentException("SUPERVISOR 역할은 본사설정 → 사용자설정에서만 부여할 수 있습니다.");
+        }
         if ("OPERATOR".equals(t) || "SETTLEMENT".equals(t) || "TECH".equals(t)
                 || "MANAGER".equals(t) || ChatbotMerchantAdminConstants.ASSISTANT_ROLE_TYPE.equals(t)) {
             return t;
@@ -450,6 +645,9 @@ public class UserListService {
 
     private String permissionGroupByAssistantRole(String role) {
         if (role == null || role.isBlank()) return "대표";
+        if (SupervisorAssistantConstants.isSupervisorRoleType(role)) {
+            return SupervisorAssistantConstants.PERMISSION_GROUP_NM;
+        }
         if (ChatbotMerchantAdminConstants.ASSISTANT_ROLE_TYPE.equalsIgnoreCase(role.trim())) {
             return ChatbotMerchantAdminConstants.PERMISSION_GROUP_NM;
         }

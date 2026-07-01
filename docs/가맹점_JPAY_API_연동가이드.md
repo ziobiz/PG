@@ -148,8 +148,13 @@ JPAY 관련 `errorCode` 예: `NOT_FOUND`, `ORG_DISABLED`, `BROKER_AUTH`, `JPAY_E
 | `compId` / `merchantId` | 예 | 가맹 식별 |
 | `orderNo` | 예 | 최대 64자(초과 시 잘림) |
 | `amount` | 예 | 0 초과 |
+| `payEmailAddress` | **예** | 구매자 이메일. JPAY 필수 |
+| `payTelephone` | **예** | 구매자 전화(**로컬 번호**). 국가번호 `+82` 등은 제거. JPAY 필수 |
+| `payCountryIsoCode2` | **예** | 구매자 국가 ISO 3166-1 alpha-2 (예: `KR`, `JP`, `TH` 대문자). JPAY 필수 |
 | `currency` | 아니오 | ChillPay URL 일반형과 동일: 가맹 → 총판 → 본사 **기준통화** 우선, 없으면 본문 값, 최종 **`JPY`** |
 | `payUrl` | 아니오 | 비우면 플랫폼 공개 베이스 |
+
+> **인라인 prepare** (`.../jpay/inline-checkout/prepare`) 사용 시에는 루트 `buyer` 또는 `buyerPrefill` 객체 안에 `email` · `phone` · `countryIso2` 를 넣습니다. 통합 prepare (`.../checkout/prepare`)도 동일합니다. 자세한 표는 `가맹점_통합Checkout_API_연동파라미터_규격.md` **표 1.2** 참고.
 
 **J-Pay Sale 매핑** ([공식 Sale API](https://docs.j-pay.net/docs/api/sale)): ICOPAY JSON → `pay_index` form.
 

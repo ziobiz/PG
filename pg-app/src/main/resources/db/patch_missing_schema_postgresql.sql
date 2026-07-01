@@ -689,3 +689,42 @@ WHERE status = '10'
   AND (approval_no IS NULL OR BTRIM(approval_no) = '')
   AND (card_pan_display IS NULL OR BTRIM(card_pan_display) = '');
 
+-- V216: ICOPAY 카드정책 사전차단 노이즈 실패 건 삭제 — db/V216_purge_icopay_presale_card_risk_noise.sql 과 동일
+DELETE FROM pg_trnsctn t
+WHERE t.status = '99'
+  AND COALESCE(t.settled_yn, 'N') = 'N'
+  AND t.paid_at IS NULL
+  AND UPPER(TRIM(COALESCE(t.outcome_reason_source, ''))) = 'ICOPAY'
+  AND (t.approval_no IS NULL OR BTRIM(t.approval_no) = '')
+  AND (t.chill_transaction_id IS NULL OR BTRIM(t.chill_transaction_id) = '')
+  AND (
+    UPPER(TRIM(COALESCE(t.outcome_reason_code, ''))) IN (
+      'INACTIVE_CARD',
+      'BLACKLIST',
+      'CARD_COOLDOWN',
+      'CARD_COOLDOWN_TIER_1',
+      'CARD_COOLDOWN_TIER_2',
+      'CARD_COOLDOWN_TIER_3',
+      'CARD_COOLDOWN_TIER_4'
+    )
+    OR (
+      (t.outcome_reason_code IS NULL OR BTRIM(t.outcome_reason_code) = '')
+      AND t.outcome_reason IS NOT NULL
+      AND (
+        t.outcome_reason LIKE '%고위험 거래로 인해 거부%'
+        OR t.outcome_reason LIKE '%high-risk policy%'
+        OR t.outcome_reason LIKE '%高リスク取引%'
+        OR t.outcome_reason LIKE '%高风险交易%'
+        OR t.outcome_reason LIKE '%ความเสี่ยงสูง%'
+        OR t.outcome_reason LIKE '%잠시 사용할 수 없습니다%'
+        OR t.outcome_reason LIKE '%temporarily unavailable%'
+        OR t.outcome_reason LIKE '%一時的にご利用いただけません%'
+        OR t.outcome_reason LIKE '%暂时无法使用%'
+        OR t.outcome_reason LIKE '%차 결제 실패 경고%'
+        OR t.outcome_reason LIKE '%payment failure warning%'
+        OR t.outcome_reason LIKE '%決済失敗警告%'
+        OR t.outcome_reason LIKE '%支付失败警告%'
+      )
+    )
+  );
+

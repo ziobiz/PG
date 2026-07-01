@@ -23,7 +23,7 @@
   <p class="lang-nav"><strong>언어:</strong>
     <a href="unified-checkout-api-parameters.html">English</a> · <strong>한국어</strong> · <a href="unified-checkout-api-parameters.ja.html">日本語</a> · <a href="unified-checkout-api-parameters.ch.html">中文</a> · <a href="unified-checkout-api-parameters.th.html">ไทย</a></p>
   <h1>표 1.1 · ICOPAY 통합 Checkout Prepare API 요청 파라미터</h1>
-  <p class="meta">문서 ID: ICOPAY-CHECKOUT-PREPARE-001 · v1.0 · PG 무관 통합 인라인 checkout (ChillPay/JPAY 자동 분기)</p>
+  <p class="meta">문서 ID: ICOPAY-CHECKOUT-PREPARE-001 · v1.1 · PG 무관 통합 인라인 checkout (ChillPay/JPAY 자동 분기)</p>
   <p><strong>엔드포인트:</strong> <code>POST {publicApiBaseUrl}/api/middleware/v1/merchant/checkout/prepare</code></p>
   <p><strong>헤더:</strong> <code>Content-Type: application/json</code>, <code>Accept: application/json</code>,
     <code>X-Icopay-Merchant-Broker-Secret</code> (브로커 시크릿 강제 시 필수)</p>
@@ -42,19 +42,21 @@
       <tr><td>6</td><td>productName</td><td>String</td><td>500</td><td>O</td><td>상품·주문 설명</td><td>결제창 표시</td></tr>
       <tr><td>7</td><td>item</td><td>String</td><td>500</td><td>O</td><td>productName 별칭</td><td>productName 없을 때 사용</td></tr>
       <tr><td>8</td><td>lang</td><td>String</td><td>5</td><td>O</td><td>결제창 UI 언어</td><td><strong>KOR · ENG · JPN · CHN · THA</strong> (또는 ko/en/ja/zh/th)</td></tr>
-      <tr><td>9</td><td>buyer</td><td>Object</td><td>—</td><td class="m">M</td><td>구매자 연락처·배송 prefill</td><td>표 1.2 참고. <code>buyerPrefill</code> 동일.</td></tr>
+      <tr><td>9</td><td>buyer</td><td>Object</td><td>—</td><td class="m">M</td><td>구매자 연락처·배송 prefill</td><td>표 1.2 필수 하위: <strong>email·phone·countryIso2</strong> (JPAY·ICOPAY). <code>buyerPrefill</code> 동일.</td></tr>
     </tbody>
   </table>
 
   <h2>표 1.2 — buyer 객체</h2>
+  <p class="meta"><strong>JPAY·ICOPAY 공통 필수(M):</strong> <code>email</code>, <code>phone</code>(로컬 번호, 국가번호 + 제거), <code>countryIso2</code>(ISO2 대문자).
+    JPAY 서버 직접 sale 시 <code>payEmailAddress</code>, <code>payTelephone</code>, <code>payCountryIsoCode2</code> 로 동일 요건.</p>
   <table>
     <thead>
       <tr><th>번호</th><th>항목</th><th>타입</th><th>길이</th><th>필수</th><th>설명</th><th>비고</th></tr>
     </thead>
     <tbody>
-      <tr><td>1</td><td>email</td><td>String</td><td>254</td><td class="m">M</td><td>구매자 이메일</td><td>ICOPAY 필수</td></tr>
-      <tr><td>2</td><td>phone</td><td>String</td><td>32</td><td class="m">M</td><td>로컬 전화번호</td><td>국가번호 + 제거, 로컬만.</td></tr>
-      <tr><td>3</td><td>countryIso2</td><td>String</td><td>2</td><td class="m">M</td><td>국가 ISO 3166-1 alpha-2</td><td>예: KR, US, TH — 대문자</td></tr>
+      <tr><td>1</td><td>email</td><td>String</td><td>254</td><td class="m">M</td><td>구매자 이메일</td><td>JPAY·ICOPAY 필수</td></tr>
+      <tr><td>2</td><td>phone</td><td>String</td><td>32</td><td class="m">M</td><td>로컬 전화번호</td><td>국가번호 + 제거, 로컬만. JPAY·ICOPAY 필수</td></tr>
+      <tr><td>3</td><td>countryIso2</td><td>String</td><td>2</td><td class="m">M</td><td>국가 ISO 3166-1 alpha-2</td><td>예: KR, US, TH — 대문자. JPAY·ICOPAY 필수</td></tr>
       <tr><td>4</td><td>address</td><td>String</td><td>200</td><td>O</td><td>배송 주소 1행</td><td>선택 prefill</td></tr>
       <tr><td>5</td><td>address2</td><td>String</td><td>200</td><td>O</td><td>배송 주소 2행</td><td></td></tr>
       <tr><td>6</td><td>city</td><td>String</td><td>100</td><td>O</td><td>도시</td><td></td></tr>

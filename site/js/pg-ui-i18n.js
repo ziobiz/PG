@@ -2143,11 +2143,11 @@
       CH: '在下方四项设置无效/退款结算（一般、收益、混合1/2、跟随总代/总部）。一般：扣净销售额，无效/退款不追加成功手续费。收益：不扣净销售额，再次收取成功手续费。跟随适用总部回款/应收默认值；此处选择则商户优先。',
       TH: 'ตั้งโมฆะ/คืนเงินในสี่ช่อง (มาตรฐาน·รายได้·ไฮบริด1/2·ตาม HQ) มาตรฐานหักยอด·ไม่เก็บค่าธรรมเนียมสำเร็จซ้ำ รายได้คงยอด·เก็บซ้ำ ตาม HQ ใช้ค่าเริ่มต้นจากหน้าตั้งค่า HQ'
     },
-    '검색: 첫 줄에서 거래일·빠른기간을 정한 뒤, 둘째 줄에서 검색구분·검색어·상태그룹을 맞추고 오른쪽 [검색]을 누릅니다. 「전체」는 해당 조건으로 좁히지 않습니다. 앞쪽 열 순서(업체·거래일·거래시간·루트·승인번호·거래번호)는 통합 결제내역 기본과 같습니다. 건당수수료 열은 거래 성공 시 과금되는 성공(건당) 고정액만 표시합니다. 기타수수료: USDT·FX는 승인금액 대비 %(「결제(%)」 합계에 포함), 3DS는 정책통화 기준 건당 고정(합계 열에는 미포함·별도 열). 세 항목은 결제·건당 등과 별도로 동시 과금될 수 있습니다. 금액이 없으면 USDT·FX·3DS 열은 — 입니다. 정산 수수료는 정산 실행 시 1회 과금되며, 송금(이체) 수수료는 그 이후 송금 처리 시 과금되어 정산리포트에 정산 수수료·송금 수수료로 각각 표시됩니다. 이 화면의 총수수료·지급예상에는 정산·송금 건당액이 포함되지 않습니다. 결제(성공): 건당·%(승인 시 부과) 열, 담보(롤링%·추정액), 지급예상액, 정산액(지급예상−담보추정). 실패·취소·무효·환불 등은 상태별 수수료 규칙을 따르며, 무효·환불 계열은 성공 건과 동일한 건당·%가 추가로 과금될 수 있습니다(이중 과금). 차감(취소·환불·무효·실패 등): 지급예상액은 0, 총수수료·부가세는 과금액(양수), 정산액은 −(총수수료+부가세)입니다. 담보 추정은 승인 건에만 표시됩니다. 본사·총판 등은 로그인 조직 하위 가맹점만 조회됩니다.': {
-      EN: 'Search: set transaction dates and quick range on the first row; on the second row set search field, keyword, and status group, then click [Search] on the right. [All] does not narrow that dimension. Leading columns (merchant, date, time, route, approval no., txn id) match the integrated payment list. The per-txn fee column shows only the flat success fee charged on successful transactions. Other fees: USDT·FX are % of approved amount (included in the Pay(%) total); 3DS is a fixed per-txn charge in policy currency (not in the sum totals, separate column). Those three may accrue alongside pay/per-txn fees. When there is no amount, USDT·FX·3DS show an em dash. Settlement fees are charged once per settlement run; wire/transfer fees are charged when the transfer is processed and appear separately on settlement reports as settlement fee and wire fee. This screen’s total fees and expected payout exclude settlement/wire per-txn rows. Pay (success): per-txn and % columns charged on approval; collateral (rolling % and estimate); expected payout; settlement amount (expected minus collateral estimate). Fail/cancel/void/refund follow state-specific fee rules; void/refund families may incur the same per-txn/% as success (double charge). Deductions (cancel/refund/void/fail, etc.): expected payout is 0; total fee and VAT are charged amounts (positive); settlement amount is −(total fee + VAT). Collateral estimate is shown only for approved transactions. HQ/distributors see only merchants under the logged-in organization.',
-      JP: '検索：1行目で取引日・クイック期間を指定し、2行目で検索区分・キーワード・状態グループを合わせて右の［検索］を押します。「すべて」はその条件での絞り込みを行いません。先頭列（加盟店・取引日・時刻・ルート・承認番号・取引番号）は統合決済一覧と同じ順です。件当手数料列は取引成功時のみ課される成功（件当）固定額を表示します。その他手数料：USDT・FXは承認金額比の%（「決済(%)」合計に含む）、3DSは政策通貨基準の件当固定（合計列には含まず別列）。3つは決済・件当等とは別に同時課金され得ます。金額がない場合USDT・FX・3DSは「—」です。精算手数料は精算実行時に1回課金され、送金（振込）手数料はその後の送金処理で課金され精算レポートに精算手数料・送金手数料として表示されます。この画面の手数料合計・支払予定額には精算・送金の件当は含みません。決済（成功）：件当・%（承認時）列、担保（ロール%・見積額）、支払予定額、精算額（支払予定−担保見積）。失敗・取消・無効・返金等は状態別の手数料ルールに従い、無効・返金系は成功取引と同様の件当・%が追加課金され得ます（二重課金）。控除（取消・返金・無効・失敗等）：支払予定額は0、手数料合計・消費税は課金額（正）、精算額は−(手数料合計+消費税)です。担保見積は承認取引のみ表示されます。本社・総販等はログイン組織配下の加盟店のみ照会できます。',
-      CH: '搜索：首行设交易日与快捷区间，次行设搜索字段、关键词、状态分组后点右侧【搜索】。「全部」不按该维度筛选。前列顺序（商户、交易日期、时间、路由、授权号、交易号）与综合支付列表一致。按笔手续费列仅显示成功交易时收取的固定成功费。其他费用：USDT·FX 为批准金额比例%（计入「支付(%)」合计）；3DS 为政策货币按笔固定（不计入合计列，单独列）。三者可与支付/按笔等同时计费。无金额时 USDT·FX·3DS 显示「—」。结算手续费在结算执行时收取一次；汇款（转账）手续费在后续汇款处理时收取并在结算报告中分列。本屏手续费合计与预计拨付不含结算/汇款按笔。支付（成功）：按笔与%（批准时）列、担保（滚动%·估计额）、预计拨付额、结算额（预计−担保估计）。失败·取消·作废·退款等按状态计费规则；作废·退款类可能与成功交易同样再收按笔/%（双重计费）。扣减（取消·退款·作废·失败等）：预计拨付为0；手续费合计与增值税为计费额（正）；结算额为−(手续费合计+增值税)。担保估计仅对批准交易显示。总部/总代等仅可查登录组织下属商户。',
-      TH: 'ค้นหา: แถวแรกตั้งวันที่และช่วงด่วน แถวสองตั้งฟิลด์ค้นหา คำค้น กลุ่มสถานะ แล้วกด [ค้นหา] ขวา 「ทั้งหมด」ไม่กรองมิตินั้น คอลัมน์หน้าเหมือนรายการชำระรวม ค่าธรรมเนียมต่อรายการแสดงเฉพาะค่าคงที่ตอนสำเร็จ USDT·FX เป็น % ของยอดอนุมัติ (รวมใน「ชำระ(%)」) 3DS เป็นคงที่ต่อรายการตามสกุลนโยบาย (คอลัมน์แยก) ค่าธรรมเนียมชำระบัญชี/โอนต่อรายการไม่รวมในยอดรวมหน้านี้ สำเร็จ: คอลัมน์ต่อรายการ·% หลักประกัน ยอดจ่ายโดยประมาณ ยอดชำระ (ประมาณ−หลักประกัน) ล้มเหลว·ยกเลิก·โมฆะ·คืนเงิน ตามกฎสถานะ โมฆะ/คืนอาจถูกเก็บซ้ำ หัก: ยอดจ่ายโดยประมาณ=0 รวม+Vat เป็นบวก ยอดชำระ=−(รวม+Vat) ประมาณหลักประกันเฉพาะอนุมัติ เห็นเฉพาะร้านใต้องค์กรที่ล็อกอิน'
+    '검색: 첫 줄에서 거래일·빠른기간을 정한 뒤, 둘째 줄에서 검색구분·검색어·상태그룹을 맞추고 오른쪽 [검색]을 누릅니다. 「전체」는 해당 조건으로 좁히지 않습니다. 앞쪽 열 순서(업체·거래일·거래시간·루트·승인번호·거래번호)는 통합 결제내역 기본과 같습니다. 건당수수료 열은 거래 성공 시 과금되는 성공(건당) 고정액만 표시합니다. 기타수수료: 「결제(%)」열은 결제수수료(%) 과금액만 표시하고, USDT·FX·3DS는 각각 별도 열에 표시합니다(3DS는 건당 고정). 세 항목은 결제·건당 등과 별도로 동시 과금될 수 있습니다. 금액이 없으면 USDT·FX·3DS 열은 — 입니다. 정산 수수료는 정산 실행 시 1회 과금되며, 송금(이체) 수수료는 그 이후 송금 처리 시 과금되어 정산리포트에 정산 수수료·송금 수수료로 각각 표시됩니다. 이 화면의 총수수료·지급예상에는 정산·송금 건당액이 포함되지 않습니다. 결제(성공): 건당·%(승인 시 부과) 열, 담보(롤링%·추정액), 지급예상액, 정산액(지급예상−담보추정). 실패·취소·무효·환불 등은 상태별 수수료 규칙을 따르며, 무효·환불 계열은 성공 건과 동일한 건당·%가 추가로 과금될 수 있습니다(이중 과금). 차감(취소·환불·무효·실패 등): 지급예상액은 0, 총수수료·부가세는 과금액(양수), 정산액은 −(총수수료+부가세)입니다. 담보 추정은 승인 건에만 표시됩니다. 본사·총판 등은 로그인 조직 하위 가맹점만 조회됩니다.': {
+      EN: 'Search: set transaction dates and quick range on the first row; on the second row set search field, keyword, and status group, then click [Search] on the right. [All] does not narrow that dimension. Leading columns (merchant, date, time, route, approval no., txn id) match the integrated payment list. The per-txn fee column shows only the flat success fee charged on successful transactions. Other fees: Pay(%) shows payment-fee (%) charges only; USDT·FX·3DS each have their own column (3DS is fixed per txn). Those three may accrue alongside pay/per-txn fees. When there is no amount, USDT·FX·3DS show an em dash. Settlement fees are charged once per settlement run; wire/transfer fees are charged when the transfer is processed and appear separately on settlement reports as settlement fee and wire fee. This screen’s total fees and expected payout exclude settlement/wire per-txn rows. Pay (success): per-txn and % columns charged on approval; collateral (rolling % and estimate); expected payout; settlement amount (expected minus collateral estimate). Fail/cancel/void/refund follow state-specific fee rules; void/refund families may incur the same per-txn/% as success (double charge). Deductions (cancel/refund/void/fail, etc.): expected payout is 0; total fee and VAT are charged amounts (positive); settlement amount is −(total fee + VAT). Collateral estimate is shown only for approved transactions. HQ/distributors see only merchants under the logged-in organization.',
+      JP: '検索：1行目で取引日・クイック期間を指定し、2行目で検索区分・キーワード・状態グループを合わせて右の［検索］を押します。「すべて」はその条件での絞り込みを行いません。先頭列（加盟店・取引日・時刻・ルート・承認番号・取引番号）は統合決済一覧と同じ順です。件当手数料列は取引成功時のみ課される成功（件当）固定額を表示します。その他手数料：「決済(%)」列は決済手数料(%)のみ、USDT・FX・3DSは各別列（3DSは件当固定）。3つは決済・件当等とは別に同時課金され得ます。金額がない場合USDT・FX・3DSは「—」です。精算手数料は精算実行時に1回課金され、送金（振込）手数料はその後の送金処理で課金され精算レポートに精算手数料・送金手数料として表示されます。この画面の手数料合計・支払予定額には精算・送金の件当は含みません。決済（成功）：件当・%（承認時）列、担保（ロール%・見積額）、支払予定額、精算額（支払予定−担保見積）。失敗・取消・無効・返金等は状態別の手数料ルールに従い、無効・返金系は成功取引と同様の件当・%が追加課金され得ます（二重課金）。控除（取消・返金・無効・失敗等）：支払予定額は0、手数料合計・消費税は課金額（正）、精算額は−(手数料合計+消費税)です。担保見積は承認取引のみ表示されます。本社・総販等はログイン組織配下の加盟店のみ照会できます。',
+      CH: '搜索：首行设交易日与快捷区间，次行设搜索字段、关键词、状态分组后点右侧【搜索】。「全部」不按该维度筛选。前列顺序（商户、交易日期、时间、路由、授权号、交易号）与综合支付列表一致。按笔手续费列仅显示成功交易时收取的固定成功费。其他费用：「支付(%)」列仅显示支付手续费(%)，USDT·FX·3DS 分列显示（3DS 为按笔固定）。三者可与支付/按笔等同时计费。无金额时 USDT·FX·3DS 显示「—」。结算手续费在结算执行时收取一次；汇款（转账）手续费在后续汇款处理时收取并在结算报告中分列。本屏手续费合计与预计拨付不含结算/汇款按笔。支付（成功）：按笔与%（批准时）列、担保（滚动%·估计额）、预计拨付额、结算额（预计−担保估计）。失败·取消·作废·退款等按状态计费规则；作废·退款类可能与成功交易同样再收按笔/%（双重计费）。扣减（取消·退款·作废·失败等）：预计拨付为0；手续费合计与增值税为计费额（正）；结算额为−(手续费合计+增值税)。担保估计仅对批准交易显示。总部/总代等仅可查登录组织下属商户。',
+      TH: 'ค้นหา: แถวแรกตั้งวันที่และช่วงด่วน แถวสองตั้งฟิลด์ค้นหา คำค้น กลุ่มสถานะ แล้วกด [ค้นหา] ขวา 「ทั้งหมด」ไม่กรองมิตินั้น คอลัมน์หน้าเหมือนรายการชำระรวม ค่าธรรมเนียมต่อรายการแสดงเฉพาะค่าคงที่ตอนสำเร็จ USDT·FX·3DS แยกคอลัมน์ (ชำระ(%) แสดงเฉพาะค่าธรรมเนียมชำระ %) ค่าธรรมเนียมชำระบัญชี/โอนต่อรายการไม่รวมในยอดรวมหน้านี้ สำเร็จ: คอลัมน์ต่อรายการ·% หลักประกัน ยอดจ่ายโดยประมาณ ยอดชำระ (ประมาณ−หลักประกัน) ล้มเหลว·ยกเลิก·โมฆะ·คืนเงิน ตามกฎสถานะ โมฆะ/คืนอาจถูกเก็บซ้ำ หัก: ยอดจ่ายโดยประมาณ=0 รวม+Vat เป็นบวก ยอดชำระ=−(รวม+Vat) ประมาณหลักประกันเฉพาะอนุมัติ เห็นเฉพาะร้านใต้องค์กรที่ล็อกอิน'
     },
     '총판이 허용·대표 주기를 쓰면 가맹 정산주기 셀렉트가 그 범위로 바뀝니다. 정산안함: 배치 적립 없음. RT·건별 / T0·TM·TH·당일합산 / M5·M10·M30·분마다 / H1~H12·시간마다 / D·W·WK·실행마다 1건. D0 자동: 당일 23:50까지(총판별 정산 크론 기준 Zone). 이체및송금: 수동·자동·자동(수동불가)·임의출금·사용안함. 이체주기(분)는 자동 계열만. 지급보류: 정산은 진행, 출금만 제한. 정산제외: D0 등 휴일 제외 등(세부는 설정 화면).': {
       EN: 'If the distributor allows a representative cycle, the merchant settlement-cycle list is limited to that range. No settlement: no batch accrual. RT per txn / T0·TM·TH same-day / M5·M10·M30 per minute / H1–H12 hourly / D·W·WK one row per run. D0 auto: until 23:50 same day (per distributor cron zone). Transfer/remit: manual, auto, auto(no manual), ad-hoc withdraw, disabled. Transfer interval (minutes) applies only to auto chains. Payout hold: settlement continues, payouts only restricted. Settlement exclude: e.g. D0 holiday rules (see settings screens).',
@@ -8159,6 +8159,271 @@
       TH: 'เติมสิทธิ์เดียวกันเฉพาะระดับองค์กรและบทบาทที่เลือก เมนูหลัก「เมนูทั้งหมด」ครอบคลุม URL ทั้งหมดในแคตตาล็อก'
     },
     'MANAGER': { EN: 'MANAGER', JP: 'MANAGER', CH: 'MANAGER', TH: 'MANAGER' },
+    '노티생성': {
+      EN: 'NOTI provision',
+      JP: 'ノティ作成',
+      CH: 'NOTI创建',
+      TH: 'สร้าง NOTI'
+    },
+    'NOTI Provision API (JPAY 노티생성 연동)': {
+      EN: 'NOTI Provision API (JPAY NOTI creation)',
+      JP: 'NOTI Provision API（JPAYノティ作成連携）',
+      CH: 'NOTI Provision API（JPAY NOTI创建联动）',
+      TH: 'NOTI Provision API (สร้าง NOTI JPAY)'
+    },
+    '운영관리 「노티생성」 화면에서 NOTI 미들웨어 JPAY 가맹을 자동 등록할 때 사용합니다. NOTI 관리자 환경설정에서 발급한 Bearer API 키를 저장하고, ICOPAY 서버 egress IP를 NOTI 허용 IP에 등록하세요. 전산 대상 ID는 NOTI 노티 추가등록에 등록된 internal-targets ID입니다.': {
+      EN: 'Used when the Operations → NOTI provision screen auto-registers JPAY merchants on NOTI middleware. Save the Bearer API key from NOTI admin settings and register ICOPAY server egress IP in NOTI allowed IPs. Internal target ID must exist in NOTI internal-targets (additional registration).',
+      JP: '運用管理「ノティ作成」画面でNOTIミドルウェアにJPAY加盟店を自動登録する際に使用します。NOTI管理者環境設定で発行したBearer APIキーを保存し、ICOPAYサーバーegress IPをNOTI許可IPに登録してください。 전산 대상 IDはNOTIノティ追加登録のinternal-targets IDです。',
+      CH: '供运营管理「NOTI创建」画面在 NOTI 中间件自动登记 JPAY 商户时使用。请保存 NOTI 管理端签发的 Bearer API 密钥，并将 ICOPAY 服务器 egress IP 登记到 NOTI 允许 IP。 전산 대상 ID 须为 NOTI internal-targets 中已登记的 ID。',
+      TH: 'ใช้เมื่อหน้าดำเนินงาน → สร้าง NOTI ลงทะเบียนร้าน JPAY บน NOTI middleware อัตโนมัติ บันทึก Bearer API key จาก NOTI admin และลงทะเบียน egress IP ของ ICOPAY ใน NOTI allowed IP รหัสเป้าหมายภายใน (internal-targets) ต้องมีใน NOTI แล้ว'
+    },
+    'Provision API 사용': {
+      EN: 'Provision API enabled',
+      JP: 'Provision API 使用',
+      CH: '启用 Provision API',
+      TH: 'ใช้ Provision API'
+    },
+    'NOTI 베이스 URL': {
+      EN: 'NOTI base URL',
+      JP: 'NOTIベースURL',
+      CH: 'NOTI 基础 URL',
+      TH: 'NOTI base URL'
+    },
+    'Provision API 키': {
+      EN: 'Provision API key',
+      JP: 'Provision APIキー',
+      CH: 'Provision API 密钥',
+      TH: 'Provision API key'
+    },
+    'NOTI에서 발급한 Bearer 키': {
+      EN: 'Bearer key issued by NOTI',
+      JP: 'NOTI発行Bearerキー',
+      CH: 'NOTI 签发的 Bearer 密钥',
+      TH: 'Bearer key จาก NOTI'
+    },
+    '기본 전산 대상 ID': {
+      EN: 'Default internal target ID',
+      JP: '既定 전산 대상 ID',
+      CH: '默认 internal target ID',
+      TH: 'รหัสเป้าหมายภายในเริ่มต้น'
+    },
+    '본사설정 → 노티구성설정에서 NOTI Provision API 사용·베이스 URL·API 키를 저장한 뒤 이용하세요.': {
+      EN: 'Configure NOTI Provision API (enable, base URL, API key) under HQ settings → NOTI configuration before using this screen.',
+      JP: '利用前に本社設定→ノティ構成設定でNOTI Provision API（使用・ベースURL・APIキー）を保存してください。',
+      CH: '请先在总部设置→NOTI 配置中保存 NOTI Provision API（启用·基础 URL·API 密钥）后再使用本画面。',
+      TH: 'ก่อนใช้งาน ตั้งค่า NOTI Provision API (เปิดใช้·base URL·API key) ที่ สำนักงานใหญ่ → การตั้งค่า NOTI'
+    },
+    'JPAY 노티 생성': {
+      EN: 'Create JPAY NOTI',
+      JP: 'JPAYノティ作成',
+      CH: '创建 JPAY NOTI',
+      TH: 'สร้าง NOTI JPAY'
+    },
+    '가맹 업체코드로 NOTI 미들웨어에 JPAY 가맹을 등록하고, 발급 URL을 업체 JPAY 수신통보 URL에 반영합니다.': {
+      EN: 'Registers a JPAY merchant on NOTI middleware by merchant code and applies issued URLs to the merchant JPAY notify fields.',
+      JP: '加盟店コードでNOTIミドルウェアにJPAY加盟店を登録し、発行URLを加盟店JPAY受信通知URLに反映します。',
+      CH: '按商户代码在 NOTI 中间件登记 JPAY 商户，并将签发 URL 写入商户 JPAY 通知 URL。',
+      TH: 'ลงทะเบียนร้าน JPAY บน NOTI middleware ด้วยรหัสร้าน และบันทึก URL ที่ออกไปยัง JPAY notify ของร้าน'
+    },
+    '가맹 업체코드': {
+      EN: 'Merchant code',
+      JP: '加盟店コード',
+      CH: '商户代码',
+      TH: 'รหัสร้านค้า'
+    },
+    'NOTI 전산 대상 ID': {
+      EN: 'NOTI internal target ID',
+      JP: 'NOTI 전산 대상 ID',
+      CH: 'NOTI internal target ID',
+      TH: 'NOTI internal target ID'
+    },
+    '가맹 릴레이 URL(선택)': {
+      EN: 'Merchant relay URL (optional)',
+      JP: '加盟店リレーURL（任意）',
+      CH: '商户 relay URL（可选）',
+      TH: 'Merchant relay URL (ไม่บังคับ)'
+    },
+    '가맹 RESULT URL(선택)': {
+      EN: 'Merchant RESULT URL (optional)',
+      JP: '加盟店RESULT URL（任意）',
+      CH: '商户 RESULT URL（可选）',
+      TH: 'Merchant RESULT URL (ไม่บังคับ)'
+    },
+    '비우면 가맹 BACKGROUND URL': {
+      EN: 'If empty, uses merchant BACKGROUND URL',
+      JP: '空欄時は加盟店BACKGROUND URL',
+      CH: '留空则使用商户 BACKGROUND URL',
+      TH: 'ว่างไว้ใช้ BACKGROUND URL ของร้าน'
+    },
+    '비우면 가맹 RESULT URL': {
+      EN: 'If empty, uses merchant RESULT URL',
+      JP: '空欄時は加盟店RESULT URL',
+      CH: '留空则使用商户 RESULT URL',
+      TH: 'ว่างไว้ใช้ RESULT URL ของร้าน'
+    },
+    '발급 결과': {
+      EN: 'Provision result',
+      JP: '発行結果',
+      CH: '签发结果',
+      TH: 'ผลการออก'
+    },
+    'JPAY Notify URL': {
+      EN: 'JPAY Notify URL',
+      JP: 'JPAY Notify URL',
+      CH: 'JPAY Notify URL',
+      TH: 'JPAY Notify URL'
+    },
+    'JPAY Callback URL': {
+      EN: 'JPAY Callback URL',
+      JP: 'JPAY Callback URL',
+      CH: 'JPAY Callback URL',
+      TH: 'JPAY Callback URL'
+    },
+    'NOTI 슬롯': {
+      EN: 'NOTI slot',
+      JP: 'NOTIスロット',
+      CH: 'NOTI 槽位',
+      TH: 'NOTI slot'
+    },
+    '생성 여부': {
+      EN: 'Created',
+      JP: '作成有無',
+      CH: '是否新建',
+      TH: 'สร้างใหม่'
+    },
+    '신규 생성': {
+      EN: 'Newly created',
+      JP: '新規作成',
+      CH: '新建',
+      TH: 'สร้างใหม่'
+    },
+    '기존 동일': {
+      EN: 'Existing (unchanged)',
+      JP: '既存（同一）',
+      CH: '已存在（相同）',
+      TH: 'มีอยู่แล้ว (เหมือนเดิม)'
+    },
+    '가맹 업체코드를 입력하세요.': {
+      EN: 'Enter the merchant company code.',
+      JP: '加盟店コードを入力してください。',
+      CH: '请输入商户代码。',
+      TH: 'กรอกรหัสร้านค้า'
+    },
+    '노티생성 실행 권한이 없습니다(본사권한설정).': {
+      EN: 'You do not have permission to run NOTI provision (check HQ permissions).',
+      JP: 'ノティ作成実行権限がありません（本社権限設定）。',
+      CH: '无 NOTI 创建执行权限（请检查总部权限设置）。',
+      TH: 'ไม่มีสิทธิ์รัน NOTI provision (ตรวจสิทธิ์ HQ)'
+    },
+    'NOTI에 JPAY 가맹을 생성(또는 조회)하고 ICOPAY 업체 URL을 반영합니다. 계속하시겠습니까?': {
+      EN: 'Create (or fetch) a JPAY merchant on NOTI and apply URLs to ICOPAY. Continue?',
+      JP: 'NOTIにJPAY加盟店を作成（または照会）し、ICOPAY加盟店URLに反映します。続行しますか？',
+      CH: '将在 NOTI 创建（或查询）JPAY 商户并写入 ICOPAY 商户 URL。是否继续？',
+      TH: 'สร้าง (หรือดึง) ร้าน JPAY บน NOTI และบันทึก URL ใน ICOPAY ต่อหรือไม่'
+    },
+    'SUPERVISOR': { EN: 'SUPERVISOR', JP: 'SUPERVISOR', CH: 'SUPERVISOR', TH: 'SUPERVISOR' },
+    '감독(SUPERVISOR)': {
+      EN: 'Supervisor (SUPERVISOR)',
+      JP: '監督(SUPERVISOR)',
+      CH: '督导(SUPERVISOR)',
+      TH: 'ผู้กำกับ (SUPERVISOR)'
+    },
+    '감독담당': {
+      EN: 'Supervisor duty',
+      JP: '監督担当',
+      CH: '督导担当',
+      TH: 'หน้าที่ผู้กำกับ'
+    },
+    '노티생성': {
+      EN: 'NOTI provision',
+      JP: 'ノティ作成',
+      CH: 'NOTI创建',
+      TH: 'สร้าง NOTI'
+    },
+    'SUPERVISOR 사용자 부여': {
+      EN: 'Assign SUPERVISOR users',
+      JP: 'SUPERVISORユーザー付与',
+      CH: '授予 SUPERVISOR 用户',
+      TH: 'มอบหมายผู้ใช้ SUPERVISOR'
+    },
+    '총본사(HEADQUARTERS) 또는 시스템 ADMIN만 SUPERVISOR 역할을 부여·해제할 수 있습니다. 대상은 총본사·본사·총판 조직의 기존 사용자이며, 사용자관리 화면에서는 SUPERVISOR를 선택하거나 변경할 수 없습니다. 기본 권한은 MANAGER와 동일하며 운영관리 「노티생성」 메뉴가 추가됩니다.': {
+      EN: 'Only root HQ (HEADQUARTERS) or system ADMIN may assign or revoke SUPERVISOR. Targets must be existing users in root HQ, regional HQ, or master distributor orgs. User management cannot select or change SUPERVISOR. Default permissions match MANAGER plus Operations → NOTI provision.',
+      JP: 'SUPERVISORの付与・解除は総本社(HEADQUARTERS)またはシステムADMINのみ可能です。対象は総本社・本社・総代理店組織の既存ユーザーで、ユーザー管理画面ではSUPERVISORを選択・変更できません。既定権限はMANAGERと同じに加え、運営管理「ノティ作成」メニューが追加されます。',
+      CH: '仅总总部(HEADQUARTERS)或系统 ADMIN 可授予/解除 SUPERVISOR。对象须为总总部·分公司·总代理组织中的既有用户；用户管理画面不可选择或变更 SUPERVISOR。默认权限与 MANAGER 相同，并增加运营管理「NOTI创建」菜单。',
+      TH: 'เฉพาะสำนักงานใหญ่สุด (HEADQUARTERS) หรือ ADMIN ระบบเท่านั้นที่มอบ/ถอน SUPERVISOR ได้ เป้าหมายต้องเป็นผู้ใช้เดิมในองค์กรสำนักงานใหญ่สุด·สำนักงานใหญ่·ตัวแทนหลัก หน้าจัดการผู้ใช้เลือกหรือเปลี่ยน SUPERVISOR ไม่ได้ สิทธิ์เริ่มต้นเท่า MANAGER พร้อมเมนูดำเนินงาน → สร้าง NOTI'
+    },
+    'SUPERVISOR 부여': {
+      EN: 'Assign SUPERVISOR',
+      JP: 'SUPERVISOR付与',
+      CH: '授予 SUPERVISOR',
+      TH: 'มอบ SUPERVISOR'
+    },
+    '등록된 SUPERVISOR 사용자가 없습니다.': {
+      EN: 'No SUPERVISOR users are registered.',
+      JP: '登録されたSUPERVISORユーザーがありません。',
+      CH: '暂无已登记的 SUPERVISOR 用户。',
+      TH: 'ยังไม่มีผู้ใช้ SUPERVISOR ที่ลงทะเบียน'
+    },
+    'SUPERVISOR 역할 부여·해제는 총본사(HEADQUARTERS) 또는 시스템 ADMIN만 가능합니다.': {
+      EN: 'Only root HQ (HEADQUARTERS) or system ADMIN can assign or revoke SUPERVISOR.',
+      JP: 'SUPERVISORの付与・解除は総本社(HEADQUARTERS)またはシステムADMINのみ可能です。',
+      CH: '仅总总部(HEADQUARTERS)或系统 ADMIN 可授予/解除 SUPERVISOR。',
+      TH: 'เฉพาะสำนักงานใหญ่สุด (HEADQUARTERS) หรือ ADMIN ระบบเท่านั้นที่มอบ/ถอน SUPERVISOR ได้'
+    },
+    'SUPERVISOR로 지정할 사용자ID를 입력하세요.': {
+      EN: 'Enter the user ID to assign as SUPERVISOR.',
+      JP: 'SUPERVISORに指定するユーザーIDを入力してください。',
+      CH: '请输入要指定为 SUPERVISOR 的用户ID。',
+      TH: 'กรอกรหัสผู้ใช้ที่จะมอบเป็น SUPERVISOR'
+    },
+    'SUPERVISOR 역할이 부여되었습니다.': {
+      EN: 'SUPERVISOR role has been assigned.',
+      JP: 'SUPERVISORロールを付与しました。',
+      CH: '已授予 SUPERVISOR 角色。',
+      TH: 'มอบบทบาท SUPERVISOR แล้ว'
+    },
+    'SUPERVISOR 역할이 해제되었습니다.': {
+      EN: 'SUPERVISOR role has been revoked.',
+      JP: 'SUPERVISORロールを解除しました。',
+      CH: '已解除 SUPERVISOR 角色。',
+      TH: 'ถอนบทบาท SUPERVISOR แล้ว'
+    },
+    'SUPERVISOR 역할을 해제하고 MANAGER로 변경하시겠습니까?': {
+      EN: 'Revoke SUPERVISOR and change the user to MANAGER?',
+      JP: 'SUPERVISORを解除してMANAGERに変更しますか？',
+      CH: '是否解除 SUPERVISOR 并改为 MANAGER？',
+      TH: 'ถอน SUPERVISOR และเปลี่ยนเป็น MANAGER หรือไม่'
+    },
+    '본사설정에서만 변경': {
+      EN: 'Change only in HQ settings',
+      JP: '本社設定でのみ変更',
+      CH: '仅在总部设置中变更',
+      TH: 'เปลี่ยนได้เฉพาะในการตั้งค่าสำนักงานใหญ่'
+    },
+    '기존 사용자 ID': {
+      EN: 'Existing user ID',
+      JP: '既存ユーザーID',
+      CH: '既有用户ID',
+      TH: 'รหัสผู้ใช้เดิม'
+    },
+    '조직단계': {
+      EN: 'Org level',
+      JP: '組織段階',
+      CH: '组织级别',
+      TH: 'ระดับองค์กร'
+    },
+    'NOTI 미들웨어에 JPAY 가맹을 자동 등록하는 화면입니다. NOTI Provision API 연동 후 이 화면에서 노티·콜백 URL을 발급합니다.': {
+      EN: 'This screen will auto-register JPAY merchants on the NOTI middleware. After NOTI Provision API integration, notify and callback URLs will be issued here.',
+      JP: 'NOTIミドルウェアにJPAY加盟店を自動登録する画面です。NOTI Provision API連携後、この画面でノティ・コールバックURLを発行します。',
+      CH: '本画面将在 NOTI 中间件自动登记 JPAY 商户。NOTI Provision API 对接后在此发放通知与回调 URL。',
+      TH: 'หน้านี้จะลงทะเบียนร้าน JPAY บน NOTI middleware อัตโนมัติ หลังเชื่อม NOTI Provision API จะออก URL แจ้งเตือนและ callback ที่นี่'
+    },
+    '현재는 메뉴·권한만 제공하며, 세부 기능은 NOTI Provision API 연동 후 제공됩니다.': {
+      EN: 'Menu and permissions are available now; full features will follow NOTI Provision API integration.',
+      JP: '現時点ではメニュー・権限のみ提供し、詳細機能はNOTI Provision API連携後に提供します。',
+      CH: '当前仅提供菜单与权限；详细功能将于 NOTI Provision API 对接后提供。',
+      TH: 'ตอนนี้มีเมนูและสิทธิ์เท่านั้น ฟีเจอร์เต็มจะมาหลังเชื่อม NOTI Provision API'
+    },
     'OPERATOR': { EN: 'OPERATOR', JP: 'OPERATOR', CH: 'OPERATOR', TH: 'OPERATOR' },
     'SETTLEMENT': { EN: 'SETTLEMENT', JP: 'SETTLEMENT', CH: 'SETTLEMENT', TH: 'SETTLEMENT' },
     'TECH': { EN: 'TECH', JP: 'TECH', CH: 'TECH', TH: 'TECH' },

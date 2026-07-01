@@ -61,7 +61,7 @@ public final class PayCardPolicyI18n {
     private static String ko(String k) {
         return switch (k) {
             case "BLOCKED_PREFIX" -> "이 카드번호는 사용할 수 없습니다. (BIN {0})";
-            case "BLACKLIST", "INACTIVE_CARD" -> "해당 카드는 사용중지 된 카드입니다. 관리자에게 문의 바랍니다.";
+            case "BLACKLIST", "INACTIVE_CARD" -> "고위험 거래로 인해 거부되었습니다.";
             case "CARD_COOLDOWN" -> "이 카드는 잠시 사용할 수 없습니다. 약 {0}분 후 다시 시도해 주세요.";
             case "CARD_COOLDOWN_TIER_1" -> "1차 결제 실패 경고입니다. 동일 카드는 약 {0}분 후 다시 시도할 수 있습니다.";
             case "CARD_COOLDOWN_TIER_2" -> "2차 결제 실패 경고입니다. 동일 카드는 약 {0}분 후 다시 시도할 수 있습니다.";
@@ -82,7 +82,7 @@ public final class PayCardPolicyI18n {
     private static String en(String k) {
         return switch (k) {
             case "BLOCKED_PREFIX" -> "This card number cannot be used. (BIN {0})";
-            case "BLACKLIST", "INACTIVE_CARD" -> "This card has been suspended. Please contact the administrator.";
+            case "BLACKLIST", "INACTIVE_CARD" -> "This transaction was declined due to high-risk policy.";
             case "CARD_COOLDOWN" -> "This card is temporarily unavailable. Please try again in about {0} minute(s).";
             case "CARD_COOLDOWN_TIER_1" -> "1st payment failure warning. Please try this card again in about {0} minute(s).";
             case "CARD_COOLDOWN_TIER_2" -> "2nd payment failure warning. Please try this card again in about {0} minute(s).";
@@ -103,7 +103,7 @@ public final class PayCardPolicyI18n {
     private static String jp(String k) {
         return switch (k) {
             case "BLOCKED_PREFIX" -> "このカード番号はご利用いただけません。(BIN {0})";
-            case "BLACKLIST", "INACTIVE_CARD" -> "このカードは利用停止されています。管理者にお問い合わせください。";
+            case "BLACKLIST", "INACTIVE_CARD" -> "高リスク取引のため拒否されました。";
             case "CARD_COOLDOWN" -> "このカードは一時的にご利用いただけません。約{0}分後に再度お試しください。";
             case "CARD_COOLDOWN_TIER_1" -> "1回目の決済失敗警告です。同じカードは約{0}分後に再度お試しください。";
             case "CARD_COOLDOWN_TIER_2" -> "2回目の決済失敗警告です。同じカードは約{0}分後に再度お試しください。";
@@ -124,7 +124,7 @@ public final class PayCardPolicyI18n {
     private static String ch(String k) {
         return switch (k) {
             case "BLOCKED_PREFIX" -> "无法使用此卡号。(BIN {0})";
-            case "BLACKLIST", "INACTIVE_CARD" -> "该卡已停止使用，请联系管理员。";
+            case "BLACKLIST", "INACTIVE_CARD" -> "因高风险交易政策，该笔交易被拒绝。";
             case "CARD_COOLDOWN" -> "该卡暂时无法使用，请约 {0} 分钟后再试。";
             case "CARD_COOLDOWN_TIER_1" -> "第1次支付失败警告。相同卡号约 {0} 分钟后可再次尝试。";
             case "CARD_COOLDOWN_TIER_2" -> "第2次支付失败警告。相同卡号约 {0} 分钟后可再次尝试。";
@@ -145,7 +145,7 @@ public final class PayCardPolicyI18n {
     private static String th(String k) {
         return switch (k) {
             case "BLOCKED_PREFIX" -> "ไม่สามารถใช้หมายเลขบัตรนี้ได้ (BIN {0})";
-            case "BLACKLIST", "INACTIVE_CARD" -> "บัตรนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ";
+            case "BLACKLIST", "INACTIVE_CARD" -> "ธุรกรรมถูกปฏิเสธเนื่องจากนโยบายความเสี่ยงสูง";
             case "CARD_COOLDOWN" -> "บัตรนี้ใช้งานชั่วคราวไม่ได้ กรุณาลองอีกครั้งในอีกประมาณ {0} นาที";
             case "CARD_COOLDOWN_TIER_1" -> "คำเตือนความล้มเหลวครั้งที่ 1 ลองบัตรเดิมอีกครั้งในอีกประมาณ {0} นาที";
             case "CARD_COOLDOWN_TIER_2" -> "คำเตือนความล้มเหลวครั้งที่ 2 ลองบัตรเดิมอีกครั้งในอีกประมาณ {0} นาที";

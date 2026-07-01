@@ -35,11 +35,16 @@ public class ApiOpsInactiveCardController {
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> list(
             Authentication authentication,
             @RequestParam(required = false) String searchActiveYn,
+            @RequestParam(required = false) String searchKeyword,
+            @RequestParam(required = false) String searchFromDate,
+            @RequestParam(required = false) String searchToDate,
+            @RequestParam(required = false) String searchOrderDir,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         try {
             PageResult<Map<String, Object>> pr = opsInactiveCardService.list(
-                    authentication, searchActiveYn, page, size);
+                    authentication, searchActiveYn, searchKeyword, searchFromDate, searchToDate,
+                    searchOrderDir, page, size);
             return ResponseEntity.ok(ApiResponse.ok(pr));
         } catch (IllegalStateException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "FORBIDDEN"));
@@ -67,6 +72,21 @@ public class ApiOpsInactiveCardController {
         try {
             Map<String, Object> row = opsInactiveCardService.release(authentication, body != null ? body : Map.of());
             return ResponseEntity.ok(ApiResponse.ok(row));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "FORBIDDEN"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "ERROR"));
+        }
+    }
+
+    @PostMapping("/releaseBulk")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> releaseBulk(
+            Authentication authentication,
+            @RequestBody Map<String, Object> body) {
+        try {
+            Map<String, Object> result = opsInactiveCardService.releaseBulk(
+                    authentication, body != null ? body : Map.of());
+            return ResponseEntity.ok(ApiResponse.ok(result));
         } catch (IllegalStateException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "FORBIDDEN"));
         } catch (Exception e) {

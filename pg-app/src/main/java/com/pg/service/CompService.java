@@ -33,6 +33,7 @@ import com.pg.entity.OrgUnitChangeLog;
 import com.pg.service.settlement.SettlementCycleTiming;
 import com.pg.service.settlement.SettlementPeriodResolver;
 import com.pg.util.CommissionTierJsonHelper;
+import com.pg.util.MerchantPayNotifyUrlRules;
 import com.pg.util.PercentDecimalHelper;
 import com.pg.util.ReceivableRecoveryModeUtil;
 import com.pg.util.RouteNoDisplayUtil;
@@ -43,6 +44,7 @@ import com.pg.chatbot.ChatbotPromotionShelfMode;
 import com.pg.merchantdeploy.MerchantApiDeploymentService;
 import com.pg.merchantdeploy.MerchantApiIntegrationChannelService;
 import com.pg.util.ChatbotMerchantAdminConstants;
+import com.pg.util.SupervisorAssistantConstants;
 import com.pg.util.OrgUseYnUtil;
 import com.pg.util.ChatbotProductPricingUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -1979,20 +1981,7 @@ public class CompService {
                                     }
                                     if (dp.getProductDesc() != null) m.put("defaultProductDesc", dp.getProductDesc());
                                 });
-                                for (MerchantNotifyUrl n : merchantNotifyUrlRepository.findByOrgUnitIdOrderByUrlTypeAsc(ou.getId())) {
-                                    if (n.getUrlType() == null) continue;
-                                    if ("BACKGROUND".equals(n.getUrlType())) {
-                                        m.put("notifyUrlBackground", n.getNotiUrl());
-                                    } else if ("RESULT".equals(n.getUrlType())) {
-                                        m.put("notifyUrlResult", n.getNotiUrl());
-                                    } else if (MERCHANT_NOTIFY_MIDDLEWARE.equals(n.getUrlType())) {
-                                        m.put("middlewareNotifyUrl", n.getNotiUrl());
-                                    } else if (MerchantNotifyUrl.URL_TYPE_JPAY_NOTIFY.equals(n.getUrlType())) {
-                                        m.put("jpayNotifyUrl", n.getNotiUrl());
-                                    } else if (MerchantNotifyUrl.URL_TYPE_JPAY_CALLBACK.equals(n.getUrlType())) {
-                                        m.put("jpayCallbackUrl", n.getNotiUrl());
-                                    }
-                                }
+                                putMerchantPayNotifyUrlsForDetail(m, mp, ou.getId());
                                 m.put("urlPayAlertEmailYn", mp.getUrlPayAlertEmailYn() != null ? mp.getUrlPayAlertEmailYn() : "N");
                                 m.put("urlPayLineNotifyTokenConfigured",
                                         (mp.getUrlPayLineNotifyToken() != null && !mp.getUrlPayLineNotifyToken().isBlank()) ? "Y" : "N");
@@ -2870,11 +2859,46 @@ public class CompService {
         }
     }
 
+    /**
+     * 가맹 결제통보 URL — 조회 시 항상 4개 키를 채우고, WordPress·NOTI ingress 오등록은 숨김.
+     */
+    private void putMerchantPayNotifyUrlsForDetail(Map<String, Object> m, MerchantProfile mp, Long orgUnitId) {
+        String wordpressYn = mp.getApiWordpressUseYn() != null ? mp.getApiWordpressUseYn() : "N";
+        String bg = "";
+        String rs = "";
+        String jn = "";
+        String jc = "";
+        for (MerchantNotifyUrl n : merchantNotifyUrlRepository.findByOrgUnitIdOrderByUrlTypeAsc(orgUnitId)) {
+            if (n.getUrlType() == null || n.getNotiUrl() == null) {
+                continue;
+            }
+            String url = n.getNotiUrl().trim();
+            if ("BACKGROUND".equals(n.getUrlType())) {
+                bg = url;
+            } else if ("RESULT".equals(n.getUrlType())) {
+                rs = url;
+            } else if (MERCHANT_NOTIFY_MIDDLEWARE.equals(n.getUrlType())) {
+                m.put("middlewareNotifyUrl", url);
+            } else if (MerchantNotifyUrl.URL_TYPE_JPAY_NOTIFY.equals(n.getUrlType())) {
+                jn = url;
+            } else if (MerchantNotifyUrl.URL_TYPE_JPAY_CALLBACK.equals(n.getUrlType())) {
+                jc = url;
+            }
+        }
+        m.put("notifyUrlBackground", MerchantPayNotifyUrlRules.sanitizeBackgroundForMerchant(bg, wordpressYn));
+        m.put("notifyUrlResult", MerchantPayNotifyUrlRules.sanitizeResultForMerchant(rs));
+        m.put("jpayNotifyUrl", jn);
+        m.put("jpayCallbackUrl", jc);
+    }
+
     private void saveMerchantPayNotifyUrls(Long orgUnitId, String background, String result,
                                            String middlewareUrl, String middlewareSecret,
                                            String jpayNotifyUrl, String jpayCallbackUrl) {
-        String bg = normalizeMerchantPayNotifyUrl(background);
-        String rs = normalizeMerchantPayNotifyUrl(result);
+        String wordpressYn = merchantProfileRepository.findByOrgUnitId(orgUnitId)
+                .map(MerchantProfile::getApiWordpressUseYn)
+                .orElse("N");
+        String bg = MerchantPayNotifyUrlRules.sanitizeBackgroundForMerchant(background, wordpressYn);
+        String rs = MerchantPayNotifyUrlRules.sanitizeResultForMerchant(result);
         String mw = normalizeMerchantPayNotifyUrl(middlewareUrl);
         String jn = normalizeMerchantPayNotifyUrl(jpayNotifyUrl);
         String jc = normalizeMerchantPayNotifyUrl(jpayCallbackUrl);
@@ -3831,6 +3855,9 @@ public class CompService {
     private static String normalizeAssistantRoleType(String roleType) {
         if (roleType == null || roleType.isBlank()) return "MANAGER";
         String v = roleType.trim().toUpperCase();
+        if (SupervisorAssistantConstants.isSupervisorRoleType(v)) {
+            return "MANAGER";
+        }
         return switch (v) {
             case "MANAGER", "OPERATOR", "SETTLEMENT", "TECH", "CHATBOT_ADMIN" -> v;
             default -> "MANAGER";
@@ -3838,6 +3865,9 @@ public class CompService {
     }
 
     private static String permissionGroupByAssistantRole(String roleType) {
+        if (SupervisorAssistantConstants.isSupervisorRoleType(roleType)) {
+            return SupervisorAssistantConstants.PERMISSION_GROUP_NM;
+        }
         if (ChatbotMerchantAdminConstants.ASSISTANT_ROLE_TYPE.equalsIgnoreCase(
                 normalizeAssistantRoleType(roleType))) {
             return ChatbotMerchantAdminConstants.PERMISSION_GROUP_NM;

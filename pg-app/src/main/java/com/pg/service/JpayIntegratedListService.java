@@ -157,6 +157,8 @@ public class JpayIntegratedListService {
 
     private final ObjectMapper objectMapper;
 
+    private final PayerLocationJpayExportBackfillService payerLocationJpayExportBackfillService;
+
 
 
     private volatile LocalDateTime lastSyncAt;
@@ -232,7 +234,9 @@ public class JpayIntegratedListService {
 
                                      PayListService payListService,
 
-                                     ObjectMapper objectMapper) {
+                                     ObjectMapper objectMapper,
+
+                                     PayerLocationJpayExportBackfillService payerLocationJpayExportBackfillService) {
 
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
 
@@ -261,6 +265,8 @@ public class JpayIntegratedListService {
         this.payListService = payListService;
 
         this.objectMapper = objectMapper;
+
+        this.payerLocationJpayExportBackfillService = payerLocationJpayExportBackfillService;
 
     }
 
@@ -370,6 +376,8 @@ public class JpayIntegratedListService {
             ent.setLastBasicSyncDate(lastBasicMidnightSyncDate);
 
             exportCacheRepository.save(ent);
+
+            payerLocationJpayExportBackfillService.scheduleBackfillFromExportCacheAsync();
 
         } catch (Exception ignored) {
 

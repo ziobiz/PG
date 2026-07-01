@@ -1,5 +1,6 @@
 package com.pg.api.dto;
 
+import com.pg.entity.PgTrnsctn;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -7,21 +8,31 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class PayListItemDtoPayerLocationTest {
 
     @Test
-    void payerLocationLabelNormalizesCountryAndUsesPipeSeparator() {
-        assertEquals("KR | SEOUL", PayListItemDto.payerLocationLabel("KO", "Seoul", "EN"));
-        assertEquals("JP | TOKYO", PayListItemDto.payerLocationLabel("JA", "Tokyo", "EN"));
-        assertEquals("US | NEW YORK", PayListItemDto.payerLocationLabel("US", "New York", "EN"));
+    void displayPayerRegionUsesIso2OverviewFormat() {
+        PgTrnsctn t = new PgTrnsctn();
+        t.setPayerLocationLabel("JP | CHIBA PREFECTURE");
+        assertEquals("JP | Chiba prefecture", PayListItemDto.displayPayerRegion(t));
     }
 
     @Test
-    void payerLocationLabelKoreanSeparator() {
-        assertEquals("KR \u3163 SEOUL", PayListItemDto.payerLocationLabel("KR", "Seoul", "KO"));
+    void displayPayerRegionNormalizesLegacyJapanOnly() {
+        PgTrnsctn t = new PgTrnsctn();
+        t.setPayerLocationLabel("Japan");
+        t.setPayerCountryIso2("JP");
+        assertEquals("JP", PayListItemDto.displayPayerRegion(t));
     }
 
     @Test
-    void payerLocationLabelPartialValues() {
-        assertEquals("SG", PayListItemDto.payerLocationLabel("SG", "", "EN"));
-        assertEquals("SEOUL", PayListItemDto.payerLocationLabel("", "Seoul", "EN"));
-        assertEquals("-", PayListItemDto.payerLocationLabel("", "", "EN"));
+    void displayPayerRegionFromIsoAndCity() {
+        PgTrnsctn t = new PgTrnsctn();
+        t.setPayerCountryIso2("JP");
+        t.setPayerCity("Tokyo");
+        assertEquals("JP | Tokyo", PayListItemDto.displayPayerRegion(t));
+    }
+
+    @Test
+    void payerLocationEnglishLegacyUsesPipeFormat() {
+        assertEquals("KR | Seoul", PayListItemDto.payerLocationEnglishLegacy("KR", "Seoul"));
+        assertEquals("-", PayListItemDto.payerLocationEnglishLegacy("", ""));
     }
 }

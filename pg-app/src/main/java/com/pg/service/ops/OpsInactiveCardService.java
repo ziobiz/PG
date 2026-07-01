@@ -13,7 +13,6 @@ import com.pg.util.PagePermissionCodes;
 import com.pg.service.PayCardPolicyService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -128,22 +127,26 @@ public class OpsInactiveCardService {
 
     public PageResult<Map<String, Object>> list(Authentication authentication,
                                                 String searchActiveYn,
+                                                String searchKeyword,
+                                                String searchFromDate,
+                                                String searchToDate,
+                                                String searchOrderDir,
                                                 int page,
                                                 int size) {
         assertAccess(authentication);
         int p = Math.max(1, page);
         int s = Math.min(Math.max(size, 1), 200);
-        String active = searchActiveYn != null ? searchActiveYn.trim().toUpperCase(Locale.ROOT) : "ALL";
-        Page<HqPayCardBlacklist> pg;
-        if ("N".equals(active)) {
-            pg = blacklistRepository.findByActiveYnOrderByIdDesc("N",
-                    PageRequest.of(p - 1, s, Sort.by(Sort.Direction.DESC, "id")));
-        } else if ("ALL".equals(active)) {
-            pg = blacklistRepository.findAll(PageRequest.of(p - 1, s, Sort.by(Sort.Direction.DESC, "id")));
-        } else {
-            pg = blacklistRepository.findByActiveYnOrderByIdDesc("Y",
-                    PageRequest.of(p - 1, s, Sort.by(Sort.Direction.DESC, "id")));
-        }
+        String active = normalizeActiveYn(searchActiveYn);
+        String keyword = searchKeyword != null ? searchKeyword.trim() : "";
+        String panDigits = extractPanDigits(keyword);
+        String fromDate = normalizeDateParam(searchFromDate);
+        String toDate = normalizeDateParam(searchToDate);
+        boolean asc = searchOrderDir != null && "ASC".equalsIgnoreCase(searchOrderDir.trim());
+        Page<HqPayCardBlacklist> pg = asc
+                ? blacklistRepository.searchFilteredAsc(active, keyword, panDigits, fromDate, toDate,
+                PageRequest.of(p - 1, s))
+                : blacklistRepository.searchFilteredDesc(active, keyword, panDigits, fromDate, toDate,
+                PageRequest.of(p - 1, s));
         List<Map<String, Object>> rows = new ArrayList<>();
         for (HqPayCardBlacklist row : pg.getContent()) {
             rows.add(toRowMap(row));
@@ -196,6 +199,52 @@ public class OpsInactiveCardService {
         HqPayCardBlacklist row = payCardPolicyService.releaseBlacklist(
                 id, user != null ? user.getUsername() : null, releaseReason);
         return toRowMap(row);
+    }
+
+    @Transactional
+    public Map<String, Object> releaseBulk(Authentication authentication, Map<String, Object> body) {
+        assertWrite(authentication);
+        AppUser user = resolveUser(authentication);
+        String totp = body.get("totpCode") != null ? body.get("totpCode").toString() : "";
+        if (totp.isBlank() && body.get("otp") != null) {
+            totp = body.get("otp").toString();
+        }
+        authService.verifyTotpOrThrow(user, totp);
+        String mode = body.get("mode") != null ? body.get("mode").toString().trim().toUpperCase(Locale.ROOT) : "";
+        String releaseReason = body.get("releaseReason") != null ? body.get("releaseReason").toString().trim() : "";
+        if (releaseReason.isEmpty() && body.get("releaseReasonText") != null) {
+            releaseReason = body.get("releaseReasonText").toString().trim();
+        }
+        if (releaseReason.isEmpty()) {
+            throw new IllegalArgumentException("해지 사유를 입력하세요.");
+        }
+        List<Long> ids = resolveBulkReleaseIds(body, mode);
+        if (ids.isEmpty()) {
+            throw new IllegalArgumentException("해지할 등록 카드가 없습니다.");
+        }
+        String username = user != null ? user.getUsername() : null;
+        int released = 0;
+        int skipped = 0;
+        for (Long id : ids) {
+            if (id == null || id <= 0) {
+                skipped++;
+                continue;
+            }
+            try {
+                payCardPolicyService.releaseBlacklist(id, username, releaseReason);
+                released++;
+            } catch (IllegalStateException e) {
+                skipped++;
+            }
+        }
+        if (released == 0) {
+            throw new IllegalStateException("해지할 등록 카드가 없습니다.");
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("releasedCount", released);
+        result.put("skippedCount", skipped);
+        result.put("requestedCount", ids.size());
+        return result;
     }
 
     @Transactional
@@ -283,6 +332,71 @@ public class OpsInactiveCardService {
             return "자동";
         }
         return "수동";
+    }
+
+    private List<Long> resolveBulkReleaseIds(Map<String, Object> body, String mode) {
+        if ("SELECTED".equals(mode)) {
+            Object idsObj = body.get("ids");
+            List<Long> ids = new ArrayList<>();
+            if (idsObj instanceof List<?> raw) {
+                for (Object o : raw) {
+                    if (o == null) {
+                        continue;
+                    }
+                    try {
+                        long id = Long.parseLong(o.toString().trim());
+                        if (id > 0) {
+                            ids.add(id);
+                        }
+                    } catch (NumberFormatException ignored) {
+                        /* skip */
+                    }
+                }
+            }
+            return ids;
+        }
+        if ("ALL_FILTERED".equals(mode)) {
+            String active = normalizeActiveYn(body.get("searchActiveYn") != null
+                    ? body.get("searchActiveYn").toString() : "ALL");
+            String keyword = body.get("searchKeyword") != null ? body.get("searchKeyword").toString().trim() : "";
+            String panDigits = extractPanDigits(keyword);
+            String fromDate = normalizeDateParam(body.get("searchFromDate") != null
+                    ? body.get("searchFromDate").toString() : "");
+            String toDate = normalizeDateParam(body.get("searchToDate") != null
+                    ? body.get("searchToDate").toString() : "");
+            return blacklistRepository.findActiveIdsByFilter(active, keyword, panDigits, fromDate, toDate);
+        }
+        throw new IllegalArgumentException("mode가 올바르지 않습니다.");
+    }
+
+    private static String normalizeActiveYn(String searchActiveYn) {
+        String active = searchActiveYn != null ? searchActiveYn.trim().toUpperCase(Locale.ROOT) : "ALL";
+        if (!"Y".equals(active) && !"N".equals(active)) {
+            return "ALL";
+        }
+        return active;
+    }
+
+    private static String normalizeDateParam(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        return raw.trim();
+    }
+
+    /** 카드번호 부분 검색: 키워드에서 숫자만 추출, 3자리 이상이면 pan_display 숫자열에 포함 여부로 매칭 */
+    private static String extractPanDigits(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return "";
+        }
+        StringBuilder digits = new StringBuilder();
+        for (int i = 0; i < keyword.length(); i++) {
+            char c = keyword.charAt(i);
+            if (Character.isDigit(c)) {
+                digits.append(c);
+            }
+        }
+        return digits.length() >= 3 ? digits.toString() : "";
     }
 
     private static AppUser resolveUser(Authentication authentication) {

@@ -160,6 +160,10 @@ public class PgTrnsctn {
     @Column(name = "payer_city", length = 128)
     private String payerCity;
 
+    /** 결제개요 위치 — JPAY 스타일 영문 (예: Japan-Chiba Prefecture, V208) */
+    @Column(name = "payer_location_label", length = 256)
+    private String payerLocationLabel;
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
@@ -247,4 +251,6 @@ public class PgTrnsctn {
     public void setPayerCountryIso2(String payerCountryIso2) { this.payerCountryIso2 = payerCountryIso2; }
     public String getPayerCity() { return payerCity; }
     public void setPayerCity(String payerCity) { this.payerCity = payerCity; }
+    public String getPayerLocationLabel() { return payerLocationLabel; }
+    public void setPayerLocationLabel(String payerLocationLabel) { this.payerLocationLabel = payerLocationLabel; }
 }

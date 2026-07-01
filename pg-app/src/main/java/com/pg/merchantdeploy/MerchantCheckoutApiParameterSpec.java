@@ -88,11 +88,16 @@ public final class MerchantCheckoutApiParameterSpec {
                 "เรียก prepare จากเซิร์ฟเวอร์ร้าน — ห้ามเปิด broker secret ในเบราว์เซอร์หรือแอป"
         )));
         rows.add(textMap(new Bundle(
-                "buyer.email · buyer.phone · buyer.countryIso2 는 ICOPAY 필수. PG별 하위 전송은 ICOPAY가 처리.",
-                "buyer.email, buyer.phone, buyer.countryIso2 are required by ICOPAY. Downstream PG fields are handled by ICOPAY.",
-                "buyer.email・buyer.phone・buyer.countryIso2 は ICOPAY 必須。PG 別の下位送信は ICOPAY が処理。",
-                "buyer.email、buyer.phone、buyer.countryIso2 为 ICOPAY 必填。各 PG 下级字段由 ICOPAY 处理。",
-                "buyer.email · buyer.phone · buyer.countryIso2 จำเป็นสำหรับ ICOPAY ICOPAY ส่งต่อให้ PG"
+                "표 1.1의 buyer 객체 하위 필드 email·phone·countryIso2 는 JPAY·ICOPAY prepare 공통 필수(M). "
+                        + "JPAY 서버 직접 sale 시 payEmailAddress·payTelephone·payCountryIsoCode2 로 동일 요건.",
+                "Under buyer (Table 1.2), email, phone, and countryIso2 are required (M) for JPAY and ICOPAY prepare. "
+                        + "For JPAY direct sale, use payEmailAddress, payTelephone, payCountryIsoCode2 with the same rules.",
+                "表 1.1 の buyer 配下の email・phone・countryIso2 は JPAY・ICOPAY prepare 共通必須(M)。"
+                        + "JPAY 直接 sale では payEmailAddress・payTelephone・payCountryIsoCode2 が同要件。",
+                "表 1.1 的 buyer 子字段 email、phone、countryIso2 为 JPAY·ICOPAY prepare 共同必填(M)。"
+                        + "JPAY 直接 sale 对应 payEmailAddress、payTelephone、payCountryIsoCode2。",
+                "ภายใต้ buyer (ตาราง 1.2) email phone countryIso2 จำเป็น(M) สำหรับ JPAY·ICOPAY prepare "
+                        + "sale ตรง JPAY ใช้ payEmailAddress payTelephone payCountryIsoCode2"
         )));
         rows.add(textMap(new Bundle(
                 "orderNo 는 ChillPay 운영 시 최대 20자(영숫자·하이픈·언더스코어만). JPAY 운영 시 최대 64자.",
@@ -207,11 +212,11 @@ public final class MerchantCheckoutApiParameterSpec {
         rows.add(param(9, "buyer", "buyer", "Object", null, "M",
                 new Bundle("구매자 연락처·배송 prefill", "Buyer contact & optional shipping prefill",
                         "購入者連絡先・配送 prefill", "买家联系信息与配送预填", "ข้อมูลผู้ซื้อและ prefill จัดส่ง"),
-                new Bundle("하위 필드 표 1.2 참고. buyerPrefill 동일 구조",
-                        "See buyer table. buyerPrefill uses same shape",
-                        "子フィールド表 1.2 参照。buyerPrefill も同構造",
-                        "见 buyer 子表。buyerPrefill 结构相同",
-                        "ดูตาราง buyer โครงสร้าง buyerPrefill เหมือนกัน")));
+                new Bundle("표 1.2 필수 하위: email·phone·countryIso2 (JPAY·ICOPAY). buyerPrefill 동일 구조",
+                        "Table 1.2 required: email, phone, countryIso2 (JPAY & ICOPAY). buyerPrefill same shape",
+                        "表 1.2 必須: email・phone・countryIso2 (JPAY・ICOPAY)。buyerPrefill も同構造",
+                        "表 1.2 必填子字段：email、phone、countryIso2（JPAY·ICOPAY）。buyerPrefill 结构相同",
+                        "ตาราง 1.2 บังคับ: email phone countryIso2 (JPAY·ICOPAY) buyerPrefill เหมือนกัน")));
         return rows;
     }
 
@@ -219,24 +224,27 @@ public final class MerchantCheckoutApiParameterSpec {
         List<Map<String, Object>> rows = new ArrayList<>();
         rows.add(param(1, "email", "buyer.email", "String", 254, "M",
                 new Bundle("구매자 이메일", "Buyer email", "購入者メール", "买家邮箱", "อีเมลผู้ซื้อ"),
-                new Bundle("결제·영수증·3DS 연락용", "Payment, receipt, 3DS contact",
-                        "決済・領収・3DS 連絡用", "支付、收据、3DS 联系", "ติดต่อชำระ/ใบเสร็จ/3DS")));
+                new Bundle("결제·영수증·3DS 연락용. JPAY·ICOPAY 필수. sale: payEmailAddress",
+                        "Payment, receipt, 3DS contact. Required for JPAY & ICOPAY. sale: payEmailAddress",
+                        "決済・領収・3DS 連絡用。JPAY・ICOPAY 必須。sale: payEmailAddress",
+                        "支付、收据、3DS 联系。JPAY·ICOPAY 必填。sale: payEmailAddress",
+                        "ติดต่อชำระ/ใบเสร็จ/3DS จำเป็น JPAY·ICOPAY sale: payEmailAddress")));
         rows.add(param(2, "phone", "buyer.phone", "String", 32, "M",
                 new Bundle("구매자 전화(로컬 번호)", "Buyer local phone",
                         "購入者電話（国内番号）", "买家电话（本地号）", "โทรศัพท์ผู้ซื้อ (เลขในประเทศ)"),
-                new Bundle("국가번호 + 제거·로컬만. 예: 1012345678",
-                        "Strip country code +; local digits only, e.g. 1012345678",
-                        "国番号 + は除去し国内番号のみ",
-                        "去掉国家码 +，仅本地号码",
-                        "ตัดรหัสประเทศ + ใช้เลขในประเทศ")));
+                new Bundle("국가번호 + 제거·로컬만. JPAY·ICOPAY 필수. sale: payTelephone",
+                        "Strip country code +; local digits only. Required JPAY & ICOPAY. sale: payTelephone",
+                        "国番号 + 除去・国内番号のみ。JPAY・ICOPAY 必須。sale: payTelephone",
+                        "去掉国家码 +，仅本地号码。JPAY·ICOPAY 必填。sale: payTelephone",
+                        "ตัดรหัสประเทศ + เลขในประเทศ จำเป็น JPAY·ICOPAY sale: payTelephone")));
         rows.add(param(3, "countryIso2", "buyer.countryIso2", "String", 2, "M",
                 new Bundle("구매자 국가 ISO2", "Buyer country ISO 3166-1 alpha-2",
                         "購入者国 ISO2", "买家国家 ISO2", "ประเทศผู้ซื้อ ISO2"),
-                new Bundle("예: KR, US, TH. 대문자 2자",
-                        "e.g. KR, US, TH. Two uppercase letters",
-                        "例: KR, US, TH。大文字2文字",
-                        "例：KR、US、TH。两位大写字母",
-                        "เช่น KR US TH ตัวพิมพ์ใหญ่ 2 ตัว")));
+                new Bundle("예: KR, US, TH. 대문자 2자. JPAY·ICOPAY 필수. sale: payCountryIsoCode2",
+                        "e.g. KR, US, TH. Uppercase ISO2. Required JPAY & ICOPAY. sale: payCountryIsoCode2",
+                        "例: KR, US, TH。大文字2文字。JPAY・ICOPAY 必須。sale: payCountryIsoCode2",
+                        "例：KR、US、TH。两位大写。JPAY·ICOPAY 必填。sale: payCountryIsoCode2",
+                        "เช่น KR US TH ตัวพิมพ์ใหญ่ จำเป็น JPAY·ICOPAY sale: payCountryIsoCode2")));
         rows.add(param(4, "address", "buyer.address", "String", 200, "O",
                 new Bundle("배송 주소 1행(선택 prefill)", "Shipping address line 1 (optional)",
                         "配送住所1行（任意 prefill）", "配送地址第 1 行（可选）", "ที่อยู่จัดส่งบรรทัด 1 (ไม่บังคับ)"),

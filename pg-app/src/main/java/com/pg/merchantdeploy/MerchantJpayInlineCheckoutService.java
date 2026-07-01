@@ -15,6 +15,7 @@ import com.pg.splitpay.SplitPayCheckoutModeGuard;
 import com.pg.service.OrgServiceUseService;
 import com.pg.service.UrlPayCheckoutCurrencyService;
 import com.pg.urlpay.UrlPayCheckoutModeUtil;
+import com.pg.util.PgTrnsctnOrderLookup;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 
@@ -249,12 +250,10 @@ public class MerchantJpayInlineCheckoutService {
     }
 
     private Optional<PgTrnsctn> findJpayTxnByOrder(String merchantId, String orderNo) {
-        for (String origin : new String[]{"MERCHANT_API", "URL"}) {
-            Optional<PgTrnsctn> t = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(
-                    merchantId, orderNo, origin);
-            if (t.isPresent() && PgVendor.isJpayFamily(t.get().getVan())) {
-                return t;
-            }
+        Optional<PgTrnsctn> t = PgTrnsctnOrderLookup.findPreferredByMerchantAndOrder(
+                pgTrnsctnRepository, merchantId, orderNo);
+        if (t.isPresent() && PgVendor.isJpayFamily(t.get().getVan())) {
+            return t;
         }
         return Optional.empty();
     }

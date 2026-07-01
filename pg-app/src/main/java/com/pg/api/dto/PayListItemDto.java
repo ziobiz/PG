@@ -22,6 +22,7 @@ import com.pg.util.PgTrnsctnTxnClock;
 import com.pg.util.TrnTimeDualZoneDisplay;
 import com.pg.util.TxnOutcomeReasonApplier;
 import com.pg.util.ViewDisplayTimezoneResolver;
+import com.pg.urlpay.PayerLocationLabelFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -115,7 +116,8 @@ public class PayListItemDto {
         row.put("payerDeviceLabel", PayerDeviceCategoryUtil.displayLabel(t.getPayerDeviceCategory(), "KO"));
         row.put("payerCountryIso2", PayerCountryIso2Util.normalize(t.getPayerCountryIso2()));
         row.put("payerCity", t.getPayerCity() != null ? t.getPayerCity().trim() : "");
-        row.put("payerRegion", payerLocationLabel(t.getPayerCountryIso2(), t.getPayerCity(), "KO"));
+        row.put("payerLocationLabel", t.getPayerLocationLabel() != null ? t.getPayerLocationLabel().trim() : "");
+        row.put("payerRegion", displayPayerRegion(t));
 
         /** 표준 그리드: 번호·업체명·업체코드 중 업체명 */
         row.put("compNm", compNm);
@@ -435,7 +437,26 @@ public class PayListItemDto {
         return (s == null || s.isBlank()) ? "-" : s;
     }
 
-    /** 결제개요 — 국가 ISO2 + 도시 (예: KR | SEOUL, KO UI: KR ㅣ SEOUL) */
+    /** 결제개요 위치 — {@code JP | TOKYO} (ISO2 + 영문 도시·지역, i18n 미적용). */
+    public static String displayPayerRegion(PgTrnsctn t) {
+        if (t == null) {
+            return "-";
+        }
+        String iso = PayerCountryIso2Util.normalize(t.getPayerCountryIso2());
+        String city = t.getPayerCity() != null ? t.getPayerCity().trim() : "";
+        String normalized = PayerLocationLabelFormatter.normalizeForOverviewDisplay(
+                t.getPayerLocationLabel(), iso, city);
+        return normalized.isBlank() ? "-" : normalized;
+    }
+
+    /** 레거시 — ISO2·도시 → {@code KR | SEOUL}. */
+    public static String payerLocationEnglishLegacy(String iso2, String city) {
+        String label = PayerLocationLabelFormatter.formatOverview(
+                PayerCountryIso2Util.normalize(iso2), city);
+        return label.isBlank() ? "-" : label;
+    }
+
+    /** 결제개요 — 국가 ISO2 + 도시 (예: KR | SEOUL, KO UI: KR ㅣ SEOUL) — @deprecated 결제개요는 {@link #displayPayerRegion} 사용 */
     public static String payerLocationLabel(String iso2, String city, String adminLang) {
         String code = PayerCountryIso2Util.normalize(iso2);
         String cityPart = "";

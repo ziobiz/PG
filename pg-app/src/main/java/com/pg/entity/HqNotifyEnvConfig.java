@@ -123,6 +123,32 @@ public class HqNotifyEnvConfig {
     @Column(name = "assistant_role_default_matrix_json", columnDefinition = "TEXT")
     private String assistantRoleDefaultMatrixJson;
 
+    /** NOTI Provision API — 운영관리 노티생성 연동 */
+    @Column(name = "noti_provision_enabled_yn", length = 1)
+    private String notiProvisionEnabledYn = "N";
+
+    @Column(name = "noti_provision_base_url", length = 500)
+    private String notiProvisionBaseUrl;
+
+    @Column(name = "noti_provision_api_key", length = 512)
+    private String notiProvisionApiKey;
+
+    /** NOTI internal-targets ID 기본값 (예: ONTL_HQ_JPY) */
+    @Column(name = "noti_provision_default_internal_target_id", length = 120)
+    private String notiProvisionDefaultInternalTargetId;
+
+    /** JPY 가맹 자동 매핑 전산 대상 ID */
+    @Column(name = "noti_provision_internal_target_jpy", length = 120)
+    private String notiProvisionInternalTargetJpy;
+
+    /** USD 가맹 자동 매핑 전산 대상 ID */
+    @Column(name = "noti_provision_internal_target_usd", length = 120)
+    private String notiProvisionInternalTargetUsd;
+
+    /** DEALMAI Partner 기본값 (노티웹훅구성) */
+    @Column(name = "noti_provision_default_dealmai_partner", length = 64)
+    private String notiProvisionDefaultDealmaiPartner;
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
@@ -191,6 +217,28 @@ public class HqNotifyEnvConfig {
     public String getAssistantRoleDefaultMatrixJson() { return assistantRoleDefaultMatrixJson; }
     public void setAssistantRoleDefaultMatrixJson(String assistantRoleDefaultMatrixJson) {
         this.assistantRoleDefaultMatrixJson = assistantRoleDefaultMatrixJson;
+    }
+    public String getNotiProvisionEnabledYn() { return notiProvisionEnabledYn; }
+    public void setNotiProvisionEnabledYn(String notiProvisionEnabledYn) { this.notiProvisionEnabledYn = notiProvisionEnabledYn; }
+    public String getNotiProvisionBaseUrl() { return notiProvisionBaseUrl; }
+    public void setNotiProvisionBaseUrl(String notiProvisionBaseUrl) { this.notiProvisionBaseUrl = notiProvisionBaseUrl; }
+    public String getNotiProvisionApiKey() { return notiProvisionApiKey; }
+    public void setNotiProvisionApiKey(String notiProvisionApiKey) { this.notiProvisionApiKey = notiProvisionApiKey; }
+    public String getNotiProvisionDefaultInternalTargetId() { return notiProvisionDefaultInternalTargetId; }
+    public void setNotiProvisionDefaultInternalTargetId(String notiProvisionDefaultInternalTargetId) {
+        this.notiProvisionDefaultInternalTargetId = notiProvisionDefaultInternalTargetId;
+    }
+    public String getNotiProvisionInternalTargetJpy() { return notiProvisionInternalTargetJpy; }
+    public void setNotiProvisionInternalTargetJpy(String notiProvisionInternalTargetJpy) {
+        this.notiProvisionInternalTargetJpy = notiProvisionInternalTargetJpy;
+    }
+    public String getNotiProvisionInternalTargetUsd() { return notiProvisionInternalTargetUsd; }
+    public void setNotiProvisionInternalTargetUsd(String notiProvisionInternalTargetUsd) {
+        this.notiProvisionInternalTargetUsd = notiProvisionInternalTargetUsd;
+    }
+    public String getNotiProvisionDefaultDealmaiPartner() { return notiProvisionDefaultDealmaiPartner; }
+    public void setNotiProvisionDefaultDealmaiPartner(String notiProvisionDefaultDealmaiPartner) {
+        this.notiProvisionDefaultDealmaiPartner = notiProvisionDefaultDealmaiPartner;
     }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }

@@ -24,6 +24,18 @@ public final class OutcomeReasonPhraseDictionary {
                 "JP", "取引失敗",
                 "CH", "交易失败",
                 "TH", "ธุรกรรมล้มเหลว");
+        putExact("고위험 거래로 인해 거부되었습니다.",
+                "KO", "고위험 거래로 인해 거부되었습니다.",
+                "EN", "This transaction was declined due to high-risk policy.",
+                "JP", "高リスク取引のため拒否されました。",
+                "CH", "因高风险交易政策，该笔交易被拒绝。",
+                "TH", "ธุรกรรมถูกปฏิเสธเนื่องจากนโยบายความเสี่ยงสูง");
+        putExact("해당 카드는 사용중지 된 카드입니다. 관리자에게 문의 바랍니다.",
+                "KO", "고위험 거래로 인해 거부되었습니다.",
+                "EN", "This transaction was declined due to high-risk policy.",
+                "JP", "高リスク取引のため拒否されました。",
+                "CH", "因高风险交易政策，该笔交易被拒绝。",
+                "TH", "ธุรกรรมถูกปฏิเสธเนื่องจากนโยบายความเสี่ยงสูง");
         putExact("余额不足",
                 "KO", "잔액 부족",
                 "EN", "Insufficient balance",

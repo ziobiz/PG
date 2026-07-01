@@ -95,6 +95,7 @@ public class PayListService {
     private final FeeListTxnAmountService feeListTxnAmountService;
     private final com.pg.service.settlement.PgTrnsctnSummaryScanFetcher pgTrnsctnSummaryScanFetcher;
     private final OutcomeReasonTranslateService outcomeReasonTranslateService;
+    private final com.pg.urlpay.PayerGeoIpLookupService payerGeoIpLookupService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -115,7 +116,8 @@ public class PayListService {
                           CommissionService commissionService,
                           FeeListTxnAmountService feeListTxnAmountService,
                           com.pg.service.settlement.PgTrnsctnSummaryScanFetcher pgTrnsctnSummaryScanFetcher,
-                          OutcomeReasonTranslateService outcomeReasonTranslateService) {
+                          OutcomeReasonTranslateService outcomeReasonTranslateService,
+                          com.pg.urlpay.PayerGeoIpLookupService payerGeoIpLookupService) {
         this.trnsctnRepository = trnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
@@ -133,6 +135,7 @@ public class PayListService {
         this.feeListTxnAmountService = feeListTxnAmountService;
         this.pgTrnsctnSummaryScanFetcher = pgTrnsctnSummaryScanFetcher;
         this.outcomeReasonTranslateService = outcomeReasonTranslateService;
+        this.payerGeoIpLookupService = payerGeoIpLookupService;
     }
 
     /**
@@ -2240,7 +2243,37 @@ public class PayListService {
             iso = PayerCountryIso2Util.normalize(iso);
             row.put("payerCountryIso2", iso);
             String city = row.get("payerCity") != null ? row.get("payerCity").toString() : "";
-            row.put("payerRegion", PayListItemDto.payerLocationLabel(iso, city, loc));
+            String storedLabel = row.get("payerLocationLabel") != null ? row.get("payerLocationLabel").toString().trim() : "";
+            String normalized = com.pg.urlpay.PayerLocationLabelFormatter.normalizeForOverviewDisplay(
+                    storedLabel, iso, city);
+            String region = normalized;
+            if (!region.contains(" | ") && !city.isBlank()) {
+                String withCity = com.pg.urlpay.PayerLocationLabelFormatter.formatOverview(iso, city);
+                if (withCity.contains(" | ")) {
+                    region = withCity;
+                }
+            }
+            if (!region.contains(" | ")) {
+                String ip = row.get("payerClientIp") != null ? row.get("payerClientIp").toString().trim() : "";
+                if (!ip.isBlank()) {
+                    var geoHit = payerGeoIpLookupService.lookup(ip);
+                    if (geoHit.isPresent()) {
+                        var g = geoHit.get();
+                        String code = PayerCountryIso2Util.normalize(
+                                g.countryIso2() != null && !g.countryIso2().isBlank() ? g.countryIso2() : iso);
+                        String locEn = g.locationEnglish();
+                        String enriched = com.pg.urlpay.PayerLocationLabelFormatter.formatOverview(
+                                code, locEn != null && !locEn.isBlank() ? locEn : city);
+                        if (enriched.contains(" | ")) {
+                            region = enriched;
+                        }
+                    }
+                }
+            }
+            if (region.isBlank()) {
+                region = PayListItemDto.payerLocationEnglishLegacy(iso, city);
+            }
+            row.put("payerRegion", region);
         }
     }
 

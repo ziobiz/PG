@@ -157,4 +157,11 @@ public interface PgTrnsctnRepository extends JpaRepository<PgTrnsctn, String>, J
     List<PgTrnsctn> findStaleJpayPendingForReconcile(@Param("staleBefore") LocalDateTime staleBefore,
                                                      @Param("notOlderThan") LocalDateTime notOlderThan,
                                                      Pageable pageable);
+
+    /** payer_location_label 미적재·불완전(지역 없음) + IP 보유 — GeoIP 보정 대상 */
+    @Query("SELECT t FROM PgTrnsctn t WHERE t.payerClientIp IS NOT NULL AND TRIM(t.payerClientIp) <> '' "
+            + "AND (t.payerLocationLabel IS NULL OR TRIM(t.payerLocationLabel) = '' "
+            + "OR t.payerLocationLabel NOT LIKE '% | %') "
+            + "ORDER BY t.createdAt DESC")
+    List<PgTrnsctn> findPayerLocationBackfillCandidates(Pageable pageable);
 }

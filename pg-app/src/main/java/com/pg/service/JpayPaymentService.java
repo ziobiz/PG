@@ -163,6 +163,11 @@ public class JpayPaymentService {
         String shopperDisplayCur = str(body.get("shopperDisplayCurrency"));
         Optional<OrgUnit> ouForRecord = orgUnitRepository.findById(orgUnitId);
         String merchantCode = ouForRecord.map(OrgUnit::getCode).orElse("");
+        Map<String, Object> cardVal = validateCardPolicyForDirectSale(orgUnitId, body);
+        if (!Boolean.TRUE.equals(cardVal.get("valid"))) {
+            return cardPolicyBlockOut(cardVal, merchantCode, orderNo, txnOrigin, orgUnitId, amountBd, currency,
+                    routeNo, body, shopperDisplayAmt, shopperDisplayCur);
+        }
         jpaySaleRecordService.recordOrTouchPending(orgUnitId, orderNo, amountBd, currency, routeNo,
                 str(body.get("payEmailAddress")),
                 str(body.get("item")),
@@ -170,21 +175,6 @@ public class JpayPaymentService {
                 shopperDisplayAmt,
                 shopperDisplayCur,
                 body);
-        Map<String, Object> cardVal = payCardPolicyService.validateForSale(
-                PgVendor.JPAY,
-                str(body.get("payCardno")),
-                str(body.get("payCardBrand")),
-                str(body.get("payLanguage")),
-                orgUnitId,
-                joinPayerName(str(body.get("payFirstname")), str(body.get("payLastname"))));
-        if (!Boolean.TRUE.equals(cardVal.get("valid"))) {
-            String msg = cardVal.get("message") != null ? cardVal.get("message").toString() : "카드번호를 확인해 주세요.";
-            String code = cardVal.get("errorCode") != null ? cardVal.get("errorCode").toString() : "CARD_POLICY";
-            if (!merchantCode.isBlank()) {
-                jpaySaleRecordService.applyIcopayPreSaleFail(merchantCode, orderNo, txnOrigin, msg, code);
-            }
-            return failOut(msg, code);
-        }
 
         String payIndexUrl = resolvePayIndexUrl(agency);
         String bankCode = resolveBankCode(agency);
@@ -480,6 +470,12 @@ public class JpayPaymentService {
         }
 
         com.pg.urlpay.PayerContextCapture.enrichSaleBody(body, req, clientIp);
+        Map<String, Object> cardVal = validateCardPolicyForDirectSale(orgUnitId, body);
+        if (!Boolean.TRUE.equals(cardVal.get("valid"))) {
+            String merchantCode = resolveMerchantCode(orgUnitId);
+            return cardPolicyBlockOut(cardVal, merchantCode, orderNo, "SUBSCRIPTION", orgUnitId, amountBd, currency,
+                    routeNo, body, null, null);
+        }
         jpaySaleRecordService.recordOrTouchPending(orgUnitId, orderNo, amountBd, currency, routeNo,
                 str(body.get("payEmailAddress")),
                 str(body.get("item")),
@@ -1010,6 +1006,46 @@ public class JpayPaymentService {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private Map<String, Object> validateCardPolicyForDirectSale(Long orgUnitId, Map<String, Object> body) {
+        return payCardPolicyService.validateForSale(
+                PgVendor.JPAY,
+                str(body.get("payCardno")),
+                str(body.get("payCardBrand")),
+                str(body.get("payLanguage")),
+                orgUnitId,
+                joinPayerName(str(body.get("payFirstname")), str(body.get("payLastname"))));
+    }
+
+    private Map<String, Object> cardPolicyBlockOut(Map<String, Object> cardVal,
+                                                   String merchantCode,
+                                                   String orderNo,
+                                                   String txnOrigin,
+                                                   Long orgUnitId,
+                                                   BigDecimal amountBd,
+                                                   String currency,
+                                                   int routeNo,
+                                                   Map<String, Object> body,
+                                                   BigDecimal shopperDisplayAmt,
+                                                   String shopperDisplayCur) {
+        String msg = cardVal.get("message") != null ? cardVal.get("message").toString() : "카드번호를 확인해 주세요.";
+        String code = cardVal.get("errorCode") != null ? cardVal.get("errorCode").toString() : "CARD_POLICY";
+        if (!PayCardPolicyService.suppressesPaymentListRecording(cardVal)) {
+            if (orgUnitId != null) {
+                jpaySaleRecordService.recordOrTouchPending(orgUnitId, orderNo, amountBd, currency, routeNo,
+                        str(body.get("payEmailAddress")),
+                        str(body.get("item")),
+                        txnOrigin,
+                        shopperDisplayAmt,
+                        shopperDisplayCur,
+                        body);
+            }
+            if (!merchantCode.isBlank()) {
+                jpaySaleRecordService.applyIcopayPreSaleFail(merchantCode, orderNo, txnOrigin, msg, code);
+            }
+        }
+        return failOut(msg, code);
     }
 
     private static String defaultProductJson(String productName, String price) {

@@ -317,14 +317,13 @@ public class OpsAgencyTxnListService {
         if (pol != null) {
             PgAgencyCostTxnBreakdownCalculator.AgencyCostTxnBreakdown br =
                     pgAgencyCostTxnBreakdownCalculator.compute(t, compId, pol, monthCbCountCache, tiersByPolicyId, feeListRp);
-            double extraSum = br.extraFee1() + br.extraFee2() + br.extraFee3() + br.extraFee4();
             String stRow = t.getStatus() != null ? t.getStatus().trim() : "";
             double txnFixed = 0d;
             double pctSum = 0d;
             if ("10".equals(stRow) || "21".equals(stRow) || "22".equals(stRow) || "30".equals(stRow) || "31".equals(stRow)
                     || "40".equals(stRow) || "41".equals(stRow) || "42".equals(stRow)) {
                 txnFixed = br.perTxFee();
-                pctSum = br.payFee() + br.usdtFee() + br.fxFee() + extraSum;
+                pctSum = br.payFee();
             }
             m.put("txnFixedFeesSum", roundMoney(txnFixed, feeListRp));
             m.put("pctFeesSum", roundMoney(pctSum, feeListRp));

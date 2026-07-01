@@ -18,6 +18,8 @@ public interface UserRepository extends JpaRepository<AppUser, Long> {
     List<AppUser> findByOrgUnitCode(String orgUnitCode);
     List<AppUser> findByOrgUnitCodeAndUsernameNot(String orgUnitCode, String username);
 
+    List<AppUser> findByAssistantRoleTypeIgnoreCase(String assistantRoleType);
+
     Page<AppUser> findByUsernameContainingAndNameContaining(String username, String name, Pageable pageable);
 
     @Query("SELECT u FROM AppUser u WHERE " +

@@ -17,6 +17,7 @@ import com.pg.repository.OrgUnitPagePermissionRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.util.ChatbotMerchantAdminConstants;
 import com.pg.util.PagePermissionCodes;
+import com.pg.util.SupervisorAssistantConstants;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -44,7 +45,8 @@ public class OrgPagePermissionService {
     public static final String MODE_CUSTOM = "CUSTOM";
 
     public static final List<String> ASSISTANT_ROLE_TYPES =
-            List.of("MANAGER", "OPERATOR", "SETTLEMENT", "TECH", ChatbotMerchantAdminConstants.ASSISTANT_ROLE_TYPE);
+            List.of(SupervisorAssistantConstants.ASSISTANT_ROLE_TYPE, "MANAGER", "OPERATOR", "SETTLEMENT", "TECH",
+                    ChatbotMerchantAdminConstants.ASSISTANT_ROLE_TYPE);
 
     /** 운영관리(/ops/*)에 있던 배포 문서 URL — 권한·북마크 호환용 */
     private static final Map<String, String> LEGACY_OPS_TO_DEPLOY_URL = Map.of(
@@ -58,6 +60,7 @@ public class OrgPagePermissionService {
      * 담당자(ASSISTANT)별 메뉴 상한 — DB에 tb_org_unit_assistant_page_permission 행이 없을 때 적용.
      * 조직 개별 권한(ceiling)과 교집합되어 최종 접근이 결정됩니다.
      * <ul>
+     *   <li>SUPERVISOR — MANAGER 와 동일 + 운영관리 노티생성(코드 기본)</li>
      *   <li>MANAGER — 전 메뉴 {@link #P_DELETE}</li>
      *   <li>OPERATOR — 사용자관리·정산관리 그룹 제외 전부</li>
      *   <li>SETTLEMENT — 업체관리·결제관리·정산관리·챗봇관리·분할관리</li>
@@ -69,6 +72,10 @@ public class OrgPagePermissionService {
         if (item == null) {
             return P_NONE;
         }
+        if (SupervisorAssistantConstants.NOTI_PROVISION_PAGE_URL.equals(item.pageUrl())) {
+            String role = trim(assistantRoleType).toUpperCase(Locale.ROOT);
+            return SupervisorAssistantConstants.ASSISTANT_ROLE_TYPE.equals(role) ? P_DELETE : P_NONE;
+        }
         String role = trim(assistantRoleType).toUpperCase(Locale.ROOT);
         String g = item.parentGroup() != null ? item.parentGroup() : "";
         return defaultAssistantAllowsParentGroup(role, g) ? P_DELETE : P_NONE;
@@ -76,7 +83,8 @@ public class OrgPagePermissionService {
 
     private static boolean defaultAssistantAllowsParentGroup(String roleUpper, String parentGroup) {
         String g = parentGroup != null ? parentGroup : "";
-        if ("MANAGER".equals(roleUpper)) {
+        if (SupervisorAssistantConstants.ASSISTANT_ROLE_TYPE.equals(roleUpper)
+                || "MANAGER".equals(roleUpper)) {
             return true;
         }
         if ("OPERATOR".equals(roleUpper)) {
@@ -273,6 +281,9 @@ public class OrgPagePermissionService {
                                                                AssistantMatrixStorage shell) {
         String role = assistantRoleTypeUpper != null ? assistantRoleTypeUpper.trim().toUpperCase(Locale.ROOT) : "";
         Map<String, String> out = new LinkedHashMap<>(buildCodeOnlyDefaultAssistantRoleMap(role));
+        if (SupervisorAssistantConstants.ASSISTANT_ROLE_TYPE.equals(role)) {
+            out.put(SupervisorAssistantConstants.NOTI_PROVISION_PAGE_URL, P_DELETE);
+        }
         mergeRoleUrlOverlayInto(out, shell.global.get(role));
         if (orgLevel != null) {
             Map<String, Map<String, String>> lvl = shell.byLevel.get(orgLevel.name());
@@ -506,8 +517,36 @@ public class OrgPagePermissionService {
             base = effectiveMapForOrgLevel(level);
         }
         Map<String, String> layered = applyAssistantRoleOverlayIfNeeded(user, base, org);
-        return elevateMerchantSplitPayMenusIfEligible(user, org,
+        Map<String, String> elevated = elevateMerchantSplitPayMenusIfEligible(user, org,
                 elevateMerchantChatbotAdminChatbotMenusIfEligible(user, org, layered));
+        return restrictNotiProvisionToSupervisorOnly(user, elevated);
+    }
+
+    /**
+     * 운영관리 노티생성 — SUPERVISOR 담당자(및 조직 미연결 시스템 ADMIN)만 접근.
+     */
+    private Map<String, String> restrictNotiProvisionToSupervisorOnly(AppUser user, Map<String, String> permissions) {
+        if (permissions == null || user == null) {
+            return permissions;
+        }
+        if (isUnboundSystemAdmin(user)) {
+            return permissions;
+        }
+        if ("ASSISTANT".equalsIgnoreCase(trim(user.getUserType()))
+                && SupervisorAssistantConstants.isSupervisorRoleType(user.getAssistantRoleType())) {
+            return permissions;
+        }
+        Map<String, String> out = new LinkedHashMap<>(permissions);
+        out.put(SupervisorAssistantConstants.NOTI_PROVISION_PAGE_URL, P_NONE);
+        return out;
+    }
+
+    private boolean isUnboundSystemAdmin(AppUser user) {
+        if (user == null || !"ADMIN".equalsIgnoreCase(trim(user.getRole()))) {
+            return false;
+        }
+        Map<String, Object> org = authService.getOrgInfo(user.getUsername());
+        return org == null || org.get("orgUnitId") == null;
     }
 
     /**
@@ -811,10 +850,20 @@ public class OrgPagePermissionService {
         out.put("mode", MODE_CUSTOM.equalsIgnoreCase(mode.trim()) ? MODE_CUSTOM : MODE_LEVEL_DEFAULT);
         out.put("levelDefault", levelDefault);
         out.put("effective", effective);
-        out.put("assistantRoles", ASSISTANT_ROLE_TYPES);
+        out.put("assistantRoles", assistantRolesForOrgUnit(ou));
         out.put("assistantMatrix", buildAssistantMatrixMap(orgUnitId));
         out.put("tabletExposedUrls", orgTabletMenuService.listExposedTabletUrlsForOrgLevel(level));
         return out;
+    }
+
+    private List<String> assistantRolesForOrgUnit(OrgUnit ou) {
+        if (ou == null || ou.getOrgLevel() == null
+                || !SupervisorAssistantConstants.isSupervisorEligibleOrgLevel(ou.getOrgLevel())) {
+            return ASSISTANT_ROLE_TYPES.stream()
+                    .filter(r -> !SupervisorAssistantConstants.isSupervisorRoleType(r))
+                    .toList();
+        }
+        return ASSISTANT_ROLE_TYPES;
     }
 
     private Map<String, Map<String, String>> buildAssistantMatrixMap(long orgUnitId) {
@@ -822,7 +871,7 @@ public class OrgPagePermissionService {
         String level = ou != null && ou.getOrgLevel() != null ? ou.getOrgLevel().name() : "";
         Map<String, String> ceiling = effectiveMapForOrgUnit(orgUnitId, level);
         Map<String, Map<String, String>> assist = new LinkedHashMap<>();
-        for (String role : ASSISTANT_ROLE_TYPES) {
+        for (String role : assistantRolesForOrgUnit(ou)) {
             assist.put(role, mergeAssistantRoleOverlay(ceiling, role, orgUnitId));
         }
         return assist;

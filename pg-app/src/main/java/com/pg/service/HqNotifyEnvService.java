@@ -2,15 +2,16 @@ package com.pg.service;
 
 import com.pg.entity.HqNotifyEnvConfig;
 import com.pg.middleware.notify.PgNotifyIngressPaths;
+import com.pg.noti.NotiInternalTargetCatalogService;
 import com.pg.repository.HqNotifyEnvConfigRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -26,13 +27,16 @@ public class HqNotifyEnvService {
     private final HqNotifyEnvConfigRepository repository;
     private final OrgPagePermissionService orgPagePermissionService;
     private final OrgTabletMenuService orgTabletMenuService;
+    private final NotiInternalTargetCatalogService notiInternalTargetCatalogService;
 
     public HqNotifyEnvService(HqNotifyEnvConfigRepository repository,
                               @Lazy OrgPagePermissionService orgPagePermissionService,
-                              @Lazy OrgTabletMenuService orgTabletMenuService) {
+                              @Lazy OrgTabletMenuService orgTabletMenuService,
+                              NotiInternalTargetCatalogService notiInternalTargetCatalogService) {
         this.repository = repository;
         this.orgPagePermissionService = orgPagePermissionService;
         this.orgTabletMenuService = orgTabletMenuService;
+        this.notiInternalTargetCatalogService = notiInternalTargetCatalogService;
     }
 
     @Transactional
@@ -113,6 +117,18 @@ public class HqNotifyEnvService {
         m.put("forgotPasswordEnabledYn", yn(c.getForgotPasswordEnabledYn()));
         m.put("managerUserControlEnabledYn", yn(c.getManagerUserControlEnabledYn()));
         m.put("managerPasswordResetEnabledYn", yn(c.getManagerPasswordResetEnabledYn()));
+        m.put("notiProvisionEnabledYn", yn(c.getNotiProvisionEnabledYn()));
+        m.put("notiProvisionBaseUrl", c.getNotiProvisionBaseUrl() != null ? c.getNotiProvisionBaseUrl() : "");
+        m.put("notiProvisionDefaultInternalTargetId",
+                c.getNotiProvisionDefaultInternalTargetId() != null ? c.getNotiProvisionDefaultInternalTargetId() : "");
+        m.put("notiProvisionInternalTargetJpy",
+                c.getNotiProvisionInternalTargetJpy() != null ? c.getNotiProvisionInternalTargetJpy() : "");
+        m.put("notiProvisionInternalTargetUsd",
+                c.getNotiProvisionInternalTargetUsd() != null ? c.getNotiProvisionInternalTargetUsd() : "");
+        m.put("notiProvisionDefaultDealmaiPartner",
+                c.getNotiProvisionDefaultDealmaiPartner() != null ? c.getNotiProvisionDefaultDealmaiPartner() : "");
+        String npKey = c.getNotiProvisionApiKey();
+        m.put("notiProvisionApiKeyConfigured", (npKey != null && !npKey.isBlank()) ? "Y" : "N");
         m.put("updatedAt", c.getUpdatedAt() != null ? c.getUpdatedAt().toString() : "");
         try {
             m.put("assistantOrgLevels", orgPagePermissionService.getAssistantOrgLevelsForApi());
@@ -453,6 +469,8 @@ public class HqNotifyEnvService {
         if (body.containsKey("managerPasswordResetEnabledYn")) {
             c.setManagerPasswordResetEnabledYn(yn(String.valueOf(body.get("managerPasswordResetEnabledYn"))));
         }
+        applyNotiProvisionFields(c, body);
+        validateNotiProvisionInternalTargets(c);
         if (body.containsKey("assistantRoleDefaultMatrix")) {
             try {
                 c.setAssistantRoleDefaultMatrixJson(
@@ -465,6 +483,125 @@ public class HqNotifyEnvService {
             validatePayFollowTimeWindows(c);
         }
         return repository.save(c);
+    }
+
+    @Transactional(readOnly = true)
+    public HqNotifyEnvConfig requireProvisionConfigReady() {
+        HqNotifyEnvConfig c = getOrCreate();
+        if (!"Y".equalsIgnoreCase(yn(c.getNotiProvisionEnabledYn()))) {
+            throw new IllegalArgumentException("본사설정 → 노티구성설정에서 NOTI Provision API 사용을 켜 주세요.");
+        }
+        String base = c.getNotiProvisionBaseUrl();
+        if (base == null || base.isBlank()) {
+            throw new IllegalArgumentException("NOTI Provision 베이스 URL을 본사설정에 입력하세요.");
+        }
+        String key = c.getNotiProvisionApiKey();
+        if (key == null || key.isBlank()) {
+            throw new IllegalArgumentException("NOTI Provision API 키를 본사설정에 저장하세요.");
+        }
+        return c;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> listNotiInternalTargets() {
+        return notiInternalTargetCatalogService.listFromNoti(getOrCreate(), "ko");
+    }
+
+    private void validateNotiProvisionInternalTargets(HqNotifyEnvConfig c) {
+        if (!notiInternalTargetCatalogService.isProvisionConfigured(c)) {
+            return;
+        }
+        List<Map<String, Object>> targets = notiInternalTargetCatalogService.listFromNoti(c, "ko");
+        if (targets.isEmpty()) {
+            return;
+        }
+        notiInternalTargetCatalogService.assertRegistered(nz(c.getNotiProvisionInternalTargetJpy()), targets);
+        notiInternalTargetCatalogService.assertRegistered(nz(c.getNotiProvisionInternalTargetUsd()), targets);
+        notiInternalTargetCatalogService.assertRegistered(nz(c.getNotiProvisionDefaultInternalTargetId()), targets);
+    }
+
+    /**
+     * 노티웹훅 Partner 삭제 시, 동일 코드가 Provision 기본값·전산 대상 매핑에 남지 않도록 정리합니다.
+     */
+    @Transactional
+    public Map<String, Object> clearProvisionRefsForWebhookPartnerCode(String partnerCode) {
+        String code = partnerCode != null ? partnerCode.trim() : "";
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("partnerCode", code);
+        out.put("cleared", false);
+        if (code.isEmpty()) {
+            return out;
+        }
+        HqNotifyEnvConfig c = getOrCreate();
+        boolean changed = false;
+        if (code.equalsIgnoreCase(nz(c.getNotiProvisionDefaultDealmaiPartner()))) {
+            c.setNotiProvisionDefaultDealmaiPartner(null);
+            changed = true;
+            out.put("clearedDefaultDealmaiPartner", true);
+        }
+        if (code.equalsIgnoreCase(nz(c.getNotiProvisionDefaultInternalTargetId()))) {
+            c.setNotiProvisionDefaultInternalTargetId(null);
+            changed = true;
+            out.put("clearedDefaultInternalTargetId", true);
+        }
+        if (code.equalsIgnoreCase(nz(c.getNotiProvisionInternalTargetJpy()))) {
+            c.setNotiProvisionInternalTargetJpy(null);
+            changed = true;
+            out.put("clearedInternalTargetJpy", true);
+        }
+        if (code.equalsIgnoreCase(nz(c.getNotiProvisionInternalTargetUsd()))) {
+            c.setNotiProvisionInternalTargetUsd(null);
+            changed = true;
+            out.put("clearedInternalTargetUsd", true);
+        }
+        if (changed) {
+            repository.save(c);
+            out.put("cleared", true);
+        }
+        return out;
+    }
+
+    private void applyNotiProvisionFields(HqNotifyEnvConfig c, Map<String, Object> body) {
+        if (body == null) {
+            return;
+        }
+        if (body.containsKey("notiProvisionEnabledYn")) {
+            c.setNotiProvisionEnabledYn(yn(String.valueOf(body.get("notiProvisionEnabledYn"))));
+        }
+        if (body.containsKey("notiProvisionBaseUrl")) {
+            String u = String.valueOf(body.get("notiProvisionBaseUrl")).trim();
+            c.setNotiProvisionBaseUrl(u.isEmpty() ? null : u.replaceAll("/+$", ""));
+        }
+        if (body.containsKey("notiProvisionDefaultInternalTargetId")) {
+            String tid = String.valueOf(body.get("notiProvisionDefaultInternalTargetId")).trim();
+            c.setNotiProvisionDefaultInternalTargetId(tid.isEmpty() ? null : tid);
+        }
+        if (body.containsKey("notiProvisionInternalTargetJpy")) {
+            String tid = String.valueOf(body.get("notiProvisionInternalTargetJpy")).trim();
+            c.setNotiProvisionInternalTargetJpy(tid.isEmpty() ? null : tid);
+        }
+        if (body.containsKey("notiProvisionInternalTargetUsd")) {
+            String tid = String.valueOf(body.get("notiProvisionInternalTargetUsd")).trim();
+            c.setNotiProvisionInternalTargetUsd(tid.isEmpty() ? null : tid);
+        }
+        if (body.containsKey("notiProvisionDefaultDealmaiPartner")) {
+            String p = String.valueOf(body.get("notiProvisionDefaultDealmaiPartner")).trim();
+            c.setNotiProvisionDefaultDealmaiPartner(p.isEmpty() ? null : p);
+        }
+        if (body.containsKey("notiProvisionApiKey")) {
+            String k = String.valueOf(body.get("notiProvisionApiKey")).trim();
+            if (!k.isEmpty() && !isProvisionApiKeyPlaceholder(k)) {
+                c.setNotiProvisionApiKey(k);
+            }
+        }
+    }
+
+    private static boolean isProvisionApiKeyPlaceholder(String k) {
+        if (k == null || k.isBlank()) {
+            return true;
+        }
+        String t = k.trim();
+        return "********".equals(t) || t.matches("^\\*+$");
     }
 
     private static boolean payFollowKeysPresentInBody(Map<String, Object> body) {

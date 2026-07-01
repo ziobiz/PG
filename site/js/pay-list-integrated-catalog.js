@@ -39,7 +39,9 @@
     orgAllowanceDefaultKeysByScope: {
       REGIONAL: null,
       MASTER_DIST: [
-        'routeNo', 'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel', 'payCompletedAt',
+        'routeNo', 'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel',
+        'payerDeviceLabel', 'payerRegion',
+        'payCompletedAt',
         'chillAmount', 'icopayAmt', 'totalAmt', 'currency',
         'payCustomerIndicator', 'displayPaySummary',
         'regionalBaseCur', 'masterDistBaseCur', 'merchantBaseCur',
@@ -50,7 +52,9 @@
         'payCardNo', 'payActions', 'payRemark'
       ],
       BRANCH_GROUP: [
-        'routeNo', 'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel', 'payCompletedAt',
+        'routeNo', 'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel',
+        'payerDeviceLabel', 'payerRegion',
+        'payCompletedAt',
         'chillAmount', 'icopayAmt', 'totalAmt', 'currency',
         'payCustomerIndicator', 'displayPaySummary',
         'regionalBaseCur', 'masterDistBaseCur', 'merchantBaseCur',
@@ -60,7 +64,9 @@
         'settleAmt', 'calcDt'
       ],
       MERCHANT: [
-        'routeNo', 'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel', 'payCompletedAt',
+        'routeNo', 'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel',
+        'payerDeviceLabel', 'payerRegion',
+        'payCompletedAt',
         'chillAmount', 'icopayAmt', 'totalAmt', 'currency',
         'payCustomerIndicator', 'displayPaySummary',
         'regionalBaseCur', 'masterDistBaseCur', 'merchantBaseCur',
@@ -89,6 +95,8 @@
       { key: 'chillCustomer', label: '고객' },
       { key: 'orderNo', label: '주문번호' },
       { key: 'paymentChannel', label: 'Payment Channel' },
+      { key: 'payerDeviceLabel', label: '단말기' },
+      { key: 'payerRegion', label: '위치' },
       { key: 'payCompletedAt', label: '결제시각' },
       { key: 'chillAmount', label: '결제금액' },
       { key: 'icopayAmt', label: 'ICOPAY' },

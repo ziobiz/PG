@@ -1778,6 +1778,66 @@
     hqNotifyEnvSave: function (body) {
       return post('/api/hq/notifyEnv/save', body || {}).then(function (r) { return r.data; });
     },
+    hqSupervisorUsers: function () {
+      return get('/api/hq/notifyEnv/supervisorUsers').then(function (r) { return r.data || []; });
+    },
+    hqSupervisorOrgs: function () {
+      return get('/api/hq/notifyEnv/supervisorOrgs').then(function (r) { return r.data || []; });
+    },
+    hqSupervisorCandidates: function (params) {
+      return get('/api/hq/notifyEnv/supervisorCandidates', params || {}).then(function (r) { return r.data || []; });
+    },
+    hqSupervisorAssign: function (body) {
+      return post('/api/hq/notifyEnv/supervisor/assign', body || {}).then(function (r) { return r.data || r; });
+    },
+    hqSupervisorRevoke: function (body) {
+      return post('/api/hq/notifyEnv/supervisor/revoke', body || {}).then(function (r) { return r.data || r; });
+    },
+    opsNotiProvisionAccess: function () {
+      return get('/api/ops/notiProvision/access').then(function (r) { return r.data; });
+    },
+    opsNotiProvisionStatus: function (params) {
+      return get('/api/ops/notiProvision/status', params || {}).then(function (r) { return r.data; });
+    },
+    opsNotiProvision: function (body) {
+      return post('/api/ops/notiProvision/provision', body || {}).then(function (r) { return r.data || r; });
+    },
+    opsNotiProvisionList: function (params) {
+      return get('/api/ops/notiProvision/list', params || {}).then(function (r) { return r.data; });
+    },
+    opsNotiProvisionContext: function (params) {
+      return get('/api/ops/notiProvision/context', params || {}).then(function (r) { return r.data; });
+    },
+    opsNotiProvisionCheckMerchantId: function (params) {
+      return get('/api/ops/notiProvision/checkMerchantId', params || {}).then(function (r) { return r.data; });
+    },
+    opsNotiProvisionCheckSlot: function (params) {
+      return get('/api/ops/notiProvision/checkSlot', params || {}).then(function (r) { return r.data; });
+    },
+    opsNotiProvisionNextSlot: function (params) {
+      return get('/api/ops/notiProvision/nextSlot', params || {}).then(function (r) { return r.data; });
+    },
+    opsNotiProvisionLogDetail: function (params) {
+      return get('/api/ops/notiProvision/log/detail', params || {}).then(function (r) { return r.data; });
+    },
+    opsNotiProvisionLogUpdate: function (body) {
+      return post('/api/ops/notiProvision/log/update', body || {}).then(function (r) { return r.data || r; });
+    },
+    opsNotiProvisionLogDelete: function (body) {
+      return post('/api/ops/notiProvision/log/delete', body || {}).then(function (r) { return r.data || r; });
+    },
+    hqNotifyWebhookPartners: function () {
+      return get('/api/hq/notifyEnv/webhookPartners').then(function (r) { return r.data || []; });
+    },
+    hqNotifyWebhookPartnerCreate: function (body) {
+      return post('/api/hq/notifyEnv/webhookPartners/create', body || {}).then(function (r) { return r.data || r; });
+    },
+    hqNotifyWebhookPartnerDelete: function (id) {
+      return del('/api/hq/notifyEnv/webhookPartners/' + encodeURIComponent(String(id))).then(function (r) { return r.data || r; });
+    },
+    hqNotifyInternalTargets: function () {
+      return get('/api/hq/notifyEnv/internalTargets').then(function (r) { return r.data || []; });
+    },
     hqNotifyEnvRegenerateToken: function () {
       return post('/api/hq/notifyEnv/regenerateToken', {}).then(function (r) { return r.data; });
     },
@@ -1901,6 +1961,9 @@
     },
     opsInactiveCardRelease: function (body) {
       return post('/api/ops/inactiveCard/release', body).then(function (r) { return r.data; });
+    },
+    opsInactiveCardReleaseBulk: function (body) {
+      return post('/api/ops/inactiveCard/releaseBulk', body).then(function (r) { return r.data; });
     },
     opsInactiveCardUpdate: function (body) {
       return post('/api/ops/inactiveCard/update', body).then(function (r) { return r.data; });
