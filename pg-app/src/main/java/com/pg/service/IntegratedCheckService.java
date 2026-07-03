@@ -50,7 +50,7 @@ public class IntegratedCheckService {
         LocalDate effectiveTo = tTo.isAfter(today) ? today : tTo;
 
         Map<String, Object> jpayPayload = jpayIntegratedListService.buildDailyIntegratedSummary(
-                tFrom, tTo, effectiveTo, searchKeyword, searchOrderNo, searchPayDivCd, searchOrderDir);
+                tFrom, tTo, effectiveTo, searchKeyword, searchOrderNo, searchPayDivCd, searchOrderDir, authentication);
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> jpayDays = jpayPayload.get("list") instanceof List<?> jl
                 ? (List<Map<String, Object>>) jl : List.of();

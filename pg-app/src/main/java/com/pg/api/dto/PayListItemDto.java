@@ -111,6 +111,7 @@ public class PayListItemDto {
         row.put("outcomeReasonPreview", TxnOutcomeReasonApplier.preview(t.getOutcomeReason()));
         row.put("outcomeCause", TxnOutcomeReasonApplier.preview(t.getOutcomeReason()));
         row.put("outcomeReasonSource", t.getOutcomeReasonSource() != null ? t.getOutcomeReasonSource().trim() : "");
+        row.put("outcomeReasonCode", t.getOutcomeReasonCode() != null ? t.getOutcomeReasonCode().trim() : "");
         row.put("payerClientIp", t.getPayerClientIp() != null ? t.getPayerClientIp().trim() : "");
         row.put("payerDeviceCategory", t.getPayerDeviceCategory() != null ? t.getPayerDeviceCategory().trim() : "");
         row.put("payerDeviceLabel", PayerDeviceCategoryUtil.displayLabel(t.getPayerDeviceCategory(), "KO"));
@@ -336,13 +337,35 @@ public class PayListItemDto {
         return new ApprovedSettlementParts(feeAmtBd, feeVatBd, holdAmtBd, settleAmtBd, perTxAmt, settlementPerTxAmt, extraPctAmt);
     }
 
-    /** 목록 상단 취소 금액 합산용(결제취소·무효·환불 등) */
+    /** 목록 상단 취소 금액 합산용(결제취소·무효·환불 등) — 추정결산 차감용 */
     public static boolean isCancelAmountStatus(String status) {
         if (status == null || status.isBlank()) {
             return false;
         }
         return switch (status.trim()) {
             case "20", "21", "22", "30", "31", "40", "41", "42" -> true;
+            default -> false;
+        };
+    }
+
+    /** 상단 개요 「환불」 — REFUND(30·42)만 */
+    public static boolean isRefundAmountStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return false;
+        }
+        return switch (status.trim()) {
+            case "30", "42" -> true;
+            default -> false;
+        };
+    }
+
+    /** 상단 개요 「실패」 */
+    public static boolean isFailAmountStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return false;
+        }
+        return switch (status.trim().toUpperCase(java.util.Locale.ROOT)) {
+            case "99", "F0" -> true;
             default -> false;
         };
     }

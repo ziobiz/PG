@@ -16,8 +16,17 @@ import com.pg.repository.MerchantNotifyUrlRepository;
 import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgAgencyRepository;
+import com.pg.repository.PgTrnsctnRepository;
+import com.pg.entity.PgTrnsctn;
+import com.pg.util.JpayCheckoutMinAmountUtil;
+import com.pg.util.JpayOrderDuplicateUtil;
 import com.pg.util.JpayPayIndexResponseParser;
 import com.pg.util.JpaySignatureUtil;
+import com.pg.util.NotifyToTxnStatusMerge;
+import com.pg.util.PayPresaleRiskFilterCodes;
+import com.pg.util.PgNotifyInternalStatusMapper;
+import com.pg.util.PgOutboundUrlPolicy;
+import com.pg.util.PgTrnsctnOrderLookup;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +80,9 @@ public class JpayPaymentService {
     private final JpaySubscriptionConfigService jpaySubscriptionConfigService;
     private final MerchantJpaySubscriptionRepository merchantJpaySubscriptionRepository;
     private final PayCardPolicyService payCardPolicyService;
+    private final PayPresaleRiskFilterService payPresaleRiskFilterService;
+    private final JpayTradeApiService jpayTradeApiService;
+    private final PgTrnsctnRepository pgTrnsctnRepository;
     private final RestTemplate restTemplate = createJpayRestTemplate();
 
     public JpayPaymentService(MerchantPgBindingRepository merchantPgBindingRepository,
@@ -84,7 +96,10 @@ public class JpayPaymentService {
                               UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService,
                               JpaySubscriptionConfigService jpaySubscriptionConfigService,
                               MerchantJpaySubscriptionRepository merchantJpaySubscriptionRepository,
-                              PayCardPolicyService payCardPolicyService) {
+                              PayCardPolicyService payCardPolicyService,
+                              PayPresaleRiskFilterService payPresaleRiskFilterService,
+                              JpayTradeApiService jpayTradeApiService,
+                              PgTrnsctnRepository pgTrnsctnRepository) {
         this.merchantPgBindingRepository = merchantPgBindingRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.orgServiceUseService = orgServiceUseService;
@@ -97,6 +112,9 @@ public class JpayPaymentService {
         this.jpaySubscriptionConfigService = jpaySubscriptionConfigService;
         this.merchantJpaySubscriptionRepository = merchantJpaySubscriptionRepository;
         this.payCardPolicyService = payCardPolicyService;
+        this.payPresaleRiskFilterService = payPresaleRiskFilterService;
+        this.jpayTradeApiService = jpayTradeApiService;
+        this.pgTrnsctnRepository = pgTrnsctnRepository;
     }
 
     /**
@@ -111,7 +129,7 @@ public class JpayPaymentService {
             return failOut("가맹점을 찾을 수 없습니다.", "NOT_FOUND");
         }
         if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
-            return failOut("서비스가 중지된 업체입니다.", "ORG_DISABLED");
+            return failOut(OrgServiceUseService.MSG_ORG_SERVICE_DISABLED, "ORG_DISABLED");
         }
         Optional<MerchantPgBinding> bindOpt = findOperationalJpayWebBinding(orgUnitId);
         if (bindOpt.isEmpty()) {
@@ -157,6 +175,10 @@ public class JpayPaymentService {
             return failOut("amount는 0보다 커야 합니다.", "INVALID_AMOUNT");
         }
         String currency = urlPayCheckoutCurrencyService.resolveCheckoutCurrency(orgUnitId, str(body.get("currency")));
+        Optional<Map<String, Object>> minDeny = JpayCheckoutMinAmountUtil.validate(amountBd, currency);
+        if (minDeny.isPresent()) {
+            return minDeny.get();
+        }
         com.pg.urlpay.PayerContextCapture.enrichSaleBody(body, req, clientIp);
         String txnOrigin = resolveTxnOrigin(str(body.get("txnOrigin")));
         BigDecimal shopperDisplayAmt = parseAmount(body.get("shopperDisplayAmount"));
@@ -168,6 +190,19 @@ public class JpayPaymentService {
             return cardPolicyBlockOut(cardVal, merchantCode, orderNo, txnOrigin, orgUnitId, amountBd, currency,
                     routeNo, body, shopperDisplayAmt, shopperDisplayCur);
         }
+
+        Optional<PayPresaleRiskFilterService.PresaleRiskBlock> presaleRisk =
+                payPresaleRiskFilterService.evaluate(orgUnitId, merchantCode, PgVendor.JPAY, body);
+        if (presaleRisk.isPresent()) {
+            return presaleRiskBlockOut(presaleRisk.get(), orgUnitId, merchantCode, orderNo, txnOrigin, amountBd,
+                    currency, routeNo, body, shopperDisplayAmt, shopperDisplayCur);
+        }
+
+        Optional<Map<String, Object>> preSaleGuard = guardBeforePayIndex(orgUnitId, merchantCode, orderNo);
+        if (preSaleGuard.isPresent()) {
+            return preSaleGuard.get();
+        }
+
         jpaySaleRecordService.recordOrTouchPending(orgUnitId, orderNo, amountBd, currency, routeNo,
                 str(body.get("payEmailAddress")),
                 str(body.get("item")),
@@ -191,10 +226,8 @@ public class JpayPaymentService {
         String notifyUrl = resolveMerchantJpayNotifyUrl(orgUnitId, defaultNotifyUrl);
         String callbackUrl = resolveMerchantJpayCallbackUrl(orgUnitId, defaultCallbackUrl);
 
-        String siteUrl = str(body.get("payUrl"));
-        if (siteUrl.isBlank()) {
-            siteUrl = publicBase;
-        }
+        // 가맹 개인정보 보호: PG(pay_url)에는 가맹 몰 도메인을 절대 넣지 않는다. 우리 도메인이 아니면 publicBase 로 강제.
+        String siteUrl = PgOutboundUrlPolicy.enforceOwnDomain(str(body.get("payUrl")), publicBase, publicBase);
 
         String compCode = str(body.get("compId"));
         String attach = compCode.isBlank() ? "" : "icopayCompId=" + compCode.trim();
@@ -321,6 +354,9 @@ public class JpayPaymentService {
                     resolveTxnOrigin(str(body.get("txnOrigin"))), jpayTxnId,
                     str(body.get("payCardno")));
         }
+        if (status == 2 && JpayOrderDuplicateUtil.isDuplicateOrderMessage(msg)) {
+            return JpayOrderDuplicateUtil.orderDupFailPayload(orderNo);
+        }
 
         out.put("success", true);
         out.put("status", status);
@@ -356,7 +392,7 @@ public class JpayPaymentService {
             return failOut("가맹점을 찾을 수 없습니다.", "NOT_FOUND");
         }
         if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
-            return failOut("서비스가 중지된 업체입니다.", "ORG_DISABLED");
+            return failOut(OrgServiceUseService.MSG_ORG_SERVICE_DISABLED, "ORG_DISABLED");
         }
         Optional<MerchantPgBinding> bindOpt = jpaySubscriptionConfigService.findOperationalSubscriptionBinding(orgUnitId);
         if (bindOpt.isEmpty()) {
@@ -403,10 +439,8 @@ public class JpayPaymentService {
         String notifyUrl = resolveMerchantJpayNotifyUrl(orgUnitId, defaultNotifyUrl);
         String callbackUrl = resolveMerchantJpayCallbackUrl(orgUnitId, defaultCallbackUrl);
 
-        String siteUrl = str(body.get("payUrl"));
-        if (siteUrl.isBlank()) {
-            siteUrl = publicBase;
-        }
+        // 가맹 개인정보 보호: PG(pay_url)에는 가맹 몰 도메인을 절대 넣지 않는다. 우리 도메인이 아니면 publicBase 로 강제.
+        String siteUrl = PgOutboundUrlPolicy.enforceOwnDomain(str(body.get("payUrl")), publicBase, publicBase);
         String compCode = str(body.get("compId"));
         String attach = compCode.isBlank() ? "" : "icopayCompId=" + compCode.trim();
 
@@ -475,6 +509,13 @@ public class JpayPaymentService {
             String merchantCode = resolveMerchantCode(orgUnitId);
             return cardPolicyBlockOut(cardVal, merchantCode, orderNo, "SUBSCRIPTION", orgUnitId, amountBd, currency,
                     routeNo, body, null, null);
+        }
+        String merchantCodeSub = resolveMerchantCode(orgUnitId);
+        Optional<PayPresaleRiskFilterService.PresaleRiskBlock> presaleRiskSub =
+                payPresaleRiskFilterService.evaluate(orgUnitId, merchantCodeSub, PgVendor.JPAY, body);
+        if (presaleRiskSub.isPresent()) {
+            return presaleRiskBlockOut(presaleRiskSub.get(), orgUnitId, merchantCodeSub, orderNo, "SUBSCRIPTION",
+                    amountBd, currency, routeNo, body, null, null);
         }
         jpaySaleRecordService.recordOrTouchPending(orgUnitId, orderNo, amountBd, currency, routeNo,
                 str(body.get("payEmailAddress")),
@@ -636,6 +677,56 @@ public class JpayPaymentService {
         return out;
     }
 
+    private Optional<Map<String, Object>> guardBeforePayIndex(Long orgUnitId, String merchantCode, String orderNo) {
+        if (merchantCode != null && !merchantCode.isBlank()) {
+            Optional<PgTrnsctn> local = PgTrnsctnOrderLookup.findPreferredByMerchantAndOrder(
+                    pgTrnsctnRepository, merchantCode, orderNo);
+            if (local.isPresent()) {
+                String st = local.get().getStatus() != null ? local.get().getStatus().trim() : "";
+                if ("10".equals(st) || "00".equals(st)) {
+                    Map<String, Object> paid = new LinkedHashMap<>();
+                    paid.put("success", true);
+                    paid.put("status", 0);
+                    paid.put("msg", "transaction success");
+                    paid.put("orderNo", orderNo);
+                    paid.put("idempotent", true);
+                    return Optional.of(paid);
+                }
+                if ("08".equals(st)) {
+                    return Optional.of(JpayOrderDuplicateUtil.orderPendingFailPayload(orderNo));
+                }
+                if (NotifyToTxnStatusMerge.isTerminalOutcome(st)) {
+                    return Optional.of(JpayOrderDuplicateUtil.orderDupFailPayload(orderNo));
+                }
+            }
+        }
+        Optional<JpayTradeApiService.TradeQuerySnapshot> snap =
+                jpayTradeApiService.tryQueryTradeForOrgUnit(orgUnitId, orderNo);
+        if (snap.isEmpty()) {
+            return Optional.empty();
+        }
+        JpayTradeApiService.TradeQuerySnapshot q = snap.get();
+        String mapped = q.mappedInternalStatus();
+        if (PgNotifyInternalStatusMapper.ST_PAID.equals(mapped)) {
+            Map<String, Object> paid = new LinkedHashMap<>();
+            paid.put("success", true);
+            paid.put("status", 0);
+            paid.put("msg", "transaction success");
+            paid.put("orderNo", orderNo);
+            paid.put("transactionId", q.transactionId());
+            paid.put("idempotent", true);
+            return Optional.of(paid);
+        }
+        if (PgNotifyInternalStatusMapper.ST_FAIL.equals(mapped)) {
+            return Optional.of(JpayOrderDuplicateUtil.orderDupFailPayload(orderNo));
+        }
+        String ts = q.tradeState() != null ? q.tradeState().trim().toUpperCase(Locale.ROOT) : "";
+        if ("UNPAID".equals(ts) || PgNotifyInternalStatusMapper.ST_CANCEL.equals(mapped)) {
+            return Optional.of(JpayOrderDuplicateUtil.orderPendingFailPayload(orderNo));
+        }
+        return Optional.empty();
+    }
+
     private String resolveMerchantCode(Long orgUnitId) {
         if (orgUnitId == null) {
             return "";
@@ -774,7 +865,15 @@ public class JpayPaymentService {
         if (u.isBlank()) {
             return defaultIngressUrl != null ? defaultIngressUrl : "";
         }
-        return u;
+        // 가맹 개인정보 보호: PG 로 전송되는 notify/callback URL 은 반드시 우리 도메인이어야 한다.
+        // 가맹/외부 도메인이 등록돼 있으면 PG 에 가맹 주소가 노출되므로 우리 ingress 기본값으로 강제 대체한다.
+        String safe = defaultIngressUrl != null ? defaultIngressUrl : "";
+        String enforced = PgOutboundUrlPolicy.enforceOwnDomain(u, safe, defaultIngressUrl);
+        if (!enforced.equals(u)) {
+            log.warn("JPAY {} URL 이 우리 도메인이 아니어서 ingress 기본값으로 대체 orgUnitId={} host={}",
+                    urlType, orgUnitId, PgOutboundUrlPolicy.hostOf(u));
+        }
+        return enforced;
     }
 
     private static String resolveExtraStr(PgAgency agency, String key, String def) {
@@ -1045,7 +1144,54 @@ public class JpayPaymentService {
                 jpaySaleRecordService.applyIcopayPreSaleFail(merchantCode, orderNo, txnOrigin, msg, code);
             }
         }
-        return failOut(msg, code);
+        return cardPolicyFailOut(cardVal, msg, code);
+    }
+
+    private Map<String, Object> presaleRiskBlockOut(PayPresaleRiskFilterService.PresaleRiskBlock block,
+                                                   Long orgUnitId,
+                                                   String merchantCode,
+                                                   String orderNo,
+                                                   String txnOrigin,
+                                                   BigDecimal amountBd,
+                                                   String currency,
+                                                   int routeNo,
+                                                   Map<String, Object> body,
+                                                   BigDecimal shopperDisplayAmt,
+                                                   String shopperDisplayCur) {
+        jpaySaleRecordService.recordOrTouchPending(orgUnitId, orderNo, amountBd, currency, routeNo,
+                str(body.get("payEmailAddress")),
+                str(body.get("item")),
+                txnOrigin,
+                shopperDisplayAmt,
+                shopperDisplayCur,
+                body);
+        String trnId = jpaySaleRecordService.applyIcopayPresaleRiskCancel(
+                merchantCode, orderNo, txnOrigin, block);
+        payPresaleRiskFilterService.recordEvent(orgUnitId, merchantCode, orderNo, trnId, PgVendor.JPAY, block);
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("success", false);
+        out.put("errorCode", PayPresaleRiskFilterCodes.ERROR_CODE);
+        out.put("filterCode", block.filterCode());
+        out.put("message", block.message());
+        out.put("messages", block.messages());
+        out.put("icopayPresaleBlock", true);
+        out.put("txnStatus", "20");
+        return out;
+    }
+
+    private Map<String, Object> cardPolicyFailOut(Map<String, Object> cardVal, String msg, String code) {
+        Map<String, Object> out = failOut(msg, code);
+        if (cardVal.get("messageKey") != null) {
+            out.put("messageKey", cardVal.get("messageKey"));
+        }
+        if (cardVal.get("messages") != null) {
+            out.put("messages", cardVal.get("messages"));
+        }
+        if (cardVal.get("remainingMinutes") != null) {
+            out.put("remainingMinutes", cardVal.get("remainingMinutes"));
+        }
+        out.put("icopayPresaleBlock", true);
+        return out;
     }
 
     private static String defaultProductJson(String productName, String price) {

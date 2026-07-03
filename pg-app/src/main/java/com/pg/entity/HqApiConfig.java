@@ -99,6 +99,10 @@ public class HqApiConfig {
     @Column(name = "api_url_pay_input_mode_default", nullable = false, length = 16)
     private String apiUrlPayInputModeDefault = "TYPE_BA";
 
+    /** JPAY URL 결제창 카드 유효기간 입력 본사 기본 — {@link com.pg.urlpay.UrlPayCardExpiryModeUtil} */
+    @Column(name = "url_pay_card_expiry_mode_default", nullable = false, length = 16)
+    private String urlPayCardExpiryModeDefault = "DROPDOWN";
+
     /** WordPress/WooCommerce 플러그인 ZIP·REST webhook 채널 전역 제공 */
     @Column(name = "api_wordpress_plugin_enabled_yn", length = 1)
     private String apiWordpressPluginEnabledYn = "Y";
@@ -323,6 +327,12 @@ public class HqApiConfig {
             n = com.pg.urlpay.UrlPayInputModeUtil.TYPE_BA;
         }
         this.apiUrlPayInputModeDefault = n;
+    }
+    public String getUrlPayCardExpiryModeDefault() { return urlPayCardExpiryModeDefault; }
+    public void setUrlPayCardExpiryModeDefault(String urlPayCardExpiryModeDefault) {
+        this.urlPayCardExpiryModeDefault = com.pg.urlpay.UrlPayCardExpiryModeUtil.normalize(
+                urlPayCardExpiryModeDefault != null ? urlPayCardExpiryModeDefault
+                        : com.pg.urlpay.UrlPayCardExpiryModeUtil.DROPDOWN);
     }
     public String getApiWordpressPluginEnabledYn() { return apiWordpressPluginEnabledYn; }
     public void setApiWordpressPluginEnabledYn(String apiWordpressPluginEnabledYn) { this.apiWordpressPluginEnabledYn = apiWordpressPluginEnabledYn; }

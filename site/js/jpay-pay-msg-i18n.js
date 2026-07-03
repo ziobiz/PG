@@ -68,6 +68,27 @@
       JPN: 'J-Pay pay_index が空の応答を返しました。pay_index URL（本番: https://api.j-pay.net/pay_index）を確認してください。',
       CHN: 'J-Pay pay_index 返回空响应。请核对 pay_index URL（生产: https://api.j-pay.net/pay_index）。',
       THA: 'J-Pay pay_index ตอบกลับว่าง ตรวจสอบ pay_index URL (live: https://api.j-pay.net/pay_index)'
+    },
+    'ICOPAY_ORDER_DUP': {
+      KOR: '이 주문번호는 이미 결제가 시도되었습니다. 쇼핑몰에서 새 orderNo로 prepare를 다시 호출해 주세요.',
+      ENG: 'This order number was already used for a payment attempt. Call prepare again with a new orderNo.',
+      JPN: 'この注文番号はすでに決済が試行されています。新しい orderNo で prepare を再度呼び出してください。',
+      CHN: '该订单号已用于支付尝试。请使用新的 orderNo 重新调用 prepare。',
+      THA: 'หมายเลขคำสั่งซื้อนี้ถูกใช้แล้ว โปรดเรียก prepare ใหม่ด้วย orderNo ใหม่'
+    },
+    'ICOPAY_ORDER_PENDING': {
+      KOR: '이 주문번호로 결제가 진행 중입니다. 3DS 인증을 완료하거나 status API로 결과를 확인해 주세요.',
+      ENG: 'A payment is already in progress for this orderNo. Complete 3DS or check the status API.',
+      JPN: 'この orderNo で決済が進行中です。3DSを完了するか status API で結果を確認してください。',
+      CHN: '该 orderNo 支付进行中。请完成 3DS 或通过 status API 查询。',
+      THA: 'คำสั่งซื้อนี้กำลังชำระอยู่ ให้ทำ 3DS ให้เสร็จหรือตรวจ status API'
+    },
+    '중복 주문! 주문을 다시 제출해 주세요.': {
+      KOR: '중복 주문입니다. 쇼핑몰에서 새 orderNo로 prepare를 다시 호출해 주세요.',
+      ENG: 'Duplicate order. Call prepare again from your store with a new orderNo.',
+      JPN: '重複注文です。ストアで新しい orderNo で prepare を再度呼び出してください。',
+      CHN: '重复订单。请从商城使用新的 orderNo 重新调用 prepare。',
+      THA: 'คำสั่งซื้อซ้ำ โปรดเรียก prepare ใหม่ด้วย orderNo ใหม่จากร้านค้า'
     }
   };
 
@@ -76,7 +97,10 @@
     { re: /不存在的商户编号/, key: '不存在的商户编号' },
     { re: /Signature verification failed/i, key: 'Signature verification failed' },
     { re: /pay_actualamount|Out of range value/i, key: 'JPAY_AMOUNT_RANGE' },
-    { re: /empty response/i, key: 'JPAY pay_index returned empty response (verify pay_index URL)' }
+    { re: /empty response/i, key: 'JPAY pay_index returned empty response (verify pay_index URL)' },
+    { re: /duplicate.*order|order.*duplicate/i, key: 'ICOPAY_ORDER_DUP' },
+    { re: /重复.*订单|订单.*重复/, key: 'ICOPAY_ORDER_DUP' },
+    { re: /중복.*주문|주문.*중복/, key: '중복 주문! 주문을 다시 제출해 주세요.' }
   ];
 
   function normalizeLang(lang) {
@@ -111,5 +135,16 @@
     return raw;
   }
 
-  global.PG_JPAY_PAY_MSG = { translate: translate };
+  function isDuplicateOrder(msg) {
+    var raw = String(msg == null ? '' : msg).trim();
+    if (!raw) return false;
+    var lower = raw.toLowerCase();
+    if (lower.indexOf('duplicate') >= 0 && lower.indexOf('order') >= 0) return true;
+    if (raw.indexOf('重复') >= 0 && raw.indexOf('订单') >= 0) return true;
+    if (raw.indexOf('중복') >= 0 && raw.indexOf('주문') >= 0) return true;
+    if (raw.indexOf('重複') >= 0 && (raw.indexOf('注文') >= 0 || raw.indexOf('オーダー') >= 0)) return true;
+    return false;
+  }
+
+  global.PG_JPAY_PAY_MSG = { translate: translate, isDuplicateOrder: isDuplicateOrder };
 })(typeof window !== 'undefined' ? window : this);

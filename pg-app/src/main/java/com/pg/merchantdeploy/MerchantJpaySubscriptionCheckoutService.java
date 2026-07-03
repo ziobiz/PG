@@ -220,7 +220,7 @@ public class MerchantJpaySubscriptionCheckoutService {
             return fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND");
         }
         if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
-            return fail("서비스가 중지된 업체입니다.", "ORG_DISABLED");
+            return fail(OrgServiceUseService.MSG_ORG_SERVICE_DISABLED, "ORG_DISABLED");
         }
         if (!subscriptionConfigService.isMerchantSubscriptionEnabled(orgUnitId)) {
             return fail("JPAY API 구독이 비활성입니다. 본사·가맹 설정을 확인하세요.", "SUBSCRIPTION_DISABLED");

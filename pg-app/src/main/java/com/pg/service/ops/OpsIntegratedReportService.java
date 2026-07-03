@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.LinkedHashMap;
 
 /**
  * 운영관리 — 통합 리포트(일자별 결제·수수료·가맹 동적 열).
@@ -34,5 +35,16 @@ public class OpsIntegratedReportService {
         }
         PayListSearchRequest req = PayListSearchRequest.fromParams(params);
         return payListService.buildOpsIntegratedReport(req, authentication);
+    }
+
+    public Map<String, Object> orgUnitsForSearch(String searchOrgLevel, Authentication authentication) {
+        Optional<String> deny = taxReportService.accessDeniedReason(authentication);
+        if (deny.isPresent()) {
+            throw new IllegalStateException(deny.get());
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("searchOrgLevels", payListService.listIntegratedReportSearchOrgLevels(authentication));
+        out.put("list", payListService.listIntegratedReportOrgUnits(searchOrgLevel, authentication));
+        return out;
     }
 }

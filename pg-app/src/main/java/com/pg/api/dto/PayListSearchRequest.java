@@ -44,6 +44,12 @@ public class PayListSearchRequest {
     private String adminUiLocale;
     /** 목록 일시적 표시 시간대(IANA). 비우면 전산설정 표준 시간대 */
     private String viewDisplayTimezone;
+    /** 통합리포트 등: 조직 단계(HEADQUARTERS·REGIONAL·MASTER_DIST …) */
+    private String searchOrgLevel;
+    /** 통합리포트 등: 조직 코드(업체코드). searchOrgLevel 과 함께 쓰며 비우면 해당 단계 전체 */
+    private String searchOrgUnitCode;
+    /** 통합리포트 등: 통화 필터(JPY·USD …). 비우면 거래가 있는 통화만 표시 */
+    private String searchCurrencyFilter;
     private int page = 1;
     private int size = 20;
 
@@ -76,6 +82,9 @@ public class PayListSearchRequest {
         r.skipMeta = isTruthy(raw.get("skipMeta"));
         r.listExport = isTruthy(raw.get("listExport"));
         r.viewDisplayTimezone = trimToNull(raw.get("viewDisplayTimezone"));
+        r.searchOrgLevel = trimToNull(raw.get("searchOrgLevel"));
+        r.searchOrgUnitCode = trimToNull(raw.get("searchOrgUnitCode"));
+        r.searchCurrencyFilter = trimToNull(raw.get("searchCurrencyFilter"));
         return r;
     }
 
@@ -102,6 +111,9 @@ public class PayListSearchRequest {
         put(m, "searchOrderBy", searchOrderBy);
         put(m, "payListVariant", payListVariant);
         put(m, "viewDisplayTimezone", viewDisplayTimezone);
+        put(m, "searchOrgLevel", searchOrgLevel);
+        put(m, "searchOrgUnitCode", searchOrgUnitCode);
+        put(m, "searchCurrencyFilter", searchCurrencyFilter);
         m.put("page", String.valueOf(page));
         m.put("size", String.valueOf(size));
         return m;
@@ -200,6 +212,12 @@ public class PayListSearchRequest {
     public void setAdminUiLocale(String adminUiLocale) { this.adminUiLocale = adminUiLocale; }
     public String getViewDisplayTimezone() { return viewDisplayTimezone; }
     public void setViewDisplayTimezone(String viewDisplayTimezone) { this.viewDisplayTimezone = viewDisplayTimezone; }
+    public String getSearchOrgLevel() { return searchOrgLevel; }
+    public void setSearchOrgLevel(String searchOrgLevel) { this.searchOrgLevel = searchOrgLevel; }
+    public String getSearchOrgUnitCode() { return searchOrgUnitCode; }
+    public void setSearchOrgUnitCode(String searchOrgUnitCode) { this.searchOrgUnitCode = searchOrgUnitCode; }
+    public String getSearchCurrencyFilter() { return searchCurrencyFilter; }
+    public void setSearchCurrencyFilter(String searchCurrencyFilter) { this.searchCurrencyFilter = searchCurrencyFilter; }
 
     /** 일별 집계 등: 검색 조건만 복제(날짜·페이지는 호출부에서 덮어씀). */
     public static PayListSearchRequest shallowCopy(PayListSearchRequest src) {
@@ -234,6 +252,9 @@ public class PayListSearchRequest {
         r.listExport = src.listExport;
         r.adminUiLocale = src.adminUiLocale;
         r.viewDisplayTimezone = src.viewDisplayTimezone;
+        r.searchOrgLevel = src.searchOrgLevel;
+        r.searchOrgUnitCode = src.searchOrgUnitCode;
+        r.searchCurrencyFilter = src.searchCurrencyFilter;
         return r;
     }
 }

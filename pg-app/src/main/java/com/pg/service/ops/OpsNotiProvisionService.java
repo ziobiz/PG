@@ -152,7 +152,8 @@ public class OpsNotiProvisionService {
         if (user == null) {
             return Optional.of("로그인이 필요합니다.");
         }
-        if (!isUnboundSystemAdmin(user)) {
+        if (!orgPagePermissionService.isFullAccessAdmin(user)
+                && !orgPagePermissionService.isHeadquartersAdmin(user)) {
             String ut = user.getUserType() != null ? user.getUserType().trim() : "";
             if (!"ASSISTANT".equalsIgnoreCase(ut)
                     || !SupervisorAssistantConstants.isSupervisorRoleType(user.getAssistantRoleType())) {
@@ -164,7 +165,8 @@ public class OpsNotiProvisionService {
             return Optional.of("조직 정보를 확인할 수 없습니다.");
         }
         String level = String.valueOf(org.getOrDefault("orgLevel", "")).trim().toUpperCase(Locale.ROOT);
-        if (!"HEADQUARTERS".equals(level) && !"REGIONAL".equals(level) && !"MASTER_DIST".equals(level)) {
+        if (!orgPagePermissionService.isHeadquartersAdmin(user)
+                && !"HEADQUARTERS".equals(level) && !"REGIONAL".equals(level) && !"MASTER_DIST".equals(level)) {
             return Optional.of("총본사·본사·총판 조직의 SUPERVISOR만 사용할 수 있습니다.");
         }
         Map<String, String> perms = orgPagePermissionService.resolvePagePermissionsForUser(user);
@@ -185,7 +187,7 @@ public class OpsNotiProvisionService {
         if (user == null) {
             return false;
         }
-        if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (orgPagePermissionService.isFullAccessAdmin(user)) {
             return true;
         }
         if (accessDeniedReason(authentication).isPresent()) {
@@ -229,13 +231,14 @@ public class OpsNotiProvisionService {
     }
 
     @Transactional(readOnly = true)
-    public Map<String, Object> merchantContext(Authentication authentication, String compId)
+    public Map<String, Object> merchantContext(Authentication authentication, String compId, String adminLang)
             throws NotiProvisionException {
         assertAccess(authentication);
         OrgUnit merchant = resolveMerchant(authentication, compId);
         HqNotifyEnvConfig cfg = hqNotifyEnvService.getOrCreate();
         String baseCurrency = resolveMerchantBaseCurrency(merchant.getId());
-        List<Map<String, Object>> notiTargets = notiInternalTargetCatalogService.listFromNoti(cfg, "ko");
+        String acceptLang = NotiProvisionClient.acceptLanguageFromAdminLang(adminLang);
+        List<Map<String, Object>> notiTargets = notiInternalTargetCatalogService.listFromNoti(cfg, acceptLang);
         String suggestedInternalRaw = resolveInternalTargetForCurrency(cfg, baseCurrency, Map.of());
         String suggestedInternal = notiInternalTargetCatalogService.resolveCanonicalId(suggestedInternalRaw, notiTargets);
         if (suggestedInternal.isEmpty()) {
@@ -555,12 +558,13 @@ public class OpsNotiProvisionService {
     }
 
     @Transactional(readOnly = true)
-    public Map<String, Object> logDetail(Authentication authentication, Long logId) throws NotiProvisionException {
+    public Map<String, Object> logDetail(Authentication authentication, Long logId, String adminLang) throws NotiProvisionException {
         assertAccess(authentication);
         NotiProvisionLog log = requireLog(logId);
         assertLogInViewerScope(authentication, log);
         HqNotifyEnvConfig cfg = hqNotifyEnvService.getOrCreate();
-        List<Map<String, Object>> notiTargets = notiInternalTargetCatalogService.listFromNoti(cfg, "ko");
+        String acceptLang = NotiProvisionClient.acceptLanguageFromAdminLang(adminLang);
+        List<Map<String, Object>> notiTargets = notiInternalTargetCatalogService.listFromNoti(cfg, acceptLang);
         Map<String, Object> out = toLogRow(log);
         out.put("merchantId", resolveLogMerchantId(log));
         out.put("internalTargetOptions", notiInternalTargetCatalogService.buildSelectOptions(notiTargets, cfg));
@@ -1091,10 +1095,11 @@ public class OpsNotiProvisionService {
     }
 
     @Transactional(readOnly = true)
-    public List<Map<String, Object>> listNotiInternalTargets(Authentication authentication) {
+    public List<Map<String, Object>> listNotiInternalTargets(Authentication authentication, String adminLang) {
         assertAccess(authentication);
         HqNotifyEnvConfig cfg = hqNotifyEnvService.getOrCreate();
-        return notiInternalTargetCatalogService.listFromNoti(cfg, "ko");
+        return notiInternalTargetCatalogService.listFromNoti(cfg,
+                NotiProvisionClient.acceptLanguageFromAdminLang(adminLang));
     }
 
     private MasterDistNotifyCtx resolveMasterDistNotifyContext(long merchantOrgUnitId) {
@@ -1216,13 +1221,6 @@ public class OpsNotiProvisionService {
     private static boolean isMerchantNotFound(NotiProvisionException e) {
         return "MERCHANT_NOT_FOUND".equalsIgnoreCase(e.getErrorCode())
                 || ("NOTI_HTTP".equalsIgnoreCase(e.getErrorCode()) && e.getHttpStatus() == 404);
-    }
-
-    private static boolean isUnboundSystemAdmin(AppUser user) {
-        if (user == null || user.getRole() == null || !"ADMIN".equalsIgnoreCase(user.getRole().trim())) {
-            return false;
-        }
-        return user.getOrgUnitCode() == null || user.getOrgUnitCode().isBlank();
     }
 
     private record MasterDistNotifyCtx(Long masterDistOrgId, String masterDistCode, String masterDistName,

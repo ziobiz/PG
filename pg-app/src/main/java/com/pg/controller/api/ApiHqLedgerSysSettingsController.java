@@ -11,6 +11,7 @@ import com.pg.service.HqSettlementDataResetService;
 import com.pg.service.PayFollowEmailVoidService;
 import com.pg.service.PayCardPolicyService;
 import com.pg.service.PayFollowPolicyService;
+import com.pg.service.settlement.SettlementVoidRefundFeeCorrectionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +36,7 @@ public class ApiHqLedgerSysSettingsController {
     private final PayFollowEmailVoidService payFollowEmailVoidService;
     private final PayFollowPolicyService payFollowPolicyService;
     private final PayCardPolicyService payCardPolicyService;
+    private final SettlementVoidRefundFeeCorrectionService voidRefundFeeCorrectionService;
 
     public ApiHqLedgerSysSettingsController(HqLedgerSysSettingsService service,
                                             HqOperationalDataResetService operationalDataResetService,
@@ -43,7 +45,8 @@ public class ApiHqLedgerSysSettingsController {
                                             AuthService authService,
                                             PayFollowEmailVoidService payFollowEmailVoidService,
                                             PayFollowPolicyService payFollowPolicyService,
-                                            PayCardPolicyService payCardPolicyService) {
+                                            PayCardPolicyService payCardPolicyService,
+                                            SettlementVoidRefundFeeCorrectionService voidRefundFeeCorrectionService) {
         this.service = service;
         this.operationalDataResetService = operationalDataResetService;
         this.settlementDataResetService = settlementDataResetService;
@@ -52,6 +55,7 @@ public class ApiHqLedgerSysSettingsController {
         this.payFollowEmailVoidService = payFollowEmailVoidService;
         this.payFollowPolicyService = payFollowPolicyService;
         this.payCardPolicyService = payCardPolicyService;
+        this.voidRefundFeeCorrectionService = voidRefundFeeCorrectionService;
     }
 
     private boolean canResetOperationalData(Authentication auth) {
@@ -250,6 +254,45 @@ public class ApiHqLedgerSysSettingsController {
             boolean purgeInbound = body.get("purgeInbound") == null || Boolean.parseBoolean(body.get("purgeInbound").toString());
             Map<String, Object> result = new LinkedHashMap<>(payNotifyDayPurgeService.purgeForDay(date, merchantId, purgeInbound));
             result.put("purged", true);
+            return ResponseEntity.ok(ApiResponse.ok(result));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "ERROR"));
+        }
+    }
+
+    /**
+     * 무효·환불 수수료 산식 보정 — 저장된 정산 실행({@code tb_settlement_run}) 재산출.
+     * 본문: {@code dryRun}(기본 true), {@code confirm:true}(실반영 시 필수),
+     * {@code calcDtFrom}·{@code calcDtTo}(YYYY-MM-DD, 선택), {@code merchantId}(선택).
+     */
+    @PostMapping("/correctVoidRefundSettlementFees")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> correctVoidRefundSettlementFees(
+            Authentication authentication,
+            @RequestBody(required = false) Map<String, Object> body) {
+        if (!canResetOperationalData(authentication)) {
+            return ResponseEntity.ok(ApiResponse.fail("총본사(HEADQUARTERS) 또는 시스템 관리자만 실행할 수 있습니다.", "FORBIDDEN"));
+        }
+        boolean dryRun = body == null || body.get("dryRun") == null || Boolean.parseBoolean(String.valueOf(body.get("dryRun")));
+        if (!dryRun && (body == null || body.get("confirm") == null || !Boolean.TRUE.equals(body.get("confirm")))) {
+            return ResponseEntity.ok(ApiResponse.fail("실반영 시 confirm:true 가 필요합니다. 먼저 dryRun:true 로 결과를 확인하세요.", "VALIDATION"));
+        }
+        try {
+            LocalDate from = null;
+            LocalDate to = null;
+            if (body != null) {
+                if (body.get("calcDtFrom") != null && !String.valueOf(body.get("calcDtFrom")).isBlank()) {
+                    from = LocalDate.parse(String.valueOf(body.get("calcDtFrom")).trim());
+                }
+                if (body.get("calcDtTo") != null && !String.valueOf(body.get("calcDtTo")).isBlank()) {
+                    to = LocalDate.parse(String.valueOf(body.get("calcDtTo")).trim());
+                }
+            }
+            String merchantId = body != null && body.get("merchantId") != null
+                    ? String.valueOf(body.get("merchantId")).trim() : null;
+            Map<String, Object> result = voidRefundFeeCorrectionService.correctStoredRuns(from, to, merchantId, dryRun);
+            result.put("corrected", !dryRun);
             return ResponseEntity.ok(ApiResponse.ok(result));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));

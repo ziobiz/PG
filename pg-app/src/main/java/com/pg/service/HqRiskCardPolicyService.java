@@ -73,6 +73,19 @@ public class HqRiskCardPolicyService {
         m.put("tier2TotalMin", toTotalMinutes(s.getTier2Hours(), s.getTier2Min(), 10));
         m.put("tier3TotalMin", toTotalMinutes(s.getTier3Hours(), s.getTier3Min(), 60));
         m.put("tier4TotalMin", toTotalMinutes(s.getTier4Hours(), s.getTier4Min(), 0));
+        m.put("presaleFilterEnabledYn", yn(s.getPresaleFilterEnabledYn()));
+        m.put("filterBuyerContactMismatchYn", yn(s.getFilterBuyerContactMismatchYn()));
+        m.put("filterHolderNameYn", yn(s.getFilterHolderNameYn()));
+        m.put("filterVelocityCardYn", yn(s.getFilterVelocityCardYn()));
+        m.put("filterVelocityEmailYn", yn(s.getFilterVelocityEmailYn()));
+        m.put("filterVelocityIpYn", yn(s.getFilterVelocityIpYn()));
+        m.put("velocityWindowMinutes", intOr(s.getVelocityWindowMinutes(), 10));
+        m.put("velocityMaxAttempts", intOr(s.getVelocityMaxAttempts(), 3));
+        m.put("checkoutContactRememberDefaultYn", yn(s.getCheckoutContactRememberDefaultYn()));
+        m.put("filterPhoneInvalidYn", yn(s.getFilterPhoneInvalidYn()));
+        m.put("filterEmailInvalidYn", yn(s.getFilterEmailInvalidYn()));
+        m.put("postsaleCooldownJpayHighriskYn", yn(s.getPostsaleCooldownJpayHighriskYn()));
+        m.put("postsaleCooldownJpayPy0124Yn", yn(s.getPostsaleCooldownJpayPy0124Yn()));
         return m;
     }
 
@@ -96,7 +109,53 @@ public class HqRiskCardPolicyService {
         if (body.containsKey("trackPeriodValue")) {
             s.setTrackPeriodValue(parseTrackPeriodValue(body.get("trackPeriodValue")));
         }
+        applyPresaleFilterFromBody(s, body);
         return riskCardPolicyRepository.save(s);
+    }
+
+    private void applyPresaleFilterFromBody(HqRiskCardPolicy s, Map<String, Object> body) {
+        if (body.containsKey("presaleFilterEnabledYn")) {
+            s.setPresaleFilterEnabledYn(parseYn(body.get("presaleFilterEnabledYn"), s.getPresaleFilterEnabledYn()));
+        }
+        if (body.containsKey("filterBuyerContactMismatchYn")) {
+            s.setFilterBuyerContactMismatchYn(parseYn(body.get("filterBuyerContactMismatchYn"), s.getFilterBuyerContactMismatchYn()));
+        }
+        if (body.containsKey("filterHolderNameYn")) {
+            s.setFilterHolderNameYn(parseYn(body.get("filterHolderNameYn"), s.getFilterHolderNameYn()));
+        }
+        if (body.containsKey("filterVelocityCardYn")) {
+            s.setFilterVelocityCardYn(parseYn(body.get("filterVelocityCardYn"), s.getFilterVelocityCardYn()));
+        }
+        if (body.containsKey("filterVelocityEmailYn")) {
+            s.setFilterVelocityEmailYn(parseYn(body.get("filterVelocityEmailYn"), s.getFilterVelocityEmailYn()));
+        }
+        if (body.containsKey("filterVelocityIpYn")) {
+            s.setFilterVelocityIpYn(parseYn(body.get("filterVelocityIpYn"), s.getFilterVelocityIpYn()));
+        }
+        if (body.containsKey("velocityWindowMinutes")) {
+            s.setVelocityWindowMinutes(Math.max(1, parseInt(body.get("velocityWindowMinutes"))));
+        }
+        if (body.containsKey("velocityMaxAttempts")) {
+            s.setVelocityMaxAttempts(Math.max(1, parseInt(body.get("velocityMaxAttempts"))));
+        }
+        if (body.containsKey("checkoutContactRememberDefaultYn")) {
+            s.setCheckoutContactRememberDefaultYn(parseYn(body.get("checkoutContactRememberDefaultYn"),
+                    s.getCheckoutContactRememberDefaultYn()));
+        }
+        if (body.containsKey("filterPhoneInvalidYn")) {
+            s.setFilterPhoneInvalidYn(parseYn(body.get("filterPhoneInvalidYn"), s.getFilterPhoneInvalidYn()));
+        }
+        if (body.containsKey("filterEmailInvalidYn")) {
+            s.setFilterEmailInvalidYn(parseYn(body.get("filterEmailInvalidYn"), s.getFilterEmailInvalidYn()));
+        }
+        if (body.containsKey("postsaleCooldownJpayHighriskYn")) {
+            s.setPostsaleCooldownJpayHighriskYn(parseYn(body.get("postsaleCooldownJpayHighriskYn"),
+                    s.getPostsaleCooldownJpayHighriskYn()));
+        }
+        if (body.containsKey("postsaleCooldownJpayPy0124Yn")) {
+            s.setPostsaleCooldownJpayPy0124Yn(parseYn(body.get("postsaleCooldownJpayPy0124Yn"),
+                    s.getPostsaleCooldownJpayPy0124Yn()));
+        }
     }
 
     public CardRiskPolicyEffective resolveForOrgUnit(Long orgUnitId) {

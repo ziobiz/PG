@@ -47,4 +47,18 @@ public class ApiOpsIntegratedReportController {
             return ResponseEntity.ok(ApiResponse.fail(msg, "FORBIDDEN"));
         }
     }
+
+    /** 조직구분 선택 시 검색어(조직) 드롭다운 — 로그인 범위 내 해당 단계 조직만 */
+    @GetMapping(value = "/orgUnits", produces = "application/json")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> orgUnits(
+            Authentication authentication,
+            @RequestParam(name = "searchOrgLevel", required = false) String searchOrgLevel) {
+        try {
+            return ResponseEntity.ok(ApiResponse.ok(
+                    opsIntegratedReportService.orgUnitsForSearch(searchOrgLevel, authentication)));
+        } catch (IllegalStateException e) {
+            String msg = e.getMessage() != null ? e.getMessage() : "FORBIDDEN";
+            return ResponseEntity.ok(ApiResponse.fail(msg, "FORBIDDEN"));
+        }
+    }
 }

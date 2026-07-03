@@ -976,7 +976,7 @@ public class ChillPayService {
             UrlPayBindingScope bindingScope) {
 
         if (merchantOrgUnitId != null && !orgServiceUseService.isOrgServiceActive(merchantOrgUnitId)) {
-            throw new IllegalStateException("서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)");
+            throw new IllegalStateException(OrgServiceUseService.MSG_ORG_SERVICE_DISABLED);
         }
 
         UrlPayBindingScope scope = bindingScope != null ? bindingScope : UrlPayBindingScope.STANDARD;
@@ -1020,8 +1020,14 @@ public class ChillPayService {
         req.setCheckSum(checkSum);
 
         if (browserReturnUrl != null && !browserReturnUrl.isBlank()) {
-            req.setReturnUrl(browserReturnUrl.trim());
-            log.info("ChillPay DirectCredit ReturnUrl set (browser return after hosted step if supported)");
+            // 가맹 개인정보 보호: PG 로 나가는 ReturnUrl 은 반드시 우리(신뢰) 도메인만 허용(이중 방어).
+            HqApiConfig returnUrlCfg = hqApiConfigRepository.findAll().stream().findFirst().orElse(null);
+            if (isTrustedPayResultHost(hostOfBase(browserReturnUrl), returnUrlCfg)) {
+                req.setReturnUrl(browserReturnUrl.trim());
+                log.info("ChillPay DirectCredit ReturnUrl set (browser return after hosted step if supported)");
+            } else {
+                log.warn("ChillPay ReturnUrl 이 신뢰 도메인이 아니어서 미전송 host={}", hostOfBase(browserReturnUrl));
+            }
         }
 
         HttpHeaders headers = new HttpHeaders();
@@ -2204,7 +2210,7 @@ public class ChillPayService {
             LocalDate paymentDateTo) {
 
         if (merchantOrgUnitId != null && !orgServiceUseService.isOrgServiceActive(merchantOrgUnitId)) {
-            throw new IllegalStateException("서비스가 중지된 업체입니다.");
+            throw new IllegalStateException(OrgServiceUseService.MSG_ORG_SERVICE_DISABLED);
         }
         Config cfg = resolveConfig(merchantOrgUnitId);
         if (cfg.apiKey() == null || cfg.apiKey().isEmpty()) {
@@ -2393,7 +2399,7 @@ public class ChillPayService {
             LocalDate paymentDateTo) {
 
         if (merchantOrgUnitId != null && !orgServiceUseService.isOrgServiceActive(merchantOrgUnitId)) {
-            throw new IllegalStateException("서비스가 중지된 업체입니다.");
+            throw new IllegalStateException(OrgServiceUseService.MSG_ORG_SERVICE_DISABLED);
         }
         Config cfg = resolveConfig(merchantOrgUnitId);
         if (cfg.apiKey() == null || cfg.apiKey().isEmpty()) {

@@ -127,7 +127,11 @@ echo $api->buildEmbedHtml(IcopayMerchantApi::VENDOR_JPAY, $prep['data']['session
 - 브로커 시크릿 강제 시 **403** / `BROKER_AUTH`  
 - 응답 래퍼: `success`, `data`, `message`, `errorCode`  
 
-JPAY 관련 `errorCode` 예: `NOT_FOUND`, `ORG_DISABLED`, `BROKER_AUTH`, `JPAY_ERROR` 등.
+JPAY 관련 `errorCode` 예: `NOT_FOUND`, `ORG_DISABLED`, `BROKER_AUTH`, `ORDER_DUP`, `ORDER_ALREADY_ATTEMPTED`, `ORDER_PENDING`, `BELOW_MIN_AMOUNT`, `INACTIVE_CARD`, `CARD_COOLDOWN*`, `JPAY_ERROR` 등.
+
+**ICOPAY vs JPAY 거절:** `INACTIVE_CARD`·`CARD_COOLDOWN*` 는 JPAY `pay_index` **호출 전** ICOPAY 결제창에서 차단됩니다(승인번호 없음). JPAY 고위험(이메일/전화 불일치 등)은 JPAY 응답 원문으로 구분합니다. §4.7 참고.
+
+**결제 실패 후 재시도:** 동일 `orderNo` 로 prepare·결제를 반복하면 `ORDER_DUP` 이 발생합니다. **새 orderNo** 를 발급한 뒤 prepare → embed 를 다시 호출하세요. 상세는 `JPAY_URL결제_인라인API_배포가이드.md` §4.6.
 
 ---
 

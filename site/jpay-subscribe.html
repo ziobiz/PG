@@ -6,11 +6,15 @@
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
   <title>ICOPAY Easy Payment</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="css/pay-inline.css?v=32" rel="stylesheet">
+  <link href="css/pay-inline.css?v=37" rel="stylesheet">
   <script src="js/pg-pay-submit-guard.js?v=1"></script>
   <script src="js/url-pay-input-mode.js?v=4"></script>
-  <script src="js/url-pay-public-shell.js?v=11"></script>
+  <script src="js/checkout-header-subtitle-presets.js?v=1"></script>
+  <script src="js/url-pay-public-shell.js?v=13"></script>
   <script src="js/jpay-pay-msg-i18n.js?v=1"></script>
+  <script src="js/jpay-card-expiry.js?v=1"></script>
+  <script src="js/pay-form-input-guard.js?v=2"></script>
+  <script src="js/jpay-contact-remember.js?v=2"></script>
   <script src="js/icopay-card-pay-policy.js?v=4"></script>
   <script src="js/icopay-checkout-3ds.js?v=1"></script>
   <script>
@@ -60,6 +64,8 @@
         <div class="pay-label mb-2">Card</div>
         <div class="row g-2 mb-2">
           <div class="col-12"><input type="text" class="form-control form-control-sm pay-input-round" id="payCardno" inputmode="numeric" autocomplete="cc-number" placeholder="Card number" required></div>
+        </div>
+        <div class="row g-2 mb-2 pay-expiry-row" id="payCardExpiryRow">
           <div class="col-4"><input type="text" class="form-control form-control-sm pay-input-round" id="payCardmonth" maxlength="2" placeholder="MM" required></div>
           <div class="col-4"><input type="text" class="form-control form-control-sm pay-input-round" id="payCardyear" maxlength="4" placeholder="YYYY" required></div>
           <div class="col-4"><input type="text" class="form-control form-control-sm pay-input-round" id="payCardcvv" maxlength="4" placeholder="CVV" required></div>
@@ -67,11 +73,13 @@
         <div class="row g-2 mb-2">
           <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payFirstname" placeholder="First name" required></div>
           <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payLastname" placeholder="Last name" required></div>
+        </div>
+        <div class="row g-2 mb-2" id="contactRow">
           <div class="col-12"><input type="email" class="form-control form-control-sm pay-input-round" id="payEmailAddress" placeholder="Email" required></div>
+          <div class="col-12"><input type="tel" class="form-control form-control-sm pay-input-round" id="payTelephone" placeholder="Phone" required></div>
         </div>
         <div class="pay-label mb-2" id="billingLabel">Shipping address</div>
         <div class="row g-2 mb-3">
-          <div class="col-6"><input type="tel" class="form-control form-control-sm pay-input-round" id="payTelephone" placeholder="Phone" required></div>
           <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payCountryIsoCode2" maxlength="2" placeholder="US" required style="text-transform:uppercase"></div>
           <div class="col-12"><input type="text" class="form-control form-control-sm pay-input-round" id="payStreetAddress1" placeholder="Address" required></div>
           <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payCity" placeholder="City" required></div>
@@ -143,6 +151,17 @@
           payInProgress: '이미 결제 중입니다. 잠시만 기다려 주세요.',
           jpay3dsUrlMissing: '3DS 인증 URL을 받지 못했습니다. J-Pay 가맹 포털·채널 승인 상태를 확인하세요.',
           jpayUnknownResponse: 'J-Pay 응답을 해석하지 못했습니다. MID·ApiKey·pay_index URL을 확인하세요.',
+          rememberContact: '다음에도 사용', errPresaleRiskFilter: '결제가 취소되었습니다. 입력 정보를 확인해 주세요.',
+          orgDisabled: '지속적인 오류로 결제 서비스가 중지되었습니다.',
+          webPaymentDisabled: '이 가맹점은 결제 서비스가 중지로 설정되어 있습니다.',
+          errCvvFormat: 'CVC/CVV는 3~4자리 숫자만 입력할 수 있습니다.',
+          errEnglishName: '이름·성은 영문(A–Z)만 입력할 수 있습니다.',
+          errEmailFormat: '올바른 이메일 형식을 입력하세요.',
+          errPhoneDigits: '전화번호는 숫자만 입력할 수 있습니다.',
+          warnEnglishOnly: '영어 알파벳만 입력 가능합니다.',
+          warnDigitsOnly: '숫자만 입력 가능합니다.',
+          warnAmountOnly: '숫자만 입력 가능합니다.',
+          warnEmailChars: '이메일에 사용할 수 있는 문자만 입력 가능합니다.',
           mm: 'MM', yyyy: 'YYYY', cvv: 'CVV'
         },
         ENG: {
@@ -155,6 +174,17 @@
           payInProgress: 'Payment is already in progress. Please wait.',
           jpay3dsUrlMissing: '3DS redirect URL was not returned. Check J-Pay merchant portal and channel approval.',
           jpayUnknownResponse: 'Could not interpret J-Pay response. Verify MID, ApiKey, and pay_index URL.',
+          rememberContact: 'Remember for next time', errPresaleRiskFilter: 'Payment was cancelled. Please check your details.',
+          orgDisabled: 'The payment service has been suspended due to repeated errors.',
+          webPaymentDisabled: "This merchant's payment service is set to suspended.",
+          errCvvFormat: 'CVC/CVV must be 3 or 4 digits.',
+          errEnglishName: 'First and last name must use English letters (A–Z) only.',
+          errEmailFormat: 'Enter a valid email address.',
+          errPhoneDigits: 'Phone number must contain digits only.',
+          warnEnglishOnly: 'Only English letters are allowed.',
+          warnDigitsOnly: 'Only digits are allowed.',
+          warnAmountOnly: 'Only numbers are allowed.',
+          warnEmailChars: 'Only characters valid for email are allowed.',
           mm: 'MM', yyyy: 'YYYY', cvv: 'CVV'
         },
         JPN: {
@@ -165,6 +195,17 @@
           errInvalidSession: 'セッションが無効または期限切れです。', errSessionMismatch: 'セッションと注文情報が一致しません。',
           payComplete: '定期登録完了', payFailed: '定期登録失敗', paid: '定期登録が完了しました。', networkErr: 'ネットワークエラー',
           payInProgress: '決済処理中です。しばらくお待ちください。',
+          rememberContact: '次回も使用', errPresaleRiskFilter: '決済がキャンセルされました。入力内容をご確認ください。',
+          orgDisabled: '継続的なエラーにより決済サービスが停止されました。',
+          webPaymentDisabled: 'この加盟店の決済サービスは停止に設定されています。',
+          errCvvFormat: 'CVC/CVVは3〜4桁の数字のみ入力できます。',
+          errEnglishName: '名・姓は英字(A–Z)のみ入力できます。',
+          errEmailFormat: '正しいメール形式で入力してください。',
+          errPhoneDigits: '電話番号は数字のみ入力できます。',
+          warnEnglishOnly: '英字のみ入力できます。',
+          warnDigitsOnly: '数字のみ入力できます。',
+          warnAmountOnly: '数字のみ入力できます。',
+          warnEmailChars: 'メールに使用できる文字のみ入力できます。',
           mm: 'MM', yyyy: 'YYYY', cvv: 'CVV'
         },
         CHN: {
@@ -175,6 +216,17 @@
           errInvalidSession: '会话无效或已过期。', errSessionMismatch: '会话与订单信息不一致。',
           payComplete: '订阅完成', payFailed: '订阅失败', paid: '订阅已注册。', networkErr: '网络错误',
           payInProgress: '支付正在进行中，请稍候。',
+          rememberContact: '下次继续使用', errPresaleRiskFilter: '支付已取消，请检查您的信息。',
+          orgDisabled: '由于持续错误，支付服务已停止。',
+          webPaymentDisabled: '该商户的支付服务已设置为停止。',
+          errCvvFormat: 'CVC/CVV 只能为 3 或 4 位数字。',
+          errEnglishName: '名和姓只能使用英文字母(A–Z)。',
+          errEmailFormat: '请输入有效的邮箱地址。',
+          errPhoneDigits: '电话号码只能输入数字。',
+          warnEnglishOnly: '只能输入英文字母。',
+          warnDigitsOnly: '只能输入数字。',
+          warnAmountOnly: '只能输入数字。',
+          warnEmailChars: '只能输入邮箱允许的字符。',
           mm: 'MM', yyyy: 'YYYY', cvv: 'CVV'
         },
         THA: {
@@ -185,6 +237,17 @@
           errInvalidSession: 'เซสชันไม่ถูกต้องหรือหมดอายุ', errSessionMismatch: 'เซสชันไม่ตรงกับข้อมูลคำสั่งซื้อ',
           payComplete: 'สมัครสำเร็จ', payFailed: 'สมัครล้มเหลว', paid: 'สมัครแล้ว', networkErr: 'ข้อผิดพลาดเครือข่าย',
           payInProgress: 'กำลังชำระเงินอยู่แล้ว กรุณารอสักครู่',
+          rememberContact: 'ใช้ครั้งถัดไป', errPresaleRiskFilter: 'การชำระเงินถูกยกเลิก กรุณาตรวจสอบข้อมูล',
+          orgDisabled: 'บริการชำระเงินถูกระงับเนื่องจากข้อผิดพลาดต่อเนื่อง',
+          webPaymentDisabled: 'บริการชำระเงินของร้านค้านี้ถูกตั้งค่าเป็นระงับ',
+          errCvvFormat: 'CVC/CVV ต้องเป็นตัวเลข 3 หรือ 4 หลัก',
+          errEnglishName: 'ชื่อและนามสกุลต้องเป็นตัวอักษรภาษาอังกฤษ (A–Z) เท่านั้น',
+          errEmailFormat: 'กรุณากรอกอีเมลให้ถูกต้อง',
+          errPhoneDigits: 'หมายเลขโทรศัพท์ต้องเป็นตัวเลขเท่านั้น',
+          warnEnglishOnly: 'ใช้ได้เฉพาะตัวอักษรภาษาอังกฤษ',
+          warnDigitsOnly: 'ใช้ได้เฉพาะตัวเลข',
+          warnAmountOnly: 'ใช้ได้เฉพาะตัวเลข',
+          warnEmailChars: 'ใช้ได้เฉพาะอักขระที่ใช้ในอีเมลได้',
           mm: 'MM', yyyy: 'YYYY', cvv: 'CVV'
         }
       };
@@ -218,6 +281,19 @@
         } catch (e) { /* ignore */ }
         var m = raw.match(/"url"\s*:\s*"([^"\\]+(?:\\.[^"\\]*)*)"/);
         return m ? m[1].replace(/\\\//g, '/') : '';
+      }
+      function resolveApiErrorMessage(res) {
+        res = res || {};
+        if (res.messages) {
+          if (res.messages[LANG]) return res.messages[LANG];
+          var alt = { KOR: 'KO', ENG: 'EN', JPN: 'JP', CHN: 'CH', THA: 'TH' };
+          if (alt[LANG] && res.messages[alt[LANG]]) return res.messages[alt[LANG]];
+          if (res.messages.ENG) return res.messages.ENG;
+        }
+        var code = res.errorCode ? String(res.errorCode).trim() : '';
+        if (code === 'ORG_DISABLED' || code === 'WEB_PAYMENT_DISABLED') return res.message || 'The payment service has been suspended due to persistent errors.';
+        if (code === 'PRESALE_RISK_FILTER') return t('errPresaleRiskFilter');
+        return localizeJpayMsg(res.message || '') || t('payFailed');
       }
       function resolveJpayFailMsg(st, msg) {
         var m = localizeJpayMsg(msg || '');
@@ -278,6 +354,9 @@
           var hl = { KOR: 'ko', ENG: 'en', JPN: 'ja', CHN: 'zh', THA: 'th' };
           document.documentElement.setAttribute('lang', hl[LANG] || 'en');
         } catch (eH) { /* ignore */ }
+        if (window.PG_PAY_FORM_INPUT_GUARD && PG_PAY_FORM_INPUT_GUARD.refreshHints) {
+          PG_PAY_FORM_INPUT_GUARD.refreshHints(document.getElementById('jpayForm'));
+        }
       }
 
       function getCompId() {
@@ -384,6 +463,7 @@
       }
 
       var checkoutCtx = null;
+      var cardExpiryCtrl = null;
       var sessionPayload = null;
 
       var sessionToken = '';
@@ -444,9 +524,16 @@
         applyQueryPrefills();
         fetchJson(apiUrl('/api/pay/jpay/subscribe-checkout-context', 'compId=' + encodeURIComponent(compId)))
           .then(function (ctxRes) {
-            if (!ctxRes.success || !ctxRes.data) throw new Error(ctxRes.message || 'Config error');
+            if (!ctxRes.success || !ctxRes.data) {
+              var ctxCode = ctxRes.errorCode ? String(ctxRes.errorCode).trim() : '';
+              if (ctxCode === 'ORG_DISABLED' || ctxCode === 'WEB_PAYMENT_DISABLED') throw new Error(ctxRes.message || t('errLoad'));
+              throw new Error(localizeJpayMsg(ctxRes.message || '') || t('errLoad'));
+            }
             var ctx = ctxRes.data;
             checkoutCtx = ctx;
+            if (window.PG_JPAY_CARD_EXPIRY) {
+              cardExpiryCtrl = PG_JPAY_CARD_EXPIRY.init(document.getElementById('payCardExpiryRow'), ctx, t);
+            }
             if (ctx.merchantName) document.getElementById('merchantNameDisplay').textContent = ctx.merchantName;
             if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyCheckoutHeaderLogo) {
               PG_URL_PAY_SHELL.applyCheckoutHeaderLogo(ctx, {
@@ -470,6 +557,14 @@
               if (!(q.get('currency') || q.get('cur'))) {
                 curHint.textContent = String(ctx.checkoutCurrencyCode).trim().toUpperCase();
               }
+            }
+            if (window.PG_JPAY_CONTACT_REMEMBER) {
+              var contactRow = document.getElementById('contactRow');
+              PG_JPAY_CONTACT_REMEMBER.ensureCheckbox(contactRow, ctx, t);
+              PG_JPAY_CONTACT_REMEMBER.applyRemembered(document.getElementById('jpayForm'), compId, ctx, {});
+            }
+            if (window.PG_PAY_FORM_INPUT_GUARD) {
+              PG_PAY_FORM_INPUT_GUARD.initJpayForm(document.getElementById('jpayForm'), { t: t });
             }
             return validateSession();
           })
@@ -496,6 +591,38 @@
           btn.disabled = true;
         }
         var compId = document.getElementById('compIdHidden').value.trim();
+        var formEl = document.getElementById('jpayForm');
+        if (window.PG_JPAY_CONTACT_REMEMBER) {
+          PG_JPAY_CONTACT_REMEMBER.saveIfChecked(formEl, compId, document.getElementById('jpayContactRemember'));
+        }
+        var cvvRaw = (document.getElementById('payCardcvv').value || '').trim();
+        if (!/^\d{3,4}$/.test(cvvRaw)) {
+          showErr(t('errCvvFormat'));
+          payGuardUnlock(btn);
+          return;
+        }
+        var pfg = window.PG_PAY_FORM_INPUT_GUARD;
+        if (pfg) {
+          var fnVal = document.getElementById('payFirstname').value.trim();
+          var lnVal = document.getElementById('payLastname').value.trim();
+          if (!pfg.validateEnglishName(fnVal) || !pfg.validateEnglishName(lnVal)) {
+            showErr(t('errEnglishName'));
+            payGuardUnlock(btn);
+            return;
+          }
+          var emVal = document.getElementById('payEmailAddress').value.trim();
+          if (!pfg.validateEmail(emVal)) {
+            showErr(t('errEmailFormat'));
+            payGuardUnlock(btn);
+            return;
+          }
+          var telVal = document.getElementById('payTelephone').value.trim();
+          if (!pfg.validatePhoneDigits(telVal)) {
+            showErr(t('errPhoneDigits'));
+            payGuardUnlock(btn);
+            return;
+          }
+        }
         var cur = (checkoutCtx && checkoutCtx.checkoutCurrencyCode)
           ? String(checkoutCtx.checkoutCurrencyCode).trim().toUpperCase()
           : (document.getElementById('currencyHint').textContent.trim() || 'JPY');
@@ -508,9 +635,13 @@
           payCardno: window.PG_CARD_PAY_POLICY
             ? PG_CARD_PAY_POLICY.digitsOnly(document.getElementById('payCardno').value)
             : document.getElementById('payCardno').value.replace(/\D/g, ''),
-          payCardmonth: document.getElementById('payCardmonth').value.trim(),
-          payCardyear: document.getElementById('payCardyear').value.trim(),
-          payCardcvv: document.getElementById('payCardcvv').value.trim(),
+          payCardmonth: cardExpiryCtrl && cardExpiryCtrl.getMonth
+            ? cardExpiryCtrl.getMonth()
+            : document.getElementById('payCardmonth').value.trim(),
+          payCardyear: cardExpiryCtrl && cardExpiryCtrl.getYear4
+            ? cardExpiryCtrl.getYear4()
+            : document.getElementById('payCardyear').value.trim(),
+          payCardcvv: cvvRaw,
           payFirstname: document.getElementById('payFirstname').value.trim(),
           payLastname: document.getElementById('payLastname').value.trim(),
           payEmailAddress: document.getElementById('payEmailAddress').value.trim(),
@@ -529,9 +660,9 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body)
-        }).then(function (r) { return r.json(); }).then(function (res) {
+        }).then(function (r) { return r.json();         }).then(function (res) {
           if (!res.success) {
-            showFinished(false, localizeJpayMsg(res.message) || t('payFailed'), body.orderNo, {});
+            showFinished(false, resolveApiErrorMessage(res), body.orderNo, {});
             payGuardFail(btn);
             return;
           }

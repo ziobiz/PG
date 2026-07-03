@@ -3,6 +3,7 @@ package com.pg.service;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PayCardPolicyI18nTest {
@@ -30,7 +31,16 @@ class PayCardPolicyI18nTest {
     void inactiveCardMessageDiffersFromTierTwo() {
         String inactive = PayCardPolicyI18n.format("KO", "INACTIVE_CARD");
         String tier2 = PayCardPolicyI18n.format("KO", "CARD_COOLDOWN_TIER_2", 10);
-        assertTrue(inactive.contains("고위험"));
+        assertTrue(inactive.contains("비활성"));
+        assertFalse(inactive.contains("고위험"));
         assertTrue(tier2.contains("2차"));
+    }
+
+    @Test
+    void inactiveCardApiMessagesIncludeCheckoutLangKeys() {
+        var all = PayCardPolicyI18n.allLang("INACTIVE_CARD");
+        assertEquals(all.get("KO"), all.get("KOR"));
+        assertEquals(all.get("EN"), all.get("ENG"));
+        assertTrue(all.get("KOR").contains("비활성"));
     }
 }

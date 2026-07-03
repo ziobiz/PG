@@ -48,3 +48,11 @@ PG CD/
 
 # GitHub 100MB 제한 (Oracle DB 등)
 *.dbf
+
+# 개발 중 임시/스크래치·분석 산출물 (커밋 금지)
+/T.java
+/_*
+/*.pdf
+pg-app/BOOT-INF/
+pg-app/src/main/resources/db/*.txt
+tools/

@@ -89,4 +89,26 @@ public final class VoidRefundSettlementModeUtil {
     public static boolean addSuccessSideFeesOnForceRefund(String mode) {
         return addSuccessSideFeesOnRefund(mode);
     }
+
+    /**
+     * 상단 지급예상·추정결산 등 순매출 차감(reversal) 대상 여부.
+     * 취소(20)는 항상 차감, 무효·환불 등은 정산 모드별.
+     */
+    public static boolean subtractTxnAmountFromNetSales(String status,
+                                                        String voidMode,
+                                                        String manualVoidMode,
+                                                        String refundMode,
+                                                        String forceRefundMode) {
+        if (status == null || status.isBlank()) {
+            return false;
+        }
+        return switch (status.trim()) {
+            case "20" -> true;
+            case "21", "40" -> subtractVoidAmountFromNet(voidMode);
+            case "22", "41" -> subtractManualVoidAmountFromNet(manualVoidMode);
+            case "30", "42" -> subtractRefundAmountFromNet(refundMode);
+            case "31" -> subtractForceRefundAmountFromNet(forceRefundMode);
+            default -> false;
+        };
+    }
 }

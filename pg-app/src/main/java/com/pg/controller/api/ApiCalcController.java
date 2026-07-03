@@ -253,7 +253,7 @@ public class ApiCalcController {
                     case "APPROVAL_NO" -> sk = kw;
                     case "ROUTE" -> srn = kw;
                     case "STATUS" -> scs = kw;
-                    case "CUSTOMER_ID", "AMOUNT", "CURRENCY", "COMP_NM" -> sk = kw;
+                    case "CUSTOMER_ID", "CUSTOMER_NAME", "AMOUNT", "CURRENCY", "COMP_NM" -> sk = kw;
                     default -> sk = kw;
                 }
             }
@@ -354,7 +354,7 @@ public class ApiCalcController {
                     case "APPROVAL_NO" -> sk = kw;
                     case "ROUTE" -> srn = kw;
                     case "STATUS" -> scs = kw;
-                    case "CUSTOMER_ID", "AMOUNT", "CURRENCY", "COMP_NM" -> sk = kw;
+                    case "CUSTOMER_ID", "CUSTOMER_NAME", "AMOUNT", "CURRENCY", "COMP_NM" -> sk = kw;
                     default -> sk = kw;
                 }
             }
@@ -459,7 +459,8 @@ public class ApiCalcController {
             @RequestParam(required = false) String searchFieldType,
             @RequestParam(required = false) String searchPayDivCd,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
+            Authentication authentication) {
         try {
             String sk = searchKeyword != null ? searchKeyword.trim() : "";
             String son = searchOrderNo != null ? searchOrderNo.trim() : "";
@@ -499,7 +500,7 @@ public class ApiCalcController {
             }
 
             Map<String, Object> payload = jpayIntegratedListService.buildDailyIntegratedSummary(
-                    tFrom, tTo, effectiveTo, sk, son, searchPayDivCd, searchOrderDir);
+                    tFrom, tTo, effectiveTo, sk, son, searchPayDivCd, searchOrderDir, authentication);
             if (tTo.isAfter(today)) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> meta = payload.get("meta") instanceof Map<?, ?> m
@@ -708,7 +709,7 @@ public class ApiCalcController {
                     case "ROUTE" -> srn = kw;
                     case "CURRENCY" -> sk = kw;
                     case "STATUS" -> scs = kw;
-                    case "AMOUNT" -> sk = kw;
+                    case "AMOUNT", "CUSTOMER_ID", "CUSTOMER_NAME" -> sk = kw;
                     default -> {
                     }
                 }

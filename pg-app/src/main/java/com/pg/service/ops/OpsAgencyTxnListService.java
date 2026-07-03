@@ -246,6 +246,16 @@ public class OpsAgencyTxnListService {
         pr.setTotalPages(Math.max(1, slice.getTotalPages()));
         Map<String, Object> meta = new LinkedHashMap<>();
         payListService.putHqLedgerPayDisplayCurrencyMeta(meta);
+        try {
+            Map<String, Object> fin = payListService.computeFinancialSummaryForSpec(spec, authentication, searchOrderDir);
+            if (fin != null) {
+                fin.put("agencySummary", true);
+                fin.put("totalCount", slice.getTotalElements());
+                meta.put("payListFinancialSummary", fin);
+            }
+        } catch (RuntimeException ignored) {
+            /* 집계 실패 시 목록만 반환 */
+        }
         pr.setMeta(meta);
         return pr;
     }
@@ -625,6 +635,8 @@ public class OpsAgencyTxnListService {
             ors.add(cb.like(root.get("trnId"), "%" + esc + "%", '\\'));
             ors.add(cb.like(root.get("approvalNo"), "%" + esc + "%", '\\'));
             ors.add(cb.like(root.get("routeNo"), "%" + esc + "%", '\\'));
+            ors.add(cb.like(root.get("customerId"), "%" + esc + "%", '\\'));
+            ors.add(cb.like(root.get("customerNm"), "%" + esc + "%", '\\'));
             ors.add(cb.like(cb.upper(root.get("van")), "%" + esc.toUpperCase(Locale.ROOT) + "%", '\\'));
             ors.add(cb.like(cb.upper(root.get("curType")), "%" + esc.toUpperCase(Locale.ROOT) + "%", '\\'));
             ors.add(cb.like(root.get("status"), "%" + esc + "%", '\\'));
@@ -652,6 +664,8 @@ public class OpsAgencyTxnListService {
                     cb.like(root.get("chillTransactionId"), "%" + esc + "%", '\\'),
                     cb.like(root.get("approvalNo"), "%" + esc + "%", '\\'));
             case "ROUTE" -> cb.like(root.get("routeNo"), "%" + esc + "%", '\\');
+            case "CUSTOMER_ID" -> cb.like(root.get("customerId"), "%" + esc + "%", '\\');
+            case "CUSTOMER_NAME" -> cb.like(root.get("customerNm"), "%" + esc + "%", '\\');
             case "CURRENCY" -> cb.like(cb.upper(root.get("curType")), "%" + esc.toUpperCase(Locale.ROOT) + "%", '\\');
             case "STATUS" -> cb.or(
                     cb.like(root.get("status"), "%" + esc + "%", '\\'),

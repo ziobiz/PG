@@ -458,10 +458,43 @@
   }
 
   /**
-   * 결제창 상단 로고 — DEFAULT(총판 이미지·없으면 숨김), HTML(ICOPAY 문구), ACTIVE(가맹 이미지), DISABLED(전체 숨김).
+   * 결제창 상단 로고 — DEFAULT(총판 이미지·없으면 숨김), HTML(ICOPAY 문구), ACTIVE(가맹 이미지), DISABLED(로고만 숨김).
    * @param {object} ctx checkout-context
    * @param {{ brandEl?: Element, brandBlockId?: string, logoWrapSelector?: string, imgId?: string, textWrapId?: string, t?: function }} [opts]
    */
+  function resolveCheckoutHtmlTitle(ctx, brandTitle) {
+    var custom = ctx && ctx.checkoutHeaderHtmlTitle ? String(ctx.checkoutHeaderHtmlTitle).trim() : '';
+    return custom || brandTitle || 'ICOPAY';
+  }
+
+  function hideCheckoutHeaderLogoParts(brand, opts) {
+    if (!brand) return;
+    var img = opts.imgId ? g.document.getElementById(opts.imgId) : null;
+    var textWrap = opts.textWrapId ? g.document.getElementById(opts.textWrapId) : null;
+    var logoWrap = opts.logoWrapSelector ? brand.querySelector(opts.logoWrapSelector) : null;
+    if (img) {
+      img.removeAttribute('src');
+      img.classList.add('d-none');
+    }
+    if (textWrap) {
+      textWrap.classList.add('d-none');
+      var textEl = textWrap.querySelector('.pay-brand-logo');
+      if (textEl) textEl.textContent = '';
+    }
+    if (logoWrap && logoWrap !== textWrap) {
+      logoWrap.innerHTML = '';
+      logoWrap.classList.add('d-none');
+    }
+    var plainLogo = brand.querySelector('.pay-brand-logo');
+    if (plainLogo && !logoWrap && !textWrap) {
+      plainLogo.classList.add('d-none');
+      plainLogo.textContent = '';
+    } else if (plainLogo && textWrap && plainLogo.parentElement === brand) {
+      plainLogo.classList.add('d-none');
+      plainLogo.textContent = '';
+    }
+  }
+
   function applyCheckoutHeaderLogo(ctx, opts) {
     opts = opts || {};
     ctx = ctx || {};
@@ -471,8 +504,10 @@
       || g.document.querySelector('.pay-brand');
     if (!brand) return;
 
+    brand.style.display = '';
+
     if (mode === 'DISABLED') {
-      brand.style.display = 'none';
+      hideCheckoutHeaderLogoParts(brand, opts);
       return;
     }
 
@@ -484,30 +519,29 @@
       showText = true;
     } else if (mode === 'ACTIVE') {
       if (!logoUrl) {
-        brand.style.display = 'none';
+        hideCheckoutHeaderLogoParts(brand, opts);
         return;
       }
       showImage = true;
     } else if (mode === 'DEFAULT') {
       if (!logoUrl) {
-        brand.style.display = 'none';
+        hideCheckoutHeaderLogoParts(brand, opts);
         return;
       }
       showImage = true;
     } else {
       if (!logoUrl) {
-        brand.style.display = 'none';
+        hideCheckoutHeaderLogoParts(brand, opts);
         return;
       }
       showImage = true;
     }
 
-    brand.style.display = '';
-
     var img = opts.imgId ? g.document.getElementById(opts.imgId) : null;
     var textWrap = opts.textWrapId ? g.document.getElementById(opts.textWrapId) : null;
     var logoWrap = opts.logoWrapSelector ? brand.querySelector(opts.logoWrapSelector) : null;
     var brandTitle = opts.t ? (opts.t('brandTitle') || 'ICOPAY') : 'ICOPAY';
+    var displayTitle = resolveCheckoutHtmlTitle(ctx, brandTitle);
 
     if (img && textWrap) {
       if (showImage) {
@@ -520,12 +554,13 @@
         img.classList.add('d-none');
         textWrap.classList.remove('d-none');
         var textEl = textWrap.querySelector('.pay-brand-logo');
-        if (textEl) textEl.textContent = brandTitle;
+        if (textEl) textEl.textContent = displayTitle;
       }
       return;
     }
 
     if (logoWrap) {
+      logoWrap.classList.remove('d-none');
       if (showImage) {
         logoWrap.innerHTML = '';
         var imgEl = g.document.createElement('img');
@@ -536,13 +571,13 @@
       } else if (showText) {
         logoWrap.innerHTML = '';
         logoWrap.className = 'pay-brand-logo';
-        logoWrap.textContent = brandTitle;
+        logoWrap.textContent = displayTitle;
       }
     }
   }
 
   /**
-   * 결제창 로고 아래 경고/안내 문구 — 가맹 webPaymentHeaderSubtitle* + 로고 미활성 시 숨김.
+   * 결제창 로고 아래 경고/안내 문구 — 로고설정과 무관하게 단독 표시 가능.
    * @param {object} ctx checkout-context
    * @param {{ t?: function }} [opts]
    */
@@ -551,46 +586,46 @@
     var sub = g.document.querySelector('#jpayBrandBlock .pay-brand-sub, #payBrandTextWrap .pay-brand-sub, .pay-brand-sub');
     if (!sub) return;
     ctx = ctx || {};
-    var logoMode = String(ctx.checkoutHeaderLogoMode || 'DEFAULT').trim().toUpperCase();
-    if (logoMode === 'DISABLED') {
+    var brand = g.document.getElementById('jpayBrandBlock') || g.document.querySelector('.pay-brand');
+    var resolved;
+    if (g.PG_CHECKOUT_HEADER_SUBTITLE && PG_CHECKOUT_HEADER_SUBTITLE.resolveCheckoutText) {
+      resolved = PG_CHECKOUT_HEADER_SUBTITLE.resolveCheckoutText(ctx, opts.t, ['brandSub3ds', 'brandSub']);
+    } else {
+      var mode = String(ctx.checkoutHeaderSubtitleMode || 'DEFAULT').trim().toUpperCase();
+      if (mode === 'DISABLED') resolved = { show: false, text: '' };
+      else if (mode === 'ACTIVE') {
+        var custom = ctx.checkoutHeaderSubtitleText ? String(ctx.checkoutHeaderSubtitleText).trim() : '';
+        resolved = custom ? { show: true, text: custom } : { show: false, text: '' };
+      } else {
+        var def = opts.t ? (opts.t('brandSub3ds') || opts.t('brandSub') || '3DS Secure Payment') : '3DS Secure Payment';
+        resolved = { show: true, text: def };
+      }
+    }
+    if (!resolved.show) {
       sub.style.display = 'none';
       sub.textContent = '';
-      return;
-    }
-    if (logoMode === 'ACTIVE') {
-      var logoUrl = ctx.checkoutHeaderLogoUrl ? String(ctx.checkoutHeaderLogoUrl).trim() : '';
-      if (!logoUrl) {
-        sub.style.display = 'none';
-        sub.textContent = '';
-        return;
+      if (brand && isCheckoutHeaderBrandEmpty(ctx, brand)) {
+        brand.style.display = 'none';
       }
-    }
-    var brand = g.document.getElementById('jpayBrandBlock') || g.document.querySelector('.pay-brand');
-    if (brand && brand.style.display === 'none') {
-      sub.style.display = 'none';
       return;
     }
-    var mode = String(ctx.checkoutHeaderSubtitleMode || 'DEFAULT').trim().toUpperCase();
-    if (mode === 'DISABLED') {
-      sub.style.display = 'none';
-      return;
-    }
-    if (mode === 'ACTIVE') {
-      var custom = ctx.checkoutHeaderSubtitleText ? String(ctx.checkoutHeaderSubtitleText).trim() : '';
-      if (!custom) {
-        sub.style.display = 'none';
-        return;
-      }
-      sub.style.display = '';
-      sub.textContent = custom;
-      return;
-    }
+    if (brand) brand.style.display = '';
     sub.style.display = '';
-    if (opts.t) {
-      sub.textContent = opts.t('brandSub3ds') || opts.t('brandSub') || '3DS Secure Payment';
-    } else {
-      sub.textContent = '3DS Secure Payment';
+    sub.textContent = resolved.text;
+  }
+
+  function isCheckoutHeaderBrandEmpty(ctx, brand) {
+    if (!brand) return true;
+    var logoMode = String(ctx.checkoutHeaderLogoMode || 'DEFAULT').trim().toUpperCase();
+    if (logoMode === 'DISABLED') {
+      var subMode = String(ctx.checkoutHeaderSubtitleMode || 'DEFAULT').trim().toUpperCase();
+      return subMode === 'DISABLED';
     }
+    var visibleLogo = brand.querySelector('.pay-brand-logo:not(.d-none), .pay-brand-logo-img:not(.d-none), img.pay-brand-logo-img:not(.d-none)');
+    if (visibleLogo) return false;
+    var img = brand.querySelector('img.pay-brand-logo-img');
+    if (img && !img.classList.contains('d-none') && img.getAttribute('src')) return false;
+    return logoMode === 'DISABLED';
   }
 
   g.PG_URL_PAY_SHELL = {

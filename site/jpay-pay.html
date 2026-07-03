@@ -6,13 +6,17 @@
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
   <title>ICOPAY Easy Payment</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="css/pay-inline.css?v=36" rel="stylesheet">
+  <link href="css/pay-inline.css?v=37" rel="stylesheet">
   <script src="js/pg-pay-submit-guard.js?v=1"></script>
   <script src="js/url-pay-input-mode.js?v=4"></script>
-  <script src="js/url-pay-public-shell.js?v=11"></script>
+  <script src="js/checkout-header-subtitle-presets.js?v=1"></script>
+  <script src="js/url-pay-public-shell.js?v=13"></script>
   <script src="js/jpay-contact-fields.js?v=2"></script>
+  <script src="js/jpay-contact-remember.js?v=1"></script>
+  <script src="js/jpay-card-expiry.js?v=1"></script>
+  <script src="js/pay-form-input-guard.js?v=2"></script>
   <script src="js/icopay-card-pay-policy.js?v=4"></script>
-  <script src="js/jpay-pay-msg-i18n.js?v=1"></script>
+  <script src="js/jpay-pay-msg-i18n.js?v=2"></script>
   <script src="js/icopay-checkout-3ds.js?v=1"></script>
   <script>
     (function () {
@@ -87,6 +91,8 @@
         <div id="payCardPolicyAlert" class="alert alert-danger py-2 small d-none mb-2" role="alert"></div>
         <div class="row g-2 mb-2">
           <div class="col-12"><input type="text" class="form-control form-control-sm pay-input-round jpay-field-input" id="payCardno" inputmode="numeric" autocomplete="cc-number" data-i18n-placeholder="cardNo" required></div>
+        </div>
+        <div class="row g-2 mb-2 pay-expiry-row" id="payCardExpiryRow">
           <div class="col-4"><input type="text" class="form-control form-control-sm pay-input-round jpay-field-input" id="payCardmonth" maxlength="2" data-i18n-placeholder="mm" required></div>
           <div class="col-4"><input type="text" class="form-control form-control-sm pay-input-round jpay-field-input" id="payCardyear" maxlength="4" data-i18n-placeholder="yyyy" required></div>
           <div class="col-4"><input type="text" class="form-control form-control-sm pay-input-round jpay-field-input" id="payCardcvv" maxlength="4" data-i18n-placeholder="cvv" required></div>
@@ -202,7 +208,29 @@
           mm: 'MM', yyyy: 'YYYY', cvv: 'CVV',
           fxDisplayCurrency: '표시 통화', fxThbEstimate: '청구예상 금액', configErr: '설정을 불러오지 못했습니다.',
           needFxQuote: '환율 견적을 불러오는 중이거나 실패했습니다. 잠시 후 다시 시도하세요.',
-          needAmount: '유효한 금액을 입력하세요.', langGroup: '언어'
+          needAmount: '유효한 금액을 입력하세요.', langGroup: '언어',
+          errCvvFormat: 'CVC/CVV는 3~4자리 숫자만 입력할 수 있습니다.',
+          errEnglishName: '이름·성은 영문(A–Z)만 입력할 수 있습니다.',
+          errEmailFormat: '올바른 이메일 형식을 입력하세요.',
+          errPhoneDigits: '전화번호는 숫자만 입력할 수 있습니다.',
+          warnEnglishOnly: '영어 알파벳만 입력 가능합니다.',
+          warnDigitsOnly: '숫자만 입력 가능합니다.',
+          warnAmountOnly: '숫자만 입력 가능합니다.',
+          warnEmailChars: '이메일에 사용할 수 있는 문자만 입력 가능합니다.',
+          checkoutSubtitlePrevent: '결제 오류를 방지하기 위해 정확한 카드 정보를 입력해 주세요.',
+          checkoutSubtitleConfirm: '카드번호, 유효기간, CVC 번호가 올바른지 다시 한번 확인해 주세요.',
+          checkoutSubtitleApproval: '원활한 결제 처리를 위해 카드 정보를 오타 없이 입력해 주시기 바랍니다.',
+          checkoutSubtitleFail: '카드 정보가 일치하지 않을 경우 결제 승인이 거절될 수 있습니다.',
+          errOrderDup: '이 주문번호는 이미 결제가 시도되었습니다. 쇼핑몰에서 새 orderNo로 prepare를 다시 호출해 주세요.',
+          errOrderPending: '이 주문번호로 결제가 진행 중입니다. 3DS를 완료하거나 status API로 결과를 확인해 주세요.',
+          errBelowMinAmount: '최소 주문 금액(약 USD 5.00) 미만입니다.',
+          errInactiveCard: '비활성 등록된 카드입니다. 다른 카드를 사용하거나 가맹점에 문의해 주세요.',
+          errBlacklistCard: '관리자에 의해 사용이 제한된 카드입니다. 다른 카드를 사용하거나 가맹점에 문의해 주세요.',
+          errCardCooldown: '이 카드는 잠시 사용할 수 없습니다. 다른 카드를 사용하거나 잠시 후 다시 시도해 주세요.',
+          rememberContact: '다음에도 사용',
+          errPresaleRiskFilter: '결제 정보가 이전 거래와 일치하지 않아 진행할 수 없습니다. 표시된 이전 정보를 확인해 주세요.',
+          orgDisabled: '지속적인 오류로 결제 서비스가 중지되었습니다.',
+          webPaymentDisabled: '이 가맹점은 결제 서비스가 중지로 설정되어 있습니다.'
         },
         ENG: {
           title: 'ICOPAY Easy Payment', brandSub3ds: '3DS Secure Payment', merchant: 'Merchant', item: 'Item', amount: 'Amount',           card: 'Card',
@@ -221,7 +249,29 @@
           mm: 'MM', yyyy: 'YYYY', cvv: 'CVV',
           fxDisplayCurrency: 'Display currency', fxThbEstimate: 'Estimated charge', configErr: 'Failed to load settings.',
           needFxQuote: 'Exchange quote is loading or failed. Please wait and try again.',
-          needAmount: 'Enter a valid amount.', langGroup: 'Language'
+          needAmount: 'Enter a valid amount.', langGroup: 'Language',
+          errCvvFormat: 'CVC/CVV must be 3 or 4 digits.',
+          errEnglishName: 'First and last name must use English letters (A–Z) only.',
+          errEmailFormat: 'Enter a valid email address.',
+          errPhoneDigits: 'Phone number must contain digits only.',
+          warnEnglishOnly: 'Only English letters are allowed.',
+          warnDigitsOnly: 'Only digits are allowed.',
+          warnAmountOnly: 'Only numbers are allowed.',
+          warnEmailChars: 'Only characters valid for email are allowed.',
+          checkoutSubtitlePrevent: 'To help prevent payment errors, please enter accurate card details.',
+          checkoutSubtitleConfirm: 'Please double-check that your card number, expiry date, and CVC are correct.',
+          checkoutSubtitleApproval: 'For smooth processing, please enter your card details without typos.',
+          checkoutSubtitleFail: 'Payment may be declined if the card details do not match.',
+          errOrderDup: 'This order number was already used. Call prepare again from your store with a new orderNo.',
+          errOrderPending: 'Payment is in progress for this orderNo. Complete 3DS or check status API.',
+          errBelowMinAmount: 'Amount is below the minimum (about USD 5.00).',
+          errInactiveCard: 'This card is on the inactive list. Please use a different card or contact the merchant.',
+          errBlacklistCard: 'This card is restricted by the administrator. Please use a different card or contact the merchant.',
+          errCardCooldown: 'This card is temporarily unavailable. Use another card or try again later.',
+          rememberContact: 'Remember for next time',
+          errPresaleRiskFilter: 'Payment details do not match your previous transaction. Please check the masked prior info shown.',
+          orgDisabled: 'The payment service has been suspended due to repeated errors.',
+          webPaymentDisabled: "This merchant's payment service is set to suspended."
         },
         JPN: {
           title: 'ICOPAY かんたん決済', brandSub3ds: '3DSセキュア決済', merchant: '加盟店', item: '商品名', amount: '金額',           card: 'カード',
@@ -239,7 +289,29 @@
           mm: 'MM', yyyy: 'YYYY', cvv: 'CVV',
           fxDisplayCurrency: '表示通貨', fxThbEstimate: '請求予想金額', configErr: '設定の読み込みに失敗しました.',
           needFxQuote: '為替見積りを読み込み中か、取得に失敗しました。しばらくしてから再度お試しください.',
-          needAmount: '有効な金額を入力してください。', langGroup: '言語'
+          needAmount: '有効な金額を入力してください。', langGroup: '言語',
+          errCvvFormat: 'CVC/CVVは3〜4桁の数字のみ入力できます。',
+          errEnglishName: '名・姓は英字(A–Z)のみ入力できます。',
+          errEmailFormat: '正しいメール形式で入力してください。',
+          errPhoneDigits: '電話番号は数字のみ入力できます。',
+          warnEnglishOnly: '英字のみ入力できます。',
+          warnDigitsOnly: '数字のみ入力できます。',
+          warnAmountOnly: '数字のみ入力できます。',
+          warnEmailChars: 'メールに使用できる文字のみ入力できます。',
+          checkoutSubtitlePrevent: '決済エラーを防ぐため、正確なカード情報を入力してください。',
+          checkoutSubtitleConfirm: 'カード番号・有効期限・CVC番号が正しいか再度ご確認ください。',
+          checkoutSubtitleApproval: 'スムーズな決済のため、カード情報を誤字なく入力してください。',
+          checkoutSubtitleFail: 'カード情報が一致しない場合、決済が拒否されることがあります。',
+          errOrderDup: 'この注文番号はすでに決済が試行されています。ストアで新しい orderNo で prepare を再度呼び出してください。',
+          errOrderPending: 'この orderNo で決済が進行中です。3DSを完了するか status API で結果を確認してください。',
+          errBelowMinAmount: '最小注文金額（約 USD 5.00）未満です。',
+          errInactiveCard: '非アクティブ登録されたカードです。別のカードをご利用いただくか、加盟店にお問い合わせください。',
+          errBlacklistCard: '管理者により使用が制限されたカードです。別のカードをご利用いただくか、加盟店にお問い合わせください。',
+          errCardCooldown: 'このカードは一時的にご利用いただけません。別のカードをご利用いただくか、しばらくしてから再度お試しください。',
+          rememberContact: '次回も使用',
+          errPresaleRiskFilter: '入力情報が過去の取引と一致しません。表示された以前の情報をご確認ください。',
+          orgDisabled: '継続的なエラーにより決済サービスが停止されました。',
+          webPaymentDisabled: 'この加盟店の決済サービスは停止に設定されています。'
         },
         CHN: {
           title: 'ICOPAY 便捷支付', brandSub3ds: '3DS 安全支付', merchant: '商户', item: '商品', amount: '金额',           card: '银行卡',
@@ -257,7 +329,29 @@
           mm: 'MM', yyyy: 'YYYY', cvv: 'CVV',
           fxDisplayCurrency: '显示货币', fxThbEstimate: '预计扣款金额', configErr: '无法加载设置。',
           needFxQuote: '汇率报价加载中或失败，请稍后重试。',
-          needAmount: '请输入有效金额。', langGroup: '语言'
+          needAmount: '请输入有效金额。', langGroup: '语言',
+          errCvvFormat: 'CVC/CVV 只能为 3 或 4 位数字。',
+          errEnglishName: '名和姓只能使用英文字母(A–Z)。',
+          errEmailFormat: '请输入有效的邮箱地址。',
+          errPhoneDigits: '电话号码只能输入数字。',
+          warnEnglishOnly: '只能输入英文字母。',
+          warnDigitsOnly: '只能输入数字。',
+          warnAmountOnly: '只能输入数字。',
+          warnEmailChars: '只能输入邮箱允许的字符。',
+          checkoutSubtitlePrevent: '为避免支付错误，请准确填写银行卡信息。',
+          checkoutSubtitleConfirm: '请再次确认卡号、有效期和 CVC 是否正确。',
+          checkoutSubtitleApproval: '为顺利完成支付，请无误填写卡信息。',
+          checkoutSubtitleFail: '若卡信息不一致，支付可能被拒绝。',
+          errOrderDup: '该订单号已用于支付尝试。请从商城使用新的 orderNo 重新调用 prepare。',
+          errOrderPending: '该 orderNo 支付进行中。请完成 3DS 或通过 status API 查询结果。',
+          errBelowMinAmount: '金额低于最低订单金额（约 USD 5.00）。',
+          errInactiveCard: '该卡已登记为非活跃(inactive)卡。请更换其他卡或联系商户。',
+          errBlacklistCard: '该卡已被管理员限制使用。请更换其他卡或联系商户。',
+          errCardCooldown: '该卡暂时无法使用。请更换其他卡或稍后再试。',
+          rememberContact: '下次继续使用',
+          errPresaleRiskFilter: '支付信息与历史交易不一致，无法继续。请核对显示的既往信息。',
+          orgDisabled: '由于持续错误，支付服务已停止。',
+          webPaymentDisabled: '该商户的支付服务已设置为停止。'
         },
         THA: {
           title: 'ICOPAY ชำระเงินง่าย', brandSub3ds: '3DS ชำระเงินปลอดภัย', merchant: 'ร้านค้า', item: 'สินค้า', amount: 'จำนวนเงิน',           card: 'บัตร',
@@ -275,7 +369,29 @@
           mm: 'MM', yyyy: 'YYYY', cvv: 'CVV',
           fxDisplayCurrency: 'สกุลเงินที่แสดง', fxThbEstimate: 'ยอดเรียกเก็บโดยประมาณ', configErr: 'โหลดการตั้งค่าไม่สำเร็จ',
           needFxQuote: 'กำลังโหลดอัตราแล้วหรือโหลดไม่สำเร็จ โปรดรอแล้วลองอีกครั้ง',
-          needAmount: 'กรุณากรอกจำนวนเงินที่ถูกต้อง', langGroup: 'ภาษา'
+          needAmount: 'กรุณากรอกจำนวนเงินที่ถูกต้อง', langGroup: 'ภาษา',
+          errCvvFormat: 'CVC/CVV ต้องเป็นตัวเลข 3 หรือ 4 หลัก',
+          errEnglishName: 'ชื่อและนามสกุลต้องเป็นตัวอักษรภาษาอังกฤษ (A–Z) เท่านั้น',
+          errEmailFormat: 'กรุณากรอกอีเมลให้ถูกต้อง',
+          errPhoneDigits: 'หมายเลขโทรศัพท์ต้องเป็นตัวเลขเท่านั้น',
+          warnEnglishOnly: 'ใช้ได้เฉพาะตัวอักษรภาษาอังกฤษ',
+          warnDigitsOnly: 'ใช้ได้เฉพาะตัวเลข',
+          warnAmountOnly: 'ใช้ได้เฉพาะตัวเลข',
+          warnEmailChars: 'ใช้ได้เฉพาะอักขระที่ใช้ในอีเมลได้',
+          checkoutSubtitlePrevent: 'เพื่อป้องกันข้อผิดพลาดในการชำระ กรุณากรอกข้อมูลบัตรให้ถูกต้อง',
+          checkoutSubtitleConfirm: 'กรุณาตรวจสอบหมายเลขบัตร วันหมดอายุ และ CVC อีกครั้ง',
+          checkoutSubtitleApproval: 'เพื่อการชำระที่ราบรื่น กรุณากรอกข้อมูลบัตรโดยไม่มีตัวสะกดผิด',
+          checkoutSubtitleFail: 'หากข้อมูลบัตรไม่ตรงกัน การอนุมัติอาจถูกปฏิเสธ',
+          errOrderDup: 'หมายเลขคำสั่งซื้อนี้ถูกใช้แล้ว โปรดเรียก prepare ใหม่ด้วย orderNo ใหม่จากร้านค้า',
+          errOrderPending: 'คำสั่งซื้อนี้กำลังชำระอยู่ ให้ทำ 3DS ให้เสร็จหรือตรวจ status API',
+          errBelowMinAmount: 'ยอดต่ำกว่าขั้นต่ำ (ประมาณ USD 5.00)',
+          errInactiveCard: 'บัตรนี้อยู่ในรายการ inactive กรุณาใช้บัตรอื่นหรือติดต่อร้านค้า',
+          errBlacklistCard: 'บัตรนี้ถูกจำกัดโดยผู้ดูแลระบบ กรุณาใช้บัตรอื่นหรือติดต่อร้านค้า',
+          errCardCooldown: 'บัตรนี้ใช้งานชั่วคราวไม่ได้ กรุณาใช้บัตรอื่นหรือลองอีกครั้งภายหลัง',
+          rememberContact: 'ใช้ครั้งถัดไป',
+          errPresaleRiskFilter: 'ข้อมูลการชำระไม่ตรงกับธุรกรรมก่อนหน้า โปรดตรวจสอบข้อมูลเดิมที่แสดง',
+          orgDisabled: 'บริการชำระเงินถูกระงับเนื่องจากข้อผิดพลาดต่อเนื่อง',
+          webPaymentDisabled: 'บริการชำระเงินของร้านค้านี้ถูกตั้งค่าเป็นระงับ'
         }
       };
       var urlPayFormMode = 'FULL';
@@ -293,6 +409,53 @@
           return PG_JPAY_PAY_MSG.translate(msg, LANG);
         }
         return msg;
+      }
+      function apiLangCode() {
+        var c = String(LANG || 'ENG').toUpperCase();
+        if (c === 'KO' || c === 'KR') return 'KOR';
+        if (c === 'JA' || c === 'JP') return 'JPN';
+        if (c === 'ZH' || c === 'CN') return 'CHN';
+        if (c === 'TH') return 'THA';
+        if (c === 'EN') return 'ENG';
+        return c;
+      }
+      function resolveApiErrorMessage(res) {
+        res = res || {};
+        var L = apiLangCode();
+        if (res.messages) {
+          if (res.messages[L]) return res.messages[L];
+          var alt = { KOR: 'KO', ENG: 'EN', JPN: 'JP', CHN: 'CH', THA: 'TH' };
+          if (alt[L] && res.messages[alt[L]]) return res.messages[alt[L]];
+          if (res.messages.ENG) return res.messages.ENG;
+          if (res.messages.EN) return res.messages.EN;
+        }
+        var code = res.errorCode ? String(res.errorCode).trim() : '';
+        if (code === 'ORG_DISABLED' || code === 'WEB_PAYMENT_DISABLED') return res.message || 'The payment service has been suspended due to persistent errors.';
+        if (code === 'ORDER_DUP' || code === 'ORDER_ALREADY_ATTEMPTED') return t('errOrderDup');
+        if (code === 'ORDER_PENDING') return t('errOrderPending');
+        if (code === 'PRESALE_RISK_FILTER') return t('errPresaleRiskFilter');
+        if (code === 'BELOW_MIN_AMOUNT') return t('errBelowMinAmount');
+        if (code === 'INACTIVE_CARD') return t('errInactiveCard');
+        if (code === 'BLACKLIST') return t('errBlacklistCard');
+        if (code.indexOf('CARD_COOLDOWN') === 0) return t('errCardCooldown');
+        return localizeJpayMsg(res.message || '') || t('payFailed');
+      }
+      function isIcopayPresaleCardBlock(code) {
+        var c = String(code || '').trim();
+        return c === 'INACTIVE_CARD' || c === 'BLACKLIST' || c === 'PRESALE_RISK_FILTER'
+          || c.indexOf('CARD_COOLDOWN') === 0;
+      }
+      function isNonRetryableOrderError(code) {
+        var c = String(code || '').trim();
+        return c === 'ORDER_DUP' || c === 'ORDER_ALREADY_ATTEMPTED' || c === 'ORDER_PENDING';
+      }
+      function JpayOrderDupFromMsg(msg) {
+        if (window.PG_JPAY_PAY_MSG && PG_JPAY_PAY_MSG.isDuplicateOrder) {
+          return PG_JPAY_PAY_MSG.isDuplicateOrder(msg);
+        }
+        var m = String(msg || '').toLowerCase();
+        return (m.indexOf('duplicate') >= 0 && m.indexOf('order') >= 0)
+          || (m.indexOf('중복') >= 0 && m.indexOf('주문') >= 0);
       }
       function jpayStatusNum(st) {
         var n = Number(st);
@@ -375,6 +538,7 @@
           var form0 = document.getElementById('jpayForm');
           if (form0) PG_JPAY_CONTACT.refreshCountryLabels(form0, LANG, t('selectCountry'));
         }
+        if (cardExpiryCtrl && cardExpiryCtrl.refreshI18n) cardExpiryCtrl.refreshI18n(t);
         if (cardPolicyCtrl && cardPolicyCtrl.refreshAutoDetectLabel) {
           cardPolicyCtrl.refreshAutoDetectLabel(t('cardAutoDetectOption'));
         }
@@ -383,6 +547,9 @@
         } else if (window.PG_CARD_PAY_POLICY && checkoutCtx && checkoutCtx.cardPayPolicy) {
           var bs = document.getElementById('payCardBrandSelect');
           if (bs) PG_CARD_PAY_POLICY.syncBrandSelectOptions(bs, checkoutCtx.cardPayPolicy, t('cardAutoDetectOption'));
+        }
+        if (window.PG_PAY_FORM_INPUT_GUARD && PG_PAY_FORM_INPUT_GUARD.refreshHints) {
+          PG_PAY_FORM_INPUT_GUARD.refreshHints(document.getElementById('jpayForm'));
         }
       }
 
@@ -500,6 +667,9 @@
         if (window.PG_JPAY_CONTACT) {
           PG_JPAY_CONTACT.applyPrefill(document.getElementById('jpayForm'), checkoutCtx, p, LANG, jpayContactSelectLabel());
         }
+        if (window.PG_JPAY_CONTACT_REMEMBER) {
+          PG_JPAY_CONTACT_REMEMBER.applyRemembered(document.getElementById('jpayForm'), getCompId(), checkoutCtx, p);
+        }
         if (CHECKOUT_FIELD_MODE !== 'CARD_PREFILL') return;
         var addrMap = {
           payStreetAddress1: p.address || p.payStreetAddress1,
@@ -582,7 +752,11 @@
           }
         }
         el.innerHTML = '<div class="pay-result-title">' + (ok ? t('payComplete') : t('payFailed')) + '</div><p>' + body + '</p>';
-        notifyParent(Object.assign({ phase: 'finished', success: ok, orderNo: orderNo || '', message: msg, pgVendor: 'JPAY' }, extra || {}));
+        notifyParent(Object.assign({
+          phase: 'finished', success: ok, orderNo: orderNo || '', message: msg, pgVendor: 'JPAY',
+          errorCode: extra && extra.errorCode ? extra.errorCode : '',
+          requiresNewPrepare: extra && extra.requiresNewPrepare === true
+        }, extra || {}));
         if (ok) redirectMerchantReturnIfNeeded(true, orderNo);
       }
 
@@ -647,6 +821,7 @@
 
       var checkoutCtx = null;
       var cardPolicyCtrl = null;
+      var cardExpiryCtrl = null;
       var sessionPayload = null;
 
       function validateSession() {
@@ -709,6 +884,10 @@
         URL_PAY_SHIPPING_USE = String(ctx.urlPayShippingAddressUseYn || 'N').trim().toUpperCase() === 'Y';
         window.__payUrlCardCopy = ctx.urlPayCardCopy || null;
         applyCheckoutFieldMode(ctx.checkoutFieldMode);
+        if (window.PG_JPAY_CARD_EXPIRY) {
+          var expiryMount = document.getElementById('payCardExpiryRow');
+          cardExpiryCtrl = PG_JPAY_CARD_EXPIRY.init(expiryMount, ctx, t);
+        }
         if (window.PG_CARD_PAY_POLICY && ctx.cardPayPolicy) {
           cardPolicyCtrl = PG_CARD_PAY_POLICY.init({
             policy: ctx.cardPayPolicy,
@@ -780,6 +959,14 @@
           PG_URL_PAY_SHELL.applyCheckoutHeaderSubtitle(checkoutCtx, { t: t });
         }
         initJpayContactFields(ctx);
+        if (window.PG_PAY_FORM_INPUT_GUARD) {
+          PG_PAY_FORM_INPUT_GUARD.initJpayForm(document.getElementById('jpayForm'), { t: t });
+        }
+        if (window.PG_JPAY_CONTACT_REMEMBER) {
+          var contactRow = document.getElementById('contactRow');
+          PG_JPAY_CONTACT_REMEMBER.ensureCheckbox(contactRow, ctx, t);
+          PG_JPAY_CONTACT_REMEMBER.applyRemembered(document.getElementById('jpayForm'), getCompId(), ctx, {});
+        }
       }
 
       function boot() {
@@ -798,7 +985,11 @@
         applyQueryPrefills();
         fetchJson(apiUrl('/api/pay/url/checkout-context', 'compId=' + encodeURIComponent(compId)))
           .then(function (ctxRes) {
-            if (!ctxRes.success || !ctxRes.data) throw new Error(ctxRes.message || t('configErr'));
+            if (!ctxRes.success || !ctxRes.data) {
+              var ctxCode = ctxRes.errorCode ? String(ctxRes.errorCode).trim() : '';
+              if (ctxCode === 'ORG_DISABLED' || ctxCode === 'WEB_PAYMENT_DISABLED') throw new Error(ctxRes.message || t('configErr'));
+              throw new Error(localizeJpayMsg(ctxRes.message || '') || t('configErr'));
+            }
             applyCheckoutContext(ctxRes.data);
             fxShellState.checkoutCtx = checkoutCtx;
             fxShellState.compId = compId;
@@ -851,11 +1042,42 @@
         }
         var formEl = document.getElementById('jpayForm');
         if (window.PG_JPAY_CONTACT) PG_JPAY_CONTACT.syncBeforeSubmit(formEl);
+        if (window.PG_JPAY_CONTACT_REMEMBER) {
+          PG_JPAY_CONTACT_REMEMBER.saveIfChecked(formEl, compId, document.getElementById('jpayContactRemember'));
+        }
         var ccVal = window.PG_JPAY_CONTACT ? PG_JPAY_CONTACT.readCountryIso2(formEl) : (document.getElementById('payCountryIsoCode2').value || '').trim().toUpperCase();
         if (ccVal.length !== 2) {
           showErr(t('errCountryCode'));
           payGuardUnlock(btn);
           return;
+        }
+        var cvvRaw = (document.getElementById('payCardcvv').value || '').trim();
+        if (!/^\d{3,4}$/.test(cvvRaw)) {
+          showErr(t('errCvvFormat'));
+          payGuardUnlock(btn);
+          return;
+        }
+        var pfg = window.PG_PAY_FORM_INPUT_GUARD;
+        if (pfg) {
+          var fnVal = document.getElementById('payFirstname').value.trim();
+          var lnVal = document.getElementById('payLastname').value.trim();
+          if (!pfg.validateEnglishName(fnVal) || !pfg.validateEnglishName(lnVal)) {
+            showErr(t('errEnglishName'));
+            payGuardUnlock(btn);
+            return;
+          }
+          var emVal = document.getElementById('payEmailAddress').value.trim();
+          if (!pfg.validateEmail(emVal)) {
+            showErr(t('errEmailFormat'));
+            payGuardUnlock(btn);
+            return;
+          }
+          var telVal = document.getElementById('payTelephone').value.trim();
+          if (!pfg.validatePhoneDigits(telVal)) {
+            showErr(t('errPhoneDigits'));
+            payGuardUnlock(btn);
+            return;
+          }
         }
         var compId = document.getElementById('compIdHidden').value.trim();
         var amtStr = String(document.getElementById('amount').value || '').replace(/,/g, '').trim();
@@ -903,9 +1125,13 @@
               ? PG_CARD_PAY_POLICY.detectBrand(PG_CARD_PAY_POLICY.digitsOnly(document.getElementById('payCardno').value))
               : v;
           })(),
-          payCardmonth: document.getElementById('payCardmonth').value.trim(),
-          payCardyear: document.getElementById('payCardyear').value.trim(),
-          payCardcvv: document.getElementById('payCardcvv').value.trim(),
+          payCardmonth: cardExpiryCtrl && cardExpiryCtrl.getMonth
+            ? cardExpiryCtrl.getMonth()
+            : document.getElementById('payCardmonth').value.trim(),
+          payCardyear: cardExpiryCtrl && cardExpiryCtrl.getYear4
+            ? cardExpiryCtrl.getYear4()
+            : document.getElementById('payCardyear').value.trim(),
+          payCardcvv: cvvRaw,
           payFirstname: document.getElementById('payFirstname').value.trim(),
           payLastname: document.getElementById('payLastname').value.trim(),
           payEmailAddress: document.getElementById('payEmailAddress').value.trim(),
@@ -939,8 +1165,17 @@
           body: JSON.stringify(body)
         }).then(function (r) { return r.json(); }).then(function (res) {
           if (!res.success) {
-            showFinished(false, localizeJpayMsg(res.message) || t('payFailed'), body.orderNo, {});
-            payGuardFail(btn);
+            var errCode = res.errorCode ? String(res.errorCode).trim() : '';
+            var errMsg = resolveApiErrorMessage(res);
+            var extra = {
+              errorCode: errCode,
+              requiresNewPrepare: errCode === 'ORDER_DUP' || errCode === 'ORDER_ALREADY_ATTEMPTED',
+              icopayPresaleBlock: res.icopayPresaleBlock === true || isIcopayPresaleCardBlock(errCode)
+            };
+            if (res.messages) extra.messages = res.messages;
+            if (res.remainingMinutes != null) extra.remainingMinutes = res.remainingMinutes;
+            showFinished(false, errMsg, body.orderNo, extra);
+            if (!isNonRetryableOrderError(errCode) && !extra.icopayPresaleBlock) payGuardFail(btn);
             return;
           }
           var d = res.data || {};
@@ -965,10 +1200,13 @@
             showFinished(true, localizeJpayMsg(msg) || t('paid'), body.orderNo, { jpayStatus: st });
             return;
           }
-          showFinished(false, resolveJpayFailMsg(st, msg, d), body.orderNo, {
-            jpayStatus: st, rawResponse: d.rawResponse, payIndexUrl: d.payIndexUrl
-          });
-          payGuardFail(btn);
+          var failExtra = { jpayStatus: st, rawResponse: d.rawResponse, payIndexUrl: d.payIndexUrl };
+          if (JpayOrderDupFromMsg(msg)) {
+            failExtra.errorCode = 'ORDER_DUP';
+            failExtra.requiresNewPrepare = true;
+          }
+          showFinished(false, resolveJpayFailMsg(st, msg, d), body.orderNo, failExtra);
+          if (!failExtra.requiresNewPrepare) payGuardFail(btn);
         }).catch(function (err) {
           showFinished(false, (err && err.message) || t('networkErr'), body.orderNo, {});
           payGuardFail(btn);

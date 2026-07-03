@@ -5,9 +5,11 @@ import com.pg.entity.ChargebackFeeTier;
 import com.pg.entity.CommissionPolicy;
 import com.pg.entity.PgTrnsctn;
 import com.pg.entity.SettlementSetting;
+import com.pg.service.VoidRefundSettlementModeResolutionService;
 import com.pg.util.FeeCurrencyRoundResolver;
 import com.pg.util.FeeListRoundingPolicy;
 import com.pg.util.PayListStatusBarBuckets;
+import com.pg.util.VoidRefundSettlementModeUtil;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -23,9 +25,12 @@ import java.util.Map;
 public class FeeListTxnAmountService {
 
     private final FeeListTxnBreakdownCalculator feeListTxnBreakdownCalculator;
+    private final VoidRefundSettlementModeResolutionService voidRefundSettlementModeResolutionService;
 
-    public FeeListTxnAmountService(FeeListTxnBreakdownCalculator feeListTxnBreakdownCalculator) {
+    public FeeListTxnAmountService(FeeListTxnBreakdownCalculator feeListTxnBreakdownCalculator,
+                                   VoidRefundSettlementModeResolutionService voidRefundSettlementModeResolutionService) {
         this.feeListTxnBreakdownCalculator = feeListTxnBreakdownCalculator;
+        this.voidRefundSettlementModeResolutionService = voidRefundSettlementModeResolutionService;
     }
 
     public record FeeListTxnAmounts(
@@ -137,6 +142,67 @@ public class FeeListTxnAmountService {
 
     private static BigDecimal nz(BigDecimal v) {
         return v != null ? v : BigDecimal.ZERO;
+    }
+
+    /** 승인(10) 건 FX(%) 과금액 — 상단 개요·대행수수료 요약용 */
+    public BigDecimal fxFeeForTxn(PgTrnsctn t,
+                                  PayListRowContext payCtx,
+                                  CommissionPolicy pol,
+                                  String payCurKey,
+                                  FeeCurrencyRoundResolver feeResolver,
+                                  Map<String, Long> monthCbCountCache,
+                                  Map<Long, List<ChargebackFeeTier>> tiersByPolicyId) {
+        return fxFeeForTxn(t, payCtx, pol, payCurKey, feeResolver, monthCbCountCache, tiersByPolicyId, null);
+    }
+
+    public BigDecimal fxFeeForTxn(PgTrnsctn t,
+                                  PayListRowContext payCtx,
+                                  CommissionPolicy pol,
+                                  String payCurKey,
+                                  FeeCurrencyRoundResolver feeResolver,
+                                  Map<String, Long> monthCbCountCache,
+                                  Map<Long, List<ChargebackFeeTier>> tiersByPolicyId,
+                                  SplitPayTxnFeeResolver.InstallmentCache splitPayCache) {
+        if (t == null || pol == null || feeResolver == null) {
+            return BigDecimal.ZERO;
+        }
+        String st = t.getStatus() != null ? t.getStatus().trim() : "";
+        if (!"10".equals(st)) {
+            return BigDecimal.ZERO;
+        }
+        String compId = t.getMerchantId() != null ? t.getMerchantId().trim() : "";
+        String cur = payCurKey != null && !payCurKey.isBlank() ? payCurKey.trim()
+                : (t.getCurType() != null && !t.getCurType().isBlank() ? t.getCurType().trim() : "KRW");
+        FeeListRoundingPolicy feeListRp = feeResolver.forCurrency(cur);
+        BigDecimal amountBd = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
+        FeeListTxnBreakdownCalculator.FeeListTxnBreakdown br = feeListTxnBreakdownCalculator.computeFeeListTxnBreakdown(
+                t, compId, pol, monthCbCountCache, tiersByPolicyId,
+                payCtx != null ? payCtx.getSettlement() : null, feeListRp, splitPayCache);
+        return FeeListRoundingPolicy.round(BigDecimal.valueOf(br.fxFee()), feeListRp);
+    }
+
+    /** 상단 지급예상·추정결산 reversal — 정산 모드(일반/수익/하이브리드) 반영 */
+    public boolean countsTowardFinancialSummaryReversal(PgTrnsctn t) {
+        if (t == null) {
+            return false;
+        }
+        String compId = t.getMerchantId() != null ? t.getMerchantId().trim() : "";
+        String st = t.getStatus() != null ? t.getStatus().trim() : "";
+        return countsTowardFinancialSummaryReversal(compId, st);
+    }
+
+    public boolean countsTowardFinancialSummaryReversal(String merchantCompId, String status) {
+        String compId = merchantCompId != null ? merchantCompId.trim() : "";
+        String st = status != null ? status.trim() : "";
+        if (st.isEmpty()) {
+            return false;
+        }
+        return VoidRefundSettlementModeUtil.subtractTxnAmountFromNetSales(
+                st,
+                voidRefundSettlementModeResolutionService.resolveVoidSettlementMode(compId),
+                voidRefundSettlementModeResolutionService.resolveManualVoidSettlementMode(compId),
+                voidRefundSettlementModeResolutionService.resolveRefundSettlementMode(compId),
+                voidRefundSettlementModeResolutionService.resolveForceRefundSettlementMode(compId));
     }
 
     /** 수수료내역 가맹점 차감 행 — 취소·무효·환불·실패 등 */

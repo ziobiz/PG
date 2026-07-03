@@ -20,6 +20,12 @@ import java.util.Optional;
 @Service
 public class OrgServiceUseService {
 
+    /** 가맹·총판 등 조직 서비스(use_yn) 중지 시 API·결제 실패 메시지 (다국어 미지원 — 영어 고정) */
+    public static final String MSG_ORG_SERVICE_DISABLED = "The payment service has been suspended due to persistent errors.";
+
+    /** 가맹점 웹결제(URL 결제) 미사용 시 API·결제 실패 메시지 (다국어 미지원 — 영어 고정) */
+    public static final String MSG_WEB_PAYMENT_DISABLED = "The merchant's payment service status is set to \"Suspended\".";
+
     private final OrgUnitRepository orgUnitRepository;
     private final MerchantProfileRepository merchantProfileRepository;
 

@@ -59,28 +59,35 @@ public class CheckoutHeaderLogoResolver {
 
     public SubtitleResolved resolveSubtitle(Long merchantOrgUnitId) {
         Optional<MerchantProfile> prof = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId);
-        String mode = WebPaymentHeaderLogoModeUtil.normalize(
-                prof.map(MerchantProfile::getWebPaymentHeaderSubtitleMode).orElse(WebPaymentHeaderLogoModeUtil.DEFAULT));
-        if (WebPaymentHeaderLogoModeUtil.DISABLED.equals(mode)) {
-            return new SubtitleResolved(WebPaymentHeaderLogoModeUtil.DISABLED, Optional.empty());
+        String mode = CheckoutHeaderSubtitleModeUtil.normalize(
+                prof.map(MerchantProfile::getWebPaymentHeaderSubtitleMode).orElse(CheckoutHeaderSubtitleModeUtil.DEFAULT));
+        if (CheckoutHeaderSubtitleModeUtil.DISABLED.equals(mode)) {
+            return new SubtitleResolved(CheckoutHeaderSubtitleModeUtil.DISABLED, Optional.empty());
         }
-        if (WebPaymentHeaderLogoModeUtil.ACTIVE.equals(mode)) {
+        if (CheckoutHeaderSubtitleModeUtil.isDirectActive(mode)) {
             String custom = prof.map(MerchantProfile::getWebPaymentHeaderSubtitleText).orElse("");
             if (custom == null || custom.isBlank()) {
-                return new SubtitleResolved(WebPaymentHeaderLogoModeUtil.ACTIVE, Optional.empty());
+                return new SubtitleResolved(CheckoutHeaderSubtitleModeUtil.ACTIVE, Optional.empty());
             }
-            return new SubtitleResolved(WebPaymentHeaderLogoModeUtil.ACTIVE, Optional.of(custom.trim()));
+            return new SubtitleResolved(CheckoutHeaderSubtitleModeUtil.ACTIVE, Optional.of(custom.trim()));
         }
-        return new SubtitleResolved(WebPaymentHeaderLogoModeUtil.DEFAULT, Optional.empty());
+        if (CheckoutHeaderSubtitleModeUtil.isPreset(mode)) {
+            return new SubtitleResolved(mode, Optional.empty());
+        }
+        return new SubtitleResolved(CheckoutHeaderSubtitleModeUtil.DEFAULT, Optional.empty());
     }
 
     public void applyToCheckoutMap(Map<String, Object> data, Long merchantOrgUnitId) {
         if (data == null || merchantOrgUnitId == null) {
             return;
         }
+        Optional<MerchantProfile> prof = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId);
         Resolved r = resolve(merchantOrgUnitId);
         data.put("checkoutHeaderLogoMode", r.mode());
         r.url().ifPresent(u -> data.put("checkoutHeaderLogoUrl", u));
+        prof.map(MerchantProfile::getWebPaymentHeaderHtmlTitle)
+                .filter(t -> t != null && !t.isBlank())
+                .ifPresent(t -> data.put("checkoutHeaderHtmlTitle", t.trim()));
         SubtitleResolved st = resolveSubtitle(merchantOrgUnitId);
         data.put("checkoutHeaderSubtitleMode", st.mode());
         st.text().ifPresent(t -> data.put("checkoutHeaderSubtitleText", t));
@@ -108,32 +115,38 @@ public class CheckoutHeaderLogoResolver {
 
     public SubtitleResolved resolveSplitPaySubtitle(Long merchantOrgUnitId) {
         Optional<MerchantProfile> prof = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId);
-        String mode = WebPaymentHeaderLogoModeUtil.normalize(
-                prof.map(MerchantProfile::getSplitPayHeaderSubtitleMode).orElse(WebPaymentHeaderLogoModeUtil.DEFAULT));
-        if (WebPaymentHeaderLogoModeUtil.DISABLED.equals(mode)) {
-            return new SubtitleResolved(WebPaymentHeaderLogoModeUtil.DISABLED, Optional.empty());
+        String mode = CheckoutHeaderSubtitleModeUtil.normalize(
+                prof.map(MerchantProfile::getSplitPayHeaderSubtitleMode).orElse(CheckoutHeaderSubtitleModeUtil.DEFAULT));
+        if (CheckoutHeaderSubtitleModeUtil.DISABLED.equals(mode)) {
+            return new SubtitleResolved(CheckoutHeaderSubtitleModeUtil.DISABLED, Optional.empty());
         }
-        if (WebPaymentHeaderLogoModeUtil.ACTIVE.equals(mode)) {
+        if (CheckoutHeaderSubtitleModeUtil.isDirectActive(mode)) {
             String custom = prof.map(MerchantProfile::getSplitPayHeaderSubtitleText).orElse("");
             if (custom == null || custom.isBlank()) {
-                return new SubtitleResolved(WebPaymentHeaderLogoModeUtil.ACTIVE, Optional.empty());
+                return new SubtitleResolved(CheckoutHeaderSubtitleModeUtil.ACTIVE, Optional.empty());
             }
-            return new SubtitleResolved(WebPaymentHeaderLogoModeUtil.ACTIVE, Optional.of(custom.trim()));
+            return new SubtitleResolved(CheckoutHeaderSubtitleModeUtil.ACTIVE, Optional.of(custom.trim()));
         }
-        return new SubtitleResolved(WebPaymentHeaderLogoModeUtil.DEFAULT, Optional.empty());
+        if (CheckoutHeaderSubtitleModeUtil.isPreset(mode)) {
+            return new SubtitleResolved(mode, Optional.empty());
+        }
+        return new SubtitleResolved(CheckoutHeaderSubtitleModeUtil.DEFAULT, Optional.empty());
     }
 
     public void applySplitPayToCheckoutMap(Map<String, Object> data, Long merchantOrgUnitId) {
         if (data == null || merchantOrgUnitId == null) {
             return;
         }
+        Optional<MerchantProfile> prof = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId);
         Resolved r = resolveSplitPay(merchantOrgUnitId);
         data.put("checkoutHeaderLogoMode", r.mode());
         r.url().ifPresent(u -> data.put("checkoutHeaderLogoUrl", u));
+        prof.map(MerchantProfile::getSplitPayHeaderHtmlTitle)
+                .filter(t -> t != null && !t.isBlank())
+                .ifPresent(t -> data.put("checkoutHeaderHtmlTitle", t.trim()));
         SubtitleResolved st = resolveSplitPaySubtitle(merchantOrgUnitId);
         data.put("checkoutHeaderSubtitleMode", st.mode());
         st.text().ifPresent(t -> data.put("checkoutHeaderSubtitleText", t));
-        Optional<MerchantProfile> prof = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId);
         String langMenu = prof.map(MerchantProfile::getSplitPayLangMenuUseYn).orElse("Y");
         data.put("splitPayLangMenuUseYn", langMenu != null && "Y".equalsIgnoreCase(langMenu.trim()) ? "Y" : "N");
     }
@@ -171,6 +184,10 @@ public class CheckoutHeaderLogoResolver {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("checkoutHeaderLogoMode", r.mode());
         r.url().ifPresent(u -> m.put("checkoutHeaderLogoUrl", u));
+        merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId)
+                .map(MerchantProfile::getWebPaymentHeaderHtmlTitle)
+                .filter(t -> t != null && !t.isBlank())
+                .ifPresent(t -> m.put("checkoutHeaderHtmlTitle", t.trim()));
         m.put("checkoutHeaderSubtitleMode", st.mode());
         st.text().ifPresent(t -> m.put("checkoutHeaderSubtitleText", t));
         return m;

@@ -11,6 +11,7 @@ import com.pg.repository.MerchantDefaultProductRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.urlpay.CheckoutHeaderLogoResolver;
+import com.pg.merchantdeploy.MerchantApiResponseMapper;
 import com.pg.merchantdeploy.MerchantInlineCheckoutTokenService;
 import com.pg.merchantdeploy.MerchantOperationalPgGuard;
 import com.pg.merchantdeploy.MerchantOperationalPgGuardI18n;
@@ -21,11 +22,16 @@ import com.pg.service.JpayPaymentService;
 import com.pg.service.MerchantCreditTokenService;
 import com.pg.service.OrgServiceUseService;
 import com.pg.service.PayCardPolicyService;
+import com.pg.service.PayContactRememberPolicyService;
+import com.pg.service.PayPresaleRiskFilterService;
 import com.pg.service.PaymentCurrencyScaleService;
+import com.pg.integration.pg.PgVendor;
+import com.pg.util.PayPresaleRiskFilterCodes;
 import com.pg.service.UrlPayCardCopyService;
 import com.pg.service.UrlPayChargeResolutionService;
 import com.pg.service.UrlPayCheckoutCurrencyService;
 import com.pg.service.UrlPayDisplayFxService;
+import com.pg.urlpay.UrlPayCardExpiryModeService;
 import com.pg.urlpay.UrlPayCheckoutModeUtil;
 import com.pg.urlpay.UrlPayPublicCheckoutService;
 import com.pg.urlpay.UrlPaySaleDispatcher;
@@ -75,6 +81,9 @@ public class ApiPayController {
     private final CheckoutHeaderLogoResolver checkoutHeaderLogoResolver;
     private final MerchantOperationalPgGuard operationalPgGuard;
     private final PayCardPolicyService payCardPolicyService;
+    private final PayPresaleRiskFilterService payPresaleRiskFilterService;
+    private final UrlPayCardExpiryModeService urlPayCardExpiryModeService;
+    private final PayContactRememberPolicyService payContactRememberPolicyService;
 
     public ApiPayController(ChillPayService chillPayService,
                             JpayPaymentService jpayPaymentService,
@@ -95,7 +104,10 @@ public class ApiPayController {
                             UrlPaySaleDispatcher urlPaySaleDispatcher,
                             CheckoutHeaderLogoResolver checkoutHeaderLogoResolver,
                             MerchantOperationalPgGuard operationalPgGuard,
-                            PayCardPolicyService payCardPolicyService) {
+                            PayCardPolicyService payCardPolicyService,
+                            PayPresaleRiskFilterService payPresaleRiskFilterService,
+                            UrlPayCardExpiryModeService urlPayCardExpiryModeService,
+                            PayContactRememberPolicyService payContactRememberPolicyService) {
         this.chillPayService = chillPayService;
         this.jpayPaymentService = jpayPaymentService;
         this.chillPayDirectCreditRecordService = chillPayDirectCreditRecordService;
@@ -116,6 +128,9 @@ public class ApiPayController {
         this.checkoutHeaderLogoResolver = checkoutHeaderLogoResolver;
         this.operationalPgGuard = operationalPgGuard;
         this.payCardPolicyService = payCardPolicyService;
+        this.payPresaleRiskFilterService = payPresaleRiskFilterService;
+        this.urlPayCardExpiryModeService = urlPayCardExpiryModeService;
+        this.payContactRememberPolicyService = payContactRememberPolicyService;
     }
 
     private <T> ResponseEntity<ApiResponse<T>> vendorMismatchIfAny(Long orgUnitId,
@@ -177,14 +192,14 @@ public class ApiPayController {
         }
         if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
             return ResponseEntity.ok(ApiResponse.fail(
-                    "서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)", "ORG_DISABLED"));
+                    OrgServiceUseService.MSG_ORG_SERVICE_DISABLED, "ORG_DISABLED"));
         }
         Optional<MerchantProfile> profCtx = merchantProfileRepository.findByOrgUnitId(orgUnitId);
         if (profCtx.isPresent()) {
             String wpy = profCtx.get().getWebPaymentUseYn();
             if (wpy != null && "N".equalsIgnoreCase(wpy.trim())) {
                 return ResponseEntity.ok(ApiResponse.fail(
-                        "이 가맹점은 웹결제(URL 결제)가 미사용으로 설정되어 있습니다.", "WEB_PAYMENT_DISABLED"));
+                        OrgServiceUseService.MSG_WEB_PAYMENT_DISABLED, "WEB_PAYMENT_DISABLED"));
             }
         }
         if (repay) {
@@ -294,17 +309,13 @@ public class ApiPayController {
             return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
         }
         if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
-            return ResponseEntity.ok(ApiResponse.fail("서비스가 중지된 업체입니다.", "ORG_DISABLED"));
+            return ResponseEntity.ok(ApiResponse.fail(OrgServiceUseService.MSG_ORG_SERVICE_DISABLED, "ORG_DISABLED"));
         }
         Map<String, Object> result = urlPaySaleDispatcher.executeSale(orgUnitId, body, request, getClientIp(request));
         Object ok = result.get("success");
         if (ok instanceof Boolean && !(Boolean) ok) {
-            String msg = result.get("message") != null ? result.get("message").toString() : "URL 결제 요청 실패";
-            String code = result.get("errorCode") != null ? result.get("errorCode").toString().trim() : "URL_PAY_SALE_FAILED";
-            if (code.isEmpty()) {
-                code = "URL_PAY_SALE_FAILED";
-            }
-            return ResponseEntity.ok(ApiResponse.fail(msg, code));
+            return ResponseEntity.ok(MerchantApiResponseMapper.failFromResultMap(
+                    result, "URL 결제 요청 실패", "URL_PAY_SALE_FAILED"));
         }
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
@@ -337,7 +348,7 @@ public class ApiPayController {
         }
         if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
             return ResponseEntity.ok(ApiResponse.fail(
-                    "서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)", "ORG_DISABLED"));
+                    OrgServiceUseService.MSG_ORG_SERVICE_DISABLED, "ORG_DISABLED"));
         }
         ResponseEntity<ApiResponse<Map<String, Object>>> vendorBlock = vendorMismatchIfAny(
                 orgUnitId, MerchantPgBrokerVendor.JPAY, false);
@@ -347,12 +358,8 @@ public class ApiPayController {
         Map<String, Object> result = urlPaySaleDispatcher.executeSale(orgUnitId, body, request, getClientIp(request));
         Object ok = result.get("success");
         if (ok instanceof Boolean && !(Boolean) ok) {
-            String msg = result.get("message") != null ? result.get("message").toString() : "JPAY 요청 실패";
-            String code = result.get("errorCode") != null ? result.get("errorCode").toString().trim() : "JPAY_ERROR";
-            if (code.isEmpty()) {
-                code = "JPAY_ERROR";
-            }
-            return ResponseEntity.ok(ApiResponse.fail(msg, code));
+            return ResponseEntity.ok(MerchantApiResponseMapper.failFromResultMap(
+                    result, "JPAY 요청 실패", "JPAY_ERROR"));
         }
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
@@ -379,7 +386,7 @@ public class ApiPayController {
             return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
         }
         if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
-            return ResponseEntity.ok(ApiResponse.fail("서비스가 중지된 업체입니다.", "ORG_DISABLED"));
+            return ResponseEntity.ok(ApiResponse.fail(OrgServiceUseService.MSG_ORG_SERVICE_DISABLED, "ORG_DISABLED"));
         }
         if (!jpayPaymentService.hasOperationalSubscriptionBinding(orgUnitId)) {
             return ResponseEntity.ok(ApiResponse.fail("JPAY API 구독(운영) 바인딩이 없습니다.", "SUBSCRIPTION_PG_MISSING"));
@@ -397,6 +404,8 @@ public class ApiPayController {
         data.put("checkoutCurrencyCode", urlPayCheckoutCurrencyService.resolveCheckoutCurrency(orgUnitId, null));
         data.put("clientIp", getClientIp(request));
         checkoutHeaderLogoResolver.applyToCheckoutMap(data, orgUnitId);
+        urlPayCardExpiryModeService.putEffectiveIntoMap(data, orgUnitId);
+        data.put("checkoutContactRememberEnabled", payContactRememberPolicyService.isEnabledForOrgUnit(orgUnitId));
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
@@ -426,7 +435,7 @@ public class ApiPayController {
             return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
         }
         if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
-            return ResponseEntity.ok(ApiResponse.fail("서비스가 중지된 업체입니다.", "ORG_DISABLED"));
+            return ResponseEntity.ok(ApiResponse.fail(OrgServiceUseService.MSG_ORG_SERVICE_DISABLED, "ORG_DISABLED"));
         }
         String orderNo = str(body, "orderNo");
         if (orderNo.isBlank()) {
@@ -472,7 +481,7 @@ public class ApiPayController {
         boolean repay = resolveEffectiveUrlPayRepay(urlPayVariant, orgUnitId);
         if (orgUnitId != null && !orgServiceUseService.isOrgServiceActive(orgUnitId)) {
             return ResponseEntity.ok(ApiResponse.fail(
-                    "서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)", "ORG_DISABLED"));
+                    OrgServiceUseService.MSG_ORG_SERVICE_DISABLED, "ORG_DISABLED"));
         }
         if (orgUnitId != null) {
             ResponseEntity<ApiResponse<Map<String, Object>>> vendorBlock = vendorMismatchIfAny(
@@ -485,7 +494,7 @@ public class ApiPayController {
                 String wpy = profCfg.get().getWebPaymentUseYn();
                 if (wpy != null && "N".equalsIgnoreCase(wpy.trim())) {
                     return ResponseEntity.ok(ApiResponse.fail(
-                            "이 가맹점은 웹결제(URL 결제)가 미사용으로 설정되어 있습니다.", "WEB_PAYMENT_DISABLED"));
+                            OrgServiceUseService.MSG_WEB_PAYMENT_DISABLED, "WEB_PAYMENT_DISABLED"));
                 }
             }
             if (repay) {
@@ -535,7 +544,7 @@ public class ApiPayController {
         }
         if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
             return ResponseEntity.ok(ApiResponse.fail(
-                    "서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)", "ORG_DISABLED"));
+                    OrgServiceUseService.MSG_ORG_SERVICE_DISABLED, "ORG_DISABLED"));
         }
         ResponseEntity<ApiResponse<Map<String, Object>>> vendorBlock = vendorMismatchIfAny(
                 orgUnitId, MerchantPgBrokerVendor.CHILLPAY, false);
@@ -687,7 +696,7 @@ public class ApiPayController {
 
         if (merchantOrgUnitId != null && !orgServiceUseService.isOrgServiceActive(merchantOrgUnitId)) {
             return ResponseEntity.ok(ApiResponse.fail(
-                    "서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)", "ORG_DISABLED"));
+                    OrgServiceUseService.MSG_ORG_SERVICE_DISABLED, "ORG_DISABLED"));
         }
         if (merchantOrgUnitId != null) {
             ResponseEntity<ApiResponse<ChillPayDirectCreditResponse>> vendorBlock = vendorMismatchIfAny(
@@ -733,6 +742,32 @@ public class ApiPayController {
         }
         if (pgAmount == null || pgAmount.compareTo(BigDecimal.ZERO) <= 0) {
             return ResponseEntity.ok(ApiResponse.fail("유효한 결제 금액을 입력하세요.", "INVALID_AMOUNT"));
+        }
+
+        Optional<OrgUnit> ouPresale = orgUnitRepository.findById(merchantOrgUnitId);
+        String merchantCode = ouPresale.map(OrgUnit::getCode).orElse("");
+        Map<String, Object> presaleBody = new LinkedHashMap<>(body != null ? body : Map.of());
+        presaleBody.put("_payerClientIp", ipAddress);
+        if (fn != null) presaleBody.put("firstName", fn);
+        if (ln != null) presaleBody.put("lastName", ln);
+        if (custEmail != null) presaleBody.put("custEmail", custEmail);
+        if (phoneNumber != null) presaleBody.put("phoneNumber", phoneNumber);
+        if (langCode != null) presaleBody.put("langCode", langCode);
+        Optional<PayPresaleRiskFilterService.PresaleRiskBlock> presaleRisk =
+                payPresaleRiskFilterService.evaluate(merchantOrgUnitId, merchantCode, PgVendor.CHILLPAY, presaleBody);
+        if (presaleRisk.isPresent()) {
+            PayPresaleRiskFilterService.PresaleRiskBlock block = presaleRisk.get();
+            String txnOriginPresale = normalizeTxnOrigin(str(body, "txnOrigin"));
+            chillPayDirectCreditRecordService.recordPresalePending(
+                    merchantOrgUnitId, orderNo, pgAmount, checkoutCurrencyCode,
+                    custEmail, phoneNumber, payerName, txnOriginPresale,
+                    shopperDisplayAmountOut, shopperDisplayCurrencyOut);
+            String trnId = chillPayDirectCreditRecordService.applyPresaleRiskCancel(
+                    merchantCode, orderNo, txnOriginPresale, block);
+            payPresaleRiskFilterService.recordEvent(
+                    merchantOrgUnitId, merchantCode, orderNo, trnId, PgVendor.CHILLPAY, block);
+            return ResponseEntity.ok(ApiResponse.failI18n(
+                    block.message(), PayPresaleRiskFilterCodes.ERROR_CODE, block.filterCode(), block.messages()));
         }
 
         String browserReturnUrl = enrichPayResultReturnUrlWithOrderNo(

@@ -48,6 +48,45 @@ public class HqRiskCardPolicy {
     @Column(name = "track_period_value", nullable = false)
     private Integer trackPeriodValue = 0;
 
+    @Column(name = "presale_filter_enabled_yn", nullable = false, length = 1)
+    private String presaleFilterEnabledYn = "Y";
+
+    @Column(name = "filter_buyer_contact_mismatch_yn", nullable = false, length = 1)
+    private String filterBuyerContactMismatchYn = "Y";
+
+    @Column(name = "filter_holder_name_yn", nullable = false, length = 1)
+    private String filterHolderNameYn = "Y";
+
+    @Column(name = "filter_velocity_card_yn", nullable = false, length = 1)
+    private String filterVelocityCardYn = "Y";
+
+    @Column(name = "filter_velocity_email_yn", nullable = false, length = 1)
+    private String filterVelocityEmailYn = "Y";
+
+    @Column(name = "filter_velocity_ip_yn", nullable = false, length = 1)
+    private String filterVelocityIpYn = "Y";
+
+    @Column(name = "velocity_window_minutes", nullable = false)
+    private Integer velocityWindowMinutes = 10;
+
+    @Column(name = "velocity_max_attempts", nullable = false)
+    private Integer velocityMaxAttempts = 3;
+
+    @Column(name = "checkout_contact_remember_default_yn", nullable = false, length = 1)
+    private String checkoutContactRememberDefaultYn = "Y";
+
+    @Column(name = "filter_phone_invalid_yn", nullable = false, length = 1)
+    private String filterPhoneInvalidYn = "Y";
+
+    @Column(name = "filter_email_invalid_yn", nullable = false, length = 1)
+    private String filterEmailInvalidYn = "Y";
+
+    @Column(name = "postsale_cooldown_jpay_highrisk_yn", nullable = false, length = 1)
+    private String postsaleCooldownJpayHighriskYn = "Y";
+
+    @Column(name = "postsale_cooldown_jpay_py0124_yn", nullable = false, length = 1)
+    private String postsaleCooldownJpayPy0124Yn = "Y";
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
@@ -85,6 +124,36 @@ public class HqRiskCardPolicy {
     public void setTrackPeriodMode(String trackPeriodMode) { this.trackPeriodMode = trackPeriodMode; }
     public Integer getTrackPeriodValue() { return trackPeriodValue; }
     public void setTrackPeriodValue(Integer trackPeriodValue) { this.trackPeriodValue = trackPeriodValue; }
+    public String getPresaleFilterEnabledYn() { return presaleFilterEnabledYn; }
+    public void setPresaleFilterEnabledYn(String presaleFilterEnabledYn) {
+        this.presaleFilterEnabledYn = presaleFilterEnabledYn;
+    }
+    public String getFilterBuyerContactMismatchYn() { return filterBuyerContactMismatchYn; }
+    public void setFilterBuyerContactMismatchYn(String v) { this.filterBuyerContactMismatchYn = v; }
+    public String getFilterHolderNameYn() { return filterHolderNameYn; }
+    public void setFilterHolderNameYn(String v) { this.filterHolderNameYn = v; }
+    public String getFilterVelocityCardYn() { return filterVelocityCardYn; }
+    public void setFilterVelocityCardYn(String v) { this.filterVelocityCardYn = v; }
+    public String getFilterVelocityEmailYn() { return filterVelocityEmailYn; }
+    public void setFilterVelocityEmailYn(String v) { this.filterVelocityEmailYn = v; }
+    public String getFilterVelocityIpYn() { return filterVelocityIpYn; }
+    public void setFilterVelocityIpYn(String v) { this.filterVelocityIpYn = v; }
+    public Integer getVelocityWindowMinutes() { return velocityWindowMinutes; }
+    public void setVelocityWindowMinutes(Integer velocityWindowMinutes) { this.velocityWindowMinutes = velocityWindowMinutes; }
+    public Integer getVelocityMaxAttempts() { return velocityMaxAttempts; }
+    public void setVelocityMaxAttempts(Integer velocityMaxAttempts) { this.velocityMaxAttempts = velocityMaxAttempts; }
+    public String getCheckoutContactRememberDefaultYn() { return checkoutContactRememberDefaultYn; }
+    public void setCheckoutContactRememberDefaultYn(String checkoutContactRememberDefaultYn) {
+        this.checkoutContactRememberDefaultYn = checkoutContactRememberDefaultYn;
+    }
+    public String getFilterPhoneInvalidYn() { return filterPhoneInvalidYn; }
+    public void setFilterPhoneInvalidYn(String filterPhoneInvalidYn) { this.filterPhoneInvalidYn = filterPhoneInvalidYn; }
+    public String getFilterEmailInvalidYn() { return filterEmailInvalidYn; }
+    public void setFilterEmailInvalidYn(String filterEmailInvalidYn) { this.filterEmailInvalidYn = filterEmailInvalidYn; }
+    public String getPostsaleCooldownJpayHighriskYn() { return postsaleCooldownJpayHighriskYn; }
+    public void setPostsaleCooldownJpayHighriskYn(String v) { this.postsaleCooldownJpayHighriskYn = v; }
+    public String getPostsaleCooldownJpayPy0124Yn() { return postsaleCooldownJpayPy0124Yn; }
+    public void setPostsaleCooldownJpayPy0124Yn(String v) { this.postsaleCooldownJpayPy0124Yn = v; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

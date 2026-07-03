@@ -494,11 +494,12 @@ public class OrgPagePermissionService {
 
     /**
      * 로그인 사용자 최종 페이지 권한.
-     * 조직에 연결된 계정(총본사·본사·총판·가맹 등)은 역할이 ADMIN 이어도 본사권한설정을 적용합니다.
-     * 조직 미연결 ADMIN 만 null(제한 없음).
+     * 조직에 연결된 계정(총본사 ADMIN 포함)은 본사권한설정을 적용합니다.
+     * 조직 미연결 시스템 ADMIN 만 null(제한 없음).
      */
     public Map<String, String> resolvePagePermissionsForUser(AppUser user) {
         if (user == null) return null;
+        if (isFullAccessAdmin(user)) return null;
         Map<String, Object> org = authService.getOrgInfo(user.getUsername());
         if (org == null) return null;
         Object ol = org.get("orgLevel");
@@ -523,13 +524,13 @@ public class OrgPagePermissionService {
     }
 
     /**
-     * 운영관리 노티생성 — SUPERVISOR 담당자(및 조직 미연결 시스템 ADMIN)만 접근.
+     * 운영관리 노티관리 — SUPERVISOR 담당자 또는 총본사(HEADQUARTERS) ADMIN(본사권한설정은 그대로 적용).
      */
     private Map<String, String> restrictNotiProvisionToSupervisorOnly(AppUser user, Map<String, String> permissions) {
         if (permissions == null || user == null) {
             return permissions;
         }
-        if (isUnboundSystemAdmin(user)) {
+        if (isHeadquartersAdmin(user)) {
             return permissions;
         }
         if ("ASSISTANT".equalsIgnoreCase(trim(user.getUserType()))
@@ -541,12 +542,31 @@ public class OrgPagePermissionService {
         return out;
     }
 
-    private boolean isUnboundSystemAdmin(AppUser user) {
+    /**
+     * 조직 미연결 시스템 ADMIN — 전 페이지 접근 예외.
+     */
+    public boolean isFullAccessAdmin(AppUser user) {
         if (user == null || !"ADMIN".equalsIgnoreCase(trim(user.getRole()))) {
             return false;
         }
         Map<String, Object> org = authService.getOrgInfo(user.getUsername());
         return org == null || org.get("orgUnitId") == null;
+    }
+
+    /** 총본사(HEADQUARTERS) 소속 ADMIN — 노티관리 SUPERVISOR 예외 대상 */
+    public boolean isHeadquartersAdmin(AppUser user) {
+        if (user == null || !"ADMIN".equalsIgnoreCase(trim(user.getRole()))) {
+            return false;
+        }
+        Map<String, Object> org = authService.getOrgInfo(user.getUsername());
+        if (org == null) {
+            return false;
+        }
+        Object ol = org.get("orgLevel");
+        if (ol == null) {
+            return false;
+        }
+        return OrgLevel.HEADQUARTERS.name().equals(ol.toString().trim().toUpperCase(Locale.ROOT));
     }
 
     /**

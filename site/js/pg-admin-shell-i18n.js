@@ -254,6 +254,8 @@
     '/ops/mailLog': T('Mail management', 'メール管理', '邮件管理', 'จัดการเมล'),
     '/ops/taxReport': T('TAX report', 'TAXレポート', 'TAX报表', 'รายงาน TAX'),
     '/ops/agencyTxnList': T('Agency fees', '代行手数료', '代理手续费', 'ค่าธรรมเนียมตัวแทน'),
+    '/ops/distributionTxnList': T('Channel fee details', '流通網内訳', '渠道费用明细', 'รายละเอียดค่าธรรมเนียมช่องทาง'),
+    '/ops/distributionSettlement': T('Channel settlement (ops)', '流通網精算(運営)', '渠道结算(运营)', 'ชำระช่องทาง(ปฏิบัติการ)'),
     '/calc/integratedCheck': T('Integrated check', '統合チェック', '整合检查', 'ตรวจสอบรวม'),
     '/ops/integratedReport': T('Integrated report', '統合レポート', '综合报表', 'รายงานรวม'),
     '/ops/verifyReport': T('Verify report', '検証レポート', '验证报表', 'รายงานตรวจสอบ'),

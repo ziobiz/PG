@@ -43,7 +43,6 @@ public final class PageMenuCatalog {
         add(list, "/calc/payOverview", "M0333", "결제개요", "검수관리");
         add(list, "/calc/queryIntegrated", "M0331", "일별조회", "검수관리");
         add(list, "/ops/agencyTxnList", "M0607", "대행수수료", "검수관리");
-        add(list, "/risk/list", "M0701", "리스크 현황", "검수관리");
         /* 업체관리 */
         add(list, "/system/noticeList", "M0201", "공지사항", "업체관리");
         add(list, "/comp/myCompMng", "M0202", "업체정보조회", "업체관리");
@@ -102,7 +101,10 @@ public final class PageMenuCatalog {
         add(list, "/set/gridSetMng", "M0505", "메뉴별항목순서관리", "사용자관리");
         /* 운영관리 — 사이드바 순서 */
         add(list, "/ops/inactiveCard", "M0606", "카드관리", "운영관리");
+        add(list, "/risk/list", "M0701", "리스크 현황", "운영관리");
         add(list, "/ops/notiProvision", "M0608", "노티관리", "운영관리");
+        add(list, "/ops/distributionTxnList", "M0609", "유통망내역", "운영관리");
+        add(list, "/ops/distributionSettlement", "M0610", "유통망정산", "운영관리");
         add(list, "/ops/mailLog", "M0602", "메일관리", "운영관리");
         add(list, "/ops/opsMng", "M0601", "운영관리", "운영관리");
         add(list, "/ops/integratedReport", "M0604", "통합리포트", "운영관리");

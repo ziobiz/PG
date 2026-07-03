@@ -30,6 +30,14 @@ public class OrgViewColumnAllowance {
     @Column(name = "allowed_keys_json", nullable = false, columnDefinition = "TEXT")
     private String allowedKeysJson;
 
+    /** 최초 접속 시 기본 선택(allowed_keys_json 부분집합) */
+    @Column(name = "default_selected_keys_json", columnDefinition = "TEXT")
+    private String defaultSelectedKeysJson;
+
+    /** 조직항목설정 UI 전체 행 순서 */
+    @Column(name = "column_order_keys_json", columnDefinition = "TEXT")
+    private String columnOrderKeysJson;
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
@@ -49,6 +57,10 @@ public class OrgViewColumnAllowance {
     public void setViewerScope(String viewerScope) { this.viewerScope = viewerScope; }
     public String getAllowedKeysJson() { return allowedKeysJson; }
     public void setAllowedKeysJson(String allowedKeysJson) { this.allowedKeysJson = allowedKeysJson; }
+    public String getDefaultSelectedKeysJson() { return defaultSelectedKeysJson; }
+    public void setDefaultSelectedKeysJson(String defaultSelectedKeysJson) { this.defaultSelectedKeysJson = defaultSelectedKeysJson; }
+    public String getColumnOrderKeysJson() { return columnOrderKeysJson; }
+    public void setColumnOrderKeysJson(String columnOrderKeysJson) { this.columnOrderKeysJson = columnOrderKeysJson; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

@@ -45,9 +45,9 @@ public class OrgTabletMenuService {
             "/calc/payOverview",
             "/calc/queryIntegrated",
             "/ops/agencyTxnList",
-            "/risk/list",
             "/ops/integratedReport",
             "/ops/verifyReport",
+            "/risk/list",
             "/user/userMng"
     );
 

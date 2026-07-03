@@ -274,6 +274,7 @@
     'searchCalcProcType|': optMap(),
     'searchCalcProcType|MANUAL': optMap({ EN: 'Manual', JP: '手動', CH: '手动', TH: 'ด้วยมือ' }),
     'searchFieldType|CUSTOMER_ID': optMap({ EN: 'Customer ID', JP: '顧客ID', CH: '客户ID', TH: 'รหัสลูกค้า' }),
+    'searchFieldType|CUSTOMER_NAME': optMap({ EN: 'Customer name', JP: '顧客氏名', CH: '客户姓名', TH: 'ชื่อลูกค้า' }),
     'searchStatusGroup|SUCCESS': optMap({ EN: 'Success', JP: '成功', CH: '成功', TH: 'สำเร็จ' }),
     'searchStatusGroup|FAIL': optMap({ EN: 'Fail', JP: '失敗', CH: '失败', TH: 'ล้มเหลว' }),
     'searchStatusGroup|CANCEL': optMap({ EN: 'Cancel', JP: '取消', CH: '取消', TH: 'ยกเลิก' }),
@@ -387,6 +388,7 @@
     건수: { KO: '건수', EN: 'Count', JP: '件数', CH: '笔数', TH: 'จำนวนรายการ' },
     성공: { KO: '성공', EN: 'Success', JP: '成功', CH: '成功', TH: 'สำเร็จ' },
     실패: { KO: '실패', EN: 'Failure', JP: '失敗', CH: '失败', TH: 'ล้มเหลว' },
+    FX: { KO: 'FX', EN: 'FX', JP: 'FX', CH: 'FX', TH: 'FX' },
     금액: { KO: '금액', EN: 'Amount', JP: '金額', CH: '金额', TH: 'จำนวนเงิน' },
     수수료금액: { KO: '수수료금액', EN: 'Fee amount', JP: '手数料金額', CH: '手续费金额', TH: 'ยอดค่าธรรมเนียม' },
     수수료부가세: { KO: '수수료부가세', EN: 'Fee VAT', JP: '手数料消費税', CH: '手续费增值税', TH: 'VAT ค่าธรรมเนียม' },
@@ -429,6 +431,40 @@
   function packN(ko, en, jp, ch, th) {
     return { KO: ko, EN: en, JP: jp, CH: ch, TH: th };
   }
+
+  var ICOPAY_PRESALE_BADGE = {
+    INACTIVE: packN('ICOPAY·비활성카드', 'ICOPAY·Inactive card', 'ICOPAY·非アクティブ', 'ICOPAY·非活跃卡', 'ICOPAY·Inactive'),
+    COOLDOWN: packN('ICOPAY·카드쿨다운', 'ICOPAY·Card cooldown', 'ICOPAY·クールダウン', 'ICOPAY·卡冷却', 'ICOPAY·Cooldown')
+  };
+
+  function resolveIcopayPresaleOutcomeCode(row) {
+    if (!row) return '';
+    var code = String(row.outcomeReasonCode || '').trim();
+    if (code) return code;
+    var src = String(row.outcomeReasonSource || '').trim().toUpperCase();
+    if (src !== 'ICOPAY') return '';
+    var raw = String(row.outcomeReason || row.outcomeReasonDisplay || '');
+    if (/고위험 거래|high-risk policy|高リスク|inactive list|非アクティブ|非活跃/i.test(raw)) {
+      return 'INACTIVE_CARD';
+    }
+    return '';
+  }
+
+  function formatIcopayPresaleOutcomeBadge(row, loc) {
+    if (!row) return '';
+    var src = String(row.outcomeReasonSource || '').trim().toUpperCase();
+    if (src !== 'ICOPAY') return '';
+    loc = normalizeLocale(loc || getLocale());
+    var code = resolveIcopayPresaleOutcomeCode(row);
+    var pack = null;
+    if (code === 'INACTIVE_CARD' || code === 'BLACKLIST') {
+      pack = ICOPAY_PRESALE_BADGE.INACTIVE;
+    } else if (code.indexOf('CARD_COOLDOWN') === 0) {
+      pack = ICOPAY_PRESALE_BADGE.COOLDOWN;
+    }
+    if (!pack) return '';
+    return pack[loc] || pack.EN || pack.KO || '';
+  }
   /** 화면별 안내 문단 (인덱스 = noticeList 순서) */
   var NOTICES = {
     '/calc/payList': [
@@ -437,7 +473,7 @@
       packN('[후속조치]는 본사설정 > 전산설정관리에서 기능을 켠 경우에만 동작합니다 (NOTI 환경설정과 동일).', '[Follow-up] actions run only when enabled in HQ Settings > Ledger system settings (same as NOTI).', '[後続対応]は本社設定＞全算設定で有効化した場合のみ動作します（NOTI と同様）。', '[后续处理] 仅在「本社设置 > 账务系统设置」开启时生效（与 NOTI 相同）。', '[ดำเนินการต่อ] ทำงานเมื่อเปิดในตั้งค่าระบบบัญชีเท่านั้น (เหมือน NOTI)'),
       packN('취소 건에 대한 정산 수수료 및 부가세는 정산 주기에 따라 반영됩니다.', 'Settlement fees and VAT for cancelled items follow the settlement cycle.', '取消取引の精算手数料・消費税は精算サイクルに従って反映されます。', '取消交易的结算手续费与增值税按结算周期反映。', 'ค่าธรรมเนียมและ VAT ของรายการยกเลิกสะท้อนตามรอบชำระบัญชี'),
       packN('정산 주기 및 정산 수수료는 가맹점별로 상이할 수 있습니다.', 'Settlement cycle and fees may differ per merchant.', '精算サイクル・手数料は加盟店ごとに異なる場合があります。', '结算周期与手续费可能因商户而异。', 'รอบและค่าธรรมเนียมอาจต่างกันในแต่ละร้าน'),
-      packN('상단 한 줄: 건수·통화별 총거래·승인·취소·수수료·담보·부가세·추정결산(승인−(취소+수수료+담보+부가세), 수수료내역과 동일 건별 산식). 아래: 성공·실패 등 상태 pill. 본사·총본사는 통화별 병기.', 'Top row: count and per-currency total txn, approve, cancel, fees, collateral, VAT, est. settlement (approve−(cancel+fees+collateral+VAT); same per-txn rules as fee list). Below: status pills. HQ shows multiple currencies.', '上段: 件数・通貨別総取引・承認・取消・手数料・担保・消費税・推定決算（承認−(取消+手数料+担保+消費税)）。下段: 状態 pill。', '首行：件数及分币种总交易、批准、取消、手续费、担保、增值税、预估结算（批准−(取消+手续费+担保+增值税)）。下方状态 pill。', 'แถวบน: จำนวนและยอดตามสกุล รวมธุรกรรม อนุมัติ ยกเลิก ค่าธรรมเนียม หลักประกัน VAT ประมาณการชำระ (อนุมัติ−(ยกเลิก+ค่าธรรมเนียม+หลักประกัน+VAT)) ด้านล่าง pill สถานะ'),
+      packN('상단 한 줄: 건수(0이어도 항상 표시)·통화별 총거래·승인·환불·실패·수수료·담보·부가세·추정결산. 금액이 0인 항목·통화는 표시하지 않습니다(건수 제외). 「환불」은 상태 30·42만, 「실패」는 99·F0만. 아래: 상태 pill. 본사·총본사는 통화별 병기.', 'Top row: count (always shown, even 0) and per-currency metrics. Items/currencies with zero amount are hidden (except count). Refund=30·42 only; fail=99·F0. Below: status pills. HQ shows multiple currencies.', '上段: 件数(0でも常時表示)・通貨別各指標。金額0の項目・通貨は非表示(件数除く)。返金=30・42、失敗=99・F0。下段: pill。', '首行：件数(0 也显示)及各币种指标；金额为 0 的项/币种不显示(件数除外)。退款=30·42，失败=99·F0。下方 pill。', 'แถวบน: จำนวน(แสดงแม้ 0) และยอดตามสกุล — ซ่อนรายการ/สกุลที่ยอด 0 (ยกเว้นจำนวน) คืนเงิน=30·42 ล้มเหลว=99·F0'),
       packN('VIEW SETTING에서 「단말기」(PC·iPhone·Android 등)·「위치」(예: KR | Seoul, 영어 고정) 열을 켤 수 있습니다. 결제개요와 동일 항목입니다.', 'In VIEW SETTING you can enable Device (PC/iPhone/Android) and Location (e.g. KR | Seoul, English only)—same as Payment overview.', 'VIEW SETTING で「端末」(PC・iPhone・Android 等)・「位置」(例 KR | Seoul、英語固定)列を表示できます。決済概要と同じ項目です。', '可在 VIEW SETTING 中开启「终端」(PC/iPhone/Android) 与「位置」(如 KR | Seoul，固定英文)，与支付概览相同。', 'เปิดคอลัมน์「อุปกรณ์」และ「ตำแหน่ง」(เช่น KR | Seoul ภาษาอังกฤษ) ใน VIEW SETTING — เหมือนภาพรวมการชำระ')
     ],
     '/calc/payOverview': [
@@ -1214,11 +1250,11 @@
         'ดาวน์โหลด Excel แบบเดียวกับรายการชำระ ส่งออกตารางรายงานรวมรายวันที่โหลดอยู่'
       ),
       packN(
-        '요약 바: 검색 기간 전체 거래 건수(건수)와 통화별 총결제액(승인−취소)·총수수료(부가세 제외)·총보증금(담보 추정)·예상지급액을 결제내역 상단과 같은 형식으로 표시합니다.',
-        'Summary bar: for the search range, shows total txn count and per-currency total payment (approve−cancel), total fee ex-VAT, total deposit (collateral estimate), and expected payout—same layout as payment history.',
-        '要約バー: 検索期間全体の件数と、通貨別の総決済額（承認−取消）・総手数料（税抜）・総保証金（担保見込み）・見込み支払額を決済履歴上部と同形式で表示します。',
-        '摘要栏：在搜索区间内显示总笔数及分币种总支付（批准−取消）、总手续费（不含增值税）、总保证金（担保估计）、预计拨付，版式与支付历史顶部一致。',
-        'แถบสรุป: จำนวนรายการและยอดรวมตามสกุล ค่าธรรมเนียมก่อน VAT เงินประกัน ยอดจ่ายโดยประมาณ เหมือนหน้าประวัติชำระ'
+        '요약 바: 검색 기간 전체 거래 건수(건수)와 통화별 총거래·승인·실패·환불(환불+강제환불)·취소·무효(무효+이메일무효)·수수료·담보·추정결산·VAT를 표시합니다. 해당 구분 거래건이 0인 항목·통화 구간은 숨깁니다.',
+        'Summary bar: for the search range, shows total txn count and per-currency total txn, approve, fail, refund (refund+forced refund), cancel, void (void+email void), fee, collateral, est. settlement, and VAT. Hides metrics and currency segments with zero txn count.',
+        '要約バー: 検索期間全体の件数と、通貨別の総取引・承認・失敗・返金（返金+強制返金）・取消・無効（無効+メール無効）・手数料・担保・推定決算・VATを表示します。該当区分の取引件数が0の項目・通貨区間は非表示です。',
+        '摘要栏：显示搜索区间内总笔数及分币种总交易、批准、失败、退款（退款+强制退款）、取消、无效（无效+邮件无效）、手续费、担保、预估结算、VAT。该分类交易笔数为 0 的项与币种区间不显示。',
+        'แถบสรุป: แสดงจำนวนรายการและยอดตามสกุล รวม/อนุมัติ/ล้มเหลว/คืน/ยกเลิก/โมฆะ/ค่าธรรมเนียม/หลักประกัน/ประมาณชำระ/VAT ซ่อนรายการที่จำนวน 0'
       )
     ],
     '/commission/commisionList': [
@@ -3139,6 +3175,7 @@
     formatPayerLocation: formatPayerLocation,
     formatPayerDeviceLabel: formatPayerDeviceLabel,
     isPayMngDomPaneUrl: isPayMngDomPaneUrl,
-    formatVerifyReportDayNote: formatVerifyReportDayNote
+    formatVerifyReportDayNote: formatVerifyReportDayNote,
+    formatIcopayPresaleOutcomeBadge: formatIcopayPresaleOutcomeBadge
   };
 })(typeof window !== 'undefined' ? window : globalThis);

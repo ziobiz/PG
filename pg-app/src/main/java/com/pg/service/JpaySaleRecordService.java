@@ -6,6 +6,7 @@ import com.pg.entity.PgTrnsctn;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.util.JpayBuyerContactApplier;
+import com.pg.util.JpayPostSaleRiskOutcomeUtil;
 import com.pg.util.JpayTransactionIdApplier;
 import com.pg.util.NotifyToTxnStatusMerge;
 import com.pg.util.PayCardBrandDetector;
@@ -43,6 +44,7 @@ public class JpaySaleRecordService {
     private static final String ST_PAID = "10";
     private static final String ST_PENDING = "08";
     private static final String ST_FAIL = "99";
+    private static final String ST_CANCEL = "20";
 
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final OrgUnitRepository orgUnitRepository;
@@ -53,6 +55,7 @@ public class JpaySaleRecordService {
     private final PayCardFailCooldownService payCardFailCooldownService;
     private final PgTrnsctnOrderDedupeService pgTrnsctnOrderDedupeService;
     private final PayerLocationEnrichmentService payerLocationEnrichmentService;
+    private final JpayPostSaleRiskCooldownService jpayPostSaleRiskCooldownService;
 
     public JpaySaleRecordService(PgTrnsctnRepository pgTrnsctnRepository,
                                  OrgUnitRepository orgUnitRepository,
@@ -62,7 +65,8 @@ public class JpaySaleRecordService {
                                  OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator,
                                  PayCardFailCooldownService payCardFailCooldownService,
                                  PgTrnsctnOrderDedupeService pgTrnsctnOrderDedupeService,
-                                 PayerLocationEnrichmentService payerLocationEnrichmentService) {
+                                 PayerLocationEnrichmentService payerLocationEnrichmentService,
+                                 JpayPostSaleRiskCooldownService jpayPostSaleRiskCooldownService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.settlementCalcService = settlementCalcService;
@@ -72,6 +76,7 @@ public class JpaySaleRecordService {
         this.payCardFailCooldownService = payCardFailCooldownService;
         this.pgTrnsctnOrderDedupeService = pgTrnsctnOrderDedupeService;
         this.payerLocationEnrichmentService = payerLocationEnrichmentService;
+        this.jpayPostSaleRiskCooldownService = jpayPostSaleRiskCooldownService;
     }
 
     @Transactional
@@ -337,6 +342,34 @@ public class JpaySaleRecordService {
         return PgTrnsctnOrderLookup.findPreferredByMerchantAndOrder(pgTrnsctnRepository, merchantId, orderNo);
     }
 
+    /** ICOPAY 사전 리스크 필터 차단 — 거래 1건 적재 후 취소(20) 처리 */
+    @Transactional
+    public String applyIcopayPresaleRiskCancel(String merchantId, String orderNo, String txnOrigin,
+                                               PayPresaleRiskFilterService.PresaleRiskBlock block) {
+        if (merchantId == null || merchantId.isBlank() || orderNo == null || orderNo.isBlank() || block == null) {
+            return null;
+        }
+        try {
+            Optional<PgTrnsctn> ex = findTxnForOrder(merchantId.trim(), orderNo.trim(), txnOrigin);
+            if (ex.isEmpty()) {
+                return null;
+            }
+            PgTrnsctn t = ex.get();
+            String prevStatus = t.getStatus();
+            t.setStatus(ST_CANCEL);
+            t.setPaidAt(null);
+            String code = com.pg.util.PayPresaleRiskFilterCodes.ERROR_CODE;
+            Optional<String> recorded = TxnOutcomeReasonApplier.apply(
+                    t, prevStatus, ST_CANCEL, block.message(), code, TxnOutcomeReasonApplier.SOURCE_ICOPAY);
+            pgTrnsctnRepository.save(t);
+            outcomeReasonWarmCoordinator.onRecorded(recorded);
+            return t.getTrnId();
+        } catch (Exception e) {
+            log.warn("ICOPAY 사전 리스크 취소 반영 오류: {}", e.getMessage());
+            return null;
+        }
+    }
+
     /** ICOPAY 결제창 사전 검증(카드정책 등) 실패 — 거래·처리사유 적재 */
     @Transactional
     public void applyIcopayPreSaleFail(String merchantId, String orderNo, String txnOrigin,
@@ -426,6 +459,13 @@ public class JpaySaleRecordService {
     }
 
     private void recordSyncNonSuccessCooldown(PgTrnsctn t, String msg, String panDigits) {
+        String postSaleCode = JpayPostSaleRiskOutcomeUtil.classify(msg);
+        if (postSaleCode != null) {
+            jpayPostSaleRiskCooldownService.recordPostSaleEvent(t, postSaleCode, msg);
+            if (!jpayPostSaleRiskCooldownService.shouldCountCooldown(postSaleCode)) {
+                return;
+            }
+        }
         Long orgUnitId = resolveOrgUnitId(t);
         String pan = resolvePanForCooldown(panDigits, t);
         if (pan.length() >= 10) {

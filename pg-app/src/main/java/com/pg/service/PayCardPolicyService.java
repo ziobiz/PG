@@ -101,7 +101,7 @@ public class PayCardPolicyService {
         out.put("unionPayValidPrefix", "62");
         Map<String, Map<String, String>> msg = new LinkedHashMap<>();
         msg.put("BLOCKED_PREFIX", PayCardPolicyI18n.allLang("BLOCKED_PREFIX", "{0}"));
-        msg.put("BLACKLIST", PayCardPolicyI18n.allLang("INACTIVE_CARD"));
+        msg.put("BLACKLIST", PayCardPolicyI18n.allLang("BLACKLIST"));
         msg.put("INACTIVE_CARD", PayCardPolicyI18n.allLang("INACTIVE_CARD"));
         msg.put("CARD_COOLDOWN", PayCardPolicyI18n.allLang("CARD_COOLDOWN", "{0}"));
         for (int tier = 1; tier <= 4; tier++) {

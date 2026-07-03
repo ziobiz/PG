@@ -589,7 +589,7 @@ public class PayListService {
     /**
      * 동일 검색 조건·조직 권한 범위 전체 건 기준 금액 요약(페이지·정렬과 무관).
      * 수수료내역·정산과 동일한 {@link FeeListTxnAmountService} 산식.
-     * 추정결산 = 승인 − (취소 + 수수료 + 담보 + 부가세). 총거래 = 검색 범위 전 건 거래금액 합.
+     * 지급예상·추정결산 = 검색 범위 전 건의 {@code expectedPayout}/{@code settlementAmt} 합(그리드·엑셀과 동일).
      */
     private Map<String, Object> computePayListFinancialSummary(PayListSearchRequest req, Authentication authentication) {
         String variant = req.getPayListVariant() == null || req.getPayListVariant().isBlank()
@@ -600,7 +600,19 @@ public class PayListService {
         LocalDateTime from = req.getSearchFromDate() != null ? req.getSearchFromDate().atStartOfDay() : null;
         LocalDateTime to = req.getSearchToDate() != null ? req.getSearchToDate().atTime(LocalTime.MAX) : null;
         Specification<PgTrnsctn> spec = buildSpecification(req, from, to, authentication);
+        return computeFinancialSummaryCore(spec, authentication, req.getSearchOrderDir());
+    }
 
+    /** PayListSearchRequest 외 Specification(대행수수료 등) 전체 건 금액 요약 */
+    public Map<String, Object> computeFinancialSummaryForSpec(Specification<PgTrnsctn> spec,
+                                                              Authentication authentication,
+                                                              String searchOrderDir) {
+        return computeFinancialSummaryCore(spec, authentication, searchOrderDir);
+    }
+
+    private Map<String, Object> computeFinancialSummaryCore(Specification<PgTrnsctn> spec,
+                                                            Authentication authentication,
+                                                            String searchOrderDir) {
         AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
         OrgLevel level = PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository);
         boolean multi = PayListStatusBarBuckets.isMultiCurrencyViewer(level);
@@ -619,12 +631,23 @@ public class PayListService {
 
         Map<String, BigDecimal> totalTxn = new HashMap<>();
         Map<String, BigDecimal> approve = new HashMap<>();
-        Map<String, BigDecimal> cancel = new HashMap<>();
+        Map<String, BigDecimal> reversal = new HashMap<>();
+        Map<String, BigDecimal> refund = new HashMap<>();
+        Map<String, BigDecimal> fail = new HashMap<>();
+        Map<String, BigDecimal> cancelAmt = new HashMap<>();
+        Map<String, BigDecimal> voidAmt = new HashMap<>();
         Map<String, Long> approveCountByCur = new HashMap<>();
+        Map<String, Long> refundCountByCur = new HashMap<>();
+        Map<String, Long> failCountByCur = new HashMap<>();
         Map<String, Long> cancelCountByCur = new HashMap<>();
+        Map<String, Long> voidCountByCur = new HashMap<>();
+        Map<String, Long> totalTxnCountByCur = new HashMap<>();
         Map<String, BigDecimal> totalFeeSum = new HashMap<>();
         Map<String, BigDecimal> holdSum = new HashMap<>();
         Map<String, BigDecimal> vatSum = new HashMap<>();
+        Map<String, BigDecimal> fxSum = new HashMap<>();
+        Map<String, BigDecimal> rowExpectedPayoutSum = new HashMap<>();
+        Map<String, BigDecimal> rowSettlementSum = new HashMap<>();
         long successCount = 0;
         boolean capped = false;
 
@@ -636,7 +659,9 @@ public class PayListService {
 
         /* COUNT·딥 OFFSET 반복 없이 정렬·LIMIT 한 번으로 거래를 읽는다(504 방지).
          * 상한+1 을 읽어 초과 여부로 capped 를 판정하고, 초과분은 잘라 상한까지만 집계한다. */
-        List<PgTrnsctn> scanRows = fetchPayListFinancialSummaryRows(spec, req, PAY_LIST_FIN_SUMMARY_MAX_ROWS + 1);
+        PayListSearchRequest sortStub = new PayListSearchRequest();
+        sortStub.setSearchOrderDir(searchOrderDir);
+        List<PgTrnsctn> scanRows = fetchPayListFinancialSummaryRows(spec, sortStub, PAY_LIST_FIN_SUMMARY_MAX_ROWS + 1);
         if (scanRows.size() > PAY_LIST_FIN_SUMMARY_MAX_ROWS) {
             capped = true;
             scanRows = scanRows.subList(0, PAY_LIST_FIN_SUMMARY_MAX_ROWS);
@@ -667,29 +692,61 @@ public class PayListService {
             String st = t.getStatus() != null ? t.getStatus().trim() : "";
             BigDecimal amt = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
             totalTxn.merge(cur, amt, BigDecimal::add);
+            totalTxnCountByCur.merge(cur, 1L, Long::sum);
+            String bucket = PayListStatusBarBuckets.bucketForPgStatus(st);
             if ("10".equals(st)) {
                 successCount++;
                 approveCountByCur.merge(cur, 1L, Long::sum);
                 approve.merge(cur, amt, BigDecimal::add);
-            } else if (PayListItemDto.isCancelAmountStatus(st)) {
+            } else if (PayListStatusBarBuckets.REFUND.equals(bucket)
+                    || PayListStatusBarBuckets.FORCE_REFUND.equals(bucket)) {
+                refundCountByCur.merge(cur, 1L, Long::sum);
+                refund.merge(cur, amt, BigDecimal::add);
+            } else if (PayListStatusBarBuckets.CANCEL.equals(bucket)) {
                 cancelCountByCur.merge(cur, 1L, Long::sum);
-                cancel.merge(cur, amt, BigDecimal::add);
+                cancelAmt.merge(cur, amt, BigDecimal::add);
+            } else if (PayListStatusBarBuckets.VOID.equals(bucket)
+                    || PayListStatusBarBuckets.EMAIL_VOID.equals(bucket)) {
+                voidCountByCur.merge(cur, 1L, Long::sum);
+                voidAmt.merge(cur, amt, BigDecimal::add);
+            } else if (PayListItemDto.isFailAmountStatus(st)) {
+                failCountByCur.merge(cur, 1L, Long::sum);
+                fail.merge(cur, amt, BigDecimal::add);
+            }
+            if (feeListTxnAmountService.countsTowardFinancialSummaryReversal(t)) {
+                reversal.merge(cur, amt, BigDecimal::add);
             }
             FeeListTxnAmountService.FeeListTxnAmounts amts = feeListTxnAmountService.compute(
                     t, ctx, pol, payCurKey, feeResolver, monthCbCountCache, tiersByPolicyId);
             totalFeeSum.merge(cur, amts.totalFee(), BigDecimal::add);
             holdSum.merge(cur, amts.rollingHoldEst(), BigDecimal::add);
             vatSum.merge(cur, amts.feeVat(), BigDecimal::add);
+            rowExpectedPayoutSum.merge(cur, amts.expectedPayout(), BigDecimal::add);
+            rowSettlementSum.merge(cur, amts.settlementAmt(), BigDecimal::add);
+            if ("10".equals(st)) {
+                BigDecimal fx = feeListTxnAmountService.fxFeeForTxn(
+                        t, ctx, pol, payCurKey, feeResolver, monthCbCountCache, tiersByPolicyId);
+                if (fx.signum() != 0) {
+                    fxSum.merge(cur, fx, BigDecimal::add);
+                }
+            }
         }
 
         if (!baseCurrencyConfigured) {
             Set<String> union = new HashSet<>();
             union.addAll(totalTxn.keySet());
             union.addAll(approve.keySet());
-            union.addAll(cancel.keySet());
+            union.addAll(reversal.keySet());
+            union.addAll(refund.keySet());
+            union.addAll(fail.keySet());
+            union.addAll(cancelAmt.keySet());
+            union.addAll(voidAmt.keySet());
             union.addAll(totalFeeSum.keySet());
             union.addAll(holdSum.keySet());
             union.addAll(vatSum.keySet());
+            union.addAll(fxSum.keySet());
+            union.addAll(rowExpectedPayoutSum.keySet());
+            union.addAll(rowSettlementSum.keySet());
             currencyOrder.clear();
             currencyOrder.addAll(union);
             PayListStatusBarBuckets.sortCurrencyCodes(currencyOrder);
@@ -698,8 +755,11 @@ public class PayListService {
             currencyOrder.add(primaryNorm);
         }
 
-        return packPayListFinancialSummaryPayload(totalTxn, approve, cancel, approveCountByCur, cancelCountByCur,
-                totalFeeSum, holdSum, vatSum, successCount, capped, primaryNorm, currencyOrder, effectiveMultiCurrency);
+        return packPayListFinancialSummaryPayload(totalTxn, approve, reversal, refund, fail,
+                cancelAmt, cancelCountByCur, voidAmt, voidCountByCur, totalTxnCountByCur,
+                approveCountByCur, refundCountByCur, failCountByCur,
+                totalFeeSum, holdSum, vatSum, fxSum, successCount, capped, primaryNorm, currencyOrder, effectiveMultiCurrency,
+                rowExpectedPayoutSum, rowSettlementSum);
     }
 
     /**
@@ -730,12 +790,18 @@ public class PayListService {
 
         Map<String, BigDecimal> totalTxn = new HashMap<>();
         Map<String, BigDecimal> approve = new HashMap<>();
-        Map<String, BigDecimal> cancel = new HashMap<>();
+        Map<String, BigDecimal> reversal = new HashMap<>();
+        Map<String, BigDecimal> refund = new HashMap<>();
+        Map<String, BigDecimal> fail = new HashMap<>();
         Map<String, Long> approveCountByCur = new HashMap<>();
-        Map<String, Long> cancelCountByCur = new HashMap<>();
+        Map<String, Long> refundCountByCur = new HashMap<>();
+        Map<String, Long> failCountByCur = new HashMap<>();
         Map<String, BigDecimal> totalFeeSum = new HashMap<>();
         Map<String, BigDecimal> holdSum = new HashMap<>();
         Map<String, BigDecimal> vatSum = new HashMap<>();
+        Map<String, BigDecimal> fxSum = new HashMap<>();
+        Map<String, BigDecimal> rowExpectedPayoutSum = new HashMap<>();
+        Map<String, BigDecimal> rowSettlementSum = new HashMap<>();
         long successCount = 0;
 
         for (Map<String, Object> row : list) {
@@ -755,13 +821,32 @@ public class PayListService {
             if (vat.signum() != 0) {
                 vatSum.merge(cur, vat, BigDecimal::add);
             }
+            BigDecimal rowExp;
+            BigDecimal rowSettle;
             if (PayListStatusBarBuckets.SUCCESS.equals(bucket)) {
                 successCount++;
                 approveCountByCur.merge(cur, 1L, Long::sum);
                 approve.merge(cur, amt, BigDecimal::add);
-            } else if (isChillCancelFinancialBucket(bucket)) {
-                cancelCountByCur.merge(cur, 1L, Long::sum);
-                cancel.merge(cur, amt, BigDecimal::add);
+                rowExp = chillPayRowPreferredPayout(row, amt, fee);
+                rowSettle = rowExp;
+            } else if (isChillRefundFinancialBucket(bucket)) {
+                refundCountByCur.merge(cur, 1L, Long::sum);
+                refund.merge(cur, amt, BigDecimal::add);
+                rowExp = BigDecimal.ZERO;
+                rowSettle = fee.add(vat).negate();
+            } else if (isChillFailFinancialBucket(bucket)) {
+                failCountByCur.merge(cur, 1L, Long::sum);
+                fail.merge(cur, amt, BigDecimal::add);
+                rowExp = BigDecimal.ZERO;
+                rowSettle = fee.add(vat).negate();
+            } else {
+                rowExp = chillPayRowPreferredPayout(row, amt, fee);
+                rowSettle = rowExp;
+            }
+            rowExpectedPayoutSum.merge(cur, rowExp, BigDecimal::add);
+            rowSettlementSum.merge(cur, rowSettle, BigDecimal::add);
+            if (isChillReversalFinancialBucket(bucket)) {
+                reversal.merge(cur, amt, BigDecimal::add);
             }
         }
 
@@ -769,10 +854,15 @@ public class PayListService {
             Set<String> union = new HashSet<>();
             union.addAll(totalTxn.keySet());
             union.addAll(approve.keySet());
-            union.addAll(cancel.keySet());
+            union.addAll(reversal.keySet());
+            union.addAll(refund.keySet());
+            union.addAll(fail.keySet());
             union.addAll(totalFeeSum.keySet());
             union.addAll(holdSum.keySet());
             union.addAll(vatSum.keySet());
+            union.addAll(fxSum.keySet());
+            union.addAll(rowExpectedPayoutSum.keySet());
+            union.addAll(rowSettlementSum.keySet());
             currencyOrder.clear();
             currencyOrder.addAll(union);
             PayListStatusBarBuckets.sortCurrencyCodes(currencyOrder);
@@ -780,8 +870,10 @@ public class PayListService {
         if (currencyOrder.isEmpty()) {
             currencyOrder.add(primaryNorm);
         }
-        return packPayListFinancialSummaryPayload(totalTxn, approve, cancel, approveCountByCur, cancelCountByCur,
-                totalFeeSum, holdSum, vatSum, successCount, false, primaryNorm, currencyOrder, effectiveMultiCurrency);
+        return packPayListFinancialSummaryPayload(totalTxn, approve, reversal, refund, fail,
+                approveCountByCur, refundCountByCur, failCountByCur,
+                totalFeeSum, holdSum, vatSum, fxSum, successCount, false, primaryNorm, currencyOrder, effectiveMultiCurrency,
+                rowExpectedPayoutSum, rowSettlementSum);
     }
 
     /**
@@ -809,12 +901,18 @@ public class PayListService {
 
         Map<String, BigDecimal> totalTxn = new HashMap<>();
         Map<String, BigDecimal> approve = new HashMap<>();
-        Map<String, BigDecimal> cancel = new HashMap<>();
+        Map<String, BigDecimal> reversal = new HashMap<>();
+        Map<String, BigDecimal> refund = new HashMap<>();
+        Map<String, BigDecimal> fail = new HashMap<>();
         Map<String, Long> approveCountByCur = new HashMap<>();
-        Map<String, Long> cancelCountByCur = new HashMap<>();
+        Map<String, Long> refundCountByCur = new HashMap<>();
+        Map<String, Long> failCountByCur = new HashMap<>();
         Map<String, BigDecimal> totalFeeSum = new HashMap<>();
         Map<String, BigDecimal> holdSum = new HashMap<>();
         Map<String, BigDecimal> vatSum = new HashMap<>();
+        Map<String, BigDecimal> fxSum = new HashMap<>();
+        Map<String, BigDecimal> rowExpectedPayoutSum = new HashMap<>();
+        Map<String, BigDecimal> rowSettlementSum = new HashMap<>();
         long successCount = 0;
 
         Set<String> trnIds = new HashSet<>();
@@ -861,13 +959,21 @@ public class PayListService {
                 successCount++;
                 approveCountByCur.merge(cur, 1L, Long::sum);
                 approve.merge(cur, amt, BigDecimal::add);
-            } else if (isJpayCancelFinancialBucket(bucket)) {
-                cancelCountByCur.merge(cur, 1L, Long::sum);
-                cancel.merge(cur, amt, BigDecimal::add);
+            } else if (isJpayRefundFinancialBucket(bucket)) {
+                refundCountByCur.merge(cur, 1L, Long::sum);
+                refund.merge(cur, amt, BigDecimal::add);
+            } else if (isJpayFailFinancialBucket(bucket)) {
+                failCountByCur.merge(cur, 1L, Long::sum);
+                fail.merge(cur, amt, BigDecimal::add);
+            }
+            if (isJpayReversalFinancialBucket(bucket)) {
+                reversal.merge(cur, amt, BigDecimal::add);
             }
             BigDecimal fee = PayListStatusBarBuckets.parseMoney(row.get("fee"));
             BigDecimal hold = BigDecimal.ZERO;
             BigDecimal vat = BigDecimal.ZERO;
+            BigDecimal rowExp = BigDecimal.ZERO;
+            BigDecimal rowSettle = BigDecimal.ZERO;
             String tid = jpayRowTrnId(row);
             PgTrnsctn txn = tid != null ? txnById.get(tid) : null;
             if (txn != null && txn.getMerchantId() != null && !txn.getMerchantId().isBlank()) {
@@ -881,6 +987,29 @@ public class PayListService {
                 fee = amts.totalFee();
                 hold = amts.rollingHoldEst();
                 vat = amts.feeVat();
+                rowExp = amts.expectedPayout();
+                rowSettle = amts.settlementAmt();
+                if ("10".equals(txn.getStatus() != null ? txn.getStatus().trim() : "")) {
+                    BigDecimal fx = feeListTxnAmountService.fxFeeForTxn(
+                            txn, ctx, pol, payCurKey, feeResolver, monthCbCountCache, tiersByPolicyId);
+                    if (fx.signum() != 0) {
+                        fxSum.merge(cur, fx, BigDecimal::add);
+                    }
+                }
+            } else if (PayListStatusBarBuckets.SUCCESS.equals(bucket)) {
+                rowExp = amt.subtract(fee).subtract(vat);
+                if (rowExp.signum() < 0) {
+                    rowExp = BigDecimal.ZERO;
+                }
+                rowSettle = rowExp.subtract(hold);
+            } else if (isJpayReversalFinancialBucket(bucket) || isJpayFailFinancialBucket(bucket)) {
+                rowSettle = fee.add(vat).negate();
+            } else {
+                rowExp = amt.subtract(fee).subtract(vat);
+                if (rowExp.signum() < 0) {
+                    rowExp = BigDecimal.ZERO;
+                }
+                rowSettle = rowExp.subtract(hold);
             }
             if (fee.signum() != 0) {
                 totalFeeSum.merge(cur, fee, BigDecimal::add);
@@ -891,16 +1020,23 @@ public class PayListService {
             if (vat.signum() != 0) {
                 vatSum.merge(cur, vat, BigDecimal::add);
             }
+            rowExpectedPayoutSum.merge(cur, rowExp, BigDecimal::add);
+            rowSettlementSum.merge(cur, rowSettle, BigDecimal::add);
         }
 
         if (!baseCurrencyConfigured) {
             Set<String> union = new HashSet<>();
             union.addAll(totalTxn.keySet());
             union.addAll(approve.keySet());
-            union.addAll(cancel.keySet());
+            union.addAll(reversal.keySet());
+            union.addAll(refund.keySet());
+            union.addAll(fail.keySet());
             union.addAll(totalFeeSum.keySet());
             union.addAll(holdSum.keySet());
             union.addAll(vatSum.keySet());
+            union.addAll(fxSum.keySet());
+            union.addAll(rowExpectedPayoutSum.keySet());
+            union.addAll(rowSettlementSum.keySet());
             currencyOrder.clear();
             currencyOrder.addAll(union);
             PayListStatusBarBuckets.sortCurrencyCodes(currencyOrder);
@@ -908,8 +1044,10 @@ public class PayListService {
         if (currencyOrder.isEmpty()) {
             currencyOrder.add(primaryNorm);
         }
-        return packPayListFinancialSummaryPayload(totalTxn, approve, cancel, approveCountByCur, cancelCountByCur,
-                totalFeeSum, holdSum, vatSum, successCount, false, primaryNorm, currencyOrder, effectiveMultiCurrency);
+        return packPayListFinancialSummaryPayload(totalTxn, approve, reversal, refund, fail,
+                approveCountByCur, refundCountByCur, failCountByCur,
+                totalFeeSum, holdSum, vatSum, fxSum, successCount, false, primaryNorm, currencyOrder, effectiveMultiCurrency,
+                rowExpectedPayoutSum, rowSettlementSum);
     }
 
     private static String jpayRowTrnId(Map<String, Object> row) {
@@ -963,48 +1101,159 @@ public class PayListService {
                 || PayListStatusBarBuckets.FORCE_REFUND.equals(bucket);
     }
 
+    private static boolean isChillRefundFinancialBucket(String bucket) {
+        return PayListStatusBarBuckets.REFUND.equals(bucket);
+    }
+
+    private static boolean isChillFailFinancialBucket(String bucket) {
+        return PayListStatusBarBuckets.FAIL.equals(bucket);
+    }
+
+    private static boolean isChillReversalFinancialBucket(String bucket) {
+        return isChillCancelFinancialBucket(bucket);
+    }
+
+    private static boolean isJpayRefundFinancialBucket(String bucket) {
+        return PayListStatusBarBuckets.REFUND.equals(bucket);
+    }
+
+    private static boolean isJpayFailFinancialBucket(String bucket) {
+        return PayListStatusBarBuckets.FAIL.equals(bucket);
+    }
+
+    private static boolean isJpayReversalFinancialBucket(String bucket) {
+        return isJpayCancelFinancialBucket(bucket);
+    }
+
     /** 결제내역·통합내역·일별 상세 공통 meta.payListFinancialSummary 키 조립 */
     private static Map<String, Object> packPayListFinancialSummaryPayload(
             Map<String, BigDecimal> totalTxn,
             Map<String, BigDecimal> approve,
-            Map<String, BigDecimal> cancel,
+            Map<String, BigDecimal> reversal,
+            Map<String, BigDecimal> refund,
+            Map<String, BigDecimal> fail,
             Map<String, Long> approveCountByCur,
-            Map<String, Long> cancelCountByCur,
+            Map<String, Long> refundCountByCur,
+            Map<String, Long> failCountByCur,
             Map<String, BigDecimal> totalFeeSum,
             Map<String, BigDecimal> holdSum,
             Map<String, BigDecimal> vatSum,
+            Map<String, BigDecimal> fxSum,
             long successCount,
             boolean capped,
             String primaryNorm,
             List<String> currencyOrder,
             boolean effectiveMultiCurrency) {
+        return packPayListFinancialSummaryPayload(totalTxn, approve, reversal, refund, fail,
+                Map.of(), Map.of(), Map.of(), Map.of(), Map.of(),
+                approveCountByCur, refundCountByCur, failCountByCur,
+                totalFeeSum, holdSum, vatSum, fxSum, successCount, capped, primaryNorm, currencyOrder,
+                effectiveMultiCurrency, null, null);
+    }
+
+    private static Map<String, Object> packPayListFinancialSummaryPayload(
+            Map<String, BigDecimal> totalTxn,
+            Map<String, BigDecimal> approve,
+            Map<String, BigDecimal> reversal,
+            Map<String, BigDecimal> refund,
+            Map<String, BigDecimal> fail,
+            Map<String, Long> approveCountByCur,
+            Map<String, Long> refundCountByCur,
+            Map<String, Long> failCountByCur,
+            Map<String, BigDecimal> totalFeeSum,
+            Map<String, BigDecimal> holdSum,
+            Map<String, BigDecimal> vatSum,
+            Map<String, BigDecimal> fxSum,
+            long successCount,
+            boolean capped,
+            String primaryNorm,
+            List<String> currencyOrder,
+            boolean effectiveMultiCurrency,
+            Map<String, BigDecimal> rowExpectedPayoutSum,
+            Map<String, BigDecimal> rowSettlementSum) {
+        return packPayListFinancialSummaryPayload(totalTxn, approve, reversal, refund, fail,
+                Map.of(), Map.of(), Map.of(), Map.of(), Map.of(),
+                approveCountByCur, refundCountByCur, failCountByCur,
+                totalFeeSum, holdSum, vatSum, fxSum, successCount, capped, primaryNorm, currencyOrder,
+                effectiveMultiCurrency, rowExpectedPayoutSum, rowSettlementSum);
+    }
+
+    private static Map<String, Object> packPayListFinancialSummaryPayload(
+            Map<String, BigDecimal> totalTxn,
+            Map<String, BigDecimal> approve,
+            Map<String, BigDecimal> reversal,
+            Map<String, BigDecimal> refund,
+            Map<String, BigDecimal> fail,
+            Map<String, BigDecimal> cancelAmt,
+            Map<String, Long> cancelCountByCur,
+            Map<String, BigDecimal> voidAmt,
+            Map<String, Long> voidCountByCur,
+            Map<String, Long> totalTxnCountByCur,
+            Map<String, Long> approveCountByCur,
+            Map<String, Long> refundCountByCur,
+            Map<String, Long> failCountByCur,
+            Map<String, BigDecimal> totalFeeSum,
+            Map<String, BigDecimal> holdSum,
+            Map<String, BigDecimal> vatSum,
+            Map<String, BigDecimal> fxSum,
+            long successCount,
+            boolean capped,
+            String primaryNorm,
+            List<String> currencyOrder,
+            boolean effectiveMultiCurrency,
+            Map<String, BigDecimal> rowExpectedPayoutSum,
+            Map<String, BigDecimal> rowSettlementSum) {
+        boolean useRowWiseFeeListPayout = rowExpectedPayoutSum != null && rowSettlementSum != null;
         Map<String, String> totalTxnPlain = new LinkedHashMap<>();
         Map<String, String> approvePlain = new LinkedHashMap<>();
         Map<String, Long> approveCountPlain = new LinkedHashMap<>();
+        Map<String, String> refundPlain = new LinkedHashMap<>();
+        Map<String, Long> refundCountPlain = new LinkedHashMap<>();
+        Map<String, String> failPlain = new LinkedHashMap<>();
+        Map<String, Long> failCountPlain = new LinkedHashMap<>();
         Map<String, String> cancelPlain = new LinkedHashMap<>();
         Map<String, Long> cancelCountPlain = new LinkedHashMap<>();
+        Map<String, String> voidPlain = new LinkedHashMap<>();
+        Map<String, Long> voidCountPlain = new LinkedHashMap<>();
+        Map<String, Long> totalTxnCountPlain = new LinkedHashMap<>();
         Map<String, String> paymentPlain = new LinkedHashMap<>();
         Map<String, String> expectedPayoutPlain = new LinkedHashMap<>();
         Map<String, String> estimatedSettlementPlain = new LinkedHashMap<>();
         Map<String, String> feePlain = new LinkedHashMap<>();
         Map<String, String> holdPlain = new LinkedHashMap<>();
         Map<String, String> vatPlain = new LinkedHashMap<>();
+        Map<String, String> fxPlain = new LinkedHashMap<>();
         for (String c : currencyOrder) {
             BigDecimal a = approve.getOrDefault(c, BigDecimal.ZERO);
-            BigDecimal k = cancel.getOrDefault(c, BigDecimal.ZERO);
+            BigDecimal rev = reversal.getOrDefault(c, BigDecimal.ZERO);
             BigDecimal f = totalFeeSum.getOrDefault(c, BigDecimal.ZERO);
             BigDecimal h = holdSum.getOrDefault(c, BigDecimal.ZERO);
             BigDecimal v = vatSum.getOrDefault(c, BigDecimal.ZERO);
-            BigDecimal expectedPayout = a.subtract(k).subtract(f).subtract(v);
-            BigDecimal estimated = expectedPayout.subtract(h);
+            BigDecimal expectedPayout;
+            BigDecimal estimated;
+            if (useRowWiseFeeListPayout) {
+                expectedPayout = rowExpectedPayoutSum.getOrDefault(c, BigDecimal.ZERO);
+                estimated = rowSettlementSum.getOrDefault(c, BigDecimal.ZERO);
+            } else {
+                expectedPayout = a.subtract(rev).subtract(f).subtract(v);
+                estimated = expectedPayout.subtract(h);
+            }
             totalTxnPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(totalTxn.getOrDefault(c, BigDecimal.ZERO)));
             approvePlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(a));
             approveCountPlain.put(c, approveCountByCur.getOrDefault(c, 0L));
-            cancelPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(k));
+            refundPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(refund.getOrDefault(c, BigDecimal.ZERO)));
+            refundCountPlain.put(c, refundCountByCur.getOrDefault(c, 0L));
+            failPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(fail.getOrDefault(c, BigDecimal.ZERO)));
+            failCountPlain.put(c, failCountByCur.getOrDefault(c, 0L));
+            cancelPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(cancelAmt.getOrDefault(c, BigDecimal.ZERO)));
             cancelCountPlain.put(c, cancelCountByCur.getOrDefault(c, 0L));
+            voidPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(voidAmt.getOrDefault(c, BigDecimal.ZERO)));
+            voidCountPlain.put(c, voidCountByCur.getOrDefault(c, 0L));
+            totalTxnCountPlain.put(c, totalTxnCountByCur.getOrDefault(c, 0L));
             feePlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(f));
             holdPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(h));
             vatPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(v));
+            fxPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(fxSum.getOrDefault(c, BigDecimal.ZERO)));
             expectedPayoutPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(expectedPayout));
             estimatedSettlementPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(estimated));
             paymentPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(estimated));
@@ -1016,10 +1265,18 @@ public class PayListService {
         out.put("primaryCurrency", primaryNorm);
         out.put("currencyOrder", new ArrayList<>(currencyOrder));
         out.put("totalTxnByCurrency", totalTxnPlain);
+        out.put("totalTxnCountByCurrency", totalTxnCountPlain);
         out.put("approveByCurrency", approvePlain);
         out.put("approveCountByCurrency", approveCountPlain);
+        out.put("refundByCurrency", refundPlain);
+        out.put("refundCountByCurrency", refundCountPlain);
         out.put("cancelByCurrency", cancelPlain);
         out.put("cancelCountByCurrency", cancelCountPlain);
+        out.put("voidByCurrency", voidPlain);
+        out.put("voidCountByCurrency", voidCountPlain);
+        out.put("failByCurrency", failPlain);
+        out.put("failCountByCurrency", failCountPlain);
+        out.put("fxByCurrency", fxPlain);
         out.put("expectedPayoutByCurrency", expectedPayoutPlain);
         out.put("estimatedSettlementByCurrency", estimatedSettlementPlain);
         out.put("paymentByCurrency", paymentPlain);
@@ -1036,20 +1293,51 @@ public class PayListService {
     public Map<String, Object> packFeeListFinancialSummaryPayload(
             Map<String, BigDecimal> totalTxn,
             Map<String, BigDecimal> approve,
-            Map<String, BigDecimal> cancel,
+            Map<String, BigDecimal> reversal,
+            Map<String, BigDecimal> refund,
+            Map<String, BigDecimal> fail,
             Map<String, Long> approveCountByCur,
-            Map<String, Long> cancelCountByCur,
+            Map<String, Long> refundCountByCur,
+            Map<String, Long> failCountByCur,
             Map<String, BigDecimal> totalFeeSum,
             Map<String, BigDecimal> holdSum,
             Map<String, BigDecimal> vatSum,
+            Map<String, BigDecimal> fxSum,
             long totalCount,
             boolean capped,
             String primaryNorm,
             List<String> currencyOrder,
             boolean effectiveMultiCurrency) {
-        Map<String, Object> out = packPayListFinancialSummaryPayload(totalTxn, approve, cancel, approveCountByCur,
-                cancelCountByCur, totalFeeSum, holdSum, vatSum, 0, capped, primaryNorm, currencyOrder,
-                effectiveMultiCurrency);
+        return packFeeListFinancialSummaryPayload(totalTxn, approve, reversal, refund, fail,
+                approveCountByCur, refundCountByCur, failCountByCur,
+                totalFeeSum, holdSum, vatSum, fxSum, totalCount, capped, primaryNorm, currencyOrder,
+                effectiveMultiCurrency, null, null);
+    }
+
+    public Map<String, Object> packFeeListFinancialSummaryPayload(
+            Map<String, BigDecimal> totalTxn,
+            Map<String, BigDecimal> approve,
+            Map<String, BigDecimal> reversal,
+            Map<String, BigDecimal> refund,
+            Map<String, BigDecimal> fail,
+            Map<String, Long> approveCountByCur,
+            Map<String, Long> refundCountByCur,
+            Map<String, Long> failCountByCur,
+            Map<String, BigDecimal> totalFeeSum,
+            Map<String, BigDecimal> holdSum,
+            Map<String, BigDecimal> vatSum,
+            Map<String, BigDecimal> fxSum,
+            long totalCount,
+            boolean capped,
+            String primaryNorm,
+            List<String> currencyOrder,
+            boolean effectiveMultiCurrency,
+            Map<String, BigDecimal> rowExpectedPayoutSum,
+            Map<String, BigDecimal> rowSettlementSum) {
+        Map<String, Object> out = packPayListFinancialSummaryPayload(totalTxn, approve, reversal, refund, fail,
+                approveCountByCur, refundCountByCur, failCountByCur,
+                totalFeeSum, holdSum, vatSum, fxSum, 0, capped, primaryNorm, currencyOrder,
+                effectiveMultiCurrency, rowExpectedPayoutSum, rowSettlementSum);
         out.put("feeListSummary", true);
         out.put("totalCount", totalCount);
         out.remove("payListFeeListAligned");
@@ -1318,6 +1606,7 @@ public class PayListService {
             addPayProcPredicate(parts, root, cb, req.getSearchPayProcCd());
             addTranFactorColumnPredicates(parts, root, cb, req.getSearchTranFactor(), req.getSearchTranValue());
             addPgAgencyPredicate(parts, root, cb, req.getSearchPgCd());
+            addCurrencyFilterPredicate(parts, root, cb, req.getSearchCurrencyFilter());
             if (unified) {
                 addUnifiedFieldPredicate(parts, root, cb, fieldType, unifiedKw);
             } else {
@@ -1360,6 +1649,8 @@ public class PayListService {
             }
         }
         mcs = intersectCodes(mcs, ownMerchantOnlyForPayListVariant(req, authentication));
+        mcs = intersectCodes(mcs, orgAccessService.resolveSearchOrgMerchantCodes(
+                req.getSearchOrgLevel(), req.getSearchOrgUnitCode(), authentication));
         mcs = intersectCodes(mcs, orgAccessService.visibleMerchantCompCodes(authentication));
         return mcs;
     }
@@ -1379,6 +1670,7 @@ public class PayListService {
         }
         switch (ft) {
             case "CUSTOMER_ID" -> addLike(parts, root, cb, "customerId", v);
+            case "CUSTOMER_NAME" -> addLike(parts, root, cb, "customerNm", v);
             case "APPROVAL_NO" -> addLike(parts, root, cb, "chillTransactionId", v);
             case "ORDER_NO" -> addLike(parts, root, cb, "orderNo", v);
             case "ROUTE" -> addLike(parts, root, cb, "routeNo", v);
@@ -1562,6 +1854,7 @@ public class PayListService {
         switch (factor) {
             case "ORDER_NO" -> addLike(parts, root, cb, "orderNo", v);
             case "CUSTOMER_ID" -> addLike(parts, root, cb, "customerId", v);
+            case "CUSTOMER_NAME" -> addLike(parts, root, cb, "customerNm", v);
             case "TRN_ID" -> addLike(parts, root, cb, "trnId", v);
             case "ROUTE" -> addLike(parts, root, cb, "routeNo", v);
             case "AMT" -> {
@@ -1592,6 +1885,15 @@ public class PayListService {
         parts.add(cb.or(ors.toArray(Predicate[]::new)));
     }
 
+    private void addCurrencyFilterPredicate(List<Predicate> parts, jakarta.persistence.criteria.Root<PgTrnsctn> root,
+                                            jakarta.persistence.criteria.CriteriaBuilder cb, String currencyRaw) {
+        if (currencyRaw == null || currencyRaw.isBlank()) {
+            return;
+        }
+        String cur = PayListStatusBarBuckets.normalizeCurrency(currencyRaw.trim());
+        parts.add(cb.equal(cb.upper(root.get("curType")), cur));
+    }
+
     private void addKeywordPredicate(List<Predicate> parts, jakarta.persistence.criteria.Root<PgTrnsctn> root,
                                      jakarta.persistence.criteria.CriteriaBuilder cb, String kw) {
         if (kw == null || kw.isBlank()) {
@@ -1602,6 +1904,7 @@ public class PayListService {
         orFieldLike(ors, root, cb, "orderNo", pat);
         orFieldLike(ors, root, cb, "trnId", pat);
         orFieldLike(ors, root, cb, "customerId", pat);
+        orFieldLike(ors, root, cb, "customerNm", pat);
         orFieldLike(ors, root, cb, "chillTransactionId", pat);
         orFieldLike(ors, root, cb, "payNo", pat);
         if (!ors.isEmpty()) {
@@ -1669,6 +1972,10 @@ public class PayListService {
     }
 
     private static final int OPS_INTEGRATED_REPORT_MAX_DAYS = 93;
+
+    /** 통합 리포트 — 통화 표시·필터 우선순위 */
+    private static final List<String> OPS_INTEGRATED_REPORT_CURRENCY_ORDER =
+            List.of("JPY", "USD", "KRW", "THB", "CNY", "SGD", "HKD", "EUR");
     private static final int DAILY_PAY_SUMMARY_MAX_DAYS = 93;
 
     /** 스트림(ResultSet) 열린 상태에서 중첩 쿼리를 막기 위해 가맹별 정산용 수수료정책을 선로딩합니다. */
@@ -1744,13 +2051,13 @@ public class PayListService {
                 hqLedgerPayDisplayCurrencyAlpha());
         String primaryNorm = PayListStatusBarBuckets.normalizeCurrency(primary);
         boolean baseCurrencyConfigured = isViewerBaseCurrencyConfigured(user);
+        Set<String> allowedCur = resolveIntegratedReportAllowedCurrencies(reqIn);
         final List<String> currencyOrderTemplate;
         if (baseCurrencyConfigured) {
             currencyOrderTemplate = resolveViewerDisplayCurrencyOrder(user, multi);
         } else {
             currencyOrderTemplate = new ArrayList<>();
         }
-        Set<String> allowedCur = baseCurrencyConfigured ? new HashSet<>(currencyOrderTemplate) : null;
 
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<String> cqMid = cb.createQuery(String.class);
@@ -1785,8 +2092,8 @@ public class PayListService {
                     continue;
                 }
                 LocalDate day = clock.toLocalDate();
-                OpsIntegratedDayAgg agg = byDay.get(day);
-                if (agg == null) {
+                OpsIntegratedDayAgg dayAgg = byDay.get(day);
+                if (dayAgg == null) {
                     continue;
                 }
                 String midRaw = tup.get(2, String.class);
@@ -1796,23 +2103,26 @@ public class PayListService {
                 if (amt == null) {
                     amt = BigDecimal.ZERO;
                 }
+                String cur = PayListStatusBarBuckets.normalizeCurrency(curRaw);
+                if (allowedCur != null && !allowedCur.contains(cur)) {
+                    continue;
+                }
+                OpsIntegratedCurrencyAgg agg = dayAgg.currencyAgg(cur);
                 agg.txnCount++;
                 String bucket = PayListStatusBarBuckets.bucketForPgStatus(st);
                 agg.bucketCount.merge(bucket, 1L, Long::sum);
 
-                String cur = PayListStatusBarBuckets.normalizeCurrency(curRaw);
-                boolean curOk = allowedCur == null || allowedCur.contains(cur);
-
                 String mid = midRaw != null ? midRaw.trim() : "";
                 PayListRowContext ctx = !mid.isEmpty() ? ctxMap.get(mid) : null;
+                CommissionPolicy pol = null;
+                BigDecimal bucketPolicyUnit = BigDecimal.ZERO;
                 if (!mid.isEmpty()) {
-                    CommissionPolicy pol = integratedPolCache.get(mid);
+                    pol = integratedPolCache.get(mid);
                     if (pol == null) {
                         pol = commissionService.resolveCommissionPolicyForSettlement(mid);
                         integratedPolCache.put(mid, pol);
                     }
-                    BigDecimal bucketPolicyUnit = FeeListTxnAmountService.roundPolicyFixedFeeForBucket(
-                            bucket, pol, feeResolver);
+                    bucketPolicyUnit = FeeListTxnAmountService.roundPolicyFixedFeeForBucket(bucket, pol, feeResolver);
                     if (bucketPolicyUnit.signum() > 0) {
                         agg.bucketPolicyFee.merge(bucket, bucketPolicyUnit, BigDecimal::add);
                     }
@@ -1822,46 +2132,48 @@ public class PayListService {
                     OpsIntegratedMerchantAgg mag = agg.merchants.computeIfAbsent(mid, k -> new OpsIntegratedMerchantAgg(mid, ctx));
                     mag.txnCount++;
                     mag.bucketCount.merge(bucket, 1L, Long::sum);
+                    if (bucketPolicyUnit.signum() > 0) {
+                        mag.bucketPolicyFee.merge(bucket, bucketPolicyUnit, BigDecimal::add);
+                    }
                     if ("10".equals(st)) {
                         mag.successCount++;
-                        if (curOk) {
-                            mag.approve.merge(cur, amt, BigDecimal::add);
-                            if (ctx != null) {
-                                PayListRowContext policyCtx = ctx.withOmitSettlementFeeFromApprovedTxnBreakdown(true);
-                                PayListItemDto.ApprovedSettlementParts p = PayListItemDto.approvedSettlementParts(amt, policyCtx);
-                                mag.feeExVat.merge(cur, p.feeAmt, BigDecimal::add);
-                                mag.feeVat.merge(cur, p.feeVat, BigDecimal::add);
-                                mag.hold.merge(cur, p.holdAmt, BigDecimal::add);
-                                mag.perTxnParts.merge(cur, p.perTxAmt, BigDecimal::add);
-                                mag.extraPct.merge(cur, p.extraPctAmt, BigDecimal::add);
-                            }
+                        mag.approve = mag.approve.add(amt);
+                        if (ctx != null) {
+                            PayListRowContext policyCtx = ctx.withOmitSettlementFeeFromApprovedTxnBreakdown(true);
+                            PayListItemDto.ApprovedSettlementParts p = PayListItemDto.approvedSettlementParts(amt, policyCtx);
+                            mag.feeExVat = mag.feeExVat.add(p.feeAmt);
+                            mag.feeVat = mag.feeVat.add(p.feeVat);
+                            mag.hold = mag.hold.add(p.holdAmt);
                         }
-                    } else if (PayListItemDto.isCancelAmountStatus(st) && curOk) {
-                        mag.cancel.merge(cur, amt, BigDecimal::add);
+                    } else if (feeListTxnAmountService.countsTowardFinancialSummaryReversal(mid, st)) {
+                        mag.reversal = mag.reversal.add(amt);
                     }
                 }
 
                 if ("10".equals(st)) {
                     agg.successCount++;
-                    if (curOk) {
-                        agg.approve.merge(cur, amt, BigDecimal::add);
-                        if (ctx != null) {
-                            PayListRowContext policyCtx = ctx.withOmitSettlementFeeFromApprovedTxnBreakdown(true);
-                            PayListItemDto.ApprovedSettlementParts p = PayListItemDto.approvedSettlementParts(amt, policyCtx);
-                            agg.feeExVat.merge(cur, p.feeAmt, BigDecimal::add);
-                            agg.feeVat.merge(cur, p.feeVat, BigDecimal::add);
-                            agg.hold.merge(cur, p.holdAmt, BigDecimal::add);
-                        }
+                    agg.approve = agg.approve.add(amt);
+                    if (ctx != null) {
+                        PayListRowContext policyCtx = ctx.withOmitSettlementFeeFromApprovedTxnBreakdown(true);
+                        PayListItemDto.ApprovedSettlementParts p = PayListItemDto.approvedSettlementParts(amt, policyCtx);
+                        agg.feeExVat = agg.feeExVat.add(p.feeAmt);
+                        agg.feeVat = agg.feeVat.add(p.feeVat);
+                        agg.hold = agg.hold.add(p.holdAmt);
                     }
-                } else if (PayListItemDto.isCancelAmountStatus(st) && curOk) {
-                    agg.cancel.merge(cur, amt, BigDecimal::add);
+                } else if (feeListTxnAmountService.countsTowardFinancialSummaryReversal(mid, st)) {
+                    agg.reversal = agg.reversal.add(amt);
                 }
         }
 
         List<Map<String, Object>> list = new ArrayList<>();
+        int masterRowNo = 1;
         for (LocalDate d = effectiveTo; !d.isBefore(effectiveFrom); d = d.minusDays(1)) {
-            OpsIntegratedDayAgg agg = byDay.getOrDefault(d, new OpsIntegratedDayAgg());
-            list.add(agg.toApiRow(d, primaryNorm, baseCurrencyConfigured, currencyOrderTemplate, ctxMap, feeResolver));
+            OpsIntegratedDayAgg dayAgg = byDay.getOrDefault(d, new OpsIntegratedDayAgg());
+            List<Map<String, Object>> dayRows = dayAgg.toApiRows(d, masterRowNo, ctxMap, feeResolver);
+            if (!dayRows.isEmpty()) {
+                list.addAll(dayRows);
+                masterRowNo++;
+            }
         }
         applyDailySummaryDayListOrder(list, reqIn.getSearchOrderDir());
 
@@ -1879,15 +2191,21 @@ public class PayListService {
         meta.put("feeCurrencyFormats", feeResolver.toClientByCurrencyMap());
         meta.put("integratedReportNote",
                 "집계 기준일은 거래 적재일(created_at)입니다. 일별결제와 동일합니다. "
+                        + "일자마다 거래가 있는 통화만 행으로 표시됩니다(JPY·USD·KRW·THB·CNY·SGD·HKD·EUR). "
+                        + "조직구분·검색어(조직)·통화구분으로 로그인 범위 내 하위 조직·가맹 거래를 좁혀 볼 수 있습니다. "
                         + "성공·취소·실패·무효·이메일무효·환불·강제환불 열의 금액은 결제액이 아니라 「건수 × 기본 수수료 정책의 해당 상태 건당(고정) 수수료」입니다(성공=건당, 실패=실패수수료 등). "
-                        + "가맹 열은 해당 일자에 한 건이라도 집계된 가맹만 표시되며 업체코드 오름차순입니다. "
+                        + "가맹 열은 해당 일자·통화에 한 건이라도 집계된 가맹만 표시되며 업체코드 오름차순입니다. "
+                        + "가맹 「환불 | 취소 | 무효」는 각각 건수/건당비용 형식입니다. "
                         + "가맹 수수료(변동·% / 건당)은 정책 결제율(%)·건당 표시입니다. "
                         + "일자 클릭 시 하단 통합 결제내역의 수수료·정산액은 수수료내역과 동일한 건별 산식입니다.");
         try {
             Map<String, Object> bar = computePgTxnStatusBar(base, authentication);
             Map<String, Object> fin = computePayListFinancialSummary(base, authentication);
             meta.put("payListStatusBar", bar);
-            meta.put("payListFinancialSummary", fin);
+            if (fin != null) {
+                fin.put("integratedReportSummary", true);
+                meta.put("payListFinancialSummary", fin);
+            }
             putHqLedgerPayDisplayCurrencyMeta(meta);
             putFeeCurrencyFormatMeta(meta);
         } catch (RuntimeException ignored) {
@@ -1899,53 +2217,85 @@ public class PayListService {
         return out;
     }
 
-    /** 운영관리 통합 리포트 — 일자 단위 */
+    /** 통합리포트 검색어(조직) 드롭다운 */
+    public List<Map<String, Object>> listIntegratedReportOrgUnits(String searchOrgLevel, Authentication authentication) {
+        return orgAccessService.listOrgUnitsForSearchLevel(searchOrgLevel, authentication);
+    }
+
+    /** 통합리포트 조직구분 — 로그인 조직 단계부터 하위만 */
+    public List<Map<String, Object>> listIntegratedReportSearchOrgLevels(Authentication authentication) {
+        return orgAccessService.listSearchOrgLevelsForViewer(authentication);
+    }
+
+    /** 운영관리 통합 리포트 — 일자·통화 단위 */
     private static final class OpsIntegratedDayAgg {
+        final Map<String, OpsIntegratedCurrencyAgg> byCurrency = new HashMap<>();
+
+        OpsIntegratedCurrencyAgg currencyAgg(String cur) {
+            return byCurrency.computeIfAbsent(cur, k -> new OpsIntegratedCurrencyAgg());
+        }
+
+        List<Map<String, Object>> toApiRows(LocalDate day,
+                                            int rowNo,
+                                            Map<String, PayListRowContext> ctxMap,
+                                            FeeCurrencyRoundResolver feeResolver) {
+            List<Map<String, Object>> rows = new ArrayList<>();
+            List<String> currencies = new ArrayList<>();
+            for (String cur : OPS_INTEGRATED_REPORT_CURRENCY_ORDER) {
+                OpsIntegratedCurrencyAgg ca = byCurrency.get(cur);
+                if (ca != null && ca.txnCount > 0) {
+                    currencies.add(cur);
+                }
+            }
+            for (Map.Entry<String, OpsIntegratedCurrencyAgg> e : byCurrency.entrySet()) {
+                if (!currencies.contains(e.getKey()) && e.getValue() != null && e.getValue().txnCount > 0) {
+                    currencies.add(e.getKey());
+                }
+            }
+            boolean firstCur = true;
+            for (String cur : currencies) {
+                OpsIntegratedCurrencyAgg ca = byCurrency.get(cur);
+                if (ca == null || ca.txnCount <= 0) {
+                    continue;
+                }
+                rows.add(ca.toApiRow(day, cur, firstCur ? rowNo : null, ctxMap, feeResolver));
+                firstCur = false;
+            }
+            return rows;
+        }
+    }
+
+    private static Set<String> resolveIntegratedReportAllowedCurrencies(PayListSearchRequest req) {
+        String filter = req != null ? req.getSearchCurrencyFilter() : null;
+        if (filter != null && !filter.isBlank()) {
+            return Set.of(PayListStatusBarBuckets.normalizeCurrency(filter.trim()));
+        }
+        return new HashSet<>(OPS_INTEGRATED_REPORT_CURRENCY_ORDER);
+    }
+
+    /** 통합 리포트 — 일자·통화별 집계 */
+    private static final class OpsIntegratedCurrencyAgg {
         long txnCount;
         long successCount;
+        BigDecimal approve = BigDecimal.ZERO;
+        BigDecimal reversal = BigDecimal.ZERO;
+        BigDecimal feeExVat = BigDecimal.ZERO;
+        BigDecimal feeVat = BigDecimal.ZERO;
+        BigDecimal hold = BigDecimal.ZERO;
         final Map<String, Long> bucketCount = new HashMap<>();
         final Map<String, BigDecimal> bucketPolicyFee = new HashMap<>();
-        final Map<String, BigDecimal> approve = new HashMap<>();
-        final Map<String, BigDecimal> cancel = new HashMap<>();
-        final Map<String, BigDecimal> feeExVat = new HashMap<>();
-        final Map<String, BigDecimal> feeVat = new HashMap<>();
-        final Map<String, BigDecimal> hold = new HashMap<>();
         final Map<String, OpsIntegratedMerchantAgg> merchants = new HashMap<>();
 
         Map<String, Object> toApiRow(LocalDate day,
-                                     String primaryNorm,
-                                     boolean baseCurrencyConfigured,
-                                     List<String> currencyOrderTemplate,
+                                     String currency,
+                                     Integer rowNo,
                                      Map<String, PayListRowContext> ctxMap,
                                      FeeCurrencyRoundResolver feeResolver) {
-            List<String> currencyOrder = new ArrayList<>(currencyOrderTemplate);
-            if (!baseCurrencyConfigured) {
-                currencyOrder.clear();
-                Set<String> union = new HashSet<>();
-                union.addAll(approve.keySet());
-                union.addAll(cancel.keySet());
-                union.addAll(feeExVat.keySet());
-                union.addAll(feeVat.keySet());
-                union.addAll(hold.keySet());
-                currencyOrder.addAll(union);
-                PayListStatusBarBuckets.sortCurrencyCodes(currencyOrder);
-            }
-            if (currencyOrder.isEmpty()) {
-                currencyOrder.add(primaryNorm);
-            }
-            BigDecimal totalPayment = BigDecimal.ZERO;
-            BigDecimal totalFeeExVat = BigDecimal.ZERO;
-            BigDecimal totalVat = BigDecimal.ZERO;
-            BigDecimal totalHold = BigDecimal.ZERO;
-            for (String c : currencyOrder) {
-                BigDecimal a = approve.getOrDefault(c, BigDecimal.ZERO);
-                BigDecimal k = cancel.getOrDefault(c, BigDecimal.ZERO);
-                FeeListRoundingPolicy rp = feeResolver.forCurrency(c);
-                totalPayment = totalPayment.add(a.subtract(k));
-                totalFeeExVat = totalFeeExVat.add(FeeListRoundingPolicy.round(feeExVat.getOrDefault(c, BigDecimal.ZERO), rp));
-                totalVat = totalVat.add(FeeListRoundingPolicy.round(feeVat.getOrDefault(c, BigDecimal.ZERO), rp));
-                totalHold = totalHold.add(FeeListRoundingPolicy.round(hold.getOrDefault(c, BigDecimal.ZERO), rp));
-            }
+            FeeListRoundingPolicy rp = feeResolver.forCurrency(currency);
+            BigDecimal totalPayment = FeeListRoundingPolicy.round(approve.subtract(reversal), rp);
+            BigDecimal totalFeeExVatOut = FeeListRoundingPolicy.round(feeExVat, rp);
+            BigDecimal totalVatOut = FeeListRoundingPolicy.round(feeVat, rp);
+            BigDecimal totalHoldOut = FeeListRoundingPolicy.round(hold, rp);
             List<Map<String, Object>> bucketRows = new ArrayList<>();
             for (String bk : PayListStatusBarBuckets.DEFAULT_STATUS_BAR_BUCKET_ORDER) {
                 if (PayListStatusBarBuckets.OTHER.equals(bk)) {
@@ -1961,13 +2311,17 @@ public class PayListService {
             merchants.values().stream()
                     .filter(m -> m.txnCount > 0)
                     .sorted(Comparator.comparing(m -> m.compId, Comparator.nullsLast(String::compareTo)))
-                    .forEach(m -> merchantRows.add(m.toApiRow(currencyOrder, ctxMap, feeResolver)));
+                    .forEach(m -> merchantRows.add(m.toApiRow(currency, ctxMap, feeResolver)));
             Map<String, Object> row = new LinkedHashMap<>();
+            if (rowNo != null) {
+                row.put("rowNo", rowNo);
+            }
             row.put("day", day.toString());
+            row.put("currency", currency);
             row.put("totalPayment", PayListStatusBarBuckets.stripTrailingZeros(totalPayment));
-            row.put("totalFeeExVat", PayListStatusBarBuckets.stripTrailingZeros(totalFeeExVat));
-            row.put("depositAmount", PayListStatusBarBuckets.stripTrailingZeros(totalHold));
-            row.put("vat", PayListStatusBarBuckets.stripTrailingZeros(totalVat));
+            row.put("totalFeeExVat", PayListStatusBarBuckets.stripTrailingZeros(totalFeeExVatOut));
+            row.put("depositAmount", PayListStatusBarBuckets.stripTrailingZeros(totalHoldOut));
+            row.put("vat", PayListStatusBarBuckets.stripTrailingZeros(totalVatOut));
             row.put("totalTxnCount", txnCount);
             row.put("buckets", bucketRows);
             row.put("merchants", merchantRows);
@@ -1976,35 +2330,30 @@ public class PayListService {
         }
     }
 
-    /** 가맹점별 일 집계(통합 리포트 동적 열) */
+    /** 가맹점별 일·통화 집계(통합 리포트 동적 열) */
     private static final class OpsIntegratedMerchantAgg {
         final String compId;
         final PayListRowContext ctx;
         long txnCount;
         long successCount;
+        BigDecimal approve = BigDecimal.ZERO;
+        BigDecimal reversal = BigDecimal.ZERO;
+        BigDecimal feeExVat = BigDecimal.ZERO;
+        BigDecimal feeVat = BigDecimal.ZERO;
+        BigDecimal hold = BigDecimal.ZERO;
         final Map<String, Long> bucketCount = new HashMap<>();
-        final Map<String, BigDecimal> approve = new HashMap<>();
-        final Map<String, BigDecimal> cancel = new HashMap<>();
-        final Map<String, BigDecimal> feeExVat = new HashMap<>();
-        final Map<String, BigDecimal> feeVat = new HashMap<>();
-        final Map<String, BigDecimal> hold = new HashMap<>();
-        final Map<String, BigDecimal> perTxnParts = new HashMap<>();
-        final Map<String, BigDecimal> extraPct = new HashMap<>();
+        final Map<String, BigDecimal> bucketPolicyFee = new HashMap<>();
 
         OpsIntegratedMerchantAgg(String compId, PayListRowContext ctx) {
             this.compId = compId;
             this.ctx = ctx;
         }
 
-        Map<String, Object> toApiRow(List<String> currencyOrder,
+        Map<String, Object> toApiRow(String currency,
                                      Map<String, PayListRowContext> ctxMap,
                                      FeeCurrencyRoundResolver feeResolver) {
-            BigDecimal totalAmt = BigDecimal.ZERO;
-            for (String c : currencyOrder) {
-                BigDecimal a = approve.getOrDefault(c, BigDecimal.ZERO);
-                BigDecimal k = cancel.getOrDefault(c, BigDecimal.ZERO);
-                totalAmt = totalAmt.add(a.subtract(k));
-            }
+            FeeListRoundingPolicy rp = feeResolver.forCurrency(currency);
+            BigDecimal totalAmt = FeeListRoundingPolicy.round(approve.subtract(reversal), rp);
             PayListRowContext cctx = ctx != null ? ctx : ctxMap.get(compId);
             String compNm = "";
             if (cctx != null && cctx.getCompNm() != null) {
@@ -2016,23 +2365,55 @@ public class PayListService {
             if (pol != null && feeResolver != null) {
                 String policyCur = pol.getCurrencyCode() != null && !pol.getCurrencyCode().isBlank()
                         ? pol.getCurrencyCode().trim().toUpperCase(Locale.ROOT) : "KRW";
-                FeeListRoundingPolicy rp = feeResolver.forCurrency(policyCur);
+                FeeListRoundingPolicy policyRp = feeResolver.forCurrency(policyCur);
                 BigDecimal payRate = pol.getPayRate() != null ? pol.getPayRate() : BigDecimal.ZERO;
                 BigDecimal perTx = pol.getPerTxFee() != null ? pol.getPerTxFee() : BigDecimal.ZERO;
-                feeVar = PayListStatusBarBuckets.stripTrailingZeros(FeeListRoundingPolicy.round(payRate, rp));
-                feePer = PayListStatusBarBuckets.stripTrailingZeros(FeeListRoundingPolicy.round(perTx, rp));
+                feeVar = PayListStatusBarBuckets.stripTrailingZeros(FeeListRoundingPolicy.round(payRate, policyRp));
+                feePer = PayListStatusBarBuckets.stripTrailingZeros(FeeListRoundingPolicy.round(perTx, policyRp));
             }
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("compId", compId);
             m.put("compNm", compNm);
+            if (cctx != null && cctx.getRegionalNm() != null && !cctx.getRegionalNm().isBlank()) {
+                m.put("masterDistNm", cctx.getRegionalNm().trim());
+            } else {
+                m.put("masterDistNm", "");
+            }
             m.put("feeVariable", feeVar);
             m.put("feePerTxn", feePer);
             m.put("feePolicyCurrency", pol != null && pol.getCurrencyCode() != null ? pol.getCurrencyCode().trim().toUpperCase(Locale.ROOT) : "");
             m.put("txnCount", txnCount);
             m.put("successCount", successCount);
+            m.put("refundCancelVoid", formatIntegratedMerchantRcv(bucketCount, bucketPolicyFee, rp));
             m.put("totalAmount", PayListStatusBarBuckets.stripTrailingZeros(totalAmt));
             return m;
         }
+    }
+
+    private static String formatIntegratedMerchantRcv(Map<String, Long> bucketCount,
+                                                      Map<String, BigDecimal> bucketPolicyFee,
+                                                      FeeListRoundingPolicy rp) {
+        return formatIntegratedMerchantRcvPart(bucketCount, bucketPolicyFee, rp,
+                PayListStatusBarBuckets.REFUND, PayListStatusBarBuckets.FORCE_REFUND)
+                + " | "
+                + formatIntegratedMerchantRcvPart(bucketCount, bucketPolicyFee, rp,
+                PayListStatusBarBuckets.CANCEL)
+                + " | "
+                + formatIntegratedMerchantRcvPart(bucketCount, bucketPolicyFee, rp,
+                PayListStatusBarBuckets.VOID, PayListStatusBarBuckets.EMAIL_VOID);
+    }
+
+    private static String formatIntegratedMerchantRcvPart(Map<String, Long> bucketCount,
+                                                          Map<String, BigDecimal> bucketPolicyFee,
+                                                          FeeListRoundingPolicy rp,
+                                                          String... buckets) {
+        long cnt = 0L;
+        BigDecimal fee = BigDecimal.ZERO;
+        for (String bk : buckets) {
+            cnt += bucketCount.getOrDefault(bk, 0L);
+            fee = fee.add(bucketPolicyFee.getOrDefault(bk, BigDecimal.ZERO));
+        }
+        return cnt + " / " + PayListStatusBarBuckets.stripTrailingZeros(FeeListRoundingPolicy.round(fee, rp));
     }
 
     /**
@@ -2155,9 +2536,15 @@ public class PayListService {
                 agg.successCount++;
                 agg.approveCountByCur.merge(cur, 1L, Long::sum);
                 agg.approve.merge(cur, amt, BigDecimal::add);
-            } else if (PayListItemDto.isCancelAmountStatus(st)) {
-                agg.cancelCountByCur.merge(cur, 1L, Long::sum);
-                agg.cancel.merge(cur, amt, BigDecimal::add);
+            } else if (PayListItemDto.isRefundAmountStatus(st)) {
+                agg.refundCountByCur.merge(cur, 1L, Long::sum);
+                agg.refund.merge(cur, amt, BigDecimal::add);
+            } else if (PayListItemDto.isFailAmountStatus(st)) {
+                agg.failCountByCur.merge(cur, 1L, Long::sum);
+                agg.fail.merge(cur, amt, BigDecimal::add);
+            }
+            if (feeListTxnAmountService.countsTowardFinancialSummaryReversal(t)) {
+                agg.reversal.merge(cur, amt, BigDecimal::add);
             }
             if (compId.isEmpty()) {
                 continue;
@@ -2172,6 +2559,15 @@ public class PayListService {
             agg.totalFeeSum.merge(cur, amts.totalFee(), BigDecimal::add);
             agg.holdSum.merge(cur, amts.rollingHoldEst(), BigDecimal::add);
             agg.vatSum.merge(cur, amts.feeVat(), BigDecimal::add);
+            agg.rowExpectedPayoutSum.merge(cur, amts.expectedPayout(), BigDecimal::add);
+            agg.rowSettlementSum.merge(cur, amts.settlementAmt(), BigDecimal::add);
+            if ("10".equals(st)) {
+                BigDecimal fx = feeListTxnAmountService.fxFeeForTxn(
+                        t, ctx, pol, payCurKey, dailyFeeResolver, dailyMonthCbCache, dailyTiersByPolicyId);
+                if (fx.signum() != 0) {
+                    agg.fxSum.merge(cur, fx, BigDecimal::add);
+                }
+            }
         }
 
         List<Map<String, Object>> out = new ArrayList<>();
@@ -2196,12 +2592,18 @@ public class PayListService {
         final Map<String, Long> bucketCount = new HashMap<>();
         final Map<String, BigDecimal> totalTxn = new HashMap<>();
         final Map<String, BigDecimal> approve = new HashMap<>();
-        final Map<String, BigDecimal> cancel = new HashMap<>();
+        final Map<String, BigDecimal> reversal = new HashMap<>();
+        final Map<String, BigDecimal> refund = new HashMap<>();
+        final Map<String, BigDecimal> fail = new HashMap<>();
         final Map<String, Long> approveCountByCur = new HashMap<>();
-        final Map<String, Long> cancelCountByCur = new HashMap<>();
+        final Map<String, Long> refundCountByCur = new HashMap<>();
+        final Map<String, Long> failCountByCur = new HashMap<>();
         final Map<String, BigDecimal> totalFeeSum = new HashMap<>();
         final Map<String, BigDecimal> holdSum = new HashMap<>();
         final Map<String, BigDecimal> vatSum = new HashMap<>();
+        final Map<String, BigDecimal> fxSum = new HashMap<>();
+        final Map<String, BigDecimal> rowExpectedPayoutSum = new HashMap<>();
+        final Map<String, BigDecimal> rowSettlementSum = new HashMap<>();
 
         Map<String, Object> toPayListFinancialSummaryMap(String primaryNorm,
                                                           Set<String> allowedCur,
@@ -2214,18 +2616,25 @@ public class PayListService {
                 Set<String> union = new HashSet<>();
                 union.addAll(totalTxn.keySet());
                 union.addAll(approve.keySet());
-                union.addAll(cancel.keySet());
+                union.addAll(reversal.keySet());
+                union.addAll(refund.keySet());
+                union.addAll(fail.keySet());
                 union.addAll(totalFeeSum.keySet());
                 union.addAll(holdSum.keySet());
                 union.addAll(vatSum.keySet());
+                union.addAll(fxSum.keySet());
+                union.addAll(rowExpectedPayoutSum.keySet());
+                union.addAll(rowSettlementSum.keySet());
                 currencyOrder.addAll(union);
                 PayListStatusBarBuckets.sortCurrencyCodes(currencyOrder);
             }
             if (currencyOrder.isEmpty()) {
                 currencyOrder.add(primaryNorm);
             }
-            return packPayListFinancialSummaryPayload(totalTxn, approve, cancel, approveCountByCur, cancelCountByCur,
-                    totalFeeSum, holdSum, vatSum, successCount, false, primaryNorm, currencyOrder, effectiveMultiCurrency);
+            return packPayListFinancialSummaryPayload(totalTxn, approve, reversal, refund, fail,
+                    approveCountByCur, refundCountByCur, failCountByCur,
+                    totalFeeSum, holdSum, vatSum, fxSum, successCount, false, primaryNorm, currencyOrder, effectiveMultiCurrency,
+                    rowExpectedPayoutSum, rowSettlementSum);
         }
     }
 

@@ -7,6 +7,8 @@ import com.pg.entity.OrgUnit;
 import com.pg.entity.PgTrnsctn;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
+import com.pg.util.PgTrnsctnOrderLookup;
+import com.pg.util.TxnOutcomeReasonApplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -37,6 +39,10 @@ public class ChillPayDirectCreditRecordService {
     private static final String STATUS_PAID = "10";
     /** OTP·추가 인증 대기 — 아직 매출 확정 아님 */
     private static final String STATUS_AUTH_PENDING = "08";
+    /** 사전 리스크 필터 차단 전 대기 */
+    private static final String STATUS_PENDING = "08";
+    /** ICOPAY 사전 필터 취소 */
+    private static final String STATUS_CANCEL = "20";
 
     private static final Map<String, String> CHILL_ISO_NUM_TO_ALPHA = Map.of(
             "392", "JPY",
@@ -52,6 +58,7 @@ public class ChillPayDirectCreditRecordService {
     private final UrlPaySuccessAlertService urlPaySuccessAlertService;
     private final MerchantChatbotOrderService merchantChatbotOrderService;
     private final SplitPayPaymentHookService splitPayPaymentHookService;
+    private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
 
     public ChillPayDirectCreditRecordService(PgTrnsctnRepository pgTrnsctnRepository,
                                             OrgUnitRepository orgUnitRepository,
@@ -59,7 +66,8 @@ public class ChillPayDirectCreditRecordService {
                                             HqLedgerSysSettingsService hqLedgerSysSettingsService,
                                             UrlPaySuccessAlertService urlPaySuccessAlertService,
                                             MerchantChatbotOrderService merchantChatbotOrderService,
-                                            SplitPayPaymentHookService splitPayPaymentHookService) {
+                                            SplitPayPaymentHookService splitPayPaymentHookService,
+                                            OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.settlementCalcService = settlementCalcService;
@@ -67,6 +75,106 @@ public class ChillPayDirectCreditRecordService {
         this.urlPaySuccessAlertService = urlPaySuccessAlertService;
         this.merchantChatbotOrderService = merchantChatbotOrderService;
         this.splitPayPaymentHookService = splitPayPaymentHookService;
+        this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
+    }
+
+    /** ChillPay 송부 전 사전 리스크 필터 — 거래 1건 적재(대기) */
+    @Transactional
+    public void recordPresalePending(Long merchantOrgUnitId,
+                                     String orderNo,
+                                     BigDecimal amount,
+                                     String currency,
+                                     String email,
+                                     String phone,
+                                     String payerName,
+                                     String txnOrigin,
+                                     BigDecimal shopperDisplayAmount,
+                                     String shopperDisplayCurrency) {
+        if (merchantOrgUnitId == null || orderNo == null || orderNo.isBlank()) {
+            return;
+        }
+        try {
+            String merchantId = resolveMerchantId(merchantOrgUnitId);
+            String on = orderNo.trim();
+            if (on.length() > 64) {
+                on = on.substring(0, 64);
+            }
+            Optional<PgTrnsctn> ex = PgTrnsctnOrderLookup.findPreferredByMerchantAndOrder(
+                    pgTrnsctnRepository, merchantId, on);
+            PgTrnsctn t = ex.orElseGet(() -> {
+                PgTrnsctn x = new PgTrnsctn();
+                x.setTrnId(newTrnId());
+                x.setMerchantId(merchantId);
+                x.setServiceType("URL_INLINE");
+                x.setOrigin(resolveTxnOrigin(txnOrigin));
+                return x;
+            });
+            t.setStatus(STATUS_PENDING);
+            t.setVan(PgVendor.CHILLPAY);
+            t.setOrderNo(on);
+            t.setPayNo(on.length() > 50 ? on.substring(0, 50) : on);
+            if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
+                t.setAmtKrw(amount);
+            }
+            String cur = currency != null ? currency.trim().toUpperCase(Locale.ROOT) : "JPY";
+            t.setCurType(cur.length() > 3 ? cur.substring(0, 3) : cur);
+            if (email != null && !email.isBlank()) {
+                t.setCustomerId(email.trim().length() > 100 ? email.trim().substring(0, 100) : email.trim());
+            } else if (t.getCustomerId() == null || t.getCustomerId().isBlank()) {
+                t.setCustomerId("guest");
+            }
+            if (phone != null && !phone.isBlank()) {
+                t.setCustomerTel(phone.trim());
+            }
+            if (payerName != null && !payerName.isBlank()) {
+                t.setCustomerNm(trimToMax(payerName, 200));
+            }
+            t.setPaymentChannel("CARD");
+            t.setChillPaymentStatus("PRESALE_FILTER");
+            if (shopperDisplayAmount != null && shopperDisplayAmount.compareTo(BigDecimal.ZERO) > 0
+                    && shopperDisplayCurrency != null && !shopperDisplayCurrency.isBlank()) {
+                t.setDisplayAmt(shopperDisplayAmount);
+                String dc = shopperDisplayCurrency.trim().toUpperCase(Locale.ROOT);
+                t.setDisplayCurType(dc.length() > 3 ? dc.substring(0, 3) : dc);
+            }
+            if (t.getSettledYn() == null || t.getSettledYn().isBlank()) {
+                t.setSettledYn("N");
+            }
+            pgTrnsctnRepository.save(t);
+        } catch (Exception e) {
+            log.warn("ChillPay 사전 리스크 대기 적재 실패: {}", e.getMessage());
+        }
+    }
+
+    /** ICOPAY 사전 리스크 필터 차단 — 취소(20) */
+    @Transactional
+    public String applyPresaleRiskCancel(String merchantId,
+                                         String orderNo,
+                                         String txnOrigin,
+                                         PayPresaleRiskFilterService.PresaleRiskBlock block) {
+        if (merchantId == null || merchantId.isBlank() || orderNo == null || orderNo.isBlank() || block == null) {
+            return null;
+        }
+        try {
+            Optional<PgTrnsctn> ex = PgTrnsctnOrderLookup.findPreferredByMerchantAndOrder(
+                    pgTrnsctnRepository, merchantId.trim(), orderNo.trim());
+            if (ex.isEmpty()) {
+                return null;
+            }
+            PgTrnsctn t = ex.get();
+            String prevStatus = t.getStatus();
+            t.setStatus(STATUS_CANCEL);
+            t.setPaidAt(null);
+            String code = com.pg.util.PayPresaleRiskFilterCodes.ERROR_CODE;
+            Optional<String> recorded = TxnOutcomeReasonApplier.apply(
+                    t, prevStatus, STATUS_CANCEL, block.message(), code, TxnOutcomeReasonApplier.SOURCE_ICOPAY);
+            pgTrnsctnRepository.save(t);
+            outcomeReasonWarmCoordinator.onRecorded(recorded);
+            return t.getTrnId();
+        } catch (Exception e) {
+            log.warn("ChillPay 사전 리스크 취소 반영 오류: {}", e.getMessage());
+            return null;
+        }
     }
 
     /**

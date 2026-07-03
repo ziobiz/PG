@@ -164,4 +164,29 @@ public interface PgTrnsctnRepository extends JpaRepository<PgTrnsctn, String>, J
             + "OR t.payerLocationLabel NOT LIKE '% | %') "
             + "ORDER BY t.createdAt DESC")
     List<PgTrnsctn> findPayerLocationBackfillCandidates(Pageable pageable);
+
+    @Query("SELECT t FROM PgTrnsctn t WHERE t.cardPanHash = :hash AND t.merchantId = :merchantId "
+            + "AND (t.customerId IS NOT NULL OR t.customerTel IS NOT NULL OR t.customerNm IS NOT NULL) "
+            + "ORDER BY t.createdAt DESC")
+    List<PgTrnsctn> findRecentBuyerContextByCardPanHash(@Param("hash") String hash,
+                                                         @Param("merchantId") String merchantId,
+                                                         Pageable pageable);
+
+    @Query("SELECT COUNT(t) FROM PgTrnsctn t WHERE t.cardPanHash = :hash AND t.merchantId = :merchantId "
+            + "AND t.createdAt >= :since")
+    long countRecentByCardPanHash(@Param("hash") String hash,
+                                  @Param("merchantId") String merchantId,
+                                  @Param("since") LocalDateTime since);
+
+    @Query("SELECT COUNT(t) FROM PgTrnsctn t WHERE t.merchantId = :merchantId AND t.customerId = :email "
+            + "AND t.createdAt >= :since")
+    long countRecentByCustomerEmail(@Param("merchantId") String merchantId,
+                                    @Param("email") String email,
+                                    @Param("since") LocalDateTime since);
+
+    @Query("SELECT COUNT(t) FROM PgTrnsctn t WHERE t.merchantId = :merchantId AND t.payerClientIp = :ip "
+            + "AND t.createdAt >= :since")
+    long countRecentByPayerIp(@Param("merchantId") String merchantId,
+                              @Param("ip") String ip,
+                              @Param("since") LocalDateTime since);
 }

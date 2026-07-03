@@ -240,16 +240,16 @@ public class FeeListTxnBreakdownCalculator {
         } else if ("20".equals(st)) {
             totalFee = Math.max(0d, cancelFee);
         } else if ("21".equals(st) || "40".equals(st)) {
-            boolean addPaySide = VoidRefundSettlementModeUtil.subtractVoidAmountFromNet(voidMode);
+            boolean addPaySide = VoidRefundSettlementModeUtil.addSuccessSideFeesOnVoid(voidMode);
             totalFee = Math.max(0d, voidFee + (addPaySide ? successFeesSeparate : 0d));
         } else if ("22".equals(st) || "41".equals(st)) {
-            boolean addPaySide = VoidRefundSettlementModeUtil.subtractManualVoidAmountFromNet(manualVoidMode);
+            boolean addPaySide = VoidRefundSettlementModeUtil.addSuccessSideFeesOnManualVoid(manualVoidMode);
             totalFee = Math.max(0d, manualVoidFee + (addPaySide ? successFeesSeparate : 0d));
         } else if ("30".equals(st) || "42".equals(st)) {
-            boolean addPaySide = VoidRefundSettlementModeUtil.subtractRefundAmountFromNet(refundMode);
+            boolean addPaySide = VoidRefundSettlementModeUtil.addSuccessSideFeesOnRefund(refundMode);
             totalFee = Math.max(0d, refundFee + (addPaySide ? successFeesSeparate : 0d));
         } else if ("31".equals(st)) {
-            boolean addPaySide = VoidRefundSettlementModeUtil.subtractForceRefundAmountFromNet(forceRefundMode);
+            boolean addPaySide = VoidRefundSettlementModeUtil.addSuccessSideFeesOnForceRefund(forceRefundMode);
             totalFee = Math.max(0d, chargebackFee + (addPaySide ? successFeesSeparate : 0d));
         } else {
             totalFee = 0d;

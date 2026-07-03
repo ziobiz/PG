@@ -17,6 +17,11 @@ public final class PayCardPolicyI18n {
         for (String lang : new String[]{"KO", "EN", "JP", "CH", "TH"}) {
             m.put(lang, format(lang, messageKey, args));
         }
+        m.put("KOR", m.get("KO"));
+        m.put("ENG", m.get("EN"));
+        m.put("JPN", m.get("JP"));
+        m.put("CHN", m.get("CH"));
+        m.put("THA", m.get("TH"));
         return m;
     }
 
@@ -61,7 +66,8 @@ public final class PayCardPolicyI18n {
     private static String ko(String k) {
         return switch (k) {
             case "BLOCKED_PREFIX" -> "이 카드번호는 사용할 수 없습니다. (BIN {0})";
-            case "BLACKLIST", "INACTIVE_CARD" -> "고위험 거래로 인해 거부되었습니다.";
+            case "INACTIVE_CARD" -> "비활성 등록된 카드입니다. 다른 카드를 사용하거나 가맹점에 문의해 주세요.";
+            case "BLACKLIST" -> "관리자에 의해 사용이 제한된 카드입니다. 다른 카드를 사용하거나 가맹점에 문의해 주세요.";
             case "CARD_COOLDOWN" -> "이 카드는 잠시 사용할 수 없습니다. 약 {0}분 후 다시 시도해 주세요.";
             case "CARD_COOLDOWN_TIER_1" -> "1차 결제 실패 경고입니다. 동일 카드는 약 {0}분 후 다시 시도할 수 있습니다.";
             case "CARD_COOLDOWN_TIER_2" -> "2차 결제 실패 경고입니다. 동일 카드는 약 {0}분 후 다시 시도할 수 있습니다.";
@@ -82,7 +88,8 @@ public final class PayCardPolicyI18n {
     private static String en(String k) {
         return switch (k) {
             case "BLOCKED_PREFIX" -> "This card number cannot be used. (BIN {0})";
-            case "BLACKLIST", "INACTIVE_CARD" -> "This transaction was declined due to high-risk policy.";
+            case "INACTIVE_CARD" -> "This card is on the inactive list. Please use a different card or contact the merchant.";
+            case "BLACKLIST" -> "This card is restricted by the administrator. Please use a different card or contact the merchant.";
             case "CARD_COOLDOWN" -> "This card is temporarily unavailable. Please try again in about {0} minute(s).";
             case "CARD_COOLDOWN_TIER_1" -> "1st payment failure warning. Please try this card again in about {0} minute(s).";
             case "CARD_COOLDOWN_TIER_2" -> "2nd payment failure warning. Please try this card again in about {0} minute(s).";
@@ -103,7 +110,8 @@ public final class PayCardPolicyI18n {
     private static String jp(String k) {
         return switch (k) {
             case "BLOCKED_PREFIX" -> "このカード番号はご利用いただけません。(BIN {0})";
-            case "BLACKLIST", "INACTIVE_CARD" -> "高リスク取引のため拒否されました。";
+            case "INACTIVE_CARD" -> "非アクティブ登録されたカードです。別のカードをご利用いただくか、加盟店にお問い合わせください。";
+            case "BLACKLIST" -> "管理者により使用が制限されたカードです。別のカードをご利用いただくか、加盟店にお問い合わせください。";
             case "CARD_COOLDOWN" -> "このカードは一時的にご利用いただけません。約{0}分後に再度お試しください。";
             case "CARD_COOLDOWN_TIER_1" -> "1回目の決済失敗警告です。同じカードは約{0}分後に再度お試しください。";
             case "CARD_COOLDOWN_TIER_2" -> "2回目の決済失敗警告です。同じカードは約{0}分後に再度お試しください。";
@@ -124,7 +132,8 @@ public final class PayCardPolicyI18n {
     private static String ch(String k) {
         return switch (k) {
             case "BLOCKED_PREFIX" -> "无法使用此卡号。(BIN {0})";
-            case "BLACKLIST", "INACTIVE_CARD" -> "因高风险交易政策，该笔交易被拒绝。";
+            case "INACTIVE_CARD" -> "该卡已登记为非活跃(inactive)卡。请更换其他卡或联系商户。";
+            case "BLACKLIST" -> "该卡已被管理员限制使用。请更换其他卡或联系商户。";
             case "CARD_COOLDOWN" -> "该卡暂时无法使用，请约 {0} 分钟后再试。";
             case "CARD_COOLDOWN_TIER_1" -> "第1次支付失败警告。相同卡号约 {0} 分钟后可再次尝试。";
             case "CARD_COOLDOWN_TIER_2" -> "第2次支付失败警告。相同卡号约 {0} 分钟后可再次尝试。";
@@ -145,7 +154,8 @@ public final class PayCardPolicyI18n {
     private static String th(String k) {
         return switch (k) {
             case "BLOCKED_PREFIX" -> "ไม่สามารถใช้หมายเลขบัตรนี้ได้ (BIN {0})";
-            case "BLACKLIST", "INACTIVE_CARD" -> "ธุรกรรมถูกปฏิเสธเนื่องจากนโยบายความเสี่ยงสูง";
+            case "INACTIVE_CARD" -> "บัตรนี้อยู่ในรายการ inactive กรุณาใช้บัตรอื่นหรือติดต่อร้านค้า";
+            case "BLACKLIST" -> "บัตรนี้ถูกจำกัดโดยผู้ดูแลระบบ กรุณาใช้บัตรอื่นหรือติดต่อร้านค้า";
             case "CARD_COOLDOWN" -> "บัตรนี้ใช้งานชั่วคราวไม่ได้ กรุณาลองอีกครั้งในอีกประมาณ {0} นาที";
             case "CARD_COOLDOWN_TIER_1" -> "คำเตือนความล้มเหลวครั้งที่ 1 ลองบัตรเดิมอีกครั้งในอีกประมาณ {0} นาที";
             case "CARD_COOLDOWN_TIER_2" -> "คำเตือนความล้มเหลวครั้งที่ 2 ลองบัตรเดิมอีกครั้งในอีกประมาณ {0} นาที";

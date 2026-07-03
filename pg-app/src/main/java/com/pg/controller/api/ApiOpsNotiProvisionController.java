@@ -34,9 +34,11 @@ public class ApiOpsNotiProvisionController {
     @GetMapping("/context")
     public ResponseEntity<ApiResponse<Map<String, Object>>> context(
             Authentication authentication,
-            @RequestParam String compId) {
+            @RequestParam String compId,
+            @RequestParam(required = false) String adminLang) {
         try {
-            return ResponseEntity.ok(ApiResponse.ok(opsNotiProvisionService.merchantContext(authentication, compId)));
+            return ResponseEntity.ok(ApiResponse.ok(
+                    opsNotiProvisionService.merchantContext(authentication, compId, adminLang)));
         } catch (IllegalStateException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "FORBIDDEN"));
         } catch (NotiProvisionException e) {
@@ -143,9 +145,11 @@ public class ApiOpsNotiProvisionController {
     @GetMapping("/log/detail")
     public ResponseEntity<ApiResponse<Map<String, Object>>> logDetail(
             Authentication authentication,
-            @RequestParam Long id) {
+            @RequestParam Long id,
+            @RequestParam(required = false) String adminLang) {
         try {
-            return ResponseEntity.ok(ApiResponse.ok(opsNotiProvisionService.logDetail(authentication, id)));
+            return ResponseEntity.ok(ApiResponse.ok(
+                    opsNotiProvisionService.logDetail(authentication, id, adminLang)));
         } catch (IllegalStateException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "FORBIDDEN"));
         } catch (NotiProvisionException e) {

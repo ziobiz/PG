@@ -76,13 +76,13 @@ public class MerchantJpayRedirectCheckoutService {
         }
         OrgUnit ou = ouOpt.get();
         if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
-            return fail("서비스가 중지된 업체입니다.", "ORG_DISABLED");
+            return fail(OrgServiceUseService.MSG_ORG_SERVICE_DISABLED, "ORG_DISABLED");
         }
         Optional<MerchantProfile> profOpt = merchantProfileRepository.findByOrgUnitId(orgUnitId);
         if (profOpt.isPresent()) {
             String wpy = profOpt.get().getWebPaymentUseYn();
             if (wpy != null && "N".equalsIgnoreCase(wpy.trim())) {
-                return fail("이 가맹점은 웹결제(URL 결제)가 미사용으로 설정되어 있습니다.", "WEB_PAYMENT_DISABLED");
+                return fail(OrgServiceUseService.MSG_WEB_PAYMENT_DISABLED, "WEB_PAYMENT_DISABLED");
             }
         }
         if (!jpayPaymentService.hasOperationalWebBinding(orgUnitId)) {

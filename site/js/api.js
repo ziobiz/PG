@@ -1968,6 +1968,12 @@
     opsInactiveCardUpdate: function (body) {
       return post('/api/ops/inactiveCard/update', body).then(function (r) { return r.data; });
     },
+    opsRiskFilterSearch: function (params) {
+      return get('/api/ops/riskFilter/search', params).then(function (r) { return r.data; });
+    },
+    opsRiskFilterCodes: function () {
+      return get('/api/ops/riskFilter/filterCodes').then(function (r) { return r.data; });
+    },
     hqLedgerSysSettingsTestVoidEmail: function (body) {
       return post('/api/hq/ledgerSysSettings/testVoidEmail', body || {}).then(function (r) { return r.data; });
     },
@@ -2117,6 +2123,9 @@
     opsIntegratedReportAccess: function () {
       return get('/api/ops/integratedReport/access').then(function (r) { return r.data; });
     },
+    opsIntegratedReportOrgUnits: function (params) {
+      return get('/api/ops/integratedReport/orgUnits', params || {}).then(function (r) { return r.data || {}; });
+    },
     unwrapListMetaApiPayload: unwrapListMetaApiPayload,
     opsIntegratedReportDaily: function (params) {
       var p = params || {};
@@ -2165,6 +2174,30 @@
         if (p[k] != null && String(p[k]).trim() !== '') q[k] = p[k];
       });
       return get('/api/ops/agencyTxnList', q).then(function (r) { return r.data; });
+    },
+    opsDistributionTxnListAccess: function () {
+      return get('/api/ops/distributionTxnList/access').then(function (r) { return r.data; });
+    },
+    opsDistributionTxnList: function (params) {
+      var p = params || {};
+      var q = { page: p.page || 1, size: p.size || 50 };
+      ['searchFromDate', 'searchToDate', 'searchCompId', 'searchCompNm', 'searchFieldType',
+        'searchKeyword', 'searchStatusGroup', 'searchOrderDir'].forEach(function (k) {
+        if (p[k] != null && String(p[k]).trim() !== '') q[k] = p[k];
+      });
+      return get('/api/ops/distributionTxnList', q).then(function (r) { return r.data; });
+    },
+    opsDistributionSettlementAccess: function () {
+      return get('/api/ops/distributionSettlement/access').then(function (r) { return r.data; });
+    },
+    opsDistributionSettlement: function (params) {
+      var p = params || {};
+      var q = { page: p.page || 1, size: p.size || 50 };
+      ['searchFromDate', 'searchToDate', 'searchCompId', 'searchCompNm', 'searchFieldType',
+        'searchKeyword', 'searchOrderDir'].forEach(function (k) {
+        if (p[k] != null && String(p[k]).trim() !== '') q[k] = p[k];
+      });
+      return get('/api/ops/distributionSettlement', q).then(function (r) { return r.data; });
     },
     opsVerifyReportAccess: function () {
       return get('/api/ops/verifyReport/access').then(function (r) { return r.data; });

@@ -25,17 +25,35 @@ public final class OutcomeReasonPhraseDictionary {
                 "CH", "交易失败",
                 "TH", "ธุรกรรมล้มเหลว");
         putExact("고위험 거래로 인해 거부되었습니다.",
-                "KO", "고위험 거래로 인해 거부되었습니다.",
-                "EN", "This transaction was declined due to high-risk policy.",
-                "JP", "高リスク取引のため拒否されました。",
-                "CH", "因高风险交易政策，该笔交易被拒绝。",
-                "TH", "ธุรกรรมถูกปฏิเสธเนื่องจากนโยบายความเสี่ยงสูง");
+                "KO", "비활성 등록된 카드입니다. 다른 카드를 사용하거나 가맹점에 문의해 주세요.",
+                "EN", "This card is on the inactive list. Please use a different card or contact the merchant.",
+                "JP", "非アクティブ登録されたカードです。別のカードをご利用いただくか、加盟店にお問い合わせください。",
+                "CH", "该卡已登记为非活跃(inactive)卡。请更换其他卡或联系商户。",
+                "TH", "บัตรนี้อยู่ในรายการ inactive กรุณาใช้บัตรอื่นหรือติดต่อร้านค้า");
+        putExact("This transaction was declined due to high-risk policy.",
+                "KO", "비활성 등록된 카드입니다. 다른 카드를 사용하거나 가맹점에 문의해 주세요.",
+                "EN", "This card is on the inactive list. Please use a different card or contact the merchant.",
+                "JP", "非アクティブ登録されたカードです。別のカードをご利用いただくか、加盟店にお問い合わせください。",
+                "CH", "该卡已登记为非活跃(inactive)卡。请更换其他卡或联系商户。",
+                "TH", "บัตรนี้อยู่ในรายการ inactive กรุณาใช้บัตรอื่นหรือติดต่อร้านค้า");
+        putExact("高リスク取引のため拒否されました。",
+                "KO", "비활성 등록된 카드입니다. 다른 카드를 사용하거나 가맹점에 문의해 주세요.",
+                "EN", "This card is on the inactive list. Please use a different card or contact the merchant.",
+                "JP", "非アクティブ登録されたカードです。別のカードをご利用いただくか、加盟店にお問い合わせください。",
+                "CH", "该卡已登记为非活跃(inactive)卡。请更换其他卡或联系商户。",
+                "TH", "บัตรนี้อยู่ในรายการ inactive กรุณาใช้บัตรอื่นหรือติดต่อร้านค้า");
+        putExact("因高风险交易政策，该笔交易被拒绝。",
+                "KO", "비활성 등록된 카드입니다. 다른 카드를 사용하거나 가맹점에 문의해 주세요.",
+                "EN", "This card is on the inactive list. Please use a different card or contact the merchant.",
+                "JP", "非アクティブ登録されたカードです。別のカードをご利用いただくか、加盟店にお問い合わせください。",
+                "CH", "该卡已登记为非活跃(inactive)卡。请更换其他卡或联系商户。",
+                "TH", "บัตรนี้อยู่ในรายการ inactive กรุณาใช้บัตรอื่นหรือติดต่อร้านค้า");
         putExact("해당 카드는 사용중지 된 카드입니다. 관리자에게 문의 바랍니다.",
-                "KO", "고위험 거래로 인해 거부되었습니다.",
-                "EN", "This transaction was declined due to high-risk policy.",
-                "JP", "高リスク取引のため拒否されました。",
-                "CH", "因高风险交易政策，该笔交易被拒绝。",
-                "TH", "ธุรกรรมถูกปฏิเสธเนื่องจากนโยบายความเสี่ยงสูง");
+                "KO", "비활성 등록된 카드입니다. 다른 카드를 사용하거나 가맹점에 문의해 주세요.",
+                "EN", "This card is on the inactive list. Please use a different card or contact the merchant.",
+                "JP", "非アクティブ登録されたカードです。別のカードをご利用いただくか、加盟店にお問い合わせください。",
+                "CH", "该卡已登记为非活跃(inactive)卡。请更换其他卡或联系商户。",
+                "TH", "บัตรนี้อยู่ในรายการ inactive กรุณาใช้บัตรอื่นหรือติดต่อร้านค้า");
         putExact("余额不足",
                 "KO", "잔액 부족",
                 "EN", "Insufficient balance",

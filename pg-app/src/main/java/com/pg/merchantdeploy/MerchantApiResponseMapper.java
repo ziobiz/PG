@@ -14,20 +14,28 @@ public final class MerchantApiResponseMapper {
     public static ResponseEntity<ApiResponse<Map<String, Object>>> mapServiceResult(Map<String, Object> result) {
         Object ok = result.get("success");
         if (ok instanceof Boolean && !(Boolean) ok) {
-            String msg = result.get("message") != null ? result.get("message").toString() : "request failed";
-            String code = result.get("errorCode") != null ? result.get("errorCode").toString() : "ERROR";
-            Object messageKey = result.get("messageKey");
-            Object messagesObj = result.get("messages");
-            if (messageKey != null && messagesObj instanceof Map<?, ?> messages) {
-                @SuppressWarnings("unchecked")
-                Map<String, String> msgMap = (Map<String, String>) messages;
-                return ResponseEntity.ok(ApiResponse.failI18n(
-                        msg, code, messageKey.toString(), msgMap));
-            }
-            return ResponseEntity.ok(ApiResponse.fail(msg, code));
+            return ResponseEntity.ok(failFromResultMap(result, "request failed", "ERROR"));
         }
         @SuppressWarnings("unchecked")
         Map<String, Object> data = (Map<String, Object>) result.get("data");
         return ResponseEntity.ok(ApiResponse.ok(data));
+    }
+
+    /** {@code success=false} flat map (sale·prepare guard 등) → fail 응답 */
+    @SuppressWarnings("unchecked")
+    public static ApiResponse<Map<String, Object>> failFromResultMap(Map<String, Object> result,
+                                                                     String defaultMsg,
+                                                                     String defaultCode) {
+        String msg = result.get("message") != null ? result.get("message").toString() : defaultMsg;
+        String code = result.get("errorCode") != null ? result.get("errorCode").toString().trim() : defaultCode;
+        if (code.isEmpty()) {
+            code = defaultCode;
+        }
+        Object messageKey = result.get("messageKey");
+        Object messagesObj = result.get("messages");
+        if (messageKey != null && messagesObj instanceof Map<?, ?> messages) {
+            return ApiResponse.failI18n(msg, code, messageKey.toString(), (Map<String, String>) messages);
+        }
+        return ApiResponse.fail(msg, code);
     }
 }

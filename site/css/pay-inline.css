@@ -148,6 +148,23 @@ html[data-pay-embed="1"] .pay-card {
   border-radius: 8px;
 }
 
+.pay-field-guard-hint {
+  display: none;
+  color: #dc3545;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  margin-top: 0.2rem;
+}
+
+.pay-field-guard-hint.is-visible {
+  display: block;
+}
+
+.pay-input-round.pay-field-guard-invalid,
+.form-control.pay-field-guard-invalid {
+  border-color: #dc3545 !important;
+}
+
 .pay-merchant-readonly {
   display: block;
   width: 100%;
@@ -285,6 +302,37 @@ html[data-pay-embed="1"] .pay-card {
   display: grid;
   grid-template-columns: 1fr 1fr 100px;
   gap: 0.5rem;
+}
+
+/* JPAY 카드 유효기간 — 선택 시 MM·YYYY·CVV 강조(빨강) */
+.pay-expiry-row.has-selection .pay-expiry-mm select,
+.pay-expiry-row.has-selection .pay-expiry-yyyy select,
+.pay-expiry-row.has-selection .pay-expiry-mm input,
+.pay-expiry-row.has-selection .pay-expiry-yyyy input,
+.pay-expiry-row.has-selection .pay-expiry-cvv input {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+.pay-expiry-row.has-selection .pay-expiry-mm select option:not([value=""]),
+.pay-expiry-row.has-selection .pay-expiry-yyyy select option:not([value=""]) {
+  color: #212529;
+}
+
+.pay-expiry-row.has-selection .pay-expiry-mm input::placeholder,
+.pay-expiry-row.has-selection .pay-expiry-yyyy input::placeholder,
+.pay-expiry-row.has-selection .pay-expiry-cvv input::placeholder {
+  color: #dc3545;
+  opacity: 1;
+}
+
+.pay-expiry-row.pay-expiry-mode-dropdown .form-select:invalid {
+  color: var(--pay-muted);
+}
+
+.pay-expiry-row.pay-expiry-mode-dropdown.has-selection .form-select {
+  color: #dc3545;
+  font-weight: 600;
 }
 
 @media (max-width: 480px) {

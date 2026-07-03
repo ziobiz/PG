@@ -162,6 +162,7 @@
                 <input type="email" class="form-control form-control-sm pay-input-round" id="custEmail" name="custEmail" required autocomplete="email">
               </div>
             </div>
+            <div class="pay-row pay-contact-remember-row" id="payContactRememberRow"></div>
             <div id="payBillingBlock">
               <div class="pay-row">
                 <label class="pay-row-label mb-0" for="zipCode"><span data-i18n="zip">Zip / Postal Code</span> <span class="req">*</span></label>
@@ -215,8 +216,11 @@
 
   <script src="js/config.js?v=12"></script>
   <script src="js/pg-pay-submit-guard.js?v=1"></script>
+  <script src="js/pay-form-input-guard.js?v=2"></script>
   <script src="js/url-pay-input-mode.js?v=4"></script>
-  <script src="js/url-pay-public-shell.js?v=11"></script>
+  <script src="js/checkout-header-subtitle-presets.js?v=1"></script>
+  <script src="js/url-pay-public-shell.js?v=13"></script>
+  <script src="js/jpay-contact-remember.js?v=2"></script>
   <script>
     (function () {
       var h = (window.location && window.location.hostname) ? window.location.hostname : '';
@@ -494,6 +498,17 @@
           totalAmount: '결제 금액', agreeTerms: '이용약관에 동의합니다.', confirmOrder: '위 주문 내용을 확인했습니다.',
           payButton: '결제', configErr: '설정을 불러올 수 없습니다.', needComp: '유효한 가맹점 코드(m)가 필요합니다.',
           needToken: '각 카드 보안 칸에 입력한 뒤 「결제」를 누르세요. 칸이 비어 있으면 새로고침 후 다시 시도하거나 가맹점에 문의하세요.', needAmount: '금액을 입력하세요.',
+          errEnglishName: '이름·성은 영문(A–Z)만 입력할 수 있습니다.',
+          errEmailFormat: '올바른 이메일 형식을 입력하세요.',
+          errPhoneDigits: '전화번호는 숫자만 입력할 수 있습니다.',
+          warnEnglishOnly: '영어 알파벳만 입력 가능합니다.',
+          warnDigitsOnly: '숫자만 입력 가능합니다.',
+          warnAmountOnly: '숫자만 입력 가능합니다.',
+          warnEmailChars: '이메일에 사용할 수 있는 문자만 입력 가능합니다.',
+          checkoutSubtitlePrevent: '결제 오류를 방지하기 위해 정확한 카드 정보를 입력해 주세요.',
+          checkoutSubtitleConfirm: '카드번호, 유효기간, CVC 번호가 올바른지 다시 한번 확인해 주세요.',
+          checkoutSubtitleApproval: '원활한 결제 처리를 위해 카드 정보를 오타 없이 입력해 주시기 바랍니다.',
+          checkoutSubtitleFail: '카드 정보가 일치하지 않을 경우 결제 승인이 거절될 수 있습니다.',
           needCcdConfig: 'ChillPay API Key 또는 가맹점 코드가 없습니다. 배포설정 > API연동설정을 확인하세요.',
           ccdNotReady: '카드 입력 위젯이 아직 준비되지 않았습니다. 잠시 후 다시 시도하세요.',
           ccdScriptLoadFail: 'ChillPay CCD 스크립트를 불러오지 못했습니다. 네트워크·차단 프로그램을 확인하세요.',
@@ -502,8 +517,10 @@
           needPayerName: '결제자 성명(이름·성)을 입력하세요.',
           simpleNameHint: '간편 입력: 위 카드 보안 칸과 성명·상품·금액만 사용합니다. 카드번호는 보안 칸 안에서 입력합니다.',
           redirectModeNotice: '본사 설정이 리다이렉트(호스티드) URL 결제입니다. ChillPay 호스티드로 보내는 서명 POST는 서버 연동 후 사용할 수 있습니다. 「결제로직설정」에서 URL 결제형 기본 방식을 INLINE으로 바꾸면 이 페이지에서 카드 토큰(DirectCredit) 결제를 쓸 수 있습니다.',
-          orgDisabled: '서비스가 중지된 가맹점입니다.',
+          orgDisabled: '지속적인 오류로 결제 서비스가 중지되었습니다.',
+          webPaymentDisabled: '이 가맹점은 결제 서비스가 중지로 설정되어 있습니다.',
           payOk: '결제 요청이 처리되었습니다.', payFail: '결제에 실패했습니다.',
+          rememberContact: '다음에도 사용', errPresaleRiskFilter: '결제가 취소되었습니다. 입력 정보를 확인해 주세요.',
           payInProgress: '이미 결제 중입니다. 잠시만 기다려 주세요.',
           unsupportedInlinePgNoPg: '이 가맹점의 운영 PG는 공개 URL 인라인 카드 입력을 아직 지원하지 않습니다. 호스티드 결제 등 다른 흐름이나 PG별 위젯 연동 후 이용해 주세요.',
           unsupportedInlinePgWithPg: '운영 PG 코드 {pg} 는 공개 URL 인라인 카드 입력을 아직 지원하지 않습니다. 호스티드 결제 등 다른 흐름이나 PG별 위젯 연동 후 이용해 주세요.',
@@ -543,6 +560,17 @@
           totalAmount: 'Total Amount', agreeTerms: 'I agree to the Terms and Conditions.', confirmOrder: 'I confirm the order details above.',
           payButton: 'Payment', configErr: 'Could not load payment configuration.', needComp: 'A valid merchant code (m) is required.',
           needToken: 'Fill each secure card field, then press Pay. If the fields stay blank, refresh or contact the merchant.', needAmount: 'Enter a valid amount.',
+          errEnglishName: 'First and last name must use English letters (A–Z) only.',
+          errEmailFormat: 'Enter a valid email address.',
+          errPhoneDigits: 'Phone number must contain digits only.',
+          warnEnglishOnly: 'Only English letters are allowed.',
+          warnDigitsOnly: 'Only digits are allowed.',
+          warnAmountOnly: 'Only numbers are allowed.',
+          warnEmailChars: 'Only characters valid for email are allowed.',
+          checkoutSubtitlePrevent: 'To help prevent payment errors, please enter accurate card details.',
+          checkoutSubtitleConfirm: 'Please double-check that your card number, expiry date, and CVC are correct.',
+          checkoutSubtitleApproval: 'For smooth processing, please enter your card details without typos.',
+          checkoutSubtitleFail: 'Payment may be declined if the card details do not match.',
           needPayerName: 'Enter payer name (first and last name).',
           simpleNameHint: 'Simple checkout: use the secure card fields above, then name, item, and amount.',
           needCcdConfig: 'ChillPay API Key or merchant code is missing. Check HQ API integration settings.',
@@ -551,8 +579,10 @@
           ccdIframeMissing: 'Card iframes did not appear. A wrong ccdpayment.js URL in HQ PG agency settings can cause this. Production script must be https://cdn.chill.credit/js/ccdpayment.js. Check the browser console (F12) for CCD errors.',
           ccdTokenFail: 'Could not create card token.',
           redirectModeNotice: 'HQ settings use hosted (redirect) URL checkout. A server-signed POST to ChillPay is required to complete this flow. Set URL pay default to INLINE under Payment orchestration to use card token (DirectCredit) on this page.',
-          orgDisabled: 'This merchant is disabled.',
+          orgDisabled: 'The payment service has been suspended due to repeated errors.',
+          webPaymentDisabled: "This merchant's payment service is set to suspended.",
           payOk: 'Payment request processed.', payFail: 'Payment failed.',
+          rememberContact: 'Remember for next time', errPresaleRiskFilter: 'Payment was cancelled. Please check your details.',
           payInProgress: 'Payment is already in progress. Please wait.',
           unsupportedInlinePgNoPg: 'Inline card capture on this public URL is not wired for this merchant’s active payment provider yet. Use hosted checkout or add that PSP’s widget when available.',
           unsupportedInlinePgWithPg: 'Inline card capture is not wired for PSP code {pg} on this public URL yet. Use hosted checkout or integrate that PSP’s widget under this checkout shell.',
@@ -592,6 +622,17 @@
           totalAmount: '总金额', agreeTerms: '我同意条款和条件。', confirmOrder: '我确认以上订单信息。',
           payButton: '支付', configErr: '无法加载支付配置。', needComp: '需要有效的商户代码 (m)。',
           needToken: '请填好每个安全卡槽后点支付。若始终空白请刷新或联系商户。', needAmount: '请输入有效金额。',
+          errEnglishName: '名和姓只能使用英文字母(A–Z)。',
+          errEmailFormat: '请输入有效的邮箱地址。',
+          errPhoneDigits: '电话号码只能输入数字。',
+          warnEnglishOnly: '只能输入英文字母。',
+          warnDigitsOnly: '只能输入数字。',
+          warnAmountOnly: '只能输入数字。',
+          warnEmailChars: '只能输入邮箱允许的字符。',
+          checkoutSubtitlePrevent: '为避免支付错误，请准确填写银行卡信息。',
+          checkoutSubtitleConfirm: '请再次确认卡号、有效期和 CVC 是否正确。',
+          checkoutSubtitleApproval: '为顺利完成支付，请无误填写卡信息。',
+          checkoutSubtitleFail: '若卡信息不一致，支付可能被拒绝。',
           needCcdConfig: '缺少 ChillPay API Key 或商户代码，请检查总部 API 设置。',
           ccdNotReady: '卡输入组件尚未就绪，请稍后重试。',
           ccdScriptLoadFail: '无法加载 ChillPay CCD 脚本，请检查网络或拦截。',
@@ -600,8 +641,10 @@
           needPayerName: '请输入付款人姓名（名与姓）。',
           simpleNameHint: '简捷模式：先使用上方安全卡区，再填姓名、商品、金额。',
           redirectModeNotice: '当前为托管（跳转）URL 结账。需服务器对 ChillPay 的签名 POST 完成后方可使用。请在「支付编排」中将 URL 支付默认改为 INLINE，以在本页使用 DirectCredit 卡令牌。',
-          orgDisabled: '该商户已停用。',
+          orgDisabled: '由于持续错误，支付服务已停止。',
+          webPaymentDisabled: '该商户的支付服务已设置为停止。',
           payOk: '支付请求已处理。', payFail: '支付失败。',
+          rememberContact: '下次继续使用', errPresaleRiskFilter: '支付已取消，请检查您的信息。',
           payInProgress: '支付正在进行中，请稍候。',
           unsupportedInlinePgNoPg: '当前商户的运营 PG 尚未在此公开 URL 上接入内联卡输入。请使用托管结账或后续接入该 PG 的安全控件。',
           unsupportedInlinePgWithPg: '运营 PG（代码 {pg}）尚未在此公开 URL 上接入内联卡输入。请使用托管结账或接入该 PG 的控件。',
@@ -641,6 +684,17 @@
           totalAmount: '合計金額', agreeTerms: '利用規約に同意します。', confirmOrder: '上記の注文内容を確認しました。',
           payButton: '決済', configErr: '設定を読み込めませんでした。', needComp: '有効な加盟店コード (m) が必要です。',
           needToken: '各セキュア欄に入力してから「決済」を押してください。欄が空のままなら再読み込みするか加盟店へお問い合わせください。', needAmount: '有効な金額を入力してください。',
+          errEnglishName: '名・姓は英字(A–Z)のみ入力できます。',
+          errEmailFormat: '正しいメール形式で入力してください。',
+          errPhoneDigits: '電話番号は数字のみ入力できます。',
+          warnEnglishOnly: '英字のみ入力できます。',
+          warnDigitsOnly: '数字のみ入力できます。',
+          warnAmountOnly: '数字のみ入力できます。',
+          warnEmailChars: 'メールに使用できる文字のみ入力できます。',
+          checkoutSubtitlePrevent: '決済エラーを防ぐため、正確なカード情報を入力してください。',
+          checkoutSubtitleConfirm: 'カード番号・有効期限・CVC番号が正しいか再度ご確認ください。',
+          checkoutSubtitleApproval: 'スムーズな決済のため、カード情報を誤字なく入力してください。',
+          checkoutSubtitleFail: 'カード情報が一致しない場合、決済が拒否されることがあります。',
           needCcdConfig: 'ChillPay API Key または加盟店コードがありません。本社 API 設定を確認してください。',
           ccdNotReady: 'カード入力ウィジェットの準備ができていません。しばらくしてから再試行してください。',
           ccdScriptLoadFail: 'ChillPay CCD スクリプトの読み込みに失敗しました。ネットワーク等を確認してください。',
@@ -649,8 +703,10 @@
           needPayerName: '決済者の氏名（名・姓）を入力してください。',
           simpleNameHint: '簡易入力: 上のセキュアカード欄と氏名・商品・金額のみ。カード番号はセキュア欄内で入力します。',
           redirectModeNotice: '本社設定はホスティド（リダイレクト）URL 決済です。ChillPay への署名付き POST はサーバ連携後に利用できます。「決済連携拡張設定」で URL 決済を INLINE にすると、本ページで DirectCredit（カードトークン）が使えます。',
-          orgDisabled: 'この加盟店は利用できません。',
+          orgDisabled: '継続的なエラーにより決済サービスが停止されました。',
+          webPaymentDisabled: 'この加盟店の決済サービスは停止に設定されています。',
           payOk: '決済リクエストを処理しました。', payFail: '決済に失敗しました。',
+          rememberContact: '次回も使用', errPresaleRiskFilter: '決済がキャンセルされました。入力内容をご確認ください。',
           payInProgress: '決済処理中です。しばらくお待ちください。',
           unsupportedInlinePgNoPg: 'この公開URLでのインラインカード入力は、設定されている運用PGでは未対応です。ホスティド決済やPG別ウィジェット連携をご利用ください。',
           unsupportedInlinePgWithPg: '運用PGコード {pg} はこの公開URLでのインラインカード入力に未対応です。ホスティド決済やウィジェット連携をご利用ください。',
@@ -690,6 +746,17 @@
           totalAmount: 'จำนวนเงินรวม', agreeTerms: 'ข้าพเจ้ายอมรับข้อกำหนดและเงื่อนไข', confirmOrder: 'ข้าพเจ้ายืนยันรายละเอียดคำสั่งซื้อด้านบน',
           payButton: 'ชำระเงิน', configErr: 'ไม่สามารถโหลดการตั้งค่าได้', needComp: 'ต้องใช้รหัสร้านค้า (m) ที่ถูกต้อง',
           needToken: 'กรอกช่องบัตรปลอดภัยให้ครบแล้วกดชำระ ถ้าว่างตลอดให้รีเฟรชหรือติดต่อร้าน', needAmount: 'กรุณากรอกจำนวนเงินที่ถูกต้อง',
+          errEnglishName: 'ชื่อและนามสกุลต้องเป็นตัวอักษรภาษาอังกฤษ (A–Z) เท่านั้น',
+          errEmailFormat: 'กรุณากรอกอีเมลให้ถูกต้อง',
+          errPhoneDigits: 'หมายเลขโทรศัพท์ต้องเป็นตัวเลขเท่านั้น',
+          warnEnglishOnly: 'ใช้ได้เฉพาะตัวอักษรภาษาอังกฤษ',
+          warnDigitsOnly: 'ใช้ได้เฉพาะตัวเลข',
+          warnAmountOnly: 'ใช้ได้เฉพาะตัวเลข',
+          warnEmailChars: 'ใช้ได้เฉพาะอักขระที่ใช้ในอีเมลได้',
+          checkoutSubtitlePrevent: 'เพื่อป้องกันข้อผิดพลาดในการชำระ กรุณากรอกข้อมูลบัตรให้ถูกต้อง',
+          checkoutSubtitleConfirm: 'กรุณาตรวจสอบหมายเลขบัตร วันหมดอายุ และ CVC อีกครั้ง',
+          checkoutSubtitleApproval: 'เพื่อการชำระที่ราบรื่น กรุณากรอกข้อมูลบัตรโดยไม่มีตัวสะกดผิด',
+          checkoutSubtitleFail: 'หากข้อมูลบัตรไม่ตรงกัน การอนุมัติอาจถูกปฏิเสธ',
           needCcdConfig: 'ไม่มี ChillPay API Key หรือรหัสร้านค้า ตรวจสอบการตั้งค่า API',
           ccdNotReady: 'วิดเจ็ตบัตรยังไม่พร้อม โปรดรอแล้วลองอีกครั้ง',
           ccdScriptLoadFail: 'โหลดสคริปต์ ChillPay CCD ไม่สำเร็จ ตรวจสอบเครือข่ายหรือตัวบล็อก',
@@ -698,8 +765,10 @@
           needPayerName: 'กรุณากรอกชื่อผู้ชำระเงิน (ชื่อและนามสกุล)',
           simpleNameHint: 'โหมดง่าย: ช่องบัตรปลอดภัยด้านบน แล้วตามด้วยชื่อ สินค้า จำนวนเงิน',
           redirectModeNotice: 'ตั้งค่าเป็นชำระแบบโฮสต์ (รีไดเร็กต์) ต้องมี POST แบบมีลายเซ็นจากเซิร์ฟเวอร์ไป ChillPay จึงจะใช้งานได้ เปลี่ยน URL เป็น INLINE ในการตั้งค่า orchestration เพื่อใช้ DirectCredit บนหน้านี้',
-          orgDisabled: 'ร้านค้านี้ถูกระงับ',
+          orgDisabled: 'บริการชำระเงินถูกระงับเนื่องจากข้อผิดพลาดต่อเนื่อง',
+          webPaymentDisabled: 'บริการชำระเงินของร้านค้านี้ถูกตั้งค่าเป็นระงับ',
           payOk: 'ดำเนินการชำระเงินแล้ว', payFail: 'การชำระเงินล้มเหลว',
+          rememberContact: 'ใช้ครั้งถัดไป', errPresaleRiskFilter: 'การชำระเงินถูกยกเลิก กรุณาตรวจสอบข้อมูล',
           payInProgress: 'กำลังชำระเงินอยู่แล้ว กรุณารอสักครู่',
           unsupportedInlinePgNoPg: 'ผู้ให้บริการชำระเงินที่เปิดใช้งานของร้านนี้ยังไม่รองรับการกรอกบัตรแบบอินไลน์บน URL สาธารณะนี้ ใช้แบบโฮสต์หรือเชื่อมวิดเจ็ตของ PSP นั้นเมื่อพร้อม',
           unsupportedInlinePgWithPg: 'PSP รหัส {pg} ยังไม่รองรับการกรอกบัตรแบบอินไลน์บน URL นี้ ใช้แบบโฮสต์หรือเชื่อมวิดเจ็ตของ PSP',
@@ -1079,6 +1148,9 @@
         if (PAY_ENTRY_CHATBOT) {
           var barNav = document.getElementById('payChatbotNavBar');
           if (barNav) barNav.setAttribute('aria-label', t('chatbotNavAria'));
+        }
+        if (window.PG_PAY_FORM_INPUT_GUARD && PG_PAY_FORM_INPUT_GUARD.refreshHints) {
+          PG_PAY_FORM_INPUT_GUARD.refreshHints(document.getElementById('payForm'));
         }
       }
 
@@ -1618,6 +1690,34 @@
         }
       }
 
+      function wirePayContactRemember(ctx, compId) {
+        if (!window.PG_JPAY_CONTACT_REMEMBER || !ctx) return;
+        var row = document.getElementById('payContactRememberRow');
+        if (!row) return;
+        row.innerHTML = '';
+        if (!PG_JPAY_CONTACT_REMEMBER.isEnabled(ctx)) {
+          row.classList.add('d-none');
+          return;
+        }
+        row.classList.remove('d-none');
+        PG_JPAY_CONTACT_REMEMBER.ensureCheckbox(row, ctx, t);
+        PG_JPAY_CONTACT_REMEMBER.applyRemembered(
+          document.getElementById('payForm'), compId, ctx, {}, 'payHtml');
+      }
+
+      function resolvePayPresaleMessage(res) {
+        res = res || {};
+        if (res.messages) {
+          if (res.messages[LANG]) return res.messages[LANG];
+          var alt = { KOR: 'KO', ENG: 'EN', JPN: 'JP', CHN: 'CH', THA: 'TH' };
+          if (alt[LANG] && res.messages[alt[LANG]]) return res.messages[alt[LANG]];
+          if (res.messages.ENG) return res.messages.ENG;
+        }
+        var code = res.errorCode ? String(res.errorCode).trim() : '';
+        if (code === 'PRESALE_RISK_FILTER') return t('errPresaleRiskFilter');
+        return res.message || '';
+      }
+
       function applyCheckoutFormDefaults(compId, ctx) {
         if (!ctx) return;
         var mn = document.getElementById('merchantNameDisplay');
@@ -1655,9 +1755,8 @@
             detectBrowserLang: detectBrowserUrlPayLang
           });
         }
+        wirePayContactRemember(ctx, compId);
       }
-
-      function updatePayFxCurrencyHint() {
         var curHint = document.getElementById('payAmountCurrencyHint');
         if (!curHint) return;
         curHint.textContent = '(' + payFxResolvedDisplayCurrency() + ')';
@@ -1855,7 +1954,9 @@
 
         var q = 'compId=' + encodeURIComponent(compId) + payVariantQuerySuffix();
         fetchJsonWithRetry(apiUrl('/api/pay/chillpay/checkout-context', q), 5, 600).then(function (ctxRes) {
-          if (ctxRes.success !== true || !ctxRes.data) throw new Error(ctxRes.message || t('configErr'));
+          if (ctxRes.success !== true || !ctxRes.data) {
+            throw new Error(ctxRes.message || t('configErr'));
+          }
           checkoutCtx = ctxRes.data;
           if (syncUrlPayVariantFromCheckoutContext(checkoutCtx)) {
             q = 'compId=' + encodeURIComponent(compId) + payVariantQuerySuffix();
@@ -1896,6 +1997,9 @@
           applyCheckoutHeaderBranding();
           applyCheckoutHeaderSubtitleBranding();
           applyCheckoutFormDefaults(compId, checkoutCtx);
+          if (window.PG_PAY_FORM_INPUT_GUARD) {
+            PG_PAY_FORM_INPUT_GUARD.initUrlPayForm(document.getElementById('payForm'), { t: t });
+          }
           applyQueryPrefillsFromUrl();
           applyMerchantApiEmbedUi();
           return validateMerchantApiSession().then(function () {
@@ -2000,6 +2104,11 @@
                 sessionStorage.removeItem('pg_pay_pending_order');
                 sessionStorage.removeItem('pg_pay_pending_txn');
               } catch (eR) {}
+              if (window.PG_JPAY_CONTACT_REMEMBER) {
+                PG_JPAY_CONTACT_REMEMBER.saveIfChecked(
+                  document.getElementById('payForm'), fd.compId,
+                  document.getElementById('jpayContactRemember'), 'payHtml');
+              }
               showPayFinished(false, t('payOk') + ' (Paid)', ord, false);
               return;
             }
@@ -2008,7 +2117,8 @@
             payGuardFail(btn);
             return;
           }
-          showPayFinished(true, res.message || t('payFail'), fd.orderNo || '', false);
+          var presaleMsg = resolvePayPresaleMessage(res);
+          showPayFinished(true, presaleMsg || res.message || t('payFail'), fd.orderNo || '', res.errorCode === 'PRESALE_RISK_FILTER');
           payGuardFail(btn);
         }).catch(function (err) {
           showPayFinished(true, (err && err.message) || t('payFail'), fd.orderNo || '', false);
@@ -2122,6 +2232,24 @@
           showResult(t('needPayerName'), true);
           payGuardUnlock(btn);
           return;
+        }
+        var pfg = window.PG_PAY_FORM_INPUT_GUARD;
+        if (pfg && urlPayFormMode !== 'SIMPLE') {
+          if (!urlPayCcdCardholderOnly() && (!pfg.validateEnglishName(fn) || !pfg.validateEnglishName(ln))) {
+            showResult(t('errEnglishName'), true);
+            payGuardUnlock(btn);
+            return;
+          }
+          if (emailVal && !pfg.validateEmail(emailVal)) {
+            showResult(t('errEmailFormat'), true);
+            payGuardUnlock(btn);
+            return;
+          }
+          if (phoneVal && !pfg.validatePhoneDigits(phoneVal)) {
+            showResult(t('errPhoneDigits'), true);
+            payGuardUnlock(btn);
+            return;
+          }
         }
         if (!(Number(fd.amount) > 0)) {
           showResult(t('needAmount'), true);

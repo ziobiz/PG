@@ -70,6 +70,31 @@ public class OrgViewColumnAllowanceService {
      * 지사·대리점·영업점(BRANCH_GROUP) 및 가맹점(MERCHANT)은 별도 행이 없으면 총판(MASTER_DIST) 정책을 따름.
      */
     public Optional<List<String>> getRestrictedAllowedKeys(String loginId, String pageUrl) {
+        Optional<OrgViewColumnAllowance> rowOpt = findEffectiveAllowanceRow(loginId, pageUrl);
+        if (rowOpt.isEmpty()) return Optional.empty();
+        List<String> allowed = parseJsonArray(rowOpt.get().getAllowedKeysJson());
+        return Optional.of(mergeCustomColumnKeysForPage(safe(pageUrl), allowed));
+    }
+
+    /**
+     * 조직 정책의 최초 접속 기본 선택 열. empty() = 정책 없음.
+     * default_selected_keys_json 이 비어 있으면 allowed_keys_json 전체를 기본 선택으로 간주(레거시).
+     */
+    public Optional<List<String>> getDefaultSelectedKeys(String loginId, String pageUrl) {
+        Optional<OrgViewColumnAllowance> rowOpt = findEffectiveAllowanceRow(loginId, pageUrl);
+        if (rowOpt.isEmpty()) return Optional.empty();
+        OrgViewColumnAllowance row = rowOpt.get();
+        List<String> deployed = mergeCustomColumnKeysForPage(safe(pageUrl), parseJsonArray(row.getAllowedKeysJson()));
+        Set<String> deployedSet = new LinkedHashSet<>(deployed);
+        List<String> selected = parseJsonArray(row.getDefaultSelectedKeysJson());
+        if (selected.isEmpty()) {
+            return Optional.of(new ArrayList<>(deployed));
+        }
+        List<String> filtered = selected.stream().filter(deployedSet::contains).collect(Collectors.toList());
+        return Optional.of(filtered.isEmpty() ? new ArrayList<>(deployed) : filtered);
+    }
+
+    private Optional<OrgViewColumnAllowance> findEffectiveAllowanceRow(String loginId, String pageUrl) {
         Optional<OrgUnit> ouOpt = authService.resolveOrgUnitForLoginId(loginId);
         if (ouOpt.isEmpty()) return Optional.empty();
         OrgUnit ou = ouOpt.get();
@@ -84,9 +109,7 @@ public class OrgViewColumnAllowanceService {
         if ((SCOPE_BRANCH_GROUP.equals(scope) || SCOPE_MERCHANT.equals(scope)) && row.isEmpty()) {
             row = allowanceRepository.findByRegionalOrgCodeAndPageUrlAndViewerScope(regional.get(), p, SCOPE_MASTER_DIST);
         }
-        if (row.isEmpty()) return Optional.empty();
-        List<String> allowed = parseJsonArray(row.get().getAllowedKeysJson());
-        return Optional.of(mergeCustomColumnKeysForPage(p, allowed));
+        return row;
     }
 
     /** 본사 등록 추가 항목 키는 조직 노출 정책이 있을 때 항상 허용 목록에 포함 */
@@ -144,13 +167,16 @@ public class OrgViewColumnAllowanceService {
         var opt = allowanceRepository.findByRegionalOrgCodeAndPageUrlAndViewerScope(r, p, vs);
         m.put("hasPolicy", opt.isPresent());
         m.put("allowedKeysJson", opt.map(OrgViewColumnAllowance::getAllowedKeysJson).orElse("[]"));
+        m.put("defaultSelectedKeysJson", opt.map(OrgViewColumnAllowance::getDefaultSelectedKeysJson).orElse("[]"));
+        m.put("columnOrderKeysJson", opt.map(OrgViewColumnAllowance::getColumnOrderKeysJson).orElse("[]"));
         opt.ifPresent(row -> m.put("updatedAt", row.getUpdatedAt() != null ? row.getUpdatedAt().toString() : null));
         return m;
     }
 
     @Transactional
     public Map<String, Object> saveAllowance(String regionalOrgCode, String pageUrl, String viewerScope,
-                                            String allowedKeysJson, AppUser actor) {
+                                            String allowedKeysJson, String defaultSelectedKeysJson,
+                                            String columnOrderKeysJson, AppUser actor) {
         if (!canManageOrgViewAllowance(actor)) {
             throw new IllegalArgumentException("총본사(또는 ADMIN)만 컬럼 허용 정책을 저장할 수 있습니다.");
         }
@@ -169,6 +195,13 @@ public class OrgViewColumnAllowanceService {
             throw new IllegalArgumentException("대상은 본사(REGIONAL) 업체만 지정할 수 있습니다.");
         }
         List<String> keys = parseJsonArray(allowedKeysJson);
+        List<String> defaultSelected = parseJsonArray(defaultSelectedKeysJson);
+        List<String> columnOrder = parseJsonArray(columnOrderKeysJson);
+        Set<String> deployedSet = new LinkedHashSet<>(keys);
+        defaultSelected = defaultSelected.stream().filter(deployedSet::contains).collect(Collectors.toList());
+        if (defaultSelected.isEmpty() && !keys.isEmpty()) {
+            defaultSelected = new ArrayList<>(keys);
+        }
         OrgViewColumnAllowance row = allowanceRepository
                 .findByRegionalOrgCodeAndPageUrlAndViewerScope(r, p, vs)
                 .orElseGet(OrgViewColumnAllowance::new);
@@ -176,8 +209,17 @@ public class OrgViewColumnAllowanceService {
         row.setPageUrl(p);
         row.setViewerScope(vs);
         row.setAllowedKeysJson(writeJsonArray(keys));
+        row.setDefaultSelectedKeysJson(writeJsonArray(defaultSelected));
+        row.setColumnOrderKeysJson(writeJsonArray(columnOrder));
         allowanceRepository.save(row);
         return getAllowanceRow(r, p, vs);
+    }
+
+    /** 레거시 호환 — defaultSelected/columnOrder 없이 저장 */
+    @Transactional
+    public Map<String, Object> saveAllowance(String regionalOrgCode, String pageUrl, String viewerScope,
+                                            String allowedKeysJson, AppUser actor) {
+        return saveAllowance(regionalOrgCode, pageUrl, viewerScope, allowedKeysJson, allowedKeysJson, "[]", actor);
     }
 
     @Transactional
@@ -223,6 +265,7 @@ public class OrgViewColumnAllowanceService {
                     m.put("pageUrl", row.getPageUrl());
                     m.put("viewerScope", row.getViewerScope());
                     m.put("allowedColumnCount", parseJsonArray(row.getAllowedKeysJson()).size());
+                    m.put("defaultSelectedColumnCount", parseJsonArray(row.getDefaultSelectedKeysJson()).size());
                     m.put("updatedAt", row.getUpdatedAt() != null ? row.getUpdatedAt().toString() : null);
                     return m;
                 })

@@ -400,6 +400,48 @@ ChillPay 인라인과 **동일 이벤트명**을 사용합니다. `icopay-checko
 4. 승인 후 postMessage + 웹훅 모두 수신
 5. ICOPAY 관리 — 결제내역에 JPAY 거래 반영
 6. `status` — `PAID` 확인
+7. **실패 후 재시도** — 동일 `orderNo` 로 prepare·결제 **금지**, **새 orderNo** 발급 후 prepare (아래 §4.6)
+
+### 4.6 결제 실패 후 재시도 (필수 — A안)
+
+JPAY는 동일 `pay_orderid`(= ICOPAY `orderNo`)에 대해 **한 번만** `pay_index` 를 허용합니다.  
+결제 실패·중복 주문 오류 후 **같은 orderNo로 다시 결제하면** `ORDER_DUP` 으로 거절됩니다.
+
+**가맹점 서버 권장 흐름:**
+
+1. 주문 DB에 **쇼핑몰 주문 ID**와 **결제 attempt용 orderNo**를 분리해 두면 운영이 쉽습니다.
+2. `prepare` → embed 결제 → **실패** (`postMessage` `success=false` 또는 `errorCode=ORDER_DUP` / `ORDER_ALREADY_ATTEMPTED`)
+3. `GET .../status?orderNo=` 로 `FAILED`·`NOT_FOUND` 확인
+4. **새 orderNo** 생성 → **다시 prepare** → 새 `sessionToken` 으로 결제창 표시
+5. 성공 확정은 **웹훅·status** (`PAID`) 로만 처리
+
+**postMessage 실패 예 (`detail`):**
+
+```json
+{
+  "phase": "finished",
+  "success": false,
+  "orderNo": "i1ffb2HED91Y4lToCwr2",
+  "errorCode": "ORDER_DUP",
+  "requiresNewPrepare": true,
+  "message": "…"
+}
+```
+
+`requiresNewPrepare=true` 이면 **같은 iframe/세션으로 재시도하지 말고** 쇼핑몰에서 새 prepare 를 호출하세요.
+
+### 4.7 ICOPAY 사전차단 vs JPAY 고위험 거절 (구분)
+
+| 구분 | JPAY `pay_index` 호출 | 승인번호 | 대표 메시지·errorCode |
+|------|----------------------|----------|------------------------|
+| **ICOPAY 비활성카드** | **없음** (결제창에서 선행 차단) | 없음 | `INACTIVE_CARD` — 「비활성 등록된 카드…」 |
+| **ICOPAY 카드 쿨다운** | **없음** | 없음 | `CARD_COOLDOWN*` — N차 실패 후 대기 |
+| **JPAY·발급사 거절** | **있음** | 보통 없음 | JPAY 원문 (잔액·CVV·발급사 등) |
+| **JPAY 고위험(이메일/전화 불일치 등)** | **있음** | 없음 | 「높은 위험…」 등 JPAY 리스크 문구 |
+
+- 과거 ICOPAY 비활성카드가 「고위험 거래로 인해 거부」로 표시되던 문구는 **2026-06** 부터 **비활성카드** 안내로 교체되었습니다.
+- `postMessage` / sale API 실패 시 `errorCode`, `messages`(KOR/ENG/JPN/CHN/THA), `icopayPresaleBlock=true` 를 확인하세요.
+- 비활성·쿨다운 건은 결제내역 실패 목록에 **적재하지 않습니다**(JPAY 시도 완료 건만 노출).
 
 ---
 
@@ -414,6 +456,13 @@ ChillPay 인라인과 **동일 이벤트명**을 사용합니다. `icopay-checko
 | `INVALID_ORDER_NO` | orderNo 없음 | ≤64자 |
 | `INVALID_AMOUNT` | amount ≤0 | 숫자·소수 확인 |
 | `INVALID_SESSION` | 토큰 만료 | 30분 내 prepare 재호출 |
+| `ORDER_DUP` | 동일 orderNo 재제출 | **새 orderNo** 로 prepare 후 결제 |
+| `ORDER_ALREADY_ATTEMPTED` | prepare 시 기존 실패 이력 | **새 orderNo** 발급 |
+| `ORDER_PENDING` | 동일 orderNo 진행 중(3DS 등) | 3DS 완료 또는 status 확인, 재제출 금지 |
+| `BELOW_MIN_AMOUNT` | JPAY 최소금액 미만(약 USD 5) | amount·통화 조정 |
+| `INACTIVE_CARD` | ICOPAY 비활성 등록 카드 (JPAY 미호출) | **다른 카드** 사용·가맹점 문의 |
+| `BLACKLIST` | ICOPAY 관리자 카드 제한 | **다른 카드** 사용 |
+| `CARD_COOLDOWN*` | ICOPAY N차 실패 쿨다운 | 대기 후 재시도 또는 다른 카드 |
 | `JPAY_ERROR` | pay_index·MID·필드 오류 | API연동설정·JPAY 매뉴얼 대조 |
 
 ---

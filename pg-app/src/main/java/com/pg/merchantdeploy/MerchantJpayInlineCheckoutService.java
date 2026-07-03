@@ -44,6 +44,7 @@ public class MerchantJpayInlineCheckoutService {
     private final MerchantApiIntegrationChannelService integrationChannelService;
     private final MerchantOperationalPgGuard operationalPgGuard;
     private final SplitPayCheckoutModeGuard splitPayCheckoutModeGuard;
+    private final JpayInlineCheckoutPrepareGuard jpayInlineCheckoutPrepareGuard;
 
     public MerchantJpayInlineCheckoutService(OrgUnitRepository orgUnitRepository,
                                              MerchantProfileRepository merchantProfileRepository,
@@ -56,7 +57,8 @@ public class MerchantJpayInlineCheckoutService {
                                              UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService,
                                              MerchantApiIntegrationChannelService integrationChannelService,
                                              MerchantOperationalPgGuard operationalPgGuard,
-                                             SplitPayCheckoutModeGuard splitPayCheckoutModeGuard) {
+                                             SplitPayCheckoutModeGuard splitPayCheckoutModeGuard,
+                                             JpayInlineCheckoutPrepareGuard jpayInlineCheckoutPrepareGuard) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.orgServiceUseService = orgServiceUseService;
@@ -69,6 +71,7 @@ public class MerchantJpayInlineCheckoutService {
         this.integrationChannelService = integrationChannelService;
         this.operationalPgGuard = operationalPgGuard;
         this.splitPayCheckoutModeGuard = splitPayCheckoutModeGuard;
+        this.jpayInlineCheckoutPrepareGuard = jpayInlineCheckoutPrepareGuard;
     }
 
     public Map<String, Object> prepare(Long orgUnitId, Map<String, Object> body, HttpServletRequest request) {
@@ -89,13 +92,13 @@ public class MerchantJpayInlineCheckoutService {
         }
         OrgUnit ou = ouOpt.get();
         if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
-            return fail("서비스가 중지된 업체입니다.", "ORG_DISABLED");
+            return fail(OrgServiceUseService.MSG_ORG_SERVICE_DISABLED, "ORG_DISABLED");
         }
         Optional<MerchantProfile> profOpt = merchantProfileRepository.findByOrgUnitId(orgUnitId);
         if (profOpt.isPresent()) {
             String wpy = profOpt.get().getWebPaymentUseYn();
             if (wpy != null && "N".equalsIgnoreCase(wpy.trim())) {
-                return fail("이 가맹점은 웹결제(URL 결제)가 미사용으로 설정되어 있습니다.", "WEB_PAYMENT_DISABLED");
+                return fail(OrgServiceUseService.MSG_WEB_PAYMENT_DISABLED, "WEB_PAYMENT_DISABLED");
             }
             if (UrlPayCheckoutModeUtil.isSplitPay(profOpt.get().getApiUrlPayCheckoutMode())) {
                 String base = trimSlash(productService.resolvePublicCustomerSiteBase(request));
@@ -137,6 +140,11 @@ public class MerchantJpayInlineCheckoutService {
         String amountPlain = amount.stripTrailingZeros().toPlainString();
         String currency = urlPayCheckoutCurrencyService.resolveCheckoutCurrency(
                 orgUnitId, str(body.get("currency")));
+        Optional<Map<String, Object>> prepareGuard = jpayInlineCheckoutPrepareGuard.validatePrepare(
+                orgUnitId, orderNo, amount, currency);
+        if (prepareGuard.isPresent()) {
+            return prepareGuard.get();
+        }
         String productName = clamp(str(body.get("productName")), 500);
         if (productName.isBlank()) {
             productName = clamp(str(body.get("item")), 500);

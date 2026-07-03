@@ -76,7 +76,12 @@ public class ApiHqOrgViewColumnAllowanceController {
             String pageUrl = body.get("pageUrl") != null ? String.valueOf(body.get("pageUrl")) : "";
             String viewerScope = body.get("viewerScope") != null ? String.valueOf(body.get("viewerScope")) : "";
             String allowedKeysJson = body.get("allowedKeysJson") != null ? String.valueOf(body.get("allowedKeysJson")) : "[]";
-            return ResponseEntity.ok(ApiResponse.ok(allowanceService.saveAllowance(regional, pageUrl, viewerScope, allowedKeysJson, actor)));
+            String defaultSelectedKeysJson = body.get("defaultSelectedKeysJson") != null
+                    ? String.valueOf(body.get("defaultSelectedKeysJson")) : "[]";
+            String columnOrderKeysJson = body.get("columnOrderKeysJson") != null
+                    ? String.valueOf(body.get("columnOrderKeysJson")) : "[]";
+            return ResponseEntity.ok(ApiResponse.ok(allowanceService.saveAllowance(
+                    regional, pageUrl, viewerScope, allowedKeysJson, defaultSelectedKeysJson, columnOrderKeysJson, actor)));
         } catch (Exception e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         }

@@ -24,6 +24,7 @@ import com.pg.util.NotifyToTxnStatusMerge;
 import com.pg.util.PaidApprovalEvidenceGuard;
 import com.pg.util.PayerContactDisplayUtil;
 import com.pg.util.PgTrnsctnOrderLookup;
+import com.pg.util.JpayPostSaleRiskOutcomeUtil;
 import com.pg.util.PayCardFailOutcomeRules;
 import com.pg.util.TxnOutcomeReasonApplier;
 import org.slf4j.Logger;
@@ -69,6 +70,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
     private final PayCardFailCooldownService payCardFailCooldownService;
     private final OrgUnitRepository orgUnitRepository;
     private final PgTrnsctnOrderDedupeService pgTrnsctnOrderDedupeService;
+    private final JpayPostSaleRiskCooldownService jpayPostSaleRiskCooldownService;
 
     public JpayNotifyToTrnsctnService(PgTrnsctnRepository pgTrnsctnRepository,
                                       PgAgencyRepository pgAgencyRepository,
@@ -82,7 +84,8 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
                                       OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator,
                                       PayCardFailCooldownService payCardFailCooldownService,
                                       OrgUnitRepository orgUnitRepository,
-                                      PgTrnsctnOrderDedupeService pgTrnsctnOrderDedupeService) {
+                                      PgTrnsctnOrderDedupeService pgTrnsctnOrderDedupeService,
+                                      JpayPostSaleRiskCooldownService jpayPostSaleRiskCooldownService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.settlementCalcService = settlementCalcService;
@@ -96,6 +99,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         this.payCardFailCooldownService = payCardFailCooldownService;
         this.orgUnitRepository = orgUnitRepository;
         this.pgTrnsctnOrderDedupeService = pgTrnsctnOrderDedupeService;
+        this.jpayPostSaleRiskCooldownService = jpayPostSaleRiskCooldownService;
     }
 
     @Override
@@ -594,12 +598,20 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
                 prevStatus, prevOutcomeReasonCode, merged, t.getOutcomeReasonCode())) {
             return;
         }
+        String outcomeMsg = t.getOutcomeReason();
+        String postSaleCode = JpayPostSaleRiskOutcomeUtil.classify(outcomeMsg);
+        if (postSaleCode != null) {
+            jpayPostSaleRiskCooldownService.recordPostSaleEvent(t, postSaleCode, outcomeMsg);
+            if (!jpayPostSaleRiskCooldownService.shouldCountCooldown(postSaleCode)) {
+                return;
+            }
+        }
         Optional<String> riskCode = PayCardFailOutcomeRules.outcomeCodeForTxnRiskCount(merged, t.getOutcomeReasonCode());
         if (riskCode.isEmpty()) {
             return;
         }
         payCardFailCooldownService.recordFromTxnHash(PgVendor.JPAY, hash, mask, riskCode.get(),
-                t.getOutcomeReason(), orgUnitId, t.getCustomerNm());
+                outcomeMsg, orgUnitId, t.getCustomerNm());
     }
 
     private Long resolveOrgUnitId(PgTrnsctn t) {

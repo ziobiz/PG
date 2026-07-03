@@ -692,6 +692,13 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   min-width: 220px !important;
   max-width: 100%;
 }
+/* 통합리포트 검색: 조직·통화 셀렉트 폭 +20% */
+.screen-search-form.ops-integrated-report-search-form .search-cell-input input.form-control-sm,
+.screen-search-form.ops-integrated-report-search-form .search-cell-input select.form-control-sm {
+  width: 228px !important;
+  min-width: 228px !important;
+  max-width: 100%;
+}
 /* 퀵 날짜: 미선택 outline, 선택 시 range별 파스텔 */
 .quick-date {
   font-size: var(--app-base-font-size);
@@ -2717,8 +2724,9 @@ td.empty-state-cell {
 /* 전역 푸터: 회사명은 각 페이지 하단으로 이동 후 유지 또는 제거용 */
 .footer { flex-shrink: 0; background: #fff; padding: 8px 20px; border-top: 1px solid #e8e8e8; font-size: var(--app-base-font-size); color: #999; }
 .dimmed { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-/* 비활성카드 수정 — 탭 pane 밖(body)에 두어도 백드롭 위에 표시 */
-#opsIcEditModal.modal { z-index: 10060 !important; }
+/* 비활성카드·노티관리 수정 — 탭 pane 밖(body)에 두어도 백드롭·dimm 위에 표시 */
+#opsIcEditModal.modal,
+#opsNpLogEditModal.modal { z-index: 10060 !important; }
 .dimmed-icon { width: 3rem; height: 3rem; }
 .dimmed-text { margin-top: 12px; font-weight: 600; color: #fff !important; }
 #content-frame { display: block; width: 100%; height: 100%; min-height: 500px; border: 0; }
@@ -5292,7 +5300,7 @@ body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .p
   color: #5c4d1a !important;
 }
 
-/* ========== 운영관리 — 통합 리포트: 한 줄 표시·파스텔 버킷·가맹 교차 배경 ========== */
+/* ========== 운영관리 — 통합 리포트: 통화 줄무늬·가맹 헤더 5색·버킷 통일 톤 ========== */
 .content-inner--ops-integrated-report .integrated-report-wrap {
   overflow-x: auto;
 }
@@ -5312,59 +5320,42 @@ body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .p
   min-width: 9rem;
   white-space: nowrap;
 }
+/* 좌측·버킷 헤더 — 연한 파란 파스텔(VAT·총거래건수 등과 동일) */
 .content-inner--ops-integrated-report .integrated-report-wrap table.integrated-report-grid th.integrated-report-th--base {
-  background: #f8f9fa;
-  color: #343a40;
-}
-.content-inner--ops-integrated-report .integrated-report-wrap table.integrated-report-grid td.integrated-report-td--base {
-  background: #fff;
-}
-/* 상태별 버킷 (헤더 1행 + 금액/건수 셀) */
-.content-inner--ops-integrated-report .integrated-report-wrap th.integrated-report-th--SUCCESS,
-.content-inner--ops-integrated-report .integrated-report-wrap td.integrated-report-td--SUCCESS {
-  background: #fff9db !important;
-  border-color: #ffec99 !important;
-}
-.content-inner--ops-integrated-report .integrated-report-wrap th.integrated-report-th--CANCEL,
-.content-inner--ops-integrated-report .integrated-report-wrap td.integrated-report-td--CANCEL {
   background: #e7f5ff !important;
   border-color: #d0ebff !important;
+  color: #343a40;
 }
-.content-inner--ops-integrated-report .integrated-report-wrap th.integrated-report-th--FAIL,
-.content-inner--ops-integrated-report .integrated-report-wrap td.integrated-report-td--FAIL {
-  background: #fff4e6 !important;
-  border-color: #ffd8a8 !important;
+/* 통화 행 — 흰색 / 연회색 교차(가맹 열 본문은 줄무늬만 따름) */
+.content-inner--ops-integrated-report .integrated-report-wrap tr.integrated-report-cur-row--white > td {
+  background: #fff !important;
 }
-.content-inner--ops-integrated-report .integrated-report-wrap th.integrated-report-th--VOID,
-.content-inner--ops-integrated-report .integrated-report-wrap td.integrated-report-td--VOID {
-  background: #ebfbee !important;
-  border-color: #b2f2bb !important;
+.content-inner--ops-integrated-report .integrated-report-wrap tr.integrated-report-cur-row--gray > td {
+  background: #f1f3f5 !important;
 }
-.content-inner--ops-integrated-report .integrated-report-wrap th.integrated-report-th--EMAIL_VOID,
-.content-inner--ops-integrated-report .integrated-report-wrap td.integrated-report-td--EMAIL_VOID {
-  background: #e6fcf5 !important;
-  border-color: #96f2d7 !important;
+.content-inner--ops-integrated-report .integrated-report-wrap td.integrated-report-merch-td {
+  background: inherit !important;
 }
-.content-inner--ops-integrated-report .integrated-report-wrap th.integrated-report-th--REFUND,
-.content-inner--ops-integrated-report .integrated-report-wrap td.integrated-report-td--REFUND {
-  background: #ffe8e8 !important;
-  border-color: #ffc9c9 !important;
-}
-.content-inner--ops-integrated-report .integrated-report-wrap th.integrated-report-th--FORCE_REFUND,
-.content-inner--ops-integrated-report .integrated-report-wrap td.integrated-report-td--FORCE_REFUND {
-  background: #ffe3e3 !important;
-  border-color: #ffb3b3 !important;
-}
-/* 가맹 블록 교차 색 */
-.content-inner--ops-integrated-report .integrated-report-wrap th.integrated-report-merch--even,
-.content-inner--ops-integrated-report .integrated-report-wrap td.integrated-report-merch--even {
+/* 가맹 헤더(상단 2행) — 5색 순환 */
+.content-inner--ops-integrated-report .integrated-report-wrap th.integrated-report-merch--c0 {
   background: #f3f0ff !important;
   border-color: #d0bfff !important;
 }
-.content-inner--ops-integrated-report .integrated-report-wrap th.integrated-report-merch--odd,
-.content-inner--ops-integrated-report .integrated-report-wrap td.integrated-report-merch--odd {
+.content-inner--ops-integrated-report .integrated-report-wrap th.integrated-report-merch--c1 {
   background: #e7fcf8 !important;
   border-color: #99e9d2 !important;
+}
+.content-inner--ops-integrated-report .integrated-report-wrap th.integrated-report-merch--c2 {
+  background: #fff4e6 !important;
+  border-color: #ffd8a8 !important;
+}
+.content-inner--ops-integrated-report .integrated-report-wrap th.integrated-report-merch--c3 {
+  background: #ffe8f0 !important;
+  border-color: #ffc9d9 !important;
+}
+.content-inner--ops-integrated-report .integrated-report-wrap th.integrated-report-merch--c4 {
+  background: #e7f5ff !important;
+  border-color: #a5d8ff !important;
 }
 .content-inner--ops-integrated-report .integrated-report-wrap tr.integrated-report-day-row:hover td {
   filter: brightness(0.97);

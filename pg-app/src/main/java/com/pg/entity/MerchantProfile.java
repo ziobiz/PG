@@ -46,6 +46,14 @@ public class MerchantProfile {
     /** Y=사용, N=미사용(로그인 가능·서비스 중단), S=영구정지(로그인 불가) */
     private String useYn;
 
+    /**
+     * 상위 조직(총판·본사 등) 미사용/정지에 따라 함께 미사용 처리된 하위 조직 표시.
+     * Y=상위연쇄로 미사용됨(상위가 다시 사용되면 자동 복원 대상).
+     * N=직접(개별) 설정 — 상위 복원과 무관하게 현재 상태 유지.
+     */
+    @Column(name = "parent_cascade_disabled_yn", length = 1, nullable = false)
+    private String parentCascadeDisabledYn = "N";
+
     @Column(name = "login_id", length = 50)
     private String loginId;
 
@@ -170,6 +178,10 @@ public class MerchantProfile {
     @Column(name = "web_payment_header_logo_url", length = 500)
     private String webPaymentHeaderLogoUrl;
 
+    /** 웹결제 HTML 로고 모드 상단 표시명 — mode=HTML 일 때 결제창 상단 문구(최대 20자) */
+    @Column(name = "web_payment_header_html_title", length = 20)
+    private String webPaymentHeaderHtmlTitle;
+
     /**
      * 웹결제 결제창 로고 아래 경고/안내 문구 — {@link com.pg.urlpay.WebPaymentHeaderLogoModeUtil}.
      */
@@ -199,6 +211,10 @@ public class MerchantProfile {
     @Column(name = "url_pay_lang_menu_use_yn", nullable = false, length = 1)
     private String urlPayLangMenuUseYn = "Y";
 
+    /** 결제창 연락처 자동기억 — FOLLOW_HQ | Y | N */
+    @Column(name = "checkout_contact_remember_mode", nullable = false, length = 16)
+    private String checkoutContactRememberMode = "FOLLOW_HQ";
+
     /** URL·JPAY 공개 결제창 배송 주소 입력 — Y=표시·필수(FULL·1형), N=미표시(기본) */
     @Column(name = "url_pay_shipping_address_use_yn", nullable = false, length = 1)
     private String urlPayShippingAddressUseYn = "N";
@@ -206,6 +222,10 @@ public class MerchantProfile {
     /** URL 공개 결제창 입력방식 — {@link com.pg.urlpay.UrlPayInputModeUtil} */
     @Column(name = "url_pay_input_mode", nullable = false, length = 16)
     private String urlPayInputMode = "GENERAL";
+
+    /** JPAY URL 결제창 카드 유효기간 입력 — {@link com.pg.urlpay.UrlPayCardExpiryModeUtil} */
+    @Column(name = "url_pay_card_expiry_mode", nullable = false, length = 16)
+    private String urlPayCardExpiryMode = "FOLLOW_HQ";
 
     /**
      * API URL 인라인 중계 결제 방식 — {@link com.pg.urlpay.UrlPayCheckoutModeUtil}.
@@ -415,6 +435,10 @@ public class MerchantProfile {
     @Column(name = "split_pay_header_logo_url", length = 500)
     private String splitPayHeaderLogoUrl;
 
+    /** URL 분할결제 HTML 로고 모드 상단 표시명 — mode=HTML 일 때 결제창 상단 문구(최대 20자) */
+    @Column(name = "split_pay_header_html_title", length = 20)
+    private String splitPayHeaderHtmlTitle;
+
     /** URL 분할결제 결제창 로고 아래 안내문구 — {@link com.pg.urlpay.WebPaymentHeaderLogoModeUtil} */
     @Column(name = "split_pay_header_subtitle_mode", nullable = false, length = 16)
     private String splitPayHeaderSubtitleMode = "DEFAULT";
@@ -530,6 +554,11 @@ public class MerchantProfile {
     public void setCeoMobile(String ceoMobile) { this.ceoMobile = ceoMobile; }
     public String getUseYn() { return useYn; }
     public void setUseYn(String useYn) { this.useYn = useYn; }
+    public String getParentCascadeDisabledYn() { return parentCascadeDisabledYn; }
+    public void setParentCascadeDisabledYn(String parentCascadeDisabledYn) {
+        this.parentCascadeDisabledYn = parentCascadeDisabledYn != null
+                && "Y".equalsIgnoreCase(parentCascadeDisabledYn.trim()) ? "Y" : "N";
+    }
     public String getLoginId() { return loginId; }
     public void setLoginId(String loginId) { this.loginId = loginId; }
     public String getRegNo() { return regNo; }
@@ -600,6 +629,8 @@ public class MerchantProfile {
     public void setWebPaymentHeaderLogoMode(String webPaymentHeaderLogoMode) { this.webPaymentHeaderLogoMode = webPaymentHeaderLogoMode; }
     public String getWebPaymentHeaderLogoUrl() { return webPaymentHeaderLogoUrl; }
     public void setWebPaymentHeaderLogoUrl(String webPaymentHeaderLogoUrl) { this.webPaymentHeaderLogoUrl = webPaymentHeaderLogoUrl; }
+    public String getWebPaymentHeaderHtmlTitle() { return webPaymentHeaderHtmlTitle; }
+    public void setWebPaymentHeaderHtmlTitle(String webPaymentHeaderHtmlTitle) { this.webPaymentHeaderHtmlTitle = webPaymentHeaderHtmlTitle; }
     public String getWebPaymentHeaderSubtitleMode() { return webPaymentHeaderSubtitleMode; }
     public void setWebPaymentHeaderSubtitleMode(String webPaymentHeaderSubtitleMode) { this.webPaymentHeaderSubtitleMode = webPaymentHeaderSubtitleMode; }
     public String getWebPaymentHeaderSubtitleText() { return webPaymentHeaderSubtitleText; }
@@ -624,6 +655,15 @@ public class MerchantProfile {
     public void setUrlPayLangMenuUseYn(String urlPayLangMenuUseYn) {
         this.urlPayLangMenuUseYn = urlPayLangMenuUseYn != null && "Y".equalsIgnoreCase(urlPayLangMenuUseYn.trim()) ? "Y" : "N";
     }
+    public String getCheckoutContactRememberMode() { return checkoutContactRememberMode; }
+    public void setCheckoutContactRememberMode(String checkoutContactRememberMode) {
+        if (checkoutContactRememberMode == null || checkoutContactRememberMode.isBlank()) {
+            this.checkoutContactRememberMode = "FOLLOW_HQ";
+            return;
+        }
+        String u = checkoutContactRememberMode.trim().toUpperCase(java.util.Locale.ROOT);
+        this.checkoutContactRememberMode = ("Y".equals(u) || "N".equals(u)) ? u : "FOLLOW_HQ";
+    }
 
     public String getUrlPayShippingAddressUseYn() { return urlPayShippingAddressUseYn; }
     public void setUrlPayShippingAddressUseYn(String urlPayShippingAddressUseYn) {
@@ -634,6 +674,10 @@ public class MerchantProfile {
     public String getUrlPayInputMode() { return urlPayInputMode; }
     public void setUrlPayInputMode(String urlPayInputMode) {
         this.urlPayInputMode = com.pg.urlpay.UrlPayInputModeUtil.normalizeMerchantStored(urlPayInputMode);
+    }
+    public String getUrlPayCardExpiryMode() { return urlPayCardExpiryMode; }
+    public void setUrlPayCardExpiryMode(String urlPayCardExpiryMode) {
+        this.urlPayCardExpiryMode = com.pg.urlpay.UrlPayCardExpiryModeUtil.normalizeMerchantStored(urlPayCardExpiryMode);
     }
 
     public String getApiUrlPayCheckoutMode() { return apiUrlPayCheckoutMode; }
@@ -854,6 +898,8 @@ public class MerchantProfile {
     }
     public String getSplitPayHeaderLogoUrl() { return splitPayHeaderLogoUrl; }
     public void setSplitPayHeaderLogoUrl(String splitPayHeaderLogoUrl) { this.splitPayHeaderLogoUrl = splitPayHeaderLogoUrl; }
+    public String getSplitPayHeaderHtmlTitle() { return splitPayHeaderHtmlTitle; }
+    public void setSplitPayHeaderHtmlTitle(String splitPayHeaderHtmlTitle) { this.splitPayHeaderHtmlTitle = splitPayHeaderHtmlTitle; }
     public String getSplitPayHeaderSubtitleMode() { return splitPayHeaderSubtitleMode; }
     public void setSplitPayHeaderSubtitleMode(String splitPayHeaderSubtitleMode) {
         this.splitPayHeaderSubtitleMode = splitPayHeaderSubtitleMode;

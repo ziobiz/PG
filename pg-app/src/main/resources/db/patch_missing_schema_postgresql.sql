@@ -728,3 +728,19 @@ WHERE t.status = '99'
     )
   );
 
+-- V217: 조직항목설정 배포/기본선택/순서 분리
+ALTER TABLE tb_org_view_column_allowance
+    ADD COLUMN IF NOT EXISTS default_selected_keys_json TEXT;
+ALTER TABLE tb_org_view_column_allowance
+    ADD COLUMN IF NOT EXISTS column_order_keys_json TEXT;
+
+-- V217: 조직항목설정 배포/기본선택/순서 분리
+ALTER TABLE tb_org_view_column_allowance
+    ADD COLUMN IF NOT EXISTS default_selected_keys_json TEXT;
+ALTER TABLE tb_org_view_column_allowance
+    ADD COLUMN IF NOT EXISTS column_order_keys_json TEXT;
+
+-- V223: 총판·본사 상위연쇄 미사용 하위 표시(상위 복원 시 자동 복원 대상)
+ALTER TABLE tb_merchant_profile
+    ADD COLUMN IF NOT EXISTS parent_cascade_disabled_yn VARCHAR(1) NOT NULL DEFAULT 'N';
+

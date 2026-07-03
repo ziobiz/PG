@@ -1743,13 +1743,16 @@ public class CompService {
                             m.put("commissionConfigAllowed", mp.getCommissionConfigAllowed());
                             m.put("webPaymentUseYn", mp.getWebPaymentUseYn() != null ? mp.getWebPaymentUseYn() : "Y");
                             m.put("webPaymentHeaderLogoMode", com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalize(mp.getWebPaymentHeaderLogoMode()));
-                            m.put("webPaymentHeaderSubtitleMode", com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalize(mp.getWebPaymentHeaderSubtitleMode()));
+                            m.put("webPaymentHeaderSubtitleMode", com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.normalize(mp.getWebPaymentHeaderSubtitleMode()));
                             m.put("urlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getUrlPayCheckoutMode()));
                             m.put("urlPayProductNameUseYn", mp.getUrlPayProductNameUseYn() != null ? mp.getUrlPayProductNameUseYn() : "Y");
                             m.put("urlPayCompanyNameShowYn", mp.getUrlPayCompanyNameShowYn() != null ? mp.getUrlPayCompanyNameShowYn() : "Y");
                             m.put("urlPayLangMenuUseYn", mp.getUrlPayLangMenuUseYn() != null ? mp.getUrlPayLangMenuUseYn() : "Y");
+                            m.put("checkoutContactRememberMode",
+                                    mp.getCheckoutContactRememberMode() != null ? mp.getCheckoutContactRememberMode() : "FOLLOW_HQ");
                             m.put("urlPayShippingAddressUseYn", mp.getUrlPayShippingAddressUseYn() != null ? mp.getUrlPayShippingAddressUseYn() : "N");
                             m.put("urlPayInputMode", com.pg.urlpay.UrlPayInputModeUtil.formatMerchantUiValue(mp.getUrlPayInputMode()));
+                            m.put("urlPayCardExpiryMode", com.pg.urlpay.UrlPayCardExpiryModeUtil.formatMerchantUiValue(mp.getUrlPayCardExpiryMode()));
                             m.put("apiUrlPayCheckoutMode", com.pg.splitpay.SplitPayMerchantUtil.resolveApiCheckoutModeForDisplay(mp));
                             m.put("chatbotUrlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getChatbotUrlPayCheckoutMode()));
                             m.put("jpayCheckoutFieldMode", com.pg.urlpay.JpayCheckoutFieldModeUtil.formatMerchantUiValue(mp.getJpayCheckoutFieldMode()));
@@ -1782,6 +1785,7 @@ public class CompService {
                                 hqRiskCardPolicyService.putMerchantCardRiskOnMap(m, mp);
                                 m.put("chatbotHeaderLogoUrl", mp.getChatbotHeaderLogoUrl() != null ? mp.getChatbotHeaderLogoUrl() : "");
                                 m.put("webPaymentHeaderLogoUrl", mp.getWebPaymentHeaderLogoUrl() != null ? mp.getWebPaymentHeaderLogoUrl() : "");
+                                m.put("webPaymentHeaderHtmlTitle", mp.getWebPaymentHeaderHtmlTitle() != null ? mp.getWebPaymentHeaderHtmlTitle() : "");
                                 m.put("webPaymentHeaderSubtitleText", mp.getWebPaymentHeaderSubtitleText() != null ? mp.getWebPaymentHeaderSubtitleText() : "");
                                 m.put("chatbotAdminUsername", resolveChatbotAdminUsername(mp));
                                 m.putAll(merchantChatbotKbService.effectiveKbForDisplay(ou, mp));
@@ -1842,8 +1846,11 @@ public class CompService {
                                 m.put("urlPayProductNameUseYn", mp.getUrlPayProductNameUseYn() != null ? mp.getUrlPayProductNameUseYn() : "Y");
                                 m.put("urlPayCompanyNameShowYn", mp.getUrlPayCompanyNameShowYn() != null ? mp.getUrlPayCompanyNameShowYn() : "Y");
                                 m.put("urlPayLangMenuUseYn", mp.getUrlPayLangMenuUseYn() != null ? mp.getUrlPayLangMenuUseYn() : "Y");
+                            m.put("checkoutContactRememberMode",
+                                    mp.getCheckoutContactRememberMode() != null ? mp.getCheckoutContactRememberMode() : "FOLLOW_HQ");
                             m.put("urlPayShippingAddressUseYn", mp.getUrlPayShippingAddressUseYn() != null ? mp.getUrlPayShippingAddressUseYn() : "N");
                             m.put("urlPayInputMode", com.pg.urlpay.UrlPayInputModeUtil.formatMerchantUiValue(mp.getUrlPayInputMode()));
+                            m.put("urlPayCardExpiryMode", com.pg.urlpay.UrlPayCardExpiryModeUtil.formatMerchantUiValue(mp.getUrlPayCardExpiryMode()));
                                 m.put("apiUrlPayCheckoutMode", com.pg.splitpay.SplitPayMerchantUtil.resolveApiCheckoutModeForDisplay(mp));
                                 m.put("chatbotUrlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getChatbotUrlPayCheckoutMode()));
                                 m.put("jpayCheckoutFieldMode", com.pg.urlpay.JpayCheckoutFieldModeUtil.formatMerchantUiValue(mp.getJpayCheckoutFieldMode()));
@@ -1995,7 +2002,8 @@ public class CompService {
                                 m.put("splitPayFirstPayMode", mp.getSplitPayFirstPayMode() != null ? mp.getSplitPayFirstPayMode() : "IMMEDIATE");
                                 m.put("splitPayHeaderLogoMode", com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalize(mp.getSplitPayHeaderLogoMode()));
                                 m.put("splitPayHeaderLogoUrl", mp.getSplitPayHeaderLogoUrl() != null ? mp.getSplitPayHeaderLogoUrl() : "");
-                                m.put("splitPayHeaderSubtitleMode", com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalize(mp.getSplitPayHeaderSubtitleMode()));
+                                m.put("splitPayHeaderHtmlTitle", mp.getSplitPayHeaderHtmlTitle() != null ? mp.getSplitPayHeaderHtmlTitle() : "");
+                                m.put("splitPayHeaderSubtitleMode", com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.normalize(mp.getSplitPayHeaderSubtitleMode()));
                                 m.put("splitPayHeaderSubtitleText", mp.getSplitPayHeaderSubtitleText() != null ? mp.getSplitPayHeaderSubtitleText() : "");
                                 m.put("splitPayLangMenuUseYn", mp.getSplitPayLangMenuUseYn() != null ? mp.getSplitPayLangMenuUseYn() : "Y");
                             }
@@ -2012,6 +2020,7 @@ public class CompService {
                           String fax, String email, String bankCd, String transferFee, String cryptoTransferFee, String accountNo, String accountHolder,
                           String remark, String commissionConfigAllowed, String webPaymentUseYn,
                           String webPaymentHeaderLogoMode, String webPaymentHeaderLogoUrl,
+                          String webPaymentHeaderHtmlTitle,
                           String webPaymentHeaderSubtitleMode, String webPaymentHeaderSubtitleText,
                           String chatbotPaymentUseYn, Integer chatbotProductSlotLimit, String baseCurrency,
                           String siteUrl, String siteSummary, String pgBindings, String regionalSettings,
@@ -2038,8 +2047,10 @@ public class CompService {
                           String urlPayProductNameUseYn,
                           String urlPayCompanyNameShowYn,
                           String urlPayLangMenuUseYn,
+                          String checkoutContactRememberMode,
                           String urlPayShippingAddressUseYn,
                           String urlPayInputMode,
+                          String urlPayCardExpiryMode,
                           String apiUrlPayCheckoutMode,
                           String chatbotUrlPayCheckoutMode,
                           String apiJpaySubscriptionUseYn,
@@ -2059,6 +2070,7 @@ public class CompService {
                           String splitPayFirstPayMode,
                           String splitPayHeaderLogoMode,
                           String splitPayHeaderLogoUrl,
+                          String splitPayHeaderHtmlTitle,
                           String splitPayHeaderSubtitleMode,
                           String splitPayHeaderSubtitleText,
                           String splitPayLangMenuUseYn,
@@ -2139,11 +2151,25 @@ public class CompService {
                                     mp.setWebPaymentHeaderLogoUrl(wpLogo);
                                 }
                             }
-                            if (childLevel == OrgLevel.MERCHANT && webPaymentHeaderSubtitleMode != null && !webPaymentHeaderSubtitleMode.isBlank()) {
-                                mp.setWebPaymentHeaderSubtitleMode(
-                                        com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalize(webPaymentHeaderSubtitleMode));
+                            if (childLevel == OrgLevel.MERCHANT && webPaymentHeaderHtmlTitle != null) {
+                                String htmlTitle = webPaymentHeaderHtmlTitle.trim();
+                                if (htmlTitle.isEmpty()) {
+                                    mp.setWebPaymentHeaderHtmlTitle(null);
+                                } else if (htmlTitle.length() > 20) {
+                                    throw new IllegalArgumentException("웹결제 HTML 표시명은 20자 이하여야 합니다.");
+                                } else {
+                                    mp.setWebPaymentHeaderHtmlTitle(htmlTitle);
+                                }
                             }
-                            if (childLevel == OrgLevel.MERCHANT && webPaymentHeaderSubtitleText != null) {
+                            if (childLevel == OrgLevel.MERCHANT && webPaymentHeaderSubtitleMode != null && !webPaymentHeaderSubtitleMode.isBlank()) {
+                                String wpSubMode = com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.normalize(webPaymentHeaderSubtitleMode);
+                                mp.setWebPaymentHeaderSubtitleMode(wpSubMode);
+                                if (com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.isPreset(wpSubMode)) {
+                                    mp.setWebPaymentHeaderSubtitleText(null);
+                                }
+                            }
+                            if (childLevel == OrgLevel.MERCHANT && webPaymentHeaderSubtitleText != null
+                                    && com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.isDirectActive(mp.getWebPaymentHeaderSubtitleMode())) {
                                 String wpSub = webPaymentHeaderSubtitleText.trim();
                                 if (wpSub.isEmpty()) {
                                     mp.setWebPaymentHeaderSubtitleText(null);
@@ -2157,8 +2183,9 @@ public class CompService {
                                 applyMerchantUrlPayCheckoutMode(mp, ou.getId(), urlPayCheckoutMode);
                                 applyMerchantUrlPayPresentationOptions(mp,
                                         urlPayProductNameUseYn, urlPayCompanyNameShowYn, urlPayLangMenuUseYn,
-                                        urlPayShippingAddressUseYn);
+                                        urlPayShippingAddressUseYn, checkoutContactRememberMode);
                                 applyMerchantUrlPayInputMode(mp, urlPayInputMode);
+                                applyMerchantUrlPayCardExpiryMode(mp, urlPayCardExpiryMode);
                                 applyMerchantApiUrlPayCheckoutMode(mp, ou.getId(), apiUrlPayCheckoutMode);
                                 applyMerchantChatbotUrlPayCheckoutMode(mp, ou.getId(), chatbotUrlPayCheckoutMode);
                                 applyMerchantJpayCheckoutFieldMode(mp, jpayCheckoutFieldMode);
@@ -2381,7 +2408,7 @@ public class CompService {
                                         splitPayIntervalDayYn, splitPayIntervalMultiYn, splitPayDayIntervalDays,
                                         splitPayMonthIntervalMonths, splitPayMultiMaxMonths, splitPayFirstPayMode);
                                 applyMerchantSplitPayCheckoutPresentation(mp, splitPayHeaderLogoMode, splitPayHeaderLogoUrl,
-                                        splitPayHeaderSubtitleMode, splitPayHeaderSubtitleText, splitPayLangMenuUseYn);
+                                        splitPayHeaderHtmlTitle, splitPayHeaderSubtitleMode, splitPayHeaderSubtitleText, splitPayLangMenuUseYn);
                             }
                             merchantProfileRepository.save(mp);
                             if (assistantLoginId != null && !assistantLoginId.trim().isEmpty()) {
@@ -2674,6 +2701,7 @@ public class CompService {
     private void applyMerchantSplitPayCheckoutPresentation(MerchantProfile mp,
                                                            String headerLogoMode,
                                                            String headerLogoUrl,
+                                                           String headerHtmlTitle,
                                                            String headerSubtitleMode,
                                                            String headerSubtitleText,
                                                            String langMenuUseYn) {
@@ -2693,10 +2721,25 @@ public class CompService {
                 mp.setSplitPayHeaderLogoUrl(logo);
             }
         }
-        if (headerSubtitleMode != null && !headerSubtitleMode.isBlank()) {
-            mp.setSplitPayHeaderSubtitleMode(com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalize(headerSubtitleMode));
+        if (headerHtmlTitle != null) {
+            String htmlTitle = headerHtmlTitle.trim();
+            if (htmlTitle.isEmpty()) {
+                mp.setSplitPayHeaderHtmlTitle(null);
+            } else if (htmlTitle.length() > 20) {
+                throw new IllegalArgumentException("분할결제 HTML 표시명은 20자 이하여야 합니다.");
+            } else {
+                mp.setSplitPayHeaderHtmlTitle(htmlTitle);
+            }
         }
-        if (headerSubtitleText != null) {
+        if (headerSubtitleMode != null && !headerSubtitleMode.isBlank()) {
+            String spSubMode = com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.normalize(headerSubtitleMode);
+            mp.setSplitPayHeaderSubtitleMode(spSubMode);
+            if (com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.isPreset(spSubMode)) {
+                mp.setSplitPayHeaderSubtitleText(null);
+            }
+        }
+        if (headerSubtitleText != null
+                && com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.isDirectActive(mp.getSplitPayHeaderSubtitleMode())) {
             String sub = headerSubtitleText.trim();
             if (sub.isEmpty()) {
                 mp.setSplitPayHeaderSubtitleText(null);
@@ -2711,12 +2754,13 @@ public class CompService {
         }
     }
 
-    /** 가맹점 URL 결제창 표시 옵션 — 상품명·회사명·다국어 메뉴·배송 주소 */
+    /** 가맹점 URL 결제창 표시 옵션 — 상품명·회사명·다국어 메뉴·배송 주소·자동기억 */
     private void applyMerchantUrlPayPresentationOptions(MerchantProfile mp,
                                                       String productNameUseYn,
                                                       String companyNameShowYn,
                                                       String langMenuUseYn,
-                                                      String shippingAddressUseYn) {
+                                                      String shippingAddressUseYn,
+                                                      String checkoutContactRememberMode) {
         if (mp == null) {
             return;
         }
@@ -2732,6 +2776,9 @@ public class CompService {
         if (shippingAddressUseYn != null && !shippingAddressUseYn.isBlank()) {
             mp.setUrlPayShippingAddressUseYn(shippingAddressUseYn.trim());
         }
+        if (checkoutContactRememberMode != null && !checkoutContactRememberMode.isBlank()) {
+            mp.setCheckoutContactRememberMode(checkoutContactRememberMode.trim());
+        }
     }
 
     /** 가맹점 URL 결제창 입력방식 — GENERAL | TYPE_AA | TYPE_BA | TYPE_AN | … | TYPE_CN (구 TYPE_A/B/C 는 normalize 시 AN/BN/CN) */
@@ -2742,6 +2789,13 @@ public class CompService {
         String norm = com.pg.urlpay.UrlPayInputModeUtil.normalizeMerchantStored(urlPayInputMode.trim());
         mp.setUrlPayInputMode(norm);
         /* 표시 옵션·로고·경고는 폼에서 저장한 값 우선 — 입력방식 프리셋은 관리 화면 변경 시에만 JS 동기화 */
+    }
+
+    private void applyMerchantUrlPayCardExpiryMode(MerchantProfile mp, String urlPayCardExpiryMode) {
+        if (mp == null || urlPayCardExpiryMode == null || urlPayCardExpiryMode.isBlank()) {
+            return;
+        }
+        mp.setUrlPayCardExpiryMode(urlPayCardExpiryMode.trim());
     }
 
     /** 가맹점 공개 URL 결제 방식 (STANDARD | REPAY). */
@@ -3201,7 +3255,7 @@ public class CompService {
                 null, null,
                 null, null,
                 null,
-                null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null);
     }
@@ -3242,6 +3296,7 @@ public class CompService {
                                      String urlPayProductNameUseYn,
                                      String urlPayCompanyNameShowYn,
                                      String urlPayLangMenuUseYn,
+                                     String checkoutContactRememberMode,
                                      String urlPayShippingAddressUseYn,
                                      String urlPayInputMode,
                                      String apiUrlPayCheckoutMode,
@@ -3297,6 +3352,7 @@ public class CompService {
                 urlPayProductNameUseYn,
                 urlPayCompanyNameShowYn,
                 urlPayLangMenuUseYn,
+                checkoutContactRememberMode,
                 urlPayShippingAddressUseYn,
                 urlPayInputMode,
                 apiUrlPayCheckoutMode,
@@ -3356,6 +3412,7 @@ public class CompService {
                                      String urlPayProductNameUseYn,
                                      String urlPayCompanyNameShowYn,
                                      String urlPayLangMenuUseYn,
+                                     String checkoutContactRememberMode,
                                      String urlPayShippingAddressUseYn,
                                      String urlPayInputMode,
                                      String apiUrlPayCheckoutMode,
@@ -3448,7 +3505,7 @@ public class CompService {
             applyMerchantUrlPayCheckoutMode(mp, saved.getId(), urlPayCheckoutMode);
             applyMerchantUrlPayPresentationOptions(mp,
                     urlPayProductNameUseYn, urlPayCompanyNameShowYn, urlPayLangMenuUseYn,
-                    urlPayShippingAddressUseYn);
+                    urlPayShippingAddressUseYn, checkoutContactRememberMode);
             applyMerchantUrlPayInputMode(mp, urlPayInputMode);
             applyMerchantApiUrlPayCheckoutMode(mp, saved.getId(), apiUrlPayCheckoutMode);
             applyMerchantChatbotUrlPayCheckoutMode(mp, saved.getId(), chatbotUrlPayCheckoutMode);
@@ -4735,32 +4792,46 @@ public class CompService {
     }
 
     /**
-     * 업체 사용여부 변경 — N/S 시 하위 연쇄. S 는 연동 AppUser 영구정지·세션 무효화.
+     * 업체 사용여부 변경 — N/S 시 하위 연쇄, Y 복원 시 상위연쇄로 함께 미사용됐던 하위만 자동 복원.
+     * <ul>
+     *   <li>N/S — 현재 <b>사용(Y)</b> 인 하위만 함께 미사용/정지 처리하고 「상위연쇄」로 표시.
+     *       이전에 이미 개별 미사용이던 하위는 그대로 둔다.</li>
+     *   <li>Y — 「상위연쇄」로 표시된 하위만 다시 사용으로 복원(개별 미사용이던 하위는 유지).</li>
+     * </ul>
+     * S 는 연동 AppUser 영구정지·세션 무효화.
      */
     private void applyOrgUseYnChange(OrgUnit ou, MerchantProfile mp, String useYnRaw) {
         String prev = OrgUseYnUtil.normalize(mp.getUseYn());
         String normalized = OrgUseYnUtil.normalize(useYnRaw);
         mp.setUseYn(normalized);
+        // 직접(관리자) 편집 대상 조직 자신은 상위연쇄가 아니므로 플래그를 항상 해제한다.
+        mp.setParentCascadeDisabledYn("N");
         if (OrgUseYnUtil.S.equals(normalized)) {
             orgUserSuspensionService.suspendAllLinkedUsers(ou.getId());
-            cascadeUseYnToDescendants(ou.getId(), OrgUseYnUtil.S, true);
+            cascadeDisableToDescendants(ou.getId(), OrgUseYnUtil.S, true);
         } else if (OrgUseYnUtil.N.equals(normalized)) {
-            cascadeUseYnToDescendants(ou.getId(), OrgUseYnUtil.N, false);
+            cascadeDisableToDescendants(ou.getId(), OrgUseYnUtil.N, false);
+        } else if (!OrgUseYnUtil.Y.equals(prev)) {
+            // 미사용/정지 → 사용 으로 복원: 상위연쇄로 함께 꺼졌던 하위만 되살림
+            restoreCascadeDisabledDescendants(ou.getId());
         }
         if (OrgUseYnUtil.S.equals(prev) && !OrgUseYnUtil.S.equals(normalized)) {
             orgUserSuspensionService.restoreAllLinkedUsers(ou.getId());
         }
     }
 
-    private void cascadeUseYnToDescendants(Long rootOrgUnitId, String targetYn, boolean suspendUsers) {
+    /** 상위 미사용/정지 연쇄: 현재 사용(Y) 중인 하위만 함께 끄고 「상위연쇄」로 표시. */
+    private void cascadeDisableToDescendants(Long rootOrgUnitId, String targetYn, boolean suspendUsers) {
         String target = OrgUseYnUtil.normalize(targetYn);
         for (Long did : collectDescendantIds(rootOrgUnitId)) {
             merchantProfileRepository.findByOrgUnitId(did).ifPresent(dmp -> {
-                String prevUy = dmp.getUseYn();
-                if (target.equals(OrgUseYnUtil.normalize(prevUy))) {
+                String prevUy = OrgUseYnUtil.normalize(dmp.getUseYn());
+                // 이미 미사용/정지이던 하위(개별 설정)는 그대로 두어 복원 대상에서 제외한다.
+                if (!OrgUseYnUtil.Y.equals(prevUy)) {
                     return;
                 }
                 dmp.setUseYn(target);
+                dmp.setParentCascadeDisabledYn("Y");
                 merchantProfileRepository.save(dmp);
                 orgUnitRepository.findById(did).ifPresent(dchild ->
                         orgUnitChangeAuditService.appendIfChanged(
@@ -4772,6 +4843,50 @@ public class CompService {
                                 ynDisplay(target)));
                 if (suspendUsers) {
                     orgUserSuspensionService.suspendAllLinkedUsers(did);
+                }
+            });
+        }
+    }
+
+    /**
+     * 상위 사용(Y) 복원: 「상위연쇄」로 함께 미사용/정지됐던 하위만 다시 사용으로 되살린다.
+     * 개별 미사용이던 하위는 유지. 직상위가 아직 미사용/정지면 정합성 위해 복원하지 않는다.
+     * ({@link #collectDescendantIds}는 부모→자식 전위 순서라 부모가 먼저 복원된 뒤 자식이 판정된다.)
+     */
+    private void restoreCascadeDisabledDescendants(Long rootOrgUnitId) {
+        for (Long did : collectDescendantIds(rootOrgUnitId)) {
+            merchantProfileRepository.findByOrgUnitId(did).ifPresent(dmp -> {
+                if (!"Y".equalsIgnoreCase(nz(dmp.getParentCascadeDisabledYn()))) {
+                    return;
+                }
+                Optional<OrgUnit> ouOpt = orgUnitRepository.findById(did);
+                if (ouOpt.isEmpty()) {
+                    return;
+                }
+                Long parentId = ouOpt.get().getParentId();
+                boolean parentActive = parentId == null
+                        || parentId.equals(rootOrgUnitId)
+                        || merchantProfileRepository.findByOrgUnitId(parentId)
+                                .map(pmp -> OrgUseYnUtil.Y.equals(OrgUseYnUtil.normalize(pmp.getUseYn())))
+                                .orElse(true);
+                if (!parentActive) {
+                    return;
+                }
+                String prevUy = OrgUseYnUtil.normalize(dmp.getUseYn());
+                boolean wasSuspended = OrgUseYnUtil.S.equals(prevUy);
+                dmp.setUseYn(OrgUseYnUtil.Y);
+                dmp.setParentCascadeDisabledYn("N");
+                merchantProfileRepository.save(dmp);
+                orgUnitRepository.findById(did).ifPresent(dchild ->
+                        orgUnitChangeAuditService.appendIfChanged(
+                                dchild.getId(),
+                                nz(dchild.getCode()),
+                                nz(dchild.getName()),
+                                "[업체정보] 업체사용여부(상위연쇄복원)",
+                                ynDisplay(prevUy),
+                                ynDisplay(OrgUseYnUtil.Y)));
+                if (wasSuspended) {
+                    orgUserSuspensionService.restoreAllLinkedUsers(did);
                 }
             });
         }
@@ -5075,7 +5190,7 @@ public class CompService {
                             null, null,
                             null, null,
                             null,
-                            null, null, null, null, null, null, null, null, null,
+                            null, null, null, null, null, null, null, null, null, null,
                             null, null, null, null, null, null, null, null,
                             null, null, null, null, null, null, null, null);
                     if (loginIdVal != null && !loginIdVal.isEmpty() && userRepository.findByUsername(loginIdVal).isEmpty()) {

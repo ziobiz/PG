@@ -39,8 +39,7 @@
         { "label": "통합개요", "url": "/calc/jpayTrList", "menuId": "M0328" },
         { "label": "결제개요", "url": "/calc/payOverview", "menuId": "M0333" },
         { "label": "일별조회", "url": "/calc/queryIntegrated", "menuId": "M0331" },
-        { "label": "대행수수료", "url": "/ops/agencyTxnList", "menuId": "M0607" },
-        { "label": "리스크 현황", "url": "/risk/list", "menuId": "M0701" }
+        { "label": "대행수수료", "url": "/ops/agencyTxnList", "menuId": "M0607" }
       ]
     },
     {
@@ -132,7 +131,10 @@
         { "label": "통합 리포트", "url": "/ops/integratedReport", "menuId": "M0604" },
         { "label": "검증 리포트", "url": "/ops/verifyReport", "menuId": "M0605" },
         { "label": "비활성카드등록", "url": "/ops/inactiveCard", "menuId": "M0606" },
-        { "label": "노티생성", "url": "/ops/notiProvision", "menuId": "M0608" }
+        { "label": "리스크 현황", "url": "/risk/list", "menuId": "M0701" },
+        { "label": "노티생성", "url": "/ops/notiProvision", "menuId": "M0608" },
+        { "label": "유통망내역", "url": "/ops/distributionTxnList", "menuId": "M0609" },
+        { "label": "유통망정산", "url": "/ops/distributionSettlement", "menuId": "M0610" }
       ]
     }
   ]

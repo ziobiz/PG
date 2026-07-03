@@ -61,6 +61,8 @@ public class UserViewSettingService {
         m.put("columnAllowanceRestricted", restriction.isPresent());
         if (restriction.isPresent()) {
             m.put("allowedKeysJson", writeJsonArray(restriction.get()));
+            allowanceService.getDefaultSelectedKeys(username, pageUrl).ifPresent(defSel ->
+                    m.put("defaultSelectedKeysJson", writeJsonArray(defSel)));
         } else {
             m.put("allowedKeysJson", null);
         }

@@ -74,6 +74,41 @@ public class JpayTradeApiService {
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
     }
 
+    /**
+     * {@code pay_index} 직전 멱등·중복 가드 — 조회 실패 시 empty(호출 계속).
+     */
+    public Optional<TradeQuerySnapshot> tryQueryTradeForOrgUnit(long orgUnitId, String orderNo) {
+        if (orderNo == null || orderNo.isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            TradeCtx ctx = resolveTradeCtxForOrgUnit(orgUnitId)
+                    .orElseThrow(() -> new IllegalStateException("JPAY trade ctx missing"));
+            JsonNode body = postTradeQuery(ctx, orderNo.trim());
+            String tradeState = body.path("trade_state").asText("");
+            String returnCode = body.path("returncode").asText("");
+            String txnId = body.path("transaction_id").asText("");
+            String mapped = JpayTradeStatusMapper.mapTradeQueryPaymentStatus(tradeState);
+            return Optional.of(new TradeQuerySnapshot(
+                    true, tradeState, returnCode, txnId, mapped,
+                    body.path("msg").asText("")));
+        } catch (Exception e) {
+            log.debug("JPAY trade query before sale skipped orgUnitId={} orderNo={}: {}",
+                    orgUnitId, orderNo, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    public record TradeQuerySnapshot(
+            boolean queryOk,
+            String tradeState,
+            String returnCode,
+            String transactionId,
+            String mappedInternalStatus,
+            String msg
+    ) {
+    }
+
     public Map<String, Object> queryAndApplyToTxn(String trnId) {
         PgTrnsctn t = pgTrnsctnRepository.findById(trnId.trim())
                 .orElseThrow(() -> new IllegalArgumentException("거래를 찾을 수 없습니다."));
@@ -255,17 +290,31 @@ public class JpayTradeApiService {
         long ouId = orgUnitRepository.findByCodeIgnoreCase(nz(t.getMerchantId()))
                 .orElseThrow(() -> new IllegalStateException("가맹점 조직을 찾을 수 없습니다: " + t.getMerchantId()))
                 .getId();
-        MerchantPgBinding binding = findOperationalJpayBinding(ouId, t.getVan())
+        return resolveTradeCtxForOrgUnit(ouId, t.getVan())
                 .orElseThrow(() -> new IllegalStateException("JPAY 운영 PG 바인딩이 없습니다."));
-        PgAgency agency = pgAgencyRepository.findByPgCd(nz(binding.getPgCd()))
-                .orElseThrow(() -> new IllegalStateException("PG사 연동 행을 찾을 수 없습니다."));
+    }
+
+    Optional<TradeCtx> resolveTradeCtxForOrgUnit(long orgUnitId) {
+        return resolveTradeCtxForOrgUnit(orgUnitId, null);
+    }
+
+    private Optional<TradeCtx> resolveTradeCtxForOrgUnit(long orgUnitId, String pgCdHint) {
+        MerchantPgBinding binding = findOperationalJpayBinding(orgUnitId, pgCdHint)
+                .orElse(null);
+        if (binding == null) {
+            return Optional.empty();
+        }
+        PgAgency agency = pgAgencyRepository.findByPgCd(nz(binding.getPgCd())).orElse(null);
+        if (agency == null) {
+            return Optional.empty();
+        }
         String mid = nz(binding.getMid());
         String apiKey = agency.getApiKey() != null ? agency.getApiKey().trim() : "";
         if (mid.isBlank() || apiKey.isBlank()) {
-            throw new IllegalStateException("JPAY MID·API Key를 설정하세요.");
+            return Optional.empty();
         }
         String tradeBase = resolveTradeApiBase(agency);
-        return new TradeCtx(mid, apiKey, tradeBase);
+        return Optional.of(new TradeCtx(mid, apiKey, tradeBase));
     }
 
     private Optional<MerchantPgBinding> findOperationalJpayBinding(long orgUnitId, String pgCdHint) {

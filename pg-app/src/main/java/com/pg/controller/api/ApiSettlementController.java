@@ -1603,13 +1603,19 @@ public class ApiSettlementController {
         boolean effectiveMultiCurrency = multi || !baseCurrencyConfigured;
 
         Map<String, BigDecimal> approve = new HashMap<>();
-        Map<String, BigDecimal> cancel = new HashMap<>();
+        Map<String, BigDecimal> reversal = new HashMap<>();
+        Map<String, BigDecimal> refund = new HashMap<>();
+        Map<String, BigDecimal> fail = new HashMap<>();
         Map<String, Long> approveCountByCur = new HashMap<>();
-        Map<String, Long> cancelCountByCur = new HashMap<>();
+        Map<String, Long> refundCountByCur = new HashMap<>();
+        Map<String, Long> failCountByCur = new HashMap<>();
         Map<String, BigDecimal> totalTxn = new HashMap<>();
         Map<String, BigDecimal> totalFeeSum = new HashMap<>();
         Map<String, BigDecimal> holdSum = new HashMap<>();
         Map<String, BigDecimal> vatSum = new HashMap<>();
+        Map<String, BigDecimal> fxSum = new HashMap<>();
+        Map<String, BigDecimal> rowExpectedPayoutSum = new HashMap<>();
+        Map<String, BigDecimal> rowSettlementSum = new HashMap<>();
         long totalCount = 0;
         boolean capped = false;
 
@@ -1658,25 +1664,43 @@ public class ApiSettlementController {
             if ("10".equals(st)) {
                 approveCountByCur.merge(cur, 1L, Long::sum);
                 approve.merge(cur, amt, BigDecimal::add);
-            } else if (PayListItemDto.isCancelAmountStatus(st)) {
-                cancelCountByCur.merge(cur, 1L, Long::sum);
-                cancel.merge(cur, amt, BigDecimal::add);
+            } else if (PayListItemDto.isRefundAmountStatus(st)) {
+                refundCountByCur.merge(cur, 1L, Long::sum);
+                refund.merge(cur, amt, BigDecimal::add);
+            } else if (PayListItemDto.isFailAmountStatus(st)) {
+                failCountByCur.merge(cur, 1L, Long::sum);
+                fail.merge(cur, amt, BigDecimal::add);
+            }
+            if (feeListTxnAmountService.countsTowardFinancialSummaryReversal(t)) {
+                reversal.merge(cur, amt, BigDecimal::add);
             }
             FeeListTxnAmountService.FeeListTxnAmounts amts = feeListTxnAmountService.compute(
                     t, ctx, pol, payCurKey, feeResolver, monthCbCountCache, tiersByPolicyId, splitPayCache);
             totalFeeSum.merge(cur, amts.totalFee(), BigDecimal::add);
             holdSum.merge(cur, amts.rollingHoldEst(), BigDecimal::add);
             vatSum.merge(cur, amts.feeVat(), BigDecimal::add);
+            rowExpectedPayoutSum.merge(cur, amts.expectedPayout(), BigDecimal::add);
+            rowSettlementSum.merge(cur, amts.settlementAmt(), BigDecimal::add);
+            if ("10".equals(st)) {
+                BigDecimal fx = feeListTxnAmountService.fxFeeForTxn(
+                        t, ctx, pol, payCurKey, feeResolver, monthCbCountCache, tiersByPolicyId, splitPayCache);
+                if (fx.signum() != 0) {
+                    fxSum.merge(cur, fx, BigDecimal::add);
+                }
+            }
         }
 
         if (!baseCurrencyConfigured) {
             Set<String> union = new HashSet<>();
             union.addAll(totalTxn.keySet());
             union.addAll(approve.keySet());
-            union.addAll(cancel.keySet());
+            union.addAll(reversal.keySet());
+            union.addAll(refund.keySet());
+            union.addAll(fail.keySet());
             union.addAll(totalFeeSum.keySet());
             union.addAll(holdSum.keySet());
             union.addAll(vatSum.keySet());
+            union.addAll(fxSum.keySet());
             currencyOrder.clear();
             currencyOrder.addAll(union);
             PayListStatusBarBuckets.sortCurrencyCodes(currencyOrder);
@@ -1685,9 +1709,10 @@ public class ApiSettlementController {
             currencyOrder.add(primaryNorm);
         }
 
-        return payListService.packFeeListFinancialSummaryPayload(totalTxn, approve, cancel, approveCountByCur,
-                cancelCountByCur, totalFeeSum, holdSum, vatSum, totalCount, capped, primaryNorm, currencyOrder,
-                effectiveMultiCurrency);
+        return payListService.packFeeListFinancialSummaryPayload(totalTxn, approve, reversal, refund, fail,
+                approveCountByCur, refundCountByCur, failCountByCur,
+                totalFeeSum, holdSum, vatSum, fxSum, totalCount, capped, primaryNorm, currencyOrder,
+                effectiveMultiCurrency, rowExpectedPayoutSum, rowSettlementSum);
     }
 
     private static BigDecimal toBigDecimal(Object v) {
@@ -1758,12 +1783,18 @@ public class ApiSettlementController {
         final Map<String, Double> sums = new LinkedHashMap<>();
         final Map<String, BigDecimal> totalTxn = new HashMap<>();
         final Map<String, BigDecimal> approve = new HashMap<>();
-        final Map<String, BigDecimal> cancel = new HashMap<>();
+        final Map<String, BigDecimal> reversal = new HashMap<>();
+        final Map<String, BigDecimal> refund = new HashMap<>();
+        final Map<String, BigDecimal> fail = new HashMap<>();
         final Map<String, Long> approveCountByCur = new HashMap<>();
-        final Map<String, Long> cancelCountByCur = new HashMap<>();
+        final Map<String, Long> refundCountByCur = new HashMap<>();
+        final Map<String, Long> failCountByCur = new HashMap<>();
         final Map<String, BigDecimal> totalFeeSum = new HashMap<>();
         final Map<String, BigDecimal> holdSum = new HashMap<>();
         final Map<String, BigDecimal> vatSum = new HashMap<>();
+        final Map<String, BigDecimal> fxSum = new HashMap<>();
+        final Map<String, BigDecimal> rowExpectedPayoutSum = new HashMap<>();
+        final Map<String, BigDecimal> rowSettlementSum = new HashMap<>();
 
         DailyFeeDayAgg() {
             for (String k : DAILY_FEE_SUM_NUMERIC_KEYS) {
@@ -1987,13 +2018,25 @@ public class ApiSettlementController {
                 if ("10".equals(st)) {
                     agg.approveCountByCur.merge(cur, 1L, Long::sum);
                     agg.approve.merge(cur, amt, BigDecimal::add);
-                } else if (PayListItemDto.isCancelAmountStatus(st)) {
-                    agg.cancelCountByCur.merge(cur, 1L, Long::sum);
-                    agg.cancel.merge(cur, amt, BigDecimal::add);
+                } else if (PayListItemDto.isRefundAmountStatus(st)) {
+                    agg.refundCountByCur.merge(cur, 1L, Long::sum);
+                    agg.refund.merge(cur, amt, BigDecimal::add);
+                } else if (PayListItemDto.isFailAmountStatus(st)) {
+                    agg.failCountByCur.merge(cur, 1L, Long::sum);
+                    agg.fail.merge(cur, amt, BigDecimal::add);
+                }
+                if (feeListTxnAmountService.countsTowardFinancialSummaryReversal(t)) {
+                    agg.reversal.merge(cur, amt, BigDecimal::add);
                 }
                 agg.totalFeeSum.merge(cur, toBigDecimal(row.get("totalFee")), BigDecimal::add);
                 agg.holdSum.merge(cur, toBigDecimal(row.get("rollingHoldEst")), BigDecimal::add);
                 agg.vatSum.merge(cur, toBigDecimal(row.get("feeVat")), BigDecimal::add);
+                agg.rowExpectedPayoutSum.merge(cur, toBigDecimal(row.get("expectedPayout")), BigDecimal::add);
+                agg.rowSettlementSum.merge(cur, toBigDecimal(row.get("settlementAmt")), BigDecimal::add);
+                BigDecimal fx = toBigDecimal(row.get("fxFee"));
+                if (fx.signum() != 0) {
+                    agg.fxSum.merge(cur, fx, BigDecimal::add);
+                }
             }
         }
 
@@ -2022,10 +2065,13 @@ public class ApiSettlementController {
                 Set<String> union = new HashSet<>();
                 union.addAll(agg.totalTxn.keySet());
                 union.addAll(agg.approve.keySet());
-                union.addAll(agg.cancel.keySet());
+                union.addAll(agg.reversal.keySet());
+                union.addAll(agg.refund.keySet());
+                union.addAll(agg.fail.keySet());
                 union.addAll(agg.totalFeeSum.keySet());
                 union.addAll(agg.holdSum.keySet());
                 union.addAll(agg.vatSum.keySet());
+                union.addAll(agg.fxSum.keySet());
                 dayCurrencyOrder.addAll(union);
                 PayListStatusBarBuckets.sortCurrencyCodes(dayCurrencyOrder);
             }
@@ -2033,9 +2079,11 @@ public class ApiSettlementController {
                 dayCurrencyOrder.add(dailyFeePrimaryNorm);
             }
             one.put("payListFinancialSummary", payListService.packFeeListFinancialSummaryPayload(
-                    agg.totalTxn, agg.approve, agg.cancel, agg.approveCountByCur, agg.cancelCountByCur,
-                    agg.totalFeeSum, agg.holdSum, agg.vatSum, agg.txnCount,
-                    capped && agg.txnCount > 0, dailyFeePrimaryNorm, dayCurrencyOrder, dailyFeeEffectiveMultiCurrency));
+                    agg.totalTxn, agg.approve, agg.reversal, agg.refund, agg.fail,
+                    agg.approveCountByCur, agg.refundCountByCur, agg.failCountByCur,
+                    agg.totalFeeSum, agg.holdSum, agg.vatSum, agg.fxSum, agg.txnCount,
+                    capped && agg.txnCount > 0, dailyFeePrimaryNorm, dayCurrencyOrder, dailyFeeEffectiveMultiCurrency,
+                    agg.rowExpectedPayoutSum, agg.rowSettlementSum));
             one.put("settlementStateLabel", settlementStateLabel);
             one.put("scannedRows", agg.txnCount);
             one.put("capped", capped && agg.txnCount > 0);
@@ -2105,6 +2153,8 @@ public class ApiSettlementController {
             ors.add(cb.like(root.get("trnId"), "%" + esc + "%", '\\'));
             ors.add(cb.like(root.get("approvalNo"), "%" + esc + "%", '\\'));
             ors.add(cb.like(root.get("routeNo"), "%" + esc + "%", '\\'));
+            ors.add(cb.like(root.get("customerId"), "%" + esc + "%", '\\'));
+            ors.add(cb.like(root.get("customerNm"), "%" + esc + "%", '\\'));
             ors.add(cb.like(cb.upper(root.get("curType")), "%" + esc.toUpperCase(Locale.ROOT) + "%", '\\'));
             ors.add(cb.like(root.get("status"), "%" + esc + "%", '\\'));
             ors.add(cb.like(root.get("chillPaymentStatus"), "%" + esc + "%", '\\'));
@@ -2130,6 +2180,8 @@ public class ApiSettlementController {
                     cb.like(root.get("chillTransactionId"), "%" + esc + "%", '\\'),
                     cb.like(root.get("approvalNo"), "%" + esc + "%", '\\'));
             case "ROUTE" -> cb.like(root.get("routeNo"), "%" + esc + "%", '\\');
+            case "CUSTOMER_ID" -> cb.like(root.get("customerId"), "%" + esc + "%", '\\');
+            case "CUSTOMER_NAME" -> cb.like(root.get("customerNm"), "%" + esc + "%", '\\');
             case "CURRENCY" -> cb.like(cb.upper(root.get("curType")), "%" + esc.toUpperCase(Locale.ROOT) + "%", '\\');
             case "STATUS" -> cb.or(
                     cb.like(root.get("status"), "%" + esc + "%", '\\'),

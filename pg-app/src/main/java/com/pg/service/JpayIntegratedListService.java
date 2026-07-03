@@ -1770,6 +1770,26 @@ public class JpayIntegratedListService {
 
                             }
 
+                        } else if ("CUSTOMER_NAME".equals(ft)) {
+
+                            String nm = String.valueOf(r.getOrDefault("customerName", "")).toLowerCase(Locale.ROOT);
+
+                            if (!nm.contains(kw)) {
+
+                                return false;
+
+                            }
+
+                        } else if ("CUSTOMER_ID".equals(ft)) {
+
+                            String cid = String.valueOf(r.getOrDefault("customerId", "")).toLowerCase(Locale.ROOT);
+
+                            if (!cid.contains(kw)) {
+
+                                return false;
+
+                            }
+
                         } else {
 
                             String blob = (txnId + " "
@@ -1781,6 +1801,10 @@ public class JpayIntegratedListService {
                                 + r.getOrDefault("compId", "") + " "
 
                                 + r.getOrDefault("compNm", "") + " "
+
+                                + r.getOrDefault("customerName", "") + " "
+
+                                + r.getOrDefault("customerId", "") + " "
 
                                 + r.getOrDefault("masterDistCompId", "") + " "
 
@@ -1815,13 +1839,16 @@ public class JpayIntegratedListService {
      */
     public Map<String, Object> buildDailyIntegratedSummary(LocalDate tFrom, LocalDate tTo, LocalDate effectiveTo,
                                                            String searchKeyword, String searchOrderNo,
-                                                           String searchPayDivCd, String searchOrderDir) {
+                                                           String searchPayDivCd, String searchOrderDir,
+                                                           Authentication authentication) {
         ensureExportCacheLoaded();
         List<Map<String, Object>> filtered = filterRows(cachedRows, searchKeyword, searchOrderNo, searchPayDivCd,
                 tFrom, effectiveTo, null);
         Map<LocalDate, JpayDayAgg> byDay = new LinkedHashMap<>();
+        Map<LocalDate, List<Map<String, Object>>> rowsByDay = new LinkedHashMap<>();
         for (LocalDate d = tFrom; !d.isAfter(effectiveTo); d = d.plusDays(1)) {
             byDay.put(d, new JpayDayAgg());
+            rowsByDay.put(d, new ArrayList<>());
         }
         for (Map<String, Object> row : filtered) {
             String dStr = String.valueOf(row.getOrDefault("trnDate", "")).trim();
@@ -1835,34 +1862,26 @@ public class JpayIntegratedListService {
                 continue;
             }
             JpayDayAgg agg = byDay.get(ld);
-            if (agg == null) {
+            List<Map<String, Object>> dayRows = rowsByDay.get(ld);
+            if (agg == null || dayRows == null) {
                 continue;
             }
+            dayRows.add(row);
             agg.count++;
             String st = resolveJpayRowStatusCode(row);
             String bucket = PayListStatusBarBuckets.bucketForPgStatus(st);
             agg.bucketCount.merge(bucket, 1L, Long::sum);
-            String cur = resolveJpayAggregateCurrency(row);
-            BigDecimal amt = PayListStatusBarBuckets.parseMoney(row.get("amount"));
-            agg.totalTxn.merge(cur, amt, BigDecimal::add);
-            if (PayListStatusBarBuckets.SUCCESS.equals(bucket)) {
-                agg.successCount++;
-                agg.approve.merge(cur, amt, BigDecimal::add);
-                agg.approveCountByCur.merge(cur, 1L, Long::sum);
-            } else if (isJpayCancelFinancialBucket(bucket)) {
-                agg.cancel.merge(cur, amt, BigDecimal::add);
-                agg.cancelCountByCur.merge(cur, 1L, Long::sum);
-            }
         }
         List<Map<String, Object>> rows = new ArrayList<>();
         for (LocalDate d = effectiveTo; !d.isBefore(tFrom); d = d.minusDays(1)) {
             JpayDayAgg agg = byDay.getOrDefault(d, new JpayDayAgg());
+            List<Map<String, Object>> dayRows = rowsByDay.getOrDefault(d, List.of());
             Map<String, Object> one = new LinkedHashMap<>();
             one.put("day", d.toString());
             one.put("totalElements", agg.count);
             one.put("statusBucketCounts", new LinkedHashMap<>(agg.bucketCount));
             Map<String, Object> meta = new LinkedHashMap<>();
-            meta.put("payListFinancialSummary", agg.toFinancialSummary());
+            meta.put("payListFinancialSummary", payListService.buildJpayFinancialSummary(dayRows, authentication));
             one.put("meta", meta);
             rows.add(one);
         }
@@ -1896,15 +1915,19 @@ public class JpayIntegratedListService {
         final Map<String, Long> bucketCount = new HashMap<>();
         final Map<String, BigDecimal> totalTxn = new HashMap<>();
         final Map<String, BigDecimal> approve = new HashMap<>();
-        final Map<String, BigDecimal> cancel = new HashMap<>();
+        final Map<String, BigDecimal> refund = new HashMap<>();
+        final Map<String, BigDecimal> fail = new HashMap<>();
+        final Map<String, BigDecimal> reversal = new HashMap<>();
         final Map<String, Long> approveCountByCur = new HashMap<>();
-        final Map<String, Long> cancelCountByCur = new HashMap<>();
+        final Map<String, Long> refundCountByCur = new HashMap<>();
+        final Map<String, Long> failCountByCur = new HashMap<>();
 
         Map<String, Object> toFinancialSummary() {
             Set<String> union = new HashSet<>();
             union.addAll(totalTxn.keySet());
             union.addAll(approve.keySet());
-            union.addAll(cancel.keySet());
+            union.addAll(refund.keySet());
+            union.addAll(fail.keySet());
             List<String> currencyOrder = new ArrayList<>(union);
             PayListStatusBarBuckets.sortCurrencyCodes(currencyOrder);
             if (currencyOrder.isEmpty()) {
@@ -1912,19 +1935,23 @@ public class JpayIntegratedListService {
             }
             Map<String, String> totalTxnPlain = new LinkedHashMap<>();
             Map<String, String> approvePlain = new LinkedHashMap<>();
-            Map<String, String> cancelPlain = new LinkedHashMap<>();
+            Map<String, String> refundPlain = new LinkedHashMap<>();
+            Map<String, String> failPlain = new LinkedHashMap<>();
             Map<String, String> paymentPlain = new LinkedHashMap<>();
             Map<String, Long> approveCountPlain = new LinkedHashMap<>();
-            Map<String, Long> cancelCountPlain = new LinkedHashMap<>();
+            Map<String, Long> refundCountPlain = new LinkedHashMap<>();
+            Map<String, Long> failCountPlain = new LinkedHashMap<>();
             for (String c : currencyOrder) {
                 BigDecimal a = approve.getOrDefault(c, BigDecimal.ZERO);
-                BigDecimal k = cancel.getOrDefault(c, BigDecimal.ZERO);
+                BigDecimal rev = reversal.getOrDefault(c, BigDecimal.ZERO);
                 totalTxnPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(totalTxn.getOrDefault(c, BigDecimal.ZERO)));
                 approvePlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(a));
-                cancelPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(k));
-                paymentPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(a.subtract(k)));
+                refundPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(refund.getOrDefault(c, BigDecimal.ZERO)));
+                failPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(fail.getOrDefault(c, BigDecimal.ZERO)));
+                paymentPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(a.subtract(rev)));
                 approveCountPlain.put(c, approveCountByCur.getOrDefault(c, 0L));
-                cancelCountPlain.put(c, cancelCountByCur.getOrDefault(c, 0L));
+                refundCountPlain.put(c, refundCountByCur.getOrDefault(c, 0L));
+                failCountPlain.put(c, failCountByCur.getOrDefault(c, 0L));
             }
             Map<String, Object> out = new LinkedHashMap<>();
             out.put("successCount", successCount);
@@ -1933,9 +1960,10 @@ public class JpayIntegratedListService {
             out.put("currencyOrder", currencyOrder);
             out.put("totalTxnByCurrency", totalTxnPlain);
             out.put("approveByCurrency", approvePlain);
-            out.put("cancelByCurrency", cancelPlain);
-            out.put("approveCountByCurrency", approveCountPlain);
-            out.put("cancelCountByCurrency", cancelCountPlain);
+            out.put("refundByCurrency", refundPlain);
+            out.put("refundCountByCurrency", refundCountPlain);
+            out.put("failByCurrency", failPlain);
+            out.put("failCountByCurrency", failCountPlain);
             out.put("paymentByCurrency", paymentPlain);
             return out;
         }
@@ -2085,9 +2113,16 @@ public class JpayIntegratedListService {
                 agg.successCount++;
                 agg.approve.merge(cur, amt, BigDecimal::add);
                 agg.approveCountByCur.merge(cur, 1L, Long::sum);
+            } else if (PayListStatusBarBuckets.REFUND.equals(bucket) || PayListStatusBarBuckets.FORCE_REFUND.equals(bucket)) {
+                agg.refund.merge(cur, amt, BigDecimal::add);
+                agg.refundCountByCur.merge(cur, 1L, Long::sum);
+                agg.reversal.merge(cur, amt, BigDecimal::add);
+            } else if (PayListStatusBarBuckets.FAIL.equals(bucket)) {
+                agg.fail.merge(cur, amt, BigDecimal::add);
+                agg.failCountByCur.merge(cur, 1L, Long::sum);
+                agg.reversal.merge(cur, amt, BigDecimal::add);
             } else if (isJpayCancelFinancialBucket(bucket)) {
-                agg.cancel.merge(cur, amt, BigDecimal::add);
-                agg.cancelCountByCur.merge(cur, 1L, Long::sum);
+                agg.reversal.merge(cur, amt, BigDecimal::add);
             }
         }
         return agg.toFinancialSummary();
