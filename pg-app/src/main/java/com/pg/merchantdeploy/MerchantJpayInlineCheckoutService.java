@@ -15,6 +15,7 @@ import com.pg.splitpay.SplitPayCheckoutModeGuard;
 import com.pg.service.OrgServiceUseService;
 import com.pg.service.UrlPayCheckoutCurrencyService;
 import com.pg.urlpay.UrlPayCheckoutModeUtil;
+import com.pg.urlpay.NeutralCheckoutRoute;
 import com.pg.util.PgTrnsctnOrderLookup;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
@@ -84,7 +85,7 @@ public class MerchantJpayInlineCheckoutService {
         }
         if (body != null && (body.containsKey("subscriptionPlan") || body.containsKey("subscription_plan")
                 || "SUBSCRIPTION".equalsIgnoreCase(str(body.get("checkoutKind"))))) {
-            return fail("JPAY 구독 가입은 /api/middleware/v1/merchant/jpay/subscription/prepare 를 사용하세요.", "SUBSCRIPTION_USE_DEDICATED_API");
+            return fail("구독(정기결제) 가입은 /api/middleware/v1/merchant/checkout/subscription/prepare 를 사용하세요.", "SUBSCRIPTION_USE_DEDICATED_API");
         }
         Optional<OrgUnit> ouOpt = orgUnitRepository.findById(orgUnitId);
         if (ouOpt.isEmpty()) {
@@ -177,11 +178,8 @@ public class MerchantJpayInlineCheckoutService {
         MerchantInlineCheckoutTokenService.SessionPayload session = parsed.get();
 
         String base = trimSlash(productService.resolvePublicCustomerSiteBase(request));
-        String payPath = buildJpayPayPath(ou.getCode(), sessionToken, orderNo, amountPlain, currency, productName, langCode);
-        String payUrl = base.isEmpty() ? payPath : base + payPath;
-        String embedScriptUrl = base.isEmpty()
-                ? "/v1/embed-jpay-pay/" + urlEnc(ou.getCode())
-                : base + "/v1/embed-jpay-pay/" + urlEnc(ou.getCode());
+        String payUrl = NeutralCheckoutRoute.buildPayUrl(base, ou.getCode(), sessionToken, langCode, true);
+        String embedScriptUrl = NeutralCheckoutRoute.buildEmbedScriptUrl(base, ou.getCode());
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.putAll(session.toPublicMap());
@@ -190,7 +188,7 @@ public class MerchantJpayInlineCheckoutService {
         data.put("embedScriptUrl", embedScriptUrl);
         data.put("inlineCheckoutPrepareUrl",
                 trimSlash(productService.resolvePublicCustomerSiteBase(request))
-                        + "/api/middleware/v1/merchant/jpay/inline-checkout/prepare");
+                        + "/api/middleware/v1/merchant/checkout/prepare");
         data.put("integrationMode", "INLINE");
         data.put("pgVendor", MerchantPgBrokerVendor.JPAY);
         if (langCode != null && !langCode.isBlank()) {

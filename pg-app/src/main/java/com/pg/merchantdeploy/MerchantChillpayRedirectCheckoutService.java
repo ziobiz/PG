@@ -11,6 +11,7 @@ import com.pg.service.ChillPayService;
 import com.pg.service.MerchantChatbotProductService;
 import com.pg.service.OrgServiceUseService;
 import com.pg.util.ChillPayDirectCreditUtil;
+import com.pg.urlpay.NeutralCheckoutRoute;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 
@@ -135,9 +136,7 @@ public class MerchantChillpayRedirectCheckoutService {
         MerchantInlineCheckoutTokenService.SessionPayload session = parsed.get();
 
         String base = trimSlash(productService.resolvePublicCustomerSiteBase(request));
-        String payPath = buildPayPath(ou.getCode(), sessionToken, orderNo, amountPlain, currency, productName,
-                langCode);
-        String payUrl = base.isEmpty() ? payPath : base + payPath;
+        String payUrl = NeutralCheckoutRoute.buildPayUrl(base, ou.getCode(), sessionToken, langCode, false);
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.putAll(session.toPublicMap());
@@ -145,7 +144,7 @@ public class MerchantChillpayRedirectCheckoutService {
         data.put("payUrl", payUrl);
         data.put("redirectCheckoutPrepareUrl",
                 trimSlash(productService.resolvePublicCustomerSiteBase(request))
-                        + "/api/middleware/v1/merchant/chillpay/redirect-checkout/prepare");
+                        + "/api/middleware/v1/merchant/checkout/redirect/prepare");
         data.put("integrationMode", "REDIRECT");
         data.put("pgVendor", MerchantPgBrokerVendor.CHILLPAY);
         if (langCode != null && !langCode.isBlank()) {

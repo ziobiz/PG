@@ -13,6 +13,7 @@ public final class MerchantPgBrokerVendor {
     public static final String ALL = "ALL";
     public static final String CHILLPAY = PgVendor.CHILLPAY;
     public static final String JPAY = PgVendor.JPAY;
+    public static final String EXIMBAY = PgVendor.EXIMBAY;
 
     private MerchantPgBrokerVendor() {
     }
@@ -26,7 +27,8 @@ public final class MerchantPgBrokerVendor {
 
     public static boolean isKnownVendorScope(String scope) {
         String s = normalizeScope(scope);
-        return ALL.equals(s) || PgVendor.isChillPayFamily(s) || PgVendor.isJpayFamily(s);
+        return ALL.equals(s) || PgVendor.isChillPayFamily(s) || PgVendor.isJpayFamily(s)
+                || PgVendor.isEximbayFamily(s);
     }
 
     /** HTTP 경로 세그먼트(소문자) → 벤더 스코프 */
@@ -40,6 +42,9 @@ public final class MerchantPgBrokerVendor {
         }
         if ("jpay".equals(u)) {
             return JPAY;
+        }
+        if ("eximbay".equals(u)) {
+            return EXIMBAY;
         }
         return ALL;
     }

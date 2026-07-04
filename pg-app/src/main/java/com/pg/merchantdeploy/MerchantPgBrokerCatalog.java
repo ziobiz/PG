@@ -43,6 +43,20 @@ public class MerchantPgBrokerCatalog {
                 List.of("/api/middleware/v1/pg/jpay/sale"),
                 List.of("/api/pay/jpay/sale")
         ));
+        list.add(new MerchantPgBrokerRouteDefinition(
+                MerchantPgBrokerVendor.EXIMBAY,
+                "Eximbay (해외·간편결제)",
+                "eximbay",
+                List.of(
+                        "/api/middleware/v1/pg/eximbay/ready",
+                        "/api/middleware/v1/pg/eximbay/verify"
+                ),
+                List.of(
+                        "/api/pay/url/checkout-context",
+                        "/api/pay/url/sale",
+                        "/api/pay/eximbay/verify"
+                )
+        ));
         this.definitions = Collections.unmodifiableList(list);
     }
 

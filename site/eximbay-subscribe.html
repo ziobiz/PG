@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+  <title>ICOPAY Easy Payment</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/pay-inline.css?v=37" rel="stylesheet">
+  <script src="js/pg-pay-submit-guard.js?v=1"></script>
+  <script src="js/checkout-header-subtitle-presets.js?v=1"></script>
+  <script src="js/url-pay-public-shell.js?v=13"></script>
+  <script src="js/eximbay-pay-msg-i18n.js?v=1"></script>
+</head>
+<body class="pay-inline-body">
+  <div class="pay-shell">
+    <div class="pay-card">
+      <div class="pay-brand" id="eximbayBrandBlock">
+        <div class="pay-brand-logo">ICOPAY</div>
+        <div class="pay-brand-sub" data-i18n="brandSub">Global Payment</div>
+      </div>
+      <div class="pay-lang" role="group" aria-label="Language" data-i18n-aria="langGroup">
+        <button type="button" data-lang="JPN">JPN</button>
+        <button type="button" data-lang="KOR">KOR</button>
+        <button type="button" data-lang="ENG">ENG</button>
+        <button type="button" data-lang="CHN">CHN</button>
+        <button type="button" data-lang="THA">THA</button>
+      </div>
+      <div id="configError" class="alert alert-warning pay-alert-config" style="display:none;"></div>
+      <div id="payResult" class="pay-result" style="display:none;"></div>
+      <form id="eximbayForm" autocomplete="off">
+        <input type="hidden" id="compIdHidden" name="compId">
+        <input type="hidden" id="orderNo" name="orderNo">
+        <input type="hidden" id="paymentMethod" name="paymentMethod" value="CARD">
+        <div class="pay-form-grid mb-3">
+          <div class="pay-row pay-row-static">
+            <div class="pay-row-label"><span data-i18n="merchant">Merchant</span></div>
+            <div class="pay-row-value"><span id="merchantNameDisplay">—</span></div>
+          </div>
+          <div class="pay-row pay-row-static" id="planInfoRow" style="display:none;">
+            <div class="pay-row-label"><span data-i18n="plan">Plan</span></div>
+            <div class="pay-row-value"><span id="planInfoDisplay">—</span></div>
+          </div>
+          <div class="pay-row">
+            <label class="pay-row-label mb-0" for="item"><span data-i18n="item">Item</span></label>
+            <div class="pay-row-value"><input type="text" class="form-control form-control-sm pay-input-round" id="item" required></div>
+          </div>
+          <div class="pay-row">
+            <label class="pay-row-label mb-0" for="amount"><span data-i18n="amount">Amount</span> <span class="pay-currency-hint text-muted fw-normal" id="payAmountCurrencyHint">(USD)</span></label>
+            <div class="pay-row-value">
+              <input type="number" class="form-control form-control-sm pay-input-round" id="amount" required min="0.01" step="0.01">
+            </div>
+          </div>
+          <div class="pay-row">
+            <label class="pay-row-label mb-0" for="recurringInterval"><span data-i18n="billingCycle">Billing cycle</span></label>
+            <div class="pay-row-value">
+              <select class="form-select form-select-sm pay-input-round" id="recurringInterval">
+                <option value="1m" data-i18n="cycleMonthly">Monthly</option>
+                <option value="3m" data-i18n="cycleQuarterly">Quarterly</option>
+                <option value="6m" data-i18n="cycleHalfYear">Every 6 months</option>
+                <option value="1y" data-i18n="cycleYearly">Yearly</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="pay-label mb-1"><span data-i18n="payMethod">Payment method</span></div>
+        <div class="eximbay-method-grid mb-3" id="eximbayMethodGrid" role="group" aria-label="Payment method"></div>
+        <div class="row g-2 mb-2" id="nameRow">
+          <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payFirstname" data-i18n-placeholder="firstName" required></div>
+          <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payLastname" data-i18n-placeholder="lastName" required></div>
+        </div>
+        <div class="row g-2 mb-2" id="contactRow">
+          <div class="col-12"><input type="email" class="form-control form-control-sm pay-input-round" id="payEmailAddress" data-i18n-placeholder="email" required></div>
+          <div class="col-12"><input type="tel" class="form-control form-control-sm pay-input-round" id="payTelephone" data-i18n-placeholder="phoneOptional" inputmode="tel" autocomplete="tel"></div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-pay w-100" id="submitBtn" data-i18n="subscribe">Subscribe</button>
+        <p class="small text-muted mt-2 mb-0 text-center" id="eximbayHostedNote" data-i18n="hostedNoteSub"></p>
+      </form>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var PAY_ENTRY_MERCHANT_API = (function () {
+        try { return String(new URLSearchParams(location.search).get('entry') || '').toLowerCase() === 'merchant_api'; } catch (e) { return false; }
+      })();
+      var PAY_EMBED_MODE = (function () {
+        try { var q = new URLSearchParams(location.search); return q.get('embed') === '1' || q.get('embed') === 'true'; } catch (e) { return false; }
+      })();
+      var API_BASE = (function () {
+        try { if (location.hostname === 'api.icopay.co.kr') return location.origin.replace(/\/$/, ''); } catch (e0) {}
+        return (window.PG_API_BASE || location.origin || '').replace(/\/$/, '');
+      })();
+
+      function mapBrowserLocaleToUrlPayLang(tag) {
+        if (!tag) return null;
+        var s = String(tag).trim().toLowerCase();
+        if (s.indexOf('ko') === 0) return 'KOR';
+        if (s.indexOf('ja') === 0) return 'JPN';
+        if (s.indexOf('zh') === 0) return 'CHN';
+        if (s.indexOf('th') === 0) return 'THA';
+        if (s.indexOf('en') === 0) return 'ENG';
+        return null;
+      }
+      function resolveInitialUrlPayLang() {
+        try {
+          var p = new URLSearchParams(window.location.search);
+          var raw = (p.get('lang') || p.get('LANG') || '').trim().toUpperCase();
+          if (raw === 'KO' || raw === 'KR') raw = 'KOR';
+          if (raw === 'JA' || raw === 'JP') raw = 'JPN';
+          if (raw === 'ZH' || raw === 'CN') raw = 'CHN';
+          if (raw === 'TH') raw = 'THA';
+          if (raw === 'EN') raw = 'ENG';
+          if (raw === 'KOR' || raw === 'ENG' || raw === 'CHN' || raw === 'JPN' || raw === 'THA') return raw;
+        } catch (eQ) { /* ignore */ }
+        var list = [];
+        try { if (navigator.languages && navigator.languages.length) { for (var li = 0; li < navigator.languages.length; li++) list.push(navigator.languages[li]); } } catch (e1) {}
+        try { if (navigator.language) list.push(navigator.language); } catch (e2) {}
+        for (var i = 0; i < list.length; i++) { var hit = mapBrowserLocaleToUrlPayLang(list[i]); if (hit) return hit; }
+        return 'ENG';
+      }
+      function detectBrowserUrlPayLang() { return resolveInitialUrlPayLang(); }
+      var LANG = resolveInitialUrlPayLang();
+
+      var I18N = {
+        KOR: {
+          title: 'ICOPAY 정기결제', brandSub: '해외·정기결제', merchant: '가맹점', plan: '구독', item: '상품명', amount: '금액',
+          payMethod: '결제수단', firstName: '이름', lastName: '성', email: '이메일', phoneOptional: '전화번호(선택)', subscribe: '구독하기',
+          billingCycle: '결제 주기', cycleMonthly: '매월', cycleQuarterly: '3개월마다', cycleHalfYear: '6개월마다', cycleYearly: '매년',
+          hostedNoteSub: '안전한 결제창에서 카드·간편결제로 정기결제를 등록합니다.',
+          mCard: '신용카드', mPaypay: 'PayPay', mAlipay: 'Alipay', mWechat: 'WeChat Pay', mUnionpay: 'UnionPay',
+          mGrabpay: 'GrabPay', mLinepay: 'LINE Pay', mKakaopay: '카카오페이', mApplepay: 'Apple Pay',
+          errMerchant: '가맹점 코드(m)가 필요합니다.', errLoad: '구독 화면을 불러오지 못했습니다.',
+          needAmount: '유효한 금액을 입력하세요.', langGroup: '언어', configErr: '설정을 불러오지 못했습니다.',
+          payComplete: '구독 완료', payFailed: '구독 실패', paid: '정기결제가 등록되었습니다.', networkErr: '네트워크 오류',
+          preparing: '결제창을 준비하고 있습니다…', sdkLoadFail: '결제 SDK를 불러오지 못했습니다. 잠시 후 다시 시도하세요.',
+          orgDisabled: '지속적인 오류로 결제 서비스가 중지되었습니다.',
+          pgMissing: '이 가맹점은 Eximbay 정기결제가 설정되어 있지 않습니다.',
+          errEmailFormat: '올바른 이메일 형식을 입력하세요.', errName: '이름·성을 입력하세요.',
+          resultProcessing: '결제 결과를 확인하고 있습니다…'
+        },
+        ENG: {
+          title: 'ICOPAY Subscription', brandSub: 'Global Recurring Payment', merchant: 'Merchant', plan: 'Plan', item: 'Item', amount: 'Amount',
+          payMethod: 'Payment method', firstName: 'First name', lastName: 'Last name', email: 'Email', phoneOptional: 'Phone (optional)', subscribe: 'Subscribe',
+          billingCycle: 'Billing cycle', cycleMonthly: 'Monthly', cycleQuarterly: 'Quarterly', cycleHalfYear: 'Every 6 months', cycleYearly: 'Yearly',
+          hostedNoteSub: 'You will register a recurring payment on a secure payment window.',
+          mCard: 'Credit card', mPaypay: 'PayPay', mAlipay: 'Alipay', mWechat: 'WeChat Pay', mUnionpay: 'UnionPay',
+          mGrabpay: 'GrabPay', mLinepay: 'LINE Pay', mKakaopay: 'Kakao Pay', mApplepay: 'Apple Pay',
+          errMerchant: 'Merchant code (m) is required.', errLoad: 'Failed to load subscription checkout.',
+          needAmount: 'Enter a valid amount.', langGroup: 'Language', configErr: 'Failed to load settings.',
+          payComplete: 'Subscription complete', payFailed: 'Subscription failed', paid: 'Subscription registered.', networkErr: 'Network error',
+          preparing: 'Preparing the payment window…', sdkLoadFail: 'Failed to load the payment SDK. Please try again.',
+          orgDisabled: 'The payment service has been suspended due to repeated errors.',
+          pgMissing: 'Eximbay recurring payment is not configured for this merchant.',
+          errEmailFormat: 'Enter a valid email address.', errName: 'Enter first and last name.',
+          resultProcessing: 'Checking the payment result…'
+        },
+        JPN: {
+          title: 'ICOPAY 定期決済', brandSub: '海外・定期決済', merchant: '加盟店', plan: 'プラン', item: '商品名', amount: '金額',
+          payMethod: '決済手段', firstName: '名', lastName: '姓', email: 'メール', phoneOptional: '電話番号(任意)', subscribe: '定期登録',
+          billingCycle: '決済周期', cycleMonthly: '毎月', cycleQuarterly: '3ヶ月ごと', cycleHalfYear: '6ヶ月ごと', cycleYearly: '毎年',
+          hostedNoteSub: '安全な決済画面でカード・かんたん決済の定期決済を登録します。',
+          mCard: 'クレジットカード', mPaypay: 'PayPay', mAlipay: 'Alipay', mWechat: 'WeChat Pay', mUnionpay: 'UnionPay',
+          mGrabpay: 'GrabPay', mLinepay: 'LINE Pay', mKakaopay: 'カカオペイ', mApplepay: 'Apple Pay',
+          errMerchant: '加盟店コード(m)が必要です。', errLoad: '定期決済画面の読み込みに失敗しました。',
+          needAmount: '有効な金額を入力してください。', langGroup: '言語', configErr: '設定の読み込みに失敗しました。',
+          payComplete: '定期登録完了', payFailed: '定期登録失敗', paid: '定期決済が登録されました。', networkErr: 'ネットワークエラー',
+          preparing: '決済画面を準備しています…', sdkLoadFail: '決済SDKの読み込みに失敗しました。しばらくして再度お試しください。',
+          orgDisabled: '継続的なエラーにより決済サービスが停止されました。',
+          pgMissing: 'この加盟店はEximbay定期決済が設定されていません。',
+          errEmailFormat: '正しいメール形式で入力してください。', errName: '名・姓を入力してください。',
+          resultProcessing: '決済結果を確認しています…'
+        },
+        CHN: {
+          title: 'ICOPAY 定期支付', brandSub: '海外·定期支付', merchant: '商户', plan: '套餐', item: '商品', amount: '金额',
+          payMethod: '支付方式', firstName: '名', lastName: '姓', email: '邮箱', phoneOptional: '电话(可选)', subscribe: '订阅',
+          billingCycle: '扣款周期', cycleMonthly: '每月', cycleQuarterly: '每3个月', cycleHalfYear: '每6个月', cycleYearly: '每年',
+          hostedNoteSub: '将在安全的支付窗口以银行卡·便捷支付注册定期扣款。',
+          mCard: '银行卡', mPaypay: 'PayPay', mAlipay: '支付宝', mWechat: '微信支付', mUnionpay: '银联',
+          mGrabpay: 'GrabPay', mLinepay: 'LINE Pay', mKakaopay: 'Kakao Pay', mApplepay: 'Apple Pay',
+          errMerchant: '需要商户代码(m)。', errLoad: '无法加载订阅页面。',
+          needAmount: '请输入有效金额。', langGroup: '语言', configErr: '无法加载设置。',
+          payComplete: '订阅完成', payFailed: '订阅失败', paid: '定期支付已注册。', networkErr: '网络错误',
+          preparing: '正在准备支付窗口…', sdkLoadFail: '支付SDK加载失败，请稍后重试。',
+          orgDisabled: '由于持续错误，支付服务已停止。',
+          pgMissing: '该商户未配置Eximbay定期支付。',
+          errEmailFormat: '请输入有效的邮箱地址。', errName: '请输入名和姓。',
+          resultProcessing: '正在确认支付结果…'
+        },
+        THA: {
+          title: 'ICOPAY สมัครสมาชิก', brandSub: 'ชำระเงินอัตโนมัติระหว่างประเทศ', merchant: 'ร้านค้า', plan: 'แพ็กเกจ', item: 'สินค้า', amount: 'จำนวนเงิน',
+          payMethod: 'วิธีชำระเงิน', firstName: 'ชื่อ', lastName: 'นามสกุล', email: 'อีเมล', phoneOptional: 'โทรศัพท์ (ไม่บังคับ)', subscribe: 'สมัคร',
+          billingCycle: 'รอบการเรียกเก็บ', cycleMonthly: 'ทุกเดือน', cycleQuarterly: 'ทุก 3 เดือน', cycleHalfYear: 'ทุก 6 เดือน', cycleYearly: 'ทุกปี',
+          hostedNoteSub: 'คุณจะลงทะเบียนการชำระเงินอัตโนมัติในหน้าต่างชำระเงินที่ปลอดภัย',
+          mCard: 'บัตรเครดิต', mPaypay: 'PayPay', mAlipay: 'Alipay', mWechat: 'WeChat Pay', mUnionpay: 'UnionPay',
+          mGrabpay: 'GrabPay', mLinepay: 'LINE Pay', mKakaopay: 'Kakao Pay', mApplepay: 'Apple Pay',
+          errMerchant: 'ต้องระบุรหัสร้านค้า (m)', errLoad: 'โหลดหน้าสมัครไม่สำเร็จ',
+          needAmount: 'กรุณากรอกจำนวนเงินที่ถูกต้อง', langGroup: 'ภาษา', configErr: 'โหลดการตั้งค่าไม่สำเร็จ',
+          payComplete: 'สมัครสำเร็จ', payFailed: 'สมัครล้มเหลว', paid: 'ลงทะเบียนการชำระเงินอัตโนมัติแล้ว', networkErr: 'ข้อผิดพลาดเครือข่าย',
+          preparing: 'กำลังเตรียมหน้าต่างชำระเงิน…', sdkLoadFail: 'โหลด SDK การชำระเงินไม่สำเร็จ โปรดลองอีกครั้ง',
+          orgDisabled: 'บริการชำระเงินถูกระงับเนื่องจากข้อผิดพลาดต่อเนื่อง',
+          pgMissing: 'ร้านค้านี้ยังไม่ได้ตั้งค่าการชำระเงินอัตโนมัติ Eximbay',
+          errEmailFormat: 'กรุณากรอกอีเมลให้ถูกต้อง', errName: 'กรุณากรอกชื่อและนามสกุล',
+          resultProcessing: 'กำลังตรวจสอบผลการชำระเงิน…'
+        }
+      };
+
+      function t(key) {
+        var pack = I18N[LANG] || I18N.ENG;
+        return pack[key] != null ? pack[key] : (I18N.ENG[key] || key);
+      }
+      function localizeEximbayMsg(msg) {
+        if (window.PG_EXIMBAY_PAY_MSG && PG_EXIMBAY_PAY_MSG.translate) {
+          return PG_EXIMBAY_PAY_MSG.translate(msg, LANG);
+        }
+        return msg;
+      }
+      function methodLabel(key) {
+        var k = String(key || '').toUpperCase();
+        var map = {
+          CARD: 'mCard', PAYPAY: 'mPaypay', ALIPAY: 'mAlipay', WECHAT: 'mWechat', UNIONPAY: 'mUnionpay',
+          GRABPAY: 'mGrabpay', LINEPAY: 'mLinepay', KAKAOPAY: 'mKakaopay', APPLEPAY: 'mApplepay'
+        };
+        return map[k] ? t(map[k]) : k;
+      }
+      function apiLangCode() {
+        var c = String(LANG || 'ENG').toUpperCase();
+        return (c === 'KOR' || c === 'ENG' || c === 'CHN' || c === 'JPN' || c === 'THA') ? c : 'ENG';
+      }
+      function resolveApiErrorMessage(res) {
+        res = res || {};
+        var L = apiLangCode();
+        if (res.messages) {
+          if (res.messages[L]) return res.messages[L];
+          var alt = { KOR: 'KO', ENG: 'EN', JPN: 'JP', CHN: 'CH', THA: 'TH' };
+          if (alt[L] && res.messages[alt[L]]) return res.messages[alt[L]];
+          if (res.messages.ENG) return res.messages.ENG;
+        }
+        var code = res.errorCode ? String(res.errorCode).trim() : '';
+        if (code === 'ORG_DISABLED' || code === 'WEB_PAYMENT_DISABLED') return res.message || t('orgDisabled');
+        if (code === 'EXIMBAY_PG_MISSING' || code === 'SUBSCRIPTION_PG_MISSING' || code === 'URL_PAYMENT_PG_MISSING') return t('pgMissing');
+        return localizeEximbayMsg(res.message || '') || t('payFailed');
+      }
+      function setLang(code) {
+        var c = String(code || '').toUpperCase();
+        if (c === 'KO' || c === 'KR') c = 'KOR';
+        if (c === 'JA' || c === 'JP') c = 'JPN';
+        if (c === 'ZH' || c === 'CN') c = 'CHN';
+        if (c === 'TH') c = 'THA';
+        if (c === 'EN') c = 'ENG';
+        if (c !== 'KOR' && c !== 'ENG' && c !== 'CHN' && c !== 'JPN' && c !== 'THA') return;
+        LANG = c;
+        applyI18n();
+        renderMethodButtons();
+      }
+      function applyI18n() {
+        document.querySelectorAll('[data-i18n]').forEach(function (el) {
+          var k = el.getAttribute('data-i18n'); if (k) el.textContent = t(k);
+        });
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+          var k = el.getAttribute('data-i18n-placeholder'); if (k) el.setAttribute('placeholder', t(k));
+        });
+        document.querySelectorAll('[data-i18n-aria]').forEach(function (el) {
+          var k = el.getAttribute('data-i18n-aria'); if (k) el.setAttribute('aria-label', t(k));
+        });
+        document.querySelectorAll('.pay-lang button[data-lang]').forEach(function (b) {
+          b.classList.toggle('active', b.getAttribute('data-lang') === LANG);
+        });
+        if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyUrlPayBrowserTabTitle) {
+          PG_URL_PAY_SHELL.applyUrlPayBrowserTabTitle(LANG, window.__payUrlCardCopy, t);
+        } else { document.title = t('title'); }
+        try {
+          var hl = { KOR: 'ko', ENG: 'en', JPN: 'ja', CHN: 'zh', THA: 'th' };
+          document.documentElement.setAttribute('lang', hl[LANG] || 'en');
+        } catch (eH) {}
+      }
+
+      var checkoutCtx = null;
+      var methodList = [{ key: 'CARD' }];
+
+      function renderMethodButtons() {
+        var grid = document.getElementById('eximbayMethodGrid');
+        if (!grid) return;
+        var selected = (document.getElementById('paymentMethod').value || 'CARD').toUpperCase();
+        grid.innerHTML = '';
+        methodList.forEach(function (m) {
+          var key = String(m.key || '').toUpperCase();
+          if (!key) return;
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'eximbay-method-btn' + (key === selected ? ' active' : '');
+          btn.setAttribute('data-method', key);
+          btn.textContent = methodLabel(key);
+          btn.addEventListener('click', function () {
+            document.getElementById('paymentMethod').value = key;
+            renderMethodButtons();
+          });
+          grid.appendChild(btn);
+        });
+      }
+
+      function getCompId() {
+        try { var p = new URLSearchParams(location.search); return (p.get('m') || p.get('compId') || '').trim(); } catch (e) { return ''; }
+      }
+      function apiUrl(path, qs) { return API_BASE + path + (qs ? ('?' + qs) : ''); }
+      function fetchJson(url) {
+        return fetch(url, { credentials: 'omit', cache: 'no-store' }).then(function (r) {
+          return r.text().then(function (text) {
+            if (!r.ok) throw new Error(text || ('HTTP ' + r.status));
+            return text ? JSON.parse(text) : {};
+          });
+        });
+      }
+      function escHtml(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+      function showErr(msg) {
+        var el = document.getElementById('configError');
+        el.style.display = 'block'; el.textContent = msg;
+        var f = document.getElementById('eximbayForm'); if (f) f.style.display = 'none';
+      }
+      function showFinished(ok, msg, orderNo) {
+        var f = document.getElementById('eximbayForm'); if (f) f.style.display = 'none';
+        var el = document.getElementById('payResult');
+        el.style.display = 'block';
+        el.className = ok ? 'ok pay-result-final' : 'err pay-result-final';
+        el.innerHTML = '<div class="pay-result-title">' + (ok ? t('payComplete') : t('payFailed')) + '</div><p>' + escHtml(msg) + '</p>';
+      }
+
+      function buildOrderNo(compId) {
+        var ts = String(Date.now());
+        var c = String(compId || 'X').replace(/[^0-9A-Za-z]/g, '');
+        if (c.length > 6) c = c.slice(0, 6);
+        var raw = 'EXS' + c + ts;
+        return raw.length > 40 ? raw.slice(0, 40) : raw;
+      }
+
+      function applyQueryPrefills() {
+        try {
+          var p = new URLSearchParams(location.search);
+          var item = p.get('item') || p.get('desc');
+          if (item) { var it = document.getElementById('item'); if (it) { it.value = item.trim(); it.readOnly = true; } }
+          var amt = p.get('amount') || p.get('amt');
+          if (amt) { var am = document.getElementById('amount'); if (am) { am.value = amt.trim(); am.readOnly = true; } }
+          var ord = p.get('orderNo') || p.get('OrderNo');
+          if (ord) document.getElementById('orderNo').value = ord.trim();
+          var email = p.get('email') || p.get('payEmailAddress');
+          if (email) { var em = document.getElementById('payEmailAddress'); if (em) { em.value = email.trim(); em.readOnly = true; } }
+          var cur = p.get('currency') || p.get('cur');
+          if (cur) { var h = document.getElementById('payAmountCurrencyHint'); if (h) h.textContent = '(' + cur.trim().toUpperCase() + ')'; }
+          var cyc = p.get('cycle') || p.get('interval');
+          if (cyc) { var sel = document.getElementById('recurringInterval'); if (sel) { try { sel.value = cyc.trim(); } catch (eC) {} } }
+        } catch (e) {}
+      }
+
+      function applyCheckoutContext(ctx) {
+        checkoutCtx = ctx;
+        window.__payUrlCardCopy = ctx.urlPayCardCopy || null;
+        if (Array.isArray(ctx.eximbayPaymentMethods) && ctx.eximbayPaymentMethods.length) {
+          methodList = ctx.eximbayPaymentMethods;
+        }
+        if (ctx.merchantName) document.getElementById('merchantNameDisplay').textContent = ctx.merchantName;
+        if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyCheckoutHeaderLogo) {
+          PG_URL_PAY_SHELL.applyCheckoutHeaderLogo(ctx, { brandBlockId: 'eximbayBrandBlock', logoWrapSelector: '.pay-brand-logo', t: t });
+        }
+        var itemEl = document.getElementById('item');
+        if (itemEl && !itemEl.readOnly && ctx.defaultProductName) itemEl.value = String(ctx.defaultProductName).trim();
+        var curHint = document.getElementById('payAmountCurrencyHint');
+        if (curHint && ctx.checkoutCurrencyCode) {
+          var q = new URLSearchParams(location.search);
+          if (!(q.get('currency') || q.get('cur'))) curHint.textContent = '(' + String(ctx.checkoutCurrencyCode).trim().toUpperCase() + ')';
+        }
+        applyI18n();
+        renderMethodButtons();
+        if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyUrlPayInputMode) {
+          PG_URL_PAY_SHELL.applyUrlPayInputMode(ctx, { getLang: function () { return LANG; }, setLang: setLang, detectBrowserLang: detectBrowserUrlPayLang });
+        }
+        if (window.PG_URL_PAY_SHELL) {
+          PG_URL_PAY_SHELL.applyCardCopyPresentation({ lang: LANG, cardCopy: window.__payUrlCardCopy, t: t, skipBrandSub: true });
+          PG_URL_PAY_SHELL.applyCheckoutHeaderSubtitle(checkoutCtx, { t: t });
+        }
+      }
+
+      /* ============ 결과 복귀(return_url) 처리 ============ */
+      function isReturnMode() {
+        try { return String(new URLSearchParams(location.search).get('eximbayReturn') || '') === '1'; } catch (e) { return false; }
+      }
+      function handleReturnResult() {
+        var f = document.getElementById('eximbayForm'); if (f) f.style.display = 'none';
+        applyI18n();
+        var p = new URLSearchParams(location.search);
+        var rescode = (p.get('rescode') || '').trim();
+        var resmsg = (p.get('resmsg') || '').trim();
+        var orderId = (p.get('order_id') || p.get('orderNo') || '').trim();
+        var ok = rescode === '0000';
+        var msg = ok ? t('paid') : (localizeEximbayMsg(resmsg) || t('payFailed'));
+        showFinished(ok, msg + (orderId ? (' (' + escHtml(orderId) + ')') : ''), orderId);
+      }
+
+      /* ============ SDK 로딩 ============ */
+      var sdkLoadPromise = null;
+      function loadEximbaySdk(scriptUrl) {
+        if (window.EXIMBAY && typeof window.EXIMBAY.request_pay === 'function') return Promise.resolve();
+        if (sdkLoadPromise) return sdkLoadPromise;
+        sdkLoadPromise = new Promise(function (resolve, reject) {
+          var s = document.createElement('script');
+          s.type = 'text/javascript';
+          s.src = scriptUrl;
+          s.async = true;
+          s.onload = function () {
+            if (window.EXIMBAY && typeof window.EXIMBAY.request_pay === 'function') resolve();
+            else reject(new Error('SDK not ready'));
+          };
+          s.onerror = function () { reject(new Error('SDK load error')); };
+          document.head.appendChild(s);
+        });
+        return sdkLoadPromise;
+      }
+
+      function payGuardUnlock(btn) {
+        var g = window.PG_PAY_SUBMIT_GUARD;
+        if (g) g.unlockForRetry({ button: btn }); else if (btn) btn.disabled = false;
+      }
+      function payGuardFail(btn) {
+        var g = window.PG_PAY_SUBMIT_GUARD;
+        if (g) g.unlockAfterFailure({ button: btn }); else if (btn) btn.disabled = false;
+      }
+
+      function intervalToPlan(cycle) {
+        var c = String(cycle || '1m').trim().toLowerCase();
+        var map = {
+          '1m': { recurring_interval: '1', recurring_interval_unit: 'MONTH' },
+          '3m': { recurring_interval: '3', recurring_interval_unit: 'MONTH' },
+          '6m': { recurring_interval: '6', recurring_interval_unit: 'MONTH' },
+          '1y': { recurring_interval: '12', recurring_interval_unit: 'MONTH' }
+        };
+        return map[c] || map['1m'];
+      }
+
+      function boot() {
+        applyI18n();
+        if (window.PG_URL_PAY_SHELL) PG_URL_PAY_SHELL.wireLanguageButtons(function () { return LANG; }, setLang);
+        if (isReturnMode()) { handleReturnResult(); return; }
+        var compId = getCompId();
+        if (!compId) { showErr(t('errMerchant')); return; }
+        document.getElementById('compIdHidden').value = compId;
+        applyQueryPrefills();
+        fetchJson(apiUrl('/api/pay/eximbay/subscribe-checkout-context', 'compId=' + encodeURIComponent(compId)))
+          .then(function (ctxRes) {
+            if (!ctxRes.success || !ctxRes.data) {
+              var code = ctxRes.errorCode ? String(ctxRes.errorCode).trim() : '';
+              if (code === 'ORG_DISABLED' || code === 'WEB_PAYMENT_DISABLED') throw new Error(ctxRes.message || t('configErr'));
+              if (code === 'SUBSCRIPTION_PG_MISSING' || code === 'URL_PAYMENT_PG_MISSING') throw new Error(t('pgMissing'));
+              throw new Error(localizeEximbayMsg(ctxRes.message || '') || t('configErr'));
+            }
+            applyCheckoutContext(ctxRes.data);
+          })
+          .catch(function (e) { showErr(e.message || t('errLoad')); });
+      }
+
+      document.getElementById('eximbayForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var btn = document.getElementById('submitBtn');
+        var guard = window.PG_PAY_SUBMIT_GUARD;
+        if (guard) { if (!guard.tryLock({ lang: LANG, t: t, button: btn, onWarn: function (m) { showErr(m); } })) return; }
+        else { btn.disabled = true; }
+
+        var compId = document.getElementById('compIdHidden').value.trim();
+        var fn = document.getElementById('payFirstname').value.trim();
+        var ln = document.getElementById('payLastname').value.trim();
+        if (!fn || !ln) { showErr(t('errName')); payGuardUnlock(btn); return; }
+        var email = document.getElementById('payEmailAddress').value.trim();
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { showErr(t('errEmailFormat')); payGuardUnlock(btn); return; }
+        var amtStr = String(document.getElementById('amount').value || '').replace(/,/g, '').trim();
+        if (!(parseFloat(amtStr) > 0)) { showErr(t('needAmount')); payGuardUnlock(btn); return; }
+
+        var ordEl = document.getElementById('orderNo');
+        if (!String(ordEl.value || '').trim()) ordEl.value = buildOrderNo(compId);
+
+        var cur = (checkoutCtx && checkoutCtx.checkoutCurrencyCode) ? String(checkoutCtx.checkoutCurrencyCode).trim().toUpperCase() : 'USD';
+        var cycle = (document.getElementById('recurringInterval').value || '1m').trim();
+        var plan = intervalToPlan(cycle);
+        plan.recurring_amount = amtStr;
+        var body = {
+          compId: compId,
+          orderNo: ordEl.value.trim(),
+          amount: amtStr,
+          currency: cur,
+          item: document.getElementById('item').value.trim(),
+          paymentMethod: (document.getElementById('paymentMethod').value || 'CARD').toUpperCase(),
+          buyerName: (fn + ' ' + ln).trim(),
+          payFirstname: fn,
+          payLastname: ln,
+          payEmailAddress: email,
+          payTelephone: document.getElementById('payTelephone').value.trim(),
+          langCode: LANG,
+          system: 'icopay',
+          txnOrigin: 'SUBSCRIPTION',
+          subscriptionPlan: plan
+        };
+        var cfgErr = document.getElementById('configError');
+        if (cfgErr) { cfgErr.style.display = 'none'; }
+        fetch(API_BASE + '/api/pay/eximbay/subscribe', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+        }).then(function (r) { return r.json(); }).then(function (res) {
+          if (!res.success) { showFinished(false, resolveApiErrorMessage(res), body.orderNo); payGuardFail(btn); return; }
+          var d = res.data || {};
+          var sdkReq = d.sdkRequest;
+          var sdkUrl = d.sdkScriptUrl;
+          if (!sdkReq || !sdkUrl) { showFinished(false, t('payFailed'), body.orderNo); payGuardFail(btn); return; }
+          loadEximbaySdk(sdkUrl).then(function () {
+            try {
+              window.EXIMBAY.request_pay(sdkReq);
+            } catch (exErr) {
+              showFinished(false, (exErr && exErr.message) || t('payFailed'), body.orderNo);
+              payGuardFail(btn);
+            }
+          }).catch(function () {
+            showFinished(false, t('sdkLoadFail'), body.orderNo);
+            payGuardFail(btn);
+          });
+        }).catch(function (err) {
+          showFinished(false, (err && err.message) || t('networkErr'), body.orderNo);
+          payGuardFail(btn);
+        });
+      });
+
+      boot();
+    })();
+  </script>
+</body>
+</html>

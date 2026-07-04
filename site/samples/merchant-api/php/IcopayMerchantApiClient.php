@@ -119,16 +119,9 @@ final class IcopayMerchantApiClient
         $base = rtrim($apiBaseUrl, '/');
         $enc = rawurlencode($compId);
         $tok = htmlspecialchars($sessionToken, ENT_QUOTES, 'UTF-8');
-        if (strtolower($vendor) === 'jpay') {
-            $target = 'icopay-jpay-checkout';
-            return '<div id="' . $target . '"></div>' . "\n"
-                . '<script src="' . $base . '/v1/embed-jpay-pay/' . $enc . '"'
-                . ' data-session-token="' . $tok . '"'
-                . ' data-target="' . $target . '" async defer charset="utf-8"></script>';
-        }
-        $target = 'icopay-pay-checkout';
+        $target = 'icopay-checkout';
         return '<div id="' . $target . '"></div>' . "\n"
-            . '<script src="' . $base . '/v1/embed-pay/' . $enc . '"'
+            . '<script src="' . $base . '/v1/embed-checkout/' . $enc . '"'
             . ' data-session-token="' . $tok . '"'
             . ' data-target="' . $target . '" async defer charset="utf-8"></script>';
     }

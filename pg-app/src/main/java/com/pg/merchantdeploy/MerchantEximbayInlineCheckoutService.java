@@ -1,79 +1,66 @@
 package com.pg.merchantdeploy;
 
-import com.pg.entity.HqApiConfig;
-import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.MerchantProfile;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgTrnsctn;
-import com.pg.repository.HqApiConfigRepository;
+import com.pg.integration.pg.PgVendor;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
-import com.pg.service.ChillPayService;
+import com.pg.service.EximbayPaymentService;
 import com.pg.service.MerchantChatbotProductService;
-import com.pg.splitpay.SplitPayCheckoutModeGuard;
 import com.pg.service.OrgServiceUseService;
-import com.pg.urlpay.UrlPayCheckoutModeUtil;
+import com.pg.service.UrlPayCheckoutCurrencyService;
+import com.pg.urlpay.IcipayBuyerContactUtil;
 import com.pg.urlpay.NeutralCheckoutRoute;
-import com.pg.util.ChillPayDirectCreditUtil;
+import com.pg.util.PgTrnsctnOrderLookup;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
 /**
- * 가맹점 API — ChillPay 인라인 결제 페이지({@code pay.html}) 세션 준비.
+ * 가맹점 통합 API — Eximbay 인라인 결제창({@code eximbay-pay.html}) 세션 준비.
+ * ChillPay·JPAY 와 동일한 통합 계약(prepare→sessionToken→embed)으로 동작하며,
+ * 응답·URL 어디에도 실제 PG(Eximbay)를 노출하지 않는다(중립 {@code /checkout} 경로 사용).
  */
 @Service
-public class MerchantInlineCheckoutService {
+public class MerchantEximbayInlineCheckoutService {
 
     private final OrgUnitRepository orgUnitRepository;
     private final MerchantProfileRepository merchantProfileRepository;
     private final OrgServiceUseService orgServiceUseService;
-    private final ChillPayService chillPayService;
-    private final HqApiConfigRepository hqApiConfigRepository;
+    private final EximbayPaymentService eximbayPaymentService;
     private final MerchantChatbotProductService productService;
     private final MerchantInlineCheckoutTokenService tokenService;
     private final PgTrnsctnRepository pgTrnsctnRepository;
+    private final UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService;
     private final MerchantApiIntegrationChannelService integrationChannelService;
-    private final MerchantOperationalPgGuard operationalPgGuard;
-    private final SplitPayCheckoutModeGuard splitPayCheckoutModeGuard;
 
-    public MerchantInlineCheckoutService(OrgUnitRepository orgUnitRepository,
-                                         MerchantProfileRepository merchantProfileRepository,
-                                         OrgServiceUseService orgServiceUseService,
-                                         ChillPayService chillPayService,
-                                         HqApiConfigRepository hqApiConfigRepository,
-                                         MerchantChatbotProductService productService,
-                                         MerchantInlineCheckoutTokenService tokenService,
-                                         PgTrnsctnRepository pgTrnsctnRepository,
-                                         MerchantApiIntegrationChannelService integrationChannelService,
-                                         MerchantOperationalPgGuard operationalPgGuard,
-                                         SplitPayCheckoutModeGuard splitPayCheckoutModeGuard) {
+    public MerchantEximbayInlineCheckoutService(OrgUnitRepository orgUnitRepository,
+                                                MerchantProfileRepository merchantProfileRepository,
+                                                OrgServiceUseService orgServiceUseService,
+                                                EximbayPaymentService eximbayPaymentService,
+                                                MerchantChatbotProductService productService,
+                                                MerchantInlineCheckoutTokenService tokenService,
+                                                PgTrnsctnRepository pgTrnsctnRepository,
+                                                UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService,
+                                                MerchantApiIntegrationChannelService integrationChannelService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.orgServiceUseService = orgServiceUseService;
-        this.chillPayService = chillPayService;
-        this.hqApiConfigRepository = hqApiConfigRepository;
+        this.eximbayPaymentService = eximbayPaymentService;
         this.productService = productService;
         this.tokenService = tokenService;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
+        this.urlPayCheckoutCurrencyService = urlPayCheckoutCurrencyService;
         this.integrationChannelService = integrationChannelService;
-        this.operationalPgGuard = operationalPgGuard;
-        this.splitPayCheckoutModeGuard = splitPayCheckoutModeGuard;
     }
 
     public Map<String, Object> prepare(Long orgUnitId, Map<String, Object> body, HttpServletRequest request) {
-        Optional<Map<String, Object>> splitDeny = splitPayCheckoutModeGuard.denyInlineOneShotPrepare(orgUnitId);
-        if (splitDeny.isPresent()) {
-            return splitDeny.get();
-        }
         if (orgUnitId == null) {
             return fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND");
         }
@@ -92,37 +79,17 @@ public class MerchantInlineCheckoutService {
                 return fail(OrgServiceUseService.MSG_WEB_PAYMENT_DISABLED, "WEB_PAYMENT_DISABLED");
             }
         }
+        if (!eximbayPaymentService.hasOperationalWebBinding(orgUnitId)) {
+            return fail("URL 결제(운영) 바인딩이 없습니다.", "URL_PAYMENT_PG_MISSING");
+        }
         Optional<String> inlineDeny = integrationChannelService.denyMessage(orgUnitId,
                 MerchantApiIntegrationChannelService.Channel.API_BROKER_INLINE);
         if (inlineDeny.isPresent()) {
             return fail(inlineDeny.get(), MerchantApiIntegrationChannelService.CODE_INTEGRATION_CHANNEL_DISABLED);
         }
-        String checkoutMode = profOpt
-                .map(mp -> UrlPayCheckoutModeUtil.normalize(mp.getApiUrlPayCheckoutMode()))
-                .orElse(UrlPayCheckoutModeUtil.STANDARD);
-        boolean repayMode = UrlPayCheckoutModeUtil.isRepay(checkoutMode);
-        if (repayMode) {
-            if (!chillPayService.isUrlPayRepayEnabledAtHq()) {
-                return fail("본사 설정에서 URL 재결제 기능이 꺼져 있습니다.", "URL_PAY_REPAY_DISABLED");
-            }
-            if (chillPayService.findOperationalWebBindingForUrlPayRepay(orgUnitId).isEmpty()) {
-                return fail("URL 재결제를 처리할 ChillPay(운영·URL재결제) 바인딩이 없습니다.", "URL_PAY_REPAY_PG_MISSING");
-            }
-        } else {
-            Optional<MerchantPgBinding> opBind = chillPayService.findOperationalWebBindingForUrlPay(orgUnitId);
-            if (opBind.isEmpty()) {
-                return fail("URL 결제를 처리할 ChillPay(운영·URL결제) 바인딩이 없습니다.", "URL_PAYMENT_PG_MISSING");
-            }
-            Optional<Map<String, Object>> vendorDeny = operationalPgGuard.denyIfUrlPayVendorMismatch(
-                    orgUnitId, MerchantPgBrokerVendor.CHILLPAY, false);
-            if (vendorDeny.isPresent()) {
-                return vendorDeny.get();
-            }
-        }
-        HqApiConfig hq = hqApiConfigRepository.findAll().stream().findFirst().orElse(null);
 
-        String orderNo = ChillPayDirectCreditUtil.normalizeOrderNo(str(body.get("orderNo")));
-        if (orderNo == null || orderNo.isBlank()) {
+        String orderNo = normalizeOrderNo(str(body.get("orderNo")));
+        if (orderNo.isBlank()) {
             return fail("orderNo가 필요합니다.", "INVALID_ORDER_NO");
         }
         BigDecimal amount = parseAmount(body.get("amount"));
@@ -130,55 +97,48 @@ public class MerchantInlineCheckoutService {
             return fail("유효한 amount가 필요합니다.", "INVALID_AMOUNT");
         }
         String amountPlain = amount.stripTrailingZeros().toPlainString();
-        String currency = MerchantInlineCheckoutTokenService.normalizeCurrency(str(body.get("currency")));
+        String currency = urlPayCheckoutCurrencyService.resolveCheckoutCurrency(orgUnitId, str(body.get("currency")));
         String productName = clamp(str(body.get("productName")), 500);
         if (productName.isBlank()) {
             productName = clamp(str(body.get("item")), 500);
         }
         String langCode = MerchantCheckoutLangUtil.fromBody(body);
 
-        String buyerPrefillJson = null;
+        String buyerPrefillJson;
         try {
-            buyerPrefillJson = com.pg.urlpay.IcipayBuyerContactUtil.resolvePrefillJsonFromBodyOptional(body);
+            buyerPrefillJson = IcipayBuyerContactUtil.resolvePrefillJsonFromBodyOptional(body);
         } catch (IllegalArgumentException ex) {
             return fail(ex.getMessage(), "BUYER_PREFILL_INVALID");
         }
 
         String sessionToken = buyerPrefillJson != null && !buyerPrefillJson.isBlank()
-                ? tokenService.issueWithBuyerPrefill(MerchantPgBrokerVendor.CHILLPAY, ou.getCode(), orderNo,
+                ? tokenService.issueWithBuyerPrefill(MerchantPgBrokerVendor.EXIMBAY, ou.getCode(), orderNo,
                 amountPlain, currency, productName, buyerPrefillJson)
-                : tokenService.issue(MerchantPgBrokerVendor.CHILLPAY, ou.getCode(), orderNo,
+                : tokenService.issue(MerchantPgBrokerVendor.EXIMBAY, ou.getCode(), orderNo,
                 amountPlain, currency, productName);
         Optional<MerchantInlineCheckoutTokenService.SessionPayload> parsed =
-                tokenService.parseValid(sessionToken, MerchantPgBrokerVendor.CHILLPAY);
+                tokenService.parseValid(sessionToken, MerchantPgBrokerVendor.EXIMBAY);
         if (parsed.isEmpty()) {
             return fail("세션 토큰 생성에 실패했습니다.", "SESSION_ERROR");
         }
         MerchantInlineCheckoutTokenService.SessionPayload session = parsed.get();
 
         String base = trimSlash(productService.resolvePublicCustomerSiteBase(request));
+        // 가맹점·구매자에게 PG(Eximbay)를 노출하지 않는 중립 결제창 경로
         String payUrl = NeutralCheckoutRoute.buildPayUrl(base, ou.getCode(), sessionToken, langCode, true);
-        String embedScriptUrl = NeutralCheckoutRoute.buildEmbedScriptUrl(base, ou.getCode());
+        String embedScriptUrl = (base.isEmpty() ? "" : base) + "/v1/embed-checkout/" + urlEnc(ou.getCode());
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.putAll(session.toPublicMap());
         data.put("sessionToken", sessionToken);
         data.put("payUrl", payUrl);
         data.put("embedScriptUrl", embedScriptUrl);
-        data.put("inlineCheckoutPrepareUrl",
-                trimSlash(productService.resolvePublicCustomerSiteBase(request))
-                        + "/api/middleware/v1/merchant/checkout/prepare");
         data.put("integrationMode", "INLINE");
-        data.put("pgVendor", MerchantPgBrokerVendor.CHILLPAY);
-        data.put("urlPayCheckoutMode", checkoutMode);
-        data.put("effectiveUrlPayVariant", repayMode ? UrlPayCheckoutModeUtil.REPAY : UrlPayCheckoutModeUtil.STANDARD);
+        // 실제 PG 는 노출하지 않는다 — 항상 ICOPAY
+        data.put("pgVendor", MerchantApiResponseMapper.MERCHANT_FACING_BRAND);
         if (langCode != null && !langCode.isBlank()) {
             data.put("langCode", langCode);
         }
-        data.put("embedUsageHint",
-                "가맹점 서버에서 prepare 호출 후 sessionToken을 embed 스크립트 data-session-token에 넣거나, payUrl을 iframe src로 사용하세요. "
-                        + "결제창 언어: prepare JSON lang(또는 embed data-lang), 없으면 가맹 페이지 html[lang]/브라우저 언어를 자동 감지합니다.");
-
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("success", true);
         out.put("data", data);
@@ -187,7 +147,7 @@ public class MerchantInlineCheckoutService {
 
     public Map<String, Object> readSession(String token) {
         Optional<MerchantInlineCheckoutTokenService.SessionPayload> parsed =
-                tokenService.parseValid(token, MerchantPgBrokerVendor.CHILLPAY);
+                tokenService.parseValid(token, MerchantPgBrokerVendor.EXIMBAY);
         if (parsed.isEmpty()) {
             return fail("세션이 유효하지 않거나 만료되었습니다.", "INVALID_SESSION");
         }
@@ -205,15 +165,16 @@ public class MerchantInlineCheckoutService {
         if (ouOpt.isEmpty()) {
             return fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND");
         }
-        String orderNo = ChillPayDirectCreditUtil.normalizeOrderNo(orderNoRaw);
-        if (orderNo == null || orderNo.isBlank()) {
+        String orderNo = normalizeOrderNo(orderNoRaw);
+        if (orderNo.isBlank()) {
             return fail("orderNo가 필요합니다.", "INVALID_ORDER_NO");
         }
         String mid = ouOpt.get().getCode();
-        Optional<PgTrnsctn> txn = findTxnByOrder(mid, orderNo);
+        Optional<PgTrnsctn> txn = findEximbayTxnByOrder(mid, orderNo);
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("compId", mid);
         data.put("orderNo", orderNo);
+        data.put("pgVendor", MerchantApiResponseMapper.MERCHANT_FACING_BRAND);
         if (txn.isEmpty()) {
             data.put("found", false);
             data.put("paymentStatus", "NOT_FOUND");
@@ -234,13 +195,11 @@ public class MerchantInlineCheckoutService {
         return out;
     }
 
-    private Optional<PgTrnsctn> findTxnByOrder(String merchantId, String orderNo) {
-        for (String origin : new String[]{"MERCHANT_API", "URL", "CHATBOT", "NOTI", "API"}) {
-            Optional<PgTrnsctn> t = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(
-                    merchantId, orderNo, origin);
-            if (t.isPresent()) {
-                return t;
-            }
+    private Optional<PgTrnsctn> findEximbayTxnByOrder(String merchantId, String orderNo) {
+        Optional<PgTrnsctn> t = PgTrnsctnOrderLookup.findPreferredByMerchantAndOrder(
+                pgTrnsctnRepository, merchantId, orderNo);
+        if (t.isPresent() && PgVendor.isEximbayFamily(t.get().getVan())) {
+            return t;
         }
         return Optional.empty();
     }
@@ -250,36 +209,20 @@ public class MerchantInlineCheckoutService {
             return "UNKNOWN";
         }
         return switch (statusCode.trim()) {
-            case "00" -> "PAID";
-            case "01" -> "CANCELLED";
-            case "02" -> "FAILED";
+            case "10", "00" -> "PAID";
+            case "08" -> "PENDING";
+            case "99", "02" -> "FAILED";
+            case "20", "01" -> "CANCELLED";
             default -> statusCode;
         };
     }
 
-    private static String buildPayPath(String compCode, String sessionToken, String orderNo,
-                                       String amountPlain, String currency, String productName, String langCode,
-                                       boolean repayMode) {
-        StringBuilder q = new StringBuilder();
-        q.append(repayMode ? "/pay-repay/" : "/pay/").append(urlEnc(compCode));
-        q.append("?entry=merchant_api");
-        if (repayMode) {
-            q.append("&variant=repay");
+    private static String normalizeOrderNo(String raw) {
+        if (raw == null) {
+            return "";
         }
-        q.append("&embed=1");
-        q.append("&session=").append(urlEnc(sessionToken));
-        q.append("&orderNo=").append(urlEnc(orderNo));
-        q.append("&amount=").append(urlEnc(amountPlain));
-        if (currency != null && !currency.isBlank()) {
-            q.append("&currency=").append(urlEnc(currency));
-        }
-        if (productName != null && !productName.isBlank()) {
-            q.append("&item=").append(urlEnc(productName));
-        }
-        if (langCode != null && !langCode.isBlank()) {
-            q.append("&lang=").append(urlEnc(langCode));
-        }
-        return q.toString();
+        String s = raw.trim();
+        return s.length() > 64 ? s.substring(0, 64) : s;
     }
 
     private static Map<String, Object> fail(String message, String code) {
@@ -317,7 +260,7 @@ public class MerchantInlineCheckoutService {
     }
 
     private static String urlEnc(String s) {
-        return URLEncoder.encode(s != null ? s : "", StandardCharsets.UTF_8);
+        return java.net.URLEncoder.encode(s != null ? s : "", java.nio.charset.StandardCharsets.UTF_8);
     }
 
     private static String trimSlash(String s) {

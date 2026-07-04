@@ -80,6 +80,16 @@ public class PayPageController {
         return serveStaticHtml("static/jpay-subscribe.html", "jpay-subscribe.html");
     }
 
+    @GetMapping(value = "/eximbay-pay.html", produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> eximbayPayHtml() {
+        return serveStaticHtml("static/eximbay-pay.html", "eximbay-pay.html");
+    }
+
+    @GetMapping(value = "/eximbay-subscribe.html", produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> eximbaySubscribeHtml() {
+        return serveStaticHtml("static/eximbay-subscribe.html", "eximbay-subscribe.html");
+    }
+
     private ResponseEntity<String> serveStaticHtml(String classpath, String logName) {
         try {
             Resource resource = new ClassPathResource(classpath);

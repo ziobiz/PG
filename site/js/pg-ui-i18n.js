@@ -10515,11 +10515,11 @@
       CH: '仅用于商户 API subscription/prepare 与 jpay-subscribe.html。与 URL、聊天机器人、一次性 inline-checkout 分离。需在总部「支付逻辑设置」中开启订阅并在 API 联动中绑定 API 订阅 PG。',
       TH: 'สำหรับ merchant API subscription/prepare และ jpay-subscribe.html เท่านั้น แยกจาก URL แชทบอท และ inline-checkout ครั้งเดียว ต้องเปิดสมัครใน「ตั้งค่าตรรกะการชำระเงิน」ที่สำนักงานใหญ่และผูก PG สมัคร API'
     },
-    'prepare: POST /api/middleware/v1/merchant/jpay/subscription/prepare · 해지: POST .../subscription/cancel (최초 orderNo)': {
-      EN: 'prepare: POST /api/middleware/v1/merchant/jpay/subscription/prepare · cancel: POST .../subscription/cancel (original orderNo)',
-      JP: 'prepare: POST /api/middleware/v1/merchant/jpay/subscription/prepare · 解約: POST .../subscription/cancel（初回 orderNo）',
-      CH: 'prepare: POST /api/middleware/v1/merchant/jpay/subscription/prepare · 解约: POST .../subscription/cancel（首次 orderNo）',
-      TH: 'prepare: POST /api/middleware/v1/merchant/jpay/subscription/prepare · ยกเลิก: POST .../subscription/cancel (orderNo แรก)'
+    'prepare: POST /api/middleware/v1/merchant/checkout/subscription/prepare · 해지: POST .../checkout/subscription/cancel (최초 orderNo)': {
+      EN: 'prepare: POST /api/middleware/v1/merchant/checkout/subscription/prepare · cancel: POST .../checkout/subscription/cancel (original orderNo)',
+      JP: 'prepare: POST /api/middleware/v1/merchant/checkout/subscription/prepare · 解約: POST .../checkout/subscription/cancel（初回 orderNo）',
+      CH: 'prepare: POST /api/middleware/v1/merchant/checkout/subscription/prepare · 解约: POST .../checkout/subscription/cancel（首次 orderNo）',
+      TH: 'prepare: POST /api/middleware/v1/merchant/checkout/subscription/prepare · ยกเลิก: POST .../checkout/subscription/cancel (orderNo แรก)'
     },
     '조회된 구독이 없습니다.': {
       EN: 'No subscriptions found.',

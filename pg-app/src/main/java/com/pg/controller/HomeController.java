@@ -60,6 +60,16 @@ public class HomeController {
         return redirectWithMergedQuery("/jpay-pay.html", compId, request);
     }
 
+    @GetMapping("/eximbay-pay/{compId}")
+    public String eximbayPayByComp(@PathVariable("compId") String compId, HttpServletRequest request) {
+        return redirectWithMergedQuery("/eximbay-pay.html", compId, request);
+    }
+
+    @GetMapping("/eximbay-subscribe/{compId}")
+    public String eximbaySubscribeByComp(@PathVariable("compId") String compId, HttpServletRequest request) {
+        return redirectWithMergedQuery("/eximbay-subscribe.html", compId, request);
+    }
+
     @GetMapping("/pay-repay/{compId}")
     public String payRepayByComp(@PathVariable("compId") String compId, HttpServletRequest request) {
         String enc = URLEncoder.encode(compId != null ? compId : "", StandardCharsets.UTF_8);

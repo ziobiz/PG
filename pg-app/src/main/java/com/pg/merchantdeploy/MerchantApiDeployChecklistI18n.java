@@ -38,15 +38,15 @@ public final class MerchantApiDeployChecklistI18n {
         )));
 
         list.add(textMap(new Bundle(
-                "통합 인라인(권장): POST " + base + "/api/middleware/v1/merchant/checkout/prepare "
-                        + "(buyer.email·phone·countryIso2 필수) → sessionToken → /v1/embed-checkout/" + cid + " (운영 PG 자동 분기)",
-                "Unified inline (recommended): POST " + base + "/api/middleware/v1/merchant/checkout/prepare "
+                "ICOPAY 통합 인라인(권장): POST " + base + "/api/middleware/v1/merchant/checkout/prepare "
+                        + "(buyer.email·phone·countryIso2 필수) → sessionToken → /v1/embed-checkout/" + cid + " (결제망은 ICOPAY가 자동 처리)",
+                "ICOPAY unified inline (recommended): POST " + base + "/api/middleware/v1/merchant/checkout/prepare "
                         + "(buyer.email, phone, countryIso2 required) → sessionToken → /v1/embed-checkout/" + cid,
-                "統合インライン（推奨）: POST " + base + "/api/middleware/v1/merchant/checkout/prepare "
+                "ICOPAY 統合インライン（推奨）: POST " + base + "/api/middleware/v1/merchant/checkout/prepare "
                         + "（buyer.email・phone・countryIso2 必須）→ sessionToken → /v1/embed-checkout/" + cid,
-                "统一内联（推荐）: POST " + base + "/api/middleware/v1/merchant/checkout/prepare "
+                "ICOPAY 统一内联（推荐）: POST " + base + "/api/middleware/v1/merchant/checkout/prepare "
                         + "（必填 buyer.email·phone·countryIso2）→ sessionToken → /v1/embed-checkout/" + cid,
-                "อินไลน์รวม (แนะนำ): POST " + base + "/api/middleware/v1/merchant/checkout/prepare "
+                "ICOPAY อินไลน์รวม (แนะนำ): POST " + base + "/api/middleware/v1/merchant/checkout/prepare "
                         + "(ต้องมี buyer.email·phone·countryIso2) → sessionToken → /v1/embed-checkout/" + cid
         )));
 
@@ -74,42 +74,16 @@ public final class MerchantApiDeployChecklistI18n {
         )));
 
         list.add(textMap(new Bundle(
-                "ChillPay 인라인(레거시): POST " + base + "/api/middleware/v1/merchant/chillpay/inline-checkout/prepare "
-                        + "→ sessionToken → /v1/embed-pay/" + cid,
-                "ChillPay inline (legacy): POST " + base + "/api/middleware/v1/merchant/chillpay/inline-checkout/prepare "
-                        + "→ sessionToken → /v1/embed-pay/" + cid,
-                "ChillPay インライン（レガシー）: POST " + base + "/api/middleware/v1/merchant/chillpay/inline-checkout/prepare "
-                        + "→ sessionToken → /v1/embed-pay/" + cid,
-                "ChillPay 内联（遗留）: POST " + base + "/api/middleware/v1/merchant/chillpay/inline-checkout/prepare "
-                        + "→ sessionToken → /v1/embed-pay/" + cid,
-                "ChillPay อินไลน์ (เดิม): POST " + base + "/api/middleware/v1/merchant/chillpay/inline-checkout/prepare "
-                        + "→ sessionToken → /v1/embed-pay/" + cid
-        )));
-
-        list.add(textMap(new Bundle(
-                "JPAY 인라인(레거시): POST " + base + "/api/middleware/v1/merchant/jpay/inline-checkout/prepare "
-                        + "→ sessionToken → /v1/embed-jpay-pay/" + cid,
-                "JPAY inline (legacy): POST " + base + "/api/middleware/v1/merchant/jpay/inline-checkout/prepare "
-                        + "→ sessionToken → /v1/embed-jpay-pay/" + cid,
-                "JPAY インライン（レガシー）: POST " + base + "/api/middleware/v1/merchant/jpay/inline-checkout/prepare "
-                        + "→ sessionToken → /v1/embed-jpay-pay/" + cid,
-                "JPAY 内联（遗留）: POST " + base + "/api/middleware/v1/merchant/jpay/inline-checkout/prepare "
-                        + "→ sessionToken → /v1/embed-jpay-pay/" + cid,
-                "JPAY อินไลน์ (เดิม): POST " + base + "/api/middleware/v1/merchant/jpay/inline-checkout/prepare "
-                        + "→ sessionToken → /v1/embed-jpay-pay/" + cid
-        )));
-
-        list.add(textMap(new Bundle(
-                "JPAY 구독: POST " + base + "/api/middleware/v1/merchant/jpay/subscription/prepare "
-                        + "→ sessionToken → /v1/embed-jpay-subscribe/" + cid,
-                "JPAY subscription: POST " + base + "/api/middleware/v1/merchant/jpay/subscription/prepare "
-                        + "→ sessionToken → /v1/embed-jpay-subscribe/" + cid,
-                "JPAY サブスク: POST " + base + "/api/middleware/v1/merchant/jpay/subscription/prepare "
-                        + "→ sessionToken → /v1/embed-jpay-subscribe/" + cid,
-                "JPAY 订阅: POST " + base + "/api/middleware/v1/merchant/jpay/subscription/prepare "
-                        + "→ sessionToken → /v1/embed-jpay-subscribe/" + cid,
-                "JPAY สมัครสมาชิก: POST " + base + "/api/middleware/v1/merchant/jpay/subscription/prepare "
-                        + "→ sessionToken → /v1/embed-jpay-subscribe/" + cid
+                "ICOPAY 통합 구독(정기결제): POST " + base + "/api/middleware/v1/merchant/checkout/subscription/prepare "
+                        + "→ sessionToken → /v1/embed-checkout-subscribe/" + cid,
+                "ICOPAY unified subscription: POST " + base + "/api/middleware/v1/merchant/checkout/subscription/prepare "
+                        + "→ sessionToken → /v1/embed-checkout-subscribe/" + cid,
+                "ICOPAY 統合サブスク: POST " + base + "/api/middleware/v1/merchant/checkout/subscription/prepare "
+                        + "→ sessionToken → /v1/embed-checkout-subscribe/" + cid,
+                "ICOPAY 统一订阅: POST " + base + "/api/middleware/v1/merchant/checkout/subscription/prepare "
+                        + "→ sessionToken → /v1/embed-checkout-subscribe/" + cid,
+                "ICOPAY unified subscription: POST " + base + "/api/middleware/v1/merchant/checkout/subscription/prepare "
+                        + "→ sessionToken → /v1/embed-checkout-subscribe/" + cid
         )));
 
         list.add(textMap(new Bundle(
@@ -121,19 +95,11 @@ public final class MerchantApiDeployChecklistI18n {
         )));
 
         list.add(textMap(new Bundle(
-                "ChillPay 콜백·리다이렉트 URL은 본사 API연동설정·노티구성과 동일하게 유지",
-                "Keep ChillPay callback and redirect URLs aligned with HQ API integration and notify settings.",
-                "ChillPay のコールバック・リダイレクト URL は本社 API 連携・ノティ設定と一致させる",
-                "ChillPay 回调与重定向 URL 须与总部 API 联动、通知配置一致",
-                "คง URL callback/redirect ของ ChillPay ให้ตรงการตั้งค่า API และแจ้งเตือนของ HQ"
-        )));
-
-        list.add(textMap(new Bundle(
-                "JPAY pay_notifyurl·콜백은 기본 notifyIngressUrlMiddleware 경로 사용. 레거시만 tb_pg_agency credentials_extra_json jpayNotifyIngressStyle=OPEN",
-                "JPAY pay_notifyurl/callbacks default to notifyIngressUrlMiddleware. Legacy only: jpayNotifyIngressStyle=OPEN in credentials_extra_json.",
-                "JPAY pay_notifyurl・コールバックは既定で notifyIngressUrlMiddleware。レガシーのみ credentials_extra_json で jpayNotifyIngressStyle=OPEN",
-                "JPAY pay_notifyurl/回调默认走 notifyIngressUrlMiddleware。仅遗留时在 credentials_extra_json 设 jpayNotifyIngressStyle=OPEN",
-                "JPAY pay_notifyurl/ callback ใช้ notifyIngressUrlMiddleware เป็นค่าเริ่มต้น แบบเดิมตั้ง jpayNotifyIngressStyle=OPEN ใน credentials_extra_json"
+                "결제망 콜백·리다이렉트·노티 URL은 ICOPAY(본사)에서 구성·관리 — 가맹점은 별도 설정 불필요",
+                "Payment-network callback/redirect/notify URLs are configured and managed by ICOPAY (HQ) — no separate merchant setup.",
+                "決済網のコールバック・リダイレクト・ノティ URL は ICOPAY（本社）が構成・管理 — 加盟店の別設定は不要",
+                "支付通道回调/重定向/通知 URL 由 ICOPAY（总部）配置管理 — 商户无需单独设置",
+                "URL callback/redirect/notify ของเครือข่ายชำระเงิน ICOPAY (HQ) จัดการให้ — ร้านไม่ต้องตั้งเพิ่ม"
         )));
 
         list.add(textMap(new Bundle(
@@ -163,30 +129,6 @@ public final class MerchantApiDeployChecklistI18n {
                         + "（buyer 必填，body 禁止 returnUrl/cancelUrl）→ payUrl → NOTI Result·status/webhook",
                 "Unified redirect: POST " + base + "/api/middleware/v1/merchant/checkout/redirect/prepare "
                         + "→ payUrl → NOTI Result·status/webhook"
-        )));
-
-        list.add(textMap(new Bundle(
-                "JPAY 리다이렉트: POST " + base + "/api/middleware/v1/merchant/jpay/redirect-checkout/prepare "
-                        + "→ payUrl (returnUrl body 금지, NOTI Result 경유)",
-                "JPAY redirect: POST " + base + "/api/middleware/v1/merchant/jpay/redirect-checkout/prepare "
-                        + "→ payUrl (no returnUrl in body; browser via NOTI Result)",
-                "JPAY リダイレクト: POST " + base + "/api/middleware/v1/merchant/jpay/redirect-checkout/prepare "
-                        + "→ payUrl（returnUrl body 禁止・NOTI Result 経由）",
-                "JPAY 重定向: POST " + base + "/api/middleware/v1/merchant/jpay/redirect-checkout/prepare "
-                        + "→ payUrl（body 禁止 returnUrl，经 NOTI Result）",
-                "JPAY redirect: POST " + base + "/api/middleware/v1/merchant/jpay/redirect-checkout/prepare → payUrl"
-        )));
-
-        list.add(textMap(new Bundle(
-                "ChillPay 리다이렉트: POST " + base + "/api/middleware/v1/merchant/chillpay/redirect-checkout/prepare "
-                        + "→ payUrl (returnUrl/cancelUrl HTTPS)",
-                "ChillPay redirect: POST " + base + "/api/middleware/v1/merchant/chillpay/redirect-checkout/prepare "
-                        + "→ payUrl (HTTPS returnUrl/cancelUrl)",
-                "ChillPay リダイレクト: POST " + base + "/api/middleware/v1/merchant/chillpay/redirect-checkout/prepare "
-                        + "→ payUrl",
-                "ChillPay 重定向: POST " + base + "/api/middleware/v1/merchant/chillpay/redirect-checkout/prepare "
-                        + "→ payUrl",
-                "ChillPay redirect: POST " + base + "/api/middleware/v1/merchant/chillpay/redirect-checkout/prepare → payUrl"
         )));
 
         list.add(textMap(new Bundle(

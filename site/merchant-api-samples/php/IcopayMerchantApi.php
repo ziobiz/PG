@@ -181,39 +181,17 @@ final class IcopayMerchantApi
 
     public function buildEmbedHtml(string $vendor, string $sessionToken, string $targetId = '', string $lang = ''): string
     {
-        $v = strtolower(trim($vendor));
-        $isJpay = ($v === self::VENDOR_JPAY);
-        $embedPath = $isJpay ? '/v1/embed-jpay-pay/' : '/v1/embed-pay/';
-        $defaultTarget = $isJpay ? 'icopay-jpay-checkout' : 'icopay-pay-checkout';
-        $target = $targetId !== '' ? $targetId : $defaultTarget;
-        $compEnc = rawurlencode($this->compId);
-        $tokEnc = htmlspecialchars($sessionToken, ENT_QUOTES, 'UTF-8');
-        $src = htmlspecialchars($this->apiBase . $embedPath . $compEnc, ENT_QUOTES, 'UTF-8');
-        $targetEsc = htmlspecialchars($target, ENT_QUOTES, 'UTF-8');
-        $langNorm = self::normalizeLang($lang !== '' ? $lang : self::detectPageLang());
-        $langAttr = $langNorm !== ''
-            ? ' data-lang="' . htmlspecialchars($langNorm, ENT_QUOTES, 'UTF-8') . '"'
-            : '';
-        return '<div id="' . $targetEsc . '"></div>' . "\n"
-            . '<script src="' . $src . '"'
-            . ' data-session-token="' . $tokEnc . '"'
-            . ' data-target="' . $targetEsc . '"'
-            . $langAttr
-            . ' async defer charset="utf-8"></script>';
+        return $this->buildUnifiedEmbedHtml($sessionToken, $targetId !== '' ? $targetId : 'icopay-checkout', $lang);
     }
 
     private function preparePath(string $vendor): string
     {
-        return strtolower(trim($vendor)) === self::VENDOR_JPAY
-            ? '/api/middleware/v1/merchant/jpay/inline-checkout/prepare'
-            : '/api/middleware/v1/merchant/chillpay/inline-checkout/prepare';
+        return '/api/middleware/v1/merchant/checkout/prepare';
     }
 
     private function statusPath(string $vendor): string
     {
-        return strtolower(trim($vendor)) === self::VENDOR_JPAY
-            ? '/api/middleware/v1/merchant/jpay/inline-checkout/status'
-            : '/api/middleware/v1/merchant/chillpay/inline-checkout/status';
+        return '/api/middleware/v1/merchant/checkout/status';
     }
 
     /** @return array{success:bool,data?:array,message?:string,errorCode?:string} */

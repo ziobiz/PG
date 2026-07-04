@@ -10,6 +10,7 @@ import com.pg.service.JpaySubscriptionPlanUtil;
 import com.pg.service.MerchantChatbotProductService;
 import com.pg.service.OrgServiceUseService;
 import com.pg.service.UrlPayCheckoutCurrencyService;
+import com.pg.urlpay.NeutralCheckoutRoute;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -96,11 +97,8 @@ public class MerchantJpaySubscriptionCheckoutService {
         MerchantInlineCheckoutTokenService.SessionPayload session = parsed.get();
 
         String base = trimSlash(productService.resolvePublicCustomerSiteBase(request));
-        String payPath = buildSubscribePath(ou.getCode(), sessionToken, orderNo, amountPlain, currency, productName, langCode);
-        String payUrl = base.isEmpty() ? payPath : base + payPath;
-        String embedScriptUrl = base.isEmpty()
-                ? "/v1/embed-jpay-subscribe/" + urlEnc(ou.getCode())
-                : base + "/v1/embed-jpay-subscribe/" + urlEnc(ou.getCode());
+        String payUrl = NeutralCheckoutRoute.buildSubscribeUrl(base, ou.getCode(), sessionToken, langCode, true);
+        String embedScriptUrl = (base.isEmpty() ? "" : base) + "/v1/embed-checkout-subscribe/" + urlEnc(ou.getCode());
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.putAll(session.toPublicMap());
@@ -109,10 +107,10 @@ public class MerchantJpaySubscriptionCheckoutService {
         data.put("embedScriptUrl", embedScriptUrl);
         data.put("subscriptionPrepareUrl",
                 trimSlash(productService.resolvePublicCustomerSiteBase(request))
-                        + "/api/middleware/v1/merchant/jpay/subscription/prepare");
+                        + "/api/middleware/v1/merchant/checkout/subscription/prepare");
         data.put("integrationMode", "INLINE");
         data.put("checkoutKind", MerchantInlineCheckoutTokenService.CHECKOUT_SUBSCRIPTION);
-        data.put("pgVendor", MerchantPgBrokerVendor.JPAY);
+        data.put("pgVendor", MerchantApiResponseMapper.MERCHANT_FACING_BRAND);
         if (langCode != null && !langCode.isBlank()) {
             data.put("langCode", langCode);
         }
@@ -150,7 +148,7 @@ public class MerchantJpaySubscriptionCheckoutService {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("compId", ouOpt.get().getCode());
         data.put("orderNo", orderNo);
-        data.put("pgVendor", MerchantPgBrokerVendor.JPAY);
+        data.put("pgVendor", MerchantApiResponseMapper.MERCHANT_FACING_BRAND);
         if (sub.isEmpty()) {
             data.put("found", false);
             data.put("status", "NOT_FOUND");
@@ -223,38 +221,19 @@ public class MerchantJpaySubscriptionCheckoutService {
             return fail(OrgServiceUseService.MSG_ORG_SERVICE_DISABLED, "ORG_DISABLED");
         }
         if (!subscriptionConfigService.isMerchantSubscriptionEnabled(orgUnitId)) {
-            return fail("JPAY API 구독이 비활성입니다. 본사·가맹 설정을 확인하세요.", "SUBSCRIPTION_DISABLED");
+            return fail("ICOPAY API 구독이 비활성입니다. 본사·가맹 설정을 확인하세요.", "SUBSCRIPTION_DISABLED");
         }
         if (!subscriptionConfigService.isHqSubscriptionInlineEnabled()) {
-            return fail("본사 JPAY 구독 INLINE 제공이 꺼져 있습니다.", "INLINE_NOT_ENABLED");
+            return fail("본사 ICOPAY 구독 INLINE 제공이 꺼져 있습니다.", "INLINE_NOT_ENABLED");
         }
         if (!jpayPaymentService.hasOperationalSubscriptionBinding(orgUnitId)) {
-            return fail("JPAY API 구독(운영) 바인딩이 없습니다.", "SUBSCRIPTION_PG_MISSING");
+            return fail("ICOPAY API 구독(운영) 바인딩이 없습니다.", "SUBSCRIPTION_PG_MISSING");
         }
         return null;
     }
 
     private static boolean hasSubscriptionFields(Map<String, Object> body) {
         return body != null && (body.containsKey("subscriptionPlan") || body.containsKey("subscription_plan"));
-    }
-
-    private static String buildSubscribePath(String compCode, String sessionToken, String orderNo,
-                                             String amountPlain, String currency, String productName, String langCode) {
-        StringBuilder q = new StringBuilder();
-        q.append("/jpay-subscribe/").append(urlEnc(compCode));
-        q.append("?entry=merchant_api");
-        q.append("&embed=1");
-        q.append("&session=").append(urlEnc(sessionToken));
-        q.append("&orderNo=").append(urlEnc(orderNo));
-        q.append("&amount=").append(urlEnc(amountPlain));
-        q.append("&currency=").append(urlEnc(currency));
-        if (productName != null && !productName.isBlank()) {
-            q.append("&item=").append(urlEnc(productName));
-        }
-        if (langCode != null && !langCode.isBlank()) {
-            q.append("&lang=").append(urlEnc(langCode));
-        }
-        return q.toString();
     }
 
     private static String normalizeOrderNo(String raw) {

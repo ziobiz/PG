@@ -7,6 +7,7 @@ import com.pg.service.MerchantChatbotProductService;
 import com.pg.splitpay.SplitPayCheckoutModeGuard;
 import com.pg.urlpay.MobileCheckoutModeService;
 import com.pg.urlpay.IcipayBuyerContactUtil;
+import com.pg.urlpay.NeutralCheckoutRoute;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +25,7 @@ public class MerchantUnifiedInlineCheckoutService {
     private final ChillPayService chillPayService;
     private final MerchantInlineCheckoutService chillpayInlineCheckoutService;
     private final MerchantJpayInlineCheckoutService jpayInlineCheckoutService;
+    private final MerchantEximbayInlineCheckoutService eximbayInlineCheckoutService;
     private final MerchantInlineCheckoutTokenService tokenService;
     private final MerchantChatbotProductService productService;
     private final MerchantApiIntegrationChannelService integrationChannelService;
@@ -35,6 +37,7 @@ public class MerchantUnifiedInlineCheckoutService {
     public MerchantUnifiedInlineCheckoutService(ChillPayService chillPayService,
                                                 MerchantInlineCheckoutService chillpayInlineCheckoutService,
                                                 MerchantJpayInlineCheckoutService jpayInlineCheckoutService,
+                                                MerchantEximbayInlineCheckoutService eximbayInlineCheckoutService,
                                                 MerchantInlineCheckoutTokenService tokenService,
                                                 MerchantChatbotProductService productService,
                                                 MerchantApiIntegrationChannelService integrationChannelService,
@@ -44,6 +47,7 @@ public class MerchantUnifiedInlineCheckoutService {
         this.chillPayService = chillPayService;
         this.chillpayInlineCheckoutService = chillpayInlineCheckoutService;
         this.jpayInlineCheckoutService = jpayInlineCheckoutService;
+        this.eximbayInlineCheckoutService = eximbayInlineCheckoutService;
         this.tokenService = tokenService;
         this.productService = productService;
         this.integrationChannelService = integrationChannelService;
@@ -80,10 +84,12 @@ public class MerchantUnifiedInlineCheckoutService {
         Map<String, Object> result;
         if (PgVendor.isJpayFamily(opPg)) {
             result = jpayInlineCheckoutService.prepare(orgUnitId, enriched, request);
+        } else if (PgVendor.isEximbayFamily(opPg)) {
+            result = eximbayInlineCheckoutService.prepare(orgUnitId, enriched, request);
         } else if (PgVendor.isChillPayFamily(opPg)) {
             result = chillpayInlineCheckoutService.prepare(orgUnitId, enriched, request);
         } else {
-            return fail("지원하지 않는 URL 결제 PG: " + opPg, "PG_NOT_SUPPORTED");
+            return fail("지원하지 않는 결제 구성입니다.", "PG_NOT_SUPPORTED");
         }
 
         patchUnifiedPrepareResponse(result, request, opPg, orgUnitId);
@@ -113,10 +119,13 @@ public class MerchantUnifiedInlineCheckoutService {
         if (PgVendor.isJpayFamily(opPg)) {
             return jpayInlineCheckoutService.orderStatus(orgUnitId, orderNo);
         }
+        if (PgVendor.isEximbayFamily(opPg)) {
+            return eximbayInlineCheckoutService.orderStatus(orgUnitId, orderNo);
+        }
         if (PgVendor.isChillPayFamily(opPg)) {
             return chillpayInlineCheckoutService.orderStatus(orgUnitId, orderNo);
         }
-        return fail("지원하지 않는 URL 결제 PG: " + opPg, "PG_NOT_SUPPORTED");
+        return fail("지원하지 않는 결제 구성입니다.", "PG_NOT_SUPPORTED");
     }
 
     @SuppressWarnings("unchecked")
@@ -139,14 +148,18 @@ public class MerchantUnifiedInlineCheckoutService {
         data.put("embedScriptUrl", base.isEmpty() ? embedPath : base + embedPath);
         data.put("inlineCheckoutPrepareUrl",
                 base + "/api/middleware/v1/merchant/checkout/prepare");
-        data.put("operationalPgCd", opPg);
+        // 가맹점·구매자에게 PG(ChillPay/JPAY/Eximbay)를 노출하지 않는 중립 결제창 경로로 통일
+        String sessionToken = str(data.get("sessionToken"));
+        data.put("payUrl", NeutralCheckoutRoute.buildPayUrl(base, compId, sessionToken, str(data.get("langCode")), true));
+        // 실제 PG 는 응답에 노출하지 않는다 — 항상 ICOPAY (operationalPgCd 미노출)
+        data.put("pgVendor", MerchantApiResponseMapper.MERCHANT_FACING_BRAND);
         data.put("integrationMode", "INLINE_UNIFIED");
         if (orgUnitId != null) {
             mobileCheckoutModeService.putEffectiveIntoMap(data, orgUnitId);
         }
         data.put("embedUsageHint",
-                "통합 prepare: buyer(email·phone·countryIso2) 필수. sessionToken → /v1/embed-checkout/{compId} "
-                        + "(운영 PG 자동 분기). 레거시 /chillpay·/jpay 경로도 호환됩니다.");
+                "ICOPAY 통합 prepare: buyer(email·phone·countryIso2) 필수. sessionToken → /v1/embed-checkout/{compId}. "
+                        + "결제망은 ICOPAY가 자동 선택·처리하며, 가맹점 연동은 결제 대행사 변경과 무관하게 그대로 유지됩니다.");
     }
 
     private static Map<String, Object> fail(String message, String code) {

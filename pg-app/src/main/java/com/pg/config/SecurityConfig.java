@@ -51,6 +51,17 @@ public class SecurityConfig {
                 AntPathRequestMatcher.antMatcher("/jpay-subscribe"),
                 AntPathRequestMatcher.antMatcher("/jpay-subscribe/**"),
                 AntPathRequestMatcher.antMatcher("/jpay-subscribe.html"),
+                AntPathRequestMatcher.antMatcher("/eximbay-pay"),
+                AntPathRequestMatcher.antMatcher("/eximbay-pay/**"),
+                AntPathRequestMatcher.antMatcher("/eximbay-pay.html"),
+                AntPathRequestMatcher.antMatcher("/eximbay-subscribe"),
+                AntPathRequestMatcher.antMatcher("/eximbay-subscribe/**"),
+                AntPathRequestMatcher.antMatcher("/eximbay-subscribe.html"),
+                /* PG 무관 중립 결제창 — 서버 forward 로 실제 PG 페이지를 노출 없이 제공 */
+                AntPathRequestMatcher.antMatcher("/checkout"),
+                AntPathRequestMatcher.antMatcher("/checkout/**"),
+                AntPathRequestMatcher.antMatcher("/checkout-subscribe"),
+                AntPathRequestMatcher.antMatcher("/checkout-subscribe/**"),
                 AntPathRequestMatcher.antMatcher("/pay-result.html"),
                 /* 가맹점 API 연동 문서 — 관리 화면(icopay.co.kr) iframe 미리보기 */
                 AntPathRequestMatcher.antMatcher("/merchant-api-samples/**")));
@@ -85,6 +96,7 @@ public class SecurityConfig {
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pub/login-notice")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/chillpay/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/jpay/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/eximbay/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/url/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/split/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/open/pg-notify/**")).permitAll()
@@ -144,6 +156,7 @@ public class SecurityConfig {
                     AntPathRequestMatcher.antMatcher("/v1/embed-pay/**"),
                     AntPathRequestMatcher.antMatcher("/v1/embed-jpay-pay/**"),
                     AntPathRequestMatcher.antMatcher("/v1/embed-checkout/**"),
+                AntPathRequestMatcher.antMatcher("/v1/embed-checkout-subscribe/**"),
                     AntPathRequestMatcher.antMatcher("/merchant-api-samples/**"),
                     AntPathRequestMatcher.antMatcher("/css/**"),
                     AntPathRequestMatcher.antMatcher("/js/**"),

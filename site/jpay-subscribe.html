@@ -472,7 +472,7 @@
         if (!PAY_ENTRY_MERCHANT_API) return Promise.resolve();
         try { sessionToken = (new URLSearchParams(location.search).get('session') || '').trim(); } catch (e) {}
         if (!sessionToken) return Promise.resolve();
-        return fetchJson(apiUrl('/api/middleware/v1/merchant/jpay/subscription/session', 'token=' + encodeURIComponent(sessionToken)))
+        return fetchJson(apiUrl('/api/middleware/v1/merchant/checkout/subscription/session', 'token=' + encodeURIComponent(sessionToken)))
           .then(function (res) {
             if (!res.success || !res.data) throw new Error(t('errInvalidSession'));
             sessionPayload = res.data;

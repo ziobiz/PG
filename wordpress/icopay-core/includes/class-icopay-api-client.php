@@ -131,16 +131,9 @@ class ICOPAY_Core_Api_Client {
 	 * @return string HTML embed snippet (inline only).
 	 */
 	public function build_embed_html( $session_token, $target_id = '', $lang = '' ) {
-		$is_jpay   = ( ICOPAY_Flow::VENDOR_JPAY === $this->vendor );
-		$embed     = $is_jpay ? '/v1/embed-jpay-pay/' : '/v1/embed-pay/';
-		if ( ICOPAY_Flow::VENDOR_UNIFIED === $this->vendor ) {
-			$embed = '/v1/embed-checkout/';
-		}
-		$default   = $is_jpay ? 'icopay-jpay-checkout' : 'icopay-pay-checkout';
-		if ( ICOPAY_Flow::VENDOR_UNIFIED === $this->vendor ) {
-			$default = 'icopay-checkout';
-		}
-		$target    = '' !== $target_id ? $target_id : $default;
+		$embed   = '/v1/embed-checkout/';
+		$default = 'icopay-checkout';
+		$target  = '' !== $target_id ? $target_id : $default;
 		$src       = esc_url( $this->api_base . $embed . rawurlencode( $this->comp_id ) );
 		$tok       = esc_attr( $session_token );
 		$target_e  = esc_attr( $target );
@@ -228,19 +221,9 @@ class ICOPAY_Core_Api_Client {
 	 */
 	private function prepare_path( $flow ) {
 		$redirect = ( ICOPAY_Flow::REDIRECT === ICOPAY_Flow::normalize( $flow ) );
-		if ( ICOPAY_Flow::VENDOR_UNIFIED === $this->vendor ) {
-			return $redirect
-				? '/api/middleware/v1/merchant/checkout/redirect/prepare'
-				: '/api/middleware/v1/merchant/checkout/prepare';
-		}
-		if ( ICOPAY_Flow::VENDOR_JPAY === $this->vendor ) {
-			return $redirect
-				? '/api/middleware/v1/merchant/jpay/redirect-checkout/prepare'
-				: '/api/middleware/v1/merchant/jpay/inline-checkout/prepare';
-		}
 		return $redirect
-			? '/api/middleware/v1/merchant/chillpay/redirect-checkout/prepare'
-			: '/api/middleware/v1/merchant/chillpay/inline-checkout/prepare';
+			? '/api/middleware/v1/merchant/checkout/redirect/prepare'
+			: '/api/middleware/v1/merchant/checkout/prepare';
 	}
 
 	/**
@@ -249,19 +232,9 @@ class ICOPAY_Core_Api_Client {
 	 */
 	private function status_path( $flow ) {
 		$redirect = ( ICOPAY_Flow::REDIRECT === ICOPAY_Flow::normalize( $flow ) );
-		if ( ICOPAY_Flow::VENDOR_UNIFIED === $this->vendor ) {
-			return $redirect
-				? '/api/middleware/v1/merchant/checkout/redirect/status'
-				: '/api/middleware/v1/merchant/checkout/status';
-		}
-		if ( ICOPAY_Flow::VENDOR_JPAY === $this->vendor ) {
-			return $redirect
-				? '/api/middleware/v1/merchant/jpay/redirect-checkout/status'
-				: '/api/middleware/v1/merchant/jpay/inline-checkout/status';
-		}
 		return $redirect
-			? '/api/middleware/v1/merchant/chillpay/redirect-checkout/status'
-			: '/api/middleware/v1/merchant/chillpay/inline-checkout/status';
+			? '/api/middleware/v1/merchant/checkout/redirect/status'
+			: '/api/middleware/v1/merchant/checkout/status';
 	}
 
 	/**

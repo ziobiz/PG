@@ -1,16 +1,12 @@
 package com.pg.urlpay;
 
-import com.pg.entity.HqApiConfig;
 import com.pg.entity.MerchantProfile;
-import com.pg.integration.pg.PgVendor;
 import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.service.MerchantChatbotProductService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -96,19 +92,8 @@ public class MobileCheckoutModeService {
             return "";
         }
         String base = trimSlash(productService.resolvePublicCustomerSiteBase(request));
-        boolean jpay = PgVendor.isJpayFamily(pgVendor);
-        String page = jpay ? "/jpay-pay/" : "/pay/";
-        StringBuilder q = new StringBuilder();
-        q.append(page).append(urlEnc(compId.trim()));
-        q.append("?entry=merchant_api&embed=1");
-        if (sessionToken != null && !sessionToken.isBlank()) {
-            q.append("&session=").append(urlEnc(sessionToken.trim()));
-        }
-        if (langCode != null && !langCode.isBlank()) {
-            q.append("&lang=").append(urlEnc(langCode.trim()));
-        }
-        String path = q.toString();
-        return base.isEmpty() ? path : base + path;
+        // PG 무관 중립 결제창 경로로 통일 — 가맹점·구매자에게 실제 PG(pgVendor)를 노출하지 않는다.
+        return NeutralCheckoutRoute.buildPayUrl(base, compId, sessionToken, langCode, true);
     }
 
     public Map<String, Object> buildStatusBlock(Long orgUnitId) {
@@ -137,9 +122,5 @@ public class MobileCheckoutModeService {
             t = t.substring(0, t.length() - 1);
         }
         return t;
-    }
-
-    private static String urlEnc(String s) {
-        return URLEncoder.encode(s, StandardCharsets.UTF_8);
     }
 }

@@ -11,9 +11,11 @@
   }
 
   function buildFrameSrc(origin, pagePath, compId, sessionToken, langCode) {
-    var src = trimOrigin(origin) + pagePath + encodeURIComponent(String(compId).trim())
+    var id = String(compId).trim();
+    var src = trimOrigin(origin) + pagePath + encodeURIComponent(id)
         + '?entry=merchant_api&embed=1'
-        + '&session=' + encodeURIComponent(String(sessionToken).trim());
+        + '&session=' + encodeURIComponent(String(sessionToken).trim())
+        + '&m=' + encodeURIComponent(id);
     if (langCode) {
       src += '&lang=' + encodeURIComponent(langCode);
     }

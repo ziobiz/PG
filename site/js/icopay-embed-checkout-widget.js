@@ -1,5 +1,7 @@
 /**
- * ICOPAY 통합 인라인 결제 iframe 위idget — 운영 PG(ChillPay/JPAY) 자동 분기.
+ * ICOPAY 통합 인라인 결제 iframe 위젯.
+ * 실제 결제 대행사는 노출하지 않는다 — 항상 중립 결제창(/checkout/{compId})으로 iframe 을 띄우고,
+ * 서버가 운영 PG를 판별해 실제 결제 페이지로 내부 forward 한다.
  */
 (function () {
   'use strict';
@@ -47,8 +49,9 @@
     sessionToken: sessionToken,
     mount: mount,
     sessionUrl: origin + '/api/middleware/v1/merchant/checkout/session?token=' + encodeURIComponent(sessionToken),
-    pagePathForVendor: function (vendor) {
-      return String(vendor || '').indexOf('JPAY') === 0 ? '/jpay-pay/' : '/pay/';
+    pagePathForVendor: function () {
+      // PG 무관 중립 경로 — 실제 결제 대행사는 서버 forward 로 숨긴다.
+      return '/checkout/';
     },
     langCode: langCode,
     eventName: 'icopay-checkout',

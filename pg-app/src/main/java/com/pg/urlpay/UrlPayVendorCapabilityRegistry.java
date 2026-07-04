@@ -32,6 +32,9 @@ public class UrlPayVendorCapabilityRegistry {
         if (PgVendor.isJpayFamily(pg)) {
             return jpayCapability(pg, urlPay, urlRepayAgency);
         }
+        if (PgVendor.isEximbayFamily(pg)) {
+            return eximbayCapability(pg, urlPay, urlRepayAgency);
+        }
         if (PgVendor.isChillPayFamily(pg) || ChillPayService.isChillPayFamilyPgCd(pg)) {
             return chillPayCapability(pg, urlPay, urlRepayAgency);
         }
@@ -47,6 +50,9 @@ public class UrlPayVendorCapabilityRegistry {
         if (PgVendor.isJpayFamily(pg)) {
             return UrlPayInlineWidgetKind.JPAY_INLINE;
         }
+        if (PgVendor.isEximbayFamily(pg)) {
+            return UrlPayInlineWidgetKind.EXIMBAY_SDK;
+        }
         if (PgVendor.isChillPayFamily(pg) || ChillPayService.isChillPayFamilyPgCd(pg)) {
             return UrlPayInlineWidgetKind.CHILLPAY_CCD;
         }
@@ -59,9 +65,27 @@ public class UrlPayVendorCapabilityRegistry {
                 PgVendor.JPAY,
                 pg,
                 UrlPayInlineWidgetKind.JPAY_INLINE,
-                "/jpay-pay/",
-                "/v1/embed-jpay-pay/",
+                "/checkout/",
+                NeutralCheckoutRoute.EMBED_SCRIPT_PATH,
                 UrlPaySaleChannel.JPAY_INLINE_SALE,
+                urlPay,
+                urlRepayAgency,
+                urlRepayAgency && repayApi);
+    }
+
+    /**
+     * Eximbay — ready→fgkey→JS SDK 결제창. 정기결제는 tokenbilling(REBILL) 서버측 재청구로 별도 처리하며,
+     * 공개 URL 재결제 플로우는 제공하지 않으므로 재결제 URL 은 비활성(repayApi=false)으로 둔다.
+     */
+    private UrlPayVendorCapability eximbayCapability(String pg, boolean urlPay, boolean urlRepayAgency) {
+        boolean repayApi = false;
+        return new UrlPayVendorCapability(
+                PgVendor.EXIMBAY,
+                pg,
+                UrlPayInlineWidgetKind.EXIMBAY_SDK,
+                "/checkout/",
+                NeutralCheckoutRoute.EMBED_SCRIPT_PATH,
+                UrlPaySaleChannel.EXIMBAY_READY_SALE,
                 urlPay,
                 urlRepayAgency,
                 urlRepayAgency && repayApi);
@@ -73,8 +97,8 @@ public class UrlPayVendorCapabilityRegistry {
                 PgVendor.CHILLPAY,
                 pg,
                 UrlPayInlineWidgetKind.CHILLPAY_CCD,
-                "/pay/",
-                "/v1/embed-pay/",
+                "/checkout/",
+                NeutralCheckoutRoute.EMBED_SCRIPT_PATH,
                 UrlPaySaleChannel.CHILLPAY_DIRECT_CREDIT,
                 urlPay,
                 urlRepayAgency,
@@ -88,8 +112,8 @@ public class UrlPayVendorCapabilityRegistry {
                 family,
                 pg,
                 UrlPayInlineWidgetKind.UNSUPPORTED_INLINE,
-                "/pay/",
-                "/v1/embed-pay/",
+                "/checkout/",
+                NeutralCheckoutRoute.EMBED_SCRIPT_PATH,
                 UrlPaySaleChannel.NOT_REGISTERED,
                 urlPay,
                 urlRepayAgency,

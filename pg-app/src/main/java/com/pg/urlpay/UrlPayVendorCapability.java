@@ -50,6 +50,7 @@ public record UrlPayVendorCapability(
 
     public boolean supportsInlineCheckoutPage() {
         return UrlPayInlineWidgetKind.CHILLPAY_CCD.equals(inlineWidgetKind)
-                || UrlPayInlineWidgetKind.JPAY_INLINE.equals(inlineWidgetKind);
+                || UrlPayInlineWidgetKind.JPAY_INLINE.equals(inlineWidgetKind)
+                || UrlPayInlineWidgetKind.EXIMBAY_SDK.equals(inlineWidgetKind);
     }
 }

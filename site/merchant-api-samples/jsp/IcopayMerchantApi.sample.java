@@ -87,9 +87,7 @@ public class IcopayMerchantApi {
     public Map<String, Object> prepareInlineCheckout(String vendor, String orderNo, String amount,
                                                      String currency, String productName, String lang)
             throws IOException, InterruptedException {
-        String path = VENDOR_JPAY.equalsIgnoreCase(vendor)
-                ? "/api/middleware/v1/merchant/jpay/inline-checkout/prepare"
-                : "/api/middleware/v1/merchant/chillpay/inline-checkout/prepare";
+        String path = "/api/middleware/v1/merchant/checkout/prepare";
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("compId", compId);
         body.put("orderNo", orderNo);
@@ -118,19 +116,16 @@ public class IcopayMerchantApi {
 
     public Map<String, Object> getPaymentStatus(String vendor, String orderNo)
             throws IOException, InterruptedException {
-        String path = VENDOR_JPAY.equalsIgnoreCase(vendor)
-                ? "/api/middleware/v1/merchant/jpay/inline-checkout/status"
-                : "/api/middleware/v1/merchant/chillpay/inline-checkout/status";
+        String path = "/api/middleware/v1/merchant/checkout/status";
         String qs = "compId=" + enc(compId) + "&orderNo=" + enc(orderNo);
         return getJson(path + "?" + qs);
     }
 
     public String buildEmbedHtml(String vendor, String sessionToken, String targetId, String lang) {
-        boolean jpay = VENDOR_JPAY.equalsIgnoreCase(vendor);
-        String embedPath = jpay ? "/v1/embed-jpay-pay/" : "/v1/embed-pay/";
+        String embedPath = "/v1/embed-checkout/";
         String target = (targetId != null && !targetId.isBlank())
                 ? targetId.trim()
-                : (jpay ? "icopay-jpay-checkout" : "icopay-pay-checkout");
+                : "icopay-checkout";
         String src = apiBase + embedPath + enc(compId);
         String langNorm = normalizeLang(lang != null ? lang : "");
         String langAttr = langNorm.isBlank() ? "" : " data-lang=\"" + esc(langNorm) + "\"";

@@ -322,25 +322,35 @@
 
   function ensureCheckbox(contactRow, ctx, tFn) {
 
+    // 자동기억은 정책(ctx)으로 켜지면 사용자 선택 없이 '항상' 저장한다.
+
+    // 이전의 '다음에도 사용' 체크박스는 노출하지 않고, 저장을 강제하기 위한
+
+    // 숨김·상시 체크 입력만 둔다(기존 saveIfChecked 호출부와의 호환 유지).
+
     if (!contactRow || !isEnabled(ctx)) return null;
 
-    var existing = contactRow.querySelector('#jpayContactRememberWrap');
+    var existing = contactRow.querySelector('#jpayContactRemember');
 
-    if (existing) return contactRow.querySelector('#jpayContactRemember');
+    if (existing) {
+
+      existing.checked = true;
+
+      return existing;
+
+    }
 
     var wrap = document.createElement('div');
 
     wrap.id = 'jpayContactRememberWrap';
 
-    wrap.className = 'col-12 form-check small mt-1';
+    wrap.style.display = 'none';
 
-    var label = (tFn && tFn('rememberContact')) || '다음에도 사용';
+    wrap.setAttribute('aria-hidden', 'true');
 
     wrap.innerHTML =
 
-      '<input class="form-check-input" type="checkbox" id="jpayContactRemember" checked>' +
-
-      '<label class="form-check-label" for="jpayContactRemember" data-i18n="rememberContact">' + label + '</label>';
+      '<input type="checkbox" id="jpayContactRemember" checked hidden>';
 
     contactRow.appendChild(wrap);
 

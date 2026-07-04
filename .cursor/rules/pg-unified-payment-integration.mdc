@@ -1,0 +1,44 @@
+---
+description: 신규·기존 결제대행사(PG) 연동 — ICOPAY 통합 계약·비노출 원칙 (필수)
+alwaysApply: true
+---
+
+# ICOPAY 통합 결제 연동 원칙 (모든 PG 공통)
+
+신규 PG(Eximbay·PayPay 등) 추가·기존 PG 수정 시 **반드시** 아래를 지킨다.
+
+## 1. 가맹점 ↔ ICOPAY (단일 계약)
+
+- 가맹점 API는 **통합 경로만** 노출·권장:
+  - 일회: `/api/middleware/v1/merchant/checkout/prepare|session|status`
+  - 리다이렉트: `/api/middleware/v1/merchant/checkout/redirect/prepare|status`
+  - 구독: `/api/middleware/v1/merchant/checkout/subscription/prepare|session|status|cancel`
+- 응답 `pgVendor` → **항상 `ICOPAY`**. `operationalPgCd`·PG 전용 상태 필드 **미노출**.
+- `payUrl`·embed → **중립 경로**만: `/checkout/{compId}`, `/checkout-subscribe/{compId}`, `/v1/embed-checkout/`, `/v1/embed-checkout-subscribe/`.
+- 브로커 시크릿 검증: 통합 API는 `MerchantPgBrokerVendor.ALL` (레거시 PG별 경로는 호환 유지).
+
+## 2. ICOPAY ↔ 결제대행사 (내부 전용)
+
+- PG MID·가맹 식별정보는 PG로 **절대** 전달하지 않는다(order_id·ICOPAY 집계 MID만).
+- PG별 구현은 `Merchant*InlineCheckoutService` 등 **내부 서비스**에 두고, `MerchantUnified*CheckoutService`가 운영 PG로 디스패치.
+- `MerchantInlineCheckoutTokenService.normalizeVendor`에 신규 PG 패밀리 등록.
+
+## 3. 구매자 UI
+
+- iframe·리다이렉트 URL에 PG명(jpay-pay, eximbay-pay 등) **노출 금지** → `NeutralCheckoutRouteController` / `NeutralCheckoutSubscribeRouteController` forward.
+- `eximbay-pay.html`·`jpay-pay.html` 등은 **세션 토큰** 소비(주문 필드 잠금).
+
+## 4. 신규 PG 체크리스트
+
+1. `PgVendor`·`MerchantPgBrokerCatalog`(내부) 등록
+2. `Merchant*InlineCheckoutService` (prepare/session/status)
+3. `MerchantUnifiedInlineCheckoutService`·`Redirect`·`Subscription` 분기 추가
+4. 결제 HTML + presale 리스크 필터 + 노티(가맹 비식별)
+5. `MerchantApiResponseMapper.neutralizePgIdentity` 경유 응답
+6. **다국어 5개**(KOR·ENG·JPN·CHN·THA) — UI·오류·배포 문서
+7. `SecurityConfig` embeddable chain에 결제 HTML·중립 경로 permit
+8. 배포 키트·체크리스트·파라미터 규격 — **ICOPAY만** 노출 (PG별 블록 추가 금지)
+
+## 5. 레거시
+
+- `/merchant/jpay/...`, `/merchant/chillpay/...` 등 기존 경로는 **삭제하지 않고** 호환. 신규·문서·키트에는 넣지 않는다.

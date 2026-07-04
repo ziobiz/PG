@@ -543,3 +543,39 @@ html[data-pay-embed="1"] .pay-card {
   min-width: 8rem;
   text-align: center;
 }
+
+/* —— Eximbay 결제수단 선택 그리드 (카드·PayPay·Alipay·WeChat·UnionPay·GrabPay·LINE·Kakao·ApplePay) —— */
+.eximbay-method-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+@media (max-width: 360px) {
+  .eximbay-method-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.eximbay-method-btn {
+  border: 1px solid var(--pay-border);
+  background: #fff;
+  color: #333;
+  padding: 0.55rem 0.4rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
+  min-height: 2.75rem;
+}
+.eximbay-method-btn:hover {
+  border-color: var(--pay-primary);
+  background: rgba(13, 110, 253, 0.05);
+}
+.eximbay-method-btn.active {
+  border-color: var(--pay-primary);
+  background: var(--pay-primary);
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(13, 110, 253, 0.25);
+}

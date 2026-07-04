@@ -4921,11 +4921,18 @@
     return u === 'JPAY' || u.indexOf('JPAY_') === 0;
   }
 
+  function pgIsEximbayFamilyPgCd(pgCd) {
+    if (!pgCd) return false;
+    var u = pgNormalizePgCdKey(pgCd);
+    return u === 'EXIMBAY' || u.indexOf('EXIMBAY_') === 0;
+  }
+
   /**
    * URL 결제 공통 플랫폼 — 결제 페이지 경로(서버 {@code UrlPayVendorCapabilityRegistry} 와 동일).
    * @see docs/URL결제_공통플랫폼_가이드.md
    */
   function pgUrlPayCheckoutPagePath(pgCd) {
+    if (pgIsEximbayFamilyPgCd(pgCd)) return '/eximbay-pay/';
     return pgIsJpayFamilyPgCd(pgCd) ? '/jpay-pay/' : '/pay/';
   }
 
@@ -5509,26 +5516,27 @@
   }
   window.pgBuildChatbotEmbedScriptTag = pgBuildChatbotEmbedScriptTag;
 
-  /** 가맹점 API 인라인 결제 iframe 위젯 — prepare 후 sessionToken을 data-session-token에 넣습니다. */
+  /** @deprecated {@link #pgBuildMerchantCheckoutEmbedScriptTag} 사용 */
   function pgBuildMerchantPayEmbedScriptTag(baseUrlTrimmed, compId, sessionToken, targetId) {
-    if (!compId || !sessionToken) return '';
-    var base = String(baseUrlTrimmed || '').replace(/\/$/, '');
-    var enc = encodeURIComponent(String(compId).trim());
-    var tok = encodeURIComponent(String(sessionToken).trim());
-    var tgt = targetId ? String(targetId).trim() : 'icopay-pay-checkout';
-    return '<div id="' + tgt + '"></div>\n' +
-      '<script src="' + base + '/v1/embed-pay/' + enc + '" data-session-token="' + tok + '" data-target="' + tgt + '" async defer charset="utf-8"><\/script>';
+    return pgBuildMerchantCheckoutEmbedScriptTag(baseUrlTrimmed, compId, sessionToken, targetId);
   }
   window.pgBuildMerchantPayEmbedScriptTag = pgBuildMerchantPayEmbedScriptTag;
 
-  function pgBuildMerchantJpayEmbedScriptTag(baseUrlTrimmed, compId, sessionToken, targetId) {
+  /** ICOPAY 통합 인라인 embed — PG 무관 */
+  function pgBuildMerchantCheckoutEmbedScriptTag(baseUrlTrimmed, compId, sessionToken, targetId) {
     if (!compId || !sessionToken) return '';
     var base = String(baseUrlTrimmed || '').replace(/\/$/, '');
     var enc = encodeURIComponent(String(compId).trim());
     var tok = encodeURIComponent(String(sessionToken).trim());
-    var tgt = targetId ? String(targetId).trim() : 'icopay-jpay-checkout';
+    var tgt = targetId ? String(targetId).trim() : 'icopay-checkout';
     return '<div id="' + tgt + '"></div>\n' +
-      '<script src="' + base + '/v1/embed-jpay-pay/' + enc + '" data-session-token="' + tok + '" data-target="' + tgt + '" async defer charset="utf-8"><\/script>';
+      '<script src="' + base + '/v1/embed-checkout/' + enc + '" data-session-token="' + tok + '" data-target="' + tgt + '" async defer charset="utf-8"><\/script>';
+  }
+  window.pgBuildMerchantCheckoutEmbedScriptTag = pgBuildMerchantCheckoutEmbedScriptTag;
+
+  /** @deprecated {@link #pgBuildMerchantCheckoutEmbedScriptTag} 사용 */
+  function pgBuildMerchantJpayEmbedScriptTag(baseUrlTrimmed, compId, sessionToken, targetId) {
+    return pgBuildMerchantCheckoutEmbedScriptTag(baseUrlTrimmed, compId, sessionToken, targetId);
   }
   window.pgBuildMerchantJpayEmbedScriptTag = pgBuildMerchantJpayEmbedScriptTag;
 
@@ -33558,12 +33566,9 @@
     var allowInline = !ch || ch.effectiveInline === true;
     var allowRedirect = !ch || ch.effectiveRedirect === true;
     var sections = [
-      { title: '통합 Checkout (인라인)', block: portal.merchantUnifiedCheckout, embed: true },
-      { title: '통합 Checkout (리다이렉트)', block: portal.merchantUnifiedRedirectCheckout, embed: false, redirect: true },
-      { title: 'JPAY 인라인', block: portal.merchantInlineCheckoutJpay, embed: true, pgVendor: 'JPAY' },
-      { title: 'JPAY 리다이렉트', block: portal.merchantRedirectCheckoutJpay, embed: false, redirect: true, pgVendor: 'JPAY' },
-      { title: 'ChillPay 인라인', block: portal.merchantInlineCheckoutChillPay, embed: true, pgVendor: 'CHILLPAY' },
-      { title: 'ChillPay 리다이렉트', block: portal.merchantRedirectCheckoutChillPay, embed: false, redirect: true, pgVendor: 'CHILLPAY' }
+      { title: 'ICOPAY 통합 Checkout (인라인)', block: portal.merchantUnifiedCheckout, embed: true },
+      { title: 'ICOPAY 통합 Checkout (리다이렉트)', block: portal.merchantUnifiedRedirectCheckout, embed: false, redirect: true },
+      { title: 'ICOPAY 통합 구독 (정기결제)', block: portal.merchantUnifiedSubscriptionCheckout, embed: true, subscription: true }
     ];
     var html = '';
     sections.forEach(function (sec) {
@@ -33580,6 +33585,7 @@
       html += li(pgAdminUiT('Prepare'), b.prepareUrl);
       if (sec.embed && b.sessionUrl) html += li(pgAdminUiT('Session'), b.sessionUrl);
       if (b.statusUrl) html += li(pgAdminUiT('Status'), b.statusUrl);
+      if (sec.subscription && b.cancelUrl) html += li(pgAdminUiT('Cancel'), b.cancelUrl);
       if (sec.embed && b.embedScriptUrl) html += li(pgAdminUiT('Embed 스크립트'), b.embedScriptUrl);
       if (sec.redirect && b.payPagePathTemplate) html += li(pgAdminUiT('결제 페이지 URL 템플릿'), b.payPagePathTemplate);
       var hint = pickFn(b, 'redirectUsageHint');

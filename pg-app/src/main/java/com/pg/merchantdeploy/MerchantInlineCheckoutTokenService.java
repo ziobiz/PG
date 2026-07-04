@@ -255,8 +255,11 @@ public class MerchantInlineCheckoutTokenService {
             return MerchantPgBrokerVendor.CHILLPAY;
         }
         String u = raw.trim().toUpperCase(Locale.ROOT);
-        if (MerchantPgBrokerVendor.JPAY.equals(u) || u.startsWith(MerchantPgBrokerVendor.JPAY + "_")) {
+        if (com.pg.integration.pg.PgVendor.isJpayFamily(u)) {
             return MerchantPgBrokerVendor.JPAY;
+        }
+        if (com.pg.integration.pg.PgVendor.isEximbayFamily(u)) {
+            return MerchantPgBrokerVendor.EXIMBAY;
         }
         return MerchantPgBrokerVendor.CHILLPAY;
     }

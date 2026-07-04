@@ -1,9 +1,9 @@
 /**
- * @deprecated 레거시 URL(/v1/embed-jpay-subscribe/) 호환 — 통합 구독 위젯과 동일 동작.
+ * ICOPAY 통합 구독(정기결제) iframe 위젯 — PG 무관 중립 경로(/checkout-subscribe/).
  */
 (function () {
   'use strict';
-  var cfg = window.__ICOPAY_EMBED_CHECKOUT_SUB__ || window.__ICOPAY_EMBED_JPAY_SUB__;
+  var cfg = window.__ICOPAY_EMBED_CHECKOUT_SUB__;
   if (!cfg || !cfg.compId || !cfg.origin) {
     return;
   }

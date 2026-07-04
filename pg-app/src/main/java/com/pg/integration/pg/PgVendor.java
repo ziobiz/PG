@@ -16,6 +16,9 @@ public final class PgVendor {
     /** JPAY(J-Pay) — {@code JPAY} 또는 {@code JPAY_…} 접두. */
     public static final String JPAY = "JPAY";
 
+    /** Eximbay(엑심베이) — 해외/대체결제. {@code EXIMBAY} 또는 {@code EXIMBAY_…} 접두. */
+    public static final String EXIMBAY = "EXIMBAY";
+
     private PgVendor() {
     }
 
@@ -65,5 +68,22 @@ public final class PgVendor {
         }
         String u = normalizePgCdKey(pgCd);
         return JPAY.equals(u) || u.startsWith(JPAY + "_");
+    }
+
+    /** {@code pg_cd}·노티 벤더 코드가 Eximbay 계열인지 — {@code EXIMBAY} 또는 {@code EXIMBAY_…} 접두. */
+    public static boolean isEximbayFamily(String pgCd) {
+        if (pgCd == null) {
+            return false;
+        }
+        String u = normalizePgCdKey(pgCd);
+        return EXIMBAY.equals(u) || u.startsWith(EXIMBAY + "_");
+    }
+
+    /** 노티·매핑 UI 등에서 벤더 코드 문자열이 Eximbay 계열인지(접두 EXIMBAY). */
+    public static boolean isEximbayVendorCode(String vendorCode) {
+        if (vendorCode == null || vendorCode.isBlank()) {
+            return false;
+        }
+        return vendorCode.trim().toUpperCase(Locale.ROOT).startsWith(EXIMBAY);
     }
 }

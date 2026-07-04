@@ -432,6 +432,8 @@ public class MerchantApiDeploymentService {
             Map<String, Object> unifiedRedirectBlock = buildMerchantUnifiedRedirectCheckoutBlock(publicApiBase, ou.getCode());
             kit.put("merchantUnifiedCheckout", unifiedBlock);
             kit.put("merchantUnifiedRedirectCheckout", unifiedRedirectBlock);
+            kit.put("merchantUnifiedSubscriptionCheckout",
+                    buildMerchantUnifiedSubscriptionCheckoutBlock(publicApiBase, ou.getCode()));
             kit.put("merchantCheckoutApiParameterSpec",
                     MerchantCheckoutApiParameterSpec.build(publicApiBase, ou.getCode()));
             kit.put("integrationModes", buildIntegrationModes(publicApiBase, ou.getCode(), unifiedBlock, unifiedRedirectBlock));
@@ -499,47 +501,119 @@ public class MerchantApiDeploymentService {
     }
 
     /**
-     * 가맹 배포 문서 — 운영 URL 결제 PG({@link ChillPayService#resolveUrlPayOperationalPgCd}) 기준으로
-     * JPAY·ChillPay 전용 블록·체크리스트·샘플을 숨깁니다. 통합 checkout(인라인·리다이렉트)은 유지합니다.
+     * 가맹 배포 문서 — ICOPAY 통합 계약만 노출. PG별 블록·스코프·샘플은 제거·중립화한다.
      */
-    private void applyMerchantDocPgVendorFilter(Map<String, Object> kit, Long orgUnitId) {
-        Map<String, Object> scope = resolveMerchantApiDocPgScope(orgUnitId);
-        kit.put("merchantApiDocPgScope", scope);
-        boolean jpay = Boolean.TRUE.equals(scope.get("jpay"));
-        boolean chillPay = Boolean.TRUE.equals(scope.get("chillPay"));
+    private void applyMerchantDocIcopayNeutralFilter(Map<String, Object> kit, Long orgUnitId) {
+        kit.remove("merchantInlineCheckoutJpay");
+        kit.remove("merchantInlineCheckoutChillPay");
+        kit.remove("merchantRedirectCheckoutJpay");
+        kit.remove("merchantRedirectCheckoutChillPay");
+        kit.remove("merchantSubscriptionCheckoutJpay");
+        kit.remove("pgBrokerBlocks");
+        kit.remove("merchantApiDocPgScope");
 
-        if (!jpay) {
-            kit.remove("merchantInlineCheckoutJpay");
-            kit.remove("merchantRedirectCheckoutJpay");
-            kit.remove("merchantSubscriptionCheckoutJpay");
-        }
-        if (!chillPay) {
-            kit.remove("merchantInlineCheckoutChillPay");
-            kit.remove("merchantRedirectCheckoutChillPay");
-        }
+        Map<String, Object> scope = new LinkedHashMap<>();
+        scope.put("brand", MerchantApiResponseMapper.MERCHANT_FACING_BRAND);
+        scope.put("integrationModel", "UNIFIED");
+        kit.put("merchantApiDocScope", scope);
 
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> brokerBlocks = (List<Map<String, Object>>) kit.get("pgBrokerBlocks");
-        if (brokerBlocks != null) {
-            List<Map<String, Object>> filteredBlocks = new ArrayList<>();
-            for (Map<String, Object> block : brokerBlocks) {
-                String vendorScope = block.get("vendorScope") != null ? block.get("vendorScope").toString() : "";
-                if (matchesMerchantDocPgVendor(vendorScope, jpay, chillPay)) {
-                    filteredBlocks.add(block);
-                }
+        neutralizeMerchantPgBindingsForDocs(kit);
+        neutralizeCredentialScopesForDocs(kit);
+        filterIntegrationSamplesIcopayOnly(kit);
+        filterIntegrationModesIcopayOnly(kit);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void neutralizeMerchantPgBindingsForDocs(Map<String, Object> kit) {
+        Object bindingsObj = kit.get("merchantPgBindings");
+        if (!(bindingsObj instanceof List<?> list)) {
+            return;
+        }
+        List<Map<String, Object>> neutral = new ArrayList<>();
+        for (Object rowRaw : list) {
+            if (!(rowRaw instanceof Map<?, ?> rowMap)) {
+                continue;
             }
-            kit.put("pgBrokerBlocks", filteredBlocks);
+            Map<String, Object> row = new LinkedHashMap<>((Map<String, Object>) rowMap);
+            row.put("pgCd", MerchantApiResponseMapper.MERCHANT_FACING_BRAND);
+            neutral.add(row);
         }
+        kit.put("merchantPgBindings", neutral);
+    }
 
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> checklist = (List<Map<String, Object>>) kit.get("integrationChecklist");
-        if (checklist != null) {
-            kit.put("integrationChecklist", filterChecklistByPgVendor(checklist, jpay, chillPay));
+    @SuppressWarnings("unchecked")
+    private static void neutralizeCredentialScopesForDocs(Map<String, Object> kit) {
+        Object credObj = kit.get("credentialScopes");
+        if (!(credObj instanceof Map<?, ?> credMap)) {
+            return;
         }
+        Object itemsObj = credMap.get("credentials");
+        if (!(itemsObj instanceof List<?> items)) {
+            return;
+        }
+        List<Map<String, Object>> neutral = new ArrayList<>();
+        for (Object itemRaw : items) {
+            if (!(itemRaw instanceof Map<?, ?> itemMap)) {
+                continue;
+            }
+            Map<String, Object> item = new LinkedHashMap<>((Map<String, Object>) itemMap);
+            item.put("vendorScope", MerchantApiResponseMapper.MERCHANT_FACING_BRAND);
+            neutral.add(item);
+        }
+        ((Map<String, Object>) credMap).put("credentials", neutral);
+    }
 
-        filterIntegrationSamplesByPgVendor(kit, jpay, chillPay);
-        filterIntegrationModesByPgVendor(kit, jpay, chillPay);
-        filterCredentialScopesByPgVendor(kit, jpay, chillPay);
+    @SuppressWarnings("unchecked")
+    private static void filterIntegrationSamplesIcopayOnly(Map<String, Object> kit) {
+        Object samplesObj = kit.get("merchantIntegrationSamples");
+        if (!(samplesObj instanceof Map<?, ?> samplesRaw)) {
+            return;
+        }
+        Map<String, Object> samples = new LinkedHashMap<>((Map<String, Object>) samplesRaw);
+        Object phpObj = samples.get("php");
+        if (phpObj instanceof Map<?, ?> phpRaw) {
+            Map<String, Object> php = new LinkedHashMap<>((Map<String, Object>) phpRaw);
+            php.remove("checkoutChillpay");
+            php.remove("checkoutJpay");
+            samples.put("php", php);
+        }
+        Object jspObj = samples.get("jsp");
+        if (jspObj instanceof Map<?, ?> jspRaw) {
+            Map<String, Object> jsp = new LinkedHashMap<>((Map<String, Object>) jspRaw);
+            jsp.remove("checkoutChillpay");
+            jsp.remove("checkoutJpay");
+            samples.put("jsp", jsp);
+        }
+        kit.put("merchantIntegrationSamples", samples);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void filterIntegrationModesIcopayOnly(Map<String, Object> kit) {
+        Object modesObj = kit.get("integrationModes");
+        if (!(modesObj instanceof Map<?, ?> modesRaw)) {
+            return;
+        }
+        Map<String, Object> modes = new LinkedHashMap<>((Map<String, Object>) modesRaw);
+        Object phpObj = modes.get("php");
+        if (phpObj instanceof Map<?, ?> phpRaw) {
+            Map<String, Object> php = new LinkedHashMap<>((Map<String, Object>) phpRaw);
+            php.remove("checkoutLegacyJpay");
+            php.remove("checkoutLegacyChillpay");
+            modes.put("php", php);
+        }
+        Object jsonObj = modes.get("json");
+        if (jsonObj instanceof Map<?, ?> jsonRaw) {
+            Map<String, Object> json = new LinkedHashMap<>((Map<String, Object>) jsonRaw);
+            json.remove("checkoutLegacyJpay");
+            json.remove("checkoutLegacyChillpay");
+            modes.put("json", json);
+        }
+        kit.put("integrationModes", modes);
+    }
+
+    /** @deprecated 내부 호환 — {@link #applyMerchantDocIcopayNeutralFilter} 사용 */
+    private void applyMerchantDocPgVendorFilter(Map<String, Object> kit, Long orgUnitId) {
+        applyMerchantDocIcopayNeutralFilter(kit, orgUnitId);
     }
 
     private Map<String, Object> resolveMerchantApiDocPgScope(Long orgUnitId) {
@@ -775,7 +849,7 @@ public class MerchantApiDeploymentService {
         Map<String, Object> kit = buildKit(compId, MerchantPgBrokerVendor.ALL, req);
         Object orgUnitIdObj = kit.get("merchantOrgUnitId");
         if (orgUnitIdObj instanceof Number orgUnitId) {
-            applyMerchantDocPgVendorFilter(kit, orgUnitId.longValue());
+            applyMerchantDocIcopayNeutralFilter(kit, orgUnitId.longValue());
         }
         Map<String, Object> portal = new LinkedHashMap<>();
         portal.put("compId", kit.get("compId"));
@@ -791,14 +865,11 @@ public class MerchantApiDeploymentService {
         portal.put("merchantNotifyUrls", kit.get("merchantNotifyUrls"));
         portal.put("merchantUnifiedCheckout", kit.get("merchantUnifiedCheckout"));
         portal.put("merchantUnifiedRedirectCheckout", kit.get("merchantUnifiedRedirectCheckout"));
-        portal.put("merchantInlineCheckoutJpay", kit.get("merchantInlineCheckoutJpay"));
-        portal.put("merchantInlineCheckoutChillPay", kit.get("merchantInlineCheckoutChillPay"));
-        portal.put("merchantRedirectCheckoutJpay", kit.get("merchantRedirectCheckoutJpay"));
-        portal.put("merchantRedirectCheckoutChillPay", kit.get("merchantRedirectCheckoutChillPay"));
+        portal.put("merchantUnifiedSubscriptionCheckout", kit.get("merchantUnifiedSubscriptionCheckout"));
         portal.put("wordpressPlugins", kit.get("wordpressPlugins"));
         portal.put("paymentNotifyGuide", kit.get("paymentNotifyGuide"));
         portal.put("integrationChannels", kit.get("integrationChannels"));
-        portal.put("merchantApiDocPgScope", kit.get("merchantApiDocPgScope"));
+        portal.put("merchantApiDocScope", kit.get("merchantApiDocScope"));
         portal.put("merchantCheckoutApiParameterSpec", kit.get("merchantCheckoutApiParameterSpec"));
         portal.put("integrationModes", kit.get("integrationModes"));
         portal.put("merchantIntegrationSamples", kit.get("merchantIntegrationSamples"));
@@ -905,11 +976,11 @@ public class MerchantApiDeploymentService {
         Map<String, Object> block = new LinkedHashMap<>();
         block.put("integrationMode", "REDIRECT_UNIFIED");
         MerchantDeployL10n.putDescription(block, new Bundle(
-                "PG 무관 통합 리다이렉트 — buyer 필수, returnUrl/cancelUrl body 금지(NOTI Result 경유)",
-                "Unified redirect — buyer required; do not send returnUrl/cancelUrl in body (browser via NOTI Result)",
-                "PG 非依存統合リダイレクト — buyer 必須、returnUrl/cancelUrl は body 禁止（NOTI Result 経由）",
-                "PG 无关统一重定向 — buyer 必填，body 禁止 returnUrl/cancelUrl（经 NOTI Result）",
-                "Unified redirect — ต้องมี buyer ห้าม returnUrl/cancelUrl ใน body (NOTI Result)"
+                "ICOPAY 통합 리다이렉트 — buyer 필수, returnUrl/cancelUrl body 금지(NOTI Result 경유)",
+                "ICOPAY unified redirect — buyer required; do not send returnUrl/cancelUrl in body (browser via NOTI Result)",
+                "ICOPAY 統合リダイレクト — buyer 必須、returnUrl/cancelUrl は body 禁止（NOTI Result 経由）",
+                "ICOPAY 统一重定向 — buyer 必填，body 禁止 returnUrl/cancelUrl（经 NOTI Result）",
+                "ICOPAY unified redirect — ต้องมี buyer ห้าม returnUrl/cancelUrl ใน body (NOTI Result)"
         ));
         block.put("prepareUrl", base + "/api/middleware/v1/merchant/checkout/redirect/prepare");
         block.put("statusUrl", base + "/api/middleware/v1/merchant/checkout/redirect/status?compId=" + compId + "&orderNo={orderNo}");
@@ -1036,7 +1107,7 @@ public class MerchantApiDeploymentService {
         String base = publicApiBase != null ? publicApiBase.trim() : "";
         Map<String, Object> block = new LinkedHashMap<>();
         block.put("integrationMode", "INLINE_UNIFIED");
-        block.put("descriptionKr", "PG 무관 통합 인라인 — buyer(email·phone·countryIso2) 필수, 운영 WEB PG 자동 분기");
+        block.put("descriptionKr", "ICOPAY 통합 인라인 — buyer(email·phone·countryIso2) 필수, 결제망은 ICOPAY가 자동 선택·처리");
         block.put("prepareUrl", base + "/api/middleware/v1/merchant/checkout/prepare");
         block.put("sessionUrl", base + "/api/middleware/v1/merchant/checkout/session?token={sessionToken}");
         block.put("statusUrl", base + "/api/middleware/v1/merchant/checkout/status?compId=" + compId + "&orderNo={orderNo}");
@@ -1196,19 +1267,25 @@ public class MerchantApiDeploymentService {
                 + "];\n";
     }
 
-    private Map<String, Object> buildMerchantSubscriptionCheckoutBlock(String publicApiBase, String compId) {
+    private Map<String, Object> buildMerchantUnifiedSubscriptionCheckoutBlock(String publicApiBase, String compId) {
         String base = publicApiBase != null ? publicApiBase.trim() : "";
         Map<String, Object> block = new LinkedHashMap<>();
-        block.put("integrationMode", "INLINE");
+        block.put("integrationMode", "SUBSCRIPTION_UNIFIED");
         block.put("checkoutKind", "SUBSCRIPTION");
-        block.put("pgVendor", MerchantPgBrokerVendor.JPAY);
-        block.put("descriptionKr", "JPAY API 구독 — jpay-subscribe.html(카드·3DS·정기) iframe 삽입");
-        block.put("prepareUrl", base + "/api/middleware/v1/merchant/jpay/subscription/prepare");
-        block.put("sessionUrl", base + "/api/middleware/v1/merchant/jpay/subscription/session?token={sessionToken}");
-        block.put("statusUrl", base + "/api/middleware/v1/merchant/jpay/subscription/status?compId=" + compId + "&orderNo={orderNo}");
-        block.put("cancelUrl", base + "/api/middleware/v1/merchant/jpay/subscription/cancel");
-        block.put("embedScriptUrl", base + "/v1/embed-jpay-subscribe/" + compId);
-        block.put("subscribePagePathTemplate", base + "/jpay-subscribe/" + compId + "?entry=merchant_api&embed=1&session={sessionToken}&lang={langCode}");
+        block.put("pgVendor", MerchantApiResponseMapper.MERCHANT_FACING_BRAND);
+        MerchantDeployL10n.putDescription(block, new Bundle(
+                "ICOPAY 통합 구독(정기결제) — subscriptionPlan 필수, 결제망은 ICOPAY가 자동 처리",
+                "ICOPAY unified subscription — subscriptionPlan required; ICOPAY handles the payment network",
+                "ICOPAY 統合サブスク（定期課金）— subscriptionPlan 必須、決済網は ICOPAY が自動処理",
+                "ICOPAY 统一订阅（周期扣款）— 必填 subscriptionPlan，支付通道由 ICOPAY 自动处理",
+                "ICOPAY unified subscription — ต้องมี subscriptionPlan ICOPAY จัดการเครือข่ายชำระเงิน"
+        ));
+        block.put("prepareUrl", base + "/api/middleware/v1/merchant/checkout/subscription/prepare");
+        block.put("sessionUrl", base + "/api/middleware/v1/merchant/checkout/subscription/session?token={sessionToken}");
+        block.put("statusUrl", base + "/api/middleware/v1/merchant/checkout/subscription/status?compId=" + compId + "&orderNo={orderNo}");
+        block.put("cancelUrl", base + "/api/middleware/v1/merchant/checkout/subscription/cancel");
+        block.put("embedScriptUrl", base + "/v1/embed-checkout-subscribe/" + compId);
+        block.put("subscribePagePathTemplate", base + "/checkout-subscribe/" + compId + "?entry=merchant_api&embed=1&session={sessionToken}&lang={langCode}");
         block.put("prepareBodyExample", Map.of(
                 "compId", compId,
                 "orderNo", "SUB-001",
@@ -1226,13 +1303,18 @@ public class MerchantApiDeploymentService {
                 "lang", "ENG"
         ));
         block.put("embedScriptExample",
-                "<div id=\"icopay-jpay-subscribe\"></div>\n"
-                        + "<script src=\"" + base + "/v1/embed-jpay-subscribe/" + compId + "\"\n"
+                "<div id=\"icopay-checkout-subscribe\"></div>\n"
+                        + "<script src=\"" + base + "/v1/embed-checkout-subscribe/" + compId + "\"\n"
                         + "  data-session-token=\"{sessionToken}\"\n"
-                        + "  data-target=\"icopay-jpay-subscribe\"\n"
+                        + "  data-target=\"icopay-checkout-subscribe\"\n"
                         + "  data-lang=\"{langCode}\" async defer charset=\"utf-8\"></script>");
         block.put("postMessageEvent", "ICOPAY_INLINE_CHECKOUT");
         return block;
+    }
+
+    /** @deprecated 가맹 문서에는 {@link #buildMerchantUnifiedSubscriptionCheckoutBlock} 만 사용 */
+    private Map<String, Object> buildMerchantSubscriptionCheckoutBlock(String publicApiBase, String compId) {
+        return buildMerchantUnifiedSubscriptionCheckoutBlock(publicApiBase, compId);
     }
 
     private Map<String, Object> buildIntegrationSamples(String publicApiBase) {

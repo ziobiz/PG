@@ -10,6 +10,7 @@ import com.pg.service.JpayPaymentService;
 import com.pg.service.MerchantChatbotProductService;
 import com.pg.service.OrgServiceUseService;
 import com.pg.service.UrlPayCheckoutCurrencyService;
+import com.pg.urlpay.NeutralCheckoutRoute;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 
@@ -68,7 +69,7 @@ public class MerchantJpayRedirectCheckoutService {
         }
         if (body != null && (body.containsKey("subscriptionPlan") || body.containsKey("subscription_plan")
                 || "SUBSCRIPTION".equalsIgnoreCase(str(body.get("checkoutKind"))))) {
-            return fail("JPAY 구독 가입은 /api/middleware/v1/merchant/jpay/subscription/prepare 를 사용하세요.", "SUBSCRIPTION_USE_DEDICATED_API");
+            return fail("구독(정기결제) 가입은 /api/middleware/v1/merchant/checkout/subscription/prepare 를 사용하세요.", "SUBSCRIPTION_USE_DEDICATED_API");
         }
         Optional<OrgUnit> ouOpt = orgUnitRepository.findById(orgUnitId);
         if (ouOpt.isEmpty()) {
@@ -148,9 +149,7 @@ public class MerchantJpayRedirectCheckoutService {
         MerchantInlineCheckoutTokenService.SessionPayload session = parsed.get();
 
         String base = trimSlash(productService.resolvePublicCustomerSiteBase(request));
-        String payPath = buildJpayPayPath(ou.getCode(), sessionToken, orderNo, amountPlain, currency, productName,
-                langCode);
-        String payUrl = base.isEmpty() ? payPath : base + payPath;
+        String payUrl = NeutralCheckoutRoute.buildPayUrl(base, ou.getCode(), sessionToken, langCode, false);
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.putAll(session.toPublicMap());
@@ -158,7 +157,7 @@ public class MerchantJpayRedirectCheckoutService {
         data.put("payUrl", payUrl);
         data.put("redirectCheckoutPrepareUrl",
                 trimSlash(productService.resolvePublicCustomerSiteBase(request))
-                        + "/api/middleware/v1/merchant/jpay/redirect-checkout/prepare");
+                        + "/api/middleware/v1/merchant/checkout/redirect/prepare");
         data.put("integrationMode", "REDIRECT");
         data.put("pgVendor", MerchantPgBrokerVendor.JPAY);
         if (langCode != null && !langCode.isBlank()) {

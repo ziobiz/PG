@@ -299,7 +299,7 @@
       notice: '가맹 API subscription/prepare · jpay-subscribe.html 전용입니다. URL·챗봇·1회 inline-checkout 과 분리됩니다. 본사 결제로직설정 구독 ON + API연동설정 API구독 PG 바인딩 필요.',
       rows: [
         [{ label: 'JPAY API 구독 사용', type: 'select', name: 'apiJpaySubscriptionUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 3 }],
-        [{ label: '', type: 'note', col: 12, text: 'prepare: POST /api/middleware/v1/merchant/jpay/subscription/prepare · 해지: POST .../subscription/cancel (최초 orderNo)' }]
+        [{ label: '', type: 'note', col: 12, text: 'prepare: POST /api/middleware/v1/merchant/checkout/subscription/prepare · 해지: POST .../checkout/subscription/cancel (최초 orderNo)' }]
       ]
     };
   }

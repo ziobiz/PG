@@ -29,8 +29,8 @@ public class EmbedJpaySubscribeWidgetController {
                     .body(err);
         }
         String jsonId = objectMapper.writeValueAsString(compId);
-        String body = EmbedWidgetBootstrapJs.build("__ICOPAY_EMBED_JPAY_SUB__", jsonId,
-                "icopay-embed-jpay-subscribe-widget.js", 2);
+        String body = EmbedWidgetBootstrapJs.build("__ICOPAY_EMBED_CHECKOUT_SUB__", jsonId,
+                "icopay-embed-checkout-subscribe-widget.js", 2);
         return ResponseEntity.ok()
                 .contentType(MediaType.valueOf("application/javascript;charset=UTF-8"))
                 .cacheControl(CacheControl.maxAge(1, TimeUnit.HOURS).cachePublic())

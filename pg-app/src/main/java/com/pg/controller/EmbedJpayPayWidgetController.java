@@ -31,8 +31,8 @@ public class EmbedJpayPayWidgetController {
                     .body(err);
         }
         String jsonId = objectMapper.writeValueAsString(compId);
-        String body = EmbedWidgetBootstrapJs.build("__ICOPAY_EMBED_JPAY_PAY__", jsonId,
-                "icopay-embed-jpay-pay-widget.js", 3);
+        String body = EmbedWidgetBootstrapJs.build("__ICOPAY_EMBED_CHECKOUT__", jsonId,
+                "icopay-embed-checkout-widget.js", 2);
         return ResponseEntity.ok()
                 .contentType(MediaType.valueOf("application/javascript;charset=UTF-8"))
                 .cacheControl(CacheControl.maxAge(1, TimeUnit.HOURS).cachePublic())

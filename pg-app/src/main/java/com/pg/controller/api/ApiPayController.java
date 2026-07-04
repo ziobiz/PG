@@ -18,6 +18,7 @@ import com.pg.merchantdeploy.MerchantOperationalPgGuardI18n;
 import com.pg.merchantdeploy.MerchantPgBrokerVendor;
 import com.pg.service.ChillPayDirectCreditRecordService;
 import com.pg.service.ChillPayService;
+import com.pg.service.EximbayPaymentService;
 import com.pg.service.JpayPaymentService;
 import com.pg.service.MerchantCreditTokenService;
 import com.pg.service.OrgServiceUseService;
@@ -63,6 +64,7 @@ public class ApiPayController {
 
     private final ChillPayService chillPayService;
     private final JpayPaymentService jpayPaymentService;
+    private final EximbayPaymentService eximbayPaymentService;
     private final ChillPayDirectCreditRecordService chillPayDirectCreditRecordService;
     private final OrgUnitRepository orgUnitRepository;
     private final HqApiConfigRepository hqApiConfigRepository;
@@ -87,6 +89,7 @@ public class ApiPayController {
 
     public ApiPayController(ChillPayService chillPayService,
                             JpayPaymentService jpayPaymentService,
+                            EximbayPaymentService eximbayPaymentService,
                             ChillPayDirectCreditRecordService chillPayDirectCreditRecordService,
                             OrgUnitRepository orgUnitRepository,
                             HqApiConfigRepository hqApiConfigRepository,
@@ -110,6 +113,7 @@ public class ApiPayController {
                             PayContactRememberPolicyService payContactRememberPolicyService) {
         this.chillPayService = chillPayService;
         this.jpayPaymentService = jpayPaymentService;
+        this.eximbayPaymentService = eximbayPaymentService;
         this.chillPayDirectCreditRecordService = chillPayDirectCreditRecordService;
         this.orgUnitRepository = orgUnitRepository;
         this.hqApiConfigRepository = hqApiConfigRepository;
@@ -466,6 +470,125 @@ public class ApiPayController {
             return ResponseEntity.ok(ApiResponse.fail(msg, code.isEmpty() ? "JPAY_ERROR" : code));
         }
         return ResponseEntity.ok(ApiResponse.ok(result));
+    }
+
+    /** Eximbay 결제 페이지({@code eximbay-pay.html}) — {@link #urlPayCheckoutContext} 와 동일(하위 호환 경로). */
+    @GetMapping("/eximbay/checkout-context")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> eximbayCheckoutContext(
+            @RequestParam(required = false) Long merchantId,
+            @RequestParam(required = false) String compId,
+            HttpServletRequest request) {
+        return urlPayCheckoutContext(merchantId, compId, null, request);
+    }
+
+    /**
+     * Eximbay 결과(SDK/return_url) 쿼리스트링 위·변조 검증 — {@code /v1/payments/verify} 위임.
+     * 프론트가 결과 표시 전 무결성을 확인하는 보조 엔드포인트(서버 측 확정은 status_url 웹훅이 담당).
+     */
+    @PostMapping("/eximbay/verify")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> eximbayVerify(
+            @RequestBody Map<String, Object> body) {
+        String data = str(body, "data");
+        if (data.isBlank()) {
+            return ResponseEntity.ok(ApiResponse.fail("검증할 결과 데이터(data)가 없습니다.", "INVALID_DATA"));
+        }
+        String mid = str(body, "mid");
+        Map<String, Object> res = eximbayPaymentService.verify(mid, data);
+        return ResponseEntity.ok(ApiResponse.ok(res));
+    }
+
+    /**
+     * Eximbay 구독 인라인 페이지({@code eximbay-subscribe.html})용 컨텍스트.
+     */
+    @GetMapping("/eximbay/subscribe-checkout-context")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> eximbaySubscribeCheckoutContext(
+            @RequestParam(required = false) Long merchantId,
+            @RequestParam(required = false) String compId,
+            HttpServletRequest request) {
+        Long orgUnitId = resolveMerchantOrgUnitId(merchantId, compId);
+        if (orgUnitId == null) {
+            return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
+            return ResponseEntity.ok(ApiResponse.fail(OrgServiceUseService.MSG_ORG_SERVICE_DISABLED, "ORG_DISABLED"));
+        }
+        if (!eximbayPaymentService.hasOperationalWebBinding(orgUnitId)) {
+            return ResponseEntity.ok(ApiResponse.fail("Eximbay 운영(WEB) 바인딩이 없습니다.", "SUBSCRIPTION_PG_MISSING"));
+        }
+        Optional<OrgUnit> ou = orgUnitRepository.findById(orgUnitId);
+        if (ou.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("compId", ou.get().getCode());
+        data.put("merchantName", ou.get().getName());
+        data.put("pgVendor", "EXIMBAY");
+        data.put("checkoutKind", "SUBSCRIPTION");
+        data.put("integrationMode", "INLINE");
+        data.put("checkoutCurrencyCode", urlPayCheckoutCurrencyService.resolveCheckoutCurrency(orgUnitId, null));
+        data.put("clientIp", getClientIp(request));
+        checkoutHeaderLogoResolver.applyToCheckoutMap(data, orgUnitId);
+        urlPayCardExpiryModeService.putEffectiveIntoMap(data, orgUnitId);
+        data.put("checkoutContactRememberEnabled", payContactRememberPolicyService.isEnabledForOrgUnit(orgUnitId));
+        return ResponseEntity.ok(ApiResponse.ok(data));
+    }
+
+    /**
+     * Eximbay 구독(정기결제) 등록 — {@code tokenbilling(token_creation)} + {@code recurring}.
+     * 최초 결제창에서 토큰을 만들고 1차 결제를 수행하며, 이후 회차는 Eximbay 가 자동 청구합니다.
+     */
+    @PostMapping("/eximbay/subscribe")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> eximbaySubscribe(
+            @RequestBody Map<String, Object> body,
+            HttpServletRequest request) {
+        Long merchantIdVal = null;
+        Object mid = body.get("merchantId");
+        if (mid != null && !mid.toString().isEmpty()) {
+            try {
+                merchantIdVal = Long.parseLong(mid.toString());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        Long orgUnitId = resolveMerchantOrgUnitId(merchantIdVal, str(body, "compId"));
+        if (orgUnitId == null) {
+            return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
+            return ResponseEntity.ok(ApiResponse.fail(OrgServiceUseService.MSG_ORG_SERVICE_DISABLED, "ORG_DISABLED"));
+        }
+        if (!eximbayPaymentService.hasOperationalWebBinding(orgUnitId)) {
+            return ResponseEntity.ok(ApiResponse.fail("Eximbay 운영(WEB) 바인딩이 없습니다.", "SUBSCRIPTION_PG_MISSING"));
+        }
+        Map<String, Object> plan = extractSubscriptionPlan(body);
+        body.put("txnOrigin", "SUBSCRIPTION");
+        Map<String, Object> result = eximbayPaymentService.executeSubscriptionReady(
+                orgUnitId, body, request, getClientIp(request), plan);
+        Object ok = result.get("success");
+        if (ok instanceof Boolean && !(Boolean) ok) {
+            return ResponseEntity.ok(MerchantApiResponseMapper.failFromResultMap(
+                    result, "Eximbay 구독 요청 실패", "EXIMBAY_ERROR"));
+        }
+        return ResponseEntity.ok(ApiResponse.ok(result));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> extractSubscriptionPlan(Map<String, Object> body) {
+        Object raw = body.get("subscriptionPlan");
+        if (raw == null) {
+            raw = body.get("subscription_plan");
+        }
+        if (raw instanceof Map) {
+            return (Map<String, Object>) raw;
+        }
+        Map<String, Object> plan = new LinkedHashMap<>();
+        for (String k : new String[]{"recurring_amount", "recurring_start_date", "recurring_interval",
+                "remind_email_interval"}) {
+            Object v = body.get(k);
+            if (v != null && !v.toString().isBlank()) {
+                plan.put(k, v.toString().trim());
+            }
+        }
+        return plan;
     }
 
     /**
