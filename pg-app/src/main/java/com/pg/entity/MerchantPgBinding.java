@@ -72,6 +72,12 @@ public class MerchantPgBinding {
     @Column(name = "card_brand_scope", nullable = false, length = 16)
     private String cardBrandScope = "ALL";
 
+    /**
+     * 멀티 PG 라우팅 통화 범위 — ALL 또는 JPY/USD/KRW/THB 등({@link com.pg.util.CurrencyScopeUtil}).
+     */
+    @Column(name = "currency_scope", nullable = false, length = 8)
+    private String currencyScope = "ALL";
+
     /** {@code null}: {@code tb_pg_agency} 기본 따름. {@code OFF}/{@code T}/{@code D}: 가맹 MID별 덮어쓰기 */
     @Column(name = "ext_settle_mode", length = 8)
     private String extSettleMode;
@@ -120,6 +126,8 @@ public class MerchantPgBinding {
     public void setUrlPayPricingMode(String urlPayPricingMode) { this.urlPayPricingMode = urlPayPricingMode; }
     public String getCardBrandScope() { return cardBrandScope; }
     public void setCardBrandScope(String cardBrandScope) { this.cardBrandScope = cardBrandScope; }
+    public String getCurrencyScope() { return currencyScope; }
+    public void setCurrencyScope(String currencyScope) { this.currencyScope = currencyScope; }
     public String getExtSettleMode() { return extSettleMode; }
     public void setExtSettleMode(String extSettleMode) { this.extSettleMode = extSettleMode; }
     public Integer getExtSettleLag() { return extSettleLag; }

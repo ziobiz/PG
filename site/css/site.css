@@ -2577,6 +2577,18 @@ colgroup.pg-col-resize-group col {
   margin-right: 4px;
   visibility: hidden;
 }
+/* 업체관리: 미사용 조직·가맹 회색 표시(상위 사용중 조직은 원래 색 유지) */
+#contentsMain tr.comp-tree-row-muted .tree-icon.tree-row-muted,
+#contentsMain tr.comp-tree-row-muted .tree-toggle.tree-row-muted,
+#contentsMain tr.comp-tree-row-muted .tree-comp-cell.tree-row-muted .pg-comp-grid-clamp,
+#contentsMain tr.comp-tree-row-muted .comp-tree-cell-muted,
+#contentsMain tr.comp-tree-row-muted .comp-tree-cell-muted .pg-comp-grid-clamp {
+  color: #9e9e9e !important;
+}
+#contentsMain tr.comp-tree-row-muted .tree-toggle.tree-row-muted.expanded,
+#contentsMain tr.comp-tree-row-muted .tree-toggle.tree-row-muted.collapsed {
+  color: #bdbdbd !important;
+}
 td.empty-state-cell {
   width: 100%;
   text-align: center !important;

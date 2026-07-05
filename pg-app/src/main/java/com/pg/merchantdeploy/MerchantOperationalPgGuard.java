@@ -2,6 +2,8 @@ package com.pg.merchantdeploy;
 
 import com.pg.integration.pg.PgVendor;
 import com.pg.service.ChillPayService;
+import com.pg.service.MerchantPgBindingRouterService;
+import com.pg.util.CardBrandScopeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -22,27 +24,42 @@ public class MerchantOperationalPgGuard {
     private static final Logger log = LoggerFactory.getLogger(MerchantOperationalPgGuard.class);
 
     private final ChillPayService chillPayService;
+    private final MerchantPgBindingRouterService pgBindingRouter;
 
-    public MerchantOperationalPgGuard(ChillPayService chillPayService) {
+    public MerchantOperationalPgGuard(ChillPayService chillPayService,
+                                      MerchantPgBindingRouterService pgBindingRouter) {
         this.chillPayService = chillPayService;
+        this.pgBindingRouter = pgBindingRouter;
     }
 
     public Optional<Map<String, Object>> denyIfUrlPayVendorMismatch(Long orgUnitId, String requestedVendorScope) {
-        return denyIfUrlPayVendorMismatch(orgUnitId, requestedVendorScope, false);
+        return denyIfUrlPayVendorMismatch(orgUnitId, requestedVendorScope, false, null, null);
     }
 
     public Optional<Map<String, Object>> denyIfUrlPayVendorMismatch(Long orgUnitId,
                                                                     String requestedVendorScope,
                                                                     boolean repayScope) {
+        return denyIfUrlPayVendorMismatch(orgUnitId, requestedVendorScope, repayScope, null, null);
+    }
+
+    public Optional<Map<String, Object>> denyIfUrlPayVendorMismatch(Long orgUnitId,
+                                                                    String requestedVendorScope,
+                                                                    boolean repayScope,
+                                                                    String cardBrand,
+                                                                    String currency) {
         if (orgUnitId == null || requestedVendorScope == null || requestedVendorScope.isBlank()) {
             return Optional.empty();
         }
         if (MerchantPgBrokerVendor.ALL.equalsIgnoreCase(requestedVendorScope.trim())) {
             return Optional.empty();
         }
-        String opPg = repayScope
-                ? chillPayService.resolveUrlPayRepayOperationalPgCd(orgUnitId)
-                : chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
+        if (pgBindingRouter.isMultiPgRoutingEnabled()) {
+            String brandLetter = CardBrandScopeUtil.toScopeLetter(cardBrand);
+            if (brandLetter.isEmpty()) {
+                return Optional.empty();
+            }
+        }
+        String opPg = resolveOperationalPgCd(orgUnitId, repayScope, cardBrand, currency);
         if (opPg == null || opPg.isBlank()) {
             return Optional.empty();
         }
@@ -62,6 +79,18 @@ public class MerchantOperationalPgGuard {
         log.warn("PG vendor mismatch blocked: orgUnitId={} operationalPgCd={} configured={} requested={}",
                 orgUnitId, opPg.trim(), configuredLabel, requestedLabel);
         return Optional.of(buildDenyMap(opPg.trim(), configuredLabel, requestedLabel));
+    }
+
+    private String resolveOperationalPgCd(Long orgUnitId, boolean repayScope, String cardBrand, String currency) {
+        if (pgBindingRouter.isMultiPgRoutingEnabled()) {
+            MerchantPgBindingRouterService.RoutingHint hint = repayScope
+                    ? MerchantPgBindingRouterService.RoutingHint.repay(cardBrand, currency)
+                    : MerchantPgBindingRouterService.RoutingHint.standard(cardBrand, currency);
+            return pgBindingRouter.resolveOperationalPgCd(orgUnitId, hint);
+        }
+        return repayScope
+                ? chillPayService.resolveUrlPayRepayOperationalPgCd(orgUnitId)
+                : chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
     }
 
     public Map<String, Object> buildDenyMap(String operationalPgCd, String configuredLabel, String requestedLabel) {

@@ -459,14 +459,16 @@ public class ChillPayService {
         return urlPayDisplayFxService.resolveUrlPayPricingMode(pgCd, legacy);
     }
 
-    /**
-     * 온라인 URL 결제에 쓸 WEB 바인딩 1건.
-     * <p>운영(Y)이면서 사용(Y)·WEB(또는 미입력)·연동용도 URL결제({@code integ_url_pay_yn=Y})인 {@code pg_cd}만 후보입니다. 운영 행이 여러 개면 정렬 규칙으로 1건을 고릅니다.
-     * 노티 전용 PG를 운영으로 두고 URL 전용 행을 비운영으로 두는 구성은 URL 후보가 없어 웹결제가 비활성화됩니다.</p>
-     */
     public Optional<MerchantPgBinding> findOperationalWebBindingForUrlPay(Long orgUnitId) {
+        return listOperationalWebBindingsForUrlPay(orgUnitId).stream().findFirst();
+    }
+
+    /**
+     * URL 결제 운영 WEB 바인딩 전체(정렬 우선순위). 멀티 PG 라우팅 시 카드브랜드·통화로 1건을 고릅니다.
+     */
+    public List<MerchantPgBinding> listOperationalWebBindingsForUrlPay(Long orgUnitId) {
         if (orgUnitId == null) {
-            return Optional.empty();
+            return List.of();
         }
         List<MerchantPgBinding> list = merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(orgUnitId);
         Map<String, Boolean> urlPayByPgCd = urlPayAgencyFlagByPgCd(list, UrlPayBindingScope.STANDARD);
@@ -479,16 +481,8 @@ public class ChillPayService {
                     String pm = b.getPayMethod();
                     return pm == null || pm.isBlank() || "WEB".equalsIgnoreCase(pm.trim());
                 })
-                .min(Comparator
-                        .comparing((MerchantPgBinding b) -> isChillPayFamilyPgCd(b.getPgCd()) ? 0 : 1)
-                        .thenComparingInt((MerchantPgBinding b) -> UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equalsIgnoreCase(
-                                urlPayDisplayFxService.resolveUrlPayPricingMode(
-                                        b.getPgCd() != null ? b.getPgCd().trim() : "",
-                                        b.getUrlPayPricingMode() != null ? b.getUrlPayPricingMode().trim() : ""))
-                                ? 0 : 1)
-                        .thenComparing((MerchantPgBinding b) -> genericChillPayPgCd(b.getPgCd()) ? 1 : 0)
-                        .thenComparing(b -> b.getSortOrder() != null ? b.getSortOrder() : Integer.MAX_VALUE)
-                        .thenComparing(MerchantPgBinding::getId));
+                .sorted(operationalWebBindingComparator())
+                .toList();
     }
 
     /**
@@ -518,8 +512,12 @@ public class ChillPayService {
      * URL 재결제(저장 카드)용 운영 WEB 바인딩 — {@code integ_url_pay_repay_yn=Y} PG만 후보.
      */
     public Optional<MerchantPgBinding> findOperationalWebBindingForUrlPayRepay(Long orgUnitId) {
+        return listOperationalWebBindingsForUrlPayRepay(orgUnitId).stream().findFirst();
+    }
+
+    public List<MerchantPgBinding> listOperationalWebBindingsForUrlPayRepay(Long orgUnitId) {
         if (orgUnitId == null || !isUrlPayRepayEnabledAtHq()) {
-            return Optional.empty();
+            return List.of();
         }
         List<MerchantPgBinding> list = merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(orgUnitId);
         Map<String, Boolean> repayByPgCd = urlPayAgencyFlagByPgCd(list, UrlPayBindingScope.REPAY);
@@ -532,16 +530,21 @@ public class ChillPayService {
                     String pm = b.getPayMethod();
                     return pm == null || pm.isBlank() || "WEB".equalsIgnoreCase(pm.trim());
                 })
-                .min(Comparator
-                        .comparing((MerchantPgBinding b) -> isChillPayFamilyPgCd(b.getPgCd()) ? 0 : 1)
-                        .thenComparingInt((MerchantPgBinding b) -> UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equalsIgnoreCase(
-                                urlPayDisplayFxService.resolveUrlPayPricingMode(
-                                        b.getPgCd() != null ? b.getPgCd().trim() : "",
-                                        b.getUrlPayPricingMode() != null ? b.getUrlPayPricingMode().trim() : ""))
-                                ? 0 : 1)
-                        .thenComparing((MerchantPgBinding b) -> genericChillPayPgCd(b.getPgCd()) ? 1 : 0)
-                        .thenComparing(b -> b.getSortOrder() != null ? b.getSortOrder() : Integer.MAX_VALUE)
-                        .thenComparing(MerchantPgBinding::getId));
+                .sorted(operationalWebBindingComparator())
+                .toList();
+    }
+
+    private Comparator<MerchantPgBinding> operationalWebBindingComparator() {
+        return Comparator
+                .comparing((MerchantPgBinding b) -> isChillPayFamilyPgCd(b.getPgCd()) ? 0 : 1)
+                .thenComparingInt((MerchantPgBinding b) -> UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equalsIgnoreCase(
+                        urlPayDisplayFxService.resolveUrlPayPricingMode(
+                                b.getPgCd() != null ? b.getPgCd().trim() : "",
+                                b.getUrlPayPricingMode() != null ? b.getUrlPayPricingMode().trim() : ""))
+                        ? 0 : 1)
+                .thenComparing((MerchantPgBinding b) -> genericChillPayPgCd(b.getPgCd()) ? 1 : 0)
+                .thenComparing(b -> b.getSortOrder() != null ? b.getSortOrder() : Integer.MAX_VALUE)
+                .thenComparing(MerchantPgBinding::getId);
     }
 
     public String resolveUrlPayRepayOperationalPgCd(Long merchantOrgUnitId) {

@@ -21,6 +21,7 @@ import com.pg.service.ChillPayService;
 import com.pg.service.EximbayPaymentService;
 import com.pg.service.JpayPaymentService;
 import com.pg.service.MerchantCreditTokenService;
+import com.pg.service.MerchantPgBindingRouterService;
 import com.pg.service.OrgServiceUseService;
 import com.pg.service.PayCardPolicyService;
 import com.pg.service.PayContactRememberPolicyService;
@@ -36,6 +37,7 @@ import com.pg.urlpay.UrlPayCardExpiryModeService;
 import com.pg.urlpay.UrlPayCheckoutModeUtil;
 import com.pg.urlpay.UrlPayPublicCheckoutService;
 import com.pg.urlpay.UrlPaySaleDispatcher;
+import com.pg.urlpay.UrlPayVendorCapability;
 import com.pg.util.ChillPayDirectCreditUtil;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -86,6 +88,7 @@ public class ApiPayController {
     private final PayPresaleRiskFilterService payPresaleRiskFilterService;
     private final UrlPayCardExpiryModeService urlPayCardExpiryModeService;
     private final PayContactRememberPolicyService payContactRememberPolicyService;
+    private final MerchantPgBindingRouterService pgBindingRouter;
 
     public ApiPayController(ChillPayService chillPayService,
                             JpayPaymentService jpayPaymentService,
@@ -110,7 +113,8 @@ public class ApiPayController {
                             PayCardPolicyService payCardPolicyService,
                             PayPresaleRiskFilterService payPresaleRiskFilterService,
                             UrlPayCardExpiryModeService urlPayCardExpiryModeService,
-                            PayContactRememberPolicyService payContactRememberPolicyService) {
+                            PayContactRememberPolicyService payContactRememberPolicyService,
+                            MerchantPgBindingRouterService pgBindingRouter) {
         this.chillPayService = chillPayService;
         this.jpayPaymentService = jpayPaymentService;
         this.eximbayPaymentService = eximbayPaymentService;
@@ -135,16 +139,35 @@ public class ApiPayController {
         this.payPresaleRiskFilterService = payPresaleRiskFilterService;
         this.urlPayCardExpiryModeService = urlPayCardExpiryModeService;
         this.payContactRememberPolicyService = payContactRememberPolicyService;
+        this.pgBindingRouter = pgBindingRouter;
     }
 
     private <T> ResponseEntity<ApiResponse<T>> vendorMismatchIfAny(Long orgUnitId,
                                                                     String requestedVendorScope,
                                                                     boolean repayScope) {
+        return vendorMismatchIfAny(orgUnitId, requestedVendorScope, repayScope, null, null);
+    }
+
+    private <T> ResponseEntity<ApiResponse<T>> vendorMismatchIfAnyFromBody(Long orgUnitId,
+                                                                              String requestedVendorScope,
+                                                                              boolean repayScope,
+                                                                              Map<String, Object> body) {
+        Map<String, Object> safe = body != null ? body : Map.of();
+        return vendorMismatchIfAny(orgUnitId, requestedVendorScope, repayScope,
+                firstNonBlankStr(safe, "cardBrand", "payCardBrand"),
+                firstNonBlankStr(safe, "currency", "displayCurrency"));
+    }
+
+    private <T> ResponseEntity<ApiResponse<T>> vendorMismatchIfAny(Long orgUnitId,
+                                                                    String requestedVendorScope,
+                                                                    boolean repayScope,
+                                                                    String cardBrand,
+                                                                    String currency) {
         if (orgUnitId == null) {
             return null;
         }
         Optional<Map<String, Object>> deny = operationalPgGuard.denyIfUrlPayVendorMismatch(
-                orgUnitId, requestedVendorScope, repayScope);
+                orgUnitId, requestedVendorScope, repayScope, cardBrand, currency);
         if (deny.isEmpty()) {
             return null;
         }
@@ -199,12 +222,9 @@ public class ApiPayController {
                     OrgServiceUseService.MSG_ORG_SERVICE_DISABLED, "ORG_DISABLED"));
         }
         Optional<MerchantProfile> profCtx = merchantProfileRepository.findByOrgUnitId(orgUnitId);
-        if (profCtx.isPresent()) {
-            String wpy = profCtx.get().getWebPaymentUseYn();
-            if (wpy != null && "N".equalsIgnoreCase(wpy.trim())) {
-                return ResponseEntity.ok(ApiResponse.fail(
-                        OrgServiceUseService.MSG_WEB_PAYMENT_DISABLED, "WEB_PAYMENT_DISABLED"));
-            }
+        if (profCtx.isPresent() && !orgServiceUseService.isWebPaymentActive(orgUnitId)) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    OrgServiceUseService.MSG_WEB_PAYMENT_DISABLED, "WEB_PAYMENT_DISABLED"));
         }
         if (repay) {
             if (!chillPayService.isUrlPayRepayEnabledAtHq()) {
@@ -258,9 +278,14 @@ public class ApiPayController {
         if (orgUnitId == null) {
             return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
         }
-        String pg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
-        String pan = firstNonBlankStr(safe, "pan", "payCardno", "cardno");
         String brand = firstNonBlankStr(safe, "cardBrand", "payCardBrand");
+        String currency = firstNonBlankStr(safe, "currency", "displayCurrency");
+        String pg = pgBindingRouter.resolveOperationalPgCd(
+                orgUnitId, MerchantPgBindingRouterService.RoutingHint.standard(brand, currency));
+        if (pg == null || pg.isBlank()) {
+            pg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
+        }
+        String pan = firstNonBlankStr(safe, "pan", "payCardno", "cardno");
         String lang = firstNonBlankStr(safe, "lang", "language");
         String holderName = firstNonBlankStr(safe, "holderName", "customerNm");
         if (holderName == null || holderName.isBlank()) {
@@ -291,6 +316,55 @@ public class ApiPayController {
             @RequestParam String compId,
             @RequestParam(name = "displayCurrency", required = false) String displayCurrency) {
         return chillpayDisplayFxQuote(compId, displayCurrency);
+    }
+
+    @PostMapping("/url/resolve-route")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> urlPayResolveRoute(
+            @RequestBody Map<String, Object> body) {
+        Map<String, Object> safe = body != null ? body : Map.of();
+        Long merchantIdVal = null;
+        Object mid = safe.get("merchantId");
+        if (mid != null && !mid.toString().isEmpty()) {
+            try {
+                merchantIdVal = Long.parseLong(mid.toString());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        Long orgUnitId = resolveMerchantOrgUnitId(merchantIdVal, str(safe, "compId"));
+        if (orgUnitId == null) {
+            return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    OrgServiceUseService.MSG_ORG_SERVICE_DISABLED, "ORG_DISABLED"));
+        }
+        String cardBrand = firstNonBlankStr(safe, "cardBrand", "payCardBrand");
+        String currency = firstNonBlankStr(safe, "currency", "displayCurrency");
+        boolean repay = "Y".equalsIgnoreCase(str(safe, "repay"))
+                || UrlPayCheckoutModeUtil.REPAY.equalsIgnoreCase(str(safe, "urlPayVariant"));
+        MerchantPgBindingRouterService.RoutingHint hint = repay
+                ? MerchantPgBindingRouterService.RoutingHint.repay(cardBrand, currency)
+                : MerchantPgBindingRouterService.RoutingHint.standard(cardBrand, currency);
+        var binding = pgBindingRouter.resolveOperationalBinding(orgUnitId, hint);
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("multiPgRoutingEnabled", pgBindingRouter.isMultiPgRoutingEnabled());
+        out.put("multiPgRoutingMode", pgBindingRouter.resolveMultiPgRoutingMode());
+        if (binding.isEmpty()) {
+            out.put("resolved", false);
+            out.put("errorCode", pgBindingRouter.isMultiPgRoutingEnabled()
+                    ? "MULTI_PG_ROUTE_NOT_CONFIGURED" : "URL_PAYMENT_PG_MISSING");
+            return ResponseEntity.ok(ApiResponse.ok(out));
+        }
+        String opPg = binding.get().getPgCd() != null ? binding.get().getPgCd().trim() : "";
+        UrlPayVendorCapability cap = urlPaySaleDispatcher.resolveCapability(orgUnitId, cardBrand, currency);
+        out.put("resolved", true);
+        out.put("urlPayOperationalPgCd", opPg);
+        out.put("cardBrandScope", binding.get().getCardBrandScope());
+        out.put("currencyScope", binding.get().getCurrencyScope());
+        out.put("urlPayCapabilities", cap.toMap());
+        out.put("urlPayCheckoutPagePath", cap.checkoutPagePath());
+        out.put("urlPayInlineWidgetKind", cap.inlineWidgetKind());
+        return ResponseEntity.ok(ApiResponse.ok(out));
     }
 
     /**
@@ -354,8 +428,8 @@ public class ApiPayController {
             return ResponseEntity.ok(ApiResponse.fail(
                     OrgServiceUseService.MSG_ORG_SERVICE_DISABLED, "ORG_DISABLED"));
         }
-        ResponseEntity<ApiResponse<Map<String, Object>>> vendorBlock = vendorMismatchIfAny(
-                orgUnitId, MerchantPgBrokerVendor.JPAY, false);
+        ResponseEntity<ApiResponse<Map<String, Object>>> vendorBlock = vendorMismatchIfAnyFromBody(
+                orgUnitId, MerchantPgBrokerVendor.JPAY, false, body);
         if (vendorBlock != null) {
             return vendorBlock;
         }

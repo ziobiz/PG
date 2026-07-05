@@ -74,11 +74,8 @@ public class MerchantChillpayRedirectCheckoutService {
             return fail(OrgServiceUseService.MSG_ORG_SERVICE_DISABLED, "ORG_DISABLED");
         }
         Optional<MerchantProfile> profOpt = merchantProfileRepository.findByOrgUnitId(orgUnitId);
-        if (profOpt.isPresent()) {
-            String wpy = profOpt.get().getWebPaymentUseYn();
-            if (wpy != null && "N".equalsIgnoreCase(wpy.trim())) {
-                return fail(OrgServiceUseService.MSG_WEB_PAYMENT_DISABLED, "WEB_PAYMENT_DISABLED");
-            }
+        if (profOpt.isPresent() && !orgServiceUseService.isWebPaymentActive(orgUnitId)) {
+            return fail(OrgServiceUseService.MSG_WEB_PAYMENT_DISABLED, "WEB_PAYMENT_DISABLED");
         }
         Optional<MerchantPgBinding> opBind = chillPayService.findOperationalWebBindingForUrlPay(orgUnitId);
         if (opBind.isEmpty()) {

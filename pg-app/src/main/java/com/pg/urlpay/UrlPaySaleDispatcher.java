@@ -1,14 +1,18 @@
 package com.pg.urlpay;
 
+import com.pg.entity.MerchantPgBinding;
 import com.pg.service.ChillPayService;
 import com.pg.service.EximbayPaymentService;
 import com.pg.service.JpayPaymentService;
+import com.pg.service.MerchantPgBindingRouterService;
 import com.pg.service.UrlPayChargeResolutionService;
+import com.pg.util.CardBrandScopeUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * 통합 URL 결제 승인 라우팅 — 운영 PG의 {@link UrlPaySaleChannel} 에 따라 어댑터로 위임합니다.
@@ -21,17 +25,20 @@ public class UrlPaySaleDispatcher {
     private final EximbayPaymentService eximbayPaymentService;
     private final UrlPayVendorCapabilityRegistry capabilityRegistry;
     private final UrlPayChargeResolutionService urlPayChargeResolutionService;
+    private final MerchantPgBindingRouterService pgBindingRouter;
 
     public UrlPaySaleDispatcher(ChillPayService chillPayService,
                                 JpayPaymentService jpayPaymentService,
                                 EximbayPaymentService eximbayPaymentService,
                                 UrlPayVendorCapabilityRegistry capabilityRegistry,
-                                UrlPayChargeResolutionService urlPayChargeResolutionService) {
+                                UrlPayChargeResolutionService urlPayChargeResolutionService,
+                                MerchantPgBindingRouterService pgBindingRouter) {
         this.chillPayService = chillPayService;
         this.jpayPaymentService = jpayPaymentService;
         this.eximbayPaymentService = eximbayPaymentService;
         this.capabilityRegistry = capabilityRegistry;
         this.urlPayChargeResolutionService = urlPayChargeResolutionService;
+        this.pgBindingRouter = pgBindingRouter;
     }
 
     /**
@@ -43,7 +50,20 @@ public class UrlPaySaleDispatcher {
                                            Map<String, Object> body,
                                            HttpServletRequest request,
                                            String clientIp) {
-        String opPg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
+        String cardBrand = firstNonBlank(body, "cardBrand", "payCardBrand");
+        String currency = firstNonBlank(body, "currency", "displayCurrency");
+        MerchantPgBindingRouterService.RoutingHint hint =
+                MerchantPgBindingRouterService.RoutingHint.standard(cardBrand, currency);
+        Optional<MerchantPgBinding> binding = pgBindingRouter.resolveOperationalBinding(orgUnitId, hint);
+        if (binding.isEmpty()) {
+            if (pgBindingRouter.isMultiPgRoutingEnabled()
+                    && !CardBrandScopeUtil.toScopeLetter(cardBrand).isEmpty()) {
+                return fail("이 카드 브랜드에 해당하는 운영 결제대행사가 없습니다. 가맹 결제대행사 설정의 카드브랜드를 확인하세요.",
+                        "CARD_BRAND_PG_NOT_CONFIGURED");
+            }
+            return fail("URL 결제를 처리할 결제대행사(운영·연동용도 URL결제)가 없습니다.", "URL_PAYMENT_PG_MISSING");
+        }
+        String opPg = binding.get().getPgCd() != null ? binding.get().getPgCd().trim() : "";
         UrlPayVendorCapability cap = capabilityRegistry.resolve(opPg);
         try {
             UrlPayChargeResolutionService.ResolvedCharge charge =
@@ -71,9 +91,30 @@ public class UrlPaySaleDispatcher {
         };
     }
 
-    public UrlPayVendorCapability resolveCapability(Long orgUnitId) {
-        String opPg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
+    public UrlPayVendorCapability resolveCapability(Long orgUnitId, String cardBrand, String currency) {
+        String opPg = pgBindingRouter.resolveOperationalPgCd(
+                orgUnitId, MerchantPgBindingRouterService.RoutingHint.standard(cardBrand, currency));
+        if (opPg.isEmpty()) {
+            opPg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
+        }
         return capabilityRegistry.resolve(opPg);
+    }
+
+    public UrlPayVendorCapability resolveCapability(Long orgUnitId) {
+        return resolveCapability(orgUnitId, null, null);
+    }
+
+    private static String firstNonBlank(Map<String, Object> body, String... keys) {
+        if (body == null || keys == null) {
+            return "";
+        }
+        for (String key : keys) {
+            Object v = body.get(key);
+            if (v != null && !v.toString().isBlank()) {
+                return v.toString().trim();
+            }
+        }
+        return "";
     }
 
     private static Map<String, Object> fail(String message, String code) {

@@ -534,8 +534,7 @@ CREATE TABLE IF NOT EXISTS tb_pay_card_fail_cooldown (
     updated_at      TIMESTAMP
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS ux_pay_card_fail_cooldown_pg_hash
-    ON tb_pay_card_fail_cooldown (pg_vendor, pan_hash);
+-- 유니크 인덱스는 V189에서 org_unit_id 포함 키로 생성 (구 ux_pay_card_fail_cooldown_pg_hash 는 사용 안 함)
 
 ALTER TABLE pg_trnsctn
     ADD COLUMN IF NOT EXISTS card_pan_hash VARCHAR(64);
@@ -615,6 +614,20 @@ ALTER TABLE tb_pay_card_fail_cooldown
     ADD COLUMN IF NOT EXISTS org_unit_id BIGINT;
 
 DROP INDEX IF EXISTS ux_pay_card_fail_cooldown_pg_hash;
+
+-- 동일 pg_vendor+pan_hash(+org) 중복 행 정리 — 최신 updated_at·last_fail_at 우선
+DELETE FROM tb_pay_card_fail_cooldown d
+WHERE d.id IN (
+    SELECT id FROM (
+        SELECT id,
+               ROW_NUMBER() OVER (
+                   PARTITION BY pg_vendor, pan_hash, COALESCE(org_unit_id, 0)
+                   ORDER BY COALESCE(updated_at, last_fail_at, created_at) DESC NULLS LAST, id DESC
+               ) AS rn
+        FROM tb_pay_card_fail_cooldown
+    ) t
+    WHERE t.rn > 1
+);
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pay_card_fail_cooldown_pg_hash_org
     ON tb_pay_card_fail_cooldown (pg_vendor, pan_hash, COALESCE(org_unit_id, 0));
@@ -743,4 +756,50 @@ ALTER TABLE tb_org_view_column_allowance
 -- V223: 총판·본사 상위연쇄 미사용 하위 표시(상위 복원 시 자동 복원 대상)
 ALTER TABLE tb_merchant_profile
     ADD COLUMN IF NOT EXISTS parent_cascade_disabled_yn VARCHAR(1) NOT NULL DEFAULT 'N';
+
+-- V225: 멀티 결제대행사(카드브랜드·통화) 라우팅 본사 마스터 스위치
+ALTER TABLE tb_hq_api_config
+    ADD COLUMN IF NOT EXISTS multi_pg_routing_enabled_yn VARCHAR(1) NOT NULL DEFAULT 'Y';
+
+-- CHAR(1)/bpchar 로 이미 추가된 DB — Hibernate String length=1(VARCHAR) 과 맞춤
+ALTER TABLE tb_hq_api_config
+    ALTER COLUMN multi_pg_routing_enabled_yn TYPE VARCHAR(1);
+
+-- V226: 멀티 PG 라우팅 방식(브랜드/통화/혼합) + 가맹 결제대행사 통화 범위
+ALTER TABLE tb_hq_api_config
+    ADD COLUMN IF NOT EXISTS multi_pg_routing_mode VARCHAR(32) NOT NULL DEFAULT 'BRAND_AND_CURRENCY';
+
+ALTER TABLE tb_merchant_pg_binding
+    ADD COLUMN IF NOT EXISTS currency_scope VARCHAR(8) NOT NULL DEFAULT 'ALL';
+
+-- V224: 일괄운영관리 (가맹점사용·URL결제·로그인 제한)
+CREATE TABLE IF NOT EXISTS tb_hq_bulk_ops_policy (
+    id                          BIGINT PRIMARY KEY,
+    policy_type                 VARCHAR(32) NOT NULL,
+    mode                        VARCHAR(16) NOT NULL DEFAULT 'NONE',
+    pause_snapshot_json         TEXT,
+    updated_at                  TIMESTAMP,
+    updated_by                  VARCHAR(100)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_hq_bulk_ops_policy_type ON tb_hq_bulk_ops_policy (policy_type);
+INSERT INTO tb_hq_bulk_ops_policy (id, policy_type, mode, updated_at)
+SELECT 1, 'ORG_USE', 'NONE', CURRENT_TIMESTAMP
+WHERE NOT EXISTS (SELECT 1 FROM tb_hq_bulk_ops_policy WHERE policy_type = 'ORG_USE');
+INSERT INTO tb_hq_bulk_ops_policy (id, policy_type, mode, updated_at)
+SELECT 2, 'URL_PAY', 'NONE', CURRENT_TIMESTAMP
+WHERE NOT EXISTS (SELECT 1 FROM tb_hq_bulk_ops_policy WHERE policy_type = 'URL_PAY');
+CREATE TABLE IF NOT EXISTS tb_hq_bulk_login_restriction (
+    id                          BIGSERIAL PRIMARY KEY,
+    target_org_level            VARCHAR(20),
+    target_org_unit_id          BIGINT,
+    target_org_code             VARCHAR(50),
+    target_org_name             VARCHAR(200),
+    mode                        VARCHAR(16) NOT NULL DEFAULT 'FORCE_N',
+    pause_snapshot_json         TEXT,
+    status                      VARCHAR(16) NOT NULL DEFAULT 'ACTIVE',
+    created_at                  TIMESTAMP,
+    updated_at                  TIMESTAMP,
+    updated_by                  VARCHAR(100)
+);
+CREATE INDEX IF NOT EXISTS idx_hq_bulk_login_restriction_status ON tb_hq_bulk_login_restriction (status);
 

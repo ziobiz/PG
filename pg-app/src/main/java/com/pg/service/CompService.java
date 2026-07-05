@@ -39,6 +39,7 @@ import com.pg.util.ReceivableRecoveryModeUtil;
 import com.pg.util.RouteNoDisplayUtil;
 import com.pg.util.VoidRefundSettlementModeUtil;
 import com.pg.util.CardBrandScopeUtil;
+import com.pg.util.CurrencyScopeUtil;
 import com.pg.chatbot.ChatbotCatalogPolicy;
 import com.pg.chatbot.ChatbotPromotionShelfMode;
 import com.pg.merchantdeploy.MerchantApiDeploymentService;
@@ -1063,6 +1064,26 @@ public class CompService {
                     .filter(o -> matchRegNo(o, regNo))
                     .collect(Collectors.toList());
         }
+        String useYnFilterNorm = normalizeUseYnFilter(useYn);
+        if (useYnFilterNorm != null
+                && (OrgUseYnUtil.N.equalsIgnoreCase(useYnFilterNorm) || OrgUseYnUtil.S.equalsIgnoreCase(useYnFilterNorm))) {
+            Set<Long> primaryMatchIds = filtered.stream().map(OrgUnit::getId).collect(Collectors.toSet());
+            Set<Long> visibleIds = new HashSet<>(primaryMatchIds);
+            Map<Long, OrgUnit> scopedById = scoped.stream()
+                    .collect(Collectors.toMap(OrgUnit::getId, ou -> ou, (a, b) -> a));
+            for (OrgUnit ou : filtered) {
+                appendAncestorIdsForCompTree(ou, visibleIds, scopedById, allById);
+            }
+            filtered = scoped.stream()
+                    .filter(o -> visibleIds.contains(o.getId()))
+                    .filter(o -> {
+                        if (o.getOrgLevel() == OrgLevel.MERCHANT) {
+                            return primaryMatchIds.contains(o.getId());
+                        }
+                        return true;
+                    })
+                    .collect(Collectors.toList());
+        }
         /* 목록 표시: 조직 트리 전위 순서(부모 직후 자식·가맹점). 형제는 업체코드 순 */
         List<OrgUnit> ordered = sortFilteredOrgsAsHierarchyTree(filtered);
         filtered.clear();
@@ -1091,6 +1112,11 @@ public class CompService {
                 if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
                     row.put("merchantTreeFolderTone", resolveMerchantTreeFolderTone(ou, allById));
                 }
+                String ownUse = merchantProfileRepository.findByOrgUnitId(ou.getId())
+                        .map(mp -> OrgUseYnUtil.normalize(mp.getUseYn()))
+                        .orElse(OrgUseYnUtil.Y);
+                row.put("ownUseYn", ownUse);
+                row.put("treeRowMuted", !OrgUseYnUtil.Y.equals(ownUse));
                 list.add(row);
             }
         }
@@ -1153,6 +1179,29 @@ public class CompService {
         out.add(node);
         for (OrgUnit c : byParent.getOrDefault(node.getId(), Collections.emptyList())) {
             appendOrgSubtreePreOrder(c, byParent, out, visited);
+        }
+    }
+
+    /** 미사용·영구정지 검색 시 매칭 행의 상위 조직(조회 범위 내)을 함께 노출 */
+    private void appendAncestorIdsForCompTree(OrgUnit node, Set<Long> out,
+                                              Map<Long, OrgUnit> scopedById,
+                                              Map<Long, OrgUnit> allById) {
+        if (node == null) {
+            return;
+        }
+        Long pid = node.getParentId();
+        while (pid != null) {
+            if (!out.add(pid)) {
+                break;
+            }
+            OrgUnit parent = scopedById.get(pid);
+            if (parent == null) {
+                parent = allById.get(pid);
+            }
+            if (parent == null) {
+                break;
+            }
+            pid = parent.getParentId();
         }
     }
 
@@ -1830,6 +1879,7 @@ public class CompService {
                                         }
                                         bm.put("integUrlPayYn", integUrl);
                                         bm.put("cardBrandScope", b.getCardBrandScope() != null ? b.getCardBrandScope() : "ALL");
+                                        bm.put("currencyScope", b.getCurrencyScope() != null ? b.getCurrencyScope() : "ALL");
                                         bm.put("extSettleMode", b.getExtSettleMode() != null ? b.getExtSettleMode() : "");
                                         bm.put("extSettleLag", b.getExtSettleLag() != null ? String.valueOf(b.getExtSettleLag()) : "");
                                         bm.put("extSettleBatchTime", b.getExtSettleBatchTime() != null ? b.getExtSettleBatchTime().toString() : "");
@@ -2487,6 +2537,7 @@ public class CompService {
                                         binding.setSortOrder(order++);
                                         applyUrlPayPricingModeFromJsonOrPrevious(binding, pc, pm, optStr(m, "urlPayPricingMode"), prevPgPricingModes);
                                         binding.setCardBrandScope(resolveMerchantPgCardBrandScopeForSave(pc, optStr(m, "cardBrandScope")));
+                                        binding.setCurrencyScope(resolveMerchantPgCurrencyScopeForSave(pc, optStr(m, "currencyScope")));
                                         applyExtSettlementFromJsonMap(binding, m);
                                         merchantPgBindingRepository.save(binding);
                                     }
@@ -3682,6 +3733,7 @@ public class CompService {
                         binding.setUrlPayPricingMode("CHECKOUT_CURRENCY");
                     }
                     binding.setCardBrandScope(resolveMerchantPgCardBrandScopeForSave(pc, optStr(m, "cardBrandScope")));
+                    binding.setCurrencyScope(resolveMerchantPgCurrencyScopeForSave(pc, optStr(m, "currencyScope")));
                     binding.setSortOrder(++order);
                     applyExtSettlementFromJsonMap(binding, m);
                     merchantPgBindingRepository.save(binding);
@@ -5281,6 +5333,14 @@ public class CompService {
         return CardBrandScopeUtil.normalize(requestedCardBrandScope);
     }
 
+    private String resolveMerchantPgCurrencyScopeForSave(String pgCd, String requestedCurrencyScope) {
+        if (isPgAgencyNotifyOnlyIntegration(pgCd)) {
+            return CurrencyScopeUtil.ALL;
+        }
+        CurrencyScopeUtil.validateOrThrow(requestedCurrencyScope);
+        return CurrencyScopeUtil.normalize(requestedCurrencyScope);
+    }
+
     private void validateMerchantPgBindingJsonRows(List<Map<String, Object>> list) {
         if (list == null) {
             return;
@@ -5293,6 +5353,7 @@ public class CompService {
             requireSelectablePgAgencyForMerchant(pc);
             if (!isPgAgencyNotifyOnlyIntegration(pc)) {
                 CardBrandScopeUtil.validateOrThrow(optStr(m, "cardBrandScope"));
+                CurrencyScopeUtil.validateOrThrow(optStr(m, "currencyScope"));
             }
         }
     }
@@ -5403,6 +5464,7 @@ public class CompService {
                                                      String installmentYn, String maxInstallmentMonthsStr,
                                                      String urlPayPricingMode,
                                                      String cardBrandScope,
+                                                     String currencyScope,
                                                      boolean extSettlementFieldsPresent,
                                                      String extSettleMode, String extSettleLagStr, String extSettleBatchHm) {
         OrgUnit ou = orgUnitRepository.findByCode(compId != null ? compId.trim() : "")
@@ -5469,6 +5531,7 @@ public class CompService {
                     ? "DISPLAY_FX_THB" : "CHECKOUT_CURRENCY");
         }
         binding.setCardBrandScope(resolveMerchantPgCardBrandScopeForSave(pc, cardBrandScope));
+        binding.setCurrencyScope(resolveMerchantPgCurrencyScopeForSave(pc, currencyScope));
         if (extSettlementFieldsPresent) {
             applyMerchantPgBindingExtSettlementFields(binding, extSettleMode, extSettleLagStr, extSettleBatchHm);
         }
@@ -5490,6 +5553,7 @@ public class CompService {
         bm.put("maxInstallmentMonths", binding.getMaxInstallmentMonths() != null ? String.valueOf(binding.getMaxInstallmentMonths()) : "");
         bm.put("urlPayPricingMode", binding.getUrlPayPricingMode() != null ? binding.getUrlPayPricingMode() : "CHECKOUT_CURRENCY");
         bm.put("cardBrandScope", binding.getCardBrandScope() != null ? binding.getCardBrandScope() : "ALL");
+        bm.put("currencyScope", binding.getCurrencyScope() != null ? binding.getCurrencyScope() : "ALL");
         bm.put("extSettleMode", binding.getExtSettleMode() != null ? binding.getExtSettleMode() : "");
         bm.put("extSettleLag", binding.getExtSettleLag() != null ? String.valueOf(binding.getExtSettleLag()) : "");
         bm.put("extSettleBatchTime", binding.getExtSettleBatchTime() != null ? binding.getExtSettleBatchTime().toString() : "");

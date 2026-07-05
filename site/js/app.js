@@ -4856,21 +4856,80 @@
     return n && !u && !w && !a;
   }
 
-  function pgSyncPgBindingRowCardBrandScopeUi(tr, pgAgencyCatalog) {
+  function pgIsMultiPgRoutingEnabled() {
+    return window._hqMultiPgRoutingEnabled !== false && window._hqMultiPgRoutingEnabled !== 'N';
+  }
+
+  function pgMultiPgRoutingMode() {
+    var m = window._hqMultiPgRoutingMode;
+    if (!m || String(m).trim() === '') return 'BRAND_AND_CURRENCY';
+    return String(m).trim().toUpperCase();
+  }
+
+  function pgSyncPgBindingRowRoutingScopeUi(tr, pgAgencyCatalog) {
     if (!tr) return;
     var cbsEl = tr.querySelector('[data-field="cardBrandScope"]');
-    if (!cbsEl) return;
+    var curEl = tr.querySelector('[data-field="currencyScope"]');
     var pgEl = tr.querySelector('[data-field="pgCd"]');
     var pgCd = pgEl && pgEl.value ? String(pgEl.value).trim() : '';
     var notifyOnly = pgAgencyCatalogRowNotifyOnly(pgAgencyCatalog, pgCd);
-    if (notifyOnly) {
-      cbsEl.value = 'ALL';
-      cbsEl.disabled = true;
-      cbsEl.setAttribute('title', '노티 전용 결제대행사는 카드브랜드(ALL)가 고정됩니다.');
-    } else {
-      cbsEl.disabled = false;
-      cbsEl.removeAttribute('title');
+    var multiPgOff = !pgIsMultiPgRoutingEnabled();
+    var mode = pgMultiPgRoutingMode();
+    var brandMode = mode === 'BRAND' || mode === 'BRAND_AND_CURRENCY';
+    var currencyMode = mode === 'CURRENCY' || mode === 'BRAND_AND_CURRENCY';
+
+    if (cbsEl) {
+      if (notifyOnly || multiPgOff || !brandMode) {
+        if (notifyOnly || !brandMode) cbsEl.value = 'ALL';
+        cbsEl.disabled = true;
+        if (notifyOnly) {
+          cbsEl.setAttribute('title', pgAdminUiT('노티 전용 결제대행사는 카드브랜드(ALL)가 고정됩니다.'));
+        } else if (multiPgOff) {
+          cbsEl.setAttribute('title', pgAdminUiT('본사 설정에서 멀티 결제대행사가 꺼져 있어 카드브랜드 구분은 적용되지 않습니다.'));
+        } else {
+          cbsEl.setAttribute('title', pgAdminUiT('본사 라우팅 방식이 브랜드만/혼합이 아니면 카드브랜드는 ALL로 고정됩니다.'));
+        }
+      } else {
+        cbsEl.disabled = false;
+        cbsEl.removeAttribute('title');
+      }
     }
+    if (curEl) {
+      if (notifyOnly || multiPgOff || !currencyMode) {
+        if (notifyOnly || !currencyMode) curEl.value = 'ALL';
+        curEl.disabled = true;
+        if (notifyOnly) {
+          curEl.setAttribute('title', pgAdminUiT('노티 전용 결제대행사는 통화(ALL)가 고정됩니다.'));
+        } else if (multiPgOff) {
+          curEl.setAttribute('title', pgAdminUiT('본사 설정에서 멀티 결제대행사가 꺼져 있어 통화 구분은 적용되지 않습니다.'));
+        } else {
+          curEl.setAttribute('title', pgAdminUiT('본사 라우팅 방식이 통화만/혼합이 아니면 통화는 ALL로 고정됩니다.'));
+        }
+      } else {
+        curEl.disabled = false;
+        curEl.removeAttribute('title');
+      }
+    }
+  }
+
+  /** @deprecated use pgSyncPgBindingRowRoutingScopeUi */
+  function pgSyncPgBindingRowCardBrandScopeUi(tr, pgAgencyCatalog) {
+    pgSyncPgBindingRowRoutingScopeUi(tr, pgAgencyCatalog);
+  }
+
+  function pgCurrencyScopeOptionsHtml() {
+    return '<option value="ALL">ALL</option>' +
+      '<option value="KRW">KRW</option>' +
+      '<option value="JPY">JPY</option>' +
+      '<option value="USD">USD</option>' +
+      '<option value="THB">THB</option>' +
+      '<option value="SGD">SGD</option>' +
+      '<option value="HKD">HKD</option>' +
+      '<option value="CNY">CNY</option>' +
+      '<option value="EUR">EUR</option>' +
+      '<option value="GBP">GBP</option>' +
+      '<option value="AUD">AUD</option>' +
+      '<option value="CAD">CAD</option>';
   }
 
   function pgCardBrandScopeOptionsHtml() {
@@ -5807,6 +5866,7 @@
       ]);
     };
     var cardBrandScopeOpts = function () { return pgCardBrandScopeOptionsHtml(); };
+    var currencyScopeOpts = function () { return pgCurrencyScopeOptionsHtml(); };
     var extSettleModeOpts = function () {
       return pgBindingSelectOptsHtml([
         { v: '', t: '연동기본' },
@@ -5868,6 +5928,7 @@
         installmentYn: sel('installmentYn'),
         maxInstallmentMonths: sel('maxInstallmentMonths'),
         cardBrandScope: sel('cardBrandScope'),
+        currencyScope: sel('currencyScope'),
         extSettleMode: omitExtSettleCols ? '' : sel('extSettleMode'),
         extSettleLag: omitExtSettleCols ? '' : sel('extSettleLag'),
         extSettleBatchTime: omitExtSettleCols ? '' : sel('extSettleBatchTime'),
@@ -5891,6 +5952,7 @@
       setSel('installmentYn', snap.installmentYn);
       setSel('maxInstallmentMonths', snap.maxInstallmentMonths);
       setSel('cardBrandScope', snap.cardBrandScope);
+      setSel('currencyScope', snap.currencyScope);
       if (!omitExtSettleCols) {
         setSel('extSettleMode', snap.extSettleMode);
         setSel('extSettleLag', snap.extSettleLag);
@@ -5914,7 +5976,7 @@
       tr.querySelectorAll('input[name="pgOperational"]').forEach(function (el) { el.disabled = ro; });
       if (!ro) {
         syncPgBindingExtSettleBatchTime(tr);
-        pgSyncPgBindingRowCardBrandScopeUi(tr, pgAgencyCatalog);
+        pgSyncPgBindingRowRoutingScopeUi(tr, pgAgencyCatalog);
       }
     }
 
@@ -6088,6 +6150,7 @@
             installmentYn: sel('installmentYn') || 'N',
             maxInstallmentMonths: sel('maxInstallmentMonths'),
             cardBrandScope: sel('cardBrandScope') || 'ALL',
+            currencyScope: sel('currencyScope') || 'ALL',
             extSettleMode: extMRow,
             extSettleLag: extLagRow,
             extSettleBatchTime: String(extMRow || '').toUpperCase() === 'D' ? extBtRow : ''
@@ -6148,6 +6211,7 @@
         '<td><select class="form-control form-control-sm" data-field="installmentYn">' + installmentOpts() + '</select></td>' +
         '<td><input type="text" class="form-control form-control-sm" data-field="maxInstallmentMonths" placeholder="12" autocomplete="off"></td>' +
         '<td><select class="form-control form-control-sm" data-field="cardBrandScope">' + cardBrandScopeOpts() + '</select></td>' +
+        '<td><select class="form-control form-control-sm" data-field="currencyScope">' + currencyScopeOpts() + '</select></td>' +
         extSettleCells +
         '<td class="pg-binding-actions">' + actionsCell + '</td>';
 
@@ -6167,6 +6231,13 @@
         cbsEl.querySelectorAll('option').forEach(function (o) { if (o.value === cbs) okOpt = true; });
         cbsEl.value = okOpt ? cbs : 'ALL';
       }
+      var curEl = tr.querySelector('[data-field="currencyScope"]');
+      if (curEl) {
+        var cur = (data.currencyScope != null && String(data.currencyScope).trim() !== '') ? String(data.currencyScope).trim().toUpperCase() : 'ALL';
+        var okCur = false;
+        curEl.querySelectorAll('option').forEach(function (o) { if (o.value === cur) okCur = true; });
+        curEl.value = okCur ? cur : 'ALL';
+      }
       if (!omitExtSettleCols) {
         tr.querySelector('[data-field="extSettleMode"]').value = data.extSettleMode != null ? String(data.extSettleMode) : '';
         tr.querySelector('[data-field="extSettleLag"]').value = data.extSettleLag != null && String(data.extSettleLag) !== '' ? String(data.extSettleLag) : '';
@@ -6174,7 +6245,7 @@
         tr.querySelector('[data-field="extSettleBatchTime"]').value = exBt.length >= 5 ? exBt.substring(0, 5) : exBt;
       }
 
-      pgSyncPgBindingRowCardBrandScopeUi(tr, pgAgencyCatalog);
+      pgSyncPgBindingRowRoutingScopeUi(tr, pgAgencyCatalog);
       tr.dataset.snapshot = JSON.stringify(rowSnapshot(tr));
       if (rowActionMode && hasId) setRowReadonly(tr, true);
 
@@ -6195,12 +6266,18 @@
       var rootEl = tr.querySelector('[data-field="rootNo"]');
       if (midEl && !String(midEl.value || '').trim() && p.defaultMid) midEl.value = String(p.defaultMid);
       if (rootEl && !String(rootEl.value || '').trim() && p.routeNo != null && String(p.routeNo) !== '') rootEl.value = String(p.routeNo);
-      pgSyncPgBindingRowCardBrandScopeUi(tr, pgAgencyCatalog);
+      pgSyncPgBindingRowRoutingScopeUi(tr, pgAgencyCatalog);
     }
 
     var pgAgencyCatalog = null;
 
     window.PG_API.pgAgencyList().then(function (list) {
+      return window.PG_API.hqApiConfig().catch(function () { return {}; }).then(function (cfg) {
+        window._hqMultiPgRoutingEnabled = !cfg || cfg.multiPgRoutingEnabledYn !== 'N';
+        window._hqMultiPgRoutingMode = (cfg && cfg.multiPgRoutingMode) ? String(cfg.multiPgRoutingMode).trim().toUpperCase() : 'BRAND_AND_CURRENCY';
+        return list;
+      });
+    }).then(function (list) {
       pgAgencyCatalog = {};
       (list || []).forEach(function (p) {
         var cd = (p.pgCd || '').trim();
@@ -6241,13 +6318,14 @@
             installmentYn: b.installmentYn || 'N',
             maxInstallmentMonths: b.maxInstallmentMonths != null ? String(b.maxInstallmentMonths) : '',
             cardBrandScope: b.cardBrandScope || 'ALL',
+            currencyScope: b.currencyScope || 'ALL',
             extSettleMode: b.extSettleMode != null ? String(b.extSettleMode) : '',
             extSettleLag: b.extSettleLag != null ? String(b.extSettleLag) : '',
             extSettleBatchTime: b.extSettleBatchTime != null ? String(b.extSettleBatchTime) : ''
           }, pgAgencyOptsHtml);
         });
         ensureSingleRowOperationalCheckbox();
-        tbody.querySelectorAll('tr').forEach(function (tRow) { pgSyncPgBindingRowCardBrandScopeUi(tRow, pgAgencyCatalog); });
+        tbody.querySelectorAll('tr').forEach(function (tRow) { pgSyncPgBindingRowRoutingScopeUi(tRow, pgAgencyCatalog); });
         pgBindingApplyDomEl(tbody);
       }
       pane._pgAgencyCatalog = pgAgencyCatalog;
@@ -14634,6 +14712,9 @@
             if (url === '/ops/inactiveCard' && String(row.activeYn || '').toUpperCase() === 'N') {
               trExtraClass = (trExtraClass || '') + ' ops-inactive-card-released';
             }
+            if (isCompMngTree && row.treeRowMuted === true) {
+              trExtraClass = (trExtraClass || '') + ' comp-tree-row-muted';
+            }
             var dataCompAttr = (url === '/commission/commisionList' && row.compId) ? (' data-comp-id="' + String(row.compId).replace(/"/g, '&quot;') + '"') : '';
             var draftAttr = (url === '/user/userMng' && row._draft) ? (' data-draft="1" data-temp-id="' + escAttr(row._tempId) + '"') : '';
             html += '<tr' + (trExtraClass ? ' class="' + trExtraClass.trim() + '"' : '') + ' data-row-idx="' + idx + '" data-id="' + (rowId || '') + '" data-parent-id="' + (parentId || '') + '" data-row="' + (isCompMngTree ? encodeURIComponent(JSON.stringify(row)) : '') + '"' + dataCompAttr + draftAttr + '>';
@@ -15201,21 +15282,23 @@
                       merchFolderTone = ' tree-merch-folder--' + merchToneSlug;
                     }
                   }
-                  var folderSvg = '<svg class="tree-icon tree-icon-folder ' + orgLevelClass + merchFolderTone + '" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>';
-                  var docSvg = '<svg class="tree-icon tree-icon-doc ' + orgLevelClass + merchFolderTone + '" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z"/></svg>';
+                  var mutedCls = row.treeRowMuted === true ? ' tree-row-muted' : '';
+                  var folderSvg = '<svg class="tree-icon tree-icon-folder ' + orgLevelClass + merchFolderTone + mutedCls + '" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>';
+                  var docSvg = '<svg class="tree-icon tree-icon-doc ' + orgLevelClass + merchFolderTone + mutedCls + '" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z"/></svg>';
                   var icon = hasChildren ? folderSvg : docSvg;
                   var escTreeAttr = function (s) {
                     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
                   };
                   var merchToneData = merchToneSlug ? (' data-merch-tone="' + escTreeAttr(merchToneSlug) + '"') : '';
                   var toggle = hasChildren
-                    ? '<span class="tree-toggle ' + orgLevelClass + merchFolderTone + ' ' + (expanded ? 'expanded' : 'collapsed') + '" data-id="' + escTreeAttr(rowId) + '" data-org-level="' + escTreeAttr(compDivRaw) + '"' + merchToneData + ' title="' + (expanded ? '접기' : '펼치기') + '">' + (expanded ? '\u25BC' : '\u25B6') + '</span>'
+                    ? '<span class="tree-toggle ' + orgLevelClass + merchFolderTone + mutedCls + ' ' + (expanded ? 'expanded' : 'collapsed') + '" data-id="' + escTreeAttr(rowId) + '" data-org-level="' + escTreeAttr(compDivRaw) + '"' + merchToneData + ' title="' + (expanded ? '접기' : '펼치기') + '">' + (expanded ? '\u25BC' : '\u25B6') + '</span>'
                     : '<span class="tree-toggle-placeholder"></span>';
                   var compTreeValEsc = escHtmlBody(val || '');
-                  html += '<td class="tree-comp-cell" style="padding-left:' + px + 'px"><div class="tree-comp-cell-inner">' + icon + toggle + '<span class="pg-comp-grid-clamp" title="' + escHtmlTitle(val || '') + '">' + compTreeValEsc + '</span></div></td>';
+                  html += '<td class="tree-comp-cell' + mutedCls + '" style="padding-left:' + px + 'px"><div class="tree-comp-cell-inner">' + icon + toggle + '<span class="pg-comp-grid-clamp" title="' + escHtmlTitle(val || '') + '">' + compTreeValEsc + '</span></div></td>';
                 } else if (isCompMngTree && c.key === 'compNm') {
                   var compNmPlain = val == null ? '' : String(val);
-                  html += '<td class="text-start align-middle"><span class="pg-comp-grid-clamp" title="' + escHtmlTitle(compNmPlain) + '">' + escHtmlBody(compNmPlain) + '</span></td>';
+                  var nmMuted = row.treeRowMuted === true ? ' comp-tree-cell-muted' : '';
+                  html += '<td class="text-start align-middle' + nmMuted + '"><span class="pg-comp-grid-clamp" title="' + escHtmlTitle(compNmPlain) + '">' + escHtmlBody(compNmPlain) + '</span></td>';
                 } else if (isCompMngTree && c.key === 'siteRoot') {
                   var sr0 = pgFormatRouteNoDisplay(val);
                   if (sr0 === '-') {
@@ -18382,6 +18465,7 @@
                 installmentYn: sel('installmentYn') || 'N',
                 maxInstallmentMonths: sel('maxInstallmentMonths'),
                 cardBrandScope: sel('cardBrandScope') || 'ALL',
+                currencyScope: sel('currencyScope') || 'ALL',
                 extSettleMode: extM,
                 extSettleLag: extLag,
                 extSettleBatchTime: extBt
@@ -20163,6 +20247,7 @@
                     installmentYn: sel('installmentYn') || 'N',
                     maxInstallmentMonths: sel('maxInstallmentMonths'),
                     cardBrandScope: sel('cardBrandScope') || 'ALL',
+                    currencyScope: sel('currencyScope') || 'ALL',
                     extSettleMode: extMI,
                     extSettleLag: extLagI,
                     extSettleBatchTime: extBtI
@@ -21024,6 +21109,7 @@
                   installmentYn: sel('installmentYn') || 'N',
                   maxInstallmentMonths: sel('maxInstallmentMonths'),
                   cardBrandScope: sel('cardBrandScope') || 'ALL',
+                  currencyScope: sel('currencyScope') || 'ALL',
                   extSettleMode: extMD,
                   extSettleLag: extLagD,
                   extSettleBatchTime: extBtD
@@ -22212,6 +22298,95 @@
         if (v === '—') return v;
         return pgAdminUiT(v);
       }
+      function hqRiskRenderBulkOps(bulk) {
+        if (!bulk) return;
+        function fillPanel(prefix, row) {
+          if (!row) return;
+          var badge = pane.querySelector('#' + prefix + 'ModeBadge');
+          var meta = pane.querySelector('#' + prefix + 'UpdatedMeta');
+          var labelKey = row.modeLabelKey || '중지해제';
+          if (badge) {
+            badge.textContent = pgAdminUiT(labelKey);
+            badge.setAttribute('data-pg-ui-t', labelKey);
+            badge.className = 'badge ' + (row.mode === 'FORCE_Y' ? 'bg-success' : row.mode === 'FORCE_N' ? 'bg-secondary' : row.mode === 'PAUSED' ? 'bg-warning text-dark' : 'bg-light text-dark border');
+          }
+          if (meta) {
+            var parts = [];
+            if (row.updatedAt) parts.push(row.updatedAt);
+            if (row.updatedBy) parts.push(row.updatedBy);
+            if (row.pauseCount > 0) parts.push(pgAdminUiT('일시중지') + ' ' + row.pauseCount);
+            meta.textContent = parts.join(' · ');
+          }
+        }
+        fillPanel('hqBulkOrgUse', bulk.orgUse);
+        fillPanel('hqBulkUrlPay', bulk.urlPay);
+        var tb = pane.querySelector('#hqBulkLoginTbody');
+        if (!tb) return;
+        tb.replaceChildren();
+        var rows = bulk.loginRestrictions || [];
+        if (!rows.length) {
+          var tr0 = document.createElement('tr');
+          var td0 = document.createElement('td');
+          td0.colSpan = 6;
+          td0.className = 'text-center text-muted py-3';
+          td0.textContent = pgAdminUiT('등록된 규칙이 없습니다.');
+          tr0.appendChild(td0);
+          tb.appendChild(tr0);
+          return;
+        }
+        rows.forEach(function (r) {
+          var tr = document.createElement('tr');
+          var target = r.targetOrgName || r.targetOrgCode || pgAdminUiT(r.targetOrgLevelLabel || r.targetOrgLevel || '');
+          var modeKey = r.modeLabelKey || '미사용';
+          tr.innerHTML =
+            '<td class="text-nowrap">' + hqRiskEsc(pgAdminUiT(r.targetOrgLevelLabel || r.targetOrgLevel || '')) + '</td>' +
+            '<td class="text-nowrap small">' + hqRiskEsc(target) + '</td>' +
+            '<td class="text-nowrap"><span class="badge bg-secondary" data-pg-ui-t="' + hqRiskEsc(modeKey) + '">' + hqRiskEsc(pgAdminUiT(modeKey)) + '</span></td>' +
+            '<td class="text-end small">' + hqRiskEsc(String(r.pauseCount != null ? r.pauseCount : 0)) + '</td>' +
+            '<td class="text-nowrap small">' + hqRiskEsc(r.updatedAt || '') + '</td>' +
+            '<td class="text-center text-nowrap">' +
+            '<button type="button" class="btn btn-sm btn-outline-primary me-1 hq-bulk-login-release" data-id="' + hqRiskEsc(String(r.id)) + '" data-pg-ui-t="해제">' + hqRiskEsc(pgAdminUiT('해제')) + '</button>' +
+            '<button type="button" class="btn btn-sm btn-outline-warning me-1 hq-bulk-login-pause" data-id="' + hqRiskEsc(String(r.id)) + '" data-pg-ui-t="일시중지">' + hqRiskEsc(pgAdminUiT('일시중지')) + '</button>' +
+            '<button type="button" class="btn btn-sm btn-outline-danger hq-bulk-login-del" data-id="' + hqRiskEsc(String(r.id)) + '" data-pg-ui-t="삭제">' + hqRiskEsc(pgAdminUiT('삭제')) + '</button></td>';
+          tb.appendChild(tr);
+        });
+        hqRiskApplyDom();
+      }
+      function hqRiskApplyBulkAction(prefix, action) {
+        if (!window.PG_API) return;
+        var fn = prefix === 'hqBulkOrgUse' ? window.PG_API.hqBulkOpsOrgUseApply : window.PG_API.hqBulkOpsUrlPayApply;
+        if (!fn) return;
+        if (dimmRisk) dimmRisk.style.display = 'flex';
+        fn(action).then(function () {
+          return window.PG_API.hqBulkOps();
+        }).then(function (bulk) {
+          pane._hqBulkOpsLast = bulk;
+          hqRiskRenderBulkOps(bulk);
+          alert(pgAdminUiT('적용되었습니다.'));
+        }).catch(function (e) {
+          alert(pgErrMsg(e, '적용 실패'));
+        }).finally(function () { if (dimmRisk) dimmRisk.style.display = 'none'; });
+      }
+      function hqRiskSaveLoginRule(action) {
+        var level = (pane.querySelector('#hqBulkLoginLevel') || {}).value || '';
+        var code = (pane.querySelector('#hqBulkLoginOrgCode') || {}).value || '';
+        if (!level) {
+          alert(pgAdminUiT('조직 단계를 선택하세요.'));
+          return;
+        }
+        var body = { targetOrgLevel: level, action: action };
+        if (code.trim()) body.targetOrgCode = code.trim();
+        if (dimmRisk) dimmRisk.style.display = 'flex';
+        window.PG_API.hqBulkOpsLoginSave(body).then(function () {
+          return window.PG_API.hqBulkOps();
+        }).then(function (bulk) {
+          pane._hqBulkOpsLast = bulk;
+          hqRiskRenderBulkOps(bulk);
+          alert(pgAdminUiT('저장되었습니다.'));
+        }).catch(function (e) {
+          alert(pgErrMsg(e, '저장 실패'));
+        }).finally(function () { if (dimmRisk) dimmRisk.style.display = 'none'; });
+      }
       function hqRiskApplyDom() {
         if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
           try { window.PG_UI_I18N.applyDom(pane); } catch (eRiskDom) { /* ignore */ }
@@ -22258,6 +22433,7 @@
       function fillHqRiskCardPolicy(d) {
         if (!d) return;
         pane._hqRiskCardPolicyLast = d;
+        pane._hqBulkOpsLast = d.bulkOps || null;
         ['enabledYn', 'autoBlacklistTriggerTier', 'trackPeriodMode', 'trackPeriodValue',
           'tier1Hours', 'tier1Min', 'tier2Hours', 'tier2Min', 'tier3Hours', 'tier3Min', 'tier4Hours', 'tier4Min',
           'presaleFilterEnabledYn', 'filterBuyerContactMismatchYn', 'filterHolderNameYn',
@@ -22271,6 +22447,7 @@
           el.value = String(d[k]);
         });
         hqRiskRenderMerchantRows(d.merchantRows || []);
+        hqRiskRenderBulkOps(d.bulkOps || null);
         hqRiskApplyDom();
         pgBindHqRiskTrackPeriodToggle(pane);
       }
@@ -22312,6 +22489,55 @@
             alert(pgErrMsg(e, '저장 실패'));
           }).finally(function () { if (dimmRisk) dimmRisk.style.display = 'none'; });
         });
+      }
+      if (!pane._hqBulkOpsBound) {
+        pane._hqBulkOpsBound = true;
+        pane.addEventListener('click', function (ev) {
+          var btn = ev.target && ev.target.closest ? ev.target.closest('[data-bulk-action]') : null;
+          if (btn) {
+            hqRiskApplyBulkAction(btn.getAttribute('data-bulk-prefix'), btn.getAttribute('data-bulk-action'));
+            return;
+          }
+          var rel = ev.target && ev.target.closest ? ev.target.closest('.hq-bulk-login-release') : null;
+          if (rel && window.PG_API && window.PG_API.hqBulkOpsLoginRelease) {
+            if (dimmRisk) dimmRisk.style.display = 'flex';
+            window.PG_API.hqBulkOpsLoginRelease(rel.getAttribute('data-id')).then(function () {
+              return window.PG_API.hqBulkOps();
+            }).then(function (bulk) {
+              pane._hqBulkOpsLast = bulk;
+              hqRiskRenderBulkOps(bulk);
+            }).finally(function () { if (dimmRisk) dimmRisk.style.display = 'none'; });
+            return;
+          }
+          var pause = ev.target && ev.target.closest ? ev.target.closest('.hq-bulk-login-pause') : null;
+          if (pause && window.PG_API && window.PG_API.hqBulkOpsLoginApply) {
+            if (dimmRisk) dimmRisk.style.display = 'flex';
+            window.PG_API.hqBulkOpsLoginApply(pause.getAttribute('data-id'), 'PAUSE').then(function () {
+              return window.PG_API.hqBulkOps();
+            }).then(function (bulk) {
+              pane._hqBulkOpsLast = bulk;
+              hqRiskRenderBulkOps(bulk);
+            }).finally(function () { if (dimmRisk) dimmRisk.style.display = 'none'; });
+            return;
+          }
+          var del = ev.target && ev.target.closest ? ev.target.closest('.hq-bulk-login-del') : null;
+          if (del && window.PG_API && window.PG_API.hqBulkOpsLoginDelete) {
+            if (!confirm(pgAdminUiT('삭제하시겠습니까?'))) return;
+            if (dimmRisk) dimmRisk.style.display = 'flex';
+            window.PG_API.hqBulkOpsLoginDelete(del.getAttribute('data-id')).then(function () {
+              return window.PG_API.hqBulkOps();
+            }).then(function (bulk) {
+              pane._hqBulkOpsLast = bulk;
+              hqRiskRenderBulkOps(bulk);
+            }).finally(function () { if (dimmRisk) dimmRisk.style.display = 'none'; });
+          }
+        });
+        var addY = pane.querySelector('#hqBulkLoginAddY');
+        var addN = pane.querySelector('#hqBulkLoginAddN');
+        var addP = pane.querySelector('#hqBulkLoginAddPause');
+        if (addY) addY.addEventListener('click', function () { hqRiskSaveLoginRule('Y'); });
+        if (addN) addN.addEventListener('click', function () { hqRiskSaveLoginRule('N'); });
+        if (addP) addP.addEventListener('click', function () { hqRiskSaveLoginRule('PAUSE'); });
       }
       loadHqRiskCardPolicy();
     }
@@ -30918,6 +31144,8 @@
             'urlPayCardCopyConfigJson',
             'urlPayDisplayFxJson',
             'botThailandApiKey', 'botThailandBaseUrl', 'botThailandDailyAvgPath', 'botThailandApiKeyHeader',
+            'multiPgRoutingEnabledYn',
+            'multiPgRoutingMode',
             'jpaySubscriptionEnabledYn', 'jpaySubscriptionInlineEnabledYn', 'jpaySubscriptionPathTemplate', 'jpaySubscriptionConfigJson'
           ].forEach(function (k) {
             var el = pane.querySelector('[name="' + k + '"]');

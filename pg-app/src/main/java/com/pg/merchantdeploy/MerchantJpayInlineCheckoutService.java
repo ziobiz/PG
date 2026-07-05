@@ -97,8 +97,7 @@ public class MerchantJpayInlineCheckoutService {
         }
         Optional<MerchantProfile> profOpt = merchantProfileRepository.findByOrgUnitId(orgUnitId);
         if (profOpt.isPresent()) {
-            String wpy = profOpt.get().getWebPaymentUseYn();
-            if (wpy != null && "N".equalsIgnoreCase(wpy.trim())) {
+            if (!orgServiceUseService.isWebPaymentActive(orgUnitId)) {
                 return fail(OrgServiceUseService.MSG_WEB_PAYMENT_DISABLED, "WEB_PAYMENT_DISABLED");
             }
             if (UrlPayCheckoutModeUtil.isSplitPay(profOpt.get().getApiUrlPayCheckoutMode())) {

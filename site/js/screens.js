@@ -442,6 +442,57 @@
       '<tbody id="hqRiskMerchantListTbody"><tr><td colspan="13" class="text-center text-muted py-3">' + escUi(L('불러오는 중…')) + '</td></tr></tbody></table></div>';
   }
 
+  function hqBulkOpsSectionHtml() {
+    function bulkPanel(titleKey, descKey, prefix) {
+      return '<div class="border rounded p-3 mb-3 hq-bulk-ops-panel" data-bulk-prefix="' + escUi(prefix) + '">' +
+        '<div class="fw-semibold mb-1" data-pg-ui-t="' + escUi(titleKey) + '">' + escUi(L(titleKey)) + '</div>' +
+        '<p class="small text-muted mb-2" data-pg-ui-t="' + escUi(descKey) + '">' + escUi(L(descKey)) + '</p>' +
+        '<div class="d-flex flex-wrap align-items-center gap-2 mb-2">' +
+        '<span class="small text-muted" data-pg-ui-t="현재 상태">' + escUi(L('현재 상태')) + ':</span>' +
+        '<span class="badge bg-secondary" id="' + prefix + 'ModeBadge" data-pg-ui-t="중지해제">' + escUi(L('중지해제')) + '</span>' +
+        '<span class="small text-muted ms-2" id="' + prefix + 'UpdatedMeta"></span></div>' +
+        '<div class="d-flex flex-wrap gap-2">' +
+        '<button type="button" class="btn btn-sm btn-outline-success" data-bulk-action="Y" data-bulk-prefix="' + escUi(prefix) + '" data-pg-ui-t="사용">' + escUi(L('사용')) + '</button>' +
+        '<button type="button" class="btn btn-sm btn-outline-secondary" data-bulk-action="N" data-bulk-prefix="' + escUi(prefix) + '" data-pg-ui-t="미사용">' + escUi(L('미사용')) + '</button>' +
+        '<button type="button" class="btn btn-sm btn-outline-warning" data-bulk-action="PAUSE" data-bulk-prefix="' + escUi(prefix) + '" data-pg-ui-t="일시중지">' + escUi(L('일시중지')) + '</button>' +
+        '<button type="button" class="btn btn-sm btn-outline-primary" data-bulk-action="RELEASE" data-bulk-prefix="' + escUi(prefix) + '" data-pg-ui-t="중지해제">' + escUi(L('중지해제')) + '</button>' +
+        '</div></div>';
+    }
+    var loginLevels = COMP_MNG_SEARCH_COMP_DIV_LEVELS.filter(function (lev) {
+      return lev.v !== 'HEADQUARTERS';
+    }).map(function (lev) {
+      return '<option value="' + escUi(lev.v) + '" data-pg-ui-t="' + escUi(lev.t) + '">' + escUi(L(lev.t)) + '</option>';
+    }).join('');
+    return bulkPanel(
+      '가맹점사용제한',
+      '모든 조직(총본사 제외)의 업체사용상태를 일괄 제어합니다. 개별 조직 설정보다 우선합니다. 일시중지는 현재 사용 중인 조직만 대상이며, 미사용 조직은 그대로 유지됩니다.',
+      'hqBulkOrgUse'
+    ) + bulkPanel(
+      '가맹점URL결제제한',
+      '모든 가맹점(총본사 제외)의 URL 결제 사용 여부를 일괄 제어합니다. 개별 가맹 설정보다 우선합니다. 일시중지는 현재 URL 결제 사용 중인 가맹점만 대상입니다.',
+      'hqBulkUrlPay'
+    ) +
+      '<div class="border rounded p-3 hq-bulk-ops-panel" id="hqBulkLoginPanel">' +
+      '<div class="fw-semibold mb-1" data-pg-ui-t="모든로그인제한">' + escUi(L('모든로그인제한')) + '</div>' +
+      '<p class="small text-muted mb-2" data-pg-ui-t="로그인 자체를 차단합니다. 본사·총판 등 조직 단계별로 규칙을 등록하면 해당 조직과 하위 조직에 적용됩니다(총본사 제외). 개별 조직 설정보다 우선합니다.">' +
+      escUi(L('로그인 자체를 차단합니다. 본사·총판 등 조직 단계별로 규칙을 등록하면 해당 조직과 하위 조직에 적용됩니다(총본사 제외). 개별 조직 설정보다 우선합니다.')) + '</p>' +
+      '<div class="row g-2 align-items-end mb-2">' +
+      '<div class="col-6 col-md-3"><label class="form-label mb-0" for="hqBulkLoginLevel" data-pg-ui-t="조직 단계">' + escUi(L('조직 단계')) + '</label>' +
+      '<select class="form-select form-select-sm" id="hqBulkLoginLevel"><option value="" data-pg-ui-t="선택">' + escUi(L('선택')) + '</option>' + loginLevels + '</select></div>' +
+      '<div class="col-6 col-md-3"><label class="form-label mb-0" for="hqBulkLoginOrgCode" data-pg-ui-t="업체코드(선택)">' + escUi(L('업체코드(선택)')) + '</label>' +
+      '<input type="text" class="form-control form-control-sm" id="hqBulkLoginOrgCode" placeholder="' + escUi(L('비우면 해당 단계 전체')) + '" data-pg-ui-placeholder="' + escUi(L('비우면 해당 단계 전체')) + '"></div>' +
+      '<div class="col-12 col-md-6 d-flex flex-wrap gap-2">' +
+      '<button type="button" class="btn btn-sm btn-outline-success" id="hqBulkLoginAddY" data-pg-ui-t="사용">' + escUi(L('사용')) + '</button>' +
+      '<button type="button" class="btn btn-sm btn-outline-secondary" id="hqBulkLoginAddN" data-pg-ui-t="미사용">' + escUi(L('미사용')) + '</button>' +
+      '<button type="button" class="btn btn-sm btn-outline-warning" id="hqBulkLoginAddPause" data-pg-ui-t="일시중지">' + escUi(L('일시중지')) + '</button>' +
+      '</div></div>' +
+      '<div class="table-responsive border rounded"><table class="table table-sm table-bordered align-middle mb-0" id="grid_hqBulkLoginList">' +
+      '<thead class="table-light"><tr>' +
+      pgUiThT('조직 단계') + pgUiThT('대상') + pgUiThT('상태') + pgUiThT('일시중지') + pgUiThT('수정일시') +
+      '<th class="text-center" style="width:9rem" data-pg-ui-t="작업">' + escUi(L('작업')) + '</th></tr></thead>' +
+      '<tbody id="hqBulkLoginTbody"><tr><td colspan="6" class="text-center text-muted py-3">' + escUi(L('등록된 규칙이 없습니다.')) + '</td></tr></tbody></table></div></div>';
+  }
+
   /** 가맹 등록·정보 — 리스크관리 트리거(쿨다운·자동 비활성) */
   function merchantCardRiskTriggerSection() {
     var hourOpts = riskCardPolicyHourOptions();
@@ -2648,6 +2699,11 @@
           title: '가맹점 리스크 현황',
           notice: '등록된 모든 가맹점의 리스크 방식·적용 값을 표시합니다. 별도설정 가맹은 본사 설정보다 우선 적용됩니다. 미사용 가맹은 방식 열에 회색으로 표시됩니다.',
           rows: [[{ type: 'customHtml', col: 12, html: hqRiskCardPolicyMerchantTableHtml }]]
+        },
+        {
+          title: '일괄운영관리',
+          notice: '총본사를 제외한 모든 조직·가맹에 일괄 적용됩니다. 여기서 설정한 값은 개별 업체관리 설정보다 우선합니다. 일시중지는 현재 사용(또는 URL결제 사용) 중인 대상만 일시 중단하며, 원래 미사용이던 대상은 유지됩니다.',
+          rows: [[{ type: 'customHtml', col: 12, html: hqBulkOpsSectionHtml() }]]
         }
       ],
       buttons: [{ id: 'hqRiskCardPolicySaveBtn', label: '저장', cls: 'btn-primary' }]
@@ -3521,6 +3577,13 @@
              { label: 'API 중계형 REDIRECT 제공', type: 'select', name: 'apiBrokerRedirectEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'URL 결제형 INLINE 제공', type: 'select', name: 'urlPayInlineEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'URL 결제형 REDIRECT 제공', type: 'select', name: 'urlPayRedirectEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
+            [{ label: '멀티 결제대행사 사용', type: 'select', name: 'multiPgRoutingEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
+             { label: '멀티 PG 라우팅 방식', type: 'select', name: 'multiPgRoutingMode', options: [
+               { v: 'BRAND', t: '카드브랜드만 (V/M/J/U 등)' },
+               { v: 'CURRENCY', t: '통화만 (JPY/USD 등)' },
+               { v: 'BRAND_AND_CURRENCY', t: '브랜드+통화 혼합' }
+             ], col: 3 },
+             { label: '', type: 'note', col: 7, text: '사용 시 가맹 「결제대행사 설정」에서 브랜드·통화(ALL 또는 개별)별로 URL·API 결제가 해당 PG로 라우팅됩니다. 브랜드만=통화 ALL, 통화만=브랜드 ALL, 혼합=행마다 둘 다 지정 가능. 미사용 시 단일 운영 PG(정렬 1순위)만 사용합니다.' }],
             [{ label: '모바일 결제창 기본값', type: 'select', name: 'mobileCheckoutModeDefault', options: [
               { v: 'EMBED', t: 'iframe (3DS 상위 이동)' },
               { v: 'MOBILE_REDIRECT', t: '모바일 전체 페이지' },
@@ -8469,7 +8532,7 @@
       } else if (sec.type === 'pgBindingList') {
         var omitExtSettleCols = !!sec.omitExtSettleColumns;
         html += '<div class="pg-binding-list-wrap"' + (omitExtSettleCols ? ' data-pg-omit-ext-settle-cols="1"' : '') + '><table class="table table-sm table-bordered pg-binding-table"><thead><tr>' +
-          '<th data-pg-ui-t="운영">운영</th><th data-pg-ui-t="착신화">착신화</th><th data-pg-ui-t="결제대행사">결제대행사</th><th data-pg-ui-t="결제구분">결제구분</th><th>MID</th><th data-pg-ui-t="루트번호">루트번호</th><th style="min-width:12rem">API KEY</th><th style="min-width:12rem">IV KEY</th><th data-pg-ui-t="할부">할부</th><th data-pg-ui-t="최대할부">최대할부</th><th data-pg-ui-t="카드브랜드">카드브랜드</th>' +
+          '<th data-pg-ui-t="운영">운영</th><th data-pg-ui-t="착신화">착신화</th><th data-pg-ui-t="결제대행사">결제대행사</th><th data-pg-ui-t="결제구분">결제구분</th><th>MID</th><th data-pg-ui-t="루트번호">루트번호</th><th style="min-width:12rem">API KEY</th><th style="min-width:12rem">IV KEY</th><th data-pg-ui-t="할부">할부</th><th data-pg-ui-t="최대할부">최대할부</th><th data-pg-ui-t="카드브랜드">카드브랜드</th><th data-pg-ui-t="라우팅통화">라우팅통화</th>' +
           (omitExtSettleCols ? '' : '<th data-pg-ui-title="비우면 연동(tb_pg_agency) 기본" title="비우면 연동(tb_pg_agency) 기본" data-pg-ui-t="예정모드">예정모드</th><th>N</th><th data-pg-ui-t="D시각">D시각</th>') +
           '<th style="min-width:200px" data-pg-ui-t="작업">작업</th></tr></thead><tbody id="pgBindingTbody"></tbody></table>' +
           '<button type="button" class="btn btn-outline-primary btn-sm mt-2" id="pgBindingAddBtn" data-pg-ui-t="+ 결제대행사 추가">+ 결제대행사 추가</button>' +

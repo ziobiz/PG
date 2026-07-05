@@ -1573,6 +1573,8 @@ public class ApiHqController {
         data.put("jpaySubscriptionInlineEnabledYn", "N");
         data.put("jpaySubscriptionPathTemplate", "/jpay-subscribe/{compCode}");
         data.put("jpaySubscriptionConfigJson", "{\"attempts\":\"3\",\"interval_time\":3600,\"total_count\":12}");
+        data.put("multiPgRoutingEnabledYn", "Y");
+        data.put("multiPgRoutingMode", "BRAND_AND_CURRENCY");
         data.put("urlPayFormMode", "FULL");
         data.put("jpayCheckoutFieldMode", "FULL");
         data.put("jpayPhoneDialCodeYn", "N");
@@ -1629,6 +1631,12 @@ public class ApiHqController {
             if (c.getJpaySubscriptionPathTemplate() != null) data.put("jpaySubscriptionPathTemplate", c.getJpaySubscriptionPathTemplate());
             if (c.getJpaySubscriptionConfigJson() != null && !c.getJpaySubscriptionConfigJson().isBlank()) {
                 data.put("jpaySubscriptionConfigJson", c.getJpaySubscriptionConfigJson());
+            }
+            if (c.getMultiPgRoutingEnabledYn() != null) {
+                data.put("multiPgRoutingEnabledYn", "N".equalsIgnoreCase(c.getMultiPgRoutingEnabledYn().trim()) ? "N" : "Y");
+            }
+            if (c.getMultiPgRoutingMode() != null) {
+                data.put("multiPgRoutingMode", com.pg.util.MultiPgRoutingModeUtil.normalize(c.getMultiPgRoutingMode()));
             }
             if (c.getUrlPayFormMode() != null) data.put("urlPayFormMode", c.getUrlPayFormMode());
             if (c.getJpayCheckoutFieldMode() != null) {
@@ -1717,6 +1725,9 @@ public class ApiHqController {
         String repayPathTpl = body.get("urlPayRepayPathTemplate") != null ? body.get("urlPayRepayPathTemplate").toString().trim() : "";
         c.setUrlPayRepayPathTemplate(repayPathTpl.isEmpty() ? "/pay-repay/{compCode}" : repayPathTpl);
         c.setJpaySubscriptionEnabledYn("Y".equalsIgnoreCase(String.valueOf(body.getOrDefault("jpaySubscriptionEnabledYn", "N"))) ? "Y" : "N");
+        c.setMultiPgRoutingEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("multiPgRoutingEnabledYn", "Y"))) ? "N" : "Y");
+        c.setMultiPgRoutingMode(com.pg.util.MultiPgRoutingModeUtil.normalize(
+                String.valueOf(body.getOrDefault("multiPgRoutingMode", "BRAND_AND_CURRENCY"))));
         c.setJpaySubscriptionInlineEnabledYn("Y".equalsIgnoreCase(String.valueOf(body.getOrDefault("jpaySubscriptionInlineEnabledYn", "N"))) ? "Y" : "N");
         String subPathTpl = body.get("jpaySubscriptionPathTemplate") != null ? body.get("jpaySubscriptionPathTemplate").toString().trim() : "";
         c.setJpaySubscriptionPathTemplate(subPathTpl.isEmpty() ? "/jpay-subscribe/{compCode}" : subPathTpl);

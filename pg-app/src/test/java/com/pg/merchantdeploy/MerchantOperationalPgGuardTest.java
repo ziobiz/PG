@@ -2,6 +2,7 @@ package com.pg.merchantdeploy;
 
 import com.pg.integration.pg.PgVendor;
 import com.pg.service.ChillPayService;
+import com.pg.service.MerchantPgBindingRouterService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,11 +23,15 @@ class MerchantOperationalPgGuardTest {
     @Mock
     private ChillPayService chillPayService;
 
+    @Mock
+    private MerchantPgBindingRouterService pgBindingRouter;
+
     private MerchantOperationalPgGuard guard;
 
     @BeforeEach
     void setUp() {
-        guard = new MerchantOperationalPgGuard(chillPayService);
+        guard = new MerchantOperationalPgGuard(chillPayService, pgBindingRouter);
+        when(pgBindingRouter.isMultiPgRoutingEnabled()).thenReturn(false);
     }
 
     @Test
@@ -62,5 +67,11 @@ class MerchantOperationalPgGuardTest {
         Optional<Map<String, Object>> deny = guard.denyIfUrlPayVendorMismatch(13L, MerchantPgBrokerVendor.JPAY);
         assertTrue(deny.isPresent());
         assertEquals(MerchantOperationalPgGuard.ERROR_CODE, deny.get().get("errorCode"));
+    }
+
+    @Test
+    void skipsGuardWhenMultiPgEnabledAndNoCardBrandYet() {
+        when(pgBindingRouter.isMultiPgRoutingEnabled()).thenReturn(true);
+        assertTrue(guard.denyIfUrlPayVendorMismatch(14L, MerchantPgBrokerVendor.JPAY, false, null, null).isEmpty());
     }
 }

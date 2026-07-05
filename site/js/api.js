@@ -1582,6 +1582,27 @@
     hqRiskCardPolicySave: function (body) {
       return post('/api/hq/riskCardPolicy/save', body || {}).then(function (r) { return r.data; });
     },
+    hqBulkOps: function () {
+      return get('/api/hq/bulkOps').then(function (r) { return r.data; });
+    },
+    hqBulkOpsOrgUseApply: function (action) {
+      return post('/api/hq/bulkOps/orgUse/apply', { action: action || '' }).then(function (r) { return r.data; });
+    },
+    hqBulkOpsUrlPayApply: function (action) {
+      return post('/api/hq/bulkOps/urlPay/apply', { action: action || '' }).then(function (r) { return r.data; });
+    },
+    hqBulkOpsLoginSave: function (body) {
+      return post('/api/hq/bulkOps/login/save', body || {}).then(function (r) { return r.data; });
+    },
+    hqBulkOpsLoginDelete: function (id) {
+      return post('/api/hq/bulkOps/login/delete', { id: id }).then(function (r) { return r.data; });
+    },
+    hqBulkOpsLoginRelease: function (id) {
+      return post('/api/hq/bulkOps/login/release', { id: id }).then(function (r) { return r.data; });
+    },
+    hqBulkOpsLoginApply: function (id, action) {
+      return post('/api/hq/bulkOps/login/apply', { id: id, action: action || '' }).then(function (r) { return r.data; });
+    },
     hqChargebackPolicyList: function () {
       return get('/api/hq/chargebackPolicy/list').then(function (r) { return r.data || []; });
     },

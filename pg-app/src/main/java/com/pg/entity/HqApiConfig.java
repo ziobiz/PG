@@ -119,6 +119,20 @@ public class HqApiConfig {
     @Column(name = "jpay_subscription_enabled_yn", length = 1)
     private String jpaySubscriptionEnabledYn = "N";
 
+    /**
+     * 멀티 결제대행사 라우팅 — Y: 가맹 {@code card_brand_scope}·통화 힌트로 운영 PG 선택.
+     * N: 단일 운영 PG(정렬 우선 1건, 기존 동작).
+     */
+    @Column(name = "multi_pg_routing_enabled_yn", nullable = false, length = 1)
+    private String multiPgRoutingEnabledYn = "Y";
+
+    /**
+     * 멀티 PG 라우팅 차원 — {@link com.pg.util.MultiPgRoutingModeUtil}.
+     * BRAND | CURRENCY | BRAND_AND_CURRENCY(기본).
+     */
+    @Column(name = "multi_pg_routing_mode", nullable = false, length = 32)
+    private String multiPgRoutingMode = "BRAND_AND_CURRENCY";
+
     /** JPAY 구독 인라인 결제창(jpay-subscribe.html) 제공 여부 */
     @Column(name = "jpay_subscription_inline_enabled_yn", length = 1)
     private String jpaySubscriptionInlineEnabledYn = "N";
@@ -402,6 +416,10 @@ public class HqApiConfig {
     public void setServerManageTrafficUsedMb(Integer serverManageTrafficUsedMb) { this.serverManageTrafficUsedMb = serverManageTrafficUsedMb; }
     public Integer getServerManageUiRefreshSec() { return serverManageUiRefreshSec; }
     public void setServerManageUiRefreshSec(Integer serverManageUiRefreshSec) { this.serverManageUiRefreshSec = serverManageUiRefreshSec; }
+    public String getMultiPgRoutingEnabledYn() { return multiPgRoutingEnabledYn; }
+    public void setMultiPgRoutingEnabledYn(String multiPgRoutingEnabledYn) { this.multiPgRoutingEnabledYn = multiPgRoutingEnabledYn; }
+    public String getMultiPgRoutingMode() { return multiPgRoutingMode; }
+    public void setMultiPgRoutingMode(String multiPgRoutingMode) { this.multiPgRoutingMode = multiPgRoutingMode; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

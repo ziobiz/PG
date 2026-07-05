@@ -7,6 +7,7 @@ import com.pg.repository.MerchantDefaultProductRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.service.ChillPayService;
+import com.pg.service.MerchantPgBindingRouterService;
 import com.pg.service.PayContactRememberPolicyService;
 import com.pg.service.PaymentCurrencyScaleService;
 import com.pg.service.UrlPayCardCopyService;
@@ -44,6 +45,7 @@ public class UrlPayPublicCheckoutService {
     private final UrlPayInputModeService urlPayInputModeService;
     private final UrlPayCardExpiryModeService urlPayCardExpiryModeService;
     private final PayContactRememberPolicyService payContactRememberPolicyService;
+    private final MerchantPgBindingRouterService pgBindingRouter;
 
     public UrlPayPublicCheckoutService(ChillPayService chillPayService,
                                        OrgUnitRepository orgUnitRepository,
@@ -59,7 +61,8 @@ public class UrlPayPublicCheckoutService {
                                        MobileCheckoutModeService mobileCheckoutModeService,
                                        UrlPayInputModeService urlPayInputModeService,
                                        UrlPayCardExpiryModeService urlPayCardExpiryModeService,
-                                       PayContactRememberPolicyService payContactRememberPolicyService) {
+                                       PayContactRememberPolicyService payContactRememberPolicyService,
+                                       MerchantPgBindingRouterService pgBindingRouter) {
         this.chillPayService = chillPayService;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
@@ -75,6 +78,7 @@ public class UrlPayPublicCheckoutService {
         this.urlPayInputModeService = urlPayInputModeService;
         this.urlPayCardExpiryModeService = urlPayCardExpiryModeService;
         this.payContactRememberPolicyService = payContactRememberPolicyService;
+        this.pgBindingRouter = pgBindingRouter;
     }
 
     /**
@@ -160,6 +164,11 @@ public class UrlPayPublicCheckoutService {
             if (enricher.supports(cap)) {
                 enricher.enrich(data, orgUnitId, prof, request);
             }
+        }
+        data.put("multiPgRoutingEnabled", pgBindingRouter.isMultiPgRoutingEnabled());
+        data.put("multiPgRoutingMode", pgBindingRouter.resolveMultiPgRoutingMode());
+        if (pgBindingRouter.isMultiPgRoutingEnabled()) {
+            data.put("urlPayOperationalRoutes", pgBindingRouter.listOperationalRouteSummaries(orgUnitId, repay));
         }
         return data;
     }

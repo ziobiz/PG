@@ -2,6 +2,7 @@ package com.pg.controller.api;
 
 import com.pg.api.ApiResponse;
 import com.pg.entity.HqRiskCardPolicy;
+import com.pg.service.HqBulkOpsService;
 import com.pg.service.HqRiskCardPolicyService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,9 +21,12 @@ import java.util.Map;
 public class ApiHqRiskCardPolicyController {
 
     private final HqRiskCardPolicyService riskCardPolicyService;
+    private final HqBulkOpsService hqBulkOpsService;
 
-    public ApiHqRiskCardPolicyController(HqRiskCardPolicyService riskCardPolicyService) {
+    public ApiHqRiskCardPolicyController(HqRiskCardPolicyService riskCardPolicyService,
+                                         HqBulkOpsService hqBulkOpsService) {
         this.riskCardPolicyService = riskCardPolicyService;
+        this.hqBulkOpsService = hqBulkOpsService;
     }
 
     @GetMapping
@@ -30,6 +34,7 @@ public class ApiHqRiskCardPolicyController {
         HqRiskCardPolicy row = riskCardPolicyService.getOrCreate();
         Map<String, Object> data = new LinkedHashMap<>(riskCardPolicyService.toMap(row));
         data.put("merchantRows", riskCardPolicyService.listActiveMerchantRows());
+        data.put("bulkOps", hqBulkOpsService.snapshotForApi());
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
@@ -38,6 +43,7 @@ public class ApiHqRiskCardPolicyController {
         HqRiskCardPolicy row = riskCardPolicyService.save(body != null ? body : Map.of());
         Map<String, Object> data = new LinkedHashMap<>(riskCardPolicyService.toMap(row));
         data.put("merchantRows", riskCardPolicyService.listActiveMerchantRows());
+        data.put("bulkOps", hqBulkOpsService.snapshotForApi());
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 

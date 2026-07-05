@@ -28,11 +28,14 @@ public class OrgServiceUseService {
 
     private final OrgUnitRepository orgUnitRepository;
     private final MerchantProfileRepository merchantProfileRepository;
+    private final HqBulkOpsService hqBulkOpsService;
 
     public OrgServiceUseService(OrgUnitRepository orgUnitRepository,
-                                MerchantProfileRepository merchantProfileRepository) {
+                                MerchantProfileRepository merchantProfileRepository,
+                                HqBulkOpsService hqBulkOpsService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
+        this.hqBulkOpsService = hqBulkOpsService;
     }
 
     public boolean isOrgServiceActive(Long orgUnitId) {
@@ -59,11 +62,17 @@ public class OrgServiceUseService {
         if (orgUnitId == null) {
             return false;
         }
+        if (hqBulkOpsService.isLoginBlockedByBulkOps(orgUnitId)) {
+            return true;
+        }
         Optional<OrgUnit> cur = orgUnitRepository.findById(orgUnitId);
         while (cur.isPresent()) {
             Long id = cur.get().getId();
-            Optional<MerchantProfile> mp = merchantProfileRepository.findByOrgUnitId(id);
-            if (mp.isPresent() && OrgUseYnUtil.isLoginBlocked(mp.get().getUseYn())) {
+            if (hqBulkOpsService.isLoginBlockedByBulkOps(id)) {
+                return true;
+            }
+            String effective = hqBulkOpsService.resolveEffectiveOrgUseYn(id);
+            if (OrgUseYnUtil.isLoginBlocked(effective)) {
                 return true;
             }
             Long pid = cur.get().getParentId();
@@ -73,6 +82,14 @@ public class OrgServiceUseService {
             cur = orgUnitRepository.findById(pid);
         }
         return false;
+    }
+
+    /** URL 결제(web_payment_use_yn) + 일괄운영(URL_PAY) + 상위 조직 서비스 상태 */
+    public boolean isWebPaymentActive(Long orgUnitId) {
+        if (orgUnitId == null || !isOrgServiceActive(orgUnitId)) {
+            return false;
+        }
+        return hqBulkOpsService.isWebPaymentAllowed(orgUnitId);
     }
 
     /**
@@ -94,8 +111,7 @@ public class OrgServiceUseService {
         Optional<OrgUnit> cur = orgUnitRepository.findById(orgUnitId);
         while (cur.isPresent()) {
             Long id = cur.get().getId();
-            Optional<MerchantProfile> mp = merchantProfileRepository.findByOrgUnitId(id);
-            if (mp.isPresent() && !OrgUseYnUtil.isServiceAllowed(mp.get().getUseYn())) {
+            if (!OrgUseYnUtil.isServiceAllowed(hqBulkOpsService.resolveEffectiveOrgUseYn(id))) {
                 return true;
             }
             Long pid = cur.get().getParentId();
