@@ -3,11 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ICOPAY Operator Setup Manual — HQ Super Admin</title>
+<title>ICOPAY Super Admin Operations Manual V2.0</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; line-height: 1.75; color: #1a1a1a; background: #f0f2f8; }
+  body { font-family: 'Segoe UI', 'Arial', 'Noto Sans', sans-serif; font-size: 11pt; line-height: 1.75; color: #1a1a1a; background: #f0f2f8; }
   .page-wrap { max-width: 900px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 18px rgba(0,0,0,.11); overflow: hidden; }
+
   .cover { background: linear-gradient(135deg, #0d2137 0%, #1a4f8a 55%, #1976d2 100%); color: #fff; padding: 48px 52px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
   .cover-body { flex: 1; }
   .cover-logo { flex-shrink: 0; display: flex; align-items: flex-start; padding-top: 4px; }
@@ -16,6 +17,7 @@
   .cover h1 { font-size: 24pt; font-weight: 900; line-height: 1.28; margin-bottom: 10px; }
   .cover .subtitle { font-size: 11pt; opacity: .82; margin-bottom: 24px; }
   .cover .meta { font-size: 9.5pt; opacity: .65; border-top: 1px solid rgba(255,255,255,.25); padding-top: 14px; }
+
   .body { padding: 44px 52px 64px; }
   .toc { background: #f0f4ff; border-left: 4px solid #1565c0; border-radius: 0 8px 8px 0; padding: 20px 26px; margin-bottom: 44px; }
   .toc h2 { font-size: 12pt; font-weight: 700; color: #1565c0; margin-bottom: 12px; }
@@ -23,38 +25,50 @@
   .toc li { font-size: 10pt; line-height: 2.1; color: #1a3a5c; }
   .toc a { color: #1565c0; text-decoration: none; }
   .toc a:hover { text-decoration: underline; }
+
   h2.section-title { font-size: 15pt; font-weight: 800; color: #0d2137; border-bottom: 2.5px solid #1565c0; padding-bottom: 7px; margin: 48px 0 18px; page-break-after: avoid; }
   h3.sub-title { font-size: 12pt; font-weight: 700; color: #1565c0; margin: 26px 0 10px; page-break-after: avoid; }
+  h4.step-head { font-size: 10.5pt; font-weight: 700; color: #37474f; margin: 16px 0 6px; }
   p { margin-bottom: 10px; }
+
   .info-box  { background: #e3f0ff; border: 1px solid #90caf9; border-left: 4px solid #1565c0; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1a3a5c; }
   .warn-box  { background: #fff8e1; border: 1px solid #ffe082; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #5d4037; }
   .check-box { background: #e8f5e9; border: 1px solid #a5d6a7; border-left: 4px solid #2e7d32; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1b5e20; }
   .block-box { background: #fce4ec; border: 1px solid #f48fb1; border-left: 4px solid #c62828; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #b71c1c; }
   .hq-only   { background: #ede7f6; border: 1px solid #ce93d8; border-left: 4px solid #7b1fa2; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #4a148c; }
-  .r-all  { display: inline-block; background: #1a237e; color: #fff; font-size: 8pt; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
-  .r-dist { display: inline-block; background: #1565c0; color: #fff; font-size: 8pt; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
-  .r-no   { display: inline-block; background: #757575; color: #fff; font-size: 8pt; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+
+  .r-all  { display: inline-block; background: #1a237e; color: #fff; font-size: 8pt; font-weight: 700; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .r-hq   { display: inline-block; background: #7b1fa2; color: #fff; font-size: 8pt; font-weight: 700; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .r-dist { display: inline-block; background: #1565c0; color: #fff; font-size: 8pt; font-weight: 700; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .r-no   { display: inline-block; background: #757575; color: #fff; font-size: 8pt; font-weight: 700; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+
   table { width: 100%; border-collapse: collapse; margin: 14px 0 22px; font-size: 10pt; page-break-inside: avoid; }
   th { background: #1a3a5c; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #12274a; }
   td { padding: 8px 12px; border: 1px solid #cfd8dc; vertical-align: middle; }
   tr:nth-child(even) td { background: #f4f7ff; }
   td.center, th.center { text-align: center; }
   td.icon { text-align: center; font-size: 13pt; }
+
   .menu-path { display: inline-block; background: #eceff1; border: 1px solid #cfd8dc; border-radius: 5px; padding: 3px 12px; font-size: 9.5pt; color: #37474f; font-weight: 600; margin-bottom: 12px; }
   .menu-path::before { content: "📌 Menu: "; }
+  .step-badge { display: inline-block; background: #1565c0; color: #fff; font-weight: 800; font-size: 9pt; padding: 2px 10px; border-radius: 20px; margin-right: 8px; vertical-align: middle; }
+
   .flow { background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; padding: 18px 22px; margin: 14px 0 20px; font-size: 10pt; page-break-inside: avoid; }
   .flow-row { display: flex; align-items: flex-start; margin-bottom: 6px; }
   .flow-num { display: inline-block; min-width: 28px; font-weight: 800; color: #1565c0; flex-shrink: 0; }
   .flow-desc { color: #37474f; }
+
   .faq-item { border: 1px solid #e0e6f0; border-radius: 8px; margin-bottom: 14px; page-break-inside: avoid; }
   .faq-q { background: #e8edf8; padding: 11px 16px; font-weight: 700; font-size: 10.5pt; color: #1a3a5c; border-radius: 8px 8px 0 0; }
   .faq-q::before { content: "Q. "; color: #1565c0; }
   .faq-a { padding: 11px 16px; font-size: 10pt; color: #37474f; background: #fff; border-radius: 0 0 8px 8px; }
   .faq-a::before { content: "A. "; font-weight: 700; color: #2e7d32; }
+
   hr.rule { border: none; border-top: 1px dashed #c5cae9; margin: 40px 0; }
   ul, ol { padding-left: 20px; margin-bottom: 12px; }
   li { margin-bottom: 4px; }
   .footer { background: #0d2137; color: rgba(255,255,255,.6); text-align: center; font-size: 9pt; padding: 18px 24px; }
+
   @media print {
     body { background: #fff; font-size: 10pt; }
     .page-wrap { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; }
@@ -68,432 +82,632 @@
 </head>
 <body>
 <style id="print-btn-style">
-  .print-btn { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #1565c0; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 10.5pt; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(21,101,192,.45); display: flex; align-items: center; gap: 9px; transition: background .18s, box-shadow .18s; text-decoration: none; }
+  .print-btn { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #1565c0; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 10.5pt; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(21,101,192,.45); display: flex; align-items: center; gap: 9px; transition: background .18s, box-shadow .18s; }
   .print-btn:hover { background: #0d47a1; box-shadow: 0 6px 20px rgba(13,71,161,.5); }
   @media print { .print-btn { display: none !important; } }
 </style>
-<button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+<button class="print-btn" onclick="window.print()">🖨️ Print / Save PDF</button>
 <div class="page-wrap">
+
   <div class="cover">
     <div class="cover-body">
       <div class="logo-line">ICOPAY · Payment Gateway</div>
-      <h1>Operator Setup Manual<br>HQ Super Admin</h1>
-      <div class="subtitle">Complete guide for HQ Super Admins — Merchant registration, Web payment, Subscription, Re-purchase, Split payment &amp; Chatbot payment</div>
-      <div class="meta">Reference: ICOPAY HQ Permission Settings &nbsp;|&nbsp; Audience: HQ Super Admin &nbsp;|&nbsp; Published: June 2026</div>
+      <h1>Super Admin<br>Operations Manual</h1>
+      <div class="subtitle">ICOPAY V2.0 — Complete Guide to HQ Policy, Integration, Merchants, Payments &amp; Settlement</div>
+      <div class="meta">Live V2.0 · July 2026 &nbsp;|&nbsp; Audience: Super Admin &nbsp;|&nbsp; ICOPAY Payment Gateway</div>
     </div>
     <div class="cover-logo">
-      <img src="./logo-ontheline.png" alt="On The Line">
+      <img src="./logo-ontheline.png" alt="ICOPAY">
     </div>
   </div>
 
   <div class="body">
 
-    <div class="warn-box" style="margin-bottom:36px;">
-      <strong>📋 Role Permission Legend</strong><br><br>
-      <span class="r-all">Super Admin only</span> HQ Super Admin exclusive &nbsp;&nbsp;
-      <span class="r-dist">All roles</span> Super Admin, HQ Admin &amp; Distributor &nbsp;&nbsp;
-      <span class="r-no">No access</span> Role cannot access this menu
-    </div>
-
-    <!-- Permission Table -->
-    <h2 class="section-title" id="perm">0. Role-Based Menu Access Summary</h2>
-    <p>ICOPAY operates with three administrator roles: <strong>HQ Super Admin · HQ Admin · Distributor</strong>.<br>
-    <strong>HQ Admin and Distributor share identical access permissions.</strong> Only the HQ Super Admin has unrestricted access to all menus.</p>
-
-    <table>
-      <thead>
-        <tr><th>Main Menu</th><th>Sub Menu</th><th class="center">Super Admin</th><th class="center">HQ Admin</th><th class="center">Distributor</th></tr>
-      </thead>
-      <tbody>
-        <tr><td><strong>HQ Settings</strong></td><td>All menus</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
-        <tr><td rowspan="5"><strong>Settlement Mgmt</strong></td><td>Integrated Settlement</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
-        <tr><td>Run Settlement</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
-        <tr><td>Distribute Settlement</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
-        <tr><td>Pending Settlement</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
-        <tr><td>Other settlement menus</td><td class="icon">✅</td><td class="icon">✅</td><td class="icon">✅</td></tr>
-        <tr><td><strong>Notification Mgmt</strong></td><td>All menus</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
-        <tr><td rowspan="2"><strong>User Management</strong></td><td>Menu item order management</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
-        <tr><td>Other user mgmt menus</td><td class="icon">✅</td><td class="icon">✅</td><td class="icon">✅</td></tr>
-        <tr><td rowspan="5"><strong>Operations Mgmt</strong></td><td>Operations Management</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
-        <tr><td>TAX Report</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
-        <tr><td>Verification Report</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
-        <tr><td>Agency Transaction History</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
-        <tr><td>Other operations menus</td><td class="icon">✅</td><td class="icon">✅</td><td class="icon">✅</td></tr>
-        <tr><td rowspan="2"><strong>Deploy Settings</strong></td><td>API Documentation</td><td class="icon">✅</td><td class="icon">✅</td><td class="icon">✅</td></tr>
-        <tr><td>Other deploy menus</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
-        <tr><td><strong>Chatbot Management</strong></td><td>All menus (including delete)</td><td class="icon">✅</td><td class="icon">✅</td><td class="icon">✅</td></tr>
-        <tr><td rowspan="2"><strong>Split Pay Mgmt</strong></td><td>Email Settings</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
-        <tr><td>Other split pay menus</td><td class="icon">✅</td><td class="icon">✅</td><td class="icon">✅</td></tr>
-      </tbody>
-    </table>
-
-    <div class="hq-only">
-      <strong>💡 HQ Admin and Distributor have identical permissions.</strong><br>
-      Users assigned the "HQ Admin" role have the same access as Distributors.
-      Only the HQ Super Admin can access all menus (HQ Settings, Notification Mgmt, Run/Distribute Settlement, etc.).
+    <div class="warn-box" style="margin-bottom: 24px;">
+      <strong>📋 Permission Legend</strong><br><br>
+      <span class="r-all">Super Admin</span> Super Admin only &nbsp;&nbsp;
+      <span class="r-dist">All Roles</span> Super Admin · HQ · Distributor &nbsp;&nbsp;
+      <span class="r-no">No Access</span> Role cannot access
     </div>
 
     <div class="toc">
       <h2>📋 Table of Contents</h2>
-      <ul>
-        <li><a href="#perm">0. Role-Based Menu Access Summary</a></li>
-        <li><a href="#merchant">1. Merchant Registration</a></li>
+      <ol>
+        <li><a href="#menu-structure">ICOPAY V2.0 Menu &amp; Role Permissions</a></li>
+        <li><a href="#fee-risk">HQ Policy — Fees &amp; Risk</a></li>
+        <li><a href="#pay-url">HQ Policy — Payments &amp; URL</a></li>
+        <li><a href="#notify-center">HQ Policy — Notify Center</a></li>
+        <li><a href="#settlement-biz">HQ Policy — Settlement &amp; Biz Days</a></li>
+        <li><a href="#org-screen">HQ Policy — Organization &amp; Screen</a></li>
+        <li><a href="#access-perm">HQ Policy — Access &amp; Permissions</a></li>
+        <li><a href="#ai-chatbot">HQ Policy — AI &amp; Chatbot</a></li>
+        <li><a href="#platform">HQ Policy — Platform</a></li>
+        <li><a href="#pg-integration">Integration &amp; Deploy — PG Integration</a></li>
+        <li><a href="#api-launch">Integration &amp; Deploy — Merchant API Launch</a></li>
+        <li><a href="#merchant-mgmt">Merchant Management</a></li>
+        <li><a href="#payment-mgmt">Payment Management</a></li>
+        <li><a href="#settlement-mgmt">Settlement Management</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
 
-        <li><a href="#fee">2. Fee Settings</a></li>
-        <li><a href="#webpay">3. Web Payment Setup</a></li>
-        <li><a href="#subscribe">4. Subscription Payment Setup</a></li>
-        <li><a href="#repurchase">5. Re-purchase Payment Setup</a></li>
-        <li><a href="#splitpay">6. URL Split Payment Setup</a></li>
-        <li><a href="#chatbot">7. Chatbot Payment Setup</a></li>
-      </ul>
+    <div class="warn-box" style="margin-bottom: 24px;">
+      <strong>📋 Naming Policy</strong><br><br>
+      ICOPAY integrates multiple payment processors behind one API. This manual uses neutral ICOPAY terms for unified features (checkout, URL payment, integrated transactions). <strong>"JPAY-only"</strong> labels appear only for features exclusive to JPAY.
     </div>
 
     <hr class="rule">
 
-    <h2 class="section-title" id="merchant">1. Merchant Registration</h2>
-    <span class="menu-path">Merchant Mgmt &gt; Register Merchant / Merchant Info</span>
+    <!-- 1. Menu Structure -->
+    <h2 class="section-title" id="menu-structure">1. ICOPAY V2.0 Menu &amp; Role Permissions</h2>
+    <p>The ICOPAY admin site (https://icopay.co.kr) uses the <strong>ICOPAY V2.0</strong> hub-centric menu structure. The <strong>Super Admin</strong> has access to all menus.</p>
 
-    <h3 class="sub-title">1-1. New Merchant Registration Process</h3>
-    <div class="flow">
-      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">Go to <strong>Merchant Mgmt &gt; Register Merchant</strong></span></div>
-      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">Enter basic info — business name, registration number, representative, contact, email, address</span></div>
-      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">Configure settlement structure — cycle, fee rate, bank account</span></div>
-      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">Activate desired payment services (see each service section below)</span></div>
-      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc"><strong>Save</strong> → Merchant code (slug) auto-generated → Review payment URL</span></div>
-      <div class="flow-row"><span class="flow-num">⑥</span><span class="flow-desc">Create merchant account (ID + temporary password) and deliver to merchant contact</span></div>
-    </div>
-
-    <h3 class="sub-title">1-2. Activatable Payment Services at Registration</h3>
-    <table>
-      <thead><tr><th>Service</th><th>Activation Field</th><th>Notes</th></tr></thead>
-      <tbody>
-        <tr><td>Web Payment (URL Payment)</td><td>Web payment enabled <code>Y/N</code></td><td>ChillPay integration based</td></tr>
-        <tr><td>Subscription Payment</td><td>Subscription enabled <code>Y/N</code></td><td>Subscription plan setup required</td></tr>
-        <tr><td>Re-purchase Payment</td><td>Re-purchase enabled <code>Y/N</code></td><td>Reuses existing payment token</td></tr>
-        <tr><td>URL Split Payment</td><td>Split payment enabled <code>Y/N</code></td><td>Contract setup required in Split Pay Mgmt</td></tr>
-        <tr><td>Chatbot Payment</td><td>Chatbot payment enabled <code>Y/N</code></td><td>Additional setup required in Chatbot Mgmt</td></tr>
-      </tbody>
-    </table>
-    <div class="info-box">Setting a service to <code>Y</code> makes its payment URL visible in the merchant portal. With <code>N</code>, the URL is hidden and unavailable to the merchant.</div>
-
-    <h3 class="sub-title">1-3. Merchant Account Management</h3>
-    <span class="menu-path">User Management &gt; Merchant Accounts</span>
-    <ul>
-      <li>Set merchant login ID and issue temporary password</li>
-      <li>Toggle account active/inactive status</li>
-      <li>Reset merchant password</li>
-    </ul>
-    <div class="warn-box"><strong>Note:</strong> <strong>Menu item order management</strong> within User Management is <span class="r-all">Super Admin only</span>.</div>
-
-    <hr class="rule">
-
-
-    <h2 class="section-title" id="fee">2. Fee Settings</h2>
-
-    <p>ICOPAY uses a two-tier commission structure: <strong>Base Policy Fee</strong> (system-wide default) and <strong>Per-Merchant Individual Fee</strong> (merchant-specific). Access rights differ by role.</p>
-
-    <table>
-      <tr><th>Fee Type</th><th>Menu Path</th><th class="center">Super Admin</th><th class="center">HQ Admin</th><th class="center">Distributor</th></tr>
-      <tr><td>Base Policy Fee (system default)</td><td>HQ Settings &gt; Fee Settings</td><td class="icon">??/td><td class="icon">??/td><td class="icon">??/td></tr>
-      <tr><td>Per-Merchant Individual Fee</td><td>Merchant Mgmt &gt; Fee Management</td><td class="icon">??/td><td class="icon">??/td><td class="icon">??/td></tr>
-    </table>
-
-    <h3 class="sub-title">2-1. Base Policy Fee Settings <span class="r-all">Super Admin only</span></h3>
-    <span class="menu-path">HQ Settings &gt; Fee Settings</span>
-    <p>Configure the default fee policy applied system-wide. Merchants without individual fee settings automatically use this default.</p>
-    <div class="flow">
-      <div class="flow-row"><span class="flow-num">??/span><span class="flow-desc">Go to <strong>HQ Settings &gt; Fee Settings</strong> (Super Admin only)</span></div>
-      <div class="flow-row"><span class="flow-num">??/span><span class="flow-desc">Enter default fee rate per payment method (e.g. Credit card 2.5%, Debit 1.8%)</span></div>
-      <div class="flow-row"><span class="flow-num">??/span><span class="flow-desc">Set currency-based fee policies (THB, USD, KRW, etc.)</span></div>
-      <div class="flow-row"><span class="flow-num">??/span><span class="flow-desc">Save ??immediately applied to all merchants without individual fee settings</span></div>
-    </div>
-    <table>
-      <thead><tr><th>Field</th><th>Description</th><th class="center">Access</th></tr></thead>
-      <tbody>
-        <tr><td>Default fee rate</td><td>System-wide default fee rate per payment method (%)</td><td class="center"><span class="r-all">Super Admin</span></td></tr>
-        <tr><td>Currency fee policy</td><td>Fee standards per currency (THB/USD/KRW)</td><td class="center"><span class="r-all">Super Admin</span></td></tr>
-        <tr><td>Fee effective date</td><td>Date from which the updated fee applies</td><td class="center"><span class="r-all">Super Admin</span></td></tr>
-      </tbody>
-    </table>
     <div class="hq-only">
-      <strong>?뮕 Base Policy Fee is Super Admin only.</strong><br>
-      When a per-merchant fee is set, it takes <strong>precedence</strong> over the base policy fee.
+      <strong>🔑 The Super Admin has access to all menus.</strong><br>
+      In ICOPAY V2.0, <strong>HQ Policy</strong> and <strong>Integration &amp; Deploy</strong> are Super Admin-only hubs. HQ and Distributor roles cannot see these menus.
     </div>
 
-    <h3 class="sub-title">2-2. Per-Merchant Individual Fee <span class="r-dist">All roles</span></h3>
-    <span class="menu-path">Merchant Mgmt &gt; Fee Management</span>
-    <p>Configure a custom fee rate for a specific merchant. Use this when a merchant requires different conditions from the system default.</p>
-    <div class="flow">
-      <div class="flow-row"><span class="flow-num">??/span><span class="flow-desc">Go to <strong>Merchant Management &gt; Fee Management</strong></span></div>
-      <div class="flow-row"><span class="flow-num">??/span><span class="flow-desc">Select the merchant to configure</span></div>
-      <div class="flow-row"><span class="flow-num">??/span><span class="flow-desc">Enter per-payment-method individual fee rates</span></div>
-      <div class="flow-row"><span class="flow-num">??/span><span class="flow-desc">Set validity period (start ~ end date) for time-limited promotional rates</span></div>
-      <div class="flow-row"><span class="flow-num">??/span><span class="flow-desc">Save ??applied immediately to that merchant only</span></div>
-    </div>
+    <h3 class="sub-title">1-1. Full Menu Structure (V2.0)</h3>
     <table>
-      <thead><tr><th>Field</th><th>Description</th><th class="center">Access</th></tr></thead>
+      <thead>
+        <tr><th>Top Menu</th><th>Hub / Sub-menu</th><th>Tabs / Features</th><th class="center">Super Admin</th><th class="center">HQ</th><th class="center">Distributor</th></tr>
+      </thead>
       <tbody>
-        <tr><td>Merchant fee rate</td><td>Custom fee rate differing from the base policy (%)</td><td class="center"><span class="r-dist">All roles</span></td></tr>
-        <tr><td>Per-method setting</td><td>Individual rates for Credit card / Debit / QR, etc.</td><td class="center"><span class="r-dist">All roles</span></td></tr>
-        <tr><td>Validity period</td><td>Time-limited fee condition</td><td class="center"><span class="r-dist">All roles</span></td></tr>
-        <tr><td>Fee history</td><td>View fee change history per merchant</td><td class="center"><span class="r-dist">All roles</span></td></tr>
+        <tr><td rowspan="8"><strong>HQ Policy</strong><br><small>(Super Admin only)</small></td><td>Fees &amp; Risk Hub</td><td>Fees, Agency Fees, Chargeback, Risk</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+        <tr><td>Payments &amp; URL Hub</td><td>Payment Routing, URL Payment, Payment UX</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+        <tr><td>Notify Center Hub</td><td>Notify Config, Field Mapping, Receive Log</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+        <tr><td>Settlement &amp; Biz Days Hub</td><td>Settlement Cycle, Clawback &amp; Arrears, Biz Days</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+        <tr><td>Organization &amp; Screen Hub</td><td>Org Items, Item Order</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+        <tr><td>Access &amp; Permissions Hub</td><td>HQ Permissions, Users, Merchant Access</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+        <tr><td>AI &amp; Chatbot (standalone)</td><td>AI Model Settings, Global Chatbot Config</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+        <tr><td>Platform Hub</td><td>Systems &amp; Sync, Domain &amp; SSL, Server, <strong>Release notes</strong></td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+        <tr><td rowspan="2"><strong>Integration &amp; Deploy</strong><br><small>(Super Admin only)</small></td><td>PG Integration</td><td>PG Codes, MID, API Keys</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+        <tr><td>Merchant API Launch Hub</td><td>①Common Setup, ②Merchant Registration, ③Keys &amp; Docs, API Docs</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+        <tr><td colspan="2"><strong>Merchant Management</strong></td><td>Notices, Registration, Management, Fees, Change History</td><td class="icon">✅</td><td class="icon">✅</td><td class="icon">✅</td></tr>
+        <tr><td colspan="2"><strong>Payment Management</strong></td><td>Payment History, Unified History, Unified Settlement*</td><td class="icon">✅</td><td class="icon">✅/❌*</td><td class="icon">✅/❌*</td></tr>
+        <tr><td colspan="2"><strong>Settlement Management</strong></td><td>Merchant Settlement, Run, Deploy*, Pending*, Fee History, Balance, Arrears</td><td class="icon">✅</td><td class="icon">✅/❌*</td><td class="icon">✅/❌*</td></tr>
+        <tr><td colspan="2"><strong>Chatbot Management</strong></td><td>Basic Settings, Product Mgmt, Order Mgmt</td><td class="icon">✅</td><td class="icon">✅</td><td class="icon">✅</td></tr>
+        <tr><td colspan="2"><strong>Other Menus</strong></td><td>Split Mgmt, Notify Mgmt*, User Mgmt, Operations Mgmt</td><td class="icon">✅</td><td class="icon">✅/❌*</td><td class="icon">✅/❌*</td></tr>
       </tbody>
     </table>
-    <div class="info-box">
-      A per-merchant fee <strong>overrides</strong> the base policy fee once set.
-      Merchants with no individual fee configured automatically follow the base policy fee.
-    </div>
+    <p style="font-size:9pt;color:#666;">* Items marked ❌ are Super Admin-only. See each section for details.</p>
+
+    <h3 class="sub-title">1-2. Super Admin Exclusive Menus</h3>
+    <table>
+      <thead><tr><th>Menu</th><th>Description</th><th class="center">Super Admin</th><th class="center">HQ / Distributor</th></tr></thead>
+      <tbody>
+        <tr><td>HQ Policy (all)</td><td>Fees, risk, payment, notify, settlement, org, access, AI, platform</td><td class="icon">✅</td><td class="icon">❌</td></tr>
+        <tr><td>Integration &amp; Deploy (all)</td><td>PG integration, Merchant API Launch wizard</td><td class="icon">✅</td><td class="icon">❌</td></tr>
+        <tr><td>Settlement Run / Deploy / Pending / Unified</td><td>Execute and distribute settlement</td><td class="icon">✅</td><td class="icon">❌</td></tr>
+        <tr><td>Notify Management (all)</td><td>Payment notify URL, transmission, cash receipt notify</td><td class="icon">✅</td><td class="icon">❌</td></tr>
+        <tr><td>Operations Management (core reports)</td><td>Operations, TAX Report, Validation Report, Agency Fees</td><td class="icon">✅</td><td class="icon">❌</td></tr>
+        <tr><td>User Management &gt; Menu Item Order Mgmt</td><td>Menu layout customization</td><td class="icon">✅</td><td class="icon">❌</td></tr>
+        <tr><td>Split Management &gt; Email Settings</td><td>Split payment email templates &amp; server</td><td class="icon">✅</td><td class="icon">❌</td></tr>
+      </tbody>
+    </table>
 
     <hr class="rule">
-    <h2 class="section-title" id="webpay">3. Web Payment Setup</h2>
-    <span class="menu-path">Merchant Mgmt &gt; Merchant Info &gt; Payment Settings tab</span>
 
-    <h3 class="sub-title">3-1. Enable Web Payment</h3>
-    <div class="flow">
-      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">Select merchant in <strong>Merchant Mgmt &gt; Merchant Info</strong></span></div>
-      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">Payment Settings tab → Set <strong>Web payment enabled</strong> to <code>Y</code></span></div>
-      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">Save → Web payment URL (<code>https://icopay.co.kr/pay/{merchant-code}</code>) auto-generated</span></div>
-      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">Share the URL with the merchant or embed in their payment page</span></div>
-    </div>
+    <!-- 2. Fees & Risk -->
+    <h2 class="section-title" id="fee-risk">2. HQ Policy — Fees &amp; Risk <span class="r-all">Super Admin Only</span></h2>
+    <span class="menu-path">HQ Policy &gt; Fees &amp; Risk Hub</span>
+    <p>The Fees &amp; Risk Hub contains <strong>4 tabs</strong> on one screen: Fees, Agency Fees, Chargeback, and Risk. Switch between tabs to access each configuration area.</p>
 
-    <h3 class="sub-title">3-2. Key Web Payment Settings</h3>
+    <h3 class="sub-title">2-1. Fees Tab</h3>
+    <span class="menu-path">HQ Policy &gt; Fees &amp; Risk &gt; Fees Tab</span>
     <table>
-      <thead><tr><th>Field</th><th>Description</th><th class="center">Access</th></tr></thead>
+      <thead><tr><th>Setting</th><th>Description</th><th>Notes</th></tr></thead>
       <tbody>
-        <tr><td>Web payment enabled</td><td>Activate the web payment URL (Y/N)</td><td class="center"><span class="r-dist">All roles</span></td></tr>
-        <tr><td>Web payment URL</td><td>Merchant-specific payment link — auto-generated</td><td class="center"><span class="r-dist">All roles</span></td></tr>
-        <tr><td>Payment currency</td><td>Accepted currencies: THB, USD, KRW, etc.</td><td class="center"><span class="r-dist">All roles</span></td></tr>
-        <tr><td>Notify URL</td><td>Server endpoint to receive payment result callbacks</td><td class="center"><span class="r-all">Super Admin only</span></td></tr>
-        <tr><td>Redirect URL</td><td>Page customer is redirected to after payment</td><td class="center"><span class="r-dist">All roles</span></td></tr>
+        <tr><td>Default fee rate by payment method</td><td>Base % for credit card, debit, wallet, QR, etc.</td><td>Up to 2 decimal places</td></tr>
+        <tr><td>Currency fee policy</td><td>Different base rates per currency (THB, USD, KRW, JPY)</td><td>Multi-currency support</td></tr>
+        <tr><td>Effective date</td><td>Date from which the new fee applies (cannot be past)</td><td>Immediate or scheduled</td></tr>
+        <tr><td>Fee change history</td><td>Log of change datetime, operator, before/after values</td><td>Audit purpose</td></tr>
       </tbody>
     </table>
-    <div class="block-box"><strong>🔒 Notification (Notify) URL setting is Super Admin only.</strong><br>HQ Admin and Distributor cannot access Notification Management. Request changes from the Super Admin.</div>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">Navigate to <strong>HQ Policy &gt; Fees &amp; Risk Hub</strong> → select Fees tab</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">Enter default fee rate per payment method (e.g. Credit Card 2.5%, QR 1.8%)</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">Confirm currency-specific policy</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">Set effective date → <strong>Save</strong></span></div>
+    </div>
 
-    <h3 class="sub-title">3-3. Transaction Inquiry (Payment Mgmt)</h3>
-    <span class="menu-path">Payment Mgmt &gt; Transaction History</span>
+    <h3 class="sub-title">2-2. Agency Fees Tab</h3>
+    <span class="menu-path">HQ Policy &gt; Fees &amp; Risk &gt; Agency Fees Tab</span>
+    <p>Manage the PG agency fees (the cost ICOPAY pays to PG providers).</p>
+    <table>
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Agency fee rate by PG</td><td>Cost fee % per payment processor (PG code), including Eximbay and other vendors</td></tr>
+        <tr><td>Currency-based agency fee</td><td>Different agency fee per transaction currency</td></tr>
+        <tr><td>Margin calculator</td><td>Auto-displays: Base Fee − Agency Fee = Net Margin</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">2-3. Chargeback Tab</h3>
+    <span class="menu-path">HQ Policy &gt; Fees &amp; Risk &gt; Chargeback Tab</span>
+    <table>
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Chargeback processing fee</td><td>Fee amount charged per chargeback case</td></tr>
+        <tr><td>Auto-approve threshold</td><td>Chargebacks below this amount are auto-approved</td></tr>
+        <tr><td>Dispute period</td><td>Days merchants have to respond to a chargeback</td></tr>
+        <tr><td>Chargeback notification channel</td><td>Email / LINE notification when chargeback occurs</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">2-4. Risk Tab</h3>
+    <span class="menu-path">HQ Policy &gt; Fees &amp; Risk &gt; Risk Tab</span>
+    <table>
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Daily transaction limit</td><td>Maximum allowed daily payment amount per merchant</td></tr>
+        <tr><td>Single transaction limit</td><td>Maximum allowed amount per single payment</td></tr>
+        <tr><td>Velocity control</td><td>Max payment attempts per time unit by same card/IP</td></tr>
+        <tr><td>Blacklist management</td><td>Register card numbers, IPs, emails to block</td></tr>
+        <tr><td>Auto-block suspicious transactions</td><td>Auto-reject when conditions exceed thresholds</td></tr>
+      </tbody>
+    </table>
+    <div class="warn-box"><strong>⚠ Risk filter changes apply immediately.</strong> Review the impact thoroughly before changing settings.</div>
+
+    <hr class="rule">
+
+    <!-- 3. Payments & URL -->
+    <h2 class="section-title" id="pay-url">3. HQ Policy — Payments &amp; URL <span class="r-all">Super Admin Only</span></h2>
+    <span class="menu-path">HQ Policy &gt; Payments &amp; URL Hub</span>
+
+    <h3 class="sub-title">3-1. Payment Routing Tab</h3>
+    <table>
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>PG provider priority</td><td>Routing order for payment attempts (1st, 2nd priority, etc.)</td></tr>
+        <tr><td>Payment method routing</td><td>Assign dedicated PG for card, wallet, QR</td></tr>
+        <tr><td>Failover (auto-switch)</td><td>Auto-route to 2nd PG when 1st PG fails</td></tr>
+        <tr><td>Merchant-specific routing exceptions</td><td>Apply different routing rules for specific merchants</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">3-2. URL Payment Tab</h3>
+    <table>
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Payment URL format</td><td>Merchant payment URL path pattern</td></tr>
+        <tr><td>URL expiry time</td><td>Expiration period of generated payment URLs (minutes/hours)</td></tr>
+        <tr><td>Allow URL reuse</td><td>Whether the same URL can be used for multiple payments</td></tr>
+        <tr><td>Short URL service</td><td>Integration with URL shortening service</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">3-3. Payment UX Tab</h3>
+    <table>
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Default checkout language</td><td>Default display language of the payment page (KO/EN/JA/ZH/TH)</td></tr>
+        <tr><td>Payment method display order</td><td>Order of payment methods shown in checkout</td></tr>
+        <tr><td>Logo &amp; branding</td><td>Upload logo image for checkout page header</td></tr>
+        <tr><td>Custom success/failure pages</td><td>Customize page shown after payment completion</td></tr>
+      </tbody>
+    </table>
+
+    <hr class="rule">
+
+    <!-- 4. Notify Center -->
+    <h2 class="section-title" id="notify-center">4. HQ Policy — Notify Center <span class="r-all">Super Admin Only</span></h2>
+    <span class="menu-path">HQ Policy &gt; Notify Center Hub</span>
+
+    <h3 class="sub-title">4-1. Notify Config Tab</h3>
+    <table>
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Transmission method</td><td>HTTP POST (JSON) or Form-encoded</td></tr>
+        <tr><td>Retry policy</td><td>Number of retries and interval on failure (e.g. 3 retries, 5 min interval)</td></tr>
+        <tr><td>Timeout</td><td>Wait time for merchant server response (seconds)</td></tr>
+        <tr><td>Signature method</td><td>HMAC-SHA256 signing key setup and verification</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4-2. Field Mapping Tab</h3>
+    <p>Customize which fields and field names are included in the notify payload.</p>
+    <table>
+      <thead><tr><th>Field Group</th><th>Available Fields</th></tr></thead>
+      <tbody>
+        <tr><td>Payment basics</td><td>order_id, amount, currency, status, paid_at</td></tr>
+        <tr><td>Merchant info</td><td>merchant_id (ICOPAY aggregate MID only — PG MID excluded)</td></tr>
+        <tr><td>Buyer info</td><td>buyer_name, buyer_email, buyer_phone (optional)</td></tr>
+        <tr><td>Payment method info</td><td>payment_method, card_brand, card_last4</td></tr>
+      </tbody>
+    </table>
+    <div class="block-box"><strong>🔒 PG MID and API keys are never included in notify payloads.</strong> Only ICOPAY internal identifiers are transmitted.</div>
+
+    <h3 class="sub-title">4-3. Receive Log Tab</h3>
     <ul>
-      <li>Filter by: date range, merchant, payment method, status (success/fail/cancel)</li>
-      <li>Process refunds from transaction detail view</li>
-      <li>Re-send receipt email from transaction detail</li>
+      <li>View notification transmission history per merchant (filter by period and status)</li>
+      <li>Check success / failure / retry status</li>
+      <li>Manually resend failed notifications</li>
+      <li>View HTTP response codes and response body</li>
     </ul>
 
     <hr class="rule">
 
-    <h2 class="section-title" id="subscribe">4. Subscription Payment Setup</h2>
-    <span class="menu-path">Merchant Mgmt &gt; Merchant Info &gt; Payment Settings tab</span>
+    <!-- 5. Settlement & Biz Days -->
+    <h2 class="section-title" id="settlement-biz">5. HQ Policy — Settlement &amp; Biz Days <span class="r-all">Super Admin Only</span></h2>
+    <span class="menu-path">HQ Policy &gt; Settlement &amp; Biz Days Hub</span>
 
-    <h3 class="sub-title">4-1. Enable Subscription Payment</h3>
-    <div class="flow">
-      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">Merchant Info → Payment Settings → Set <strong>Subscription enabled</strong> to <code>Y</code> and save</span></div>
-      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">Configure subscription plan: name, billing cycle (monthly/yearly), amount, currency</span></div>
-      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">Share subscription URL with the merchant for customer acquisition</span></div>
-      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">Charges are automatically billed according to the configured cycle</span></div>
-    </div>
-
-    <h3 class="sub-title">4-2. Key Subscription Settings</h3>
+    <h3 class="sub-title">5-1. Settlement Cycle Tab</h3>
     <table>
-      <thead><tr><th>Field</th><th>Description</th></tr></thead>
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
       <tbody>
-        <tr><td>Subscription enabled</td><td>Activate subscription payment (Y/N)</td></tr>
-        <tr><td>Billing cycle</td><td>Monthly / Yearly</td></tr>
-        <tr><td>Subscription amount</td><td>Charge amount and currency per billing cycle</td></tr>
-        <tr><td>Expiry handling</td><td>Auto-cancel or auto-renew on expiry</td></tr>
-        <tr><td>Subscription history</td><td>Subscriber list and payment history per merchant</td></tr>
+        <tr><td>Default settlement cycle</td><td>System default: Daily / Weekly / Monthly</td></tr>
+        <tr><td>Settlement reference day</td><td>D+N days after payment date for settlement</td></tr>
+        <tr><td>Merchant-specific cycle exceptions</td><td>Apply different cycle to specific merchants</td></tr>
+        <tr><td>Auto-hold conditions</td><td>Auto-hold settlement during active chargeback or risk alert</td></tr>
       </tbody>
     </table>
-    <div class="info-box">Subscription payment tokenizes the customer's card on the first payment and auto-charges on subsequent cycles.</div>
 
-    <h3 class="sub-title">4-3. Subscription History &amp; Management</h3>
-    <span class="menu-path">Payment Mgmt &gt; Subscription History</span>
+    <h3 class="sub-title">5-2. Clawback &amp; Arrears Tab</h3>
+    <table>
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Clawback processing rules</td><td>Rules for recovering settled funds due to chargebacks/refunds</td></tr>
+        <tr><td>Arrears limit</td><td>Maximum allowed arrears amount per merchant</td></tr>
+        <tr><td>Auto-deduct arrears</td><td>Automatically deduct arrears from next settlement</td></tr>
+        <tr><td>Arrears notification</td><td>Email notification when arrears occur</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">5-3. Business Days Tab</h3>
+    <p>Manage the settlement business day calendar. Holidays will push settlement to the next business day.</p>
+    <table>
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Holiday registration</td><td>Register public holidays by country (KR/TH/JP etc.)</td></tr>
+        <tr><td>Reference country</td><td>Select which country's calendar to use for settlement</td></tr>
+        <tr><td>Weekend handling</td><td>Process or defer Saturday/Sunday settlements</td></tr>
+      </tbody>
+    </table>
+
+    <hr class="rule">
+
+    <!-- 6. Organization & Screen -->
+    <h2 class="section-title" id="org-screen">6. HQ Policy — Organization &amp; Screen <span class="r-all">Super Admin Only</span></h2>
+    <span class="menu-path">HQ Policy &gt; Organization &amp; Screen Hub</span>
+
+    <h3 class="sub-title">6-1. Org Items Tab</h3>
+    <table>
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Org level definition</td><td>Edit org hierarchy (Super Admin → HQ → Distributor)</td></tr>
+        <tr><td>Label customization</td><td>Change display names per level (e.g. Distributor → Partner)</td></tr>
+        <tr><td>Org code management</td><td>Register and edit internal org codes</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">6-2. Item Order Tab</h3>
+    <p>Set the display order of items (columns, fields) on each screen in the admin site.</p>
     <ul>
-      <li>Status filter: Active / Paused / Cancelled / Expired</li>
-      <li>Immediate cancellation</li>
-      <li>Retry settings for failed billing attempts</li>
-      <li>View and adjust next billing date</li>
+      <li>Show/hide grid columns</li>
+      <li>Drag to reorder column display</li>
+      <li>Save default view per role</li>
     </ul>
 
     <hr class="rule">
 
-    <h2 class="section-title" id="repurchase">5. Re-purchase Payment Setup</h2>
-    <span class="menu-path">Merchant Mgmt &gt; Merchant Info &gt; Payment Settings tab</span>
+    <!-- 7. Access & Permissions -->
+    <h2 class="section-title" id="access-perm">7. HQ Policy — Access &amp; Permissions <span class="r-all">Super Admin Only</span></h2>
+    <span class="menu-path">HQ Policy &gt; Access &amp; Permissions Hub</span>
 
-    <h3 class="sub-title">5-1. What is Re-purchase Payment?</h3>
-    <p>Re-purchase payment allows customers to reuse their saved payment token from a previous transaction to make a new payment instantly without re-entering card details.</p>
-    <div class="info-box">Only customers with a saved card token (from a prior transaction) can use re-purchase payment.<br>
-    <strong>Difference vs. Subscription:</strong> Subscription auto-charges on a schedule; re-purchase is customer-initiated.</div>
-
-    <h3 class="sub-title">5-2. Enable Re-purchase Payment</h3>
-    <div class="flow">
-      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">Merchant Info → Payment Settings → Set <strong>Re-purchase enabled</strong> to <code>Y</code> and save</span></div>
-      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">The merchant's checkout page will display a "Pay with saved card" option</span></div>
-      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">Customer selects re-purchase → payment processed immediately using saved token</span></div>
-    </div>
-
-    <h3 class="sub-title">5-3. Key Re-purchase Settings</h3>
+    <h3 class="sub-title">7-1. HQ Permissions Tab</h3>
     <table>
-      <thead><tr><th>Field</th><th>Description</th></tr></thead>
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
       <tbody>
-        <tr><td>Re-purchase enabled</td><td>Activate re-purchase payment (Y/N)</td></tr>
-        <tr><td>Token validity period</td><td>Duration (days) to retain the card token</td></tr>
-        <tr><td>Re-purchase history</td><td>View and refund re-purchase transactions</td></tr>
+        <tr><td>Role-menu permission matrix</td><td>Allow/deny each menu per role (Super Admin/HQ/Distributor)</td></tr>
+        <tr><td>Feature-level permissions</td><td>Granular read/write/delete permissions</td></tr>
+        <tr><td>Permission templates</td><td>Save frequently used permission sets as templates</td></tr>
       </tbody>
     </table>
-    <div class="warn-box"><strong>Security:</strong> Card tokens are encrypted per PCI-DSS. Actual card numbers are never stored. Deleting a token disables re-purchase for that customer.</div>
+
+    <h3 class="sub-title">7-2. Users Tab</h3>
+    <table>
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Create admin accounts</td><td>Create new HQ/Distributor operator accounts</td></tr>
+        <tr><td>Account activation/deactivation</td><td>Toggle account access</td></tr>
+        <tr><td>Password reset</td><td>Issue temporary passwords for operators</td></tr>
+        <tr><td>IP restriction</td><td>Register allowed IP ranges (whitelist)</td></tr>
+        <tr><td>Enforce 2FA</td><td>Require two-factor authentication</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">7-3. Merchant Access Tab</h3>
+    <table>
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Per-merchant operator assignment</td><td>Specify which operators can manage each merchant</td></tr>
+        <tr><td>Distributor merchant scope</td><td>Set the range of merchants a distributor can view/manage</td></tr>
+        <tr><td>Access log</td><td>History of who accessed which merchant's data</td></tr>
+      </tbody>
+    </table>
 
     <hr class="rule">
 
-    <h2 class="section-title" id="splitpay">6. URL Split Payment Setup</h2>
-    <span class="menu-path">Split Pay Management</span>
+    <!-- 8. AI & Chatbot -->
+    <h2 class="section-title" id="ai-chatbot">8. HQ Policy — AI &amp; Chatbot <span class="r-all">Super Admin Only</span></h2>
+    <span class="menu-path">HQ Policy &gt; AI &amp; Chatbot</span>
 
     <table>
-      <thead><tr><th>Feature</th><th class="center">Super Admin</th><th class="center">HQ Admin</th><th class="center">Distributor</th></tr></thead>
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
       <tbody>
-        <tr><td>Create / manage split contracts</td><td class="icon">✅</td><td class="icon">✅</td><td class="icon">✅</td></tr>
-        <tr><td>Generate split payment URLs</td><td class="icon">✅</td><td class="icon">✅</td><td class="icon">✅</td></tr>
-        <tr><td>View split payment history</td><td class="icon">✅</td><td class="icon">✅</td><td class="icon">✅</td></tr>
-        <tr><td><strong>Email Settings</strong></td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+        <tr><td>AI model selection</td><td>Choose AI model version for chatbot responses</td></tr>
+        <tr><td>Default response language</td><td>Default chatbot language (KO/EN/JA/ZH/TH)</td></tr>
+        <tr><td>Global blocked keywords</td><td>Words blocked across all merchant chatbots</td></tr>
+        <tr><td>Token usage limit</td><td>Monthly AI token usage cap per merchant</td></tr>
+        <tr><td>Training data management</td><td>Upload global FAQ and training data</td></tr>
+        <tr><td>Widget global style</td><td>Default chatbot popup colors &amp; font</td></tr>
       </tbody>
     </table>
-    <div class="block-box"><strong>🔒 Split Pay Mgmt &gt; Email Settings is Super Admin only.</strong><br>Email template and SMTP settings are exclusive to the Super Admin.</div>
-
-    <h3 class="sub-title">6-1. Enable Merchant Split Payment</h3>
-    <div class="flow">
-      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">Merchant Info → Payment Settings → Set <strong>Split payment enabled</strong> to <code>Y</code> and save</span></div>
-      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">Split payment URL becomes visible in the merchant portal</span></div>
-      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">Create a split contract for the merchant in Split Pay Management</span></div>
-    </div>
-
-    <h3 class="sub-title">6-2. Create a Split Contract</h3>
-    <span class="menu-path">Split Pay Mgmt &gt; Register Contract</span>
-    <div class="flow">
-      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">Select merchant</span></div>
-      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">Set total amount and number of installments (e.g. 300,000 / 3 installments → 100,000 × 3)</span></div>
-      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">Set due date for each installment</span></div>
-      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">Save contract → per-installment payment URLs auto-generated</span></div>
-      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc">Share installment URLs with the customer via email, SMS, or direct link</span></div>
-    </div>
-
-    <h3 class="sub-title">6-3. Split Payment History</h3>
-    <span class="menu-path">Split Pay Mgmt &gt; Split History</span>
-    <ul>
-      <li>Filter contracts by date range, merchant, and status</li>
-      <li>Per-installment payment status: Completed / Unpaid / Overdue</li>
-      <li>Force process or cancel individual installments</li>
-      <li>Link completed contracts to settlement records</li>
-    </ul>
+    <div class="info-box">Per-merchant chatbot settings are managed in the <strong>Chatbot Management</strong> menu (accessible by all roles).</div>
 
     <hr class="rule">
 
-    <h2 class="section-title" id="chatbot">7. Chatbot Payment Setup</h2>
-    <span class="menu-path">Chatbot Management</span>
-    <div class="check-box"><strong>✅ Chatbot Management is fully accessible to all roles (including delete operations).</strong></div>
+    <!-- 9. Platform -->
+    <h2 class="section-title" id="platform">9. HQ Policy — Platform <span class="r-all">Super Admin Only</span></h2>
+    <span class="menu-path">HQ Policy &gt; Platform Hub</span>
+    <p><strong>Platform</strong> is the core base for ICOPAY operations: ledger &amp; sync, domain &amp; SSL, server ops, and release/version history. In the sidebar it appears <strong>directly below AI &amp; Chatbot</strong>.</p>
 
-    <h3 class="sub-title">7-1. Enable Merchant Chatbot Payment</h3>
-    <div class="flow">
-      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">Merchant Info → Payment Settings → Set <strong>Chatbot payment enabled</strong> to <code>Y</code> and save</span></div>
-      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">Chatbot Management → select the merchant</span></div>
-      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">Select operation mode</span></div>
-      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">Set product slot limit (maximum products the merchant can register)</span></div>
-      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc">Share chatbot URL (<code>https://icopay.co.kr/chatbot-pay/{merchant-code}</code>) with merchant</span></div>
-    </div>
-
-    <h3 class="sub-title">7-2. Chatbot Operation Modes</h3>
+    <h3 class="sub-title">9-1. Systems &amp; Sync Tab</h3>
     <table>
-      <thead><tr><th>Mode</th><th>Description</th><th>Payment Timing</th></tr></thead>
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
       <tbody>
-        <tr><td>SALE_PREPAID</td><td>Sale — Prepaid</td><td>Payment collected at order, then goods delivered</td></tr>
-        <tr><td>SALE_POSTPAID</td><td>Sale — Postpaid</td><td>Goods delivered first, payment billed afterward</td></tr>
-        <tr><td>RESERVATION_PREPAID</td><td>Reservation — Prepaid</td><td>Full payment collected at reservation</td></tr>
-        <tr><td>RESERVATION_POSTPAID</td><td>Reservation — Postpaid</td><td>Reservation confirmed, payment collected on-site</td></tr>
-        <tr><td>HYBRID_RESERVATION_PREPAID</td><td>Hybrid Reservation — Prepaid</td><td>Deposit prepaid, balance paid later</td></tr>
-        <tr><td>FACE_TO_FACE_POSTPAID</td><td>Face-to-Face — Postpaid</td><td>Service delivered in person, payment link sent afterward</td></tr>
+        <tr><td>Data sync schedule</td><td>Cron-based periodic sync of PG transaction data</td></tr>
+        <tr><td>Sync log</td><td>Last sync time, success/failure counts</td></tr>
+        <tr><td>Manual sync</td><td>Trigger an immediate data sync</td></tr>
       </tbody>
     </table>
 
-    <h3 class="sub-title">7-3. Product Management</h3>
-    <span class="menu-path">Chatbot Mgmt &gt; Product Management</span>
-    <div class="flow">
-      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">Select merchant → Enter product list</span></div>
-      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">Register product: name, description, price, image, category, stock status</span></div>
-      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">Toggle product active/inactive (controls chatbot visibility)</span></div>
-      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">Cannot add more products beyond the slot limit → adjust slot count if needed</span></div>
-    </div>
-
-    <h3 class="sub-title">7-4. KB (Knowledge Base) Management</h3>
-    <span class="menu-path">Chatbot Mgmt &gt; KB Management</span>
-    <ul>
-      <li>Add / edit / delete FAQ entries</li>
-      <li>Upload documents by category</li>
-      <li>Trigger AI learning data optimization</li>
-      <li>Check answer quality scores</li>
-    </ul>
-
-    <h3 class="sub-title">7-5. Chatbot Order History</h3>
-    <span class="menu-path">Chatbot Mgmt &gt; Order History</span>
+    <h3 class="sub-title">9-2. Domain &amp; SSL Tab</h3>
     <table>
-      <thead><tr><th>Field</th><th>Description</th></tr></thead>
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
       <tbody>
-        <tr><td>Order Number</td><td>Unique chatbot order ID</td></tr>
-        <tr><td>Customer Info</td><td>Name and contact (entered via chatbot)</td></tr>
-        <tr><td>Payment Status</td><td>Completed / Pending / Cancelled / Refunded</td></tr>
-        <tr><td>Order Amount</td><td>Sum of selected products</td></tr>
-        <tr><td>Payment Timestamp</td><td>Time when payment was processed</td></tr>
+        <tr><td>Service domain</td><td>Register and verify service domains (icopay.co.kr, etc.)</td></tr>
+        <tr><td>SSL certificate status</td><td>Expiry, issuer, renewal status</td></tr>
+        <tr><td>Merchant subdomains</td><td>Custom domain setup for merchants</td></tr>
       </tbody>
     </table>
 
-    <h3 class="sub-title">7-6. Additional Chatbot Settings</h3>
+    <h3 class="sub-title">9-3. Server Tab</h3>
     <table>
-      <thead><tr><th>Setting</th><th>Description</th><th class="center">Access</th></tr></thead>
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
       <tbody>
-        <tr><td>Chatbot payment enabled</td><td>Activate chatbot payment for merchant</td><td class="center"><span class="r-dist">All roles</span></td></tr>
-        <tr><td>Operation mode</td><td>Select from 6 available modes</td><td class="center"><span class="r-dist">All roles</span></td></tr>
-        <tr><td>Product slot limit</td><td>Max products the merchant can register</td><td class="center"><span class="r-dist">All roles</span></td></tr>
-        <tr><td>Chatbot URL</td><td>Chatbot-specific payment link</td><td class="center"><span class="r-dist">All roles</span></td></tr>
-        <tr><td>QR Code generation</td><td>Download QR code for the chatbot payment URL</td><td class="center"><span class="r-dist">All roles</span></td></tr>
-        <tr><td>Embed script</td><td>Code snippet to embed chatbot widget on merchant website</td><td class="center"><span class="r-dist">All roles</span></td></tr>
-        <tr><td>LINE Notify settings</td><td>Configure LINE message alerts for orders</td><td class="center"><span class="r-all">Super Admin (Notification Mgmt)</span></td></tr>
-        <tr><td>Email notification settings</td><td>Configure email alerts for orders</td><td class="center"><span class="r-all">Super Admin (Notification Mgmt)</span></td></tr>
+        <tr><td>Server status monitoring</td><td>API server, DB server response time and health</td></tr>
+        <tr><td>Environment config</td><td>Switch between production and staging environments</td></tr>
+        <tr><td>Log retention policy</td><td>Set transaction log retention period</td></tr>
       </tbody>
     </table>
-    <div class="block-box"><strong>🔒 LINE Notify and email notification settings are Super Admin only.</strong><br>Notification Management is inaccessible to HQ Admin and Distributor. Request changes from the Super Admin.</div>
+
+    <h3 class="sub-title">9-4. Release Notes Tab</h3>
+    <span class="menu-path">HQ Policy &gt; Platform &gt; Release notes tab</span>
+    <p>View the ICOPAY <strong>live version</strong> and per-version upgrade history. Major releases (2.0, 3.0…) vs minor updates (2.1, 2.2…).</p>
+    <table>
+      <thead><tr><th>Item</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Current live version</td><td>Production ICOPAY version (e.g. V2.0)</td></tr>
+        <tr><td>Release notes</td><td>Change log per version (major/minor)</td></tr>
+        <tr><td>Manual sync</td><td>Same versioning as operator &amp; merchant HTML/PDF manuals</td></tr>
+      </tbody>
+    </table>
 
     <hr class="rule">
 
-    <h2 class="section-title">Frequently Asked Questions (FAQ)</h2>
+    <!-- 10. PG Integration -->
+    <h2 class="section-title" id="pg-integration">10. Integration &amp; Deploy — PG Integration <span class="r-all">Super Admin Only</span></h2>
+    <span class="menu-path">Integration &amp; Deploy &gt; PG Integration</span>
+    <p>Register and manage PG provider codes, MIDs, and API keys for ICOPAY-integrated payment gateways.</p>
 
-    <div class="faq-item">
-      <div class="faq-q">An HQ Admin says the Notification Management menu is missing.</div>
-      <div class="faq-a">Notification Management is a Super Admin exclusive menu. HQ Admin and Distributor share the same permissions and cannot access it. Request Notify URL changes from the Super Admin.</div>
-    </div>
-    <div class="faq-item">
-      <div class="faq-q">The Split Pay Email Settings option appears greyed out.</div>
-      <div class="faq-a">Email Settings under Split Pay Management is Super Admin only. Request template changes from the Super Admin.</div>
-    </div>
-    <div class="faq-item">
-      <div class="faq-q">A merchant says the payment URL is not visible after activation.</div>
-      <div class="faq-a">Verify the service's enabled field is set to <code>Y</code> in Merchant Info. With <code>N</code>, the URL is hidden in the merchant portal.</div>
-    </div>
-    <div class="faq-item">
-      <div class="faq-q">Cannot add more chatbot products for a merchant.</div>
-      <div class="faq-a">The merchant has reached its product slot limit. Increase the slot count in Merchant Info &gt; Chatbot Settings.</div>
-    </div>
-    <div class="faq-item">
-      <div class="faq-q">Run Settlement / Distribute Settlement menus are not visible to HQ Admins.</div>
-      <div class="faq-a">These are Super Admin exclusive menus. Request settlement execution from the Super Admin if needed.</div>
-    </div>
-    <div class="faq-item">
-      <div class="faq-q">Where can I find the API documentation?</div>
-      <div class="faq-a">Go to Deploy Settings &gt; API Documentation. This menu is accessible to all roles (Super Admin, HQ Admin, Distributor).</div>
+    <div class="block-box"><strong>🔒 PG MIDs and API keys are never exposed to merchants.</strong> Used for internal routing only.</div>
+
+    <h3 class="sub-title">10-1. PG Code Registration Steps</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">Navigate to <strong>Integration &amp; Deploy &gt; PG Integration</strong></span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">Select or register PG code (integration purpose, MID, Route)</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">Select environment: Sandbox (test) / Production (live)</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">Enter MID, API Key, Secret Key</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc">Run integration test → check response code</span></div>
+      <div class="flow-row"><span class="flow-num">⑥</span><span class="flow-desc">Save → PG becomes selectable in payment routing</span></div>
     </div>
 
-  </div>
+    <table>
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>PG code</td><td>Internal PG identifier (registered PG code)</td></tr>
+        <tr><td>MID (Merchant ID)</td><td>Merchant identifier issued by the PG provider</td></tr>
+        <tr><td>API Key / Secret</td><td>PG API authentication credentials</td></tr>
+        <tr><td>Environment</td><td>Sandbox or Production</td></tr>
+        <tr><td>Supported payment methods</td><td>Check which payment methods this PG handles</td></tr>
+        <tr><td>Supported currencies</td><td>List of currencies this PG can process</td></tr>
+        <tr><td>Integration status</td><td>Active/inactive and last response timestamp</td></tr>
+      </tbody>
+    </table>
+
+    <hr class="rule">
+
+    <!-- 11. Merchant API Launch -->
+    <h2 class="section-title" id="api-launch">11. Integration &amp; Deploy — Merchant API Launch <span class="r-all">Super Admin Only</span></h2>
+    <span class="menu-path">Integration &amp; Deploy &gt; Merchant API Launch Hub</span>
+    <p>A step-by-step wizard to launch the merchant API. Three steps plus an API docs guide panel.</p>
+
+    <h3 class="sub-title">11-1. ① Common Setup Tab</h3>
+    <table>
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>API version</td><td>Select API version to deploy (v1, v2…)</td></tr>
+        <tr><td>Base endpoint path</td><td>Confirm /api/middleware/v1/merchant/checkout/… base path</td></tr>
+        <tr><td>Response format</td><td>Verify JSON structure; pgVendor is always ICOPAY</td></tr>
+        <tr><td>Allowed origins</td><td>Register CORS-allowed domains</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">11-2. ② Merchant Registration Tab</h3>
+    <table>
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Grant API access to merchant</td><td>Authorize specific merchants to use the API</td></tr>
+        <tr><td>API request limits</td><td>Max API requests per minute/day per merchant</td></tr>
+        <tr><td>Allowed IPs</td><td>Whitelist merchant server IPs</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">11-3. ③ Keys &amp; Docs Tab</h3>
+    <table>
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Issue API Key</td><td>Generate or re-generate API Key per merchant</td></tr>
+        <tr><td>Issue Broker Secret</td><td>Issue MerchantPgBrokerVendor.ALL secret for unified API</td></tr>
+        <tr><td>Download deployment kit</td><td>Integration guide PDF and sample code package for merchants</td></tr>
+        <tr><td>Webhook configuration</td><td>Register merchant notify URL (linked to Notify Management)</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">11-4. API Documentation Guide Panel</h3>
+    <table>
+      <thead><tr><th>Payment Type</th><th>API Path</th></tr></thead>
+      <tbody>
+        <tr><td>One-time payment prepare</td><td>/api/middleware/v1/merchant/checkout/prepare</td></tr>
+        <tr><td>One-time payment session</td><td>/api/middleware/v1/merchant/checkout/session</td></tr>
+        <tr><td>One-time payment status</td><td>/api/middleware/v1/merchant/checkout/status</td></tr>
+        <tr><td>Redirect prepare</td><td>/api/middleware/v1/merchant/checkout/redirect/prepare</td></tr>
+        <tr><td>Subscription prepare</td><td>/api/middleware/v1/merchant/checkout/subscription/prepare</td></tr>
+        <tr><td>Subscription cancel</td><td>/api/middleware/v1/merchant/checkout/subscription/cancel</td></tr>
+      </tbody>
+    </table>
+    <div class="info-box">The <code>pgVendor</code> field in all API responses is always <strong>ICOPAY</strong>. PG codes and MIDs are never included in responses.</div>
+
+    <hr class="rule">
+
+    <!-- 12. Merchant Management -->
+    <h2 class="section-title" id="merchant-mgmt">12. Merchant Management <span class="r-dist">All Roles</span></h2>
+    <span class="menu-path">Merchant Management</span>
+
+    <h3 class="sub-title">12-1. Merchant Registration</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">Go to Merchant Registration → click New Registration</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">Basic info: business name, registration number, representative, contact, email, address</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">Settlement info: bank, account number, account holder</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">Enable payment services: web payment, subscription, re-purchase, split, chatbot</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc">Save → merchant code auto-generated → payment URL issued</span></div>
+    </div>
+
+    <h3 class="sub-title">12-2. Merchant Management</h3>
+    <table>
+      <thead><tr><th>Function</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Edit merchant info</td><td>Modify registered merchant basic information</td></tr>
+        <tr><td>Toggle payment services</td><td>Enable/disable each payment service</td></tr>
+        <tr><td>Change merchant status</td><td>Active / Suspended / Terminated</td></tr>
+        <tr><td>Send notices</td><td>Send notices to specific or all merchants</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">12-3. Fee Management</h3>
+    <span class="menu-path">Merchant Management &gt; Fee Management</span>
+    <p>Set individual fee rates per merchant. Takes priority over the HQ Policy default fee rate.</p>
+
+    <h3 class="sub-title">12-4. Merchant Change History</h3>
+    <span class="menu-path">Merchant Management &gt; Merchant Change History</span>
+    <p>View history of merchant information changes: datetime, operator, before/after values.</p>
+
+    <hr class="rule">
+
+    <!-- 13. Payment Management -->
+    <h2 class="section-title" id="payment-mgmt">13. Payment Management</h2>
+    <span class="menu-path">Payment Management</span>
+    <table>
+      <thead><tr><th>Function</th><th>Description</th><th class="center">Super Admin</th><th class="center">HQ/Distributor</th></tr></thead>
+      <tbody>
+        <tr><td>Payment history search</td><td>Filter by period, merchant, method, status</td><td class="icon">✅</td><td class="icon">✅</td></tr>
+        <tr><td>Refund processing</td><td>Payment details → request refund</td><td class="icon">✅</td><td class="icon">✅</td></tr>
+        <tr><td>Receipt resend</td><td>Resend email receipt</td><td class="icon">✅</td><td class="icon">✅</td></tr>
+        <tr><td>Unified history</td><td>View transactions across all PGs</td><td class="icon">✅</td><td class="icon">✅</td></tr>
+        <tr><td>Unified settlement</td><td>Aggregate settlement across all PGs</td><td class="icon">✅</td><td class="icon">❌</td></tr>
+      </tbody>
+    </table>
+
+    <hr class="rule">
+
+    <!-- 14. Settlement Management -->
+    <h2 class="section-title" id="settlement-mgmt">14. Settlement Management</h2>
+    <span class="menu-path">Settlement Management</span>
+    <table>
+      <thead><tr><th>Menu</th><th>Description</th><th class="center">Super Admin</th><th class="center">HQ/Distributor</th></tr></thead>
+      <tbody>
+        <tr><td>Merchant Settlement</td><td>View settlement history per merchant</td><td class="icon">✅</td><td class="icon">✅</td></tr>
+        <tr><td>Run Settlement</td><td>Execute settlement processing</td><td class="icon">✅</td><td class="icon">❌</td></tr>
+        <tr><td>Deploy Settlement</td><td>Distribute settlement results to merchants</td><td class="icon">✅</td><td class="icon">❌</td></tr>
+        <tr><td>Settlement Pending</td><td>Manage on-hold settlements</td><td class="icon">✅</td><td class="icon">❌</td></tr>
+        <tr><td>Fee History</td><td>View fee charge records</td><td class="icon">✅</td><td class="icon">✅</td></tr>
+        <tr><td>Balance History</td><td>Merchant balance status</td><td class="icon">✅</td><td class="icon">✅</td></tr>
+        <tr><td>Arrears History</td><td>Arrears occurrence and processing records</td><td class="icon">✅</td><td class="icon">✅</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">14-1. Settlement Execution Flow (Super Admin Only)</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">Navigate to <strong>Settlement Management &gt; Run Settlement</strong></span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">Select settlement target period (auto-calculated or manual)</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">Confirm target merchants (exclude merchants on hold/chargeback as needed)</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">Click Run → settlement amounts auto-calculated</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc">Go to Deploy Settlement → execute deployment → merchants can view results</span></div>
+    </div>
+
+    <hr class="rule">
+
+    <!-- 15. FAQ -->
+    <h2 class="section-title" id="faq">15. FAQ — Frequently Asked Questions</h2>
+
+    <div class="faq-item">
+      <div class="faq-q">Why did the menu structure change in V2.0?</div>
+      <div class="faq-a">ICOPAY V2.0 consolidates related settings into function-hub screens. Fees &amp; Risk, Payments &amp; URL, Notify Center, and similar areas are managed via tabs on one hub screen. Legacy menu URLs and permission keys are unchanged; sidebar labels use <strong>HQ Policy</strong> (본사정책) with Platform placed after AI &amp; Chatbot.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Can we revert to Layout A (old menu names)?</div>
+      <div class="faq-a">ICOPAY V2.0 is the current menu layout; reverting to LEGACY is optional via <code>?menu=legacy</code>. All functionality remains the same — features are accessible as tabs within V2.0 hubs. For example, the old "Fee Settings" menu is now at HQ Policy &gt; Fees &amp; Risk Hub &gt; Fees Tab. Version history: HQ Policy &gt; Platform &gt; Release notes.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">I'm an HQ account but cannot see the "HQ Policy" menu.</div>
+      <div class="faq-a">"HQ Policy" and "Integration &amp; Deploy" are <strong>Super Admin exclusive</strong> menus. HQ and Distributor roles do not have access. Contact the Super Admin for any configuration changes needed.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">The Run Settlement and Deploy Settlement menus are not visible.</div>
+      <div class="faq-a">Settlement Run, Deploy, Pending, and Unified Settlement are Super Admin-only menus. HQ and Distributor roles can only view settlement results (Merchant Settlement, Fee History, Balance History, etc.).</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Can PG provider MIDs or API keys be exposed to merchants?</div>
+      <div class="faq-a">No. PG MIDs and API keys are used only on ICOPAY's internal servers. They are never included in merchant API responses or notify payloads. Only ICOPAY aggregate MIDs (order_id based) are passed to merchants.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Notify config changes — do they apply to pending retries immediately?</div>
+      <div class="faq-a">Changes take effect immediately after saving. However, notifications already in the retry queue will be processed under the old policy. Only new failures after the change will use the new retry policy.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">When should we re-issue a merchant's API Key?</div>
+      <div class="faq-a">Re-issue in cases of suspected security incident, key leakage, or merchant request. Go to Integration &amp; Deploy &gt; Merchant API Launch &gt; ③ Keys &amp; Docs tab. The old key is immediately invalidated upon re-issuance — update the new key in the merchant's server right away.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Does blacklisting a card in the Risk tab block it across all merchants?</div>
+      <div class="faq-a">Yes. Cards, IPs, or emails registered in the system-wide blacklist are blocked for all merchants using ICOPAY. For merchant-specific blocks only, register separately in that merchant's individual risk settings.</div>
+    </div>
+
+  </div><!-- /.body -->
 
   <div class="footer">
-    ICOPAY Payment Gateway · Operator Setup Manual (HQ Super Admin) · June 2026<br>
-    Content is based on ICOPAY HQ permission settings and may change with system updates.
+    ICOPAY Payment Gateway · Super Admin Operations Manual · Live V2.0 · July 2026<br>
+    This document is intended for Super Admin use only. Subject to change with system updates.
   </div>
-</div>
+</div><!-- /.page-wrap -->
 </body>
 </html>
-
-

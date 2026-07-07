@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICOPAY 加盟店運営マニュアル</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Meiryo', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Noto Sans JP', sans-serif; font-size: 11pt; line-height: 1.75; color: #1a1a1a; background: #f0f2f8; }
+  .page-wrap { max-width: 900px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 18px rgba(0,0,0,.11); overflow: hidden; }
+  .cover { background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 55%, #43a047 100%); color: #fff; padding: 48px 52px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+  .cover-body { flex: 1; }
+  .cover-logo { flex-shrink: 0; display: flex; align-items: flex-start; padding-top: 4px; }
+  .cover-logo img { height: 64px; background: rgba(255,255,255,.92); padding: 10px 18px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.20); }
+  .cover .logo-line { font-size: 13pt; font-weight: 700; letter-spacing: 2px; opacity: .85; margin-bottom: 14px; }
+  .cover h1 { font-size: 24pt; font-weight: 900; line-height: 1.28; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 11pt; opacity: .82; margin-bottom: 24px; }
+  .cover .meta { font-size: 9.5pt; opacity: .65; border-top: 1px solid rgba(255,255,255,.25); padding-top: 14px; }
+  .body { padding: 44px 52px 64px; }
+  .toc { background: #e8f5e9; border-left: 4px solid #2e7d32; border-radius: 0 8px 8px 0; padding: 20px 26px; margin-bottom: 44px; }
+  .toc h2 { font-size: 12pt; font-weight: 700; color: #2e7d32; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { font-size: 10pt; line-height: 2.1; color: #1b5e20; }
+  .toc a { color: #2e7d32; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  h2.section-title { font-size: 15pt; font-weight: 800; color: #1b5e20; border-bottom: 2.5px solid #2e7d32; padding-bottom: 7px; margin: 48px 0 18px; page-break-after: avoid; }
+  h3.sub-title { font-size: 12pt; font-weight: 700; color: #2e7d32; margin: 26px 0 10px; page-break-after: avoid; }
+  p { margin-bottom: 10px; }
+  .info-box  { background: #e3f0ff; border: 1px solid #90caf9; border-left: 4px solid #1565c0; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1a3a5c; }
+  .warn-box  { background: #fff8e1; border: 1px solid #ffe082; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #5d4037; }
+  .check-box { background: #e8f5e9; border: 1px solid #a5d6a7; border-left: 4px solid #2e7d32; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1b5e20; }
+  .block-box { background: #fce4ec; border: 1px solid #f48fb1; border-left: 4px solid #c62828; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #b71c1c; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 22px; font-size: 10pt; page-break-inside: avoid; }
+  th { background: #1b5e20; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #145214; }
+  td { padding: 8px 12px; border: 1px solid #cfd8dc; vertical-align: middle; }
+  tr:nth-child(even) td { background: #f1f8f2; }
+  td.center, th.center { text-align: center; }
+  .menu-path { display: inline-block; background: #eceff1; border: 1px solid #cfd8dc; border-radius: 5px; padding: 3px 12px; font-size: 9.5pt; color: #37474f; font-weight: 600; margin-bottom: 12px; }
+  .menu-path::before { content: "📌 メニュー: "; }
+  .flow { background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; padding: 18px 22px; margin: 14px 0 20px; font-size: 10pt; page-break-inside: avoid; }
+  .flow-row { display: flex; align-items: flex-start; margin-bottom: 6px; }
+  .flow-num { display: inline-block; min-width: 28px; font-weight: 800; color: #2e7d32; flex-shrink: 0; }
+  .flow-desc { color: #37474f; }
+  .faq-item { border: 1px solid #c8e6c9; border-radius: 8px; margin-bottom: 14px; page-break-inside: avoid; }
+  .faq-q { background: #e8f5e9; padding: 11px 16px; font-weight: 700; font-size: 10.5pt; color: #1b5e20; border-radius: 8px 8px 0 0; }
+  .faq-q::before { content: "Q. "; color: #2e7d32; }
+  .faq-a { padding: 11px 16px; font-size: 10pt; color: #37474f; background: #fff; border-radius: 0 0 8px 8px; }
+  .faq-a::before { content: "A. "; font-weight: 700; color: #2e7d32; }
+  hr.rule { border: none; border-top: 1px dashed #c8e6c9; margin: 40px 0; }
+  ul, ol { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+  .footer { background: #1b5e20; color: rgba(255,255,255,.6); text-align: center; font-size: 9pt; padding: 18px 24px; }
+  @media print {
+    body { background: #fff; font-size: 10pt; }
+    .page-wrap { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; }
+    .cover { padding: 28px 36px 24px; }
+    .body { padding: 28px 36px 36px; }
+    .faq-item, table, .flow { page-break-inside: avoid; }
+    .footer { display: none; }
+    @page { size: A4; margin: 18mm 16mm; }
+  }
+</style>
+</head>
+<body>
+<style id="print-btn-style">
+  .print-btn { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #2e7d32; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 10.5pt; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(46,125,50,.45); display: flex; align-items: center; gap: 9px; transition: background .18s, box-shadow .18s; text-decoration: none; }
+  .print-btn:hover { background: #1b5e20; box-shadow: 0 6px 20px rgba(27,94,32,.5); }
+  @media print { .print-btn { display: none !important; } }
+</style>
+<button class="print-btn" onclick="window.print()">🖨️ 印刷 / PDF保存</button>
+<div class="page-wrap">
+  <div class="cover">
+    <div class="cover-body">
+      <div class="logo-line">ICOPAY · Payment Gateway</div>
+      <h1>加盟店運営<br>マニュアル</h1>
+      <div class="subtitle">加盟店情報の確認から決済履歴・精算・定期決済・チャットボット・分割払いまで — 加盟店運営者向け完全ガイド</div>
+      <div class="meta">ICOPAY Merchant Operations Manual · 加盟店ロール &nbsp;|&nbsp; 対象: 加盟店運営者 &nbsp;|&nbsp; V2.0 · 2026年7月</div>
+    </div>
+    <div class="cover-logo">
+      <img src="./logo-ontheline.png" alt="On The Line">
+    </div>
+  </div>
+
+  <div class="body">
+
+    <div class="check-box" style="margin-bottom:36px;">
+      <strong>✅ ICOPAY 統合決済プラットフォームのご案内</strong><br><br>
+      ICOPAYは加盟店と<strong>単一契約</strong>を結んだ統合決済プラットフォームです。個別の決済代行業者（PG）情報は開示されず、すべての決済・精算はICOPAYブランドで統合処理されます。<br><br>
+      <ul style="margin:6px 0 0; padding-left:18px;">
+        <li>ポータルURL: <strong>https://icopay.co.kr</strong></li>
+        <li>決済URL: <strong>https://icopay.co.kr/checkout/{加盟店コード}</strong></li>
+        <li>カスタマーサポート: <strong>https://icopay.co.kr</strong></li>
+      </ul>
+    </div>
+
+    <div class="toc">
+      <h2>📋 目次</h2>
+      <ol>
+        <li><a href="#overview">ICOPAY 加盟店ポータル概要</a></li>
+        <li><a href="#merchant-info">加盟店情報の確認</a></li>
+        <li><a href="#api-portal">API連携（加盟店APIポータル）</a></li>
+        <li><a href="#payment-history">決済履歴の照会</a></li>
+        <li><a href="#url-payment">URL決済（ウェブ決済）の利用</a></li>
+        <li><a href="#subscription">定期決済の管理</a></li>
+        <li><a href="#settlement">精算の確認</a></li>
+        <li><a href="#chatbot">チャットボット管理（チャットボット決済利用加盟店）</a></li>
+        <li><a href="#split">分割払い管理（分割払い利用加盟店）</a></li>
+        <li><a href="#user-mgmt">ユーザーアカウント管理</a></li>
+        <li><a href="#faq">よくある質問（FAQ）</a></li>
+      </ol>
+    </div>
+
+    <div class="warn-box" style="margin-bottom: 24px;">
+      <strong>📋 命名原則</strong><br><br>
+      ICOPAYは単一APIの背後で複数の決済代行会社を統合するプラットフォームです。本マニュアルの統合機能（チェックアウト、URL決済、統合取引等）では中立的なICOPAY用語を使用します。<strong>「JPAY専用」</strong>表記はJPAY固有機能にのみ使用されます。
+    </div>
+
+    <hr class="rule">
+
+    <!-- 1. ポータル概要 -->
+    <h2 class="section-title" id="overview">1. ICOPAY 加盟店ポータル概要</h2>
+
+    <h3 class="sub-title">1-1. ログイン方法</h3>
+    <p>ICOPAY加盟店ポータルには、以下のURLからウェブブラウザでアクセスします。</p>
+    <div class="info-box">
+      ポータルURL: <strong>https://icopay.co.kr</strong><br>
+      推奨ブラウザ: Chrome、Edge、Firefoxの最新バージョン
+    </div>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc"><strong>https://icopay.co.kr</strong> にアクセス</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">ICOPAYから発行された<strong>ID（メールアドレス）</strong>と<strong>パスワード</strong>を入力</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc"><strong>ログイン</strong>ボタンをクリック</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">初回ログイン時にパスワード変更の案内が表示される場合があります</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc">ログイン完了後、<strong>ダッシュボード</strong>画面に遷移</span></div>
+    </div>
+    <div class="warn-box">
+      <strong>注意:</strong> アカウント情報（ID・パスワード）を他者と共有しないでください。アカウントに関する問題はICOPAYカスタマーサポート(https://icopay.co.kr)にお問い合わせください。
+    </div>
+
+    <h3 class="sub-title">1-2. ダッシュボード画面の説明</h3>
+    <p>ログイン後に表示されるダッシュボードでは、主要な決済状況を一覧で確認できます。</p>
+    <table>
+      <thead><tr><th>ウィジェット</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>本日の決済件数</td><td>当日の決済成功件数および合計金額</td></tr>
+        <tr><td>今月の決済状況</td><td>月間累計決済金額・件数</td></tr>
+        <tr><td>未精算残高</td><td>精算待ちの金額</td></tr>
+        <tr><td>最近の決済履歴</td><td>直近5〜10件の決済サマリー</td></tr>
+        <tr><td>定期決済サマリー</td><td>アクティブな定期購読者数（定期決済利用時）</td></tr>
+        <tr><td>通知</td><td>決済失敗、返金リクエスト、精算アラート</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">1-3. メニュー構成</h3>
+    <p>加盟店ロールでアクセス可能なメニューは以下のとおりです。</p>
+    <table>
+      <thead><tr><th>メニュー</th><th>サブメニュー</th><th>主な機能</th></tr></thead>
+      <tbody>
+        <tr><td>加盟店管理</td><td>加盟店情報照会</td><td>加盟店情報・決済設定の確認</td></tr>
+        <tr><td>加盟店API</td><td>加盟店APIポータル</td><td>APIキー・ブローカーシークレット・連携ドキュメント</td></tr>
+        <tr><td rowspan="5">決済管理</td><td>決済履歴 / 統合履歴</td><td>全取引照会および詳細</td></tr>
+        <tr><td>URL決済履歴</td><td>ウェブ決済取引照会</td></tr>
+        <tr><td>チャットボット決済履歴</td><td>チャットボット決済取引照会</td></tr>
+        <tr><td>定期決済履歴</td><td>定期購読状況・決済履歴</td></tr>
+        <tr><td>返金申請</td><td>返金リクエストと処理状況</td></tr>
+        <tr><td rowspan="4">精算管理</td><td>加盟店精算履歴</td><td>精算支払い履歴の照会</td></tr>
+        <tr><td>手数料履歴</td><td>手数料明細の照会</td></tr>
+        <tr><td>残高履歴</td><td>未精算残高の確認</td></tr>
+        <tr><td>精算保留履歴</td><td>保留中の精算取引照会</td></tr>
+        <tr><td rowspan="3">チャットボット管理</td><td>基本設定</td><td>チャットボット運営モード・基本設定</td></tr>
+        <tr><td>商品管理</td><td>チャットボット商品の登録・編集・削除</td></tr>
+        <tr><td>注文管理</td><td>チャットボット注文の照会・処理</td></tr>
+        <tr><td rowspan="2">分割払い管理</td><td>進捗管理</td><td>分割契約状況の照会</td></tr>
+        <tr><td>メール管理</td><td>分割払いメール送信履歴</td></tr>
+        <tr><td>ユーザー管理</td><td>ユーザー管理</td><td>加盟店内部アカウント管理</td></tr>
+      </tbody>
+    </table>
+
+    <hr class="rule">
+
+    <!-- 2. 加盟店情報 -->
+    <h2 class="section-title" id="merchant-info">2. 加盟店情報の確認</h2>
+    <span class="menu-path">加盟店管理 &gt; 加盟店情報照会</span>
+
+    <h3 class="sub-title">2-1. 基本情報の確認</h3>
+    <table>
+      <thead><tr><th>項目</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>加盟店名</td><td>ICOPAYに登録された正式な加盟店名称</td></tr>
+        <tr><td>加盟店コード</td><td>決済URLに使用される固有コード</td></tr>
+        <tr><td>事業者番号</td><td>登録済みの事業者・税務番号</td></tr>
+        <tr><td>代表者名</td><td>法人または個人事業主の代表者</td></tr>
+        <tr><td>連絡先 / メール</td><td>加盟店担当者の連絡先</td></tr>
+        <tr><td>精算口座</td><td>精算支払い用の銀行口座情報</td></tr>
+        <tr><td>有効な決済サービス</td><td>URL決済・定期決済・チャットボット・分割払いの有効状況</td></tr>
+      </tbody>
+    </table>
+    <div class="info-box">
+      加盟店コードは決済URL（<code>https://icopay.co.kr/checkout/{加盟店コード}</code>）に含まれます。コードの変更が必要な場合はICOPAY担当者にお問い合わせください。
+    </div>
+
+    <h3 class="sub-title">2-2. 決済設定の確認</h3>
+    <table>
+      <thead><tr><th>設定項目</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>URL決済URL</td><td><code>https://icopay.co.kr/checkout/{加盟店コード}</code></td></tr>
+        <tr><td>定期決済URL</td><td><code>https://icopay.co.kr/checkout-subscribe/{加盟店コード}</code></td></tr>
+        <tr><td>決済通貨</td><td>許可された決済通貨リスト（THB、USD、KRWなど）</td></tr>
+        <tr><td>リダイレクトURL</td><td>決済完了後に顧客がリダイレクトされるURL</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">2-3. パスワードの変更</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">右上のプロフィールアイコンをクリック → <strong>アカウント設定</strong>または<strong>パスワード変更</strong>を選択</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">現在のパスワードを入力</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">新しいパスワードを入力（英字・数字・記号の組み合わせ8文字以上推奨）</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">新しいパスワードを再入力</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc"><strong>保存</strong>をクリックして完了</span></div>
+    </div>
+
+    <hr class="rule">
+
+    <!-- 3. API連携 -->
+    <h2 class="section-title" id="api-portal">3. API連携（加盟店APIポータル）</h2>
+    <span class="menu-path">加盟店API &gt; 加盟店APIポータル</span>
+
+    <h3 class="sub-title">3-1. APIキーとブローカーシークレットの確認</h3>
+    <table>
+      <thead><tr><th>キー</th><th>説明</th><th>用途</th></tr></thead>
+      <tbody>
+        <tr><td>APIキー（公開キー）</td><td>加盟店識別用の公開キー</td><td>リクエストヘッダーに含める</td></tr>
+        <tr><td>ブローカーシークレット</td><td>サーバー間通信用の秘密キー</td><td>サーバーサイドAPI認証</td></tr>
+        <tr><td>加盟店コード（compId）</td><td>システム内部の加盟店識別子</td><td>APIエンドポイントのパラメータ</td></tr>
+      </tbody>
+    </table>
+    <div class="block-box">
+      <strong>⚠️ ブローカーシークレットのセキュリティ警告:</strong> ブローカーシークレットはクライアントサイドコード（ブラウザ・アプリ）に絶対に公開しないでください。必ずサーバーサイドのみで使用してください。
+    </div>
+
+    <h3 class="sub-title">3-2. API連携ドキュメント</h3>
+    <table>
+      <thead><tr><th>API種別</th><th>エンドポイント</th><th>説明</th></tr></thead>
+      <tbody>
+        <tr><td>一回払い（準備）</td><td><code>/api/middleware/v1/merchant/checkout/prepare</code></td><td>決済セッション作成</td></tr>
+        <tr><td>一回払い（セッション）</td><td><code>/api/middleware/v1/merchant/checkout/session</code></td><td>決済ウィンドウ起動</td></tr>
+        <tr><td>決済状態照会</td><td><code>/api/middleware/v1/merchant/checkout/status</code></td><td>決済結果の確認</td></tr>
+        <tr><td>定期決済準備</td><td><code>/api/middleware/v1/merchant/checkout/subscription/prepare</code></td><td>定期決済開始</td></tr>
+        <tr><td>定期決済解約</td><td><code>/api/middleware/v1/merchant/checkout/subscription/cancel</code></td><td>定期決済のキャンセル</td></tr>
+        <tr><td>リダイレクト決済</td><td><code>/api/middleware/v1/merchant/checkout/redirect/prepare</code></td><td>URLリダイレクト決済</td></tr>
+      </tbody>
+    </table>
+    <div class="check-box">
+      すべてのAPI応答の<code>pgVendor</code>フィールドは常に<strong>ICOPAY</strong>として返されます。実際の決済処理事業者（PG）情報はセキュリティポリシー上、開示されません。
+    </div>
+
+    <h3 class="sub-title">3-3. テスト / 本番環境の切り替え</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">APIポータル上部の<strong>環境切り替え</strong>トグルで<strong>テスト（Sandbox）</strong>または<strong>本番（Production）</strong>を選択</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">テスト環境では実際の課金は発生しません（テストカード番号を使用）</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">本番切り替え時は本番用APIキーに必ず変更</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">本番環境に完全移行する前にテスト環境で十分に検証してください</span></div>
+    </div>
+
+    <hr class="rule">
+
+    <!-- 4. 決済履歴 -->
+    <h2 class="section-title" id="payment-history">4. 決済履歴の照会</h2>
+    <span class="menu-path">決済管理 &gt; 決済履歴</span>
+
+    <h3 class="sub-title">4-1. 期間・状態別の照会</h3>
+    <table>
+      <thead><tr><th>検索条件</th><th>オプション</th></tr></thead>
+      <tbody>
+        <tr><td>期間</td><td>本日 / 直近7日 / 直近30日 / カスタム日付範囲</td></tr>
+        <tr><td>決済状態</td><td>全件 / 成功 / 失敗 / キャンセル / 返金 / 保留</td></tr>
+        <tr><td>決済手段</td><td>クレジットカード / ウォレット送金 / QRコード / 銀行振込</td></tr>
+        <tr><td>注文番号</td><td>加盟店の注文番号で検索</td></tr>
+        <tr><td>取引番号</td><td>ICOPAYシステムの取引IDで検索</td></tr>
+        <tr><td>金額範囲</td><td>最小金額〜最大金額フィルター</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4-2. 取引詳細の照会</h3>
+    <table>
+      <thead><tr><th>詳細項目</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>取引番号</td><td>ICOPAY固有の取引識別番号</td></tr>
+        <tr><td>注文番号</td><td>加盟店が生成した注文番号</td></tr>
+        <tr><td>決済金額</td><td>最終請求金額および通貨</td></tr>
+        <tr><td>決済日時</td><td>決済処理時刻（現地時間）</td></tr>
+        <tr><td>決済手段</td><td>カード種類、末尾4桁など</td></tr>
+        <tr><td>決済状態</td><td>成功・失敗・キャンセル・返金</td></tr>
+        <tr><td>顧客情報</td><td>購入者名・メールアドレス（マスキング）</td></tr>
+        <tr><td>返金履歴</td><td>返金処理履歴と残高</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4-3. 返金申請の方法</h3>
+    <span class="menu-path">決済管理 &gt; 決済履歴 &gt; 詳細 &gt; 返金申請</span>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">決済履歴から返金する取引を選択 → <strong>詳細を見る</strong></span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc"><strong>返金申請</strong>ボタンをクリック</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">返金金額を入力（全額または部分返金）</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">返金理由を入力</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc"><strong>返金リクエスト</strong>をクリックして処理開始</span></div>
+      <div class="flow-row"><span class="flow-num">⑥</span><span class="flow-desc">返金完了後、ステータスが<strong>返金完了</strong>に更新</span></div>
+    </div>
+    <div class="warn-box">
+      <strong>返金可能条件:</strong>
+      <ul style="margin:6px 0 0; padding-left:18px;">
+        <li>決済成功状態の取引のみ返金可能</li>
+        <li>決済後の一定期間内（通常90日）のみ返金申請可能</li>
+        <li>既に返金完了した金額は再返金不可</li>
+        <li>部分返金は元の決済金額を超えることはできません</li>
+      </ul>
+    </div>
+
+    <hr class="rule">
+
+    <!-- 5. URL決済 -->
+    <h2 class="section-title" id="url-payment">5. URL決済（ウェブ決済）の利用</h2>
+    <span class="menu-path">決済管理 &gt; URL決済履歴</span>
+
+    <h3 class="sub-title">5-1. 決済リンクの確認と共有</h3>
+    <div class="info-box">
+      決済URL形式: <strong>https://icopay.co.kr/checkout/{加盟店コード}</strong><br>
+      加盟店コードは加盟店管理 &gt; 加盟店情報照会で確認できます。
+    </div>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">加盟店情報照会で<strong>URL決済URL</strong>を確認</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">コピーボタンをクリックしてURLをコピー</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">メール、SNS、SMS等で顧客にリンクを送付</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">顧客がリンクにアクセス → 決済情報入力 → 決済完了</span></div>
+    </div>
+
+    <h3 class="sub-title">5-2. 決済ページのプレビュー</h3>
+    <ul>
+      <li>PC / モバイル画面プレビューの切り替え</li>
+      <li>加盟店ロゴ、ボタンテキストなどの表示確認</li>
+      <li>QRコード生成 — モバイル決済用QRコードのダウンロード</li>
+    </ul>
+
+    <h3 class="sub-title">5-3. 決済成功・失敗履歴の照会</h3>
+    <table>
+      <thead><tr><th>照会項目</th><th>説明</th></tr></thead>
+      <tbody>
+        <tr><td>決済日時</td><td>URL決済の処理時刻</td></tr>
+        <tr><td>決済金額</td><td>リクエスト金額と実請求金額</td></tr>
+        <tr><td>決済状態</td><td>成功 / 失敗 / キャンセル / 返金</td></tr>
+        <tr><td>失敗理由</td><td>カード限度超過、無効なカード情報など</td></tr>
+        <tr><td>購入者</td><td>購入者名・メールアドレス（マスキング）</td></tr>
+      </tbody>
+    </table>
+
+    <hr class="rule">
+
+    <!-- 6. 定期決済 -->
+    <h2 class="section-title" id="subscription">6. 定期決済の管理</h2>
+    <span class="menu-path">決済管理 &gt; 定期決済履歴</span>
+
+    <h3 class="sub-title">6-1. 定期決済状況の照会</h3>
+    <table>
+      <thead><tr><th>状態</th><th>説明</th></tr></thead>
+      <tbody>
+        <tr><td>アクティブ</td><td>正常に進行中の定期決済</td></tr>
+        <tr><td>一時停止</td><td>定期決済が一時中断された状態</td></tr>
+        <tr><td>解約済み</td><td>定期決済の解約が完了</td></tr>
+        <tr><td>期限切れ</td><td>定期決済の期間終了</td></tr>
+        <tr><td>決済失敗</td><td>決済試行が失敗した状態</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">6-2. 定期決済の解約処理</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">定期決済履歴から解約する定期決済を選択</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">詳細画面で<strong>定期決済解約</strong>ボタンをクリック</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">解約理由を入力（任意）</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">解約確認 → 即時解約処理完了</span></div>
+    </div>
+    <div class="warn-box">
+      解約後、次回請求日に決済は発生しません。現在の請求期間の金額は原則として返金されません（サービスポリシーにより異なる場合があります）。
+    </div>
+
+    <h3 class="sub-title">6-3. 定期決済の詳細履歴</h3>
+    <ul>
+      <li>定期決済開始日、次回請求日、累計決済回数の確認</li>
+      <li>回次別の決済成功・失敗履歴</li>
+      <li>決済失敗時の再試行スケジュール確認</li>
+      <li>定期決済金額変更履歴</li>
+    </ul>
+
+    <hr class="rule">
+
+    <!-- 7. 精算 -->
+    <h2 class="section-title" id="settlement">7. 精算の確認</h2>
+    <span class="menu-path">精算管理 &gt; 加盟店精算履歴</span>
+
+    <h3 class="sub-title">7-1. 精算履歴の照会</h3>
+    <table>
+      <thead><tr><th>照会項目</th><th>説明</th></tr></thead>
+      <tbody>
+        <tr><td>精算期間</td><td>精算対象の決済日付範囲</td></tr>
+        <tr><td>精算金額</td><td>手数料控除後の実支払い金額</td></tr>
+        <tr><td>決済合計金額</td><td>期間内の決済合計金額</td></tr>
+        <tr><td>手数料合計</td><td>ICOPAYサービス手数料の合計</td></tr>
+        <tr><td>精算状態</td><td>精算完了 / 精算待ち / 保留</td></tr>
+        <tr><td>支払日</td><td>実際の口座振込予定日</td></tr>
+        <tr><td>支払口座</td><td>精算支払い先の銀行口座</td></tr>
+      </tbody>
+    </table>
+    <div class="info-box">
+      精算サイクル（日次・週次・月次）はICOPAYとの契約条件によって決まります。精算サイクルの変更が必要な場合はICOPAY担当者にご連絡ください。
+    </div>
+
+    <h3 class="sub-title">7-2. 手数料履歴の確認</h3>
+    <span class="menu-path">精算管理 &gt; 手数料履歴</span>
+    <table>
+      <thead><tr><th>項目</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>手数料率</td><td>決済手段別の適用手数料率（%）</td></tr>
+        <tr><td>決済金額</td><td>手数料計算の基準となる元の決済金額</td></tr>
+        <tr><td>手数料金額</td><td>決済金額 × 手数料率</td></tr>
+        <tr><td>消費税</td><td>手数料に対する消費税</td></tr>
+        <tr><td>純精算額</td><td>決済金額 − 手数料 − 消費税</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">7-3. 精算保留履歴の確認</h3>
+    <span class="menu-path">精算管理 &gt; 精算保留履歴</span>
+    <p>以下の理由により精算が保留されることがあります：</p>
+    <ul>
+      <li>返金処理中の取引</li>
+      <li>チャージバック（異議申し立て）進行中の取引</li>
+      <li>不審取引として審査中</li>
+      <li>口座情報エラーによる支払い保留</li>
+    </ul>
+
+    <h3 class="sub-title">7-4. 残高・未収金の確認</h3>
+    <span class="menu-path">精算管理 &gt; 残高履歴</span>
+    <ul>
+      <li>未精算残高の累計照会</li>
+      <li>次回精算予定日および予定金額の確認</li>
+      <li>月次精算状況チャート</li>
+    </ul>
+
+    <hr class="rule">
+
+    <!-- 8. チャットボット管理 -->
+    <h2 class="section-title" id="chatbot">8. チャットボット管理（チャットボット決済利用加盟店）</h2>
+    <span class="menu-path">チャットボット管理</span>
+    <div class="info-box">
+      チャットボット管理メニューは、ICOPAYからチャットボット決済サービスが有効化された加盟店にのみ表示されます。サービスの申し込みはICOPAY担当者にお問い合わせください。
+    </div>
+
+    <h3 class="sub-title">8-1. チャットボット基本設定</h3>
+    <span class="menu-path">チャットボット管理 &gt; 基本設定</span>
+    <table>
+      <thead><tr><th>設定項目</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>チャットボット名</td><td>顧客に表示されるチャットボット名称</td></tr>
+        <tr><td>運営モード</td><td>販売・予約・ハイブリッド・対面後払いから選択</td></tr>
+        <tr><td>対応言語</td><td>サポート言語の設定（日本語・英語・韓国語など）</td></tr>
+        <tr><td>ウェルカムメッセージ</td><td>チャットボット起動時に表示されるあいさつ文</td></tr>
+        <tr><td>チャットボット決済URL</td><td>顧客と共有するチャットボット決済リンク</td></tr>
+        <tr><td>QRコード</td><td>チャットボットリンク用QRコードのダウンロード</td></tr>
+        <tr><td>埋め込みコード</td><td>ウェブサイトにチャットボットウィジェットを挿入するスクリプト</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">8-2. 商品の登録と管理</h3>
+    <span class="menu-path">チャットボット管理 &gt; 商品管理</span>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">商品管理メニューへ → <strong>商品登録</strong>をクリック</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">商品名・説明・価格・通貨・在庫状況を入力</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">商品画像をアップロード（JPG/PNG、推奨最大2MB）</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">カテゴリの指定と表示順序の設定</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc"><strong>保存</strong>→ 即座にチャットボットで商品が表示される</span></div>
+    </div>
+    <div class="warn-box">
+      登録可能な商品数は契約済みのスロット上限内に限られます。上限に達した場合はICOPAY担当者にスロット数の増加をご依頼ください。
+    </div>
+
+    <h3 class="sub-title">8-3. チャットボット注文履歴と処理</h3>
+    <span class="menu-path">チャットボット管理 &gt; 注文管理</span>
+    <table>
+      <thead><tr><th>照会項目</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>注文番号</td><td>チャットボット注文の固有番号</td></tr>
+        <tr><td>顧客情報</td><td>購入者名・連絡先（マスキング）</td></tr>
+        <tr><td>注文商品</td><td>注文商品リストと数量</td></tr>
+        <tr><td>決済金額</td><td>合計請求金額</td></tr>
+        <tr><td>決済状態</td><td>支払済 / 支払待ち / キャンセル</td></tr>
+        <tr><td>注文日時</td><td>注文受付時刻</td></tr>
+      </tbody>
+    </table>
+    <ul>
+      <li>注文詳細から返金処理が可能</li>
+      <li>注文への内部処理メモの追加</li>
+      <li>注文履歴のCSVエクスポート</li>
+    </ul>
+
+    <hr class="rule">
+
+    <!-- 9. 分割払い管理 -->
+    <h2 class="section-title" id="split">9. 分割払い管理（分割払い利用加盟店）</h2>
+    <span class="menu-path">分割払い管理</span>
+    <div class="info-box">
+      分割払い管理メニューは、ICOPAYから分割払いサービスが有効化された加盟店にのみ表示されます。サービスの申し込みはICOPAY担当者にお問い合わせください。
+    </div>
+
+    <h3 class="sub-title">9-1. 分割契約の進捗確認</h3>
+    <span class="menu-path">分割払い管理 &gt; 進捗管理</span>
+    <table>
+      <thead><tr><th>項目</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>契約番号</td><td>分割契約の固有番号</td></tr>
+        <tr><td>合計金額</td><td>契約全体の金額</td></tr>
+        <tr><td>分割回数</td><td>合計分割回数</td></tr>
+        <tr><td>完了回数</td><td>支払い完了した回次数</td></tr>
+        <tr><td>未完了回数</td><td>未払いの回次数</td></tr>
+        <tr><td>契約状態</td><td>進行中 / 完了 / キャンセル / 延滞</td></tr>
+        <tr><td>次回支払期限</td><td>次の回次支払期限日</td></tr>
+      </tbody>
+    </table>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">進捗管理メニューで契約一覧を確認</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">個別契約をクリック → 回次別の支払い状況を確認</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">各回次の決済URLをコピーして顧客に再送付可能</span></div>
+    </div>
+
+    <h3 class="sub-title">9-2. メール送信履歴</h3>
+    <span class="menu-path">分割払い管理 &gt; メール管理</span>
+    <table>
+      <thead><tr><th>メール種別</th><th>送信タイミング</th></tr></thead>
+      <tbody>
+        <tr><td>支払い案内メール</td><td>各回次の支払期限到来時</td></tr>
+        <tr><td>支払い完了メール</td><td>回次支払い成功時</td></tr>
+        <tr><td>支払い失敗メール</td><td>回次支払い失敗時</td></tr>
+        <tr><td>期限間近リマインダー</td><td>支払期限のD-3、D-1</td></tr>
+        <tr><td>契約完了メール</td><td>全回次の支払い完了時</td></tr>
+      </tbody>
+    </table>
+
+    <hr class="rule">
+
+    <!-- 10. ユーザー管理 -->
+    <h2 class="section-title" id="user-mgmt">10. ユーザーアカウント管理</h2>
+    <span class="menu-path">ユーザー管理 &gt; ユーザー管理</span>
+
+    <h3 class="sub-title">10-1. 内部ユーザーの追加</h3>
+    <p>加盟店管理者は社内スタッフにICOPAYポータルのアクセス権を付与できます。</p>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">ユーザー管理メニューへ → <strong>ユーザー追加</strong>をクリック</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">名前・メールアドレス（ログインID）・連絡先を入力</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">権限レベルを設定 — 閲覧のみ / 決済管理 / 精算照会 / フルアクセス</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">仮パスワードの自動生成または手動入力</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc"><strong>保存</strong>→ 新しいユーザーにメールでアカウント情報が送付される</span></div>
+    </div>
+
+    <h3 class="sub-title">10-2. 権限レベル</h3>
+    <table>
+      <thead><tr><th>権限レベル</th><th>アクセス可能な機能</th></tr></thead>
+      <tbody>
+        <tr><td>閲覧のみ</td><td>決済・精算履歴の閲覧のみ（返金・編集不可）</td></tr>
+        <tr><td>決済管理</td><td>決済履歴の閲覧 + 返金申請が可能</td></tr>
+        <tr><td>精算照会</td><td>精算関連メニューの照会が可能</td></tr>
+        <tr><td>フルアクセス</td><td>加盟店ポータルの全機能（ユーザー管理含む）</td></tr>
+      </tbody>
+    </table>
+    <div class="warn-box">
+      加盟店ユーザーはICOPAYシステム設定・他の加盟店データ・本社/総販設定にはアクセスできません。自社加盟店のデータのみ照会・管理できます。
+    </div>
+
+    <hr class="rule">
+
+    <!-- FAQ -->
+    <h2 class="section-title" id="faq">11. よくある質問（FAQ）</h2>
+
+    <div class="faq-item">
+      <div class="faq-q">返金申請後、顧客への返金完了までどのくらいかかりますか？</div>
+      <div class="faq-a">返金申請後の処理は通常、営業日ベースで3〜7日かかります。決済手段（クレジットカード・ウォレット・QRなど）と元の決済日によって異なります。返金処理状況は決済履歴 &gt; 返金タブで確認できます。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">APIのブローカーシークレットを紛失・漏洩した可能性があります。再発行できますか？</div>
+      <div class="faq-a">加盟店API &gt; 加盟店APIポータルで<strong>シークレット再発行</strong>ボタンをクリックすると、即座に新しいシークレットが発行されます。再発行後、旧シークレットは無効になります。直ちにサーバー設定を新しいシークレットに更新してください。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">定期決済の解約を受け付けました。現在の請求期間分を返金する必要がありますか？</div>
+      <div class="faq-a">現在の請求期間の返金はサービスポリシーによります。定期決済履歴で対象の定期決済を解約し、必要に応じて決済履歴から当該決済への部分または全額返金を別途申請してください。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">精算はいつ支払われますか？精算スケジュールを事前に確認できますか？</div>
+      <div class="faq-a">精算サイクル（日次・週次・月次）と支払日はICOPAYとの契約条件によります。精算管理 &gt; 加盟店精算履歴で次回精算予定日を確認できます。精算スケジュールの変更が必要な場合はICOPAY担当者にご相談ください。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">パスワードを忘れました。どうすれば再設定できますか？</div>
+      <div class="faq-a">ICOPAYログイン画面の<strong>パスワードをお忘れの方</strong>をクリックして、登録済みメールアドレスにリセットリンクを受け取ってください。メールにアクセスできない場合はICOPAYカスタマーサポート(https://icopay.co.kr)にご連絡ください。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">決済通知（Webhook/Notify）URLはどこで設定しますか？</div>
+      <div class="faq-a">決済通知URLの設定は加盟店ポータルから直接変更できず、ICOPAYの運営チームが管理します。通知URLの登録・変更が必要な場合はICOPAY担当者にご依頼ください。決済状態のリアルタイム確認は<code>/api/middleware/v1/merchant/checkout/status</code>で直接照会できます。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">チャットボット商品を追加できません。「スロット上限に達しました」というメッセージが表示されます。</div>
+      <div class="faq-a">契約済みの商品スロット上限に達しています。使用していない商品を無効化または削除してスロットを確保するか、ICOPAY担当者にスロット数の増加をご依頼ください。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">決済履歴をExcelでダウンロードできますか？</div>
+      <div class="faq-a">決済履歴・URL決済履歴・定期決済履歴・精算履歴などの主要な照会画面に<strong>CSVエクスポート</strong>または<strong>Excelダウンロード</strong>ボタンがあります。検索条件を設定してからエクスポートすると、フィルタリングされたデータのみダウンロードされます。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">分割払い契約中に顧客が一回次の支払いをしていません。どう対処すれば良いですか？</div>
+      <div class="faq-a">分割払い管理 &gt; 進捗管理で該当契約の未完了回次を確認してください。その回次の決済URLをコピーして顧客に再送付できます。支払期限を過ぎている場合はメール管理から再送処理を行うか、ICOPAY担当者に延滞処理方法をお問い合わせください。</div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    ICOPAY Payment Gateway · 加盟店運営マニュアル · V2.0 · 2026年7月<br>
+    本ドキュメントはICOPAY加盟店ロールの権限を基準としており、システムのアップデートにより変更される場合があります。<br>
+    カスタマーサポート: https://icopay.co.kr
+  </div>
+</div>
+</body>
+</html>

@@ -555,6 +555,15 @@ public class ApiPayController {
         return urlPayCheckoutContext(merchantId, compId, null, request);
     }
 
+    /** ElementPay 결제 페이지 — {@link #urlPayCheckoutContext} 와 동일. */
+    @GetMapping("/elementpay/checkout-context")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> elementpayCheckoutContext(
+            @RequestParam(required = false) Long merchantId,
+            @RequestParam(required = false) String compId,
+            HttpServletRequest request) {
+        return urlPayCheckoutContext(merchantId, compId, null, request);
+    }
+
     /**
      * Eximbay 결과(SDK/return_url) 쿼리스트링 위·변조 검증 — {@code /v1/payments/verify} 위임.
      * 프론트가 결과 표시 전 무결성을 확인하는 보조 엔드포인트(서버 측 확정은 status_url 웹훅이 담당).

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+  <title>ICOPAY Easy Payment</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/pay-inline.css?v=37" rel="stylesheet">
+  <script src="js/pg-pay-submit-guard.js?v=1"></script>
+  <script src="js/checkout-header-subtitle-presets.js?v=1"></script>
+  <script src="js/url-pay-public-shell.js?v=13"></script>
+  <script src="js/elementpay-pay-msg-i18n.js?v=1"></script>
+  <style>
+    .ep-method-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+    .ep-method-btn { flex: 1 1 45%; border: 1px solid #dee2e6; border-radius: 8px; padding: 10px; background: #fff; }
+    .ep-method-btn.active { border-color: #0d6efd; background: #eef4ff; font-weight: 600; }
+    .ep-qr-wrap { text-align: center; margin: 12px 0; }
+    .ep-qr-wrap img { max-width: 220px; height: auto; }
+    .ep-iframe-wrap iframe { width: 100%; min-height: 520px; border: 0; border-radius: 8px; }
+  </style>
+</head>
+<body class="pay-inline-body">
+  <div class="pay-shell">
+    <div class="pay-card">
+      <div class="pay-brand">
+        <div class="pay-brand-logo">ICOPAY</div>
+        <div class="pay-brand-sub" data-i18n="brandSub">Thailand Payment (THB)</div>
+      </div>
+      <div class="pay-lang" role="group" aria-label="Language" data-i18n-aria="langGroup">
+        <button type="button" data-lang="JPN">JPN</button>
+        <button type="button" data-lang="KOR">KOR</button>
+        <button type="button" data-lang="ENG">ENG</button>
+        <button type="button" data-lang="CHN">CHN</button>
+        <button type="button" data-lang="THA">THA</button>
+      </div>
+      <div id="configError" class="alert alert-warning pay-alert-config" style="display:none;"></div>
+      <div id="payResult" class="pay-result" style="display:none;"></div>
+      <div id="epPaymentPanel" style="display:none;">
+        <div id="epQrPanel" class="ep-qr-wrap" style="display:none;"></div>
+        <div id="epIframePanel" class="ep-iframe-wrap" style="display:none;"></div>
+      </div>
+      <form id="epForm" autocomplete="off">
+        <input type="hidden" id="compIdHidden" name="compId">
+        <input type="hidden" id="orderNo" name="orderNo">
+        <input type="hidden" id="paymentMethod" name="paymentMethod" value="CARD">
+        <div class="pay-form-grid mb-3">
+          <div class="pay-row pay-row-static">
+            <div class="pay-row-label"><span data-i18n="merchant">Merchant</span></div>
+            <div class="pay-row-value"><span id="merchantNameDisplay">—</span></div>
+          </div>
+          <div class="pay-row">
+            <label class="pay-row-label mb-0" for="item"><span data-i18n="item">Item</span></label>
+            <div class="pay-row-value"><input type="text" class="form-control form-control-sm pay-input-round" id="item" required></div>
+          </div>
+          <div class="pay-row">
+            <label class="pay-row-label mb-0" for="amount"><span data-i18n="amount">Amount</span> <span class="pay-currency-hint text-muted fw-normal" id="payAmountCurrencyHint">(THB)</span></label>
+            <div class="pay-row-value">
+              <input type="number" class="form-control form-control-sm pay-input-round" id="amount" required min="0.01" step="0.01">
+            </div>
+          </div>
+        </div>
+        <div class="pay-label mb-1"><span data-i18n="payMethod">Payment method</span></div>
+        <div class="ep-method-grid mb-3" id="epMethodGrid" role="group"></div>
+        <div class="row g-2 mb-2">
+          <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payFirstname" data-i18n-placeholder="firstName" required></div>
+          <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payLastname" data-i18n-placeholder="lastName" required></div>
+        </div>
+        <div class="row g-2 mb-2">
+          <div class="col-12"><input type="email" class="form-control form-control-sm pay-input-round" id="payEmailAddress" data-i18n-placeholder="email" required></div>
+          <div class="col-12"><input type="tel" class="form-control form-control-sm pay-input-round" id="payTelephone" data-i18n-placeholder="phoneOptional" inputmode="tel"></div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-pay w-100" id="submitBtn" data-i18n="pay">Pay</button>
+        <p class="small text-muted mt-2 mb-0 text-center" data-i18n="hostedNote"></p>
+      </form>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var PAY_ENTRY_MERCHANT_API = (function () {
+        try { return String(new URLSearchParams(location.search).get('entry') || '').toLowerCase() === 'merchant_api'; } catch (e) { return false; }
+      })();
+      var API_BASE = (function () {
+        try { if (location.hostname === 'api.icopay.co.kr') return location.origin.replace(/\/$/, ''); } catch (e0) {}
+        return (window.PG_API_BASE || location.origin || '').replace(/\/$/, '');
+      })();
+      var LANG = 'ENG';
+      var I18N = {
+        KOR: { title: 'ICOPAY 간편결제', brandSub: '태국 결제 (THB)', merchant: '가맹점', item: '상품명', amount: '금액', payMethod: '결제수단', firstName: '이름', lastName: '성', email: '이메일', phoneOptional: '전화(선택)', pay: '결제하기', hostedNote: '카드·PromptPay는 ElementPay 호스티드 창에서 처리됩니다.', mCard: '신용카드', mPromptPay: 'PromptPay', payComplete: '결제 완료', payFailed: '결제 실패', pgMissing: '결제 설정이 없습니다.', errInvalidSession: '세션이 유효하지 않습니다.', scanQr: 'QR 코드를 스캔하여 결제하세요.', langGroup: '언어' },
+        ENG: { title: 'ICOPAY Easy Payment', brandSub: 'Thailand Payment (THB)', merchant: 'Merchant', item: 'Item', amount: 'Amount', payMethod: 'Payment method', firstName: 'First name', lastName: 'Last name', email: 'Email', phoneOptional: 'Phone (optional)', pay: 'Pay', hostedNote: 'Card and PromptPay are processed on the hosted payment page.', mCard: 'Credit Card', mPromptPay: 'PromptPay', payComplete: 'Payment complete', payFailed: 'Payment failed', pgMissing: 'Payment is not configured.', errInvalidSession: 'Invalid session.', scanQr: 'Scan the QR code to pay.', langGroup: 'Language' },
+        JPN: { title: 'ICOPAY 簡単決済', brandSub: 'タイ決済 (THB)', merchant: '加盟店', item: '商品名', amount: '金額', payMethod: '決済方法', firstName: '名', lastName: '姓', email: 'メール', phoneOptional: '電話(任意)', pay: '支払う', hostedNote: 'カード・PromptPayはホスト型決済画面で処理されます。', mCard: 'クレジットカード', mPromptPay: 'PromptPay', payComplete: '決済完了', payFailed: '決済失敗', pgMissing: '決済設定がありません。', errInvalidSession: 'セッションが無効です。', scanQr: 'QRコードをスキャンしてお支払いください。', langGroup: '言語' },
+        CHN: { title: 'ICOPAY 便捷支付', brandSub: '泰国支付 (THB)', merchant: '商户', item: '商品', amount: '金额', payMethod: '支付方式', firstName: '名', lastName: '姓', email: '邮箱', phoneOptional: '电话(可选)', pay: '支付', hostedNote: '信用卡与PromptPay在托管支付页处理。', mCard: '信用卡', mPromptPay: 'PromptPay', payComplete: '支付完成', payFailed: '支付失败', pgMissing: '未配置支付。', errInvalidSession: '会话无效。', scanQr: '请扫描二维码完成支付。', langGroup: '语言' },
+        THA: { title: 'ICOPAY ชำระเงิน', brandSub: 'ชำระเงินไทย (THB)', merchant: 'ร้านค้า', item: 'สินค้า', amount: 'จำนวนเงิน', payMethod: 'วิธีชำระ', firstName: 'ชื่อ', lastName: 'นามสกุล', email: 'อีเมล', phoneOptional: 'โทรศัพท์ (ไม่บังคับ)', pay: 'ชำระเงิน', hostedNote: 'บัตรและ PromptPay ดำเนินการบนหน้าชำระเงิน', mCard: 'บัตรเครดิต', mPromptPay: 'PromptPay', payComplete: 'ชำระเงินสำเร็จ', payFailed: 'ชำระเงินไม่สำเร็จ', pgMissing: 'ยังไม่ได้ตั้งค่าการชำระเงิน', errInvalidSession: 'เซสชันไม่ถูกต้อง', scanQr: 'สแกน QR เพื่อชำระเงิน', langGroup: 'ภาษา' }
+      };
+      function t(k) { var p = I18N[LANG] || I18N.ENG; return p[k] != null ? p[k] : (I18N.ENG[k] || k); }
+      function localizeMsg(msg, code) {
+        if (window.PG_ELEMENTPAY_PAY_MSG && PG_ELEMENTPAY_PAY_MSG.translate && code) {
+          var tr = PG_ELEMENTPAY_PAY_MSG.translate(code, LANG);
+          if (tr && tr !== code) return tr;
+        }
+        return msg || t('payFailed');
+      }
+      function setLang(code) {
+        var c = String(code || '').toUpperCase();
+        if (c === 'KO' || c === 'KR') c = 'KOR';
+        if (c === 'EN') c = 'ENG';
+        if (c === 'JA' || c === 'JP') c = 'JPN';
+        if (c === 'ZH' || c === 'CN') c = 'CHN';
+        if (c === 'TH') c = 'THA';
+        if (['KOR','ENG','CHN','JPN','THA'].indexOf(c) < 0) return;
+        LANG = c; applyI18n(); renderMethods();
+      }
+      function applyI18n() {
+        document.querySelectorAll('[data-i18n]').forEach(function (el) { var k = el.getAttribute('data-i18n'); if (k) el.textContent = t(k); });
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) { var k = el.getAttribute('data-i18n-placeholder'); if (k) el.setAttribute('placeholder', t(k)); });
+        document.querySelectorAll('.pay-lang button[data-lang]').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-lang') === LANG); });
+        document.title = t('title');
+      }
+      var methodList = [{ key: 'CARD' }, { key: 'PROMPTPAY' }];
+      function renderMethods() {
+        var grid = document.getElementById('epMethodGrid');
+        if (!grid) return;
+        var sel = (document.getElementById('paymentMethod').value || 'CARD').toUpperCase();
+        grid.innerHTML = '';
+        methodList.forEach(function (m) {
+          var key = String(m.key || '').toUpperCase();
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'ep-method-btn' + (key === sel ? ' active' : '');
+          btn.textContent = key === 'PROMPTPAY' ? t('mPromptPay') : t('mCard');
+          btn.addEventListener('click', function () {
+            document.getElementById('paymentMethod').value = key;
+            renderMethods();
+          });
+          grid.appendChild(btn);
+        });
+      }
+      function getCompId() {
+        try { var p = new URLSearchParams(location.search); return (p.get('m') || p.get('compId') || '').trim(); } catch (e) { return ''; }
+      }
+      function apiUrl(path) { return API_BASE + path; }
+      function fetchJson(url, opts) {
+        return fetch(url, opts || { credentials: 'omit', cache: 'no-store' }).then(function (r) {
+          return r.text().then(function (text) {
+            var j = text ? JSON.parse(text) : {};
+            if (!r.ok) throw new Error((j.message) || text);
+            return j;
+          });
+        });
+      }
+      function showErr(msg) {
+        document.getElementById('configError').style.display = 'block';
+        document.getElementById('configError').textContent = msg;
+        document.getElementById('epForm').style.display = 'none';
+      }
+      function showResult(ok, msg) {
+        document.getElementById('epForm').style.display = 'none';
+        document.getElementById('epPaymentPanel').style.display = 'none';
+        var el = document.getElementById('payResult');
+        el.style.display = 'block';
+        el.className = ok ? 'ok pay-result-final' : 'err pay-result-final';
+        el.innerHTML = '<div class="pay-result-title">' + (ok ? t('payComplete') : t('payFailed')) + '</div><p>' + msg + '</p>';
+      }
+      var sessionPayload = null;
+      function lockField(id, val) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        if (val != null && String(val).trim() !== '') el.value = String(val).trim();
+        el.readOnly = true;
+      }
+      function validateSession() {
+        if (!PAY_ENTRY_MERCHANT_API) return Promise.resolve();
+        var tok = '';
+        try { tok = (new URLSearchParams(location.search).get('session') || '').trim(); } catch (e) {}
+        if (!tok) return Promise.reject(new Error(t('errInvalidSession')));
+        return fetchJson(apiUrl('/api/middleware/v1/merchant/checkout/session?token=' + encodeURIComponent(tok)))
+          .then(function (res) {
+            if (!res.success || !res.data) throw new Error(t('errInvalidSession'));
+            sessionPayload = res.data;
+            lockField('orderNo', res.data.orderNo);
+            lockField('amount', res.data.amount);
+            lockField('item', res.data.productName);
+          });
+      }
+      function buildOrderNo(compId) {
+        var c = String(compId || 'X').replace(/[^0-9A-Za-z]/g, '').slice(0, 6);
+        return ('EP' + c + Date.now()).slice(0, 40);
+      }
+      function showPaymentUi(data) {
+        document.getElementById('epForm').style.display = 'none';
+        document.getElementById('epPaymentPanel').style.display = 'block';
+        var qr = document.getElementById('epQrPanel');
+        var iframePanel = document.getElementById('epIframePanel');
+        qr.style.display = 'none';
+        iframePanel.style.display = 'none';
+        if (data.qrCodeDataUri) {
+          qr.style.display = 'block';
+          qr.innerHTML = '<p>' + t('scanQr') + '</p><img src="' + data.qrCodeDataUri + '" alt="QR">';
+        } else if (data.redirectUrl) {
+          location.href = data.redirectUrl;
+        } else if (data.lightIframeUrl) {
+          iframePanel.style.display = 'block';
+          iframePanel.innerHTML = '<iframe src="' + data.lightIframeUrl + '" title="payment"></iframe>';
+        }
+      }
+      document.querySelectorAll('.pay-lang button[data-lang]').forEach(function (b) {
+        b.addEventListener('click', function () { setLang(b.getAttribute('data-lang')); });
+      });
+      document.getElementById('epForm').addEventListener('submit', function (ev) {
+        ev.preventDefault();
+        if (window.PG_PAY_SUBMIT_GUARD && PG_PAY_SUBMIT_GUARD.lock(document.getElementById('submitBtn'))) return;
+        var compId = getCompId() || document.getElementById('compIdHidden').value;
+        var body = {
+          compId: compId,
+          orderNo: document.getElementById('orderNo').value.trim() || buildOrderNo(compId),
+          amount: document.getElementById('amount').value,
+          currency: 'THB',
+          item: document.getElementById('item').value,
+          paymentMethod: document.getElementById('paymentMethod').value,
+          payFirstname: document.getElementById('payFirstname').value,
+          payLastname: document.getElementById('payLastname').value,
+          payEmailAddress: document.getElementById('payEmailAddress').value,
+          payTelephone: document.getElementById('payTelephone').value,
+          lang: LANG,
+          entry: PAY_ENTRY_MERCHANT_API ? 'merchant_api' : 'url'
+        };
+        fetchJson(apiUrl('/api/pay/url/sale'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          credentials: 'omit',
+          cache: 'no-store'
+        }).then(function (res) {
+          if (!res.success) throw new Error(localizeMsg(res.message, res.errorCode));
+          showPaymentUi(res.data || res);
+        }).catch(function (err) {
+          showResult(false, err.message || t('payFailed'));
+        }).finally(function () {
+          if (window.PG_PAY_SUBMIT_GUARD) PG_PAY_SUBMIT_GUARD.unlock(document.getElementById('submitBtn'));
+        });
+      });
+      var compId = getCompId();
+      document.getElementById('compIdHidden').value = compId;
+      try {
+        var ret = new URLSearchParams(location.search).get('elementpayReturn');
+        if (ret === 'success') showResult(true, t('payComplete'));
+        else if (ret === 'reject') showResult(false, t('payFailed'));
+      } catch (eR) {}
+      renderMethods();
+      applyI18n();
+      validateSession().then(function () {
+        if (!compId) { showErr(t('pgMissing')); return; }
+        return fetchJson(apiUrl('/api/pay/url/checkout-context?compId=' + encodeURIComponent(compId)));
+      }).then(function (ctxRes) {
+        if (!ctxRes || !ctxRes.success || !ctxRes.data) return;
+        var ctx = ctxRes.data;
+        if (ctx.merchantName) document.getElementById('merchantNameDisplay').textContent = ctx.merchantName;
+        if (Array.isArray(ctx.elementPayPaymentMethods) && ctx.elementPayPaymentMethods.length) {
+          methodList = ctx.elementPayPaymentMethods;
+          renderMethods();
+        }
+      }).catch(function (err) {
+        if (err && err.message) showErr(err.message);
+      });
+    })();
+  </script>
+</body>
+</html>

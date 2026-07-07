@@ -14,7 +14,7 @@ import java.io.IOException;
 
 /**
  * <strong>노티 미들웨어(ICOPAY 수신층)</strong> 공개 URL.
- * ChillPay·NOTI 등에서 등록하는 콜백 주소로 이 베이스({@code /api/middleware/notify/v1/pg-notify})를 쓰면,
+ * ChillPay·ElementPay·NOTI 등에서 등록하는 콜백 주소로 이 베이스({@code /api/middleware/notify/v1/pg-notify})를 쓰면,
  * 레거시 경로({@code /api/open/pg-notify})와 <strong>동일한</strong> {@link PgNotifyReceiveService} 처리·가맹점 아웃바운드 분기가 적용됩니다.
  */
 @RestController

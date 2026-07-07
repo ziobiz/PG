@@ -77,6 +77,26 @@
 
 서버는 내부에서 ChillPay 호환 JSON 으로 합성한 뒤, 기존 노티 수신과 동일 파이프로 `pg_trnsctn` 에 반영합니다.
 
+## ElementPay (THB) — 노티미들웨어 경유 (ChillPay와 동일)
+
+ElementPay 웹훅도 **PG가 ICOPAY를 직접 호출하지 않습니다.** ChillPay·Eximbay 와 같이 **외부 NOTI(노티미들웨어)** 가 중간에서 수신·재전송합니다.
+
+| 단계 | 설정 |
+|------|------|
+| 1. ElementPay 캐비net | Webhook URL → **NOTI 서버** (ICOPAY URL 아님) |
+| 2. NOTI → ICOPAY | `POST {공개베이스}/api/middleware/notify/v1/pg-notify/{ingressToken}/ELEMENTPAY` |
+| 3. ICOPAY 처리 | `check`/`pay` → ElementPay 전용 JSON+HMAC 응답 / `payment.*` → `pg_trnsctn` 반영 후 가맹 outbound 노티 |
+
+**NOTI 필수:** `check`·`pay` 에 대해 ICOPAY가 돌려준 `{response,hash}` 본문을 **그대로** ElementPay에 반환해야 합니다 (ChillPay용 `{success,processed}` 변환 규칙 적용 금지).
+
+**가맹 비식별 (결제대행사에 개별 가맹 노출 방지):**
+
+- ElementPay Merchant Key·Secret 은 **ICOPAY 본사 집계 1세트**만 등록 (`tb_pg_agency` `ELEMENTPAY` 행).
+- 결제 API·웹훅에 가맹 **업체코드·MID를 넣지 않음** — 내부는 `order` 로 `pg_trnsctn` 에서 가맹 복원.
+- 구매자 복귀 URL은 중립 경로(`/elementpay-pay.html`) — `/checkout/{compId}` 미사용.
+
+배포설정 `ELEMENTPAY` 행: `integ_noti_yn=Y`, `integ_url_pay_yn=Y` (마이그레이션 `V229_elementpay_pg_agency.sql`).
+
 ## 로컬 vs 서버 환경
 
 - **기능 개발·연동 테스트**: 로컬에서 Spring Boot + 관리자(site)로 충분합니다.  

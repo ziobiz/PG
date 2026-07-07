@@ -23,6 +23,7 @@ public class MerchantUnifiedRedirectCheckoutService {
     private final MerchantChillpayRedirectCheckoutService chillpayRedirectCheckoutService;
     private final MerchantJpayRedirectCheckoutService jpayRedirectCheckoutService;
     private final MerchantEximbayInlineCheckoutService eximbayInlineCheckoutService;
+    private final MerchantElementPayInlineCheckoutService elementPayInlineCheckoutService;
     private final MerchantInlineCheckoutTokenService tokenService;
     private final MerchantChatbotProductService productService;
     private final MerchantApiIntegrationChannelService integrationChannelService;
@@ -31,6 +32,7 @@ public class MerchantUnifiedRedirectCheckoutService {
                                                   MerchantChillpayRedirectCheckoutService chillpayRedirectCheckoutService,
                                                   MerchantJpayRedirectCheckoutService jpayRedirectCheckoutService,
                                                   MerchantEximbayInlineCheckoutService eximbayInlineCheckoutService,
+                                                  MerchantElementPayInlineCheckoutService elementPayInlineCheckoutService,
                                                   MerchantInlineCheckoutTokenService tokenService,
                                                   MerchantChatbotProductService productService,
                                                   MerchantApiIntegrationChannelService integrationChannelService) {
@@ -38,6 +40,7 @@ public class MerchantUnifiedRedirectCheckoutService {
         this.chillpayRedirectCheckoutService = chillpayRedirectCheckoutService;
         this.jpayRedirectCheckoutService = jpayRedirectCheckoutService;
         this.eximbayInlineCheckoutService = eximbayInlineCheckoutService;
+        this.elementPayInlineCheckoutService = elementPayInlineCheckoutService;
         this.tokenService = tokenService;
         this.productService = productService;
         this.integrationChannelService = integrationChannelService;
@@ -73,8 +76,9 @@ public class MerchantUnifiedRedirectCheckoutService {
         if (PgVendor.isJpayFamily(opPg)) {
             result = jpayRedirectCheckoutService.prepare(orgUnitId, enriched, request);
         } else if (PgVendor.isEximbayFamily(opPg)) {
-            // Eximbay 는 호스티드 결제창 — 동일 세션 준비로 중립 결제창 payUrl 을 반환
             result = eximbayInlineCheckoutService.prepare(orgUnitId, enriched, request);
+        } else if (PgVendor.isElementPayFamily(opPg)) {
+            result = elementPayInlineCheckoutService.prepare(orgUnitId, enriched, request);
         } else if (PgVendor.isChillPayFamily(opPg)) {
             result = chillpayRedirectCheckoutService.prepare(orgUnitId, enriched, request);
         } else {

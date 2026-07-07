@@ -78,7 +78,7 @@
       <div class="logo-line">ICOPAY · Payment Gateway</div>
       <h1>运营者设置手册<br>总本部（超级管理员）</h1>
       <div class="subtitle">总本部完整指南 — 商家注册、网页支付、订阅支付、再购买支付、分期付款及聊天机器人支付全面设置</div>
-      <div class="meta">参考: ICOPAY 总部权限设置 &nbsp;|&nbsp; 适用对象: 总本部超级管理员 &nbsp;|&nbsp; 发布: 2026年6月</div>
+      <div class="meta">参考: ICOPAY 总部权限设置 &nbsp;|&nbsp; 适用对象: 总本部超级管理员 &nbsp;|&nbsp; V2.0 · 2026年7月</div>
     </div>
     <div class="cover-logo">
       <img src="./logo-ontheline.png" alt="On The Line">
@@ -142,6 +142,11 @@
       </ul>
     </div>
 
+    <div class="warn-box" style="margin-bottom: 24px;">
+      <strong>📋 命名原则</strong><br><br>
+      ICOPAY是在单一API背后整合多个支付处理器的平台。本手册对统一功能（结账、URL支付、整合交易等）使用中性的ICOPAY术语。<strong>「JPAY专用」</strong>标注仅用于JPAY专属功能。
+    </div>
+
     <hr class="rule">
 
     <h2 class="section-title" id="merchant">1. 商家注册</h2>
@@ -161,7 +166,7 @@
     <table>
       <thead><tr><th>服务</th><th>启用字段</th><th>备注</th></tr></thead>
       <tbody>
-        <tr><td>网页支付（URL支付）</td><td>启用网页支付 <code>Y/N</code></td><td>基于ChillPay集成</td></tr>
+        <tr><td>网页支付（URL支付）</td><td>启用网页支付 <code>Y/N</code></td><td>ICOPAY 统一 checkout</td></tr>
         <tr><td>订阅支付</td><td>启用订阅支付 <code>Y/N</code></td><td>需配置订阅计划</td></tr>
         <tr><td>再购买支付</td><td>启用再购买支付 <code>Y/N</code></td><td>复用已保存的支付令牌</td></tr>
         <tr><td>URL分期付款</td><td>启用分期付款 <code>Y/N</code></td><td>需在分期管理中创建合同</td></tr>
@@ -355,7 +360,7 @@
   </div>
 
   <div class="footer">
-    ICOPAY Payment Gateway · 运营者设置手册（总本部） · 2026年6月发行<br>
+    ICOPAY Payment Gateway · 运营者设置手册（总本部） · V2.0 · 2026年7月<br>
     本文档内容基于ICOPAY总部权限设置，可能随系统更新而变更。
   </div>
 </div>

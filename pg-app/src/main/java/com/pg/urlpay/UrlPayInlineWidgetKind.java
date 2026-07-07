@@ -13,6 +13,8 @@ public final class UrlPayInlineWidgetKind {
     public static final String JPAY_INLINE = "JPAY_INLINE";
     /** Eximbay JS SDK 결제창({@code eximbay-pay.html}) — 카드정보 미보유(호스티드) */
     public static final String EXIMBAY_SDK = "EXIMBAY_SDK";
+    /** ElementPay THB 결제창({@code elementpay-pay.html}) — 카드·PromptPay */
+    public static final String ELEMENTPAY_INLINE = "ELEMENTPAY_INLINE";
     /** 본사 REDIRECT 플로우 — 카드 인라인 없음 */
     public static final String REDIRECT_ONLY = "REDIRECT_ONLY";
     /** 인라인 미구현 — 안내 배너만 */

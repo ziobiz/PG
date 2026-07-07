@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICOPAY 가맹점 운영 매뉴얼</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; font-size: 11pt; line-height: 1.75; color: #1a1a1a; background: #f0f2f8; }
+  .page-wrap { max-width: 900px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 18px rgba(0,0,0,.11); overflow: hidden; }
+  .cover { background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 55%, #43a047 100%); color: #fff; padding: 48px 52px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+  .cover-body { flex: 1; }
+  .cover-logo { flex-shrink: 0; display: flex; align-items: flex-start; padding-top: 4px; }
+  .cover-logo img { height: 64px; background: rgba(255,255,255,.92); padding: 10px 18px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.20); }
+  .cover .logo-line { font-size: 13pt; font-weight: 700; letter-spacing: 2px; opacity: .85; margin-bottom: 14px; }
+  .cover h1 { font-size: 24pt; font-weight: 900; line-height: 1.28; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 11pt; opacity: .82; margin-bottom: 24px; }
+  .cover .meta { font-size: 9.5pt; opacity: .65; border-top: 1px solid rgba(255,255,255,.25); padding-top: 14px; }
+  .body { padding: 44px 52px 64px; }
+  .toc { background: #e8f5e9; border-left: 4px solid #2e7d32; border-radius: 0 8px 8px 0; padding: 20px 26px; margin-bottom: 44px; }
+  .toc h2 { font-size: 12pt; font-weight: 700; color: #2e7d32; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { font-size: 10pt; line-height: 2.1; color: #1b5e20; }
+  .toc a { color: #2e7d32; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  h2.section-title { font-size: 15pt; font-weight: 800; color: #1b5e20; border-bottom: 2.5px solid #2e7d32; padding-bottom: 7px; margin: 48px 0 18px; page-break-after: avoid; }
+  h3.sub-title { font-size: 12pt; font-weight: 700; color: #2e7d32; margin: 26px 0 10px; page-break-after: avoid; }
+  p { margin-bottom: 10px; }
+  .info-box  { background: #e3f0ff; border: 1px solid #90caf9; border-left: 4px solid #1565c0; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1a3a5c; }
+  .warn-box  { background: #fff8e1; border: 1px solid #ffe082; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #5d4037; }
+  .check-box { background: #e8f5e9; border: 1px solid #a5d6a7; border-left: 4px solid #2e7d32; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1b5e20; }
+  .block-box { background: #fce4ec; border: 1px solid #f48fb1; border-left: 4px solid #c62828; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #b71c1c; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 22px; font-size: 10pt; page-break-inside: avoid; }
+  th { background: #1b5e20; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #145214; }
+  td { padding: 8px 12px; border: 1px solid #cfd8dc; vertical-align: middle; }
+  tr:nth-child(even) td { background: #f1f8f2; }
+  td.center, th.center { text-align: center; }
+  .menu-path { display: inline-block; background: #eceff1; border: 1px solid #cfd8dc; border-radius: 5px; padding: 3px 12px; font-size: 9.5pt; color: #37474f; font-weight: 600; margin-bottom: 12px; }
+  .menu-path::before { content: "📌 메뉴: "; }
+  .flow { background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; padding: 18px 22px; margin: 14px 0 20px; font-size: 10pt; page-break-inside: avoid; }
+  .flow-row { display: flex; align-items: flex-start; margin-bottom: 6px; }
+  .flow-num { display: inline-block; min-width: 28px; font-weight: 800; color: #2e7d32; flex-shrink: 0; }
+  .flow-desc { color: #37474f; }
+  .faq-item { border: 1px solid #c8e6c9; border-radius: 8px; margin-bottom: 14px; page-break-inside: avoid; }
+  .faq-q { background: #e8f5e9; padding: 11px 16px; font-weight: 700; font-size: 10.5pt; color: #1b5e20; border-radius: 8px 8px 0 0; }
+  .faq-q::before { content: "Q. "; color: #2e7d32; }
+  .faq-a { padding: 11px 16px; font-size: 10pt; color: #37474f; background: #fff; border-radius: 0 0 8px 8px; }
+  .faq-a::before { content: "A. "; font-weight: 700; color: #2e7d32; }
+  hr.rule { border: none; border-top: 1px dashed #c8e6c9; margin: 40px 0; }
+  ul, ol { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+  .footer { background: #1b5e20; color: rgba(255,255,255,.6); text-align: center; font-size: 9pt; padding: 18px 24px; }
+  @media print {
+    body { background: #fff; font-size: 10pt; }
+    .page-wrap { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; }
+    .cover { padding: 28px 36px 24px; }
+    .body { padding: 28px 36px 36px; }
+    .faq-item, table, .flow { page-break-inside: avoid; }
+    .footer { display: none; }
+    @page { size: A4; margin: 18mm 16mm; }
+  }
+</style>
+</head>
+<body>
+<style id="print-btn-style">
+  .print-btn { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #2e7d32; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 10.5pt; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(46,125,50,.45); display: flex; align-items: center; gap: 9px; transition: background .18s, box-shadow .18s; text-decoration: none; }
+  .print-btn:hover { background: #1b5e20; box-shadow: 0 6px 20px rgba(27,94,32,.5); }
+  @media print { .print-btn { display: none !important; } }
+</style>
+<button class="print-btn" onclick="window.print()">🖨️ 인쇄 / PDF 저장</button>
+<div class="page-wrap">
+  <div class="cover">
+    <div class="cover-body">
+      <div class="logo-line">ICOPAY · Payment Gateway</div>
+      <h1>가맹점 운영<br>매뉴얼</h1>
+      <div class="subtitle">업체정보 확인부터 결제내역·정산·구독·챗봇·분할결제까지 — 가맹점 운영자를 위한 완전 가이드</div>
+      <div class="meta">ICOPAY Merchant Operations Manual · 가맹점 역할 &nbsp;|&nbsp; 대상: 가맹점 운영자 &nbsp;|&nbsp; V2.0 · 2026년 7월</div>
+    </div>
+    <div class="cover-logo">
+      <img src="./logo-ontheline.png" alt="On The Line">
+    </div>
+  </div>
+
+  <div class="body">
+
+    <div class="check-box" style="margin-bottom:36px;">
+      <strong>✅ ICOPAY 통합 결제 플랫폼 안내</strong><br><br>
+      ICOPAY는 가맹점과 <strong>단일 계약</strong>을 맺은 통합 결제 플랫폼입니다. 개별 PG사(결제대행사)의 정보는 노출되지 않으며, 모든 결제·정산은 ICOPAY 브랜드로 통합 처리됩니다.<br><br>
+      <ul style="margin:6px 0 0; padding-left:18px;">
+        <li>포털 주소: <strong>https://icopay.co.kr</strong></li>
+        <li>결제 URL: <strong>https://icopay.co.kr/checkout/{업체코드}</strong></li>
+        <li>고객 지원: <strong>https://icopay.co.kr</strong></li>
+      </ul>
+    </div>
+
+    <div class="toc">
+      <h2>📋 목차</h2>
+      <ol>
+        <li><a href="#overview">ICOPAY 가맹점 포털 개요</a></li>
+        <li><a href="#merchant-info">업체정보 확인</a></li>
+        <li><a href="#api-portal">API 연동 (가맹점 API 포털)</a></li>
+        <li><a href="#payment-history">결제내역 조회</a></li>
+        <li><a href="#url-payment">URL결제 (웹결제) 사용</a></li>
+        <li><a href="#subscription">구독결제 관리</a></li>
+        <li><a href="#settlement">정산 확인</a></li>
+        <li><a href="#chatbot">챗봇결제 설정 (챗봇결제 사용 가맹점)</a></li>
+        <li><a href="#split">분할결제 관리 (분할결제 사용 가맹점)</a></li>
+        <li><a href="#user-mgmt">사용자 계정 관리</a></li>
+        <li><a href="#faq">자주 묻는 질문 (FAQ)</a></li>
+      </ol>
+    </div>
+
+    <div class="warn-box" style="margin-bottom: 24px;">
+      <strong>📋 명명 원칙</strong><br><br>
+      ICOPAY는 단일 API 뒤에서 여러 결제대행사를 통합하는 플랫폼입니다. 본 매뉴얼의 통합 기능(체크아웃, URL결제, 통합거래 등)은 중립적인 ICOPAY 용어를 사용합니다. <strong>「JPAY 전용」</strong> 표기는 JPAY에만 해당하는 기능에만 사용됩니다.
+    </div>
+
+    <hr class="rule">
+
+    <!-- 1. 포털 개요 -->
+    <h2 class="section-title" id="overview">1. ICOPAY 가맹점 포털 개요</h2>
+
+    <h3 class="sub-title">1-1. 로그인 방법</h3>
+    <p>ICOPAY 가맹점 포털은 웹 브라우저에서 아래 주소로 접속합니다.</p>
+    <div class="info-box">
+      포털 주소: <strong>https://icopay.co.kr</strong><br>
+      지원 브라우저: Chrome, Edge, Firefox 최신 버전 권장
+    </div>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc"><strong>https://icopay.co.kr</strong> 접속</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">ICOPAY로부터 발급받은 <strong>아이디(이메일)</strong>와 <strong>비밀번호</strong> 입력</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc"><strong>로그인</strong> 버튼 클릭</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">최초 로그인 시 비밀번호 변경 안내가 표시될 수 있음</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc">로그인 완료 후 <strong>대시보드</strong> 화면으로 이동</span></div>
+    </div>
+    <div class="warn-box">
+      <strong>주의:</strong> 계정 정보(아이디·비밀번호)는 타인과 공유하지 마세요. 계정 문제는 ICOPAY 고객 지원(https://icopay.co.kr)으로 문의하세요.
+    </div>
+
+    <h3 class="sub-title">1-2. 대시보드 화면 설명</h3>
+    <p>로그인 후 표시되는 대시보드는 주요 결제 현황을 한눈에 확인할 수 있는 요약 화면입니다.</p>
+    <table>
+      <thead><tr><th>위젯</th><th>내용</th></tr></thead>
+      <tbody>
+        <tr><td>오늘 결제 건수</td><td>당일 결제 성공 건수 및 총액</td></tr>
+        <tr><td>이번 달 결제 현황</td><td>월별 누적 결제 금액·건수</td></tr>
+        <tr><td>미정산 잔액</td><td>정산 대기 중인 금액</td></tr>
+        <tr><td>최근 결제 내역</td><td>최근 5~10건 결제 요약</td></tr>
+        <tr><td>구독 현황 요약</td><td>활성 구독자 수 (구독결제 사용 시)</td></tr>
+        <tr><td>알림</td><td>결제 실패, 환불 요청, 정산 알림</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">1-3. 메뉴 구조 안내</h3>
+    <p>가맹점 역할로 접근 가능한 메뉴는 다음과 같습니다.</p>
+    <table>
+      <thead><tr><th>메뉴</th><th>하위 메뉴</th><th>주요 기능</th></tr></thead>
+      <tbody>
+        <tr><td>업체관리</td><td>업체정보조회</td><td>내 업체 정보·결제 설정 확인</td></tr>
+        <tr><td>가맹점API</td><td>가맹점 API 포털</td><td>API 키·브로커 시크릿·연동 문서</td></tr>
+        <tr><td rowspan="5">결제관리</td><td>결제내역 / 통합내역</td><td>전체 결제 조회 및 상세</td></tr>
+        <tr><td>URL결제내역</td><td>URL(웹)결제 거래 조회</td></tr>
+        <tr><td>챗봇결제내역</td><td>챗봇 결제 거래 조회</td></tr>
+        <tr><td>구독결제내역</td><td>구독 상태 및 결제 이력</td></tr>
+        <tr><td>환불신청</td><td>환불 요청 및 처리 현황</td></tr>
+        <tr><td rowspan="4">정산관리</td><td>가맹점정산내역</td><td>정산 지급 내역 조회</td></tr>
+        <tr><td>수수료내역</td><td>수수료 부과 내역 조회</td></tr>
+        <tr><td>잔액내역</td><td>미정산 잔액 확인</td></tr>
+        <tr><td>정산보류내역</td><td>보류 처리된 정산 건 조회</td></tr>
+        <tr><td rowspan="3">챗봇관리</td><td>기본설정</td><td>챗봇 운영 모드·기본 설정</td></tr>
+        <tr><td>상품관리</td><td>챗봇 상품 등록·수정·삭제</td></tr>
+        <tr><td>주문관리</td><td>챗봇 주문 조회 및 처리</td></tr>
+        <tr><td rowspan="2">분할관리</td><td>진행관리</td><td>분할 계약 현황 조회</td></tr>
+        <tr><td>이메일관리</td><td>분할결제 이메일 발송 내역</td></tr>
+        <tr><td>사용자관리</td><td>사용자관리</td><td>가맹점 내부 계정 관리</td></tr>
+      </tbody>
+    </table>
+
+    <hr class="rule">
+
+    <!-- 2. 업체정보 확인 -->
+    <h2 class="section-title" id="merchant-info">2. 업체정보 확인</h2>
+    <span class="menu-path">업체관리 &gt; 업체정보조회</span>
+
+    <h3 class="sub-title">2-1. 업체 기본 정보 확인</h3>
+    <p>업체관리 메뉴에서 등록된 내 업체의 기본 정보와 결제 설정을 확인할 수 있습니다.</p>
+    <table>
+      <thead><tr><th>항목</th><th>내용</th></tr></thead>
+      <tbody>
+        <tr><td>업체명</td><td>ICOPAY에 등록된 공식 업체명</td></tr>
+        <tr><td>업체 코드</td><td>결제 URL에 사용되는 고유 코드</td></tr>
+        <tr><td>사업자번호</td><td>등록된 사업자 번호</td></tr>
+        <tr><td>대표자명</td><td>법인 또는 사업자 대표자</td></tr>
+        <tr><td>연락처 / 이메일</td><td>가맹점 담당자 연락 정보</td></tr>
+        <tr><td>정산 계좌</td><td>정산 지급용 은행 계좌 정보</td></tr>
+        <tr><td>결제 서비스 활성 목록</td><td>URL결제·구독·챗봇·분할결제 활성화 여부</td></tr>
+      </tbody>
+    </table>
+    <div class="info-box">
+      업체 코드는 결제 URL(<code>https://icopay.co.kr/checkout/{업체코드}</code>)에 포함됩니다. 업체 코드 변경이 필요하면 ICOPAY 담당자에게 문의하세요.
+    </div>
+
+    <h3 class="sub-title">2-2. 결제 설정 확인</h3>
+    <p>결제설정 탭에서 현재 활성화된 결제 서비스와 주요 URL을 확인합니다.</p>
+    <table>
+      <thead><tr><th>설정 항목</th><th>설명</th></tr></thead>
+      <tbody>
+        <tr><td>URL결제 URL</td><td><code>https://icopay.co.kr/checkout/{업체코드}</code></td></tr>
+        <tr><td>구독결제 URL</td><td><code>https://icopay.co.kr/checkout-subscribe/{업체코드}</code></td></tr>
+        <tr><td>결제 통화</td><td>허용된 결제 통화 목록 (THB, USD, KRW 등)</td></tr>
+        <tr><td>리다이렉션 URL</td><td>결제 완료 후 고객이 이동하는 URL</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">2-3. 비밀번호 변경</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">우측 상단 프로필 아이콘 클릭 → <strong>계정 설정</strong> 또는 <strong>비밀번호 변경</strong> 선택</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">현재 비밀번호 입력</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">새 비밀번호 입력 (영문·숫자·특수문자 조합 8자 이상 권장)</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">새 비밀번호 확인 재입력</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc"><strong>저장</strong> 클릭 → 변경 완료</span></div>
+    </div>
+    <div class="warn-box">
+      비밀번호를 잊으신 경우 로그인 화면의 <strong>비밀번호 찾기</strong>를 이용하거나, ICOPAY 고객 지원으로 문의하세요.
+    </div>
+
+    <hr class="rule">
+
+    <!-- 3. API 연동 -->
+    <h2 class="section-title" id="api-portal">3. API 연동 (가맹점 API 포털)</h2>
+    <span class="menu-path">가맹점API &gt; 가맹점 API 포털</span>
+
+    <h3 class="sub-title">3-1. API 키 및 브로커 시크릿 확인</h3>
+    <p>가맹점 API 포털에서 결제 연동에 필요한 인증 키를 확인할 수 있습니다.</p>
+    <table>
+      <thead><tr><th>항목</th><th>설명</th><th>용도</th></tr></thead>
+      <tbody>
+        <tr><td>API Key (공개 키)</td><td>가맹점 식별 공개 키</td><td>결제 요청 시 헤더에 포함</td></tr>
+        <tr><td>브로커 시크릿</td><td>서버 간 통신용 비밀 키</td><td>서버 사이드 API 인증</td></tr>
+        <tr><td>가맹점 코드(compId)</td><td>시스템 내부 업체 식별자</td><td>API 엔드포인트 파라미터</td></tr>
+      </tbody>
+    </table>
+    <div class="block-box">
+      <strong>⚠️ 브로커 시크릿 보안 주의:</strong> 브로커 시크릿은 절대 클라이언트(웹 브라우저·앱 코드)에 노출하지 마십시오. 반드시 서버 사이드에서만 사용해야 합니다.
+    </div>
+
+    <h3 class="sub-title">3-2. API 연동 문서 확인</h3>
+    <p>연동 문서는 가맹점 API 포털 내 <strong>API 문서</strong> 탭에서 확인할 수 있습니다.</p>
+    <table>
+      <thead><tr><th>API 유형</th><th>엔드포인트 경로</th><th>설명</th></tr></thead>
+      <tbody>
+        <tr><td>일회성 결제 (준비)</td><td><code>/api/middleware/v1/merchant/checkout/prepare</code></td><td>결제 세션 생성</td></tr>
+        <tr><td>일회성 결제 (세션)</td><td><code>/api/middleware/v1/merchant/checkout/session</code></td><td>결제창 호출</td></tr>
+        <tr><td>결제 상태 조회</td><td><code>/api/middleware/v1/merchant/checkout/status</code></td><td>결제 결과 확인</td></tr>
+        <tr><td>구독 준비</td><td><code>/api/middleware/v1/merchant/checkout/subscription/prepare</code></td><td>구독 결제 시작</td></tr>
+        <tr><td>구독 해지</td><td><code>/api/middleware/v1/merchant/checkout/subscription/cancel</code></td><td>구독 취소 처리</td></tr>
+        <tr><td>리다이렉트 결제</td><td><code>/api/middleware/v1/merchant/checkout/redirect/prepare</code></td><td>URL 리다이렉트 결제</td></tr>
+      </tbody>
+    </table>
+    <div class="check-box">
+      모든 응답의 <code>pgVendor</code> 필드는 항상 <strong>ICOPAY</strong>로 반환됩니다. 실제 결제 처리 PG사 정보는 보안 정책상 노출되지 않습니다.
+    </div>
+
+    <h3 class="sub-title">3-3. 테스트 / 운영 환경 전환</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">API 포털 상단의 <strong>환경 선택</strong> 토글에서 <strong>테스트(Sandbox)</strong> 또는 <strong>운영(Production)</strong> 선택</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">테스트 환경에서는 실제 결제가 이루어지지 않음 (테스트 카드 번호 사용)</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">운영 전환 후 반드시 실제 API 키로 교체하여 테스트 진행</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">운영 환경으로 완전히 전환하기 전 <strong>테스트 환경에서 충분히 검증</strong>할 것</span></div>
+    </div>
+
+    <hr class="rule">
+
+    <!-- 4. 결제내역 조회 -->
+    <h2 class="section-title" id="payment-history">4. 결제내역 조회</h2>
+    <span class="menu-path">결제관리 &gt; 결제내역</span>
+
+    <h3 class="sub-title">4-1. 기간/상태별 조회</h3>
+    <p>결제내역 조회 화면에서 다양한 조건으로 거래를 검색할 수 있습니다.</p>
+    <table>
+      <thead><tr><th>조회 조건</th><th>옵션</th></tr></thead>
+      <tbody>
+        <tr><td>기간</td><td>오늘 / 최근 7일 / 최근 30일 / 직접 입력 (날짜 범위)</td></tr>
+        <tr><td>결제 상태</td><td>전체 / 성공 / 실패 / 취소 / 환불 / 대기</td></tr>
+        <tr><td>결제 수단</td><td>신용카드 / 지갑이체 / QR코드 / 계좌이체</td></tr>
+        <tr><td>주문번호</td><td>가맹점 주문번호 직접 검색</td></tr>
+        <tr><td>거래번호</td><td>ICOPAY 시스템 거래 ID 검색</td></tr>
+        <tr><td>금액 범위</td><td>최소 금액 ~ 최대 금액 필터</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4-2. 거래 상세 조회</h3>
+    <p>결제내역 목록에서 개별 거래를 클릭하면 상세 내역을 확인할 수 있습니다.</p>
+    <table>
+      <thead><tr><th>상세 항목</th><th>내용</th></tr></thead>
+      <tbody>
+        <tr><td>거래 번호</td><td>ICOPAY 고유 거래 식별 번호</td></tr>
+        <tr><td>주문 번호</td><td>가맹점에서 생성한 주문 번호</td></tr>
+        <tr><td>결제 금액</td><td>최종 결제 금액 및 통화</td></tr>
+        <tr><td>결제 일시</td><td>결제 처리 시각 (KST/현지 시간)</td></tr>
+        <tr><td>결제 수단</td><td>카드 종류, 마지막 4자리 등</td></tr>
+        <tr><td>결제 상태</td><td>성공·실패·취소·환불 상태</td></tr>
+        <tr><td>구매자 정보</td><td>구매자 이름·이메일 (마스킹 처리)</td></tr>
+        <tr><td>환불 이력</td><td>환불 처리 내역 및 잔액</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4-3. 환불 신청 방법</h3>
+    <span class="menu-path">결제관리 &gt; 결제내역 &gt; 상세 &gt; 환불 신청</span>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">결제내역에서 환불할 거래 선택 → <strong>상세 보기</strong></span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc"><strong>환불 신청</strong> 버튼 클릭</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">환불 금액 입력 (전액 또는 부분 환불)</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">환불 사유 입력</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc"><strong>환불 요청</strong> 버튼 클릭 → 환불 처리 진행</span></div>
+      <div class="flow-row"><span class="flow-num">⑥</span><span class="flow-desc">환불 완료 후 상태가 <strong>환불완료</strong>로 변경됨</span></div>
+    </div>
+    <div class="warn-box">
+      <strong>환불 가능 조건:</strong>
+      <ul style="margin:6px 0 0; padding-left:18px;">
+        <li>결제 성공 상태의 거래만 환불 가능</li>
+        <li>결제 후 일정 기간(통상 90일) 이내 환불 가능 (PG 정책에 따라 상이)</li>
+        <li>이미 환불 완료된 금액은 재환불 불가</li>
+        <li>부분 환불은 원결제 금액을 초과할 수 없음</li>
+      </ul>
+    </div>
+
+    <hr class="rule">
+
+    <!-- 5. URL결제 -->
+    <h2 class="section-title" id="url-payment">5. URL결제 (웹결제) 사용</h2>
+    <span class="menu-path">결제관리 &gt; URL결제내역</span>
+
+    <h3 class="sub-title">5-1. URL결제 링크 확인 및 공유</h3>
+    <p>URL결제는 결제 페이지 링크를 고객에게 공유하여 온라인으로 결제를 받는 방식입니다.</p>
+    <div class="info-box">
+      결제 URL 형식: <strong>https://icopay.co.kr/checkout/{업체코드}</strong><br>
+      업체 코드는 업체관리 &gt; 업체정보조회에서 확인할 수 있습니다.
+    </div>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">업체정보조회에서 <strong>URL결제 URL</strong> 확인</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">URL 복사 버튼을 클릭하여 클립보드에 복사</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">이메일, SNS, 문자메시지 등으로 고객에게 링크 전달</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">고객이 링크 접속 → 결제 정보 입력 → 결제 완료</span></div>
+    </div>
+
+    <h3 class="sub-title">5-2. 결제창 미리보기</h3>
+    <p>URL결제 내역 화면에서 실제 결제창이 어떻게 보이는지 미리 확인할 수 있습니다.</p>
+    <ul>
+      <li>PC 화면 / 모바일 화면 미리보기 전환 가능</li>
+      <li>업체 로고, 결제 버튼 텍스트 등 표시 내용 확인</li>
+      <li>QR 코드 생성 — 모바일 결제를 위한 QR 코드 다운로드</li>
+    </ul>
+
+    <h3 class="sub-title">5-3. 결제 성공/실패 내역 조회</h3>
+    <span class="menu-path">결제관리 &gt; URL결제내역</span>
+    <table>
+      <thead><tr><th>조회 항목</th><th>설명</th></tr></thead>
+      <tbody>
+        <tr><td>결제 일시</td><td>URL결제 처리 시각</td></tr>
+        <tr><td>결제 금액</td><td>요청 금액 및 실결제 금액</td></tr>
+        <tr><td>결제 상태</td><td>성공 / 실패 / 취소 / 환불</td></tr>
+        <tr><td>실패 사유</td><td>카드 한도 초과, 잘못된 카드 정보 등</td></tr>
+        <tr><td>구매자</td><td>구매자 이름 및 이메일 (마스킹)</td></tr>
+      </tbody>
+    </table>
+
+    <hr class="rule">
+
+    <!-- 6. 구독결제 관리 -->
+    <h2 class="section-title" id="subscription">6. 구독결제 관리</h2>
+    <span class="menu-path">결제관리 &gt; 구독결제내역</span>
+
+    <h3 class="sub-title">6-1. 구독 현황 조회</h3>
+    <p>구독결제내역에서 현재 진행 중인 모든 구독 현황을 확인할 수 있습니다.</p>
+    <table>
+      <thead><tr><th>구독 상태</th><th>설명</th></tr></thead>
+      <tbody>
+        <tr><td>활성(Active)</td><td>정상적으로 진행 중인 구독</td></tr>
+        <tr><td>일시정지(Paused)</td><td>구독이 일시 중단된 상태</td></tr>
+        <tr><td>해지(Cancelled)</td><td>구독 해지 완료</td></tr>
+        <tr><td>만료(Expired)</td><td>구독 기간 종료</td></tr>
+        <tr><td>결제실패(Failed)</td><td>결제 시도 실패 상태</td></tr>
+      </tbody>
+    </table>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">구독결제내역 메뉴 진입</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">기간, 상태, 구독자 이메일 등 조건으로 검색</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">개별 구독 클릭 → 상세 정보 확인 (결제 이력, 다음 청구일 등)</span></div>
+    </div>
+
+    <h3 class="sub-title">6-2. 구독 해지 처리</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">구독결제내역에서 해지할 구독 선택</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">상세 화면에서 <strong>구독 해지</strong> 버튼 클릭</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">해지 사유 입력 (선택)</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">해지 확인 → 즉시 해지 처리 완료</span></div>
+    </div>
+    <div class="warn-box">
+      구독 해지 후에는 다음 청구일에 결제가 발생하지 않습니다. 이미 결제된 현재 주기 금액은 환불되지 않습니다 (서비스 정책에 따라 상이할 수 있음).
+    </div>
+
+    <h3 class="sub-title">6-3. 구독 결제 내역 조회</h3>
+    <p>각 구독별 결제 이력을 상세히 확인할 수 있습니다.</p>
+    <ul>
+      <li>구독 시작일, 다음 청구일, 총 결제 횟수 확인</li>
+      <li>회차별 결제 성공/실패 이력</li>
+      <li>결제 실패 시 재시도 일정 확인</li>
+      <li>구독 금액 변경 이력</li>
+    </ul>
+
+    <hr class="rule">
+
+    <!-- 7. 정산 확인 -->
+    <h2 class="section-title" id="settlement">7. 정산 확인</h2>
+    <span class="menu-path">정산관리 &gt; 가맹점정산내역</span>
+
+    <h3 class="sub-title">7-1. 가맹점 정산내역 조회</h3>
+    <p>ICOPAY에서 가맹점에 지급된 정산 내역을 확인합니다.</p>
+    <table>
+      <thead><tr><th>조회 항목</th><th>설명</th></tr></thead>
+      <tbody>
+        <tr><td>정산 기간</td><td>정산 대상 결제 일자 범위</td></tr>
+        <tr><td>정산 금액</td><td>수수료 차감 후 실지급 금액</td></tr>
+        <tr><td>총 결제 금액</td><td>해당 기간 전체 결제 금액</td></tr>
+        <tr><td>총 수수료</td><td>ICOPAY 서비스 수수료 합계</td></tr>
+        <tr><td>정산 상태</td><td>정산완료 / 정산대기 / 보류</td></tr>
+        <tr><td>지급일</td><td>실제 계좌 입금 예정일</td></tr>
+        <tr><td>지급 계좌</td><td>정산 지급 은행 계좌</td></tr>
+      </tbody>
+    </table>
+    <div class="info-box">
+      정산 주기(일별/주별/월별)는 ICOPAY와의 계약 조건에 따라 결정됩니다. 정산 주기 변경이 필요하면 ICOPAY 담당자에게 문의하세요.
+    </div>
+
+    <h3 class="sub-title">7-2. 수수료내역 확인</h3>
+    <span class="menu-path">정산관리 &gt; 수수료내역</span>
+    <p>결제 수수료 부과 내역을 상세하게 확인할 수 있습니다.</p>
+    <table>
+      <thead><tr><th>항목</th><th>내용</th></tr></thead>
+      <tbody>
+        <tr><td>수수료율</td><td>결제 수단별 적용 수수료율 (%)</td></tr>
+        <tr><td>결제 금액</td><td>수수료 계산 기준 원 결제 금액</td></tr>
+        <tr><td>수수료 금액</td><td>결제 금액 × 수수료율</td></tr>
+        <tr><td>부가세</td><td>수수료에 대한 VAT</td></tr>
+        <tr><td>순 정산액</td><td>결제 금액 − 수수료 − 부가세</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">7-3. 정산 보류 내역 확인</h3>
+    <span class="menu-path">정산관리 &gt; 정산보류내역</span>
+    <p>다음과 같은 사유로 정산이 보류될 수 있습니다.</p>
+    <ul>
+      <li>환불 처리 중인 거래</li>
+      <li>분쟁(이의제기) 진행 중인 거래</li>
+      <li>이상 거래 의심 (리스크 검토 중)</li>
+      <li>계좌 정보 오류로 인한 지급 보류</li>
+    </ul>
+    <div class="block-box">
+      정산 보류 건은 ICOPAY 운영팀에서 검토 후 처리됩니다. 보류 사유 문의는 ICOPAY 고객 지원으로 연락하세요.
+    </div>
+
+    <h3 class="sub-title">7-4. 잔액/미수금 확인</h3>
+    <span class="menu-path">정산관리 &gt; 잔액내역</span>
+    <p>현재 미지급 잔액과 다음 정산 예정액을 확인합니다.</p>
+    <ul>
+      <li>누적 미정산 잔액 조회</li>
+      <li>다음 정산 예정일 및 예정 금액 확인</li>
+      <li>월별 정산 현황 차트</li>
+    </ul>
+
+    <hr class="rule">
+
+    <!-- 8. 챗봇결제 -->
+    <h2 class="section-title" id="chatbot">8. 챗봇결제 설정 (챗봇결제 사용 가맹점)</h2>
+    <span class="menu-path">챗봇관리</span>
+    <div class="info-box">
+      챗봇결제 메뉴는 ICOPAY로부터 챗봇결제 서비스가 활성화된 가맹점만 표시됩니다. 서비스 신청은 ICOPAY 담당자에게 문의하세요.
+    </div>
+
+    <h3 class="sub-title">8-1. 챗봇 기본설정</h3>
+    <span class="menu-path">챗봇관리 &gt; 기본설정</span>
+    <table>
+      <thead><tr><th>설정 항목</th><th>내용</th></tr></thead>
+      <tbody>
+        <tr><td>챗봇 이름</td><td>고객에게 표시되는 챗봇 명칭</td></tr>
+        <tr><td>운영 모드</td><td>판매·예약·하이브리드·대면 후불 중 선택</td></tr>
+        <tr><td>챗봇 언어</td><td>지원 언어 설정 (한국어·영어·일본어 등)</td></tr>
+        <tr><td>환영 메시지</td><td>챗봇 시작 시 표시되는 인사 문구</td></tr>
+        <tr><td>챗봇 결제 URL</td><td>고객에게 공유할 챗봇 결제 링크</td></tr>
+        <tr><td>QR 코드</td><td>챗봇 링크용 QR 코드 다운로드</td></tr>
+        <tr><td>임베드 코드</td><td>홈페이지에 챗봇 위젯을 삽입하는 스크립트</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">8-2. 상품 등록 및 관리</h3>
+    <span class="menu-path">챗봇관리 &gt; 상품관리</span>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">상품관리 메뉴 진입 → <strong>상품 등록</strong> 클릭</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">상품명, 설명, 가격, 통화, 재고 여부 입력</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">상품 이미지 업로드 (JPG/PNG, 최대 2MB 권장)</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">카테고리 지정 및 진열 순서 설정</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc"><strong>저장</strong> → 챗봇에서 즉시 상품 표시</span></div>
+    </div>
+    <div class="warn-box">
+      등록 가능한 상품 수는 계약된 슬롯 한도 내입니다. 한도 초과 시 상품 추가가 불가하며 ICOPAY 담당자에게 슬롯 증가를 요청하세요.
+    </div>
+
+    <h3 class="sub-title">8-3. 챗봇 주문 내역 조회 및 처리</h3>
+    <span class="menu-path">챗봇관리 &gt; 주문관리</span>
+    <table>
+      <thead><tr><th>조회 항목</th><th>내용</th></tr></thead>
+      <tbody>
+        <tr><td>주문 번호</td><td>챗봇 주문 고유 번호</td></tr>
+        <tr><td>고객 정보</td><td>구매자 이름·연락처 (마스킹)</td></tr>
+        <tr><td>주문 상품</td><td>주문한 상품 목록 및 수량</td></tr>
+        <tr><td>결제 금액</td><td>총 결제 금액</td></tr>
+        <tr><td>결제 상태</td><td>결제완료 / 결제대기 / 취소</td></tr>
+        <tr><td>주문 일시</td><td>주문 접수 시각</td></tr>
+      </tbody>
+    </table>
+    <ul>
+      <li>주문 상세에서 환불 처리 가능</li>
+      <li>주문 메모 추가 (내부 처리 메모)</li>
+      <li>주문 내역 CSV 내보내기 기능</li>
+    </ul>
+
+    <hr class="rule">
+
+    <!-- 9. 분할결제 관리 -->
+    <h2 class="section-title" id="split">9. 분할결제 관리 (분할결제 사용 가맹점)</h2>
+    <span class="menu-path">분할관리</span>
+    <div class="info-box">
+      분할결제 메뉴는 ICOPAY로부터 분할결제 서비스가 활성화된 가맹점만 표시됩니다. 서비스 신청은 ICOPAY 담당자에게 문의하세요.
+    </div>
+
+    <h3 class="sub-title">9-1. 분할 계약 진행 현황</h3>
+    <span class="menu-path">분할관리 &gt; 진행관리</span>
+    <p>분할결제 계약의 진행 상황과 각 회차 결제 현황을 확인합니다.</p>
+    <table>
+      <thead><tr><th>항목</th><th>내용</th></tr></thead>
+      <tbody>
+        <tr><td>계약 번호</td><td>분할 계약 고유 번호</td></tr>
+        <tr><td>총 결제 금액</td><td>계약 전체 금액</td></tr>
+        <tr><td>분할 횟수</td><td>총 회차 수</td></tr>
+        <tr><td>완료 회차</td><td>결제 완료된 회차 수</td></tr>
+        <tr><td>미완료 회차</td><td>결제 미완료 회차 수</td></tr>
+        <tr><td>계약 상태</td><td>진행 중 / 완료 / 취소 / 연체</td></tr>
+        <tr><td>다음 결제 기한</td><td>다음 회차 결제 만료일</td></tr>
+      </tbody>
+    </table>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">진행관리 메뉴에서 계약 목록 확인</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">개별 계약 클릭 → 회차별 결제 현황 확인</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">각 회차 결제 URL 복사하여 고객에게 재발송 가능</span></div>
+    </div>
+
+    <h3 class="sub-title">9-2. 이메일 발송 내역</h3>
+    <span class="menu-path">분할관리 &gt; 이메일관리</span>
+    <p>분할결제와 관련하여 고객에게 발송된 이메일 내역을 확인합니다.</p>
+    <table>
+      <thead><tr><th>이메일 유형</th><th>발송 시점</th></tr></thead>
+      <tbody>
+        <tr><td>결제 안내 이메일</td><td>각 회차 결제 기한 도래 시</td></tr>
+        <tr><td>결제 완료 이메일</td><td>회차 결제 성공 시</td></tr>
+        <tr><td>결제 실패 이메일</td><td>회차 결제 실패 시</td></tr>
+        <tr><td>만료 임박 알림</td><td>결제 기한 D-3, D-1</td></tr>
+        <tr><td>계약 완료 이메일</td><td>전체 회차 결제 완료 시</td></tr>
+      </tbody>
+    </table>
+
+    <hr class="rule">
+
+    <!-- 10. 사용자 계정 관리 -->
+    <h2 class="section-title" id="user-mgmt">10. 사용자 계정 관리</h2>
+    <span class="menu-path">사용자관리 &gt; 사용자관리</span>
+
+    <h3 class="sub-title">10-1. 가맹점 내부 사용자 추가</h3>
+    <p>가맹점 운영자는 내부 직원에게 ICOPAY 포털 접근 계정을 부여할 수 있습니다.</p>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">사용자관리 메뉴 진입 → <strong>사용자 추가</strong> 클릭</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">이름, 이메일(로그인 ID), 연락처 입력</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">권한 설정 — 조회 전용 / 결제 관리 / 정산 조회 / 전체 관리</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">임시 비밀번호 자동 생성 또는 직접 입력</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc"><strong>저장</strong> → 해당 사용자에게 이메일로 계정 정보 발송</span></div>
+    </div>
+
+    <h3 class="sub-title">10-2. 권한 설정</h3>
+    <table>
+      <thead><tr><th>권한 레벨</th><th>접근 가능 기능</th></tr></thead>
+      <tbody>
+        <tr><td>조회 전용</td><td>결제내역, 정산내역 조회만 가능 (환불·수정 불가)</td></tr>
+        <tr><td>결제 관리</td><td>결제내역 조회 + 환불 신청 가능</td></tr>
+        <tr><td>정산 조회</td><td>정산 관련 메뉴 조회 가능</td></tr>
+        <tr><td>전체 관리</td><td>가맹점 포털 내 모든 기능 (사용자 추가 포함)</td></tr>
+      </tbody>
+    </table>
+    <div class="warn-box">
+      가맹점 사용자는 ICOPAY 시스템 설정, 다른 가맹점 정보, 본사/총판 설정에 접근할 수 없습니다. 자신의 가맹점 데이터만 조회·관리할 수 있습니다.
+    </div>
+
+    <hr class="rule">
+
+    <!-- FAQ -->
+    <h2 class="section-title" id="faq">11. 자주 묻는 질문 (FAQ)</h2>
+
+    <div class="faq-item">
+      <div class="faq-q">환불 신청 후 고객에게 환불이 완료되기까지 얼마나 걸리나요?</div>
+      <div class="faq-a">환불 신청 후 처리까지 통상 영업일 기준 3~7일이 소요됩니다. 결제 수단(신용카드, 지갑이체, QR 등)과 결제 처리 시점에 따라 달라질 수 있습니다. 환불 처리 현황은 결제내역 &gt; 환불 탭에서 확인하세요.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">API 키(브로커 시크릿)를 분실하거나 노출된 것 같습니다. 재발급이 가능한가요?</div>
+      <div class="faq-a">가맹점API &gt; 가맹점 API 포털에서 <strong>시크릿 재발급</strong> 버튼을 클릭하면 즉시 새로운 시크릿이 발급됩니다. 재발급 즉시 기존 시크릿은 무효화되므로, 서버 설정을 새 시크릿으로 교체해야 합니다. 보안 노출이 의심되는 경우 즉시 재발급하세요.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">구독 해지 요청을 받았습니다. 고객이 이미 결제한 금액도 환불해야 하나요?</div>
+      <div class="faq-a">구독 해지 시 남은 구독 기간에 대한 환불 여부는 가맹점의 서비스 정책에 따릅니다. 구독결제내역에서 해당 구독을 해지하고, 필요한 경우 결제내역에서 해당 결제 건에 대한 부분 환불 또는 전액 환불을 별도로 신청하세요.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">정산은 언제 지급되나요? 정산 일정을 미리 알 수 있나요?</div>
+      <div class="faq-a">정산 주기(일별/주별/월별)와 지급일은 ICOPAY와의 계약 조건에 따릅니다. 정산관리 &gt; 가맹점정산내역에서 다음 정산 예정일을 확인할 수 있습니다. 정산 일정 변경이 필요한 경우 ICOPAY 담당자에게 문의하세요.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">비밀번호를 잊어버렸습니다. 어떻게 초기화하나요?</div>
+      <div class="faq-a">ICOPAY 로그인 화면의 <strong>비밀번호 찾기</strong>를 클릭하여 등록된 이메일로 재설정 링크를 받으세요. 이메일 접근이 불가한 경우 ICOPAY 고객 지원(https://icopay.co.kr)으로 연락하여 본인 확인 후 비밀번호를 초기화할 수 있습니다.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">결제 통보(Webhook/Notify) URL은 어디서 설정하나요?</div>
+      <div class="faq-a">결제 통보 URL 설정은 가맹점 포털에서 직접 변경할 수 없으며, ICOPAY 운영팀에서 관리합니다. 통보 URL 등록 또는 변경이 필요하면 ICOPAY 담당자에게 요청하세요. API를 통한 결제 상태 확인은 <code>/api/middleware/v1/merchant/checkout/status</code>로 직접 조회 가능합니다.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">챗봇 상품 등록이 안 됩니다. 슬롯이 꽉 찼다는 메시지가 나옵니다.</div>
+      <div class="faq-a">계약 시 설정된 상품 슬롯 한도에 도달한 경우입니다. 기존 상품 중 사용하지 않는 것을 비활성화하거나 삭제하여 슬롯을 확보하거나, ICOPAY 담당자에게 슬롯 한도 증가를 요청하세요.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">결제 내역을 엑셀로 다운로드할 수 있나요?</div>
+      <div class="faq-a">결제내역, URL결제내역, 구독결제내역, 정산내역 등 주요 조회 화면에서 <strong>CSV 내보내기</strong> 또는 <strong>엑셀 다운로드</strong> 버튼을 통해 데이터를 내보낼 수 있습니다. 조회 조건을 설정한 후 내보내면 필터링된 데이터만 다운로드됩니다.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">분할결제 계약 중 고객이 한 회차 결제를 하지 않았습니다. 어떻게 처리하나요?</div>
+      <div class="faq-a">분할관리 &gt; 진행관리에서 해당 계약의 미완료 회차를 확인하세요. 해당 회차의 결제 URL을 복사하여 고객에게 재전송할 수 있습니다. 결제 기한이 초과된 경우 이메일관리에서 재발송 처리를 하거나 ICOPAY 담당자에게 연체 처리 방법을 문의하세요.</div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    ICOPAY Payment Gateway · 가맹점 운영 매뉴얼 · V2.0 · 2026년 7월<br>
+    본 문서는 ICOPAY 가맹점 운영자 권한 기준이며, 시스템 업데이트에 따라 변경될 수 있습니다.<br>
+    고객 지원: https://icopay.co.kr
+  </div>
+</div>
+</body>
+</html>

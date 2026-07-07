@@ -177,4 +177,21 @@ X-Noti-Attempt: 2
 
 ---
 
+## ElementPay (THB) — 노티미들웨어 연동 (ChillPay와 동일 토폴로지)
+
+| 항목 | 내용 |
+|------|------|
+| **ElementPay 캐비net Webhook** | **NOTI(노티미들웨어) 서버 URL** 에 등록 — ICOPAY 직접 URL **아님** |
+| **NOTI → ICOPAY** | `POST {공개베이스}/api/middleware/notify/v1/pg-notify/{ingressToken}/ELEMENTPAY` |
+| **대상코드** | 경로 세그먼트 `ELEMENTPAY` (`tb_pg_agency.integ_noti_yn=Y` 행과 대응) |
+| **본문** | `application/x-www-form-urlencoded` — `method=check|pay|payment.*`, `order`, `hash`, `timestamp` 등 |
+| **응답(중요)** | `check`/`pay` 는 ElementPay 규격 JSON `{response:{status,message,timestamp},hash}` — **NOTI가 ICOPAY 응답을 변환·치환하지 말고 그대로 ElementPay에 반환** (상태코드 270·205 등) |
+| **비동기 이벤트** | `payment.rejected` 등 — 동일 ingress 경유. ICOPAY 표준 `{success,processed}` 계약은 **ChillPay형 JSON 노티**에 해당; ElementPay 동기 `check`/`pay` 와 혼동 금지 |
+| **가맹 비식별** | ElementPay에는 **ICOPAY 집계 Merchant Key**만 등록. initPayment 시 `_merchantData`·업체코드 미전송. 웹훅은 **`order` + 내부 `pg_trnsctn`** 으로 가맹 복원 |
+| **재전송** | NOTI 재시도 시 **원문·hash·헤더** 불변. `X-Icopay-Notify-Delivery: RETRY` 권장 |
+
+**운영 체크:** NOTI 로그에 ElementPay `method=check|pay` 수신 → ICOPAY `ELEMENTPAY` 전달 → ElementPay 로 **동일 hash 응답** 패스스루가 보이는지 확인.
+
+---
+
 *본 문서는 ICOPAY(PG) 저장소에서 NOTI 팀·Cursor 작업 배포용으로 유지한다.*

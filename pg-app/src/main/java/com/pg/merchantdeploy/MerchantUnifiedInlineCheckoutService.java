@@ -26,6 +26,7 @@ public class MerchantUnifiedInlineCheckoutService {
     private final MerchantInlineCheckoutService chillpayInlineCheckoutService;
     private final MerchantJpayInlineCheckoutService jpayInlineCheckoutService;
     private final MerchantEximbayInlineCheckoutService eximbayInlineCheckoutService;
+    private final MerchantElementPayInlineCheckoutService elementPayInlineCheckoutService;
     private final MerchantInlineCheckoutTokenService tokenService;
     private final MerchantChatbotProductService productService;
     private final MerchantApiIntegrationChannelService integrationChannelService;
@@ -38,6 +39,7 @@ public class MerchantUnifiedInlineCheckoutService {
                                                 MerchantInlineCheckoutService chillpayInlineCheckoutService,
                                                 MerchantJpayInlineCheckoutService jpayInlineCheckoutService,
                                                 MerchantEximbayInlineCheckoutService eximbayInlineCheckoutService,
+                                                MerchantElementPayInlineCheckoutService elementPayInlineCheckoutService,
                                                 MerchantInlineCheckoutTokenService tokenService,
                                                 MerchantChatbotProductService productService,
                                                 MerchantApiIntegrationChannelService integrationChannelService,
@@ -48,6 +50,7 @@ public class MerchantUnifiedInlineCheckoutService {
         this.chillpayInlineCheckoutService = chillpayInlineCheckoutService;
         this.jpayInlineCheckoutService = jpayInlineCheckoutService;
         this.eximbayInlineCheckoutService = eximbayInlineCheckoutService;
+        this.elementPayInlineCheckoutService = elementPayInlineCheckoutService;
         this.tokenService = tokenService;
         this.productService = productService;
         this.integrationChannelService = integrationChannelService;
@@ -86,6 +89,8 @@ public class MerchantUnifiedInlineCheckoutService {
             result = jpayInlineCheckoutService.prepare(orgUnitId, enriched, request);
         } else if (PgVendor.isEximbayFamily(opPg)) {
             result = eximbayInlineCheckoutService.prepare(orgUnitId, enriched, request);
+        } else if (PgVendor.isElementPayFamily(opPg)) {
+            result = elementPayInlineCheckoutService.prepare(orgUnitId, enriched, request);
         } else if (PgVendor.isChillPayFamily(opPg)) {
             result = chillpayInlineCheckoutService.prepare(orgUnitId, enriched, request);
         } else {
@@ -121,6 +126,9 @@ public class MerchantUnifiedInlineCheckoutService {
         }
         if (PgVendor.isEximbayFamily(opPg)) {
             return eximbayInlineCheckoutService.orderStatus(orgUnitId, orderNo);
+        }
+        if (PgVendor.isElementPayFamily(opPg)) {
+            return elementPayInlineCheckoutService.orderStatus(orgUnitId, orderNo);
         }
         if (PgVendor.isChillPayFamily(opPg)) {
             return chillpayInlineCheckoutService.orderStatus(orgUnitId, orderNo);

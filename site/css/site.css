@@ -5781,3 +5781,35 @@ html.pg-admin--tablet .pg-tablet-launch-tile {
 .hq-ops-mode-matrix-grid tbody tr:nth-child(odd) > .hq-ops-mode-td-menu {
   background-color: rgba(13, 110, 253, 0.06);
 }
+
+/* B안 허브 shell — 본사 정책·연동·배포 통합 탭 */
+.pg-hub-shell .pg-hub-tabs {
+  border-bottom: 1px solid var(--bs-border-color, #dee2e6);
+  gap: 0.15rem;
+}
+.pg-hub-shell .pg-hub-tabs .nav-link {
+  white-space: nowrap;
+  font-size: 0.875rem;
+  padding: 0.45rem 0.75rem;
+}
+.pg-hub-shell .pg-hub-panel-wrap {
+  min-height: 12rem;
+}
+.pg-hub-shell .pg-hub-leaf-pane > .content {
+  padding-top: 0;
+}
+.pg-hub-shell .pg-hub-help {
+  max-height: calc(100vh - 16rem);
+  overflow-y: auto;
+}
+.pg-hub-shell .pg-hub-help-btn.active {
+  background: var(--bs-primary-bg-subtle, #e7f1ff);
+  color: var(--bs-primary, #0d6efd);
+  font-weight: 600;
+}
+.pg-hub-layout-badge {
+  font-weight: 500;
+}
+.tab-pane.pg-hub-tab-pane {
+  padding-top: 0;
+}

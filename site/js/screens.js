@@ -110,7 +110,7 @@
     return '<p class="small text-muted mb-3 mb-md-2"><span data-pg-ui-t="' + escUi(k) + '">' + escUi(L(k)) + '</span></p>';
   }
   function merchantWebPaymentCardNoticeKo() {
-    return '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 「결제 URL」은 운영·WEB·URL결제 PG별 공개 경로로 자동 표시됩니다(예: JPAY /jpay-pay/업체코드, ChillPay /pay/업체코드). 「URL 재결제 URL」은 해당 PG가 저장 카드 재결제를 지원하고 본사 URL 재결제 기능·URL재결제 PG 바인딩이 있을 때만 표시됩니다. 「URL 결제 방식」은 공개 URL 결제에만 적용됩니다. API·챗봇은 각 설정 카드에서 별도 선택합니다.';
+    return '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 「결제 URL」은 ICOPAY 통합 공개 경로로 자동 표시됩니다(예: https://icopay.co.kr/checkout/업체코드). 「URL 재결제 URL」은 해당 PG가 저장 카드 재결제를 지원하고 본사 URL 재결제 기능·URL재결제 PG 바인딩이 있을 때만 표시됩니다. 「URL 결제 방식」은 공개 URL 결제에만 적용됩니다. API·챗봇은 각 설정 카드에서 별도 선택합니다.';
   }
 
   /** 동일 id(paymentUrlDisplay) — 화면별 placeholder 키만 다름 */
@@ -580,14 +580,14 @@
       title: 'API URL 인라인 중계 결제',
       id: 'apiUrlPayCheckoutCard',
       merchantOnly: true,
-      notice: '가맹 쇼핑몰 등에서 API 인라인 inline-checkout/prepare 를 호출할 때 저장된 값이 payUrl·결제창에 반영됩니다. 공개 결제 URL·챗봇결제와는 별도 설정입니다. ChillPay·JPAY API 인라인 모두 동일하게 적용됩니다.',
+      notice: '가맹 쇼핑몰 등에서 API 인라인 inline-checkout/prepare 를 호출할 때 저장된 값이 payUrl·결제창에 반영됩니다. 공개 결제 URL·챗봇결제와는 별도 설정입니다. ICOPAY 통합 API 인라인 checkout에 동일하게 적용됩니다.',
       rows: [
         [{ label: 'URL 결제 방식', type: 'select', name: 'apiUrlPayCheckoutMode', options: [
           { v: 'STANDARD', t: '일반 결제' },
           { v: 'REPAY', t: '재구매 결제' },
           { v: 'SPLIT_PAY', t: '분할 결제' }
         ], col: 3 }],
-        [{ label: '', type: 'note', col: 12, text: '필수: 가맹 「API 인라인 연동」·「웹결제」사용, 운영 URL PG 바인딩, 본사 결제로직 URL INLINE 제공(Y). 일반 결제 → pay.html 또는 jpay-pay.html. 재구매 결제 → ChillPay API 인라인만(pay-repay), JPAY API 인라인 미지원. 분할 결제 → 1회 prepare 불가, API 분할 계약(POST /api/pay/split/contracts) 이용. 공개 URL 분할결제는 「URL 분할결제」사용 ON으로 별도 운영합니다.' }]
+        [{ label: '', type: 'note', col: 12, text: '필수: 가맹 「API 인라인 연동」·「웹결제」사용, 운영 URL PG 바인딩, 본사 결제로직 URL INLINE 제공(Y). 일반 결제 → ICOPAY 중립 checkout(/checkout/{업체코드}). 재구매 결제 → 일부 PG만 지원(pay-repay, PG별 상이). JPAY API 인라인은 재구매 미지원. 분할 결제 → 1회 prepare 불가, API 분할 계약(POST /api/pay/split/contracts) 이용. 공개 URL 분할결제는 「URL 분할결제」사용 ON으로 별도 운영합니다.' }]
       ]
     };
   }
@@ -2003,9 +2003,9 @@
   var DEPLOY_STATIC_HTML = {
     integrationPlan: '<div class="deploy-static-doc text-muted small">' +
       '<h5 class="text-dark fw-semibold mb-3">PG 중계·미들웨어 연동 — 총괄 진행안</h5>' +
-      '<p class="mb-2"><strong class="text-body">목표</strong> · PG사와는 1:1(단일 연동 자격), 가맹점에는 1:N으로 우리 API를 제공하고, 결제·3DS·노티 결과를 <strong class="text-body">우리 미들웨어에 적재</strong>한 뒤 가맹점에 통지하는 구조입니다. <strong class="text-body">JPAY(JPY·3DS 계열)를 1차 범위</strong>로 두고 단계적으로 확장합니다.</p>' +
+      '<p class="mb-2"><strong class="text-body">목표</strong> · PG사와는 1:1(단일 연동 자격), 가맹점에는 1:N으로 ICOPAY 통합 API를 제공하고, 결제·3DS·노티 결과를 <strong class="text-body">미들웨어에 적재</strong>한 뒤 가맹점에 통지하는 구조입니다. 신규 PG는 동일 패턴으로 단계적 추가합니다.</p>' +
       '<ul class="mb-3 ps-3">' +
-      '<li class="mb-1"><strong class="text-body">본사설정과의 구분</strong> · 수수료·노티 URL·도메인·권한 등 <em>전사 운영 설정</em>은 <strong class="text-body">본사설정</strong>에 두고, <strong class="text-body">PG API 연동·배포 자격·중계 출시·JPAY·가맹점 API 문서·체크리스트</strong>는 이 <strong class="text-body">배포설정</strong>에서 관리합니다.</li>' +
+      '<li class="mb-1"><strong class="text-body">본사설정과의 구분</strong> · 수수료·노티 URL·도메인·권한 등 <em>전사 운영 설정</em>은 <strong class="text-body">본사설정</strong>에 두고, <strong class="text-body">PG API 연동·배포 자격·중계 출시·가맹점 API 문서·체크리스트</strong>는 이 <strong class="text-body">배포설정</strong>에서 관리합니다.</li>' +
       '<li class="mb-1"><strong class="text-body">노티</strong> · PG → 우리 <code>/api/open/pg-notify/…</code> 수신·<code>pg_trnsctn</code> 적재는 기존 파이프를 활용합니다. 가맹점으로의 아웃바운드 노티는 별도 설계(콜백 URL·서명·재시도)로 추가합니다.</li>' +
       '<li class="mb-1"><strong class="text-body">가맹점 분기</strong> · MID+루트만이 아니라 <strong class="text-body">등록 업체코드 + 결제대행사 MID</strong> 조합으로 바인딩을 찾는 방향(구현 단계에서 수신 본문·바인딩 스키마와 맞춤).</li>' +
       '</ul>' +
@@ -2017,14 +2017,14 @@
       '<li class="mb-0">운영: 모니터링·키 로테이션·이 화면 체크리스트 점검</li>' +
       '</ol></div>',
     jpayWorkPlan: '<div class="deploy-static-doc text-muted small">' +
-      '<h5 class="text-dark fw-semibold mb-3">JPAY 우선 — 단계별 작업 계획</h5>' +
+      '<h5 class="text-dark fw-semibold mb-3">JPAY 전용 — 연동 단계 계획</h5>' +
       '<p class="mb-2">아래는 구현 시 작업 분해 예시입니다. 실제 일정·담당은 제이페이 제공 스펙에 맞춰 조정합니다.</p>' +
       '<table class="table table-sm table-bordered bg-white">' +
       '<thead><tr><th style="width:6rem" data-pg-ui-t="단계">단계</th><th data-pg-ui-t="내용">내용</th></tr></thead><tbody>' +
       '<tr><td class="text-nowrap">P0</td><td>JPAY API·3DS·노티 필드 정의서·샌드 MID/키 수령</td></tr>' +
       '<tr><td>P1</td><td><code>tb_pg_agency</code> 등에 JPAY 등록, 가맹점 <code>tb_merchant_pg_binding</code> (업체코드·MID) 검증</td></tr>' +
       '<tr><td>P2</td><td>노티매핑 JSON 벤더 <code>JPAY</code> — CALLBACK/RESULT 필드 매핑·표시값(displayMaps)</td></tr>' +
-      '<tr><td>P3</td><td>수신 적재: 기존 ChillPay 경로와 병행할 JPAY 전용 파서/분기 또는 매핑 우선 적용</td></tr>' +
+      '<tr><td>P3</td><td>수신 적재: 기존 PG 경로와 병행할 JPAY 전용 파서/분기</td></tr>' +
       '<tr><td>P4</td><td>가맹점→우리→JPAY 결제 세션·3DS 리턴 URL(우리 도메인) 연동</td></tr>' +
       '<tr><td>P5</td><td>UAT → 운영 전환, 본 메뉴 <strong class="text-body">배포 체크리스트</strong> 완료</td></tr>' +
       '</tbody></table>' +
@@ -2047,7 +2047,7 @@
       '<li class="mb-2"><i class="bi bi-check2-square me-1 text-secondary"></i> API·관리자 <strong class="text-body">HTTPS</strong>·공개 URL 베이스 설정</li>' +
       '<li class="mb-2"><i class="bi bi-check2-square me-1 text-secondary"></i> 전산 노티 URL이 PG/미들웨어에 등록됨 (<code>ingressToken</code> 일치)</li>' +
       '<li class="mb-2"><i class="bi bi-check2-square me-1 text-secondary"></i> <strong class="text-body">IP 허용·HMAC</strong> 등 <code>app.pg-notify</code> 운영값 반영</li>' +
-      '<li class="mb-2"><i class="bi bi-check2-square me-1 text-secondary"></i> JPAY 샌드에서 승인·취소·무효·3DS 시나리오 검증</li>' +
+      '<li class="mb-2"><i class="bi bi-check2-square me-1 text-secondary"></i> 샌드박스에서 승인·취소·3DS 검증 (JPAY 연동 시 JPAY 샌드)</li>' +
       '<li class="mb-2"><i class="bi bi-check2-square me-1 text-secondary"></i> 결제내역·노티수령 로그로 <strong class="text-body">적재·분기</strong> 확인</li>' +
       '<li class="mb-0"><i class="bi bi-check2-square me-1 text-secondary"></i> 가맹점 콜백·장애 알림·로그 보존 정책</li>' +
       '</ul></div>'
@@ -3077,7 +3077,7 @@
           ]
         },
         {
-          title: '통합내역(칠페이) 동기화·로그 보관',
+          title: '통합내역 동기화·로그 보관',
           notice: '통합내역 화면에서 날짜를 비운 채 조회하면 「최근 동기화 범위」일만큼 TransactionDate 구간을 채웁니다. [검색 초기화]는 「피지거래내역 초기화 동기화(개월)」만큼 넓은 구간으로 맞춥니다. 로그 파일 보관(일)은 매일 새벽 데이터 보관 스케줄에서 <code>logs</code> 등의 오래된 .log/.gz 파일 삭제에 반영됩니다. 로그 메모리 보관(일)은 정책 저장용(추후 진단 버퍼 연동 시 사용).',
           rows: [
             [{ label: '피지거래내역 초기화 동기화(개월)', type: 'number', name: 'chillpayTrInitSyncMonths', col: 3, placeholder: '기본 3' },
@@ -4014,7 +4014,7 @@
           title: '통합정산설정',
           id: 'integratedSettleCard',
           merchantOnly: true,
-          notice: '칠페이 통합정산 화면의 「예정(ICOPAY)」 표시에만 쓰입니다. 배포설정 API연동설정과 동일 규칙을 쓰려면 예정모드를 연동기본으로 두세요. 아래 값은 [저장] 시 등록된 모든 결제대행사 행에 동일하게 적용됩니다.',
+          notice: '통합정산 화면의 「예정(ICOPAY)」 표시에만 쓰입니다. 배포설정 API연동설정과 동일 규칙을 쓰려면 예정모드를 연동기본으로 두세요. 아래 값은 [저장] 시 등록된 모든 결제대행사 행에 동일하게 적용됩니다.',
           rows: [
             [
               { label: '예정모드', type: 'select', name: 'merchantPgExtSettleMode', col: 2, options: [{ v: '', t: '연동기본' }, { v: 'OFF', t: '가맹:미표시' }, { v: 'T', t: 'T+N' }, { v: 'D', t: 'D+N' }] },
@@ -4432,7 +4432,7 @@
           title: '통합정산설정',
           id: 'integratedSettleCard',
           merchantOnly: true,
-          notice: '칠페이 통합정산 화면의 「예정(ICOPAY)」 표시에만 쓰입니다. 배포설정 API연동설정과 동일 규칙을 쓰려면 예정모드를 연동기본으로 두세요. 아래 값은 등록 시 입력한 모든 결제대행사 행에 동일하게 적용됩니다.',
+          notice: '통합정산 화면의 「예정(ICOPAY)」 표시에만 쓰입니다. 배포설정 API연동설정과 동일 규칙을 쓰려면 예정모드를 연동기본으로 두세요. 아래 값은 등록 시 입력한 모든 결제대행사 행에 동일하게 적용됩니다.',
           rows: [
             [
               { label: '예정모드', type: 'select', name: 'merchantPgExtSettleMode', col: 2, options: [{ v: '', t: '연동기본' }, { v: 'OFF', t: '가맹:미표시' }, { v: 'T', t: 'T+N' }, { v: 'D', t: 'D+N' }] },
@@ -4780,7 +4780,7 @@
           title: '통합정산설정',
           id: 'integratedSettleCard',
           merchantOnly: true,
-          notice: '칠페이 통합정산 화면의 「예정(ICOPAY)」 표시에만 쓰입니다. 배포설정 API연동설정과 동일 규칙을 쓰려면 예정모드를 연동기본으로 두세요. 아래 값은 [저장] 시 등록된 모든 결제대행사 행에 동일하게 적용됩니다.',
+          notice: '통합정산 화면의 「예정(ICOPAY)」 표시에만 쓰입니다. 배포설정 API연동설정과 동일 규칙을 쓰려면 예정모드를 연동기본으로 두세요. 아래 값은 [저장] 시 등록된 모든 결제대행사 행에 동일하게 적용됩니다.',
           rows: [
             [
               { label: '예정모드', type: 'select', name: 'merchantPgExtSettleMode', col: 2, options: [{ v: '', t: '연동기본' }, { v: 'OFF', t: '가맹:미표시' }, { v: 'T', t: 'T+N' }, { v: 'D', t: 'D+N' }] },
@@ -5093,7 +5093,7 @@
       payListStatusBar: true,
       payListFinancialInline: true,
       tableColumnGuide: true,
-      /** 칠페이 원문 일시는 trnDate·trnTime·payCompletedAt와 중복 — VIEW SETTING 제외 */
+      /** PG 원문 일시는 trnDate·trnTime·payCompletedAt와 중복 — VIEW SETTING 제외 */
       columnGuideHiddenKeys: ['transactionDate', 'paymentDate'],
       /** VIEW SETTING에서 숨길 수 없는 열: 결제내역 통합과 동일한 앞부분(번호·거래ID·업체·거래일시·Route) */
       columnGuideFixedKeys: ['rowNo', 'transactionId', 'compNm', 'compId', 'trnDate', 'trnTime'],
@@ -5590,7 +5590,7 @@
       columns: [
         { key: 'rowNo', label: '번호' },
         { key: 'day', label: '일자' },
-        { key: 'totalElements', label: '총건수(칠페이)' }
+        { key: 'totalElements', label: '총건수(통합)' }
       ].concat(DAILY_SUMMARY_STATUS_BUCKET_COLS).concat(DAILY_SUMMARY_PAY_CUR_COLS).concat([
         { key: 'note', label: '비고' }
       ]),
@@ -5667,7 +5667,7 @@
       payListStatusBar: true,
       payListFinancialInline: true,
       tableColumnGuide: true,
-      /** 칠페이 원문 일시는 trnDate·trnTime·payCompletedAt와 중복 — VIEW SETTING 제외 */
+      /** PG 원문 일시는 trnDate·trnTime·payCompletedAt와 중복 — VIEW SETTING 제외 */
       columnGuideHiddenKeys: ['transactionDate', 'paymentDate'],
       /** VIEW SETTING·조직항목설정 고정열: 번호만. 통화 포함 그 외 열은 VIEW SETTING에서 켜고 끔 */
       columnGuideFixedKeys: ['rowNo'],
@@ -5711,7 +5711,7 @@
         '「정산(이체)」열은 **승인 성공** 건에만 ChillPay Settled를 **정산완료 / 미정산**으로 보입니다. 실패·취소·환불·무효 등은 칸을 비웁니다. 「예정(ICOPAY)」가 채워져 있으면 서울 기준 그 시각 **이전**에는 예정일 미도래로 **미정산**만 보이고, 도래 후에는 ChillPay 값을 그대로 둡니다. Settled=false 는 이체 미완·주기 미지급 등이 흔합니다. **샌드박스**는 전부 false 인 경우도 많습니다. **결제 상태** 열은 노티(tb_pg_trnsctn) 보강이며 ChillPay 이체와 동일하지 않습니다.',
         '칠페이 정산 API 정렬 키는 통합내역과 같이 TransactionId(기본)·PaymentDate 등 문서 표를 따릅니다. 통합내역(결제 검색)과 동일하게 POJO·헤더·MD5 Checksum 규칙으로 호출합니다. 조회 응답 meta에 chillPaySandbox·chillPayTxnApiEnv(SANDBOX/PRODUCTION)가 포함되어 실제 호출 환경을 확인할 수 있습니다. 상단 [새로고침] 왼쪽에서 내림차순·오름차순(OrderDir)을 고릅니다. 첫째 줄에서 결제일 구간·빠른기간을 정한 뒤, 둘째 줄에서 검색구분·검색어·상태그룹을 맞추고 [검색]을 누릅니다. 「전체」는 해당 항목으로 좁히지 않습니다. 성공/실패/취소 등 상태그룹은 정산 API의 Settled(True/False)와 다르므로, 칠페이 응답에 결제 Status가 없을 때는 ICOPAY 노티 적재 건(tb_pg_trnsctn)으로 상태를 보강한 뒤 보조 필터합니다. 이때 상단 요약은 안내 문구대로 현재 페이지만 반영될 수 있습니다. 기간을 비우면 최근 30일 결제일로 조회합니다.',
         '자격: 배포설정 > API배포설정·tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스와 동일합니다.',
-        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호(No.)만 항상 표시됩니다. 거래일·거래시간·결제시각은 통합내역과 같이 거래일은 YYYY-MM-DD(예: 2026-05-09) 형식, 거래시간·결제시각은 운영·표준 두 줄(전산설정 시간대)로 표시합니다. SettleAmount·NetAmount·정산(이체)·이체일·컷오프·서비스료·환율·통화·승인번호·Merchant·고객·주문번호·PaymentChannel·결제금액·수수료·ICOPAY·Description·칠페이 원문 일시 등은 VIEW SETTING에서 켜고 끌 수 있습니다. 본사설정 → 조직항목설정에서 화면「통합정산」 허용 열을 제한할 수 있습니다.'
+        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호(No.)만 항상 표시됩니다. 거래일·거래시간·결제시각은 통합내역과 같이 거래일은 YYYY-MM-DD(예: 2026-05-09) 형식, 거래시간·결제시각은 운영·표준 두 줄(전산설정 시간대)로 표시합니다. SettleAmount·NetAmount·정산(이체)·이체일·컷오프·서비스료·환율·통화·승인번호·Merchant·고객·주문번호·PaymentChannel·결제금액·수수료·ICOPAY·Description·PG 원문 일시 등은 VIEW SETTING에서 켜고 끌 수 있습니다. 본사설정 → 조직항목설정에서 화면「통합정산」 허용 열을 제한할 수 있습니다.'
       ],
       summary: ['건수'],
       buttons: [
@@ -7513,6 +7513,17 @@
       staticHtml: DEPLOY_STATIC_HTML.launchChecklist,
       summary: [],
       buttons: []
+    },
+    '/hq/platformReleaseNotes': {
+      hideListGrid: true,
+      staticHtml: function () {
+        if (typeof window !== 'undefined' && window.ICOPAY_PLATFORM_RELEASE && typeof window.ICOPAY_PLATFORM_RELEASE.renderHtml === 'function') {
+          return window.ICOPAY_PLATFORM_RELEASE.renderHtml();
+        }
+        return '<div class="text-muted small" data-pg-ui-t="업데이트 내용을 불러올 수 없습니다.">업데이트 내용을 불러올 수 없습니다.</div>';
+      },
+      summary: [],
+      buttons: []
     }
   };
 
@@ -9237,8 +9248,12 @@
   var PAGE_FOOTER_HTML = '<div class="page-footer">Copyright © 2023 ICOPAY Service by Ontheline Co., Ltd.</div>';
 
   function getScreenHtml(url, tabId) {
-    var cfg = MENU_SCREENS[url];
-    tabId = tabId || (url.replace(/^\//, '').replace(/\//g, '_'));
+    var pathOnly = String(url || '').split('?')[0];
+    if (window.PG_HUB_SHELL && typeof window.PG_HUB_SHELL.isHubUrl === 'function' && window.PG_HUB_SHELL.isHubUrl(pathOnly)) {
+      return window.PG_HUB_SHELL.getScreenHtml(url, tabId);
+    }
+    var cfg = MENU_SCREENS[pathOnly];
+    tabId = tabId || (pathOnly.replace(/^\//, '').replace(/\//g, '_'));
     if (!cfg) {
       return '<div class="card"><div class="card-body"><p class="text-muted mb-0">' + escUi(L('화면 정보가 없습니다.')) + '</p>' + PAGE_FOOTER_HTML + '</div></div>';
     }

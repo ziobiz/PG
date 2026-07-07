@@ -65,6 +65,11 @@ public class HomeController {
         return redirectWithMergedQuery("/eximbay-pay.html", compId, request);
     }
 
+    @GetMapping("/elementpay-pay/{compId}")
+    public String elementpayPayByComp(@PathVariable("compId") String compId, HttpServletRequest request) {
+        return redirectWithMergedQuery("/elementpay-pay.html", compId, request);
+    }
+
     @GetMapping("/eximbay-subscribe/{compId}")
     public String eximbaySubscribeByComp(@PathVariable("compId") String compId, HttpServletRequest request) {
         return redirectWithMergedQuery("/eximbay-subscribe.html", compId, request);

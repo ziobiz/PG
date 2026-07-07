@@ -11,6 +11,8 @@ public enum UrlPaySaleChannel {
     JPAY_INLINE_SALE,
     /** Eximbay 결제준비(ready→fgkey) 후 JS SDK 결제창 ({@code /api/pay/url/sale} → fgkey 반환) */
     EXIMBAY_READY_SALE,
+    /** ElementPay initPayment — THB 카드·PromptPay ({@code /api/pay/url/sale}) */
+    ELEMENTPAY_INIT_PAYMENT,
     /** 아직 ICOPAY URL 승인 어댑터 미등록 */
     NOT_REGISTERED
 }

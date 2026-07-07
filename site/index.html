@@ -8,9 +8,10 @@
   <title>PG 통합관리자</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="css/site.css?v=103" rel="stylesheet">
+  <link href="css/site.css?v=104" rel="stylesheet">
   <link href="css/hq-server-monitor.css?v=5" rel="stylesheet">
   <script src="js/config.js?v=12"></script>
+  <script src="js/pg-menu-layout-config.js?v=1"></script>
   <script>
     (function () {
       var h = (window.location && window.location.hostname) ? window.location.hostname : '';
@@ -236,7 +237,7 @@
               <li class="child-li" data-url="/hq/merchantApiDeployDocs"><a href="#" data-menu_id="M0907" data-pg-ui-t="API배포문서">API배포문서</a></li>
               <li class="child-li" data-url="/hq/apiConfig"><a href="#" data-menu_id="M0103" data-pg-ui-t="API배포설정">API배포설정</a></li>
               <li class="child-li" data-url="/deploy/integrationPlan"><a href="#" data-menu_id="M0901" data-pg-ui-t="연동 진행안">연동 진행안</a></li>
-              <li class="child-li" data-url="/deploy/jpayWorkPlan"><a href="#" data-menu_id="M0902" data-pg-ui-t="JPAY 단계 계획">JPAY 단계 계획</a></li>
+              <li class="child-li" data-url="/deploy/jpayWorkPlan"><a href="#" data-menu_id="M0902" data-pg-ui-t="JPAY 전용 연동">JPAY 전용 연동</a></li>
               <li class="child-li" data-url="/deploy/merchantApiPolicy"><a href="#" data-menu_id="M0903" data-pg-ui-t="가맹점 API 배포">가맹점 API 배포</a></li>
               <li class="child-li" data-url="/deploy/launchChecklist"><a href="#" data-menu_id="M0904" data-pg-ui-t="배포 체크리스트">배포 체크리스트</a></li>
             </ul>
@@ -676,20 +677,23 @@
 <script src="js/pay-list-overview-catalog.js?v=3"></script>
 <script src="js/pay-list-jpay-overview-catalog.js?v=1"></script>
 <script src="js/table-column-resize.js?v=4"></script>
-  <script src="js/pg-ui-string-map.js?v=41"></script>
-  <script src="js/pg-ui-i18n.js?v=74"></script>
+  <script src="js/pg-ui-string-map.js?v=44"></script>
+  <script src="js/pg-ui-i18n.js?v=75"></script>
   <script src="js/checkout-header-subtitle-presets.js?v=1"></script>
   <script src="js/url-pay-input-mode.js?v=4"></script>
   <script src="js/pg-view-display-tz.js?v=2"></script>
-  <script src="js/screens.js?v=238"></script>
+  <script src="js/pg-menu-layout-b.js?v=2"></script>
+  <script src="js/pg-hub-shell.js?v=1"></script>
+  <script src="js/icopay-platform-release-notes.js?v=1"></script>
+  <script src="js/screens.js?v=241"></script>
   <script src="js/pg-pay-list-i18n.js?v=42"></script>
   <script src="js/pg-home-dashboard.js?v=27"></script>
   <script src="js/ops-inactive-card-brand.js?v=1"></script>
-  <script src="js/app.js?v=300"></script>
+  <script src="js/app.js?v=302"></script>
   <script src="js/pg-login-tablet-shell.js?v=5"></script>
   <script src="js/pg-topbar-contrast.js?v=1"></script>
   <script src="js/pg-admin-tablet-shell.js?v=9"></script>
-<script src="js/pg-admin-shell-i18n.js?v=9"></script>
+<script src="js/pg-admin-shell-i18n.js?v=10"></script>
   <script>
     (function () {
       var user = null;

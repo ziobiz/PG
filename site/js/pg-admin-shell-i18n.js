@@ -99,7 +99,10 @@
     운영관리: { EN: 'Operations', JP: '運用管理', CH: '运营管理', TH: 'ปฏิบัติการ' },
     검수관리: { EN: 'Inspection management', JP: '検収管理', CH: '检收管理', TH: 'จัดการตรวจสอบ' },
     리스크관리: { EN: 'Inspection management', JP: '検収管理', CH: '检收管理', TH: 'จัดการตรวจสอบ' },
-    배포설정: { EN: 'Deployment', JP: 'デプロイ設定', CH: '部署设置', TH: 'การใช้งานจริง' }
+    배포설정: { EN: 'Deployment', JP: 'デプロイ設定', CH: '部署设置', TH: 'การใช้งานจริง' },
+    '본사정책': { EN: 'HQ policy', JP: '本社ポリシー', CH: '总部政策', TH: 'นโยบาย HQ' },
+    '본사 정책': { EN: 'HQ policy', JP: '本社ポリシー', CH: '总部政策', TH: 'นโยบาย HQ' },
+    '연동·배포': { EN: 'Integration & deploy', JP: '連携・デプロイ', CH: '联动与部署', TH: 'เชื่อมต่อและใช้งานจริง' }
   };
 
   function T(en, jp, ch, th) {
@@ -110,13 +113,15 @@
   function reverseParentSegKey(displayText) {
     var txt = String(displayText == null ? '' : displayText).trim();
     if (!txt) return '';
-    if (PARENT_SEG[txt]) return txt;
+    if (PARENT_SEG[txt]) return txt === '본사 정책' ? '본사정책' : txt;
     var keys = Object.keys(PARENT_SEG);
     for (var i = 0; i < keys.length; i++) {
       var k = keys[i];
       var row = PARENT_SEG[k];
       if (!row) continue;
-      if (row.EN === txt || row.JP === txt || row.CH === txt || row.TH === txt) return k;
+      if (row.EN === txt || row.JP === txt || row.CH === txt || row.TH === txt) {
+        return k === '본사 정책' ? '본사정책' : k;
+      }
     }
     return txt;
   }
@@ -262,18 +267,28 @@
     '/ops/inactiveCard': T('Card management', 'カード管理', '卡片管理', 'จัดการบัตร'),
     '/ops/notiProvision': T('NOTI management', 'ノティ管理', 'NOTI管理', 'จัดการ NOTI'),
     '/ops/integrationPlan': T('Integration plan', '連携進行案', '联调计划', 'แผนเชื่อมต่อ'),
-    '/ops/jpayWorkPlan': T('JPAY rollout plan', 'JPAY段階計画', 'JPAY 阶段计划', 'แผน JPAY'),
+    '/ops/jpayWorkPlan': T('JPAY-only integration', 'JPAY専用連携', 'JPAY 专用联动', 'เชื่อมต่อ JPAY เฉพาะ'),
     '/ops/merchantApiPolicy': T('Merchant API rollout', '加盟店API配布', '商户 API 发布', 'นโยบาย Merchant API'),
     '/ops/launchChecklist': T('Launch checklist', '配布チェックリスト', '上线检查清单', 'เช็กลิสต์เปิดใช้'),
     '/risk/list': T('Risk dashboard', 'リスク状況', '风险看板', 'ภาพรวมความเสี่ยง'),
     '/deploy/integrationPlan': T('Integration plan', '連携進行案', '联调计划', 'แผนเชื่อมต่อ'),
-    '/deploy/jpayWorkPlan': T('JPAY rollout plan', 'JPAY段階計画', 'JPAY 阶段计划', 'แผน JPAY'),
+    '/deploy/jpayWorkPlan': T('JPAY-only integration', 'JPAY専用連携', 'JPAY 专用联动', 'เชื่อมต่อ JPAY เฉพาะ'),
     '/deploy/merchantApiPolicy': T('Merchant API rollout', '加盟店API配布', '商户 API 发布', 'นโยบาย Merchant API'),
-    '/deploy/launchChecklist': T('Launch checklist', '配布チェックリスト', '上线检查清单', 'เช็กลิสต์เปิดใช้')
+    '/deploy/launchChecklist': T('Launch checklist', '配布チェックリスト', '上线检查清单', 'เช็กลิสต์เปิดใช้'),
+    '/hq/hub/policy-fees': T('Fees & risk', '手数料・リスク', '手续费与风险', 'ค่าธรรมเนียมและความเสี่ยง'),
+    '/hq/hub/payment-channel': T('Payments & URL', '決済・URL', '支付与 URL', 'ชำระเงินและ URL'),
+    '/hq/hub/notify': T('Notify center', 'ノティセンター', '通知中心', 'ศูนย์แจ้งเตือน'),
+    '/hq/hub/settlement': T('Settlement & biz days', '精算・営業日', '结算与营业日', 'ชำระบัญชีและวันทำการ'),
+    '/hq/hub/org-view': T('Org & screens', '組織・画面', '组织与界面', 'องค์กรและหน้าจอ'),
+    '/hq/hub/platform': T('Platform', 'プラットフォーム', '平台', 'แพลตฟอร์ม'),
+    '/hq/platformReleaseNotes': T('Release notes', 'アップデート内容', '更新内容', 'ประวัติอัปเดต'),
+    '/hq/hub/access': T('Access & permissions', 'アクセス・権限', '访问与权限', 'การเข้าถึงและสิทธิ์'),
+    '/hq/hub/merchant-api': T('Merchant API launch', '加盟店API公開', '商户 API 发布', 'เปิดใช้ Merchant API')
   };
 
   function tParentSeg(seg, loc) {
     var t = seg.trim();
+    if (t === '본사 정책') t = '본사정책';
     if (!t || loc === 'KO') return t;
     var row = PARENT_SEG[t];
     return row ? pick(row, loc) : t;

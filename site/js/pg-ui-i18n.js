@@ -11327,7 +11327,7 @@
       CH: '无法加载总代列表。',
       TH: 'โหลดรายการตัวแทนหลักไม่สำเร็จ'
     },
-    '노티 URL 토큰이 바뀝니다. NOTI/칠페이에 등록된 URL도 함께 바꿔야 합니다. 계속하시겠습니까?': {
+    '노티 URL 토큰이 바뀝니다. NOTI/연동 PG사에 등록된 URL도 함께 바꿔야 합니다. 계속하시겠습니까?': {
       EN: 'The notify URL token will change. Update the URL registered in NOTI/ChillPay as well. Continue?',
       JP: 'ノティURLのトークンが変わります。NOTI/チルペイに登録したURLも合わせて変更してください。続行しますか？',
       CH: '通知 URL 令牌将变更。请在 NOTI/ChillPay 中同步更新已登记的 URL。是否继续？',
@@ -11671,11 +11671,11 @@
       CH: '每行<strong>[保存]</strong>将表中输入的保留值一次性提交服务器。<strong>[修改]</strong>放弃未保存更改并从服务器重新加载。<strong>[初始化]</strong>仅移除该数据类型的已保存覆盖。',
       TH: 'แต่ละแถว <strong>[บันทึก]</strong> ส่งค่าทั้งตาราง <strong>[แก้ไข]</strong> ยกเลิกการเปลี่ยนที่ยังไม่บันทึกแล้วโหลดใหม่ <strong>[รีเซ็ต]</strong> ลบเฉพาะ override ของประเภทนั้น'
     },
-    '통합내역(칠페이) 동기화·로그 보관': {
-      EN: 'ChillPay integrated list sync & log retention',
-      JP: '統合明細（チルペイ）同期・ログ保持',
-      CH: '集成明细（ChillPay）同步与日志保留',
-      TH: 'รายการรวม (ChillPay) ซิงก์และเก็บล็อก'
+    '통합내역 동기화·로그 보관': {
+      EN: 'Integrated transactions sync & log retention',
+      JP: '統合取引の同期・ログ保管',
+      CH: '整合交易同步与日志保留',
+      TH: 'ซิงค์ธุรกรรมรวม·เก็บล็อก'
     },
     '통합내역 화면에서 날짜를 비운 채 조회하면 「최근 동기화 범위」일만큼 TransactionDate 구간을 채웁니다. [검색 초기화]는 「피지거래내역 초기화 동기화(개월)」만큼 넓은 구간으로 맞춥니다. 로그 파일 보관(일)은 매일 새벽 데이터 보관 스케줄에서 <code>logs</code> 등의 오래된 .log/.gz 파일 삭제에 반영됩니다. 로그 메모리 보관(일)은 정책 저장용(추후 진단 버퍼 연동 시 사용).': {
       EN: 'Searching the integrated list with empty dates fills a TransactionDate window of Recent sync days. Search reset widens to ChillPay transaction init sync (months). Log file retention (days) is applied nightly by the retention job to delete old <code>logs</code> .log/.gz files. Log memory retention (days) is policy storage (for future diagnostic buffers).',
@@ -19192,7 +19192,7 @@
     'API 가맹점 등록': { EN: 'API merchant registration', JP: 'API加盟店登録', CH: 'API 商户注册', TH: 'ลงทะเบียนร้าน API' },
     '가맹점 API 생성': { EN: 'Merchant API (generate)', JP: '加盟店API生成', CH: '生成商户 API', TH: 'สร้าง Merchant API' },
     'API배포설정': { EN: 'API deploy settings', JP: 'API配信設定', CH: 'API 部署设置', TH: 'ตั้งค่า deploy API' },
-    'JPAY 단계 계획': { EN: 'JPAY rollout plan', JP: 'JPAY段階計画', CH: 'JPAY 阶段计划', TH: 'แผน JPAY' },
+    'JPAY 전용 연동': { EN: 'JPAY-only integration', JP: 'JPAY専用連携', CH: 'JPAY 专用联动', TH: 'เชื่อมต่อ JPAY เฉพาะ' },
     '가맹점 API 배포': { EN: 'Merchant API rollout', JP: '加盟店API配布', CH: '商户 API 发布', TH: 'นโยบาย Merchant API' },
     '배포 체크리스트': { EN: 'Launch checklist', JP: '配布チェックリスト', CH: '上线检查清单', TH: 'เช็กลิสต์เปิดใช้' },
     '본사설정': { EN: 'HQ settings', JP: '本社設定', CH: '总部设置', TH: 'ส่วนตั้งค่า HQ' },
@@ -19634,7 +19634,7 @@
     '상태·결제액 불일치': { EN: 'Status & amount mismatch', JP: '状態・決済額不一致', CH: '状态·支付额不一致', TH: 'สถานะและยอดไม่ตรงกัน' },
     '통합 기준 맞춤': { EN: 'Sync to integrated', JP: '統合基準で合わせる', CH: '按综合对齐', TH: 'ปรับตามรวม' },
     '상태 불일치 일괄 맞춤': { EN: 'Sync all status mismatches', JP: '状態不一致を一括合わせ', CH: '批量按综合对齐状态', TH: 'ปรับสถานะไม่ตรงกันทั้งหมด' },
-    '선택 일자의 상태 불일치 건을 통합(ChillPay) 기준으로 일괄 맞춥니다. 계속할까요?': {
+    '선택 일자의 상태 불일치 건을 통합(ICOPAY) 기준으로 일괄 맞춥니다. 계속할까요?': {
       EN: 'Sync all status mismatches for this day to ChillPay integrated status. Continue?',
       JP: '選択日の状態不一致をChillPay統合基準で一括合わせします。続行しますか？',
       CH: '将该日所有状态不一致按 ChillPay 综合标准批量对齐。继续吗？',
@@ -19644,7 +19644,7 @@
     '상태 일괄 맞춤에 실패했습니다.': { EN: 'Batch status sync failed.', JP: '状態一括合わせに失敗しました。', CH: '批量状态对齐失败。', TH: 'ปรับสถานะแบบกลุ่มล้มเหลว' },
     '요청·대기': { EN: 'Request/pending', JP: 'リクエスト・待機', CH: '请求/等待', TH: 'คำขอ/รอ' },
     '건 제외': { EN: ' excluded', JP: '件除外', CH: '件排除', TH: ' รายการยกเว้น' },
-    '통합(ChillPay) 상태에 맞춰 NOTI 결제내역 상태를 갱신합니다. 계속할까요?': {
+    '통합(ICOPAY) 상태에 맞춰 NOTI 결제내역 상태를 갱신합니다. 계속할까요?': {
       EN: 'Update NOTI payment row status to match integrated (ChillPay). Continue?',
       JP: 'NOTI決済内訳の状態を統合(ChillPay)に合わせて更新します。続行しますか？',
       CH: '将 NOTI 支付记录状态更新为与综合(ChillPay)一致。是否继续？',
@@ -19679,7 +19679,7 @@
     '거래일': { EN: 'Txn date', JP: '取引日', CH: '交易日期', TH: 'วันที่ทำรายการ' },
     '적재일': { EN: 'Ingest date', JP: '取込日', CH: '入库日', TH: 'วันที่บันทึก' },
     '전체건수': { EN: 'All txns', JP: '全件数', CH: '全部笔数', TH: 'ทุกรายการ' },
-    '총건수(칠페이)': { EN: 'Total (ChillPay)', JP: '総件数（ChillPay）', CH: '总笔数（ChillPay）', TH: 'จำนวนรวม (ChillPay)' },
+    '총건수(통합)': { EN: 'Total (unified)', JP: '総件数（統合）', CH: '总笔数（整合）', TH: 'จำนวนรวม (รวม)' },
     '정산유무': { EN: 'Settlement status', JP: '精算有無', CH: '结算状态', TH: 'สถานะการชำระ' },
     '정산예정일': { EN: 'Expected settlement date', JP: '精算予定日', CH: '预计结算日', TH: 'วันที่คาดว่าจะชำระ' },
     '정산예정': {

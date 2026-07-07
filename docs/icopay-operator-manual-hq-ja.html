@@ -3,36 +3,38 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ICOPAY 本社運営マニュアル</title>
+<title>ICOPAY 本社・総販代理店 運用マニュアル V2.0</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Meiryo', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif; font-size: 11pt; line-height: 1.8; color: #1a1a1a; background: #f0f2f8; }
-  .page-wrap { max-width: 900px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 18px rgba(0,0,0,.11); overflow: hidden; }
+  body { font-family: 'Meiryo', 'Hiragino Kaku Gothic Pro', 'Noto Sans JP', sans-serif; font-size: 11pt; line-height: 1.8; color: #1a1a1a; background: #f0f2f8; }
+  .page-wrap { max-width: 960px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 18px rgba(0,0,0,.11); overflow: hidden; }
   .cover { background: linear-gradient(135deg, #1a3a5c 0%, #1976d2 55%, #42a5f5 100%); color: #fff; padding: 48px 52px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
   .cover-body { flex: 1; }
   .cover-logo { flex-shrink: 0; display: flex; align-items: flex-start; padding-top: 4px; }
   .cover-logo img { height: 64px; background: rgba(255,255,255,.92); padding: 10px 18px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.20); }
   .cover .logo-line { font-size: 13pt; font-weight: 700; letter-spacing: 2px; opacity: .85; margin-bottom: 14px; }
-  .cover h1 { font-size: 22pt; font-weight: 900; line-height: 1.35; margin-bottom: 10px; }
+  .cover h1 { font-size: 22pt; font-weight: 900; line-height: 1.28; margin-bottom: 10px; }
   .cover .subtitle { font-size: 11pt; opacity: .82; margin-bottom: 24px; }
   .cover .meta { font-size: 9.5pt; opacity: .65; border-top: 1px solid rgba(255,255,255,.25); padding-top: 14px; }
   .body { padding: 44px 52px 64px; }
   .toc { background: #f0f4ff; border-left: 4px solid #1565c0; border-radius: 0 8px 8px 0; padding: 20px 26px; margin-bottom: 44px; }
   .toc h2 { font-size: 12pt; font-weight: 700; color: #1565c0; margin-bottom: 12px; }
   .toc ol { padding-left: 20px; }
-  .toc li { font-size: 10pt; line-height: 2.2; color: #1a3a5c; }
+  .toc li { font-size: 10pt; line-height: 2.1; color: #1a3a5c; }
   .toc a { color: #1565c0; text-decoration: none; }
-  h2.section-title { font-size: 14pt; font-weight: 800; color: #1a3a5c; border-bottom: 2.5px solid #1565c0; padding-bottom: 7px; margin: 48px 0 18px; page-break-after: avoid; }
+  .toc a:hover { text-decoration: underline; }
+  h2.section-title { font-size: 15pt; font-weight: 800; color: #1a3a5c; border-bottom: 2.5px solid #1565c0; padding-bottom: 7px; margin: 48px 0 18px; page-break-after: avoid; }
   h3.sub-title { font-size: 12pt; font-weight: 700; color: #1565c0; margin: 26px 0 10px; page-break-after: avoid; }
   p { margin-bottom: 10px; }
-  .info-box { background: #e3f0ff; border: 1px solid #90caf9; border-left: 4px solid #1565c0; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1a3a5c; }
-  .warn-box { background: #fff8e1; border: 1px solid #ffe082; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #5d4037; }
+  .info-box  { background: #e3f0ff; border: 1px solid #90caf9; border-left: 4px solid #1565c0; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1a3a5c; }
+  .warn-box  { background: #fff8e1; border: 1px solid #ffe082; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #5d4037; }
   .check-box { background: #e8f5e9; border: 1px solid #a5d6a7; border-left: 4px solid #2e7d32; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1b5e20; }
   .block-box { background: #fce4ec; border: 1px solid #f48fb1; border-left: 4px solid #c62828; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #b71c1c; }
   table { width: 100%; border-collapse: collapse; margin: 14px 0 22px; font-size: 10pt; page-break-inside: avoid; }
   th { background: #1a3a5c; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #12274a; }
   td { padding: 8px 12px; border: 1px solid #cfd8dc; vertical-align: middle; }
   tr:nth-child(even) td { background: #f4f7ff; }
+  td.center, th.center { text-align: center; }
   .menu-path { display: inline-block; background: #eceff1; border: 1px solid #cfd8dc; border-radius: 5px; padding: 3px 12px; font-size: 9.5pt; color: #37474f; font-weight: 600; margin-bottom: 12px; }
   .menu-path::before { content: "📌 メニュー: "; }
   .flow { background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; padding: 18px 22px; margin: 14px 0 20px; font-size: 10pt; page-break-inside: avoid; }
@@ -48,7 +50,17 @@
   ul, ol { padding-left: 20px; margin-bottom: 12px; }
   li { margin-bottom: 4px; }
   .footer { background: #1a3a5c; color: rgba(255,255,255,.6); text-align: center; font-size: 9pt; padding: 18px 24px; }
-  @media print { body { background: #fff; } .page-wrap { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; } .footer { display: none; } @page { size: A4; margin: 18mm 16mm; } }
+  .badge-ok  { color: #2e7d32; font-weight: 700; }
+  .badge-no  { color: #c62828; font-weight: 700; }
+  @media print {
+    body { background: #fff; font-size: 10pt; }
+    .page-wrap { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; }
+    .cover { padding: 28px 36px 24px; }
+    .body { padding: 28px 36px 36px; }
+    .faq-item, table, .flow { page-break-inside: avoid; }
+    .footer { display: none; }
+    @page { size: A4; margin: 18mm 16mm; }
+  }
 </style>
 </head>
 <body>
@@ -57,172 +69,508 @@
   .print-btn:hover { background: #0d47a1; box-shadow: 0 6px 20px rgba(13,71,161,.5); }
   @media print { .print-btn { display: none !important; } }
 </style>
-<button class="print-btn" onclick="window.print()">🖨️ 印刷 / PDFで保存</button>
+<button class="print-btn" onclick="window.print()">🖨️ 印刷 / PDF保存</button>
 <div class="page-wrap">
   <div class="cover">
     <div class="cover-body">
       <div class="logo-line">ICOPAY · Payment Gateway</div>
-      <h1>本社運営<br>マニュアル</h1>
-      <div class="subtitle">本社運営者向けガイド — 加盟店登録・Web決済・定期購読・再購入・分割決済・チャットボット決済設定（総代理店と同一権限）</div>
-      <div class="meta">ICOPAY Headquarters Operation Manual · 本社ロール &nbsp;|&nbsp; 対象: 本社運営者 &nbsp;|&nbsp; V3.0 · 2026年6月</div>
+      <h1>本社・総販代理店<br>運用マニュアル</h1>
+      <div class="subtitle">加盟店管理・決済・精算・チャットボット・分割払い・運営管理 — 本社／総販代理店 担当者向け統合ガイド（ICOPAY V2.0）</div>
+      <div class="meta">ICOPAY 本社・総販代理店 運用マニュアル · 対象: 本社・総販代理店 担当者 &nbsp;|&nbsp; ライブ V2.0 · 2026年7月</div>
     </div>
-    <div class="cover-logo"><img src="./logo-ontheline.png" alt="On The Line"></div>
+    <div class="cover-logo">
+      <img src="./logo-ontheline.png" alt="On The Line">
+    </div>
   </div>
+
   <div class="body">
-    <div class="block-box" style="margin-bottom:36px;">
-      <strong>🔒 本社ロールのアクセス制限</strong><br><br>
-      本社運営者は以下のメニューにアクセスできません。必要な場合は総本社に依頼してください。<br><br>
-      <ul style="margin:6px 0 0; padding-left:18px;">
-        <li><strong>本社設定</strong> — 全メニューアクセス不可</li>
-        <li><strong>精算管理</strong> — 統合精算・精算実行・精算配布・精算待機：アクセス不可</li>
-        <li><strong>通知管理</strong> — 全メニューアクセス不可（決済通知URL・アラート設定含む）</li>
-        <li><strong>ユーザー管理</strong> — メニュー項目順序管理：アクセス不可</li>
-        <li><strong>運営管理</strong> — 運営管理・TAXレポート・検証レポート・代行取引履歴：アクセス不可</li>
-        <li><strong>配布設定</strong> — API配布ドキュメントのみアクセス可、その他は全てアクセス不可</li>
-        <li><strong>分割管理</strong> — メール設定：アクセス不可</li>
+
+    <!-- アクセス制限案内 -->
+    <div class="block-box" style="margin-bottom:28px;">
+      <strong>🔒 本社／総販代理店 アクセス制限のご案内</strong><br><br>
+      本社・総販代理店の担当者は以下のメニューに<strong>アクセスできません</strong>。これらの機能が必要な場合は、スーパー管理者（総本社）にご連絡ください。<br><br>
+      <ul style="margin:6px 0 0; padding-left:18px; line-height:2.0;">
+        <li><strong>本社ポリシー</strong>（全8ハブグループ）— 手数料・リスク、決済・URL、通知センター、精算・営業日、組織・画面、アクセス・権限、AI・チャットボット、プラットフォーム</li>
+        <li><strong>連携・デプロイ</strong> — PG連携、加盟店API公開はアクセス不可（<em>APIドキュメントタブの閲覧のみ可</em>）</li>
+        <li><strong>精算管理</strong> — 統合精算、精算実行、精算デプロイ、精算待機はアクセス不可</li>
+        <li><strong>通知管理</strong> — 全体アクセス不可（決済通知URL・アラート設定を含む）</li>
+        <li><strong>ユーザー管理</strong> — メニュー項目順序管理はアクセス不可</li>
+        <li><strong>運営管理</strong> — 運営管理（メイン）、TAXレポート、検証レポート、代行取引履歴はアクセス不可</li>
+        <li><strong>分割管理</strong> — メール設定はアクセス不可</li>
       </ul>
     </div>
+
     <div class="toc">
       <h2>📋 目次</h2>
-      <ul>
-        <li><a href="#merchant">1. 加盟店登録</a></li>
+      <ol>
+        <li><a href="#s0">アクセス制限案内 — スーパー管理者専用メニュー</a></li>
+        <li><a href="#s1">役割別アクセス権限一覧</a></li>
+        <li><a href="#s2">加盟店管理</a></li>
+        <li><a href="#s3">決済管理</a></li>
+        <li><a href="#s4">精算管理</a></li>
+        <li><a href="#s5">チャットボット管理</a></li>
+        <li><a href="#s6">分割払い管理</a></li>
+        <li><a href="#s7">運営管理</a></li>
+        <li><a href="#s8">連携・デプロイ（APIドキュメント）</a></li>
+        <li><a href="#s9">よくある質問（FAQ）</a></li>
+      </ol>
+    </div>
 
-        <li><a href="#fee">2. 手数料設定</a></li>
-        <li><a href="#webpay">3. Web決済設定</a></li>
-        <li><a href="#subscribe">4. 定期購読決済設定</a></li>
-        <li><a href="#repurchase">5. 再購入決済設定</a></li>
-        <li><a href="#splitpay">6. URL分割決済設定</a></li>
-        <li><a href="#chatbot">7. チャットボット決済設定</a></li>
-      </ul>
+    <div class="warn-box" style="margin-bottom: 24px;">
+      <strong>📋 命名原則</strong><br><br>
+      ICOPAYは単一APIの背後で複数の決済代行会社を統合するプラットフォームです。本マニュアルの統合機能（チェックアウト、URL決済、統合取引等）では中立的なICOPAY用語を使用します。<strong>「JPAY専用」</strong>表記はJPAY固有機能にのみ使用されます。
     </div>
-    <hr class="rule">
-    <h2 class="section-title" id="merchant">1. 加盟店登録</h2>
-    <span class="menu-path">加盟店管理 &gt; 加盟店登録 / 加盟店情報</span>
-    <div class="flow">
-      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc"><strong>加盟店管理 &gt; 加盟店登録</strong>へ移動</span></div>
-      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">基本情報入力 — 店舗名、事業者番号、代表者名、連絡先、メール、住所</span></div>
-      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">精算構造設定 — 周期・手数料率・口座</span></div>
-      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">決済サービスを有効化</span></div>
-      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc">保存 → 加盟店コード自動生成 → 決済URL確認</span></div>
-      <div class="flow-row"><span class="flow-num">⑥</span><span class="flow-desc">加盟店アカウント（ID・仮パスワード）を作成し担当者へ通知</span></div>
-    </div>
-    <div class="info-box"><code>Y</code>設定でURLが加盟店ポータルに表示されます。<code>N</code>の場合は非表示です。</div>
-    <div class="warn-box"><strong>注意:</strong> ユーザー管理内のメニュー項目順序管理は総本社専用です。</div>
+
     <hr class="rule">
 
-    
-    <!-- ══════════════════════════════════════════
-         2. 手数料設定
-    ══════════════════════════════════════════ -->
-    <h2 class="section-title" id="fee">2. 手数料設定</h2>
-
-    <p>ICOPAYの手数料体系は<strong>基本ポリシー手数料</strong>（システム全体のデフォルト）と<strong>加盟店別個別手数料</strong>（特定加盟店専用）の2段階で構成されます。</p>
-
-    <table>
-      <tr><th>手数料タイプ</th><th>メニューパス</th><th class="center">アクセス可否</th></tr>
-      <tr><td>基本ポリシー手数料（システムデフォルト）</td><td>本社設定 &gt; 手数料設定</td><td class="icon">❌</td></tr>
-      <tr><td>加盟店別個別手数料</td><td>業者管理 &gt; 手数料管理</td><td class="icon">✅</td></tr>
-    </table>
+    <!-- 0. アクセス制限 -->
+    <h2 class="section-title" id="s0">0. アクセス制限案内 — スーパー管理者専用メニュー</h2>
+    <p>ICOPAY V2.0のメニュー構成において、<strong>本社／総販代理店</strong>の役割はスーパー管理者専用メニューにアクセスできません。下記の表は制限メニューの全一覧です。</p>
 
     <div class="block-box">
-      <strong>🔒 基本ポリシー手数料（本社設定 &gt; 手数料設定）へのアクセス不可</strong><br>
-      本社設定メニューはスーパー管理者専用です。基本手数料ポリシーの変更が必要な場合はスーパー管理者にお問い合わせください。
+      <strong>🔒 スーパー管理者専用 — 本社・総販代理店がアクセスできないメニュー一覧</strong>
+      <table style="margin-top:12px; background:#fff;">
+        <thead>
+          <tr><th>メニューグループ</th><th>詳細メニュー</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>本社ポリシー</strong>（全ハブ）</td><td>手数料・リスク / 決済・URL / 通知センター / 精算・営業日 / 組織・画面 / アクセス・権限 / AI・チャットボット / プラットフォーム</td></tr>
+          <tr><td><strong>連携・デプロイ</strong></td><td>PG連携、加盟店API公開（APIドキュメントタブのみ許可）</td></tr>
+          <tr><td><strong>精算管理</strong></td><td>統合精算、精算実行、精算デプロイ、精算待機</td></tr>
+          <tr><td><strong>通知管理</strong></td><td>全体アクセス不可</td></tr>
+          <tr><td><strong>ユーザー管理</strong></td><td>メニュー項目順序管理</td></tr>
+          <tr><td><strong>運営管理</strong></td><td>運営管理（メイン）、TAXレポート、検証レポート、代行取引履歴</td></tr>
+          <tr><td><strong>分割管理</strong></td><td>メール設定</td></tr>
+        </tbody>
+      </table>
     </div>
 
-    <h3 class="sub-title">2-1. 加盟店別個別手数料設定</h3>
-    <span class="menu-path">業者管理 &gt; 手数料管理</span>
-    <p>特定の加盟店にのみ適用される個別手数料率を設定します。基本ポリシー手数料とは異なる条件が必要な加盟店に使用します。</p>
+    <hr class="rule">
+
+    <!-- 1. 役割別アクセス権限 -->
+    <h2 class="section-title" id="s1">1. 役割別アクセス権限一覧</h2>
+    <p>下記の表は主要メニューごとの<strong>スーパー管理者／本社／総販代理店</strong>のアクセス権限をまとめたものです。本社と総販代理店は同一の権限を持ちます。</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>メニューグループ</th>
+          <th>詳細メニュー</th>
+          <th class="center">スーパー管理者</th>
+          <th class="center">本社</th>
+          <th class="center">総販代理店</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td rowspan="5"><strong>加盟店管理</strong></td><td>お知らせ</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td>加盟店情報照会</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td>加盟店管理</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td>手数料管理</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td>加盟店変更履歴</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td rowspan="6"><strong>決済管理</strong></td><td>決済履歴</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td>統合履歴</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td>日別統合</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td>概要</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td>統合精算リスト</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td>統合チェック</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td rowspan="7"><strong>精算管理</strong></td><td>加盟店精算履歴</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td>手数料履歴</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td>残高・未収金・返還金・担保金</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td>精算保留履歴・精算レポート</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td>統合精算</td><td class="center badge-ok">✅</td><td class="center badge-no">❌</td><td class="center badge-no">❌</td></tr>
+        <tr><td>精算実行 / 精算デプロイ</td><td class="center badge-ok">✅</td><td class="center badge-no">❌</td><td class="center badge-no">❌</td></tr>
+        <tr><td>精算待機</td><td class="center badge-ok">✅</td><td class="center badge-no">❌</td><td class="center badge-no">❌</td></tr>
+        <tr><td rowspan="3"><strong>チャットボット管理</strong></td><td>基本設定</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td>商品管理</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td>注文管理</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td rowspan="3"><strong>分割払い管理</strong></td><td>進行管理</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td>メール管理</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td>メール設定</td><td class="center badge-ok">✅</td><td class="center badge-no">❌</td><td class="center badge-no">❌</td></tr>
+        <tr><td rowspan="2"><strong>ユーザー管理</strong></td><td>ユーザー管理</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td>メニュー項目順序管理</td><td class="center badge-ok">✅</td><td class="center badge-no">❌</td><td class="center badge-no">❌</td></tr>
+        <tr><td rowspan="5"><strong>運営管理</strong></td><td>メール管理</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td>統合レポート</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td>流通網履歴 / 流通網精算</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td>カード管理 / 通知管理</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td>リスク状況</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td><strong>連携・デプロイ</strong></td><td>APIドキュメントタブのみ</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td><td class="center badge-ok">✅</td></tr>
+        <tr><td><strong>本社ポリシー</strong></td><td>全体（8ハブグループ）</td><td class="center badge-ok">✅</td><td class="center badge-no">❌</td><td class="center badge-no">❌</td></tr>
+        <tr><td><strong>通知管理</strong></td><td>全体</td><td class="center badge-ok">✅</td><td class="center badge-no">❌</td><td class="center badge-no">❌</td></tr>
+      </tbody>
+    </table>
+
+    <div class="check-box">
+      <strong>✅ 本社と総販代理店は同一のアクセス権限を持ちます。</strong> 上記の表において、本社・総販代理店の列は常に同じ結果です。
+    </div>
+
+    <hr class="rule">
+
+    <!-- 2. 加盟店管理 -->
+    <h2 class="section-title" id="s2">2. 加盟店管理</h2>
+    <span class="menu-path">加盟店管理</span>
+    <p>加盟店の登録・更新・手数料管理・変更履歴を担当するコアメニューです。本社・総販代理店ともに全アクセスが可能です。</p>
+
+    <h3 class="sub-title">2-1. 新規加盟店登録</h3>
+    <span class="menu-path">加盟店管理 &gt; 加盟店管理</span>
     <div class="flow">
-      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc"><strong>業者管理 &gt; 手数料管理</strong> メニューへ進む</span></div>
-      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">手数料を設定する加盟店を選択</span></div>
-      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">決済手段別の個別手数料率を入力</span></div>
-      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">適用期間（開始日・終了日）を設定（期間限定プロモーション手数料の適用が可能）</span></div>
-      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc">保存 → 対象加盟店のみに即時適用</span></div>
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc"><strong>加盟店管理 &gt; 加盟店管理</strong> メニューへ → [新規登録] ボタンをクリック</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">基本情報の入力 — 店舗名、法人番号、代表者名、連絡先、メール、住所</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">精算構成の設定 — 精算サイクル、手数料率、振込先口座</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">利用する決済サービスを有効化（Web決済・定期・再購入・分割払い・チャットボット）</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc"><strong>保存</strong> → 加盟店コードが自動生成 → 決済URLを確認</span></div>
+      <div class="flow-row"><span class="flow-num">⑥</span><span class="flow-desc">加盟店アカウント（ID・仮パスワード）を生成し担当者へ通知</span></div>
+    </div>
+
+    <h3 class="sub-title">2-2. 加盟店情報の照会・編集</h3>
+    <span class="menu-path">加盟店管理 &gt; 加盟店情報照会</span>
+    <ul>
+      <li>店舗名・法人番号・ステータス（有効/無効）で検索</li>
+      <li>加盟店詳細 → 基本情報・決済設定・精算設定タブで編集</li>
+      <li>加盟店ステータスの切り替え：有効 / 一時停止 / 無効</li>
+      <li>お知らせタブ：加盟店向けお知らせの登録・管理</li>
+    </ul>
+
+    <h3 class="sub-title">2-3. 手数料管理</h3>
+    <span class="menu-path">加盟店管理 &gt; 手数料管理</span>
+    <p>加盟店ごとの個別手数料率を設定します。本社ポリシーの基本手数料（スーパー管理者専用）とは独立して適用されます。</p>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">設定対象の加盟店を選択</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">決済手段ごとの個別手数料率を入力（クレジットカード・ウォレット送金・QRなど）</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">適用期間（開始日・終了日）を設定 — プロモーション手数料期間に対応</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">保存 → 対象加盟店のみに即時適用（基本ポリシーより優先）</span></div>
+    </div>
+    <div class="info-box">
+      加盟店ごとの個別手数料が登録されると、基本ポリシー手数料より<strong>優先して適用</strong>されます。個別手数料が未登録の加盟店は自動的に基本ポリシー手数料が適用されます。
+    </div>
+    <div class="block-box">
+      <strong>🔒 基本手数料ポリシー（本社ポリシー &gt; 手数料・リスク）はスーパー管理者専用です。</strong><br>
+      基本手数料ポリシーの変更が必要な場合は、スーパー管理者にお問い合わせください。
+    </div>
+
+    <h3 class="sub-title">2-4. 加盟店変更履歴</h3>
+    <span class="menu-path">加盟店管理 &gt; 加盟店変更履歴</span>
+    <ul>
+      <li>加盟店情報の変更履歴全件照会（変更日時・項目・変更前後の値）</li>
+      <li>担当者別変更履歴のフィルタリング</li>
+      <li>CSVエクスポート</li>
+    </ul>
+
+    <hr class="rule">
+
+    <!-- 3. 決済管理 -->
+    <h2 class="section-title" id="s3">3. 決済管理</h2>
+    <span class="menu-path">決済管理</span>
+    <p>加盟店ごとの決済履歴を照会し、返金・取消処理を行います。</p>
+
+    <h3 class="sub-title">3-1. 決済履歴照会</h3>
+    <span class="menu-path">決済管理 &gt; 決済履歴</span>
+    <table>
+      <thead><tr><th>検索条件</th><th>説明</th></tr></thead>
+      <tbody>
+        <tr><td>期間</td><td>決済日時の範囲（最大90日）</td></tr>
+        <tr><td>加盟店</td><td>店舗名または加盟店コードでフィルタ</td></tr>
+        <tr><td>決済手段</td><td>クレジットカード、ウォレット、QR、仮想口座など</td></tr>
+        <tr><td>決済ステータス</td><td>成功 / 失敗 / 取消 / 返金 / 保留</td></tr>
+        <tr><td>注文番号</td><td>加盟店の注文IDで直接検索</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">3-2. 返金処理</h3>
+    <span class="menu-path">決済管理 &gt; 決済履歴 &gt; 詳細</span>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">決済履歴から返金対象の取引を選択</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">取引詳細画面 → [返金申請] ボタンをクリック</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">返金金額を入力（全額または部分返金）</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">返金理由を入力して確認</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc">返金完了後、ステータスが <code>返金済み</code> に変更</span></div>
+    </div>
+    <div class="warn-box">
+      <strong>注意：</strong> 返金は決済後<strong>180日以内</strong>のみ可能です。期間超過の場合はスーパー管理者にお問い合わせください。
+    </div>
+
+    <h3 class="sub-title">3-3. 取消処理</h3>
+    <span class="menu-path">決済管理 &gt; 決済履歴 &gt; 詳細</span>
+    <ul>
+      <li>当日決済分：即時ボイド処理が可能</li>
+      <li>翌日以降の決済分：返金処理として対応</li>
+      <li>取消完了後、加盟店・購入者に自動通知</li>
+    </ul>
+
+    <h3 class="sub-title">3-4. 統合履歴 / 日別統合 / 統合チェック</h3>
+    <span class="menu-path">決済管理 &gt; 統合履歴 / 日別統合 / 統合チェック</span>
+    <ul>
+      <li><strong>統合履歴</strong>：全PGチャネルの統合取引リスト</li>
+      <li><strong>日別統合</strong>：日付別集計統計 — 取引件数・金額合計</li>
+      <li><strong>統合チェック</strong>：PG通知データと内部データの整合性検証</li>
+    </ul>
+
+    <hr class="rule">
+
+    <!-- 4. 精算管理 -->
+    <h2 class="section-title" id="s4">4. 精算管理</h2>
+    <span class="menu-path">精算管理</span>
+    <p>加盟店の精算履歴・手数料履歴・残高・未収金・返還金の状況を照会します。精算の<em>実行・デプロイ</em>はスーパー管理者専用です。</p>
+
+    <div class="block-box">
+      <strong>🔒 精算実行・精算デプロイ・精算待機・統合精算はスーパー管理者専用メニューです。</strong><br>
+      精算処理が必要な場合はスーパー管理者にお問い合わせください。
+    </div>
+
+    <h3 class="sub-title">4-1. 加盟店精算履歴</h3>
+    <span class="menu-path">精算管理 &gt; 加盟店精算履歴</span>
+    <table>
+      <thead><tr><th>項目</th><th>説明</th></tr></thead>
+      <tbody>
+        <tr><td>精算期間</td><td>精算サイクルごとの期間照会</td></tr>
+        <tr><td>精算金額</td><td>総決済額 − 手数料 = 精算支払額</td></tr>
+        <tr><td>精算ステータス</td><td>予定 / 完了 / 保留 / 取消</td></tr>
+        <tr><td>精算口座</td><td>振込先銀行・口座情報</td></tr>
+        <tr><td>精算明細出力</td><td>PDF・CSV形式でエクスポート</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4-2. 手数料履歴</h3>
+    <span class="menu-path">精算管理 &gt; 手数料履歴</span>
+    <ul>
+      <li>加盟店ごとの手数料請求履歴照会</li>
+      <li>決済手段別手数料の内訳確認</li>
+      <li>月別手数料集計レポートのダウンロード</li>
+    </ul>
+
+    <h3 class="sub-title">4-3. 残高 / 未収金 / 返還金 / 担保金</h3>
+    <span class="menu-path">精算管理 &gt; 残高履歴 / 未収金履歴 / 返還金履歴 / 担保金履歴</span>
+    <table>
+      <thead><tr><th>メニュー</th><th>説明</th></tr></thead>
+      <tbody>
+        <tr><td>残高履歴</td><td>加盟店保有残高の現状照会</td></tr>
+        <tr><td>未収金履歴</td><td>未払い精算金のリストおよび金額</td></tr>
+        <tr><td>返還金履歴</td><td>返金・取消による返還金額の履歴</td></tr>
+        <tr><td>担保金履歴</td><td>契約保証金・担保設定の現状</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4-4. 精算保留履歴 / 精算レポート</h3>
+    <span class="menu-path">精算管理 &gt; 精算保留履歴 / 精算レポート</span>
+    <ul>
+      <li><strong>精算保留履歴</strong>：リスク・契約上の問題で保留された精算件の照会</li>
+      <li><strong>精算レポート</strong>：月別・四半期別精算統計レポートの出力</li>
+    </ul>
+
+    <hr class="rule">
+
+    <!-- 5. チャットボット管理 -->
+    <h2 class="section-title" id="s5">5. チャットボット管理</h2>
+    <span class="menu-path">チャットボット管理</span>
+    <div class="check-box">
+      <strong>✅ チャットボット管理（基本設定・商品管理・注文管理）は本社・総販代理店ともに全アクセス可能です。</strong>
+    </div>
+
+    <h3 class="sub-title">5-1. 基本設定</h3>
+    <span class="menu-path">チャットボット管理 &gt; 基本設定</span>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">加盟店を選択 → チャットボット運営モードを選択</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">商品スロット数を設定（加盟店が登録可能な商品の最大数）</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">チャットボット決済URL・QRコードを確認して加盟店に案内</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">埋め込みスクリプト発行 — 加盟店のウェブサイトへのウィジェット挿入用</span></div>
+    </div>
+
+    <table>
+      <thead><tr><th>運営モード</th><th>説明</th><th>決済方式</th></tr></thead>
+      <tbody>
+        <tr><td>SALE_PREPAID</td><td>販売 — 前払い</td><td>注文時に即時決済</td></tr>
+        <tr><td>SALE_POSTPAID</td><td>販売 — 後払い</td><td>商品提供後に請求</td></tr>
+        <tr><td>RESERVATION_PREPAID</td><td>予約 — 前払い</td><td>予約時に即時決済</td></tr>
+        <tr><td>RESERVATION_POSTPAID</td><td>予約 — 後払い</td><td>予約後に現地決済</td></tr>
+        <tr><td>HYBRID_RESERVATION_PREPAID</td><td>ハイブリッド予約 — 前払い</td><td>予約金先払い＋残金後払い</td></tr>
+        <tr><td>FACE_TO_FACE_POSTPAID</td><td>対面 — 後払い</td><td>現地サービス後に決済リンク送付</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">5-2. 商品管理</h3>
+    <span class="menu-path">チャットボット管理 &gt; 商品管理</span>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">加盟店を選択 → 商品リストへ</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">商品登録：商品名、説明、価格、画像、カテゴリ、在庫有無</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">商品の有効化 / 無効化（チャットボット内の表示制御）</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">スロット上限を超えた場合は追加登録不可 → スロット数の調整が必要</span></div>
+    </div>
+
+    <h3 class="sub-title">5-3. 注文管理</h3>
+    <span class="menu-path">チャットボット管理 &gt; 注文管理</span>
+    <ul>
+      <li>注文番号・顧客情報・決済ステータス・金額・日時の照会</li>
+      <li>注文詳細の確認および返金処理</li>
+      <li>後払い注文：決済請求リンクの再送</li>
+      <li>注文統計：日別・週別・月別の注文状況</li>
+    </ul>
+
+    <hr class="rule">
+
+    <!-- 6. 分割払い管理 -->
+    <h2 class="section-title" id="s6">6. 分割払い管理</h2>
+    <span class="menu-path">分割払い管理</span>
+    <div class="block-box">
+      <strong>🔒 分割払い管理 &gt; メール設定はスーパー管理者専用です。</strong><br>
+      メールテンプレート・送信サーバーの設定変更が必要な場合はスーパー管理者にご連絡ください。
+    </div>
+
+    <h3 class="sub-title">6-1. 進行管理</h3>
+    <span class="menu-path">分割払い管理 &gt; 進行管理</span>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">加盟店を選択 → [新規分割払い契約] を登録</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">総支払金額と分割回数を設定（例：30,000円 / 3回分割 → 10,000円 × 3）</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">各回の支払期限（Due Date）を設定</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">契約保存 → 各回の決済URLが自動生成</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc">顧客に各回の決済URLを送付（メール・SMS・リンク共有）</span></div>
     </div>
     <table>
       <thead><tr><th>項目</th><th>説明</th></tr></thead>
       <tbody>
-        <tr><td>加盟店別手数料率</td><td>基本ポリシーと異なる個別手数料率（%）</td></tr>
-        <tr><td>決済手段別設定</td><td>クレジットカード・ウォレット・QR別の個別適用</td></tr>
-        <tr><td>適用期間設定</td><td>期間指定手数料条件の設定</td></tr>
-        <tr><td>手数料変更履歴照会</td><td>加盟店別手数料変更履歴の確認</td></tr>
+        <tr><td>契約リスト</td><td>進行中の契約ステータス照会</td></tr>
+        <tr><td>各回決済URL</td><td>各回の決済リンクの確認・コピー</td></tr>
+        <tr><td>決済状況追跡</td><td>各回の決済完了/未決済状況</td></tr>
+        <tr><td>契約取消/修正</td><td>進行中の分割払い契約の変更または取消</td></tr>
       </tbody>
     </table>
+
+    <h3 class="sub-title">6-2. メール管理</h3>
+    <span class="menu-path">分割払い管理 &gt; メール管理</span>
+    <ul>
+      <li>分割払い通知メールの送信履歴照会</li>
+      <li>特定回のメール再送</li>
+      <li>送信失敗件の確認と再処理</li>
+    </ul>
     <div class="info-box">
-      加盟店別個別手数料が登録されると、基本ポリシー手数料より<strong>優先適用</strong>されます。
-      個別手数料未登録の加盟店は自動的に基本ポリシー手数料が適用されます。
+      メールテンプレート・送信サーバーの設定は<strong>メール設定</strong>メニュー（スーパー管理者専用）で管理されます。本社・総販代理店はメール管理（送信履歴照会・再送）のみ利用可能です。
     </div>
 
     <hr class="rule">
-    
-    <h2 class="section-title" id="webpay">3. Web決済設定</h2>
-    <span class="menu-path">加盟店管理 &gt; 加盟店情報 &gt; 決済設定タブ</span>
-    <div class="flow">
-      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">対象加盟店を選択 → 決済設定タブ → <strong>Web決済利用可否</strong>を<code>Y</code>に変更</span></div>
-      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">保存 → Web決済URL自動生成</span></div>
-      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">URLを加盟店に案内</span></div>
+
+    <!-- 7. 運営管理 -->
+    <h2 class="section-title" id="s7">7. 運営管理</h2>
+    <span class="menu-path">運営管理</span>
+    <p>メール送信管理・統合レポート・流通網履歴・カード管理・通知管理・リスク状況などを照会します。</p>
+    <div class="block-box">
+      <strong>🔒 運営管理（メイン）、TAXレポート、検証レポート、代行取引履歴はスーパー管理者専用です。</strong>
     </div>
-    <div class="block-box"><strong>🔒 通知（Notify）URL設定は総本社専用です。</strong><br>通知管理は本社ではアクセスできません。変更は総本社に依頼してください。</div>
-    <hr class="rule">
-    <h2 class="section-title" id="subscribe">4. 定期購読決済設定</h2>
-    <span class="menu-path">加盟店管理 &gt; 加盟店情報 &gt; 決済設定タブ</span>
-    <div class="flow">
-      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc"><strong>定期購読利用可否</strong>を<code>Y</code>に設定して保存</span></div>
-      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">プラン設定：名称・周期（月次/年次）・金額・通貨</span></div>
-      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">購読URLを加盟店に共有</span></div>
-      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">設定周期で自動請求</span></div>
-    </div>
-    <hr class="rule">
-    <h2 class="section-title" id="repurchase">5. 再購入決済設定</h2>
-    <span class="menu-path">加盟店管理 &gt; 加盟店情報 &gt; 決済設定タブ</span>
-    <p>過去の決済で登録したカードトークンを再利用し、カード情報を再入力せずに決済する機能です。</p>
-    <div class="flow">
-      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc"><strong>再購入利用可否</strong>を<code>Y</code>に設定して保存</span></div>
-      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">決済画面に「保存済みカードで決済」オプションが表示</span></div>
-      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">顧客が選択 → 保存済みトークンで即決済</span></div>
-    </div>
-    <div class="warn-box"><strong>セキュリティ:</strong> カードトークンはPCI-DSS準拠で暗号化。実際のカード番号は保存されません。</div>
-    <hr class="rule">
-    <h2 class="section-title" id="splitpay">6. URL分割決済設定</h2>
-    <span class="menu-path">分割管理</span>
-    <div class="block-box"><strong>🔒 分割管理 &gt; メール設定は総本社専用です。</strong></div>
-    <div class="flow">
-      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc"><strong>分割決済利用可否</strong>を<code>Y</code>に設定して保存</span></div>
-      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">分割管理で契約を作成（金額・回数・各回期日）</span></div>
-      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">各回の決済URLを顧客に送付</span></div>
-    </div>
-    <hr class="rule">
-    <h2 class="section-title" id="chatbot">7. チャットボット決済設定</h2>
-    <span class="menu-path">チャットボット管理</span>
-    <div class="check-box"><strong>✅ チャットボット管理は本社ロールも全てアクセス可能（削除含む）。</strong></div>
-    <div class="flow">
-      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc"><strong>チャットボット決済利用可否</strong>を<code>Y</code>に設定して保存</span></div>
-      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">チャットボット管理 → 加盟店選択 → 運営モード選択</span></div>
-      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">商品スロット数を設定</span></div>
-      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">チャットボットURLを加盟店に案内</span></div>
-    </div>
+
+    <h3 class="sub-title">7-1. メール管理</h3>
+    <span class="menu-path">運営管理 &gt; メール管理</span>
+    <ul>
+      <li>システム送信メール履歴照会（決済完了・取消・返金・精算通知など）</li>
+      <li>メール送信失敗件の再処理</li>
+      <li>加盟店・購入者へのメール手動送信</li>
+    </ul>
+
+    <h3 class="sub-title">7-2. 統合レポート</h3>
+    <span class="menu-path">運営管理 &gt; 統合レポート</span>
+    <ul>
+      <li>決済・精算・手数料の統合状況レポート</li>
+      <li>期間別・加盟店別のフィルタ後にCSV/PDF出力</li>
+      <li>全流通網実績サマリーを含む</li>
+    </ul>
+
+    <h3 class="sub-title">7-3. 流通網履歴 / 流通網精算</h3>
+    <span class="menu-path">運営管理 &gt; 流通網履歴 / 流通網精算</span>
+    <ul>
+      <li><strong>流通網履歴</strong>：総販代理店・代理店別の流通網取引履歴照会</li>
+      <li><strong>流通網精算</strong>：流通網別の精算金額・支払い状況</li>
+    </ul>
+
+    <h3 class="sub-title">7-4. カード管理 / 通知管理</h3>
+    <span class="menu-path">運営管理 &gt; カード管理 / 通知管理</span>
     <table>
-      <thead><tr><th>モード</th><th>説明</th><th>決済タイミング</th></tr></thead>
+      <thead><tr><th>メニュー</th><th>説明</th></tr></thead>
       <tbody>
-        <tr><td>SALE_PREPAID</td><td>販売 — 前払い</td><td>注文時即決済</td></tr>
-        <tr><td>SALE_POSTPAID</td><td>販売 — 後払い</td><td>商品提供後請求</td></tr>
-        <tr><td>RESERVATION_PREPAID</td><td>予約 — 前払い</td><td>予約時全額決済</td></tr>
-        <tr><td>RESERVATION_POSTPAID</td><td>予約 — 後払い</td><td>現地決済</td></tr>
-        <tr><td>HYBRID_RESERVATION_PREPAID</td><td>ハイブリッド予約</td><td>予約金前払い+残額後払い</td></tr>
-        <tr><td>FACE_TO_FACE_POSTPAID</td><td>対面 — 後払い</td><td>現地サービス後リンク送付</td></tr>
+        <tr><td>カード管理</td><td>BIN範囲・カード会社情報の照会と管理</td></tr>
+        <tr><td>通知管理</td><td>PG決済通知（Notification）受信履歴の照会・再処理</td></tr>
       </tbody>
     </table>
-    <div class="block-box"><strong>🔒 LINE Notify・メール通知設定は総本社専用です。</strong></div>
+
+    <h3 class="sub-title">7-5. リスク状況</h3>
+    <span class="menu-path">運営管理 &gt; リスク状況</span>
+    <ul>
+      <li>異常取引検知状況のリアルタイムモニタリング</li>
+      <li>リスク閾値超過加盟店のアラート確認</li>
+      <li>不審取引の詳細照会および手動ブロック処理</li>
+    </ul>
+    <div class="warn-box">
+      <strong>注意：</strong> リスク<em>閾値の設定</em>は<strong>本社ポリシー &gt; 手数料・リスク</strong>（スーパー管理者専用）でのみ変更可能です。
+    </div>
+
     <hr class="rule">
-    <h2 class="section-title">よくある質問（FAQ）</h2>
-    <div class="faq-item"><div class="faq-q">通知管理メニューが表示されません。</div><div class="faq-a">通知管理は総本社専用です。変更が必要な場合は総本社に依頼してください。</div></div>
-    <div class="faq-item"><div class="faq-q">分割決済のメール設定がグレーアウトされています。</div><div class="faq-a">メール設定は総本社専用です。総本社にお問い合わせください。</div></div>
-    <div class="faq-item"><div class="faq-q">加盟店が決済URLを確認できません。</div><div class="faq-a">該当サービスの利用可否が<code>Y</code>に設定されているか確認してください。</div></div>
-    <div class="faq-item"><div class="faq-q">チャットボットの商品を追加できません。</div><div class="faq-a">スロット上限に達しています。加盟店情報でスロット数を増やしてください。</div></div>
+
+    <!-- 8. 連携・デプロイ -->
+    <h2 class="section-title" id="s8">8. 連携・デプロイ — APIドキュメント</h2>
+    <span class="menu-path">連携・デプロイ &gt; 加盟店API公開 &gt; APIドキュメント タブ</span>
+    <div class="info-box">
+      本社・総販代理店の役割では、連携・デプロイメニューの<strong>APIドキュメントタブのみ閲覧</strong>可能です。
+      PG連携・加盟店API公開（デプロイ実行）はスーパー管理者専用です。
+    </div>
+
+    <h3 class="sub-title">8-1. APIドキュメントの閲覧</h3>
+    <ul>
+      <li>加盟店API連携ドキュメントの閲覧（決済リクエスト・レスポンスパラメータ仕様）</li>
+      <li>Web決済・定期決済・再購入・分割払い・チャットボットのAPIスペック確認</li>
+      <li>SDKダウンロードリンクおよびサンプルコード</li>
+      <li>APIバージョン履歴および変更内容の確認</li>
+    </ul>
+    <div class="block-box">
+      <strong>🔒 PG連携設定・加盟店API公開（デプロイ実行）はスーパー管理者専用です。</strong><br>
+      連携設定の変更が必要な場合はスーパー管理者にお問い合わせください。
+    </div>
+
+    <hr class="rule">
+
+    <!-- 9. FAQ -->
+    <h2 class="section-title" id="s9">9. よくある質問（FAQ）</h2>
+
+    <div class="faq-item">
+      <div class="faq-q">本社ポリシーメニューが表示されません。</div>
+      <div class="faq-a">ICOPAY V2.0では、旧「本社設定」が「本社ポリシー」ハブグループに変更され、スーパー管理者専用メニューとなっています。バージョン履歴は本社ポリシー &gt; プラットフォーム &gt; アップデート内容で確認できます。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">通知管理メニューにアクセスできません。</div>
+      <div class="faq-a">通知管理はスーパー管理者専用メニューです。決済通知URL・アラート設定の変更が必要な場合はスーパー管理者にご連絡ください。本社・総販代理店は<strong>通知管理</strong>（運営管理配下）で通知受信履歴を照会できます。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">精算実行・精算デプロイメニューが表示されません。</div>
+      <div class="faq-a">精算実行・精算デプロイ・精算待機・統合精算はスーパー管理者専用メニューです。加盟店精算履歴・手数料履歴・残高状況は精算管理のサブメニューで照会可能です。精算処理が必要な場合はスーパー管理者にご連絡ください。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">分割払いのメール設定が無効になっています。</div>
+      <div class="faq-a">分割払い管理 &gt; メール設定はスーパー管理者専用です。メールテンプレートの変更はスーパー管理者にお問い合わせください。メール送信履歴の照会と再送は<strong>分割払い管理 &gt; メール管理</strong>でご利用いただけます。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">加盟店にサービスを有効化したのに、加盟店がURLを確認できないと言っています。</div>
+      <div class="faq-a">加盟店情報で該当サービスの使用可否が<code>Y</code>に設定されているかご確認ください。<code>N</code>の状態では、加盟店ポータルにURLが表示されません。保存後に加盟店に再ログインまたはページのリロードをご案内ください。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">APIドキュメントはどこで確認できますか？</div>
+      <div class="faq-a">連携・デプロイ &gt; 加盟店API公開 &gt; APIドキュメントタブで確認できます。本社・総販代理店の役割もこのタブは閲覧可能です。PG連携実行はスーパー管理者専用です。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">手数料管理と本社ポリシーの手数料設定の違いは何ですか？</div>
+      <div class="faq-a"><strong>加盟店管理 &gt; 手数料管理</strong>は特定の加盟店にのみ適用される個別手数料率を設定します。<strong>本社ポリシー &gt; 手数料・リスク</strong>はシステム全体の基本手数料ポリシーで、スーパー管理者専用です。個別手数料が登録された加盟店には、基本ポリシーよりも個別手数料が優先適用されます。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">総販代理店と本社のアクセス権限に違いはありますか？</div>
+      <div class="faq-a">いいえ、本社と総販代理店は完全に同一のアクセス権限を持ちます。両役割ともスーパー管理者専用メニュー（本社ポリシー、通知管理、精算実行・デプロイ・待機など）にはアクセスできません。</div>
+    </div>
+
   </div>
-  <div class="footer">ICOPAY Payment Gateway · 本社運営マニュアル · V3.0 · 2026年6月</div>
+
+  <div class="footer">
+    ICOPAY Payment Gateway · 本社・総販代理店 運用マニュアル · ライブ V2.0 · 2026年7月<br>
+    本書はICOPAY本社・総販代理店の役割権限基準であり、システムアップデートにより変更される場合があります。
+  </div>
 </div>
 </body>
 </html>
-
-

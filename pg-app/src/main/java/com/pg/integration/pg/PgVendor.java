@@ -19,6 +19,9 @@ public final class PgVendor {
     /** Eximbay(엑심베이) — 해외/대체결제. {@code EXIMBAY} 또는 {@code EXIMBAY_…} 접두. */
     public static final String EXIMBAY = "EXIMBAY";
 
+    /** ElementPay(태국 THB·카드·PromptPay). {@code ELEMENTPAY} 또는 {@code ELEMENTPAY_…} 접두. */
+    public static final String ELEMENTPAY = "ELEMENTPAY";
+
     private PgVendor() {
     }
 
@@ -85,5 +88,21 @@ public final class PgVendor {
             return false;
         }
         return vendorCode.trim().toUpperCase(Locale.ROOT).startsWith(EXIMBAY);
+    }
+
+    /** {@code pg_cd}·노티 벤더 코드가 ElementPay 계열인지 */
+    public static boolean isElementPayFamily(String pgCd) {
+        if (pgCd == null) {
+            return false;
+        }
+        String u = normalizePgCdKey(pgCd);
+        return ELEMENTPAY.equals(u) || u.startsWith(ELEMENTPAY + "_");
+    }
+
+    public static boolean isElementPayVendorCode(String vendorCode) {
+        if (vendorCode == null || vendorCode.isBlank()) {
+            return false;
+        }
+        return vendorCode.trim().toUpperCase(Locale.ROOT).startsWith(ELEMENTPAY);
     }
 }

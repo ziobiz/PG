@@ -105,6 +105,7 @@ public class PgNotifyReceiveService {
     private final MerchantNotifyUrlRepository merchantNotifyUrlRepository;
     private final PgNotifyInboundPersistService inboundPersistService;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
+    private final ElementPayCallbackService elementPayCallbackService;
 
     public PgNotifyReceiveService(HqNotifyEnvService hqNotifyEnvService,
                                 PgNotifyInboundRepository inboundRepository,
@@ -119,7 +120,8 @@ public class PgNotifyReceiveService {
                                 MerchantProfileRepository merchantProfileRepository,
                                 MerchantNotifyUrlRepository merchantNotifyUrlRepository,
                                 PgNotifyInboundPersistService inboundPersistService,
-                                HqLedgerSysSettingsService hqLedgerSysSettingsService) {
+                                HqLedgerSysSettingsService hqLedgerSysSettingsService,
+                                ElementPayCallbackService elementPayCallbackService) {
         this.hqNotifyEnvService = hqNotifyEnvService;
         this.inboundRepository = inboundRepository;
         this.bindingRepository = bindingRepository;
@@ -134,6 +136,7 @@ public class PgNotifyReceiveService {
         this.merchantNotifyUrlRepository = merchantNotifyUrlRepository;
         this.inboundPersistService = inboundPersistService;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
+        this.elementPayCallbackService = elementPayCallbackService;
     }
 
     /**
@@ -141,6 +144,11 @@ public class PgNotifyReceiveService {
      */
     public NotifyReceiveOutcome receiveAndRespond(String pathToken, String notifyTargetCode, String rawBody, String contentType, String clientIp, HttpServletRequest request) {
         notifyIngressGuard.assertAllowed(clientIp, rawBody != null ? rawBody : "", request);
+        Optional<NotifyReceiveOutcome> elementPay = elementPayCallbackService.tryHandleSyncCallback(
+                pathToken, notifyTargetCode, rawBody, clientIp, request);
+        if (elementPay.isPresent()) {
+            return elementPay.get();
+        }
         return receiveAndRespondCore(pathToken, notifyTargetCode, rawBody, contentType, clientIp, request);
     }
 

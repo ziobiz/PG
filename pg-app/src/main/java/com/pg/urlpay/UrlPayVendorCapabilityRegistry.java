@@ -35,6 +35,9 @@ public class UrlPayVendorCapabilityRegistry {
         if (PgVendor.isEximbayFamily(pg)) {
             return eximbayCapability(pg, urlPay, urlRepayAgency);
         }
+        if (PgVendor.isElementPayFamily(pg)) {
+            return elementPayCapability(pg, urlPay, urlRepayAgency);
+        }
         if (PgVendor.isChillPayFamily(pg) || ChillPayService.isChillPayFamilyPgCd(pg)) {
             return chillPayCapability(pg, urlPay, urlRepayAgency);
         }
@@ -52,6 +55,9 @@ public class UrlPayVendorCapabilityRegistry {
         }
         if (PgVendor.isEximbayFamily(pg)) {
             return UrlPayInlineWidgetKind.EXIMBAY_SDK;
+        }
+        if (PgVendor.isElementPayFamily(pg)) {
+            return UrlPayInlineWidgetKind.ELEMENTPAY_INLINE;
         }
         if (PgVendor.isChillPayFamily(pg) || ChillPayService.isChillPayFamilyPgCd(pg)) {
             return UrlPayInlineWidgetKind.CHILLPAY_CCD;
@@ -89,6 +95,20 @@ public class UrlPayVendorCapabilityRegistry {
                 urlPay,
                 urlRepayAgency,
                 urlRepayAgency && repayApi);
+    }
+
+    /** ElementPay — THB 전용 initPayment(카드·PromptPay). 재결제 URL 미지원. */
+    private UrlPayVendorCapability elementPayCapability(String pg, boolean urlPay, boolean urlRepayAgency) {
+        return new UrlPayVendorCapability(
+                PgVendor.ELEMENTPAY,
+                pg,
+                UrlPayInlineWidgetKind.ELEMENTPAY_INLINE,
+                "/checkout/",
+                NeutralCheckoutRoute.EMBED_SCRIPT_PATH,
+                UrlPaySaleChannel.ELEMENTPAY_INIT_PAYMENT,
+                urlPay,
+                urlRepayAgency,
+                false);
     }
 
     private UrlPayVendorCapability chillPayCapability(String pg, boolean urlPay, boolean urlRepayAgency) {

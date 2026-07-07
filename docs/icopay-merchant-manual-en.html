@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICOPAY Merchant Operations Manual</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, 'Helvetica Neue', sans-serif; font-size: 11pt; line-height: 1.75; color: #1a1a1a; background: #f0f2f8; }
+  .page-wrap { max-width: 900px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 18px rgba(0,0,0,.11); overflow: hidden; }
+  .cover { background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 55%, #43a047 100%); color: #fff; padding: 48px 52px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+  .cover-body { flex: 1; }
+  .cover-logo { flex-shrink: 0; display: flex; align-items: flex-start; padding-top: 4px; }
+  .cover-logo img { height: 64px; background: rgba(255,255,255,.92); padding: 10px 18px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.20); }
+  .cover .logo-line { font-size: 13pt; font-weight: 700; letter-spacing: 2px; opacity: .85; margin-bottom: 14px; }
+  .cover h1 { font-size: 24pt; font-weight: 900; line-height: 1.28; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 11pt; opacity: .82; margin-bottom: 24px; }
+  .cover .meta { font-size: 9.5pt; opacity: .65; border-top: 1px solid rgba(255,255,255,.25); padding-top: 14px; }
+  .body { padding: 44px 52px 64px; }
+  .toc { background: #e8f5e9; border-left: 4px solid #2e7d32; border-radius: 0 8px 8px 0; padding: 20px 26px; margin-bottom: 44px; }
+  .toc h2 { font-size: 12pt; font-weight: 700; color: #2e7d32; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { font-size: 10pt; line-height: 2.1; color: #1b5e20; }
+  .toc a { color: #2e7d32; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  h2.section-title { font-size: 15pt; font-weight: 800; color: #1b5e20; border-bottom: 2.5px solid #2e7d32; padding-bottom: 7px; margin: 48px 0 18px; page-break-after: avoid; }
+  h3.sub-title { font-size: 12pt; font-weight: 700; color: #2e7d32; margin: 26px 0 10px; page-break-after: avoid; }
+  p { margin-bottom: 10px; }
+  .info-box  { background: #e3f0ff; border: 1px solid #90caf9; border-left: 4px solid #1565c0; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1a3a5c; }
+  .warn-box  { background: #fff8e1; border: 1px solid #ffe082; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #5d4037; }
+  .check-box { background: #e8f5e9; border: 1px solid #a5d6a7; border-left: 4px solid #2e7d32; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1b5e20; }
+  .block-box { background: #fce4ec; border: 1px solid #f48fb1; border-left: 4px solid #c62828; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #b71c1c; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 22px; font-size: 10pt; page-break-inside: avoid; }
+  th { background: #1b5e20; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #145214; }
+  td { padding: 8px 12px; border: 1px solid #cfd8dc; vertical-align: middle; }
+  tr:nth-child(even) td { background: #f1f8f2; }
+  td.center, th.center { text-align: center; }
+  .menu-path { display: inline-block; background: #eceff1; border: 1px solid #cfd8dc; border-radius: 5px; padding: 3px 12px; font-size: 9.5pt; color: #37474f; font-weight: 600; margin-bottom: 12px; }
+  .menu-path::before { content: "📌 Menu: "; }
+  .flow { background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; padding: 18px 22px; margin: 14px 0 20px; font-size: 10pt; page-break-inside: avoid; }
+  .flow-row { display: flex; align-items: flex-start; margin-bottom: 6px; }
+  .flow-num { display: inline-block; min-width: 28px; font-weight: 800; color: #2e7d32; flex-shrink: 0; }
+  .flow-desc { color: #37474f; }
+  .faq-item { border: 1px solid #c8e6c9; border-radius: 8px; margin-bottom: 14px; page-break-inside: avoid; }
+  .faq-q { background: #e8f5e9; padding: 11px 16px; font-weight: 700; font-size: 10.5pt; color: #1b5e20; border-radius: 8px 8px 0 0; }
+  .faq-q::before { content: "Q. "; color: #2e7d32; }
+  .faq-a { padding: 11px 16px; font-size: 10pt; color: #37474f; background: #fff; border-radius: 0 0 8px 8px; }
+  .faq-a::before { content: "A. "; font-weight: 700; color: #2e7d32; }
+  hr.rule { border: none; border-top: 1px dashed #c8e6c9; margin: 40px 0; }
+  ul, ol { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+  .footer { background: #1b5e20; color: rgba(255,255,255,.6); text-align: center; font-size: 9pt; padding: 18px 24px; }
+  @media print {
+    body { background: #fff; font-size: 10pt; }
+    .page-wrap { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; }
+    .cover { padding: 28px 36px 24px; }
+    .body { padding: 28px 36px 36px; }
+    .faq-item, table, .flow { page-break-inside: avoid; }
+    .footer { display: none; }
+    @page { size: A4; margin: 18mm 16mm; }
+  }
+</style>
+</head>
+<body>
+<style id="print-btn-style">
+  .print-btn { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #2e7d32; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 10.5pt; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(46,125,50,.45); display: flex; align-items: center; gap: 9px; transition: background .18s, box-shadow .18s; text-decoration: none; }
+  .print-btn:hover { background: #1b5e20; box-shadow: 0 6px 20px rgba(27,94,32,.5); }
+  @media print { .print-btn { display: none !important; } }
+</style>
+<button class="print-btn" onclick="window.print()">🖨️ Print / Save PDF</button>
+<div class="page-wrap">
+  <div class="cover">
+    <div class="cover-body">
+      <div class="logo-line">ICOPAY · Payment Gateway</div>
+      <h1>Merchant<br>Operations Manual</h1>
+      <div class="subtitle">From merchant info and payment history to settlements, subscriptions, chatbot, and split payments — Complete guide for merchant operators</div>
+      <div class="meta">ICOPAY Merchant Operations Manual · Merchant Role &nbsp;|&nbsp; For: Merchant Operators &nbsp;|&nbsp; V2.0 · July 2026</div>
+    </div>
+    <div class="cover-logo">
+      <img src="./logo-ontheline.png" alt="On The Line">
+    </div>
+  </div>
+
+  <div class="body">
+
+    <div class="check-box" style="margin-bottom:36px;">
+      <strong>✅ ICOPAY Integrated Payment Platform Notice</strong><br><br>
+      ICOPAY is an integrated payment platform operating under a <strong>single contract</strong> with merchants. Individual payment gateway (PG) provider details are not disclosed. All payments and settlements are processed under the ICOPAY brand.<br><br>
+      <ul style="margin:6px 0 0; padding-left:18px;">
+        <li>Portal URL: <strong>https://icopay.co.kr</strong></li>
+        <li>Payment URL: <strong>https://icopay.co.kr/checkout/{merchant-code}</strong></li>
+        <li>Customer Support: <strong>https://icopay.co.kr</strong></li>
+      </ul>
+    </div>
+
+    <div class="toc">
+      <h2>📋 Table of Contents</h2>
+      <ol>
+        <li><a href="#overview">ICOPAY Merchant Portal Overview</a></li>
+        <li><a href="#merchant-info">Merchant Info</a></li>
+        <li><a href="#api-portal">API Integration (Merchant API Portal)</a></li>
+        <li><a href="#payment-history">Payment History</a></li>
+        <li><a href="#url-payment">URL Payment (Web Payment)</a></li>
+        <li><a href="#subscription">Subscription Payment Management</a></li>
+        <li><a href="#settlement">Settlement</a></li>
+        <li><a href="#chatbot">Chatbot Management (Chatbot Payment Users)</a></li>
+        <li><a href="#split">Split Payment Management (Split Payment Users)</a></li>
+        <li><a href="#user-mgmt">User Account Management</a></li>
+        <li><a href="#faq">FAQ — Frequently Asked Questions</a></li>
+      </ol>
+    </div>
+
+    <div class="warn-box" style="margin-bottom: 24px;">
+      <strong>📋 Naming Policy</strong><br><br>
+      ICOPAY integrates multiple payment processors behind one API. This manual uses neutral ICOPAY terms for unified features (checkout, URL payment, integrated transactions). <strong>"JPAY-only"</strong> labels appear only for features exclusive to JPAY.
+    </div>
+
+    <hr class="rule">
+
+    <!-- 1. Portal Overview -->
+    <h2 class="section-title" id="overview">1. ICOPAY Merchant Portal Overview</h2>
+
+    <h3 class="sub-title">1-1. How to Log In</h3>
+    <p>Access the ICOPAY Merchant Portal using any modern web browser at the address below.</p>
+    <div class="info-box">
+      Portal URL: <strong>https://icopay.co.kr</strong><br>
+      Recommended browsers: Latest versions of Chrome, Edge, or Firefox
+    </div>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">Navigate to <strong>https://icopay.co.kr</strong></span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">Enter your <strong>ID (email)</strong> and <strong>password</strong> issued by ICOPAY</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">Click <strong>Log In</strong></span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">On first login, you may be prompted to change your password</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc">After login, you are redirected to the <strong>Dashboard</strong></span></div>
+    </div>
+    <div class="warn-box">
+      <strong>Warning:</strong> Never share your account credentials with others. For account issues, contact ICOPAY customer support at https://icopay.co.kr.
+    </div>
+
+    <h3 class="sub-title">1-2. Dashboard Overview</h3>
+    <p>The dashboard provides a summary of key payment metrics at a glance.</p>
+    <table>
+      <thead><tr><th>Widget</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Today's Payment Count</td><td>Number of successful payments and total amount for the day</td></tr>
+        <tr><td>Monthly Payment Status</td><td>Cumulative payment amount and count for the current month</td></tr>
+        <tr><td>Pending Settlement Balance</td><td>Amount awaiting settlement</td></tr>
+        <tr><td>Recent Transactions</td><td>Summary of the last 5–10 payments</td></tr>
+        <tr><td>Subscription Summary</td><td>Active subscriber count (if subscription payment is enabled)</td></tr>
+        <tr><td>Notifications</td><td>Payment failures, refund requests, settlement alerts</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">1-3. Menu Structure</h3>
+    <p>The following menus are accessible under the merchant role.</p>
+    <table>
+      <thead><tr><th>Menu</th><th>Sub-menu</th><th>Key Function</th></tr></thead>
+      <tbody>
+        <tr><td>Merchant Management</td><td>Merchant Info</td><td>View merchant details and payment settings</td></tr>
+        <tr><td>Merchant API</td><td>Merchant API Portal</td><td>API keys, broker secrets, integration docs</td></tr>
+        <tr><td rowspan="5">Payment Management</td><td>Payment History / Integrated History</td><td>View all transactions and details</td></tr>
+        <tr><td>URL Payment History</td><td>Web payment transaction history</td></tr>
+        <tr><td>Chatbot Payment History</td><td>Chatbot payment transaction history</td></tr>
+        <tr><td>Subscription Payment History</td><td>Subscription status and payment records</td></tr>
+        <tr><td>Refund Request</td><td>Submit refund and track status</td></tr>
+        <tr><td rowspan="4">Settlement</td><td>Merchant Settlement History</td><td>View settlement payouts</td></tr>
+        <tr><td>Fee History</td><td>View fee charge breakdown</td></tr>
+        <tr><td>Balance History</td><td>Check outstanding balance</td></tr>
+        <tr><td>Settlement Hold History</td><td>View suspended settlement transactions</td></tr>
+        <tr><td rowspan="3">Chatbot Management</td><td>Basic Settings</td><td>Chatbot operation mode and settings</td></tr>
+        <tr><td>Product Management</td><td>Add/edit/delete chatbot products</td></tr>
+        <tr><td>Order Management</td><td>View and process chatbot orders</td></tr>
+        <tr><td rowspan="2">Split Payment</td><td>Progress Management</td><td>View split contract status</td></tr>
+        <tr><td>Email Management</td><td>View split payment email history</td></tr>
+        <tr><td>User Management</td><td>User Management</td><td>Manage merchant internal accounts</td></tr>
+      </tbody>
+    </table>
+
+    <hr class="rule">
+
+    <!-- 2. Merchant Info -->
+    <h2 class="section-title" id="merchant-info">2. Merchant Info</h2>
+    <span class="menu-path">Merchant Management &gt; Merchant Info</span>
+
+    <h3 class="sub-title">2-1. Viewing Basic Merchant Information</h3>
+    <p>The Merchant Info menu displays your registered business details and payment configuration.</p>
+    <table>
+      <thead><tr><th>Field</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Merchant Name</td><td>Official business name registered with ICOPAY</td></tr>
+        <tr><td>Merchant Code</td><td>Unique code used in payment URLs</td></tr>
+        <tr><td>Business Registration No.</td><td>Registered business/tax ID number</td></tr>
+        <tr><td>Representative</td><td>Legal entity or business owner name</td></tr>
+        <tr><td>Contact / Email</td><td>Merchant contact information</td></tr>
+        <tr><td>Settlement Account</td><td>Bank account for settlement payouts</td></tr>
+        <tr><td>Active Payment Services</td><td>Enabled services: URL payment, subscription, chatbot, split</td></tr>
+      </tbody>
+    </table>
+    <div class="info-box">
+      The merchant code is embedded in your payment URL (<code>https://icopay.co.kr/checkout/{merchant-code}</code>). To change the merchant code, contact your ICOPAY account manager.
+    </div>
+
+    <h3 class="sub-title">2-2. Payment Settings</h3>
+    <p>The Payment Settings tab shows your active payment services and key URLs.</p>
+    <table>
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>URL Payment URL</td><td><code>https://icopay.co.kr/checkout/{merchant-code}</code></td></tr>
+        <tr><td>Subscription Payment URL</td><td><code>https://icopay.co.kr/checkout-subscribe/{merchant-code}</code></td></tr>
+        <tr><td>Payment Currencies</td><td>Accepted currencies (THB, USD, KRW, etc.)</td></tr>
+        <tr><td>Redirect URL</td><td>Page customers are redirected to after payment</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">2-3. Changing Your Password</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">Click the profile icon in the top-right corner → Select <strong>Account Settings</strong> or <strong>Change Password</strong></span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">Enter your current password</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">Enter a new password (recommended: 8+ characters with letters, numbers, and symbols)</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">Confirm the new password</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc">Click <strong>Save</strong> to complete</span></div>
+    </div>
+    <div class="warn-box">
+      If you forget your password, use the <strong>Forgot Password</strong> link on the login screen, or contact ICOPAY customer support.
+    </div>
+
+    <hr class="rule">
+
+    <!-- 3. API Integration -->
+    <h2 class="section-title" id="api-portal">3. API Integration (Merchant API Portal)</h2>
+    <span class="menu-path">Merchant API &gt; Merchant API Portal</span>
+
+    <h3 class="sub-title">3-1. API Key and Broker Secret</h3>
+    <p>The Merchant API Portal provides the authentication keys required for payment integration.</p>
+    <table>
+      <thead><tr><th>Key</th><th>Description</th><th>Usage</th></tr></thead>
+      <tbody>
+        <tr><td>API Key (Public Key)</td><td>Merchant identification public key</td><td>Include in request headers</td></tr>
+        <tr><td>Broker Secret</td><td>Private key for server-to-server communication</td><td>Server-side API authentication</td></tr>
+        <tr><td>Merchant Code (compId)</td><td>Internal system merchant identifier</td><td>API endpoint parameter</td></tr>
+      </tbody>
+    </table>
+    <div class="block-box">
+      <strong>⚠️ Broker Secret Security Warning:</strong> Never expose your broker secret in client-side code (browser or app). It must only be used on the server side.
+    </div>
+
+    <h3 class="sub-title">3-2. API Integration Documentation</h3>
+    <p>Integration documentation is available in the <strong>API Docs</strong> tab within the Merchant API Portal.</p>
+    <table>
+      <thead><tr><th>API Type</th><th>Endpoint</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>One-time Payment (Prepare)</td><td><code>/api/middleware/v1/merchant/checkout/prepare</code></td><td>Create payment session</td></tr>
+        <tr><td>One-time Payment (Session)</td><td><code>/api/middleware/v1/merchant/checkout/session</code></td><td>Launch payment window</td></tr>
+        <tr><td>Payment Status</td><td><code>/api/middleware/v1/merchant/checkout/status</code></td><td>Check payment result</td></tr>
+        <tr><td>Subscription Prepare</td><td><code>/api/middleware/v1/merchant/checkout/subscription/prepare</code></td><td>Start subscription payment</td></tr>
+        <tr><td>Subscription Cancel</td><td><code>/api/middleware/v1/merchant/checkout/subscription/cancel</code></td><td>Cancel subscription</td></tr>
+        <tr><td>Redirect Payment</td><td><code>/api/middleware/v1/merchant/checkout/redirect/prepare</code></td><td>URL redirect payment</td></tr>
+      </tbody>
+    </table>
+    <div class="check-box">
+      All API responses return <code>pgVendor: "ICOPAY"</code>. The actual payment processor (PG provider) is never disclosed per security policy.
+    </div>
+
+    <h3 class="sub-title">3-3. Test / Production Environment Switch</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">In the API Portal, use the <strong>Environment Toggle</strong> to switch between <strong>Sandbox (Test)</strong> and <strong>Production</strong></span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">In sandbox mode, no real charges are made (use test card numbers)</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">When switching to production, replace with live API keys</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">Thoroughly test in sandbox before going live with production credentials</span></div>
+    </div>
+
+    <hr class="rule">
+
+    <!-- 4. Payment History -->
+    <h2 class="section-title" id="payment-history">4. Payment History</h2>
+    <span class="menu-path">Payment Management &gt; Payment History</span>
+
+    <h3 class="sub-title">4-1. Searching by Date and Status</h3>
+    <table>
+      <thead><tr><th>Filter</th><th>Options</th></tr></thead>
+      <tbody>
+        <tr><td>Date Range</td><td>Today / Last 7 days / Last 30 days / Custom date range</td></tr>
+        <tr><td>Payment Status</td><td>All / Success / Failed / Cancelled / Refunded / Pending</td></tr>
+        <tr><td>Payment Method</td><td>Credit card / Wallet transfer / QR code / Bank transfer</td></tr>
+        <tr><td>Order Number</td><td>Search by merchant order number</td></tr>
+        <tr><td>Transaction ID</td><td>Search by ICOPAY transaction ID</td></tr>
+        <tr><td>Amount Range</td><td>Min amount ~ Max amount filter</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4-2. Transaction Detail View</h3>
+    <p>Click any transaction in the list to view the full details.</p>
+    <table>
+      <thead><tr><th>Field</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Transaction ID</td><td>ICOPAY unique transaction identifier</td></tr>
+        <tr><td>Order Number</td><td>Order number generated by the merchant system</td></tr>
+        <tr><td>Payment Amount</td><td>Final charged amount and currency</td></tr>
+        <tr><td>Payment Date/Time</td><td>Processing timestamp (local time)</td></tr>
+        <tr><td>Payment Method</td><td>Card type, last 4 digits, etc.</td></tr>
+        <tr><td>Payment Status</td><td>Success / Failed / Cancelled / Refunded</td></tr>
+        <tr><td>Customer Info</td><td>Buyer name and email (masked)</td></tr>
+        <tr><td>Refund History</td><td>Refund records and remaining balance</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4-3. How to Request a Refund</h3>
+    <span class="menu-path">Payment Management &gt; Payment History &gt; Detail &gt; Refund Request</span>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">Select the transaction to refund → Click <strong>View Detail</strong></span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">Click the <strong>Refund Request</strong> button</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">Enter refund amount (full or partial refund)</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">Enter refund reason</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc">Click <strong>Submit Refund</strong> to proceed</span></div>
+      <div class="flow-row"><span class="flow-num">⑥</span><span class="flow-desc">Status updates to <strong>Refund Completed</strong> when processed</span></div>
+    </div>
+    <div class="warn-box">
+      <strong>Refund Eligibility:</strong>
+      <ul style="margin:6px 0 0; padding-left:18px;">
+        <li>Only successful transactions can be refunded</li>
+        <li>Refund must be requested within a certain period (typically 90 days) after payment</li>
+        <li>Already refunded amounts cannot be refunded again</li>
+        <li>Partial refund cannot exceed the original payment amount</li>
+      </ul>
+    </div>
+
+    <hr class="rule">
+
+    <!-- 5. URL Payment -->
+    <h2 class="section-title" id="url-payment">5. URL Payment (Web Payment)</h2>
+    <span class="menu-path">Payment Management &gt; URL Payment History</span>
+
+    <h3 class="sub-title">5-1. Finding and Sharing Your Payment Link</h3>
+    <p>URL payment allows you to share a payment page link with customers to collect payments online.</p>
+    <div class="info-box">
+      Payment URL format: <strong>https://icopay.co.kr/checkout/{merchant-code}</strong><br>
+      Find your merchant code in Merchant Management &gt; Merchant Info.
+    </div>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">Go to Merchant Info and find the <strong>URL Payment URL</strong></span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">Click the copy button to copy the URL to your clipboard</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">Share the link via email, social media, or SMS</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">Customer accesses the link → enters payment details → completes payment</span></div>
+    </div>
+
+    <h3 class="sub-title">5-2. Payment Page Preview</h3>
+    <ul>
+      <li>Toggle between desktop and mobile preview modes</li>
+      <li>Verify merchant logo, button text, and layout</li>
+      <li>Generate and download a QR code for mobile payments</li>
+    </ul>
+
+    <h3 class="sub-title">5-3. Viewing Payment Success/Failure Records</h3>
+    <table>
+      <thead><tr><th>Field</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Payment Date/Time</td><td>URL payment processing timestamp</td></tr>
+        <tr><td>Amount</td><td>Requested and actual charged amount</td></tr>
+        <tr><td>Status</td><td>Success / Failed / Cancelled / Refunded</td></tr>
+        <tr><td>Failure Reason</td><td>Card limit exceeded, invalid card details, etc.</td></tr>
+        <tr><td>Customer</td><td>Buyer name and email (masked)</td></tr>
+      </tbody>
+    </table>
+
+    <hr class="rule">
+
+    <!-- 6. Subscription Payment -->
+    <h2 class="section-title" id="subscription">6. Subscription Payment Management</h2>
+    <span class="menu-path">Payment Management &gt; Subscription Payment History</span>
+
+    <h3 class="sub-title">6-1. Viewing Subscription Status</h3>
+    <table>
+      <thead><tr><th>Status</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Active</td><td>Subscription is running normally</td></tr>
+        <tr><td>Paused</td><td>Subscription temporarily suspended</td></tr>
+        <tr><td>Cancelled</td><td>Subscription successfully cancelled</td></tr>
+        <tr><td>Expired</td><td>Subscription period has ended</td></tr>
+        <tr><td>Failed</td><td>Payment attempt failed</td></tr>
+      </tbody>
+    </table>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">Go to Subscription Payment History</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">Search by date, status, or subscriber email</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">Click a subscription to view details (payment history, next billing date, etc.)</span></div>
+    </div>
+
+    <h3 class="sub-title">6-2. Processing a Subscription Cancellation</h3>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">Select the subscription to cancel in Subscription Payment History</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">Click the <strong>Cancel Subscription</strong> button in the detail view</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">Enter cancellation reason (optional)</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">Confirm cancellation → subscription is cancelled immediately</span></div>
+    </div>
+    <div class="warn-box">
+      After cancellation, no further billing occurs on the next scheduled date. The current billing period amount is generally not refunded unless otherwise specified by your service policy.
+    </div>
+
+    <h3 class="sub-title">6-3. Subscription Payment Records</h3>
+    <ul>
+      <li>View subscription start date, next billing date, and total payment count</li>
+      <li>Per-cycle payment success/failure records</li>
+      <li>View retry schedule for failed payments</li>
+      <li>Subscription amount change history</li>
+    </ul>
+
+    <hr class="rule">
+
+    <!-- 7. Settlement -->
+    <h2 class="section-title" id="settlement">7. Settlement</h2>
+    <span class="menu-path">Settlement &gt; Merchant Settlement History</span>
+
+    <h3 class="sub-title">7-1. Viewing Settlement History</h3>
+    <table>
+      <thead><tr><th>Field</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Settlement Period</td><td>Date range of included payments</td></tr>
+        <tr><td>Settlement Amount</td><td>Net payout after fee deductions</td></tr>
+        <tr><td>Gross Payment Amount</td><td>Total payment amount for the period</td></tr>
+        <tr><td>Total Fees</td><td>Sum of ICOPAY service fees</td></tr>
+        <tr><td>Settlement Status</td><td>Completed / Pending / On Hold</td></tr>
+        <tr><td>Payout Date</td><td>Scheduled bank transfer date</td></tr>
+        <tr><td>Payout Account</td><td>Bank account for settlement</td></tr>
+      </tbody>
+    </table>
+    <div class="info-box">
+      Settlement frequency (daily/weekly/monthly) is determined by your contract with ICOPAY. Contact your account manager to change the settlement cycle.
+    </div>
+
+    <h3 class="sub-title">7-2. Fee History</h3>
+    <span class="menu-path">Settlement &gt; Fee History</span>
+    <table>
+      <thead><tr><th>Field</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Fee Rate</td><td>Applied fee rate per payment method (%)</td></tr>
+        <tr><td>Payment Amount</td><td>Original payment amount used for fee calculation</td></tr>
+        <tr><td>Fee Amount</td><td>Payment amount × fee rate</td></tr>
+        <tr><td>VAT</td><td>Value-added tax on the fee</td></tr>
+        <tr><td>Net Settlement</td><td>Payment amount − fee − VAT</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">7-3. Settlement Hold History</h3>
+    <span class="menu-path">Settlement &gt; Settlement Hold History</span>
+    <p>Settlements may be placed on hold for the following reasons:</p>
+    <ul>
+      <li>Transactions with pending refund processing</li>
+      <li>Transactions under dispute (chargeback in progress)</li>
+      <li>Suspicious transactions under risk review</li>
+      <li>Payout account errors causing hold</li>
+    </ul>
+    <div class="block-box">
+      Hold items are reviewed by the ICOPAY operations team. Contact ICOPAY customer support for inquiries about specific holds.
+    </div>
+
+    <h3 class="sub-title">7-4. Balance / Outstanding Amount</h3>
+    <span class="menu-path">Settlement &gt; Balance History</span>
+    <ul>
+      <li>View cumulative unpaid balance</li>
+      <li>Check next settlement date and expected amount</li>
+      <li>Monthly settlement status chart</li>
+    </ul>
+
+    <hr class="rule">
+
+    <!-- 8. Chatbot Management -->
+    <h2 class="section-title" id="chatbot">8. Chatbot Management (Chatbot Payment Users)</h2>
+    <span class="menu-path">Chatbot Management</span>
+    <div class="info-box">
+      The Chatbot Management menu is only visible to merchants with the chatbot payment service activated by ICOPAY. Contact your ICOPAY account manager to apply for this service.
+    </div>
+
+    <h3 class="sub-title">8-1. Basic Chatbot Settings</h3>
+    <span class="menu-path">Chatbot Management &gt; Basic Settings</span>
+    <table>
+      <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Chatbot Name</td><td>Name displayed to customers</td></tr>
+        <tr><td>Operation Mode</td><td>Choose from sale, reservation, hybrid, or face-to-face postpaid</td></tr>
+        <tr><td>Chatbot Language</td><td>Supported languages (Korean, English, Japanese, etc.)</td></tr>
+        <tr><td>Welcome Message</td><td>Greeting message shown at chatbot start</td></tr>
+        <tr><td>Chatbot Payment URL</td><td>Link to share with customers</td></tr>
+        <tr><td>QR Code</td><td>Download QR code for the chatbot link</td></tr>
+        <tr><td>Embed Code</td><td>Script to embed chatbot widget on your website</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">8-2. Product Registration and Management</h3>
+    <span class="menu-path">Chatbot Management &gt; Product Management</span>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">Go to Product Management → Click <strong>Add Product</strong></span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">Enter product name, description, price, currency, and stock status</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">Upload product image (JPG/PNG, recommended max 2MB)</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">Set category and display order</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc">Click <strong>Save</strong> → product appears in chatbot immediately</span></div>
+    </div>
+    <div class="warn-box">
+      The number of products you can register is limited by your contracted slot quota. If the limit is reached, contact ICOPAY to increase the slot count.
+    </div>
+
+    <h3 class="sub-title">8-3. Chatbot Order History and Processing</h3>
+    <span class="menu-path">Chatbot Management &gt; Order Management</span>
+    <table>
+      <thead><tr><th>Field</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Order Number</td><td>Unique chatbot order identifier</td></tr>
+        <tr><td>Customer Info</td><td>Buyer name and contact (masked)</td></tr>
+        <tr><td>Ordered Products</td><td>Product list and quantities</td></tr>
+        <tr><td>Payment Amount</td><td>Total charged amount</td></tr>
+        <tr><td>Payment Status</td><td>Paid / Pending / Cancelled</td></tr>
+        <tr><td>Order Date/Time</td><td>Time order was placed</td></tr>
+      </tbody>
+    </table>
+    <ul>
+      <li>Process refunds from order detail view</li>
+      <li>Add internal processing notes to orders</li>
+      <li>Export order history to CSV</li>
+    </ul>
+
+    <hr class="rule">
+
+    <!-- 9. Split Payment -->
+    <h2 class="section-title" id="split">9. Split Payment Management (Split Payment Users)</h2>
+    <span class="menu-path">Split Payment</span>
+    <div class="info-box">
+      The Split Payment menu is only visible to merchants with split payment service activated by ICOPAY. Contact your ICOPAY account manager to apply.
+    </div>
+
+    <h3 class="sub-title">9-1. Split Contract Progress</h3>
+    <span class="menu-path">Split Payment &gt; Progress Management</span>
+    <table>
+      <thead><tr><th>Field</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Contract Number</td><td>Unique split contract identifier</td></tr>
+        <tr><td>Total Amount</td><td>Total contract value</td></tr>
+        <tr><td>Number of Installments</td><td>Total number of payment installments</td></tr>
+        <tr><td>Completed Installments</td><td>Number of successfully paid installments</td></tr>
+        <tr><td>Remaining Installments</td><td>Number of unpaid installments</td></tr>
+        <tr><td>Contract Status</td><td>In Progress / Completed / Cancelled / Overdue</td></tr>
+        <tr><td>Next Due Date</td><td>Deadline for the next installment payment</td></tr>
+      </tbody>
+    </table>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">View contract list in Progress Management</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">Click a contract to see per-installment payment status</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">Copy the installment payment URL to resend to the customer</span></div>
+    </div>
+
+    <h3 class="sub-title">9-2. Email History</h3>
+    <span class="menu-path">Split Payment &gt; Email Management</span>
+    <table>
+      <thead><tr><th>Email Type</th><th>Trigger</th></tr></thead>
+      <tbody>
+        <tr><td>Payment Reminder</td><td>When an installment due date approaches</td></tr>
+        <tr><td>Payment Confirmation</td><td>When an installment payment succeeds</td></tr>
+        <tr><td>Payment Failure Notification</td><td>When an installment payment fails</td></tr>
+        <tr><td>Due Date Reminder</td><td>D-3 and D-1 before each due date</td></tr>
+        <tr><td>Contract Completion</td><td>When all installments are paid</td></tr>
+      </tbody>
+    </table>
+
+    <hr class="rule">
+
+    <!-- 10. User Account Management -->
+    <h2 class="section-title" id="user-mgmt">10. User Account Management</h2>
+    <span class="menu-path">User Management &gt; User Management</span>
+
+    <h3 class="sub-title">10-1. Adding Internal Users</h3>
+    <p>Merchant administrators can grant ICOPAY portal access to internal staff members.</p>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">Go to User Management → Click <strong>Add User</strong></span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">Enter name, email (login ID), and contact information</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">Set permission level — View Only / Payment Management / Settlement View / Full Access</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">Auto-generate or manually set a temporary password</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc">Click <strong>Save</strong> → account credentials are emailed to the new user</span></div>
+    </div>
+
+    <h3 class="sub-title">10-2. Permission Levels</h3>
+    <table>
+      <thead><tr><th>Permission Level</th><th>Accessible Functions</th></tr></thead>
+      <tbody>
+        <tr><td>View Only</td><td>View payment and settlement history only (no refunds or edits)</td></tr>
+        <tr><td>Payment Management</td><td>View payment history + submit refund requests</td></tr>
+        <tr><td>Settlement View</td><td>Access all settlement-related menus</td></tr>
+        <tr><td>Full Access</td><td>All merchant portal functions including user management</td></tr>
+      </tbody>
+    </table>
+    <div class="warn-box">
+      Merchant users cannot access ICOPAY system settings, other merchants' data, or headquarters/distributor settings. They can only view and manage data belonging to their own merchant account.
+    </div>
+
+    <hr class="rule">
+
+    <!-- FAQ -->
+    <h2 class="section-title" id="faq">11. FAQ — Frequently Asked Questions</h2>
+
+    <div class="faq-item">
+      <div class="faq-q">How long does a refund take to reach the customer?</div>
+      <div class="faq-a">After a refund request is submitted, processing typically takes 3–7 business days. The actual timeline depends on the payment method (credit card, wallet, QR, etc.) and the original payment date. Track refund status under Payment History &gt; Refund tab.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">I lost or accidentally exposed my API broker secret. Can I reissue it?</div>
+      <div class="faq-a">Yes. In Merchant API &gt; Merchant API Portal, click the <strong>Reissue Secret</strong> button. The new secret is active immediately and the old one is invalidated. Update your server configuration with the new secret right away. If you suspect a security breach, reissue immediately.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">A customer wants to cancel their subscription. Do I need to refund the current billing period?</div>
+      <div class="faq-a">Whether to refund the current billing period depends on your service policy. Cancel the subscription in Subscription Payment History, then if needed, submit a partial or full refund for that billing period separately from the Payment History screen.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">When is my settlement paid? Can I see the upcoming settlement schedule?</div>
+      <div class="faq-a">Settlement frequency and payout dates are determined by your ICOPAY contract terms. You can check the next settlement date in Settlement &gt; Merchant Settlement History. Contact your ICOPAY account manager to change the settlement schedule.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">I forgot my password. How can I reset it?</div>
+      <div class="faq-a">Click <strong>Forgot Password</strong> on the ICOPAY login page to receive a reset link via email. If you cannot access your registered email, contact ICOPAY customer support at https://icopay.co.kr for identity verification and password reset assistance.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Where do I configure the payment notification (Webhook/Notify) URL?</div>
+      <div class="faq-a">Notification URL settings are managed by the ICOPAY operations team and cannot be changed directly from the merchant portal. Submit a notification URL registration or change request to your ICOPAY account manager. For real-time payment status verification, use the status API: <code>/api/middleware/v1/merchant/checkout/status</code>.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">I cannot add more chatbot products. I see a "slot limit reached" message.</div>
+      <div class="faq-a">You have reached your contracted product slot limit. Deactivate or delete unused products to free up slots, or contact your ICOPAY account manager to increase the slot limit.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Can I download payment records to Excel?</div>
+      <div class="faq-a">Yes. Payment History, URL Payment History, Subscription History, and Settlement History screens all have a <strong>CSV Export</strong> or <strong>Excel Download</strong> button. Apply your search filters first to download only the data you need.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">A customer missed an installment payment in a split contract. What should I do?</div>
+      <div class="faq-a">Check the overdue installment in Split Payment &gt; Progress Management. Copy the installment payment URL and resend it to the customer. If the due date has passed, check Email Management for resend options or contact your ICOPAY account manager for overdue handling procedures.</div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    ICOPAY Payment Gateway · Merchant Operations Manual · V2.0 · July 2026<br>
+    This document is based on the ICOPAY merchant role permissions and may change with system updates.<br>
+    Customer Support: https://icopay.co.kr
+  </div>
+</div>
+</body>
+</html>

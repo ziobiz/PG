@@ -45,6 +45,9 @@ public class NeutralCheckoutRouteController {
                     if (PgVendor.isEximbayFamily(opPg)) {
                         return "/eximbay-pay.html";
                     }
+                    if (PgVendor.isElementPayFamily(opPg)) {
+                        return "/elementpay-pay.html";
+                    }
                 }
             }
         } catch (RuntimeException ignore) {
