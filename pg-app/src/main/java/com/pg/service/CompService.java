@@ -2023,6 +2023,9 @@ public class CompService {
                                 }
                                 m.put("feeVatApplyYn", ss.getFeeVatApplyYn());
                                 m.put("feeVatRatePct", ss.getFeeVatRatePct() != null ? ss.getFeeVatRatePct().stripTrailingZeros().toPlainString() : null);
+                                if (ou.getOrgLevel() == OrgLevel.MASTER_DIST) {
+                                    m.put("receiptEmailEnabledYn", ss.getReceiptEmailEnabledYn() != null ? ss.getReceiptEmailEnabledYn() : "");
+                                }
                             });
                             applyCommissionDetailToMap(m, ou);
                             if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
@@ -2042,6 +2045,8 @@ public class CompService {
                                 m.put("urlPayAlertEmailYn", mp.getUrlPayAlertEmailYn() != null ? mp.getUrlPayAlertEmailYn() : "N");
                                 m.put("urlPayLineNotifyTokenConfigured",
                                         (mp.getUrlPayLineNotifyToken() != null && !mp.getUrlPayLineNotifyToken().isBlank()) ? "Y" : "N");
+                                m.put("receiptEmailFollowHqYn", mp.getReceiptEmailFollowHqYn() != null ? mp.getReceiptEmailFollowHqYn() : "Y");
+                                m.put("receiptEmailUseYn", mp.getReceiptEmailUseYn() != null ? mp.getReceiptEmailUseYn() : "N");
                                 m.put("splitPayEnabledYn", mp.getSplitPayEnabledYn() != null ? mp.getSplitPayEnabledYn() : "N");
                                 m.put("splitPayIntervalMonthYn", mp.getSplitPayIntervalMonthYn() != null ? mp.getSplitPayIntervalMonthYn() : "Y");
                                 m.put("splitPayIntervalDayYn", mp.getSplitPayIntervalDayYn() != null ? mp.getSplitPayIntervalDayYn() : "N");
@@ -2089,6 +2094,7 @@ public class CompService {
                           String payFollowMerchantUseYn, String payFollowAutoVoidYn, String payFollowEmailVoidYn,
                           String payFollowAutoRefundYn, String payFollowForceRefundYn,
                           String urlPayAlertEmailYn, String urlPayLineNotifyToken,
+                          String receiptEmailFollowHqYn, String receiptEmailUseYn, String receiptEmailEnabledYn,
                           String chatbotHeaderLogoUrl, String chatbotAdminUsername,
                           String chatbotCatalogListingGrant, Integer chatbotMaxProductImagesGrant,
                           String chatbotCatalogListingEnabled,
@@ -2454,6 +2460,7 @@ public class CompService {
                                         cardRiskTier4Hours, cardRiskTier4Min,
                                         cardRiskAutoBlacklistTier);
                                 applyMerchantUrlPayAlerts(mp, urlPayAlertEmailYn, urlPayLineNotifyToken);
+                                applyMerchantReceiptEmail(mp, receiptEmailFollowHqYn, receiptEmailUseYn);
                                 applyMerchantSplitPay(mp, splitPayEnabledYn, splitPayIntervalMonthYn,
                                         splitPayIntervalDayYn, splitPayIntervalMultiYn, splitPayDayIntervalDays,
                                         splitPayMonthIntervalMonths, splitPayMultiMaxMonths, splitPayFirstPayMode);
@@ -2461,6 +2468,9 @@ public class CompService {
                                         splitPayHeaderHtmlTitle, splitPayHeaderSubtitleMode, splitPayHeaderSubtitleText, splitPayLangMenuUseYn);
                             }
                             merchantProfileRepository.save(mp);
+                            if (childLevel == OrgLevel.MASTER_DIST) {
+                                applyMasterDistReceiptEmailPolicy(ou.getId(), receiptEmailEnabledYn);
+                            }
                             if (assistantLoginId != null && !assistantLoginId.trim().isEmpty()) {
                                 String aid = assistantLoginId.trim();
                                 final String representativeLoginId = prevLoginId;
@@ -2687,6 +2697,33 @@ public class CompService {
             throw new IllegalArgumentException("LINE Notify 토큰은 " + URL_PAY_LINE_TOKEN_MAX_LEN + "자 이하여야 합니다.");
         }
         mp.setUrlPayLineNotifyToken(raw);
+    }
+
+    private void applyMerchantReceiptEmail(MerchantProfile mp, String receiptEmailFollowHqYn, String receiptEmailUseYn) {
+        if (mp == null) {
+            return;
+        }
+        if (receiptEmailFollowHqYn != null && !receiptEmailFollowHqYn.isBlank()) {
+            mp.setReceiptEmailFollowHqYn("N".equalsIgnoreCase(receiptEmailFollowHqYn.trim()) ? "N" : "Y");
+        }
+        if (receiptEmailUseYn != null && !receiptEmailUseYn.isBlank()) {
+            mp.setReceiptEmailUseYn("Y".equalsIgnoreCase(receiptEmailUseYn.trim()) ? "Y" : "N");
+        }
+    }
+
+    private void applyMasterDistReceiptEmailPolicy(long orgUnitId, String receiptEmailEnabledYn) {
+        if (receiptEmailEnabledYn == null) {
+            return;
+        }
+        String v = receiptEmailEnabledYn.trim();
+        settlementSettingRepository.findByOrgUnitId(orgUnitId).ifPresent(ss -> {
+            if (v.isEmpty()) {
+                ss.setReceiptEmailEnabledYn(null);
+            } else {
+                ss.setReceiptEmailEnabledYn("Y".equalsIgnoreCase(v) ? "Y" : "N");
+            }
+            settlementSettingRepository.save(ss);
+        });
     }
 
     private void applyMerchantSplitPay(MerchantProfile mp,
@@ -3304,6 +3341,7 @@ public class CompService {
                 null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
                 null, null,
+                null, null, null,
                 null, null,
                 null,
                 null, null, null, null, null, null, null, null, null, null,
@@ -3341,6 +3379,7 @@ public class CompService {
                                      String failFee, String payRate, String refundRate, String rollingPct, String rollingDays,
                                      String feeSettlementPerTx, String remittanceTransferFee, String usdtTransferFeeUsd, String feeUsdt, String feeFx,
                                      String urlPayAlertEmailYn, String urlPayLineNotifyToken,
+                                     String receiptEmailFollowHqYn, String receiptEmailUseYn, String receiptEmailEnabledYn,
                                      String feeVatApplyYn, String feeVatRatePct,
                                      String regionalSettings,
                                      String urlPayCheckoutMode,
@@ -3397,6 +3436,7 @@ public class CompService {
                 null, null, null, null,
                 null, null, null, null, null,
                 urlPayAlertEmailYn, urlPayLineNotifyToken,
+                receiptEmailFollowHqYn, receiptEmailUseYn, receiptEmailEnabledYn,
                 feeVatApplyYn, feeVatRatePct,
                 regionalSettings,
                 urlPayCheckoutMode,
@@ -3457,6 +3497,7 @@ public class CompService {
                                      String payFollowMerchantUseYn, String payFollowAutoVoidYn, String payFollowEmailVoidYn,
                                      String payFollowAutoRefundYn, String payFollowForceRefundYn,
                                      String urlPayAlertEmailYn, String urlPayLineNotifyToken,
+                                     String receiptEmailFollowHqYn, String receiptEmailUseYn, String receiptEmailEnabledYn,
                                      String feeVatApplyYn, String feeVatRatePct,
                                      String regionalSettings,
                                      String urlPayCheckoutMode,
@@ -3609,6 +3650,7 @@ public class CompService {
                     cardRiskTier4Hours, cardRiskTier4Min,
                     cardRiskAutoBlacklistTier);
             applyMerchantUrlPayAlerts(mp, urlPayAlertEmailYn, urlPayLineNotifyToken);
+            applyMerchantReceiptEmail(mp, receiptEmailFollowHqYn, receiptEmailUseYn);
             merchantChatbotKbService.seedFromRegistration(mp, saved);
         }
         merchantProfileRepository.save(mp);
@@ -3696,6 +3738,9 @@ public class CompService {
         /* 신규 조직: 총판/본사 기본 따름 — 가맹은 HQ 미수금설정에서만 개별 오버라이드 */
         ss.setReceivableRecoveryOverrideYn("N");
         settlementSettingRepository.save(ss);
+        if (childLevel == OrgLevel.MASTER_DIST) {
+            applyMasterDistReceiptEmailPolicy(saved.getId(), receiptEmailEnabledYn);
+        }
 
         MerchantCommissionExtra extra = new MerchantCommissionExtra();
         extra.setOrgUnitId(saved.getId());
@@ -5240,6 +5285,7 @@ public class CompService {
                             null, null, null, null, null, null, null, null, null, null,
                             null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
                             null, null,
+                            null, null, null,
                             null, null,
                             null,
                             null, null, null, null, null, null, null, null, null, null,

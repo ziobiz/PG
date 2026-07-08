@@ -4589,15 +4589,16 @@ button.pay-follow-pill:focus-visible {
   }
 }
 
-/* 배포설정 > 가맹점 API 연동키트·API배포문서: table-responsive 제거 표 — 가로 스크롤 없음, 헤더 정렬 */
+/* 배포설정 > 가맹점 API 연동키트·API배포문서: 좁은 허브 패널에서도 업체명 열이 보이도록 최소 너비·가로 스크롤 */
 .merchant-deploy-kit .merchant-deploy-table-wrap,
 .merchant-api-deploy-docs .merchant-deploy-table-wrap {
-  overflow-x: visible;
+  overflow-x: auto;
   max-width: 100%;
 }
 .merchant-deploy-kit .merchant-deploy-merchant-table,
 .merchant-api-deploy-docs .merchant-deploy-merchant-table {
   table-layout: fixed;
+  min-width: 52rem;
 }
 .merchant-deploy-kit .merchant-deploy-merchant-table thead th,
 .merchant-api-deploy-docs .merchant-deploy-merchant-table thead th {
@@ -4613,7 +4614,12 @@ button.pay-follow-pill:focus-visible {
 }
 .merchant-deploy-kit .merchant-deploy-col-master,
 .merchant-api-deploy-docs .merchant-deploy-col-master {
-  width: 7.5rem;
+  width: 6.5rem;
+}
+.merchant-deploy-kit .merchant-deploy-col-name,
+.merchant-api-deploy-docs .merchant-deploy-col-name {
+  width: 11rem;
+  min-width: 9rem;
 }
 .merchant-deploy-kit .merchant-deploy-col-pg,
 .merchant-api-deploy-docs .merchant-deploy-col-pg {

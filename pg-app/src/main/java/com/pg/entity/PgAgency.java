@@ -110,6 +110,26 @@ public class PgAgency {
     @Column(name = "ext_settle_batch_time")
     private LocalTime extSettleBatchTime;
 
+    /** 거래명세서 — 카드매입사(Acquirer) */
+    @Column(name = "acquirer_nm", length = 200)
+    private String acquirerNm;
+
+    @Column(name = "acquirer_tel", length = 50)
+    private String acquirerTel;
+
+    @Column(name = "acquirer_email", length = 255)
+    private String acquirerEmail;
+
+    /** 거래명세서 — 결제중계사(Payment Switcher) */
+    @Column(name = "payment_switcher_nm", length = 200)
+    private String paymentSwitcherNm;
+
+    @Column(name = "payment_switcher_tel", length = 50)
+    private String paymentSwitcherTel;
+
+    @Column(name = "payment_switcher_email", length = 255)
+    private String paymentSwitcherEmail;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -197,6 +217,18 @@ public class PgAgency {
     public void setExtSettleLag(Integer extSettleLag) { this.extSettleLag = extSettleLag; }
     public LocalTime getExtSettleBatchTime() { return extSettleBatchTime; }
     public void setExtSettleBatchTime(LocalTime extSettleBatchTime) { this.extSettleBatchTime = extSettleBatchTime; }
+    public String getAcquirerNm() { return acquirerNm; }
+    public void setAcquirerNm(String acquirerNm) { this.acquirerNm = acquirerNm; }
+    public String getAcquirerTel() { return acquirerTel; }
+    public void setAcquirerTel(String acquirerTel) { this.acquirerTel = acquirerTel; }
+    public String getAcquirerEmail() { return acquirerEmail; }
+    public void setAcquirerEmail(String acquirerEmail) { this.acquirerEmail = acquirerEmail; }
+    public String getPaymentSwitcherNm() { return paymentSwitcherNm; }
+    public void setPaymentSwitcherNm(String paymentSwitcherNm) { this.paymentSwitcherNm = paymentSwitcherNm; }
+    public String getPaymentSwitcherTel() { return paymentSwitcherTel; }
+    public void setPaymentSwitcherTel(String paymentSwitcherTel) { this.paymentSwitcherTel = paymentSwitcherTel; }
+    public String getPaymentSwitcherEmail() { return paymentSwitcherEmail; }
+    public void setPaymentSwitcherEmail(String paymentSwitcherEmail) { this.paymentSwitcherEmail = paymentSwitcherEmail; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

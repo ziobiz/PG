@@ -1998,6 +1998,9 @@
     hqLedgerSysSettingsTestVoidEmail: function (body) {
       return post('/api/hq/ledgerSysSettings/testVoidEmail', body || {}).then(function (r) { return r.data; });
     },
+    hqLedgerSysSettingsTestReceiptEmail: function (body) {
+      return post('/api/hq/ledgerSysSettings/testReceiptEmail', body || {}).then(function (r) { return r.data; });
+    },
     hqChatbotAiSettings: function () {
       return get('/api/hq/chatbotAiSettings').then(function (r) { return r.data; });
     },

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.pg.integration.pg.PgVendor;
+import com.pg.receipt.TransactionReceiptEmailService;
 import com.pg.splitpay.SplitPayPaymentHookService;
 import com.pg.integration.pg.notify.NotifyIdempotencyLock;
 import com.pg.integration.pg.notify.PgNotifyInboundTxnHandler;
@@ -81,6 +82,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
     private final MerchantChatbotOrderService merchantChatbotOrderService;
     private final NotifyIdempotencyLock notifyIdempotencyLock;
     private final SplitPayPaymentHookService splitPayPaymentHookService;
+    private final TransactionReceiptEmailService transactionReceiptEmailService;
     private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
     private final PgTrnsctnOrderDedupeService pgTrnsctnOrderDedupeService;
 
@@ -95,6 +97,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
                                          MerchantChatbotOrderService merchantChatbotOrderService,
                                          NotifyIdempotencyLock notifyIdempotencyLock,
                                          SplitPayPaymentHookService splitPayPaymentHookService,
+                                         TransactionReceiptEmailService transactionReceiptEmailService,
                                          OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator,
                                          PgTrnsctnOrderDedupeService pgTrnsctnOrderDedupeService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
@@ -108,6 +111,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         this.merchantChatbotOrderService = merchantChatbotOrderService;
         this.notifyIdempotencyLock = notifyIdempotencyLock;
         this.splitPayPaymentHookService = splitPayPaymentHookService;
+        this.transactionReceiptEmailService = transactionReceiptEmailService;
         this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
         this.pgTrnsctnOrderDedupeService = pgTrnsctnOrderDedupeService;
     }
@@ -420,13 +424,20 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
     }
 
     private void invokeSplitPayHook(PgTrnsctn t) {
-        if (t == null || t.getOrderNo() == null) {
+        if (t == null) {
             return;
         }
+        if (t.getOrderNo() != null) {
+            try {
+                splitPayPaymentHookService.onTxnStatusChange(t.getOrderNo(), t.getStatus(), t.getTrnId());
+            } catch (Exception ex) {
+                log.warn("분할결제 연동 실패 orderNo={}: {}", t.getOrderNo(), ex.getMessage());
+            }
+        }
         try {
-            splitPayPaymentHookService.onTxnStatusChange(t.getOrderNo(), t.getStatus(), t.getTrnId());
+            transactionReceiptEmailService.scheduleAfterPaid(t);
         } catch (Exception ex) {
-            log.warn("분할결제 연동 실패 orderNo={}: {}", t.getOrderNo(), ex.getMessage());
+            log.warn("거래 영수증 메일 연동 실패 trnId={}: {}", t.getTrnId(), ex.getMessage());
         }
     }
 

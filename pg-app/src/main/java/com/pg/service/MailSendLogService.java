@@ -33,6 +33,8 @@ public class MailSendLogService {
     public static final String KIND_SPLIT_PAY_D3 = "SPLIT_PAY_D3";
     public static final String KIND_SPLIT_PAY_CREATE = "SPLIT_PAY_CREATE";
     public static final String KIND_SPLIT_PAY_TEST = "SPLIT_PAY_TEST";
+    public static final String KIND_RECEIPT_TXN = "RECEIPT_TXN";
+    public static final String KIND_RECEIPT_TEST = "RECEIPT_TEST";
     public static final String STATUS_SUCCESS = "SUCCESS";
     public static final String STATUS_FAIL = "FAIL";
 

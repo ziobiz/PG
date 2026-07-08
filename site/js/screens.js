@@ -2337,8 +2337,8 @@
     '<button type="button" class="btn btn-outline-secondary btn-sm" id="merchantDeployEnforceBtn" data-pg-ui-t="강제여부 저장">강제여부 저장</button></div>' +
     '<div class="merchant-deploy-table-wrap table-no-col-resize-wrap border rounded mb-2">' +
     '<table class="table table-sm table-bordered align-middle merchant-deploy-merchant-table table-no-col-resize w-100 mb-0" id="merchantDeployMerchantGrid">' +
-    '<colgroup><col class="merchant-deploy-col-act" /><col class="merchant-deploy-col-code" /><col class="merchant-deploy-col-master" /><col /><col class="merchant-deploy-col-pg" /><col class="merchant-deploy-col-channel" /><col class="merchant-deploy-col-cur" /><col class="merchant-deploy-col-broker" /><col class="merchant-deploy-col-issued-date" /><col class="merchant-deploy-col-issued-by" /></colgroup>' +
-    '<thead class="table-light"><tr><th class="text-center text-nowrap" data-pg-ui-t="선택">선택</th><th class="text-nowrap" data-pg-ui-t="업체코드">업체코드</th><th class="text-nowrap" data-pg-ui-t="상위 총판">상위 총판</th><th data-pg-ui-t="업체명">업체명</th><th class="text-nowrap" data-pg-ui-t="PG대행사">PG대행사</th><th class="text-nowrap" data-pg-ui-t="채널" data-pg-ui-title="가맹 API 연동 채널: IN=INLINE, RE=REDIRECT, WO=WordPress/WooCommerce. 복수 사용 시 IN/RE 형식.">채널</th><th class="text-nowrap" data-pg-ui-t="기준통화">기준통화</th><th class="text-nowrap" data-pg-ui-t="브로커 시크릿">브로커 시크릿</th><th class="text-nowrap" data-pg-ui-t="발행일자">발행일자</th><th class="text-nowrap" data-pg-ui-t="발행자">발행자</th></tr></thead>' +
+    '<colgroup><col class="merchant-deploy-col-act" /><col class="merchant-deploy-col-code" /><col class="merchant-deploy-col-master" /><col class="merchant-deploy-col-name" /><col class="merchant-deploy-col-pg" /><col class="merchant-deploy-col-channel" /><col class="merchant-deploy-col-cur" /><col class="merchant-deploy-col-broker" /><col class="merchant-deploy-col-issued-date" /><col class="merchant-deploy-col-issued-by" /></colgroup>' +
+    '<thead class="table-light"><tr><th class="text-center text-nowrap" data-pg-ui-t="선택">선택</th><th class="text-nowrap" data-pg-ui-t="업체코드">업체코드</th><th class="text-nowrap" data-pg-ui-t="상위 총판">상위 총판</th><th class="text-nowrap" data-pg-ui-t="업체명">업체명</th><th class="text-nowrap" data-pg-ui-t="PG대행사">PG대행사</th><th class="text-nowrap" data-pg-ui-t="채널" data-pg-ui-title="가맹 API 연동 채널: IN=INLINE, RE=REDIRECT, WO=WordPress/WooCommerce. 복수 사용 시 IN/RE 형식.">채널</th><th class="text-nowrap" data-pg-ui-t="기준통화">기준통화</th><th class="text-nowrap" data-pg-ui-t="브로커 시크릿">브로커 시크릿</th><th class="text-nowrap" data-pg-ui-t="발행일자">발행일자</th><th class="text-nowrap" data-pg-ui-t="발행자">발행자</th></tr></thead>' +
     '<tbody><tr><td colspan="10" class="text-center text-muted py-3" data-pg-ui-t="로딩 중…">로딩 중…</td></tr></tbody></table></div>' +
     '<p class="small text-muted mb-2" id="merchantDeployPageInfo"></p>' +
     '<label class="form-label small mb-0" id="merchantDeployKitLabel" data-pg-ui-t="연동 패키지 (JSON / PHP)">연동 패키지 (JSON / PHP)</label>' +
@@ -2373,8 +2373,8 @@
     '<div class="col-md-4 d-flex align-items-end"><button type="button" class="btn btn-primary btn-sm w-100" id="merchantApiDocsSearchBtn" data-pg-ui-t="가맹점 검색">가맹점 검색</button></div></div>' +
     '<div class="merchant-deploy-table-wrap table-no-col-resize-wrap border rounded mb-2">' +
     '<table class="table table-sm table-bordered align-middle merchant-deploy-merchant-table table-no-col-resize w-100 mb-0" id="merchantApiDocsMerchantGrid">' +
-    '<colgroup><col class="merchant-deploy-col-act" /><col class="merchant-deploy-col-code" /><col class="merchant-deploy-col-master" /><col /><col class="merchant-deploy-col-pg" /><col class="merchant-deploy-col-channel" /><col class="merchant-deploy-col-cur" /><col class="merchant-deploy-col-broker" /><col class="merchant-deploy-col-issued-date" /><col class="merchant-deploy-col-issued-by" /></colgroup>' +
-    '<thead class="table-light"><tr><th class="text-center text-nowrap" data-pg-ui-t="선택">선택</th><th class="text-nowrap" data-pg-ui-t="업체코드">업체코드</th><th class="text-nowrap" data-pg-ui-t="상위 총판">상위 총판</th><th data-pg-ui-t="업체명">업체명</th><th class="text-nowrap" data-pg-ui-t="PG대행사">PG대행사</th><th class="text-nowrap" data-pg-ui-t="채널" data-pg-ui-title="가맹 API 연동 채널: IN=INLINE, RE=REDIRECT, WO=WordPress/WooCommerce. 복수 사용 시 IN/RE 형식.">채널</th><th class="text-nowrap" data-pg-ui-t="기준통화">기준통화</th><th class="text-nowrap" data-pg-ui-t="브로커 시크릿">브로커 시크릿</th><th class="text-nowrap" data-pg-ui-t="발행일자">발행일자</th><th class="text-nowrap" data-pg-ui-t="발행자">발행자</th></tr></thead>' +
+    '<colgroup><col class="merchant-deploy-col-act" /><col class="merchant-deploy-col-code" /><col class="merchant-deploy-col-master" /><col class="merchant-deploy-col-name" /><col class="merchant-deploy-col-pg" /><col class="merchant-deploy-col-channel" /><col class="merchant-deploy-col-cur" /><col class="merchant-deploy-col-broker" /><col class="merchant-deploy-col-issued-date" /><col class="merchant-deploy-col-issued-by" /></colgroup>' +
+    '<thead class="table-light"><tr><th class="text-center text-nowrap" data-pg-ui-t="선택">선택</th><th class="text-nowrap" data-pg-ui-t="업체코드">업체코드</th><th class="text-nowrap" data-pg-ui-t="상위 총판">상위 총판</th><th class="text-nowrap" data-pg-ui-t="업체명">업체명</th><th class="text-nowrap" data-pg-ui-t="PG대행사">PG대행사</th><th class="text-nowrap" data-pg-ui-t="채널" data-pg-ui-title="가맹 API 연동 채널: IN=INLINE, RE=REDIRECT, WO=WordPress/WooCommerce. 복수 사용 시 IN/RE 형식.">채널</th><th class="text-nowrap" data-pg-ui-t="기준통화">기준통화</th><th class="text-nowrap" data-pg-ui-t="브로커 시크릿">브로커 시크릿</th><th class="text-nowrap" data-pg-ui-t="발행일자">발행일자</th><th class="text-nowrap" data-pg-ui-t="발행자">발행자</th></tr></thead>' +
     '<tbody><tr><td colspan="10" class="text-center text-muted py-3" data-pg-ui-t="로딩 중…">로딩 중…</td></tr></tbody></table></div>' +
     '<p class="small text-muted mb-3" id="merchantApiDocsPageInfo"></p>' +
     '<div id="merchantApiDocsSummary" class="alert alert-secondary small mb-3 py-2 d-none" role="status" aria-live="polite"></div>' +
@@ -3234,6 +3234,33 @@
               html: '<div class="d-flex flex-wrap align-items-end gap-2 mt-1 mt-md-0">' +
                 '<button type="button" class="btn btn-primary btn-sm" id="hqLedgerVoidEmailTestBtn" data-pg-ui-t="테스트 메일 발송">' + escUi(L('테스트 메일 발송')) + '</button>' +
                 '<span class="small text-muted" data-pg-ui-html="전산설정 이메일무효 테스트 발송 안내">' + L('전산설정 이메일무효 테스트 발송 안내') + '</span></div>' }]
+          ]
+        },
+        {
+          title: '고객 거래명세서 이메일',
+          id: 'hqReceiptEmailCard',
+          notice: '결제 승인 시 구매자에게 HTML 거래명세서를 보냅니다. 본사 기본값은 총판·가맹이 「상위 따름」일 때 적용됩니다. 실제 발송은 총판·가맹 설정이 우선합니다. 아래 테스트는 SMTP(위에 저장한 값)로 샘플 메일을 보내 수신함 UI를 확인합니다. Acquirer·Switcher는 통상 PG사 연동에, Payment Provider는 총판, Merchant는 가맹 정보가 들어가며 테스트에서는 직접 넣을 수 있습니다.',
+          rows: [
+            [{ label: '본사 기본(사용)', type: 'select', name: 'receiptEmailDefaultYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2,
+              title: '총판·가맹이 상위 정책을 따를 때의 기본값' }],
+            [{ type: 'customHtml', col: 12,
+              html: '<hr class="my-2" /><p class="small text-muted mb-2 fw-semibold" data-pg-ui-t="테스트 고객 거래명세서 보내기">' + escUi(L('테스트 고객 거래명세서 보내기')) + '</p>' +
+                '<p class="small text-muted mb-2" data-pg-ui-t="받는사람 이메일과 명세서 상단 4항목(Acquirer·Payment Switcher·Payment Provider·Merchant)을 입력한 뒤 발송하세요. 저장과 무관하며 SMTP만 서버 설정값을 사용합니다.">' +
+                escUi(L('받는사람 이메일과 명세서 상단 4항목(Acquirer·Payment Switcher·Payment Provider·Merchant)을 입력한 뒤 발송하세요. 저장과 무관하며 SMTP만 서버 설정값을 사용합니다.')) + '</p>' }],
+            [{ label: '받는사람 이메일', type: 'text', name: 'receiptEmailTestTo', col: 4, placeholder: '예: you@example.com' },
+             { label: '언어', type: 'select', name: 'receiptEmailTestLang', col: 2, options: [
+               { v: 'ENG', t: 'ENG' }, { v: 'KOR', t: 'KOR' }, { v: 'JPN', t: 'JPN' }, { v: 'CHN', t: 'CHN' }, { v: 'THA', t: 'THA' }
+             ] }],
+            [{ label: 'Acquirer', type: 'text', name: 'receiptEmailTestAcquirer', col: 6, placeholder: '예: Sample Acquirer / Tel / email@acq.test' },
+             { label: 'Payment Switcher', type: 'text', name: 'receiptEmailTestSwitcher', col: 6, placeholder: '예: Sample Switcher / Tel / email@sw.test' }],
+            [{ label: 'Payment Provider', type: 'text', name: 'receiptEmailTestProvider', col: 6, placeholder: '예: Sample Master Dist / Tel / email@md.test' },
+             { label: 'Merchant', type: 'text', name: 'receiptEmailTestMerchant', col: 6, placeholder: '예: Sample Merchant / Tel / email@m.test' }],
+            [{ type: 'customHtml', col: 12,
+              html: '<div class="d-flex flex-wrap align-items-center gap-2">' +
+                '<button type="button" class="btn btn-primary btn-sm" id="hqLedgerReceiptEmailTestBtn" data-pg-ui-t="테스트 고객 거래명세서 보내기">' +
+                escUi(L('테스트 고객 거래명세서 보내기')) + '</button>' +
+                '<span class="small text-muted" data-pg-ui-t="발송 결과는 운영관리 → 메일로그(RECEIPT_TEST)에서 확인할 수 있습니다.">' +
+                escUi(L('발송 결과는 운영관리 → 메일로그(RECEIPT_TEST)에서 확인할 수 있습니다.')) + '</span></div>' }]
           ]
         }
       ],
@@ -4146,6 +4173,16 @@
             [{ label: 'LINE Notify 토큰', type: 'password', name: 'urlPayLineNotifyToken', col: 6, placeholder: '변경 시만 입력 · 삭제: __CLEAR__' }]
           ]
         },
+        {
+          title: '고객 거래명세서 이메일',
+          id: 'receiptEmailCard',
+          merchantOnly: true,
+          notice: '결제 완료(승인) 시 구매자 이메일로 HTML 거래명세서를 발송합니다. 본사·총판 정책을 따르거나 가맹에서 직접 지정할 수 있습니다. SMTP는 전산설정을 사용합니다.',
+          rows: [
+            [{ label: '정책', type: 'select', name: 'receiptEmailFollowHqYn', options: [{ v: 'Y', t: '총판·본사 따름' }, { v: 'N', t: '가맹 직접' }], col: 2 },
+             { label: '발송', type: 'select', name: 'receiptEmailUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 }]
+          ]
+        },
         { title: '첨부파일', rows: [[{ type: 'file', name: 'attach', col: 12, blockExtraClass: 'attach-field-block' }]] }
       ],
       compInfoDetailButtons: [{ id: 'compInfoUpdateBtn', label: '수정 저장', cls: 'btn-primary' }]
@@ -4322,7 +4359,8 @@
             [{ label: '기준 화폐*', type: 'select', name: 'baseCurrency', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '사이트개요', type: 'text', name: 'siteSummary', col: 2, placeholder: '사이트개요' }, { label: '취급물품', type: 'text', name: 'product', col: 2 }, { label: '대표사이트', type: 'text', name: 'homepage', col: 2, placeholder: 'https://' }],
             [{ label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }, { label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2, placeholder: '010-0000-0000' }, { label: '정산형태', type: 'select', name: 'settleType', options: [{ v: '', t: '선택' }, { v: 'M', t: '가맹점별' }, { v: 'G', t: '총판' }], col: 1 }, { label: '요율(%)', type: 'text', name: 'commissionRate', col: 1, placeholder: '요율' }, { label: '사용한도', type: 'text', name: 'limitAmt', col: 2, placeholder: '사용한도' }],
             [{ type: 'notifyPairButton', col: 2, pairLabel: '필수 노티', buttonText: '노티 쌍 선택', callbackField: 'notifyUrl1', resultField: 'notifyUrl2', hint: '본사 노티구성에서 연결 시 자동 입력됩니다.', titleHint: '본사설정 > 노티구성설정에서 총판에 노티 대상을 연결하세요.', readonly: true }, { label: '노티 CALLBACK (URL 1)*', type: 'select', name: 'notifyUrl1', col: 5, loadNotifyTargets: true, button: '노티선택', readonly: true }, { label: '노티 RESULT (URL 2)*', type: 'select', name: 'notifyUrl2', col: 5, loadNotifyTargets: true, button: '노티선택', readonly: true }],
-            [{ type: 'notifyPairButton', col: 2, pairLabel: '보조 노티', buttonText: '보조 쌍 선택', callbackField: 'notifyUrl3', resultField: 'notifyUrl4', hint: 'URL 3·4를 같은 쌍으로 채웁니다.', titleHint: '보조 노티 URL 3·4를 한 번에 설정합니다.' }, { label: '노티 URL 3(보조)', type: 'select', name: 'notifyUrl3', col: 5, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 URL 4(보조)', type: 'select', name: 'notifyUrl4', col: 5, loadNotifyTargets: true, button: '노티선택' }]
+            [{ type: 'notifyPairButton', col: 2, pairLabel: '보조 노티', buttonText: '보조 쌍 선택', callbackField: 'notifyUrl3', resultField: 'notifyUrl4', hint: 'URL 3·4를 같은 쌍으로 채웁니다.', titleHint: '보조 노티 URL 3·4를 한 번에 설정합니다.' }, { label: '노티 URL 3(보조)', type: 'select', name: 'notifyUrl3', col: 5, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 URL 4(보조)', type: 'select', name: 'notifyUrl4', col: 5, loadNotifyTargets: true, button: '노티선택' }],
+            [{ label: '고객 거래명세서', type: 'select', name: 'receiptEmailEnabledYn', options: [{ v: '', t: '본사 기본 따름' }, { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2, title: '소속 가맹 기본 — 결제 완료 시 구매자 이메일로 HTML 거래명세서 발송' }]
           ]
         },
         {
@@ -4552,6 +4590,16 @@
             [{ label: 'LINE Notify 토큰', type: 'password', name: 'urlPayLineNotifyToken', col: 6, placeholder: '변경 시만 입력 · 삭제: __CLEAR__' }]
           ]
         },
+        {
+          title: '고객 거래명세서 이메일',
+          id: 'receiptEmailCard',
+          merchantOnly: true,
+          notice: '결제 완료(승인) 시 구매자 이메일로 HTML 거래명세서를 발송합니다. 본사·총판 정책을 따르거나 가맹에서 직접 지정할 수 있습니다. SMTP는 전산설정을 사용합니다.',
+          rows: [
+            [{ label: '정책', type: 'select', name: 'receiptEmailFollowHqYn', options: [{ v: 'Y', t: '총판·본사 따름' }, { v: 'N', t: '가맹 직접' }], col: 2 },
+             { label: '발송', type: 'select', name: 'receiptEmailUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 }]
+          ]
+        },
         { title: '첨부파일', rows: [[{ type: 'file', name: 'attach', col: 12, blockExtraClass: 'attach-field-block' }]] }
       ],
       buttons: [{ id: 'compRegSaveBtn', label: '저장', cls: 'btn-primary' }, { id: 'compRegCancelBtn', label: '취소', cls: 'btn-secondary' }]
@@ -4670,7 +4718,8 @@
             [{ label: '기준 화폐*', type: 'select', name: 'baseCurrency', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '사이트개요', type: 'text', name: 'siteSummary', col: 2, placeholder: '사이트개요' }, { label: '취급물품', type: 'text', name: 'product', col: 2 }, { label: '대표사이트', type: 'text', name: 'homepage', col: 2, placeholder: 'https://' }],
             [{ label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }, { label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2, placeholder: '010-0000-0000' }, { label: '정산형태', type: 'select', name: 'settleType', options: [{ v: '', t: '선택' }, { v: 'M', t: '가맹점별' }, { v: 'G', t: '총판' }], col: 1 }, { label: '요율(%)', type: 'text', name: 'commissionRate', col: 1, placeholder: '요율' }, { label: '사용한도', type: 'text', name: 'limitAmt', col: 2, placeholder: '사용한도' }],
             [{ type: 'notifyPairButton', col: 2, pairLabel: '필수 노티', buttonText: '노티 쌍 선택', callbackField: 'notifyUrl1', resultField: 'notifyUrl2', hint: '본사 노티구성에서 연결 시 자동 입력됩니다.', titleHint: '본사설정 > 노티구성설정에서 총판에 노티 대상을 연결하세요.', readonly: true }, { label: '노티 CALLBACK (URL 1)*', type: 'select', name: 'notifyUrl1', col: 5, loadNotifyTargets: true, button: '노티선택', readonly: true }, { label: '노티 RESULT (URL 2)*', type: 'select', name: 'notifyUrl2', col: 5, loadNotifyTargets: true, button: '노티선택', readonly: true }],
-            [{ type: 'notifyPairButton', col: 2, pairLabel: '보조 노티', buttonText: '보조 쌍 선택', callbackField: 'notifyUrl3', resultField: 'notifyUrl4', hint: 'URL 3·4를 같은 쌍으로 채웁니다.', titleHint: '보조 노티 URL 3·4를 한 번에 설정합니다.' }, { label: '노티 URL 3(보조)', type: 'select', name: 'notifyUrl3', col: 5, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 URL 4(보조)', type: 'select', name: 'notifyUrl4', col: 5, loadNotifyTargets: true, button: '노티선택' }]
+            [{ type: 'notifyPairButton', col: 2, pairLabel: '보조 노티', buttonText: '보조 쌍 선택', callbackField: 'notifyUrl3', resultField: 'notifyUrl4', hint: 'URL 3·4를 같은 쌍으로 채웁니다.', titleHint: '보조 노티 URL 3·4를 한 번에 설정합니다.' }, { label: '노티 URL 3(보조)', type: 'select', name: 'notifyUrl3', col: 5, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 URL 4(보조)', type: 'select', name: 'notifyUrl4', col: 5, loadNotifyTargets: true, button: '노티선택' }],
+            [{ label: '고객 거래명세서', type: 'select', name: 'receiptEmailEnabledYn', options: [{ v: '', t: '본사 기본 따름' }, { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2, title: '소속 가맹 기본 — 결제 완료 시 구매자 이메일로 HTML 거래명세서 발송' }]
           ]
         },
         {
@@ -4897,6 +4946,16 @@
           rows: [
             [{ label: '승인 알림메일', type: 'select', name: 'urlPayAlertEmailYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용 (대표 이메일)' }], col: 2 }],
             [{ label: 'LINE Notify 토큰', type: 'password', name: 'urlPayLineNotifyToken', col: 6, placeholder: '변경 시만 입력 · 삭제: __CLEAR__' }]
+          ]
+        },
+        {
+          title: '고객 거래명세서 이메일',
+          id: 'receiptEmailCard',
+          merchantOnly: true,
+          notice: '결제 완료(승인) 시 구매자 이메일로 HTML 거래명세서를 발송합니다. 본사·총판 정책을 따르거나 가맹에서 직접 지정할 수 있습니다. SMTP는 전산설정을 사용합니다.',
+          rows: [
+            [{ label: '정책', type: 'select', name: 'receiptEmailFollowHqYn', options: [{ v: 'Y', t: '총판·본사 따름' }, { v: 'N', t: '가맹 직접' }], col: 2 },
+             { label: '발송', type: 'select', name: 'receiptEmailUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 }]
           ]
         },
         { title: '첨부파일', rows: [[{ type: 'file', name: 'attach', col: 12, blockExtraClass: 'attach-field-block' }]] }
@@ -6787,6 +6846,16 @@
           rows: [
             [{ label: '승인 알림메일', type: 'select', name: 'urlPayAlertEmailYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용 (대표 이메일)' }], col: 2 }],
             [{ label: 'LINE Notify 토큰', type: 'password', name: 'urlPayLineNotifyToken', col: 6, placeholder: '변경 시만 입력 · 삭제: __CLEAR__' }]
+          ]
+        },
+        {
+          title: '고객 거래명세서 이메일',
+          id: 'receiptEmailCard',
+          merchantOnly: true,
+          notice: '결제 완료(승인) 시 구매자 이메일로 HTML 거래명세서를 발송합니다. 본사·총판 정책을 따르거나 가맹에서 직접 지정할 수 있습니다. SMTP는 전산설정을 사용합니다.',
+          rows: [
+            [{ label: '정책', type: 'select', name: 'receiptEmailFollowHqYn', options: [{ v: 'Y', t: '총판·본사 따름' }, { v: 'N', t: '가맹 직접' }], col: 2 },
+             { label: '발송', type: 'select', name: 'receiptEmailUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 }]
           ]
         },
         {

@@ -153,6 +153,10 @@ public class SettlementSetting {
     @Column(name = "void_refund_settlement_override_yn", length = 1, nullable = false)
     private String voidRefundSettlementOverrideYn = "N";
 
+    /** 총판(MASTER_DIST) 하위 가맹 기본 — 고객 거래명세서 이메일 Y/N */
+    @Column(name = "receipt_email_enabled_yn", length = 1)
+    private String receiptEmailEnabledYn;
+
     /** 정산제외일 (쉼표 구분 문자열) */
     @Column(name = "calc_exclude_dates", length = 200)
     private String calcExcludeDates;
@@ -281,6 +285,8 @@ public class SettlementSetting {
     public void setVoidRefundSettlementOverrideYn(String voidRefundSettlementOverrideYn) {
         this.voidRefundSettlementOverrideYn = voidRefundSettlementOverrideYn;
     }
+    public String getReceiptEmailEnabledYn() { return receiptEmailEnabledYn; }
+    public void setReceiptEmailEnabledYn(String receiptEmailEnabledYn) { this.receiptEmailEnabledYn = receiptEmailEnabledYn; }
     public String getCalcExcludeDates() { return calcExcludeDates; }
     public void setCalcExcludeDates(String calcExcludeDates) { this.calcExcludeDates = calcExcludeDates; }
     public LocalTime getCalcStartTime() { return calcStartTime; }

@@ -803,3 +803,17 @@ CREATE TABLE IF NOT EXISTS tb_hq_bulk_login_restriction (
 );
 CREATE INDEX IF NOT EXISTS idx_hq_bulk_login_restriction_status ON tb_hq_bulk_login_restriction (status);
 
+-- V230: 고객 거래명세서 이메일 — db/V230_customer_receipt_email.sql 과 동일
+ALTER TABLE tb_pg_agency ADD COLUMN IF NOT EXISTS acquirer_nm VARCHAR(200);
+ALTER TABLE tb_pg_agency ADD COLUMN IF NOT EXISTS acquirer_tel VARCHAR(50);
+ALTER TABLE tb_pg_agency ADD COLUMN IF NOT EXISTS acquirer_email VARCHAR(255);
+ALTER TABLE tb_pg_agency ADD COLUMN IF NOT EXISTS payment_switcher_nm VARCHAR(200);
+ALTER TABLE tb_pg_agency ADD COLUMN IF NOT EXISTS payment_switcher_tel VARCHAR(50);
+ALTER TABLE tb_pg_agency ADD COLUMN IF NOT EXISTS payment_switcher_email VARCHAR(255);
+ALTER TABLE tb_hq_ledger_sys_settings ADD COLUMN IF NOT EXISTS receipt_email_default_yn VARCHAR(1) NOT NULL DEFAULT 'N';
+ALTER TABLE tb_settlement_setting ADD COLUMN IF NOT EXISTS receipt_email_enabled_yn VARCHAR(1);
+ALTER TABLE tb_merchant_profile ADD COLUMN IF NOT EXISTS receipt_email_follow_hq_yn VARCHAR(1) NOT NULL DEFAULT 'Y';
+ALTER TABLE tb_merchant_profile ADD COLUMN IF NOT EXISTS receipt_email_use_yn VARCHAR(1) NOT NULL DEFAULT 'N';
+ALTER TABLE pg_trnsctn ADD COLUMN IF NOT EXISTS checkout_lang VARCHAR(8);
+ALTER TABLE pg_trnsctn ADD COLUMN IF NOT EXISTS receipt_mail_sent_at TIMESTAMP;
+

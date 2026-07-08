@@ -214,6 +214,7 @@ public class HqLedgerSysSettingsService {
         m.put("refundSettlementMode", VoidRefundSettlementModeUtil.normalize(s.getRefundSettlementMode()));
         m.put("forceRefundSettlementMode", VoidRefundSettlementModeUtil.normalize(s.getForceRefundSettlementMode()));
         m.put("receivableRecoveryDefaultMode", ReceivableRecoveryModeUtil.normalize(s.getReceivableRecoveryDefaultMode()));
+        m.put("receiptEmailDefaultYn", yn(s.getReceiptEmailDefaultYn()));
         m.put("cardFailCooldownEnabledYn", yn(s.getCardFailCooldownEnabledYn()));
         m.put("cardFailCooldownTier1Min", ledgerIntOr(s.getCardFailCooldownTier1Min(), 5));
         m.put("cardFailCooldownTier2Min", ledgerIntOr(s.getCardFailCooldownTier2Min(), 10));
@@ -360,6 +361,9 @@ public class HqLedgerSysSettingsService {
         }
         if (body.containsKey("cardFailCooldownTier3Min")) {
             s.setCardFailCooldownTier3Min(clampInt(body.get("cardFailCooldownTier3Min"), 60, 1, 24 * 60));
+        }
+        if (body.containsKey("receiptEmailDefaultYn")) {
+            s.setReceiptEmailDefaultYn(parseYn(body.get("receiptEmailDefaultYn"), s.getReceiptEmailDefaultYn()));
         }
         HqLedgerSysSettings saved = repository.save(s);
         hqNotifyEnvService.mergePayFollowActionsFromBody(body);

@@ -3,6 +3,7 @@ package com.pg.controller.api;
 import com.pg.api.ApiResponse;
 import com.pg.entity.AppUser;
 import com.pg.entity.HqLedgerSysSettings;
+import com.pg.receipt.TransactionReceiptEmailService;
 import com.pg.service.AuthService;
 import com.pg.service.HqLedgerSysSettingsService;
 import com.pg.service.HqOperationalDataResetService;
@@ -37,6 +38,7 @@ public class ApiHqLedgerSysSettingsController {
     private final PayFollowPolicyService payFollowPolicyService;
     private final PayCardPolicyService payCardPolicyService;
     private final SettlementVoidRefundFeeCorrectionService voidRefundFeeCorrectionService;
+    private final TransactionReceiptEmailService transactionReceiptEmailService;
 
     public ApiHqLedgerSysSettingsController(HqLedgerSysSettingsService service,
                                             HqOperationalDataResetService operationalDataResetService,
@@ -46,7 +48,8 @@ public class ApiHqLedgerSysSettingsController {
                                             PayFollowEmailVoidService payFollowEmailVoidService,
                                             PayFollowPolicyService payFollowPolicyService,
                                             PayCardPolicyService payCardPolicyService,
-                                            SettlementVoidRefundFeeCorrectionService voidRefundFeeCorrectionService) {
+                                            SettlementVoidRefundFeeCorrectionService voidRefundFeeCorrectionService,
+                                            TransactionReceiptEmailService transactionReceiptEmailService) {
         this.service = service;
         this.operationalDataResetService = operationalDataResetService;
         this.settlementDataResetService = settlementDataResetService;
@@ -56,6 +59,7 @@ public class ApiHqLedgerSysSettingsController {
         this.payFollowPolicyService = payFollowPolicyService;
         this.payCardPolicyService = payCardPolicyService;
         this.voidRefundFeeCorrectionService = voidRefundFeeCorrectionService;
+        this.transactionReceiptEmailService = transactionReceiptEmailService;
     }
 
     private boolean canResetOperationalData(Authentication auth) {
@@ -182,6 +186,19 @@ public class ApiHqLedgerSysSettingsController {
                 actor = u.getUsername();
             }
             payFollowEmailVoidService.sendVoidTestMail(testTo, actor);
+            return ResponseEntity.ok(ApiResponse.ok(Map.of("sent", true)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "ERROR"));
+        }
+    }
+
+    /** 고객 거래명세서 HTML 샘플 테스트 발송 (SMTP·UI 확인용, 실제 거래 미연동) */
+    @PostMapping("/testReceiptEmail")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> testReceiptEmail(@RequestBody(required = false) Map<String, Object> body) {
+        try {
+            transactionReceiptEmailService.sendTestReceipt(body);
             return ResponseEntity.ok(ApiResponse.ok(Map.of("sent", true)));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));

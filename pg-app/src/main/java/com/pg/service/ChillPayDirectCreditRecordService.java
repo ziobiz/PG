@@ -1,6 +1,8 @@
 package com.pg.service;
 
 import com.pg.integration.pg.PgVendor;
+import com.pg.merchantdeploy.MerchantCheckoutLangUtil;
+import com.pg.receipt.TransactionReceiptEmailService;
 import com.pg.splitpay.SplitPayPaymentHookService;
 import com.pg.dto.ChillPayDirectCreditResponse;
 import com.pg.entity.OrgUnit;
@@ -58,6 +60,7 @@ public class ChillPayDirectCreditRecordService {
     private final UrlPaySuccessAlertService urlPaySuccessAlertService;
     private final MerchantChatbotOrderService merchantChatbotOrderService;
     private final SplitPayPaymentHookService splitPayPaymentHookService;
+    private final TransactionReceiptEmailService transactionReceiptEmailService;
     private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
 
     public ChillPayDirectCreditRecordService(PgTrnsctnRepository pgTrnsctnRepository,
@@ -67,6 +70,7 @@ public class ChillPayDirectCreditRecordService {
                                             UrlPaySuccessAlertService urlPaySuccessAlertService,
                                             MerchantChatbotOrderService merchantChatbotOrderService,
                                             SplitPayPaymentHookService splitPayPaymentHookService,
+                                            TransactionReceiptEmailService transactionReceiptEmailService,
                                             OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
@@ -75,6 +79,7 @@ public class ChillPayDirectCreditRecordService {
         this.urlPaySuccessAlertService = urlPaySuccessAlertService;
         this.merchantChatbotOrderService = merchantChatbotOrderService;
         this.splitPayPaymentHookService = splitPayPaymentHookService;
+        this.transactionReceiptEmailService = transactionReceiptEmailService;
         this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
     }
 
@@ -89,7 +94,8 @@ public class ChillPayDirectCreditRecordService {
                                      String payerName,
                                      String txnOrigin,
                                      BigDecimal shopperDisplayAmount,
-                                     String shopperDisplayCurrency) {
+                                     String shopperDisplayCurrency,
+                                     String checkoutLang) {
         if (merchantOrgUnitId == null || orderNo == null || orderNo.isBlank()) {
             return;
         }
@@ -140,6 +146,7 @@ public class ChillPayDirectCreditRecordService {
             if (t.getSettledYn() == null || t.getSettledYn().isBlank()) {
                 t.setSettledYn("N");
             }
+            MerchantCheckoutLangUtil.applyToTxn(t, checkoutLang);
             pgTrnsctnRepository.save(t);
         } catch (Exception e) {
             log.warn("ChillPay 사전 리스크 대기 적재 실패: {}", e.getMessage());
@@ -192,7 +199,7 @@ public class ChillPayDirectCreditRecordService {
                                                 String payerDisplayName,
                                                 String checkoutCurrencyAlpha) {
         recordAfterDirectCreditResponse(merchantOrgUnitId, res, requestAmount, requestOrderNo, requestCustomerId,
-                routeNo, urlPayIntegrationMode, payerDisplayName, checkoutCurrencyAlpha, null, null, "URL");
+                routeNo, urlPayIntegrationMode, payerDisplayName, checkoutCurrencyAlpha, null, null, "URL", null);
     }
 
     /**
@@ -213,7 +220,7 @@ public class ChillPayDirectCreditRecordService {
                                                 String shopperDisplayCurrency) {
         recordAfterDirectCreditResponse(merchantOrgUnitId, res, requestAmount, requestOrderNo, requestCustomerId,
                 routeNo, urlPayIntegrationMode, payerDisplayName, checkoutCurrencyAlpha,
-                shopperDisplayAmount, shopperDisplayCurrency, "URL");
+                shopperDisplayAmount, shopperDisplayCurrency, "URL", null);
     }
 
     /**
@@ -231,11 +238,12 @@ public class ChillPayDirectCreditRecordService {
                                                 String checkoutCurrencyAlpha,
                                                 BigDecimal shopperDisplayAmount,
                                                 String shopperDisplayCurrency,
-                                                String txnOrigin) {
+                                                String txnOrigin,
+                                                String checkoutLang) {
         try {
             doRecord(merchantOrgUnitId, res, requestAmount, requestOrderNo, requestCustomerId, routeNo,
                     urlPayIntegrationMode, payerDisplayName, checkoutCurrencyAlpha,
-                    shopperDisplayAmount, shopperDisplayCurrency, txnOrigin);
+                    shopperDisplayAmount, shopperDisplayCurrency, txnOrigin, checkoutLang);
         } catch (Exception e) {
             log.warn("DirectCredit 거래 적재 실패 (결제 API 응답은 유지): {}", e.getMessage());
         }
@@ -252,7 +260,8 @@ public class ChillPayDirectCreditRecordService {
                           String checkoutCurrencyAlpha,
                           BigDecimal shopperDisplayAmount,
                           String shopperDisplayCurrency,
-                          String txnOrigin) {
+                          String txnOrigin,
+                          String checkoutLang) {
         if (res == null || res.getStatus() != 200 || res.getData() == null) {
             return;
         }
@@ -337,6 +346,7 @@ public class ChillPayDirectCreditRecordService {
             t.setPaidAt(LocalDateTime.now(hqLedgerSysSettingsService.resolveLedgerDisplayZoneId()));
         }
         t.setSettledYn("N");
+        MerchantCheckoutLangUtil.applyToTxn(t, checkoutLang);
         pgTrnsctnRepository.save(t);
         try {
             merchantChatbotOrderService.tryConfirmOrderAfterPaidTxn(t);
@@ -357,6 +367,11 @@ public class ChillPayDirectCreditRecordService {
                 splitPayPaymentHookService.onTxnStatusChange(orderNo, t.getStatus(), t.getTrnId());
             } catch (Exception ex) {
                 log.warn("분할결제 연동 실패 orderNo={}: {}", orderNo, ex.getMessage());
+            }
+            try {
+                transactionReceiptEmailService.scheduleAfterPaid(t);
+            } catch (Exception ex) {
+                log.warn("거래 영수증 메일 연동 실패 trnId={}: {}", t.getTrnId(), ex.getMessage());
             }
         }
     }

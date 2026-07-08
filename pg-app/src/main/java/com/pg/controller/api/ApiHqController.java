@@ -443,6 +443,12 @@ public class ApiHqController {
                     m.put("extSettleMode", p.getExtSettleMode() != null ? p.getExtSettleMode() : "OFF");
                     m.put("extSettleLag", p.getExtSettleLag() != null ? p.getExtSettleLag() : "");
                     m.put("extSettleBatchTime", p.getExtSettleBatchTime() != null ? p.getExtSettleBatchTime().toString() : "");
+                    m.put("acquirerNm", p.getAcquirerNm() != null ? p.getAcquirerNm() : "");
+                    m.put("acquirerTel", p.getAcquirerTel() != null ? p.getAcquirerTel() : "");
+                    m.put("acquirerEmail", p.getAcquirerEmail() != null ? p.getAcquirerEmail() : "");
+                    m.put("paymentSwitcherNm", p.getPaymentSwitcherNm() != null ? p.getPaymentSwitcherNm() : "");
+                    m.put("paymentSwitcherTel", p.getPaymentSwitcherTel() != null ? p.getPaymentSwitcherTel() : "");
+                    m.put("paymentSwitcherEmail", p.getPaymentSwitcherEmail() != null ? p.getPaymentSwitcherEmail() : "");
                     m.put("regDt", p.getCreatedAt() != null ? p.getCreatedAt().toString().substring(0, 10) : null);
                     return m;
                 })
@@ -759,6 +765,30 @@ public class ApiHqController {
         } else if (!isUpdate) {
             entity.setCredentialsExtraJson(null);
         }
+        applyPgAgencyReceiptContactFields(entity, body, isUpdate);
+    }
+
+    private static void applyPgAgencyReceiptContactFields(PgAgency entity, Map<String, Object> body, boolean isUpdate) {
+        applyOptionalTrimmedField(entity::setAcquirerNm, body, "acquirerNm", isUpdate);
+        applyOptionalTrimmedField(entity::setAcquirerTel, body, "acquirerTel", isUpdate);
+        applyOptionalTrimmedField(entity::setAcquirerEmail, body, "acquirerEmail", isUpdate);
+        applyOptionalTrimmedField(entity::setPaymentSwitcherNm, body, "paymentSwitcherNm", isUpdate);
+        applyOptionalTrimmedField(entity::setPaymentSwitcherTel, body, "paymentSwitcherTel", isUpdate);
+        applyOptionalTrimmedField(entity::setPaymentSwitcherEmail, body, "paymentSwitcherEmail", isUpdate);
+    }
+
+    private static void applyOptionalTrimmedField(java.util.function.Consumer<String> setter,
+                                                  Map<String, Object> body,
+                                                  String key,
+                                                  boolean isUpdate) {
+        if (!body.containsKey(key)) {
+            if (!isUpdate) {
+                setter.accept(null);
+            }
+            return;
+        }
+        String v = hqStr(body, key);
+        setter.accept(v != null && !v.isBlank() ? v.trim() : null);
     }
 
     /**

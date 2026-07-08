@@ -5,6 +5,7 @@ import com.pg.entity.PgAgency;
 import com.pg.entity.PgNotifyInbound;
 import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.elementpay.ElementPayCredentials;
+import com.pg.receipt.TransactionReceiptEmailService;
 import com.pg.splitpay.SplitPayPaymentHookService;
 import com.pg.util.ElementPayHashUtil;
 import org.slf4j.Logger;
@@ -49,6 +50,7 @@ public class ElementPayCallbackService {
     private final SettlementCalcService settlementCalcService;
     private final MerchantOutboundNotifyService merchantOutboundNotifyService;
     private final SplitPayPaymentHookService splitPayPaymentHookService;
+    private final TransactionReceiptEmailService transactionReceiptEmailService;
 
     public ElementPayCallbackService(HqNotifyEnvService hqNotifyEnvService,
                                      ElementPayPaymentService elementPayPaymentService,
@@ -56,7 +58,8 @@ public class ElementPayCallbackService {
                                      PgNotifyInboundPersistService inboundPersistService,
                                      SettlementCalcService settlementCalcService,
                                      MerchantOutboundNotifyService merchantOutboundNotifyService,
-                                     SplitPayPaymentHookService splitPayPaymentHookService) {
+                                     SplitPayPaymentHookService splitPayPaymentHookService,
+                                     TransactionReceiptEmailService transactionReceiptEmailService) {
         this.hqNotifyEnvService = hqNotifyEnvService;
         this.elementPayPaymentService = elementPayPaymentService;
         this.elementPaySaleRecordService = elementPaySaleRecordService;
@@ -64,6 +67,7 @@ public class ElementPayCallbackService {
         this.settlementCalcService = settlementCalcService;
         this.merchantOutboundNotifyService = merchantOutboundNotifyService;
         this.splitPayPaymentHookService = splitPayPaymentHookService;
+        this.transactionReceiptEmailService = transactionReceiptEmailService;
     }
 
     /**
@@ -159,6 +163,11 @@ public class ElementPayCallbackService {
         try {
             splitPayPaymentHookService.onTxnStatusChange(t.getOrderNo(), t.getStatus(), t.getTrnId());
         } catch (Exception ignored) {
+        }
+        try {
+            transactionReceiptEmailService.scheduleAfterPaid(t);
+        } catch (Exception e) {
+            log.warn("ElementPay 거래 영수증 메일 연동 실패 trnId={}: {}", t.getTrnId(), e.getMessage());
         }
         try {
             if (t.getMerchantId() != null && !t.getMerchantId().isBlank()) {

@@ -69,4 +69,22 @@ public final class MerchantCheckoutLangUtil {
     private static String str(Object o) {
         return o == null ? "" : o.toString().trim();
     }
+
+    /** 결제 적재 시 거래명세서·UI 언어 보존 */
+    public static void applyToTxn(com.pg.entity.PgTrnsctn txn, Map<String, Object> body) {
+        if (txn == null) {
+            return;
+        }
+        applyToTxn(txn, fromBody(body));
+    }
+
+    public static void applyToTxn(com.pg.entity.PgTrnsctn txn, String lang) {
+        if (txn == null) {
+            return;
+        }
+        String n = normalize(lang);
+        if (!n.isEmpty()) {
+            txn.setCheckoutLang(n);
+        }
+    }
 }

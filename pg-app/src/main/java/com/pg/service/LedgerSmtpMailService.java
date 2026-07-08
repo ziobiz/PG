@@ -31,6 +31,16 @@ public class LedgerSmtpMailService {
 
     public void sendPlainText(HqLedgerSysSettings s, String to, String subject, String text,
                               String fromAddressOverride, String fromNameOverride) {
+        sendMultipart(s, to, subject, text, null, fromAddressOverride, fromNameOverride);
+    }
+
+    /** HTML 본문 + plain text 대체 본문 */
+    public void sendHtml(HqLedgerSysSettings s, String to, String subject, String htmlBody, String plainTextFallback) {
+        sendMultipart(s, to, subject, plainTextFallback, htmlBody, null, null);
+    }
+
+    private void sendMultipart(HqLedgerSysSettings s, String to, String subject, String plainText,
+                               String htmlBody, String fromAddressOverride, String fromNameOverride) {
         if (to == null || to.isBlank()) {
             throw new IllegalStateException("수신 이메일이 비어 있습니다.");
         }
@@ -75,11 +85,16 @@ public class LedgerSmtpMailService {
             InternetAddress from = buildFromAddress(fromAddrRaw, fromNameRaw);
             InternetAddress[] recipients = parseRecipients(to);
             MimeMessage message = sender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
+            boolean multipart = htmlBody != null && !htmlBody.isBlank();
+            MimeMessageHelper helper = new MimeMessageHelper(message, multipart, StandardCharsets.UTF_8.name());
             helper.setFrom(from);
             helper.setTo(recipients);
             helper.setSubject(subject != null ? subject : "");
-            helper.setText(text != null ? text : "", false);
+            if (multipart) {
+                helper.setText(plainText != null ? plainText : "", htmlBody);
+            } else {
+                helper.setText(plainText != null ? plainText : "", false);
+            }
             sender.send(message);
         } catch (IllegalStateException e) {
             throw e;

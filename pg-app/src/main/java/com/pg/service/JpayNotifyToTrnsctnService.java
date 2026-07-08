@@ -13,6 +13,7 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgAgencyRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.service.settlement.SettlementArrearsService;
+import com.pg.receipt.TransactionReceiptEmailService;
 import com.pg.splitpay.SplitPayPaymentHookService;
 import com.pg.util.JpayBuyerContactApplier;
 import com.pg.util.JpayDisputeNotifyStatusResolver;
@@ -65,6 +66,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
     private final NotifyIdempotencyLock notifyIdempotencyLock;
     private final SettlementArrearsService settlementArrearsService;
     private final SplitPayPaymentHookService splitPayPaymentHookService;
+    private final TransactionReceiptEmailService transactionReceiptEmailService;
     private final MerchantOutboundNotifyService merchantOutboundNotifyService;
     private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
     private final PayCardFailCooldownService payCardFailCooldownService;
@@ -80,6 +82,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
                                       NotifyIdempotencyLock notifyIdempotencyLock,
                                       SettlementArrearsService settlementArrearsService,
                                       SplitPayPaymentHookService splitPayPaymentHookService,
+                                      TransactionReceiptEmailService transactionReceiptEmailService,
                                       MerchantOutboundNotifyService merchantOutboundNotifyService,
                                       OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator,
                                       PayCardFailCooldownService payCardFailCooldownService,
@@ -94,6 +97,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         this.notifyIdempotencyLock = notifyIdempotencyLock;
         this.settlementArrearsService = settlementArrearsService;
         this.splitPayPaymentHookService = splitPayPaymentHookService;
+        this.transactionReceiptEmailService = transactionReceiptEmailService;
         this.merchantOutboundNotifyService = merchantOutboundNotifyService;
         this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
         this.payCardFailCooldownService = payCardFailCooldownService;
@@ -366,12 +370,25 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
 
     private void hookSplitPayInstallment(PgTrnsctn t) {
         if (t == null || t.getOrderNo() == null || t.getOrderNo().isBlank()) {
+            hookCustomerReceipt(t);
             return;
         }
         try {
             splitPayPaymentHookService.onTxnStatusChange(t.getOrderNo(), t.getStatus(), t.getTrnId());
         } catch (Exception ex) {
             log.warn("분할결제 연동 실패 orderNo={}: {}", t.getOrderNo(), ex.getMessage());
+        }
+        hookCustomerReceipt(t);
+    }
+
+    private void hookCustomerReceipt(PgTrnsctn t) {
+        if (t == null || !ST_PAID.equals(t.getStatus())) {
+            return;
+        }
+        try {
+            transactionReceiptEmailService.scheduleAfterPaid(t);
+        } catch (Exception ex) {
+            log.warn("거래명세서 메일 예약 실패 trnId={}: {}", t.getTrnId(), ex.getMessage());
         }
     }
 

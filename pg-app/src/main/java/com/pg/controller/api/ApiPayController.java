@@ -967,7 +967,7 @@ public class ApiPayController {
             chillPayDirectCreditRecordService.recordPresalePending(
                     merchantOrgUnitId, orderNo, pgAmount, checkoutCurrencyCode,
                     custEmail, phoneNumber, payerName, txnOriginPresale,
-                    shopperDisplayAmountOut, shopperDisplayCurrencyOut);
+                    shopperDisplayAmountOut, shopperDisplayCurrencyOut, langCode);
             String trnId = chillPayDirectCreditRecordService.applyPresaleRiskCancel(
                     merchantCode, orderNo, txnOriginPresale, block);
             payPresaleRiskFilterService.recordEvent(
@@ -1017,7 +1017,7 @@ public class ApiPayController {
             chillPayDirectCreditRecordService.recordAfterDirectCreditResponse(
                     merchantOrgUnitId, res, recordAmt, orderNo, customerId, payResult.routeUsed(),
                     urlPayMode, payerName.isEmpty() ? null : payerName, checkoutCurrencyCode,
-                    shopperDisplayAmountOut, shopperDisplayCurrencyOut, txnOrigin);
+                    shopperDisplayAmountOut, shopperDisplayCurrencyOut, txnOrigin, langCode);
             return ResponseEntity.ok(ApiResponse.ok(res));
         } catch (IllegalStateException e) {
             String msg = e.getMessage() != null ? e.getMessage() : "결제 요청 처리 중 오류가 발생했습니다.";

@@ -4,6 +4,7 @@ import com.pg.entity.PgNotifyInbound;
 import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.notify.NotifyIdempotencyLock;
 import com.pg.integration.pg.notify.PgNotifyInboundTxnHandler;
+import com.pg.receipt.TransactionReceiptEmailService;
 import com.pg.splitpay.SplitPayPaymentHookService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +43,7 @@ public class EximbayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler 
     private final NotifyIdempotencyLock notifyIdempotencyLock;
     private final SettlementCalcService settlementCalcService;
     private final SplitPayPaymentHookService splitPayPaymentHookService;
+    private final TransactionReceiptEmailService transactionReceiptEmailService;
     private final MerchantOutboundNotifyService merchantOutboundNotifyService;
 
     public EximbayNotifyToTrnsctnService(EximbayPaymentService eximbayPaymentService,
@@ -49,12 +51,14 @@ public class EximbayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler 
                                          NotifyIdempotencyLock notifyIdempotencyLock,
                                          SettlementCalcService settlementCalcService,
                                          SplitPayPaymentHookService splitPayPaymentHookService,
+                                         TransactionReceiptEmailService transactionReceiptEmailService,
                                          MerchantOutboundNotifyService merchantOutboundNotifyService) {
         this.eximbayPaymentService = eximbayPaymentService;
         this.eximbaySaleRecordService = eximbaySaleRecordService;
         this.notifyIdempotencyLock = notifyIdempotencyLock;
         this.settlementCalcService = settlementCalcService;
         this.splitPayPaymentHookService = splitPayPaymentHookService;
+        this.transactionReceiptEmailService = transactionReceiptEmailService;
         this.merchantOutboundNotifyService = merchantOutboundNotifyService;
     }
 
@@ -211,13 +215,20 @@ public class EximbayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler 
     }
 
     private void hookSplitPay(PgTrnsctn t) {
-        if (t == null || t.getOrderNo() == null || t.getOrderNo().isBlank()) {
+        if (t == null) {
             return;
         }
+        if (t.getOrderNo() != null && !t.getOrderNo().isBlank()) {
+            try {
+                splitPayPaymentHookService.onTxnStatusChange(t.getOrderNo(), t.getStatus(), t.getTrnId());
+            } catch (Exception e) {
+                log.warn("Eximbay 분할결제 연동 실패 orderNo={}: {}", t.getOrderNo(), e.getMessage());
+            }
+        }
         try {
-            splitPayPaymentHookService.onTxnStatusChange(t.getOrderNo(), t.getStatus(), t.getTrnId());
+            transactionReceiptEmailService.scheduleAfterPaid(t);
         } catch (Exception e) {
-            log.warn("Eximbay 분할결제 연동 실패 orderNo={}: {}", t.getOrderNo(), e.getMessage());
+            log.warn("Eximbay 거래 영수증 메일 연동 실패 trnId={}: {}", t.getTrnId(), e.getMessage());
         }
     }
 

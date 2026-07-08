@@ -395,6 +395,14 @@ public class MerchantProfile {
     @Column(name = "url_pay_line_notify_token", length = 256)
     private String urlPayLineNotifyToken;
 
+    /** 고객 거래명세서 이메일 — Y=상위(총판·본사) 정책 따름 */
+    @Column(name = "receipt_email_follow_hq_yn", length = 1, nullable = false)
+    private String receiptEmailFollowHqYn = "Y";
+
+    /** 고객 거래명세서 이메일 — follow_hq_yn=N 일 때 직접 사용 여부 */
+    @Column(name = "receipt_email_use_yn", length = 1, nullable = false)
+    private String receiptEmailUseYn = "N";
+
     /** URL 분할결제 사용 Y/N */
     @Column(name = "split_pay_enabled_yn", length = 1, nullable = false)
     private String splitPayEnabledYn = "N";
@@ -866,6 +874,10 @@ public class MerchantProfile {
     public void setUrlPayAlertEmailYn(String urlPayAlertEmailYn) { this.urlPayAlertEmailYn = urlPayAlertEmailYn; }
     public String getUrlPayLineNotifyToken() { return urlPayLineNotifyToken; }
     public void setUrlPayLineNotifyToken(String urlPayLineNotifyToken) { this.urlPayLineNotifyToken = urlPayLineNotifyToken; }
+    public String getReceiptEmailFollowHqYn() { return receiptEmailFollowHqYn; }
+    public void setReceiptEmailFollowHqYn(String receiptEmailFollowHqYn) { this.receiptEmailFollowHqYn = receiptEmailFollowHqYn; }
+    public String getReceiptEmailUseYn() { return receiptEmailUseYn; }
+    public void setReceiptEmailUseYn(String receiptEmailUseYn) { this.receiptEmailUseYn = receiptEmailUseYn; }
     public String getSplitPayEnabledYn() { return splitPayEnabledYn; }
     public void setSplitPayEnabledYn(String splitPayEnabledYn) { this.splitPayEnabledYn = splitPayEnabledYn != null && "Y".equalsIgnoreCase(splitPayEnabledYn.trim()) ? "Y" : "N"; }
     public String getSplitPayIntervalMonthYn() { return splitPayIntervalMonthYn; }

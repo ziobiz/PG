@@ -12,6 +12,8 @@ import com.pg.util.NotifyToTxnStatusMerge;
 import com.pg.util.PayCardBrandDetector;
 import com.pg.util.PayCardFailOutcomeRules;
 import com.pg.util.PayCardPanHashUtil;
+import com.pg.merchantdeploy.MerchantCheckoutLangUtil;
+import com.pg.receipt.TransactionReceiptEmailService;
 import com.pg.splitpay.SplitPayPaymentHookService;
 import com.pg.util.PayerContactDisplayUtil;
 import com.pg.util.PgTrnsctnOrderLookup;
@@ -51,6 +53,7 @@ public class JpaySaleRecordService {
     private final SettlementCalcService settlementCalcService;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
     private final SplitPayPaymentHookService splitPayPaymentHookService;
+    private final TransactionReceiptEmailService transactionReceiptEmailService;
     private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
     private final PayCardFailCooldownService payCardFailCooldownService;
     private final PgTrnsctnOrderDedupeService pgTrnsctnOrderDedupeService;
@@ -62,6 +65,7 @@ public class JpaySaleRecordService {
                                  SettlementCalcService settlementCalcService,
                                  HqLedgerSysSettingsService hqLedgerSysSettingsService,
                                  SplitPayPaymentHookService splitPayPaymentHookService,
+                                 TransactionReceiptEmailService transactionReceiptEmailService,
                                  OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator,
                                  PayCardFailCooldownService payCardFailCooldownService,
                                  PgTrnsctnOrderDedupeService pgTrnsctnOrderDedupeService,
@@ -72,6 +76,7 @@ public class JpaySaleRecordService {
         this.settlementCalcService = settlementCalcService;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
         this.splitPayPaymentHookService = splitPayPaymentHookService;
+        this.transactionReceiptEmailService = transactionReceiptEmailService;
         this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
         this.payCardFailCooldownService = payCardFailCooldownService;
         this.pgTrnsctnOrderDedupeService = pgTrnsctnOrderDedupeService;
@@ -179,6 +184,7 @@ public class JpaySaleRecordService {
             JpayBuyerContactApplier.applyFromSaleBody(t, saleBody);
             applyCardPanHashFromSaleBody(t, saleBody);
             applyPayerContextFromSaleBody(t, saleBody);
+            MerchantCheckoutLangUtil.applyToTxn(t, saleBody);
         }
         payerLocationEnrichmentService.enrichFromTxnContext(t);
         if (customerHint != null && !customerHint.isBlank()) {
@@ -310,13 +316,20 @@ public class JpaySaleRecordService {
     }
 
     private void hookSplitPay(PgTrnsctn t) {
-        if (t == null || t.getOrderNo() == null) {
+        if (t == null) {
             return;
         }
+        if (t.getOrderNo() != null) {
+            try {
+                splitPayPaymentHookService.onTxnStatusChange(t.getOrderNo(), t.getStatus(), t.getTrnId());
+            } catch (Exception ex) {
+                log.warn("분할결제 연동 실패 orderNo={}: {}", t.getOrderNo(), ex.getMessage());
+            }
+        }
         try {
-            splitPayPaymentHookService.onTxnStatusChange(t.getOrderNo(), t.getStatus(), t.getTrnId());
+            transactionReceiptEmailService.scheduleAfterPaid(t);
         } catch (Exception ex) {
-            log.warn("분할결제 연동 실패 orderNo={}: {}", t.getOrderNo(), ex.getMessage());
+            log.warn("거래 영수증 메일 연동 실패 trnId={}: {}", t.getTrnId(), ex.getMessage());
         }
     }
 

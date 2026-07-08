@@ -196,6 +196,10 @@ public class HqLedgerSysSettings {
     @Column(name = "card_fail_cooldown_tier3_min", nullable = false)
     private Integer cardFailCooldownTier3Min = 60;
 
+    /** 본사 기본: 고객 거래명세서 이메일 Y/N */
+    @Column(name = "receipt_email_default_yn", nullable = false, length = 1)
+    private String receiptEmailDefaultYn = "N";
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -339,6 +343,8 @@ public class HqLedgerSysSettings {
     public void setCardFailCooldownTier3Min(Integer cardFailCooldownTier3Min) {
         this.cardFailCooldownTier3Min = cardFailCooldownTier3Min;
     }
+    public String getReceiptEmailDefaultYn() { return receiptEmailDefaultYn; }
+    public void setReceiptEmailDefaultYn(String receiptEmailDefaultYn) { this.receiptEmailDefaultYn = receiptEmailDefaultYn; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
