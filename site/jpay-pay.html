@@ -551,6 +551,9 @@
         if (window.PG_PAY_FORM_INPUT_GUARD && PG_PAY_FORM_INPUT_GUARD.refreshHints) {
           PG_PAY_FORM_INPUT_GUARD.refreshHints(document.getElementById('jpayForm'));
         }
+        if (window.PG_URL_PAY_SHELL && checkoutCtx) {
+          PG_URL_PAY_SHELL.applyCheckoutHeaderSubtitle(checkoutCtx, { t: t });
+        }
       }
 
       function jpayContactSelectLabel() {
