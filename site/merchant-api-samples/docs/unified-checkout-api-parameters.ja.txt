@@ -1,4 +1,4 @@
-ICOPAY 統合 Checkout Prepare API リクエストパラメータ (Spec ICOPAY-CHECKOUT-PREPARE-001 v1.0)
+﻿ICOPAY 統合 Checkout Prepare API リクエストパラメータ (Spec ICOPAY-CHECKOUT-PREPARE-001 v1.0)
 ======================================================================================
 
 POST {publicApiBaseUrl}/api/middleware/v1/merchant/checkout/prepare
@@ -9,7 +9,7 @@ Table 1.1 — Request body
 No.  Parameter     Type     Len   M/O   Description                    Remark
 1    compId        String   64    M*    Merchant company code          *Or merchantId
 2    merchantId    Number   -     O     Internal org unit id
-3    orderNo       String   64    M     Order reference                ChillPay: max 20, alnum+-_. JPAY: max 64
+3    orderNo       String   64    M     Order reference                max 64, alnum - _ recommended
 4    amount        Number   12    M     Payment amount (>0)
 5    currency      String   3     O     ISO 4217 (USD,JPY,KRW,THB…)
 6    productName   String   500   O     Product description
@@ -37,3 +37,4 @@ Flow (JA):     {BASE}/merchant-api-samples/docs/unified-checkout-api-flow.ja.htm
 Flow (CH):     {BASE}/merchant-api-samples/docs/unified-checkout-api-flow.ch.html
 Flow (TH):     {BASE}/merchant-api-samples/docs/unified-checkout-api-flow.th.html
 Kit:  merchantCheckoutApiParameterSpec (deployment kit JSON)
+

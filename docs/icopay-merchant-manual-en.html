@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -112,7 +112,7 @@
 
     <div class="warn-box" style="margin-bottom: 24px;">
       <strong>📋 Naming Policy</strong><br><br>
-      ICOPAY integrates multiple payment processors behind one API. This manual uses neutral ICOPAY terms for unified features (checkout, URL payment, integrated transactions). <strong>"JPAY-only"</strong> labels appear only for features exclusive to JPAY.
+      ICOPAY integrates multiple payment processors behind one API. This manual uses <strong>ICOPAY</strong> terms only. Merchant and buyer APIs/UI never expose individual payment-agency brand names.
     </div>
 
     <hr class="rule">
@@ -230,43 +230,45 @@
     <h2 class="section-title" id="api-portal">3. API Integration (Merchant API Portal)</h2>
     <span class="menu-path">Merchant API &gt; Merchant API Portal</span>
 
-    <h3 class="sub-title">3-1. API Key and Broker Secret</h3>
-    <p>The Merchant API Portal provides the authentication keys required for payment integration.</p>
+    <h3 class="sub-title">3-1. Official integration kit location</h3>
+    <p>After HQ completes API deployment, <strong>Company management → Merchant API</strong> is the <strong>official keys, docs, and samples</strong>. Separate email or file handoff is not required.</p>
     <table>
-      <thead><tr><th>Key</th><th>Description</th><th>Usage</th></tr></thead>
+      <thead><tr><th>Item</th><th>Description</th><th>Usage</th></tr></thead>
       <tbody>
-        <tr><td>API Key (Public Key)</td><td>Merchant identification public key</td><td>Include in request headers</td></tr>
-        <tr><td>Broker Secret</td><td>Private key for server-to-server communication</td><td>Server-side API authentication</td></tr>
-        <tr><td>Merchant Code (compId)</td><td>Internal system merchant identifier</td><td>API endpoint parameter</td></tr>
+        <tr><td>Company code (compId)</td><td>Merchant identifier</td><td>API request body / query</td></tr>
+        <tr><td>Public API base URL</td><td>ICOPAY API host</td><td>Server Base URL</td></tr>
+        <tr><td>Broker secret</td><td>Server-to-server secret</td><td>Header <code>X-Icopay-Merchant-Broker-Secret</code></td></tr>
+        <tr><td>Quick start &amp; parameter tables</td><td>Prepare / buyer / Status specs</td><td>Server &amp; front-end development</td></tr>
+        <tr><td>Downloads</td><td>Flow docs, JSON/PHP samples</td><td>Integration reference</td></tr>
       </tbody>
     </table>
     <div class="block-box">
-      <strong>⚠️ Broker Secret Security Warning:</strong> Never expose your broker secret in client-side code (browser or app). It must only be used on the server side.
+      <strong>⚠️ Broker Secret Security Warning:</strong> Never expose your broker secret in client-side code (browser or app). It must only be used on the server side. Reissue is HQ-only.
     </div>
 
-    <h3 class="sub-title">3-2. API Integration Documentation</h3>
-    <p>Integration documentation is available in the <strong>API Docs</strong> tab within the Merchant API Portal.</p>
+    <h3 class="sub-title">3-2. Checkout API (ICOPAY unified)</h3>
+    <p>Use the endpoints and tables shown on the Merchant API screen. Main paths:</p>
     <table>
       <thead><tr><th>API Type</th><th>Endpoint</th><th>Description</th></tr></thead>
       <tbody>
         <tr><td>One-time Payment (Prepare)</td><td><code>/api/middleware/v1/merchant/checkout/prepare</code></td><td>Create payment session</td></tr>
-        <tr><td>One-time Payment (Session)</td><td><code>/api/middleware/v1/merchant/checkout/session</code></td><td>Launch payment window</td></tr>
+        <tr><td>One-time Payment (Session)</td><td><code>/api/middleware/v1/merchant/checkout/session</code></td><td>Session lookup</td></tr>
         <tr><td>Payment Status</td><td><code>/api/middleware/v1/merchant/checkout/status</code></td><td>Check payment result</td></tr>
         <tr><td>Subscription Prepare</td><td><code>/api/middleware/v1/merchant/checkout/subscription/prepare</code></td><td>Start subscription payment</td></tr>
         <tr><td>Subscription Cancel</td><td><code>/api/middleware/v1/merchant/checkout/subscription/cancel</code></td><td>Cancel subscription</td></tr>
-        <tr><td>Redirect Payment</td><td><code>/api/middleware/v1/merchant/checkout/redirect/prepare</code></td><td>URL redirect payment</td></tr>
+        <tr><td>Redirect Payment</td><td><code>/api/middleware/v1/merchant/checkout/redirect/prepare</code></td><td>Redirect payment</td></tr>
       </tbody>
     </table>
     <div class="check-box">
-      All API responses return <code>pgVendor: "ICOPAY"</code>. The actual payment processor (PG provider) is never disclosed per security policy.
+      All API responses return <code>pgVendor: "ICOPAY"</code>. Operational PG names are never disclosed. Use only <code>/checkout/{compId}</code> or <code>/v1/embed-checkout/{compId}</code> for the payment UI.
     </div>
 
-    <h3 class="sub-title">3-3. Test / Production Environment Switch</h3>
+    <h3 class="sub-title">3-3. Integration steps</h3>
     <div class="flow">
-      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">In the API Portal, use the <strong>Environment Toggle</strong> to switch between <strong>Sandbox (Test)</strong> and <strong>Production</strong></span></div>
-      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">In sandbox mode, no real charges are made (use test card numbers)</span></div>
-      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">When switching to production, replace with live API keys</span></div>
-      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">Thoroughly test in sandbox before going live with production credentials</span></div>
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">Request HQ API deploy and broker secret issuance</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">Open Merchant API — confirm keys, quick start, parameter tables</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">Call Prepare on the merchant <strong>server</strong>; pass only sessionToken/embed to the browser</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">Confirm PAID via Status API or Webhook on the server</span></div>
     </div>
 
     <hr class="rule">
@@ -601,7 +603,7 @@
 
     <div class="faq-item">
       <div class="faq-q">I lost or accidentally exposed my API broker secret. Can I reissue it?</div>
-      <div class="faq-a">Yes. In Merchant API &gt; Merchant API Portal, click the <strong>Reissue Secret</strong> button. The new secret is active immediately and the old one is invalidated. Update your server configuration with the new secret right away. If you suspect a security breach, reissue immediately.</div>
+      <div class="faq-a">Broker secret <strong>reissue is HQ-only</strong>. Ask ICOPAY HQ if exposure is suspected. The new secret invalidates the old one immediately — update your server config at once. Specs and samples remain on the Merchant API screen after login.</div>
     </div>
 
     <div class="faq-item">
@@ -649,3 +651,4 @@
 </div>
 </body>
 </html>
+

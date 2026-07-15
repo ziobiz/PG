@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -23,7 +23,7 @@
   <p class="lang-nav"><strong>Language:</strong>
     <strong>English</strong> · <a href="unified-checkout-api-parameters.ko.html">한국어</a> · <a href="unified-checkout-api-parameters.ja.html">日本語</a> · <a href="unified-checkout-api-parameters.ch.html">中文</a> · <a href="unified-checkout-api-parameters.th.html">ไทย</a></p>
   <h1>Table 1.1 · ICOPAY Unified Checkout Prepare API Request Parameters</h1>
-  <p class="meta">Spec ID: ICOPAY-CHECKOUT-PREPARE-001 · v1.1 · PG-agnostic inline checkout (ChillPay/JPAY auto-routing)</p>
+  <p class="meta">Spec ID: ICOPAY-CHECKOUT-PREPARE-001 · v1.1 · PG-agnostic inline checkout (ICOPAY unified)</p>
   <p><strong>Endpoint:</strong> <code>POST {publicApiBaseUrl}/api/middleware/v1/merchant/checkout/prepare</code></p>
   <p><strong>Headers:</strong> <code>Content-Type: application/json</code>, <code>Accept: application/json</code>,
     <code>X-Icopay-Merchant-Broker-Secret</code> (required when broker secret enforce is on)</p>
@@ -36,27 +36,27 @@
     <tbody>
       <tr><td>1</td><td>compId</td><td>String</td><td>64</td><td class="m">M*</td><td>Merchant company code</td><td>*Or merchantId. Assigned by ICOPAY.</td></tr>
       <tr><td>2</td><td>merchantId</td><td>Number</td><td>—</td><td>O</td><td>Internal org unit id</td><td>Alternative to compId</td></tr>
-      <tr><td>3</td><td>orderNo</td><td>String</td><td>64</td><td class="m">M</td><td>Order / transaction reference</td><td>ChillPay op: alnum, <code>-</code>, <code>_</code> only, max <strong>20</strong>. JPAY op: max 64. No <code>+</code> <code>/</code> <code>#</code> etc.</td></tr>
+      <tr><td>3</td><td>orderNo</td><td>String</td><td>64</td><td class="m">M</td><td>Order / transaction reference</td><td>Alnum, <code>-</code>, <code>_</code> recommended; max 64. No <code>+</code> <code>/</code> <code>#</code> etc.</td></tr>
       <tr><td>4</td><td>amount</td><td>Number</td><td>12</td><td class="m">M</td><td>Payment amount</td><td>&gt; 0. JPY/KRW: integer recommended.</td></tr>
       <tr><td>5</td><td>currency</td><td>String</td><td>3</td><td>O</td><td>ISO 4217 currency</td><td>USD, JPY, KRW, THB… Default from merchant profile.</td></tr>
       <tr><td>6</td><td>productName</td><td>String</td><td>500</td><td>O</td><td>Product / order description</td><td>Shown on checkout page</td></tr>
       <tr><td>7</td><td>item</td><td>String</td><td>500</td><td>O</td><td>Alias for productName</td><td>Used if productName omitted</td></tr>
       <tr><td>8</td><td>lang</td><td>String</td><td>5</td><td>O</td><td>Checkout UI language</td><td><strong>KOR · ENG · JPN · CHN · THA</strong> (or ko/en/ja/zh/th). Also langCode, locale.</td></tr>
-      <tr><td>9</td><td>buyer</td><td>Object</td><td>—</td><td class="m">M</td><td>Buyer contact &amp; optional shipping prefill</td><td>Table 1.2 required: <strong>email·phone·countryIso2</strong> (JPAY &amp; ICOPAY). <code>buyerPrefill</code> same.</td></tr>
+      <tr><td>9</td><td>buyer</td><td>Object</td><td>—</td><td class="m">M</td><td>Buyer contact &amp; optional shipping prefill</td><td>Table 1.2 required: <strong>email·phone·countryIso2</strong> (ICOPAY). <code>buyerPrefill</code> same.</td></tr>
     </tbody>
   </table>
 
   <h2>Table 1.2 — buyer object</h2>
-  <p class="meta"><strong>Required for JPAY &amp; ICOPAY (M):</strong> <code>email</code>, <code>phone</code> (local digits; strip + country code), <code>countryIso2</code> (uppercase ISO2).
-    JPAY direct sale: <code>payEmailAddress</code>, <code>payTelephone</code>, <code>payCountryIsoCode2</code>.</p>
+  <p class="meta"><strong>Required for ICOPAY (M):</strong> <code>email</code>, <code>phone</code> (local digits; strip + country code), <code>countryIso2</code> (uppercase ISO2).
+    Card fields are collected on the ICOPAY checkout page.</p>
   <table>
     <thead>
       <tr><th>No.</th><th>Parameter</th><th>Type</th><th>Len</th><th>M/O</th><th>Description</th><th>Remark</th></tr>
     </thead>
     <tbody>
-      <tr><td>1</td><td>email</td><td>String</td><td>254</td><td class="m">M</td><td>Buyer email</td><td>Required JPAY &amp; ICOPAY</td></tr>
-      <tr><td>2</td><td>phone</td><td>String</td><td>32</td><td class="m">M</td><td>Local phone number</td><td>Strip country dial code (+82…). Required JPAY &amp; ICOPAY</td></tr>
-      <tr><td>3</td><td>countryIso2</td><td>String</td><td>2</td><td class="m">M</td><td>Country ISO 3166-1 alpha-2</td><td>e.g. KR, US, TH — uppercase. Required JPAY &amp; ICOPAY</td></tr>
+      <tr><td>1</td><td>email</td><td>String</td><td>254</td><td class="m">M</td><td>Buyer email</td><td>Required ICOPAY</td></tr>
+      <tr><td>2</td><td>phone</td><td>String</td><td>32</td><td class="m">M</td><td>Local phone number</td><td>Strip country dial code (+82…). Required ICOPAY</td></tr>
+      <tr><td>3</td><td>countryIso2</td><td>String</td><td>2</td><td class="m">M</td><td>Country ISO 3166-1 alpha-2</td><td>e.g. KR, US, TH — uppercase. Required ICOPAY</td></tr>
       <tr><td>4</td><td>address</td><td>String</td><td>200</td><td>O</td><td>Shipping address line 1</td><td>Optional prefill</td></tr>
       <tr><td>5</td><td>address2</td><td>String</td><td>200</td><td>O</td><td>Shipping address line 2</td><td></td></tr>
       <tr><td>6</td><td>city</td><td>String</td><td>100</td><td>O</td><td>City</td><td></td></tr>
@@ -97,3 +97,5 @@
     Text: <a href="unified-checkout-api-parameters.txt">unified-checkout-api-parameters.txt</a></p>
 </body>
 </html>
+
+

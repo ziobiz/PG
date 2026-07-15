@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -23,7 +23,7 @@
   <p class="lang-nav"><strong>言語:</strong>
     <a href="unified-checkout-api-parameters.html">English</a> · <a href="unified-checkout-api-parameters.ko.html">한국어</a> · <strong>日本語</strong> · <a href="unified-checkout-api-parameters.ch.html">中文</a> · <a href="unified-checkout-api-parameters.th.html">ไทย</a></p>
   <h1>表 1.1 · ICOPAY 統合 Checkout Prepare API リクエストパラメータ</h1>
-  <p class="meta">文書 ID: ICOPAY-CHECKOUT-PREPARE-001 · v1.1 · PG 非依存の統合インライン checkout（ChillPay/JPAY 自動振分）</p>
+  <p class="meta">文書 ID: ICOPAY-CHECKOUT-PREPARE-001 · v1.1 · PG 非依存の統合インライン checkout（ICOPAY 統合）</p>
   <p><strong>エンドポイント:</strong> <code>POST {publicApiBaseUrl}/api/middleware/v1/merchant/checkout/prepare</code></p>
   <p><strong>ヘッダー:</strong> <code>Content-Type: application/json</code>, <code>Accept: application/json</code>,
     <code>X-Icopay-Merchant-Broker-Secret</code>（ブローカーシークレット強制時は必須）</p>
@@ -36,27 +36,27 @@
     <tbody>
       <tr><td>1</td><td>compId</td><td>String</td><td>64</td><td class="m">M*</td><td>加盟店企業コード</td><td>*または merchantId。ICOPAY 付与。</td></tr>
       <tr><td>2</td><td>merchantId</td><td>Number</td><td>—</td><td>O</td><td>加盟店組織 ID</td><td>compId の代替可</td></tr>
-      <tr><td>3</td><td>orderNo</td><td>String</td><td>64</td><td class="m">M</td><td>注文・取引参照番号</td><td>ChillPay 運用: 英数字・<code>-</code>・<code>_</code> のみ、最大 <strong>20</strong>。JPAY 運用: 最大 64。</td></tr>
+      <tr><td>3</td><td>orderNo</td><td>String</td><td>64</td><td class="m">M</td><td>注文・取引参照番号</td><td>英数字・<code>-</code>・<code>_</code> 推奨、最大 64。</td></tr>
       <tr><td>4</td><td>amount</td><td>Number</td><td>12</td><td class="m">M</td><td>決済金額</td><td>&gt; 0。JPY/KRW は整数推奨。</td></tr>
       <tr><td>5</td><td>currency</td><td>String</td><td>3</td><td>O</td><td>ISO 4217 通貨</td><td>USD, JPY, KRW, THB… 省略時は加盟店基準通貨。</td></tr>
       <tr><td>6</td><td>productName</td><td>String</td><td>500</td><td>O</td><td>商品・注文説明</td><td>決済画面に表示</td></tr>
       <tr><td>7</td><td>item</td><td>String</td><td>500</td><td>O</td><td>productName の別名</td><td>productName がない場合に使用</td></tr>
       <tr><td>8</td><td>lang</td><td>String</td><td>5</td><td>O</td><td>決済画面 UI 言語</td><td><strong>KOR · ENG · JPN · CHN · THA</strong>（または ko/en/ja/zh/th）</td></tr>
-      <tr><td>9</td><td>buyer</td><td>Object</td><td>—</td><td class="m">M</td><td>購入者連絡先・配送 prefill</td><td>表 1.2 必須: <strong>email・phone・countryIso2</strong> (JPAY・ICOPAY)。<code>buyerPrefill</code> 同等。</td></tr>
+      <tr><td>9</td><td>buyer</td><td>Object</td><td>—</td><td class="m">M</td><td>購入者連絡先・配送 prefill</td><td>表 1.2 必須: <strong>email・phone・countryIso2</strong> (ICOPAY)。<code>buyerPrefill</code> 同等。</td></tr>
     </tbody>
   </table>
 
   <h2>表 1.2 — buyer オブジェクト</h2>
-  <p class="meta"><strong>JPAY・ICOPAY 共通必須(M):</strong> <code>email</code>, <code>phone</code>（国内番号、国番号 + 除去）, <code>countryIso2</code>（ISO2 大文字）。
-    JPAY 直接 sale: <code>payEmailAddress</code>, <code>payTelephone</code>, <code>payCountryIsoCode2</code>。</p>
+  <p class="meta"><strong>ICOPAY 必須(M):</strong> <code>email</code>, <code>phone</code>（国内番号、国番号 + 除去）, <code>countryIso2</code>（ISO2 大文字）。
+    カード入力は ICOPAY 決済画面で行います。</p>
   <table>
     <thead>
       <tr><th>番号</th><th>項目</th><th>タイプ</th><th>長さ</th><th>必須</th><th>説明</th><th>備考</th></tr>
     </thead>
     <tbody>
-      <tr><td>1</td><td>email</td><td>String</td><td>254</td><td class="m">M</td><td>購入者メール</td><td>JPAY・ICOPAY 必須</td></tr>
-      <tr><td>2</td><td>phone</td><td>String</td><td>32</td><td class="m">M</td><td>ローカル電話番号</td><td>国番号 + 除去。JPAY・ICOPAY 必須</td></tr>
-      <tr><td>3</td><td>countryIso2</td><td>String</td><td>2</td><td class="m">M</td><td>国 ISO 3166-1 alpha-2</td><td>例: KR, US, TH — 大文字。JPAY・ICOPAY 必須</td></tr>
+      <tr><td>1</td><td>email</td><td>String</td><td>254</td><td class="m">M</td><td>購入者メール</td><td>ICOPAY 必須</td></tr>
+      <tr><td>2</td><td>phone</td><td>String</td><td>32</td><td class="m">M</td><td>ローカル電話番号</td><td>国番号 + 除去。ICOPAY 必須</td></tr>
+      <tr><td>3</td><td>countryIso2</td><td>String</td><td>2</td><td class="m">M</td><td>国 ISO 3166-1 alpha-2</td><td>例: KR, US, TH — 大文字。ICOPAY 必須</td></tr>
       <tr><td>4</td><td>address</td><td>String</td><td>200</td><td>O</td><td>配送住所 1 行目</td><td>任意 prefill</td></tr>
       <tr><td>5</td><td>address2</td><td>String</td><td>200</td><td>O</td><td>配送住所 2 行目</td><td></td></tr>
       <tr><td>6</td><td>city</td><td>String</td><td>100</td><td>O</td><td>都市</td><td></td></tr>
@@ -97,3 +97,5 @@
     テキスト: <a href="unified-checkout-api-parameters.ja.txt">unified-checkout-api-parameters.ja.txt</a></p>
 </body>
 </html>
+
+

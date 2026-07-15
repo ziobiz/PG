@@ -5,6 +5,7 @@
 (function (global) {
   'use strict';
 
+  var FALLBACK_ISO = 'JP';
   var PRIORITY_ISO = ['JP', 'KR', 'TH', 'US', 'CN', 'SG', 'HK'];
   var ISO2_LIST = [
     'AF', 'AL', 'DZ', 'AR', 'AU', 'AT', 'BD', 'BE', 'BR', 'BN', 'BG', 'KH', 'CA', 'CL', 'CN', 'CO', 'HR', 'CY', 'CZ', 'DK',
@@ -12,6 +13,10 @@
     'MO', 'MY', 'MX', 'MM', 'NL', 'NZ', 'NG', 'NO', 'PK', 'PH', 'PL', 'PT', 'QA', 'RO', 'RU', 'SA', 'RS', 'SG', 'SK', 'SI',
     'ZA', 'ES', 'LK', 'SE', 'CH', 'TW', 'TH', 'TR', 'AE', 'GB', 'US', 'VN'
   ];
+  var PAY_LANG_TO_ISO = { KOR: 'KR', JPN: 'JP', ENG: 'US', CHN: 'CN', THA: 'TH' };
+  var BROWSER_LANG_TO_ISO = { ko: 'KR', ja: 'JP', th: 'TH', zh: 'CN' };
+
+  var userPickedCountry = false;
 
   function langTagFromPayLang(lang) {
     var m = { KOR: 'ko', ENG: 'en', JPN: 'ja', CHN: 'zh', THA: 'th' };
@@ -24,7 +29,7 @@
     return u.length === 2 ? u : '';
   }
 
-  function detectBrowserCountryIso2() {
+  function browserLanguageTags() {
     var list = [];
     try {
       if (navigator.languages && navigator.languages.length) {
@@ -32,25 +37,41 @@
       }
     } catch (e) { /* ignore */ }
     try { if (navigator.language) list.push(navigator.language); } catch (e2) { /* ignore */ }
+    return list;
+  }
+
+  function detectBrowserCountryIso2() {
+    var list = browserLanguageTags();
     for (var j = 0; j < list.length; j++) {
       var tag = String(list[j] || '');
       var m = tag.match(/^[a-zA-Z]{2,3}[-_]([a-zA-Z]{2})$/);
       if (m) return m[1].toUpperCase();
     }
+    for (var k = 0; k < list.length; k++) {
+      var primary = String(list[k] || '').split(/[-_]/)[0].toLowerCase();
+      if (BROWSER_LANG_TO_ISO[primary]) return BROWSER_LANG_TO_ISO[primary];
+    }
     return '';
   }
 
-  function pickDefaultCountryIso2(ctx) {
-    if (!ctx) return detectBrowserCountryIso2() || 'KR';
-    if (ctx.visitorCountryIso2) {
+  function countryIsoFromPayLang(lang) {
+    return PAY_LANG_TO_ISO[String(lang || '').toUpperCase()] || '';
+  }
+
+  function pickDefaultCountryIso2(ctx, lang) {
+    if (ctx && ctx.visitorCountryIso2) {
       var v = canonicalIso2(ctx.visitorCountryIso2);
       if (v) return v;
     }
-    if (ctx.defaultCountryIso2) {
+    if (ctx && ctx.defaultCountryIso2) {
       var d = canonicalIso2(ctx.defaultCountryIso2);
       if (d) return d;
     }
-    return detectBrowserCountryIso2() || 'KR';
+    var browser = detectBrowserCountryIso2();
+    if (browser) return browser;
+    var fromLang = countryIsoFromPayLang(lang);
+    if (fromLang) return fromLang;
+    return FALLBACK_ISO;
   }
 
   function stripDialPrefix(raw) {
@@ -104,6 +125,11 @@
     syncPhoneLocalOnly(form);
   }
 
+  function isCountryFieldLocked(form) {
+    var ccSel = form && form.querySelector('#payContactCountryCode');
+    return !!(ccSel && (ccSel.disabled || ccSel.readOnly));
+  }
+
   function setCountrySelect(form, iso2, lang, selectLabel) {
     var sel = form.querySelector('#payContactCountryCode');
     if (!sel) return;
@@ -115,18 +141,31 @@
     syncBillingCountryHidden(form);
   }
 
+  function syncCountryToPayLang(form, lang, selectLabel, opts) {
+    if (!form || isCountryFieldLocked(form)) return;
+    opts = opts || {};
+    if (opts.onlyIfNotUserPicked && userPickedCountry) return;
+    var iso = countryIsoFromPayLang(lang);
+    if (!iso) return;
+    setCountrySelect(form, iso, lang, selectLabel);
+  }
+
   function init(form, ctx, lang, selectLabel) {
     if (!form) return;
     var ccSel = form.querySelector('#payContactCountryCode');
     if (!ccSel) return;
-    var defaultIso = pickDefaultCountryIso2(ctx || {});
+    userPickedCountry = false;
+    var defaultIso = pickDefaultCountryIso2(ctx || {}, lang);
     var hiddenEl = form.querySelector('#payCountryIsoCode2');
     var existing = canonicalIso2(ccSel.value)
       || canonicalIso2(hiddenEl && hiddenEl.value);
     setCountrySelect(form, existing || defaultIso, lang, selectLabel);
     if (!ccSel._jpayContactBound) {
       ccSel._jpayContactBound = true;
-      ccSel.addEventListener('change', function () { syncBillingCountryHidden(form); });
+      ccSel.addEventListener('change', function () {
+        userPickedCountry = true;
+        syncBillingCountryHidden(form);
+      });
       var tel = form.querySelector('#payTelephone');
       if (tel) {
         tel.addEventListener('blur', function () { syncPhoneLocalOnly(form); });
@@ -138,7 +177,8 @@
     if (!form || !prefill) return;
     var p = typeof prefill === 'object' ? prefill : {};
     var iso = canonicalIso2(p.countryIso2 || p.payCountryIsoCode2 || p.country);
-    if (!iso) iso = pickDefaultCountryIso2(ctx);
+    if (!iso) iso = pickDefaultCountryIso2(ctx, lang);
+    userPickedCountry = !!iso;
     setCountrySelect(form, iso, lang, selectLabel);
     var tel = form.querySelector('#payTelephone');
     if (tel) {
@@ -170,8 +210,10 @@
     applyPrefill: applyPrefill,
     syncBeforeSubmit: syncBeforeSubmit,
     refreshCountryLabels: refreshCountryLabels,
+    syncCountryToPayLang: syncCountryToPayLang,
     stripDialPrefix: stripDialPrefix,
     pickDefaultCountryIso2: pickDefaultCountryIso2,
+    countryIsoFromPayLang: countryIsoFromPayLang,
     readCountryIso2: readCountryIso2,
     buildCountryOptionsHtml: buildCountryOptionsHtml
   };

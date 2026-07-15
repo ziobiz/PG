@@ -1,4 +1,4 @@
-ICOPAY Unified Checkout API — Integration Flow & Endpoints
+﻿ICOPAY Unified Checkout API — Integration Flow & Endpoints
 ==========================================================
 Spec ID: ICOPAY-CHECKOUT-FLOW-001 · v1.0
 
@@ -11,7 +11,7 @@ Parameters:      {BASE}/merchant-api-samples/docs/unified-checkout-api-parameter
 
 1. UNIFIED CHECKOUT
 -------------------
-One prepare endpoint; ICOPAY routes to ChillPay or JPAY based on operational WEB PG.
+One prepare endpoint; ICOPAY routes to ICOPAY based on operational WEB PG.
 
   integrationMode: INLINE_UNIFIED
   Prepare:  POST {BASE}/api/middleware/v1/merchant/checkout/prepare
@@ -31,7 +31,7 @@ Embed JS  GET   /v1/embed-checkout/{compId}            Browser           Broker 
 1) Merchant server: save order (PENDING)
 2) POST prepare (buyer.email, buyer.phone, buyer.countryIso2 required)
 3) Pass data.sessionToken to browser → embed script only
-4) Widget calls session → mounts iframe (/pay/ or /jpay-pay/)
+4) Widget calls session → mounts iframe (/checkout/)
 5) postMessage ICOPAY_INLINE_CHECKOUT on finish
 6) Server: webhook and/or GET status → update order (idempotent)
 
@@ -57,8 +57,8 @@ Samples:
 GET https://api.icopay.co.kr/api/middleware/v1/merchant/checkout/session?token={sessionToken}
 
 Called by embed widget (not merchant server). Returns pgVendor for iframe routing:
-  JPAY     → /jpay-pay/{compId}?entry=merchant_api&embed=1&session=...
-  ChillPay → /pay/{compId}?entry=merchant_api&embed=1&session=...
+  ICOPAY → /checkout/{compId}?entry=merchant_api&embed=1&session=...
+  
 
 6. STATUS
 ---------
@@ -85,3 +85,5 @@ Completion event: postMessage type ICOPAY_INLINE_CHECKOUT
 - Idempotent order updates on webhook/status
 
 PHP sample: merchant-api-samples/php/checkout_unified.php
+
+

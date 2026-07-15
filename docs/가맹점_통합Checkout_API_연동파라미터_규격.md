@@ -9,7 +9,8 @@
 | **연동 방식** | JSON(REST) · PHP(`IcopayMerchantApi.php`) |
 | **관련 문서** | [가맹점_통합Checkout_API_연동흐름.md](./가맹점_통합Checkout_API_연동흐름.md) (Prepare·Session·Status·Embed 흐름) |
 
-본 문서는 ChillPay 등 PG사 매뉴얼의 **Request Parameters 표**와 동일한 목적으로, **가맹점이 ICOPAY prepare 호출 시 반드시·선택적으로 넣어야 하는 JSON 필드**를 규정합니다.
+본 문서는 **가맹점이 ICOPAY prepare 호출 시 반드시·선택적으로 넣어야 하는 JSON 필드**를 규정합니다.
+가맹점에게 결제대행사(운영 PG) 이름은 노출되지 않으며, API 응답 `pgVendor`는 항상 **ICOPAY** 입니다.
 
 ---
 
@@ -45,13 +46,13 @@
 |-----|-------------------|-----------|--------|-----|-------------|--------|
 | 1 | compId | String | 64 | **M*** | 가맹 업체코드 | 플랫폼 부여 코드(예: M000123). *merchantId 대체 가능 |
 | 2 | merchantId | Number | — | O | 가맹 조직 ID | compId 와 택1 |
-| 3 | orderNo | String | 64 | **M** | 주문·거래 참조번호 | **ChillPay 운영:** 영숫자·`-`·`_` 만, **최대 20자**. **JPAY 운영:** 최대 64자. `+` `/` `#` `$` 등 특수문자 불가 |
+| 3 | orderNo | String | 64 | **M** | 주문·거래 참조번호 | 영숫자·`-`·`_` 권장, **최대 64자**. `+` `/` `#` `$` 등 특수문자 불가 |
 | 4 | amount | Number | 12 | **M** | 결제 금액 | 0 초과. JPY·KRW 는 정수 금액 권장 |
 | 5 | currency | String | 3 | O | ISO 4217 통화 | USD, JPY, KRW, THB 등. 생략 시 가맹·운영 PG 정책 |
 | 6 | productName | String | 500 | O | 상품명 | 결제창 표시 |
 | 7 | item | String | 500 | O | 상품명 별칭 | productName 없을 때 |
 | 8 | lang | String | 5 | O | 결제창 UI 언어 | **KOR · ENG · JPN · CHN · THA** (또는 ko/en/ja/zh/th). langCode·locale 동의어 |
-| 9 | buyer | Object | — | **M** | 구매자 정보 | **표 1.2** 참고. 하위 **email·phone·countryIso2 필수**(JPAY·ICOPAY). `buyerPrefill` 키도 동일 |
+| 9 | buyer | Object | — | **M** | 구매자 정보 | **표 1.2** 참고. 하위 **email·phone·countryIso2 필수**(ICOPAY). `buyerPrefill` 키도 동일 |
 
 ### 요청 예시
 
@@ -77,7 +78,7 @@
 
 ## 4. 표 1.2 — buyer 객체 파라미터
 
-표 1.1의 `buyer`는 **객체**이며, 이메일·전화·국가코드는 루트가 아니라 **아래 하위 필드**로 전달합니다. JPAY·ICOPAY 모두 **필수(M)** 입니다.
+표 1.1의 `buyer`는 **객체**이며, 이메일·전화·국가코드는 루트가 아니라 **아래 하위 필드**로 전달합니다. **필수(M)** 입니다.
 
 ICOPAY는 **email · phone · countryIso2** 를 모든 가맹 prepare 에서 **필수**로 수집·검증합니다. JPAY 서버 직접 `sale` 호출 시에는 동일 정보를 `payEmailAddress` · `payTelephone` · `payCountryIsoCode2` 로 보냅니다.
 
@@ -101,12 +102,11 @@ ICOPAY는 **email · phone · countryIso2** 를 모든 가맹 prepare 에서 **�
 | No. | Field | Type | M/O | Remark |
 |-----|-------|------|-----|--------|
 | 1 | sessionToken | String | **M** | embed `data-session-token` |
-| 2 | pgVendor | String | **M** | CHILLPAY 또는 JPAY |
-| 3 | operationalPgCd | String | **M** | 운영 WEB PG 코드 |
-| 4 | embedScriptUrl | String | **M** | `/v1/embed-checkout/{compId}` |
-| 5 | payUrl | String | O | iframe src 대안 |
-| 6 | buyerPrefill | Object | O | 정규화된 buyer |
-| 7 | expiresAt | String | **M** | 세션 만료(ISO-8601) |
+| 2 | pgVendor | String | **M** | 항상 `ICOPAY` |
+| 3 | embedScriptUrl | String | **M** | `/v1/embed-checkout/{compId}` |
+| 4 | payUrl | String | O | 중립 경로 `/checkout/{compId}?…` (iframe src) |
+| 5 | buyerPrefill | Object | O | 정규화된 buyer |
+| 6 | expiresAt | String | **M** | 세션 만료(ISO-8601) |
 
 ---
 

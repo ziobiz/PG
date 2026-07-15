@@ -112,7 +112,7 @@
 
     <div class="warn-box" style="margin-bottom: 24px;">
       <strong>📋 命名原則</strong><br><br>
-      ICOPAYは単一APIの背後で複数の決済代行会社を統合するプラットフォームです。本マニュアルの統合機能（チェックアウト、URL決済、統合取引等）では中立的なICOPAY用語を使用します。<strong>「JPAY専用」</strong>表記はJPAY固有機能にのみ使用されます。
+      ICOPAYは単一APIの背後で複数の決済網を統合するプラットフォームです。本マニュアルの機能（チェックアウト、URL決済、統合取引等）では<strong>ICOPAY</strong>用語のみを使用します。加盟店・購入者向けの画面とAPIには、個別の決済代行ブランド名を表示しません。
     </div>
 
     <hr class="rule">
@@ -225,41 +225,45 @@
     <h2 class="section-title" id="api-portal">3. API連携（加盟店APIポータル）</h2>
     <span class="menu-path">加盟店API &gt; 加盟店APIポータル</span>
 
-    <h3 class="sub-title">3-1. APIキーとブローカーシークレットの確認</h3>
+    <h3 class="sub-title">3-1. 公式連携資料の場所</h3>
+    <p>本社がAPI配備を完了すると、<strong>加盟店管理 → 加盟店API</strong> が<strong>公式のキー・ドキュメント・サンプル</strong>です。別途メールやファイル配布は不要です。</p>
     <table>
-      <thead><tr><th>キー</th><th>説明</th><th>用途</th></tr></thead>
+      <thead><tr><th>項目</th><th>説明</th><th>用途</th></tr></thead>
       <tbody>
-        <tr><td>APIキー（公開キー）</td><td>加盟店識別用の公開キー</td><td>リクエストヘッダーに含める</td></tr>
-        <tr><td>ブローカーシークレット</td><td>サーバー間通信用の秘密キー</td><td>サーバーサイドAPI認証</td></tr>
-        <tr><td>加盟店コード（compId）</td><td>システム内部の加盟店識別子</td><td>APIエンドポイントのパラメータ</td></tr>
+        <tr><td>加盟店コード（compId）</td><td>加盟店識別子</td><td>APIリクエスト body / クエリ</td></tr>
+        <tr><td>公開APIベースURL</td><td>ICOPAY APIホスト</td><td>サーバー Base URL</td></tr>
+        <tr><td>ブローカーシークレット</td><td>サーバー間秘密キー</td><td>ヘッダ <code>X-Icopay-Merchant-Broker-Secret</code></td></tr>
+        <tr><td>クイックスタート・パラメータ表</td><td>Prepare / buyer / Status 仕様</td><td>サーバー・フロント開発</td></tr>
+        <tr><td>ダウンロード資料</td><td>フロー文書・JSON/PHPサンプル</td><td>連携実装の参考</td></tr>
       </tbody>
     </table>
     <div class="block-box">
-      <strong>⚠️ ブローカーシークレットのセキュリティ警告:</strong> ブローカーシークレットはクライアントサイドコード（ブラウザ・アプリ）に絶対に公開しないでください。必ずサーバーサイドのみで使用してください。
+      <strong>⚠️ ブローカーシークレットのセキュリティ警告:</strong> クライアント（ブラウザ・アプリ）に露出しないでください。再発行は本社のみ可能です。
     </div>
 
-    <h3 class="sub-title">3-2. API連携ドキュメント</h3>
+    <h3 class="sub-title">3-2. Checkout API（ICOPAY統合）</h3>
+    <p>加盟店API画面に表示されるエンドポイント・表を基準に連携します。</p>
     <table>
       <thead><tr><th>API種別</th><th>エンドポイント</th><th>説明</th></tr></thead>
       <tbody>
         <tr><td>一回払い（準備）</td><td><code>/api/middleware/v1/merchant/checkout/prepare</code></td><td>決済セッション作成</td></tr>
-        <tr><td>一回払い（セッション）</td><td><code>/api/middleware/v1/merchant/checkout/session</code></td><td>決済ウィンドウ起動</td></tr>
+        <tr><td>一回払い（セッション）</td><td><code>/api/middleware/v1/merchant/checkout/session</code></td><td>セッション照会</td></tr>
         <tr><td>決済状態照会</td><td><code>/api/middleware/v1/merchant/checkout/status</code></td><td>決済結果の確認</td></tr>
         <tr><td>定期決済準備</td><td><code>/api/middleware/v1/merchant/checkout/subscription/prepare</code></td><td>定期決済開始</td></tr>
         <tr><td>定期決済解約</td><td><code>/api/middleware/v1/merchant/checkout/subscription/cancel</code></td><td>定期決済のキャンセル</td></tr>
-        <tr><td>リダイレクト決済</td><td><code>/api/middleware/v1/merchant/checkout/redirect/prepare</code></td><td>URLリダイレクト決済</td></tr>
+        <tr><td>リダイレクト決済</td><td><code>/api/middleware/v1/merchant/checkout/redirect/prepare</code></td><td>リダイレクト決済</td></tr>
       </tbody>
     </table>
     <div class="check-box">
-      すべてのAPI応答の<code>pgVendor</code>フィールドは常に<strong>ICOPAY</strong>として返されます。実際の決済処理事業者（PG）情報はセキュリティポリシー上、開示されません。
+      応答の <code>pgVendor</code> は常に <strong>ICOPAY</strong> です。運用PG名は開示されません。決済画面は <code>/checkout/{compId}</code> または <code>/v1/embed-checkout/{compId}</code> のみ使用してください。
     </div>
 
-    <h3 class="sub-title">3-3. テスト / 本番環境の切り替え</h3>
+    <h3 class="sub-title">3-3. 連携開発の手順</h3>
     <div class="flow">
-      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">APIポータル上部の<strong>環境切り替え</strong>トグルで<strong>テスト（Sandbox）</strong>または<strong>本番（Production）</strong>を選択</span></div>
-      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">テスト環境では実際の課金は発生しません（テストカード番号を使用）</span></div>
-      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">本番切り替え時は本番用APIキーに必ず変更</span></div>
-      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">本番環境に完全移行する前にテスト環境で十分に検証してください</span></div>
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">本社へAPI配備・ブローカーシークレット発行を依頼</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">加盟店APIでキー・クイックスタート・パラメータ表を確認</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">加盟店<strong>サーバー</strong>で Prepare → ブラウザには sessionToken/embed のみ</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">サーバーで Status API または Webhook により PAID を確定</span></div>
     </div>
 
     <hr class="rule">
@@ -584,7 +588,7 @@
 
     <div class="faq-item">
       <div class="faq-q">APIのブローカーシークレットを紛失・漏洩した可能性があります。再発行できますか？</div>
-      <div class="faq-a">加盟店API &gt; 加盟店APIポータルで<strong>シークレット再発行</strong>ボタンをクリックすると、即座に新しいシークレットが発行されます。再発行後、旧シークレットは無効になります。直ちにサーバー設定を新しいシークレットに更新してください。</div>
+      <div class="faq-a">ブローカーシークレットの<strong>再発行は本社のみ</strong>可能です。漏洩の疑いがある場合はICOPAY本社へ依頼してください。再発行直後に旧シークレットは無効になるため、サーバー設定を直ちに更新してください。連携仕様・サンプルはログイン後の加盟店API画面で確認します。</div>
     </div>
 
     <div class="faq-item">

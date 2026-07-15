@@ -4,7 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
-/** 가맹점 운영 PG vs 요청 API 벤더 불일치 경고 — KO/EN/JP/CH/TH */
+/** 가맹점 운영 PG vs 요청 API 벤더 불일치 경고 — KO/EN/JP/CH/TH (가맹 응답에 운영 PG명 미노출) */
 public final class MerchantOperationalPgGuardI18n {
 
     public static final String KEY_PG_VENDOR_MISMATCH = "PG_VENDOR_MISMATCH";
@@ -21,21 +21,14 @@ public final class MerchantOperationalPgGuardI18n {
     }
 
     public static String format(String lang, String configuredVendor, String requestedVendor, String operationalPgCd) {
-        String template = switch (normalizeLang(lang)) {
+        /* 가맹점 응답에는 운영 PG·레거시 API 이름을 넣지 않는다. (내부 로그만 사용) */
+        return switch (normalizeLang(lang)) {
             case "EN" -> en(KEY_PG_VENDOR_MISMATCH);
             case "JP" -> jp(KEY_PG_VENDOR_MISMATCH);
             case "CH" -> ch(KEY_PG_VENDOR_MISMATCH);
             case "TH" -> th(KEY_PG_VENDOR_MISMATCH);
             default -> ko(KEY_PG_VENDOR_MISMATCH);
         };
-        return template
-                .replace("{0}", nz(configuredVendor))
-                .replace("{1}", nz(requestedVendor))
-                .replace("{2}", nz(operationalPgCd));
-    }
-
-    private static String nz(String s) {
-        return s != null ? s : "";
     }
 
     private static String normalizeLang(String lang) {
@@ -60,16 +53,16 @@ public final class MerchantOperationalPgGuardI18n {
 
     private static String ko(String k) {
         return switch (k) {
-            case KEY_PG_VENDOR_MISMATCH -> "등록된 결제대행사({0})와 요청한 결제 API({1})가 일치하지 않습니다. "
-                    + "ICOPAY에 배포된 연동 문서·엔드포인트(운영 PG: {2})를 확인하거나 운영 담당자에게 문의하세요. 결제 중계가 중지되었습니다.";
+            case KEY_PG_VENDOR_MISMATCH -> "요청하신 결제 API가 이 가맹점의 ICOPAY 연동 설정과 맞지 않습니다. "
+                    + "통합 Checkout API(POST /api/middleware/v1/merchant/checkout/prepare)와 배포 문서를 사용하거나 운영 담당자에게 문의하세요. 결제 중계가 중지되었습니다.";
             default -> k;
         };
     }
 
     private static String en(String k) {
         return switch (k) {
-            case KEY_PG_VENDOR_MISMATCH -> "The registered payment provider ({0}) does not match the requested payment API ({1}). "
-                    + "Please verify the integration docs and endpoints deployed in ICOPAY (operational PG: {2}) "
+            case KEY_PG_VENDOR_MISMATCH -> "The payment API you called does not match this merchant's ICOPAY integration settings. "
+                    + "Use the unified Checkout API (POST /api/middleware/v1/merchant/checkout/prepare) and the deployment docs, "
                     + "or contact your operator. Payment relay has been stopped.";
             default -> k;
         };
@@ -77,25 +70,26 @@ public final class MerchantOperationalPgGuardI18n {
 
     private static String jp(String k) {
         return switch (k) {
-            case KEY_PG_VENDOR_MISMATCH -> "登録済みの決済代行({0})とリクエストした決済API({1})が一致しません。"
-                    + "ICOPAYに配布された連携ドキュメント・エンドポイント(運用PG: {2})を確認するか、運用担当者にお問い合わせください。決済中継を停止しました。";
+            case KEY_PG_VENDOR_MISMATCH -> "ご利用の決済APIが、この加盟店のICOPAY連携設定と一致しません。"
+                    + "統合 Checkout API(POST /api/middleware/v1/merchant/checkout/prepare)と配布ドキュメントをご利用ください。"
+                    + "または運用担当者にお問い合わせください。決済中継を停止しました。";
             default -> k;
         };
     }
 
     private static String ch(String k) {
         return switch (k) {
-            case KEY_PG_VENDOR_MISMATCH -> "已登记的支付服务商({0})与请求的支付 API({1})不一致。"
-                    + "请核对 ICOPAY 已部署的对接文档与端点(运营 PG: {2})，或联系运营负责人。已停止支付中转。";
+            case KEY_PG_VENDOR_MISMATCH -> "您调用的支付 API 与该商户的 ICOPAY 对接设置不一致。"
+                    + "请使用统一 Checkout API（POST /api/middleware/v1/merchant/checkout/prepare）及部署文档，或联系运营负责人。已停止支付中转。";
             default -> k;
         };
     }
 
     private static String th(String k) {
         return switch (k) {
-            case KEY_PG_VENDOR_MISMATCH -> "ผู้ให้บริการชำระเงินที่ลงทะเบียน ({0}) ไม่ตรงกับ Payment API ที่ร้องขอ ({1}) "
-                    + "โปรดตรวจสอบเอกสารและ endpoint ที่ ICOPAY แจกจ่าย (PG ปฏิบัติการ: {2}) หรือติดต่อผู้ดูแลระบบ "
-                    + "การส่งต่อการชำระเงินถูกหยุดแล้ว";
+            case KEY_PG_VENDOR_MISMATCH -> "Payment API ที่เรียกไม่ตรงกับการตั้งค่า ICOPAY ของร้านค้านี้ "
+                    + "โปรดใช้ Unified Checkout API (POST /api/middleware/v1/merchant/checkout/prepare) และเอกสาร배포 "
+                    + "หรือติดต่อผู้ดูแลระบบ การส่งต่อการชำระเงินถูกหยุดแล้ว";
             default -> k;
         };
     }

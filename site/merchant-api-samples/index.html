@@ -41,23 +41,23 @@
   <ol>
     <li><a href="php/icopay_config.example.php">php/icopay_config.example.php</a> → <code>icopay_config.php</code> (keep outside document root)</li>
     <li><a href="php/IcopayMerchantApi.php">php/IcopayMerchantApi.php</a> — API client</li>
-    <li><a href="php/checkout_unified.php">checkout_unified.php</a> — <strong>unified checkout (recommended)</strong></li>
-    <li><a href="php/checkout_chillpay.php">checkout_chillpay.php</a> | <a href="php/checkout_jpay.php">checkout_jpay.php</a> — legacy per-PG</li>
+    <li><a href="php/checkout_unified.php">checkout_unified.php</a> — <strong>integrated checkout (recommended)</strong></li>
     <li><a href="php/notify_webhook.php">notify_webhook.php</a> — webhook stub</li>
     <li><a href="common/icopay-checkout.js">common/icopay-checkout.js</a> — postMessage handler</li>
   </ol>
+  <p class="meta" style="color:#666;font-size:0.9rem;">Use only <code>checkout_unified.php</code> for new merchants. Payment-agency brand names are not part of the merchant contract.</p>
 
   <h2>JSP (Java 11+)</h2>
   <ol>
     <li><a href="jsp/icopay-config.example.properties">jsp/icopay-config.example.properties</a></li>
     <li><a href="jsp/IcopayMerchantApi.sample.java">jsp/IcopayMerchantApi.sample.java</a></li>
-    <li><a href="jsp/checkout-chillpay.jsp">checkout-chillpay.jsp</a> | <a href="jsp/checkout-jpay.jsp">checkout-jpay.jsp</a></li>
     <li><a href="jsp/notify-webhook.jsp">jsp/notify-webhook.jsp</a></li>
   </ol>
+  <p class="meta" style="color:#666;font-size:0.9rem;">Prefer PHP <code>checkout_unified.php</code> or JSON REST for new merchants.</p>
 
   <h2>Integration flow</h2>
-  <p>Create order → server prepare (JSON REST or PHP) → sessionToken → embed → postMessage / webhook</p>
-  <p>See kit keys <code>merchantUnifiedCheckout</code> and <code>integrationModes</code>.</p>
+  <p>Create order → server prepare (JSON REST or PHP) → sessionToken → <code>/v1/embed-checkout/{compId}</code> → Status/webhook</p>
+  <p>See kit keys <code>merchantUnifiedCheckout</code> and <code>integrationModes</code>. Quick start: repo <code>docs/가맹점_ICOPAY_간단연동_빠른시작.md</code>.</p>
   <p><a href="README.txt">README.txt</a> (plain text)</p>
 </body>
 </html>

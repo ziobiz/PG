@@ -11,7 +11,7 @@
   <script src="js/url-pay-input-mode.js?v=4"></script>
   <script src="js/checkout-header-subtitle-presets.js?v=1"></script>
   <script src="js/url-pay-public-shell.js?v=13"></script>
-  <script src="js/jpay-contact-fields.js?v=2"></script>
+  <script src="js/jpay-contact-fields.js?v=3"></script>
   <script src="js/jpay-contact-remember.js?v=1"></script>
   <script src="js/jpay-card-expiry.js?v=1"></script>
   <script src="js/pay-form-input-guard.js?v=2"></script>
@@ -536,7 +536,10 @@
         }
         if (window.PG_JPAY_CONTACT) {
           var form0 = document.getElementById('jpayForm');
-          if (form0) PG_JPAY_CONTACT.refreshCountryLabels(form0, LANG, t('selectCountry'));
+          if (form0) {
+            PG_JPAY_CONTACT.refreshCountryLabels(form0, LANG, t('selectCountry'));
+            PG_JPAY_CONTACT.syncCountryToPayLang(form0, LANG, t('selectCountry'), { onlyIfNotUserPicked: true });
+          }
         }
         if (cardExpiryCtrl && cardExpiryCtrl.refreshI18n) cardExpiryCtrl.refreshI18n(t);
         if (cardPolicyCtrl && cardPolicyCtrl.refreshAutoDetectLabel) {

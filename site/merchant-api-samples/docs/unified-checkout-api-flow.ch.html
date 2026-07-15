@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-Hans">
 <head>
   <meta charset="UTF-8">
@@ -26,13 +26,13 @@
   <p class="lang-nav"><strong>语言:</strong>
     <a href="unified-checkout-api-flow.html">English</a> · <a href="unified-checkout-api-flow.ko.html">한국어</a> · <a href="unified-checkout-api-flow.ja.html">日本語</a> · <strong>中文</strong> · <a href="unified-checkout-api-flow.th.html">ไทย</a></p>
   <h1>ICOPAY 统一 Checkout API — 对接流程与端点</h1>
-  <p class="meta">文档 ID: ICOPAY-CHECKOUT-FLOW-001 · v1.0 · 与 PG 无关的内联结账（ChillPay/JPAY 自动路由）</p>
+  <p class="meta">文档 ID: ICOPAY-CHECKOUT-FLOW-001 · v1.0 · 与 PG 无关的内联结账（ICOPAY 统一）</p>
   <p>相关: <a href="unified-checkout-api-parameters.html">Prepare API 参数表</a> ·
     <a href="../index.html">merchant-api-samples 索引</a></p>
 
   <h2>1. 什么是“统一”Checkout？</h2>
-  <p>Legacy integrations used separate prepare paths per PG (ChillPay, JPAY). The <strong>unified API</strong> exposes one prepare endpoint;
-    ICOPAY reads the merchant’s <strong>operational WEB PG</strong> setting and routes internally to ChillPay or JPAY.</p>
+  <p>The <strong>ICOPAY unified API</strong> exposes one prepare endpoint.
+    ICOPAY reads the merchant’s <strong>operational WEB PG</strong> setting and routes internally. Merchants only see ICOPAY.</p>
   <table>
     <tr><th>integrationMode</th><td><code>INLINE_UNIFIED</code></td></tr>
     <tr><th>Prepare</th><td><code>POST {publicApiBaseUrl}/api/middleware/v1/merchant/checkout/prepare</code></td></tr>
@@ -83,7 +83,7 @@
        │
        ├─► GET /v1/embed-checkout/{compId}
        ├─► GET .../checkout/session?token=...  (widget, automatic)
-       └─► iframe → /pay/{compId} or /jpay-pay/{compId}
+       └─► iframe → /checkout/{compId}
        │
        ▼
 [Browser]          postMessage ICOPAY_INLINE_CHECKOUT
@@ -113,7 +113,7 @@
   <h3>Key response fields</h3>
   <ul>
     <li><code>sessionToken</code> — pass to embed <code>data-session-token</code></li>
-    <li><code>pgVendor</code> — operational PG (e.g. JPAY, CHILLPAY)</li>
+    <li><code>pgVendor</code> — always <code>ICOPAY</code></li>
     <li><code>embedScriptUrl</code> — <code>/v1/embed-checkout/{compId}</code></li>
     <li><code>expiresAt</code> — session expiry</li>
   </ul>
@@ -124,11 +124,7 @@
   <p><code>GET https://api.icopay.co.kr/api/middleware/v1/merchant/checkout/session?token={sessionToken}</code></p>
   <p>Called automatically by the embed widget (<code>icopay-embed-checkout-widget.js</code>). Merchants rarely call this from the server.
     No broker secret — the token is a one-time credential.</p>
-  <table>
-    <tr><th>pgVendor</th><th>iframe path</th></tr>
-    <tr><td>JPAY family</td><td><code>/jpay-pay/{compId}?entry=merchant_api&amp;embed=1&amp;session=...</code></td></tr>
-    <tr><td>ChillPay family</td><td><code>/pay/{compId}?entry=merchant_api&amp;embed=1&amp;session=...</code></td></tr>
-  </table>
+  <table><tr><th>Path</th><th>Note</th></tr><tr><td><code>/checkout/{compId}?entry=merchant_api&amp;embed=1&amp;session=...</code></td><td>ICOPAY neutral checkout (merchants use this only)</td></tr></table>
 
   <h2>6. Status — 查询支付结果</h2>
   <p><code>GET https://api.icopay.co.kr/api/middleware/v1/merchant/checkout/status?compId=6000000028&amp;orderNo={orderNo}</code></p>
@@ -163,10 +159,12 @@
 
   <h2>9. 常见问题</h2>
   <p><strong>Do I call Session from my server?</strong> No — the embed widget calls it in the browser.</p>
-  <p><strong>Can JPAY open for a “ChillPay” merchant?</strong> Unified routing follows the <strong>operational WEB PG</strong> configured at HQ, not the legacy per-PG API path.</p>
+  <p><strong>Will I see a payment-agency brand?</strong> No. Merchant APIs, checkout UI, and docs expose <strong>ICOPAY only</strong>.</p>
   <p><strong>Is postMessage enough?</strong> Use it for UX; confirm payment on the server via webhook and/or status.</p>
 
   <p class="meta">Plain text: <a href="unified-checkout-api-flow.txt">unified-checkout-api-flow.txt</a> ·
     Parameters: <a href="unified-checkout-api-parameters.html">unified-checkout-api-parameters.html</a></p>
 </body>
 </html>
+
+

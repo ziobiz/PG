@@ -2354,7 +2354,7 @@
     '<ul class="small mb-0 ps-3" id="merchantGenEndpoints"></ul></section>' +
     '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="결제 통보 (Webhook) 안내">결제 통보 (Webhook) 안내</h6>' +
     '<div class="small" id="merchantGenWebhook"></div></section>' +
-    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="WordPress JPAY 플러그인">WordPress JPAY 플러그인</h6>' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="WordPress/WooCommerce 플러그인">WordPress/WooCommerce 플러그인</h6>' +
     '<div class="small" id="merchantGenWordPress"></div></section>' +
     '<section class="mb-2"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="연동 체크리스트">연동 체크리스트</h6>' +
     '<ol class="small mb-0 ps-3" id="merchantGenChecklist"></ol></section></div></div>';
@@ -2363,7 +2363,7 @@
     '<h5 class="fw-semibold mb-2" data-pg-ui-t="API 배포 문서">API 배포 문서</h5>' +
     '<div class="alert alert-info small mb-3 py-3" role="region" data-pg-ui-aria-label="화면 안내">' +
     '<p class="fw-semibold text-dark mb-2" data-pg-ui-t="가맹점 연동용 자료">가맹점 연동용 자료</p>' +
-    '<p class="mb-2" data-pg-ui-t="API배포문서 안내 본문">이 화면에서 가맹점에 전달할 연동 샘플·파라미터 규격·엔드포인트를 확인하고 다운로드할 수 있습니다. 브로커 시크릿 재발급은 「가맹점 API 생성」 화면에서 수행하세요.</p>' +
+    '<p class="mb-2" data-pg-ui-t="API배포문서 안내 본문">본사 미리보기입니다. 가맹점은 로그인 후 <strong>업체관리 → 가맹점API</strong>에서 동일 내용(키·엔드포인트·파라미터·샘플)을 확인합니다. 별도 메일·파일 배포는 필요하지 않습니다. 브로커 시크릿 재발급은 「가맹점 API 생성」에서만 가능합니다.</p>' +
     '<p class="mb-0 text-muted small" data-pg-ui-t="API배포문서 안내 보안">브로커 시크릿은 가맹 서버에만 두고 브라우저·앱에 노출하지 마세요.</p></div>' +
     '<div class="row g-2 mb-3">' +
     '<div class="col-md-4"><label class="form-label small mb-0" data-pg-ui-t="업체코드 (직접 입력)">업체코드 (직접 입력)</label>' +
@@ -2407,7 +2407,7 @@
     '<span class="text-muted fw-normal user-select-none" aria-hidden="true">/</span>' +
     '<button type="button" class="btn btn-link btn-sm p-0 align-baseline text-nowrap merchant-api-flow-doc-menu" id="merchantApiDocsFlowDocOpen" data-pg-ui-t="연동설명서">연동설명서</button></h6>' +
     '<ul class="small mb-0 ps-3" id="merchantApiDocsEndpoints"></ul></section>' +
-    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="WordPress JPAY 플러그인">WordPress JPAY 플러그인</h6>' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="WordPress/WooCommerce 플러그인">WordPress/WooCommerce 플러그인</h6>' +
     '<div class="small" id="merchantApiDocsWordPress"></div></section>' +
     '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="결제 통보 (Webhook) 안내">결제 통보 (Webhook) 안내</h6>' +
     '<div class="small" id="merchantApiDocsWebhook"></div></section>' +
@@ -2418,15 +2418,17 @@
   var MERCHANT_API_PORTAL_HTML = '<div class="merchant-api-portal text-body pg-merchant-api-portal-viewer">' +
     '<h5 class="fw-semibold mb-2" data-pg-ui-t="가맹점 API 연동">가맹점 API 연동</h5>' +
     '<div class="alert alert-info small mb-3 py-3" role="region">' +
-    '<p class="mb-2" data-pg-ui-t="가맹점API 안내 본문">본사에서 배포한 API 연동 키와 엔드포인트·샘플만 조회할 수 있습니다. 키 발급·재발급은 본사에서만 가능합니다.</p>' +
-    '<p class="mb-0 text-muted small" data-pg-ui-t="가맹점API 안내 보안">브로커 시크릿은 가맹 서버에만 보관하고 브라우저·앱·공개 저장소에 노출하지 마세요.</p></div>' +
+    '<p class="mb-2" data-pg-ui-t="가맹점API 안내 본문">본사 API 배포 후 이 화면이 <strong>공식 연동 문서·키·샘플</strong>입니다. 아래 내용으로 ICOPAY와 연동 개발하세요. 키 발급·재발급은 본사에서만 가능합니다.</p>' +
+    '<p class="mb-0 text-muted small" data-pg-ui-t="가맹점API 안내 보안">브로커 시크릿은 가맹 서버에만 보관하고 브라우저·앱·공개 저장소에 노출하지 마세요. 브랜드·응답은 항상 <strong>ICOPAY</strong>입니다.</p></div>' +
     '<div id="merchantApiPortalNotDeployed" class="alert alert-warning small d-none" role="status"></div>' +
     '<div id="merchantApiPortalMain" class="d-none">' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="연동 빠른 시작">연동 빠른 시작</h6>' +
+    '<div class="small" id="merchantApiPortalQuickStart"></div></section>' +
     '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="연동 키">연동 키</h6>' +
     '<div class="table-responsive border rounded mb-2"><table class="table table-sm table-bordered align-middle mb-0 w-100" id="merchantApiPortalKeysGrid">' +
     '<thead class="table-light"><tr><th data-pg-ui-t="항목">항목</th><th data-pg-ui-t="값">값</th><th class="text-nowrap" data-pg-ui-t="작업">작업</th></tr></thead>' +
     '<tbody id="merchantApiPortalKeysBody"></tbody></table></div></section>' +
-    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="PG 바인딩 (MID)">PG 바인딩 (MID)</h6>' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="연동 상태">연동 상태</h6>' +
     '<ul class="small mb-0 ps-3" id="merchantApiPortalBindings"></ul></section>' +
     '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="가맹 API 연동 채널">가맹 API 연동 채널</h6>' +
     '<div class="small" id="merchantApiPortalIntegrationChannels"></div></section>' +
@@ -2435,7 +2437,24 @@
     '<span class="text-muted fw-normal user-select-none" aria-hidden="true">/</span>' +
     '<button type="button" class="btn btn-link btn-sm p-0 align-baseline text-nowrap merchant-api-flow-doc-menu" id="merchantApiPortalFlowDocOpen" data-pg-ui-t="연동설명서">연동설명서</button></h6>' +
     '<ul class="small mb-0 ps-3" id="merchantApiPortalEndpoints"></ul></section>' +
-    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="WordPress JPAY 플러그인">WordPress JPAY 플러그인</h6>' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" id="merchantApiPortalParamTitle" data-pg-ui-t="연동 파라미터 규격">연동 파라미터 규격</h6>' +
+    '<p class="small text-muted mb-2" id="merchantApiPortalEndpointLine"></p>' +
+    '<h6 class="small fw-semibold mt-3 mb-2" data-pg-ui-t="HTTP 헤더">HTTP 헤더</h6>' +
+    '<div class="table-responsive border rounded mb-3"><table class="table table-sm table-bordered align-middle mb-0 w-100" id="merchantApiPortalHeadersGrid">' +
+    '<thead class="table-light"><tr><th class="text-nowrap" data-pg-ui-t="번호">번호</th><th data-pg-ui-t="항목명">항목명</th><th class="text-nowrap" data-pg-ui-t="필수">필수</th><th data-pg-ui-t="예시값">예시값</th><th data-pg-ui-t="비고">비고</th></tr></thead><tbody></tbody></table></div>' +
+    '<h6 class="small fw-semibold mt-3 mb-2" data-pg-ui-t="Prepare 본문 파라미터">Prepare 본문 파라미터</h6>' +
+    '<div class="table-responsive border rounded mb-3"><table class="table table-sm table-bordered align-middle mb-0 w-100" id="merchantApiPortalPrepareGrid">' +
+    '<thead class="table-light"><tr><th class="text-nowrap" data-pg-ui-t="번호">번호</th><th data-pg-ui-t="항목명">항목명</th><th data-pg-ui-t="JSON 경로">JSON 경로</th><th class="text-nowrap" data-pg-ui-t="타입">타입</th><th class="text-nowrap" data-pg-ui-t="최대길이">최대길이</th><th class="text-nowrap" data-pg-ui-t="필수">필수</th><th data-pg-ui-t="설명">설명</th><th data-pg-ui-t="비고">비고</th></tr></thead><tbody></tbody></table></div>' +
+    '<h6 class="small fw-semibold mt-3 mb-2" data-pg-ui-t="buyer 객체 파라미터">buyer 객체 파라미터</h6>' +
+    '<div class="table-responsive border rounded mb-3"><table class="table table-sm table-bordered align-middle mb-0 w-100" id="merchantApiPortalBuyerGrid">' +
+    '<thead class="table-light"><tr><th class="text-nowrap" data-pg-ui-t="번호">번호</th><th data-pg-ui-t="항목명">항목명</th><th data-pg-ui-t="JSON 경로">JSON 경로</th><th class="text-nowrap" data-pg-ui-t="타입">타입</th><th class="text-nowrap" data-pg-ui-t="최대길이">최대길이</th><th class="text-nowrap" data-pg-ui-t="필수">필수</th><th data-pg-ui-t="설명">설명</th><th data-pg-ui-t="비고">비고</th></tr></thead><tbody></tbody></table></div>' +
+    '<h6 class="small fw-semibold mt-3 mb-2" data-pg-ui-t="Status 조회 파라미터">Status 조회 파라미터</h6>' +
+    '<div class="table-responsive border rounded mb-3"><table class="table table-sm table-bordered align-middle mb-0 w-100" id="merchantApiPortalStatusGrid">' +
+    '<thead class="table-light"><tr><th class="text-nowrap" data-pg-ui-t="번호">번호</th><th data-pg-ui-t="항목명">항목명</th><th data-pg-ui-t="JSON 경로">JSON 경로</th><th class="text-nowrap" data-pg-ui-t="타입">타입</th><th class="text-nowrap" data-pg-ui-t="최대길이">최대길이</th><th class="text-nowrap" data-pg-ui-t="필수">필수</th><th data-pg-ui-t="설명">설명</th><th data-pg-ui-t="비고">비고</th></tr></thead><tbody></tbody></table></div>' +
+    '<h6 class="small fw-semibold mt-3 mb-2" data-pg-ui-t="오류 코드">오류 코드</h6>' +
+    '<div class="table-responsive border rounded mb-3"><table class="table table-sm table-bordered align-middle mb-0 w-100" id="merchantApiPortalErrorGrid">' +
+    '<thead class="table-light"><tr><th data-pg-ui-t="오류코드">오류코드</th><th data-pg-ui-t="의미">의미</th></tr></thead><tbody></tbody></table></div></section>' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="WordPress/WooCommerce 플러그인">WordPress/WooCommerce 플러그인</h6>' +
     '<div class="small" id="merchantApiPortalWordPress"></div></section>' +
     '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="결제 통보 (Webhook) 안내">결제 통보 (Webhook) 안내</h6>' +
     '<div class="small" id="merchantApiPortalWebhook"></div></section>' +
@@ -2449,6 +2468,7 @@
     '<ul class="small mb-0 ps-3">' +
     '<li class="mb-1" data-pg-ui-t="가맹 API 유의: prepare 서버 전용">Prepare API는 가맹 <strong>서버</strong>에서만 호출하세요. 브로커 시크릿을 브라우저·앱·공개 저장소에 노출하지 마세요.</li>' +
     '<li class="mb-1" data-pg-ui-t="가맹 API 유의: sessionToken embed">브라우저에는 Prepare 응답의 <code>sessionToken</code>과 Embed 스크립트만 전달하세요.</li>' +
+    '<li class="mb-1" data-pg-ui-t="가맹 API 유의: ICOPAY만">연동·문서·URL에는 <strong>ICOPAY</strong>만 사용합니다. 결제대행사(운영 PG) 이름은 노출되지 않습니다.</li>' +
     '<li class="mb-0" data-pg-ui-t="가맹 API 유의: 결제 확정">결제 확정은 웹훅(<code>merchantNotifyUrls</code>) 또는 Status API로 <strong>서버</strong>에서 확인하세요.</li>' +
     '</ul></section></div>' +
     '<div id="merchantApiPortalLoading" class="text-center text-muted py-5 small" data-pg-ui-t="로딩 중…">로딩 중…</div></div>';

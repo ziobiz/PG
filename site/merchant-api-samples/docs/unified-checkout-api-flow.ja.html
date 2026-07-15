@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -26,13 +26,13 @@
   <p class="lang-nav"><strong>言語:</strong>
     <a href="unified-checkout-api-flow.html">English</a> · <a href="unified-checkout-api-flow.ko.html">한국어</a> · <strong>日本語</strong> · <a href="unified-checkout-api-flow.ch.html">中文</a> · <a href="unified-checkout-api-flow.th.html">ไทย</a></p>
   <h1>ICOPAY 統合 Checkout API — 連携フローとエンドポイント</h1>
-  <p class="meta">仕様 ID: ICOPAY-CHECKOUT-FLOW-001 · v1.0 · PG非依存インライン決済（ChillPay/JPAY 自動振分）</p>
+  <p class="meta">仕様 ID: ICOPAY-CHECKOUT-FLOW-001 · v1.0 · PG非依存インライン決済（ICOPAY 統合）</p>
   <p>関連: <a href="unified-checkout-api-parameters.html">Prepare API パラメータ表</a> ·
     <a href="../index.html">merchant-api-samples 一覧</a></p>
 
   <h2>1. 「統合」checkout とは</h2>
   <p>レガシー連携では PG ごとに prepare パスが分かれていました。<strong>統合 API</strong>は prepare を 1 本にまとめ、
-    ICOPAY が加盟店の <strong>運用 WEB PG</strong> 設定を読み取り、内部で ChillPay または JPAY に振り分けます。</p>
+    ICOPAY が内部で決済網を処理します。加盟店には ICOPAY のみが表示されます。</p>
   <table>
     <tr><th>integrationMode</th><td><code>INLINE_UNIFIED</code></td></tr>
     <tr><th>Prepare</th><td><code>POST {publicApiBaseUrl}/api/middleware/v1/merchant/checkout/prepare</code></td></tr>
@@ -83,7 +83,7 @@
        │
        ├─► GET /v1/embed-checkout/{compId}
        ├─► GET .../checkout/session?token=...  (ウィジェット自動)
-       └─► iframe → /pay/{compId} または /jpay-pay/{compId}
+       └─► iframe → /checkout/{compId}
        │
        ▼
 [ブラウザ]         postMessage ICOPAY_INLINE_CHECKOUT
@@ -113,7 +113,7 @@
   <h3>応答の主要フィールド</h3>
   <ul>
     <li><code>sessionToken</code> — embed の <code>data-session-token</code> に渡す</li>
-    <li><code>pgVendor</code> — 運用 PG（例: JPAY、CHILLPAY）</li>
+    <li><code>pgVendor</code> — 常に <code>ICOPAY</code></li>
     <li><code>embedScriptUrl</code> — <code>/v1/embed-checkout/{compId}</code></li>
     <li><code>expiresAt</code> — セッション有効期限</li>
   </ul>
@@ -126,8 +126,7 @@
     ブローカーシークレット不要 — トークンが一回限りの資格情報です。</p>
   <table>
     <tr><th>pgVendor</th><th>iframe パス</th></tr>
-    <tr><td>JPAY 系</td><td><code>/jpay-pay/{compId}?entry=merchant_api&amp;embed=1&amp;session=...</code></td></tr>
-    <tr><td>ChillPay 系</td><td><code>/pay/{compId}?entry=merchant_api&amp;embed=1&amp;session=...</code></td></tr>
+    <tr><td>ICOPAY</td><td><code>/checkout/{compId}?entry=merchant_api&amp;embed=1&amp;session=...</code></td></tr>
   </table>
 
   <h2>6. Status — 決済状態照会</h2>
@@ -163,10 +162,11 @@
 
   <h2>9. FAQ</h2>
   <p><strong>Session をサーバーから呼ぶ必要はありますか？</strong> いいえ。embed ウィジェットがブラウザで呼び出します。</p>
-  <p><strong>ChillPay 加盟店なのに JPAY が開くことはありますか？</strong> 統合 API は本社設定の <strong>運用 WEB PG</strong> に従って振分けます。</p>
+  <p><strong>決済代行ブランドは見えますか？</strong> いいえ。加盟店向け API・決済画面・文書は ICOPAY のみです。</p>
   <p><strong>postMessage だけで十分ですか？</strong> UX には足りる場合がありますが、サーバー確定は Webhook または status 照会を推奨します。</p>
 
   <p class="meta">テキスト: <a href="unified-checkout-api-flow.ja.txt">unified-checkout-api-flow.ja.txt</a> ·
     パラメータ: <a href="unified-checkout-api-parameters.html">unified-checkout-api-parameters.html</a></p>
 </body>
 </html>
+

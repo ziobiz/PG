@@ -1758,7 +1758,11 @@
   M['연동 진행안']={EN:'Integration plan',JP:'連携進行案',CH:'联调计划',TH:'แผนเชื่อมต่อ'};
   M['연동 체크리스트']={EN:'Integration checklist',JP:'連携チェックリスト',CH:'对接检查清单',TH:'เช็กลิสต์การเชื่อมต่อ'};
   M['Checkout API 엔드포인트']={EN:'Checkout API endpoints',JP:'Checkout API エンドポイント',CH:'Checkout API 端点',TH:'Checkout API endpoints'};
-  M['WordPress JPAY 플러그인']={EN:'WordPress JPAY plugins',JP:'WordPress JPAY プラグイン',CH:'WordPress JPAY 插件',TH:'WordPress JPAY plugins'};
+  M['WordPress JPAY 플러그인']={EN:'WordPress/WooCommerce plugins',JP:'WordPress/WooCommerce プラグイン',CH:'WordPress/WooCommerce 插件',TH:'WordPress/WooCommerce plugins'};
+  M['WordPress/WooCommerce 플러그인']={EN:'WordPress/WooCommerce plugins',JP:'WordPress/WooCommerce プラグイン',CH:'WordPress/WooCommerce 插件',TH:'WordPress/WooCommerce plugins'};
+  M['연동 빠른 시작']={EN:'Quick start',JP:'連携クイックスタート',CH:'快速开始',TH:'เริ่มต้นเร็ว'};
+  M['연동 상태']={EN:'Integration status',JP:'連携状態',CH:'对接状态',TH:'สถานะการเชื่อมต่อ'};
+  M['ICOPAY 간단 연동 빠른 시작']={EN:'ICOPAY quick start',JP:'ICOPAY かんたん連携',CH:'ICOPAY 快速对接',TH:'ICOPAY เริ่มต้นเร็ว'};
   M['통합 Checkout (인라인)']={EN:'Unified Checkout (inline)',JP:'統合 Checkout（インライン）',CH:'统一 Checkout（内联）',TH:'Unified Checkout (inline)'};
   M['통합 Checkout (리다이렉트)']={EN:'Unified Checkout (redirect)',JP:'統合 Checkout（リダイレクト）',CH:'统一 Checkout（重定向）',TH:'Unified Checkout (redirect)'};
   M['JPAY 인라인']={EN:'JPAY inline',JP:'JPAY インライン',CH:'JPAY 内联',TH:'JPAY inline'};

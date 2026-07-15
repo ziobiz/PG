@@ -52,13 +52,16 @@ class MerchantOperationalPgGuardTest {
         Optional<Map<String, Object>> deny = guard.denyIfUrlPayVendorMismatch(12L, MerchantPgBrokerVendor.CHILLPAY);
         assertTrue(deny.isPresent());
         assertEquals(MerchantOperationalPgGuard.ERROR_CODE, deny.get().get("errorCode"));
-        assertEquals(MerchantPgBrokerVendor.JPAY, deny.get().get("configuredVendor"));
-        assertEquals(MerchantPgBrokerVendor.CHILLPAY, deny.get().get("requestedVendor"));
+        assertFalse(deny.get().containsKey("configuredVendor"));
+        assertFalse(deny.get().containsKey("requestedVendor"));
+        assertFalse(deny.get().containsKey("operationalPgCd"));
         @SuppressWarnings("unchecked")
         Map<String, String> messages = (Map<String, String>) deny.get().get("messages");
         assertEquals(5, messages.size());
         assertFalse(messages.get("KO").isBlank());
         assertFalse(messages.get("EN").isBlank());
+        assertFalse(messages.get("KO").toUpperCase().contains("JPAY"));
+        assertFalse(messages.get("KO").toUpperCase().contains("CHILLPAY"));
     }
 
     @Test

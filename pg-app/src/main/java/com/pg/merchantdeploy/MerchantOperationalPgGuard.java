@@ -102,9 +102,7 @@ public class MerchantOperationalPgGuard {
         out.put("messageKey", MerchantOperationalPgGuardI18n.KEY_PG_VENDOR_MISMATCH);
         out.put("message", messages.get("KO"));
         out.put("messages", messages);
-        out.put("operationalPgCd", operationalPgCd);
-        out.put("configuredVendor", configuredLabel);
-        out.put("requestedVendor", requestedLabel);
+        /* 가맹 응답에 운영 PG코드·벤더명 미노출 (서버 로그만 기록) */
         return out;
     }
 

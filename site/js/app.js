@@ -34109,8 +34109,10 @@
     }).join('');
   }
 
-  function merchantApiRenderWebhookNotifyBlock(el, portal, pickFn) {
+  function merchantApiRenderWebhookNotifyBlock(el, portal, pickFn, opts) {
     if (!el) return;
+    var o = opts || {};
+    var merchantFacing = o.merchantFacing === true;
     function escWh(s) {
       return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
     }
@@ -34130,13 +34132,15 @@
       var genNote = pickFn(guide, 'wordpressGeneralWebhookNote');
       if (wooNote) html += '<li class="mb-1">' + escWh(wooNote) + '</li>';
       if (genNote) html += '<li class="mb-1">' + escWh(genNote) + '</li>';
-      var pgNote = pickFn(guide, 'pgIngressNote');
-      if (pgNote) {
-        html += '<li class="mb-1"><strong>' + escWh(pgAdminUiT('PG→ICOPAY 노티 (본사 설정)')) + ':</strong> ';
-        if (portal.notifyIngressUrlMiddleware) {
-          html += '<code class="small">' + escWh(portal.notifyIngressUrlMiddleware) + '</code> — ';
+      if (!merchantFacing) {
+        var pgNote = pickFn(guide, 'pgIngressNote');
+        if (pgNote) {
+          html += '<li class="mb-1"><strong>' + escWh(pgAdminUiT('결제망→ICOPAY 노티 (본사 설정)')) + ':</strong> ';
+          if (portal.notifyIngressUrlMiddleware) {
+            html += '<code class="small">' + escWh(portal.notifyIngressUrlMiddleware) + '</code> — ';
+          }
+          html += escWh(pgNote) + '</li>';
         }
-        html += escWh(pgNote) + '</li>';
       }
       var retNote = pickFn(guide, 'returnUrlNote');
       if (retNote) html += '<li class="mb-1">' + escWh(retNote) + '</li>';
@@ -34157,21 +34161,119 @@
     el.innerHTML = html;
   }
 
+  /** 연동 파라미터 규격 표 공통 렌더 (본사 API배포문서 · 가맹점API 포털) */
+  function merchantApiRenderParamSpecTables(pane, portal, pickFn, ids) {
+    if (!pane || !portal || !ids) return;
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    }
+    function specDesc(row) { return pickFn(row, 'description'); }
+    function specRemark(row) { return pickFn(row, 'remark'); }
+    function reqLabel(code) {
+      var c = String(code || '').toUpperCase();
+      if (c === 'M') return pgAdminUiT('필수(M)');
+      if (c === 'O') return pgAdminUiT('선택(O)');
+      return String(code || '');
+    }
+    function renderParamRows(tbody, rows) {
+      if (!tbody) return;
+      if (!rows || !rows.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">' + pgAdminEscHtml(pgAdminUiT('—')) + '</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rows.map(function (r) {
+        return '<tr><td class="text-nowrap">' + esc(r.no) + '</td><td class="text-nowrap"><code>' + esc(r.name) + '</code></td>' +
+          '<td class="small"><code>' + esc(r.jsonPath || r.name) + '</code></td>' +
+          '<td class="text-nowrap">' + esc(r.dataType || '') + '</td>' +
+          '<td class="text-nowrap">' + esc(r.maxLength != null ? r.maxLength : '—') + '</td>' +
+          '<td class="text-nowrap">' + reqLabel(r.required) + '</td>' +
+          '<td class="small">' + esc(specDesc(r)) + '</td>' +
+          '<td class="small text-muted">' + esc(specRemark(r)) + '</td></tr>';
+      }).join('');
+    }
+    function renderHeaderRows(tbody, rows) {
+      if (!tbody) return;
+      if (!rows || !rows.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">' + pgAdminEscHtml(pgAdminUiT('—')) + '</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rows.map(function (r) {
+        return '<tr><td class="text-nowrap">' + esc(r.no) + '</td><td><code>' + esc(r.name) + '</code></td>' +
+          '<td class="text-nowrap">' + reqLabel(r.required) + '</td>' +
+          '<td class="small"><code>' + esc(r.valueExample || '') + '</code></td>' +
+          '<td class="small text-muted">' + esc(pickFn(r, 'remark')) + '</td></tr>';
+      }).join('');
+    }
+    function renderErrorRows(tbody, rows) {
+      if (!tbody) return;
+      if (!rows || !rows.length) {
+        tbody.innerHTML = '<tr><td colspan="2" class="text-center text-muted">' + pgAdminEscHtml(pgAdminUiT('—')) + '</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rows.map(function (r) {
+        return '<tr><td class="text-nowrap"><code>' + esc(r.errorCode || '') + '</code></td>' +
+          '<td class="small">' + esc(pickFn(r, 'meaning')) + '</td></tr>';
+      }).join('');
+    }
+    var spec = portal.merchantCheckoutApiParameterSpec || {};
+    var titleEl = pane.querySelector(ids.title);
+    if (titleEl) titleEl.textContent = pickFn(spec, 'title') || pgAdminUiT('연동 파라미터 규격');
+    var epEl = pane.querySelector(ids.endpointLine);
+    if (epEl) {
+      epEl.innerHTML = '<code>' + esc(spec.endpointMethod || 'POST') + '</code> <code>' + esc(spec.endpointUrl || spec.endpointPath || '') + '</code>';
+    }
+    renderHeaderRows(pane.querySelector(ids.headers + ' tbody'), spec.httpHeaders);
+    renderParamRows(pane.querySelector(ids.prepare + ' tbody'), spec.prepareBodyParameters);
+    renderParamRows(pane.querySelector(ids.buyer + ' tbody'), spec.buyerObjectParameters);
+    renderParamRows(pane.querySelector(ids.status + ' tbody'), spec.statusQueryParameters);
+    renderErrorRows(pane.querySelector(ids.errors + ' tbody'), spec.errorCodes);
+  }
+
+  function merchantApiRenderQuickStart(el, portal, pickFn) {
+    if (!el) return;
+    function escQs(s) {
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    }
+    var qs = portal && portal.merchantQuickStart ? portal.merchantQuickStart : null;
+    var base = (portal && portal.publicApiBaseUrl) || '';
+    var cid = (portal && portal.compId) || '{compId}';
+    if (qs && Array.isArray(qs.steps) && qs.steps.length) {
+      var intro = pickFn(qs, 'intro') || pickFn(qs, 'description') || '';
+      var html = intro ? '<p class="mb-2">' + escQs(intro) + '</p>' : '';
+      html += '<ol class="mb-0 ps-3">';
+      qs.steps.forEach(function (step) {
+        var t = pickFn(step, 'text') || pickFn(step, 'title') || '';
+        if (t) html += '<li class="mb-1">' + escQs(t) + '</li>';
+      });
+      html += '</ol>';
+      el.innerHTML = html;
+      return;
+    }
+    el.innerHTML =
+      '<ol class="mb-0 ps-3">' +
+      '<li class="mb-2"><strong>1. Prepare</strong> — 가맹 <em>서버</em>에서 <code>POST ' + escQs(base) + '/api/middleware/v1/merchant/checkout/prepare</code> ' +
+      '(헤더 <code>X-Icopay-Merchant-Broker-Secret</code>, buyer.email·phone·countryIso2 필수) → <code>sessionToken</code></li>' +
+      '<li class="mb-2"><strong>2. 결제창</strong> — 브라우저에 <code>/v1/embed-checkout/' + escQs(cid) + '</code> 또는 응답 <code>payUrl</code>(<code>/checkout/' + escQs(cid) + '</code>)만 전달</li>' +
+      '<li class="mb-0"><strong>3. 확정</strong> — 서버에서 Status API 또는 등록 Webhook으로 PAID 확인</li>' +
+      '</ol>' +
+      '<p class="text-muted small mb-0 mt-2">' + escQs(pgAdminUiT('상세 파라미터·샘플은 아래 표와 다운로드 자료를 사용하세요. 브랜드·응답 pgVendor는 항상 ICOPAY입니다.')) + '</p>';
+  }
+
   function merchantApiAddWordPressDownloadRows(tbody, portal) {
     if (!tbody || !portal) return;
     var wp = portal.wordpressPlugins;
     if (!wp) return;
-    var base = portal.publicApiBaseUrl || '';
+    var cat = pgAdminUiT('WordPress/WooCommerce 플러그인');
     if (wp.docPath) {
-      merchantApiAddSampleDocRow(tbody, pgAdminUiT('WordPress JPAY 플러그인'), pgAdminUiT('WordPress JPAY 배포 가이드'),
+      merchantApiAddSampleDocRow(tbody, cat, pgAdminUiT('ICOPAY 간단 연동 빠른 시작'),
         wp.docPath, pgAdminUiT('가이드 열기'), 'text/markdown;charset=UTF-8');
     }
     if (wp.woocommercePluginZip) {
-      merchantApiAddSampleDocRow(tbody, pgAdminUiT('WordPress JPAY 플러그인'), pgAdminUiT('WooCommerce 플러그인 ZIP'),
+      merchantApiAddSampleDocRow(tbody, cat, pgAdminUiT('WooCommerce 플러그인 ZIP'),
         wp.woocommercePluginZip, pgAdminUiT('ZIP 열기'), 'application/zip');
     }
     if (wp.generalWordPressPluginZip) {
-      merchantApiAddSampleDocRow(tbody, pgAdminUiT('WordPress JPAY 플러그인'), pgAdminUiT('일반 WordPress 플러그인 ZIP'),
+      merchantApiAddSampleDocRow(tbody, cat, pgAdminUiT('일반 WordPress 플러그인 ZIP'),
         wp.generalWordPressPluginZip, pgAdminUiT('ZIP 열기'), 'application/zip');
     }
   }
@@ -34672,12 +34774,13 @@
       if (!ul) return;
       var binds = portal && portal.merchantPgBindings ? portal.merchantPgBindings : [];
       if (!binds.length) {
-        ul.innerHTML = '<li class="text-muted">' + pgAdminEscHtml(pgAdminUiT('가맹 PG 바인딩이 없습니다. 업체정보에서 결제대행사를 저장하세요.')) + '</li>';
+        ul.innerHTML = '<li class="text-muted">' + pgAdminEscHtml(pgAdminUiT('ICOPAY 연동이 준비되지 않았습니다. 본사에 API 배포를 요청하세요.')) + '</li>';
         return;
       }
-      ul.innerHTML = binds.map(function (b) {
-        return '<li><code>' + esc(b.pgCd || '') + '</code> · ' + esc(pgAdminUiT('MID')) + ' <strong>' + esc(String(b.mid || '')) + '</strong></li>';
-      }).join('');
+      ul.innerHTML =
+        '<li class="mb-1"><code>ICOPAY</code> · ' + esc(pgAdminUiT('통합 Checkout')) + ' · ' +
+        esc(pgAdminUiT('업체코드')) + ' <strong>' + esc(String(portal.compId || '')) + '</strong></li>' +
+        '<li class="text-muted mb-0">' + esc(pgAdminUiT('결제망(운영 PG) 이름은 가맹점에 노출되지 않습니다. 연동·응답은 항상 ICOPAY입니다.')) + '</li>';
     }
     function renderEndpoints(portal) {
       var ul = pane.querySelector('#merchantApiPortalEndpoints');
@@ -34690,19 +34793,24 @@
       merchantApiRenderWordPressBlock(pane.querySelector('#merchantApiPortalWordPress'), portal, pickL10n);
     }
     function renderWebhook(portal) {
-      merchantApiRenderWebhookNotifyBlock(pane.querySelector('#merchantApiPortalWebhook'), portal, pickL10n);
+      merchantApiRenderWebhookNotifyBlock(pane.querySelector('#merchantApiPortalWebhook'), portal, pickL10n, { merchantFacing: true });
     }
     function renderChecklist(portal) {
       merchantApiRenderChecklist(pane.querySelector('#merchantApiPortalChecklist'), portal, pickL10n);
     }
-    function addDownloadRow(tbody, category, desc, href, label) {
-      if (!tbody) return;
-      var tr = document.createElement('tr');
-      var actHtml = href
-        ? '<a class="btn btn-sm btn-outline-primary merchant-api-portal-dl-link" href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(label || pgAdminUiT('열기')) + '</a>'
-        : '<span class="text-muted">' + pgAdminEscHtml(pgAdminUiT('—')) + '</span>';
-      tr.innerHTML = '<td class="text-nowrap">' + esc(category) + '</td><td class="small">' + esc(desc) + '</td><td class="text-nowrap">' + actHtml + '</td>';
-      tbody.appendChild(tr);
+    function renderQuickStart(portal) {
+      merchantApiRenderQuickStart(pane.querySelector('#merchantApiPortalQuickStart'), portal, pickL10n);
+    }
+    function renderSpecTables(portal) {
+      merchantApiRenderParamSpecTables(pane, portal, pickL10n, {
+        title: '#merchantApiPortalParamTitle',
+        endpointLine: '#merchantApiPortalEndpointLine',
+        headers: '#merchantApiPortalHeadersGrid',
+        prepare: '#merchantApiPortalPrepareGrid',
+        buyer: '#merchantApiPortalBuyerGrid',
+        status: '#merchantApiPortalStatusGrid',
+        errors: '#merchantApiPortalErrorGrid'
+      });
     }
     function renderDownloads(portal) {
       var tbody = pane.querySelector('#merchantApiPortalDownloadGrid tbody');
@@ -34712,6 +34820,8 @@
       var samples = portal.merchantIntegrationSamples || {};
       var flowJsonS = merchantApiFlowDocJsonSources(portal);
       var flowLoc = merchantApiScreenLocale();
+      merchantApiAddSampleDocRow(tbody, pgAdminUiT('연동 빠른 시작'), pgAdminUiT('ICOPAY 간단 연동 빠른 시작'),
+        'merchant-api-samples/docs/icopay-merchant-quickstart.ko.md', pgAdminUiT('가이드 열기'), 'text/markdown;charset=UTF-8');
       merchantApiAddSampleDocRow(tbody, pgAdminUiT('연동 흐름 설명서'), pgAdminUiT('통합 Checkout 엔드포인트 설명서 (HTML)'),
         merchantApiFlowDocRelPath(flowJsonS, flowLoc, 'html'), pgAdminUiT('HTML 열기'), 'text/html;charset=UTF-8');
       merchantApiAddSampleDocRow(tbody, pgAdminUiT('연동 흐름 설명서'), pgAdminUiT('통합 Checkout 엔드포인트 설명서 (텍스트)'),
@@ -34724,8 +34834,14 @@
       merchantApiAddSampleDocRow(tbody, 'JSON', pgAdminUiT('prepare 요청 샘플'),
         jsonS.prepareRequest || 'merchant-api-samples/json/unified-prepare-request.json',
         pgAdminUiT('JSON 열기'), 'application/json;charset=UTF-8');
+      merchantApiAddSampleDocRow(tbody, 'JSON', pgAdminUiT('prepare 응답 예시'),
+        jsonS.prepareResponseExample || 'merchant-api-samples/json/unified-prepare-response.example.json',
+        pgAdminUiT('JSON 열기'), 'application/json;charset=UTF-8');
       merchantApiAddSampleDocRow(tbody, 'PHP', pgAdminUiT('IcopayMerchantApi.php 클라이언트'),
         (samples.php && samples.php.client) || 'merchant-api-samples/php/IcopayMerchantApi.php',
+        pgAdminUiT('PHP 열기'), 'application/x-php;charset=UTF-8');
+      merchantApiAddSampleDocRow(tbody, 'PHP', pgAdminUiT('checkout_unified.php 샘플'),
+        (samples.php && samples.php.checkoutUnified) || 'merchant-api-samples/php/checkout_unified.php',
         pgAdminUiT('PHP 열기'), 'application/x-php;charset=UTF-8');
       merchantApiAddSampleDocRow(tbody, pgAdminUiT('샘플 패키지'), pgAdminUiT('merchant-api-samples 전체 목록'),
         samples.indexUrl || 'merchant-api-samples/index.html',
@@ -34733,11 +34849,7 @@
       merchantApiAddWordPressDownloadRows(tbody, portal);
     }
     function vendorScopeUi(scope) {
-      var s = String(scope || 'ALL').trim().toUpperCase();
-      if (s === 'ALL') return pgAdminUiT('전체(ALL)');
-      if (s === 'CHILLPAY') return 'ChillPay';
-      if (s === 'JPAY') return 'JPAY';
-      return String(scope || '');
+      return 'ICOPAY';
     }
     function showDeployed(data) {
       var portal = data.portal || {};
@@ -34749,15 +34861,16 @@
       addPlainCopyRow(pgAdminUiT('HTTP 헤더명'), hdr, 'hdrName');
       var creds = data.credentials || [];
       creds.forEach(function (c, idx) {
-        var scope = c.vendorScope != null ? String(c.vendorScope) : 'ALL';
-        var label = pgAdminUiT('브로커 시크릿') + ' (' + vendorScopeUi(scope) + ')';
+        var label = pgAdminUiT('브로커 시크릿') + ' (ICOPAY)';
         if (c.enforceYn === 'Y') label += ' · ' + pgAdminUiT('강제(헤더 필수)');
         addKeyRow(label, c.brokerSecretMasked || '••••••••', c.brokerSecret || '', 'broker_' + idx);
       });
       bindSecretActions();
+      renderQuickStart(portal);
       renderBindings(portal);
       renderIntegrationChannels(portal);
       renderEndpoints(portal);
+      renderSpecTables(portal);
       renderWordPress(portal);
       renderWebhook(portal);
       bindMerchantApiFlowDocOpen(pane, portal, '#merchantApiPortalFlowDocOpen');

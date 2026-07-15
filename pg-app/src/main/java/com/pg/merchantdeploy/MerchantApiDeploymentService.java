@@ -447,8 +447,11 @@ public class MerchantApiDeploymentService {
         kit.put("credentialScopes", credentialSummaries(ou.getId()));
 
         kit.put("integrationChecklist", MerchantApiDeployChecklistI18n.build(publicApiBase, ou.getCode()));
+        kit.put("merchantQuickStart", MerchantApiDeployChecklistI18n.buildQuickStart(publicApiBase, ou.getCode()));
 
         applyIntegrationChannelFilter(kit, ou.getId());
+        /* 가맹 API 출시·키트 JSON은 항상 ICOPAY만 노출 (운영 PG명·PG별 경로 금지) */
+        applyMerchantDocIcopayNeutralFilter(kit, ou.getId());
 
         return kit;
     }
@@ -521,6 +524,97 @@ public class MerchantApiDeploymentService {
         neutralizeCredentialScopesForDocs(kit);
         filterIntegrationSamplesIcopayOnly(kit);
         filterIntegrationModesIcopayOnly(kit);
+        neutralizeWordPressAndNotifyGuideForDocs(kit);
+        neutralizeVendorScopeEverywhere(kit);
+    }
+
+    /** 키트/포털 어디에든 vendorScope·pgVendor 로 PG명이 남지 않도록 ICOPAY로 통일 */
+    @SuppressWarnings("unchecked")
+    private static void neutralizeVendorScopeEverywhere(Map<String, Object> kit) {
+        Object creds = kit.get("credentialScopes");
+        if (creds instanceof Map<?, ?> cm) {
+            Object list = ((Map<?, ?>) cm).get("credentials");
+            if (list instanceof List<?> items) {
+                for (Object item : items) {
+                    if (item instanceof Map<?, ?> m) {
+                        ((Map<String, Object>) m).put("vendorScope", MerchantApiResponseMapper.MERCHANT_FACING_BRAND);
+                    }
+                }
+            }
+        }
+        for (String key : List.of(
+                "merchantUnifiedCheckout",
+                "merchantUnifiedRedirectCheckout",
+                "merchantUnifiedSubscriptionCheckout")) {
+            Object block = kit.get(key);
+            if (block instanceof Map<?, ?> bm) {
+                ((Map<String, Object>) bm).put("pgVendor", MerchantApiResponseMapper.MERCHANT_FACING_BRAND);
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void neutralizeWordPressAndNotifyGuideForDocs(Map<String, Object> kit) {
+        Object wp = kit.get("wordpressPlugins");
+        if (wp instanceof Map<?, ?> wm) {
+            Map<String, Object> w = (Map<String, Object>) wm;
+            w.put("docPath", "merchant-api-samples/docs/icopay-merchant-quickstart.ko.md");
+            w.put("generalWordPressPluginZip", "woocommerce/icopay-woocommerce-1.1.0.zip");
+            w.put("generalWordPressWebhookPath", "/wp-json/icopay/v1/webhook");
+            MerchantDeployL10n.putDescription(w, new Bundle(
+                    "ICOPAY WordPress/WooCommerce 플러그인 ZIP",
+                    "ICOPAY WordPress/WooCommerce plugin ZIP",
+                    "ICOPAY WordPress/WooCommerce プラグイン ZIP",
+                    "ICOPAY WordPress/WooCommerce 插件 ZIP",
+                    "ICOPAY WordPress/WooCommerce plugin ZIP"
+            ));
+            MerchantDeployL10n.putTextFields(w, "webhookRegisterNote", new Bundle(
+                    "WordPress 사용 시 본사 merchantNotifyUrls에 등록할 결제 통보(Webhook) URL 예: "
+                            + "https://{가맹도메인}/wp-json/icopay/v1/webhook . ICOPAY가 결제 확정 시 POST합니다.",
+                    "For WordPress, register merchant payment notify (webhook) URLs at HQ merchantNotifyUrls, e.g. "
+                            + "https://{your-domain}/wp-json/icopay/v1/webhook . ICOPAY POSTs on payment confirmation.",
+                    "WordPress 利用時は本社 merchantNotifyUrls に登録: "
+                            + "https://{ドメイン}/wp-json/icopay/v1/webhook 。決済確定時に ICOPAY が POST。",
+                    "WordPress 请在总部 merchantNotifyUrls 登记: "
+                            + "https://{域名}/wp-json/icopay/v1/webhook 。支付确认时 ICOPAY 会 POST。",
+                    "WordPress: ลงทะเบียน webhook ที่ HQ merchantNotifyUrls เช่น "
+                            + "https://{โดเมน}/wp-json/icopay/v1/webhook (ICOPAY POST เมื่อชำระสำเร็จ)"
+            ));
+        }
+        Object guide = kit.get("paymentNotifyGuide");
+        if (guide instanceof Map<?, ?> gm) {
+            Map<String, Object> g = (Map<String, Object>) gm;
+            g.put("generalWordPressWebhookPath", "/wp-json/icopay/v1/webhook");
+            MerchantDeployL10n.putTextFields(g, "pgIngressNote", new Bundle(
+                    "notifyIngressUrlMiddleware — 결제망 → ICOPAY 본사 수신 URL(본사 설정). "
+                            + "가맹 WordPress Webhook과 별개이며 가맹이 등록하지 않습니다.",
+                    "notifyIngressUrlMiddleware — Payment network → ICOPAY HQ ingress (HQ config). "
+                            + "Not the merchant WordPress webhook; merchants do not register this.",
+                    "notifyIngressUrlMiddleware — 決済網 → ICOPAY 本社受信（本社設定）。"
+                            + "加盟店 WordPress Webhook とは別。加盟店は登録しない。",
+                    "notifyIngressUrlMiddleware — 支付网络 → ICOPAY 总部接收（总部配置）。"
+                            + "与商户 WordPress Webhook 不同，商户无需登记。",
+                    "notifyIngressUrlMiddleware — เครือข่ายชำระ → ICOPAY HQ (ตั้งค่า HQ) ไม่ใช่ Webhook ร้าน"
+            ));
+            MerchantDeployL10n.putTextFields(g, "wordpressGeneralWebhookNote", new Bundle(
+                    "WordPress 플러그인 수신 URL: https://{가맹도메인}/wp-json/icopay/v1/webhook",
+                    "WordPress plugin receive URL: https://{your-domain}/wp-json/icopay/v1/webhook",
+                    "WordPress 受信 URL: https://{ドメイン}/wp-json/icopay/v1/webhook",
+                    "WordPress 接收 URL: https://{域名}/wp-json/icopay/v1/webhook",
+                    "WordPress: https://{โดเมน}/wp-json/icopay/v1/webhook"
+            ));
+            MerchantDeployL10n.putTextFields(g, "returnUrlNote", new Bundle(
+                    "브라우저 복귀 URL은 prepare body·결제망 전문에 넣지 않습니다. ICOPAY NOTI Result → 가맹 Result(브라우저), "
+                            + "서버 Callback은 NOTI → 가맹 webhook. 결제 확정은 Status API·Webhook으로 서버에서 확인하세요.",
+                    "Do not put browser return URLs in prepare body or payment-network payloads. Browser: ICOPAY NOTI Result → merchant Result; "
+                            + "server: NOTI → merchant webhook. Confirm payment on the server via Status API or webhook.",
+                    "ブラウザ復帰 URL は prepare body・決済網電文に入れません。ICOPAY NOTI Result → 加盟店、サーバーは webhook。"
+                            + "確定は Status API/Webhook でサーバー確認。",
+                    "浏览器返回 URL 勿放入 prepare body 或支付网络报文。ICOPAY NOTI Result → 商户；服务器用 webhook。"
+                            + "请在服务器通过 Status API/Webhook 确认。",
+                    "อย่าใส่ URL กลับเบราว์เซอร์ใน prepare/เครือข่ายชำระ — ICOPAY NOTI Result → ร้าน, webhook ที่เซิร์ฟเวอร์"
+            ));
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -831,7 +925,7 @@ public class MerchantApiDeploymentService {
         for (MerchantIcopayBrokerCredential c : creds) {
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("id", c.getId());
-            item.put("vendorScope", c.getVendorScope());
+            item.put("vendorScope", MerchantApiResponseMapper.MERCHANT_FACING_BRAND);
             item.put("brokerSecret", c.getBrokerSecret());
             item.put("brokerSecretMasked", maskBrokerSecretForDisplay(c.getBrokerSecret(), c.getSecretPrefix()));
             item.put("secretPrefix", c.getSecretPrefix());
@@ -846,11 +940,8 @@ public class MerchantApiDeploymentService {
 
     /** 배포설정 — API배포문서 화면용(다운로드·연동 파라미터 표). 시크릿 평문·재발급 기능은 포함하지 않음. */
     public Map<String, Object> buildDocsPortal(String compId, HttpServletRequest req) {
+        /* buildKit 이 이미 ICOPAY 중립 필터를 적용함 */
         Map<String, Object> kit = buildKit(compId, MerchantPgBrokerVendor.ALL, req);
-        Object orgUnitIdObj = kit.get("merchantOrgUnitId");
-        if (orgUnitIdObj instanceof Number orgUnitId) {
-            applyMerchantDocIcopayNeutralFilter(kit, orgUnitId.longValue());
-        }
         Map<String, Object> portal = new LinkedHashMap<>();
         portal.put("compId", kit.get("compId"));
         portal.put("merchantName", kit.get("merchantName"));
@@ -874,6 +965,7 @@ public class MerchantApiDeploymentService {
         portal.put("integrationModes", kit.get("integrationModes"));
         portal.put("merchantIntegrationSamples", kit.get("merchantIntegrationSamples"));
         portal.put("integrationChecklist", kit.get("integrationChecklist"));
+        portal.put("merchantQuickStart", kit.get("merchantQuickStart"));
         portal.put("credentialScopes", kit.get("credentialScopes"));
         return portal;
     }
@@ -991,52 +1083,49 @@ public class MerchantApiDeploymentService {
         String base = publicApiBase != null ? publicApiBase.trim() : "";
         Map<String, Object> wp = new LinkedHashMap<>();
         MerchantDeployL10n.putDescription(wp, new Bundle(
-                "WordPress JPAY 플러그인 ZIP 배포 (WooCommerce·일반 WP)",
-                "WordPress JPAY plugin ZIP (WooCommerce and general WP)",
-                "WordPress JPAY プラグイン ZIP（WooCommerce・一般 WP）",
-                "WordPress JPAY 插件 ZIP（WooCommerce 与一般 WP）",
-                "WordPress JPAY plugin ZIP (WooCommerce และ WP ทั่วไป)"
+                "ICOPAY WordPress/WooCommerce 플러그인 ZIP",
+                "ICOPAY WordPress/WooCommerce plugin ZIP",
+                "ICOPAY WordPress/WooCommerce プラグイン ZIP",
+                "ICOPAY WordPress/WooCommerce 插件 ZIP",
+                "ICOPAY WordPress/WooCommerce plugin ZIP"
         ));
         MerchantDeployL10n.putTextFields(wp, "inlineDefaultNote", new Bundle(
-                "기본 flow_mode=inline — 기존 인라인 연동과 동일",
-                "Default flow_mode=inline — same as legacy inline integration",
-                "既定 flow_mode=inline — 従来インライン連携と同じ",
-                "默认 flow_mode=inline — 与原有内联相同",
-                "ค่าเริ่มต้น flow_mode=inline — เหมือน inline เดิม"
+                "기본 flow_mode=inline — 통합 Checkout(인라인)과 동일",
+                "Default flow_mode=inline — same as unified Checkout (inline)",
+                "既定 flow_mode=inline — 統合 Checkout（インライン）と同じ",
+                "默认 flow_mode=inline — 与统一 Checkout（内联）相同",
+                "ค่าเริ่มต้น flow_mode=inline — เหมือน unified Checkout (inline)"
         ));
         MerchantDeployL10n.putTextFields(wp, "redirectDeployNote", new Bundle(
-                "redirect 선택 시 HQ apiBrokerRedirectEnabledYn=Y 및 플러그인 flow_mode=redirect",
-                "For redirect: HQ apiBrokerRedirectEnabledYn=Y and plugin flow_mode=redirect",
-                "redirect 利用時は HQ apiBrokerRedirectEnabledYn=Y と flow_mode=redirect",
-                "重定向需 HQ apiBrokerRedirectEnabledYn=Y 且 flow_mode=redirect",
-                "redirect ต้อง HQ apiBrokerRedirectEnabledYn=Y และ flow_mode=redirect"
+                "redirect 선택 시 HQ에서 API 리다이렉트 채널 ON + 플러그인 flow_mode=redirect",
+                "For redirect: HQ API redirect channel ON + plugin flow_mode=redirect",
+                "redirect 利用時は HQ の API リダイレクト ON + flow_mode=redirect",
+                "重定向需总部开启 API 重定向渠道 + flow_mode=redirect",
+                "redirect ต้องเปิดช่อง redirect ที่ HQ และ flow_mode=redirect"
         ));
-        wp.put("docPath", "docs/WordPress_JPAY_플러그인_배포가이드.md");
+        wp.put("docPath", "merchant-api-samples/docs/icopay-merchant-quickstart.ko.md");
         wp.put("buildScript", "tools/build-wp-plugin-zips.ps1");
         wp.put("woocommercePluginZip", "woocommerce/icopay-woocommerce-1.1.0.zip");
-        wp.put("generalWordPressPluginZip", "wordpress/icopay-jpay-1.0.0.zip");
+        wp.put("generalWordPressPluginZip", "woocommerce/icopay-woocommerce-1.1.0.zip");
         wp.put("flowModes", List.of("inline", "redirect"));
         wp.put("defaultFlowMode", "inline");
-        wp.put("apiBaseUrlExample", base.isEmpty() ? "https://api.icopay.co.kr" : base);
         wp.put("woocommerceWebhookPath", "/wp-json/icopay/v1/webhook");
-        wp.put("generalWordPressWebhookPath", "/wp-json/icopay-jpay/v1/webhook");
+        wp.put("generalWordPressWebhookPath", "/wp-json/icopay/v1/webhook");
         MerchantDeployL10n.putTextFields(wp, "webhookRegisterNote", new Bundle(
-                "WordPress 사용 시 본사 merchantNotifyUrls에 등록할 결제 통보(Webhook) URL 예: "
-                        + "https://{가맹도메인}/wp-json/icopay/v1/webhook (WooCommerce) · "
-                        + "https://{가맹도메인}/wp-json/icopay-jpay/v1/webhook (일반 WP). ICOPAY가 결제 확정 시 POST합니다.",
-                "For WordPress, register merchant payment notify (webhook) URLs at HQ merchantNotifyUrls, e.g. "
-                        + "https://{your-domain}/wp-json/icopay/v1/webhook (WooCommerce) · "
-                        + "https://{your-domain}/wp-json/icopay-jpay/v1/webhook (general WP). ICOPAY POSTs on payment confirmation.",
-                "WordPress 利用時は本社 merchantNotifyUrls に登録: "
-                        + "https://{ドメイン}/wp-json/icopay/v1/webhook (WooCommerce) · "
-                        + "https://{ドメイン}/wp-json/icopay-jpay/v1/webhook (一般 WP)。決済確定時に ICOPAY が POST。",
+                "WordPress 사용 시 본사 merchantNotifyUrls에 등록할 Webhook 예: "
+                        + "https://{가맹도메인}/wp-json/icopay/v1/webhook",
+                "Register WordPress webhook at HQ merchantNotifyUrls, e.g. "
+                        + "https://{your-domain}/wp-json/icopay/v1/webhook",
+                "WordPress は本社 merchantNotifyUrls に登録: "
+                        + "https://{ドメイン}/wp-json/icopay/v1/webhook",
                 "WordPress 请在总部 merchantNotifyUrls 登记: "
-                        + "https://{域名}/wp-json/icopay/v1/webhook (WooCommerce) · "
-                        + "https://{域名}/wp-json/icopay-jpay/v1/webhook (一般 WP)。ICOPAY 在支付确认时 POST。",
-                "WordPress ลงทะเบียน merchantNotifyUrls ที่ HQ เช่น "
-                        + "https://{โดเมน}/wp-json/icopay/v1/webhook (WooCommerce) · "
-                        + "https://{โดเมน}/wp-json/icopay-jpay/v1/webhook (WP ทั่วไป)"
+                        + "https://{域名}/wp-json/icopay/v1/webhook",
+                "WordPress: ลงทะเบียนที่ HQ merchantNotifyUrls เช่น "
+                        + "https://{โดเมน}/wp-json/icopay/v1/webhook"
         ));
+        if (!base.isEmpty()) {
+            wp.put("publicApiBaseUrlHint", base);
+        }
         return wp;
     }
 
@@ -1070,36 +1159,36 @@ public class MerchantApiDeploymentService {
                 "WooCommerce: https://{โดเมน}/wp-json/icopay/v1/webhook"
         ));
         MerchantDeployL10n.putTextFields(g, "wordpressGeneralWebhookNote", new Bundle(
-                "일반 WordPress 플러그인 수신 URL: https://{가맹도메인}/wp-json/icopay-jpay/v1/webhook",
-                "General WordPress plugin receive URL: https://{your-domain}/wp-json/icopay-jpay/v1/webhook",
-                "一般 WordPress 受信 URL: https://{ドメイン}/wp-json/icopay-jpay/v1/webhook",
-                "一般 WordPress 接收 URL: https://{域名}/wp-json/icopay-jpay/v1/webhook",
-                "WP ทั่วไป: https://{โดเมน}/wp-json/icopay-jpay/v1/webhook"
+                "WordPress 플러그인 수신 URL: https://{가맹도메인}/wp-json/icopay/v1/webhook",
+                "WordPress plugin receive URL: https://{your-domain}/wp-json/icopay/v1/webhook",
+                "WordPress 受信 URL: https://{ドメイン}/wp-json/icopay/v1/webhook",
+                "WordPress 接收 URL: https://{域名}/wp-json/icopay/v1/webhook",
+                "WordPress: https://{โดเมน}/wp-json/icopay/v1/webhook"
         ));
         MerchantDeployL10n.putTextFields(g, "pgIngressNote", new Bundle(
-                "notifyIngressUrlMiddleware — JPAY/PG → ICOPAY 본사 수신 URL(본사·PG 설정). "
+                "notifyIngressUrlMiddleware — 결제망 → ICOPAY 본사 수신 URL(본사 설정). "
                         + "가맹 WordPress Webhook과 별개이며 가맹이 등록하지 않습니다.",
-                "notifyIngressUrlMiddleware — JPAY/PG → ICOPAY HQ ingress (HQ/PG config). "
+                "notifyIngressUrlMiddleware — Payment network → ICOPAY HQ ingress (HQ config). "
                         + "Not the merchant WordPress webhook; merchants do not register this.",
-                "notifyIngressUrlMiddleware — JPAY/PG → ICOPAY 本社受信（本社・PG 設定）。"
+                "notifyIngressUrlMiddleware — 決済網 → ICOPAY 本社受信（本社設定）。"
                         + "加盟店 WordPress Webhook とは別。加盟店は登録しない。",
-                "notifyIngressUrlMiddleware — JPAY/PG → ICOPAY 总部接收（总部/PG 配置）。"
+                "notifyIngressUrlMiddleware — 支付网络 → ICOPAY 总部接收（总部配置）。"
                         + "与商户 WordPress Webhook 不同，商户无需登记。",
-                "notifyIngressUrlMiddleware — JPAY/PG → ICOPAY HQ (ตั้งค่า HQ/PG) ไม่ใช่ Webhook ร้าน"
+                "notifyIngressUrlMiddleware — เครือข่ายชำระ → ICOPAY HQ (ตั้งค่า HQ) ไม่ใช่ Webhook ร้าน"
         ));
         MerchantDeployL10n.putTextFields(g, "returnUrlNote", new Bundle(
-                "브라우저 복귀 URL은 prepare body·PG 전문에 넣지 않습니다. NOTI Result → 가맹 Result(브라우저), "
+                "브라우저 복귀 URL은 prepare body·결제망 전문에 넣지 않습니다. ICOPAY NOTI Result → 가맹 Result(브라우저), "
                         + "서버 Callback은 NOTI → 가맹 webhook. 결제 확정은 Status API·Webhook으로 서버에서 확인하세요.",
-                "Do not put browser return URLs in prepare body or PG payloads. Browser: NOTI Result → merchant Result; "
+                "Do not put browser return URLs in prepare body or payment-network payloads. Browser: ICOPAY NOTI Result → merchant Result; "
                         + "server: NOTI → merchant webhook. Confirm payment on the server via Status API or webhook.",
-                "ブラウザ復帰 URL は prepare body・PG 電文に入れません。NOTI Result → 加盟店、サーバーは webhook。"
+                "ブラウザ復帰 URL は prepare body・決済網電文に入れません。ICOPAY NOTI Result → 加盟店、サーバーは webhook。"
                         + "確定は Status API/Webhook でサーバー確認。",
-                "浏览器返回 URL 勿放入 prepare body 或 PG 报文。NOTI Result → 商户；服务器用 webhook。"
+                "浏览器返回 URL 勿放入 prepare body 或支付网络报文。ICOPAY NOTI Result → 商户；服务器用 webhook。"
                         + "请在服务器通过 Status API/Webhook 确认。",
-                "อย่าใส่ URL กลับเบราว์เซอร์ใน prepare/PG — NOTI Result → ร้าน, webhook ที่เซิร์ฟเวอร์"
+                "อย่าใส่ URL กลับเบราว์เซอร์ใน prepare/เครือข่ายชำระ — ICOPAY NOTI Result → ร้าน, webhook ที่เซิร์ฟเวอร์"
         ));
         g.put("woocommerceWebhookPath", "/wp-json/icopay/v1/webhook");
-        g.put("generalWordPressWebhookPath", "/wp-json/icopay-jpay/v1/webhook");
+        g.put("generalWordPressWebhookPath", "/wp-json/icopay/v1/webhook");
         return g;
     }
 

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -26,13 +26,13 @@
   <p class="lang-nav"><strong>언어:</strong>
     <a href="unified-checkout-api-flow.html">English</a> · <strong>한국어</strong> · <a href="unified-checkout-api-flow.ja.html">日本語</a> · <a href="unified-checkout-api-flow.ch.html">中文</a> · <a href="unified-checkout-api-flow.th.html">ไทย</a></p>
   <h1>ICOPAY 통합 Checkout API — 연동 흐름 및 엔드포인트</h1>
-  <p class="meta">문서 ID: ICOPAY-CHECKOUT-FLOW-001 · v1.0 · PG 무관 인라인 결제 (ChillPay/JPAY 자동 분기)</p>
+  <p class="meta">문서 ID: ICOPAY-CHECKOUT-FLOW-001 · v1.0 · PG 무관 인라인 결제 (ICOPAY 통합)</p>
   <p>관련: <a href="unified-checkout-api-parameters.html">Prepare API 파라미터 표</a> ·
     <a href="../index.html">merchant-api-samples 목록</a></p>
 
   <h2>1. “통합” checkout이란?</h2>
-  <p>레거시 연동은 PG별로 prepare 경로가 분리되어 있었습니다. <strong>통합 API</strong>는 하나의 prepare만 호출하면
-    ICOPAY가 가맹점의 <strong>운영 WEB PG</strong> 설정을 읽고 ChillPay 또는 JPAY로 내부 위임합니다.</p>
+  <p><strong>통합 API</strong>는 하나의 prepare만 호출하면 됩니다.
+    가맹점에는 ICOPAY만 노출되며, 결제대행사 이름은 API·결제창·문서에 나오지 않습니다.</p>
   <table>
     <tr><th>integrationMode</th><td><code>INLINE_UNIFIED</code></td></tr>
     <tr><th>Prepare</th><td><code>POST {publicApiBaseUrl}/api/middleware/v1/merchant/checkout/prepare</code></td></tr>
@@ -83,7 +83,7 @@
        │
        ├─► GET /v1/embed-checkout/{compId}
        ├─► GET .../checkout/session?token=...  (위젯 자동 호출)
-       └─► iframe → /pay/{compId} 또는 /jpay-pay/{compId}
+       └─► iframe → /checkout/{compId}
        │
        ▼
 [브라우저]   postMessage ICOPAY_INLINE_CHECKOUT
@@ -113,7 +113,7 @@
   <h3>응답 핵심 필드</h3>
   <ul>
     <li><code>sessionToken</code> — embed <code>data-session-token</code>에 전달</li>
-    <li><code>pgVendor</code> — 운영 PG (예: JPAY, CHILLPAY)</li>
+    <li><code>pgVendor</code> — 항상 <code>ICOPAY</code></li>
     <li><code>embedScriptUrl</code> — <code>/v1/embed-checkout/{compId}</code></li>
     <li><code>expiresAt</code> — 세션 만료 시각</li>
   </ul>
@@ -124,11 +124,7 @@
   <p><code>GET https://api.icopay.co.kr/api/middleware/v1/merchant/checkout/session?token={sessionToken}</code></p>
   <p>embed 위젯(<code>icopay-embed-checkout-widget.js</code>)이 브라우저에서 자동 호출합니다. 가맹 서버에서 직접 호출할 필요는 거의 없습니다.
     브로커 시크릿 불필요 — 토큰이 일회용 자격 증명입니다.</p>
-  <table>
-    <tr><th>pgVendor</th><th>iframe 경로</th></tr>
-    <tr><td>JPAY 계열</td><td><code>/jpay-pay/{compId}?entry=merchant_api&amp;embed=1&amp;session=...</code></td></tr>
-    <tr><td>ChillPay 계열</td><td><code>/pay/{compId}?entry=merchant_api&amp;embed=1&amp;session=...</code></td></tr>
-  </table>
+  <table><tr><th>경로</th><th>설명</th></tr><tr><td><code>/checkout/{compId}?entry=merchant_api&amp;embed=1&amp;session=...</code></td><td>ICOPAY 중립 결제창 (가맹은 이 URL만 사용)</td></tr></table>
 
   <h2>6. Status — 결제 상태 조회</h2>
   <p><code>GET https://api.icopay.co.kr/api/middleware/v1/merchant/checkout/status?compId=6000000028&amp;orderNo={orderNo}</code></p>
@@ -163,10 +159,11 @@
 
   <h2>9. FAQ</h2>
   <p><strong>Session을 서버에서 호출해야 하나요?</strong> 아니요. embed 위젯이 브라우저에서 호출합니다.</p>
-  <p><strong>ChillPay 가맹인데 JPAY가 열릴 수 있나요?</strong> 통합 API는 본사에 설정된 <strong>운영 WEB PG</strong> 기준으로 분기합니다.</p>
+  <p><strong>결제대행사 이름이 보일 수 있나요?</strong> 아니요. 가맹 API·결제창·문서는 ICOPAY만 노출합니다.</p>
   <p><strong>postMessage만으로 충분한가요?</strong> UX에는 충분할 수 있으나, 서버 확정은 웹훅 또는 status 조회를 권장합니다.</p>
 
   <p class="meta">텍스트: <a href="unified-checkout-api-flow.ko.txt">unified-checkout-api-flow.ko.txt</a> ·
     파라미터: <a href="unified-checkout-api-parameters.html">unified-checkout-api-parameters.html</a></p>
 </body>
 </html>
+

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
@@ -112,7 +112,7 @@
 
     <div class="warn-box" style="margin-bottom: 24px;">
       <strong>📋 Naming Policy</strong><br><br>
-      ICOPAY integrates multiple payment processors behind one API. This manual uses neutral ICOPAY terms for unified features (checkout, URL payment, integrated transactions). <strong>"JPAY-only"</strong> labels appear only for features exclusive to JPAY.
+      ICOPAY integrates multiple payment processors behind one API. This manual uses <strong>ICOPAY</strong> terms only. Merchant and buyer APIs/UI never expose individual payment-agency brand names.
     </div>
 
     <hr class="rule">
@@ -230,43 +230,45 @@
     <h2 class="section-title" id="api-portal">3. API Integration (Merchant API Portal)</h2>
     <span class="menu-path">Merchant API &gt; Merchant API Portal</span>
 
-    <h3 class="sub-title">3-1. API Key and Broker Secret</h3>
-    <p>The Merchant API Portal provides the authentication keys required for payment integration.</p>
+    <h3 class="sub-title">3-1. 官方对接资料位置</h3>
+    <p>总部完成 API 部署后，<strong>商户管理 → 商户API</strong> 即为<strong>官方密钥、文档与样例</strong>。无需另行邮件或文件交付。</p>
     <table>
-      <thead><tr><th>Key</th><th>Description</th><th>Usage</th></tr></thead>
+      <thead><tr><th>项目</th><th>说明</th><th>用途</th></tr></thead>
       <tbody>
-        <tr><td>API Key (Public Key)</td><td>Merchant identification public key</td><td>Include in request headers</td></tr>
-        <tr><td>Broker Secret</td><td>Private key for server-to-server communication</td><td>Server-side API authentication</td></tr>
-        <tr><td>Merchant Code (compId)</td><td>Internal system merchant identifier</td><td>API endpoint parameter</td></tr>
+        <tr><td>商户代码 (compId)</td><td>商户标识</td><td>API 请求 body / 查询</td></tr>
+        <tr><td>公开 API 基址</td><td>ICOPAY API 主机</td><td>服务器 Base URL</td></tr>
+        <tr><td>Broker 密钥</td><td>服务器间密钥</td><td>头 <code>X-Icopay-Merchant-Broker-Secret</code></td></tr>
+        <tr><td>快速开始与参数表</td><td>Prepare / buyer / Status 规范</td><td>前后端开发</td></tr>
+        <tr><td>下载资料</td><td>流程说明、JSON/PHP 样例</td><td>对接参考</td></tr>
       </tbody>
     </table>
     <div class="block-box">
-      <strong>⚠️ Broker Secret Security Warning:</strong> Never expose your broker secret in client-side code (browser or app). It must only be used on the server side.
+      <strong>⚠️ Broker 密钥安全警告：</strong>禁止在浏览器或 App 中暴露密钥，仅可在服务器使用。重新签发仅总部可操作。
     </div>
 
-    <h3 class="sub-title">3-2. API Integration Documentation</h3>
-    <p>Integration documentation is available in the <strong>API Docs</strong> tab within the Merchant API Portal.</p>
+    <h3 class="sub-title">3-2. Checkout API（ICOPAY 统一）</h3>
+    <p>以商户API 画面显示的端点与参数表为准。主要路径：</p>
     <table>
-      <thead><tr><th>API Type</th><th>Endpoint</th><th>Description</th></tr></thead>
+      <thead><tr><th>API 类型</th><th>端点</th><th>说明</th></tr></thead>
       <tbody>
-        <tr><td>One-time Payment (Prepare)</td><td><code>/api/middleware/v1/merchant/checkout/prepare</code></td><td>Create payment session</td></tr>
-        <tr><td>One-time Payment (Session)</td><td><code>/api/middleware/v1/merchant/checkout/session</code></td><td>Launch payment window</td></tr>
-        <tr><td>Payment Status</td><td><code>/api/middleware/v1/merchant/checkout/status</code></td><td>Check payment result</td></tr>
-        <tr><td>Subscription Prepare</td><td><code>/api/middleware/v1/merchant/checkout/subscription/prepare</code></td><td>Start subscription payment</td></tr>
-        <tr><td>Subscription Cancel</td><td><code>/api/middleware/v1/merchant/checkout/subscription/cancel</code></td><td>Cancel subscription</td></tr>
-        <tr><td>Redirect Payment</td><td><code>/api/middleware/v1/merchant/checkout/redirect/prepare</code></td><td>URL redirect payment</td></tr>
+        <tr><td>单次支付（准备）</td><td><code>/api/middleware/v1/merchant/checkout/prepare</code></td><td>创建支付会话</td></tr>
+        <tr><td>单次支付（会话）</td><td><code>/api/middleware/v1/merchant/checkout/session</code></td><td>会话查询</td></tr>
+        <tr><td>支付状态</td><td><code>/api/middleware/v1/merchant/checkout/status</code></td><td>查询支付结果</td></tr>
+        <tr><td>订阅准备</td><td><code>/api/middleware/v1/merchant/checkout/subscription/prepare</code></td><td>开始订阅支付</td></tr>
+        <tr><td>订阅取消</td><td><code>/api/middleware/v1/merchant/checkout/subscription/cancel</code></td><td>取消订阅</td></tr>
+        <tr><td>重定向支付</td><td><code>/api/middleware/v1/merchant/checkout/redirect/prepare</code></td><td>重定向支付</td></tr>
       </tbody>
     </table>
     <div class="check-box">
-      All API responses return <code>pgVendor: "ICOPAY"</code>. The actual payment processor (PG provider) is never disclosed per security policy.
+      所有响应的 <code>pgVendor</code> 恒为 <strong>ICOPAY</strong>。不披露运营 PG 名称。支付窗仅使用 <code>/checkout/{compId}</code> 或 <code>/v1/embed-checkout/{compId}</code>。
     </div>
 
-    <h3 class="sub-title">3-3. Test / Production Environment Switch</h3>
+    <h3 class="sub-title">3-3. 对接步骤</h3>
     <div class="flow">
-      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">In the API Portal, use the <strong>Environment Toggle</strong> to switch between <strong>Sandbox (Test)</strong> and <strong>Production</strong></span></div>
-      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">In sandbox mode, no real charges are made (use test card numbers)</span></div>
-      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">When switching to production, replace with live API keys</span></div>
-      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">Thoroughly test in sandbox before going live with production credentials</span></div>
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">向总部申请 API 部署与 broker 密钥签发</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">打开商户API，确认密钥、快速开始、参数表</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">在商户<strong>服务器</strong>调用 Prepare；浏览器仅传 sessionToken/embed</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">在服务器用 Status API 或 Webhook 确认 PAID</span></div>
     </div>
 
     <hr class="rule">
@@ -601,7 +603,7 @@
 
     <div class="faq-item">
       <div class="faq-q">I lost or accidentally exposed my API broker secret. Can I reissue it?</div>
-      <div class="faq-a">Yes. In Merchant API &gt; Merchant API Portal, click the <strong>Reissue Secret</strong> button. The new secret is active immediately and the old one is invalidated. Update your server configuration with the new secret right away. If you suspect a security breach, reissue immediately.</div>
+      <div class="faq-a">Broker 密钥<strong>重新签发仅总部可操作</strong>。怀疑泄露请联系 ICOPAY 总部。新密钥立即生效并作废旧密钥，请立刻更新服务器配置。对接规格与样例仍在登录后的商户API 画面查看。</div>
     </div>
 
     <div class="faq-item">
@@ -649,3 +651,4 @@
 </div>
 </body>
 </html>
+
