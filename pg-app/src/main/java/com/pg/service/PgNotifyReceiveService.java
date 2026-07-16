@@ -106,6 +106,7 @@ public class PgNotifyReceiveService {
     private final PgNotifyInboundPersistService inboundPersistService;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
     private final ElementPayCallbackService elementPayCallbackService;
+    private final IlkCallbackService ilkCallbackService;
 
     public PgNotifyReceiveService(HqNotifyEnvService hqNotifyEnvService,
                                 PgNotifyInboundRepository inboundRepository,
@@ -121,7 +122,8 @@ public class PgNotifyReceiveService {
                                 MerchantNotifyUrlRepository merchantNotifyUrlRepository,
                                 PgNotifyInboundPersistService inboundPersistService,
                                 HqLedgerSysSettingsService hqLedgerSysSettingsService,
-                                ElementPayCallbackService elementPayCallbackService) {
+                                ElementPayCallbackService elementPayCallbackService,
+                                IlkCallbackService ilkCallbackService) {
         this.hqNotifyEnvService = hqNotifyEnvService;
         this.inboundRepository = inboundRepository;
         this.bindingRepository = bindingRepository;
@@ -137,6 +139,7 @@ public class PgNotifyReceiveService {
         this.inboundPersistService = inboundPersistService;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
         this.elementPayCallbackService = elementPayCallbackService;
+        this.ilkCallbackService = ilkCallbackService;
     }
 
     /**
@@ -148,6 +151,11 @@ public class PgNotifyReceiveService {
                 pathToken, notifyTargetCode, rawBody, clientIp, request);
         if (elementPay.isPresent()) {
             return elementPay.get();
+        }
+        Optional<NotifyReceiveOutcome> ilk = ilkCallbackService.tryHandleSyncCallback(
+                pathToken, notifyTargetCode, rawBody, clientIp, request);
+        if (ilk.isPresent()) {
+            return ilk.get();
         }
         return receiveAndRespondCore(pathToken, notifyTargetCode, rawBody, contentType, clientIp, request);
     }

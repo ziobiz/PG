@@ -46,6 +46,7 @@ public class UrlPayPublicCheckoutService {
     private final UrlPayCardExpiryModeService urlPayCardExpiryModeService;
     private final PayContactRememberPolicyService payContactRememberPolicyService;
     private final MerchantPgBindingRouterService pgBindingRouter;
+    private final CardAuthModeService cardAuthModeService;
 
     public UrlPayPublicCheckoutService(ChillPayService chillPayService,
                                        OrgUnitRepository orgUnitRepository,
@@ -62,7 +63,8 @@ public class UrlPayPublicCheckoutService {
                                        UrlPayInputModeService urlPayInputModeService,
                                        UrlPayCardExpiryModeService urlPayCardExpiryModeService,
                                        PayContactRememberPolicyService payContactRememberPolicyService,
-                                       MerchantPgBindingRouterService pgBindingRouter) {
+                                       MerchantPgBindingRouterService pgBindingRouter,
+                                       CardAuthModeService cardAuthModeService) {
         this.chillPayService = chillPayService;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
@@ -79,6 +81,7 @@ public class UrlPayPublicCheckoutService {
         this.urlPayCardExpiryModeService = urlPayCardExpiryModeService;
         this.payContactRememberPolicyService = payContactRememberPolicyService;
         this.pgBindingRouter = pgBindingRouter;
+        this.cardAuthModeService = cardAuthModeService;
     }
 
     /**
@@ -136,6 +139,7 @@ public class UrlPayPublicCheckoutService {
         }
         urlPayInputModeService.putEffectiveIntoMap(data, orgUnitId, request);
         urlPayCardExpiryModeService.putEffectiveIntoMap(data, orgUnitId);
+        cardAuthModeService.putEffectiveIntoMap(data, orgUnitId);
         if (dp.isPresent()) {
             MerchantDefaultProduct p = dp.get();
             if ("Y".equalsIgnoreCase(productNameUseYn)

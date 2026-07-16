@@ -188,6 +188,14 @@
     ];
   }
 
+  /** 일반결제 카드 인증 — 3DS / 2DS(NONE3D). 가맹은 FOLLOW_HQ 가능 */
+  function cardAuthModeTypeOptions() {
+    return [
+      { v: 'THREE_DS', t: '3DS' },
+      { v: 'NONE3D', t: '2DS(비인증)' }
+    ];
+  }
+
   function urlPayInputModeTypeOptions() {
     return [
       { v: 'GENERAL', t: '일반' },
@@ -210,11 +218,12 @@
     var ynUseOpts = [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }];
     var inputOpts = [{ v: 'FOLLOW_HQ', t: '본사정책 따름' }].concat(urlPayInputModeTypeOptions());
     var expiryOpts = [{ v: 'FOLLOW_HQ', t: '본사정책 따름' }].concat(urlPayCardExpiryModeTypeOptions());
+    var authOpts = [{ v: 'FOLLOW_HQ', t: '본사정책 따름' }].concat(cardAuthModeTypeOptions());
     return [
       { label: '웹결제', type: 'select', name: 'webPaymentUseYn', options: ynUseOpts, col: 2 },
       { label: 'URL 결제 방식', type: 'select', name: 'urlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 2 },
-      { label: '입력방식', type: 'select', name: 'urlPayInputMode', options: inputOpts, col: 2 },
-      { label: '유효기간방식', type: 'select', name: 'urlPayCardExpiryMode', options: expiryOpts, col: 2 }
+      { label: '유효기간방식', type: 'select', name: 'urlPayCardExpiryMode', options: expiryOpts, col: 2 },
+      { label: '카드인증방식', type: 'select', name: 'cardAuthMode', options: authOpts, col: 2 }
     ];
   }
 
@@ -248,7 +257,6 @@
     var urlPh = urlPlaceholderKo || '가맹점 저장 후 조회';
     return [
       merchantWebPaymentCardPrimaryRow(),
-      [{ type: 'customHtml', col: 12, html: urlPayInputModeHintHtml }],
       merchantWebPaymentCardSecondaryRow(),
       [{ label: '로고설정', type: 'select', name: 'webPaymentHeaderLogoMode', options: [
         { v: 'DEFAULT', t: '기본(총판 로고)' },
@@ -592,23 +600,53 @@
     };
   }
 
-  /** 가맹 등록·정보 — JPAY jpay-pay.html 결제창 입력 필드(본사 기본 오버라이드) */
-  function merchantJpayCheckoutFieldModeCardSection() {
+  /** JPAY 1·2·3형 옵션 — 본사(HQ) */
+  function hqJpayCheckoutFieldModeOptions() {
+    return [
+      { v: 'FULL', t: '1형 전체 (카드·성명·이메일·전화·배송)' },
+      { v: 'CARD_ONLY', t: '2형 필수 4항목 (카드·성명·이메일·전화)' },
+      { v: 'CARD_PREFILL', t: '3형 카드·성명 + 가맹 prefill' }
+    ];
+  }
+
+  /** JPAY 1·2·3형 옵션 — 가맹(본사 따름 포함) */
+  function merchantJpayCheckoutFieldModeOptions() {
+    return [{ v: 'FOLLOW_HQ', t: '본사 기본 따름' }].concat(hqJpayCheckoutFieldModeOptions());
+  }
+
+  /** 본사·가맹 공통 — 결제창 구성(① JPAY 고객정보 ② URL 표시 ③ API 표시) */
+  function hqCheckoutCompositionFormRows() {
+    return [
+      [{ label: 'JPAY 고객 정보 입력', type: 'select', name: 'jpayCheckoutFieldMode', options: hqJpayCheckoutFieldModeOptions(), col: 4 },
+       { label: 'URL 화면 표시 기본값', type: 'select', name: 'urlPayInputModeDefault', options: urlPayInputModeTypeOptions(), col: 4 },
+       { label: 'API 화면 표시 기본값', type: 'select', name: 'apiUrlPayInputModeDefault', options: urlPayInputModeTypeOptions(), col: 4 }],
+      [{ label: '', type: 'note', col: 12, text: '① JPAY: 인라인·리다이렉트·공개 URL·챗봇·API 등 JPAY 결제 시 이메일·전화를 고객이 입력하는지 / 가맹이 buyerPrefill로 보내는지(3형). 숨김 ≠ 불필요 — 3형은 가맹이 값을 반드시 전달해야 합니다.' }],
+      [{ label: '', type: 'note', col: 12, text: '② URL·③ API: 결제창 로고·상품명·다국어 등 화면 표시 프리셋입니다. URL=공개 링크 결제, API=가맹 API 인라인(entry=merchant_api). 가맹 「입력방식」이 본사정책 따름이면 채널별로 ②·③이 각각 적용됩니다.' }],
+      [{ label: '', type: 'note', col: 12, text: 'JPAY 필수 국가코드(ISO2)는 전화와 분리합니다. 1·2형: 접속국가가 국가코드 기본값. 3형: buyerPrefill.countryIso2(없으면 접속국). 전화는 +82 없이 로컬 번호만.' }]
+    ];
+  }
+
+  /** 가맹 등록·정보 — 결제창 구성(① JPAY 고객정보 · ② URL 표시) */
+  function merchantCheckoutCompositionCardSection() {
+    var inputOpts = [{ v: 'FOLLOW_HQ', t: '본사정책 따름' }].concat(urlPayInputModeTypeOptions());
     return {
-      title: 'JPAY 결제창 입력 필드',
-      id: 'jpayCheckoutFieldModeCard',
+      title: '결제창 구성',
+      id: 'merchantCheckoutCompositionCard',
       merchantOnly: true,
-      notice: 'JPAY URL 인라인 결제창(jpay-pay.html) 입력 필드입니다. JPAY 필수: (1)카드·CVV (2)성명 (3)이메일 (4)국가코드(ISO2) (5)전화(국가코드 제외). (6)배송 주소는 선택. <strong>본사 기본 따름</strong>이면 본사설정 → 결제로직설정 값을 사용합니다.',
+      notice: '① JPAY 고객 정보 입력은 운영 결제대행사에 JPAY가 있을 때만 적용됩니다. ② 화면 표시(입력방식)는 URL·API 채널 공통 프리셋이며, 본사정책 따름이면 본사의 URL/API 입력방식 기본값을 채널별로 적용합니다.',
       rows: [
-        [{ label: 'JPAY 결제창 입력 필드', type: 'select', name: 'jpayCheckoutFieldMode', options: [
-          { v: 'FOLLOW_HQ', t: '본사 기본 따름' },
-          { v: 'FULL', t: '1형 전체 (카드·성명·이메일·전화·배송)' },
-          { v: 'CARD_ONLY', t: '2형 필수 4항목 (카드·성명·이메일·전화)' },
-          { v: 'CARD_PREFILL', t: '3형 카드·성명 + 가맹 prefill' }
-        ], col: 4 }],
+        [{ label: 'JPAY 고객 정보 입력', type: 'select', name: 'jpayCheckoutFieldMode', options: merchantJpayCheckoutFieldModeOptions(), col: 4, blockExtraClass: 'pg-jpay-checkout-field-mode-block' },
+         { label: '화면 표시 (입력방식)', type: 'select', name: 'urlPayInputMode', options: inputOpts, col: 4 }],
+        [{ type: 'customHtml', col: 12, html: '<div id="pgJpayCheckoutFieldModeOffHint" class="text-muted small mb-0" style="display:none" data-pg-ui-t="운영 결제대행사에 JPAY가 없어 JPAY 고객 정보 입력은 적용되지 않습니다.">운영 결제대행사에 JPAY가 없어 JPAY 고객 정보 입력은 적용되지 않습니다.</div>' }],
+        [{ type: 'customHtml', col: 12, html: urlPayInputModeHintHtml }],
         [{ label: '', type: 'note', col: 12, text: 'JPAY 필수: 국가코드(ISO2)·전화번호는 분리 입력(전화에 +82 등 붙이지 않음). 1·2형은 접속국가가 국가코드 드롭다운 기본값. 3형은 prepare buyerPrefill 의 countryIso2·phone(국가코드 제외). 2형: 주소 숨김. 3형: 카드·성명만 고객 입력.' }]
       ]
     };
+  }
+
+  /** @deprecated — merchantCheckoutCompositionCardSection 사용 */
+  function merchantJpayCheckoutFieldModeCardSection() {
+    return merchantCheckoutCompositionCardSection();
   }
 
   function merchantChatbotUrlPayCheckoutModeSelectRow(col) {
@@ -2402,6 +2440,9 @@
     '<thead class="table-light"><tr><th data-pg-ui-t="오류코드">오류코드</th><th data-pg-ui-t="의미">의미</th></tr></thead><tbody></tbody></table></div></section>' +
     '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="가맹 API 연동 채널">가맹 API 연동 채널</h6>' +
     '<div class="small" id="merchantApiDocsIntegrationChannels"></div></section>' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="활성화된 기능 안내">활성화된 기능 안내</h6>' +
+    '<p class="small text-muted mb-2" data-pg-ui-t="활성화된 기능 안내 설명">이 가맹점에 켜진 부가 기능만 표시합니다. 미사용 기능(정기결제·챗봇결제·분할결제) 매뉴얼은 배포하지 않습니다.</p>' +
+    '<div class="small" id="merchantApiDocsFeatureDocs"></div></section>' +
     '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3 d-flex flex-wrap align-items-baseline gap-1">' +
     '<span data-pg-ui-t="Checkout API 엔드포인트">Checkout API 엔드포인트</span>' +
     '<span class="text-muted fw-normal user-select-none" aria-hidden="true">/</span>' +
@@ -2432,6 +2473,9 @@
     '<ul class="small mb-0 ps-3" id="merchantApiPortalBindings"></ul></section>' +
     '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="가맹 API 연동 채널">가맹 API 연동 채널</h6>' +
     '<div class="small" id="merchantApiPortalIntegrationChannels"></div></section>' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="활성화된 기능 안내">활성화된 기능 안내</h6>' +
+    '<p class="small text-muted mb-2" data-pg-ui-t="활성화된 기능 안내 설명">이 가맹점에 켜진 부가 기능만 표시합니다. 미사용 기능 매뉴얼은 보이지 않습니다.</p>' +
+    '<div class="small" id="merchantApiPortalFeatureDocs"></div></section>' +
     '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3 d-flex flex-wrap align-items-baseline gap-1">' +
     '<span data-pg-ui-t="Checkout API 엔드포인트">Checkout API 엔드포인트</span>' +
     '<span class="text-muted fw-normal user-select-none" aria-hidden="true">/</span>' +
@@ -3614,8 +3658,8 @@
       isForm: true,
       formSections: [
         {
-          title: '결제대행사로직',
-          notice: '결제대행 연동 핵심 정책입니다. 통합유형(API_BROKER/URL_PAY)별 결제 실행방식(INLINE/REDIRECT) 기본값과 URL결제 경로를 설정합니다.',
+          title: '결제 실행방식·경로',
+          notice: '통합유형(API 중계 / URL 결제)별 기본 실행방식(INLINE·REDIRECT)과 URL 경로 템플릿·채널 제공 여부입니다.',
           rows: [
             [{ label: 'API 중계형 기본 방식', type: 'select', name: 'apiBrokerDefaultFlowType', options: [{ v: 'INLINE', t: 'INLINE' }, { v: 'REDIRECT', t: 'REDIRECT' }], col: 2 },
              { label: 'URL 결제형 기본 방식', type: 'select', name: 'urlPayDefaultFlowType', options: [{ v: 'INLINE', t: 'INLINE' }, { v: 'REDIRECT', t: 'REDIRECT' }], col: 2 },
@@ -3623,23 +3667,45 @@
             [{ label: 'API 중계형 INLINE 제공', type: 'select', name: 'apiBrokerInlineEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'API 중계형 REDIRECT 제공', type: 'select', name: 'apiBrokerRedirectEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'URL 결제형 INLINE 제공', type: 'select', name: 'urlPayInlineEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
-             { label: 'URL 결제형 REDIRECT 제공', type: 'select', name: 'urlPayRedirectEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
+             { label: 'URL 결제형 REDIRECT 제공', type: 'select', name: 'urlPayRedirectEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }]
+          ]
+        },
+        {
+          title: '멀티 결제대행사 라우팅',
+          notice: '여러 결제대행사를 브랜드·통화 기준으로 나눠 쓸지 설정합니다. 가맹 「결제대행사 설정」행과 함께 동작합니다.',
+          rows: [
             [{ label: '멀티 결제대행사 사용', type: 'select', name: 'multiPgRoutingEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: '멀티 PG 라우팅 방식', type: 'select', name: 'multiPgRoutingMode', options: [
                { v: 'BRAND', t: '카드브랜드만 (V/M/J/U 등)' },
                { v: 'CURRENCY', t: '통화만 (JPY/USD 등)' },
                { v: 'BRAND_AND_CURRENCY', t: '브랜드+통화 혼합' }
              ], col: 3 },
-             { label: '', type: 'note', col: 7, text: '사용 시 가맹 「결제대행사 설정」에서 브랜드·통화(ALL 또는 개별)별로 URL·API 결제가 해당 PG로 라우팅됩니다. 브랜드만=통화 ALL, 통화만=브랜드 ALL, 혼합=행마다 둘 다 지정 가능. 미사용 시 단일 운영 PG(정렬 1순위)만 사용합니다.' }],
+             { label: '', type: 'note', col: 7, text: '사용 시 가맹 「결제대행사 설정」에서 브랜드·통화(ALL 또는 개별)별로 URL·API 결제가 해당 PG로 라우팅됩니다. 브랜드만=통화 ALL, 통화만=브랜드 ALL, 혼합=행마다 둘 다 지정 가능. 미사용 시 단일 운영 PG(정렬 1순위)만 사용합니다.' }]
+          ]
+        },
+        {
+          title: '결제창 구성',
+          notice: '가맹이 「본사정책 따름」일 때 적용되는 본사 기본값입니다. ① JPAY 고객 정보 · ② URL 채널 화면 표시 · ③ API 인라인 채널 화면 표시.',
+          rows: hqCheckoutCompositionFormRows()
+        },
+        {
+          title: '결제창·카드인증 기본값',
+          notice: '가맹이 「본사정책 따름」일 때 적용되는 본사 기본값입니다. (태블릿 메뉴 노출은 「태블릿 UX」탭에서 설정합니다.)',
+          rows: [
             [{ label: '모바일 결제창 기본값', type: 'select', name: 'mobileCheckoutModeDefault', options: [
               { v: 'EMBED', t: 'iframe (3DS 상위 이동)' },
               { v: 'MOBILE_REDIRECT', t: '모바일 전체 페이지' },
               { v: 'ALWAYS_REDIRECT', t: '항상 전체 페이지' }
             ], col: 3 },
-             { label: 'URL 입력방식 기본값', type: 'select', name: 'urlPayInputModeDefault', options: urlPayInputModeTypeOptions(), col: 3 },
              { label: '유효기간방식 기본값', type: 'select', name: 'urlPayCardExpiryModeDefault', options: urlPayCardExpiryModeTypeOptions(), col: 3 },
-             { label: 'API 입력방식 기본값', type: 'select', name: 'apiUrlPayInputModeDefault', options: urlPayInputModeTypeOptions(), col: 3 }],
-            [{ label: '', type: 'note', col: 12, text: '모바일 결제창·입력방식은 가맹 「본사정책 따름」일 때 채널별로 적용됩니다. URL=공개 URL·챗봇·분할 URL, API=가맹 API 인라인(entry=merchant_api). 가맹에서 타입을 직접 고르면 URL·API 모두 그 값이 우선합니다.' }],
+             { label: '카드인증방식 기본값', type: 'select', name: 'cardAuthModeDefault', options: cardAuthModeTypeOptions(), col: 3 }],
+            [{ label: '', type: 'note', col: 12, text: '모바일 결제창·유효기간·카드인증(3DS/2DS)은 가맹 「본사정책 따름」일 때 적용됩니다. 카드인증은 URL결제·API 인라인에 동일 실효값입니다. 가맹에서 직접 고르면 본사보다 우선합니다. 구독(정기)은 항상 초회 3DS이며 이 설정과 무관합니다.' }]
+          ]
+        },
+        {
+          title: 'WordPress·URL 재결제',
+          notice: 'WordPress/WooCommerce 플러그인 채널과 저장 카드 재결제 URL 전역 제공 여부입니다.',
+          rows: [
             [{ label: 'WordPress 플러그인 제공', type: 'select', name: 'apiWordpressPluginEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: '', type: 'note', col: 10, text: 'WooCommerce·일반 WordPress ZIP·REST webhook 채널 전역 on/off. 가맹별 오픈은 업체관리 → 가맹 「가맹 API 연동 채널」.' }],
             [{ label: 'URL 재결제형 제공', type: 'select', name: 'urlPayRepayEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
@@ -3699,14 +3765,6 @@
              { label: '구독 경로 템플릿', type: 'text', name: 'jpaySubscriptionPathTemplate', col: 4, placeholder: '/jpay-subscribe/{compCode}' }],
             [{ label: '기본 plan JSON', type: 'textarea', name: 'jpaySubscriptionConfigJson', col: 12, rows: 4,
                placeholder: '{"attempts":"3","interval_time":3600,"total_count":12}' }]
-          ]
-        },
-        {
-          title: 'JPAY 결제창 입력 필드',
-          notice: 'JPAY URL 결제창(jpay-pay.html) 입력 필드 본사 기본값입니다. JPAY 필수: (1)카드·CVV (2)성명 (3)이메일 (4)국가코드(ISO2) (5)전화(로컬번호). (6)배송 주소는 선택. <strong>1형 전체</strong>=모두 입력. <strong>2형 필수 4항목</strong>+국가코드. <strong>3형</strong>=카드·성명만 입력, 이메일·국가코드·전화·주소는 prepare buyerPrefill. 업체관리 → 가맹 「JPAY 결제창 입력 필드」에서 가맹별 오버라이드 가능.',
-          rows: [
-            [{ label: 'JPAY 결제창 입력 필드', type: 'select', name: 'jpayCheckoutFieldMode', options: [{ v: 'FULL', t: '1형 전체 (카드·성명·이메일·전화·배송)' }, { v: 'CARD_ONLY', t: '2형 필수 4항목 (카드·성명·이메일·전화)' }, { v: 'CARD_PREFILL', t: '3형 카드·성명 + 가맹 prefill' }], col: 4 }],
-            [{ label: '', type: 'note', col: 12, text: 'JPAY 필수 국가코드(ISO2)는 전화번호와 분리합니다. 1·2형: 접속국가가 국가코드 드롭다운 기본값. 3형: buyerPrefill.countryIso2(없으면 접속국). 전화번호는 +82 등 국가번호 없이 로컬 번호만. pay_country_iso_code_2 로 JPAY에 전달됩니다.' }]
           ]
         },
         {
@@ -4085,8 +4143,8 @@
           notice: merchantWebPaymentCardNoticeKo(),
           rows: merchantWebPaymentCardRows('가맹점 저장 후 조회')
         },
+        merchantCheckoutCompositionCardSection(),
         merchantApiUrlPayCheckoutCardSection(),
-        merchantJpayCheckoutFieldModeCardSection(),
         merchantApiIntegrationChannelsCardSection(),
         merchantJpayApiSubscriptionCardSection(),
         merchantSplitPayCardSection(),
@@ -4514,8 +4572,8 @@
           notice: merchantWebPaymentCardNoticeKo(),
           rows: merchantWebPaymentCardRows('가맹점 저장 후 조회')
         },
+        merchantCheckoutCompositionCardSection(),
         merchantApiUrlPayCheckoutCardSection(),
-        merchantJpayCheckoutFieldModeCardSection(),
         merchantApiIntegrationChannelsCardSection(),
         merchantJpayApiSubscriptionCardSection(),
         merchantSplitPayCardSection(),
@@ -4873,8 +4931,8 @@
           notice: merchantWebPaymentCardNoticeKo(),
           rows: merchantWebPaymentCardRows('가맹점 선택 후 조회')
         },
+        merchantCheckoutCompositionCardSection(),
         merchantApiUrlPayCheckoutCardSection(),
-        merchantJpayCheckoutFieldModeCardSection(),
         merchantApiIntegrationChannelsCardSection(),
         merchantJpayApiSubscriptionCardSection(),
         merchantSplitPayCardSection(),

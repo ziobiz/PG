@@ -22,6 +22,7 @@ import com.pg.middleware.notify.PgNotifyIngressPaths;
 import com.pg.service.ChillPayService;
 import com.pg.service.CompService;
 import com.pg.service.HqNotifyEnvService;
+import com.pg.service.JpaySubscriptionConfigService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,6 +59,7 @@ public class MerchantApiDeploymentService {
     private final PgAgencyRepository pgAgencyRepository;
     private final MerchantApiIntegrationChannelService integrationChannelService;
     private final ChillPayService chillPayService;
+    private final JpaySubscriptionConfigService subscriptionConfigService;
 
     public MerchantApiDeploymentService(OrgUnitRepository orgUnitRepository,
                                         MerchantProfileRepository merchantProfileRepository,
@@ -71,7 +73,8 @@ public class MerchantApiDeploymentService {
                                         CompService compService,
                                         PgAgencyRepository pgAgencyRepository,
                                         MerchantApiIntegrationChannelService integrationChannelService,
-                                        ChillPayService chillPayService) {
+                                        ChillPayService chillPayService,
+                                        JpaySubscriptionConfigService subscriptionConfigService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
@@ -85,6 +88,7 @@ public class MerchantApiDeploymentService {
         this.pgAgencyRepository = pgAgencyRepository;
         this.integrationChannelService = integrationChannelService;
         this.chillPayService = chillPayService;
+        this.subscriptionConfigService = subscriptionConfigService;
     }
 
     public List<Map<String, Object>> listVendors() {
@@ -450,6 +454,8 @@ public class MerchantApiDeploymentService {
         kit.put("merchantQuickStart", MerchantApiDeployChecklistI18n.buildQuickStart(publicApiBase, ou.getCode()));
 
         applyIntegrationChannelFilter(kit, ou.getId());
+        /* 가맹에 켜진 기능(구독·챗봇·분할)만 배포 문서에 포함 — 미사용 기능 매뉴얼은 혼란 방지로 제외 */
+        applyMerchantFeatureDocFilter(kit, ou.getId());
         /* 가맹 API 출시·키트 JSON은 항상 ICOPAY만 노출 (운영 PG명·PG별 경로 금지) */
         applyMerchantDocIcopayNeutralFilter(kit, ou.getId());
 
@@ -501,6 +507,142 @@ public class MerchantApiDeploymentService {
             out.add(row);
         }
         return out.isEmpty() ? list : out;
+    }
+
+    /**
+     * 가맹점별로 활성화된 기능의 문서만 배포 키트에 남긴다.
+     * 정기결제(구독)·챗봇결제·분할결제가 OFF 이면 해당 매뉴얼·엔드포인트 블록을 제거한다.
+     */
+    private void applyMerchantFeatureDocFilter(Map<String, Object> kit, Long orgUnitId) {
+        Optional<MerchantProfile> profOpt = merchantProfileRepository.findByOrgUnitId(orgUnitId);
+        boolean subscription = subscriptionConfigService.isMerchantSubscriptionEnabled(orgUnitId);
+        boolean chatbot = profOpt.map(p -> yn(p.getChatbotPaymentUseYn())).orElse(false);
+        boolean splitPay = profOpt.map(p -> yn(p.getSplitPayEnabledYn())).orElse(false);
+
+        Map<String, Object> flags = new LinkedHashMap<>();
+        flags.put("subscription", subscription);
+        flags.put("chatbotPayment", chatbot);
+        flags.put("splitPay", splitPay);
+        kit.put("merchantFeatureFlags", flags);
+
+        List<Map<String, Object>> featureDocs = new ArrayList<>();
+        if (subscription) {
+            featureDocs.add(featureDocBlock(
+                    "SUBSCRIPTION",
+                    new Bundle(
+                            "정기결제(구독)",
+                            "Subscription (recurring)",
+                            "定期課金（サブスク）",
+                            "订阅（周期扣款）",
+                            "การสมัครสมาชิก (หักเป็นงวด)"
+                    ),
+                    new Bundle(
+                            "이 가맹점에 API 구독(정기결제)이 활성화되어 있습니다. Checkout API의 「통합 구독」엔드포인트·체크리스트만 사용하세요.",
+                            "Subscription API is enabled for this merchant. Use only the unified subscription endpoints and checklist.",
+                            "この加盟店では API サブスクが有効です。統合サブスクのエンドポイントとチェックリストのみ使用してください。",
+                            "该商户已启用订阅 API。请仅使用统一订阅端点与检查清单。",
+                            "ร้านนี้เปิด API สมัครสมาชิกแล้ว ใช้เฉพาะ endpoint และ checklist ของ subscription รวม"
+                    ),
+                    new Bundle(
+                            "메뉴: 결제관리 → 구독내역(해당 시). API: /checkout/subscription/prepare|session|status|cancel",
+                            "Menu: Payments → Subscriptions (if shown). API: /checkout/subscription/prepare|session|status|cancel",
+                            "メニュー: 決済管理 → サブスク(該当時)。API: /checkout/subscription/...",
+                            "菜单: 支付管理 → 订阅(如有)。API: /checkout/subscription/...",
+                            "เมนู: การชำระ → สมัครสมาชิก (ถ้ามี) API: /checkout/subscription/..."
+                    )
+            ));
+        }
+        if (chatbot) {
+            featureDocs.add(featureDocBlock(
+                    "CHATBOT_PAYMENT",
+                    new Bundle(
+                            "챗봇결제",
+                            "Chatbot payment",
+                            "チャットボット決済",
+                            "聊天机器人支付",
+                            "ชำระผ่านแชทบอท"
+                    ),
+                    new Bundle(
+                            "이 가맹점에 챗봇결제가 활성화되어 있습니다. 챗봇관리·챗봇결제 메뉴와 챗봇 URL/위젯만 안내하세요. API Checkout 구독·분할 매뉴얼과 혼동하지 마세요.",
+                            "Chatbot payment is enabled. Use chatbot menus and chatbot URL/widget only — do not mix with subscription or split-pay API manuals.",
+                            "チャットボット決済が有効です。チャットボット管理・URL/ウィジェットのみ案内し、サブスク・分割 API マニュアルと混同しないでください。",
+                            "已启用聊天机器人支付。仅使用聊天机器人菜单与 URL/挂件，勿与订阅或分期 API 手册混淆。",
+                            "เปิดชำระแชทบอทแล้ว ใช้เฉพาะเมนู/URL/วิดเจ็ตแชทบอท อย่าสับสนกับคู่มือ subscription หรือ split-pay"
+                    ),
+                    new Bundle(
+                            "메뉴: 챗봇관리(상품·지식·주문) · 결제관리 → 챗봇결제. 업체정보의 챗봇결제 URL·위젯 스크립트.",
+                            "Menus: Chatbot admin · Payments → Chatbot pay. Merchant profile chatbot URL / embed script.",
+                            "メニュー: チャットボット管理 · 決済 → チャットボット決済。業者情報の URL/ウィジェット。",
+                            "菜单: 聊天机器人管理 · 支付 → 聊天机器人支付。商户资料中的 URL/挂件。",
+                            "เมนู: จัดการแชทบอท · การชำระ → แชทบอท URL/วิดเจ็ตในข้อมูลร้าน"
+                    )
+            ));
+        }
+        if (splitPay) {
+            featureDocs.add(featureDocBlock(
+                    "SPLIT_PAY",
+                    new Bundle(
+                            "분할결제",
+                            "Split payment",
+                            "分割決済",
+                            "分期/分割支付",
+                            "ชำระแบบแบ่งงวด"
+                    ),
+                    new Bundle(
+                            "이 가맹점에 URL 분할결제가 활성화되어 있습니다. 분할관리·분할결제내역·분할결제 URL만 안내하세요. 일반 Checkout·구독 API 매뉴얼과 별개입니다.",
+                            "URL split payment is enabled. Guide only split-pay menus and the split-pay URL — separate from one-shot Checkout and subscription API docs.",
+                            "URL 分割決済が有効です。分割管理・分割決済 URL のみ案内し、通常 Checkout・サブスク API とは別です。",
+                            "已启用 URL 分期支付。仅引导分期菜单与分期 URL，与普通 Checkout、订阅 API 无关。",
+                            "เปิด split-pay URL แล้ว แนะนำเฉพาะเมนู/URL แบ่งงวด แยกจาก Checkout ปกติและ subscription"
+                    ),
+                    new Bundle(
+                            "메뉴: 분할관리 · 결제관리 → 분할결제내역. 업체정보의 분할결제 URL.",
+                            "Menus: Split management · Payments → Split history. Merchant profile split-pay URL.",
+                            "メニュー: 分割管理 · 決済 → 分割履歴。業者情報の分割決済 URL。",
+                            "菜单: 分期管理 · 支付 → 分期明细。商户资料中的分期 URL。",
+                            "เมนู: จัดการแบ่งงวด · การชำระ → ประวัติ URL ในข้อมูลร้าน"
+                    )
+            ));
+        }
+        kit.put("merchantFeatureDocs", featureDocs);
+
+        if (!subscription) {
+            kit.remove("merchantUnifiedSubscriptionCheckout");
+            kit.remove("merchantSubscriptionCheckoutJpay");
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> checklist = (List<Map<String, Object>>) kit.get("integrationChecklist");
+            if (checklist != null) {
+                kit.put("integrationChecklist", filterChecklistWithoutSubscription(checklist));
+            }
+        }
+    }
+
+    private static Map<String, Object> featureDocBlock(String code, Bundle title, Bundle summary, Bundle menuHint) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("featureCode", code);
+        MerchantDeployL10n.putTextFields(m, "title", title);
+        MerchantDeployL10n.putTextFields(m, "summary", summary);
+        MerchantDeployL10n.putTextFields(m, "menuHint", menuHint);
+        return m;
+    }
+
+    private static List<Map<String, Object>> filterChecklistWithoutSubscription(List<Map<String, Object>> list) {
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Map<String, Object> row : list) {
+            String kr = row.get("textKr") != null ? row.get("textKr").toString() : "";
+            String en = row.get("textEn") != null ? row.get("textEn").toString() : "";
+            String blob = (kr + " " + en).toLowerCase(Locale.ROOT);
+            if (blob.contains("구독") || blob.contains("subscription") || blob.contains("サブスク")
+                    || blob.contains("订阅") || blob.contains("embed-checkout-subscribe")) {
+                continue;
+            }
+            out.add(row);
+        }
+        return out;
+    }
+
+    private static boolean yn(String v) {
+        return v != null && "Y".equalsIgnoreCase(v.trim());
     }
 
     /**
@@ -967,6 +1109,8 @@ public class MerchantApiDeploymentService {
         portal.put("integrationChecklist", kit.get("integrationChecklist"));
         portal.put("merchantQuickStart", kit.get("merchantQuickStart"));
         portal.put("credentialScopes", kit.get("credentialScopes"));
+        portal.put("merchantFeatureFlags", kit.get("merchantFeatureFlags"));
+        portal.put("merchantFeatureDocs", kit.get("merchantFeatureDocs"));
         return portal;
     }
 

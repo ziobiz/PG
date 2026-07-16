@@ -9470,6 +9470,30 @@
       CH: '输入方式',
       TH: 'โหมดการกรอก'
     },
+    '카드인증방식': {
+      EN: 'Card authentication',
+      JP: 'カード認証方式',
+      CH: '卡片认证方式',
+      TH: 'วิธียืนยันบัตร'
+    },
+    '카드인증방식 기본값': {
+      EN: 'Default card authentication',
+      JP: 'カード認証方式の既定値',
+      CH: '卡片认证默认值',
+      TH: 'ค่าเริ่มต้นการยืนยันบัตร'
+    },
+    '2DS(비인증)': {
+      EN: '2DS (non-3DS)',
+      JP: '2DS（非認証）',
+      CH: '2DS（非认证）',
+      TH: '2DS (ไม่ยืนยัน 3DS)'
+    },
+    '모바일 결제창·입력방식·카드인증(3DS/2DS)은 가맹 「본사정책 따름」일 때 적용됩니다. 카드인증은 URL결제·API 인라인에 동일 실효값입니다. 가맹에서 직접 고르면 본사보다 우선합니다. 구독(정기)은 항상 초회 3DS이며 이 설정과 무관합니다.': {
+      EN: 'Mobile checkout, input mode, and card authentication (3DS/2DS) apply when the merchant follows HQ policy. Card authentication uses the same effective value for URL pay and API inline. A merchant override takes priority over HQ. Subscriptions always use 3DS on the first charge and ignore this setting.',
+      JP: 'モバイル決済画面・入力方式・カード認証(3DS/2DS)は加盟店が「本社ポリシーに従う」のときに適用されます。カード認証はURL決済とAPIインラインで同一の実効値です。加盟店が直接選ぶと本社より優先します。サブスク（定期）は初回常に3DSで、この設定とは無関係です。',
+      CH: '移动结账、输入方式与卡片认证(3DS/2DS)在商户选择「遵循总部政策」时生效。卡片认证在 URL 支付与 API 内联中使用相同实效力。商户自行选择时优先于总部。订阅（定期）首次始终使用 3DS，与此设置无关。',
+      TH: 'หน้าชำระมือถือ โหมดกรอก และการยืนยันบัตร (3DS/2DS) ใช้เมื่อร้านเลือกตามนโยบาย HQ การยืนยันบัตรใช้ค่าเดียวกันสำหรับ URL และการชำระ API อินไลน์ หากร้านเลือกเองจะเหนือกว่า HQ การสมัครสมาชิกใช้ 3DS ในครั้งแรกเสมอ และไม่เกี่ยวกับการตั้งค่านี้'
+    },
     '일반': {
       EN: 'Standard',
       JP: '通常',

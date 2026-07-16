@@ -8,6 +8,13 @@ app:
     allow-org-hierarchy-reset: false
 
 spring:
+  # 운영 기동 약간 단축(불필요 JMX). 오탐·미설정은 기동 시점에 그대로 드러나도록 lazy-init 은 쓰지 않음.
+  jmx:
+    enabled: false
+  datasource:
+    hikari:
+      # 수동 재시작(export …=20)과 맞춤. 환경변수로 덮어쓰기 가능.
+      maximum-pool-size: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:20}
   servlet:
     multipart:
       max-file-size: 6MB

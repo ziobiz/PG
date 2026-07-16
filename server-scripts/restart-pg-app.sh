@@ -10,8 +10,8 @@
 #   nano restart-pg-app.sh   # 아래 ★ 항목만 본인 DB에 맞게 수정
 #   ./restart-pg-app.sh
 #
-# 주의: 실행 순서는 스크립트가 처리합니다. 수동 실행 시에는 반드시
-#   pkill → sleep → (환경변수) → nohup 순서를 지키세요.
+# 주의: 다운타임을 줄이기 위해 JPAY 스크립트 준비는 **종료 전**에 하고,
+#   그 다음 pkill → 포트 해제 → nohup java 순서로 진행합니다.
 #
 # 동시에 스크립트를 여러 번 돌리면 Java 프로세스가 둘 이상 떠서 로그가 섞이고,
 # 하나는 Started 직후 pkill 로 죽거나 8080 충돌로 ApplicationContext 가 실패할 수 있습니다.
@@ -59,6 +59,19 @@ fi
 
 cd "$PG_APP_DIR"
 
+# 예전 버그: nohup java 가 flock FD(200)를 상속하면 잠금이 Java 수명 동안 유지되어
+# 다음 ./restart-pg-app.sh 가 영원히(또는 180초) 대기한다. 점유자가 pg-app java 면 먼저 종료.
+if command -v lsof >/dev/null 2>&1; then
+  for _lp in $(lsof -t "$LOCK_FILE" 2>/dev/null || true); do
+    if ps -p "$_lp" -o args= 2>/dev/null | grep -q 'pg-app-0.0.1-SNAPSHOT.jar'; then
+      echo "   경고: 재시작 잠금을 pg-app Java(PID=$_lp)가 점유 중 → 종료 후 진행"
+      kill "$_lp" 2>/dev/null || true
+      sleep 2
+      kill -9 "$_lp" 2>/dev/null || true
+    fi
+  done
+fi
+
 # 동시 재시작 방지: 이전 실행이 포트 대기(최대 60초) 중이면 즉시 실패하면 운영이 답답함.
 # → 최대 3분까지 잠금 해제를 기다린 뒤 진행. 그래도 못 잡으면 안내 후 종료.
 exec 200>"$LOCK_FILE" || true
@@ -84,52 +97,19 @@ port_8080_busy() {
   return 1
 }
 
-echo "1) 기존 pg-app 프로세스 종료..."
-pkill -f "pg-app-0.0.1-SNAPSHOT.jar" 2>/dev/null || true
-sleep 2
-# pkill 이 실패했는데도 8080 이 열려 있으면(예전 실행 방식) PID 로 강제 종료
-if command -v ss >/dev/null 2>&1; then
-  pid=$(ss -tlnp 2>/dev/null | grep ':8080' | sed -n 's/.*pid=\([0-9]*\).*/\1/p' | head -1)
-  if [[ -n "$pid" ]]; then
-    echo "   8080 사용 중 PID=$pid 종료 시도 (SIGTERM)..."
-    kill "$pid" 2>/dev/null || true
-    sleep 2
-  fi
-fi
-
-echo "   8080 포트 해제 대기(최대 60초, 지연 시 SIGKILL)..."
-for _w in $(seq 1 60); do
-  if ! port_8080_busy; then
-    break
-  fi
-  # Spring 종료 훅이 30초 타임아웃으로 길어질 수 있음 → 25초 넘게 점유 시 강제 종료
-  if [[ "$_w" -eq 25 ]] && command -v ss >/dev/null 2>&1; then
-    pid=$(ss -tlnp 2>/dev/null | grep ':8080' | sed -n 's/.*pid=\([0-9]*\).*/\1/p' | head -1)
-    if [[ -n "$pid" ]]; then
-      echo "   경고: 25초 경과 후에도 8080 점유 → PID=$pid 에 SIGKILL (종료 로그에 CNF 등이 찍힐 수 있음)"
-      kill -9 "$pid" 2>/dev/null || true
-      sleep 1
-    fi
-  fi
-  sleep 1
-done
-if port_8080_busy; then
-  echo "경고: 60초 후에도 8080 이 사용 중입니다. ss -tlnp | grep 8080 로 PID 확인 후 kill 하세요."
-fi
-
-echo "2) pg-app 기동 (prod)..."
-echo "   첫 기동은 DB·JPA 때문에 약 1분 걸릴 수 있습니다."
-echo "   완료 전에 이 스크립트를 다시 실행하지 마세요."
+# ─── 0) JPAY 스크립트 준비 (아직 옛 Java 가 서비스 중 = 다운타임 없음) ───
+echo "0) JPAY scripts 준비 (서비스 유지 중)..."
 export DB_HOST DB_USER DB_PASSWORD
 export SPRING_PROFILES_ACTIVE=prod
 # 정산 자동 배치 tick(매 분 등). 기본 켜짐. 끄려면 실행 전: export APP_SETTLEMENT_AUTO_RUN=false
-# (관리자 화면 ①). 본사 DB ② 허용과 함께 켜져 있어야 AUTO 가맹 H1 등이 돌아감.
 export APP_SETTLEMENT_AUTO_RUN="${APP_SETTLEMENT_AUTO_RUN:-true}"
-# JPAY 동기화(Playwright): 재시작마다 JAR → scripts/ 갱신 (별도 스크립트 업로드 불필요)
+# 운영 수동 재시작과 동일 기본값 (환경변수로 덮어쓰기 가능)
+export SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE="${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:-20}"
 export PG_SCRIPTS_DIR="${PG_SCRIPTS_DIR:-$PG_APP_DIR/scripts}"
+PLAYWRIGHT_DEPS_MARKER="${PG_SCRIPTS_DIR}/.playwright-deps-ok"
 mkdir -p "$PG_SCRIPTS_DIR"
 if command -v unzip >/dev/null 2>&1; then
-  echo "   JPAY scripts: JAR에서 추출(재시작 시 자동 갱신)..."
+  echo "   JAR에서 jpay 스크립트 추출..."
   unzip -p "$JAR" BOOT-INF/classes/scripts/jpay-portal-export.js >"$PG_SCRIPTS_DIR/jpay-portal-export.js" 2>/dev/null || true
   unzip -p "$JAR" BOOT-INF/classes/scripts/package.json >"$PG_SCRIPTS_DIR/package.json" 2>/dev/null || true
   script_ver=$(grep -m1 'SCRIPT_VERSION' "$PG_SCRIPTS_DIR/jpay-portal-export.js" 2>/dev/null || true)
@@ -141,14 +121,62 @@ else
 fi
 if [[ -d "$PG_SCRIPTS_DIR" ]] && command -v npm >/dev/null 2>&1 \
     && [[ ! -d "$PG_SCRIPTS_DIR/node_modules/playwright" ]]; then
-  echo "   JPAY scripts: Playwright 미설치 → npm install (최초 1회, 수 분 소요 가능)..."
+  echo "   Playwright 미설치 → npm install (최초 1회, 서비스는 아직 유지)..."
   (cd "$PG_SCRIPTS_DIR" && npm install --omit=dev && npx playwright install chromium) >>"$LOG_FILE" 2>&1 || true
+  rm -f "$PLAYWRIGHT_DEPS_MARKER"
 fi
+# install-deps 는 apt 수준이라 매 재시작마다 돌리면 다운타임만 늘림 → 마커 있으면 생략
 if [[ -d "$PG_SCRIPTS_DIR/node_modules/playwright" ]] && command -v npx >/dev/null 2>&1; then
-  echo "   JPAY scripts: Chromium 시스템 의존성 확인(install-deps)..."
-  (cd "$PG_SCRIPTS_DIR" && npx playwright install-deps chromium) >>"$LOG_FILE" 2>&1 || true
+  if [[ "${FORCE_PLAYWRIGHT_DEPS:-}" == "1" || ! -f "$PLAYWRIGHT_DEPS_MARKER" ]]; then
+    echo "   Chromium 시스템 의존성 확인(install-deps, 1회)..."
+    if (cd "$PG_SCRIPTS_DIR" && npx playwright install-deps chromium) >>"$LOG_FILE" 2>&1; then
+      date -u +%Y-%m-%dT%H:%M:%SZ >"$PLAYWRIGHT_DEPS_MARKER" 2>/dev/null || touch "$PLAYWRIGHT_DEPS_MARKER"
+    fi
+  else
+    echo "   Chromium deps: 이미 확인됨 (강제 시 FORCE_PLAYWRIGHT_DEPS=1)"
+  fi
 fi
-nohup java -jar "$JAR" --spring.profiles.active=prod --server.port=8080 >>"$LOG_FILE" 2>&1 &
+
+# ─── 1) 서비스 중단 → 포트 해제 (다운타임 시작) ───
+echo "1) 기존 pg-app 프로세스 종료..."
+pkill -f "pg-app-0.0.1-SNAPSHOT.jar" 2>/dev/null || true
+sleep 1
+if command -v ss >/dev/null 2>&1; then
+  pid=$(ss -tlnp 2>/dev/null | grep ':8080' | sed -n 's/.*pid=\([0-9]*\).*/\1/p' | head -1)
+  if [[ -n "$pid" ]]; then
+    echo "   8080 사용 중 PID=$pid 종료 시도 (SIGTERM)..."
+    kill "$pid" 2>/dev/null || true
+    sleep 1
+  fi
+fi
+
+echo "   8080 포트 해제 대기(최대 45초, 10초 후 SIGKILL)..."
+for _w in $(seq 1 45); do
+  if ! port_8080_busy; then
+    break
+  fi
+  # Spring 종료가 길면 다운타임만 늘어남 → 10초 후 강제 종료
+  if [[ "$_w" -eq 10 ]] && command -v ss >/dev/null 2>&1; then
+    pid=$(ss -tlnp 2>/dev/null | grep ':8080' | sed -n 's/.*pid=\([0-9]*\).*/\1/p' | head -1)
+    if [[ -n "$pid" ]]; then
+      echo "   경고: 10초 경과 후에도 8080 점유 → PID=$pid 에 SIGKILL"
+      kill -9 "$pid" 2>/dev/null || true
+      sleep 1
+    fi
+  fi
+  sleep 1
+done
+if port_8080_busy; then
+  echo "경고: 45초 후에도 8080 이 사용 중입니다. ss -tlnp | grep 8080 로 PID 확인 후 kill 하세요."
+fi
+
+# ─── 2) 새 JAR 기동 ───
+echo "2) pg-app 기동 (prod)..."
+echo "   DB·JPA validate 때문에 약 1분 걸릴 수 있습니다. 완료 전 재실행 금지."
+# SecureRandom 초기화 지연 완화(Linux). 추가 JVM 옵션은 JAVA_OPTS 로.
+JAVA_OPTS_DEFAULT="-Djava.security.egd=file:/dev/./urandom"
+# flock FD(200)를 java 에 넘기지 않음 — 상속되면 다음 재시작이 잠금에 걸린다.
+nohup java $JAVA_OPTS_DEFAULT ${JAVA_OPTS:-} -jar "$JAR" --spring.profiles.active=prod --server.port=8080 >>"$LOG_FILE" 2>&1 200>&- &
 echo "   로그: tail -f $LOG_FILE"
 echo "   성공 한 줄: grep 'Started PgAppApplication' $LOG_FILE | tail -1"
 echo "   (프롬프트가 바로 돌아오는 것은 정상입니다. java 는 백그라운드에서 기동 중입니다.)"

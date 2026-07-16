@@ -4,6 +4,7 @@ import com.pg.entity.MerchantPgBinding;
 import com.pg.service.ChillPayService;
 import com.pg.service.ElementPayPaymentService;
 import com.pg.service.EximbayPaymentService;
+import com.pg.service.IlkPaymentService;
 import com.pg.service.JpayPaymentService;
 import com.pg.service.MerchantPgBindingRouterService;
 import com.pg.service.UrlPayChargeResolutionService;
@@ -25,6 +26,7 @@ public class UrlPaySaleDispatcher {
     private final JpayPaymentService jpayPaymentService;
     private final EximbayPaymentService eximbayPaymentService;
     private final ElementPayPaymentService elementPayPaymentService;
+    private final IlkPaymentService ilkPaymentService;
     private final UrlPayVendorCapabilityRegistry capabilityRegistry;
     private final UrlPayChargeResolutionService urlPayChargeResolutionService;
     private final MerchantPgBindingRouterService pgBindingRouter;
@@ -33,6 +35,7 @@ public class UrlPaySaleDispatcher {
                                 JpayPaymentService jpayPaymentService,
                                 EximbayPaymentService eximbayPaymentService,
                                 ElementPayPaymentService elementPayPaymentService,
+                                IlkPaymentService ilkPaymentService,
                                 UrlPayVendorCapabilityRegistry capabilityRegistry,
                                 UrlPayChargeResolutionService urlPayChargeResolutionService,
                                 MerchantPgBindingRouterService pgBindingRouter) {
@@ -40,6 +43,7 @@ public class UrlPaySaleDispatcher {
         this.jpayPaymentService = jpayPaymentService;
         this.eximbayPaymentService = eximbayPaymentService;
         this.elementPayPaymentService = elementPayPaymentService;
+        this.ilkPaymentService = ilkPaymentService;
         this.capabilityRegistry = capabilityRegistry;
         this.urlPayChargeResolutionService = urlPayChargeResolutionService;
         this.pgBindingRouter = pgBindingRouter;
@@ -87,6 +91,7 @@ public class UrlPaySaleDispatcher {
             case JPAY_INLINE_SALE -> jpayPaymentService.executeDirectSale(orgUnitId, body, request, clientIp);
             case EXIMBAY_READY_SALE -> eximbayPaymentService.executeReady(orgUnitId, body, request, clientIp);
             case ELEMENTPAY_INIT_PAYMENT -> elementPayPaymentService.executeInitPayment(orgUnitId, body, request, clientIp);
+            case ILK_INLINE_SALE -> ilkPaymentService.executeSale(orgUnitId, body, request, clientIp);
             case CHILLPAY_DIRECT_CREDIT -> fail(
                     "ChillPay URL 결제는 POST /api/pay/chillpay/direct-credit 를 사용하세요(CCD 토큰 필요).",
                     "USE_CHILLPAY_DIRECT_CREDIT");

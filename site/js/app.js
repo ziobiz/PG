@@ -1078,13 +1078,17 @@
           }
           var html = opts.map(function (o) {
             var val = o.v != null ? String(o.v) : '';
-            var lab = o.t != null ? String(o.t) : val;
+            var labKey = o.t != null ? String(o.t) : val;
+            var lab = pgAdminUiT(labKey);
             if (scopedOn && val) lab = pgMerchantCalcCycleOptionLabel(o);
             var ttl = o.d ? ' title="' + pgEscapeAttr(val + (val && o.d ? ' — ' : '') + String(o.d)) + '"' : (val ? ' title="' + pgEscapeAttr(val) + '"' : '');
             var selAttr = (val === v) ? ' selected' : '';
-            return '<option value="' + pgEscapeAttr(val) + '"' + ttl + selAttr + '>' + pgEscapeHtml(lab) + '</option>';
+            return '<option value="' + pgEscapeAttr(val) + '"' + ttl + selAttr + ' data-pg-ui-t="' + pgEscapeAttr(labKey) + '">' + pgEscapeHtml(lab) + '</option>';
           }).join('');
           sel.innerHTML = html;
+          if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
+            try { window.PG_UI_I18N.applyDom(sel); } catch (eCcDom) { /* ignore */ }
+          }
           var has = Array.prototype.some.call(sel.options, function (op) { return op.value === v; });
           if (v && !has) {
             var o = document.createElement('option');
@@ -1446,7 +1450,8 @@
 
   function pgApplyUrlPayInputModeSelectFromDetail(form, rawMode) {
     if (!form) return;
-    var uim = form.querySelector('#webPaymentCard [name="urlPayInputMode"]');
+    var uim = form.querySelector('#merchantCheckoutCompositionCard [name="urlPayInputMode"]')
+      || form.querySelector('#webPaymentCard [name="urlPayInputMode"]');
     if (!uim) return;
     var im = String(rawMode != null ? rawMode : 'GENERAL').trim().toUpperCase();
     var validInputModes = (window.PG_URL_PAY_INPUT_MODE && PG_URL_PAY_INPUT_MODE.ALL_MODES)
@@ -1460,7 +1465,7 @@
     }
     if (validInputModes.indexOf(im) < 0) im = 'GENERAL';
     uim.value = im;
-    var cardSync = uim.closest('#webPaymentCard');
+    var cardSync = form.querySelector('#webPaymentCard');
     if (cardSync) pgSyncUrlPayInputModeHint(cardSync, im);
   }
 
@@ -2031,13 +2036,13 @@
       rootEl.addEventListener('change', function (e) {
         var t = e.target;
         if (!t || t.name !== 'urlPayInputMode') return;
-        var card = t.closest('#webPaymentCard');
+        var card = rootEl.querySelector('#webPaymentCard');
         if (!card) return;
         pgApplyUrlPayInputModePreset(card, t.value);
       });
     }
-    rootEl.querySelectorAll('#webPaymentCard [name="urlPayInputMode"]').forEach(function (modeEl) {
-      var card = modeEl.closest('#webPaymentCard');
+    rootEl.querySelectorAll('[name="urlPayInputMode"]').forEach(function (modeEl) {
+      var card = rootEl.querySelector('#webPaymentCard');
       if (card) pgSyncUrlPayInputModeHint(card, modeEl.value);
     });
   }
@@ -5101,6 +5106,55 @@
     return u === 'JPAY' || u.indexOf('JPAY_') === 0;
   }
 
+  /** 운영(체크) 결제대행사 행에 JPAY 계열이 하나라도 있으면 true */
+  function pgMerchantHasJpayOperationalBinding(pane) {
+    try {
+      var tbody = pane && pane.querySelector ? pane.querySelector('#pgBindingTbody') : null;
+      if (!tbody) return false;
+      var found = false;
+      tbody.querySelectorAll('tr').forEach(function (tr) {
+        if (found) return;
+        var opInp = tr.querySelector('input[name="pgOperational"]');
+        if (!opInp || !opInp.checked) return;
+        var actEl = tr.querySelector('[data-field="activationYn"]');
+        if (actEl && String(actEl.value || '').trim().toUpperCase() === 'N') return;
+        var pgSel = tr.querySelector('[data-field="pgCd"]');
+        var cd = pgSel && pgSel.value ? String(pgSel.value).trim() : '';
+        if (pgIsJpayFamilyPgCd(cd)) found = true;
+      });
+      return found;
+    } catch (eJpayBind) {
+      return false;
+    }
+  }
+  window.pgMerchantHasJpayOperationalBinding = pgMerchantHasJpayOperationalBinding;
+
+  /** 결제창 구성 — JPAY 고객 정보 입력: 운영 PG에 JPAY 없으면 비활성 */
+  function pgRefreshMerchantCheckoutCompositionState(pane) {
+    if (!pane || !pane.querySelector) return;
+    var hasJpay = pgMerchantHasJpayOperationalBinding(pane);
+    var jpaySel = pane.querySelector('#merchantCheckoutCompositionCard [name="jpayCheckoutFieldMode"]')
+      || pane.querySelector('[name="jpayCheckoutFieldMode"]');
+    var jpayBlock = pane.querySelector('.pg-jpay-checkout-field-mode-block');
+    var hintEl = pane.querySelector('#pgJpayCheckoutFieldModeOffHint');
+    if (jpaySel) {
+      jpaySel.disabled = !hasJpay;
+      if (!hasJpay) {
+        jpaySel.setAttribute('title', pgAdminUiT('운영 결제대행사에 JPAY가 없어 JPAY 고객 정보 입력은 적용되지 않습니다.'));
+        jpaySel.setAttribute('data-pg-ui-title', '운영 결제대행사에 JPAY가 없어 JPAY 고객 정보 입력은 적용되지 않습니다.');
+      } else {
+        jpaySel.removeAttribute('title');
+        jpaySel.removeAttribute('data-pg-ui-title');
+      }
+    }
+    if (jpayBlock) jpayBlock.classList.toggle('opacity-50', !hasJpay);
+    if (hintEl) hintEl.style.display = hasJpay ? 'none' : '';
+    if (hintEl && window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
+      try { window.PG_UI_I18N.applyDom(hintEl); } catch (eHintDom) { /* ignore */ }
+    }
+  }
+  window.pgRefreshMerchantCheckoutCompositionState = pgRefreshMerchantCheckoutCompositionState;
+
   function pgIsEximbayFamilyPgCd(pgCd) {
     if (!pgCd) return false;
     var u = pgNormalizePgCdKey(pgCd);
@@ -5405,6 +5459,9 @@
     }
     pgRefreshSplitPayUrl(pane, cid);
     pgRefreshChatbotPaymentUrl(pane, cid);
+    if (typeof window.pgRefreshMerchantCheckoutCompositionState === 'function') {
+      window.pgRefreshMerchantCheckoutCompositionState(pane);
+    }
   }
   window.pgRefreshCompDetailPaymentUrls = pgRefreshCompDetailPaymentUrls;
 
@@ -5684,6 +5741,9 @@
     if (cidCard && typeof window.pgRefreshCompDetailPaymentUrls === 'function') {
       window.pgRefreshCompDetailPaymentUrls(pane, cidCard);
     }
+    if (typeof window.pgRefreshMerchantCheckoutCompositionState === 'function') {
+      window.pgRefreshMerchantCheckoutCompositionState(pane);
+    }
   }
   window.pgApplyUrlPayWebSettingsCardState = pgApplyUrlPayWebSettingsCardState;
 
@@ -5906,6 +5966,9 @@
       }
       var divM = String(d.compDiv || '').trim().toUpperCase() === 'MERCHANT';
       pgApplyUrlPayWebSettingsCardState(pane);
+      if (typeof window.pgRefreshMerchantCheckoutCompositionState === 'function') {
+        window.pgRefreshMerchantCheckoutCompositionState(pane);
+      }
       if (divM && d.compId) pgRefreshCompDetailPaymentUrls(pane, d.compId);
       else if (typeof window.pgRefreshChatbotPaymentUrl === 'function') window.pgRefreshChatbotPaymentUrl(pane, '');
       if (pane.classList && pane.classList.contains('pg-merchant-own-comp-viewer')) {
@@ -34000,6 +34063,8 @@
     var ch = portal && portal.integrationChannels ? portal.integrationChannels : null;
     var allowInline = !ch || ch.effectiveInline === true;
     var allowRedirect = !ch || ch.effectiveRedirect === true;
+    var flags = portal && portal.merchantFeatureFlags ? portal.merchantFeatureFlags : null;
+    var allowSubscription = !flags || flags.subscription === true;
     var sections = [
       { title: 'ICOPAY 통합 Checkout (인라인)', block: portal.merchantUnifiedCheckout, embed: true },
       { title: 'ICOPAY 통합 Checkout (리다이렉트)', block: portal.merchantUnifiedRedirectCheckout, embed: false, redirect: true },
@@ -34009,6 +34074,7 @@
     sections.forEach(function (sec) {
       var b = sec.block;
       if (!b || !b.prepareUrl) return;
+      if (sec.subscription && !allowSubscription) return;
       if (sec.pgVendor && !merchantApiPgScopeAllows(portal, sec.pgVendor)) return;
       if (sec.redirect && !allowRedirect) return;
       if (!sec.redirect && sec.embed !== false && !allowInline) return;
@@ -34099,14 +34165,51 @@
   function merchantApiRenderChecklist(ol, portal, pickFn) {
     if (!ol) return;
     var list = portal && portal.integrationChecklist ? portal.integrationChecklist : [];
+    var flags = portal && portal.merchantFeatureFlags ? portal.merchantFeatureFlags : null;
+    var allowSubscription = !flags || flags.subscription === true;
     if (!list.length) {
       ol.innerHTML = '<li class="text-muted">' + pgAdminEscHtml(pgAdminUiT('—')) + '</li>';
       return;
     }
-    ol.innerHTML = list.map(function (line) {
+    var html = '';
+    list.forEach(function (line) {
       var t = pickFn(line, 'text');
-      return '<li class="mb-1">' + String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</li>';
-    }).join('');
+      if (t == null || t === '') return;
+      var blob = String(t).toLowerCase();
+      if (!allowSubscription && (blob.indexOf('구독') >= 0 || blob.indexOf('subscription') >= 0
+          || blob.indexOf('subscribe') >= 0 || blob.indexOf('서브스크') >= 0)) {
+        return;
+      }
+      html += '<li class="mb-1">' + String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</li>';
+    });
+    ol.innerHTML = html || '<li class="text-muted">' + pgAdminEscHtml(pgAdminUiT('—')) + '</li>';
+  }
+
+  /** 가맹에 켜진 기능(구독·챗봇·분할) 안내만 표시 — 미사용 기능 매뉴얼은 노출하지 않음 */
+  function merchantApiRenderFeatureDocs(el, portal, pickFn) {
+    if (!el) return;
+    var docs = portal && portal.merchantFeatureDocs ? portal.merchantFeatureDocs : [];
+    if (!docs.length) {
+      el.innerHTML = '<p class="text-muted mb-0 small">' +
+        pgAdminEscHtml(pgAdminUiT('이 가맹점에 별도 활성화된 부가 기능(정기결제·챗봇결제·분할결제)이 없습니다. 기본 Checkout·Webhook 안내만 적용됩니다.')) +
+        '</p>';
+      return;
+    }
+    function escFd(s) {
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    }
+    var html = '<ul class="mb-0 ps-3">';
+    docs.forEach(function (d) {
+      var title = pickFn(d, 'title') || d.titleKr || d.featureCode || '';
+      var summary = pickFn(d, 'summary') || d.summaryKr || '';
+      var hint = pickFn(d, 'menuHint') || d.menuHintKr || '';
+      html += '<li class="mb-3"><strong>' + escFd(title) + '</strong>';
+      if (summary) html += '<div class="text-muted small mb-1">' + escFd(summary) + '</div>';
+      if (hint) html += '<div class="small">' + escFd(hint) + '</div>';
+      html += '</li>';
+    });
+    html += '</ul>';
+    el.innerHTML = html;
   }
 
   function merchantApiRenderWebhookNotifyBlock(el, portal, pickFn, opts) {
@@ -34603,12 +34706,16 @@
     function renderChecklist(portal) {
       merchantApiRenderChecklist(pane.querySelector('#merchantApiDocsChecklist'), portal, pickL10n);
     }
+    function renderFeatureDocs(portal) {
+      merchantApiRenderFeatureDocs(pane.querySelector('#merchantApiDocsFeatureDocs'), portal, pickL10n);
+    }
     function showPortal(portal) {
       pane._merchantApiDocsPortal = portal;
       fillSummary(portal);
       renderDownloads(portal);
       renderSpecTables(portal);
       renderIntegrationChannels(portal);
+      renderFeatureDocs(portal);
       renderEndpoints(portal);
       renderWordPress(portal);
       renderWebhook(portal);
@@ -34798,6 +34905,9 @@
     function renderChecklist(portal) {
       merchantApiRenderChecklist(pane.querySelector('#merchantApiPortalChecklist'), portal, pickL10n);
     }
+    function renderFeatureDocs(portal) {
+      merchantApiRenderFeatureDocs(pane.querySelector('#merchantApiPortalFeatureDocs'), portal, pickL10n);
+    }
     function renderQuickStart(portal) {
       merchantApiRenderQuickStart(pane.querySelector('#merchantApiPortalQuickStart'), portal, pickL10n);
     }
@@ -34869,6 +34979,7 @@
       renderQuickStart(portal);
       renderBindings(portal);
       renderIntegrationChannels(portal);
+      renderFeatureDocs(portal);
       renderEndpoints(portal);
       renderSpecTables(portal);
       renderWordPress(portal);

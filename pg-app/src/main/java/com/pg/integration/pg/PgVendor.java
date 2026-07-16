@@ -22,6 +22,9 @@ public final class PgVendor {
     /** ElementPay(태국 THB·카드·PromptPay). {@code ELEMENTPAY} 또는 {@code ELEMENTPAY_…} 접두. */
     public static final String ELEMENTPAY = "ELEMENTPAY";
 
+    /** ILK(아이엘케이). {@code ILK} 또는 {@code ILK_…} 접두. */
+    public static final String ILK = "ILK";
+
     private PgVendor() {
     }
 
@@ -104,5 +107,22 @@ public final class PgVendor {
             return false;
         }
         return vendorCode.trim().toUpperCase(Locale.ROOT).startsWith(ELEMENTPAY);
+    }
+
+    /** {@code pg_cd}·노티 벤더 코드가 ILK 계열인지 */
+    public static boolean isIlkFamily(String pgCd) {
+        if (pgCd == null) {
+            return false;
+        }
+        String u = normalizePgCdKey(pgCd);
+        return ILK.equals(u) || u.startsWith(ILK + "_");
+    }
+
+    public static boolean isIlkVendorCode(String vendorCode) {
+        if (vendorCode == null || vendorCode.isBlank()) {
+            return false;
+        }
+        String u = vendorCode.trim().toUpperCase(Locale.ROOT);
+        return ILK.equals(u) || u.startsWith(ILK + "_") || u.startsWith("ILKPAY");
     }
 }

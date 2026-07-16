@@ -103,6 +103,10 @@ public class HqApiConfig {
     @Column(name = "url_pay_card_expiry_mode_default", nullable = false, length = 16)
     private String urlPayCardExpiryModeDefault = "DROPDOWN";
 
+    /** 일반결제(URL·API) 카드 인증 본사 기본 — {@link com.pg.urlpay.CardAuthModeUtil} THREE_DS|NONE3D */
+    @Column(name = "card_auth_mode_default", nullable = false, length = 16)
+    private String cardAuthModeDefault = "THREE_DS";
+
     /** WordPress/WooCommerce 플러그인 ZIP·REST webhook 채널 전역 제공 */
     @Column(name = "api_wordpress_plugin_enabled_yn", length = 1)
     private String apiWordpressPluginEnabledYn = "Y";
@@ -342,6 +346,12 @@ public class HqApiConfig {
         }
         this.apiUrlPayInputModeDefault = n;
     }
+    public String getCardAuthModeDefault() { return cardAuthModeDefault; }
+    public void setCardAuthModeDefault(String cardAuthModeDefault) {
+        this.cardAuthModeDefault = com.pg.urlpay.CardAuthModeUtil.normalize(
+                cardAuthModeDefault != null ? cardAuthModeDefault : com.pg.urlpay.CardAuthModeUtil.THREE_DS);
+    }
+
     public String getUrlPayCardExpiryModeDefault() { return urlPayCardExpiryModeDefault; }
     public void setUrlPayCardExpiryModeDefault(String urlPayCardExpiryModeDefault) {
         this.urlPayCardExpiryModeDefault = com.pg.urlpay.UrlPayCardExpiryModeUtil.normalize(

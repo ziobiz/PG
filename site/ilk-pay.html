@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+  <title>ICOPAY Easy Payment</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/pay-inline.css?v=37" rel="stylesheet">
+  <script src="js/pg-pay-submit-guard.js?v=1"></script>
+  <script src="js/url-pay-public-shell.js?v=13"></script>
+  <script src="js/icopay-checkout-3ds.js?v=1"></script>
+</head>
+<body class="pay-inline-body">
+  <div class="pay-shell">
+    <div class="pay-card">
+      <div class="pay-brand">
+        <div class="pay-brand-logo">ICOPAY</div>
+        <div class="pay-brand-sub" id="brandSub" data-i18n="brandSub">Secure Card Payment</div>
+      </div>
+      <div class="pay-lang" role="group" aria-label="Language" data-i18n-aria="langGroup">
+        <button type="button" data-lang="KOR">KOR</button>
+        <button type="button" data-lang="ENG">ENG</button>
+        <button type="button" data-lang="JPN">JPN</button>
+        <button type="button" data-lang="CHN">CHN</button>
+        <button type="button" data-lang="THA">THA</button>
+      </div>
+      <div id="configError" class="alert alert-warning" style="display:none;"></div>
+      <div id="payResult" class="pay-result" style="display:none;"></div>
+      <form id="ilkForm" autocomplete="off">
+        <input type="hidden" id="compIdHidden" name="compId">
+        <input type="hidden" id="orderNo" name="orderNo">
+        <div class="pay-form-grid mb-3">
+          <div class="pay-row pay-row-static">
+            <div class="pay-row-label"><span data-i18n="merchant">Merchant</span></div>
+            <div class="pay-row-value"><span id="merchantNameDisplay">—</span></div>
+          </div>
+          <div class="pay-row">
+            <label class="pay-row-label mb-0" for="item"><span data-i18n="item">Item</span></label>
+            <div class="pay-row-value"><input type="text" class="form-control form-control-sm" id="item" required></div>
+          </div>
+          <div class="pay-row">
+            <label class="pay-row-label mb-0" for="amount"><span data-i18n="amount">Amount</span> <span id="payAmountCurrencyHint"></span></label>
+            <div class="pay-row-value"><input type="number" class="form-control form-control-sm" id="amount" required min="0.01" step="0.01"></div>
+          </div>
+        </div>
+        <div class="mb-2"><input type="text" class="form-control form-control-sm" id="payCardno" inputmode="numeric" autocomplete="cc-number" data-i18n-placeholder="cardNo" required></div>
+        <div class="row g-2 mb-2">
+          <div class="col-4"><input type="text" class="form-control form-control-sm" id="payCardmonth" maxlength="2" data-i18n-placeholder="mm" required></div>
+          <div class="col-4"><input type="text" class="form-control form-control-sm" id="payCardyear" maxlength="4" data-i18n-placeholder="yyyy" required></div>
+          <div class="col-4"><input type="text" class="form-control form-control-sm" id="payCardcvv" maxlength="4" data-i18n-placeholder="cvv" required></div>
+        </div>
+        <div class="row g-2 mb-2">
+          <div class="col-6"><input type="text" class="form-control form-control-sm" id="payFirstname" data-i18n-placeholder="firstName" required></div>
+          <div class="col-6"><input type="text" class="form-control form-control-sm" id="payLastname" data-i18n-placeholder="lastName" required></div>
+        </div>
+        <div class="mb-2"><input type="email" class="form-control form-control-sm" id="payEmailAddress" data-i18n-placeholder="email" required></div>
+        <div class="mb-3"><input type="tel" class="form-control form-control-sm" id="payTelephone" data-i18n-placeholder="phoneOptional"></div>
+        <button type="submit" class="btn btn-primary w-100" id="submitBtn" data-i18n="pay">Pay</button>
+      </form>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var API_BASE = (function () {
+        try { if (location.hostname === 'api.icopay.co.kr') return location.origin.replace(/\/$/, ''); } catch (e0) {}
+        return (window.PG_API_BASE || location.origin || '').replace(/\/$/, '');
+      })();
+      var q = new URLSearchParams(location.search || '');
+      var sessionToken = q.get('sessionToken') || q.get('token') || '';
+      var compId = q.get('compId') || '';
+      var checkoutKind = (q.get('checkoutKind') || '').toUpperCase();
+      var ctx = {};
+      var authMode = 'THREE_DS';
+
+      function resolveInitialLang() {
+        var raw = (q.get('lang') || '').toUpperCase();
+        if (raw === 'KO' || raw === 'KR') raw = 'KOR';
+        if (raw === 'JA' || raw === 'JP') raw = 'JPN';
+        if (raw === 'ZH' || raw === 'CN') raw = 'CHN';
+        if (raw === 'TH') raw = 'THA';
+        if (raw === 'EN') raw = 'ENG';
+        if (raw === 'KOR' || raw === 'ENG' || raw === 'JPN' || raw === 'CHN' || raw === 'THA') return raw;
+        if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.resolveInitialLang) {
+          try { return PG_URL_PAY_SHELL.resolveInitialLang(); } catch (e1) {}
+        }
+        return 'ENG';
+      }
+      var LANG = resolveInitialLang();
+
+      var I18N = {
+        KOR: {
+          title: 'ICOPAY 간편결제', brandSub: '안전 카드결제', brandSub3ds: '3DS 보안 결제', brandSubNone: '카드 결제',
+          merchant: '가맹점', item: '상품명', amount: '금액', pay: '결제하기',
+          cardNo: '카드번호', mm: 'MM', yyyy: 'YYYY', cvv: 'CVV',
+          firstName: '이름', lastName: '성', email: '이메일', phoneOptional: '전화번호(선택)',
+          langGroup: '언어', errLoad: '결제 화면을 불러오지 못했습니다.',
+          errMissing: '가맹점 코드 또는 세션이 필요합니다.', needAmount: '유효한 금액을 입력하세요.',
+          payComplete: '결제가 완료되었습니다.', payFailed: '결제에 실패했습니다.',
+          authOk: '인증·승인이 완료되었습니다.', authFail: '인증에 실패했습니다.',
+          declined: '결제가 거절되었습니다.', networkErr: '네트워크 오류', configErr: 'Error',
+          acsMissing: '3DS 인증 주소를 받지 못했습니다.',
+          pgMissing: '이 가맹점은 결제가 설정되어 있지 않습니다.',
+          orgDisabled: '지속적인 오류로 결제 서비스가 중지되었습니다.',
+          webPaymentDisabled: '이 가맹점은 결제 서비스가 중지로 설정되어 있습니다.'
+        },
+        ENG: {
+          title: 'ICOPAY Easy Payment', brandSub: 'Secure Card Payment', brandSub3ds: '3DS Secure Payment', brandSubNone: 'Card Payment',
+          merchant: 'Merchant', item: 'Item', amount: 'Amount', pay: 'Pay',
+          cardNo: 'Card number', mm: 'MM', yyyy: 'YYYY', cvv: 'CVV',
+          firstName: 'First name', lastName: 'Last name', email: 'Email', phoneOptional: 'Phone (optional)',
+          langGroup: 'Language', errLoad: 'Failed to load checkout.',
+          errMissing: 'Merchant code or session is required.', needAmount: 'Enter a valid amount.',
+          payComplete: 'Payment complete.', payFailed: 'Payment failed.',
+          authOk: 'Payment authenticated / approved.', authFail: 'Authentication failed.',
+          declined: 'Declined.', networkErr: 'Network error', configErr: 'Error',
+          acsMissing: '3DS ACS URL is missing.',
+          pgMissing: 'Payment is not configured for this merchant.',
+          orgDisabled: 'The payment service has been suspended due to repeated errors.',
+          webPaymentDisabled: "This merchant's payment service is set to suspended."
+        },
+        JPN: {
+          title: 'ICOPAY かんたん決済', brandSub: '安全なカード決済', brandSub3ds: '3DSセキュア決済', brandSubNone: 'カード決済',
+          merchant: '加盟店', item: '商品名', amount: '金額', pay: '支払う',
+          cardNo: 'カード番号', mm: 'MM', yyyy: 'YYYY', cvv: 'CVV',
+          firstName: '名', lastName: '姓', email: 'メール', phoneOptional: '電話番号(任意)',
+          langGroup: '言語', errLoad: '決済画面の読み込みに失敗しました。',
+          errMissing: '加盟店コードまたはセッションが必要です。', needAmount: '有効な金額を入力してください。',
+          payComplete: '決済が完了しました。', payFailed: '決済に失敗しました。',
+          authOk: '認証・承認が完了しました。', authFail: '認証に失敗しました。',
+          declined: '決済が拒否されました。', networkErr: 'ネットワークエラー', configErr: 'Error',
+          acsMissing: '3DS認証URLを取得できませんでした。',
+          pgMissing: 'この加盟店は決済が設定されていません。',
+          orgDisabled: '継続的なエラーにより決済サービスが停止されました。',
+          webPaymentDisabled: 'この加盟店の決済サービスは停止に設定されています。'
+        },
+        CHN: {
+          title: 'ICOPAY 便捷支付', brandSub: '安全银行卡支付', brandSub3ds: '3DS 安全支付', brandSubNone: '银行卡支付',
+          merchant: '商户', item: '商品', amount: '金额', pay: '支付',
+          cardNo: '卡号', mm: 'MM', yyyy: 'YYYY', cvv: 'CVV',
+          firstName: '名', lastName: '姓', email: '邮箱', phoneOptional: '电话(可选)',
+          langGroup: '语言', errLoad: '无法加载支付页面。',
+          errMissing: '需要商户代码或会话。', needAmount: '请输入有效金额。',
+          payComplete: '支付已完成。', payFailed: '支付失败。',
+          authOk: '认证与批准已完成。', authFail: '认证失败。',
+          declined: '支付被拒绝。', networkErr: '网络错误', configErr: 'Error',
+          acsMissing: '未收到 3DS 认证地址。',
+          pgMissing: '该商户未配置支付。',
+          orgDisabled: '由于持续错误，支付服务已停止。',
+          webPaymentDisabled: '该商户的支付服务已设置为停止。'
+        },
+        THA: {
+          title: 'ICOPAY ชำระเงินง่าย', brandSub: 'ชำระเงินด้วยบัตรอย่างปลอดภัย', brandSub3ds: 'ชำระเงิน 3DS อย่างปลอดภัย', brandSubNone: 'ชำระด้วยบัตร',
+          merchant: 'ร้านค้า', item: 'สินค้า', amount: 'จำนวนเงิน', pay: 'ชำระเงิน',
+          cardNo: 'หมายเลขบัตร', mm: 'MM', yyyy: 'YYYY', cvv: 'CVV',
+          firstName: 'ชื่อ', lastName: 'นามสกุล', email: 'อีเมล', phoneOptional: 'โทรศัพท์ (ไม่บังคับ)',
+          langGroup: 'ภาษา', errLoad: 'โหลดหน้าชำระเงินไม่สำเร็จ',
+          errMissing: 'ต้องมีรหัสร้านค้าหรือเซสชัน', needAmount: 'กรุณากรอกจำนวนเงินที่ถูกต้อง',
+          payComplete: 'ชำระเงินสำเร็จ', payFailed: 'ชำระเงินล้มเหลว',
+          authOk: 'ยืนยันตัวตนและอนุมัติแล้ว', authFail: 'การยืนยันตัวตนล้มเหลว',
+          declined: 'ถูกปฏิเสธ', networkErr: 'ข้อผิดพลาดเครือข่าย', configErr: 'Error',
+          acsMissing: 'ไม่ได้รับ URL การยืนยัน 3DS',
+          pgMissing: 'ร้านค้านี้ยังไม่ได้ตั้งค่าการชำระเงิน',
+          orgDisabled: 'บริการชำระเงินถูกระงับเนื่องจากข้อผิดพลาดต่อเนื่อง',
+          webPaymentDisabled: 'บริการชำระเงินของร้านค้านี้ถูกตั้งค่าเป็นระงับ'
+        }
+      };
+
+      function t(key) {
+        var pack = I18N[LANG] || I18N.ENG;
+        return pack[key] != null ? pack[key] : (I18N.ENG[key] || key);
+      }
+      function apiLangCode() {
+        var c = String(LANG || 'ENG').toUpperCase();
+        return (c === 'KOR' || c === 'ENG' || c === 'CHN' || c === 'JPN' || c === 'THA') ? c : 'ENG';
+      }
+      function resolveApiErrorMessage(res) {
+        res = res || {};
+        var L = apiLangCode();
+        if (res.messages) {
+          if (res.messages[L]) return res.messages[L];
+          var alt = { KOR: 'KO', ENG: 'EN', JPN: 'JP', CHN: 'CH', THA: 'TH' };
+          if (alt[L] && res.messages[alt[L]]) return res.messages[alt[L]];
+          if (res.messages.ENG) return res.messages.ENG;
+        }
+        var code = res.errorCode ? String(res.errorCode).trim() : '';
+        if (code === 'ORG_DISABLED') return res.message || t('orgDisabled');
+        if (code === 'WEB_PAYMENT_DISABLED') return res.message || t('webPaymentDisabled');
+        if (code === 'URL_PAYMENT_PG_MISSING' || code === 'PG_CONFIG_MISSING' || code === 'PG_CREDENTIALS_MISSING'
+            || code === 'ILK_PG_MISSING' || code === 'ILK_AGENCY_MISSING' || code === 'ILK_CREDENTIALS_MISSING'
+            || code === 'SUBSCRIPTION_PG_MISSING') {
+          return t('pgMissing');
+        }
+        var msg = res.message ? String(res.message) : '';
+        if (/ILK/i.test(msg)) return t('payFailed');
+        return msg || t('payFailed');
+      }
+      function applyBrandSub() {
+        var el = document.getElementById('brandSub');
+        if (!el) return;
+        el.textContent = authMode === 'NONE3D' ? t('brandSubNone') : t('brandSub3ds');
+      }
+      function applyI18n() {
+        document.querySelectorAll('[data-i18n]').forEach(function (el) {
+          var k = el.getAttribute('data-i18n');
+          if (k && k !== 'brandSub') el.textContent = t(k);
+        });
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+          var k = el.getAttribute('data-i18n-placeholder');
+          if (k) el.setAttribute('placeholder', t(k));
+        });
+        document.querySelectorAll('[data-i18n-aria]').forEach(function (el) {
+          var k = el.getAttribute('data-i18n-aria');
+          if (k) el.setAttribute('aria-label', t(k));
+        });
+        document.querySelectorAll('.pay-lang button[data-lang]').forEach(function (b) {
+          b.classList.toggle('active', b.getAttribute('data-lang') === LANG);
+        });
+        document.title = t('title');
+        applyBrandSub();
+      }
+      function setLang(code) {
+        var c = String(code || '').toUpperCase();
+        if (c === 'KO' || c === 'KR') c = 'KOR';
+        if (c === 'JA' || c === 'JP') c = 'JPN';
+        if (c === 'ZH' || c === 'CN') c = 'CHN';
+        if (c === 'TH') c = 'THA';
+        if (c === 'EN') c = 'ENG';
+        if (c !== 'KOR' && c !== 'ENG' && c !== 'CHN' && c !== 'JPN' && c !== 'THA') return;
+        LANG = c;
+        applyI18n();
+      }
+
+      function showErr(msg) {
+        var el = document.getElementById('configError');
+        el.style.display = 'block';
+        el.textContent = msg || t('configErr');
+      }
+      function showResult(ok, msg) {
+        var el = document.getElementById('payResult');
+        el.style.display = 'block';
+        el.className = 'pay-result alert ' + (ok ? 'alert-success' : 'alert-danger');
+        el.textContent = msg;
+        document.getElementById('ilkForm').style.display = ok ? 'none' : '';
+      }
+
+      function openAcs(data) {
+        var acsUrl = data.acsUrl || '';
+        if (!acsUrl) {
+          showErr(t('acsMissing'));
+          return;
+        }
+        var w = parseInt(data.sizeX || '390', 10) || 390;
+        var h = parseInt(data.sizeY || '400', 10) || 400;
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = acsUrl;
+        form.target = 'ilkAcsWin';
+        function add(n, v) {
+          if (v == null || v === '') return;
+          var i = document.createElement('input');
+          i.type = 'hidden'; i.name = n; i.value = v;
+          form.appendChild(i);
+        }
+        add('PaReq', data.paReq);
+        add('MD', data.xid);
+        add('TermUrl', data.termUrl);
+        add('creq', data.creq);
+        add('threeDSSessionData', data.threeDSSessionData);
+        document.body.appendChild(form);
+        window.open('about:blank', 'ilkAcsWin', 'width=' + w + ',height=' + h + ',scrollbars=yes');
+        form.submit();
+        form.remove();
+      }
+
+      window.addEventListener('message', function (ev) {
+        var p = ev && ev.data;
+        if (!p || p.type !== 'ILK_FRONT_NOTI') return;
+        if (p.success) showResult(true, t('authOk'));
+        else showResult(false, t('authFail') + (p.status ? ' (' + p.status + ')' : ''));
+      });
+
+      function loadContext() {
+        var url = API_BASE + '/api/pay/ilk/checkout-context?compId=' + encodeURIComponent(compId);
+        return fetch(url, { credentials: 'omit' }).then(function (r) { return r.json(); }).then(function (j) {
+          if (!j || !j.success) throw new Error(resolveApiErrorMessage(j) || t('errLoad'));
+          ctx = j.data || {};
+          document.getElementById('compIdHidden').value = ctx.compId || compId;
+          document.getElementById('merchantNameDisplay').textContent = ctx.merchantName || ctx.compId || '—';
+          var cur = ctx.checkoutCurrencyCode || 'KRW';
+          document.getElementById('payAmountCurrencyHint').textContent = '(' + cur + ')';
+          if (ctx.defaultProductName) document.getElementById('item').value = ctx.defaultProductName;
+          authMode = ctx.cardAuthModeEffective || ctx.cardAuthMode || 'THREE_DS';
+          applyBrandSub();
+          if (sessionToken) {
+            return fetch(API_BASE + '/api/middleware/v1/merchant/checkout/session?sessionToken=' + encodeURIComponent(sessionToken), { credentials: 'omit' })
+              .then(function (r) { return r.json(); })
+              .then(function (sj) {
+                if (sj && sj.success && sj.data) {
+                  var d = sj.data;
+                  if (d.orderNo) document.getElementById('orderNo').value = d.orderNo;
+                  if (d.amount) document.getElementById('amount').value = d.amount;
+                  if (d.productName) document.getElementById('item').value = d.productName;
+                  if (d.checkoutKind) checkoutKind = String(d.checkoutKind).toUpperCase();
+                  if (d.compId) { compId = d.compId; document.getElementById('compIdHidden').value = d.compId; }
+                  if (d.langCode) setLang(d.langCode);
+                }
+              }).catch(function () {});
+          }
+        });
+      }
+
+      document.getElementById('ilkForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var btn = document.getElementById('submitBtn');
+        if (window.PG_PAY_SUBMIT_GUARD && PG_PAY_SUBMIT_GUARD.lock({
+          lang: LANG, t: t, button: btn,
+          onWarn: function (m) { showResult(false, m); }
+        })) return;
+        var orderNo = document.getElementById('orderNo').value || ('IC' + Date.now());
+        document.getElementById('orderNo').value = orderNo;
+        var body = {
+          compId: document.getElementById('compIdHidden').value || compId,
+          orderNo: orderNo,
+          amount: document.getElementById('amount').value,
+          currency: (ctx.checkoutCurrencyCode || 'KRW'),
+          productName: document.getElementById('item').value,
+          cardNo: document.getElementById('payCardno').value.replace(/\s+/g, ''),
+          cardMonth: document.getElementById('payCardmonth').value,
+          cardYear: document.getElementById('payCardyear').value,
+          cardCvv: document.getElementById('payCardcvv').value,
+          buyerName: (document.getElementById('payFirstname').value + ' ' + document.getElementById('payLastname').value).trim(),
+          buyerEmail: document.getElementById('payEmailAddress').value,
+          buyerPhone: document.getElementById('payTelephone').value,
+          browserScreenWidth: String(window.screen && screen.width || 1920),
+          browserScreenHeight: String(window.screen && screen.height || 1080),
+          browserColorDepth: String(window.screen && screen.colorDepth || 24),
+          browserTZ: String(-(new Date().getTimezoneOffset())),
+          browserLanguage: (navigator.language || 'en-US'),
+          browserUserAgent: navigator.userAgent || '',
+          browserAcceptHeader: 'text/html',
+          langCode: apiLangCode()
+        };
+        if (checkoutKind === 'SUBSCRIPTION' || checkoutKind.indexOf('SUB') >= 0) {
+          body.checkoutKind = 'SUBSCRIPTION';
+        }
+        var saleUrl = API_BASE + (body.checkoutKind === 'SUBSCRIPTION' ? '/api/pay/ilk/sale' : '/api/pay/url/sale');
+        fetch(saleUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          credentials: 'omit',
+          body: JSON.stringify(body)
+        }).then(function (r) { return r.json(); }).then(function (j) {
+          if (window.PG_PAY_SUBMIT_GUARD) PG_PAY_SUBMIT_GUARD.unlockAfterFailure({ button: btn });
+          var data = (j && j.data) ? j.data : j;
+          if (!j || j.success === false || (data && data.success === false)) {
+            showResult(false, resolveApiErrorMessage(j && j.success === false ? j : data));
+            return;
+          }
+          if (data && data.needs3ds) {
+            openAcs(data);
+            return;
+          }
+          if (data && (data.success === true || data.status === 'SUCCESS')) {
+            showResult(true, t('payComplete'));
+          } else {
+            showResult(false, resolveApiErrorMessage(data) || t('declined'));
+          }
+        }).catch(function (err) {
+          if (window.PG_PAY_SUBMIT_GUARD) PG_PAY_SUBMIT_GUARD.unlockAfterFailure({ button: btn });
+          showResult(false, t('networkErr'));
+        });
+      });
+
+      if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.wireLanguageButtons) {
+        PG_URL_PAY_SHELL.wireLanguageButtons(function () { return LANG; }, setLang);
+      } else {
+        document.querySelectorAll('.pay-lang button[data-lang]').forEach(function (b) {
+          b.addEventListener('click', function () { setLang(b.getAttribute('data-lang')); });
+        });
+      }
+      applyI18n();
+
+      if (!compId && !sessionToken) {
+        showErr(t('errMissing'));
+      } else {
+        loadContext().catch(function (e) { showErr((e && e.message) || t('errLoad')); });
+      }
+    })();
+  </script>
+</body>
+</html>

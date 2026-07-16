@@ -44,7 +44,7 @@
       tabs: [
         { tab: 'routing', url: '/hq/paymentOrchestration', menuId: 'M0118', label: '결제 라우팅' },
         { tab: 'urlpay', url: '/hq/urlPayDeploy', menuId: 'M0122', label: 'URL결제' },
-        { tab: 'checkout-ux', url: '/hq/opsModeMng', menuId: 'M0127', label: '결제 UX' }
+        { tab: 'tablet-ux', url: '/hq/opsModeMng', menuId: 'M0127', label: '태블릿 UX' }
       ]
     },
     {

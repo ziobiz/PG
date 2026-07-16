@@ -44,6 +44,9 @@ public class NeutralCheckoutSubscribeRouteController {
                     if (pgCd != null && PgVendor.isEximbayFamily(pgCd.trim())) {
                         return "/eximbay-subscribe.html";
                     }
+                    if (pgCd != null && PgVendor.isIlkFamily(pgCd.trim())) {
+                        return "/ilk-pay.html";
+                    }
                 }
             }
         } catch (RuntimeException ignore) {

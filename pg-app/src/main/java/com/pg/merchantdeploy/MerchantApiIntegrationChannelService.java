@@ -152,9 +152,9 @@ public class MerchantApiIntegrationChannelService {
         MerchantDeployL10n.putTextFields(block, "merchantSettingNote", new MerchantDeployL10n.Bundle(
                 "가맹별 채널은 업체관리 → 가맹 「가맹 API 연동 채널」에서 설정합니다.",
                 "Per-merchant channels: Company management → merchant 「Merchant API integration channels」.",
-                "加盟店別: 업체관리 → 「加盟店 API 連携チャネル」",
-                "按商户: 업체관리 → 「商户 API 对接渠道」",
-                "ตั้งค่าร้าน:  업체관리 → 「ช่อง Merchant API」"
+                "加盟店別: 加盟店管理 → 「加盟店 API 連携チャネル」",
+                "按商户: 商户管理 → 「商户 API 对接渠道」",
+                "ตั้งค่าร้าน: การจัดการร้าน → 「ช่อง Merchant API」"
         ));
         MerchantDeployL10n.putTextFields(block, "hqSettingNote", new MerchantDeployL10n.Bundle(
                 "본사 전역 상한: 배포설정 → 결제로직설정 (API INLINE/REDIRECT·WordPress 제공)",

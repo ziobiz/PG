@@ -1,0 +1,25 @@
+---
+description: 운영 배포는 사용자 「배포해」 요청 시에만 Deploy-Prod.ps1 실행
+alwaysApply: true
+---
+
+# 운영 배포 자동화 (확인 후 실행)
+
+## 개발 완료 시
+1. 변경·`bootJar`·DB SQL 필요 여부를 정리한다.
+2. 답변에서 **「배포할까요?」** 로 한 번 확인한다. (이 규칙이 있어도 **勝手に 배포하지 않는다.**)
+
+## 사용자가 「배포해」 / 「배포」 라고 하면
+1. `%USERPROFILE%\.pg-deploy\credentials.env` 존재 확인. 없으면 `Setup-Credentials.ps1` 안내 후 중단.
+2. 저장소 루트에서 실행:
+   ```powershell
+   .\scripts\deploy\Deploy-Prod.ps1
+   ```
+   DB SQL이 있으면 `-SqlFiles @(...)` 로 해당 `pg-app/src/main/resources/db/V*.sql` 경로를 넘긴다.
+3. 실패 시 로그를 보고 **수정 가능한 코드/스크립트 오류**면 고친 뒤 **재배포 1~2회** 시도. 자격증명·디스크·방화벽 등은 사용자에게 알리고 중단.
+4. 성공 시 JAR 경로·적용 SQL·재시작 여부·확인 URL을 짧게 보고한다.
+5. **자동 배포가 계속 안 되면** 폴백: 에이전트는 `bootJar`(및 SQL 경로 안내)까지 하고, 사용자는 예전처럼 FTP JAR·DB·수동 `./restart-pg-app.sh` 로 반영한다. (`scripts/deploy/README.md` 수동 폴백)
+
+## 금지
+- credentials.env / 비밀번호를 Git·채팅 답변·규칙 파일에 넣지 않는다.
+- 「배포해」 없이 SCP/SSH로 운영에 올리지 않는다.

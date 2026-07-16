@@ -48,6 +48,9 @@ public class NeutralCheckoutRouteController {
                     if (PgVendor.isElementPayFamily(opPg)) {
                         return "/elementpay-pay.html";
                     }
+                    if (PgVendor.isIlkFamily(opPg)) {
+                        return "/ilk-pay.html";
+                    }
                 }
             }
         } catch (RuntimeException ignore) {

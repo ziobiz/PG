@@ -1596,6 +1596,7 @@ public class ApiHqController {
         data.put("mobileCheckoutModeDefault", "EMBED");
         data.put("urlPayInputModeDefault", "GENERAL");
         data.put("urlPayCardExpiryModeDefault", "DROPDOWN");
+        data.put("cardAuthModeDefault", "THREE_DS");
         data.put("apiUrlPayInputModeDefault", "TYPE_BA");
         data.put("urlPayRepayEnabledYn", "N");
         data.put("urlPayRepayPathTemplate", "/pay-repay/{compCode}");
@@ -1649,6 +1650,10 @@ public class ApiHqController {
             if (c.getUrlPayCardExpiryModeDefault() != null) {
                 data.put("urlPayCardExpiryModeDefault",
                         com.pg.urlpay.UrlPayCardExpiryModeUtil.normalize(c.getUrlPayCardExpiryModeDefault()));
+            }
+            if (c.getCardAuthModeDefault() != null) {
+                data.put("cardAuthModeDefault",
+                        com.pg.urlpay.CardAuthModeUtil.normalize(c.getCardAuthModeDefault()));
             }
             if (c.getApiUrlPayInputModeDefault() != null) {
                 data.put("apiUrlPayInputModeDefault",
@@ -1749,6 +1754,8 @@ public class ApiHqController {
                 String.valueOf(body.getOrDefault("urlPayInputModeDefault", "GENERAL"))));
         c.setUrlPayCardExpiryModeDefault(com.pg.urlpay.UrlPayCardExpiryModeUtil.normalize(
                 String.valueOf(body.getOrDefault("urlPayCardExpiryModeDefault", "DROPDOWN"))));
+        c.setCardAuthModeDefault(com.pg.urlpay.CardAuthModeUtil.normalize(
+                String.valueOf(body.getOrDefault("cardAuthModeDefault", "THREE_DS"))));
         c.setApiUrlPayInputModeDefault(com.pg.urlpay.UrlPayInputModeUtil.normalize(
                 String.valueOf(body.getOrDefault("apiUrlPayInputModeDefault", "TYPE_BA"))));
         c.setUrlPayRepayEnabledYn("Y".equalsIgnoreCase(String.valueOf(body.getOrDefault("urlPayRepayEnabledYn", "N"))) ? "Y" : "N");

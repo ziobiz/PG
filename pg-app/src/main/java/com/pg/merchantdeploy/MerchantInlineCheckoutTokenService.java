@@ -264,6 +264,9 @@ public class MerchantInlineCheckoutTokenService {
         if (com.pg.integration.pg.PgVendor.isElementPayFamily(u)) {
             return MerchantPgBrokerVendor.ELEMENTPAY;
         }
+        if (com.pg.integration.pg.PgVendor.isIlkFamily(u)) {
+            return MerchantPgBrokerVendor.ILK;
+        }
         return MerchantPgBrokerVendor.CHILLPAY;
     }
 

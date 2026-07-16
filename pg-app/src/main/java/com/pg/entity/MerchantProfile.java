@@ -227,6 +227,10 @@ public class MerchantProfile {
     @Column(name = "url_pay_card_expiry_mode", nullable = false, length = 16)
     private String urlPayCardExpiryMode = "FOLLOW_HQ";
 
+    /** 일반결제 카드 인증 — {@link com.pg.urlpay.CardAuthModeUtil} FOLLOW_HQ|THREE_DS|NONE3D (가맹 우선) */
+    @Column(name = "card_auth_mode", nullable = false, length = 16)
+    private String cardAuthMode = "FOLLOW_HQ";
+
     /**
      * API URL 인라인 중계 결제 방식 — {@link com.pg.urlpay.UrlPayCheckoutModeUtil}.
      */
@@ -686,6 +690,11 @@ public class MerchantProfile {
     public String getUrlPayCardExpiryMode() { return urlPayCardExpiryMode; }
     public void setUrlPayCardExpiryMode(String urlPayCardExpiryMode) {
         this.urlPayCardExpiryMode = com.pg.urlpay.UrlPayCardExpiryModeUtil.normalizeMerchantStored(urlPayCardExpiryMode);
+    }
+
+    public String getCardAuthMode() { return cardAuthMode; }
+    public void setCardAuthMode(String cardAuthMode) {
+        this.cardAuthMode = com.pg.urlpay.CardAuthModeUtil.normalizeMerchantStored(cardAuthMode);
     }
 
     public String getApiUrlPayCheckoutMode() { return apiUrlPayCheckoutMode; }

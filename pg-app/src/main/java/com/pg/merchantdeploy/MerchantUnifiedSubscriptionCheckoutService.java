@@ -22,17 +22,20 @@ public class MerchantUnifiedSubscriptionCheckoutService {
 
     private final JpaySubscriptionConfigService subscriptionConfigService;
     private final MerchantJpaySubscriptionCheckoutService jpaySubscriptionCheckoutService;
+    private final MerchantIlkSubscriptionCheckoutService ilkSubscriptionCheckoutService;
     private final MerchantInlineCheckoutTokenService tokenService;
     private final MerchantChatbotProductService productService;
     private final OrgUnitRepository orgUnitRepository;
 
     public MerchantUnifiedSubscriptionCheckoutService(JpaySubscriptionConfigService subscriptionConfigService,
                                                         MerchantJpaySubscriptionCheckoutService jpaySubscriptionCheckoutService,
+                                                        MerchantIlkSubscriptionCheckoutService ilkSubscriptionCheckoutService,
                                                         MerchantInlineCheckoutTokenService tokenService,
                                                         MerchantChatbotProductService productService,
                                                         OrgUnitRepository orgUnitRepository) {
         this.subscriptionConfigService = subscriptionConfigService;
         this.jpaySubscriptionCheckoutService = jpaySubscriptionCheckoutService;
+        this.ilkSubscriptionCheckoutService = ilkSubscriptionCheckoutService;
         this.tokenService = tokenService;
         this.productService = productService;
         this.orgUnitRepository = orgUnitRepository;
@@ -46,6 +49,8 @@ public class MerchantUnifiedSubscriptionCheckoutService {
         Map<String, Object> result;
         if (PgVendor.isJpayFamily(opPg)) {
             result = jpaySubscriptionCheckoutService.prepare(orgUnitId, body, request);
+        } else if (PgVendor.isIlkFamily(opPg)) {
+            result = ilkSubscriptionCheckoutService.prepare(orgUnitId, body, request);
         } else {
             return fail("지원하지 않는 구독 결제 구성입니다.", "SUBSCRIPTION_PG_NOT_SUPPORTED");
         }
@@ -77,6 +82,8 @@ public class MerchantUnifiedSubscriptionCheckoutService {
         Map<String, Object> result;
         if (PgVendor.isJpayFamily(opPg)) {
             result = jpaySubscriptionCheckoutService.subscriptionStatus(orgUnitId, orderNo);
+        } else if (PgVendor.isIlkFamily(opPg)) {
+            result = ilkSubscriptionCheckoutService.subscriptionStatus(orgUnitId, orderNo);
         } else {
             return fail("지원하지 않는 구독 결제 구성입니다.", "SUBSCRIPTION_PG_NOT_SUPPORTED");
         }
@@ -92,6 +99,8 @@ public class MerchantUnifiedSubscriptionCheckoutService {
         Map<String, Object> result;
         if (PgVendor.isJpayFamily(opPg)) {
             result = jpaySubscriptionCheckoutService.cancel(orgUnitId, body, request);
+        } else if (PgVendor.isIlkFamily(opPg)) {
+            result = ilkSubscriptionCheckoutService.cancel(orgUnitId, body, request);
         } else {
             return fail("지원하지 않는 구독 결제 구성입니다.", "SUBSCRIPTION_PG_NOT_SUPPORTED");
         }

@@ -1,5 +1,6 @@
 /**
  * B안 허브 shell — 탭/위저드 UI + 기존 화면 embed.
+ * 플랫폼 버전(ICOPAY Vx.y) 배지는 여기에 두지 않는다. 버전 표기는 본사정책 > 플랫폼 > 업데이트 내용만.
  */
 (function (global) {
   'use strict';
@@ -26,6 +27,8 @@
     if (!tabs || !tabs.length) return null;
     var q = layoutB.parseHubQuery(hubUrl || '');
     var want = hub.wizard ? q.step : q.tab;
+    /* 구 탭 id 호환: 결제 UX → 태블릿 UX */
+    if (!hub.wizard && want === 'checkout-ux') want = 'tablet-ux';
     if (want) {
       for (var i = 0; i < tabs.length; i++) {
         var k = hub.wizard ? tabs[i].step : tabs[i].tab;
@@ -80,12 +83,9 @@
     var bodyClass = hub.helpPanels ? 'row g-0' : '';
     return '<div class="content pg-hub-shell" id="screenContent_' + escHtml(tabId) + '" data-pg-hub-url="' + escHtml(hub.hubUrl) + '">'
       + '<div class="card mb-0"><div class="card-body pb-2">'
-      + '<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">'
-      + '<div class="text-muted small" data-pg-ui-t="탭을 전환해도 동일 허브 안에서 설정합니다.">'
+      + '<div class="text-muted small mb-2" data-pg-ui-t="탭을 전환해도 동일 허브 안에서 설정합니다.">'
       + escHtml(uiT('탭을 전환해도 동일 허브 안에서 설정합니다.')) + '</div>'
-      + '<div class="small"><span class="badge bg-secondary-subtle text-secondary pg-hub-layout-badge" data-pg-ui-t="ICOPAY V2.0">'
-      + escHtml(uiT('ICOPAY V2.0')) + '</span></div></div>'
-      + '<ul class="nav nav-tabs pg-hub-tabs flex-nowrap overflow-auto" role="tablist">' + navHtml + '</ul>'
+      + '<ul class="nav nav-tabs pg-hub-tabs" role="tablist">' + navHtml + '</ul>'
       + '</div>'
       + '<div class="card-body pt-3 ' + bodyClass + '">'
       + '<div class="' + (hub.helpPanels ? 'col-lg-8 pe-lg-3' : 'col-12') + ' pg-hub-panel-wrap">'

@@ -13,6 +13,8 @@ public enum UrlPaySaleChannel {
     EXIMBAY_READY_SALE,
     /** ElementPay initPayment — THB 카드·PromptPay ({@code /api/pay/url/sale}) */
     ELEMENTPAY_INIT_PAYMENT,
+    /** ILK 카드 인라인 — RequestAuth/Payment ({@code /api/pay/url/sale} 또는 {@code /api/pay/ilk/sale}) */
+    ILK_INLINE_SALE,
     /** 아직 ICOPAY URL 승인 어댑터 미등록 */
     NOT_REGISTERED
 }

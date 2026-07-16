@@ -38,6 +38,9 @@ public class UrlPayVendorCapabilityRegistry {
         if (PgVendor.isElementPayFamily(pg)) {
             return elementPayCapability(pg, urlPay, urlRepayAgency);
         }
+        if (PgVendor.isIlkFamily(pg)) {
+            return ilkCapability(pg, urlPay, urlRepayAgency);
+        }
         if (PgVendor.isChillPayFamily(pg) || ChillPayService.isChillPayFamilyPgCd(pg)) {
             return chillPayCapability(pg, urlPay, urlRepayAgency);
         }
@@ -58,6 +61,9 @@ public class UrlPayVendorCapabilityRegistry {
         }
         if (PgVendor.isElementPayFamily(pg)) {
             return UrlPayInlineWidgetKind.ELEMENTPAY_INLINE;
+        }
+        if (PgVendor.isIlkFamily(pg)) {
+            return UrlPayInlineWidgetKind.ILK_INLINE;
         }
         if (PgVendor.isChillPayFamily(pg) || ChillPayService.isChillPayFamilyPgCd(pg)) {
             return UrlPayInlineWidgetKind.CHILLPAY_CCD;
@@ -106,6 +112,20 @@ public class UrlPayVendorCapabilityRegistry {
                 "/checkout/",
                 NeutralCheckoutRoute.EMBED_SCRIPT_PATH,
                 UrlPaySaleChannel.ELEMENTPAY_INIT_PAYMENT,
+                urlPay,
+                urlRepayAgency,
+                false);
+    }
+
+    /** ILK — 카드 인라인(3DS authType16 / NONE3D Payment). 재결제 URL 미지원. */
+    private UrlPayVendorCapability ilkCapability(String pg, boolean urlPay, boolean urlRepayAgency) {
+        return new UrlPayVendorCapability(
+                PgVendor.ILK,
+                pg,
+                UrlPayInlineWidgetKind.ILK_INLINE,
+                "/checkout/",
+                NeutralCheckoutRoute.EMBED_SCRIPT_PATH,
+                UrlPaySaleChannel.ILK_INLINE_SALE,
                 urlPay,
                 urlRepayAgency,
                 false);

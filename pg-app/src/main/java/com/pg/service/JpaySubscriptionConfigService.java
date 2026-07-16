@@ -78,7 +78,8 @@ public class JpaySubscriptionConfigService {
         return list.stream()
                 .filter(b -> "Y".equalsIgnoreCase(str(b.getOperationalYn())))
                 .filter(b -> b.getActivationYn() == null || "Y".equalsIgnoreCase(str(b.getActivationYn())))
-                .filter(b -> b.getPgCd() != null && PgVendor.isJpayFamily(b.getPgCd()))
+                .filter(b -> b.getPgCd() != null
+                        && (PgVendor.isJpayFamily(b.getPgCd()) || PgVendor.isIlkFamily(b.getPgCd())))
                 .filter(b -> isAgencySubscriptionIntegration(b.getPgCd()))
                 .filter(b -> {
                     String pm = b.getPayMethod();
