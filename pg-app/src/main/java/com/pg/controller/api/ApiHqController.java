@@ -141,6 +141,16 @@ public class ApiHqController {
         return v != null && "Y".equalsIgnoreCase(v.trim());
     }
 
+    /** API Key·MD5 등 — 원문 대신 앞 3자 + ***** (미등록이면 빈 문자열) */
+    private static String maskSecretPreview(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "";
+        }
+        String t = raw.trim();
+        String head = t.length() <= 3 ? t : t.substring(0, 3);
+        return head + "*****";
+    }
+
     private static String integrationScopeLabel(PgAgency p) {
         List<String> parts = new ArrayList<>();
         if (ynPg(p.getIntegNotiYn())) {
@@ -437,6 +447,9 @@ public class ApiHqController {
                     boolean hasMd5 = p.getMd5SecretKey() != null && !p.getMd5SecretKey().isBlank();
                     m.put("hasApiKey", hasApi ? "Y" : "N");
                     m.put("hasMd5Key", hasMd5 ? "Y" : "N");
+                    /* 원문 미노출 — 앞 3자+***** 만 (편집 화면에서 등록 여부 확인용) */
+                    m.put("apiKeyMasked", hasApi ? maskSecretPreview(p.getApiKey()) : "");
+                    m.put("md5KeyMasked", hasMd5 ? maskSecretPreview(p.getMd5SecretKey()) : "");
                     m.put("routeNo", RouteNoDisplayUtil.formatForDisplay(p.getRouteNo()));
                     m.put("sandboxYn", p.getSandboxYn() != null ? p.getSandboxYn() : "Y");
                     m.put("credentialsExtraJson", p.getCredentialsExtraJson() != null ? p.getCredentialsExtraJson() : "");
@@ -509,6 +522,8 @@ public class ApiHqController {
                     boolean hasMd5 = p.getMd5SecretKey() != null && !p.getMd5SecretKey().isBlank();
                     m.put("hasApiKey", hasApi ? "Y" : "N");
                     m.put("hasMd5Key", hasMd5 ? "Y" : "N");
+                    m.put("apiKeyMasked", hasApi ? maskSecretPreview(p.getApiKey()) : "");
+                    m.put("md5KeyMasked", hasMd5 ? maskSecretPreview(p.getMd5SecretKey()) : "");
                     return m;
                 })
                 .toList();
@@ -615,6 +630,18 @@ public class ApiHqController {
             data.put("message", "저장되었습니다.");
             data.put("id", entity.getId());
             data.put("pgCd", entity.getPgCd());
+            data.put("acquirerNm", entity.getAcquirerNm() != null ? entity.getAcquirerNm() : "");
+            data.put("acquirerTel", entity.getAcquirerTel() != null ? entity.getAcquirerTel() : "");
+            data.put("acquirerEmail", entity.getAcquirerEmail() != null ? entity.getAcquirerEmail() : "");
+            data.put("paymentSwitcherNm", entity.getPaymentSwitcherNm() != null ? entity.getPaymentSwitcherNm() : "");
+            data.put("paymentSwitcherTel", entity.getPaymentSwitcherTel() != null ? entity.getPaymentSwitcherTel() : "");
+            data.put("paymentSwitcherEmail", entity.getPaymentSwitcherEmail() != null ? entity.getPaymentSwitcherEmail() : "");
+            boolean hasApiSaved = entity.getApiKey() != null && !entity.getApiKey().isBlank();
+            boolean hasMd5Saved = entity.getMd5SecretKey() != null && !entity.getMd5SecretKey().isBlank();
+            data.put("hasApiKey", hasApiSaved ? "Y" : "N");
+            data.put("hasMd5Key", hasMd5Saved ? "Y" : "N");
+            data.put("apiKeyMasked", hasApiSaved ? maskSecretPreview(entity.getApiKey()) : "");
+            data.put("md5KeyMasked", hasMd5Saved ? maskSecretPreview(entity.getMd5SecretKey()) : "");
             return ResponseEntity.ok(ApiResponse.ok(data));
         } catch (NumberFormatException e) {
             return ResponseEntity.ok(ApiResponse.fail("ID 형식이 올바르지 않습니다.", "VALIDATION"));

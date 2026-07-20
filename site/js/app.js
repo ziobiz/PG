@@ -5978,6 +5978,45 @@
   }
 
   /** 가맹점 결제대행사 테이블. opts.rowActionMode=true 이면 업체정보(상세)에서 행별 저장/삭제·2중 확인 */
+  /** MID+API Key 쌍 규칙. 불완전하면 false */
+  window.pgBindingCredPairValidate = function (tr) {
+    var midEl = tr.querySelector('[data-field="mid"]');
+    var akEl = tr.querySelector('[data-field="apiKey"]');
+    var mid = midEl ? String(midEl.value || '').trim() : '';
+    var k = akEl ? String(akEl.value || '').trim() : '';
+    var mask = akEl && akEl.dataset.pgSecretMask != null ? String(akEl.dataset.pgSecretMask).trim() : '';
+    var hasStored = akEl && akEl.dataset.pgHasMerchantKey === 'Y';
+    var unchangedMask = !!(mask && k === mask);
+    var realNew = !!(k && !unchangedMask && !/^.{1,3}\*{3,}$/.test(k) && k !== '********');
+    var effectiveMerchantKey = realNew || (unchangedMask && hasStored);
+    if (!mid && effectiveMerchantKey) {
+      alert(pgAdminUiT('MID와 API Key는 함께 입력해야 합니다. 하나만 있으면 본사(PG) 값을 사용합니다.'));
+      return false;
+    }
+    if (mid && realNew === false && !hasStored && k && !unchangedMask && /^.{1,3}\*{3,}$/.test(k)) {
+      alert(pgAdminUiT('API Key는 새 키를 입력하거나, 본사 값을 쓰려면 마스킹 표시를 유지하세요.'));
+      return false;
+    }
+    return true;
+  };
+
+  /** 저장 payload용 — 마스킹/본사미리보기는 빈 문자열(서버가 본사·기존유지 처리) */
+  window.pgBindingCollectSecret = function (tr, field, hasMerchantAttr) {
+    var el = tr.querySelector('[data-field="' + field + '"]');
+    if (!el) return '';
+    var v = el.value != null ? String(el.value).trim() : '';
+    if (!v) return '';
+    var mask = el.dataset && el.dataset.pgSecretMask != null ? String(el.dataset.pgSecretMask).trim() : '';
+    var hasStored = el.dataset && el.dataset[hasMerchantAttr] === 'Y';
+    if (mask && v === mask) {
+      return hasStored ? v : '';
+    }
+    if (/^.{1,3}\*{3,}$/.test(v) || v === '********') {
+      return hasStored ? v : '';
+    }
+    return v;
+  };
+
   function initPgBindingList(pane, initialBindings, opts) {
     opts = opts || {};
     var rowActionMode = !!opts.rowActionMode;
@@ -6205,7 +6244,7 @@
       if (pgSel && !pgSel._pgAgencyTemplateBound) {
         pgSel._pgAgencyTemplateBound = true;
         pgSel.addEventListener('change', function () {
-          applyPgAgencyTemplateDefaults(tr);
+          applyPgAgencyTemplateDefaults(tr, true);
           if (typeof window.pgApplyUrlPayWebSettingsCardState === 'function') window.pgApplyUrlPayWebSettingsCardState(pane);
           else {
             var cidPg = getCompId();
@@ -6287,6 +6326,7 @@
           };
           var pgCd = sel('pgCd');
           if (!pgCd) { alert(pgAdminUiT('결제대행사(PG)를 선택하세요. 배포설정 > API연동설정에 먼저 등록해야 목록에 나타납니다.')); return; }
+          if (!window.pgBindingCredPairValidate(tr)) return;
           var opInpRow = tr.querySelector('input[name="pgOperational"]');
           var operationalYn = opInpRow && opInpRow.checked ? 'Y' : 'N';
           var merchantExtRow = null;
@@ -6327,8 +6367,8 @@
             payMethod: sel('payMethod') || 'WEB',
             mid: sel('mid'),
             rootNo: sel('rootNo'),
-            apiKey: sel('apiKey'),
-            ivKey: sel('ivKey'),
+            apiKey: window.pgBindingCollectSecret(tr, 'apiKey', 'pgHasMerchantKey'),
+            ivKey: window.pgBindingCollectSecret(tr, 'ivKey', 'pgHasMerchantIv'),
             activationYn: sel('activationYn') || 'Y',
             operationalYn: operationalYn,
             installmentYn: sel('installmentYn') || 'N',
@@ -6345,6 +6385,30 @@
           window.PG_API.compPgBindingSave(body).then(function (saved) {
             alert(pgAdminUiT('저장되었습니다.'));
             if (saved && saved.id != null) tr.dataset.bindingId = String(saved.id);
+            if (saved) {
+              var akElS = tr.querySelector('[data-field="apiKey"]');
+              var ivElS = tr.querySelector('[data-field="ivKey"]');
+              if (akElS) {
+                var akM = (saved.apiKeyMasked != null && String(saved.apiKeyMasked).trim())
+                  ? String(saved.apiKeyMasked).trim()
+                  : (saved.apiKey || '');
+                akElS.value = akM;
+                akElS.dataset.pgSecretMask = akM;
+                akElS.dataset.pgHasMerchantKey = String(saved.hasApiKey || '').toUpperCase() === 'Y' ? 'Y' : 'N';
+              }
+              if (ivElS) {
+                var ivM = (saved.ivKeyMasked != null && String(saved.ivKeyMasked).trim())
+                  ? String(saved.ivKeyMasked).trim()
+                  : (saved.ivKey || '');
+                ivElS.value = ivM;
+                ivElS.dataset.pgSecretMask = ivM;
+                ivElS.dataset.pgHasMerchantIv = String(saved.hasIvKey || '').toUpperCase() === 'Y' ? 'Y' : 'N';
+              }
+              if (saved.mid != null) {
+                var midS = tr.querySelector('[data-field="mid"]');
+                if (midS) midS.value = String(saved.mid);
+              }
+            }
             tr.dataset.snapshot = JSON.stringify(rowSnapshot(tr));
             setRowReadonly(tr, true);
             toggleRowEditUi(tr, false);
@@ -6406,6 +6470,34 @@
       tr.querySelector('[data-field="rootNo"]').value = data.rootNo || '';
       tr.querySelector('[data-field="apiKey"]').value = data.apiKey || '';
       tr.querySelector('[data-field="ivKey"]').value = data.ivKey || '';
+      var akInit = tr.querySelector('[data-field="apiKey"]');
+      var ivInit = tr.querySelector('[data-field="ivKey"]');
+      if (akInit) {
+        var akMask0 = (data.apiKeyMasked != null && String(data.apiKeyMasked).trim())
+          ? String(data.apiKeyMasked).trim()
+          : (data.apiKey || '');
+        if (String(data.hasApiKey || '').toUpperCase() === 'Y' || akMask0) {
+          akInit.value = akMask0;
+          akInit.dataset.pgSecretMask = akMask0;
+          akInit.dataset.pgHasMerchantKey = String(data.hasApiKey || '').toUpperCase() === 'Y' ? 'Y' : 'N';
+        } else {
+          akInit.dataset.pgSecretMask = '';
+          akInit.dataset.pgHasMerchantKey = 'N';
+        }
+      }
+      if (ivInit) {
+        var ivMask0 = (data.ivKeyMasked != null && String(data.ivKeyMasked).trim())
+          ? String(data.ivKeyMasked).trim()
+          : (data.ivKey || '');
+        if (String(data.hasIvKey || '').toUpperCase() === 'Y' || ivMask0) {
+          ivInit.value = ivMask0;
+          ivInit.dataset.pgSecretMask = ivMask0;
+          ivInit.dataset.pgHasMerchantIv = String(data.hasIvKey || '').toUpperCase() === 'Y' ? 'Y' : 'N';
+        } else {
+          ivInit.dataset.pgSecretMask = '';
+          ivInit.dataset.pgHasMerchantIv = 'N';
+        }
+      }
       tr.querySelector('[data-field="installmentYn"]').value = data.installmentYn || 'N';
       tr.querySelector('[data-field="maxInstallmentMonths"]').value = data.maxInstallmentMonths != null ? String(data.maxInstallmentMonths) : '';
       var cbsEl = tr.querySelector('[data-field="cardBrandScope"]');
@@ -6440,7 +6532,7 @@
       pgBindingApplyDomEl(tr);
     }
 
-    function applyPgAgencyTemplateDefaults(tr) {
+    function applyPgAgencyTemplateDefaults(tr, forceFill) {
       if (!tr || !pgAgencyCatalog) return;
       var selEl = tr.querySelector('[data-field="pgCd"]');
       if (!selEl || !selEl.value) return;
@@ -6448,8 +6540,31 @@
       if (!p) return;
       var midEl = tr.querySelector('[data-field="mid"]');
       var rootEl = tr.querySelector('[data-field="rootNo"]');
-      if (midEl && !String(midEl.value || '').trim() && p.defaultMid) midEl.value = String(p.defaultMid);
-      if (rootEl && !String(rootEl.value || '').trim() && p.routeNo != null && String(p.routeNo) !== '') rootEl.value = String(p.routeNo);
+      var akEl = tr.querySelector('[data-field="apiKey"]');
+      var ivEl = tr.querySelector('[data-field="ivKey"]');
+      if (midEl && (forceFill || !String(midEl.value || '').trim()) && p.defaultMid) midEl.value = String(p.defaultMid);
+      if (rootEl && (forceFill || !String(rootEl.value || '').trim()) && p.routeNo != null && String(p.routeNo) !== '') rootEl.value = String(p.routeNo);
+      /* PG 선택 시 MID·API Key(본사) 자동표시. Key는 앞3+***** 만 — 마스킹값은 저장하지 않음(본사 사용) */
+      if (akEl && (forceFill || !String(akEl.value || '').trim() || akEl.dataset.pgHasMerchantKey !== 'Y')) {
+        var akMask = (p.apiKeyMasked != null && String(p.apiKeyMasked).trim())
+          ? String(p.apiKeyMasked).trim()
+          : ((p.hasApiKey === 'Y') ? '********' : '');
+        akEl.value = akMask;
+        akEl.dataset.pgSecretMask = akMask;
+        akEl.dataset.pgHasMerchantKey = 'N';
+        akEl.placeholder = akMask ? pgAdminUiT('변경 시에만 새 키 입력 (MID+Key 쌍)') : 'API KEY';
+      }
+      if (ivEl && (forceFill || !String(ivEl.value || '').trim() || ivEl.dataset.pgHasMerchantIv !== 'Y')) {
+        var ivMask = (p.md5KeyMasked != null && String(p.md5KeyMasked).trim())
+          ? String(p.md5KeyMasked).trim()
+          : ((p.hasMd5Key === 'Y') ? '********' : '');
+        if (forceFill || !String(ivEl.value || '').trim()) {
+          ivEl.value = ivMask;
+          ivEl.dataset.pgSecretMask = ivMask;
+          ivEl.dataset.pgHasMerchantIv = 'N';
+          ivEl.placeholder = ivMask ? pgAdminUiT('선택·변경 시에만 입력') : 'IV / MD5';
+        }
+      }
       pgSyncPgBindingRowRoutingScopeUi(tr, pgAgencyCatalog);
     }
 
@@ -6498,7 +6613,11 @@
             mid: b.mid,
             rootNo: b.rootNo,
             apiKey: b.apiKey,
+            apiKeyMasked: b.apiKeyMasked,
+            hasApiKey: b.hasApiKey,
             ivKey: b.ivKey,
+            ivKeyMasked: b.ivKeyMasked,
+            hasIvKey: b.hasIvKey,
             installmentYn: b.installmentYn || 'N',
             maxInstallmentMonths: b.maxInstallmentMonths != null ? String(b.maxInstallmentMonths) : '',
             cardBrandScope: b.cardBrandScope || 'ALL',
@@ -6632,20 +6751,6 @@
     if (rnEl) rnEl.value = preset.routeNo != null && preset.routeNo !== '' ? String(preset.routeNo) : '';
     if (sbEl) sbEl.value = (preset.sandboxYn === 'N') ? 'N' : 'Y';
     if (exEl) exEl.value = preset.credentialsExtraJson != null ? String(preset.credentialsExtraJson) : '';
-    var acqNm = document.getElementById('pgAgencyEditAcquirerNm');
-    var acqTel = document.getElementById('pgAgencyEditAcquirerTel');
-    var acqEm = document.getElementById('pgAgencyEditAcquirerEmail');
-    var swNm = document.getElementById('pgAgencyEditPaymentSwitcherNm');
-    var swTel = document.getElementById('pgAgencyEditPaymentSwitcherTel');
-    var swEm = document.getElementById('pgAgencyEditPaymentSwitcherEmail');
-    if (acqNm) acqNm.value = preset.acquirerNm != null ? String(preset.acquirerNm) : '';
-    if (acqTel) acqTel.value = preset.acquirerTel != null ? String(preset.acquirerTel) : '';
-    if (acqEm) acqEm.value = preset.acquirerEmail != null ? String(preset.acquirerEmail) : '';
-    if (swNm) swNm.value = preset.paymentSwitcherNm != null ? String(preset.paymentSwitcherNm) : '';
-    if (swTel) swTel.value = preset.paymentSwitcherTel != null ? String(preset.paymentSwitcherTel) : '';
-    if (swEm) swEm.value = preset.paymentSwitcherEmail != null ? String(preset.paymentSwitcherEmail) : '';
-    if (akEl) akEl.value = '';
-    if (mkEl) mkEl.value = '';
     if (modeSel) {
       var um = preset.urlPayAmountMode != null ? String(preset.urlPayAmountMode).trim().toUpperCase() : '';
       modeSel.value = (um === 'BLIND') ? 'BLIND' : ((um === 'DISPLAY') ? 'DISPLAY' : 'STANDARD');
@@ -6679,11 +6784,47 @@
     if (exMode) exMode.dispatchEvent(new Event('change'));
     cdEl.readOnly = !!(preset.id);
     var el = document.getElementById('pgAgencyEditModal');
-    if (el && window.bootstrap && bootstrap.Modal) {
-      bootstrap.Modal.getOrCreateInstance(el).show();
-    }
+    /* i18n placeholder 적용 후, 값·마스킹을 다시 채워 덮어쓰지 않도록 함 */
     if (el && window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
       try { window.PG_UI_I18N.applyDom(el); } catch (ePgAgDom) {}
+    }
+    var acqNm = document.getElementById('pgAgencyEditAcquirerNm');
+    var acqTel = document.getElementById('pgAgencyEditAcquirerTel');
+    var acqEm = document.getElementById('pgAgencyEditAcquirerEmail');
+    var swNm = document.getElementById('pgAgencyEditPaymentSwitcherNm');
+    var swTel = document.getElementById('pgAgencyEditPaymentSwitcherTel');
+    var swEm = document.getElementById('pgAgencyEditPaymentSwitcherEmail');
+    if (acqNm) acqNm.value = preset.acquirerNm != null ? String(preset.acquirerNm) : '';
+    if (acqTel) acqTel.value = preset.acquirerTel != null ? String(preset.acquirerTel) : '';
+    if (acqEm) acqEm.value = preset.acquirerEmail != null ? String(preset.acquirerEmail) : '';
+    if (swNm) swNm.value = preset.paymentSwitcherNm != null ? String(preset.paymentSwitcherNm) : '';
+    if (swTel) swTel.value = preset.paymentSwitcherTel != null ? String(preset.paymentSwitcherTel) : '';
+    if (swEm) swEm.value = preset.paymentSwitcherEmail != null ? String(preset.paymentSwitcherEmail) : '';
+    /* API Key·MD5: 원문 미노출. 등록 시 앞3자+***** 표시(text). 저장 시 마스킹값·공백이면 기존 유지 */
+    if (akEl) {
+      var akMask = (preset.apiKeyMasked != null && String(preset.apiKeyMasked).trim())
+        ? String(preset.apiKeyMasked).trim()
+        : ((String(preset.hasApiKey || '').toUpperCase() === 'Y') ? '********' : '');
+      akEl.type = 'text';
+      akEl.value = akMask;
+      akEl.dataset.pgSecretMask = akMask;
+      akEl.placeholder = akMask
+        ? pgAdminUiT('변경 시에만 새 키 입력')
+        : pgAdminUiT('등록됨: 앞3자+***** · 변경 시에만 새 키 입력');
+    }
+    if (mkEl) {
+      var mkMask = (preset.md5KeyMasked != null && String(preset.md5KeyMasked).trim())
+        ? String(preset.md5KeyMasked).trim()
+        : ((String(preset.hasMd5Key || '').toUpperCase() === 'Y') ? '********' : '');
+      mkEl.type = 'text';
+      mkEl.value = mkMask;
+      mkEl.dataset.pgSecretMask = mkMask;
+      mkEl.placeholder = mkMask
+        ? pgAdminUiT('변경 시에만 새 키 입력')
+        : pgAdminUiT('등록됨: 앞3자+***** · 변경 시에만 새 키 입력');
+    }
+    if (el && window.bootstrap && bootstrap.Modal) {
+      bootstrap.Modal.getOrCreateInstance(el).show();
     }
   };
 
@@ -18666,6 +18807,10 @@
                 extBt = extMUpper === 'D' ? sel('extSettleBatchTime') : '';
               }
               var opChk = tr.querySelector('input[name="pgOperational"]');
+              if (!window.pgBindingCredPairValidate(tr)) {
+                bindings = null;
+                return;
+              }
               bindings.push({
                 pgCd: pgCd,
                 activationYn: sel('activationYn') || 'Y',
@@ -18673,8 +18818,8 @@
                 payMethod: sel('payMethod') || 'WEB',
                 mid: sel('mid'),
                 rootNo: sel('rootNo'),
-                apiKey: sel('apiKey'),
-                ivKey: sel('ivKey'),
+                apiKey: window.pgBindingCollectSecret(tr, 'apiKey', 'pgHasMerchantKey'),
+                ivKey: window.pgBindingCollectSecret(tr, 'ivKey', 'pgHasMerchantIv'),
                 installmentYn: sel('installmentYn') || 'N',
                 maxInstallmentMonths: sel('maxInstallmentMonths'),
                 cardBrandScope: sel('cardBrandScope') || 'ALL',
@@ -18685,6 +18830,7 @@
               });
             }
           });
+          if (!bindings) return;
           fd.pgBindings = JSON.stringify(bindings);
         }
         delete fd.merchantPgExtSettleMode;
@@ -20448,6 +20594,10 @@
                     extBtI = extMUpperI === 'D' ? sel('extSettleBatchTime') : '';
                   }
                   var opChkI = tr.querySelector('input[name="pgOperational"]');
+                  if (!window.pgBindingCredPairValidate(tr)) {
+                    bindings = null;
+                    return;
+                  }
                   bindings.push({
                     pgCd: pgCd,
                     activationYn: sel('activationYn') || 'Y',
@@ -20455,8 +20605,8 @@
                     payMethod: sel('payMethod') || 'WEB',
                     mid: sel('mid'),
                     rootNo: sel('rootNo'),
-                    apiKey: sel('apiKey'),
-                    ivKey: sel('ivKey'),
+                    apiKey: window.pgBindingCollectSecret(tr, 'apiKey', 'pgHasMerchantKey'),
+                    ivKey: window.pgBindingCollectSecret(tr, 'ivKey', 'pgHasMerchantIv'),
                     installmentYn: sel('installmentYn') || 'N',
                     maxInstallmentMonths: sel('maxInstallmentMonths'),
                     cardBrandScope: sel('cardBrandScope') || 'ALL',
@@ -20467,6 +20617,7 @@
                   });
                 }
               });
+              if (!bindings) return;
               fd.pgBindings = JSON.stringify(bindings);
             }
             delete fd.merchantPgExtSettleMode;
@@ -21310,6 +21461,10 @@
                   extBtD = extMUpperD === 'D' ? sel('extSettleBatchTime') : '';
                 }
                 var opChkD = tr.querySelector('input[name="pgOperational"]');
+                if (!window.pgBindingCredPairValidate(tr)) {
+                  bindings = null;
+                  return;
+                }
                 bindings.push({
                   pgCd: pgCd,
                   activationYn: sel('activationYn') || 'Y',
@@ -21317,8 +21472,8 @@
                   payMethod: sel('payMethod') || 'WEB',
                   mid: sel('mid'),
                   rootNo: sel('rootNo'),
-                  apiKey: sel('apiKey'),
-                  ivKey: sel('ivKey'),
+                  apiKey: window.pgBindingCollectSecret(tr, 'apiKey', 'pgHasMerchantKey'),
+                  ivKey: window.pgBindingCollectSecret(tr, 'ivKey', 'pgHasMerchantIv'),
                   installmentYn: sel('installmentYn') || 'N',
                   maxInstallmentMonths: sel('maxInstallmentMonths'),
                   cardBrandScope: sel('cardBrandScope') || 'ALL',
@@ -21329,6 +21484,7 @@
                 });
               }
             });
+            if (!bindings) return;
             fd.pgBindings = JSON.stringify(bindings);
           }
           delete fd.merchantPgExtSettleMode;
@@ -33362,7 +33518,11 @@
           acquirerEmail: row.acquirerEmail || '',
           paymentSwitcherNm: row.paymentSwitcherNm || '',
           paymentSwitcherTel: row.paymentSwitcherTel || '',
-          paymentSwitcherEmail: row.paymentSwitcherEmail || ''
+          paymentSwitcherEmail: row.paymentSwitcherEmail || '',
+          hasApiKey: row.hasApiKey || 'N',
+          hasMd5Key: row.hasMd5Key || 'N',
+          apiKeyMasked: row.apiKeyMasked || '',
+          md5KeyMasked: row.md5KeyMasked || ''
         });
       }
       pane.addEventListener('click', function (e) {
@@ -37770,20 +37930,31 @@
         };
         var ak = document.getElementById('pgAgencyEditApiKey');
         var mk = document.getElementById('pgAgencyEditMd5Key');
-        if (ak && ak.value.trim()) body.apiKey = ak.value.trim();
-        if (mk && mk.value.trim()) body.md5Key = mk.value.trim();
-        var acqNmEl = document.getElementById('pgAgencyEditAcquirerNm');
-        var acqTelEl = document.getElementById('pgAgencyEditAcquirerTel');
-        var acqEmEl = document.getElementById('pgAgencyEditAcquirerEmail');
-        var swNmEl = document.getElementById('pgAgencyEditPaymentSwitcherNm');
-        var swTelEl = document.getElementById('pgAgencyEditPaymentSwitcherTel');
-        var swEmEl = document.getElementById('pgAgencyEditPaymentSwitcherEmail');
-        if (acqNmEl) body.acquirerNm = acqNmEl.value.trim();
-        if (acqTelEl) body.acquirerTel = acqTelEl.value.trim();
-        if (acqEmEl) body.acquirerEmail = acqEmEl.value.trim();
-        if (swNmEl) body.paymentSwitcherNm = swNmEl.value.trim();
-        if (swTelEl) body.paymentSwitcherTel = swTelEl.value.trim();
-        if (swEmEl) body.paymentSwitcherEmail = swEmEl.value.trim();
+        function pgAgencySecretShouldSend(el) {
+          if (!el) return false;
+          var v = el.value != null ? String(el.value).trim() : '';
+          if (!v) return false;
+          var mask = el.dataset && el.dataset.pgSecretMask != null ? String(el.dataset.pgSecretMask).trim() : '';
+          if (mask && v === mask) return false;
+          /* 마스킹 패턴(앞1~3자+별표)은 원문으로 저장하지 않음 */
+          if (/^.{1,3}\*{3,}$/.test(v) || v === '********') return false;
+          return true;
+        }
+        if (pgAgencySecretShouldSend(ak)) body.apiKey = ak.value.trim();
+        if (pgAgencySecretShouldSend(mk)) body.md5Key = mk.value.trim();
+        /* Acquirer·Switcher: 항상 전송(빈 값이면 DB에서 지움) — 저장 후 재진입 시 표시 */
+        body.acquirerNm = (document.getElementById('pgAgencyEditAcquirerNm') || {}).value
+          ? String(document.getElementById('pgAgencyEditAcquirerNm').value).trim() : '';
+        body.acquirerTel = (document.getElementById('pgAgencyEditAcquirerTel') || {}).value
+          ? String(document.getElementById('pgAgencyEditAcquirerTel').value).trim() : '';
+        body.acquirerEmail = (document.getElementById('pgAgencyEditAcquirerEmail') || {}).value
+          ? String(document.getElementById('pgAgencyEditAcquirerEmail').value).trim() : '';
+        body.paymentSwitcherNm = (document.getElementById('pgAgencyEditPaymentSwitcherNm') || {}).value
+          ? String(document.getElementById('pgAgencyEditPaymentSwitcherNm').value).trim() : '';
+        body.paymentSwitcherTel = (document.getElementById('pgAgencyEditPaymentSwitcherTel') || {}).value
+          ? String(document.getElementById('pgAgencyEditPaymentSwitcherTel').value).trim() : '';
+        body.paymentSwitcherEmail = (document.getElementById('pgAgencyEditPaymentSwitcherEmail') || {}).value
+          ? String(document.getElementById('pgAgencyEditPaymentSwitcherEmail').value).trim() : '';
         if (idVal) body.id = idVal;
         if (!body.pgCd || !body.pgNm) { alert(pgAdminUiT('PG코드와 결제대행사는 필수입니다.')); return; }
         if (!body.integKind) { alert(pgAdminUiT('연동 용도를 선택하세요. 용도별로 PG코드를 나누어 등록합니다.')); return; }

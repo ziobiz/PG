@@ -22,6 +22,7 @@ import com.pg.util.JpayCheckoutMinAmountUtil;
 import com.pg.util.JpayOrderDuplicateUtil;
 import com.pg.util.JpayPayIndexResponseParser;
 import com.pg.util.JpaySignatureUtil;
+import com.pg.util.MerchantPgCredentialUtil;
 import com.pg.util.NotifyToTxnStatusMerge;
 import com.pg.util.PayPresaleRiskFilterCodes;
 import com.pg.util.PgNotifyInternalStatusMapper;
@@ -54,8 +55,8 @@ import java.util.TreeMap;
 
 /**
  * JPAY 샌드박스·운영 {@code pay_index} 직접 호출(서버 사이드).
- * {@code pay_notifyurl}·{@code pay_callbackurl} 은 가맹 {@code tb_merchant_notify_url}(JPAY_NOTIFY/JPAY_CALLBACK) 우선,
- * 없으면 {@link HqApiConfig#getPublicApiBaseUrl()} + 노티 ingress(cbJpay/rsJpay) 기본값입니다.
+ * {@code pay_notifyurl}·{@code pay_callbackurl} 은 가맹 {@code tb_merchant_notify_url}(JPAY_NOTIFY/JPAY_CALLBACK)
+ * — 노티미들웨어 등 외부 주소 포함 — 을 그대로 사용하고, 없으면 ICOPAY 노티 ingress(cbJpay/rsJpay) 기본값입니다.
  */
 @Service
 public class JpayPaymentService {
@@ -141,10 +142,11 @@ public class JpayPaymentService {
             return failOut("PG사 연동(tb_pg_agency) 행을 찾을 수 없습니다.", "PG_AGENCY_MISSING");
         }
         PgAgency agency = agOpt.get();
-        String mid = binding.getMid() != null ? binding.getMid().trim() : "";
-        String apiKey = agency.getApiKey() != null ? agency.getApiKey().trim() : "";
+        MerchantPgCredentialUtil.Resolved cred = MerchantPgCredentialUtil.resolve(binding, agency);
+        String mid = cred.mid();
+        String apiKey = cred.apiKey();
         if (mid.isEmpty() || apiKey.isEmpty()) {
-            return failOut("JPAY MID·API Key(tb_pg_agency)를 설정하세요.", "JPAY_CREDENTIALS_MISSING");
+            return failOut("JPAY MID·API Key를 설정하세요. (가맹 MID+Key 쌍 또는 본사 PG 연동)", "JPAY_CREDENTIALS_MISSING");
         }
         int routeNo = parseRouteNo(binding.getRootNo());
 
@@ -404,10 +406,11 @@ public class JpayPaymentService {
             return failOut("PG사 연동(tb_pg_agency) 행을 찾을 수 없습니다.", "PG_AGENCY_MISSING");
         }
         PgAgency agency = agOpt.get();
-        String mid = binding.getMid() != null ? binding.getMid().trim() : "";
-        String apiKey = agency.getApiKey() != null ? agency.getApiKey().trim() : "";
+        MerchantPgCredentialUtil.Resolved cred = MerchantPgCredentialUtil.resolve(binding, agency);
+        String mid = cred.mid();
+        String apiKey = cred.apiKey();
         if (mid.isEmpty() || apiKey.isEmpty()) {
-            return failOut("JPAY MID·API Key(tb_pg_agency)를 설정하세요.", "JPAY_CREDENTIALS_MISSING");
+            return failOut("JPAY MID·API Key를 설정하세요. (가맹 MID+Key 쌍 또는 본사 PG 연동)", "JPAY_CREDENTIALS_MISSING");
         }
         int routeNo = parseRouteNo(binding.getRootNo());
 
@@ -595,10 +598,11 @@ public class JpayPaymentService {
             return failOut("PG사 연동 행을 찾을 수 없습니다.", "PG_AGENCY_MISSING");
         }
         PgAgency agency = agOpt.get();
-        String mid = binding.getMid() != null ? binding.getMid().trim() : "";
-        String apiKey = agency.getApiKey() != null ? agency.getApiKey().trim() : "";
+        MerchantPgCredentialUtil.Resolved cred = MerchantPgCredentialUtil.resolve(binding, agency);
+        String mid = cred.mid();
+        String apiKey = cred.apiKey();
         if (mid.isEmpty() || apiKey.isEmpty()) {
-            return failOut("JPAY MID·API Key를 설정하세요.", "JPAY_CREDENTIALS_MISSING");
+            return failOut("JPAY MID·API Key를 설정하세요. (가맹 MID+Key 쌍 또는 본사 PG 연동)", "JPAY_CREDENTIALS_MISSING");
         }
         String on = orderNo.trim();
         if (on.length() > 64) {
@@ -849,6 +853,11 @@ public class JpayPaymentService {
         return resolveMerchantConfiguredNotifyUrl(orgUnitId, MerchantNotifyUrl.URL_TYPE_JPAY_CALLBACK, defaultIngressUrl);
     }
 
+    /**
+     * 가맹 JPAY 수신통보(Notify/Callback) — 노티미들웨어 등 외부 URL을 그대로 {@code pay_notifyurl}/{@code pay_callbackurl} 에 사용합니다.
+     * (2026-07-04 아웃바운드 도메인 강제 치환 이전·7/3 정상 연동 방식. 미들웨어 주소의 PG 노출은 설계상 허용.)
+     * 미등록·미사용·공백일 때만 ICOPAY ingress({@code cbJpay}/{@code rsJpay}) 기본값.
+     */
     private String resolveMerchantConfiguredNotifyUrl(Long orgUnitId, String urlType, String defaultIngressUrl) {
         if (orgUnitId == null || urlType == null || urlType.isBlank()) {
             return defaultIngressUrl != null ? defaultIngressUrl : "";
@@ -865,15 +874,7 @@ public class JpayPaymentService {
         if (u.isBlank()) {
             return defaultIngressUrl != null ? defaultIngressUrl : "";
         }
-        // 가맹 개인정보 보호: PG 로 전송되는 notify/callback URL 은 반드시 우리 도메인이어야 한다.
-        // 가맹/외부 도메인이 등록돼 있으면 PG 에 가맹 주소가 노출되므로 우리 ingress 기본값으로 강제 대체한다.
-        String safe = defaultIngressUrl != null ? defaultIngressUrl : "";
-        String enforced = PgOutboundUrlPolicy.enforceOwnDomain(u, safe, defaultIngressUrl);
-        if (!enforced.equals(u)) {
-            log.warn("JPAY {} URL 이 우리 도메인이 아니어서 ingress 기본값으로 대체 orgUnitId={} host={}",
-                    urlType, orgUnitId, PgOutboundUrlPolicy.hostOf(u));
-        }
-        return enforced;
+        return u;
     }
 
     private static String resolveExtraStr(PgAgency agency, String key, String def) {

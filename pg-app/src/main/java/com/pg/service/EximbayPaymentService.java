@@ -11,6 +11,7 @@ import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgAgencyRepository;
 import com.pg.urlpay.PayerContextCapture;
+import com.pg.util.MerchantPgCredentialUtil;
 import com.pg.util.PayPresaleRiskFilterCodes;
 import com.pg.util.PgOutboundUrlPolicy;
 import jakarta.servlet.http.HttpServletRequest;
@@ -112,10 +113,11 @@ public class EximbayPaymentService {
             return fail("Eximbay 결제대행사(PG) 설정을 찾을 수 없습니다.", "EXIMBAY_AGENCY_MISSING");
         }
         PgAgency agency = agOpt.get();
-        String secretKey = trimToEmpty(agency.getApiKey());
-        String mid = firstNonBlank(binding.getMid(), agency.getMerchantMid());
+        MerchantPgCredentialUtil.Resolved cred = MerchantPgCredentialUtil.resolve(binding, agency);
+        String secretKey = cred.apiKey();
+        String mid = cred.mid();
         if (secretKey.isEmpty() || mid.isEmpty()) {
-            return fail("Eximbay MID/Secret Key 가 설정되지 않았습니다.", "EXIMBAY_CREDENTIALS_MISSING");
+            return fail("Eximbay MID/Secret Key 가 설정되지 않았습니다. (가맹 MID+Key 쌍 또는 본사 PG 연동)", "EXIMBAY_CREDENTIALS_MISSING");
         }
 
         // 결제 전 고객 컨텍스트(IP·UA 등) 적재 — 사전 리스크 필터의 IP 속도 판정에도 사용된다.

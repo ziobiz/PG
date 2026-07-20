@@ -6,13 +6,131 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '2.2';
+  var CURRENT_LIVE = '2.6';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '2.6',
+      kind: 'minor',
+      date: '2026-07-20',
+      items: {
+        KO: [
+          'PG사 연동: API Key·MD5를 앞3자+*****로 표시(등록 여부 확인), password 필드 제거로 마스킹 가시화',
+          'PG사 연동: 거래명세서 Acquirer·Payment Switcher 저장 후 재진입 시 값 유지·표시 보강',
+          '거래명세서 결제대행(총판): 총판 업체정보 이메일·전화(국가번호 포함) 자동 표시'
+        ],
+        EN: [
+          'PG agency: show API Key/MD5 as first 3 + ***** (confirm registered); text fields so masks are visible',
+          'PG agency: keep and redisplay Acquirer/Payment Switcher after save',
+          'Receipt Payment Provider: auto-fill distributor email and phone (with country dial code)'
+        ],
+        JP: [
+          'PG連携: API Key・MD5を先頭3+*****表示（登録確認）、マスクが見えるようtext化',
+          'PG連携: 取引明細 Acquirer・Payment Switcher 保存後の再表示を補強',
+          '取引明細の決済代行(総販): 総販会社情報のメール・電話(国番号含む)を自動表示'
+        ],
+        CH: [
+          'PG对接：API Key/MD5 显示为前3+*****（确认已登记）；改为文本以便看到掩码',
+          'PG对接：交易明细 Acquirer/Payment Switcher 保存后再打开仍显示',
+          '交易明细支付服务商(总代)：自动显示总代公司邮箱与电话（含国家区号）'
+        ],
+        TH: [
+          'PG agency: แสดง API Key/MD5 เป็น 3 ตัวแรก+***** (ยืนยันว่ามีคีย์); ใช้ text ให้เห็น mask',
+          'PG agency: เก็บและแสดง Acquirer/Payment Switcher หลังบันทึกเมื่อเปิดใหม่',
+          'ใบเสร็จ Payment Provider: ดึงอีเมลและโทรศัพท์ตัวแทน (รวมรหัสประเทศ) อัตโนมัติ'
+        ]
+      }
+    },
+    {
+      version: '2.5',
+      kind: 'minor',
+      date: '2026-07-20',
+      items: {
+        KO: [
+          '가맹 PG 바인딩: MID+API Key 쌍이 모두 있으면 본사(PG사) 자격보다 우선 사용',
+          '하나만 있으면 본사 값 사용·IV(MD5)는 선택(가맹 있으면 가맹, 없으면 본사)',
+          'PG 선택 시 MID·API Key(앞3자+*****) 자동 표시, 마스킹값은 원문으로 저장하지 않음'
+        ],
+        EN: [
+          'Merchant PG binding: when both MID+API Key are set, they override HQ agency credentials',
+          'Incomplete pair falls back to HQ; IV/MD5 is optional (merchant if set, else HQ)',
+          'On PG select, auto-fill MID and masked API Key (first 3 + *****); masks are not stored as secrets'
+        ],
+        JP: [
+          '加盟PGバインド: MID+API Keyが揃えば本部(PG)資格より優先',
+          '片方のみは本部値。IV/MD5は任意（加盟があれば加盟、なければ本部）',
+          'PG選択時にMID・API Key(先頭3+*****)を自動表示。マスク値は秘密として保存しない'
+        ],
+        CH: [
+          '商户 PG 绑定：MID+API Key 同时填写时优先于总部(PG)凭证',
+          '只填一项则用总部；IV/MD5 可选（有商户用商户，否则总部）',
+          '选择 PG 时自动填 MID 与掩码 API Key（前3+*****）；掩码不作为密钥保存'
+        ],
+        TH: [
+          'ผูก PG ร้านค้า: มีทั้ง MID+API Key จะใช้ก่อนค่าสำนักงานใหญ่(PG)',
+          'มีอย่างเดียวใช้ค่า HQ; IV/MD5 ไม่บังคับ (มีของร้านใช้ของร้าน ไม่มีใช้ HQ)',
+          'เลือก PG แล้วเติม MID และ API Key แบบปิดบัง (3 ตัวแรก+*****) อัตโนมัติ — ไม่บันทึกค่า mask เป็นความลับ'
+        ]
+      }
+    },
+    {
+      version: '2.4',
+      kind: 'minor',
+      date: '2026-07-20',
+      items: {
+        KO: [
+          'JPAY pay_notifyurl·pay_callbackurl — 가맹 JPAY 수신통보 URL(노티미들웨어)을 PG에 그대로 송부하도록 7/3 이전 방식 복원',
+          '노티미들웨어 수신 후 ICOPAY 릴레이 구조 복구(외부 URL을 cbJpay/rsJpay로 강제 치환하지 않음)'
+        ],
+        EN: [
+          'JPAY pay_notifyurl/pay_callbackurl — restore pre-7/3 behavior: send merchant JPAY notify-middleware URLs to PG as-is',
+          'Restore MW → ICOPAY relay (no forced rewrite of external URLs to cbJpay/rsJpay)'
+        ],
+        JP: [
+          'JPAY pay_notifyurl·pay_callbackurl — 加盟JPAY受信URL(ノティMW)をPGへそのまま送る7/3以前方式を復元',
+          'ノティMW受信後ICOPAYリレーを復旧（外部URLのcbJpay/rsJpay強制置換なし）'
+        ],
+        CH: [
+          'JPAY pay_notifyurl·pay_callbackurl — 恢复 7/3 前方式：将商户 JPAY 通知中间件 URL 原样发给 PG',
+          '恢复中间件接收后转发 ICOPAY（不再强制改为 cbJpay/rsJpay）'
+        ],
+        TH: [
+          'JPAY pay_notifyurl·pay_callbackurl — กู้คืนแบบก่อน 7/3 ส่ง URL แจ้งเตือน JPAY (middleware) ไป PG ตามเดิม',
+          'กู้คืน MW รับแล้ว relay ไป ICOPAY (ไม่บังคับเปลี่ยนเป็น cbJpay/rsJpay)'
+        ]
+      }
+    },
+    {
+      version: '2.3',
+      kind: 'minor',
+      date: '2026-07-20',
+      items: {
+        KO: [
+          'JPAY URL·인라인 결제 — 시스템 ingress(cbJpay/rsJpay) 수신 허용 복구(가맹 노티미들웨어 외부 URL 강제 치환 후 복귀·거래 반영)',
+          'rsJpay는 RESULT·cbJpay는 CALLBACK으로 처리 — 주문 기반 가맹 해석 및 노티미들웨어 리다이렉트 기존 흐름 유지'
+        ],
+        EN: [
+          'JPAY URL/inline pay — restore system ingress (cbJpay/rsJpay) accept path after merchant notify-middleware URL rewrite',
+          'rsJpay=RESULT, cbJpay=CALLBACK — keep order-based merchant resolve and redirect to notify middleware'
+        ],
+        JP: [
+          'JPAY URL・インライン決済 — システム ingress(cbJpay/rsJpay) 受信を復旧（加盟店ノティMW外部URL置換後の復帰・取引反映）',
+          'rsJpay=RESULT・cbJpay=CALLBACK — 注文による加盟店特定とノティMWリダイレクトの従来流れを維持'
+        ],
+        CH: [
+          'JPAY URL/内嵌支付 — 恢复系统 ingress(cbJpay/rsJpay) 接收（商户通知中间件外域 URL 替换后的回跳与入账）',
+          'rsJpay=RESULT、cbJpay=CALLBACK — 保持按订单解析商户并跳转通知中间件的原流程'
+        ],
+        TH: [
+          'JPAY URL/อินไลน์ — กู้คืนการรับ ingress ระบบ (cbJpay/rsJpay) หลังแทนที่ URL แจ้งเตือนภายนอก',
+          'rsJpay=RESULT, cbJpay=CALLBACK — คงการระบุร้านจากออเดอร์และ redirect ไป notify middleware'
+        ]
+      }
+    },
     {
       version: '2.2',
       kind: 'minor',

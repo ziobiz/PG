@@ -40,6 +40,7 @@ import com.pg.util.RouteNoDisplayUtil;
 import com.pg.util.VoidRefundSettlementModeUtil;
 import com.pg.util.CardBrandScopeUtil;
 import com.pg.util.CurrencyScopeUtil;
+import com.pg.util.MerchantPgCredentialUtil;
 import com.pg.chatbot.ChatbotCatalogPolicy;
 import com.pg.chatbot.ChatbotPromotionShelfMode;
 import com.pg.merchantdeploy.MerchantApiDeploymentService;
@@ -1865,8 +1866,7 @@ public class CompService {
                                         bm.put("payMethod", b.getPayMethod() != null ? b.getPayMethod() : "WEB");
                                         bm.put("mid", b.getMid() != null ? b.getMid() : "");
                                         bm.put("rootNo", b.getRootNo() != null ? b.getRootNo() : "");
-                                        bm.put("apiKey", b.getApiKey() != null ? b.getApiKey() : "");
-                                        bm.put("ivKey", b.getIvKey() != null ? b.getIvKey() : "");
+                                        putMerchantPgBindingSecretFields(bm, b);
                                         bm.put("installmentYn", b.getInstallmentYn() != null ? b.getInstallmentYn() : "N");
                                         bm.put("maxInstallmentMonths", b.getMaxInstallmentMonths() != null ? String.valueOf(b.getMaxInstallmentMonths()) : "");
                                         bm.put("urlPayPricingMode", b.getUrlPayPricingMode() != null ? b.getUrlPayPricingMode() : "CHECKOUT_CURRENCY");
@@ -2527,6 +2527,7 @@ public class CompService {
                                     list = dedupeMerchantPgBindingJsonRows(list);
                                     validateMerchantPgBindingJsonRows(list);
                                     Map<String, String> prevPgPricingModes = snapshotMerchantPgBindingPricingModes(ou.getId());
+                                    Map<String, String[]> prevPgSecrets = snapshotMerchantPgBindingSecrets(ou.getId());
                                     merchantPgBindingRepository.deleteByOrgUnitId(ou.getId());
                                     int order = 0;
                                     for (Map<String, Object> m : list) {
@@ -2539,10 +2540,8 @@ public class CompService {
                                         binding.setOperationalYn("Y".equalsIgnoreCase(optStr(m, "operationalYn")) ? "Y" : "N");
                                         String pm = optStr(m, "payMethod") != null && !optStr(m, "payMethod").isEmpty() ? optStr(m, "payMethod") : "WEB";
                                         binding.setPayMethod(pm);
-                                        binding.setMid(optStr(m, "mid"));
                                         binding.setRootNo(optStr(m, "rootNo"));
-                                        binding.setApiKey(optStr(m, "apiKey"));
-                                        binding.setIvKey(optStr(m, "ivKey"));
+                                        applyMerchantPgBindingCredentialsFromJson(binding, pc, pm, m, prevPgSecrets);
                                         binding.setInstallmentYn("Y".equalsIgnoreCase(optStr(m, "installmentYn")) ? "Y" : "N");
                                         String maxMo = optStr(m, "maxInstallmentMonths");
                                         if (maxMo != null && !maxMo.isEmpty()) {
@@ -3781,10 +3780,8 @@ public class CompService {
                     binding.setActivationYn("Y".equalsIgnoreCase(optStr(m, "activationYn")) ? "Y" : "N");
                     binding.setOperationalYn("Y".equalsIgnoreCase(optStr(m, "operationalYn")) ? "Y" : "N");
                     binding.setPayMethod(optStr(m, "payMethod") != null && !optStr(m, "payMethod").isEmpty() ? optStr(m, "payMethod") : "WEB");
-                    binding.setMid(optStr(m, "mid"));
                     binding.setRootNo(optStr(m, "rootNo"));
-                    binding.setApiKey(optStr(m, "apiKey"));
-                    binding.setIvKey(optStr(m, "ivKey"));
+                    applyMerchantPgBindingCredentialsFromJson(binding, pc, binding.getPayMethod(), m, Map.of());
                     binding.setInstallmentYn("Y".equalsIgnoreCase(optStr(m, "installmentYn")) ? "Y" : "N");
                     String maxMo = optStr(m, "maxInstallmentMonths");
                     if (maxMo != null && !maxMo.isEmpty()) {
@@ -5423,6 +5420,58 @@ public class CompService {
         }
     }
 
+    /** 조회 응답: API Key·IV 원문 미노출(앞3자+*****). */
+    private static void putMerchantPgBindingSecretFields(Map<String, Object> bm, MerchantPgBinding b) {
+        String rawKey = b.getApiKey();
+        String rawIv = b.getIvKey();
+        boolean hasKey = rawKey != null && !rawKey.isBlank();
+        boolean hasIv = rawIv != null && !rawIv.isBlank();
+        bm.put("hasApiKey", hasKey ? "Y" : "N");
+        bm.put("apiKeyMasked", hasKey ? MerchantPgCredentialUtil.maskSecretPreview(rawKey) : "");
+        bm.put("apiKey", hasKey ? MerchantPgCredentialUtil.maskSecretPreview(rawKey) : "");
+        bm.put("hasIvKey", hasIv ? "Y" : "N");
+        bm.put("ivKeyMasked", hasIv ? MerchantPgCredentialUtil.maskSecretPreview(rawIv) : "");
+        bm.put("ivKey", hasIv ? MerchantPgCredentialUtil.maskSecretPreview(rawIv) : "");
+    }
+
+    /** delete-recreate 시 기존 시크릿 유지용. key = pgCd\\0payMethod → [apiKey, ivKey] */
+    private Map<String, String[]> snapshotMerchantPgBindingSecrets(Long orgUnitId) {
+        Map<String, String[]> out = new HashMap<>();
+        if (orgUnitId == null) {
+            return out;
+        }
+        for (MerchantPgBinding b : merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(orgUnitId)) {
+            String pc = b.getPgCd() != null ? b.getPgCd().trim() : "";
+            if (pc.isEmpty()) {
+                continue;
+            }
+            String pm = b.getPayMethod() != null && !b.getPayMethod().isBlank() ? b.getPayMethod().trim() : "WEB";
+            String key = pc.toUpperCase(Locale.ROOT) + "\0" + pm.toUpperCase(Locale.ROOT);
+            out.put(key, new String[]{b.getApiKey(), b.getIvKey()});
+        }
+        return out;
+    }
+
+    private void applyMerchantPgBindingCredentialsFromJson(
+            MerchantPgBinding binding,
+            String pgCd,
+            String payMethod,
+            Map<String, Object> m,
+            Map<String, String[]> prevSecrets) {
+        String pm = payMethod != null && !payMethod.isBlank() ? payMethod.trim() : "WEB";
+        String key = (pgCd != null ? pgCd.trim().toUpperCase(Locale.ROOT) : "")
+                + "\0" + pm.toUpperCase(Locale.ROOT);
+        String[] prev = prevSecrets != null ? prevSecrets.get(key) : null;
+        String prevAk = prev != null && prev.length > 0 ? prev[0] : null;
+        String prevIv = prev != null && prev.length > 1 ? prev[1] : null;
+        PgAgency agency = pgAgencyRepository.findByPgCd(pgCd != null ? pgCd.trim() : "").orElse(null);
+        MerchantPgCredentialUtil.PersistCreds creds = MerchantPgCredentialUtil.normalizeForPersist(
+                optStr(m, "mid"), optStr(m, "apiKey"), optStr(m, "ivKey"), prevAk, prevIv, agency);
+        binding.setMid(creds.mid());
+        binding.setApiKey(creds.apiKey());
+        binding.setIvKey(creds.ivKey());
+    }
+
     private void applyExtSettlementFromJsonMap(MerchantPgBinding binding, Map<String, Object> m) {
         if (m != null && m.containsKey("extSettleMode")) {
             applyMerchantPgBindingExtSettlementFields(binding,
@@ -5568,10 +5617,15 @@ public class CompService {
         }
         binding.setPgCd(pc);
         binding.setPayMethod(pm);
-        binding.setMid(mid != null ? mid.trim() : null);
         binding.setRootNo(rootNo != null && !rootNo.isBlank() ? rootNo.trim() : null);
-        binding.setApiKey(apiKey != null ? apiKey.trim() : null);
-        binding.setIvKey(ivKey != null ? ivKey.trim() : null);
+        String prevAk = binding.getId() != null ? binding.getApiKey() : null;
+        String prevIv = binding.getId() != null ? binding.getIvKey() : null;
+        PgAgency agencyForCred = pgAgencyRepository.findByPgCd(pc).orElse(null);
+        MerchantPgCredentialUtil.PersistCreds creds = MerchantPgCredentialUtil.normalizeForPersist(
+                mid, apiKey, ivKey, prevAk, prevIv, agencyForCred);
+        binding.setMid(creds.mid());
+        binding.setApiKey(creds.apiKey());
+        binding.setIvKey(creds.ivKey());
         binding.setActivationYn("Y".equalsIgnoreCase(activationYn) ? "Y" : "N");
         binding.setInstallmentYn("Y".equalsIgnoreCase(installmentYn) ? "Y" : "N");
         if (maxInstallmentMonthsStr != null && !maxInstallmentMonthsStr.isBlank()) {
@@ -5612,8 +5666,7 @@ public class CompService {
         bm.put("payMethod", binding.getPayMethod());
         bm.put("mid", binding.getMid() != null ? binding.getMid() : "");
         bm.put("rootNo", binding.getRootNo() != null ? binding.getRootNo() : "");
-        bm.put("apiKey", binding.getApiKey() != null ? binding.getApiKey() : "");
-        bm.put("ivKey", binding.getIvKey() != null ? binding.getIvKey() : "");
+        putMerchantPgBindingSecretFields(bm, binding);
         bm.put("installmentYn", binding.getInstallmentYn());
         bm.put("maxInstallmentMonths", binding.getMaxInstallmentMonths() != null ? String.valueOf(binding.getMaxInstallmentMonths()) : "");
         bm.put("urlPayPricingMode", binding.getUrlPayPricingMode() != null ? binding.getUrlPayPricingMode() : "CHECKOUT_CURRENCY");

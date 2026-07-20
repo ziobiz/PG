@@ -14,6 +14,7 @@ import com.pg.util.JpayNotifyStatusResolver;
 import com.pg.util.JpayReconcileStatusPolicy;
 import com.pg.util.JpaySignatureUtil;
 import com.pg.util.JpayTradeStatusMapper;
+import com.pg.util.MerchantPgCredentialUtil;
 import com.pg.util.NotifyToTxnStatusMerge;
 import com.pg.util.PgNotifyInternalStatusMapper;
 import com.pg.util.TxnOutcomeReasonApplier;
@@ -308,8 +309,9 @@ public class JpayTradeApiService {
         if (agency == null) {
             return Optional.empty();
         }
-        String mid = nz(binding.getMid());
-        String apiKey = agency.getApiKey() != null ? agency.getApiKey().trim() : "";
+        MerchantPgCredentialUtil.Resolved cred = MerchantPgCredentialUtil.resolve(binding, agency);
+        String mid = cred.mid();
+        String apiKey = cred.apiKey();
         if (mid.isBlank() || apiKey.isBlank()) {
             return Optional.empty();
         }

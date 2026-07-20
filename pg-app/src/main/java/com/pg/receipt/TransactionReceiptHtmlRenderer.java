@@ -115,7 +115,7 @@ public final class TransactionReceiptHtmlRenderer {
         StringBuilder rows = new StringBuilder();
         appendListedRow(rows, labels.get("acquirer"), vm.acquirer(), false);
         appendListedRow(rows, labels.get("paymentSwitcher"), vm.paymentSwitcher(), false);
-        appendListedRow(rows, labels.get("paymentProvider"), vm.paymentProvider(), false);
+        appendListedRow(rows, labels.get("paymentProvider"), vm.paymentProvider(), true);
         if (rows.isEmpty()) {
             return;
         }
@@ -130,7 +130,7 @@ public final class TransactionReceiptHtmlRenderer {
         if (value == null || value.isBlank()) {
             return;
         }
-        String valueHtml = boldValue ? formatMerchantBoldHtml(value) : escape(value);
+        String valueHtml = boldValue ? formatMultilineContactHtml(value, true) : formatMultilineContactHtml(value, false);
         rows.append("""
                 <tr><td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;">
                   <div style="font-size:10px;font-weight:700;color:#6b7280;margin-bottom:3px;letter-spacing:0.06em;text-transform:uppercase;">%s</div>
@@ -143,7 +143,7 @@ public final class TransactionReceiptHtmlRenderer {
         if (value == null || value.isBlank()) {
             return;
         }
-        String valueHtml = boldValue ? formatMerchantBoldHtml(value) : escape(value);
+        String valueHtml = boldValue ? formatMultilineContactHtml(value, true) : formatMultilineContactHtml(value, false);
         rows.append("""
                 <tr><td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;">
                   <div style="font-size:10px;font-weight:600;color:#6b7280;margin-bottom:3px;letter-spacing:0.04em;text-transform:uppercase;">%s</div>
@@ -152,23 +152,46 @@ public final class TransactionReceiptHtmlRenderer {
                 """.formatted(escape(label), valueHtml));
     }
 
-    /** 연락처 블록의 첫 토큰(가맹점명)만 굵게 */
-    private static String formatMerchantBoldHtml(String value) {
+    /**
+     * 연락처 블록 — 줄바꿈·「 · 」·「 / 」 구분. 첫 줄(이름)만 굵게 가능.
+     */
+    private static String formatMultilineContactHtml(String value, boolean boldFirstLine) {
         String v = value.trim();
-        int slash = v.indexOf(" / ");
-        if (slash > 0) {
-            String name = v.substring(0, slash).trim();
-            String rest = v.substring(slash);
-            return "<strong style=\"font-weight:700;color:#111827;\">" + escape(name) + "</strong>" + escape(rest);
+        String[] lines;
+        if (v.contains("\n")) {
+            lines = v.split("\\R");
+        } else if (v.contains(" · ")) {
+            lines = v.split(" · ");
+        } else if (v.contains(" / ")) {
+            lines = v.split(" / ", 2);
+        } else {
+            lines = new String[]{v};
         }
-        return "<strong style=\"font-weight:700;color:#111827;\">" + escape(v) + "</strong>";
+        StringBuilder html = new StringBuilder();
+        boolean firstWritten = false;
+        for (String line : lines) {
+            String part = line != null ? line.trim() : "";
+            if (part.isEmpty()) {
+                continue;
+            }
+            if (firstWritten) {
+                html.append("<br>");
+            }
+            if (boldFirstLine && !firstWritten) {
+                html.append("<strong style=\"font-weight:700;color:#111827;\">").append(escape(part)).append("</strong>");
+            } else {
+                html.append(escape(part));
+            }
+            firstWritten = true;
+        }
+        return html.toString();
     }
 
     private static void line(StringBuilder sb, String label, String value) {
         if (value == null || value.isBlank()) {
             return;
         }
-        sb.append(label).append(": ").append(value).append('\n');
+        sb.append(label).append(": ").append(value.replace('\n', ' ')).append('\n');
     }
 
     private static String formatAmount(BigDecimal amount) {

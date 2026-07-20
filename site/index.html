@@ -491,11 +491,12 @@
             </div>
             <div class="mb-2">
               <label class="form-label" data-pg-ui-t="API Key">API Key</label>
-              <input type="password" class="form-control form-control-sm" id="pgAgencyEditApiKey" maxlength="512" data-pg-ui-placeholder="신규 또는 변경 시 입력" placeholder="신규 또는 변경 시 입력" autocomplete="new-password">
+              <input type="text" class="form-control form-control-sm font-monospace" id="pgAgencyEditApiKey" maxlength="512" data-pg-ui-placeholder="등록됨: 앞3자+***** · 변경 시에만 새 키 입력" placeholder="등록됨: 앞3자+***** · 변경 시에만 새 키 입력" autocomplete="off" spellcheck="false">
+              <div class="form-text"><span data-pg-ui-t="등록된 키는 앞 3자+*****로 표시됩니다. 마스킹 값을 그대로 두면 기존 키가 유지됩니다.">등록된 키는 앞 3자+*****로 표시됩니다. 마스킹 값을 그대로 두면 기존 키가 유지됩니다.</span></div>
             </div>
             <div class="mb-2">
               <label class="form-label" data-pg-ui-t="MD5 / 서명 시크릿">MD5 / 서명 시크릿</label>
-              <input type="password" class="form-control form-control-sm" id="pgAgencyEditMd5Key" maxlength="255" data-pg-ui-placeholder="신규 또는 변경 시 입력" placeholder="신규 또는 변경 시 입력" autocomplete="new-password">
+              <input type="text" class="form-control form-control-sm font-monospace" id="pgAgencyEditMd5Key" maxlength="255" data-pg-ui-placeholder="등록됨: 앞3자+***** · 변경 시에만 새 키 입력" placeholder="등록됨: 앞3자+***** · 변경 시에만 새 키 입력" autocomplete="off" spellcheck="false">
             </div>
             <div class="mb-2">
               <label class="form-label" data-pg-ui-t="추가 설정(JSON)">추가 설정(JSON)</label>
@@ -505,17 +506,18 @@
             <div class="mb-2 border-top pt-2">
               <label class="form-label mb-1" data-pg-ui-t="거래명세서 — 카드매입사(Acquirer)">거래명세서 — 카드매입사(Acquirer)</label>
               <div class="row g-2">
-                <div class="col-md-4"><input type="text" class="form-control form-control-sm" id="pgAgencyEditAcquirerNm" maxlength="200" data-pg-ui-placeholder="명칭" placeholder="명칭"></div>
-                <div class="col-md-4"><input type="text" class="form-control form-control-sm" id="pgAgencyEditAcquirerTel" maxlength="50" data-pg-ui-placeholder="전화" placeholder="전화"></div>
-                <div class="col-md-4"><input type="email" class="form-control form-control-sm" id="pgAgencyEditAcquirerEmail" maxlength="255" data-pg-ui-placeholder="이메일" placeholder="이메일"></div>
+                <div class="col-md-4"><input type="text" class="form-control form-control-sm" id="pgAgencyEditAcquirerNm" maxlength="200" data-pg-ui-placeholder="명칭" placeholder="명칭" autocomplete="off"></div>
+                <div class="col-md-4"><input type="text" class="form-control form-control-sm" id="pgAgencyEditAcquirerTel" maxlength="50" data-pg-ui-placeholder="전화" placeholder="전화" autocomplete="off"></div>
+                <div class="col-md-4"><input type="email" class="form-control form-control-sm" id="pgAgencyEditAcquirerEmail" maxlength="255" data-pg-ui-placeholder="이메일" placeholder="이메일" autocomplete="off"></div>
               </div>
+              <div class="form-text"><span data-pg-ui-t="저장 후 다시 열면 입력한 명칭·전화·이메일이 그대로 표시됩니다. 고객 거래명세서 SERVICE PROVIDER에 사용됩니다.">저장 후 다시 열면 입력한 명칭·전화·이메일이 그대로 표시됩니다. 고객 거래명세서 SERVICE PROVIDER에 사용됩니다.</span></div>
             </div>
             <div class="mb-2">
               <label class="form-label mb-1" data-pg-ui-t="거래명세서 — 결제중계사(Payment Switcher)">거래명세서 — 결제중계사(Payment Switcher)</label>
               <div class="row g-2">
-                <div class="col-md-4"><input type="text" class="form-control form-control-sm" id="pgAgencyEditPaymentSwitcherNm" maxlength="200" data-pg-ui-placeholder="명칭" placeholder="명칭"></div>
-                <div class="col-md-4"><input type="text" class="form-control form-control-sm" id="pgAgencyEditPaymentSwitcherTel" maxlength="50" data-pg-ui-placeholder="전화" placeholder="전화"></div>
-                <div class="col-md-4"><input type="email" class="form-control form-control-sm" id="pgAgencyEditPaymentSwitcherEmail" maxlength="255" data-pg-ui-placeholder="이메일" placeholder="이메일"></div>
+                <div class="col-md-4"><input type="text" class="form-control form-control-sm" id="pgAgencyEditPaymentSwitcherNm" maxlength="200" data-pg-ui-placeholder="명칭" placeholder="명칭" autocomplete="off"></div>
+                <div class="col-md-4"><input type="text" class="form-control form-control-sm" id="pgAgencyEditPaymentSwitcherTel" maxlength="50" data-pg-ui-placeholder="전화" placeholder="전화" autocomplete="off"></div>
+                <div class="col-md-4"><input type="email" class="form-control form-control-sm" id="pgAgencyEditPaymentSwitcherEmail" maxlength="255" data-pg-ui-placeholder="이메일" placeholder="이메일" autocomplete="off"></div>
               </div>
             </div>
             <div class="mb-2 border-top pt-2">

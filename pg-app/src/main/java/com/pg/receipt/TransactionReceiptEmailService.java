@@ -14,6 +14,7 @@ import com.pg.service.HqLedgerSysSettingsService;
 import com.pg.service.LedgerSmtpMailService;
 import com.pg.service.MailSendLogService;
 import com.pg.splitpay.SplitPayMailLocaleUtil;
+import com.pg.urlpay.PhoneDialCodeCatalog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -254,15 +255,17 @@ public class TransactionReceiptEmailService {
         String switcher = agency != null
                 ? TransactionReceiptContactBlock.of(agency.getPaymentSwitcherNm(), agency.getPaymentSwitcherTel(),
                 agency.getPaymentSwitcherEmail()).displayLine() : "";
-        String provider = masterDist != null
-                ? TransactionReceiptContactBlock.of(
-                masterDist.getName(),
-                mdProfile != null ? firstNonBlank(mdProfile.getContactTel(), mdProfile.getCompTel(), mdProfile.getCeoMobile()) : null,
-                mdProfile != null ? mdProfile.getEmail() : null).displayLine() : "";
+        /* 결제대행(총판): PG사 연동에 입력란 없음 → 상위 총판 업체정보의 이메일·전화(국가번호 포함) */
+        String provider = "";
+        if (masterDist != null) {
+            String mdTel = formatProfileTelWithDial(mdProfile);
+            String mdEmail = mdProfile != null ? firstNonBlank(mdProfile.getEmail()) : "";
+            provider = TransactionReceiptContactBlock.of(masterDist.getName(), mdTel, mdEmail).displayLine();
+        }
         String merchant = TransactionReceiptContactBlock.of(
                 merchantOu.getName(),
-                mp != null ? firstNonBlank(mp.getContactTel(), mp.getCompTel(), mp.getCeoMobile()) : null,
-                mp != null ? mp.getEmail() : null).displayLine();
+                formatProfileTelWithDial(mp),
+                mp != null ? firstNonBlank(mp.getEmail()) : null).displayLine();
 
         String currency = t.getDisplayCurType() != null && !t.getDisplayCurType().isBlank()
                 ? t.getDisplayCurType().trim().toUpperCase(Locale.ROOT)
@@ -287,6 +290,35 @@ public class TransactionReceiptEmailService {
                 .approvalCode(t.getApprovalNo())
                 .paymentMethod(resolvePaymentMethod(t))
                 .build();
+    }
+
+    /**
+     * 총판·가맹 업체전화 우선. 이미 +국가번호가 있으면 유지, 없으면 {@code countryCd} 로 국가번호 부여.
+     */
+    private static String formatProfileTelWithDial(MerchantProfile p) {
+        if (p == null) {
+            return "";
+        }
+        String raw = firstNonBlank(p.getCompTel(), p.getContactTel(), p.getCeoMobile());
+        if (raw.isEmpty()) {
+            return "";
+        }
+        return ensureIntlDialPrefix(raw, p.getCountryCd());
+    }
+
+    static String ensureIntlDialPrefix(String tel, String countryCd) {
+        if (tel == null || tel.isBlank()) {
+            return "";
+        }
+        String t = tel.trim().replaceAll("\\s+", " ");
+        if (t.startsWith("+")) {
+            return t;
+        }
+        String dial = PhoneDialCodeCatalog.dialForIso2(countryCd);
+        if (dial == null || dial.isBlank()) {
+            return t;
+        }
+        return dial + " " + t;
     }
 
     private String resolveLang(PgTrnsctn t) {

@@ -20,6 +20,7 @@ import com.pg.entity.PgTrnsctn;
 import com.pg.entity.PgAgency;
 import com.pg.entity.SettlementSetting;
 import com.pg.util.ChillPayDirectCreditUtil;
+import com.pg.util.MerchantPgCredentialUtil;
 import com.pg.util.PayListStatusBarBuckets;
 import com.pg.util.TrnTimeDualZoneDisplay;
 import com.pg.util.ViewDisplayTimezoneResolver;
@@ -212,34 +213,27 @@ public class ChillPayService {
         /* URL 결제: 동일 pg_cd의 API연동 행에만 정의된 URL 사용. 타 ChillPay PG 행과 병합하지 않음(미파싱 항목은 샌드박스별 기본 URL). */
         ChillPayAgencyUrlOverrides urlOv = agencyForPgCd.isPresent() ? perPgCdUrls : globalUrlOv;
 
-        String ak = trimOrNull(b.getApiKey());
-        String mk = trimOrNull(b.getIvKey());
-        if (ak == null || mk == null) {
-            if (agencyForPgCd.isPresent()) {
-                PgAgency ag = agencyForPgCd.get();
-                String akAg = trimOrNull(ag.getApiKey());
-                String mkAg = trimOrNull(ag.getMd5SecretKey());
-                if (akAg != null && mkAg != null) {
-                    ak = akAg;
-                    mk = mkAg;
-                }
-            }
-        }
+        MerchantPgCredentialUtil.Resolved cred = MerchantPgCredentialUtil.resolve(b, agencyForPgCd.orElse(null));
+        String ak = trimOrNull(cred.apiKey());
+        String mk = trimOrNull(cred.ivKey());
         if (ak == null || mk == null) {
             String pgc = b.getPgCd() != null ? b.getPgCd().trim() : "";
             throw new IllegalStateException(
-                    "ChillPay API Key·MD5(또는 가맹점 IV)가 비어 있습니다. 가맹점 결제대행사 행에 입력하거나, "
+                    "ChillPay API Key·MD5(또는 가맹점 IV)가 비어 있습니다. 가맹점 MID+API Key 쌍(선택 IV)을 입력하거나, "
                             + "배포설정 > API연동설정에서 동일 pg_cd(" + pgc + ") 행에 API Key·MD5를 등록하세요. "
                             + "해당 행은 연동용도 「"
                             + (scope == UrlPayBindingScope.REPAY ? "URL재결제" : "URL결제")
                             + "」가 Y인 행이어야 합니다.");
         }
         HqFallbackRef hqRef = resolveHqFallbackRef();
-        String mc = resolveMerchantMidForUrlPay(b, agencyForPgCd, hqRef);
+        String mc = trimOrNull(cred.mid());
+        if (mc == null) {
+            mc = resolveMerchantMidForUrlPay(b, agencyForPgCd, hqRef);
+        }
         if (mc == null || mc.isEmpty()) {
             String pgc = b.getPgCd() != null ? b.getPgCd().trim() : "";
             throw new IllegalStateException(
-                    "ChillPay MID(Merchant Code)가 비어 있습니다. 가맹점 등록 > 결제대행사에서 해당 PG(" + pgc + ")의 MID를 입력하거나, "
+                    "ChillPay MID(Merchant Code)가 비어 있습니다. 가맹점 등록 > 결제대행사에서 해당 PG(" + pgc + ")의 MID+API Key 쌍을 입력하거나, "
                             + "배포설정 > API연동설정 동일 pg_cd 행의 MID를 채워 주세요.");
         }
         int routeNo = resolveChillPayRouteNoUrlPayContract(merchantOrgUnitId, b, agencyForPgCd);

@@ -829,12 +829,20 @@ public class PgNotifyReceiveService {
         return t.length() > 64 ? t.substring(0, 64) : t;
     }
 
-    /** 본사설정 노티 대상 URL의 경로 코드 → CALLBACK/RESULT (미등록 시 CALLBACK) */
+    /**
+     * 본사설정 노티 대상 URL의 경로 코드 → CALLBACK/RESULT.
+     * JPAY 시스템 기본 ingress({@code cbJpay}/{@code rsJpay})는 DB 미등록이어도
+     * Notify=CALLBACK·Result=RESULT 로 고정(가맹 외부 노티미들웨어 URL 강제 치환 후 복귀 경로).
+     */
     private String resolveNotifyChannelType(String targetCode) {
         if (targetCode == null || targetCode.isBlank()) {
             return "CALLBACK";
         }
-        Optional<HqNotifyTarget> t = hqNotifyTargetRepository.findByTargetCode(targetCode.trim());
+        String code = targetCode.trim();
+        if (isJpayIngressTarget(code)) {
+            return code.toLowerCase(Locale.ROOT).startsWith("rs") ? "RESULT" : "CALLBACK";
+        }
+        Optional<HqNotifyTarget> t = hqNotifyTargetRepository.findByTargetCode(code);
         if (t.isEmpty()) {
             return "CALLBACK";
         }
@@ -879,6 +887,9 @@ public class PgNotifyReceiveService {
      * 노티 경로에 targetCode(cb/rs...)가 붙어 들어왔는데 DB에 없으면, 레거시 CALLBACK 로 폴백하면
      * 총판 스코프 분리가 풀려 MID+루트 충돌 시 오동작(또는 미적재)이 발생할 수 있습니다.
      * 따라서 명시된 targetCode가 미등록이면 즉시 격리합니다.
+     * <p>예외: JPAY 시스템 기본 ingress {@code cbJpay}/{@code rsJpay} — 가맹 JPAY 수신통보 URL이
+     * 외부(노티미들웨어)일 때 PG 노출 차단으로 강제 사용되는 고정 경로이며, 본사 노티대상 테이블에
+     * 없어도 허용한 뒤 주문 해석·가맹 노티미들웨어 리다이렉트(기존 구축 흐름)를 진행합니다.
      *
      * @return true 이면 호출부에서 즉시 return
      */
@@ -888,6 +899,10 @@ public class PgNotifyReceiveService {
         }
         String code = trimNotifyTargetCode(in.getNotifyTargetCode());
         if (code == null || code.isBlank()) {
+            return false;
+        }
+        /* JPAY 기본 ingress — 총판 발급 cb…/rs… 와 달리 시스템 고정 코드 */
+        if (isJpayIngressTarget(code)) {
             return false;
         }
         if (hqNotifyTargetRepository.findByTargetCode(code.trim()).isPresent()) {
