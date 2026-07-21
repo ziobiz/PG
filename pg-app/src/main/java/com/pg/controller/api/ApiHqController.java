@@ -1624,6 +1624,17 @@ public class ApiHqController {
         data.put("urlPayInputModeDefault", "GENERAL");
         data.put("urlPayCardExpiryModeDefault", "DROPDOWN");
         data.put("cardAuthModeDefault", "THREE_DS");
+        data.put("urlPayCompanyNameShowDefaultYn", "Y");
+        data.put("urlPayLangMenuUseDefaultYn", "Y");
+        data.put("checkoutContactRememberDefaultYn", "Y");
+        data.put("webPaymentHeaderLogoModeDefault", "DEFAULT");
+        data.put("webPaymentHeaderSubtitleModeDefault", "DEFAULT");
+        data.put("urlPayShippingAddressUseDefaultYn", "N");
+        data.put("urlPayProductNameUseDefaultYn", "Y");
+        data.put("urlPayDefaultProductName", "");
+        data.put("urlPayDefaultProductCode", "");
+        data.put("urlPayDefaultProductAmount", "");
+        data.put("urlPayDefaultProductDesc", "");
         data.put("apiUrlPayInputModeDefault", "TYPE_BA");
         data.put("urlPayRepayEnabledYn", "N");
         data.put("urlPayRepayPathTemplate", "/pay-repay/{compCode}");
@@ -1682,6 +1693,42 @@ public class ApiHqController {
                 data.put("cardAuthModeDefault",
                         com.pg.urlpay.CardAuthModeUtil.normalize(c.getCardAuthModeDefault()));
             }
+            if (c.getUrlPayCompanyNameShowDefaultYn() != null) {
+                data.put("urlPayCompanyNameShowDefaultYn",
+                        com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(c.getUrlPayCompanyNameShowDefaultYn(), "Y"));
+            }
+            if (c.getUrlPayLangMenuUseDefaultYn() != null) {
+                data.put("urlPayLangMenuUseDefaultYn",
+                        com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(c.getUrlPayLangMenuUseDefaultYn(), "Y"));
+            }
+            if (c.getCheckoutContactRememberDefaultYn() != null) {
+                data.put("checkoutContactRememberDefaultYn",
+                        com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(c.getCheckoutContactRememberDefaultYn(), "Y"));
+            }
+            if (c.getWebPaymentHeaderLogoModeDefault() != null) {
+                data.put("webPaymentHeaderLogoModeDefault",
+                        com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalize(c.getWebPaymentHeaderLogoModeDefault()));
+            }
+            if (c.getWebPaymentHeaderSubtitleModeDefault() != null) {
+                data.put("webPaymentHeaderSubtitleModeDefault",
+                        com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.normalize(c.getWebPaymentHeaderSubtitleModeDefault()));
+            }
+            if (c.getUrlPayShippingAddressUseDefaultYn() != null) {
+                data.put("urlPayShippingAddressUseDefaultYn",
+                        com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(c.getUrlPayShippingAddressUseDefaultYn(), "N"));
+            }
+            if (c.getUrlPayProductNameUseDefaultYn() != null) {
+                data.put("urlPayProductNameUseDefaultYn",
+                        com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(c.getUrlPayProductNameUseDefaultYn(), "Y"));
+            }
+            data.put("urlPayDefaultProductName",
+                    c.getUrlPayDefaultProductName() != null ? c.getUrlPayDefaultProductName() : "");
+            data.put("urlPayDefaultProductCode",
+                    c.getUrlPayDefaultProductCode() != null ? c.getUrlPayDefaultProductCode() : "");
+            data.put("urlPayDefaultProductAmount",
+                    c.getUrlPayDefaultProductAmount() != null ? c.getUrlPayDefaultProductAmount().toPlainString() : "");
+            data.put("urlPayDefaultProductDesc",
+                    c.getUrlPayDefaultProductDesc() != null ? c.getUrlPayDefaultProductDesc() : "");
             if (c.getApiUrlPayInputModeDefault() != null) {
                 data.put("apiUrlPayInputModeDefault",
                         com.pg.urlpay.UrlPayInputModeUtil.normalize(c.getApiUrlPayInputModeDefault()));
@@ -1783,6 +1830,35 @@ public class ApiHqController {
                 String.valueOf(body.getOrDefault("urlPayCardExpiryModeDefault", "DROPDOWN"))));
         c.setCardAuthModeDefault(com.pg.urlpay.CardAuthModeUtil.normalize(
                 String.valueOf(body.getOrDefault("cardAuthModeDefault", "THREE_DS"))));
+        c.setUrlPayCompanyNameShowDefaultYn(String.valueOf(body.getOrDefault("urlPayCompanyNameShowDefaultYn", "Y")));
+        c.setUrlPayLangMenuUseDefaultYn(String.valueOf(body.getOrDefault("urlPayLangMenuUseDefaultYn", "Y")));
+        c.setCheckoutContactRememberDefaultYn(String.valueOf(body.getOrDefault("checkoutContactRememberDefaultYn", "Y")));
+        c.setWebPaymentHeaderLogoModeDefault(String.valueOf(body.getOrDefault("webPaymentHeaderLogoModeDefault", "DEFAULT")));
+        c.setWebPaymentHeaderSubtitleModeDefault(String.valueOf(body.getOrDefault("webPaymentHeaderSubtitleModeDefault", "DEFAULT")));
+        c.setUrlPayShippingAddressUseDefaultYn(String.valueOf(body.getOrDefault("urlPayShippingAddressUseDefaultYn", "N")));
+        c.setUrlPayProductNameUseDefaultYn(String.valueOf(body.getOrDefault("urlPayProductNameUseDefaultYn", "Y")));
+        Object dpn = body.get("urlPayDefaultProductName");
+        c.setUrlPayDefaultProductName(dpn != null ? dpn.toString() : null);
+        Object dpc = body.get("urlPayDefaultProductCode");
+        c.setUrlPayDefaultProductCode(dpc != null ? dpc.toString() : null);
+        Object dpa = body.get("urlPayDefaultProductAmount");
+        if (dpa != null && !dpa.toString().isBlank()) {
+            try {
+                c.setUrlPayDefaultProductAmount(new java.math.BigDecimal(dpa.toString().trim().replace(",", "")));
+            } catch (NumberFormatException e) {
+                c.setUrlPayDefaultProductAmount(null);
+            }
+        } else {
+            c.setUrlPayDefaultProductAmount(null);
+        }
+        Object dpd = body.get("urlPayDefaultProductDesc");
+        c.setUrlPayDefaultProductDesc(dpd != null ? dpd.toString() : null);
+        if (!"Y".equalsIgnoreCase(c.getUrlPayProductNameUseDefaultYn())) {
+            c.setUrlPayDefaultProductName(null);
+            c.setUrlPayDefaultProductCode(null);
+            c.setUrlPayDefaultProductAmount(null);
+            c.setUrlPayDefaultProductDesc(null);
+        }
         c.setApiUrlPayInputModeDefault(com.pg.urlpay.UrlPayInputModeUtil.normalize(
                 String.valueOf(body.getOrDefault("apiUrlPayInputModeDefault", "TYPE_BA"))));
         c.setUrlPayRepayEnabledYn("Y".equalsIgnoreCase(String.valueOf(body.getOrDefault("urlPayRepayEnabledYn", "N"))) ? "Y" : "N");

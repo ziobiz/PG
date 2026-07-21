@@ -45,6 +45,7 @@ public class UrlPayPublicCheckoutService {
     private final UrlPayInputModeService urlPayInputModeService;
     private final UrlPayCardExpiryModeService urlPayCardExpiryModeService;
     private final PayContactRememberPolicyService payContactRememberPolicyService;
+    private final UrlPayCheckoutDisplayPolicyService urlPayCheckoutDisplayPolicyService;
     private final MerchantPgBindingRouterService pgBindingRouter;
     private final CardAuthModeService cardAuthModeService;
 
@@ -63,6 +64,7 @@ public class UrlPayPublicCheckoutService {
                                        UrlPayInputModeService urlPayInputModeService,
                                        UrlPayCardExpiryModeService urlPayCardExpiryModeService,
                                        PayContactRememberPolicyService payContactRememberPolicyService,
+                                       UrlPayCheckoutDisplayPolicyService urlPayCheckoutDisplayPolicyService,
                                        MerchantPgBindingRouterService pgBindingRouter,
                                        CardAuthModeService cardAuthModeService) {
         this.chillPayService = chillPayService;
@@ -80,6 +82,7 @@ public class UrlPayPublicCheckoutService {
         this.urlPayInputModeService = urlPayInputModeService;
         this.urlPayCardExpiryModeService = urlPayCardExpiryModeService;
         this.payContactRememberPolicyService = payContactRememberPolicyService;
+        this.urlPayCheckoutDisplayPolicyService = urlPayCheckoutDisplayPolicyService;
         this.pgBindingRouter = pgBindingRouter;
         this.cardAuthModeService = cardAuthModeService;
     }
@@ -110,17 +113,10 @@ public class UrlPayPublicCheckoutService {
                     urlPayCheckoutCurrencyService.resolveCheckoutCurrency(orgUnitId, null));
         }
         Optional<MerchantDefaultProduct> dp = merchantDefaultProductRepository.findByOrgUnitId(orgUnitId);
-        String productNameUseYn = "Y";
         if (prof.isPresent()) {
             MerchantProfile p = prof.get();
-            productNameUseYn = p.getUrlPayProductNameUseYn() != null ? p.getUrlPayProductNameUseYn() : "Y";
-            data.put("urlPayProductNameUseYn", productNameUseYn);
-            data.put("urlPayCompanyNameShowYn", p.getUrlPayCompanyNameShowYn() != null ? p.getUrlPayCompanyNameShowYn() : "Y");
-            data.put("urlPayLangMenuUseYn", p.getUrlPayLangMenuUseYn() != null ? p.getUrlPayLangMenuUseYn() : "Y");
-            data.put("checkoutContactRememberMode",
-                    p.getCheckoutContactRememberMode() != null ? p.getCheckoutContactRememberMode() : "FOLLOW_HQ");
+            urlPayCheckoutDisplayPolicyService.putEffectiveYnIntoMap(data, orgUnitId);
             data.put("checkoutContactRememberEnabled", payContactRememberPolicyService.isEnabledForOrgUnit(orgUnitId));
-            data.put("urlPayShippingAddressUseYn", p.getUrlPayShippingAddressUseYn() != null ? p.getUrlPayShippingAddressUseYn() : "N");
             if (p.getBaseCurrency() != null && !p.getBaseCurrency().isBlank()) {
                 data.put("defaultCurrency", p.getBaseCurrency().trim().toUpperCase(Locale.ROOT));
             }
@@ -130,24 +126,13 @@ public class UrlPayPublicCheckoutService {
                 data.put("defaultCountryIso2", p.getAddrCountryCd().trim().toUpperCase(Locale.ROOT));
             }
         } else {
-            data.put("urlPayProductNameUseYn", productNameUseYn);
-            data.put("urlPayCompanyNameShowYn", "Y");
-            data.put("urlPayLangMenuUseYn", "Y");
-            data.put("checkoutContactRememberMode", "FOLLOW_HQ");
+            urlPayCheckoutDisplayPolicyService.putEffectiveYnIntoMap(data, orgUnitId);
             data.put("checkoutContactRememberEnabled", payContactRememberPolicyService.isEnabledForOrgUnit(orgUnitId));
-            data.put("urlPayShippingAddressUseYn", "N");
         }
         urlPayInputModeService.putEffectiveIntoMap(data, orgUnitId, request);
         urlPayCardExpiryModeService.putEffectiveIntoMap(data, orgUnitId);
         cardAuthModeService.putEffectiveIntoMap(data, orgUnitId);
-        if (dp.isPresent()) {
-            MerchantDefaultProduct p = dp.get();
-            if ("Y".equalsIgnoreCase(productNameUseYn)
-                    && p.getProductName() != null && !p.getProductName().isBlank()) {
-                data.put("defaultProductName", p.getProductName().trim());
-            }
-            /* 기본금액 — 결제창에서 고객 직접 입력(프리필 없음) */
-        }
+        urlPayCheckoutDisplayPolicyService.putEffectiveDefaultProductIntoMap(data, orgUnitId, dp);
         enrichPresentation(data, orgUnitId);
         String opPg = String.valueOf(data.getOrDefault("urlPayOperationalPgCd", ""));
         UrlPayVendorCapability cap = capabilityRegistry.resolve(opPg);

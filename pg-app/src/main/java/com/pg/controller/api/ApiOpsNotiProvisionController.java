@@ -188,4 +188,19 @@ public class ApiOpsNotiProvisionController {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         }
     }
+
+    @PostMapping("/log/deleteBulk")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> deleteLogs(
+            Authentication authentication,
+            @RequestBody Map<String, Object> body) {
+        try {
+            return ResponseEntity.ok(ApiResponse.ok(opsNotiProvisionService.deleteLogs(authentication, body)));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "FORBIDDEN"));
+        } catch (NotiProvisionException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), e.getErrorCode()));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
 }

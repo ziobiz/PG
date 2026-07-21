@@ -107,6 +107,47 @@ public class HqApiConfig {
     @Column(name = "card_auth_mode_default", nullable = false, length = 16)
     private String cardAuthModeDefault = "THREE_DS";
 
+    /** 결제창 가맹점명 노출 본사 기본 — Y/N. 가맹 FOLLOW_HQ 시 */
+    @Column(name = "url_pay_company_name_show_default_yn", nullable = false, length = 1)
+    private String urlPayCompanyNameShowDefaultYn = "Y";
+
+    /** 결제창 다국어 메뉴 본사 기본 — Y/N */
+    @Column(name = "url_pay_lang_menu_use_default_yn", nullable = false, length = 1)
+    private String urlPayLangMenuUseDefaultYn = "Y";
+
+    /** 결제창 연락처 자동기억 본사 기본 — Y/N */
+    @Column(name = "checkout_contact_remember_default_yn", nullable = false, length = 1)
+    private String checkoutContactRememberDefaultYn = "Y";
+
+    /** 결제창 로고설정 본사 기본 — {@link com.pg.urlpay.WebPaymentHeaderLogoModeUtil} */
+    @Column(name = "web_payment_header_logo_mode_default", nullable = false, length = 16)
+    private String webPaymentHeaderLogoModeDefault = "DEFAULT";
+
+    /** 결제창 경고메세지 본사 기본 — {@link com.pg.urlpay.CheckoutHeaderSubtitleModeUtil} */
+    @Column(name = "web_payment_header_subtitle_mode_default", nullable = false, length = 16)
+    private String webPaymentHeaderSubtitleModeDefault = "DEFAULT";
+
+    /** 결제창 배송주소 본사 기본 — Y/N */
+    @Column(name = "url_pay_shipping_address_use_default_yn", nullable = false, length = 1)
+    private String urlPayShippingAddressUseDefaultYn = "N";
+
+    /** 결제창 상품명 사용 본사 기본 — Y/N */
+    @Column(name = "url_pay_product_name_use_default_yn", nullable = false, length = 1)
+    private String urlPayProductNameUseDefaultYn = "Y";
+
+    /** 본사 기본 상품명 — 상품명 사용=Y 이고 가맹 FOLLOW_HQ 시 */
+    @Column(name = "url_pay_default_product_name", length = 200)
+    private String urlPayDefaultProductName;
+
+    @Column(name = "url_pay_default_product_code", length = 50)
+    private String urlPayDefaultProductCode;
+
+    @Column(name = "url_pay_default_product_amount", precision = 18, scale = 2)
+    private java.math.BigDecimal urlPayDefaultProductAmount;
+
+    @Column(name = "url_pay_default_product_desc", length = 500)
+    private String urlPayDefaultProductDesc;
+
     /** WordPress/WooCommerce 플러그인 ZIP·REST webhook 채널 전역 제공 */
     @Column(name = "api_wordpress_plugin_enabled_yn", length = 1)
     private String apiWordpressPluginEnabledYn = "Y";
@@ -358,6 +399,57 @@ public class HqApiConfig {
                 urlPayCardExpiryModeDefault != null ? urlPayCardExpiryModeDefault
                         : com.pg.urlpay.UrlPayCardExpiryModeUtil.DROPDOWN);
     }
+
+    public String getUrlPayCompanyNameShowDefaultYn() { return urlPayCompanyNameShowDefaultYn; }
+    public void setUrlPayCompanyNameShowDefaultYn(String v) {
+        this.urlPayCompanyNameShowDefaultYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(v, "Y");
+    }
+    public String getUrlPayLangMenuUseDefaultYn() { return urlPayLangMenuUseDefaultYn; }
+    public void setUrlPayLangMenuUseDefaultYn(String v) {
+        this.urlPayLangMenuUseDefaultYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(v, "Y");
+    }
+    public String getCheckoutContactRememberDefaultYn() { return checkoutContactRememberDefaultYn; }
+    public void setCheckoutContactRememberDefaultYn(String v) {
+        this.checkoutContactRememberDefaultYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(v, "Y");
+    }
+    public String getWebPaymentHeaderLogoModeDefault() { return webPaymentHeaderLogoModeDefault; }
+    public void setWebPaymentHeaderLogoModeDefault(String v) {
+        this.webPaymentHeaderLogoModeDefault = com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalize(
+                v != null ? v : com.pg.urlpay.WebPaymentHeaderLogoModeUtil.DEFAULT);
+    }
+    public String getWebPaymentHeaderSubtitleModeDefault() { return webPaymentHeaderSubtitleModeDefault; }
+    public void setWebPaymentHeaderSubtitleModeDefault(String v) {
+        this.webPaymentHeaderSubtitleModeDefault = com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.normalize(
+                v != null ? v : com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.DEFAULT);
+    }
+    public String getUrlPayShippingAddressUseDefaultYn() { return urlPayShippingAddressUseDefaultYn; }
+    public void setUrlPayShippingAddressUseDefaultYn(String v) {
+        this.urlPayShippingAddressUseDefaultYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(v, "N");
+    }
+    public String getUrlPayProductNameUseDefaultYn() { return urlPayProductNameUseDefaultYn; }
+    public void setUrlPayProductNameUseDefaultYn(String v) {
+        this.urlPayProductNameUseDefaultYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(v, "Y");
+    }
+    public String getUrlPayDefaultProductName() { return urlPayDefaultProductName; }
+    public void setUrlPayDefaultProductName(String urlPayDefaultProductName) {
+        this.urlPayDefaultProductName = urlPayDefaultProductName != null && !urlPayDefaultProductName.isBlank()
+                ? urlPayDefaultProductName.trim() : null;
+    }
+    public String getUrlPayDefaultProductCode() { return urlPayDefaultProductCode; }
+    public void setUrlPayDefaultProductCode(String urlPayDefaultProductCode) {
+        this.urlPayDefaultProductCode = urlPayDefaultProductCode != null && !urlPayDefaultProductCode.isBlank()
+                ? urlPayDefaultProductCode.trim() : null;
+    }
+    public java.math.BigDecimal getUrlPayDefaultProductAmount() { return urlPayDefaultProductAmount; }
+    public void setUrlPayDefaultProductAmount(java.math.BigDecimal urlPayDefaultProductAmount) {
+        this.urlPayDefaultProductAmount = urlPayDefaultProductAmount;
+    }
+    public String getUrlPayDefaultProductDesc() { return urlPayDefaultProductDesc; }
+    public void setUrlPayDefaultProductDesc(String urlPayDefaultProductDesc) {
+        this.urlPayDefaultProductDesc = urlPayDefaultProductDesc != null && !urlPayDefaultProductDesc.isBlank()
+                ? urlPayDefaultProductDesc.trim() : null;
+    }
+
     public String getApiWordpressPluginEnabledYn() { return apiWordpressPluginEnabledYn; }
     public void setApiWordpressPluginEnabledYn(String apiWordpressPluginEnabledYn) { this.apiWordpressPluginEnabledYn = apiWordpressPluginEnabledYn; }
     public String getUrlPayRepayEnabledYn() { return urlPayRepayEnabledYn; }

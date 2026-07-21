@@ -125,6 +125,8 @@ public class CompService {
     private final MerchantApiDeploymentService merchantApiDeploymentService;
     private final MerchantApiIntegrationChannelService merchantApiIntegrationChannelService;
     private final HqRiskCardPolicyService hqRiskCardPolicyService;
+    private final MerchantJpayNotifyUrlSyncService merchantJpayNotifyUrlSyncService;
+    private final CommissionService commissionService;
 
     private static LocalTime parseTime(String s) {
         if (s == null || s.trim().isEmpty()) return null;
@@ -448,7 +450,9 @@ public class CompService {
                        OrgUserSuspensionService orgUserSuspensionService,
                        @Lazy MerchantApiDeploymentService merchantApiDeploymentService,
                        MerchantApiIntegrationChannelService merchantApiIntegrationChannelService,
-                       HqRiskCardPolicyService hqRiskCardPolicyService) {
+                       HqRiskCardPolicyService hqRiskCardPolicyService,
+                       MerchantJpayNotifyUrlSyncService merchantJpayNotifyUrlSyncService,
+                       @Lazy CommissionService commissionService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.settlementSettingRepository = settlementSettingRepository;
@@ -479,6 +483,8 @@ public class CompService {
         this.merchantApiDeploymentService = merchantApiDeploymentService;
         this.merchantApiIntegrationChannelService = merchantApiIntegrationChannelService;
         this.hqRiskCardPolicyService = hqRiskCardPolicyService;
+        this.merchantJpayNotifyUrlSyncService = merchantJpayNotifyUrlSyncService;
+        this.commissionService = commissionService;
     }
 
     /** 챗봇관리 — 고객 안내 문구(병합 표시값). 가맹만. */
@@ -1792,8 +1798,8 @@ public class CompService {
                             m.put("remark", mp.getRemark());
                             m.put("commissionConfigAllowed", mp.getCommissionConfigAllowed());
                             m.put("webPaymentUseYn", mp.getWebPaymentUseYn() != null ? mp.getWebPaymentUseYn() : "Y");
-                            m.put("webPaymentHeaderLogoMode", com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalize(mp.getWebPaymentHeaderLogoMode()));
-                            m.put("webPaymentHeaderSubtitleMode", com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.normalize(mp.getWebPaymentHeaderSubtitleMode()));
+                            m.put("webPaymentHeaderLogoMode", com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalizeMerchantStored(mp.getWebPaymentHeaderLogoMode()));
+                            m.put("webPaymentHeaderSubtitleMode", com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.normalizeMerchantStored(mp.getWebPaymentHeaderSubtitleMode()));
                             m.put("urlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getUrlPayCheckoutMode()));
                             m.put("urlPayProductNameUseYn", mp.getUrlPayProductNameUseYn() != null ? mp.getUrlPayProductNameUseYn() : "Y");
                             m.put("urlPayCompanyNameShowYn", mp.getUrlPayCompanyNameShowYn() != null ? mp.getUrlPayCompanyNameShowYn() : "Y");
@@ -2198,7 +2204,7 @@ public class CompService {
                             if (webPaymentUseYn != null && !webPaymentUseYn.trim().isEmpty()) mp.setWebPaymentUseYn(webPaymentUseYn.trim());
                             if (childLevel == OrgLevel.MERCHANT && webPaymentHeaderLogoMode != null && !webPaymentHeaderLogoMode.isBlank()) {
                                 mp.setWebPaymentHeaderLogoMode(
-                                        com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalize(webPaymentHeaderLogoMode));
+                                        com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalizeMerchantStored(webPaymentHeaderLogoMode));
                             }
                             if (childLevel == OrgLevel.MERCHANT && webPaymentHeaderLogoUrl != null) {
                                 String wpLogo = webPaymentHeaderLogoUrl.trim();
@@ -2221,7 +2227,8 @@ public class CompService {
                                 }
                             }
                             if (childLevel == OrgLevel.MERCHANT && webPaymentHeaderSubtitleMode != null && !webPaymentHeaderSubtitleMode.isBlank()) {
-                                String wpSubMode = com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.normalize(webPaymentHeaderSubtitleMode);
+                                /* FOLLOW_HQ 유지 — normalize()는 FOLLOW_HQ→DEFAULT 로 바꿔 본사 경고문구가 무시됨 */
+                                String wpSubMode = com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.normalizeMerchantStored(webPaymentHeaderSubtitleMode);
                                 mp.setWebPaymentHeaderSubtitleMode(wpSubMode);
                                 if (com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.isPreset(wpSubMode)) {
                                     mp.setWebPaymentHeaderSubtitleText(null);
@@ -2561,16 +2568,17 @@ public class CompService {
                             if (ou.getOrgLevel() == OrgLevel.MERCHANT && syncMerchantWebPaymentUseYnIfNoUrlPayBinding(ou.getId(), mp)) {
                                 merchantProfileRepository.save(mp);
                             }
+                            Map<String, Object> rsForCommission = parseRegionalSettings(mp.getRegionalSettings());
+                            String effectiveFollow = (commissionFollowHq != null && !commissionFollowHq.trim().isEmpty())
+                                    ? commissionFollowHq
+                                    : String.valueOf(rsForCommission.getOrDefault("commissionFollowHq", "Y"));
+                            String effectiveHqScope = (hqPolicyScope != null) ? hqPolicyScope
+                                    : String.valueOf(rsForCommission.getOrDefault("hqPolicyScope", ""));
                             if ("MERCHANT".equalsIgnoreCase(effDivForCommission)) {
                                 String chosenCur = (baseCurrency != null && !baseCurrency.trim().isEmpty())
                                         ? baseCurrency.trim()
                                         : mp.getBaseCurrency();
                                 Long effectiveParentId = parentId != null ? parentId : ou.getParentId();
-                                Map<String, Object> rs = parseRegionalSettings(mp.getRegionalSettings());
-                                String effectiveFollow = (commissionFollowHq != null && !commissionFollowHq.trim().isEmpty())
-                                        ? commissionFollowHq
-                                        : String.valueOf(rs.getOrDefault("commissionFollowHq", "Y"));
-                                String effectiveHqScope = (hqPolicyScope != null) ? hqPolicyScope : String.valueOf(rs.getOrDefault("hqPolicyScope", ""));
                                 String effectiveChargebackPolicyId = chargebackPolicyId;
                                 if (effectiveChargebackPolicyId == null || effectiveChargebackPolicyId.trim().isEmpty()) {
                                     CommissionPolicy curPolicy = commissionPolicyRepository.findByScope(ou.getCode()).orElse(null);
@@ -2585,7 +2593,7 @@ public class CompService {
                                     && !allCommissionParamsAbsent(commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate,
                                     failFee, payRate, refundRate, rollingPct, rollingDays, feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx,
                                     fee3dsRate, chargebackFeePerTx, chargebackPolicyId, voidSettlementMode, manualVoidSettlementMode, refundSettlementMode, forceRefundSettlementMode)) {
-                                applyCommissionPolicyForOrgCode(ou.getCode(), effDivForCommission, commissionFollowHq, hqPolicyScope,
+                                applyCommissionPolicyForOrgCode(ou.getCode(), effDivForCommission, effectiveFollow, effectiveHqScope,
                                         perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
                                         feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId,
                                         voidSettlementMode, manualVoidSettlementMode, refundSettlementMode, forceRefundSettlementMode);
@@ -2599,8 +2607,10 @@ public class CompService {
                                         defaultProductAmount, defaultProductDesc);
                                 String[] mwMerge = mergeMiddlewareNotifyParamsIfOmittedOnUpdate(ou.getId(),
                                         middlewareNotifyUrl, middlewareNotifySecret);
+                                String[] jpayMerge = mergeJpayNotifyParamsIfOmittedOnUpdate(ou.getId(),
+                                        jpayNotifyUrl, jpayCallbackUrl);
                                 saveMerchantPayNotifyUrls(ou.getId(), notifyUrlBackground, notifyUrlResult,
-                                        mwMerge[0], mwMerge[1], jpayNotifyUrl, jpayCallbackUrl);
+                                        mwMerge[0], mwMerge[1], jpayMerge[0], jpayMerge[1]);
                             }
                             if (chatbotCatalogListingGrant != null && childLevel != OrgLevel.MERCHANT) {
                                 merchantChatbotKbService.applyCatalogListingGrant(mp, chatbotCatalogListingGrant);
@@ -3037,6 +3047,17 @@ public class CompService {
                 jc = url;
             }
         }
+        /* 노티생성 이력에는 URL이 있으나 가맹 테이블에 미반영된 경우 자동 보강 */
+        if (jn.isEmpty() && jc.isEmpty() && orgUnitId != null) {
+            try {
+                if (merchantJpayNotifyUrlSyncService.backfillFromLatestProvisionLogIfEmpty(orgUnitId)) {
+                    jn = merchantJpayNotifyUrlSyncService.find(orgUnitId, MerchantNotifyUrl.URL_TYPE_JPAY_NOTIFY);
+                    jc = merchantJpayNotifyUrlSyncService.find(orgUnitId, MerchantNotifyUrl.URL_TYPE_JPAY_CALLBACK);
+                }
+            } catch (Exception ignored) {
+                /* 상세 조회는 보강 실패해도 계속 */
+            }
+        }
         m.put("notifyUrlBackground", MerchantPayNotifyUrlRules.sanitizeBackgroundForMerchant(bg, wordpressYn));
         m.put("notifyUrlResult", MerchantPayNotifyUrlRules.sanitizeResultForMerchant(rs));
         m.put("jpayNotifyUrl", jn);
@@ -3130,6 +3151,21 @@ public class CompService {
         String url = reqUrl != null ? reqUrl : ex.map(MerchantNotifyUrl::getNotiUrl).orElse(null);
         String sec = reqSec != null ? reqSec : ex.map(MerchantNotifyUrl::getSignSecret).orElse(null);
         return new String[] { url, sec };
+    }
+
+    /** 업체 수정 시 JPAY URL 파라미터가 null(미전달)이면 기존 {@code JPAY_NOTIFY}/{@code JPAY_CALLBACK} 유지. */
+    private String[] mergeJpayNotifyParamsIfOmittedOnUpdate(Long orgUnitId, String reqNotify, String reqCallback) {
+        String existingNotify = merchantNotifyUrlRepository
+                .findByOrgUnitIdAndUrlType(orgUnitId, MerchantNotifyUrl.URL_TYPE_JPAY_NOTIFY)
+                .map(MerchantNotifyUrl::getNotiUrl)
+                .orElse(null);
+        String existingCallback = merchantNotifyUrlRepository
+                .findByOrgUnitIdAndUrlType(orgUnitId, MerchantNotifyUrl.URL_TYPE_JPAY_CALLBACK)
+                .map(MerchantNotifyUrl::getNotiUrl)
+                .orElse(null);
+        String n = reqNotify != null ? reqNotify : existingNotify;
+        String c = reqCallback != null ? reqCallback : existingCallback;
+        return new String[] { n, c };
     }
 
     /**
@@ -4536,6 +4572,11 @@ public class CompService {
                 policy.setTierCommissionJson(src.getTierCommissionJson());
                 commissionPolicyRepository.save(policy);
                 applyDistributionFromCommissionPolicyTemplate(src, compCode.trim());
+                try {
+                    commissionService.recordHqTemplateApplyHistory(compCode.trim(), srcScope);
+                } catch (Exception ignored) {
+                    /* 이력 실패해도 정책 반영은 유지 */
+                }
             });
         }
         orgUnitRepository.findByCode(compCode.trim()).ifPresent(ouSync ->

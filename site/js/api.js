@@ -1847,6 +1847,9 @@
     opsNotiProvisionLogDelete: function (body) {
       return post('/api/ops/notiProvision/log/delete', body || {}).then(function (r) { return r.data || r; });
     },
+    opsNotiProvisionLogDeleteBulk: function (body) {
+      return post('/api/ops/notiProvision/log/deleteBulk', body || {}).then(function (r) { return r.data || r; });
+    },
     hqNotifyWebhookPartners: function () {
       return get('/api/hq/notifyEnv/webhookPartners').then(function (r) { return r.data || []; });
     },

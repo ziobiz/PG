@@ -18,6 +18,7 @@ import com.pg.repository.DistributionFeeConfigRepository;
 import com.pg.repository.MerchantCommissionExtraRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
+import com.pg.util.CommissionTierJsonHelper;
 import com.pg.util.PayListStatusBarBuckets;
 import com.pg.util.PercentDecimalHelper;
 import org.springframework.data.domain.Sort;
@@ -189,7 +190,8 @@ public class CommissionService {
                 applyDirectPolicyFallbackToDistribution(m, policy);
             }
         }
-        if (preferLatestHistoryDistribution) {
+        /* 본사정책 따름: 이력(이전 정책 스냅샷)으로 덮지 않음 — 선택한 HQ 템플릿 배분이 그대로 노출 */
+        if (preferLatestHistoryDistribution && effectiveScope == null) {
             applyLatestCommissionHistoryDistributionForDisplay(mc, m);
         }
 
@@ -229,28 +231,62 @@ public class CommissionService {
     }
 
     /**
-     * 가맹 배분 행이 존재하지만 전부 0(초기 생성)이면 본사 템플릿(scope) 배분을 사용한다.
-     * 그렇지 않으면 목록만 0·합계 오류가 나고 히스토리 스냅샷과 어긋날 수 있다.
+     * 본사정책 따름({@code effectiveScope} 지정): 선택한 HQ 템플릿 배분을 우선한다.
+     * (가맹에 이전 정책 배분이 남아 있거나 변경이력이 있어도, 정책선택 변경이 수수료관리에 바로 반영되도록)
+     * 직접입력: 가맹 배분 행을 쓰고, 비어 있으면 템플릿 폴백.
      */
     private Optional<DistributionFeeConfig> resolveDistributionFeeConfig(OrgUnit merchant, String merchantCode,
                                                                          String effectiveScope) {
         String mc = normCompCode(merchantCode);
         String rawCode = merchant != null ? merchant.getCode() : null;
+        if (effectiveScope != null && !effectiveScope.isBlank() && !effectiveScope.equalsIgnoreCase(mc)) {
+            Optional<DistributionFeeConfig> fromHq = distributionFromHqTemplateScope(effectiveScope);
+            if (fromHq.isPresent()) {
+                return fromHq;
+            }
+        }
         Optional<DistributionFeeConfig> merchantDf = findDistributionByCompIdCandidates(mc, rawCode);
         if (merchantDf.isPresent() && !isDistributionConfigEffectivelyEmpty(merchantDf.get())) {
             return merchantDf;
         }
-        if (effectiveScope != null && !effectiveScope.isBlank() && !effectiveScope.equals(mc)) {
-            String scopeKey = normCompCode(effectiveScope);
-            Optional<DistributionFeeConfig> scopeDf = distributionFeeConfigRepository.findByCompId(scopeKey);
-            if (scopeDf.isEmpty() && !scopeKey.equals(effectiveScope)) {
-                scopeDf = distributionFeeConfigRepository.findByCompId(effectiveScope);
-            }
-            if (scopeDf.isPresent() && !isDistributionConfigEffectivelyEmpty(scopeDf.get())) {
-                return scopeDf;
-            }
+        if (effectiveScope != null && !effectiveScope.isBlank() && !effectiveScope.equalsIgnoreCase(mc)) {
+            return distributionFromHqTemplateScope(effectiveScope);
         }
         return merchantDf;
+    }
+
+    /** HQ 템플릿 scope → 배분(DF 행 또는 tier_commission_json). 미저장 임시 DF일 수 있음. */
+    private Optional<DistributionFeeConfig> distributionFromHqTemplateScope(String templateScope) {
+        if (templateScope == null || templateScope.isBlank()) {
+            return Optional.empty();
+        }
+        String scopeKey = normCompCode(templateScope);
+        Optional<DistributionFeeConfig> scopeDf = distributionFeeConfigRepository.findByCompId(scopeKey);
+        if (scopeDf.isEmpty() && !scopeKey.equals(templateScope.trim())) {
+            scopeDf = distributionFeeConfigRepository.findByCompId(templateScope.trim());
+        }
+        if (scopeDf.isPresent() && !isDistributionConfigEffectivelyEmpty(scopeDf.get())) {
+            return scopeDf;
+        }
+        Optional<CommissionPolicy> pol = commissionPolicyRepository.findByScope(templateScope.trim());
+        if (pol.isEmpty() && !scopeKey.equals(templateScope.trim())) {
+            pol = commissionPolicyRepository.findByScope(scopeKey);
+        }
+        if (pol.isEmpty()) {
+            return Optional.empty();
+        }
+        CommissionPolicy p = pol.get();
+        String json = p.getTierCommissionJson();
+        if (json == null || json.isBlank()) {
+            json = CommissionTierJsonHelper.buildTierJsonFromPolicyScalars(p);
+        }
+        DistributionFeeConfig df = new DistributionFeeConfig();
+        df.setCompId(templateScope.trim());
+        CommissionTierJsonHelper.applyTierJsonToDistribution(json, df);
+        if (isDistributionConfigEffectivelyEmpty(df)) {
+            return Optional.empty();
+        }
+        return Optional.of(df);
     }
 
     private Optional<DistributionFeeConfig> findDistributionByCompIdCandidates(String mc, String rawCode) {
@@ -455,7 +491,10 @@ public class CommissionService {
             }
         }
         if (preferLatestHistory) {
-            applyLatestCommissionHistoryDistributionForDisplay(mc, m);
+            /* 직접입력만 이력 우선 — 본사정책 따름은 템플릿 배분 유지 */
+            if (effectiveScope == null) {
+                applyLatestCommissionHistoryDistributionForDisplay(mc, m);
+            }
         }
         return m;
     }
@@ -950,7 +989,9 @@ public class CommissionService {
                     applyDirectPolicyFallbackToDistribution(m, policy);
                 }
             }
-            applyLatestCommissionHistoryDistributionForDisplay(mc, m);
+            if (effectiveScope == null) {
+                applyLatestCommissionHistoryDistributionForDisplay(mc, m);
+            }
             putTotals(m);
             if (m.get("applyStartDate") instanceof LocalDate d) m.put("applyStartDateStr", d.toString());
             else if (m.get("applyStartDate") != null) m.put("applyStartDateStr", m.get("applyStartDate").toString());
@@ -1075,6 +1116,46 @@ public class CommissionService {
                     "[수수료관리] 수수료·배분 저장", "-", "저장 반영(상세: 수수료관리 히스토리)");
             return true;
         }).orElse(false);
+    }
+
+    /**
+     * 가맹 등록에서 본사 수수료정책 템플릿을 적용한 뒤, 수수료관리와 동일한 이력 스냅샷을 남긴다.
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void recordHqTemplateApplyHistory(String merchantCode, String templateScope) {
+        String mc = merchantCode != null ? merchantCode.trim() : "";
+        if (mc.isEmpty()) {
+            return;
+        }
+        Optional<OrgUnit> ouOpt = resolveOrgByCode(mc);
+        if (ouOpt.isEmpty() || ouOpt.get().getOrgLevel() != OrgLevel.MERCHANT) {
+            return;
+        }
+        OrgUnit ou = ouOpt.get();
+        String merchantNorm = normCompCode(ou);
+        DistributionFeeConfig df = distributionFeeConfigRepository.findByCompId(merchantNorm)
+                .or(() -> ou.getCode() != null && !merchantNorm.equals(ou.getCode())
+                        ? distributionFeeConfigRepository.findByCompId(ou.getCode()) : Optional.empty())
+                .orElse(null);
+        Map<String, Object> snap = buildCommissionRow(ou, false);
+        if (df != null && !isDistributionConfigEffectivelyEmpty(df)) {
+            applyDistributionToMap(snap, df);
+        }
+        putTotals(snap);
+        snap.put("compNm", ou.getName());
+        snap.put("compId", merchantNorm);
+        String scopeLabel = templateScope != null && !templateScope.isBlank() ? templateScope.trim() : "DEFAULT";
+        CommissionHistory hist = new CommissionHistory();
+        hist.setCompId(merchantNorm);
+        hist.setChgType("COMMISSION");
+        hist.setChgDesc("본사 수수료정책 템플릿 적용: " + scopeLabel);
+        hist.setChangedBy(currentUsername());
+        try {
+            hist.setSnapshotJson(MAPPER.writeValueAsString(snap));
+        } catch (Exception e) {
+            hist.setSnapshotJson("{}");
+        }
+        commissionHistoryRepository.save(hist);
     }
 
     private void setBd(java.util.function.Consumer<BigDecimal> setter, Object raw) {

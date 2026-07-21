@@ -170,7 +170,8 @@
   M['강제(시크릿 헤더 필수)']={EN:'강제(시크릿 헤더 필수)',JP:'강제(시크릿 헤더 필수)',CH:'강제(시크릿 헤더 필수)',TH:'강제(시크릿 헤더 필수)'};
   M['강제(시크릿 헤더 필수)란?']={EN:'강제(시크릿 헤더 필수)란?',JP:'강제(시크릿 헤더 필수)란?',CH:'강제(시크릿 헤더 필수)란?',TH:'강제(시크릿 헤더 필수)란?'};
   M['강제(헤더 필수)']={EN:'강제(헤더 필수)',JP:'강제(헤더 필수)',CH:'강제(헤더 필수)',TH:'강제(헤더 필수)'};
-  M['강제여부 저장']={EN:'강제여부 저장',JP:'강제여부 저장',CH:'강제여부 저장',TH:'강제여부 저장'};
+  M['강제여부 저장']={EN:'Save enforce',JP:'強制可否保存',CH:'保存强制状态',TH:'บันทึกบังคับ'};
+  M['발급초기화']={EN:'Reset issue',JP:'発行初期化',CH:'发行重置',TH:'รีเซ็ตการออกคีย์'};
   M['강제환불']={EN:'Forced refund',JP:'強制返金',CH:'强制退款',TH:'บังคับคืนเงิน'};
   M['강제환불 (31)']={EN:'Forced refund (31)',JP:'強制返金 (31)',CH:'强制退款 (31)',TH:'บังคับคืนเงิน (31)'};
   M['강제환불: 통합 결제내역에서 강제환불(내부 31)만 간추렸습니다.']={EN:'Forced refund: 통합 Payment list에서 Forced refund(내부 31)만 간추렸습니다.',JP:'強制返金: 통합 決済一覧에서 強制返金(내부 31)만 간추렸습니다.',CH:'强制退款: 통합 支付列表에서 强制退款(내부 31)만 간추렸습니다.',TH:'บังคับคืนเงิน: 통합 รายการชำระเงิน에서 บังคับคืนเงิน(내부 31)만 간추렸습니다.'};
@@ -385,7 +386,13 @@
   M['노티 생성 이력이 삭제되었습니다. NOTI 미들웨어에서도 제거되었습니다.']={EN:'NOTI provision history deleted and removed from NOTI middleware.',JP:'ノティ作成履歴を削除し、NOTIミドルウェアからも除去しました。',CH:'NOTI 创建历史已删除，并从 NOTI 中间件移除。',TH:'ลบประวัติสร้าง NOTI และนำออกจาก NOTI middleware แล้ว'};
   M['노티관리 수정을 위해 Google OTP 6자리를 입력하세요.']={EN:'Enter Google OTP (6 digits) to edit NOTI management.',JP:'ノティ管理の修正にはGoogle OTP 6桁を入力してください。',CH:'请输入 Google OTP 6 位以修改 NOTI 管理。',TH:'กรอก Google OTP 6 หลักเพื่อแก้ไขการจัดการ NOTI'};
   M['노티관리 실행 권한이 없습니다(본사권한설정).']={EN:'You do not have permission to run NOTI management (HQ permissions).',JP:'ノティ管理の実行権限がありません(本社権限設定)。',CH:'无 NOTI 管理执行权限(总部权限设置)。',TH:'ไม่มีสิทธิ์ดำเนินการจัดการ NOTI (สิทธิ์ HQ)'};
-  M['Google OTP (노티관리)']={EN:'Google OTP (NOTI management)',JP:'Google OTP(ノティ管理)',CH:'Google OTP（NOTI 管理）',TH:'Google OTP (จัดการ NOTI)'};
+  M['Google OTP (노티관리)']={EN:'OTP',JP:'OTP',CH:'OTP',TH:'OTP'};
+  M['수정 시 NOTI 미들웨어 가맹 설정도 함께 반영됩니다. ICOPAY에서 생성한 노티는 여기서 수정해야 양방향이 유지됩니다.']={
+    EN:'Saving also updates the NOTI middleware merchant. NOTI created in ICOPAY must be edited here to keep bi-directional sync.',
+    JP:'保存するとNOTIミドルウェア加盟設定も反映されます。ICOPAYで作成したノティはここで修正すると双方向が維持されます。',
+    CH:'保存时也会同步 NOTI 中间件商户设置。在 ICOPAY 创建的 NOTI 须在此修改以保持双向同步。',
+    TH:'เมื่อบันทึกจะอัปเดตการตั้งค่าร้านใน NOTI ด้วย NOTI ที่สร้างใน ICOPAY ต้องแก้ไขที่นี่จึงซิงก์สองทาง'
+  };
   M['NOTI Provision API (JPAY 노티생성 연동)']={EN:'NOTI Provision API (JPAY NOTI management)',JP:'NOTI Provision API（JPAYノティ管理連携）',CH:'NOTI Provision API（JPAY NOTI 管理联动）',TH:'NOTI Provision API (จัดการ NOTI JPAY)'};
   M['Provision API 사용']={EN:'Provision API enabled',JP:'Provision API 使用',CH:'启用 Provision API',TH:'ใช้ Provision API'};
   M['NOTI 베이스 URL']={EN:'NOTI base URL',JP:'NOTIベースURL',CH:'NOTI 基础 URL',TH:'NOTI base URL'};
@@ -394,12 +401,25 @@
   M['JPAY 노티 생성']={EN:'Create JPAY NOTI',JP:'JPAYノティ作成',CH:'创建 JPAY NOTI',TH:'สร้าง NOTI JPAY'};
   M['가맹 업체코드']={EN:'Merchant code',JP:'加盟店コード',CH:'商户代码',TH:'รหัสร้านค้า'};
   M['NOTI 전산 대상 ID']={EN:'NOTI internal target ID',JP:'NOTI全算対象ID',CH:'NOTI 账务目标 ID',TH:'รหัสเป้าหมาย NOTI (internal)'};
+  M['NOTI ID']={EN:'NOTI ID',JP:'NOTI ID',CH:'NOTI ID',TH:'NOTI ID'};
   M['발급 결과']={EN:'Provision result',JP:'発行結果',CH:'签发结果',TH:'ผลการออก'};
   M['노티 생성 이력']={EN:'NOTI provision history',JP:'ノティ作成履歴',CH:'NOTI 创建历史',TH:'ประวัติการสร้าง NOTI'};
   M['노티 생성 이력이 없습니다.']={EN:'No NOTI provision history yet.',JP:'ノティ作成履歴がありません。',CH:'暂无 NOTI 创建历史。',TH:'ยังไม่มีประวัติการสร้าง NOTI'};
   M['NOTI 슬롯']={EN:'NOTI slot',JP:'NOTIスロット',CH:'NOTI 槽位',TH:'NOTI slot'};
-  M['JPAY Notify URL']={EN:'JPAY Notify URL',JP:'JPAY Notify URL',CH:'JPAY Notify URL',TH:'JPAY Notify URL'};
-  M['JPAY Callback URL']={EN:'JPAY Callback URL',JP:'JPAY Callback URL',CH:'JPAY Callback URL',TH:'JPAY Callback URL'};
+  M['슬롯']={EN:'Slot',JP:'スロット',CH:'槽位',TH:'สล็อต'};
+  M['Notify URL']={EN:'Callback',JP:'Callback',CH:'Callback',TH:'Callback'};
+  M['Callback URL']={EN:'Result',JP:'Result',CH:'Result',TH:'Result'};
+  M['JPAY Notify URL']={EN:'Callback',JP:'Callback',CH:'Callback',TH:'Callback'};
+  M['JPAY Callback URL']={EN:'Result',JP:'Result',CH:'Result',TH:'Result'};
+  M['Callback']={EN:'Callback',JP:'Callback',CH:'Callback',TH:'Callback'};
+  M['Result']={EN:'Result',JP:'Result',CH:'Result',TH:'Result'};
+  M['N복사']={EN:'Callback',JP:'Callback',CH:'Callback',TH:'Callback'};
+  M['C복사']={EN:'Result',JP:'Result',CH:'Result',TH:'Result'};
+  M['삭제할 이력을 선택하세요.']={EN:'Select history rows to delete.',JP:'削除する履歴を選択してください。',CH:'请选择要删除的历史记录。',TH:'เลือกรายการประวัติที่จะลบ'};
+  M['선택한 노티 생성 이력과 NOTI 미들웨어 가맹을 삭제합니다. 계속하시겠습니까?']={EN:'Delete the selected NOTI provision history and NOTI middleware merchants. Continue?',JP:'選択したノティ作成履歴とNOTIミドルウェア加盟店を削除します。続行しますか？',CH:'将删除所选 NOTI 创建历史及 NOTI 中间件商户。是否继续？',TH:'ลบประวัติสร้าง NOTI ที่เลือกและร้านใน NOTI middleware ต่อหรือไม่?'};
+  M['삭제를 위해 Google OTP 6자리를 입력하세요.']={EN:'Enter Google OTP (6 digits) to delete.',JP:'削除のためGoogle OTP 6桁を入力してください。',CH:'请输入 Google OTP 6 位以删除。',TH:'กรอก Google OTP 6 หลักเพื่อลบ'};
+  M['선택한 노티 생성 이력이 삭제되었습니다. NOTI 미들웨어에서도 제거되었습니다.']={EN:'Selected NOTI provision history deleted and removed from NOTI middleware.',JP:'選択したノティ作成履歴を削除し、NOTIミドルウェアからも除去しました。',CH:'已删除所选 NOTI 创建历史，并从 NOTI 中间件移除。',TH:'ลบประวัติสร้าง NOTI ที่เลือก และนำออกจาก NOTI middleware แล้ว'};
+  M['전체선택']={EN:'Select all',JP:'全選択',CH:'全选',TH:'เลือกทั้งหมด'};
   M['생성 여부']={EN:'Created',JP:'作成区分',CH:'创建状态',TH:'สถานะการสร้าง'};
   M['처리자']={EN:'Processed by',JP:'処理者',CH:'处理人',TH:'ผู้ดำเนินการ'};
   M['신규 생성']={EN:'Newly created',JP:'新規作成',CH:'新创建',TH:'สร้างใหม่'};
@@ -427,9 +447,24 @@
   M['기준화폐']={EN:'Base currency',JP:'基準通貨',CH:'基准货币',TH:'สกุลเงินหลัก'};
   M['노티 정산대상(전산 대상 ID)']={EN:'NOTI settlement target (internal ID)',JP:'ノティ精算対象(internal ID)',CH:'NOTI 结算目标(internal ID)',TH:'เป้าหมาย NOTI (internal ID)'};
   M['JPAY PG 노티 슬롯']={EN:'JPAY PG NOTI slot',JP:'JPAY PGノティスロット',CH:'JPAY PG NOTI 槽位',TH:'NOTI slot JPAY PG'};
-  M['가맹점 노티 사용']={EN:'Use merchant notify',JP:'加盟店ノティ使用',CH:'使用商户 NOTI',TH:'ใช้ NOTI ร้านค้า'};
-  M['전산 노티 사용']={EN:'Use internal NOTI',JP:'全算ノティ使用',CH:'使用内部 NOTI',TH:'ใช้ NOTI ภายใน'};
+  M['연동방식']={EN:'Integration mode',JP:'連携方式',CH:'对接方式',TH:'โหมดเชื่อมต่อ'};
+  M['API 방식']={EN:'API mode',JP:'API方式',CH:'API 方式',TH:'โหมด API'};
+  M['URL 방식']={EN:'URL mode',JP:'URL方式',CH:'URL 方式',TH:'โหมด URL'};
+  M['API: 가맹·전산·개발 노티를 직접 설정. URL: 가맹점 포워딩 끔·개발 노티(대체 Dev URL)·RESULT AUTO·RouteNo=슬롯으로 자동 설정.']={
+    EN:'API: set merchant, ledger, and dev NOTI yourself. URL: merchant forwarding off, use dev NOTI (alt Dev URLs), RESULT AUTO, and RouteNo=slot automatically.',
+    JP:'API:加盟店・電算・開発ノティを手動設定。URL:加盟転送OFF・開発ノティ(代替Dev URL)・RESULT AUTO・RouteNo=スロットを自動設定。',
+    CH:'API：自行设置商户、账务与开发 NOTI。URL：关闭商户转发，使用开发 NOTI（替代 Dev URL）、RESULT AUTO，RouteNo=槽位自动设置。',
+    TH:'API: ตั้ง NOTI ร้านค้า/บัญชี/dev เอง URL: ปิด forward ร้าน, ใช้ NOTI dev (URL Dev สำรอง), RESULT AUTO และ RouteNo=สล็อตอัตโนมัติ'
+  };
+  M['URL 방식 — 대체 송부(개발 노티) URL']={EN:'URL mode — alt send (dev NOTI) URLs',JP:'URL方式 — 代替送付(開発ノティ)URL',CH:'URL 方式 — 替代发送（开发 NOTI）URL',TH:'โหมด URL — URL ส่งแทน (NOTI dev)'};
+  M['가맹점 노티 사용']={EN:'Use merchant NOTI',JP:'加盟店ノティ使用',CH:'使用商户 NOTI',TH:'ใช้ NOTI ร้านค้า'};
+  M['전산 노티 사용']={EN:'Use ledger NOTI',JP:'電算ノティ使用',CH:'使用账务 NOTI',TH:'ใช้ NOTI บัญชี'};
   M['개발 노티 사용']={EN:'Use dev NOTI',JP:'開発ノティ使用',CH:'使用开发 NOTI',TH:'ใช้ NOTI dev'};
+  M['가맹점 노티 사용 시 callback·result URL이 필요합니다. 업체관리 URL 또는 직접 입력하세요.']={EN:'Merchant NOTI requires callback and result URLs. Use merchant admin URLs or enter them manually.',JP:'加盟店ノティ使用時はcallback・result URLが必要です。業者管理のURLまたは直接入力してください。',CH:'使用商户 NOTI 时需要 callback 与 result URL。请使用商户管理 URL 或手动输入。',TH:'เมื่อใช้ NOTI ร้านค้า ต้องมี callback และ result URL ใช้จากจัดการร้านหรือกรอกเอง'};
+  M['URL 방식은 총판의 본사 노티 대상(개발 CALLBACK·RESULT) 연결이 필요합니다. 본사설정 → 노티구성설정에서 총판 노티를 생성·연결하세요.']={EN:'URL mode requires the master distributor HQ NOTI target (dev CALLBACK/RESULT). Create and link it in HQ Settings → Notify config.',JP:'URL方式は総販の本社ノティ対象(開発CALLBACK・RESULT)の接続が必要です。本社設定→ノティ構成設定で総販ノティを作成・接続してください。',CH:'URL 方式需要总代总部 NOTI 目标（开发 CALLBACK/RESULT）。请在总部设置 → 通知环境中创建并连接。',TH:'โหมด URL ต้องเชื่อมเป้าหมาย NOTI HQ ของตัวแทน (CALLBACK/RESULT แบบ dev) ที่ตั้งค่า HQ → ตั้งค่าแจ้งเตือน'};
+  M['개발 노티 사용 시 총판의 본사 노티 대상(CALLBACK·RESULT) 연결이 필요합니다. 본사설정 → 노티구성설정에서 총판 노티를 생성·연결하세요.']={EN:'Dev NOTI requires the master distributor HQ NOTI target (CALLBACK/RESULT). Create and link it in HQ Settings → Notify config.',JP:'開発ノティ使用時は総販の本社ノティ対象(CALLBACK・RESULT)の接続が必要です。本社設定→ノティ構成設定で総販ノティを作成・接続してください。',CH:'使用开发 NOTI 时需要总代总部 NOTI 目标（CALLBACK/RESULT）。请在总部设置 → 通知环境中创建并连接。',TH:'เมื่อใช้ NOTI dev ต้องเชื่อมเป้าหมาย NOTI HQ ของตัวแทน (CALLBACK/RESULT) ที่ตั้งค่า HQ → ตั้งค่าแจ้งเตือน'};
+  M['동일 가맹 ID가 다른 설정으로 이미 존재합니다.']={EN:'The same merchant ID already exists with different settings.',JP:'同一加盟IDが別設定で既に存在します。',CH:'同一商户 ID 已以不同设置存在。',TH:'รหัสร้านค้าเดียวกันมีอยู่แล้วด้วยการตั้งค่าอื่น'};
+  M['Partner 코드를 입력하세요.']={EN:'Enter a Partner code.',JP:'Partnerコードを入力してください。',CH:'请输入 Partner 代码。',TH:'กรอกรหัส Partner'};
   M['노티 방식']={EN:'Notify format',JP:'ノティ方式',CH:'NOTI 格式',TH:'รูปแบบ NOTI'};
   M['일반']={EN:'General',JP:'一般',CH:'一般',TH:'ทั่วไป'};
   M['릴레이 모드']={EN:'Relay mode',JP:'リレーモード',CH:'中继模式',TH:'โหมด relay'};
@@ -440,9 +475,12 @@
   M['가맹점 result URL']={EN:'Merchant result URL',JP:'加盟店result URL',CH:'商户 result URL',TH:'Merchant result URL'};
   M['DEALMAI Partner 코드']={EN:'DEALMAI Partner code',JP:'DEALMAI Partnerコード',CH:'DEALMAI Partner 代码',TH:'รหัส DEALMAI Partner'};
   M['기본 Partner 코드']={EN:'Default Partner code',JP:'既定Partnerコード',CH:'默认 Partner 代码',TH:'รหัส Partner เริ่มต้น'};
-  M['DEALMAI Partner']={EN:'DEALMAI Partner',JP:'DEALMAI Partner',CH:'DEALMAI Partner',TH:'DEALMAI Partner'};
+  M['DEALMAI']={EN:'DEALMAI',JP:'DEALMAI',CH:'DEALMAI',TH:'DEALMAI'};
+  M['DEALMAI Partner']={EN:'DEALMAI',JP:'DEALMAI',CH:'DEALMAI',TH:'DEALMAI'};
   M['DEALMAI 웹훅 사용']={EN:'Use DEALMAI webhook',JP:'DEALMAIウェブフック使用',CH:'使用 DEALMAI Webhook',TH:'ใช้ DEALMAI webhook'};
-  M['Google OTP (노티생성)']={EN:'Google OTP (NOTI provision)',JP:'Google OTP(ノティ作成)',CH:'Google OTP（NOTI 创建）',TH:'Google OTP (สร้าง NOTI)'};
+  M['Google OTP (노티생성)']={EN:'OTP',JP:'OTP',CH:'OTP',TH:'OTP'};
+  M['OTP']={EN:'OTP',JP:'OTP',CH:'OTP',TH:'OTP'};
+  M['6자리']={EN:'6 digits',JP:'6桁',CH:'6位',TH:'6 หลัก'};
   M['노티생성 등록 시 Google OTP 6자리가 필요합니다. 성공 등록 후 20분 동안 재입력 없이 등록할 수 있습니다.']={EN:'Google OTP (6 digits) is required for NOTI provision. After a successful registration, you may register again without OTP for 20 minutes.',JP:'ノティ作成登録にはGoogle OTP 6桁が必要です。成功登録後20分間は再入力なしで登録できます。',CH:'NOTI 创建注册需要 Google OTP 6 位。成功注册后 20 分钟内可免 OTP 再次注册。',TH:'การสร้าง NOTI ต้องใช้ Google OTP 6 หลัก หลังลงทะเบียนสำเร็จสามารถลงทะเบียนซ้ำได้โดยไม่ต้อง OTP ภายใน 20 นาที'};
   M['OTP 인증 유효 중입니다. 추가 등록 시 OTP 입력이 생략됩니다(마지막 등록 후 20분).']={EN:'OTP verification is active. Additional registrations skip OTP (20 minutes after last registration).',JP:'OTP認証が有効です。追加登録時はOTP入力を省略します(最終登録後20分)。',CH:'OTP 验证有效中。追加注册可省略 OTP（末次注册后 20 分钟）。',TH:'OTP ยังใช้ได้ การลงทะเบียนเพิ่มไม่ต้องกรอก OTP (ภายใน 20 นาทีหลังลงทะเบียนล่าสุด)'};
   M['노티생성 등록을 위해 Google OTP 6자리를 입력하세요.']={EN:'Enter Google OTP (6 digits) to register NOTI provision.',JP:'ノティ作成登録のためGoogle OTP 6桁を入力してください。',CH:'请输入 Google OTP 6 位以进行 NOTI 创建注册。',TH:'กรอก Google OTP 6 หลักเพื่อลงทะเบียนสร้าง NOTI'};
@@ -735,7 +773,19 @@
   M['대체공휴일']={EN:'Substitute holiday',JP:'振替休日',CH:'替代公休日',TH:'วันหยุดชดเชย'};
   M['대표']={EN:'대표',JP:'대표',CH:'대표',TH:'대표'};
   M['대표 계정 비밀번호를 초기화하시겠습니까? (임시: 로그인ID+1!)']={EN:'대표 계정 Password를 초기화하시겠습니까? (임시: Login ID+1!)',JP:'대표 계정 パスワード를 초기화하시겠습니까? (임시: ログインID+1!)',CH:'대표 계정 密码를 초기화하시겠습니까? (임시: 登录账号+1!)',TH:'대표 계정 รหัสผ่าน를 초기화하시겠습니까? (임시: รหัสเข้าใช้+1!)'};
-  M['대표 상품명']={EN:'대표 상품명',JP:'대표 상품명',CH:'대표 상품명',TH:'대표 상품명'};
+  M['대표 상품명']={EN:'Default product name',JP:'代表商品名',CH:'代表商品名',TH:'ชื่อสินค้าระบุ'};
+  M['상품명 사용을 「활성(직접입력)」으로 두면 아래 본사 기본 상품이 저장됩니다. 가맹이 「본사설정 따름」이면 결제창에 이 값이 노출되고, 가맹에서 상품명 사용을 직접 설정·입력하면 가맹 값이 우선합니다.']={
+    EN:'When Product name field is Active (custom), HQ default product fields below are saved. Merchants on Follow HQ settings see these on checkout; a merchant override takes priority.',
+    JP:'商品名入力を「有効（直接入力）」にすると下の本社基本商品が保存されます。加盟店が「本社設定に従う」なら決済画面に表示され、加盟店が直接設定・入力すると加盟店値が優先されます。',
+    CH:'将「商品名称字段」设为「启用（自定义）」时保存下方总部默认商品。商户选「跟随总部设置」时在结账页显示；商户自行设置/输入时优先。',
+    TH:'เมื่อตั้งช่องชื่อสินค้าเป็นเปิดใช้ (พิมพ์เอง) จะบันทึกสินค้าเริ่มต้น HQ ด้านล่าง ห้าร้านตาม HQ จะแสดงบนหน้าชำระ ห้าร้านตั้งเองจะเหนือกว่า'
+  };
+  M['리스크설정 → 리스크 필터링: 「자동기억 기본값」 제거(본사정책 결제창 표시 기본값으로 일원화)']={
+    EN:'Risk settings → Risk filtering: remove Auto-remember default (unified under HQ checkout display defaults)',
+    JP:'リスク設定→リスクフィルタ: 「自動記憶デフォルト」削除（本社決済画面表示既定に一元化）',
+    CH:'风险设置 → 风险过滤：移除「自动记忆默认值」（统一到总部支付窗显示默认）',
+    TH:'ตั้งค่าความเสี่ยง → กรองความเสี่ยง: ลบค่าเริ่มต้นจำอัตโนมัติ (รวมไว้ที่ค่าเริ่มต้นการแสดงหน้าชำระ HQ)'
+  };
   M['대표 아이디 (중복검사)']={EN:'대표 아이디 (중복검사)',JP:'대표 아이디 (중복검사)',CH:'대표 아이디 (중복검사)',TH:'대표 아이디 (중복검사)'};
   M['대표 아이디 중복확인을 먼저 진행하세요.']={EN:'대표 아이디 Check duplicate을 먼저 진행하세요.',JP:'대표 아이디 重複確認을 먼저 진행하세요.',CH:'대표 아이디 查重을 먼저 진행하세요.',TH:'대표 아이디 ตรวจสอบซ้ำ을 먼저 진행하세요.'};
   M['대표사이트']={EN:'대표사이트',JP:'대표사이트',CH:'대표사이트',TH:'대표사이트'};
@@ -1143,6 +1193,20 @@
   M['본사에서 [배경/로고 변경권한]을 부여한 가맹점은 메인·로고·테마를 수정할 수 있습니다. 메인이미지=로그인 화면 왼쪽 배경, 로고=로그인창 상단·사이드바 상단.']={EN:'본사에서 [배경/로고 변경권한]을 부여한 가맹점은 메인·로고·테마를 수정할 수 있습니다. Main image=로그인 화면 왼쪽 배경, 로고=로그인창 상단·사이드바 상단.',JP:'본사에서 [배경/로고 변경권한]을 부여한 가맹점은 메인·로고·테마를 수정할 수 있습니다. メイン画像=로그인 화면 왼쪽 배경, 로고=로그인창 상단·사이드바 상단.',CH:'본사에서 [배경/로고 변경권한]을 부여한 가맹점은 메인·로고·테마를 수정할 수 있습니다. 主图=로그인 화면 왼쪽 배경, 로고=로그인창 상단·사이드바 상단.',TH:'본사에서 [배경/로고 변경권한]을 부여한 가맹점은 메인·로고·테마를 수정할 수 있습니다. รูปหลัก=로그인 화면 왼쪽 배경, 로고=로그인창 상단·사이드바 상단.'};
   M['본사운영']={EN:'HQ operated',JP:'本社運用',CH:'总部运营',TH:'ดำเนินการโดย HQ'};
   M['본사정책 따름']={EN:'Follow HQ policy',JP:'本社ポリシーに従う',CH:'遵循总部政策',TH:'ตามนโยบาย HQ'};
+  M['본사설정 따름']={EN:'Follow HQ settings',JP:'本社設定に従う',CH:'跟随总部设置',TH:'ตามการตั้งค่า HQ'};
+  M['결제창 표시 기본값']={EN:'Checkout display defaults',JP:'決済画面表示の既定',CH:'支付窗显示默认值',TH:'ค่าเริ่มต้นการแสดงหน้าชำระ'};
+  M['가맹점명·다국어·자동기억·로고·경고메세지·배송주소·상품명사용의 본사 기본값입니다. 가맹이 「본사설정 따름」이면 여기 값이 적용되고, 가맹에서 직접 고르면 본사보다 우선합니다.']={
+    EN:'HQ defaults for merchant name, language menu, auto-remember, logo, warning message, shipping address, and product name. When the merchant selects Follow HQ settings, these apply; a merchant override takes priority.',
+    JP:'加盟店名・多言語・自動記憶・ロゴ・警告・配送先・商品名の本社既定値です。加盟店が「本社設定に従う」ならここが適用され、直接選ぶと本社より優先します。',
+    CH:'商户名、多语言、自动记忆、Logo、警告信息、配送地址、商品名的总部默认值。商户选「跟随总部设置」时使用此处；商户自选时优先于总部。',
+    TH:'ค่าเริ่มต้น HQ สำหรับชื่อร้าน เมนูภาษา จำอัตโนมัติ โลโก้ ข้อความเตือน ที่อยู่จัดส่ง และชื่อสินค้า หากร้านเลือกตาม HQ จะใช้ค่านี้ ห้าร้านเลือกเองจะเหนือกว่า HQ'
+  };
+  M['신규·기존 가맹의 기본은 「본사설정 따름」입니다. 가맹 웹결제 카드에서 항목별로 본사보다 우선하는 값을 지정할 수 있습니다.']={
+    EN:'New and existing merchants default to Follow HQ settings. On the merchant web-payment card, each item can override HQ.',
+    JP:'新規・既存加盟店の既定は「本社設定に従う」です。加盟店ウェブ決済カードで項目ごとに本社より優先する値を指定できます。',
+    CH:'新/既有商户默认「跟随总部设置」。可在商户网页支付卡片中按项覆盖总部。',
+    TH:'ร้านใหม่และเดิมเริ่มต้นที่ตามการตั้งค่า HQ บนการ์ดชำระเว็บของร้านสามารถกำหนดค่าที่เหนือกว่า HQ ได้ทีละรายการ'
+  };
   M['기간정책']={EN:'Period policy',JP:'期間ポリシー',CH:'周期政策',TH:'นโยบายช่วงเวลา'};
   M['추적기간']={EN:'Tracking period',JP:'追跡期間',CH:'追踪周期',TH:'ช่วงติดตาม'};
   M['설정기간']={EN:'Period value',JP:'設定期間',CH:'设定周期',TH:'ค่าช่วงเวลา'};
@@ -1688,7 +1752,7 @@
   M['업체등록']={EN:'Register merchant',JP:'加盟店登録',CH:'商户注册',TH:'ลงทะเบียนร้าน'};
   M['업체등록_SAMPLE_']={EN:'Register merchant_SAMPLE_',JP:'加盟店登録_SAMPLE_',CH:'商户注册_SAMPLE_',TH:'ลงทะเบียนร้าน_SAMPLE_'};
   M['업체등록에서 조직을 가맹점으로 등록하고, 결제대행사에서 아래 목록의 PG 중 하나를 선택·저장합니다.']={EN:'Register merchant에서 조직을 가맹점으로 등록하고, Payment processor에서 아래 목록의 PG 중 하나를 선택·저장합니다.',JP:'加盟店登録에서 조직을 가맹점으로 등록하고, 決済代行業者에서 아래 목록의 PG 중 하나를 선택·저장합니다.',CH:'商户注册에서 조직을 가맹점으로 등록하고, 支付服务机构에서 아래 목록의 PG 중 하나를 선택·저장합니다.',TH:'ลงทะเบียนร้าน에서 조직을 가맹점으로 등록하고, ผู้ให้บริการชำระเงิน에서 아래 목록의 PG 중 하나를 선택·저장합니다.'};
-  M['업체를 고른 뒤 JSON 또는 PHP 연동 패키지 버튼을 누르세요.']={EN:'업체를 고른 뒤 JSON 또는 PHP 연동 패키지 버튼을 누르세요.',JP:'업체를 고른 뒤 JSON 또는 PHP 연동 패키지 버튼을 누르세요.',CH:'업체를 고른 뒤 JSON 또는 PHP 연동 패키지 버튼을 누르세요.',TH:'업체를 고른 뒤 JSON 또는 PHP 연동 패키지 버튼을 누르세요.'};
+  M['업체를 고른 뒤 JSON 또는 PHP 연동 패키지 버튼을 누르세요.']={EN:'Select a merchant, then press JSON or PHP package.',JP:'加盟を選び JSON または PHP パッケージを押してください。',CH:'请选择商户后点击 JSON 或 PHP 联调包。',TH:'เลือกร้านแล้วกดแพ็กเกจ JSON หรือ PHP'};
   M['업체를 먼저 선택하세요.']={EN:'업체를 먼저 선택하세요.',JP:'업체를 먼저 선택하세요.',CH:'업체를 먼저 선택하세요.',TH:'업체를 먼저 선택하세요.'};
   M['업체를 선택하면 연동 자료가 표시됩니다.']={EN:'업체를 선택하면 연동 자료가 표시됩니다.',JP:'업체를 선택하면 연동 자료가 표시됩니다.',CH:'업체를 선택하면 연동 자료가 표시됩니다.',TH:'업체를 선택하면 연동 자료가 표시됩니다.'};
   M['업체를 선택하면 입력란이 활성화됩니다.']={EN:'업체를 선택하면 입력란이 활성화됩니다.',JP:'업체를 선택하면 입력란이 활성화됩니다.',CH:'업체를 선택하면 입력란이 활성화됩니다.',TH:'업체를 선택하면 입력란이 활성화됩니다.'};
@@ -2571,10 +2635,10 @@
   M['적용되었습니다.']={EN:'Applied.',JP:'適用されました。',CH:'已应用。',TH:'นำไปใช้แล้ว'};
   M['작업']={EN:'Actions',JP:'操作',CH:'操作',TH:'การดำเนินการ'};
   M['대상']={EN:'Target',JP:'対象',CH:'对象',TH:'เป้าหมาย'};
-  M['모든 조직(총본사 제외)의 업체사용상태를 일괄 제어합니다. 개별 조직 설정보다 우선합니다. 일시중지는 현재 사용 중인 조직만 대상이며, 미사용 조직은 그대로 유지됩니다.']={EN:'Bulk control of company use status for all orgs (except HQ). Overrides individual settings. Temporary suspend applies only to currently active orgs; inactive orgs stay inactive.',JP:'総本部を除く全組織の使用状態を一括制御します。個別設定より優先。一時停止は現在使用中の組織のみ対象です。',CH:'批量控制除总总部外所有组织的使用状态，优先于单独设置。临时暂停仅针对当前使用中的组织。',TH:'ควบคุมสถานะใช้งานองค์กรทั้งหมด (ยกเว้น HQ) แทนการตั้งค่าแต่ละราย ระงับชั่วคราวเฉพาะที่ใช้งานอยู่'};
-  M['모든 가맹점(총본사 제외)의 URL 결제 사용 여부를 일괄 제어합니다. 개별 가맹 설정보다 우선합니다. 일시중지는 현재 URL 결제 사용 중인 가맹점만 대상입니다.']={EN:'Bulk control of URL payment for all merchants (except HQ). Overrides individual settings. Temporary suspend applies only to merchants currently using URL payment.',JP:'総本部を除く全加盟店のURL決済使用を一括制御します。個別設定より優先。',CH:'批量控制除总总部外所有商户的URL支付，优先于单独设置。',TH:'ควบคุม URL ชำระเงินของร้านค้าทั้งหมด (ยกเว้น HQ)'};
+  M['모든 조직(총본사 제외)의 업체사용상태를 일괄 제어합니다. 개별 조직 설정보다 우선합니다. 사용·미사용·일시중지는 원래 미사용이던 조직에도 적용됩니다. 가맹·조직 DB 값은 바꾸지 않으며, 중지해제 시 각 조직의 원래 사용/미사용으로 돌아갑니다.']={EN:'Bulk-control company use for all orgs (except HQ). Overrides individual settings. Use / Not use / Temporary suspend apply even to orgs that were unused. DB values are not rewritten; Release restores each org original use/unused.',JP:'総本部を除く全組織の使用状態を一括制御。個別設定より優先。使用・未使用・一時停止は元々未使用の組織にも適用。DB値は変更せず、停止解除で各組織の元の使用/未使用に戻ります。',CH:'批量控制除总总部外所有组织的使用状态，优先于单独设置。使用/未使用/临时暂停也适用于原本未使用的组织。不改写数据库值；解除暂停后恢复各组织原有使用/未使用。',TH:'ควบคุมสถานะใช้งานองค์กรทั้งหมด (ยกเว้น HQ) แทนการตั้งค่าแต่ละราย ใช้/ไม่ใช้/ระงับชั่วคราวใช้กับที่เดิมไม่ได้ใช้ด้วย ไม่แก้ค่าในฐานข้อมูล เมื่อยกเลิกระงับจะกลับสู่ใช้/ไม่ใช้เดิมของแต่ละราย'};
+  M['모든 가맹점(총본사 제외)의 URL 결제 사용 여부를 일괄 제어합니다. 개별 가맹 설정보다 우선합니다. 사용·미사용·일시중지는 원래 미사용이던 가맹에도 적용됩니다. 가맹 DB(웹결제) 값은 바꾸지 않으며, 중지해제 시 각 가맹의 원래 사용/미사용으로 돌아갑니다.']={EN:'Bulk-control URL payment for all merchants (except HQ). Overrides individual settings. Use / Not use / Temporary suspend apply even to merchants that were unused. Merchant web-payment DB is not rewritten; Release restores each merchant original use/unused.',JP:'総本部を除く全加盟店のURL決済を一括制御。個別設定より優先。使用・未使用・一時停止は元々未使用の加盟にも適用。加盟DBは変更せず、停止解除で各加盟の元の使用/未使用に戻ります。',CH:'批量控制除总总部外所有商户的URL支付，优先于单独设置。使用/未使用/临时暂停也适用于原本未使用的商户。不改写商户网页支付库值；解除后恢复各商户原有使用/未使用。',TH:'ควบคุม URL ชำระเงินของร้านทั้งหมด (ยกเว้น HQ) แทนการตั้งค่าแต่ละร้าน ใช้/ไม่ใช้/ระงับชั่วคราวใช้กับร้านที่เดิมไม่ใช้ด้วย ไม่แก้ค่า DB ของร้าน เมื่อยกเลิกระงับจะกลับสู่ใช้/ไม่ใช้เดิม'};
   M['로그인 자체를 차단합니다. 본사·총판 등 조직 단계별로 규칙을 등록하면 해당 조직과 하위 조직에 적용됩니다(총본사 제외). 개별 조직 설정보다 우선합니다.']={EN:'Blocks login entirely. Rules by org level (regional HQ, master dist., etc.) apply to that org and its subtree (HQ excluded). Overrides individual settings.',JP:'ログイン自体を遮断します。本社・総販など組織段階別規則は当該組織と下位に適用(総本部除外)。',CH:'直接阻止登录。按组织层级(本部、总代等)登记的规则适用于该组织及下级(总总部除外)。',TH:'บล็อกการล็อกอิน กฎตามระดับองค์กรใช้กับองค์กรและลูก (ยกเว้น HQ)'};
-  M['총본사를 제외한 모든 조직·가맹에 일괄 적용됩니다. 여기서 설정한 값은 개별 업체관리 설정보다 우선합니다. 일시중지는 현재 사용(또는 URL결제 사용) 중인 대상만 일시 중단하며, 원래 미사용이던 대상은 유지됩니다.']={EN:'Applies to all orgs/merchants except HQ. Settings here override company management. Temporary suspend only pauses currently active targets.',JP:'総本部を除く全組織・加盟店に一括適用。ここでの設定は個別管理より優先。',CH:'适用于除总总部外所有组织/商户，优先于单独管理。临时暂停仅针对当前使用中的对象。',TH:'ใช้กับองค์กร/ร้านทั้งหมดยกเว้น HQ มีลำดับเหนือการจัดการแต่ละราย'};
+  M['총본사를 제외한 모든 조직·가맹에 일괄 적용됩니다. 여기서 설정한 값은 개별 업체관리 설정보다 우선합니다. 사용·미사용·일시중지는 원래 미사용이던 대상에도 적용됩니다. 개별 DB 값은 유지되며, 중지해제 시 각 대상의 원래 사용/미사용으로 복귀합니다.']={EN:'Applies to all orgs/merchants except HQ. Settings here override company management. Use / Not use / Temporary suspend apply even to previously unused targets. Individual DB values are kept; Release restores each target original use/unused.',JP:'総本部を除く全組織・加盟に一括適用。ここでの設定は個別管理より優先。使用・未使用・一時停止は元未使用対象にも適用。個別DBは保持し、停止解除で元の使用/未使用に復帰します。',CH:'适用于除总总部外所有组织/商户，优先于单独管理。使用/未使用/临时暂停也适用于原本未使用的对象。保留各对象库值；解除后恢复原有使用/未使用。',TH:'ใช้กับองค์กร/ร้านทั้งหมดยกเว้น HQ มีลำดับเหนือการจัดการแต่ละราย ใช้/ไม่ใช้/ระงับชั่วคราวใช้กับที่เดิมไม่ใช้ด้วย ค่า DB แต่ละรายคงไว้ เมื่อยกเลิกระงับจะกลับสู่ใช้/ไม่ใช้เดิม'};
   M['리스크관리 트리거']={EN:'Risk trigger',JP:'リスク管理トリガー',CH:'风险管理触发',TH:'ทริกเกอร์ความเสี่ยง'};
   M['동일 카드 FAIL·UNPAID 누적 시 JPAY 호출 전 일시 차단합니다. CVV·카드번호 형식 오류는 집계하지 않습니다. 본사정책 따름 시 [본사설정 → 리스크설정]을 사용하며, 별도정책은 본사보다 우선합니다. 미사용 시 해당 가맹의 위험관리를 끕니다.']={EN:'Repeated FAIL/UNPAID on the same card is temporarily blocked before JPAY. CVV and invalid card format are not counted. When following HQ policy, use [HQ settings → Risk settings]; custom policy overrides HQ. Disabled turns off risk management for this merchant.',JP:'同一カードのFAIL・UNPAID累積時、JPAY呼び出し前に一時ブロックします。CVV・カード番号形式エラーは集計しません。本社ポリシーに従う場合は[本社設定 → リスク設定]を使用し、個別ポリシーは本社より優先します。未使用の場合は当該加盟店のリスク管理をオフにします。',CH:'同一卡累计 FAIL/UNPAID 时在调用 JPAY 前临时拦截。CVV 与卡号格式错误不计入。遵循总部政策时使用[总部设置 → 风险设置]；单独政策优先于总部。未使用时关闭该商户风险管理。',TH:'FAIL/UNPAID สะสมบัตรเดียวกันจะถูกบล็อกชั่วคราวก่อน JPAY ไม่นับ CVV/รูปแบบเลขบัตร หากตามนโยบาย HQ ใช้ [ตั้งค่า HQ → ความเสี่ยง] นโยบายแยกมีลำดับเหนือ HQ ไม่ใช้จะปิดการจัดการความเสี่ยงของร้านนี้'};
   M['동일 카드 FAIL·UNPAID 누적 시 JPAY 호출 전 일시 차단합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 아래에서 선택한 차수에서 자동으로 비활성카드(마스킹)에 등록됩니다.']={EN:'Repeated FAIL/UNPAID on the same card is temporarily blocked before JPAY. CVV and invalid card format are not counted; success resets the count. At the selected tier below, the card is auto-registered as an inactive masked card.',JP:'同一カードのFAIL・UNPAID累積時、JPAY呼び出し前に一時ブロックします。CVV・カード番号形式エラーは集計せず、成功決済で回数はリセットされます。下で選択した回数で非活性カード(マスク)に自動登録されます。',CH:'同一卡累计 FAIL/UNPAID 时在调用 JPAY 前临时拦截。CVV 与卡号格式错误不计入，支付成功会重置次数。在下方所选次数自动登记为非活跃卡(掩码)。',TH:'FAIL/UNPAID สะสมบัตรเดียวกันจะถูกบล็อกชั่วคราวก่อน JPAY ไม่นับ CVV/รูปแบบเลขบัตร สำเร็จจะรีเซ็ต ระดับที่เลือกด้านล่างจะลงทะเบียนบัตรปิดใช้แบบมาสก์อัตโนมัติ'};
@@ -3640,7 +3704,9 @@
   M['전산 대상 매핑 (노티생성 자동선택)']={EN:'Ledger target mapping (NOTI auto-suggest)',JP:'全算対象マッピング（ノティ生成自動選択）',CH:'账务目标映射（通知生成自动选择）',TH:'แมปเป้าหมายบัญชี (แนะนำ NOTI อัตโนมัติ)'};
   M['가맹 기준화폐가 JPY이면 JPY 전산 대상 ID, USD이면 USD 전산 대상 ID를 노티생성 화면에 자동 제안합니다. NOTI internal-targets에 등록된 ID를 입력하세요.']={EN:'If the merchant base currency is JPY, the NOTI creation screen auto-suggests the JPY ledger target ID; for USD, the USD ledger target ID. Enter IDs registered in NOTI internal-targets.',JP:'加盟店基準通貨がJPYならJPY全算対象ID、USDならUSD全算対象IDをノティ生成画面に自動提案します。NOTI internal-targetsに登録されたIDを入力してください。',CH:'商户基准货币为 JPY 时自动建议 JPY 账务目标 ID，为 USD 时建议 USD 账务目标 ID。请输入 NOTI internal-targets 中登记的 ID。',TH:'หากสกุลเงินฐานร้านเป็น JPY/USD จะแนะนำ ledger target ID ที่หน้าสร้าง NOTI กรอก ID ที่ลงทะเบียนใน NOTI internal-targets'};
   M['노티웹훅구성 (DEALMAI Partner)']={EN:'Notify webhook config (DEALMAI Partner)',JP:'ノティWebhook構成（DEALMAI Partner）',CH:'通知 Webhook 配置（DEALMAI Partner）',TH:'ตั้งค่า webhook แจ้งเตือน (DEALMAI Partner)'};
-  M['운영관리 노티생성 화면의 DEALMAI Partner 코드 드롭다운에 노출할 목록입니다. 기본값은 아래 「기본 Partner 코드」에 저장합니다.']={EN:'List shown in the DEALMAI Partner code dropdown on Operations → NOTI creation. Default is saved under 「Default Partner code」 below.',JP:'運用管理のノティ生成画面のDEALMAI Partnerコードドロップダウンに表示する一覧です。既定値は下の「既定Partnerコード」に保存します。',CH:'显示在运营管理「通知生成」画面中 DEALMAI Partner 代码下拉列表。默认值保存在下方「默认 Partner 代码」。',TH:'รายการใน dropdown รหัส DEALMAI Partner ที่หน้าสร้าง NOTI ค่าเริ่มต้นบันทึกที่「รหัส Partner เริ่มต้น」ด้านล่าง'};
+  M['운영관리 노티생성 화면의 DEALMAI Partner 코드 드롭다운에 노출할 목록입니다. 「기본 Partner 코드」는 저장 후 잠기며, 변경 시 [수정]→값 입력→[저장]으로만 반영합니다(화면 전체 저장으로 비워지지 않음).']={EN:'List for Operations → NOTI creation DEALMAI Partner dropdown. Default Partner code locks after save; change via Edit → type → Save only (page Save will not clear it).',JP:'運用管理ノティ生成のDEALMAI Partnerドロップダウン一覧。「既定Partnerコード」は保存後ロック。変更は[修正]→入力→[保存]のみ（画面全体保存では空にならない）。',CH:'运营管理「通知生成」DEALMAI Partner 下拉列表。「默认 Partner 代码」保存后锁定；仅通过[修改]→输入→[保存]变更（整页保存不会清空）。',TH:'รายการ dropdown DEALMAI Partner หน้าสร้าง NOTI 「รหัส Partner เริ่มต้น」ล็อกหลังบันทึก เปลี่ยนด้วย แก้ไข→พิมพ์→บันทึก เท่านั้น (บันทึกทั้งหน้าจะไม่ล้าง)'};
+  M['기본 Partner 코드가 저장되었습니다.']={EN:'Default Partner code saved.',JP:'既定Partnerコードを保存しました。',CH:'默认 Partner 代码已保存。',TH:'บันทึกรหัส Partner เริ่มต้นแล้ว'};
+  M['기본 Partner 코드를 비우시겠습니까?']={EN:'Clear the default Partner code?',JP:'既定Partnerコードを空にしますか？',CH:'要清空默认 Partner 代码吗？',TH:'ล้างรหัส Partner เริ่มต้นหรือไม่?'};
   M['노티미들웨어·PG(칠페이 등)가 본 시스템의 노티 수신 URL(<code>/api/open/pg-notify/…</code>)로 전송한 요청을 저장한 로그입니다. 목록의 채널 열은 수신 경로 정보 표시용입니다. 대상코드·채널은 신규 수신 건부터 채워집니다(V72). 노티 대상에 연결 총판이 있으면 동일 MID라도 그 총판 트리 안에서만 분기하며, 총판 기준통화와 본문 통화가 다르면 처리 열에 통화불일치(수신경로)로 격리됩니다. <strong>수신성격</strong>은 NOTI가 요청 시 <code>X-Icopay-Notify-Delivery: LIVE|RETRY</code> 또는 <code>X-Noti-Attempt</code>(1=라이브, 2+=재전송) 헤더를 보낼 때만 구분되며, 없으면 「미표시」입니다. 바인딩·매핑을 고친 뒤 과거 건을 결제내역에 붙이려면 본문 보기 모달에서 <strong>본문을 수정·저장</strong>한 뒤 <strong>결제내역 재반영</strong>을 사용하세요(원문이 잘린 건은 불가). 공통 MID 재처리 시 본문에 <code>icopayCompId=업체코드</code> 를 추가하거나 재반영 업체코드 입력란을 사용하세요. 노티에 고객명·카드번호가 없을 때는 재반영 모달에서 <strong>재반영 고객명</strong>·<strong>재반영 카드번호</strong>를 입력한 뒤 재반영하면 결제내역에 반영됩니다. 노티 재전송으로 성공 처리됐으나 거래일이 재전송일로 잡힌 경우 <strong>재반영 거래일</strong>에 원래 거래일(예: 2026-06-23)을 넣고 재반영하면 <code>paid_at</code> 날짜가 덮어써집니다.']={EN:'Log of requests sent by notify middleware and PSPs (e.g. ChillPay) to this system notify ingress URL (<code>/api/open/pg-notify/…</code>). The Channel column shows the ingress path. Target code and channel populate from new rows (V72). Linked master distributor routes same MID only in that tree; currency mismatch isolates the row. <strong>Delivery kind</strong> is set only when NOTI sends <code>X-Icopay-Notify-Delivery: LIVE|RETRY</code> or <code>X-Noti-Attempt</code> (1=live, 2+=retry); otherwise 「Not shown」. After fixing bindings, <strong>edit and save body</strong> then <strong>Replay to payment list</strong> (truncated bodies cannot). Add <code>icopayCompId=merchant code</code> or use replay merchant code field. Enter <strong>replay customer name</strong> and <strong>replay card number</strong> if missing. Use <strong>replay transaction date</strong> to overwrite <code>paid_at</code> when retry date was stored.',JP:'ノティミドルウェア・PG（チルペイ等）が本システムのノティ受信URL（<code>/api/open/pg-notify/…</code>）へ送信したリクエストのログです。一覧のチャネル列は受信経路表示用です。対象コード・チャネルは新規受信分から埋まります（V72）。ノティ先に紐付け総販がある場合、同一MIDでもその総販ツリー内でのみ振分け、総販基準通貨と本文通貨が異なると処理列に通貨不一致（受信経路）で隔離されます。<strong>受信性質</strong>はNOTIが<code>X-Icopay-Notify-Delivery: LIVE|RETRY</code>または<code>X-Noti-Attempt</code>（1=ライブ、2+=再送）ヘッダを送った場合のみ区別、無ければ「非表示」です。バインディング・マッピング修正後、過去分を決済明細へ紐づけるには本文モーダルで<strong>本文を修正・保存</strong>後<strong>決済明細への再反映</strong>（原文切り詰めは不可）。共通MID再処理は本文に<code>icopayCompId=加盟店コード</code>または再反映加盟店コード欄を使用。顧客名・カード番号が無い場合は再反映モーダルで<strong>再反映顧客名</strong>・<strong>再反映カード番号</strong>を入力。再送成功で取引日が再送日になった場合は<strong>再反映取引日</strong>に元の日付（例: 2026-06-23）を入れると<code>paid_at</code>が上書きされます。',CH:'由通知中间件与 PSP（如 ChillPay）发往本系统通知接入 URL（<code>/api/open/pg-notify/…</code>）并保存的请求日志。渠道列显示接收路径。目标代码与渠道自新接收记录起填充（V72）。关联总代时相同 MID 仅在该树内分流；货币不一致则在处理列隔离。<strong>接收性质</strong>仅在 NOTI 发送相应头时区分，否则「未显示」。修正绑定/映射后，在正文弹窗<strong>修改并保存正文</strong>后使用<strong>重放到支付明细</strong>（截断原文不可用）。可在正文加 <code>icopayCompId=商户代码</code> 或使用再反映商户代码。无客户名/卡号时在再反映弹窗填写<strong>再反映客户名</strong>·<strong>再反映卡号</strong>。若交易日被记为再送日，在<strong>再反映交易日</strong>填入原日期可覆盖 <code>paid_at</code>。',TH:'บันทึกคำขอที่ middleware/PG ส่งมายัง URL รับแจ้งเตือน (<code>/api/open/pg-notify/…</code>) คอลัมน์ช่องทางแสดงเส้นทางรับ รหัสเป้าหมาย/ช่องทางเติมตั้งแต่แถวใหม่ (V72) <strong>ลักษณะการรับ</strong>แยกเมื่อมีหัว X-Icopay-Notify-Delivery หรือ X-Noti-Attempt มิฉะนั้น「ไม่แสดง」 หลังแก้ binding ใช้<strong>แก้ไขและบันทึกเนื้อหา</strong>แล้ว<strong>เล่นกลับไปรายการชำระ</strong> เพิ่ม icopayCompId หรือกรอกรหัสร้านใน再反映 กรอก<strong>ชื่อลูกค้า/หมายเลขบัตร再反映</strong>หากไม่มีในแจ้งเตือน ใส่<strong>วันที่ทำรายการ再反映</strong>เพื่อทับ paid_at'};
   M['총본사가 각 본사(REGIONAL) 트리마다, 조직 유형·화면별로 VIEW SETTING에서 노출·선택 가능한 열을 지정합니다. 본사·총판·지사·대리점·영업점(동일 설정)·가맹점 네 가지로 나누어 저장합니다. 지사·대리점·영업점과 가맹점에 별도 저장이 없으면 해당 화면의 총판 설정을 그대로 따릅니다. <strong>결제관리</strong>(결제내역·분류 화면·URL/챗봇·상계 및 <strong>통합내역</strong>)과 <strong>정산관리</strong>의 <strong>통합정산</strong>은 화면·조직 유형을 바꿀 때 <strong>기본 체크안</strong>이 자동 적용되며(본사=전체 허용, 총판·지사·가맹 순으로 축소), 체크되지 않은 열은 목록에서 제거되지 않고 꺼진 상태로 둡니다. 서버에 이미 저장된 정책이 있으면 [불러오기]·정책 행 클릭 시 그대로 불러옵니다. 고정 열(번호·업체명·거래일·승인번호·TransactionId 등)은 항상 표시되며 여기 목록에 나오지 않습니다. 루트(Route)는 VIEW SETTING·조직항목설정에서 켜고 끌 수 있습니다. [불러오기]는 현재 선택한 본사·조직 유형·화면에 대해 서버에 저장된 체크 상태를 가져와 반영합니다. 아래 [추가 VIEW 항목]은 화면마다 다르게 본사 전용 열을 등록합니다. 등록된 항목은 해당 화면의 VIEW SETTING에 나타나며, 기본 체크안에 포함된 경우에만 조직 설정에서 자동 체크됩니다.']={EN:'Root HQ defines per regional HQ tree which columns can appear in VIEW SETTING for each org type and screen (regional HQ, master distributor, branch/agency/sales office shared, merchant). Without a saved row, branch group or merchant follows the master-distributor policy. <strong>Payment management</strong> and <strong>Settlement → integrated settlement</strong> apply a <strong>default checked set</strong> when screen/org type changes (HQ=all; progressively narrower). Unchecked columns stay off but remain listed. Fixed columns always show and are not listed here. <strong>Route</strong> can be toggled in VIEW SETTING and org columns. [Load] fetches saved checks. [Add VIEW item] registers HQ-only columns per screen.',JP:'総本部は各本社（REGIONAL）ツリーごとに、組織区分・画面別にVIEW SETTINGで表示・選択できる列を指定します。本社・総代理・支社・代理店・営業店（同一設定）・加盟店の4区分で保存します。別途保存がない場合は総代理設定に従います。<strong>決済管理</strong>と<strong>精算管理</strong>の<strong>統合精算</strong>は画面・組織区分変更時に<strong>既定チェック案</strong>を自動適用します（本社=全許可、順に絞込）。未チェック列は消えずオフのままです。固定列は常時表示でここには出ません。<strong>ルート(Route)</strong>はVIEW SETTING・組織項目設定で切替可能です。［読み込み］で保存状態を反映。［追加VIEW項目］で本社専用列を登録します。',CH:'总本部按各分公司树为每种组织类型与画面指定 VIEW SETTING 可显示/勾选的列。分为本社、总代、支社·代理店·营业点（同配置）、加盟店四类保存。无单独保存则沿用总代设置。<strong>支付管理</strong>与<strong>结算管理→整合结算</strong>在切换画面/组织类型时自动套用<strong>默认勾选方案</strong>。未勾选列不删除仅关闭。固定列始终显示。可在 VIEW SETTING·组织字段设置开关<strong>路由(Route)</strong>。［加载］取回保存状态。［添加 VIEW 项］登记本社专用列。',TH:'สำนักใหญ่กำหนดคอลัมน์ VIEW SETTING ต่อต้นไม้สำนักงานใหญ่และประเภทองค์กร แบ่งบันทึก 4 ประเภท หากไม่มีแยกจะตามตัวแทนหลัก <strong>การจัดการชำระ</strong>และ<strong>ชำระรวม</strong>ใช้<strong>ชุดติ๊กเริ่มต้น</strong>เมื่อเปลี่ยนหน้า/ประเภท คอลัมน์คงที่แสดงเสมอ สลับ<strong>Route</strong>ได้ใน VIEW SETTING'};
   M['조직 구분(총본사~가맹점)별로 메뉴(URL) 접근 권한을 설정합니다. <strong>총본사</strong>는 DB에 별도 저장이 없을 때 기본으로 <strong>모든 메뉴 전체 권한(삭제·전체)</strong>입니다. 각 대메뉴(본사설정·업체관리·배포설정 등) 구역 제목 오른쪽 <strong>간편</strong>에서 권한을 고르면 그 구역의 하위 메뉴가 한 번에 동일하게 맞춰집니다. <strong>옵저버(조회만)</strong>·<strong>수정(삭제제한)</strong>은 헬로(안내·VIEW SETTING) 없이, <strong>옵저버(헬로)</strong>·<strong>수정(헬로)</strong>·<strong>삭제(전체)</strong>는 헬로를 사용할 수 있습니다. <strong>접근불가</strong>는 메뉴에서 숨깁니다. <strong>업체접근설정</strong>에 등록된 업체와 교집합으로 사용자관리 목록이 제한됩니다. 아래 <strong>담당자 권한그룹별 메뉴</strong>는 조직 최종 권한(상단 개별 조직 권한) 이내에서 관리/운영/정산/기술 담당 계정(ASSISTANT)의 메뉴를 한 단계 더 조입니다.']={EN:'Set menu (URL) access by organization type (head office through merchant). <strong>Root HQ</strong> defaults to <strong>full access (delete/all)</strong> when nothing is stored. Use <strong>Quick</strong> on each top section to apply the same permission to all child menus. <strong>Observer (view only)</strong> and <strong>Edit (delete limited)</strong> exclude Hello (guides/VIEW SETTING); <strong>Observer (Hello)</strong>, <strong>Edit (Hello)</strong>, and <strong>Delete (full)</strong> may use Hello. <strong>No access</strong> hides menus. User lists intersect with <strong>Company access settings</strong>. <strong>Assistant role menus</strong> below further narrow ASSISTANT accounts within the org ceiling.',JP:'組織区分（総本社〜加盟店）ごとにメニュー（URL）アクセス権を設定します。<strong>総本部</strong>はDB未保存時、既定で<strong>全メニュー全権限（削除・全体）</strong>です。各大メニュー見出し右の<strong>一括</strong>で配下メニューに同一権限を適用します。<strong>オブザーバー（閲覧のみ）</strong>・<strong>修正（削除制限）</strong>はヘロ（案内・VIEW SETTING）なし、<strong>オブザーバー（ヘロ）</strong>・<strong>修正（ヘロ）</strong>・<strong>削除（全体）</strong>はヘロ利用可。<strong>アクセス不可</strong>は非表示。<strong>加盟店アクセス設定</strong>との積集合でユーザー管理を絞り込みます。下の<strong>担当者権限グループ別メニュー</strong>は組織最終権限内でASSISTANT向けメニューを調整します。',CH:'按组织类型（总本部～商户）设置菜单(URL)访问权限。<strong>总本部</strong>无 DB 记录时默认<strong>全部菜单完整权限（删除/全部）</strong>。各大区标题右侧<strong>快捷</strong>可批量应用到子菜单。<strong>观察者（仅查看）</strong>与<strong>修改（限制删除）</strong>不含 Hello；<strong>观察者（Hello）</strong>等可使用 Hello。<strong>不可访问</strong>隐藏菜单。用户列表与<strong>商户访问设置</strong>取交集。下方<strong>担当权限组菜单</strong>在组织权限上限内进一步约束 ASSISTANT。',TH:'กำหนดสิทธิ์เมนู(URL) ตามประเภทองค์กร <strong>สำนักใหญ่สุด</strong> ค่าเริ่มต้น<strong>สิทธิ์เต็มทุกเมนู</strong> ใช้<strong>ทางลัด</strong>ที่หัวข้อเพื่อใส่สิทธิ์เดียวกันให้เมนูย่อย <strong>Observer (ดูอย่างเดียว)</strong>/<strong>แก้ไข (จำกัดลบ)</strong> ไม่มี Hello <strong>ไม่มีสิทธิ์</strong>ซ่อนเมนู ตัดกับ<strong>ตั้งค่าการเข้าถึงร้าน</strong> <strong>เมนูตามกลุ่มสิทธิ์ผู้ช่วย</strong>จำกัด ASSISTANT'};

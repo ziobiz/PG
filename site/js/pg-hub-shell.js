@@ -67,30 +67,17 @@
         + '>' + escHtml(label) + '</button></li>';
     });
 
-    var helpHtml = '';
-    if (hub.helpPanels && hub.helpPanels.length) {
-      helpHtml = '<aside class="pg-hub-help col-lg-4 border-start ps-3">'
-        + '<div class="fw-semibold mb-2" data-pg-ui-t="출시 가이드">' + escHtml(uiT('출시 가이드')) + '</div>'
-        + '<div class="list-group list-group-flush small pg-hub-help-list">';
-      hub.helpPanels.forEach(function (p) {
-        helpHtml += '<button type="button" class="list-group-item list-group-item-action py-2 pg-hub-help-btn"'
-          + ' data-pg-help-panel="' + escHtml(p.panel) + '" data-pg-help-url="' + escHtml(p.deployUrl) + '">'
-          + escHtml(uiT(p.label)) + '</button>';
-      });
-      helpHtml += '</div><div class="pg-hub-help-body mt-2 small text-muted" id="pgHubHelpBody_' + escHtml(tabId) + '"></div></aside>';
-    }
-
-    var bodyClass = hub.helpPanels ? 'row g-0' : '';
+    /* 우측 helpPanels 사이드바는 제거 — 출시 가이드는 전폭 탭으로만 제공 */
     return '<div class="content pg-hub-shell" id="screenContent_' + escHtml(tabId) + '" data-pg-hub-url="' + escHtml(hub.hubUrl) + '">'
       + '<div class="card mb-0"><div class="card-body pb-2">'
       + '<div class="text-muted small mb-2" data-pg-ui-t="탭을 전환해도 동일 허브 안에서 설정합니다.">'
       + escHtml(uiT('탭을 전환해도 동일 허브 안에서 설정합니다.')) + '</div>'
       + '<ul class="nav nav-tabs pg-hub-tabs" role="tablist">' + navHtml + '</ul>'
       + '</div>'
-      + '<div class="card-body pt-3 ' + bodyClass + '">'
-      + '<div class="' + (hub.helpPanels ? 'col-lg-8 pe-lg-3' : 'col-12') + ' pg-hub-panel-wrap">'
+      + '<div class="card-body pt-3">'
+      + '<div class="pg-hub-panel-wrap w-100">'
       + '<div class="pg-hub-panel" id="pgHubPanel_' + escHtml(tabId) + '"></div>'
-      + '</div>' + helpHtml
+      + '</div>'
       + '</div></div></div>';
   }
 
@@ -110,12 +97,13 @@
       '/hq/serverManage': ['_hqSrvPaneChangeBound', '_hqUsageGrainBound'],
       '/hq/merchantApiGenerate': ['_merchantApiDeployKitBound'],
       '/hq/merchantApiDeployDocs': ['_merchantApiDeployDocsBound'],
-      '/hq/apiMerchantDeployReg': ['_apiMerchRegBound']
+      '/hq/apiMerchantDeployReg': ['_apiMerchRegBound'],
+      '/deploy/launchGuide': ['_launchGuideBound']
     };
     (resets[leafUrl] || []).forEach(function (f) { pane[f] = false; });
   }
 
-  function loadLeafIntoHub(hubPane, leafUrl, innerTabId) {
+  function loadLeafIntoHub(hubPane, leafUrl, innerTabId, preferPanel) {
     if (!hubPane || !leafUrl) return;
     var panel = hubPane.querySelector('.pg-hub-panel');
     if (!panel) return;
@@ -125,6 +113,9 @@
     inner.className = 'pg-hub-leaf-pane';
     inner.setAttribute('data-pg-hub-leaf-url', leafUrl);
     inner.setAttribute('formurl', leafUrl);
+    if (preferPanel) {
+      inner.setAttribute('data-pg-guide-panel-pref', preferPanel);
+    }
     panel.appendChild(inner);
     if (global.PG_SCREENS && typeof global.PG_SCREENS.getScreenHtml === 'function') {
       inner.innerHTML = global.PG_SCREENS.getScreenHtml(leafUrl, innerTabId);
@@ -144,26 +135,14 @@
     }
   }
 
-  function loadDeployHelp(panelBody, deployUrl) {
-    if (!panelBody || !deployUrl) return;
-    if (global.PG_SCREENS && typeof global.PG_SCREENS.getScreenHtml === 'function') {
-      panelBody.innerHTML = global.PG_SCREENS.getScreenHtml(deployUrl, 'hub_help');
-      if (global.PG_UI_I18N && typeof global.PG_UI_I18N.applyDom === 'function') {
-        try { global.PG_UI_I18N.applyDom(panelBody); } catch (eH) { /* ignore */ }
-      }
-      if (typeof global.bindScreenEvents === 'function') {
-        try { global.bindScreenEvents(panelBody, 'hub_help'); } catch (eHb) { /* ignore */ }
-      }
-    }
-  }
-
   function bindHubShell(pane, tabId, hubUrl) {
     if (!pane) return;
     var hub = hubConfig(hubUrl);
     if (!hub) return;
+    var qInit = layoutB.parseHubQuery(hubUrl || '');
     var first = firstAllowedTab(hub, hubUrl);
     if (first) {
-      loadLeafIntoHub(pane, first.url, tabId + '_leaf');
+      loadLeafIntoHub(pane, first.url, tabId + '_leaf', qInit.panel || '');
     } else {
       var panel = pane.querySelector('.pg-hub-panel');
       if (panel) {
@@ -174,40 +153,19 @@
     if (pane._pgHubShellBound) return;
     pane._pgHubShellBound = true;
 
-    var qInit = layoutB.parseHubQuery(hubUrl || '');
-    if (qInit.panel && hub.helpPanels) {
-      global.requestAnimationFrame(function () {
-        var helpBtn = pane.querySelector('[data-pg-help-panel="' + qInit.panel + '"]');
-        if (helpBtn) helpBtn.click();
-      });
-    }
-
     pane.addEventListener('click', function (ev) {
       var tabBtn = ev.target && ev.target.closest ? ev.target.closest('[data-pg-hub-tab]') : null;
       if (tabBtn) {
         ev.preventDefault();
         var leaf = tabBtn.getAttribute('data-pg-hub-leaf') || '';
-        if (tabBtn.getAttribute('data-pg-hub-external') === '1') {
-          var extLeaf = tabBtn.getAttribute('data-pg-hub-leaf') || '';
-          if (extLeaf) {
-            pane.querySelectorAll('.pg-hub-tabs .nav-link').forEach(function (b) { b.classList.remove('active'); });
-            tabBtn.classList.add('active');
-            loadLeafIntoHub(pane, extLeaf, tabId + '_leaf_' + (tabBtn.getAttribute('data-pg-hub-tab') || ''));
-          }
-          return;
-        }
+        var stepKey = tabBtn.getAttribute('data-pg-hub-tab') || '';
         pane.querySelectorAll('.pg-hub-tabs .nav-link').forEach(function (b) { b.classList.remove('active'); });
         tabBtn.classList.add('active');
-        loadLeafIntoHub(pane, leaf, tabId + '_leaf_' + (tabBtn.getAttribute('data-pg-hub-tab') || ''));
-        return;
-      }
-      var helpBtn = ev.target && ev.target.closest ? ev.target.closest('.pg-hub-help-btn') : null;
-      if (helpBtn) {
-        ev.preventDefault();
-        pane.querySelectorAll('.pg-hub-help-btn').forEach(function (b) { b.classList.remove('active'); });
-        helpBtn.classList.add('active');
-        var helpBody = pane.querySelector('[id^="pgHubHelpBody_"]');
-        loadDeployHelp(helpBody, helpBtn.getAttribute('data-pg-help-url') || '');
+        var pref = '';
+        if (stepKey === 'guide' && hub.guidePanels && hub.guidePanels.length) {
+          pref = hub.guidePanels[0].panel;
+        }
+        loadLeafIntoHub(pane, leaf, tabId + '_leaf_' + stepKey, pref);
       }
     });
   }

@@ -21,6 +21,7 @@ import com.pg.service.HqNotifyTargetService;
 import com.pg.service.HqNotiWebhookPartnerService;
 import com.pg.service.OrgAccessService;
 import com.pg.service.OrgPagePermissionService;
+import com.pg.service.MerchantJpayNotifyUrlSyncService;
 import com.pg.util.PagePermissionCodes;
 import com.pg.util.SupervisorAssistantConstants;
 import org.springframework.data.domain.Page;
@@ -69,6 +70,7 @@ public class OpsNotiProvisionService {
     private final MerchantProfileRepository merchantProfileRepository;
     private final MerchantNotifyUrlRepository merchantNotifyUrlRepository;
     private final NotiProvisionLogRepository notiProvisionLogRepository;
+    private final MerchantJpayNotifyUrlSyncService merchantJpayNotifyUrlSyncService;
     private final AuthService authService;
     private final OrgPagePermissionService orgPagePermissionService;
     private final OrgAccessService orgAccessService;
@@ -89,6 +91,7 @@ public class OpsNotiProvisionService {
                                    MerchantProfileRepository merchantProfileRepository,
                                    MerchantNotifyUrlRepository merchantNotifyUrlRepository,
                                    NotiProvisionLogRepository notiProvisionLogRepository,
+                                   MerchantJpayNotifyUrlSyncService merchantJpayNotifyUrlSyncService,
                                    AuthService authService,
                                    OrgPagePermissionService orgPagePermissionService,
                                    OrgAccessService orgAccessService) {
@@ -101,6 +104,7 @@ public class OpsNotiProvisionService {
         this.merchantProfileRepository = merchantProfileRepository;
         this.merchantNotifyUrlRepository = merchantNotifyUrlRepository;
         this.notiProvisionLogRepository = notiProvisionLogRepository;
+        this.merchantJpayNotifyUrlSyncService = merchantJpayNotifyUrlSyncService;
         this.authService = authService;
         this.orgPagePermissionService = orgPagePermissionService;
         this.orgAccessService = orgAccessService;
@@ -416,9 +420,10 @@ public class OpsNotiProvisionService {
             merchantId = merchant.getCode();
         }
 
-        boolean enableRelay = !"N".equalsIgnoreCase(str(body, "enableRelayYn"));
-        boolean enableInternal = "Y".equalsIgnoreCase(str(body, "enableInternalYn"));
-        boolean enableDevInternal = !"N".equalsIgnoreCase(str(body, "enableDevInternalYn"));
+        boolean urlIntegrationMode = isUrlIntegrationMode(body);
+        boolean enableRelay = urlIntegrationMode ? false : !"N".equalsIgnoreCase(str(body, "enableRelayYn"));
+        boolean enableInternal = urlIntegrationMode ? false : "Y".equalsIgnoreCase(str(body, "enableInternalYn"));
+        boolean enableDevInternal = urlIntegrationMode || !"N".equalsIgnoreCase(str(body, "enableDevInternalYn"));
         boolean slotAuto = "Y".equalsIgnoreCase(str(body, "slotAutoYn"));
         String adminLang = str(body, "adminLang");
         String acceptLang = NotiProvisionClient.acceptLanguageFromAdminLang(adminLang);
@@ -437,11 +442,23 @@ public class OpsNotiProvisionService {
             throw new IllegalArgumentException("전산 노티 사용 시 NOTI 전산 대상 ID를 선택하세요.");
         }
 
-        String callbackUrl = str(body, "callbackUrl");
-        String resultUrl = str(body, "resultUrl");
+        String callbackUrl = urlIntegrationMode ? "" : str(body, "callbackUrl");
+        String resultUrl = urlIntegrationMode ? "" : str(body, "resultUrl");
         MasterDistNotifyCtx mdCtx = resolveMasterDistNotifyContext(merchant.getId());
+        String relayOffDevCallbackUrl = "";
+        String relayOffDevResultUrl = "";
 
-        if (enableRelay) {
+        if (urlIntegrationMode) {
+            /* URL 방식: 가맹점 callback/result 비움 + 대체송부=개발(가공) + 개발노티 전용사용 */
+            callbackUrl = "";
+            resultUrl = "";
+            relayOffDevCallbackUrl = nz(mdCtx.callbackUrl());
+            relayOffDevResultUrl = nz(mdCtx.resultUrl());
+            if (relayOffDevCallbackUrl.isEmpty() || relayOffDevResultUrl.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "URL 방식은 총판의 본사 노티 대상(개발 CALLBACK·RESULT) 연결이 필요합니다. 본사설정 → 노티구성설정에서 총판 노티를 생성·연결하세요.");
+            }
+        } else if (enableRelay) {
             if (callbackUrl.isEmpty()) {
                 callbackUrl = findNotifyUrl(merchant.getId(), "BACKGROUND");
             }
@@ -455,7 +472,8 @@ public class OpsNotiProvisionService {
             callbackUrl = nz(mdCtx.callbackUrl());
             resultUrl = nz(mdCtx.resultUrl());
             if (callbackUrl.isEmpty() || resultUrl.isEmpty()) {
-                throw new IllegalArgumentException("개발 노티 사용 시 총판의 본사 노티 대상(CALLBACK·RESULT) 연결이 필요합니다. 본사설정 → 노티구성설정에서 총판 노티를 생성·연결하세요.");
+                throw new IllegalArgumentException(
+                        "개발 노티 사용 시 총판의 본사 노티 대상(CALLBACK·RESULT) 연결이 필요합니다. 본사설정 → 노티구성설정에서 총판 노티를 생성·연결하세요.");
             }
         } else {
             callbackUrl = "";
@@ -468,9 +486,19 @@ public class OpsNotiProvisionService {
         options.put("enableDevInternal", enableDevInternal);
         options.put("relayFormat", mapRelayFormat(str(body, "relayFormat")));
         options.put("relayMode", mapRelayMode(str(body, "relayMode")));
-        options.put("resultDeliveryMode", mapResultDeliveryMode(str(body, "resultDeliveryMode")));
+        options.put("resultDeliveryMode", mapResultDeliveryMode(
+                urlIntegrationMode ? "AUTO" : str(body, "resultDeliveryMode")));
+        if (urlIntegrationMode) {
+            options.put("relayOffForwardTarget", "dev_internal");
+            options.put("relayOffDevCallbackUrl", relayOffDevCallbackUrl);
+            options.put("relayOffDevResultUrl", relayOffDevResultUrl);
+            options.put("relayOffDevDedicatedUse", true);
+        }
         String dealmai = resolveDealmaiPartner(cfg, str(body, "dealmaiPartnerCode"));
-        boolean enableDealmaiWebhook = !"N".equalsIgnoreCase(str(body, "enableDealmaiWebhookYn"));
+        /* URL 방식: Partner 코드가 있으면 DEALMAI 웹훅 강제 ON */
+        boolean enableDealmaiWebhook = urlIntegrationMode
+                ? !dealmai.isEmpty()
+                : !"N".equalsIgnoreCase(str(body, "enableDealmaiWebhookYn"));
         if (!dealmai.isEmpty() && enableDealmaiWebhook) {
             options.put("enableDealmaiWebhook", true);
             options.put("dealmaiPartnerCode", dealmai);
@@ -487,6 +515,12 @@ public class OpsNotiProvisionService {
                 req.put("enableDealmaiWebhook", true);
             }
         }
+        if (urlIntegrationMode) {
+            req.put("relayOffForwardTarget", "dev_internal");
+            req.put("relayOffDevCallbackUrl", relayOffDevCallbackUrl);
+            req.put("relayOffDevResultUrl", relayOffDevResultUrl);
+            req.put("relayOffDevDedicatedUse", true);
+        }
         if (!internalTargetId.isEmpty()) {
             req.put("internalTargetId", internalTargetId);
         }
@@ -498,19 +532,22 @@ public class OpsNotiProvisionService {
             req.put("jpaySlotNo", jpaySlotNo);
             req.put("routeNo", "j" + jpaySlotNo);
         }
-        if (!callbackUrl.isEmpty()) {
-            req.put("callbackUrl", callbackUrl);
-        }
-        if (!resultUrl.isEmpty()) {
-            req.put("resultUrl", resultUrl);
+        /* URL 방식은 가맹점 URL 필드를 명시적으로 비움 */
+        if (urlIntegrationMode) {
+            req.put("callbackUrl", "");
+            req.put("resultUrl", "");
+        } else {
+            if (!callbackUrl.isEmpty()) {
+                req.put("callbackUrl", callbackUrl);
+            }
+            if (!resultUrl.isEmpty()) {
+                req.put("resultUrl", resultUrl);
+            }
         }
         req.put("options", options);
-        Map<String, Object> icopayMeta = new LinkedHashMap<>();
-        icopayMeta.put("compId", merchant.getCode());
-        icopayMeta.put("orgUnitId", merchant.getId());
-        if (user != null && user.getUsername() != null) {
-            icopayMeta.put("provisionedBy", user.getUsername());
-        }
+        Map<String, Object> icopayMeta = buildIcopayProvisionMeta(
+                merchant, urlIntegrationMode ? "URL" : "API",
+                user != null ? user.getUsername() : null);
         req.put("icopayMeta", icopayMeta);
 
         Map<String, Object> data = notiProvisionClient.provision(
@@ -519,12 +556,14 @@ public class OpsNotiProvisionService {
                 req,
                 NotiProvisionClient.acceptLanguageFromAdminLang(str(body, "adminLang")));
 
-        String jpayNotify = firstNonBlank(data, "icopayJpayNotifyUrl", "pgCallbackUrl");
-        String jpayCallback = firstNonBlank(data, "icopayJpayCallbackUrl", "pgResultUrl");
+        String[] jpayUrls = resolveProvisionedJpayUrls(data, cfg, jpaySlotNo);
+        String jpayNotify = jpayUrls[0];
+        String jpayCallback = jpayUrls[1];
         if (!jpayNotify.isEmpty() || !jpayCallback.isEmpty()) {
-            upsertJpayUrls(merchant.getId(), jpayNotify, jpayCallback);
+            merchantJpayNotifyUrlSyncService.persist(merchant.getId(), jpayNotify, jpayCallback);
         }
-        saveProvisionLog(merchant, merchantId, baseCurrency, internalTargetId, dealmai, data, jpayNotify, jpayCallback, user);
+        saveProvisionLog(merchant, merchantId, baseCurrency, internalTargetId, dealmai, data, jpayNotify, jpayCallback, user,
+                urlIntegrationMode ? "URL" : "API");
         markProvisionOtpPassed(username);
 
         Map<String, Object> out = new LinkedHashMap<>();
@@ -611,13 +650,25 @@ public class OpsNotiProvisionService {
             throw new IllegalArgumentException("등록되지 않은 NOTI 전산 대상 ID입니다: " + rawInternal);
         }
 
-        boolean enableRelay = !"N".equalsIgnoreCase(str(body, "enableRelayYn"));
-        boolean enableInternal = "Y".equalsIgnoreCase(str(body, "enableInternalYn"));
-        boolean enableDevInternal = !"N".equalsIgnoreCase(str(body, "enableDevInternalYn"));
-        String callbackUrl = str(body, "callbackUrl");
-        String resultUrl = str(body, "resultUrl");
+        boolean urlIntegrationMode = isUrlIntegrationMode(body);
+        boolean enableRelay = urlIntegrationMode ? false : !"N".equalsIgnoreCase(str(body, "enableRelayYn"));
+        boolean enableInternal = urlIntegrationMode ? false : "Y".equalsIgnoreCase(str(body, "enableInternalYn"));
+        boolean enableDevInternal = urlIntegrationMode || !"N".equalsIgnoreCase(str(body, "enableDevInternalYn"));
+        String callbackUrl = urlIntegrationMode ? "" : str(body, "callbackUrl");
+        String resultUrl = urlIntegrationMode ? "" : str(body, "resultUrl");
         MasterDistNotifyCtx mdCtx = resolveMasterDistNotifyContext(merchant.getId());
-        if (enableRelay) {
+        String relayOffDevCallbackUrl = "";
+        String relayOffDevResultUrl = "";
+        if (urlIntegrationMode) {
+            callbackUrl = "";
+            resultUrl = "";
+            relayOffDevCallbackUrl = nz(mdCtx.callbackUrl());
+            relayOffDevResultUrl = nz(mdCtx.resultUrl());
+            if (relayOffDevCallbackUrl.isEmpty() || relayOffDevResultUrl.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "URL 방식은 총판의 본사 노티 대상(개발 CALLBACK·RESULT) 연결이 필요합니다. 본사설정 → 노티구성설정에서 총판 노티를 생성·연결하세요.");
+            }
+        } else if (enableRelay) {
             if (callbackUrl.isEmpty()) {
                 callbackUrl = findNotifyUrl(merchant.getId(), "BACKGROUND");
             }
@@ -627,6 +678,10 @@ public class OpsNotiProvisionService {
         } else if (enableDevInternal) {
             callbackUrl = nz(mdCtx.callbackUrl());
             resultUrl = nz(mdCtx.resultUrl());
+            if (urlIntegrationMode && (callbackUrl.isEmpty() || resultUrl.isEmpty())) {
+                throw new IllegalArgumentException(
+                        "URL 방식은 총판의 본사 노티 대상(개발 CALLBACK·RESULT) 연결이 필요합니다. 본사설정 → 노티구성설정에서 총판 노티를 생성·연결하세요.");
+            }
         }
 
         Map<String, Object> options = new LinkedHashMap<>();
@@ -635,9 +690,18 @@ public class OpsNotiProvisionService {
         options.put("enableDevInternal", enableDevInternal);
         options.put("relayFormat", mapRelayFormat(str(body, "relayFormat")));
         options.put("relayMode", mapRelayMode(str(body, "relayMode")));
-        options.put("resultDeliveryMode", mapResultDeliveryMode(str(body, "resultDeliveryMode")));
+        options.put("resultDeliveryMode", mapResultDeliveryMode(
+                urlIntegrationMode ? "AUTO" : str(body, "resultDeliveryMode")));
+        if (urlIntegrationMode) {
+            options.put("relayOffForwardTarget", "dev_internal");
+            options.put("relayOffDevCallbackUrl", relayOffDevCallbackUrl);
+            options.put("relayOffDevResultUrl", relayOffDevResultUrl);
+            options.put("relayOffDevDedicatedUse", true);
+        }
         String dealmai = resolveDealmaiPartner(cfg, str(body, "dealmaiPartnerCode"));
-        boolean enableDealmaiWebhook = !"N".equalsIgnoreCase(str(body, "enableDealmaiWebhookYn"));
+        boolean enableDealmaiWebhook = urlIntegrationMode
+                ? !dealmai.isEmpty()
+                : !"N".equalsIgnoreCase(str(body, "enableDealmaiWebhookYn"));
         if (!dealmai.isEmpty() && enableDealmaiWebhook) {
             options.put("enableDealmaiWebhook", true);
             options.put("dealmaiPartnerCode", dealmai);
@@ -645,47 +709,31 @@ public class OpsNotiProvisionService {
             options.put("dealmaiPartnerCode", dealmai);
         }
 
-        Map<String, Object> req = new LinkedHashMap<>();
-        req.put("pgKind", "jpay");
-        if (!internalTargetId.isEmpty()) {
-            req.put("internalTargetId", internalTargetId);
+        Map<String, Object> fallbackReq = buildProvisionFallbackReq(
+                merchant, merchantId, log, internalTargetId, callbackUrl, resultUrl, options, dealmai, enableDealmaiWebhook);
+        if (urlIntegrationMode) {
+            fallbackReq.put("callbackUrl", "");
+            fallbackReq.put("resultUrl", "");
+            fallbackReq.put("relayOffForwardTarget", "dev_internal");
+            fallbackReq.put("relayOffDevCallbackUrl", relayOffDevCallbackUrl);
+            fallbackReq.put("relayOffDevResultUrl", relayOffDevResultUrl);
+            fallbackReq.put("relayOffDevDedicatedUse", true);
         }
-        if (!callbackUrl.isEmpty()) {
-            req.put("callbackUrl", callbackUrl);
-        }
-        if (!resultUrl.isEmpty()) {
-            req.put("resultUrl", resultUrl);
-        }
-        req.put("options", options);
-        if (!dealmai.isEmpty()) {
-            req.put("dealmaiPartnerCode", dealmai);
-            if (enableDealmaiWebhook) {
-                req.put("enableDealmaiWebhook", true);
-            }
-        }
+        fallbackReq.put("icopayMeta", buildIcopayProvisionMeta(
+                merchant, urlIntegrationMode ? "URL" : "API", resolveUsername(authentication)));
 
-        Map<String, Object> data;
-        try {
-            data = notiProvisionClient.updateMerchant(
-                    cfg.getNotiProvisionBaseUrl(),
-                    cfg.getNotiProvisionApiKey(),
-                    merchantId,
-                    req,
-                    acceptLang);
-        } catch (NotiProvisionException e) {
-            if ("NOTI_HTTP".equalsIgnoreCase(e.getErrorCode()) && e.getHttpStatus() == 404) {
-                data = notiProvisionClient.provision(
-                        cfg.getNotiProvisionBaseUrl(),
-                        cfg.getNotiProvisionApiKey(),
-                        buildProvisionFallbackReq(merchant, merchantId, log, internalTargetId, callbackUrl, resultUrl, options, dealmai, enableDealmaiWebhook),
-                        acceptLang);
-            } else {
-                throw e;
-            }
-        }
+        // ICOPAY에서 생성한 이력은 ICOPAY에서 수정해야 NOTI와 양방향이 유지된다.
+        // 1) PUT(미들웨어 UI와 동일) → 2) 실패/미지원/설정충돌 시 동일 슬롯 강제 교체 → 3) 잔존 시 PUT 재시도
+        Map<String, Object> data = upsertMerchantKeepingSlot(
+                cfg, merchantId, fallbackReq, acceptLang);
 
-        String jpayNotify = firstNonBlank(data, "icopayJpayNotifyUrl", "pgCallbackUrl");
-        String jpayCallback = firstNonBlank(data, "icopayJpayCallbackUrl", "pgResultUrl");
+        Integer updateSlot = extractSlotNo(data);
+        if (updateSlot == null) {
+            updateSlot = log.getSlotNo();
+        }
+        String[] jpayUrls = resolveProvisionedJpayUrls(data, cfg, updateSlot);
+        String jpayNotify = jpayUrls[0];
+        String jpayCallback = jpayUrls[1];
         if (jpayNotify.isEmpty() && log.getJpayNotifyUrl() != null) {
             jpayNotify = log.getJpayNotifyUrl().trim();
         }
@@ -693,9 +741,10 @@ public class OpsNotiProvisionService {
             jpayCallback = log.getJpayCallbackUrl().trim();
         }
         if (!jpayNotify.isEmpty() || !jpayCallback.isEmpty()) {
-            upsertJpayUrls(merchant.getId(), jpayNotify, jpayCallback);
+            merchantJpayNotifyUrlSyncService.persist(merchant.getId(), jpayNotify, jpayCallback);
         }
-        applyLogUpdate(log, internalTargetId, dealmai, data, jpayNotify, jpayCallback);
+        applyLogUpdate(log, internalTargetId, dealmai, data, jpayNotify, jpayCallback,
+                urlIntegrationMode ? "URL" : "API");
         markProvisionOtpPassed(resolveUsername(authentication));
 
         Map<String, Object> out = new LinkedHashMap<>();
@@ -710,12 +759,52 @@ public class OpsNotiProvisionService {
         assertWrite(authentication);
         verifyProvisionOtpIfNeeded(authentication, body);
         Long logId = parseLogId(body);
+        boolean force = "Y".equalsIgnoreCase(str(body, "forceYn"));
+        String acceptLang = NotiProvisionClient.acceptLanguageFromAdminLang(str(body, "adminLang"));
+        deleteOneLog(authentication, logId, force, acceptLang);
+        markProvisionOtpPassed(resolveUsername(authentication));
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("message", "노티 생성 이력이 삭제되었습니다. NOTI 미들웨어에서도 제거되었습니다.");
+        out.put("id", logId);
+        return out;
+    }
+
+    /**
+     * 선택 이력 일괄 삭제 (OTP 1회 검증).
+     * body.ids: number[] | comma-separated string
+     */
+    @Transactional
+    public Map<String, Object> deleteLogs(Authentication authentication, Map<String, Object> body)
+            throws NotiProvisionException {
+        assertWrite(authentication);
+        verifyProvisionOtpIfNeeded(authentication, body);
+        List<Long> ids = parseLogIds(body);
+        if (ids.isEmpty()) {
+            throw new IllegalArgumentException("삭제할 이력을 선택하세요.");
+        }
+        boolean force = !"N".equalsIgnoreCase(str(body, "forceYn"));
+        String acceptLang = NotiProvisionClient.acceptLanguageFromAdminLang(str(body, "adminLang"));
+        int deleted = 0;
+        List<Long> deletedIds = new java.util.ArrayList<>();
+        for (Long logId : ids) {
+            deleteOneLog(authentication, logId, force, acceptLang);
+            deleted++;
+            deletedIds.add(logId);
+        }
+        markProvisionOtpPassed(resolveUsername(authentication));
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("message", "선택한 노티 생성 이력이 삭제되었습니다. NOTI 미들웨어에서도 제거되었습니다.");
+        out.put("deletedCount", deleted);
+        out.put("ids", deletedIds);
+        return out;
+    }
+
+    private void deleteOneLog(Authentication authentication, Long logId, boolean force, String acceptLang)
+            throws NotiProvisionException {
         NotiProvisionLog log = requireLog(logId);
         assertLogInViewerScope(authentication, log);
         HqNotifyEnvConfig cfg = hqNotifyEnvService.requireProvisionConfigReady();
         String merchantId = resolveLogMerchantId(log);
-        boolean force = "Y".equalsIgnoreCase(str(body, "forceYn"));
-        String acceptLang = NotiProvisionClient.acceptLanguageFromAdminLang(str(body, "adminLang"));
         try {
             notiProvisionClient.deleteMerchant(
                     cfg.getNotiProvisionBaseUrl(),
@@ -730,11 +819,33 @@ public class OpsNotiProvisionService {
         }
         clearJpayUrls(log.getOrgUnitId());
         notiProvisionLogRepository.delete(log);
-        markProvisionOtpPassed(resolveUsername(authentication));
-        Map<String, Object> out = new LinkedHashMap<>();
-        out.put("message", "노티 생성 이력이 삭제되었습니다. NOTI 미들웨어에서도 제거되었습니다.");
-        out.put("id", logId);
-        return out;
+    }
+
+    /**
+     * NOTI 가맹점 목록에 ICOPAY 업체코드+업체명을 함께 표시하기 위한 메타.
+     * {@code icopayMeta.compName} → 미들웨어 {@code name}/{@code label}.
+     */
+    private static Map<String, Object> buildIcopayProvisionMeta(OrgUnit merchant, String integrationMode,
+                                                                String provisionedBy) {
+        Map<String, Object> meta = new LinkedHashMap<>();
+        if (merchant != null) {
+            if (merchant.getCode() != null && !merchant.getCode().isBlank()) {
+                meta.put("compId", merchant.getCode().trim());
+            }
+            if (merchant.getName() != null && !merchant.getName().isBlank()) {
+                meta.put("compName", merchant.getName().trim());
+            }
+            if (merchant.getId() != null) {
+                meta.put("orgUnitId", merchant.getId());
+            }
+        }
+        if (integrationMode != null && !integrationMode.isBlank()) {
+            meta.put("integrationMode", integrationMode.trim());
+        }
+        if (provisionedBy != null && !provisionedBy.isBlank()) {
+            meta.put("provisionedBy", provisionedBy.trim());
+        }
+        return meta;
     }
 
     private Map<String, Object> buildProvisionFallbackReq(OrgUnit merchant, String merchantId, NotiProvisionLog log,
@@ -749,7 +860,11 @@ public class OpsNotiProvisionService {
         }
         if (log.getSlotNo() != null) {
             req.put("jpaySlotNo", log.getSlotNo());
-            req.put("routeNo", nz(log.getRouteNo()));
+            String route = nz(log.getRouteNo());
+            if (route.isEmpty()) {
+                route = "j" + log.getSlotNo();
+            }
+            req.put("routeNo", route);
         }
         if (!callbackUrl.isEmpty()) {
             req.put("callbackUrl", callbackUrl);
@@ -794,6 +909,47 @@ public class OpsNotiProvisionService {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    private static List<Long> parseLogIds(Map<String, Object> body) {
+        java.util.LinkedHashSet<Long> out = new java.util.LinkedHashSet<>();
+        if (body == null) {
+            return List.of();
+        }
+        Object idsObj = body.get("ids");
+        if (idsObj instanceof List<?> list) {
+            for (Object item : list) {
+                if (item == null) {
+                    continue;
+                }
+                try {
+                    out.add(Long.parseLong(String.valueOf(item).trim()));
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        } else if (idsObj != null) {
+            String raw = String.valueOf(idsObj).trim();
+            if (!raw.isEmpty()) {
+                for (String part : raw.split("[,\\s]+")) {
+                    if (part.isBlank()) {
+                        continue;
+                    }
+                    try {
+                        out.add(Long.parseLong(part.trim()));
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+            }
+        }
+        Object idObj = body.get("id");
+        if (idObj != null) {
+            try {
+                out.add(Long.parseLong(String.valueOf(idObj).trim()));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return new java.util.ArrayList<>(out);
+    }
+
     private NotiProvisionLog requireLog(Long logId) {
         if (logId == null) {
             throw new IllegalArgumentException("이력 ID가 필요합니다.");
@@ -821,7 +977,8 @@ public class OpsNotiProvisionService {
     }
 
     private void applyLogUpdate(NotiProvisionLog log, String internalTargetId, String dealmai,
-                                Map<String, Object> data, String jpayNotify, String jpayCallback) {
+                                Map<String, Object> data, String jpayNotify, String jpayCallback,
+                                String integrationMode) {
         log.setInternalTargetId(internalTargetId);
         log.setDealmaiPartnerCode(dealmai != null ? dealmai : "");
         log.setRouteNo(extractRouteNo(data));
@@ -831,6 +988,7 @@ public class OpsNotiProvisionService {
         }
         log.setJpayNotifyUrl(jpayNotify);
         log.setJpayCallbackUrl(jpayCallback);
+        log.setIntegrationMode(normalizeIntegrationMode(integrationMode));
         notiProvisionLogRepository.save(log);
     }
 
@@ -854,7 +1012,8 @@ public class OpsNotiProvisionService {
                                   Map<String, Object> data,
                                   String jpayNotify,
                                   String jpayCallback,
-                                  AppUser user) {
+                                  AppUser user,
+                                  String integrationMode) {
         NotiProvisionLog log = new NotiProvisionLog();
         log.setOrgUnitId(merchant.getId());
         log.setCompId(merchant.getCode());
@@ -867,6 +1026,7 @@ public class OpsNotiProvisionService {
         log.setSlotNo(extractSlotNo(data));
         log.setJpayNotifyUrl(jpayNotify);
         log.setJpayCallbackUrl(jpayCallback);
+        log.setIntegrationMode(normalizeIntegrationMode(integrationMode));
         log.setCreatedFlag(Boolean.TRUE.equals(data.get("created")) ? "Y" : "N");
         if (user != null && user.getUsername() != null) {
             log.setProvisionedBy(user.getUsername().trim());
@@ -882,6 +1042,7 @@ public class OpsNotiProvisionService {
         m.put("merchantId", resolveLogMerchantId(log));
         m.put("compNm", log.getCompNm() != null ? log.getCompNm() : "");
         m.put("internalTargetId", nz(log.getInternalTargetId()));
+        m.put("integrationMode", normalizeIntegrationMode(log.getIntegrationMode()));
         m.put("routeNo", nz(log.getRouteNo()));
         m.put("slotNo", log.getSlotNo());
         m.put("jpayNotifyUrl", nz(log.getJpayNotifyUrl()));
@@ -928,36 +1089,84 @@ public class OpsNotiProvisionService {
         if (n == null && data.get("slot") instanceof Number slotNum) {
             n = slotNum;
         }
+        if (n == null && data.get("slot") != null && !(data.get("slot") instanceof Map)) {
+            n = data.get("slot");
+        }
         if (n instanceof Number num) {
             return num.intValue();
         }
         if (n != null) {
-            try {
-                return Integer.parseInt(String.valueOf(n).trim());
-            } catch (NumberFormatException ignored) {
-                return null;
+            Integer parsed = parseSlotToken(String.valueOf(n));
+            if (parsed != null) {
+                return parsed;
             }
+        }
+        Integer fromRoute = parseSlotToken(firstNonBlank(data, "routeNo", "jpayRouteCallbackKey", "jpayRouteResultKey"));
+        if (fromRoute != null) {
+            return fromRoute;
         }
         return null;
     }
 
-    private void upsertJpayUrls(long orgUnitId, String notifyUrl, String callbackUrl) {
-        if (notifyUrl != null && !notifyUrl.isBlank()) {
-            saveOrUpdateUrl(orgUnitId, MerchantNotifyUrl.URL_TYPE_JPAY_NOTIFY, notifyUrl.trim());
+    /**
+     * NOTI 응답의 ICOPAY JPAY ingress URL. 필드 누락 시 슬롯·베이스 URL로 조립해
+     * 업체 {@code JPAY_NOTIFY}/{@code JPAY_CALLBACK} 에 반영한다.
+     */
+    private String[] resolveProvisionedJpayUrls(Map<String, Object> data, HqNotifyEnvConfig cfg, Integer requestedSlot) {
+        String notify = firstNonBlank(data,
+                "icopayJpayNotifyUrl", "pgCallbackUrl", "jpayNotifyUrl");
+        String callback = firstNonBlank(data,
+                "icopayJpayCallbackUrl", "pgResultUrl", "jpayCallbackUrl");
+        // 가맹점 릴레이 callbackUrl/resultUrl 은 ingress 가 아님 — 위 키만 사용
+        Integer slot = extractSlotNo(data);
+        if (slot == null) {
+            slot = requestedSlot;
         }
-        if (callbackUrl != null && !callbackUrl.isBlank()) {
-            saveOrUpdateUrl(orgUnitId, MerchantNotifyUrl.URL_TYPE_JPAY_CALLBACK, callbackUrl.trim());
+        String base = NotiProvisionClient.defaultBaseUrlIfBlank(
+                cfg != null ? cfg.getNotiProvisionBaseUrl() : null);
+        if (notify.isEmpty() && slot != null && slot > 0) {
+            notify = base + "/noti/callback/j" + slot;
         }
+        if (callback.isEmpty() && slot != null && slot > 0) {
+            callback = base + "/noti/result/j" + slot;
+        }
+        if (notify.isEmpty()) {
+            notify = buildIngressUrlFromRouteKey(base, firstNonBlank(data, "jpayRouteCallbackKey"), "callback");
+        }
+        if (callback.isEmpty()) {
+            callback = buildIngressUrlFromRouteKey(base, firstNonBlank(data, "jpayRouteResultKey"), "result");
+        }
+        return new String[]{notify, callback};
     }
 
-    private void saveOrUpdateUrl(long orgUnitId, String urlType, String url) {
-        MerchantNotifyUrl row = merchantNotifyUrlRepository.findByOrgUnitIdAndUrlType(orgUnitId, urlType)
-                .orElseGet(MerchantNotifyUrl::new);
-        row.setOrgUnitId(orgUnitId);
-        row.setUrlType(urlType);
-        row.setNotiUrl(url);
-        row.setUseYn("Y");
-        merchantNotifyUrlRepository.save(row);
+    private static String buildIngressUrlFromRouteKey(String base, String routeKey, String kind) {
+        Integer slot = parseSlotToken(routeKey);
+        if (slot == null || slot <= 0) {
+            return "";
+        }
+        String k = kind != null && !kind.isBlank() ? kind.trim() : "callback";
+        return base + "/noti/" + k + "/j" + slot;
+    }
+
+    /** {@code j20}, {@code jpay/callback/j20}, {@code 20} → 20 */
+    private static Integer parseSlotToken(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String t = raw.trim();
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?i)(?:^|/)j(\\d+)\\s*$").matcher(t);
+        if (m.find()) {
+            try {
+                return Integer.parseInt(m.group(1));
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        try {
+            return Integer.parseInt(t);
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 
     private String findNotifyUrl(long orgUnitId, String urlType) {
@@ -1045,6 +1254,15 @@ public class OpsNotiProvisionService {
             return "";
         }
         return String.valueOf(body.get(key)).trim();
+    }
+
+    /** 연동방식=URL → 가맹 포워딩 끔 + 개발 노티(대체 Dev URL) + RESULT AUTO. */
+    private static boolean isUrlIntegrationMode(Map<String, Object> body) {
+        String mode = str(body, "integrationMode");
+        if (mode.isEmpty()) {
+            mode = str(body, "payIntegrationMode");
+        }
+        return "URL".equalsIgnoreCase(mode);
     }
 
     private static String firstNonBlank(Map<String, Object> m, String... keys) {
@@ -1221,6 +1439,182 @@ public class OpsNotiProvisionService {
     private static boolean isMerchantNotFound(NotiProvisionException e) {
         return "MERCHANT_NOT_FOUND".equalsIgnoreCase(e.getErrorCode())
                 || ("NOTI_HTTP".equalsIgnoreCase(e.getErrorCode()) && e.getHttpStatus() == 404);
+    }
+
+    /** NOTI 멱등: 동일 가맹 ID가 다른 설정으로 이미 존재(API↔URL 전환 등). */
+    private static boolean isMerchantAlreadyExists(NotiProvisionException e) {
+        if (e == null) {
+            return false;
+        }
+        if ("MERCHANT_ALREADY_EXISTS".equalsIgnoreCase(e.getErrorCode())) {
+            return true;
+        }
+        String msg = e.getMessage() != null ? e.getMessage() : "";
+        if (msg.contains("다른 설정으로 이미 존재") || msg.contains("동일 가맹 ID가 다른 설정")) {
+            return true;
+        }
+        return e.getHttpStatus() == 409 && (msg.contains("이미 존재") || msg.toUpperCase(Locale.ROOT).contains("ALREADY"));
+    }
+
+    /** PUT 수정 API 미구현·미지원. */
+    private static boolean isUpdateEndpointUnavailable(NotiProvisionException e) {
+        if (e == null) {
+            return false;
+        }
+        int status = e.getHttpStatus();
+        if (status == 404 || status == 405) {
+            return true;
+        }
+        return "MERCHANT_NOT_FOUND".equalsIgnoreCase(e.getErrorCode());
+    }
+
+    /** 연동방식 정규화 (미저장 이력은 API). */
+    private static String normalizeIntegrationMode(String mode) {
+        return "URL".equalsIgnoreCase(mode != null ? mode.trim() : "") ? "URL" : "API";
+    }
+
+    /**
+     * ICOPAY 이력 수정 → NOTI 동기화.
+     * NOTI 관리자 UI 수정과 같이 PUT을 우선하고, API↔URL 등 설정 충돌·미지원 시 동일 슬롯 교체.
+     */
+    private Map<String, Object> upsertMerchantKeepingSlot(HqNotifyEnvConfig cfg,
+                                                          String merchantId,
+                                                          Map<String, Object> provisionReq,
+                                                          String acceptLang) throws NotiProvisionException {
+        Map<String, Object> updateBody = toUpdateBody(provisionReq);
+        try {
+            return notiProvisionClient.updateMerchant(
+                    cfg.getNotiProvisionBaseUrl(),
+                    cfg.getNotiProvisionApiKey(),
+                    merchantId,
+                    updateBody,
+                    acceptLang);
+        } catch (NotiProvisionException ue) {
+            if (!(isUpdateEndpointUnavailable(ue)
+                    || isMerchantNotFound(ue)
+                    || isMerchantAlreadyExists(ue))) {
+                throw ue;
+            }
+        }
+        try {
+            return replaceMerchantKeepingSlot(cfg, merchantId, provisionReq, acceptLang);
+        } catch (NotiProvisionException re) {
+            if (!isMerchantAlreadyExists(re)) {
+                throw re;
+            }
+            // 삭제 거부·잔존 가맹이 있으면 PUT으로 덮어쓰기 (NOTI UI 수정과 동일 경로)
+            try {
+                return notiProvisionClient.updateMerchant(
+                        cfg.getNotiProvisionBaseUrl(),
+                        cfg.getNotiProvisionApiKey(),
+                        merchantId,
+                        updateBody,
+                        acceptLang);
+            } catch (NotiProvisionException pe) {
+                throw new NotiProvisionException(
+                        "NOTI 가맹 설정을 갱신하지 못했습니다. ICOPAY에서 생성한 노티는 ICOPAY 이력 수정으로 바꿔야 양방향이 유지됩니다. "
+                                + "잠시 후 다시 저장하거나 NOTI 미들웨어에서 해당 가맹 상태를 확인하세요.",
+                        "MERCHANT_ALREADY_EXISTS",
+                        pe.getHttpStatus() > 0 ? pe.getHttpStatus() : re.getHttpStatus());
+            }
+        }
+    }
+
+    /** PUT 본문: 슬롯·Route는 불변 — provision 요청에서 생성 전용 힌트만 유지. */
+    private static Map<String, Object> toUpdateBody(Map<String, Object> provisionReq) {
+        Map<String, Object> body = provisionReq != null
+                ? new LinkedHashMap<>(provisionReq)
+                : new LinkedHashMap<>();
+        body.putIfAbsent("pgKind", "jpay");
+        return body;
+    }
+
+    /**
+     * NOTI 가맹 force 삭제 후 동일 슬롯으로 재 provision.
+     * (API↔URL 전환 등 · 양방향 동기화)
+     */
+    private Map<String, Object> replaceMerchantKeepingSlot(HqNotifyEnvConfig cfg,
+                                                           String merchantId,
+                                                           Map<String, Object> provisionReq,
+                                                           String acceptLang) throws NotiProvisionException {
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            forceDeleteMerchantQuietly(cfg, merchantId, acceptLang);
+            sleepQuietly(200L * attempt);
+            if (!merchantExistsOnNoti(cfg, merchantId, acceptLang)) {
+                break;
+            }
+        }
+        try {
+            return notiProvisionClient.provision(
+                    cfg.getNotiProvisionBaseUrl(),
+                    cfg.getNotiProvisionApiKey(),
+                    provisionReq,
+                    acceptLang);
+        } catch (NotiProvisionException e) {
+            if (!isMerchantAlreadyExists(e)) {
+                throw e;
+            }
+            forceDeleteMerchantQuietly(cfg, merchantId, acceptLang);
+            sleepQuietly(500L);
+            try {
+                return notiProvisionClient.provision(
+                        cfg.getNotiProvisionBaseUrl(),
+                        cfg.getNotiProvisionApiKey(),
+                        provisionReq,
+                        acceptLang);
+            } catch (NotiProvisionException pe) {
+                if (isMerchantAlreadyExists(pe)) {
+                    throw pe;
+                }
+                throw pe;
+            }
+        }
+    }
+
+    private boolean merchantExistsOnNoti(HqNotifyEnvConfig cfg, String merchantId, String acceptLang) {
+        try {
+            notiProvisionClient.getMerchant(
+                    cfg.getNotiProvisionBaseUrl(),
+                    cfg.getNotiProvisionApiKey(),
+                    merchantId,
+                    acceptLang);
+            return true;
+        } catch (NotiProvisionException e) {
+            return !isMerchantNotFound(e);
+        }
+    }
+
+    private static void sleepQuietly(long ms) {
+        if (ms <= 0) {
+            return;
+        }
+        try {
+            Thread.sleep(ms);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private void forceDeleteMerchantQuietly(HqNotifyEnvConfig cfg, String merchantId, String acceptLang)
+            throws NotiProvisionException {
+        try {
+            notiProvisionClient.deleteMerchant(
+                    cfg.getNotiProvisionBaseUrl(),
+                    cfg.getNotiProvisionApiKey(),
+                    merchantId,
+                    true,
+                    acceptLang);
+        } catch (NotiProvisionException de) {
+            if (isMerchantNotFound(de)) {
+                return;
+            }
+            if (de.getHttpStatus() == 401 || de.getHttpStatus() == 403
+                    || "UNAUTHORIZED".equalsIgnoreCase(de.getErrorCode())
+                    || "FORBIDDEN".equalsIgnoreCase(de.getErrorCode())) {
+                throw de;
+            }
+            // 409 등: URL이 ICOPAY/PG에 묶여 삭제가 거절될 수 있음 → 상위에서 PUT 폴백
+        }
     }
 
     private record MasterDistNotifyCtx(Long masterDistOrgId, String masterDistCode, String masterDistName,

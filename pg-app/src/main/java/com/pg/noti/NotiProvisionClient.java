@@ -142,7 +142,7 @@ public class NotiProvisionClient {
             }
             return parseSuccessBody(resp.getBody());
         } catch (HttpStatusCodeException ex) {
-            throw new NotiProvisionException(parseErrorMessage(ex.getResponseBodyAsString()), "NOTI_HTTP", ex.getStatusCode().value());
+            throw toHttpException(ex);
         } catch (NotiProvisionException e) {
             throw e;
         } catch (Exception e) {
@@ -166,9 +166,14 @@ public class NotiProvisionClient {
             ResponseEntity<String> resp = restTemplate.exchange(url, method, entity, String.class);
             return parseSuccessListBody(resp.getBody());
         } catch (HttpStatusCodeException ex) {
-            throw new NotiProvisionException(parseErrorMessage(ex.getResponseBodyAsString()), "NOTI_HTTP",
-                    ex.getStatusCode().value());
+            throw toHttpException(ex);
         }
+    }
+
+    private NotiProvisionException toHttpException(HttpStatusCodeException ex) {
+        ParsedNotiError parsed = parseErrorBody(ex.getResponseBodyAsString());
+        String code = parsed.errorCode != null && !parsed.errorCode.isBlank() ? parsed.errorCode : "NOTI_HTTP";
+        return new NotiProvisionException(parsed.message, code, ex.getStatusCode().value());
     }
 
     @SuppressWarnings("unchecked")
@@ -245,22 +250,29 @@ public class NotiProvisionClient {
         }
     }
 
-    private String parseErrorMessage(String raw) {
+    private ParsedNotiError parseErrorBody(String raw) {
         if (raw == null || raw.isBlank()) {
-            return "NOTI Provision API 오류";
+            return new ParsedNotiError("NOTI Provision API 오류", null);
         }
         try {
             Map<String, Object> root = objectMapper.readValue(raw, new TypeReference<>() {});
+            String message = null;
             if (root.get("message") != null) {
-                return String.valueOf(root.get("message"));
+                message = String.valueOf(root.get("message"));
+            } else if (root.get("error") != null) {
+                message = String.valueOf(root.get("error"));
             }
-            if (root.get("error") != null) {
-                return String.valueOf(root.get("error"));
+            String errorCode = root.get("errorCode") != null ? String.valueOf(root.get("errorCode")).trim() : null;
+            if (message == null || message.isBlank()) {
+                message = raw.length() > 500 ? raw.substring(0, 500) : raw;
             }
+            return new ParsedNotiError(message, errorCode);
         } catch (Exception ignored) {
+            return new ParsedNotiError(raw.length() > 500 ? raw.substring(0, 500) : raw, null);
         }
-        return raw.length() > 500 ? raw.substring(0, 500) : raw;
     }
+
+    private record ParsedNotiError(String message, String errorCode) {}
 
     private static String normalizeBase(String baseUrl) {
         String b = baseUrl != null ? baseUrl.trim() : DEFAULT_BASE;

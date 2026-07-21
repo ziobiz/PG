@@ -1444,6 +1444,10 @@
         var plain = (el.getAttribute('data-pg-plain-url') || el.value || '').trim();
         fd[n] = plain;
       });
+    } else {
+      // 카드 미노출(권한) 시 폼 잔여 빈값으로 기존 JPAY URL을 지우지 않음(서버 null=유지)
+      delete fd.jpayNotifyUrl;
+      delete fd.jpayCallbackUrl;
     }
     return fd;
   }
@@ -2046,13 +2050,14 @@
       if (card) pgSyncUrlPayInputModeHint(card, modeEl.value);
     });
   }
-  /** URL 결제 상품명 — 사용(Y) 일 때만 대표상품 입력란 표시 */
+  /** URL 결제 상품명 — 사용(Y) 일 때만 대표상품 입력란 표시(본사설정 따름이면 숨김) */
   function pgSyncUrlPayProductNameUi(rootEl) {
     var scope = pgWebPaymentCardScope(rootEl);
     if (!scope) return;
     var useEl = scope.querySelector('[name="urlPayProductNameUseYn"]');
     if (!useEl) return;
-    var active = String(useEl.value || 'Y').trim().toUpperCase() !== 'N';
+    var mode = String(useEl.value || 'FOLLOW_HQ').trim().toUpperCase();
+    var active = mode === 'Y';
     scope.querySelectorAll('.url-pay-product-field').forEach(function (block) {
       block.style.display = active ? '' : 'none';
       block.querySelectorAll('input').forEach(function (el) {
@@ -2074,6 +2079,32 @@
     rootEl.querySelectorAll('#webPaymentCard').forEach(function (card) {
       pgSyncUrlPayProductNameUi(card);
     });
+  }
+  /** 본사 결제창 표시 기본값 — 상품명 사용=활성(직접입력)일 때만 기본 상품 입력란 표시 */
+  function pgSyncHqCheckoutDisplayProductUi(pane) {
+    if (!pane) return;
+    var useEl = pane.querySelector('[name="urlPayProductNameUseDefaultYn"]');
+    if (!useEl) return;
+    var active = String(useEl.value || 'Y').trim().toUpperCase() === 'Y';
+    pane.querySelectorAll('.hq-url-pay-product-field').forEach(function (block) {
+      block.style.display = active ? '' : 'none';
+      block.querySelectorAll('input, textarea').forEach(function (el) {
+        el.disabled = !active;
+      });
+      block.classList.toggle('opacity-50', !active);
+      block.classList.toggle('d-none', !active);
+    });
+  }
+  function pgBindHqCheckoutDisplayProductUi(pane) {
+    if (!pane) return;
+    if (!pane._hqCheckoutProdBound) {
+      pane._hqCheckoutProdBound = true;
+      pane.addEventListener('change', function (e) {
+        if (!e.target || e.target.name !== 'urlPayProductNameUseDefaultYn') return;
+        pgSyncHqCheckoutDisplayProductUi(pane);
+      });
+    }
+    pgSyncHqCheckoutDisplayProductUi(pane);
   }
   var PG_SPLIT_PAY_DAY_INTERVALS = [5, 7, 10, 15, 20, 40, 50];
   var PG_SPLIT_PAY_MULTI_MAX_MONTHS = [3, 5, 6, 12];
@@ -2723,6 +2754,7 @@
     '/deploy/jpayWorkPlan': { label: 'JPAY 전용 연동', parent: '배포설정' },
     '/deploy/merchantApiPolicy': { label: '가맹점 API 배포', parent: '배포설정' },
     '/deploy/launchChecklist': { label: '배포 체크리스트', parent: '배포설정' },
+    '/deploy/launchGuide': { label: '출시 가이드', parent: '연동·배포' },
     '/hq/hub/policy-fees': { label: '수수료·리스크', parent: '본사정책' },
     '/hq/hub/payment-channel': { label: '결제·URL', parent: '본사정책' },
     '/hq/hub/notify': { label: '노티 센터', parent: '본사정책' },
@@ -3005,18 +3037,28 @@
         PG_SPLIT_PAY_MENU_URLS.forEach(function (spu) { if (aliases.indexOf(spu) < 0) aliases.push(spu); });
       }
       // 배포 문서 — 구 운영관리(/ops/*) URL 권한을 배포설정(/deploy/*)과 동일 취급
-      if (url === '/deploy/integrationPlan' || url === '/ops/integrationPlan') {
+      if (url === '/deploy/launchGuide') {
+        aliases.push('/deploy/launchGuide');
+        aliases.push('/deploy/launchChecklist');
+        aliases.push('/ops/launchChecklist');
+        aliases.push('/deploy/integrationPlan');
+        aliases.push('/hq/hub/merchant-api');
+      } else if (url === '/deploy/integrationPlan' || url === '/ops/integrationPlan') {
         aliases.push('/deploy/integrationPlan');
         aliases.push('/ops/integrationPlan');
+        aliases.push('/deploy/launchGuide');
       } else if (url === '/deploy/jpayWorkPlan' || url === '/ops/jpayWorkPlan') {
         aliases.push('/deploy/jpayWorkPlan');
         aliases.push('/ops/jpayWorkPlan');
+        aliases.push('/deploy/launchGuide');
       } else if (url === '/deploy/merchantApiPolicy' || url === '/ops/merchantApiPolicy') {
         aliases.push('/deploy/merchantApiPolicy');
         aliases.push('/ops/merchantApiPolicy');
+        aliases.push('/deploy/launchGuide');
       } else if (url === '/deploy/launchChecklist' || url === '/ops/launchChecklist') {
         aliases.push('/deploy/launchChecklist');
         aliases.push('/ops/launchChecklist');
+        aliases.push('/deploy/launchGuide');
       }
       for (var i = 0; i < aliases.length; i++) {
         var key = aliases[i];
@@ -3618,7 +3660,14 @@
 
   function ensureOpsNpLogEditModal() {
     var modalEl = document.getElementById('opsNpLogEditModal');
-    if (!modalEl) {
+    var needsRebuild = !modalEl
+      || !modalEl.querySelector('#opsNpLogEditIntegrationModeHint')
+      || !modalEl.querySelector('#opsNpLogEditNotifyFlagsWrap .card')
+      || !modalEl.querySelector('#opsNpLogEditOtpWrap label[data-pg-ui-t="OTP"]');
+    if (needsRebuild) {
+      if (modalEl && modalEl.parentNode) {
+        modalEl.parentNode.removeChild(modalEl);
+      }
       var html = '';
       if (window.PG_SCREENS && typeof window.PG_SCREENS.getOpsNpLogEditModalHtml === 'function') {
         html = window.PG_SCREENS.getOpsNpLogEditModalHtml();
@@ -3638,6 +3687,19 @@
   function bindOpsNpLogEditModalOnce(modalEl) {
     if (!modalEl || modalEl._opsNpLogEditBound) return;
     modalEl._opsNpLogEditBound = true;
+    function syncOpsNpLogEditOtpUi(otpRequired) {
+      var otpWrap = modalEl.querySelector('#opsNpLogEditOtpWrap');
+      var otpEl = modalEl.querySelector('#opsNpLogEditOtp');
+      if (otpWrap) {
+        otpWrap.classList.toggle('d-none', !otpRequired);
+        otpWrap.classList.toggle('mb-2', !!otpRequired);
+      }
+      if (otpEl) {
+        otpEl.disabled = !otpRequired;
+        if (!otpRequired) otpEl.value = '';
+      }
+      return otpEl;
+    }
     var logEditSaveBtn = modalEl.querySelector('#opsNpLogEditSaveBtn');
     if (logEditSaveBtn) {
       logEditSaveBtn.addEventListener('click', function () {
@@ -3647,23 +3709,31 @@
         var id = idEl ? String(idEl.value || '').trim() : '';
         if (!id) return;
         var otpRequired = ctx.opsNpOtpRequired !== false;
+        var otpEl = syncOpsNpLogEditOtpUi(otpRequired);
         if (otpRequired) {
-          var otpVal = (modalEl.querySelector('#opsNpLogEditOtp') || {}).value || '';
-          if (!String(otpVal).trim()) {
+          var otpVal = otpEl ? String(otpEl.value || '').trim() : '';
+          if (!otpVal) {
+            if (otpEl && !otpEl.disabled) {
+              try { otpEl.focus(); otpEl.select(); } catch (eOtpFocus) {}
+            }
             alert(pgAdminUiT('노티관리 수정을 위해 Google OTP 6자리를 입력하세요.'));
             return;
           }
         }
+        var modeEl = modalEl.querySelector('#opsNpLogEditIntegrationMode');
+        var mode = modeEl && String(modeEl.value || '').toUpperCase() === 'URL' ? 'URL' : 'API';
         var body = {
           id: id,
+          integrationMode: mode,
           internalTargetId: (modalEl.querySelector('#opsNpLogEditInternalTarget') || {}).value || '',
           dealmaiPartnerCode: (modalEl.querySelector('#opsNpLogEditDealmai') || {}).value || '__DEFAULT__',
-          enableDealmaiWebhookYn: (modalEl.querySelector('#opsNpLogEditDealmaiWebhook') && modalEl.querySelector('#opsNpLogEditDealmaiWebhook').checked) ? 'Y' : 'N',
-          callbackUrl: (modalEl.querySelector('#opsNpLogEditCallback') || {}).value || '',
-          resultUrl: (modalEl.querySelector('#opsNpLogEditResult') || {}).value || '',
-          enableRelayYn: (modalEl.querySelector('#opsNpLogEditRelay') && modalEl.querySelector('#opsNpLogEditRelay').checked) ? 'Y' : 'N',
-          enableInternalYn: (modalEl.querySelector('#opsNpLogEditInternal') && modalEl.querySelector('#opsNpLogEditInternal').checked) ? 'Y' : 'N',
-          enableDevInternalYn: (modalEl.querySelector('#opsNpLogEditDevInternal') && modalEl.querySelector('#opsNpLogEditDevInternal').checked) ? 'Y' : 'N',
+          enableDealmaiWebhookYn: mode === 'URL' ? 'Y' : ((modalEl.querySelector('#opsNpLogEditDealmaiWebhook') && modalEl.querySelector('#opsNpLogEditDealmaiWebhook').checked) ? 'Y' : 'N'),
+          callbackUrl: mode === 'URL' ? '' : ((modalEl.querySelector('#opsNpLogEditCallback') || {}).value || ''),
+          resultUrl: mode === 'URL' ? '' : ((modalEl.querySelector('#opsNpLogEditResult') || {}).value || ''),
+          enableRelayYn: mode === 'URL' ? 'N' : ((modalEl.querySelector('#opsNpLogEditRelay') && modalEl.querySelector('#opsNpLogEditRelay').checked) ? 'Y' : 'N'),
+          enableInternalYn: mode === 'URL' ? 'N' : ((modalEl.querySelector('#opsNpLogEditInternal') && modalEl.querySelector('#opsNpLogEditInternal').checked) ? 'Y' : 'N'),
+          enableDevInternalYn: mode === 'URL' ? 'Y' : ((modalEl.querySelector('#opsNpLogEditDevInternal') && modalEl.querySelector('#opsNpLogEditDevInternal').checked) ? 'Y' : 'N'),
+          resultDeliveryMode: mode === 'URL' ? 'AUTO' : 'AUTO',
           totpCode: (modalEl.querySelector('#opsNpLogEditOtp') || {}).value || '',
           adminLang: pgAdminLangParam()
         };
@@ -3728,6 +3798,8 @@
       var tbody = pane.querySelector('#opsNpListBody');
       if (!tbody) return;
       tbody.innerHTML = '';
+      var selectAllEl = pane.querySelector('#opsNpListSelectAll');
+      if (selectAllEl) selectAllEl.checked = false;
       var lst = pr && Array.isArray(pr.list) ? pr.list : [];
       var page = pr && pr.page != null ? Number(pr.page) : 1;
       var size = pr && pr.size != null ? Number(pr.size) : 20;
@@ -3737,7 +3809,7 @@
       if (!lst.length) {
         var tr0 = document.createElement('tr');
         var td0 = document.createElement('td');
-        td0.colSpan = 14;
+        td0.colSpan = 15;
         td0.className = 'small text-muted text-center py-3';
         td0.setAttribute('data-pg-ui-t', '노티 생성 이력이 없습니다.');
         td0.textContent = pgAdminUiT('노티 생성 이력이 없습니다.');
@@ -3752,44 +3824,65 @@
             t.textContent = v != null ? String(v) : '';
             tr.appendChild(t);
           }
-          function tdUrl(v) {
+          function tdUrlOnly(v) {
             var t = document.createElement('td');
             t.className = 'small';
             var u = v != null ? String(v).trim() : '';
             if (u) {
-              var wrap = document.createElement('div');
-              wrap.className = 'd-flex align-items-start gap-1';
               var code = document.createElement('code');
               code.className = 'user-select-all small text-break';
               code.textContent = u;
-              wrap.appendChild(code);
-              var btn = document.createElement('button');
-              btn.type = 'button';
-              btn.className = 'btn btn-link btn-sm p-0 text-nowrap ops-np-copy-url';
-              btn.setAttribute('data-url', u);
-              btn.setAttribute('data-pg-ui-t', '복사');
-              btn.textContent = pgAdminUiT('복사');
-              wrap.appendChild(btn);
-              t.appendChild(wrap);
+              t.appendChild(code);
             }
             tr.appendChild(t);
           }
+          var tdChk = document.createElement('td');
+          tdChk.className = 'text-center';
+          if (r.id != null) {
+            var chk = document.createElement('input');
+            chk.type = 'checkbox';
+            chk.className = 'form-check-input m-0 ops-np-log-row-chk';
+            chk.value = String(r.id);
+            chk.setAttribute('data-comp-id', r.compId != null ? String(r.compId) : '');
+            tdChk.appendChild(chk);
+          }
+          tr.appendChild(tdChk);
           tdText(String(baseNo + idx + 1), 'text-nowrap');
           tdText(r.provisionedDate || '', 'text-nowrap small');
           tdText(r.provisionedTime || '', 'text-nowrap small');
           tdText(r.compId, 'text-nowrap');
           tdText(r.compNm, 'small');
           tdText(r.internalTargetId, 'small text-nowrap');
+          var modeLbl = String(r.integrationMode || '').toUpperCase() === 'URL' ? 'URL' : 'API';
+          tdText(modeLbl, 'text-nowrap small');
           var slotDisp = r.routeNo || (r.slotNo != null ? String(r.slotNo) : '');
           tdText(slotDisp, 'text-nowrap small');
-          tdUrl(r.jpayNotifyUrl);
-          tdUrl(r.jpayCallbackUrl);
+          tdUrlOnly(r.jpayNotifyUrl);
+          tdUrlOnly(r.jpayCallbackUrl);
           tdText(r.dealmaiPartnerCode || '—', 'text-nowrap small');
           var createdLbl = r.createdFlag === 'Y' ? pgAdminUiT('신규 생성') : pgAdminUiT('기존 동일');
           tdText(createdLbl, 'text-nowrap small');
           tdText(r.provisionedBy, 'text-nowrap small');
           var tdAct = document.createElement('td');
           tdAct.className = 'text-nowrap text-center';
+          var notifyUrl = r.jpayNotifyUrl != null ? String(r.jpayNotifyUrl).trim() : '';
+          var callbackUrl = r.jpayCallbackUrl != null ? String(r.jpayCallbackUrl).trim() : '';
+          var btnNCopy = document.createElement('button');
+          btnNCopy.type = 'button';
+          btnNCopy.className = 'btn btn-sm btn-outline-secondary me-1 ops-np-copy-url';
+          btnNCopy.setAttribute('data-url', notifyUrl);
+          btnNCopy.setAttribute('data-pg-ui-t', 'Callback');
+          btnNCopy.textContent = pgAdminUiT('Callback');
+          btnNCopy.disabled = !notifyUrl;
+          var btnCCopy = document.createElement('button');
+          btnCCopy.type = 'button';
+          btnCCopy.className = 'btn btn-sm btn-outline-secondary me-1 ops-np-copy-url';
+          btnCCopy.setAttribute('data-url', callbackUrl);
+          btnCCopy.setAttribute('data-pg-ui-t', 'Result');
+          btnCCopy.textContent = pgAdminUiT('Result');
+          btnCCopy.disabled = !callbackUrl;
+          tdAct.appendChild(btnNCopy);
+          tdAct.appendChild(btnCCopy);
           if (canWrite && r.id != null) {
             var rid = String(r.id);
             var btnEdit = document.createElement('button');
@@ -3858,6 +3951,18 @@
         var otpEl = pane.querySelector('#opsNpProvisionOtp');
         if (otpEl) otpEl.value = '';
       }
+      if (opsNpLogEditModal && opsNpLogEditModal._opsNpLogEditBound) {
+        var logOtpWrap = opsNpLogEditModal.querySelector('#opsNpLogEditOtpWrap');
+        var logOtpEl = opsNpLogEditModal.querySelector('#opsNpLogEditOtp');
+        if (logOtpWrap) {
+          logOtpWrap.classList.toggle('d-none', !otpRequired);
+          logOtpWrap.classList.toggle('mb-2', !!otpRequired);
+        }
+        if (logOtpEl) {
+          logOtpEl.disabled = !otpRequired;
+          if (!otpRequired) logOtpEl.value = '';
+        }
+      }
     }
     function opsNpInternalTargetOptionLabel(it) {
       var id = it && it.id != null ? String(it.id).trim() : '';
@@ -3907,24 +4012,86 @@
       if (cur) sel.value = cur;
       else sel.value = '__DEFAULT__';
     }
+    function opsNpIsUrlIntegrationMode() {
+      var modeEl = pane.querySelector('#opsNpIntegrationMode');
+      return !!(modeEl && String(modeEl.value || '').toUpperCase() === 'URL');
+    }
+    function applyOpsNpUrlModePreset() {
+      var relayEl = pane.querySelector('#opsNpEnableRelay');
+      var internalEl = pane.querySelector('#opsNpEnableInternal');
+      var devEl = pane.querySelector('#opsNpEnableDevInternal');
+      if (relayEl) relayEl.checked = false;
+      if (internalEl) internalEl.checked = false;
+      if (devEl) devEl.checked = true;
+      var whEl = pane.querySelector('#opsNpEnableDealmaiWebhook');
+      if (whEl) whEl.checked = true;
+      var rdEl = pane.querySelector('#opsNpResultDelivery');
+      if (rdEl) rdEl.value = 'AUTO';
+      var cbEl = pane.querySelector('#opsNpCallbackUrl');
+      var rsEl = pane.querySelector('#opsNpResultUrl');
+      if (cbEl) cbEl.value = '';
+      if (rsEl) rsEl.value = '';
+    }
+    function applyOpsNpApiModeDefaults() {
+      var relayEl = pane.querySelector('#opsNpEnableRelay');
+      var internalEl = pane.querySelector('#opsNpEnableInternal');
+      var devEl = pane.querySelector('#opsNpEnableDevInternal');
+      if (relayEl) relayEl.checked = true;
+      if (internalEl) internalEl.checked = false;
+      if (devEl) devEl.checked = true;
+      if (opsNpCtxCache) {
+        var cbEl = pane.querySelector('#opsNpCallbackUrl');
+        var rsEl = pane.querySelector('#opsNpResultUrl');
+        if (cbEl && !String(cbEl.value || '').trim() && opsNpCtxCache.merchantCallbackUrl) {
+          cbEl.value = opsNpCtxCache.merchantCallbackUrl;
+        }
+        if (rsEl && !String(rsEl.value || '').trim() && opsNpCtxCache.merchantResultUrl) {
+          rsEl.value = opsNpCtxCache.merchantResultUrl;
+        }
+      }
+    }
+    function applyOpsNpIntegrationModeUi() {
+      var urlMode = opsNpIsUrlIntegrationMode();
+      ['#opsNpEnableRelay', '#opsNpEnableInternal', '#opsNpEnableDevInternal'].forEach(function (sel) {
+        var el = pane.querySelector(sel);
+        if (el) el.disabled = urlMode;
+      });
+      if (urlMode) {
+        applyOpsNpUrlModePreset();
+      }
+      updateOpsNpRelayUi();
+    }
     function updateOpsNpRelayUi() {
-      var relayOn = !!(pane.querySelector('#opsNpEnableRelay') && pane.querySelector('#opsNpEnableRelay').checked);
+      var urlMode = opsNpIsUrlIntegrationMode();
+      var relayOn = !urlMode && !!(pane.querySelector('#opsNpEnableRelay') && pane.querySelector('#opsNpEnableRelay').checked);
       var wrap = pane.querySelector('#opsNpRelayOptionsWrap');
       var urlWrap = pane.querySelector('#opsNpMerchantUrlWrap');
       if (wrap) {
-        wrap.querySelectorAll('select').forEach(function (el) { el.disabled = !relayOn; });
+        wrap.querySelectorAll('select').forEach(function (el) {
+          if (urlMode && el.id === 'opsNpResultDelivery') {
+            el.disabled = true;
+            el.value = 'AUTO';
+          } else {
+            el.disabled = urlMode || !relayOn;
+          }
+        });
       }
       if (urlWrap) {
-        urlWrap.querySelectorAll('input').forEach(function (el) { el.disabled = !relayOn; });
+        urlWrap.querySelectorAll('input').forEach(function (el) {
+          el.disabled = urlMode || !relayOn;
+          if (urlMode) el.value = '';
+        });
       }
       updateOpsNpDevHint();
     }
     function updateOpsNpDevHint() {
       var hint = pane.querySelector('#opsNpDevUrlHint');
       if (!hint) return;
+      var urlMode = opsNpIsUrlIntegrationMode();
       var relayOn = !!(pane.querySelector('#opsNpEnableRelay') && pane.querySelector('#opsNpEnableRelay').checked);
       var devOn = !!(pane.querySelector('#opsNpEnableDevInternal') && pane.querySelector('#opsNpEnableDevInternal').checked);
-      if (relayOn || !devOn || !opsNpCtxCache) {
+      var show = !!opsNpCtxCache && (urlMode || (!relayOn && devOn));
+      if (!show) {
         hint.classList.add('d-none');
         hint.textContent = '';
         return;
@@ -3933,7 +4100,10 @@
       var rs = opsNpCtxCache.devNotifyResultUrl || '';
       var md = opsNpCtxCache.masterDistName || opsNpCtxCache.masterDistCode || '';
       hint.classList.remove('d-none');
-      hint.innerHTML = pgAdminEscHtml(pgAdminUiT('개발 노티 대체 URL (총판 노티 대상)')) + (md ? (' — ' + pgAdminEscHtml(md)) : '') +
+      var title = urlMode
+        ? pgAdminUiT('URL 방식 — 대체 송부(개발 노티) URL')
+        : pgAdminUiT('개발 노티 대체 URL (총판 노티 대상)');
+      hint.innerHTML = pgAdminEscHtml(title) + (md ? (' — ' + pgAdminEscHtml(md)) : '') +
         '<br><span class="text-muted">Callback:</span> <code class="user-select-all">' + pgAdminEscHtml(cb || '—') + '</code>' +
         '<br><span class="text-muted">Result:</span> <code class="user-select-all">' + pgAdminEscHtml(rs || '—') + '</code>';
     }
@@ -3992,7 +4162,7 @@
       }
       opsNpSlotReviewed = false;
       updateOpsNpSlotPreview();
-      updateOpsNpDevHint();
+      applyOpsNpIntegrationModeUi();
     }
     function loadOpsNpContext() {
       var compIdElLocal = pane.querySelector('#opsNpCompId');
@@ -4011,25 +4181,27 @@
         .finally(function () { if (dimm) dimm.style.display = 'none'; });
     }
     function collectOpsNpProvisionBody(cid) {
+      var urlMode = opsNpIsUrlIntegrationMode();
       var relayEl = pane.querySelector('#opsNpEnableRelay');
       var internalEl = pane.querySelector('#opsNpEnableInternal');
       var devEl = pane.querySelector('#opsNpEnableDevInternal');
       return {
         compId: cid,
         merchantId: (pane.querySelector('#opsNpMerchantId') || {}).value || '',
+        integrationMode: urlMode ? 'URL' : 'API',
         internalTargetId: (pane.querySelector('#opsNpInternalTargetId') || {}).value || '',
         jpaySlotNo: (pane.querySelector('#opsNpJpaySlotNo') || {}).value || '',
         slotAutoYn: opsNpSlotAutoMode ? 'Y' : 'N',
-        enableRelayYn: relayEl && relayEl.checked ? 'Y' : 'N',
-        enableInternalYn: internalEl && internalEl.checked ? 'Y' : 'N',
-        enableDevInternalYn: devEl && devEl.checked ? 'Y' : 'N',
+        enableRelayYn: urlMode ? 'N' : (relayEl && relayEl.checked ? 'Y' : 'N'),
+        enableInternalYn: urlMode ? 'N' : (internalEl && internalEl.checked ? 'Y' : 'N'),
+        enableDevInternalYn: urlMode ? 'Y' : (devEl && devEl.checked ? 'Y' : 'N'),
         relayFormat: (pane.querySelector('#opsNpRelayFormat') || {}).value || 'RAW',
         relayMode: (pane.querySelector('#opsNpRelayMode') || {}).value || 'RELAY',
-        resultDeliveryMode: (pane.querySelector('#opsNpResultDelivery') || {}).value || 'AUTO',
-        callbackUrl: (pane.querySelector('#opsNpCallbackUrl') || {}).value || '',
-        resultUrl: (pane.querySelector('#opsNpResultUrl') || {}).value || '',
+        resultDeliveryMode: urlMode ? 'AUTO' : ((pane.querySelector('#opsNpResultDelivery') || {}).value || 'AUTO'),
+        callbackUrl: urlMode ? '' : ((pane.querySelector('#opsNpCallbackUrl') || {}).value || ''),
+        resultUrl: urlMode ? '' : ((pane.querySelector('#opsNpResultUrl') || {}).value || ''),
         dealmaiPartnerCode: (pane.querySelector('#opsNpDealmaiPartner') || {}).value || '__DEFAULT__',
-        enableDealmaiWebhookYn: (pane.querySelector('#opsNpEnableDealmaiWebhook') && pane.querySelector('#opsNpEnableDealmaiWebhook').checked) ? 'Y' : 'N',
+        enableDealmaiWebhookYn: urlMode ? 'Y' : ((pane.querySelector('#opsNpEnableDealmaiWebhook') && pane.querySelector('#opsNpEnableDealmaiWebhook').checked) ? 'Y' : 'N'),
         totpCode: (pane.querySelector('#opsNpProvisionOtp') || {}).value || '',
         adminLang: pgAdminLangParam()
       };
@@ -4054,7 +4226,7 @@
       npLogEditCtx.canWrite = canWrite;
       var configured = meta && meta.provisionConfigured === true;
       if (hint) hint.classList.toggle('d-none', configured);
-      ['#opsNpProvisionBtn', '#opsNpStatusBtn', '#opsNpLoadCtxBtn', '#opsNpCheckMidBtn', '#opsNpCheckSlotBtn', '#opsNpAutoSlotBtn'].forEach(function (sel) {
+      ['#opsNpProvisionBtn', '#opsNpStatusBtn', '#opsNpLoadCtxBtn', '#opsNpCheckMidBtn', '#opsNpCheckSlotBtn', '#opsNpAutoSlotBtn', '#opsNpListBulkDeleteBtn'].forEach(function (sel) {
         var b = pane.querySelector(sel);
         if (b) b.disabled = !canWrite;
       });
@@ -4127,6 +4299,66 @@
       listSearchCompEl._opsNpListBound = true;
       listSearchCompEl.addEventListener('keydown', function (ev) {
         if (ev.key === 'Enter') { ev.preventDefault(); loadOpsNpList(1); }
+      });
+    }
+    var listSelectAllEl = pane.querySelector('#opsNpListSelectAll');
+    if (listSelectAllEl && !listSelectAllEl._opsNpListBound) {
+      listSelectAllEl._opsNpListBound = true;
+      listSelectAllEl.addEventListener('change', function () {
+        var on = !!listSelectAllEl.checked;
+        pane.querySelectorAll('#opsNpListBody .ops-np-log-row-chk').forEach(function (chk) {
+          chk.checked = on;
+        });
+      });
+    }
+    function collectOpsNpSelectedLogIds() {
+      var ids = [];
+      pane.querySelectorAll('#opsNpListBody .ops-np-log-row-chk:checked').forEach(function (chk) {
+        var v = String(chk.value || '').trim();
+        if (v) ids.push(v);
+      });
+      return ids;
+    }
+    var listBulkDelBtn = pane.querySelector('#opsNpListBulkDeleteBtn');
+    if (listBulkDelBtn && !listBulkDelBtn._opsNpListBound) {
+      listBulkDelBtn._opsNpListBound = true;
+      listBulkDelBtn.addEventListener('click', function () {
+        if (!canWrite) {
+          alert(pgAdminUiT('노티관리 실행 권한이 없습니다(본사권한설정).'));
+          return;
+        }
+        var ids = collectOpsNpSelectedLogIds();
+        if (!ids.length) {
+          alert(pgAdminUiT('삭제할 이력을 선택하세요.'));
+          return;
+        }
+        if (!confirm(pgAdminUiT('선택한 노티 생성 이력과 NOTI 미들웨어 가맹을 삭제합니다. 계속하시겠습니까?') +
+            ' (' + ids.length + pgAdminUiT('건') + ')')) {
+          return;
+        }
+        var otpPrompt = '';
+        if (opsNpOtpRequired) {
+          otpPrompt = window.prompt(pgAdminUiT('삭제를 위해 Google OTP 6자리를 입력하세요.'));
+          if (otpPrompt == null || !String(otpPrompt).trim()) return;
+        }
+        if (!window.PG_API || typeof window.PG_API.opsNotiProvisionLogDeleteBulk !== 'function') {
+          alert(pgAdminUiT('API 미구성'));
+          return;
+        }
+        var dimm = document.getElementById('dimm');
+        if (dimm) dimm.style.display = 'flex';
+        window.PG_API.opsNotiProvisionLogDeleteBulk({
+          ids: ids,
+          totpCode: otpPrompt,
+          forceYn: 'Y'
+        }).then(function (res) {
+          loadOpsNpList(1);
+          var cnt = res && res.deletedCount != null ? Number(res.deletedCount) : ids.length;
+          var msg = pgAdminUiT(res.message || '선택한 노티 생성 이력이 삭제되었습니다. NOTI 미들웨어에서도 제거되었습니다.');
+          if (!isNaN(cnt) && cnt > 0) msg += ' (' + cnt + pgAdminUiT('건') + ')';
+          alert(msg);
+        }).catch(function (e) { alert(pgErrMsg(e, '삭제 실패')); })
+          .finally(function () { if (dimm) dimm.style.display = 'none'; });
       });
     }
     var listPrevBtn = pane.querySelector('#opsNpListPrevBtn');
@@ -4223,6 +4455,19 @@
       var el = pane.querySelector(sel);
       if (el) el.addEventListener('change', updateOpsNpRelayUi);
     });
+    var integModeEl = pane.querySelector('#opsNpIntegrationMode');
+    if (integModeEl && !integModeEl._opsNpModeBound) {
+      integModeEl._opsNpModeBound = true;
+      integModeEl.addEventListener('change', function () {
+        if (opsNpIsUrlIntegrationMode()) {
+          applyOpsNpUrlModePreset();
+        } else {
+          applyOpsNpApiModeDefaults();
+        }
+        applyOpsNpIntegrationModeUi();
+      });
+    }
+    applyOpsNpIntegrationModeUi();
     if (compIdEl && !compIdEl._opsNpCompBound) {
       compIdEl._opsNpCompBound = true;
       compIdEl.addEventListener('blur', function () {
@@ -4333,10 +4578,43 @@
         if (relayEl) relayEl.checked = remote.enableRelay != null ? !!remote.enableRelay : true;
         if (internalEl) internalEl.checked = remote.enableInternal != null ? !!remote.enableInternal : false;
         if (devEl) devEl.checked = remote.enableDevInternal != null ? !!remote.enableDevInternal : true;
+        var modeEl = modalEl.querySelector('#opsNpLogEditIntegrationMode');
+        var savedMode = data.integrationMode != null ? String(data.integrationMode).toUpperCase() : '';
+        var looksUrl = remote.enableRelay === false && remote.enableInternal !== true && remote.enableDevInternal !== false;
+        if (modeEl) modeEl.value = (savedMode === 'URL' || savedMode === 'API') ? savedMode : (looksUrl ? 'URL' : 'API');
+        function applyOpsNpLogEditModeUi() {
+          var urlMode = modeEl && String(modeEl.value || '').toUpperCase() === 'URL';
+          [relayEl, internalEl, devEl].forEach(function (el) { if (el) el.disabled = urlMode; });
+          if (cb) cb.disabled = urlMode;
+          if (rs) rs.disabled = urlMode;
+          if (urlMode) {
+            if (relayEl) relayEl.checked = false;
+            if (internalEl) internalEl.checked = false;
+            if (devEl) devEl.checked = true;
+            if (cb) cb.value = '';
+            if (rs) rs.value = '';
+          }
+        }
+        if (modeEl && !modeEl._opsNpLogModeBound) {
+          modeEl._opsNpLogModeBound = true;
+          modeEl.addEventListener('change', applyOpsNpLogEditModeUi);
+        }
+        applyOpsNpLogEditModeUi();
         var otpWrap = modalEl.querySelector('#opsNpLogEditOtpWrap');
-        if (otpWrap) otpWrap.classList.toggle('d-none', !opsNpOtpRequired);
         var otpEl = modalEl.querySelector('#opsNpLogEditOtp');
-        if (otpEl) otpEl.value = '';
+        if (otpWrap) {
+          otpWrap.classList.toggle('d-none', !opsNpOtpRequired);
+          otpWrap.classList.toggle('mb-2', !!opsNpOtpRequired);
+        }
+        if (otpEl) {
+          otpEl.disabled = !opsNpOtpRequired;
+          otpEl.value = '';
+          if (opsNpOtpRequired) {
+            setTimeout(function () {
+              try { otpEl.focus(); otpEl.select(); } catch (eOtpFocusOpen) {}
+            }, 150);
+          }
+        }
         if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
           try { window.PG_UI_I18N.applyDom(modalEl); } catch (eNpModI18n) {}
         }
@@ -22808,7 +23086,7 @@
           'presaleFilterEnabledYn', 'filterBuyerContactMismatchYn', 'filterHolderNameYn',
           'filterPhoneInvalidYn', 'filterEmailInvalidYn',
           'filterVelocityCardYn', 'filterVelocityEmailYn', 'filterVelocityIpYn',
-          'velocityWindowMinutes', 'velocityMaxAttempts', 'checkoutContactRememberDefaultYn',
+          'velocityWindowMinutes', 'velocityMaxAttempts',
           'postsaleCooldownJpayHighriskYn', 'postsaleCooldownJpayPy0124Yn'
         ].forEach(function (k) {
           var el = pane.querySelector('[name="' + k + '"]');
@@ -22827,7 +23105,7 @@
           'presaleFilterEnabledYn', 'filterBuyerContactMismatchYn', 'filterHolderNameYn',
           'filterPhoneInvalidYn', 'filterEmailInvalidYn',
           'filterVelocityCardYn', 'filterVelocityEmailYn', 'filterVelocityIpYn',
-          'velocityWindowMinutes', 'velocityMaxAttempts', 'checkoutContactRememberDefaultYn',
+          'velocityWindowMinutes', 'velocityMaxAttempts',
           'postsaleCooldownJpayHighriskYn', 'postsaleCooldownJpayPy0124Yn'
         ].forEach(function (k) {
           var el = pane.querySelector('[name="' + k + '"]');
@@ -23386,6 +23664,82 @@
             keyEl.removeAttribute('data-np-key-saved');
           }
         }
+        syncHqDefaultDealmaiPartnerLock(false);
+      }
+      function hqDefaultDealmaiPartnerEls() {
+        var input = pane.querySelector('[name="notiProvisionDefaultDealmaiPartner"]');
+        var btn = pane.querySelector('button[data-field="notiProvisionDefaultDealmaiPartner"]');
+        return { input: input, btn: btn };
+      }
+      function setHqDefaultDealmaiPartnerBtnLabel(btn, labelKey) {
+        if (!btn) return;
+        btn.setAttribute('data-action', labelKey);
+        var span = btn.querySelector('span[data-pg-ui-t]') || btn.querySelector('span');
+        if (span) {
+          span.setAttribute('data-pg-ui-t', labelKey);
+          span.textContent = pgAdminUiT(labelKey);
+        } else {
+          btn.textContent = pgAdminUiT(labelKey);
+        }
+      }
+      /** 값이 있으면 잠금(수정만 가능). editing=true 이면 잠금 해제. */
+      function syncHqDefaultDealmaiPartnerLock(editing) {
+        var els = hqDefaultDealmaiPartnerEls();
+        if (!els.input) return;
+        var val = String(els.input.value || '').trim();
+        if (val) {
+          els.input.setAttribute('data-locked-value', val);
+        }
+        var lockedVal = String(els.input.getAttribute('data-locked-value') || '').trim();
+        var hasSaved = !!lockedVal;
+        if (editing) {
+          els.input.readOnly = false;
+          els.input.disabled = false;
+          els.input.removeAttribute('data-editing');
+          els.input.setAttribute('data-editing', '1');
+          setHqDefaultDealmaiPartnerBtnLabel(els.btn, '저장');
+          return;
+        }
+        els.input.removeAttribute('data-editing');
+        if (hasSaved) {
+          els.input.value = lockedVal;
+          els.input.readOnly = true;
+          els.input.disabled = false;
+          setHqDefaultDealmaiPartnerBtnLabel(els.btn, '수정');
+        } else {
+          els.input.readOnly = false;
+          els.input.disabled = false;
+          setHqDefaultDealmaiPartnerBtnLabel(els.btn, '저장');
+        }
+      }
+      function saveHqDefaultDealmaiPartnerOnly() {
+        var els = hqDefaultDealmaiPartnerEls();
+        if (!els.input) return Promise.resolve();
+        var val = String(els.input.value || '').trim();
+        var prev = String(els.input.getAttribute('data-locked-value') || '').trim();
+        if (!val && prev) {
+          if (!window.confirm(pgAdminUiT('기본 Partner 코드를 비우시겠습니까?'))) {
+            els.input.value = prev;
+            return Promise.resolve();
+          }
+        }
+        if (!val && !prev) {
+          alert(pgAdminUiT('Partner 코드를 입력하세요.'));
+          return Promise.resolve();
+        }
+        var fd = { notiProvisionDefaultDealmaiPartner: val };
+        if (!val && prev) {
+          fd.clearDefaultDealmaiPartnerYn = 'Y';
+        }
+        if (dimmN) dimmN.style.display = 'flex';
+        return window.PG_API.hqNotifyEnvSave(fd).then(function (data) {
+          fillNotifyEnv(data);
+          alert(pgAdminUiT('기본 Partner 코드가 저장되었습니다.'));
+        }).catch(function (e) {
+          alert(pgErrMsg(e, '저장 실패'));
+        }).finally(function () {
+          if (dimmN) dimmN.style.display = 'none';
+        });
       }
       function fillHqNotiInternalTargets(list) {
         var tbody = pane.querySelector('#hqNotiInternalTargetTbody');
@@ -23466,11 +23820,26 @@
         hqNotifySave.addEventListener('click', function () {
           var fd = {};
           ['publicBaseUrl', 'notifyOkResponse', 'notiProvisionEnabledYn', 'notiProvisionBaseUrl',
-            'notiProvisionDefaultInternalTargetId', 'notiProvisionInternalTargetJpy', 'notiProvisionInternalTargetUsd',
-            'notiProvisionDefaultDealmaiPartner'].forEach(function (k) {
+            'notiProvisionDefaultInternalTargetId', 'notiProvisionInternalTargetJpy', 'notiProvisionInternalTargetUsd'].forEach(function (k) {
             var el = pane.querySelector('[name="' + k + '"]');
             if (el) fd[k] = el.value;
           });
+          /* 기본 Partner는 전용 [수정]/[저장]으로만 변경. 전체 저장 시 잠긴 값만 유지 전달(빈 값으로 덮지 않음). */
+          var defPartnerEl = pane.querySelector('[name="notiProvisionDefaultDealmaiPartner"]');
+          if (defPartnerEl) {
+            var locked = String(defPartnerEl.getAttribute('data-locked-value') || '').trim();
+            var editing = defPartnerEl.getAttribute('data-editing') === '1';
+            var cur = String(defPartnerEl.value || '').trim();
+            if (editing) {
+              if (cur) fd.notiProvisionDefaultDealmaiPartner = cur;
+              else if (locked) {
+                fd.notiProvisionDefaultDealmaiPartner = '';
+                fd.clearDefaultDealmaiPartnerYn = 'Y';
+              }
+            } else if (locked || cur) {
+              fd.notiProvisionDefaultDealmaiPartner = locked || cur;
+            }
+          }
           var npKeyEl = pane.querySelector('[name="notiProvisionApiKey"]');
           if (npKeyEl && String(npKeyEl.value || '').trim()) {
             fd.notiProvisionApiKey = npKeyEl.value;
@@ -23483,6 +23852,21 @@
             }
             return data;
           }).then(function (data) { alert(pgAdminUiT('저장되었습니다.')); }).catch(function (e) { alert(pgErrMsg(e, '저장 실패')); }).finally(function () { if (dimmN) dimmN.style.display = 'none'; });
+        });
+      }
+      var defaultDealmaiBtn = pane.querySelector('button[data-field="notiProvisionDefaultDealmaiPartner"]');
+      if (defaultDealmaiBtn && !defaultDealmaiBtn._hqDefaultDealmaiBound) {
+        defaultDealmaiBtn._hqDefaultDealmaiBound = true;
+        defaultDealmaiBtn.addEventListener('click', function () {
+          var els = hqDefaultDealmaiPartnerEls();
+          if (!els.input) return;
+          var action = String(defaultDealmaiBtn.getAttribute('data-action') || '').trim();
+          if (action === '수정') {
+            syncHqDefaultDealmaiPartnerLock(true);
+            try { els.input.focus(); els.input.select(); } catch (eF) {}
+            return;
+          }
+          saveHqDefaultDealmaiPartnerOnly();
         });
       }
       var hqNotifyRegen = pane.querySelector('#hqNotifyRegenTokenBtn');
@@ -23540,7 +23924,6 @@
           var delB = ev.target && ev.target.closest ? ev.target.closest('.hq-webhook-partner-del') : null;
           if (!delB || !pane.contains(delB)) return;
           var rid = delB.getAttribute('data-id') || '';
-          var pcode = delB.getAttribute('data-partner-code') || '';
           if (!rid || !window.confirm(pgAdminUiT('삭제하시겠습니까?'))) return;
           if (dimmN) dimmN.style.display = 'flex';
           window.PG_API.hqNotifyWebhookPartnerDelete(rid).then(function () {
@@ -23553,15 +23936,7 @@
             fillWebhookPartners(res[0]);
             fillNotifyEnv(res[1]);
             fillHqNotiInternalTargets(res[2]);
-            if (pcode) {
-              ['notiProvisionDefaultDealmaiPartner', 'notiProvisionDefaultInternalTargetId',
-                'notiProvisionInternalTargetJpy', 'notiProvisionInternalTargetUsd'].forEach(function (k) {
-                var el = pane.querySelector('[name="' + k + '"]');
-                if (el && String(el.value || '').trim().toLowerCase() === String(pcode).trim().toLowerCase()) {
-                  el.value = '';
-                }
-              });
-            }
+            /* Partner 삭제 시 서버가 동일 기본 Partner면 해제함. UI는 fillNotifyEnv로 동기화. */
           })
             .catch(function (e) { alert(pgErrMsg(e, '삭제 실패')); })
             .finally(function () { if (dimmN) dimmN.style.display = 'none'; });
@@ -31553,8 +31928,22 @@
             'mobileCheckoutModeDefault',
             'urlPayInputModeDefault',
             'urlPayCardExpiryModeDefault',
+            'cardAuthModeDefault',
+            'urlPayCompanyNameShowDefaultYn',
+            'urlPayLangMenuUseDefaultYn',
+            'checkoutContactRememberDefaultYn',
+            'webPaymentHeaderLogoModeDefault',
+            'webPaymentHeaderSubtitleModeDefault',
+            'urlPayShippingAddressUseDefaultYn',
+            'urlPayProductNameUseDefaultYn',
+            'urlPayDefaultProductName',
+            'urlPayDefaultProductCode',
+            'urlPayDefaultProductAmount',
+            'urlPayDefaultProductDesc',
             'apiUrlPayInputModeDefault',
             'apiWordpressPluginEnabledYn',
+            'urlPayRepayEnabledYn',
+            'urlPayRepayPathTemplate',
             'urlPayFormMode',
             'jpayCheckoutFieldMode',
             'urlPayTabTitleJson',
@@ -31579,6 +31968,7 @@
           initHqUrlPayFormChrome(pane);
           initHqUrlPayCardCopyEditor(pane);
           initHqJpayPortalAccountEditor(pane);
+          pgBindHqCheckoutDisplayProductUi(pane);
         }
       });
       var hqApiSave = pane.querySelector('#hqApiConfigSaveBtn') || pane.querySelector('#hqPaymentOrchSaveBtn');
@@ -33681,6 +34071,43 @@
         });
       }
     }
+    if (url === '/deploy/launchGuide' && !pane._launchGuideBound) {
+      pane._launchGuideBound = true;
+      (function initLaunchGuide(rootPane) {
+        var body = rootPane.querySelector('#pgLaunchGuideBody');
+        var pills = rootPane.querySelectorAll('[data-pg-guide-panel]');
+        if (!body || !pills.length) return;
+        function loadGuidePanel(panelKey, deployUrl) {
+          var urlDoc = deployUrl || '/deploy/launchChecklist';
+          body.setAttribute('formurl', urlDoc);
+          body._merchantPolicyOpenKitBtnBound = false;
+          if (window.PG_SCREENS && typeof window.PG_SCREENS.getScreenHtml === 'function') {
+            body.innerHTML = window.PG_SCREENS.getScreenHtml(urlDoc, 'launch_guide_body');
+          }
+          if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
+            try { window.PG_UI_I18N.applyDom(body); } catch (eG) { /* ignore */ }
+          }
+          try { bindScreenEvents(body, 'launch_guide_body'); } catch (eGb) { /* ignore */ }
+          pills.forEach(function (b) {
+            var on = b.getAttribute('data-pg-guide-panel') === panelKey;
+            b.classList.toggle('active', on);
+          });
+        }
+        rootPane.addEventListener('click', function (ev) {
+          var btn = ev.target && ev.target.closest ? ev.target.closest('[data-pg-guide-panel]') : null;
+          if (!btn || !rootPane.contains(btn)) return;
+          ev.preventDefault();
+          loadGuidePanel(btn.getAttribute('data-pg-guide-panel') || 'checklist', btn.getAttribute('data-pg-guide-url') || '');
+        });
+        var pref = rootPane.getAttribute('data-pg-guide-panel-pref') || 'checklist';
+        var prefBtn = rootPane.querySelector('[data-pg-guide-panel="' + pref + '"]');
+        if (prefBtn) {
+          loadGuidePanel(pref, prefBtn.getAttribute('data-pg-guide-url') || '');
+        } else {
+          loadGuidePanel('checklist', '/deploy/launchChecklist');
+        }
+      })(pane);
+    }
     if ((url === '/hq/merchantApiGenerate' || url === '/hq/merchantApiDeployKit') && !pane._merchantApiDeployKitBound) {
       pane._merchantApiDeployKitBound = true;
       initMerchantApiDeployKit(pane);
@@ -34069,6 +34496,37 @@
           alert(pgAdminUiT('강제 여부가 저장되었습니다: {YN}').replace(/\{YN\}/g, String(yn)));
           loadKit();
         }).catch(function (e) { alert(pgErrMsg(e, '저장 실패')); });
+      });
+    }
+    function resetIssueViewToList() {
+      if (compInput) compInput.value = '';
+      var qnmEl = pane.querySelector('#merchantDeploySearchCompNm');
+      if (qnmEl) qnmEl.value = '';
+      if (vendorSel) vendorSel.value = 'ALL';
+      var enfChk = pane.querySelector('#merchantDeployEnforceYn');
+      if (enfChk) enfChk.checked = true;
+      pane._merchantDeployKitFull = null;
+      pane._merchantDeployKitMode = 'json';
+      var sumEl = pane.querySelector('#merchantGenKitSummary');
+      if (sumEl) {
+        sumEl.classList.add('d-none');
+        sumEl.innerHTML = '';
+      }
+      var detailEl = pane.querySelector('#merchantDeployKitDetail');
+      if (detailEl) detailEl.classList.add('d-none');
+      var lbl = pane.querySelector('#merchantDeployKitLabel');
+      if (lbl) lbl.textContent = pgAdminUiT('연동 패키지 (JSON / PHP)');
+      if (kitPre) {
+        kitPre.innerHTML = '<span data-pg-ui-t="업체를 고른 뒤 JSON 또는 PHP 연동 패키지 버튼을 누르세요.">' +
+          pgAdminEscHtml(pgAdminUiT('업체를 고른 뒤 JSON 또는 PHP 연동 패키지 버튼을 누르세요.')) + '</span>';
+      }
+      loadMerchants(1);
+    }
+    var resetBtn = pane.querySelector('#merchantDeployIssueResetBtn');
+    if (resetBtn && !resetBtn._mdepBound) {
+      resetBtn._mdepBound = true;
+      resetBtn.addEventListener('click', function () {
+        resetIssueViewToList();
       });
     }
     fillVendorOptions();

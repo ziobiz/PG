@@ -322,14 +322,12 @@ public class HqBulkOpsService {
     }
 
     private String applyGlobalPolicy(HqBulkOpsPolicy policy, Long orgUnitId, String raw) {
+        /* orgUnitId: 호출부 시그니처 유지(총본사 제외 등은 상위에서 처리). 실효값은 mode만으로 전원 동일. */
         String mode = HqBulkOpsModes.normalizeMode(policy.getMode());
         return switch (mode) {
             case HqBulkOpsModes.MODE_FORCE_Y -> OrgUseYnUtil.Y;
             case HqBulkOpsModes.MODE_FORCE_N -> OrgUseYnUtil.N;
-            case HqBulkOpsModes.MODE_PAUSED -> {
-                Set<Long> snap = parseSnapshot(policy.getPauseSnapshotJson());
-                yield snap.contains(orgUnitId) ? OrgUseYnUtil.N : raw;
-            }
+            case HqBulkOpsModes.MODE_PAUSED -> OrgUseYnUtil.N;
             default -> raw;
         };
     }
@@ -340,6 +338,7 @@ public class HqBulkOpsService {
         String act = HqBulkOpsModes.normalizeAction(action);
         if (HqBulkOpsModes.ACTION_PAUSE.equals(act)) {
             policy.setMode(HqBulkOpsModes.MODE_PAUSED);
+            /* 감사·안내용: 당시 사용(Y) 이던 대상 기록. 실효 차단은 전원(PAUSED→N) */
             policy.setPauseSnapshotJson(writeSnapshot(pauseCollector.get()));
         } else if (HqBulkOpsModes.ACTION_RELEASE.equals(act)) {
             policy.setMode(HqBulkOpsModes.MODE_NONE);

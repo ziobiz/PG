@@ -6,13 +6,501 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '2.6';
+  var CURRENT_LIVE = '2.25';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '2.25',
+      kind: 'minor',
+      date: '2026-07-21',
+      items: {
+        KO: [
+          '노티 JPAY 자동 생성 시 icopayMeta.compName(업체명) 전달 — NOTI 가맹점 목록에 업체코드+업체명 동시 표시'
+        ],
+        EN: [
+          'JPAY NOTI provision sends icopayMeta.compName so the middleware merchant list shows company code + name'
+        ],
+        JP: [
+          'JPAYノティ自動作成で icopayMeta.compName（業者名）を送信 — NOTI加盟一覧に業者コード+業者名を表示'
+        ],
+        CH: [
+          'JPAY 通知自动创建时传递 icopayMeta.compName（商户名）— NOTI 商户列表同时显示商户代码与名称'
+        ],
+        TH: [
+          'สร้าง JPAY NOTI อัตโนมัติส่ง icopayMeta.compName — รายการร้านในมิดเดิลแวร์แสดงรหัส+ชื่อร้าน'
+        ]
+      }
+    },
+    {
+      version: '2.24',
+      kind: 'minor',
+      date: '2026-07-21',
+      items: {
+        KO: [
+          '노티관리 JPAY URL 방식: 대체송부=개발(가공)·개발노티 전용사용·가맹 URL 비움·DEALMAI 웹훅 ON으로 NOTI 미들웨어 설정',
+          'ICOPAY 노티 이력 삭제 시 NOTI 미들웨어 가맹도 삭제(PUT/DELETE API 연동)'
+        ],
+        EN: [
+          'NOTI mgmt JPAY URL mode: alt-send=dev processed, exclusive dev NOTI, empty merchant URLs, DEALMAI webhook ON in middleware',
+          'Deleting ICOPAY NOTI history also deletes the NOTI middleware merchant (PUT/DELETE API)'
+        ],
+        JP: [
+          'ノティ管理 JPAY URL方式: 代替送付=開発(加工)・開発ノティ専用・加盟URL空・DEALMAI Webhook ON をミドルウェアに設定',
+          'ICOPAYノティ履歴削除時にNOTIミドルウェア加盟も削除(PUT/DELETE API)'
+        ],
+        CH: [
+          '通知管理 JPAY URL 方式：替代发送=开发(加工)、专用开发通知、商户 URL 留空、DEALMAI Webhook ON 写入中间件',
+          'ICOPAY 删除通知履历时同步删除 NOTI 中间件商户（PUT/DELETE API）'
+        ],
+        TH: [
+          'จัดการ NOTI โหมด JPAY URL: ส่งแทน=dev ประมวลผล·ใช้ NOTI dev เท่านั้น·ว่าง URL ร้าน·เปิด DEALMAI webhook ในมิดเดิลแวร์',
+          'ลบประวัติ NOTI ใน ICOPAY แล้วลบร้านในมิดเดิลแวร์ด้วย (PUT/DELETE API)'
+        ]
+      }
+    },
+    {
+      version: '2.23',
+      kind: 'minor',
+      date: '2026-07-21',
+      items: {
+        KO: [
+          '가맹 「본사정책 따름」 수수료정책 변경 시 수수료관리 총본사·배분이 선택한 HQ 템플릿 값으로 즉시 반영(이전 이력 6.9 잔존 수정)'
+        ],
+        EN: [
+          'When merchant Follow HQ fee policy changes, commission mgmt HQ rates update from the selected template (fix stale history overlay)'
+        ],
+        JP: [
+          '加盟「本社ポリシーに従う」手数料政策変更時、手数料管理の総本部・配分が選択テンプレート値に即反映（旧履歴残存を修正）'
+        ],
+        CH: [
+          '商户「跟随总部」手续费政策变更时，手续费管理总总部/分成立即按所选总部模板更新（修复旧履历覆盖）'
+        ],
+        TH: [
+          'เมื่อร้านตามนโยบาย HQ เปลี่ยนนโยบายค่าธรรมเนียม หน้าจัดการค่าธรรมเนียมอัปเดตตามเทมเพลต HQ ทันที (แก้ประวัติเก่าค้าง)'
+        ]
+      }
+    },
+    {
+      version: '2.22',
+      kind: 'minor',
+      date: '2026-07-21',
+      items: {
+        KO: [
+          '가맹 「본사설정 따름」 경고메세지·로고: FOLLOW_HQ가 DEFAULT로 저장되던 버그 수정 → 본사 결제창 표시 기본값 그대로 노출'
+        ],
+        EN: [
+          'Merchant Follow HQ warning/logo: fix FOLLOW_HQ saved as DEFAULT so HQ checkout display defaults apply'
+        ],
+        JP: [
+          '加盟「本社設定に従う」警告・ロゴ: FOLLOW_HQがDEFAULT保存される不具合を修正→本社決済画面表示既定をそのまま表示'
+        ],
+        CH: [
+          '商户「跟随总部」警告/Logo：修复 FOLLOW_HQ 被存成 DEFAULT，使总部支付窗显示默认生效'
+        ],
+        TH: [
+          'ร้านตาม HQ ข้อความเตือน/โลโก้: แก้บั๊ก FOLLOW_HQ ถูกบันทึกเป็น DEFAULT ให้ค่าเริ่มต้น HQ แสดงตามจริง'
+        ]
+      }
+    },
+    {
+      version: '2.21',
+      kind: 'minor',
+      date: '2026-07-21',
+      items: {
+        KO: [
+          '결제창 표시 기본값: 상품명 사용「활성(직접입력)」시 본사 기본 상품(명·코드·금액·설명) 입력',
+          '가맹 「본사설정 따름」이면 본사 기본 상품 노출, 가맹 직접 설정 시 가맹 값 우선',
+          '리스크 필터링「자동기억 기본값」제거·결제창 표시 기본값으로 일원화(다국어)'
+        ],
+        EN: [
+          'Checkout display defaults: when Product name is Active (custom), enter HQ default product (name/code/amount/desc)',
+          'Merchants on Follow HQ see HQ default product; merchant override takes priority',
+          'Removed Auto-remember from Risk filtering; unified under checkout display defaults (i18n)'
+        ],
+        JP: [
+          '決済画面表示既定: 商品名「有効（直接入力）」時に本社基本商品（名・コード・金額・説明）入力',
+          '加盟店「本社設定に従う」なら本社基本商品を表示、直接設定時は加盟店優先',
+          'リスクフィルタの自動記憶既定を削除し決済画面表示既定に一元化（多言語）'
+        ],
+        CH: [
+          '支付窗显示默认：商品名「启用（自定义）」时可填写总部默认商品（名称/代码/金额/说明）',
+          '商户「跟随总部设置」时显示总部默认商品；商户自设优先',
+          '风险过滤移除自动记忆默认值，统一到支付窗显示默认（多语言）'
+        ],
+        TH: [
+          'ค่าเริ่มต้นการแสดงหน้าชำระ: เมื่อชื่อสินค้าเป็นเปิดใช้ (พิมพ์เอง) กรอกสินค้าเริ่มต้น HQ (ชื่อ/รหัส/ยอด/คำอธิบาย)',
+          'ร้านตาม HQ แสดงสินค้าเริ่มต้น HQ ห้าร้านตั้งเองจะเหนือกว่า',
+          'ลบจำอัตโนมัติออกจากกรองความเสี่ยง รวมที่ค่าเริ่มต้นการแสดง (หลายภาษา)'
+        ]
+      }
+    },
+    {
+      version: '2.20',
+      kind: 'minor',
+      date: '2026-07-21',
+      items: {
+        KO: [
+          '리스크설정 → 리스크 필터링: 「자동기억 기본값」 제거(본사정책 결제창 표시 기본값으로 일원화)'
+        ],
+        EN: [
+          'Risk settings → Risk filtering: remove Auto-remember default (unified under HQ checkout display defaults)'
+        ],
+        JP: [
+          'リスク設定→リスクフィルタ: 「自動記憶デフォルト」削除（本社決済画面表示既定に一元化）'
+        ],
+        CH: [
+          '风险设置 → 风险过滤：移除「自动记忆默认值」（统一到总部支付窗显示默认）'
+        ],
+        TH: [
+          'ตั้งค่าความเสี่ยง → กรองความเสี่ยง: ลบค่าเริ่มต้นจำอัตโนมัติ (รวมไว้ที่ค่าเริ่มต้นการแสดงหน้าชำระ HQ)'
+        ]
+      }
+    },
+    {
+      version: '2.19',
+      kind: 'minor',
+      date: '2026-07-21',
+      items: {
+        KO: [
+          '본사정책 결제 URL: 결제창 표시 기본값 카드(가맹점명·다국어·자동기억·로고·경고·배송주소·상품명)',
+          '가맹 웹결제: 위 7항목에 「본사설정 따름」 기본·가맹 직접 설정 시 본사보다 우선'
+        ],
+        EN: [
+          'HQ Payment URL: Checkout display defaults card (merchant name, language, remember, logo, warning, shipping, product name)',
+          'Merchant web pay: 7 items default to Follow HQ; merchant override takes priority'
+        ],
+        JP: [
+          '本社ポリシー決済URL: 決済画面表示既定カード（加盟店名・多言語・自動記憶・ロゴ・警告・配送・商品名）',
+          '加盟店ウェブ決済: 上記7項目は「本社設定に従う」既定、直接設定時は本社より優先'
+        ],
+        CH: [
+          '总部政策支付 URL：支付窗显示默认卡片（商户名·多语言·自动记忆·Logo·警告·配送·商品名）',
+          '商户网页支付：上述 7 项默认跟随总部；商户自选优先于总部'
+        ],
+        TH: [
+          'นโยบาย HQ URL ชำระ: การ์ดค่าเริ่มต้นการแสดง (ชื่อร้าน·ภาษา·จำ·โลโก้·เตือน·จัดส่ง·ชื่อสินค้า)',
+          'ชำระเว็บร้าน: 7 รายการเริ่มต้นตาม HQ ห้าร้านเลือกเองจะเหนือกว่า HQ'
+        ]
+      }
+    },
+    {
+      version: '2.18',
+      kind: 'minor',
+      date: '2026-07-21',
+      items: {
+        KO: [
+          '노티 생성 이력 수정: OTP 라벨, API↔URL 전환 저장(PUT·동일 슬롯 교체)로 NOTI 양방향 유지',
+          '노티 생성 이력 테이블: NOTI ID와 슬롯 사이에 방식(API/URL) 컬럼 추가'
+        ],
+        EN: [
+          'NOTI history edit: OTP label; API↔URL save via PUT/same-slot replace keeps NOTI bi-directional sync',
+          'NOTI history table: Method (API/URL) column between NOTI ID and Slot'
+        ],
+        JP: [
+          'ノティ作成履歴修正: OTPラベル、API↔URL切替保存(PUT・同一スロット入替)でNOTI双方向維持',
+          'ノティ作成履歴表: NOTI IDとスロットの間に方式(API/URL)列を追加'
+        ],
+        CH: [
+          'NOTI 创建历史修改：OTP 标签；API↔URL 保存（PUT/同槽替换）保持与 NOTI 双向同步',
+          'NOTI 创建历史表：在 NOTI ID 与槽位之间增加方式（API/URL）列'
+        ],
+        TH: [
+          'แก้ไขประวัติ NOTI: ป้าย OTP; บันทึกสลับ API↔URL (PUT/แทนที่สล็อตเดิม) ให้ซิงก์สองทางกับ NOTI',
+          'ตารางประวัติ NOTI: เพิ่มคอลัมน์วิธี (API/URL) ระหว่าง NOTI ID กับ Slot'
+        ]
+      }
+    },
+    {
+      version: '2.17',
+      kind: 'minor',
+      date: '2026-07-21',
+      items: {
+        KO: [
+          '노티 생성 이력: Notify URL→Callback, Callback URL→Result, 관리 복사 버튼 N복사→Callback·C복사→Result',
+          'JPAY 노티 생성: DEALMAI Partner 코드 입력창을 OTP보다 약 10% 넓은 폭으로 축소'
+        ],
+        EN: [
+          'NOTI history: Notify URL→Callback, Callback URL→Result; action copy buttons N→Callback, C→Result',
+          'JPAY NOTI create: shrink DEALMAI Partner field to ~10% wider than OTP'
+        ],
+        JP: [
+          'ノティ作成履歴: Notify URL→Callback、Callback URL→Result、管理コピー N→Callback・C→Result',
+          'JPAYノティ作成: DEALMAI Partnerコード入力をOTPより約10%広い幅に縮小'
+        ],
+        CH: [
+          'NOTI 创建历史：Notify URL→Callback，Callback URL→Result；管理复制按钮 N→Callback、C→Result',
+          'JPAY NOTI 创建：DEALMAI Partner 代码输入框缩至比 OTP 宽约 10%'
+        ],
+        TH: [
+          'ประวัติ NOTI: Notify URL→Callback, Callback URL→Result; ปุ่มคัดลอก N→Callback, C→Result',
+          'สร้าง JPAY NOTI: ย่อช่อง DEALMAI Partner ให้กว้างกว่า OTP ประมาณ 10%'
+        ]
+      }
+    },
+    {
+      version: '2.16',
+      kind: 'minor',
+      date: '2026-07-21',
+      items: {
+        KO: [
+          'JPAY 노티 생성 UI: 입력 행 여백 통일, OTP 라벨·좁은 입력칸, 안내문을 OTP 아래·버튼 위 여백 정리'
+        ],
+        EN: [
+          'JPAY NOTI create UI: even field spacing, OTP label + compact input, hint under OTP with space before actions'
+        ],
+        JP: [
+          'JPAYノティ作成UI: 入力行余白統一、OTPラベル・狭い入力、案内をOTP下・ボタン前余白整理'
+        ],
+        CH: [
+          'JPAY NOTI 创建 UI：统一输入行间距，OTP 标签与窄输入框，说明置于 OTP 下方并与按钮留白'
+        ],
+        TH: [
+          'UI สร้าง JPAY NOTI: ระยะห่างช่องกรอกสม่ำเสมอ ป้าย OTP + ช่องแคบ คำอธิบายใต้ OTP และเว้นก่อนปุ่ม'
+        ]
+      }
+    },
+    {
+      version: '2.15',
+      kind: 'minor',
+      date: '2026-07-21',
+      items: {
+        KO: [
+          '노티 생성 이력: 업체코드·조회·삭제를 한 줄로 배치, 행 선택·일괄삭제(OTP)',
+          'Notify/Callback URL 컬럼명(JPAY 제거), URL 셀 복사 링크 제거 → 관리에 N복사·C복사',
+          '이력 테이블 컬럼 단축: NOTI ID, 슬롯, DEALMAI'
+        ],
+        EN: [
+          'NOTI history: one-line company code / Search / Delete; row select + bulk delete (OTP)',
+          'Notify/Callback URL headers (drop JPAY); remove in-cell Copy → N Copy / C Copy in Actions',
+          'History table shorter headers: NOTI ID, Slot, DEALMAI'
+        ],
+        JP: [
+          'ノティ作成履歴: 業者コード・照会・削除を1行配置、行選択・一括削除(OTP)',
+          'Notify/Callback URL列名(JPAY削除)、セル内コピー除去→管理にNコピー・Cコピー',
+          '履歴テーブル列短縮: NOTI ID、スロット、DEALMAI'
+        ],
+        CH: [
+          'NOTI 创建历史：商户代码/查询/删除同一行；行选择与批量删除(OTP)',
+          'Notify/Callback URL 列名（去掉 JPAY）；单元格内复制改为管理栏 N复制/C复制',
+          '历史表列名缩短：NOTI ID、槽位、DEALMAI'
+        ],
+        TH: [
+          'ประวัติ NOTI: รหัสร้าน/ค้นหา/ลบในบรรทัดเดียว; เลือกแถว+ลบหลายรายการ (OTP)',
+          'หัวคอลัมน์ Notify/Callback (ตัด JPAY); เอา Copy ในเซลล์ออก → Nคัดลอก/Cคัดลอก ที่จัดการ',
+          'ย่อหัวตารางประวัติ: NOTI ID, สล็อต, DEALMAI'
+        ]
+      }
+    },
+    {
+      version: '2.14',
+      kind: 'minor',
+      date: '2026-07-21',
+      items: {
+        KO: [
+          '노티 생성 이력 수정: 동일 가맹에서 연동방식 API↔URL 전환 저장 허용(설정 충돌 시 동일 슬롯 재등록)',
+          'JPAY 노티 생성·수정: 연동방식 아래 안내 문구 배치, 가맹·전산·개발 노티를 카드로 노출',
+          'JPAY 연동방식·노티 카드·OTP·Partner 잠금 관련 UI·오류 문구 다국어(EN/JP/CH/TH)',
+          '노티 생성 이력 수정 OTP 입력창 표시·다국어 — Google OTP(노티관리) 안내'
+        ],
+        EN: [
+          'NOTI log edit: allow same merchant API↔URL integration mode switch (re-register same slot on settings conflict)',
+          'JPAY NOTI create/edit: place mode hint under Integration mode; show merchant/internal/dev notify as cards',
+          'i18n (EN/JP/CH/TH) for JPAY integration mode, NOTI cards, OTP, and Partner lock UI/errors',
+          'NOTI log edit OTP field visibility and i18n — Google OTP (NOTI management) prompts'
+        ],
+        JP: [
+          'ノティ生成履歴修正: 同一加盟店で連携方式API↔URL切替保存を許可（設定衝突時は同一スロット再登録）',
+          'JPAYノティ作成・修正: 連携方式の下に説明文、加盟店・電算・開発ノティをカード表示',
+          'JPAY連携方式・ノティカード・OTP・Partnerロック関連UI・エラーの多言語(EN/JP/CH/TH)',
+          'ノティ生成履歴修正のOTP入力表示・多言語 — Google OTP（ノティ管理）案内'
+        ],
+        CH: [
+          'NOTI 生成履历修改：同一商户允许 API↔URL 对接方式切换保存（设置冲突时同槽位重新注册）',
+          'JPAY NOTI 创建/修改：对接方式下方显示说明，商户/系统/开发 NOTI 以卡片展示',
+          'JPAY 对接方式、NOTI 卡片、OTP、Partner 锁定相关 UI/错误的多语言(EN/JP/CH/TH)',
+          'NOTI 履历修改 OTP 输入显示与多语言 — Google OTP（NOTI 管理）提示'
+        ],
+        TH: [
+          'แก้ไขประวัติ NOTI: อนุญาตสลับโหมด API↔URL ของร้านเดิม (ลงทะเบียนสล็อตเดิมใหม่เมื่อตั้งค่าชนกัน)',
+          'สร้าง/แก้ไข JPAY NOTI: วางคำอธิบายใต้โหมดเชื่อมต่อ และแสดง NOTI ร้าน/ระบบ/dev เป็นการ์ด',
+          'i18n (EN/JP/CH/TH) สำหรับโหมดเชื่อมต่อ JPAY การ์ด NOTI OTP และล็อก Partner',
+          'แสดงช่อง OTP และ i18n ในแก้ไขประวัติ — คำแนะนำ Google OTP (จัดการ NOTI)'
+        ]
+      }
+    },
+    {
+      version: '2.13',
+      kind: 'minor',
+      date: '2026-07-21',
+      items: {
+        KO: [
+          '노티구성설정: 기본 DEALMAI Partner 코드 잠금·[수정]/[저장] — 전체 저장으로 값이 비워지지 않도록 보강'
+        ],
+        EN: [
+          'Notify config: lock default DEALMAI Partner code with Edit/Save — page Save no longer clears it'
+        ],
+        JP: [
+          'ノティ構成: 既定DEALMAI Partnerコードをロック・[修正]/[保存] — 画面全体保存で空にならないよう補強'
+        ],
+        CH: [
+          '通知环境：默认 DEALMAI Partner 代码锁定及[修改]/[保存] — 整页保存不会再清空'
+        ],
+        TH: [
+          'ตั้งค่าแจ้งเตือน: ล็อกรหัส DEALMAI Partner เริ่มต้น + แก้ไข/บันทึก — บันทึกทั้งหน้าจะไม่ล้างค่า'
+        ]
+      }
+    },
+    {
+      version: '2.12',
+      kind: 'minor',
+      date: '2026-07-21',
+      items: {
+        KO: [
+          'JPAY 노티 생성: 연동방식(API/URL) 추가 — URL이면 가맹·전산·개발 노티 UI 잠금, 가맹 포워딩 끔·개발 대체 URL·RESULT AUTO·RouteNo=슬롯 자동'
+        ],
+        EN: [
+          'JPAY NOTI provision: add integration mode (API/URL) — URL locks merchant/ledger/dev NOTI UI and auto-applies merchant-forward off, Dev alt URLs, RESULT AUTO, RouteNo=slot'
+        ],
+        JP: [
+          'JPAYノティ作成: 連携方式(API/URL)追加 — URL時は加盟・全算・開発ノティUIをロックし、転送OFF・開発代替URL・RESULT AUTO・RouteNo=スロットを自動適用'
+        ],
+        CH: [
+          'JPAY NOTI 创建：新增对接方式(API/URL) — URL 时锁定商户/账务/开发 NOTI UI，并自动应用关闭商户转发、开发替代 URL、RESULT AUTO、RouteNo=槽位'
+        ],
+        TH: [
+          'สร้าง JPAY NOTI: เพิ่มโหมดเชื่อมต่อ (API/URL) — โหมด URL ล็อก UI NOTI ร้าน/บัญชี/dev และตั้ง forward ปิด, URL Dev แทน, RESULT AUTO, RouteNo=สล็อต อัตโนมัติ'
+        ]
+      }
+    },
+    {
+      version: '2.11',
+      kind: 'minor',
+      date: '2026-07-21',
+      items: {
+        KO: [
+          'JPAY 노티 생성: 발급 URL을 가맹 JPAY 수신통보에 강제 저장(검증)하고, 미반영 시 업체 상세 조회에서 이력으로 자동 보강'
+        ],
+        EN: [
+          'JPAY NOTI provision: force-save issued URLs to merchant JPAY receive fields (verified); auto-backfill from provision log on merchant detail if empty'
+        ],
+        JP: [
+          'JPAYノティ生成: 発行URLを加盟JPAY受信へ強制保存(検証)。未反映時は加盟詳細で履歴から自動補完'
+        ],
+        CH: [
+          'JPAY 通知创建：强制将签发 URL 写入商户 JPAY 接收字段并校验；若未写入，商户详情从创建历史自动补全'
+        ],
+        TH: [
+          'สร้าง JPAY NOTI: บังคับบันทึก URL ที่ออกไปยัง JPAY รับของร้าน (ตรวจแล้ว); ถ้ายังว่าง เติมจากประวัติเมื่อเปิดรายละเอียดร้าน'
+        ]
+      }
+    },
+    {
+      version: '2.10',
+      kind: 'minor',
+      date: '2026-07-21',
+      items: {
+        KO: [
+          '가맹 API 키·문서: 「강제여부 저장」옆 「발급초기화」— 시크릿 재발급·키트 조회 후 목록 초기 화면으로 복귀'
+        ],
+        EN: [
+          'Merchant API keys: 「Reset issue」 next to Save enforce — return to merchant list after secret rotate / kit view'
+        ],
+        JP: [
+          '加盟店APIキー: 「強制可否保存」横の「発行初期化」— シークレット再発行・キット表示後に一覧へ戻る'
+        ],
+        CH: [
+          '商户 API 密钥：在「保存强制」旁增加「发行重置」— 重新发密钥/查看套件后回到列表初始画面'
+        ],
+        TH: [
+          'คีย์ Merchant API: 「รีเซ็ตการออกคีย์」ข้างบันทึกบังคับ — กลับหน้ารายการหลังออก secret/ดูชุด'
+        ]
+      }
+    },
+    {
+      version: '2.9',
+      kind: 'minor',
+      date: '2026-07-21',
+      items: {
+        KO: [
+          '가맹 API 출시: 우측 출시 가이드 패널 제거 → 「API 문서」옆 「출시 가이드」탭으로 이동',
+          '공통설정·가맹 등록·키·문서·API 문서 화면을 전폭으로 사용'
+        ],
+        EN: [
+          'Merchant API launch: move side launch guide into a full-width 「Launch guide」 tab next to API docs',
+          'Common / register / keys / API docs steps use full width'
+        ],
+        JP: [
+          '加盟店API公開: 右側ガイドを廃止し「API文書」隣の「公開ガイド」タブへ移設',
+          '共通・加盟登録・キー・API文書を全幅表示'
+        ],
+        CH: [
+          '商户 API 发布：取消右侧发布指南，改为「API 文档」旁的「发布指南」全宽标签',
+          '通用/注册/密钥/API 文档步骤使用全宽'
+        ],
+        TH: [
+          'เปิดใช้ Merchant API: ย้ายคู่มือด้านขวาไปแท็บ「คู่มือเปิดใช้」ข้างเอกสาร API แบบเต็มความกว้าง',
+          'ขั้นตอนตั้งค่า/ลงทะเบียน/คีย์/เอกสาร API ใช้พื้นที่เต็มความกว้าง'
+        ]
+      }
+    },
+    {
+      version: '2.8',
+      kind: 'minor',
+      date: '2026-07-21',
+      items: {
+        KO: [
+          'JPAY 노티 생성: 발급 Notify/Callback URL을 가맹점 JPAY 수신통보 URL에 다시 자동 반영(응답 필드 누락 시 슬롯 기준 조립)',
+          '업체 수정: JPAY 수신통보 URL 미전달·카드 미노출 시 기존 URL이 지워지지 않도록 보존'
+        ],
+        EN: [
+          'JPAY NOTI provision: auto-write issued Notify/Callback URLs to merchant JPAY receive URLs again (build from slot if response omits fields)',
+          'Merchant update: keep existing JPAY receive URLs when params omitted or the card is hidden'
+        ],
+        JP: [
+          'JPAYノティ生成: 発行Notify/Callback URLを加盟JPAY受信通知URLへ再自動反映（応答欠落時はスロットから組立）',
+          '加盟更新: JPAY受信URL未送信・カード非表示時に既存URLを消さない'
+        ],
+        CH: [
+          'JPAY 通知创建：再次将签发的 Notify/Callback URL 自动写入商户 JPAY 接收通知 URL（响应缺字段时按槽位组装）',
+          '商户更新：未传参或卡片不可见时保留既有 JPAY 接收 URL'
+        ],
+        TH: [
+          'สร้าง JPAY NOTI: เขียน Notify/Callback ที่ออกให้ลง URL รับแจ้ง JPAY ของร้านอีกครั้ง (ประกอบจากสล็อตถ้า response ไม่มีฟิลด์)',
+          'แก้ร้าน: คง URL รับ JPAY เดิมเมื่อไม่ส่งพารามิเตอร์หรือซ่อนการ์ด'
+        ]
+      }
+    },
+    {
+      version: '2.7',
+      kind: 'minor',
+      date: '2026-07-21',
+      items: {
+        KO: [
+          '일괄운영(가맹점사용제한·URL결제제한): 사용·미사용·일시중지를 미사용 가맹 포함 전원에 적용',
+          '일시중지 중 개별 「웹결제 사용」으로 우회 불가. 가맹 DB는 유지하며 중지해제 시 원래 사용/미사용으로 복귀'
+        ],
+        EN: [
+          'Bulk ops (org use / URL pay): Use, Not use, and Temporary suspend apply to all merchants including previously unused',
+          'No bypass via individual web-pay=Y while paused; merchant DB kept; Release restores original use/unused'
+        ],
+        JP: [
+          '一括運用(加盟使用・URL決済): 使用・未使用・一時停止を未使用加盟含む全員に適用',
+          '一時停止中の個別ウェブ決済=使用での回避不可。加盟DBは保持し、停止解除で元の使用/未使用に復帰'
+        ],
+        CH: [
+          '批量运营(商户使用/URL支付)：使用、未使用、临时暂停适用于含原本未使用在内的全部商户',
+          '暂停期间不可用单独网页支付=使用绕过；保留商户库值；解除后恢复原有使用/未使用'
+        ],
+        TH: [
+          'ปฏิบัติการชุด (ใช้ร้าน/URL): ใช้/ไม่ใช้/ระงับชั่วคราวใช้กับร้านทั้งหมดรวมที่เดิมไม่ใช้',
+          'ระหว่างระงับหลบด้วยเว็บชำระ=ใช้ไม่ได้ คงค่า DB ของร้าน เมื่อยกเลิกระงับกลับสู่ใช้/ไม่ใช้เดิม'
+        ]
+      }
+    },
     {
       version: '2.6',
       kind: 'minor',

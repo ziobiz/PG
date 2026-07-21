@@ -1,27 +1,25 @@
 package com.pg.service;
 
-import com.pg.entity.HqRiskCardPolicy;
-import com.pg.entity.MerchantProfile;
-import com.pg.repository.MerchantProfileRepository;
+import com.pg.entity.HqApiConfig;
+import com.pg.repository.HqApiConfigRepository;
+import com.pg.urlpay.UrlPayCheckoutDisplayPolicyService;
+import com.pg.urlpay.UrlPayFollowHqYnUtil;
 import org.springframework.stereotype.Service;
-
-import java.util.Locale;
-import java.util.Optional;
 
 @Service
 public class PayContactRememberPolicyService {
 
-    public static final String MODE_FOLLOW_HQ = "FOLLOW_HQ";
-    public static final String MODE_Y = "Y";
-    public static final String MODE_N = "N";
+    public static final String MODE_FOLLOW_HQ = UrlPayFollowHqYnUtil.FOLLOW_HQ;
+    public static final String MODE_Y = UrlPayFollowHqYnUtil.Y;
+    public static final String MODE_N = UrlPayFollowHqYnUtil.N;
 
-    private final HqRiskCardPolicyService hqRiskCardPolicyService;
-    private final MerchantProfileRepository merchantProfileRepository;
+    private final UrlPayCheckoutDisplayPolicyService checkoutDisplayPolicyService;
+    private final HqApiConfigRepository hqApiConfigRepository;
 
-    public PayContactRememberPolicyService(HqRiskCardPolicyService hqRiskCardPolicyService,
-                                           MerchantProfileRepository merchantProfileRepository) {
-        this.hqRiskCardPolicyService = hqRiskCardPolicyService;
-        this.merchantProfileRepository = merchantProfileRepository;
+    public PayContactRememberPolicyService(UrlPayCheckoutDisplayPolicyService checkoutDisplayPolicyService,
+                                           HqApiConfigRepository hqApiConfigRepository) {
+        this.checkoutDisplayPolicyService = checkoutDisplayPolicyService;
+        this.hqApiConfigRepository = hqApiConfigRepository;
     }
 
     public boolean isEnabledForOrgUnit(Long orgUnitId) {
@@ -32,30 +30,19 @@ public class PayContactRememberPolicyService {
         if (MODE_Y.equals(mode)) {
             return true;
         }
-        HqRiskCardPolicy hq = hqRiskCardPolicyService.getOrCreate();
-        return "Y".equalsIgnoreCase(trim(hq.getCheckoutContactRememberDefaultYn()));
+        return "Y".equalsIgnoreCase(hqRememberDefaultYn());
     }
 
     public String resolveMode(Long orgUnitId) {
-        if (orgUnitId == null) {
-            return MODE_FOLLOW_HQ;
-        }
-        Optional<MerchantProfile> mp = merchantProfileRepository.findByOrgUnitId(orgUnitId);
-        if (mp.isEmpty()) {
-            return MODE_FOLLOW_HQ;
-        }
-        String raw = mp.get().getCheckoutContactRememberMode();
-        if (raw == null || raw.isBlank()) {
-            return MODE_FOLLOW_HQ;
-        }
-        String u = raw.trim().toUpperCase(Locale.ROOT);
-        if (MODE_Y.equals(u) || MODE_N.equals(u)) {
-            return u;
-        }
-        return MODE_FOLLOW_HQ;
+        return checkoutDisplayPolicyService.effectiveRememberMode(orgUnitId);
     }
 
-    private static String trim(String s) {
-        return s == null ? "" : s.trim();
+    /** 본사 기본은 결제 URL 「결제창 표시 기본값」만 사용 */
+    private String hqRememberDefaultYn() {
+        HqApiConfig hq = hqApiConfigRepository.findAll().stream().findFirst().orElse(null);
+        if (hq == null) {
+            return MODE_Y;
+        }
+        return UrlPayFollowHqYnUtil.normalizeHqDefault(hq.getCheckoutContactRememberDefaultYn(), "Y");
     }
 }

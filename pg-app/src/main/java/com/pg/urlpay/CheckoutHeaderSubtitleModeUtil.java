@@ -6,6 +6,7 @@ import java.util.Set;
 /** 결제창 상단 경고·안내 문구 모드 (웹결제·URL 분할결제 공통) */
 public final class CheckoutHeaderSubtitleModeUtil {
 
+    public static final String FOLLOW_HQ = "FOLLOW_HQ";
     public static final String DEFAULT = "DEFAULT";
     public static final String DISABLED = "DISABLED";
     /** 가맹 직접 입력 */
@@ -22,6 +23,7 @@ public final class CheckoutHeaderSubtitleModeUtil {
     private CheckoutHeaderSubtitleModeUtil() {
     }
 
+    /** 결제창 실효 모드(FOLLOW_HQ 제외) */
     public static String normalize(String raw) {
         if (raw == null || raw.isBlank()) {
             return DEFAULT;
@@ -34,8 +36,29 @@ public final class CheckoutHeaderSubtitleModeUtil {
             case ACTIVE_CONFIRM, "CONFIRM", "CONFIRM_REMIND" -> ACTIVE_CONFIRM;
             case ACTIVE_APPROVAL, "APPROVAL", "SMOOTH_APPROVAL" -> ACTIVE_APPROVAL;
             case ACTIVE_FAIL, "FAIL", "FAIL_STABLE", "FAIL_WARN" -> ACTIVE_FAIL;
+            case FOLLOW_HQ, "HQ" -> DEFAULT;
             default -> DEFAULT;
         };
+    }
+
+    /** 가맹 DB 저장 — FOLLOW_HQ 유지 */
+    public static String normalizeMerchantStored(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return FOLLOW_HQ;
+        }
+        String u = raw.trim().toUpperCase(Locale.ROOT);
+        if (FOLLOW_HQ.equals(u) || "HQ".equals(u)) {
+            return FOLLOW_HQ;
+        }
+        return normalize(u);
+    }
+
+    public static String resolveEffective(String merchantStored, String hqDefault) {
+        String stored = normalizeMerchantStored(merchantStored);
+        if (!FOLLOW_HQ.equals(stored)) {
+            return stored;
+        }
+        return normalize(hqDefault != null ? hqDefault : DEFAULT);
     }
 
     public static boolean isPreset(String mode) {

@@ -44,6 +44,10 @@ public class NotiProvisionLog {
     @Column(name = "dealmai_partner_code", length = 64)
     private String dealmaiPartnerCode;
 
+    /** API | URL */
+    @Column(name = "integration_mode", length = 8)
+    private String integrationMode = "API";
+
     /** Y=NOTI 신규 생성, N=기존 동일 */
     @Column(name = "created_flag", length = 1)
     private String createdFlag = "Y";
@@ -85,6 +89,8 @@ public class NotiProvisionLog {
     public void setJpayCallbackUrl(String jpayCallbackUrl) { this.jpayCallbackUrl = jpayCallbackUrl; }
     public String getDealmaiPartnerCode() { return dealmaiPartnerCode; }
     public void setDealmaiPartnerCode(String dealmaiPartnerCode) { this.dealmaiPartnerCode = dealmaiPartnerCode; }
+    public String getIntegrationMode() { return integrationMode; }
+    public void setIntegrationMode(String integrationMode) { this.integrationMode = integrationMode; }
     public String getCreatedFlag() { return createdFlag; }
     public void setCreatedFlag(String createdFlag) { this.createdFlag = createdFlag; }
     public String getProvisionedBy() { return provisionedBy; }

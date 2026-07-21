@@ -586,7 +586,17 @@ public class HqNotifyEnvService {
         }
         if (body.containsKey("notiProvisionDefaultDealmaiPartner")) {
             String p = String.valueOf(body.get("notiProvisionDefaultDealmaiPartner")).trim();
-            c.setNotiProvisionDefaultDealmaiPartner(p.isEmpty() ? null : p);
+            boolean forceClear = "Y".equalsIgnoreCase(String.valueOf(
+                    body.getOrDefault("clearDefaultDealmaiPartnerYn", "")).trim());
+            if (p.isEmpty()) {
+                /* 빈 값으로 덮어쓰지 않음 — 실수로 기본 Partner가 사라지는 것 방지.
+                   의도적 삭제는 clearDefaultDealmaiPartnerYn=Y 또는 Partner 삭제 시만. */
+                if (forceClear) {
+                    c.setNotiProvisionDefaultDealmaiPartner(null);
+                }
+            } else {
+                c.setNotiProvisionDefaultDealmaiPartner(p);
+            }
         }
         if (body.containsKey("notiProvisionApiKey")) {
             String k = String.valueOf(body.get("notiProvisionApiKey")).trim();

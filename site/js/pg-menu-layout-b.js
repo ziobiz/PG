@@ -135,9 +135,11 @@
       { step: 'common', url: '/hq/apiConfig', menuId: 'M0103', label: '① 공통설정' },
       { step: 'register', url: '/hq/apiMerchantDeployReg', menuId: 'M0906', label: '② 가맹 등록' },
       { step: 'issue', url: '/hq/merchantApiGenerate', menuId: 'M0905', label: '③ 키·문서' },
-      { step: 'docs', url: '/hq/merchantApiDeployDocs', menuId: 'M0907', label: 'API 문서' }
+      { step: 'docs', url: '/hq/merchantApiDeployDocs', menuId: 'M0907', label: 'API 문서' },
+      { step: 'guide', url: '/deploy/launchGuide', menuId: 'M0904', label: '출시 가이드' }
     ],
-    helpPanels: [
+    /** 출시 가이드 탭 내부 서브패널 (우측 사이드바 대신 전폭 탭) */
+    guidePanels: [
       { panel: 'checklist', deployUrl: '/deploy/launchChecklist', menuId: 'M0904', label: '배포 체크리스트' },
       { panel: 'integration', deployUrl: '/deploy/integrationPlan', menuId: 'M0901', label: '연동 진행안' },
       { panel: 'jpay', deployUrl: '/deploy/jpayWorkPlan', menuId: 'M0902', label: 'JPAY 전용 연동' },
@@ -165,11 +167,15 @@
   registerHub(PLATFORM_HUB);
   registerHub(MERCHANT_API_HUB);
 
-  ['/deploy/integrationPlan', '/deploy/jpayWorkPlan', '/deploy/merchantApiPolicy', '/deploy/launchChecklist',
-    '/ops/integrationPlan', '/ops/jpayWorkPlan', '/ops/merchantApiPolicy', '/ops/launchChecklist'
-  ].forEach(function (u) {
-    leafRedirect[u] = '/hq/hub/merchant-api?step=issue&panel=checklist';
-  });
+  leafRedirect['/deploy/launchChecklist'] = '/hq/hub/merchant-api?step=guide&panel=checklist';
+  leafRedirect['/ops/launchChecklist'] = '/hq/hub/merchant-api?step=guide&panel=checklist';
+  leafRedirect['/deploy/integrationPlan'] = '/hq/hub/merchant-api?step=guide&panel=integration';
+  leafRedirect['/ops/integrationPlan'] = '/hq/hub/merchant-api?step=guide&panel=integration';
+  leafRedirect['/deploy/jpayWorkPlan'] = '/hq/hub/merchant-api?step=guide&panel=jpay';
+  leafRedirect['/ops/jpayWorkPlan'] = '/hq/hub/merchant-api?step=guide&panel=jpay';
+  leafRedirect['/deploy/merchantApiPolicy'] = '/hq/hub/merchant-api?step=guide&panel=policy';
+  leafRedirect['/ops/merchantApiPolicy'] = '/hq/hub/merchant-api?step=guide&panel=policy';
+  leafRedirect['/deploy/launchGuide'] = '/hq/hub/merchant-api?step=guide';
 
   function uiT(s) {
     if (global.PG_UI_I18N && typeof global.PG_UI_I18N.t === 'function') return global.PG_UI_I18N.t(String(s));

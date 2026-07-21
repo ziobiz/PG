@@ -172,7 +172,7 @@ public class MerchantProfile {
      * 웹결제(URL·JPAY) 결제창 상단 로고 — {@link com.pg.urlpay.WebPaymentHeaderLogoModeUtil}.
      */
     @Column(name = "web_payment_header_logo_mode", nullable = false, length = 16)
-    private String webPaymentHeaderLogoMode = "DEFAULT";
+    private String webPaymentHeaderLogoMode = "FOLLOW_HQ";
 
     /** 웹결제 상단 로고 URL — mode=ACTIVE 일 때 가맹 업로드 */
     @Column(name = "web_payment_header_logo_url", length = 500)
@@ -183,10 +183,10 @@ public class MerchantProfile {
     private String webPaymentHeaderHtmlTitle;
 
     /**
-     * 웹결제 결제창 로고 아래 경고/안내 문구 — {@link com.pg.urlpay.WebPaymentHeaderLogoModeUtil}.
+     * 웹결제 결제창 로고 아래 경고/안내 문구 — {@link com.pg.urlpay.CheckoutHeaderSubtitleModeUtil}.
      */
     @Column(name = "web_payment_header_subtitle_mode", nullable = false, length = 16)
-    private String webPaymentHeaderSubtitleMode = "DEFAULT";
+    private String webPaymentHeaderSubtitleMode = "FOLLOW_HQ";
 
     /** 웹결제 상단 경고문구 — mode=ACTIVE 일 때 가맹 입력 */
     @Column(name = "web_payment_header_subtitle_text", length = 200)
@@ -199,25 +199,25 @@ public class MerchantProfile {
     @Column(name = "url_pay_checkout_mode", nullable = false, length = 16)
     private String urlPayCheckoutMode = "STANDARD";
 
-    /** URL 결제창 상품명 입력·표시 — Y=사용, N=미사용(결제창에서 숨김) */
-    @Column(name = "url_pay_product_name_use_yn", nullable = false, length = 1)
-    private String urlPayProductNameUseYn = "Y";
+    /** URL 결제창 상품명 — FOLLOW_HQ | Y | N */
+    @Column(name = "url_pay_product_name_use_yn", nullable = false, length = 16)
+    private String urlPayProductNameUseYn = "FOLLOW_HQ";
 
-    /** URL·공개 결제창(jpay-pay.html 등) — 가맹점명(Merchant) 행 표시 여부. N=비활성(화면만 숨김, 결제 전문은 유지) */
-    @Column(name = "url_pay_company_name_show_yn", nullable = false, length = 1)
-    private String urlPayCompanyNameShowYn = "Y";
+    /** URL 결제창 가맹점명 — FOLLOW_HQ | Y | N */
+    @Column(name = "url_pay_company_name_show_yn", nullable = false, length = 16)
+    private String urlPayCompanyNameShowYn = "FOLLOW_HQ";
 
-    /** URL 결제창 다국어 변경 메뉴 — Y=표시, N=브라우저 언어 자동(메뉴 숨김) */
-    @Column(name = "url_pay_lang_menu_use_yn", nullable = false, length = 1)
-    private String urlPayLangMenuUseYn = "Y";
+    /** URL 결제창 다국어 메뉴 — FOLLOW_HQ | Y | N */
+    @Column(name = "url_pay_lang_menu_use_yn", nullable = false, length = 16)
+    private String urlPayLangMenuUseYn = "FOLLOW_HQ";
 
     /** 결제창 연락처 자동기억 — FOLLOW_HQ | Y | N */
     @Column(name = "checkout_contact_remember_mode", nullable = false, length = 16)
     private String checkoutContactRememberMode = "FOLLOW_HQ";
 
-    /** URL·JPAY 공개 결제창 배송 주소 입력 — Y=표시·필수(FULL·1형), N=미표시(기본) */
-    @Column(name = "url_pay_shipping_address_use_yn", nullable = false, length = 1)
-    private String urlPayShippingAddressUseYn = "N";
+    /** URL 결제창 배송주소 — FOLLOW_HQ | Y | N */
+    @Column(name = "url_pay_shipping_address_use_yn", nullable = false, length = 16)
+    private String urlPayShippingAddressUseYn = "FOLLOW_HQ";
 
     /** URL 공개 결제창 입력방식 — {@link com.pg.urlpay.UrlPayInputModeUtil} */
     @Column(name = "url_pay_input_mode", nullable = false, length = 16)
@@ -638,13 +638,17 @@ public class MerchantProfile {
     public String getWebPaymentUseYn() { return webPaymentUseYn; }
     public void setWebPaymentUseYn(String webPaymentUseYn) { this.webPaymentUseYn = webPaymentUseYn; }
     public String getWebPaymentHeaderLogoMode() { return webPaymentHeaderLogoMode; }
-    public void setWebPaymentHeaderLogoMode(String webPaymentHeaderLogoMode) { this.webPaymentHeaderLogoMode = webPaymentHeaderLogoMode; }
+    public void setWebPaymentHeaderLogoMode(String webPaymentHeaderLogoMode) {
+        this.webPaymentHeaderLogoMode = com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalizeMerchantStored(webPaymentHeaderLogoMode);
+    }
     public String getWebPaymentHeaderLogoUrl() { return webPaymentHeaderLogoUrl; }
     public void setWebPaymentHeaderLogoUrl(String webPaymentHeaderLogoUrl) { this.webPaymentHeaderLogoUrl = webPaymentHeaderLogoUrl; }
     public String getWebPaymentHeaderHtmlTitle() { return webPaymentHeaderHtmlTitle; }
     public void setWebPaymentHeaderHtmlTitle(String webPaymentHeaderHtmlTitle) { this.webPaymentHeaderHtmlTitle = webPaymentHeaderHtmlTitle; }
     public String getWebPaymentHeaderSubtitleMode() { return webPaymentHeaderSubtitleMode; }
-    public void setWebPaymentHeaderSubtitleMode(String webPaymentHeaderSubtitleMode) { this.webPaymentHeaderSubtitleMode = webPaymentHeaderSubtitleMode; }
+    public void setWebPaymentHeaderSubtitleMode(String webPaymentHeaderSubtitleMode) {
+        this.webPaymentHeaderSubtitleMode = com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.normalizeMerchantStored(webPaymentHeaderSubtitleMode);
+    }
     public String getWebPaymentHeaderSubtitleText() { return webPaymentHeaderSubtitleText; }
     public void setWebPaymentHeaderSubtitleText(String webPaymentHeaderSubtitleText) { this.webPaymentHeaderSubtitleText = webPaymentHeaderSubtitleText; }
     public String getUrlPayCheckoutMode() { return urlPayCheckoutMode; }
@@ -655,32 +659,26 @@ public class MerchantProfile {
 
     public String getUrlPayProductNameUseYn() { return urlPayProductNameUseYn; }
     public void setUrlPayProductNameUseYn(String urlPayProductNameUseYn) {
-        this.urlPayProductNameUseYn = urlPayProductNameUseYn != null && "Y".equalsIgnoreCase(urlPayProductNameUseYn.trim()) ? "Y" : "N";
+        this.urlPayProductNameUseYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(urlPayProductNameUseYn);
     }
 
     public String getUrlPayCompanyNameShowYn() { return urlPayCompanyNameShowYn; }
     public void setUrlPayCompanyNameShowYn(String urlPayCompanyNameShowYn) {
-        this.urlPayCompanyNameShowYn = urlPayCompanyNameShowYn != null && "Y".equalsIgnoreCase(urlPayCompanyNameShowYn.trim()) ? "Y" : "N";
+        this.urlPayCompanyNameShowYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(urlPayCompanyNameShowYn);
     }
 
     public String getUrlPayLangMenuUseYn() { return urlPayLangMenuUseYn; }
     public void setUrlPayLangMenuUseYn(String urlPayLangMenuUseYn) {
-        this.urlPayLangMenuUseYn = urlPayLangMenuUseYn != null && "Y".equalsIgnoreCase(urlPayLangMenuUseYn.trim()) ? "Y" : "N";
+        this.urlPayLangMenuUseYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(urlPayLangMenuUseYn);
     }
     public String getCheckoutContactRememberMode() { return checkoutContactRememberMode; }
     public void setCheckoutContactRememberMode(String checkoutContactRememberMode) {
-        if (checkoutContactRememberMode == null || checkoutContactRememberMode.isBlank()) {
-            this.checkoutContactRememberMode = "FOLLOW_HQ";
-            return;
-        }
-        String u = checkoutContactRememberMode.trim().toUpperCase(java.util.Locale.ROOT);
-        this.checkoutContactRememberMode = ("Y".equals(u) || "N".equals(u)) ? u : "FOLLOW_HQ";
+        this.checkoutContactRememberMode = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(checkoutContactRememberMode);
     }
 
     public String getUrlPayShippingAddressUseYn() { return urlPayShippingAddressUseYn; }
     public void setUrlPayShippingAddressUseYn(String urlPayShippingAddressUseYn) {
-        this.urlPayShippingAddressUseYn = urlPayShippingAddressUseYn != null
-                && "Y".equalsIgnoreCase(urlPayShippingAddressUseYn.trim()) ? "Y" : "N";
+        this.urlPayShippingAddressUseYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(urlPayShippingAddressUseYn);
     }
 
     public String getUrlPayInputMode() { return urlPayInputMode; }

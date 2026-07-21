@@ -81,7 +81,6 @@ public class HqRiskCardPolicyService {
         m.put("filterVelocityIpYn", yn(s.getFilterVelocityIpYn()));
         m.put("velocityWindowMinutes", intOr(s.getVelocityWindowMinutes(), 10));
         m.put("velocityMaxAttempts", intOr(s.getVelocityMaxAttempts(), 3));
-        m.put("checkoutContactRememberDefaultYn", yn(s.getCheckoutContactRememberDefaultYn()));
         m.put("filterPhoneInvalidYn", yn(s.getFilterPhoneInvalidYn()));
         m.put("filterEmailInvalidYn", yn(s.getFilterEmailInvalidYn()));
         m.put("postsaleCooldownJpayHighriskYn", yn(s.getPostsaleCooldownJpayHighriskYn()));
@@ -137,10 +136,6 @@ public class HqRiskCardPolicyService {
         }
         if (body.containsKey("velocityMaxAttempts")) {
             s.setVelocityMaxAttempts(Math.max(1, parseInt(body.get("velocityMaxAttempts"))));
-        }
-        if (body.containsKey("checkoutContactRememberDefaultYn")) {
-            s.setCheckoutContactRememberDefaultYn(parseYn(body.get("checkoutContactRememberDefaultYn"),
-                    s.getCheckoutContactRememberDefaultYn()));
         }
         if (body.containsKey("filterPhoneInvalidYn")) {
             s.setFilterPhoneInvalidYn(parseYn(body.get("filterPhoneInvalidYn"), s.getFilterPhoneInvalidYn()));

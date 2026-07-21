@@ -13,8 +13,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * URL·JPAY 공개 결제창 상단 로고·경고문구 — 가맹 {@code web_payment_header_*_mode} 우선,
- * 로고 DEFAULT 시 상위 총판 {@code url_pay_image_url}·{@code logo_image_url}.
+ * URL·JPAY 공개 결제창 상단 로고·경고문구 — 가맹 설정 우선, FOLLOW_HQ 시 본사 기본.
  */
 @Service
 public class CheckoutHeaderLogoResolver {
@@ -22,13 +21,16 @@ public class CheckoutHeaderLogoResolver {
     private final MerchantProfileRepository merchantProfileRepository;
     private final OrgUnitRepository orgUnitRepository;
     private final OrgBrandingRepository orgBrandingRepository;
+    private final UrlPayCheckoutDisplayPolicyService checkoutDisplayPolicyService;
 
     public CheckoutHeaderLogoResolver(MerchantProfileRepository merchantProfileRepository,
                                       OrgUnitRepository orgUnitRepository,
-                                      OrgBrandingRepository orgBrandingRepository) {
+                                      OrgBrandingRepository orgBrandingRepository,
+                                      UrlPayCheckoutDisplayPolicyService checkoutDisplayPolicyService) {
         this.merchantProfileRepository = merchantProfileRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.orgBrandingRepository = orgBrandingRepository;
+        this.checkoutDisplayPolicyService = checkoutDisplayPolicyService;
     }
 
     public record Resolved(String mode, Optional<String> url) {
@@ -39,8 +41,7 @@ public class CheckoutHeaderLogoResolver {
 
     public Resolved resolve(Long merchantOrgUnitId) {
         Optional<MerchantProfile> prof = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId);
-        String mode = WebPaymentHeaderLogoModeUtil.normalize(
-                prof.map(MerchantProfile::getWebPaymentHeaderLogoMode).orElse(WebPaymentHeaderLogoModeUtil.DEFAULT));
+        String mode = checkoutDisplayPolicyService.effectiveLogoMode(merchantOrgUnitId);
         if (WebPaymentHeaderLogoModeUtil.DISABLED.equals(mode)) {
             return new Resolved(WebPaymentHeaderLogoModeUtil.DISABLED, Optional.empty());
         }
@@ -59,8 +60,7 @@ public class CheckoutHeaderLogoResolver {
 
     public SubtitleResolved resolveSubtitle(Long merchantOrgUnitId) {
         Optional<MerchantProfile> prof = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId);
-        String mode = CheckoutHeaderSubtitleModeUtil.normalize(
-                prof.map(MerchantProfile::getWebPaymentHeaderSubtitleMode).orElse(CheckoutHeaderSubtitleModeUtil.DEFAULT));
+        String mode = checkoutDisplayPolicyService.effectiveSubtitleMode(merchantOrgUnitId);
         if (CheckoutHeaderSubtitleModeUtil.DISABLED.equals(mode)) {
             return new SubtitleResolved(CheckoutHeaderSubtitleModeUtil.DISABLED, Optional.empty());
         }

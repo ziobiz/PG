@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Optional;
+
 public interface NotiProvisionLogRepository extends JpaRepository<NotiProvisionLog, Long> {
 
     @Query("SELECT l FROM NotiProvisionLog l WHERE "
@@ -17,4 +19,6 @@ public interface NotiProvisionLogRepository extends JpaRepository<NotiProvisionL
     @Query("SELECT COALESCE(MAX(l.slotNo), 0) FROM NotiProvisionLog l WHERE "
             + "l.baseCurrency = :baseCurrency AND l.slotNo >= :minSlot")
     Integer findMaxSlotForCurrency(@Param("baseCurrency") String baseCurrency, @Param("minSlot") int minSlot);
+
+    Optional<NotiProvisionLog> findFirstByOrgUnitIdOrderByProvisionedAtDescIdDesc(Long orgUnitId);
 }
