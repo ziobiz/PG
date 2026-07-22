@@ -79,8 +79,17 @@ public class HqRiskCardPolicyService {
         m.put("filterVelocityCardYn", yn(s.getFilterVelocityCardYn()));
         m.put("filterVelocityEmailYn", yn(s.getFilterVelocityEmailYn()));
         m.put("filterVelocityIpYn", yn(s.getFilterVelocityIpYn()));
-        m.put("velocityWindowMinutes", intOr(s.getVelocityWindowMinutes(), 10));
-        m.put("velocityMaxAttempts", intOr(s.getVelocityMaxAttempts(), 3));
+        /* 채널별 속도제한(권장 기본: 카드10/3, 이메일30/5, IP15/10). legacy 통합 필드는 카드와 동기 */
+        int cardWin = intOr(s.getVelocityCardWindowMinutes(), intOr(s.getVelocityWindowMinutes(), 10));
+        int cardMax = intOr(s.getVelocityCardMaxAttempts(), intOr(s.getVelocityMaxAttempts(), 3));
+        m.put("velocityCardWindowMinutes", cardWin);
+        m.put("velocityCardMaxAttempts", cardMax);
+        m.put("velocityEmailWindowMinutes", intOr(s.getVelocityEmailWindowMinutes(), 30));
+        m.put("velocityEmailMaxAttempts", intOr(s.getVelocityEmailMaxAttempts(), 5));
+        m.put("velocityIpWindowMinutes", intOr(s.getVelocityIpWindowMinutes(), 15));
+        m.put("velocityIpMaxAttempts", intOr(s.getVelocityIpMaxAttempts(), 10));
+        m.put("velocityWindowMinutes", cardWin);
+        m.put("velocityMaxAttempts", cardMax);
         m.put("filterPhoneInvalidYn", yn(s.getFilterPhoneInvalidYn()));
         m.put("filterEmailInvalidYn", yn(s.getFilterEmailInvalidYn()));
         m.put("postsaleCooldownJpayHighriskYn", yn(s.getPostsaleCooldownJpayHighriskYn()));
@@ -131,11 +140,22 @@ public class HqRiskCardPolicyService {
         if (body.containsKey("filterVelocityIpYn")) {
             s.setFilterVelocityIpYn(parseYn(body.get("filterVelocityIpYn"), s.getFilterVelocityIpYn()));
         }
-        if (body.containsKey("velocityWindowMinutes")) {
-            s.setVelocityWindowMinutes(Math.max(1, parseInt(body.get("velocityWindowMinutes"))));
+        applyVelocityChannelFromBody(s, body, "velocityCardWindowMinutes", "velocityCardMaxAttempts",
+                true, 10, 3);
+        applyVelocityChannelFromBody(s, body, "velocityEmailWindowMinutes", "velocityEmailMaxAttempts",
+                false, 30, 5);
+        applyVelocityChannelFromBody(s, body, "velocityIpWindowMinutes", "velocityIpMaxAttempts",
+                false, 15, 10);
+        /* 구 UI 호환: 통합 필드만 오면 카드 채널에 반영 */
+        if (!body.containsKey("velocityCardWindowMinutes") && body.containsKey("velocityWindowMinutes")) {
+            int w = Math.min(1440, Math.max(1, parseInt(body.get("velocityWindowMinutes"))));
+            s.setVelocityCardWindowMinutes(w);
+            s.setVelocityWindowMinutes(w);
         }
-        if (body.containsKey("velocityMaxAttempts")) {
-            s.setVelocityMaxAttempts(Math.max(1, parseInt(body.get("velocityMaxAttempts"))));
+        if (!body.containsKey("velocityCardMaxAttempts") && body.containsKey("velocityMaxAttempts")) {
+            int a = Math.min(99, Math.max(1, parseInt(body.get("velocityMaxAttempts"))));
+            s.setVelocityCardMaxAttempts(a);
+            s.setVelocityMaxAttempts(a);
         }
         if (body.containsKey("filterPhoneInvalidYn")) {
             s.setFilterPhoneInvalidYn(parseYn(body.get("filterPhoneInvalidYn"), s.getFilterPhoneInvalidYn()));
@@ -150,6 +170,48 @@ public class HqRiskCardPolicyService {
         if (body.containsKey("postsaleCooldownJpayPy0124Yn")) {
             s.setPostsaleCooldownJpayPy0124Yn(parseYn(body.get("postsaleCooldownJpayPy0124Yn"),
                     s.getPostsaleCooldownJpayPy0124Yn()));
+        }
+    }
+
+    private void applyVelocityChannelFromBody(HqRiskCardPolicy s, Map<String, Object> body,
+                                              String winKey, String maxKey, boolean syncLegacy,
+                                              int defWin, int defMax) {
+        if (body.containsKey(winKey)) {
+            int w = Math.min(1440, Math.max(1, parseIntOr(body.get(winKey), defWin)));
+            if ("velocityCardWindowMinutes".equals(winKey)) {
+                s.setVelocityCardWindowMinutes(w);
+                if (syncLegacy) {
+                    s.setVelocityWindowMinutes(w);
+                }
+            } else if ("velocityEmailWindowMinutes".equals(winKey)) {
+                s.setVelocityEmailWindowMinutes(w);
+            } else if ("velocityIpWindowMinutes".equals(winKey)) {
+                s.setVelocityIpWindowMinutes(w);
+            }
+        }
+        if (body.containsKey(maxKey)) {
+            int a = Math.min(99, Math.max(1, parseIntOr(body.get(maxKey), defMax)));
+            if ("velocityCardMaxAttempts".equals(maxKey)) {
+                s.setVelocityCardMaxAttempts(a);
+                if (syncLegacy) {
+                    s.setVelocityMaxAttempts(a);
+                }
+            } else if ("velocityEmailMaxAttempts".equals(maxKey)) {
+                s.setVelocityEmailMaxAttempts(a);
+            } else if ("velocityIpMaxAttempts".equals(maxKey)) {
+                s.setVelocityIpMaxAttempts(a);
+            }
+        }
+    }
+
+    private static int parseIntOr(Object o, int def) {
+        if (o == null) {
+            return def;
+        }
+        try {
+            return Integer.parseInt(o.toString().trim());
+        } catch (Exception e) {
+            return def;
         }
     }
 

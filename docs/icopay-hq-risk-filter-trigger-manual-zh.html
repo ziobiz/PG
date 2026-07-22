@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICOPAY 风险过滤触发运营手册 V2.40</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; font-size: 11pt; line-height: 1.75; color: #1a1a1a; background: #f0f2f8; }
+  .page-wrap { max-width: 960px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 18px rgba(0,0,0,.11); overflow: hidden; }
+  .cover { background: linear-gradient(135deg, #1a3a5c 0%, #1565c0 55%, #26a69a 100%); color: #fff; padding: 48px 52px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+  .cover-body { flex: 1; }
+  .cover-logo { flex-shrink: 0; padding-top: 4px; }
+  .cover-logo img { height: 64px; background: rgba(255,255,255,.92); padding: 10px 18px; border-radius: 8px; }
+  .cover .logo-line { font-size: 13pt; font-weight: 700; letter-spacing: 2px; opacity: .85; margin-bottom: 14px; }
+  .cover h1 { font-size: 22pt; font-weight: 900; line-height: 1.28; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 11pt; opacity: .82; margin-bottom: 24px; }
+  .cover .meta { font-size: 9.5pt; opacity: .65; border-top: 1px solid rgba(255,255,255,.25); padding-top: 14px; }
+  .lang-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .lang-bar a { color: #fff; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); border-radius: 999px; padding: 4px 12px; font-size: 9pt; text-decoration: none; font-weight: 700; }
+  .lang-bar a.active { background: #fff; color: #1565c0; }
+  .body { padding: 44px 52px 64px; }
+  .toc { background: #e8f5f3; border-left: 4px solid #00897b; border-radius: 0 8px 8px 0; padding: 20px 26px; margin-bottom: 44px; }
+  .toc h2 { font-size: 12pt; font-weight: 700; color: #00695c; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { font-size: 10pt; line-height: 2.1; }
+  .toc a { color: #00695c; text-decoration: none; }
+  h2.section-title { font-size: 15pt; font-weight: 800; color: #1a3a5c; border-bottom: 2.5px solid #00897b; padding-bottom: 7px; margin: 48px 0 18px; page-break-after: avoid; }
+  h3.sub-title { font-size: 12pt; font-weight: 700; color: #00897b; margin: 26px 0 10px; page-break-after: avoid; }
+  p { margin-bottom: 10px; }
+  .info-box  { background: #e0f2f1; border: 1px solid #80cbc4; border-left: 4px solid #00897b; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; }
+  .warn-box  { background: #fff8e1; border: 1px solid #ffe082; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #5d4037; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 22px; font-size: 10pt; page-break-inside: avoid; }
+  th { background: #1a3a5c; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #12274a; }
+  td { padding: 8px 12px; border: 1px solid #cfd8dc; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f7ff; }
+  .menu-path { display: inline-block; background: #eceff1; border: 1px solid #cfd8dc; border-radius: 5px; padding: 3px 12px; font-size: 9.5pt; font-weight: 600; margin-bottom: 12px; }
+  .menu-path::before { content: "📌 菜单: "; }
+  .flow { background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; padding: 18px 22px; margin: 14px 0 20px; font-size: 10pt; white-space: pre-wrap; font-family: Consolas, 'Malgun Gothic', monospace; }
+  .step-list { counter-reset: step; list-style: none; padding-left: 0; margin: 12px 0 18px; }
+  .step-list li { position: relative; padding: 10px 12px 10px 52px; margin-bottom: 8px; background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; }
+  .step-list li::before { counter-increment: step; content: counter(step); position: absolute; left: 12px; top: 10px; width: 28px; height: 28px; border-radius: 50%; background: #00897b; color: #fff; font-weight: 800; font-size: 11pt; display: flex; align-items: center; justify-content: center; line-height: 28px; text-align: center; }
+  ul, ol { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+  .footer { background: #1a3a5c; color: rgba(255,255,255,.6); text-align: center; font-size: 9pt; padding: 18px 24px; }
+  code { font-size: 9pt; background: #eceff1; padding: 1px 5px; border-radius: 3px; }
+  a.doc-link { color: #00695c; font-weight: 600; }
+  @media print {
+    body { background: #fff; font-size: 10pt; }
+    .page-wrap { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; }
+    .footer, .print-btn, .lang-bar { display: none !important; }
+    @page { size: A4; margin: 18mm 16mm; }
+  }
+  .print-btn { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #00897b; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 10.5pt; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(0,137,123,.45); }
+</style>
+</head>
+<body>
+<button type="button" class="print-btn" onclick="window.print()">🖨️ 打印 / 保存 PDF</button>
+<div class="page-wrap">
+  <div class="cover">
+    <div class="cover-body">
+      <div class="logo-line">ICOPAY · Payment Gateway</div>
+      <h1>风险过滤触发<br>运营手册</h1>
+      <div class="subtitle">按项「启用」行为 · 售前检查顺序 · 运营概览</div>
+      <div class="meta">ICOPAY Risk Filtering Trigger Ops Manual · V2.40 · 2026-07-22</div>
+      <div class="lang-bar">
+        <a href="./icopay-hq-risk-filter-trigger-manual.html">KO</a>
+        <a href="./icopay-hq-risk-filter-trigger-manual-en.html">EN</a>
+        <a href="./icopay-hq-risk-filter-trigger-manual-ja.html">JP</a>
+        <a class="active" href="./icopay-hq-risk-filter-trigger-manual-zh.html">CH</a>
+        <a href="./icopay-hq-risk-filter-trigger-manual-th.html">TH</a>
+      </div>
+    </div>
+    <div class="cover-logo">
+      <img src="./logo-ontheline.png" alt="On The Line">
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="menu-path">总部政策 → 手续费·风险 → 风险 ·「风险过滤」</div>
+    <div class="info-box">
+      <strong>相关文档:</strong>
+      <a class="doc-link" href="./icopay-hq-risk-manual.html">统一手续费·风险手册</a> ·
+      <a class="doc-link" href="./icopay-hq-risk-filter-manual.html">过滤详情（代码·DB）</a><br>
+      现状画面: <strong>运营管理 → 风险现状</strong> (<code>/risk/list</code>)<br>
+      PDF: <code>cd scripts && node operator-manual-pdf/gen.mjs risk</code>
+    </div>
+    <div class="warn-box">
+      <strong>命名原则:</strong> 加盟商与买家 UI 不暴露 PG 名称（ICOPAY 中立）。本手册中的 JPAY、ChillPay、Eximbay 表述仅用于<strong>运营·内部对接</strong>说明。
+    </div>
+
+    <div class="toc">
+      <h2>📋 目录</h2>
+      <ol>
+        <li><a href="#s1">运营概览</a></li>
+        <li><a href="#s2">风险设置 vs 风险过滤</a></li>
+        <li><a href="#s3">整体处理流程</a></li>
+        <li><a href="#s4">按项「启用」时的行为</a></li>
+        <li><a href="#s5">售前过滤检查顺序</a></li>
+        <li><a href="#s6">拦截结果 · 运营确认</a></li>
+        <li><a href="#s7">运营建议 · FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 class="section-title" id="s1">1. 运营概览</h2>
+    <p>本文档从运营角度整理：在「风险过滤」中将各开关设为<strong>启用</strong>时，<strong>实际哪些触发器在何时生效</strong>。</p>
+    <ul>
+      <li>对象: 总部运营人员 · 权限画面 M0129（风险设置）</li>
+      <li>策略存储: <code>tb_hq_risk_card_policy</code> (id=1) · 保存后立即对全加盟商共同生效</li>
+      <li>售前拦截: 调用 PG（JPAY·ChillPay·Eximbay 等）的<strong>直前</strong></li>
+      <li>售后冷却: JPAY pay_index <strong>之后</strong>的高风险·PY0124（独立开关）</li>
+    </ul>
+
+    <h2 class="section-title" id="s2">2. 风险设置 vs 风险过滤</h2>
+    <table>
+      <thead><tr><th>区域</th><th>触发</th><th>结果</th></tr></thead>
+      <tbody>
+        <tr><td><strong>风险设置</strong>（风险管理）</td><td>同一卡非成功（FAIL·取消·无效·未支付等）累计</td><td>1～4 次等待 · 非活动卡自动登记</td></tr>
+        <tr><td><strong>风险过滤</strong></td><td>格式·速度·联系方式不一致·可疑名义等</td><td>不调用 PG · 系统取消(20) · 风险现状</td></tr>
+        <tr><td>加盟商风险现状</td><td>按加盟商的风险管理方式（总部/单独/未使用）</td><td>显示触发等待时间·自动登记的适用值</td></tr>
+      </tbody>
+    </table>
+    <p>加盟商「单独设置/未使用」优先于<strong>风险管理（累计触发）</strong>。<strong>售前过滤开关</strong>遵循总部策略。</p>
+
+    <h2 class="section-title" id="s3">3. 整体处理流程</h2>
+    <div class="flow">买家尝试支付
+  → （卡品牌·策略等其他检查）
+  → 【售前过滤启用=Y】则按项检查（§5 顺序）
+  → 违规时: 不调用 PG · 取消(20) · 风险现状 · 买家提示
+  → 通过时: 向 PG 发起批准请求
+  → （仅 JPAY）售后高风险/PY0124 → 冷却·现状（对应开关=Y 时）</div>
+    <div class="warn-box">托管（不采集卡号）流程: 以邮箱·电话·姓名·IP·邮箱速度为主。无卡哈希时，卡速度与联系方式不一致实质上跳过。</div>
+
+    <h2 class="section-title" id="s4">4. 按项「启用」时的行为</h2>
+    <p>将画面各项保存为<strong>启用(Y)</strong>后，下列触发器生效。<strong>未使用(N)</strong>则仅跳过该项检查。</p>
+
+    <h3 class="sub-title">4.0 售前过滤启用（主开关）</h3>
+    <table>
+      <thead><tr><th>区分</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>字段</td><td><code>presaleFilterEnabledYn</code></td></tr>
+        <tr><td>启用</td><td>评估 §4.1～4.8 各售前过滤项</td></tr>
+        <tr><td>未使用</td><td>即使单项为 Y 也<strong>全部跳过</strong>。不影响 JPAY 售后冷却（§4.9～4.10）</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.1 异常邮箱</h3>
+    <table>
+      <thead><tr><th>区分</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>代码</td><td><code>EMAIL_INVALID</code></td></tr>
+        <tr><td>启用时</td><td>邮箱非空但格式错误、本地部分不足 2 字或同一字符重复、域名为 <code>test.</code>/<code>example.</code> 时<strong>拦截</strong></td></tr>
+        <tr><td>备注</td><td>值为空时不执行本检查</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.2 异常电话</h3>
+    <table>
+      <thead><tr><th>区分</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>代码</td><td><code>PHONE_INVALID</code></td></tr>
+        <tr><td>启用时</td><td>仅提取数字后长度不在 7～15、同一数字重复、连续增减、<code>000000</code> 模式等则<strong>拦截</strong></td></tr>
+        <tr><td>备注</td><td>为空则跳过</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.3 可疑 holder 名</h3>
+    <table>
+      <thead><tr><th>区分</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>代码</td><td><code>HOLDER_NAME_SUSPICIOUS</code></td></tr>
+        <tr><td>启用时</td><td>名义含 Giftcard Holder、PayPay User、Merpay/Kyash Member、Business Card、VPRECA 等<strong>预付·代行·可疑文案</strong>则拦截</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.4 买家联系方式不一致</h3>
+    <table>
+      <thead><tr><th>区分</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>代码</td><td><code>BUYER_EMAIL_MISMATCH</code> / <code>BUYER_PHONE_MISMATCH</code> / <code>BUYER_NAME_MISMATCH</code></td></tr>
+        <tr><td>启用时</td><td>与同一卡（哈希）·同一加盟商的<strong>最近 1 笔</strong>比较。邮箱·电话·姓名不同则拦截</td></tr>
+        <tr><td>备注</td><td>仅姓与名顺序对调不视为不一致。无卡哈希则跳过</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.5～4.7 速度限制（卡 · 邮箱 · IP）</h3>
+    <table>
+      <thead><tr><th>项目</th><th>代码</th><th>启用时</th></tr></thead>
+      <tbody>
+        <tr><td>卡速度限制</td><td><code>VELOCITY_CARD</code></td><td>同一卡·加盟商在窗口（分钟）内尝试次数 ≥ 次数 → 拦截</td></tr>
+        <tr><td>邮箱速度限制</td><td><code>VELOCITY_EMAIL</code></td><td>同一邮箱·加盟商适用相同条件</td></tr>
+        <tr><td>IP 速度限制</td><td><code>VELOCITY_IP</code></td><td>同一买家 IP·加盟商适用相同条件</td></tr>
+      </tbody>
+    </table>
+    <table>
+      <thead><tr><th>共用参数</th><th>字段</th><th>默认 · 范围</th></tr></thead>
+      <tbody>
+        <tr><td>速度限制窗口（分钟）</td><td><code>velocityWindowMinutes</code></td><td>10 · 1～1440</td></tr>
+        <tr><td>速度限制次数</td><td><code>velocityMaxAttempts</code></td><td>3 · 1～99</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.9 JPAY 售后高风险冷却</h3>
+    <table>
+      <thead><tr><th>区分</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>代码</td><td><code>POSTSALE_JPAY_HIGH_RISK</code></td></tr>
+        <tr><td>启用时</td><td>在 JPAY 批准请求<strong>之后</strong>，将高风险失败反映到卡冷却·风险现状</td></tr>
+        <tr><td>未使用</td><td>该分类不纳入冷却汇总</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.10 JPAY PY0124 冷却</h3>
+    <table>
+      <thead><tr><th>区分</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>代码</td><td><code>POSTSALE_JPAY_PY0124</code></td></tr>
+        <tr><td>启用时</td><td>对 JPAY <code>PY0124</code> 失败按与高风险相同方式记录冷却·现状</td></tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-title" id="s5">5. 售前过滤检查顺序</h2>
+    <p>售前过滤启用=Y 时，代码按<strong>下列顺序评估</strong>，并在<strong>首次违规处立即中止</strong>。</p>
+    <ol class="step-list">
+      <li><strong>异常邮箱</strong> — <code>EMAIL_INVALID</code></li>
+      <li><strong>异常电话</strong> — <code>PHONE_INVALID</code></li>
+      <li><strong>可疑 holder 名</strong> — <code>HOLDER_NAME_SUSPICIOUS</code></li>
+      <li><strong>卡速度限制</strong> — <code>VELOCITY_CARD</code></li>
+      <li><strong>邮箱速度限制</strong> — <code>VELOCITY_EMAIL</code></li>
+      <li><strong>IP 速度限制</strong> — <code>VELOCITY_IP</code></li>
+      <li><strong>买家联系方式不一致</strong> — <code>BUYER_*_MISMATCH</code>（邮箱 → 电话 → 姓名）</li>
+    </ol>
+    <div class="flow">① EMAIL_INVALID → ② PHONE_INVALID → ③ HOLDER_NAME_SUSPICIOUS
+→ ④ VELOCITY_CARD → ⑤ VELOCITY_EMAIL → ⑥ VELOCITY_IP
+→ ⑦ BUYER_EMAIL / PHONE / NAME_MISMATCH</div>
+    <div class="info-box">若单项开关为未使用，则仅跳过该步骤。例: 仅关闭邮箱格式 → 跳过 ①，从 ② 继续。</div>
+
+    <h2 class="section-title" id="s6">6. 拦截结果 · 运营确认</h2>
+    <ol>
+      <li>不向 PG 发送批准请求</li>
+      <li>系统记录 1 次尝试·状态<strong>取消(20)</strong></li>
+      <li>写入 <code>tb_pay_risk_filter_event</code> → <strong>运营管理 → 风险现状</strong></li>
+      <li>买家响应: 多语言消息 · 错误码 <code>PRESALE_RISK_FILTER</code></li>
+    </ol>
+    <p>若正常客户被拦截，请查看现状中的 <code>filterCode</code>，仅放宽该项（未使用）或调整速度窗口/次数。</p>
+
+    <h2 class="section-title" id="s7">7. 运营建议 · FAQ</h2>
+    <table>
+      <thead><tr><th>项目</th><th>建议</th></tr></thead>
+      <tbody>
+        <tr><td>售前过滤启用</td><td>启用</td></tr>
+        <tr><td>格式·holder·速度 3 种</td><td>启用 · 窗口 10 分 / 次数 3 次</td></tr>
+        <tr><td>联系方式不一致</td><td>启用（自动记忆在支付·URL 选项卡）</td></tr>
+        <tr><td>JPAY 售后 2 种</td><td>启用</td></tr>
+      </tbody>
+    </table>
+    <ul>
+      <li><strong>仅关闭部分:</strong> 保持售前过滤=启用，仅将问题项设为未使用</li>
+      <li><strong>全部关闭:</strong> 售前过滤=未使用（单项为 Y 也不运行）</li>
+      <li><strong>PG 日志无交易:</strong> 多为售前拦截正常工作</li>
+      <li><strong>自动记忆:</strong> 不在「风险过滤」下；总部政策 → 支付·URL → 支付窗显示默认值</li>
+    </ul>
+    <p>字段·DB·代码表请参阅<a class="doc-link" href="./icopay-hq-risk-filter-manual.html">过滤详情手册</a>。</p>
+  </div>
+
+  <div class="footer">
+    ICOPAY · 风险过滤触发运营手册 · V2.40 · 2026-07-22<br>
+    PDF: <code>node operator-manual-pdf/gen.mjs risk</code>
+  </div>
+</div>
+</body>
+</html>

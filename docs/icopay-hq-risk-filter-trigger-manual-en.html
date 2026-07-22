@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICOPAY Risk Filtering Trigger Ops Manual V2.40</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; font-size: 11pt; line-height: 1.75; color: #1a1a1a; background: #f0f2f8; }
+  .page-wrap { max-width: 960px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 18px rgba(0,0,0,.11); overflow: hidden; }
+  .cover { background: linear-gradient(135deg, #1a3a5c 0%, #1565c0 55%, #26a69a 100%); color: #fff; padding: 48px 52px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+  .cover-body { flex: 1; }
+  .cover-logo { flex-shrink: 0; padding-top: 4px; }
+  .cover-logo img { height: 64px; background: rgba(255,255,255,.92); padding: 10px 18px; border-radius: 8px; }
+  .cover .logo-line { font-size: 13pt; font-weight: 700; letter-spacing: 2px; opacity: .85; margin-bottom: 14px; }
+  .cover h1 { font-size: 22pt; font-weight: 900; line-height: 1.28; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 11pt; opacity: .82; margin-bottom: 24px; }
+  .cover .meta { font-size: 9.5pt; opacity: .65; border-top: 1px solid rgba(255,255,255,.25); padding-top: 14px; }
+  .lang-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .lang-bar a { color: #fff; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); border-radius: 999px; padding: 4px 12px; font-size: 9pt; text-decoration: none; font-weight: 700; }
+  .lang-bar a.active { background: #fff; color: #1565c0; }
+  .body { padding: 44px 52px 64px; }
+  .toc { background: #e8f5f3; border-left: 4px solid #00897b; border-radius: 0 8px 8px 0; padding: 20px 26px; margin-bottom: 44px; }
+  .toc h2 { font-size: 12pt; font-weight: 700; color: #00695c; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { font-size: 10pt; line-height: 2.1; }
+  .toc a { color: #00695c; text-decoration: none; }
+  h2.section-title { font-size: 15pt; font-weight: 800; color: #1a3a5c; border-bottom: 2.5px solid #00897b; padding-bottom: 7px; margin: 48px 0 18px; page-break-after: avoid; }
+  h3.sub-title { font-size: 12pt; font-weight: 700; color: #00897b; margin: 26px 0 10px; page-break-after: avoid; }
+  p { margin-bottom: 10px; }
+  .info-box  { background: #e0f2f1; border: 1px solid #80cbc4; border-left: 4px solid #00897b; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; }
+  .warn-box  { background: #fff8e1; border: 1px solid #ffe082; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #5d4037; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 22px; font-size: 10pt; page-break-inside: avoid; }
+  th { background: #1a3a5c; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #12274a; }
+  td { padding: 8px 12px; border: 1px solid #cfd8dc; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f7ff; }
+  .menu-path { display: inline-block; background: #eceff1; border: 1px solid #cfd8dc; border-radius: 5px; padding: 3px 12px; font-size: 9.5pt; font-weight: 600; margin-bottom: 12px; }
+  .menu-path::before { content: "📌 Menu: "; }
+  .flow { background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; padding: 18px 22px; margin: 14px 0 20px; font-size: 10pt; white-space: pre-wrap; font-family: Consolas, 'Malgun Gothic', monospace; }
+  .step-list { counter-reset: step; list-style: none; padding-left: 0; margin: 12px 0 18px; }
+  .step-list li { position: relative; padding: 10px 12px 10px 52px; margin-bottom: 8px; background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; }
+  .step-list li::before { counter-increment: step; content: counter(step); position: absolute; left: 12px; top: 10px; width: 28px; height: 28px; border-radius: 50%; background: #00897b; color: #fff; font-weight: 800; font-size: 11pt; display: flex; align-items: center; justify-content: center; line-height: 28px; text-align: center; }
+  ul, ol { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+  .footer { background: #1a3a5c; color: rgba(255,255,255,.6); text-align: center; font-size: 9pt; padding: 18px 24px; }
+  code { font-size: 9pt; background: #eceff1; padding: 1px 5px; border-radius: 3px; }
+  a.doc-link { color: #00695c; font-weight: 600; }
+  @media print {
+    body { background: #fff; font-size: 10pt; }
+    .page-wrap { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; }
+    .footer, .print-btn, .lang-bar { display: none !important; }
+    @page { size: A4; margin: 18mm 16mm; }
+  }
+  .print-btn { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #00897b; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 10.5pt; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(0,137,123,.45); }
+</style>
+</head>
+<body>
+<button type="button" class="print-btn" onclick="window.print()">🖨️ Print / Save PDF</button>
+<div class="page-wrap">
+  <div class="cover">
+    <div class="cover-body">
+      <div class="logo-line">ICOPAY · Payment Gateway</div>
+      <h1>Risk Filtering Trigger<br>Ops Manual</h1>
+      <div class="subtitle">Per-item Enabled behavior · Presale check order · Ops overview</div>
+      <div class="meta">ICOPAY Risk Filtering Trigger Ops Manual · V2.40 · 2026-07-22</div>
+      <div class="lang-bar">
+        <a href="./icopay-hq-risk-filter-trigger-manual.html">KO</a>
+        <a class="active" href="./icopay-hq-risk-filter-trigger-manual-en.html">EN</a>
+        <a href="./icopay-hq-risk-filter-trigger-manual-ja.html">JP</a>
+        <a href="./icopay-hq-risk-filter-trigger-manual-zh.html">CH</a>
+        <a href="./icopay-hq-risk-filter-trigger-manual-th.html">TH</a>
+      </div>
+    </div>
+    <div class="cover-logo">
+      <img src="./logo-ontheline.png" alt="On The Line">
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="menu-path">HQ Policy → Fees &amp; Risk → Risk · “Risk Filtering”</div>
+    <div class="info-box">
+      <strong>Related documents:</strong>
+      <a class="doc-link" href="./icopay-hq-risk-manual.html">Unified Fees &amp; Risk Manual</a> ·
+      <a class="doc-link" href="./icopay-hq-risk-filter-manual.html">Filter detail (codes · DB)</a><br>
+      Status screen: <strong>Ops Management → Risk Status</strong> (<code>/risk/list</code>)<br>
+      PDF: <code>cd scripts && node operator-manual-pdf/gen.mjs risk</code>
+    </div>
+    <div class="warn-box">
+      <strong>Naming principle:</strong> Do not expose PG names on merchant or buyer UI (ICOPAY-neutral). Mentions of JPAY, ChillPay, and Eximbay in this manual are for <strong>ops / internal integration</strong> only.
+    </div>
+
+    <div class="toc">
+      <h2>📋 Contents</h2>
+      <ol>
+        <li><a href="#s1">Ops overview</a></li>
+        <li><a href="#s2">Risk Settings vs Risk Filtering</a></li>
+        <li><a href="#s3">End-to-end flow</a></li>
+        <li><a href="#s4">Per-item behavior when Enabled</a></li>
+        <li><a href="#s5">Presale filter check order</a></li>
+        <li><a href="#s6">Block outcomes · Ops verification</a></li>
+        <li><a href="#s7">Ops recommendations · FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 class="section-title" id="s1">1. Ops overview</h2>
+    <p>This document explains, from an operations perspective, <strong>which triggers fire and when</strong> when each switch under “Risk Filtering” is set to <strong>Enabled</strong>.</p>
+    <ul>
+      <li>Audience: HQ operators · permission screen M0129 (Risk Settings)</li>
+      <li>Policy storage: <code>tb_hq_risk_card_policy</code> (id=1) · applied to all merchants immediately on save</li>
+      <li>Presale block: <strong>immediately before</strong> calling the PG (JPAY · ChillPay · Eximbay, etc.)</li>
+      <li>Postsale cooldown: <strong>after</strong> JPAY pay_index for high-risk · PY0124 (independent switches)</li>
+    </ul>
+
+    <h2 class="section-title" id="s2">2. Risk Settings vs Risk Filtering</h2>
+    <table>
+      <thead><tr><th>Area</th><th>Trigger</th><th>Outcome</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Risk Settings</strong> (risk management)</td><td>Same card non-success (FAIL · cancel · void · unpaid, etc.) accumulation</td><td>Stage 1–4 wait · auto-register inactive card</td></tr>
+        <tr><td><strong>Risk Filtering</strong></td><td>Format · velocity · contact mismatch · suspicious name, etc.</td><td>PG not called · system cancel (20) · Risk Status</td></tr>
+        <tr><td>Merchant risk status</td><td>Per-merchant risk mode (HQ / separate / unused)</td><td>Shows applied wait time · auto-register values</td></tr>
+      </tbody>
+    </table>
+    <p>Merchant “separate / unused” takes precedence for <strong>risk management (accumulation triggers)</strong>. <strong>Presale filter switches</strong> follow HQ policy.</p>
+
+    <h2 class="section-title" id="s3">3. End-to-end flow</h2>
+    <div class="flow">Buyer payment attempt
+  → (other checks: card brand · policy, etc.)
+  → If 【Presale filter Enabled=Y】, run item checks (§5 order)
+  → On violation: PG not called · cancel (20) · Risk Status · buyer message
+  → On pass: PG approval request
+  → (JPAY only) Postsale high-risk / PY0124 → cooldown · status (when those switches=Y)</div>
+    <div class="warn-box">Hosted flow (no card number collected): email · phone · name · IP · email velocity are primary. Without a card hash, card velocity and contact mismatch are effectively skipped.</div>
+
+    <h2 class="section-title" id="s4">4. Per-item behavior when Enabled</h2>
+    <p>Saving each screen item as <strong>Enabled (Y)</strong> activates the triggers below. <strong>Disabled (N)</strong> skips that check only.</p>
+
+    <h3 class="sub-title">4.0 Presale filter Enabled (master)</h3>
+    <table>
+      <thead><tr><th>Item</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td>Field</td><td><code>presaleFilterEnabledYn</code></td></tr>
+        <tr><td>Enabled</td><td>Evaluate individual presale filters §4.1–4.8</td></tr>
+        <tr><td>Disabled</td><td><strong>Skip all</strong> even if individuals are Y. JPAY postsale cooldown (§4.9–4.10) is unaffected</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.1 Invalid email</h3>
+    <table>
+      <thead><tr><th>Item</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td>Code</td><td><code>EMAIL_INVALID</code></td></tr>
+        <tr><td>When Enabled</td><td><strong>Block</strong> if email is non-empty but format is wrong, local part &lt; 2 chars or repeated same character, or domain is <code>test.</code> / <code>example.</code></td></tr>
+        <tr><td>Note</td><td>Skipped when the value is empty</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.2 Invalid phone</h3>
+    <table>
+      <thead><tr><th>Item</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td>Code</td><td><code>PHONE_INVALID</code></td></tr>
+        <tr><td>When Enabled</td><td><strong>Block</strong> if digits-only length is outside 7–15, same digit repeated, sequential up/down, <code>000000</code> pattern, etc.</td></tr>
+        <tr><td>Note</td><td>Skipped when empty</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.3 Suspicious holder name</h3>
+    <table>
+      <thead><tr><th>Item</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td>Code</td><td><code>HOLDER_NAME_SUSPICIOUS</code></td></tr>
+        <tr><td>When Enabled</td><td>Block if the name contains <strong>prepaid · proxy · suspicious phrases</strong> such as Giftcard Holder, PayPay User, Merpay/Kyash Member, Business Card, VPRECA</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.4 Buyer contact mismatch</h3>
+    <table>
+      <thead><tr><th>Item</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td>Code</td><td><code>BUYER_EMAIL_MISMATCH</code> / <code>BUYER_PHONE_MISMATCH</code> / <code>BUYER_NAME_MISMATCH</code></td></tr>
+        <tr><td>When Enabled</td><td>Compare with the <strong>latest 1</strong> txn for the same card (hash) · same merchant. Block if email · phone · name differs</td></tr>
+        <tr><td>Note</td><td>Swapped family/given name order alone is not a mismatch. Skipped without a card hash</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.5–4.7 Velocity limits (card · email · IP)</h3>
+    <p>Each channel has its <strong>own</strong> window (minutes) and attempt count. Values are not shared.</p>
+    <table>
+      <thead><tr><th>Item</th><th>Code</th><th>When Enabled</th><th>Recommended default</th></tr></thead>
+      <tbody>
+        <tr><td>Card velocity limit</td><td><code>VELOCITY_CARD</code></td><td>Same card · merchant: attempts in window ≥ count → block</td><td><strong>10 min / 3</strong> (same-card retries · testing)</td></tr>
+        <tr><td>Email velocity limit</td><td><code>VELOCITY_EMAIL</code></td><td>Same email · merchant under the same rule</td><td><strong>30 min / 5</strong> (room for normal reorders)</td></tr>
+        <tr><td>IP velocity limit</td><td><code>VELOCITY_IP</code></td><td>Same buyer IP · merchant under the same rule</td><td><strong>15 min / 10</strong> (shared NAT / Wi-Fi)</td></tr>
+      </tbody>
+    </table>
+    <table>
+      <thead><tr><th>UI field</th><th>API / DB</th><th>Range</th></tr></thead>
+      <tbody>
+        <tr><td>Card window / attempts</td><td><code>velocityCardWindowMinutes</code> / <code>velocityCardMaxAttempts</code></td><td>1–1440 / 1–99</td></tr>
+        <tr><td>Email window / attempts</td><td><code>velocityEmailWindowMinutes</code> / <code>velocityEmailMaxAttempts</code></td><td>1–1440 / 1–99</td></tr>
+        <tr><td>IP window / attempts</td><td><code>velocityIpWindowMinutes</code> / <code>velocityIpMaxAttempts</code></td><td>1–1440 / 1–99</td></tr>
+      </tbody>
+    </table>
+    <div class="info-box">Defaults are operational recommendations and can be edited anytime on the HQ Risk Filtering screen.</div>
+
+    <h3 class="sub-title">4.9 JPAY postsale high-risk cooldown</h3>
+    <table>
+      <thead><tr><th>Item</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td>Code</td><td><code>POSTSALE_JPAY_HIGH_RISK</code></td></tr>
+        <tr><td>When Enabled</td><td><strong>After</strong> JPAY approval request, apply high-risk failures to card cooldown · Risk Status</td></tr>
+        <tr><td>Disabled</td><td>That classification is excluded from cooldown aggregation</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.10 JPAY PY0124 cooldown</h3>
+    <table>
+      <thead><tr><th>Item</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td>Code</td><td><code>POSTSALE_JPAY_PY0124</code></td></tr>
+        <tr><td>When Enabled</td><td>For JPAY <code>PY0124</code> failures, record cooldown · status the same way as high-risk</td></tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-title" id="s5">5. Presale filter check order</h2>
+    <p>When Presale filter Enabled=Y, the code <strong>evaluates in the order below</strong> and <strong>stops at the first violation</strong>.</p>
+    <ol class="step-list">
+      <li><strong>Invalid email</strong> — <code>EMAIL_INVALID</code></li>
+      <li><strong>Invalid phone</strong> — <code>PHONE_INVALID</code></li>
+      <li><strong>Suspicious holder name</strong> — <code>HOLDER_NAME_SUSPICIOUS</code></li>
+      <li><strong>Card velocity limit</strong> — <code>VELOCITY_CARD</code></li>
+      <li><strong>Email velocity limit</strong> — <code>VELOCITY_EMAIL</code></li>
+      <li><strong>IP velocity limit</strong> — <code>VELOCITY_IP</code></li>
+      <li><strong>Buyer contact mismatch</strong> — <code>BUYER_*_MISMATCH</code> (email → phone → name)</li>
+    </ol>
+    <div class="flow">① EMAIL_INVALID → ② PHONE_INVALID → ③ HOLDER_NAME_SUSPICIOUS
+→ ④ VELOCITY_CARD → ⑤ VELOCITY_EMAIL → ⑥ VELOCITY_IP
+→ ⑦ BUYER_EMAIL / PHONE / NAME_MISMATCH</div>
+    <div class="info-box">If an individual switch is Disabled, only that step is skipped. Example: email format OFF → skip ①, then continue from ②.</div>
+
+    <h2 class="section-title" id="s6">6. Block outcomes · Ops verification</h2>
+    <ol>
+      <li>No approval request is sent to the PG</li>
+      <li>One attempt is recorded in the system with status <strong>cancel (20)</strong></li>
+      <li>Written to <code>tb_pay_risk_filter_event</code> → <strong>Ops Management → Risk Status</strong></li>
+      <li>Buyer response: multilingual message · error code <code>PRESALE_RISK_FILTER</code></li>
+    </ol>
+    <p>If a legitimate customer is blocked, check <code>filterCode</code> on the status screen, then ease only that item (Disabled) or adjust the velocity window / count.</p>
+
+    <h2 class="section-title" id="s7">7. Ops recommendations · FAQ</h2>
+    <table>
+      <thead><tr><th>Item</th><th>Recommended</th></tr></thead>
+      <tbody>
+        <tr><td>Presale filter Enabled</td><td>Enabled</td></tr>
+        <tr><td>Format · holder · 3 velocity types</td><td>Enabled · window 10 min / count 3</td></tr>
+        <tr><td>Contact mismatch</td><td>Enabled (auto-remember is under Payment · URL tab)</td></tr>
+        <tr><td>JPAY postsale 2 types</td><td>Enabled</td></tr>
+      </tbody>
+    </table>
+    <ul>
+      <li><strong>Turn only some OFF:</strong> keep Presale filter=Enabled; set only the problem item to Disabled</li>
+      <li><strong>Turn all OFF:</strong> Presale filter=Disabled (individuals Y still do not run)</li>
+      <li><strong>No txn in PG logs:</strong> often means presale block worked as designed</li>
+      <li><strong>Auto-remember:</strong> not under “Risk Filtering”; HQ Policy → Payment · URL → checkout display defaults</li>
+    </ul>
+    <p>For field · DB · code tables, see the <a class="doc-link" href="./icopay-hq-risk-filter-manual.html">Filter detail manual</a>.</p>
+  </div>
+
+  <div class="footer">
+    ICOPAY · Risk Filtering Trigger Ops Manual · V2.40 · 2026-07-22<br>
+    PDF: <code>node operator-manual-pdf/gen.mjs risk</code>
+  </div>
+</div>
+</body>
+</html>

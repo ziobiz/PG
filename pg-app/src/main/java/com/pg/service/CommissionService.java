@@ -40,6 +40,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -49,6 +50,13 @@ public class CommissionService {
     private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new JavaTimeModule());
     private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+    /** 수수료관리 OTP 유효 시간(분) — 마지막 수수료 관련 활동 기준 슬라이딩 */
+    public static final int COMMISSION_OTP_GRACE_MINUTES = 10;
+    private static final long COMMISSION_OTP_GRACE_MS = COMMISSION_OTP_GRACE_MINUTES * 60L * 1000L;
+
+    /** 사용자별 마지막 수수료 OTP 통과·활동 시각(ms) */
+    private final ConcurrentHashMap<String, Long> commissionOtpPassedAtMs = new ConcurrentHashMap<>();
+
     private final OrgUnitRepository orgUnitRepository;
     private final CommissionPolicyRepository commissionPolicyRepository;
     private final MerchantCommissionExtraRepository merchantCommissionExtraRepository;
@@ -56,6 +64,7 @@ public class CommissionService {
     private final CommissionHistoryRepository commissionHistoryRepository;
     private final DistributionFeeConfigRepository distributionFeeConfigRepository;
     private final OrgUnitChangeAuditService orgUnitChangeAuditService;
+    private final AuthService authService;
 
     public CommissionService(OrgUnitRepository orgUnitRepository,
                              CommissionPolicyRepository commissionPolicyRepository,
@@ -63,7 +72,8 @@ public class CommissionService {
                              MerchantProfileRepository merchantProfileRepository,
                              CommissionHistoryRepository commissionHistoryRepository,
                              DistributionFeeConfigRepository distributionFeeConfigRepository,
-                             OrgUnitChangeAuditService orgUnitChangeAuditService) {
+                             OrgUnitChangeAuditService orgUnitChangeAuditService,
+                             AuthService authService) {
         this.orgUnitRepository = orgUnitRepository;
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.merchantCommissionExtraRepository = merchantCommissionExtraRepository;
@@ -71,6 +81,7 @@ public class CommissionService {
         this.commissionHistoryRepository = commissionHistoryRepository;
         this.distributionFeeConfigRepository = distributionFeeConfigRepository;
         this.orgUnitChangeAuditService = orgUnitChangeAuditService;
+        this.authService = authService;
     }
 
     /**
@@ -190,8 +201,8 @@ public class CommissionService {
                 applyDirectPolicyFallbackToDistribution(m, policy);
             }
         }
-        /* 본사정책 따름: 이력(이전 정책 스냅샷)으로 덮지 않음 — 선택한 HQ 템플릿 배분이 그대로 노출 */
-        if (preferLatestHistoryDistribution && effectiveScope == null) {
+        /* 목록·상세: 최신 저장 이력 배분을 우선(본사정책 따름이어도 템플릿으로 조용히 덮지 않음) */
+        if (preferLatestHistoryDistribution) {
             applyLatestCommissionHistoryDistributionForDisplay(mc, m);
         }
 
@@ -235,22 +246,23 @@ public class CommissionService {
      * (가맹에 이전 정책 배분이 남아 있거나 변경이력이 있어도, 정책선택 변경이 수수료관리에 바로 반영되도록)
      * 직접입력: 가맹 배분 행을 쓰고, 비어 있으면 템플릿 폴백.
      */
+    /**
+     * 가맹에 저장된 배분(DF)을 최우선. 비어 있을 때만 HQ 템플릿(본사정책 따름)을 폴백한다.
+     * (과거: Follow HQ 시 템플릿을 먼저 써서 목록만 기본수수료로 보이는 표시 버그가 있었음)
+     */
     private Optional<DistributionFeeConfig> resolveDistributionFeeConfig(OrgUnit merchant, String merchantCode,
                                                                          String effectiveScope) {
         String mc = normCompCode(merchantCode);
         String rawCode = merchant != null ? merchant.getCode() : null;
-        if (effectiveScope != null && !effectiveScope.isBlank() && !effectiveScope.equalsIgnoreCase(mc)) {
-            Optional<DistributionFeeConfig> fromHq = distributionFromHqTemplateScope(effectiveScope);
-            if (fromHq.isPresent()) {
-                return fromHq;
-            }
-        }
         Optional<DistributionFeeConfig> merchantDf = findDistributionByCompIdCandidates(mc, rawCode);
         if (merchantDf.isPresent() && !isDistributionConfigEffectivelyEmpty(merchantDf.get())) {
             return merchantDf;
         }
         if (effectiveScope != null && !effectiveScope.isBlank() && !effectiveScope.equalsIgnoreCase(mc)) {
-            return distributionFromHqTemplateScope(effectiveScope);
+            Optional<DistributionFeeConfig> fromHq = distributionFromHqTemplateScope(effectiveScope);
+            if (fromHq.isPresent()) {
+                return fromHq;
+            }
         }
         return merchantDf;
     }
@@ -359,11 +371,24 @@ public class CommissionService {
         if (desc == null || desc.isEmpty()) {
             return;
         }
-        Map<String, Object> snap = parseHistorySnapshotMap(desc.get(0));
+        CommissionHistory latest = desc.get(0);
+        putLatestCommissionChangeMeta(latest, m);
+        Map<String, Object> snap = parseHistorySnapshotMap(latest);
         if (snap == null || snap.isEmpty() || isDistributionMapEffectivelyEmpty(snap)) {
             return;
         }
         copyDistributionFieldsFromMap(snap, m);
+    }
+
+    /** 목록 하이라이트용: 최신 수수료 변경일시·금일 수정 여부(Asia/Seoul 기준) */
+    private static void putLatestCommissionChangeMeta(CommissionHistory latest, Map<String, Object> m) {
+        if (latest == null || m == null || latest.getCreatedAt() == null) {
+            return;
+        }
+        LocalDateTime at = latest.getCreatedAt();
+        m.put("lastChgDt", DT_FMT.format(at));
+        LocalDate todaySeoul = LocalDate.now(java.time.ZoneId.of("Asia/Seoul"));
+        m.put("changedTodayYn", at.toLocalDate().equals(todaySeoul) ? "Y" : "N");
     }
 
     private static void copyDistributionFieldsFromMap(Map<String, Object> src, Map<String, Object> dest) {
@@ -491,10 +516,8 @@ public class CommissionService {
             }
         }
         if (preferLatestHistory) {
-            /* 직접입력만 이력 우선 — 본사정책 따름은 템플릿 배분 유지 */
-            if (effectiveScope == null) {
-                applyLatestCommissionHistoryDistributionForDisplay(mc, m);
-            }
+            /* 저장 이력 배분 우선 — 본사정책 따름이어도 템플릿으로 덮어 보이지 않음 */
+            applyLatestCommissionHistoryDistributionForDisplay(mc, m);
         }
         return m;
     }
@@ -989,9 +1012,7 @@ public class CommissionService {
                     applyDirectPolicyFallbackToDistribution(m, policy);
                 }
             }
-            if (effectiveScope == null) {
-                applyLatestCommissionHistoryDistributionForDisplay(mc, m);
-            }
+            applyLatestCommissionHistoryDistributionForDisplay(mc, m);
             putTotals(m);
             if (m.get("applyStartDate") instanceof LocalDate d) m.put("applyStartDateStr", d.toString());
             else if (m.get("applyStartDate") != null) m.put("applyStartDateStr", m.get("applyStartDate").toString());
@@ -1445,5 +1466,79 @@ public class CommissionService {
             default -> {
             }
         }
+    }
+
+    public Map<String, Object> commissionOtpStatus(Authentication authentication) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("otpGraceMinutes", COMMISSION_OTP_GRACE_MINUTES);
+        AppUser user = resolveAuthUser(authentication);
+        if (user == null || user.getUsername() == null || user.getUsername().isBlank()) {
+            m.put("otpRequired", true);
+            return m;
+        }
+        String uname = user.getUsername().trim();
+        boolean required = requiresCommissionOtp(uname);
+        m.put("otpRequired", required);
+        if (!required) {
+            Long at = commissionOtpPassedAtMs.get(uname);
+            if (at != null) {
+                m.put("otpGraceExpiresAtMs", at + COMMISSION_OTP_GRACE_MS);
+            }
+        }
+        return m;
+    }
+
+    /**
+     * 이미 OTP 유예 중일 때만 활동 시각을 갱신(슬라이딩 연장). OTP 없이 유예 시작은 하지 않음.
+     */
+    public Map<String, Object> touchCommissionOtpActivity(Authentication authentication) {
+        AppUser user = resolveAuthUser(authentication);
+        if (user != null && user.getUsername() != null && !user.getUsername().isBlank()) {
+            String uname = user.getUsername().trim();
+            if (!requiresCommissionOtp(uname)) {
+                markCommissionOtpActivity(uname);
+            }
+        }
+        return commissionOtpStatus(authentication);
+    }
+
+    /**
+     * 저장 전 OTP: 유예 밖이면 검증, 통과·유예 내면 활동 시각을 갱신해 10분을 연장한다.
+     */
+    public void verifyCommissionOtpForSave(Authentication authentication, String totpCode) {
+        AppUser user = resolveAuthUser(authentication);
+        if (user == null || user.getUsername() == null || user.getUsername().isBlank()) {
+            throw new IllegalStateException("로그인이 필요합니다.");
+        }
+        String uname = user.getUsername().trim();
+        if (requiresCommissionOtp(uname)) {
+            authService.verifyTotpOrThrow(user, totpCode);
+        }
+        markCommissionOtpActivity(uname);
+    }
+
+    private boolean requiresCommissionOtp(String username) {
+        if (username == null || username.isBlank()) {
+            return true;
+        }
+        Long at = commissionOtpPassedAtMs.get(username.trim());
+        if (at == null) {
+            return true;
+        }
+        return System.currentTimeMillis() - at > COMMISSION_OTP_GRACE_MS;
+    }
+
+    private void markCommissionOtpActivity(String username) {
+        if (username == null || username.isBlank()) {
+            return;
+        }
+        commissionOtpPassedAtMs.put(username.trim(), System.currentTimeMillis());
+    }
+
+    private static AppUser resolveAuthUser(Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof AppUser u)) {
+            return null;
+        }
+        return u;
     }
 }

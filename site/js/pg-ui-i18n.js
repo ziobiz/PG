@@ -3736,6 +3736,54 @@
       CH: '已完成 {COUNT} 行保存。',
       TH: 'บันทึก {COUNT} แถวเสร็จแล้ว'
     },
+    '수수료 저장을 위해 Google OTP 6자리를 입력하세요.': {
+      EN: 'Enter Google OTP (6 digits) to save commission fees.',
+      JP: '手数料保存のためGoogle OTP 6桁を入力してください。',
+      CH: '请输入 Google OTP 6 位以保存手续费。',
+      TH: 'กรอก Google OTP 6 หลักเพื่อบันทึกค่าธรรมเนียม'
+    },
+    '수수료 저장 시 Google OTP가 필요합니다. 한 번 인증하면 10분간 유지되며, 수수료 목록 조회·셀 수정·저장 등 관련 작업이 있으면 10분이 연장됩니다. 10분간 관련 작업이 없으면 다시 OTP를 요청합니다.': {
+      EN: 'Google OTP is required to save fees. After one successful verification it stays valid for 10 minutes and extends when you view, edit, or save commission settings. If there is no commission activity for 10 minutes, OTP is required again.',
+      JP: '手数料保存にはGoogle OTPが必要です。一度認証すると10分間有効で、一覧照会・セル修正・保存など関連操作があれば10分が延長されます。10分間関連操作がなければ再度OTPを求めます。',
+      CH: '保存手续费需 Google OTP。验证一次后 10 分钟内有效；查询列表、改单元格、保存等手续费相关操作会延长 10 分钟。若 10 分钟无相关操作，将再次要求 OTP。',
+      TH: 'บันทึกค่าธรรมเนียมต้องใช้ Google OTP ยืนยันครั้งหนึ่งใช้ได้ 10 นาที และขยายเมื่อดูรายการ/แก้เซลล์/บันทึก หากไม่มีกิจกรรม 10 นาที จะขอ OTP อีกครั้ง'
+    },
+    '합계(요율%·건당료)는 총본사~영업점 값을 합산한 표시 전용이며 직접 수정할 수 없습니다.': {
+      EN: 'Totals (rate % / per-txn fee) are display-only sums of HQ through sales-office values and cannot be edited directly.',
+      JP: '合計(料率%・件当手数料)は総本社〜営業店の合算表示専用で、直接編集できません。',
+      CH: '合计（费率%/按笔费用）仅为总本部至营业店数值的汇总显示，不可直接修改。',
+      TH: 'ยอดรวม (% อัตรา/ค่าต่อรายการ) เป็นผลรวมของสำนักงานใหญ่ถึงจุดขาย แสดงอย่างเดียว แก้ไขโดยตรงไม่ได้'
+    },
+    '현재 선택·편집 중인 가맹점 행은 결제내역 「성공」과 같은 파스텔 녹색으로 표시됩니다.': {
+      EN: 'The merchant row currently selected or being edited uses the same pastel green as Payment list 「Success」.',
+      JP: '現在選択・編集中の加盟店行は決済一覧「成功」と同じパステル緑で表示されます。',
+      CH: '当前选中或正在编辑的商户行使用与支付列表「成功」相同的淡绿色。',
+      TH: 'แถวร้านที่เลือกหรือกำลังแก้ไขใช้สีเขียวพาสเทลเดียวกับ「สำเร็จ」ในรายการชำระ'
+    },
+    '체크·No·가맹점·업체코드·통화·관리·적용시작일 열 폭은 고정이며, 나머지(요율·건당 등·헬로/VIEW SETTING 추가 열)는 잔여 폭을 균등 분배합니다.': {
+      EN: 'Widths for Check, No., Merchant, Company code, Currency, Manage, and Start date are fixed; remaining columns (rates/fees and Hello/VIEW SETTING extras) share the leftover width equally.',
+      JP: 'チェック・No・加盟店・加盟店コード・通貨・管理・適用開始日の列幅は固定。残り(料率・件当など・ハロー/VIEW SETTING追加列)は残余幅を均等配分します。',
+      CH: '勾选、No.、商户、商户代码、货币、管理、适用开始日列宽固定；其余（费率/按笔及 Hello/VIEW SETTING 追加列）均分剩余宽度。',
+      TH: 'ความกว้างคอลัมน์ เช็ค·No·ร้าน·รหัส·สกุลเงิน·จัดการ·วันเริ่ม ถูกตรึง ส่วนที่เหลือ (อัตรา/ค่าต่อรายการ และคอลัมน์ Hello/VIEW SETTING) แบ่งพื้นที่ที่เหลือเท่าๆ กัน'
+    },
+    '합계(읽기 전용)': {
+      EN: 'Total (read-only)',
+      JP: '合計(読取専用)',
+      CH: '合计（只读）',
+      TH: 'รวม (อ่านอย่างเดียว)'
+    },
+    '[{COMP_ID}] 수수료 설정(모달)을 저장합니다. 계속할까요?': {
+      EN: 'Save commission settings (modal) for [{COMP_ID}]. Continue?',
+      JP: '[{COMP_ID}] の手数料設定(モーダル)を保存します。続行しますか？',
+      CH: '保存 [{COMP_ID}] 的手续费设置（弹窗），是否继续？',
+      TH: 'บันทึกการตั้งค่าค่าธรรมเนียม (โมดอล) ของ [{COMP_ID}] ดำเนินต่อ?'
+    },
+    '입력한 내용이 서버에 반영됩니다. 정말 저장할까요?': {
+      EN: 'Your entries will be saved to the server. Save for sure?',
+      JP: '入力内容がサーバーに反映されます。本当に保存しますか？',
+      CH: '输入内容将写入服务器，确定保存？',
+      TH: 'ข้อมูลที่กรอกจะถูกบันทึกลงเซิร์ฟเวอร์ ยืนยันบันทึก?'
+    },
     '[{COMP_ID}] 수수료 배분·건당 수수료를 0으로 초기화합니다. 계속할까요?': {
       EN: 'Reset [{COMP_ID}] fee split and per-txn fees to 0. Continue?',
       JP: '[{COMP_ID}] の手数料配分・件当手数料を0に初期化します。続行しますか？',
@@ -8600,6 +8648,78 @@
       JP: '先に「アクセス権限を追加」または一覧の「修正」でウィンドウを開き、「保存」を押してください。',
       CH: '请先通过「添加访问权限」或列表中的「修改」打开窗口，再使用「保存」。',
       TH: 'เปิดหน้าต่างด้วย [เพิ่มสิทธิ์] หรือ [แก้ไข] ในรายการ แล้วใช้ [บันทึก]'
+    },
+    '모든로그인제한': {
+      EN: 'Login restriction (all)',
+      JP: '全ログイン制限',
+      CH: '全部登录限制',
+      TH: 'จำกัดการเข้าสู่ระบบทั้งหมด'
+    },
+    'hqBulkLoginDesc': {
+      EN: 'Pick an org level, search/select a company from the dropdown, then apply Allow / Deny / Pause. Higher orgs (e.g. master dist) apply to self and all subordinates; merchants affect only that merchant (HQ excluded).',
+      JP: '組織段階を選び、検索・ドロップダウンで業者を選択後、使用・未使用・一時停止を適用します。総販など上位は本人+下位全体、加盟店は当該加盟のみです(総本部除外)。',
+      CH: '先选组织层级，再搜索/下拉选择商户后应用使用/停用/暂停。总代等上级作用于自身及下级；商户仅作用于该商户（不含总总部）。',
+      TH: 'เลือกระดับองค์กร ค้นหา/เลือกจากรายการ แล้วใช้ ใช้งาน/ไม่ใช้/หยุดชั่วคราว องค์กรระดับสูงมีผลกับตนเองและลูกข่าย ร้านค้ามีผลเฉพาะร้านนั้น (ไม่รวม HQ)'
+    },
+    '조직 단계를 고른 뒤 검색·드롭다운으로 업체를 선택하고 사용·미사용·일시중지를 적용합니다. 총판 등 상위 조직은 본인+하위 전체에, 가맹점은 해당 가맹만 적용됩니다(총본사 제외).': {
+      EN: 'Pick an org level, search/select a company from the dropdown, then apply Allow / Deny / Pause. Higher orgs (e.g. master dist) apply to self and all subordinates; merchants affect only that merchant (HQ excluded).',
+      JP: '組織段階を選び、検索・ドロップダウンで業者を選択後、使用・未使用・一時停止を適用します。総販など上位は本人+下位全体、加盟店は当該加盟のみです(総本部除外)。',
+      CH: '先选组织层级，再搜索/下拉选择商户后应用使用/停用/暂停。总代等上级作用于自身及下级；商户仅作用于该商户（不含总总部）。',
+      TH: 'เลือกระดับองค์กร ค้นหา/เลือกจากรายการ แล้วใช้ ใช้งาน/ไม่ใช้/หยุดชั่วคราว องค์กรระดับสูงมีผลกับตนเองและลูกข่าย ร้านค้ามีผลเฉพาะร้านนั้น (ไม่รวม HQ)'
+    },
+    '업체 검색': {
+      EN: 'Search company',
+      JP: '業者検索',
+      CH: '搜索商户',
+      TH: 'ค้นหาร้าน'
+    },
+    '업체 선택': {
+      EN: 'Select company',
+      JP: '業者選択',
+      CH: '选择商户',
+      TH: 'เลือกร้าน'
+    },
+    '업체코드·업체명': {
+      EN: 'Company code / name',
+      JP: '加盟店コード・名称',
+      CH: '商户代码/名称',
+      TH: 'รหัส/ชื่อร้าน'
+    },
+    '먼저 조직 단계를 선택하세요': {
+      EN: 'Select an org level first',
+      JP: '先に組織段階を選択',
+      CH: '请先选择组织层级',
+      TH: 'เลือกระดับองค์กรก่อน'
+    },
+    '해당 단계 전체': {
+      EN: 'All at this level',
+      JP: '当該段階全体',
+      CH: '该层级全部',
+      TH: 'ทั้งระดับนี้'
+    },
+    '검색 결과가 없습니다': {
+      EN: 'No results',
+      JP: '検索結果なし',
+      CH: '无搜索结果',
+      TH: 'ไม่พบผลลัพธ์'
+    },
+    '조직 단계와 업체를 선택하면 적용 범위가 표시됩니다.': {
+      EN: 'Select an org level and company to see the apply scope.',
+      JP: '組織段階と業者を選ぶと適用範囲が表示されます。',
+      CH: '选择组织层级与商户后显示适用范围。',
+      TH: 'เลือกระดับและร้านเพื่อดูขอบเขตที่ใช้'
+    },
+    '적용 범위': {
+      EN: 'Apply scope',
+      JP: '適用範囲',
+      CH: '适用范围',
+      TH: 'ขอบเขตที่ใช้'
+    },
+    '일시중지': {
+      EN: 'Temporary suspend',
+      JP: '一時停止',
+      CH: '临时暂停',
+      TH: 'ระงับชั่วคราว'
     },
     '삭제할 행을 체크하세요.': {
       EN: 'Check the rows to delete.',

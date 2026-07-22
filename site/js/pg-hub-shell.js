@@ -91,6 +91,8 @@
       '/hq/notifyInbound': ['_hqNotifyInboundBound'],
       '/hq/ledgerSysSettings': ['_hqLedgerPaneInit'],
       '/hq/platformReleaseNotes': ['_icopayReleaseNotesMounted'],
+      '/ops/opsManuals': ['_icopayPmBound'],
+      '/hq/platformOpsManuals': ['_icopayPmBound'],
       '/hq/settlementAdmin': ['_hqSettlementAdminBound'],
       '/hq/receivableRecoverySettings': ['_hqRecvRecoveryBound'],
       '/hq/domainConfig': ['_hqDomainOrgTableDelBound'],

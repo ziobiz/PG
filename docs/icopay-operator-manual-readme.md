@@ -47,8 +47,21 @@ node operator-manual-pdf/gen.mjs hq
 - `dist` — 총판 메뉴얼
 - `super` — 총본사 메뉴얼
 - `all` — 15개 전체
+- `risk` — **본사정책 수수료·리스크** HTML (통합 + 필터 상세 + **트리거 운영 다국어 KO/EN/JP/CH/TH**)
 
 출력: `docs/manual-pdf/`
+
+### 수수료·리스크 전용 (HTML · PDF)
+
+| 문서 | HTML | PDF (gen.mjs risk) |
+|------|------|---------------------|
+| 통합 (리스크설정+필터링) | [`icopay-hq-risk-manual.html`](./icopay-hq-risk-manual.html) | `ICOPAY HQ Fees Risk Manual_KR_*.pdf` |
+| 필터 상세 | [`icopay-hq-risk-filter-manual.html`](./icopay-hq-risk-filter-manual.html) | `ICOPAY HQ Risk Filtering Detail Manual_KR_*.pdf` |
+| **트리거 운영** (항목별 사용·검사순서) | [`icopay-hq-risk-filter-trigger-manual.html`](./icopay-hq-risk-filter-trigger-manual.html) (+ `-en`/`-ja`/`-zh`/`-th`) | `ICOPAY HQ Risk Filtering Trigger Ops Manual_{KR\|EN\|JP\|CH\|TH}_220722_V2.43.pdf` |
+| **총판용 트리거 설명안** (리스크설정·필터링 기본값) | [`icopay-dist-risk-trigger-manual.html`](./icopay-dist-risk-trigger-manual.html) (+ `-en`/`-ja`/`-zh`/`-th`) | `ICOPAY Distributor Risk Trigger Guide_{KR\|EN\|JP\|CH\|TH}_220722_V2.43.pdf` |
+
+Markdown: [`본사정책_수수료리스크_매뉴얼.md`](./본사정책_수수료리스크_매뉴얼.md), [`리스크필터_운영매뉴얼.md`](./리스크필터_운영매뉴얼.md), [`리스크필터_트리거_운영매뉴얼.md`](./리스크필터_트리거_운영매뉴얼.md), [`총판_리스크_트리거_설명안.md`](./총판_리스크_트리거_설명안.md)  
+브라우저에서 HTML을 열고 **인쇄 → PDF 저장**도 가능합니다.
 
 ## 명명 원칙 (V2.0 · 2026-07)
 

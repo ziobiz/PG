@@ -385,6 +385,14 @@
   M['노티 생성 이력이 수정되었습니다.']={EN:'NOTI provision history has been updated.',JP:'ノティ作成履歴を修正しました。',CH:'NOTI 创建历史已更新。',TH:'อัปเดตประวัติสร้าง NOTI แล้ว'};
   M['노티 생성 이력이 삭제되었습니다. NOTI 미들웨어에서도 제거되었습니다.']={EN:'NOTI provision history deleted and removed from NOTI middleware.',JP:'ノティ作成履歴を削除し、NOTIミドルウェアからも除去しました。',CH:'NOTI 创建历史已删除，并从 NOTI 中间件移除。',TH:'ลบประวัติสร้าง NOTI และนำออกจาก NOTI middleware แล้ว'};
   M['노티관리 수정을 위해 Google OTP 6자리를 입력하세요.']={EN:'Enter Google OTP (6 digits) to edit NOTI management.',JP:'ノティ管理の修正にはGoogle OTP 6桁を入力してください。',CH:'请输入 Google OTP 6 位以修改 NOTI 管理。',TH:'กรอก Google OTP 6 หลักเพื่อแก้ไขการจัดการ NOTI'};
+  M['수수료 저장을 위해 Google OTP 6자리를 입력하세요.']={EN:'Enter Google OTP (6 digits) to save commission fees.',JP:'手数料保存のためGoogle OTP 6桁を入力してください。',CH:'请输入 Google OTP 6 位以保存手续费。',TH:'กรอก Google OTP 6 หลักเพื่อบันทึกค่าธรรมเนียม'};
+  M['수수료 저장 시 Google OTP가 필요합니다. 한 번 인증하면 10분간 유지되며, 수수료 목록 조회·셀 수정·저장 등 관련 작업이 있으면 10분이 연장됩니다. 10분간 관련 작업이 없으면 다시 OTP를 요청합니다.']={EN:'Google OTP is required to save fees. After one successful verification it stays valid for 10 minutes and extends when you view, edit, or save commission settings. If there is no commission activity for 10 minutes, OTP is required again.',JP:'手数料保存にはGoogle OTPが必要です。一度認証すると10分間有効で、一覧照会・セル修正・保存など関連操作があれば10分が延長されます。10分間関連操作がなければ再度OTPを求めます。',CH:'保存手续费需 Google OTP。验证一次后 10 分钟内有效；查询列表、改单元格、保存等手续费相关操作会延长 10 分钟。若 10 分钟无相关操作，将再次要求 OTP。',TH:'บันทึกค่าธรรมเนียมต้องใช้ Google OTP ยืนยันครั้งหนึ่งใช้ได้ 10 นาที และขยายเมื่อดูรายการ/แก้เซลล์/บันทึก หากไม่มีกิจกรรม 10 นาที จะขอ OTP อีกครั้ง'};
+  M['합계(요율%·건당료)는 총본사~영업점 값을 합산한 표시 전용이며 직접 수정할 수 없습니다.']={EN:'Totals (rate % / per-txn fee) are display-only sums of HQ through sales-office values and cannot be edited directly.',JP:'合計(料率%・件当手数料)は総本社〜営業店の合算表示専用で、直接編集できません。',CH:'合计（费率%/按笔费用）仅为总本部至营业店数值的汇总显示，不可直接修改。',TH:'ยอดรวม (% อัตรา/ค่าต่อรายการ) เป็นผลรวมของสำนักงานใหญ่ถึงจุดขาย แสดงอย่างเดียว แก้ไขโดยตรงไม่ได้'};
+  M['현재 선택·편집 중인 가맹점 행은 결제내역 「성공」과 같은 파스텔 녹색으로 표시됩니다.']={EN:'The merchant row currently selected or being edited uses the same pastel green as Payment list 「Success」.',JP:'現在選択・編集中の加盟店行は決済一覧「成功」と同じパステル緑で表示されます。',CH:'当前选中或正在编辑的商户行使用与支付列表「成功」相同的淡绿色。',TH:'แถวร้านที่เลือกหรือกำลังแก้ไขใช้สีเขียวพาสเทลเดียวกับ「สำเร็จ」ในรายการชำระ'};
+  M['체크·No·가맹점·업체코드·통화·관리·적용시작일 열 폭은 고정이며, 나머지(요율·건당 등·헬로/VIEW SETTING 추가 열)는 잔여 폭을 균등 분배합니다.']={EN:'Widths for Check, No., Merchant, Company code, Currency, Manage, and Start date are fixed; remaining columns (rates/fees and Hello/VIEW SETTING extras) share the leftover width equally.',JP:'チェック・No・加盟店・加盟店コード・通貨・管理・適用開始日の列幅は固定。残り(料率・件当など・ハロー/VIEW SETTING追加列)は残余幅を均等配分します。',CH:'勾选、No.、商户、商户代码、货币、管理、适用开始日列宽固定；其余（费率/按笔及 Hello/VIEW SETTING 追加列）均分剩余宽度。',TH:'ความกว้างคอลัมน์ เช็ค·No·ร้าน·รหัส·สกุลเงิน·จัดการ·วันเริ่ม ถูกตรึง ส่วนที่เหลือ (อัตรา/ค่าต่อรายการ และคอลัมน์ Hello/VIEW SETTING) แบ่งพื้นที่ที่เหลือเท่าๆ กัน'};
+  M['합계(읽기 전용)']={EN:'Total (read-only)',JP:'合計(読取専用)',CH:'合计（只读）',TH:'รวม (อ่านอย่างเดียว)'};
+  M['[{COMP_ID}] 수수료 설정(모달)을 저장합니다. 계속할까요?']={EN:'Save commission settings (modal) for [{COMP_ID}]. Continue?',JP:'[{COMP_ID}] の手数料設定(モーダル)を保存します。続行しますか？',CH:'保存 [{COMP_ID}] 的手续费设置（弹窗），是否继续？',TH:'บันทึกการตั้งค่าค่าธรรมเนียม (โมดอล) ของ [{COMP_ID}] ดำเนินต่อ?'};
+  M['입력한 내용이 서버에 반영됩니다. 정말 저장할까요?']={EN:'Your entries will be saved to the server. Save for sure?',JP:'入力内容がサーバーに反映されます。本当に保存しますか？',CH:'输入内容将写入服务器，确定保存？',TH:'ข้อมูลที่กรอกจะถูกบันทึกลงเซิร์ฟเวอร์ ยืนยันบันทึก?'};
   M['노티관리 실행 권한이 없습니다(본사권한설정).']={EN:'You do not have permission to run NOTI management (HQ permissions).',JP:'ノティ管理の実行権限がありません(本社権限設定)。',CH:'无 NOTI 管理执行权限(总部权限设置)。',TH:'ไม่มีสิทธิ์ดำเนินการจัดการ NOTI (สิทธิ์ HQ)'};
   M['Google OTP (노티관리)']={EN:'OTP',JP:'OTP',CH:'OTP',TH:'OTP'};
   M['수정 시 NOTI 미들웨어 가맹 설정도 함께 반영됩니다. ICOPAY에서 생성한 노티는 여기서 수정해야 양방향이 유지됩니다.']={
@@ -450,18 +458,23 @@
   M['연동방식']={EN:'Integration mode',JP:'連携方式',CH:'对接方式',TH:'โหมดเชื่อมต่อ'};
   M['API 방식']={EN:'API mode',JP:'API方式',CH:'API 方式',TH:'โหมด API'};
   M['URL 방식']={EN:'URL mode',JP:'URL方式',CH:'URL 方式',TH:'โหมด URL'};
-  M['API: 가맹·전산·개발 노티를 직접 설정. URL: 가맹점 포워딩 끔·개발 노티(대체 Dev URL)·RESULT AUTO·RouteNo=슬롯으로 자동 설정.']={
-    EN:'API: set merchant, ledger, and dev NOTI yourself. URL: merchant forwarding off, use dev NOTI (alt Dev URLs), RESULT AUTO, and RouteNo=slot automatically.',
-    JP:'API:加盟店・電算・開発ノティを手動設定。URL:加盟転送OFF・開発ノティ(代替Dev URL)・RESULT AUTO・RouteNo=スロットを自動設定。',
-    CH:'API：自行设置商户、账务与开发 NOTI。URL：关闭商户转发，使用开发 NOTI（替代 Dev URL）、RESULT AUTO，RouteNo=槽位自动设置。',
-    TH:'API: ตั้ง NOTI ร้านค้า/บัญชี/dev เอง URL: ปิด forward ร้าน, ใช้ NOTI dev (URL Dev สำรอง), RESULT AUTO และ RouteNo=สล็อตอัตโนมัติ'
+  M['URL 하이브리드 방식']={EN:'URL hybrid mode',JP:'URLハイブリッド方式',CH:'URL 混合方式',TH:'โหมด URL ไฮบริด'};
+  M['URL 하이브리드']={EN:'URL hybrid',JP:'URLハイブリッド',CH:'URL 混合',TH:'URL ไฮบริด'};
+  M['API: 가맹·전산·개발 노티를 직접 설정. URL: 가맹 포워딩 끔·개발 노티(대체 Dev URL)·RESULT AUTO. URL 하이브리드: URL과 같되 가맹점 노티·callback/result URL을 송부.']={
+    EN:'API: set merchant, ledger, and dev NOTI yourself. URL: merchant forwarding off, use dev NOTI (alt Dev URLs), RESULT AUTO. URL hybrid: same as URL but sends merchant NOTI callback/result URLs.',
+    JP:'API:加盟店・電算・開発ノティを手動設定。URL:加盟転送OFF・開発ノティ(代替Dev URL)・RESULT AUTO。URLハイブリッド:URLと同じだが加盟店ノティのcallback/result URLを送付。',
+    CH:'API：自行设置商户、账务与开发 NOTI。URL：关闭商户转发，使用开发 NOTI（替代 Dev URL）、RESULT AUTO。URL 混合：同 URL，但会发送商户 NOTI 的 callback/result URL。',
+    TH:'API: ตั้ง NOTI ร้านค้า/บัญชี/dev เอง URL: ปิด forward ร้าน ใช้ NOTI dev (URL Dev สำรอง) RESULT AUTO URL ไฮบริด: เหมือน URL แต่ส่ง callback/result ของร้าน'
   };
   M['URL 방식 — 대체 송부(개발 노티) URL']={EN:'URL mode — alt send (dev NOTI) URLs',JP:'URL方式 — 代替送付(開発ノティ)URL',CH:'URL 方式 — 替代发送（开发 NOTI）URL',TH:'โหมด URL — URL ส่งแทน (NOTI dev)'};
+  M['URL 하이브리드 — 대체 송부(개발 노티) URL']={EN:'URL hybrid — alt send (dev NOTI) URLs',JP:'URLハイブリッド — 代替送付(開発ノティ)URL',CH:'URL 混合 — 替代发送（开发 NOTI）URL',TH:'URL ไฮบริด — URL ส่งแทน (NOTI dev)'};
   M['가맹점 노티 사용']={EN:'Use merchant NOTI',JP:'加盟店ノティ使用',CH:'使用商户 NOTI',TH:'ใช้ NOTI ร้านค้า'};
   M['전산 노티 사용']={EN:'Use ledger NOTI',JP:'電算ノティ使用',CH:'使用账务 NOTI',TH:'ใช้ NOTI บัญชี'};
   M['개발 노티 사용']={EN:'Use dev NOTI',JP:'開発ノティ使用',CH:'使用开发 NOTI',TH:'ใช้ NOTI dev'};
   M['가맹점 노티 사용 시 callback·result URL이 필요합니다. 업체관리 URL 또는 직접 입력하세요.']={EN:'Merchant NOTI requires callback and result URLs. Use merchant admin URLs or enter them manually.',JP:'加盟店ノティ使用時はcallback・result URLが必要です。業者管理のURLまたは直接入力してください。',CH:'使用商户 NOTI 时需要 callback 与 result URL。请使用商户管理 URL 或手动输入。',TH:'เมื่อใช้ NOTI ร้านค้า ต้องมี callback และ result URL ใช้จากจัดการร้านหรือกรอกเอง'};
   M['URL 방식은 총판의 본사 노티 대상(개발 CALLBACK·RESULT) 연결이 필요합니다. 본사설정 → 노티구성설정에서 총판 노티를 생성·연결하세요.']={EN:'URL mode requires the master distributor HQ NOTI target (dev CALLBACK/RESULT). Create and link it in HQ Settings → Notify config.',JP:'URL方式は総販の本社ノティ対象(開発CALLBACK・RESULT)の接続が必要です。本社設定→ノティ構成設定で総販ノティを作成・接続してください。',CH:'URL 方式需要总代总部 NOTI 目标（开发 CALLBACK/RESULT）。请在总部设置 → 通知环境中创建并连接。',TH:'โหมด URL ต้องเชื่อมเป้าหมาย NOTI HQ ของตัวแทน (CALLBACK/RESULT แบบ dev) ที่ตั้งค่า HQ → ตั้งค่าแจ้งเตือน'};
+  M['URL 하이브리드 방식은 가맹점 callback·result URL이 필요합니다. 업체관리 URL 또는 직접 입력하세요.']={EN:'URL hybrid mode requires merchant callback and result URLs. Use merchant admin URLs or enter them manually.',JP:'URLハイブリッド方式では加盟店callback・result URLが必要です。業者管理のURLまたは直接入力してください。',CH:'URL 混合方式需要商户 callback 与 result URL。请使用商户管理 URL 或手动输入。',TH:'โหมด URL ไฮบริด ต้องมี callback และ result URL ของร้าน ใช้จากจัดการร้านหรือกรอกเอง'};
+  M['URL 하이브리드 방식은 총판의 본사 노티 대상(개발 CALLBACK·RESULT) 연결이 필요합니다. 본사설정 → 노티구성설정에서 총판 노티를 생성·연결하세요.']={EN:'URL hybrid mode requires the master distributor HQ NOTI target (dev CALLBACK/RESULT). Create and link it in HQ Settings → Notify config.',JP:'URLハイブリッド方式は総販の本社ノティ対象(開発CALLBACK・RESULT)の接続が必要です。本社設定→ノティ構成設定で総販ノティを作成・接続してください。',CH:'URL 混合方式需要总代总部 NOTI 目标（开发 CALLBACK/RESULT）。请在总部设置 → 通知环境中创建并连接。',TH:'โหมด URL ไฮบริด ต้องเชื่อมเป้าหมาย NOTI HQ ของตัวแทน (CALLBACK/RESULT แบบ dev) ที่ตั้งค่า HQ → ตั้งค่าแจ้งเตือน'};
   M['개발 노티 사용 시 총판의 본사 노티 대상(CALLBACK·RESULT) 연결이 필요합니다. 본사설정 → 노티구성설정에서 총판 노티를 생성·연결하세요.']={EN:'Dev NOTI requires the master distributor HQ NOTI target (CALLBACK/RESULT). Create and link it in HQ Settings → Notify config.',JP:'開発ノティ使用時は総販の本社ノティ対象(CALLBACK・RESULT)の接続が必要です。本社設定→ノティ構成設定で総販ノティを作成・接続してください。',CH:'使用开发 NOTI 时需要总代总部 NOTI 目标（CALLBACK/RESULT）。请在总部设置 → 通知环境中创建并连接。',TH:'เมื่อใช้ NOTI dev ต้องเชื่อมเป้าหมาย NOTI HQ ของตัวแทน (CALLBACK/RESULT) ที่ตั้งค่า HQ → ตั้งค่าแจ้งเตือน'};
   M['동일 가맹 ID가 다른 설정으로 이미 존재합니다.']={EN:'The same merchant ID already exists with different settings.',JP:'同一加盟IDが別設定で既に存在します。',CH:'同一商户 ID 已以不同设置存在。',TH:'รหัสร้านค้าเดียวกันมีอยู่แล้วด้วยการตั้งค่าอื่น'};
   M['Partner 코드를 입력하세요.']={EN:'Enter a Partner code.',JP:'Partnerコードを入力してください。',CH:'请输入 Partner 代码。',TH:'กรอกรหัส Partner'};
@@ -923,7 +936,9 @@
   M['맨 오른쪽 「PG정산유무」는 대행수수료설정의 T/H/D·N·일괄시각으로 산출한 PG 계약 정산 도래 여부(Y=도래, N=미도래)입니다. 정책 없음·van 없음은 빈 칸입니다.']={EN:'맨 오른쪽 「PG정산유무」는 대행Commission settings의 T/H/D·N·일괄시각으로 산출한 PG 계약 정산 도래 여부(Y=도래, N=미도래)입니다. 정책 없음·van 없음은 빈 칸입니다.',JP:'맨 오른쪽 「PG정산유무」는 대행手数料設定의 T/H/D·N·일괄시각으로 산출한 PG 계약 정산 도래 여부(Y=도래, N=미도래)입니다. 정책 없음·van 없음은 빈 칸입니다.',CH:'맨 오른쪽 「PG정산유무」는 대행手续费设置의 T/H/D·N·일괄시각으로 산출한 PG 계약 정산 도래 여부(Y=도래, N=미도래)입니다. 정책 없음·van 없음은 빈 칸입니다.',TH:'맨 오른쪽 「PG정산유무」는 대행ตั้งค่าค่าธรรมเนียม의 T/H/D·N·일괄시각으로 산출한 PG 계약 정산 도래 여부(Y=도래, N=미도래)입니다. 정책 없음·van 없음은 빈 칸입니다.'};
   M['먼저 [검색]으로 조회한 뒤 「모두」를 선택하세요.']={EN:'먼저 [검색]으로 조회한 뒤 「모두」를 선택하세요.',JP:'먼저 [검색]으로 조회한 뒤 「모두」를 선택하세요.',CH:'먼저 [검색]으로 조회한 뒤 「모두」를 선택하세요.',TH:'먼저 [검색]으로 조회한 뒤 「모두」를 선택하세요.'};
   M['먼저 [연결 총판]에서 총판을 선택한 뒤 노티 대상명을 입력하고 [노티자동생성]을 누르세요. CALLBACK·RESULT URL이 발급되며 선택한 총판과 즉시 연결됩니다. 이때 해당 총판 업체 상세의 필수 노티(URL 1·2)도 발급 URL로 자동 반영됩니다(보조 URL 3·4는 유지). 목록의 [연결수정]으로 연결 총판을 바꾸면 동일하게 필수 노티가 갱신됩니다. 총판 저장 시 노티 URL에 동일 주소를 넣어 두면 저장 시 연결이 유지·갱신됩니다.']={EN:'먼저 [연결 총판]에서 총판을 선택한 뒤 노티 대상명을 입력하고 [노티자동생성]을 누르세요. CALLBACK·RESULT URL이 발급되며 선택한 총판과 즉시 연결됩니다. 이때 해당 총판 업체 상세의 필수 노티(URL 1·2)도 발급 URL로 자동 반영됩니다(보조 URL 3·4는 유지). 목록의 [연결수정]으로 연결 총판을 바꾸면 동일하게 필수 노티가 갱신됩니다. 총판 저장 시 노티 URL에 동일 주소를 넣어 두면 저장 시 연결이 유지·갱신됩니다.',JP:'먼저 [연결 총판]에서 총판을 선택한 뒤 노티 대상명을 입력하고 [노티자동생성]을 누르세요. CALLBACK·RESULT URL이 발급되며 선택한 총판과 즉시 연결됩니다. 이때 해당 총판 업체 상세의 필수 노티(URL 1·2)도 발급 URL로 자동 반영됩니다(보조 URL 3·4는 유지). 목록의 [연결수정]으로 연결 총판을 바꾸면 동일하게 필수 노티가 갱신됩니다. 총판 저장 시 노티 URL에 동일 주소를 넣어 두면 저장 시 연결이 유지·갱신됩니다.',CH:'먼저 [연결 총판]에서 총판을 선택한 뒤 노티 대상명을 입력하고 [노티자동생성]을 누르세요. CALLBACK·RESULT URL이 발급되며 선택한 총판과 즉시 연결됩니다. 이때 해당 총판 업체 상세의 필수 노티(URL 1·2)도 발급 URL로 자동 반영됩니다(보조 URL 3·4는 유지). 목록의 [연결수정]으로 연결 총판을 바꾸면 동일하게 필수 노티가 갱신됩니다. 총판 저장 시 노티 URL에 동일 주소를 넣어 두면 저장 시 연결이 유지·갱신됩니다.',TH:'먼저 [연결 총판]에서 총판을 선택한 뒤 노티 대상명을 입력하고 [노티자동생성]을 누르세요. CALLBACK·RESULT URL이 발급되며 선택한 총판과 즉시 연결됩니다. 이때 해당 총판 업체 상세의 필수 노티(URL 1·2)도 발급 URL로 자동 반영됩니다(보조 URL 3·4는 유지). 목록의 [연결수정]으로 연결 총판을 바꾸면 동일하게 필수 노티가 갱신됩니다. 총판 저장 시 노티 URL에 동일 주소를 넣어 두면 저장 시 연결이 유지·갱신됩니다.'};
-  M['먼저 [접근권한 추가] 또는 목록의 [수정]을 눌러 창을 연 뒤 [저장]을 사용하세요.']={EN:'먼저 [접근권한 추가] 또는 목록의 [수정]을 눌러 창을 연 뒤 [저장]을 사용하세요.',JP:'먼저 [접근권한 추가] 또는 목록의 [수정]을 눌러 창을 연 뒤 [저장]을 사용하세요.',CH:'먼저 [접근권한 추가] 또는 목록의 [수정]을 눌러 창을 연 뒤 [저장]을 사용하세요.',TH:'먼저 [접근권한 추가] 또는 목록의 [수정]을 눌러 창을 연 뒤 [저장]을 사용하세요.'};
+  M['먼저 [접근권한 추가] 또는 목록의 [수정]을 눌러 창을 연 뒤 [저장]을 사용하세요.']={EN:'Open the dialog with [Add access rule] or list [Edit], then use [Save].',JP:'先に[アクセス権限を追加]または一覧の[修正]で窓を開いてから[保存]を使ってください。',CH:'请先通过[添加访问权限]或列表[修改]打开窗口，再使用[保存]。',TH:'เปิดหน้าต่างด้วย [เพิ่มสิทธิ์การเข้าถึง] หรือ [แก้ไข] ในรายการ แล้วใช้ [บันทึก]'};
+  M['접근권한 수정']={EN:'Edit access rule',JP:'アクセス権限を修正',CH:'修改访问权限',TH:'แก้ไขสิทธิ์การเข้าถึง'};
+  M['접근권한 추가']={EN:'Add access rule',JP:'アクセス権限を追加',CH:'添加访问权限',TH:'เพิ่มสิทธิ์การเข้าถึง'};
   M['먼저 가맹점 코드를 지정하고 불러오기를 진행해 주세요.']={EN:'Set the merchant code first, then load.',JP:'まず加盟店コードを指定してから読み込んでください。',CH:'请先指定商户代码再加载。',TH:'ระบุรหัสร้านค้าก่อนแล้วจึงโหลด'};
   M['먼저 목록에서 「수정」을 눌러 편집할 행을 선택하세요.']={EN:'먼저 목록에서 「수정」을 눌러 편집할 행을 선택하세요.',JP:'먼저 목록에서 「수정」을 눌러 편집할 행을 선택하세요.',CH:'먼저 목록에서 「수정」을 눌러 편집할 행을 선택하세요.',TH:'먼저 목록에서 「수정」을 눌러 편집할 행을 선택하세요.'};
   M['먼저 사용자 ID를 고릅니다(목록은 총본사·본사·총판 소속만). 이어서 허용 업체코드를 선택합니다(전 업체). 저장 후 사용자관리 등에서는 지정한 업체 코드와만 교집합됩니다. 저장 시 서버에서 검증합니다.']={EN:'먼저 사용자 ID를 고릅니다(목록은 총본사·본사·총판 소속만). 이어서 허용 Company code를 선택합니다(전 업체). 저장 후 User management 등에서는 지정한 업체 코드와만 교집합됩니다. 저장 시 서버에서 검증합니다.',JP:'먼저 사용자 ID를 고릅니다(목록은 총본사·본사·총판 소속만). 이어서 허용 加盟店コード를 선택합니다(전 업체). 저장 후 ユーザー管理 등에서는 지정한 업체 코드와만 교집합됩니다. 저장 시 서버에서 검증합니다.',CH:'먼저 사용자 ID를 고릅니다(목록은 총본사·본사·총판 소속만). 이어서 허용 商户代码를 선택합니다(전 업체). 저장 후 用户管理 등에서는 지정한 업체 코드와만 교집합됩니다. 저장 시 서버에서 검증합니다.',TH:'먼저 사용자 ID를 고릅니다(목록은 총본사·본사·총판 소속만). 이어서 허용 รหัสร้าน를 선택합니다(전 업체). 저장 후 จัดการผู้ใช้ 등에서는 지정한 업체 코드와만 교집합됩니다. 저장 시 서버에서 검증합니다.'};
@@ -1584,7 +1599,7 @@
   M['수신일(까지)']={EN:'수신일(까지)',JP:'수신일(까지)',CH:'수신일(까지)',TH:'수신일(까지)'};
   M['수신일(부터)']={EN:'수신일(부터)',JP:'수신일(부터)',CH:'수신일(부터)',TH:'수신일(부터)'};
   M['수익형 (순매출 미차감·무효·환불 시 성공 수수료 이중 과금)']={EN:'수익형 (순매출 미차감·무효·환불 시 성공 수수료 이중 과금)',JP:'수익형 (순매출 미차감·무효·환불 시 성공 수수료 이중 과금)',CH:'수익형 (순매출 미차감·무효·환불 시 성공 수수료 이중 과금)',TH:'수익형 (순매출 미차감·무효·환불 시 성공 수수료 이중 과금)'};
-  M['수정']={EN:'수정',JP:'수정',CH:'수정',TH:'수정'};
+  M['수정']={EN:'Edit',JP:'修正',CH:'修改',TH:'แก้ไข'};
   M['수정 반영']={EN:'수정 반영',JP:'수정 반영',CH:'수정 반영',TH:'수정 반영'};
   M['수정 실패']={EN:'수정 실패',JP:'수정 실패',CH:'수정 실패',TH:'수정 실패'};
   M['수정 저장']={EN:'수정 저장',JP:'수정 저장',CH:'수정 저장',TH:'수정 저장'};
@@ -2334,8 +2349,8 @@
   M['전환 일한도*']={EN:'전환 일한도*',JP:'전환 일한도*',CH:'전환 일한도*',TH:'전환 일한도*'};
   M['전환기준일*']={EN:'전환기준일*',JP:'전환기준일*',CH:'전환기준일*',TH:'전환기준일*'};
   M['절상']={EN:'절상',JP:'절상',CH:'절상',TH:'절상'};
-  M['접근권한 수정']={EN:'접근권한 수정',JP:'접근권한 수정',CH:'접근권한 수정',TH:'접근권한 수정'};
-  M['접근권한 추가']={EN:'접근권한 추가',JP:'접근권한 추가',CH:'접근권한 추가',TH:'접근권한 추가'};
+  M['접근권한 수정']={EN:'Edit access rule',JP:'アクセス権限を修正',CH:'修改访问权限',TH:'แก้ไขสิทธิ์การเข้าถึง'};
+  M['접근권한 추가']={EN:'Add access rule',JP:'アクセス権限を追加',CH:'添加访问权限',TH:'เพิ่มสิทธิ์การเข้าถึง'};
   M['접근불가']={EN:'No access',JP:'アクセス不可',CH:'无法访问',TH:'เข้าถึงไม่ได้'};
   M['접기']={EN:'접기',JP:'접기',CH:'접기',TH:'접기'};
   M['접두']={EN:'접두',JP:'접두',CH:'접두',TH:'접두'};
@@ -2624,6 +2639,22 @@
   M['가맹점사용제한']={EN:'Merchant use restriction',JP:'加盟店使用制限',CH:'商户使用限制',TH:'จำกัดการใช้ร้านค้า'};
   M['가맹점URL결제제한']={EN:'Merchant URL payment restriction',JP:'加盟店URL決済制限',CH:'商户URL支付限制',TH:'จำกัด URL ชำระเงินร้านค้า'};
   M['모든로그인제한']={EN:'Login restriction (all)',JP:'全ログイン制限',CH:'全部登录限制',TH:'จำกัดการเข้าสู่ระบบทั้งหมด'};
+  M['hqBulkLoginDesc']={EN:'Pick an org level, search/select a company from the dropdown, then apply Allow / Deny / Pause. Higher orgs (e.g. master dist) apply to self and all subordinates; merchants affect only that merchant (HQ excluded).',JP:'組織段階を選び、検索・ドロップダウンで業者を選択後、使用・未使用・一時停止を適用します。総販など上位は本人+下位全体、加盟店は当該加盟のみです(総本部除外)。',CH:'先选组织层级，再搜索/下拉选择商户后应用使用/停用/暂停。总代等上级作用于自身及下级；商户仅作用于该商户（不含总总部）。',TH:'เลือกระดับองค์กร ค้นหา/เลือกจากรายการ แล้วใช้ ใช้งาน/ไม่ใช้/หยุดชั่วคราว องค์กรระดับสูงมีผลกับตนเองและลูกข่าย ร้านค้ามีผลเฉพาะร้านนั้น (ไม่รวม HQ)'};
+  M['조직 단계를 고른 뒤 검색·드롭다운으로 업체를 선택하고 사용·미사용·일시중지를 적용합니다. 총판 등 상위 조직은 본인+하위 전체에, 가맹점은 해당 가맹만 적용됩니다(총본사 제외).']=M['hqBulkLoginDesc'];
+  M['로그인 자체를 차단합니다. 본사·총판 등 조직 단계별로 규칙을 등록하면 해당 조직과 하위 조직에 적용됩니다(총본사 제외). 개별 조직 설정보다 우선합니다.']=M['hqBulkLoginDesc'];
+  M['업체 검색']={EN:'Search company',JP:'業者検索',CH:'搜索商户',TH:'ค้นหาร้าน'};
+  M['업체 선택']={EN:'Select company',JP:'業者選択',CH:'选择商户',TH:'เลือกร้าน'};
+  M['업체코드·업체명']={EN:'Company code / name',JP:'加盟店コード・名称',CH:'商户代码/名称',TH:'รหัส/ชื่อร้าน'};
+  M['먼저 조직 단계를 선택하세요']={EN:'Select an org level first',JP:'先に組織段階を選択',CH:'请先选择组织层级',TH:'เลือกระดับองค์กรก่อน'};
+  M['해당 단계 전체']={EN:'All at this level',JP:'当該段階全体',CH:'该层级全部',TH:'ทั้งระดับนี้'};
+  M['검색 결과가 없습니다']={EN:'No results',JP:'検索結果なし',CH:'无搜索结果',TH:'ไม่พบผลลัพธ์'};
+  M['조직 단계와 업체를 선택하면 적용 범위가 표시됩니다.']={EN:'Select an org level and company to see the apply scope.',JP:'組織段階と業者を選ぶと適用範囲が表示されます。',CH:'选择组织层级与商户后显示适用范围。',TH:'เลือกระดับและร้านเพื่อดูขอบเขตที่ใช้'};
+  M['hqBulkLoginScopeHintEmpty']=M['조직 단계와 업체를 선택하면 적용 범위가 표시됩니다.'];
+  M['적용 범위']={EN:'Apply scope',JP:'適用範囲',CH:'适用范围',TH:'ขอบเขตที่ใช้'};
+  M['선택한 가맹점(조직)만']={EN:'Selected merchant/org only',JP:'選択した加盟店(組織)のみ',CH:'仅所选商户/组织',TH:'เฉพาะร้าน/องค์กรที่เลือก'};
+  M['선택 조직과 하위 조직']={EN:'Selected org and subordinates',JP:'選択組織と下位組織',CH:'所选组织及其下级',TH:'องค์กรที่เลือกและลูกข่าย'};
+  M['하위']={EN:'subordinates',JP:'下位',CH:'下级',TH:'ลูกข่าย'};
+  M['업체를 선택하지 않으면 해당 조직 단계 전체에 적용됩니다. 계속할까요?']={EN:'No company selected — this will apply to the entire org level. Continue?',JP:'業者未選択のため当該段階全体に適用します。続行しますか？',CH:'未选择商户将应用于该组织层级全部。是否继续？',TH:'ไม่ได้เลือกร้าน — จะใช้ทั้งระดับนี้ ดำเนินการต่อหรือไม่?'};
   M['일시중지']={EN:'Temporary suspend',JP:'一時停止',CH:'临时暂停',TH:'ระงับชั่วคราว'};
   M['중지해제']={EN:'Release suspension',JP:'停止解除',CH:'解除暂停',TH:'ยกเลิกการระงับ'};
   M['현재 상태']={EN:'Current status',JP:'現在状態',CH:'当前状态',TH:'สถานะปัจจุบัน'};
@@ -2637,7 +2668,6 @@
   M['대상']={EN:'Target',JP:'対象',CH:'对象',TH:'เป้าหมาย'};
   M['모든 조직(총본사 제외)의 업체사용상태를 일괄 제어합니다. 개별 조직 설정보다 우선합니다. 사용·미사용·일시중지는 원래 미사용이던 조직에도 적용됩니다. 가맹·조직 DB 값은 바꾸지 않으며, 중지해제 시 각 조직의 원래 사용/미사용으로 돌아갑니다.']={EN:'Bulk-control company use for all orgs (except HQ). Overrides individual settings. Use / Not use / Temporary suspend apply even to orgs that were unused. DB values are not rewritten; Release restores each org original use/unused.',JP:'総本部を除く全組織の使用状態を一括制御。個別設定より優先。使用・未使用・一時停止は元々未使用の組織にも適用。DB値は変更せず、停止解除で各組織の元の使用/未使用に戻ります。',CH:'批量控制除总总部外所有组织的使用状态，优先于单独设置。使用/未使用/临时暂停也适用于原本未使用的组织。不改写数据库值；解除暂停后恢复各组织原有使用/未使用。',TH:'ควบคุมสถานะใช้งานองค์กรทั้งหมด (ยกเว้น HQ) แทนการตั้งค่าแต่ละราย ใช้/ไม่ใช้/ระงับชั่วคราวใช้กับที่เดิมไม่ได้ใช้ด้วย ไม่แก้ค่าในฐานข้อมูล เมื่อยกเลิกระงับจะกลับสู่ใช้/ไม่ใช้เดิมของแต่ละราย'};
   M['모든 가맹점(총본사 제외)의 URL 결제 사용 여부를 일괄 제어합니다. 개별 가맹 설정보다 우선합니다. 사용·미사용·일시중지는 원래 미사용이던 가맹에도 적용됩니다. 가맹 DB(웹결제) 값은 바꾸지 않으며, 중지해제 시 각 가맹의 원래 사용/미사용으로 돌아갑니다.']={EN:'Bulk-control URL payment for all merchants (except HQ). Overrides individual settings. Use / Not use / Temporary suspend apply even to merchants that were unused. Merchant web-payment DB is not rewritten; Release restores each merchant original use/unused.',JP:'総本部を除く全加盟店のURL決済を一括制御。個別設定より優先。使用・未使用・一時停止は元々未使用の加盟にも適用。加盟DBは変更せず、停止解除で各加盟の元の使用/未使用に戻ります。',CH:'批量控制除总总部外所有商户的URL支付，优先于单独设置。使用/未使用/临时暂停也适用于原本未使用的商户。不改写商户网页支付库值；解除后恢复各商户原有使用/未使用。',TH:'ควบคุม URL ชำระเงินของร้านทั้งหมด (ยกเว้น HQ) แทนการตั้งค่าแต่ละร้าน ใช้/ไม่ใช้/ระงับชั่วคราวใช้กับร้านที่เดิมไม่ใช้ด้วย ไม่แก้ค่า DB ของร้าน เมื่อยกเลิกระงับจะกลับสู่ใช้/ไม่ใช้เดิม'};
-  M['로그인 자체를 차단합니다. 본사·총판 등 조직 단계별로 규칙을 등록하면 해당 조직과 하위 조직에 적용됩니다(총본사 제외). 개별 조직 설정보다 우선합니다.']={EN:'Blocks login entirely. Rules by org level (regional HQ, master dist., etc.) apply to that org and its subtree (HQ excluded). Overrides individual settings.',JP:'ログイン自体を遮断します。本社・総販など組織段階別規則は当該組織と下位に適用(総本部除外)。',CH:'直接阻止登录。按组织层级(本部、总代等)登记的规则适用于该组织及下级(总总部除外)。',TH:'บล็อกการล็อกอิน กฎตามระดับองค์กรใช้กับองค์กรและลูก (ยกเว้น HQ)'};
   M['총본사를 제외한 모든 조직·가맹에 일괄 적용됩니다. 여기서 설정한 값은 개별 업체관리 설정보다 우선합니다. 사용·미사용·일시중지는 원래 미사용이던 대상에도 적용됩니다. 개별 DB 값은 유지되며, 중지해제 시 각 대상의 원래 사용/미사용으로 복귀합니다.']={EN:'Applies to all orgs/merchants except HQ. Settings here override company management. Use / Not use / Temporary suspend apply even to previously unused targets. Individual DB values are kept; Release restores each target original use/unused.',JP:'総本部を除く全組織・加盟に一括適用。ここでの設定は個別管理より優先。使用・未使用・一時停止は元未使用対象にも適用。個別DBは保持し、停止解除で元の使用/未使用に復帰します。',CH:'适用于除总总部外所有组织/商户，优先于单独管理。使用/未使用/临时暂停也适用于原本未使用的对象。保留各对象库值；解除后恢复原有使用/未使用。',TH:'ใช้กับองค์กร/ร้านทั้งหมดยกเว้น HQ มีลำดับเหนือการจัดการแต่ละราย ใช้/ไม่ใช้/ระงับชั่วคราวใช้กับที่เดิมไม่ใช้ด้วย ค่า DB แต่ละรายคงไว้ เมื่อยกเลิกระงับจะกลับสู่ใช้/ไม่ใช้เดิม'};
   M['리스크관리 트리거']={EN:'Risk trigger',JP:'リスク管理トリガー',CH:'风险管理触发',TH:'ทริกเกอร์ความเสี่ยง'};
   M['동일 카드 FAIL·UNPAID 누적 시 JPAY 호출 전 일시 차단합니다. CVV·카드번호 형식 오류는 집계하지 않습니다. 본사정책 따름 시 [본사설정 → 리스크설정]을 사용하며, 별도정책은 본사보다 우선합니다. 미사용 시 해당 가맹의 위험관리를 끕니다.']={EN:'Repeated FAIL/UNPAID on the same card is temporarily blocked before JPAY. CVV and invalid card format are not counted. When following HQ policy, use [HQ settings → Risk settings]; custom policy overrides HQ. Disabled turns off risk management for this merchant.',JP:'同一カードのFAIL・UNPAID累積時、JPAY呼び出し前に一時ブロックします。CVV・カード番号形式エラーは集計しません。本社ポリシーに従う場合は[本社設定 → リスク設定]を使用し、個別ポリシーは本社より優先します。未使用の場合は当該加盟店のリスク管理をオフにします。',CH:'同一卡累计 FAIL/UNPAID 时在调用 JPAY 前临时拦截。CVV 与卡号格式错误不计入。遵循总部政策时使用[总部设置 → 风险设置]；单独政策优先于总部。未使用时关闭该商户风险管理。',TH:'FAIL/UNPAID สะสมบัตรเดียวกันจะถูกบล็อกชั่วคราวก่อน JPAY ไม่นับ CVV/รูปแบบเลขบัตร หากตามนโยบาย HQ ใช้ [ตั้งค่า HQ → ความเสี่ยง] นโยบายแยกมีลำดับเหนือ HQ ไม่ใช้จะปิดการจัดการความเสี่ยงของร้านนี้'};
@@ -2658,6 +2688,18 @@
   M['카드 속도 제한']={EN:'Card velocity limit',JP:'カード速度制限',CH:'卡速度限制',TH:'จำกัดความถี่บัตร'};
   M['이메일 속도 제한']={EN:'Email velocity limit',JP:'メール速度制限',CH:'邮箱速度限制',TH:'จำกัดความถี่อีเมล'};
   M['IP 속도 제한']={EN:'IP velocity limit',JP:'IP速度制限',CH:'IP速度限制',TH:'จำกัดความถี่ IP'};
+  M['카드 창(분)']={EN:'Card window (min)',JP:'カード窓(分)',CH:'卡窗口(分)',TH:'ช่วงบัตร(นาที)'};
+  M['카드 횟수']={EN:'Card attempts',JP:'カード回数',CH:'卡次数',TH:'ครั้งบัตร'};
+  M['이메일 창(분)']={EN:'Email window (min)',JP:'メール窓(分)',CH:'邮箱窗口(分)',TH:'ช่วงอีเมล(นาที)'};
+  M['이메일 횟수']={EN:'Email attempts',JP:'メール回数',CH:'邮箱次数',TH:'ครั้งอีเมล'};
+  M['IP 창(분)']={EN:'IP window (min)',JP:'IP窓(分)',CH:'IP 窗口(分)',TH:'ช่วง IP(นาที)'};
+  M['IP 횟수']={EN:'IP attempts',JP:'IP回数',CH:'IP 次数',TH:'ครั้ง IP'};
+  M['속도제한 기본값 안내']={
+    EN:'Velocity defaults: Card 10 min/3 (same-card retries), Email 30 min/5 (room for normal reorders), IP 15 min/10 (shared NAT/Wi-Fi). Editable per channel.',
+    JP:'速度制限の既定:カード10分/3回(同一カード連続)、メール30分/5回(通常の再購入余裕)、IP15分/10回(共用網・NAT余裕)。項目ごとに変更可。',
+    CH:'速度限制默认：卡 10分/3次（同卡连续尝试）、邮箱 30分/5次（正常复购余量）、IP 15分/10次（共用网络/NAT）。可按项修改。',
+    TH:'ค่าเริ่มต้นจำกัดความถี่: บัตร 10 นาที/3 ครั้ง, อีเมล 30 นาที/5 ครั้ง, IP 15 นาที/10 ครั้ง แก้ไขได้รายช่อง'
+  };
   M['속도제한 창(분)']={EN:'Velocity window (min)',JP:'速度制限窓(分)',CH:'速度限制窗口(分)',TH:'ช่วงเวลาจำกัด(นาที)'};
   M['속도제한 횟수']={EN:'Velocity max attempts',JP:'速度制限回数',CH:'速度限制次数',TH:'จำนวนครั้งสูงสุด'};
   M['자동기억']={EN:'Auto-remember',JP:'自動記憶',CH:'自动记忆',TH:'จำอัตโนมัติ'};
@@ -3688,6 +3730,32 @@
   M['API 문서']={EN:'API docs',JP:'API文書',CH:'API 文档',TH:'เอกสาร API'};
   M['출시 가이드']={EN:'Launch guide',JP:'公開ガイド',CH:'发布指南',TH:'คู่มือเปิดใช้'};
   M['탭을 전환해도 동일 허브 안에서 설정합니다.']={EN:'Switch tabs within the same hub without leaving this screen.',JP:'タブを切り替えても同一ハブ内で設定します。',CH:'切换标签页仍在本枢纽内设置。',TH:'สลับแท็บภายในฮับเดิมได้โดยไม่ออกจากหน้านี้'};
+  M['운영매뉴얼']={EN:'Ops manuals',JP:'運営マニュアル',CH:'运营手册',TH:'คู่มือปฏิบัติการ'};
+  M['운영매뉴얼을 불러올 수 없습니다.']={EN:'Could not load ops manuals.',JP:'運営マニュアルを読み込めません。',CH:'无法加载运营手册。',TH:'โหลดคู่มือปฏิบัติการไม่ได้'};
+  M['플랫폼 라이브 버전과 동일하게 관리됩니다.']={EN:'Managed in sync with the live platform version.',JP:'プラットフォームのライブ版と同期管理します。',CH:'与平台线上版本同步管理。',TH:'จัดการให้ตรงกับเวอร์ชันสดของแพลตฟอร์ม'};
+  M['로그인 조직 단계 이하의 매뉴얼만 표시됩니다.']={EN:'Only manuals for your org tier and below are shown.',JP:'ログイン組織段階以下のマニュアルのみ表示されます。',CH:'仅显示您组织层级及以下的手册。',TH:'แสดงเฉพาะคู่มือระดับองค์กรของคุณและต่ำกว่า'};
+  M['항목을 클릭하면 새 창에서 HTML 매뉴얼이 열립니다. 브라우저에서 인쇄하거나 PDF로 저장할 수 있습니다.']={EN:'Click an item to open the HTML manual in a new window. Use the browser to print or save as PDF.',JP:'項目をクリックすると新しいウィンドウでHTMLマニュアルが開きます。ブラウザで印刷またはPDF保存できます。',CH:'点击条目将在新窗口打开 HTML 手册。可用浏览器打印或另存为 PDF。',TH:'คลิกรายการเพื่อเปิดคู่มือ HTML ในหน้าต่างใหม่ พิมพ์หรือบันทึกเป็น PDF ได้จากเบราว์เซอร์'};
+  M['새 창']={EN:'New window',JP:'新しい窓',CH:'新窗口',TH:'หน้าต่างใหม่'};
+  M['새 창에서 열기']={EN:'Open in new window',JP:'新しいウィンドウで開く',CH:'在新窗口打开',TH:'เปิดในหน้าต่างใหม่'};
+  M['매뉴얼을 불러오는 중…']={EN:'Loading manual…',JP:'マニュアルを読み込み中…',CH:'正在加载手册…',TH:'กำลังโหลดคู่มือ…'};
+  M['팝업이 차단되었습니다. 이 사이트에 대해 팝업을 허용한 뒤 다시 시도해 주세요.']={EN:'Pop-up was blocked. Allow pop-ups for this site and try again.',JP:'ポップアップがブロックされました。このサイトのポップアップを許可して再試行してください。',CH:'弹窗被拦截。请允许本站弹窗后重试。',TH:'ป๊อปอัปถูกบล็อก อนุญาตป๊อปอัปของไซต์นี้แล้วลองใหม่'};
+  M['이 조직 단계에서 열람 가능한 운영매뉴얼이 없습니다.']={EN:'No ops manuals are available for this org tier.',JP:'この組織段階で閲覧できる運営マニュアルはありません。',CH:'此组织层级无可查阅的运营手册。',TH:'ไม่มีคู่มือปฏิบัติการสำหรับระดับองค์กรนี้'};
+  M['이 조직 단계에서는 해당 매뉴얼을 열 수 없습니다.']={EN:'This manual is not available for your org tier.',JP:'この組織段階では該当マニュアルを開けません。',CH:'此组织层级无法打开该手册。',TH:'ระดับองค์กรนี้เปิดคู่มือนี้ไม่ได้'};
+  M['매뉴얼을 불러올 수 없습니다.']={EN:'Could not load the manual.',JP:'マニュアルを読み込めません。',CH:'无法加载手册。',TH:'โหลดคู่มือไม่ได้'};
+  M['인쇄 / PDF']={EN:'Print / PDF',JP:'印刷 / PDF',CH:'打印 / PDF',TH:'พิมพ์ / PDF'};
+  M['총본사용']={EN:'Super HQ',JP:'総本部向け',CH:'总本部',TH:'สำนักงานใหญ่สูงสุด'};
+  M['본사 및 총판용']={EN:'HQ & Distributor',JP:'本社・総代理向け',CH:'总部与总代理',TH:'HQ และตัวแทน'};
+  M['가맹점용']={EN:'Merchant',JP:'加盟店向け',CH:'商户',TH:'ร้านค้า'};
+  M['총본사 운영 메뉴얼']={EN:'Super HQ Operations Manual',JP:'総本部 運営マニュアル',CH:'总本部运营手册',TH:'คู่มือปฏิบัติการสำนักงานใหญ่สูงสุด'};
+  M['신규 조직 등록 메뉴얼']={EN:'New Organization Registration Manual',JP:'新規組織登録マニュアル',CH:'新组织注册手册',TH:'คู่มือลงทะเบียนองค์กรใหม่'};
+  M['리스크관리 메뉴얼']={EN:'Risk Management Manual',JP:'リスク管理マニュアル',CH:'风险管理手册',TH:'คู่มือจัดการความเสี่ยง'};
+  M['본사 및 총판 운영 메뉴얼']={EN:'HQ & Distributor Operations Manual',JP:'本社・総代理店 運営マニュアル',CH:'总部与总代理运营手册',TH:'คู่มือปฏิบัติการ HQ และตัวแทนจำหน่าย'};
+  M['신규가맹점 추가 메뉴얼']={EN:'New Merchant Onboarding Manual',JP:'新規加盟店追加マニュアル',CH:'新商户添加手册',TH:'คู่มือเพิ่มร้านค้าใหม่'};
+  M['챗봇결제 운영 메뉴얼']={EN:'Chatbot Payment Operations Manual',JP:'チャットボット決済 運営マニュアル',CH:'聊天机器人支付运营手册',TH:'คู่มือปฏิบัติการชำระผ่านแชทบอท'};
+  M['정기결제 운영 메뉴얼']={EN:'Subscription Payment Manual',JP:'定期決済 運営マニュアル',CH:'定期支付运营手册',TH:'คู่มือชำระรายงวด'};
+  M['분할결제 운영 메뉴얼']={EN:'Split Payment Operations Manual',JP:'分割決済 運営マニュアル',CH:'分期支付运营手册',TH:'คู่มือปฏิบัติการแบ่งจ่าย'};
+  M['리스크 트리거 발동 소개 안내']={EN:'Risk Trigger Introduction',JP:'リスクトリガー発火のご案内',CH:'风险触发介绍',TH:'แนะนำทริกเกอร์ความเสี่ยง'};
+  M['가맹점 유저 메뉴얼']={EN:'Merchant User Manual',JP:'加盟店ユーザーマニュアル',CH:'商户用户手册',TH:'คู่มือผู้ใช้ร้านค้า'};
   M['업데이트 내용']={EN:'Release notes',JP:'アップデート内容',CH:'更新内容',TH:'ประวัติอัปเดต'};
   M['업데이트 내용을 불러올 수 없습니다.']={EN:'Could not load release notes.',JP:'アップデート内容を読み込めません。',CH:'无法加载更新内容。',TH:'โหลดประวัติอัปเดตไม่ได้'};
   M['허브 정보가 없습니다.']={EN:'Hub configuration not found.',JP:'ハブ情報がありません。',CH:'未找到枢纽配置。',TH:'ไม่พบการตั้งค่าฮับ'};

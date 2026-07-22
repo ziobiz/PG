@@ -1,0 +1,158 @@
+{
+  "version": "2.46",
+  "date": "2026-07-22",
+  "audiences": [
+    {
+      "id": "super",
+      "labels": {
+        "ko": "총본사용",
+        "en": "Super HQ",
+        "ja": "総本部向け",
+        "zh": "总本部",
+        "th": "สำนักงานใหญ่สูงสุด"
+      }
+    },
+    {
+      "id": "hqdist",
+      "labels": {
+        "ko": "본사 및 총판용",
+        "en": "HQ & Distributor",
+        "ja": "本社・総代理向け",
+        "zh": "总部与总代理",
+        "th": "HQ และตัวแทน"
+      }
+    },
+    {
+      "id": "merchant",
+      "labels": {
+        "ko": "가맹점용",
+        "en": "Merchant",
+        "ja": "加盟店向け",
+        "zh": "商户",
+        "th": "ร้านค้า"
+      }
+    }
+  ],
+  "items": [
+    {
+      "id": "super-ops",
+      "audience": "super",
+      "titles": {
+        "ko": "총본사 운영 메뉴얼",
+        "en": "Super HQ Operations Manual",
+        "ja": "総本部 運営マニュアル",
+        "zh": "总本部运营手册",
+        "th": "คู่มือปฏิบัติการสำนักงานใหญ่สูงสุด"
+      },
+      "pathPrefix": "manuals/generated/super-ops"
+    },
+    {
+      "id": "super-org-reg",
+      "audience": "super",
+      "titles": {
+        "ko": "신규 조직 등록 메뉴얼",
+        "en": "New Organization Registration Manual",
+        "ja": "新規組織登録マニュアル",
+        "zh": "新组织注册手册",
+        "th": "คู่มือลงทะเบียนองค์กรใหม่"
+      },
+      "pathPrefix": "manuals/generated/super-org-reg"
+    },
+    {
+      "id": "super-risk",
+      "audience": "super",
+      "titles": {
+        "ko": "리스크관리 메뉴얼",
+        "en": "Risk Management Manual",
+        "ja": "リスク管理マニュアル",
+        "zh": "风险管理手册",
+        "th": "คู่มือจัดการความเสี่ยง"
+      },
+      "pathPrefix": "manuals/generated/super-risk"
+    },
+    {
+      "id": "hqdist-ops",
+      "audience": "hqdist",
+      "titles": {
+        "ko": "본사 및 총판 운영 메뉴얼",
+        "en": "HQ &amp; Distributor Operations Manual",
+        "ja": "本社・総代理店 運営マニュアル",
+        "zh": "总部与总代理运营手册",
+        "th": "คู่มือปฏิบัติการ HQ และตัวแทนจำหน่าย"
+      },
+      "pathPrefix": "manuals/generated/hqdist-ops"
+    },
+    {
+      "id": "hqdist-merchant-add",
+      "audience": "hqdist",
+      "titles": {
+        "ko": "신규가맹점 추가 메뉴얼",
+        "en": "New Merchant Onboarding Manual",
+        "ja": "新規加盟店追加マニュアル",
+        "zh": "新商户添加手册",
+        "th": "คู่มือเพิ่มร้านค้าใหม่"
+      },
+      "pathPrefix": "manuals/generated/hqdist-merchant-add"
+    },
+    {
+      "id": "hqdist-chatbot",
+      "audience": "hqdist",
+      "titles": {
+        "ko": "챗봇결제 운영 메뉴얼",
+        "en": "Chatbot Payment Operations Manual",
+        "ja": "チャットボット決済 運営マニュアル",
+        "zh": "聊天机器人支付运营手册",
+        "th": "คู่มือปฏิบัติการชำระผ่านแชทบอท"
+      },
+      "pathPrefix": "manuals/generated/hqdist-chatbot"
+    },
+    {
+      "id": "hqdist-subscription",
+      "audience": "hqdist",
+      "titles": {
+        "ko": "정기결제 운영 메뉴얼",
+        "en": "Subscription (Recurring) Payment Manual",
+        "ja": "定期決済（購読）運営マニュアル",
+        "zh": "定期支付（订阅）运营手册",
+        "th": "คู่มือชำระรายงวด (สมัครสมาชิก)"
+      },
+      "pathPrefix": "manuals/generated/hqdist-subscription"
+    },
+    {
+      "id": "hqdist-split",
+      "audience": "hqdist",
+      "titles": {
+        "ko": "분할결제 운영 메뉴얼",
+        "en": "Split Payment Operations Manual",
+        "ja": "分割決済 運営マニュアル",
+        "zh": "分期支付运营手册",
+        "th": "คู่มือปฏิบัติการแบ่งจ่าย"
+      },
+      "pathPrefix": "manuals/generated/hqdist-split"
+    },
+    {
+      "id": "hqdist-risk-intro",
+      "audience": "hqdist",
+      "titles": {
+        "ko": "리스크 트리거 발동 소개 안내",
+        "en": "Risk Trigger Introduction (for Merchants)",
+        "ja": "リスクトリガー発火のご案内",
+        "zh": "风险触发介绍（面向商户）",
+        "th": "แนะนำทริกเกอร์ความเสี่ยง (สำหรับร้านค้า)"
+      },
+      "pathPrefix": "manuals/generated/hqdist-risk-intro"
+    },
+    {
+      "id": "merchant-user",
+      "audience": "merchant",
+      "titles": {
+        "ko": "가맹점 유저 메뉴얼",
+        "en": "Merchant User Manual",
+        "ja": "加盟店ユーザーマニュアル",
+        "zh": "商户用户手册",
+        "th": "คู่มือผู้ใช้ร้านค้า"
+      },
+      "pathPrefix": "manuals/generated/merchant-user"
+    }
+  ]
+}

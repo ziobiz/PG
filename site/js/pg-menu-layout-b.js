@@ -11,7 +11,11 @@
       resolveNavUrl: function (url) { return url; },
       hubForUrl: function () { return null; },
       leafUrlsForHub: function () { return []; },
+      canonicalPermissionUrlOrder: function () { return []; },
+      leafDisplayMeta: function () { return null; },
+      leafLabelKo: function () { return null; },
       supplementLeafUrlOrder: function (urlIdx, startG) { return startG; },
+      applyCanonicalPermissionUrlOrder: function () { return 0; },
       permissionAliases: function (url) { return [url]; },
       applySidebar: function () { /* noop */ },
       parentGroupForUrl: function (url, fallback) { return fallback; }
@@ -176,6 +180,7 @@
   leafRedirect['/deploy/merchantApiPolicy'] = '/hq/hub/merchant-api?step=guide&panel=policy';
   leafRedirect['/ops/merchantApiPolicy'] = '/hq/hub/merchant-api?step=guide&panel=policy';
   leafRedirect['/deploy/launchGuide'] = '/hq/hub/merchant-api?step=guide';
+  leafRedirect['/hq/platformOpsManuals'] = '/ops/opsManuals';
 
   function uiT(s) {
     if (global.PG_UI_I18N && typeof global.PG_UI_I18N.t === 'function') return global.PG_UI_I18N.t(String(s));
@@ -328,7 +333,80 @@
     var out = [];
     (h.tabs || []).forEach(function (t) { out.push(t.url); });
     (h.steps || []).forEach(function (s) { out.push(s.url); });
+    (h.guidePanels || []).forEach(function (p) {
+      if (p && p.deployUrl) out.push(p.deployUrl);
+    });
     return out;
+  }
+
+  /** 사이드바(왼쪽)와 동일한 leaf URL 순서 — 권한·업체접근 매트릭스 정렬 기준 */
+  function canonicalPermissionUrlOrder() {
+    var list = [];
+    function add(url) {
+      var u = String(url || '').split('?')[0];
+      if (!u || list.indexOf(u) >= 0) return;
+      list.push(u);
+    }
+    HUBS.forEach(function (h) {
+      leafUrlsForHub(h.hubUrl).forEach(add);
+    });
+    STANDALONE_HQ.forEach(function (s) { add(s.url); });
+    leafUrlsForHub(PLATFORM_HUB.hubUrl).forEach(add);
+    DEPLOY_STANDALONE.forEach(function (s) { add(s.url); });
+    leafUrlsForHub(MERCHANT_API_HUB.hubUrl).forEach(add);
+    return list;
+  }
+
+  /**
+   * 권한 매트릭스용 표시 메타(한국어 키).
+   * 허브 탭은 「허브 › 탭」으로 사이드바와 직관적으로 맞춘다.
+   */
+  function leafDisplayMeta(url) {
+    var path = String(url || '').split('?')[0];
+    if (!path) return null;
+    var i;
+    for (i = 0; i < STANDALONE_HQ.length; i++) {
+      if (STANDALONE_HQ[i].url === path) {
+        return { kind: 'standalone', labelKo: STANDALONE_HQ[i].label, hubUrl: null, hubLabelKo: null };
+      }
+    }
+    for (i = 0; i < DEPLOY_STANDALONE.length; i++) {
+      if (DEPLOY_STANDALONE[i].url === path) {
+        return { kind: 'standalone', labelKo: DEPLOY_STANDALONE[i].label, hubUrl: null, hubLabelKo: null };
+      }
+    }
+    var leaf = leafToHub[path];
+    if (leaf && leaf.hub) {
+      var h = leaf.hub;
+      var tabLabel = null;
+      (h.tabs || []).forEach(function (t) { if (t.url === path) tabLabel = t.label; });
+      (h.steps || []).forEach(function (s) { if (s.url === path) tabLabel = s.label; });
+      if (tabLabel) {
+        return {
+          kind: 'hub-tab',
+          labelKo: tabLabel,
+          hubUrl: h.hubUrl,
+          hubLabelKo: h.sidebarLabel || h.label || ''
+        };
+      }
+    }
+    var gp = MERCHANT_API_HUB.guidePanels || [];
+    for (i = 0; i < gp.length; i++) {
+      if (gp[i].deployUrl === path) {
+        return {
+          kind: 'hub-tab',
+          labelKo: gp[i].label,
+          hubUrl: MERCHANT_API_HUB.hubUrl,
+          hubLabelKo: MERCHANT_API_HUB.sidebarLabel
+        };
+      }
+    }
+    return null;
+  }
+
+  function leafLabelKo(url) {
+    var m = leafDisplayMeta(url);
+    return m ? m.labelKo : null;
   }
 
   /** 사이드바 DOM에 없는 leaf URL — 권한 매트릭스 정렬 보조 (기존 index 유지) */
@@ -338,13 +416,24 @@
     function reg(url) {
       if (url && urlIdx[url] === undefined) urlIdx[url] = g++;
     }
-    HUBS.forEach(function (h) {
-      leafUrlsForHub(h.hubUrl).forEach(reg);
-    });
-    STANDALONE_HQ.forEach(function (s) { reg(s.url); });
-    leafUrlsForHub(PLATFORM_HUB.hubUrl).forEach(reg);
-    DEPLOY_STANDALONE.forEach(function (s) { reg(s.url); });
-    leafUrlsForHub(MERCHANT_API_HUB.hubUrl).forEach(reg);
+    canonicalPermissionUrlOrder().forEach(reg);
+    return g;
+  }
+
+  /**
+   * 레이아웃 B leaf 를 사이드바 정의 순서로 재배치하고,
+   * 그 외 URL은 기존 상대 순서를 유지한 채 뒤에 붙인다.
+   */
+  function applyCanonicalPermissionUrlOrder(urlIdx) {
+    if (!cfg.isLayoutB() || !urlIdx) return 0;
+    var canon = canonicalPermissionUrlOrder();
+    var others = Object.keys(urlIdx)
+      .filter(function (u) { return canon.indexOf(u) < 0; })
+      .sort(function (a, b) { return (urlIdx[a] || 0) - (urlIdx[b] || 0); });
+    Object.keys(urlIdx).forEach(function (k) { delete urlIdx[k]; });
+    var g = 0;
+    canon.forEach(function (u) { urlIdx[u] = g++; });
+    others.forEach(function (u) { urlIdx[u] = g++; });
     return g;
   }
 
@@ -352,6 +441,11 @@
     var list = [url];
     if (!cfg.isLayoutB()) return list;
     var path = String(url || '').split('?')[0];
+    if (path === '/ops/opsManuals' || path === '/hq/platformOpsManuals') {
+      ['/ops/opsManuals', '/hq/platformOpsManuals'].forEach(function (u) {
+        if (list.indexOf(u) < 0) list.push(u);
+      });
+    }
     if (hubByUrl[path]) {
       leafUrlsForHub(path).forEach(function (u) {
         if (list.indexOf(u) < 0) list.push(u);
@@ -400,7 +494,11 @@
     hubForUrl: hubForUrl,
     parseHubQuery: parseHubQuery,
     leafUrlsForHub: leafUrlsForHub,
+    canonicalPermissionUrlOrder: canonicalPermissionUrlOrder,
+    leafDisplayMeta: leafDisplayMeta,
+    leafLabelKo: leafLabelKo,
     supplementLeafUrlOrder: supplementLeafUrlOrder,
+    applyCanonicalPermissionUrlOrder: applyCanonicalPermissionUrlOrder,
     permissionAliases: permissionAliases,
     applySidebar: applySidebar,
     restoreLegacyNav: restoreLegacyNav,

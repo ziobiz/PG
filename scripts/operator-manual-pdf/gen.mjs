@@ -6,6 +6,7 @@
  *   node operator-manual-pdf/gen.mjs
  *   node operator-manual-pdf/gen.mjs hq          # 본사만 (기본)
  *   node operator-manual-pdf/gen.mjs all         # 총본사·본사·총판 전체
+ *   node operator-manual-pdf/gen.mjs risk        # 수수료·리스크 HTML (통합·필터상세·트리거 운영 다국어)
  *   node operator-manual-pdf/gen.mjs hq "C:\Users\...\ICOPAY 메뉴얼"
  */
 import fs from 'fs';
@@ -16,7 +17,7 @@ import { chromium } from 'playwright';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const DOCS = path.join(REPO_ROOT, 'docs');
-const VERSION = '260625_V3.0';
+const VERSION_DEFAULT = '260625_V3.0';
 
 const CATALOG = {
   super: {
@@ -52,13 +53,37 @@ const CATALOG = {
       { lang: 'CH', html: 'icopay-operator-manual-dist-zh.html' },
     ],
   },
+  risk: {
+    label: 'HQ Fees & Risk',
+    filePrefix: 'ICOPAY HQ Fees Risk Manual',
+    version: '220722_V2.43',
+    items: [
+      { lang: 'KR', html: 'icopay-hq-risk-manual.html', filePrefix: 'ICOPAY HQ Fees Risk Manual' },
+      { lang: 'KR', html: 'icopay-hq-risk-filter-manual.html', filePrefix: 'ICOPAY HQ Risk Filtering Detail Manual' },
+      { lang: 'KR', html: 'icopay-hq-risk-filter-trigger-manual.html', filePrefix: 'ICOPAY HQ Risk Filtering Trigger Ops Manual' },
+      { lang: 'EN', html: 'icopay-hq-risk-filter-trigger-manual-en.html', filePrefix: 'ICOPAY HQ Risk Filtering Trigger Ops Manual' },
+      { lang: 'JP', html: 'icopay-hq-risk-filter-trigger-manual-ja.html', filePrefix: 'ICOPAY HQ Risk Filtering Trigger Ops Manual' },
+      { lang: 'CH', html: 'icopay-hq-risk-filter-trigger-manual-zh.html', filePrefix: 'ICOPAY HQ Risk Filtering Trigger Ops Manual' },
+      { lang: 'TH', html: 'icopay-hq-risk-filter-trigger-manual-th.html', filePrefix: 'ICOPAY HQ Risk Filtering Trigger Ops Manual' },
+      { lang: 'KR', html: 'icopay-dist-risk-trigger-manual.html', filePrefix: 'ICOPAY Distributor Risk Trigger Guide' },
+      { lang: 'EN', html: 'icopay-dist-risk-trigger-manual-en.html', filePrefix: 'ICOPAY Distributor Risk Trigger Guide' },
+      { lang: 'JP', html: 'icopay-dist-risk-trigger-manual-ja.html', filePrefix: 'ICOPAY Distributor Risk Trigger Guide' },
+      { lang: 'CH', html: 'icopay-dist-risk-trigger-manual-zh.html', filePrefix: 'ICOPAY Distributor Risk Trigger Guide' },
+      { lang: 'TH', html: 'icopay-dist-risk-trigger-manual-th.html', filePrefix: 'ICOPAY Distributor Risk Trigger Guide' },
+    ],
+  },
 };
 
 const mode = (process.argv[2] || 'hq').toLowerCase();
 const extraOut = process.argv[3] ? path.resolve(process.argv[3]) : null;
 const outDir = path.join(DOCS, 'manual-pdf');
 
-const roles = mode === 'all' ? ['super', 'hq', 'dist'] : [mode === 'dist' ? 'dist' : mode === 'super' ? 'super' : 'hq'];
+const roles =
+  mode === 'all'
+    ? ['super', 'hq', 'dist']
+    : mode === 'risk'
+      ? ['risk']
+      : [mode === 'dist' ? 'dist' : mode === 'super' ? 'super' : 'hq'];
 
 async function exportOne(browser, roleKey, item) {
   const role = CATALOG[roleKey];
@@ -67,7 +92,9 @@ async function exportOne(browser, roleKey, item) {
     console.warn('SKIP missing', htmlPath);
     return null;
   }
-  const pdfName = `${role.filePrefix}_${item.lang}_${VERSION}.pdf`;
+  const ver = role.version || VERSION_DEFAULT;
+  const prefix = item.filePrefix || role.filePrefix;
+  const pdfName = `${prefix}_${item.lang}_${ver}.pdf`;
   const pdfPath = path.join(outDir, pdfName);
   const page = await browser.newPage();
   const url = pathToFileURL(htmlPath).href;

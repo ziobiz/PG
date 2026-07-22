@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -78,6 +79,76 @@ public class HqBulkOpsService {
         return loginRestrictionRepository.findByStatusOrderByIdDesc(HqBulkOpsModes.STATUS_ACTIVE).stream()
                 .map(this::loginRestrictionToMap)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 모든로그인제한 — 조직 단계별 업체 선택 목록(코드·명칭 검색).
+     * 총본사는 제외. 상위 조직 선택 시 로그인 차단은 본인+하위 전체에 적용된다.
+     */
+    public List<Map<String, Object>> listLoginOrgOptions(String orgLevelRaw, String qRaw) {
+        if (orgLevelRaw == null || orgLevelRaw.isBlank()) {
+            return List.of();
+        }
+        OrgLevel level;
+        try {
+            level = OrgLevel.valueOf(orgLevelRaw.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("조직 단계가 올바르지 않습니다.");
+        }
+        if (level == OrgLevel.HEADQUARTERS) {
+            return List.of();
+        }
+        String q = qRaw != null ? qRaw.trim() : "";
+        List<OrgUnit> list;
+        if (q.isEmpty()) {
+            list = orgUnitRepository.findByOrgLevelOrderByCodeAsc(level);
+        } else {
+            LinkedHashMap<Long, OrgUnit> merged = new LinkedHashMap<>();
+            for (OrgUnit ou : orgUnitRepository.findByOrgLevelAndCodeContainingIgnoreCase(level, q)) {
+                merged.put(ou.getId(), ou);
+            }
+            for (OrgUnit ou : orgUnitRepository.findByOrgLevelAndNameContainingIgnoreCase(level, q)) {
+                merged.put(ou.getId(), ou);
+            }
+            list = new ArrayList<>(merged.values());
+            list.sort(Comparator.comparing(o -> o.getCode() != null ? o.getCode() : "", String.CASE_INSENSITIVE_ORDER));
+        }
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (OrgUnit ou : list) {
+            if (ou == null || ou.getId() == null) {
+                continue;
+            }
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", ou.getId());
+            row.put("code", ou.getCode() != null ? ou.getCode() : "");
+            row.put("name", ou.getName() != null ? ou.getName() : "");
+            row.put("orgLevel", ou.getOrgLevel() != null ? ou.getOrgLevel().name() : level.name());
+            row.put("orgLevelLabel", ou.getOrgLevel() != null ? ou.getOrgLevel().getNameKo() : level.getNameKo());
+            String code = ou.getCode() != null ? ou.getCode().trim() : "";
+            String name = ou.getName() != null ? ou.getName().trim() : "";
+            row.put("label", code.isEmpty() ? name : (name.isEmpty() ? code : code + " · " + name));
+            int descendants = countDescendantsExcludingHq(ou.getId());
+            row.put("descendantCount", descendants);
+            row.put("affectsSubtree", ou.getOrgLevel() != OrgLevel.MERCHANT || descendants > 0);
+            out.add(row);
+        }
+        return out;
+    }
+
+    private int countDescendantsExcludingHq(Long ancestorId) {
+        if (ancestorId == null) {
+            return 0;
+        }
+        int n = 0;
+        for (OrgUnit ou : orgUnitRepository.findAll()) {
+            if (ou == null || ou.getId() == null || isHeadquarters(ou.getId())) {
+                continue;
+            }
+            if (isDescendantOf(ou.getId(), ancestorId)) {
+                n++;
+            }
+        }
+        return n;
     }
 
     @Transactional

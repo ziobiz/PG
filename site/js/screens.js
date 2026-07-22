@@ -497,18 +497,23 @@
     ) +
       '<div class="border rounded p-3 hq-bulk-ops-panel" id="hqBulkLoginPanel">' +
       '<div class="fw-semibold mb-1" data-pg-ui-t="모든로그인제한">' + escUi(L('모든로그인제한')) + '</div>' +
-      '<p class="small text-muted mb-2" data-pg-ui-t="로그인 자체를 차단합니다. 본사·총판 등 조직 단계별로 규칙을 등록하면 해당 조직과 하위 조직에 적용됩니다(총본사 제외). 개별 조직 설정보다 우선합니다.">' +
-      escUi(L('로그인 자체를 차단합니다. 본사·총판 등 조직 단계별로 규칙을 등록하면 해당 조직과 하위 조직에 적용됩니다(총본사 제외). 개별 조직 설정보다 우선합니다.')) + '</p>' +
+      '<p class="small text-muted mb-2" data-pg-ui-t="hqBulkLoginDesc">' +
+      escUi(L('조직 단계를 고른 뒤 검색·드롭다운으로 업체를 선택하고 사용·미사용·일시중지를 적용합니다. 총판 등 상위 조직은 본인+하위 전체에, 가맹점은 해당 가맹만 적용됩니다(총본사 제외).')) + '</p>' +
       '<div class="row g-2 align-items-end mb-2">' +
-      '<div class="col-6 col-md-3"><label class="form-label mb-0" for="hqBulkLoginLevel" data-pg-ui-t="조직 단계">' + escUi(L('조직 단계')) + '</label>' +
+      '<div class="col-6 col-md-2"><label class="form-label mb-0" for="hqBulkLoginLevel" data-pg-ui-t="조직 단계">' + escUi(L('조직 단계')) + '</label>' +
       '<select class="form-select form-select-sm" id="hqBulkLoginLevel"><option value="" data-pg-ui-t="선택">' + escUi(L('선택')) + '</option>' + loginLevels + '</select></div>' +
-      '<div class="col-6 col-md-3"><label class="form-label mb-0" for="hqBulkLoginOrgCode" data-pg-ui-t="업체코드(선택)">' + escUi(L('업체코드(선택)')) + '</label>' +
-      '<input type="text" class="form-control form-control-sm" id="hqBulkLoginOrgCode" placeholder="' + escUi(L('비우면 해당 단계 전체')) + '" data-pg-ui-placeholder="' + escUi(L('비우면 해당 단계 전체')) + '"></div>' +
-      '<div class="col-12 col-md-6 d-flex flex-wrap gap-2">' +
+      '<div class="col-6 col-md-3"><label class="form-label mb-0" for="hqBulkLoginOrgSearch" data-pg-ui-t="업체 검색">' + escUi(L('업체 검색')) + '</label>' +
+      '<input type="text" class="form-control form-control-sm" id="hqBulkLoginOrgSearch" placeholder="' + escUi(L('업체코드·업체명')) + '" data-pg-ui-placeholder="' + escUi(L('업체코드·업체명')) + '" autocomplete="off"></div>' +
+      '<div class="col-12 col-md-4"><label class="form-label mb-0" for="hqBulkLoginOrgSelect" data-pg-ui-t="업체 선택">' + escUi(L('업체 선택')) + '</label>' +
+      '<select class="form-select form-select-sm" id="hqBulkLoginOrgSelect" disabled>' +
+      '<option value="" data-pg-ui-t="먼저 조직 단계를 선택하세요">' + escUi(L('먼저 조직 단계를 선택하세요')) + '</option></select></div>' +
+      '<div class="col-12 col-md-3 d-flex flex-wrap gap-2">' +
       '<button type="button" class="btn btn-sm btn-outline-success" id="hqBulkLoginAddY" data-pg-ui-t="사용">' + escUi(L('사용')) + '</button>' +
       '<button type="button" class="btn btn-sm btn-outline-secondary" id="hqBulkLoginAddN" data-pg-ui-t="미사용">' + escUi(L('미사용')) + '</button>' +
       '<button type="button" class="btn btn-sm btn-outline-warning" id="hqBulkLoginAddPause" data-pg-ui-t="일시중지">' + escUi(L('일시중지')) + '</button>' +
       '</div></div>' +
+      '<p class="small text-muted mb-2" id="hqBulkLoginScopeHint" data-pg-ui-t="hqBulkLoginScopeHintEmpty">' +
+      escUi(L('조직 단계와 업체를 선택하면 적용 범위가 표시됩니다.')) + '</p>' +
       '<div class="table-responsive border rounded"><table class="table table-sm table-bordered align-middle mb-0" id="grid_hqBulkLoginList">' +
       '<thead class="table-light"><tr>' +
       pgUiThT('조직 단계') + pgUiThT('대상') + pgUiThT('상태') + pgUiThT('일시중지') + pgUiThT('수정일시') +
@@ -2147,10 +2152,11 @@
     '<div class="small text-muted" id="opsNpSlotPreview"></div></div>' +
     '<div class="mb-2">' +
     '<label class="form-label mb-1" for="opsNpIntegrationMode" data-pg-ui-t="연동방식">연동방식</label>' +
-    '<select class="form-select form-select-sm" id="opsNpIntegrationMode" style="max-width:14rem">' +
+    '<select class="form-select form-select-sm" id="opsNpIntegrationMode" style="max-width:18rem">' +
     '<option value="API" selected data-pg-ui-t="API 방식">API 방식</option>' +
-    '<option value="URL" data-pg-ui-t="URL 방식">URL 방식</option></select></div>' +
-    '<div class="small text-muted mb-3" id="opsNpIntegrationModeHint" data-pg-ui-t="API: 가맹·전산·개발 노티를 직접 설정. URL: 가맹점 포워딩 끔·개발 노티(대체 Dev URL)·RESULT AUTO·RouteNo=슬롯으로 자동 설정.">API: 가맹·전산·개발 노티를 직접 설정. URL: 가맹점 포워딩 끔·개발 노티(대체 Dev URL)·RESULT AUTO·RouteNo=슬롯으로 자동 설정.</div>' +
+    '<option value="URL" data-pg-ui-t="URL 방식">URL 방식</option>' +
+    '<option value="URL_HYBRID" data-pg-ui-t="URL 하이브리드 방식">URL 하이브리드 방식</option></select></div>' +
+    '<div class="small text-muted mb-3" id="opsNpIntegrationModeHint" data-pg-ui-t="API: 가맹·전산·개발 노티를 직접 설정. URL: 가맹 포워딩 끔·개발 노티(대체 Dev URL)·RESULT AUTO. URL 하이브리드: URL과 같되 가맹점 노티·callback/result URL을 송부.">API: 가맹·전산·개발 노티를 직접 설정. URL: 가맹 포워딩 끔·개발 노티(대체 Dev URL)·RESULT AUTO. URL 하이브리드: URL과 같되 가맹점 노티·callback/result URL을 송부.</div>' +
     '<div class="row g-3 mb-3" id="opsNpNotifyUseFlagsWrap">' +
     '<div class="col-12 col-md-4"><div class="card h-100 border shadow-sm"><div class="card-body py-2 px-3">' +
     '<div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="opsNpEnableRelay" checked>' +
@@ -2245,8 +2251,9 @@
     '<div class="mb-2"><label class="form-label mb-0" for="opsNpLogEditIntegrationMode" data-pg-ui-t="연동방식">연동방식</label>' +
     '<select class="form-select form-select-sm" id="opsNpLogEditIntegrationMode">' +
     '<option value="API" selected data-pg-ui-t="API 방식">API 방식</option>' +
-    '<option value="URL" data-pg-ui-t="URL 방식">URL 방식</option></select></div>' +
-    '<div class="small text-muted mb-3 mt-1" id="opsNpLogEditIntegrationModeHint" data-pg-ui-t="API: 가맹·전산·개발 노티를 직접 설정. URL: 가맹점 포워딩 끔·개발 노티(대체 Dev URL)·RESULT AUTO·RouteNo=슬롯으로 자동 설정.">API: 가맹·전산·개발 노티를 직접 설정. URL: 가맹점 포워딩 끔·개발 노티(대체 Dev URL)·RESULT AUTO·RouteNo=슬롯으로 자동 설정.</div>' +
+    '<option value="URL" data-pg-ui-t="URL 방식">URL 방식</option>' +
+    '<option value="URL_HYBRID" data-pg-ui-t="URL 하이브리드 방식">URL 하이브리드 방식</option></select></div>' +
+    '<div class="small text-muted mb-3 mt-1" id="opsNpLogEditIntegrationModeHint" data-pg-ui-t="API: 가맹·전산·개발 노티를 직접 설정. URL: 가맹 포워딩 끔·개발 노티(대체 Dev URL)·RESULT AUTO. URL 하이브리드: URL과 같되 가맹점 노티·callback/result URL을 송부.">API: 가맹·전산·개발 노티를 직접 설정. URL: 가맹 포워딩 끔·개발 노티(대체 Dev URL)·RESULT AUTO. URL 하이브리드: URL과 같되 가맹점 노티·callback/result URL을 송부.</div>' +
     '<div class="row g-2 mb-3" id="opsNpLogEditNotifyFlagsWrap">' +
     '<div class="col-12 col-md-4"><div class="card h-100 border shadow-sm"><div class="card-body py-2 px-3">' +
     '<div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="opsNpLogEditRelay" checked>' +
@@ -2764,7 +2771,7 @@
       formSections: [
         {
           title: '리스크설정',
-          notice: '동일 카드 FAIL·취소·무효·미결제 등 비성공이 누적되면 JPAY 호출 전 일시 차단(1~4차 대기)합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 성공은 자동등록 트리거 원인이 되지 않습니다. 자동 등록 트리거 N차: 추적기간 안에서 비성공 N회가 완료되는 즉시 비활성카드(마스킹)에 등록되며 (N+1)번째 결제 시도부터 차단됩니다. 추적기간 미사용 시 성공 전까지 기간 제한 없이 누적합니다. 동기 응답·노티 확정 모두 반영하며 3DS 대기(08)는 제외합니다.',
+          notice: '동일 카드 FAIL·취소·무효·미결제 등 비성공이 누적되면 결제 시도 전 일시 차단(1~4차 대기)합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 성공은 자동등록 트리거 원인이 되지 않습니다. 자동 등록 트리거 N차: 추적기간 안에서 비성공 N회가 완료되는 즉시 비활성카드(마스킹)에 등록되며 (N+1)번째 결제 시도부터 차단됩니다. 추적기간 미사용 시 성공 전까지 기간 제한 없이 누적합니다. 동기 응답·노티 확정 모두 반영하며 3DS 대기(08)는 제외합니다. 운영 매뉴얼(HTML/PDF): docs/icopay-hq-risk-manual.html',
           rows: [
             [{ label: '위험관리 사용', type: 'select', name: 'enabledYn', col: 2,
               options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }] },
@@ -2780,7 +2787,7 @@
         },
         {
           title: '리스크 필터링',
-          notice: 'JPAY·ChillPay 송부 전 사전 차단입니다. 차단 건은 전산에 1회 시도·취소(20)로 기록되며, 운영관리 「리스크 현황」에 표시됩니다. JPAY 사후 고위험·PY0124는 pay_index 실패 후 카드 쿨다운·리스크 현황에 기록됩니다.',
+          notice: 'PG(JPAY·ChillPay·Eximbay 등) 송부 전 사전 차단입니다. 카드번호 미수집(호스티드) 흐름은 이메일·전화·성명·IP 계열만 적용됩니다. 차단 건은 전산에 1회 시도·취소(20)로 기록되며, 운영관리 「리스크 현황」에 표시됩니다. JPAY 사후 고위험·PY0124는 pay_index 실패 후 카드 쿨다운·리스크 현황에 기록됩니다. 자동기억은 「결제·URL」탭에서 설정합니다. 트리거 운영: docs/icopay-hq-risk-filter-trigger-manual.html · 총판용 설명안: docs/icopay-dist-risk-trigger-manual.html · 통합 docs/icopay-hq-risk-manual.html · 필터 상세 docs/icopay-hq-risk-filter-manual.html',
           rows: [
             [{ label: '사전필터 사용', type: 'select', name: 'presaleFilterEnabledYn', col: 2,
               options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }] }],
@@ -2794,12 +2801,19 @@
               options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }] }],
             [{ label: '카드 속도 제한', type: 'select', name: 'filterVelocityCardYn', col: 2,
               options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }] },
-             { label: '이메일 속도 제한', type: 'select', name: 'filterVelocityEmailYn', col: 2,
+             { label: '카드 창(분)', type: 'number', name: 'velocityCardWindowMinutes', col: 2, min: 1, max: 1440, placeholder: '10' },
+             { label: '카드 횟수', type: 'number', name: 'velocityCardMaxAttempts', col: 2, min: 1, max: 99, placeholder: '3' }],
+            [{ label: '이메일 속도 제한', type: 'select', name: 'filterVelocityEmailYn', col: 2,
               options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }] },
-             { label: 'IP 속도 제한', type: 'select', name: 'filterVelocityIpYn', col: 2,
-              options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }] }],
-            [{ label: '속도제한 창(분)', type: 'number', name: 'velocityWindowMinutes', col: 2, min: 1, max: 1440, placeholder: '10' },
-             { label: '속도제한 횟수', type: 'number', name: 'velocityMaxAttempts', col: 2, min: 1, max: 99, placeholder: '3' }],
+             { label: '이메일 창(분)', type: 'number', name: 'velocityEmailWindowMinutes', col: 2, min: 1, max: 1440, placeholder: '30' },
+             { label: '이메일 횟수', type: 'number', name: 'velocityEmailMaxAttempts', col: 2, min: 1, max: 99, placeholder: '5' }],
+            [{ label: 'IP 속도 제한', type: 'select', name: 'filterVelocityIpYn', col: 2,
+              options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }] },
+             { label: 'IP 창(분)', type: 'number', name: 'velocityIpWindowMinutes', col: 2, min: 1, max: 1440, placeholder: '15' },
+             { label: 'IP 횟수', type: 'number', name: 'velocityIpMaxAttempts', col: 2, min: 1, max: 99, placeholder: '10' }],
+            [{ type: 'customHtml', col: 12, html:
+              '<p class="small text-muted mb-0" data-pg-ui-t="속도제한 기본값 안내">속도제한 기본값: 카드 10분/3회(동일카드 연속 시도), 이메일 30분/5회(정상 재구매 여유), IP 15분/10회(공용망·NAT 여유). 항목별로 수정 가능합니다.</p>'
+            }],
             [{ label: 'JPAY 사후 고위험 쿨다운', type: 'select', name: 'postsaleCooldownJpayHighriskYn', col: 3,
               options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }] },
              { label: 'JPAY PY0124 쿨다운', type: 'select', name: 'postsaleCooldownJpayPy0124Yn', col: 3,
@@ -5141,6 +5155,10 @@
       tableResponsiveExtraClass: 'commission-list-table-wrap',
       noticeList: [
         'VIEW SETTING 열 목록은 본사설정 → 조직항목설정(화면: 수수료관리)에서 허용한 키와 동일합니다. 신규 열 「통화(policyCur)」는 적용 수수료 정책의 통화코드(ISO 숫자·알파)를 THB·JPY 등 알파로 표시합니다. 조직항목설정을 바꾼 뒤 새로고침·재조회하면 체크 목록·노출 제한이 반영됩니다.',
+        '수수료 저장 시 Google OTP가 필요합니다. 한 번 인증하면 10분간 유지되며, 수수료 목록 조회·셀 수정·저장 등 관련 작업이 있으면 10분이 연장됩니다. 10분간 관련 작업이 없으면 다시 OTP를 요청합니다.',
+        '합계(요율%·건당료)는 총본사~영업점 값을 합산한 표시 전용이며 직접 수정할 수 없습니다.',
+        '현재 선택·편집 중인 가맹점 행은 결제내역 「성공」과 같은 파스텔 녹색으로 표시됩니다.',
+        '체크·No·가맹점·업체코드·통화·관리·적용시작일 열 폭은 고정이며, 나머지(요율·건당 등·헬로/VIEW SETTING 추가 열)는 잔여 폭을 균등 분배합니다.',
         '적용시작일을 비우면 저장 시점(서버 시각) 기준으로 적용됩니다.',
         '동일 가맹점에 미래 적용일이 중복되지 않도록 한 번에 한 건만 등록하는 것을 권장합니다.',
         '상위 조직 수수료 정책이 바뀌면 이후 신규 가맹점 등록 시 하위 배분 설정에 반영될 수 있습니다.'
@@ -7747,6 +7765,29 @@
           return window.ICOPAY_PLATFORM_RELEASE.renderHtml();
         }
         return '<div class="text-muted small" data-pg-ui-t="업데이트 내용을 불러올 수 없습니다.">업데이트 내용을 불러올 수 없습니다.</div>';
+      },
+      summary: [],
+      buttons: []
+    },
+    '/ops/opsManuals': {
+      hideListGrid: true,
+      staticHtml: function () {
+        if (typeof window !== 'undefined' && window.ICOPAY_PLATFORM_MANUALS && typeof window.ICOPAY_PLATFORM_MANUALS.renderHtml === 'function') {
+          return window.ICOPAY_PLATFORM_MANUALS.renderHtml();
+        }
+        return '<div class="text-muted small" data-pg-ui-t="운영매뉴얼을 불러올 수 없습니다.">운영매뉴얼을 불러올 수 없습니다.</div>';
+      },
+      summary: [],
+      buttons: []
+    },
+    /* 구 URL 호환 — 플랫폼 허브 시절 */
+    '/hq/platformOpsManuals': {
+      hideListGrid: true,
+      staticHtml: function () {
+        if (typeof window !== 'undefined' && window.ICOPAY_PLATFORM_MANUALS && typeof window.ICOPAY_PLATFORM_MANUALS.renderHtml === 'function') {
+          return window.ICOPAY_PLATFORM_MANUALS.renderHtml();
+        }
+        return '<div class="text-muted small" data-pg-ui-t="운영매뉴얼을 불러올 수 없습니다.">운영매뉴얼을 불러올 수 없습니다.</div>';
       },
       summary: [],
       buttons: []

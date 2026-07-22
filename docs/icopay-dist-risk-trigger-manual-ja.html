@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICOPAY 総代理店向けリスクトリガー説明 V2.43</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Yu Gothic', 'Meiryo', 'Malgun Gothic', sans-serif; font-size: 11pt; line-height: 1.75; color: #1a1a1a; background: #f0f2f8; }
+  .page-wrap { max-width: 960px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 18px rgba(0,0,0,.11); overflow: hidden; }
+  .cover { background: linear-gradient(135deg, #1a3a5c 0%, #1565c0 55%, #26a69a 100%); color: #fff; padding: 48px 52px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+  .cover-body { flex: 1; }
+  .cover-logo { flex-shrink: 0; padding-top: 4px; }
+  .cover-logo img { height: 64px; background: rgba(255,255,255,.92); padding: 10px 18px; border-radius: 8px; }
+  .cover .logo-line { font-size: 13pt; font-weight: 700; letter-spacing: 2px; opacity: .85; margin-bottom: 14px; }
+  .cover h1 { font-size: 22pt; font-weight: 900; line-height: 1.28; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 11pt; opacity: .82; margin-bottom: 24px; }
+  .cover .meta { font-size: 9.5pt; opacity: .65; border-top: 1px solid rgba(255,255,255,.25); padding-top: 14px; }
+  .lang-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .lang-bar a { color: #fff; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); border-radius: 999px; padding: 4px 12px; font-size: 9pt; text-decoration: none; font-weight: 700; }
+  .lang-bar a.active { background: #fff; color: #1565c0; }
+  .body { padding: 44px 52px 64px; }
+  .toc { background: #e8f5f3; border-left: 4px solid #00897b; border-radius: 0 8px 8px 0; padding: 20px 26px; margin-bottom: 44px; }
+  .toc h2 { font-size: 12pt; font-weight: 700; color: #00695c; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { font-size: 10pt; line-height: 2.1; }
+  .toc a { color: #00695c; text-decoration: none; }
+  h2.section-title { font-size: 15pt; font-weight: 800; color: #1a3a5c; border-bottom: 2.5px solid #00897b; padding-bottom: 7px; margin: 48px 0 18px; page-break-after: avoid; }
+  h3.sub-title { font-size: 12pt; font-weight: 700; color: #00897b; margin: 26px 0 10px; page-break-after: avoid; }
+  p { margin-bottom: 10px; }
+  .info-box  { background: #e0f2f1; border: 1px solid #80cbc4; border-left: 4px solid #00897b; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; }
+  .warn-box  { background: #fff8e1; border: 1px solid #ffe082; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #5d4037; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 22px; font-size: 10pt; page-break-inside: avoid; }
+  th { background: #1a3a5c; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #12274a; }
+  td { padding: 8px 12px; border: 1px solid #cfd8dc; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f7ff; }
+  .menu-path { display: inline-block; background: #eceff1; border: 1px solid #cfd8dc; border-radius: 5px; padding: 3px 12px; font-size: 9.5pt; font-weight: 600; margin-bottom: 12px; }
+  .menu-path::before { content: "📌 確認: "; }
+  .flow { background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; padding: 18px 22px; margin: 14px 0 20px; font-size: 10pt; white-space: pre-wrap; font-family: Consolas, monospace; }
+  ul, ol { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+  .footer { background: #1a3a5c; color: rgba(255,255,255,.6); text-align: center; font-size: 9pt; padding: 18px 24px; }
+  code { font-size: 9pt; background: #eceff1; padding: 1px 5px; border-radius: 3px; }
+  a.doc-link { color: #00695c; font-weight: 600; }
+  .faq-q { font-weight: 700; color: #1a3a5c; margin-top: 14px; }
+  .faq-a { margin-bottom: 10px; }
+  @media print {
+    body { background: #fff; font-size: 10pt; }
+    .page-wrap { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; }
+    .footer, .print-btn, .lang-bar { display: none !important; }
+    @page { size: A4; margin: 18mm 16mm; }
+  }
+  .print-btn { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #00897b; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 10.5pt; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(0,137,123,.45); }
+</style>
+</head>
+<body>
+<button type="button" class="print-btn" onclick="window.print()">🖨️ 印刷 / PDF保存</button>
+<div class="page-wrap">
+  <div class="cover">
+    <div class="cover-body">
+      <div class="logo-line">ICOPAY · Payment Gateway</div>
+      <h1>総代理店向け<br>リスクトリガー説明</h1>
+      <div class="subtitle">リスク設定・リスクフィルタの既定値 — いつ・何が発火するか</div>
+      <div class="meta">ICOPAY Distributor Risk Trigger Guide · V2.43 · 2026-07-22 · 対象: 総代理店運営者</div>
+      <div class="lang-bar">
+        <a href="./icopay-dist-risk-trigger-manual.html">KO</a>
+        <a href="./icopay-dist-risk-trigger-manual-en.html">EN</a>
+        <a class="active" href="./icopay-dist-risk-trigger-manual-ja.html">JP</a>
+        <a href="./icopay-dist-risk-trigger-manual-zh.html">CH</a>
+        <a href="./icopay-dist-risk-trigger-manual-th.html">TH</a>
+      </div>
+    </div>
+    <div class="cover-logo">
+      <img src="./logo-ontheline.png" alt="On The Line">
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="menu-path">運用管理 → リスク状況 · 非活性カード · 加盟店「リスク管理トリガー」</div>
+    <div class="info-box">
+      <strong>本社向け詳細:</strong>
+      <a class="doc-link" href="./icopay-hq-risk-filter-trigger-manual-ja.html">トリガー運用マニュアル</a> ·
+      <a class="doc-link" href="./icopay-hq-risk-manual.html">手数料・リスク統合(KO)</a><br>
+      PDF: <code>cd scripts && node operator-manual-pdf/gen.mjs risk</code>
+    </div>
+    <div class="warn-box">
+      <strong>表記原則:</strong> 加盟・購入者UIにPG名は出しません(ICOPAY中立)。本文のJPAYは<strong>運用内部</strong>向けです。<br>
+      <strong>ポリシー変更:</strong> 「リスク設定」「リスクフィルタ」の数値・スイッチは<strong>本社画面</strong>のみ。総代理店は加盟店の危険ポリシー・状況・非活性カードを運用します。
+    </div>
+
+    <div class="toc">
+      <h2>📋 目次</h2>
+      <ol>
+        <li><a href="#s1">本説明の範囲</a></li>
+        <li><a href="#s2">既定値が効く条件</a></li>
+        <li><a href="#s3">リスク設定 — 既定と発火</a></li>
+        <li><a href="#s4">リスクフィルタ — 既定と発火</a></li>
+        <li><a href="#s5">総代理店ができること</a></li>
+        <li><a href="#s6">確認画面</a></li>
+        <li><a href="#s7">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 class="section-title" id="s1">1. 本説明の範囲</h2>
+    <p>本社は「リスク設定」と「リスクフィルタ」で全加盟共通の安全装置を置きます。加盟店が<strong>本社ポリシーに従う</strong>場合、下記<strong>既定値</strong>がそのまま発火します。</p>
+    <table>
+      <thead><tr><th>領域</th><th>一言</th><th>結果</th></tr></thead>
+      <tbody>
+        <tr><td><strong>リスク設定</strong></td><td>同一カードの非成功が累積</td><td>一時待機(クールダウン) → 回数後に非活性カード</td></tr>
+        <tr><td><strong>リスクフィルタ</strong></td><td>形式・速度・連絡先異常など(PG送信前)</td><td>未送信 · 取消記録 · リスク状況</td></tr>
+      </tbody>
+    </table>
+    <p><strong>1回だけで永久停止にはなりません。</strong>フィルタはその試行のみ遮断し、リスク設定は回数・待機時間で段階制限します。</p>
+
+    <h2 class="section-title" id="s2">2. 既定値が効く条件</h2>
+    <ul>
+      <li>加盟店の危険ポリシー = <strong>本社に従う</strong></li>
+      <li>本社がシステム既定を変更していない(本数値=内蔵既定)</li>
+    </ul>
+    <div class="info-box"><strong>個別ポリシー</strong>では1〜4次待機・自動非活性回数のみ加盟値が優先。<strong>事前フィルタのスイッチ・速度の窓/回数</strong>は本社共通のままです。</div>
+
+    <h2 class="section-title" id="s3">3. リスク設定 — 既定と発火</h2>
+    <p>同一カードのFAIL・取消・無効・未決済など<strong>非成功</strong>が積もると、次の試行前に待機します。CVV・番号形式エラーは数えず、<strong>成功で回数リセット</strong>です。</p>
+    <table>
+      <thead><tr><th>項目</th><th>既定</th><th>意味</th></tr></thead>
+      <tbody>
+        <tr><td>危険管理</td><td><strong>使用</strong></td><td>段階・自動非活性が動作</td></tr>
+        <tr><td>1次待機</td><td><strong>5分</strong></td><td>非成功1回後 → 5分ブロック</td></tr>
+        <tr><td>2次待機</td><td><strong>10分</strong></td><td>2回 → 10分</td></tr>
+        <tr><td>3次待機</td><td><strong>1時間</strong></td><td>3回 → 1時間</td></tr>
+        <tr><td>4次待機</td><td><strong>0(なし)</strong></td><td>待機ではなく自動非活性と連携</td></tr>
+        <tr><td>自動登録トリガー</td><td><strong>4回</strong></td><td>4回完了で<strong>非活性カード</strong>登録。解除まで以降遮断</td></tr>
+        <tr><td>追跡期間</td><td><strong>未使用</strong></td><td>期間制限なし累積(成功で初期化)</td></tr>
+      </tbody>
+    </table>
+    <div class="flow">非成功1 → 5分
+非成功2 → 10分
+非成功3 → 1時間
+非成功4 → 非活性カード(手動解除まで)
+成功1 → 回数リセット</div>
+    <div class="warn-box">JPAY事後高リスク・PY0124(本社が使用のとき)もクールダウン<strong>1回分として加算</strong>します。未使用なら状況記録のみで回数に入れません。</div>
+
+    <h2 class="section-title" id="s4">4. リスクフィルタ — 既定と発火</h2>
+    <p>決済代行へ承認を<strong>送る直前</strong>に検査。ヒットした試行のみ止め、リスク状況に残します。</p>
+    <h3 class="sub-title">4.1 スイッチ既定(すべて使用)</h3>
+    <table>
+      <thead><tr><th>項目</th><th>既定</th><th>例</th></tr></thead>
+      <tbody>
+        <tr><td>事前フィルタ(マスター)</td><td>使用</td><td>未使用なら個別ONでも全部スキップ</td></tr>
+        <tr><td>異常メール / 電話 / holder / 連絡先不一致</td><td>使用</td><td>形式・不審名義・前回情報不一致など</td></tr>
+        <tr><td>カード・メール・IP速度制限</td><td>使用</td><td>短時間の過多試行</td></tr>
+        <tr><td>JPAY事後高リスク・PY0124</td><td>使用</td><td>§3のクールダウン集計に含む</td></tr>
+      </tbody>
+    </table>
+    <h3 class="sub-title">4.2 速度制限既定(チャネル別)</h3>
+    <table>
+      <thead><tr><th>チャネル</th><th>窓</th><th>回数</th><th>発火</th></tr></thead>
+      <tbody>
+        <tr><td>カード</td><td><strong>10分</strong></td><td><strong>3</strong></td><td>同一カード・加盟で10分内3回以上 → 遮断</td></tr>
+        <tr><td>メール</td><td><strong>30分</strong></td><td><strong>5</strong></td><td>同一メール・加盟で30分内5回以上</td></tr>
+        <tr><td>IP</td><td><strong>15分</strong></td><td><strong>10</strong></td><td>同一IP・加盟で15分内10回以上</td></tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-title" id="s5">5. 総代理店ができること</h2>
+    <table>
+      <thead><tr><th>可能</th><th>本社へ依頼</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>加盟の危険モード(本社/個別/未使用) · 個別時の待機・自動登録 · リスク状況 · 非活性カード</td>
+          <td>リスク設定の待機・自動非活 · フィルタのスイッチ・速度数値 · 全加盟共通変更</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-title" id="s6">6. 確認画面</h2>
+    <ul>
+      <li><strong>運用管理 → リスク状況</strong></li>
+      <li><strong>運用管理 → 非活性カード</strong></li>
+      <li>加盟詳細 → <strong>リスク管理トリガー</strong></li>
+    </ul>
+
+    <h2 class="section-title" id="s7">7. FAQ</h2>
+    <div class="faq-q">Q. 失敗1回で永久停止？</div>
+    <div class="faq-a">A. いいえ。既定はクールダウン(5→10→60分)、<strong>4回</strong>で非活性カード。成功でリセット。</div>
+    <div class="faq-q">Q. フィルタで止まった見え方は？</div>
+    <div class="faq-a">A. PG側に取引なし、電算は取消、リスク状況に表示。</div>
+    <div class="faq-q">Q. 総代理店が速度10分/3を変えられる？</div>
+    <div class="faq-a">A. いいえ。本社の「リスクフィルタ」のみ。</div>
+    <div class="faq-q">Q. 加盟を未使用にすると？</div>
+    <div class="faq-a">A. その加盟の<strong>カード累積クールダウン・自動非活</strong>のみOFF。本社事前フィルタは継続。</div>
+  </div>
+
+  <div class="footer">
+    ICOPAY · 総代理店向けリスクトリガー説明 · V2.43 · 2026-07-22<br>
+    PDF: <code>node operator-manual-pdf/gen.mjs risk</code>
+  </div>
+</div>
+</body>
+</html>

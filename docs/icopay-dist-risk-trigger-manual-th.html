@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICOPAY คู่มือทริกเกอร์ความเสี่ยงสำหรับตัวแทนจำหน่าย V2.43</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sarabun', 'Malgun Gothic', 'Noto Sans Thai', sans-serif; font-size: 11pt; line-height: 1.75; color: #1a1a1a; background: #f0f2f8; }
+  .page-wrap { max-width: 960px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 18px rgba(0,0,0,.11); overflow: hidden; }
+  .cover { background: linear-gradient(135deg, #1a3a5c 0%, #1565c0 55%, #26a69a 100%); color: #fff; padding: 48px 52px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+  .cover-body { flex: 1; }
+  .cover-logo { flex-shrink: 0; padding-top: 4px; }
+  .cover-logo img { height: 64px; background: rgba(255,255,255,.92); padding: 10px 18px; border-radius: 8px; }
+  .cover .logo-line { font-size: 13pt; font-weight: 700; letter-spacing: 2px; opacity: .85; margin-bottom: 14px; }
+  .cover h1 { font-size: 20pt; font-weight: 900; line-height: 1.28; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 11pt; opacity: .82; margin-bottom: 24px; }
+  .cover .meta { font-size: 9.5pt; opacity: .65; border-top: 1px solid rgba(255,255,255,.25); padding-top: 14px; }
+  .lang-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .lang-bar a { color: #fff; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); border-radius: 999px; padding: 4px 12px; font-size: 9pt; text-decoration: none; font-weight: 700; }
+  .lang-bar a.active { background: #fff; color: #1565c0; }
+  .body { padding: 44px 52px 64px; }
+  .toc { background: #e8f5f3; border-left: 4px solid #00897b; border-radius: 0 8px 8px 0; padding: 20px 26px; margin-bottom: 44px; }
+  .toc h2 { font-size: 12pt; font-weight: 700; color: #00695c; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { font-size: 10pt; line-height: 2.1; }
+  .toc a { color: #00695c; text-decoration: none; }
+  h2.section-title { font-size: 15pt; font-weight: 800; color: #1a3a5c; border-bottom: 2.5px solid #00897b; padding-bottom: 7px; margin: 48px 0 18px; page-break-after: avoid; }
+  h3.sub-title { font-size: 12pt; font-weight: 700; color: #00897b; margin: 26px 0 10px; page-break-after: avoid; }
+  p { margin-bottom: 10px; }
+  .info-box  { background: #e0f2f1; border: 1px solid #80cbc4; border-left: 4px solid #00897b; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; }
+  .warn-box  { background: #fff8e1; border: 1px solid #ffe082; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #5d4037; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 22px; font-size: 10pt; page-break-inside: avoid; }
+  th { background: #1a3a5c; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #12274a; }
+  td { padding: 8px 12px; border: 1px solid #cfd8dc; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f7ff; }
+  .menu-path { display: inline-block; background: #eceff1; border: 1px solid #cfd8dc; border-radius: 5px; padding: 3px 12px; font-size: 9.5pt; font-weight: 600; margin-bottom: 12px; }
+  .menu-path::before { content: "📌 ตรวจ: "; }
+  .flow { background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; padding: 18px 22px; margin: 14px 0 20px; font-size: 10pt; white-space: pre-wrap; font-family: Consolas, monospace; }
+  ul, ol { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+  .footer { background: #1a3a5c; color: rgba(255,255,255,.6); text-align: center; font-size: 9pt; padding: 18px 24px; }
+  code { font-size: 9pt; background: #eceff1; padding: 1px 5px; border-radius: 3px; }
+  a.doc-link { color: #00695c; font-weight: 600; }
+  .faq-q { font-weight: 700; color: #1a3a5c; margin-top: 14px; }
+  .faq-a { margin-bottom: 10px; }
+  @media print {
+    body { background: #fff; font-size: 10pt; }
+    .page-wrap { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; }
+    .footer, .print-btn, .lang-bar { display: none !important; }
+    @page { size: A4; margin: 18mm 16mm; }
+  }
+  .print-btn { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #00897b; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 10.5pt; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(0,137,123,.45); }
+</style>
+</head>
+<body>
+<button type="button" class="print-btn" onclick="window.print()">🖨️ พิมพ์ / บันทึก PDF</button>
+<div class="page-wrap">
+  <div class="cover">
+    <div class="cover-body">
+      <div class="logo-line">ICOPAY · Payment Gateway</div>
+      <h1>คู่มือทริกเกอร์ความเสี่ยง<br>สำหรับตัวแทนจำหน่าย</h1>
+      <div class="subtitle">ตามค่าเริ่มต้น การตั้งค่าความเสี่ยง และ ตัวกรองความเสี่ยง — เมื่อไหร่จะถูกจำกัดอย่างไร</div>
+      <div class="meta">ICOPAY Distributor Risk Trigger Guide · V2.43 · 2026-07-22 · กลุ่มเป้าหมาย: ผู้ดูแลตัวแทนจำหน่าย</div>
+      <div class="lang-bar">
+        <a href="./icopay-dist-risk-trigger-manual.html">KO</a>
+        <a href="./icopay-dist-risk-trigger-manual-en.html">EN</a>
+        <a href="./icopay-dist-risk-trigger-manual-ja.html">JP</a>
+        <a href="./icopay-dist-risk-trigger-manual-zh.html">CH</a>
+        <a class="active" href="./icopay-dist-risk-trigger-manual-th.html">TH</a>
+      </div>
+    </div>
+    <div class="cover-logo">
+      <img src="./logo-ontheline.png" alt="On The Line">
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="menu-path">การดำเนินงาน → ภาพรวมความเสี่ยง · บัตรปิดใช้ · ทริกเกอร์ความเสี่ยงของร้านค้า</div>
+    <div class="info-box">
+      <strong>เอกสารสำนักงานใหญ่:</strong>
+      <a class="doc-link" href="./icopay-hq-risk-filter-trigger-manual-th.html">คู่มือทริกเกอร์</a> ·
+      <a class="doc-link" href="./icopay-hq-risk-manual.html">ค่าธรรมเนียม·ความเสี่ยง (KO)</a><br>
+      PDF: <code>cd scripts && node operator-manual-pdf/gen.mjs risk</code>
+    </div>
+    <div class="warn-box">
+      <strong>หลักการชื่อ:</strong> UI ร้านค้า/ผู้ซื้อไม่แสดงชื่อ PG (เป็นกลาง ICOPAY) ชื่อ JPAY ในเอกสารนี้เพื่อ<strong>ฝ่ายปฏิบัติการภายใน</strong>เท่านั้น<br>
+      <strong>เปลี่ยนนโยบาย:</strong> สวิตช์และตัวเลขใน การตั้งค่าความเสี่ยง / ตัวกรองความเสี่ยง แก้ได้เฉพาะหน้า<strong>นโยบาย HQ</strong> ตัวแทนจำหน่ายดูแลโหมดความเสี่ยงร้านค้า แดชบอร์ด และบัตรปิดใช้
+    </div>
+
+    <div class="toc">
+      <h2>📋 สารบัญ</h2>
+      <ol>
+        <li><a href="#s1">ขอบเขตคู่มือนี้</a></li>
+        <li><a href="#s2">เมื่อใดใช้ค่าเริ่มต้น</a></li>
+        <li><a href="#s3">การตั้งค่าความเสี่ยง — ค่าเริ่มต้นและการทำงาน</a></li>
+        <li><a href="#s4">ตัวกรองความเสี่ยง — ค่าเริ่มต้นและการทำงาน</a></li>
+        <li><a href="#s5">สิ่งที่ตัวแทนจำหน่ายทำได้</a></li>
+        <li><a href="#s6">หน้าจอตรวจสอบ</a></li>
+        <li><a href="#s7">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 class="section-title" id="s1">1. ขอบเขตคู่มือนี้</h2>
+    <p>HQ ตั้งกลไกความปลอดภัยร่วมทุกค้าผ่าน <strong>การตั้งค่าความเสี่ยง</strong> และ <strong>ตัวกรองความเสี่ยง</strong> หากร้านใช้ <strong>ตามนโยบาย HQ</strong> จะใช้<strong>ค่าเริ่มต้นด้านล่าง</strong>ทันที</p>
+    <table>
+      <thead><tr><th>ส่วน</th><th>สรุปสั้น</th><th>ผลลัพธ์</th></tr></thead>
+      <tbody>
+        <tr><td><strong>การตั้งค่าความเสี่ยง</strong></td><td>ความล้มเหลวสะสมบนบัตรเดียวกัน</td><td>รอชั่วคราว (คูลดาวน์) → บัตรปิดใช้หลังครบครั้ง</td></tr>
+        <tr><td><strong>ตัวกรองความเสี่ยง</strong></td><td>รูปแบบ/ความเร็ว/ข้อมูลติดต่อผิดปกติ (ก่อนส่ง PG)</td><td>ไม่ส่ง · บันทึกยกเลิก · ภาพรวมความเสี่ยง</td></tr>
+      </tbody>
+    </table>
+    <p><strong>ล้มเหลวครั้งเดียวไม่เท่ากับการแบนถาวร</strong> ตัวกรองบล็อกเฉพาะครั้งนั้น การตั้งค่าความเสี่ยงจำกัดทีละขั้นตามจำนวนครั้งและเวลารอ</p>
+
+    <h2 class="section-title" id="s2">2. เมื่อใดใช้ค่าเริ่มต้น</h2>
+    <ul>
+      <li>นโยบายความเสี่ยงร้านค้า = <strong>ตาม HQ</strong></li>
+      <li>HQ ยังไม่ได้เปลี่ยนค่าเริ่มต้นระบบ (ตัวเลขในเอกสารนี้ = ค่าในระบบ)</li>
+    </ul>
+    <div class="info-box">โหมด<strong>นโยบายแยก</strong>ของร้านทับเฉพาะเวลารอ 1–4 และการลงทะเบียนอัตโนมัติ <strong>สวิตช์ตัวกรองก่อนขายและหน้าต่าง/ครั้งความเร็ว</strong>ยังเป็นของ HQ ทั้งแพลตฟอร์ม</div>
+
+    <h2 class="section-title" id="s3">3. การตั้งค่าความเสี่ยง — ค่าเริ่มต้นและการทำงาน</h2>
+    <p>ความไม่สำเร็จ (FAIL ยกเลิก โมฆะ ค้างชำระ ฯลฯ) บนบัตรเดียวกันจะทำให้ต้องรอค่อนหน้าครั้งถัดไป ไม่นับ CVV/รูปแบบเลขบัตร <strong>ชำระสำเร็จจะรีเซ็ตจำนวนครั้ง</strong></p>
+    <table>
+      <thead><tr><th>รายการ</th><th>ค่าเริ่มต้น</th><th>ความหมาย</th></tr></thead>
+      <tbody>
+        <tr><td>ใช้การจัดการความเสี่ยง</td><td><strong>เปิด</strong></td><td>ขั้นและการปิดใช้ทำงาน</td></tr>
+        <tr><td>รอรอบ 1</td><td><strong>5 นาที</strong></td><td>หลังล้มเหลว 1 → บล็อก 5 นาที</td></tr>
+        <tr><td>รอรอบ 2</td><td><strong>10 นาที</strong></td><td>2 ครั้ง → 10 นาที</td></tr>
+        <tr><td>รอรอบ 3</td><td><strong>1 ชั่วโมง</strong></td><td>3 ครั้ง → 1 ชั่วโมง</td></tr>
+        <tr><td>รอรอบ 4</td><td><strong>0 (ไม่มี)</strong></td><td>เชื่อมกับการลงทะเบียนอัตโนมัติ</td></tr>
+        <tr><td>ทริกเกอร์ลงทะเบียนอัตโนมัติ</td><td><strong>4 ครั้ง</strong></td><td>ครบ 4 → ลงทะเบียน<strong>บัตรปิดใช้</strong> จนกว่าจะปลด</td></tr>
+        <tr><td>ช่วงติดตาม</td><td><strong>ไม่ใช้</strong></td><td>สะสมไม่มีหน้าต่างเวลา (รีเซ็ตเมื่อสำเร็จ)</td></tr>
+      </tbody>
+    </table>
+    <div class="flow">ล้มเหลว1 → 5 นาที
+ล้มเหลว2 → 10 นาที
+ล้มเหลว3 → 1 ชั่วโมง
+ล้มเหลว4 → บัตรปิดใช้ (ต้องปลดด้วยมือ)
+สำเร็จ1 → รีเซ็ตจำนวนครั้ง</div>
+    <div class="warn-box">ความเสี่ยงหลังขาย JPAY / PY0124 (เมื่อ HQ เปิด) นับเป็น<strong>1 ครั้ง</strong>ในคูลดาวน์ หากปิด อาจบันทึกแดชบอร์ดอย่างเดียวโดยไม่นับครั้ง</div>
+
+    <h2 class="section-title" id="s4">4. ตัวกรองความเสี่ยง — ค่าเริ่มต้นและการทำงาน</h2>
+    <p>ตรวจ<strong>ก่อนส่ง</strong>คำขออนุมัติไปยังตัวกลางชำระเงิน หากโดน จะบล็อกเฉพาะครั้งนั้นและขึ้นภาพรวมความเสี่ยง</p>
+    <h3 class="sub-title">4.1 ค่าสวิตช์เริ่มต้น (เปิดทั้งหมด)</h3>
+    <table>
+      <thead><tr><th>รายการ</th><th>ค่าเริ่ม</th><th>ตัวอย่าง</th></tr></thead>
+      <tbody>
+        <tr><td>ตัวกรองก่อนขาย (มาสเตอร์)</td><td>เปิด</td><td>ปิดแล้วรายการย่อยข้ามทั้งหมดแม้เปิด</td></tr>
+        <tr><td>อีเมล/โทร/ชื่อผู้ถือ/ข้อมูลไม่ตรง</td><td>เปิด</td><td>รูปแบบผิด ชื่อน่าสงสัย ไม่ตรงครั้งก่อน</td></tr>
+        <tr><td>จำกัดความเร็วบัตร·อีเมล·IP</td><td>เปิด</td><td>พยายามบ่อยในช่วงสั้น</td></tr>
+        <tr><td>คูลดาวน์ JPAY หลังขาย / PY0124</td><td>เปิด</td><td>นับเข้า §3</td></tr>
+      </tbody>
+    </table>
+    <h3 class="sub-title">4.2 ค่าความเร็วเริ่มต้น (แยกช่องทาง)</h3>
+    <table>
+      <thead><tr><th>ช่องทาง</th><th>หน้าต่าง</th><th>ครั้ง</th><th>ทริกเกอร์</th></tr></thead>
+      <tbody>
+        <tr><td>บัตร</td><td><strong>10 นาที</strong></td><td><strong>3</strong></td><td>≥3 ครั้ง บัตร+ร้านเดียวกันใน 10 นาที → บล็อก</td></tr>
+        <tr><td>อีเมล</td><td><strong>30 นาที</strong></td><td><strong>5</strong></td><td>≥5 ใน 30 นาที</td></tr>
+        <tr><td>IP</td><td><strong>15 นาที</strong></td><td><strong>10</strong></td><td>≥10 ใน 15 นาที</td></tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-title" id="s5">5. สิ่งที่ตัวแทนจำหน่ายทำได้</h2>
+    <table>
+      <thead><tr><th>ทำเองได้</th><th>ขอ HQ</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>โหมดความเสี่ยงร้าน (ตาม HQ / แยก / ปิด) · เวลารอเมื่อแยก · ภาพรวม · บัตรปิดใช้</td>
+          <td>เวลารอ/ครั้งปิดใช้อัตโนมัติ · สวิตช์ตัวกรองและตัวเลขความเร็ว · นโยบายทั้งแพลตฟอร์ม</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-title" id="s6">6. หน้าจอตรวจสอบ</h2>
+    <ul>
+      <li><strong>การดำเนินงาน → ภาพรวมความเสี่ยง</strong></li>
+      <li><strong>การดำเนินงาน → บัตรปิดใช้</strong></li>
+      <li>รายละเอียดร้าน → <strong>ทริกเกอร์ความเสี่ยง</strong></li>
+    </ul>
+
+    <h2 class="section-title" id="s7">7. FAQ</h2>
+    <div class="faq-q">Q. ล้มเหลวครั้งเดียวแบนถาวรหรือไม่?</div>
+    <div class="faq-a">A. ไม่ใช่ ค่าเริ่มเป็นคูลดาวน์ (5→10→60 นาที) ที่ครั้งที่ <strong>4</strong> จึงลงทะเบียนบัตรปิดใช้ สำเร็จแล้วรีเซ็ต</div>
+    <div class="faq-q">Q. เมื่อตัวกรองบล็อกจะเห็นอะไร?</div>
+    <div class="faq-a">A. ไม่มีรายการที่ PG ระบบบันทึกยกเลิก และขึ้นภาพรวมความเสี่ยง</div>
+    <div class="faq-q">Q. ตัวแทนแก้ความเร็วบัตร 10 นาที/3 ได้หรือไม่?</div>
+    <div class="faq-a">A. ไม่ได้ — แก้ได้เฉพาะ HQ ในตัวกรองความเสี่ยง</div>
+    <div class="faq-q">Q. ร้านตั้งเป็นปิด?</div>
+    <div class="faq-a">A. ปิดเฉพาะ<strong>คูลดาวน์บัตร/ปิดใช้อัตโนมัติ</strong>ของร้านนั้น ตัวกรองก่อนขายของ HQ ยังทำงาน</div>
+  </div>
+
+  <div class="footer">
+    ICOPAY · คู่มือทริกเกอร์ความเสี่ยงตัวแทนจำหน่าย · V2.43 · 2026-07-22<br>
+    PDF: <code>node operator-manual-pdf/gen.mjs risk</code>
+  </div>
+</div>
+</body>
+</html>

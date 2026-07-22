@@ -3350,15 +3350,40 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   overflow: hidden;
 }
 
+/* 수수료관리 합계(요율%·건당료) — 직관적 강조(빨강) */
+.commission-total-cell,
+.commission-total-cell .commission-total-value,
+.commission-total-cell .commission-inline-view {
+  color: #dc3545 !important;
+  font-weight: 700;
+}
+.commission-total-cell {
+  cursor: default;
+  padding: 0.125rem 0.25rem !important;
+}
+
+/* 인라인 수정 시 열 폭이 커지지 않도록 — 셀 폭 고정 + 입력 min-width 제거 */
 .commission-inline-cell .commission-inline-input {
   display: block;
   width: 100% !important;
-  max-width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
   margin: 0;
-  padding: 0.1rem 0.2rem;
+  padding: 0.1rem 0.15rem !important;
   height: calc(1.2em + 0.35rem + 2px);
+  font-size: inherit !important;
+}
+
+/* 현재 편집 행: 결제내역 상태바 「성공」pill과 동일 파스텔 (#d1fae5) */
+#contentsMain .commission-split-grid tbody tr.commission-row-editing > td,
+#contentsMain .commission-split-grid tbody tr.table-active.commission-row-editing > td,
+.tab-pane .commission-split-grid tbody tr.commission-row-editing > td,
+.tab-pane .commission-split-grid tbody tr.table-active.commission-row-editing > td {
+  background-color: #d1fae5 !important; /* pay-list-status-bar__pill--success */
+}
+#contentsMain .commission-split-grid.table-hover > tbody > tr.commission-row-editing:hover > td {
+  background-color: #a7f3d0 !important; /* success border 톤 */
 }
 
 /* 수수료관리·변경 히스토리: 가로 스크롤 허용, 셀·헤더 한 줄(줄바꿈 없음) */
@@ -3376,10 +3401,10 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   overflow-x: auto;
 }
 #contentsMain .commission-list-table-wrap .commission-split-grid {
-  table-layout: auto;
-  width: max-content;
+  table-layout: fixed;
+  width: 100%;
   min-width: 100%;
-  max-width: none;
+  max-width: 100%;
 }
 #contentsMain .commission-list-table-wrap .commission-split-grid thead tr:first-child th,
 #contentsMain .commission-list-table-wrap .commission-split-grid thead tr:nth-child(2) th {
@@ -3413,20 +3438,37 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
 }
 #contentsMain .commission-list-table-wrap .commission-split-grid td:has(.grid-row-check) {
   white-space: nowrap;
-  width: 2.1rem;
-  max-width: 2.75rem;
+  width: auto;
+  max-width: none;
+  min-width: 0;
 }
 #contentsMain .commission-list-table-wrap .commission-split-grid td:has(button),
-#contentsMain .commission-list-table-wrap .commission-split-grid td:has(input[type="date"]),
-#contentsMain .commission-list-table-wrap .commission-split-grid td.commission-inline-cell {
+#contentsMain .commission-list-table-wrap .commission-split-grid td:has(input[type="date"]) {
   overflow: visible;
 }
-#contentsMain .commission-list-table-wrap .commission-split-grid td.commission-inline-cell {
+#contentsMain .commission-list-table-wrap .commission-split-grid td.commission-inline-cell,
+#contentsMain .commission-list-table-wrap .commission-split-grid td.commission-total-cell {
+  overflow: hidden;
   max-width: none;
+  width: auto;
+  min-width: 0;
+  box-sizing: border-box;
+  padding-left: 0.08rem !important;
+  padding-right: 0.08rem !important;
 }
-#contentsMain .commission-list-table-wrap .commission-split-grid .commission-inline-cell .commission-inline-view {
-  display: inline-block;
+#contentsMain .commission-list-table-wrap .commission-split-grid thead th[data-key$="Rate"],
+#contentsMain .commission-list-table-wrap .commission-split-grid thead th[data-key$="PerTxFee"] {
   max-width: none;
+  width: auto;
+  min-width: 0;
+  box-sizing: border-box;
+}
+#contentsMain .commission-list-table-wrap .commission-split-grid .commission-inline-cell .commission-inline-view,
+#contentsMain .commission-list-table-wrap .commission-split-grid .commission-total-cell .commission-inline-view {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: clip;
   white-space: nowrap;
   word-break: normal;
 }
@@ -3440,19 +3482,19 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   text-align: center;
 }
 
-/* 수수료관리 적용시작일: 전역 date min-width(13.875rem)보다 우선 — 열·입력 폭 축소·가운데 정렬 */
+/* 수수료관리 적용시작일: 전역 date min-width 해제 — 열 %는 colgroup이 담당 */
 #contentsMain .commission-list-table-wrap .commission-split-grid thead th[data-key="applyDt"] {
-  width: 8.25rem;
-  max-width: 8.5rem;
-  min-width: 7.75rem;
+  width: auto;
+  max-width: none;
+  min-width: 0;
   text-align: center;
   padding-left: 0.15rem;
   padding-right: 0.15rem;
 }
 #contentsMain .commission-list-table-wrap .commission-split-grid td.commission-apply-dt-cell {
-  width: 8.25rem;
-  max-width: 8.5rem;
-  min-width: 7.75rem;
+  width: auto;
+  max-width: none;
+  min-width: 0;
   text-align: center;
   padding-left: 0.15rem;
   padding-right: 0.15rem;
@@ -5844,4 +5886,13 @@ html.pg-admin--tablet .pg-tablet-launch-tile {
 }
 .tab-pane.pg-hub-tab-pane {
   padding-top: 0;
+}
+/* 노티관리 — 생성 이력 관리 열 Callback/Result/수정/삭제 */
+#opsNotiProvisionRoot .ops-np-log-act-btn {
+  font-size: 0.68rem;
+  line-height: 1.15;
+  padding: 0.08rem 0.32rem;
+  min-height: 0;
+  border-radius: 0.2rem;
+  vertical-align: middle;
 }

@@ -1334,6 +1334,12 @@
       var q = Object.assign({ compId: compId || '' }, params || {});
       return get('/api/commission/history', q).then(function (r) { return r.data; });
     },
+    commissionOtpStatus: function () {
+      return get('/api/commission/otpStatus').then(function (r) { return r.data || {}; });
+    },
+    commissionOtpTouch: function () {
+      return post('/api/commission/otpTouch', {}).then(function (r) { return r.data || {}; });
+    },
     commissionSave: function (compId, data) {
       var cid = compId != null ? String(compId).trim() : '';
       if (!cid) return Promise.reject(new Error(apiT('업체코드가 없습니다.', 'Missing company code.')));
@@ -1579,6 +1585,9 @@
     hqRiskCardPolicy: function () {
       return get('/api/hq/riskCardPolicy').then(function (r) { return r.data; });
     },
+    hqPlatformManualsBrand: function () {
+      return get('/api/hq/platformManuals/brand').then(function (r) { return r.data || r; });
+    },
     hqRiskCardPolicySave: function (body) {
       return post('/api/hq/riskCardPolicy/save', body || {}).then(function (r) { return r.data; });
     },
@@ -1593,6 +1602,9 @@
     },
     hqBulkOpsLoginSave: function (body) {
       return post('/api/hq/bulkOps/login/save', body || {}).then(function (r) { return r.data; });
+    },
+    hqBulkOpsLoginOrgOptions: function (params) {
+      return get('/api/hq/bulkOps/login/orgOptions', params || {}).then(function (r) { return r.data || []; });
     },
     hqBulkOpsLoginDelete: function (id) {
       return post('/api/hq/bulkOps/login/delete', { id: id }).then(function (r) { return r.data; });

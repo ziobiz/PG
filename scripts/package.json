@@ -7,7 +7,8 @@
     "login:otp": "set FXHJ_OTP=%1 && node fxhj-login-save-menu.js",
     "jpay-export": "node jpay-portal-export.js",
     "operator-manual-pdf": "node operator-manual-pdf/gen.mjs hq",
-    "operator-manual-pdf:all": "node operator-manual-pdf/gen.mjs all"
+    "operator-manual-pdf:all": "node operator-manual-pdf/gen.mjs all",
+    "operator-manual-pdf:risk": "node operator-manual-pdf/gen.mjs risk"
   },
   "dependencies": {
     "playwright": "^1.40.0"

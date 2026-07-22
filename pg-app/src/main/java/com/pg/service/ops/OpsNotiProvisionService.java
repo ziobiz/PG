@@ -420,10 +420,14 @@ public class OpsNotiProvisionService {
             merchantId = merchant.getCode();
         }
 
-        boolean urlIntegrationMode = isUrlIntegrationMode(body);
-        boolean enableRelay = urlIntegrationMode ? false : !"N".equalsIgnoreCase(str(body, "enableRelayYn"));
-        boolean enableInternal = urlIntegrationMode ? false : "Y".equalsIgnoreCase(str(body, "enableInternalYn"));
-        boolean enableDevInternal = urlIntegrationMode || !"N".equalsIgnoreCase(str(body, "enableDevInternalYn"));
+        String integrationMode = resolveIntegrationMode(body);
+        boolean urlIntegrationMode = isPureUrlIntegrationMode(integrationMode);
+        boolean urlHybridMode = isUrlHybridIntegrationMode(integrationMode);
+        boolean urlFamilyMode = urlIntegrationMode || urlHybridMode;
+        boolean enableRelay = urlIntegrationMode ? false
+                : (urlHybridMode || !"N".equalsIgnoreCase(str(body, "enableRelayYn")));
+        boolean enableInternal = urlFamilyMode ? false : "Y".equalsIgnoreCase(str(body, "enableInternalYn"));
+        boolean enableDevInternal = urlFamilyMode || !"N".equalsIgnoreCase(str(body, "enableDevInternalYn"));
         boolean slotAuto = "Y".equalsIgnoreCase(str(body, "slotAutoYn"));
         String adminLang = str(body, "adminLang");
         String acceptLang = NotiProvisionClient.acceptLanguageFromAdminLang(adminLang);
@@ -458,6 +462,24 @@ public class OpsNotiProvisionService {
                 throw new IllegalArgumentException(
                         "URL 방식은 총판의 본사 노티 대상(개발 CALLBACK·RESULT) 연결이 필요합니다. 본사설정 → 노티구성설정에서 총판 노티를 생성·연결하세요.");
             }
+        } else if (urlHybridMode) {
+            /* URL 하이브리드: URL 대체송부(개발) + 가맹점 노티(callback/result) 송부 */
+            if (callbackUrl.isEmpty()) {
+                callbackUrl = findNotifyUrl(merchant.getId(), "BACKGROUND");
+            }
+            if (resultUrl.isEmpty()) {
+                resultUrl = findNotifyUrl(merchant.getId(), "RESULT");
+            }
+            if (callbackUrl.isEmpty() || resultUrl.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "URL 하이브리드 방식은 가맹점 callback·result URL이 필요합니다. 업체관리 URL 또는 직접 입력하세요.");
+            }
+            relayOffDevCallbackUrl = nz(mdCtx.callbackUrl());
+            relayOffDevResultUrl = nz(mdCtx.resultUrl());
+            if (relayOffDevCallbackUrl.isEmpty() || relayOffDevResultUrl.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "URL 하이브리드 방식은 총판의 본사 노티 대상(개발 CALLBACK·RESULT) 연결이 필요합니다. 본사설정 → 노티구성설정에서 총판 노티를 생성·연결하세요.");
+            }
         } else if (enableRelay) {
             if (callbackUrl.isEmpty()) {
                 callbackUrl = findNotifyUrl(merchant.getId(), "BACKGROUND");
@@ -487,16 +509,17 @@ public class OpsNotiProvisionService {
         options.put("relayFormat", mapRelayFormat(str(body, "relayFormat")));
         options.put("relayMode", mapRelayMode(str(body, "relayMode")));
         options.put("resultDeliveryMode", mapResultDeliveryMode(
-                urlIntegrationMode ? "AUTO" : str(body, "resultDeliveryMode")));
-        if (urlIntegrationMode) {
+                urlFamilyMode ? "AUTO" : str(body, "resultDeliveryMode")));
+        if (urlFamilyMode) {
             options.put("relayOffForwardTarget", "dev_internal");
             options.put("relayOffDevCallbackUrl", relayOffDevCallbackUrl);
             options.put("relayOffDevResultUrl", relayOffDevResultUrl);
-            options.put("relayOffDevDedicatedUse", true);
+            /* URL=전용개발, 하이브리드=가맹 우선·끊길 때 대체 개발 */
+            options.put("relayOffDevDedicatedUse", urlIntegrationMode);
         }
         String dealmai = resolveDealmaiPartner(cfg, str(body, "dealmaiPartnerCode"));
-        /* URL 방식: Partner 코드가 있으면 DEALMAI 웹훅 강제 ON */
-        boolean enableDealmaiWebhook = urlIntegrationMode
+        /* URL·URL 하이브리드: Partner 코드가 있으면 DEALMAI 웹훅 강제 ON */
+        boolean enableDealmaiWebhook = urlFamilyMode
                 ? !dealmai.isEmpty()
                 : !"N".equalsIgnoreCase(str(body, "enableDealmaiWebhookYn"));
         if (!dealmai.isEmpty() && enableDealmaiWebhook) {
@@ -515,11 +538,11 @@ public class OpsNotiProvisionService {
                 req.put("enableDealmaiWebhook", true);
             }
         }
-        if (urlIntegrationMode) {
+        if (urlFamilyMode) {
             req.put("relayOffForwardTarget", "dev_internal");
             req.put("relayOffDevCallbackUrl", relayOffDevCallbackUrl);
             req.put("relayOffDevResultUrl", relayOffDevResultUrl);
-            req.put("relayOffDevDedicatedUse", true);
+            req.put("relayOffDevDedicatedUse", urlIntegrationMode);
         }
         if (!internalTargetId.isEmpty()) {
             req.put("internalTargetId", internalTargetId);
@@ -532,7 +555,7 @@ public class OpsNotiProvisionService {
             req.put("jpaySlotNo", jpaySlotNo);
             req.put("routeNo", "j" + jpaySlotNo);
         }
-        /* URL 방식은 가맹점 URL 필드를 명시적으로 비움 */
+        /* URL 방식은 가맹점 URL 필드를 명시적으로 비움. 하이브리드는 가맹 URL 송부 */
         if (urlIntegrationMode) {
             req.put("callbackUrl", "");
             req.put("resultUrl", "");
@@ -546,7 +569,7 @@ public class OpsNotiProvisionService {
         }
         req.put("options", options);
         Map<String, Object> icopayMeta = buildIcopayProvisionMeta(
-                merchant, urlIntegrationMode ? "URL" : "API",
+                merchant, integrationMode,
                 user != null ? user.getUsername() : null);
         req.put("icopayMeta", icopayMeta);
 
@@ -563,7 +586,7 @@ public class OpsNotiProvisionService {
             merchantJpayNotifyUrlSyncService.persist(merchant.getId(), jpayNotify, jpayCallback);
         }
         saveProvisionLog(merchant, merchantId, baseCurrency, internalTargetId, dealmai, data, jpayNotify, jpayCallback, user,
-                urlIntegrationMode ? "URL" : "API");
+                integrationMode);
         markProvisionOtpPassed(username);
 
         Map<String, Object> out = new LinkedHashMap<>();
@@ -650,10 +673,14 @@ public class OpsNotiProvisionService {
             throw new IllegalArgumentException("등록되지 않은 NOTI 전산 대상 ID입니다: " + rawInternal);
         }
 
-        boolean urlIntegrationMode = isUrlIntegrationMode(body);
-        boolean enableRelay = urlIntegrationMode ? false : !"N".equalsIgnoreCase(str(body, "enableRelayYn"));
-        boolean enableInternal = urlIntegrationMode ? false : "Y".equalsIgnoreCase(str(body, "enableInternalYn"));
-        boolean enableDevInternal = urlIntegrationMode || !"N".equalsIgnoreCase(str(body, "enableDevInternalYn"));
+        String integrationMode = resolveIntegrationMode(body);
+        boolean urlIntegrationMode = isPureUrlIntegrationMode(integrationMode);
+        boolean urlHybridMode = isUrlHybridIntegrationMode(integrationMode);
+        boolean urlFamilyMode = urlIntegrationMode || urlHybridMode;
+        boolean enableRelay = urlIntegrationMode ? false
+                : (urlHybridMode || !"N".equalsIgnoreCase(str(body, "enableRelayYn")));
+        boolean enableInternal = urlFamilyMode ? false : "Y".equalsIgnoreCase(str(body, "enableInternalYn"));
+        boolean enableDevInternal = urlFamilyMode || !"N".equalsIgnoreCase(str(body, "enableDevInternalYn"));
         String callbackUrl = urlIntegrationMode ? "" : str(body, "callbackUrl");
         String resultUrl = urlIntegrationMode ? "" : str(body, "resultUrl");
         MasterDistNotifyCtx mdCtx = resolveMasterDistNotifyContext(merchant.getId());
@@ -668,6 +695,23 @@ public class OpsNotiProvisionService {
                 throw new IllegalArgumentException(
                         "URL 방식은 총판의 본사 노티 대상(개발 CALLBACK·RESULT) 연결이 필요합니다. 본사설정 → 노티구성설정에서 총판 노티를 생성·연결하세요.");
             }
+        } else if (urlHybridMode) {
+            if (callbackUrl.isEmpty()) {
+                callbackUrl = findNotifyUrl(merchant.getId(), "BACKGROUND");
+            }
+            if (resultUrl.isEmpty()) {
+                resultUrl = findNotifyUrl(merchant.getId(), "RESULT");
+            }
+            if (callbackUrl.isEmpty() || resultUrl.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "URL 하이브리드 방식은 가맹점 callback·result URL이 필요합니다. 업체관리 URL 또는 직접 입력하세요.");
+            }
+            relayOffDevCallbackUrl = nz(mdCtx.callbackUrl());
+            relayOffDevResultUrl = nz(mdCtx.resultUrl());
+            if (relayOffDevCallbackUrl.isEmpty() || relayOffDevResultUrl.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "URL 하이브리드 방식은 총판의 본사 노티 대상(개발 CALLBACK·RESULT) 연결이 필요합니다. 본사설정 → 노티구성설정에서 총판 노티를 생성·연결하세요.");
+            }
         } else if (enableRelay) {
             if (callbackUrl.isEmpty()) {
                 callbackUrl = findNotifyUrl(merchant.getId(), "BACKGROUND");
@@ -678,9 +722,9 @@ public class OpsNotiProvisionService {
         } else if (enableDevInternal) {
             callbackUrl = nz(mdCtx.callbackUrl());
             resultUrl = nz(mdCtx.resultUrl());
-            if (urlIntegrationMode && (callbackUrl.isEmpty() || resultUrl.isEmpty())) {
+            if (callbackUrl.isEmpty() || resultUrl.isEmpty()) {
                 throw new IllegalArgumentException(
-                        "URL 방식은 총판의 본사 노티 대상(개발 CALLBACK·RESULT) 연결이 필요합니다. 본사설정 → 노티구성설정에서 총판 노티를 생성·연결하세요.");
+                        "개발 노티 사용 시 총판의 본사 노티 대상(CALLBACK·RESULT) 연결이 필요합니다. 본사설정 → 노티구성설정에서 총판 노티를 생성·연결하세요.");
             }
         }
 
@@ -691,15 +735,15 @@ public class OpsNotiProvisionService {
         options.put("relayFormat", mapRelayFormat(str(body, "relayFormat")));
         options.put("relayMode", mapRelayMode(str(body, "relayMode")));
         options.put("resultDeliveryMode", mapResultDeliveryMode(
-                urlIntegrationMode ? "AUTO" : str(body, "resultDeliveryMode")));
-        if (urlIntegrationMode) {
+                urlFamilyMode ? "AUTO" : str(body, "resultDeliveryMode")));
+        if (urlFamilyMode) {
             options.put("relayOffForwardTarget", "dev_internal");
             options.put("relayOffDevCallbackUrl", relayOffDevCallbackUrl);
             options.put("relayOffDevResultUrl", relayOffDevResultUrl);
-            options.put("relayOffDevDedicatedUse", true);
+            options.put("relayOffDevDedicatedUse", urlIntegrationMode);
         }
         String dealmai = resolveDealmaiPartner(cfg, str(body, "dealmaiPartnerCode"));
-        boolean enableDealmaiWebhook = urlIntegrationMode
+        boolean enableDealmaiWebhook = urlFamilyMode
                 ? !dealmai.isEmpty()
                 : !"N".equalsIgnoreCase(str(body, "enableDealmaiWebhookYn"));
         if (!dealmai.isEmpty() && enableDealmaiWebhook) {
@@ -711,16 +755,18 @@ public class OpsNotiProvisionService {
 
         Map<String, Object> fallbackReq = buildProvisionFallbackReq(
                 merchant, merchantId, log, internalTargetId, callbackUrl, resultUrl, options, dealmai, enableDealmaiWebhook);
-        if (urlIntegrationMode) {
-            fallbackReq.put("callbackUrl", "");
-            fallbackReq.put("resultUrl", "");
+        if (urlFamilyMode) {
+            if (urlIntegrationMode) {
+                fallbackReq.put("callbackUrl", "");
+                fallbackReq.put("resultUrl", "");
+            }
             fallbackReq.put("relayOffForwardTarget", "dev_internal");
             fallbackReq.put("relayOffDevCallbackUrl", relayOffDevCallbackUrl);
             fallbackReq.put("relayOffDevResultUrl", relayOffDevResultUrl);
-            fallbackReq.put("relayOffDevDedicatedUse", true);
+            fallbackReq.put("relayOffDevDedicatedUse", urlIntegrationMode);
         }
         fallbackReq.put("icopayMeta", buildIcopayProvisionMeta(
-                merchant, urlIntegrationMode ? "URL" : "API", resolveUsername(authentication)));
+                merchant, integrationMode, resolveUsername(authentication)));
 
         // ICOPAY에서 생성한 이력은 ICOPAY에서 수정해야 NOTI와 양방향이 유지된다.
         // 1) PUT(미들웨어 UI와 동일) → 2) 실패/미지원/설정충돌 시 동일 슬롯 강제 교체 → 3) 잔존 시 PUT 재시도
@@ -744,7 +790,7 @@ public class OpsNotiProvisionService {
             merchantJpayNotifyUrlSyncService.persist(merchant.getId(), jpayNotify, jpayCallback);
         }
         applyLogUpdate(log, internalTargetId, dealmai, data, jpayNotify, jpayCallback,
-                urlIntegrationMode ? "URL" : "API");
+                integrationMode);
         markProvisionOtpPassed(resolveUsername(authentication));
 
         Map<String, Object> out = new LinkedHashMap<>();
@@ -1256,13 +1302,20 @@ public class OpsNotiProvisionService {
         return String.valueOf(body.get(key)).trim();
     }
 
-    /** 연동방식=URL → 가맹 포워딩 끔 + 개발 노티(대체 Dev URL) + RESULT AUTO. */
-    private static boolean isUrlIntegrationMode(Map<String, Object> body) {
+    private static String resolveIntegrationMode(Map<String, Object> body) {
         String mode = str(body, "integrationMode");
         if (mode.isEmpty()) {
             mode = str(body, "payIntegrationMode");
         }
-        return "URL".equalsIgnoreCase(mode);
+        return normalizeIntegrationMode(mode);
+    }
+
+    private static boolean isPureUrlIntegrationMode(String mode) {
+        return "URL".equals(normalizeIntegrationMode(mode));
+    }
+
+    private static boolean isUrlHybridIntegrationMode(String mode) {
+        return "URL_HYBRID".equals(normalizeIntegrationMode(mode));
     }
 
     private static String firstNonBlank(Map<String, Object> m, String... keys) {
@@ -1470,7 +1523,14 @@ public class OpsNotiProvisionService {
 
     /** 연동방식 정규화 (미저장 이력은 API). */
     private static String normalizeIntegrationMode(String mode) {
-        return "URL".equalsIgnoreCase(mode != null ? mode.trim() : "") ? "URL" : "API";
+        String m = mode != null ? mode.trim().toUpperCase(Locale.ROOT) : "";
+        if ("URL".equals(m)) {
+            return "URL";
+        }
+        if ("URL_HYBRID".equals(m) || "URL-HYBRID".equals(m) || "HYBRID".equals(m) || "URLHYBRID".equals(m)) {
+            return "URL_HYBRID";
+        }
+        return "API";
     }
 
     /**

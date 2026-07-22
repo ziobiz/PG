@@ -48,12 +48,13 @@ public class OrgPagePermissionService {
             List.of(SupervisorAssistantConstants.ASSISTANT_ROLE_TYPE, "MANAGER", "OPERATOR", "SETTLEMENT", "TECH",
                     ChatbotMerchantAdminConstants.ASSISTANT_ROLE_TYPE);
 
-    /** 운영관리(/ops/*)에 있던 배포 문서 URL — 권한·북마크 호환용 */
-    private static final Map<String, String> LEGACY_OPS_TO_DEPLOY_URL = Map.of(
-            "/ops/integrationPlan", "/deploy/integrationPlan",
-            "/ops/jpayWorkPlan", "/deploy/jpayWorkPlan",
-            "/ops/merchantApiPolicy", "/deploy/merchantApiPolicy",
-            "/ops/launchChecklist", "/deploy/launchChecklist"
+    /** 구 URL → 현 URL 권한 병합(배포 문서·운영매뉴얼 등) */
+    private static final Map<String, String> LEGACY_PAGE_URL_ALIASES = Map.ofEntries(
+            Map.entry("/ops/integrationPlan", "/deploy/integrationPlan"),
+            Map.entry("/ops/jpayWorkPlan", "/deploy/jpayWorkPlan"),
+            Map.entry("/ops/merchantApiPolicy", "/deploy/merchantApiPolicy"),
+            Map.entry("/ops/launchChecklist", "/deploy/launchChecklist"),
+            Map.entry("/hq/platformOpsManuals", "/ops/opsManuals")
     );
 
     /**
@@ -1230,12 +1231,12 @@ public class OrgPagePermissionService {
         return PagePermissionCodes.normalize(p);
     }
 
-    /** DB에 남아 있는 /ops/* 배포 문서 권한을 /deploy/* 로 병합 */
+    /** DB에 남아 있는 구 메뉴 URL 권한을 현 카탈로그 URL 로 병합 */
     private static void mergeLegacyOpsDeployPermissions(Map<String, String> byUrl) {
         if (byUrl == null || byUrl.isEmpty()) {
             return;
         }
-        for (Map.Entry<String, String> legacy : LEGACY_OPS_TO_DEPLOY_URL.entrySet()) {
+        for (Map.Entry<String, String> legacy : LEGACY_PAGE_URL_ALIASES.entrySet()) {
             String from = legacy.getKey();
             String to = legacy.getValue();
             if (!byUrl.containsKey(from)) {

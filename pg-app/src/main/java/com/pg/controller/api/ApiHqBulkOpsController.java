@@ -10,9 +10,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /** 본사설정 — 리스크설정 일괄운영관리 */
@@ -29,6 +31,14 @@ public class ApiHqBulkOpsController {
     @GetMapping
     public ResponseEntity<ApiResponse<Map<String, Object>>> get() {
         return ResponseEntity.ok(ApiResponse.ok(hqBulkOpsService.snapshotForApi()));
+    }
+
+    /** 모든로그인제한 — 조직 단계별 업체코드·명칭 드롭다운 옵션 */
+    @GetMapping("/login/orgOptions")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> loginOrgOptions(
+            @RequestParam(required = false) String orgLevel,
+            @RequestParam(required = false) String q) {
+        return ResponseEntity.ok(ApiResponse.ok(hqBulkOpsService.listLoginOrgOptions(orgLevel, q)));
     }
 
     @PostMapping("/orgUse/apply")

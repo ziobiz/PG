@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICOPAY 总代理风险触发说明 V2.43</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Microsoft YaHei', 'PingFang SC', 'Noto Sans SC', sans-serif; font-size: 11pt; line-height: 1.75; color: #1a1a1a; background: #f0f2f8; }
+  .page-wrap { max-width: 960px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 18px rgba(0,0,0,.11); overflow: hidden; }
+  .cover { background: linear-gradient(135deg, #1a3a5c 0%, #1565c0 55%, #26a69a 100%); color: #fff; padding: 48px 52px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+  .cover-body { flex: 1; }
+  .cover-logo { flex-shrink: 0; padding-top: 4px; }
+  .cover-logo img { height: 64px; background: rgba(255,255,255,.92); padding: 10px 18px; border-radius: 8px; }
+  .cover .logo-line { font-size: 13pt; font-weight: 700; letter-spacing: 2px; opacity: .85; margin-bottom: 14px; }
+  .cover h1 { font-size: 22pt; font-weight: 900; line-height: 1.28; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 11pt; opacity: .82; margin-bottom: 24px; }
+  .cover .meta { font-size: 9.5pt; opacity: .65; border-top: 1px solid rgba(255,255,255,.25); padding-top: 14px; }
+  .lang-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .lang-bar a { color: #fff; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); border-radius: 999px; padding: 4px 12px; font-size: 9pt; text-decoration: none; font-weight: 700; }
+  .lang-bar a.active { background: #fff; color: #1565c0; }
+  .body { padding: 44px 52px 64px; }
+  .toc { background: #e8f5f3; border-left: 4px solid #00897b; border-radius: 0 8px 8px 0; padding: 20px 26px; margin-bottom: 44px; }
+  .toc h2 { font-size: 12pt; font-weight: 700; color: #00695c; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { font-size: 10pt; line-height: 2.1; }
+  .toc a { color: #00695c; text-decoration: none; }
+  h2.section-title { font-size: 15pt; font-weight: 800; color: #1a3a5c; border-bottom: 2.5px solid #00897b; padding-bottom: 7px; margin: 48px 0 18px; page-break-after: avoid; }
+  h3.sub-title { font-size: 12pt; font-weight: 700; color: #00897b; margin: 26px 0 10px; page-break-after: avoid; }
+  p { margin-bottom: 10px; }
+  .info-box  { background: #e0f2f1; border: 1px solid #80cbc4; border-left: 4px solid #00897b; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; }
+  .warn-box  { background: #fff8e1; border: 1px solid #ffe082; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #5d4037; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 22px; font-size: 10pt; page-break-inside: avoid; }
+  th { background: #1a3a5c; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #12274a; }
+  td { padding: 8px 12px; border: 1px solid #cfd8dc; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f7ff; }
+  .menu-path { display: inline-block; background: #eceff1; border: 1px solid #cfd8dc; border-radius: 5px; padding: 3px 12px; font-size: 9.5pt; font-weight: 600; margin-bottom: 12px; }
+  .menu-path::before { content: "📌 查看: "; }
+  .flow { background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; padding: 18px 22px; margin: 14px 0 20px; font-size: 10pt; white-space: pre-wrap; font-family: Consolas, monospace; }
+  ul, ol { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+  .footer { background: #1a3a5c; color: rgba(255,255,255,.6); text-align: center; font-size: 9pt; padding: 18px 24px; }
+  code { font-size: 9pt; background: #eceff1; padding: 1px 5px; border-radius: 3px; }
+  a.doc-link { color: #00695c; font-weight: 600; }
+  .faq-q { font-weight: 700; color: #1a3a5c; margin-top: 14px; }
+  .faq-a { margin-bottom: 10px; }
+  @media print {
+    body { background: #fff; font-size: 10pt; }
+    .page-wrap { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; }
+    .footer, .print-btn, .lang-bar { display: none !important; }
+    @page { size: A4; margin: 18mm 16mm; }
+  }
+  .print-btn { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #00897b; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 10.5pt; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(0,137,123,.45); }
+</style>
+</head>
+<body>
+<button type="button" class="print-btn" onclick="window.print()">🖨️ 打印 / 保存 PDF</button>
+<div class="page-wrap">
+  <div class="cover">
+    <div class="cover-body">
+      <div class="logo-line">ICOPAY · Payment Gateway</div>
+      <h1>总代理风险触发<br>说明</h1>
+      <div class="subtitle">基于「风险设置」「风险过滤」默认值 — 何时触发何种限制</div>
+      <div class="meta">ICOPAY Distributor Risk Trigger Guide · V2.43 · 2026-07-22 · 对象：总代理运营者</div>
+      <div class="lang-bar">
+        <a href="./icopay-dist-risk-trigger-manual.html">KO</a>
+        <a href="./icopay-dist-risk-trigger-manual-en.html">EN</a>
+        <a href="./icopay-dist-risk-trigger-manual-ja.html">JP</a>
+        <a class="active" href="./icopay-dist-risk-trigger-manual-zh.html">CH</a>
+        <a href="./icopay-dist-risk-trigger-manual-th.html">TH</a>
+      </div>
+    </div>
+    <div class="cover-logo">
+      <img src="./logo-ontheline.png" alt="On The Line">
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="menu-path">运营管理 → 风险看板 · 非活跃卡 · 商户「风险管理触发」</div>
+    <div class="info-box">
+      <strong>总部详细文档:</strong>
+      <a class="doc-link" href="./icopay-hq-risk-filter-trigger-manual-zh.html">触发运营手册</a> ·
+      <a class="doc-link" href="./icopay-hq-risk-manual.html">手续费·风险(韩文)</a><br>
+      PDF: <code>cd scripts && node operator-manual-pdf/gen.mjs risk</code>
+    </div>
+    <div class="warn-box">
+      <strong>命名原则:</strong> 商户/买家界面不暴露支付机构名称(ICOPAY 中立)。文中 JPAY 仅供<strong>内部运营</strong>理解。<br>
+      <strong>策略变更:</strong> 「风险设置」「风险过滤」的开关与数值仅在<strong>总部策略画面</strong>修改。总代理负责商户风险模式、看板与非活跃卡。
+    </div>
+
+    <div class="toc">
+      <h2>📋 目录</h2>
+      <ol>
+        <li><a href="#s1">本说明范围</a></li>
+        <li><a href="#s2">默认值何时生效</a></li>
+        <li><a href="#s3">风险设置 — 默认与触发</a></li>
+        <li><a href="#s4">风险过滤 — 默认与触发</a></li>
+        <li><a href="#s5">总代理可做事项</a></li>
+        <li><a href="#s6">核对画面</a></li>
+        <li><a href="#s7">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 class="section-title" id="s1">1. 本说明范围</h2>
+    <p>总部通过「风险设置」与「风险过滤」设置全商户共用安全机制。商户选择<strong>遵循总部策略</strong>时，下列<strong>默认值</strong>直接生效。</p>
+    <table>
+      <thead><tr><th>区域</th><th>一句话</th><th>结果</th></tr></thead>
+      <tbody>
+        <tr><td><strong>风险设置</strong></td><td>同一卡累计非成功</td><td>临时等待(冷却) → 达次数后非活跃卡</td></tr>
+        <tr><td><strong>风险过滤</strong></td><td>格式/速度/联系人异常等(送往支付机构前)</td><td>不发送 · 记取消 · 风险看板</td></tr>
+      </tbody>
+    </table>
+    <p><strong>不会因失败一次就永久封禁。</strong>过滤只拦当次；风险设置按次数与等待时间阶梯限制。</p>
+
+    <h2 class="section-title" id="s2">2. 默认值何时生效</h2>
+    <ul>
+      <li>商户风险策略 = <strong>遵循总部</strong></li>
+      <li>总部未改系统默认(本文数值=内置默认)</li>
+    </ul>
+    <div class="info-box">商户<strong>单独策略</strong>仅覆盖 1~4 阶等待与自动非活跃次数。<strong>预检过滤开关与速度窗口/次数</strong>仍为总部共用。</div>
+
+    <h2 class="section-title" id="s3">3. 风险设置 — 默认与触发</h2>
+    <p>同一卡 FAIL/取消/作废/未支付等<strong>非成功</strong>累计后，下次尝试前等待。不计 CVV/卡号格式错误；<strong>成功支付会重置次数</strong>。</p>
+    <table>
+      <thead><tr><th>项目</th><th>默认</th><th>含义</th></tr></thead>
+      <tbody>
+        <tr><td>风险管理</td><td><strong>启用</strong></td><td>阶梯与自动非活跃生效</td></tr>
+        <tr><td>1 阶等待</td><td><strong>5 分钟</strong></td><td>非成功 1 次后 → 5 分钟拦截</td></tr>
+        <tr><td>2 阶等待</td><td><strong>10 分钟</strong></td><td>2 次 → 10 分钟</td></tr>
+        <tr><td>3 阶等待</td><td><strong>1 小时</strong></td><td>3 次 → 1 小时</td></tr>
+        <tr><td>4 阶等待</td><td><strong>0(无)</strong></td><td>与自动非活跃联动</td></tr>
+        <tr><td>自动登记触发</td><td><strong>4 次</strong></td><td>达 4 次 → 登记<strong>非活跃卡</strong>，解除前持续拦截</td></tr>
+        <tr><td>追踪期间</td><td><strong>未使用</strong></td><td>无时间窗累计(成功重置)</td></tr>
+      </tbody>
+    </table>
+    <div class="flow">非成功1 → 5分钟
+非成功2 → 10分钟
+非成功3 → 1小时
+非成功4 → 非活跃卡(需手动解除)
+成功1 → 次数重置</div>
+    <div class="warn-box">JPAY 事后高风险 / PY0124(总部为启用时)亦计入冷却<strong>1 次</strong>。若关闭则可能仅记看板、不计入次数。</div>
+
+    <h2 class="section-title" id="s4">4. 风险过滤 — 默认与触发</h2>
+    <p>在向支付机构发送授权<strong>之前</strong>检查。命中仅拦截当次，并写入风险看板。</p>
+    <h3 class="sub-title">4.1 开关默认(全部启用)</h3>
+    <table>
+      <thead><tr><th>项目</th><th>默认</th><th>示例</th></tr></thead>
+      <tbody>
+        <tr><td>预检总开关</td><td>启用</td><td>关闭则单项开启也全部跳过</td></tr>
+        <tr><td>异常邮箱/电话/持卡人/联系人不一致</td><td>启用</td><td>格式错误、可疑名义、与上次不符等</td></tr>
+        <tr><td>卡/邮箱/IP 速度限制</td><td>启用</td><td>短时间过多尝试</td></tr>
+        <tr><td>JPAY 事后高风险·PY0124</td><td>启用</td><td>计入 §3 冷却统计</td></tr>
+      </tbody>
+    </table>
+    <h3 class="sub-title">4.2 速度限制默认(分通道)</h3>
+    <table>
+      <thead><tr><th>通道</th><th>窗口</th><th>次数</th><th>触发</th></tr></thead>
+      <tbody>
+        <tr><td>卡</td><td><strong>10 分</strong></td><td><strong>3</strong></td><td>同卡同商户 10 分内 ≥3 次 → 拦截</td></tr>
+        <tr><td>邮箱</td><td><strong>30 分</strong></td><td><strong>5</strong></td><td>同邮箱同商户 30 分内 ≥5</td></tr>
+        <tr><td>IP</td><td><strong>15 分</strong></td><td><strong>10</strong></td><td>同 IP 同商户 15 分内 ≥10</td></tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-title" id="s5">5. 总代理可做事项</h2>
+    <table>
+      <thead><tr><th>可自行</th><th>需总部</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>商户风险模式(总部/单独/关闭) · 单独时的等待与自动登记 · 风险看板 · 非活跃卡</td>
+          <td>风险设置等待与自动非活跃 · 过滤开关与速度数值 · 全平台策略</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-title" id="s6">6. 核对画面</h2>
+    <ul>
+      <li><strong>运营管理 → 风险看板</strong></li>
+      <li><strong>运营管理 → 非活跃卡</strong></li>
+      <li>商户详情 → <strong>风险管理触发</strong></li>
+    </ul>
+
+    <h2 class="section-title" id="s7">7. FAQ</h2>
+    <div class="faq-q">Q. 失败一次就永久封禁？</div>
+    <div class="faq-a">A. 否。默认为冷却(5→10→60 分)，第 <strong>4</strong> 次自动非活跃卡。成功会重置。</div>
+    <div class="faq-q">Q. 过滤拦截后现象？</div>
+    <div class="faq-a">A. 支付机构无交易；系统记取消；风险看板可见。</div>
+    <div class="faq-q">Q. 总代理能否改卡速度 10 分/3 次？</div>
+    <div class="faq-a">A. 不能，仅总部「风险过滤」可改。</div>
+    <div class="faq-q">Q. 商户设为关闭？</div>
+    <div class="faq-a">A. 仅关闭该商户的<strong>卡累计冷却/自动非活跃</strong>；总部预检过滤仍生效。</div>
+  </div>
+
+  <div class="footer">
+    ICOPAY · 总代理风险触发说明 · V2.43 · 2026-07-22<br>
+    PDF: <code>node operator-manual-pdf/gen.mjs risk</code>
+  </div>
+</div>
+</body>
+</html>

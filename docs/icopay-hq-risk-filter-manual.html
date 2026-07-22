@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICOPAY 리스크 필터링 상세 매뉴얼 V2.27</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; font-size: 11pt; line-height: 1.75; color: #1a1a1a; background: #f0f2f8; }
+  .page-wrap { max-width: 960px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 18px rgba(0,0,0,.11); overflow: hidden; }
+  .cover { background: linear-gradient(135deg, #1a3a5c 0%, #1565c0 55%, #26a69a 100%); color: #fff; padding: 48px 52px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+  .cover-body { flex: 1; }
+  .cover-logo { flex-shrink: 0; padding-top: 4px; }
+  .cover-logo img { height: 64px; background: rgba(255,255,255,.92); padding: 10px 18px; border-radius: 8px; }
+  .cover .logo-line { font-size: 13pt; font-weight: 700; letter-spacing: 2px; opacity: .85; margin-bottom: 14px; }
+  .cover h1 { font-size: 22pt; font-weight: 900; line-height: 1.28; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 11pt; opacity: .82; margin-bottom: 24px; }
+  .cover .meta { font-size: 9.5pt; opacity: .65; border-top: 1px solid rgba(255,255,255,.25); padding-top: 14px; }
+  .body { padding: 44px 52px 64px; }
+  .toc { background: #e8f5f3; border-left: 4px solid #00897b; border-radius: 0 8px 8px 0; padding: 20px 26px; margin-bottom: 44px; }
+  .toc h2 { font-size: 12pt; font-weight: 700; color: #00695c; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { font-size: 10pt; line-height: 2.1; }
+  .toc a { color: #00695c; text-decoration: none; }
+  h2.section-title { font-size: 15pt; font-weight: 800; color: #1a3a5c; border-bottom: 2.5px solid #00897b; padding-bottom: 7px; margin: 48px 0 18px; page-break-after: avoid; }
+  h3.sub-title { font-size: 12pt; font-weight: 700; color: #00897b; margin: 26px 0 10px; page-break-after: avoid; }
+  p { margin-bottom: 10px; }
+  .info-box  { background: #e0f2f1; border: 1px solid #80cbc4; border-left: 4px solid #00897b; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; }
+  .warn-box  { background: #fff8e1; border: 1px solid #ffe082; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #5d4037; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 22px; font-size: 10pt; page-break-inside: avoid; }
+  th { background: #1a3a5c; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #12274a; }
+  td { padding: 8px 12px; border: 1px solid #cfd8dc; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f7ff; }
+  .menu-path { display: inline-block; background: #eceff1; border: 1px solid #cfd8dc; border-radius: 5px; padding: 3px 12px; font-size: 9.5pt; font-weight: 600; margin-bottom: 12px; }
+  .menu-path::before { content: "📌 메뉴: "; }
+  .flow { background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; padding: 18px 22px; margin: 14px 0 20px; font-size: 10pt; white-space: pre-wrap; font-family: Consolas, monospace; }
+  ul, ol { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+  .footer { background: #1a3a5c; color: rgba(255,255,255,.6); text-align: center; font-size: 9pt; padding: 18px 24px; }
+  code { font-size: 9pt; background: #eceff1; padding: 1px 5px; border-radius: 3px; }
+  a.doc-link { color: #00695c; font-weight: 600; }
+  @media print {
+    body { background: #fff; font-size: 10pt; }
+    .page-wrap { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; }
+    .footer { display: none; }
+    @page { size: A4; margin: 18mm 16mm; }
+  }
+</style>
+</head>
+<body>
+<style>
+  .print-btn { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #00897b; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 10.5pt; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(0,137,123,.45); }
+  @media print { .print-btn { display: none !important; } }
+</style>
+<button type="button" class="print-btn" onclick="window.print()">🖨️ 인쇄 / PDF 저장</button>
+<div class="page-wrap">
+  <div class="cover">
+    <div class="cover-body">
+      <div class="logo-line">ICOPAY · Payment Gateway</div>
+      <h1>리스크 필터링<br>상세 · 필드 매핑</h1>
+      <div class="subtitle">사전 필터 코드·DB 컬럼·판정 세부 — 「리스크 필터링」 보완 문서</div>
+      <div class="meta">ICOPAY Risk Filtering Detail Manual · V2.27 · 2026-07-22</div>
+    </div>
+    <div class="cover-logo">
+      <img src="./logo-ontheline.png" alt="On The Line">
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="menu-path">본사정책 → 수수료·리스크 → 리스크 · 「리스크 필터링」</div>
+    <div class="info-box">
+      <strong>통합 운영 설명(권장):</strong>
+      <a class="doc-link" href="./icopay-hq-risk-manual.html">본사정책 수수료·리스크 매뉴얼 (HTML)</a><br>
+      <strong>트리거 운영(항목별 사용·검사순서):</strong>
+      <a class="doc-link" href="./icopay-hq-risk-filter-trigger-manual.html">리스크 필터링 트리거 운영 매뉴얼</a>
+      (<a class="doc-link" href="./icopay-hq-risk-filter-trigger-manual-en.html">EN</a>·
+      <a class="doc-link" href="./icopay-hq-risk-filter-trigger-manual-ja.html">JP</a>·
+      <a class="doc-link" href="./icopay-hq-risk-filter-trigger-manual-zh.html">CH</a>·
+      <a class="doc-link" href="./icopay-hq-risk-filter-trigger-manual-th.html">TH</a>)<br>
+      메뉴 경로·가맹 적용·FAQ는 통합 문서가 우선입니다. 본 문서는 필터링 <strong>코드·DB 필드</strong>를 보완합니다.<br>
+      현황: <strong>운영관리 → 리스크 현황</strong> (<code>/risk/list</code>)
+    </div>
+
+    <div class="toc">
+      <h2>📋 목차</h2>
+      <ol>
+        <li><a href="#s1">개요 · 적용 지점</a></li>
+        <li><a href="#s2">화면 진입 · 저장</a></li>
+        <li><a href="#s3">사전 필터 항목</a></li>
+        <li><a href="#s4">속도 제한 · 사후 쿨다운</a></li>
+        <li><a href="#s5">차단 결과 · 코드표</a></li>
+        <li><a href="#s6">운영 권장 · FAQ</a></li>
+        <li><a href="#s7">기술 참고 · 컬럼 매핑</a></li>
+      </ol>
+    </div>
+
+    <h2 class="section-title" id="s1">1. 개요 · 적용 지점</h2>
+    <p>리스크 필터는 결제 요청을 PG로 보내기 <strong>전</strong>에 비정상·의심 요청을 차단합니다. 「리스크설정」 트리거는 통합 매뉴얼 §1을 참고하세요.</p>
+    <table>
+      <thead><tr><th>영역</th><th>성격</th></tr></thead>
+      <tbody>
+        <tr><td>리스크설정(트리거)</td><td>비성공 누적 → 대기·비활성 자동등록</td></tr>
+        <tr><td>리스크 필터링</td><td>사전 차단 + JPAY 사후 고위험</td></tr>
+        <tr><td>가맹점 리스크 현황</td><td>가맹별 트리거 적용 값</td></tr>
+      </tbody>
+    </table>
+    <p>필터링은 <strong>본사 단위 공통</strong>이며 저장 즉시 적용됩니다.</p>
+    <table>
+      <thead><tr><th>구분</th><th>시점</th><th>대상 PG</th><th>동작</th></tr></thead>
+      <tbody>
+        <tr><td>사전</td><td>승인 API 직전</td><td>JPAY, ChillPay, Eximbay</td><td>PG 호출 취소</td></tr>
+        <tr><td>사후</td><td>JPAY pay_index 후</td><td>JPAY</td><td>쿨다운·현황 기록</td></tr>
+      </tbody>
+    </table>
+    <div class="warn-box">호스티드(카드번호 미수집): 이메일·전화·성명·IP·이메일 속도만 적용. 카드 해시 기반 필터는 skip.</div>
+
+    <h2 class="section-title" id="s2">2. 화면 진입 · 저장</h2>
+    <ol>
+      <li>본사정책 → 수수료·리스크 → 리스크</li>
+      <li>「리스크 필터링」에서 사용/미사용·숫자 설정</li>
+      <li>[저장] → <code>tb_hq_risk_card_policy</code> id=1</li>
+    </ol>
+    <p>권한: 본사권한설정(M0129).</p>
+
+    <h2 class="section-title" id="s3">3. 사전 필터 항목</h2>
+    <h3 class="sub-title">3.0 사전필터 사용</h3>
+    <p><code>presaleFilterEnabledYn</code> — 미사용 시 개별 사전 필터 전부 OFF. 사후 쿨다운은 독립.</p>
+    <div class="flow">① 비정상 이메일 → ② 비정상 전화번호 → ③ 의심 holder명
+→ ④ 카드 속도 → ⑤ 이메일 속도 → ⑥ IP 속도
+→ ⑦ 구매자 연락처 불일치</div>
+
+    <h3 class="sub-title">3.1~3.7 요약</h3>
+    <ul>
+      <li><strong>EMAIL_INVALID</strong> — 형식·로컬 2자 미만·동일문자·test/example 도메인</li>
+      <li><strong>PHONE_INVALID</strong> — 7~15자리 외, 동일/연속 숫자, 000000 패턴</li>
+      <li><strong>HOLDER_NAME_SUSPICIOUS</strong> — GIFTCARD HOLDER, PAYPAY USER, VPRECA, MERPAY MEMBER 등</li>
+      <li><strong>VELOCITY_*</strong> — 가맹 단위, 창·횟수 공통</li>
+      <li><strong>BUYER_*_MISMATCH</strong> — 동일 카드 최근 1건과 비교(성·이름 순서 바뀜은 동일)</li>
+    </ul>
+    <div class="info-box"><strong>자동기억:</strong> 본사정책 → 결제·URL → 결제창 표시 기본값 (<code>HqApiConfig</code>). 리스크 필터링 섹션이 아님.</div>
+
+    <h2 class="section-title" id="s4">4. 속도 제한 · 사후 쿨다운</h2>
+    <p>카드·이메일·IP는 <strong>각각</strong> 창(분)·횟수를 가집니다. 권장 기본: 카드 10/3, 이메일 30/5, IP 15/10.</p>
+    <table>
+      <thead><tr><th>항목</th><th>필드</th><th>기본</th></tr></thead>
+      <tbody>
+        <tr><td>카드 창(분) / 횟수</td><td><code>velocityCardWindowMinutes</code> / <code>velocityCardMaxAttempts</code></td><td>10 / 3</td></tr>
+        <tr><td>이메일 창(분) / 횟수</td><td><code>velocityEmailWindowMinutes</code> / <code>velocityEmailMaxAttempts</code></td><td>30 / 5</td></tr>
+        <tr><td>IP 창(분) / 횟수</td><td><code>velocityIpWindowMinutes</code> / <code>velocityIpMaxAttempts</code></td><td>15 / 10</td></tr>
+        <tr><td>JPAY 사후 고위험</td><td><code>postsaleCooldownJpayHighriskYn</code></td><td>사용</td></tr>
+        <tr><td>JPAY PY0124</td><td><code>postsaleCooldownJpayPy0124Yn</code></td><td>사용</td></tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-title" id="s5">5. 차단 결과 · 코드표</h2>
+    <ol>
+      <li>PG 미호출</li>
+      <li>전산 취소(20)</li>
+      <li><code>tb_pay_risk_filter_event</code> → 리스크 현황</li>
+      <li>구매자 다국어 안내 · <code>PRESALE_RISK_FILTER</code></li>
+    </ol>
+    <table>
+      <thead><tr><th>코드</th><th>현황 표기</th></tr></thead>
+      <tbody>
+        <tr><td><code>EMAIL_INVALID</code></td><td>비정상 이메일</td></tr>
+        <tr><td><code>PHONE_INVALID</code></td><td>비정상 전화번호</td></tr>
+        <tr><td><code>HOLDER_NAME_SUSPICIOUS</code></td><td>의심 holder명</td></tr>
+        <tr><td><code>VELOCITY_CARD</code> / <code>EMAIL</code> / <code>IP</code></td><td>속도 제한</td></tr>
+        <tr><td><code>BUYER_*_MISMATCH</code></td><td>연락처 불일치</td></tr>
+        <tr><td><code>POSTSALE_JPAY_HIGH_RISK</code> / <code>PY0124</code></td><td>사후 분류</td></tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-title" id="s6">6. 운영 권장 · FAQ</h2>
+    <table>
+      <thead><tr><th>항목</th><th>권장</th></tr></thead>
+      <tbody>
+        <tr><td>사전필터·형식·holder·속도</td><td>사용 · 10분 / 3회</td></tr>
+        <tr><td>연락처 불일치</td><td>사용 + 자동기억</td></tr>
+        <tr><td>JPAY 사후</td><td>사용</td></tr>
+      </tbody>
+    </table>
+    <ul>
+      <li>정상 고객 차단 → 현황 <code>filterCode</code> 확인 후 완화</li>
+      <li>일부만 OFF → 사전필터=사용 유지, 항목만 미사용</li>
+      <li>전부 OFF → 사전필터=미사용</li>
+      <li>PG 로그 없음 → 사전 차단 정상</li>
+    </ul>
+
+    <h2 class="section-title" id="s7">7. 기술 참고 · 컬럼 매핑</h2>
+    <table>
+      <thead><tr><th>구분</th><th>위치</th></tr></thead>
+      <tbody>
+        <tr><td>정책</td><td><code>tb_hq_risk_card_policy</code></td></tr>
+        <tr><td>이벤트</td><td><code>tb_pay_risk_filter_event</code></td></tr>
+        <tr><td>로직</td><td><code>PayPresaleRiskFilterService</code> · <code>PayPresaleRiskFilterCodes</code></td></tr>
+        <tr><td>사후</td><td><code>JpayPostSaleRiskCooldownService</code></td></tr>
+        <tr><td>API</td><td><code>/api/ops/riskFilter/search</code></td></tr>
+        <tr><td>스키마</td><td><code>V218_pay_presale_risk_filter.sql</code></td></tr>
+      </tbody>
+    </table>
+    <table>
+      <thead><tr><th>화면 항목</th><th>컬럼</th></tr></thead>
+      <tbody>
+        <tr><td>사전필터 사용</td><td><code>presale_filter_enabled_yn</code></td></tr>
+        <tr><td>구매자 연락처 불일치</td><td><code>filter_buyer_contact_mismatch_yn</code></td></tr>
+        <tr><td>의심 holder명</td><td><code>filter_holder_name_yn</code></td></tr>
+        <tr><td>비정상 전화/이메일</td><td><code>filter_phone_invalid_yn</code> / <code>filter_email_invalid_yn</code></td></tr>
+        <tr><td>속도 제한</td><td><code>filter_velocity_*_yn</code>, <code>velocity_card_*</code>, <code>velocity_email_*</code>, <code>velocity_ip_*</code></td></tr>
+        <tr><td>JPAY 사후</td><td><code>postsale_cooldown_jpay_highrisk_yn</code> / <code>postsale_cooldown_jpay_py0124_yn</code></td></tr>
+      </tbody>
+    </table>
+    <div class="warn-box">운영 UI의 자동기억은 결제·URL(<code>HqApiConfig</code>) 기본값을 사용합니다.</div>
+  </div>
+
+  <div class="footer">
+    ICOPAY · 리스크 필터링 상세 매뉴얼 · V2.27 · 2026-07-22<br>
+    PDF: <code>node operator-manual-pdf/gen.mjs risk</code>
+  </div>
+</div>
+</body>
+</html>

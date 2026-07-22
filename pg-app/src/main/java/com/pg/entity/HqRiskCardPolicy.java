@@ -72,6 +72,27 @@ public class HqRiskCardPolicy {
     @Column(name = "velocity_max_attempts", nullable = false)
     private Integer velocityMaxAttempts = 3;
 
+    /** 동일 카드 속도제한 창(분) — 기본 10 */
+    @Column(name = "velocity_card_window_minutes", nullable = false)
+    private Integer velocityCardWindowMinutes = 10;
+
+    @Column(name = "velocity_card_max_attempts", nullable = false)
+    private Integer velocityCardMaxAttempts = 3;
+
+    /** 동일 이메일 속도제한 창(분) — 기본 30 */
+    @Column(name = "velocity_email_window_minutes", nullable = false)
+    private Integer velocityEmailWindowMinutes = 30;
+
+    @Column(name = "velocity_email_max_attempts", nullable = false)
+    private Integer velocityEmailMaxAttempts = 5;
+
+    /** 동일 IP 속도제한 창(분) — 기본 15 */
+    @Column(name = "velocity_ip_window_minutes", nullable = false)
+    private Integer velocityIpWindowMinutes = 15;
+
+    @Column(name = "velocity_ip_max_attempts", nullable = false)
+    private Integer velocityIpMaxAttempts = 10;
+
     @Column(name = "checkout_contact_remember_default_yn", nullable = false, length = 1)
     private String checkoutContactRememberDefaultYn = "Y";
 
@@ -142,6 +163,18 @@ public class HqRiskCardPolicy {
     public void setVelocityWindowMinutes(Integer velocityWindowMinutes) { this.velocityWindowMinutes = velocityWindowMinutes; }
     public Integer getVelocityMaxAttempts() { return velocityMaxAttempts; }
     public void setVelocityMaxAttempts(Integer velocityMaxAttempts) { this.velocityMaxAttempts = velocityMaxAttempts; }
+    public Integer getVelocityCardWindowMinutes() { return velocityCardWindowMinutes; }
+    public void setVelocityCardWindowMinutes(Integer velocityCardWindowMinutes) { this.velocityCardWindowMinutes = velocityCardWindowMinutes; }
+    public Integer getVelocityCardMaxAttempts() { return velocityCardMaxAttempts; }
+    public void setVelocityCardMaxAttempts(Integer velocityCardMaxAttempts) { this.velocityCardMaxAttempts = velocityCardMaxAttempts; }
+    public Integer getVelocityEmailWindowMinutes() { return velocityEmailWindowMinutes; }
+    public void setVelocityEmailWindowMinutes(Integer velocityEmailWindowMinutes) { this.velocityEmailWindowMinutes = velocityEmailWindowMinutes; }
+    public Integer getVelocityEmailMaxAttempts() { return velocityEmailMaxAttempts; }
+    public void setVelocityEmailMaxAttempts(Integer velocityEmailMaxAttempts) { this.velocityEmailMaxAttempts = velocityEmailMaxAttempts; }
+    public Integer getVelocityIpWindowMinutes() { return velocityIpWindowMinutes; }
+    public void setVelocityIpWindowMinutes(Integer velocityIpWindowMinutes) { this.velocityIpWindowMinutes = velocityIpWindowMinutes; }
+    public Integer getVelocityIpMaxAttempts() { return velocityIpMaxAttempts; }
+    public void setVelocityIpMaxAttempts(Integer velocityIpMaxAttempts) { this.velocityIpMaxAttempts = velocityIpMaxAttempts; }
     public String getCheckoutContactRememberDefaultYn() { return checkoutContactRememberDefaultYn; }
     public void setCheckoutContactRememberDefaultYn(String checkoutContactRememberDefaultYn) {
         this.checkoutContactRememberDefaultYn = checkoutContactRememberDefaultYn;

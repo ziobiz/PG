@@ -5,6 +5,7 @@ import com.pg.api.dto.PageResult;
 import com.pg.service.CommissionService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -22,6 +23,7 @@ public class ApiCommissionController {
 
     @GetMapping("/list")
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> list(
+            Authentication authentication,
             @RequestParam(required = false) String searchCompId,
             @RequestParam(required = false) String searchCompNm,
             @RequestParam(required = false) String searchCompDiv,
@@ -32,13 +34,17 @@ public class ApiCommissionController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "500") int size) {
+        commissionService.touchCommissionOtpActivity(authentication);
         PageResult<Map<String, Object>> pr = commissionService.search(searchCompId, searchCompNm, searchCompDiv,
                 searchPolicyCur, useYn, page, size);
         return ResponseEntity.ok(ApiResponse.ok(pr));
     }
 
     @GetMapping("/detail")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> detail(@RequestParam String compId) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> detail(
+            Authentication authentication,
+            @RequestParam String compId) {
+        commissionService.touchCommissionOtpActivity(authentication);
         return commissionService.getDetail(compId)
                 .map(ApiResponse::ok)
                 .map(ResponseEntity::ok)
@@ -47,15 +53,30 @@ public class ApiCommissionController {
 
     @GetMapping("/history")
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> history(
+            Authentication authentication,
             @RequestParam String compId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "100") int size) {
+        commissionService.touchCommissionOtpActivity(authentication);
         return ResponseEntity.ok(ApiResponse.ok(commissionService.history(compId, page, size)));
+    }
+
+    @GetMapping("/otpStatus")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> otpStatus(Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.ok(commissionService.commissionOtpStatus(authentication)));
+    }
+
+    @PostMapping("/otpTouch")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> otpTouch(Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.ok(commissionService.touchCommissionOtpActivity(authentication)));
     }
 
     @PostMapping("/save")
     public ResponseEntity<ApiResponse<Map<String, Object>>> save(
+            Authentication authentication,
             @RequestParam String compId,
+            @RequestParam(required = false) String totpCode,
+            @RequestParam(required = false) String otp,
             @RequestParam(required = false) String perTxFee,
             @RequestParam(required = false) String cancelRate,
             @RequestParam(required = false) String voidFeePerTx,
@@ -91,6 +112,12 @@ public class ApiCommissionController {
             @RequestParam(required = false) String agencyPerTxFee,
             @RequestParam(required = false) String salesOfficePerTxFee,
             @RequestParam(required = false) String applyStartDate) {
+        String totp = totpCode != null ? totpCode.trim() : "";
+        if (totp.isEmpty() && otp != null) {
+            totp = otp.trim();
+        }
+        commissionService.verifyCommissionOtpForSave(authentication, totp);
+
         Map<String, Object> body = new java.util.HashMap<>();
         body.put("perTxFee", perTxFee != null ? perTxFee : "");
         body.put("cancelRate", cancelRate != null ? cancelRate : "");
@@ -128,6 +155,8 @@ public class ApiCommissionController {
         body.put("salesOfficePerTxFee", salesOfficePerTxFee != null ? salesOfficePerTxFee : "");
         body.put("applyStartDate", applyStartDate != null ? applyStartDate : "");
         boolean ok = commissionService.save(compId, body);
-        return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true)) : ApiResponse.fail("업체를 찾을 수 없습니다."));
+        return ResponseEntity.ok(ok
+                ? ApiResponse.ok(Map.of("success", true, "otp", commissionService.commissionOtpStatus(authentication)))
+                : ApiResponse.fail("업체를 찾을 수 없습니다."));
     }
 }

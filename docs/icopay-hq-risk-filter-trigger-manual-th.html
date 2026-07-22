@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICOPAY คู่มือปฏิบัติการทริกเกอร์ตัวกรองความเสี่ยง V2.40</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; font-size: 11pt; line-height: 1.75; color: #1a1a1a; background: #f0f2f8; }
+  .page-wrap { max-width: 960px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 18px rgba(0,0,0,.11); overflow: hidden; }
+  .cover { background: linear-gradient(135deg, #1a3a5c 0%, #1565c0 55%, #26a69a 100%); color: #fff; padding: 48px 52px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+  .cover-body { flex: 1; }
+  .cover-logo { flex-shrink: 0; padding-top: 4px; }
+  .cover-logo img { height: 64px; background: rgba(255,255,255,.92); padding: 10px 18px; border-radius: 8px; }
+  .cover .logo-line { font-size: 13pt; font-weight: 700; letter-spacing: 2px; opacity: .85; margin-bottom: 14px; }
+  .cover h1 { font-size: 22pt; font-weight: 900; line-height: 1.28; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 11pt; opacity: .82; margin-bottom: 24px; }
+  .cover .meta { font-size: 9.5pt; opacity: .65; border-top: 1px solid rgba(255,255,255,.25); padding-top: 14px; }
+  .lang-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .lang-bar a { color: #fff; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); border-radius: 999px; padding: 4px 12px; font-size: 9pt; text-decoration: none; font-weight: 700; }
+  .lang-bar a.active { background: #fff; color: #1565c0; }
+  .body { padding: 44px 52px 64px; }
+  .toc { background: #e8f5f3; border-left: 4px solid #00897b; border-radius: 0 8px 8px 0; padding: 20px 26px; margin-bottom: 44px; }
+  .toc h2 { font-size: 12pt; font-weight: 700; color: #00695c; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { font-size: 10pt; line-height: 2.1; }
+  .toc a { color: #00695c; text-decoration: none; }
+  h2.section-title { font-size: 15pt; font-weight: 800; color: #1a3a5c; border-bottom: 2.5px solid #00897b; padding-bottom: 7px; margin: 48px 0 18px; page-break-after: avoid; }
+  h3.sub-title { font-size: 12pt; font-weight: 700; color: #00897b; margin: 26px 0 10px; page-break-after: avoid; }
+  p { margin-bottom: 10px; }
+  .info-box  { background: #e0f2f1; border: 1px solid #80cbc4; border-left: 4px solid #00897b; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; }
+  .warn-box  { background: #fff8e1; border: 1px solid #ffe082; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #5d4037; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 22px; font-size: 10pt; page-break-inside: avoid; }
+  th { background: #1a3a5c; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #12274a; }
+  td { padding: 8px 12px; border: 1px solid #cfd8dc; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f7ff; }
+  .menu-path { display: inline-block; background: #eceff1; border: 1px solid #cfd8dc; border-radius: 5px; padding: 3px 12px; font-size: 9.5pt; font-weight: 600; margin-bottom: 12px; }
+  .menu-path::before { content: "📌 เมนู: "; }
+  .flow { background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; padding: 18px 22px; margin: 14px 0 20px; font-size: 10pt; white-space: pre-wrap; font-family: Consolas, 'Malgun Gothic', monospace; }
+  .step-list { counter-reset: step; list-style: none; padding-left: 0; margin: 12px 0 18px; }
+  .step-list li { position: relative; padding: 10px 12px 10px 52px; margin-bottom: 8px; background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; }
+  .step-list li::before { counter-increment: step; content: counter(step); position: absolute; left: 12px; top: 10px; width: 28px; height: 28px; border-radius: 50%; background: #00897b; color: #fff; font-weight: 800; font-size: 11pt; display: flex; align-items: center; justify-content: center; line-height: 28px; text-align: center; }
+  ul, ol { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+  .footer { background: #1a3a5c; color: rgba(255,255,255,.6); text-align: center; font-size: 9pt; padding: 18px 24px; }
+  code { font-size: 9pt; background: #eceff1; padding: 1px 5px; border-radius: 3px; }
+  a.doc-link { color: #00695c; font-weight: 600; }
+  @media print {
+    body { background: #fff; font-size: 10pt; }
+    .page-wrap { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; }
+    .footer, .print-btn, .lang-bar { display: none !important; }
+    @page { size: A4; margin: 18mm 16mm; }
+  }
+  .print-btn { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #00897b; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 10.5pt; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(0,137,123,.45); }
+</style>
+</head>
+<body>
+<button type="button" class="print-btn" onclick="window.print()">🖨️ พิมพ์ / บันทึก PDF</button>
+<div class="page-wrap">
+  <div class="cover">
+    <div class="cover-body">
+      <div class="logo-line">ICOPAY · Payment Gateway</div>
+      <h1>ทริกเกอร์ตัวกรองความเสี่ยง<br>คู่มือปฏิบัติการ</h1>
+      <div class="subtitle">พฤติกรรมเมื่อเปิดใช้รายการ · ลำดับตรวจก่อนขาย · ภาพรวมปฏิบัติการ</div>
+      <div class="meta">ICOPAY Risk Filtering Trigger Ops Manual · V2.40 · 2026-07-22</div>
+      <div class="lang-bar">
+        <a href="./icopay-hq-risk-filter-trigger-manual.html">KO</a>
+        <a href="./icopay-hq-risk-filter-trigger-manual-en.html">EN</a>
+        <a href="./icopay-hq-risk-filter-trigger-manual-ja.html">JP</a>
+        <a href="./icopay-hq-risk-filter-trigger-manual-zh.html">CH</a>
+        <a class="active" href="./icopay-hq-risk-filter-trigger-manual-th.html">TH</a>
+      </div>
+    </div>
+    <div class="cover-logo">
+      <img src="./logo-ontheline.png" alt="On The Line">
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="menu-path">นโยบายสำนักงานใหญ่ → ค่าธรรมเนียม·ความเสี่ยง → ความเสี่ยง · 「ตัวกรองความเสี่ยง」</div>
+    <div class="info-box">
+      <strong>เอกสารที่เกี่ยวข้อง:</strong>
+      <a class="doc-link" href="./icopay-hq-risk-manual.html">คู่มือค่าธรรมเนียม·ความเสี่ยงแบบรวม</a> ·
+      <a class="doc-link" href="./icopay-hq-risk-filter-manual.html">รายละเอียดตัวกรอง (โค้ด·DB)</a><br>
+      หน้าสถานะ: <strong>การจัดการปฏิบัติการ → สถานะความเสี่ยง</strong> (<code>/risk/list</code>)<br>
+      PDF: <code>cd scripts && node operator-manual-pdf/gen.mjs risk</code>
+    </div>
+    <div class="warn-box">
+      <strong>หลักการตั้งชื่อ:</strong> ไม่แสดงชื่อ PG บน UI ของร้านค้าหรือผู้ซื้อ (เป็นกลางด้วย ICOPAY) การอ้างอิง JPAY·ChillPay·Eximbay ในคู่มือนี้ใช้สำหรับ<strong>ปฏิบัติการ·การเชื่อมต่อภายใน</strong>เท่านั้น
+    </div>
+
+    <div class="toc">
+      <h2>📋 สารบัญ</h2>
+      <ol>
+        <li><a href="#s1">ภาพรวมปฏิบัติการ</a></li>
+        <li><a href="#s2">การตั้งค่าความเสี่ยง vs ตัวกรองความเสี่ยง</a></li>
+        <li><a href="#s3">โฟลว์การประมวลผลทั้งหมด</a></li>
+        <li><a href="#s4">พฤติกรรมเมื่อ「เปิดใช้」รายการ</a></li>
+        <li><a href="#s5">ลำดับตรวจตัวกรองก่อนขาย</a></li>
+        <li><a href="#s6">ผลลัพธ์การบล็อก · การยืนยันปฏิบัติการ</a></li>
+        <li><a href="#s7">คำแนะนำปฏิบัติการ · FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 class="section-title" id="s1">1. ภาพรวมปฏิบัติการ</h2>
+    <p>เอกสารนี้อธิบายในมุมปฏิบัติการว่าเมื่อตั้งสวิตช์แต่ละตัวใน「ตัวกรองความเสี่ยง」เป็น<strong>เปิดใช้</strong>แล้ว <strong>ทริกเกอร์ใดทำงานเมื่อใดจริงๆ</strong></p>
+    <ul>
+      <li>กลุ่มเป้าหมาย: ผู้ปฏิบัติการสำนักงานใหญ่ · หน้าจอสิทธิ์ M0129 (การตั้งค่าความเสี่ยง)</li>
+      <li>การบันทึกนโยบาย: <code>tb_hq_risk_card_policy</code> (id=1) · ใช้กับทุกร้านค้าทันทีหลังบันทึก</li>
+      <li>การบล็อกก่อนขาย: <strong>ก่อนทันที</strong>ที่เรียก PG (JPAY·ChillPay·Eximbay ฯลฯ)</li>
+      <li>คูลดาวน์หลังขาย: <strong>หลัง</strong> JPAY pay_index สำหรับความเสี่ยงสูง·PY0124 (สวิตช์อิสระ)</li>
+    </ul>
+
+    <h2 class="section-title" id="s2">2. การตั้งค่าความเสี่ยง vs ตัวกรองความเสี่ยง</h2>
+    <table>
+      <thead><tr><th>พื้นที่</th><th>ทริกเกอร์</th><th>ผลลัพธ์</th></tr></thead>
+      <tbody>
+        <tr><td><strong>การตั้งค่าความเสี่ยง</strong> (การจัดการความเสี่ยง)</td><td>สะสมการไม่สำเร็จของบัตรเดียวกัน (FAIL·ยกเลิก·โมฆะ·ยังไม่ชำระ ฯลฯ)</td><td>รอขั้น 1–4 · ลงทะเบียนบัตรไม่ใช้งานอัตโนมัติ</td></tr>
+        <tr><td><strong>ตัวกรองความเสี่ยง</strong></td><td>รูปแบบ·ความเร็ว·ข้อมูลติดต่อไม่ตรง·ชื่อต้องสงสัย ฯลฯ</td><td>ไม่เรียก PG · ยกเลิกระบบ(20) · สถานะความเสี่ยง</td></tr>
+        <tr><td>สถานะความเสี่ยงร้านค้า</td><td>โหมดจัดการความเสี่ยงต่อร้าน (HQ / แยก / ไม่ใช้)</td><td>แสดงค่าเวลารอทริกเกอร์·ลงทะเบียนอัตโนมัติที่ใช้จริง</td></tr>
+      </tbody>
+    </table>
+    <p>「ตั้งค่าแยก/ไม่ใช้」ของร้านค้ามีผลก่อนสำหรับ<strong>การจัดการความเสี่ยง (ทริกเกอร์สะสม)</strong> <strong>สวิตช์ตัวกรองก่อนขาย</strong>เป็นไปตามนโยบายสำนักงานใหญ่</p>
+
+    <h2 class="section-title" id="s3">3. โฟลว์การประมวลผลทั้งหมด</h2>
+    <div class="flow">ผู้ซื้อพยายามชำระเงิน
+  → (การตรวจอื่น: แบรนด์บัตร·นโยบาย ฯลฯ)
+  → หาก【ตัวกรองก่อนขายเปิดใช้=Y】ตรวจรายการ (§5 ลำดับ)
+  → เมื่อฝ่าฝืน: ไม่เรียก PG · ยกเลิก(20) · สถานะความเสี่ยง · แจ้งผู้ซื้อ
+  → เมื่อผ่าน: ขออนุมัติจาก PG
+  → (เฉพาะ JPAY) ความเสี่ยงสูง/PY0124 หลังขาย → คูลดาวน์·สถานะ (เมื่อสวิตช์นั้น=Y)</div>
+    <div class="warn-box">โฟลว์โฮสต์ (ไม่เก็บหมายเลขบัตร): เน้นอีเมล·โทรศัพท์·ชื่อ·IP·ความเร็วอีเมล หากไม่มีแฮชบัตร ความเร็วบัตรและการไม่ตรงของข้อมูลติดต่อจะข้ามโดยพฤตินัย</div>
+
+    <h2 class="section-title" id="s4">4. พฤติกรรมเมื่อ「เปิดใช้」รายการ</h2>
+    <p>เมื่อบันทึกรายการบนหน้าจอเป็น<strong>เปิดใช้(Y)</strong> ทริกเกอร์ด้านล่างจะทำงาน <strong>ไม่ใช้(N)</strong> จะข้ามเฉพาะการตรวจนั้น</p>
+
+    <h3 class="sub-title">4.0 เปิดใช้ตัวกรองก่อนขาย (มาสเตอร์)</h3>
+    <table>
+      <thead><tr><th>รายการ</th><th>รายละเอียด</th></tr></thead>
+      <tbody>
+        <tr><td>ฟิลด์</td><td><code>presaleFilterEnabledYn</code></td></tr>
+        <tr><td>เปิดใช้</td><td>ประเมินตัวกรองก่อนขายรายบุคคล §4.1–4.8</td></tr>
+        <tr><td>ไม่ใช้</td><td><strong>ข้ามทั้งหมด</strong>แม้รายบุคคลเป็น Y ไม่กระทบคูลดาวน์หลังขายของ JPAY (§4.9–4.10)</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.1 อีเมลผิดปกติ</h3>
+    <table>
+      <thead><tr><th>รายการ</th><th>รายละเอียด</th></tr></thead>
+      <tbody>
+        <tr><td>โค้ด</td><td><code>EMAIL_INVALID</code></td></tr>
+        <tr><td>เมื่อเปิดใช้</td><td><strong>บล็อก</strong>หากอีเมลไม่ว่างแต่รูปแบบผิด ส่วนโลคัลน้อยกว่า 2 ตัวหรือซ้ำอักขระเดียวกัน หรือโดเมนเป็น <code>test.</code>/<code>example.</code></td></tr>
+        <tr><td>หมายเหตุ</td><td>ข้ามเมื่อค่าว่าง</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.2 หมายเลขโทรศัพท์ผิดปกติ</h3>
+    <table>
+      <thead><tr><th>รายการ</th><th>รายละเอียด</th></tr></thead>
+      <tbody>
+        <tr><td>โค้ด</td><td><code>PHONE_INVALID</code></td></tr>
+        <tr><td>เมื่อเปิดใช้</td><td><strong>บล็อก</strong>หากความยาวหลังดึงเฉพาะตัวเลขนอกช่วง 7–15 ตัวเลขซ้ำ เพิ่ม/ลดต่อเนื่อง รูปแบบ <code>000000</code> ฯลฯ</td></tr>
+        <tr><td>หมายเหตุ</td><td>ข้ามเมื่อว่าง</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.3 ชื่อ holder น่าสงสัย</h3>
+    <table>
+      <thead><tr><th>รายการ</th><th>รายละเอียด</th></tr></thead>
+      <tbody>
+        <tr><td>โค้ด</td><td><code>HOLDER_NAME_SUSPICIOUS</code></td></tr>
+        <tr><td>เมื่อเปิดใช้</td><td>บล็อกหากชื่อมี<strong>ข้อความบัตรเติมเงิน·ตัวแทน·น่าสงสัย</strong> เช่น Giftcard Holder, PayPay User, Merpay/Kyash Member, Business Card, VPRECA</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.4 ข้อมูลติดต่อผู้ซื้อไม่ตรงกัน</h3>
+    <table>
+      <thead><tr><th>รายการ</th><th>รายละเอียด</th></tr></thead>
+      <tbody>
+        <tr><td>โค้ด</td><td><code>BUYER_EMAIL_MISMATCH</code> / <code>BUYER_PHONE_MISMATCH</code> / <code>BUYER_NAME_MISMATCH</code></td></tr>
+        <tr><td>เมื่อเปิดใช้</td><td>เปรียบเทียบกับ<strong>รายการล่าสุด 1 รายการ</strong>ของบัตรเดียวกัน (แฮช)·ร้านเดียวกัน บล็อกหากอีเมล·โทรศัพท์·ชื่อต่างกัน</td></tr>
+        <tr><td>หมายเหตุ</td><td>การสลับลำดับนามสกุล/ชื่ออย่างเดียวไม่ถือว่าไม่ตรง ข้ามหากไม่มีแฮชบัตร</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.5–4.7 จำกัดความเร็ว (บัตร · อีเมล · IP)</h3>
+    <table>
+      <thead><tr><th>รายการ</th><th>โค้ด</th><th>เมื่อเปิดใช้</th></tr></thead>
+      <tbody>
+        <tr><td>จำกัดความเร็วบัตร</td><td><code>VELOCITY_CARD</code></td><td>บัตร·ร้านเดียวกัน: จำนวนครั้งในหน้าต่าง (นาที) ≥ จำนวน → บล็อก</td></tr>
+        <tr><td>จำกัดความเร็วอีเมล</td><td><code>VELOCITY_EMAIL</code></td><td>อีเมล·ร้านเดียวกันภายใต้เงื่อนไขเดียวกัน</td></tr>
+        <tr><td>จำกัดความเร็ว IP</td><td><code>VELOCITY_IP</code></td><td>IP ผู้ซื้อ·ร้านเดียวกันภายใต้เงื่อนไขเดียวกัน</td></tr>
+      </tbody>
+    </table>
+    <table>
+      <thead><tr><th>พารามิเตอร์ร่วม</th><th>ฟิลด์</th><th>ค่าเริ่มต้น · ช่วง</th></tr></thead>
+      <tbody>
+        <tr><td>หน้าต่างจำกัดความเร็ว (นาที)</td><td><code>velocityWindowMinutes</code></td><td>10 · 1–1440</td></tr>
+        <tr><td>จำนวนครั้งสูงสุด</td><td><code>velocityMaxAttempts</code></td><td>3 · 1–99</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.9 คูลดาวน์ความเสี่ยงสูงหลังขาย JPAY</h3>
+    <table>
+      <thead><tr><th>รายการ</th><th>รายละเอียด</th></tr></thead>
+      <tbody>
+        <tr><td>โค้ด</td><td><code>POSTSALE_JPAY_HIGH_RISK</code></td></tr>
+        <tr><td>เมื่อเปิดใช้</td><td><strong>หลัง</strong>คำขออนุมัติ JPAY สะท้อนความล้มเหลวความเสี่ยงสูงไปยังคูลดาวน์บัตร·สถานะความเสี่ยง</td></tr>
+        <tr><td>ไม่ใช้</td><td>การจำแนกนั้นถูกตัดออกจากการรวมคูลดาวน์</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.10 คูลดาวน์ JPAY PY0124</h3>
+    <table>
+      <thead><tr><th>รายการ</th><th>รายละเอียด</th></tr></thead>
+      <tbody>
+        <tr><td>โค้ด</td><td><code>POSTSALE_JPAY_PY0124</code></td></tr>
+        <tr><td>เมื่อเปิดใช้</td><td>สำหรับความล้มเหลว JPAY <code>PY0124</code> บันทึกคูลดาวน์·สถานะแบบเดียวกับความเสี่ยงสูง</td></tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-title" id="s5">5. ลำดับตรวจตัวกรองก่อนขาย</h2>
+    <p>เมื่อตัวกรองก่อนขายเปิดใช้=Y โค้ดจะ<strong>ประเมินตามลำดับด้านล่าง</strong>และ<strong>หยุดทันทีที่ฝ่าฝืนครั้งแรก</strong></p>
+    <ol class="step-list">
+      <li><strong>อีเมลผิดปกติ</strong> — <code>EMAIL_INVALID</code></li>
+      <li><strong>หมายเลขโทรศัพท์ผิดปกติ</strong> — <code>PHONE_INVALID</code></li>
+      <li><strong>ชื่อ holder น่าสงสัย</strong> — <code>HOLDER_NAME_SUSPICIOUS</code></li>
+      <li><strong>จำกัดความเร็วบัตร</strong> — <code>VELOCITY_CARD</code></li>
+      <li><strong>จำกัดความเร็วอีเมล</strong> — <code>VELOCITY_EMAIL</code></li>
+      <li><strong>จำกัดความเร็ว IP</strong> — <code>VELOCITY_IP</code></li>
+      <li><strong>ข้อมูลติดต่อผู้ซื้อไม่ตรงกัน</strong> — <code>BUYER_*_MISMATCH</code> (อีเมล → โทรศัพท์ → ชื่อ)</li>
+    </ol>
+    <div class="flow">① EMAIL_INVALID → ② PHONE_INVALID → ③ HOLDER_NAME_SUSPICIOUS
+→ ④ VELOCITY_CARD → ⑤ VELOCITY_EMAIL → ⑥ VELOCITY_IP
+→ ⑦ BUYER_EMAIL / PHONE / NAME_MISMATCH</div>
+    <div class="info-box">หากสวิตช์รายบุคคลเป็นไม่ใช้ จะข้ามเฉพาะขั้นนั้น ตัวอย่าง: ปิดเฉพาะรูปแบบอีเมล → ข้าม ① แล้วต่อจาก ②</div>
+
+    <h2 class="section-title" id="s6">6. ผลลัพธ์การบล็อก · การยืนยันปฏิบัติการ</h2>
+    <ol>
+      <li>ไม่ส่งคำขออนุมัติไปยัง PG</li>
+      <li>บันทึกการพยายาม 1 ครั้งในระบบ สถานะ<strong>ยกเลิก(20)</strong></li>
+      <li>เก็บใน <code>tb_pay_risk_filter_event</code> → <strong>การจัดการปฏิบัติการ → สถานะความเสี่ยง</strong></li>
+      <li>การตอบกลับผู้ซื้อ: ข้อความหลายภาษา · รหัสข้อผิดพลาด <code>PRESALE_RISK_FILTER</code></li>
+    </ol>
+    <p>หากลูกค้าปกติถูกบล็อก ให้ตรวจ <code>filterCode</code> ในหน้าสถานะ แล้วผ่อนเฉพาะรายการนั้น (ไม่ใช้) หรือปรับหน้าต่าง/จำนวนความเร็ว</p>
+
+    <h2 class="section-title" id="s7">7. คำแนะนำปฏิบัติการ · FAQ</h2>
+    <table>
+      <thead><tr><th>รายการ</th><th>แนะนำ</th></tr></thead>
+      <tbody>
+        <tr><td>เปิดใช้ตัวกรองก่อนขาย</td><td>เปิดใช้</td></tr>
+        <tr><td>รูปแบบ·holder·ความเร็ว 3 ชนิด</td><td>เปิดใช้ · หน้าต่าง 10 นาที / จำนวน 3 ครั้ง</td></tr>
+        <tr><td>ข้อมูลติดต่อไม่ตรงกัน</td><td>เปิดใช้ (จำอัตโนมัติอยู่ที่แท็บชำระเงิน·URL)</td></tr>
+        <tr><td>JPAY หลังขาย 2 ชนิด</td><td>เปิดใช้</td></tr>
+      </tbody>
+    </table>
+    <ul>
+      <li><strong>ปิดเฉพาะบางส่วน:</strong> คงตัวกรองก่อนขาย=เปิดใช้ ตั้งเฉพาะรายการที่มีปัญหาเป็นไม่ใช้</li>
+      <li><strong>ปิดทั้งหมด:</strong> ตัวกรองก่อนขาย=ไม่ใช้ (รายบุคคลเป็น Y ก็ไม่ทำงาน)</li>
+      <li><strong>ไม่มีธุรกรรมในล็อก PG:</strong> มักหมายถึงการบล็อกก่อนขายทำงานตามปกติ</li>
+      <li><strong>จำอัตโนมัติ:</strong> ไม่ได้อยู่ใต้「ตัวกรองความเสี่ยง」; นโยบายสำนักงานใหญ่ → ชำระเงิน·URL → ค่าเริ่มต้นการแสดงหน้าต่างชำระเงิน</li>
+    </ul>
+    <p>ตารางฟิลด์·DB·โค้ดดูที่ <a class="doc-link" href="./icopay-hq-risk-filter-manual.html">คู่มือรายละเอียดตัวกรอง</a></p>
+  </div>
+
+  <div class="footer">
+    ICOPAY · คู่มือปฏิบัติการทริกเกอร์ตัวกรองความเสี่ยง · V2.40 · 2026-07-22<br>
+    PDF: <code>node operator-manual-pdf/gen.mjs risk</code>
+  </div>
+</div>
+</body>
+</html>

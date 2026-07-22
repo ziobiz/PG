@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICOPAY 총판용 리스크 트리거 설명안 V2.43</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; font-size: 11pt; line-height: 1.75; color: #1a1a1a; background: #f0f2f8; }
+  .page-wrap { max-width: 960px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 18px rgba(0,0,0,.11); overflow: hidden; }
+  .cover { background: linear-gradient(135deg, #1a3a5c 0%, #1565c0 55%, #26a69a 100%); color: #fff; padding: 48px 52px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+  .cover-body { flex: 1; }
+  .cover-logo { flex-shrink: 0; padding-top: 4px; }
+  .cover-logo img { height: 64px; background: rgba(255,255,255,.92); padding: 10px 18px; border-radius: 8px; }
+  .cover .logo-line { font-size: 13pt; font-weight: 700; letter-spacing: 2px; opacity: .85; margin-bottom: 14px; }
+  .cover h1 { font-size: 22pt; font-weight: 900; line-height: 1.28; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 11pt; opacity: .82; margin-bottom: 24px; }
+  .cover .meta { font-size: 9.5pt; opacity: .65; border-top: 1px solid rgba(255,255,255,.25); padding-top: 14px; }
+  .lang-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .lang-bar a { color: #fff; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); border-radius: 999px; padding: 4px 12px; font-size: 9pt; text-decoration: none; font-weight: 700; }
+  .lang-bar a.active { background: #fff; color: #1565c0; }
+  .body { padding: 44px 52px 64px; }
+  .toc { background: #e8f5f3; border-left: 4px solid #00897b; border-radius: 0 8px 8px 0; padding: 20px 26px; margin-bottom: 44px; }
+  .toc h2 { font-size: 12pt; font-weight: 700; color: #00695c; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { font-size: 10pt; line-height: 2.1; }
+  .toc a { color: #00695c; text-decoration: none; }
+  h2.section-title { font-size: 15pt; font-weight: 800; color: #1a3a5c; border-bottom: 2.5px solid #00897b; padding-bottom: 7px; margin: 48px 0 18px; page-break-after: avoid; }
+  h3.sub-title { font-size: 12pt; font-weight: 700; color: #00897b; margin: 26px 0 10px; page-break-after: avoid; }
+  p { margin-bottom: 10px; }
+  .info-box  { background: #e0f2f1; border: 1px solid #80cbc4; border-left: 4px solid #00897b; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; }
+  .warn-box  { background: #fff8e1; border: 1px solid #ffe082; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #5d4037; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 22px; font-size: 10pt; page-break-inside: avoid; }
+  th { background: #1a3a5c; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #12274a; }
+  td { padding: 8px 12px; border: 1px solid #cfd8dc; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f7ff; }
+  .menu-path { display: inline-block; background: #eceff1; border: 1px solid #cfd8dc; border-radius: 5px; padding: 3px 12px; font-size: 9.5pt; font-weight: 600; margin-bottom: 12px; }
+  .menu-path::before { content: "📌 확인: "; }
+  .flow { background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; padding: 18px 22px; margin: 14px 0 20px; font-size: 10pt; white-space: pre-wrap; font-family: Consolas, 'Malgun Gothic', monospace; }
+  ul, ol { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+  .footer { background: #1a3a5c; color: rgba(255,255,255,.6); text-align: center; font-size: 9pt; padding: 18px 24px; }
+  code { font-size: 9pt; background: #eceff1; padding: 1px 5px; border-radius: 3px; }
+  a.doc-link { color: #00695c; font-weight: 600; }
+  .faq-q { font-weight: 700; color: #1a3a5c; margin-top: 14px; }
+  .faq-a { margin-bottom: 10px; }
+  @media print {
+    body { background: #fff; font-size: 10pt; }
+    .page-wrap { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; }
+    .footer, .print-btn, .lang-bar { display: none !important; }
+    @page { size: A4; margin: 18mm 16mm; }
+  }
+  .print-btn { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #00897b; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 10.5pt; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(0,137,123,.45); }
+</style>
+</head>
+<body>
+<button type="button" class="print-btn" onclick="window.print()">🖨️ 인쇄 / PDF 저장</button>
+<div class="page-wrap">
+  <div class="cover">
+    <div class="cover-body">
+      <div class="logo-line">ICOPAY · Payment Gateway</div>
+      <h1>총판용 리스크 트리거<br>설명안</h1>
+      <div class="subtitle">리스크설정 · 리스크 필터링 기본값 기준 — 언제 어떤 제한이 발동하는지</div>
+      <div class="meta">ICOPAY Distributor Risk Trigger Guide · V2.43 · 2026-07-22 · 대상: 총판 운영자</div>
+      <div class="lang-bar">
+        <a class="active" href="./icopay-dist-risk-trigger-manual.html">KO</a>
+        <a href="./icopay-dist-risk-trigger-manual-en.html">EN</a>
+        <a href="./icopay-dist-risk-trigger-manual-ja.html">JP</a>
+        <a href="./icopay-dist-risk-trigger-manual-zh.html">CH</a>
+        <a href="./icopay-dist-risk-trigger-manual-th.html">TH</a>
+      </div>
+    </div>
+    <div class="cover-logo">
+      <img src="./logo-ontheline.png" alt="On The Line">
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="menu-path">운영관리 → 리스크 현황 · 비활성카드 · 가맹 「리스크관리 트리거」</div>
+    <div class="info-box">
+      <strong>관련 문서(본사용 상세):</strong>
+      <a class="doc-link" href="./icopay-hq-risk-filter-trigger-manual.html">트리거 운영 매뉴얼</a> ·
+      <a class="doc-link" href="./icopay-hq-risk-manual.html">수수료·리스크 통합</a><br>
+      PDF: <code>cd scripts && node operator-manual-pdf/gen.mjs risk</code>
+    </div>
+    <div class="warn-box">
+      <strong>명명 원칙:</strong> 가맹·구매자 화면에는 결제대행사(PG)명을 노출하지 않습니다(ICOPAY 중립). 본 설명안의 JPAY 표기는 <strong>운영 내부</strong> 이해용입니다.<br>
+      <strong>정책 변경:</strong> 「리스크설정」「리스크 필터링」 수치·스위치는 <strong>본사(총본사) 정책 화면</strong>에서만 바꿉니다. 총판은 기본값 동작을 이해하고, 가맹 위험정책·현황·비활성카드를 운영합니다.
+    </div>
+
+    <div class="toc">
+      <h2>📋 목차</h2>
+      <ol>
+        <li><a href="#s1">이 설명안이 다루는 것</a></li>
+        <li><a href="#s2">기본값이 적용되는 경우</a></li>
+        <li><a href="#s3">리스크설정 — 기본값과 발동</a></li>
+        <li><a href="#s4">리스크 필터링 — 기본값과 발동</a></li>
+        <li><a href="#s5">총판이 할 수 있는 일</a></li>
+        <li><a href="#s6">확인 화면</a></li>
+        <li><a href="#s7">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 class="section-title" id="s1">1. 이 설명안이 다루는 것</h2>
+    <p>본사는 「리스크설정」과 「리스크 필터링」으로 전 가맹 공통 안전장치를 둡니다. 가맹이 <strong>본사정책 따름</strong>이면 아래 <strong>기본값</strong>이 그대로 발동합니다.</p>
+    <table>
+      <thead><tr><th>영역</th><th>한 줄 요약</th><th>결과</th></tr></thead>
+      <tbody>
+        <tr><td><strong>리스크설정</strong></td><td>같은 카드로 비성공이 누적될 때</td><td>잠깐 대기(쿨다운) → 일정 횟수 후 비활성카드</td></tr>
+        <tr><td><strong>리스크 필터링</strong></td><td>형식·속도·연락처 이상 등 (결제대행사 송부 전)</td><td>송부하지 않음 · 전산 취소 · 리스크 현황</td></tr>
+      </tbody>
+    </table>
+    <p><strong>1회만으로 영구 차단되지 않습니다.</strong> 필터링은 그 시도만 막고, 리스크설정은 횟수·대기시간에 따라 단계적으로 제한합니다.</p>
+
+    <h2 class="section-title" id="s2">2. 기본값이 적용되는 경우</h2>
+    <ul>
+      <li>가맹 「리스크관리 트리거」·위험 정책 = <strong>본사정책 따름</strong> (또는 미설정으로 본사 따름)</li>
+      <li>본사가 기본값을 바꾸지 않은 상태 (본 문서 수치 = 시스템 기본)</li>
+    </ul>
+    <div class="info-box">가맹을 <strong>별도정책</strong>으로 두면 1~4차 대기·자동 비활성 차수만 가맹값이 우선합니다. <strong>리스크 필터링(사전 차단) 스위치·속도 창/횟수</strong>는 여전히 본사 공통입니다.</div>
+
+    <h2 class="section-title" id="s3">3. 리스크설정 — 기본값과 발동</h2>
+    <p>동일 카드의 FAIL·취소·무효·미결제 등 <strong>비성공</strong>이 쌓이면, 다음 결제 시도 전에 대기합니다. CVV·카드번호 형식 오류는 세지 않고, <strong>성공 결제 시 횟수는 초기화</strong>됩니다.</p>
+    <table>
+      <thead><tr><th>항목</th><th>기본값</th><th>발동 의미</th></tr></thead>
+      <tbody>
+        <tr><td>위험관리 사용</td><td><strong>사용</strong></td><td>아래 단계·비활성 규칙 동작</td></tr>
+        <tr><td>1차 대기</td><td><strong>5분</strong></td><td>비성공 1회 후 → 5분 동안 동일 카드 재시도 차단</td></tr>
+        <tr><td>2차 대기</td><td><strong>10분</strong></td><td>비성공 2회 누적 → 10분 대기</td></tr>
+        <tr><td>3차 대기</td><td><strong>1시간</strong></td><td>비성공 3회 누적 → 1시간 대기</td></tr>
+        <tr><td>4차 대기</td><td><strong>시간 없음(0)</strong></td><td>대기 분 대신 자동 비활성과 연동</td></tr>
+        <tr><td>자동 등록 트리거</td><td><strong>4회</strong></td><td>추적기간 안 비성공 4회 완료 시 → <strong>비활성카드</strong> 자동 등록. 그다음 시도부터 차단(해제 전까지)</td></tr>
+        <tr><td>추적기간</td><td><strong>미사용</strong></td><td>기간 제한 없이 누적(성공 시 초기화)</td></tr>
+      </tbody>
+    </table>
+    <div class="flow">비성공 1회 → 5분 쿨다운
+비성공 2회 → 10분 쿨다운
+비성공 3회 → 1시간 쿨다운
+비성공 4회 → 비활성카드 등록(사실상 장기 차단, 수동 해지 필요)
+성공 1회 → 누적 횟수 초기화</div>
+    <div class="warn-box">JPAY 사후 고위험·PY0124 실패도(본사에서 「사용」이면) 위 쿨다운 횟수에 <strong>1회분으로 가산</strong>됩니다. 「미사용」이면 현황 기록만 하고 횟수에는 안 넣습니다.</div>
+
+    <h2 class="section-title" id="s4">4. 리스크 필터링 — 기본값과 발동</h2>
+    <p>결제대행사로 승인 요청을 <strong>보내기 직전</strong>에 검사합니다. 걸리면 그 시도만 막고(전산 취소), 리스크 현황에 남습니다.</p>
+
+    <h3 class="sub-title">4.1 스위치 기본값 (모두 사용)</h3>
+    <table>
+      <thead><tr><th>항목</th><th>기본</th><th>발동 예시</th></tr></thead>
+      <tbody>
+        <tr><td>사전필터 사용(마스터)</td><td>사용</td><td>미사용이면 아래 개별 항목이 켜져 있어도 전부 스킵</td></tr>
+        <tr><td>비정상 이메일</td><td>사용</td><td>형식 오류·의심 도메인 등</td></tr>
+        <tr><td>비정상 전화번호</td><td>사용</td><td>자릿수·반복·연속 패턴 등</td></tr>
+        <tr><td>의심 holder명</td><td>사용</td><td>선불·대행 의심 문구</td></tr>
+        <tr><td>구매자 연락처 불일치</td><td>사용</td><td>같은 카드의 최근 구매 정보와 이메일·전화·성명 불일치</td></tr>
+        <tr><td>카드 / 이메일 / IP 속도 제한</td><td>사용</td><td>짧은 시간에 너무 많은 시도</td></tr>
+        <tr><td>JPAY 사후 고위험·PY0124 쿨다운</td><td>사용</td><td>§3 쿨다운 집계에 포함</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.2 속도 제한 기본값 (채널별)</h3>
+    <table>
+      <thead><tr><th>채널</th><th>창</th><th>횟수</th><th>발동</th></tr></thead>
+      <tbody>
+        <tr><td>카드</td><td><strong>10분</strong></td><td><strong>3회</strong></td><td>같은 카드·가맹에서 10분 안 3회 이상 시도 → 차단</td></tr>
+        <tr><td>이메일</td><td><strong>30분</strong></td><td><strong>5회</strong></td><td>같은 이메일·가맹에서 30분 안 5회 이상</td></tr>
+        <tr><td>IP</td><td><strong>15분</strong></td><td><strong>10회</strong></td><td>같은 IP·가맹에서 15분 안 10회 이상 (공용망 여유)</td></tr>
+      </tbody>
+    </table>
+    <div class="info-box">카드번호가 없는 호스티드 결제창에서는 이메일·전화·성명·IP 계열이 중심입니다.</div>
+
+    <h2 class="section-title" id="s5">5. 총판이 할 수 있는 일</h2>
+    <table>
+      <thead><tr><th>가능</th><th>본사에 요청</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>
+            · 하위 가맹 「리스크관리 트리거」: 본사 따름 / 별도 / 미사용<br>
+            · 별도정책 시 1~4차 대기·자동등록 차수 조정<br>
+            · 리스크 현황 조회 · 비활성카드 등록·해지(권한 범위 내)
+          </td>
+          <td>
+            · 리스크설정 대기시간·자동 비활성 차수<br>
+            · 리스크 필터링 스위치·속도 창/횟수<br>
+            · 전 가맹 공통 정책 변경
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-title" id="s6">6. 확인 화면</h2>
+    <ul>
+      <li><strong>운영관리 → 리스크 현황</strong> — 사전 필터 차단·사후 분류 코드 확인</li>
+      <li><strong>운영관리 → 비활성카드</strong> — 자동/수동 등록·해지</li>
+      <li>가맹 상세 → <strong>리스크관리 트리거</strong> — 본사 따름 여부·별도 대기값</li>
+    </ul>
+    <p>정상 고객이 막히면 현황의 코드(예: 속도 제한·이메일 형식)를 확인한 뒤, 가맹 별도정책으로 완화하거나 본사에 공통 정책 조정을 요청합니다.</p>
+
+    <h2 class="section-title" id="s7">7. FAQ</h2>
+    <div class="faq-q">Q. 실패 1번이면 카드를 영구 못 쓰나요?</div>
+    <div class="faq-a">A. 아닙니다. 기본은 쿨다운(5분→10분→1시간)이고, <strong>4회</strong>에서 비활성카드로 장기 차단됩니다. 성공하면 횟수가 리셋됩니다.</div>
+    <div class="faq-q">Q. 필터링에 걸리면 어떻게 보이나요?</div>
+    <div class="faq-a">A. 결제대행사에는 거래가 안 올라가고, 전산에는 취소로 남으며 리스크 현황에 표시됩니다.</div>
+    <div class="faq-q">Q. 총판이 속도 제한 10분/3회를 직접 바꿀 수 있나요?</div>
+    <div class="faq-a">A. 아니요. 본사 「리스크 필터링」에서만 변경합니다.</div>
+    <div class="faq-q">Q. 가맹을 「미사용」으로 두면?</div>
+    <div class="faq-a">A. 그 가맹의 <strong>카드 누적 쿨다운·자동 비활성</strong>만 끕니다. 본사 사전 필터링은 그대로입니다.</div>
+  </div>
+
+  <div class="footer">
+    ICOPAY · 총판용 리스크 트리거 설명안 · V2.43 · 2026-07-22<br>
+    PDF: <code>node operator-manual-pdf/gen.mjs risk</code>
+  </div>
+</div>
+</body>
+</html>

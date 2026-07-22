@@ -15,28 +15,30 @@ public final class PageMenuCatalog {
 
     private static List<PageMenuItem> build() {
         List<PageMenuItem> list = new ArrayList<>();
-        /* 본사설정 — index.html 사이드바 순서 */
-        add(list, "/hq/defaultCommission", "M0102", "수수료설정", "본사설정");
-        add(list, "/hq/pgAgencyCostPolicy", "M0128", "대행수수료설정", "본사설정");
-        add(list, "/hq/chargebackPolicy", "M0117", "차지백설정", "본사설정");
-        add(list, "/hq/riskCardPolicy", "M0129", "리스크설정", "본사설정");
-        add(list, "/hq/businessDaySetting", "M0109", "영업일설정", "본사설정");
-        add(list, "/hq/permissionMng", "M0104", "본사권한설정", "본사설정");
-        add(list, "/hq/opsModeMng", "M0127", "태블릿설정", "본사설정");
-        add(list, "/hq/userSettings", "M0120", "사용자설정", "본사설정");
-        add(list, "/hq/accountMng", "M0106", "업체접근설정", "본사설정");
-        add(list, "/hq/orgViewColumnAllowance", "M0108", "조직항목설정", "본사설정");
-        add(list, "/hq/paymentOrchestration", "M0118", "결제대행사로직", "본사설정");
-        add(list, "/hq/urlPayDeploy", "M0122", "URL결제설정", "본사설정");
-        add(list, "/hq/notifyEnv", "M0105", "노티구성설정", "본사설정");
-        add(list, "/hq/notifyMapping", "M0107", "노티매핑설정", "본사설정");
-        add(list, "/hq/notifyInbound", "M0121", "노티수령정보", "본사설정");
-        add(list, "/hq/ledgerSysSettings", "M0119", "전산설정관리", "본사설정");
-        add(list, "/hq/settlementAdmin", "M0123", "정산관리설정", "본사설정");
-        add(list, "/hq/receivableRecoverySettings", "M0124", "환수/미수금설정", "본사설정");
-        add(list, "/hq/domainConfig", "M0115", "도메인구성설정", "본사설정");
-        add(list, "/hq/serverManage", "M0116", "서버운영관리", "본사설정");
-        add(list, "/hq/chatbotAiSettings", "M0126", "AI챗봇설정", "본사설정");
+        /* 본사정책 — V2 사이드바 허브·탭 왼쪽→오른쪽 순서와 동일 */
+        add(list, "/hq/defaultCommission", "M0102", "수수료", "본사정책");
+        add(list, "/hq/pgAgencyCostPolicy", "M0128", "대행수수료", "본사정책");
+        add(list, "/hq/chargebackPolicy", "M0117", "차지백", "본사정책");
+        add(list, "/hq/riskCardPolicy", "M0129", "리스크", "본사정책");
+        add(list, "/hq/paymentOrchestration", "M0118", "결제 라우팅", "본사정책");
+        add(list, "/hq/urlPayDeploy", "M0122", "URL결제", "본사정책");
+        add(list, "/hq/opsModeMng", "M0127", "태블릿 UX", "본사정책");
+        add(list, "/hq/notifyEnv", "M0105", "노티 구성", "본사정책");
+        add(list, "/hq/notifyMapping", "M0107", "필드 매핑", "본사정책");
+        add(list, "/hq/notifyInbound", "M0121", "수령 로그", "본사정책");
+        add(list, "/hq/settlementAdmin", "M0123", "정산주기", "본사정책");
+        add(list, "/hq/receivableRecoverySettings", "M0124", "환수·미수금", "본사정책");
+        add(list, "/hq/businessDaySetting", "M0109", "영업일", "본사정책");
+        add(list, "/hq/orgViewColumnAllowance", "M0108", "조직항목", "본사정책");
+        add(list, "/set/gridSetMng", "M0505", "항목순서", "본사정책");
+        add(list, "/hq/permissionMng", "M0104", "본사 권한", "본사정책");
+        add(list, "/hq/userSettings", "M0120", "사용자", "본사정책");
+        add(list, "/hq/accountMng", "M0106", "업체 접근", "본사정책");
+        add(list, "/hq/chatbotAiSettings", "M0126", "AI·챗봇", "본사정책");
+        add(list, "/hq/ledgerSysSettings", "M0119", "전산·동기화", "본사정책");
+        add(list, "/hq/domainConfig", "M0115", "도메인·SSL", "본사정책");
+        add(list, "/hq/serverManage", "M0116", "서버", "본사정책");
+        add(list, "/hq/platformReleaseNotes", "M0156", "업데이트 내용", "본사정책");
         /* 검수관리 */
         add(list, "/calc/integratedCheck", "M0332", "통합체크", "검수관리");
         add(list, "/calc/jpayTrList", "M0328", "통합개요", "검수관리");
@@ -98,7 +100,6 @@ public final class PageMenuCatalog {
         add(list, "/noti/notiCashReceiptSendMngList", "M0806", "현금영수증통보 전송관리", "통보관리");
         /* 사용자관리 */
         add(list, "/user/userMng", "M0502", "사용자관리", "사용자관리");
-        add(list, "/set/gridSetMng", "M0505", "메뉴별항목순서관리", "사용자관리");
         /* 운영관리 — 사이드바 순서 */
         add(list, "/ops/inactiveCard", "M0606", "카드관리", "운영관리");
         add(list, "/risk/list", "M0701", "리스크 현황", "운영관리");
@@ -108,18 +109,20 @@ public final class PageMenuCatalog {
         add(list, "/ops/mailLog", "M0602", "메일관리", "운영관리");
         add(list, "/ops/opsMng", "M0601", "운영관리", "운영관리");
         add(list, "/ops/integratedReport", "M0604", "통합리포트", "운영관리");
+        add(list, "/ops/opsManuals", "M0614", "운영매뉴얼", "운영관리");
         add(list, "/ops/verifyReport", "M0605", "검증리포트", "운영관리");
         add(list, "/ops/taxReport", "M0603", "TAX리포트", "운영관리");
-        /* 배포설정 */
-        add(list, "/hq/pgApiMng", "M0101", "API연동설정", "배포설정");
-        add(list, "/hq/apiMerchantDeployReg", "M0906", "API 가맹점 등록", "배포설정");
-        add(list, "/hq/merchantApiGenerate", "M0905", "가맹점 API 생성", "배포설정");
-        add(list, "/hq/merchantApiDeployDocs", "M0907", "API배포문서", "배포설정");
-        add(list, "/hq/apiConfig", "M0103", "API배포설정", "배포설정");
-        add(list, "/deploy/integrationPlan", "M0901", "연동 진행안", "배포설정");
-        add(list, "/deploy/jpayWorkPlan", "M0902", "JPAY 단계 계획", "배포설정");
-        add(list, "/deploy/merchantApiPolicy", "M0903", "가맹점 API 배포", "배포설정");
-        add(list, "/deploy/launchChecklist", "M0904", "배포 체크리스트", "배포설정");
+        /* 연동·배포 — 사이드바 허브·탭 순서 */
+        add(list, "/hq/pgApiMng", "M0101", "PG사 연동", "연동·배포");
+        add(list, "/hq/apiConfig", "M0103", "① 공통설정", "연동·배포");
+        add(list, "/hq/apiMerchantDeployReg", "M0906", "② 가맹 등록", "연동·배포");
+        add(list, "/hq/merchantApiGenerate", "M0905", "③ 키·문서", "연동·배포");
+        add(list, "/hq/merchantApiDeployDocs", "M0907", "API 문서", "연동·배포");
+        add(list, "/deploy/launchGuide", "M0904", "출시 가이드", "연동·배포");
+        add(list, "/deploy/launchChecklist", "M0904", "배포 체크리스트", "연동·배포");
+        add(list, "/deploy/integrationPlan", "M0901", "연동 진행안", "연동·배포");
+        add(list, "/deploy/jpayWorkPlan", "M0902", "JPAY 전용 연동", "연동·배포");
+        add(list, "/deploy/merchantApiPolicy", "M0903", "API 배포 정책", "연동·배포");
         return Collections.unmodifiableList(list);
     }
 

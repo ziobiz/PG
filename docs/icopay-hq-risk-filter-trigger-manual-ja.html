@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICOPAY リスクフィルタリング トリガー運用マニュアル V2.40</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; font-size: 11pt; line-height: 1.75; color: #1a1a1a; background: #f0f2f8; }
+  .page-wrap { max-width: 960px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 18px rgba(0,0,0,.11); overflow: hidden; }
+  .cover { background: linear-gradient(135deg, #1a3a5c 0%, #1565c0 55%, #26a69a 100%); color: #fff; padding: 48px 52px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+  .cover-body { flex: 1; }
+  .cover-logo { flex-shrink: 0; padding-top: 4px; }
+  .cover-logo img { height: 64px; background: rgba(255,255,255,.92); padding: 10px 18px; border-radius: 8px; }
+  .cover .logo-line { font-size: 13pt; font-weight: 700; letter-spacing: 2px; opacity: .85; margin-bottom: 14px; }
+  .cover h1 { font-size: 22pt; font-weight: 900; line-height: 1.28; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 11pt; opacity: .82; margin-bottom: 24px; }
+  .cover .meta { font-size: 9.5pt; opacity: .65; border-top: 1px solid rgba(255,255,255,.25); padding-top: 14px; }
+  .lang-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .lang-bar a { color: #fff; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); border-radius: 999px; padding: 4px 12px; font-size: 9pt; text-decoration: none; font-weight: 700; }
+  .lang-bar a.active { background: #fff; color: #1565c0; }
+  .body { padding: 44px 52px 64px; }
+  .toc { background: #e8f5f3; border-left: 4px solid #00897b; border-radius: 0 8px 8px 0; padding: 20px 26px; margin-bottom: 44px; }
+  .toc h2 { font-size: 12pt; font-weight: 700; color: #00695c; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { font-size: 10pt; line-height: 2.1; }
+  .toc a { color: #00695c; text-decoration: none; }
+  h2.section-title { font-size: 15pt; font-weight: 800; color: #1a3a5c; border-bottom: 2.5px solid #00897b; padding-bottom: 7px; margin: 48px 0 18px; page-break-after: avoid; }
+  h3.sub-title { font-size: 12pt; font-weight: 700; color: #00897b; margin: 26px 0 10px; page-break-after: avoid; }
+  p { margin-bottom: 10px; }
+  .info-box  { background: #e0f2f1; border: 1px solid #80cbc4; border-left: 4px solid #00897b; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; }
+  .warn-box  { background: #fff8e1; border: 1px solid #ffe082; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #5d4037; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 22px; font-size: 10pt; page-break-inside: avoid; }
+  th { background: #1a3a5c; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #12274a; }
+  td { padding: 8px 12px; border: 1px solid #cfd8dc; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f7ff; }
+  .menu-path { display: inline-block; background: #eceff1; border: 1px solid #cfd8dc; border-radius: 5px; padding: 3px 12px; font-size: 9.5pt; font-weight: 600; margin-bottom: 12px; }
+  .menu-path::before { content: "📌 メニュー: "; }
+  .flow { background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; padding: 18px 22px; margin: 14px 0 20px; font-size: 10pt; white-space: pre-wrap; font-family: Consolas, 'Malgun Gothic', monospace; }
+  .step-list { counter-reset: step; list-style: none; padding-left: 0; margin: 12px 0 18px; }
+  .step-list li { position: relative; padding: 10px 12px 10px 52px; margin-bottom: 8px; background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; }
+  .step-list li::before { counter-increment: step; content: counter(step); position: absolute; left: 12px; top: 10px; width: 28px; height: 28px; border-radius: 50%; background: #00897b; color: #fff; font-weight: 800; font-size: 11pt; display: flex; align-items: center; justify-content: center; line-height: 28px; text-align: center; }
+  ul, ol { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+  .footer { background: #1a3a5c; color: rgba(255,255,255,.6); text-align: center; font-size: 9pt; padding: 18px 24px; }
+  code { font-size: 9pt; background: #eceff1; padding: 1px 5px; border-radius: 3px; }
+  a.doc-link { color: #00695c; font-weight: 600; }
+  @media print {
+    body { background: #fff; font-size: 10pt; }
+    .page-wrap { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; }
+    .footer, .print-btn, .lang-bar { display: none !important; }
+    @page { size: A4; margin: 18mm 16mm; }
+  }
+  .print-btn { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #00897b; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 10.5pt; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(0,137,123,.45); }
+</style>
+</head>
+<body>
+<button type="button" class="print-btn" onclick="window.print()">🖨️ 印刷 / PDF保存</button>
+<div class="page-wrap">
+  <div class="cover">
+    <div class="cover-body">
+      <div class="logo-line">ICOPAY · Payment Gateway</div>
+      <h1>リスクフィルタリング トリガー<br>運用マニュアル</h1>
+      <div class="subtitle">項目別「使用」動作 · 事前フィルタ検査順 · 運用概要</div>
+      <div class="meta">ICOPAY Risk Filtering Trigger Ops Manual · V2.40 · 2026-07-22</div>
+      <div class="lang-bar">
+        <a href="./icopay-hq-risk-filter-trigger-manual.html">KO</a>
+        <a href="./icopay-hq-risk-filter-trigger-manual-en.html">EN</a>
+        <a class="active" href="./icopay-hq-risk-filter-trigger-manual-ja.html">JP</a>
+        <a href="./icopay-hq-risk-filter-trigger-manual-zh.html">CH</a>
+        <a href="./icopay-hq-risk-filter-trigger-manual-th.html">TH</a>
+      </div>
+    </div>
+    <div class="cover-logo">
+      <img src="./logo-ontheline.png" alt="On The Line">
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="menu-path">本社ポリシー → 手数料・リスク → リスク · 「リスクフィルタリング」</div>
+    <div class="info-box">
+      <strong>関連ドキュメント:</strong>
+      <a class="doc-link" href="./icopay-hq-risk-manual.html">統合手数料・リスクマニュアル</a> ·
+      <a class="doc-link" href="./icopay-hq-risk-filter-manual.html">フィルタ詳細（コード・DB）</a><br>
+      現状画面: <strong>運用管理 → リスク現状</strong> (<code>/risk/list</code>)<br>
+      PDF: <code>cd scripts && node operator-manual-pdf/gen.mjs risk</code>
+    </div>
+    <div class="warn-box">
+      <strong>命名原則:</strong> 加盟店・購入者UIにはPG名を表示しません（ICOPAY中立）。本マニュアルのJPAY・ChillPay・Eximbay表記は<strong>運用・内部連携</strong>説明用です。
+    </div>
+
+    <div class="toc">
+      <h2>📋 目次</h2>
+      <ol>
+        <li><a href="#s1">運用概要</a></li>
+        <li><a href="#s2">リスク設定 vs リスクフィルタリング</a></li>
+        <li><a href="#s3">全体処理フロー</a></li>
+        <li><a href="#s4">項目別「使用」時の動作</a></li>
+        <li><a href="#s5">事前フィルタ検査順</a></li>
+        <li><a href="#s6">遮断結果 · 運用確認</a></li>
+        <li><a href="#s7">運用推奨 · FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 class="section-title" id="s1">1. 運用概要</h2>
+    <p>本ドキュメントは、「リスクフィルタリング」で各スイッチを<strong>使用</strong>にした場合に<strong>実際にどのトリガーがいつ動作するか</strong>を運用視点で整理します。</p>
+    <ul>
+      <li>対象: 本社運用者 · 権限画面 M0129（リスク設定）</li>
+      <li>ポリシー保存: <code>tb_hq_risk_card_policy</code> (id=1) · 保存直後に全加盟店共通適用</li>
+      <li>事前遮断: PG（JPAY·ChillPay·Eximbay 等）呼出の<strong>直前</strong></li>
+      <li>事後クールダウン: JPAY pay_index <strong>以降</strong>の高リスク·PY0124（独立スイッチ）</li>
+    </ul>
+
+    <h2 class="section-title" id="s2">2. リスク設定 vs リスクフィルタリング</h2>
+    <table>
+      <thead><tr><th>領域</th><th>トリガー</th><th>結果</th></tr></thead>
+      <tbody>
+        <tr><td><strong>リスク設定</strong>（危険管理）</td><td>同一カード非成功（FAIL·取消·無効·未決済など）累積</td><td>1〜4次待機 · 非活性カード自動登録</td></tr>
+        <tr><td><strong>リスクフィルタリング</strong></td><td>形式·速度·連絡先不一致·疑わしい名義など</td><td>PG未呼出 · 電算取消(20) · リスク現状</td></tr>
+        <tr><td>加盟店リスク現状</td><td>加盟店別危険管理方式（本社/別途/未使用）</td><td>トリガー待機時間·自動登録の適用値を表示</td></tr>
+      </tbody>
+    </table>
+    <p>加盟店の「別途設定/未使用」は<strong>危険管理（累積トリガー）</strong>に優先します。<strong>事前フィルタスイッチ</strong>は本社ポリシーに従います。</p>
+
+    <h2 class="section-title" id="s3">3. 全体処理フロー</h2>
+    <div class="flow">購入者の決済試行
+  → （カードブランド·ポリシーなどその他検査）
+  → 【事前フィルタ使用=Y】なら項目別検査（§5の順）
+  → 違反時: PG未呼出 · 取消(20) · リスク現状 · 購入者案内
+  → 通過時: PG承認リクエスト
+  → （JPAYのみ）事後高リスク/PY0124 → クールダウン·現状（該当スイッチ=Yのとき）</div>
+    <div class="warn-box">ホステッド（カード番号未収集）フロー: メール·電話·氏名·IP·メール速度が中心。カードハッシュがなければカード速度·連絡先不一致は実質スキップ。</div>
+
+    <h2 class="section-title" id="s4">4. 項目別「使用」時の動作</h2>
+    <p>画面の各項目を<strong>使用(Y)</strong>で保存すると、下記トリガーが有効になります。<strong>未使用(N)</strong>なら該当検査のみスキップします。</p>
+
+    <h3 class="sub-title">4.0 事前フィルタ使用（マスター）</h3>
+    <table>
+      <thead><tr><th>区分</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>フィールド</td><td><code>presaleFilterEnabledYn</code></td></tr>
+        <tr><td>使用</td><td>§4.1〜4.8の個別事前フィルタを評価</td></tr>
+        <tr><td>未使用</td><td>個別がYでも<strong>すべてスキップ</strong>。JPAY事後クールダウン（§4.9〜4.10）には影響なし</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.1 異常メール</h3>
+    <table>
+      <thead><tr><th>区分</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>コード</td><td><code>EMAIL_INVALID</code></td></tr>
+        <tr><td>使用時</td><td>メールが空でなく形式が不正、ローカル部2文字未満·同一文字繰返し、<code>test.</code>/<code>example.</code>ドメインなら<strong>遮断</strong></td></tr>
+        <tr><td>備考</td><td>値が空ならこの検査は行わない</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.2 異常電話番号</h3>
+    <table>
+      <thead><tr><th>区分</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>コード</td><td><code>PHONE_INVALID</code></td></tr>
+        <tr><td>使用時</td><td>数字のみ抽出後の長さが7〜15外、同一数字繰返し、連続増減、<code>000000</code>パターンなどなら<strong>遮断</strong></td></tr>
+        <tr><td>備考</td><td>空ならスキップ</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.3 疑わしいholder名</h3>
+    <table>
+      <thead><tr><th>区分</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>コード</td><td><code>HOLDER_NAME_SUSPICIOUS</code></td></tr>
+        <tr><td>使用時</td><td>名義に Giftcard Holder、PayPay User、Merpay/Kyash Member、Business Card、VPRECA など<strong>プリペイド·代行·疑わしい文言</strong>があれば遮断</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.4 購入者連絡先不一致</h3>
+    <table>
+      <thead><tr><th>区分</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>コード</td><td><code>BUYER_EMAIL_MISMATCH</code> / <code>BUYER_PHONE_MISMATCH</code> / <code>BUYER_NAME_MISMATCH</code></td></tr>
+        <tr><td>使用時</td><td>同一カード（ハッシュ）·同一加盟店の<strong>直近1件</strong>と比較。メール·電話·氏名が異なれば遮断</td></tr>
+        <tr><td>備考</td><td>姓·名の順序入替のみでは不一致としない。カードハッシュがなければスキップ</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.5〜4.7 速度制限（カード · メール · IP）</h3>
+    <table>
+      <thead><tr><th>項目</th><th>コード</th><th>使用時</th></tr></thead>
+      <tbody>
+        <tr><td>カード速度制限</td><td><code>VELOCITY_CARD</code></td><td>同一カード·加盟店で窓（分）内の試行 ≥ 回数 → 遮断</td></tr>
+        <tr><td>メール速度制限</td><td><code>VELOCITY_EMAIL</code></td><td>同一メール·加盟店で同条件</td></tr>
+        <tr><td>IP速度制限</td><td><code>VELOCITY_IP</code></td><td>同一購入者IP·加盟店で同条件</td></tr>
+      </tbody>
+    </table>
+    <table>
+      <thead><tr><th>共通パラメータ</th><th>フィールド</th><th>既定 · 範囲</th></tr></thead>
+      <tbody>
+        <tr><td>速度制限窓（分）</td><td><code>velocityWindowMinutes</code></td><td>10 · 1〜1440</td></tr>
+        <tr><td>速度制限回数</td><td><code>velocityMaxAttempts</code></td><td>3 · 1〜99</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.9 JPAY事後高リスククールダウン</h3>
+    <table>
+      <thead><tr><th>区分</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>コード</td><td><code>POSTSALE_JPAY_HIGH_RISK</code></td></tr>
+        <tr><td>使用時</td><td>JPAY承認リクエスト<strong>以降</strong>の高リスク失敗をカードクールダウン·リスク現状に反映</td></tr>
+        <tr><td>未使用</td><td>該当分類はクールダウン集計から除外</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.10 JPAY PY0124クールダウン</h3>
+    <table>
+      <thead><tr><th>区分</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>コード</td><td><code>POSTSALE_JPAY_PY0124</code></td></tr>
+        <tr><td>使用時</td><td>JPAY <code>PY0124</code>失敗について高リスクと同様にクールダウン·現状を記録</td></tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-title" id="s5">5. 事前フィルタ検査順</h2>
+    <p>事前フィルタ使用=Yのとき、コードは<strong>下記の順で評価</strong>し、<strong>最初の違反で直ちに中断</strong>します。</p>
+    <ol class="step-list">
+      <li><strong>異常メール</strong> — <code>EMAIL_INVALID</code></li>
+      <li><strong>異常電話番号</strong> — <code>PHONE_INVALID</code></li>
+      <li><strong>疑わしいholder名</strong> — <code>HOLDER_NAME_SUSPICIOUS</code></li>
+      <li><strong>カード速度制限</strong> — <code>VELOCITY_CARD</code></li>
+      <li><strong>メール速度制限</strong> — <code>VELOCITY_EMAIL</code></li>
+      <li><strong>IP速度制限</strong> — <code>VELOCITY_IP</code></li>
+      <li><strong>購入者連絡先不一致</strong> — <code>BUYER_*_MISMATCH</code>（メール → 電話 → 氏名）</li>
+    </ol>
+    <div class="flow">① EMAIL_INVALID → ② PHONE_INVALID → ③ HOLDER_NAME_SUSPICIOUS
+→ ④ VELOCITY_CARD → ⑤ VELOCITY_EMAIL → ⑥ VELOCITY_IP
+→ ⑦ BUYER_EMAIL / PHONE / NAME_MISMATCH</div>
+    <div class="info-box">個別スイッチが未使用なら該当ステップのみスキップします。例: メール形式だけOFF → ①をスキップし②から。</div>
+
+    <h2 class="section-title" id="s6">6. 遮断結果 · 運用確認</h2>
+    <ol>
+      <li>PGへ承認リクエストを送らない</li>
+      <li>電算に1回試行·状態<strong>取消(20)</strong>を記録</li>
+      <li><code>tb_pay_risk_filter_event</code>へ格納 → <strong>運用管理 → リスク現状</strong></li>
+      <li>購入者応答: 多言語メッセージ · エラーコード <code>PRESALE_RISK_FILTER</code></li>
+    </ol>
+    <p>正常顧客が遮断された場合は現状の<code>filterCode</code>を確認し、該当項目のみ緩和（未使用）するか、速度窓/回数を調整します。</p>
+
+    <h2 class="section-title" id="s7">7. 運用推奨 · FAQ</h2>
+    <table>
+      <thead><tr><th>項目</th><th>推奨</th></tr></thead>
+      <tbody>
+        <tr><td>事前フィルタ使用</td><td>使用</td></tr>
+        <tr><td>形式·holder·速度3種</td><td>使用 · 窓10分 / 回数3回</td></tr>
+        <tr><td>連絡先不一致</td><td>使用（自動記憶は決済·URLタブ）</td></tr>
+        <tr><td>JPAY事後2種</td><td>使用</td></tr>
+      </tbody>
+    </table>
+    <ul>
+      <li><strong>一部のみOFF:</strong> 事前フィルタ=使用を維持し、問題項目のみ未使用</li>
+      <li><strong>すべてOFF:</strong> 事前フィルタ=未使用（個別Yでも動作しない）</li>
+      <li><strong>PGログに取引なし:</strong> 事前遮断が正常動作したケース</li>
+      <li><strong>自動記憶:</strong> 「リスクフィルタリング」ではなく、本社ポリシー → 決済·URL → 決済画面表示の既定値</li>
+    </ul>
+    <p>フィールド·DB·コード表は<a class="doc-link" href="./icopay-hq-risk-filter-manual.html">フィルタ詳細マニュアル</a>を参照してください。</p>
+  </div>
+
+  <div class="footer">
+    ICOPAY · リスクフィルタリング トリガー運用マニュアル · V2.40 · 2026-07-22<br>
+    PDF: <code>node operator-manual-pdf/gen.mjs risk</code>
+  </div>
+</div>
+</body>
+</html>

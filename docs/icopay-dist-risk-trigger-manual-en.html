@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICOPAY Distributor Risk Trigger Guide V2.43</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', 'Malgun Gothic', 'Noto Sans', sans-serif; font-size: 11pt; line-height: 1.75; color: #1a1a1a; background: #f0f2f8; }
+  .page-wrap { max-width: 960px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 18px rgba(0,0,0,.11); overflow: hidden; }
+  .cover { background: linear-gradient(135deg, #1a3a5c 0%, #1565c0 55%, #26a69a 100%); color: #fff; padding: 48px 52px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+  .cover-body { flex: 1; }
+  .cover-logo { flex-shrink: 0; padding-top: 4px; }
+  .cover-logo img { height: 64px; background: rgba(255,255,255,.92); padding: 10px 18px; border-radius: 8px; }
+  .cover .logo-line { font-size: 13pt; font-weight: 700; letter-spacing: 2px; opacity: .85; margin-bottom: 14px; }
+  .cover h1 { font-size: 22pt; font-weight: 900; line-height: 1.28; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 11pt; opacity: .82; margin-bottom: 24px; }
+  .cover .meta { font-size: 9.5pt; opacity: .65; border-top: 1px solid rgba(255,255,255,.25); padding-top: 14px; }
+  .lang-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .lang-bar a { color: #fff; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); border-radius: 999px; padding: 4px 12px; font-size: 9pt; text-decoration: none; font-weight: 700; }
+  .lang-bar a.active { background: #fff; color: #1565c0; }
+  .body { padding: 44px 52px 64px; }
+  .toc { background: #e8f5f3; border-left: 4px solid #00897b; border-radius: 0 8px 8px 0; padding: 20px 26px; margin-bottom: 44px; }
+  .toc h2 { font-size: 12pt; font-weight: 700; color: #00695c; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { font-size: 10pt; line-height: 2.1; }
+  .toc a { color: #00695c; text-decoration: none; }
+  h2.section-title { font-size: 15pt; font-weight: 800; color: #1a3a5c; border-bottom: 2.5px solid #00897b; padding-bottom: 7px; margin: 48px 0 18px; page-break-after: avoid; }
+  h3.sub-title { font-size: 12pt; font-weight: 700; color: #00897b; margin: 26px 0 10px; page-break-after: avoid; }
+  p { margin-bottom: 10px; }
+  .info-box  { background: #e0f2f1; border: 1px solid #80cbc4; border-left: 4px solid #00897b; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; }
+  .warn-box  { background: #fff8e1; border: 1px solid #ffe082; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #5d4037; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 22px; font-size: 10pt; page-break-inside: avoid; }
+  th { background: #1a3a5c; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #12274a; }
+  td { padding: 8px 12px; border: 1px solid #cfd8dc; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f7ff; }
+  .menu-path { display: inline-block; background: #eceff1; border: 1px solid #cfd8dc; border-radius: 5px; padding: 3px 12px; font-size: 9.5pt; font-weight: 600; margin-bottom: 12px; }
+  .menu-path::before { content: "📌 Check: "; }
+  .flow { background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; padding: 18px 22px; margin: 14px 0 20px; font-size: 10pt; white-space: pre-wrap; font-family: Consolas, monospace; }
+  ul, ol { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+  .footer { background: #1a3a5c; color: rgba(255,255,255,.6); text-align: center; font-size: 9pt; padding: 18px 24px; }
+  code { font-size: 9pt; background: #eceff1; padding: 1px 5px; border-radius: 3px; }
+  a.doc-link { color: #00695c; font-weight: 600; }
+  .faq-q { font-weight: 700; color: #1a3a5c; margin-top: 14px; }
+  .faq-a { margin-bottom: 10px; }
+  @media print {
+    body { background: #fff; font-size: 10pt; }
+    .page-wrap { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; }
+    .footer, .print-btn, .lang-bar { display: none !important; }
+    @page { size: A4; margin: 18mm 16mm; }
+  }
+  .print-btn { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #00897b; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 10.5pt; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(0,137,123,.45); }
+</style>
+</head>
+<body>
+<button type="button" class="print-btn" onclick="window.print()">🖨️ Print / Save PDF</button>
+<div class="page-wrap">
+  <div class="cover">
+    <div class="cover-body">
+      <div class="logo-line">ICOPAY · Payment Gateway</div>
+      <h1>Distributor Risk Trigger<br>Guide</h1>
+      <div class="subtitle">Based on Risk Settings &amp; Risk Filtering defaults — when each limit fires</div>
+      <div class="meta">ICOPAY Distributor Risk Trigger Guide · V2.43 · 2026-07-22 · Audience: Master distributors</div>
+      <div class="lang-bar">
+        <a href="./icopay-dist-risk-trigger-manual.html">KO</a>
+        <a class="active" href="./icopay-dist-risk-trigger-manual-en.html">EN</a>
+        <a href="./icopay-dist-risk-trigger-manual-ja.html">JP</a>
+        <a href="./icopay-dist-risk-trigger-manual-zh.html">CH</a>
+        <a href="./icopay-dist-risk-trigger-manual-th.html">TH</a>
+      </div>
+    </div>
+    <div class="cover-logo">
+      <img src="./logo-ontheline.png" alt="On The Line">
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="menu-path">Operations → Risk dashboard · Inactive cards · Merchant “Risk trigger”</div>
+    <div class="info-box">
+      <strong>HQ detail docs:</strong>
+      <a class="doc-link" href="./icopay-hq-risk-filter-trigger-manual-en.html">Trigger ops manual</a> ·
+      <a class="doc-link" href="./icopay-hq-risk-manual.html">Fees &amp; risk (KO)</a><br>
+      PDF: <code>cd scripts && node operator-manual-pdf/gen.mjs risk</code>
+    </div>
+    <div class="warn-box">
+      <strong>Naming:</strong> Merchant/buyer UI stays PG-neutral (ICOPAY). JPAY names here are for <strong>internal ops</strong> only.<br>
+      <strong>Policy changes:</strong> Risk Settings / Risk Filtering switches and numbers are changed only on the <strong>HQ policy screen</strong>. Distributors operate merchant risk mode, dashboards, and inactive cards.
+    </div>
+
+    <div class="toc">
+      <h2>📋 Contents</h2>
+      <ol>
+        <li><a href="#s1">What this guide covers</a></li>
+        <li><a href="#s2">When defaults apply</a></li>
+        <li><a href="#s3">Risk Settings — defaults &amp; triggers</a></li>
+        <li><a href="#s4">Risk Filtering — defaults &amp; triggers</a></li>
+        <li><a href="#s5">What distributors can do</a></li>
+        <li><a href="#s6">Where to check</a></li>
+        <li><a href="#s7">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 class="section-title" id="s1">1. What this guide covers</h2>
+    <p>HQ sets platform-wide safeguards under <strong>Risk Settings</strong> and <strong>Risk Filtering</strong>. If a merchant uses <strong>Follow HQ policy</strong>, the <strong>defaults below</strong> apply as-is.</p>
+    <table>
+      <thead><tr><th>Area</th><th>In short</th><th>Outcome</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Risk Settings</strong></td><td>Non-success attempts accumulate on the same card</td><td>Cooldown wait → inactive card after N failures</td></tr>
+        <tr><td><strong>Risk Filtering</strong></td><td>Format / velocity / contact issues (before sending to PG)</td><td>No PG call · cancel on ledger · Risk dashboard</td></tr>
+      </tbody>
+    </table>
+    <p><strong>One failure does not permanently ban a card.</strong> Filtering blocks that attempt only; Risk Settings escalate by count and wait time.</p>
+
+    <h2 class="section-title" id="s2">2. When defaults apply</h2>
+    <ul>
+      <li>Merchant risk policy = <strong>Follow HQ</strong> (or unset → follow HQ)</li>
+      <li>HQ has not changed system defaults (figures in this doc = built-in defaults)</li>
+    </ul>
+    <div class="info-box">With <strong>Custom</strong> merchant policy, only tier waits and auto-inactive tier override HQ. <strong>Presale filter switches and velocity windows/attempts</strong> remain HQ-wide.</div>
+
+    <h2 class="section-title" id="s3">3. Risk Settings — defaults &amp; triggers</h2>
+    <p>Non-success (FAIL, cancel, void, unpaid, etc.) on the same card adds a wait before the next try. CVV/format errors are excluded; a <strong>successful payment resets the count</strong>.</p>
+    <table>
+      <thead><tr><th>Item</th><th>Default</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td>Risk management</td><td><strong>On</strong></td><td>Tiers and auto-inactive rules run</td></tr>
+        <tr><td>Tier 1 wait</td><td><strong>5 min</strong></td><td>After 1 non-success → block same card for 5 min</td></tr>
+        <tr><td>Tier 2 wait</td><td><strong>10 min</strong></td><td>After 2 → 10 min</td></tr>
+        <tr><td>Tier 3 wait</td><td><strong>1 hour</strong></td><td>After 3 → 1 hour</td></tr>
+        <tr><td>Tier 4 wait</td><td><strong>0 (none)</strong></td><td>Tied to auto-inactive instead of a wait</td></tr>
+        <tr><td>Auto-register trigger</td><td><strong>4</strong></td><td>At 4 non-successes in track window → <strong>inactive card</strong>; further tries blocked until release</td></tr>
+        <tr><td>Track period</td><td><strong>Off</strong></td><td>Accumulate without time window (reset on success)</td></tr>
+      </tbody>
+    </table>
+    <div class="flow">1 non-success → 5 min cooldown
+2 → 10 min
+3 → 1 hour
+4 → inactive card (long block until manual release)
+1 success → reset count</div>
+    <div class="warn-box">JPAY postsale high-risk / PY0124 (when HQ switches are On) also <strong>count as one failure</strong> toward this cooldown. If Off, they may still log to the dashboard but do not count.</div>
+
+    <h2 class="section-title" id="s4">4. Risk Filtering — defaults &amp; triggers</h2>
+    <p>Checked <strong>just before</strong> sending an auth request to the payment processor. A hit blocks that attempt only and appears on the Risk dashboard.</p>
+
+    <h3 class="sub-title">4.1 Switch defaults (all On)</h3>
+    <table>
+      <thead><tr><th>Item</th><th>Default</th><th>Example trigger</th></tr></thead>
+      <tbody>
+        <tr><td>Presale filter master</td><td>On</td><td>If Off, all individual filters are skipped even if On</td></tr>
+        <tr><td>Invalid email</td><td>On</td><td>Bad format / suspicious domain</td></tr>
+        <tr><td>Invalid phone</td><td>On</td><td>Length / repeat / sequential patterns</td></tr>
+        <tr><td>Suspicious holder name</td><td>On</td><td>Prepaid / proxy-like phrases</td></tr>
+        <tr><td>Buyer contact mismatch</td><td>On</td><td>Email/phone/name differs from last use of same card</td></tr>
+        <tr><td>Card / email / IP velocity</td><td>On</td><td>Too many attempts in a short window</td></tr>
+        <tr><td>JPAY postsale high-risk / PY0124 cooldown</td><td>On</td><td>Counts into §3 cooldown</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">4.2 Velocity defaults (per channel)</h3>
+    <table>
+      <thead><tr><th>Channel</th><th>Window</th><th>Attempts</th><th>Trigger</th></tr></thead>
+      <tbody>
+        <tr><td>Card</td><td><strong>10 min</strong></td><td><strong>3</strong></td><td>≥3 tries same card+merchant in 10 min → block</td></tr>
+        <tr><td>Email</td><td><strong>30 min</strong></td><td><strong>5</strong></td><td>≥5 same email+merchant in 30 min</td></tr>
+        <tr><td>IP</td><td><strong>15 min</strong></td><td><strong>10</strong></td><td>≥10 same IP+merchant in 15 min (shared-network friendly)</td></tr>
+      </tbody>
+    </table>
+    <div class="info-box">Hosted flows without card PAN mainly use email / phone / name / IP checks.</div>
+
+    <h2 class="section-title" id="s5">5. What distributors can do</h2>
+    <table>
+      <thead><tr><th>You can</th><th>Ask HQ</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>
+            · Merchant risk mode: Follow HQ / Custom / Off<br>
+            · Under Custom: tier waits &amp; auto-register tier<br>
+            · Risk dashboard · inactive card register/release (within permission)
+          </td>
+          <td>
+            · Risk Settings waits &amp; auto-inactive tier<br>
+            · Risk Filtering switches &amp; velocity numbers<br>
+            · Platform-wide policy changes
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-title" id="s6">6. Where to check</h2>
+    <ul>
+      <li><strong>Operations → Risk dashboard</strong> — filter codes / postsale codes</li>
+      <li><strong>Operations → Inactive cards</strong> — auto/manual register &amp; release</li>
+      <li>Merchant detail → <strong>Risk trigger</strong> — Follow HQ vs custom waits</li>
+    </ul>
+
+    <h2 class="section-title" id="s7">7. FAQ</h2>
+    <div class="faq-q">Q. Does one failure permanently ban the card?</div>
+    <div class="faq-a">A. No. Defaults are cooldowns (5→10→60 min); at <strong>4</strong> failures the card is auto-registered inactive. Success resets the count.</div>
+    <div class="faq-q">Q. What do I see when filtering blocks?</div>
+    <div class="faq-a">A. No transaction at the processor; ledger shows cancel; Risk dashboard lists the event.</div>
+    <div class="faq-q">Q. Can distributors change 10 min / 3 card velocity?</div>
+    <div class="faq-a">A. No — only HQ Risk Filtering.</div>
+    <div class="faq-q">Q. If merchant risk is Off?</div>
+    <div class="faq-a">A. Only that merchant’s <strong>card cooldown / auto-inactive</strong> stops. HQ presale filtering still runs.</div>
+  </div>
+
+  <div class="footer">
+    ICOPAY · Distributor Risk Trigger Guide · V2.43 · 2026-07-22<br>
+    PDF: <code>node operator-manual-pdf/gen.mjs risk</code>
+  </div>
+</div>
+</body>
+</html>

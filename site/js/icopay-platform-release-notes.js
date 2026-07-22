@@ -6,13 +6,547 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '2.25';
+  var CURRENT_LIVE = '2.47';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '2.47',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '운영매뉴얼: 사이트 내 미리보기 대신 클릭 시 새 창에서 HTML 열기(브라우저 인쇄·PDF 저장)',
+          '언어(KO/EN/JP/CH/TH) 선택 후 해당 HTML 문서 오픈 · 조직 단계 노출 필터 유지'
+        ],
+        EN: [
+          'Ops manuals: open HTML in a new window on click (browser print / Save as PDF) instead of in-page preview',
+          'Language KO/EN/JP/CH/TH selects the HTML document; org-tier filter unchanged'
+        ],
+        JP: [
+          '運営マニュアル: 画面内プレビューではなくクリックで新しい窓にHTMLを開く(ブラウザ印刷・PDF保存)',
+          '言語(KO/EN/JP/CH/TH)選択で該当HTMLを表示 · 組織段階フィルタは維持'
+        ],
+        CH: [
+          '运营手册：点击后在新窗口打开 HTML（浏览器打印/另存 PDF），不再站内预览',
+          '按语言(KO/EN/JP/CH/TH)打开对应 HTML；组织层级过滤不变'
+        ],
+        TH: [
+          'คู่มือปฏิบัติการ: คลิกแล้วเปิด HTML ในหน้าต่างใหม่ (พิมพ์/บันทึก PDF จากเบราว์เซอร์) แทนพรีวิวในหน้า',
+          'เลือกภาษา KO/EN/JP/CH/TH เพื่อเปิดเอกสาร HTML · กรองระดับองค์กรเหมือนเดิม'
+        ]
+      }
+    },
+    {
+      version: '2.46',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '운영매뉴얼 메뉴 위치: 본사정책·플랫폼 → 운영관리(통합리포트 아래)로 이동',
+          '로그인 조직 단계 이하 매뉴얼만 노출(총본사=전체, 본사·총판=본사/총판·가맹, 지사~가맹=가맹점용) · 5개국어'
+        ],
+        EN: [
+          'Ops manuals menu moved: HQ Policy · Platform → Operations (below Integrated report)',
+          'Show manuals for login org tier and below only (Super HQ=all; HQ/Distributor=hqdist+merchant; Branch~Merchant=merchant) · 5 languages'
+        ],
+        JP: [
+          '運営マニュアルメニューを本社政策・プラットフォーム→運用管理(統合レポート下)へ移動',
+          'ログイン組織段階以下のマニュアルのみ表示(総本部=全体、本社・総代理=hqdist+加盟、支社〜加盟=加盟向け) · 5言語'
+        ],
+        CH: [
+          '运营手册菜单位置：总部策略·平台 → 运营管理（综合报表下方）',
+          '仅显示登录组织层级及以下手册（总本部=全部；总部/总代理=hqdist+商户；支店~商户=商户）· 5 语'
+        ],
+        TH: [
+          'ย้ายเมนูคู่มือปฏิบัติการ: นโยบาย HQ·แพลตฟอร์ม → การปฏิบัติการ (ใต้รายงานรวม)',
+          'แสดงเฉพาะคู่มือระดับองค์กรที่ล็อกอินและต่ำกว่า (สำนักงานใหญ่สูงสุด=ทั้งหมด; HQ/ตัวแทน=hqdist+ร้าน; สาขา~ร้าน=ร้าน) · 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '2.45',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '접근·권한(본사 권한·사용자·업체 접근) 메뉴명·순서를 왼쪽 사이드바 허브·탭과 동일하게 맞춤(예: 수수료·리스크 → 결제·URL …)',
+          '권한 목록 표시: 「허브 › 탭」 형식, 5개국어(KOR/ENG/JPN/CHN/THA)'
+        ],
+        EN: [
+          'Access & permissions screens: menu names/order match left sidebar hubs & tabs (e.g. Fees & risk → Payments & URL …)',
+          'Permission list labels use “Hub › Tab”; 5 languages (KO/EN/JP/CH/TH)'
+        ],
+        JP: [
+          'アクセス・権限画面のメニュー名・順序を左サイドバーのハブ・タブと同一に(例: 手数料・リスク → 決済・URL …)',
+          '権限一覧は「ハブ › タブ」表記、5言語対応'
+        ],
+        CH: [
+          '访问与权限画面的菜单名称/顺序与左侧边栏枢纽·页签一致（例：手续费与风险 → 支付与 URL …）',
+          '权限列表显示为「枢纽 › 页签」，支持 5 语'
+        ],
+        TH: [
+          'หน้าจอสิทธิ์การเข้าถึง: ชื่อเมนูและลำดับตรงกับฮับ/แท็บแถบซ้าย (เช่น ค่าธรรมเนียมและความเสี่ยง → ชำระเงินและ URL …)',
+          'รายการสิทธิ์แสดงแบบ “ฮับ › แท็บ” รองรับ 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '2.44',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '본사정책 → 플랫폼 → 운영매뉴얼 탭 추가(HTML·인쇄/PDF, 총본사 브랜드 연동, 라이브 버전 동기)',
+          '역할별 매뉴얼 10종×5개국어: 총본사 3 · 본사/총판 6 · 가맹 1'
+        ],
+        EN: [
+          'HQ Policy → Platform → Ops manuals tab (HTML, print/PDF, Super HQ branding, live version sync)',
+          '10 manuals × 5 languages: Super HQ 3 · HQ/Distributor 6 · Merchant 1'
+        ],
+        JP: [
+          '本社政策→プラットフォーム→運営マニュアルタブ追加(HTML・印刷/PDF、総本部ブランド、ライブ版同期)',
+          '役割別10種×5言語: 総本部3・本社/総代理6・加盟1'
+        ],
+        CH: [
+          '总部策略→平台→运营手册页签（HTML、打印/PDF、总本部品牌、与线上版本同步）',
+          '分角色手册 10 种×5 语：总本部 3 · 总部/总代理 6 · 商户 1'
+        ],
+        TH: [
+          'เพิ่มแท็บคู่มือปฏิบัติการในแพลตฟอร์ม (HTML พิมพ์/PDF แบรนด์สำนักงานใหญ่ สอดคล้องเวอร์ชันสด)',
+          'คู่มือ 10 รายการ×5 ภาษา: สำนักงานใหญ่ 3 · HQ/ตัวแทน 6 · ร้านค้า 1'
+        ]
+      }
+    },
+    {
+      version: '2.43',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '총판용 리스크 트리거 설명안(HTML·PDF) 추가 — 리스크설정·리스크 필터링 기본값 기준 발동 안내 (KO/EN/JP/CH/TH)'
+        ],
+        EN: [
+          'Add Distributor Risk Trigger Guide (HTML/PDF): Risk Settings & Filtering defaults and when triggers fire (KO/EN/JP/CH/TH)'
+        ],
+        JP: [
+          '総代理店向けリスクトリガー説明(HTML・PDF)追加 — リスク設定・フィルタ既定値の発火案内 (KO/EN/JP/CH/TH)'
+        ],
+        CH: [
+          '新增总代理风险触发说明(HTML/PDF) — 基于风险设置与风险过滤默认值的触发说明 (KO/EN/JP/CH/TH)'
+        ],
+        TH: [
+          'เพิ่มคู่มือทริกเกอร์ความเสี่ยงสำหรับตัวแทนจำหน่าย (HTML/PDF) — ค่าเริ่มต้นการตั้งค่า/ตัวกรองและความหมายเมื่อทำงาน (KO/EN/JP/CH/TH)'
+        ]
+      }
+    },
+    {
+      version: '2.42',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '노티관리 생성 이력: 관리 열 Callback·Result·수정·삭제 버튼 크기 축소'
+        ],
+        EN: [
+          'NOTI provision history: smaller Callback/Result/Edit/Delete action buttons'
+        ],
+        JP: [
+          'ノティ管理の作成履歴: 管理列 Callback・Result・修正・削除ボタンを縮小'
+        ],
+        CH: [
+          'NOTI 管理创建历史：管理列 Callback/Result/修改/删除按钮缩小'
+        ],
+        TH: [
+          'ประวัติสร้าง NOTI: ย่อปุ่ม Callback/Result/แก้ไข/ลบ ในคอลัมน์จัดการ'
+        ]
+      }
+    },
+    {
+      version: '2.41',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '리스크 필터링: 카드·이메일·IP 속도제한 창/횟수 분리 설정(기본 카드10/3·이메일30/5·IP15/10, 수정 가능)'
+        ],
+        EN: [
+          'Risk filtering: separate card/email/IP velocity window and attempts (defaults 10/3, 30/5, 15/10; editable)'
+        ],
+        JP: [
+          'リスクフィルタ: カード・メール・IP速度制限の窓/回数を分離(既定 カード10/3・メール30/5・IP15/10、変更可)'
+        ],
+        CH: [
+          '风险过滤：卡/邮箱/IP 速度限制窗口与次数分开设置（默认 10/3、30/5、15/10，可改）'
+        ],
+        TH: [
+          'ตัวกรองความเสี่ยง: แยกช่วง/ครั้งของบัตร·อีเมล·IP (ค่าเริ่ม 10/3, 30/5, 15/10 แก้ได้)'
+        ]
+      }
+    },
+    {
+      version: '2.40',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '리스크 필터링 트리거 운영 매뉴얼(HTML·PDF) 추가 — 항목별 사용 동작·사전필터 검사순서 (KO/EN/JP/CH/TH)'
+        ],
+        EN: [
+          'Add Risk Filtering Trigger Ops Manual (HTML/PDF): per-item Enabled behavior and presale check order (KO/EN/JP/CH/TH)'
+        ],
+        JP: [
+          'リスクフィルタリングトリガー運用マニュアル(HTML・PDF)追加 — 項目別使用動作・事前フィルタ検査順 (KO/EN/JP/CH/TH)'
+        ],
+        CH: [
+          '新增风险过滤触发运营手册(HTML/PDF) — 各项启用行为与预检顺序 (KO/EN/JP/CH/TH)'
+        ],
+        TH: [
+          'เพิ่มคู่มือทริกเกอร์ตัวกรองความเสี่ยง (HTML/PDF) — พฤติกรรมเมื่อเปิดใช้และลำดับตรวจก่อนส่ง (KO/EN/JP/CH/TH)'
+        ]
+      }
+    },
+    {
+      version: '2.39',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '상단 언어 전환 시 열린 탭 목록이 비는 오류 수정(노티관리 생성이력 등 커스텀 바인드 화면 재조회)',
+          '언어 전환·탭 재진입 공통: 1회 바인드 플래그 초기화로 다국어 화면 공백 방지'
+        ],
+        EN: [
+          'Fix empty lists on language switch for open tabs (NOTI provision history and other custom-bound screens reload)',
+          'Locale switch and tab revisit: reset one-time bind flags so multilingual screens stay populated'
+        ],
+        JP: [
+          '上部言語切替で開いているタブ一覧が空になる不具合を修正(ノティ管理の作成履歴などカスタムバインド画面を再読込)',
+          '言語切替・タブ再入場共通: 1回バインドフラグ初期化で多言語画面の空白を防止'
+        ],
+        CH: [
+          '修复切换顶部语言后已打开标签列表变空的问题（NOTI 管理创建记录等自定义绑定画面会重新加载）',
+          '语言切换与标签重进：统一重置一次性绑定标志，避免多语言画面空白'
+        ],
+        TH: [
+          'แก้รายการในแท็บที่เปิดอยู่หายเมื่อสลับภาษา (โหลดประวัติสร้าง NOTI และหน้า bind พิเศษใหม่)',
+          'สลับภาษา/เปิดแท็บซ้ำ: รีเซ็ตแฟล็ก bind ครั้งเดียว เพื่อไม่ให้หน้าหลายภาษาว่าง'
+        ]
+      }
+    },
+    {
+      version: '2.38',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          'JPAY 노티 생성: 연동방식 「URL 하이브리드」 추가 — URL 대체송부(개발) + 가맹점 노티 callback/result URL 송부',
+          '노티 생성·이력 수정 UI·안내·오류 문구 다국어(EN/JP/CH/TH)'
+        ],
+        EN: [
+          'JPAY NOTI provision: add URL hybrid mode — URL alt-dev send plus merchant callback/result URLs',
+          'NOTI create/edit UI, hints, and errors localized (EN/JP/CH/TH)'
+        ],
+        JP: [
+          'JPAYノティ作成: 連携方式「URLハイブリッド」追加 — URL代替送付(開発)+加盟店callback/result URL送付',
+          'ノティ作成・履歴修正UI・案内・エラーの多言語(EN/JP/CH/TH)'
+        ],
+        CH: [
+          'JPAY NOTI 创建：新增对接方式「URL 混合」— URL 替代开发发送 + 商户 callback/result URL',
+          'NOTI 创建/编辑界面、提示与错误多语言(EN/JP/CH/TH)'
+        ],
+        TH: [
+          'สร้าง NOTI JPAY: เพิ่มโหมด URL ไฮบริด — ส่งสำรองแบบ URL(dev) + ส่ง callback/result ของร้าน',
+          'UI/คำแนะนำ/ข้อผิดพลาดหน้าสร้าง·แก้ไข NOTI รองรับหลายภาษา'
+        ]
+      }
+    },
+    {
+      version: '2.37',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '수수료관리 편집 행 색: 결제내역 「성공」파스텔(#d1fae5)과 동일'
+        ],
+        EN: [
+          'Commission editing row uses Payment list Success pastel (#d1fae5)'
+        ],
+        JP: [
+          '手数料管理の編集行色を決済一覧「成功」パステル(#d1fae5)に統一'
+        ],
+        CH: [
+          '手续费管理编辑行颜色与支付列表「成功」淡绿(#d1fae5)一致'
+        ],
+        TH: [
+          'สีแถวแก้ไขค่าธรรมเนียมให้ตรงกับพาสเทล「สำเร็จ」(#d1fae5)'
+        ]
+      }
+    },
+    {
+      version: '2.36',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '수수료관리 고정 열폭 조정(No3·업체코드7·관리7·적용시작일7)'
+        ],
+        EN: [
+          'Commission list fixed widths: No. 3, company code 7, manage 7, start date 7'
+        ],
+        JP: [
+          '手数料管理の固定列幅調整(No3・加盟店コード7・管理7・適用開始日7)'
+        ],
+        CH: [
+          '手续费管理固定列宽调整（No.3、商户代码7、管理7、适用开始日7）'
+        ],
+        TH: [
+          'ปรับความกว้างคอลัมน์คงที่ (No.3 / รหัสร้าน7 / จัดการ7 / วันเริ่ม7)'
+        ]
+      }
+    },
+    {
+      version: '2.35',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '수수료관리 고정 열폭 조정(체크2·No4·가맹12·코드8·통화4·관리6·적용일8)',
+          '수수료관리: 금일 수정 행 하이라이트 제거, 현재 편집 행만 파스텔 연두 표시'
+        ],
+        EN: [
+          'Commission list fixed column widths adjusted (Check2/No4/Merchant12/Code8/Cur4/Manage6/Start8)',
+          'Commission list: remove today-changed highlight; editing row only in pastel lime'
+        ],
+        JP: [
+          '手数料管理の固定列幅調整(チェック2・No4・加盟12・コード8・通貨4・管理6・適用日8)',
+          '手数料管理: 本日変更ハイライト削除、編集中行のみパステル黄緑'
+        ],
+        CH: [
+          '手续费管理固定列宽调整（勾选2/No4/商户12/代码8/货币4/管理6/开始日8）',
+          '手续费管理：取消今日修改高亮，仅当前编辑行为淡绿黄'
+        ],
+        TH: [
+          'ปรับความกว้างคอลัมน์คงที่ค่าธรรมเนียม (เช็ค2/No4/ร้าน12/รหัส8/สกุล4/จัดการ6/วันเริ่ม8)',
+          'จัดการค่าธรรมเนียม: เลิกไฮไลต์แก้วันนี้ เหลือเฉพาะแถวที่กำลังแก้เป็นเขียวอ่อน'
+        ]
+      }
+    },
+    {
+      version: '2.34',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '수수료관리: 체크·No·가맹점·업체코드·통화·관리·적용시작일 열폭 고정, 나머지·헬로 추가 열은 잔여 폭 균등 분배',
+          '수수료관리: 금일 수정·현재 편집 행 하이라이트를 파스텔 회색 톤으로 변경'
+        ],
+        EN: [
+          'Commission list: fixed widths for Check/No/Merchant/Code/Currency/Manage/Start date; leftover shared by other & Hello columns',
+          'Commission list: today-changed and editing row highlights use pastel gray'
+        ],
+        JP: [
+          '手数料管理: チェック・No・加盟・コード・通貨・管理・適用開始日は固定幅、残り・ハロー追加列は残余均等',
+          '手数料管理: 本日変更・編集中行のハイライトをパステルグレーに変更'
+        ],
+        CH: [
+          '手续费管理：勾选/No/商户/代码/货币/管理/开始日列宽固定，其余及 Hello 追加列均分剩余宽度',
+          '手续费管理：今日修改与编辑中行高亮改为淡灰'
+        ],
+        TH: [
+          'จัดการค่าธรรมเนียม: ตรึงความกว้าง เช็ค/No/ร้าน/รหัส/สกุล/จัดการ/วันเริ่ม ส่วนอื่นและคอลัมน์ Hello แบ่งที่เหลือ',
+          'จัดการค่าธรรมเนียม: ไฮไลต์แถวแก้วันนี้/กำลังแก้เป็นเทาพาสเทล'
+        ]
+      }
+    },
+    {
+      version: '2.33',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '수수료관리: 셀 클릭 수정 시 열 너비 고정(과확장 방지)',
+          '수수료관리: 금일 수정 행 파스텔 녹색 · 현재 편집 행 진한 파스텔 연두 표시'
+        ],
+        EN: [
+          'Commission list: keep column width when editing a cell (no expand)',
+          'Commission list: pastel green for rows changed today; darker pastel lime for the row being edited'
+        ],
+        JP: [
+          '手数料管理: セル編集時に列幅を固定(過拡張防止)',
+          '手数料管理: 本日変更行はパステル緑・編集中行は濃いパステル黄緑'
+        ],
+        CH: [
+          '手续费管理：点击单元格编辑时固定列宽（防撑开）',
+          '手续费管理：今日修改行为淡绿；正在编辑行为较深的淡黄绿'
+        ],
+        TH: [
+          'จัดการค่าธรรมเนียม: ล็อกความกว้างคอลัมน์ตอนแก้ไขเซลล์ (ไม่ขยาย)',
+          'จัดการค่าธรรมเนียม: แถวที่แก้วันนี้เขียวพาสเทล · แถวที่กำลังแก้เขียวอ่อนเข้มกว่า'
+        ]
+      }
+    },
+    {
+      version: '2.32',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '수수료관리 합계(요율%·건당료) 숫자를 빨간색으로 강조 표시'
+        ],
+        EN: [
+          'Commission list total amounts (rate % / per-txn) highlighted in red'
+        ],
+        JP: [
+          '手数料管理の合計(料率%・件当)を赤色で強調表示'
+        ],
+        CH: [
+          '手续费管理合计（费率%/按笔）以红色突出显示'
+        ],
+        TH: [
+          'เน้นยอดรวมค่าธรรมเนียม (%/ต่อรายการ) ด้วยสีแดง'
+        ]
+      }
+    },
+    {
+      version: '2.31',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '수수료관리 합계(요율%·건당료) 읽기 전용 — 상위 조직 합산 표시만, 클릭 수정 불가'
+        ],
+        EN: [
+          'Commission list totals (rate % / per-txn) read-only — display sum only, no click-to-edit'
+        ],
+        JP: [
+          '手数料管理の合計(料率%・件当)は読取専用 — 上位組織合算表示のみ、クリック編集不可'
+        ],
+        CH: [
+          '手续费管理合计（费率%/按笔）只读 — 仅显示上级汇总，不可点击修改'
+        ],
+        TH: [
+          'ยอดรวมค่าธรรมเนียม (%/ต่อรายการ) อ่านอย่างเดียว — แสดงผลรวมเท่านั้น แก้ด้วยคลิกไม่ได้'
+        ]
+      }
+    },
+    {
+      version: '2.30',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '수수료관리 저장 OTP: 1회 인증 후 10분 유지·수수료 관련 작업 시 슬라이딩 연장(무활동 시 재요청)'
+        ],
+        EN: [
+          'Commission save OTP: valid 10 minutes after one verify; sliding extend on fee-related activity; re-prompt after idle'
+        ],
+        JP: [
+          '手数料管理保存OTP: 1回認証後10分維持・関連操作でスライディング延長(無操作時は再要求)'
+        ],
+        CH: [
+          '手续费保存 OTP：验证一次后 10 分钟有效；相关操作滑动延长；无操作则再次要求'
+        ],
+        TH: [
+          'OTP บันทึกค่าธรรมเนียม: ใช้ได้ 10 นาทีหลังยืนยันครั้งหนึ่ง ขยายเมื่อมีกิจกรรม ขอใหม่เมื่อว่าง'
+        ]
+      }
+    },
+    {
+      version: '2.29',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '수수료관리: 본사정책 따름이어도 가맹 저장·변경이력 배분을 우선 표시(목록만 기본값으로 보이던 오류 수정)',
+          '수수료관리 저장 시 Google OTP 필수 — 실수 저장·초기화 방지'
+        ],
+        EN: [
+          'Commission list: prefer merchant-saved / history distribution even when Follow HQ (fix list showing defaults)',
+          'Google OTP required to save commission fees — prevent accidental overwrite'
+        ],
+        JP: [
+          '手数料管理: 本社ポリシー準拠でも加盟保存・変更履歴の配分を優先表示(一覧のみ既定値になる不具合修正)',
+          '手数料保存時にGoogle OTP必須 — 誤保存・初期化防止'
+        ],
+        CH: [
+          '手续费管理：即使跟随总部政策也优先显示商户已存/变更履历分成（修复列表显示默认值）',
+          '保存手续费须 Google OTP — 防止误存与重置'
+        ],
+        TH: [
+          'จัดการค่าธรรมเนียม: แม้ตามนโยบาย HQ ก็แสดงการแบ่งที่ร้านบันทึก/ประวัติก่อน (แก้รายการโชว์ค่าเริ่มต้น)',
+          'บันทึกค่าธรรมเนียมต้อง Google OTP — กันบันทึกผิด/รีเซ็ต'
+        ]
+      }
+    },
+    {
+      version: '2.28',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '본사정책 수수료·리스크 매뉴얼 HTML·PDF 출력(통합·필터 상세) — gen.mjs risk'
+        ],
+        EN: [
+          'HQ Fees & risk manuals as HTML/PDF (integrated + filter detail) via gen.mjs risk'
+        ],
+        JP: [
+          '本社ポリシー 手数料・リスク マニュアル HTML・PDF（統合・フィルタ詳細）— gen.mjs risk'
+        ],
+        CH: [
+          '总部政策 手续费与风险手册 HTML/PDF（整合+过滤详情）— gen.mjs risk'
+        ],
+        TH: [
+          'คู่มือค่าธรรมเนียม·ความเสี่ยง HQ เป็น HTML/PDF (รวม+รายละเอียดตัวกรอง) — gen.mjs risk'
+        ]
+      }
+    },
+    {
+      version: '2.27',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '모든로그인제한: 조직 단계→검색·드롭다운으로 업체 선택 후 사용/미사용/일시중지(상위 조직은 하위 포함, 가맹은 해당만)'
+        ],
+        EN: [
+          'Login restriction: pick org level → search/dropdown company, then Allow/Deny/Pause (parent orgs include subtree; merchants alone)'
+        ],
+        JP: [
+          '全ログイン制限: 組織段階→検索・ドロップダウンで業者選択後に使用/未使用/一時停止(上位は下位含む、加盟は当該のみ)'
+        ],
+        CH: [
+          '全部登录限制：选组织层级→搜索/下拉选商户后使用/停用/暂停（上级含下级，商户仅自身）'
+        ],
+        TH: [
+          'จำกัดล็อกอินทั้งหมด: เลือกระดับ→ค้นหา/รายการเลือกร้าน แล้วใช้/ไม่ใช้/หยุดชั่วคราว (ระดับสูงรวมลูก ร้านเฉพาะร้าน)'
+        ]
+      }
+    },
+    {
+      version: '2.26',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '본사정책 수수료·리스크 — 리스크설정·리스크필터링 운영 매뉴얼 정리(동작·항목·가맹 적용·FAQ)'
+        ],
+        EN: [
+          'HQ Fees & risk: operator manuals for Risk settings and Risk filtering (behavior, fields, merchant override, FAQ)'
+        ],
+        JP: [
+          '本社ポリシー 手数料・リスク — リスク設定・フィルタリング運用マニュアル整備'
+        ],
+        CH: [
+          '总部政策 手续费与风险 — 风险设置/过滤运营手册整理'
+        ],
+        TH: [
+          'นโยบาย HQ ค่าธรรมเนียม·ความเสี่ยง — คู่มือตั้งค่า/กรองความเสี่ยง'
+        ]
+      }
+    },
     {
       version: '2.25',
       kind: 'minor',

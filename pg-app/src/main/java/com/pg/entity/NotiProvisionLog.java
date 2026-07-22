@@ -45,7 +45,7 @@ public class NotiProvisionLog {
     private String dealmaiPartnerCode;
 
     /** API | URL */
-    @Column(name = "integration_mode", length = 8)
+    @Column(name = "integration_mode", length = 16)
     private String integrationMode = "API";
 
     /** Y=NOTI 신규 생성, N=기존 동일 */

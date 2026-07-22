@@ -87,17 +87,21 @@ public class PayPresaleRiskFilterService {
             return Optional.of(block(PayPresaleRiskFilterCodes.HOLDER_NAME_SUSPICIOUS, lang, Map.of()));
         }
 
-        int windowMin = intOr(policy.getVelocityWindowMinutes(), 10);
-        int maxAttempts = intOr(policy.getVelocityMaxAttempts(), 3);
-        LocalDateTime since = LocalDateTime.now().minusMinutes(Math.max(1, windowMin));
-
         if ("Y".equalsIgnoreCase(trim(policy.getFilterVelocityCardYn())) && !cardHash.isEmpty()) {
+            int windowMin = intOr(policy.getVelocityCardWindowMinutes(),
+                    intOr(policy.getVelocityWindowMinutes(), 10));
+            int maxAttempts = intOr(policy.getVelocityCardMaxAttempts(),
+                    intOr(policy.getVelocityMaxAttempts(), 3));
+            LocalDateTime since = LocalDateTime.now().minusMinutes(Math.max(1, windowMin));
             long cnt = pgTrnsctnRepository.countRecentByCardPanHash(cardHash, merchantId, since);
             if (cnt >= maxAttempts) {
                 return Optional.of(block(PayPresaleRiskFilterCodes.VELOCITY_CARD, lang, Map.of()));
             }
         }
         if ("Y".equalsIgnoreCase(trim(policy.getFilterVelocityEmailYn())) && !email.isEmpty()) {
+            int windowMin = intOr(policy.getVelocityEmailWindowMinutes(), 30);
+            int maxAttempts = intOr(policy.getVelocityEmailMaxAttempts(), 5);
+            LocalDateTime since = LocalDateTime.now().minusMinutes(Math.max(1, windowMin));
             long cnt = pgTrnsctnRepository.countRecentByCustomerEmail(
                     merchantId, PayPresaleRiskFilterCodes.normalizeEmail(email), since);
             if (cnt >= maxAttempts) {
@@ -105,6 +109,9 @@ public class PayPresaleRiskFilterService {
             }
         }
         if ("Y".equalsIgnoreCase(trim(policy.getFilterVelocityIpYn())) && !clientIp.isEmpty()) {
+            int windowMin = intOr(policy.getVelocityIpWindowMinutes(), 15);
+            int maxAttempts = intOr(policy.getVelocityIpMaxAttempts(), 10);
+            LocalDateTime since = LocalDateTime.now().minusMinutes(Math.max(1, windowMin));
             long cnt = pgTrnsctnRepository.countRecentByPayerIp(merchantId, clientIp, since);
             if (cnt >= maxAttempts) {
                 return Optional.of(block(PayPresaleRiskFilterCodes.VELOCITY_IP, lang, Map.of()));
