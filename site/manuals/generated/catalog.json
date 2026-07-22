@@ -1,6 +1,8 @@
 {
-  "version": "2.46",
+  "version": "2.54",
   "date": "2026-07-22",
+  "format": "pdf",
+  "note": "All manuals are formal PDF under site/manuals/pdf/{id}/{lang}.pdf — opened via API with PDF-cover logo header. Menu label: 운영 메뉴얼.",
   "audiences": [
     {
       "id": "super",
@@ -15,7 +17,7 @@
     {
       "id": "hqdist",
       "labels": {
-        "ko": "본사 및 총판용",
+        "ko": "본사·총판용",
         "en": "HQ & Distributor",
         "ja": "本社・総代理向け",
         "zh": "总部与总代理",
@@ -37,122 +39,80 @@
     {
       "id": "super-ops",
       "audience": "super",
+      "format": "pdf",
       "titles": {
         "ko": "총본사 운영 메뉴얼",
-        "en": "Super HQ Operations Manual",
+        "en": "MHQ Operations Manual",
         "ja": "総本部 運営マニュアル",
         "zh": "总本部运营手册",
         "th": "คู่มือปฏิบัติการสำนักงานใหญ่สูงสุด"
       },
-      "pathPrefix": "manuals/generated/super-ops"
+      "pdfDir": "manuals/pdf/super-ops"
     },
     {
-      "id": "super-org-reg",
-      "audience": "super",
-      "titles": {
-        "ko": "신규 조직 등록 메뉴얼",
-        "en": "New Organization Registration Manual",
-        "ja": "新規組織登録マニュアル",
-        "zh": "新组织注册手册",
-        "th": "คู่มือลงทะเบียนองค์กรใหม่"
-      },
-      "pathPrefix": "manuals/generated/super-org-reg"
-    },
-    {
-      "id": "super-risk",
-      "audience": "super",
-      "titles": {
-        "ko": "리스크관리 메뉴얼",
-        "en": "Risk Management Manual",
-        "ja": "リスク管理マニュアル",
-        "zh": "风险管理手册",
-        "th": "คู่มือจัดการความเสี่ยง"
-      },
-      "pathPrefix": "manuals/generated/super-risk"
-    },
-    {
-      "id": "hqdist-ops",
+      "id": "hq-ops",
       "audience": "hqdist",
+      "format": "pdf",
       "titles": {
-        "ko": "본사 및 총판 운영 메뉴얼",
-        "en": "HQ &amp; Distributor Operations Manual",
-        "ja": "本社・総代理店 運営マニュアル",
-        "zh": "总部与总代理运营手册",
-        "th": "คู่มือปฏิบัติการ HQ และตัวแทนจำหน่าย"
+        "ko": "본사 운영 메뉴얼",
+        "en": "Headquarters Operation Manual",
+        "ja": "本社 運営マニュアル",
+        "zh": "总部运营手册",
+        "th": "คู่มือปฏิบัติการ HQ"
       },
-      "pathPrefix": "manuals/generated/hqdist-ops"
+      "pdfDir": "manuals/pdf/hq-ops"
     },
     {
-      "id": "hqdist-merchant-add",
+      "id": "dist-ops",
       "audience": "hqdist",
+      "format": "pdf",
       "titles": {
-        "ko": "신규가맹점 추가 메뉴얼",
-        "en": "New Merchant Onboarding Manual",
-        "ja": "新規加盟店追加マニュアル",
-        "zh": "新商户添加手册",
-        "th": "คู่มือเพิ่มร้านค้าใหม่"
+        "ko": "총판 운영 메뉴얼",
+        "en": "Distributor Operation Manual",
+        "ja": "総代理店 運営マニュアル",
+        "zh": "总代理运营手册",
+        "th": "คู่มือปฏิบัติการตัวแทนจำหน่าย"
       },
-      "pathPrefix": "manuals/generated/hqdist-merchant-add"
-    },
-    {
-      "id": "hqdist-chatbot",
-      "audience": "hqdist",
-      "titles": {
-        "ko": "챗봇결제 운영 메뉴얼",
-        "en": "Chatbot Payment Operations Manual",
-        "ja": "チャットボット決済 運営マニュアル",
-        "zh": "聊天机器人支付运营手册",
-        "th": "คู่มือปฏิบัติการชำระผ่านแชทบอท"
-      },
-      "pathPrefix": "manuals/generated/hqdist-chatbot"
-    },
-    {
-      "id": "hqdist-subscription",
-      "audience": "hqdist",
-      "titles": {
-        "ko": "정기결제 운영 메뉴얼",
-        "en": "Subscription (Recurring) Payment Manual",
-        "ja": "定期決済（購読）運営マニュアル",
-        "zh": "定期支付（订阅）运营手册",
-        "th": "คู่มือชำระรายงวด (สมัครสมาชิก)"
-      },
-      "pathPrefix": "manuals/generated/hqdist-subscription"
-    },
-    {
-      "id": "hqdist-split",
-      "audience": "hqdist",
-      "titles": {
-        "ko": "분할결제 운영 메뉴얼",
-        "en": "Split Payment Operations Manual",
-        "ja": "分割決済 運営マニュアル",
-        "zh": "分期支付运营手册",
-        "th": "คู่มือปฏิบัติการแบ่งจ่าย"
-      },
-      "pathPrefix": "manuals/generated/hqdist-split"
+      "pdfDir": "manuals/pdf/dist-ops"
     },
     {
       "id": "hqdist-risk-intro",
       "audience": "hqdist",
+      "format": "pdf",
       "titles": {
         "ko": "리스크 트리거 발동 소개 안내",
-        "en": "Risk Trigger Introduction (for Merchants)",
+        "en": "Risk Trigger Introduction",
         "ja": "リスクトリガー発火のご案内",
-        "zh": "风险触发介绍（面向商户）",
-        "th": "แนะนำทริกเกอร์ความเสี่ยง (สำหรับร้านค้า)"
+        "zh": "风险触发介绍",
+        "th": "แนะนำทริกเกอร์ความเสี่ยง"
       },
-      "pathPrefix": "manuals/generated/hqdist-risk-intro"
+      "pdfDir": "manuals/pdf/hqdist-risk-intro"
     },
     {
-      "id": "merchant-user",
+      "id": "merchant-ops",
       "audience": "merchant",
+      "format": "pdf",
       "titles": {
-        "ko": "가맹점 유저 메뉴얼",
-        "en": "Merchant User Manual",
-        "ja": "加盟店ユーザーマニュアル",
-        "zh": "商户用户手册",
-        "th": "คู่มือผู้ใช้ร้านค้า"
+        "ko": "가맹점 운영 메뉴얼",
+        "en": "Merchant Operations Manual",
+        "ja": "加盟店 運営マニュアル",
+        "zh": "商户运营手册",
+        "th": "คู่มือปฏิบัติการร้านค้า"
       },
-      "pathPrefix": "manuals/generated/merchant-user"
+      "pdfDir": "manuals/pdf/merchant-ops"
+    },
+    {
+      "id": "merchant-chatbot",
+      "audience": "merchant",
+      "format": "pdf",
+      "titles": {
+        "ko": "챗봇결제 가맹점 사용 메뉴얼",
+        "en": "Chatbot Payment — Merchant Manual",
+        "ja": "チャットボット決済 加盟店マニュアル",
+        "zh": "聊天机器人支付商户手册",
+        "th": "คู่มือร้านค้าชำระผ่านแชทบอท"
+      },
+      "pdfDir": "manuals/pdf/merchant-chatbot"
     }
   ]
 }

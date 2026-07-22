@@ -6,13 +6,192 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '2.47';
+  var CURRENT_LIVE = '2.54';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '2.54',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '운영 메뉴얼 문서언어 선택 순서·표기를 관리자 UI와 동일하게 통일(JP → KR → EN → CH → TH)'
+        ],
+        EN: [
+          'Ops manuals document-language chips match admin UI order/labels (JP → KR → EN → CH → TH)'
+        ],
+        JP: [
+          '運営マニュアルの文書言語選択を管理UIと同じ順・表記に統一(JP → KR → EN → CH → TH)'
+        ],
+        CH: [
+          '运营手册文档语言选择顺序与标签与管理端 UI 一致（JP → KR → EN → CH → TH）'
+        ],
+        TH: [
+          'ลำดับ/ป้ายภาษาเอกสารคู่มือให้ตรงกับ UI แอดมิน (JP → KR → EN → CH → TH)'
+        ]
+      }
+    },
+    {
+      version: '2.53',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '운영 메뉴얼: 메뉴명 통일(운영매뉴얼 → 운영 메뉴얼), 목록·브레드크럼·다국어 동기화',
+          '모든 매뉴얼 PDF 통일(가맹점 운영 메뉴얼 HTML → PDF, KO/EN/JP/CH/TH)',
+          '새 창 헤더 로고: PDF 표지와 동일한 「on the line」 PNG(흰 바탕)만 사용'
+        ],
+        EN: [
+          'Ops manuals: unify menu name (Ops manuals), sync list/breadcrumb/i18n',
+          'All manuals as PDF (merchant ops HTML → PDF, KO/EN/JP/CH/TH)',
+          'New-window header logo: same PDF-cover “on the line” PNG (white plate)'
+        ],
+        JP: [
+          '運営マニュアル: メニュー名統一、一覧・パンくず・多言語同期',
+          '全マニュアルをPDFに統一(加盟店運営HTML→PDF、KO/EN/JP/CH/TH)',
+          '新窓ヘッダーロゴ: PDF表紙と同じ「on the line」PNG(白プレート)のみ'
+        ],
+        CH: [
+          '运营手册：菜单名统一、列表/面包屑/多语言同步',
+          '全部手册统一为 PDF（商户运营 HTML→PDF，KO/EN/JP/CH/TH）',
+          '新窗口页眉 Logo：仅使用与 PDF 封面相同的「on the line」PNG（白底）'
+        ],
+        TH: [
+          'คู่มือปฏิบัติการ: ชื่อเมนูให้ตรงกัน ซิงก์รายการ/breadcrumb/หลายภาษา',
+          'คู่มือทั้งหมดเป็น PDF (คู่มือร้าน HTML→PDF, KO/EN/JP/CH/TH)',
+          'โลโก้หัวหน้าต่างใหม่: PNG 「on the line」เดียวกับปก PDF (พื้นขาว)'
+        ]
+      }
+    },
+    {
+      version: '2.52',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '운영매뉴얼 화면: JS 문법 오류로 「운영매뉴얼을 불러올 수 없습니다」만 나오던 문제 수정(목록·다국어·가맹점 운영 매뉴얼 정상 표시)'
+        ],
+        EN: [
+          'Ops manuals screen: fix JS syntax error that showed only “Could not load ops manuals” (list, i18n, merchant ops manual restored)'
+        ],
+        JP: [
+          '運営マニュアル画面: JS構文エラーで「読み込めません」のみ表示されていた不具合を修正(一覧・多言語・加盟店マニュアル復旧)'
+        ],
+        CH: [
+          '运营手册画面：修复导致仅显示“无法加载运营手册”的 JS 语法错误（列表、多语言、商户手册恢复）'
+        ],
+        TH: [
+          'หน้าคู่มือ: แก้ข้อผิดพลาด syntax JS ที่ทำให้ขึ้นข้อความโหลดไม่ได้เท่านั้น (รายการ หลายภาษา คู่มือร้านค้ากลับมา)'
+        ]
+      }
+    },
+    {
+      version: '2.51',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '가맹점 운영 매뉴얼 추가(KO/EN/JP/CH/TH): 권한 화면 기준 — 업체정보·결제 URL 복사, 결제내역, 수수료·정산, API·챗봇, 일상 체크리스트',
+          '운영매뉴얼 목록에서 가맹점용 HTML 매뉴얼을 새 창으로 열람·인쇄/PDF 저장'
+        ],
+        EN: [
+          'Added Merchant Operations Manual (KO/EN/JP/CH/TH): permission screens — company info & payment URL copy, payment list, fees/settlement, API/chatbot, daily checklist',
+          'Open the merchant HTML manual from Ops manuals in a new window (print / Save as PDF)'
+        ],
+        JP: [
+          '加盟店運営マニュアル追加(KO/EN/JP/CH/TH): 権限画面 — 業者情報・決済URLコピー、決済一覧、手数料・精算、API・ボット、日常チェック',
+          '運営マニュアル一覧から加盟向けHTMLを新窓で閲覧・印刷/PDF保存'
+        ],
+        CH: [
+          '新增商户运营手册(KO/EN/JP/CH/TH)：按权限画面 — 企业信息与支付 URL 复制、支付列表、手续费/结算、API/机器人、日常清单',
+          '运营手册列表中可新窗口打开商户 HTML 手册（打印/另存 PDF）'
+        ],
+        TH: [
+          'เพิ่มคู่มือปฏิบัติการร้านค้า (KO/EN/JP/CH/TH): ตามหน้าจอสิทธิ์ — ข้อมูลบริษัทและคัดลอก URL ชำระ รายการชำระ ค่าธรรมเนียม/ชำระผล API/แชทบอท เช็คลิสต์',
+          'เปิดคู่มือ HTML ของร้านจากเมนูคู่มือในหน้าต่างใหม่ (พิมพ์/บันทึก PDF)'
+        ]
+      }
+    },
+    {
+      version: '2.50',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '운영매뉴얼 새 창 로고: 사이드바용 작은 아이콘 대신 PDF 표지와 동일한 「on the line」형 전체 브랜드 마크 표시',
+          '로고 이미지에 브랜드명이 포함되면 상호명(OTL HQ 등) 중복 표기 제거'
+        ],
+        EN: [
+          'Ops manual window logo: show full PDF-cover brand mark (not the small sidebar icon)',
+          'When the logo image includes the brand name, omit duplicate company-name text'
+        ],
+        JP: [
+          '運営マニュアル新窓ロゴ: サイドバー用の小さいアイコンではなくPDF表紙と同じフルブランドマークを表示',
+          'ロゴ画像にブランド名が含まれる場合は社名の重複表示をやめる'
+        ],
+        CH: [
+          '运营手册窗口 Logo：改用与 PDF 封面相同的完整品牌标识，而非侧栏小图标',
+          'Logo 图已含品牌名时不再重复显示公司名'
+        ],
+        TH: [
+          'โลโก้หน้าต่างคู่มือ: ใช้เครื่องหมายแบรนด์แบบปก PDF ไม่ใช่ไอคอนแถบข้างขนาดเล็ก',
+          'ถ้าโลโก้มีชื่อแบรนด์แล้ว จะไม่ซ้ำชื่อบริษัท'
+        ]
+      }
+    },
+    {
+      version: '2.49',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '운영매뉴얼: 한 장짜리 HTML 스텁 제거 → 정식 V3 PDF(총본사·본사·총판·리스크·챗봇가맹) 연동',
+          '새 창 좌측 상단에 총본사 로고·업체정보 표시(예제 매뉴얼과 동일 레이아웃) · 언어별 PDF'
+        ],
+        EN: [
+          'Ops manuals: replace one-page HTML stubs with formal V3 PDFs (MHQ, HQ, Distributor, Risk, Chatbot merchant)',
+          'New window shows HQ logo and company info top-left (same layout as sample manuals) · per-language PDF'
+        ],
+        JP: [
+          '運営マニュアル: 1枚HTMLスタブを廃止し正式V3 PDF(総本部・本社・総代理・リスク・チャットボット加盟)を連携',
+          '新窓の左上に総本部ロゴ・会社情報を表示(サンプルと同じレイアウト) · 言語別PDF'
+        ],
+        CH: [
+          '运营手册：移除单页 HTML 草稿，接入正式 V3 PDF（总本部、总部、总代理、风险、聊天机器人商户）',
+          '新窗口左上显示总本部 Logo 与公司信息（与示例手册相同）· 按语言 PDF'
+        ],
+        TH: [
+          'คู่มือปฏิบัติการ: เลิกใช้ HTML หน้าเดียว — เชื่อม PDF V3 จริง (MHQ, HQ, ตัวแทน, ความเสี่ยง, chatbot ร้านค้า)',
+          'หน้าต่างใหม่แสดงโลโก้/ข้อมูลสำนักงานใหญ่ซ้ายบน (แบบตัวอย่าง) · PDF ตามภาษา'
+        ]
+      }
+    },
+    {
+      version: '2.48',
+      kind: 'minor',
+      date: '2026-07-22',
+      items: {
+        KO: [
+          '운영매뉴얼 새 창: 정적 경로 SPA(대시보드) 오인 수정 — API로 HTML 본문 수신 후 Blob으로 표시'
+        ],
+        EN: [
+          'Ops manuals new window: fix SPA/dashboard mistaken load — fetch HTML via API and open as Blob'
+        ],
+        JP: [
+          '運営マニュアル新窓: 静的パスがSPA(ダッシュボード)になる誤りを修正 — APIでHTML取得しBlob表示'
+        ],
+        CH: [
+          '运营手册新窗口：修复静态路径误开 SPA/仪表盘 — 经 API 取 HTML 并以 Blob 打开'
+        ],
+        TH: [
+          'คู่มือหน้าต่างใหม่: แก้กรณีเส้นทางสแตติกเปิด SPA/แดชบอร์ด — ดึง HTML ผ่าน API แล้วเปิดด้วย Blob'
+        ]
+      }
+    },
     {
       version: '2.47',
       kind: 'minor',

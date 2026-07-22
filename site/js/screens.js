@@ -7775,7 +7775,7 @@
         if (typeof window !== 'undefined' && window.ICOPAY_PLATFORM_MANUALS && typeof window.ICOPAY_PLATFORM_MANUALS.renderHtml === 'function') {
           return window.ICOPAY_PLATFORM_MANUALS.renderHtml();
         }
-        return '<div class="text-muted small" data-pg-ui-t="운영매뉴얼을 불러올 수 없습니다.">운영매뉴얼을 불러올 수 없습니다.</div>';
+        return '<div class="text-muted small" data-pg-ui-t="운영 메뉴얼을 불러올 수 없습니다.">운영 메뉴얼을 불러올 수 없습니다.</div>';
       },
       summary: [],
       buttons: []
@@ -7787,7 +7787,7 @@
         if (typeof window !== 'undefined' && window.ICOPAY_PLATFORM_MANUALS && typeof window.ICOPAY_PLATFORM_MANUALS.renderHtml === 'function') {
           return window.ICOPAY_PLATFORM_MANUALS.renderHtml();
         }
-        return '<div class="text-muted small" data-pg-ui-t="운영매뉴얼을 불러올 수 없습니다.">운영매뉴얼을 불러올 수 없습니다.</div>';
+        return '<div class="text-muted small" data-pg-ui-t="운영 메뉴얼을 불러올 수 없습니다.">운영 메뉴얼을 불러올 수 없습니다.</div>';
       },
       summary: [],
       buttons: []

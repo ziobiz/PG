@@ -1588,6 +1588,67 @@
     hqPlatformManualsBrand: function () {
       return get('/api/hq/platformManuals/brand').then(function (r) { return r.data || r; });
     },
+    hqPlatformManualsContent: function (id, lang) {
+      var q = '?id=' + encodeURIComponent(id || '') + '&lang=' + encodeURIComponent(lang || 'ko');
+      return get('/api/hq/platformManuals/content' + q).then(function (r) { return r.data || r; });
+    },
+    /** 정식 운영 메뉴얼 PDF (ArrayBuffer). 인증 헤더 포함. */
+    hqPlatformManualsPdf: function (id, lang) {
+      var base = getBaseUrl();
+      var q = '?id=' + encodeURIComponent(id || '') + '&lang=' + encodeURIComponent(lang || 'ko');
+      var url = base + '/api/hq/platformManuals/pdf' + q;
+      var headers = acceptLanguageHeaders({ Accept: 'application/pdf' });
+      var token = getToken();
+      if (token) headers.Authorization = 'Bearer ' + token;
+      return fetch(url, {
+        method: 'GET',
+        headers: headers,
+        credentials: 'omit',
+        mode: 'cors',
+        cache: 'no-store'
+      }).then(function (res) {
+        if (res.status === 401) {
+          clearAuth();
+          if (typeof window.location !== 'undefined') {
+            window.location.replace((window.location.origin || '') + '/login.html');
+          }
+          return Promise.reject(new Error(apiT('인증이 만료되었습니다. 다시 로그인하세요.', 'Your session has expired. Please sign in again.')));
+        }
+        if (!res.ok) {
+          return res.text().then(function (text) {
+            var msg = '';
+            try {
+              var j = JSON.parse(text);
+              msg = (j && (j.message || (j.data && j.data.message))) || '';
+            } catch (eParse) { /* ignore */ }
+            if (!msg) msg = apiT('매뉴얼 PDF를 불러올 수 없습니다.', 'Could not load the manual PDF.');
+            return Promise.reject(new Error(String(msg)));
+          });
+        }
+        return res.arrayBuffer();
+      });
+    },
+    /** PDF 표지형 브랜드 로고(PNG ArrayBuffer) */
+    hqPlatformManualsCoverLogo: function (id) {
+      var base = getBaseUrl();
+      var url = base + '/api/hq/platformManuals/coverLogo?id=' + encodeURIComponent(id || '');
+      var headers = acceptLanguageHeaders({ Accept: 'image/png,image/*' });
+      var token = getToken();
+      if (token) headers.Authorization = 'Bearer ' + token;
+      return fetch(url, {
+        method: 'GET',
+        headers: headers,
+        credentials: 'omit',
+        mode: 'cors',
+        cache: 'no-store'
+      }).then(function (res) {
+        if (!res.ok) return Promise.reject(new Error('cover logo missing'));
+        return res.arrayBuffer().then(function (buf) {
+          var ct = res.headers.get('Content-Type') || 'image/png';
+          return { buf: buf, contentType: ct };
+        });
+      });
+    },
     hqRiskCardPolicySave: function (body) {
       return post('/api/hq/riskCardPolicy/save', body || {}).then(function (r) { return r.data; });
     },

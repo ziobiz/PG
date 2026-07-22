@@ -2841,8 +2841,8 @@
     '/hq/hub/org-view': { label: '조직·화면', parent: '본사정책' },
     '/hq/hub/platform': { label: '플랫폼', parent: '본사정책' },
     '/hq/platformReleaseNotes': { label: '업데이트 내용', parent: '본사정책' },
-    '/ops/opsManuals': { label: '운영매뉴얼', parent: '운영관리' },
-    '/hq/platformOpsManuals': { label: '운영매뉴얼', parent: '운영관리' },
+    '/ops/opsManuals': { label: '운영 메뉴얼', parent: '운영관리' },
+    '/hq/platformOpsManuals': { label: '운영 메뉴얼', parent: '운영관리' },
     '/hq/hub/access': { label: '접근·권한', parent: '본사정책' },
     '/hq/hub/merchant-api': { label: '가맹 API 출시', parent: '연동·배포' }
   };

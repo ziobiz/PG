@@ -109,7 +109,7 @@ public final class PageMenuCatalog {
         add(list, "/ops/mailLog", "M0602", "메일관리", "운영관리");
         add(list, "/ops/opsMng", "M0601", "운영관리", "운영관리");
         add(list, "/ops/integratedReport", "M0604", "통합리포트", "운영관리");
-        add(list, "/ops/opsManuals", "M0614", "운영매뉴얼", "운영관리");
+        add(list, "/ops/opsManuals", "M0614", "운영 메뉴얼", "운영관리");
         add(list, "/ops/verifyReport", "M0605", "검증리포트", "운영관리");
         add(list, "/ops/taxReport", "M0603", "TAX리포트", "운영관리");
         /* 연동·배포 — 사이드바 허브·탭 순서 */
