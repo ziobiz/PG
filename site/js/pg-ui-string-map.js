@@ -511,6 +511,14 @@
   M['등록된 사용자가 없습니다.']={EN:'No registered users.',JP:'登録されたユーザーがありません。',CH:'暂无已登记用户。',TH:'ยังไม่มีผู้ใช้ที่ลงทะเบียน'};
   M['SUPERVISOR로 지정할 사용자를 선택하세요.']={EN:'Select a user to assign as SUPERVISOR.',JP:'SUPERVISORに指定するユーザーを選択してください。',CH:'请选择要指定为 SUPERVISOR 的用户。',TH:'เลือกผู้ใช้ที่จะมอบเป็น SUPERVISOR'};
   M['SUPERVISOR 역할 사용자만 노티생성을 사용할 수 있습니다.']={EN:'Only SUPERVISOR role users can use NOTI provision.',JP:'SUPERVISORロールのユーザーのみノティ作成を使用できます。',CH:'仅 SUPERVISOR 角色用户可使用 NOTI 创建。',TH:'เฉพาะผู้ใช้บทบาท SUPERVISOR เท่านั้นที่ใช้การสร้าง NOTI ได้'};
+  M['총본사·본사·총판 조직만 노티관리를 사용할 수 있습니다.']={EN:'Only Headquarters, Regional HQ, or Master Distributor orgs can use NOTI management.',JP:'本社・地域本社・総代理店組織のみノティ管理を使用できます。',CH:'仅总部、区域总部或总代理组织可使用 NOTI 管理。',TH:'เฉพาะองค์กรสำนักงานใหญ่/ภูมิภาค/ตัวแทนใหญ่เท่านั้นที่ใช้จัดการ NOTI ได้'};
+  M['본사권한설정에서 이 메뉴 권한이 없습니다.']={EN:'This menu is not permitted in HQ access rights.',JP:'本社権限設定でこのメニュー権限がありません。',CH:'总部权限设置中无此菜单权限。',TH:'ไม่มีสิทธิ์เมนูนี้ในการตั้งค่าสิทธิ์ HQ'};
+  M['삭제(SUPERVISOR)']={EN:'Delete (SUPERVISOR)',JP:'削除(SUPERVISOR)',CH:'删除(SUPERVISOR)',TH:'ลบ(SUPERVISOR)'};
+  M['수정(SUPERVISOR)']={EN:'Modify (SUPERVISOR)',JP:'修正(SUPERVISOR)',CH:'修改(SUPERVISOR)',TH:'แก้ไข(SUPERVISOR)'};
+  M['옵저버(SUPERVISOR)']={EN:'Observer (SUPERVISOR)',JP:'オブザーバー(SUPERVISOR)',CH:'观察者(SUPERVISOR)',TH:'ผู้สังเกต(SUPERVISOR)'};
+  M['SUPERVISOR 전용']={EN:'SUPERVISOR only',JP:'SUPERVISOR専用',CH:'仅 SUPERVISOR',TH:'เฉพาะ SUPERVISOR'};
+  M['SUPERVISOR 전용 — 조직 권한이 있어도 SUPERVISOR만 사용']={EN:'SUPERVISOR only — org grant still requires SUPERVISOR to use',JP:'SUPERVISOR専用 — 組織権限があってもSUPERVISORのみ使用可',CH:'仅 SUPERVISOR — 即使有组织权限也仅 SUPERVISOR 可用',TH:'เฉพาะ SUPERVISOR — มีสิทธิ์องค์กรแล้วก็ใช้ได้เฉพาะ SUPERVISOR'};
+  M['총본사(HEADQUARTERS) 또는 시스템 ADMIN만 SUPERVISOR 역할을 부여·해제할 수 있습니다. 조직(총본사·본사·총판)을 선택한 뒤 해당 조직의 사용자 중 SUPERVISOR를 지정합니다. SUPERVISOR로 지정된 사용자만 운영관리 「노티관리」를 사용할 수 있습니다. 본사권한설정에서 총판 등에 삭제(전체)를 줘도 일반 사용자는 접근할 수 없으며, 매트릭스에는 삭제(SUPERVISOR)로 표시됩니다.']={EN:'Only HQ or system ADMIN can assign SUPERVISOR. Ops 「NOTI management」 is SUPERVISOR-only even if org matrix shows Delete; the matrix shows Delete (SUPERVISOR).',JP:'SUPERVISOR付与は本社/システムADMINのみ。運用「ノティ管理」は組織権限があってもSUPERVISORのみ。マトリクスは削除(SUPERVISOR)表示。',CH:'仅总部/系统ADMIN可授予SUPERVISOR。运营「NOTI管理」即使组织权限为删除也仅SUPERVISOR可用；矩阵显示删除(SUPERVISOR)。',TH:'เฉพาะ HQ/ADMIN ระบบกำหนด SUPERVISOR ได้ 「จัดการ NOTI」ใช้ได้เฉพาะ SUPERVISOR แม้สิทธิ์องค์กรเป็นลบ — แสดงเป็น ลบ(SUPERVISOR)'};
   M['SUPERVISOR 역할 해제는 본사설정 → 사용자설정에서만 가능합니다.']={EN:'SUPERVISOR can only be revoked in HQ settings → User settings.',JP:'SUPERVISORの解除は本社設定→ユーザー設定でのみ可能です。',CH:'解除 SUPERVISOR 仅可在总部设置→用户设置中进行。',TH:'ถอน SUPERVISOR ได้เฉพาะในการตั้งค่าสำนักงานใหญ่ → ผู้ใช้'};
   M['관리담당 비밀번호 초기화']={EN:'관리담당 Password 초기화',JP:'관리담당 パスワード 초기화',CH:'관리담당 密码 초기화',TH:'관리담당 รหัสผ่าน 초기화'};
   M['관리담당 사용자관리 권한']={EN:'관리담당 User management 권한',JP:'관리담당 ユーザー管理 권한',CH:'관리담당 用户管理 권한',TH:'관리담당 จัดการผู้ใช้ 권한'};
@@ -1789,6 +1797,20 @@
   M['업체성격 보조 메모(선택)']={EN:'업체성격 보조 메모(선택)',JP:'업체성격 보조 메모(선택)',CH:'업체성격 보조 메모(선택)',TH:'업체성격 보조 메모(선택)'};
   M['업체전화']={EN:'Company phone',JP:'店舗電話',CH:'公司电话',TH:'โทรศัพท์ร้าน'};
   M['업체전화*']={EN:'Company phone*',JP:'店舗電話*',CH:'公司电话*',TH:'โทรศัพท์ร้าน*'};
+
+  M['영업정보 / 기타']={EN:'Sales info / Other',JP:'営業情報 / その他',CH:'营业信息 / 其他',TH:'ข้อมูลธุรกิจ / อื่นๆ'};
+  M['온라인']={EN:'Online',JP:'オンライン',CH:'线上',TH:'ออนไลน์'};
+  M['도메인 또는 상호명']={EN:'Domain or trade name',JP:'ドメインまたは屋号',CH:'域名或商号',TH:'โดเมนหรือชื่อร้าน'};
+  M['도메인 입력 (예: example.com)']={EN:'Enter domain (e.g. example.com)',JP:'ドメイン入力 (例: example.com)',CH:'请输入域名（例: example.com）',TH:'กรอกโดเมน (เช่น example.com)'};
+  M['상호명 (마트·클럽 등)']={EN:'Trade name (mart, club, etc.)',JP:'屋号 (マート・クラブ等)',CH:'商号（超市、俱乐部等）',TH:'ชื่อร้าน (มาร์ท คลับ ฯลฯ)'};
+  M['선택 입력']={EN:'Optional text',JP:'任意入力',CH:'选填',TH:'กรอกได้ (ไม่บังคับ)'};
+  M['영업정보 / 기타를 선택하세요.']={EN:'Select Sales info / Other.',JP:'営業情報 / その他を選択してください。',CH:'请选择营业信息 / 其他。',TH:'เลือกข้อมูลธุรกิจ / อื่นๆ'};
+  M['온라인은 도메인을 입력하세요.']={EN:'Enter a domain for Online.',JP:'オンラインはドメインを入力してください。',CH:'线上请填写域名。',TH:'ออนไลน์ต้องกรอกโดเมน'};
+  M['오프라인은 상호명을 입력하세요.']={EN:'Enter a trade name for Offline.',JP:'オフラインは屋号を入力してください。',CH:'线下请填写商号。',TH:'ออฟไลน์ต้องกรอกชื่อร้าน'};
+  M['이메일을 입력하세요.']={EN:'Enter an email.',JP:'メールを入力してください。',CH:'请输入邮箱。',TH:'กรอกอีเมล'};
+  M['올바른 이메일 형식을 입력하세요.']={EN:'Enter a valid email.',JP:'正しいメール形式を入力してください。',CH:'请输入正确的邮箱格式。',TH:'กรอกรูปแบบอีเมลให้ถูกต้อง'};
+  M['업체전화를 입력하세요.']={EN:'Enter company phone.',JP:'店舗電話を入力してください。',CH:'请输入公司电话。',TH:'กรอกโทรศัพท์ร้าน'};
+  M['이메일*']={EN:'Email*',JP:'メール*',CH:'邮箱*',TH:'อีเมล*'};
   M['업체접근설정']={EN:'Merchant access',JP:'加盟店アクセス',CH:'商户访问',TH:'การเข้าถึงร้าน'};
   M['업체정보']={EN:'Merchant detail',JP:'加盟店情報',CH:'商户信息',TH:'รายละเอียดร้าน'};
   M['업체정보조회']={EN:'Merchant lookup',JP:'加盟店情報照会',CH:'商户查询',TH:'ค้นหาร้านค้า'};
@@ -1966,7 +1988,7 @@
   M['오류코드']={EN:'오류코드',JP:'오류코드',CH:'오류코드',TH:'오류코드'};
   M['오른쪽 붉은 그래프']={EN:'오른쪽 붉은 그래프',JP:'오른쪽 붉은 그래프',CH:'오른쪽 붉은 그래프',TH:'오른쪽 붉은 그래프'};
   M['오름차순']={EN:'Ascending',JP:'昇順',CH:'升序',TH:'น้อยไปมาก'};
-  M['오프라인']={EN:'Offline',JP:'オフライン',CH:'离线',TH:'ออฟไลน์'};
+  M['오프라인']={EN:'Offline',JP:'オフライン',CH:'线下',TH:'ออฟไลน์'};
   M['옵저버']={EN:'Observer',JP:'オブザーバー',CH:'观察者',TH:'ผู้สังเกตการณ์'};
   M['옵저버(조회만)']={EN:'Observer (view only)',JP:'オブザーバー(参照のみ)',CH:'观察者(仅查看)',TH:'ผู้สังเกตการณ์(ดูอย่างเดียว)'};
   M['옵저버(헬로)']={EN:'Observer (Hello)',JP:'オブザーバー(Hello)',CH:'观察者(提示)',TH:'ผู้สังเกตการณ์(Hello)'};
@@ -3724,9 +3746,13 @@
   M['본사 권한']={EN:'HQ permissions',JP:'本社権限',CH:'总部权限',TH:'สิทธิ์ HQ'};
   M['사용자']={EN:'User',JP:'ユーザー',CH:'用户',TH:'ผู้ใช้'};
   M['업체 접근']={EN:'Merchant access',JP:'加盟店アクセス',CH:'商户访问',TH:'การเข้าถึงร้าน'};
-  M['① 공통설정']={EN:'① Common',JP:'① 共通設定',CH:'① 通用设置',TH:'① ทั่วไป'};
-  M['② 가맹 등록']={EN:'② Register merchant',JP:'② 加盟店登録',CH:'② 注册商户',TH:'② ลงทะเบียนร้าน'};
-  M['③ 키·문서']={EN:'③ Keys & docs',JP:'③ キー・文書',CH:'③ 密钥与文档',TH:'③ คีย์และเอกสาร'};
+  M['공통설정']={EN:'Common settings',JP:'共通設定',CH:'通用设置',TH:'ตั้งค่าทั่วไป'};
+  M['가맹 등록']={EN:'Register merchant',JP:'加盟店登録',CH:'注册商户',TH:'ลงทะเบียนร้าน'};
+  M['키·문서']={EN:'Keys & docs',JP:'キー・文書',CH:'密钥与文档',TH:'คีย์และเอกสาร'};
+  /* 레거시 키(숫자 접두) — 기존 캐시·문구 호환 */
+  M['① 공통설정']={EN:'Common settings',JP:'共通設定',CH:'通用设置',TH:'ตั้งค่าทั่วไป'};
+  M['② 가맹 등록']={EN:'Register merchant',JP:'加盟店登録',CH:'注册商户',TH:'ลงทะเบียนร้าน'};
+  M['③ 키·문서']={EN:'Keys & docs',JP:'キー・文書',CH:'密钥与文档',TH:'คีย์และเอกสาร'};
   M['API 문서']={EN:'API docs',JP:'API文書',CH:'API 文档',TH:'เอกสาร API'};
   M['출시 가이드']={EN:'Launch guide',JP:'公開ガイド',CH:'发布指南',TH:'คู่มือเปิดใช้'};
   M['탭을 전환해도 동일 허브 안에서 설정합니다.']={EN:'Switch tabs within the same hub without leaving this screen.',JP:'タブを切り替えても同一ハブ内で設定します。',CH:'切换标签页仍在本枢纽内设置。',TH:'สลับแท็บภายในฮับเดิมได้โดยไม่ออกจากหน้านี้'};
@@ -3754,6 +3780,9 @@
   M['본사 운영 메뉴얼']={EN:'Headquarters Operations Manual',JP:'本社 運営マニュアル',CH:'总部运营手册',TH:'คู่มือปฏิบัติการ HQ'};
   M['총판 운영 메뉴얼']={EN:'Distributor Operations Manual',JP:'総代理店 運営マニュアル',CH:'总代理运营手册',TH:'คู่มือปฏิบัติการตัวแทนจำหน่าย'};
   M['챗봇결제 가맹점 사용 메뉴얼']={EN:'Chatbot Payment — Merchant Manual',JP:'チャットボット決済 加盟店マニュアル',CH:'聊天机器人支付商户手册',TH:'คู่มือร้านค้าชำระผ่านแชทบอท'};
+  M['URL결제 사용자 메뉴얼']={EN:'URL Payment — User Manual',JP:'URL決済 ユーザーマニュアル',CH:'URL支付用户手册',TH:'คู่มือผู้ใช้ชำระด้วย URL'};
+  M['분할결제 사용자 메뉴얼']={EN:'Split Payment — User Manual',JP:'分割決済 ユーザーマニュアル',CH:'分期支付用户手册',TH:'คู่มือผู้ใช้แบ่งจ่าย'};
+  M['구독결제 사용자 메뉴얼']={EN:'Subscription Payment — User Manual',JP:'定期決済 ユーザーマニュアル',CH:'订阅支付用户手册',TH:'คู่มือผู้ใช้ชำระรายงวด'};
   M['신규 조직 등록 메뉴얼']={EN:'New Organization Registration Manual',JP:'新規組織登録マニュアル',CH:'新组织注册手册',TH:'คู่มือลงทะเบียนองค์กรใหม่'};
   M['리스크관리 메뉴얼']={EN:'Risk Management Manual',JP:'リスク管理マニュアル',CH:'风险管理手册',TH:'คู่มือจัดการความเสี่ยง'};
   M['본사 및 총판 운영 메뉴얼']={EN:'HQ & Distributor Operations Manual',JP:'本社・総代理店 運営マニュアル',CH:'总部与总代理运营手册',TH:'คู่มือปฏิบัติการ HQ และตัวแทนจำหน่าย'};
@@ -3762,6 +3791,9 @@
   M['정기결제 운영 메뉴얼']={EN:'Subscription Payment Manual',JP:'定期決済 運営マニュアル',CH:'定期支付运营手册',TH:'คู่มือชำระรายงวด'};
   M['분할결제 운영 메뉴얼']={EN:'Split Payment Operations Manual',JP:'分割決済 運営マニュアル',CH:'分期支付运营手册',TH:'คู่มือปฏิบัติการแบ่งจ่าย'};
   M['리스크 트리거 발동 소개 안내']={EN:'Risk Trigger Introduction',JP:'リスクトリガー発火のご案内',CH:'风险触发介绍',TH:'แนะนำทริกเกอร์ความเสี่ยง'};
+  M['플랫폼 라이브']={EN:'Platform live',JP:'プラットフォーム ライブ',CH:'平台线上',TH:'แพลตฟอร์มไลฟ์'};
+  M['목록의 V표기는 각 PDF 문서에 표기된 문서 버전입니다(라이브와 다를 수 있음).']={EN:'The V badge is each PDF’s document version (may differ from platform live).',JP:'一覧のVは各PDFの文書版です（ライブと異なる場合があります）。',CH:'列表中的 V 为各 PDF 文档版本（可能与线上版本不同）。',TH:'ป้าย V คือเวอร์ชันใน PDF แต่ละฉบับ (อาจต่างจากไลฟ์)'};
+  M['문서 버전(PDF 표기)']={EN:'Document version (as in PDF)',JP:'文書バージョン（PDF表記）',CH:'文档版本（PDF 标注）',TH:'เวอร์ชันเอกสาร (ตาม PDF)'};
   M['가맹점 유저 메뉴얼']={EN:'Merchant User Manual',JP:'加盟店ユーザーマニュアル',CH:'商户用户手册',TH:'คู่มือผู้ใช้ร้านค้า'};
   M['가맹점 운영 메뉴얼']={EN:'Merchant Operations Manual',JP:'加盟店 運営マニュアル',CH:'商户运营手册',TH:'คู่มือปฏิบัติการร้านค้า'};
   M['항목을 클릭하면 새 창에서 정식 PDF 매뉴얼이 열립니다. 좌측 상단에 총본사 로고·정보가 표시됩니다.']={EN:'Click an item to open the formal PDF manual in a new window. The HQ logo and info appear top-left.',JP:'項目をクリックすると正式PDFマニュアルが新しい窓で開きます。左上に総本部ロゴ・情報が表示されます。',CH:'点击项目后在新窗口打开正式 PDF 手册。左上显示总本部 Logo 与信息。',TH:'คลิกรายการเพื่อเปิดคู่มือ PDF จริงในหน้าต่างใหม่ โลโก้/ข้อมูลสำนักงานใหญ่แสดงซ้ายบน'};
@@ -3776,6 +3808,7 @@
   M['업데이트 내용을 불러올 수 없습니다.']={EN:'Could not load release notes.',JP:'アップデート内容を読み込めません。',CH:'无法加载更新内容。',TH:'โหลดประวัติอัปเดตไม่ได้'};
   M['허브 정보가 없습니다.']={EN:'Hub configuration not found.',JP:'ハブ情報がありません。',CH:'未找到枢纽配置。',TH:'ไม่พบการตั้งค่าฮับ'};
   M['이 허브에 접근 가능한 탭이 없습니다. 본사권한설정을 확인하세요.']={EN:'No tabs available in this hub. Check HQ permissions.',JP:'このハブで利用できるタブがありません。本社権限設定を確認してください。',CH:'此枢纽无可用标签。请检查总部权限设置。',TH:'ไม่มีแท็บที่เข้าได้ในฮับนี้ ตรวจสอบสิทธิ์ HQ'};
+  M['이 화면에 대한 접근 권한이 없습니다. 본사권한설정을 확인하세요.']={EN:'You do not have access to this screen. Check HQ permissions.',JP:'この画面へのアクセス権限がありません。本社権限設定を確認してください。',CH:'您无权访问此画面。请检查总部权限设置。',TH:'คุณไม่มีสิทธิ์เข้าหน้าจอนี้ ตรวจสอบสิทธิ์ HQ'};
   M['가맹이 「본사정책 따름」일 때 적용되는 본사 기본값입니다. ① JPAY 고객 정보 · ② URL 채널 화면 표시 · ③ API 인라인 채널 화면 표시.']={EN:'HQ defaults applied when merchants follow HQ policy: ① JPAY customer fields · ② URL channel display preset · ③ API inline channel display preset.',JP:'加盟店が「本社ポリシーに従う」場合に適用される本社既定値です。① JPAY顧客情報 ② URLチャネル画面表示 ③ APIインラインチャネル画面表示。',CH:'商户选择「遵循总部政策」时适用的总部默认值：① JPAY 客户信息 · ② URL 渠道画面显示 · ③ API 内联渠道画面显示。',TH:'ค่าเริ่มต้น HQ เมื่อร้านตามนโยบาย HQ: ① ข้อมูลลูกค้า JPAY · ② การแสดงผลช่อง URL · ③ การแสดงผลช่อง API inline'};
   M['① JPAY: 인라인·리다이렉트·공개 URL·챗봇·API 등 JPAY 결제 시 이메일·전화를 고객이 입력하는지 / 가맹이 buyerPrefill로 보내는지(3형). 숨김 ≠ 불필요 — 3형은 가맹이 값을 반드시 전달해야 합니다.']={EN:'① JPAY: For inline, redirect, public URL, chatbot, and API JPAY payments — whether the buyer enters email·phone or the merchant sends buyerPrefill (type 3). Hidden ≠ optional — type 3 requires merchant-supplied values.',JP:'① JPAY: インライン・リダイレクト・公開URL・チャットボット・API等のJPAY決済で、メール・電話を顧客が入力するか／加盟店がbuyerPrefillで送るか(3型)。非表示≠不要—3型は加盟店が値を必ず送信すること。',CH:'① JPAY：内联、重定向、公开 URL、聊天机器人、API 等 JPAY 支付时，由买家输入邮箱·电话还是商户通过 buyerPrefill 发送（3 型）。隐藏≠非必填—3 型须由商户传值。',TH:'① JPAY: การชำระ JPAY แบบ inline·redirect·URL สาธารณะ·แชทบอท·API — ลูกค้ากรอกอีเมล·โทร หรือร้านส่ง buyerPrefill (แบบ 3) ซ่อน≠ไม่จำเป็น—แบบ 3 ร้านต้องส่งค่า'};
   M['② URL·③ API: 결제창 로고·상품명·다국어 등 화면 표시 프리셋입니다. URL=공개 링크 결제, API=가맹 API 인라인(entry=merchant_api). 가맹 「입력방식」이 본사정책 따름이면 채널별로 ②·③이 각각 적용됩니다.']={EN:'② URL · ③ API: Checkout display presets (logo, product name, i18n, etc.). URL = public link checkout; API = merchant API inline (entry=merchant_api). If merchant input mode follows HQ policy, ② and ③ apply per channel respectively.',JP:'② URL・③ API: 決済画面のロゴ・商品名・多言語等の表示プリセット。URL=公開リンク決済、API=加盟店APIインライン(entry=merchant_api)。加盟店「入力方式」が本社ポリシーに従う場合、チャネル別に②・③がそれぞれ適用。',CH:'② URL·③ API：结账页 logo、商品名、多语言等显示预设。URL=公开链接支付；API=商户 API 内联(entry=merchant_api)。商户「输入方式」遵循总部政策时，②·③按渠道分别生效。',TH:'② URL·③ API: พรีเซ็ตแสดงผลหน้าชำระ (โลโก้·ชื่อสินค้า·หลายภาษา) URL=ลิงก์สาธารณะ API=API inline ร้าน(entry=merchant_api) หากร้านตามนโยบาย HQ ②·③ ใช้แยกตามช่อง'};

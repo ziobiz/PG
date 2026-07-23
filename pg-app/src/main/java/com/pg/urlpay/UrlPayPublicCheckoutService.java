@@ -200,8 +200,14 @@ public class UrlPayPublicCheckoutService {
         String scaleMode = paymentCurrencyScaleService.resolveModeForUi(opPg,
                 scaleCur != null && !scaleCur.isBlank() ? scaleCur : "");
         data.put("urlPayAmountScaleMode", scaleMode);
+        Map<String, Object> cardCopy = null;
         if (!opPg.isEmpty()) {
-            urlPayCardCopyService.resolveActiveCopyByPg(opPg).ifPresent(copy -> data.put("urlPayCardCopy", copy));
+            cardCopy = urlPayCardCopyService.resolveActiveCopyByPg(opPg).orElse(null);
+        }
+        /* 총본사 브랜드 파비콘 — PG 활성 결제구문이 없어도 탭 아이콘 자동 연동 */
+        cardCopy = urlPayCardCopyService.mergeHeadquartersBrandFavicon(cardCopy);
+        if (cardCopy != null && !cardCopy.isEmpty()) {
+            data.put("urlPayCardCopy", cardCopy);
         }
     }
 

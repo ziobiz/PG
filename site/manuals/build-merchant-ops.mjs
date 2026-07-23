@@ -8,8 +8,8 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(__dirname, 'generated');
-const VERSION = '2.51';
-const DATE = '2026-07-22';
+const VERSION = '2.67'; // deprecated HTML builder — use python _build_merchant_ops_v3.py
+const DATE = '2026-07-23';
 const LANGS = ['ko', 'en', 'ja', 'zh', 'th'];
 
 const UI = {

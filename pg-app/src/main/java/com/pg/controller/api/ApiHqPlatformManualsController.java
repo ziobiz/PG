@@ -54,13 +54,16 @@ public class ApiHqPlatformManualsController {
             Map.entry("hqdist-risk-intro", "hqdist"),
             Map.entry("merchant-chatbot", "merchant"),
             Map.entry("merchant-ops", "merchant"),
+            Map.entry("merchant-url-user", "merchant"),
+            Map.entry("merchant-split-user", "merchant"),
+            Map.entry("merchant-subscribe-user", "merchant"),
             Map.entry("hqdist-ops", "hqdist"),
             Map.entry("merchant-user", "merchant")
     );
 
     private static final Map<String, String> LEGACY_ID_ALIAS = Map.of(
             "hqdist-ops", "dist-ops",
-            "merchant-user", "merchant-chatbot"
+            "merchant-user", "merchant-ops"
     );
 
     private final OrgUnitRepository orgUnitRepository;
@@ -89,6 +92,7 @@ public class ApiHqPlatformManualsController {
             m.put("logoImageUrl", "");
             m.put("firstLogoImageUrl", "");
             m.put("urlPayImageUrl", "");
+            m.put("popconImageUrl", "");
             m.put("manualLogoImageUrl", "");
             m.put("addr", "");
             m.put("compTel", "");
@@ -105,9 +109,11 @@ public class ApiHqPlatformManualsController {
                 String sidebarLogo = nz(b.getLogoImageUrl());
                 String firstLogo = nz(b.getFirstLogoImageUrl());
                 String urlPayLogo = nz(b.getUrlPayImageUrl());
+                String popcon = nz(b.getPopconImageUrl());
                 m.put("logoImageUrl", sidebarLogo);
                 m.put("firstLogoImageUrl", firstLogo);
                 m.put("urlPayImageUrl", urlPayLogo);
+                m.put("popconImageUrl", popcon);
                 /* 매뉴얼 헤더: PDF와 같은 전체 브랜드 마크 — 사이드바용 작은 로고보다 첫화면/URL결제 로고 우선 */
                 m.put("manualLogoImageUrl", firstNonBlank(firstLogo, urlPayLogo, sidebarLogo));
                 m.put("siteName", !nz(b.getSiteName()).isEmpty() ? b.getSiteName().trim() : m.get("compNm"));
@@ -115,6 +121,7 @@ public class ApiHqPlatformManualsController {
                 m.put("logoImageUrl", "");
                 m.put("firstLogoImageUrl", "");
                 m.put("urlPayImageUrl", "");
+                m.put("popconImageUrl", "");
                 m.put("manualLogoImageUrl", "");
                 m.put("siteName", m.get("compNm"));
             }
@@ -316,7 +323,7 @@ public class ApiHqPlatformManualsController {
     }
 
     private static PdfBytes readManualPdf(String id, String lang) throws IOException {
-        String[] tryLangs = {lang, "ko", "ja", "en", "zh", "th"};
+        String[] tryLangs = {lang, "en", "ko", "zh", "th", "ja"};
         IOException last = null;
         for (String lg : tryLangs) {
             try {

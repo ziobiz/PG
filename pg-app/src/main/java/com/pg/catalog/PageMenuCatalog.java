@@ -114,9 +114,9 @@ public final class PageMenuCatalog {
         add(list, "/ops/taxReport", "M0603", "TAX리포트", "운영관리");
         /* 연동·배포 — 사이드바 허브·탭 순서 */
         add(list, "/hq/pgApiMng", "M0101", "PG사 연동", "연동·배포");
-        add(list, "/hq/apiConfig", "M0103", "① 공통설정", "연동·배포");
-        add(list, "/hq/apiMerchantDeployReg", "M0906", "② 가맹 등록", "연동·배포");
-        add(list, "/hq/merchantApiGenerate", "M0905", "③ 키·문서", "연동·배포");
+        add(list, "/hq/apiConfig", "M0103", "공통설정", "연동·배포");
+        add(list, "/hq/apiMerchantDeployReg", "M0906", "가맹 등록", "연동·배포");
+        add(list, "/hq/merchantApiGenerate", "M0905", "키·문서", "연동·배포");
         add(list, "/hq/merchantApiDeployDocs", "M0907", "API 문서", "연동·배포");
         add(list, "/deploy/launchGuide", "M0904", "출시 가이드", "연동·배포");
         add(list, "/deploy/launchChecklist", "M0904", "배포 체크리스트", "연동·배포");

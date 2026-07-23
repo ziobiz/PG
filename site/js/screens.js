@@ -2977,7 +2977,7 @@
         },
         {
           title: 'SUPERVISOR 사용자 부여',
-          notice: '총본사(HEADQUARTERS) 또는 시스템 ADMIN만 SUPERVISOR 역할을 부여·해제할 수 있습니다. 조직(총본사·본사·총판)을 선택한 뒤 해당 조직의 사용자 중 SUPERVISOR를 지정합니다. SUPERVISOR로 지정된 사용자만 운영관리 「노티관리」 메뉴에 접근할 수 있으며, 다른 관리자에게는 메뉴가 표시되지 않습니다.',
+          notice: '총본사(HEADQUARTERS) 또는 시스템 ADMIN만 SUPERVISOR 역할을 부여·해제할 수 있습니다. 조직(총본사·본사·총판)을 선택한 뒤 해당 조직의 사용자 중 SUPERVISOR를 지정합니다. SUPERVISOR로 지정된 사용자만 운영관리 「노티관리」를 사용할 수 있습니다. 본사권한설정에서 총판 등에 삭제(전체)를 줘도 일반 사용자는 접근할 수 없으며, 매트릭스에는 삭제(SUPERVISOR)로 표시됩니다.',
           rows: [
             [{
               type: 'customHtml',
@@ -3856,7 +3856,7 @@
         },
         {
           title: 'URL 결제 폼 설정',
-          notice: '공개 결제 URL(/pay/업체코드 등) 입력 화면입니다. 간편(SIMPLE)은 성명·상품·금액·DirectCreditToken(카드 데이터는 토큰/CCD에 포함)만 받고, 전체(FULL)는 연락처·배송지까지 받습니다. <strong>브라우저 탭 이름</strong>·<strong>파비콘</strong>은 이 결제 폼(탭 제목·탭 아이콘) 전용이며, 화면 하단 <strong>저장</strong>으로 DB에 반영됩니다. 인라인/리다이렉트는 위 「URL 결제형 기본 방식」과 제공 여부로 결정됩니다.',
+          notice: '공개 결제 URL(/pay/업체코드 등) 입력 화면입니다. 간편(SIMPLE)은 성명·상품·금액·DirectCreditToken(카드 데이터는 토큰/CCD에 포함)만 받고, 전체(FULL)는 연락처·배송지까지 받습니다. <strong>브라우저 탭 이름</strong>은 이 결제 폼 전용이며 하단 <strong>저장</strong>으로 DB에 반영됩니다. <strong>탭 파비콘</strong>은 총본사 브랜드 「파비콘 이미지」와 자동 연동됩니다(없을 때만 아래 업로드 폴백). 인라인/리다이렉트는 위 「URL 결제형 기본 방식」과 제공 여부로 결정됩니다.',
           rows: [
             [{ label: 'URL 결제 입력 폼', type: 'select', name: 'urlPayFormMode', options: [{ v: 'FULL', t: '전체 입력 (배송지·성명 분리)' }, { v: 'SIMPLE', t: '간편 입력 (필수 최소)' }], col: 4 }],
             [{
@@ -3876,7 +3876,7 @@
                 '<button type="button" class="btn btn-outline-secondary" id="hqUrlPayFormFaviconBrowse" data-pg-ui-t="찾기">찾기</button>' +
                 '<button type="button" class="btn btn-outline-primary" id="hqUrlPayFormFaviconUpload" data-pg-ui-t="업로드">업로드</button>' +
                 '<button type="button" class="btn btn-outline-danger" id="hqUrlPayFormFaviconClear" data-pg-ui-t="제거">제거</button></div>' +
-                '<p class="text-muted small mb-0 mt-1" data-pg-ui-t="PNG·JPG, 1MB 이하. 서버에서 32×32 PNG로 변환됩니다.">PNG·JPG, 1MB 이하. 서버에서 32×32 PNG로 변환됩니다.</p></div></div>'
+                '<p class="text-muted small mb-0 mt-1" data-pg-ui-t="공개 결제·매뉴얼 창 탭 아이콘은 총본사 브랜드 「파비콘 이미지」와 자동 연동됩니다. 아래 업로드는 총본사 파비콘이 없을 때만 폴백으로 쓰입니다. PNG·JPG, 1MB 이하. 서버에서 32×32 PNG로 변환됩니다.">공개 결제·매뉴얼 창 탭 아이콘은 총본사 브랜드 「파비콘 이미지」와 자동 연동됩니다. 아래 업로드는 총본사 파비콘이 없을 때만 폴백으로 쓰입니다. PNG·JPG, 1MB 이하. 서버에서 32×32 PNG로 변환됩니다.</p></div></div>'
             }]
           ]
         },
@@ -3936,7 +3936,7 @@
         },
         {
           title: '결제구문설정',
-          notice: '공개 결제 폼의 <strong>카드 *</strong> 제목·안내 문단과 <strong>결제 금액</strong> 입력란 아래 통화(×100/÷100) 안내는 <strong>PG(결제대행사)별</strong>로 함께 저장됩니다. 금액 안내는 「내용 1」 위에서 노출 여부·문구를 넣습니다(비우면 페이지 기본 다국어 문구). <strong>URL 결제 결과 문구</strong>는 <code>pay-result.html</code> 및 결제 페이지 인라인 완료 카드의 성공/실패 큰 제목·하단 안내를 바꿉니다(비우면 기본 문구). 취소 화면은 실패 문구와 동일 설정을 씁니다. (탭 제목·파비콘은 위 「URL 결제 폼 설정」에서 설정합니다.) URL 결제 연동(<strong>연동용도 URL결제</strong>) PG만 선택할 수 있습니다. 입력 후 <strong>저장</strong>으로 아래 목록에 넣고, 목록에서 <strong>활성</strong>을 켜야 반영됩니다. <strong>저장(다국어)</strong>은 본사 API가 MyMemory로 프록시하여 ENG·CHN·JPN·THA 초안을 채웁니다. 화면 맨 아래 <strong>저장</strong>으로 DB에 반영합니다. 총판 로고가 있으면 결제 폼 상단은 ICOPAY 대신 로고가 나옵니다(별도 연동).',
+          notice: '공개 결제 폼의 <strong>카드 *</strong> 제목·안내 문단과 <strong>결제 금액</strong> 입력란 아래 통화(×100/÷100) 안내는 <strong>PG(결제대행사)별</strong>로 함께 저장됩니다. 금액 안내는 「내용 1」 위에서 노출 여부·문구를 넣습니다(비우면 페이지 기본 다국어 문구). <strong>URL 결제 결과 문구</strong>는 <code>pay-result.html</code> 및 결제 페이지 인라인 완료 카드의 성공/실패 큰 제목·하단 안내를 바꿉니다(비우면 기본 문구). 취소 화면은 실패 문구와 동일 설정을 씁니다. (탭 제목은 위 「URL 결제 폼 설정」·탭 파비콘은 총본사 브랜드 「파비콘 이미지」와 자동 연동입니다.) URL 결제 연동(<strong>연동용도 URL결제</strong>) PG만 선택할 수 있습니다. 입력 후 <strong>저장</strong>으로 아래 목록에 넣고, 목록에서 <strong>활성</strong>을 켜야 반영됩니다. <strong>저장(다국어)</strong>은 본사 API가 MyMemory로 프록시하여 ENG·CHN·JPN·THA 초안을 채웁니다. 화면 맨 아래 <strong>저장</strong>으로 DB에 반영합니다. 총판 로고가 있으면 결제 폼 상단은 ICOPAY 대신 로고가 나옵니다(별도 연동).',
           rows: [
             [{
               type: 'customHtml',
@@ -4094,8 +4094,8 @@
           rows: [
             [{ label: '업체코드', type: 'text', name: 'compId', col: 2, readonly: true }, { label: '상위 본사', type: 'text', name: 'parentComp', col: 2, readonly: true, placeholder: '상위 코드' }, { label: '업체구분', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'HEADQUARTERS', t: '총본사' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }], col: 2 }],
             [{ label: '업체명', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호', type: 'regNoWithType', name: 'regNo', col: 2 }, { label: '업태', type: 'text', name: 'bizType', col: 2 }, { label: '종목', type: 'text', name: 'industry', col: 2 }],
-            [{ label: '대표자명', type: 'text', name: 'ceoNm', col: 2 }, { label: '휴대폰', type: 'text', name: 'ceoMobile', col: 2 }, { label: '업체전화', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 2 }, { label: '이메일', type: 'text', name: 'email', col: 2 }],
-            [{ type: 'countryAddressRow', zipLabel: '우편번호', addrLabel: '주소', addrDetailLabel: '상세주소', addrEtcLabel: '기타' }],
+            [{ label: '대표자명', type: 'text', name: 'ceoNm', col: 2 }, { label: '휴대폰', type: 'text', name: 'ceoMobile', col: 2 }, { label: '업체전화*', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 2 }, { label: '이메일*', type: 'text', name: 'email', col: 2 }],
+            [{ type: 'countryAddressRow', zipLabel: '우편번호', addrLabel: '주소', addrDetailLabel: '상세주소', addrEtcLabel: '영업정보 / 기타*', addrEtcMode: 'salesInfo' }],
             [{ label: '사용여부', type: 'select', name: 'useYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }, { v: 'S', t: '영구정지' }], col: 1 }, { label: '태블릿 UI 기능', type: 'select', name: 'tabletFeatureUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }, { label: '대표 아이디 (중복검사)', type: 'text', name: 'loginId', col: 2, button: '중복확인' }, { label: '비밀번호', type: 'passwordReset', name: 'pwdReset', col: 2 }],
             [{ label: '보조 아이디 (중복검사)', type: 'text', name: 'assistantLoginId', col: 2, button: '중복확인' }, { type: 'assistantPasswordManage', col: 2 }]
           ]
@@ -4419,8 +4419,8 @@
           notice: '업체코드는 등록 저장 시에만 자동 부여되며(업체구분별 접두 2자리+순번 8자리), 부여 후에는 변경할 수 없습니다. 업체관리 목록에 동일 코드로 표시됩니다. 업체구분을 선택하면 해당 입력 항목이 표시됩니다. 조직 이동은 상위로만 가능하며(하위로 이동 불가), 이동 시 하위 전체가 함께 이동합니다. 사용여부 미사용 시 하위 전체 미사용, 가맹점은 상위 변경으로 개별 활성화할 수 있습니다. 비밀번호는 입력 후 옆 [저장]으로 확정한 뒤 하단 [저장]으로 등록하세요. 등록 후 비밀번호를 잊었거나 초기화가 필요하면 [업체정보조회] 또는 [업체정보] 상세에서 [비밀번호 초기화] 후 로그인ID+1! 로 로그인해 변경하면 됩니다.',
           rows: [
             [{ label: '상위 본사', type: 'text', name: 'parentComp', col: 2, button: '검색', placeholder: '상위 코드' }, { label: '업체구분*', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }], col: 1 }, { label: '업체명*', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호*', type: 'regNoWithType', name: 'regNo', col: 2 }, { label: '업태', type: 'text', name: 'bizType', col: 1 }, { label: '종목', type: 'text', name: 'industry', col: 1 }],
-            [{ label: '대표자명*', type: 'text', name: 'ceoNm', col: 2 }, { label: '휴대폰*', type: 'text', name: 'ceoMobile', col: 2 }, { label: '업체전화*', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 2 }, { label: '이메일', type: 'text', name: 'email', col: 2 }],
-            [{ type: 'countryAddressRow', zipLabel: '우편번호*', addrLabel: '주소*', addrDetailLabel: '상세주소', addrEtcLabel: '기타' }],
+            [{ label: '대표자명*', type: 'text', name: 'ceoNm', col: 2 }, { label: '휴대폰*', type: 'text', name: 'ceoMobile', col: 2 }, { label: '업체전화*', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 2 }, { label: '이메일*', type: 'text', name: 'email', col: 2 }],
+            [{ type: 'countryAddressRow', zipLabel: '우편번호*', addrLabel: '주소*', addrDetailLabel: '상세주소', addrEtcLabel: '영업정보 / 기타*', addrEtcMode: 'salesInfo' }],
             [{ label: '사용여부*', type: 'select', name: 'useYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }, { v: 'S', t: '영구정지' }], col: 1 }, { label: '태블릿 UI 기능', type: 'select', name: 'tabletFeatureUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }, { label: '로그인ID*', type: 'text', name: 'loginId', col: 2, button: '중복확인' }, { label: '비밀번호*', type: 'password', name: 'pwd', col: 2, button: '저장', placeholder: '8자 이상 → 옆 [저장] 확정' }]
           ]
         },
@@ -4778,8 +4778,8 @@
           notice: '업체구분에 따라 해당하는 입력 항목이 표시됩니다. 사용여부를 미사용으로 변경하면 하위 조직 전체가 미사용됩니다. 가맹점은 상위 지점을 변경하여 다른 사용 중인 상위 아래로 활성화할 수 있습니다.',
           rows: [
             [{ label: '업체코드', type: 'text', name: 'compId', col: 2, readonly: true }, { label: '상위 본사', type: 'text', name: 'parentComp', col: 2, button: '검색', placeholder: '상위 코드' }, { label: '업체구분*', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'HEADQUARTERS', t: '총본사' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }], col: 1 }, { label: '업체명*', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호*', type: 'regNoWithType', name: 'regNo', col: 2 }, { label: '업태', type: 'text', name: 'bizType', col: 1 }, { label: '종목', type: 'text', name: 'industry', col: 1 }],
-            [{ label: '대표자명*', type: 'text', name: 'ceoNm', col: 2 }, { label: '휴대폰*', type: 'text', name: 'ceoMobile', col: 2 }, { label: '업체전화*', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 2 }, { label: '이메일', type: 'text', name: 'email', col: 2 }, { label: '비고', type: 'text', name: 'remark', col: 2 }],
-            [{ type: 'countryAddressRow', zipLabel: '우편번호*', addrLabel: '주소*', addrDetailLabel: '상세주소', addrEtcLabel: '기타' }],
+            [{ label: '대표자명*', type: 'text', name: 'ceoNm', col: 2 }, { label: '휴대폰*', type: 'text', name: 'ceoMobile', col: 2 }, { label: '업체전화*', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 2 }, { label: '이메일*', type: 'text', name: 'email', col: 2 }, { label: '비고', type: 'text', name: 'remark', col: 2 }],
+            [{ type: 'countryAddressRow', zipLabel: '우편번호*', addrLabel: '주소*', addrDetailLabel: '상세주소', addrEtcLabel: '영업정보 / 기타*', addrEtcMode: 'salesInfo' }],
             [{ label: '사용여부*', type: 'select', name: 'useYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }, { v: 'S', t: '영구정지' }], col: 1 }, { label: '태블릿 UI 기능', type: 'select', name: 'tabletFeatureUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }, { label: '로그인ID*', type: 'text', name: 'loginId', col: 2, button: 'ID변경' }, { label: '비밀번호', type: 'passwordReset', name: 'pwdReset', col: 2 }]
           ]
         },
@@ -6953,8 +6953,8 @@
             [{ label: '업체코드', type: 'text', name: 'compId', col: 2, readonly: true }, { label: '업체구분', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'HEADQUARTERS', t: '총본사' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }], col: 2 }],
             [{ label: '업체명(본사명)*', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호*', type: 'regNoWithType', name: 'regNo', col: 2 }],
             [{ label: '업태', type: 'text', name: 'bizType', col: 2 }, { label: '종목', type: 'text', name: 'industry', col: 2 }],
-            [{ label: '대표자명*', type: 'text', name: 'ceoNm', col: 2 }, { label: '휴대폰*', type: 'text', name: 'ceoMobile', col: 2 }, { label: '업체전화*', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 2 }, { label: '이메일', type: 'text', name: 'email', col: 2 }, { label: '비고', type: 'text', name: 'remark', col: 2 }],
-            [{ type: 'countryAddressRow', zipLabel: '우편번호*', addrLabel: '주소*', addrDetailLabel: '상세주소', addrEtcLabel: '기타' }],
+            [{ label: '대표자명*', type: 'text', name: 'ceoNm', col: 2 }, { label: '휴대폰*', type: 'text', name: 'ceoMobile', col: 2 }, { label: '업체전화*', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 2 }, { label: '이메일*', type: 'text', name: 'email', col: 2 }, { label: '비고', type: 'text', name: 'remark', col: 2 }],
+            [{ type: 'countryAddressRow', zipLabel: '우편번호*', addrLabel: '주소*', addrDetailLabel: '상세주소', addrEtcLabel: '영업정보 / 기타*', addrEtcMode: 'salesInfo' }],
             [{ label: '사용여부*', type: 'select', name: 'useYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }, { v: 'S', t: '영구정지' }], col: 2 }, { label: '태블릿 UI 기능', type: 'select', name: 'tabletFeatureUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }, { label: '대표 아이디 (중복검사)', type: 'text', name: 'loginId', col: 2, button: '중복확인' }, { label: '비밀번호', type: 'passwordReset', name: 'pwdReset', col: 2 }],
             [{ label: '사업자형태', type: 'text', name: 'bizNature', col: 2 }, { label: '취급물품', type: 'text', name: 'product', col: 2 }],
             [{ label: '대표사이트', type: 'text', name: 'homepage', col: 2 }, { label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }],
@@ -8858,13 +8858,36 @@
             var addrRaw = opt.addrLabel || '주소*';
             var addrDetRaw = opt.addrDetailLabel || '상세주소';
             var addrEtcL = opt.addrEtcLabel;
+            var salesInfoMode = opt.addrEtcMode === 'salesInfo' || String(addrEtcL || '').indexOf('영업정보') >= 0;
+            var etcStar = _addrStar(addrEtcL);
+            var etcLabelKey = _addrKey(addrEtcL, '영업정보 / 기타');
+            var etcBlock = '';
+            if (addrEtcL) {
+              if (salesInfoMode) {
+                etcBlock =
+                  '<div class="col-sm-3 form-field-block" data-sales-info-wrap="true">' +
+                  pgUiFormLabelSpan(etcLabelKey, etcStar) +
+                  '<div class="d-flex gap-1 align-items-center">' +
+                  '<select class="form-control form-control-sm' + (etcStar ? ' required-input' : '') + '" name="salesInfoType" data-sales-info-type style="min-width:88px;max-width:110px">' +
+                  '<option value="" data-pg-ui-t="선택">' + escUi(L('선택')) + '</option>' +
+                  '<option value="ONLINE" data-pg-ui-t="온라인">' + escUi(L('온라인')) + '</option>' +
+                  '<option value="OFFLINE" data-pg-ui-t="오프라인">' + escUi(L('오프라인')) + '</option>' +
+                  '<option value="OTHER" data-pg-ui-t="기타">' + escUi(L('기타')) + '</option>' +
+                  '</select>' +
+                  '<input type="text" class="form-control form-control-sm flex-grow-1" name="addrEtc" data-sales-info-detail data-pg-ui-placeholder="도메인 또는 상호명" placeholder="' + escUi(L('도메인 또는 상호명')) + '">' +
+                  '</div></div>';
+              } else {
+                etcBlock = '<div class="col-sm-2 form-field-block">' + pgUiFormLabelSpan(etcLabelKey, etcStar) +
+                  '<input type="text" class="form-control form-control-sm" name="addrEtc" data-pg-ui-placeholder="기타 입력" placeholder="' + escUi(L('기타 입력')) + '"></div>';
+              }
+            }
             html += '<div class="row country-address-row" data-country-address="true">' +
               '<div class="col-sm-2 form-field-block"><label class="form-label" data-pg-ui-t="국가">국가</label><select class="form-control form-control-sm" name="addrCountryCd" data-addr-country-select><option value="" data-pg-ui-t="선택">선택</option><option value="JP">JAPAN</option><option value="KR">KOREA</option><option value="TH">THAILAND</option><option value="OTHER" data-pg-ui-t="기타">기타</option></select></div>' +
               '<div class="col-sm-2 form-field-block addr-country-other-wrap d-none"><label class="form-label" data-pg-ui-t="국가">국가</label><select class="form-control form-control-sm" name="addrCountryCdOther">' + (window.PG_COUNTRY_OTHER_OPTIONS || '<option value="" data-pg-ui-t="선택">선택</option>') + '</select></div>' +
               '<div class="col-sm-2 form-field-block zip-wrap">' + pgUiFormLabelSpan(_addrKey(zipRaw), _addrStar(zipRaw)) + '<div class="form-input-with-btn" data-zip-search-wrap><input type="text" class="form-control form-control-sm" name="zipCode" data-pg-ui-placeholder="검색" placeholder="' + escUi(L('검색')) + '" data-zip-input><button type="button" class="btn btn-outline-secondary btn-sm" data-addr-zip-search data-pg-ui-t="검색">' + escUi(L('검색')) + '</button></div></div>' +
               '<div class="col-sm-2 form-field-block">' + pgUiFormLabelSpan(_addrKey(addrRaw), _addrStar(addrRaw)) + '<input type="text" class="form-control form-control-sm" name="addr" data-addr-input></div>' +
               '<div class="col-sm-2 form-field-block">' + pgUiFormLabelSpan(addrDetRaw, false) + '<input type="text" class="form-control form-control-sm" name="addrDetail"></div>' +
-              (addrEtcL ? '<div class="col-sm-2 form-field-block">' + pgUiFormLabelSpan(String(addrEtcL), false) + '<input type="text" class="form-control form-control-sm" name="addrEtc" data-pg-ui-placeholder="기타 입력" placeholder="' + escUi(L('기타 입력')) + '"></div>' : '') +
+              etcBlock +
               '</div>';
           } else if (first && first.type === 'countryBankRow') {
             var opt = first;
@@ -9403,6 +9426,7 @@
       '<span><i class="org-perm-legend-observer" aria-hidden="true"></i><span data-pg-ui-t="옵저버">' + escUi(L('옵저버')) + '</span></span>' +
       '<span><i class="org-perm-legend-modify" aria-hidden="true"></i><span data-pg-ui-t="수정">' + escUi(L('수정')) + '</span></span>' +
       '<span><i class="org-perm-legend-delete" aria-hidden="true"></i><span data-pg-ui-t="삭제(전체)">' + escUi(L('삭제(전체)')) + '</span></span>' +
+      '<span><i class="org-perm-legend-supervisor" aria-hidden="true"></i><span data-pg-ui-t="삭제(SUPERVISOR)">' + escUi(L('삭제(SUPERVISOR)')) + '</span></span>' +
       '<span class="text-muted small ms-1" data-pg-ui-t="(헬로) = 안내·VIEW SETTING 사용">' + escUi(L('(헬로) = 안내·VIEW SETTING 사용')) + '</span>' +
       '</div>' +
       '<ul class="nav nav-pills flex-wrap gap-1 mb-3 org-perm-level-tabs" id="orgPermTabs_' + tabId + '" role="tablist"></ul>' +

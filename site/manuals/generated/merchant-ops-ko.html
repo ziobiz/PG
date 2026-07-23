@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICOPAY 가맹점 운영 메뉴얼 V2.67</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Segoe UI', sans-serif; font-size: 11pt; line-height: 1.7; color: #1a1a1a; background: #f5f6fa; }
+  .page-wrap { max-width: 860px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 16px rgba(0,0,0,.10); overflow: hidden; }
+  .cover { background: linear-gradient(135deg, #1a3a5c 0%, #1565c0 60%, #1e88e5 100%); color: #fff; padding: 48px 52px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+  .cover-body { flex: 1; }
+  .cover-logo { flex-shrink: 0; display: flex; align-items: flex-start; padding-top: 4px; }
+  .cover-logo img { height: 64px; background: rgba(255,255,255,0.92); padding: 10px 18px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.20); }
+  .cover .logo-line { font-size: 13pt; font-weight: 700; letter-spacing: 2px; opacity: .85; margin-bottom: 14px; }
+  .cover h1 { font-size: 26pt; font-weight: 900; line-height: 1.25; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 11.5pt; opacity: .82; margin-bottom: 24px; }
+  .cover .meta { font-size: 9.5pt; opacity: .65; border-top: 1px solid rgba(255,255,255,.25); padding-top: 14px; }
+  .body { padding: 44px 52px 60px; }
+  .toc { background: #f0f4ff; border-left: 4px solid #1565c0; border-radius: 0 8px 8px 0; padding: 20px 26px; margin-bottom: 40px; }
+  .toc h2 { font-size: 12pt; font-weight: 700; color: #1565c0; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { font-size: 10pt; line-height: 2.1; color: #1a3a5c; }
+  .toc a { color: #1565c0; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  h2.section-title { font-size: 15pt; font-weight: 800; color: #1a3a5c; border-bottom: 2.5px solid #1565c0; padding-bottom: 7px; margin: 42px 0 16px; page-break-after: avoid; }
+  h3.sub-title { font-size: 12pt; font-weight: 700; color: #1565c0; margin: 24px 0 10px; page-break-after: avoid; }
+  p { margin-bottom: 10px; }
+  .info-box { background: #e3f0ff; border: 1px solid #90caf9; border-left: 4px solid #1565c0; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1a3a5c; }
+  .warn-box { background: #fff8e1; border: 1px solid #ffe082; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #5d4037; }
+  .check-box { background: #e8f5e9; border: 1px solid #a5d6a7; border-left: 4px solid #2e7d32; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1b5e20; }
+  .hq-box { background: #fce4ec; border: 1px solid #f48fb1; border-left: 4px solid #c62828; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #b71c1c; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 20px; font-size: 10pt; page-break-inside: avoid; }
+  th { background: #1565c0; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #1245a0; }
+  td { padding: 8px 12px; border: 1px solid #cfd8dc; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f7ff; }
+  td.center, th.center { text-align: center; }
+  .perm-full { display: inline-block; background: #2e7d32; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 7px; border-radius: 4px; }
+  .perm-view { display: inline-block; background: #1565c0; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 7px; border-radius: 4px; }
+  .perm-none { display: inline-block; background: #9e9e9e; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 7px; border-radius: 4px; }
+  pre { background: #1e2a38; color: #cdd9e5; font-family: 'Consolas', 'D2Coding', monospace; font-size: 9.5pt; line-height: 1.6; padding: 16px 20px; border-radius: 8px; margin: 12px 0 18px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; page-break-inside: avoid; }
+  code { background: #e8edf5; color: #c0392b; font-family: 'Consolas', monospace; font-size: 9pt; padding: 1px 5px; border-radius: 3px; }
+  .flow { background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; padding: 20px 24px; margin: 14px 0 20px; font-size: 10pt; page-break-inside: avoid; }
+  .flow-row { display: flex; align-items: flex-start; margin-bottom: 7px; }
+  .flow-actor { display: inline-block; min-width: 80px; font-weight: 700; color: #1565c0; flex-shrink: 0; padding-top: 1px; }
+  .flow-arrow { color: #888; margin: 0 10px; font-size: 13pt; flex-shrink: 0; }
+  .flow-desc { color: #37474f; }
+  .step-badge { display: inline-block; background: #1565c0; color: #fff; font-weight: 800; font-size: 9pt; padding: 2px 10px; border-radius: 20px; margin-right: 8px; vertical-align: middle; }
+  .faq-item { border: 1px solid #e0e6f0; border-radius: 8px; margin-bottom: 14px; page-break-inside: avoid; }
+  .faq-q { background: #e8edf8; padding: 11px 16px; font-weight: 700; font-size: 10.5pt; color: #1a3a5c; border-radius: 8px 8px 0 0; }
+  .faq-q::before { content: "Q. "; color: #1565c0; }
+  .faq-a { padding: 11px 16px; font-size: 10pt; color: #37474f; background: #fff; border-radius: 0 0 8px 8px; }
+  .faq-a::before { content: "A. "; font-weight: 700; color: #2e7d32; }
+  .badge-req { display: inline-block; background: #e53935; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 4px; }
+  .badge-opt { display: inline-block; background: #757575; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 4px; }
+  .menu-path { display: inline-block; background: #ececec; border: 1px solid #d0d0d0; border-radius: 5px; padding: 3px 11px; font-size: 9.5pt; color: #37474f; font-weight: 600; margin-bottom: 12px; }
+  .menu-path::before { content: "📌 "; }
+  hr.section-rule { border: none; border-top: 1px dashed #c5cae9; margin: 36px 0; }
+  .footer { background: #1a3a5c; color: rgba(255,255,255,.65); text-align: center; font-size: 9pt; padding: 18px 24px; }
+  ul { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+  @media print {
+    body { background: #fff; font-size: 10pt; }
+    .page-wrap { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; }
+    .cover { padding: 28px 36px 24px; }
+    .body { padding: 28px 36px 36px; }
+    .faq-item, pre, table, .flow { page-break-inside: avoid; }
+    .footer, .no-print, .print-btn { display: none !important; }
+    @page { size: A4; margin: 14mm 12mm; }
+  }
+
+  .menu-path::before { content: none; }
+</style>
+</head>
+<body>
+<style id="print-btn-style">
+  .print-btn { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #1565c0; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 10.5pt; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(21,101,192,.45); }
+  @media print { .print-btn { display: none !important; } }
+</style>
+<button class="print-btn" onclick="window.print()">🖨️ 인쇄 / PDF 저장</button>
+<div class="page-wrap">
+  <div class="cover">
+    <div class="cover-body">
+      <div class="logo-line">ICOPAY · Payment Gateway</div>
+      <h1>가맹점<br>운영 메뉴얼</h1>
+      <div class="subtitle">가맹점 기준 — 결제·수수료·결제 URL·정산·일상 운영까지, 권한이 열린 화면에서 직접 하는 모든 것</div>
+      <div class="meta">작성 기준: ICOPAY 가맹점 권한 기준 &nbsp;|&nbsp; 대상: 가맹점(MERCHANT) 운영 담당 &nbsp;|&nbsp; 발행: 2026년 7월 &nbsp;|&nbsp; V2.67</div>
+    </div>
+    <div class="cover-logo">
+      <img src="../assets/logo-ontheline.png" alt="Brand">
+    </div>
+  </div>
+  <div class="body">
+    <div class="warn-box" style="margin-bottom:28px;">
+      <strong>📋 가맹점 메뉴 권한 요약</strong><br><br>
+      <table style="margin:8px 0 0;">
+        <tr><th>메뉴</th><th class="center">권한</th><th>설명</th></tr>
+        <tr><td>업체관리 &gt; 내 업체정보</td><td class="center"><span class="perm-view">조회만</span></td><td>결제·재결제·챗봇·분할 URL 확인·복사 / 설정 변경 불가</td></tr><tr><td>업체관리 &gt; 공지사항</td><td class="center"><span class="perm-view">조회만</span></td><td>본사·총판 운영 공지 확인</td></tr><tr><td>결제관리 &gt; 결제내역 등</td><td class="center"><span class="perm-view">조회만</span></td><td>승인·실패·취소·환불 조회 (권한에 따라 채널별 목록)</td></tr><tr><td>정산관리 &gt; 수수료·정산내역</td><td class="center"><span class="perm-view">조회만</span></td><td>수수료·정산 결과 조회</td></tr><tr><td>업체등록·접근권한 등</td><td class="center"><span class="perm-none">접근불가</span></td><td>본사·총판 전용</td></tr>
+      </table>
+    </div>
+    <div class="toc">
+      <h2>목 차</h2>
+      <ol><li><a href="#s1">이 매뉴얼의 범위</a></li><li><a href="#s2">시작 전 확인 (권한·웹결제)</a></li><li><a href="#s3">STEP 1 — 로그인·공지</a></li><li><a href="#s4">STEP 2 — 결제 URL 확인·공유</a></li><li><a href="#s5">STEP 3 — 결제내역 조회</a></li><li><a href="#s6">STEP 4 — 수수료·정산</a></li><li><a href="#s7">가맹점 API·챗봇(해당 시)</a></li><li><a href="#s8">일상 체크리스트</a></li><li><a href="#s9">FAQ</a></li></ol>
+    </div>
+    
+    <h2 class="section-title" id="s1">1. 이 매뉴얼의 범위</h2>
+    <p>본 문서는 <strong>가맹점(MERCHANT)</strong> 계정으로 로그인했을 때 접근할 수 있는 관리자 화면을 기준으로, 기본 운영 방법을 설명합니다.</p>
+    <ul>
+      <li>실제로 보이는 메뉴는 <strong>본사정책 → 접근·권한</strong>에서 가맹점 단계·개별 조직에 부여한 권한에 따라 달라집니다.</li>
+      <li>권한이 <strong>접근불가</strong>인 메뉴는 사이드바에 표시되지 않습니다. 필요 메뉴가 없으면 상위 본사·총판에 권한 개방을 요청하십시오.</li>
+      <li>결제대행사(PG) 이름은 가맹·구매자 화면에서 <strong>ICOPAY</strong>로 중립 표시됩니다.</li>
+      <li>채널별 상세(URL·분할·구독·챗봇)는 같은 「운영 메뉴얼」의 가맹점용 사용자 메뉴얼을 참고하십시오.</li>
+    </ul>
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s2">2. 시작 전 확인 (권한·웹결제)</h2>
+    <table>
+      <tr><th>확인 항목</th><th>확인 방법</th></tr>
+      <tr><td>사이드바에 필요한 메뉴가 보이는가?</td><td>없으면 상위에 해당 메뉴 권한 개방 요청</td></tr>
+      <tr><td>내 업체정보에 <strong>결제 URL</strong>이 있는가?</td><td>없으면 웹결제(URL결제) 사용/중지 상태를 상위 확인</td></tr>
+    </table>
+    <div class="hq-box">
+      <strong>본사·총판에 요청해야 하는 사항</strong><br>
+      • 메뉴 권한(결제내역·정산·API 등)<br>
+      • 웹결제 사용 ON / 일괄 중지 해제<br>
+      • 업체 기본정보(상호·주소) 변경<br>
+      • 수수료·정산 주기 정책 안내
+    </div>
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s3">3. <span class="step-badge">STEP 1</span> 로그인·공지</h2>
+    <div class="menu-path">메뉴: 업체관리 &gt; 공지사항</div>
+    <ol>
+      <li>가맹점 ID로 로그인합니다.</li>
+      <li>좌측에는 <strong>허용된 메뉴만</strong> 표시됩니다.</li>
+      <li>표시 언어(KO/EN/JP/CH/TH)를 전환할 수 있습니다.</li>
+      <li>공지에서 수수료·정산일·점검·웹결제 중지 안내를 먼저 확인합니다.</li>
+    </ol>
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s4">4. <span class="step-badge">STEP 2</span> 결제 URL 확인·공유 <small style="font-size:10pt;font-weight:400;color:#888;">(조회 전용)</small></h2>
+    <div class="menu-path">메뉴: 업체관리 &gt; 내 업체정보</div>
+    <div class="info-box">내 업체정보는 <strong>조회 전용</strong>입니다. URL을 확인하고 <strong>복사</strong>할 수 있지만 설정을 직접 바꿀 수는 없습니다.</div>
+    <pre>https://api.icopay.co.kr/checkout/{업체코드}</pre>
+    <table>
+      <tr><th>항목</th><th>설명</th></tr>
+      <tr><td>결제 URL</td><td>공개 일회 결제 주소. [복사] 후 고객에게 전달</td></tr>
+      <tr><td>URL 재결제 URL</td><td>저장 카드 재결제(기능 ON일 때만)</td></tr>
+      <tr><td>챗봇결제 URL</td><td>챗봇 사용 가맹만</td></tr>
+      <tr><td>분할결제 URL</td><td>분할결제 사용 ON일 때만</td></tr>
+    </table>
+    <div class="check-box">절차: 업체정보 열기 → 결제 URL 확인 → [복사] → SMS·메신저·쇼핑몰에 붙여넣기 → 본인 브라우저에서 테스트 오픈</div>
+    <div class="warn-box">웹결제 미사용·상위 중지면 URL이 없거나 안내만 표시될 수 있습니다.</div>
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s5">5. <span class="step-badge">STEP 3</span> 결제내역 조회 <small style="font-size:10pt;font-weight:400;color:#888;">(조회 전용)</small></h2>
+    <div class="menu-path">메뉴: 결제관리 &gt; 결제내역</div>
+    <ul>
+      <li>기간·상태·키워드(주문번호)로 검색합니다.</li>
+      <li>승인·실패·취소·환불을 구분합니다.</li>
+      <li>권한이 있으면 URL/챗봇/구독/분할 결제내역·상태별 목록도 사용합니다.</li>
+      <li>고객 문의 시 <strong>주문번호·결제시각·금액</strong>을 함께 전달합니다.</li>
+    </ul>
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s6">6. <span class="step-badge">STEP 4</span> 수수료·정산</h2>
+    <div class="menu-path">메뉴: 정산관리 &gt; 수수료내역 / 일별수수료 / 가맹점정산내역</div>
+    <ul>
+      <li><strong>수수료내역·일별수수료</strong>: 거래·일자 단위 수수료를 확인합니다.</li>
+      <li><strong>가맹점정산내역</strong>: 정산 실행 후 반영된 결과(정산일·지급·보류)를 확인합니다.</li>
+      <li>수수료율·정산주기는 상위 정책과 가맹 설정을 따릅니다.</li>
+    </ul>
+    <div class="info-box">금액이 예상과 다르면 결제내역 승인액·상태와 대조한 뒤, 정산일·금액을 상위에 전달하십시오.</div>
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s7">7. 가맹점 API·챗봇(해당 시)</h2>
+    <div class="menu-path">메뉴: 업체관리 &gt; 가맹점API · 챗봇관리</div>
+    <ul>
+      <li><strong>가맹점API</strong>: 연동 키·문서(권한 시). ICOPAY 통합 checkout을 사용합니다.</li>
+      <li><strong>챗봇관리</strong>: 상품·주문 관리 후 챗봇결제 URL을 공유합니다. 상세는 「챗봇결제 가맹점 사용 메뉴얼」을 참고하십시오.</li>
+    </ul>
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s8">8. 일상 체크리스트</h2>
+    <div class="check-box">
+      <ol>
+        <li>공지사항 확인</li>
+        <li>결제 URL 유효·복사·테스트 오픈</li>
+        <li>당일/전일 승인·실패 점검</li>
+        <li>실패 급증 시 주문번호와 상위 공유</li>
+        <li>수수료·정산 이상 여부</li>
+        <li>챗봇 주문·상품(해당 시)</li>
+      </ol>
+    </div>
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s9">9. FAQ</h2>
+    <div class="faq-item"><div class="faq-q">메뉴가 사이드바에 없습니다.</div><div class="faq-a">본사정책 → 접근·권한에서 닫혀 있습니다. 상위 본사·총판에 해당 메뉴 URL과 함께 권한 개방을 요청하세요.</div></div>
+    <div class="faq-item"><div class="faq-q">결제 URL이 없거나 안내만 나옵니다.</div><div class="faq-a">웹결제 미사용·중지가 원인인 경우가 많습니다. 공지와 상위 담당자에게 확인하세요.</div></div>
+    <div class="faq-item"><div class="faq-q">수수료·정산 금액이 예상과 다릅니다.</div><div class="faq-a">결제내역 승인액·상태와 대조한 뒤 정산일·금액을 상위에 전달하세요.</div></div>
+    <div class="faq-item"><div class="faq-q">업체정보를 직접 수정하고 싶습니다.</div><div class="faq-a">내 업체정보는 조회 전용입니다. 상호·주소 변경은 본사·총판에 요청하세요.</div></div>
+    <div class="faq-item"><div class="faq-q">문서 버전이 예전(V2.53 등)으로 보입니다.</div><div class="faq-a">운영 메뉴얼 PDF는 플랫폼 라이브 버전(V2.67)과 함께 배포됩니다. 새로고침 후에도 이전이면 캐시를 비우거나 상위에 배포 반영을 확인하세요.</div></div>
+
+  </div>
+  <div class="footer">ICOPAY 가맹점 운영 메뉴얼 · V2.67<br>ICOPAY &nbsp;|&nbsp; icopay.co.kr &nbsp;|&nbsp; 문의: ICOPAY 본사·총판 담당자</div>
+</div>
+</body>
+</html>

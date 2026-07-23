@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICOPAY 加盟店 運営マニュアル V2.67</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Segoe UI', sans-serif; font-size: 11pt; line-height: 1.7; color: #1a1a1a; background: #f5f6fa; }
+  .page-wrap { max-width: 860px; margin: 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 16px rgba(0,0,0,.10); overflow: hidden; }
+  .cover { background: linear-gradient(135deg, #1a3a5c 0%, #1565c0 60%, #1e88e5 100%); color: #fff; padding: 48px 52px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+  .cover-body { flex: 1; }
+  .cover-logo { flex-shrink: 0; display: flex; align-items: flex-start; padding-top: 4px; }
+  .cover-logo img { height: 64px; background: rgba(255,255,255,0.92); padding: 10px 18px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.20); }
+  .cover .logo-line { font-size: 13pt; font-weight: 700; letter-spacing: 2px; opacity: .85; margin-bottom: 14px; }
+  .cover h1 { font-size: 26pt; font-weight: 900; line-height: 1.25; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 11.5pt; opacity: .82; margin-bottom: 24px; }
+  .cover .meta { font-size: 9.5pt; opacity: .65; border-top: 1px solid rgba(255,255,255,.25); padding-top: 14px; }
+  .body { padding: 44px 52px 60px; }
+  .toc { background: #f0f4ff; border-left: 4px solid #1565c0; border-radius: 0 8px 8px 0; padding: 20px 26px; margin-bottom: 40px; }
+  .toc h2 { font-size: 12pt; font-weight: 700; color: #1565c0; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { font-size: 10pt; line-height: 2.1; color: #1a3a5c; }
+  .toc a { color: #1565c0; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  h2.section-title { font-size: 15pt; font-weight: 800; color: #1a3a5c; border-bottom: 2.5px solid #1565c0; padding-bottom: 7px; margin: 42px 0 16px; page-break-after: avoid; }
+  h3.sub-title { font-size: 12pt; font-weight: 700; color: #1565c0; margin: 24px 0 10px; page-break-after: avoid; }
+  p { margin-bottom: 10px; }
+  .info-box { background: #e3f0ff; border: 1px solid #90caf9; border-left: 4px solid #1565c0; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1a3a5c; }
+  .warn-box { background: #fff8e1; border: 1px solid #ffe082; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #5d4037; }
+  .check-box { background: #e8f5e9; border: 1px solid #a5d6a7; border-left: 4px solid #2e7d32; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #1b5e20; }
+  .hq-box { background: #fce4ec; border: 1px solid #f48fb1; border-left: 4px solid #c62828; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 10pt; color: #b71c1c; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 20px; font-size: 10pt; page-break-inside: avoid; }
+  th { background: #1565c0; color: #fff; font-weight: 700; padding: 9px 12px; text-align: left; border: 1px solid #1245a0; }
+  td { padding: 8px 12px; border: 1px solid #cfd8dc; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f7ff; }
+  td.center, th.center { text-align: center; }
+  .perm-full { display: inline-block; background: #2e7d32; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 7px; border-radius: 4px; }
+  .perm-view { display: inline-block; background: #1565c0; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 7px; border-radius: 4px; }
+  .perm-none { display: inline-block; background: #9e9e9e; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 7px; border-radius: 4px; }
+  pre { background: #1e2a38; color: #cdd9e5; font-family: 'Consolas', 'D2Coding', monospace; font-size: 9.5pt; line-height: 1.6; padding: 16px 20px; border-radius: 8px; margin: 12px 0 18px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; page-break-inside: avoid; }
+  code { background: #e8edf5; color: #c0392b; font-family: 'Consolas', monospace; font-size: 9pt; padding: 1px 5px; border-radius: 3px; }
+  .flow { background: #f8f9fd; border: 1px solid #dce3f5; border-radius: 8px; padding: 20px 24px; margin: 14px 0 20px; font-size: 10pt; page-break-inside: avoid; }
+  .flow-row { display: flex; align-items: flex-start; margin-bottom: 7px; }
+  .flow-actor { display: inline-block; min-width: 80px; font-weight: 700; color: #1565c0; flex-shrink: 0; padding-top: 1px; }
+  .flow-arrow { color: #888; margin: 0 10px; font-size: 13pt; flex-shrink: 0; }
+  .flow-desc { color: #37474f; }
+  .step-badge { display: inline-block; background: #1565c0; color: #fff; font-weight: 800; font-size: 9pt; padding: 2px 10px; border-radius: 20px; margin-right: 8px; vertical-align: middle; }
+  .faq-item { border: 1px solid #e0e6f0; border-radius: 8px; margin-bottom: 14px; page-break-inside: avoid; }
+  .faq-q { background: #e8edf8; padding: 11px 16px; font-weight: 700; font-size: 10.5pt; color: #1a3a5c; border-radius: 8px 8px 0 0; }
+  .faq-q::before { content: "Q. "; color: #1565c0; }
+  .faq-a { padding: 11px 16px; font-size: 10pt; color: #37474f; background: #fff; border-radius: 0 0 8px 8px; }
+  .faq-a::before { content: "A. "; font-weight: 700; color: #2e7d32; }
+  .badge-req { display: inline-block; background: #e53935; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 4px; }
+  .badge-opt { display: inline-block; background: #757575; color: #fff; font-size: 8pt; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 4px; }
+  .menu-path { display: inline-block; background: #ececec; border: 1px solid #d0d0d0; border-radius: 5px; padding: 3px 11px; font-size: 9.5pt; color: #37474f; font-weight: 600; margin-bottom: 12px; }
+  .menu-path::before { content: "📌 "; }
+  hr.section-rule { border: none; border-top: 1px dashed #c5cae9; margin: 36px 0; }
+  .footer { background: #1a3a5c; color: rgba(255,255,255,.65); text-align: center; font-size: 9pt; padding: 18px 24px; }
+  ul { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+  @media print {
+    body { background: #fff; font-size: 10pt; }
+    .page-wrap { max-width: 100%; margin: 0; border-radius: 0; box-shadow: none; }
+    .cover { padding: 28px 36px 24px; }
+    .body { padding: 28px 36px 36px; }
+    .faq-item, pre, table, .flow { page-break-inside: avoid; }
+    .footer, .no-print, .print-btn { display: none !important; }
+    @page { size: A4; margin: 14mm 12mm; }
+  }
+
+  .menu-path::before { content: none; }
+</style>
+</head>
+<body>
+<style id="print-btn-style">
+  .print-btn { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: #1565c0; color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font-size: 10.5pt; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(21,101,192,.45); }
+  @media print { .print-btn { display: none !important; } }
+</style>
+<button class="print-btn" onclick="window.print()">🖨️ 印刷 / PDF保存</button>
+<div class="page-wrap">
+  <div class="cover">
+    <div class="cover-body">
+      <div class="logo-line">ICOPAY · Payment Gateway</div>
+      <h1>加盟店<br>運営マニュアル</h1>
+      <div class="subtitle">加盟店視点 — 決済・手数料・決済URL・精算・日常運用</div>
+      <div class="meta">基準: ICOPAY加盟店権限 &nbsp;|&nbsp; 対象: 加盟店運営担当 &nbsp;|&nbsp; 発行: July 2026 &nbsp;|&nbsp; V2.67</div>
+    </div>
+    <div class="cover-logo">
+      <img src="./logo-ontheline.png" alt="Brand">
+    </div>
+  </div>
+  <div class="body">
+    <div class="warn-box" style="margin-bottom:28px;">
+      <strong>📋 加盟店メニュー権限サマリー</strong><br><br>
+      <table style="margin:8px 0 0;">
+        <tr><th>メニュー</th><th class="center">権限</th><th>説明</th></tr>
+        <tr><td>業者管理 &gt; 自社情報</td><td class="center"><span class="perm-view">参照のみ</span></td><td>決済URL等の確認・コピー</td></tr><tr><td>業者管理 &gt; お知らせ</td><td class="center"><span class="perm-view">参照のみ</span></td><td>本社・総代理の告知</td></tr><tr><td>決済管理 &gt; 決済一覧</td><td class="center"><span class="perm-view">参照のみ</span></td><td>承認・失敗等の参照</td></tr><tr><td>精算管理</td><td class="center"><span class="perm-view">参照のみ</span></td><td>手数料・精算結果</td></tr><tr><td>業者登録等</td><td class="center"><span class="perm-none">アクセス不可</span></td><td>本社・総代理専用</td></tr>
+      </table>
+    </div>
+    <div class="toc">
+      <h2>目 次</h2>
+      <ol><li><a href="#s1">対象範囲</a></li><li><a href="#s2">開始前確認</a></li><li><a href="#s3">STEP 1 — ログイン・告知</a></li><li><a href="#s4">STEP 2 — 決済URL</a></li><li><a href="#s5">STEP 3 — 決済一覧</a></li><li><a href="#s6">STEP 4 — 手数料・精算</a></li><li><a href="#s7">API・チャットボット</a></li><li><a href="#s8">チェックリスト</a></li><li><a href="#s9">FAQ</a></li></ol>
+    </div>
+    
+    <h2 class="section-title" id="s1">1. Scope</h2>
+    <p>Day-to-day guide for screens a <strong>Merchant (MERCHANT)</strong> login can open. Menus follow HQ Policy → Access. PG names stay neutralized as <strong>ICOPAY</strong>.</p>
+    <div class="info-box">Channel details (URL / Split / Subscription / Chatbot) are covered in the matching merchant user manuals under Ops manuals.</div>
+    <hr class="section-rule">
+    <h2 class="section-title" id="s2">2. Before You Start</h2>
+    <div class="hq-box">Request from HQ: menu permissions, web-pay ON, company master data changes, fee/settlement policy.</div>
+    <hr class="section-rule">
+    <h2 class="section-title" id="s3">3. <span class="step-badge">STEP 1</span> Sign-in &amp; notices</h2>
+    <div class="menu-path">メニュー: Companies &gt; Notices</div>
+    <p>Sign in → sidebar shows permitted menus only → read notices (fees, settlement, maintenance, web-pay suspend).</p>
+    <hr class="section-rule">
+    <h2 class="section-title" id="s4">4. <span class="step-badge">STEP 2</span> Payment URL <small style="font-size:10pt;font-weight:400;color:#888;">(View Only)</small></h2>
+    <div class="menu-path">メニュー: Company Management &gt; My Company Info</div>
+    <pre>https://api.icopay.co.kr/checkout/{merchantCode}</pre>
+    <div class="check-box">Copy Payment URL → share → self-test in browser. Re-pay / Chatbot / Split URLs appear only when enabled.</div>
+    <div class="warn-box">If web-pay is off or suspended, the URL may be missing or show a notice only.</div>
+    <hr class="section-rule">
+    <h2 class="section-title" id="s5">5. <span class="step-badge">STEP 3</span> Payment list <small style="font-size:10pt;font-weight:400;color:#888;">(View Only)</small></h2>
+    <div class="menu-path">メニュー: Payments &gt; Payment list</div>
+    <ul><li>Filter by date/status/order id.</li><li>Review approvals, failures, cancels, refunds.</li><li>Escalate with order id · time · amount.</li></ul>
+    <hr class="section-rule">
+    <h2 class="section-title" id="s6">6. <span class="step-badge">STEP 4</span> Fees &amp; settlement</h2>
+    <div class="menu-path">メニュー: Settlement &gt; Fee list / Daily fees / Merchant settlement</div>
+    <p>Cross-check unexpected figures against Payment list; include settlement date and amount when asking HQ.</p>
+    <hr class="section-rule">
+    <h2 class="section-title" id="s7">7. Merchant API &amp; Chatbot</h2>
+    <p>Merchant API portal (if permitted) uses ICOPAY unified checkout. Chatbot merchants: see Chatbot Merchant Manual.</p>
+    <hr class="section-rule">
+    <h2 class="section-title" id="s8">8. Daily checklist</h2>
+    <div class="check-box"><ol><li>Notices</li><li>Payment URL test</li><li>Today/yesterday approvals &amp; failures</li><li>Escalate spikes</li><li>Fee/settlement anomalies</li><li>Chatbot orders if used</li></ol></div>
+    <hr class="section-rule">
+    <h2 class="section-title" id="s9">9. FAQ</h2>
+    <div class="faq-item"><div class="faq-q">Menu missing.</div><div class="faq-a">Ask HQ to open Access permissions for that URL.</div></div>
+    <div class="faq-item"><div class="faq-q">Payment URL missing / notice only.</div><div class="faq-a">Usually web-pay off or suspended — check notices and HQ.</div></div>
+    <div class="faq-item"><div class="faq-q">Document still shows V2.53.</div><div class="faq-a">Ops manuals ship with platform live V2.67. Hard-refresh or confirm deployment.</div></div>
+
+  </div>
+  <div class="footer">ICOPAY Merchant Ops · V2.67<br>ICOPAY &nbsp;|&nbsp; icopay.co.kr &nbsp;|&nbsp; 問合せ: ICOPAY本社・総代理</div>
+</div>
+</body>
+</html>

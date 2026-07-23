@@ -22,9 +22,23 @@
     return layoutB.hubByUrl[path] || null;
   }
 
-  function firstAllowedTab(hub, hubUrl) {
+  function isLeafAllowed(url) {
+    if (!url) return false;
+    if (typeof global.isMenuAllowedForCurrentUser === 'function') {
+      return !!global.isMenuAllowedForCurrentUser(url);
+    }
+    return true;
+  }
+
+  function allowedTabs(hub) {
     var tabs = hub.wizard ? hub.steps : hub.tabs;
-    if (!tabs || !tabs.length) return null;
+    if (!tabs || !tabs.length) return [];
+    return tabs.filter(function (t) { return isLeafAllowed(t.url); });
+  }
+
+  function firstAllowedTab(hub, hubUrl) {
+    var tabs = allowedTabs(hub);
+    if (!tabs.length) return null;
     var q = layoutB.parseHubQuery(hubUrl || '');
     var want = hub.wizard ? q.step : q.tab;
     /* 구 탭 id 호환: 결제 UX → 태블릿 UX */
@@ -32,19 +46,14 @@
     if (want) {
       for (var i = 0; i < tabs.length; i++) {
         var k = hub.wizard ? tabs[i].step : tabs[i].tab;
-        if (k === want) {
-          if (typeof global.isMenuAllowedForCurrentUser === 'function' && !global.isMenuAllowedForCurrentUser(tabs[i].url)) continue;
-          return tabs[i];
-        }
+        if (k === want) return tabs[i];
       }
-    }
-    if (typeof global.isMenuAllowedForCurrentUser === 'function') {
-      for (var j = 0; j < tabs.length; j++) {
-        if (global.isMenuAllowedForCurrentUser(tabs[j].url)) return tabs[j];
-      }
-      return null;
     }
     return tabs[0];
+  }
+
+  function denyHtml() {
+    return '<p class="text-muted mb-0">' + escHtml(uiT('이 화면에 대한 접근 권한이 없습니다. 본사권한설정을 확인하세요.')) + '</p>';
   }
 
   function getScreenHtml(hubUrl, tabId) {
@@ -52,9 +61,9 @@
     if (!hub) {
       return '<div class="card"><div class="card-body"><p class="text-muted mb-0">' + escHtml(uiT('허브 정보가 없습니다.')) + '</p></div></div>';
     }
+    var tabs = allowedTabs(hub);
     var activeTab = firstAllowedTab(hub, hubUrl);
     var activeKey = activeTab ? (hub.wizard ? activeTab.step : activeTab.tab) : '';
-    var tabs = hub.wizard ? hub.steps : hub.tabs;
     var navHtml = '';
     tabs.forEach(function (t) {
       var key = hub.wizard ? t.step : t.tab;
@@ -72,7 +81,9 @@
       + '<div class="card mb-0"><div class="card-body pb-2">'
       + '<div class="text-muted small mb-2" data-pg-ui-t="탭을 전환해도 동일 허브 안에서 설정합니다.">'
       + escHtml(uiT('탭을 전환해도 동일 허브 안에서 설정합니다.')) + '</div>'
-      + '<ul class="nav nav-tabs pg-hub-tabs" role="tablist">' + navHtml + '</ul>'
+      + (navHtml
+        ? '<ul class="nav nav-tabs pg-hub-tabs" role="tablist">' + navHtml + '</ul>'
+        : '<p class="text-muted mb-0">' + escHtml(uiT('이 허브에 접근 가능한 탭이 없습니다. 본사권한설정을 확인하세요.')) + '</p>')
       + '</div>'
       + '<div class="card-body pt-3">'
       + '<div class="pg-hub-panel-wrap w-100">'
@@ -109,6 +120,10 @@
     if (!hubPane || !leafUrl) return;
     var panel = hubPane.querySelector('.pg-hub-panel');
     if (!panel) return;
+    if (!isLeafAllowed(leafUrl)) {
+      panel.innerHTML = denyHtml();
+      return;
+    }
     resetPaneFlags(hubPane, leafUrl);
     panel.innerHTML = '';
     var inner = document.createElement('div');
@@ -137,6 +152,22 @@
     }
   }
 
+  /** 출시 가이드 탭 권한이 있으면 내부 서브패널도 허용(서브행 접근불가여도 가이드 본문 표시) */
+  function isGuidePanelAllowed(deployUrl) {
+    if (isLeafAllowed('/deploy/launchGuide')) return true;
+    return !!(deployUrl && isLeafAllowed(deployUrl));
+  }
+
+  function firstAllowedGuidePanel(hub) {
+    if (!hub || !hub.guidePanels || !hub.guidePanels.length) return null;
+    for (var i = 0; i < hub.guidePanels.length; i++) {
+      var p = hub.guidePanels[i];
+      if (p && p.deployUrl && isGuidePanelAllowed(p.deployUrl)) return p;
+    }
+    if (isLeafAllowed('/deploy/launchGuide')) return hub.guidePanels[0];
+    return null;
+  }
+
   function bindHubShell(pane, tabId, hubUrl) {
     if (!pane) return;
     var hub = hubConfig(hubUrl);
@@ -144,7 +175,22 @@
     var qInit = layoutB.parseHubQuery(hubUrl || '');
     var first = firstAllowedTab(hub, hubUrl);
     if (first) {
-      loadLeafIntoHub(pane, first.url, tabId + '_leaf', qInit.panel || '');
+      var prefInit = qInit.panel || '';
+      if ((hub.wizard ? first.step : first.tab) === 'guide' && hub.guidePanels && hub.guidePanels.length) {
+        if (prefInit) {
+          var prefOk = false;
+          for (var gi = 0; gi < hub.guidePanels.length; gi++) {
+            var gp = hub.guidePanels[gi];
+            if (gp && gp.panel === prefInit && isGuidePanelAllowed(gp.deployUrl)) { prefOk = true; break; }
+          }
+          if (!prefOk) prefInit = '';
+        }
+        if (!prefInit) {
+          var firstGp = firstAllowedGuidePanel(hub);
+          prefInit = firstGp ? firstGp.panel : '';
+        }
+      }
+      loadLeafIntoHub(pane, first.url, tabId + '_leaf', prefInit);
     } else {
       var panel = pane.querySelector('.pg-hub-panel');
       if (panel) {
@@ -161,11 +207,17 @@
         ev.preventDefault();
         var leaf = tabBtn.getAttribute('data-pg-hub-leaf') || '';
         var stepKey = tabBtn.getAttribute('data-pg-hub-tab') || '';
+        if (!isLeafAllowed(leaf)) {
+          var denyPanel = pane.querySelector('.pg-hub-panel');
+          if (denyPanel) denyPanel.innerHTML = denyHtml();
+          return;
+        }
         pane.querySelectorAll('.pg-hub-tabs .nav-link').forEach(function (b) { b.classList.remove('active'); });
         tabBtn.classList.add('active');
         var pref = '';
         if (stepKey === 'guide' && hub.guidePanels && hub.guidePanels.length) {
-          pref = hub.guidePanels[0].panel;
+          var firstGpClick = firstAllowedGuidePanel(hub);
+          pref = firstGpClick ? firstGpClick.panel : '';
         }
         loadLeafIntoHub(pane, leaf, tabId + '_leaf_' + stepKey, pref);
       }

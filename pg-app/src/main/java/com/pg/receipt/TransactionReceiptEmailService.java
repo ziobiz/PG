@@ -262,7 +262,7 @@ public class TransactionReceiptEmailService {
             String mdEmail = mdProfile != null ? firstNonBlank(mdProfile.getEmail()) : "";
             provider = TransactionReceiptContactBlock.of(masterDist.getName(), mdTel, mdEmail).displayLine();
         }
-        String merchant = TransactionReceiptContactBlock.of(
+        String merchant = TransactionReceiptContactBlock.ofMerchant(
                 merchantOu.getName(),
                 formatProfileTelWithDial(mp),
                 mp != null ? firstNonBlank(mp.getEmail()) : null).displayLine();
@@ -293,7 +293,7 @@ public class TransactionReceiptEmailService {
     }
 
     /**
-     * 총판·가맹 업체전화 우선. 이미 +국가번호가 있으면 유지, 없으면 {@code countryCd} 로 국가번호 부여.
+     * 총판·가맹 업체전화 우선. 이미 +국가번호가 있으면 유지, 없으면 countryCd·addrCountryCd 로 국가번호 부여.
      */
     private static String formatProfileTelWithDial(MerchantProfile p) {
         if (p == null) {
@@ -303,7 +303,8 @@ public class TransactionReceiptEmailService {
         if (raw.isEmpty()) {
             return "";
         }
-        return ensureIntlDialPrefix(raw, p.getCountryCd());
+        String country = firstNonBlank(p.getCountryCd(), p.getAddrCountryCd());
+        return ensureIntlDialPrefix(raw, country);
     }
 
     static String ensureIntlDialPrefix(String tel, String countryCd) {

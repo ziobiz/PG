@@ -1,7 +1,7 @@
 /**
  * 운영관리 > 운영 메뉴얼
  * 목록 클릭 → 새 창에서 정식 PDF + PDF 표지형 브랜드 로고(PNG) 헤더
- * 버전 = ICOPAY_PLATFORM_RELEASE.currentLiveVersion
+ * 목록·뷰어 버전 = 각 문서 PDF에 표기된 문서 버전(docVersion)
  * 브랜드 로고 = /api/hq/platformManuals/coverLogo (매뉴얼 PDF와 동일 PNG)
  * 본문 = /api/hq/platformManuals/pdf
  * 노출 = 로그인 조직 단계 이하 audience 만
@@ -9,7 +9,7 @@
 (function (global) {
   'use strict';
 
-  var FALLBACK_VERSION = '2.54';
+  var FALLBACK_VERSION = '2.68';
 
   var AUDIENCE_ORDER = ['super', 'hqdist', 'merchant'];
   var AUDIENCE_LABEL = {
@@ -34,14 +34,20 @@
     MERCHANT: 7
   };
 
-  /** 전체 PDF 통일 */
+  /**
+   * docVersion = 해당 PDF 본문에 표기된 문서 버전 (목록 배지·뷰어 헤더와 동일하게 노출)
+   * 플랫폼 라이브 버전과 다를 수 있음 — 문서가 갱신되면 함께 올린다.
+   */
   var ITEMS = [
-    { id: 'super-ops', audience: 'super', title: '총본사 운영 메뉴얼' },
-    { id: 'hq-ops', audience: 'hqdist', title: '본사 운영 메뉴얼' },
-    { id: 'dist-ops', audience: 'hqdist', title: '총판 운영 메뉴얼' },
-    { id: 'hqdist-risk-intro', audience: 'hqdist', title: '리스크 트리거 발동 소개 안내' },
-    { id: 'merchant-ops', audience: 'merchant', title: '가맹점 운영 메뉴얼' },
-    { id: 'merchant-chatbot', audience: 'merchant', title: '챗봇결제 가맹점 사용 메뉴얼' }
+    { id: 'super-ops', audience: 'super', title: '총본사 운영 메뉴얼', docVersion: '3.0' },
+    { id: 'hq-ops', audience: 'hqdist', title: '본사 운영 메뉴얼', docVersion: '3.0' },
+    { id: 'dist-ops', audience: 'hqdist', title: '총판 운영 메뉴얼', docVersion: '3.0' },
+    { id: 'hqdist-risk-intro', audience: 'hqdist', title: '리스크 트리거 발동 소개 안내', docVersion: '2.43' },
+    { id: 'merchant-ops', audience: 'merchant', title: '가맹점 운영 메뉴얼', docVersion: '2.67' },
+    { id: 'merchant-chatbot', audience: 'merchant', title: '챗봇결제 가맹점 사용 메뉴얼', docVersion: '2.46' },
+    { id: 'merchant-url-user', audience: 'merchant', title: 'URL결제 사용자 메뉴얼', docVersion: '2.66' },
+    { id: 'merchant-split-user', audience: 'merchant', title: '분할결제 사용자 메뉴얼', docVersion: '2.66' },
+    { id: 'merchant-subscribe-user', audience: 'merchant', title: '구독결제 사용자 메뉴얼', docVersion: '2.66' }
   ];
 
   function uiT(s) {
@@ -60,6 +66,16 @@
     var r = global.ICOPAY_PLATFORM_RELEASE;
     if (r && r.currentLiveVersion) return String(r.currentLiveVersion);
     return FALLBACK_VERSION;
+  }
+
+  /** 목록·뷰어에 쓰는 문서 버전 (PDF 내부 표기와 동일) */
+  function itemDocVersion(itOrId) {
+    var it = itOrId;
+    if (typeof itOrId === 'string') {
+      it = ITEMS.filter(function (x) { return x.id === itOrId; })[0];
+    }
+    if (it && it.docVersion) return String(it.docVersion);
+    return liveVersion();
   }
 
   function adminLang() {
@@ -150,6 +166,8 @@
     var b = brand || {};
     return {
       logo: resolveBrandLogoUrl(pickManualLogoRaw(b) || b.logoImageUrl || ''),
+      /* blob: 문서창에서는 상대경로 파비콘이 깨지므로 절대 URL */
+      favicon: resolveBrandLogoUrl(b.popconImageUrl || ''),
       site: b.siteName || b.compNm || 'ICOPAY',
       comp: b.compNm || b.siteName || 'ICOPAY',
       addr: b.addr || '',
@@ -157,6 +175,13 @@
       email: b.email || '',
       copy: b.copyright || ''
     };
+  }
+
+  /** 총본사 브랜드 파비콘 — blob HTML head 에 넣을 link 태그 */
+  function faviconLinkHtml(faviconAbsUrl) {
+    var href = String(faviconAbsUrl || '').trim();
+    if (!href) return '';
+    return '<link rel="icon" type="image/png" href="' + esc(href) + '">';
   }
 
   function arrayBufferToDataUrl(buf, contentType) {
@@ -229,14 +254,16 @@
     return out;
   }
 
-  function loadingHtml(title) {
+  function loadingHtml(title, brand) {
+    var fav = faviconLinkHtml(brandFields(brand).favicon);
     return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + esc(title || '') +
-      '</title></head><body style="font-family:system-ui,sans-serif;padding:24px;color:#455a64">' +
+      '</title>' + fav + '</head><body style="font-family:system-ui,sans-serif;padding:24px;color:#455a64">' +
       '<p>' + esc(uiT('매뉴얼을 불러오는 중…')) + '</p></body></html>';
   }
 
-  function errorHtml(msg) {
-    return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Error</title></head>' +
+  function errorHtml(msg, brand) {
+    var fav = faviconLinkHtml(brandFields(brand).favicon);
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Error</title>' + fav + '</head>' +
       '<body style="font-family:system-ui,sans-serif;padding:24px;color:#c62828"><p>' +
       esc(msg) + '</p></body></html>';
   }
@@ -244,11 +271,13 @@
   /**
    * 예제·PDF 표지와 같이 좌측 상단에 전체 브랜드 로고(마크) 표시
    * @param {string} logoDataUrl 이미 data:/https URL
+   * @param {string} [docVer] 문서 버전 (목록·PDF 표기와 동일)
    */
-  function brandedPdfViewerHtml(title, brand, pdfBlobUrl, logoDataUrl) {
+  function brandedPdfViewerHtml(title, brand, pdfBlobUrl, logoDataUrl, docVer) {
     var f = brandFields(brand);
     var logoSrc = logoDataUrl || f.logo;
     var contact = [f.tel, f.email].filter(Boolean).join(' · ');
+    var ver = docVer || liveVersion();
     var logoBlock = logoSrc
       ? '<img class="logo" src="' + esc(logoSrc) + '" alt="' + esc(f.site) + '" onerror="this.style.display=\'none\';var n=this.nextElementSibling;if(n)n.style.display=\'flex\'">' +
         '<div class="logo-fallback" style="display:none">' + esc(f.site) + '</div>'
@@ -256,17 +285,18 @@
     /* 로고 이미지에 브랜드명이 포함되므로 상호명(OTL HQ)은 중복 표시하지 않음 */
     var metaHtml = logoSrc
       ? ('<div class="doc-title">' + esc(title) + '</div>' +
-         '<div class="doc-ver">V' + esc(liveVersion()) + '</div>' +
+         '<div class="doc-ver">V' + esc(ver) + '</div>' +
          (f.addr ? '<div class="sub">' + esc(f.addr) + '</div>' : '') +
          (contact ? '<div class="sub">' + esc(contact) + '</div>' : ''))
       : ('<div class="nm">' + esc(f.comp) + '</div>' +
          '<div class="doc-title">' + esc(title) + '</div>' +
-         '<div class="doc-ver">V' + esc(liveVersion()) + '</div>' +
+         '<div class="doc-ver">V' + esc(ver) + '</div>' +
          (f.addr ? '<div class="sub">' + esc(f.addr) + '</div>' : '') +
          (contact ? '<div class="sub">' + esc(contact) + '</div>' : ''));
     return '<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">' +
       '<meta name="viewport" content="width=device-width,initial-scale=1">' +
-      '<title>' + esc(title) + '</title>' +
+      '<title>' + esc(title) + ' V' + esc(ver) + '</title>' +
+      faviconLinkHtml(f.favicon) +
       '<style>' +
       'html,body{height:100%;margin:0;background:#e8ecf2;font-family:"Malgun Gothic","Segoe UI","Noto Sans",sans-serif}' +
       '.bar{display:flex;align-items:center;gap:20px;padding:12px 20px;background:#fff;border-bottom:1px solid #cfd8dc;' +
@@ -305,7 +335,6 @@
   }
 
   function renderListHtml(allowedAudiences) {
-    var ver = liveVersion();
     var allowed = normalizeAllowedAudiences(allowedAudiences, sessionOrgLevel());
     var html = '';
     var any = false;
@@ -319,11 +348,12 @@
         esc(AUDIENCE_LABEL[aud]) + '">' + esc(uiT(AUDIENCE_LABEL[aud])) + '</div>';
       html += '<div class="list-group list-group-flush border rounded">';
       rows.forEach(function (it) {
+        var ver = itemDocVersion(it);
         html += '<button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center icopay-pm-open" data-id="' +
           esc(it.id) + '" title="' + esc(uiT('새 창에서 열기')) + '">' +
           '<span data-pg-ui-t="' + esc(it.title) + '">' + esc(uiT(it.title)) + '</span>' +
           '<span class="d-flex align-items-center gap-2">' +
-          '<span class="badge text-bg-light">V' + esc(ver) + '</span>' +
+          '<span class="badge text-bg-light" title="' + esc(uiT('문서 버전(PDF 표기)')) + '">V' + esc(ver) + '</span>' +
           '<span class="badge text-bg-primary" data-pg-ui-t="PDF">' + esc(uiT('PDF')) + '</span>' +
           '<span class="badge text-bg-secondary" data-pg-ui-t="새 창">' + esc(uiT('새 창')) + '</span>' +
           '</span></button>';
@@ -343,9 +373,11 @@
     html += '<div class="icopay-platform-manuals" id="icopayPlatformManualsRoot">';
     html += '<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">';
     html += '<div><div class="fw-semibold" data-pg-ui-t="운영 메뉴얼">' + esc(uiT('운영 메뉴얼')) + '</div>';
-    html += '<div class="small text-muted" data-pg-ui-t="플랫폼 라이브 버전과 동일하게 관리됩니다.">' +
-      esc(uiT('플랫폼 라이브 버전과 동일하게 관리됩니다.')) +
+    html += '<div class="small text-muted" data-pg-ui-t="플랫폼 라이브">' +
+      esc(uiT('플랫폼 라이브')) +
       ' · <span class="fw-semibold">V' + esc(ver) + '</span></div>';
+    html += '<div class="small text-muted mt-1" data-pg-ui-t="목록의 V표기는 각 PDF 문서에 표기된 문서 버전입니다(라이브와 다를 수 있음).">' +
+      esc(uiT('목록의 V표기는 각 PDF 문서에 표기된 문서 버전입니다(라이브와 다를 수 있음).')) + '</div>';
     html += '<div class="small text-muted mt-1" data-pg-ui-t="로그인 조직 단계 이하의 매뉴얼만 표시됩니다.">' +
       esc(uiT('로그인 조직 단계 이하의 매뉴얼만 표시됩니다.')) + '</div>';
     html += '<div class="small text-muted mt-1" data-pg-ui-t="항목을 클릭하면 새 창에서 PDF 매뉴얼이 열립니다. 좌측 상단에 PDF 표지와 동일한 로고가 표시됩니다.">' +
@@ -434,11 +466,13 @@
         return;
       }
       try { win.opener = null; } catch (eO) { /* ignore */ }
-      showHtmlInWindow(win, loadingHtml(title));
+      showHtmlInWindow(win, loadingHtml(title, state.brand));
 
       var lang = state.lang || 'ko';
 
-      Promise.resolve(state.brand || loadBrand()).then(function () {
+      Promise.resolve(state.brand && Object.keys(state.brand).length ? state.brand : loadBrand()).then(function () {
+        /* 브랜드(파비콘) 로드 후 로딩 화면에도 총본사 아이콘 반영 */
+        showHtmlInWindow(win, loadingHtml(title, state.brand));
         if (!global.PG_API || typeof global.PG_API.hqPlatformManualsPdf !== 'function') {
           throw new Error(uiT('매뉴얼 PDF API를 사용할 수 없습니다.'));
         }
@@ -459,13 +493,13 @@
         var pdfBlob = new Blob([buf], { type: 'application/pdf' });
         var pdfUrl = URL.createObjectURL(pdfBlob);
         state._pdfBlobUrls.push(pdfUrl);
-        showHtmlInWindow(win, brandedPdfViewerHtml(title, state.brand, pdfUrl, logoDataUrl));
+        showHtmlInWindow(win, brandedPdfViewerHtml(title, state.brand, pdfUrl, logoDataUrl, itemDocVersion(id)));
         setTimeout(function () {
           try { URL.revokeObjectURL(pdfUrl); } catch (eR) { /* ignore */ }
         }, 300000);
       }).catch(function (err) {
         var msg = (err && err.message) ? String(err.message) : uiT('매뉴얼을 불러올 수 없습니다.');
-        showHtmlInWindow(win, errorHtml(msg));
+        showHtmlInWindow(win, errorHtml(msg, state.brand));
       });
     }
 
@@ -517,6 +551,7 @@
     mount: mount,
     ensureBound: ensureBound,
     liveVersion: liveVersion,
+    itemDocVersion: itemDocVersion,
     allowedAudiencesForOrgLevel: allowedAudiencesForOrgLevel,
     audienceMinOrgCode: AUDIENCE_MIN_ORG_CODE
   };

@@ -136,9 +136,9 @@
     parent: '연동·배포',
     wizard: true,
     steps: [
-      { step: 'common', url: '/hq/apiConfig', menuId: 'M0103', label: '① 공통설정' },
-      { step: 'register', url: '/hq/apiMerchantDeployReg', menuId: 'M0906', label: '② 가맹 등록' },
-      { step: 'issue', url: '/hq/merchantApiGenerate', menuId: 'M0905', label: '③ 키·문서' },
+      { step: 'common', url: '/hq/apiConfig', menuId: 'M0103', label: '공통설정' },
+      { step: 'register', url: '/hq/apiMerchantDeployReg', menuId: 'M0906', label: '가맹 등록' },
+      { step: 'issue', url: '/hq/merchantApiGenerate', menuId: 'M0905', label: '키·문서' },
       { step: 'docs', url: '/hq/merchantApiDeployDocs', menuId: 'M0907', label: 'API 문서' },
       { step: 'guide', url: '/deploy/launchGuide', menuId: 'M0904', label: '출시 가이드' }
     ],
@@ -446,18 +446,12 @@
         if (list.indexOf(u) < 0) list.push(u);
       });
     }
+    /* 허브 URL 조회 시에만 leaf 목록을 펼침(메뉴 허용 여부). leaf→허브 역참조는 권한 누수 원인이므로 하지 않음. */
     if (hubByUrl[path]) {
       leafUrlsForHub(path).forEach(function (u) {
         if (list.indexOf(u) < 0) list.push(u);
       });
       return list;
-    }
-    Object.keys(hubByUrl).forEach(function (hu) {
-      if (leafUrlsForHub(hu).indexOf(path) >= 0 && list.indexOf(hu) < 0) list.push(hu);
-    });
-    if (leafRedirect[path]) {
-      var hubPath = leafRedirect[path].split('?')[0];
-      if (list.indexOf(hubPath) < 0) list.push(hubPath);
     }
     return list;
   }

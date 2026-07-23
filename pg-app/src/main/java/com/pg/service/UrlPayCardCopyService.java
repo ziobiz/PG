@@ -2,18 +2,26 @@ package com.pg.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.pg.integration.pg.PgVendor;
 import com.pg.entity.HqApiConfig;
+import com.pg.entity.OrgBranding;
+import com.pg.entity.OrgLevel;
+import com.pg.entity.OrgUnit;
+import com.pg.integration.pg.PgVendor;
 import com.pg.repository.HqApiConfigRepository;
+import com.pg.repository.OrgBrandingRepository;
+import com.pg.repository.OrgUnitRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 /**
  * 본사 결제구문설정: URL 결제 폼 카드 섹션 제목·안내 문구(PG별·다국어).
+ * 브라우저 탭 파비콘은 총본사 브랜드(파비콘/popcon)와 자동 연동한다.
  */
 @Service
 public class UrlPayCardCopyService {
@@ -27,7 +35,10 @@ public class UrlPayCardCopyService {
     public static final String KEY_CARD_BODY3 = "cardBody3";
     /** 브라우저 탭 제목 (다국어 맵) — 공개 URL 결제 페이지 {@code document.title} */
     public static final String KEY_BROWSER_TAB_TITLE = "browserTabTitle";
-    /** 탭 파비콘 URL — 본사 업로드 경로({@code /uploads/hq/url-pay/…})만 허용 */
+    /**
+     * 탭 파비콘 URL — 총본사 브랜드 파비콘({@code /uploads/org/…/popcon_*.png}) 우선,
+     * 없으면 URL결제 전용 업로드({@code /uploads/hq/url-pay/…}).
+     */
     public static final String KEY_FAVICON_URL = "faviconUrl";
     /** URL 결제 결과(pay-result·인라인 완료 카드) 성공 시 큰 제목 */
     public static final String KEY_RESULT_SUCCESS_MAIN = "resultSuccessMain";
@@ -42,12 +53,20 @@ public class UrlPayCardCopyService {
     /** 금액 하단 안내 노출 여부 — checkout JSON에 boolean {@code amountScaleNoticeShow} 로도 내려감 */
     public static final String KEY_AMOUNT_SCALE_NOTICE_SHOW_YN = "amountScaleNoticeShowYn";
 
-    private static final String SAFE_FAVICON_PREFIX = "/uploads/hq/url-pay/";
+    private static final String SAFE_FAVICON_HQ_PREFIX = "/uploads/hq/url-pay/";
+    private static final Pattern SAFE_ORG_POPCON =
+            Pattern.compile("^/uploads/org/[A-Za-z0-9_-]{1,40}/popcon_[A-Za-z0-9_-]{1,40}\\.png$");
 
     private final HqApiConfigRepository hqApiConfigRepository;
+    private final OrgUnitRepository orgUnitRepository;
+    private final OrgBrandingRepository orgBrandingRepository;
 
-    public UrlPayCardCopyService(HqApiConfigRepository hqApiConfigRepository) {
+    public UrlPayCardCopyService(HqApiConfigRepository hqApiConfigRepository,
+                                 OrgUnitRepository orgUnitRepository,
+                                 OrgBrandingRepository orgBrandingRepository) {
         this.hqApiConfigRepository = hqApiConfigRepository;
+        this.orgUnitRepository = orgUnitRepository;
+        this.orgBrandingRepository = orgBrandingRepository;
     }
 
     public String getConfigJson() {
@@ -204,17 +223,52 @@ public class UrlPayCardCopyService {
             return "";
         }
         String s = raw.trim();
-        if (s.length() > 500 || s.contains("..") || s.contains("\n") || s.contains("\r")) {
+        if (s.length() > 500 || s.contains("..") || s.contains("\n") || s.contains("\r") || s.contains("\\")) {
             return "";
         }
-        if (!s.startsWith(SAFE_FAVICON_PREFIX)) {
+        if (SAFE_ORG_POPCON.matcher(s).matches()) {
+            return s;
+        }
+        if (s.startsWith(SAFE_FAVICON_HQ_PREFIX)) {
+            String rest = s.substring(SAFE_FAVICON_HQ_PREFIX.length()).trim();
+            if (rest.isEmpty() || rest.contains("/") || rest.contains("\\")) {
+                return "";
+            }
+            return s;
+        }
+        return "";
+    }
+
+    /**
+     * 총본사(HEADQUARTERS) 브랜드 파비콘({@link OrgBranding#getPopconImageUrl()}).
+     */
+    public Optional<String> resolveHeadquartersBrandFaviconUrl() {
+        String fav = safeFaviconUrl(readHeadquartersPopconImageUrl());
+        return fav.isEmpty() ? Optional.empty() : Optional.of(fav);
+    }
+
+    private String readHeadquartersPopconImageUrl() {
+        List<OrgUnit> hqs = orgUnitRepository.findByOrgLevelOrderByCodeAsc(OrgLevel.HEADQUARTERS);
+        if (hqs == null || hqs.isEmpty()) {
             return "";
         }
-        String rest = s.substring(SAFE_FAVICON_PREFIX.length()).trim();
-        if (rest.isEmpty() || rest.contains("/") || rest.contains("\\")) {
+        OrgUnit hq = hqs.get(0);
+        if (hq == null || hq.getId() == null) {
             return "";
         }
-        return s;
+        return orgBrandingRepository.findByOrgUnitId(hq.getId())
+                .map(OrgBranding::getPopconImageUrl)
+                .map(s -> s != null ? s.trim() : "")
+                .orElse("");
+    }
+
+    /**
+     * checkout / session 응답에 넣을 카드카피. 활성 PG 행이 없어도 총본사 파비콘만으로 맵을 만든다.
+     */
+    public Map<String, Object> mergeHeadquartersBrandFavicon(Map<String, Object> copyOrNull) {
+        Map<String, Object> out = copyOrNull != null ? new LinkedHashMap<>(copyOrNull) : new LinkedHashMap<>();
+        resolveHeadquartersBrandFaviconUrl().ifPresent(fav -> out.put(KEY_FAVICON_URL, fav));
+        return out;
     }
 
     private static void putLangMapIfNonEmpty(Map<String, Object> out, String key, JsonNode node) {
@@ -225,7 +279,8 @@ public class UrlPayCardCopyService {
     }
 
     /**
-     * 본사 {@link HqApiConfig}의 URL 결제 폼 탭·파비콘을 우선하고, 비어 있으면 결제구문 JSON 행(레거시)을 폴백.
+     * 탭 제목: 본사 URL결제 폼 설정 → 결제구문 JSON 폴백.
+     * 파비콘: <strong>총본사 브랜드 파비콘</strong> → URL결제 전용 업로드 → JSON 레거시.
      */
     private void applyUrlPayChrome(Map<String, Object> out, HqApiConfig hq, JsonNode entryNode) {
         Map<String, String> tab = new LinkedHashMap<>();
@@ -243,8 +298,8 @@ public class UrlPayCardCopyService {
         if (!tab.isEmpty()) {
             out.put(KEY_BROWSER_TAB_TITLE, tab);
         }
-        String fav = "";
-        if (hq != null && hq.getUrlPayFaviconUrl() != null && !hq.getUrlPayFaviconUrl().isBlank()) {
+        String fav = safeFaviconUrl(readHeadquartersPopconImageUrl());
+        if (fav.isEmpty() && hq != null && hq.getUrlPayFaviconUrl() != null && !hq.getUrlPayFaviconUrl().isBlank()) {
             fav = safeFaviconUrl(hq.getUrlPayFaviconUrl().trim());
         }
         if (fav.isEmpty() && entryNode != null) {

@@ -6,13 +6,396 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '2.54';
+  var CURRENT_LIVE = '2.68';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '2.68',
+      kind: 'minor',
+      date: '2026-07-23',
+      items: {
+        KO: [
+          '리스크 트리거 발동 소개 안내: 5개 언어 PDF가 동일(일본어) 파일이던 오류 수정 — KO/EN/JP/CH/TH 정식 문서로 교체',
+          '운영 메뉴얼 목록 V배지: 플랫폼 라이브 일괄 표시 → 각 PDF 문서 버전과 동일하게 노출(URL·분할·구독=V2.66 등)'
+        ],
+        EN: [
+          'Risk Trigger Introduction: fixed all five language PDFs being the same (Japanese) file — replaced with proper KO/EN/JP/CH/TH docs',
+          'Ops manuals list V badge: no longer one live version for all — each row shows that PDF’s document version (URL/Split/Subscribe=V2.66, etc.)'
+        ],
+        JP: [
+          'リスクトリガー発火案内: 5言語PDFが同一(日本語)だった不具合を修正 — 正式KO/EN/JP/CH/THに差し替え',
+          '運営マニュアル一覧のV: ライブ一括表示をやめ、各PDFの文書版を表示(URL・分割・定期=V2.66等)'
+        ],
+        CH: [
+          '风险触发介绍：修复五语 PDF 实为同一日文文件 — 已替换为正式 KO/EN/JP/CH/TH',
+          '运营手册列表 V 标记：不再统一显示线上版本 — 与各 PDF 文档版本一致（URL/分期/订阅=V2.66 等）'
+        ],
+        TH: [
+          'แนะนำทริกเกอร์ความเสี่ยง: แก้ PDF 5 ภาษาเป็นไฟล์เดียว (ญี่ปุ่น) — เปลี่ยนเป็นเอกสารจริง KO/EN/JP/CH/TH',
+          'ป้าย V ในรายการคู่มือ: ไม่ใช้ไลฟ์เดียวกันทั้งรายการ — แสดงเวอร์ชันใน PDF (URL/แบ่งจ่าย/สมาชิก=V2.66 เป็นต้น)'
+        ]
+      }
+    },
+    {
+      version: '2.67',
+      kind: 'minor',
+      date: '2026-07-23',
+      items: {
+        KO: [
+          '가맹점 운영 메뉴얼: PDF가 V2.53에 고착되어 라이브와 어긋나던 문제 수정 → 플랫폼 라이브 버전(V2.67) 동기화',
+          '챗봇결제 가맹점 메뉴얼과 동일 디자인(커버·권한표·STEP·FAQ)·5개국어 HTML/PDF 재생성'
+        ],
+        EN: [
+          'Merchant Ops manual: fixed PDF stuck at V2.53 (out of sync with live) → now tracks platform live V2.67',
+          'Same design as Chatbot Merchant Manual (cover, permission table, STEPs, FAQ) · 5-language HTML/PDF rebuilt'
+        ],
+        JP: [
+          '加盟店運営マニュアル: PDFがV2.53のままライブと不一致だった問題を修正 → ライブV2.67に同期',
+          'チャットボット加盟店マニュアルと同一デザイン・5言語HTML/PDF再生成'
+        ],
+        CH: [
+          '商户运营手册：修复 PDF 停在 V2.53 与线上不一致 → 同步平台线上 V2.67',
+          '与聊天机器人支付商户手册同一设计 · 五语 HTML/PDF 重建'
+        ],
+        TH: [
+          'คู่มือปฏิบัติการร้าน: แก้ PDF ค้างที่ V2.53 ไม่ตรงไลฟ์ → ซิงก์ไลฟ์ V2.67',
+          'ดีไซน์เดียวกับคู่มือร้านแชทบอท · สร้าง HTML/PDF 5 ภาษาใหม่'
+        ]
+      }
+    },
+    {
+      version: '2.66',
+      kind: 'minor',
+      date: '2026-07-23',
+      items: {
+        KO: [
+          '가맹점 사용자 메뉴얼(URL·분할·구독): 챗봇결제 가맹점 메뉴얼과 동일 디자인 패턴으로 전면 재작성(커버·권한표·STEP·FAQ)',
+          '권한 요약 배지·흐름도·안내박스·5개국어 HTML/PDF — 이후 가맹점 사용자 메뉴얼 기본 디자인으로 고정'
+        ],
+        EN: [
+          'Merchant user manuals (URL/Split/Subscription): fully rebuilt to match Chatbot Merchant Manual design (cover, permission table, STEPs, FAQ)',
+          'Permission badges, flows, callout boxes · 5-language HTML/PDF — fixed as the default merchant-user manual pattern'
+        ],
+        JP: [
+          '加盟店ユーザーマニュアル(URL・分割・定期): チャットボット決済加盟店マニュアルと同一デザインに全面再作成',
+          '権限サマリー・STEP・FAQ・5言語HTML/PDF — 以降の標準デザインとして固定'
+        ],
+        CH: [
+          '商户用户手册（URL/分期/订阅）：按聊天机器人支付商户手册同一设计全面重做（封面、权限表、STEP、FAQ）',
+          '权限徽章·流程·提示框 · 五语 HTML/PDF — 固定为后续默认设计'
+        ],
+        TH: [
+          'คู่มือผู้ใช้ร้าน (URL/แบ่งจ่าย/สมาชิก): สร้างใหม่ให้ตรงดีไซน์คู่มือร้านแชทบอท (ปก ตารางสิทธิ์ STEP FAQ)',
+          'แบดจ์สิทธิ์ โฟลว์ กล่องคำแนะนำ · HTML/PDF 5 ภาษา — ใช้เป็นแพทเทิร์นมาตรฐานต่อไป'
+        ]
+      }
+    },
+    {
+      version: '2.65',
+      kind: 'minor',
+      date: '2026-07-23',
+      items: {
+        KO: [
+          '브라우저 탭 파비콘: URL 결제창·운영 매뉴얼(blob) 창이 총본사 브랜드 「파비콘 이미지」와 자동 연동',
+          '총본사 파비콘이 없을 때만 URL결제 폼 전용 업로드를 폴백으로 사용 · 안내 문구 5개국어'
+        ],
+        EN: [
+          'Browser tab favicon: URL payment and ops manual (blob) windows auto-link to headquarters brand Favicon',
+          'URL-pay form upload is fallback only when HQ favicon is empty · 5-language help copy'
+        ],
+        JP: [
+          'ブラウザタブのファビコン: URL決済・運営マニュアル(blob)画面が総本社ブランドのファビコンと自動連動',
+          '総本社ファビコンが無い場合のみURL決済フォーム用アップロードをフォールバック · 案内文5言語'
+        ],
+        CH: [
+          '浏览器标签图标：URL 支付与运营手册（blob）窗口自动连动总公司品牌网站图标',
+          '仅当总公司图标为空时使用 URL 支付表单上传作为回退 · 五语说明'
+        ],
+        TH: [
+          'ไอคอนแท็บเบราว์เซอร์: หน้าต่างชำระ URL และคู่มือปฏิบัติการ (blob) เชื่อมกับ Favicon แบรนด์สำนักงานใหญ่โดยอัตโนมัติ',
+          'อัปโหลดฟอร์ม URL เป็นทางสำรองเมื่อไม่มีไอคอน HQ · คำอธิบาย 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '2.64',
+      kind: 'minor',
+      date: '2026-07-23',
+      items: {
+        KO: [
+          '가맹점 사용자 메뉴얼(URL·분할·구독): 가맹점 운영 메뉴얼과 동일 표지·폰트·목차·본문 구성으로 재작성',
+          '메뉴 경로·절차·주의·체크리스트 등 운영 메뉴얼과 같은 안내 톤·5개국어 PDF/HTML'
+        ],
+        EN: [
+          'Merchant user manuals (URL/Split/Subscription): rebuilt to match Merchant Ops manual cover, fonts, TOC, body layout',
+          'Same guidance tone (menu path / steps / notes / checklist) · 5-language PDF/HTML'
+        ],
+        JP: [
+          '加盟店ユーザーマニュアル(URL・分割・定期): 加盟店運営マニュアルと同一の表紙・フォント・目次・本文構成に再作成',
+          'メニュー経路・手順・注意・チェックリスト等、同トーンの5言語PDF/HTML'
+        ],
+        CH: [
+          '商户用户手册（URL/分期/订阅）：按商户运营手册同一封面、字体、目录、正文结构重做',
+          '菜单路径/步骤/注意/清单等同语气 · 五语 PDF/HTML'
+        ],
+        TH: [
+          'คู่มือผู้ใช้ร้าน (URL/แบ่งจ่าย/สมาชิก): สร้างใหม่ให้ตรงปก ฟอนต์ สารบัญ เนื้อหากับคู่มือปฏิบัติการร้าน',
+          'โทนเดียวกัน (เส้นทางเมนู/ขั้นตอน/ข้อควรระวัง/เช็คลิสต์) · PDF/HTML 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '2.63',
+      kind: 'minor',
+      date: '2026-07-23',
+      items: {
+        KO: [
+          '가맹점 사용자 메뉴얼 PDF: 한글·일·중·태 글자가 ??로 깨지던 문제 수정(CJK 폰트 임베딩)',
+          'URL결제·분할결제·구독결제 사용자 메뉴얼 5개국어 PDF 재생성'
+        ],
+        EN: [
+          'Merchant user manual PDFs: fixed KO/JA/ZH/TH showing as ?? (proper CJK font embedding)',
+          'Regenerated URL / Split / Subscription user manuals in 5 languages'
+        ],
+        JP: [
+          '加盟店ユーザーマニュアルPDF: 韓日中タイ文字が??になる問題を修正(CJKフォント埋め込み)',
+          'URL・分割・定期決済ユーザーマニュアルを5言語で再生成'
+        ],
+        CH: [
+          '商户用户手册 PDF：修复韩/日/中/泰文显示为 ??（正确嵌入 CJK 字体）',
+          '重新生成 URL/分期/订阅支付用户手册五语 PDF'
+        ],
+        TH: [
+          'PDF คู่มือผู้ใช้ร้าน: แก้ตัวอักษร KO/JA/ZH/TH เป็น ?? (ฝังฟอนต์ CJK)',
+          'สร้างใหม่คู่มือผู้ใช้ชำระ URL/แบ่งจ่าย/สมาชิก 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '2.62',
+      kind: 'minor',
+      date: '2026-07-23',
+      items: {
+        KO: [
+          '가맹 API 출시 탭명: ①②③ 숫자 제거(공통설정·가맹 등록·키·문서)',
+          '운영 메뉴얼(가맹점용): URL결제·분할결제·구독결제 사용자 메뉴얼 추가(연동 스펙 아님, 직원용 이용 안내)'
+        ],
+        EN: [
+          'Merchant API launch tabs: removed ①②③ prefixes (Common / Register / Keys & docs)',
+          'Ops manuals (merchant): added URL / Split / Subscription user manuals (staff how-to, not API specs)'
+        ],
+        JP: [
+          '加盟店API公開タブ: ①②③番号を削除(共通設定・加盟店登録・キー・文書)',
+          '運営マニュアル(加盟店向け): URL・分割・定期決済のユーザーマニュアルを追加(連携仕様ではなく利用案内)'
+        ],
+        CH: [
+          '商户 API 发布标签：去掉 ①②③ 编号（通用设置·注册商户·密钥与文档）',
+          '运营手册（商户）：新增 URL/分期/订阅支付用户手册（员工使用说明，非对接规格）'
+        ],
+        TH: [
+          'แท็บเปิดใช้ Merchant API: ตัดเลข ①②③ (ตั้งค่าทั่วไป·ลงทะเบียนร้าน·คีย์และเอกสาร)',
+          'คู่มือปฏิบัติการ (ร้าน): เพิ่มคู่มือผู้ใช้ชำระ URL/แบ่งจ่าย/สมาชิก (วิธีใช้ ไม่ใช่สเปก API)'
+        ]
+      }
+    },
+    {
+      version: '2.61',
+      kind: 'minor',
+      date: '2026-07-23',
+      items: {
+        KO: [
+          '노티관리: 가맹·전산·개발 노티 사용 체크 라벨이 테마(흰글자 상속)로 안 보이던 문제 수정',
+          '본문(content-inner)은 흰 배경이므로 DARK 등 테마에서도 본문 글자색을 어둡게 고정'
+        ],
+        EN: [
+          'NOTI management: fixed invisible merchant/ledger/dev NOTI checkbox labels under org themes',
+          'Force dark body text on white content-inner even when DARK theme inherits white text'
+        ],
+        JP: [
+          'ノティ管理: テーマにより加盟・電算・開発ノティ使用ラベルが見えない問題を修正',
+          '白いcontent-innerではDARK等でも本文文字色を暗色に固定'
+        ],
+        CH: [
+          'NOTI 管理：修复主题下商户/账务/开发 NOTI 勾选标签不可见',
+          '白色正文区域在 DARK 等主题下强制深色文字'
+        ],
+        TH: [
+          'จัดการ NOTI: แก้ป้ายกาช่องใช้ NOTI ร้าน/บัญชี/dev หายในธีม',
+          'บังคับตัวอักษรเข้มบนพื้นขาวแม้ธีม DARK สืบทอดสีขาว'
+        ]
+      }
+    },
+    {
+      version: '2.60',
+      kind: 'minor',
+      date: '2026-07-23',
+      items: {
+        KO: [
+          '노티관리: SUPERVISOR 전용 접근 복원(조직 권한과 무관, SUPERVISOR·총본사 ADMIN만 사용)',
+          '접근·권한·사용자 매트릭스: 권한값별 칸/행 색상(본사권한과 동일 팔레트)',
+          'SUPERVISOR 전용 메뉴는 삭제(SUPERVISOR) 표기·보라색으로 구분'
+        ],
+        EN: [
+          'NOTI management: restored SUPERVISOR-only access (org grant alone is not enough)',
+          'Access/user matrices: cell/row colors by permission (same palette as HQ rights)',
+          'SUPERVISOR-only menus show Delete (SUPERVISOR) with purple styling'
+        ],
+        JP: [
+          'ノティ管理: SUPERVISOR専用アクセスを復元(組織権限だけでは不可)',
+          'アクセス・ユーザーマトリクス: 権限値ごとのセル/行色(本社権限と同パレット)',
+          'SUPERVISOR専用メニューは削除(SUPERVISOR)表示・紫色で区別'
+        ],
+        CH: [
+          'NOTI 管理：恢复仅 SUPERVISOR 可访问（仅有组织权限不足）',
+          '访问/用户矩阵：按权限值着色（与总部权限同色板）',
+          'SUPERVISOR 专用菜单显示删除(SUPERVISOR)并用紫色区分'
+        ],
+        TH: [
+          'จัดการ NOTI: คืนสิทธิ์เฉพาะ SUPERVISOR (สิทธิ์องค์กรอย่างเดียวไม่พอ)',
+          'เมทริกซ์สิทธิ์/ผู้ใช้: แถบสีตามค่าสิทธิ์ (ชุดสีเดียวกับสิทธิ์ HQ)',
+          'เมนูเฉพาะ SUPERVISOR แสดง ลบ(SUPERVISOR) และสีม่วง'
+        ]
+      }
+    },
+    {
+      version: '2.59',
+      kind: 'minor',
+      date: '2026-07-23',
+      items: {
+        KO: [
+          '노티관리: SUPERVISOR 전용 강제 해제 — 본사 접근·권한(삭제/수정 등)에 따라 총판·본사도 활성화',
+          '출시 가이드: 가이드 권한만 있어도 본문·서브패널 표시(V2.58)'
+        ],
+        EN: [
+          'NOTI management: removed SUPERVISOR-only override — follows HQ access rights (e.g. Master Dist DELETE)',
+          'Launch Guide: parent permission opens guide body and sub-panels (V2.58)'
+        ],
+        JP: [
+          'ノティ管理: SUPERVISOR専用強制を解除 — 本社アクセス権限に従い総代理店等も有効化',
+          '公開ガイド: ガイド権限のみでも本文・サブパネル表示(V2.58)'
+        ],
+        CH: [
+          'NOTI 管理：取消仅 SUPERVISOR 可用的强制限制 — 按总部访问权限对总代理等生效',
+          '发布指南：仅有指南权限也可打开正文与子面板（V2.58）'
+        ],
+        TH: [
+          'จัดการ NOTI: ยกเลิกบังคับเฉพาะ SUPERVISOR — ใช้ตามสิทธิ์ HQ (เช่น ตัวแทนใหญ่ DELETE)',
+          'คู่มือเปิดตัว: มีสิทธิ์คู่มืออย่างเดียวก็เปิดเนื้อหา/แผงย่อยได้ (V2.58)'
+        ]
+      }
+    },
+    {
+      version: '2.58',
+      kind: 'minor',
+      date: '2026-07-23',
+      items: {
+        KO: [
+          '출시 가이드 권한만 부여해도 가이드 본문·내부 서브패널이 열리도록 수정(빈 “탭 없음” 메시지 해소)'
+        ],
+        EN: [
+          'Launch Guide permission alone opens guide body and inner sub-panels (fixes empty “no tabs” message)'
+        ],
+        JP: [
+          '公開ガイド権限のみでもガイド本文・内部サブパネルが開くよう修正(空の「タブなし」表示を解消)'
+        ],
+        CH: [
+          '仅授予发布指南权限即可打开指南正文与内部子面板（修复空白“无标签”提示）'
+        ],
+        TH: [
+          'ให้สิทธิ์คู่มือเปิดตัวอย่างเดียวก็เปิดเนื้อหา/แผงย่อยได้ (แก้ข้อความว่าง “ไม่มีแท็บ”)'
+        ]
+      }
+    },
+    {
+      version: '2.57',
+      kind: 'minor',
+      date: '2026-07-23',
+      items: {
+        KO: [
+          '접근·권한: 허브(가맹 API 출시 등) 탭을 조직별 권한에 맞게만 노출·전환',
+          '형제 메뉴 URL끼리 권한이 섞이던 별칭 로직 제거(접근불가 누수 수정)',
+          '출시 가이드 내부 서브패널(체크리스트·진행안 등)도 동일하게 권한 필터'
+        ],
+        EN: [
+          'Access rights: hub tabs (Merchant API release, etc.) show/switch only by org page permission',
+          'Removed sibling-menu permission alias bleed (NONE no longer inherits DELETE)',
+          'Launch guide sub-panels (checklist, plans, etc.) filtered by the same rights'
+        ],
+        JP: [
+          'アクセス権限: ハブ(加盟API公開など)のタブを組織権限どおりのみ表示・切替',
+          '兄弟メニュー間の権限エイリアス混入を除去(アクセス不可の漏れ修正)',
+          '公開ガイド内サブパネル(チェックリスト等)も同一権限でフィルタ'
+        ],
+        CH: [
+          '访问权限：枢纽标签（商户 API 发布等）仅按组织权限显示/切换',
+          '移除兄弟菜单权限别名串扰（不可访问不再继承删除权限）',
+          '发布指南内子面板（检查清单等）同样按权限过滤'
+        ],
+        TH: [
+          'สิทธิ์เข้าถึง: แท็บฮับ (เปิดตัว API ร้านค้า ฯลฯ) แสดง/สลับตามสิทธิ์องค์กรเท่านั้น',
+          'ลบการปนสิทธิ์ระหว่างเมนูพี่น้อง (NONE ไม่รับ DELETE อีกต่อไป)',
+          'แผงย่อยในคู่มือเปิดตัว (เช็คลิสต์ ฯลฯ) กรองด้วยสิทธิ์เดียวกัน'
+        ]
+      }
+    },
+    {
+      version: '2.56',
+      kind: 'minor',
+      date: '2026-07-23',
+      items: {
+        KO: [
+          '분할결제 안내 메일 제목: 템플릿 미설정 시 SAMPLE-CONTRACT 대신 실제 계약번호·회차({{contractNo}}·{{installmentNo}}) 사용'
+        ],
+        EN: [
+          'Split-pay reminder subject: use real {{contractNo}}·{{installmentNo}} when phase subject template is empty (no SAMPLE-CONTRACT)'
+        ],
+        JP: [
+          '分割払い案内メール件名: テンプレ未設定時も SAMPLE-CONTRACT ではなく実契約番号・回数を使用'
+        ],
+        CH: [
+          '分期付款提醒邮件标题：未配置模板时使用真实合同号·期数，不再出现 SAMPLE-CONTRACT'
+        ],
+        TH: [
+          'หัวข้ออีเมลแจ้งแบ่งงวด: ใช้เลขสัญญา/งวดจริงเมื่อไม่มีเทมเพลต (ไม่ใช้ SAMPLE-CONTRACT)'
+        ]
+      }
+    },
+    {
+      version: '2.55',
+      kind: 'minor',
+      date: '2026-07-23',
+      items: {
+        KO: [
+          '업체등록·업체정보: 「기타」→「영업정보 / 기타」(온라인·오프라인·기타 드롭다운, 온라인/오프라인 상세 필수)',
+          '업체전화·이메일 필수 입력',
+          '고객 거래명세서 이메일: 가맹점명 아래 「국가번호·전화 / 이메일」 표시'
+        ],
+        EN: [
+          'Company reg/info: “Other” → “Sales info / Other” (Online/Offline/Other; detail required for Online/Offline)',
+          'Company phone and email required',
+          'Customer receipt email: show dial·phone / email under merchant name'
+        ],
+        JP: [
+          '業者登録・業者情報:「その他」→「営業情報 / その他」(オンライン・オフライン・その他、詳細はオン/オフ必須)',
+          '店舗電話・メール必須',
+          '顧客取引明細メール: 加盟店名の下に「国番号・電話 / メール」表示'
+        ],
+        CH: [
+          '商户注册/信息：「其他」→「营业信息 / 其他」（线上/线下/其他；线上线下须填明细）',
+          '公司电话与邮箱必填',
+          '客户交易明细邮件：商户名下方显示「国家区号·电话 / 邮箱」'
+        ],
+        TH: [
+          'ลงทะเบียน/ข้อมูลร้าน: 「อื่นๆ」→「ข้อมูลธุรกิจ / อื่นๆ」 (ออนไลน์/ออฟไลน์/อื่นๆ รายละเอียดบังคับเมื่อออนไลน์/ออฟไลน์)',
+          'โทรศัพท์ร้านและอีเมลเป็นค่าบังคับ',
+          'อีเมลใบเสร็จลูกค้า: แสดง รหัสประเทศ·โทร / อีเมล ใต้ชื่อร้าน'
+        ]
+      }
+    },
     {
       version: '2.54',
       kind: 'minor',

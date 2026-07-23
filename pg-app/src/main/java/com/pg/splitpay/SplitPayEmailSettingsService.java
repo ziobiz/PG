@@ -197,7 +197,17 @@ public class SplitPayEmailSettingsService {
         if (custom != null && !custom.isBlank()) {
             return custom;
         }
-        return SplitPayMailI18n.subject(locale, "SAMPLE-CONTRACT", 1);
+        return defaultSubjectTemplate(locale);
+    }
+
+    private static String defaultSubjectTemplate(String locale) {
+        return switch (SplitPayMailLocaleUtil.normalize(locale)) {
+            case SplitPayMailLocaleUtil.ENG -> "[ICOPAY] Split payment · {{contractNo}} · #{{installmentNo}}";
+            case SplitPayMailLocaleUtil.JPN -> "[ICOPAY] 分割払いのお支払い · {{contractNo}} · 第{{installmentNo}}回";
+            case SplitPayMailLocaleUtil.CHN -> "[ICOPAY] 分期付款 · {{contractNo}} · 第{{installmentNo}}期";
+            case SplitPayMailLocaleUtil.THA -> "[ICOPAY] การชำระแบบแบ่งงวด · {{contractNo}} · งวดที่ {{installmentNo}}";
+            default -> "[ICOPAY] 분할결제 안내 · {{contractNo}} · {{installmentNo}}회차";
+        };
     }
 
     private String resolveBodyTemplate(SplitPayEmailPhase cfg, String locale) {

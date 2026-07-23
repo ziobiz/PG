@@ -525,7 +525,8 @@ public class OrgPagePermissionService {
     }
 
     /**
-     * 운영관리 노티관리 — SUPERVISOR 담당자 또는 총본사(HEADQUARTERS) ADMIN(본사권한설정은 그대로 적용).
+     * 운영관리 노티관리 — SUPERVISOR 담당자 또는 총본사(HEADQUARTERS) ADMIN만 실제 접근.
+     * 본사권한설정에 삭제(전체) 등이 있어도 SUPERVISOR가 아니면 NONE으로 강제(조직 상한·표시용 권한과 실행 권한 분리).
      */
     private Map<String, String> restrictNotiProvisionToSupervisorOnly(AppUser user, Map<String, String> permissions) {
         if (permissions == null || user == null) {

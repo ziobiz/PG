@@ -1,8 +1,8 @@
 {
-  "version": "2.54",
-  "date": "2026-07-22",
+  "version": "2.68",
+  "date": "2026-07-23",
   "format": "pdf",
-  "note": "All manuals are formal PDF under site/manuals/pdf/{id}/{lang}.pdf — opened via API with PDF-cover logo header. Menu label: 운영 메뉴얼.",
+  "note": "List V badges use each item.docVersion matching PDF. Risk-intro has distinct KO/EN/JA/ZH/TH PDFs.",
   "audiences": [
     {
       "id": "super",
@@ -47,7 +47,8 @@
         "zh": "总本部运营手册",
         "th": "คู่มือปฏิบัติการสำนักงานใหญ่สูงสุด"
       },
-      "pdfDir": "manuals/pdf/super-ops"
+      "pdfDir": "manuals/pdf/super-ops",
+      "docVersion": "3.0"
     },
     {
       "id": "hq-ops",
@@ -60,7 +61,8 @@
         "zh": "总部运营手册",
         "th": "คู่มือปฏิบัติการ HQ"
       },
-      "pdfDir": "manuals/pdf/hq-ops"
+      "pdfDir": "manuals/pdf/hq-ops",
+      "docVersion": "3.0"
     },
     {
       "id": "dist-ops",
@@ -73,7 +75,8 @@
         "zh": "总代理运营手册",
         "th": "คู่มือปฏิบัติการตัวแทนจำหน่าย"
       },
-      "pdfDir": "manuals/pdf/dist-ops"
+      "pdfDir": "manuals/pdf/dist-ops",
+      "docVersion": "3.0"
     },
     {
       "id": "hqdist-risk-intro",
@@ -86,7 +89,8 @@
         "zh": "风险触发介绍",
         "th": "แนะนำทริกเกอร์ความเสี่ยง"
       },
-      "pdfDir": "manuals/pdf/hqdist-risk-intro"
+      "pdfDir": "manuals/pdf/hqdist-risk-intro",
+      "docVersion": "2.43"
     },
     {
       "id": "merchant-ops",
@@ -99,7 +103,8 @@
         "zh": "商户运营手册",
         "th": "คู่มือปฏิบัติการร้านค้า"
       },
-      "pdfDir": "manuals/pdf/merchant-ops"
+      "pdfDir": "manuals/pdf/merchant-ops",
+      "docVersion": "2.67"
     },
     {
       "id": "merchant-chatbot",
@@ -112,7 +117,50 @@
         "zh": "聊天机器人支付商户手册",
         "th": "คู่มือร้านค้าชำระผ่านแชทบอท"
       },
-      "pdfDir": "manuals/pdf/merchant-chatbot"
+      "pdfDir": "manuals/pdf/merchant-chatbot",
+      "docVersion": "2.46"
+    },
+    {
+      "id": "merchant-url-user",
+      "audience": "merchant",
+      "format": "pdf",
+      "titles": {
+        "ko": "URL결제 사용자 메뉴얼",
+        "en": "URL Payment — User Manual",
+        "ja": "URL決済 ユーザーマニュアル",
+        "zh": "URL支付用户手册",
+        "th": "คู่มือผู้ใช้ชำระด้วย URL"
+      },
+      "pdfDir": "manuals/pdf/merchant-url-user",
+      "docVersion": "2.66"
+    },
+    {
+      "id": "merchant-split-user",
+      "audience": "merchant",
+      "format": "pdf",
+      "titles": {
+        "ko": "분할결제 사용자 메뉴얼",
+        "en": "Split Payment — User Manual",
+        "ja": "分割決済 ユーザーマニュアル",
+        "zh": "分期支付用户手册",
+        "th": "คู่มือผู้ใช้แบ่งจ่าย"
+      },
+      "pdfDir": "manuals/pdf/merchant-split-user",
+      "docVersion": "2.66"
+    },
+    {
+      "id": "merchant-subscribe-user",
+      "audience": "merchant",
+      "format": "pdf",
+      "titles": {
+        "ko": "구독결제 사용자 메뉴얼",
+        "en": "Subscription Payment — User Manual",
+        "ja": "定期決済 ユーザーマニュアル",
+        "zh": "订阅支付用户手册",
+        "th": "คู่มือผู้ใช้ชำระรายงวด"
+      },
+      "pdfDir": "manuals/pdf/merchant-subscribe-user",
+      "docVersion": "2.66"
     }
   ]
 }

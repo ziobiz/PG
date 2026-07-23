@@ -12,7 +12,7 @@ OUT = ROOT / "pdf" / "merchant-ops"
 LOGO = ROOT / "assets" / "cover-brand-logo.png"
 OUT.mkdir(parents=True, exist_ok=True)
 
-VERSION = "2.53"
+VERSION = "2.67"  # deprecated — use _build_merchant_ops_v3.py
 DATE = "2026-07-22"
 
 FONT_FILES = [
