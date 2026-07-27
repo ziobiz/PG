@@ -20,12 +20,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.time.ZoneId;
 import java.util.Optional;
 import java.util.Set;
 
@@ -36,15 +37,18 @@ public class SplitPayListService {
     private final SplitPayInstallmentRepository installmentRepository;
     private final OrgAccessService orgAccessService;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
+    private final SplitPayContractCancelPermissionService cancelPermissionService;
 
     public SplitPayListService(SplitPayContractRepository contractRepository,
                                SplitPayInstallmentRepository installmentRepository,
                                OrgAccessService orgAccessService,
-                               HqLedgerSysSettingsService hqLedgerSysSettingsService) {
+                               HqLedgerSysSettingsService hqLedgerSysSettingsService,
+                               SplitPayContractCancelPermissionService cancelPermissionService) {
         this.contractRepository = contractRepository;
         this.installmentRepository = installmentRepository;
         this.orgAccessService = orgAccessService;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
+        this.cancelPermissionService = cancelPermissionService;
     }
 
     @Transactional(readOnly = true)
@@ -88,10 +92,10 @@ public class SplitPayListService {
         };
         Page<SplitPayContract> p = contractRepository.findAll(spec,
                 PageRequest.of(pageIdx, sz, Sort.by(Sort.Direction.DESC, "createdAt")));
-        return PageResult.of(p, this::toRow);
+        return PageResult.of(p, c -> toRow(c, authentication));
     }
 
-    private Map<String, Object> toRow(SplitPayContract c) {
+    private Map<String, Object> toRow(SplitPayContract c, Authentication authentication) {
         List<SplitPayInstallment> inst = installmentRepository.findByContractIdOrderByInstallmentNoAsc(c.getId());
         long paid = inst.stream().filter(i -> SplitPayInstallment.STATUS_PAID.equals(i.getStatus())).count();
         Map<String, Object> m = new LinkedHashMap<>();
@@ -108,8 +112,16 @@ public class SplitPayListService {
         m.put("status", c.getStatus());
         m.put("contractDate", c.getContractDate() != null ? c.getContractDate().toString() : "");
         m.put("createdAt", formatSplitPayDateTime(c.getCreatedAt()));
+        m.put("cancelledAt", formatSplitPayDateTime(c.getCancelledAt()));
+        m.put("cancelledBy", c.getCancelledBy() != null ? c.getCancelledBy() : "");
+        m.put("cancelReason", c.getCancelReason() != null ? c.getCancelReason() : "");
+        boolean canCancel = SplitPayContract.STATUS_ACTIVE.equals(c.getStatus())
+                && cancelPermissionService.canCancelContract(c.getMerchantCode(), authentication);
+        m.put("canCancelContract", canCancel);
         return m;
     }
+
+    private static final DateTimeFormatter TS_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private String formatSplitPayDateTime(LocalDateTime naive) {
         if (naive == null) {
@@ -118,7 +130,7 @@ public class SplitPayListService {
         ZoneId standard = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
         Optional<ZoneId> view = ViewDisplayTimezoneResolver.currentRequestOverride();
         if (view.isEmpty()) {
-            return naive.toString().replace('T', ' ');
+            return naive.format(TS_FMT);
         }
         return ViewDisplayTimezoneResolver.formatNaiveAsWallDateTime(naive, standard, view);
     }

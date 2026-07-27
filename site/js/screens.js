@@ -569,9 +569,14 @@
       title: 'URL 분할결제',
       id: 'splitPayCard',
       merchantOnly: true,
-      notice: '「분할결제 사용여부」로 URL 분할결제·분할관리 메뉴 노출을 제어합니다. 사용 ON인 가맹은 분할결제 URL(공개) 또는 분할 계약 API로 고객 계약·회차 결제를 진행합니다. 「API URL 인라인 중계 결제」의 결제방식 선택과는 별개입니다. 회차는 운영 URL PG에 따라 pay.html 또는 jpay-pay.html 입니다.',
+      notice: '「분할결제 사용여부」로 URL 분할결제·분할관리 메뉴 노출을 제어합니다. 총본사·본사·총판이 가맹 업체정보에서 직권으로 사용/미사용·계약취소를 저장하면 DB에 즉시 반영됩니다. 사용 ON이면 가맹 로그인 시 분할결제내역·분할관리가 표시됩니다(본사권한에서 해당 메뉴가 접근불가여도 사용 ON이면 표시). 사용 ON인 가맹은 분할결제 URL(공개) 또는 분할 계약 API로 고객 계약·회차 결제를 진행합니다. 「API URL 인라인 중계 결제」의 결제방식 선택과는 별개입니다. 회차는 운영 URL PG에 따라 pay.html 또는 jpay-pay.html 입니다.',
       rows: [
-        [{ label: '분할결제 사용여부', type: 'select', name: 'splitPayEnabledYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 3 }],
+        [{ label: '분할결제 사용여부', type: 'select', name: 'splitPayEnabledYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 3 },
+         { label: '계약취소', type: 'select', name: 'splitPayContractCancelYn', options: [
+           { v: 'FOLLOW_HQ', t: '본사설정 따름' },
+           { v: 'Y', t: '사용' },
+           { v: 'N', t: '미사용' }
+         ], col: 3 }],
         [{ label: '월/일 설정', type: 'select', name: 'splitPayIntervalType', options: [
           { v: 'MONTH', t: '월간' },
           { v: 'DAY', t: '일간' },
@@ -597,7 +602,7 @@
          { label: '다국어 메뉴', type: 'select', name: 'splitPayLangMenuUseYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 3 }],
         [{ type: 'customHtml', col: 12, html: splitPayHeaderSubtitleFieldBlock }],
         [{ type: 'customHtml', col: 12, html: merchantSplitPayUrlRowHtml('가맹점 저장 후 조회') }],
-        [{ label: '', type: 'note', col: 12, text: '분할결제 사용 ON 시 월간·일간·멀티 중 하나를 설정합니다. 멀티는 고객이 1개월~설정 최대개월 중 기간을 직접 선택합니다. 1회차는 즉시결제 또는 링크발송. 미납 회차는 매일 결제 링크 메일이 발송됩니다. 미사용이면 분할관리·분할결제내역 메뉴가 숨겨집니다.' }]
+        [{ label: '', type: 'note', col: 12, text: '분할결제 사용 ON 시 월간·일간·멀티 중 하나를 설정합니다. 멀티는 고객이 1개월~설정 최대개월 중 기간을 직접 선택합니다. 1회차는 즉시결제 또는 링크발송. 미납 회차는 매일 결제 링크 메일이 발송됩니다. 미사용이면 분할관리·분할결제내역 메뉴가 숨겨집니다. 「계약취소」는 본사정책 기본(사용)을 따르며, 미사용으로 두면 해당 가맹은 분할관리에서 계약을 취소할 수 없습니다. 총본사는 항상 취소 가능합니다.' }]
       ]
     };
   }
@@ -3801,6 +3806,15 @@
           ]
         },
         {
+          title: 'URL 분할결제 계약취소',
+          notice: '본사정책 → 결제·URL → <strong>결제 라우팅</strong>에서 설정합니다. 분할 계약 취소(미납 회차 중단·기납부 인정) 권한입니다. 가맹 기본은 「미사용」이며, 가맹점등록에서 「본사설정 따름/사용/미사용」으로 가맹별 우선 설정할 수 있습니다. 본사·총판 권한을 켜야 본사·총판 화면에 취소 버튼이 노출됩니다. <strong>총본사는 항상 취소 가능</strong>합니다.',
+          rows: [
+            [{ label: '가맹점 기본 부여', type: 'select', name: 'splitPayContractCancelDefaultYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 3 },
+             { label: '본사·총판 권한', type: 'select', name: 'splitPayContractCancelOrgOpYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 3 },
+             { label: '', type: 'note', col: 6, text: '가맹점 기본 부여: 가맹이 「본사설정 따름」일 때 적용(기본 사용). 본사·총판 권한: 본사(REGIONAL)·총판(MASTER_DIST) 취소 허용. 가맹에서 사용/미사용을 직접 고르면 본사 기본보다 우선합니다. 총본사는 항상 취소 가능. 계약관리·진행관리 행의 [계약취소]로 처리합니다.' }]
+          ]
+        },
+        {
           title: 'JPAY 포털 통합내역 (총판별 계정)',
           notice: 'JPAY는 목록 API가 없습니다. 총판(MASTER_DIST)마다 merchant.j-pay.net 포털 계정을 <strong>복수</strong> 등록할 수 있습니다(예: 동일 총판에 JPY·USD PG코드별 ID). 동기화 시 활성 계정을 순회해 Export 엑셀을 병합·대조합니다. 비밀번호는 저장 시에만 갱신됩니다.',
           rows: [
@@ -5608,7 +5622,7 @@
             { v: 'ACTIVE', t: '진행중' },
             { v: 'COMPLETED', t: '완료' },
             { v: 'STOPPED', t: '중지' },
-            { v: 'CANCELLED', t: '취소' }
+            { v: 'CANCELLED', t: '파기' }
           ], size: 11 },
           { type: 'searchBtn', label: '검색' },
           { type: 'button', name: 'searchReset', label: '검색 초기화' }
@@ -5617,7 +5631,8 @@
       noticeList: [
         'URL 분할결제 계약 목록입니다. 「URL 분할결제」에서 사용을 켠 가맹만 계약을 생성할 수 있습니다.',
         '각 회차 결제는 운영 URL PG에 따라 ChillPay(pay.html) 또는 JPAY(jpay-pay.html) 결제창으로 진행됩니다. 1회차는 즉시결제(IMMEDIATE) 또는 링크발송(LINK)이며, 미납 회차는 매일 결제 링크 메일이 발송됩니다.',
-        '공개 분할결제 URL 또는 API(POST /api/pay/split/contracts)로 계약합니다. 수수료는 본사 수수료정책의 분할수수료율·분할고정수수료(건)가 계약 생성 시 스냅샷으로 저장됩니다.'
+        '공개 분할결제 URL 또는 API(POST /api/pay/split/contracts)로 계약합니다. 수수료는 본사 수수료정책의 분할수수료율·분할고정수수료(건)가 계약 생성 시 스냅샷으로 저장됩니다.',
+        '권한이 있으면 [계약취소]로 미납 회차를 중단합니다. 이미 납부된 회차는 성공 금액으로 인정되며 환불은 별도 협의입니다. 기납부 결제내역에는 계약취소 사유가 처리사유로 기록됩니다.'
       ],
       summary: ['건수'],
       buttons: [
@@ -5634,7 +5649,8 @@
         { key: 'paidCount', label: '납부횟수' },
         { key: 'status', label: '상태' },
         { key: 'contractDate', label: '계약일' },
-        { key: 'createdAt', label: '등록일시' }
+        { key: 'createdAt', label: '등록일시' },
+        { key: 'splitPayContractCancel', label: '계약취소', type: 'splitPayContractCancelBtn' }
       ],
       emptyMessage: '조회된 분할결제 계약이 없습니다.'
     },
@@ -5644,6 +5660,12 @@
       paginationDefaultSize: 50,
       payListStatusBar: true,
       searchFormClass: 'screen-search-form pay-mng-search-form',
+      columnGuideFixedKeys: ['rowNo', 'contractNo', 'compId'],
+      viewSettingDefaultSelectedKeys: [
+        'installmentNo', 'installmentCount', 'paidCount', 'progressPct', 'amount', 'currencyCode',
+        'dueDate', 'status', 'eventAt', 'cancelReason', 'customerEmail', 'contractStatus', 'orderNo',
+        'splitPayContractCancel'
+      ],
       searchRows: [
         [
           { label: '납부예정일', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
@@ -5665,7 +5687,9 @@
       noticeList: [
         '분할결제 계약별 회차 진행 현황입니다. 계약 단위 납부율·회차별 예정일·납부 상태를 확인합니다.',
         '회차 결제가 완료되면 결제관리 「결제내역」과 「분할결제내역」에도 동일 거래가 표시됩니다.',
-        '가맹점은 본인 소속 가맹 계약·회차만 조회됩니다.'
+        '「이벤트일시」는 납부·취소 시각을 날짜·시각 2줄로 표시합니다. 「취소사유」는 계약취소 시 입력한 사유입니다. 회차상태 취소 시 계약상태는 파기로 표시됩니다.',
+        '가맹점은 본인 소속 가맹 계약·회차만 조회됩니다.',
+        '권한이 있으면 [계약취소]로 해당 계약 전체를 취소합니다(미납 회차 중단, 기납부 인정).'
       ],
       summary: ['건수'],
       buttons: [
@@ -5674,20 +5698,22 @@
       ],
       columns: [
         { key: 'rowNo', label: 'No.' },
-        { key: 'contractNo', label: '계약번호' },
+        { key: 'contractNo', label: '계약번호', thClass: 'pg-split-id-cell' },
         { key: 'compId', label: '업체코드' },
-        { key: 'installmentNo', label: '회차' },
-        { key: 'installmentCount', label: '총회차' },
-        { key: 'paidCount', label: '납부회차' },
-        { key: 'progressPct', label: '진행률(%)' },
+        { key: 'installmentNo', label: '회차', thClass: 'pg-split-narrow-cell' },
+        { key: 'installmentCount', label: '총회차', thClass: 'pg-split-narrow-cell' },
+        { key: 'paidCount', label: '납부회차', thClass: 'pg-split-narrow-cell' },
+        { key: 'progressPct', label: '진행률(%)', thClass: 'pg-split-narrow-cell' },
         { key: 'amount', label: '회차금액' },
-        { key: 'currencyCode', label: '통화' },
+        { key: 'currencyCode', label: '통화', thClass: 'pg-split-narrow-cell' },
         { key: 'dueDate', label: '납부예정일' },
         { key: 'status', label: '회차상태' },
-        { key: 'paidAt', label: '납부일시' },
-        { key: 'customerEmail', label: '고객이메일' },
+        { key: 'eventAt', label: '이벤트일시', thClass: 'pg-split-event-at-cell pay-grid-time-dual' },
+        { key: 'cancelReason', label: '취소사유', thClass: 'pg-split-cancel-reason-cell' },
+        { key: 'customerEmail', label: '고객이메일', thClass: 'pg-split-email-cell' },
         { key: 'contractStatus', label: '계약상태' },
-        { key: 'orderNo', label: '주문번호' }
+        { key: 'orderNo', label: '주문번호', thClass: 'pg-split-id-cell' },
+        { key: 'splitPayContractCancel', label: '계약취소', type: 'splitPayContractCancelBtn' }
       ],
       emptyMessage: '조회된 분할결제 회차가 없습니다.'
     },

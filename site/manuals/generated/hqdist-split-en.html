@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Split Payment Operations Manual V2.46</title>
+<title>Split Payment Operations Manual V2.76</title>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Malgun Gothic','Segoe UI','Noto Sans',sans-serif;font-size:11pt;line-height:1.75;color:#1a1a1a;background:#f0f2f8}
@@ -42,7 +42,7 @@
       <div style="font-weight:700;letter-spacing:1px;opacity:.85">__BRAND_SITE_NAME__</div>
       <h1>Split Payment Operations Manual</h1>
       <div class="subtitle">URL split, installments, email, history</div>
-      <div class="meta">Document version: <strong>V2.46</strong> · 2026-07-22 · ICOPAY Platform Manuals</div>
+      <div class="meta">Document version: <strong>V2.76</strong> · 2026-07-24 · ICOPAY Platform Manuals</div>
     </div>
     <div class="brand-box">
       <img src="__BRAND_LOGO_URL__" alt="__BRAND_SITE_NAME__" onerror="this.style.display='none'">
@@ -54,16 +54,16 @@
   <div class="body">
     <div class="toc"><h2>Contents</h2><ol><li><a href="#s1">Enable</a></li><li><a href="#s2">Customer flow</a></li><li><a href="#s3">Screens</a></li><li><a href="#s4">Note</a></li></ol></div>
     <h2 class="section-title" id="s1">1. Enable</h2>
-<p>Merchant URL split = Y. Month/day/multi · first pay immediate/link.</p>
+<p>HQ/regional/distributor saves Split-pay = ON on merchant profile → <strong>URL Split Payment</strong>. Value persists in DB after re-login. Also set month/day/multi, first pay, and contract-cancel (Follow HQ / Y / N).</p>
 <h2 class="section-title" id="s2">2. Customer flow</h2>
 <ol><li>Split URL or contract API</li><li>First installment</li><li>Later emails/links</li></ol>
 <h2 class="section-title" id="s3">3. Screens</h2>
-<ul><li>Split management</li><li>Split payment list</li></ul>
+<ul><li>Split management (progress / email / cancel when allowed)</li><li>Split payment list</li></ul>
 <h2 class="section-title" id="s4">4. Note</h2>
-<p>API inline split mode may differ from public URL split.</p>
+<p>API inline split mode may differ from public URL split. Merchants cannot toggle enable on My Company Info — parent-saved value wins.</p>
   </div>
   <div class="footer">
-    __BRAND_SITE_NAME__ · Split Payment Operations Manual · V2.46<br>
+    __BRAND_SITE_NAME__ · Split Payment Operations Manual · V2.76<br>
     __BRAND_COPYRIGHT__
   </div>
 </div>

@@ -6,13 +6,424 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '2.68';
+  var CURRENT_LIVE = '2.81';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '2.81',
+      kind: 'minor',
+      date: '2026-07-27',
+      items: {
+        KO: [
+          '결제내역: 당월 등 소량 조회 시 COUNT(*)·상태바/금액요약 이중 스캔으로 HTTP 504 나던 문제 추가 완화',
+          '한 페이지에 다 들어오면 COUNT 생략, 메타는 최대 1회만 읽어 목록이 먼저 뜨도록 개선'
+        ],
+        EN: [
+          'Payment list: further mitigated HTTP 504 on small month searches (COUNT + double meta scan)',
+          'Skip COUNT when all rows fit one page; load status/financial meta at most once'
+        ],
+        JP: [
+          '決済一覧: 当月など少数件での COUNT(*)・状態バー/金額要約の二重スキャンによる HTTP 504 を追加緩和',
+          '1ページに収まる場合は COUNT 省略、メタは最大1回のみ読み取り'
+        ],
+        CH: [
+          '支付列表：进一步缓解当月等少量查询因 COUNT(*) 与状态栏/金额汇总双重扫描导致的 HTTP 504',
+          '一页装下时跳过 COUNT；状态/金额元数据最多只读一次'
+        ],
+        TH: [
+          'รายการชำระ: ลด HTTP 504 เพิ่มเมื่อค้นหาเดือนปัจจุบันจำนวนน้อย (COUNT + สแกนเมตาซ้ำ)',
+          'ข้าม COUNT เมื่อข้อมูลพอในหนึ่งหน้า และโหลดเมตาสถานะ/ยอดเงินได้ไม่เกินครั้งเดียว'
+        ]
+      }
+    },
+    {
+      version: '2.80',
+      kind: 'minor',
+      date: '2026-07-27',
+      items: {
+        KO: [
+          '운영관리 리스크 현황: 「내용」·필터구분 라벨을 UI 언어(KO/EN/JP/CH/TH)로 표시',
+          '비정상 전화·이메일, 구매자 불일치, 속도제한, JPAY 사후 위험 등 모든 필터 코드 다국어',
+          '언어 전환·엑셀 다운로드에도 동일 번역 적용'
+        ],
+        EN: [
+          'Ops Risk dashboard: Description and filter labels follow UI language (KO/EN/JP/CH/TH)',
+          'All filter codes multilingual (invalid phone/email, buyer mismatch, velocity, JPAY post-sale, …)',
+          'Same translations on language switch and Excel export'
+        ],
+        JP: [
+          '運用管理リスク状況: 「内容」・フィルター区分ラベルをUI言語(KO/EN/JP/CH/TH)で表示',
+          '異常電話・メール、購入者不一致、速度制限、JPAY事後リスクなど全フィルターコード多言語',
+          '言語切替・Excel出力にも同一翻訳を適用'
+        ],
+        CH: [
+          '运营管理风险看板：「内容」与筛选分类按界面语言(KO/EN/JP/CH/TH)显示',
+          '异常电话/邮箱、买家不一致、速度限制、JPAY事后风险等全部筛选码多语言',
+          '切换语言与Excel导出使用相同译文'
+        ],
+        TH: [
+          'ภาพรวมความเสี่ยง: คอลัมน์เนื้อหาและประเภทตัวกรองตามภาษา UI (KO/EN/JP/CH/TH)',
+          'แปลรหัสตัวกรองทั้งหมด (โทร/อีเมลผิดปกติ, ผู้ซื้อไม่ตรง, ความถี่, JPAY หลังขาย ฯลฯ)',
+          'ใช้คำแปลเดียวกันเมื่อเปลี่ยนภาษาและส่งออก Excel'
+        ]
+      }
+    },
+    {
+      version: '2.79',
+      kind: 'minor',
+      date: '2026-07-27',
+      items: {
+        KO: [
+          '결제내역 당월 등 소량 조회 시 HTTP 504(게이트웨이 시간 초과) 완화',
+          '기간 조건을 COALESCE→paid_at/created_at OR 로 바꿔 인덱스 사용, 소량 건은 상태바·금액요약 재스캔 생략',
+          'paid_at·created_at 목록용 인덱스(V238) 추가'
+        ],
+        EN: [
+          'Payment list: mitigated HTTP 504 on small month searches',
+          'Date filter uses paid_at/created_at OR (index-friendly); reuse loaded rows for status/summary when few hits',
+          'Added list indexes on paid_at/created_at (V238)'
+        ],
+        JP: [
+          '決済一覧: 当月など少数件検索での HTTP 504(ゲートウェイタイムアウト)を緩和',
+          '期間条件を COALESCE→paid_at/created_at OR に変更してインデックス利用、少数件は状態バー・金額要約の再スキャン省略',
+          'paid_at・created_at 一覧用インデックス(V238)追加'
+        ],
+        CH: [
+          '支付列表：缓解当月等少量查询的 HTTP 504（网关超时）',
+          '日期条件改为 paid_at/created_at OR 以利用索引；少量命中时复用已加载行做状态栏/金额汇总',
+          '新增 paid_at/created_at 列表索引(V238)'
+        ],
+        TH: [
+          'รายการชำระ: ลด HTTP 504 เมื่อค้นหาเดือนปัจจุบันที่จำนวนน้อย',
+          'เงื่อนไขวันที่ใช้ paid_at/created_at OR ให้ใช้ดัชนีได้ และข้ามสแกนซ้ำเมื่อจำนวนน้อย',
+          'เพิ่มดัชนีรายการ paid_at/created_at (V238)'
+        ]
+      }
+    },
+    {
+      version: '2.78',
+      kind: 'minor',
+      date: '2026-07-24',
+      items: {
+        KO: [
+          '분할 진행관리: 이벤트일시에서 취소일시/납부일시 라벨 제거(날짜·시각 2줄만)',
+          '회차상태=취소, 계약상태=파기 로 구분 표시 · 상태값 다국어(data-pg-ui-t)',
+          '회차·총회차·진행률·통화 컬럼 축소, 취소사유 컬럼 확대'
+        ],
+        EN: [
+          'Split Progress: removed Paid at/Cancelled at labels from Event time (date/time two lines only)',
+          'Installment status=Cancelled, contract status=Voided; status labels multilingual (data-pg-ui-t)',
+          'Narrowed installment/total/progress/currency columns; widened cancel reason'
+        ],
+        JP: [
+          '分割進行管理: イベント日時から取消日時/納付日時ラベルを削除(日付・時刻の2行のみ)',
+          '回次状態=取消、契約状態=破棄で区分表示 · 状態の多言語(data-pg-ui-t)',
+          '回次・総回次・進捗率・通貨列を縮小、取消理由列を拡大'
+        ],
+        CH: [
+          '分期进度：事件时间去掉已付/取消时间标签（仅日期·时间两行）',
+          '期次状态=取消、合同状态=作废 · 状态多语言(data-pg-ui-t)',
+          '缩小期次/总期/进度/币种列，加宽取消原因列'
+        ],
+        TH: [
+          'ความคืบหน้าแบ่งจ่าย: เอาป้ายเวลาชำระ/ยกเลิกออกจากเวลากิจกรรม (เหลือวันที่/เวลา 2 บรรทัด)',
+          'สถานะงวด=ยกเลิก สถานะสัญญา=ยกเลิกแล้ว · แปลสถานะ (data-pg-ui-t)',
+          'ย่อคอลัมน์งวด/ทั้งหมด/ความคืบหน้า/สกุลเงิน กว้างเหตุผลยกเลิก'
+        ]
+      }
+    },
+    {
+      version: '2.77',
+      kind: 'minor',
+      date: '2026-07-24',
+      items: {
+        KO: [
+          '분할 진행관리: 이벤트일시·취소사유·이메일 컬럼 겹침/깨짐 수정',
+          '이벤트일시를 구분(납부/취소)+날짜/시각 2줄로 표시, 시각은 초 단위(소수초 제거)',
+          '계약취소는 기존 계약·진행 관리 화면에서 계속 처리(별도 취소관리 메뉴 없음)'
+        ],
+        EN: [
+          'Split Progress: fixed overlapping Event time / Cancel reason / Email columns',
+          'Event time shows kind (paid/cancel) + date/time on two lines; seconds only (no fractions)',
+          'Contract cancel stays on Contract/Progress screens (no separate cancel menu)'
+        ],
+        JP: [
+          '分割進行管理: イベント日時・取消理由・メール列の重なり/崩れを修正',
+          'イベント日時は区分(納付/取消)+日付/時刻の2行表示、秒まで(小数秒なし)',
+          '契約取消は従来どおり契約・進行管理画面で処理(別メニューなし)'
+        ],
+        CH: [
+          '分期进度：修复事件时间/取消原因/邮箱列重叠错位',
+          '事件时间按类型(已付/取消)+日期/时间两行显示，精确到秒(无小数秒)',
+          '合同取消仍在合同/进度管理中处理(无单独取消菜单)'
+        ],
+        TH: [
+          'ความคืบหน้าแบ่งจ่าย: แก้คอลัมน์เวลากิจกรรม/เหตุผลยกเลิก/อีเมลทับกัน',
+          'เวลากิจกรรมแสดงประเภท(ชำระ/ยกเลิก)+วันที่/เวลา 2 บรรทัด (ถึงวินาที ไม่มีเศษวินาที)',
+          'ยกเลิกสัญญายังทำในหน้าสัญญา/ความคืบหน้า (ไม่มีเมนูยกเลิกแยก)'
+        ]
+      }
+    },
+    {
+      version: '2.76',
+      kind: 'minor',
+      date: '2026-07-24',
+      items: {
+        KO: [
+          '총본사·본사·총판 운영 메뉴얼 PDF 표지에 문서 버전(V2.76) 표기',
+          '분할 진행관리: 이벤트일시(납부/취소)·취소사유 컬럼 추가, VIEW SETTING 기본 표시',
+          '이벤트일시는 납부완료 시 납부일시·회차 취소 시 계약취소일시를 표시'
+        ],
+        EN: [
+          'Stamp document version (V2.76) on Super HQ / HQ / Distributor ops manual PDF covers',
+          'Split Progress: Event time (paid/cancel) + cancel reason columns; default on in VIEW SETTING',
+          'Event time shows payment time when paid, contract cancel time when cancelled'
+        ],
+        JP: [
+          '総本部・本社・総代理 運営マニュアルPDF表紙に文書版(V2.76)を表示',
+          '分割進行管理: イベント日時(納付/取消)・取消理由列を追加、VIEW SETTING既定表示',
+          'イベント日時は納付時は納付日時、取消時は契約取消日時'
+        ],
+        CH: [
+          '总本部/总部/总代理运营手册 PDF 封面标注文档版本(V2.76)',
+          '分期进度：事件时间(已付/取消)+取消原因列，VIEW SETTING 默认显示',
+          '事件时间：已付为付款时间，取消为合同取消时间'
+        ],
+        TH: [
+          'ประทับเวอร์ชันเอกสาร (V2.76) บนปก PDF คู่มือ HQ สูงสุด/HQ/ตัวแทน',
+          'ความคืบหน้าแบ่งจ่าย: คอลัมน์เวลากิจกรรม(ชำระ/ยกเลิก)+เหตุผลยกเลิก แสดงใน VIEW SETTING โดยค่าเริ่มต้น',
+          'เวลากิจกรรม: ชำระแล้ว=เวลาชำระ ยกเลิก=เวลายกเลิกสัญญา'
+        ]
+      }
+    },
+    {
+      version: '2.75',
+      kind: 'minor',
+      date: '2026-07-24',
+      items: {
+        KO: [
+          '분할관리 계약취소: 계약관리·진행관리 행에 [계약취소] 버튼이 나오지 않던 오류 수정',
+          '취소 시 사유(선택) 입력·이중 확인 후 미납 회차 중단·기납부 인정',
+          '가맹점 계약취소 기본 부여를 사용(Y)으로 맞춤 — 총본사는 항상 취소 가능'
+        ],
+        EN: [
+          'Split-pay contract cancel: fixed missing [Cancel contract] button on Contract/Progress lists',
+          'Optional cancel reason + double confirm; unpaid installments stop; paid amounts kept',
+          'Merchant cancel default grant set to ON (Y); HQ can always cancel'
+        ],
+        JP: [
+          '分割契約取消: 契約管理・進行管理の行に[契約取消]が出ない不具合を修正',
+          '取消時に理由(任意)入力・二重確認後、未納回次停止・納付済みは認定',
+          '加盟の契約取消デフォルト付与を使用(Y)に変更 — 総本社は常に取消可能'
+        ],
+        CH: [
+          '分期合同取消：修复合同/进度列表行未显示[取消合同]按钮',
+          '取消时可填原因(可选)并二次确认；未付期次停止、已付保留',
+          '商户取消默认授予改为启用(Y) — 总部始终可取消'
+        ],
+        TH: [
+          'ยกเลิกสัญญาแบ่งจ่าย: แก้ปุ่ม[ยกเลิกสัญญา]ไม่ขึ้นในรายการสัญญา/ความคืบหน้า',
+          'ใส่เหตุผล(ไม่บังคับ)+ยืนยันสองครั้ง งวดค้างหยุด งวดที่ชำระแล้วยังนับ',
+          'สิทธิ์ยกเลิกเริ่มต้นร้านเป็นเปิด(Y) — HQ ยกเลิกได้เสมอ'
+        ]
+      }
+    },
+    {
+      version: '2.74',
+      kind: 'minor',
+      date: '2026-07-24',
+      items: {
+        KO: [
+          '운영 메뉴얼 갱신: 분할결제 사용자·가맹점 운영·본사/총판 분할·신규가맹 추가 — 상위 직권 저장·DB 즉시 반영 안내',
+          '메뉴얼 문서 버전 V2.74 (KO/EN/JA/ZH/TH) PDF·HTML 재생성',
+          '가맹은 내 업체정보에서 분할결제 사용여부를 직접 변경할 수 없음을 명시'
+        ],
+        EN: [
+          'Ops manuals updated: split-pay user, merchant ops, HQ/dist split, new-merchant add — HQ force-save persists to DB',
+          'Manual doc version V2.74 (KO/EN/JA/ZH/TH) PDF/HTML regenerated',
+          'Clarify merchants cannot toggle split-pay enable on My Company Info'
+        ],
+        JP: [
+          '運営マニュアル更新: 分割払いユーザー・加盟運営・本社/総販分割・新規加盟 — 上位の直権保存がDB即反映',
+          'マニュアル文書版 V2.74 (KO/EN/JA/ZH/TH) PDF/HTML再生成',
+          '加盟は自社情報で分割払い使用可否を変更不可と明記'
+        ],
+        CH: [
+          '运营手册更新：分期用户、商户运营、总部/总代分期、新商户添加 — 上级直权保存立即写入数据库',
+          '手册文档版本 V2.74（KO/EN/JA/ZH/TH）重新生成 PDF/HTML',
+          '明确商户无法在「我的企业信息」自行更改分期启用'
+        ],
+        TH: [
+          'อัปเดตคู่มือ: ผู้ใช้แบ่งงวด ปฏิบัติการร้าน HQ/ตัวแทน และเพิ่มร้านใหม่ — การบันทึกจากต้นสังกัดลง DB ทันที',
+          'เวอร์ชันเอกสารคู่มือ V2.74 (KO/EN/JA/ZH/TH) สร้าง PDF/HTML ใหม่',
+          'ระบุว่าร้านเปลี่ยนสถานะเปิดใช้แบ่งงวดเองในข้อมูลร้านไม่ได้'
+        ]
+      }
+    },
+    {
+      version: '2.73',
+      kind: 'minor',
+      date: '2026-07-24',
+      items: {
+        KO: [
+          '근본 원인: 관리자 정적 JS(icopay.co.kr/site)가 구버전이라 분할결제 저장 수정이 브라우저에 미반영',
+          '가맹 URL 분할결제 전용 저장 API(/api/comp/updateMerchantSplitPay) 추가 — 대용량 업체수정과 분리',
+          '업체 저장 직후 분할결제 설정을 전용 API로 재저장하고, 관리자 정적 파일을 함께 배포'
+        ],
+        EN: [
+          'Root cause: admin static JS on icopay.co.kr/site was stale so split-pay save fixes never reached the browser',
+          'Added dedicated merchant URL split-pay save API (/api/comp/updateMerchantSplitPay), separate from bulk company update',
+          'After company save, re-persist split-pay via dedicated API; deploy admin static files with the JAR'
+        ],
+        JP: [
+          '根本原因: 管理画面の静的JS(icopay.co.kr/site)が旧版のため分割払い保存修正がブラウザに未反映',
+          '加盟URL分割払い専用保存API(/api/comp/updateMerchantSplitPay)を追加 — 大容量の業者更新と分離',
+          '業者保存直後に分割払い設定を専用APIで再保存し、管理静的ファイルも合わせて配布'
+        ],
+        CH: [
+          '根本原因：管理端静态 JS（icopay.co.kr/site）为旧版，分期保存修复未到达浏览器',
+          '新增商户 URL 分期专用保存 API（/api/comp/updateMerchantSplitPay），与大型公司更新分离',
+          '公司保存后通过专用 API 再写入分期设置，并同步部署管理端静态文件'
+        ],
+        TH: [
+          'สาเหตุหลัก: JS คงที่ของแอดมินบน icopay.co.kr/site เป็นเวอร์ชันเก่า จึงไม่ได้รับแพตช์บันทึกแบ่งงวด',
+          'เพิ่ม API บันทึกแบ่งงวด URL แยก (/api/comp/updateMerchantSplitPay) จากอัปเดตบริษัทขนาดใหญ่',
+          'หลังบันทึกบริษัท จะบันทึกแบ่งงวดซ้ำผ่าน API เฉพาะ และ배포ไฟล์ static ของแอดมินพร้อมกัน'
+        ]
+      }
+    },
+    {
+      version: '2.72',
+      kind: 'minor',
+      date: '2026-07-24',
+      items: {
+        KO: [
+          '총본사·상위 조직이 가맹 「URL 분할결제」사용여부·계약취소를 저장해도 DB에 반영되지 않던 오류 수정',
+          '분할결제 필드는 카드 숨김 여부와 무관하게 저장 요청에 포함(압축 JSON 백업 포함)',
+          '업체정보 조회 시 분할결제 회차 UI를 DB 값과 동기화'
+        ],
+        EN: [
+          'Fixed HQ/parent save of merchant URL split-pay enable and contract-cancel not persisting to DB',
+          'Split-pay fields are always included on save regardless of card visibility (with compact JSON backup)',
+          'Merchant detail load syncs split-pay installment UI with stored values'
+        ],
+        JP: [
+          '総本社・上位組織が加盟の「URL分割払い」使用可否・契約取消を保存してもDBに反映されない不具合を修正',
+          'カード非表示でも分割払い項目を保存リクエストに含める(圧縮JSONバックアップ付き)',
+          '加盟詳細表示時に分割払い回数UIをDB値と同期'
+        ],
+        CH: [
+          '修复总总部/上级组织保存商户「URL 分期」启用与合同取消后未写入数据库的问题',
+          '分期字段无论卡片是否隐藏均纳入保存请求（含压缩 JSON 备份）',
+          '商户详情加载时将分期期数 UI 与数据库值同步'
+        ],
+        TH: [
+          'แก้บั๊ก HQ/องค์กรบนบันทึกเปิดใช้แบ่งงวด URL และยกเลิกสัญญาของร้านแล้วไม่ถูกบันทึกใน DB',
+          'ฟิลด์แบ่งงวดถูกรวมในคำขอบันทึกเสมอแม้การ์ดถูกซ่อน (พร้อม JSON สำรอง)',
+          'โหลดรายละเอียดร้านให้ UI งวดแบ่งจ่ายตรงกับค่าใน DB'
+        ]
+      }
+    },
+    {
+      version: '2.71',
+      kind: 'minor',
+      date: '2026-07-24',
+      items: {
+        KO: [
+          '가맹 분할결제 사용 ON 시 분할결제내역·분할관리 메뉴가 본사권한 NONE이어도 표시되도록 보정',
+          '가맹점등록 저장 시 URL 분할결제 사용여부·계약취소 필드 누락 방지',
+          '가맹 기능 스위치 ON이면 클라이언트·서버 모두 메뉴 권한 최소 DELETE 확보'
+        ],
+        EN: [
+          'When merchant split-pay is ON, Split history/ops menus show even if HQ ACL is NONE',
+          'Merchant save always includes URL split-pay enable and contract-cancel fields',
+          'Feature switch ON raises menu permission floor to DELETE on client and server'
+        ],
+        JP: [
+          '加盟の分割払いON時、本社権限がNONEでも分割履歴・分割管理メニューを表示',
+          '加盟登録保存時にURL分割払いの使用可否・契約取消フィールド欠落を防止',
+          '機能スイッチON時はクライアント・サーバ双方でメニュー権限を最低DELETEに確保'
+        ],
+        CH: [
+          '商户分期开启时，即使总部权限为 NONE 也显示分期明细/分期管理菜单',
+          '商户登记保存时避免遗漏 URL 分期启用与合同取消字段',
+          '功能开关开启时客户端与服务器均将菜单权限提升至至少 DELETE'
+        ],
+        TH: [
+          'เมื่อเปิดแบ่งงวดของร้านค้า เมนูประวัติ/จัดการแบ่งงวดจะแสดงแม้สิทธิ์ HQ เป็น NONE',
+          'บันทึกทะเบียนร้านค้าไม่ให้ตกหล่นฟิลด์เปิดใช้แบ่งงวดและยกเลิกสัญญา',
+          'เมื่อสวิตช์ฟีเจอร์เปิด ฝั่งไคลเอนต์และเซิร์ฟเวอร์ยกสิทธิ์เมนูอย่างน้อย DELETE'
+        ]
+      }
+    },
+    {
+      version: '2.70',
+      kind: 'minor',
+      date: '2026-07-24',
+      items: {
+        KO: [
+          '분할 계약취소: 총본사는 항상 취소 가능(권한 플래그 누락 보정), 본사·총판은 결제 라우팅「본사·총판 권한」사용 시',
+          '본사정책 위치 안내: 결제·URL → 결제 라우팅 → URL 분할결제 계약취소',
+          '가맹 메뉴 게이트: URL/챗봇/분할/구독 결제내역은 가맹점등록 기능 미사용이면 접근권한과 무관하게 숨김'
+        ],
+        EN: [
+          'Split contract cancel: headquarters always can cancel; regional/distributor when routing policy org permission is ON',
+          'HQ policy location: Payments & URL → Payment routing → URL split-pay contract cancel',
+          'Merchant menu gate: URL/chatbot/split/subscription history hidden if merchant registration feature is OFF (ignores page ACL)'
+        ],
+        JP: [
+          '分割契約取消: 総本社は常に取消可、本社・総販は決済ルーティングの権限ON時',
+          '本社ポリシー位置: 決済・URL → 決済ルーティング → URL分割払い契約取消',
+          '加盟メニュー制御: URL/チャットボット/分割/定期履歴は加盟登録が未使用なら権限と無関係に非表示'
+        ],
+        CH: [
+          '分期合同取消：总总部始终可取消；总部/总代在支付路由权限开启时可用',
+          '总部政策位置：支付与 URL → 支付路由 → URL 分期合同取消',
+          '商户菜单门控：URL/聊天机器人/分期/订阅明细在商户登记功能关闭时隐藏（无视页面权限）'
+        ],
+        TH: [
+          'ยกเลิกสัญญาแบ่งจ่าย: HQ สูงสุดยกเลิกได้เสมอ; ภูมิภาค/ตัวแทนเมื่อเปิดสิทธิ์ใน Payment routing',
+          'ตำแหน่งนโยบาย HQ: ชำระเงินและ URL → Payment routing → ยกเลิกสัญญาแบ่งจ่าย URL',
+          'เกตเมนูร้าน: ประวัติ URL/แชทบอท/แบ่งงวด/สมาชิกซ่อนเมื่อฟีเจอร์ในลงทะเบียนร้านปิด (ไม่สน ACL)'
+        ]
+      }
+    },
+    {
+      version: '2.69',
+      kind: 'minor',
+      date: '2026-07-24',
+      items: {
+        KO: [
+          '분할결제 계약취소: 미납 회차 중단·기납부 인정(환불 없음)·결제내역 처리사유 기록',
+          '본사정책 URL결제: 가맹 기본 부여·본사·총판 권한 / 가맹점등록 URL 분할결제: 본사설정 따름·사용·미사용',
+          '취소 UI: 분할관리 계약관리·진행관리 (총본사 항상, 본사·총판·가맹은 권한 설정)'
+        ],
+        EN: [
+          'Split-pay contract cancel: stop unpaid installments; keep paid as success (no auto-refund); annotate payment outcome reason',
+          'HQ URL policy: merchant default grant + HQ/distributor permission; merchant registration FOLLOW_HQ/Y/N',
+          'Cancel UI: Split mgmt Contract/Progress (HQ always; regional/dist/merchant by policy)'
+        ],
+        JP: [
+          '分割払い契約取消: 未納停止・納付済みは成功金額として認定(自動返金なし)・決済明細に処理事由を記録',
+          '本社URL決済: 加盟デフォルト付与・本社・総販権限 / 加盟登録: 本社設定に従う・使用・未使用',
+          '取消UI: 分割管理の契約管理・進行管理（総本社は常時、本社・総販・加盟は権限設定）'
+        ],
+        CH: [
+          '分期合同取消：停止未付期次、已付按成功金额保留（无自动退款）、支付明细写入处理事由',
+          '总部 URL 政策：商户默认授予 + 总部/总代权限；商户登记 FOLLOW_HQ/使用/未使用',
+          '取消界面：分期管理-合同管理/进度管理（总总部始终可用；总部/总代/商户按权限）'
+        ],
+        TH: [
+          'ยกเลิกสัญญาแบ่งจ่าย: หยุดงวดค้างชำระ ยอดที่ชำระแล้วยังถือสำเร็จ (ไม่คืนเงินอัตโนมัติ) บันทึกเหตุผลในรายการชำระ',
+          'นโยบาย HQ URL: สิทธิ์เริ่มต้นร้าน + สิทธิ์ HQ/ตัวแทน; ลงทะเบียนร้าน FOLLOW_HQ/ใช้/ไม่ใช้',
+          'UI ยกเลิก: จัดการแบ่งงวด จัดการสัญญา/ความคืบหน้า (HQ สูงสุดใช้ได้เสมอ ตามสิทธิ์)'
+        ]
+      }
+    },
     {
       version: '2.68',
       kind: 'minor',

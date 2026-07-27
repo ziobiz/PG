@@ -9,8 +9,8 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(__dirname, 'generated');
-const VERSION = '2.46';
-const DATE = '2026-07-22';
+const VERSION = '2.76';
+const DATE = '2026-07-24';
 const LANGS = ['ko', 'en', 'ja', 'zh', 'th'];
 
 const UI = {
@@ -251,31 +251,31 @@ const MANUALS = [
       ko: [
         { h: '1. 등록', html: '<p class="menu-path">업체관리 → 업체등록</p><ol><li>상위(총판 등) 선택 · 가맹 구분</li><li>업체코드·명 · 연락처·주소</li><li>로그인 ID · 사용=Y</li><li>저장</li></ol>' },
         { h: '2. 결제·창', html: '<ul><li>웹결제·URL 결제 방식</li><li>결제창 구성(입력방식·로고)</li><li>운영 PG 바인딩(본사/배포 정책에 따름)</li></ul>' },
-        { h: '3. 부가 서비스', html: '<ul><li>구독(정기) · 재구매 · 분할 · 챗봇 — 필요 시 Y</li><li>리스크관리 트리거: 기본 <strong>본사정책 따름</strong></li></ul>' },
+        { h: '3. 부가 서비스', html: '<ul><li>구독(정기) · 재구매 · 챗봇 — 필요 시 Y</li><li><strong>URL 분할결제</strong>: 가맹 카드에서 「분할결제 사용여부=사용」저장 시 DB 즉시 반영(재로그인 후에도 유지). 계약취소는 본사설정 따름/사용/미사용</li><li>리스크관리 트리거: 기본 <strong>본사정책 따름</strong></li></ul>' },
         { h: '4. 오픈 전', html: '<ol><li>테스트 결제 1건</li><li>노티/콜백 URL(해당 시)</li><li>가맹점API 키·문서 안내 위치 확인(연동 메뉴얼은 배포 허브)</li></ol>' }
       ],
       en: [
         { h: '1. Register', html: '<p class="menu-path">Companies → Register</p><ol><li>Parent &amp; merchant type</li><li>Code, name, contacts</li><li>Login · Use=Y</li><li>Save</li></ol>' },
         { h: '2. Checkout', html: '<ul><li>Web/URL modes</li><li>Window composition</li><li>Operational PG binding</li></ul>' },
-        { h: '3. Add-ons', html: '<ul><li>Subscribe / repay / split / chatbot as needed</li><li>Risk trigger: Follow HQ by default</li></ul>' },
+        { h: '3. Add-ons', html: '<ul><li>Subscribe / repay / chatbot as needed</li><li><strong>URL Split Payment</strong>: Save Split-pay = ON on the merchant card — persisted immediately (survives re-login). Contract-cancel: Follow HQ / Y / N</li><li>Risk trigger: Follow HQ by default</li></ul>' },
         { h: '4. Go-live', html: '<ol><li>One test payment</li><li>NOTI/callback if any</li><li>Point merchants to API docs location (not full kit here)</li></ol>' }
       ],
       ja: [
         { h: '1. 登録', html: '<p class="menu-path">業者管理 → 登録</p><ol><li>上位・加盟区分</li><li>コード・名・連絡先</li><li>ログイン・使用Y</li><li>保存</li></ol>' },
         { h: '2. 決済', html: '<ul><li>Web/URL</li><li>画面構成</li><li>運用PG</li></ul>' },
-        { h: '3. 追加', html: '<ul><li>購読・再購入・分割・ボット</li><li>リスクは本社に従う</li></ul>' },
+        { h: '3. 追加', html: '<ul><li>購読・再購入・ボット</li><li><strong>URL分割払い</strong>: 加盟カードで使用=ON保存→DB即反映(再ログイン後も維持)。契約取消は本社に従う/使用/未使用</li><li>リスクは本社に従う</li></ul>' },
         { h: '4. 公開前', html: '<ol><li>テスト決済</li><li>NOTI</li><li>API文書の案内位置</li></ol>' }
       ],
       zh: [
         { h: '1. 注册', html: '<p class="menu-path">企业管理 → 注册</p><ol><li>上级与商户类型</li><li>代码、名称、联系方式</li><li>登录 · 使用=Y</li><li>保存</li></ol>' },
         { h: '2. 支付', html: '<ul><li>Web/URL</li><li>支付窗</li><li>运营 PG</li></ul>' },
-        { h: '3. 附加', html: '<ul><li>订阅/再购/分期/机器人</li><li>风险默认遵循总部</li></ul>' },
+        { h: '3. 附加', html: '<ul><li>订阅/再购/机器人</li><li><strong>URL 分期</strong>：在商户卡片保存「启用」后立即写入数据库（重新登录仍保持）。合同取消：遵循总部/启用/停用</li><li>风险默认遵循总部</li></ul>' },
         { h: '4. 上线前', html: '<ol><li>测试支付</li><li>通知</li><li>API 文档入口说明</li></ol>' }
       ],
       th: [
         { h: '1. ลงทะเบียน', html: '<p class="menu-path">จัดการบริษัท → ลงทะเบียน</p><ol><li>ต้นสังกัดและประเภท</li><li>รหัส ชื่อ ติดต่อ</li><li>ล็อกอิน · ใช้=Y</li><li>บันทึก</li></ol>' },
         { h: '2. ชำระ', html: '<ul><li>Web/URL</li><li>หน้าต่างชำระ</li><li>PG ปฏิบัติการ</li></ul>' },
-        { h: '3. ส่วนเสริม', html: '<ul><li>สมัคร/ซื้อซ้ำ/แบ่ง/แชทบอท</li><li>ความเสี่ยงเริ่มต้นตาม HQ</li></ul>' },
+        { h: '3. ส่วนเสริม', html: '<ul><li>สมัคร/ซื้อซ้ำ/แชทบอท</li><li><strong>URL แบ่งจ่าย</strong>: บันทึกเปิดใช้บนการ์ดร้าน → ลง DB ทันที (ค้างหลังล็อกอินใหม่) ยกเลิกสัญญา: ตาม HQ/ใช้/ไม่ใช้</li><li>ความเสี่ยงเริ่มต้นตาม HQ</li></ul>' },
         { h: '4. ก่อนเปิด', html: '<ol><li>ทดสอบชำระ</li><li>NOTI</li><li>ชี้ทางดูเอกสาร API</li></ol>' }
       ]
     }
@@ -399,34 +399,34 @@ const MANUALS = [
     },
     sections: {
       ko: [
-        { h: '활성화', html: '<p>가맹 「URL 분할결제」사용=Y. 월간/일간/멀티 기간·1회차(즉시/링크) 설정.</p>' },
+        { h: '활성화', html: '<p>총본사·본사·총판이 가맹 <strong>업체정보 → URL 분할결제</strong>에서 「분할결제 사용여부=사용」으로 <strong>저장</strong>하면 DB에 즉시 반영됩니다. 재로그인·재조회 후에도 유지됩니다. 월간/일간/멀티 기간·1회차(즉시/링크)·계약취소(본사따름/사용/미사용)를 함께 설정합니다.</p>' },
         { h: '고객 흐름', html: '<ol><li>분할결제 URL 또는 계약 API</li><li>1회차 결제</li><li>이후 회차 메일/링크</li></ol>' },
-        { h: '운영 화면', html: '<ul><li>분할관리: 진행·이메일</li><li>결제관리 → 분할결제내역</li></ul>' },
-        { h: '주의', html: '<p>API URL 인라인의 「분할」선택과 공개 URL 분할은 설정이 다를 수 있습니다. 가맹 카드 안내문을 확인하십시오.</p>' }
+        { h: '운영 화면', html: '<ul><li>분할관리: 진행·이메일·계약취소(권한 시)</li><li>결제관리 → 분할결제내역</li></ul>' },
+        { h: '주의', html: '<p>API URL 인라인의 「분할」선택과 공개 URL 분할은 설정이 다를 수 있습니다. 가맹은 내 업체정보에서 사용여부를 직접 바꿀 수 없으며, 상위 저장값이 기준입니다.</p>' }
       ],
       en: [
-        { h: 'Enable', html: '<p>Merchant URL split = Y. Month/day/multi · first pay immediate/link.</p>' },
+        { h: 'Enable', html: '<p>HQ/regional/distributor saves Split-pay = ON on merchant profile → <strong>URL Split Payment</strong>. Value persists in DB after re-login. Also set month/day/multi, first pay, and contract-cancel (Follow HQ / Y / N).</p>' },
         { h: 'Customer flow', html: '<ol><li>Split URL or contract API</li><li>First installment</li><li>Later emails/links</li></ol>' },
-        { h: 'Screens', html: '<ul><li>Split management</li><li>Split payment list</li></ul>' },
-        { h: 'Note', html: '<p>API inline split mode may differ from public URL split.</p>' }
+        { h: 'Screens', html: '<ul><li>Split management (progress / email / cancel when allowed)</li><li>Split payment list</li></ul>' },
+        { h: 'Note', html: '<p>API inline split mode may differ from public URL split. Merchants cannot toggle enable on My Company Info — parent-saved value wins.</p>' }
       ],
       ja: [
-        { h: '有効化', html: '<p>URL分割=Y。月/日/マルチ・1回目設定。</p>' },
+        { h: '有効化', html: '<p>総本社・本社・総販が加盟<strong>業者情報 → URL分割払い</strong>で使用=ONを<strong>保存</strong>するとDBに即反映。再ログイン後も維持。月/日/マルチ・1回目・契約取消も設定。</p>' },
         { h: '顧客流れ', html: '<ol><li>URL/契約API</li><li>1回目</li><li>以降メール</li></ol>' },
         { h: '画面', html: '<ul><li>分割管理</li><li>分割決済一覧</li></ul>' },
-        { h: '注意', html: '<p>APIインライン分割と公開URLは別設定の場合あり。</p>' }
+        { h: '注意', html: '<p>APIインライン分割と公開URLは別設定の場合あり。加盟は自社情報で使用可否を変更不可。</p>' }
       ],
       zh: [
-        { h: '启用', html: '<p>URL 分期=Y。月/日/多选 · 首期设置。</p>' },
+        { h: '启用', html: '<p>总总部/总部/总代在商户<strong>资料 → URL 分期</strong>将启用设为「使用」并<strong>保存</strong>后立即写入数据库，重新登录仍保持。可同时设置月/日/多选、首期、合同取消。</p>' },
         { h: '客户流程', html: '<ol><li>URL/合同 API</li><li>首期</li><li>后续邮件</li></ol>' },
         { h: '画面', html: '<ul><li>分期管理</li><li>分期支付列表</li></ul>' },
-        { h: '注意', html: '<p>API 内联分期与公开 URL 分期可能不同。</p>' }
+        { h: '注意', html: '<p>API 内联分期与公开 URL 分期可能不同。商户无法在「我的企业信息」自行改启用状态。</p>' }
       ],
       th: [
-        { h: 'เปิดใช้', html: '<p>URL แบ่งจ่าย=Y ตั้งเดือน/วัน/มัลติ และงวดแรก</p>' },
+        { h: 'เปิดใช้', html: '<p>HQ/ภูมิภาค/ตัวแทนบันทึกเปิดใช้ที่ข้อมูลร้าน → <strong>URL แบ่งจ่าย</strong> แล้วค่าจะลง DB ทันที คงหลังล็อกอินใหม่ ตั้งเดือน/วัน/มัลติ งวดแรก และยกเลิกสัญญาได้</p>' },
         { h: 'ไหลลูกค้า', html: '<ol><li>URL/สัญญา API</li><li>งวดแรก</li><li>อีเมลถัดไป</li></ol>' },
         { h: 'หน้าจอ', html: '<ul><li>จัดการแบ่งจ่าย</li><li>รายการแบ่งจ่าย</li></ul>' },
-        { h: 'หมายเหตุ', html: '<p>โหมด API inline อาจต่างจาก URL สาธารณะ</p>' }
+        { h: 'หมายเหตุ', html: '<p>โหมด API inline อาจต่างจาก URL สาธารณะ ร้านเปลี่ยนสถานะเปิดใช้เองไม่ได้</p>' }
       ]
     }
   },
@@ -634,6 +634,7 @@ for (const manual of MANUALS) {
 const catalog = {
   version: VERSION,
   date: DATE,
+  note: 'HTML preview only. Production catalog.json with pdfDir/docVersion is maintained separately — do not overwrite when rebuilding HTML.',
   audiences: [
     { id: 'super', labels: { ko: '총본사용', en: 'Super HQ', ja: '総本部向け', zh: '总本部', th: 'สำนักงานใหญ่สูงสุด' } },
     { id: 'hqdist', labels: { ko: '본사 및 총판용', en: 'HQ & Distributor', ja: '本社・総代理向け', zh: '总部与总代理', th: 'HQ และตัวแทน' } },
@@ -646,5 +647,23 @@ const catalog = {
     pathPrefix: `manuals/generated/${m.id}`
   }))
 };
-fs.writeFileSync(path.join(OUT, 'catalog.json'), JSON.stringify(catalog, null, 2), 'utf8');
-console.log('Generated', n, 'HTML files + catalog.json →', OUT);
+/* Keep production PDF catalog intact (pdfDir + docVersion). */
+const catalogPath = path.join(OUT, 'catalog.json');
+if (fs.existsSync(catalogPath)) {
+  try {
+    const existing = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
+    if (existing && existing.format === 'pdf' && Array.isArray(existing.items) && existing.items.some((it) => it.pdfDir)) {
+      existing.version = VERSION;
+      existing.date = DATE;
+      fs.writeFileSync(catalogPath, JSON.stringify(existing, null, 2), 'utf8');
+      console.log('Updated catalog.json version/date only (kept pdfDir catalog)');
+    } else {
+      fs.writeFileSync(catalogPath, JSON.stringify(catalog, null, 2), 'utf8');
+    }
+  } catch (e) {
+    fs.writeFileSync(catalogPath, JSON.stringify(catalog, null, 2), 'utf8');
+  }
+} else {
+  fs.writeFileSync(catalogPath, JSON.stringify(catalog, null, 2), 'utf8');
+}
+console.log('Generated', n, 'HTML files →', OUT);

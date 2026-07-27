@@ -78,4 +78,22 @@ public class ApiSplitPayAdminController {
             return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
         }
     }
+
+    @PostMapping("/cancelContract")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> cancelContract(
+            @RequestBody Map<String, Object> body,
+            Authentication authentication) {
+        String contractNo = body != null && body.get("contractNo") != null
+                ? String.valueOf(body.get("contractNo")).trim() : "";
+        if (contractNo.isEmpty()) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("contractNo가 필요합니다."));
+        }
+        String reason = body != null && body.get("reason") != null ? String.valueOf(body.get("reason")) : "";
+        try {
+            return ResponseEntity.ok(ApiResponse.ok(
+                    splitPayAdminService.cancelContract(contractNo, reason, authentication)));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
+        }
+    }
 }

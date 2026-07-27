@@ -362,7 +362,8 @@ def split_doc(lang: str) -> dict:
       <tr><td>가맹 <strong>분할결제 사용</strong> ON</td><td>내 업체정보에 분할결제 URL 표시 여부</td></tr>
       <tr><td>분할관리·결제내역 메뉴</td><td>사이드바 표시 여부 — 없으면 권한 요청</td></tr>
     </table>
-    <div class="hq-box"><strong>상위에 요청</strong><br>• 분할결제 사용 ON<br>• 분할관리·분할결제내역 권한<br>• 회차·한도 정책 안내</div>
+    <div class="hq-box"><strong>상위에 요청</strong><br>• 총본사·본사·총판이 가맹 <strong>업체정보 → URL 분할결제</strong>에서 「분할결제 사용여부=사용」으로 저장하면 DB에 즉시 반영됩니다(재로그인 후에도 유지).<br>• 계약취소는 본사정책 기본(미사용) 또는 가맹별 사용/미사용으로 부여합니다.<br>• 분할관리·분할결제내역 메뉴 권한·회차·한도 정책 안내</div>
+    <div class="info-box">가맹점은 내 업체정보에서 분할결제 사용여부를 <strong>직접 변경할 수 없습니다</strong>. 상위가 저장한 값이 기준입니다.</div>
     <hr class="section-rule">
     <h2 class="section-title" id="s3">3. <span class="step-badge">STEP 1</span> 분할결제 URL 확인 <small style="font-size:10pt;font-weight:400;color:#888;">(조회 전용)</small></h2>
     <div class="menu-path">업체관리 &gt; 내 업체정보</div>
@@ -387,7 +388,7 @@ def split_doc(lang: str) -> dict:
     <div class="check-box"><ol><li>공지 확인</li><li>분할 URL 테스트</li><li>신규 계약·미납 회차</li><li>실패 급증 시 계약/주문번호와 상위 공유</li></ol></div>
     <hr class="section-rule">
     <h2 class="section-title" id="s8">8. FAQ</h2>
-    <div class="faq-item"><div class="faq-q">분할 URL/메뉴가 없습니다.</div><div class="faq-a">분할결제 사용여부·메뉴 권한을 상위에 요청하세요.</div></div>
+    <div class="faq-item"><div class="faq-q">분할 URL/메뉴가 없습니다.</div><div class="faq-a">상위(총본사·본사·총판)에 가맹 업체정보 → URL 분할결제 「사용」저장과 메뉴 권한 개방을 요청하세요. 상위에서 저장한 사용여부는 재로그인 후에도 유지됩니다.</div></div>
     <div class="faq-item"><div class="faq-q">회차 결제가 실패합니다.</div><div class="faq-a">결제내역 실패 사유를 확인한 뒤 고객에게 재시도·카드 변경을 안내하세요.</div></div>
     <div class="faq-item"><div class="faq-q">연체·미납이 있습니다.</div><div class="faq-a">분할관리에서 계약·회차를 확인한 뒤 상위 정책에 따라 문의하세요.</div></div>
 """,
@@ -426,11 +427,13 @@ def split_doc(lang: str) -> dict:
     <div class="info-box">Buyer UI shows <strong>ICOPAY</strong>. This manual excludes API specs.</div>
     <hr class="section-rule">
     <h2 class="section-title" id="s2">2. Before You Start</h2>
-    <div class="hq-box">Ask HQ to set merchant Split-pay = ON and open Split / Payment menus.</div>
+    <div class="hq-box"><strong>Ask HQ / parent org</strong><br>• On merchant profile → <strong>URL Split Payment</strong>, set Split-pay = ON and Save. The value is written to DB immediately and remains after re-login.<br>• Contract-cancel follows HQ policy default (usually OFF) or a per-merchant Y/N grant.<br>• Open Split management / Split payment history menus.</div>
+    <div class="info-box">Merchants <strong>cannot</strong> change Split-pay enable on My Company Info. Parent-saved value is authoritative.</div>
     <hr class="section-rule">
     <h2 class="section-title" id="s3">3. <span class="step-badge">STEP 1</span> Split-pay URL <small style="font-size:10pt;font-weight:400;color:#888;">(View Only)</small></h2>
     <div class="menu-path">Company Management &gt; My Company Info</div>
     <pre>https://api.icopay.co.kr/split-pay/{{merchantCode}}</pre>
+    <div class="warn-box">If Split-pay is OFF, the URL is missing or inactive.</div>
     <hr class="section-rule">
     <h2 class="section-title" id="s4">4. <span class="step-badge">STEP 2</span> Share with customers</h2>
     <div class="check-box">Send the URL via messenger/SMS/invoice. Do not invent installment rules outside HQ policy.</div>
@@ -446,7 +449,7 @@ def split_doc(lang: str) -> dict:
     <div class="check-box"><ol><li>Notices</li><li>Test Split URL</li><li>New contracts / arrears</li><li>Escalate spikes with ids</li></ol></div>
     <hr class="section-rule">
     <h2 class="section-title" id="s8">8. FAQ</h2>
-    <div class="faq-item"><div class="faq-q">No Split URL/menu.</div><div class="faq-a">Request Split-pay ON and permissions from HQ.</div></div>
+    <div class="faq-item"><div class="faq-q">No Split URL/menu.</div><div class="faq-a">Ask HQ/distributor to set merchant URL Split Payment = ON (Save persists after re-login) and open menus.</div></div>
     <div class="faq-item"><div class="faq-q">Installment failed.</div><div class="faq-a">Check fail reason; ask customer to retry or update card.</div></div>
 """,
         }

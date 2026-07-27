@@ -146,6 +146,32 @@ public final class TxnOutcomeReasonApplier {
         return apply(t, prevStatus, newStatus, reason, actionCode, SOURCE_ICOPAY);
     }
 
+    /**
+     * 승인(10) 유지 상태에서 운영 메모(분할 계약취소 후 기납부 인정 사유 등)를 적재.
+     * {@link #shouldRecordForStatus} 를 우회한다.
+     */
+    public static Optional<String> annotateOperationalNote(PgTrnsctn t, String reasonText, String reasonCode, String source) {
+        if (t == null || reasonText == null || reasonText.isBlank()) {
+            return Optional.empty();
+        }
+        String stored = truncate(reasonText.trim(), MAX_REASON);
+        String existing = t.getOutcomeReason() != null ? t.getOutcomeReason().trim() : "";
+        if (!existing.isEmpty() && !existing.contains(stored)) {
+            stored = truncate(existing + " | " + stored, MAX_REASON);
+        } else if (!existing.isEmpty()) {
+            stored = truncate(existing, MAX_REASON);
+        }
+        t.setOutcomeReason(stored);
+        if (reasonCode != null && !reasonCode.isBlank()) {
+            t.setOutcomeReasonCode(truncate(reasonCode.trim(), MAX_CODE));
+        }
+        if (source != null && !source.isBlank()) {
+            t.setOutcomeReasonSource(truncate(source.trim().toUpperCase(Locale.ROOT), MAX_SOURCE));
+        }
+        t.setOutcomeReasonAt(LocalDateTime.now(ZoneId.of("Asia/Bangkok")));
+        return Optional.of(stored);
+    }
+
     public static Optional<String> apply(PgTrnsctn t, String prevStatus, String newStatus,
                              String reasonText, String reasonCode, String source) {
         if (t == null || newStatus == null || newStatus.isBlank()) {

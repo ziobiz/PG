@@ -15,6 +15,7 @@ param(
     [switch]$SkipUpload,
     [switch]$SkipRestart,
     [string[]]$SqlFiles = @(),
+    [string[]]$SiteFiles = @(),
     [switch]$WhatIf
 )
 
@@ -249,6 +250,23 @@ try {
         Invoke-RemoteOrThrow $c "mkdir -p '$remoteApp/build/libs'"
         Copy-ToRemote $c $JarLocal $remoteJar
         Invoke-RemoteOrThrow $c "test -s '$remoteJar' && ls -la '$remoteJar'"
+
+        if ($SiteFiles -and $SiteFiles.Count -gt 0) {
+            $remoteSite = if ($c["FTP_REMOTE_SITE"]) { [string]$c["FTP_REMOTE_SITE"] } else { "/home/ftpuser/site" }
+            $remoteSite = $remoteSite.TrimEnd('/')
+            Write-Host "정적 site 업로드 → $remoteSite ($($SiteFiles.Count) files)..."
+            foreach ($rel in $SiteFiles) {
+                $norm = ($rel -replace '\\', '/').TrimStart('/')
+                if ($norm.StartsWith('site/')) { $norm = $norm.Substring(5) }
+                $local = Join-Path $RepoRoot ("site\" + ($norm -replace '/', '\'))
+                if (-not (Test-Path $local)) { throw "site 파일 없음: $local" }
+                $remotePath = "$remoteSite/$norm"
+                $remoteDir = ($remotePath -replace '/[^/]+$', '')
+                Invoke-RemoteOrThrow $c "mkdir -p '$remoteDir'"
+                Copy-ToRemote $c $local $remotePath
+            }
+            Invoke-RemoteOrThrow $c "ls -la '$remoteSite/js/api.js' '$remoteSite/js/app.js' '$remoteSite/index.html'"
+        }
     } else {
         Write-Host "`n[2/4] 업로드 생략"
     }

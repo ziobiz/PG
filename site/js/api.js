@@ -203,6 +203,21 @@
         }
         return Promise.reject(new Error(apiT('인증이 만료되었습니다. 다시 로그인하세요.', 'Your session has expired. Please sign in again.')));
       }
+      if (res.status === 504 || res.status === 502 || res.status === 503) {
+        var gwTpl = '게이트웨이 시간 초과(HTTP {0}). 조회 기간을 줄인 뒤 [검색]을 다시 시도해 주세요.';
+        var gwMsg = apiT(gwTpl, 'Gateway timeout (HTTP {0}). Narrow the date range and click [Search] again.');
+        if (path.indexOf('/api/calc/payList') >= 0 || url.indexOf('/api/calc/payList') >= 0) {
+          gwTpl = '결제내역 조회 시간 초과(HTTP {0}). 집계 지연입니다. 잠시 후 [검색]을 다시 시도하거나 기간을 줄여 주세요.';
+          gwMsg = apiT(gwTpl, 'Payment list timed out (HTTP {0}). Aggregation was slow — retry [Search] or narrow the date range.');
+        } else if (url.indexOf('jpayTrSync') >= 0) {
+          gwMsg = apiT(
+            'JPAY 동기화 시간 초과(HTTP ' + res.status + '). Playwright Export에 5~15분 걸릴 수 있습니다. 서버 Nginx proxy_read_timeout(900초) 설정 후, 거래일자를 1~3일로 줄여 다시 시도하세요.',
+            'JPAY sync timed out (HTTP ' + res.status + '). Export may take 5–15 min. Increase Nginx proxy_read_timeout (900s) and try a shorter date range (1–3 days).'
+          );
+        }
+        if (gwMsg.indexOf('{0}') >= 0) gwMsg = gwMsg.replace('{0}', String(res.status));
+        return Promise.reject(new Error(gwMsg));
+      }
       if (res.status === 301 || res.status === 302 || res.status === 303 || res.status === 307 || res.status === 308) {
         var loc = res.headers && res.headers.get ? res.headers.get('Location') : '';
         return Promise.reject(new Error(apiT(
@@ -879,6 +894,9 @@
     splitPayResendMail: function (body) {
       return post('/api/splitpay/resendMail', body || {}).then(function (r) { return r.data; });
     },
+    splitPayCancelContract: function (body) {
+      return post('/api/splitpay/cancelContract', body || {}).then(function (r) { return r.data; });
+    },
     splitPayEmailSettingsGet: function () {
       return get('/api/splitpay/emailSettings').then(function (r) { return r.data; });
     },
@@ -1067,10 +1085,33 @@
       var token = getToken();
       var headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
       if (token) headers['Authorization'] = 'Bearer ' + token;
+      /* 중요 가맹 스위치는 본문 앞쪽에 두어 대용량 pgBindings 등으로 후순위 파라미터가 잘리는 경우에도 반영 */
+      var params = new URLSearchParams();
+      var priority = [
+        'compId', 'compDiv', 'compNm',
+        'merchantSplitPayJson',
+        'splitPayEnabledYn', 'splitPayContractCancelYn',
+        'splitPayIntervalMonthYn', 'splitPayIntervalDayYn', 'splitPayIntervalMultiYn',
+        'splitPayDayIntervalDays', 'splitPayMonthIntervalMonths', 'splitPayMultiMaxMonths', 'splitPayFirstPayMode',
+        'webPaymentUseYn', 'chatbotPaymentUseYn', 'apiJpaySubscriptionUseYn'
+      ];
+      var seen = {};
+      priority.forEach(function (k) {
+        if (data == null || data[k] == null || data[k] === undefined) return;
+        params.append(k, String(data[k]));
+        seen[k] = true;
+      });
+      if (data && typeof data === 'object') {
+        Object.keys(data).forEach(function (k) {
+          if (seen[k]) return;
+          if (data[k] == null || data[k] === undefined) return;
+          params.append(k, String(data[k]));
+        });
+      }
       return fetch(base + '/api/comp/update', {
         method: 'POST',
         headers: headers,
-        body: new URLSearchParams(data)
+        body: params
       }).then(function (res) {
         if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error(apiT('인증이 만료되었습니다.', 'Your session has expired.'))); }
         return res.text().then(function (text) {
@@ -1083,6 +1124,45 @@
             return Promise.reject(new Error(apiT('서버 응답 오류 (API 서버가 실행 중인지, 주소가 맞는지 확인하세요)', 'Server response error (check API server status and address).')));
           }
           if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '수정 실패'));
+          return r;
+        });
+      });
+    },
+
+    /** 가맹 URL 분할결제만 저장 — 대용량 업체수정과 분리(직권 변경 누락 방지) */
+    compUpdateMerchantSplitPay: function (data) {
+      var base = getBaseUrl();
+      var token = getToken();
+      var headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      var params = new URLSearchParams();
+      var keys = [
+        'compId', 'merchantSplitPayJson',
+        'splitPayEnabledYn', 'splitPayContractCancelYn',
+        'splitPayIntervalMonthYn', 'splitPayIntervalDayYn', 'splitPayIntervalMultiYn',
+        'splitPayDayIntervalDays', 'splitPayMonthIntervalMonths', 'splitPayMultiMaxMonths', 'splitPayFirstPayMode',
+        'splitPayHeaderLogoMode', 'splitPayHeaderLogoUrl', 'splitPayHeaderHtmlTitle',
+        'splitPayHeaderSubtitleMode', 'splitPayHeaderSubtitleText', 'splitPayLangMenuUseYn'
+      ];
+      keys.forEach(function (k) {
+        if (data == null || data[k] == null || data[k] === undefined) return;
+        params.append(k, String(data[k]));
+      });
+      return fetch(base + '/api/comp/updateMerchantSplitPay', {
+        method: 'POST',
+        headers: headers,
+        body: params
+      }).then(function (res) {
+        if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error(apiT('인증이 만료되었습니다.', 'Your session has expired.'))); }
+        return res.text().then(function (text) {
+          var r;
+          try {
+            r = text ? JSON.parse(text) : {};
+          } catch (e) {
+            if (res.ok) return { success: true, data: {} };
+            return Promise.reject(new Error(apiT('서버 응답 오류 (API 서버가 실행 중인지, 주소가 맞는지 확인하세요)', 'Server response error (check API server status and address).')));
+          }
+          if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '분할결제 설정 저장 실패'));
           return r;
         });
       });

@@ -70,6 +70,26 @@
     }
     return pgAdminUiTFmtN('리스크 자동등록(실패·취소 누적) — {0}', [tierLbl]);
   }
+  /** 리스크 현황 「내용」— filterCode → 한국어 라벨( i18n 키 ). */
+  function pgRiskFilterDescLabelKo(row) {
+    var code = row && row.riskDiv != null ? String(row.riskDiv).trim() : '';
+    var map = {
+      BUYER_EMAIL_MISMATCH: '구매자 이메일 불일치',
+      BUYER_PHONE_MISMATCH: '구매자 전화 불일치',
+      BUYER_NAME_MISMATCH: '구매자 성명 불일치',
+      HOLDER_NAME_SUSPICIOUS: '의심 holder명',
+      VELOCITY_CARD: '카드 속도 제한',
+      VELOCITY_EMAIL: '이메일 속도 제한',
+      VELOCITY_IP: 'IP 속도 제한',
+      PHONE_INVALID: '비정상 전화번호',
+      EMAIL_INVALID: '비정상 이메일',
+      POSTSALE_JPAY_HIGH_RISK: 'JPAY 사후 고위험',
+      POSTSALE_JPAY_PY0124: 'JPAY PY0124'
+    };
+    if (code && map[code]) return map[code];
+    var desc = row && row.riskDesc != null ? String(row.riskDesc).trim() : '';
+    return desc || code || '';
+  }
   /** 업체정보 비밀번호 초기화 — pane당 1회 리스너 + 진행 중 중복 클릭 방지 */
   function pgRunCompPasswordResetClick(pane, compId, confirmKey, useAssistant) {
     if (!compId) {
@@ -8060,10 +8080,13 @@
     var menuKo = (MENU_INFO[url] && MENU_INFO[url].label) ? MENU_INFO[url].label : '목록';
     var menu = pgAdminUiT(menuKo);
     var sheetName = menu.length > 31 ? menu.substring(0, 31) : menu;
-    var headers = dataCols.map(function (c) { return String(c.label || c.key); });
+    var headers = dataCols.map(function (c) { return pgAdminUiT(String(c.label || c.key)); });
     var rows = (list || []).map(function (row) {
       return dataCols.map(function (c) {
         var v = row[c.key];
+        if (url === '/risk/list' && c.key === 'riskDesc') {
+          v = pgAdminUiT(pgRiskFilterDescLabelKo(row));
+        }
         return pgExcelPlainCellValue(v, c.key, PG_EXCEL_TEXT_COL_KEYS);
       });
     });
@@ -16002,6 +16025,10 @@
                 var exm0 = String(row.extSettleMode != null ? row.extSettleMode : '').trim().toUpperCase();
                 var exShow = exm0 === 'T' ? 'T' : (exm0 === 'D' ? 'D' : 'OFF');
                 html += '<td class="text-center text-nowrap"><span data-pg-ui-t="' + escAttr(exShow) + '">' + escHtmlBody(exShow) + '</span></td>';
+              } else if (url === '/risk/list' && c.key === 'riskDesc') {
+                var riskDescKo = pgRiskFilterDescLabelKo(row);
+                html += '<td class="text-start small"><span data-pg-ui-t="' + escAttr(riskDescKo) + '">' +
+                  escHtmlBody(pgAdminUiT(riskDescKo || '')) + '</span></td>';
               } else {
                 var val = row[c.key] !== undefined && row[c.key] !== null ? String(row[c.key]) : '';
                 if (isPayScr && window.PG_PAY_LIST_I18N) {
@@ -16151,6 +16178,29 @@
                   if (['curType', 'viewerOrgLevelNm'].indexOf(c.key) >= 0) distSetCls.push('text-center');
                   distSetCls.push('text-nowrap');
                   if (distSetCls.length) cellClass = ' class="' + distSetCls.join(' ') + '"';
+                } else if (url === '/splitpay/progressMng' || url === '/splitpay/mailMng' || url === '/calc/splitPayList') {
+                  var spCellCls = [];
+                  if (c.key === 'status' || c.key === 'contractStatus' || c.key === 'splitPayContractCancel' || c.key === 'splitPayMailResend'
+                      || c.type === 'splitPayContractCancelBtn' || c.type === 'splitPayMailResendBtn') {
+                    spCellCls.push('text-center', 'text-nowrap');
+                  }
+                  if (c.key === 'installmentNo' || c.key === 'installmentCount' || c.key === 'paidCount'
+                      || c.key === 'progressPct' || c.key === 'currencyCode') {
+                    spCellCls.push('text-center', 'pg-split-narrow-cell');
+                  }
+                  if (c.key === 'eventAt' || c.key === 'paidAt') {
+                    spCellCls.push('text-center', 'pay-grid-time-dual', 'pg-split-event-at-cell');
+                  }
+                  if (c.key === 'cancelReason') {
+                    spCellCls.push('text-center', 'pg-split-cancel-reason-cell');
+                  }
+                  if (c.key === 'customerEmail') {
+                    spCellCls.push('text-center', 'pg-split-email-cell');
+                  }
+                  if (c.key === 'orderNo' || c.key === 'contractNo') {
+                    spCellCls.push('text-center', 'pg-split-id-cell');
+                  }
+                  if (spCellCls.length) cellClass = ' class="' + spCellCls.join(' ') + '"';
                 } else if (url === '/calc/compPointMngList') {
                   var recCls2 = [];
                   if (['recallAmount', 'remainingAmount', 'appliedAmount'].indexOf(c.key) >= 0) recCls2.push('text-end');
@@ -16539,17 +16589,47 @@
                       innerExec = '<button type="button" class="btn btn-sm btn-outline-primary text-nowrap pg-split-pay-mail-resend-btn" data-installment-id="' + escAttr(String(instId)) + '">' + escHtmlBody(pgAdminUiT('링크재발송')) + '</button>';
                     }
                   } else if ((url === '/splitpay/progressMng' || url === '/splitpay/mailMng' || url === '/calc/splitPayList')
-                      && c.key === 'status') {
+                      && (c.key === 'status' || c.key === 'contractStatus')) {
                     var stSp = String(val || '').trim().toUpperCase();
-                    if (stSp === 'PENDING') innerExec = escHtmlBody(pgAdminUiT('미납'));
-                    else if (stSp === 'PAID') innerExec = escHtmlBody(pgAdminUiT('납부완료'));
-                    else if (stSp === 'CANCELLED') innerExec = escHtmlBody(pgAdminUiT('취소'));
-                    else if (stSp === 'ACTIVE') innerExec = escHtmlBody(pgAdminUiT('진행중'));
-                    else if (stSp === 'COMPLETED') innerExec = escHtmlBody(pgAdminUiT('완료'));
-                    else if (stSp === 'STOPPED') innerExec = escHtmlBody(pgAdminUiT('중지'));
-                    else innerExec = escHtmlBody(String(val == null ? '' : val));
+                    var stKeySp = '';
+                    if (stSp === 'PENDING') stKeySp = '미납';
+                    else if (stSp === 'PAID') stKeySp = '납부완료';
+                    else if (stSp === 'CANCELLED') {
+                      /* 회차상태=취소, 계약상태(계약관리 status 포함)=파기 */
+                      stKeySp = (c.key === 'contractStatus' || url === '/calc/splitPayList') ? '파기' : '취소';
+                    } else if (stSp === 'ACTIVE') stKeySp = '진행중';
+                    else if (stSp === 'COMPLETED') stKeySp = '완료';
+                    else if (stSp === 'STOPPED') stKeySp = '중지';
+                    if (stKeySp) {
+                      innerExec = '<span data-pg-ui-t="' + escAttr(stKeySp) + '">' + escHtmlBody(pgAdminUiT(stKeySp)) + '</span>';
+                    } else {
+                      innerExec = escHtmlBody(String(val == null ? '' : val));
+                    }
                   } else if (url === '/splitpay/progressMng' && c.key === 'progressPct' && val != null && val !== '') {
                     innerExec = escHtmlBody(String(val)) + '%';
+                  } else if (url === '/splitpay/progressMng' && (c.key === 'eventAt' || c.key === 'paidAt')) {
+                    var evAt = String((c.key === 'eventAt' ? row.eventAt : row.paidAt) || val || '').trim();
+                    if (!evAt && c.key === 'eventAt') {
+                      if (String(row.status || '').toUpperCase() === 'PAID') {
+                        evAt = String(row.paidAt || '').trim();
+                      } else if (String(row.status || '').toUpperCase() === 'CANCELLED') {
+                        evAt = String(row.cancelledAt || '').trim();
+                      }
+                    }
+                    if (!evAt) {
+                      innerExec = '<span class="text-muted small">—</span>';
+                    } else {
+                      var evClean = String(evAt).replace(/\.\d+$/, '').trim();
+                      var evParts = evClean.split(/\s+/);
+                      var evDate = evParts[0] || evClean;
+                      var evTime = evParts.length > 1 ? evParts.slice(1).join(' ') : '';
+                      if (evTime) {
+                        innerExec = '<span class="pay-grid-time-line pay-grid-time-line--line1">' + escHtmlBody(evDate) + '</span><br>'
+                          + '<span class="pay-grid-time-line pay-grid-time-line--line2">' + escHtmlBody(evTime) + '</span>';
+                      } else {
+                        innerExec = '<span class="pay-grid-time-line pay-grid-time-line--line1">' + escHtmlBody(evDate) + '</span>';
+                      }
+                    }
                   } else if ((execRunUrls || execFranchiseUrls) && c.key === 'targetPeriodText' && val != null && String(val).indexOf('\n') !== -1) {
                     function escExPeriodLine(ln) {
                       return String(ln).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -23741,7 +23821,9 @@
           var opts = (d && d.options) ? d.options : [];
           var h = '<option value="" data-pg-ui-t="전체">' + pgAdminUiT('전체') + '</option>';
           opts.forEach(function (o) {
-            h += '<option value="' + String(o.v || '').replace(/"/g, '&quot;') + '">' + pgAdminUiT(o.t || o.v || '') + '</option>';
+            var labKo = pgRiskFilterDescLabelKo({ riskDiv: o.v, riskDesc: o.t });
+            h += '<option value="' + String(o.v || '').replace(/"/g, '&quot;') + '" data-pg-ui-t="' +
+              String(labKo).replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '">' + pgAdminUiT(labKo || o.v || '') + '</option>';
           });
           riskDivSel.innerHTML = h;
           if (window.PG_UI_I18N && window.PG_UI_I18N.applyDom) {

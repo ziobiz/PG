@@ -164,7 +164,35 @@ public final class PayPresaleRiskFilterI18n {
         };
     }
 
+    /** 관리자 「리스크 현황」 내용·필터구분 라벨 (KO 키·저장용). */
     public static String filterLabelKo(String code) {
+        return filterLabel("KOR", code);
+    }
+
+    /** 관리자 UI 언어별 리스크 필터 짧은 라벨 (KO/EN/JP/CH/TH). */
+    public static String filterLabel(String lang, String code) {
+        String l = lang != null ? lang.trim().toUpperCase() : "KOR";
+        if (l.startsWith("KO")) {
+            l = "KOR";
+        } else if (l.startsWith("EN")) {
+            l = "ENG";
+        } else if (l.startsWith("JA") || "JPN".equals(l) || "JP".equals(l)) {
+            l = "JP";
+        } else if (l.startsWith("ZH") || "CHN".equals(l) || "CH".equals(l)) {
+            l = "CHN";
+        } else if (l.startsWith("TH")) {
+            l = "THA";
+        }
+        return switch (l) {
+            case "ENG" -> filterLabelEng(code);
+            case "JP" -> filterLabelJp(code);
+            case "CHN" -> filterLabelCh(code);
+            case "THA" -> filterLabelTh(code);
+            default -> filterLabelKor(code);
+        };
+    }
+
+    private static String filterLabelKor(String code) {
         return switch (code) {
             case PayPresaleRiskFilterCodes.BUYER_EMAIL_MISMATCH -> "구매자 이메일 불일치";
             case PayPresaleRiskFilterCodes.BUYER_PHONE_MISMATCH -> "구매자 전화 불일치";
@@ -177,7 +205,75 @@ public final class PayPresaleRiskFilterI18n {
             case PayPresaleRiskFilterCodes.EMAIL_INVALID -> "비정상 이메일";
             case JpayPostSaleRiskOutcomeUtil.POSTSALE_JPAY_HIGH_RISK -> "JPAY 사후 고위험";
             case JpayPostSaleRiskOutcomeUtil.POSTSALE_JPAY_PY0124 -> "JPAY PY0124";
-            default -> code;
+            default -> code != null ? code : "";
+        };
+    }
+
+    private static String filterLabelEng(String code) {
+        return switch (code) {
+            case PayPresaleRiskFilterCodes.BUYER_EMAIL_MISMATCH -> "Buyer email mismatch";
+            case PayPresaleRiskFilterCodes.BUYER_PHONE_MISMATCH -> "Buyer phone mismatch";
+            case PayPresaleRiskFilterCodes.BUYER_NAME_MISMATCH -> "Buyer name mismatch";
+            case PayPresaleRiskFilterCodes.HOLDER_NAME_SUSPICIOUS -> "Suspicious holder name";
+            case PayPresaleRiskFilterCodes.VELOCITY_CARD -> "Card velocity limit";
+            case PayPresaleRiskFilterCodes.VELOCITY_EMAIL -> "Email velocity limit";
+            case PayPresaleRiskFilterCodes.VELOCITY_IP -> "IP velocity limit";
+            case PayPresaleRiskFilterCodes.PHONE_INVALID -> "Invalid phone number";
+            case PayPresaleRiskFilterCodes.EMAIL_INVALID -> "Invalid email";
+            case JpayPostSaleRiskOutcomeUtil.POSTSALE_JPAY_HIGH_RISK -> "JPAY post-sale high risk";
+            case JpayPostSaleRiskOutcomeUtil.POSTSALE_JPAY_PY0124 -> "JPAY PY0124";
+            default -> code != null ? code : "";
+        };
+    }
+
+    private static String filterLabelJp(String code) {
+        return switch (code) {
+            case PayPresaleRiskFilterCodes.BUYER_EMAIL_MISMATCH -> "購入者メール不一致";
+            case PayPresaleRiskFilterCodes.BUYER_PHONE_MISMATCH -> "購入者電話不一致";
+            case PayPresaleRiskFilterCodes.BUYER_NAME_MISMATCH -> "購入者氏名不一致";
+            case PayPresaleRiskFilterCodes.HOLDER_NAME_SUSPICIOUS -> "疑わしいholder名";
+            case PayPresaleRiskFilterCodes.VELOCITY_CARD -> "カード速度制限";
+            case PayPresaleRiskFilterCodes.VELOCITY_EMAIL -> "メール速度制限";
+            case PayPresaleRiskFilterCodes.VELOCITY_IP -> "IP速度制限";
+            case PayPresaleRiskFilterCodes.PHONE_INVALID -> "異常な電話番号";
+            case PayPresaleRiskFilterCodes.EMAIL_INVALID -> "異常なメール";
+            case JpayPostSaleRiskOutcomeUtil.POSTSALE_JPAY_HIGH_RISK -> "JPAY事後ハイリスク";
+            case JpayPostSaleRiskOutcomeUtil.POSTSALE_JPAY_PY0124 -> "JPAY PY0124";
+            default -> code != null ? code : "";
+        };
+    }
+
+    private static String filterLabelCh(String code) {
+        return switch (code) {
+            case PayPresaleRiskFilterCodes.BUYER_EMAIL_MISMATCH -> "买家邮箱不一致";
+            case PayPresaleRiskFilterCodes.BUYER_PHONE_MISMATCH -> "买家电话不一致";
+            case PayPresaleRiskFilterCodes.BUYER_NAME_MISMATCH -> "买家姓名不一致";
+            case PayPresaleRiskFilterCodes.HOLDER_NAME_SUSPICIOUS -> "可疑持卡人姓名";
+            case PayPresaleRiskFilterCodes.VELOCITY_CARD -> "卡速度限制";
+            case PayPresaleRiskFilterCodes.VELOCITY_EMAIL -> "邮箱速度限制";
+            case PayPresaleRiskFilterCodes.VELOCITY_IP -> "IP速度限制";
+            case PayPresaleRiskFilterCodes.PHONE_INVALID -> "异常电话号码";
+            case PayPresaleRiskFilterCodes.EMAIL_INVALID -> "异常邮箱";
+            case JpayPostSaleRiskOutcomeUtil.POSTSALE_JPAY_HIGH_RISK -> "JPAY 事后高风险";
+            case JpayPostSaleRiskOutcomeUtil.POSTSALE_JPAY_PY0124 -> "JPAY PY0124";
+            default -> code != null ? code : "";
+        };
+    }
+
+    private static String filterLabelTh(String code) {
+        return switch (code) {
+            case PayPresaleRiskFilterCodes.BUYER_EMAIL_MISMATCH -> "อีเมลผู้ซื้อไม่ตรง";
+            case PayPresaleRiskFilterCodes.BUYER_PHONE_MISMATCH -> "โทรผู้ซื้อไม่ตรง";
+            case PayPresaleRiskFilterCodes.BUYER_NAME_MISMATCH -> "ชื่อผู้ซื้อไม่ตรง";
+            case PayPresaleRiskFilterCodes.HOLDER_NAME_SUSPICIOUS -> "ชื่อ holder ต้องสงสัย";
+            case PayPresaleRiskFilterCodes.VELOCITY_CARD -> "จำกัดความถี่บัตร";
+            case PayPresaleRiskFilterCodes.VELOCITY_EMAIL -> "จำกัดความถี่อีเมล";
+            case PayPresaleRiskFilterCodes.VELOCITY_IP -> "จำกัดความถี่ IP";
+            case PayPresaleRiskFilterCodes.PHONE_INVALID -> "หมายเลขโทรศัพท์ไม่ปกติ";
+            case PayPresaleRiskFilterCodes.EMAIL_INVALID -> "อีเมลไม่ปกติ";
+            case JpayPostSaleRiskOutcomeUtil.POSTSALE_JPAY_HIGH_RISK -> "JPAY ความเสี่ยงสูงหลังขาย";
+            case JpayPostSaleRiskOutcomeUtil.POSTSALE_JPAY_PY0124 -> "JPAY PY0124";
+            default -> code != null ? code : "";
         };
     }
 }

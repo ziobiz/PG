@@ -9,7 +9,7 @@
 (function (global) {
   'use strict';
 
-  var FALLBACK_VERSION = '2.68';
+  var FALLBACK_VERSION = '2.76';
 
   var AUDIENCE_ORDER = ['super', 'hqdist', 'merchant'];
   var AUDIENCE_LABEL = {
@@ -39,15 +39,15 @@
    * 플랫폼 라이브 버전과 다를 수 있음 — 문서가 갱신되면 함께 올린다.
    */
   var ITEMS = [
-    { id: 'super-ops', audience: 'super', title: '총본사 운영 메뉴얼', docVersion: '3.0' },
-    { id: 'hq-ops', audience: 'hqdist', title: '본사 운영 메뉴얼', docVersion: '3.0' },
-    { id: 'dist-ops', audience: 'hqdist', title: '총판 운영 메뉴얼', docVersion: '3.0' },
+    { id: 'super-ops', audience: 'super', title: '총본사 운영 메뉴얼', docVersion: '2.76' },
+    { id: 'hq-ops', audience: 'hqdist', title: '본사 운영 메뉴얼', docVersion: '2.76' },
+    { id: 'dist-ops', audience: 'hqdist', title: '총판 운영 메뉴얼', docVersion: '2.76' },
     { id: 'hqdist-risk-intro', audience: 'hqdist', title: '리스크 트리거 발동 소개 안내', docVersion: '2.43' },
-    { id: 'merchant-ops', audience: 'merchant', title: '가맹점 운영 메뉴얼', docVersion: '2.67' },
+    { id: 'merchant-ops', audience: 'merchant', title: '가맹점 운영 메뉴얼', docVersion: '2.74' },
     { id: 'merchant-chatbot', audience: 'merchant', title: '챗봇결제 가맹점 사용 메뉴얼', docVersion: '2.46' },
-    { id: 'merchant-url-user', audience: 'merchant', title: 'URL결제 사용자 메뉴얼', docVersion: '2.66' },
-    { id: 'merchant-split-user', audience: 'merchant', title: '분할결제 사용자 메뉴얼', docVersion: '2.66' },
-    { id: 'merchant-subscribe-user', audience: 'merchant', title: '구독결제 사용자 메뉴얼', docVersion: '2.66' }
+    { id: 'merchant-url-user', audience: 'merchant', title: 'URL결제 사용자 메뉴얼', docVersion: '2.74' },
+    { id: 'merchant-split-user', audience: 'merchant', title: '분할결제 사용자 메뉴얼', docVersion: '2.74' },
+    { id: 'merchant-subscribe-user', audience: 'merchant', title: '구독결제 사용자 메뉴얼', docVersion: '2.74' }
   ];
 
   function uiT(s) {

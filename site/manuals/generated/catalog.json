@@ -1,6 +1,6 @@
 {
-  "version": "2.68",
-  "date": "2026-07-23",
+  "version": "2.76",
+  "date": "2026-07-24",
   "format": "pdf",
   "note": "List V badges use each item.docVersion matching PDF. Risk-intro has distinct KO/EN/JA/ZH/TH PDFs.",
   "audiences": [
@@ -48,7 +48,7 @@
         "th": "คู่มือปฏิบัติการสำนักงานใหญ่สูงสุด"
       },
       "pdfDir": "manuals/pdf/super-ops",
-      "docVersion": "3.0"
+      "docVersion": "2.76"
     },
     {
       "id": "hq-ops",
@@ -62,7 +62,7 @@
         "th": "คู่มือปฏิบัติการ HQ"
       },
       "pdfDir": "manuals/pdf/hq-ops",
-      "docVersion": "3.0"
+      "docVersion": "2.76"
     },
     {
       "id": "dist-ops",
@@ -76,7 +76,7 @@
         "th": "คู่มือปฏิบัติการตัวแทนจำหน่าย"
       },
       "pdfDir": "manuals/pdf/dist-ops",
-      "docVersion": "3.0"
+      "docVersion": "2.76"
     },
     {
       "id": "hqdist-risk-intro",
@@ -104,7 +104,7 @@
         "th": "คู่มือปฏิบัติการร้านค้า"
       },
       "pdfDir": "manuals/pdf/merchant-ops",
-      "docVersion": "2.67"
+      "docVersion": "2.74"
     },
     {
       "id": "merchant-chatbot",
@@ -132,7 +132,7 @@
         "th": "คู่มือผู้ใช้ชำระด้วย URL"
       },
       "pdfDir": "manuals/pdf/merchant-url-user",
-      "docVersion": "2.66"
+      "docVersion": "2.74"
     },
     {
       "id": "merchant-split-user",
@@ -146,7 +146,7 @@
         "th": "คู่มือผู้ใช้แบ่งจ่าย"
       },
       "pdfDir": "manuals/pdf/merchant-split-user",
-      "docVersion": "2.66"
+      "docVersion": "2.74"
     },
     {
       "id": "merchant-subscribe-user",
@@ -160,7 +160,7 @@
         "th": "คู่มือผู้ใช้ชำระรายงวด"
       },
       "pdfDir": "manuals/pdf/merchant-subscribe-user",
-      "docVersion": "2.66"
+      "docVersion": "2.74"
     }
   ]
 }

@@ -2056,6 +2056,8 @@ public class CompService {
                                 m.put("receiptEmailFollowHqYn", mp.getReceiptEmailFollowHqYn() != null ? mp.getReceiptEmailFollowHqYn() : "Y");
                                 m.put("receiptEmailUseYn", mp.getReceiptEmailUseYn() != null ? mp.getReceiptEmailUseYn() : "N");
                                 m.put("splitPayEnabledYn", mp.getSplitPayEnabledYn() != null ? mp.getSplitPayEnabledYn() : "N");
+                                m.put("splitPayContractCancelYn", mp.getSplitPayContractCancelYn() != null
+                                        ? mp.getSplitPayContractCancelYn() : "FOLLOW_HQ");
                                 m.put("splitPayIntervalMonthYn", mp.getSplitPayIntervalMonthYn() != null ? mp.getSplitPayIntervalMonthYn() : "Y");
                                 m.put("splitPayIntervalDayYn", mp.getSplitPayIntervalDayYn() != null ? mp.getSplitPayIntervalDayYn() : "N");
                                 m.put("splitPayIntervalMultiYn", mp.getSplitPayIntervalMultiYn() != null ? mp.getSplitPayIntervalMultiYn() : "N");
@@ -2125,7 +2127,9 @@ public class CompService {
                           String jpayCheckoutFieldMode,
                           String jpayPhoneDialCodeYn,
                           String tabletFeatureUseYn,
+                          String merchantSplitPayJson,
                           String splitPayEnabledYn,
+                          String splitPayContractCancelYn,
                           String splitPayIntervalMonthYn,
                           String splitPayIntervalDayYn,
                           String splitPayIntervalMultiYn,
@@ -2145,6 +2149,27 @@ public class CompService {
                           String cardRiskTier3Hours, String cardRiskTier3Min,
                           String cardRiskTier4Hours, String cardRiskTier4Min,
                           String cardRiskAutoBlacklistTier) {
+        String[] splitPayMerged = mergeMerchantSplitPayParamsFromJson(merchantSplitPayJson,
+                splitPayEnabledYn, splitPayContractCancelYn,
+                splitPayIntervalMonthYn, splitPayIntervalDayYn, splitPayIntervalMultiYn,
+                splitPayDayIntervalDays, splitPayMonthIntervalMonths, splitPayMultiMaxMonths, splitPayFirstPayMode,
+                splitPayHeaderLogoMode, splitPayHeaderLogoUrl, splitPayHeaderHtmlTitle,
+                splitPayHeaderSubtitleMode, splitPayHeaderSubtitleText, splitPayLangMenuUseYn);
+        final String spEnabledYn = splitPayMerged[0];
+        final String spContractCancelYn = splitPayMerged[1];
+        final String spIntervalMonthYn = splitPayMerged[2];
+        final String spIntervalDayYn = splitPayMerged[3];
+        final String spIntervalMultiYn = splitPayMerged[4];
+        final String spDayIntervalDays = splitPayMerged[5];
+        final String spMonthIntervalMonths = splitPayMerged[6];
+        final String spMultiMaxMonths = splitPayMerged[7];
+        final String spFirstPayMode = splitPayMerged[8];
+        final String spHeaderLogoMode = splitPayMerged[9];
+        final String spHeaderLogoUrl = splitPayMerged[10];
+        final String spHeaderHtmlTitle = splitPayMerged[11];
+        final String spHeaderSubtitleMode = splitPayMerged[12];
+        final String spHeaderSubtitleText = splitPayMerged[13];
+        final String spLangMenuUseYn = splitPayMerged[14];
         return orgUnitRepository.findByCode(compId != null ? compId : "")
                 .flatMap(ou -> merchantProfileRepository.findByOrgUnitId(ou.getId())
                         .map(mp -> {
@@ -2472,11 +2497,12 @@ public class CompService {
                                         cardRiskAutoBlacklistTier);
                                 applyMerchantUrlPayAlerts(mp, urlPayAlertEmailYn, urlPayLineNotifyToken);
                                 applyMerchantReceiptEmail(mp, receiptEmailFollowHqYn, receiptEmailUseYn);
-                                applyMerchantSplitPay(mp, splitPayEnabledYn, splitPayIntervalMonthYn,
-                                        splitPayIntervalDayYn, splitPayIntervalMultiYn, splitPayDayIntervalDays,
-                                        splitPayMonthIntervalMonths, splitPayMultiMaxMonths, splitPayFirstPayMode);
-                                applyMerchantSplitPayCheckoutPresentation(mp, splitPayHeaderLogoMode, splitPayHeaderLogoUrl,
-                                        splitPayHeaderHtmlTitle, splitPayHeaderSubtitleMode, splitPayHeaderSubtitleText, splitPayLangMenuUseYn);
+                                applyMerchantSplitPay(mp, spEnabledYn, spContractCancelYn,
+                                        spIntervalMonthYn,
+                                        spIntervalDayYn, spIntervalMultiYn, spDayIntervalDays,
+                                        spMonthIntervalMonths, spMultiMaxMonths, spFirstPayMode);
+                                applyMerchantSplitPayCheckoutPresentation(mp, spHeaderLogoMode, spHeaderLogoUrl,
+                                        spHeaderHtmlTitle, spHeaderSubtitleMode, spHeaderSubtitleText, spLangMenuUseYn);
                             }
                             merchantProfileRepository.save(mp);
                             if (childLevel == OrgLevel.MASTER_DIST) {
@@ -2739,8 +2765,113 @@ public class CompService {
         });
     }
 
+    /**
+     * 가맹 URL 분할결제만 저장(대용량 /api/comp/update 와 분리).
+     * 총본사·본사·총판 직권 변경이 폼 파라미터 누락으로 미반영되는 문제를 방지한다.
+     */
+    @Transactional
+    public boolean updateMerchantSplitPayOnly(String compId,
+                                              String merchantSplitPayJson,
+                                              String splitPayEnabledYn,
+                                              String splitPayContractCancelYn,
+                                              String splitPayIntervalMonthYn,
+                                              String splitPayIntervalDayYn,
+                                              String splitPayIntervalMultiYn,
+                                              String splitPayDayIntervalDays,
+                                              String splitPayMonthIntervalMonths,
+                                              String splitPayMultiMaxMonths,
+                                              String splitPayFirstPayMode,
+                                              String splitPayHeaderLogoMode,
+                                              String splitPayHeaderLogoUrl,
+                                              String splitPayHeaderHtmlTitle,
+                                              String splitPayHeaderSubtitleMode,
+                                              String splitPayHeaderSubtitleText,
+                                              String splitPayLangMenuUseYn) {
+        String code = compId != null ? compId.trim() : "";
+        if (code.isEmpty()) {
+            return false;
+        }
+        String[] merged = mergeMerchantSplitPayParamsFromJson(merchantSplitPayJson,
+                splitPayEnabledYn, splitPayContractCancelYn,
+                splitPayIntervalMonthYn, splitPayIntervalDayYn, splitPayIntervalMultiYn,
+                splitPayDayIntervalDays, splitPayMonthIntervalMonths, splitPayMultiMaxMonths, splitPayFirstPayMode,
+                splitPayHeaderLogoMode, splitPayHeaderLogoUrl, splitPayHeaderHtmlTitle,
+                splitPayHeaderSubtitleMode, splitPayHeaderSubtitleText, splitPayLangMenuUseYn);
+        return orgUnitRepository.findByCode(code)
+                .filter(ou -> ou.getOrgLevel() == OrgLevel.MERCHANT)
+                .flatMap(ou -> merchantProfileRepository.findByOrgUnitId(ou.getId())
+                        .map(mp -> {
+                            applyMerchantSplitPay(mp, merged[0], merged[1],
+                                    merged[2], merged[3], merged[4],
+                                    merged[5], merged[6], merged[7], merged[8]);
+                            applyMerchantSplitPayCheckoutPresentation(mp, merged[9], merged[10],
+                                    merged[11], merged[12], merged[13], merged[14]);
+                            merchantProfileRepository.saveAndFlush(mp);
+                            return true;
+                        }))
+                .orElse(false);
+    }
+
+    /**
+     * 개별 splitPay* RequestParam 이 누락됐을 때 merchantSplitPayJson 압축 백업으로 복원.
+     * 순서: enabled, contractCancel, monthYn, dayYn, multiYn, dayDays, monthMonths, multiMax, firstPay,
+     *       headerLogoMode, headerLogoUrl, headerHtmlTitle, headerSubtitleMode, headerSubtitleText, langMenuUseYn
+     */
+    private static String[] mergeMerchantSplitPayParamsFromJson(String merchantSplitPayJson,
+                                                                String splitPayEnabledYn,
+                                                                String splitPayContractCancelYn,
+                                                                String splitPayIntervalMonthYn,
+                                                                String splitPayIntervalDayYn,
+                                                                String splitPayIntervalMultiYn,
+                                                                String splitPayDayIntervalDays,
+                                                                String splitPayMonthIntervalMonths,
+                                                                String splitPayMultiMaxMonths,
+                                                                String splitPayFirstPayMode,
+                                                                String splitPayHeaderLogoMode,
+                                                                String splitPayHeaderLogoUrl,
+                                                                String splitPayHeaderHtmlTitle,
+                                                                String splitPayHeaderSubtitleMode,
+                                                                String splitPayHeaderSubtitleText,
+                                                                String splitPayLangMenuUseYn) {
+        String[] out = new String[] {
+                splitPayEnabledYn, splitPayContractCancelYn,
+                splitPayIntervalMonthYn, splitPayIntervalDayYn, splitPayIntervalMultiYn,
+                splitPayDayIntervalDays, splitPayMonthIntervalMonths, splitPayMultiMaxMonths, splitPayFirstPayMode,
+                splitPayHeaderLogoMode, splitPayHeaderLogoUrl, splitPayHeaderHtmlTitle,
+                splitPayHeaderSubtitleMode, splitPayHeaderSubtitleText, splitPayLangMenuUseYn
+        };
+        if (merchantSplitPayJson == null || merchantSplitPayJson.isBlank()) {
+            return out;
+        }
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> pack = new com.fasterxml.jackson.databind.ObjectMapper()
+                    .readValue(merchantSplitPayJson.trim(), Map.class);
+            String[] keys = {
+                    "splitPayEnabledYn", "splitPayContractCancelYn",
+                    "splitPayIntervalMonthYn", "splitPayIntervalDayYn", "splitPayIntervalMultiYn",
+                    "splitPayDayIntervalDays", "splitPayMonthIntervalMonths", "splitPayMultiMaxMonths", "splitPayFirstPayMode",
+                    "splitPayHeaderLogoMode", "splitPayHeaderLogoUrl", "splitPayHeaderHtmlTitle",
+                    "splitPayHeaderSubtitleMode", "splitPayHeaderSubtitleText", "splitPayLangMenuUseYn"
+            };
+            for (int i = 0; i < keys.length; i++) {
+                if (out[i] != null && !out[i].isBlank()) {
+                    continue;
+                }
+                Object v = pack.get(keys[i]);
+                if (v != null && !String.valueOf(v).isBlank()) {
+                    out[i] = String.valueOf(v).trim();
+                }
+            }
+        } catch (Exception ignored) {
+            /* 백업 JSON 파싱 실패 시 개별 파라미터만 사용 */
+        }
+        return out;
+    }
+
     private void applyMerchantSplitPay(MerchantProfile mp,
                                        String splitPayEnabledYn,
+                                       String splitPayContractCancelYn,
                                        String splitPayIntervalMonthYn,
                                        String splitPayIntervalDayYn,
                                        String splitPayIntervalMultiYn,
@@ -2753,6 +2884,9 @@ public class CompService {
         }
         if (splitPayEnabledYn != null && !splitPayEnabledYn.isBlank()) {
             mp.setSplitPayEnabledYn(splitPayEnabledYn);
+        }
+        if (splitPayContractCancelYn != null && !splitPayContractCancelYn.isBlank()) {
+            mp.setSplitPayContractCancelYn(splitPayContractCancelYn);
         }
         if (splitPayIntervalMonthYn != null && !splitPayIntervalMonthYn.isBlank()) {
             mp.setSplitPayIntervalMonthYn(splitPayIntervalMonthYn);

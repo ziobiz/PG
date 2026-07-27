@@ -83,8 +83,13 @@ public class OpsPayRiskFilterService {
         m.put("orderNo", e.getOrderNo());
         m.put("trnId", e.getTrnId());
         m.put("pgVendor", e.getPgVendor());
-        m.put("riskDiv", e.getFilterCode());
-        m.put("riskDesc", e.getFilterDesc());
+        String code = e.getFilterCode() != null ? e.getFilterCode().trim() : "";
+        m.put("riskDiv", code);
+        /* 저장 desc가 한국어여도 코드 기준으로 라벨 재생성 → 프론트 i18n 키로 사용 */
+        String descKo = !code.isEmpty()
+                ? PayPresaleRiskFilterI18n.filterLabelKo(code)
+                : (e.getFilterDesc() != null ? e.getFilterDesc() : "");
+        m.put("riskDesc", descKo);
         m.put("regDt", e.getCreatedAt());
         return m;
     }

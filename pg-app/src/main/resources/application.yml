@@ -2,6 +2,10 @@ server:
   port: 8080
   # Nginx 등 리버스 프록시 뒤: X-Forwarded-Proto 반영. 잘못된 헤더면 https↔http 리다이렉트 루프(ERR_TOO_MANY_REDIRECTS) 가능 → 필요 시 FORWARD_HEADERS_STRATEGY=none
   forward-headers-strategy: ${FORWARD_HEADERS_STRATEGY:framework}
+  tomcat:
+    # 가맹 업체정보 저장 시 폼 파라미터 다수 + pgBindings JSON. 기본(1000)보다 여유 있게.
+    max-parameter-count: 10000
+    max-http-form-post-size: 10MB
 
 # 로컬 한 서버 테스트: pg-app 실행 디렉터리가 pg-app 일 때, 상위의 site 폴더를 정적 리소스로 서빙
 # (프로젝트 루트에서 ./pg-app/gradlew bootRun 이면 working dir 에 따라 경로 조정 필요)

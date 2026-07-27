@@ -817,3 +817,10 @@ ALTER TABLE tb_merchant_profile ADD COLUMN IF NOT EXISTS receipt_email_use_yn VA
 ALTER TABLE pg_trnsctn ADD COLUMN IF NOT EXISTS checkout_lang VARCHAR(8);
 ALTER TABLE pg_trnsctn ADD COLUMN IF NOT EXISTS receipt_mail_sent_at TIMESTAMP;
 
+-- V236: 분할결제 계약 취소 권한·감사
+ALTER TABLE tb_hq_api_config ADD COLUMN IF NOT EXISTS split_pay_contract_cancel_default_yn VARCHAR(1) NOT NULL DEFAULT 'N';
+ALTER TABLE tb_hq_api_config ADD COLUMN IF NOT EXISTS split_pay_contract_cancel_org_op_yn VARCHAR(1) NOT NULL DEFAULT 'N';
+ALTER TABLE tb_merchant_profile ADD COLUMN IF NOT EXISTS split_pay_contract_cancel_yn VARCHAR(16) NOT NULL DEFAULT 'FOLLOW_HQ';
+ALTER TABLE tb_split_pay_contract ADD COLUMN IF NOT EXISTS cancel_reason VARCHAR(500);
+ALTER TABLE tb_split_pay_contract ADD COLUMN IF NOT EXISTS cancelled_by VARCHAR(100);
+

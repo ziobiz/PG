@@ -591,7 +591,9 @@ public class ApiCompController {
             @RequestParam(required = false) String jpayCheckoutFieldMode,
             @RequestParam(required = false) String jpayPhoneDialCodeYn,
             @RequestParam(required = false) String tabletFeatureUseYn,
+            @RequestParam(required = false) String merchantSplitPayJson,
             @RequestParam(required = false) String splitPayEnabledYn,
+            @RequestParam(required = false) String splitPayContractCancelYn,
             @RequestParam(required = false) String splitPayIntervalMonthYn,
             @RequestParam(required = false) String splitPayIntervalDayYn,
             @RequestParam(required = false) String splitPayIntervalMultiYn,
@@ -674,7 +676,9 @@ public class ApiCompController {
                     jpayCheckoutFieldMode,
                     jpayPhoneDialCodeYn,
                     tabletFeatureUseYn,
+                    merchantSplitPayJson,
                     splitPayEnabledYn,
+                    splitPayContractCancelYn,
                     splitPayIntervalMonthYn,
                     splitPayIntervalDayYn,
                     splitPayIntervalMultiYn,
@@ -708,6 +712,61 @@ public class ApiCompController {
                     "저장 중 DB 제약 오류가 났습니다. (" + (cause != null ? cause : "")
                             + ") 결제대행사(PG) 목록에 동일 PG·결제구분(WEB 등)이 중복되지 않는지, 총판·가맹 노티 URL(tb_merchant_notify_url 의 org_unit_id+url_type 중복), 노티 URL 길이(2048자) 등을 확인하세요. (tb_merchant_pg_binding 유니크 / V48 노티 URL 컬럼 길이)",
                     "DATA_INTEGRITY"));
+        }
+    }
+
+    /**
+     * 가맹 URL 분할결제 설정만 저장 — 대용량 업체수정 폼과 분리해 직권 변경이 누락되지 않도록 한다.
+     */
+    @PostMapping("/updateMerchantSplitPay")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> updateMerchantSplitPay(
+            @RequestParam String compId,
+            @RequestParam(required = false) String merchantSplitPayJson,
+            @RequestParam(required = false) String splitPayEnabledYn,
+            @RequestParam(required = false) String splitPayContractCancelYn,
+            @RequestParam(required = false) String splitPayIntervalMonthYn,
+            @RequestParam(required = false) String splitPayIntervalDayYn,
+            @RequestParam(required = false) String splitPayIntervalMultiYn,
+            @RequestParam(required = false) String splitPayDayIntervalDays,
+            @RequestParam(required = false) String splitPayMonthIntervalMonths,
+            @RequestParam(required = false) String splitPayMultiMaxMonths,
+            @RequestParam(required = false) String splitPayFirstPayMode,
+            @RequestParam(required = false) String splitPayHeaderLogoMode,
+            @RequestParam(required = false) String splitPayHeaderLogoUrl,
+            @RequestParam(required = false) String splitPayHeaderHtmlTitle,
+            @RequestParam(required = false) String splitPayHeaderSubtitleMode,
+            @RequestParam(required = false) String splitPayHeaderSubtitleText,
+            @RequestParam(required = false) String splitPayLangMenuUseYn) {
+        if (compId == null || compId.isBlank()) {
+            return ResponseEntity.ok(ApiResponse.fail("업체코드가 필요합니다.", "VALIDATION"));
+        }
+        Authentication auth0 = SecurityContextHolder.getContext().getAuthentication();
+        if (auth0 != null && auth0.getPrincipal() instanceof AppUser u0) {
+            if (!canAccessCompAsViewer(u0, compId)) {
+                return ResponseEntity.ok(ApiResponse.fail("소속 업체 및 하위 업체만 수정할 수 있습니다.", "FORBIDDEN"));
+            }
+            if (!"ADMIN".equalsIgnoreCase(u0.getRole())) {
+                Map<String, Object> org = authService.getOrgInfo(u0.getUsername());
+                String mine = org != null && org.get("compId") != null ? org.get("compId").toString().trim() : "";
+                if (!mine.isEmpty() && compId.trim().equalsIgnoreCase(mine)) {
+                    return ResponseEntity.ok(ApiResponse.fail(
+                            "본인 소속 업체 정보는 조회 전용입니다. 변경은 상위 조직·관리자에서 진행하세요.", "READ_ONLY_SELF_COMP"));
+                }
+            }
+        }
+        try {
+            boolean ok = compService.updateMerchantSplitPayOnly(compId, merchantSplitPayJson,
+                    splitPayEnabledYn, splitPayContractCancelYn,
+                    splitPayIntervalMonthYn, splitPayIntervalDayYn, splitPayIntervalMultiYn,
+                    splitPayDayIntervalDays, splitPayMonthIntervalMonths, splitPayMultiMaxMonths, splitPayFirstPayMode,
+                    splitPayHeaderLogoMode, splitPayHeaderLogoUrl, splitPayHeaderHtmlTitle,
+                    splitPayHeaderSubtitleMode, splitPayHeaderSubtitleText, splitPayLangMenuUseYn);
+            return ResponseEntity.ok(ok
+                    ? ApiResponse.ok(Map.of("success", true, "message", "분할결제 설정이 저장되었습니다.",
+                    "splitPayEnabledYn", splitPayEnabledYn != null ? splitPayEnabledYn : ""))
+                    : ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         }
     }
 

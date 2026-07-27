@@ -521,7 +521,59 @@ public class OrgPagePermissionService {
         Map<String, String> layered = applyAssistantRoleOverlayIfNeeded(user, base, org);
         Map<String, String> elevated = elevateMerchantSplitPayMenusIfEligible(user, org,
                 elevateMerchantChatbotAdminChatbotMenusIfEligible(user, org, layered));
-        return restrictNotiProvisionToSupervisorOnly(user, elevated);
+        Map<String, String> gated = gateMerchantFeatureMenusWhenDisabled(user, org, elevated);
+        /* 게이트 후에도 사용 ON이면 분할 메뉴 재확보(본사권한 NONE + 기능 ON 누락 방지) */
+        Map<String, String> reElevated = elevateMerchantSplitPayMenusIfEligible(user, org, gated);
+        return restrictNotiProvisionToSupervisorOnly(user, reElevated);
+    }
+
+    /**
+     * 가맹점: 접근·권한에 메뉴가 열려 있어도 가맹점등록의 해당 기능이 미사용이면 강제 NONE.
+     * URL결제내역·챗봇결제내역·분할결제(내역·분할관리)·구독결제내역.
+     */
+    private Map<String, String> gateMerchantFeatureMenusWhenDisabled(AppUser user, Map<String, Object> org,
+                                                                     Map<String, String> permissions) {
+        if (user == null || org == null || permissions == null) {
+            return permissions;
+        }
+        if (!OrgLevel.MERCHANT.name().equalsIgnoreCase(trim(String.valueOf(org.getOrDefault("orgLevel", ""))))) {
+            return permissions;
+        }
+        Object ouIdObj = org.get("orgUnitId");
+        if (ouIdObj == null) {
+            return permissions;
+        }
+        long ouId;
+        try {
+            ouId = Long.parseLong(ouIdObj.toString().trim());
+        } catch (NumberFormatException e) {
+            return permissions;
+        }
+        MerchantProfile mp = merchantProfileRepository.findByOrgUnitId(ouId).orElse(null);
+        String webYn = mp != null ? trim(mp.getWebPaymentUseYn()) : "N";
+        String chatbotYn = mp != null ? trim(mp.getChatbotPaymentUseYn()) : "N";
+        String splitYn = mp != null ? trim(mp.getSplitPayEnabledYn()) : "N";
+        String subYn = mp != null ? trim(mp.getApiJpaySubscriptionUseYn()) : "N";
+        Map<String, String> out = new LinkedHashMap<>(permissions);
+        if (!"Y".equalsIgnoreCase(webYn)) {
+            out.put("/pay/easyPay", P_NONE);
+        }
+        if (!"Y".equalsIgnoreCase(chatbotYn)) {
+            out.put("/pay/chatbotPay", P_NONE);
+            out.put("/chatbot/productMng", P_NONE);
+            out.put("/chatbot/chatbotKbMng", P_NONE);
+            out.put("/chatbot/orderMng", P_NONE);
+        }
+        if (!"Y".equalsIgnoreCase(splitYn)) {
+            out.put("/calc/splitPayList", P_NONE);
+            out.put("/pay/splitPay", P_NONE);
+            out.put("/splitpay/progressMng", P_NONE);
+            out.put("/splitpay/mailMng", P_NONE);
+        }
+        if (!"Y".equalsIgnoreCase(subYn)) {
+            out.put("/pay/jpaySubscription", P_NONE);
+        }
+        return out;
     }
 
     /**
@@ -636,11 +688,11 @@ public class OrgPagePermissionService {
             return permissions;
         }
         Map<String, String> out = new LinkedHashMap<>(permissions);
-        String floor = P_DELETE;
-        raisePermissionFloor(out, "/calc/splitPayList", floor);
-        raisePermissionFloor(out, "/pay/splitPay", floor);
-        raisePermissionFloor(out, "/splitpay/progressMng", floor);
-        raisePermissionFloor(out, "/splitpay/mailMng", floor);
+        /* 본사권한 NONE이어도 분할결제 사용 ON이면 메뉴 강제 개방 */
+        out.put("/calc/splitPayList", permFromStrength(Math.max(strength(out.get("/calc/splitPayList")), strength(P_DELETE))));
+        out.put("/pay/splitPay", permFromStrength(Math.max(strength(out.get("/pay/splitPay")), strength(P_DELETE))));
+        out.put("/splitpay/progressMng", permFromStrength(Math.max(strength(out.get("/splitpay/progressMng")), strength(P_DELETE))));
+        out.put("/splitpay/mailMng", permFromStrength(Math.max(strength(out.get("/splitpay/mailMng")), strength(P_DELETE))));
         return out;
     }
 

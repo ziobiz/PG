@@ -160,6 +160,19 @@ public class HqApiConfig {
     @Column(name = "url_pay_repay_path_template", length = 255)
     private String urlPayRepayPathTemplate = "/pay-repay/{compCode}";
 
+    /**
+     * URL 분할결제 계약취소 — 가맹 {@code FOLLOW_HQ} 시 기본 부여(Y/N). 기본 N.
+     */
+    @Column(name = "split_pay_contract_cancel_default_yn", nullable = false, length = 1)
+    private String splitPayContractCancelDefaultYn = "Y";
+
+    /**
+     * URL 분할결제 계약취소 — 본사(REGIONAL)·총판(MASTER_DIST) 운영 권한(Y/N). 기본 N.
+     * 총본사(HEADQUARTERS)·ADMIN은 항상 가능.
+     */
+    @Column(name = "split_pay_contract_cancel_org_op_yn", nullable = false, length = 1)
+    private String splitPayContractCancelOrgOpYn = "N";
+
     /** JPAY 가맹 API 구독(정기) 전역 제공 여부 — ③ 인라인 전용 */
     @Column(name = "jpay_subscription_enabled_yn", length = 1)
     private String jpaySubscriptionEnabledYn = "N";
@@ -456,6 +469,14 @@ public class HqApiConfig {
     public void setUrlPayRepayEnabledYn(String urlPayRepayEnabledYn) { this.urlPayRepayEnabledYn = urlPayRepayEnabledYn; }
     public String getUrlPayRepayPathTemplate() { return urlPayRepayPathTemplate; }
     public void setUrlPayRepayPathTemplate(String urlPayRepayPathTemplate) { this.urlPayRepayPathTemplate = urlPayRepayPathTemplate; }
+    public String getSplitPayContractCancelDefaultYn() { return splitPayContractCancelDefaultYn; }
+    public void setSplitPayContractCancelDefaultYn(String v) {
+        this.splitPayContractCancelDefaultYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(v, "Y");
+    }
+    public String getSplitPayContractCancelOrgOpYn() { return splitPayContractCancelOrgOpYn; }
+    public void setSplitPayContractCancelOrgOpYn(String v) {
+        this.splitPayContractCancelOrgOpYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(v, "N");
+    }
     public String getJpaySubscriptionEnabledYn() { return jpaySubscriptionEnabledYn; }
     public void setJpaySubscriptionEnabledYn(String jpaySubscriptionEnabledYn) { this.jpaySubscriptionEnabledYn = jpaySubscriptionEnabledYn; }
     public String getJpaySubscriptionInlineEnabledYn() { return jpaySubscriptionInlineEnabledYn; }

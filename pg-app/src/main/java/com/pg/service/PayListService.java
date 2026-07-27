@@ -264,10 +264,29 @@ public class PayListService {
         int page = Math.max(1, req.getPage());
         int maxSize = req.isListExport() ? 15_000 : 1_000;
         int size = Math.min(maxSize, Math.max(1, req.getSize()));
-        Pageable p = payListPageable(page, size, req);
         Specification<PgTrnsctn> spec = buildSpecification(req, from, to, authentication);
-        Page<PgTrnsctn> result = trnsctnRepository.findAll(spec, p);
-        List<String> merchantCodes = result.getContent().stream().map(PgTrnsctn::getMerchantId).distinct().collect(Collectors.toList());
+        /*
+         * Spring Data findAll(spec, pageable) 는 매 요청 COUNT(*) 를 먼저 돌린다.
+         * 본사·당월처럼 매칭은 적어도 OR 기간조건 COUNT 가 테이블을 크게 보면 게이트웨이 504 가 난다.
+         * size+1 로 내용만 읽고, 한 페이지에 다 들어오면 COUNT 를 생략한다.
+         */
+        int offset = (page - 1) * size;
+        List<PgTrnsctn> fetched = fetchPayListPageWithoutCount(spec, req, offset, size + 1);
+        boolean hasNext = fetched.size() > size;
+        List<PgTrnsctn> pageContent = hasNext ? fetched.subList(0, size) : fetched;
+        long totalElements;
+        int totalPages;
+        if (!hasNext) {
+            totalElements = (long) offset + pageContent.size();
+            totalPages = Math.max(1, page);
+        } else if (page == 1 && pageContent.size() < size) {
+            totalElements = pageContent.size();
+            totalPages = 1;
+        } else {
+            totalElements = trnsctnRepository.count(spec);
+            totalPages = size <= 0 ? 1 : (int) Math.max(1, (totalElements + size - 1) / size);
+        }
+        List<String> merchantCodes = pageContent.stream().map(PgTrnsctn::getMerchantId).distinct().collect(Collectors.toList());
         Map<String, PayListRowContext> ctxByCode = buildPayListRowContextMap(merchantCodes);
 
         HqNotifyMappingService.DisplayTransformCache displayCache = hqNotifyMappingService.loadDisplayTransformCache();
@@ -286,7 +305,7 @@ public class PayListService {
         Map<String, CommissionPolicy> integratedPolCache = integratedFeeListAligned ? new HashMap<>() : null;
         Map<String, Long> integratedMonthCbCache = integratedFeeListAligned ? new HashMap<>() : null;
         Map<Long, List<ChargebackFeeTier>> integratedTiersByPolicyId = integratedFeeListAligned ? new HashMap<>() : null;
-        for (PgTrnsctn t : result.getContent()) {
+        for (PgTrnsctn t : pageContent) {
             PayListRowContext ctx = ctxByCode.get(t.getMerchantId());
             Map<String, Object> row = PayListItemDto.from(t, ctx, ledgerTz, opTz);
             if (integratedFeeListAligned && integratedFeeResolver != null) {
@@ -308,22 +327,36 @@ public class PayListService {
         applyPayerOverviewLabels(list, req.getAdminUiLocale());
         PageResult<Map<String, Object>> pr = new PageResult<>();
         pr.setList(list);
-        pr.setPage(result.getNumber() + 1);
-        pr.setSize(result.getSize());
-        pr.setTotalElements(result.getTotalElements());
-        pr.setTotalPages(result.getTotalPages());
+        pr.setPage(page);
+        pr.setSize(size);
+        pr.setTotalElements(totalElements);
+        pr.setTotalPages(totalPages);
         if (!req.isSkipMeta()) {
             try {
                 Map<String, Object> meta = new LinkedHashMap<>();
-                /* 상태바는 검색 범위 전 건을 가맹 기준통화 보강 규칙으로 집계한다(노티 KRW 기본값 → JPY 등). */
-                Map<String, Object> bar = computePgTxnStatusBar(req, authentication);
+                long totalForMeta = totalElements;
+                List<PgTrnsctn> pageRows = pageContent;
+                /*
+                 * 상태바·금액요약은 동일 조건으로 최대 5만 건을 각각 다시 읽으면 504 가 난다.
+                 * 소량(≤1000)이면 페이지 행을 재사용하거나, 부족분만큼 한 번만 읽어 둘 다 채운다.
+                 * 대량이면 금액요약 생략·상태바는 상한 샘플(capped)만.
+                 */
+                List<PgTrnsctn> metaRows = null;
+                boolean metaCapped = false;
+                if (totalForMeta <= 0) {
+                    metaRows = List.of();
+                } else if (totalForMeta <= pageRows.size()) {
+                    metaRows = pageRows;
+                } else if (totalForMeta <= PAY_LIST_META_REUSE_LOADED_MAX) {
+                    metaRows = fetchPayListFinancialSummaryRows(spec, req, (int) totalForMeta);
+                } else {
+                    metaRows = fetchPayListFinancialSummaryRows(spec, req, (int) PAY_LIST_META_REUSE_LOADED_MAX);
+                    metaCapped = true;
+                }
+                Map<String, Object> bar = computePgTxnStatusBarFromRows(metaRows, req, authentication, metaCapped);
                 meta.put("payListStatusBar", bar);
-                /* 금액요약(건별 수수료·담보·부가세)은 거래를 적재해 행별로 계산하므로 건수에 비례해 무겁다.
-                 * 검색 건수가 임계치를 넘으면 요약을 생략하고 목록·상태바만 즉시 반환해 504(타임아웃)를 막는다.
-                 * (목록이 아예 안 뜨는 문제 방지. 요약은 기간을 줄이면 표시된다.) */
-                long totalForMeta = result.getTotalElements();
-                if (totalForMeta <= PAY_LIST_FIN_SUMMARY_COMPUTE_MAX) {
-                    Map<String, Object> fin = computePayListFinancialSummary(req, authentication);
+                if (!metaCapped && totalForMeta <= PAY_LIST_FIN_SUMMARY_COMPUTE_MAX) {
+                    Map<String, Object> fin = computeFinancialSummaryFromRows(metaRows, authentication, req.getSearchOrderDir(), req.getPayListVariant());
                     if (fin != null) {
                         meta.put("payListFinancialSummary", fin);
                         if (Boolean.TRUE.equals(fin.get("capped"))) {
@@ -346,6 +379,36 @@ public class PayListService {
             }
         }
         return pr;
+    }
+
+    /**
+     * 결제내역 페이지 본문 — COUNT 없이 OFFSET/LIMIT 로만 조회(504 완화).
+     */
+    private List<PgTrnsctn> fetchPayListPageWithoutCount(Specification<PgTrnsctn> spec,
+                                                         PayListSearchRequest req,
+                                                         int offset,
+                                                         int limit) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<PgTrnsctn> cq = cb.createQuery(PgTrnsctn.class);
+        Root<PgTrnsctn> root = cq.from(PgTrnsctn.class);
+        cq.select(root);
+        if (spec != null) {
+            Predicate pred = spec.toPredicate(root, cq, cb);
+            if (pred != null) {
+                cq.where(pred);
+            }
+        }
+        boolean asc = sortDirectionFromSearchOrderDir(req.getSearchOrderDir()).isAscending();
+        String prop = resolvePayListJpaSortProperty(req.getSearchOrderBy());
+        if (asc) {
+            cq.orderBy(cb.asc(root.get(prop)), cb.asc(root.get("trnId")));
+        } else {
+            cq.orderBy(cb.desc(root.get(prop)), cb.desc(root.get("trnId")));
+        }
+        return entityManager.createQuery(cq)
+                .setFirstResult(Math.max(0, offset))
+                .setMaxResults(Math.max(1, limit))
+                .getResultList();
     }
 
     /**
@@ -554,6 +617,12 @@ public class PayListService {
     private static final int PAY_LIST_FIN_SUMMARY_MAX_ROWS = 50_000;
 
     /**
+     * 목록 페이지에 전 검색 건이 들어올 때 상태바·금액요약을 재조회하지 않고 재사용하는 상한.
+     * 소량(예: 당월 수 건)에서도 COALESCE 기간조건 풀스캔이 두 번 더 돌면 504 가 날 수 있다.
+     */
+    private static final long PAY_LIST_META_REUSE_LOADED_MAX = 1_000L;
+
+    /**
      * 금액요약(건별 수수료 계산)을 동기로 수행하는 검색 건수 상한. 이 값을 넘으면 요약을 생략하고
      * 목록·상태바만 즉시 반환해, 대용량 기간 검색에서 목록이 통째로 504 나는 것을 막는다.
      */
@@ -600,19 +669,35 @@ public class PayListService {
         LocalDateTime from = req.getSearchFromDate() != null ? req.getSearchFromDate().atStartOfDay() : null;
         LocalDateTime to = req.getSearchToDate() != null ? req.getSearchToDate().atTime(LocalTime.MAX) : null;
         Specification<PgTrnsctn> spec = buildSpecification(req, from, to, authentication);
-        return computeFinancialSummaryCore(spec, authentication, req.getSearchOrderDir());
+        return computeFinancialSummaryCore(spec, authentication, req.getSearchOrderDir(), null);
+    }
+
+    /**
+     * 이미 로드된 거래 행으로 금액요약(소량 조회 시 재스캔 생략).
+     */
+    private Map<String, Object> computeFinancialSummaryFromRows(List<PgTrnsctn> rows,
+                                                                Authentication authentication,
+                                                                String searchOrderDir,
+                                                                String payListVariant) {
+        String variant = payListVariant == null || payListVariant.isBlank()
+                ? "INTEGRATED" : payListVariant.trim().toUpperCase(Locale.ROOT);
+        if (!usesFeeListAlignedPayListFinancialSummary(variant)) {
+            return null;
+        }
+        return computeFinancialSummaryCore(null, authentication, searchOrderDir, rows != null ? rows : List.of());
     }
 
     /** PayListSearchRequest 외 Specification(대행수수료 등) 전체 건 금액 요약 */
     public Map<String, Object> computeFinancialSummaryForSpec(Specification<PgTrnsctn> spec,
                                                               Authentication authentication,
                                                               String searchOrderDir) {
-        return computeFinancialSummaryCore(spec, authentication, searchOrderDir);
+        return computeFinancialSummaryCore(spec, authentication, searchOrderDir, null);
     }
 
     private Map<String, Object> computeFinancialSummaryCore(Specification<PgTrnsctn> spec,
                                                             Authentication authentication,
-                                                            String searchOrderDir) {
+                                                            String searchOrderDir,
+                                                            List<PgTrnsctn> preloadedRowsOrNull) {
         AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
         OrgLevel level = PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository);
         boolean multi = PayListStatusBarBuckets.isMultiCurrencyViewer(level);
@@ -658,13 +743,19 @@ public class PayListService {
         Map<String, PayListRowContext> ctxByMerchant = new HashMap<>();
 
         /* COUNT·딥 OFFSET 반복 없이 정렬·LIMIT 한 번으로 거래를 읽는다(504 방지).
-         * 상한+1 을 읽어 초과 여부로 capped 를 판정하고, 초과분은 잘라 상한까지만 집계한다. */
-        PayListSearchRequest sortStub = new PayListSearchRequest();
-        sortStub.setSearchOrderDir(searchOrderDir);
-        List<PgTrnsctn> scanRows = fetchPayListFinancialSummaryRows(spec, sortStub, PAY_LIST_FIN_SUMMARY_MAX_ROWS + 1);
-        if (scanRows.size() > PAY_LIST_FIN_SUMMARY_MAX_ROWS) {
-            capped = true;
-            scanRows = scanRows.subList(0, PAY_LIST_FIN_SUMMARY_MAX_ROWS);
+         * 상한+1 을 읽어 초과 여부로 capped 를 판정하고, 초과분은 잘라 상한까지만 집계한다.
+         * 소량 조회에서는 목록에서 이미 읽은 행을 그대로 써 재스캔을 생략한다. */
+        List<PgTrnsctn> scanRows;
+        if (preloadedRowsOrNull != null) {
+            scanRows = preloadedRowsOrNull;
+        } else {
+            PayListSearchRequest sortStub = new PayListSearchRequest();
+            sortStub.setSearchOrderDir(searchOrderDir);
+            scanRows = fetchPayListFinancialSummaryRows(spec, sortStub, PAY_LIST_FIN_SUMMARY_MAX_ROWS + 1);
+            if (scanRows.size() > PAY_LIST_FIN_SUMMARY_MAX_ROWS) {
+                capped = true;
+                scanRows = scanRows.subList(0, PAY_LIST_FIN_SUMMARY_MAX_ROWS);
+            }
         }
         List<String> scanMids = scanRows.stream()
                 .map(PgTrnsctn::getMerchantId)
@@ -1462,6 +1553,26 @@ public class PayListService {
         LocalDateTime from = req.getSearchFromDate() != null ? req.getSearchFromDate().atStartOfDay() : null;
         LocalDateTime to = req.getSearchToDate() != null ? req.getSearchToDate().atTime(LocalTime.MAX) : null;
         Specification<PgTrnsctn> spec = buildSpecification(req, from, to, authentication);
+        boolean capped = false;
+        List<PgTrnsctn> scanRows = fetchPayListFinancialSummaryRows(spec, req, PAY_LIST_FIN_SUMMARY_MAX_ROWS + 1);
+        if (scanRows.size() > PAY_LIST_FIN_SUMMARY_MAX_ROWS) {
+            capped = true;
+            scanRows = scanRows.subList(0, PAY_LIST_FIN_SUMMARY_MAX_ROWS);
+        }
+        return computePgTxnStatusBarFromRows(scanRows, req, authentication, capped);
+    }
+
+    /** 이미 로드된 행으로 상태바 집계(소량 조회 재스캔 생략). */
+    private Map<String, Object> computePgTxnStatusBarFromRows(List<PgTrnsctn> scanRows,
+                                                              PayListSearchRequest req,
+                                                              Authentication authentication) {
+        return computePgTxnStatusBarFromRows(scanRows != null ? scanRows : List.of(), req, authentication, false);
+    }
+
+    private Map<String, Object> computePgTxnStatusBarFromRows(List<PgTrnsctn> scanRows,
+                                                              PayListSearchRequest req,
+                                                              Authentication authentication,
+                                                              boolean capped) {
         AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
         OrgLevel level = PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository);
         boolean multi = PayListStatusBarBuckets.isMultiCurrencyViewer(level);
@@ -1472,12 +1583,6 @@ public class PayListService {
         Set<String> allowedCur = displayOrder != null ? new HashSet<>(displayOrder) : null;
         boolean effectiveMultiCurrency = multi || !baseCurrencyConfigured;
 
-        boolean capped = false;
-        List<PgTrnsctn> scanRows = fetchPayListFinancialSummaryRows(spec, req, PAY_LIST_FIN_SUMMARY_MAX_ROWS + 1);
-        if (scanRows.size() > PAY_LIST_FIN_SUMMARY_MAX_ROWS) {
-            capped = true;
-            scanRows = scanRows.subList(0, PAY_LIST_FIN_SUMMARY_MAX_ROWS);
-        }
         List<String> scanMids = scanRows.stream()
                 .map(PgTrnsctn::getMerchantId)
                 .filter(Objects::nonNull)
@@ -1572,9 +1677,34 @@ public class PayListService {
         return new String[] { regional, master, branch };
     }
 
-    private static jakarta.persistence.criteria.Expression<LocalDateTime> effectiveTxnDateTimeExpr(
-            Root<PgTrnsctn> root, CriteriaBuilder cb) {
-        return cb.coalesce(root.get("paidAt"), root.get("createdAt"));
+    /**
+     * COALESCE(paidAt, createdAt) 기간 조건과 동일하되, 함수로 감싸지 않아
+     * paid_at / created_at 인덱스를 각각 탈 수 있게 OR 로 전개한다(504 완화).
+     */
+    private static void addEffectiveTxnDateRange(List<Predicate> parts, Root<PgTrnsctn> root, CriteriaBuilder cb,
+                                                 LocalDateTime fromDt, LocalDateTime toDt) {
+        if (fromDt == null && toDt == null) {
+            return;
+        }
+        List<Predicate> paidParts = new ArrayList<>();
+        paidParts.add(cb.isNotNull(root.get("paidAt")));
+        if (fromDt != null) {
+            paidParts.add(cb.greaterThanOrEqualTo(root.get("paidAt"), fromDt));
+        }
+        if (toDt != null) {
+            paidParts.add(cb.lessThanOrEqualTo(root.get("paidAt"), toDt));
+        }
+        List<Predicate> createdParts = new ArrayList<>();
+        createdParts.add(cb.isNull(root.get("paidAt")));
+        if (fromDt != null) {
+            createdParts.add(cb.greaterThanOrEqualTo(root.get("createdAt"), fromDt));
+        }
+        if (toDt != null) {
+            createdParts.add(cb.lessThanOrEqualTo(root.get("createdAt"), toDt));
+        }
+        parts.add(cb.or(
+                cb.and(paidParts.toArray(Predicate[]::new)),
+                cb.and(createdParts.toArray(Predicate[]::new))));
     }
 
     private Specification<PgTrnsctn> buildSpecification(PayListSearchRequest req, LocalDateTime fromDt, LocalDateTime toDt,
@@ -1594,12 +1724,7 @@ public class PayListService {
             if (mcsFinal != null) {
                 parts.add(root.get("merchantId").in(mcsFinal));
             }
-            if (fromDt != null) {
-                parts.add(cb.greaterThanOrEqualTo(effectiveTxnDateTimeExpr(root, cb), fromDt));
-            }
-            if (toDt != null) {
-                parts.add(cb.lessThanOrEqualTo(effectiveTxnDateTimeExpr(root, cb), toDt));
-            }
+            addEffectiveTxnDateRange(parts, root, cb, fromDt, toDt);
             parts.add(variantPredicate(root, cb, variant, query));
             addNotifyChannelPredicate(parts, root, cb, variant, req);
             addPayDivPredicate(parts, root, cb, req.getSearchPayDivCd());

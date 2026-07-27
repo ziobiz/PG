@@ -96,7 +96,7 @@ def ops_doc(lang: str) -> dict:
       <tr><td>결제 URL</td><td>공개 일회 결제 주소. [복사] 후 고객에게 전달</td></tr>
       <tr><td>URL 재결제 URL</td><td>저장 카드 재결제(기능 ON일 때만)</td></tr>
       <tr><td>챗봇결제 URL</td><td>챗봇 사용 가맹만</td></tr>
-      <tr><td>분할결제 URL</td><td>분할결제 사용 ON일 때만</td></tr>
+      <tr><td>분할결제 URL</td><td>분할결제 사용 ON일 때만 (상위가 가맹 업체정보 → URL 분할결제에서 사용으로 저장)</td></tr>
     </table>
     <div class="check-box">절차: 업체정보 열기 → 결제 URL 확인 → [복사] → SMS·메신저·쇼핑몰에 붙여넣기 → 본인 브라우저에서 테스트 오픈</div>
     <div class="warn-box">웹결제 미사용·상위 중지면 URL이 없거나 안내만 표시될 수 있습니다.</div>

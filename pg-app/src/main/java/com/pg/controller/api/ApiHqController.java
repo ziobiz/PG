@@ -1638,6 +1638,8 @@ public class ApiHqController {
         data.put("apiUrlPayInputModeDefault", "TYPE_BA");
         data.put("urlPayRepayEnabledYn", "N");
         data.put("urlPayRepayPathTemplate", "/pay-repay/{compCode}");
+        data.put("splitPayContractCancelDefaultYn", "N");
+        data.put("splitPayContractCancelOrgOpYn", "N");
         data.put("jpaySubscriptionEnabledYn", "N");
         data.put("jpaySubscriptionInlineEnabledYn", "N");
         data.put("jpaySubscriptionPathTemplate", "/jpay-subscribe/{compCode}");
@@ -1735,6 +1737,14 @@ public class ApiHqController {
             }
             if (c.getUrlPayRepayEnabledYn() != null) data.put("urlPayRepayEnabledYn", c.getUrlPayRepayEnabledYn());
             if (c.getUrlPayRepayPathTemplate() != null) data.put("urlPayRepayPathTemplate", c.getUrlPayRepayPathTemplate());
+            if (c.getSplitPayContractCancelDefaultYn() != null) {
+                data.put("splitPayContractCancelDefaultYn",
+                        com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(c.getSplitPayContractCancelDefaultYn(), "N"));
+            }
+            if (c.getSplitPayContractCancelOrgOpYn() != null) {
+                data.put("splitPayContractCancelOrgOpYn",
+                        com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(c.getSplitPayContractCancelOrgOpYn(), "N"));
+            }
             if (c.getJpaySubscriptionEnabledYn() != null) data.put("jpaySubscriptionEnabledYn", c.getJpaySubscriptionEnabledYn());
             if (c.getJpaySubscriptionInlineEnabledYn() != null) data.put("jpaySubscriptionInlineEnabledYn", c.getJpaySubscriptionInlineEnabledYn());
             if (c.getJpaySubscriptionPathTemplate() != null) data.put("jpaySubscriptionPathTemplate", c.getJpaySubscriptionPathTemplate());
@@ -1864,6 +1874,8 @@ public class ApiHqController {
         c.setUrlPayRepayEnabledYn("Y".equalsIgnoreCase(String.valueOf(body.getOrDefault("urlPayRepayEnabledYn", "N"))) ? "Y" : "N");
         String repayPathTpl = body.get("urlPayRepayPathTemplate") != null ? body.get("urlPayRepayPathTemplate").toString().trim() : "";
         c.setUrlPayRepayPathTemplate(repayPathTpl.isEmpty() ? "/pay-repay/{compCode}" : repayPathTpl);
+        c.setSplitPayContractCancelDefaultYn(String.valueOf(body.getOrDefault("splitPayContractCancelDefaultYn", "N")));
+        c.setSplitPayContractCancelOrgOpYn(String.valueOf(body.getOrDefault("splitPayContractCancelOrgOpYn", "N")));
         c.setJpaySubscriptionEnabledYn("Y".equalsIgnoreCase(String.valueOf(body.getOrDefault("jpaySubscriptionEnabledYn", "N"))) ? "Y" : "N");
         c.setMultiPgRoutingEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("multiPgRoutingEnabledYn", "Y"))) ? "N" : "Y");
         c.setMultiPgRoutingMode(com.pg.util.MultiPgRoutingModeUtil.normalize(

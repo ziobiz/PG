@@ -175,6 +175,12 @@
       CH: '网关超时(HTTP {0})。请缩短查询期间后再次点击【搜索】。',
       TH: 'Gateway timeout (HTTP {0}) ลดช่วงวันที่แล้วกด [ค้นหา] อีกครั้ง'
     },
+    '결제내역 조회 시간 초과(HTTP {0}). 집계 지연입니다. 잠시 후 [검색]을 다시 시도하거나 기간을 줄여 주세요.': {
+      EN: 'Payment list timed out (HTTP {0}). Aggregation was slow — retry [Search] or narrow the date range.',
+      JP: '決済一覧の照会がタイムアウト(HTTP {0})。集計遅延です。しばらくして[検索]を再実行するか期間を短くしてください。',
+      CH: '支付列表查询超时(HTTP {0})。汇总延迟，请稍后重试【搜索】或缩短期间。',
+      TH: 'รายการชำระหมดเวลา (HTTP {0}) การรวมช้า — ลอง [ค้นหา] อีกครั้งหรือลดช่วงวันที่'
+    },
     '일별수수료 집계 시간이 초과되었습니다. 조회 기간을 7일 이내로 줄인 뒤 [검색]을 다시 눌러 주세요.': {
       EN: 'Daily fee aggregation timed out. Narrow the range to 7 days or less, then click [Search] again.',
       JP: '日別手数料の集計がタイムアウトしました。7日以内に期間を短くして[検索]を押してください。',
@@ -9946,6 +9952,67 @@
       TH: 'สมัคร JPAY API'
     },
     /* URL 분할결제 */
+
+    '계약취소': {
+      EN: 'Cancel contract',
+      JP: '契約取消',
+      CH: '取消合同',
+      TH: 'ยกเลิกสัญญา'
+    },
+    '취소 권한이 없거나 진행중 계약이 아닙니다.': {
+      EN: 'No cancel permission, or the contract is not in progress.',
+      JP: '取消権限がないか、進行中の契約ではありません。',
+      CH: '无取消权限，或合同非进行中。',
+      TH: 'ไม่มีสิทธิ์ยกเลิก หรือสัญญาไม่ได้อยู่ระหว่างดำเนินการ'
+    },
+    '취소 사유(선택). 비워도 됩니다.': {
+      EN: 'Cancel reason (optional). Leave blank if none.',
+      JP: '取消理由（任意）。空欄でも可。',
+      CH: '取消原因（可选）。可留空。',
+      TH: 'เหตุผลยกเลิก (ไม่บังคับ) เว้นว่างได้'
+    },
+    '가맹점 기본 부여': {
+      EN: 'Merchant default grant',
+      JP: '加盟店デフォルト付与',
+      CH: '商户默认授予',
+      TH: 'สิทธิ์เริ่มต้นร้าน'
+    },
+    '본사·총판 권한': {
+      EN: 'HQ/Distributor permission',
+      JP: '本社・総販権限',
+      CH: '总部/总代权限',
+      TH: 'สิทธิ์ HQ/ตัวแทน'
+    },
+    'URL 분할결제 계약취소': {
+      EN: 'URL split-pay contract cancel',
+      JP: 'URL分割払い契約取消',
+      CH: 'URL 分期合同取消',
+      TH: 'ยกเลิกสัญญาแบ่งจ่าย URL'
+    },
+    '이 분할 계약을 취소합니다. 미납 회차는 중단되고, 이미 납부된 회차는 성공 금액으로 인정됩니다. 계속할까요?': {
+      EN: 'Cancel this split-pay contract? Unpaid installments stop; paid installments remain as successful amounts. Continue?',
+      JP: 'この分割契約を取消します。未納回次は停止し、納付済み回次は成功金額として認めます。続けますか？',
+      CH: '取消此分期合同？未付期次将停止，已付期次仍视为成功金额。继续？',
+      TH: 'ยกเลิกสัญญานี้? งวดค้างชำระจะหยุด และงวดที่ชำระแล้วถือเป็นยอดสำเร็จ ดำเนินการต่อ?'
+    },
+    '정말 계약을 취소합니다.': {
+      EN: 'Really cancel the contract.',
+      JP: '本当に契約を取消します。',
+      CH: '确定取消合同。',
+      TH: 'ยืนยันยกเลิกสัญญา'
+    },
+    '계약을 취소했습니다.': {
+      EN: 'Contract cancelled.',
+      JP: '契約を取消しました。',
+      CH: '已取消合同。',
+      TH: 'ยกเลิกสัญญาแล้ว'
+    },
+    '계약 취소 실패': {
+      EN: 'Contract cancel failed',
+      JP: '契約取消失敗',
+      CH: '取消合同失败',
+      TH: 'ยกเลิกสัญญาไม่สำเร็จ'
+    },
     '분할결제내역': {
       EN: 'Split payment list',
       JP: '分割決済一覧',
@@ -9970,11 +10037,29 @@
       CH: '分次支付 URL',
       TH: 'URL ชำระแบ่งงวด'
     },
+    '「분할결제 사용여부」로 URL 분할결제·분할관리 메뉴 노출을 제어합니다. 총본사·본사·총판이 가맹 업체정보에서 직권으로 사용/미사용·계약취소를 저장하면 DB에 즉시 반영됩니다. 사용 ON이면 가맹 로그인 시 분할결제내역·분할관리가 표시됩니다(본사권한에서 해당 메뉴가 접근불가여도 사용 ON이면 표시). 사용 ON인 가맹은 분할결제 URL(공개) 또는 분할 계약 API로 고객 계약·회차 결제를 진행합니다. 「API URL 인라인 중계 결제」의 결제방식 선택과는 별개입니다. 회차는 운영 URL PG에 따라 pay.html 또는 jpay-pay.html 입니다.': {
+      EN: 'Split pay enabled controls URL split payment and split management menu visibility. When HQ/regional/distributor saves enable/disable or contract-cancel on the merchant profile, it is persisted immediately. When ON, Split history and Split ops appear for the merchant after login (even if HQ ACL marks those menus NONE). Customers contract and pay installments via public split payment URL or split contract API. Independent of API URL inline relay checkout mode. Installments use pay.html or jpay-pay.html per operational URL PG.',
+      JP: '「分割決済利用」でURL分割決済・分割管理メニューの表示を制御。総本社・本社・総販が加盟情報で使用可否・契約取消を保存するとDBに即反映。ONなら加盟ログイン時に分割決済履歴・分割管理が表示(本社権限がアクセス不可でもONなら表示)。分割決済URL(公開)または分割契約APIで契約・回次決済。「API URLインライン中継決済」の決済方式選択とは別。回次は運用URL PGに応じ pay.html または jpay-pay.html。',
+      CH: '「分次支付使用」控制 URL 分次支付与分次管理菜单显示。总总部/总部/总代在商户资料中保存启用/停用或合同取消后立即写入数据库。开启后商户登录可见分次明细与分次管理（即使总部权限为不可访问也会显示）。客户通过公开 URL 或分次合同 API 签约分期。「API URL 内联中继支付」的支付方式选择与之独立。各期按运营 URL PG 使用 pay.html 或 jpay-pay.html。',
+      TH: '「ใช้แบ่งงวด」ควบคุมเมนู URL แบ่งงวดและจัดการแบ่งงวด เมื่อ HQ/ภูมิภาค/ตัวแทนบันทึกเปิด/ปิดหรือยกเลิกสัญญาในข้อมูลร้าน จะสะท้อนใน DB ทันที เมื่อเปิด หลังล็อกอินร้านค้าจะเห็นประวัติ/จัดการแบ่งงวด (แม้สิทธิ์ HQ เป็น NONE ก็แสดง) ลูกค้าสัญญาและชำระงวดผ่าน URL สาธารณะหรือ API แยกจากโหมด API URL inline relay งวดใช้ pay.html หรือ jpay-pay.html ตาม PG'
+    },
     '「분할결제 사용여부」로 URL 분할결제·분할관리 메뉴 노출을 제어합니다. 사용 ON인 가맹은 분할결제 URL(공개) 또는 분할 계약 API로 고객 계약·회차 결제를 진행합니다. 「API URL 인라인 중계 결제」의 결제방식 선택과는 별개입니다. 회차는 운영 URL PG에 따라 pay.html 또는 jpay-pay.html 입니다.': {
       EN: 'Split pay enabled controls URL split payment and split management menu visibility. When ON, customers contract and pay installments via public split payment URL or split contract API. Independent of API URL inline relay checkout mode. Installments use pay.html or jpay-pay.html per operational URL PG.',
       JP: '「分割決済利用」でURL分割決済・分割管理メニューの表示を制御。ONの加盟店は分割決済URL(公開)または分割契約APIで契約・回次決済。「API URLインライン中継決済」の決済方式選択とは別。回次は運用URL PGに応じ pay.html または jpay-pay.html。',
       CH: '「分次支付使用」控制 URL 分次支付与分次管理菜单显示。开启后客户通过公开 URL 或分次合同 API 签约分期。「API URL 内联中继支付」的支付方式选择与之独立。各期按运营 URL PG 使用 pay.html 或 jpay-pay.html。',
       TH: '「ใช้แบ่งงวด」ควบคุมเมนู URL แบ่งงวดและจัดการแบ่งงวด เมื่อเปิด ลูกค้าสัญญาและชำระงวดผ่าน URL สาธารณะหรือ API แยกจากโหมด API URL inline relay งวดใช้ pay.html หรือ jpay-pay.html ตาม PG'
+    },
+    '분할결제 사용 ON 시 월간·일간·멀티 중 하나를 설정합니다. 멀티는 고객이 1개월~설정 최대개월 중 기간을 직접 선택합니다. 1회차는 즉시결제 또는 링크발송. 미납 회차는 매일 결제 링크 메일이 발송됩니다. 미사용이면 분할관리·분할결제내역 메뉴가 숨겨집니다. 「계약취소」는 본사정책 기본(사용)을 따르며, 미사용으로 두면 해당 가맹은 분할관리에서 계약을 취소할 수 없습니다. 총본사는 항상 취소 가능합니다.': {
+      EN: 'When split pay is ON, choose monthly, daily, or multi. Multi lets customers pick 1 month up to the configured maximum. First installment: immediate or link email. Overdue installments get daily payment-link emails. When OFF, split menus are hidden. Contract cancel follows HQ default (ON); set OFF to block merchant cancel. HQ can always cancel.',
+      JP: '分割決済ON時は月間・日間・マルチを設定。マルチは1ヶ月～最大ヶ月を選択。1回目は即時またはリンク。未払いは毎日メール。未使用時はメニュー非表示。「契約取消」は本社デフォルト(使用)。未使用なら加盟は取消不可。総本社は常に取消可能。',
+      CH: '分次开启时设置按月/按日/多选。多选由客户选1个月至上限。首期立即或链接。未付每日邮件。关闭则隐藏菜单。「合同取消」跟随总部默认(启用)；设为未用则商户不可取消。总部始终可取消。',
+      TH: 'เมื่อเปิดแบ่งงวด เลือกรายเดือน/วัน/มัลติ มัลติให้เลือกระยะ งวดแรกทันทีหรือลิงก์ งวดค้างได้อีเมลทุกวัน ปิดใช้ซ่อนเมนู 「ยกเลิกสัญญา」ตามค่าเริ่มต้น HQ (เปิด) ถ้าปิดร้านยกเลิกไม่ได้ HQ ยกเลิกได้เสมอ'
+    },
+    '가맹점 기본 부여: 가맹이 「본사설정 따름」일 때 적용(기본 사용). 본사·총판 권한: 본사(REGIONAL)·총판(MASTER_DIST) 취소 허용. 가맹에서 사용/미사용을 직접 고르면 본사 기본보다 우선합니다. 총본사는 항상 취소 가능. 계약관리·진행관리 행의 [계약취소]로 처리합니다.': {
+      EN: 'Merchant default grant applies when merchant uses Follow HQ (default ON). Regional/Master-dist cancel when org-op is ON. Merchant Y/N overrides HQ default. HQ can always cancel via [Cancel contract] on Contract/Progress lists.',
+      JP: '加盟デフォルト付与は「本社設定に従う」時に適用(基本ON)。本社・総販は権限ONで取消可。加盟の使用/未使用は本社より優先。総本社は常に取消可。契約管理・進行管理の[契約取消]で処理。',
+      CH: '商户默认授予在「跟随总部」时生效(默认启用)。总部/总代在组织权限开启时可取消。商户自选优先于总部默认。总部始终可取消。在合同/进度列表行的[取消合同]处理。',
+      TH: 'สิทธิ์เริ่มต้นร้านใช้เมื่อทำตาม HQ (เปิดเป็นค่าเริ่มต้น) HQภูมิภาค/ตัวแทนยกเลิกได้เมื่อเปิดสิทธิ์ ร้านเลือกเองสำคัญกว่า HQ ยกเลิกได้เสมอ ที่ปุ่ม[ยกเลิกสัญญา]ในรายการสัญญา/ความคืบหน้า'
     },
     '분할결제 사용 ON 시 월간·일간·멀티 중 하나를 설정합니다. 멀티는 고객이 1개월~설정 최대개월 중 기간을 직접 선택합니다. 1회차는 즉시결제 또는 링크발송. 미납 회차는 매일 결제 링크 메일이 발송됩니다. 미사용이면 분할관리·분할결제내역 메뉴가 숨겨집니다.': {
       EN: 'When split pay is ON, choose monthly, daily, or multi (one only). Multi lets customers pick 1 month up to the configured maximum. First installment: immediate pay or link email. Overdue installments receive daily payment-link emails. When OFF, split management and split payment history menus are hidden.',
@@ -10234,6 +10319,90 @@
       CH: '已停止',
       TH: 'หยุดแล้ว'
     },
+    '미납': {
+      EN: 'Unpaid',
+      JP: '未納',
+      CH: '未付',
+      TH: 'ค้างชำระ'
+    },
+    '납부완료': {
+      EN: 'Paid',
+      JP: '納付完了',
+      CH: '已付清',
+      TH: 'ชำระแล้ว'
+    },
+    '파기': {
+      EN: 'Voided',
+      JP: '破棄',
+      CH: '作废',
+      TH: 'ยกเลิกแล้ว'
+    },
+    '비정상 전화번호': {
+      EN: 'Invalid phone number',
+      JP: '異常な電話番号',
+      CH: '异常电话号码',
+      TH: 'หมายเลขโทรศัพท์ไม่ปกติ'
+    },
+    '비정상 이메일': {
+      EN: 'Invalid email',
+      JP: '異常なメール',
+      CH: '异常邮箱',
+      TH: 'อีเมลไม่ปกติ'
+    },
+    '구매자 이메일 불일치': {
+      EN: 'Buyer email mismatch',
+      JP: '購入者メール不一致',
+      CH: '买家邮箱不一致',
+      TH: 'อีเมลผู้ซื้อไม่ตรง'
+    },
+    '구매자 전화 불일치': {
+      EN: 'Buyer phone mismatch',
+      JP: '購入者電話不一致',
+      CH: '买家电话不一致',
+      TH: 'โทรผู้ซื้อไม่ตรง'
+    },
+    '구매자 성명 불일치': {
+      EN: 'Buyer name mismatch',
+      JP: '購入者氏名不一致',
+      CH: '买家姓名不一致',
+      TH: 'ชื่อผู้ซื้อไม่ตรง'
+    },
+    '의심 holder명': {
+      EN: 'Suspicious holder name',
+      JP: '疑わしいholder名',
+      CH: '可疑持卡人姓名',
+      TH: 'ชื่อ holder ต้องสงสัย'
+    },
+    '카드 속도 제한': {
+      EN: 'Card velocity limit',
+      JP: 'カード速度制限',
+      CH: '卡速度限制',
+      TH: 'จำกัดความถี่บัตร'
+    },
+    '이메일 속도 제한': {
+      EN: 'Email velocity limit',
+      JP: 'メール速度制限',
+      CH: '邮箱速度限制',
+      TH: 'จำกัดความถี่อีเมล'
+    },
+    'IP 속도 제한': {
+      EN: 'IP velocity limit',
+      JP: 'IP速度制限',
+      CH: 'IP速度限制',
+      TH: 'จำกัดความถี่ IP'
+    },
+    'JPAY 사후 고위험': {
+      EN: 'JPAY post-sale high risk',
+      JP: 'JPAY事後ハイリスク',
+      CH: 'JPAY 事后高风险',
+      TH: 'JPAY ความเสี่ยงสูงหลังขาย'
+    },
+    'JPAY PY0124': {
+      EN: 'JPAY PY0124',
+      JP: 'JPAY PY0124',
+      CH: 'JPAY PY0124',
+      TH: 'JPAY PY0124'
+    },
     '조회된 분할결제 계약이 없습니다.': {
       EN: 'No split-payment contracts found.',
       JP: '分割決済契約がありません。',
@@ -10293,6 +10462,42 @@
       JP: '支払日時',
       CH: '支付时间',
       TH: 'วันที่ชำระ'
+    },
+    '이벤트일시': {
+      EN: 'Event time',
+      JP: 'イベント日時',
+      CH: '事件时间',
+      TH: 'เวลากิจกรรม'
+    },
+    '취소일시': {
+      EN: 'Cancelled at',
+      JP: '取消日時',
+      CH: '取消时间',
+      TH: 'เวลายกเลิก'
+    },
+    '취소사유': {
+      EN: 'Cancel reason',
+      JP: '取消理由',
+      CH: '取消原因',
+      TH: 'เหตุผลยกเลิก'
+    },
+    '「이벤트일시」는 납부·취소 시각을 날짜·시각 2줄로 표시합니다. 「취소사유」는 계약취소 시 입력한 사유입니다. 회차상태 취소 시 계약상태는 파기로 표시됩니다.': {
+      EN: 'Event time shows paid/cancel time on two lines (date/time). Cancel reason is entered at contract cancel. When installment is cancelled, contract status shows Voided.',
+      JP: '「イベント日時」は納付/取消時刻を日付・時刻の2行で表示。「取消理由」は契約取消時の入力。回次が取消のとき契約状態は破棄。',
+      CH: '「事件时间」以日期/时间两行显示已付或取消时刻。「取消原因」为取消合同时填写。期次取消时合同状态显示作废。',
+      TH: '「เวลากิจกรรม」แสดงเวลาชำระ/ยกเลิกเป็นวันที่/เวลา 2 บรรทัด 「เหตุผลยกเลิก」กรอกตอนยกเลิกสัญญา เมื่องวดยกเลิก สถานะสัญญาแสดงเป็นยกเลิกแล้ว'
+    },
+    '「이벤트일시」는 납부완료 시 납부일시, 회차 취소 시 계약취소일시를 날짜·시각 2줄로 표시합니다. 「취소사유」는 계약취소 시 입력한 사유입니다.': {
+      EN: 'Event time shows payment time when paid, or contract cancel time when cancelled (date/time on two lines). Cancel reason is entered at contract cancel.',
+      JP: '「イベント日時」は納付完了時は支払日時、回次取消時は契約取消日時を日付・時刻の2行で表示。「取消理由」は契約取消時に入力した理由です。',
+      CH: '「事件时间」在已付时显示支付时间，期次取消时显示合同取消时间（日期/时间两行）。「取消原因」为合同取消时填写的原因。',
+      TH: '「เวลากิจกรรม」แสดงเวลาชำระเมื่อชำระแล้ว และเวลายกเลิกสัญญาเมื่องวดถูกยกเลิก (วันที่/เวลา 2 บรรทัด) 「เหตุผลยกเลิก」คือเหตุผลที่กรอกตอนยกเลิกสัญญา'
+    },
+    '「이벤트일시」는 납부완료 시 납부일시, 회차 취소 시 계약취소일시를 표시합니다. 「취소사유」는 계약취소 시 입력한 사유입니다.': {
+      EN: 'Event time shows payment time when paid, and contract cancel time when the installment is cancelled. Cancel reason is the reason entered at contract cancel.',
+      JP: '「イベント日時」は納付完了時は支払日時、回次取消時は契約取消日時を表示。「取消理由」は契約取消時に入力した理由です。',
+      CH: '「事件时间」在已付时显示支付时间，期次取消时显示合同取消时间。「取消原因」为合同取消时填写的原因。',
+      TH: '「เวลากิจกรรม」แสดงเวลาชำระเมื่อชำระแล้ว และเวลายกเลิกสัญญาเมื่องวดถูกยกเลิก 「เหตุผลยกเลิก」คือเหตุผลที่กรอกตอนยกเลิกสัญญา'
     },
     '계약상태': {
       EN: 'Contract status',
@@ -19288,7 +19493,7 @@
     '총금액': { EN: 'Total amount', JP: '総金額', CH: '总金额', TH: 'ยอดรวม' },
     '통화(총금액)': { EN: 'Currency (total amt)', JP: '通貨（総金額）', CH: '币种（总金额）', TH: 'สกุล (ยอดรวม)' },
     '예상지급액(통화별)': { EN: 'Expected payout (by ccy)', JP: '見込み支払（通貨別）', CH: '预计拨付（按币种）', TH: 'ยอดจ่ายโดยประมาณ (ตามสกุล)' },
-    '취소': { EN: 'Cancel', JP: '取消', CH: '取消', TH: 'ยกเลิก' },
+    '취소': { EN: 'Cancelled', JP: '取消', CH: '已取消', TH: 'ยกเลิก' },
     '환불': { EN: 'Refund', JP: '返金', CH: '退款', TH: 'คืนเงิน' },
     '데이터 없음': { EN: 'No data', JP: 'データがありません', CH: '无数据', TH: 'ไม่มีข้อมูล' },
     '불러오는 중…': { EN: 'Loading…', JP: '読み込み中…', CH: '加载中…', TH: 'กำลังโหลด…' },

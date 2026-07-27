@@ -1693,6 +1693,50 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   font-weight: 500;
 }
 
+/* 분할 진행관리: 이벤트일시·취소사유·이메일·번호 컬럼 — 겹침/깨짐 방지 */
+.pg-split-narrow-cell {
+  min-width: 2.25rem;
+  max-width: 4.25rem;
+  width: 1%;
+  white-space: nowrap !important;
+  padding-left: 0.35rem !important;
+  padding-right: 0.35rem !important;
+  vertical-align: middle;
+}
+.pg-split-event-at-cell {
+  min-width: 6.25rem;
+  max-width: 7.75rem;
+  white-space: normal !important;
+  vertical-align: middle;
+  line-height: 1.35;
+}
+.pg-split-cancel-reason-cell {
+  min-width: 12rem;
+  max-width: 22rem;
+  white-space: normal !important;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  vertical-align: middle;
+  line-height: 1.35;
+}
+.pg-split-email-cell {
+  min-width: 9rem;
+  max-width: 13rem;
+  white-space: normal !important;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  vertical-align: middle;
+  line-height: 1.35;
+}
+.pg-split-id-cell {
+  min-width: 8rem;
+  max-width: 12rem;
+  white-space: normal !important;
+  word-break: break-all;
+  vertical-align: middle;
+  line-height: 1.35;
+}
+
 /* 결제내역 처리사유 — 출처 배지 없이 본문만, 검은색·UI 언어(locale)별 폰트 */
 .pg-outcome-reason-preview {
   color: #000;

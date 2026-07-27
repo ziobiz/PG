@@ -645,11 +645,25 @@
         'เมื่อชำระงวดแล้วแสดงในรายการชำระและรายการแบ่งงวด'
       ),
       packN(
+        '「이벤트일시」는 납부·취소 시각을 날짜·시각 2줄로 표시합니다. 「취소사유」는 계약취소 시 입력한 사유입니다. 회차상태 취소 시 계약상태는 파기로 표시됩니다.',
+        'Event time shows paid/cancel time on two lines (date/time). Cancel reason is entered at contract cancel. When installment is cancelled, contract status shows Voided.',
+        '「イベント日時」は納付/取消時刻を日付・時刻の2行で表示。「取消理由」は契約取消時の入力。回次が取消のとき契約状態は破棄。',
+        '「事件时间」以日期/时间两行显示已付或取消时刻。「取消原因」为取消合同时填写。期次取消时合同状态显示作废。',
+        '「เวลากิจกรรม」แสดงเวลาชำระ/ยกเลิกเป็นวันที่/เวลา 2 บรรทัด 「เหตุผลยกเลิก」กรอกตอนยกเลิกสัญญา เมื่องวดยกเลิก สถานะสัญญาแสดงเป็นยกเลิกแล้ว'
+      ),
+      packN(
         '가맹점은 본인 소속 가맹 계약·회차만 조회됩니다.',
         'Merchants see only contracts/installments for their own merchant code.',
         '加盟店は自店の契約・回次のみ照会可能。',
         '商户仅可查看本店合同与期次。',
         'ร้านค้าเห็นเฉพาะสัญญา/งวดของร้านตนเอง'
+      ),
+      packN(
+        '권한이 있으면 [계약취소]로 해당 계약 전체를 취소합니다(미납 회차 중단, 기납부 인정).',
+        'With permission, [Cancel contract] cancels the whole contract (unpaid installments stop; paid amounts kept).',
+        '権限があれば[契約取消]で当該契約全体を取消(未納回次停止・納付済みは認定)。',
+        '有权限时用[取消合同]取消整份合同（未付期次停止，已付保留）。',
+        'มีสิทธิ์ใช้[ยกเลิกสัญญา]ยกเลิกทั้งสัญญา (งวดค้างหยุด งวดที่ชำแล้วคงไว้)'
       )
     ],
     '/splitpay/mailMng': [
@@ -1480,6 +1494,9 @@
     progressPct: { EN: 'Progress (%)', JP: '進捗率(%)', CH: '进度(%)', TH: 'ความคืบหน้า (%)' },
     dueDate: { EN: 'Due date', JP: '支払予定日', CH: '应付日期', TH: 'วันครบกำหนด' },
     paidAt: { EN: 'Paid at', JP: '支払日時', CH: '支付时间', TH: 'วันที่ชำระ' },
+    eventAt: { EN: 'Event time', JP: 'イベント日時', CH: '事件时间', TH: 'เวลากิจกรรม' },
+    cancelReason: { EN: 'Cancel reason', JP: '取消理由', CH: '取消原因', TH: 'เหตุผลยกเลิก' },
+    splitPayContractCancel: { EN: 'Cancel contract', JP: '契約取消', CH: '取消合同', TH: 'ยกเลิกสัญญา' },
     contractStatus: { EN: 'Contract status', JP: '契約状態', CH: '合同状态', TH: 'สถานะสัญญา' },
     mailDMinus1Sent: { EN: 'D-1 sent', JP: 'D-1送信', CH: 'D-1 发送', TH: 'ส่ง D-1' },
     mailD0Sent: { EN: 'D0 sent', JP: 'D0送信', CH: 'D0 发送', TH: 'ส่ง D0' },

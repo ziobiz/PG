@@ -411,6 +411,13 @@ public class MerchantProfile {
     @Column(name = "split_pay_enabled_yn", length = 1, nullable = false)
     private String splitPayEnabledYn = "N";
 
+    /**
+     * 분할 계약취소 권한 — FOLLOW_HQ | Y | N.
+     * FOLLOW_HQ면 본사 split_pay_contract_cancel_default_yn.
+     */
+    @Column(name = "split_pay_contract_cancel_yn", length = 16, nullable = false)
+    private String splitPayContractCancelYn = "FOLLOW_HQ";
+
     /** 분할결제 — 월 단위 간격 허용 */
     @Column(name = "split_pay_interval_month_yn", length = 1, nullable = false)
     private String splitPayIntervalMonthYn = "Y";
@@ -887,6 +894,10 @@ public class MerchantProfile {
     public void setReceiptEmailUseYn(String receiptEmailUseYn) { this.receiptEmailUseYn = receiptEmailUseYn; }
     public String getSplitPayEnabledYn() { return splitPayEnabledYn; }
     public void setSplitPayEnabledYn(String splitPayEnabledYn) { this.splitPayEnabledYn = splitPayEnabledYn != null && "Y".equalsIgnoreCase(splitPayEnabledYn.trim()) ? "Y" : "N"; }
+    public String getSplitPayContractCancelYn() { return splitPayContractCancelYn; }
+    public void setSplitPayContractCancelYn(String splitPayContractCancelYn) {
+        this.splitPayContractCancelYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(splitPayContractCancelYn);
+    }
     public String getSplitPayIntervalMonthYn() { return splitPayIntervalMonthYn; }
     public void setSplitPayIntervalMonthYn(String splitPayIntervalMonthYn) { this.splitPayIntervalMonthYn = splitPayIntervalMonthYn != null && "Y".equalsIgnoreCase(splitPayIntervalMonthYn.trim()) ? "Y" : "N"; }
     public String getSplitPayIntervalDayYn() { return splitPayIntervalDayYn; }
