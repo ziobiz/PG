@@ -824,3 +824,6 @@ ALTER TABLE tb_merchant_profile ADD COLUMN IF NOT EXISTS split_pay_contract_canc
 ALTER TABLE tb_split_pay_contract ADD COLUMN IF NOT EXISTS cancel_reason VARCHAR(500);
 ALTER TABLE tb_split_pay_contract ADD COLUMN IF NOT EXISTS cancelled_by VARCHAR(100);
 
+-- V239: 가맹점 운영기록
+ALTER TABLE tb_merchant_profile ADD COLUMN IF NOT EXISTS operation_record TEXT;
+

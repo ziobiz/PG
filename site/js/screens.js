@@ -4337,7 +4337,7 @@
           title: 'JPAY 수신통보 URL',
           id: 'jpayNotifyUrlCard',
           merchantOnly: true,
-          notice: 'J-Pay pay_index 전문의 pay_notifyurl·pay_callbackurl 에 사용됩니다. 노티미들웨어 가맹 수신 URL을 등록하세요. 비우면 ICOPAY ingress(cbJpay/rsJpay) 기본값을 사용합니다.',
+          notice: 'J-Pay pay_index 전문의 pay_notifyurl·pay_callbackurl 에 사용됩니다. 노티관리에서 생성한 URL이 여기에 표시됩니다. 비우면 ICOPAY ingress(cbJpay/rsJpay) 기본값을 사용합니다.',
           rows: [
             [{ label: 'Notify (pay_notifyurl) / Callback URL (NOTI MW)', type: 'text', name: 'jpayNotifyUrl', col: 5, placeholder: 'https://' }, { label: 'Callback (pay_callbackurl) / Result URL (NOTI MW)', type: 'text', name: 'jpayCallbackUrl', col: 5, placeholder: 'https://' }]
           ]
@@ -4362,7 +4362,16 @@
              { label: '발송', type: 'select', name: 'receiptEmailUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 }]
           ]
         },
-        { title: '첨부파일', rows: [[{ type: 'file', name: 'attach', col: 12, blockExtraClass: 'attach-field-block' }]] }
+        { title: '첨부파일', rows: [[{ type: 'file', name: 'attach', col: 12, blockExtraClass: 'attach-field-block' }]] },
+        {
+          title: '운영기록',
+          id: 'merchantOpsRecordCard',
+          merchantOpsRecordOnly: true,
+          notice: '총본사·본사·총판만 열람·저장합니다. 저장 시 작성자(로그인ID)가 업체변경이력에 기록됩니다.',
+          rows: [
+            [{ label: '운영기록', type: 'textarea', name: 'operationRecord', col: 12, placeholder: '운영 메모를 자유롭게 입력하세요.' }]
+          ]
+        }
       ],
       compInfoDetailButtons: [{ id: 'compInfoUpdateBtn', label: '수정 저장', cls: 'btn-primary' }]
     },
@@ -4754,7 +4763,7 @@
           title: 'JPAY 수신통보 URL',
           id: 'jpayNotifyUrlCard',
           merchantOnly: true,
-          notice: 'J-Pay pay_index 전문의 pay_notifyurl·pay_callbackurl 에 사용됩니다. 노티미들웨어 가맹 수신 URL을 등록하세요. 비우면 ICOPAY ingress(cbJpay/rsJpay) 기본값을 사용합니다.',
+          notice: 'J-Pay pay_index 전문의 pay_notifyurl·pay_callbackurl 에 사용됩니다. 노티관리에서 생성한 URL이 여기에 표시됩니다. 비우면 ICOPAY ingress(cbJpay/rsJpay) 기본값을 사용합니다.',
           rows: [
             [{ label: 'Notify (pay_notifyurl) / Callback URL (NOTI MW)', type: 'text', name: 'jpayNotifyUrl', col: 5, placeholder: 'https://' }, { label: 'Callback (pay_callbackurl) / Result URL (NOTI MW)', type: 'text', name: 'jpayCallbackUrl', col: 5, placeholder: 'https://' }]
           ]
@@ -4779,7 +4788,16 @@
              { label: '발송', type: 'select', name: 'receiptEmailUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 }]
           ]
         },
-        { title: '첨부파일', rows: [[{ type: 'file', name: 'attach', col: 12, blockExtraClass: 'attach-field-block' }]] }
+        { title: '첨부파일', rows: [[{ type: 'file', name: 'attach', col: 12, blockExtraClass: 'attach-field-block' }]] },
+        {
+          title: '운영기록',
+          id: 'merchantOpsRecordCard',
+          merchantOpsRecordOnly: true,
+          notice: '총본사·본사·총판만 열람·저장합니다. 저장 시 작성자(로그인ID)가 업체변경이력에 기록됩니다.',
+          rows: [
+            [{ label: '운영기록', type: 'textarea', name: 'operationRecord', col: 12, placeholder: '운영 메모를 자유롭게 입력하세요.' }]
+          ]
+        }
       ],
       buttons: [{ id: 'compRegSaveBtn', label: '저장', cls: 'btn-primary' }, { id: 'compRegCancelBtn', label: '취소', cls: 'btn-secondary' }]
     },
@@ -5112,7 +5130,7 @@
           title: 'JPAY 수신통보 URL',
           id: 'jpayNotifyUrlCard',
           merchantOnly: true,
-          notice: 'J-Pay pay_index 전문의 pay_notifyurl·pay_callbackurl 에 사용됩니다. 노티미들웨어 가맹 수신 URL을 등록하세요. 비우면 ICOPAY ingress(cbJpay/rsJpay) 기본값을 사용합니다.',
+          notice: 'J-Pay pay_index 전문의 pay_notifyurl·pay_callbackurl 에 사용됩니다. 노티관리에서 생성한 URL이 여기에 표시됩니다. 비우면 ICOPAY ingress(cbJpay/rsJpay) 기본값을 사용합니다.',
           rows: [
             [{ label: 'Notify (pay_notifyurl) / Callback URL (NOTI MW)', type: 'text', name: 'jpayNotifyUrl', col: 5, placeholder: 'https://' }, { label: 'Callback (pay_callbackurl) / Result URL (NOTI MW)', type: 'text', name: 'jpayCallbackUrl', col: 5, placeholder: 'https://' }]
           ]
@@ -5137,7 +5155,16 @@
              { label: '발송', type: 'select', name: 'receiptEmailUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 }]
           ]
         },
-        { title: '첨부파일', rows: [[{ type: 'file', name: 'attach', col: 12, blockExtraClass: 'attach-field-block' }]] }
+        { title: '첨부파일', rows: [[{ type: 'file', name: 'attach', col: 12, blockExtraClass: 'attach-field-block' }]] },
+        {
+          title: '운영기록',
+          id: 'merchantOpsRecordCard',
+          merchantOpsRecordOnly: true,
+          notice: '총본사·본사·총판만 열람·저장합니다. 저장 시 작성자(로그인ID)가 업체변경이력에 기록됩니다.',
+          rows: [
+            [{ label: '운영기록', type: 'textarea', name: 'operationRecord', col: 12, placeholder: '운영 메모를 자유롭게 입력하세요.' }]
+          ]
+        }
       ],
       buttons: [{ id: 'compDetailListBtn', label: '목록', cls: 'btn-secondary' }, { id: 'compDetailSaveBtn', label: '저장', cls: 'btn-primary' }]
     },
@@ -8786,6 +8813,7 @@
       else if (sec.masterDistOnly) cardClass += ' master-dist-only-section d-none';
       else if (sec.regionalOrMasterDistOnly) cardClass += ' regional-or-master-dist-only-section d-none';
       else if (sec.headOfficeTierOnly) cardClass += ' head-office-tier-only-section d-none';
+      else if (sec.merchantOpsRecordOnly) cardClass += ' merchant-ops-record-section d-none';
       else if (sec.merchantRegionalMasterCommission) cardClass += ' merchant-regional-master-commission-section d-none';
       else if (sec.distributorOnly) cardClass += ' distributor-only-section d-none';
       else if (sec.distributorMerchantOnlyNoRegional) cardClass += ' distributor-merchant-no-regional-section d-none';

@@ -1747,6 +1747,17 @@ public class CompService {
         return nu;
     }
 
+    /** 업체코드 → 조직 레벨 이름(HEADQUARTERS 등). 없으면 빈 문자열. */
+    @Transactional(readOnly = true)
+    public String findOrgLevelNameByCompCode(String compCode) {
+        if (compCode == null || compCode.isBlank()) {
+            return "";
+        }
+        return orgUnitRepository.findByCode(compCode.trim())
+                .map(ou -> ou.getOrgLevel() != null ? ou.getOrgLevel().name() : "")
+                .orElse("");
+    }
+
     /** 지역 본사(업체) 상세 조회 - 업체정보조회/수정 폼용 */
     public Optional<Map<String, Object>> getDetail(String compId) {
         return orgUnitRepository.findByCode(compId != null ? compId : "")
@@ -1796,6 +1807,9 @@ public class CompService {
                             m.put("accountNo", mp.getAccountNo());
                             m.put("accountHolder", mp.getAccountHolder());
                             m.put("remark", mp.getRemark());
+                            if (ou.getOrgLevel() == OrgLevel.MERCHANT && canManageMerchantOperationRecord()) {
+                                m.put("operationRecord", mp.getOperationRecord() != null ? mp.getOperationRecord() : "");
+                            }
                             m.put("commissionConfigAllowed", mp.getCommissionConfigAllowed());
                             m.put("webPaymentUseYn", mp.getWebPaymentUseYn() != null ? mp.getWebPaymentUseYn() : "Y");
                             m.put("webPaymentHeaderLogoMode", com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalizeMerchantStored(mp.getWebPaymentHeaderLogoMode()));
@@ -3101,6 +3115,47 @@ public class CompService {
                 });
     }
 
+    /** 총본사·본사·총판만 가맹점 운영기록 열람·저장 가능. */
+    public boolean canManageMerchantOperationRecord() {
+        OrgLevel lv = resolveCurrentActorOrgLevel().orElse(null);
+        return lv == OrgLevel.HEADQUARTERS || lv == OrgLevel.REGIONAL || lv == OrgLevel.MASTER_DIST;
+    }
+
+    /**
+     * 가맹점 운영기록 저장. 권한이 없거나 파라미터가 null(미전송)이면 무시.
+     * 변경 시 업체변경이력에 작성자(로그인ID)와 함께 기록한다.
+     */
+    @Transactional
+    public void applyMerchantOperationRecord(String compId, String operationRecord) {
+        if (compId == null || compId.isBlank() || operationRecord == null) {
+            return;
+        }
+        if (!canManageMerchantOperationRecord()) {
+            return;
+        }
+        orgUnitRepository.findByCode(compId.trim()).ifPresent(ou -> {
+            if (ou.getOrgLevel() != OrgLevel.MERCHANT) {
+                return;
+            }
+            merchantProfileRepository.findByOrgUnitId(ou.getId()).ifPresent(mp -> {
+                String before = nz(mp.getOperationRecord());
+                String after = operationRecord.trim();
+                if (Objects.equals(before, after)) {
+                    return;
+                }
+                mp.setOperationRecord(after.isEmpty() ? null : after);
+                merchantProfileRepository.save(mp);
+                orgUnitChangeAuditService.appendIfChanged(
+                        ou.getId(),
+                        nz(ou.getCode()),
+                        nz(ou.getName()),
+                        "[업체정보] 운영기록",
+                        before,
+                        after);
+            });
+        });
+    }
+
     /** 가맹점 JPAY 결제창(jpay-pay.html) 입력 필드 오버라이드. FOLLOW_HQ·빈값 → 본사 기본 따름(null). */
     private void applyMerchantJpayCheckoutFieldMode(MerchantProfile mp, String jpayCheckoutFieldMode) {
         if (mp == null || jpayCheckoutFieldMode == null) {
@@ -3181,12 +3236,17 @@ public class CompService {
                 jc = url;
             }
         }
-        /* 노티생성 이력에는 URL이 있으나 가맹 테이블에 미반영된 경우 자동 보강 */
-        if (jn.isEmpty() && jc.isEmpty() && orgUnitId != null) {
+        /* 노티생성 이력에는 URL이 있으나 가맹 테이블에 미반영된 경우 자동 보강 + 응답에 즉시 반영 */
+        if ((jn.isEmpty() || jc.isEmpty()) && orgUnitId != null) {
             try {
-                if (merchantJpayNotifyUrlSyncService.backfillFromLatestProvisionLogIfEmpty(orgUnitId)) {
-                    jn = merchantJpayNotifyUrlSyncService.find(orgUnitId, MerchantNotifyUrl.URL_TYPE_JPAY_NOTIFY);
-                    jc = merchantJpayNotifyUrlSyncService.find(orgUnitId, MerchantNotifyUrl.URL_TYPE_JPAY_CALLBACK);
+                String[] hydrated = merchantJpayNotifyUrlSyncService.hydrateForDetail(orgUnitId, jn, jc);
+                if (hydrated != null && hydrated.length >= 2) {
+                    if (jn.isEmpty()) {
+                        jn = hydrated[0] != null ? hydrated[0] : "";
+                    }
+                    if (jc.isEmpty()) {
+                        jc = hydrated[1] != null ? hydrated[1] : "";
+                    }
                 }
             } catch (Exception ignored) {
                 /* 상세 조회는 보강 실패해도 계속 */

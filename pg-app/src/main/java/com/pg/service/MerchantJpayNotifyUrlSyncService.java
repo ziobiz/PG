@@ -68,36 +68,60 @@ public class MerchantJpayNotifyUrlSyncService {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public boolean backfillFromLatestProvisionLogIfEmpty(long orgUnitId) {
-        String curN = find(orgUnitId, MerchantNotifyUrl.URL_TYPE_JPAY_NOTIFY);
-        String curC = find(orgUnitId, MerchantNotifyUrl.URL_TYPE_JPAY_CALLBACK);
-        if (!curN.isEmpty() || !curC.isEmpty()) {
-            return false;
+        String[] urls = hydrateForDetail(orgUnitId, "", "");
+        return urls != null && ((!urls[0].isEmpty()) || (!urls[1].isEmpty()));
+    }
+
+    /**
+     * 상세 응답용: DB 값이 비어 있으면 노티생성 이력(또는 슬롯)으로 채우고 DB에도 저장한다.
+     * 동일 트랜잭션 재조회 실패와 무관하게 응답에 쓸 URL 배열을 반환한다.
+     *
+     * @return [notify, callback] — 입력이 이미 있으면 그대로, 보강 시 보강값
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public String[] hydrateForDetail(long orgUnitId, String currentNotify, String currentCallback) {
+        String curN = trimUrl(currentNotify);
+        String curC = trimUrl(currentCallback);
+        if (curN.isEmpty()) {
+            curN = find(orgUnitId, MerchantNotifyUrl.URL_TYPE_JPAY_NOTIFY);
+        }
+        if (curC.isEmpty()) {
+            curC = find(orgUnitId, MerchantNotifyUrl.URL_TYPE_JPAY_CALLBACK);
+        }
+        if (!curN.isEmpty() && !curC.isEmpty()) {
+            return new String[]{curN, curC};
         }
         Optional<NotiProvisionLog> logOpt =
                 notiProvisionLogRepository.findFirstByOrgUnitIdOrderByProvisionedAtDescIdDesc(orgUnitId);
         if (logOpt.isEmpty()) {
-            return false;
+            return new String[]{curN, curC};
         }
         NotiProvisionLog pl = logOpt.get();
-        String n = trimUrl(pl.getJpayNotifyUrl());
-        String c = trimUrl(pl.getJpayCallbackUrl());
-        if (n.isEmpty() && c.isEmpty() && pl.getSlotNo() != null && pl.getSlotNo() > 0) {
+        String n = curN.isEmpty() ? trimUrl(pl.getJpayNotifyUrl()) : curN;
+        String c = curC.isEmpty() ? trimUrl(pl.getJpayCallbackUrl()) : curC;
+        if ((n.isEmpty() || c.isEmpty()) && pl.getSlotNo() != null && pl.getSlotNo() > 0) {
             int slot = pl.getSlotNo();
-            n = "https://noti.icopay.net/noti/callback/j" + slot;
-            c = "https://noti.icopay.net/noti/result/j" + slot;
+            if (n.isEmpty()) {
+                n = "https://noti.icopay.net/noti/callback/j" + slot;
+            }
+            if (c.isEmpty()) {
+                c = "https://noti.icopay.net/noti/result/j" + slot;
+            }
         }
-        if (n.isEmpty() && c.isEmpty()) {
-            return false;
-        }
-        if (!n.isEmpty()) {
+        boolean wrote = false;
+        if (!n.isEmpty() && curN.isEmpty()) {
             replaceOne(orgUnitId, MerchantNotifyUrl.URL_TYPE_JPAY_NOTIFY, n);
+            wrote = true;
         }
-        if (!c.isEmpty()) {
+        if (!c.isEmpty() && curC.isEmpty()) {
             replaceOne(orgUnitId, MerchantNotifyUrl.URL_TYPE_JPAY_CALLBACK, c);
+            wrote = true;
         }
-        merchantNotifyUrlRepository.flush();
-        log.info("가맹 JPAY 수신통보 URL을 노티생성 이력에서 보강 orgUnitId={} logId={}", orgUnitId, pl.getId());
-        return true;
+        if (wrote) {
+            merchantNotifyUrlRepository.flush();
+            log.info("가맹 JPAY 수신통보 URL을 노티생성 이력에서 보강 orgUnitId={} logId={}", orgUnitId, pl.getId());
+        }
+        return new String[]{n, c};
     }
 
     public String find(long orgUnitId, String urlType) {

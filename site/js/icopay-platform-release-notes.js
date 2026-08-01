@@ -6,13 +6,67 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '2.81';
+  var CURRENT_LIVE = '2.83';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '2.83',
+      kind: 'minor',
+      date: '2026-08-01',
+      items: {
+        KO: [
+          '가맹점 업체정보 JPAY 수신통보 URL: 노티관리에서 생성한 Notify/Callback URL이 비어 보이던 문제 수정',
+          '총본사·본사·총판(및 ADMIN) 조회 시 노티생성 이력·DB 값을 상세에 안정적으로 표시'
+        ],
+        EN: [
+          'Merchant profile JPAY notify URLs: fixed empty Notify/Callback after NOTI provision',
+          'Root HQ / HQ / master distributor (and ADMIN) now see provisioned URLs reliably on detail'
+        ],
+        JP: [
+          '加盟店のJPAY受信通知URL: ノティ作成後に Notify/Callback が空表示になる問題を修正',
+          '総本社・本社・総販(およびADMIN)で作成履歴・DB値を詳細に安定表示'
+        ],
+        CH: [
+          '商户资料 JPAY 接收通知 URL：修复在通知管理创建后 Notify/Callback 显示为空的问题',
+          '总总部/总部/总代（及 ADMIN）在详情中稳定显示已生成的 URL'
+        ],
+        TH: [
+          'URL แจ้งเตือน JPAY ในข้อมูลร้าน: แก้กรณี Notify/Callback ว่างหลังสร้าง NOTI',
+          'HQ / ตัวแทนหลัก (และ ADMIN) เห็น URL ที่สร้างแล้วในหน้ารายละเอียดอย่างเสถียร'
+        ]
+      }
+    },
+    {
+      version: '2.82',
+      kind: 'minor',
+      date: '2026-08-01',
+      items: {
+        KO: [
+          '가맹점 업체정보: 총본사·본사·총판 전용 「운영기록」 카드 추가(첨부파일 아래)',
+          '운영기록 저장 시 작성자(로그인ID)가 업체변경이력에 기록'
+        ],
+        EN: [
+          'Merchant profile: Operation record card for root HQ / HQ / master distributor (below attachments)',
+          'Saving the record logs the author (login ID) in company change history'
+        ],
+        JP: [
+          '加盟店業者情報: 総本社・本社・総販専用「運営記録」カードを追加(添付ファイル下)',
+          '運営記録保存時に作成者(ログインID)が業者変更履歴に記録'
+        ],
+        CH: [
+          '商户资料：总总部/总部/总代专用「运营记录」卡片（附件下方）',
+          '保存运营记录时将作者(登录ID)记入商户变更历史'
+        ],
+        TH: [
+          'ข้อมูลร้าน: บัตรบันทึกการดำเนินงานสำหรับ HQ / ตัวแทนหลัก (ใต้ไฟล์แนบ)',
+          'เมื่อบันทึก บันทึกผู้เขียน (login ID) ในประวัติการเปลี่ยนบริษัท'
+        ]
+      }
+    },
     {
       version: '2.81',
       kind: 'minor',

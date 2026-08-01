@@ -2255,10 +2255,16 @@
       TH: 'URL รับแจ้ง JPAY'
     },
     'J-Pay pay_index 전문의 pay_notifyurl·pay_callbackurl 에 사용됩니다. 노티미들웨어 가맹 수신 URL을 등록하세요. 비우면 ICOPAY ingress(cbJpay/rsJpay) 기본값을 사용합니다.': {
-      EN: 'Used as pay_notifyurl and pay_callbackurl on J-Pay pay_index. Register your notify-middleware merchant receive URLs. If empty, ICOPAY ingress defaults (cbJpay/rsJpay) apply.',
-      JP: 'J-Pay pay_indexのpay_notifyurl·pay_callbackurlに使用します。ノティミドルウェアの加盟店受信URLを登録してください。空欄の場合はICOPAY ingress(cbJpay/rsJpay)の既定値を使用します。',
-      CH: '用于 J-Pay pay_index 的 pay_notifyurl·pay_callbackurl。请登记通知中间件的商户接收 URL。留空则使用 ICOPAY ingress(cbJpay/rsJpay) 默认值。',
-      TH: 'ใช้เป็น pay_notifyurl และ pay_callbackurl ใน J-Pay pay_index ลงทะเบียน URL รับของร้านที่ notify middleware ว่างไว้ใช้ค่าเริ่มต้น ICOPAY ingress (cbJpay/rsJpay)'
+      EN: 'Used as pay_notifyurl and pay_callbackurl on J-Pay pay_index. Values created in Notification Management are shown here. If empty, ICOPAY ingress defaults (cbJpay/rsJpay) apply.',
+      JP: 'J-Pay pay_indexのpay_notifyurl·pay_callbackurlに使用します。ノティ管理で作成したURLがここに表示されます。空欄の場合はICOPAY ingress(cbJpay/rsJpay)の既定値を使用します。',
+      CH: '用于 J-Pay pay_index 的 pay_notifyurl·pay_callbackurl。在「通知管理」中创建的 URL 会显示于此。留空则使用 ICOPAY ingress(cbJpay/rsJpay) 默认值。',
+      TH: 'ใช้เป็น pay_notifyurl และ pay_callbackurl ใน J-Pay pay_index ค่าที่สร้างในจัดการ NOTI จะแสดงที่นี่ ว่างไว้ใช้ค่าเริ่มต้น ICOPAY ingress (cbJpay/rsJpay)'
+    },
+    'J-Pay pay_index 전문의 pay_notifyurl·pay_callbackurl 에 사용됩니다. 노티관리에서 생성한 URL이 여기에 표시됩니다. 비우면 ICOPAY ingress(cbJpay/rsJpay) 기본값을 사용합니다.': {
+      EN: 'Used as pay_notifyurl and pay_callbackurl on J-Pay pay_index. Values created in Notification Management are shown here. If empty, ICOPAY ingress defaults (cbJpay/rsJpay) apply.',
+      JP: 'J-Pay pay_indexのpay_notifyurl·pay_callbackurlに使用します。ノティ管理で作成したURLがここに表示されます。空欄の場合はICOPAY ingress(cbJpay/rsJpay)の既定値を使用します。',
+      CH: '用于 J-Pay pay_index 的 pay_notifyurl·pay_callbackurl。在「通知管理」中创建的 URL 会显示于此。留空则使用 ICOPAY ingress(cbJpay/rsJpay) 默认值。',
+      TH: 'ใช้เป็น pay_notifyurl และ pay_callbackurl ใน J-Pay pay_index ค่าที่สร้างในจัดการ NOTI จะแสดงที่นี่ ว่างไว้ใช้ค่าเริ่มต้น ICOPAY ingress (cbJpay/rsJpay)'
     },
     'Notify (pay_notifyurl) / Callback URL (NOTI MW)': {
       EN: 'Notify (pay_notifyurl) / Callback URL (NOTI MW)',
@@ -4096,6 +4102,24 @@
       JP: '口座名義',
       CH: '开户名',
       TH: 'ชื่อบัญชี'
+    },
+    '운영기록': {
+      EN: 'Operation record',
+      JP: '運営記録',
+      CH: '运营记录',
+      TH: 'บันทึกการดำเนินงาน'
+    },
+    '총본사·본사·총판만 열람·저장합니다. 저장 시 작성자(로그인ID)가 업체변경이력에 기록됩니다.': {
+      EN: 'Visible to root HQ / HQ / master distributor only. On save, the author (login ID) is recorded in company change history.',
+      JP: '総本社・本社・総販のみ閲覧・保存できます。保存時に作成者(ログインID)が業者変更履歴に記録されます。',
+      CH: '仅总总部/总部/总代可查看与保存。保存时作者(登录ID)会记入商户变更历史。',
+      TH: 'เฉพาะสำนัก HQ / HQ / ตัวแทนหลัก ที่จะเปิด/บันทึกได้ เมื่อบันทึก ผู้เขียน (login ID) จะถูกบันทึกในประวัติการเปลี่ยนบริษัท'
+    },
+    '운영 메모를 자유롭게 입력하세요.': {
+      EN: 'Enter operational notes freely.',
+      JP: '運営メモを自由に入力してください。',
+      CH: '请自由填写运营备注。',
+      TH: 'พิมพ์บันทึกดำเนินงานได้ตามอยาก'
     },
     '비고': {
       EN: 'Remarks',

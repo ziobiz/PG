@@ -160,6 +160,13 @@ public class MerchantProfile {
     @Column(name = "remark", length = 500)
     private String remark;
 
+    /**
+     * 가맹점 운영기록 — 총본사·본사·총판만 열람·저장.
+     * 변경 시 업체변경이력(tb_org_unit_change_log)에 작성자(로그인ID)와 함께 기록.
+     */
+    @Column(name = "operation_record", columnDefinition = "TEXT")
+    private String operationRecord;
+
     /** 수수료 설정 권한 (총본사가 본사/총판에 부여) Y/N */
     @Column(name = "commission_config_allowed", length = 1)
     private String commissionConfigAllowed = "N";
@@ -640,6 +647,8 @@ public class MerchantProfile {
     public void setNetworkName(String networkName) { this.networkName = networkName; }
     public String getRemark() { return remark; }
     public void setRemark(String remark) { this.remark = remark; }
+    public String getOperationRecord() { return operationRecord; }
+    public void setOperationRecord(String operationRecord) { this.operationRecord = operationRecord; }
     public String getCommissionConfigAllowed() { return commissionConfigAllowed; }
     public void setCommissionConfigAllowed(String commissionConfigAllowed) { this.commissionConfigAllowed = commissionConfigAllowed; }
     public String getWebPaymentUseYn() { return webPaymentUseYn; }

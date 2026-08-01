@@ -180,10 +180,22 @@ public class ApiCompController {
         if (auth == null || !(auth.getPrincipal() instanceof AppUser u)) {
             return false;
         }
+        if (u.getRole() != null && "ADMIN".equalsIgnoreCase(u.getRole().trim())) {
+            return true;
+        }
+        /*
+         * 가맹 프로필 loginId 와 동일 ID 가 있을 때 getOrgInfo 가 MERCHANT 로 치우칠 수 있음.
+         * 통보 URL 노출은 AppUser.orgUnitCode 조직 레벨을 우선한다.
+         */
         String orgLevel = "";
-        Map<String, Object> org = authService.getOrgInfo(u.getUsername());
-        if (org != null && org.get("orgLevel") != null) {
-            orgLevel = org.get("orgLevel").toString();
+        if (u.getOrgUnitCode() != null && !u.getOrgUnitCode().isBlank()) {
+            orgLevel = compService.findOrgLevelNameByCompCode(u.getOrgUnitCode().trim());
+        }
+        if (orgLevel == null || orgLevel.isBlank()) {
+            Map<String, Object> org = authService.getOrgInfo(u.getUsername());
+            if (org != null && org.get("orgLevel") != null) {
+                orgLevel = org.get("orgLevel").toString();
+            }
         }
         return MerchantNotifyUrlVisibility.canViewerSeeRegisteredNotifyUrls(u.getRole(), orgLevel);
     }
@@ -233,6 +245,7 @@ public class ApiCompController {
             @RequestParam(required = false) String siteUrl,
             @RequestParam(required = false) String siteSummary,
             @RequestParam(required = false) String remark,
+            @RequestParam(required = false) String operationRecord,
             @RequestParam(required = false) String withdrawRestrictType,
             @RequestParam(required = false) String withdrawLimitDays,
             @RequestParam(required = false) String withdrawStartTime,
@@ -414,6 +427,7 @@ public class ApiCompController {
                 cardRiskTier4Hours, cardRiskTier4Min,
                 cardRiskAutoBlacklistTier);
         compService.patchMerchantMobileCheckoutMode(saved.getCode(), mobileCheckoutMode);
+        compService.applyMerchantOperationRecord(saved.getCode(), operationRecord);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("compId", saved.getCode(), "compNm", saved.getName())));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
@@ -499,6 +513,7 @@ public class ApiCompController {
             @RequestParam(required = false) String accountNo,
             @RequestParam(required = false) String accountHolder,
             @RequestParam(required = false) String remark,
+            @RequestParam(required = false) String operationRecord,
             @RequestParam(required = false) String commissionConfigAllowed,
             @RequestParam(required = false) String webPaymentUseYn,
             @RequestParam(required = false) String webPaymentHeaderLogoMode,
@@ -700,6 +715,7 @@ public class ApiCompController {
                     cardRiskAutoBlacklistTier);
             if (ok) {
                 compService.patchMerchantMobileCheckoutMode(compId, mobileCheckoutMode);
+                compService.applyMerchantOperationRecord(compId, operationRecord);
             }
             return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다."))
                     : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));

@@ -160,10 +160,18 @@ public class ApiHqMerchantApiDeploymentController {
         if (auth == null || !(auth.getPrincipal() instanceof AppUser u)) {
             return false;
         }
+        if (u.getRole() != null && "ADMIN".equalsIgnoreCase(u.getRole().trim())) {
+            return true;
+        }
         String orgLevel = "";
-        Map<String, Object> org = authService.getOrgInfo(u.getUsername());
-        if (org != null && org.get("orgLevel") != null) {
-            orgLevel = org.get("orgLevel").toString();
+        if (u.getOrgUnitCode() != null && !u.getOrgUnitCode().isBlank()) {
+            orgLevel = compService.findOrgLevelNameByCompCode(u.getOrgUnitCode().trim());
+        }
+        if (orgLevel == null || orgLevel.isBlank()) {
+            Map<String, Object> org = authService.getOrgInfo(u.getUsername());
+            if (org != null && org.get("orgLevel") != null) {
+                orgLevel = org.get("orgLevel").toString();
+            }
         }
         return MerchantNotifyUrlVisibility.canViewerSeeRegisteredNotifyUrls(u.getRole(), orgLevel);
     }
