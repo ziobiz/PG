@@ -2309,10 +2309,16 @@
       TH: 'ตามนโยบาย HQ ใช้ 3DS/chargeback จากเทมเพลตที่เลือก บันทึกช่องล่างได้เฉพาะโหมดกรอกเอง'
     },
     '본사정책 따름이면 [본사 정책선택]에서 사용합니다. 목록에는 배포(Y)인 템플릿만 나오며, 가맹점 기준통화와 정책 통화코드가 같거나 정책 통화가 비어 있는 항목만 표시됩니다. 본사·총판·가맹점에 동일하게 적용·저장됩니다. 첫 항목(본사 기본 템플릿)은 선택값이 비어 있을 때 본사의 기본(DEFAULT) 수수료 템플릿을 씁니다.': {
-      EN: 'If following HQ policy, use [HQ policy pick]. Only deployed (Y) templates are listed; rows match the merchant base currency or have an empty policy currency. Saved the same for HQ, distributor, and merchant. The first row (HQ default template) uses the HQ DEFAULT fee template when left blank.',
-      JP: '本社ポリシーに従う場合は[本社ポリシー選択]を使います。一覧は配布(Y)のテンプレのみ。加盟店基準通貨と一致するかポリシー通貨が空の行のみ表示。本社・総販・加盟店に同様に保存されます。先頭(本社既定テンプレ)は未選択時に本社DEFAULT手数料テンプレを使います。',
-      CH: '跟随总部政策时使用【总部政策选择】。列表仅显示已部署(Y)的模板；仅显示与商户基准货币一致或政策货币为空的行。总部、总代、商户保存规则相同。首行（总部默认模板）留空时使用总部 DEFAULT 手续费模板。',
-      TH: 'ตามนโยบาย HQ เลือกจากรายการเทมเพลตที่ deploy แล้ว บันทึกเหมือนกันทุกระดับ'
+      EN: 'If following HQ policy, use [HQ policy pick]. Only deployed (Y) templates are listed. Saving merchant name etc. does not overwrite commission-grid rates; template reapplies only when Follow HQ or policy selection changes.',
+      JP: '本社ポリシーに従う場合は[本社ポリシー選択]を使います。加盟店名などの通常保存では手数料配分を上書きせず、準拠・ポリシー選択変更時のみテンプレートを再適用します。',
+      CH: '跟随总部政策时使用【总部政策选择】。保存商户名等不会覆盖手续费分成；仅在更改「跟随总部」或政策选择时才重新应用模板。',
+      TH: 'ตามนโยบาย HQ เลือกเทมเพลตจากรายการ การบันทึกชื่อร้านฯ ไม่ทับอัตราในตาราง จะใช้เทมเพลตใหม่เมื่อเปลี่ยนตาม HQ หรือตัวเลือกนโยบายเท่านั้น'
+    },
+    '본사정책 따름이면 [본사 정책선택]에서 사용합니다. 목록에는 배포(Y)인 템플릿만 나오며, 가맹점 기준통화와 정책 통화코드가 같거나 정책 통화가 비어 있는 항목만 표시됩니다. 업체명 등 일반 저장은 수수료관리 배분(본사 요율% 등)을 덮어쓰지 않으며, 「본사정책 따름」·정책선택 변경 시에만 템플릿이 재적용됩니다.': {
+      EN: 'If following HQ policy, use [HQ policy pick]. Only deployed (Y) templates are listed. Saving merchant name etc. does not overwrite commission-grid rates; template reapplies only when Follow HQ or policy selection changes.',
+      JP: '本社ポリシーに従う場合は[本社ポリシー選択]を使います。加盟店名などの通常保存では手数料配分を上書きせず、準拠・ポリシー選択変更時のみテンプレートを再適用します。',
+      CH: '跟随总部政策时使用【总部政策选择】。保存商户名等不会覆盖手续费分成；仅在更改「跟随总部」或政策选择时才重新应用模板。',
+      TH: 'ตามนโยบาย HQ เลือกเทมเพลตจากรายการ การบันทึกชื่อร้านฯ ไม่ทับอัตราในตาราง จะใช้เทมเพลตใหม่เมื่อเปลี่ยนตาม HQ หรือตัวเลือกนโยบายเท่านั้น'
     },
     '결제 정산금 중 보류율(%)만큼 보류기간(일) 동안 지급하지 않으며, 정산일자+보류기간 경과 후 정산금으로 전환됩니다. 보류 해지일이 공휴일이면 익영업일에 전환됩니다. 본사정책 따름 시 본사 수수료 정책(롤링 비율/일수)에 연동됩니다.': {
       EN: 'A rolling hold % of settlement funds is withheld for N days; after settlement date + hold days it becomes payable. If release falls on a holiday, it moves to the next business day. When following HQ policy, it links to HQ fee rolling % / days.',

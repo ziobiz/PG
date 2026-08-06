@@ -18640,7 +18640,11 @@
           return;
         }
         var v = (inp.value || '').trim();
-        if (!v) v = '0';
+        if (!v) {
+          /* 편집 중 비우면 이전 data-value 유지(의도적 0은 사용자가 0 입력) */
+          v = String(cell.getAttribute('data-value') != null ? cell.getAttribute('data-value') : '').trim();
+          if (!v) v = '0';
+        }
         var esc = String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
         cell.setAttribute('data-value', v);
         cell.innerHTML = '<span class="commission-inline-view">' + esc + '</span>';
@@ -18829,7 +18833,11 @@
                 return;
               }
               var v = readCommissionEditableValue(tr, k);
-              fd[k] = v === '' ? '0' : v;
+              /* 빈 칸을 0으로 강제하지 않음 — 상세(병합) 값을 유지해 요율% 오초기화 방지 */
+              if (v === '') {
+                return;
+              }
+              fd[k] = v;
             });
             if (otpCode) fd.totpCode = otpCode;
             return window.PG_API.commissionSave(compIdVal, fd);

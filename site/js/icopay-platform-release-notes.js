@@ -6,13 +6,40 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '2.83';
+  var CURRENT_LIVE = '2.84';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '2.84',
+      kind: 'minor',
+      date: '2026-08-06',
+      items: {
+        KO: [
+          '중요: 업체정보 저장 시 본사정책 따름 템플릿이 수수료관리 배분(본사 요율% 등)을 덮어쓰던 문제 수정',
+          '가맹 6000000044 본사 요율 1.7% 복구(V240). 수수료 그리드 빈칸→0 강제 저장 방지'
+        ],
+        EN: [
+          'Critical: saving merchant profile no longer overwrites commission-grid distribution with HQ template rates',
+          'Restored merchant 6000000044 regional rate 1.7% (V240). Empty commission grid cells no longer force 0 on save'
+        ],
+        JP: [
+          '重要: 加盟店情報保存時に本社ポリシーテンプレートが手数料配分(本社料率%等)を上書きしていた問題を修正',
+          '加盟店6000000044の本社料率1.7%を復元(V240)。手数料グリッドの空欄→0強制保存を防止'
+        ],
+        CH: [
+          '重要：保存商户资料时不再用总部模板覆盖手续费管理中的分成（如本部费率%）',
+          '已恢复商户 6000000044 本部费率 1.7%（V240）。手续费网格空单元格保存时不再强制为 0'
+        ],
+        TH: [
+          'สำคัญ: บันทึกข้อมูลร้านจะไม่ทับอัตราค่าธรรมเนียมในตารางด้วยเทมเพลต HQ อีกต่อไป',
+          'กู้คืนอัตราภูมิภาค 1.7% ของร้าน 6000000044 (V240) และป้องกันการบังคับเป็น 0 เมื่อช่องว่าง'
+        ]
+      }
+    },
     {
       version: '2.83',
       kind: 'minor',
