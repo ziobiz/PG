@@ -3760,11 +3760,35 @@
       CH: '请输入 Google OTP 6 位以保存手续费。',
       TH: 'กรอก Google OTP 6 หลักเพื่อบันทึกค่าธรรมเนียม'
     },
+    '6자리를 입력하면 바로 적용됩니다.': {
+      EN: 'It applies as soon as you enter 6 digits.',
+      JP: '6桁入力するとすぐに適用されます。',
+      CH: '输入满 6 位后立即应用。',
+      TH: 'กรอกครบ 6 หลักแล้วใช้ทันที'
+    },
+    'OTP 6자리': {
+      EN: 'OTP (6 digits)',
+      JP: 'OTP 6桁',
+      CH: 'OTP 6 位',
+      TH: 'OTP 6 หลัก'
+    },
+    'Google OTP': {
+      EN: 'Google OTP',
+      JP: 'Google OTP',
+      CH: 'Google OTP',
+      TH: 'Google OTP'
+    },
     '수수료 저장 시 Google OTP가 필요합니다. 한 번 인증하면 10분간 유지되며, 수수료 목록 조회·셀 수정·저장 등 관련 작업이 있으면 10분이 연장됩니다. 10분간 관련 작업이 없으면 다시 OTP를 요청합니다.': {
-      EN: 'Google OTP is required to save fees. After one successful verification it stays valid for 10 minutes and extends when you view, edit, or save commission settings. If there is no commission activity for 10 minutes, OTP is required again.',
-      JP: '手数料保存にはGoogle OTPが必要です。一度認証すると10分間有効で、一覧照会・セル修正・保存など関連操作があれば10分が延長されます。10分間関連操作がなければ再度OTPを求めます。',
-      CH: '保存手续费需 Google OTP。验证一次后 10 分钟内有效；查询列表、改单元格、保存等手续费相关操作会延长 10 分钟。若 10 分钟无相关操作，将再次要求 OTP。',
-      TH: 'บันทึกค่าธรรมเนียมต้องใช้ Google OTP ยืนยันครั้งหนึ่งใช้ได้ 10 นาที และขยายเมื่อดูรายการ/แก้เซลล์/บันทึก หากไม่มีกิจกรรม 10 นาที จะขอ OTP อีกครั้ง'
+      EN: 'Google OTP is required to save fees. After one successful verification it stays valid for 10 minutes and extends with commission activity. Enter 6 digits to apply immediately. If idle for 10 minutes, OTP is required again.',
+      JP: '手数料保存にはGoogle OTPが必要です。一度認証すると10分間有効で、関連操作で延長されます。6桁入力ですぐ適用。10分操作がなければ再度OTPを求めます。',
+      CH: '保存手续费需 Google OTP。验证一次后 10 分钟内有效，相关操作会延长。输入满 6 位即应用。若 10 分钟无操作，将再次要求 OTP。',
+      TH: 'บันทึกค่าธรรมเนียมต้องใช้ Google OTP ยืนยันครั้งหนึ่งใช้ได้ 10 นาที กรอกครบ 6 หลักแล้วใช้ทันที หากไม่มีกิจกรรม 10 นาที จะขอ OTP อีกครั้ง'
+    },
+    '수수료 저장 시 Google OTP가 필요합니다. 한 번 인증하면 10분간 유지되며, 수수료 목록 조회·셀 수정·저장 등 관련 작업이 있으면 10분이 연장됩니다. 6자리를 입력하면 바로 적용됩니다. 10분간 관련 작업이 없으면 다시 OTP를 요청합니다.': {
+      EN: 'Google OTP is required to save fees. After one successful verification it stays valid for 10 minutes and extends with commission activity. Enter 6 digits to apply immediately. If idle for 10 minutes, OTP is required again.',
+      JP: '手数料保存にはGoogle OTPが必要です。一度認証すると10分間有効で、関連操作で延長されます。6桁入力ですぐ適用。10分操作がなければ再度OTPを求めます。',
+      CH: '保存手续费需 Google OTP。验证一次后 10 分钟内有效，相关操作会延长。输入满 6 位即应用。若 10 分钟无操作，将再次要求 OTP。',
+      TH: 'บันทึกค่าธรรมเนียมต้องใช้ Google OTP ยืนยันครั้งหนึ่งใช้ได้ 10 นาที กรอกครบ 6 หลักแล้วใช้ทันที หากไม่มีกิจกรรม 10 นาที จะขอ OTP อีกครั้ง'
     },
     '합계(요율%·건당료)는 총본사~영업점 값을 합산한 표시 전용이며 직접 수정할 수 없습니다.': {
       EN: 'Totals (rate % / per-txn fee) are display-only sums of HQ through sales-office values and cannot be edited directly.',

@@ -6,18 +6,18 @@
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
   <title>ICOPAY Easy Payment</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="css/pay-inline.css?v=37" rel="stylesheet">
-  <script src="js/pg-pay-submit-guard.js?v=1"></script>
-  <script src="js/url-pay-input-mode.js?v=4"></script>
-  <script src="js/checkout-header-subtitle-presets.js?v=1"></script>
-  <script src="js/url-pay-public-shell.js?v=13"></script>
-  <script src="js/jpay-contact-fields.js?v=3"></script>
-  <script src="js/jpay-contact-remember.js?v=1"></script>
-  <script src="js/jpay-card-expiry.js?v=1"></script>
-  <script src="js/pay-form-input-guard.js?v=2"></script>
-  <script src="js/icopay-card-pay-policy.js?v=4"></script>
-  <script src="js/jpay-pay-msg-i18n.js?v=2"></script>
-  <script src="js/icopay-checkout-3ds.js?v=1"></script>
+  <link href="/css/pay-inline.css?v=38" rel="stylesheet">
+  <script src="/js/pg-pay-submit-guard.js?v=1"></script>
+  <script src="/js/url-pay-input-mode.js?v=4"></script>
+  <script src="/js/checkout-header-subtitle-presets.js?v=1"></script>
+  <script src="/js/url-pay-public-shell.js?v=14"></script>
+  <script src="/js/jpay-contact-fields.js?v=3"></script>
+  <script src="/js/jpay-contact-remember.js?v=1"></script>
+  <script src="/js/jpay-card-expiry.js?v=1"></script>
+  <script src="/js/pay-form-input-guard.js?v=2"></script>
+  <script src="/js/icopay-card-pay-policy.js?v=4"></script>
+  <script src="/js/jpay-pay-msg-i18n.js?v=2"></script>
+  <script src="/js/icopay-checkout-3ds.js?v=1"></script>
   <script>
     (function () {
       try {
@@ -850,6 +850,14 @@
             }
             applyBillingPrefill(d.buyerPrefill || d.prefill);
             applyI18n();
+            /* 세션 lock 후에도 가맹점명·상품명 표시 옵션을 재적용(URL결제와 동일) */
+            if (checkoutCtx && window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyUrlPayPresentationOptions) {
+              PG_URL_PAY_SHELL.applyUrlPayPresentationOptions(checkoutCtx, {
+                getLang: function () { return LANG; },
+                setLang: setLang,
+                detectBrowserLang: detectBrowserUrlPayLang
+              });
+            }
             if (window.PG_JPAY_CONTACT) {
               var f = document.getElementById('jpayForm');
               if (f && !PG_JPAY_CONTACT.readCountryIso2(f)) {
@@ -989,7 +997,10 @@
           if (brand && PAY_ENTRY_MERCHANT_API) brand.style.display = 'none';
         }
         applyQueryPrefills();
-        fetchJson(apiUrl('/api/pay/url/checkout-context', 'compId=' + encodeURIComponent(compId)))
+        var ctxQs = 'compId=' + encodeURIComponent(compId);
+        if (PAY_ENTRY_MERCHANT_API) ctxQs += '&entry=merchant_api';
+        else if (PAY_ENTRY_CHATBOT) ctxQs += '&entry=chatbot';
+        fetchJson(apiUrl('/api/pay/url/checkout-context', ctxQs))
           .then(function (ctxRes) {
             if (!ctxRes.success || !ctxRes.data) {
               var ctxCode = ctxRes.errorCode ? String(ctxRes.errorCode).trim() : '';

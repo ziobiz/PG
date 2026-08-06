@@ -6,13 +6,84 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '2.84';
+  var CURRENT_LIVE = '2.87';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '2.87',
+      kind: 'minor',
+      date: '2026-08-06',
+      items: {
+        KO: [
+          '긴급: 가맹 API 결제창(/checkout/{업체코드})에서 CSS·JS 상대경로가 깨져 가맹점명·상품명이 URL결제와 달리 노출되던 문제 수정(루트 절대경로로 통일)'
+        ],
+        EN: [
+          'Hotfix: merchant API checkout (/checkout/{merchantCode}) broke relative CSS/JS paths so merchant/product name showed unlike URL pay; assets now use root-absolute paths'
+        ],
+        JP: [
+          '緊急: 加盟店API決済画面(/checkout/{加盟店コード})で相対CSS・JSが壊れ、URL決済と異なり加盟店名・商品名が表示されていた問題を修正（ルート絶対パスに統一）'
+        ],
+        CH: [
+          '紧急：修复商户 API 支付页(/checkout/{商户代码})相对 CSS/JS 路径失效导致商户名/商品名与 URL 支付不一致的问题（统一为站点根绝对路径）'
+        ],
+        TH: [
+          'ด่วน: แก้หน้าชำระ API (/checkout/{รหัสร้าน}) ที่โหลด CSS/JS ผิดพาธ ทำให้ชื่อร้าน/สินค้าโผล่ต่างจาก URL pay — ใช้พาธ absolute จาก root'
+        ]
+      }
+    },
+    {
+      version: '2.86',
+      kind: 'minor',
+      date: '2026-08-06',
+      items: {
+        KO: [
+          '긴급: 수수료 OTP 수정 중 발생한 app.js 문법 오류로 메뉴 클릭이 안 되던 문제 수정'
+        ],
+        EN: [
+          'Hotfix: restored menu navigation broken by an app.js syntax error in the commission OTP change'
+        ],
+        JP: [
+          '緊急: 手数料OTP修正時のapp.js構文エラーでメニュークリック不可だった問題を修正'
+        ],
+        CH: [
+          '紧急：修复手续费 OTP 改动中 app.js 语法错误导致菜单无法点击的问题'
+        ],
+        TH: [
+          'ด่วน: แก้เมนูคลิกไม่ได้จาก syntax error ใน app.js ช่วงแก้ OTP ค่าธรรมเนียม'
+        ]
+      }
+    },
+    {
+      version: '2.85',
+      kind: 'minor',
+      date: '2026-08-06',
+      items: {
+        KO: [
+          '수수료 저장 Google OTP: 6자리 입력 즉시 적용(확인 버튼 불필요)',
+          'OTP 입력 UI 단순화 및 다국어 안내'
+        ],
+        EN: [
+          'Commission save Google OTP: applies as soon as 6 digits are entered (no OK click)',
+          'Simplified OTP UI with multilingual hints'
+        ],
+        JP: [
+          '手数料保存Google OTP: 6桁入力ですぐ適用(OK不要)',
+          'OTP入力UIを簡素化し多言語案内を追加'
+        ],
+        CH: [
+          '手续费保存 Google OTP：输入满 6 位即应用（无需点确定）',
+          '简化 OTP 界面并补充多语言提示'
+        ],
+        TH: [
+          'บันทึกค่าธรรมเนียม Google OTP: กรอกครบ 6 หลักแล้วใช้ทันที (ไม่ต้องกดตกลง)',
+          'ปรับ UI OTP ให้เรียบง่ายและเพิ่มคำแนะนำหลายภาษา'
+        ]
+      }
+    },
     {
       version: '2.84',
       kind: 'minor',

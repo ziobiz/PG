@@ -626,6 +626,26 @@
         </div>
       </div>
     </div>
+    <!-- 수수료 등: Google OTP 6자리 — 입력 완료 시 즉시 적용(확인 버튼 불필요) -->
+    <div class="modal fade" id="pgGoogleOtpSixModal" tabindex="-1" aria-labelledby="pgGoogleOtpSixModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+          <div class="modal-header py-2">
+            <h5 class="modal-title fs-6" id="pgGoogleOtpSixModalLabel" data-pg-ui-t="Google OTP">Google OTP</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" data-pg-ui-aria-label="닫기" aria-label="닫기"></button>
+          </div>
+          <div class="modal-body">
+            <p class="small mb-2" id="pgGoogleOtpSixMsg" data-pg-ui-t="수수료 저장을 위해 Google OTP 6자리를 입력하세요.">수수료 저장을 위해 Google OTP 6자리를 입력하세요.</p>
+            <label class="form-label small mb-1" for="pgGoogleOtpSixInput" data-pg-ui-t="OTP 6자리">OTP 6자리</label>
+            <input type="text" class="form-control form-control-lg text-center font-monospace" id="pgGoogleOtpSixInput" maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" placeholder="••••••">
+            <p class="small text-muted mb-0 mt-2" data-pg-ui-t="6자리를 입력하면 바로 적용됩니다.">6자리를 입력하면 바로 적용됩니다.</p>
+          </div>
+          <div class="modal-footer py-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal" data-pg-ui-t="취소">취소</button>
+          </div>
+        </div>
+      </div>
+    </div>
     <!-- 업체 상세: 로그인 ID 변경 -->
     <div class="modal fade" id="pgCompLoginIdChangeModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
@@ -697,19 +717,19 @@
 <script src="js/pay-list-jpay-overview-catalog.js?v=1"></script>
 <script src="js/table-column-resize.js?v=4"></script>
   <script src="js/pg-ui-string-map.js?v=64"></script>
-  <script src="js/pg-ui-i18n.js?v=79"></script>
+  <script src="js/pg-ui-i18n.js?v=80"></script>
   <script src="js/checkout-header-subtitle-presets.js?v=1"></script>
   <script src="js/url-pay-input-mode.js?v=4"></script>
   <script src="js/pg-view-display-tz.js?v=2"></script>
   <script src="js/pg-menu-layout-b.js?v=3"></script>
   <script src="js/pg-hub-shell.js?v=3"></script>
-  <script src="js/icopay-platform-release-notes.js?v=2.84"></script>
+  <script src="js/icopay-platform-release-notes.js?v=2.87"></script>
   <script src="js/icopay-platform-manuals.js?v=2.81"></script>
-  <script src="js/screens.js?v=260"></script>
+  <script src="js/screens.js?v=261"></script>
   <script src="js/pg-pay-list-i18n.js?v=42"></script>
   <script src="js/pg-home-dashboard.js?v=27"></script>
   <script src="js/ops-inactive-card-brand.js?v=1"></script>
-  <script src="js/app.js?v=318"></script>
+  <script src="js/app.js?v=320"></script>
   <script src="js/pg-login-tablet-shell.js?v=5"></script>
   <script src="js/pg-topbar-contrast.js?v=1"></script>
   <script src="js/pg-admin-tablet-shell.js?v=9"></script>

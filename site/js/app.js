@@ -5469,6 +5469,72 @@
   }
   window.pgConfirmBeforeSave = pgConfirmBeforeSave;
 
+  /**
+   * Google OTP 6자리 입력. 6자리 숫자가 채워지면 확인 없이 즉시 resolve.
+   * @param {string} [message]
+   * @returns {Promise<string|null>} 코드 또는 취소 시 null
+   */
+  function pgPromptGoogleOtpSixDigits(message) {
+    var msg = message || 'Google OTP 6자리를 입력하세요.';
+    try {
+      if (typeof window.pgAdminUiT === 'function') {
+        msg = window.pgAdminUiT(msg) || msg;
+      }
+    } catch (eT) { /* ignore */ }
+    return new Promise(function (resolve) {
+      var modalEl = document.getElementById('pgGoogleOtpSixModal');
+      var inputEl = document.getElementById('pgGoogleOtpSixInput');
+      var msgEl = document.getElementById('pgGoogleOtpSixMsg');
+      if (!modalEl || !inputEl || !window.bootstrap || !bootstrap.Modal) {
+        var legacy = window.prompt(msg);
+        if (legacy == null) {
+          resolve(null);
+          return;
+        }
+        legacy = String(legacy).replace(/\D/g, '').slice(0, 6);
+        resolve(legacy.length === 6 ? legacy : null);
+        return;
+      }
+      if (msgEl) msgEl.textContent = msg;
+      inputEl.value = '';
+      var settled = false;
+      var bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      function finish(code) {
+        if (settled) return;
+        settled = true;
+        try { inputEl.removeEventListener('input', onInput); } catch (e0) {}
+        try { inputEl.removeEventListener('keydown', onKey); } catch (e1) {}
+        modalEl.removeEventListener('hidden.bs.modal', onHidden);
+        try { bsModal.hide(); } catch (e2) {}
+        resolve(code);
+      }
+      function onInput() {
+        var digits = String(inputEl.value || '').replace(/\D/g, '').slice(0, 6);
+        if (inputEl.value !== digits) inputEl.value = digits;
+        if (digits.length === 6) {
+          finish(digits);
+        }
+      }
+      function onKey(ev) {
+        if (ev.key === 'Escape') {
+          finish(null);
+        }
+      }
+      function onHidden() {
+        if (!settled) finish(null);
+      }
+      inputEl.addEventListener('input', onInput);
+      inputEl.addEventListener('keydown', onKey);
+      modalEl.addEventListener('hidden.bs.modal', onHidden);
+      modalEl.addEventListener('shown.bs.modal', function onShown() {
+        modalEl.removeEventListener('shown.bs.modal', onShown);
+        try { inputEl.focus(); inputEl.select(); } catch (eF) {}
+      });
+      bsModal.show();
+    });
+  }
+  window.pgPromptGoogleOtpSixDigits = pgPromptGoogleOtpSixDigits;
+
   var PG_MSG_NO_SAVE_CHANGES = '변경한 내용이 없습니다.';
 
   function pgNoChangesOnSaveMessage() {
@@ -18724,37 +18790,32 @@
         if (existingCode != null && String(existingCode).trim() !== '') {
           return Promise.resolve(String(existingCode).trim());
         }
-        if (!window.PG_API || typeof window.PG_API.commissionOtpStatus !== 'function') {
+        var askOtp = function () {
+          var ask = (typeof window.pgPromptGoogleOtpSixDigits === 'function')
+            ? window.pgPromptGoogleOtpSixDigits
+            : null;
+          if (ask) {
+            return ask(pgAdminUiT('수수료 저장을 위해 Google OTP 6자리를 입력하세요.'));
+          }
           var fallback = window.prompt(pgAdminUiT('수수료 저장을 위해 Google OTP 6자리를 입력하세요.'));
           if (fallback == null) return Promise.resolve(null);
-          fallback = String(fallback).trim();
-          if (!fallback) {
+          fallback = String(fallback).replace(/\D/g, '').slice(0, 6);
+          if (fallback.length !== 6) {
             alert(pgAdminUiT('수수료 저장을 위해 Google OTP 6자리를 입력하세요.'));
             return Promise.resolve(null);
           }
           return Promise.resolve(fallback);
+        };
+        if (!window.PG_API || typeof window.PG_API.commissionOtpStatus !== 'function') {
+          return askOtp();
         }
         return window.PG_API.commissionOtpStatus().then(function (st) {
           if (st && st.otpRequired === false) {
             return '';
           }
-          var otpPrompt = window.prompt(pgAdminUiT('수수료 저장을 위해 Google OTP 6자리를 입력하세요.'));
-          if (otpPrompt == null) return null;
-          otpPrompt = String(otpPrompt).trim();
-          if (!otpPrompt) {
-            alert(pgAdminUiT('수수료 저장을 위해 Google OTP 6자리를 입력하세요.'));
-            return null;
-          }
-          return otpPrompt;
+          return askOtp();
         }).catch(function () {
-          var otpPrompt2 = window.prompt(pgAdminUiT('수수료 저장을 위해 Google OTP 6자리를 입력하세요.'));
-          if (otpPrompt2 == null) return null;
-          otpPrompt2 = String(otpPrompt2).trim();
-          if (!otpPrompt2) {
-            alert(pgAdminUiT('수수료 저장을 위해 Google OTP 6자리를 입력하세요.'));
-            return null;
-          }
-          return otpPrompt2;
+          return askOtp();
         });
       }
       window._commissionEnsureSaveOtp = ensureCommissionSaveOtp;
@@ -19182,30 +19243,30 @@
         )) return;
         var dimm = document.getElementById('dimm');
         var ensureOtpFn = (window._commissionEnsureSaveOtp || null);
-        var otpP = ensureOtpFn
-          ? ensureOtpFn(null)
-          : (window.PG_API && window.PG_API.commissionOtpStatus
-            ? window.PG_API.commissionOtpStatus().then(function (st) {
-                if (st && st.otpRequired === false) return '';
-                var modalOtp = window.prompt(pgAdminUiT('수수료 저장을 위해 Google OTP 6자리를 입력하세요.'));
-                if (modalOtp == null) return null;
-                modalOtp = String(modalOtp).trim();
-                if (!modalOtp) {
-                  alert(pgAdminUiT('수수료 저장을 위해 Google OTP 6자리를 입력하세요.'));
-                  return null;
-                }
-                return modalOtp;
-              })
-            : Promise.resolve((function () {
-                var modalOtp = window.prompt(pgAdminUiT('수수료 저장을 위해 Google OTP 6자리를 입력하세요.'));
-                if (modalOtp == null) return null;
-                modalOtp = String(modalOtp).trim();
-                if (!modalOtp) {
-                  alert(pgAdminUiT('수수료 저장을 위해 Google OTP 6자리를 입력하세요.'));
-                  return null;
-                }
-                return modalOtp;
-              })()));
+        var otpP;
+        if (ensureOtpFn) {
+          otpP = ensureOtpFn(null);
+        } else if (window.PG_API && typeof window.PG_API.commissionOtpStatus === 'function') {
+          otpP = window.PG_API.commissionOtpStatus().then(function (st) {
+            if (st && st.otpRequired === false) return '';
+            if (typeof window.pgPromptGoogleOtpSixDigits === 'function') {
+              return window.pgPromptGoogleOtpSixDigits(pgAdminUiT('수수료 저장을 위해 Google OTP 6자리를 입력하세요.'));
+            }
+            var modalOtp = window.prompt(pgAdminUiT('수수료 저장을 위해 Google OTP 6자리를 입력하세요.'));
+            if (modalOtp == null) return null;
+            modalOtp = String(modalOtp).replace(/\D/g, '').slice(0, 6);
+            return modalOtp.length === 6 ? modalOtp : null;
+          });
+        } else if (typeof window.pgPromptGoogleOtpSixDigits === 'function') {
+          otpP = window.pgPromptGoogleOtpSixDigits(pgAdminUiT('수수료 저장을 위해 Google OTP 6자리를 입력하세요.'));
+        } else {
+          otpP = Promise.resolve((function () {
+            var modalOtp = window.prompt(pgAdminUiT('수수료 저장을 위해 Google OTP 6자리를 입력하세요.'));
+            if (modalOtp == null) return null;
+            modalOtp = String(modalOtp).replace(/\D/g, '').slice(0, 6);
+            return modalOtp.length === 6 ? modalOtp : null;
+          })());
+        }
         otpP.then(function (modalOtp) {
           if (modalOtp === null) return;
           if (modalOtp) fd.totpCode = modalOtp;
