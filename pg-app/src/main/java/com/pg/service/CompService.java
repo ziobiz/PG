@@ -945,14 +945,53 @@ public class CompService {
                                             String cardRiskTier3Hours, String cardRiskTier3Min,
                                             String cardRiskTier4Hours, String cardRiskTier4Min,
                                             String cardRiskAutoBlacklistTier) {
+        mergeMerchantCardRiskIfAny(mp, cardRiskPolicyMode,
+                cardRiskTier1Hours, cardRiskTier1Min,
+                cardRiskTier2Hours, cardRiskTier2Min,
+                cardRiskTier3Hours, cardRiskTier3Min,
+                cardRiskTier4Hours, cardRiskTier4Min,
+                cardRiskAutoBlacklistTier,
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+    }
+
+    private void mergeMerchantCardRiskIfAny(MerchantProfile mp,
+                                            String cardRiskPolicyMode,
+                                            String cardRiskTier1Hours, String cardRiskTier1Min,
+                                            String cardRiskTier2Hours, String cardRiskTier2Min,
+                                            String cardRiskTier3Hours, String cardRiskTier3Min,
+                                            String cardRiskTier4Hours, String cardRiskTier4Min,
+                                            String cardRiskAutoBlacklistTier,
+                                            String cardRiskPresaleMode,
+                                            String cardRiskPresaleBuyerMismatchYn,
+                                            String cardRiskPresaleHolderNameYn,
+                                            String cardRiskPresalePhoneInvalidYn,
+                                            String cardRiskPresaleEmailInvalidYn,
+                                            String cardRiskPresaleVelocityCardYn,
+                                            String cardRiskPresaleVelocityEmailYn,
+                                            String cardRiskPresaleVelocityIpYn,
+                                            String cardRiskPresaleVelCardWinMin,
+                                            String cardRiskPresaleVelCardMax,
+                                            String cardRiskPresaleVelEmailWinMin,
+                                            String cardRiskPresaleVelEmailMax,
+                                            String cardRiskPresaleVelIpWinMin,
+                                            String cardRiskPresaleVelIpMax) {
         if (mp == null) {
             return;
         }
-        if (cardRiskPolicyMode == null && cardRiskTier1Hours == null && cardRiskTier1Min == null
-                && cardRiskTier2Hours == null && cardRiskTier2Min == null
-                && cardRiskTier3Hours == null && cardRiskTier3Min == null
-                && cardRiskTier4Hours == null && cardRiskTier4Min == null
-                && cardRiskAutoBlacklistTier == null) {
+        boolean anyTrigger = cardRiskPolicyMode != null || cardRiskTier1Hours != null || cardRiskTier1Min != null
+                || cardRiskTier2Hours != null || cardRiskTier2Min != null
+                || cardRiskTier3Hours != null || cardRiskTier3Min != null
+                || cardRiskTier4Hours != null || cardRiskTier4Min != null
+                || cardRiskAutoBlacklistTier != null;
+        boolean anyPresale = cardRiskPresaleMode != null
+                || cardRiskPresaleBuyerMismatchYn != null || cardRiskPresaleHolderNameYn != null
+                || cardRiskPresalePhoneInvalidYn != null || cardRiskPresaleEmailInvalidYn != null
+                || cardRiskPresaleVelocityCardYn != null || cardRiskPresaleVelocityEmailYn != null
+                || cardRiskPresaleVelocityIpYn != null
+                || cardRiskPresaleVelCardWinMin != null || cardRiskPresaleVelCardMax != null
+                || cardRiskPresaleVelEmailWinMin != null || cardRiskPresaleVelEmailMax != null
+                || cardRiskPresaleVelIpWinMin != null || cardRiskPresaleVelIpMax != null;
+        if (!anyTrigger && !anyPresale) {
             return;
         }
         Map<String, String> fields = new HashMap<>();
@@ -986,7 +1025,55 @@ public class CompService {
         if (cardRiskAutoBlacklistTier != null) {
             fields.put("cardRiskAutoBlacklistTier", cardRiskAutoBlacklistTier);
         }
-        hqRiskCardPolicyService.applyMerchantCardRiskFromRequest(mp, fields);
+        if (anyTrigger) {
+            hqRiskCardPolicyService.applyMerchantCardRiskFromRequest(mp, fields);
+        }
+        if (anyPresale) {
+            Map<String, String> pFields = new HashMap<>();
+            if (cardRiskPresaleMode != null) {
+                pFields.put("cardRiskPresaleMode", cardRiskPresaleMode);
+            }
+            if (cardRiskPresaleBuyerMismatchYn != null) {
+                pFields.put("cardRiskPresaleBuyerMismatchYn", cardRiskPresaleBuyerMismatchYn);
+            }
+            if (cardRiskPresaleHolderNameYn != null) {
+                pFields.put("cardRiskPresaleHolderNameYn", cardRiskPresaleHolderNameYn);
+            }
+            if (cardRiskPresalePhoneInvalidYn != null) {
+                pFields.put("cardRiskPresalePhoneInvalidYn", cardRiskPresalePhoneInvalidYn);
+            }
+            if (cardRiskPresaleEmailInvalidYn != null) {
+                pFields.put("cardRiskPresaleEmailInvalidYn", cardRiskPresaleEmailInvalidYn);
+            }
+            if (cardRiskPresaleVelocityCardYn != null) {
+                pFields.put("cardRiskPresaleVelocityCardYn", cardRiskPresaleVelocityCardYn);
+            }
+            if (cardRiskPresaleVelocityEmailYn != null) {
+                pFields.put("cardRiskPresaleVelocityEmailYn", cardRiskPresaleVelocityEmailYn);
+            }
+            if (cardRiskPresaleVelocityIpYn != null) {
+                pFields.put("cardRiskPresaleVelocityIpYn", cardRiskPresaleVelocityIpYn);
+            }
+            if (cardRiskPresaleVelCardWinMin != null) {
+                pFields.put("cardRiskPresaleVelCardWinMin", cardRiskPresaleVelCardWinMin);
+            }
+            if (cardRiskPresaleVelCardMax != null) {
+                pFields.put("cardRiskPresaleVelCardMax", cardRiskPresaleVelCardMax);
+            }
+            if (cardRiskPresaleVelEmailWinMin != null) {
+                pFields.put("cardRiskPresaleVelEmailWinMin", cardRiskPresaleVelEmailWinMin);
+            }
+            if (cardRiskPresaleVelEmailMax != null) {
+                pFields.put("cardRiskPresaleVelEmailMax", cardRiskPresaleVelEmailMax);
+            }
+            if (cardRiskPresaleVelIpWinMin != null) {
+                pFields.put("cardRiskPresaleVelIpWinMin", cardRiskPresaleVelIpWinMin);
+            }
+            if (cardRiskPresaleVelIpMax != null) {
+                pFields.put("cardRiskPresaleVelIpMax", cardRiskPresaleVelIpMax);
+            }
+            hqRiskCardPolicyService.applyMerchantPresaleRiskFromRequest(mp, pFields);
+        }
     }
 
     /** scopeCompId: 로그인 사용자의 업체코드(본인 org만 조회, 업체정보조회용) */
@@ -2162,7 +2249,21 @@ public class CompService {
                           String cardRiskTier2Hours, String cardRiskTier2Min,
                           String cardRiskTier3Hours, String cardRiskTier3Min,
                           String cardRiskTier4Hours, String cardRiskTier4Min,
-                          String cardRiskAutoBlacklistTier) {
+                          String cardRiskAutoBlacklistTier,
+                          String cardRiskPresaleMode,
+                          String cardRiskPresaleBuyerMismatchYn,
+                          String cardRiskPresaleHolderNameYn,
+                          String cardRiskPresalePhoneInvalidYn,
+                          String cardRiskPresaleEmailInvalidYn,
+                          String cardRiskPresaleVelocityCardYn,
+                          String cardRiskPresaleVelocityEmailYn,
+                          String cardRiskPresaleVelocityIpYn,
+                          String cardRiskPresaleVelCardWinMin,
+                          String cardRiskPresaleVelCardMax,
+                          String cardRiskPresaleVelEmailWinMin,
+                          String cardRiskPresaleVelEmailMax,
+                          String cardRiskPresaleVelIpWinMin,
+                          String cardRiskPresaleVelIpMax) {
         String[] splitPayMerged = mergeMerchantSplitPayParamsFromJson(merchantSplitPayJson,
                 splitPayEnabledYn, splitPayContractCancelYn,
                 splitPayIntervalMonthYn, splitPayIntervalDayYn, splitPayIntervalMultiYn,
@@ -2512,7 +2613,21 @@ public class CompService {
                                         cardRiskTier2Hours, cardRiskTier2Min,
                                         cardRiskTier3Hours, cardRiskTier3Min,
                                         cardRiskTier4Hours, cardRiskTier4Min,
-                                        cardRiskAutoBlacklistTier);
+                                        cardRiskAutoBlacklistTier,
+                                        cardRiskPresaleMode,
+                                        cardRiskPresaleBuyerMismatchYn,
+                                        cardRiskPresaleHolderNameYn,
+                                        cardRiskPresalePhoneInvalidYn,
+                                        cardRiskPresaleEmailInvalidYn,
+                                        cardRiskPresaleVelocityCardYn,
+                                        cardRiskPresaleVelocityEmailYn,
+                                        cardRiskPresaleVelocityIpYn,
+                                        cardRiskPresaleVelCardWinMin,
+                                        cardRiskPresaleVelCardMax,
+                                        cardRiskPresaleVelEmailWinMin,
+                                        cardRiskPresaleVelEmailMax,
+                                        cardRiskPresaleVelIpWinMin,
+                                        cardRiskPresaleVelIpMax);
                                 applyMerchantUrlPayAlerts(mp, urlPayAlertEmailYn, urlPayLineNotifyToken);
                                 applyMerchantReceiptEmail(mp, receiptEmailFollowHqYn, receiptEmailUseYn);
                                 applyMerchantSplitPay(mp, spEnabledYn, spContractCancelYn,
@@ -3613,7 +3728,8 @@ public class CompService {
                 null,
                 null, null, null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     @Transactional
@@ -3672,7 +3788,21 @@ public class CompService {
                                      String cardRiskTier2Hours, String cardRiskTier2Min,
                                      String cardRiskTier3Hours, String cardRiskTier3Min,
                                      String cardRiskTier4Hours, String cardRiskTier4Min,
-                                     String cardRiskAutoBlacklistTier) {
+                                     String cardRiskAutoBlacklistTier,
+                                     String cardRiskPresaleMode,
+                                     String cardRiskPresaleBuyerMismatchYn,
+                                     String cardRiskPresaleHolderNameYn,
+                                     String cardRiskPresalePhoneInvalidYn,
+                                     String cardRiskPresaleEmailInvalidYn,
+                                     String cardRiskPresaleVelocityCardYn,
+                                     String cardRiskPresaleVelocityEmailYn,
+                                     String cardRiskPresaleVelocityIpYn,
+                                     String cardRiskPresaleVelCardWinMin,
+                                     String cardRiskPresaleVelCardMax,
+                                     String cardRiskPresaleVelEmailWinMin,
+                                     String cardRiskPresaleVelEmailMax,
+                                     String cardRiskPresaleVelIpWinMin,
+                                     String cardRiskPresaleVelIpMax) {
         return registerWithExtra(code, name, compDiv, parentId,
                 compTel, zipCode, addr, addrDetail, addrEtc, addrCountryCd,
                 ceoNm, ceoMobile, useYn, loginId,
@@ -3731,7 +3861,21 @@ public class CompService {
                 cardRiskTier2Hours, cardRiskTier2Min,
                 cardRiskTier3Hours, cardRiskTier3Min,
                 cardRiskTier4Hours, cardRiskTier4Min,
-                cardRiskAutoBlacklistTier);
+                cardRiskAutoBlacklistTier,
+                cardRiskPresaleMode,
+                cardRiskPresaleBuyerMismatchYn,
+                cardRiskPresaleHolderNameYn,
+                cardRiskPresalePhoneInvalidYn,
+                cardRiskPresaleEmailInvalidYn,
+                cardRiskPresaleVelocityCardYn,
+                cardRiskPresaleVelocityEmailYn,
+                cardRiskPresaleVelocityIpYn,
+                cardRiskPresaleVelCardWinMin,
+                cardRiskPresaleVelCardMax,
+                cardRiskPresaleVelEmailWinMin,
+                cardRiskPresaleVelEmailMax,
+                cardRiskPresaleVelIpWinMin,
+                cardRiskPresaleVelIpMax);
     }
 
     @Transactional
@@ -3794,7 +3938,21 @@ public class CompService {
                                      String cardRiskTier2Hours, String cardRiskTier2Min,
                                      String cardRiskTier3Hours, String cardRiskTier3Min,
                                      String cardRiskTier4Hours, String cardRiskTier4Min,
-                                     String cardRiskAutoBlacklistTier) {
+                                     String cardRiskAutoBlacklistTier,
+                                     String cardRiskPresaleMode,
+                                     String cardRiskPresaleBuyerMismatchYn,
+                                     String cardRiskPresaleHolderNameYn,
+                                     String cardRiskPresalePhoneInvalidYn,
+                                     String cardRiskPresaleEmailInvalidYn,
+                                     String cardRiskPresaleVelocityCardYn,
+                                     String cardRiskPresaleVelocityEmailYn,
+                                     String cardRiskPresaleVelocityIpYn,
+                                     String cardRiskPresaleVelCardWinMin,
+                                     String cardRiskPresaleVelCardMax,
+                                     String cardRiskPresaleVelEmailWinMin,
+                                     String cardRiskPresaleVelEmailMax,
+                                     String cardRiskPresaleVelIpWinMin,
+                                     String cardRiskPresaleVelIpMax) {
         OrgUnit o = new OrgUnit();
         String compDivVal = compDiv != null ? compDiv.trim() : "AGENCY";
         Long effectiveParentId = parentId;
@@ -3923,7 +4081,21 @@ public class CompService {
                     cardRiskTier2Hours, cardRiskTier2Min,
                     cardRiskTier3Hours, cardRiskTier3Min,
                     cardRiskTier4Hours, cardRiskTier4Min,
-                    cardRiskAutoBlacklistTier);
+                    cardRiskAutoBlacklistTier,
+                    cardRiskPresaleMode,
+                    cardRiskPresaleBuyerMismatchYn,
+                    cardRiskPresaleHolderNameYn,
+                    cardRiskPresalePhoneInvalidYn,
+                    cardRiskPresaleEmailInvalidYn,
+                    cardRiskPresaleVelocityCardYn,
+                    cardRiskPresaleVelocityEmailYn,
+                    cardRiskPresaleVelocityIpYn,
+                    cardRiskPresaleVelCardWinMin,
+                    cardRiskPresaleVelCardMax,
+                    cardRiskPresaleVelEmailWinMin,
+                    cardRiskPresaleVelEmailMax,
+                    cardRiskPresaleVelIpWinMin,
+                    cardRiskPresaleVelIpMax);
             applyMerchantUrlPayAlerts(mp, urlPayAlertEmailYn, urlPayLineNotifyToken);
             applyMerchantReceiptEmail(mp, receiptEmailFollowHqYn, receiptEmailUseYn);
             merchantChatbotKbService.seedFromRegistration(mp, saved);
@@ -5634,7 +5806,8 @@ public class CompService {
                             null,
                             null, null, null, null, null, null, null, null, null, null, null, null,
                             null, null, null, null, null, null, null, null,
-                            null, null, null, null, null, null, null, null);
+                            null, null, null, null, null, null, null, null,
+                            null, null, null, null, null, null, null, null, null, null, null, null, null, null);
                     if (loginIdVal != null && !loginIdVal.isEmpty() && userRepository.findByUsername(loginIdVal).isEmpty()) {
                         AppUser appUser = new AppUser();
                         appUser.setUsername(loginIdVal);

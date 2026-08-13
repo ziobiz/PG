@@ -1609,6 +1609,9 @@
     hqPgApiMngDelete: function (body) {
       return post('/api/hq/pgApiMng/delete', body).then(function (r) { return r.data; });
     },
+    hqPgApiMngElementpayMethods: function (body) {
+      return post('/api/hq/pgApiMng/elementpayMethods', body || {}).then(function (r) { return r.data; });
+    },
     hqPgApiMngOperationalSave: function (body) {
       return post('/api/hq/pgApiMng/operational', body).then(function (r) { return r.data; });
     },
@@ -1731,6 +1734,9 @@
     },
     hqRiskCardPolicySave: function (body) {
       return post('/api/hq/riskCardPolicy/save', body || {}).then(function (r) { return r.data; });
+    },
+    hqRiskCardPolicyMerchantSave: function (body) {
+      return post('/api/hq/riskCardPolicy/merchantSave', body || {}).then(function (r) { return r.data; });
     },
     hqBulkOps: function () {
       return get('/api/hq/bulkOps').then(function (r) { return r.data; });
@@ -2013,7 +2019,7 @@
       return del('/api/hq/notifyEnv/webhookPartners/' + encodeURIComponent(String(id))).then(function (r) { return r.data || r; });
     },
     hqNotifyInternalTargets: function () {
-      return get('/api/hq/notifyEnv/internalTargets').then(function (r) { return r.data || []; });
+      return get('/api/hq/notifyEnv/internalTargets').then(function (r) { return r.data || {}; });
     },
     hqNotifyEnvRegenerateToken: function () {
       return post('/api/hq/notifyEnv/regenerateToken', {}).then(function (r) { return r.data; });

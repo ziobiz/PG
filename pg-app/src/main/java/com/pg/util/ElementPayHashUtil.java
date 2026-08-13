@@ -5,7 +5,6 @@ import javax.crypto.spec.SecretKeySpec;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -27,13 +26,24 @@ public final class ElementPayHashUtil {
     private ElementPayHashUtil() {
     }
 
-    /** Payment API — {@code <method>?key=…&timestamp=…} (hash 제외, 키 알파벳 순, raw 값). */
+    /**
+     * Payment API — {@code <method>?k=v&…} (hash 제외).
+     * PHP 샘플·Postman 과 같이 {@code http_build_query(..., PHP_QUERY_RFC3986)} / 삽입 순서(정렬 없음).
+     */
     public static String signApiRequest(String secretKey, String method, Map<String, String> params) {
-        String payload = method + "?" + joinSortedRawParams(params);
+        String payload = method + "?" + joinInsertionOrderRfc3986Params(params);
         return hmacSha1Hex(secretKey, payload);
     }
 
-    /** 웹훅 수신 — ElementPay 문서 예시 파라미터 순서. */
+    /**
+     * 서명에 쓴 것과 동일한 RFC3986 query 문자열(hash 제외) — POST body 를 이 값 + {@code &hash=} 로내면
+     * RestTemplate 이중 인코딩을 피할 수 있다.
+     */
+    public static String buildApiQueryString(Map<String, String> params) {
+        return joinInsertionOrderRfc3986Params(params);
+    }
+
+    /** 웹훅 수신 — ElementPay 문서 예시 파라미터 순서(레거시). */
     public static String signCallbackRequest(String secretKey, String method, Map<String, String> params) {
         Map<String, String> merged = new LinkedHashMap<>();
         if (params != null) {
@@ -73,6 +83,23 @@ public final class ElementPayHashUtil {
         return hmacSha1Hex(secretKey, sb.toString());
     }
 
+    /**
+     * 웹훅 수신 — PHP 샘플과 동일: {@code http_build_query($_POST without hash, PHP_QUERY_RFC3986)}.
+     * EP 가 보낸 폼 필드 삽입 순서를 유지하고 값을 RFC3986 인코딩한다.
+     */
+    public static String signCallbackRequestPhpHttpBuildQuery(String secretKey, Map<String, String> params) {
+        Map<String, String> merged = new LinkedHashMap<>();
+        if (params != null) {
+            for (Map.Entry<String, String> e : params.entrySet()) {
+                if (e.getKey() == null || "hash".equalsIgnoreCase(e.getKey()) || e.getValue() == null) {
+                    continue;
+                }
+                merged.put(e.getKey(), e.getValue());
+            }
+        }
+        return hmacSha1Hex(secretKey, joinInsertionOrderRfc3986Params(merged));
+    }
+
     public static String signCallbackResponse(String secretKey, Map<String, Object> responseFields) {
         return hmacSha1Hex(secretKey, compactJson(responseFields));
     }
@@ -81,8 +108,30 @@ public final class ElementPayHashUtil {
         if (secretKey == null || secretKey.isBlank() || hash == null || hash.isBlank()) {
             return false;
         }
-        String expected = signCallbackRequest(secretKey, method, params);
-        return constantTimeEquals(expected.toLowerCase(Locale.ROOT), hash.trim().toLowerCase(Locale.ROOT));
+        String want = hash.trim().toLowerCase(Locale.ROOT);
+        /* 1) PHP http_build_query 스타일(실측 EP 콜백) */
+        Map<String, String> withMethod = new LinkedHashMap<>();
+        if (params != null) {
+            withMethod.putAll(params);
+        }
+        if (method != null && !method.isBlank() && !withMethod.containsKey("method")) {
+            Map<String, String> prepend = new LinkedHashMap<>();
+            prepend.put("method", method);
+            prepend.putAll(withMethod);
+            withMethod = prepend;
+        } else if (method != null && !method.isBlank()) {
+            withMethod.put("method", method);
+        }
+        String phpStyle = signCallbackRequestPhpHttpBuildQuery(secretKey, withMethod);
+        if (constantTimeEquals(phpStyle.toLowerCase(Locale.ROOT), want)) {
+            return true;
+        }
+        /* 2) 레거시 고정 순서(비인코딩) */
+        String legacy = signCallbackRequest(secretKey, method, params);
+        if (constantTimeEquals(legacy.toLowerCase(Locale.ROOT), want)) {
+            return true;
+        }
+        return false;
     }
 
     public static String hmacSha1Hex(String secretKey, String message) {
@@ -108,23 +157,20 @@ public final class ElementPayHashUtil {
                 .replace("%7E", "~");
     }
 
-    private static String joinSortedRawParams(Map<String, String> params) {
-        List<Map.Entry<String, String>> entries = new ArrayList<>();
-        if (params != null) {
-            for (Map.Entry<String, String> e : params.entrySet()) {
-                if (e.getKey() == null || "hash".equalsIgnoreCase(e.getKey()) || e.getValue() == null) {
-                    continue;
-                }
-                entries.add(e);
-            }
-        }
-        entries.sort(Comparator.comparing(e -> e.getKey().toLowerCase(Locale.ROOT)));
+    private static String joinInsertionOrderRfc3986Params(Map<String, String> params) {
         StringBuilder sb = new StringBuilder();
-        for (Map.Entry<String, String> e : entries) {
+        if (params == null) {
+            return "";
+        }
+        for (Map.Entry<String, String> e : params.entrySet()) {
+            if (e.getKey() == null || "hash".equalsIgnoreCase(e.getKey()) || e.getValue() == null) {
+                continue;
+            }
             if (sb.length() > 0) {
                 sb.append('&');
             }
-            sb.append(e.getKey()).append('=').append(e.getValue());
+            /* PHP http_build_query(PHP_QUERY_RFC3986) · Postman encodeURIComponent(+!'()*) */
+            sb.append(rfc3986Encode(e.getKey())).append('=').append(rfc3986Encode(e.getValue()));
         }
         return sb.toString();
     }

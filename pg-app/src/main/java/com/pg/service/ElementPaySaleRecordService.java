@@ -10,6 +10,7 @@ import com.pg.util.RouteNoDisplayUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -45,7 +46,7 @@ public class ElementPaySaleRecordService {
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void recordOrTouchPending(Long orgUnitId,
                                      String orderNo,
                                      BigDecimal amount,
@@ -197,6 +198,33 @@ public class ElementPaySaleRecordService {
         }
     }
 
+    /**
+     * getStatus 207(refunded) 등 — 로컬을 환불 상태(기본 42)로 맞춤.
+     * 이미 환불·강제환불·수동환불이면 유지.
+     */
+    @Transactional
+    public void applyRefundStatus(PgTrnsctn t, String statusCode, String paymentId, String msg) {
+        if (t == null || !PgVendor.isElementPayFamily(t.getVan())) {
+            return;
+        }
+        String cur = t.getStatus() != null ? t.getStatus().trim() : "";
+        if ("42".equals(cur) || "31".equals(cur) || "30".equals(cur)) {
+            return;
+        }
+        String st = (statusCode != null && !statusCode.isBlank()) ? statusCode.trim() : "42";
+        t.setStatus(st);
+        t.setPaidAt(null);
+        if (paymentId != null && !paymentId.isBlank()) {
+            t.setChillTransactionId(truncate(paymentId.trim(), 64));
+        }
+        String reason = msg != null && !msg.isBlank() ? msg.trim() : "Payment is refunded";
+        t.setChillPaymentStatus(truncate(reason, 50));
+        t.setOutcomeReason(reason);
+        t.setOutcomeReasonSource("ELEMENTPAY");
+        t.setOutcomeReasonAt(LocalDateTime.now());
+        pgTrnsctnRepository.save(t);
+    }
+
     public Optional<PgTrnsctn> findAnyByOrder(String orderNo) {
         if (orderNo == null || orderNo.isBlank()) {
             return Optional.empty();
@@ -204,6 +232,14 @@ public class ElementPaySaleRecordService {
         return pgTrnsctnRepository.findByOrderNoOrderByCreatedAtDesc(orderNo.trim()).stream()
                 .filter(t -> PgVendor.isElementPayFamily(t.getVan()))
                 .findFirst();
+    }
+
+    public Optional<PgTrnsctn> findAnyByPaymentId(String paymentId) {
+        if (paymentId == null || paymentId.isBlank()) {
+            return Optional.empty();
+        }
+        return pgTrnsctnRepository.findFirstByChillTransactionIdOrderByCreatedAtDesc(paymentId.trim())
+                .filter(t -> PgVendor.isElementPayFamily(t.getVan()));
     }
 
     public Optional<PgTrnsctn> findByMerchantAndOrder(String merchantId, String orderNo) {

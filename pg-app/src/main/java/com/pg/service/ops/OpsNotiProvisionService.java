@@ -41,7 +41,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 운영관리 — NOTI JPAY Provision (노티생성).
+ * 운영관리 — NOTI Provision (노티생성: JPAY · ElementPay).
  */
 @Service
 public class OpsNotiProvisionService {
@@ -124,6 +124,7 @@ public class OpsNotiProvisionService {
                 nz(cfg.getNotiProvisionDefaultInternalTargetId()));
         m.put("notiProvisionInternalTargetJpy", nz(cfg.getNotiProvisionInternalTargetJpy()));
         m.put("notiProvisionInternalTargetUsd", nz(cfg.getNotiProvisionInternalTargetUsd()));
+        m.put("notiProvisionInternalTargetThb", nz(cfg.getNotiProvisionInternalTargetThb()));
         m.put("notiProvisionDefaultDealmaiPartner", nz(cfg.getNotiProvisionDefaultDealmaiPartner()));
         m.put("notiProvisionBaseUrl", nz(cfg.getNotiProvisionBaseUrl()));
         AppUser user = resolveUser(authentication);
@@ -221,12 +222,11 @@ public class OpsNotiProvisionService {
         HqNotifyEnvConfig cfg = hqNotifyEnvService.requireProvisionConfigReady();
         if (isProvisionConfigured(cfg)) {
             try {
-                Map<String, Object> remote = notiProvisionClient.getMerchant(
-                        cfg.getNotiProvisionBaseUrl(),
-                        cfg.getNotiProvisionApiKey(),
-                        merchant.getCode(),
-                        "ko");
+                Map<String, Object> remote = getMerchantPreferring(cfg, merchant.getCode(), "jpay", "ko");
                 out.put("notiRemote", remote);
+                out.put("pgKind", remote.get("pgKind") != null
+                        ? NotiProvisionClient.normalizePgKind(String.valueOf(remote.get("pgKind")))
+                        : "jpay");
             } catch (NotiProvisionException e) {
                 out.put("notiRemoteError", e.getMessage());
             }
@@ -244,6 +244,9 @@ public class OpsNotiProvisionService {
         String acceptLang = NotiProvisionClient.acceptLanguageFromAdminLang(adminLang);
         List<Map<String, Object>> notiTargets = notiInternalTargetCatalogService.listFromNoti(cfg, acceptLang);
         String suggestedInternalRaw = resolveInternalTargetForCurrency(cfg, baseCurrency, Map.of());
+        if (suggestedInternalRaw == null || suggestedInternalRaw.isBlank()) {
+            suggestedInternalRaw = notiInternalTargetCatalogService.findIdByCurrency(notiTargets, baseCurrency);
+        }
         String suggestedInternal = notiInternalTargetCatalogService.resolveCanonicalId(suggestedInternalRaw, notiTargets);
         if (suggestedInternal.isEmpty()) {
             suggestedInternal = suggestedInternalRaw;
@@ -279,13 +282,12 @@ public class OpsNotiProvisionService {
 
         if (isProvisionConfigured(cfg)) {
             try {
-                Map<String, Object> remote = notiProvisionClient.getMerchant(
-                        cfg.getNotiProvisionBaseUrl(),
-                        cfg.getNotiProvisionApiKey(),
-                        merchant.getCode(),
-                        "ko");
+                Map<String, Object> remote = getMerchantPreferring(cfg, merchant.getCode(), "jpay", "ko");
                 out.put("notiRemote", remote);
                 out.put("merchantIdExists", true);
+                out.put("pgKind", remote.get("pgKind") != null
+                        ? NotiProvisionClient.normalizePgKind(String.valueOf(remote.get("pgKind")))
+                        : "jpay");
             } catch (NotiProvisionException e) {
                 if (isMerchantNotFound(e)) {
                     out.put("merchantIdExists", false);
@@ -320,8 +322,8 @@ public class OpsNotiProvisionService {
     }
 
     @Transactional(readOnly = true)
-    public Map<String, Object> checkMerchantId(Authentication authentication, String merchantId, String compId)
-            throws NotiProvisionException {
+    public Map<String, Object> checkMerchantId(Authentication authentication, String merchantId, String compId,
+                                               String pgKind) throws NotiProvisionException {
         assertAccess(authentication);
         if (compId != null && !compId.trim().isEmpty()) {
             resolveMerchant(authentication, compId);
@@ -330,13 +332,15 @@ public class OpsNotiProvisionService {
         if (mid.isEmpty()) {
             throw new IllegalArgumentException("가맹점 ID를 입력하세요.");
         }
+        String kind = NotiProvisionClient.normalizePgKind(pgKind);
         HqNotifyEnvConfig cfg = hqNotifyEnvService.requireProvisionConfigReady();
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("merchantId", mid);
+        out.put("pgKind", kind);
         out.put("available", true);
         try {
             Map<String, Object> remote = notiProvisionClient.getMerchant(
-                    cfg.getNotiProvisionBaseUrl(), cfg.getNotiProvisionApiKey(), mid, "ko");
+                    cfg.getNotiProvisionBaseUrl(), cfg.getNotiProvisionApiKey(), mid, kind, "ko");
             out.put("available", false);
             out.put("existing", remote);
             String existingComp = remote.get("merchantId") != null ? String.valueOf(remote.get("merchantId")) : mid;
@@ -362,7 +366,7 @@ public class OpsNotiProvisionService {
             throws NotiProvisionException {
         assertAccess(authentication);
         if (slotNo == null || slotNo < 1 || slotNo > 999) {
-            throw new IllegalArgumentException("JPAY PG 노티 슬롯 번호는 1~999 범위여야 합니다.");
+            throw new IllegalArgumentException("PG 노티 슬롯 번호는 1~999 범위여야 합니다.");
         }
         HqNotifyEnvConfig cfg = hqNotifyEnvService.requireProvisionConfigReady();
         String base = NotiProvisionClient.defaultBaseUrlIfBlank(cfg.getNotiProvisionBaseUrl());
@@ -436,6 +440,9 @@ public class OpsNotiProvisionService {
         String internalTargetId = str(body, "internalTargetId");
         if (internalTargetId.isEmpty()) {
             internalTargetId = resolveInternalTargetForCurrency(cfg, baseCurrency, body);
+        }
+        if (internalTargetId.isEmpty()) {
+            internalTargetId = notiInternalTargetCatalogService.findIdByCurrency(notiTargets, baseCurrency);
         }
         String rawInternal = internalTargetId;
         internalTargetId = notiInternalTargetCatalogService.resolveCanonicalId(rawInternal, notiTargets);
@@ -531,7 +538,9 @@ public class OpsNotiProvisionService {
 
         Map<String, Object> req = new LinkedHashMap<>();
         req.put("merchantId", merchantId);
-        req.put("pgKind", "jpay");
+        String pgKind = NotiProvisionClient.normalizePgKind(str(body, "pgKind"));
+        boolean elementPay = NotiProvisionClient.isElementPay(pgKind);
+        req.put("pgKind", pgKind);
         if (!dealmai.isEmpty()) {
             req.put("dealmaiPartnerCode", dealmai);
             if (enableDealmaiWebhook) {
@@ -547,13 +556,16 @@ public class OpsNotiProvisionService {
         if (!internalTargetId.isEmpty()) {
             req.put("internalTargetId", internalTargetId);
         }
-        Integer jpaySlotNo = parseOptionalInt(body.get("jpaySlotNo"));
-        if (slotAuto) {
-            jpaySlotNo = resolveNextAutoSlotNo(baseCurrency);
-        }
-        if (jpaySlotNo != null) {
-            req.put("jpaySlotNo", jpaySlotNo);
-            req.put("routeNo", "j" + jpaySlotNo);
+        Integer jpaySlotNo = null;
+        if (!elementPay) {
+            jpaySlotNo = parseOptionalInt(body.get("jpaySlotNo"));
+            if (slotAuto) {
+                jpaySlotNo = resolveNextAutoSlotNo(baseCurrency);
+            }
+            if (jpaySlotNo != null) {
+                req.put("jpaySlotNo", jpaySlotNo);
+                req.put("routeNo", "j" + jpaySlotNo);
+            }
         }
         /* URL 방식은 가맹점 URL 필드를 명시적으로 비움. 하이브리드는 가맹 URL 송부 */
         if (urlIntegrationMode) {
@@ -579,23 +591,43 @@ public class OpsNotiProvisionService {
                 req,
                 NotiProvisionClient.acceptLanguageFromAdminLang(str(body, "adminLang")));
 
-        String[] jpayUrls = resolveProvisionedJpayUrls(data, cfg, jpaySlotNo);
-        String jpayNotify = jpayUrls[0];
-        String jpayCallback = jpayUrls[1];
-        if (!jpayNotify.isEmpty() || !jpayCallback.isEmpty()) {
+        String jpayNotify = "";
+        String jpayCallback = "";
+        if (!elementPay) {
+            String[] jpayUrls = resolveProvisionedJpayUrls(data, cfg, jpaySlotNo);
+            jpayNotify = jpayUrls[0];
+            jpayCallback = jpayUrls[1];
+            if (!jpayNotify.isEmpty() || !jpayCallback.isEmpty()) {
+                merchantJpayNotifyUrlSyncService.persist(merchant.getId(), jpayNotify, jpayCallback);
+            }
+        } else {
+            String notiBase = NotiProvisionClient.defaultBaseUrlIfBlank(cfg.getNotiProvisionBaseUrl());
+            jpayNotify = firstNonBlank(data, "elementpayWebhookUrl");
+            if (jpayNotify.isEmpty()) {
+                jpayNotify = notiBase + "/noti/elementpay";
+            }
+            jpayCallback = firstNonBlank(data, "elementpayResultUrl");
+            if (jpayCallback.isEmpty()) {
+                jpayCallback = notiBase + "/noti/result/elementpay";
+            }
             merchantJpayNotifyUrlSyncService.persist(merchant.getId(), jpayNotify, jpayCallback);
         }
-        saveProvisionLog(merchant, merchantId, baseCurrency, internalTargetId, dealmai, data, jpayNotify, jpayCallback, user,
+        saveProvisionLog(merchant, merchantId, pgKind, baseCurrency, internalTargetId, dealmai, data, jpayNotify, jpayCallback, user,
                 integrationMode);
         markProvisionOtpPassed(username);
 
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("message", Boolean.TRUE.equals(data.get("created"))
-                ? "NOTI JPAY 가맹이 생성되었습니다."
-                : "기존 NOTI JPAY 가맹과 동일합니다.");
+                ? (elementPay ? "NOTI ElementPay 가맹이 생성되었습니다." : "NOTI JPAY 가맹이 생성되었습니다.")
+                : (elementPay ? "기존 NOTI ElementPay 가맹과 동일합니다." : "기존 NOTI JPAY 가맹과 동일합니다."));
         out.put("provision", data);
+        out.put("pgKind", pgKind);
         out.put("jpayNotifyUrl", jpayNotify);
         out.put("jpayCallbackUrl", jpayCallback);
+        if (elementPay) {
+            out.put("elementpayWebhookUrl", jpayNotify);
+            out.put("elementpayResultUrl", jpayCallback);
+        }
         out.put("compId", merchant.getCode());
         out.put("compNm", merchant.getName());
         out.put("merchantId", merchantId);
@@ -634,10 +666,12 @@ public class OpsNotiProvisionService {
         out.put("defaultDealmaiPartner", nz(cfg.getNotiProvisionDefaultDealmaiPartner()));
         if (isProvisionConfigured(cfg)) {
             try {
+                String logPgKind = resolveLogPgKind(log);
                 out.put("notiRemote", notiProvisionClient.getMerchant(
                         cfg.getNotiProvisionBaseUrl(),
                         cfg.getNotiProvisionApiKey(),
                         resolveLogMerchantId(log),
+                        logPgKind,
                         "ko"));
             } catch (NotiProvisionException e) {
                 if (!isMerchantNotFound(e)) {
@@ -773,21 +807,27 @@ public class OpsNotiProvisionService {
         Map<String, Object> data = upsertMerchantKeepingSlot(
                 cfg, merchantId, fallbackReq, acceptLang);
 
-        Integer updateSlot = extractSlotNo(data);
-        if (updateSlot == null) {
-            updateSlot = log.getSlotNo();
-        }
-        String[] jpayUrls = resolveProvisionedJpayUrls(data, cfg, updateSlot);
-        String jpayNotify = jpayUrls[0];
-        String jpayCallback = jpayUrls[1];
-        if (jpayNotify.isEmpty() && log.getJpayNotifyUrl() != null) {
-            jpayNotify = log.getJpayNotifyUrl().trim();
-        }
-        if (jpayCallback.isEmpty() && log.getJpayCallbackUrl() != null) {
-            jpayCallback = log.getJpayCallbackUrl().trim();
-        }
-        if (!jpayNotify.isEmpty() || !jpayCallback.isEmpty()) {
-            merchantJpayNotifyUrlSyncService.persist(merchant.getId(), jpayNotify, jpayCallback);
+        String logPgKind = resolveLogPgKind(log);
+        boolean elementPay = NotiProvisionClient.isElementPay(logPgKind);
+        String jpayNotify = "";
+        String jpayCallback = "";
+        if (!elementPay) {
+            Integer updateSlot = extractSlotNo(data);
+            if (updateSlot == null) {
+                updateSlot = log.getSlotNo();
+            }
+            String[] jpayUrls = resolveProvisionedJpayUrls(data, cfg, updateSlot);
+            jpayNotify = jpayUrls[0];
+            jpayCallback = jpayUrls[1];
+            if (jpayNotify.isEmpty() && log.getJpayNotifyUrl() != null) {
+                jpayNotify = log.getJpayNotifyUrl().trim();
+            }
+            if (jpayCallback.isEmpty() && log.getJpayCallbackUrl() != null) {
+                jpayCallback = log.getJpayCallbackUrl().trim();
+            }
+            if (!jpayNotify.isEmpty() || !jpayCallback.isEmpty()) {
+                merchantJpayNotifyUrlSyncService.persist(merchant.getId(), jpayNotify, jpayCallback);
+            }
         }
         applyLogUpdate(log, internalTargetId, dealmai, data, jpayNotify, jpayCallback,
                 integrationMode);
@@ -857,13 +897,16 @@ public class OpsNotiProvisionService {
                     cfg.getNotiProvisionApiKey(),
                     merchantId,
                     force,
+                    resolveLogPgKind(log),
                     acceptLang);
         } catch (NotiProvisionException e) {
             if (!isMerchantNotFound(e)) {
                 throw e;
             }
         }
-        clearJpayUrls(log.getOrgUnitId());
+        if (!NotiProvisionClient.isElementPay(resolveLogPgKind(log))) {
+            clearJpayUrls(log.getOrgUnitId());
+        }
         notiProvisionLogRepository.delete(log);
     }
 
@@ -900,11 +943,12 @@ public class OpsNotiProvisionService {
                                                           boolean enableDealmaiWebhook) {
         Map<String, Object> req = new LinkedHashMap<>();
         req.put("merchantId", merchantId);
-        req.put("pgKind", "jpay");
+        String pgKind = resolveLogPgKind(log);
+        req.put("pgKind", pgKind);
         if (!internalTargetId.isEmpty()) {
             req.put("internalTargetId", internalTargetId);
         }
-        if (log.getSlotNo() != null) {
+        if (!NotiProvisionClient.isElementPay(pgKind) && log.getSlotNo() != null) {
             req.put("jpaySlotNo", log.getSlotNo());
             String route = nz(log.getRouteNo());
             if (route.isEmpty()) {
@@ -1027,13 +1071,23 @@ public class OpsNotiProvisionService {
                                 String integrationMode) {
         log.setInternalTargetId(internalTargetId);
         log.setDealmaiPartnerCode(dealmai != null ? dealmai : "");
-        log.setRouteNo(extractRouteNo(data));
-        Integer slot = extractSlotNo(data);
-        if (slot != null) {
-            log.setSlotNo(slot);
+        if (NotiProvisionClient.isElementPay(resolveLogPgKind(log))) {
+            log.setRouteNo("elementpay");
+            log.setSlotNo(null);
+            log.setJpayNotifyUrl("");
+            log.setJpayCallbackUrl("");
+        } else {
+            String route = extractRouteNo(data);
+            if (!route.isEmpty()) {
+                log.setRouteNo(route);
+            }
+            Integer slot = extractSlotNo(data);
+            if (slot != null) {
+                log.setSlotNo(slot);
+            }
+            log.setJpayNotifyUrl(jpayNotify);
+            log.setJpayCallbackUrl(jpayCallback);
         }
-        log.setJpayNotifyUrl(jpayNotify);
-        log.setJpayCallbackUrl(jpayCallback);
         log.setIntegrationMode(normalizeIntegrationMode(integrationMode));
         notiProvisionLogRepository.save(log);
     }
@@ -1052,6 +1106,7 @@ public class OpsNotiProvisionService {
 
     private void saveProvisionLog(OrgUnit merchant,
                                   String merchantId,
+                                  String pgKind,
                                   String baseCurrency,
                                   String internalTargetId,
                                   String dealmaiPartnerCode,
@@ -1064,12 +1119,18 @@ public class OpsNotiProvisionService {
         log.setOrgUnitId(merchant.getId());
         log.setCompId(merchant.getCode());
         log.setMerchantId(merchantId != null && !merchantId.isBlank() ? merchantId.trim() : merchant.getCode());
+        log.setPgKind(NotiProvisionClient.normalizePgKind(pgKind));
         log.setCompNm(merchant.getName());
         log.setBaseCurrency(normalizeBaseCurrency(baseCurrency));
         log.setInternalTargetId(internalTargetId);
         log.setDealmaiPartnerCode(dealmaiPartnerCode != null ? dealmaiPartnerCode : "");
-        log.setRouteNo(extractRouteNo(data));
-        log.setSlotNo(extractSlotNo(data));
+        if (NotiProvisionClient.isElementPay(pgKind)) {
+            log.setRouteNo("elementpay");
+            log.setSlotNo(null);
+        } else {
+            log.setRouteNo(extractRouteNo(data));
+            log.setSlotNo(extractSlotNo(data));
+        }
         log.setJpayNotifyUrl(jpayNotify);
         log.setJpayCallbackUrl(jpayCallback);
         log.setIntegrationMode(normalizeIntegrationMode(integrationMode));
@@ -1087,6 +1148,9 @@ public class OpsNotiProvisionService {
         m.put("compId", log.getCompId());
         m.put("merchantId", resolveLogMerchantId(log));
         m.put("compNm", log.getCompNm() != null ? log.getCompNm() : "");
+        String pgKind = resolveLogPgKind(log);
+        m.put("pgKind", pgKind);
+        m.put("pgKindLabel", NotiProvisionClient.isElementPay(pgKind) ? "ElementPay" : "JPAY");
         m.put("internalTargetId", nz(log.getInternalTargetId()));
         m.put("integrationMode", normalizeIntegrationMode(log.getIntegrationMode()));
         m.put("routeNo", nz(log.getRouteNo()));
@@ -1107,6 +1171,28 @@ public class OpsNotiProvisionService {
             m.put("provisionedTime", "");
         }
         return m;
+    }
+
+    private static String resolveLogPgKind(NotiProvisionLog log) {
+        if (log == null) {
+            return "jpay";
+        }
+        String stored = log.getPgKind();
+        if (stored != null && !stored.isBlank()) {
+            return NotiProvisionClient.normalizePgKind(stored);
+        }
+        String route = nz(log.getRouteNo()).toLowerCase(Locale.ROOT);
+        if ("elementpay".equals(route) || "ep".equals(route)) {
+            return "elementpay";
+        }
+        if (log.getSlotNo() == null
+                && (log.getJpayNotifyUrl() == null || log.getJpayNotifyUrl().isBlank())
+                && (log.getJpayCallbackUrl() == null || log.getJpayCallbackUrl().isBlank())
+                && route.isEmpty()) {
+            /* 구 이력은 JPAY 기본. EP는 routeNo=elementpay 로 저장 */
+            return "jpay";
+        }
+        return "jpay";
     }
 
     private static String extractRouteNo(Map<String, Object> data) {
@@ -1357,10 +1443,16 @@ public class OpsNotiProvisionService {
             if (!usd.isEmpty()) {
                 return usd;
             }
-        }
-        String jpy = nz(cfg.getNotiProvisionInternalTargetJpy());
-        if (!jpy.isEmpty()) {
-            return jpy;
+        } else if (cur.contains("THB")) {
+            String thb = nz(cfg.getNotiProvisionInternalTargetThb());
+            if (!thb.isEmpty()) {
+                return thb;
+            }
+        } else if (cur.contains("JPY") || cur.isEmpty()) {
+            String jpy = nz(cfg.getNotiProvisionInternalTargetJpy());
+            if (!jpy.isEmpty()) {
+                return jpy;
+            }
         }
         return nz(cfg.getNotiProvisionDefaultInternalTargetId());
     }
@@ -1485,7 +1577,7 @@ public class OpsNotiProvisionService {
         try {
             return Integer.parseInt(s);
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("JPAY PG 노티 슬롯 번호가 올바르지 않습니다.");
+            throw new IllegalArgumentException("PG 노티 슬롯 번호가 올바르지 않습니다.");
         }
     }
 
@@ -1585,7 +1677,8 @@ public class OpsNotiProvisionService {
         Map<String, Object> body = provisionReq != null
                 ? new LinkedHashMap<>(provisionReq)
                 : new LinkedHashMap<>();
-        body.putIfAbsent("pgKind", "jpay");
+        Object pk = body.get("pgKind");
+        body.put("pgKind", NotiProvisionClient.normalizePgKind(pk != null ? String.valueOf(pk) : "jpay"));
         return body;
     }
 
@@ -1597,10 +1690,13 @@ public class OpsNotiProvisionService {
                                                            String merchantId,
                                                            Map<String, Object> provisionReq,
                                                            String acceptLang) throws NotiProvisionException {
+        String pgKind = provisionReq != null && provisionReq.get("pgKind") != null
+                ? NotiProvisionClient.normalizePgKind(String.valueOf(provisionReq.get("pgKind")))
+                : "jpay";
         for (int attempt = 1; attempt <= 3; attempt++) {
-            forceDeleteMerchantQuietly(cfg, merchantId, acceptLang);
+            forceDeleteMerchantQuietly(cfg, merchantId, pgKind, acceptLang);
             sleepQuietly(200L * attempt);
-            if (!merchantExistsOnNoti(cfg, merchantId, acceptLang)) {
+            if (!merchantExistsOnNoti(cfg, merchantId, pgKind, acceptLang)) {
                 break;
             }
         }
@@ -1614,7 +1710,7 @@ public class OpsNotiProvisionService {
             if (!isMerchantAlreadyExists(e)) {
                 throw e;
             }
-            forceDeleteMerchantQuietly(cfg, merchantId, acceptLang);
+            forceDeleteMerchantQuietly(cfg, merchantId, pgKind, acceptLang);
             sleepQuietly(500L);
             try {
                 return notiProvisionClient.provision(
@@ -1632,15 +1728,41 @@ public class OpsNotiProvisionService {
     }
 
     private boolean merchantExistsOnNoti(HqNotifyEnvConfig cfg, String merchantId, String acceptLang) {
+        String pgKind = "jpay";
+        return merchantExistsOnNoti(cfg, merchantId, pgKind, acceptLang);
+    }
+
+    private boolean merchantExistsOnNoti(HqNotifyEnvConfig cfg, String merchantId, String pgKind, String acceptLang) {
         try {
             notiProvisionClient.getMerchant(
                     cfg.getNotiProvisionBaseUrl(),
                     cfg.getNotiProvisionApiKey(),
                     merchantId,
+                    NotiProvisionClient.normalizePgKind(pgKind),
                     acceptLang);
             return true;
         } catch (NotiProvisionException e) {
             return !isMerchantNotFound(e);
+        }
+    }
+
+    /**
+     * JPAY 우선 조회 후 없으면 ElementPay 조회.
+     */
+    private Map<String, Object> getMerchantPreferring(HqNotifyEnvConfig cfg, String merchantId,
+                                                      String preferPgKind, String acceptLang)
+            throws NotiProvisionException {
+        String prefer = NotiProvisionClient.normalizePgKind(preferPgKind);
+        String other = NotiProvisionClient.isElementPay(prefer) ? "jpay" : "elementpay";
+        try {
+            return notiProvisionClient.getMerchant(
+                    cfg.getNotiProvisionBaseUrl(), cfg.getNotiProvisionApiKey(), merchantId, prefer, acceptLang);
+        } catch (NotiProvisionException e) {
+            if (!isMerchantNotFound(e)) {
+                throw e;
+            }
+            return notiProvisionClient.getMerchant(
+                    cfg.getNotiProvisionBaseUrl(), cfg.getNotiProvisionApiKey(), merchantId, other, acceptLang);
         }
     }
 
@@ -1655,7 +1777,7 @@ public class OpsNotiProvisionService {
         }
     }
 
-    private void forceDeleteMerchantQuietly(HqNotifyEnvConfig cfg, String merchantId, String acceptLang)
+    private void forceDeleteMerchantQuietly(HqNotifyEnvConfig cfg, String merchantId, String pgKind, String acceptLang)
             throws NotiProvisionException {
         try {
             notiProvisionClient.deleteMerchant(
@@ -1663,6 +1785,7 @@ public class OpsNotiProvisionService {
                     cfg.getNotiProvisionApiKey(),
                     merchantId,
                     true,
+                    NotiProvisionClient.normalizePgKind(pgKind),
                     acceptLang);
         } catch (NotiProvisionException de) {
             if (isMerchantNotFound(de)) {

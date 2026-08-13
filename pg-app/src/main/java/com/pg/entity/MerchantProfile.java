@@ -550,6 +550,49 @@ public class MerchantProfile {
     @Column(name = "card_risk_track_period_value")
     private Integer cardRiskTrackPeriodValue;
 
+    /** FOLLOW_HQ | CUSTOM | DISABLED — 사전 리스크 필터(본사 전역과 별도) */
+    @Column(name = "card_risk_presale_mode", length = 16)
+    private String cardRiskPresaleMode = "FOLLOW_HQ";
+
+    @Column(name = "card_risk_presale_buyer_mismatch_yn", length = 1)
+    private String cardRiskPresaleBuyerMismatchYn;
+
+    @Column(name = "card_risk_presale_holder_name_yn", length = 1)
+    private String cardRiskPresaleHolderNameYn;
+
+    @Column(name = "card_risk_presale_phone_invalid_yn", length = 1)
+    private String cardRiskPresalePhoneInvalidYn;
+
+    @Column(name = "card_risk_presale_email_invalid_yn", length = 1)
+    private String cardRiskPresaleEmailInvalidYn;
+
+    @Column(name = "card_risk_presale_velocity_card_yn", length = 1)
+    private String cardRiskPresaleVelocityCardYn;
+
+    @Column(name = "card_risk_presale_velocity_email_yn", length = 1)
+    private String cardRiskPresaleVelocityEmailYn;
+
+    @Column(name = "card_risk_presale_velocity_ip_yn", length = 1)
+    private String cardRiskPresaleVelocityIpYn;
+
+    @Column(name = "card_risk_presale_vel_card_win_min")
+    private Integer cardRiskPresaleVelCardWinMin;
+
+    @Column(name = "card_risk_presale_vel_card_max")
+    private Integer cardRiskPresaleVelCardMax;
+
+    @Column(name = "card_risk_presale_vel_email_win_min")
+    private Integer cardRiskPresaleVelEmailWinMin;
+
+    @Column(name = "card_risk_presale_vel_email_max")
+    private Integer cardRiskPresaleVelEmailMax;
+
+    @Column(name = "card_risk_presale_vel_ip_win_min")
+    private Integer cardRiskPresaleVelIpWinMin;
+
+    @Column(name = "card_risk_presale_vel_ip_max")
+    private Integer cardRiskPresaleVelIpMax;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -1002,6 +1045,62 @@ public class MerchantProfile {
     public Integer getCardRiskTrackPeriodValue() { return cardRiskTrackPeriodValue; }
     public void setCardRiskTrackPeriodValue(Integer cardRiskTrackPeriodValue) {
         this.cardRiskTrackPeriodValue = cardRiskTrackPeriodValue;
+    }
+    public String getCardRiskPresaleMode() { return cardRiskPresaleMode; }
+    public void setCardRiskPresaleMode(String cardRiskPresaleMode) {
+        this.cardRiskPresaleMode = cardRiskPresaleMode;
+    }
+    public String getCardRiskPresaleBuyerMismatchYn() { return cardRiskPresaleBuyerMismatchYn; }
+    public void setCardRiskPresaleBuyerMismatchYn(String cardRiskPresaleBuyerMismatchYn) {
+        this.cardRiskPresaleBuyerMismatchYn = cardRiskPresaleBuyerMismatchYn;
+    }
+    public String getCardRiskPresaleHolderNameYn() { return cardRiskPresaleHolderNameYn; }
+    public void setCardRiskPresaleHolderNameYn(String cardRiskPresaleHolderNameYn) {
+        this.cardRiskPresaleHolderNameYn = cardRiskPresaleHolderNameYn;
+    }
+    public String getCardRiskPresalePhoneInvalidYn() { return cardRiskPresalePhoneInvalidYn; }
+    public void setCardRiskPresalePhoneInvalidYn(String cardRiskPresalePhoneInvalidYn) {
+        this.cardRiskPresalePhoneInvalidYn = cardRiskPresalePhoneInvalidYn;
+    }
+    public String getCardRiskPresaleEmailInvalidYn() { return cardRiskPresaleEmailInvalidYn; }
+    public void setCardRiskPresaleEmailInvalidYn(String cardRiskPresaleEmailInvalidYn) {
+        this.cardRiskPresaleEmailInvalidYn = cardRiskPresaleEmailInvalidYn;
+    }
+    public String getCardRiskPresaleVelocityCardYn() { return cardRiskPresaleVelocityCardYn; }
+    public void setCardRiskPresaleVelocityCardYn(String cardRiskPresaleVelocityCardYn) {
+        this.cardRiskPresaleVelocityCardYn = cardRiskPresaleVelocityCardYn;
+    }
+    public String getCardRiskPresaleVelocityEmailYn() { return cardRiskPresaleVelocityEmailYn; }
+    public void setCardRiskPresaleVelocityEmailYn(String cardRiskPresaleVelocityEmailYn) {
+        this.cardRiskPresaleVelocityEmailYn = cardRiskPresaleVelocityEmailYn;
+    }
+    public String getCardRiskPresaleVelocityIpYn() { return cardRiskPresaleVelocityIpYn; }
+    public void setCardRiskPresaleVelocityIpYn(String cardRiskPresaleVelocityIpYn) {
+        this.cardRiskPresaleVelocityIpYn = cardRiskPresaleVelocityIpYn;
+    }
+    public Integer getCardRiskPresaleVelCardWinMin() { return cardRiskPresaleVelCardWinMin; }
+    public void setCardRiskPresaleVelCardWinMin(Integer cardRiskPresaleVelCardWinMin) {
+        this.cardRiskPresaleVelCardWinMin = cardRiskPresaleVelCardWinMin;
+    }
+    public Integer getCardRiskPresaleVelCardMax() { return cardRiskPresaleVelCardMax; }
+    public void setCardRiskPresaleVelCardMax(Integer cardRiskPresaleVelCardMax) {
+        this.cardRiskPresaleVelCardMax = cardRiskPresaleVelCardMax;
+    }
+    public Integer getCardRiskPresaleVelEmailWinMin() { return cardRiskPresaleVelEmailWinMin; }
+    public void setCardRiskPresaleVelEmailWinMin(Integer cardRiskPresaleVelEmailWinMin) {
+        this.cardRiskPresaleVelEmailWinMin = cardRiskPresaleVelEmailWinMin;
+    }
+    public Integer getCardRiskPresaleVelEmailMax() { return cardRiskPresaleVelEmailMax; }
+    public void setCardRiskPresaleVelEmailMax(Integer cardRiskPresaleVelEmailMax) {
+        this.cardRiskPresaleVelEmailMax = cardRiskPresaleVelEmailMax;
+    }
+    public Integer getCardRiskPresaleVelIpWinMin() { return cardRiskPresaleVelIpWinMin; }
+    public void setCardRiskPresaleVelIpWinMin(Integer cardRiskPresaleVelIpWinMin) {
+        this.cardRiskPresaleVelIpWinMin = cardRiskPresaleVelIpWinMin;
+    }
+    public Integer getCardRiskPresaleVelIpMax() { return cardRiskPresaleVelIpMax; }
+    public void setCardRiskPresaleVelIpMax(Integer cardRiskPresaleVelIpMax) {
+        this.cardRiskPresaleVelIpMax = cardRiskPresaleVelIpMax;
     }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

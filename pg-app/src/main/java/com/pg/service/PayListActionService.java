@@ -21,6 +21,7 @@ import java.util.Optional;
  * <p>
  * ChillPay: 자동무효·환불·강제환불은 Transaction API 호출 후 내부 상태 갱신.
  * JPAY: 자동환불·강제환불은 {@code /pay/trade/refund} API 호출. 무효는 수동무효·포털 처리.
+ * ElementPay: 자동환불·강제환불은 {@code /merchant/initRefund}. 자동무효(voidPayment)는 2단계 결제 전용이라 미지원.
  */
 @Service
 public class PayListActionService {
@@ -44,6 +45,7 @@ public class PayListActionService {
     private final SettlementArrearsService settlementArrearsService;
     private final JpayManualFollowUpNotifyService jpayManualFollowUpNotifyService;
     private final JpayTradeApiService jpayTradeApiService;
+    private final ElementPayPaymentService elementPayPaymentService;
     private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
 
     public PayListActionService(PayFollowPolicyService payFollowPolicyService,
@@ -54,6 +56,7 @@ public class PayListActionService {
                                 SettlementArrearsService settlementArrearsService,
                                 JpayManualFollowUpNotifyService jpayManualFollowUpNotifyService,
                                 JpayTradeApiService jpayTradeApiService,
+                                ElementPayPaymentService elementPayPaymentService,
                                 OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator) {
         this.payFollowPolicyService = payFollowPolicyService;
         this.trnsctnRepository = trnsctnRepository;
@@ -63,6 +66,7 @@ public class PayListActionService {
         this.settlementArrearsService = settlementArrearsService;
         this.jpayManualFollowUpNotifyService = jpayManualFollowUpNotifyService;
         this.jpayTradeApiService = jpayTradeApiService;
+        this.elementPayPaymentService = elementPayPaymentService;
         this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
     }
 
@@ -91,9 +95,14 @@ public class PayListActionService {
                 .orElseThrow(() -> new IllegalArgumentException("거래를 찾을 수 없습니다."));
 
         boolean jpay = PgVendor.isJpayFamily(t.getVan());
+        boolean elementPay = PgVendor.isElementPayFamily(t.getVan());
         if (jpay && (action == PayFollowAction.AUTO_VOID || action == PayFollowAction.EMAIL_VOID)) {
             throw new IllegalStateException(
                     "JPAY 거래는 자동무효·이메일무효를 사용할 수 없습니다. 수동무효 또는 JPAY 포털에서 처리하세요.");
+        }
+        if (elementPay && action == PayFollowAction.AUTO_VOID) {
+            throw new IllegalStateException(
+                    "ElementPay 거래는 자동무효를 지원하지 않습니다. 승인 완료 건은 자동환불·강제환불을 사용하세요.");
         }
         if (!jpay && (action == PayFollowAction.MANUAL_VOID || action == PayFollowAction.MANUAL_REFUND)) {
             throw new IllegalStateException("수동무효·수동환불은 JPAY 거래만 지원합니다.");
@@ -113,11 +122,13 @@ public class PayListActionService {
                 apiDetail = chillPayService.requestChillPayVoid(ouId, chillTxn);
             }
             case AUTO_REFUND, FORCE_REFUND -> {
+                String refundReason = adminReason != null && !adminReason.isBlank()
+                        ? adminReason.trim()
+                        : (action == PayFollowAction.FORCE_REFUND ? "icopay force refund" : "icopay refund");
                 if (jpay) {
-                    String refundReason = adminReason != null && !adminReason.isBlank()
-                            ? adminReason.trim()
-                            : (action == PayFollowAction.FORCE_REFUND ? "icopay force refund" : "icopay refund");
                     apiDetail = jpayTradeApiService.requestRefund(t, null, refundReason);
+                } else if (elementPay) {
+                    apiDetail = elementPayPaymentService.requestRefund(t, null, refundReason);
                 } else {
                     long ouId = resolveMerchantOrgUnitId(t);
                     long chillTxn = parseChillPayTransactionId(t);
@@ -145,6 +156,12 @@ public class PayListActionService {
             };
             t.setChillPaymentStatus(JpayNotifyStatusResolver.chillPaymentStatusLabel(nextStatus, rc));
             t.setPaidAt(null);
+        } else if (elementPay && (action == PayFollowAction.AUTO_REFUND || action == PayFollowAction.FORCE_REFUND)) {
+            t.setPaidAt(null);
+            if (apiDetail != null && !apiDetail.isBlank()) {
+                String label = apiDetail.length() > 50 ? apiDetail.substring(0, 50) : apiDetail;
+                t.setChillPaymentStatus(label);
+            }
         }
         Optional<String> recordedReason = TxnOutcomeReasonApplier.applyIcopayFollowUp(t, prevStatus, nextStatus, action.name(), actor, adminReason, apiDetail);
         trnsctnRepository.save(t);

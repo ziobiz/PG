@@ -6,13 +6,1111 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '2.87';
+  var CURRENT_LIVE = '3.23';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '3.23',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          'ElementPay: 결제내역 자동환불·강제환불에 initRefund 연동(전액)',
+          'ElementPay 자동무효(voidPayment)는 2단계 결제 전용이라 미지원 — 승인 건은 환불 사용',
+          'getStatus 207(refunded) 시 로컬 환불 상태(42) 동기화'
+        ],
+        EN: [
+          'ElementPay: wire pay-list auto/force refund to initRefund (full amount)',
+          'ElementPay auto-void unsupported (voidPayment is two-step only) — use refund after capture',
+          'Sync local refund status (42) when getStatus returns 207'
+        ],
+        JP: [
+          'ElementPay: 決済履歴の自動/強制返金を initRefund に連携（全額）',
+          'ElementPay 自動無効は非対応（voidPayment は2段階専用）— 承認後は返金を使用',
+          'getStatus 207 時にローカル返金状態(42)を同期'
+        ],
+        CH: [
+          'ElementPay：支付明细自动/强制退款对接 initRefund（全额）',
+          'ElementPay 不支持自动作废（voidPayment 仅两阶段）— 已批准请用退款',
+          'getStatus 207 时同步本地退款状态(42)'
+        ],
+        TH: [
+          'ElementPay: เชื่อม AUTO/FORCE_REFUND กับ initRefund (เต็มจำนวน)',
+          'ElementPay ไม่รองรับ AUTO_VOID (voidPayment สำหรับ 2 ขั้น) — ใช้คืนเงินหลังอนุมัติ',
+          'ซิงก์สถานะคืนเงินท้องถิ่น (42) เมื่อ getStatus เป็น 207'
+        ]
+      }
+    },
+    {
+      version: '3.22',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          'URL 결제 결과 화면(성공/거절)에 「다시 결제하기」「닫기」 추가 — API(merchant_api) 진입에는 미표시',
+          'ElementPay·JPAY 공통: 가맹 API는 returnUrl 복귀만, URL 결제는 결제 초기 화면으로 복귀 가능'
+        ],
+        EN: [
+          'Add Pay again / Close on URL checkout result (success/fail) — hidden for merchant_api entry',
+          'ElementPay & JPAY: API uses returnUrl only; URL pay can return to fresh checkout'
+        ],
+        JP: [
+          'URL決済の結果画面に「もう一度支払う」「閉じる」を追加 — merchant_api では非表示',
+          'ElementPay・JPAY共通: APIはreturnUrlのみ、URL決済は初期画面へ復帰可能'
+        ],
+        CH: [
+          'URL 结账结果页增加「再次支付」「关闭」— merchant_api 入口不显示',
+          'ElementPay / JPAY：API 仅 returnUrl；URL 支付可回到结账首页'
+        ],
+        TH: [
+          'เพิ่มปุ่มชำระอีกครั้ง/ปิดในหน้าผล URL — ไม่แสดงเมื่อเข้า merchant_api',
+          'ElementPay และ JPAY: API ใช้ returnUrl เท่านั้น URL กลับหน้าชำระใหม่ได้'
+        ]
+      }
+    },
+    {
+      version: '3.21',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          'ElementPay 결제 결과/대기 복귀 시에도 총판 상단 로고·부제 적용(ICOPAY 텍스트 폴백만 보이던 문제 수정)'
+        ],
+        EN: [
+          'Apply distributor header logo/subtitle on ElementPay result/waiting return (fix ICOPAY text-only fallback)'
+        ],
+        JP: [
+          'ElementPay結果/待機復帰時も総代理店ヘッダーロゴ・字幕を適用（ICOPAYテキストのみ表示を修正）'
+        ],
+        CH: [
+          'ElementPay 结果/等待返回时也应用总代顶部 Logo/副标题（修复仅显示 ICOPAY 文本）'
+        ],
+        TH: [
+          'ใช้โลโก้/คำบรรยายส่วนหัวเมื่อกลับหน้าผล/รอ ElementPay (แก้กรณีเหลือข้อความ ICOPAY)'
+        ]
+      }
+    },
+    {
+      version: '3.20',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          'ElementPay INLINE: /k/cards/form·check 를 동일 쿠키 세션으로 처리하고 threeDSCustomerIP 에 구매자 IP 우선 적용',
+          '샌드박스 3DS 챌린지 생략·EP 공식 테스트카드 안내 및 은행 거절 메시지 5개국어 보강'
+        ],
+        EN: [
+          'ElementPay INLINE: run /k/cards/form and check in one cookie session; prefer buyer IP for threeDSCustomerIP',
+          'Clarify sandbox 3DS skip + EP official test-card guidance; localize bank-reject messages (5 locales)'
+        ],
+        JP: [
+          'ElementPay INLINE: /k/cards/form・check を同一Cookieセッションで実行し、threeDSCustomerIP は購入者IP優先',
+          'サンドボックス3DS省略とEP公式テストカード案内、銀行拒否メッセージを5言語で補強'
+        ],
+        CH: [
+          'ElementPay INLINE：/k/cards/form 与 check 共用 Cookie 会话，threeDSCustomerIP 优先使用买家 IP',
+          '明确沙盒可跳过 3DS，并补充 EP 官方测试卡说明与银行拒付文案（5 语）'
+        ],
+        TH: [
+          'ElementPay INLINE: เรียก /k/cards/form และ check ในคุกกี้เซสชันเดียวกัน และใช้ IP ผู้ซื้อกับ threeDSCustomerIP เป็นหลัก',
+          'ชี้แจงการข้าม 3DS ในแซนด์บ็อกซ์ + บัตรทดสอบ EP อย่างเป็นทางการ และแปลข้อความธนาคารปฏิเสธ 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.19',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          'ElementPay 실패 시 EP status_message 표시(예: rejected by bank) — 웹훅 오류와 은행 거절 구분',
+          'getStatus 최종 거절/승인 시 로컬 대기 거래를 동기화'
+        ],
+        EN: [
+          'Show ElementPay status_message on failure (e.g. rejected by bank) to separate bank decline from webhook errors',
+          'Sync local pending txn when getStatus is final reject/approve'
+        ],
+        JP: [
+          'ElementPay失敗時にstatus_message表示（例: rejected by bank）— 銀行拒否とwebhook誤りの切り分け',
+          'getStatus最終結果でローカル保留取引を同期'
+        ],
+        CH: [
+          'ElementPay 失败时显示 status_message（如 rejected by bank），区分银行拒付与 webhook 错误',
+          'getStatus 最终结果时同步本地待处理交易'
+        ],
+        TH: [
+          'แสดง status_message ของ ElementPay เมื่อล้มเหลว (เช่น rejected by bank) แยกปฏิเสธธนาคารกับ webhook',
+          'ซิงก์รายการค้างเมื่อ getStatus เป็นผลสุดท้าย'
+        ]
+      }
+    },
+    {
+      version: '3.18',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          'ElementPay 웹훅 check 수정: Merchant Key 없이도 agency·서명 검증 → 474 거절(결제 실패) 해소',
+          'check 270 승인 후 샌드박스 승인·ICOPAY 결과 페이지 복귀 가능'
+        ],
+        EN: [
+          'ElementPay webhook check fix: resolve agency/signature without Merchant Key — stop 474 reject failures',
+          'Allow check 270 so sandbox can approve and return to ICOPAY result page'
+        ],
+        JP: [
+          'ElementPay webhook check修正: Merchant Keyなしでagency・署名検証 → 474拒否(決済失敗)を解消',
+          'check 270承認でサンドボックス承認・ICOPAY結果画面へ復帰可能'
+        ],
+        CH: [
+          'ElementPay webhook check 修复：无 Merchant Key 也可解析 agency/签名 — 消除 474 拒绝导致失败',
+          'check 返回 270 后沙盒可批准并回到 ICOPAY 结果页'
+        ],
+        TH: [
+          'แก้ ElementPay webhook check: ตรวจ agency/ลายเซ็นโดยไม่ต้องมี Merchant Key — เลิก 474 ที่ทำให้จ่ายล้ม',
+          'check ตอบ 270 ให้ sandbox อนุมัติแล้วกลับหน้าผล ICOPAY ได้'
+        ]
+      }
+    },
+    {
+      version: '3.17',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          'ElementPay INLINE: KTC 제출 전 /k/cards/check 호출 — check 누락으로 fail→waiting 되던 버그 수정',
+          '샌드박스 테스트카드 승인 경로 복구 · 다국어 유지'
+        ],
+        EN: [
+          'ElementPay INLINE: call /k/cards/check before KTC submit — fix fail→waiting when check was skipped',
+          'Restore sandbox test-card auth path · keep i18n'
+        ],
+        JP: [
+          'ElementPay INLINE: KTC送信前に /k/cards/check を呼出 — check省略によるfail→waitingを修正',
+          'サンドボックステストカード承認経路を復旧 · 多言語維持'
+        ],
+        CH: [
+          'ElementPay INLINE：KTC 提交前调用 /k/cards/check — 修复跳过 check 导致 fail→waiting',
+          '恢复沙盒测试卡授权路径 · 保留多语言'
+        ],
+        TH: [
+          'ElementPay INLINE: เรียก /k/cards/check ก่อนส่ง KTC — แก้ fail→waiting เมื่อข้าม check',
+          'กู้เส้นทางอนุมัติบัตรทดสอบ sandbox · คงหลายภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.16',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          'ElementPay INLINE 수정: /k/cards/form(KTC) 자동 POST — waiting URL을 ACS로 오인하던 버그 제거',
+          '샌드박스 테스트카드 승인 경로 복구 · 다국어 유지'
+        ],
+        EN: [
+          'ElementPay INLINE fix: auto-POST /k/cards/form (KTC) — stop treating waiting URL as ACS',
+          'Restore sandbox test-card auth path · keep i18n'
+        ],
+        JP: [
+          'ElementPay INLINE修正: /k/cards/form(KTC)自動POST — waiting URLをACSと誤認する不具合を解消',
+          'サンドボックステストカード承認経路を復旧 · 多言語維持'
+        ],
+        CH: [
+          'ElementPay INLINE 修复：自动 POST /k/cards/form(KTC) — 不再把 waiting URL 当成 ACS',
+          '恢复沙盒测试卡授权路径 · 保留多语言'
+        ],
+        TH: [
+          'แก้ ElementPay INLINE: POST อัตโนมัติ /k/cards/form(KTC) — ไม่ใช้ waiting เป็น ACS',
+          'กู้เส้นทางอนุมัติบัตรทดสอบ sandbox · คงหลายภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.15',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          'ElementPay waiting 복귀: URL의 pid·orderNo로 상태 폴링 · elementpayReturn 파라미터 깨짐 보정',
+          '다국어(KOR/ENG/JPN/CHN/THA) 대기/미완료 안내 유지'
+        ],
+        EN: [
+          'ElementPay waiting return: poll status with pid/orderNo from URL · tolerate broken elementpayReturn param',
+          'Keep i18n (KOR/ENG/JPN/CHN/THA) waiting/incomplete copy'
+        ],
+        JP: [
+          'ElementPay waiting復帰: URLのpid・orderNoでポーリング · elementpayReturn破損を補正',
+          '多言語の待機/未完了案内を維持'
+        ],
+        CH: [
+          'ElementPay waiting 回跳：用 URL 的 pid/orderNo 轮询 · 兼容损坏的 elementpayReturn',
+          '保留多语言等待/未完成提示'
+        ],
+        TH: [
+          'ElementPay waiting: โพลด้วย pid/orderNo จาก URL · รองรับ elementpayReturn ที่พัง',
+          'คงข้อความรอ/ไม่สำเร็จหลายภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.14',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          'ElementPay INLINE: waiting 멈춤 해소 — 폴링 강화·미완료 시 명확한 실패 안내(테스트 카드)',
+          '다국어(KOR/ENG/JPN/CHN/THA) · 로컬 거래상태 우선 반영'
+        ],
+        EN: [
+          'ElementPay INLINE: fix stuck waiting — stronger poll and clear incomplete message (test cards)',
+          'i18n (KOR/ENG/JPN/CHN/THA) · prefer local txn status'
+        ],
+        JP: [
+          'ElementPay INLINE: waiting滞留解消 — ポーリング強化・未完了時の明確案内(テストカード)',
+          '多言語 · ローカル取引状態を優先'
+        ],
+        CH: [
+          'ElementPay INLINE：修复 waiting 卡住 — 加强轮询与未完成提示（测试卡）',
+          '多语言 · 优先本地交易状态'
+        ],
+        TH: [
+          'ElementPay INLINE: แก้ค้าง waiting — โพลเข้มขึ้นและข้อความไม่สำเร็จชัดเจน (บัตรทดสอบ)',
+          'หลายภาษา · ใช้สถานะธุรกรรมในเครื่องก่อน'
+        ]
+      }
+    },
+    {
+      version: '3.13',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          'ElementPay: JPAY/ChillPay형 INLINE — 카드 1회 입력·BKB 자동제출·Light 이중입력 제거',
+          '결제 결과는 ICOPAY checkout 결과 화면(elementpayReturn) · 다국어(KOR/ENG/JPN/CHN/THA)'
+        ],
+        EN: [
+          'ElementPay: JPAY/ChillPay-style INLINE — enter card once, auto BKB submit, no Light double entry',
+          'Results on ICOPAY checkout page (elementpayReturn) · i18n (KOR/ENG/JPN/CHN/THA)'
+        ],
+        JP: [
+          'ElementPay: JPAY/ChillPay型INLINE — カード1回入力・BKB自動送信・Light二重入力なし',
+          '結果はICOPAY checkout画面(elementpayReturn) · 多言語'
+        ],
+        CH: [
+          'ElementPay：JPAY/ChillPay 式 INLINE — 卡信息只填一次、BKB 自动提交、无 Light 二次输入',
+          '结果回到 ICOPAY checkout（elementpayReturn）· 多语言'
+        ],
+        TH: [
+          'ElementPay: แบบ INLINE เหมือน JPAY/ChillPay — กรอกบัตรครั้งเดียว ส่ง BKB อัตโนมัติ ไม่กรอกซ้ำ Light',
+          'ผลกลับหน้า ICOPAY checkout (elementpayReturn) · หลายภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.12',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          'ElementPay URL결제: Light 카테고리/팝업 제거 → INLINE(카드 입력 후 Bangkok Bank 폼·iframe)',
+          '결제 결과 폴링 API · 다국어(KOR/ENG/JPN/CHN/THA) 처리 중 안내'
+        ],
+        EN: [
+          'ElementPay URL pay: remove Light category/popup → INLINE (card then Bangkok Bank form/iframe)',
+          'Status poll API · i18n (KOR/ENG/JPN/CHN/THA) processing copy'
+        ],
+        JP: [
+          'ElementPay URL決済: Lightカテゴリ/ポップアップ廃止 → INLINE(カード入力後Bangkok Bankフォーム/iframe)',
+          '結果ポーリングAPI · 多言語の処理中案内'
+        ],
+        CH: [
+          'ElementPay URL 支付：去掉 Light 分类/弹窗 → INLINE（填卡后 Bangkok Bank 表单/iframe）',
+          '结果轮询 API · 多语言处理中提示'
+        ],
+        TH: [
+          'ElementPay URL: เลิก Light หมวด/ป๊อปอัป → INLINE (กรอกบัตรแล้ว Bangkok Bank ฟอร์ม/iframe)',
+          'API โพลสถานะ · ข้อความกำลังประมวลผลหลายภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.11',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          'ElementPay URL결제: initPayment redirectUrl(카드 전용 폼)을 iframe으로 표시 — 은행·지갑 카테고리 미노출',
+          '다국어(KOR/ENG/JPN/CHN/THA) 호스티드 URL 누락 안내'
+        ],
+        EN: [
+          'ElementPay URL pay: embed initPayment redirectUrl (card-only form) in iframe — hide bank/wallet categories',
+          'i18n (KOR/ENG/JPN/CHN/THA) when hosted URL is missing'
+        ],
+        JP: [
+          'ElementPay URL決済: initPayment redirectUrl(カード専用)をiframe表示 — 銀行・ウォレットカテゴリ非表示',
+          'ホストURL欠如時の多言語案内'
+        ],
+        CH: [
+          'ElementPay URL 支付：将 initPayment redirectUrl（仅卡表单）嵌入 iframe — 不显示银行/钱包分类',
+          '缺少托管 URL 时的多语言提示'
+        ],
+        TH: [
+          'ElementPay URL: ฝัง redirectUrl จาก initPayment (ฟอร์มบัตรอย่างเดียว) ใน iframe — ไม่โชว์หมวดธนาคาร/วอลเล็ต',
+          'ข้อความหลายภาษาเมื่อไม่มี URL โฮสต์'
+        ]
+      }
+    },
+    {
+      version: '3.10',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          'ElementPay: 기본 카드 alias kCards · disabled 시 getMethods 추천값으로 1회 자동 재시도',
+          'Light URL service 경로를 실제 alias에 맞춤 · 다국어 오류 안내'
+        ],
+        EN: [
+          'ElementPay: default card alias kCards; one auto-retry with getMethods suggestion on disabled',
+          'Light URL uses actual service alias · i18n error copy'
+        ],
+        JP: [
+          'ElementPay: 既定カードaliasをkCards・disabled時はgetMethods推奨で1回自動再試行',
+          'Light URLを実aliasに合わせる · 多言語エラー案内'
+        ],
+        CH: [
+          'ElementPay：默认卡 alias 为 kCards；disabled 时用 getMethods 推荐值自动重试一次',
+          'Light URL 使用实际 alias · 多语言错误提示'
+        ],
+        TH: [
+          'ElementPay: alias บัตรเริ่มต้น kCards และ retry อัตโนมัติ 1 ครั้งจาก getMethods เมื่อ disabled',
+          'ปรับ Light URL ตาม alias จริง · ข้อความผิดพลาดหลายภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.9',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          'PG사 연동: Route No는 ChillPay만 입력 가능(타 PG 비활성·저장 시 비움)',
+          'ElementPay 카드 alias 안내·다국어(KOR/ENG/JPN/CHN/THA) — 조회 추천값 예: kCards'
+        ],
+        EN: [
+          'PG integration: Route No enabled only for ChillPay (disabled/cleared for others)',
+          'ElementPay card alias help + i18n (KOR/ENG/JPN/CHN/THA) — suggested e.g. kCards'
+        ],
+        JP: [
+          'PG連携: Route NoはChillPayのみ入力可（他PGは無効・保存時クリア）',
+          'ElementPayカードalias案内・多言語 — 推奨例 kCards'
+        ],
+        CH: [
+          'PG 对接：Route No 仅 ChillPay 可填（其他 PG 禁用并在保存时清空）',
+          'ElementPay 卡 alias 说明与多语言 — 推荐例 kCards'
+        ],
+        TH: [
+          'เชื่อม PG: Route No ใช้ได้เฉพาะ ChillPay (PG อื่นปิดและล้างตอนบันทึก)',
+          'คำอธิบาย alias บัตร ElementPay + หลายภาษา — แนะนำเช่น kCards'
+        ]
+      }
+    },
+    {
+      version: '3.8',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          '본사 API연동설정: ElementPay 결제수단 조회(getMethods)·cardServiceAlias 입력 UI',
+          '「Payment method is disabled」안내 다국어 — Cabinet 카드 활성화·alias 맞춤'
+        ],
+        EN: [
+          'HQ API integration: ElementPay getMethods probe and cardServiceAlias field',
+          'i18n for “Payment method is disabled” — enable card in Cabinet and align alias'
+        ],
+        JP: [
+          '本社API連携: ElementPay getMethods照会・cardServiceAlias入力UI',
+          '「Payment method is disabled」多言語 — Cabinetでカード有効化・alias合わせ'
+        ],
+        CH: [
+          '总部 API 联动：ElementPay getMethods 查询与 cardServiceAlias 输入',
+          '“Payment method is disabled” 多语言 — Cabinet 启用卡并核对 alias'
+        ],
+        TH: [
+          'HQ API: ตรวจ getMethods ของ ElementPay และช่อง cardServiceAlias',
+          'หลายภาษาสำหรับ Payment method is disabled — เปิดบัตรใน Cabinet และจับคู่ alias'
+        ]
+      }
+    },
+    {
+      version: '3.7',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          'ElementPay 서명: Postman/PHP와 동일 — 파라미터 삽입 순서(정렬 제거) + RFC3986 body 일치',
+          'Wrong signature 재발 수정 · 샌드박스 initPayment'
+        ],
+        EN: [
+          'ElementPay signature: match Postman/PHP — insertion order (no sort) + RFC3986 body alignment',
+          'Fix recurring Wrong signature · sandbox initPayment'
+        ],
+        JP: [
+          'ElementPay署名: Postman/PHPと同様 — 挿入順(ソートなし) + RFC3986 body一致',
+          'Wrong signature再発を修正 · サンドボックス initPayment'
+        ],
+        CH: [
+          'ElementPay 签名：与 Postman/PHP 一致 — 插入顺序（不排序）+ RFC3986 body',
+          '修复反复 Wrong signature · 沙箱 initPayment'
+        ],
+        TH: [
+          'ลายเซ็น ElementPay: ตาม Postman/PHP — ลำดับใส่ค่า (ไม่เรียง) + body RFC3986',
+          'แก้ Wrong signature ซ้ำ · sandbox initPayment'
+        ]
+      }
+    },
+    {
+      version: '3.6',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          'ElementPay initPayment 서명: Result URL 등 특수문자를 PHP RFC3986과 동일하게 인코딩 — Wrong signature 수정',
+          '서명 오류 안내 다국어(KOR/ENG/JPN/CHN/THA)'
+        ],
+        EN: [
+          'ElementPay initPayment signature: encode Result URL params like PHP RFC3986 — fixes Wrong signature',
+          'Signature-error messages i18n (KOR/ENG/JPN/CHN/THA)'
+        ],
+        JP: [
+          'ElementPay initPayment署名: Result URL等をPHP RFC3986と同様にエンコード — Wrong signature修正',
+          '署名エラー案内の多言語(KOR/ENG/JPN/CHN/THA)'
+        ],
+        CH: [
+          'ElementPay initPayment 签名：Result URL 等按 PHP RFC3986 编码 — 修复 Wrong signature',
+          '签名错误提示多语言(KOR/ENG/JPN/CHN/THA)'
+        ],
+        TH: [
+          'ลายเซ็น ElementPay initPayment: เข้ารหัส Result URL แบบ PHP RFC3986 — แก้ Wrong signature',
+          'ข้อความผิดพลาดลายเซ็นหลายภาษา (KOR/ENG/JPN/CHN/THA)'
+        ]
+      }
+    },
+    {
+      version: '3.5',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          'ElementPay URL결제: PromptPay/수단 선택 제거 — 신용카드 INLINE(카드번호·유효기간·CVV) 폼으로 JPAY와 동일 구성',
+          '다국어(KOR/ENG/JPN/CHN/THA) · 결제는 CARD 전용'
+        ],
+        EN: [
+          'ElementPay URL checkout: removed PromptPay/method picker — credit-card INLINE form (PAN/expiry/CVV) aligned with JPAY',
+          'i18n (KOR/ENG/JPN/CHN/THA) · CARD only'
+        ],
+        JP: [
+          'ElementPay URL決済: PromptPay/手段選択を削除 — クレジットカードINLINE(番号・有効期限・CVV)をJPAYと同構成',
+          '多言語(KOR/ENG/JPN/CHN/THA) · CARD専用'
+        ],
+        CH: [
+          'ElementPay URL 支付：移除 PromptPay/方式选择 — 信用卡 INLINE（卡号/有效期/CVV）与 JPAY 同布局',
+          '多语言(KOR/ENG/JPN/CHN/THA) · 仅 CARD'
+        ],
+        TH: [
+          'ElementPay URL checkout: เอา PromptPay/ตัวเลือกวิธีชำระออก — ฟอร์มบัตร INLINE (เลขบัตร/หมดอายุ/CVV) แบบ JPAY',
+          'หลายภาษา (KOR/ENG/JPN/CHN/THA) · เฉพาะ CARD'
+        ]
+      }
+    },
+    {
+      version: '3.4',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          'ElementPay URL결제(/checkout): 본사 로고·부제·가맹점명·표시옵션을 JPAY/Eximbay와 동일 셸로 적용',
+          '브라우저 언어 초기값·다국어(KOR/ENG/JPN/CHN/THA) 헤더·안내문 정비'
+        ],
+        EN: [
+          'ElementPay URL checkout (/checkout): apply HQ logo, subtitle, merchant name, display options via shared shell (same as JPAY/Eximbay)',
+          'Browser language init and i18n (KOR/ENG/JPN/CHN/THA) header/help text'
+        ],
+        JP: [
+          'ElementPay URL決済(/checkout): 本社ロゴ・副題・加盟店名・表示オプションをJPAY/Eximbayと同じシェルで適用',
+          'ブラウザ言語初期値・多言語(KOR/ENG/JPN/CHN/THA)ヘッダ・案内を整備'
+        ],
+        CH: [
+          'ElementPay URL 支付(/checkout)：通过与 JPAY/Eximbay 相同的壳层应用总部 Logo、副标题、商户名与显示选项',
+          '浏览器语言初始值与多语言(KOR/ENG/JPN/CHN/THA)页头/说明整理'
+        ],
+        TH: [
+          'ElementPay URL checkout (/checkout): ใช้โลโก้/คำบรรยาย/ชื่อร้าน/ตัวเลือกแสดงผลผ่าน shell เดียวกับ JPAY/Eximbay',
+          'ภาษาเริ่มต้นเบราว์เซอร์และ i18n (KOR/ENG/JPN/CHN/THA)'
+        ]
+      }
+    },
+    {
+      version: '3.3',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          '본사 노티 구성: 전산 대상 목록 조회 실패 사유 표시(미설정·404·인증) · 목록은 참고용 안내',
+          'Provision API 설정 위치·구동 안내 및 [목록 다시 불러오기] · 다국어'
+        ],
+        EN: [
+          'HQ notify config: show why internal-target list failed (not configured / 404 / auth) · list is optional',
+          'Provision API location/how-to and [Reload list] · i18n'
+        ],
+        JP: [
+          '本社ノティ構成: 全算対象一覧失敗理由の表示（未設定・404・認証）・一覧は参考用',
+          'Provision API設定場所・動線案内と［一覧再読込］·多言語'
+        ],
+        CH: [
+          '总部通知配置：显示账务目标列表失败原因（未配置/404/认证）· 列表为参考',
+          'Provision API 位置与用法说明及［重新加载］· 多语言'
+        ],
+        TH: [
+          'ตั้งค่า NOTI HQ: แสดงเหตุผลโหลดรายการเป้าหมายไม่สำเร็จ (ยังไม่ตั้ง/404/auth) · รายการเป็นอ้างอิง',
+          'ตำแหน่ง/วิธีใช้ Provision API และ [โหลดอีกครั้ง] · หลายภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.2',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          '노티생성 전산 대상: THB(ElementPay) 매핑·자동 제안 추가 (본사설정 JPY/USD/THB)',
+          '기준화폐 THB 가맹에 JPY 대상이 잘못 제안되던 문제 수정 · 다국어'
+        ],
+        EN: [
+          'NOTI provision ledger targets: added THB (ElementPay) mapping and auto-suggest (HQ JPY/USD/THB)',
+          'Fixed wrong JPY target suggestion for THB merchants · i18n'
+        ],
+        JP: [
+          'ノティ作成の全算対象: THB(ElementPay)マッピング・自動提案を追加（本社設定 JPY/USD/THB）',
+          '基準通貨THB加盟にJPY対象が誤提案される問題を修正 · 多言語'
+        ],
+        CH: [
+          '通知创建账务目标：新增 THB（ElementPay）映射与自动建议（总部 JPY/USD/THB）',
+          '修复 THB 商户被误建议 JPY 目标 · 多语言'
+        ],
+        TH: [
+          'เป้าหมายบัญชีสร้าง NOTI: เพิ่มแมป THB (ElementPay) และแนะนำอัตโนมัติ (HQ JPY/USD/THB)',
+          'แก้การแนะนำเป้าหมาย JPY ผิดสำหรับร้าน THB · หลายภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.1',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          '운영관리 노티생성: 「JPAY PG 노티 슬롯」→「PG 노티 슬롯」등 PG 중립 명칭(다국어)',
+          '노티생성 버튼·Provision API 안내를 JPAY 전용 문구에서 공통 노티생성으로 정리'
+        ],
+        EN: [
+          'Ops NOTI provision: renamed 「JPAY PG NOTI slot」 to 「PG NOTI slot」 and other PG-neutral labels (i18n)',
+          'Provision button and API help text no longer JPAY-only'
+        ],
+        JP: [
+          '運用管理ノティ作成: 「JPAY PGノティスロット」→「PGノティスロット」などPG中立表記(多言語)',
+          'ノティ作成ボタン・Provision API案内をJPAY専用から共通表記へ'
+        ],
+        CH: [
+          '运营管理通知创建：「JPAY PG NOTI 槽位」改为「PG NOTI 槽位」等中性名称（多语言）',
+          '通知创建按钮与 Provision API 说明不再仅限 JPAY'
+        ],
+        TH: [
+          'Ops สร้าง NOTI: เปลี่ยนชื่อ 「JPAY PG NOTI slot」เป็น 「PG NOTI slot」 และข้อความกลาง PG (หลายภาษา)',
+          'ปุ่มสร้าง NOTI และคำอธิบาย API ไม่จำกัดแค่ JPAY'
+        ]
+      }
+    },
+    {
+      version: '3.0',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          'URL결제 공개 경로 통일: /checkout/{업체코드} — ElementPay가 ChillPay pay.html에 잘못 열리던 문제 수정',
+          '레거시 pay.html?m= · /pay/{코드} → /checkout 리다이렉트 · 웹결제 미사용 시 결제 폼 숨김'
+        ],
+        EN: [
+          'Unified public URL pay path: /checkout/{merchantCode} — ElementPay no longer opens ChillPay pay.html by mistake',
+          'Legacy pay.html?m= and /pay/{code} redirect to /checkout; hide form when WEB payment is off'
+        ],
+        JP: [
+          'URL決済公開パス統一: /checkout/{加盟店コード} — ElementPayがChillPay pay.htmlを誤表示する問題を修正',
+          'レガシー pay.html?m=・/pay/{コード}は/checkoutへリダイレクト・WEB決済未使用時はフォーム非表示'
+        ],
+        CH: [
+          '统一公开 URL 支付路径：/checkout/{商户代码} — 修复 ElementPay 误开 ChillPay pay.html',
+          '旧版 pay.html?m= 与 /pay/{代码} 重定向至 /checkout；WEB 支付关闭时隐藏表单'
+        ],
+        TH: [
+          'รวมพาธ URL pay สาธารณะ: /checkout/{รหัสร้าน} — แก้ ElementPay เปิด pay.html ของ ChillPay ผิด',
+          'pay.html?m= และ /pay/{รหัส} เดิม redirect ไป /checkout และซ่อนฟอร์มเมื่อปิด WEB'
+        ]
+      }
+    },
+    {
+      version: '2.99',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          'API연동설정 PG사 연동: 연동용도 복수 선택(노티+URL 등) 지원 — 용도별 엔드포인트 입력',
+          '기존 복합(MULTI) 행 편집·저장 시 용도가 1개로 줄어들던 문제 해소'
+        ],
+        EN: [
+          'API integration PG form: multi-select integration scopes (e.g. notify+URL) with per-scope endpoints',
+          'Editing legacy MULTI rows no longer collapses scopes to a single purpose'
+        ],
+        JP: [
+          'API連携設定のPG連携: 連携用途の複数選択(ノティ+URL等)と用途別エンドポイント対応',
+          '従来の複合(MULTI)行の編集保存で用途が1つに縮む問題を解消'
+        ],
+        CH: [
+          'API 联动 PG 表单：支持多选对接用途（如通知+URL），并按用途填写端点',
+          '修复编辑旧版复合(MULTI)行保存后用途被收成单一项的问题'
+        ],
+        TH: [
+          'ฟอร์มเชื่อม PG: เลือกขอบเขตหลายอย่างได้ (เช่น แจ้ง+URL) พร้อม endpoint ต่อขอบเขต',
+          'แก้แถว MULTI เดิมที่บันทึกแล้วเหลือขอบเขตเดียว'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '연동용도 복수 선택', steps: [
+          '배포설정 → API연동설정 → PG사 연동 추가/수정',
+          '연동 용도에서 필요한 항목을 체크(예: 노티+URL)',
+          '용도별 엔드포인트(선택) 입력 후 저장'
+        ]}],
+        EN: [{ title: 'Multi-select scopes', steps: [
+          'Deployment → API integration → Add/Edit PG linkage',
+          'Check needed scopes (e.g. Notify + URL)',
+          'Optionally fill per-scope endpoints, then Save'
+        ]}],
+        JP: [{ title: '連携用途の複数選択', steps: [
+          'デプロイ設定→API連携設定→PG連携の追加/修正',
+          '必要な用途をチェック(例: ノティ+URL)',
+          '用途別エンドポイント(任意)を入力して保存'
+        ]}],
+        CH: [{ title: '多选对接用途', steps: [
+          '部署设置 → API 联动 → 添加/修改 PG 对接',
+          '勾选所需用途（如通知+URL）',
+          '按需填写各用途端点后保存'
+        ]}],
+        TH: [{ title: 'เลือกขอบเขตหลายอย่าง', steps: [
+          'ตั้งค่า deploy → เชื่อม API → เพิ่ม/แก้ PG',
+          'ติ๊กขอบเขตที่ต้องการ (เช่น แจ้ง+URL)',
+          'ใส่ endpoint ต่อขอบเขต(ถ้ามี) แล้วบันทึก'
+        ]}]
+      }
+    },
+    {
+      version: '2.98',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          'ElementPay Result: NOTI /noti/result/elementpay 에 order·compId·merchantId 쿼리 부여 — NOTI 가맹 매칭 안정화',
+          'NOTI 매칭 순서(compId → 선택 order조회 → webhook 로그)에 맞춘 ICOPAY 연동'
+        ],
+        EN: [
+          'ElementPay Result: append order·compId·merchantId on NOTI /noti/result/elementpay for stable merchant match',
+          'Aligned with NOTI match order (compId → optional order lookup → webhook logs)'
+        ],
+        JP: [
+          'ElementPay Result: NOTI /noti/result/elementpay に order・compId・merchantId を付与 — 加盟マッチ安定化',
+          'NOTI照合順(compId→任意order照会→webhookログ)に合わせたICOPAY連携'
+        ],
+        CH: [
+          'ElementPay Result：在 NOTI /noti/result/elementpay 附加 order·compId·merchantId — 稳定匹配商户',
+          '对齐 NOTI 匹配顺序（compId → 可选 order 查询 → webhook 日志）'
+        ],
+        TH: [
+          'ElementPay Result: ใส่ order·compId·merchantId ที่ /noti/result/elementpay เพื่อจับคู่ร้านให้เสถียร',
+          'สอดคล้องลำดับจับคู่ NOTI (compId → ค้น order ทางเลือก → ล็อก webhook)'
+        ]
+      },
+      howTo: {
+        KO: [{ title: 'ElementPay Result 쿼리', steps: [
+          'EP 결제 시 _successUrl 예: https://noti.icopay.net/noti/result/elementpay?order=…&compId=…&merchantId=…',
+          'Cabinet Webhooks는 /noti/elementpay 고정',
+          'NOTI가 compId로 가맹을 찾아 resultUrl로 브라우저 전달'
+        ]}],
+        EN: [{ title: 'ElementPay Result query', steps: [
+          'On pay, _successUrl e.g. https://noti.icopay.net/noti/result/elementpay?order=…&compId=…&merchantId=…',
+          'Cabinet Webhooks stay /noti/elementpay',
+          'NOTI matches merchant by compId and forwards browser to resultUrl'
+        ]}],
+        JP: [{ title: 'ElementPay Resultクエリ', steps: [
+          '決済時_successUrl例: https://noti.icopay.net/noti/result/elementpay?order=…&compId=…&merchantId=…',
+          'Cabinet Webhooksは /noti/elementpay 固定',
+          'NOTIがcompIdで加盟を特定しresultUrlへブラウザ転送'
+        ]}],
+        CH: [{ title: 'ElementPay Result 参数', steps: [
+          '支付时 _successUrl 例：https://noti.icopay.net/noti/result/elementpay?order=…&compId=…&merchantId=…',
+          'Cabinet Webhooks 仍为 /noti/elementpay',
+          'NOTI 按 compId 匹配商户并浏览器转到 resultUrl'
+        ]}],
+        TH: [{ title: 'พารามิเตอร์ ElementPay Result', steps: [
+          'ตอนจ่าย _successUrl เช่น https://noti.icopay.net/noti/result/elementpay?order=…&compId=…&merchantId=…',
+          'Cabinet Webhooks คงที่ /noti/elementpay',
+          'NOTI จับคู่ร้านด้วย compId แล้วส่งเบราว์เซอร์ไป resultUrl'
+        ]}]
+      }
+    },
+    {
+      version: '2.97',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          'ElementPay: 결제 시 _successUrl·_rejectUrl·_waitingUrl에 NOTI Result(/noti/result/elementpay) 사용 — 가맹 무수정·본사 PG 전환',
+          'ElementPay 노티생성 시 Webhook·Result 고정 URL을 수신통보에 자동 반영',
+          '운영 안내·다국어(수신통보·노티생성) 보강'
+        ],
+        EN: [
+          'ElementPay: use NOTI Result(/noti/result/elementpay) for _successUrl·_rejectUrl·_waitingUrl — merchants unchanged when HQ switches PG',
+          'ElementPay NOTI provision auto-saves fixed Webhook·Result URLs to inbound notify',
+          'Ops copy & 5-locale strings updated'
+        ],
+        JP: [
+          'ElementPay: 決済時_successUrl等にNOTI Result(/noti/result/elementpay)を使用 — 加盟無修正で本社PG切替',
+          'ElementPayノティ作成でWebhook・Result固定URLを受信通知へ自動反映',
+          '運用案内・5言語を補強'
+        ],
+        CH: [
+          'ElementPay：支付时 _successUrl 等使用 NOTI Result(/noti/result/elementpay) — 商户无需改动即可切换 PG',
+          'ElementPay 通知创建自动将固定 Webhook·Result 写入接收通知',
+          '运营说明与五语种文案补强'
+        ],
+        TH: [
+          'ElementPay: ใช้ NOTI Result(/noti/result/elementpay) กับ _successUrl ฯลฯ — ร้านไม่ต้องแก้เมื่อ HQ เปลี่ยน PG',
+          'สร้าง NOTI ElementPay บันทึก Webhook·Result คงที่ลงรับแจ้งอัตโนมัติ',
+          'อัปเดตข้อความ ops และ 5 ภาษา'
+        ]
+      },
+      howTo: {
+        KO: [
+          {
+            title: 'ElementPay 노티·Result',
+            steps: [
+              'EP Cabinet Webhooks = https://noti.icopay.net/noti/elementpay',
+              '운영관리 노티생성에서 PG=ElementPay로 가맹 등록(가맹 callback/result URL 입력)',
+              '수신통보에 Webhook·Result(/noti/result/elementpay)가 반영되는지 확인',
+              '결제 후 브라우저가 NOTI Result → 가맹 resultUrl 로 이동하는지 확인'
+            ]
+          }
+        ],
+        EN: [
+          {
+            title: 'ElementPay NOTI & Result',
+            steps: [
+              'EP Cabinet Webhooks = https://noti.icopay.net/noti/elementpay',
+              'Ops → NOTI provision with PG=ElementPay (merchant callback/result URLs)',
+              'Confirm inbound notify shows Webhook·Result(/noti/result/elementpay)',
+              'After pay, browser should hit NOTI Result then merchant resultUrl'
+            ]
+          }
+        ],
+        JP: [
+          {
+            title: 'ElementPay ノティ・Result',
+            steps: [
+              'EP Cabinet Webhooks = https://noti.icopay.net/noti/elementpay',
+              '運用管理ノティ作成で PG=ElementPay（加盟 callback/result）',
+              '受信通知に Webhook・Result(/noti/result/elementpay) を確認',
+              '決済後ブラウザが NOTI Result → 加盟 resultUrl へ進むことを確認'
+            ]
+          }
+        ],
+        CH: [
+          {
+            title: 'ElementPay 通知与 Result',
+            steps: [
+              'EP Cabinet Webhooks = https://noti.icopay.net/noti/elementpay',
+              '运营管理通知创建选 PG=ElementPay（填写商户 callback/result）',
+              '确认接收通知含 Webhook·Result(/noti/result/elementpay)',
+              '支付后浏览器经 NOTI Result 再到商户 resultUrl'
+            ]
+          }
+        ],
+        TH: [
+          {
+            title: 'ElementPay NOTI และ Result',
+            steps: [
+              'EP Cabinet Webhooks = https://noti.icopay.net/noti/elementpay',
+              'สร้าง NOTI เลือก PG=ElementPay (กรอก callback/result ของร้าน)',
+              'ตรวจรับแจ้งว่ามี Webhook·Result(/noti/result/elementpay)',
+              'หลังจ่าย เบราว์เซอร์ไป NOTI Result แล้วไป resultUrl ของร้าน'
+            ]
+          }
+        ]
+      }
+    },
+    {
+      version: '2.96',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          '운영관리 노티생성: PG 선택(JPAY / ElementPay) — ElementPay는 pgKind=elementpay로 NOTI EP 목록에 등록·슬롯 미사용',
+          '노티생성 이력에 PG 구분 표시(DB pg_kind)'
+        ],
+        EN: [
+          'Ops NOTI provision: PG select (JPAY / ElementPay) — ElementPay registers with pgKind=elementpay (no slot)',
+          'Provision log shows PG kind (DB pg_kind)'
+        ],
+        JP: [
+          '運用管理ノティ作成: PG選択(JPAY/ElementPay) — ElementPayはpgKind=elementpayで登録・スロットなし',
+          'ノティ作成履歴にPG区分を表示(DB pg_kind)'
+        ],
+        CH: [
+          '运营管理 NOTI 创建：可选 PG（JPAY / ElementPay）— ElementPay 以 pgKind=elementpay 登记且无槽位',
+          '创建历史显示 PG 区分（DB pg_kind）'
+        ],
+        TH: [
+          'สร้าง NOTI ฝ่าย ops: เลือก PG (JPAY / ElementPay) — ElementPay ลงทะเบียนด้วย pgKind=elementpay ไม่ใช้สล็อต',
+          'ประวัติการสร้างแสดงชนิด PG (DB pg_kind)'
+        ]
+      }
+    },
+    {
+      version: '2.95',
+      kind: 'minor',
+      date: '2026-08-13',
+      items: {
+        KO: [
+          '업체정보 「수신통보 URL」로 명칭 통일(구 JPAY 수신통보) — J-Pay·ElementPay 공통 안내',
+          'ElementPay: 가맹 NOTI Result URL을 _successUrl·_rejectUrl·_waitingUrl에 사용(가맹 도메인 미노출)'
+        ],
+        EN: [
+          'Merchant “Inbound notify URLs” rename (was JPAY inbound) — shared J-Pay·ElementPay help text',
+          'ElementPay: use merchant NOTI Result URL for _successUrl·_rejectUrl·_waitingUrl (no merchant domain to EP)'
+        ],
+        JP: [
+          '加盟店「受信通知URL」に名称統一（旧JPAY受信通知）— J-Pay・ElementPay共通案内',
+          'ElementPay: 加盟NOTI Result URLを_successUrl・_rejectUrl・_waitingUrlに使用（加盟ドメインはEPへ非公開）'
+        ],
+        CH: [
+          '商户「接收通知 URL」更名（原 JPAY 接收通知）— J-Pay·ElementPay 共用说明',
+          'ElementPay：将商户 NOTI Result URL 用于 _successUrl·_rejectUrl·_waitingUrl（不向 EP 暴露商户域名）'
+        ],
+        TH: [
+          'เปลี่ยนชื่อเป็น「URL รับแจ้ง」(เดิม JPAY) — คำอธิบายร่วม J-Pay·ElementPay',
+          'ElementPay: ใช้ NOTI Result URL ของร้านกับ _successUrl·_rejectUrl·_waitingUrl (ไม่เปิดโดเมนร้านให้ EP)'
+        ]
+      }
+    },
+    {
+      version: '2.94',
+      kind: 'minor',
+      date: '2026-08-11',
+      items: {
+        KO: [
+          '가맹점 리스크 현황·필터링: 방식 선택 화살표 이중 표시 수정(1개만)',
+          '가맹점 리스크 현황 본사설정 색톤을 파스텔보라로 복원'
+        ],
+        EN: [
+          'Merchant risk status & filtering: fixed double chevron on Method select (one arrow only)',
+          'Restored pastel purple for Follow HQ on merchant risk status'
+        ],
+        JP: [
+          '加盟店リスク現状・フィルタ: 方式セレクトの二重矢印を1つに修正',
+          '加盟店リスク現状の本社設定色をパステル紫に復元'
+        ],
+        CH: [
+          '商户风险现状·过滤: 修正方式下拉双重箭头为单个',
+          '商户风险现状「总部设置」恢复为淡紫'
+        ],
+        TH: [
+          'สถานะ/กรองความเสี่ยงร้าน: แก้ลูกศรซ้ำในช่องรูปแบบให้เหลืออันเดียว',
+          'คืนสีม่วงพาสเทลของโหมดตาม HQ ในสถานะความเสี่ยงร้าน'
+        ]
+      }
+    },
+    {
+      version: '2.93',
+      kind: 'minor',
+      date: '2026-08-11',
+      items: {
+        KO: [
+          '가맹점 리스크(트리거·사전필터): 업체정보 또는 본사 현황/필터링 표에서 별도설정 시 본사 기본값보다 우선 — 안내·다국어·매뉴얼 보강',
+          '우선 적용 로직 단위 테스트 추가(별도설정·미사용이 본사 설정을 덮어씀)'
+        ],
+        EN: [
+          'Merchant risk (trigger & presale): Custom from merchant info or HQ status/filter tables overrides HQ defaults — notices, i18n, and manual clarified',
+          'Added unit tests that Custom/Disabled merchant settings override HQ'
+        ],
+        JP: [
+          '加盟店リスク(トリガー・事前フィルタ): 加盟店情報または本社表で別途設定すると本社既定より優先 — 案内・多言語・マニュアル補強',
+          '優先適用ロジックの単体テスト追加(別途設定・未使用が本社設定を上書き)'
+        ],
+        CH: [
+          '商户风险(触发·预过滤): 商户信息或总部表单独设置优先于总部默认 — 强化说明、多语言与手册',
+          '新增优先应用单元测试(单独设置/未使用覆盖总部)'
+        ],
+        TH: [
+          'ความเสี่ยงร้าน (ทริกเกอร์·พรีฟิลเตอร์): ตั้งค่าแยกจากข้อมูลร้านหรือตาราง HQ มีลำดับเหนือค่าเริ่ม HQ — เสริมคำอธิบาย/i18n/คู่มือ',
+          'เพิ่มหน่วยทดสอบลำดับความสำคัญ (โหมดแยก/ไม่ใช้ทับค่า HQ)'
+        ]
+      }
+    },
+    {
+      version: '2.92',
+      kind: 'minor',
+      date: '2026-08-11',
+      items: {
+        KO: [
+          '본사 리스크: 가맹점 리스크 현황·필터링 열 순서 통일(방식·저장을 앞쪽 배치)',
+          '방식 색톤 통일 — 본사설정 파스텔그린·미사용 회색·별도설정 파스텔빨강',
+          '가맹점 리스크 필터링에서 적용상태 열 제거(방식 색톤으로 대체)'
+        ],
+        EN: [
+          'HQ Risk: aligned merchant risk status & filtering column order (Mode + Save near the front)',
+          'Unified mode colors — Follow HQ pastel green, Disabled grey, Custom pastel red',
+          'Removed Applied-status column from merchant risk filtering (mode color conveys it)'
+        ],
+        JP: [
+          '本社リスク: 加盟店リスク現状・フィルタ表の列順を統一(方式・保存を前方へ)',
+          '方式の色調統一 — 本社設定パステル緑・未使用グレー・個別設定パステル赤',
+          '加盟店リスクフィルタから適用状態列を削除(方式色調で代替)'
+        ],
+        CH: [
+          '总部风险: 统一商户风险现状与过滤表列序(方式·保存前置)',
+          '方式色调统一 — 总部设置浅绿、未使用灰、单独设置浅红',
+          '商户风险过滤表移除适用状态列(由方式色调表达)'
+        ],
+        TH: [
+          'ความเสี่ยง HQ: จัดลำดับคอลัมน์สถานะ/กรองร้านให้ตรงกัน (โหมด+บันทึกไว้ด้านหน้า)',
+          'สีโหมดเดียวกัน — ตาม HQ เขียวพาสเทล / ไม่ใช้ เทา / แยก แดงพาสเทล',
+          'ลบคอลัมน์สถานะที่ใช้ในตารางกรอง (ใช้สีโหมดแทน)'
+        ]
+      }
+    },
+    {
+      version: '2.91',
+      kind: 'minor',
+      date: '2026-08-11',
+      items: {
+        KO: [
+          '업체등록·업체정보: 「리스크관리 트리거」→「리스크 위험관리트리거」명칭 변경',
+          '「리스크 사전필터트리거」카드 추가(미사용·본사정책 따름·별도정책, 본사 리스크 필터링과 동일 항목)',
+          '본사 수수료·리스크 → 리스크: 가맹점 리스크 필터링 표와 업체정보 사전필터 연동 안내 보강'
+        ],
+        EN: [
+          'Merchant register/info: renamed Risk trigger to Risk danger-management trigger',
+          'Added Risk presale-filter trigger card (Disabled / Follow HQ / Custom; same fields as HQ risk filtering)',
+          'HQ Fees & risk → Risk: clarified merchant risk-filtering table vs merchant-info prefilter'
+        ],
+        JP: [
+          '加盟店登録・情報: 「リスク管理トリガー」→「リスク危険管理トリガー」に名称変更',
+          '「リスク事前フィルタトリガー」カード追加(未使用・本社ポリシーに従う・個別ポリシー)',
+          '本社手数料・リスク → リスク: 加盟店フィルタ表と事前フィルタ連携説明を補強'
+        ],
+        CH: [
+          '商户注册/信息: 「风险管理触发」更名为「风险危险管理触发」',
+          '新增「风险预过滤触发」卡片(未使用/遵循总部/单独政策)',
+          '总部手续费·风险 → 风险: 强化商户过滤表与信息页预过滤联动说明'
+        ],
+        TH: [
+          'ลงทะเบียน/ข้อมูลร้าน: เปลี่ยนชื่อทริกเกอร์ความเสี่ยงเป็นทริกเกอร์บริหารความเสี่ยงอันตราย',
+          'เพิ่มการ์ดทริกเกอร์ตัวกรองล่วงหน้า (ไม่ใช้/ตาม HQ/แยก)',
+          'HQ ค่าธรรมเนียม·ความเสี่ยง → ความเสี่ยง: เสริมคำอธิบายตารางกรองกับพรีฟิลเตอร์'
+        ]
+      }
+    },
+    {
+      version: '2.90',
+      kind: 'minor',
+      date: '2026-08-11',
+      items: {
+        KO: [
+          '본사정책 허브(수수료·리스크 등): 상단 탭으로 다른 메뉴에 갔다가 돌아와도 마지막으로 보던 서브탭(예: 리스크)을 유지'
+        ],
+        EN: [
+          'HQ policy hubs (Fees & risk, etc.): returning via the top tab restores the last hub sub-tab (e.g. Risk) instead of resetting to the first'
+        ],
+        JP: [
+          '本社政策ハブ(手数料・リスク等): 上部タブで他メニューへ移動後に戻っても、最後に見ていたサブタブ(例:リスク)を維持'
+        ],
+        CH: [
+          '总部政策枢纽(手续费·风险等): 通过顶部标签切到其他菜单再返回时，保留上次查看的子页签(如风险)，不再回到第一个'
+        ],
+        TH: [
+          'ฮับนโยบาย HQ (ค่าธรรมเนียม·ความเสี่ยง ฯลฯ): กลับจากแท็บบนแล้วยังอยู่ที่ซับแท็บล่าสุด (เช่น ความเสี่ยง) ไม่รีเซ็ตไปแท็บแรก'
+        ]
+      }
+    },
+    {
+      version: '2.89',
+      kind: 'minor',
+      date: '2026-08-11',
+      items: {
+        KO: [
+          '본사 리스크설정: 가맹점 리스크 필터링 현황 카드 추가(본사설정·미사용·별도설정)',
+          '가맹점 리스크 현황·필터링 테이블에서 방식·조건 인라인 저장 지원',
+          '가맹점별 사전필터 오버라이드(미사용 시 해당 가맹만 사전필터 OFF) — 트리거 미사용과 분리'
+        ],
+        EN: [
+          'HQ Risk settings: added Merchant risk filtering status card (Follow HQ / Disabled / Custom)',
+          'Inline save of mode and conditions on merchant risk trigger and filtering tables',
+          'Per-merchant presale filter override (Disabled turns off filters for that merchant only) — separate from trigger Disabled'
+        ],
+        JP: [
+          '本社リスク設定: 加盟店リスクフィルタリング状況カード追加(本社設定・未使用・別途設定)',
+          '加盟店リスク状況・フィルタリング表で方式・条件のインライン保存',
+          '加盟店別事前フィルタ上書き(未使用で当該加盟のみOFF) — トリガー未使用と分離'
+        ],
+        CH: [
+          '总部风险设置: 新增商户风险过滤现状卡片(总部设置/未使用/单独设置)',
+          '商户风险现状与过滤表支持方式与条件行内保存',
+          '按商户预过滤覆盖(未使用仅关闭该商户) — 与触发未使用分离'
+        ],
+        TH: [
+          'ตั้งค่าความเสี่ยง HQ: เพิ่มการ์ดสถานะการกรองความเสี่ยงร้านค้า (ตาม HQ / ไม่ใช้ / แยก)',
+          'บันทึกรูปแบบและเงื่อนไขแบบอินไลน์ในตารางทริกเกอร์และการกรอง',
+          'ทับตัวกรองล่วงหน้าต่อร้าน (ปิดใช้ปิดเฉพาะร้าน) — แยกจากปิดทริกเกอร์'
+        ]
+      }
+    },
+    {
+      version: '2.88',
+      kind: 'minor',
+      date: '2026-08-11',
+      items: {
+        KO: [
+          '긴급: JPAY 사후 고위험·PY0124 FAIL 이 「사후 쿨다운 미사용」이면 위험관리(실패 쿨다운·자동 비활성) 집계에서 빠지던 오류 수정 — 위험관리 사용 시 항상 집계',
+          '사후 옵션은 운영관리 리스크 현황 기록만 제어하도록 문구·다국어 정리'
+        ],
+        EN: [
+          'Hotfix: JPAY post-sale high-risk/PY0124 FAILs were skipped from risk management (cooldown/auto inactive) when postsale toggles were off — they now always count when risk management is on',
+          'Postsale toggles now only control Ops Risk status logging; UI/i18n clarified'
+        ],
+        JP: [
+          '緊急: JPAY事後ハイリスク・PY0124 FAILが「事後クールダウン未使用」だと危険管理(失敗クールダウン・自動非活性)集計から外れていた不具合を修正 — 危険管理ON時は常に集計',
+          '事後オプションは運用リスク状況の記録のみ制御するよう文言・多言語を整理'
+        ],
+        CH: [
+          '紧急：修复「事后冷却关闭」时 JPAY 事后高风险/PY0124 失败不计入风险管理（冷却/自动停用）的问题 — 开启风险管理时始终计入',
+          '事后选项仅控制运营风险现状记录；文案与多语言已整理'
+        ],
+        TH: [
+          'ด่วน: แก้กรณี JPAY high-risk/PY0124 FAIL ไม่ถูกนับในบริหารความเสี่ยงเมื่อปิดโพสต์เซลล์ — ตอนเปิดบริหารความเสี่ยงจะนับเสมอ',
+          'ตัวเลือกโพสต์เซลล์ควบคุมแค่บันทึกสถานะความเสี่ยง ปรับข้อความ/i18n'
+        ]
+      }
+    },
     {
       version: '2.87',
       kind: 'minor',

@@ -473,11 +473,10 @@ public class JpaySaleRecordService {
 
     private void recordSyncNonSuccessCooldown(PgTrnsctn t, String msg, String panDigits) {
         String postSaleCode = JpayPostSaleRiskOutcomeUtil.classify(msg);
-        if (postSaleCode != null) {
+        if (postSaleCode != null
+                && jpayPostSaleRiskCooldownService.shouldRecordPostSaleEvent(postSaleCode)) {
+            /* 리스크 현황 기록만 옵션. 위험관리(쿨다운·자동 비활성) 집계는 아래 FAIL 경로로 항상 진행 */
             jpayPostSaleRiskCooldownService.recordPostSaleEvent(t, postSaleCode, msg);
-            if (!jpayPostSaleRiskCooldownService.shouldCountCooldown(postSaleCode)) {
-                return;
-            }
         }
         Long orgUnitId = resolveOrgUnitId(t);
         String pan = resolvePanForCooldown(panDigits, t);

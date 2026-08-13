@@ -142,7 +142,7 @@ public class ApiHqNotifyEnvController {
     }
 
     @GetMapping("/internalTargets")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> internalTargets() {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> internalTargets() {
         return ResponseEntity.ok(ApiResponse.ok(hqNotifyEnvService.listNotiInternalTargets()));
     }
 

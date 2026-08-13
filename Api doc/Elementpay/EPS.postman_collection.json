@@ -1,0 +1,1769 @@
+{
+	"info": {
+		"_postman_id": "c10deec2-841d-453d-a615-f54f98bcd36c",
+		"name": "EPS",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "34230687"
+	},
+	"item": [
+		{
+			"name": "EPS Sandbox new",
+			"item": [
+				{
+					"name": "Clients API",
+					"item": [
+						{
+							"name": "Balance Report",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-client-api-token",
+										"value": "Enter Client API Key"
+									}
+								],
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/clientApi/balance",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"clientApi",
+										"balance"
+									]
+								},
+								"description": "Get merchant balances "
+							},
+							"response": []
+						},
+						{
+							"name": "List Banks",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-client-api-token",
+										"value": "Enter Client API Key"
+									}
+								],
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/clientApi/banks?limit=Number&offset=Number",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"clientApi",
+										"banks"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "Number",
+											"description": "(optional, default: 20) Limit of banks in query result list"
+										},
+										{
+											"key": "offset",
+											"value": "Number",
+											"description": "(optional, default: 0) Start position of showed records "
+										}
+									]
+								},
+								"description": "Fetch list of allowed banks with bank codes that should be used for prepare transfer"
+							},
+							"response": []
+						},
+						{
+							"name": "List Countries",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-client-api-token",
+										"value": "Enter Client API Key"
+									}
+								],
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/clientApi/countries",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"clientApi",
+										"countries"
+									]
+								},
+								"description": "Fetch list of countries"
+							},
+							"response": []
+						},
+						{
+							"name": "List Currencies",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-client-api-token",
+										"value": "Enter Client API Key"
+									}
+								],
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/clientApi/currencies",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"clientApi",
+										"currencies"
+									],
+									"query": [
+										{
+											"key": "",
+											"value": "",
+											"disabled": true
+										}
+									]
+								},
+								"description": "Fetch list of currencies by ISO standard(ISO 4217:2015) https://www.iso.org/iso-4217-currency-codes.html https://www.currency-iso.org/en/home/tables/table-a1.html "
+							},
+							"response": []
+						},
+						{
+							"name": "Create Payout",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "x-client-api-token",
+										"value": "Enter Client API Key"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/x-www-form-urlencoded"
+									}
+								],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "amount",
+											"value": "Float(15,2)",
+											"description": "Optional. Float(15,2). If amount not specified - all available balance turns to Payout",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/clientApi/payouts",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"clientApi",
+										"payouts"
+									]
+								},
+								"description": "Creates a new payout with available amount"
+							},
+							"response": []
+						},
+						{
+							"name": "List Payouts",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-client-api-token",
+										"value": "Enter Client API Key"
+									}
+								],
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/clientApi/payouts?limit=Number&offset=Number&order=String(1)",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"clientApi",
+										"payouts"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "Number",
+											"description": "(optional, default: 20) Limit of payouts in query result list"
+										},
+										{
+											"key": "offset",
+											"value": "Number",
+											"description": "(optional, default: 0) Start position of showed records "
+										},
+										{
+											"key": "order",
+											"value": "String(1)",
+											"description": "(optional, default: \"\") Order of records returned.  By default, entries will be sorted from earliest to latest. To sort from latest to earliest, please put the value \"-\" in the `order` parameter. "
+										}
+									]
+								},
+								"description": "Control and manage a merchant balances "
+							},
+							"response": []
+						},
+						{
+							"name": "Get Payout",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-client-api-token",
+										"value": "Enter Client API Key"
+									}
+								],
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/clientApi/payouts/{specify_payout_id}",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"clientApi",
+										"payouts",
+										"{specify_payout_id}"
+									]
+								},
+								"description": "Get data of exact payout by id. "
+							},
+							"response": []
+						},
+						{
+							"name": "Search payments",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-client-api-token",
+										"value": "Enter Client API key",
+										"description": "Client API key obtained from client’s cabinet",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/clientApi/payments?filter=Filter values&limit=Number&offset=Number&order=String(1)",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"clientApi",
+										"payments"
+									],
+									"query": [
+										{
+											"key": "filter",
+											"value": "Filter values",
+											"description": "Example value: {\"date_from\":\"08.11.2020\",\"date_to\":\"09.11.2020\"}"
+										},
+										{
+											"key": "limit",
+											"value": "Number",
+											"description": "(optional, default: 20) Limit of records in query result list"
+										},
+										{
+											"key": "offset",
+											"value": "Number",
+											"description": "(optional, default: \"\") Order of records returned.  By default, entries will be sorted from earliest to latest. To sort from latest to earliest, please put the value \"-\" in the `order` parameter. "
+										},
+										{
+											"key": "order",
+											"value": "String(1)",
+											"description": "(optional, String(1), default: \"\") Order of records returned.  By default, entries will be sorted from earliest to latest. To sort from latest to earliest, please put the value \"-\" in the `order` parameter. "
+										}
+									]
+								},
+								"description": "Returns payments by filters"
+							},
+							"response": []
+						},
+						{
+							"name": "Stat report",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-client-api-token",
+										"value": "Enter Client API key",
+										"description": "Client API key obtained from client’s cabinet",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/clientApi/payments/statistics?filter=Filter values",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"clientApi",
+										"payments",
+										"statistics"
+									],
+									"query": [
+										{
+											"key": "filter",
+											"value": "Filter values",
+											"description": "Example value: {\"date_from\":\"08.11.2020\",\"date_to\":\"09.11.2020\"}"
+										}
+									]
+								},
+								"description": "It returns overall statistics."
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Callback API",
+					"item": [
+						{
+							"name": "Pay notification",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "method",
+											"value": "pay",
+											"description": "Specifies the name of callback method. Valid values: \"pay\"",
+											"type": "text"
+										},
+										{
+											"key": "id",
+											"value": "Number",
+											"description": "Payment ID in the system",
+											"type": "text"
+										},
+										{
+											"key": "service_id",
+											"value": "Number",
+											"description": "Payment method ID",
+											"type": "text"
+										},
+										{
+											"key": "amount",
+											"value": "Number",
+											"description": "Payment amount in the currency of the payee",
+											"type": "text"
+										},
+										{
+											"key": "order",
+											"value": "String",
+											"description": "Payment ID in the payee’s system",
+											"type": "text"
+										},
+										{
+											"key": "timestamp",
+											"value": "Number",
+											"description": "Unix timestamp at the time of request",
+											"type": "text"
+										},
+										{
+											"key": "attributes",
+											"value": "String[]",
+											"description": "Custom additional options/parameters",
+											"type": "text"
+										},
+										{
+											"key": "data",
+											"value": "String",
+											"description": "merchant's additional data attribute. If you use LightApi, this parameter will has object with your custom order in \"merchantOrder\" node. For example: {\"merchantOrder\":\"r126\"}",
+											"type": "text"
+										},
+										{
+											"key": "hash",
+											"value": "String",
+											"description": "Request hash",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "http(s)://callback_url/",
+									"protocol": "http(s)",
+									"host": [
+										"callback_url"
+									],
+									"path": [
+										""
+									]
+								},
+								"description": "This method is used to get payment status if the system has received an ambiguous response to the notification of payment."
+							},
+							"response": []
+						},
+						{
+							"name": "Check payment",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "method",
+											"value": "check",
+											"description": "Specifies the name of callback method. \"check\"",
+											"type": "text"
+										},
+										{
+											"key": "id",
+											"value": "Number",
+											"description": "Payment ID in the system",
+											"type": "text"
+										},
+										{
+											"key": "service_id",
+											"value": "Number",
+											"description": "Payment method ID",
+											"type": "text"
+										},
+										{
+											"key": "amount",
+											"value": "Number",
+											"description": "Payment amount in the currency of the payee",
+											"type": "text"
+										},
+										{
+											"key": "order",
+											"value": "String",
+											"description": "Payment ID in the payee’s system",
+											"type": "text"
+										},
+										{
+											"key": "timestamp",
+											"value": "Number",
+											"description": "Unix timestamp at the time of request",
+											"type": "text"
+										},
+										{
+											"key": "data",
+											"value": "String[]",
+											"description": "Merchant's additional data attribute. If you use LightApi, this parameter will has object with your custom order in \"merchantOrder\" node. For example: {\"merchantOrder\":\"r126\"}",
+											"type": "text"
+										},
+										{
+											"key": "hash",
+											"value": "",
+											"description": "Request hash",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "http(s)://merchant/callback/url",
+									"protocol": "http(s)",
+									"host": [
+										"merchant"
+									],
+									"path": [
+										"callback",
+										"url"
+									]
+								},
+								"description": "After payment is confirmed by the payer (user), the system sends a request to merchant's endpoint to validate payment data."
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Merchant API",
+					"item": [
+						{
+							"name": "Create Payment",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const service_id = 'enter Service ID';",
+											"const amount = 'enter Amount';",
+											"const order = 'enter Order ID';",
+											"const key = 'enter Merchant key';",
+											"const secret = 'enter Secret key';",
+											"const timestamp = new Date().getTime();",
+											"",
+											"const encode = function (value) {",
+											"    return encodeURIComponent(value)",
+											"        .replace(",
+											"            /[!'()*]/g,",
+											"            (c) => '%' + c.charCodeAt(0).toString(16)",
+											"        );",
+											"};",
+											"const stringify = function (obj) {",
+											"    if (typeof obj !== 'object') return '';",
+											"    return Object.keys(obj)",
+											"        .map(k => encode(k) + '=' + encode(obj[k]))",
+											"        .join('&');",
+											"}",
+											"",
+											"const queryParams = stringify({",
+											"    service_id,",
+											"    amount,",
+											"    order,",
+											"    key,",
+											"    timestamp",
+											"});",
+											"",
+											"const forHmac = 'initPayment?' + queryParams;",
+											"const hmacKey = CryptoJS.enc.Utf8.parse(secret);",
+											"const hmac = CryptoJS.enc.Hex.stringify(CryptoJS.HmacSHA1(forHmac, hmacKey));",
+											"",
+											"pm.globals.set('service_id', service_id);",
+											"pm.globals.set('amount', amount);",
+											"pm.globals.set('order', order);",
+											"pm.globals.set('timestamp', timestamp);",
+											"pm.globals.set('key', key);",
+											"pm.globals.set('hmac', hmac.toString());"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "service_id",
+											"value": "{{service_id}}",
+											"description": "Payment method id or alias",
+											"type": "text"
+										},
+										{
+											"key": "amount",
+											"value": "{{amount}}",
+											"description": "Payment amount in float format",
+											"type": "text"
+										},
+										{
+											"key": "order",
+											"value": "{{order}}",
+											"description": "Alphanumeric merchant's order",
+											"type": "text"
+										},
+										{
+											"key": "key",
+											"value": "{{key}}",
+											"description": "UUID like merchant public key",
+											"type": "text"
+										},
+										{
+											"key": "timestamp",
+											"value": "{{timestamp}}",
+											"description": "Timestamp at the moment of Unix timestamp request formation",
+											"type": "text"
+										},
+										{
+											"key": "hash",
+											"value": "{{hmac}}",
+											"description": "hmac-sha1 hash request",
+											"type": "text"
+										},
+										{
+											"key": "ttl",
+											"value": "",
+											"description": "Optional. Custom time to life of payment (in seconds). Cannot be less or equal zero. Cannot be greater than TTL described at the payment method",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "additional_parameters",
+											"value": "",
+											"description": "Optional. Additional parameters which required selected payment method",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "_successUrl",
+											"value": "",
+											"description": "Optional. special parameter which can help to setup custom redirect url for success payment",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "_rejectUrl",
+											"value": "",
+											"description": "Optional. special parameter which can help to setup custom redirect url for failed payment",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "_waitingUrl",
+											"value": "",
+											"description": "Optional. special parameter which can help to setup custom redirect url for proccessing payment",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "_merchantData",
+											"value": "",
+											"description": "Optional. special parameter which can help to transfer any data for callback method",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "currency",
+											"value": "",
+											"description": "Currency of invoice",
+											"type": "text",
+											"disabled": true
+										}
+									]
+								},
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/merchant/initPayment",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"merchant",
+										"initPayment"
+									]
+								},
+								"description": "This method is used to initialize payment by a selected payment method. The response includes information to be displayed to the user or redirect-URL to confirm the user’s intention to make payment."
+							},
+							"response": []
+						},
+						{
+							"name": "Payment Status",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const payment_id = 'enter Payment ID';",
+											"const timestamp = new Date().getTime();",
+											"const key = 'enter Merchant key';",
+											"const secret = 'enter Secret key';",
+											"const forHmac = 'getStatus?payment_id=' + payment_id.toString() + '&' + 'key=' + key.toString() + '&' + 'timestamp=' + timestamp.toString();",
+											"const hmacKey = CryptoJS.enc.Utf8.parse(secret);",
+											"const hmac = CryptoJS.enc.Hex.stringify(CryptoJS.HmacSHA1(forHmac, hmacKey));",
+											"pm.globals.set('payment_id', payment_id)",
+											"pm.globals.set('timestamp', timestamp);",
+											"pm.globals.set('key', key);",
+											"pm.globals.set('hmac', hmac.toString());"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "payment_id",
+											"value": "{{payment_id}}",
+											"description": "Payment ID in the system",
+											"type": "text"
+										},
+										{
+											"key": "key",
+											"value": "{{key}}",
+											"description": "UUID like merchant public key",
+											"type": "text"
+										},
+										{
+											"key": "timestamp",
+											"value": "{{timestamp}}",
+											"description": "Timestamp at the moment of Unix timestamp request formation",
+											"type": "text"
+										},
+										{
+											"key": "hash",
+											"value": "{{hmac}}",
+											"description": "Signature of request",
+											"type": "text"
+										},
+										{
+											"key": "order",
+											"value": "",
+											"description": "Optional. Alphanumeric merchant's order",
+											"type": "text",
+											"disabled": true
+										}
+									]
+								},
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/merchant/getStatus",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"merchant",
+										"getStatus"
+									]
+								},
+								"description": "This method is used for getting the payment status in the system."
+							},
+							"response": []
+						},
+						{
+							"name": "Create Refund",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const payment_id = 'Enter Payment ID';",
+											"const timestamp = new Date().getTime();",
+											"const key = 'Enter Merchant Key';",
+											"const secret = 'Enter Secret Key';",
+											"const forHmac = 'initRefund?payment_id=' + payment_id.toString() + '&' + 'key=' + key.toString() + '&' + 'timestamp=' + timestamp.toString();",
+											"const hmacKey = CryptoJS.enc.Utf8.parse(secret);",
+											"const hmac = CryptoJS.enc.Hex.stringify(CryptoJS.HmacSHA1(forHmac, hmacKey));",
+											"pm.globals.set('payment_id', payment_id);",
+											"pm.globals.set('timestamp', timestamp);",
+											"pm.globals.set('key', key);",
+											"pm.globals.set('hmac', hmac.toString());"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "payment_id",
+											"value": "{{payment_id}}",
+											"description": "Payment ID in the system",
+											"type": "text"
+										},
+										{
+											"key": "key",
+											"value": "{{key}}",
+											"description": "UUID like merchant public key",
+											"type": "text"
+										},
+										{
+											"key": "timestamp",
+											"value": "{{timestamp}}",
+											"description": "Timestamp at the moment of Unix timestamp request formation",
+											"type": "text"
+										},
+										{
+											"key": "hash",
+											"value": "{{hmac}}",
+											"description": "Signature of request",
+											"type": "text"
+										},
+										{
+											"key": "order",
+											"value": "",
+											"description": "Optional. Payment ID in the payee’s system",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "reason",
+											"value": "",
+											"description": "Optional. Reason of refund",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "amount",
+											"value": "",
+											"description": "Optional. Amount of refund. By default used all payment amount",
+											"type": "text",
+											"disabled": true
+										}
+									]
+								},
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/merchant/initRefund",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"merchant",
+										"initRefund"
+									]
+								},
+								"description": "This method is used for initialization of refund process"
+							},
+							"response": []
+						},
+						{
+							"name": "Get About",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const timestamp = new Date().getTime();",
+											"const key = 'enter Merchant key';",
+											"const secret = 'enter Secret key';",
+											"const forHmac = 'getAbout?key=' + key.toString() + '&' + 'timestamp=' + timestamp.toString();",
+											"const hmacKey = CryptoJS.enc.Utf8.parse(secret);",
+											"const hmac = CryptoJS.enc.Hex.stringify(CryptoJS.HmacSHA1(forHmac, hmacKey));",
+											"pm.globals.set('timestamp', timestamp);",
+											"pm.globals.set('key', key);",
+											"pm.globals.set('hmac', hmac.toString());"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "key",
+											"value": "{{key}}",
+											"description": "UUID like merchant public key",
+											"type": "text"
+										},
+										{
+											"key": "timestamp",
+											"value": "{{timestamp}}",
+											"description": "Timestamp at the moment of Unix timestamp request formation",
+											"type": "text"
+										},
+										{
+											"key": "hash",
+											"value": "{{hmac}}",
+											"description": "Signature of request",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/merchant/getAbout",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"merchant",
+										"getAbout"
+									]
+								},
+								"description": "This method is used for getting information about yourself"
+							},
+							"response": []
+						},
+						{
+							"name": "List Payment Methods",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const timestamp = new Date().getTime();",
+											"const key = 'enter Merchant key';",
+											"const secret = 'enter Secret key';",
+											"const forHmac = 'getMethods?key=' + key.toString() + '&' + 'timestamp=' + timestamp.toString();",
+											"const hmacKey = CryptoJS.enc.Utf8.parse(secret);",
+											"const hmac = CryptoJS.enc.Hex.stringify(CryptoJS.HmacSHA1(forHmac, hmacKey));",
+											"pm.globals.set('timestamp', timestamp);",
+											"pm.globals.set('key', key);",
+											"pm.globals.set('hmac', hmac.toString());"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "key",
+											"value": "{{key}}",
+											"description": "UUID like merchant public key",
+											"type": "text"
+										},
+										{
+											"key": "timestamp",
+											"value": "{{timestamp}}",
+											"description": "Timestamp at the moment of Unix timestamp request formation",
+											"type": "text"
+										},
+										{
+											"key": "hash",
+											"value": "{{hmac}}",
+											"description": "Signature of request",
+											"type": "text"
+										},
+										{
+											"key": "service_id",
+											"value": "",
+											"description": "Optional. Filter by payment method id or payment alias.",
+											"type": "text",
+											"disabled": true
+										}
+									]
+								},
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/merchant/getMethods",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"merchant",
+										"getMethods"
+									]
+								},
+								"description": "The method returns a list of available payment methods for payee"
+							},
+							"response": []
+						},
+						{
+							"name": "List Payment Categories",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const timestamp = new Date().getTime();",
+											"const key = 'enter Merchant key';",
+											"const secret = 'enter Secret key';",
+											"const forHmac = 'getCategories?key=' + key.toString() + '&' + 'timestamp=' + timestamp.toString();",
+											"const hmacKey = CryptoJS.enc.Utf8.parse(secret);",
+											"const hmac = CryptoJS.enc.Hex.stringify(CryptoJS.HmacSHA1(forHmac, hmacKey));",
+											"pm.globals.set('timestamp', timestamp);",
+											"pm.globals.set('key', key);",
+											"pm.globals.set('hmac', hmac.toString());"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "key",
+											"value": "{{key}}",
+											"description": "UUID like merchant public key",
+											"type": "text"
+										},
+										{
+											"key": "timestamp",
+											"value": "{{timestamp}}",
+											"description": "Timestamp at the moment of Unix timestamp request formation",
+											"type": "text"
+										},
+										{
+											"key": "hash",
+											"value": "{{hmac}}",
+											"description": "Signature of request",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/merchant/getCategories",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"merchant",
+										"getCategories"
+									]
+								},
+								"description": "This method is used for getting information about service's categories"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Transfer API",
+					"item": [
+						{
+							"name": "Create Recipient",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "x-client-api-token",
+										"value": "Enter Client API Key"
+									}
+								],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "bank_id",
+											"value": "Number(3)",
+											"description": "(mandatory) Bank id of SYSTEM side, list of banks. The same as registration number, but without prefix zeros, e.g. \"002\" == 2 ",
+											"type": "text"
+										},
+										{
+											"key": "account",
+											"value": "String(36)",
+											"description": "(mandatory) Bank account number ",
+											"type": "text"
+										},
+										{
+											"key": "name",
+											"value": "String(64)",
+											"description": "(mandatory) Full name of recipient bank account ",
+											"type": "text"
+										},
+										{
+											"key": "type",
+											"value": "String(ENUM)",
+											"description": "(mandatory) Type of bank account ENUM [\"personal\", \"company\"] ",
+											"type": "text"
+										},
+										{
+											"key": "country",
+											"value": "String(2)",
+											"description": "(mandatory) Country code of citizenship ",
+											"type": "text"
+										},
+										{
+											"key": "phone",
+											"value": "String(20)",
+											"description": "(optional, default: \"\") Phone of  recipient. All non-digital characters will be deleted before validation. Example: \"66123456789\" ",
+											"type": "text"
+										},
+										{
+											"key": "active",
+											"value": "Bool",
+											"description": "(optional, default: false) Activate recipient after creation ",
+											"type": "text"
+										},
+										{
+											"key": "citizen_id",
+											"value": "String(16)",
+											"description": "(optional, default: \"\") Id of citizen's document: Thai national ID card number, Passport number or etc. ",
+											"type": "text"
+										},
+										{
+											"key": "tax_id",
+											"value": "String(16)",
+											"description": "(optional, default: \"\") tax_id of recipient bank account ",
+											"type": "text"
+										},
+										{
+											"key": "email",
+											"value": "String(40)",
+											"description": "(optional, default: \"\") Email of recipient bank account ",
+											"type": "text"
+										},
+										{
+											"key": "city",
+											"value": "String(30)",
+											"description": "(optional, default: \"\") City of recipient residence ",
+											"type": "text"
+										},
+										{
+											"key": "zip",
+											"value": "String(10)",
+											"description": "(optional, default: \"\") Zip-code of recipient residence",
+											"type": "text"
+										},
+										{
+											"key": "address",
+											"value": "String(255)",
+											"description": "(optional, default: \"\") Address of recipient residence ",
+											"type": "text"
+										},
+										{
+											"key": "description",
+											"value": "String(255)",
+											"description": "(optional, default: \"\") Description of recipient ",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/clientApi/recipients/",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"clientApi",
+										"recipients",
+										""
+									]
+								},
+								"description": "Creates and returns a new recipient"
+							},
+							"response": []
+						},
+						{
+							"name": "List Recipients",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-client-api-token",
+										"value": "Enter Client API Key"
+									}
+								],
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/clientApi/recipients?limit=Number&offset=Number&order=String(1)",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"clientApi",
+										"recipients"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "Number",
+											"description": "(optional, default: 20) Limit of records in query result list"
+										},
+										{
+											"key": "offset",
+											"value": "Number",
+											"description": "(optional, default: 0) Start position of showed records "
+										},
+										{
+											"key": "order",
+											"value": "String(1)",
+											"description": "(optional, default: \"\") Order of records returned.  By default, entries will be sorted from earliest to latest. To sort from latest to earliest, please put the value \"-\" in the `order` parameter. "
+										}
+									]
+								},
+								"description": "Control and manage a recipients for transfers"
+							},
+							"response": []
+						},
+						{
+							"name": "Get Recipient",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-client-api-token",
+										"value": "Enter Client API Key"
+									}
+								],
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/clientApi/recipients/{specify_recipient_id}",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"clientApi",
+										"recipients",
+										"{specify_recipient_id}"
+									]
+								},
+								"description": "Returns an exact recipient by id"
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Recipient",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "x-client-api-token",
+										"value": "Enter Client API Key"
+									}
+								],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": []
+								},
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/clientApi/recipients/{specify_recipient_id}",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"clientApi",
+										"recipients",
+										"{specify_recipient_id}"
+									]
+								},
+								"description": "Delete and returns a result recipient info. "
+							},
+							"response": []
+						},
+						{
+							"name": "Update Recipient",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "x-client-api-token",
+										"value": "Enter Client API Key"
+									}
+								],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "bank_id",
+											"value": "Number(3)",
+											"description": "Bank id of SYSTEM side, list of banks. The same as registration number, but without prefix zeros, e.g. \"002\" == 2. Cant be empty. Can’t be changed for verified recipient. ",
+											"type": "text"
+										},
+										{
+											"key": "account",
+											"value": "String(36)",
+											"description": "Bank account number. Cant be empty. Can’t be changed for verified recipient. ",
+											"type": "text"
+										},
+										{
+											"key": "name",
+											"value": "String(64)",
+											"description": "Full name of recipient bank account. Cant be empty. Can’t be changed for verified recipient. ",
+											"type": "text"
+										},
+										{
+											"key": "type",
+											"value": "String(ENUM)",
+											"description": "Type of bank account  ENUM[personal, company]. Cant be empty. Can’t be changed for verified recipient.",
+											"type": "text"
+										},
+										{
+											"key": "country",
+											"value": "String(2)",
+											"description": "Country code. Cant be empty. Can’t be changed for verified recipient. ",
+											"type": "text"
+										},
+										{
+											"key": "phone",
+											"value": "String(20)",
+											"description": "Phone of recipient. All non-digital characters will be deleted before validation. Example: \"66123456789\". Cant be empty. Can’t be changed for verified recipient. ",
+											"type": "text"
+										},
+										{
+											"key": "active",
+											"value": "Bool",
+											"description": "Activate or Deactivate recipient ",
+											"type": "text"
+										},
+										{
+											"key": "citizen_id",
+											"value": "String(16)",
+											"description": "Id of citizen's document: Thai national ID card number, Passport number or etc. ",
+											"type": "text"
+										},
+										{
+											"key": "tax_id",
+											"value": "String(16)",
+											"description": "tax_id of recipient bank account ",
+											"type": "text"
+										},
+										{
+											"key": "email",
+											"value": "String(40)",
+											"description": "Email of recipient bank account ",
+											"type": "text"
+										},
+										{
+											"key": "city",
+											"value": "String(30)",
+											"description": "City of recipient residence  ",
+											"type": "text"
+										},
+										{
+											"key": "zip",
+											"value": "String(10)",
+											"description": "Zip-code of recipient residence ",
+											"type": "text"
+										},
+										{
+											"key": "address",
+											"value": "String(255)",
+											"description": "Address of recipient residence ",
+											"type": "text"
+										},
+										{
+											"key": "description",
+											"value": "String(255)",
+											"description": "Description of recipient",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/clientApi/recipients/{specify_recipient_id}",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"clientApi",
+										"recipients",
+										"{specify_recipient_id}"
+									]
+								},
+								"description": "Update and returns a recipient data."
+							},
+							"response": []
+						},
+						{
+							"name": "Create Transfer",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "x-client-api-token",
+										"value": "Enter Client API Key"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "recipient",
+											"value": "String(36)",
+											"description": "UUID of the recipient who should receive the transfer",
+											"type": "text"
+										},
+										{
+											"key": "order_id",
+											"value": "String(36)",
+											"description": "Order ID of the transfer on the Merchant's side",
+											"type": "text"
+										},
+										{
+											"key": "amount",
+											"value": "Float",
+											"description": "Amount of transfer",
+											"type": "text"
+										},
+										{
+											"key": "currency",
+											"value": "String(3)",
+											"description": "(optional, default: \"THB\") Currency of transfer",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "description",
+											"value": "String(255)",
+											"description": "(optional, default: \"\") Description of the transfer",
+											"type": "text",
+											"disabled": true
+										}
+									]
+								},
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/clientApi/transfers",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"clientApi",
+										"transfers"
+									]
+								},
+								"description": "Creates and returns a new transfer. "
+							},
+							"response": []
+						},
+						{
+							"name": "List Transfers",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-client-api-token",
+										"value": "Enter Client API Key"
+									}
+								],
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/clientApi/transfers?limit=Number&offset=Number&order=String(1)",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"clientApi",
+										"transfers"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "Number",
+											"description": "(optional, default: 20) Limit of records in query result list"
+										},
+										{
+											"key": "offset",
+											"value": "Number",
+											"description": "(optional, default: 0) Start position of showed records "
+										},
+										{
+											"key": "order",
+											"value": "String(1)",
+											"description": "(optional, default: \"\") Order of records returned.  By default, entries will be sorted from earliest to latest. To sort from latest to earliest, please put the value \"-\" in the `order` parameter. "
+										}
+									]
+								},
+								"description": "Returns a list of transfers belonging to merchant account."
+							},
+							"response": []
+						},
+						{
+							"name": "Get Transfer",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-client-api-token",
+										"value": "Enter Client API Key"
+									}
+								],
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/clientApi/transfers/{specify_transfer_id}",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"clientApi",
+										"transfers",
+										"{specify_transfer_id}"
+									]
+								},
+								"description": "Returns a transfer by id belonging to merchant account "
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Transfer",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "x-client-api-token",
+										"value": "Enter Client API Key"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/clientApi/transfers/{specify_transfer_id}",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"clientApi",
+										"transfers",
+										"{specify_transfer_id}"
+									]
+								},
+								"description": "Update a transfer by id "
+							},
+							"response": []
+						},
+						{
+							"name": "Reject Transfer",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "x-client-api-token",
+										"value": "Enter Client API Key"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"disabled": true
+									}
+								],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": []
+								},
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/clientApi/transfers/{specify_transfer_id}/reject",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"clientApi",
+										"transfers",
+										"{specify_transfer_id}",
+										"reject"
+									]
+								},
+								"description": "Reject a transfer by id "
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Authorizer API",
+					"item": [
+						{
+							"name": "Version",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/authorizer",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"authorizer"
+									]
+								},
+								"description": "Version info"
+							},
+							"response": []
+						},
+						{
+							"name": "Authorize",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "X-Api-Key",
+										"value": "<string>",
+										"description": "Mandatory. Specify your Authorizer API key"
+									},
+									{
+										"key": "X-Timestamp",
+										"value": "<number>",
+										"description": "Mandatory. Number of seconds from Unix epoch till now in UTC\nNote! A valid interval range is +\\- 15 sec from current timestamp, otherwise request will be refused."
+									},
+									{
+										"key": "X-Signature",
+										"value": "<string>",
+										"description": "Mandatory. Signature of request body"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"description": "Mandatory"
+									},
+									{
+										"key": "X-Idempotency-Key",
+										"value": "<string>",
+										"description": "Optional HTTP header, API requests contains header the\nidempotency key - for safely retrying requests without accidentally performing the same\noperation twice"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"id\": \"<string>\",\n    \"order_id\": \"<string>\",\n    \"amount\": \"Optional. <number>\",\n    \"currency\": \"Optional. <string>\",\n    \"client_amount\": \"Optional. <number>\",\n    \"client_currency\": \"Optional. <string>\",\n    \"recipient\": \"Optional. <string>\"\n}"
+								},
+								"url": {
+									"raw": "https://api-sbox.elementpay.io/authorizer/transfers/authorize",
+									"protocol": "https",
+									"host": [
+										"api-sbox",
+										"elementpay",
+										"io"
+									],
+									"path": [
+										"authorizer",
+										"transfers",
+										"authorize"
+									]
+								},
+								"description": "Use this route to authorize previously created transfers\n\nThis route is behind a firewall, so please use the Merchant Cabinet to specify the IP addresses of your authorizer service before using it.\n\nTo identify the transfer, you can use our UUID as `id` or you can specify your Order ID as `order_id`\n\nYou can provide additional data about transfer, such as `amount`, `currency`, `client_amount`, `client_currency` and `recipient`. If some of this data is provided, we will compare it with our data before completing the authorization.\n"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Callback Verification/Notification API",
+					"item": [
+						{
+							"name": "Verification/Notification event",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "method",
+											"value": "String(36)",
+											"description": "Name of event method",
+											"type": "text"
+										},
+										{
+											"key": "id",
+											"value": "String(36)",
+											"description": "UUID of transfer (SYSTEM side id of transfer)",
+											"type": "text"
+										},
+										{
+											"key": "order_id",
+											"value": "String(36)",
+											"description": "Order Id of transfer (Merchant side id of transfer)",
+											"type": "text"
+										},
+										{
+											"key": "recipient",
+											"value": "String(36)",
+											"description": "UUID of recipient (SYSTEM side id of recipient)",
+											"type": "text"
+										},
+										{
+											"key": "status",
+											"value": "String(36)",
+											"description": "Status of transfer",
+											"type": "text"
+										},
+										{
+											"key": "client_amount",
+											"value": "Float(15,2)",
+											"description": "Amount of customer transfer order",
+											"type": "text"
+										},
+										{
+											"key": "client_currency",
+											"value": "String(3)",
+											"description": "Currency of customer transfer order\n",
+											"type": "text"
+										},
+										{
+											"key": "amount",
+											"value": "Float(15,2)",
+											"description": "Amount of transfer that will be sent to recipient. Without fee",
+											"type": "text"
+										},
+										{
+											"key": "fee",
+											"value": "Float(15,2)",
+											"description": "Transaction fee",
+											"type": "text"
+										},
+										{
+											"key": "timestamp",
+											"value": "Digital(10)",
+											"description": "Current timestamp in unix format",
+											"type": "text"
+										},
+										{
+											"key": "hash",
+											"value": "String(36)",
+											"description": "Hash signature of body request",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "Please specify Merchant Verification/Notification callback URL",
+									"host": [
+										"Please specify Merchant Verification"
+									],
+									"path": [
+										"Notification callback URL"
+									]
+								},
+								"description": "Use this route to authorize previously created transfers\n\nThis route is behind a firewall, so please use the Merchant Cabinet to specify the IP addresses of your authorizer service before using it.\n\nTo identify the transfer, you can use our UUID as `id` or you can specify your Order ID as `order_id`\n\nYou can provide additional data about transfer, such as `amount`, `currency`, `client_amount`, `client_currency` and `recipient`. If some of this data is provided, we will compare it with our data before completing the authorization.\n"
+							},
+							"response": []
+						}
+					],
+					"description": "Callback (webhook) requests are sends from SYSTEM side to Merchant side.\r\n1. Verification request [optional] – verify transfer callback happens on the step 3 the next after create\r\ntransfer and authorize it and before send transfer to bank processing [step 3 in a Block-Scheme –\r\noptional request]. 'Verify' callback request can be sent for checking transfer before processing to 'Verify'\r\nserver in Merchant's server-side architecture for increase security level in case if 'Maker' server and\r\n'Authorize' server has been compromised or hacked.\r\n2. Notification request – it is a request of any event-related to transfer that the merchant has set for\r\nnotification. Notifications callbacks can be established for any type of event: create, success, reject, and\r\netc events. Each notification callback event can be set its own security keys."
+				}
+			]
+		}
+	]
+}

@@ -125,6 +125,8 @@ public class HqNotifyEnvService {
                 c.getNotiProvisionInternalTargetJpy() != null ? c.getNotiProvisionInternalTargetJpy() : "");
         m.put("notiProvisionInternalTargetUsd",
                 c.getNotiProvisionInternalTargetUsd() != null ? c.getNotiProvisionInternalTargetUsd() : "");
+        m.put("notiProvisionInternalTargetThb",
+                c.getNotiProvisionInternalTargetThb() != null ? c.getNotiProvisionInternalTargetThb() : "");
         m.put("notiProvisionDefaultDealmaiPartner",
                 c.getNotiProvisionDefaultDealmaiPartner() != null ? c.getNotiProvisionDefaultDealmaiPartner() : "");
         String npKey = c.getNotiProvisionApiKey();
@@ -503,8 +505,8 @@ public class HqNotifyEnvService {
     }
 
     @Transactional(readOnly = true)
-    public List<Map<String, Object>> listNotiInternalTargets() {
-        return notiInternalTargetCatalogService.listFromNoti(getOrCreate(), "ko");
+    public Map<String, Object> listNotiInternalTargets() {
+        return notiInternalTargetCatalogService.listFromNotiDetailed(getOrCreate(), "ko");
     }
 
     private void validateNotiProvisionInternalTargets(HqNotifyEnvConfig c) {
@@ -517,6 +519,7 @@ public class HqNotifyEnvService {
         }
         notiInternalTargetCatalogService.assertRegistered(nz(c.getNotiProvisionInternalTargetJpy()), targets);
         notiInternalTargetCatalogService.assertRegistered(nz(c.getNotiProvisionInternalTargetUsd()), targets);
+        notiInternalTargetCatalogService.assertRegistered(nz(c.getNotiProvisionInternalTargetThb()), targets);
         notiInternalTargetCatalogService.assertRegistered(nz(c.getNotiProvisionDefaultInternalTargetId()), targets);
     }
 
@@ -554,6 +557,11 @@ public class HqNotifyEnvService {
             changed = true;
             out.put("clearedInternalTargetUsd", true);
         }
+        if (code.equalsIgnoreCase(nz(c.getNotiProvisionInternalTargetThb()))) {
+            c.setNotiProvisionInternalTargetThb(null);
+            changed = true;
+            out.put("clearedInternalTargetThb", true);
+        }
         if (changed) {
             repository.save(c);
             out.put("cleared", true);
@@ -583,6 +591,10 @@ public class HqNotifyEnvService {
         if (body.containsKey("notiProvisionInternalTargetUsd")) {
             String tid = String.valueOf(body.get("notiProvisionInternalTargetUsd")).trim();
             c.setNotiProvisionInternalTargetUsd(tid.isEmpty() ? null : tid);
+        }
+        if (body.containsKey("notiProvisionInternalTargetThb")) {
+            String tid = String.valueOf(body.get("notiProvisionInternalTargetThb")).trim();
+            c.setNotiProvisionInternalTargetThb(tid.isEmpty() ? null : tid);
         }
         if (body.containsKey("notiProvisionDefaultDealmaiPartner")) {
             String p = String.valueOf(body.get("notiProvisionDefaultDealmaiPartner")).trim();

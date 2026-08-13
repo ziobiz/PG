@@ -12,7 +12,7 @@ import java.util.Locale;
  *   <li>{@code merchant_mid} — Merchant Key (UUID)</li>
  *   <li>{@code md5_secret_key} — API Secret Key (initPayment/getStatus HMAC)</li>
  *   <li>{@code api_key} — Webhook Signing Secret (check/pay 콜백 HMAC)</li>
- *   <li>{@code credentials_extra_json.cardServiceAlias} — 기본 {@code card}</li>
+ *   <li>{@code credentials_extra_json.cardServiceAlias} — 기본 {@code kCards} (EP THB 카드)</li>
  *   <li>{@code credentials_extra_json.promptPayServiceAlias} — 기본 {@code promptpay}</li>
  * </ul>
  */
@@ -32,7 +32,7 @@ public record ElementPayCredentials(
             return new ElementPayCredentials("", "", "", true, "card", "promptpay");
         }
         String extra = agency.getCredentialsExtraJson();
-        String cardAlias = "card";
+        String cardAlias = "kCards";
         String ppAlias = "promptpay";
         if (extra != null && !extra.isBlank()) {
             try {

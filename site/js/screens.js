@@ -459,10 +459,29 @@
       '<table class="table table-sm table-hover align-middle mb-0" id="grid_hqRiskMerchantList">' +
       '<thead class="table-light"><tr>' +
       pgUiThT('가맹점이름') + pgUiThT('업체코드') +
+      pgUiThT('방식') +
+      '<th class="text-center" style="min-width:4.5rem" data-pg-ui-t="저장">' + escUi(L('저장')) + '</th>' +
       pgUiThT('1차') + pgUiThT('2차') + pgUiThT('3차') + pgUiThT('4차') +
-      pgUiThT('자동 등록 트리거') + pgUiThT('추적기간') + pgUiThT('방식') + pgUiThT('수동등록') + pgUiThT('자동등록') + pgUiThT('최신등록') + pgUiThT('채널') +
+      pgUiThT('자동 등록 트리거') + pgUiThT('추적기간') +
+      pgUiThT('수동등록') + pgUiThT('자동등록') + pgUiThT('최신등록') + pgUiThT('채널') +
       '</tr></thead>' +
-      '<tbody id="hqRiskMerchantListTbody"><tr><td colspan="13" class="text-center text-muted py-3">' + escUi(L('불러오는 중…')) + '</td></tr></tbody></table></div>';
+      '<tbody id="hqRiskMerchantListTbody"><tr><td colspan="14" class="text-center text-muted py-3">' + escUi(L('불러오는 중…')) + '</td></tr></tbody></table></div>';
+  }
+
+  function hqRiskCardPolicyMerchantFilterTableHtml() {
+    return '<p class="small text-muted mb-2" data-pg-ui-t="hqRiskMerchantFilterNotice">' +
+      escUi(L('가맹점별 사전 리스크 필터링입니다. 트리거(위험 정책) 미사용과 별개이며, 기본은 본사설정을 따릅니다. 미사용으로 두면 해당 가맹만 사전필터를 끕니다. 별도설정이면 행에서 조건을 수정합니다. 업체정보 「리스크 사전필터트리거」또는 본 표에서 별도설정·저장하면 본사 리스크 필터링 기본값보다 우선 적용됩니다(동일 저장값).')) +
+      '</p>' +
+      '<div class="table-responsive border rounded hq-risk-merchant-filter-wrap">' +
+      '<table class="table table-sm table-hover align-middle mb-0" id="grid_hqRiskMerchantFilterList">' +
+      '<thead class="table-light"><tr>' +
+      pgUiThT('가맹점이름') + pgUiThT('업체코드') +
+      pgUiThT('방식') +
+      '<th class="text-center" style="min-width:4.5rem" data-pg-ui-t="저장">' + escUi(L('저장')) + '</th>' +
+      pgUiThT('연락처불일치') + pgUiThT('의심 holder') + pgUiThT('전화') + pgUiThT('이메일') +
+      pgUiThT('카드속도') + pgUiThT('이메일속도') + pgUiThT('IP속도') +
+      '</tr></thead>' +
+      '<tbody id="hqRiskMerchantFilterTbody"><tr><td colspan="11" class="text-center text-muted py-3">' + escUi(L('불러오는 중…')) + '</td></tr></tbody></table></div>';
   }
 
   function hqBulkOpsSectionHtml() {
@@ -521,7 +540,7 @@
       '<tbody id="hqBulkLoginTbody"><tr><td colspan="6" class="text-center text-muted py-3">' + escUi(L('등록된 규칙이 없습니다.')) + '</td></tr></tbody></table></div></div>';
   }
 
-  /** 가맹 등록·정보 — 리스크관리 트리거(쿨다운·자동 비활성) */
+  /** 가맹 등록·정보 — 리스크 위험관리트리거(쿨다운·자동 비활성) */
   function merchantCardRiskTriggerSection() {
     var hourOpts = riskCardPolicyHourOptions();
     var minOpts = riskCardPolicyMinOptions();
@@ -533,11 +552,11 @@
       ];
     }
     return {
-      title: '리스크관리 트리거',
+      title: '리스크 위험관리트리거',
       id: 'cardRiskTriggerCard',
       merchantOnly: true,
       cardExtraClass: 'card-risk-trigger-card',
-      notice: '동일 카드 FAIL·취소·무효·미결제 등 비성공이 누적되면 JPAY 호출 전 일시 차단(1~4차 대기)합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 성공은 자동등록 트리거 원인이 되지 않습니다. 자동 등록 트리거 N차: 추적기간 안에서 비성공 N회가 완료되는 즉시 비활성카드(마스킹)에 등록되며 (N+1)번째 결제 시도부터 차단됩니다. 기간정책 — 미사용: 기간 제한 없이 서비스 기간 내내 누적(성공 시 초기화), 본사정책 따름: 본사 추적기간을 사용, 별도정책: 가맹점 추적기간(일·월·년)·설정기간을 본사보다 우선 적용. 위험 정책 본사정책 따름 시 [본사설정 → 리스크설정]을 사용하며, 별도정책은 본사보다 우선합니다. 미사용 시 해당 가맹의 위험관리를 끕니다.',
+      notice: '동일 카드 FAIL·취소·무효·미결제 등 비성공이 누적되면 JPAY 호출 전 일시 차단(1~4차 대기)합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 성공은 자동등록 트리거 원인이 되지 않습니다. 자동 등록 트리거 N차: 추적기간 안에서 비성공 N회가 완료되는 즉시 비활성카드(마스킹)에 등록되며 (N+1)번째 결제 시도부터 차단됩니다. 기간정책 — 미사용: 기간 제한 없이 서비스 기간 내내 누적(성공 시 초기화), 본사정책 따름: 본사 추적기간을 사용, 별도정책: 가맹점 추적기간(일·월·년)·설정기간을 본사보다 우선 적용. 위험 정책 본사정책 따름 시 [본사설정 → 리스크설정]을 사용하며, 별도정책은 본사보다 우선합니다(본 화면 또는 본사 「가맹점 리스크 현황」에서 저장한 값이 동일하게 우선). 미사용 시 해당 가맹의 위험관리를 끕니다. 사전 리스크 필터링은 아래 「리스크 사전필터트리거」에서 별도 설정합니다.',
       rows: [
         [{ label: '위험 정책', type: 'select', name: 'cardRiskPolicyMode', col: 3,
           options: [
@@ -554,6 +573,39 @@
           options: riskCardPolicyTrackPeriodModeOptionsNoNone() },
          { label: '설정기간', type: 'number', name: 'cardRiskTrackPeriodValue', col: 2, cardRiskCustomOnly: true,
            placeholder: '1', min: 1, max: 9999, blockExtraClass: 'card-risk-track-period-value-block' }]
+      ]
+    };
+  }
+
+  /** 가맹 등록·정보 — 리스크 사전필터트리거(PG 송부 전 차단, 본사 리스크 필터링과 동일 항목) */
+  function merchantCardRiskPresaleSection() {
+    var ynOpts = [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }];
+    return {
+      title: '리스크 사전필터트리거',
+      id: 'cardRiskPresaleCard',
+      merchantOnly: true,
+      cardExtraClass: 'card-risk-presale-card',
+      notice: 'PG 송부 전 사전 차단입니다. 본사정책 따름이면 [본사설정 → 수수료·리스크 → 리스크 → 리스크 필터링]을 사용합니다. 별도정책이면 아래 조건을 가맹점 우선으로 적용합니다(본 화면 또는 본사 「가맹점 리스크 필터링」에서 저장한 값이 동일하게 우선). 미사용이면 해당 가맹만 사전필터를 끕니다. 위 「리스크 위험관리트리거」(쿨다운·자동 비활성)와는 별개입니다. 본사 사전필터 마스터가 미사용이면 별도정책이어도 사전필터는 동작하지 않습니다.',
+      rows: [
+        [{ label: '사전필터 정책', type: 'select', name: 'cardRiskPresaleMode', col: 3,
+          options: [
+            { v: 'FOLLOW_HQ', t: '본사정책 따름' },
+            { v: 'DISABLED', t: '미사용' },
+            { v: 'CUSTOM', t: '별도정책' }
+          ] }],
+        [{ label: '구매자 연락처 불일치', type: 'select', name: 'cardRiskPresaleBuyerMismatchYn', options: ynOpts, col: 3, cardPresaleCustomOnly: true },
+         { label: '의심 holder명', type: 'select', name: 'cardRiskPresaleHolderNameYn', options: ynOpts, col: 3, cardPresaleCustomOnly: true }],
+        [{ label: '비정상 전화번호', type: 'select', name: 'cardRiskPresalePhoneInvalidYn', options: ynOpts, col: 3, cardPresaleCustomOnly: true },
+         { label: '비정상 이메일', type: 'select', name: 'cardRiskPresaleEmailInvalidYn', options: ynOpts, col: 3, cardPresaleCustomOnly: true }],
+        [{ label: '카드 속도 제한', type: 'select', name: 'cardRiskPresaleVelocityCardYn', options: ynOpts, col: 2, cardPresaleCustomOnly: true },
+         { label: '카드 창(분)', type: 'number', name: 'cardRiskPresaleVelCardWinMin', col: 2, min: 1, max: 1440, placeholder: '10', cardPresaleCustomOnly: true },
+         { label: '카드 횟수', type: 'number', name: 'cardRiskPresaleVelCardMax', col: 2, min: 1, max: 99, placeholder: '3', cardPresaleCustomOnly: true }],
+        [{ label: '이메일 속도 제한', type: 'select', name: 'cardRiskPresaleVelocityEmailYn', options: ynOpts, col: 2, cardPresaleCustomOnly: true },
+         { label: '이메일 창(분)', type: 'number', name: 'cardRiskPresaleVelEmailWinMin', col: 2, min: 1, max: 1440, placeholder: '30', cardPresaleCustomOnly: true },
+         { label: '이메일 횟수', type: 'number', name: 'cardRiskPresaleVelEmailMax', col: 2, min: 1, max: 99, placeholder: '5', cardPresaleCustomOnly: true }],
+        [{ label: 'IP 속도 제한', type: 'select', name: 'cardRiskPresaleVelocityIpYn', options: ynOpts, col: 2, cardPresaleCustomOnly: true },
+         { label: 'IP 창(분)', type: 'number', name: 'cardRiskPresaleVelIpWinMin', col: 2, min: 1, max: 1440, placeholder: '15', cardPresaleCustomOnly: true },
+         { label: 'IP 횟수', type: 'number', name: 'cardRiskPresaleVelIpMax', col: 2, min: 1, max: 99, placeholder: '10', cardPresaleCustomOnly: true }]
       ]
     };
   }
@@ -2131,10 +2183,14 @@
     '<div class="alert alert-warning d-none mb-3" id="opsNpAccessDenied" role="alert"></div>' +
     '<div class="alert alert-info d-none mb-3" id="opsNpConfigHint" role="alert" data-pg-ui-t="본사설정 → 노티구성설정에서 NOTI Provision API 사용·베이스 URL·API 키를 저장한 뒤 이용하세요.">본사설정 → 노티구성설정에서 NOTI Provision API 사용·베이스 URL·API 키를 저장한 뒤 이용하세요.</div>' +
     '<div class="card mb-3" id="opsNpFormCard">' +
-    '<div class="card-header py-2 fw-semibold" data-pg-ui-t="JPAY 노티 생성">JPAY 노티 생성</div>' +
+    '<div class="card-header py-2 fw-semibold" data-pg-ui-t="노티 생성">노티 생성</div>' +
     '<div class="card-body">' +
-    '<p class="small text-muted mb-3" data-pg-ui-t="NOTI 관리자 JPAY 등록과 동일한 항목으로 가맹을 생성합니다. 발급 URL은 업체 JPAY 수신통보 URL에 자동 반영됩니다.">NOTI 관리자 JPAY 등록과 동일한 항목으로 가맹을 생성합니다. 발급 URL은 업체 JPAY 수신통보 URL에 자동 반영됩니다.</p>' +
+    '<p class="small text-muted mb-3" id="opsNpFormDesc" data-pg-ui-t="NOTI 관리자 등록과 동일한 항목으로 가맹을 생성합니다. PG별로 발급·고정 URL을 업체 수신통보 URL에 반영합니다(예: 슬롯형 PG·Webhook/Result 고정형 PG).">NOTI 관리자 등록과 동일한 항목으로 가맹을 생성합니다. PG별로 발급·고정 URL을 업체 수신통보 URL에 반영합니다(예: 슬롯형 PG·Webhook/Result 고정형 PG).</p>' +
     '<div class="row g-3 align-items-end mb-3">' +
+    '<div class="col-12 col-md-3"><label class="form-label mb-1" for="opsNpPgKind" data-pg-ui-t="PG">PG</label>' +
+    '<select class="form-select form-select-sm" id="opsNpPgKind">' +
+    '<option value="jpay" selected>JPAY</option>' +
+    '<option value="elementpay">ElementPay</option></select></div>' +
     '<div class="col-12 col-md-3"><label class="form-label mb-1" for="opsNpCompId" data-pg-ui-t="가맹 업체코드">가맹 업체코드</label>' +
     '<input type="text" class="form-control form-control-sm" id="opsNpCompId" autocomplete="off"></div>' +
     '<div class="col-12 col-md-3"><label class="form-label mb-1" for="opsNpCompNm" data-pg-ui-t="업체명">업체명</label>' +
@@ -2146,15 +2202,16 @@
     '<div class="col-auto"><button type="button" class="btn btn-sm btn-outline-secondary" id="opsNpCheckMidBtn" data-pg-ui-t="중복검토">중복검토</button></div>' +
     '<div class="col-12 col-md-3"><label class="form-label mb-1" for="opsNpBaseCurrency" data-pg-ui-t="기준화폐">기준화폐</label>' +
     '<input type="text" class="form-control form-control-sm" id="opsNpBaseCurrency" readonly></div></div>' +
-    '<div class="row g-3 align-items-end mb-2">' +
+    '<div class="row g-3 align-items-end mb-2" id="opsNpSlotRow">' +
     '<div class="col-12 col-md-5"><label class="form-label mb-1" for="opsNpInternalTargetId" data-pg-ui-t="노티 정산대상(전산 대상 ID)">노티 정산대상(전산 대상 ID)</label>' +
     '<select class="form-select form-select-sm" id="opsNpInternalTargetId"></select></div>' +
-    '<div class="col-12 col-md-2"><label class="form-label mb-1" for="opsNpJpaySlotNo" data-pg-ui-t="JPAY PG 노티 슬롯">JPAY PG 노티 슬롯</label>' +
-    '<input type="number" min="1" max="999" class="form-control form-control-sm" id="opsNpJpaySlotNo" autocomplete="off"></div>' +
-    '<div class="col-auto"><button type="button" class="btn btn-sm btn-outline-primary" id="opsNpAutoSlotBtn" data-pg-ui-t="자동">자동</button></div>' +
-    '<div class="col-auto"><button type="button" class="btn btn-sm btn-outline-secondary" id="opsNpCheckSlotBtn" data-pg-ui-t="슬롯검토">슬롯검토</button></div></div>' +
-    '<div class="mb-3"><div class="small text-muted" id="opsNpSlotAutoHint" data-pg-ui-t="자동: JPY는 j200부터, USD는 j55부터 순번 할당(슬롯검토 생략). 수동 입력 시 슬롯검토를 실행하세요.">자동: JPY는 j200부터, USD는 j55부터 순번 할당(슬롯검토 생략). 수동 입력 시 슬롯검토를 실행하세요.</div>' +
+    '<div class="col-12 col-md-2" id="opsNpPgSlotWrap"><label class="form-label mb-1" for="opsNpPgSlotNo" data-pg-ui-t="PG 노티 슬롯">PG 노티 슬롯</label>' +
+    '<input type="number" min="1" max="999" class="form-control form-control-sm" id="opsNpPgSlotNo" autocomplete="off"></div>' +
+    '<div class="col-auto" id="opsNpAutoSlotBtnWrap"><button type="button" class="btn btn-sm btn-outline-primary" id="opsNpAutoSlotBtn" data-pg-ui-t="자동">자동</button></div>' +
+    '<div class="col-auto" id="opsNpCheckSlotBtnWrap"><button type="button" class="btn btn-sm btn-outline-secondary" id="opsNpCheckSlotBtn" data-pg-ui-t="슬롯검토">슬롯검토</button></div></div>' +
+    '<div class="mb-3" id="opsNpSlotHintWrap"><div class="small text-muted" id="opsNpSlotAutoHint" data-pg-ui-t="슬롯을 사용하는 PG만 해당. 자동: JPY는 j200부터, USD는 j55부터 순번 할당(슬롯검토 생략). 수동 입력 시 슬롯검토를 실행하세요.">슬롯을 사용하는 PG만 해당. 자동: JPY는 j200부터, USD는 j55부터 순번 할당(슬롯검토 생략). 수동 입력 시 슬롯검토를 실행하세요.</div>' +
     '<div class="small text-muted" id="opsNpSlotPreview"></div></div>' +
+    '<div class="mb-3 d-none" id="opsNpEpHintWrap"><div class="small text-muted" data-pg-ui-t="ElementPay는 PG 슬롯이 없습니다. Cabinet Webhook=/noti/elementpay, 브라우저 Result=/noti/result/elementpay(가맹 resultUrl로 릴레이).">ElementPay는 PG 슬롯이 없습니다. Cabinet Webhook=/noti/elementpay, 브라우저 Result=/noti/result/elementpay(가맹 resultUrl로 릴레이).</div></div>' +
     '<div class="mb-2">' +
     '<label class="form-label mb-1" for="opsNpIntegrationMode" data-pg-ui-t="연동방식">연동방식</label>' +
     '<select class="form-select form-select-sm" id="opsNpIntegrationMode" style="max-width:18rem">' +
@@ -2199,7 +2256,7 @@
     '<p class="small text-success mb-3 d-none" id="opsNpOtpGraceHint" data-pg-ui-t="OTP 인증 유효 중입니다. 추가 등록 시 OTP 입력이 생략됩니다(마지막 등록 후 20분).">OTP 인증 유효 중입니다. 추가 등록 시 OTP 입력이 생략됩니다(마지막 등록 후 20분).</p>' +
     '<div class="d-flex flex-wrap gap-2 pt-1">' +
     '<button type="button" class="btn btn-sm btn-outline-secondary" id="opsNpStatusBtn" data-pg-ui-t="NOTI 조회">NOTI 조회</button>' +
-    '<button type="button" class="btn btn-sm btn-primary" id="opsNpProvisionBtn" data-pg-ui-t="JPAY 노티 생성">JPAY 노티 생성</button></div></div></div>' +
+    '<button type="button" class="btn btn-sm btn-primary" id="opsNpProvisionBtn" data-pg-ui-t="노티 생성">노티 생성</button></div></div></div>' +
     '<div class="card d-none" id="opsNpResultCard">' +
     '<div class="card-header py-2 fw-semibold" data-pg-ui-t="발급 결과">발급 결과</div>' +
     '<div class="card-body small" id="opsNpResultBody"></div></div>' +
@@ -2219,6 +2276,7 @@
     '<th class="text-nowrap" data-pg-ui-t="생성시각">생성시각</th>' +
     '<th class="text-nowrap" data-pg-ui-t="업체코드">업체코드</th>' +
     '<th class="text-nowrap" data-pg-ui-t="업체명">업체명</th>' +
+    '<th class="text-nowrap" data-pg-ui-t="PG">PG</th>' +
     '<th class="text-nowrap" data-pg-ui-t="NOTI ID">NOTI ID</th>' +
     '<th class="text-nowrap" data-pg-ui-t="방식">방식</th>' +
     '<th class="text-nowrap" data-pg-ui-t="슬롯">슬롯</th>' +
@@ -2617,7 +2675,7 @@
         { type: 'searchBtn', label: '검색' }
       ]],
       noticeList: [
-        '연동 용도(노티·URL·챗봇·API)와 용도별 엔드포인트를 구분해 저장합니다. URL 용도 행은 「URL금액」에서 일반(일반형) / DP(DISPLAY) / BLIND를 지정할 수 있으며, 본사 URL결제설정(FX JSON)의 해당 PG 금액 모드와 동일합니다. 노티=미들웨어 수신 매칭, URL=공개 URL 결제 플로우, 챗봇/API=PG사 API 직연동(동일 연동 URL). 목록 「연동용도」는 파스텔 색으로 구분됩니다. API Key·MD5는 목록 미노출. [삭제]는 등록일 오른쪽, 신규는 [PG사 연동 추가]입니다.',
+        '연동 용도(노티·URL·챗봇·API)를 한 행에서 복수 선택해 저장할 수 있습니다. URL 용도 행은 「URL금액」에서 일반(일반형) / DP(DISPLAY) / BLIND를 지정할 수 있으며, 본사 URL결제설정(FX JSON)의 해당 PG 금액 모드와 동일합니다. 노티=미들웨어 수신 매칭, URL=공개 URL 결제 플로우, 챗봇/API=PG사 API 직연동(동일 연동 URL). 목록 「연동용도」는 파스텔 색으로 구분됩니다. API Key·MD5는 목록 미노출. [삭제]는 등록일 오른쪽, 신규는 [PG사 연동 추가]입니다.',
         '통합정산 「예정(ICOPAY)」열: PG사 연동 편집에서 T+N(주말 제외 영업일·결제와 동일 시각) 또는 D+N(달력+N일·일괄 시각)을 저장합니다. OFF면 예정일을 채우지 않습니다. D는 일괄 시각(HH:mm) 필수.',
         'ChillPay는 PG코드 CHILLPAY, API·URL 엔드포인트는 ChillPayService가 병합 반영합니다. 운영 DB는 db/V35_pg_agency_integration_scope.sql 적용 후 배포하세요.'
       ],
@@ -2792,7 +2850,7 @@
         },
         {
           title: '리스크 필터링',
-          notice: 'PG(JPAY·ChillPay·Eximbay 등) 송부 전 사전 차단입니다. 카드번호 미수집(호스티드) 흐름은 이메일·전화·성명·IP 계열만 적용됩니다. 차단 건은 전산에 1회 시도·취소(20)로 기록되며, 운영관리 「리스크 현황」에 표시됩니다. JPAY 사후 고위험·PY0124는 pay_index 실패 후 카드 쿨다운·리스크 현황에 기록됩니다. 자동기억은 「결제·URL」탭에서 설정합니다. 트리거 운영: docs/icopay-hq-risk-filter-trigger-manual.html · 총판용 설명안: docs/icopay-dist-risk-trigger-manual.html · 통합 docs/icopay-hq-risk-manual.html · 필터 상세 docs/icopay-hq-risk-filter-manual.html',
+          notice: 'PG(JPAY·ChillPay·Eximbay 등) 송부 전 사전 차단입니다. 카드번호 미수집(호스티드) 흐름은 이메일·전화·성명·IP 계열만 적용됩니다. 차단 건은 전산에 1회 시도·취소(20)로 기록되며, 운영관리 「리스크 현황」에 표시됩니다. JPAY 사후 고위험·PY0124 FAIL 은 위험관리(쿨다운·자동 비활성)에 항상 포함됩니다. 아래 「리스크현황 기록」옵션은 운영관리 리스크 현황 적재만 제어합니다. 자동기억은 「결제·URL」탭에서 설정합니다. 트리거 운영: docs/icopay-hq-risk-filter-trigger-manual.html · 총판용 설명안: docs/icopay-dist-risk-trigger-manual.html · 통합 docs/icopay-hq-risk-manual.html · 필터 상세 docs/icopay-hq-risk-filter-manual.html',
           rows: [
             [{ label: '사전필터 사용', type: 'select', name: 'presaleFilterEnabledYn', col: 2,
               options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }] }],
@@ -2819,16 +2877,21 @@
             [{ type: 'customHtml', col: 12, html:
               '<p class="small text-muted mb-0" data-pg-ui-t="속도제한 기본값 안내">속도제한 기본값: 카드 10분/3회(동일카드 연속 시도), 이메일 30분/5회(정상 재구매 여유), IP 15분/10회(공용망·NAT 여유). 항목별로 수정 가능합니다.</p>'
             }],
-            [{ label: 'JPAY 사후 고위험 쿨다운', type: 'select', name: 'postsaleCooldownJpayHighriskYn', col: 3,
+            [{ label: 'JPAY 사후 고위험 리스크현황', type: 'select', name: 'postsaleCooldownJpayHighriskYn', col: 3,
               options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }] },
-             { label: 'JPAY PY0124 쿨다운', type: 'select', name: 'postsaleCooldownJpayPy0124Yn', col: 3,
+             { label: 'JPAY PY0124 리스크현황', type: 'select', name: 'postsaleCooldownJpayPy0124Yn', col: 3,
               options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }] }]
           ]
         },
         {
           title: '가맹점 리스크 현황',
-          notice: '등록된 모든 가맹점의 리스크 방식·적용 값을 표시합니다. 별도설정 가맹은 본사 설정보다 우선 적용됩니다. 미사용 가맹은 방식 열에 회색으로 표시됩니다.',
+          notice: '리스크설정(트리거)만 표시·편집합니다. 「미사용」은 실패 쿨다운·자동 비활성 트리거만 끄며, 사전 리스크 필터링은 아래 「가맹점 리스크 필터링」에서 별도입니다. 방식에서 본사설정·미사용·별도설정을 바꾸고 저장하세요. 별도설정이면 1~4차·자동등록·추적기간을 행에서 수정합니다. 업체정보 「리스크 위험관리트리거」또는 본 표에서 별도설정·저장하면 본사 리스크설정 기본값보다 우선 적용됩니다(동일 저장값).',
           rows: [[{ type: 'customHtml', col: 12, html: hqRiskCardPolicyMerchantTableHtml }]]
+        },
+        {
+          title: '가맹점 리스크 필터링',
+          notice: '가맹점 리스크 현황 바로 아래 — 사전 리스크 필터링(PG 송부 전 차단)을 가맹점별로 표시·편집합니다. 업체정보의 「리스크 사전필터트리거」와 동일 항목입니다. 기본은 본사정책 따름입니다. 트리거 미사용 가맹도 여기가 본사설정이면 본사 사전필터가 그대로 적용됩니다. 미사용으로 두면 해당 가맹만 사전필터가 꺼집니다. 별도정책이면 행에서 조건을 수정 후 저장하세요. 업체정보 또는 본 표에서 별도설정·저장하면 본사 리스크 필터링 기본값보다 우선 적용됩니다(동일 저장값). 본사 사전필터 마스터가 미사용이면 별도정책이어도 사전필터는 동작하지 않습니다.',
+          rows: [[{ type: 'customHtml', col: 12, html: hqRiskCardPolicyMerchantFilterTableHtml }]]
         },
         {
           title: '일괄운영관리',
@@ -2891,8 +2954,8 @@
           ]
         },
         {
-          title: 'NOTI Provision API (JPAY 노티생성 연동)',
-          notice: '운영관리 「노티생성」 화면에서 NOTI 미들웨어 JPAY 가맹을 자동 등록할 때 사용합니다. NOTI 관리자 환경설정에서 발급한 Bearer API 키를 저장하고, ICOPAY 서버 egress IP를 NOTI 허용 IP에 등록하세요. 전산 대상 ID는 NOTI 노티 추가등록에 등록된 internal-targets ID입니다.',
+          title: 'NOTI Provision API (노티생성 연동)',
+          notice: '운영관리 「노티생성」 화면에서 NOTI 미들웨어 가맹(JPAY·ElementPay 등)을 자동 등록할 때 사용합니다. NOTI 관리자 환경설정에서 발급한 Bearer API 키를 저장하고, ICOPAY 서버 egress IP를 NOTI 허용 IP에 등록하세요. 전산 대상 ID는 NOTI 노티 추가등록에 등록된 internal-targets ID입니다.',
           rows: [
             [{ label: 'Provision API 사용', type: 'select', name: 'notiProvisionEnabledYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 },
              { label: 'NOTI 베이스 URL', type: 'text', name: 'notiProvisionBaseUrl', col: 4, placeholder: 'https://noti.icopay.net' }],
@@ -2902,15 +2965,22 @@
         },
         {
           title: '전산 대상 매핑 (노티생성 자동선택)',
-          notice: '가맹 기준화폐가 JPY이면 JPY 전산 대상 ID, USD이면 USD 전산 대상 ID를 노티생성 화면에 자동 제안합니다. NOTI internal-targets에 등록된 ID를 입력하세요.',
+          notice: '가맹 기준화폐가 JPY이면 JPY, USD이면 USD, THB이면 THB(ElementPay 등) 전산 대상 ID를 노티생성 화면에 자동 제안합니다. NOTI 관리화면(노티 추가등록·전산 대상)의 ID를 입력하세요. 아래 목록은 참고용이며, NOTI 목록 API가 없어도 위 매핑만으로 노티생성은 동작합니다.',
           rows: [
             [{ label: 'JPY 전산 대상 ID', type: 'text', name: 'notiProvisionInternalTargetJpy', col: 4, placeholder: '예: JPY API JPY 대응 ID' },
-             { label: 'USD 전산 대상 ID', type: 'text', name: 'notiProvisionInternalTargetUsd', col: 4, placeholder: '예: JPY API USD 대응 ID' }],
-            [{ type: 'customHtml', col: 12, html: '<p class="small text-muted mb-1" data-pg-ui-t="NOTI에 등록된 전산 대상 ID 목록입니다. 아래 ID를 JPY/USD 매핑에 입력하세요(표시명이 아닌 ID).">NOTI에 등록된 전산 대상 ID 목록입니다. 아래 ID를 JPY/USD 매핑에 입력하세요(표시명이 아닌 ID).</p>' +
+             { label: 'USD 전산 대상 ID', type: 'text', name: 'notiProvisionInternalTargetUsd', col: 4, placeholder: '예: JPY API USD 대응 ID' },
+             { label: 'THB 전산 대상 ID', type: 'text', name: 'notiProvisionInternalTargetThb', col: 4, placeholder: '예: EP THB / ElementPay 대응 ID' }],
+            [{ type: 'customHtml', col: 12, html:
+              '<div class="d-flex flex-wrap align-items-center gap-2 mb-1">' +
+              '<p class="small text-muted mb-0 flex-grow-1" data-pg-ui-t="아래 목록은 NOTI Provision API로 조회한 참고용입니다. 실패해도 위 JPY/USD/THB 매핑 ID만 저장하면 노티생성 자동선택이 동작합니다.">아래 목록은 NOTI Provision API로 조회한 참고용입니다. 실패해도 위 JPY/USD/THB 매핑 ID만 저장하면 노티생성 자동선택이 동작합니다.</p>' +
+              '<button type="button" class="btn btn-sm btn-outline-secondary" id="hqNotiInternalTargetRefreshBtn" data-pg-ui-t="목록 다시 불러오기">목록 다시 불러오기</button>' +
+              '</div>' +
+              '<p class="small text-muted mb-1" data-pg-ui-t="Provision API 설정 위치: 같은 화면 위 「NOTI Provision API (노티생성 연동)」— 사용=Y · NOTI 베이스 URL(예: https://noti.icopay.net) · NOTI 관리자에서 발급한 Bearer 키. NOTI 측에 ICOPAY 서버 egress IP 허용 필요.">Provision API 설정 위치: 같은 화면 위 「NOTI Provision API (노티생성 연동)」— 사용=Y · NOTI 베이스 URL(예: https://noti.icopay.net) · NOTI 관리자에서 발급한 Bearer 키. NOTI 측에 ICOPAY 서버 egress IP 허용 필요.</p>' +
               '<div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0" id="hqNotiInternalTargetTable"><thead class="table-light"><tr>' +
-              '<th data-pg-ui-t="전산 대상 ID">전산 대상 ID</th><th data-pg-ui-t="표시명">표시명</th></tr></thead>' +
+              '<th data-pg-ui-t="전산 대상 ID">전산 대상 ID</th><th data-pg-ui-t="표시명">표시명</th><th data-pg-ui-t="통화">통화</th></tr></thead>' +
               '<tbody id="hqNotiInternalTargetTbody"></tbody></table>' +
-              '<p class="text-muted small mb-0 d-none" id="hqNotiInternalTargetEmpty" data-pg-ui-t="NOTI 전산 대상 목록을 불러오지 못했습니다. Provision API 설정을 확인하세요.">NOTI 전산 대상 목록을 불러오지 못했습니다. Provision API 설정을 확인하세요.</p></div>' }]
+              '<p class="text-muted small mb-0 d-none" id="hqNotiInternalTargetEmpty" data-pg-ui-t="NOTI 전산 대상 목록을 불러오지 못했습니다.">NOTI 전산 대상 목록을 불러오지 못했습니다.</p>' +
+              '<p class="text-muted small mb-0 d-none" id="hqNotiInternalTargetHint"></p></div>' }]
           ]
         },
         {
@@ -4160,6 +4230,7 @@
           ]
         },
         merchantCardRiskTriggerSection(),
+        merchantCardRiskPresaleSection(),
         {
           title: '무효·환불 정산 (안내)',
           id: 'voidRefundSettleGuideCard',
@@ -4334,10 +4405,10 @@
           ]
         },
         {
-          title: 'JPAY 수신통보 URL',
+          title: '수신통보 URL',
           id: 'jpayNotifyUrlCard',
           merchantOnly: true,
-          notice: 'J-Pay pay_index 전문의 pay_notifyurl·pay_callbackurl 에 사용됩니다. 노티관리에서 생성한 URL이 여기에 표시됩니다. 비우면 ICOPAY ingress(cbJpay/rsJpay) 기본값을 사용합니다.',
+          notice: '노티관리에서 생성한 URL이 여기에 표시됩니다. J-Pay: pay_notifyurl·pay_callbackurl. ElementPay: Webhook(/noti/elementpay)·Result(/noti/result/elementpay) — 결제 시 Result에 order·compId를 붙여 _successUrl 등에 사용. 가맹 쇼핑몰 URL은 EP에 넣지 않습니다.',
           rows: [
             [{ label: 'Notify (pay_notifyurl) / Callback URL (NOTI MW)', type: 'text', name: 'jpayNotifyUrl', col: 5, placeholder: 'https://' }, { label: 'Callback (pay_callbackurl) / Result URL (NOTI MW)', type: 'text', name: 'jpayCallbackUrl', col: 5, placeholder: 'https://' }]
           ]
@@ -4598,6 +4669,7 @@
           ]
         },
         merchantCardRiskTriggerSection(),
+        merchantCardRiskPresaleSection(),
         {
           title: '무효·환불 정산 (안내)',
           id: 'voidRefundSettleGuideCard',
@@ -4760,10 +4832,10 @@
           ]
         },
         {
-          title: 'JPAY 수신통보 URL',
+          title: '수신통보 URL',
           id: 'jpayNotifyUrlCard',
           merchantOnly: true,
-          notice: 'J-Pay pay_index 전문의 pay_notifyurl·pay_callbackurl 에 사용됩니다. 노티관리에서 생성한 URL이 여기에 표시됩니다. 비우면 ICOPAY ingress(cbJpay/rsJpay) 기본값을 사용합니다.',
+          notice: '노티관리에서 생성한 URL이 여기에 표시됩니다. J-Pay: pay_notifyurl·pay_callbackurl. ElementPay: Webhook(/noti/elementpay)·Result(/noti/result/elementpay) — 결제 시 Result에 order·compId를 붙여 _successUrl 등에 사용. 가맹 쇼핑몰 URL은 EP에 넣지 않습니다.',
           rows: [
             [{ label: 'Notify (pay_notifyurl) / Callback URL (NOTI MW)', type: 'text', name: 'jpayNotifyUrl', col: 5, placeholder: 'https://' }, { label: 'Callback (pay_callbackurl) / Result URL (NOTI MW)', type: 'text', name: 'jpayCallbackUrl', col: 5, placeholder: 'https://' }]
           ]
@@ -4966,6 +5038,7 @@
           ]
         },
         merchantCardRiskTriggerSection(),
+        merchantCardRiskPresaleSection(),
         {
           title: '무효·환불 정산 (안내)',
           id: 'voidRefundSettleGuideCard',
@@ -5127,10 +5200,10 @@
           ]
         },
         {
-          title: 'JPAY 수신통보 URL',
+          title: '수신통보 URL',
           id: 'jpayNotifyUrlCard',
           merchantOnly: true,
-          notice: 'J-Pay pay_index 전문의 pay_notifyurl·pay_callbackurl 에 사용됩니다. 노티관리에서 생성한 URL이 여기에 표시됩니다. 비우면 ICOPAY ingress(cbJpay/rsJpay) 기본값을 사용합니다.',
+          notice: '노티관리에서 생성한 URL이 여기에 표시됩니다. J-Pay: pay_notifyurl·pay_callbackurl. ElementPay: Webhook(/noti/elementpay)·Result(/noti/result/elementpay) — 결제 시 Result에 order·compId를 붙여 _successUrl 등에 사용. 가맹 쇼핑몰 URL은 EP에 넣지 않습니다.',
           rows: [
             [{ label: 'Notify (pay_notifyurl) / Callback URL (NOTI MW)', type: 'text', name: 'jpayNotifyUrl', col: 5, placeholder: 'https://' }, { label: 'Callback (pay_callbackurl) / Result URL (NOTI MW)', type: 'text', name: 'jpayCallbackUrl', col: 5, placeholder: 'https://' }]
           ]
@@ -7018,6 +7091,7 @@
           ]
         },
         merchantCardRiskTriggerSection(),
+        merchantCardRiskPresaleSection(),
         {
           title: '무효·환불 정산 (안내)',
           id: 'voidRefundSettleGuideCard',
@@ -8785,6 +8859,7 @@
     if (f.customOnly) blockClass += ' commission-custom-only';
     if (f.holdRateOnly) blockClass += ' hold-rate-custom-only';
     if (f.cardRiskCustomOnly) blockClass += ' card-risk-custom-only';
+    if (f.cardPresaleCustomOnly) blockClass += ' card-presale-custom-only';
     if (f.feeVatRateOnly) blockClass += ' fee-vat-rate-only';
     if (isWideTime) blockClass += ' settle-time-wide-block';
     if (f.blockExtraClass) blockClass += ' ' + String(f.blockExtraClass);

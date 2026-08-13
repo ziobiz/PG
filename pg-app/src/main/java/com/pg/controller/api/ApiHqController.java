@@ -584,9 +584,10 @@ public class ApiHqController {
             Object idObj = body.get("id");
             boolean isNew = idObj == null || idObj.toString().isBlank();
             if (isNew) {
+                List<String> newKinds = parseIntegKindsFromBody(body);
                 String ik = hqStr(body, "integKind");
-                if (ik == null || ik.isBlank()) {
-                    return ResponseEntity.ok(ApiResponse.fail("신규 PG 연동은 연동용도를 선택해야 합니다. (PG코드는 용도별로 나누어 등록하세요)", "VALIDATION"));
+                if (newKinds.isEmpty() && (ik == null || ik.isBlank())) {
+                    return ResponseEntity.ok(ApiResponse.fail("신규 PG 연동은 연동용도를 한 가지 이상 선택해야 합니다.", "VALIDATION"));
                 }
             }
             if (idObj != null && !idObj.toString().isBlank()) {
@@ -617,7 +618,9 @@ public class ApiHqController {
             applyPgAgencyExtSettlementFields(entity, body, !isNew);
             if ("Y".equalsIgnoreCase(entity.getUseYn())) {
                 if (!ynPg(entity.getIntegNotiYn()) && !ynPg(entity.getIntegUrlPayYn())
-                        && !ynPg(entity.getIntegWebChatbotYn()) && !ynPg(entity.getIntegApiYn())) {
+                        && !ynPg(entity.getIntegUrlPayRepayYn())
+                        && !ynPg(entity.getIntegWebChatbotYn()) && !ynPg(entity.getIntegApiYn())
+                        && !ynPg(entity.getIntegApiSubscriptionYn())) {
                     return ResponseEntity.ok(ApiResponse.fail("사용(Y)인 경우 연동 용도를 한 가지 이상 지정하세요.", "VALIDATION"));
                 }
             }
@@ -819,10 +822,19 @@ public class ApiHqController {
     }
 
     /**
-     * 연동 범위·엔드포인트. {@code integKind} 가 오면 용도 1개 + {@code integrationEndpoint} 1개만 반영(나머지 플래그·용도별 URL 초기화).
-     * 없으면 레거시(개별 YN·엔드포인트 필드) 경로.
+     * 연동 범위·엔드포인트.
+     * <ul>
+     *   <li>{@code integKinds}(배열/콤마문자열) — 복수 용도 + 용도별 엔드포인트</li>
+     *   <li>{@code integKind} — 단일 용도(하위 호환) + {@code integrationEndpoint}</li>
+     *   <li>없으면 레거시(개별 YN·엔드포인트 필드)</li>
+     * </ul>
      */
     private static void applyPgAgencyIntegrationScope(PgAgency entity, Map<String, Object> body, boolean isUpdate) {
+        List<String> kinds = parseIntegKindsFromBody(body);
+        if (!kinds.isEmpty()) {
+            applyMultiIntegrationKinds(entity, kinds, body);
+            return;
+        }
         String integKind = hqStr(body, "integKind");
         if (integKind != null && !integKind.isBlank()) {
             applySingleIntegrationKind(entity, integKind.trim().toUpperCase(Locale.ROOT), body);
@@ -837,6 +849,11 @@ public class ApiHqController {
             entity.setIntegUrlPayYn("Y".equalsIgnoreCase(hqStr(body, "integUrlPayYn")) ? "Y" : "N");
         } else if (!isUpdate) {
             entity.setIntegUrlPayYn("N");
+        }
+        if (body.containsKey("integUrlPayRepayYn")) {
+            entity.setIntegUrlPayRepayYn("Y".equalsIgnoreCase(hqStr(body, "integUrlPayRepayYn")) ? "Y" : "N");
+        } else if (!isUpdate) {
+            entity.setIntegUrlPayRepayYn("N");
         }
         if (body.containsKey("integWebChatbotYn")) {
             entity.setIntegWebChatbotYn("Y".equalsIgnoreCase(hqStr(body, "integWebChatbotYn")) ? "Y" : "N");
@@ -865,6 +882,12 @@ public class ApiHqController {
         } else if (!isUpdate) {
             entity.setEndpointUrlPay(null);
         }
+        if (body.containsKey("endpointUrlPayRepay")) {
+            String s = hqStr(body, "endpointUrlPayRepay");
+            entity.setEndpointUrlPayRepay(s != null && !s.isBlank() ? s.trim() : null);
+        } else if (!isUpdate) {
+            entity.setEndpointUrlPayRepay(null);
+        }
         if (body.containsKey("endpointApi")) {
             String s = hqStr(body, "endpointApi");
             entity.setEndpointApi(s != null && !s.isBlank() ? s.trim() : null);
@@ -879,48 +902,80 @@ public class ApiHqController {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    private static List<String> parseIntegKindsFromBody(Map<String, Object> body) {
+        LinkedHashSet<String> out = new LinkedHashSet<>();
+        Object raw = body != null ? body.get("integKinds") : null;
+        if (raw instanceof Collection<?> col) {
+            for (Object o : col) {
+                if (o == null) {
+                    continue;
+                }
+                String k = o.toString().trim().toUpperCase(Locale.ROOT);
+                if (!k.isEmpty()) {
+                    out.add(k);
+                }
+            }
+        } else if (raw instanceof String s && !s.isBlank()) {
+            for (String part : s.split("[,|/]")) {
+                String k = part.trim().toUpperCase(Locale.ROOT);
+                if (!k.isEmpty()) {
+                    out.add(k);
+                }
+            }
+        }
+        return new ArrayList<>(out);
+    }
+
+    private static String blankToNull(String s) {
+        return s != null && !s.isBlank() ? s.trim() : null;
+    }
+
+    /** 복수 용도 플래그·용도별 엔드포인트 반영(미선택 용도는 N·URL null) */
+    private static void applyMultiIntegrationKinds(PgAgency entity, List<String> kinds, Map<String, Object> body) {
+        Set<String> set = new LinkedHashSet<>();
+        for (String k : kinds) {
+            if (k == null || k.isBlank()) {
+                continue;
+            }
+            String u = k.trim().toUpperCase(Locale.ROOT);
+            if (!Set.of("NOTI", "URL_PAY", "URL_PAY_REPAY", "WEB_CHATBOT", "API", "API_SUBSCRIPTION").contains(u)) {
+                throw new IllegalArgumentException("연동용도는 NOTI, URL_PAY, URL_PAY_REPAY, WEB_CHATBOT, API, API_SUBSCRIPTION 중 하나여야 합니다.");
+            }
+            set.add(u);
+        }
+        if (set.isEmpty()) {
+            throw new IllegalArgumentException("연동 용도를 한 가지 이상 선택하세요.");
+        }
+        entity.setIntegNotiYn(set.contains("NOTI") ? "Y" : "N");
+        entity.setIntegUrlPayYn(set.contains("URL_PAY") ? "Y" : "N");
+        entity.setIntegUrlPayRepayYn(set.contains("URL_PAY_REPAY") ? "Y" : "N");
+        entity.setIntegWebChatbotYn(set.contains("WEB_CHATBOT") ? "Y" : "N");
+        entity.setIntegApiYn(set.contains("API") ? "Y" : "N");
+        entity.setIntegApiSubscriptionYn(set.contains("API_SUBSCRIPTION") ? "Y" : "N");
+
+        String fallback = blankToNull(hqStr(body, "integrationEndpoint"));
+        entity.setEndpointNoti(set.contains("NOTI")
+                ? blankToNull(firstNonBlank(hqStr(body, "endpointNoti"), fallback))
+                : null);
+        entity.setEndpointUrlPay(set.contains("URL_PAY")
+                ? blankToNull(firstNonBlank(hqStr(body, "endpointUrlPay"), fallback))
+                : null);
+        entity.setEndpointUrlPayRepay(set.contains("URL_PAY_REPAY")
+                ? blankToNull(firstNonBlank(hqStr(body, "endpointUrlPayRepay"), fallback))
+                : null);
+        boolean apiFamily = set.contains("API") || set.contains("WEB_CHATBOT");
+        entity.setEndpointApi(apiFamily
+                ? blankToNull(firstNonBlank(hqStr(body, "endpointApi"), fallback))
+                : null);
+        entity.setEndpointApiSubscription(set.contains("API_SUBSCRIPTION")
+                ? blankToNull(firstNonBlank(hqStr(body, "endpointApiSubscription"), fallback))
+                : null);
+    }
+
     /** 용도 1개만 Y, 해당 용도 엔드포인트만 설정(다른 용도 URL·플래그 제거) */
     private static void applySingleIntegrationKind(PgAgency entity, String kind, Map<String, Object> body) {
-        String epRaw = hqStr(body, "integrationEndpoint");
-        String ep = epRaw != null && !epRaw.isBlank() ? epRaw.trim() : null;
-        entity.setIntegNotiYn("N");
-        entity.setIntegUrlPayYn("N");
-        entity.setIntegUrlPayRepayYn("N");
-        entity.setIntegWebChatbotYn("N");
-        entity.setIntegApiYn("N");
-        entity.setIntegApiSubscriptionYn("N");
-        entity.setEndpointNoti(null);
-        entity.setEndpointUrlPay(null);
-        entity.setEndpointUrlPayRepay(null);
-        entity.setEndpointApi(null);
-        entity.setEndpointApiSubscription(null);
-        switch (kind) {
-            case "NOTI" -> {
-                entity.setIntegNotiYn("Y");
-                entity.setEndpointNoti(ep);
-            }
-            case "URL_PAY" -> {
-                entity.setIntegUrlPayYn("Y");
-                entity.setEndpointUrlPay(ep);
-            }
-            case "URL_PAY_REPAY" -> {
-                entity.setIntegUrlPayRepayYn("Y");
-                entity.setEndpointUrlPayRepay(ep);
-            }
-            case "WEB_CHATBOT" -> {
-                entity.setIntegWebChatbotYn("Y");
-                entity.setEndpointApi(ep);
-            }
-            case "API" -> {
-                entity.setIntegApiYn("Y");
-                entity.setEndpointApi(ep);
-            }
-            case "API_SUBSCRIPTION" -> {
-                entity.setIntegApiSubscriptionYn("Y");
-                entity.setEndpointApiSubscription(ep);
-            }
-            default -> throw new IllegalArgumentException("연동용도는 NOTI, URL_PAY, URL_PAY_REPAY, WEB_CHATBOT, API, API_SUBSCRIPTION 중 하나여야 합니다.");
-        }
+        applyMultiIntegrationKinds(entity, List.of(kind), body);
     }
 
     /** 2. 기본정책 (건당/이용/실패/취소/환불/결제/정산/USDT/FX/롤링%) */

@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
-/** 운영관리 — NOTI JPAY Provision (노티생성). */
+/** 운영관리 — NOTI Provision (노티생성: JPAY · ElementPay). */
 @RestController
 @RequestMapping(value = "/api/ops/notiProvision", produces = "application/json")
 public class ApiOpsNotiProvisionController {
@@ -52,10 +52,11 @@ public class ApiOpsNotiProvisionController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> checkMerchantId(
             Authentication authentication,
             @RequestParam String merchantId,
-            @RequestParam(required = false) String compId) {
+            @RequestParam(required = false) String compId,
+            @RequestParam(required = false, defaultValue = "jpay") String pgKind) {
         try {
             return ResponseEntity.ok(ApiResponse.ok(
-                    opsNotiProvisionService.checkMerchantId(authentication, merchantId, compId)));
+                    opsNotiProvisionService.checkMerchantId(authentication, merchantId, compId, pgKind)));
         } catch (IllegalStateException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "FORBIDDEN"));
         } catch (NotiProvisionException e) {

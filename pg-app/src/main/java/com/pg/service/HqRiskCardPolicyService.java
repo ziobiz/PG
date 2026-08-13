@@ -215,6 +215,12 @@ public class HqRiskCardPolicyService {
         }
     }
 
+    /**
+     * 가맹 위험관리(트리거) 실효값.
+     * 업체정보 「리스크 위험관리트리거」또는 본사 「가맹점 리스크 현황」에서 저장한
+     * {@code cardRiskPolicyMode=CUSTOM} 은 본사 리스크설정 기본값보다 항상 우선한다.
+     * (두 UI는 동일 MerchantProfile 필드를 공유한다.)
+     */
     public CardRiskPolicyEffective resolveForOrgUnit(Long orgUnitId) {
         if (orgUnitId == null) {
             return resolveHqOnly();
@@ -274,9 +280,92 @@ public class HqRiskCardPolicyService {
                 MODE_FOLLOW_HQ, trackMode, trackValue);
     }
 
+    /**
+     * 가맹 사전 리스크 필터 실효값.
+     * 업체정보 「리스크 사전필터트리거」또는 본사 「가맹점 리스크 필터링」에서 저장한
+     * {@code cardRiskPresaleMode=CUSTOM} 은 본사 리스크 필터링 기본값보다 항상 우선한다.
+     * DISABLED 는 해당 가맹만 OFF. FOLLOW_HQ 는 본사 기본.
+     * 단, 본사 사전필터 마스터({@code presaleFilterEnabledYn})가 OFF 이면 CUSTOM 이어도 전체 OFF.
+     */
+    public PresaleRiskFilterEffective resolvePresaleForOrgUnit(Long orgUnitId) {
+        HqRiskCardPolicy hq = getOrCreate();
+        if (orgUnitId == null) {
+            return resolvePresaleHqOnly(hq);
+        }
+        Optional<MerchantProfile> mpOpt = merchantProfileRepository.findByOrgUnitId(orgUnitId);
+        if (mpOpt.isEmpty()) {
+            return resolvePresaleHqOnly(hq);
+        }
+        MerchantProfile mp = mpOpt.get();
+        String mode = normalizePresaleMode(mp.getCardRiskPresaleMode());
+        if (MODE_DISABLED.equals(mode)) {
+            return PresaleRiskFilterEffective.disabled(MODE_DISABLED);
+        }
+        if (MODE_CUSTOM.equals(mode)) {
+            return buildPresaleCustom(hq, mp);
+        }
+        return resolvePresaleHqOnly(hq);
+    }
+
+    public PresaleRiskFilterEffective resolvePresaleHqOnly() {
+        return resolvePresaleHqOnly(getOrCreate());
+    }
+
+    private PresaleRiskFilterEffective resolvePresaleHqOnly(HqRiskCardPolicy hq) {
+        if (!"Y".equalsIgnoreCase(yn(hq.getPresaleFilterEnabledYn()))) {
+            return PresaleRiskFilterEffective.disabled(MODE_FOLLOW_HQ);
+        }
+        int cardWin = intOr(hq.getVelocityCardWindowMinutes(), intOr(hq.getVelocityWindowMinutes(), 10));
+        int cardMax = intOr(hq.getVelocityCardMaxAttempts(), intOr(hq.getVelocityMaxAttempts(), 3));
+        return new PresaleRiskFilterEffective(
+                true,
+                MODE_FOLLOW_HQ,
+                yn(hq.getFilterBuyerContactMismatchYn()),
+                yn(hq.getFilterHolderNameYn()),
+                yn(hq.getFilterPhoneInvalidYn()),
+                yn(hq.getFilterEmailInvalidYn()),
+                yn(hq.getFilterVelocityCardYn()),
+                yn(hq.getFilterVelocityEmailYn()),
+                yn(hq.getFilterVelocityIpYn()),
+                cardWin,
+                cardMax,
+                intOr(hq.getVelocityEmailWindowMinutes(), 30),
+                intOr(hq.getVelocityEmailMaxAttempts(), 5),
+                intOr(hq.getVelocityIpWindowMinutes(), 15),
+                intOr(hq.getVelocityIpMaxAttempts(), 10)
+        );
+    }
+
+    private PresaleRiskFilterEffective buildPresaleCustom(HqRiskCardPolicy hq, MerchantProfile mp) {
+        PresaleRiskFilterEffective base = resolvePresaleHqOnly(hq);
+        /* CUSTOM 이어도 본사 사전필터 마스터가 OFF 이면 전체 OFF */
+        if (!base.enabled()) {
+            return PresaleRiskFilterEffective.disabled(MODE_CUSTOM);
+        }
+        return new PresaleRiskFilterEffective(
+                true,
+                MODE_CUSTOM,
+                ynOr(mp.getCardRiskPresaleBuyerMismatchYn(), base.filterBuyerContactMismatchYn()),
+                ynOr(mp.getCardRiskPresaleHolderNameYn(), base.filterHolderNameYn()),
+                ynOr(mp.getCardRiskPresalePhoneInvalidYn(), base.filterPhoneInvalidYn()),
+                ynOr(mp.getCardRiskPresaleEmailInvalidYn(), base.filterEmailInvalidYn()),
+                ynOr(mp.getCardRiskPresaleVelocityCardYn(), base.filterVelocityCardYn()),
+                ynOr(mp.getCardRiskPresaleVelocityEmailYn(), base.filterVelocityEmailYn()),
+                ynOr(mp.getCardRiskPresaleVelocityIpYn(), base.filterVelocityIpYn()),
+                intOr(mp.getCardRiskPresaleVelCardWinMin(), base.velocityCardWindowMinutes()),
+                intOr(mp.getCardRiskPresaleVelCardMax(), base.velocityCardMaxAttempts()),
+                intOr(mp.getCardRiskPresaleVelEmailWinMin(), base.velocityEmailWindowMinutes()),
+                intOr(mp.getCardRiskPresaleVelEmailMax(), base.velocityEmailMaxAttempts()),
+                intOr(mp.getCardRiskPresaleVelIpWinMin(), base.velocityIpWindowMinutes()),
+                intOr(mp.getCardRiskPresaleVelIpMax(), base.velocityIpMaxAttempts())
+        );
+    }
+
     public List<Map<String, Object>> listActiveMerchantRows() {
         List<OrgUnit> merchants = orgUnitRepository.findByOrgLevelOrderByCodeAsc(OrgLevel.MERCHANT);
         List<Map<String, Object>> out = new ArrayList<>();
+        HqRiskCardPolicy hq = getOrCreate();
+        PresaleRiskFilterEffective hqPresale = resolvePresaleHqOnly(hq);
         for (OrgUnit ou : merchants) {
             Optional<MerchantProfile> mpOpt = merchantProfileRepository.findByOrgUnitId(ou.getId());
             if (mpOpt.isEmpty()) {
@@ -290,6 +379,18 @@ public class HqRiskCardPolicyService {
             row.put("compId", ou.getCode());
             row.put("compNm", ou.getName());
             row.put("policyMode", mode);
+            row.put("cardRiskTier1Hours", mp.getCardRiskTier1Hours());
+            row.put("cardRiskTier1Min", mp.getCardRiskTier1Min());
+            row.put("cardRiskTier2Hours", mp.getCardRiskTier2Hours());
+            row.put("cardRiskTier2Min", mp.getCardRiskTier2Min());
+            row.put("cardRiskTier3Hours", mp.getCardRiskTier3Hours());
+            row.put("cardRiskTier3Min", mp.getCardRiskTier3Min());
+            row.put("cardRiskTier4Hours", mp.getCardRiskTier4Hours());
+            row.put("cardRiskTier4Min", mp.getCardRiskTier4Min());
+            row.put("cardRiskAutoBlacklistTier", mp.getCardRiskAutoBlacklistTier());
+            row.put("cardRiskTrackPeriodPolicy", effectiveTrackPolicy(mp));
+            row.put("cardRiskTrackPeriodMode", CardRiskTrackPeriod.normalizeMode(mp.getCardRiskTrackPeriodMode()));
+            row.put("cardRiskTrackPeriodValue", mp.getCardRiskTrackPeriodValue());
             if (MODE_DISABLED.equals(mode) || !eff.enabled()) {
                 row.put("tier1Display", "—");
                 row.put("tier2Display", "—");
@@ -315,9 +416,262 @@ public class HqRiskCardPolicyService {
             row.put("latestRegisteredAt", blacklistRepository.findLatestCreatedAtByOrg(ou.getId())
                     .map(Object::toString).orElse(""));
             row.put("latestChannel", blacklistRepository.findLatestSourceByOrg(ou.getId()).orElse(""));
+
+            String presaleMode = normalizePresaleMode(mp.getCardRiskPresaleMode());
+            PresaleRiskFilterEffective pEff = resolvePresaleForOrgUnit(ou.getId());
+            row.put("presaleMode", presaleMode);
+            row.put("presaleEffectiveEnabled", pEff.enabled());
+            row.put("presaleEffectiveSource", pEff.policySource());
+            row.put("presaleStatusLabel", presaleStatusLabel(presaleMode, pEff, hqPresale));
+            putPresaleStoredFields(row, mp, hqPresale);
+            putPresaleEffectiveFields(row, pEff);
             out.add(row);
         }
         return out;
+    }
+
+    private void putPresaleStoredFields(Map<String, Object> row, MerchantProfile mp, PresaleRiskFilterEffective hq) {
+        row.put("cardRiskPresaleMode", normalizePresaleMode(mp.getCardRiskPresaleMode()));
+        row.put("cardRiskPresaleBuyerMismatchYn", ynOr(mp.getCardRiskPresaleBuyerMismatchYn(), hq.filterBuyerContactMismatchYn()));
+        row.put("cardRiskPresaleHolderNameYn", ynOr(mp.getCardRiskPresaleHolderNameYn(), hq.filterHolderNameYn()));
+        row.put("cardRiskPresalePhoneInvalidYn", ynOr(mp.getCardRiskPresalePhoneInvalidYn(), hq.filterPhoneInvalidYn()));
+        row.put("cardRiskPresaleEmailInvalidYn", ynOr(mp.getCardRiskPresaleEmailInvalidYn(), hq.filterEmailInvalidYn()));
+        row.put("cardRiskPresaleVelocityCardYn", ynOr(mp.getCardRiskPresaleVelocityCardYn(), hq.filterVelocityCardYn()));
+        row.put("cardRiskPresaleVelocityEmailYn", ynOr(mp.getCardRiskPresaleVelocityEmailYn(), hq.filterVelocityEmailYn()));
+        row.put("cardRiskPresaleVelocityIpYn", ynOr(mp.getCardRiskPresaleVelocityIpYn(), hq.filterVelocityIpYn()));
+        row.put("cardRiskPresaleVelCardWinMin", intOr(mp.getCardRiskPresaleVelCardWinMin(), hq.velocityCardWindowMinutes()));
+        row.put("cardRiskPresaleVelCardMax", intOr(mp.getCardRiskPresaleVelCardMax(), hq.velocityCardMaxAttempts()));
+        row.put("cardRiskPresaleVelEmailWinMin", intOr(mp.getCardRiskPresaleVelEmailWinMin(), hq.velocityEmailWindowMinutes()));
+        row.put("cardRiskPresaleVelEmailMax", intOr(mp.getCardRiskPresaleVelEmailMax(), hq.velocityEmailMaxAttempts()));
+        row.put("cardRiskPresaleVelIpWinMin", intOr(mp.getCardRiskPresaleVelIpWinMin(), hq.velocityIpWindowMinutes()));
+        row.put("cardRiskPresaleVelIpMax", intOr(mp.getCardRiskPresaleVelIpMax(), hq.velocityIpMaxAttempts()));
+    }
+
+    private void putPresaleEffectiveFields(Map<String, Object> row, PresaleRiskFilterEffective pEff) {
+        row.put("effFilterBuyerContactMismatchYn", pEff.filterBuyerContactMismatchYn());
+        row.put("effFilterHolderNameYn", pEff.filterHolderNameYn());
+        row.put("effFilterPhoneInvalidYn", pEff.filterPhoneInvalidYn());
+        row.put("effFilterEmailInvalidYn", pEff.filterEmailInvalidYn());
+        row.put("effFilterVelocityCardYn", pEff.filterVelocityCardYn());
+        row.put("effFilterVelocityEmailYn", pEff.filterVelocityEmailYn());
+        row.put("effFilterVelocityIpYn", pEff.filterVelocityIpYn());
+        row.put("effVelocityCardWindowMinutes", pEff.velocityCardWindowMinutes());
+        row.put("effVelocityCardMaxAttempts", pEff.velocityCardMaxAttempts());
+        row.put("effVelocityEmailWindowMinutes", pEff.velocityEmailWindowMinutes());
+        row.put("effVelocityEmailMaxAttempts", pEff.velocityEmailMaxAttempts());
+        row.put("effVelocityIpWindowMinutes", pEff.velocityIpWindowMinutes());
+        row.put("effVelocityIpMaxAttempts", pEff.velocityIpMaxAttempts());
+    }
+
+    private static String presaleStatusLabel(String mode, PresaleRiskFilterEffective pEff, PresaleRiskFilterEffective hq) {
+        if (MODE_DISABLED.equals(mode)) {
+            return "미사용";
+        }
+        if (!pEff.enabled()) {
+            return "본사 사전필터 미사용";
+        }
+        if (MODE_CUSTOM.equals(mode)) {
+            return "별도설정";
+        }
+        return hq.enabled() ? "본사설정" : "본사 사전필터 미사용";
+    }
+
+    /**
+     * 본사 「가맹점 리스크 현황」에서 가맹별 트리거·사전필터 저장.
+     */
+    @Transactional
+    public Map<String, Object> saveMerchantRiskRow(Map<String, Object> body) {
+        if (body == null || body.get("orgUnitId") == null) {
+            throw new IllegalArgumentException("orgUnitId required");
+        }
+        Long orgUnitId;
+        try {
+            orgUnitId = Long.parseLong(body.get("orgUnitId").toString().trim());
+        } catch (Exception e) {
+            throw new IllegalArgumentException("orgUnitId invalid");
+        }
+        MerchantProfile mp = merchantProfileRepository.findByOrgUnitId(orgUnitId)
+                .orElseThrow(() -> new IllegalArgumentException("merchant not found"));
+        if (body.containsKey("cardRiskPolicyMode") || body.containsKey("policyMode")) {
+            Object raw = body.containsKey("cardRiskPolicyMode") ? body.get("cardRiskPolicyMode") : body.get("policyMode");
+            mp.setCardRiskPolicyMode(normalizeMode(raw != null ? raw.toString() : null));
+        }
+        Map<String, String> triggerFields = new LinkedHashMap<>();
+        putIfPresent(triggerFields, body, "cardRiskTier1Hours");
+        putIfPresent(triggerFields, body, "cardRiskTier1Min");
+        putIfPresent(triggerFields, body, "cardRiskTier2Hours");
+        putIfPresent(triggerFields, body, "cardRiskTier2Min");
+        putIfPresent(triggerFields, body, "cardRiskTier3Hours");
+        putIfPresent(triggerFields, body, "cardRiskTier3Min");
+        putIfPresent(triggerFields, body, "cardRiskTier4Hours");
+        putIfPresent(triggerFields, body, "cardRiskTier4Min");
+        putIfPresent(triggerFields, body, "cardRiskAutoBlacklistTier");
+        putIfPresent(triggerFields, body, "cardRiskTrackPeriodPolicy");
+        putIfPresent(triggerFields, body, "cardRiskTrackPeriodMode");
+        putIfPresent(triggerFields, body, "cardRiskTrackPeriodValue");
+        if (!triggerFields.isEmpty()) {
+            applyMerchantCardRiskFromRequest(mp, triggerFields);
+        }
+        /* CUSTOM 전환 시 본사 값 시드(미입력 필드) */
+        if (MODE_CUSTOM.equals(normalizeMode(mp.getCardRiskPolicyMode()))) {
+            seedTriggerFromHqIfBlank(mp);
+        }
+        if (body.containsKey("cardRiskPresaleMode") || body.containsKey("presaleMode")) {
+            Object raw = body.containsKey("cardRiskPresaleMode") ? body.get("cardRiskPresaleMode") : body.get("presaleMode");
+            mp.setCardRiskPresaleMode(normalizePresaleMode(raw != null ? raw.toString() : null));
+        }
+        applyMerchantPresaleFromBody(mp, body);
+        if (MODE_CUSTOM.equals(normalizePresaleMode(mp.getCardRiskPresaleMode()))) {
+            seedPresaleFromHqIfBlank(mp);
+        }
+        merchantProfileRepository.save(mp);
+        return listActiveMerchantRows().stream()
+                .filter(r -> orgUnitId.equals(r.get("orgUnitId")))
+                .findFirst()
+                .orElseGet(LinkedHashMap::new);
+    }
+
+    private void seedTriggerFromHqIfBlank(MerchantProfile mp) {
+        HqRiskCardPolicy hq = getOrCreate();
+        if (mp.getCardRiskTier1Hours() == null && mp.getCardRiskTier1Min() == null) {
+            mp.setCardRiskTier1Hours(intOr(hq.getTier1Hours(), 0));
+            mp.setCardRiskTier1Min(intOr(hq.getTier1Min(), 5));
+        }
+        if (mp.getCardRiskTier2Hours() == null && mp.getCardRiskTier2Min() == null) {
+            mp.setCardRiskTier2Hours(intOr(hq.getTier2Hours(), 0));
+            mp.setCardRiskTier2Min(intOr(hq.getTier2Min(), 10));
+        }
+        if (mp.getCardRiskTier3Hours() == null && mp.getCardRiskTier3Min() == null) {
+            mp.setCardRiskTier3Hours(intOr(hq.getTier3Hours(), 1));
+            mp.setCardRiskTier3Min(intOr(hq.getTier3Min(), 0));
+        }
+        if (mp.getCardRiskTier4Hours() == null && mp.getCardRiskTier4Min() == null) {
+            mp.setCardRiskTier4Hours(intOr(hq.getTier4Hours(), 0));
+            mp.setCardRiskTier4Min(intOr(hq.getTier4Min(), 0));
+        }
+        if (mp.getCardRiskAutoBlacklistTier() == null) {
+            mp.setCardRiskAutoBlacklistTier(clampTier(hq.getAutoBlacklistTriggerTier(), 4));
+        }
+        if (mp.getCardRiskTrackPeriodPolicy() == null || mp.getCardRiskTrackPeriodPolicy().isBlank()) {
+            mp.setCardRiskTrackPeriodPolicy(TRACK_POLICY_FOLLOW_HQ);
+        }
+    }
+
+    private void seedPresaleFromHqIfBlank(MerchantProfile mp) {
+        PresaleRiskFilterEffective hq = resolvePresaleHqOnly();
+        if (mp.getCardRiskPresaleBuyerMismatchYn() == null) {
+            mp.setCardRiskPresaleBuyerMismatchYn(hq.filterBuyerContactMismatchYn());
+        }
+        if (mp.getCardRiskPresaleHolderNameYn() == null) {
+            mp.setCardRiskPresaleHolderNameYn(hq.filterHolderNameYn());
+        }
+        if (mp.getCardRiskPresalePhoneInvalidYn() == null) {
+            mp.setCardRiskPresalePhoneInvalidYn(hq.filterPhoneInvalidYn());
+        }
+        if (mp.getCardRiskPresaleEmailInvalidYn() == null) {
+            mp.setCardRiskPresaleEmailInvalidYn(hq.filterEmailInvalidYn());
+        }
+        if (mp.getCardRiskPresaleVelocityCardYn() == null) {
+            mp.setCardRiskPresaleVelocityCardYn(hq.filterVelocityCardYn());
+        }
+        if (mp.getCardRiskPresaleVelocityEmailYn() == null) {
+            mp.setCardRiskPresaleVelocityEmailYn(hq.filterVelocityEmailYn());
+        }
+        if (mp.getCardRiskPresaleVelocityIpYn() == null) {
+            mp.setCardRiskPresaleVelocityIpYn(hq.filterVelocityIpYn());
+        }
+        if (mp.getCardRiskPresaleVelCardWinMin() == null) {
+            mp.setCardRiskPresaleVelCardWinMin(hq.velocityCardWindowMinutes());
+        }
+        if (mp.getCardRiskPresaleVelCardMax() == null) {
+            mp.setCardRiskPresaleVelCardMax(hq.velocityCardMaxAttempts());
+        }
+        if (mp.getCardRiskPresaleVelEmailWinMin() == null) {
+            mp.setCardRiskPresaleVelEmailWinMin(hq.velocityEmailWindowMinutes());
+        }
+        if (mp.getCardRiskPresaleVelEmailMax() == null) {
+            mp.setCardRiskPresaleVelEmailMax(hq.velocityEmailMaxAttempts());
+        }
+        if (mp.getCardRiskPresaleVelIpWinMin() == null) {
+            mp.setCardRiskPresaleVelIpWinMin(hq.velocityIpWindowMinutes());
+        }
+        if (mp.getCardRiskPresaleVelIpMax() == null) {
+            mp.setCardRiskPresaleVelIpMax(hq.velocityIpMaxAttempts());
+        }
+    }
+
+    private void applyMerchantPresaleFromBody(MerchantProfile mp, Map<String, Object> body) {
+        if (body.containsKey("cardRiskPresaleBuyerMismatchYn") || body.containsKey("filterBuyerContactMismatchYn")) {
+            Object v = body.containsKey("cardRiskPresaleBuyerMismatchYn")
+                    ? body.get("cardRiskPresaleBuyerMismatchYn") : body.get("filterBuyerContactMismatchYn");
+            mp.setCardRiskPresaleBuyerMismatchYn(parseYn(v, "Y"));
+        }
+        if (body.containsKey("cardRiskPresaleHolderNameYn") || body.containsKey("filterHolderNameYn")) {
+            Object v = body.containsKey("cardRiskPresaleHolderNameYn")
+                    ? body.get("cardRiskPresaleHolderNameYn") : body.get("filterHolderNameYn");
+            mp.setCardRiskPresaleHolderNameYn(parseYn(v, "Y"));
+        }
+        if (body.containsKey("cardRiskPresalePhoneInvalidYn") || body.containsKey("filterPhoneInvalidYn")) {
+            Object v = body.containsKey("cardRiskPresalePhoneInvalidYn")
+                    ? body.get("cardRiskPresalePhoneInvalidYn") : body.get("filterPhoneInvalidYn");
+            mp.setCardRiskPresalePhoneInvalidYn(parseYn(v, "Y"));
+        }
+        if (body.containsKey("cardRiskPresaleEmailInvalidYn") || body.containsKey("filterEmailInvalidYn")) {
+            Object v = body.containsKey("cardRiskPresaleEmailInvalidYn")
+                    ? body.get("cardRiskPresaleEmailInvalidYn") : body.get("filterEmailInvalidYn");
+            mp.setCardRiskPresaleEmailInvalidYn(parseYn(v, "Y"));
+        }
+        if (body.containsKey("cardRiskPresaleVelocityCardYn") || body.containsKey("filterVelocityCardYn")) {
+            Object v = body.containsKey("cardRiskPresaleVelocityCardYn")
+                    ? body.get("cardRiskPresaleVelocityCardYn") : body.get("filterVelocityCardYn");
+            mp.setCardRiskPresaleVelocityCardYn(parseYn(v, "Y"));
+        }
+        if (body.containsKey("cardRiskPresaleVelocityEmailYn") || body.containsKey("filterVelocityEmailYn")) {
+            Object v = body.containsKey("cardRiskPresaleVelocityEmailYn")
+                    ? body.get("cardRiskPresaleVelocityEmailYn") : body.get("filterVelocityEmailYn");
+            mp.setCardRiskPresaleVelocityEmailYn(parseYn(v, "Y"));
+        }
+        if (body.containsKey("cardRiskPresaleVelocityIpYn") || body.containsKey("filterVelocityIpYn")) {
+            Object v = body.containsKey("cardRiskPresaleVelocityIpYn")
+                    ? body.get("cardRiskPresaleVelocityIpYn") : body.get("filterVelocityIpYn");
+            mp.setCardRiskPresaleVelocityIpYn(parseYn(v, "Y"));
+        }
+        if (body.containsKey("cardRiskPresaleVelCardWinMin") || body.containsKey("velocityCardWindowMinutes")) {
+            Object v = body.containsKey("cardRiskPresaleVelCardWinMin")
+                    ? body.get("cardRiskPresaleVelCardWinMin") : body.get("velocityCardWindowMinutes");
+            mp.setCardRiskPresaleVelCardWinMin(Math.min(1440, Math.max(1, parseIntOr(v, 10))));
+        }
+        if (body.containsKey("cardRiskPresaleVelCardMax") || body.containsKey("velocityCardMaxAttempts")) {
+            Object v = body.containsKey("cardRiskPresaleVelCardMax")
+                    ? body.get("cardRiskPresaleVelCardMax") : body.get("velocityCardMaxAttempts");
+            mp.setCardRiskPresaleVelCardMax(Math.min(99, Math.max(1, parseIntOr(v, 3))));
+        }
+        if (body.containsKey("cardRiskPresaleVelEmailWinMin") || body.containsKey("velocityEmailWindowMinutes")) {
+            Object v = body.containsKey("cardRiskPresaleVelEmailWinMin")
+                    ? body.get("cardRiskPresaleVelEmailWinMin") : body.get("velocityEmailWindowMinutes");
+            mp.setCardRiskPresaleVelEmailWinMin(Math.min(1440, Math.max(1, parseIntOr(v, 30))));
+        }
+        if (body.containsKey("cardRiskPresaleVelEmailMax") || body.containsKey("velocityEmailMaxAttempts")) {
+            Object v = body.containsKey("cardRiskPresaleVelEmailMax")
+                    ? body.get("cardRiskPresaleVelEmailMax") : body.get("velocityEmailMaxAttempts");
+            mp.setCardRiskPresaleVelEmailMax(Math.min(99, Math.max(1, parseIntOr(v, 5))));
+        }
+        if (body.containsKey("cardRiskPresaleVelIpWinMin") || body.containsKey("velocityIpWindowMinutes")) {
+            Object v = body.containsKey("cardRiskPresaleVelIpWinMin")
+                    ? body.get("cardRiskPresaleVelIpWinMin") : body.get("velocityIpWindowMinutes");
+            mp.setCardRiskPresaleVelIpWinMin(Math.min(1440, Math.max(1, parseIntOr(v, 15))));
+        }
+        if (body.containsKey("cardRiskPresaleVelIpMax") || body.containsKey("velocityIpMaxAttempts")) {
+            Object v = body.containsKey("cardRiskPresaleVelIpMax")
+                    ? body.get("cardRiskPresaleVelIpMax") : body.get("velocityIpMaxAttempts");
+            mp.setCardRiskPresaleVelIpMax(Math.min(99, Math.max(1, parseIntOr(v, 10))));
+        }
+    }
+
+    private static void putIfPresent(Map<String, String> fields, Map<String, Object> body, String key) {
+        if (body.containsKey(key) && body.get(key) != null) {
+            fields.put(key, body.get(key).toString());
+        }
     }
 
     public void applyMerchantCardRiskFromRequest(MerchantProfile mp, Map<String, String> fields) {
@@ -362,6 +716,38 @@ public class HqRiskCardPolicyService {
         m.put("cardRiskTrackPeriodPolicy", effectiveTrackPolicy(mp));
         m.put("cardRiskTrackPeriodMode", CardRiskTrackPeriod.normalizeMode(mp.getCardRiskTrackPeriodMode()));
         m.put("cardRiskTrackPeriodValue", mp.getCardRiskTrackPeriodValue());
+        PresaleRiskFilterEffective hq = resolvePresaleHqOnly();
+        String pMode = normalizePresaleMode(mp.getCardRiskPresaleMode());
+        m.put("cardRiskPresaleMode", pMode);
+        m.put("cardRiskPresaleBuyerMismatchYn", ynOr(mp.getCardRiskPresaleBuyerMismatchYn(), hq.filterBuyerContactMismatchYn()));
+        m.put("cardRiskPresaleHolderNameYn", ynOr(mp.getCardRiskPresaleHolderNameYn(), hq.filterHolderNameYn()));
+        m.put("cardRiskPresalePhoneInvalidYn", ynOr(mp.getCardRiskPresalePhoneInvalidYn(), hq.filterPhoneInvalidYn()));
+        m.put("cardRiskPresaleEmailInvalidYn", ynOr(mp.getCardRiskPresaleEmailInvalidYn(), hq.filterEmailInvalidYn()));
+        m.put("cardRiskPresaleVelocityCardYn", ynOr(mp.getCardRiskPresaleVelocityCardYn(), hq.filterVelocityCardYn()));
+        m.put("cardRiskPresaleVelocityEmailYn", ynOr(mp.getCardRiskPresaleVelocityEmailYn(), hq.filterVelocityEmailYn()));
+        m.put("cardRiskPresaleVelocityIpYn", ynOr(mp.getCardRiskPresaleVelocityIpYn(), hq.filterVelocityIpYn()));
+        m.put("cardRiskPresaleVelCardWinMin", intOr(mp.getCardRiskPresaleVelCardWinMin(), hq.velocityCardWindowMinutes()));
+        m.put("cardRiskPresaleVelCardMax", intOr(mp.getCardRiskPresaleVelCardMax(), hq.velocityCardMaxAttempts()));
+        m.put("cardRiskPresaleVelEmailWinMin", intOr(mp.getCardRiskPresaleVelEmailWinMin(), hq.velocityEmailWindowMinutes()));
+        m.put("cardRiskPresaleVelEmailMax", intOr(mp.getCardRiskPresaleVelEmailMax(), hq.velocityEmailMaxAttempts()));
+        m.put("cardRiskPresaleVelIpWinMin", intOr(mp.getCardRiskPresaleVelIpWinMin(), hq.velocityIpWindowMinutes()));
+        m.put("cardRiskPresaleVelIpMax", intOr(mp.getCardRiskPresaleVelIpMax(), hq.velocityIpMaxAttempts()));
+    }
+
+    /** 업체등록·업체정보 저장용 — Map&lt;String,String&gt; */
+    public void applyMerchantPresaleRiskFromRequest(MerchantProfile mp, Map<String, String> fields) {
+        if (mp == null || fields == null || fields.isEmpty()) {
+            return;
+        }
+        Map<String, Object> body = new LinkedHashMap<>();
+        fields.forEach(body::put);
+        if (body.containsKey("cardRiskPresaleMode")) {
+            mp.setCardRiskPresaleMode(normalizePresaleMode(String.valueOf(body.get("cardRiskPresaleMode"))));
+        }
+        applyMerchantPresaleFromBody(mp, body);
+        if (MODE_CUSTOM.equals(normalizePresaleMode(mp.getCardRiskPresaleMode()))) {
+            seedPresaleFromHqIfBlank(mp);
+        }
     }
 
     private void applyMerchantTier(MerchantProfile mp, Map<String, String> fields, int tier) {
@@ -460,6 +846,25 @@ public class HqRiskCardPolicyService {
             return u;
         }
         return MODE_FOLLOW_HQ;
+    }
+
+    /** 사전필터 기본은 본사 따름(FOLLOW_HQ). 트리거(기본 DISABLED)와 다름. */
+    private static String normalizePresaleMode(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return MODE_FOLLOW_HQ;
+        }
+        String u = raw.trim().toUpperCase(Locale.ROOT);
+        if (MODE_CUSTOM.equals(u) || MODE_DISABLED.equals(u)) {
+            return u;
+        }
+        return MODE_FOLLOW_HQ;
+    }
+
+    private static String ynOr(String v, String def) {
+        if (v == null || v.isBlank()) {
+            return yn(def);
+        }
+        return yn(v);
     }
 
     private static int clampTier(Integer v, int def) {

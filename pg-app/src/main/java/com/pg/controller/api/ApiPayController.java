@@ -19,6 +19,7 @@ import com.pg.merchantdeploy.MerchantPgBrokerVendor;
 import com.pg.service.ChillPayDirectCreditRecordService;
 import com.pg.service.ChillPayService;
 import com.pg.service.EximbayPaymentService;
+import com.pg.service.ElementPayPaymentService;
 import com.pg.service.JpayPaymentService;
 import com.pg.service.MerchantCreditTokenService;
 import com.pg.service.MerchantPgBindingRouterService;
@@ -67,6 +68,7 @@ public class ApiPayController {
     private final ChillPayService chillPayService;
     private final JpayPaymentService jpayPaymentService;
     private final EximbayPaymentService eximbayPaymentService;
+    private final ElementPayPaymentService elementPayPaymentService;
     private final ChillPayDirectCreditRecordService chillPayDirectCreditRecordService;
     private final OrgUnitRepository orgUnitRepository;
     private final HqApiConfigRepository hqApiConfigRepository;
@@ -93,6 +95,7 @@ public class ApiPayController {
     public ApiPayController(ChillPayService chillPayService,
                             JpayPaymentService jpayPaymentService,
                             EximbayPaymentService eximbayPaymentService,
+                            ElementPayPaymentService elementPayPaymentService,
                             ChillPayDirectCreditRecordService chillPayDirectCreditRecordService,
                             OrgUnitRepository orgUnitRepository,
                             HqApiConfigRepository hqApiConfigRepository,
@@ -118,6 +121,7 @@ public class ApiPayController {
         this.chillPayService = chillPayService;
         this.jpayPaymentService = jpayPaymentService;
         this.eximbayPaymentService = eximbayPaymentService;
+        this.elementPayPaymentService = elementPayPaymentService;
         this.chillPayDirectCreditRecordService = chillPayDirectCreditRecordService;
         this.orgUnitRepository = orgUnitRepository;
         this.hqApiConfigRepository = hqApiConfigRepository;
@@ -562,6 +566,31 @@ public class ApiPayController {
             @RequestParam(required = false) String compId,
             HttpServletRequest request) {
         return urlPayCheckoutContext(merchantId, compId, null, request);
+    }
+
+    /**
+     * ElementPay INLINE 결제 결과 폴링 — getStatus 요약({@code PAID}/{@code FAILED}/{@code PENDING}).
+     */
+    @GetMapping("/url/elementpay-status")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> elementpayInlineStatus(
+            @RequestParam(required = false) String compId,
+            @RequestParam(required = false) Long merchantId,
+            @RequestParam(required = false) String orderNo,
+            @RequestParam(required = false) String paymentId) {
+        Long orgUnitId = resolveMerchantOrgUnitId(merchantId, compId);
+        if (orgUnitId == null) {
+            return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        if (!elementPayPaymentService.hasOperationalWebBinding(orgUnitId)) {
+            return ResponseEntity.ok(ApiResponse.fail("ElementPay 운영 바인딩이 없습니다.", "ELEMENTPAY_PG_MISSING"));
+        }
+        Map<String, Object> res = elementPayPaymentService.queryInlineStatus(orgUnitId, paymentId, orderNo);
+        if (!Boolean.TRUE.equals(res.get("success"))) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    res.get("message") != null ? res.get("message").toString() : "status failed",
+                    res.get("errorCode") != null ? res.get("errorCode").toString() : "ELEMENTPAY_STATUS_FAILED"));
+        }
+        return ResponseEntity.ok(ApiResponse.ok(res));
     }
 
     /**

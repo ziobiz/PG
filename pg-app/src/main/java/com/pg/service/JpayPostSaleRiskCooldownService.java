@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** JPAY 사후 고위험·PY0124 — 리스크 현황 이벤트·쿨다운 집계 on/off */
+/** JPAY 사후 고위험·PY0124 — 리스크 현황 이벤트 기록 on/off (위험관리 쿨다운 집계와 분리) */
 @Service
 public class JpayPostSaleRiskCooldownService {
 
@@ -34,7 +34,11 @@ public class JpayPostSaleRiskCooldownService {
         this.objectMapper = objectMapper;
     }
 
-    public boolean shouldCountCooldown(String classification) {
+    /**
+     * 운영관리 「리스크 현황」에 JPAY 사후 이벤트를 남길지.
+     * <p>위험관리(카드 실패 쿨다운·자동 비활성) 집계와는 무관 — 고위험 FAIL 도 위험관리에는 항상 포함.</p>
+     */
+    public boolean shouldRecordPostSaleEvent(String classification) {
         if (classification == null || classification.isBlank()) {
             return true;
         }
@@ -46,6 +50,12 @@ public class JpayPostSaleRiskCooldownService {
             return yn(hq.getPostsaleCooldownJpayHighriskYn());
         }
         return true;
+    }
+
+    /** @deprecated use {@link #shouldRecordPostSaleEvent(String)} — 쿨다운 집계 게이트가 아님 */
+    @Deprecated
+    public boolean shouldCountCooldown(String classification) {
+        return shouldRecordPostSaleEvent(classification);
     }
 
     @Transactional

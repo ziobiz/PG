@@ -201,6 +201,7 @@
           errPrefillRequired: '가맹점 구매자 정보(이메일·전화·국가코드)가 없습니다. prepare buyerPrefill 을 확인하세요.',
           errCountryCode: '국가코드를 선택하세요.',
           payComplete: '결제 완료', payFailed: '결제 실패', paid: '결제되었습니다.', networkErr: '네트워크 오류',
+          resultRetry: '다시 결제하기', resultClose: '닫기',
           payInProgress: '이미 결제 중입니다. 잠시만 기다려 주세요.',
           wait3ds: '카드 인증 페이지로 이동 중입니다…',
           jpay3dsUrlMissing: '3DS 인증 URL을 받지 못했습니다. J-Pay 가맹 포털·채널 승인 상태를 확인하세요.',
@@ -242,6 +243,7 @@
           errPrefillRequired: 'Missing merchant buyer info (email, phone, country code). Check prepare buyerPrefill.',
           errCountryCode: 'Select a country code.',
           payComplete: 'Payment complete', payFailed: 'Payment failed', paid: 'Paid', networkErr: 'Network error',
+          resultRetry: 'Pay again', resultClose: 'Close',
           payInProgress: 'Payment is already in progress. Please wait.',
           wait3ds: 'Redirecting to card authentication…',
           jpay3dsUrlMissing: '3DS redirect URL was not returned. Check J-Pay merchant portal and channel approval.',
@@ -283,6 +285,7 @@
           errPrefillRequired: '加盟店の購入者情報(メール・電話・国コード)がありません。prepare buyerPrefill を確認してください。',
           errCountryCode: '国コードを選択してください。',
           payComplete: '決済完了', payFailed: '決済失敗', paid: '決済完了', networkErr: 'ネットワークエラー',
+          resultRetry: 'もう一度支払う', resultClose: '閉じる',
           payInProgress: '決済処理中です。しばらくお待ちください。',
           jpay3dsUrlMissing: '3DS認証URLを受信できませんでした。J-Pay加盟店ポータルとチャネル承認を確認してください。',
           jpayUnknownResponse: 'J-Pay応答を解釈できませんでした。MID・ApiKey・pay_index URLを確認してください。',
@@ -323,6 +326,7 @@
           errPrefillRequired: '缺少商户买家信息(邮箱/电话/国家代码)。请检查 prepare buyerPrefill。',
           errCountryCode: '请选择国家代码。',
           payComplete: '支付完成', payFailed: '支付失败', paid: '已支付', networkErr: '网络错误',
+          resultRetry: '再次支付', resultClose: '关闭',
           payInProgress: '支付正在进行中，请稍候。',
           jpay3dsUrlMissing: '未收到3DS认证跳转地址。请检查J-Pay商户后台与通道审批状态。',
           jpayUnknownResponse: '无法解析J-Pay响应。请核对MID、ApiKey与pay_index地址。',
@@ -363,6 +367,7 @@
           errPrefillRequired: 'ไม่มีข้อมูลผู้ซื้อจากร้าน (อีเมล/โทร/รหัสประเทศ) ตรวจสอบ prepare buyerPrefill',
           errCountryCode: 'เลือกรหัสประเทศ',
           payComplete: 'ชำระเงินสำเร็จ', payFailed: 'ชำระเงินล้มเหลว', paid: 'ชำระแล้ว', networkErr: 'ข้อผิดพลาดเครือข่าย',
+          resultRetry: 'ชำระอีกครั้ง', resultClose: 'ปิด',
           payInProgress: 'กำลังชำระเงินอยู่แล้ว กรุณารอสักครู่',
           jpay3dsUrlMissing: 'ไม่ได้รับ URL ยืนยัน 3DS ตรวจสอบพอร์ทัลร้านค้า J-Pay และการอนุมัติช่องทาง',
           jpayUnknownResponse: 'ไม่สามารถอ่านการตอบกลับจาก J-Pay ได้ ตรวจสอบ MID ApiKey และ pay_index URL',
@@ -566,8 +571,20 @@
       function getCompId() {
         try {
           var p = new URLSearchParams(location.search);
-          return (p.get('m') || p.get('compId') || '').trim();
-        } catch (e) { return ''; }
+          var q = (p.get('m') || p.get('compId') || p.get('merchant') || '').trim();
+          if (q) return q;
+        } catch (e) { /* ignore */ }
+        try {
+          var path = (location.pathname || '').replace(/\/+$/, '');
+          var seg = path.split('/').filter(Boolean);
+          if (seg.length >= 2 && String(seg[0]).toLowerCase() === 'checkout' && String(seg[1]).indexOf('.') < 0) {
+            return String(seg[1]).trim();
+          }
+          if (seg.length >= 2 && String(seg[0]).toLowerCase() === 'jpay-pay' && String(seg[1]).indexOf('.') < 0) {
+            return String(seg[1]).trim();
+          }
+        } catch (e2) { /* ignore */ }
+        return '';
       }
 
       /** pay-result 확인 → jpay-pay(가맹 설정 1·2·3형) 복귀용 */
@@ -757,7 +774,39 @@
             body += '<br><small>pay_index: ' + escHtml(extra.payIndexUrl) + '</small>';
           }
         }
-        el.innerHTML = '<div class="pay-result-title">' + (ok ? t('payComplete') : t('payFailed')) + '</div><p>' + body + '</p>';
+        var actions = '';
+        if (!PAY_ENTRY_MERCHANT_API && !PAY_EMBED_MODE) {
+          actions = '<div class="pay-result-btn-row mt-3">'
+            + '<button type="button" class="btn btn-primary btn-pay pay-result-confirm-btn" id="jpayResultRetryBtn">'
+            + t('resultRetry') + '</button>'
+            + '<button type="button" class="btn btn-outline-secondary btn-pay pay-result-confirm-btn" id="jpayResultCloseBtn">'
+            + t('resultClose') + '</button>'
+            + '</div>';
+        }
+        el.innerHTML = '<div class="pay-result-title">' + (ok ? t('payComplete') : t('payFailed')) + '</div><p>' + body + '</p>' + actions;
+        var retryBtn = document.getElementById('jpayResultRetryBtn');
+        var closeBtn = document.getElementById('jpayResultCloseBtn');
+        if (retryBtn) {
+          retryBtn.addEventListener('click', function () {
+            var cid = getCompId() || '';
+            var path = (location.pathname || '').replace(/\/+$/, '');
+            location.href = (/\/checkout(?:-subscribe)?\//i.test(path) || /\/v1\/embed-checkout/i.test(path))
+              ? path
+              : ('/checkout/' + encodeURIComponent(cid));
+          });
+        }
+        if (closeBtn) {
+          closeBtn.addEventListener('click', function () {
+            try { window.close(); } catch (eC) { /* ignore */ }
+            window.setTimeout(function () {
+              var cid = getCompId() || '';
+              var path = (location.pathname || '').replace(/\/+$/, '');
+              location.href = (/\/checkout(?:-subscribe)?\//i.test(path) || /\/v1\/embed-checkout/i.test(path))
+                ? path
+                : ('/checkout/' + encodeURIComponent(cid));
+            }, 120);
+          });
+        }
         notifyParent(Object.assign({
           phase: 'finished', success: ok, orderNo: orderNo || '', message: msg, pgVendor: 'JPAY',
           errorCode: extra && extra.errorCode ? extra.errorCode : '',

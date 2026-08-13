@@ -479,6 +479,8 @@ html[data-pay-embed="1"] .pay-card {
 .pay-result-btn-row {
   display: flex;
   justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   width: 100%;
 }
 

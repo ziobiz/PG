@@ -136,6 +136,25 @@ function Write-Utf8Lf([string]$path, [string]$content) {
     [IO.File]::WriteAllText($path, $lf, $utf8NoBom)
 }
 
+# Guard: reject corrupted site/index.html before deploy
+function Assert-SiteUtf8Ok {
+    $index = Join-Path $RepoRoot "site\index.html"
+    if (-not (Test-Path $index)) { throw "site/index.html missing" }
+    $bytes = [IO.File]::ReadAllBytes($index)
+    $text = [Text.Encoding]::UTF8.GetString($bytes)
+    if ($text.Contains([char]0xFFFD)) { throw "site/index.html UTF-8 corrupted (replacement char)" }
+    $hasBon = $false
+    $hasTong = $false
+    for ($i = 0; $i -lt $bytes.Length - 2; $i++) {
+        if ($bytes[$i] -eq 0xEB -and $bytes[$i+1] -eq 0xB3 -and $bytes[$i+2] -eq 0xB8) { $hasBon = $true }
+    }
+    for ($i = 0; $i -lt $bytes.Length - 5; $i++) {
+        if ($bytes[$i] -eq 0xED -and $bytes[$i+1] -eq 0x86 -and $bytes[$i+2] -eq 0xB5 -and $bytes[$i+3] -eq 0xED -and $bytes[$i+4] -eq 0x95 -and $bytes[$i+5] -eq 0xA9) { $hasTong = $true }
+    }
+    if (-not $hasBon -or -not $hasTong) { throw "site/index.html Korean UTF-8 missing; deploy aborted" }
+    Write-Host "site/index.html UTF-8 OK"
+}
+
 function Apply-SqlFiles($c, [string[]]$files) {
     if (-not $files -or $files.Count -eq 0) { return }
     $dbHost = if ($c["DB_HOST"]) { $c["DB_HOST"] } else { "localhost" }
@@ -222,6 +241,7 @@ try {
     $c = Read-Credentials $CredPath
     $remoteApp = Require-Key $c "REMOTE_PG_APP_DIR"
     $remoteJar = "$remoteApp/build/libs/$JarName"
+    Assert-SiteUtf8Ok
 
     if (-not $SkipBuild) {
         Write-Host "`n[1/4] bootJar..."

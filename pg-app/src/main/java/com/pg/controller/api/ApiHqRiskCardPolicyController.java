@@ -51,4 +51,18 @@ public class ApiHqRiskCardPolicyController {
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> merchantRows() {
         return ResponseEntity.ok(ApiResponse.ok(riskCardPolicyService.listActiveMerchantRows()));
     }
+
+    /** 가맹점 리스크 현황·필터링 행 단위 저장 */
+    @PostMapping("/merchantSave")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> merchantSave(@RequestBody Map<String, Object> body) {
+        try {
+            Map<String, Object> row = riskCardPolicyService.saveMerchantRiskRow(body != null ? body : Map.of());
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("row", row);
+            data.put("merchantRows", riskCardPolicyService.listActiveMerchantRows());
+            return ResponseEntity.ok(ApiResponse.ok(data));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage() != null ? e.getMessage() : "invalid"));
+        }
+    }
 }

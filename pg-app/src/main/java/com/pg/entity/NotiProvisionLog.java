@@ -20,6 +20,10 @@ public class NotiProvisionLog {
     @Column(name = "merchant_id", length = 64)
     private String merchantId;
 
+    /** jpay | elementpay */
+    @Column(name = "pg_kind", length = 16)
+    private String pgKind = "jpay";
+
     @Column(name = "comp_nm", length = 200)
     private String compNm;
 
@@ -73,6 +77,8 @@ public class NotiProvisionLog {
     public void setCompId(String compId) { this.compId = compId; }
     public String getMerchantId() { return merchantId; }
     public void setMerchantId(String merchantId) { this.merchantId = merchantId; }
+    public String getPgKind() { return pgKind; }
+    public void setPgKind(String pgKind) { this.pgKind = pgKind; }
     public String getCompNm() { return compNm; }
     public void setCompNm(String compNm) { this.compNm = compNm; }
     public String getInternalTargetId() { return internalTargetId; }

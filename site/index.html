@@ -8,7 +8,7 @@
   <title>PG 통합관리자</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="css/site.css?v=106" rel="stylesheet">
+  <link href="css/site.css?v=110" rel="stylesheet">
   <link href="css/hq-server-monitor.css?v=5" rel="stylesheet">
   <script src="js/config.js?v=12"></script>
   <script src="js/pg-menu-layout-config.js?v=1"></script>
@@ -47,7 +47,7 @@
       }
     })();
   </script>
-  <script src="js/api.js?v=46"></script>
+  <script src="js/api.js?v=47"></script>
   <script src="js/hq-holiday-calendar.js?v=3"></script>
   <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 </head>
@@ -425,37 +425,63 @@
             <input type="hidden" id="pgAgencyEditId" value="">
             <div class="mb-2">
               <label class="form-label"><span data-pg-ui-t="PG사코드">PG사코드</span> <span class="text-danger">*</span></label>
-              <input type="text" class="form-control form-control-sm" id="pgAgencyEditPgCd" maxlength="20" data-pg-ui-placeholder="예 CHILLPAY_API, CHILLPAY_URL" placeholder="예 CHILLPAY_API, CHILLPAY_URL">
-              <div class="form-text"><span data-pg-ui-t="신규만 입력·수정 시 변경 불가. 용도마다 PG코드를 나누어 등록하면 가맹점 결제대행사 선택 시 구분됩니다. ChillPay 계열은 CHILLPAY로 시작하는 코드가 URL·자격 병합에 함께 쓰입니다.">신규만 입력·수정 시 변경 불가. 용도마다 PG코드를 나누어 등록하면 가맹점 결제대행사 선택 시 구분됩니다. ChillPay 계열은 CHILLPAY로 시작하는 코드가 URL·자격 병합에 함께 쓰입니다.</span></div>
+              <input type="text" class="form-control form-control-sm" id="pgAgencyEditPgCd" maxlength="20" data-pg-ui-placeholder="예 ELEMENTPAY_SAN, CHILLPAY" placeholder="예 ELEMENTPAY_SAN, CHILLPAY">
+              <div class="form-text"><span data-pg-ui-t="신규만 입력·수정 시 변경 불가. 동일 MID·자격으로 여러 용도(노티+URL 등)면 한 행에 복수 선택. 자격·코드가 다르면 PG코드를 나누어 등록. ChillPay 계열은 CHILLPAY로 시작하는 코드가 URL·자격 병합에 함께 쓰입니다.">신규만 입력·수정 시 변경 불가. 동일 MID·자격으로 여러 용도(노티+URL 등)면 한 행에 복수 선택. 자격·코드가 다르면 PG코드를 나누어 등록. ChillPay 계열은 CHILLPAY로 시작하는 코드가 URL·자격 병합에 함께 쓰입니다.</span></div>
             </div>
             <div class="mb-2">
               <label class="form-label"><span data-pg-ui-t="결제대행사">결제대행사</span> <span class="text-danger">*</span></label>
-              <input type="text" class="form-control form-control-sm" id="pgAgencyEditPgNm" maxlength="100" data-pg-ui-placeholder="표시 이름 (예 ChillPay · API)" placeholder="표시 이름 (예 ChillPay · API)">
+              <input type="text" class="form-control form-control-sm" id="pgAgencyEditPgNm" maxlength="100" data-pg-ui-placeholder="표시 이름 (예 ElementPay · THB)" placeholder="표시 이름 (예 ElementPay · THB)">
             </div>
             <div class="mb-2">
               <label class="form-label"><span data-pg-ui-t="연동 용도">연동 용도</span> <span class="text-danger">*</span></label>
-              <select class="form-select form-select-sm" id="pgAgencyEditIntegKind" data-pg-ui-title="이 행은 선택한 용도 한 가지만 담당합니다">
-                <option value="" data-pg-ui-t="— 선택 —">— 선택 —</option>
-                <option value="NOTI" data-pg-ui-t="① 노티">① 노티</option>
-                <option value="URL_PAY" data-pg-ui-t="② URL">② URL</option>
-                <option value="URL_PAY_REPAY" data-pg-ui-t="②-R URL재결제">②-R URL재결제</option>
-                <option value="WEB_CHATBOT" data-pg-ui-t="③ 챗봇">③ 챗봇</option>
-                <option value="API" data-pg-ui-t="④ API">④ API</option>
-                <option value="API_SUBSCRIPTION" data-pg-ui-t="⑤ API구독">⑤ API구독</option>
-              </select>
-              <div class="d-flex flex-wrap gap-1 align-items-center small mt-1 mb-0 pg-integ-kind-legend" aria-hidden="true">
-                <span class="badge rounded-pill pg-scope-pastel-noti" data-pg-ui-t="노티">노티</span>
-                <span class="badge rounded-pill pg-scope-pastel-url" data-pg-ui-t="URL">URL</span>
-                <span class="badge rounded-pill pg-scope-pastel-url" data-pg-ui-t="URL재결제">URL재결제</span>
-                <span class="badge rounded-pill pg-scope-pastel-chatbot" data-pg-ui-t="챗봇">챗봇</span>
-                <span class="badge rounded-pill pg-scope-pastel-api" data-pg-ui-t="API">API</span>
-                <span class="badge rounded-pill pg-scope-pastel-api" data-pg-ui-t="API구독">API구독</span>
+              <div id="pgAgencyEditIntegKinds" class="d-flex flex-wrap gap-3 mb-1" role="group" data-pg-ui-aria-label="연동 용도 복수 선택" aria-label="연동 용도 복수 선택">
+                <div class="form-check mb-0">
+                  <input class="form-check-input pg-agency-integ-kind" type="checkbox" value="NOTI" id="pgAgencyIntegNoti">
+                  <label class="form-check-label" for="pgAgencyIntegNoti"><span class="badge rounded-pill pg-scope-pastel-noti" data-pg-ui-t="노티">노티</span></label>
+                </div>
+                <div class="form-check mb-0">
+                  <input class="form-check-input pg-agency-integ-kind" type="checkbox" value="URL_PAY" id="pgAgencyIntegUrlPay">
+                  <label class="form-check-label" for="pgAgencyIntegUrlPay"><span class="badge rounded-pill pg-scope-pastel-url" data-pg-ui-t="URL">URL</span></label>
+                </div>
+                <div class="form-check mb-0">
+                  <input class="form-check-input pg-agency-integ-kind" type="checkbox" value="URL_PAY_REPAY" id="pgAgencyIntegUrlPayRepay">
+                  <label class="form-check-label" for="pgAgencyIntegUrlPayRepay"><span class="badge rounded-pill pg-scope-pastel-url" data-pg-ui-t="URL재결제">URL재결제</span></label>
+                </div>
+                <div class="form-check mb-0">
+                  <input class="form-check-input pg-agency-integ-kind" type="checkbox" value="WEB_CHATBOT" id="pgAgencyIntegChatbot">
+                  <label class="form-check-label" for="pgAgencyIntegChatbot"><span class="badge rounded-pill pg-scope-pastel-chatbot" data-pg-ui-t="챗봇">챗봇</span></label>
+                </div>
+                <div class="form-check mb-0">
+                  <input class="form-check-input pg-agency-integ-kind" type="checkbox" value="API" id="pgAgencyIntegApi">
+                  <label class="form-check-label" for="pgAgencyIntegApi"><span class="badge rounded-pill pg-scope-pastel-api" data-pg-ui-t="API">API</span></label>
+                </div>
+                <div class="form-check mb-0">
+                  <input class="form-check-input pg-agency-integ-kind" type="checkbox" value="API_SUBSCRIPTION" id="pgAgencyIntegApiSub">
+                  <label class="form-check-label" for="pgAgencyIntegApiSub"><span class="badge rounded-pill pg-scope-pastel-api" data-pg-ui-t="API구독">API구독</span></label>
+                </div>
               </div>
-              <div class="form-text"><span data-pg-ui-t="한 행당 용도 1개. 다른 용도는 PG코드를 달리 해 추가 등록하세요.">한 행당 용도 1개. 다른 용도는 PG코드를 달리 해 추가 등록하세요.</span></div>
+              <div class="form-text"><span data-pg-ui-t="복수 선택 가능(예: 노티+URL). 선택한 용도마다 아래 엔드포인트를 넣을 수 있습니다(선택).">복수 선택 가능(예: 노티+URL). 선택한 용도마다 아래 엔드포인트를 넣을 수 있습니다(선택).</span></div>
             </div>
-            <div class="mb-2">
-              <label class="form-label"><span data-pg-ui-t="엔드포인트 URL">엔드포인트 URL</span> <span class="text-muted small" data-pg-ui-t="(선택)">(선택)</span></label>
-              <input type="text" class="form-control form-control-sm" id="pgAgencyEditIntegrationEndpoint" maxlength="512" data-pg-ui-placeholder="선택한 용도에 맞는 https://…" placeholder="선택한 용도에 맞는 https://…" autocomplete="off">
+            <div class="mb-2 d-none" data-pg-integ-ep-wrap="NOTI">
+              <label class="form-label"><span data-pg-ui-t="엔드포인트 — 노티">엔드포인트 — 노티</span> <span class="text-muted small" data-pg-ui-t="(선택)">(선택)</span></label>
+              <input type="text" class="form-control form-control-sm" id="pgAgencyEditEndpointNoti" maxlength="512" data-pg-ui-placeholder="노티용 https://…" placeholder="노티용 https://…" autocomplete="off">
+            </div>
+            <div class="mb-2 d-none" data-pg-integ-ep-wrap="URL_PAY">
+              <label class="form-label"><span data-pg-ui-t="엔드포인트 — URL">엔드포인트 — URL</span> <span class="text-muted small" data-pg-ui-t="(선택)">(선택)</span></label>
+              <input type="text" class="form-control form-control-sm" id="pgAgencyEditEndpointUrlPay" maxlength="512" data-pg-ui-placeholder="URL결제용 https://…" placeholder="URL결제용 https://…" autocomplete="off">
+            </div>
+            <div class="mb-2 d-none" data-pg-integ-ep-wrap="URL_PAY_REPAY">
+              <label class="form-label"><span data-pg-ui-t="엔드포인트 — URL재결제">엔드포인트 — URL재결제</span> <span class="text-muted small" data-pg-ui-t="(선택)">(선택)</span></label>
+              <input type="text" class="form-control form-control-sm" id="pgAgencyEditEndpointUrlPayRepay" maxlength="512" data-pg-ui-placeholder="URL재결제용 https://…" placeholder="URL재결제용 https://…" autocomplete="off">
+            </div>
+            <div class="mb-2 d-none" data-pg-integ-ep-wrap="API_OR_CHATBOT">
+              <label class="form-label"><span data-pg-ui-t="엔드포인트 — API·챗봇">엔드포인트 — API·챗봇</span> <span class="text-muted small" data-pg-ui-t="(선택)">(선택)</span></label>
+              <input type="text" class="form-control form-control-sm" id="pgAgencyEditEndpointApi" maxlength="512" data-pg-ui-placeholder="API·챗봇 공통 https://…" placeholder="API·챗봇 공통 https://…" autocomplete="off">
+              <div class="form-text"><span data-pg-ui-t="챗봇·API 연동은 동일 엔드포인트 필드를 공유합니다.">챗봇·API 연동은 동일 엔드포인트 필드를 공유합니다.</span></div>
+            </div>
+            <div class="mb-2 d-none" data-pg-integ-ep-wrap="API_SUBSCRIPTION">
+              <label class="form-label"><span data-pg-ui-t="엔드포인트 — API구독">엔드포인트 — API구독</span> <span class="text-muted small" data-pg-ui-t="(선택)">(선택)</span></label>
+              <input type="text" class="form-control form-control-sm" id="pgAgencyEditEndpointApiSub" maxlength="512" data-pg-ui-placeholder="API구독용 https://…" placeholder="API구독용 https://…" autocomplete="off">
             </div>
             <div class="mb-2 d-none" id="pgAgencyEditUrlPayAmountModeWrap">
               <label class="form-label" data-pg-ui-t="URL 결제 금액 모드">URL 결제 금액 모드</label>
@@ -478,9 +504,10 @@
                 <label class="form-label" data-pg-ui-t="MID / Merchant Code">MID / Merchant Code</label>
                 <input type="text" class="form-control form-control-sm" id="pgAgencyEditMid" maxlength="100" data-pg-ui-placeholder="예 M035594" placeholder="예 M035594" autocomplete="off">
               </div>
-              <div class="col-md-3 mb-2">
+              <div class="col-md-3 mb-2" id="pgAgencyEditRouteNoWrap">
                 <label class="form-label" data-pg-ui-t="Route No">Route No</label>
                 <input type="text" class="form-control form-control-sm" id="pgAgencyEditRouteNo" inputmode="numeric" placeholder="4" autocomplete="off">
+                <div class="form-text" id="pgAgencyEditRouteNoHint"><span data-pg-ui-t="ChillPay 전용입니다. 다른 PG는 입력하지 않습니다.">ChillPay 전용입니다. 다른 PG는 입력하지 않습니다.</span></div>
               </div>
               <div class="col-md-3 mb-2">
                 <label class="form-label" data-pg-ui-t="Environment">Environment</label>
@@ -498,11 +525,27 @@
             <div class="mb-2">
               <label class="form-label" data-pg-ui-t="MD5 / 서명 시크릿">MD5 / 서명 시크릿</label>
               <input type="text" class="form-control form-control-sm font-monospace" id="pgAgencyEditMd5Key" maxlength="255" data-pg-ui-placeholder="등록됨: 앞3자+***** · 변경 시에만 새 키 입력" placeholder="등록됨: 앞3자+***** · 변경 시에만 새 키 입력" autocomplete="off" spellcheck="false">
+              <div class="form-text"><span data-pg-ui-t="ElementPay: MID=Merchant Key, MD5=Secret Key(API HMAC), API Key=Webhook Signing(없으면 MD5와 동일).">ElementPay: MID=Merchant Key, MD5=Secret Key(API HMAC), API Key=Webhook Signing(없으면 MD5와 동일).</span></div>
+            </div>
+            <div class="mb-2 d-none border rounded p-2 bg-light" id="pgAgencyEditElementPayWrap">
+              <div class="fw-semibold small mb-1" data-pg-ui-t="ElementPay 결제수단 (service_id)">ElementPay 결제수단 (service_id)</div>
+              <div class="row g-2 align-items-end">
+                <div class="col-md-5">
+                  <label class="form-label form-label-sm mb-0" data-pg-ui-t="카드 alias / service_id">카드 alias / service_id</label>
+                  <input type="text" class="form-control form-control-sm font-monospace" id="pgAgencyEditEpCardAlias" maxlength="64" data-pg-ui-placeholder="예 kCards" placeholder="예 kCards" autocomplete="off">
+                </div>
+                <div class="col-md-7">
+                  <button type="button" class="btn btn-outline-primary btn-sm" id="pgAgencyEditEpFetchMethodsBtn" data-pg-ui-t="샌드박스 결제수단 조회">샌드박스 결제수단 조회</button>
+                  <button type="button" class="btn btn-outline-secondary btn-sm" id="pgAgencyEditEpApplySuggestBtn" data-pg-ui-t="추천값 적용">추천값 적용</button>
+                </div>
+              </div>
+              <div class="form-text mb-1"><span data-pg-ui-t="[조회]로 EP getMethods 목록을 확인한 뒤, 카드 줄의 alias(예: kCards)를 넣고 저장하세요. 「Payment method is disabled」는 보통 alias 불일치입니다.">[조회]로 EP getMethods 목록을 확인한 뒤, 카드 줄의 alias(예: kCards)를 넣고 저장하세요. 「Payment method is disabled」는 보통 alias 불일치입니다.</span></div>
+              <pre class="small mb-0 bg-white border rounded p-2" id="pgAgencyEditEpMethodsResult" style="max-height:160px;overflow:auto;white-space:pre-wrap;"></pre>
             </div>
             <div class="mb-2">
               <label class="form-label" data-pg-ui-t="추가 설정(JSON)">추가 설정(JSON)</label>
-              <textarea class="form-control form-control-sm font-monospace" id="pgAgencyEditCredentialsExtra" rows="3" placeholder='{"custom":"…"}'></textarea>
-              <div class="form-text"><span data-pg-ui-t="해당 PG 전용 확장 파라미터(선택).">해당 PG 전용 확장 파라미터(선택).</span></div>
+              <textarea class="form-control form-control-sm font-monospace" id="pgAgencyEditCredentialsExtra" rows="3" placeholder='{"cardServiceAlias":"kCards"}'></textarea>
+              <div class="form-text"><span data-pg-ui-t="해당 PG 전용 확장 파라미터(선택). ElementPay 예: {&quot;cardServiceAlias&quot;:&quot;kCards&quot;}">해당 PG 전용 확장 파라미터(선택). ElementPay 예: {"cardServiceAlias":"kCards"}</span></div>
             </div>
             <div class="mb-2 border-top pt-2">
               <label class="form-label mb-1" data-pg-ui-t="거래명세서 — 카드매입사(Acquirer)">거래명세서 — 카드매입사(Acquirer)</label>
@@ -716,20 +759,20 @@
 <script src="js/pay-list-overview-catalog.js?v=3"></script>
 <script src="js/pay-list-jpay-overview-catalog.js?v=1"></script>
 <script src="js/table-column-resize.js?v=4"></script>
-  <script src="js/pg-ui-string-map.js?v=64"></script>
-  <script src="js/pg-ui-i18n.js?v=80"></script>
+  <script src="js/pg-ui-string-map.js?v=40"></script>
+  <script src="js/pg-ui-i18n.js?v=85"></script>
   <script src="js/checkout-header-subtitle-presets.js?v=1"></script>
   <script src="js/url-pay-input-mode.js?v=4"></script>
   <script src="js/pg-view-display-tz.js?v=2"></script>
   <script src="js/pg-menu-layout-b.js?v=3"></script>
-  <script src="js/pg-hub-shell.js?v=3"></script>
-  <script src="js/icopay-platform-release-notes.js?v=2.87"></script>
+  <script src="js/pg-hub-shell.js?v=4"></script>
+  <script src="js/icopay-platform-release-notes.js?v=2.94"></script>
   <script src="js/icopay-platform-manuals.js?v=2.81"></script>
-  <script src="js/screens.js?v=261"></script>
+  <script src="js/screens.js?v=266"></script>
   <script src="js/pg-pay-list-i18n.js?v=42"></script>
   <script src="js/pg-home-dashboard.js?v=27"></script>
   <script src="js/ops-inactive-card-brand.js?v=1"></script>
-  <script src="js/app.js?v=320"></script>
+  <script src="js/app.js?v=325"></script>
   <script src="js/pg-login-tablet-shell.js?v=5"></script>
   <script src="js/pg-topbar-contrast.js?v=1"></script>
   <script src="js/pg-admin-tablet-shell.js?v=9"></script>

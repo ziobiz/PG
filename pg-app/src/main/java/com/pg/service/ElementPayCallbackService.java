@@ -21,6 +21,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -121,17 +122,18 @@ public class ElementPayCallbackService {
                                           String rawBody, String clientIp, String notifyTargetCode) {
         persistInbound(rawBody, clientIp, notifyTargetCode, fields);
 
-        Optional<PgAgency> agencyOpt = resolveAgency(fields);
-        if (agencyOpt.isEmpty()) {
-            log.warn("ElementPay callback agency 미해석 order={}", fields.get("order"));
-            return jsonResponse(474, "Agency not found", null);
+        /*
+         * EP check/pay 콜백 본문에는 Merchant Key({@code key})가 없다(문서 파라미터 목록).
+         * key 로만 agency 를 찾으면 항상 실패 → 474 → 결제 거절(204) 이 난다.
+         * 서명 검증으로 EP agency(웹훅 Signing Secret)를 확정한다.
+         */
+        Optional<ResolvedCallbackAuth> authOpt = resolveAgencyAndVerify(method, fields);
+        if (authOpt.isEmpty()) {
+            log.warn("ElementPay callback agency/hash 미해석 method={} order={} id={}",
+                    method, fields.get("order"), fields.get("id"));
+            return jsonResponse(401, "Invalid hash or agency", null);
         }
-        ElementPayCredentials cred = ElementPayCredentials.from(agencyOpt.get());
-        String hash = fields.get("hash");
-        if (!ElementPayHashUtil.verifyCallbackRequest(cred.webhookSecretKey(), method, fields, hash)) {
-            log.warn("ElementPay callback hash invalid method={} order={}", method, fields.get("order"));
-            return jsonResponse(401, "Invalid hash", cred);
-        }
+        ElementPayCredentials cred = authOpt.get().cred();
 
         String orderNo = nz(fields.get("order"));
         String compCode = extractCompId(fields);
@@ -148,15 +150,32 @@ public class ElementPayCallbackService {
         if (orderNo.isBlank()) {
             return jsonResponse(475, "Order required", cred);
         }
-        Optional<PgTrnsctn> txn = compCode.isBlank()
-                ? elementPaySaleRecordService.findAnyByOrder(orderNo)
-                : elementPaySaleRecordService.findByMerchantAndOrder(compCode, orderNo);
+        Optional<PgTrnsctn> txn = Optional.empty();
+        if (!compCode.isBlank()) {
+            txn = elementPaySaleRecordService.findByMerchantAndOrder(compCode, orderNo);
+        }
         if (txn.isEmpty()) {
-            return jsonResponse(474, "Payment not found", cred);
+            txn = elementPaySaleRecordService.findAnyByOrder(orderNo);
+        }
+        String paymentId = nz(fields.get("id"));
+        if (txn.isEmpty() && !paymentId.isBlank()) {
+            txn = elementPaySaleRecordService.findAnyByPaymentId(paymentId);
+        }
+        if (txn.isEmpty()) {
+            /*
+             * initPayment 직후 레이스·적재 실패 시에도 check 를 거절하면 EP 가 204 reject 한다.
+             * 서명 검증을 통과한 check 는 270 으로 승인하고, pay 시점에 적재·반영한다.
+             */
+            log.warn("ElementPay check: 로컬 주문 없음 → 270 허용 order={} id={}", orderNo, paymentId);
+            return jsonResponse(270, "Payment can process", cred);
         }
         BigDecimal expected = txn.get().getAmtKrw();
         BigDecimal received = parseAmount(fields.get("amount"));
-        if (expected != null && received != null && expected.compareTo(received) != 0) {
+        if (expected != null && received != null
+                && expected.setScale(2, java.math.RoundingMode.HALF_UP)
+                .compareTo(received.setScale(2, java.math.RoundingMode.HALF_UP)) != 0) {
+            log.warn("ElementPay check amount mismatch order={} expected={} received={}",
+                    orderNo, expected, received);
             return jsonResponse(475, "Amount mismatch", cred);
         }
         return jsonResponse(270, "Payment can process", cred);
@@ -173,10 +192,24 @@ public class ElementPayCallbackService {
                     .orElse("");
         }
         String paymentId = nz(fields.get("id"));
-        Optional<PgTrnsctn> updated = elementPaySaleRecordService.applyOutcome(
-                compCode, orderNo, true, paymentId, "ElementPay paid");
+        if (compCode.isBlank() && !paymentId.isBlank()) {
+            compCode = elementPaySaleRecordService.findAnyByPaymentId(paymentId)
+                    .map(PgTrnsctn::getMerchantId)
+                    .orElse("");
+        }
+        Optional<PgTrnsctn> updated = Optional.empty();
+        if (!compCode.isBlank()) {
+            updated = elementPaySaleRecordService.applyOutcome(
+                    compCode, orderNo, true, paymentId, "ElementPay paid");
+        }
         if (updated.isEmpty()) {
-            return jsonResponse(474, "Payment not found", cred);
+            updated = elementPaySaleRecordService.findAnyByOrder(orderNo)
+                    .flatMap(t -> elementPaySaleRecordService.applyOutcome(
+                            t.getMerchantId(), orderNo, true, paymentId, "ElementPay paid"));
+        }
+        if (updated.isEmpty()) {
+            log.warn("ElementPay pay: 로컬 주문 없음 order={} id={} — 206 재시도 요청", orderNo, paymentId);
+            return jsonResponse(206, "Payment pending local record", cred);
         }
         PgTrnsctn t = updated.get();
         try {
@@ -218,13 +251,17 @@ public class ElementPayCallbackService {
     }
 
     private NotifyReceiveOutcome jsonResponse(int status, String message, ElementPayCredentials cred) {
+        /* EP 문서 예시·HMAC 은 ms timestamp 사용 */
         long ts = Instant.now().toEpochMilli();
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("status", status);
-        response.put("message", message);
+        response.put("message", message != null ? message : "");
         response.put("timestamp", ts);
         String secret = cred != null ? cred.webhookSecretKey() : "";
-        String hash = secret.isBlank() ? "" : ElementPayHashUtil.signCallbackResponse(secret, response);
+        if (secret == null || secret.isBlank()) {
+            secret = cred != null ? cred.apiSecretKey() : "";
+        }
+        String hash = secret == null || secret.isBlank() ? "" : ElementPayHashUtil.signCallbackResponse(secret, response);
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("response", response);
         body.put("hash", hash);
@@ -253,8 +290,53 @@ public class ElementPayCallbackService {
         }
     }
 
-    private Optional<PgAgency> resolveAgency(Map<String, String> fields) {
-        return elementPayPaymentService.resolveAgencyByMerchantKey(fields.get("key"));
+    private Optional<ResolvedCallbackAuth> resolveAgencyAndVerify(String method, Map<String, String> fields) {
+        String hash = fields.get("hash");
+        if (hash == null || hash.isBlank()) {
+            return Optional.empty();
+        }
+        List<PgAgency> candidates = new java.util.ArrayList<>();
+        String key = fields.get("key");
+        if (key != null && !key.isBlank()) {
+            elementPayPaymentService.resolveAgencyByMerchantKey(key).ifPresent(candidates::add);
+        }
+        String orderNo = nz(fields.get("order"));
+        if (!orderNo.isBlank()) {
+            elementPayPaymentService.resolveAgencyByOrderNo(orderNo).ifPresent(a -> {
+                if (candidates.stream().noneMatch(x -> x.getId() != null && x.getId().equals(a.getId()))) {
+                    candidates.add(a);
+                }
+            });
+        }
+        for (PgAgency a : elementPayPaymentService.listElementPayAgencies()) {
+            if (candidates.stream().noneMatch(x -> x.getId() != null && x.getId().equals(a.getId()))) {
+                candidates.add(a);
+            }
+        }
+        for (PgAgency agency : candidates) {
+            ElementPayCredentials cred = ElementPayCredentials.from(agency);
+            if (verifyWithAnySecret(cred, method, fields, hash)) {
+                return Optional.of(new ResolvedCallbackAuth(agency, cred));
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static boolean verifyWithAnySecret(ElementPayCredentials cred, String method,
+                                               Map<String, String> fields, String hash) {
+        if (cred == null) {
+            return false;
+        }
+        if (ElementPayHashUtil.verifyCallbackRequest(cred.webhookSecretKey(), method, fields, hash)) {
+            return true;
+        }
+        /* 캐비닛 Signing Secret 미등록 시 API Secret 으로 서명하는 운영 실수 호환 */
+        String api = cred.apiSecretKey();
+        return api != null && !api.isBlank() && !api.equals(cred.webhookSecretKey())
+                && ElementPayHashUtil.verifyCallbackRequest(api, method, fields, hash);
+    }
+
+    private record ResolvedCallbackAuth(PgAgency agency, ElementPayCredentials cred) {
     }
 
     private static boolean looksLikeElementPay(Map<String, String> fields) {

@@ -77,26 +77,32 @@
 
 서버는 내부에서 ChillPay 호환 JSON 으로 합성한 뒤, 기존 노티 수신과 동일 파이프로 `pg_trnsctn` 에 반영합니다.
 
-## ElementPay (THB) — 노티미들웨어 경유 (ChillPay와 동일)
+## ElementPay (THB) — 노티미들웨어 경유 (가맹 무수정·본사 PG 전환)
 
-ElementPay 웹훅도 **PG가 ICOPAY를 직접 호출하지 않습니다.** ChillPay·Eximbay 와 같이 **외부 NOTI(노티미들웨어)** 가 중간에서 수신·재전송합니다.
+ElementPay는 **PG가 ICOPAY를 직접 호출하지 않습니다.** 외부 NOTI가 중간에서 수신·재전송합니다.  
+가맹점은 Callback/Result URL을 바꾸지 않고, 본사가 결제대행사만 전환할 수 있습니다.
 
 | 단계 | 설정 |
 |------|------|
-| 1. ElementPay 캐비net | Webhook URL → **NOTI 서버** (ICOPAY URL 아님, **고정 1개**) |
+| 1. ElementPay Cabinet | **Webhooks** = `https://noti.icopay.net/noti/elementpay` (**고정 1개**, 가맹 URL 금지) |
 | 2. NOTI → ICOPAY | `POST {공개베이스}/api/middleware/notify/v1/pg-notify/{ingressToken}/ELEMENTPAY` |
-| 3. ICOPAY 처리 | `check`/`pay` → ElementPay 전용 JSON+HMAC 응답 / `payment.*` → `pg_trnsctn` 적재 |
-| 4. NOTI → 가맹 | **가맹 Callback/Result** — JPAY와 동일 `raw`/`json`/`form` (ICOPAY 직접 아웃바운드 아님) |
+| 3. ICOPAY 처리 | `check`/`pay` → ElementPay JSON+HMAC / `payment.*` → `pg_trnsctn` |
+| 4. NOTI → 가맹 Callback | Webhook 후 가맹 **callbackUrl** 릴레이 (`raw`/`json`/`form`) |
+| 5. 브라우저 Result | ICOPAY `_successUrl` 등 = `https://noti.icopay.net/noti/result/elementpay?order=…&compId=…&merchantId=…` → NOTI가 가맹 **resultUrl**로 전달 |
 
-**NOTI 필수:** `check`·`pay` 에 대해 ICOPAY가 돌려준 `{response,hash}` 본문을 **그대로** ElementPay에 반환해야 합니다 (ChillPay용 `{success,processed}` 변환 규칙 적용 금지).
+**NOTI 가맹 매칭 순서:** ① 쿼리/바디 `compId`·`merchantId` → ② (선택) `icopayOrderLookupUrl` Comp-Id 조회 → ③ 최근 `elementpay/webhook` 로그 order → 실패 시 폴백 페이지(타 가맹 오전달 없음).
 
-**가맹 통보 추가 개발 요청(NOTI):** [`docs/NOTI_ElementPay_가맹통보_추가개발요청.md`](./NOTI_ElementPay_가맹통보_추가개발요청.md) — [ziobiz/NOTI](https://github.com/ziobiz/NOTI) 구현용.
+**운영관리 노티생성:** PG=ElementPay → NOTI `pgKind=elementpay` 등록. 수신통보에 Webhook·Result 고정 URL 자동 반영.  
+**전산 대상(THB):** 본사설정 → 결제환경 → 「전산 대상 매핑」에 **THB 전산 대상 ID**를 지정하면, 기준화폐 THB 가맹 노티생성 시 드롭다운·자동 제안에 노출됩니다(JPY/USD와 동일).
 
-**가맹 비식별 (결제대행사에 개별 가맹 노출 방지):**
+**NOTI 필수:** `check`·`pay` 응답 본문 `{response,hash}` **무변환** 패스스루.  
+**Result 입구:** [`docs/NOTI_ElementPay_Result입구_개발요청.md`](./NOTI_ElementPay_Result입구_개발요청.md) — NOTI `/noti/result/elementpay` (ICOPAY V2.97 연동).
 
-- ElementPay Merchant Key·Secret 은 **ICOPAY 본사 집계 1세트**만 등록 (`tb_pg_agency` `ELEMENTPAY` 행).
-- 결제 API·웹훅에 가맹 **업체코드·MID를 넣지 않음** — 내부는 `order` 로 `pg_trnsctn` 에서 가맹 복원.
-- 구매자 복귀 URL은 중립 경로(`/elementpay-pay.html`) — `/checkout/{compId}` 미사용.
+**가맹 비식별:**
+
+- ElementPay Merchant Key·Secret 은 **ICOPAY 본사 집계 1세트**만 (`tb_pg_agency` `ELEMENTPAY`).
+- 결제 API·웹훅에 가맹 업체코드 미전송 — `order` 로 복원.
+- EP에 가맹 쇼핑몰 URL **금지** (NOTI Result 입구만).
 
 배포설정 `ELEMENTPAY` 행: `integ_noti_yn=Y`, `integ_url_pay_yn=Y` (마이그레이션 `V229_elementpay_pg_agency.sql`).
 

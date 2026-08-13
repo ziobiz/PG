@@ -914,10 +914,11 @@
         try {
           var path = (window.location.pathname || '').replace(/\/+$/, '');
           var seg = path.split('/').filter(Boolean);
-          if (seg.length >= 2 && seg[0].toLowerCase() === 'pay' && String(seg[1]).indexOf('.') < 0) {
-            return String(seg[1]).trim();
-          }
-          if (seg.length >= 2 && seg[0].toLowerCase() === 'pay-repay' && String(seg[1]).indexOf('.') < 0) {
+          var roots = {
+            pay: 1, checkout: 1, 'pay-repay': 1,
+            'jpay-pay': 1, 'elementpay-pay': 1, 'eximbay-pay': 1, 'ilk-pay': 1
+          };
+          if (seg.length >= 2 && roots[String(seg[0]).toLowerCase()] && String(seg[1]).indexOf('.') < 0) {
             return String(seg[1]).trim();
           }
         } catch (e) { /* ignore */ }
@@ -1955,7 +1956,9 @@
         var q = 'compId=' + encodeURIComponent(compId) + payVariantQuerySuffix();
         fetchJsonWithRetry(apiUrl('/api/pay/chillpay/checkout-context', q), 5, 600).then(function (ctxRes) {
           if (ctxRes.success !== true || !ctxRes.data) {
-            throw new Error(ctxRes.message || t('configErr'));
+            var fail = new Error(ctxRes.message || t('configErr'));
+            fail.errorCode = ctxRes.errorCode || '';
+            throw fail;
           }
           checkoutCtx = ctxRes.data;
           if (syncUrlPayVariantFromCheckoutContext(checkoutCtx)) {
@@ -2054,7 +2057,12 @@
         }).catch(function (e) {
           var el = document.getElementById('configError');
           el.style.display = 'block';
-          el.textContent = (e && e.message) ? e.message : t('configErr');
+          var msg = (e && e.message) ? e.message : t('configErr');
+          if (e && e.errorCode === 'WEB_PAYMENT_DISABLED') msg = t('webPaymentDisabled');
+          else if (/Suspended/i.test(String(msg)) || /중지로 설정/.test(String(msg))) msg = t('webPaymentDisabled');
+          el.textContent = msg;
+          var form = document.getElementById('payForm');
+          if (form) form.style.display = 'none';
         });
       }
 

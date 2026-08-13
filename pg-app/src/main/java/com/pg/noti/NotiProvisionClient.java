@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * NOTI JPAY Provision API 클라이언트.
+ * NOTI Provision API 클라이언트 (JPAY · ElementPay).
  */
 @Component
 public class NotiProvisionClient {
@@ -44,16 +44,22 @@ public class NotiProvisionClient {
 
     public Map<String, Object> getMerchant(String baseUrl, String apiKey, String merchantId, String acceptLanguage)
             throws NotiProvisionException {
+        return getMerchant(baseUrl, apiKey, merchantId, "jpay", acceptLanguage);
+    }
+
+    public Map<String, Object> getMerchant(String baseUrl, String apiKey, String merchantId, String pgKind,
+                                           String acceptLanguage) throws NotiProvisionException {
         String base = normalizeBase(baseUrl);
         String mid = merchantId != null ? merchantId.trim() : "";
         if (mid.isEmpty()) {
             throw new NotiProvisionException("merchantId가 필요합니다.", "VALIDATION");
         }
-        String url = base + "/api/v1/icopay/merchants/" + encodePathSegment(mid) + "?pgKind=jpay";
+        String kind = normalizePgKind(pgKind);
+        String url = base + "/api/v1/icopay/merchants/" + encodePathSegment(mid) + "?pgKind=" + kind;
         return exchange(HttpMethod.GET, url, apiKey, null, UUID.randomUUID().toString(), acceptLanguage);
     }
 
-    /** JPAY 가맹 수정 (NOTI 2차 API). */
+    /** 가맹 수정 (NOTI 2차 API). */
     public Map<String, Object> updateMerchant(String baseUrl, String apiKey, String merchantId,
                                               Map<String, Object> body, String acceptLanguage)
             throws NotiProvisionException {
@@ -68,36 +74,117 @@ public class NotiProvisionClient {
         return exchange(HttpMethod.PUT, url, apiKey, req, UUID.randomUUID().toString(), acceptLanguage);
     }
 
-    /** JPAY 가맹 삭제 (NOTI 2차 API). */
+    /** 가맹 삭제 (NOTI 2차 API). */
     public Map<String, Object> deleteMerchant(String baseUrl, String apiKey, String merchantId,
                                               boolean force, String acceptLanguage)
+            throws NotiProvisionException {
+        return deleteMerchant(baseUrl, apiKey, merchantId, force, "jpay", acceptLanguage);
+    }
+
+    public Map<String, Object> deleteMerchant(String baseUrl, String apiKey, String merchantId,
+                                              boolean force, String pgKind, String acceptLanguage)
             throws NotiProvisionException {
         String base = normalizeBase(baseUrl);
         String mid = merchantId != null ? merchantId.trim() : "";
         if (mid.isEmpty()) {
             throw new NotiProvisionException("merchantId가 필요합니다.", "VALIDATION");
         }
-        String url = base + "/api/v1/icopay/merchants/" + encodePathSegment(mid) + "?pgKind=jpay";
+        String kind = normalizePgKind(pgKind);
+        String url = base + "/api/v1/icopay/merchants/" + encodePathSegment(mid) + "?pgKind=" + kind;
         if (force) {
             url += "&force=true";
         }
         return exchange(HttpMethod.DELETE, url, apiKey, null, UUID.randomUUID().toString(), acceptLanguage);
     }
 
-    /** NOTI internal-targets 목록 (미구현 시 빈 목록). */
-    public List<Map<String, Object>> listInternalTargets(String baseUrl, String apiKey, String acceptLanguage) {
+    public static String normalizePgKind(String pgKind) {
+        if (pgKind == null || pgKind.isBlank()) {
+            return "jpay";
+        }
+        String k = pgKind.trim().toLowerCase(Locale.ROOT);
+        if ("elementpay".equals(k) || "ep".equals(k) || "element".equals(k)) {
+            return "elementpay";
+        }
+        return "jpay";
+    }
+
+    public static boolean isElementPay(String pgKind) {
+        return "elementpay".equals(normalizePgKind(pgKind));
+    }
+
+    /** NOTI internal-targets 목록. 실패 시 예외 대신 상세 결과 Map 반환. */
+    public Map<String, Object> listInternalTargetsDetailed(String baseUrl, String apiKey, String acceptLanguage) {
+        Map<String, Object> out = new LinkedHashMap<>();
         String base = normalizeBase(baseUrl);
         String url = base + "/api/v1/icopay/internal-targets";
-        try {
-            return exchangeList(HttpMethod.GET, url, apiKey, UUID.randomUUID().toString(), acceptLanguage);
-        } catch (NotiProvisionException e) {
-            if (e.getHttpStatus() == 404) {
-                return Collections.emptyList();
-            }
-            return Collections.emptyList();
-        } catch (Exception e) {
-            return Collections.emptyList();
+        out.put("endpoint", url);
+        out.put("items", Collections.emptyList());
+        if (apiKey == null || apiKey.isBlank()) {
+            out.put("status", "NOT_CONFIGURED");
+            out.put("httpStatus", 0);
+            out.put("message", "Provision API 키가 없습니다. 위 「NOTI Provision API」에서 키를 저장하세요.");
+            return out;
         }
+        try {
+            List<Map<String, Object>> items = exchangeList(
+                    HttpMethod.GET, url, apiKey, UUID.randomUUID().toString(), acceptLanguage);
+            out.put("items", items != null ? items : Collections.emptyList());
+            out.put("httpStatus", 200);
+            if (items == null || items.isEmpty()) {
+                out.put("status", "EMPTY");
+                out.put("message", "NOTI 전산 대상이 비어 있습니다. NOTI 관리화면에서 internal-targets를 등록하거나, 위 JPY/USD/THB 매핑에 ID를 직접 입력하세요.");
+            } else {
+                out.put("status", "OK");
+                out.put("message", "");
+            }
+            return out;
+        } catch (NotiProvisionException e) {
+            int http = e.getHttpStatus();
+            out.put("httpStatus", http);
+            out.put("errorCode", e.getErrorCode() != null ? e.getErrorCode() : "");
+            if (http == 404) {
+                out.put("status", "NOTI_ENDPOINT_MISSING");
+                out.put("message",
+                        "NOTI에 목록 API(GET /api/v1/icopay/internal-targets)가 없거나 404입니다. "
+                                + "목록은 참고용이며, 위 JPY/USD/THB 매핑에 NOTI 관리화면의 전산 대상 ID를 직접 입력하면 노티생성은 정상 동작합니다.");
+            } else if (http == 401 || http == 403) {
+                out.put("status", "AUTH_FAILED");
+                out.put("message",
+                        "Provision API 인증 실패(HTTP " + http + "). NOTI에서 발급한 Bearer 키·허용 IP를 확인하세요.");
+            } else {
+                out.put("status", "ERROR");
+                String msg = e.getMessage() != null ? e.getMessage().trim() : "";
+                out.put("message", msg.isEmpty()
+                        ? ("NOTI 전산 대상 목록 조회 실패" + (http > 0 ? " (HTTP " + http + ")" : ""))
+                        : msg);
+            }
+            return out;
+        } catch (Exception e) {
+            out.put("status", "ERROR");
+            out.put("httpStatus", 0);
+            out.put("message", e.getMessage() != null && !e.getMessage().isBlank()
+                    ? e.getMessage()
+                    : "NOTI 전산 대상 목록 조회 중 오류가 발생했습니다.");
+            return out;
+        }
+    }
+
+    /** NOTI internal-targets 목록 (실패·미구현 시 빈 목록). */
+    public List<Map<String, Object>> listInternalTargets(String baseUrl, String apiKey, String acceptLanguage) {
+        Map<String, Object> detailed = listInternalTargetsDetailed(baseUrl, apiKey, acceptLanguage);
+        Object items = detailed.get("items");
+        if (items instanceof List<?> list) {
+            List<Map<String, Object>> out = new ArrayList<>();
+            for (Object item : list) {
+                if (item instanceof Map<?, ?> m) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> row = (Map<String, Object>) m;
+                    out.add(row);
+                }
+            }
+            return out;
+        }
+        return Collections.emptyList();
     }
 
     /** JPAY 슬롯 사용 가능 여부 (NOTI API 미구현 시 404). */

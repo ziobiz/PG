@@ -145,6 +145,10 @@ public class HqNotifyEnvConfig {
     @Column(name = "noti_provision_internal_target_usd", length = 120)
     private String notiProvisionInternalTargetUsd;
 
+    /** THB 가맹 자동 매핑 전산 대상 ID (ElementPay 등) */
+    @Column(name = "noti_provision_internal_target_thb", length = 120)
+    private String notiProvisionInternalTargetThb;
+
     /** DEALMAI Partner 기본값 (노티웹훅구성) */
     @Column(name = "noti_provision_default_dealmai_partner", length = 64)
     private String notiProvisionDefaultDealmaiPartner;
@@ -235,6 +239,10 @@ public class HqNotifyEnvConfig {
     public String getNotiProvisionInternalTargetUsd() { return notiProvisionInternalTargetUsd; }
     public void setNotiProvisionInternalTargetUsd(String notiProvisionInternalTargetUsd) {
         this.notiProvisionInternalTargetUsd = notiProvisionInternalTargetUsd;
+    }
+    public String getNotiProvisionInternalTargetThb() { return notiProvisionInternalTargetThb; }
+    public void setNotiProvisionInternalTargetThb(String notiProvisionInternalTargetThb) {
+        this.notiProvisionInternalTargetThb = notiProvisionInternalTargetThb;
     }
     public String getNotiProvisionDefaultDealmaiPartner() { return notiProvisionDefaultDealmaiPartner; }
     public void setNotiProvisionDefaultDealmaiPartner(String notiProvisionDefaultDealmaiPartner) {

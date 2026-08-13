@@ -5989,11 +5989,11 @@
       TH: 'จำนวนครั้งที่ส่งซ้ำ'
     },
     /* /hq/pgApiMng — 그리드·모달·알림·헬로 안내 */
-    '연동 용도(노티·URL·챗봇·API)와 용도별 엔드포인트를 구분해 저장합니다. URL 용도 행은 「URL금액」에서 일반(일반형) / DP(DISPLAY) / BLIND를 지정할 수 있으며, 본사 URL결제설정(FX JSON)의 해당 PG 금액 모드와 동일합니다. 노티=미들웨어 수신 매칭, URL=공개 URL 결제 플로우, 챗봇/API=PG사 API 직연동(동일 연동 URL). 목록 「연동용도」는 파스텔 색으로 구분됩니다. API Key·MD5는 목록 미노출. [삭제]는 등록일 오른쪽, 신규는 [PG사 연동 추가]입니다.': {
-      EN: 'Integration scopes (notify, URL, chatbot, API) and per-scope endpoints are stored separately. For URL rows, set Standard / DP (DISPLAY) / BLIND under URL amount — same as the HQ URL pay FX JSON amount mode for that PG. Notify = middleware receive matching; URL = public URL checkout; chatbot/API = direct PG API (same linkage URL). Scope badges use pastel colors. API Key and MD5 are hidden in the list. [Delete] is right of Registered; add new via [Add PG linkage].',
-      JP: '連携用途（ノティ・URL・チャットボット・API）と用途別エンドポイントを分けて保存します。URL用途行は「URL金額」で標準 / DP(DISPLAY) / BLIND を指定でき、本社URL決済設定（FX JSON）の当該PG金額モードと同じです。ノティ=ミドルウェア受信マッチ、URL=公開URL決済、チャットボット/API=PG API直連携（同一連携URL）。一覧「連携用途」はパステル色で区別。API Key・MD5は一覧非表示。[削除]は登録日の右、[PG連携追加]で新規登録。',
-      CH: '按对接用途（通知·URL·聊天机器人·API）分别保存各用途端点。URL 用途行可在「URL 金额」选择标准 / DP(DISPLAY) / BLIND，与总部 URL 支付设置（FX JSON）中该 PG 的金额模式一致。通知=中间件接收匹配，URL=公开 URL 支付流程，聊天机器人/API=直连 PG API（同一对接 URL）。列表「对接用途」以淡色区分。API Key·MD5 不在列表显示。[删除]在注册日期右侧，新增用 [添加 PG 对接]。',
-      TH: 'แยกบันทึกขอบเขตการเชื่อม (แจ้งเตือน·URL·แชทบอท·API) และเอนด์พอยต์ตามขอบเขต แถว URL ตั้ง มาตรฐาน / DP (DISPLAY) / BLIND ที่「โหมดจำนวน URL» — ตรงกับโหมดจำนวน PG ในการตั้งค่า URL สำนักงานใหญ่ (FX JSON) แจ้งเตือน=จับคู่รับ middleware URL=เช็คเอาต์ URL สาธารณะ แชทบอท/API=เชื่อม PG โดยตรง (URL เดียวกัน) ป้ายขอบเขตใช้สีพาสเทล API Key·MD5 ไม่แสดงในรายการ [ลบ] อยู่ขวาของวันที่ลงทะเบียน สร้างใหม่ด้วย [เพิ่มการเชื่อม PG]'
+    '연동 용도(노티·URL·챗봇·API)를 한 행에서 복수 선택해 저장할 수 있습니다. URL 용도 행은 「URL금액」에서 일반(일반형) / DP(DISPLAY) / BLIND를 지정할 수 있으며, 본사 URL결제설정(FX JSON)의 해당 PG 금액 모드와 동일합니다. 노티=미들웨어 수신 매칭, URL=공개 URL 결제 플로우, 챗봇/API=PG사 API 직연동(동일 연동 URL). 목록 「연동용도」는 파스텔 색으로 구분됩니다. API Key·MD5는 목록 미노출. [삭제]는 등록일 오른쪽, 신규는 [PG사 연동 추가]입니다.': {
+      EN: 'You can select multiple integration scopes (notify, URL, chatbot, API) on one PG row. For URL scope, set Standard / DP (DISPLAY) / BLIND under URL amount — same as the HQ URL pay FX JSON amount mode for that PG. Notify = middleware receive matching; URL = public URL checkout; chatbot/API = direct PG API (same linkage URL). Scope badges use pastel colors. API Key and MD5 are hidden in the list. [Delete] is right of Registered; add new via [Add PG linkage].',
+      JP: '連携用途（ノティ・URL・チャットボット・API）を1行で複数選択して保存できます。URL用途は「URL金額」で標準 / DP(DISPLAY) / BLIND を指定でき、本社URL決済設定（FX JSON）の当該PG金額モードと同じです。ノティ=ミドルウェア受信マッチ、URL=公開URL決済、チャットボット/API=PG API直連携（同一連携URL）。一覧「連携用途」はパステル色で区別。API Key・MD5は一覧非表示。[削除]は登録日の右、[PG連携追加]で新規登録。',
+      CH: '可在同一 PG 行多选对接用途（通知·URL·聊天机器人·API）。URL 用途可在「URL 金额」选择标准 / DP(DISPLAY) / BLIND，与总部 URL 支付设置（FX JSON）中该 PG 的金额模式一致。通知=中间件接收匹配，URL=公开 URL 支付流程，聊天机器人/API=直连 PG API（同一对接 URL）。列表「对接用途」以淡色区分。API Key·MD5 不在列表显示。[删除]在注册日期右侧，新增用 [添加 PG 对接]。',
+      TH: 'เลือกขอบเขตการเชื่อมหลายอย่างในแถว PG เดียวได้ (แจ้ง·URL·แชทบอท·API) ขอบเขต URL ตั้ง มาตรฐาน / DP (DISPLAY) / BLIND ที่「โหมดจำนวน URL» — ตรงกับโหมดจำนวน PG ในการตั้งค่า URL สำนักงานใหญ่ (FX JSON) แจ้ง=จับคู่รับ middleware URL=เช็คเอาต์สาธารณะ แชทบอท/API=เชื่อม PG โดยตรง ป้ายขอบเขตใช้สีพาสเทล API Key·MD5 ไม่แสดงในรายการ [ลบ] อยู่ขวาของวันที่ลงทะเบียน สร้างใหม่ด้วย [เพิ่มการเชื่อม PG]'
     },
     '통합정산 「예정(ICOPAY)」열: PG사 연동 편집에서 T+N(주말 제외 영업일·결제와 동일 시각) 또는 D+N(달력+N일·일괄 시각)을 저장합니다. OFF면 예정일을 채우지 않습니다. D는 일괄 시각(HH:mm) 필수.': {
       EN: 'Integrated settlement Sched. (ICOPAY): in PG linkage edit, save T+N (business days excluding weekends, same time as payment) or D+N (calendar +N days, batch time). OFF leaves the expected date blank. D requires batch time (HH:mm).',
@@ -6247,11 +6247,17 @@
       CH: 'PG 代码与支付机构名称为必填。',
       TH: 'ต้องกรอกรหัส PG และชื่อผู้ให้บริการชำระ'
     },
+    '연동 용도를 한 가지 이상 선택하세요. 동일 자격이면 노티+URL 등 복수 선택이 가능합니다.': {
+      EN: 'Select at least one integration scope. With the same credentials you may multi-select (e.g. Notify+URL).',
+      JP: '連携用途を1つ以上選択してください。同一資格ならノティ+URLなど複数選択できます。',
+      CH: '请至少选择一个对接用途。同一凭据时可多选（如通知+URL）。',
+      TH: 'เลือกขอบเขตอย่างน้อยหนึ่งรายการ ถ้าใช้ข้อมูลยืนยันชุดเดียวเลือกหลายอย่างได้ (เช่น แจ้ง+URL)'
+    },
     '연동 용도를 선택하세요. 용도별로 PG코드를 나누어 등록합니다.': {
-      EN: 'Select an integration scope. Register separate PG codes per scope.',
-      JP: '連携用途を選択してください。用途ごとにPGコードを分けて登録します。',
-      CH: '请选择对接用途。不同用途请分别注册 PG 代码。',
-      TH: 'เลือกประเภทการเชื่อมต่อ ลงทะเบียนรหัส PG แยกตามประเภท'
+      EN: 'Select at least one integration scope. Same credentials may use multi-select; different credentials need separate PG codes.',
+      JP: '連携用途を1つ以上選択。同一資格は複数選択可。資格が異なればPGコードを分けて登録。',
+      CH: '请至少选择一个对接用途。同一凭据可多选；凭据不同请分 PG 代码注册。',
+      TH: 'เลือกขอบเขตอย่างน้อยหนึ่ง ชุดข้อมูลยืนยันเดียวกันเลือกหลายอย่างได้ ต่างชุดให้แยกรหัส PG'
     },
     'PG사 연동': {
       EN: 'PG linkage',
@@ -8299,17 +8305,17 @@
       CH: 'NOTI创建',
       TH: 'สร้าง NOTI'
     },
-    'NOTI Provision API (JPAY 노티생성 연동)': {
-      EN: 'NOTI Provision API (JPAY NOTI creation)',
-      JP: 'NOTI Provision API（JPAYノティ作成連携）',
-      CH: 'NOTI Provision API（JPAY NOTI创建联动）',
-      TH: 'NOTI Provision API (สร้าง NOTI JPAY)'
+    'NOTI Provision API (노티생성 연동)': {
+      EN: 'NOTI Provision API (NOTI provision)',
+      JP: 'NOTI Provision API（ノティ作成連携）',
+      CH: 'NOTI Provision API（通知创建联动）',
+      TH: 'NOTI Provision API (เชื่อมสร้าง NOTI)'
     },
-    '운영관리 「노티생성」 화면에서 NOTI 미들웨어 JPAY 가맹을 자동 등록할 때 사용합니다. NOTI 관리자 환경설정에서 발급한 Bearer API 키를 저장하고, ICOPAY 서버 egress IP를 NOTI 허용 IP에 등록하세요. 전산 대상 ID는 NOTI 노티 추가등록에 등록된 internal-targets ID입니다.': {
-      EN: 'Used when the Operations → NOTI provision screen auto-registers JPAY merchants on NOTI middleware. Save the Bearer API key from NOTI admin settings and register ICOPAY server egress IP in NOTI allowed IPs. Internal target ID must exist in NOTI internal-targets (additional registration).',
-      JP: '運用管理「ノティ作成」画面でNOTIミドルウェアにJPAY加盟店を自動登録する際に使用します。NOTI管理者環境設定で発行したBearer APIキーを保存し、ICOPAYサーバーegress IPをNOTI許可IPに登録してください。 전산 대상 IDはNOTIノティ追加登録のinternal-targets IDです。',
-      CH: '供运营管理「NOTI创建」画面在 NOTI 中间件自动登记 JPAY 商户时使用。请保存 NOTI 管理端签发的 Bearer API 密钥，并将 ICOPAY 服务器 egress IP 登记到 NOTI 允许 IP。 전산 대상 ID 须为 NOTI internal-targets 中已登记的 ID。',
-      TH: 'ใช้เมื่อหน้าดำเนินงาน → สร้าง NOTI ลงทะเบียนร้าน JPAY บน NOTI middleware อัตโนมัติ บันทึก Bearer API key จาก NOTI admin และลงทะเบียน egress IP ของ ICOPAY ใน NOTI allowed IP รหัสเป้าหมายภายใน (internal-targets) ต้องมีใน NOTI แล้ว'
+    '운영관리 「노티생성」 화면에서 NOTI 미들웨어 가맹(JPAY·ElementPay 등)을 자동 등록할 때 사용합니다. NOTI 관리자 환경설정에서 발급한 Bearer API 키를 저장하고, ICOPAY 서버 egress IP를 NOTI 허용 IP에 등록하세요. 전산 대상 ID는 NOTI 노티 추가등록에 등록된 internal-targets ID입니다.': {
+      EN: 'Used when Operations → NOTI provision auto-registers merchants on NOTI middleware (JPAY, ElementPay, etc.). Save the Bearer API key from NOTI admin settings and allowlist the ICOPAY server egress IP on NOTI. Ledger target IDs are internal-targets IDs registered in NOTI.',
+      JP: '運用管理「ノティ作成」でNOTIミドルウェア加盟(JPAY・ElementPay等)を自動登録する際に使用。NOTI管理のBearer APIキーを保存しICOPAY egress IPを許可。全算対象IDはNOTI internal-targets。',
+      CH: '运营管理「通知创建」自动在 NOTI 中间件登记商户（JPAY、ElementPay 等）时使用。保存 NOTI 管理端 Bearer API 密钥并放行 ICOPAY 出口 IP。账务目标 ID 为 NOTI internal-targets。',
+      TH: 'ใช้เมื่อ Ops สร้าง NOTI ลงทะเบียนร้านบน middleware (JPAY, ElementPay ฯลฯ) บันทึก Bearer API key จาก NOTI และอนุญาต egress IP ของ ICOPAY'
     },
     'Provision API 사용': {
       EN: 'Provision API enabled',
@@ -8346,6 +8352,30 @@
       JP: '利用前に本社設定→ノティ構成設定でNOTI Provision API（使用・ベースURL・APIキー）を保存してください。',
       CH: '请先在总部设置→NOTI 配置中保存 NOTI Provision API（启用·基础 URL·API 密钥）后再使用本画面。',
       TH: 'ก่อนใช้งาน ตั้งค่า NOTI Provision API (เปิดใช้·base URL·API key) ที่ สำนักงานใหญ่ → การตั้งค่า NOTI'
+    },
+    'PG 노티 슬롯': {
+      EN: 'PG NOTI slot',
+      JP: 'PGノティスロット',
+      CH: 'PG NOTI 槽位',
+      TH: 'NOTI slot PG'
+    },
+    'PG 노티 슬롯 번호를 입력하세요.': {
+      EN: 'Enter the PG NOTI slot number.',
+      JP: 'PGノティスロット番号を入力してください。',
+      CH: '请输入 PG NOTI 槽位编号。',
+      TH: 'กรอกหมายเลข NOTI slot ของ PG'
+    },
+    '슬롯을 사용하는 PG만 해당. 자동: JPY는 j200부터, USD는 j55부터 순번 할당(슬롯검토 생략). 수동 입력 시 슬롯검토를 실행하세요.': {
+      EN: 'Only for PGs that use slots. Auto: JPY from j200, USD from j55 (skip slot check). For manual entry, run Check slot.',
+      JP: 'スロットを使うPGのみ。自動: JPYはj200から、USDはj55から採番（スロット確認省略）。手入力時はスロット確認を実行。',
+      CH: '仅适用于使用槽位的 PG。自动：JPY 从 j200、USD 从 j55 起编号（跳过槽位检查）。手动输入时请检查槽位。',
+      TH: 'เฉพาะ PG ที่ใช้ slot อัตโนมัติ: JPY จาก j200, USD จาก j55 (ข้ามตรวจ slot) ป้อนเองให้กดตรวจ slot'
+    },
+    'NOTI 관리자 등록과 동일한 항목으로 가맹을 생성합니다. PG별로 발급·고정 URL을 업체 수신통보 URL에 반영합니다(예: 슬롯형 PG·Webhook/Result 고정형 PG).': {
+      EN: 'Creates a merchant with the same fields as NOTI admin. Per-PG issued or fixed URLs are saved to inbound notify (e.g. slot-based PG or fixed Webhook/Result PG).',
+      JP: 'NOTI管理と同じ項目で加盟を作成。PGごとに発行・固定URLを受信通知へ反映（スロット型・Webhook/Result固定型など）。',
+      CH: '按 NOTI 管理端相同项目创建商户。按 PG 将签发或固定 URL 写入接收通知（如槽位型或固定 Webhook/Result）。',
+      TH: 'สร้างร้านด้วยรายการเดียวกับ NOTI admin บันทึก URL ราย PG ลงรับแจ้ง (เช่น slot หรือ Webhook/Result คงที่)'
     },
     'JPAY 노티 생성': {
       EN: 'Create JPAY NOTI',
@@ -10451,11 +10481,41 @@
       CH: 'JPAY 事后高风险',
       TH: 'JPAY ความเสี่ยงสูงหลังขาย'
     },
+    'JPAY 사후 고위험 쿨다운': {
+      EN: 'JPAY post-sale high-risk risk log',
+      JP: 'JPAY事後ハイリスク リスク状況',
+      CH: 'JPAY 事后高风险·风险现状',
+      TH: 'JPAY ความเสี่ยงสูงหลังขาย·บันทึกสถานะ'
+    },
+    'JPAY 사후 고위험 리스크현황': {
+      EN: 'JPAY post-sale high-risk risk log',
+      JP: 'JPAY事後ハイリスク リスク状況',
+      CH: 'JPAY 事后高风险·风险现状',
+      TH: 'JPAY ความเสี่ยงสูงหลังขาย·บันทึกสถานะ'
+    },
+    'JPAY PY0124 쿨다운': {
+      EN: 'JPAY PY0124 risk log',
+      JP: 'JPAY PY0124 リスク状況',
+      CH: 'JPAY PY0124·风险现状',
+      TH: 'JPAY PY0124·บันทึกสถานะ'
+    },
+    'JPAY PY0124 리스크현황': {
+      EN: 'JPAY PY0124 risk log',
+      JP: 'JPAY PY0124 リスク状況',
+      CH: 'JPAY PY0124·风险现状',
+      TH: 'JPAY PY0124·บันทึกสถานะ'
+    },
     'JPAY PY0124': {
       EN: 'JPAY PY0124',
       JP: 'JPAY PY0124',
       CH: 'JPAY PY0124',
       TH: 'JPAY PY0124'
+    },
+    'PG(JPAY·ChillPay·Eximbay 등) 송부 전 사전 차단입니다. 카드번호 미수집(호스티드) 흐름은 이메일·전화·성명·IP 계열만 적용됩니다. 차단 건은 전산에 1회 시도·취소(20)로 기록되며, 운영관리 「리스크 현황」에 표시됩니다. JPAY 사후 고위험·PY0124 FAIL 은 위험관리(쿨다운·자동 비활성)에 항상 포함됩니다. 아래 「리스크현황 기록」옵션은 운영관리 리스크 현황 적재만 제어합니다. 자동기억은 「결제·URL」탭에서 설정합니다. 트리거 운영: docs/icopay-hq-risk-filter-trigger-manual.html · 총판용 설명안: docs/icopay-dist-risk-trigger-manual.html · 통합 docs/icopay-hq-risk-manual.html · 필터 상세 docs/icopay-hq-risk-filter-manual.html': {
+      EN: 'Pre-send block before PG (JPAY/ChillPay/Eximbay, etc.). Hosted flows without PAN use email/phone/name/IP only. Blocks are recorded as one attempt→cancel(20) and shown under Ops → Risk status. JPAY post-sale high-risk/PY0124 FAILs always count toward risk management (cooldown/auto inactive). The risk-log options below only control Ops Risk status rows. Contact remember is under Payment·URL. Trigger ops: docs/icopay-hq-risk-filter-trigger-manual.html',
+      JP: 'PG送付前の事前ブロックです。カード未収集(ホスト型)はメール・電話・氏名・IPのみ。遮断は1回試行→取消(20)で記録し運用「リスク状況」に出ます。JPAY事後ハイリスク・PY0124 FAILは危険管理(クールダウン・自動非活性)に常に含まれます。下の「リスク状況記録」は状況一覧への記録のみ制御します。',
+      CH: '送往 PG 前的预拦截。未采集卡号的托管流程仅用邮箱/电话/姓名/IP。拦截记为一次尝试→取消(20)，并显示在运营「风险现状」。JPAY 事后高风险/PY0124 失败始终计入风险管理（冷却/自动停用）。下方「风险现状记录」仅控制现状列表写入。',
+      TH: 'บล็อกก่อนส่ง PG โหมดโฮสต์ที่ไม่มีเลขบัตรใช้แค่ อีเมล/โทร/ชื่อ/IP การบล็อกบันทึกเป็นลอง1ครั้ง→ยกเลิก(20) และแสดงในสถานะความเสี่ยง JPAY high-risk/PY0124 FAIL นับในบริหารความเสี่ยงเสมอ ตัวเลือกด้านล่างควบคุมแค่การบันทึกสถานะ'
     },
     '조회된 분할결제 계약이 없습니다.': {
       EN: 'No split-payment contracts found.',
@@ -14510,50 +14570,48 @@
     '④ API': { EN: '④ API', JP: '④ API', CH: '④ API', TH: '④ API' },
     '⑤ API구독': { EN: '⑤ API subscription', JP: '⑤ API定期', CH: '⑤ API 订阅', TH: '⑤ สมัคร API' },
     'API구독': { EN: 'API subscription', JP: 'API定期', CH: 'API 订阅', TH: 'สมัคร API' },
+    '복수 선택 가능(예: 노티+URL). 선택한 용도마다 아래 엔드포인트를 넣을 수 있습니다(선택).': {
+      EN: 'Multi-select allowed (e.g. Notify+URL). Optionally enter an endpoint for each selected scope below.',
+      JP: '複数選択可（例: ノティ+URL）。選択した用途ごとに下のエンドポイントを入力できます（任意）。',
+      CH: '可多选（如通知+URL）。可为每个已选用途在下方填写端点（可选）。',
+      TH: 'เลือกหลายอย่างได้ (เช่น แจ้ง+URL) ใส่ endpoint ต่อขอบเขตด้านล่างได้ (ไม่บังคับ)'
+    },
+    '엔드포인트 — 노티': { EN: 'Endpoint — Notify', JP: 'エンドポイント — ノティ', CH: '端点 — 通知', TH: 'Endpoint — แจ้ง' },
+    '엔드포인트 — URL': { EN: 'Endpoint — URL', JP: 'エンドポイント — URL', CH: '端点 — URL', TH: 'Endpoint — URL' },
+    '엔드포인트 — URL재결제': { EN: 'Endpoint — URL repay', JP: 'エンドポイント — URL再決済', CH: '端点 — URL 再支付', TH: 'Endpoint — URL จ่ายซ้ำ' },
+    '엔드포인트 — API·챗봇': { EN: 'Endpoint — API/Chatbot', JP: 'エンドポイント — API・チャットボット', CH: '端点 — API·聊天机器人', TH: 'Endpoint — API/แชทบอท' },
+    '엔드포인트 — API구독': { EN: 'Endpoint — API subscription', JP: 'エンドポイント — API定期', CH: '端点 — API 订阅', TH: 'Endpoint — สมัคร API' },
+    '챗봇·API 연동은 동일 엔드포인트 필드를 공유합니다.': {
+      EN: 'Chatbot and API scopes share the same endpoint field.',
+      JP: 'チャットボットとAPI連携は同一エンドポイント欄を共有します。',
+      CH: '聊天机器人与 API 用途共用同一端点字段。',
+      TH: 'ขอบเขตแชทบอทและ API ใช้ช่อง endpoint ร่วมกัน'
+    },
+    '노티용 https://…': { EN: 'Notify https://…', JP: 'ノティ用 https://…', CH: '通知用 https://…', TH: 'แจ้ง https://…' },
+    'URL결제용 https://…': { EN: 'URL pay https://…', JP: 'URL決済用 https://…', CH: 'URL 支付用 https://…', TH: 'URL pay https://…' },
+    'URL재결제용 https://…': { EN: 'URL repay https://…', JP: 'URL再決済用 https://…', CH: 'URL 再支付用 https://…', TH: 'URL จ่ายซ้ำ https://…' },
+    'API·챗봇 공통 https://…': { EN: 'Shared API/Chatbot https://…', JP: 'API・チャットボット共通 https://…', CH: 'API·聊天机器人共用 https://…', TH: 'API/แชทบอทร่วม https://…' },
+    'API구독용 https://…': { EN: 'API subscription https://…', JP: 'API定期用 https://…', CH: 'API 订阅用 https://…', TH: 'สมัคร API https://…' },
+    '예 ELEMENTPAY_SAN, CHILLPAY': { EN: 'e.g. ELEMENTPAY_SAN, CHILLPAY', JP: '例 ELEMENTPAY_SAN, CHILLPAY', CH: '例 ELEMENTPAY_SAN, CHILLPAY', TH: 'เช่น ELEMENTPAY_SAN, CHILLPAY' },
+    '표시 이름 (예 ElementPay · THB)': { EN: 'Display name (e.g. ElementPay · THB)', JP: '表示名（例 ElementPay · THB）', CH: '显示名称（例 ElementPay · THB）', TH: 'ชื่อแสดง (เช่น ElementPay · THB)' },
+    '연동 용도 복수 선택': { EN: 'Multi-select integration scopes', JP: '連携用途の複数選択', CH: '多选对接用途', TH: 'เลือกขอบเขตหลายอย่าง' },
     '한 행당 용도 1개. 다른 용도는 PG코드를 달리 해 추가 등록하세요.': {
-      EN: 'One scope per row. For another scope, register again with a different PG code.',
-      JP: '1行につき用途は1つ。別用途はPGコードを変えて追加登録してください。',
-      CH: '每行一个用途。其他用途请使用不同的 PG 代码另行注册。',
-      TH: 'หนึ่งแถวหนึ่งประเภท ประเภทอื่นลงทะเบียนใหม่ด้วยรหัส PG ต่างกัน'
+      EN: 'Multi-select scopes on one row when credentials are shared. Use a different PG code only when credentials differ.',
+      JP: '同一資格なら1行で複数用途を選択。資格が異なる場合のみPGコードを分けて登録。',
+      CH: '同一凭据可在一行多选用途；仅当凭据不同时再分 PG 代码注册。',
+      TH: 'ชุดข้อมูลยืนยันเดียวกันเลือกหลายขอบเขตในแถวเดียว ได้ แยกรหัส PG เมื่อข้อมูลยืนยันต่างกันเท่านั้น'
     },
-    '선택한 용도에 맞는 https://…': {
-      EN: 'https://… matching the selected scope',
-      JP: '選択した用途に合う https://…',
-      CH: '与所选用途匹配的 https://…',
-      TH: 'https://… ให้ตรงกับประเภทที่เลือก'
-    },
-    '일반(일반형)': {
-      EN: 'Standard (normal)',
-      JP: '一般（一般型）',
-      CH: '标准（普通型）',
-      TH: 'มาตรฐาน (แบบทั่วไป)'
-    },
-    'DP (DISPLAY)': { EN: 'DP (DISPLAY)', JP: 'DP (DISPLAY)', CH: 'DP (DISPLAY)', TH: 'DP (DISPLAY)' },
-    'BLIND': { EN: 'BLIND', JP: 'BLIND', CH: 'BLIND', TH: 'BLIND' },
-    '기존 api_endpoint': {
-      EN: 'Legacy api_endpoint',
-      JP: '既存 api_endpoint',
-      CH: '原 api_endpoint',
-      TH: 'api_endpoint เดิม'
-    },
-    '본사 URL결제설정(FX)과 동일 저장소': {
-      EN: 'Same store as HQ URL pay settings (FX)',
-      JP: '本社URL決済設定(FX)と同一の保存先',
-      CH: '与总部 URL 支付设置(FX)同一存储',
-      TH: 'ที่เก็บเดียวกับตั้งค่าชำระ URL (FX) ของ HQ'
-    },
-    '예 M035594': { EN: 'e.g. M035594', JP: '例 M035594', CH: '例 M035594', TH: 'เช่น M035594' },
-    'Environment: Sandbox=테스트, Production=LIVE(본상품)': {
-      EN: 'Environment: Sandbox=test, Production=LIVE',
-      JP: '環境: Sandbox=テスト、Production=LIVE（本番）',
-      CH: '环境：Sandbox=测试，Production=正式',
-      TH: 'สภาพแวดล้อม: Sandbox=ทดสอบ Production=LIVE'
+    '신규만 입력·수정 시 변경 불가. 동일 MID·자격으로 여러 용도(노티+URL 등)면 한 행에 복수 선택. 자격·코드가 다르면 PG코드를 나누어 등록. ChillPay 계열은 CHILLPAY로 시작하는 코드가 URL·자격 병합에 함께 쓰입니다.': {
+      EN: 'New rows only; cannot change after save. Same MID/credentials with multiple scopes (e.g. Notify+URL): multi-select on one row. Different credentials: separate PG codes. ChillPay family: codes starting with CHILLPAY merge URL and credentials.',
+      JP: '新規のみ入力・修正時は変更不可。同一MID・資格で複数用途(ノティ+URL等)なら1行で複数選択。資格・コードが異なればPGコードを分けて登録。ChillPay系はCHILLPAYで始まるコードがURL・資格マージに使われます。',
+      CH: '仅新建可填，保存后不可改。同一 MID/凭据多用途（如通知+URL）请在一行多选；凭据或代码不同请分 PG 代码。ChillPay 系列以 CHILLPAY 开头的代码会合并 URL 与凭据。',
+      TH: 'กรอกเฉพาะแถวใหม่ แก้แล้วเปลี่ยนไม่ได้ MID/ข้อมูลยืนยันชุดเดียวหลายขอบเขต (เช่น แจ้ง+URL) ให้เลือกหลายอย่างในแถวเดียว ถ้าต่างชุดให้แยกรหัส PG ChillPay ใช้รหัสขึ้นต้น CHILLPAY รวม URL และข้อมูลยืนยัน'
     },
     '신규만 입력·수정 시 변경 불가. 용도마다 PG코드를 나누어 등록하면 가맹점 결제대행사 선택 시 구분됩니다. ChillPay 계열은 CHILLPAY로 시작하는 코드가 URL·자격 병합에 함께 쓰입니다.': {
-      EN: 'New rows only; cannot change after save. Split PG codes per scope so merchants can tell them apart. ChillPay family: codes starting with CHILLPAY merge URL and credentials.',
-      JP: '新規のみ入力・修正時は変更不可。用途ごとにPGコードを分けると加盟店の決済代行選択で区別できます。ChillPay系はCHILLPAYで始まるコードがURL・資格マージに使われます。',
-      CH: '仅新建可填，保存后不可改。按用途拆分 PG 代码以便商户区分。ChillPay 系列以 CHILLPAY 开头的代码会合并 URL 与凭据。',
-      TH: 'กรอกเฉพาะแถวใหม่ แก้แล้วเปลี่ยนไม่ได้ แยกรหัส PG ตามประเภทเพื่อให้ร้านเลือกได้ ChillPay ใช้รหัสขึ้นต้น CHILLPAY รวม URL และข้อมูลยืนยัน'
+      EN: 'New rows only; cannot change after save. Same MID/credentials with multiple scopes: multi-select on one row. Different credentials: separate PG codes. ChillPay family: codes starting with CHILLPAY merge URL and credentials.',
+      JP: '新規のみ入力・修正時は変更不可。同一資格の複数用途は1行で複数選択。資格が異なればPGコードを分けて登録。ChillPay系はCHILLPAYで始まるコードがURL・資格マージに使われます。',
+      CH: '仅新建可填，保存后不可改。同一凭据多用途请一行多选；凭据不同再分 PG 代码。ChillPay 系列以 CHILLPAY 开头的代码会合并 URL 与凭据。',
+      TH: 'กรอกเฉพาะแถวใหม่ แก้แล้วเปลี่ยนไม่ได้ ชุดเดียวกันหลายขอบเขตเลือกหลายอย่างในแถวเดียว ต่างชุดแยกรหัส PG ChillPay ใช้รหัสขึ้นต้น CHILLPAY รวม URL และข้อมูลยืนยัน'
     },
     '표시통화→실결제 FX는 「DP」또는 UI만 숨기는 「BLIND」이며, 본사 URL결제설정에서 FX·통화를 맞춥니다. 「일반」은 가맹점 청구통화 그대로 결제합니다.': {
       EN: 'Display→settlement FX uses DP or BLIND (UI-only hide); align FX/currency in HQ URL pay settings. Standard charges in the merchant billing currency as-is.',
@@ -19605,6 +19663,19 @@
     '가맹점 API 배포': { EN: 'Merchant API rollout', JP: '加盟店API配布', CH: '商户 API 发布', TH: 'นโยบาย Merchant API' },
     '배포 체크리스트': { EN: 'Launch checklist', JP: '配布チェックリスト', CH: '上线检查清单', TH: 'เช็กลิสต์เปิดใช้' },
     '본사설정': { EN: 'HQ settings', JP: '本社設定', CH: '总部设置', TH: 'ส่วนตั้งค่า HQ' },
+    '별도설정': { EN: 'Custom settings', JP: '別途設定', CH: '单独设置', TH: 'ตั้งค่าแยก' },
+    '탭을 전환해도 동일 허브 안에서 설정합니다. 상단 탭으로 다른 메뉴에 갔다가 돌아와도 마지막 서브탭을 유지합니다.': {
+      EN: 'Switch tabs within the same hub. Returning via a top tab keeps the last sub-tab you viewed.',
+      JP: '同一ハブ内でタブを切り替えて設定します。上部タブで他メニューへ移動後に戻っても、最後のサブタブを維持します。',
+      CH: '在同一枢纽内切换页签进行设置。通过顶部标签切到其他菜单再返回时，仍保留上次查看的子页签。',
+      TH: 'สลับแท็บในฮับเดียวกัน การกลับจากแท็บบนจะคงซับแท็บล่าสุดที่ดูไว้'
+    },
+    '탭을 전환해도 동일 허브 안에서 설정합니다.': {
+      EN: 'Configure within the same hub while switching tabs.',
+      JP: 'タブを切り替えても同一ハブ内で設定します。',
+      CH: '切换页签时仍在同一枢纽内设置。',
+      TH: 'สลับแท็บแล้วยังตั้งค่าในฮับเดียวกัน'
+    },
     '배포설정': { EN: 'Deployment', JP: 'デプロイ設定', CH: '部署设置', TH: 'การใช้งานจริง' },
     '통보관리': { EN: 'Notifications', JP: '通知管理', CH: '通知管理', TH: 'การแจ้งเตือน' },
     '검수관리': { EN: 'Inspection management', JP: '検収管理', CH: '检收管理', TH: 'จัดการตรวจสอบ' },
@@ -19694,6 +19765,68 @@
     },
     '가맹점이름': { EN: 'Merchant name', JP: '加盟店名', CH: '商户名称', TH: 'ชื่อร้านค้า' },
     '가맹점 리스크 현황': { EN: 'Merchant risk status', JP: '加盟店リスク状況', CH: '商户风险现状', TH: 'สถานะความเสี่ยงร้านค้า' },
+    '가맹점 리스크 필터링': { EN: 'Merchant risk filtering', JP: '加盟店リスクフィルタリング', CH: '商户风险过滤', TH: 'การกรองความเสี่ยงร้านค้า' },
+    '적용상태': { EN: 'Applied status', JP: '適用状態', CH: '适用状态', TH: 'สถานะที่ใช้' },
+    '연락처불일치': { EN: 'Contact mismatch', JP: '連絡先不一致', CH: '联系方式不一致', TH: 'ข้อมูลติดต่อไม่ตรง' },
+    '의심 holder': { EN: 'Suspicious holder', JP: '疑わしい名義', CH: '可疑持卡人', TH: 'ชื่อผู้ถือบัตรน่าสงสัย' },
+    '카드속도': { EN: 'Card velocity', JP: 'カード速度制限', CH: '卡速度限制', TH: 'ความเร็วบัตร' },
+    '이메일속도': { EN: 'Email velocity', JP: 'メール速度制限', CH: '邮箱速度限制', TH: 'ความเร็วอีเมล' },
+    'IP속도': { EN: 'IP velocity', JP: 'IP速度制限', CH: 'IP速度限制', TH: 'ความเร็ว IP' },
+    '본사 사전필터 미사용': { EN: 'HQ presale filter off', JP: '本社事前フィルタ未使用', CH: '总部预过滤未使用', TH: 'ปิดตัวกรองล่วงหน้า HQ' },
+    'hqRiskMerchantFilterNotice': {
+      EN: 'Per-merchant presale risk filtering. Separate from the trigger (risk policy). Default follows HQ. Disabled turns off presale filters for that merchant only. Custom lets you edit conditions in the row. Custom saved in merchant info (Risk presale-filter trigger) or this table overrides HQ risk-filtering defaults (same stored values).',
+      JP: '加盟店ごとの事前リスクフィルタです。トリガー(危険ポリシー)とは別です。既定は本社設定に従います。未使用にすると当該加盟店のみ事前フィルタをオフにします。別途設定なら行で条件を編集します。加盟店情報の「リスク事前フィルタトリガー」または本表で別途設定・保存すると本社リスクフィルタ既定値より優先適用されます(同一保存値)。',
+      CH: '按商户的预售风险过滤。与触发(风险政策)分开。默认遵循总部。设为未使用则仅关闭该商户的预过滤。单独设置可在行内编辑条件。在商户信息「风险预过滤触发」或本表单独设置并保存时，优先于总部风险过滤默认值(同一存储值)。',
+      TH: 'การกรองความเสี่ยงก่อนขายต่อร้านแยกจากทริกเกอร์ นโยบายเริ่มต้นตาม HQ ปิดใช้จะปิดตัวกรองล่วงหน้าเฉพาะร้านนั้น โหมดแยกแก้เงื่อนไขในแถวได้ การตั้งค่าแยกที่บันทึกในข้อมูลร้าน (ทริกเกอร์ตัวกรองล่วงหน้า) หรือตารางนี้มีลำดับเหนือค่าเริ่มกรองของ HQ (ค่าเก็บเดียวกัน)'
+    },
+    '리스크설정(트리거)만 표시·편집합니다. 「미사용」은 실패 쿨다운·자동 비활성 트리거만 끄며, 사전 리스크 필터링은 아래 「가맹점 리스크 필터링」에서 별도입니다. 방식에서 본사설정·미사용·별도설정을 바꾸고 저장하세요. 별도설정이면 1~4차·자동등록·추적기간을 행에서 수정합니다. 업체정보 「리스크 위험관리트리거」또는 본 표에서 별도설정·저장하면 본사 리스크설정 기본값보다 우선 적용됩니다(동일 저장값).': {
+      EN: 'Shows/edits risk settings (trigger) only. Disabled turns off fail cooldown and auto-inactive triggers only; presale risk filtering is below under Merchant risk filtering. Change Method to HQ / Disabled / Custom and save. In Custom mode edit tiers, auto-register, and tracking period in the row. Custom saved in merchant info (Risk danger-management trigger) or this table overrides HQ risk-setting defaults (same stored values).',
+      JP: 'リスク設定(トリガー)のみ表示・編集します。「未使用」は失敗クールダウン・自動非活性トリガーのみオフにし、事前リスクフィルタは下の「加盟店リスクフィルタリング」で別管理です。方式で本社設定・未使用・別途設定を変更して保存してください。別途設定なら1〜4次・自動登録・追跡期間を行で修正します。加盟店情報の「リスク危険管理トリガー」または本表で別途設定・保存すると本社リスク設定の既定値より優先適用されます(同一保存値)。',
+      CH: '仅显示/编辑风险设置(触发)。「未使用」仅关闭失败冷却与自动停用触发；预售风险过滤在下方「商户风险过滤」。在方式中改为总部设置/未使用/单独设置并保存。单独设置时可在行内修改1~4次、自动登记与追踪周期。在商户信息「风险危险管理触发」或本表单独设置并保存时，优先于总部风险设置默认值(同一存储值)。',
+      TH: 'แสดง/แก้ไขเฉพาะตั้งค่าความเสี่ยง (ทริกเกอร์) 「ไม่ใช้」ปิดเฉพาะคูลดาวน์ความล้มเหลวและทริกเกอร์ปิดใช้งานอัตโนมัติ การกรองความเสี่ยงอยู่ด้านล่าง เปลี่ยนรูปแบบเป็นตาม HQ / ไม่ใช้ / แยก แล้วบันทึก โหมดแยกแก้ชั้น 1–4 / ลงทะเบียนอัตโนมัติ / ช่วงติดตามในแถวได้ การตั้งค่าแยกที่บันทึกในข้อมูลร้าน (ทริกเกอร์บริหารความเสี่ยงอันตราย) หรือตารางนี้มีลำดับเหนือค่าเริ่มตั้งค่าความเสี่ยงของ HQ (ค่าเก็บเดียวกัน)'
+    },
+    '가맹점 리스크 현황 바로 아래 — 사전 리스크 필터링(PG 송부 전 차단)을 가맹점별로 표시·편집합니다. 업체정보의 「리스크 사전필터트리거」와 동일 항목입니다. 기본은 본사정책 따름입니다. 트리거 미사용 가맹도 여기가 본사설정이면 본사 사전필터가 그대로 적용됩니다. 미사용으로 두면 해당 가맹만 사전필터가 꺼집니다. 별도정책이면 행에서 조건을 수정 후 저장하세요. 업체정보 또는 본 표에서 별도설정·저장하면 본사 리스크 필터링 기본값보다 우선 적용됩니다(동일 저장값). 본사 사전필터 마스터가 미사용이면 별도정책이어도 사전필터는 동작하지 않습니다.': {
+      EN: 'Just below Merchant risk status — shows/edits per-merchant presale risk filtering (block before sending to PG). Same fields as merchant-info Risk presale-filter trigger. Default follows HQ. Merchants with trigger Disabled still get HQ presale filters when this is Follow HQ. Disabled here turns off presale for that merchant only. In Custom, edit row conditions and save. Custom from merchant info or this table overrides HQ risk-filtering defaults (same stored values). If the HQ presale-filter master is off, Custom still does not run.',
+      JP: '加盟店リスク状況の直下 — 事前リスクフィルタ(PG送付前ブロック)を加盟店別に表示・編集します。加盟店情報の「リスク事前フィルタトリガー」と同一項目です。既定は本社ポリシーに従います。トリガー未使用でもここが本社設定なら本社事前フィルタが適用されます。未使用なら当該加盟店のみオフ。別途設定なら行で条件を修正して保存。加盟店情報または本表の別途設定・保存は本社リスクフィルタ既定より優先(同一保存値)。本社事前フィルタマスタが未使用なら別途設定でも動作しません。',
+      CH: '位于「商户风险现状」正下方 — 按商户显示/编辑预售风险过滤(送往PG前拦截)。与商户信息「风险预过滤触发」相同。默认遵循总部。触发为未使用时，若此处为总部设置仍应用总部预过滤。此处未使用则仅关闭该商户。单独设置可在行内修改后保存。商户信息或本表的单独设置优先于总部风险过滤默认值(同一存储值)。总部预过滤总开关关闭时，单独设置也不生效。',
+      TH: 'ใต้สถานะความเสี่ยงร้าน — แสดง/แก้ไขการกรองความเสี่ยงก่อนขายต่อร้าน (บล็อกก่อนส่ง PG) ฟิลด์เดียวกับทริกเกอร์ตัวกรองล่วงหน้าในข้อมูลร้าน ค่าเริ่มตาม HQ ร้านที่ปิดทริกเกอร์ยังได้ตัวกรอง HQ ถ้าที่นี่ตาม HQ ปิดใช้ที่นี่จะปิดเฉพาะร้าน โหมดแยกแก้ในแถวแล้วบันทึก การตั้งค่าแยกจากข้อมูลร้านหรือตารางนี้เหนือกว่าค่าเริ่มกรองของ HQ (ค่าเก็บเดียวกัน) ถ้ามาสเตอร์ตัวกรองล่วงหน้า HQ ปิด โหมดแยกก็ไม่ทำงาน'
+    },
+    '가맹점별 사전 리스크 필터링입니다. 트리거(위험 정책) 미사용과 별개이며, 기본은 본사설정을 따릅니다. 미사용으로 두면 해당 가맹만 사전필터를 끕니다. 별도설정이면 행에서 조건을 수정합니다. 업체정보 「리스크 사전필터트리거」또는 본 표에서 별도설정·저장하면 본사 리스크 필터링 기본값보다 우선 적용됩니다(동일 저장값).': {
+      EN: 'Per-merchant presale risk filtering. Separate from the trigger (risk policy). Default follows HQ. Disabled turns off presale filters for that merchant only. Custom lets you edit conditions in the row. Custom saved in merchant info (Risk presale-filter trigger) or this table overrides HQ risk-filtering defaults (same stored values).',
+      JP: '加盟店ごとの事前リスクフィルタです。トリガー(危険ポリシー)とは別です。既定は本社設定に従います。未使用にすると当該加盟店のみ事前フィルタをオフにします。別途設定なら行で条件を編集します。加盟店情報の「リスク事前フィルタトリガー」または本表で別途設定・保存すると本社リスクフィルタ既定値より優先適用されます(同一保存値)。',
+      CH: '按商户的预售风险过滤。与触发(风险政策)分开。默认遵循总部。设为未使用则仅关闭该商户的预过滤。单独设置可在行内编辑条件。在商户信息「风险预过滤触发」或本表单独设置并保存时，优先于总部风险过滤默认值(同一存储值)。',
+      TH: 'การกรองความเสี่ยงก่อนขายต่อร้านแยกจากทริกเกอร์ นโยบายเริ่มต้นตาม HQ ปิดใช้จะปิดตัวกรองล่วงหน้าเฉพาะร้านนั้น โหมดแยกแก้เงื่อนไขในแถวได้ การตั้งค่าแยกที่บันทึกในข้อมูลร้าน (ทริกเกอร์ตัวกรองล่วงหน้า) หรือตารางนี้มีลำดับเหนือค่าเริ่มกรองของ HQ (ค่าเก็บเดียวกัน)'
+    },
+    'PG 송부 전 사전 차단입니다. 본사정책 따름이면 [본사설정 → 수수료·리스크 → 리스크 → 리스크 필터링]을 사용합니다. 별도정책이면 아래 조건을 가맹점 우선으로 적용합니다(본 화면 또는 본사 「가맹점 리스크 필터링」에서 저장한 값이 동일하게 우선). 미사용이면 해당 가맹만 사전필터를 끕니다. 위 「리스크 위험관리트리거」(쿨다운·자동 비활성)와는 별개입니다. 본사 사전필터 마스터가 미사용이면 별도정책이어도 사전필터는 동작하지 않습니다.': {
+      EN: 'Presale block before sending to PG. Follow HQ uses [HQ → Fees & risk → Risk → Risk filtering]. Custom applies the conditions below with merchant priority (values saved here or in HQ Merchant risk filtering share the same override). Disabled turns off presale for this merchant only. Separate from Risk danger-management trigger above. If the HQ presale-filter master is off, Custom still does not run.',
+      JP: 'PG送付前の事前ブロックです。本社ポリシーに従う場合は[本社設定 → 手数料・リスク → リスク → リスクフィルタ]を使います。個別ポリシーなら下の条件を加盟店優先で適用します(本画面または本社「加盟店リスクフィルタ」で保存した値が同一に優先)。未使用なら当該加盟店のみオフ。上の「リスク危険管理トリガー」とは別です。本社事前フィルタマスタが未使用なら個別でも動作しません。',
+      CH: '送往PG前的预拦截。遵循总部时使用[总部设置 → 手续费·风险 → 风险 → 风险过滤]。单独政策则以下方条件商户优先(本页或总部「商户风险过滤」保存值同一优先)。未使用则仅关闭该商户。与上方「风险危险管理触发」分开。总部预过滤总开关关闭时单独政策也不生效。',
+      TH: 'บล็อกล่วงหน้าก่อนส่ง PG ตาม HQ ใช้ [HQ → ค่าธรรมเนียม·ความเสี่ยง → ความเสี่ยง → การกรองความเสี่ยง] โหมดแยกใช้เงื่อนไขด้านล่างเหนือกว่า HQ (ค่าที่บันทึกที่นี่หรือตารางกรองร้านของ HQ เป็นค่าเดียวกัน) ไม่ใช้ปิดเฉพาะร้านนี้ แยกจากทริกเกอร์บริหารความเสี่ยงอันตรายด้านบน ถ้ามาสเตอร์ตัวกรองล่วงหน้า HQ ปิด โหมดแยกก็ไม่ทำงาน'
+    },
+    '동일 카드 FAIL·취소·무효·미결제 등 비성공이 누적되면 JPAY 호출 전 일시 차단(1~4차 대기)합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 성공은 자동등록 트리거 원인이 되지 않습니다. 자동 등록 트리거 N차: 추적기간 안에서 비성공 N회가 완료되는 즉시 비활성카드(마스킹)에 등록되며 (N+1)번째 결제 시도부터 차단됩니다. 기간정책 — 미사용: 기간 제한 없이 서비스 기간 내내 누적(성공 시 초기화), 본사정책 따름: 본사 추적기간을 사용, 별도정책: 가맹점 추적기간(일·월·년)·설정기간을 본사보다 우선 적용. 위험 정책 본사정책 따름 시 [본사설정 → 리스크설정]을 사용하며, 별도정책은 본사보다 우선합니다(본 화면 또는 본사 「가맹점 리스크 현황」에서 저장한 값이 동일하게 우선). 미사용 시 해당 가맹의 위험관리를 끕니다. 사전 리스크 필터링은 아래 「리스크 사전필터트리거」에서 별도 설정합니다.': {
+      EN: 'When non-successful results (FAIL, cancel, void, unpaid, etc.) on the same card accumulate, it is temporarily blocked before the JPAY call (1st–4th wait). CVV and invalid card-number format are not counted, and the count resets on a successful payment. A success is never a cause for the auto-register trigger. Auto-register trigger tier N: as soon as N non-success events complete within the tracking period, the card is registered (masked) as inactive and blocking starts from the (N+1)th payment attempt. Period policy — Disabled: accumulate with no time limit throughout the service period (reset on success); Follow HQ policy: use the HQ tracking period; Custom policy: apply the merchant tracking period (day/month/year) and period value with priority over HQ. When the risk policy follows HQ, [HQ settings → Risk settings] is used; custom policy overrides HQ (values saved here or in HQ Merchant risk status share the same override). Disabled turns off risk management for this merchant. Presale risk filtering is configured separately below under Risk presale-filter trigger.',
+      JP: '同一カードのFAIL・取消・無効・未決済などの非成功が累積すると、JPAY呼び出し前に一時ブロック(1〜4次待機)します。CVV・カード番号形式エラーは集計せず、成功決済時にカウントが初期化されます。成功は自動登録トリガーの原因になりません。自動登録トリガーN次: 追跡期間内に非成功N回が完了した時点で無効カード(マスキング)に登録され、(N+1)回目の決済試行からブロックされます。期間ポリシー — 未使用: 期間制限なくサービス期間中ずっと累積(成功時に初期化)、本社ポリシーに従う: 本社の追跡期間を使用、個別ポリシー: 加盟店の追跡期間(日・月・年)・設定期間を本社より優先適用。リスクポリシーが本社に従う場合は[本社設定 → リスク設定]を使用し、個別ポリシーは本社より優先します(本画面または本社「加盟店リスク状況」で保存した値が同一に優先)。未使用の場合は当該加盟店のリスク管理をオフにします。事前リスクフィルタは下の「リスク事前フィルタトリガー」で別設定します。',
+      CH: '同一张卡的 FAIL、取消、无效、未支付等非成功累计后，将在调用 JPAY 之前临时拦截(第1~4次等待)。不统计 CVV 与卡号格式错误，支付成功时计数清零。成功不会成为自动登记触发的原因。自动登记触发第N次: 在追踪周期内完成N次非成功后立即将该卡(掩码)登记为停用卡，并从第(N+1)次支付尝试起拦截。周期政策 — 未使用: 在服务期间内不限期累计(成功时清零);遵循总部政策: 使用总部追踪周期;单独政策: 商户追踪周期(日·月·年)与设定周期优先于总部。风险政策遵循总部时使用[总部设置 → 风险设置];单独政策优先于总部(本页或总部「商户风险现状」保存值同一优先)。未使用时关闭该商户的风险管理。预售风险过滤在下方「风险预过滤触发」单独设置。',
+      TH: 'เมื่อผลลัพธ์ที่ไม่สำเร็จ (FAIL, ยกเลิก, โมฆะ, ยังไม่ชำระ ฯลฯ) ของบัตรใบเดียวกันสะสม จะถูกบล็อกชั่วคราวก่อนเรียก JPAY (รอครั้งที่ 1–4) ข้อผิดพลาด CVV และรูปแบบหมายเลขบัตรจะไม่ถูกนับ และจะรีเซ็ตจำนวนเมื่อชำระสำเร็จ ความสำเร็จไม่เป็นสาเหตุของทริกเกอร์ลงทะเบียนอัตโนมัติ ทริกเกอร์ลงทะเบียนอัตโนมัติครั้งที่ N: เมื่อเหตุการณ์ไม่สำเร็จครบ N ครั้งภายในช่วงติดตาม บัตรจะถูกลงทะเบียนเป็นบัตรปิดใช้งาน (ปกปิด) ทันที และเริ่มบล็อกตั้งแต่การชำระครั้งที่ (N+1) นโยบายช่วงเวลา — ไม่ใช้งาน: สะสมตลอดช่วงให้บริการโดยไม่จำกัดเวลา (รีเซ็ตเมื่อสำเร็จ), ตามนโยบาย HQ: ใช้ช่วงติดตามของ HQ, นโยบายแยก: ใช้ช่วงติดตามของร้าน (วัน·เดือน·ปี) และค่าช่วงเวลาเหนือกว่า HQ เมื่อนโยบายความเสี่ยงตาม HQ จะใช้ [ตั้งค่า HQ → ตั้งค่าความเสี่ยง]; นโยบายแยกมีลำดับเหนือ HQ (ค่าที่บันทึกที่นี่หรือสถานะความเสี่ยงร้านของ HQ เป็นค่าเดียวกัน) เมื่อไม่ใช้งานจะปิดการจัดการความเสี่ยงของร้านนี้ การกรองความเสี่ยงล่วงหน้าตั้งแยกด้านล่างที่ทริกเกอร์ตัวกรองล่วงหน้า'
+    },
+    '리스크설정(트리거)만 표시·편집합니다. 「미사용」은 실패 쿨다운·자동 비활성 트리거만 끄며, 사전 리스크 필터링은 아래 「가맹점 리스크 필터링」에서 별도입니다. 방식에서 본사설정·미사용·별도설정을 바꾸고 저장하세요. 별도설정이면 1~4차·자동등록·추적기간을 행에서 수정합니다.': {
+      EN: 'Shows/edits risk settings (trigger) only. Disabled turns off fail cooldown and auto-inactive triggers only; presale risk filtering is below under Merchant risk filtering. Change Method to HQ / Disabled / Custom and save. In Custom mode edit tiers, auto-register, and tracking period in the row.',
+      JP: 'リスク設定(トリガー)のみ表示・編集します。「未使用」は失敗クールダウン・自動非活性トリガーのみオフにし、事前リスクフィルタは下の「加盟店リスクフィルタリング」で別管理です。方式で本社設定・未使用・別途設定を変更して保存してください。別途設定なら1〜4次・自動登録・追跡期間を行で修正します。',
+      CH: '仅显示/编辑风险设置(触发)。「未使用」仅关闭失败冷却与自动停用触发；预售风险过滤在下方「商户风险过滤」。在方式中改为总部设置/未使用/单独设置并保存。单独设置时可在行内修改1~4次、自动登记与追踪周期。',
+      TH: 'แสดง/แก้ไขเฉพาะตั้งค่าความเสี่ยง (ทริกเกอร์) 「ไม่ใช้」ปิดเฉพาะคูลดาวน์ความล้มเหลวและทริกเกอร์ปิดใช้งานอัตโนมัติ การกรองความเสี่ยงอยู่ด้านล่าง เปลี่ยนรูปแบบเป็นตาม HQ / ไม่ใช้ / แยก แล้วบันทึก โหมดแยกแก้ชั้น 1–4 / ลงทะเบียนอัตโนมัติ / ช่วงติดตามในแถวได้'
+    },
+    '사전 리스크 필터링(PG 송부 전 차단)을 가맹점별로 표시·편집합니다. 기본은 본사설정을 따릅니다. 트리거 미사용 가맹도 여기가 본사설정이면 본사 사전필터가 그대로 적용됩니다. 미사용으로 두면 해당 가맹만 사전필터가 꺼집니다.': {
+      EN: 'Shows/edits per-merchant presale risk filtering (block before sending to PG). Default follows HQ. Merchants with trigger Disabled still get HQ presale filters when this is Follow HQ. Disabled here turns off presale filters for that merchant only.',
+      JP: '事前リスクフィルタ(PG送付前ブロック)を加盟店別に表示・編集します。既定は本社設定に従います。トリガー未使用の加盟店でもここが本社設定なら本社事前フィルタがそのまま適用されます。未使用にすると当該加盟店のみ事前フィルタがオフになります。',
+      CH: '按商户显示/编辑预售风险过滤(送往PG前拦截)。默认遵循总部。触发为未使用的商户，若此处为总部设置仍会应用总部预过滤。此处未使用则仅关闭该商户的预过滤。',
+      TH: 'แสดง/แก้ไขการกรองความเสี่ยงก่อนขายต่อร้าน (บล็อกก่อนส่ง PG) ค่าเริ่มตาม HQ ร้านที่ปิดทริกเกอร์ยังได้ตัวกรองล่วงหน้าของ HQ ถ้าที่นี่ตาม HQ ปิดใช้ที่นี่จะปิดตัวกรองล่วงหน้าเฉพาะร้านนั้น'
+    },
+    '가맹점별 사전 리스크 필터링입니다. 트리거(위험 정책) 미사용과 별개이며, 기본은 본사설정을 따릅니다. 미사용으로 두면 해당 가맹만 사전필터를 끕니다. 별도설정이면 행에서 조건을 수정합니다.': {
+      EN: 'Per-merchant presale risk filtering. Separate from the trigger (risk policy). Default follows HQ. Disabled turns off presale filters for that merchant only. Custom lets you edit conditions in the row.',
+      JP: '加盟店ごとの事前リスクフィルタです。トリガー(危険ポリシー)とは別です。既定は本社設定に従います。未使用にすると当該加盟店のみ事前フィルタをオフにします。別途設定なら行で条件を編集します。',
+      CH: '按商户的预售风险过滤。与触发(风险政策)分开。默认遵循总部。设为未使用则仅关闭该商户的预过滤。单独设置可在行内编辑条件。',
+      TH: 'การกรองความเสี่ยงก่อนขายต่อร้านแยกจากทริกเกอร์ นโยบายเริ่มต้นตาม HQ ปิดใช้จะปิดตัวกรองล่วงหน้าเฉพาะร้านนั้น โหมดแยกแก้เงื่อนไขในแถวได้'
+    },
     '1차': { EN: 'Tier 1', JP: '1次', CH: '第1次', TH: 'ครั้งที่ 1' },
     '2차': { EN: 'Tier 2', JP: '2次', CH: '第2次', TH: 'ครั้งที่ 2' },
     '3차': { EN: 'Tier 3', JP: '3次', CH: '第3次', TH: 'ครั้งที่ 3' },
@@ -19725,6 +19858,25 @@
     '표시할 가맹점이 없습니다.': { EN: 'No merchants to display.', JP: '表示する加盟店がありません。', CH: '没有可显示的商户。', TH: 'ไม่มีร้านค้าให้แสดง' },
     '불러오는 중…': { EN: 'Loading…', JP: '読み込み中…', CH: '加载中…', TH: 'กำลังโหลด…' },
     '리스크관리 트리거': { EN: 'Risk trigger', JP: 'リスク管理トリガー', CH: '风险管理触发', TH: 'ทริกเกอร์ความเสี่ยง' },
+    '리스크 위험관리트리거': {
+      EN: 'Risk danger-management trigger',
+      JP: 'リスク危険管理トリガー',
+      CH: '风险危险管理触发',
+      TH: 'ทริกเกอร์บริหารความเสี่ยงอันตราย'
+    },
+    '리스크 사전필터트리거': {
+      EN: 'Risk presale-filter trigger',
+      JP: 'リスク事前フィルタトリガー',
+      CH: '风险预过滤触发',
+      TH: 'ทริกเกอร์ตัวกรองล่วงหน้าความเสี่ยง'
+    },
+    '사전필터 정책': {
+      EN: 'Presale filter policy',
+      JP: '事前フィルタポリシー',
+      CH: '预过滤政策',
+      TH: 'นโยบายตัวกรองล่วงหน้า'
+    },
+
     '리스크설정': { EN: 'Risk settings', JP: 'リスク設定', CH: '风险设置', TH: 'ตั้งค่าความเสี่ยง' },
     '위험관리 사용': { EN: 'Risk management', JP: '危険管理の使用', CH: '使用风险管理', TH: 'ใช้การจัดการความเสี่ยง' },
     '본사정책 따름': { EN: 'Follow HQ policy', JP: '本社ポリシーに従う', CH: '遵循总部政策', TH: 'ตามนโยบาย HQ' },
@@ -22581,6 +22733,30 @@
       JP: 'ChillPay TransactionId가 없어 API 후속조치를 호출할 수 없습니다.',
       CH: 'ChillPay TransactionId가 없어 API 후속조치를 호출할 수 없습니다.',
       TH: 'ChillPay TransactionId가 없어 API 후속조치를 호출할 수 없습니다.'
+    },
+    'ElementPay 거래는 자동무효를 지원하지 않습니다. 승인 완료 건은 자동환불·강제환불을 사용하세요.': {
+      EN: 'ElementPay does not support auto-void. Use auto refund or force refund after approval.',
+      JP: 'ElementPayは自動無効に非対応です。承認後は自動返金・強制返金を使ってください。',
+      CH: 'ElementPay 不支持自动作废。已批准请使用自动退款或强制退款。',
+      TH: 'ElementPay ไม่รองรับโมฆะอัตโนมัติ หลังอนุมัติให้ใช้คืนเงินอัตโนมัติหรือบังคับ'
+    },
+    'ElementPay 거래만 환불 API를 호출할 수 있습니다.': {
+      EN: 'Only ElementPay transactions can call the refund API.',
+      JP: 'ElementPay取引のみ返金APIを呼べます。',
+      CH: '仅 ElementPay 交易可调用退款 API。',
+      TH: 'เรียก API คืนเงินได้เฉพาะธุรกรรม ElementPay'
+    },
+    'ElementPay payment_id가 없어 환불 API를 호출할 수 없습니다.': {
+      EN: 'Missing ElementPay payment_id; cannot call refund API.',
+      JP: 'ElementPay payment_idがないため返金APIを呼べません。',
+      CH: '缺少 ElementPay payment_id，无法调用退款 API。',
+      TH: 'ไม่มี ElementPay payment_id จึงเรียก API คืนเงินไม่ได้'
+    },
+    'ElementPay Merchant Key·Secret Key 가 설정되지 않았습니다.': {
+      EN: 'ElementPay Merchant Key and Secret Key are not configured.',
+      JP: 'ElementPay Merchant Key・Secret Keyが未設定です。',
+      CH: '未配置 ElementPay Merchant Key / Secret Key。',
+      TH: 'ยังไม่ได้ตั้ง ElementPay Merchant Key และ Secret Key'
     },
     'compId 또는 merchantId가 필요합니다.': {
       EN: 'compId 또는 merchantId is required.',

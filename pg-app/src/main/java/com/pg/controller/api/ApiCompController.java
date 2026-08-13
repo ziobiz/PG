@@ -351,7 +351,21 @@ public class ApiCompController {
             @RequestParam(required = false) String cardRiskTier3Min,
             @RequestParam(required = false) String cardRiskTier4Hours,
             @RequestParam(required = false) String cardRiskTier4Min,
-            @RequestParam(required = false) String cardRiskAutoBlacklistTier) {
+            @RequestParam(required = false) String cardRiskAutoBlacklistTier,
+            @RequestParam(required = false) String cardRiskPresaleMode,
+            @RequestParam(required = false) String cardRiskPresaleBuyerMismatchYn,
+            @RequestParam(required = false) String cardRiskPresaleHolderNameYn,
+            @RequestParam(required = false) String cardRiskPresalePhoneInvalidYn,
+            @RequestParam(required = false) String cardRiskPresaleEmailInvalidYn,
+            @RequestParam(required = false) String cardRiskPresaleVelocityCardYn,
+            @RequestParam(required = false) String cardRiskPresaleVelocityEmailYn,
+            @RequestParam(required = false) String cardRiskPresaleVelocityIpYn,
+            @RequestParam(required = false) String cardRiskPresaleVelCardWinMin,
+            @RequestParam(required = false) String cardRiskPresaleVelCardMax,
+            @RequestParam(required = false) String cardRiskPresaleVelEmailWinMin,
+            @RequestParam(required = false) String cardRiskPresaleVelEmailMax,
+            @RequestParam(required = false) String cardRiskPresaleVelIpWinMin,
+            @RequestParam(required = false) String cardRiskPresaleVelIpMax) {
         Long parentIdVal = parentId;
         if (parentIdVal == null && parentComp != null && !parentComp.isEmpty()) {
             String trimmed = parentComp.trim();
@@ -425,7 +439,21 @@ public class ApiCompController {
                 cardRiskTier2Hours, cardRiskTier2Min,
                 cardRiskTier3Hours, cardRiskTier3Min,
                 cardRiskTier4Hours, cardRiskTier4Min,
-                cardRiskAutoBlacklistTier);
+                cardRiskAutoBlacklistTier,
+                cardRiskPresaleMode,
+                cardRiskPresaleBuyerMismatchYn,
+                cardRiskPresaleHolderNameYn,
+                cardRiskPresalePhoneInvalidYn,
+                cardRiskPresaleEmailInvalidYn,
+                cardRiskPresaleVelocityCardYn,
+                cardRiskPresaleVelocityEmailYn,
+                cardRiskPresaleVelocityIpYn,
+                cardRiskPresaleVelCardWinMin,
+                cardRiskPresaleVelCardMax,
+                cardRiskPresaleVelEmailWinMin,
+                cardRiskPresaleVelEmailMax,
+                cardRiskPresaleVelIpWinMin,
+                cardRiskPresaleVelIpMax);
         compService.patchMerchantMobileCheckoutMode(saved.getCode(), mobileCheckoutMode);
         compService.applyMerchantOperationRecord(saved.getCode(), operationRecord);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("compId", saved.getCode(), "compNm", saved.getName())));
@@ -631,7 +659,21 @@ public class ApiCompController {
             @RequestParam(required = false) String cardRiskTier3Min,
             @RequestParam(required = false) String cardRiskTier4Hours,
             @RequestParam(required = false) String cardRiskTier4Min,
-            @RequestParam(required = false) String cardRiskAutoBlacklistTier) {
+            @RequestParam(required = false) String cardRiskAutoBlacklistTier,
+            @RequestParam(required = false) String cardRiskPresaleMode,
+            @RequestParam(required = false) String cardRiskPresaleBuyerMismatchYn,
+            @RequestParam(required = false) String cardRiskPresaleHolderNameYn,
+            @RequestParam(required = false) String cardRiskPresalePhoneInvalidYn,
+            @RequestParam(required = false) String cardRiskPresaleEmailInvalidYn,
+            @RequestParam(required = false) String cardRiskPresaleVelocityCardYn,
+            @RequestParam(required = false) String cardRiskPresaleVelocityEmailYn,
+            @RequestParam(required = false) String cardRiskPresaleVelocityIpYn,
+            @RequestParam(required = false) String cardRiskPresaleVelCardWinMin,
+            @RequestParam(required = false) String cardRiskPresaleVelCardMax,
+            @RequestParam(required = false) String cardRiskPresaleVelEmailWinMin,
+            @RequestParam(required = false) String cardRiskPresaleVelEmailMax,
+            @RequestParam(required = false) String cardRiskPresaleVelIpWinMin,
+            @RequestParam(required = false) String cardRiskPresaleVelIpMax) {
         var targetOpt = compService.getDetail(compId);
         if (targetOpt.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
@@ -712,7 +754,21 @@ public class ApiCompController {
                     cardRiskTier2Hours, cardRiskTier2Min,
                     cardRiskTier3Hours, cardRiskTier3Min,
                     cardRiskTier4Hours, cardRiskTier4Min,
-                    cardRiskAutoBlacklistTier);
+                    cardRiskAutoBlacklistTier,
+                    cardRiskPresaleMode,
+                    cardRiskPresaleBuyerMismatchYn,
+                    cardRiskPresaleHolderNameYn,
+                    cardRiskPresalePhoneInvalidYn,
+                    cardRiskPresaleEmailInvalidYn,
+                    cardRiskPresaleVelocityCardYn,
+                    cardRiskPresaleVelocityEmailYn,
+                    cardRiskPresaleVelocityIpYn,
+                    cardRiskPresaleVelCardWinMin,
+                    cardRiskPresaleVelCardMax,
+                    cardRiskPresaleVelEmailWinMin,
+                    cardRiskPresaleVelEmailMax,
+                    cardRiskPresaleVelIpWinMin,
+                    cardRiskPresaleVelIpMax);
             if (ok) {
                 compService.patchMerchantMobileCheckoutMode(compId, mobileCheckoutMode);
                 compService.applyMerchantOperationRecord(compId, operationRecord);

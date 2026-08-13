@@ -1,7 +1,6 @@
 package com.pg.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.pg.entity.HqRiskCardPolicy;
 import com.pg.entity.PayRiskFilterEvent;
 import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.PgVendor;
@@ -47,8 +46,8 @@ public class PayPresaleRiskFilterService {
                                                String merchantId,
                                                String pgVendor,
                                                Map<String, Object> body) {
-        HqRiskCardPolicy policy = hqRiskCardPolicyService.getOrCreate();
-        if (!"Y".equalsIgnoreCase(trim(policy.getPresaleFilterEnabledYn()))) {
+        PresaleRiskFilterEffective policy = hqRiskCardPolicyService.resolvePresaleForOrgUnit(orgUnitId);
+        if (!policy.enabled()) {
             return Optional.empty();
         }
         String lang = resolveLang(body);
@@ -73,52 +72,50 @@ public class PayPresaleRiskFilterService {
         String cardHash = pan.length() >= 10 ? PayCardPanHashUtil.hashPan(PayCardBrandDetector.normalizePan(pan)) : "";
         String clientIp = str(body.get("_payerClientIp"));
 
-        if ("Y".equalsIgnoreCase(trim(policy.getFilterEmailInvalidYn())) && !email.isEmpty()
+        if ("Y".equalsIgnoreCase(trim(policy.filterEmailInvalidYn())) && !email.isEmpty()
                 && PayPresaleRiskFilterCodes.isInvalidEmail(email)) {
             return Optional.of(block(PayPresaleRiskFilterCodes.EMAIL_INVALID, lang, Map.of()));
         }
-        if ("Y".equalsIgnoreCase(trim(policy.getFilterPhoneInvalidYn())) && !phone.isEmpty()
+        if ("Y".equalsIgnoreCase(trim(policy.filterPhoneInvalidYn())) && !phone.isEmpty()
                 && PayPresaleRiskFilterCodes.isInvalidPhone(phone)) {
             return Optional.of(block(PayPresaleRiskFilterCodes.PHONE_INVALID, lang, Map.of()));
         }
 
-        if ("Y".equalsIgnoreCase(trim(policy.getFilterHolderNameYn()))
+        if ("Y".equalsIgnoreCase(trim(policy.filterHolderNameYn()))
                 && PayPresaleRiskFilterCodes.isSuspiciousHolderName(holderName)) {
             return Optional.of(block(PayPresaleRiskFilterCodes.HOLDER_NAME_SUSPICIOUS, lang, Map.of()));
         }
 
-        if ("Y".equalsIgnoreCase(trim(policy.getFilterVelocityCardYn())) && !cardHash.isEmpty()) {
-            int windowMin = intOr(policy.getVelocityCardWindowMinutes(),
-                    intOr(policy.getVelocityWindowMinutes(), 10));
-            int maxAttempts = intOr(policy.getVelocityCardMaxAttempts(),
-                    intOr(policy.getVelocityMaxAttempts(), 3));
-            LocalDateTime since = LocalDateTime.now().minusMinutes(Math.max(1, windowMin));
+        if ("Y".equalsIgnoreCase(trim(policy.filterVelocityCardYn())) && !cardHash.isEmpty()) {
+            int windowMin = Math.max(1, policy.velocityCardWindowMinutes());
+            int maxAttempts = Math.max(1, policy.velocityCardMaxAttempts());
+            LocalDateTime since = LocalDateTime.now().minusMinutes(windowMin);
             long cnt = pgTrnsctnRepository.countRecentByCardPanHash(cardHash, merchantId, since);
             if (cnt >= maxAttempts) {
                 return Optional.of(block(PayPresaleRiskFilterCodes.VELOCITY_CARD, lang, Map.of()));
             }
         }
-        if ("Y".equalsIgnoreCase(trim(policy.getFilterVelocityEmailYn())) && !email.isEmpty()) {
-            int windowMin = intOr(policy.getVelocityEmailWindowMinutes(), 30);
-            int maxAttempts = intOr(policy.getVelocityEmailMaxAttempts(), 5);
-            LocalDateTime since = LocalDateTime.now().minusMinutes(Math.max(1, windowMin));
+        if ("Y".equalsIgnoreCase(trim(policy.filterVelocityEmailYn())) && !email.isEmpty()) {
+            int windowMin = Math.max(1, policy.velocityEmailWindowMinutes());
+            int maxAttempts = Math.max(1, policy.velocityEmailMaxAttempts());
+            LocalDateTime since = LocalDateTime.now().minusMinutes(windowMin);
             long cnt = pgTrnsctnRepository.countRecentByCustomerEmail(
                     merchantId, PayPresaleRiskFilterCodes.normalizeEmail(email), since);
             if (cnt >= maxAttempts) {
                 return Optional.of(block(PayPresaleRiskFilterCodes.VELOCITY_EMAIL, lang, Map.of()));
             }
         }
-        if ("Y".equalsIgnoreCase(trim(policy.getFilterVelocityIpYn())) && !clientIp.isEmpty()) {
-            int windowMin = intOr(policy.getVelocityIpWindowMinutes(), 15);
-            int maxAttempts = intOr(policy.getVelocityIpMaxAttempts(), 10);
-            LocalDateTime since = LocalDateTime.now().minusMinutes(Math.max(1, windowMin));
+        if ("Y".equalsIgnoreCase(trim(policy.filterVelocityIpYn())) && !clientIp.isEmpty()) {
+            int windowMin = Math.max(1, policy.velocityIpWindowMinutes());
+            int maxAttempts = Math.max(1, policy.velocityIpMaxAttempts());
+            LocalDateTime since = LocalDateTime.now().minusMinutes(windowMin);
             long cnt = pgTrnsctnRepository.countRecentByPayerIp(merchantId, clientIp, since);
             if (cnt >= maxAttempts) {
                 return Optional.of(block(PayPresaleRiskFilterCodes.VELOCITY_IP, lang, Map.of()));
             }
         }
 
-        if ("Y".equalsIgnoreCase(trim(policy.getFilterBuyerContactMismatchYn())) && !cardHash.isEmpty()) {
+        if ("Y".equalsIgnoreCase(trim(policy.filterBuyerContactMismatchYn())) && !cardHash.isEmpty()) {
             Optional<PresaleRiskBlock> mismatch = checkBuyerMismatch(merchantId, lang, email, phone, holderName, cardHash);
             if (mismatch.isPresent()) {
                 return mismatch;
@@ -231,10 +228,6 @@ public class PayPresaleRiskFilterService {
 
     private static String trim(String s) {
         return s == null ? "" : s.trim();
-    }
-
-    private static int intOr(Integer v, int def) {
-        return v != null && v > 0 ? v : def;
     }
 
     public record PresaleRiskBlock(String filterCode,

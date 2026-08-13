@@ -4063,7 +4063,7 @@
       if (!lst.length) {
         var tr0 = document.createElement('tr');
         var td0 = document.createElement('td');
-        td0.colSpan = 15;
+        td0.colSpan = 16;
         td0.className = 'small text-muted text-center py-3';
         td0.setAttribute('data-pg-ui-t', '노티 생성 이력이 없습니다.');
         td0.textContent = pgAdminUiT('노티 생성 이력이 없습니다.');
@@ -4106,13 +4106,15 @@
           tdText(r.provisionedTime || '', 'text-nowrap small');
           tdText(r.compId, 'text-nowrap');
           tdText(r.compNm, 'small');
+          tdText(r.pgKindLabel || (String(r.pgKind || '').toLowerCase() === 'elementpay' ? 'ElementPay' : 'JPAY'), 'text-nowrap small');
           tdText(r.internalTargetId, 'small text-nowrap');
           var modeRaw = String(r.integrationMode || '').toUpperCase();
           var modeLbl = modeRaw === 'URL_HYBRID'
             ? pgAdminUiT('URL 하이브리드')
             : (modeRaw === 'URL' ? 'URL' : 'API');
           tdText(modeLbl, 'text-nowrap small');
-          var slotDisp = r.routeNo || (r.slotNo != null ? String(r.slotNo) : '');
+          var isEp = String(r.pgKind || '').toLowerCase() === 'elementpay' || String(r.routeNo || '').toLowerCase() === 'elementpay';
+          var slotDisp = isEp ? '—' : (r.routeNo || (r.slotNo != null ? String(r.slotNo) : ''));
           tdText(slotDisp, 'text-nowrap small');
           tdUrlOnly(r.jpayNotifyUrl);
           tdUrlOnly(r.jpayCallbackUrl);
@@ -4227,26 +4229,69 @@
       if (!id) return pgAdminUiT('(선택)');
       return label || id;
     }
+    var opsNpInternalTargetOptsCache = [];
+    function opsNpFilterInternalTargetOpts(list, pgKind) {
+      var pg = pgKind === 'elementpay' ? 'elementpay' : 'jpay';
+      var src = Array.isArray(list) ? list : [];
+      var out = [];
+      src.forEach(function (it) {
+        var id = it && it.id != null ? String(it.id).trim() : '';
+        if (!id) {
+          out.push(it);
+          return;
+        }
+        var p = String((it && it.pgProvider) || '').toLowerCase().trim();
+        if (pg === 'elementpay') {
+          if (p === 'elementpay' || p === 'ep') out.push(it);
+          return;
+        }
+        // JPAY 노티생성: JPAY·ChillPay·미지정 대상 (ElementPay 전용 제외)
+        if (p === 'elementpay' || p === 'ep') return;
+        out.push(it);
+      });
+      return out;
+    }
     function fillOpsNpInternalTargetSelect(opts, selectedId) {
+      opsNpInternalTargetOptsCache = Array.isArray(opts) ? opts.slice() : [];
+      renderOpsNpInternalTargetSelect(selectedId);
+    }
+    function renderOpsNpInternalTargetSelect(selectedId) {
       var sel = pane.querySelector('#opsNpInternalTargetId');
       if (!sel) return;
+      var keep = selectedId != null ? String(selectedId) : (sel.value || '');
       sel.innerHTML = '';
-      var list = Array.isArray(opts) ? opts : [];
+      var list = opsNpFilterInternalTargetOpts(opsNpInternalTargetOptsCache, opsNpSelectedPgKind());
       if (!list.length) {
         var o0 = document.createElement('option');
         o0.value = '';
-        o0.textContent = pgAdminUiT('본사설정에서 JPY/USD 전산 대상을 지정하세요.');
+        o0.textContent = pgAdminUiT(
+          opsNpSelectedPgKind() === 'elementpay'
+            ? 'NOTI에 ElementPay 전산 대상이 없습니다. 노티 추가등록에서 PG=ElementPay로 등록하세요.'
+            : '본사설정에서 JPY/USD/THB 전산 대상을 지정하세요.'
+        );
         sel.appendChild(o0);
       } else {
         list.forEach(function (it) {
           var o = document.createElement('option');
           o.value = it.id != null ? String(it.id) : '';
           o.textContent = opsNpInternalTargetOptionLabel(it);
+          if (it.pgProvider) o.setAttribute('data-pg-provider', String(it.pgProvider));
           sel.appendChild(o);
         });
       }
-      if (selectedId) sel.value = selectedId;
-      else if (sel.options.length) sel.selectedIndex = 0;
+      if (keep) {
+        var found = false;
+        for (var i = 0; i < sel.options.length; i++) {
+          if (sel.options[i].value === keep) {
+            sel.value = keep;
+            found = true;
+            break;
+          }
+        }
+        if (!found && sel.options.length) sel.selectedIndex = 0;
+      } else if (sel.options.length) {
+        sel.selectedIndex = 0;
+      }
     }
     function fillOpsNpDealmaiSelect(partners, defaultCode) {
       var sel = pane.querySelector('#opsNpDealmaiPartner');
@@ -4413,7 +4458,7 @@
     function updateOpsNpSlotPreview(extra) {
       var el = pane.querySelector('#opsNpSlotPreview');
       if (!el) return;
-      var slotEl = pane.querySelector('#opsNpJpaySlotNo');
+      var slotEl = pane.querySelector('#opsNpPgSlotNo');
       var slot = slotEl ? String(slotEl.value || '').trim() : '';
       var base = (opsNpCtxCache && opsNpCtxCache.notiBaseUrl) || (extra && extra.notiBaseUrl) || '';
       if (!slot) {
@@ -4439,7 +4484,7 @@
       if (cbEl && data.merchantCallbackUrl) cbEl.value = data.merchantCallbackUrl;
       if (rsEl && data.merchantResultUrl) rsEl.value = data.merchantResultUrl;
       if (data.notiRemote && data.notiRemote.slot != null && !opsNpSlotAutoMode) {
-        var slotEl = pane.querySelector('#opsNpJpaySlotNo');
+        var slotEl = pane.querySelector('#opsNpPgSlotNo');
         if (slotEl) slotEl.value = String(data.notiRemote.slot);
       }
       if (data.notiRemote) {
@@ -4483,6 +4528,27 @@
       }).catch(function (e) { alert(pgErrMsg(e, '불러오기 실패')); })
         .finally(function () { if (dimm) dimm.style.display = 'none'; });
     }
+    function opsNpSelectedPgKind() {
+      var el = pane.querySelector('#opsNpPgKind');
+      var v = el ? String(el.value || '').toLowerCase().trim() : 'jpay';
+      return v === 'elementpay' ? 'elementpay' : 'jpay';
+    }
+    function updateOpsNpPgKindUi() {
+      var ep = opsNpSelectedPgKind() === 'elementpay';
+      ['#opsNpPgSlotWrap', '#opsNpAutoSlotBtnWrap', '#opsNpCheckSlotBtnWrap', '#opsNpSlotHintWrap'].forEach(function (sel) {
+        var el = pane.querySelector(sel);
+        if (el) el.classList.toggle('d-none', ep);
+      });
+      var epHint = pane.querySelector('#opsNpEpHintWrap');
+      if (epHint) epHint.classList.toggle('d-none', !ep);
+      var btn = pane.querySelector('#opsNpProvisionBtn');
+      if (btn) {
+        var label = '노티 생성';
+        btn.setAttribute('data-pg-ui-t', label);
+        btn.textContent = pgAdminUiT(label);
+      }
+      renderOpsNpInternalTargetSelect(null);
+    }
     function collectOpsNpProvisionBody(cid) {
       var mode = opsNpIntegrationModeValue();
       var urlMode = mode === 'URL';
@@ -4491,13 +4557,16 @@
       var relayEl = pane.querySelector('#opsNpEnableRelay');
       var internalEl = pane.querySelector('#opsNpEnableInternal');
       var devEl = pane.querySelector('#opsNpEnableDevInternal');
+      var pgKind = opsNpSelectedPgKind();
+      var ep = pgKind === 'elementpay';
       return {
         compId: cid,
+        pgKind: pgKind,
         merchantId: (pane.querySelector('#opsNpMerchantId') || {}).value || '',
         integrationMode: mode,
         internalTargetId: (pane.querySelector('#opsNpInternalTargetId') || {}).value || '',
-        jpaySlotNo: (pane.querySelector('#opsNpJpaySlotNo') || {}).value || '',
-        slotAutoYn: opsNpSlotAutoMode ? 'Y' : 'N',
+        jpaySlotNo: ep ? '' : ((pane.querySelector('#opsNpPgSlotNo') || {}).value || ''),
+        slotAutoYn: ep ? 'N' : (opsNpSlotAutoMode ? 'Y' : 'N'),
         enableRelayYn: urlMode ? 'N' : (urlHybrid ? 'Y' : (relayEl && relayEl.checked ? 'Y' : 'N')),
         enableInternalYn: urlFamily ? 'N' : (internalEl && internalEl.checked ? 'Y' : 'N'),
         enableDevInternalYn: urlFamily ? 'Y' : (devEl && devEl.checked ? 'Y' : 'N'),
@@ -4538,6 +4607,7 @@
       });
       updateOpsNpRelayUi();
       updateOpsNpOtpUi(meta);
+      updateOpsNpPgKindUi();
     }
     function renderOpsNpResult(data) {
       var card = pane.querySelector('#opsNpResultCard');
@@ -4553,9 +4623,17 @@
       }
       row('업체코드', data.compId);
       row('업체명', data.compNm);
-      row('JPAY Notify URL', data.jpayNotifyUrl || prov.icopayJpayNotifyUrl);
-      row('JPAY Callback URL', data.jpayCallbackUrl || prov.icopayJpayCallbackUrl);
-      row('NOTI 슬롯', prov.routeNo || prov.slot);
+      row('PG', data.pgKind === 'elementpay' ? 'ElementPay' : 'JPAY');
+      if (data.pgKind === 'elementpay') {
+        row('ElementPay Webhook', data.elementpayWebhookUrl || data.jpayNotifyUrl || '');
+        row('ElementPay Result', data.elementpayResultUrl || data.jpayCallbackUrl || '');
+        row('가맹 Callback', prov.callbackUrl);
+        row('가맹 Result', prov.resultUrl);
+      } else {
+        row('JPAY Notify URL', data.jpayNotifyUrl || prov.icopayJpayNotifyUrl);
+        row('JPAY Callback URL', data.jpayCallbackUrl || prov.icopayJpayCallbackUrl);
+        row('NOTI 슬롯', prov.routeNo || prov.slot);
+      }
       row('DEALMAI Partner', data.dealmaiPartnerCode);
       row('생성 여부', prov.created === true ? pgAdminUiT('신규 생성') : (prov.created === false ? pgAdminUiT('기존 동일') : ''));
       html += '</dl>';
@@ -4579,6 +4657,7 @@
         renderOpsNpResult({
           compId: data.compId,
           compNm: data.compNm,
+          pgKind: data.pgKind || (data.notiRemote && data.notiRemote.pgKind) || 'jpay',
           jpayNotifyUrl: data.jpayNotifyUrl,
           jpayCallbackUrl: data.jpayCallbackUrl,
           provision: data.notiRemote || {}
@@ -4693,20 +4772,30 @@
     var compIdEl = pane.querySelector('#opsNpCompId');
     var loadCtxBtn = pane.querySelector('#opsNpLoadCtxBtn');
     if (loadCtxBtn) loadCtxBtn.addEventListener('click', loadOpsNpContext);
+    var pgKindEl = pane.querySelector('#opsNpPgKind');
+    if (pgKindEl && !pgKindEl._opsNpPgKindBound) {
+      pgKindEl._opsNpPgKindBound = true;
+      pgKindEl.addEventListener('change', updateOpsNpPgKindUi);
+      updateOpsNpPgKindUi();
+    }
     var checkMidBtn = pane.querySelector('#opsNpCheckMidBtn');
     if (checkMidBtn) {
       checkMidBtn.addEventListener('click', function () {
         var mid = (pane.querySelector('#opsNpMerchantId') || {}).value || '';
         var cid = compIdEl ? String(compIdEl.value || '').trim() : '';
         if (!String(mid).trim()) { alert(pgAdminUiT('가맹점 ID를 입력하세요.')); return; }
-        window.PG_API.opsNotiProvisionCheckMerchantId({ merchantId: mid, compId: cid }).then(function (r) {
+        window.PG_API.opsNotiProvisionCheckMerchantId({
+          merchantId: mid,
+          compId: cid,
+          pgKind: opsNpSelectedPgKind()
+        }).then(function (r) {
           alert(pgAdminUiT(r.message || (r.available ? '사용 가능합니다.' : '중복입니다.')));
         }).catch(function (e) { alert(pgErrMsg(e, '중복검토 실패')); });
       });
     }
     function applyOpsNpAutoSlot(r) {
       if (!r) return;
-      var slotEl = pane.querySelector('#opsNpJpaySlotNo');
+      var slotEl = pane.querySelector('#opsNpPgSlotNo');
       if (slotEl && r.slotNo != null) slotEl.value = String(r.slotNo);
       opsNpSlotAutoMode = true;
       opsNpSlotReviewed = true;
@@ -4740,8 +4829,8 @@
     var checkSlotBtn = pane.querySelector('#opsNpCheckSlotBtn');
     if (checkSlotBtn) {
       checkSlotBtn.addEventListener('click', function () {
-        var slot = (pane.querySelector('#opsNpJpaySlotNo') || {}).value || '';
-        if (!String(slot).trim()) { alert(pgAdminUiT('JPAY PG 노티 슬롯 번호를 입력하세요.')); return; }
+        var slot = (pane.querySelector('#opsNpPgSlotNo') || {}).value || '';
+        if (!String(slot).trim()) { alert(pgAdminUiT('PG 노티 슬롯 번호를 입력하세요.')); return; }
         var mid = (pane.querySelector('#opsNpMerchantId') || {}).value || '';
         window.PG_API.opsNotiProvisionCheckSlot({ slotNo: slot, merchantId: mid }).then(function (r) {
           updateOpsNpSlotPreview(r);
@@ -4751,7 +4840,7 @@
         }).catch(function (e) { alert(pgErrMsg(e, '슬롯검토 실패')); });
       });
     }
-    var slotNoEl = pane.querySelector('#opsNpJpaySlotNo');
+    var slotNoEl = pane.querySelector('#opsNpPgSlotNo');
     if (slotNoEl) slotNoEl.addEventListener('input', function () {
       opsNpSlotAutoMode = false;
       opsNpSlotReviewed = false;
@@ -4804,12 +4893,17 @@
           alert(pgAdminUiT('가맹 업체코드를 입력하세요.'));
           return;
         }
-        var slotVal = (pane.querySelector('#opsNpJpaySlotNo') || {}).value || '';
-        if (String(slotVal).trim() && !opsNpSlotAutoMode && !opsNpSlotReviewed) {
+        var pgKind = opsNpSelectedPgKind();
+        var ep = pgKind === 'elementpay';
+        var slotVal = (pane.querySelector('#opsNpPgSlotNo') || {}).value || '';
+        if (!ep && String(slotVal).trim() && !opsNpSlotAutoMode && !opsNpSlotReviewed) {
           alert(pgAdminUiT('수동 슬롯 번호는 [슬롯검토]를 실행하거나 [자동]을 사용하세요.'));
           return;
         }
-        if (!confirm(pgAdminUiT('NOTI에 JPAY 가맹을 생성(또는 조회)하고 ICOPAY 업체 URL을 반영합니다. 계속하시겠습니까?'))) return;
+        var confirmMsg = ep
+          ? 'NOTI에 ElementPay 가맹을 생성(또는 조회)합니다. Webhook·Result 고정 URL을 수신통보에 반영합니다. 계속하시겠습니까?'
+          : 'NOTI에 JPAY 가맹을 생성(또는 조회)하고 ICOPAY 업체 URL을 반영합니다. 계속하시겠습니까?';
+        if (!confirm(pgAdminUiT(confirmMsg))) return;
         if (opsNpOtpRequired) {
           var otpVal = (pane.querySelector('#opsNpProvisionOtp') || {}).value || '';
           if (!String(otpVal).trim()) {
@@ -4860,7 +4954,8 @@
         setTxt('#opsNpLogEditCompId', data.compId);
         setTxt('#opsNpLogEditMerchantId', data.merchantId || data.compId);
         setTxt('#opsNpLogEditDate', data.provisionedDate || '');
-        var slotDisp = data.routeNo || (data.slotNo != null ? String(data.slotNo) : '');
+        var isEp = String(data.pgKind || '').toLowerCase() === 'elementpay' || String(data.routeNo || '').toLowerCase() === 'elementpay';
+        var slotDisp = isEp ? 'ElementPay' : (data.routeNo || (data.slotNo != null ? String(data.slotNo) : ''));
         setTxt('#opsNpLogEditSlot', slotDisp);
         var itSel = modalEl.querySelector('#opsNpLogEditInternalTarget');
         if (itSel) {
@@ -5843,11 +5938,28 @@
 
   /**
    * URL 결제 공통 플랫폼 — 결제 페이지 경로(서버 {@code UrlPayVendorCapabilityRegistry} 와 동일).
+   * 가맹·구매자 노출은 PG명 없이 중립 {@code /checkout/{업체코드}} 를 사용합니다.
    * @see docs/URL결제_공통플랫폼_가이드.md
    */
   function pgUrlPayCheckoutPagePath(pgCd) {
-    if (pgIsEximbayFamilyPgCd(pgCd)) return '/eximbay-pay/';
-    return pgIsJpayFamilyPgCd(pgCd) ? '/jpay-pay/' : '/pay/';
+    if (pgIsJpayFamilyPgCd(pgCd)) return '/checkout/';
+    if (pgIsEximbayFamilyPgCd(pgCd)) return '/checkout/';
+    if (pgIsElementPayFamilyPgCd(pgCd)) return '/checkout/';
+    if (pgIsIlkFamilyPgCd(pgCd)) return '/checkout/';
+    /* ChillPay 등 레거시도 중립 경로(서버가 운영 PG로 forward) */
+    return '/checkout/';
+  }
+
+  function pgIsElementPayFamilyPgCd(pgCd) {
+    if (!pgCd) return false;
+    var u = pgNormalizePgCdKey(pgCd);
+    return u === 'ELEMENTPAY' || u.indexOf('ELEMENTPAY_') === 0;
+  }
+
+  function pgIsIlkFamilyPgCd(pgCd) {
+    if (!pgCd) return false;
+    var u = pgNormalizePgCdKey(pgCd);
+    return u === 'ILK' || u.indexOf('ILK_') === 0;
   }
 
   /**
@@ -7374,40 +7486,38 @@
 
   window.openPgAgencyModal = function (preset) {
     preset = preset || {};
-    function resolvePresetIntegKind(p) {
-      if (p.integKind && String(p.integKind).toUpperCase() !== 'MULTI') return String(p.integKind).toUpperCase();
-      if (String(p.integNotiYn || '').toUpperCase() === 'Y') return 'NOTI';
-      if (String(p.integUrlPayYn || '').toUpperCase() === 'Y') return 'URL_PAY';
-      if (String(p.integUrlPayRepayYn || '').toUpperCase() === 'Y') return 'URL_PAY_REPAY';
-      if (String(p.integWebChatbotYn || '').toUpperCase() === 'Y') return 'WEB_CHATBOT';
-      if (String(p.integApiSubscriptionYn || '').toUpperCase() === 'Y') return 'API_SUBSCRIPTION';
-      if (String(p.integApiYn || '').toUpperCase() === 'Y') return 'API';
-      return '';
+    function resolvePresetIntegKinds(p) {
+      var kinds = [];
+      if (String(p.integNotiYn || '').toUpperCase() === 'Y') kinds.push('NOTI');
+      if (String(p.integUrlPayYn || '').toUpperCase() === 'Y') kinds.push('URL_PAY');
+      if (String(p.integUrlPayRepayYn || '').toUpperCase() === 'Y') kinds.push('URL_PAY_REPAY');
+      if (String(p.integWebChatbotYn || '').toUpperCase() === 'Y') kinds.push('WEB_CHATBOT');
+      if (String(p.integApiYn || '').toUpperCase() === 'Y') kinds.push('API');
+      if (String(p.integApiSubscriptionYn || '').toUpperCase() === 'Y') kinds.push('API_SUBSCRIPTION');
+      if (kinds.length) return kinds;
+      var single = p.integKind ? String(p.integKind).toUpperCase() : '';
+      if (single && single !== 'MULTI') return [single];
+      return [];
     }
-    function presetIntegrationEndpoint(p, kind) {
-      // 복합(MULTI) 레거시: 목록용 primaryEndpoint(요약 문자열)는 폼에 넣지 않고 용도별 실제 URL만 사용
-      if (p.integKind && String(p.integKind).toUpperCase() === 'MULTI') {
-        if (kind === 'NOTI') return p.endpointNoti != null ? String(p.endpointNoti).trim() : '';
-        if (kind === 'URL_PAY') return p.endpointUrlPay != null ? String(p.endpointUrlPay).trim() : '';
-        if (kind === 'URL_PAY_REPAY') return p.endpointUrlPayRepay != null ? String(p.endpointUrlPayRepay).trim() : '';
-        if (kind === 'WEB_CHATBOT' || kind === 'API') {
-          var apiEp = p.endpointApi != null ? String(p.endpointApi).trim() : '';
-          if (apiEp) return apiEp;
-          return p.apiEndpoint != null ? String(p.apiEndpoint).trim() : '';
-        }
-        if (kind === 'API_SUBSCRIPTION') {
-          return p.endpointApiSubscription != null ? String(p.endpointApiSubscription).trim() : '';
-        }
-        return '';
-      }
-      if (p.primaryEndpoint != null && String(p.primaryEndpoint).trim()) return String(p.primaryEndpoint).trim();
-      if (kind === 'NOTI') return p.endpointNoti || '';
-      if (kind === 'URL_PAY') return p.endpointUrlPay || '';
-      if (kind === 'URL_PAY_REPAY') return p.endpointUrlPayRepay || '';
-      if (kind === 'WEB_CHATBOT' || kind === 'API') return p.endpointApi || p.apiEndpoint || '';
-      if (kind === 'API_SUBSCRIPTION') return p.endpointApiSubscription || '';
-      return '';
+    function epVal(v) {
+      return v != null ? String(v).trim() : '';
     }
+    function syncPgAgencyIntegKindUi() {
+      var checked = {};
+      document.querySelectorAll('.pg-agency-integ-kind').forEach(function (cb) {
+        if (cb.checked) checked[String(cb.value).toUpperCase()] = true;
+      });
+      document.querySelectorAll('[data-pg-integ-ep-wrap]').forEach(function (wrap) {
+        var key = String(wrap.getAttribute('data-pg-integ-ep-wrap') || '').toUpperCase();
+        var show = false;
+        if (key === 'API_OR_CHATBOT') show = !!(checked.API || checked.WEB_CHATBOT);
+        else show = !!checked[key];
+        wrap.classList.toggle('d-none', !show);
+      });
+      var modeWrapEl = document.getElementById('pgAgencyEditUrlPayAmountModeWrap');
+      if (modeWrapEl) modeWrapEl.classList.toggle('d-none', !(checked.URL_PAY || checked.URL_PAY_REPAY));
+    }
+    window._pgAgencySyncIntegKindUi = syncPgAgencyIntegKindUi;
     var idEl = document.getElementById('pgAgencyEditId');
     var cdEl = document.getElementById('pgAgencyEditPgCd');
     var nmEl = document.getElementById('pgAgencyEditPgNm');
@@ -7419,15 +7529,15 @@
     var akEl = document.getElementById('pgAgencyEditApiKey');
     var mkEl = document.getElementById('pgAgencyEditMd5Key');
     var exEl = document.getElementById('pgAgencyEditCredentialsExtra');
-    var kindEl = document.getElementById('pgAgencyEditIntegKind');
-    var intEpEl = document.getElementById('pgAgencyEditIntegrationEndpoint');
     var modeWrap = document.getElementById('pgAgencyEditUrlPayAmountModeWrap');
     var modeSel = document.getElementById('pgAgencyEditUrlPayAmountMode');
-    if (kindEl && !kindEl._pgUrlPayAmBound) {
-      kindEl._pgUrlPayAmBound = true;
-      kindEl.addEventListener('change', function () {
-        var w = document.getElementById('pgAgencyEditUrlPayAmountModeWrap');
-        if (w) w.classList.toggle('d-none', kindEl.value !== 'URL_PAY' && kindEl.value !== 'URL_PAY_REPAY');
+    var kindsRoot = document.getElementById('pgAgencyEditIntegKinds');
+    if (kindsRoot && !kindsRoot._pgIntegKindsBound) {
+      kindsRoot._pgIntegKindsBound = true;
+      kindsRoot.addEventListener('change', function (ev) {
+        if (ev.target && ev.target.classList && ev.target.classList.contains('pg-agency-integ-kind')) {
+          syncPgAgencyIntegKindUi();
+        }
       });
     }
     if (!idEl || !cdEl || !nmEl) return;
@@ -7436,19 +7546,106 @@
     nmEl.value = preset.pgNm || '';
     if (epEl) epEl.value = preset.apiEndpoint || '';
     var pgNewBlank = (preset.id == null || String(preset.id).trim() === '') && (!preset.pgCd || !String(preset.pgCd).trim());
-    var resolvedKind = resolvePresetIntegKind(preset);
-    if (kindEl) kindEl.value = pgNewBlank ? '' : resolvedKind;
-    if (intEpEl) intEpEl.value = pgNewBlank ? '' : presetIntegrationEndpoint(preset, resolvedKind);
+    var resolvedKinds = pgNewBlank ? [] : resolvePresetIntegKinds(preset);
+    document.querySelectorAll('.pg-agency-integ-kind').forEach(function (cb) {
+      var v = String(cb.value || '').toUpperCase();
+      cb.checked = resolvedKinds.indexOf(v) >= 0;
+    });
+    var epNoti = document.getElementById('pgAgencyEditEndpointNoti');
+    var epUrl = document.getElementById('pgAgencyEditEndpointUrlPay');
+    var epUrlRepay = document.getElementById('pgAgencyEditEndpointUrlPayRepay');
+    var epApi = document.getElementById('pgAgencyEditEndpointApi');
+    var epApiSub = document.getElementById('pgAgencyEditEndpointApiSub');
+    if (epNoti) epNoti.value = pgNewBlank ? '' : epVal(preset.endpointNoti);
+    if (epUrl) epUrl.value = pgNewBlank ? '' : epVal(preset.endpointUrlPay);
+    if (epUrlRepay) epUrlRepay.value = pgNewBlank ? '' : epVal(preset.endpointUrlPayRepay);
+    if (epApi) {
+      var apiEp = epVal(preset.endpointApi);
+      if (!apiEp && resolvedKinds.length === 1 && (resolvedKinds[0] === 'API' || resolvedKinds[0] === 'WEB_CHATBOT')) {
+        apiEp = epVal(preset.primaryEndpoint) || epVal(preset.apiEndpoint);
+      } else if (!apiEp) {
+        apiEp = epVal(preset.apiEndpoint);
+      }
+      epApi.value = pgNewBlank ? '' : apiEp;
+    }
+    if (epApiSub) epApiSub.value = pgNewBlank ? '' : epVal(preset.endpointApiSubscription);
+    /* 단일 용도 레거시: 용도별 필드가 비어 있고 primaryEndpoint만 있으면 채움 */
+    if (!pgNewBlank && resolvedKinds.length === 1) {
+      var only = resolvedKinds[0];
+      var primary = epVal(preset.primaryEndpoint);
+      if (only === 'NOTI' && epNoti && !epNoti.value && primary && primary.indexOf('노티:') < 0) epNoti.value = primary;
+      if (only === 'URL_PAY' && epUrl && !epUrl.value && primary && primary.indexOf('URL:') < 0) epUrl.value = primary;
+      if (only === 'URL_PAY_REPAY' && epUrlRepay && !epUrlRepay.value && primary) epUrlRepay.value = primary;
+      if (only === 'API_SUBSCRIPTION' && epApiSub && !epApiSub.value && primary) epApiSub.value = primary;
+    }
+    syncPgAgencyIntegKindUi();
     if (uyEl) uyEl.value = (preset.useYn === 'N') ? 'N' : 'Y';
     if (midEl) midEl.value = preset.merchantMid != null ? String(preset.merchantMid) : '';
     if (rnEl) rnEl.value = preset.routeNo != null && preset.routeNo !== '' ? String(preset.routeNo) : '';
+    (function syncRouteNoForPg() {
+      function applyRouteNoState() {
+        var cd = (cdEl && cdEl.value) ? String(cdEl.value) : (preset.pgCd || '');
+        var chill = typeof pgIsChillPayFamilyPgCd === 'function' && pgIsChillPayFamilyPgCd(cd);
+        var wrap = document.getElementById('pgAgencyEditRouteNoWrap');
+        var hint = document.getElementById('pgAgencyEditRouteNoHint');
+        if (rnEl) {
+          rnEl.disabled = !chill;
+          rnEl.readOnly = !chill;
+          if (!chill) rnEl.value = '';
+          rnEl.placeholder = chill ? '4' : '—';
+          rnEl.title = chill
+            ? pgAdminUiT('ChillPay Route No')
+            : pgAdminUiT('ChillPay 전용입니다. 다른 PG는 입력하지 않습니다.');
+        }
+        if (wrap) wrap.classList.toggle('opacity-50', !chill);
+        if (hint) hint.style.display = chill ? 'none' : '';
+      }
+      applyRouteNoState();
+      if (cdEl && !cdEl._pgRouteCdBound) {
+        cdEl._pgRouteCdBound = true;
+        cdEl.addEventListener('input', applyRouteNoState);
+      }
+    })();
     if (sbEl) sbEl.value = (preset.sandboxYn === 'N') ? 'N' : 'Y';
     if (exEl) exEl.value = preset.credentialsExtraJson != null ? String(preset.credentialsExtraJson) : '';
+    (function syncElementPayAliasUi() {
+      var wrap = document.getElementById('pgAgencyEditElementPayWrap');
+      var aliasEl = document.getElementById('pgAgencyEditEpCardAlias');
+      var resEl = document.getElementById('pgAgencyEditEpMethodsResult');
+      var pgCd = (preset.pgCd || (cdEl && cdEl.value) || '').toUpperCase();
+      var isEp = pgCd.indexOf('ELEMENTPAY') >= 0 || pgCd.indexOf('ELEMENT_PAY') >= 0 || pgCd === 'EP';
+      if (wrap) wrap.classList.toggle('d-none', !isEp);
+      if (resEl) resEl.textContent = '';
+      var cardAlias = 'card';
+      try {
+        var raw = exEl && exEl.value ? String(exEl.value).trim() : '';
+        if (raw) {
+          var j = JSON.parse(raw);
+          if (j && j.cardServiceAlias != null && String(j.cardServiceAlias).trim()) {
+            cardAlias = String(j.cardServiceAlias).trim();
+          }
+        }
+      } catch (eEpJson) {}
+      if (aliasEl) aliasEl.value = isEp ? cardAlias : '';
+      window._pgAgencyEpSuggestAlias = cardAlias;
+      if (cdEl && !cdEl._pgEpCdBound) {
+        cdEl._pgEpCdBound = true;
+        cdEl.addEventListener('input', function () {
+          var w = document.getElementById('pgAgencyEditElementPayWrap');
+          var c = String(cdEl.value || '').toUpperCase();
+          var show = c.indexOf('ELEMENTPAY') >= 0 || c.indexOf('ELEMENT_PAY') >= 0 || c === 'EP';
+          if (w) w.classList.toggle('d-none', !show);
+        });
+      }
+    })();
     if (modeSel) {
       var um = preset.urlPayAmountMode != null ? String(preset.urlPayAmountMode).trim().toUpperCase() : '';
       modeSel.value = (um === 'BLIND') ? 'BLIND' : ((um === 'DISPLAY') ? 'DISPLAY' : 'STANDARD');
     }
-    if (modeWrap) modeWrap.classList.toggle('d-none', !(kindEl && (kindEl.value === 'URL_PAY' || kindEl.value === 'URL_PAY_REPAY')));
+    if (modeWrap) {
+      var hasUrlScope = resolvedKinds.indexOf('URL_PAY') >= 0 || resolvedKinds.indexOf('URL_PAY_REPAY') >= 0;
+      modeWrap.classList.toggle('d-none', !hasUrlScope);
+    }
     var exMode = document.getElementById('pgAgencyEditExtSettleMode');
     var exLag = document.getElementById('pgAgencyEditExtSettleLag');
     var exBt = document.getElementById('pgAgencyEditExtSettleBatchTime');
@@ -20160,6 +20357,7 @@
         toggleHoldRateCustom(holdRateFollowEl.value || 'Y');
       }
       pgBindCardRiskPolicyToggle(pane);
+      pgBindCardRiskPresaleToggle(pane);
       (function bindFeeVatRateToggleReg() {
         var root = pane;
         var sel = root.querySelector('[name="feeVatApplyYn"]');
@@ -20378,6 +20576,36 @@
       if (tpPolEl && !tpPolEl._pgCardRiskTrackPeriodPolicyBound) {
         tpPolEl._pgCardRiskTrackPeriodPolicyBound = true;
         tpPolEl.addEventListener('change', syncTrackPeriodValue);
+      }
+      sync();
+    }
+    function pgBindCardRiskPresaleToggle(root, scopeSel) {
+      root = root || document;
+      var q = function (sel) {
+        return scopeSel ? root.querySelector(scopeSel + ' ' + sel) : root.querySelector(sel);
+      };
+      var modeEl = q('[name="cardRiskPresaleMode"]');
+      if (!modeEl) return;
+      var card = scopeSel ? root.querySelector(scopeSel + ' #cardRiskPresaleCard') : root.querySelector('#cardRiskPresaleCard');
+      function sync() {
+        var mode = String(modeEl.value || 'FOLLOW_HQ').toUpperCase();
+        var custom = mode === 'CUSTOM';
+        var disabled = mode === 'DISABLED';
+        var customBlocks = scopeSel
+          ? root.querySelectorAll(scopeSel + ' .card-presale-custom-only')
+          : root.querySelectorAll('.card-presale-custom-only');
+        customBlocks.forEach(function (el) { el.style.display = custom ? '' : 'none'; });
+        if (card) card.classList.toggle('opacity-50', disabled);
+        if (card) {
+          card.querySelectorAll('input, select, textarea').forEach(function (el) {
+            if (el.name === 'cardRiskPresaleMode') return;
+            el.disabled = disabled;
+          });
+        }
+      }
+      if (!modeEl._pgCardRiskPresaleToggleBound) {
+        modeEl._pgCardRiskPresaleToggleBound = true;
+        modeEl.addEventListener('change', sync);
       }
       sync();
     }
@@ -20862,7 +21090,7 @@
         form.querySelectorAll('input, select, textarea').forEach(function (el) { el.disabled = false; });
         var updBtnReset = pane.querySelector('#compInfoUpdateBtn');
         if (updBtnReset) updBtnReset.style.display = '';
-        var allFieldsInfo = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'webPaymentHeaderLogoMode', 'webPaymentHeaderLogoUrl', 'webPaymentHeaderHtmlTitle', 'webPaymentHeaderSubtitleMode', 'webPaymentHeaderSubtitleText', 'urlPayCheckoutMode', 'urlPayInputMode', 'urlPayCardExpiryMode', 'urlPayProductNameUseYn', 'urlPayCompanyNameShowYn', 'urlPayLangMenuUseYn', 'checkoutContactRememberMode', 'urlPayShippingAddressUseYn', 'apiUrlPayCheckoutMode', 'splitPayEnabledYn', 'splitPayIntervalMonthYn', 'splitPayIntervalDayYn', 'splitPayIntervalMultiYn', 'splitPayDayIntervalDays', 'splitPayMonthIntervalMonths', 'splitPayMultiMaxMonths', 'splitPayFirstPayMode', 'splitPayHeaderLogoMode', 'splitPayHeaderLogoUrl', 'splitPayHeaderHtmlTitle', 'splitPayHeaderSubtitleMode', 'splitPayHeaderSubtitleText', 'splitPayLangMenuUseYn', 'chatbotUrlPayCheckoutMode', 'jpayCheckoutFieldMode', 'apiJpaySubscriptionUseYn', 'apiBrokerInlineUseYn', 'apiBrokerRedirectUseYn', 'apiWordpressUseYn', 'mobileCheckoutMode', 'chatbotPaymentUseYn', 'chatbotProductSlotLimit', 'chatbotHeaderLogoUrl', 'chatbotAdminUsername', 'chatbotCatalogListingGrant', 'chatbotMaxProductImagesGrant', 'chatbotCatalogListingEnabled', 'baseCurrency', 'remark', 'operationRecord', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'voidSettlementMode', 'manualVoidSettlementMode', 'refundSettlementMode', 'forceRefundSettlementMode', 'commissionMemo', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'chargebackPolicyId', 'payFollowMerchantUseYn', 'payFollowAutoVoidYn', 'payFollowEmailVoidYn', 'payFollowAutoRefundYn', 'payFollowForceRefundYn', 'urlPayAlertEmailYn', 'receiptEmailFollowHqYn', 'receiptEmailUseYn', 'receiptEmailEnabledYn', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'feeVatApplyYn', 'feeVatRatePct', 'calcCycleTransitionMode', 'calcCycleChangeRemark', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'jpayNotifyUrl', 'jpayCallbackUrl', 'assistantLoginId', 'assistantPwd', 'assistantRoleType', 'brandingEditAllowedYn', 'cardRiskPolicyMode', 'cardRiskTier1Hours', 'cardRiskTier1Min', 'cardRiskTier2Hours', 'cardRiskTier2Min', 'cardRiskTier3Hours', 'cardRiskTier3Min', 'cardRiskTier4Hours', 'cardRiskTier4Min', 'cardRiskAutoBlacklistTier', 'cardRiskTrackPeriodPolicy', 'cardRiskTrackPeriodMode', 'cardRiskTrackPeriodValue', 'copyright'];
+        var allFieldsInfo = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'webPaymentHeaderLogoMode', 'webPaymentHeaderLogoUrl', 'webPaymentHeaderHtmlTitle', 'webPaymentHeaderSubtitleMode', 'webPaymentHeaderSubtitleText', 'urlPayCheckoutMode', 'urlPayInputMode', 'urlPayCardExpiryMode', 'urlPayProductNameUseYn', 'urlPayCompanyNameShowYn', 'urlPayLangMenuUseYn', 'checkoutContactRememberMode', 'urlPayShippingAddressUseYn', 'apiUrlPayCheckoutMode', 'splitPayEnabledYn', 'splitPayIntervalMonthYn', 'splitPayIntervalDayYn', 'splitPayIntervalMultiYn', 'splitPayDayIntervalDays', 'splitPayMonthIntervalMonths', 'splitPayMultiMaxMonths', 'splitPayFirstPayMode', 'splitPayHeaderLogoMode', 'splitPayHeaderLogoUrl', 'splitPayHeaderHtmlTitle', 'splitPayHeaderSubtitleMode', 'splitPayHeaderSubtitleText', 'splitPayLangMenuUseYn', 'chatbotUrlPayCheckoutMode', 'jpayCheckoutFieldMode', 'apiJpaySubscriptionUseYn', 'apiBrokerInlineUseYn', 'apiBrokerRedirectUseYn', 'apiWordpressUseYn', 'mobileCheckoutMode', 'chatbotPaymentUseYn', 'chatbotProductSlotLimit', 'chatbotHeaderLogoUrl', 'chatbotAdminUsername', 'chatbotCatalogListingGrant', 'chatbotMaxProductImagesGrant', 'chatbotCatalogListingEnabled', 'baseCurrency', 'remark', 'operationRecord', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'voidSettlementMode', 'manualVoidSettlementMode', 'refundSettlementMode', 'forceRefundSettlementMode', 'commissionMemo', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'chargebackPolicyId', 'payFollowMerchantUseYn', 'payFollowAutoVoidYn', 'payFollowEmailVoidYn', 'payFollowAutoRefundYn', 'payFollowForceRefundYn', 'urlPayAlertEmailYn', 'receiptEmailFollowHqYn', 'receiptEmailUseYn', 'receiptEmailEnabledYn', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'feeVatApplyYn', 'feeVatRatePct', 'calcCycleTransitionMode', 'calcCycleChangeRemark', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'jpayNotifyUrl', 'jpayCallbackUrl', 'assistantLoginId', 'assistantPwd', 'assistantRoleType', 'brandingEditAllowedYn', 'cardRiskPolicyMode', 'cardRiskTier1Hours', 'cardRiskTier1Min', 'cardRiskTier2Hours', 'cardRiskTier2Min', 'cardRiskTier3Hours', 'cardRiskTier3Min', 'cardRiskTier4Hours', 'cardRiskTier4Min', 'cardRiskAutoBlacklistTier', 'cardRiskTrackPeriodPolicy', 'cardRiskTrackPeriodMode', 'cardRiskTrackPeriodValue', 'cardRiskPresaleMode', 'cardRiskPresaleBuyerMismatchYn', 'cardRiskPresaleHolderNameYn', 'cardRiskPresalePhoneInvalidYn', 'cardRiskPresaleEmailInvalidYn', 'cardRiskPresaleVelocityCardYn', 'cardRiskPresaleVelocityEmailYn', 'cardRiskPresaleVelocityIpYn', 'cardRiskPresaleVelCardWinMin', 'cardRiskPresaleVelCardMax', 'cardRiskPresaleVelEmailWinMin', 'cardRiskPresaleVelEmailMax', 'cardRiskPresaleVelIpWinMin', 'cardRiskPresaleVelIpMax', 'copyright'];
         allFieldsInfo.forEach(function (k) {
           if (data[k] != null) pgSetCompFormFieldValues(form, k, data[k]);
         });
@@ -21112,6 +21340,7 @@
               toggleHoldRateCustom(holdRateFollowEl.value || 'Y');
             }
             pgBindCardRiskPolicyToggle(pane, '#compInfoDetailForm');
+            pgBindCardRiskPresaleToggle(pane, '#compInfoDetailForm');
             (function bindFeeVatRateToggleInfo() {
               var root = pane.querySelector('#compInfoDetailForm') || pane;
               var sel = root.querySelector('[name="feeVatApplyYn"]');
@@ -21940,7 +22169,7 @@
         var form = pane.querySelector('#compDetailForm');
         if (!form) return;
         initAttachmentSection(pane);
-        var allFields = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'webPaymentHeaderLogoMode', 'webPaymentHeaderLogoUrl', 'webPaymentHeaderHtmlTitle', 'webPaymentHeaderSubtitleMode', 'webPaymentHeaderSubtitleText', 'urlPayCheckoutMode', 'urlPayInputMode', 'urlPayCardExpiryMode', 'urlPayProductNameUseYn', 'urlPayCompanyNameShowYn', 'urlPayLangMenuUseYn', 'checkoutContactRememberMode', 'urlPayShippingAddressUseYn', 'apiUrlPayCheckoutMode', 'splitPayEnabledYn', 'splitPayIntervalMonthYn', 'splitPayIntervalDayYn', 'splitPayIntervalMultiYn', 'splitPayDayIntervalDays', 'splitPayMonthIntervalMonths', 'splitPayMultiMaxMonths', 'splitPayFirstPayMode', 'splitPayHeaderLogoMode', 'splitPayHeaderLogoUrl', 'splitPayHeaderHtmlTitle', 'splitPayHeaderSubtitleMode', 'splitPayHeaderSubtitleText', 'splitPayLangMenuUseYn', 'chatbotUrlPayCheckoutMode', 'jpayCheckoutFieldMode', 'apiJpaySubscriptionUseYn', 'apiBrokerInlineUseYn', 'apiBrokerRedirectUseYn', 'apiWordpressUseYn', 'mobileCheckoutMode', 'chatbotPaymentUseYn', 'chatbotProductSlotLimit', 'chatbotHeaderLogoUrl', 'chatbotAdminUsername', 'chatbotCatalogListingGrant', 'chatbotMaxProductImagesGrant', 'chatbotCatalogListingEnabled', 'baseCurrency', 'remark', 'operationRecord', 'settleType', 'commissionRate', 'limitAmt', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'voidSettlementMode', 'manualVoidSettlementMode', 'refundSettlementMode', 'forceRefundSettlementMode', 'commissionMemo', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'chargebackPolicyId', 'payFollowMerchantUseYn', 'payFollowAutoVoidYn', 'payFollowEmailVoidYn', 'payFollowAutoRefundYn', 'payFollowForceRefundYn', 'urlPayAlertEmailYn', 'receiptEmailFollowHqYn', 'receiptEmailUseYn', 'receiptEmailEnabledYn', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'feeVatApplyYn', 'feeVatRatePct', 'calcCycleTransitionMode', 'calcCycleChangeRemark', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'jpayNotifyUrl', 'jpayCallbackUrl', 'notifyUrl1', 'notifyUrl2', 'notifyUrl3', 'notifyUrl4', 'remitterName', 'balanceNotifyAmt', 'suspiciousNotifyAmt', 'overseasLoginNotifyAmt', 'tempPwdNotifyAmt', 'nonTranCriterionMonth', 'sameCardLimitWebDay', 'sameCardLimitWebTimes', 'sameCardLimitWebAmt', 'sameCardLimitTerminalDay', 'sameCardLimitTerminalTimes', 'sameCardLimitTerminalAmt', 'dailyUsageFee', 'depositNameLookup', 'transferAuthNo', 'autoConvertNewMemberLimit', 'newMemberDailyLimit', 'convertRefDate', 'convertDailyLimit', 'applyStartDate', 'pgFeeGeneral', 'settleDiffMonthCnt', 'settleReportBankCd', 'pgFeeSamsung', 'smsFee', 'taxInvoiceEmail', 'settleAccountNo', 'directFee', 'solutionFee', 'settleAccountHolder', 'withdrawRestrictType', 'withdrawRestrictStartTime', 'withdrawRestrictEndTime', 'terminalPayRestrict', 'webPayRestrict', 'defaultFeeHq', 'defaultFeeDist', 'defaultFeeBranch', 'defaultFeeAgency', 'defaultFeeSalesOffice', 'defaultPayLimitPerTx', 'defaultPayLimitDay', 'defaultPayLimitMonth', 'defaultPayLimitYearCorp', 'defaultPayLimitYearInd', 'cardRiskPolicyMode', 'cardRiskTier1Hours', 'cardRiskTier1Min', 'cardRiskTier2Hours', 'cardRiskTier2Min', 'cardRiskTier3Hours', 'cardRiskTier3Min', 'cardRiskTier4Hours', 'cardRiskTier4Min', 'cardRiskAutoBlacklistTier', 'cardRiskTrackPeriodPolicy', 'cardRiskTrackPeriodMode', 'cardRiskTrackPeriodValue', 'copyright', 'holidayProfileName', 'holidayProfileCountry', 'holidayCountryCode', 'holidayCountryCodes', 'businessHolidayRangesJson', 'businessHolidayExtraDates'];
+        var allFields = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'webPaymentHeaderLogoMode', 'webPaymentHeaderLogoUrl', 'webPaymentHeaderHtmlTitle', 'webPaymentHeaderSubtitleMode', 'webPaymentHeaderSubtitleText', 'urlPayCheckoutMode', 'urlPayInputMode', 'urlPayCardExpiryMode', 'urlPayProductNameUseYn', 'urlPayCompanyNameShowYn', 'urlPayLangMenuUseYn', 'checkoutContactRememberMode', 'urlPayShippingAddressUseYn', 'apiUrlPayCheckoutMode', 'splitPayEnabledYn', 'splitPayIntervalMonthYn', 'splitPayIntervalDayYn', 'splitPayIntervalMultiYn', 'splitPayDayIntervalDays', 'splitPayMonthIntervalMonths', 'splitPayMultiMaxMonths', 'splitPayFirstPayMode', 'splitPayHeaderLogoMode', 'splitPayHeaderLogoUrl', 'splitPayHeaderHtmlTitle', 'splitPayHeaderSubtitleMode', 'splitPayHeaderSubtitleText', 'splitPayLangMenuUseYn', 'chatbotUrlPayCheckoutMode', 'jpayCheckoutFieldMode', 'apiJpaySubscriptionUseYn', 'apiBrokerInlineUseYn', 'apiBrokerRedirectUseYn', 'apiWordpressUseYn', 'mobileCheckoutMode', 'chatbotPaymentUseYn', 'chatbotProductSlotLimit', 'chatbotHeaderLogoUrl', 'chatbotAdminUsername', 'chatbotCatalogListingGrant', 'chatbotMaxProductImagesGrant', 'chatbotCatalogListingEnabled', 'baseCurrency', 'remark', 'operationRecord', 'settleType', 'commissionRate', 'limitAmt', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'voidSettlementMode', 'manualVoidSettlementMode', 'refundSettlementMode', 'forceRefundSettlementMode', 'commissionMemo', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'chargebackPolicyId', 'payFollowMerchantUseYn', 'payFollowAutoVoidYn', 'payFollowEmailVoidYn', 'payFollowAutoRefundYn', 'payFollowForceRefundYn', 'urlPayAlertEmailYn', 'receiptEmailFollowHqYn', 'receiptEmailUseYn', 'receiptEmailEnabledYn', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'feeVatApplyYn', 'feeVatRatePct', 'calcCycleTransitionMode', 'calcCycleChangeRemark', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'jpayNotifyUrl', 'jpayCallbackUrl', 'notifyUrl1', 'notifyUrl2', 'notifyUrl3', 'notifyUrl4', 'remitterName', 'balanceNotifyAmt', 'suspiciousNotifyAmt', 'overseasLoginNotifyAmt', 'tempPwdNotifyAmt', 'nonTranCriterionMonth', 'sameCardLimitWebDay', 'sameCardLimitWebTimes', 'sameCardLimitWebAmt', 'sameCardLimitTerminalDay', 'sameCardLimitTerminalTimes', 'sameCardLimitTerminalAmt', 'dailyUsageFee', 'depositNameLookup', 'transferAuthNo', 'autoConvertNewMemberLimit', 'newMemberDailyLimit', 'convertRefDate', 'convertDailyLimit', 'applyStartDate', 'pgFeeGeneral', 'settleDiffMonthCnt', 'settleReportBankCd', 'pgFeeSamsung', 'smsFee', 'taxInvoiceEmail', 'settleAccountNo', 'directFee', 'solutionFee', 'settleAccountHolder', 'withdrawRestrictType', 'withdrawRestrictStartTime', 'withdrawRestrictEndTime', 'terminalPayRestrict', 'webPayRestrict', 'defaultFeeHq', 'defaultFeeDist', 'defaultFeeBranch', 'defaultFeeAgency', 'defaultFeeSalesOffice', 'defaultPayLimitPerTx', 'defaultPayLimitDay', 'defaultPayLimitMonth', 'defaultPayLimitYearCorp', 'defaultPayLimitYearInd', 'cardRiskPolicyMode', 'cardRiskTier1Hours', 'cardRiskTier1Min', 'cardRiskTier2Hours', 'cardRiskTier2Min', 'cardRiskTier3Hours', 'cardRiskTier3Min', 'cardRiskTier4Hours', 'cardRiskTier4Min', 'cardRiskAutoBlacklistTier', 'cardRiskTrackPeriodPolicy', 'cardRiskTrackPeriodMode', 'cardRiskTrackPeriodValue', 'cardRiskPresaleMode', 'cardRiskPresaleBuyerMismatchYn', 'cardRiskPresaleHolderNameYn', 'cardRiskPresalePhoneInvalidYn', 'cardRiskPresaleEmailInvalidYn', 'cardRiskPresaleVelocityCardYn', 'cardRiskPresaleVelocityEmailYn', 'cardRiskPresaleVelocityIpYn', 'cardRiskPresaleVelCardWinMin', 'cardRiskPresaleVelCardMax', 'cardRiskPresaleVelEmailWinMin', 'cardRiskPresaleVelEmailMax', 'cardRiskPresaleVelIpWinMin', 'cardRiskPresaleVelIpMax', 'copyright', 'holidayProfileName', 'holidayProfileCountry', 'holidayCountryCode', 'holidayCountryCodes', 'businessHolidayRangesJson', 'businessHolidayExtraDates'];
         allFields.forEach(function (k) {
           if (data[k] != null) pgSetCompFormFieldValues(form, k, data[k]);
         });
@@ -22142,6 +22371,7 @@
           toggleHoldRateCustom(holdRateFollowEl.value || 'Y');
         }
         pgBindCardRiskPolicyToggle(pane);
+      pgBindCardRiskPresaleToggle(pane);
         (function bindFeeVatRateToggleDetail() {
           var root = pane;
           var sel = root.querySelector('[name="feeVatApplyYn"]');
@@ -23547,11 +23777,226 @@
         }
         return { label: pgAdminUiT('미사용'), cls: 'merchant-risk-policy-mode--disabled', key: '미사용' };
       }
+      function hqRiskModeSelectAndSaveHtml(modeClass, saveBtnClass, mode) {
+        var policyMeta = hqRiskPolicyModeMeta(mode);
+        /* form-select 미사용: Bootstrap 화살표 + 네이티브/커스텀 이중 표시 방지 */
+        return '<td class="text-nowrap"><select class="' + modeClass +
+          ' merchant-risk-policy-mode ' + policyMeta.cls +
+          '" aria-label="' + hqRiskEsc(pgAdminUiT('방식')) + '">' + hqRiskModeOpts(mode, true) + '</select></td>' +
+          '<td class="text-center"><button type="button" class="btn btn-sm btn-outline-primary ' + saveBtnClass +
+          '" data-pg-ui-t="저장">' + hqRiskEsc(pgAdminUiT('저장')) + '</button></td>';
+      }
+      function hqRiskSyncModeSelectClass(sel) {
+        if (!sel) return;
+        var meta = hqRiskPolicyModeMeta(sel.value);
+        sel.classList.remove(
+          'merchant-risk-policy-mode--disabled',
+          'merchant-risk-policy-mode--custom',
+          'merchant-risk-policy-mode--follow-hq'
+        );
+        sel.classList.add('merchant-risk-policy-mode', meta.cls);
+      }
       function hqRiskUiT(s) {
         if (s == null || s === '') return '';
         var v = String(s);
         if (v === '—') return v;
         return pgAdminUiT(v);
+      }
+      function hqRiskYnOpts(sel) {
+        var s = String(sel || 'Y').toUpperCase() === 'N' ? 'N' : 'Y';
+        return '<option value="Y"' + (s === 'Y' ? ' selected' : '') + ' data-pg-ui-t="사용">' + hqRiskEsc(pgAdminUiT('사용')) + '</option>' +
+          '<option value="N"' + (s === 'N' ? ' selected' : '') + ' data-pg-ui-t="미사용">' + hqRiskEsc(pgAdminUiT('미사용')) + '</option>';
+      }
+      function hqRiskModeOpts(sel, includeCustom) {
+        var u = String(sel || 'FOLLOW_HQ').toUpperCase();
+        var html = '<option value="FOLLOW_HQ"' + (u === 'FOLLOW_HQ' ? ' selected' : '') + ' data-pg-ui-t="본사설정">' + hqRiskEsc(pgAdminUiT('본사설정')) + '</option>' +
+          '<option value="DISABLED"' + (u === 'DISABLED' ? ' selected' : '') + ' data-pg-ui-t="미사용">' + hqRiskEsc(pgAdminUiT('미사용')) + '</option>';
+        if (includeCustom !== false) {
+          html += '<option value="CUSTOM"' + (u === 'CUSTOM' ? ' selected' : '') + ' data-pg-ui-t="별도설정">' + hqRiskEsc(pgAdminUiT('별도설정')) + '</option>';
+        }
+        return html;
+      }
+      function hqRiskNum(v, def) {
+        if (v == null || v === '') return def != null ? def : 0;
+        var n = parseInt(v, 10);
+        return isNaN(n) ? (def != null ? def : 0) : n;
+      }
+      function hqRiskTierCell(r, tier, mode) {
+        var custom = String(mode || '').toUpperCase() === 'CUSTOM';
+        var h = hqRiskNum(r['cardRiskTier' + tier + 'Hours'], tier === 3 ? 1 : 0);
+        var m = hqRiskNum(r['cardRiskTier' + tier + 'Min'], tier === 1 ? 5 : tier === 2 ? 10 : 0);
+        if (!custom) {
+          return '<td class="text-nowrap small">' + hqRiskEsc(hqRiskUiT(r['tier' + tier + 'Display'] || '—')) + '</td>';
+        }
+        return '<td class="text-nowrap small"><div class="d-flex gap-1 align-items-center">' +
+          '<input type="number" class="form-control form-control-sm hq-risk-m-tier-h" data-tier="' + tier + '" min="0" max="168" style="width:3.2rem" value="' + h + '" title="' + hqRiskEsc(pgAdminUiT('시간')) + '">' +
+          '<input type="number" class="form-control form-control-sm hq-risk-m-tier-m" data-tier="' + tier + '" min="0" max="59" style="width:3.2rem" value="' + m + '" title="' + hqRiskEsc(pgAdminUiT('분')) + '">' +
+          '</div></td>';
+      }
+      function hqRiskAutoTierCell(r, mode) {
+        var custom = String(mode || '').toUpperCase() === 'CUSTOM';
+        var t = hqRiskNum(r.cardRiskAutoBlacklistTier != null ? r.cardRiskAutoBlacklistTier : r.autoBlacklistTier, 4);
+        if (!custom) {
+          return '<td class="text-nowrap small text-center">' + hqRiskEsc(hqRiskUiT(r.autoBlacklistTierLabel || '—')) + '</td>';
+        }
+        return '<td class="text-nowrap small text-center"><select class="form-select form-select-sm hq-risk-m-auto-tier">' +
+          [1, 2, 3, 4].map(function (n) {
+            return '<option value="' + n + '"' + (t === n ? ' selected' : '') + '>' + n + '차</option>';
+          }).join('') + '</select></td>';
+      }
+      function hqRiskTrackCell(r, mode) {
+        var custom = String(mode || '').toUpperCase() === 'CUSTOM';
+        if (!custom) {
+          return '<td class="text-nowrap small text-center">' + hqRiskEsc(hqRiskUiT(r.trackPeriodDisplay || '—')) + '</td>';
+        }
+        var pol = String(r.cardRiskTrackPeriodPolicy || 'FOLLOW_HQ').toUpperCase();
+        var tm = String(r.cardRiskTrackPeriodMode || 'DAY').toUpperCase();
+        var tv = hqRiskNum(r.cardRiskTrackPeriodValue, 1);
+        return '<td class="text-nowrap small"><div class="d-flex flex-column gap-1">' +
+          '<select class="form-select form-select-sm hq-risk-m-track-pol">' +
+          '<option value="NONE"' + (pol === 'NONE' ? ' selected' : '') + ' data-pg-ui-t="미사용">' + hqRiskEsc(pgAdminUiT('미사용')) + '</option>' +
+          '<option value="FOLLOW_HQ"' + (pol === 'FOLLOW_HQ' ? ' selected' : '') + ' data-pg-ui-t="본사정책 따름">' + hqRiskEsc(pgAdminUiT('본사정책 따름')) + '</option>' +
+          '<option value="CUSTOM"' + (pol === 'CUSTOM' ? ' selected' : '') + ' data-pg-ui-t="별도정책">' + hqRiskEsc(pgAdminUiT('별도정책')) + '</option>' +
+          '</select>' +
+          '<div class="d-flex gap-1">' +
+          '<select class="form-select form-select-sm hq-risk-m-track-mode" style="width:4.5rem">' +
+          '<option value="DAY"' + (tm === 'DAY' ? ' selected' : '') + ' data-pg-ui-t="일">' + hqRiskEsc(pgAdminUiT('일')) + '</option>' +
+          '<option value="MONTH"' + (tm === 'MONTH' ? ' selected' : '') + ' data-pg-ui-t="월">' + hqRiskEsc(pgAdminUiT('월')) + '</option>' +
+          '<option value="YEAR"' + (tm === 'YEAR' ? ' selected' : '') + ' data-pg-ui-t="년">' + hqRiskEsc(pgAdminUiT('년')) + '</option>' +
+          '</select>' +
+          '<input type="number" class="form-control form-control-sm hq-risk-m-track-val" min="1" max="9999" style="width:3.5rem" value="' + tv + '">' +
+          '</div></div></td>';
+      }
+      function hqRiskCollectTriggerRow(tr) {
+        var body = { orgUnitId: tr.getAttribute('data-org-unit-id') };
+        var modeEl = tr.querySelector('.hq-risk-m-policy-mode');
+        body.cardRiskPolicyMode = modeEl ? modeEl.value : 'DISABLED';
+        if (body.cardRiskPolicyMode === 'CUSTOM') {
+          [1, 2, 3, 4].forEach(function (tier) {
+            var hEl = tr.querySelector('.hq-risk-m-tier-h[data-tier="' + tier + '"]');
+            var mEl = tr.querySelector('.hq-risk-m-tier-m[data-tier="' + tier + '"]');
+            if (hEl) body['cardRiskTier' + tier + 'Hours'] = hEl.value;
+            if (mEl) body['cardRiskTier' + tier + 'Min'] = mEl.value;
+          });
+          var autoEl = tr.querySelector('.hq-risk-m-auto-tier');
+          if (autoEl) body.cardRiskAutoBlacklistTier = autoEl.value;
+          var polEl = tr.querySelector('.hq-risk-m-track-pol');
+          var tmEl = tr.querySelector('.hq-risk-m-track-mode');
+          var tvEl = tr.querySelector('.hq-risk-m-track-val');
+          if (polEl) body.cardRiskTrackPeriodPolicy = polEl.value;
+          if (tmEl) body.cardRiskTrackPeriodMode = tmEl.value;
+          if (tvEl) body.cardRiskTrackPeriodValue = tvEl.value;
+        }
+        return body;
+      }
+      function hqRiskCollectFilterRow(tr) {
+        var body = { orgUnitId: tr.getAttribute('data-org-unit-id') };
+        var modeEl = tr.querySelector('.hq-risk-f-presale-mode');
+        body.cardRiskPresaleMode = modeEl ? modeEl.value : 'FOLLOW_HQ';
+        if (body.cardRiskPresaleMode === 'CUSTOM') {
+          var map = [
+            ['cardRiskPresaleBuyerMismatchYn', '.hq-risk-f-buyer'],
+            ['cardRiskPresaleHolderNameYn', '.hq-risk-f-holder'],
+            ['cardRiskPresalePhoneInvalidYn', '.hq-risk-f-phone'],
+            ['cardRiskPresaleEmailInvalidYn', '.hq-risk-f-email'],
+            ['cardRiskPresaleVelocityCardYn', '.hq-risk-f-vel-card'],
+            ['cardRiskPresaleVelocityEmailYn', '.hq-risk-f-vel-email'],
+            ['cardRiskPresaleVelocityIpYn', '.hq-risk-f-vel-ip']
+          ];
+          map.forEach(function (pair) {
+            var el = tr.querySelector(pair[1]);
+            if (el) body[pair[0]] = el.value;
+          });
+          var cw = tr.querySelector('.hq-risk-f-vel-card-win');
+          var cm = tr.querySelector('.hq-risk-f-vel-card-max');
+          var ew = tr.querySelector('.hq-risk-f-vel-email-win');
+          var em = tr.querySelector('.hq-risk-f-vel-email-max');
+          var iw = tr.querySelector('.hq-risk-f-vel-ip-win');
+          var im = tr.querySelector('.hq-risk-f-vel-ip-max');
+          if (cw) body.cardRiskPresaleVelCardWinMin = cw.value;
+          if (cm) body.cardRiskPresaleVelCardMax = cm.value;
+          if (ew) body.cardRiskPresaleVelEmailWinMin = ew.value;
+          if (em) body.cardRiskPresaleVelEmailMax = em.value;
+          if (iw) body.cardRiskPresaleVelIpWinMin = iw.value;
+          if (im) body.cardRiskPresaleVelIpMax = im.value;
+        }
+        return body;
+      }
+      function hqRiskSaveMerchantRow(body) {
+        if (!window.PG_API || !window.PG_API.hqRiskCardPolicyMerchantSave) return Promise.resolve();
+        if (dimmRisk) dimmRisk.style.display = 'flex';
+        return window.PG_API.hqRiskCardPolicyMerchantSave(body).then(function (d) {
+          hqRiskRenderMerchantRows((d && d.merchantRows) || []);
+          hqRiskRenderMerchantFilterRows((d && d.merchantRows) || []);
+          alert(pgAdminUiT('저장되었습니다.'));
+        }).catch(function (e) {
+          alert(pgErrMsg(e, '저장 실패'));
+        }).finally(function () { if (dimmRisk) dimmRisk.style.display = 'none'; });
+      }
+      function hqRiskYnCell(cls, val, editable) {
+        if (!editable) {
+          var on = String(val || '').toUpperCase() !== 'N';
+          return '<td class="text-nowrap small text-center">' + hqRiskEsc(pgAdminUiT(on ? '사용' : '미사용')) + '</td>';
+        }
+        return '<td class="text-nowrap small"><select class="form-select form-select-sm ' + cls + '">' + hqRiskYnOpts(val) + '</select></td>';
+      }
+      function hqRiskVelCell(clsYn, valYn, clsWin, win, clsMax, max, editable) {
+        if (!editable) {
+          var on = String(valYn || '').toUpperCase() !== 'N';
+          return '<td class="text-nowrap small text-center">' +
+            hqRiskEsc(pgAdminUiT(on ? '사용' : '미사용')) +
+            (on ? (' <span class="text-muted">' + hqRiskEsc(String(win) + '/' + String(max)) + '</span>') : '') +
+            '</td>';
+        }
+        return '<td class="text-nowrap small"><div class="d-flex flex-column gap-1">' +
+          '<select class="form-select form-select-sm ' + clsYn + '">' + hqRiskYnOpts(valYn) + '</select>' +
+          '<div class="d-flex gap-1">' +
+          '<input type="number" class="form-control form-control-sm ' + clsWin + '" min="1" max="1440" style="width:3.2rem" value="' + hqRiskNum(win, 10) + '" title="min">' +
+          '<input type="number" class="form-control form-control-sm ' + clsMax + '" min="1" max="99" style="width:3.2rem" value="' + hqRiskNum(max, 3) + '" title="max">' +
+          '</div></div></td>';
+      }
+      function hqRiskRenderMerchantFilterRows(rows) {
+        var tb = pane.querySelector('#hqRiskMerchantFilterTbody');
+        if (!tb) return;
+        tb.replaceChildren();
+        if (!rows || !rows.length) {
+          var tr0 = document.createElement('tr');
+          var td0 = document.createElement('td');
+          td0.colSpan = 11;
+          td0.className = 'text-center text-muted py-3';
+          td0.textContent = pgAdminUiT('표시할 가맹점이 없습니다.');
+          tr0.appendChild(td0);
+          tb.appendChild(tr0);
+          return;
+        }
+        rows.forEach(function (r) {
+          var mode = String(r.presaleMode || r.cardRiskPresaleMode || 'FOLLOW_HQ').toUpperCase();
+          var editable = mode === 'CUSTOM';
+          var tr = document.createElement('tr');
+          tr.setAttribute('data-org-unit-id', String(r.orgUnitId || ''));
+          tr.innerHTML =
+            '<td class="text-nowrap">' + hqRiskEsc(r.compNm || '') + '</td>' +
+            '<td class="text-nowrap small">' + hqRiskEsc(r.compId || '') + '</td>' +
+            hqRiskModeSelectAndSaveHtml('hq-risk-f-presale-mode', 'hq-risk-f-save-btn', mode) +
+            hqRiskYnCell('hq-risk-f-buyer', r.cardRiskPresaleBuyerMismatchYn || r.effFilterBuyerContactMismatchYn, editable) +
+            hqRiskYnCell('hq-risk-f-holder', r.cardRiskPresaleHolderNameYn || r.effFilterHolderNameYn, editable) +
+            hqRiskYnCell('hq-risk-f-phone', r.cardRiskPresalePhoneInvalidYn || r.effFilterPhoneInvalidYn, editable) +
+            hqRiskYnCell('hq-risk-f-email', r.cardRiskPresaleEmailInvalidYn || r.effFilterEmailInvalidYn, editable) +
+            hqRiskVelCell('hq-risk-f-vel-card', r.cardRiskPresaleVelocityCardYn || r.effFilterVelocityCardYn,
+              'hq-risk-f-vel-card-win', r.cardRiskPresaleVelCardWinMin || r.effVelocityCardWindowMinutes,
+              'hq-risk-f-vel-card-max', r.cardRiskPresaleVelCardMax || r.effVelocityCardMaxAttempts, editable) +
+            hqRiskVelCell('hq-risk-f-vel-email', r.cardRiskPresaleVelocityEmailYn || r.effFilterVelocityEmailYn,
+              'hq-risk-f-vel-email-win', r.cardRiskPresaleVelEmailWinMin || r.effVelocityEmailWindowMinutes,
+              'hq-risk-f-vel-email-max', r.cardRiskPresaleVelEmailMax || r.effVelocityEmailMaxAttempts, editable) +
+            hqRiskVelCell('hq-risk-f-vel-ip', r.cardRiskPresaleVelocityIpYn || r.effFilterVelocityIpYn,
+              'hq-risk-f-vel-ip-win', r.cardRiskPresaleVelIpWinMin || r.effVelocityIpWindowMinutes,
+              'hq-risk-f-vel-ip-max', r.cardRiskPresaleVelIpMax || r.effVelocityIpMaxAttempts, editable);
+          tb.appendChild(tr);
+        });
+        if (window.PG_TABLE_COL_RESIZE && typeof window.PG_TABLE_COL_RESIZE.refreshIn === 'function') {
+          window.PG_TABLE_COL_RESIZE.refreshIn(pane);
+        }
+        hqRiskApplyDom();
       }
       function hqRiskRenderBulkOps(bulk) {
         if (!bulk) return;
@@ -23748,7 +24193,7 @@
         if (!rows || !rows.length) {
           var tr0 = document.createElement('tr');
           var td0 = document.createElement('td');
-          td0.colSpan = 13;
+          td0.colSpan = 14;
           td0.className = 'text-center text-muted py-3';
           td0.textContent = pgAdminUiT('표시할 가맹점이 없습니다.');
           tr0.appendChild(td0);
@@ -23756,18 +24201,19 @@
           return;
         }
         rows.forEach(function (r) {
-          var policyMeta = hqRiskPolicyModeMeta(r.policyMode);
+          var mode = String(r.policyMode || 'DISABLED').toUpperCase();
           var tr = document.createElement('tr');
+          tr.setAttribute('data-org-unit-id', String(r.orgUnitId || ''));
           tr.innerHTML =
             '<td class="text-nowrap">' + hqRiskEsc(r.compNm || '') + '</td>' +
             '<td class="text-nowrap small">' + hqRiskEsc(r.compId || '') + '</td>' +
-            '<td class="text-nowrap small">' + hqRiskEsc(hqRiskUiT(r.tier1Display || '')) + '</td>' +
-            '<td class="text-nowrap small">' + hqRiskEsc(hqRiskUiT(r.tier2Display || '')) + '</td>' +
-            '<td class="text-nowrap small">' + hqRiskEsc(hqRiskUiT(r.tier3Display || '')) + '</td>' +
-            '<td class="text-nowrap small">' + hqRiskEsc(hqRiskUiT(r.tier4Display || '')) + '</td>' +
-            '<td class="text-nowrap small text-center">' + hqRiskEsc(hqRiskUiT(r.autoBlacklistTierLabel || '')) + '</td>' +
-            '<td class="text-nowrap small text-center">' + hqRiskEsc(hqRiskUiT(r.trackPeriodDisplay || '')) + '</td>' +
-            '<td class="text-nowrap text-center"><span class="merchant-risk-policy-mode ' + policyMeta.cls + '" data-pg-ui-t="' + hqRiskEsc(policyMeta.key) + '">' + hqRiskEsc(policyMeta.label) + '</span></td>' +
+            hqRiskModeSelectAndSaveHtml('hq-risk-m-policy-mode', 'hq-risk-m-save-btn', mode) +
+            hqRiskTierCell(r, 1, mode) +
+            hqRiskTierCell(r, 2, mode) +
+            hqRiskTierCell(r, 3, mode) +
+            hqRiskTierCell(r, 4, mode) +
+            hqRiskAutoTierCell(r, mode) +
+            hqRiskTrackCell(r, mode) +
             '<td class="text-nowrap small text-end">' + hqRiskEsc(r.registeredCardCountManual != null ? String(r.registeredCardCountManual) : '0') + '</td>' +
             '<td class="text-nowrap small text-end">' + hqRiskEsc(r.registeredCardCountAuto != null ? String(r.registeredCardCountAuto) : '0') + '</td>' +
             '<td class="text-nowrap small">' + hqRiskEsc(r.latestRegisteredAt || '—') + '</td>' +
@@ -23798,6 +24244,7 @@
           el.value = String(d[k]);
         });
         hqRiskRenderMerchantRows(d.merchantRows || []);
+        hqRiskRenderMerchantFilterRows(d.merchantRows || []);
         hqRiskRenderBulkOps(d.bulkOps || null);
         hqRiskApplyDom();
         pgBindHqRiskTrackPeriodToggle(pane);
@@ -23826,6 +24273,7 @@
           fillHqRiskCardPolicy(d);
         }).catch(function () {
           hqRiskRenderMerchantRows([]);
+          hqRiskRenderMerchantFilterRows([]);
         }).finally(function () { if (dimmRisk) dimmRisk.style.display = 'none'; });
       }
       pane._pgFillHqRiskCardPolicy = fillHqRiskCardPolicy;
@@ -23841,6 +24289,63 @@
           }).catch(function (e) {
             alert(pgErrMsg(e, '저장 실패'));
           }).finally(function () { if (dimmRisk) dimmRisk.style.display = 'none'; });
+        });
+      }
+      if (!pane._hqRiskMerchantRowBound) {
+        pane._hqRiskMerchantRowBound = true;
+        pane.addEventListener('click', function (ev) {
+          var mSave = ev.target && ev.target.closest ? ev.target.closest('.hq-risk-m-save-btn') : null;
+          if (mSave) {
+            var mTr = mSave.closest('tr');
+            if (mTr) hqRiskSaveMerchantRow(hqRiskCollectTriggerRow(mTr));
+            return;
+          }
+          var fSave = ev.target && ev.target.closest ? ev.target.closest('.hq-risk-f-save-btn') : null;
+          if (fSave) {
+            var fTr = fSave.closest('tr');
+            if (fTr) hqRiskSaveMerchantRow(hqRiskCollectFilterRow(fTr));
+          }
+        });
+        pane.addEventListener('change', function (ev) {
+          var t = ev.target;
+          if (!t) return;
+          if (t.classList.contains('hq-risk-m-policy-mode')) {
+            var rows = (pane._hqRiskCardPolicyLast && pane._hqRiskCardPolicyLast.merchantRows) || [];
+            var tr = t.closest('tr');
+            var oid = tr ? tr.getAttribute('data-org-unit-id') : '';
+            var found = rows.filter(function (r) { return String(r.orgUnitId) === String(oid); })[0];
+            if (found) {
+              var next = Object.assign({}, found, { policyMode: t.value });
+              var idx = rows.findIndex(function (r) { return String(r.orgUnitId) === String(oid); });
+              if (idx >= 0) {
+                var copy = rows.slice();
+                copy[idx] = next;
+                pane._hqRiskCardPolicyLast.merchantRows = copy;
+                hqRiskRenderMerchantRows(copy);
+              }
+            }
+            return;
+          }
+          if (t.classList.contains('hq-risk-f-presale-mode')) {
+            var rowsF = (pane._hqRiskCardPolicyLast && pane._hqRiskCardPolicyLast.merchantRows) || [];
+            var trF = t.closest('tr');
+            var oidF = trF ? trF.getAttribute('data-org-unit-id') : '';
+            var foundF = rowsF.filter(function (r) { return String(r.orgUnitId) === String(oidF); })[0];
+            if (foundF) {
+              var nextF = Object.assign({}, foundF, {
+                presaleMode: t.value,
+                cardRiskPresaleMode: t.value,
+                presaleStatusLabel: t.value === 'DISABLED' ? '미사용' : (t.value === 'CUSTOM' ? '별도설정' : '본사설정')
+              });
+              var idxF = rowsF.findIndex(function (r) { return String(r.orgUnitId) === String(oidF); });
+              if (idxF >= 0) {
+                var copyF = rowsF.slice();
+                copyF[idxF] = nextF;
+                pane._hqRiskCardPolicyLast.merchantRows = copyF;
+                hqRiskRenderMerchantFilterRows(copyF);
+              }
+            }
+          }
         });
       }
       if (!pane._hqBulkOpsBound) {
@@ -24379,7 +24884,7 @@
         if (!data) return;
         ['notifyIngressUrl', 'notifyIngressUrlOpen', 'ingressToken', 'publicBaseUrl', 'notifyOkResponse',
           'notiProvisionEnabledYn', 'notiProvisionBaseUrl', 'notiProvisionDefaultInternalTargetId',
-          'notiProvisionInternalTargetJpy', 'notiProvisionInternalTargetUsd', 'notiProvisionDefaultDealmaiPartner'].forEach(function (k) {
+          'notiProvisionInternalTargetJpy', 'notiProvisionInternalTargetUsd', 'notiProvisionInternalTargetThb', 'notiProvisionDefaultDealmaiPartner'].forEach(function (k) {
           var el = pane.querySelector('[name="' + k + '"]');
           if (el && data[k] != null && data[k] !== undefined) el.value = data[k];
         });
@@ -24471,28 +24976,84 @@
           if (dimmN) dimmN.style.display = 'none';
         });
       }
-      function fillHqNotiInternalTargets(list) {
+      function fillHqNotiInternalTargets(payload) {
         var tbody = pane.querySelector('#hqNotiInternalTargetTbody');
         var empty = pane.querySelector('#hqNotiInternalTargetEmpty');
+        var hint = pane.querySelector('#hqNotiInternalTargetHint');
         if (!tbody) return;
         tbody.innerHTML = '';
-        var arr = Array.isArray(list) ? list : [];
-        if (!arr.length) {
-          if (empty) empty.classList.remove('d-none');
+        var data = payload;
+        var arr = [];
+        var status = '';
+        var message = '';
+        var endpoint = '';
+        if (Array.isArray(payload)) {
+          arr = payload;
+          status = arr.length ? 'OK' : 'EMPTY';
+        } else if (payload && typeof payload === 'object') {
+          arr = Array.isArray(payload.items) ? payload.items : [];
+          status = payload.status != null ? String(payload.status) : (arr.length ? 'OK' : 'EMPTY');
+          message = payload.message != null ? String(payload.message) : '';
+          endpoint = payload.endpoint != null ? String(payload.endpoint) : '';
+        }
+        if (arr.length) {
+          if (empty) empty.classList.add('d-none');
+          if (hint) {
+            hint.classList.add('d-none');
+            hint.textContent = '';
+          }
+          arr.forEach(function (t) {
+            var tr = document.createElement('tr');
+            var td1 = document.createElement('td');
+            td1.className = 'small font-monospace';
+            td1.textContent = t.id != null ? String(t.id) : '';
+            var td2 = document.createElement('td');
+            td2.className = 'small';
+            td2.textContent = t.name != null ? String(t.name) : '';
+            var td3 = document.createElement('td');
+            td3.className = 'small';
+            td3.textContent = t.currency != null ? String(t.currency) : '';
+            tr.appendChild(td1);
+            tr.appendChild(td2);
+            tr.appendChild(td3);
+            tbody.appendChild(tr);
+          });
           return;
         }
-        if (empty) empty.classList.add('d-none');
-        arr.forEach(function (t) {
-          var tr = document.createElement('tr');
-          var td1 = document.createElement('td');
-          td1.className = 'small font-monospace';
-          td1.textContent = t.id != null ? String(t.id) : '';
-          var td2 = document.createElement('td');
-          td2.className = 'small';
-          td2.textContent = t.name != null ? String(t.name) : '';
-          tr.appendChild(td1);
-          tr.appendChild(td2);
-          tbody.appendChild(tr);
+        var emptyKey = 'NOTI 전산 대상 목록을 불러오지 못했습니다.';
+        if (status === 'NOT_CONFIGURED') {
+          emptyKey = 'Provision API가 설정되지 않았습니다. 위 「NOTI Provision API」에서 사용·URL·키를 저장하세요.';
+        } else if (status === 'NOTI_ENDPOINT_MISSING') {
+          emptyKey = 'NOTI 목록 API가 없거나 404입니다. 위 매핑 ID만으로 노티생성은 가능합니다.';
+        } else if (status === 'AUTH_FAILED') {
+          emptyKey = 'Provision API 인증 실패. Bearer 키·NOTI 허용 IP를 확인하세요.';
+        } else if (status === 'EMPTY') {
+          emptyKey = 'NOTI 전산 대상 목록이 비어 있습니다.';
+        }
+        if (empty) {
+          empty.setAttribute('data-pg-ui-t', emptyKey);
+          empty.textContent = pgAdminUiT(emptyKey);
+          empty.classList.remove('d-none');
+        }
+        if (hint) {
+          var hintParts = [];
+          if (message) hintParts.push(message);
+          if (endpoint) hintParts.push(pgAdminUiT('호출 URL') + ': ' + endpoint);
+          if (hintParts.length) {
+            hint.textContent = hintParts.join(' · ');
+            hint.classList.remove('d-none');
+          } else {
+            hint.textContent = '';
+            hint.classList.add('d-none');
+          }
+        }
+      }
+      function refreshHqNotiInternalTargets() {
+        if (!window.PG_API.hqNotifyInternalTargets) return Promise.resolve();
+        return window.PG_API.hqNotifyInternalTargets().then(function (list) {
+          fillHqNotiInternalTargets(list);
+        }).catch(function () {
+          fillHqNotiInternalTargets({ status: 'ERROR', message: pgAdminUiT('목록 조회 요청에 실패했습니다.'), items: [] });
         });
       }
       function fillWebhookPartners(list) {
@@ -24544,13 +25105,23 @@
         fillWebhookPartners(res[3]);
         fillHqNotiInternalTargets(res[4]);
       }).catch(function () {}).finally(function () { if (dimmN) dimmN.style.display = 'none'; });
+      var hqItRefresh = pane.querySelector('#hqNotiInternalTargetRefreshBtn');
+      if (hqItRefresh && !hqItRefresh._hqItBound) {
+        hqItRefresh._hqItBound = true;
+        hqItRefresh.addEventListener('click', function () {
+          if (dimmN) dimmN.style.display = 'flex';
+          refreshHqNotiInternalTargets().finally(function () {
+            if (dimmN) dimmN.style.display = 'none';
+          });
+        });
+      }
       var hqNotifySave = pane.querySelector('#hqNotifyEnvSaveBtn');
       if (hqNotifySave && !hqNotifySave._hqNeBound) {
         hqNotifySave._hqNeBound = true;
         hqNotifySave.addEventListener('click', function () {
           var fd = {};
           ['publicBaseUrl', 'notifyOkResponse', 'notiProvisionEnabledYn', 'notiProvisionBaseUrl',
-            'notiProvisionDefaultInternalTargetId', 'notiProvisionInternalTargetJpy', 'notiProvisionInternalTargetUsd'].forEach(function (k) {
+            'notiProvisionDefaultInternalTargetId', 'notiProvisionInternalTargetJpy', 'notiProvisionInternalTargetUsd', 'notiProvisionInternalTargetThb'].forEach(function (k) {
             var el = pane.querySelector('[name="' + k + '"]');
             if (el) fd[k] = el.value;
           });
@@ -36777,14 +37348,29 @@
       var tid = pane.id;
       try {
         pgResetPaneCustomBindFlags(pane, url);
-        pane.innerHTML = window.PG_SCREENS.getScreenHtml(url, tid);
+        var renderUrl = url;
+        var isHubRf = pgIsHubUrlPath(url);
+        if (isHubRf && window.PG_HUB_SHELL) {
+          var rem = typeof window.PG_HUB_SHELL.rememberedHubTab === 'function'
+            ? window.PG_HUB_SHELL.rememberedHubTab(url) : '';
+          var hubCfg = typeof window.PG_HUB_SHELL.hubConfig === 'function'
+            ? window.PG_HUB_SHELL.hubConfig(url) : null;
+          if (rem && typeof window.PG_HUB_SHELL.hubFullUrl === 'function') {
+            renderUrl = window.PG_HUB_SHELL.hubFullUrl(url, rem, !!(hubCfg && hubCfg.wizard));
+          }
+        }
+        pane.innerHTML = window.PG_SCREENS.getScreenHtml(renderUrl, tid);
         if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
           try { window.PG_UI_I18N.applyDom(pane); } catch (eUiDom) {}
         }
         if (window.PG_PAY_LIST_I18N && typeof window.PG_PAY_LIST_I18N.refreshOpenPayMngDomI18n === 'function' && typeof window.PG_PAY_LIST_I18N.getLocale === 'function') {
           try { window.PG_PAY_LIST_I18N.refreshOpenPayMngDomI18n(window.PG_PAY_LIST_I18N.getLocale()); } catch (ePayDom) {}
         }
-        bindScreenEvents(pane, tid);
+        if (isHubRf && window.PG_HUB_SHELL && typeof window.PG_HUB_SHELL.bindHubShell === 'function') {
+          try { window.PG_HUB_SHELL.bindHubShell(pane, tid, renderUrl); } catch (eHubRf) {}
+        } else {
+          bindScreenEvents(pane, tid);
+        }
         if (window.PG_TABLE_COL_RESIZE) {
           if (typeof window.PG_TABLE_COL_RESIZE.ensureObserver === 'function') {
             window.PG_TABLE_COL_RESIZE.ensureObserver(pane);
@@ -36872,9 +37458,15 @@
       var isHub = pgIsHubUrlPath(urlPath);
       if (pane && window.PG_SCREENS && window.PG_SCREENS.getScreenHtml) {
         pane.setAttribute('formurl', urlPath || '');
-        shellReady = !isHub && pane.getAttribute('data-pg-shell-ready') === '1' && pane.childElementCount > 0;
+        /* 허브도 포함: 상단 탭 왕복 시 DOM 유지(마지막 서브탭 보존). 언어 전환 등 재생성은 별도 경로. */
+        shellReady = pane.getAttribute('data-pg-shell-ready') === '1' && pane.childElementCount > 0;
         if (shellReady) {
           pgActivateTabPane(pane, tabId);
+          if (isHub && window.PG_HUB_SHELL && typeof window.PG_HUB_SHELL.ensureActiveTab === 'function') {
+            try { window.PG_HUB_SHELL.ensureActiveTab(pane, tabId, url); } catch (eHubKeep) {
+              try { console.error('[PG] ensureActiveTab failed:', url, eHubKeep); } catch (eHubKeepLog) {}
+            }
+          }
           if (window.PG_TABLE_COL_RESIZE) {
             if (typeof window.PG_TABLE_COL_RESIZE.refreshInSync === 'function') {
               window.PG_TABLE_COL_RESIZE.refreshInSync(pane);
@@ -39156,28 +39748,104 @@
       hideFlyout();
       fnTopMenuMove(url, a.getAttribute('data-menu_id'), a.textContent.trim());
     });
+    var pgAgEpFetch = document.getElementById('pgAgencyEditEpFetchMethodsBtn');
+    if (pgAgEpFetch && !pgAgEpFetch._bound) {
+      pgAgEpFetch._bound = true;
+      pgAgEpFetch.addEventListener('click', function () {
+        var idVal = (document.getElementById('pgAgencyEditId') || {}).value;
+        idVal = idVal != null ? String(idVal).trim() : '';
+        if (!idVal) {
+          alert(pgAdminUiT('저장 후 다시 열어 [결제수단 조회]를 실행하세요. (신규 행은 먼저 저장)'));
+          return;
+        }
+        var resEl = document.getElementById('pgAgencyEditEpMethodsResult');
+        if (resEl) resEl.textContent = pgAdminUiT('조회 중…');
+        var dimm = document.getElementById('dimm');
+        if (dimm) dimm.style.display = 'flex';
+        window.PG_API.hqPgApiMngElementpayMethods({ id: idVal }).then(function (data) {
+          var methods = (data && data.methods) || [];
+          window._pgAgencyEpSuggestAlias = (data && data.suggestedCardServiceAlias) || 'card';
+          var lines = [];
+          lines.push(pgAdminUiT('환경') + ': ' + ((data && data.sandbox) ? 'Sandbox' : 'Production'));
+          lines.push(pgAdminUiT('현재 cardServiceAlias') + ': ' + ((data && data.currentCardServiceAlias) || ''));
+          lines.push(pgAdminUiT('추천') + ': ' + (window._pgAgencyEpSuggestAlias || ''));
+          lines.push('');
+          if (!methods.length) {
+            lines.push(pgAdminUiT('사용 가능 수단이 없습니다. Cabinet(Sandbox)에서 Credit Card를 활성화하세요.'));
+          } else {
+            methods.forEach(function (m) {
+              lines.push((m.id || '') + ' | ' + (m.alias || '') + ' | ' + (m.name || '') + ' | ' + (m.currency || ''));
+            });
+          }
+          if (data && data.hint) lines.push('', data.hint);
+          if (resEl) resEl.textContent = lines.join('\n');
+        }).catch(function (e) {
+          if (resEl) resEl.textContent = pgErrMsg(e, '결제수단 조회 실패');
+        }).finally(function () { if (dimm) dimm.style.display = 'none'; });
+      });
+    }
+    var pgAgEpApply = document.getElementById('pgAgencyEditEpApplySuggestBtn');
+    if (pgAgEpApply && !pgAgEpApply._bound) {
+      pgAgEpApply._bound = true;
+      pgAgEpApply.addEventListener('click', function () {
+        var aliasEl = document.getElementById('pgAgencyEditEpCardAlias');
+        var sug = window._pgAgencyEpSuggestAlias || 'card';
+        if (aliasEl) aliasEl.value = sug;
+      });
+    }
     var pgAgSave = document.getElementById('pgAgencyEditSaveBtn');
     if (pgAgSave && !pgAgSave._bound) {
       pgAgSave._bound = true;
       pgAgSave.addEventListener('click', function () {
         if (!window.pgDoubleConfirm || !window.pgDoubleConfirm(pgAdminUiT('PG사 연동 정보를 저장하시겠습니까?'), pgAdminUiT('정말 저장하시겠습니까?'))) return;
         var idVal = document.getElementById('pgAgencyEditId').value.trim();
-        var kindSel = document.getElementById('pgAgencyEditIntegKind');
-        var integKind = kindSel && kindSel.value ? String(kindSel.value).trim().toUpperCase() : '';
+        var integKinds = [];
+        document.querySelectorAll('.pg-agency-integ-kind').forEach(function (cb) {
+          if (cb.checked) integKinds.push(String(cb.value).trim().toUpperCase());
+        });
+        function epField(id) {
+          var el = document.getElementById(id);
+          return el && el.value ? String(el.value).trim() : '';
+        }
         var body = {
           pgCd: document.getElementById('pgAgencyEditPgCd').value.trim(),
           pgNm: document.getElementById('pgAgencyEditPgNm').value.trim(),
           apiEndpoint: (document.getElementById('pgAgencyEditEndpoint') && document.getElementById('pgAgencyEditEndpoint').value) ? document.getElementById('pgAgencyEditEndpoint').value.trim() : '',
-          integKind: integKind,
-          integrationEndpoint: (document.getElementById('pgAgencyEditIntegrationEndpoint') && document.getElementById('pgAgencyEditIntegrationEndpoint').value.trim())
-            ? document.getElementById('pgAgencyEditIntegrationEndpoint').value.trim() : '',
+          integKinds: integKinds,
+          endpointNoti: epField('pgAgencyEditEndpointNoti'),
+          endpointUrlPay: epField('pgAgencyEditEndpointUrlPay'),
+          endpointUrlPayRepay: epField('pgAgencyEditEndpointUrlPayRepay'),
+          endpointApi: epField('pgAgencyEditEndpointApi'),
+          endpointApiSubscription: epField('pgAgencyEditEndpointApiSub'),
           useYn: (document.getElementById('pgAgencyEditUseYn') && document.getElementById('pgAgencyEditUseYn').value) || 'Y',
           mid: (document.getElementById('pgAgencyEditMid') && document.getElementById('pgAgencyEditMid').value) ? document.getElementById('pgAgencyEditMid').value.trim() : '',
-          routeNo: (document.getElementById('pgAgencyEditRouteNo') && document.getElementById('pgAgencyEditRouteNo').value.trim()) ? document.getElementById('pgAgencyEditRouteNo').value.trim() : '',
+          routeNo: '',
           sandboxYn: (document.getElementById('pgAgencyEditSandboxYn') && document.getElementById('pgAgencyEditSandboxYn').value) ? document.getElementById('pgAgencyEditSandboxYn').value : 'Y',
           credentialsExtraJson: (document.getElementById('pgAgencyEditCredentialsExtra') && document.getElementById('pgAgencyEditCredentialsExtra').value.trim())
             ? document.getElementById('pgAgencyEditCredentialsExtra').value.trim() : ''
         };
+        if (typeof pgIsChillPayFamilyPgCd === 'function' && pgIsChillPayFamilyPgCd(body.pgCd)) {
+          var rnSave = document.getElementById('pgAgencyEditRouteNo');
+          body.routeNo = (rnSave && rnSave.value && !rnSave.disabled) ? String(rnSave.value).trim() : '';
+        } else {
+          body.routeNo = '';
+        }
+        (function mergeElementPayCardAlias() {
+          var pgCd = String(body.pgCd || '').toUpperCase();
+          if (pgCd.indexOf('ELEMENTPAY') < 0 && pgCd.indexOf('ELEMENT_PAY') < 0 && pgCd !== 'EP') return;
+          var aliasEl = document.getElementById('pgAgencyEditEpCardAlias');
+          var alias = aliasEl && aliasEl.value ? String(aliasEl.value).trim() : '';
+          if (!alias) alias = 'card';
+          var obj = {};
+          try {
+            if (body.credentialsExtraJson) obj = JSON.parse(body.credentialsExtraJson);
+            if (!obj || typeof obj !== 'object' || Array.isArray(obj)) obj = {};
+          } catch (eMerge) { obj = {}; }
+          obj.cardServiceAlias = alias;
+          body.credentialsExtraJson = JSON.stringify(obj);
+          var exTa = document.getElementById('pgAgencyEditCredentialsExtra');
+          if (exTa) exTa.value = body.credentialsExtraJson;
+        })();
         var ak = document.getElementById('pgAgencyEditApiKey');
         var mk = document.getElementById('pgAgencyEditMd5Key');
         function pgAgencySecretShouldSend(el) {
@@ -39207,8 +39875,8 @@
           ? String(document.getElementById('pgAgencyEditPaymentSwitcherEmail').value).trim() : '';
         if (idVal) body.id = idVal;
         if (!body.pgCd || !body.pgNm) { alert(pgAdminUiT('PG코드와 결제대행사는 필수입니다.')); return; }
-        if (!body.integKind) { alert(pgAdminUiT('연동 용도를 선택하세요. 용도별로 PG코드를 나누어 등록합니다.')); return; }
-        if (integKind === 'URL_PAY') {
+        if (!integKinds.length) { alert(pgAdminUiT('연동 용도를 한 가지 이상 선택하세요. 동일 자격이면 노티+URL 등 복수 선택이 가능합니다.')); return; }
+        if (integKinds.indexOf('URL_PAY') >= 0 || integKinds.indexOf('URL_PAY_REPAY') >= 0) {
           var upm = document.getElementById('pgAgencyEditUrlPayAmountMode');
           body.urlPayAmountMode = upm && upm.value ? String(upm.value).trim().toUpperCase() : 'STANDARD';
           if (body.urlPayAmountMode !== 'DISPLAY' && body.urlPayAmountMode !== 'BLIND') body.urlPayAmountMode = 'STANDARD';

@@ -29,9 +29,40 @@ public class HomeController {
         return "redirect:/org/6";
     }
 
+    /**
+     * 레거시 {@code /pay/{compId}} → 중립 {@code /checkout/{compId}} (운영 PG에 맞는 결제창으로 forward).
+     * EP·JPAY 등도 ChillPay {@code pay.html} 에 직접 붙지 않도록 통일합니다.
+     */
     @GetMapping("/pay/{compId}")
     public String payByComp(@PathVariable("compId") String compId, HttpServletRequest request) {
-        return redirectWithMergedQuery("/pay.html", compId, request);
+        String enc = URLEncoder.encode(compId != null ? compId : "", StandardCharsets.UTF_8);
+        StringBuilder sb = new StringBuilder("redirect:/checkout/").append(enc);
+        if (request != null) {
+            for (Map.Entry<String, String[]> e : request.getParameterMap().entrySet()) {
+                String key = e.getKey();
+                if (key == null) {
+                    continue;
+                }
+                String kl = key.trim();
+                if (kl.isEmpty() || "m".equalsIgnoreCase(kl) || "compId".equalsIgnoreCase(kl)
+                        || "merchant".equalsIgnoreCase(kl)) {
+                    continue;
+                }
+                if (e.getValue() == null) {
+                    continue;
+                }
+                for (String val : e.getValue()) {
+                    if (val == null) {
+                        continue;
+                    }
+                    sb.append(sb.indexOf("?") >= 0 ? '&' : '?')
+                            .append(URLEncoder.encode(kl, StandardCharsets.UTF_8))
+                            .append('=')
+                            .append(URLEncoder.encode(val, StandardCharsets.UTF_8));
+                }
+            }
+        }
+        return sb.toString();
     }
 
     /** 챗봇·임베드용 공개 진입 URL (결제 화면은 동일 셸, 구분은 쿼리로 확장 가능) */

@@ -628,11 +628,10 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         }
         String outcomeMsg = t.getOutcomeReason();
         String postSaleCode = JpayPostSaleRiskOutcomeUtil.classify(outcomeMsg);
-        if (postSaleCode != null) {
+        if (postSaleCode != null
+                && jpayPostSaleRiskCooldownService.shouldRecordPostSaleEvent(postSaleCode)) {
+            /* 리스크 현황만 옵션 — 위험관리 FAIL 집계는 아래에서 항상 수행 */
             jpayPostSaleRiskCooldownService.recordPostSaleEvent(t, postSaleCode, outcomeMsg);
-            if (!jpayPostSaleRiskCooldownService.shouldCountCooldown(postSaleCode)) {
-                return;
-            }
         }
         Optional<String> riskCode = PayCardFailOutcomeRules.outcomeCodeForTxnRiskCount(merged, t.getOutcomeReasonCode());
         if (riskCode.isEmpty()) {
