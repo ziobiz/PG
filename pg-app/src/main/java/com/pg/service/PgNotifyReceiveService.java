@@ -507,6 +507,22 @@ public class PgNotifyReceiveService {
     }
 
     /**
+     * 본사 {@code tb_hq_notify_target} 에 없어도 허용하는 시스템/PG 벤더 ingress 경로.
+     * NOTI·PG 가 {@code …/pg-notify/{token}/ELEMENTPAY} 형태로 중계할 때
+     * 총판 cb…/rs… 미등록으로 {@code UNKNOWN_NOTIFY_TARGET} 이 나지 않게 합니다.
+     */
+    static boolean isSystemVendorIngressTarget(String notifyTargetCode) {
+        if (isJpayIngressTarget(notifyTargetCode)) {
+            return true;
+        }
+        if (notifyTargetCode == null || notifyTargetCode.isBlank()) {
+            return false;
+        }
+        String c = notifyTargetCode.trim();
+        return PgVendor.isElementPayVendorCode(c) || PgVendor.isIlkVendorCode(c);
+    }
+
+    /**
      * JPAY rsJpay/cbJpay 브라우저 복귀 — 가맹 {@code JPAY_CALLBACK}·{@code JPAY_NOTIFY}(노티미들웨어)로 리다이렉트.
      * ICOPAY ingress URL 자체로는 보내지 않음(루프 방지). 미설정 시 {@link #buildPayResultRedirectUrl} 폴백.
      */
@@ -887,9 +903,11 @@ public class PgNotifyReceiveService {
      * 노티 경로에 targetCode(cb/rs...)가 붙어 들어왔는데 DB에 없으면, 레거시 CALLBACK 로 폴백하면
      * 총판 스코프 분리가 풀려 MID+루트 충돌 시 오동작(또는 미적재)이 발생할 수 있습니다.
      * 따라서 명시된 targetCode가 미등록이면 즉시 격리합니다.
-     * <p>예외: JPAY 시스템 기본 ingress {@code cbJpay}/{@code rsJpay} — 가맹 JPAY 수신통보 URL이
-     * 외부(노티미들웨어)일 때 PG 노출 차단으로 강제 사용되는 고정 경로이며, 본사 노티대상 테이블에
-     * 없어도 허용한 뒤 주문 해석·가맹 노티미들웨어 리다이렉트(기존 구축 흐름)를 진행합니다.
+     * <p>예외(본사 노티대상 테이블 없이 허용):
+     * <ul>
+     *   <li>JPAY 시스템 기본 ingress {@code cbJpay}/{@code rsJpay}</li>
+     *   <li>PG 벤더 고정 경로 {@code ELEMENTPAY}·{@code ILK} 등 — NOTI→ICOPAY 중계용</li>
+     * </ul>
      *
      * @return true 이면 호출부에서 즉시 return
      */
@@ -901,8 +919,8 @@ public class PgNotifyReceiveService {
         if (code == null || code.isBlank()) {
             return false;
         }
-        /* JPAY 기본 ingress — 총판 발급 cb…/rs… 와 달리 시스템 고정 코드 */
-        if (isJpayIngressTarget(code)) {
+        /* 시스템·PG 벤더 고정 ingress — 총판 발급 cb…/rs… 와 다름 */
+        if (isSystemVendorIngressTarget(code)) {
             return false;
         }
         if (hqNotifyTargetRepository.findByTargetCode(code.trim()).isPresent()) {

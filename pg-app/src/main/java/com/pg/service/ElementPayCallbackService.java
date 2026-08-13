@@ -4,6 +4,7 @@ import com.pg.dto.NotifyReceiveOutcome;
 import com.pg.entity.PgAgency;
 import com.pg.entity.PgNotifyInbound;
 import com.pg.entity.PgTrnsctn;
+import com.pg.integration.pg.PgVendor;
 import com.pg.integration.pg.elementpay.ElementPayCredentials;
 import com.pg.receipt.TransactionReceiptEmailService;
 import com.pg.splitpay.SplitPayPaymentHookService;
@@ -78,15 +79,29 @@ public class ElementPayCallbackService {
                                                                 String rawBody,
                                                                 String clientIp,
                                                                 HttpServletRequest request) {
+        boolean epPath = notifyTargetCode != null
+                && PgVendor.isElementPayVendorCode(notifyTargetCode.trim());
         Map<String, String> fields = parseForm(rawBody);
         String method = fields.get("method");
         if (method == null || method.isBlank()) {
-            return Optional.empty();
+            if (!epPath) {
+                return Optional.empty();
+            }
+            if (!ingressTokenMatches(pathToken)) {
+                return Optional.empty();
+            }
+            return Optional.of(jsonResponse(401, "method required", null));
         }
         if (!looksLikeElementPay(fields)) {
-            return Optional.empty();
+            if (!epPath) {
+                return Optional.empty();
+            }
+            if (!ingressTokenMatches(pathToken)) {
+                return Optional.empty();
+            }
+            return Optional.of(jsonResponse(401, "Invalid ElementPay callback payload", null));
         }
-        if (!hqNotifyEnvService.getOrCreate().getIngressToken().equals(pathToken)) {
+        if (!ingressTokenMatches(pathToken)) {
             return Optional.empty();
         }
         try {
@@ -95,6 +110,10 @@ public class ElementPayCallbackService {
             log.warn("ElementPay callback 실패 method={}: {}", method, e.getMessage());
             return Optional.of(jsonResponse(401, "Internal error", null));
         }
+    }
+
+    private boolean ingressTokenMatches(String pathToken) {
+        return hqNotifyEnvService.getOrCreate().getIngressToken().equals(pathToken);
     }
 
     @Transactional

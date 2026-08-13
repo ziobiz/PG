@@ -83,11 +83,14 @@ ElementPay 웹훅도 **PG가 ICOPAY를 직접 호출하지 않습니다.** Chill
 
 | 단계 | 설정 |
 |------|------|
-| 1. ElementPay 캐비net | Webhook URL → **NOTI 서버** (ICOPAY URL 아님) |
+| 1. ElementPay 캐비net | Webhook URL → **NOTI 서버** (ICOPAY URL 아님, **고정 1개**) |
 | 2. NOTI → ICOPAY | `POST {공개베이스}/api/middleware/notify/v1/pg-notify/{ingressToken}/ELEMENTPAY` |
-| 3. ICOPAY 처리 | `check`/`pay` → ElementPay 전용 JSON+HMAC 응답 / `payment.*` → `pg_trnsctn` 반영 후 가맹 outbound 노티 |
+| 3. ICOPAY 처리 | `check`/`pay` → ElementPay 전용 JSON+HMAC 응답 / `payment.*` → `pg_trnsctn` 적재 |
+| 4. NOTI → 가맹 | **가맹 Callback/Result** — JPAY와 동일 `raw`/`json`/`form` (ICOPAY 직접 아웃바운드 아님) |
 
 **NOTI 필수:** `check`·`pay` 에 대해 ICOPAY가 돌려준 `{response,hash}` 본문을 **그대로** ElementPay에 반환해야 합니다 (ChillPay용 `{success,processed}` 변환 규칙 적용 금지).
+
+**가맹 통보 추가 개발 요청(NOTI):** [`docs/NOTI_ElementPay_가맹통보_추가개발요청.md`](./NOTI_ElementPay_가맹통보_추가개발요청.md) — [ziobiz/NOTI](https://github.com/ziobiz/NOTI) 구현용.
 
 **가맹 비식별 (결제대행사에 개별 가맹 노출 방지):**
 
