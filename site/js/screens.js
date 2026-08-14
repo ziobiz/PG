@@ -110,7 +110,7 @@
     return '<p class="small text-muted mb-3 mb-md-2"><span data-pg-ui-t="' + escUi(k) + '">' + escUi(L(k)) + '</span></p>';
   }
   function merchantWebPaymentCardNoticeKo() {
-    return '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 「결제 URL」은 ICOPAY 통합 공개 경로로 자동 표시됩니다(예: https://icopay.co.kr/checkout/업체코드). 「URL 재결제 URL」은 해당 PG가 저장 카드 재결제를 지원하고 본사 URL 재결제 기능·URL재결제 PG 바인딩이 있을 때만 표시됩니다. 「URL 결제 방식」은 공개 URL 결제에만 적용됩니다. API·챗봇은 각 설정 카드에서 별도 선택합니다.';
+    return '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 「결제 URL」은 ICOPAY 통합 공개 경로로 자동 표시됩니다(예: https://icopay.co.kr/checkout/업체코드). 「URL 재결제 URL」은 해당 PG가 저장 카드 재결제를 지원하고 본사 URL 재결제 기능·URL재결제 PG 바인딩이 있을 때만 표시됩니다. 「URL 결제 방식」은 공개 URL 결제에만 적용됩니다. API·챗봇은 각 설정 카드에서 별도 선택합니다. 엑심베이 결제방식(신용카드·PayPay 등)은 본사정책 → 결제·URL → 결제 라우팅을 따르며(본사설정 따름), 신용카드는 「결제대행사 설정」에 엑심베이 카드 등록이 필요합니다.';
   }
 
   /** 동일 id(paymentUrlDisplay) — 화면별 placeholder 키만 다름 */
@@ -3820,6 +3820,23 @@
           ]
         },
         {
+          title: '엑심베이 결제방식',
+          notice: '가맹은 <strong>본사설정 따름</strong>입니다. 운영 PG가 엑심베이인 가맹 결제창에 적용됩니다. 신용카드는 등록업체 「결제대행사 설정」에 엑심베이 카드를 등록해야 하며, 기존 카드 연동과 동일합니다. <strong>신용카드만</strong> 켜면 다른 PG와 같은 카드번호·유효기간·CVV 입력 화면이 나옵니다. PayPay·편의점/Pay-easy·UnionPay를 함께 켜면 로고 타일로 고릅니다.',
+          rows: [
+            [{
+              type: 'customHtml',
+              col: 12,
+              html: '<input type="hidden" name="eximbayMethodsVisible" id="hqEximbayMethodsVisible" value="CARD,PAYPAY,JPCONVBANK,UNIONPAY">' +
+                '<div class="d-flex flex-wrap gap-3 align-items-center" id="hqEximbayMethodsChecks">' +
+                '<label class="form-check mb-0"><input class="form-check-input hq-eximbay-method-chk" type="checkbox" data-exb-key="CARD" checked> <span class="form-check-label" data-pg-ui-t="신용카드">신용카드</span></label>' +
+                '<label class="form-check mb-0"><input class="form-check-input hq-eximbay-method-chk" type="checkbox" data-exb-key="PAYPAY" checked> <span class="form-check-label">PayPay</span></label>' +
+                '<label class="form-check mb-0"><input class="form-check-input hq-eximbay-method-chk" type="checkbox" data-exb-key="JPCONVBANK" checked> <span class="form-check-label" data-pg-ui-t="편의점·은행페이">편의점·은행페이</span></label>' +
+                '<label class="form-check mb-0"><input class="form-check-input hq-eximbay-method-chk" type="checkbox" data-exb-key="UNIONPAY" checked> <span class="form-check-label">UnionPay</span></label>' +
+                '</div>'
+            }]
+          ]
+        },
+        {
           title: '결제창 구성',
           notice: '가맹이 「본사정책 따름」일 때 적용되는 본사 기본값입니다. ① JPAY 고객 정보 · ② URL 채널 화면 표시 · ③ API 인라인 채널 화면 표시.',
           rows: hqCheckoutCompositionFormRows()
@@ -4306,7 +4323,7 @@
           id: 'pgBindingCard',
           merchantOnly: true,
           omitExtSettleColumns: true,
-          notice: '배포설정 > API연동설정에서 사용(Y)으로 등록된 결제대행사가 목록에 표시됩니다. PG를 고르면 API연동설정의 MID·Route 등이 기본값으로 채워지며, 가맹점 전용 값은 수정·저장하면 됩니다. 예정모드·N·D시각은 위 「통합정산설정」에서 일괄 지정합니다. URL·챗봇·API 결제는 운영(체크)를 여러 행에 켤 수 있습니다. 체크된 행은 붉은 배경(파스텔)으로 표시됩니다. 노티 전용 PG는 카드브랜드가 ALL로 고정됩니다. 하단 [저장] 시 한꺼번에 반영됩니다.'
+          notice: '배포설정 > API연동설정에서 사용(Y)으로 등록된 결제대행사가 목록에 표시됩니다. PG를 고르면 API연동설정의 MID·Route 등이 기본값으로 채워지며, 가맹점 전용 값은 수정·저장하면 됩니다. 예정모드·N·D시각은 위 「통합정산설정」에서 일괄 지정합니다. URL·챗봇·API 결제는 운영(체크)를 여러 행에 켤 수 있습니다. 체크된 행은 붉은 배경(파스텔)으로 표시됩니다. 노티 전용 PG는 카드브랜드가 ALL로 고정됩니다. 엑심베이 신용카드는 이 카드(운영 바인딩) 등록이 필요하며, 노출 수단은 본사 결제 라우팅(본사설정 따름)입니다. 하단 [저장] 시 한꺼번에 반영됩니다.'
         },
         {
           title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',

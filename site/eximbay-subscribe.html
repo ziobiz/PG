@@ -6,11 +6,14 @@
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
   <title>ICOPAY Easy Payment</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="/css/pay-inline.css?v=37" rel="stylesheet">
+  <link href="/css/pay-inline.css?v=40" rel="stylesheet">
   <script src="/js/pg-pay-submit-guard.js?v=1"></script>
   <script src="/js/checkout-header-subtitle-presets.js?v=1"></script>
   <script src="/js/url-pay-public-shell.js?v=13"></script>
-  <script src="/js/eximbay-pay-msg-i18n.js?v=1"></script>
+  <script src="/js/eximbay-pay-msg-i18n.js?v=5"></script>
+  <script src="/js/icopay-pay-method-logos.js?v=1"></script>
+  <script src="/js/jpay-card-expiry.js?v=1"></script>
+  <script src="/js/icopay-card-pay-policy.js?v=4"></script>
 </head>
 <body class="pay-inline-body">
   <div class="pay-shell">
@@ -63,8 +66,30 @@
             </div>
           </div>
         </div>
-        <div class="pay-label mb-1"><span data-i18n="payMethod">Payment method</span></div>
+        <div class="pay-label mb-1" id="eximbayMethodLabel"><span data-i18n="payMethod">Payment method</span></div>
         <div class="eximbay-method-grid mb-3" id="eximbayMethodGrid" role="group" aria-label="Payment method"></div>
+        <div id="eximbayCardInline" class="d-none">
+          <div class="pay-label mb-1"><span data-i18n="card">Card</span></div>
+          <div class="mb-2" id="payCardBrandRow">
+            <select class="form-select form-select-sm pay-input-round" id="payCardBrandSelect">
+              <option value="AUTO" data-i18n="cardAutoDetectOption">Card auto detect</option>
+              <option value="VISA">Visa</option>
+              <option value="MASTERCARD">Mastercard</option>
+              <option value="JCB">JCB</option>
+              <option value="UNIONPAY">UnionPay</option>
+              <option value="AMEX">American Express</option>
+            </select>
+          </div>
+          <div id="payCardPolicyAlert" class="alert alert-danger py-2 small d-none mb-2" role="alert"></div>
+          <div class="row g-2 mb-2">
+            <div class="col-12"><input type="text" class="form-control form-control-sm pay-input-round" id="payCardno" inputmode="numeric" autocomplete="cc-number" data-i18n-placeholder="cardNo"></div>
+          </div>
+          <div class="row g-2 mb-2 pay-expiry-row" id="payCardExpiryRow">
+            <div class="col-4"><input type="text" class="form-control form-control-sm pay-input-round" id="payCardmonth" maxlength="2" data-i18n-placeholder="mm"></div>
+            <div class="col-4"><input type="text" class="form-control form-control-sm pay-input-round" id="payCardyear" maxlength="4" data-i18n-placeholder="yyyy"></div>
+            <div class="col-4"><input type="text" class="form-control form-control-sm pay-input-round" id="payCardcvv" maxlength="4" data-i18n-placeholder="cvv"></div>
+          </div>
+        </div>
         <div class="row g-2 mb-2" id="nameRow">
           <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payFirstname" data-i18n-placeholder="firstName" required></div>
           <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payLastname" data-i18n-placeholder="lastName" required></div>
@@ -75,6 +100,7 @@
         </div>
         <button type="submit" class="btn btn-primary btn-pay w-100" id="submitBtn" data-i18n="subscribe">Subscribe</button>
         <p class="small text-muted mt-2 mb-0 text-center" id="eximbayHostedNote" data-i18n="hostedNoteSub"></p>
+        <p class="small text-primary mt-1 mb-0 text-center" id="eximbaySandboxHint" style="display:none;"></p>
       </form>
     </div>
   </div>
@@ -126,15 +152,24 @@
           title: 'ICOPAY 정기결제', brandSub: '해외·정기결제', merchant: '가맹점', plan: '구독', item: '상품명', amount: '금액',
           payMethod: '결제수단', firstName: '이름', lastName: '성', email: '이메일', phoneOptional: '전화번호(선택)', subscribe: '구독하기',
           billingCycle: '결제 주기', cycleMonthly: '매월', cycleQuarterly: '3개월마다', cycleHalfYear: '6개월마다', cycleYearly: '매년',
-          hostedNoteSub: '안전한 결제창에서 카드·간편결제로 정기결제를 등록합니다.',
-          mCard: '신용카드', mPaypay: 'PayPay', mAlipay: 'Alipay', mWechat: 'WeChat Pay', mUnionpay: 'UnionPay',
+          hostedNoteSub: '안전한 결제창에서 신용카드·PayPay·일본 편의점·은행·UnionPay로 정기결제를 등록합니다.',
+          hostedNoteCard: '카드 정보를 입력한 뒤 정기결제를 등록합니다.',
+          sandboxHint: '샌드박스 테스트 카드: 4111111111111111 · 유효기간은 미래 월 · CVV 123',
+          sandboxHintCard: '샌드박스 신용카드: 구독하기 후 보안창에서 카드 입력. 테스트 카드 4111111111111111 · 미래 월 · CVV 123',
+          sandboxHintPaypay: '샌드박스 PayPay: 보안창에서 PayPay로 진행합니다. 금액은 엔(JPY)으로 전송됩니다.',
+          sandboxHintBank: '샌드박스 편의점·은행페이: 보안창에서 편의점 또는 은행(Pay-easy)을 선택합니다. 금액은 엔(JPY)으로 전송됩니다.',
+          sandboxHintUnion: '샌드박스 UnionPay: 보안창에서 UnionPay로 진행합니다.',
+          card: '카드', cardNo: '카드번호', mm: 'MM', yyyy: 'YYYY', cvv: 'CVV', cardAutoDetectOption: '카드 자동인식',
+          errCard: '카드번호·유효기간·CVV를 확인하세요.',
+          mCard: '신용카드', mPaypay: 'PayPay', mJpconvbank: '편의점·은행페이', mUnionpay: 'UnionPay',
           mGrabpay: 'GrabPay', mLinepay: 'LINE Pay', mKakaopay: '카카오페이', mApplepay: 'Apple Pay',
           errMerchant: '가맹점 코드(m)가 필요합니다.', errLoad: '구독 화면을 불러오지 못했습니다.',
           needAmount: '유효한 금액을 입력하세요.', langGroup: '언어', configErr: '설정을 불러오지 못했습니다.',
           payComplete: '구독 완료', payFailed: '구독 실패', paid: '정기결제가 등록되었습니다.', networkErr: '네트워크 오류',
-          preparing: '결제창을 준비하고 있습니다…', sdkLoadFail: '결제 SDK를 불러오지 못했습니다. 잠시 후 다시 시도하세요.',
+          preparing: '결제창을 준비하고 있습니다…', sdkLoadFail: '결제창을 불러오지 못했습니다. 잠시 후 다시 시도하세요.',
+          popupBlocked: '팝업이 차단되었습니다. 브라우저에서 팝업을 허용해 주세요.',
           orgDisabled: '지속적인 오류로 결제 서비스가 중지되었습니다.',
-          pgMissing: '이 가맹점은 Eximbay 정기결제가 설정되어 있지 않습니다.',
+          pgMissing: '이 가맹점은 결제가 설정되어 있지 않습니다.',
           errEmailFormat: '올바른 이메일 형식을 입력하세요.', errName: '이름·성을 입력하세요.',
           resultProcessing: '결제 결과를 확인하고 있습니다…'
         },
@@ -142,15 +177,24 @@
           title: 'ICOPAY Subscription', brandSub: 'Global Recurring Payment', merchant: 'Merchant', plan: 'Plan', item: 'Item', amount: 'Amount',
           payMethod: 'Payment method', firstName: 'First name', lastName: 'Last name', email: 'Email', phoneOptional: 'Phone (optional)', subscribe: 'Subscribe',
           billingCycle: 'Billing cycle', cycleMonthly: 'Monthly', cycleQuarterly: 'Quarterly', cycleHalfYear: 'Every 6 months', cycleYearly: 'Yearly',
-          hostedNoteSub: 'You will register a recurring payment on a secure payment window.',
-          mCard: 'Credit card', mPaypay: 'PayPay', mAlipay: 'Alipay', mWechat: 'WeChat Pay', mUnionpay: 'UnionPay',
+          hostedNoteSub: 'Register recurring payment with credit card, PayPay, Japan convenience store/bank, or UnionPay.',
+          hostedNoteCard: 'Enter your card details to register the subscription.',
+          sandboxHint: 'Sandbox test card: 4111111111111111 · any future expiry · CVV 123',
+          sandboxHintCard: 'Sandbox card: after Subscribe, enter the card on the secure window. Test card 4111111111111111 · future expiry · CVV 123',
+          sandboxHintPaypay: 'Sandbox PayPay: continue in the secure window. Amount is sent as JPY.',
+          sandboxHintBank: 'Sandbox convenience store / bank pay: choose konbini or Pay-easy. Amount is sent as JPY.',
+          sandboxHintUnion: 'Sandbox UnionPay: continue UnionPay on the secure window.',
+          card: 'Card', cardNo: 'Card number', mm: 'MM', yyyy: 'YYYY', cvv: 'CVV', cardAutoDetectOption: 'Card auto detect',
+          errCard: 'Check card number, expiry and CVV.',
+          mCard: 'Credit / Debit Card', mPaypay: 'PayPay', mJpconvbank: 'Convenience store / bank pay', mUnionpay: 'UnionPay',
           mGrabpay: 'GrabPay', mLinepay: 'LINE Pay', mKakaopay: 'Kakao Pay', mApplepay: 'Apple Pay',
           errMerchant: 'Merchant code (m) is required.', errLoad: 'Failed to load subscription checkout.',
           needAmount: 'Enter a valid amount.', langGroup: 'Language', configErr: 'Failed to load settings.',
           payComplete: 'Subscription complete', payFailed: 'Subscription failed', paid: 'Subscription registered.', networkErr: 'Network error',
-          preparing: 'Preparing the payment window…', sdkLoadFail: 'Failed to load the payment SDK. Please try again.',
+          preparing: 'Preparing the payment window…', sdkLoadFail: 'Failed to open the payment window. Please try again.',
+          popupBlocked: 'The payment popup was blocked. Please allow popups for this site.',
           orgDisabled: 'The payment service has been suspended due to repeated errors.',
-          pgMissing: 'Eximbay recurring payment is not configured for this merchant.',
+          pgMissing: 'Payment is not configured for this merchant.',
           errEmailFormat: 'Enter a valid email address.', errName: 'Enter first and last name.',
           resultProcessing: 'Checking the payment result…'
         },
@@ -158,15 +202,20 @@
           title: 'ICOPAY 定期決済', brandSub: '海外・定期決済', merchant: '加盟店', plan: 'プラン', item: '商品名', amount: '金額',
           payMethod: '決済手段', firstName: '名', lastName: '姓', email: 'メール', phoneOptional: '電話番号(任意)', subscribe: '定期登録',
           billingCycle: '決済周期', cycleMonthly: '毎月', cycleQuarterly: '3ヶ月ごと', cycleHalfYear: '6ヶ月ごと', cycleYearly: '毎年',
-          hostedNoteSub: '安全な決済画面でカード・かんたん決済の定期決済を登録します。',
-          mCard: 'クレジットカード', mPaypay: 'PayPay', mAlipay: 'Alipay', mWechat: 'WeChat Pay', mUnionpay: 'UnionPay',
+          hostedNoteSub: '安全な決済画面でクレジットカード・PayPay・コンビニ/銀行・UnionPayの定期決済を登録します。',
+          sandboxHint: 'サンドボックステストカード: 4111111111111111 · 有効期限は未来月 · CVV 123',
+          sandboxHintCard: 'サンドボックスカード: 安全画面でカード入力。テストカード 4111111111111111 · 未来月 · CVV 123',
+          sandboxHintPaypay: 'サンドボックスPayPay: 安全画面で続行。金額はJPYで送信されます。',
+          sandboxHintBank: 'サンドボックスコンビニ・銀行払い: コンビニまたはPay-easyを選択。金額はJPYで送信されます。',
+          sandboxHintUnion: 'サンドボックスUnionPay: 安全画面で続行。',
+          mCard: 'クレジットカード', mPaypay: 'PayPay', mJpconvbank: 'コンビニ・銀行払い', mUnionpay: 'UnionPay',
           mGrabpay: 'GrabPay', mLinepay: 'LINE Pay', mKakaopay: 'カカオペイ', mApplepay: 'Apple Pay',
           errMerchant: '加盟店コード(m)が必要です。', errLoad: '定期決済画面の読み込みに失敗しました。',
           needAmount: '有効な金額を入力してください。', langGroup: '言語', configErr: '設定の読み込みに失敗しました。',
           payComplete: '定期登録完了', payFailed: '定期登録失敗', paid: '定期決済が登録されました。', networkErr: 'ネットワークエラー',
           preparing: '決済画面を準備しています…', sdkLoadFail: '決済SDKの読み込みに失敗しました。しばらくして再度お試しください。',
           orgDisabled: '継続的なエラーにより決済サービスが停止されました。',
-          pgMissing: 'この加盟店はEximbay定期決済が設定されていません。',
+          pgMissing: 'この加盟店は決済が設定されていません。',
           errEmailFormat: '正しいメール形式で入力してください。', errName: '名・姓を入力してください。',
           resultProcessing: '決済結果を確認しています…'
         },
@@ -174,15 +223,20 @@
           title: 'ICOPAY 定期支付', brandSub: '海外·定期支付', merchant: '商户', plan: '套餐', item: '商品', amount: '金额',
           payMethod: '支付方式', firstName: '名', lastName: '姓', email: '邮箱', phoneOptional: '电话(可选)', subscribe: '订阅',
           billingCycle: '扣款周期', cycleMonthly: '每月', cycleQuarterly: '每3个月', cycleHalfYear: '每6个月', cycleYearly: '每年',
-          hostedNoteSub: '将在安全的支付窗口以银行卡·便捷支付注册定期扣款。',
-          mCard: '银行卡', mPaypay: 'PayPay', mAlipay: '支付宝', mWechat: '微信支付', mUnionpay: '银联',
+          hostedNoteSub: '将在安全窗口以银行卡、PayPay、日本便利店/银行、银联注册定期扣款。',
+          sandboxHint: '沙箱测试卡：4111111111111111 · 有效期为未来月份 · CVV 123',
+          sandboxHintCard: '沙箱信用卡：安全窗口填卡。测试卡 4111111111111111 · 未来月份 · CVV 123',
+          sandboxHintPaypay: '沙箱 PayPay：在安全窗口继续。金额按日元(JPY)发送。',
+          sandboxHintBank: '沙箱便利店/银行支付：选择便利店或 Pay-easy。金额按日元(JPY)发送。',
+          sandboxHintUnion: '沙箱银联：在安全窗口继续。',
+          mCard: '银行卡', mPaypay: 'PayPay', mJpconvbank: '便利店·银行支付', mUnionpay: '银联',
           mGrabpay: 'GrabPay', mLinepay: 'LINE Pay', mKakaopay: 'Kakao Pay', mApplepay: 'Apple Pay',
           errMerchant: '需要商户代码(m)。', errLoad: '无法加载订阅页面。',
           needAmount: '请输入有效金额。', langGroup: '语言', configErr: '无法加载设置。',
           payComplete: '订阅完成', payFailed: '订阅失败', paid: '定期支付已注册。', networkErr: '网络错误',
           preparing: '正在准备支付窗口…', sdkLoadFail: '支付SDK加载失败，请稍后重试。',
           orgDisabled: '由于持续错误，支付服务已停止。',
-          pgMissing: '该商户未配置Eximbay定期支付。',
+          pgMissing: '该商户未配置支付。',
           errEmailFormat: '请输入有效的邮箱地址。', errName: '请输入名和姓。',
           resultProcessing: '正在确认支付结果…'
         },
@@ -190,15 +244,20 @@
           title: 'ICOPAY สมัครสมาชิก', brandSub: 'ชำระเงินอัตโนมัติระหว่างประเทศ', merchant: 'ร้านค้า', plan: 'แพ็กเกจ', item: 'สินค้า', amount: 'จำนวนเงิน',
           payMethod: 'วิธีชำระเงิน', firstName: 'ชื่อ', lastName: 'นามสกุล', email: 'อีเมล', phoneOptional: 'โทรศัพท์ (ไม่บังคับ)', subscribe: 'สมัคร',
           billingCycle: 'รอบการเรียกเก็บ', cycleMonthly: 'ทุกเดือน', cycleQuarterly: 'ทุก 3 เดือน', cycleHalfYear: 'ทุก 6 เดือน', cycleYearly: 'ทุกปี',
-          hostedNoteSub: 'คุณจะลงทะเบียนการชำระเงินอัตโนมัติในหน้าต่างชำระเงินที่ปลอดภัย',
-          mCard: 'บัตรเครดิต', mPaypay: 'PayPay', mAlipay: 'Alipay', mWechat: 'WeChat Pay', mUnionpay: 'UnionPay',
+          hostedNoteSub: 'ลงทะเบียนชำระอัตโนมัติด้วยบัตร, PayPay, ร้านสะดวกซื้อ/ธนาคารญี่ปุ่น หรือ UnionPay',
+          sandboxHint: 'บัตรทดสอบ sandbox: 4111111111111111 · วันหมดอายุเป็นอนาคต · CVV 123',
+          sandboxHintCard: 'บัตร sandbox: กรอกบัตรในหน้าต่างปลอดภัย บัตรทดสอบ 4111111111111111 · เดือนในอนาคต · CVV 123',
+          sandboxHintPaypay: 'PayPay sandbox: ดำเนินการในหน้าต่างปลอดภัย ยอดส่งเป็น JPY',
+          sandboxHintBank: 'ร้านสะดวกซื้อ/ธนาคาร sandbox: เลือกคอนบินิหรือ Pay-easy ยอดส่งเป็น JPY',
+          sandboxHintUnion: 'UnionPay sandbox: ดำเนินการในหน้าต่างปลอดภัย',
+          mCard: 'บัตรเครดิต/เดบิต', mPaypay: 'PayPay', mJpconvbank: 'ร้านสะดวกซื้อ/ธนาคาร', mUnionpay: 'UnionPay',
           mGrabpay: 'GrabPay', mLinepay: 'LINE Pay', mKakaopay: 'Kakao Pay', mApplepay: 'Apple Pay',
           errMerchant: 'ต้องระบุรหัสร้านค้า (m)', errLoad: 'โหลดหน้าสมัครไม่สำเร็จ',
           needAmount: 'กรุณากรอกจำนวนเงินที่ถูกต้อง', langGroup: 'ภาษา', configErr: 'โหลดการตั้งค่าไม่สำเร็จ',
           payComplete: 'สมัครสำเร็จ', payFailed: 'สมัครล้มเหลว', paid: 'ลงทะเบียนการชำระเงินอัตโนมัติแล้ว', networkErr: 'ข้อผิดพลาดเครือข่าย',
           preparing: 'กำลังเตรียมหน้าต่างชำระเงิน…', sdkLoadFail: 'โหลด SDK การชำระเงินไม่สำเร็จ โปรดลองอีกครั้ง',
           orgDisabled: 'บริการชำระเงินถูกระงับเนื่องจากข้อผิดพลาดต่อเนื่อง',
-          pgMissing: 'ร้านค้านี้ยังไม่ได้ตั้งค่าการชำระเงินอัตโนมัติ Eximbay',
+          pgMissing: 'ร้านค้านี้ยังไม่ได้ตั้งค่าการชำระเงิน',
           errEmailFormat: 'กรุณากรอกอีเมลให้ถูกต้อง', errName: 'กรุณากรอกชื่อและนามสกุล',
           resultProcessing: 'กำลังตรวจสอบผลการชำระเงิน…'
         }
@@ -207,6 +266,20 @@
       function t(key) {
         var pack = I18N[LANG] || I18N.ENG;
         return pack[key] != null ? pack[key] : (I18N.ENG[key] || key);
+      }
+      function applySandboxHint() {
+        var sbHint = document.getElementById('eximbaySandboxHint');
+        if (!sbHint) return;
+        var sb = checkoutCtx && checkoutCtx.eximbaySandbox === true;
+        if (!sb) { sbHint.style.display = 'none'; return; }
+        var m = '';
+        try { m = String(document.getElementById('paymentMethod').value || 'CARD').toUpperCase(); } catch (e0) { m = 'CARD'; }
+        var key = 'sandboxHintCard';
+        if (m === 'PAYPAY') key = 'sandboxHintPaypay';
+        else if (m === 'JPCONVBANK') key = 'sandboxHintBank';
+        else if (m === 'UNIONPAY') key = 'sandboxHintUnion';
+        sbHint.style.display = 'block';
+        sbHint.textContent = t(key);
       }
       function localizeEximbayMsg(msg) {
         if (window.PG_EXIMBAY_PAY_MSG && PG_EXIMBAY_PAY_MSG.translate) {
@@ -217,7 +290,8 @@
       function methodLabel(key) {
         var k = String(key || '').toUpperCase();
         var map = {
-          CARD: 'mCard', PAYPAY: 'mPaypay', ALIPAY: 'mAlipay', WECHAT: 'mWechat', UNIONPAY: 'mUnionpay',
+          CARD: 'mCard', PAYPAY: 'mPaypay', JPCONVBANK: 'mJpconvbank', UNIONPAY: 'mUnionpay',
+          ALIPAY: 'mAlipay', WECHAT: 'mWechat', GRABPAY: 'mGrabpay', LINEPAY: 'mLinepay', KAKAOPAY: 'mKakaopay', APPLEPAY: 'mApplepay'
           GRABPAY: 'mGrabpay', LINEPAY: 'mLinepay', KAKAOPAY: 'mKakaopay', APPLEPAY: 'mApplepay'
         };
         return map[k] ? t(map[k]) : k;
@@ -262,6 +336,9 @@
         document.querySelectorAll('[data-i18n-aria]').forEach(function (el) {
           var k = el.getAttribute('data-i18n-aria'); if (k) el.setAttribute('aria-label', t(k));
         });
+        var note = document.getElementById('eximbayHostedNote');
+        if (note) note.textContent = (checkoutCtx && checkoutCtx.eximbayInlineCardUi) ? t('hostedNoteCard') : t('hostedNoteSub');
+        applySandboxHint();
         document.querySelectorAll('.pay-lang button[data-lang]').forEach(function (b) {
           b.classList.toggle('active', b.getAttribute('data-lang') === LANG);
         });
@@ -276,6 +353,25 @@
 
       var checkoutCtx = null;
       var methodList = [{ key: 'CARD' }];
+      var cardExpiryCtrl = null;
+      var cardPolicyCtrl = null;
+      var inlineCardUi = false;
+
+      function setInlineCardUi(on) {
+        inlineCardUi = !!on;
+        var grid = document.getElementById('eximbayMethodGrid');
+        var lab = document.getElementById('eximbayMethodLabel');
+        var card = document.getElementById('eximbayCardInline');
+        if (grid) grid.classList.toggle('d-none', inlineCardUi);
+        if (lab) lab.classList.toggle('d-none', inlineCardUi);
+        if (card) card.classList.toggle('d-none', !inlineCardUi);
+        var pan = document.getElementById('payCardno');
+        var mm = document.getElementById('payCardmonth');
+        var yy = document.getElementById('payCardyear');
+        var cvv = document.getElementById('payCardcvv');
+        [pan, mm, yy, cvv].forEach(function (el) { if (el) el.required = inlineCardUi; });
+        if (inlineCardUi) document.getElementById('paymentMethod').value = 'CARD';
+      }
 
       function renderMethodButtons() {
         var grid = document.getElementById('eximbayMethodGrid');
@@ -289,17 +385,38 @@
           btn.type = 'button';
           btn.className = 'eximbay-method-btn' + (key === selected ? ' active' : '');
           btn.setAttribute('data-method', key);
-          btn.textContent = methodLabel(key);
+          if (window.ICOPAY_PAY_METHOD_UI && ICOPAY_PAY_METHOD_UI.fillButton) {
+            ICOPAY_PAY_METHOD_UI.fillButton(btn, key, methodLabel(key));
+          } else {
+            btn.textContent = methodLabel(key);
+          }
           btn.addEventListener('click', function () {
             document.getElementById('paymentMethod').value = key;
             renderMethodButtons();
+            applySandboxHint();
           });
           grid.appendChild(btn);
         });
       }
 
       function getCompId() {
-        try { var p = new URLSearchParams(location.search); return (p.get('m') || p.get('compId') || '').trim(); } catch (e) { return ''; }
+        try {
+          var p = new URLSearchParams(location.search);
+          var q = (p.get('m') || p.get('compId') || p.get('merchant') || '').trim();
+          if (q) return q;
+        } catch (e0) { /* ignore */ }
+        try {
+          var path = (location.pathname || '').replace(/\/+$/, '');
+          var seg = path.split('/').filter(Boolean);
+          var roots = {
+            checkout: 1, 'checkout-subscribe': 1,
+            'eximbay-pay': 1, 'eximbay-subscribe': 1
+          };
+          if (seg.length >= 2 && roots[String(seg[0]).toLowerCase()] && String(seg[1]).indexOf('.') < 0) {
+            return String(seg[1]).trim();
+          }
+        } catch (e1) { /* ignore */ }
+        return '';
       }
       function apiUrl(path, qs) { return API_BASE + path + (qs ? ('?' + qs) : ''); }
       function fetchJson(url) {
@@ -357,6 +474,32 @@
         if (Array.isArray(ctx.eximbayPaymentMethods) && ctx.eximbayPaymentMethods.length) {
           methodList = ctx.eximbayPaymentMethods;
         }
+        setInlineCardUi(ctx.eximbayInlineCardUi === true);
+        if (inlineCardUi && window.PG_JPAY_CARD_EXPIRY) {
+          cardExpiryCtrl = PG_JPAY_CARD_EXPIRY.init(document.getElementById('payCardExpiryRow'), ctx, t);
+        }
+        if (inlineCardUi && window.PG_CARD_PAY_POLICY && ctx.cardPayPolicy) {
+          cardPolicyCtrl = PG_CARD_PAY_POLICY.init({
+            policy: ctx.cardPayPolicy,
+            panInput: document.getElementById('payCardno'),
+            brandSelect: document.getElementById('payCardBrandSelect'),
+            alertEl: document.getElementById('payCardPolicyAlert'),
+            cvvInput: document.getElementById('payCardcvv'),
+            lang: LANG,
+            autoDetectLabel: t('cardAutoDetectOption'),
+            onLangChange: function () { return LANG; },
+            getCompId: getCompId,
+            apiBase: API_BASE,
+            checkUrl: '/api/pay/url/card-policy-check',
+            postJson: function (url, bodyStr) {
+              return fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: bodyStr
+              }).then(function (r) { return r.json(); });
+            }
+          });
+        }
         if (ctx.merchantName) document.getElementById('merchantNameDisplay').textContent = ctx.merchantName;
         if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyCheckoutHeaderLogo) {
           PG_URL_PAY_SHELL.applyCheckoutHeaderLogo(ctx, { brandBlockId: 'eximbayBrandBlock', logoWrapSelector: '.pay-brand-logo', t: t });
@@ -395,26 +538,6 @@
         showFinished(ok, msg + (orderId ? (' (' + escHtml(orderId) + ')') : ''), orderId);
       }
 
-      /* ============ SDK 로딩 ============ */
-      var sdkLoadPromise = null;
-      function loadEximbaySdk(scriptUrl) {
-        if (window.EXIMBAY && typeof window.EXIMBAY.request_pay === 'function') return Promise.resolve();
-        if (sdkLoadPromise) return sdkLoadPromise;
-        sdkLoadPromise = new Promise(function (resolve, reject) {
-          var s = document.createElement('script');
-          s.type = 'text/javascript';
-          s.src = scriptUrl;
-          s.async = true;
-          s.onload = function () {
-            if (window.EXIMBAY && typeof window.EXIMBAY.request_pay === 'function') resolve();
-            else reject(new Error('SDK not ready'));
-          };
-          s.onerror = function () { reject(new Error('SDK load error')); };
-          document.head.appendChild(s);
-        });
-        return sdkLoadPromise;
-      }
-
       function payGuardUnlock(btn) {
         var g = window.PG_PAY_SUBMIT_GUARD;
         if (g) g.unlockForRetry({ button: btn }); else if (btn) btn.disabled = false;
@@ -422,6 +545,54 @@
       function payGuardFail(btn) {
         var g = window.PG_PAY_SUBMIT_GUARD;
         if (g) g.unlockAfterFailure({ button: btn }); else if (btn) btn.disabled = false;
+      }
+
+      function openPayWindow() {
+        var w = 500, h = 640;
+        var left = Math.round((window.screenLeft || 0) + ((document.documentElement.clientWidth || 800) / 2) - (w / 2));
+        var top = Math.round((screen.availHeight || 800) / 2 - h / 2);
+        try {
+          return window.open('about:blank', 'icopayPayWin', 'width=' + w + ',height=' + h + ',left=' + left + ',top=' + top + ',toolbars=no,resizable=yes,scrollbars=yes,titlebar=yes,status=no');
+        } catch (e0) { return null; }
+      }
+      function closePayWindow(win) {
+        try { if (win && !win.closed) win.close(); } catch (e1) {}
+      }
+      function launchHostedPay(d, btn, orderNo, payWin) {
+        var action = String(d.hostedPayUrl || '').trim();
+        if (!action) return false;
+        var low = action.toLowerCase();
+        if (low.indexOf('icopay.co.kr') >= 0) return false;
+        var fields = d.hostedPayFields || {};
+        var dt = String(d.hostedDisplayType || d.displayType || 'P').toUpperCase();
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = action;
+        form.acceptCharset = 'UTF-8';
+        form.style.display = 'none';
+        Object.keys(fields).forEach(function (k) {
+          var inp = document.createElement('input');
+          inp.type = 'hidden';
+          inp.name = k;
+          inp.value = String(fields[k] == null ? '' : fields[k]);
+          form.appendChild(inp);
+        });
+        document.body.appendChild(form);
+        if (dt === 'P') {
+          if (!payWin || payWin.closed) payWin = openPayWindow();
+          if (!payWin) {
+            showFinished(false, t('popupBlocked'), orderNo);
+            payGuardFail(btn);
+            return true;
+          }
+          form.target = 'icopayPayWin';
+        } else {
+          closePayWindow(payWin);
+          form.target = '_self';
+        }
+        form.submit();
+        payGuardUnlock(btn);
+        return true;
       }
 
       function intervalToPlan(cycle) {
@@ -472,6 +643,27 @@
         var amtStr = String(document.getElementById('amount').value || '').replace(/,/g, '').trim();
         if (!(parseFloat(amtStr) > 0)) { showErr(t('needAmount')); payGuardUnlock(btn); return; }
 
+        var panRaw = '';
+        var mmRaw = '';
+        var yyRaw = '';
+        var cvvRaw = '';
+        if (inlineCardUi) {
+          panRaw = window.PG_CARD_PAY_POLICY
+            ? PG_CARD_PAY_POLICY.digitsOnly(document.getElementById('payCardno').value)
+            : String(document.getElementById('payCardno').value || '').replace(/\D/g, '');
+          if (cardExpiryCtrl && cardExpiryCtrl.getMonth) {
+            mmRaw = cardExpiryCtrl.getMonth() || '';
+            yyRaw = cardExpiryCtrl.getYear4 ? (cardExpiryCtrl.getYear4() || '') : '';
+          } else {
+            mmRaw = String(document.getElementById('payCardmonth').value || '').replace(/\D/g, '');
+            yyRaw = String(document.getElementById('payCardyear').value || '').replace(/\D/g, '');
+          }
+          cvvRaw = String(document.getElementById('payCardcvv').value || '').replace(/\D/g, '');
+          if (panRaw.length < 13 || panRaw.length > 19 || !/^\d{3,4}$/.test(cvvRaw) || mmRaw.length < 1) {
+            showErr(t('errCard')); payGuardUnlock(btn); return;
+          }
+        }
+
         var ordEl = document.getElementById('orderNo');
         if (!String(ordEl.value || '').trim()) ordEl.value = buildOrderNo(compId);
 
@@ -496,28 +688,31 @@
           txnOrigin: 'SUBSCRIPTION',
           subscriptionPlan: plan
         };
+        if (inlineCardUi) {
+          body.payCardno = panRaw;
+          body.payCardmonth = mmRaw;
+          body.payCardyear = yyRaw;
+          body.payCardcvv = cvvRaw;
+          body.paymentMethod = 'CARD';
+        }
         var cfgErr = document.getElementById('configError');
         if (cfgErr) { cfgErr.style.display = 'none'; }
+        var payWin = openPayWindow();
+        if (!payWin) { showFinished(false, t('popupBlocked'), body.orderNo); payGuardFail(btn); return; }
         fetch(API_BASE + '/api/pay/eximbay/subscribe', {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
         }).then(function (r) { return r.json(); }).then(function (res) {
-          if (!res.success) { showFinished(false, resolveApiErrorMessage(res), body.orderNo); payGuardFail(btn); return; }
+          if (!res.success) {
+            closePayWindow(payWin);
+            showFinished(false, resolveApiErrorMessage(res), body.orderNo); payGuardFail(btn); return;
+          }
           var d = res.data || {};
-          var sdkReq = d.sdkRequest;
-          var sdkUrl = d.sdkScriptUrl;
-          if (!sdkReq || !sdkUrl) { showFinished(false, t('payFailed'), body.orderNo); payGuardFail(btn); return; }
-          loadEximbaySdk(sdkUrl).then(function () {
-            try {
-              window.EXIMBAY.request_pay(sdkReq);
-            } catch (exErr) {
-              showFinished(false, (exErr && exErr.message) || t('payFailed'), body.orderNo);
-              payGuardFail(btn);
-            }
-          }).catch(function () {
-            showFinished(false, t('sdkLoadFail'), body.orderNo);
-            payGuardFail(btn);
-          });
+          if (launchHostedPay(d, btn, body.orderNo, payWin)) return;
+          closePayWindow(payWin);
+          showFinished(false, t('sdkLoadFail'), body.orderNo);
+          payGuardFail(btn);
         }).catch(function (err) {
+          closePayWindow(payWin);
           showFinished(false, (err && err.message) || t('networkErr'), body.orderNo);
           payGuardFail(btn);
         });

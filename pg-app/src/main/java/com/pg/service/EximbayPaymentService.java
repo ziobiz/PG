@@ -5,11 +5,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgAgency;
+import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.PgVendor;
 import com.pg.middleware.notify.PgNotifyIngressPaths;
 import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgAgencyRepository;
+import com.pg.urlpay.CheckoutFailI18n;
 import com.pg.urlpay.PayerContextCapture;
 import com.pg.util.MerchantPgCredentialUtil;
 import com.pg.util.PayPresaleRiskFilterCodes;
@@ -25,8 +27,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -51,8 +55,10 @@ public class EximbayPaymentService {
     private static final String SANDBOX_BASE = "https://api-test.eximbay.com";
     private static final String LIVE_BASE = "https://api.eximbay.com";
     private static final String READY_PATH = "/v1/payments/ready";
+    private static final String PAYMENTS_PATH = "/v1/payments";
     private static final String VERIFY_PATH = "/v1/payments/verify";
     private static final String RETRIEVE_PATH = "/v1/payments/retrieve";
+    private static final String CANCEL_PATH_PREFIX = "/v1/payments/";
     private static final DateTimeFormatter ORDER_FMT = DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS");
 
     private final PgAgencyRepository pgAgencyRepository;
@@ -147,20 +153,84 @@ public class EximbayPaymentService {
         String productName = firstNonBlank(str(body.get("item")), str(body.get("productName")), "Order");
 
         Map<String, String> methodOverrides = readMethodOverrides(agency);
-        String methodKey = str(body.get("paymentMethod"));
+        String methodKey = EximbayPaymentMethodCatalog.normalizeKey(str(body.get("paymentMethod")));
         String methodCode = EximbayPaymentMethodCatalog.resolveCode(methodKey, methodOverrides);
-        String displayType = firstNonBlank(str(body.get("displayType")), resolveExtra(agency, "eximbayDisplayType"), "R");
+        boolean paypay = EximbayPaymentMethodCatalog.KEY_PAYPAY.equals(methodKey);
+        boolean jpBank = EximbayPaymentMethodCatalog.KEY_JPCONVBANK.equals(methodKey);
+        boolean unionPay = EximbayPaymentMethodCatalog.KEY_UNIONPAY.equals(methodKey);
+        boolean jpWallet = paypay || jpBank;
+        boolean cardHosted = methodKey.isEmpty() || EximbayPaymentMethodCatalog.KEY_CARD.equals(methodKey);
+        boolean hostedWallet = paypay || jpBank || unionPay || cardHosted;
+        boolean sandbox = "Y".equalsIgnoreCase(trimToEmpty(agency.getSandboxYn()));
+        if (methodCode.isBlank()) {
+            if (paypay) {
+                methodCode = "P201";
+            } else if (jpBank) {
+                methodCode = "P006";
+            } else if (unionPay) {
+                methodCode = "P002";
+            } else if (cardHosted) {
+                methodCode = "P000";
+            }
+        }
+        if (jpWallet) {
+            if (sandbox) {
+                if (!"JPY".equals(currency)) {
+                    currency = "JPY";
+                }
+                amountBd = amountBd.setScale(0, RoundingMode.DOWN);
+                if (amountBd.compareTo(BigDecimal.ZERO) <= 0) {
+                    return CheckoutFailI18n.fail("EXIMBAY_JPY_WHOLE_YEN",
+                            "JPY 결제는 소수점 없이 엔 단위로 입력하세요.",
+                            "JPY amounts must be whole yen (no decimals).",
+                            "JPYは小数なしの円単位で入力してください。",
+                            "日元金额须为整数（不可有小数）。",
+                            "ยอด JPY ต้องเป็นจำนวนเต็มเยน");
+                }
+            } else {
+                if (!"JPY".equals(currency)) {
+                    return CheckoutFailI18n.fail("EXIMBAY_PAYPAY_JPY_REQUIRED",
+                            "PayPay·일본 편의점·은행 결제는 JPY 금액으로만 결제할 수 있습니다.",
+                            "PayPay and Japan convenience-store/bank payments require JPY.",
+                            "PayPay・コンビニ・銀行決済はJPYのみです。",
+                            "PayPay/日本便利店/银行支付仅支持日元(JPY)。",
+                            "PayPay และการชำระร้านสะดวกซื้อ/ธนาคารญี่ปุ่นใช้ได้เฉพาะ JPY");
+                }
+                if (amountBd.stripTrailingZeros().scale() > 0) {
+                    return CheckoutFailI18n.fail("EXIMBAY_JPY_WHOLE_YEN",
+                            "JPY 결제는 소수점 없이 엔 단위로 입력하세요.",
+                            "JPY amounts must be whole yen (no decimals).",
+                            "JPYは小数なしの円単位で入力してください。",
+                            "日元金额须为整数（不可有小数）。",
+                            "ยอด JPY ต้องเป็นจำนวนเต็มเยน");
+                }
+            }
+        }
+        if (buyerEmail.isBlank()) {
+            return CheckoutFailI18n.fail("EXIMBAY_EMAIL_REQUIRED",
+                    "이메일은 필수입니다.",
+                    "Email is required.",
+                    "メールアドレスは必須です。",
+                    "邮箱为必填。",
+                    "ต้องระบุอีเมล");
+        }
+        String displayType = firstNonBlank(str(body.get("displayType")), resolveExtra(agency, "eximbayDisplayType"),
+                hostedWallet ? "P" : "R");
         displayType = "P".equalsIgnoreCase(displayType) ? "P" : "R";
+        if (hostedWallet) {
+            displayType = "P";
+        }
 
-        // 사전 리스크 필터(모든 PG 공통) — Eximbay 는 카드번호를 보유하지 않는 호스티드 결제창이므로
-        // 이메일/전화 형식·성명 의심·속도(이메일/IP) 필터가 적용되며, 카드번호 기반 필터는 자동 skip 된다.
+        // 사전 리스크 필터 — 샌드박스는 테스트 카드·반복 이메일로 막히지 않게 생략.
         String txnOrigin = subscription ? "SUBSCRIPTION" : str(body.get("txnOrigin"));
-        Optional<PayPresaleRiskFilterService.PresaleRiskBlock> presaleRisk =
-                payPresaleRiskFilterService.evaluate(orgUnitId, compCode, PgVendor.EXIMBAY, body);
-        if (presaleRisk.isPresent()) {
-            return presaleRiskBlockOut(presaleRisk.get(), orgUnitId, compCode, orderNo, txnOrigin,
-                    amountBd, currency, binding.getSortOrder(), productName, buyerName, buyerEmail,
-                    methodKey.isBlank() ? "EXIMBAY" : methodKey, subscription);
+        if (!sandbox) {
+            Optional<PayPresaleRiskFilterService.PresaleRiskBlock> presaleRisk =
+                    payPresaleRiskFilterService.evaluate(orgUnitId, compCode, PgVendor.EXIMBAY, body);
+            if (presaleRisk.isPresent()) {
+                return presaleRiskBlockOut(presaleRisk.get(), orgUnitId, compCode, orderNo, txnOrigin,
+                        amountBd, currency, binding.getSortOrder(), productName, buyerName, buyerEmail,
+                        methodKey.isBlank() ? "EXIMBAY" : methodKey, subscription);
+            }
         }
 
         String publicBase = resolvePublicApiBase(req);
@@ -207,6 +277,8 @@ public class EximbayPaymentService {
         Map<String, Object> settings = new LinkedHashMap<>();
         settings.put("display_type", displayType);
         settings.put("autoclose", "Y");
+        settings.put("ostype", resolveOstype(req));
+        settings.put("call_from_app", "N");
 
         Map<String, Object> reqBody = new LinkedHashMap<>();
         reqBody.put("payment", payment);
@@ -214,6 +286,7 @@ public class EximbayPaymentService {
         reqBody.put("buyer", buyer);
         reqBody.put("url", url);
         reqBody.put("settings", settings);
+        reqBody.put("product", buildProductLine(productName, amountBd, publicBase));
 
         if (subscription) {
             Map<String, Object> tokenbilling = new LinkedHashMap<>();
@@ -236,13 +309,15 @@ public class EximbayPaymentService {
         try {
             resp = postJson(base + READY_PATH, secretKey, reqBody);
         } catch (Exception e) {
-            log.warn("Eximbay ready 호출 실패 orderNo={}: {}", orderNo, e.getMessage());
+            log.warn("Eximbay ready 호출 실패 orderNo={} method={}: {}", orderNo, methodCode, e.getMessage());
             return fail("Eximbay 결제준비 호출에 실패했습니다.", "EXIMBAY_READY_FAILED");
         }
         String rescode = text(resp, "rescode");
         String resmsg = text(resp, "resmsg");
         String fgkey = text(resp, "fgkey");
         if (!"0000".equals(rescode) || fgkey.isBlank()) {
+            log.warn("Eximbay ready 거부 orderNo={} method={} rescode={} resmsg={}",
+                    orderNo, methodCode, rescode, resmsg);
             return fail(resmsg.isBlank() ? "Eximbay 결제준비에 실패했습니다." : resmsg,
                     rescode.isBlank() ? "EXIMBAY_READY_ERROR" : "EXIMBAY_" + rescode);
         }
@@ -255,6 +330,45 @@ public class EximbayPaymentService {
             sdkRequest.put(e.getKey(), e.getValue());
         }
 
+        JsonNode payLaunch = null;
+        try {
+            payLaunch = postJsonNoAuth(base + PAYMENTS_PATH, sdkRequest);
+        } catch (Exception e) {
+            log.warn("Eximbay payments(no-auth) 실패 orderNo={}: {}", orderNo, e.getMessage());
+        }
+        if (payLaunch == null || extractHostedPayUrl(payLaunch, base).isBlank()) {
+            try {
+                payLaunch = postJson(base + PAYMENTS_PATH, secretKey, sdkRequest);
+            } catch (Exception e) {
+                log.warn("Eximbay payments 호출 실패 orderNo={}: {}", orderNo, e.getMessage());
+                if (payLaunch == null) {
+                    return fail("결제창을 열지 못했습니다.", "EXIMBAY_PAYMENTS_FAILED");
+                }
+            }
+        }
+        if (payLaunch == null) {
+            return fail("결제창을 열지 못했습니다.", "EXIMBAY_PAYMENTS_FAILED");
+        }
+        String payRes = text(payLaunch, "rescode");
+        if (!payRes.isBlank() && !"0000".equals(payRes)) {
+            String payMsg = text(payLaunch, "resmsg");
+            log.warn("Eximbay payments 거부 orderNo={} rescode={} resmsg={}", orderNo, payRes, payMsg);
+            return fail(payMsg.isBlank() ? "결제창을 열지 못했습니다." : payMsg, "EXIMBAY_" + payRes);
+        }
+        String hostedUrl = extractHostedPayUrl(payLaunch, base);
+        if (hostedUrl.isBlank() || isOwnCheckoutHost(hostedUrl)) {
+            log.warn("Eximbay 결제 URL 비정상 orderNo={} url={} res={}",
+                    orderNo, hostedUrl, payLaunch);
+            return CheckoutFailI18n.fail("EXIMBAY_HOSTED_URL_INVALID",
+                    "결제창 주소를 받지 못했습니다. 잠시 후 다시 시도하세요.",
+                    "Could not open the payment window. Please try again.",
+                    "決済画面のURLを取得できませんでした。しばらくして再度お試しください。",
+                    "未能取得支付窗口地址，请稍后重试。",
+                    "ไม่ได้รับที่อยู่หน้าต่างชำระเงิน โปรดลองอีกครั้ง");
+        }
+        Map<String, String> hostedFields = extractHostedPayFields(payLaunch);
+        String hostedDisplay = firstNonBlank(text(payLaunch, "display_type"), displayType);
+
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("success", true);
         out.put("pgVendor", "EXIMBAY");
@@ -263,12 +377,15 @@ public class EximbayPaymentService {
         out.put("amount", amountBd.stripTrailingZeros().toPlainString());
         out.put("currency", currency);
         out.put("paymentMethod", methodCode);
-        out.put("displayType", displayType);
+        out.put("displayType", hostedDisplay);
         out.put("sdkScriptUrl", resolveSdkScriptUrl(agency));
         out.put("returnUrl", returnUrl);
         out.put("mid", mid);
         out.put("subscription", subscription);
         out.put("sdkRequest", sdkRequest);
+        out.put("hostedPayUrl", hostedUrl);
+        out.put("hostedPayFields", hostedFields);
+        out.put("hostedDisplayType", hostedDisplay);
         return out;
     }
 
@@ -301,6 +418,111 @@ public class EximbayPaymentService {
             out.put("errorCode", "EXIMBAY_VERIFY_FAILED");
             return out;
         }
+    }
+
+    /**
+     * 결제내역 자동/강제환불 — Eximbay {@code POST /v1/payments/{transaction_id}/cancel} 전액(F).
+     */
+    public String requestCancel(PgTrnsctn t, String reason) {
+        if (t == null || !PgVendor.isEximbayFamily(t.getVan())) {
+            throw new IllegalStateException("해당 거래는 취소 API를 호출할 수 없습니다.");
+        }
+        String transactionId = t.getChillTransactionId();
+        if (transactionId == null || transactionId.isBlank()) {
+            throw new IllegalStateException("거래번호(transaction_id)가 없어 취소 API를 호출할 수 없습니다.");
+        }
+        PgAgency agency = resolveAgencyForTxn(t);
+        Optional<MerchantPgBinding> bind = findOperationalEximbayBinding(resolveMerchantOrgUnitId(t));
+        MerchantPgCredentialUtil.Resolved cred = MerchantPgCredentialUtil.resolve(bind.orElse(null), agency);
+        String mid = cred.mid();
+        String secretKey = cred.apiKey();
+        if (mid.isEmpty() || secretKey.isEmpty()) {
+            throw new IllegalStateException("결제대행사 MID/Secret Key 가 설정되지 않았습니다.");
+        }
+        String amount = formatAmount(t.getAmtKrw());
+        if (amount.isBlank()) {
+            throw new IllegalStateException("취소할 거래 금액이 없습니다.");
+        }
+        String currency = t.getCurType() != null && !t.getCurType().isBlank()
+                ? t.getCurType().trim().toUpperCase(Locale.ROOT) : "USD";
+        String orderId = t.getOrderNo() != null ? t.getOrderNo().trim() : "";
+        if (orderId.isBlank()) {
+            throw new IllegalStateException("주문번호가 없어 취소 API를 호출할 수 없습니다.");
+        }
+        String refundReason = reason != null && !reason.isBlank() ? reason.trim() : "icopay refund";
+        if (refundReason.length() > 255) {
+            refundReason = refundReason.substring(0, 255);
+        }
+        String refundId = "RF" + (t.getTrnId() != null ? t.getTrnId().trim() : "")
+                + Long.toString(System.currentTimeMillis() % 1000000000L, 36);
+        if (refundId.length() > 40) {
+            refundId = refundId.substring(0, 40);
+        }
+        Map<String, Object> refund = new LinkedHashMap<>();
+        refund.put("refund_type", "F");
+        refund.put("refund_amount", amount);
+        refund.put("refund_id", refundId);
+        refund.put("reason", refundReason);
+        Map<String, Object> payment = new LinkedHashMap<>();
+        payment.put("order_id", orderId);
+        payment.put("currency", currency);
+        payment.put("amount", amount);
+        payment.put("balance", amount);
+        payment.put("lang", "EN");
+        Map<String, Object> reqBody = new LinkedHashMap<>();
+        reqBody.put("mid", mid);
+        reqBody.put("refund", refund);
+        reqBody.put("payment", payment);
+        String url = resolveBase(agency) + CANCEL_PATH_PREFIX + enc(transactionId.trim()) + "/cancel";
+        JsonNode resp;
+        try {
+            resp = postJson(url, secretKey, reqBody);
+        } catch (Exception e) {
+            log.warn("Eximbay cancel HTTP 실패 txnId={}: {}", transactionId, e.getMessage());
+            throw new IllegalStateException("결제 취소 요청에 실패했습니다: " + e.getMessage());
+        }
+        String rescode = text(resp, "rescode");
+        String resmsg = text(resp, "resmsg");
+        if (!"0000".equals(rescode)) {
+            throw new IllegalStateException("결제 취소가 거부되었습니다"
+                    + (!rescode.isBlank() ? " (" + rescode + ")" : "")
+                    + (!resmsg.isBlank() ? ": " + resmsg : ""));
+        }
+        String summary = "Eximbay cancel OK txn=" + transactionId
+                + (!rescode.isBlank() ? " rescode=" + rescode : "");
+        log.info("Eximbay cancel OK orderNo={} txnId={}", orderId, transactionId);
+        return summary;
+    }
+
+    private PgAgency resolveAgencyForTxn(PgTrnsctn t) {
+        String van = t.getVan() != null ? t.getVan().trim() : "";
+        if (!van.isBlank()) {
+            Optional<PgAgency> byCd = pgAgencyRepository.findByPgCd(van);
+            if (byCd.isPresent()) {
+                return byCd.get();
+            }
+        }
+        long ouId = resolveMerchantOrgUnitId(t);
+        return findOperationalEximbayBinding(ouId)
+                .flatMap(b -> pgAgencyRepository.findByPgCd(trimToEmpty(b.getPgCd())))
+                .orElseThrow(() -> new IllegalStateException("결제대행사 설정을 찾을 수 없습니다."));
+    }
+
+    private long resolveMerchantOrgUnitId(PgTrnsctn t) {
+        String code = t.getMerchantId();
+        if (code == null || code.isBlank()) {
+            throw new IllegalStateException("거래에 가맹점 코드가 없습니다.");
+        }
+        return orgUnitRepository.findByCodeIgnoreCase(code.trim())
+                .orElseThrow(() -> new IllegalStateException("가맹점(조직)을 찾을 수 없습니다: " + code.trim()))
+                .getId();
+    }
+
+    private static String formatAmount(BigDecimal amt) {
+        if (amt == null) {
+            return "";
+        }
+        return amt.stripTrailingZeros().toPlainString();
     }
 
     /** 거래 조회 — {@code /v1/payments/retrieve}. */
@@ -411,6 +633,32 @@ public class EximbayPaymentService {
                 .findFirst();
     }
 
+    private List<Map<String, String>> buildProductLine(String productName, BigDecimal amount, String publicBase) {
+        String name = productName == null || productName.isBlank() ? "Order" : productName.trim();
+        if (name.length() > 127) {
+            name = name.substring(0, 127);
+        }
+        String link = publicBase != null && !publicBase.isBlank()
+                ? publicBase.replaceAll("/+$", "") + "/"
+                : "https://icopay.co.kr/";
+        Map<String, String> line = new LinkedHashMap<>();
+        line.put("name", name);
+        line.put("quantity", "1");
+        line.put("unit_price", amount.stripTrailingZeros().toPlainString());
+        line.put("link", link);
+        List<Map<String, String>> product = new ArrayList<>();
+        product.add(line);
+        return product;
+    }
+
+    private static String resolveOstype(HttpServletRequest req) {
+        String ua = req != null ? str(req.getHeader("User-Agent")) : "";
+        if (ua.matches("(?i).*(iphone|ipad|ipod|android|mobile|silk|opera mini|webos).*")) {
+            return "M";
+        }
+        return "P";
+    }
+
     private Optional<PgAgency> resolveAgencyByMid(String mid) {
         if (mid == null || mid.isBlank()) {
             return Optional.empty();
@@ -441,9 +689,20 @@ public class EximbayPaymentService {
     }
 
     private JsonNode postJson(String url, String secretKey, Map<String, Object> body) throws Exception {
+        return postJson(url, secretKey, body, true);
+    }
+
+    /** JS SDK 와 동일 — /v1/payments 런칭은 Basic 인증 없이 JSON POST. */
+    private JsonNode postJsonNoAuth(String url, Map<String, Object> body) throws Exception {
+        return postJson(url, "", body, false);
+    }
+
+    private JsonNode postJson(String url, String secretKey, Map<String, Object> body, boolean basicAuth) throws Exception {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBasicAuth(secretKey, "");
+        if (basicAuth && secretKey != null && !secretKey.isBlank()) {
+            headers.setBasicAuth(secretKey, "");
+        }
         String json = objectMapper.writeValueAsString(body);
         HttpEntity<String> entity = new HttpEntity<>(json, headers);
         ResponseEntity<String> resp = restTemplate.postForEntity(url, entity, String.class);
@@ -456,11 +715,75 @@ public class EximbayPaymentService {
         if (!extra.isBlank()) {
             return extra.replaceAll("/+$", "");
         }
+        if ("Y".equalsIgnoreCase(trimToEmpty(agency.getSandboxYn()))) {
+            return SANDBOX_BASE;
+        }
         String ep = firstNonBlank(agency.getEndpointUrlPay(), agency.getEndpointApi(), agency.getApiEndpoint());
         if (!ep.isBlank() && ep.toLowerCase(Locale.ROOT).startsWith("http")) {
             return ep.replaceAll("/+$", "");
         }
-        return "Y".equalsIgnoreCase(trimToEmpty(agency.getSandboxYn())) ? SANDBOX_BASE : LIVE_BASE;
+        return LIVE_BASE;
+    }
+
+    private String extractHostedPayUrl(JsonNode payLaunch, String apiBase) {
+        if (payLaunch == null || payLaunch.isNull()) {
+            return "";
+        }
+        String raw = firstNonBlank(
+                text(payLaunch, "url"),
+                text(payLaunch, "payment_url"),
+                text(payLaunch, "redirect_url"));
+        JsonNode urlNode = payLaunch.get("url");
+        if (raw.isBlank() && urlNode != null && urlNode.isObject()) {
+            raw = firstNonBlank(text(urlNode, "payment"), text(urlNode, "redirect"), text(urlNode, "href"));
+        }
+        return toAbsoluteUrl(apiBase, raw);
+    }
+
+    private Map<String, String> extractHostedPayFields(JsonNode payLaunch) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        if (payLaunch == null || !payLaunch.isObject()) {
+            return fields;
+        }
+        payLaunch.fields().forEachRemaining(e -> {
+            String k = e.getKey();
+            if (k == null) {
+                return;
+            }
+            if ("url".equals(k) || "display_type".equals(k) || "rescode".equals(k) || "resmsg".equals(k)) {
+                return;
+            }
+            JsonNode v = e.getValue();
+            if (v == null || v.isNull() || v.isObject() || v.isArray()) {
+                return;
+            }
+            fields.put(k, v.asText(""));
+        });
+        fields.putIfAbsent("param3", "OPENAPI");
+        return fields;
+    }
+
+    private static String toAbsoluteUrl(String apiBase, String raw) {
+        String u = trimToEmpty(raw);
+        if (u.isEmpty()) {
+            return "";
+        }
+        if (u.startsWith("//")) {
+            return "https:" + u;
+        }
+        if (u.startsWith("http://") || u.startsWith("https://")) {
+            return u;
+        }
+        String b = apiBase != null ? apiBase.replaceAll("/+$", "") : "";
+        if (u.startsWith("/")) {
+            return b + u;
+        }
+        return b + "/" + u;
+    }
+
+    private static boolean isOwnCheckoutHost(String url) {
+        String u = url != null ? url.toLowerCase(Locale.ROOT) : "";
+        return u.contains("icopay.co.kr") || u.contains("ontheline");
     }
 
     private String resolveSdkScriptUrl(PgAgency agency) {

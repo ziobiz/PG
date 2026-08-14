@@ -1,28 +1,27 @@
 package com.pg.service;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Eximbay 결제수단(UI 키) → Eximbay {@code payment_method}(paymethod) 코드 매핑.
  *
- * <p>Eximbay 는 카드·PayPay·UnionPay·WeChat·Alipay·GrabPay·LinePay·ApplePay 등 모든 수단을
- * 동일한 {@code /v1/payments/ready} + JS SDK 결제창 플로우의 {@code payment_method} 코드로 처리한다.
- * 아래 기본 코드는 Eximbay 연동 가이드(Appendix C) 기준이며, 가맹 온보딩별로 코드가 다를 수 있어
- * {@code tb_pg_agency.credentials_extra_json.eximbayMethodCodes}(JSON: UI키→코드) 로 오버라이드할 수 있다.
- *
- * <p>코드가 비어 있으면(예: PayPay 를 가맹 온보딩 코드로 아직 지정하지 않은 경우)
- * {@code payment_method} 를 보내지 않아 <b>Eximbay 통합 결제창(가맹 MID 에 활성화된 모든 수단 노출)</b> 으로
- * 안전하게 진입한다 — 이 경우에도 PayPay 는 결제창에서 선택 가능하다.
+ * <p>ICOPAY 기본 노출: 신용카드({@code P000}) · PayPay · 일본 편의점·은행({@code P006}) · UnionPay({@code P002}).
+ * 코드는 Eximbay 연동 가이드 Appendix C 기준이며, 가맹 온보딩별로 다를 수 있어
+ * {@code tb_pg_agency.credentials_extra_json.eximbayMethodCodes}(JSON: UI키→코드) 로 오버라이드한다.
  */
 public final class EximbayPaymentMethodCatalog {
 
-    /** UI 에서 사용하는 결제수단 키 (프론트 버튼 값과 동일). */
     public static final String KEY_CARD = "CARD";
     public static final String KEY_PAYPAY = "PAYPAY";
+    /** 일본 편의점·인터넷뱅킹(eContext). Appendix C {@code P006}. */
+    public static final String KEY_JPCONVBANK = "JPCONVBANK";
     public static final String KEY_UNIONPAY = "UNIONPAY";
     public static final String KEY_WECHAT = "WECHAT";
     public static final String KEY_ALIPAY = "ALIPAY";
@@ -34,15 +33,16 @@ public final class EximbayPaymentMethodCatalog {
     private static final Map<String, String> DEFAULT_CODES = new LinkedHashMap<>();
 
     static {
-        DEFAULT_CODES.put(KEY_CARD, "P000");      // CreditCard (통합)
-        DEFAULT_CODES.put(KEY_UNIONPAY, "P002");  // CUP (UnionPay)
-        DEFAULT_CODES.put(KEY_ALIPAY, "P003");    // Alipay Plus
-        DEFAULT_CODES.put(KEY_WECHAT, "P141");    // WeChat
-        DEFAULT_CODES.put(KEY_APPLEPAY, "P198");  // Apple Pay
-        DEFAULT_CODES.put(KEY_GRABPAY, "P185");   // grabPay(SGD)
-        DEFAULT_CODES.put(KEY_LINEPAY, "P186");   // linePay
-        // PayPay·KakaoPay: 가맹 온보딩별 코드 상이 → 기본 미지정(통합 결제창). 필요 시 credentials_extra_json 로 지정.
-        DEFAULT_CODES.put(KEY_PAYPAY, "");
+        DEFAULT_CODES.put(KEY_CARD, "P000");
+        DEFAULT_CODES.put(KEY_UNIONPAY, "P002");
+        DEFAULT_CODES.put(KEY_JPCONVBANK, "P006");
+        /* PayPay: OpenAPI·샌드박스 기본 P201. MID별 코드는 extra JSON eximbayMethodCodes.PAYPAY 로 교체. */
+        DEFAULT_CODES.put(KEY_PAYPAY, "P201");
+        DEFAULT_CODES.put(KEY_ALIPAY, "P003");
+        DEFAULT_CODES.put(KEY_WECHAT, "P141");
+        DEFAULT_CODES.put(KEY_APPLEPAY, "P198");
+        DEFAULT_CODES.put(KEY_GRABPAY, "P185");
+        DEFAULT_CODES.put(KEY_LINEPAY, "P186");
         DEFAULT_CODES.put(KEY_KAKAOPAY, "");
     }
 
@@ -53,20 +53,17 @@ public final class EximbayPaymentMethodCatalog {
         if (uiKey == null) {
             return "";
         }
-        return uiKey.trim().toUpperCase(Locale.ROOT).replaceAll("[^A-Z]", "");
+        String k = uiKey.trim().toUpperCase(Locale.ROOT).replaceAll("[^A-Z]", "");
+        return switch (k) {
+            case "ECONTEXT", "KONBINI", "JPCONV", "JPCVS", "JPCVSBANK", "JPBANK", "JAPANCVS" -> KEY_JPCONVBANK;
+            case "CUP", "UNION" -> KEY_UNIONPAY;
+            default -> k;
+        };
     }
 
-    /**
-     * UI 결제수단 키를 Eximbay paymethod 코드로 변환한다.
-     *
-     * @param uiKey       프론트에서 넘어온 결제수단 키 (예: {@code PAYPAY})
-     * @param overrides   {@code credentials_extra_json.eximbayMethodCodes} 오버라이드 맵(없으면 null)
-     * @return Eximbay paymethod 코드. 매핑이 없거나 비어 있으면 빈 문자열(통합 결제창).
-     */
     public static String resolveCode(String uiKey, Map<String, String> overrides) {
         String key = normalizeKey(uiKey);
         if (key.isEmpty() || KEY_CARD.equals(key)) {
-            // 카드 기본 — 오버라이드 우선, 없으면 통합(P000). 카드 미지정도 통합 결제창.
             String ov = overrides != null ? overrides.get(KEY_CARD) : null;
             if (ov != null) {
                 return ov.trim();
@@ -80,17 +77,51 @@ public final class EximbayPaymentMethodCatalog {
         return DEFAULT_CODES.getOrDefault(key, "");
     }
 
-    /** 프론트 노출용 기본 결제수단 순서(카드 → PayPay 우선 → 그 외). */
     public static Map<String, String> defaultCodes() {
         return new LinkedHashMap<>(DEFAULT_CODES);
     }
 
-    /**
-     * 결제창 결제수단 버튼 노출 순서. 신용카드 다음에 <b>PayPay(필수)</b> 를 우선 배치한다.
-     */
+    /** 결제창 기본 노출: 신용카드 · PayPay · 일본 편의점·은행 · UnionPay. */
     public static List<String> displayOrder() {
-        return Arrays.asList(
-                KEY_CARD, KEY_PAYPAY, KEY_ALIPAY, KEY_WECHAT, KEY_UNIONPAY,
-                KEY_GRABPAY, KEY_LINEPAY, KEY_KAKAOPAY, KEY_APPLEPAY);
+        return Arrays.asList(KEY_CARD, KEY_PAYPAY, KEY_JPCONVBANK, KEY_UNIONPAY);
+    }
+
+    public static final String DEFAULT_VISIBLE_CSV = "CARD,PAYPAY,JPCONVBANK,UNIONPAY";
+
+    /**
+     * 본사 결제 라우팅 CSV → 노출 키. 비어 있으면 기본 4종. 알 수 없는 키는 무시.
+     * 하나도 안 남으면 신용카드만(기존 카드 처리).
+     */
+    public static List<String> resolveVisible(String csv) {
+        List<String> order = displayOrder();
+        if (csv == null || csv.isBlank()) {
+            return new ArrayList<>(order);
+        }
+        Set<String> wanted = new LinkedHashSet<>();
+        for (String part : csv.split("[,;\\s]+")) {
+            String k = normalizeKey(part);
+            if (!k.isEmpty()) {
+                wanted.add(k);
+            }
+        }
+        List<String> out = new ArrayList<>();
+        for (String key : order) {
+            if (wanted.contains(key)) {
+                out.add(key);
+            }
+        }
+        if (out.isEmpty()) {
+            out.add(KEY_CARD);
+        }
+        return out;
+    }
+
+    public static String toCsv(List<String> keys) {
+        List<String> vis = keys == null || keys.isEmpty() ? resolveVisible(null) : resolveVisible(String.join(",", keys));
+        return String.join(",", vis);
+    }
+
+    public static boolean isCardOnly(List<String> visible) {
+        return visible != null && visible.size() == 1 && KEY_CARD.equals(visible.get(0));
     }
 }

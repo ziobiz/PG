@@ -3808,6 +3808,10 @@
   M['차지백']={EN:'Chargeback',JP:'チャージバック',CH:'拒付',TH:'Chargeback'};
   M['리스크']={EN:'Risk',JP:'リスク',CH:'风险',TH:'ความเสี่ยง'};
   M['결제 라우팅']={EN:'Payment routing',JP:'決済ルーティング',CH:'支付路由',TH:'เส้นทางชำระเงิน'};
+  M['엑심베이 결제방식']={EN:'Eximbay payment methods',JP:'Eximbay決済手段',CH:'Eximbay 支付方式',TH:'วิธีชำระ Eximbay'};
+  M['편의점·Pay-easy']={EN:'Convenience store & Pay-easy',JP:'コンビニ・Pay-easy',CH:'便利店·Pay-easy',TH:'ร้านสะดวกซื้อ·Pay-easy'};
+  M['편의점·은행페이']={EN:'Convenience store / bank pay',JP:'コンビニ・銀行払い',CH:'便利店·银行支付',TH:'ร้านสะดวกซื้อ/ธนาคาร'};
+  M['가맹은 <strong>본사설정 따름</strong>입니다. 운영 PG가 엑심베이인 가맹 결제창에 적용됩니다. 신용카드는 등록업체 「결제대행사 설정」에 엑심베이 카드를 등록해야 하며, 기존 카드 연동과 동일합니다. <strong>신용카드만</strong> 켜면 다른 PG와 같은 카드번호·유효기간·CVV 입력 화면이 나옵니다. PayPay·편의점/Pay-easy·UnionPay를 함께 켜면 로고 타일로 고릅니다.']={EN:'Merchants <strong>follow HQ</strong>. Applies when operational PG is Eximbay. Credit card requires an Eximbay row on merchant PG bindings (same as existing card flow). <strong>Card only</strong> shows the same PAN/expiry/CVV form as other PGs. With PayPay / convenience store / UnionPay, buyers pick logo tiles.',JP:'加盟店は<strong>本社設定に従う</strong>。運用PGがEximbayの決済画面に適用。カードは加盟店の決済代行設定にEximbayカード登録が必要。<strong>カードのみ</strong>なら他PGと同じカード入力。PayPay等を併用するとロゴタイル。',CH:'商户<strong>跟随总部</strong>。运营 PG 为 Eximbay 时生效。信用卡须在商户支付机构绑定中登记。<strong>仅信用卡</strong>时与其他 PG 相同填卡界面。同时开启 PayPay 等则为 Logo 磁贴。',TH:'ร้านค้า<strong>ตาม HQ</strong> ใช้เมื่อ PG ปฏิบัติการเป็น Eximbay บัตรต้องผูกแถว Eximbay ที่ร้าน <strong>เฉพาะบัตร</strong>ใช้ฟอร์มกรอกบัตรเหมือน PG อื่น ถ้าเปิด PayPay ด้วยจะเป็นไทล์โลโก้'};
   M['URL결제']={EN:'URL payment',JP:'URL決済',CH:'URL 支付',TH:'ชำระ URL'};
   M['결제 UX']={EN:'Checkout UX',JP:'決済UX',CH:'支付体验',TH:'UX ชำระเงิน'};
   M['태블릿 UX']={EN:'Tablet UX',JP:'タブレットUX',CH:'平板 UX',TH:'UX แท็บเล็ต'};

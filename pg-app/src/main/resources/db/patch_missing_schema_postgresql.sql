@@ -827,3 +827,6 @@ ALTER TABLE tb_split_pay_contract ADD COLUMN IF NOT EXISTS cancelled_by VARCHAR(
 -- V239: 가맹점 운영기록
 ALTER TABLE tb_merchant_profile ADD COLUMN IF NOT EXISTS operation_record TEXT;
 
+-- V244: 엑심베이 결제방식(본사 결제 라우팅)
+ALTER TABLE tb_hq_api_config ADD COLUMN IF NOT EXISTS eximbay_methods_visible VARCHAR(200) NOT NULL DEFAULT 'CARD,PAYPAY,JPCONVBANK,UNIONPAY';
+

@@ -6,13 +6,199 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '3.23';
+  var CURRENT_LIVE = '3.31';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '3.31',
+      kind: 'minor',
+      date: '2026-08-14',
+      items: {
+        KO: [
+          '신용카드·PayPay·UnionPay·은행페이 공통: 결제 클릭 즉시 보안창을 열고 결제 주소를 넣음(로그인 화면 방지)'
+        ],
+        EN: [
+          'Card, PayPay, UnionPay, bank pay: open the secure window on click, then load the payment URL (avoids login page)'
+        ],
+        JP: [
+          'カード・PayPay・UnionPay・銀行払い: クリック直後に安全画面を開き決済URLを載せる（ログイン画面防止）'
+        ],
+        CH: [
+          '信用卡、PayPay、银联、银行支付：点击即开安全窗再载入支付地址（避免登录页）'
+        ],
+        TH: [
+          'บัตร, PayPay, UnionPay, ธนาคาร: เปิดหน้าต่างปลอดภัยทันทีที่กด แล้วใส่ URL ชำระ (กันหน้าล็อกอิน)'
+        ]
+      }
+    },
+    {
+      version: '3.30',
+      kind: 'minor',
+      date: '2026-08-14',
+      items: {
+        KO: [
+          'PayPay 등 호스티드 결제창이 로그인 화면으로 열리던 문제 수정 — 결제 URL을 서버에서 받아 보안창으로 연다'
+        ],
+        EN: [
+          'Fix hosted checkout opening the login page; payment URL is resolved on the server and opened in a secure window'
+        ],
+        JP: [
+          'ホスト決済画面がログインになる不具合を修正。決済URLをサーバーで取得して開く'
+        ],
+        CH: [
+          '修复托管支付窗打开登录页的问题：由服务器取得支付地址后再打开'
+        ],
+        TH: [
+          'แก้หน้าต่างชำระเงินเปิดเป็นหน้าเข้าสู่ระบบ — รับ URL จากเซิร์ฟเวอร์แล้วเปิดหน้าต่างปลอดภัย'
+        ]
+      }
+    },
+    {
+      version: '3.29',
+      kind: 'minor',
+      date: '2026-08-14',
+      items: {
+        KO: [
+          '샌드박스 신용카드·PayPay·UnionPay·편의점/은행페이 호스티드 연동, 수단별 다국어(5개) 안내, PayPay·은행은 샌드박스에서 JPY 전송'
+        ],
+        EN: [
+          'Sandbox hosted checkout for card, PayPay, UnionPay, convenience store/bank pay; 5-locale hints; PayPay/bank sent as JPY in sandbox'
+        ],
+        JP: [
+          'サンドボックスでカード・PayPay・UnionPay・コンビニ/銀行払いのホスト決済。5言語案内。PayPay/銀行はJPY送信'
+        ],
+        CH: [
+          '沙箱托管支付：信用卡、PayPay、银联、便利店/银行；五语提示；PayPay/银行按日元发送'
+        ],
+        TH: [
+          'sandbox โฮสต์: บัตร, PayPay, UnionPay, ร้านสะดวกซื้อ/ธนาคาร — คำใบ้ 5 ภาษา, PayPay/ธนาคารส่งเป็น JPY'
+        ]
+      }
+    },
+    {
+      version: '3.28',
+      kind: 'minor',
+      date: '2026-08-14',
+      items: {
+        KO: [
+          '샌드박스 신용카드 결제: 호스티드 카드창·테스트 카드 안내, 샌드박스 API(api-test) 고정, 사전 리스크 필터 생략'
+        ],
+        EN: [
+          'Sandbox card checkout: hosted card window, test-card hint, api-test endpoint, skip presale risk filter'
+        ],
+        JP: [
+          'サンドボックスカード決済: ホスト型カード画面、テストカード案内、api-test固定、事前リスク省略'
+        ],
+        CH: [
+          '沙箱信用卡：托管填卡窗口、测试卡提示、固定 api-test、跳过预售风控'
+        ],
+        TH: [
+          'บัตรบน sandbox: หน้าต่างกรอกบัตรของโฮสต์, คำใบ้บัตรทดสอบ, api-test, ข้ามตัวกรองความเสี่ยงก่อนขาย'
+        ]
+      }
+    },
+    {
+      version: '3.27',
+      kind: 'minor',
+      date: '2026-08-14',
+      items: {
+        KO: [
+          '엑심베이 샌드박스 PayPay 결제 테스트: 수단코드 P201, JPY 정수, 상품정보·팝업(ostype) 보강'
+        ],
+        EN: [
+          'Eximbay sandbox PayPay checkout: method P201, whole JPY, product line and popup ostype'
+        ],
+        JP: [
+          'EximbayサンドボックスPayPay決済: 手段P201、JPY整数、商品行・ポップアップ(ostype)'
+        ],
+        CH: [
+          'Eximbay 沙箱 PayPay：手段 P201、日元整数、商品行与弹窗 ostype'
+        ],
+        TH: [
+          'ทดสอบ PayPay บน sandbox Eximbay: รหัส P201, JPY จำนวนเต็ม, สินค้าและป๊อปอัป ostype'
+        ]
+      }
+    },
+    {
+      version: '3.26',
+      kind: 'minor',
+      date: '2026-08-14',
+      items: {
+        KO: [
+          '본사 결제 라우팅에 엑심베이 결제방식(신용카드·PayPay·편의점/Pay-easy·UnionPay) 추가 — 가맹은 본사설정 따름',
+          '신용카드만 켜면 다른 PG와 동일한 카드번호 입력 UI, 신용카드는 등록업체 결제대행사 카드 등록 필요'
+        ],
+        EN: [
+          'HQ payment routing: Eximbay methods (card, PayPay, convenience store/Pay-easy, UnionPay); merchants follow HQ',
+          'Card-only uses the same card-entry UI as other PGs; card requires merchant PG binding'
+        ],
+        JP: [
+          '本社決済ルーティングにEximbay決済手段を追加。加盟店は本社設定に従う',
+          'クレジットカードのみの場合は他PGと同じカード入力UI。カードは加盟店の決済代行カード登録が必要'
+        ],
+        CH: [
+          '总部支付路由增加 Eximbay 支付方式；商户跟随总部设置',
+          '仅信用卡时使用与其他 PG 相同的填卡界面；需在商户绑定支付机构卡片'
+        ],
+        TH: [
+          'เส้นทางชำระ HQ: วิธีชำระ Eximbay — ร้านค้าตาม HQ',
+          'ถ้าเปิดเฉพาะบัตร ใช้ UI กรอกบัตรแบบ PG อื่น ต้องผูกบัตร PG ที่ร้าน'
+        ]
+      }
+    },
+    {
+      version: '3.25',
+      kind: 'minor',
+      date: '2026-08-14',
+      items: {
+        KO: [
+          '결제창 결제수단을 로고 타일로 표시(신용카드 브랜드·PayPay·편의점/Pay-easy·UnionPay), 5개국어 캡션'
+        ],
+        EN: [
+          'Checkout payment methods as logo tiles (card brands, PayPay, convenience store/Pay-easy, UnionPay) with 5-locale captions'
+        ],
+        JP: [
+          '決済手段をロゴタイル表示（カードブランド・PayPay・コンビニ/Pay-easy・UnionPay）、5言語キャプション'
+        ],
+        CH: [
+          '结账支付方式改为 Logo 磁贴（卡品牌、PayPay、便利店/Pay-easy、银联），5语说明'
+        ],
+        TH: [
+          'แสดงวิธีชำระเป็นไทล์โลโก้ (บัตร, PayPay, ร้านสะดวกซื้อ/Pay-easy, UnionPay) คำบรรยาย 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.24',
+      kind: 'minor',
+      date: '2026-08-14',
+      items: {
+        KO: [
+          '해외 결제창: 신용카드·PayPay·일본 편의점·은행·UnionPay 수단 노출 및 5개국어',
+          '결제내역 자동환불·강제환불에 해외 PG 전액 취소(cancel) 연동'
+        ],
+        EN: [
+          'Checkout methods: credit card, PayPay, Japan convenience store/bank, UnionPay (5 locales)',
+          'Pay-list auto/force refund wired to full cancel API'
+        ],
+        JP: [
+          '決済画面: クレジットカード・PayPay・コンビニ/銀行・UnionPay（5言語）',
+          '決済履歴の自動/強制返金を全額取消APIに連携'
+        ],
+        CH: [
+          '结账方式：银行卡、PayPay、日本便利店/银行、银联（5语）',
+          '支付明细自动/强制退款对接全额取消 API'
+        ],
+        TH: [
+          'วิธีชำระ: บัตร, PayPay, ร้านสะดวกซื้อ/ธนาคารญี่ปุ่น, UnionPay (5 ภาษา)',
+          'เชื่อม AUTO/FORCE_REFUND กับ API ยกเลิกเต็มจำนวน'
+        ]
+      }
+    },
     {
       version: '3.23',
       kind: 'minor',

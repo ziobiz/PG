@@ -32376,6 +32376,56 @@
       }
       reload();
     }
+    function initHqEximbayMethodsVisible(pane) {
+      var hidden = pane.querySelector('#hqEximbayMethodsVisible');
+      var checks = pane.querySelectorAll('.hq-eximbay-method-chk');
+      if (!hidden || !checks.length) return;
+      function order() { return ['CARD', 'PAYPAY', 'JPCONVBANK', 'UNIONPAY']; }
+      function syncHidden() {
+        var picked = [];
+        order().forEach(function (k) {
+          checks.forEach(function (c) {
+            if (String(c.getAttribute('data-exb-key') || '') === k && c.checked) picked.push(k);
+          });
+        });
+        if (!picked.length) {
+          picked = ['CARD'];
+          checks.forEach(function (c) {
+            c.checked = String(c.getAttribute('data-exb-key') || '') === 'CARD';
+          });
+        }
+        hidden.value = picked.join(',');
+      }
+      function applyFromHidden() {
+        var raw = String(hidden.value || '').toUpperCase();
+        var set = {};
+        raw.split(/[,;\s]+/).forEach(function (p) {
+          var k = String(p || '').replace(/[^A-Z]/g, '');
+          if (k) set[k] = true;
+        });
+        var any = false;
+        checks.forEach(function (c) {
+          var k = String(c.getAttribute('data-exb-key') || '');
+          c.checked = !!set[k];
+          if (c.checked) any = true;
+        });
+        if (!any) {
+          checks.forEach(function (c) {
+            c.checked = String(c.getAttribute('data-exb-key') || '') === 'CARD';
+          });
+        }
+        syncHidden();
+      }
+      applyFromHidden();
+      if (!pane._hqEximbayMethodsBound) {
+        pane._hqEximbayMethodsBound = true;
+        checks.forEach(function (c) {
+          c.addEventListener('change', syncHidden);
+        });
+        var saveBtn = pane.querySelector('#hqPaymentOrchSaveBtn');
+        if (saveBtn) saveBtn.addEventListener('click', syncHidden, true);
+      }
+    }
     /** 본사 결제로직설정 — 결제통화 스케일 규칙 JSON 편집기 (추가·수정·삭제·목록 반영·하단 저장) */
     function initHqPayCurrencyScaleRulesEditor(pane) {
       var mount = pane.querySelector('#hqPayCurrencyScaleMount');
@@ -33282,6 +33332,9 @@
             'botThailandApiKey', 'botThailandBaseUrl', 'botThailandDailyAvgPath', 'botThailandApiKeyHeader',
             'multiPgRoutingEnabledYn',
             'multiPgRoutingMode',
+            'eximbayMethodsVisible',
+            'splitPayContractCancelDefaultYn',
+            'splitPayContractCancelOrgOpYn',
             'jpaySubscriptionEnabledYn', 'jpaySubscriptionInlineEnabledYn', 'jpaySubscriptionPathTemplate', 'jpaySubscriptionConfigJson'
           ].forEach(function (k) {
             var el = pane.querySelector('[name="' + k + '"]');
@@ -33296,6 +33349,7 @@
           initHqUrlPayCardCopyEditor(pane);
           initHqJpayPortalAccountEditor(pane);
           pgBindHqCheckoutDisplayProductUi(pane);
+          initHqEximbayMethodsVisible(pane);
         }
       });
       var hqApiSave = pane.querySelector('#hqApiConfigSaveBtn') || pane.querySelector('#hqPaymentOrchSaveBtn');

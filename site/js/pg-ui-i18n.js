@@ -22758,6 +22758,36 @@
       CH: '未配置 ElementPay Merchant Key / Secret Key。',
       TH: 'ยังไม่ได้ตั้ง ElementPay Merchant Key และ Secret Key'
     },
+    '해당 거래는 자동무효를 지원하지 않습니다. 승인 완료 건은 자동환불·강제환불을 사용하세요.': {
+      EN: 'Auto-void is not supported for this transaction. Use auto refund or force refund after approval.',
+      JP: 'この取引は自動無効に非対応です。承認後は自動返金・強制返金を使ってください。',
+      CH: '该交易不支持自动作废。已批准请使用自动退款或强制退款。',
+      TH: 'ธุรกรรมนี้ไม่รองรับโมฆะอัตโนมัติ หลังอนุมัติให้ใช้คืนเงินอัตโนมัติหรือบังคับ'
+    },
+    '해당 거래는 취소 API를 호출할 수 없습니다.': {
+      EN: 'Cancel API cannot be called for this transaction.',
+      JP: 'この取引では取消APIを呼べません。',
+      CH: '该交易无法调用取消 API。',
+      TH: 'เรียก API ยกเลิกสำหรับธุรกรรมนี้ไม่ได้'
+    },
+    '거래번호(transaction_id)가 없어 취소 API를 호출할 수 없습니다.': {
+      EN: 'Missing transaction_id; cannot call cancel API.',
+      JP: 'transaction_idがないため取消APIを呼べません。',
+      CH: '缺少 transaction_id，无法调用取消 API。',
+      TH: 'ไม่มี transaction_id จึงเรียก API ยกเลิกไม่ได้'
+    },
+    '결제 취소 요청에 실패했습니다: ': {
+      EN: 'Payment cancel request failed: ',
+      JP: '決済取消リクエストに失敗しました: ',
+      CH: '支付取消请求失败: ',
+      TH: 'คำขอยกเลิกการชำระเงินล้มเหลว: '
+    },
+    '결제 취소가 거부되었습니다': {
+      EN: 'Payment cancel was declined',
+      JP: '決済取消が拒否されました',
+      CH: '支付取消被拒绝',
+      TH: 'การยกเลิกการชำระเงินถูกปฏิเสธ'
+    },
     'compId 또는 merchantId가 필요합니다.': {
       EN: 'compId 또는 merchantId is required.',
       JP: 'compId 또는 merchantIdが必要です。',

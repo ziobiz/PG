@@ -253,8 +253,8 @@ public class PayFollowPolicyService {
             out.put("MANUAL_REFUND", Boolean.TRUE.equals(base.get("MANUAL_REFUND")));
             return out;
         }
-        /* ElementPay: initRefund 환불만 — voidPayment(2단계) 미사용이므로 자동무효 비활성. 이메일무효는 유지. */
-        if (PgVendor.isElementPayFamily(t.getVan())) {
+        /* ElementPay·Eximbay: 환불 API만 — 자동무효 비활성. 이메일무효는 유지. */
+        if (PgVendor.isElementPayFamily(t.getVan()) || PgVendor.isEximbayFamily(t.getVan())) {
             HqNotifyEnvConfig env = hqNotifyEnvService.getOrCreate();
             ZoneId ref = resolvePayFollowZone(env);
             out.put("EMAIL_VOID", Boolean.TRUE.equals(base.get("EMAIL_VOID")) && withinEmailVoidWindow(t, env, ref));

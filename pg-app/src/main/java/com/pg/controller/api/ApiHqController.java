@@ -1701,6 +1701,7 @@ public class ApiHqController {
         data.put("jpaySubscriptionConfigJson", "{\"attempts\":\"3\",\"interval_time\":3600,\"total_count\":12}");
         data.put("multiPgRoutingEnabledYn", "Y");
         data.put("multiPgRoutingMode", "BRAND_AND_CURRENCY");
+        data.put("eximbayMethodsVisible", com.pg.service.EximbayPaymentMethodCatalog.DEFAULT_VISIBLE_CSV);
         data.put("urlPayFormMode", "FULL");
         data.put("jpayCheckoutFieldMode", "FULL");
         data.put("jpayPhoneDialCodeYn", "N");
@@ -1811,6 +1812,11 @@ public class ApiHqController {
             }
             if (c.getMultiPgRoutingMode() != null) {
                 data.put("multiPgRoutingMode", com.pg.util.MultiPgRoutingModeUtil.normalize(c.getMultiPgRoutingMode()));
+            }
+            if (c.getEximbayMethodsVisible() != null && !c.getEximbayMethodsVisible().isBlank()) {
+                data.put("eximbayMethodsVisible",
+                        com.pg.service.EximbayPaymentMethodCatalog.toCsv(
+                                com.pg.service.EximbayPaymentMethodCatalog.resolveVisible(c.getEximbayMethodsVisible())));
             }
             if (c.getUrlPayFormMode() != null) data.put("urlPayFormMode", c.getUrlPayFormMode());
             if (c.getJpayCheckoutFieldMode() != null) {
@@ -1935,6 +1941,9 @@ public class ApiHqController {
         c.setMultiPgRoutingEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("multiPgRoutingEnabledYn", "Y"))) ? "N" : "Y");
         c.setMultiPgRoutingMode(com.pg.util.MultiPgRoutingModeUtil.normalize(
                 String.valueOf(body.getOrDefault("multiPgRoutingMode", "BRAND_AND_CURRENCY"))));
+        if (body.containsKey("eximbayMethodsVisible")) {
+            c.setEximbayMethodsVisible(String.valueOf(body.get("eximbayMethodsVisible")));
+        }
         c.setJpaySubscriptionInlineEnabledYn("Y".equalsIgnoreCase(String.valueOf(body.getOrDefault("jpaySubscriptionInlineEnabledYn", "N"))) ? "Y" : "N");
         String subPathTpl = body.get("jpaySubscriptionPathTemplate") != null ? body.get("jpaySubscriptionPathTemplate").toString().trim() : "";
         c.setJpaySubscriptionPathTemplate(subPathTpl.isEmpty() ? "/jpay-subscribe/{compCode}" : subPathTpl);

@@ -1,39 +1,37 @@
 package com.pg.urlpay;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pg.entity.HqApiConfig;
 import com.pg.entity.MerchantProfile;
 import com.pg.entity.PgAgency;
 import com.pg.integration.pg.PgVendor;
+import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.PgAgencyRepository;
 import com.pg.service.EximbayPaymentMethodCatalog;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
- * Eximbay 전용 checkout-context 보강: 결제수단 버튼 목록({@code eximbayPaymentMethods})과 호스티드 모드 표식.
+ * Eximbay 전용 checkout-context 보강: 결제수단 목록({@code eximbayPaymentMethods}).
  *
- * <p>노출 결제수단은 {@link EximbayPaymentMethodCatalog#displayOrder()} 기본 순서(카드→PayPay→…)를 쓰되,
- * {@code tb_pg_agency.credentials_extra_json.eximbayMethodsVisible}(쉼표 구분 키 목록)로 제한할 수 있습니다.
- * 프론트는 키만 서버로 보내고, 실제 Eximbay {@code payment_method} 코드 변환은 서버가 담당합니다.
+ * <p>노출 수단은 본사 결제 라우팅 {@code tb_hq_api_config.eximbay_methods_visible}(가맹은 본사설정 따름).
+ * 신용카드만이면 {@code eximbayInlineCardUi=true} — 다른 PG와 동일한 카드번호 입력 UI.
  */
 @Component
 public class EximbayUrlPayCheckoutContextEnricher implements UrlPayCheckoutContextEnricher {
 
     private final PgAgencyRepository pgAgencyRepository;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final HqApiConfigRepository hqApiConfigRepository;
 
-    public EximbayUrlPayCheckoutContextEnricher(PgAgencyRepository pgAgencyRepository) {
+    public EximbayUrlPayCheckoutContextEnricher(PgAgencyRepository pgAgencyRepository,
+                                                HqApiConfigRepository hqApiConfigRepository) {
         this.pgAgencyRepository = pgAgencyRepository;
+        this.hqApiConfigRepository = hqApiConfigRepository;
     }
 
     @Override
@@ -52,48 +50,29 @@ public class EximbayUrlPayCheckoutContextEnricher implements UrlPayCheckoutConte
         data.put("integrationMode", "INLINE");
         data.put("urlPayFormMode", "FULL");
 
-        String opPg = String.valueOf(data.getOrDefault("urlPayOperationalPgCd", "")).trim();
-        Optional<PgAgency> agency = opPg.isEmpty() ? Optional.empty() : pgAgencyRepository.findByPgCd(opPg);
-
-        Set<String> visible = readVisibleKeys(agency);
-        List<String> order = EximbayPaymentMethodCatalog.displayOrder();
+        String csv = hqApiConfigRepository.findAll().stream().findFirst()
+                .map(HqApiConfig::getEximbayMethodsVisible)
+                .orElse(EximbayPaymentMethodCatalog.DEFAULT_VISIBLE_CSV);
+        List<String> visible = EximbayPaymentMethodCatalog.resolveVisible(csv);
         List<Map<String, Object>> methods = new ArrayList<>();
-        for (String key : order) {
-            if (visible != null && !visible.contains(key)) {
-                continue;
-            }
+        for (String key : visible) {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("key", key);
             methods.add(m);
         }
         data.put("eximbayPaymentMethods", methods);
-        data.put("eximbayHostedWindow", true);
-    }
+        String opPg = String.valueOf(data.getOrDefault("urlPayOperationalPgCd", "")).trim();
+        Optional<PgAgency> agency = opPg.isEmpty() ? Optional.empty() : pgAgencyRepository.findByPgCd(opPg);
+        boolean sandbox = agency
+                .map(a -> "Y".equalsIgnoreCase(a.getSandboxYn() != null ? a.getSandboxYn().trim() : ""))
+                .orElse(false);
+        agency.ifPresent(a -> data.put("eximbayPgCd", a.getPgCd()));
+        data.put("eximbaySandbox", sandbox);
 
-    private Set<String> readVisibleKeys(Optional<PgAgency> agency) {
-        if (agency.isEmpty()) {
-            return null;
-        }
-        String raw = agency.get().getCredentialsExtraJson();
-        if (raw == null || raw.isBlank()) {
-            return null;
-        }
-        try {
-            JsonNode root = objectMapper.readTree(raw);
-            JsonNode v = root.get("eximbayMethodsVisible");
-            if (v == null || v.isNull()) {
-                return null;
-            }
-            String csv = v.asText("").trim();
-            if (csv.isEmpty()) {
-                return null;
-            }
-            return Arrays.stream(csv.split(","))
-                    .map(s -> EximbayPaymentMethodCatalog.normalizeKey(s.trim()))
-                    .filter(s -> !s.isEmpty())
-                    .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
-        } catch (Exception e) {
-            return null;
-        }
+        boolean cardOnly = EximbayPaymentMethodCatalog.isCardOnly(visible);
+        /* 샌드박스는 Eximbay 호스티드 카드창(테스트 카드)으로 승인 연동. 운영만 ICOPAY 카드 입력 UI. */
+        boolean inlineCard = cardOnly && !sandbox;
+        data.put("eximbayInlineCardUi", inlineCard);
+        data.put("eximbayHostedWindow", !inlineCard);
     }
 }

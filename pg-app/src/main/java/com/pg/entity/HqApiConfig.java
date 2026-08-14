@@ -191,6 +191,13 @@ public class HqApiConfig {
     @Column(name = "multi_pg_routing_mode", nullable = false, length = 32)
     private String multiPgRoutingMode = "BRAND_AND_CURRENCY";
 
+    /**
+     * 엑심베이 URL 결제창 노출 수단 — 본사 결제 라우팅.
+     * CSV: CARD,PAYPAY,JPCONVBANK,UNIONPAY. 가맹은 본사설정 따름. 신용카드만이면 ICOPAY 카드입력 UI.
+     */
+    @Column(name = "eximbay_methods_visible", length = 200)
+    private String eximbayMethodsVisible = "CARD,PAYPAY,JPCONVBANK,UNIONPAY";
+
     /** JPAY 구독 인라인 결제창(jpay-subscribe.html) 제공 여부 */
     @Column(name = "jpay_subscription_inline_enabled_yn", length = 1)
     private String jpaySubscriptionInlineEnabledYn = "N";
@@ -543,6 +550,11 @@ public class HqApiConfig {
     public void setMultiPgRoutingEnabledYn(String multiPgRoutingEnabledYn) { this.multiPgRoutingEnabledYn = multiPgRoutingEnabledYn; }
     public String getMultiPgRoutingMode() { return multiPgRoutingMode; }
     public void setMultiPgRoutingMode(String multiPgRoutingMode) { this.multiPgRoutingMode = multiPgRoutingMode; }
+    public String getEximbayMethodsVisible() { return eximbayMethodsVisible; }
+    public void setEximbayMethodsVisible(String eximbayMethodsVisible) {
+        this.eximbayMethodsVisible = com.pg.service.EximbayPaymentMethodCatalog.toCsv(
+                com.pg.service.EximbayPaymentMethodCatalog.resolveVisible(eximbayMethodsVisible));
+    }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

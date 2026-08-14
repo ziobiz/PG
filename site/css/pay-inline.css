@@ -78,8 +78,8 @@ html[data-pay-embed="1"] .pay-card {
 .pay-lang {
   display: flex;
   justify-content: center;
-  gap: 0.35rem;
-  flex-wrap: wrap;
+  gap: 0.3rem;
+  flex-wrap: nowrap;
   margin-bottom: 1.25rem;
 }
 
@@ -87,7 +87,9 @@ html[data-pay-embed="1"] .pay-card {
   border: 1px solid var(--pay-primary);
   background: #fff;
   color: var(--pay-primary);
-  padding: 0.25rem 0.65rem;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.25rem 0.2rem;
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 600;
@@ -546,38 +548,81 @@ html[data-pay-embed="1"] .pay-card {
   text-align: center;
 }
 
-/* —— Eximbay 결제수단 선택 그리드 (카드·PayPay·Alipay·WeChat·UnionPay·GrabPay·LINE·Kakao·ApplePay) —— */
+/* —— 결제수단 선택 그리드 (로고 + 캡션) —— */
 .eximbay-method-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-}
-@media (max-width: 360px) {
-  .eximbay-method-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
 }
 .eximbay-method-btn {
-  border: 1px solid var(--pay-border);
+  border: 1px solid #d8dde6;
   background: #fff;
   color: #333;
-  padding: 0.55rem 0.4rem;
+  padding: 0.55rem 0.4rem 0.45rem;
   border-radius: 8px;
-  font-size: 0.8125rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.25;
   cursor: pointer;
   text-align: center;
-  transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
-  min-height: 2.75rem;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  min-height: 4.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+.eximbay-method-btn[data-method="CARD"] {
+  grid-column: 1 / -1;
+  min-height: 4.6rem;
 }
 .eximbay-method-btn:hover {
   border-color: var(--pay-primary);
-  background: rgba(13, 110, 253, 0.05);
+  background: #fff;
 }
 .eximbay-method-btn.active {
   border-color: var(--pay-primary);
-  background: var(--pay-primary);
-  color: #fff;
-  box-shadow: 0 1px 4px rgba(13, 110, 253, 0.25);
+  border-width: 2px;
+  background: #fff;
+  color: #222;
+  box-shadow: 0 0 0 1px rgba(13, 110, 253, 0.2);
+  padding: calc(0.55rem - 1px) calc(0.4rem - 1px) calc(0.45rem - 1px);
 }
+.eximbay-method-logos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem 0.4rem;
+  min-height: 1.4rem;
+}
+.eximbay-method-caption {
+  display: block;
+  color: #444;
+  font-weight: 600;
+  font-size: 0.7rem;
+  line-height: 1.2;
+}
+.eximbay-method-btn.active .eximbay-method-caption {
+  color: #0d6efd;
+}
+.pm-logo {
+  display: block;
+  height: 18px;
+  width: auto;
+  max-width: 72px;
+}
+.eximbay-method-btn[data-method="CARD"] .pm-logo {
+  height: 16px;
+}
+.pm-logo-visa { height: 14px; }
+.pm-logo-discover { height: 13px; max-width: 76px; }
+.pm-logo-amex { height: 16px; max-width: 86px; }
+.pm-logo-paypay,
+.pm-logo-konbini,
+.pm-logo-payeasy {
+  height: 22px;
+  max-width: 78px;
+}
+.pm-logo-unionpay { height: 22px; max-width: 52px; }
