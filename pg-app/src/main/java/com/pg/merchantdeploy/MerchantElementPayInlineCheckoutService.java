@@ -195,7 +195,10 @@ public class MerchantElementPayInlineCheckoutService {
         return switch (status.trim()) {
             case "10" -> "PAID";
             case "08" -> "PENDING";
-            case "20", "30" -> "CANCELLED";
+            case "20" -> "CANCELLED";
+            case "30", "42" -> "REFUNDED";
+            case "31" -> "CHARGEBACK";
+            case "21", "22" -> "VOIDED";
             case "99" -> "FAILED";
             default -> "UNKNOWN";
         };

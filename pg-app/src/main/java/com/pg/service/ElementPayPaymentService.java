@@ -807,6 +807,10 @@ public class ElementPayPaymentService {
                     String localMsg = firstNonBlank(
                             local.get().getOutcomeReason(),
                             local.get().getChillPaymentStatus());
+                    String mk = checkoutMessageKey(localMsg);
+                    if (mk != null) {
+                        out.put("messageKey", mk);
+                    }
                     if (localMsg != null && !localMsg.isBlank()
                             && !localMsg.toUpperCase(Locale.ROOT).startsWith("ELEMENTPAY_URL")) {
                         out.put("statusMessage", localMsg.trim());
@@ -816,12 +820,16 @@ public class ElementPayPaymentService {
                 if ("42".equals(stLocal) || "31".equals(stLocal) || "30".equals(stLocal)) {
                     Map<String, Object> out = new LinkedHashMap<>();
                     out.put("success", true);
-                    out.put("paymentStatus", "REFUNDED");
+                    boolean chargeback = "31".equals(stLocal);
+                    out.put("paymentStatus", chargeback ? "REVERSED" : "REFUNDED");
                     out.put("paid", false);
-                    out.put("refunded", true);
+                    out.put("refunded", !chargeback);
+                    out.put("reversed", chargeback);
                     out.put("orderNo", orderNo);
                     out.put("paymentId", paymentId);
                     out.put("source", "LOCAL");
+                    out.put("messageKey", chargeback
+                            ? "ELEMENTPAY_PAYMENT_REVERSED" : "ELEMENTPAY_PAYMENT_REFUNDED");
                     return out;
                 }
             }
@@ -862,19 +870,31 @@ public class ElementPayPaymentService {
         if (!statusMessage.isBlank()) {
             out.put("statusMessage", statusMessage);
         }
-        if (st == 203 || st == 205 || st == 208) {
+        if (st == 203 || st == 205) {
             out.put("paymentStatus", "PAID");
             out.put("paid", true);
             syncLocalOutcomeFromStatus(orderNo, paymentId, true, statusMessage);
+        } else if (st == 208) {
+            out.put("paymentStatus", "DISPUTED");
+            out.put("paid", false);
+            out.put("messageKey", "ELEMENTPAY_DISPUTED");
+            syncLocalOutcomeFromStatus(orderNo, paymentId, false,
+                    !statusMessage.isBlank() ? statusMessage : "ELEMENTPAY_DISPUTED");
         } else if (st == 207) {
             out.put("paymentStatus", "REFUNDED");
             out.put("paid", false);
             out.put("refunded", true);
+            out.put("messageKey", "ELEMENTPAY_PAYMENT_REFUNDED");
             syncLocalRefundFromStatus(orderNo, paymentId,
                     !statusMessage.isBlank() ? statusMessage : "Payment is refunded");
         } else if (st == 204 || st == 209) {
             out.put("paymentStatus", "FAILED");
             out.put("paid", false);
+            String mk = checkoutMessageKey(statusMessage);
+            if (mk == null) {
+                mk = "ELEMENTPAY_PAYMENT_REJECTED";
+            }
+            out.put("messageKey", mk);
             syncLocalOutcomeFromStatus(orderNo, paymentId, false,
                     !statusMessage.isBlank() ? statusMessage : "ElementPay rejected");
         } else {
@@ -950,7 +970,7 @@ public class ElementPayPaymentService {
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
             headers.set(HttpHeaders.USER_AGENT, USER_AGENT);
             ResponseEntity<String> entity = restTemplate.postForEntity(url, new HttpEntity<>(formBody, headers), String.class);
-            return objectMapper.readTree(entity.getBody() != null ? entity.getBody() : "{}");
+            return parseEpApiJson("initPayment", cred, entity.getBody());
         } catch (Exception e) {
             log.warn("ElementPay initPayment HTTP 실패 service_id={}: {}", serviceAlias, e.getMessage());
             return null;
@@ -988,7 +1008,7 @@ public class ElementPayPaymentService {
             headers.set(HttpHeaders.USER_AGENT, USER_AGENT);
             String url = resolveBase(agOpt.get()) + "/merchant/getStatus";
             ResponseEntity<String> entity = restTemplate.postForEntity(url, new HttpEntity<>(formBody, headers), String.class);
-            JsonNode resp = objectMapper.readTree(entity.getBody() != null ? entity.getBody() : "{}");
+            JsonNode resp = parseEpApiJson("getStatus", cred, entity.getBody());
             Map<String, Object> out = new LinkedHashMap<>();
             out.put("success", !resp.has("error"));
             out.put("raw", objectMapper.convertValue(resp, Map.class));
@@ -1044,7 +1064,7 @@ public class ElementPayPaymentService {
             headers.set(HttpHeaders.USER_AGENT, USER_AGENT);
             ResponseEntity<String> entity = restTemplate.postForEntity(
                     url, new HttpEntity<>(formBody, headers), String.class);
-            resp = objectMapper.readTree(entity.getBody() != null ? entity.getBody() : "{}");
+            resp = parseEpApiJson("initRefund", cred, entity.getBody());
         } catch (Exception e) {
             log.warn("ElementPay initRefund HTTP 실패 paymentId={}: {}", paymentId, e.getMessage());
             throw new IllegalStateException("ElementPay 환불 요청에 실패했습니다: " + e.getMessage());
@@ -1123,7 +1143,7 @@ public class ElementPayPaymentService {
             headers.set(HttpHeaders.USER_AGENT, USER_AGENT);
             String url = resolveBase(agency) + "/merchant/getMethods";
             ResponseEntity<String> entity = restTemplate.postForEntity(url, new HttpEntity<>(formBody, headers), String.class);
-            resp = objectMapper.readTree(entity.getBody() != null ? entity.getBody() : "{}");
+            resp = parseEpApiJson("getMethods", cred, entity.getBody());
         } catch (Exception e) {
             log.warn("ElementPay getMethods HTTP 실패: {}", e.getMessage());
             return fail("ElementPay 결제수단 조회에 실패했습니다.", "ELEMENTPAY_METHODS_FAILED");
@@ -1155,6 +1175,15 @@ public class ElementPayPaymentService {
         out.put("suggestedCardServiceAlias", suggestedCard);
         out.put("methods", methods);
         out.put("hint", "목록의 alias(또는 id)를 cardServiceAlias 에 넣고 저장하세요. 카드는 보통 kCards · Visa/MasterCard/JCB/UnionPay 줄입니다.");
+        out.put("webhookUrl", "https://noti.icopay.net/noti/elementpay");
+        out.put("callbackSourceIps", List.of("3.0.36.253", "3.1.29.20"));
+        out.put("liveChecklist", List.of(
+                "라이브 Webhook URL: https://noti.icopay.net/noti/elementpay",
+                "Cabinet Payments Verifier 켜기 (check 콜백)",
+                "Events: payment.rejected, payment.reversed, payment.refunded, payment.wrong_payer, refund.created, refund.paid, refund.canceled",
+                "Signing Secret은 API Secret과 다른 키 (해당 Webhook 엔드포인트)",
+                "콜백 송신 IP(NOTI 화이트리스트): 3.0.36.253(sandbox), 3.1.29.20(live)"
+        ));
         return out;
     }
 
@@ -1436,6 +1465,43 @@ public class ElementPayPaymentService {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    private JsonNode parseEpApiJson(String method, ElementPayCredentials cred, String rawBody) throws Exception {
+        JsonNode resp = objectMapper.readTree(rawBody != null && !rawBody.isBlank() ? rawBody : "{}");
+        String api = cred != null ? cred.apiSecretKey() : "";
+        String wh = cred != null ? cred.webhookSecretKey() : "";
+        if (!ElementPayHashUtil.verifyMerchantApiResponse(api, wh, resp)) {
+            log.error("ElementPay {} response hash mismatch", method);
+        }
+        return resp;
+    }
+
+    private static String checkoutMessageKey(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String u = raw.trim().toUpperCase(Locale.ROOT);
+        if (u.startsWith("ELEMENTPAY_")) {
+            return raw.trim();
+        }
+        String l = raw.toLowerCase(Locale.ROOT);
+        if (l.contains("rejected by bank") || l.contains("bank reject")) {
+            return "ELEMENTPAY_REJECTED_BY_BANK";
+        }
+        if (l.contains("wrong_payer") || l.contains("wrong payer")) {
+            return "ELEMENTPAY_WRONG_PAYER";
+        }
+        if (l.contains("reversed")) {
+            return "ELEMENTPAY_PAYMENT_REVERSED";
+        }
+        if (l.contains("refund")) {
+            return "ELEMENTPAY_PAYMENT_REFUNDED";
+        }
+        if (l.contains("reject")) {
+            return "ELEMENTPAY_PAYMENT_REJECTED";
+        }
+        return null;
     }
 
     private static Map<String, Object> fail(String message, String code) {

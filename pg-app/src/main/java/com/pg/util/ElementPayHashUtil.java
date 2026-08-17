@@ -1,5 +1,7 @@
 package com.pg.util;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.net.URLEncoder;
@@ -19,8 +21,9 @@ public final class ElementPayHashUtil {
 
     private static final String[] CALLBACK_PARAM_ORDER = {
             "method", "id", "service_id", "amount", "currency", "method_amount", "method_currency",
-            "order", "timestamp", "data", "payer_name", "status", "status_message", "client_amount",
-            "client_currency", "fee", "created_at", "paid_at", "canceled_at"
+            "order", "order_id", "timestamp", "data", "payer_name", "status", "status_message",
+            "client_amount", "client_currency", "fee", "total_fee", "gross", "recipient",
+            "failure_code", "failure_message", "created_at", "paid_at", "canceled_at"
     };
 
     private ElementPayHashUtil() {
@@ -102,6 +105,44 @@ public final class ElementPayHashUtil {
 
     public static String signCallbackResponse(String secretKey, Map<String, Object> responseFields) {
         return hmacSha1Hex(secretKey, compactJson(responseFields));
+    }
+
+    /**
+     * Merchant API 응답 hash — compact JSON({@code response} 또는 {@code error} 객체).
+     * hash 가 없으면 검증 생략(일부 error 본문). 서명 키는 API Secret, 실패 시 Webhook Signing Secret.
+     */
+    public static boolean verifyMerchantApiResponse(String apiSecretKey, String webhookSecretKey,
+                                                    JsonNode root) {
+        if (root == null || root.isMissingNode() || root.isNull()) {
+            return true;
+        }
+        JsonNode hashNode = root.get("hash");
+        if (hashNode == null || hashNode.isNull() || hashNode.asText("").isBlank()) {
+            return true;
+        }
+        String want = hashNode.asText("").trim().toLowerCase(Locale.ROOT);
+        JsonNode payload = root.get("response");
+        if (payload == null || payload.isMissingNode() || payload.isNull()) {
+            payload = root.get("error");
+        }
+        if (payload == null || payload.isMissingNode() || payload.isNull()) {
+            return true;
+        }
+        String compact = payload.toString();
+        if (secretMatches(apiSecretKey, compact, want)) {
+            return true;
+        }
+        return webhookSecretKey != null && !webhookSecretKey.isBlank()
+                && !webhookSecretKey.equals(apiSecretKey)
+                && secretMatches(webhookSecretKey, compact, want);
+    }
+
+    private static boolean secretMatches(String secret, String compactJson, String wantHex) {
+        if (secret == null || secret.isBlank() || compactJson == null) {
+            return false;
+        }
+        String got = hmacSha1Hex(secret, compactJson).toLowerCase(Locale.ROOT);
+        return constantTimeEquals(got, wantHex);
     }
 
     public static boolean verifyCallbackRequest(String secretKey, String method, Map<String, String> params, String hash) {

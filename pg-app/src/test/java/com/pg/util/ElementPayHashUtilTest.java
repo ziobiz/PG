@@ -119,14 +119,25 @@ class ElementPayHashUtilTest {
     }
 
     @Test
-    void signCallbackResponse_isNonEmptyForWrongHashBody() {
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("status", 401);
-        response.put("message", "Wrong hash");
-        response.put("timestamp", 1548021377L);
+    void verifyMerchantApiResponse_acceptsHmacOfCompactResponseJson() throws Exception {
         String secret = "80eb8c9793949bc6682baffdb4dd5303542581ed";
-        String hash = ElementPayHashUtil.signCallbackResponse(secret, response);
-        assertEquals(40, hash.length());
-        assertFalse(hash.isBlank());
+        String compact = "{\"id\":56810,\"order\":\"orderid105213\",\"status\":203,\"timestamp\":1697613541}";
+        com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+        com.fasterxml.jackson.databind.JsonNode response = om.readTree(compact);
+        String hash = ElementPayHashUtil.hmacSha1Hex(secret, response.toString());
+        com.fasterxml.jackson.databind.node.ObjectNode root = om.createObjectNode();
+        root.set("response", response);
+        root.put("hash", hash);
+        assertTrue(ElementPayHashUtil.verifyMerchantApiResponse(secret, null, root));
+        root.put("hash", "ffffffffffffffffffffffffffffffffffffffff");
+        assertFalse(ElementPayHashUtil.verifyMerchantApiResponse(secret, null, root));
+    }
+
+    @Test
+    void verifyMerchantApiResponse_skipsWhenHashMissing() throws Exception {
+        com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+        com.fasterxml.jackson.databind.JsonNode errorOnly = om.readTree(
+                "{\"error\":{\"code\":402,\"message\":\"Wrong merchant key\",\"timestamp\":1697613541}}");
+        assertTrue(ElementPayHashUtil.verifyMerchantApiResponse("secret", null, errorOnly));
     }
 }

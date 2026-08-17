@@ -39839,6 +39839,13 @@
             });
           }
           if (data && data.hint) lines.push('', data.hint);
+          var checklist = (data && data.liveChecklist) || [];
+          if (checklist.length) {
+            lines.push('', pgAdminUiT('라이브 전환 체크리스트'));
+            checklist.forEach(function (row) {
+              lines.push('- ' + pgAdminUiT(String(row || '')));
+            });
+          }
           if (resEl) resEl.textContent = lines.join('\n');
         }).catch(function (e) {
           if (resEl) resEl.textContent = pgErrMsg(e, '결제수단 조회 실패');

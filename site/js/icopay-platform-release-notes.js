@@ -6,13 +6,35 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '3.36';
+  var CURRENT_LIVE = '3.37';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '3.37',
+      kind: 'minor',
+      date: '2026-08-18',
+      items: {
+        KO: [
+          'ElementPay 라이브: 거절·환불·차지백·환불요청 웹훅을 결제내역 상태에 반영. Merchant API 응답 서명 확인. 결제창 결과 메시지 5개국어'
+        ],
+        EN: [
+          'ElementPay go-live: reject/refund/chargeback/refund-request webhooks update payment history. Merchant API response signature check. Checkout result messages in 5 languages'
+        ],
+        JP: [
+          'ElementPay本番: 拒否・返金・チャージバック・返金依頼Webhookを取引状態へ反映。Merchant API応答署名確認。決済画面結果を5言語'
+        ],
+        CH: [
+          'ElementPay 上线：拒绝/退款/拒付/退款申请 Webhook 写入交易状态。校验 Merchant API 响应签名。结账结果支持 5 语'
+        ],
+        TH: [
+          'ElementPay ไลฟ์: webhook ปฏิเสธ/คืนเงิน/ชาร์จแบ็ก/คำขอคืน อัปเดตประวัติชำระ ตรวจลายเซ็นคำตอบ Merchant API ข้อความผลลัพธ์ 5 ภาษา'
+        ]
+      }
+    },
     {
       version: '3.36',
       kind: 'minor',

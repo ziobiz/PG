@@ -4,8 +4,9 @@ import com.pg.entity.PgNotifyInbound;
 import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.notify.NotifyIdempotencyLock;
 import com.pg.integration.pg.notify.PgNotifyInboundTxnHandler;
-import com.pg.integration.pg.PgVendor;
 import com.pg.splitpay.SplitPayPaymentHookService;
+import com.pg.util.ElementPayCallbackEventUtil;
+import com.pg.util.ElementPayCallbackOrderUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -78,21 +80,30 @@ public class ElementPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandl
             return false;
         }
         String method = first(f, "method");
-        if ("check".equalsIgnoreCase(method) || "pay".equalsIgnoreCase(method)) {
+        if (ElementPayCallbackEventUtil.isCheckOrPay(method)) {
             return false;
         }
-        String orderNo = first(f, "order");
+        ElementPayCallbackEventUtil.Spec spec = ElementPayCallbackEventUtil.classify(method);
+        if (!spec.changesTxn()) {
+            return false;
+        }
+        List<String> orderIds = ElementPayCallbackOrderUtil.orderCandidates(first(f, "order"), f);
+        String orderNo = orderIds.isEmpty() ? first(f, "order") : orderIds.get(0);
         if (orderNo.isBlank()) {
             return false;
         }
+        String paymentId = first(f, "id");
         String compCode = resolveCompCode(in, f, orderNo);
+        if (compCode.isBlank() && !paymentId.isBlank()) {
+            compCode = elementPaySaleRecordService.findAnyByPaymentId(paymentId)
+                    .map(PgTrnsctn::getMerchantId).orElse("");
+        }
         if (compCode.isBlank()) {
             return false;
         }
         notifyIdempotencyLock.lock("ELEMENTPAY", "ORD:" + compCode + "|" + orderNo);
-        boolean paid = false;
-        Optional<PgTrnsctn> saved = elementPaySaleRecordService.applyOutcome(
-                compCode, orderNo, paid, first(f, "id"), method);
+        Optional<PgTrnsctn> saved = elementPaySaleRecordService.applyAsyncEvent(
+                compCode, orderNo, paymentId, spec, method);
         if (saved.isEmpty()) {
             return true;
         }
@@ -114,7 +125,8 @@ public class ElementPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandl
             return false;
         }
         String method = first(f, "method");
-        return method.startsWith("payment.") && !first(f, "hash").isBlank() && !first(f, "order").isBlank();
+        return (method.startsWith("payment.") || method.startsWith("refund."))
+                && !first(f, "hash").isBlank();
     }
 
     private String resolveCompCode(PgNotifyInbound in, Map<String, String> f, String orderNo) {

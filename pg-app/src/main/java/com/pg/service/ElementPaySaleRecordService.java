@@ -5,6 +5,7 @@ import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.PgVendor;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
+import com.pg.util.ElementPayCallbackEventUtil;
 import com.pg.util.PgTrnsctnOrderLookup;
 import com.pg.util.RouteNoDisplayUtil;
 import org.slf4j.Logger;
@@ -181,6 +182,10 @@ public class ElementPaySaleRecordService {
                 t.setPaidAt(LocalDateTime.now(wall));
                 t.setChillPaymentStatus(truncate(msg != null && !msg.isBlank() ? msg.trim() : "Success", 50));
             } else {
+                String cur = t.getStatus() != null ? t.getStatus().trim() : "";
+                if (ST_PAID.equals(cur) || isRefundOrChargebackStatus(cur)) {
+                    return Optional.of(t);
+                }
                 t.setStatus(ST_FAIL);
                 t.setPaidAt(null);
                 if (msg != null && !msg.isBlank()) {
@@ -196,6 +201,97 @@ public class ElementPaySaleRecordService {
             log.warn("ElementPay 결과 반영 실패: {}", e.getMessage());
             return Optional.empty();
         }
+    }
+
+    /**
+     * Callback {@code payment.*}/{@code refund.*} — 스펙 이벤트별 내부 상태.
+     */
+    @Transactional
+    public Optional<PgTrnsctn> applyAsyncEvent(String merchantId, String orderNo, String paymentId,
+                                               ElementPayCallbackEventUtil.Spec spec, String rawMethod) {
+        if (spec == null || !spec.changesTxn()) {
+            return Optional.empty();
+        }
+        if (orderNo == null || orderNo.isBlank()) {
+            return Optional.empty();
+        }
+        Optional<PgTrnsctn> found = Optional.empty();
+        if (merchantId != null && !merchantId.isBlank()) {
+            found = findTxnForOrder(merchantId.trim(), orderNo.trim());
+        }
+        if (found.isEmpty()) {
+            found = findAnyByOrder(orderNo.trim());
+        }
+        if (found.isEmpty() && paymentId != null && !paymentId.isBlank()) {
+            found = findAnyByPaymentId(paymentId.trim());
+        }
+        if (found.isEmpty()) {
+            return Optional.empty();
+        }
+        PgTrnsctn t = found.get();
+        String cur = t.getStatus() != null ? t.getStatus().trim() : "";
+        String msg = ElementPayCallbackEventUtil.defaultMessage(spec, rawMethod);
+        if (paymentId != null && !paymentId.isBlank()) {
+            t.setChillTransactionId(truncate(paymentId.trim(), 64));
+        }
+        switch (spec.kind()) {
+            case PAY_REJECT -> {
+                if (ST_PAID.equals(cur) || isRefundOrChargebackStatus(cur)) {
+                    return Optional.of(t);
+                }
+                applyFailFields(t, msg);
+            }
+            case PAY_REVERSED -> {
+                if ("31".equals(cur)) {
+                    return Optional.of(t);
+                }
+                t.setStatus("31");
+                t.setPaidAt(null);
+                applyReason(t, msg);
+            }
+            case PAY_REFUNDED -> {
+                applyRefundStatus(t, "42", paymentId, msg);
+                return Optional.of(t);
+            }
+            case WRONG_PAYER -> {
+                if (ST_PAID.equals(cur)) {
+                    t.setStatus("31");
+                    t.setPaidAt(null);
+                    applyReason(t, msg);
+                } else if (isRefundOrChargebackStatus(cur)) {
+                    return Optional.of(t);
+                } else {
+                    applyFailFields(t, msg);
+                }
+            }
+            case REFUND_CREATED, REFUND_CANCELED -> applyReason(t, msg);
+            default -> {
+                return Optional.of(t);
+            }
+        }
+        pgTrnsctnRepository.save(t);
+        return Optional.of(t);
+    }
+
+    private static void applyFailFields(PgTrnsctn t, String msg) {
+        t.setStatus(ST_FAIL);
+        t.setPaidAt(null);
+        applyReason(t, msg);
+    }
+
+    private static void applyReason(PgTrnsctn t, String msg) {
+        if (msg == null || msg.isBlank()) {
+            return;
+        }
+        t.setChillPaymentStatus(truncate(msg.trim(), 50));
+        t.setOutcomeReason(msg.trim());
+        t.setOutcomeReasonSource("ELEMENTPAY");
+        t.setOutcomeReasonAt(LocalDateTime.now());
+    }
+
+    private static boolean isRefundOrChargebackStatus(String cur) {
+        return "42".equals(cur) || "31".equals(cur) || "30".equals(cur)
+                || "21".equals(cur) || "22".equals(cur);
     }
 
     /**

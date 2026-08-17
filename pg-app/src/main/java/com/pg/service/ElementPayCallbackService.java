@@ -7,7 +7,9 @@ import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.PgVendor;
 import com.pg.integration.pg.elementpay.ElementPayCredentials;
 import com.pg.receipt.TransactionReceiptEmailService;
+import com.pg.service.settlement.SettlementArrearsService;
 import com.pg.splitpay.SplitPayPaymentHookService;
+import com.pg.util.ElementPayCallbackEventUtil;
 import com.pg.util.ElementPayCallbackOrderUtil;
 import com.pg.util.ElementPayHashUtil;
 import org.slf4j.Logger;
@@ -54,6 +56,7 @@ public class ElementPayCallbackService {
     private final MerchantOutboundNotifyService merchantOutboundNotifyService;
     private final SplitPayPaymentHookService splitPayPaymentHookService;
     private final TransactionReceiptEmailService transactionReceiptEmailService;
+    private final SettlementArrearsService settlementArrearsService;
 
     public ElementPayCallbackService(HqNotifyEnvService hqNotifyEnvService,
                                      ElementPayPaymentService elementPayPaymentService,
@@ -62,7 +65,8 @@ public class ElementPayCallbackService {
                                      SettlementCalcService settlementCalcService,
                                      MerchantOutboundNotifyService merchantOutboundNotifyService,
                                      SplitPayPaymentHookService splitPayPaymentHookService,
-                                     TransactionReceiptEmailService transactionReceiptEmailService) {
+                                     TransactionReceiptEmailService transactionReceiptEmailService,
+                                     SettlementArrearsService settlementArrearsService) {
         this.hqNotifyEnvService = hqNotifyEnvService;
         this.elementPayPaymentService = elementPayPaymentService;
         this.elementPaySaleRecordService = elementPaySaleRecordService;
@@ -71,6 +75,7 @@ public class ElementPayCallbackService {
         this.merchantOutboundNotifyService = merchantOutboundNotifyService;
         this.splitPayPaymentHookService = splitPayPaymentHookService;
         this.transactionReceiptEmailService = transactionReceiptEmailService;
+        this.settlementArrearsService = settlementArrearsService;
     }
 
     /**
@@ -303,16 +308,53 @@ public class ElementPayCallbackService {
 
     private NotifyReceiveOutcome handleAsyncEvent(String method, String orderNo, String compCode,
                                                   Map<String, String> fields, ElementPayCredentials cred) {
-        if (method.startsWith("payment.") && !orderNo.isBlank()) {
-            if (compCode.isBlank()) {
-                compCode = elementPaySaleRecordService.findAnyByOrder(orderNo)
-                        .map(PgTrnsctn::getMerchantId).orElse("");
-            }
-            boolean paid = false;
-            elementPaySaleRecordService.applyOutcome(compCode, orderNo, paid,
-                    nz(fields.get("id")), method);
+        ElementPayCallbackEventUtil.Spec spec = ElementPayCallbackEventUtil.classify(method);
+        if (!spec.changesTxn()) {
+            return jsonResponse(270, "Notification received", cred);
+        }
+        List<String> orderIds = ElementPayCallbackOrderUtil.orderCandidates(orderNo, fields);
+        String paymentId = nz(fields.get("id"));
+        Optional<PgTrnsctn> existing = findTxnByOrderCandidates(compCode, orderIds);
+        if (existing.isEmpty() && !paymentId.isBlank()) {
+            existing = elementPaySaleRecordService.findAnyByPaymentId(paymentId);
+        }
+        if (existing.isEmpty() && spec.requireTxn()) {
+            log.warn("ElementPay async {}: 로컬 주문 없음 order={} id={} → 474", method, orderNo, paymentId);
+            return jsonResponse(474, "Payment Not Found", cred);
+        }
+        PgTrnsctn before = existing.orElse(null);
+        String applyMerchant = !compCode.isBlank() ? compCode
+                : (before != null && before.getMerchantId() != null ? before.getMerchantId() : "");
+        String applyOrder = before != null && before.getOrderNo() != null && !before.getOrderNo().isBlank()
+                ? before.getOrderNo() : (orderIds.isEmpty() ? orderNo : orderIds.get(0));
+        String prevStatus = before != null ? before.getStatus() : null;
+        String prevSettled = before != null ? before.getSettledYn() : null;
+        Optional<PgTrnsctn> updated = elementPaySaleRecordService.applyAsyncEvent(
+                applyMerchant, applyOrder, paymentId, spec, method);
+        if (updated.isEmpty() && spec.requireTxn()) {
+            return jsonResponse(474, "Payment Not Found", cred);
+        }
+        if (updated.isPresent()) {
+            afterAsyncApplied(updated.get(), prevStatus, prevSettled);
         }
         return jsonResponse(270, "Notification received", cred);
+    }
+
+    private void afterAsyncApplied(PgTrnsctn t, String prevStatus, String prevSettledYn) {
+        try {
+            splitPayPaymentHookService.onTxnStatusChange(t.getOrderNo(), t.getStatus(), t.getTrnId());
+        } catch (Exception ignored) {
+        }
+        try {
+            settlementArrearsService.registerPostSettlementRecoveryIfDue(prevStatus, prevSettledYn, t);
+        } catch (Exception e) {
+            log.warn("ElementPay async 환수금 등록 실패 trnId={}: {}", t.getTrnId(), e.getMessage());
+        }
+        try {
+            merchantOutboundNotifyService.scheduleAfterTxnCommit(t, null, "CALLBACK");
+        } catch (Exception e) {
+            log.warn("ElementPay async outbound 실패: {}", e.getMessage());
+        }
     }
 
     private Optional<PgTrnsctn> findTxnByOrderCandidates(String compCode, List<String> orderIds) {

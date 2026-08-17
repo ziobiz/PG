@@ -251,6 +251,11 @@
           payWaiting: '결제 처리 중입니다. 결과를 확인하는 중…',
           errPayIncomplete: '결제가 완료되지 않았습니다. EP 가이드 테스트카드(Visa 4242…4242 / Master 5555…4444, CVC 임의 3자리, 미래 만료)로 다시 시도하세요. 샌드박스는 3DS OTP 화면 없이 바로 결과가 나올 수 있습니다.',
           statusRejectedByBank: '은행에서 거절됨',
+          statusRejected: '결제가 거절되었습니다.',
+          statusReversed: '승인된 결제가 은행에 의해 취소되었습니다.',
+          statusRefunded: '결제가 환불되었습니다.',
+          statusWrongPayer: '결제자 정보가 일치하지 않아 진행할 수 없습니다.',
+          statusDisputed: '결제 상태가 분쟁입니다. 가맹점에 문의해 주세요.',
           noteSandbox3ds: '샌드박스에서는 3DS 인증 화면이 생략(frictionless)될 수 있습니다.',
           sandboxHint: '샌드박스 테스트 카드 — Visa 4242424242424242 · Master 5555555555554444 · JCB 3566002020360505 · UnionPay 6200000000000005 / CVC 임의 3자리 / 미래 만료. 4111… 카드는 이 결제에 쓰면 은행 거절됩니다.',
           pgMissing: '결제 설정이 없습니다.'
@@ -301,6 +306,11 @@
           payWaiting: 'Payment is being processed. Confirming the result…',
           errPayIncomplete: 'Payment was not completed. Retry with EP guide test cards (Visa 4242…4242 / Master 5555…4444, any 3-digit CVC, future expiry). Sandbox may skip the 3DS OTP screen and return a result directly.',
           statusRejectedByBank: 'Rejected by bank',
+          statusRejected: 'Payment was rejected.',
+          statusReversed: 'The approved payment was reversed by the bank.',
+          statusRefunded: 'The payment was refunded.',
+          statusWrongPayer: 'Payer details do not match. Payment cannot continue.',
+          statusDisputed: 'This payment is in dispute. Please contact the merchant.',
           noteSandbox3ds: 'In sandbox, the 3DS challenge screen may be skipped (frictionless).',
           sandboxHint: 'Sandbox test cards — Visa 4242424242424242 · Master 5555555555554444 · JCB 3566002020360505 · UnionPay 6200000000000005 / any 3-digit CVC / future expiry. Cards starting 4111… are rejected by the bank on this payment.',
           pgMissing: 'Payment is not configured.'
@@ -351,6 +361,11 @@
           payWaiting: '決済処理中です。結果を確認しています…',
           errPayIncomplete: '決済が完了していません。EPガイドのテストカード（Visa 4242…4242 / Master 5555…4444、CVC任意3桁、将来の有効期限）で再試行してください。サンドボックスでは3DS OTP画面なしで結果が出ることがあります。',
           statusRejectedByBank: '銀行により拒否',
+          statusRejected: '決済が拒否されました。',
+          statusReversed: '承認済み決済が銀行により取消されました。',
+          statusRefunded: '決済が返金されました。',
+          statusWrongPayer: '支払者情報が一致しないため続行できません。',
+          statusDisputed: '決済が紛争状態です。加盟店にお問い合わせください。',
           noteSandbox3ds: 'サンドボックスでは3DS認証画面が省略（frictionless）されることがあります。',
           sandboxHint: 'サンドボックステストカード — Visa 4242424242424242 · Master 5555555555554444 · JCB 3566002020360505 · UnionPay 6200000000000005 / CVC任意3桁 / 未来の有効期限。4111…は銀行拒否になります。',
           pgMissing: '決済設定がありません。'
@@ -401,6 +416,11 @@
           payWaiting: '支付处理中，正在确认结果…',
           errPayIncomplete: '支付未完成。请使用 EP 指南测试卡重试（Visa 4242…4242 / Master 5555…4444，任意 3 位 CVC，未来有效期）。沙盒可能跳过 3DS OTP 界面并直接返回结果。',
           statusRejectedByBank: '银行拒绝',
+          statusRejected: '支付已被拒绝。',
+          statusReversed: '已核准的支付被银行撤销。',
+          statusRefunded: '该支付已退款。',
+          statusWrongPayer: '付款人信息不匹配，无法继续。',
+          statusDisputed: '该支付处于争议状态。请联系商户。',
           noteSandbox3ds: '沙盒环境下可能跳过 3DS 验证界面（frictionless）。',
           sandboxHint: '沙箱测试卡 — Visa 4242424242424242 · Master 5555555555554444 · JCB 3566002020360505 · UnionPay 6200000000000005 / 任意3位CVC / 未来有效期。4111…开头的卡会被银行拒绝。',
           pgMissing: '未配置支付。'
@@ -451,6 +471,11 @@
           payWaiting: 'กำลังประมวลผลการชำระ และยืนยันผล…',
           errPayIncomplete: 'การชำระยังไม่สำเร็จ ลองใหม่ด้วยบัตรทดสอบตามคู่มือ EP (Visa 4242…4242 / Master 5555…4444, CVC 3 หลักใดก็ได้, วันหมดอายุในอนาคต) แซนด์บ็อกซ์อาจข้ามหน้า 3DS OTP แล้วคืนผลทันที',
           statusRejectedByBank: 'ธนาคารปฏิเสธ',
+          statusRejected: 'การชำระถูกปฏิเสธ',
+          statusReversed: 'ธนาคารยกเลิกการชำระที่อนุมัติแล้ว',
+          statusRefunded: 'การชำระถูกคืนเงินแล้ว',
+          statusWrongPayer: 'ข้อมูลผู้ชำระไม่ตรง ไม่สามารถดำเนินการต่อได้',
+          statusDisputed: 'รายการนี้อยู่ในข้อพิพาท กรุณาติดต่อร้านค้า',
           noteSandbox3ds: 'ในแซนด์บ็อกซ์หน้าจอยืนยัน 3DS อาจถูกข้าม (frictionless)',
           sandboxHint: 'บัตรทดสอบ sandbox — Visa 4242424242424242 · Master 5555555555554444 · JCB 3566002020360505 · UnionPay 6200000000000005 / CVC 3 หลักใดก็ได้ / วันหมดอายุในอนาคต บัตร 4111… จะถูกธนาคารปฏิเสธ',
           pgMissing: 'ยังไม่ได้ตั้งค่าการชำระเงิน'
@@ -466,6 +491,10 @@
         if (!raw) return '';
         var low = raw.toLowerCase();
         if (low.indexOf('rejected by bank') >= 0) return t('statusRejectedByBank');
+        if (window.PG_ELEMENTPAY_PAY_MSG && PG_ELEMENTPAY_PAY_MSG.translate) {
+          var tr = PG_ELEMENTPAY_PAY_MSG.translate(raw, LANG);
+          if (tr && tr !== raw) return tr;
+        }
         return raw;
       }
       function localizeMsg(msg, code) {
@@ -963,10 +992,35 @@
                 showResult(true, '');
                 return;
               }
-              if (st === 'FAILED') {
+              if (st === 'FAILED' || st === 'REFUNDED' || st === 'DISPUTED' || st === 'REVERSED') {
                 if (window.IcopayCheckout3ds && IcopayCheckout3ds.hideWaitOverlay) IcopayCheckout3ds.hideWaitOverlay();
+                var mk = res && res.data && res.data.messageKey ? String(res.data.messageKey).trim() : '';
                 var detail = res && res.data && res.data.statusMessage ? String(res.data.statusMessage).trim() : '';
-                showResult(false, detail);
+                var msg = '';
+                if (mk && window.PG_ELEMENTPAY_PAY_MSG && PG_ELEMENTPAY_PAY_MSG.translate) {
+                  var tr = PG_ELEMENTPAY_PAY_MSG.translate(mk, (window.PG_UI_LANG || document.documentElement.lang || 'KO'));
+                  if (tr && tr !== mk) msg = tr;
+                }
+                if (!msg && mk) {
+                  var keyMap = {
+                    ELEMENTPAY_PAYMENT_REJECTED: 'statusRejected',
+                    ELEMENTPAY_PAYMENT_REVERSED: 'statusReversed',
+                    ELEMENTPAY_PAYMENT_REFUNDED: 'statusRefunded',
+                    ELEMENTPAY_REFUND_PAID: 'statusRefunded',
+                    ELEMENTPAY_WRONG_PAYER: 'statusWrongPayer',
+                    ELEMENTPAY_DISPUTED: 'statusDisputed',
+                    ELEMENTPAY_REJECTED_BY_BANK: 'statusRejectedByBank'
+                  };
+                  if (keyMap[mk]) msg = t(keyMap[mk]);
+                }
+                if (!msg && detail) {
+                  if (/rejected by bank/i.test(detail)) msg = t('statusRejectedByBank');
+                  else if (window.PG_ELEMENTPAY_PAY_MSG && PG_ELEMENTPAY_PAY_MSG.translate) {
+                    var dtr = PG_ELEMENTPAY_PAY_MSG.translate(detail, (window.PG_UI_LANG || 'KO'));
+                    msg = (dtr && dtr !== detail) ? dtr : detail;
+                  } else msg = detail;
+                }
+                showResult(false, msg || t('errPayIncomplete'));
                 return;
               }
               if (attempts >= max) {
