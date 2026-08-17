@@ -7,6 +7,7 @@ import com.pg.service.EximbayPaymentService;
 import com.pg.service.IlkPaymentService;
 import com.pg.service.JpayPaymentService;
 import com.pg.service.MerchantPgBindingRouterService;
+import com.pg.service.PayCardPolicyService;
 import com.pg.service.UrlPayChargeResolutionService;
 import com.pg.util.CardBrandScopeUtil;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,6 +31,7 @@ public class UrlPaySaleDispatcher {
     private final UrlPayVendorCapabilityRegistry capabilityRegistry;
     private final UrlPayChargeResolutionService urlPayChargeResolutionService;
     private final MerchantPgBindingRouterService pgBindingRouter;
+    private final PayCardPolicyService payCardPolicyService;
 
     public UrlPaySaleDispatcher(ChillPayService chillPayService,
                                 JpayPaymentService jpayPaymentService,
@@ -38,7 +40,8 @@ public class UrlPaySaleDispatcher {
                                 IlkPaymentService ilkPaymentService,
                                 UrlPayVendorCapabilityRegistry capabilityRegistry,
                                 UrlPayChargeResolutionService urlPayChargeResolutionService,
-                                MerchantPgBindingRouterService pgBindingRouter) {
+                                MerchantPgBindingRouterService pgBindingRouter,
+                                PayCardPolicyService payCardPolicyService) {
         this.chillPayService = chillPayService;
         this.jpayPaymentService = jpayPaymentService;
         this.eximbayPaymentService = eximbayPaymentService;
@@ -47,6 +50,7 @@ public class UrlPaySaleDispatcher {
         this.capabilityRegistry = capabilityRegistry;
         this.urlPayChargeResolutionService = urlPayChargeResolutionService;
         this.pgBindingRouter = pgBindingRouter;
+        this.payCardPolicyService = payCardPolicyService;
     }
 
     /**
@@ -63,6 +67,20 @@ public class UrlPaySaleDispatcher {
         MerchantPgBindingRouterService.RoutingHint hint =
                 MerchantPgBindingRouterService.RoutingHint.standard(cardBrand, currency);
         Optional<MerchantPgBinding> binding = pgBindingRouter.resolveOperationalBinding(orgUnitId, hint);
+        String opPg = "";
+        if (binding.isPresent() && binding.get().getPgCd() != null) {
+            opPg = binding.get().getPgCd().trim();
+        }
+        if (opPg.isBlank()) {
+            var routes = pgBindingRouter.listOperationalRouteSummaries(orgUnitId, false);
+            if (routes != null && !routes.isEmpty() && routes.get(0).get("pgCd") != null) {
+                opPg = String.valueOf(routes.get(0).get("pgCd")).trim();
+            }
+        }
+        Map<String, Object> cardBlock = payCardPolicyService.saleFailIfCardRejected(orgUnitId, opPg, body);
+        if (cardBlock != null) {
+            return cardBlock;
+        }
         if (binding.isEmpty()) {
             if (pgBindingRouter.isMultiPgRoutingEnabled()
                     && !CardBrandScopeUtil.toScopeLetter(cardBrand).isEmpty()) {
@@ -71,7 +89,7 @@ public class UrlPaySaleDispatcher {
             }
             return fail("URL 결제를 처리할 결제대행사(운영·연동용도 URL결제)가 없습니다.", "URL_PAYMENT_PG_MISSING");
         }
-        String opPg = binding.get().getPgCd() != null ? binding.get().getPgCd().trim() : "";
+        opPg = binding.get().getPgCd() != null ? binding.get().getPgCd().trim() : opPg;
         UrlPayVendorCapability cap = capabilityRegistry.resolve(opPg);
         try {
             UrlPayChargeResolutionService.ResolvedCharge charge =

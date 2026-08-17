@@ -1,7 +1,9 @@
 package com.pg.urlpay;
 
 import com.pg.entity.MerchantProfile;
+import com.pg.entity.PgAgency;
 import com.pg.integration.pg.PgVendor;
+import com.pg.integration.pg.elementpay.ElementPayCredentials;
 import com.pg.repository.PgAgencyRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Component;
@@ -18,7 +20,10 @@ import java.util.Optional;
 @Component
 public class ElementPayUrlPayCheckoutContextEnricher implements UrlPayCheckoutContextEnricher {
 
-    public ElementPayUrlPayCheckoutContextEnricher() {
+    private final PgAgencyRepository pgAgencyRepository;
+
+    public ElementPayUrlPayCheckoutContextEnricher(PgAgencyRepository pgAgencyRepository) {
+        this.pgAgencyRepository = pgAgencyRepository;
     }
 
     @Override
@@ -44,6 +49,13 @@ public class ElementPayUrlPayCheckoutContextEnricher implements UrlPayCheckoutCo
         data.put("elementPayHostedWindow", false);
         data.put("elementPayInlineCardUi", true);
         data.put("paymentUiMode", "INLINE");
+        String opPg = String.valueOf(data.getOrDefault("urlPayOperationalPgCd", "")).trim();
+        Optional<PgAgency> agency = opPg.isEmpty() ? Optional.empty() : pgAgencyRepository.findByPgCd(opPg);
+        boolean sandbox = agency.map(a -> ElementPayCredentials.from(a).sandbox()).orElseGet(() -> {
+            String u = opPg.toUpperCase(java.util.Locale.ROOT);
+            return u.contains("SAN") || u.contains("SBOX");
+        });
+        data.put("elementPaySandbox", sandbox);
     }
 
     private static Map<String, Object> method(String key, String label) {

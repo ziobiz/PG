@@ -426,6 +426,12 @@ public class JpayPaymentService {
             return failOut("amount는 0보다 커야 합니다.", "INVALID_AMOUNT");
         }
         String currency = urlPayCheckoutCurrencyService.resolveCheckoutCurrency(orgUnitId, str(body.get("currency")));
+        Map<String, Object> cardVal = validateCardPolicyForDirectSale(orgUnitId, body);
+        if (!Boolean.TRUE.equals(cardVal.get("valid"))) {
+            String msg = cardVal.get("message") != null ? cardVal.get("message").toString() : "카드번호를 확인해 주세요.";
+            String code = cardVal.get("errorCode") != null ? cardVal.get("errorCode").toString() : "CARD_POLICY";
+            return cardPolicyFailOut(cardVal, msg, code);
+        }
 
         String payIndexUrl = resolvePayIndexUrl(agency);
         String bankCode = resolveBankCode(agency);
@@ -507,12 +513,6 @@ public class JpayPaymentService {
         }
 
         com.pg.urlpay.PayerContextCapture.enrichSaleBody(body, req, clientIp);
-        Map<String, Object> cardVal = validateCardPolicyForDirectSale(orgUnitId, body);
-        if (!Boolean.TRUE.equals(cardVal.get("valid"))) {
-            String merchantCode = resolveMerchantCode(orgUnitId);
-            return cardPolicyBlockOut(cardVal, merchantCode, orderNo, "SUBSCRIPTION", orgUnitId, amountBd, currency,
-                    routeNo, body, null, null);
-        }
         String merchantCodeSub = resolveMerchantCode(orgUnitId);
         Optional<PayPresaleRiskFilterService.PresaleRiskBlock> presaleRiskSub =
                 payPresaleRiskFilterService.evaluate(orgUnitId, merchantCodeSub, PgVendor.JPAY, body);

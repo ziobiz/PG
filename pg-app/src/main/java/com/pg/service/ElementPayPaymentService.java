@@ -288,6 +288,8 @@ public class ElementPayPaymentService {
                 out.put("bkbInlineCheckout", ktcForm);
                 out.put("needsBkbForm", true);
                 out.put("cardFormSource", "K_CARDS_FORM");
+                out.put("epCardFormUrl", epCardFormUrl);
+                out.put("needs3dsWindow", true);
                 return out;
             }
             log.warn("ElementPay /k/cards/form 파싱 실패 order={} url={}", orderNo, epCardFormUrl);
@@ -380,6 +382,11 @@ public class ElementPayPaymentService {
         if (action == null || action.isBlank()) {
             return null;
         }
+        action = resolveFormAction(formUrlTrim, action);
+        if (!isExternalAcsUrl(action) || isOurCheckoutReturnUrl(action, "") || isElementPayCardFormUrl(action)) {
+            log.warn("ElementPay k/cards/form action 이 은행 승인 URL이 아님: {}", action);
+            return null;
+        }
         Map<String, String> hidden = extractHtmlHiddenInputs(html);
         String month = str(body.get("payCardmonth")).replaceAll("\\D", "");
         if (month.length() == 1) {
@@ -410,19 +417,23 @@ public class ElementPayPaymentService {
             brand = mapBrandToBkb(brand);
         }
         Map<String, String> form = new LinkedHashMap<>();
+        /* EP 폼 hidden(3DS 세션 등)을 누락하면 ACS가 안 뜨고 waiting 만 복귀할 수 있음 */
+        if (hidden != null) {
+            form.putAll(hidden);
+        }
         form.put("actionUrl", action);
-        form.put("merchantId", firstNonBlank(hidden.get("merchantId"), ""));
-        form.put("amount", firstNonBlank(hidden.get("amount"), ""));
-        form.put("orderRef", firstNonBlank(hidden.get("orderRef"), ""));
-        form.put("currCode", firstNonBlank(hidden.get("currCode"), "764"));
+        form.put("merchantId", firstNonBlank(form.get("merchantId"), hidden.get("merchantId"), ""));
+        form.put("amount", firstNonBlank(form.get("amount"), hidden.get("amount"), ""));
+        form.put("orderRef", firstNonBlank(form.get("orderRef"), hidden.get("orderRef"), ""));
+        form.put("currCode", firstNonBlank(form.get("currCode"), hidden.get("currCode"), "764"));
         form.put("pMethod", brand);
-        form.put("payType", firstNonBlank(hidden.get("payType"), "N"));
-        form.put("TxType", firstNonBlank(hidden.get("TxType"), "Retail"));
-        form.put("successUrl", firstNonBlank(hidden.get("successUrl"), ""));
-        form.put("failUrl", firstNonBlank(hidden.get("failUrl"), ""));
-        form.put("errorUrl", firstNonBlank(hidden.get("errorUrl"), hidden.get("failUrl"), ""));
-        form.put("lang", firstNonBlank(hidden.get("lang"), "E"));
-        form.put("remark", firstNonBlank(hidden.get("remark"), "-"));
+        form.put("payType", firstNonBlank(form.get("payType"), hidden.get("payType"), "N"));
+        form.put("TxType", firstNonBlank(form.get("TxType"), hidden.get("TxType"), "Retail"));
+        form.put("successUrl", firstNonBlank(form.get("successUrl"), hidden.get("successUrl"), ""));
+        form.put("failUrl", firstNonBlank(form.get("failUrl"), hidden.get("failUrl"), ""));
+        form.put("errorUrl", firstNonBlank(form.get("errorUrl"), hidden.get("errorUrl"), hidden.get("failUrl"), ""));
+        form.put("lang", firstNonBlank(form.get("lang"), hidden.get("lang"), "E"));
+        form.put("remark", firstNonBlank(form.get("remark"), hidden.get("remark"), "-"));
         String email = str(body.get("payEmailAddress"));
         String checkedIp = callElementPayCardsCheck(http, formUrlTrim, email, buyerIp);
         if (checkedIp == null) {
@@ -555,6 +566,21 @@ public class ElementPayPaymentService {
             return decodeHtmlEntities(m.group(1).trim());
         }
         return null;
+    }
+
+    private static String resolveFormAction(String formUrl, String action) {
+        if (action == null || action.isBlank()) {
+            return action;
+        }
+        String a = action.trim();
+        if (a.startsWith("https://") || a.startsWith("http://")) {
+            return a;
+        }
+        try {
+            return URI.create(formUrl).resolve(a).toString();
+        } catch (Exception e) {
+            return a;
+        }
     }
 
     private static Map<String, String> extractHtmlHiddenInputs(String html) {
@@ -1370,10 +1396,31 @@ public class ElementPayPaymentService {
 
     private static String resolveBase(PgAgency agency) {
         ElementPayCredentials cred = ElementPayCredentials.from(agency);
+        String extraBase = extraApiBase(agency);
+        if (!extraBase.isBlank()) {
+            return extraBase;
+        }
+        /* 샌드박스면 운영 API URL이 행에 있어도 api-sbox 고정. (라이브 카드망 → REJECT BY BANK 방지) */
+        if (cred.sandbox()) {
+            return SANDBOX_BASE;
+        }
         if (agency.getEndpointApi() != null && !agency.getEndpointApi().isBlank()) {
             return trimSlash(agency.getEndpointApi());
         }
-        return cred.sandbox() ? SANDBOX_BASE : LIVE_BASE;
+        return LIVE_BASE;
+    }
+
+    private static String extraApiBase(PgAgency agency) {
+        if (agency == null || agency.getCredentialsExtraJson() == null) {
+            return "";
+        }
+        try {
+            JsonNode root = new ObjectMapper().readTree(agency.getCredentialsExtraJson());
+            JsonNode v = root.get("elementPayApiBase");
+            return v != null && !v.isNull() ? trimSlash(v.asText("")) : "";
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     private static String formatAmount(BigDecimal amount) {

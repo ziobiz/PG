@@ -52,7 +52,7 @@ class PayCardBlacklistReleaseCooldownTest {
         cooldownService = new PayCardFailCooldownService(
                 null, cooldownRepository, riskEventRepository, null, null, orgUnitRepository);
         policyService = new PayCardPolicyService(
-                blockPrefixRepository, blacklistRepository, cooldownService, orgUnitRepository);
+                blockPrefixRepository, blacklistRepository, cooldownService, orgUnitRepository, null);
     }
 
     @Test

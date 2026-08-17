@@ -117,4 +117,16 @@ class ElementPayHashUtilTest {
                 "initRefund?" + ElementPayHashUtil.buildApiQueryString(params));
         assertFalse(hash.isBlank());
     }
+
+    @Test
+    void signCallbackResponse_isNonEmptyForWrongHashBody() {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("status", 401);
+        response.put("message", "Wrong hash");
+        response.put("timestamp", 1548021377L);
+        String secret = "80eb8c9793949bc6682baffdb4dd5303542581ed";
+        String hash = ElementPayHashUtil.signCallbackResponse(secret, response);
+        assertEquals(40, hash.length());
+        assertFalse(hash.isBlank());
+    }
 }

@@ -106,6 +106,9 @@
     if (d.arg0 != null && s.indexOf('{0}') >= 0) {
       s = s.replace('{0}', String(d.arg0));
     }
+    if (d.arg1 != null && s.indexOf('{1}') >= 0) {
+      s = s.replace('{1}', String(d.arg1));
+    }
     return s;
   }
 
@@ -123,7 +126,7 @@
       }
     }
     if (!text && policy && key) {
-      text = msg(policy, key, lang, extras && extras.arg0 != null ? extras.arg0 : null);
+      text = msg(policy, key, lang, extras && extras.arg0 != null ? extras.arg0 : null, extras && extras.arg1 != null ? extras.arg1 : null);
       if (text === key) text = null;
     }
     if (!text && data && data.message) {
@@ -132,15 +135,92 @@
     return applyMsgArgs(text || key || '', data || extras || {});
   }
 
-  function msg(policy, key, lang, arg) {
+  function msg(policy, key, lang, arg, arg1) {
     var lk = langKey(lang);
     var bag = policy && policy.messages && policy.messages[key];
     if (bag && bag[lk]) {
       var s = bag[lk];
       if (arg != null) s = s.replace('{0}', String(arg));
+      if (arg1 != null) s = s.replace('{1}', String(arg1));
       return s;
     }
     return key;
+  }
+
+  function brandLabelI18n(brand, lang) {
+    var b = String(brand || '').toUpperCase();
+    var lk = langKey(lang);
+    var table = {
+      VISA: { KO: '비자', EN: 'Visa', JP: 'Visa', CH: 'Visa', TH: 'Visa' },
+      MASTERCARD: { KO: '마스터', EN: 'Mastercard', JP: 'Mastercard', CH: 'Mastercard', TH: 'Mastercard' },
+      JCB: { KO: 'JCB', EN: 'JCB', JP: 'JCB', CH: 'JCB', TH: 'JCB' },
+      UNIONPAY: { KO: '유니온페이', EN: 'UnionPay', JP: '銀聯', CH: '银联', TH: 'UnionPay' },
+      AMEX: { KO: '아메리칸 익스프레스', EN: 'American Express', JP: 'American Express', CH: '美国运通', TH: 'American Express' }
+    };
+    var row = table[b];
+    if (!row) return b || '';
+    return row[lk] || row.EN || b;
+  }
+
+  function brandShort(brand) {
+    switch (String(brand || '').toUpperCase()) {
+      case 'VISA': return 'VISA';
+      case 'MASTERCARD': return 'Master';
+      case 'JCB': return 'JCB';
+      case 'UNIONPAY': return 'UNION';
+      case 'AMEX': return 'AMX';
+      default: return '';
+    }
+  }
+
+  function joinBrandShort(list, sep) {
+    var parts = [];
+    var arr = list || [];
+    for (var i = 0; i < arr.length; i++) {
+      var name = brandShort(arr[i]);
+      if (name) parts.push(name);
+    }
+    return parts.join(sep || ', ');
+  }
+
+  function pausedBrandsFromPolicy(policy) {
+    if (policy && policy.pausedBrands && policy.pausedBrands.length) {
+      return policy.pausedBrands;
+    }
+    var allowed = (policy && policy.allowedBrands) || [];
+    var pg = (policy && policy.pgBrands && policy.pgBrands.length)
+      ? policy.pgBrands
+      : ['VISA', 'MASTERCARD', 'JCB', 'UNIONPAY', 'AMEX'];
+    var out = [];
+    for (var i = 0; i < pg.length; i++) {
+      if (allowed.indexOf(pg[i]) < 0) out.push(pg[i]);
+    }
+    return out;
+  }
+
+  function brandNotAllowedResult(policy, lang) {
+    var allowedTxt = joinBrandShort((policy && policy.allowedBrands) || [], ', ');
+    var pausedTxt = joinBrandShort(pausedBrandsFromPolicy(policy), ' & ');
+    var text;
+    var key;
+    if (pausedTxt && allowedTxt) {
+      key = 'BRAND_NOT_ALLOWED';
+      text = msg(policy, key, lang, allowedTxt, pausedTxt);
+    } else if (allowedTxt) {
+      key = 'BRAND_SCOPE_ALLOWED';
+      text = msg(policy, key, lang, allowedTxt);
+    } else {
+      key = 'BRAND_SCOPE_PAUSED';
+      text = msg(policy, key, lang, pausedTxt);
+    }
+    return {
+      valid: false,
+      message: text,
+      errorCode: 'BRAND_NOT_ALLOWED',
+      messageKey: key,
+      arg0: allowedTxt,
+      arg1: pausedTxt
+    };
   }
 
   function luhnValid(pan) {
@@ -182,8 +262,11 @@
     var brand = selectedBrand && selectedBrand !== 'AUTO' ? selectedBrand : detected;
     if (brand === 'UNKNOWN' && selectedBrand && selectedBrand !== 'AUTO') brand = selectedBrand;
     var allowed = policy.allowedBrands || [];
-    if (allowed.length && allowed.indexOf(brand) < 0 && brand !== 'UNKNOWN') {
-      return { valid: false, message: msg(policy, 'BRAND_NOT_ALLOWED', lang, brand), errorCode: 'BRAND_NOT_ALLOWED', messageKey: 'BRAND_NOT_ALLOWED', arg0: brand };
+    if (allowed.length && brand === 'UNKNOWN') {
+      return brandNotAllowedResult(policy, lang);
+    }
+    if (allowed.length && allowed.indexOf(brand) < 0) {
+      return brandNotAllowedResult(policy, lang);
     }
     if (pg.indexOf('JPAY') === 0 && detected === 'UNIONPAY' && pan.indexOf('62') !== 0) {
       return { valid: false, message: msg(policy, 'UNION_NOT_62', lang), errorCode: 'UNION_NOT_62', messageKey: 'UNION_NOT_62' };
@@ -409,9 +492,11 @@
       brandSelect.value = 'AUTO';
     }
 
-    if (brandSelect && policy.brandSelectEnabled) {
+    if (brandSelect) {
       var row = brandSelect.closest ? brandSelect.closest('#payCardBrandRow') : null;
-      if (row && row.style.display !== 'none') row.style.display = '';
+      if (row && policy.brandSelectEnabled !== false && row.style.display !== 'none') {
+        row.style.display = '';
+      }
       brandSelect.addEventListener('change', function () {
         applyBrandUi();
         runValidate();
@@ -446,8 +531,15 @@
         var pan = digitsOnly(panInput.value);
         var b = currentBrand();
         if (b === 'AUTO') b = detectBrand(pan);
-        var exp = expectedLen(b === 'UNKNOWN' ? detectBrand(pan) : b);
         var curLang = resolveLang({ lang: lang, onLangChange: onLangChange });
+        var brandGate = validate(policy, pan, b, curLang);
+        if (!brandGate.valid && (brandGate.errorCode === 'BRAND_NOT_ALLOWED'
+            || brandGate.messageKey === 'BRAND_NOT_ALLOWED'
+            || brandGate.messageKey === 'BRAND_SCOPE_ALLOWED'
+            || brandGate.messageKey === 'BRAND_SCOPE_PAUSED')) {
+          return brandGate;
+        }
+        var exp = expectedLen(b === 'UNKNOWN' ? detectBrand(pan) : b);
         if (pan.length !== exp) {
           var k = (b === 'AMEX' || detectBrand(pan) === 'AMEX') ? 'AMEX_LEN' : 'CARD_LEN';
           return { valid: false, message: msg(policy, k, curLang, exp), errorCode: k, messageKey: k, arg0: exp };

@@ -1,5 +1,9 @@
 package com.pg.util;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -31,6 +35,21 @@ public final class CardBrandScopeUtil {
             return true;
         }
         return ALLOWED.contains(code.trim().toUpperCase(Locale.ROOT));
+    }
+
+    /**
+     * 업체관리 목록용: 설정 셀렉트의 괄호 설명 없이 코드만(ALL, VM, …).
+     * 비어 있으면 {@code -}.
+     */
+    public static String displayCodesJoined(Collection<String> rawScopes) {
+        if (rawScopes == null || rawScopes.isEmpty()) {
+            return "-";
+        }
+        LinkedHashSet<String> seen = new LinkedHashSet<>();
+        for (String raw : rawScopes) {
+            seen.add(normalize(raw));
+        }
+        return seen.isEmpty() ? "-" : String.join(", ", seen);
     }
 
     /** 비허용·공백이면 {@code ALL}. */
@@ -95,6 +114,26 @@ public final class CardBrandScopeUtil {
     /** 브랜드 키(자유 형식)가 scope 와 매칭되는지. */
     public static boolean matchesBrand(String scopeRaw, String brandRaw) {
         return matchesScope(scopeRaw, toScopeLetter(brandRaw));
+    }
+
+    /**
+     * PG가 지원하는 후보 중 가맹 {@code cardBrandScope}에 들어가는 브랜드만 (VISA→MASTERCARD→… 순서).
+     * ALL 이면 후보 전체.
+     */
+    public static List<PayCardBrand> filterBrands(String scopeRaw, Collection<PayCardBrand> candidates) {
+        List<PayCardBrand> out = new ArrayList<>();
+        if (candidates == null || candidates.isEmpty()) {
+            return out;
+        }
+        for (PayCardBrand b : PayCardBrand.values()) {
+            if (b == PayCardBrand.UNKNOWN || !candidates.contains(b)) {
+                continue;
+            }
+            if (matchesBrand(scopeRaw, b.name())) {
+                out.add(b);
+            }
+        }
+        return out;
     }
 
     /** ALL=0, 구체 브랜드·짧은 조합일수록 높음 — 라우팅 특이도 점수 */

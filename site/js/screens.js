@@ -4505,6 +4505,7 @@
         { key: 'transferFee', label: '송금수수료' },
         { key: 'payIntegrationMode', label: '방식', title: '가맹 결제 연동: 웹결제(Y) 및 브로커 시크릿 발급 시 API, 미발급 시 URL', align: 'center' },
         { key: 'apiIntegrationChannel', label: '채널', title: '가맹 API 연동 채널: IN=INLINE, RE=REDIRECT, WO=WordPress/WooCommerce. 복수 사용 시 IN/RE 형식.', align: 'center' },
+        { key: 'cardBrandScope', label: '카드', title: '가맹 결제대행사 설정의 카드브랜드(괄호 설명 제외). 예: VM', align: 'center' },
         { key: 'urlPayInputModeLabel', label: '타입', title: '웹결제 입력방식: HQ=본사정책 따름, GN=일반, AA·BA…=타입 코드', align: 'center' },
         { key: 'calcCycle', label: '정산주기' },
         { key: 'calcProcType', label: '정산구분' },

@@ -8,6 +8,7 @@ import com.pg.integration.pg.PgVendor;
 import com.pg.integration.pg.elementpay.ElementPayCredentials;
 import com.pg.receipt.TransactionReceiptEmailService;
 import com.pg.splitpay.SplitPayPaymentHookService;
+import com.pg.util.ElementPayCallbackOrderUtil;
 import com.pg.util.ElementPayHashUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -129,9 +130,14 @@ public class ElementPayCallbackService {
          */
         Optional<ResolvedCallbackAuth> authOpt = resolveAgencyAndVerify(method, fields);
         if (authOpt.isEmpty()) {
-            log.warn("ElementPay callback agency/hash 미해석 method={} order={} id={}",
-                    method, fields.get("order"), fields.get("id"));
-            return jsonResponse(401, "Invalid hash or agency", null);
+            /*
+             * Tidem「bad hash」케이스: status 401 이어도 응답 JSON 의 hash 는
+             * Signing Secret 으로 서명해야 한다(빈 hash 면 Gateway 실패).
+             */
+            ElementPayCredentials signCred = resolveAgencyCredentialsForSigning(fields).orElse(null);
+            log.warn("ElementPay callback agency/hash 미해석 method={} order={} id={} signed={}",
+                    method, fields.get("order"), fields.get("id"), signCred != null);
+            return jsonResponse(401, "Wrong hash", signCred);
         }
         ElementPayCredentials cred = authOpt.get().cred();
 
@@ -150,33 +156,36 @@ public class ElementPayCallbackService {
         if (orderNo.isBlank()) {
             return jsonResponse(475, "Order required", cred);
         }
-        Optional<PgTrnsctn> txn = Optional.empty();
-        if (!compCode.isBlank()) {
-            txn = elementPaySaleRecordService.findByMerchantAndOrder(compCode, orderNo);
-        }
-        if (txn.isEmpty()) {
-            txn = elementPaySaleRecordService.findAnyByOrder(orderNo);
-        }
+        List<String> orderIds = ElementPayCallbackOrderUtil.orderCandidates(orderNo, fields);
+        Optional<PgTrnsctn> txn = findTxnByOrderCandidates(compCode, orderIds);
         String paymentId = nz(fields.get("id"));
-        if (txn.isEmpty() && !paymentId.isBlank()) {
-            txn = elementPaySaleRecordService.findAnyByPaymentId(paymentId);
-        }
+        log.info("ElementPay check lookup order={} candidates={} id={} amount={} methodAmount={} found={}",
+                orderNo, orderIds, paymentId, fields.get("amount"), fields.get("method_amount"), txn.isPresent());
         if (txn.isEmpty()) {
             /*
-             * initPayment 직후 레이스·적재 실패 시에도 check 를 거절하면 EP 가 204 reject 한다.
-             * 서명 검증을 통과한 check 는 270 으로 승인하고, pay 시점에 적재·반영한다.
+             * 가맹 주문번호(order·merchantOrder)로 못 찾았는데 payment_id 로 기존 건이 있으면
+             * Tidem「wrong order」(475). LightAPI pending 은 merchantOrder 로 로컬 pending 을 찾는다.
+             * 둘 다 없으면 신규 Check → 270.
              */
+            if (!paymentId.isBlank()
+                    && elementPaySaleRecordService.findAnyByPaymentId(paymentId).isPresent()) {
+                log.warn("ElementPay check: payment_id 는 있으나 order 불일치 → 475 order={} id={}",
+                        orderNo, paymentId);
+                return jsonResponse(475, "Wrong order data", cred);
+            }
             log.warn("ElementPay check: 로컬 주문 없음 → 270 허용 order={} id={}", orderNo, paymentId);
             return jsonResponse(270, "Payment can process", cred);
         }
         BigDecimal expected = txn.get().getAmtKrw();
         BigDecimal received = parseAmount(fields.get("amount"));
-        if (expected != null && received != null
+        String localPayId = nz(txn.get().getChillTransactionId());
+        boolean samePayment = paymentId.isBlank() || localPayId.isBlank() || localPayId.equals(paymentId);
+        if (samePayment && expected != null && received != null
                 && expected.setScale(2, java.math.RoundingMode.HALF_UP)
                 .compareTo(received.setScale(2, java.math.RoundingMode.HALF_UP)) != 0) {
             log.warn("ElementPay check amount mismatch order={} expected={} received={}",
                     orderNo, expected, received);
-            return jsonResponse(475, "Amount mismatch", cred);
+            return jsonResponse(475, "Wrong order data", cred);
         }
         return jsonResponse(270, "Payment can process", cred);
     }
@@ -186,28 +195,75 @@ public class ElementPayCallbackService {
         if (orderNo.isBlank()) {
             return jsonResponse(474, "Order required", cred);
         }
-        if (compCode.isBlank()) {
-            compCode = elementPaySaleRecordService.findAnyByOrder(orderNo)
-                    .map(PgTrnsctn::getMerchantId)
-                    .orElse("");
-        }
         String paymentId = nz(fields.get("id"));
+        List<String> orderIds = ElementPayCallbackOrderUtil.orderCandidates(orderNo, fields);
+        if (compCode.isBlank()) {
+            for (String cand : orderIds) {
+                compCode = elementPaySaleRecordService.findAnyByOrder(cand)
+                        .map(PgTrnsctn::getMerchantId)
+                        .orElse("");
+                if (!compCode.isBlank()) {
+                    break;
+                }
+            }
+        }
         if (compCode.isBlank() && !paymentId.isBlank()) {
             compCode = elementPaySaleRecordService.findAnyByPaymentId(paymentId)
                     .map(PgTrnsctn::getMerchantId)
                     .orElse("");
         }
+        Optional<PgTrnsctn> existing = findTxnByOrderCandidates(compCode, orderIds);
+        if (existing.isEmpty() && !paymentId.isBlank()) {
+            existing = elementPaySaleRecordService.findAnyByPaymentId(paymentId);
+        }
+        if (existing.isPresent()) {
+            PgTrnsctn found = existing.get();
+            String localOrder = nz(found.getOrderNo());
+            boolean orderMatches = ElementPayCallbackOrderUtil.matchesLocalOrder(localOrder, orderIds);
+            if (!orderMatches && !localOrder.isBlank()) {
+                log.warn("ElementPay pay order mismatch request={} candidates={} local={} id={}",
+                        orderNo, orderIds, localOrder, paymentId);
+                return jsonResponse(475, "Wrong order data", cred);
+            }
+            BigDecimal expected = found.getAmtKrw();
+            BigDecimal received = parseAmount(fields.get("amount"));
+            if (expected != null && received != null
+                    && expected.setScale(2, java.math.RoundingMode.HALF_UP)
+                    .compareTo(received.setScale(2, java.math.RoundingMode.HALF_UP)) != 0) {
+                log.warn("ElementPay pay amount mismatch order={} expected={} received={}",
+                        orderNo, expected, received);
+                /* Tidem Gateway: pay wrong amount → 475 Wrong order data */
+                return jsonResponse(475, "Wrong order data", cred);
+            }
+            if (compCode.isBlank() && found.getMerchantId() != null) {
+                compCode = found.getMerchantId();
+            }
+        }
+        String applyOrder = existing.map(PgTrnsctn::getOrderNo).map(ElementPayCallbackService::nz)
+                .filter(s -> !s.isBlank()).orElse(orderNo);
         Optional<PgTrnsctn> updated = Optional.empty();
         if (!compCode.isBlank()) {
             updated = elementPaySaleRecordService.applyOutcome(
-                    compCode, orderNo, true, paymentId, "ElementPay paid");
+                    compCode, applyOrder, true, paymentId, "ElementPay paid");
         }
         if (updated.isEmpty()) {
-            updated = elementPaySaleRecordService.findAnyByOrder(orderNo)
-                    .flatMap(t -> elementPaySaleRecordService.applyOutcome(
-                            t.getMerchantId(), orderNo, true, paymentId, "ElementPay paid"));
+            for (String cand : orderIds) {
+                updated = elementPaySaleRecordService.findAnyByOrder(cand)
+                        .flatMap(t -> elementPaySaleRecordService.applyOutcome(
+                                t.getMerchantId(), t.getOrderNo(), true, paymentId, "ElementPay paid"));
+                if (updated.isPresent()) {
+                    break;
+                }
+            }
         }
         if (updated.isEmpty()) {
+            /*
+             * EP 문서: 이미 결제 확정된 주문에 대한 Pay 는 오류 대신 205.
+             * 로컬에 승인 건이 있으면 재통보로 본다.
+             */
+            if (existing.isPresent() && isAlreadyPaidStatus(existing.get().getStatus())) {
+                return jsonResponse(205, "Payment success", cred);
+            }
             log.warn("ElementPay pay: 로컬 주문 없음 order={} id={} — 206 재시도 요청", orderNo, paymentId);
             return jsonResponse(206, "Payment pending local record", cred);
         }
@@ -236,6 +292,15 @@ public class ElementPayCallbackService {
         return jsonResponse(205, "Payment success", cred);
     }
 
+    private static boolean isAlreadyPaidStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return false;
+        }
+        String s = status.trim();
+        return "00".equals(s) || "0000".equals(s) || "PAID".equalsIgnoreCase(s)
+                || "SUCCESS".equalsIgnoreCase(s) || "205".equals(s);
+    }
+
     private NotifyReceiveOutcome handleAsyncEvent(String method, String orderNo, String compCode,
                                                   Map<String, String> fields, ElementPayCredentials cred) {
         if (method.startsWith("payment.") && !orderNo.isBlank()) {
@@ -248,6 +313,28 @@ public class ElementPayCallbackService {
                     nz(fields.get("id")), method);
         }
         return jsonResponse(270, "Notification received", cred);
+    }
+
+    private Optional<PgTrnsctn> findTxnByOrderCandidates(String compCode, List<String> orderIds) {
+        if (orderIds == null) {
+            return Optional.empty();
+        }
+        for (String cand : orderIds) {
+            if (cand == null || cand.isBlank()) {
+                continue;
+            }
+            Optional<PgTrnsctn> txn = Optional.empty();
+            if (compCode != null && !compCode.isBlank()) {
+                txn = elementPaySaleRecordService.findByMerchantAndOrder(compCode, cand);
+            }
+            if (txn.isEmpty()) {
+                txn = elementPaySaleRecordService.findAnyByOrder(cand);
+            }
+            if (txn.isPresent()) {
+                return txn;
+            }
+        }
+        return Optional.empty();
     }
 
     private NotifyReceiveOutcome jsonResponse(int status, String message, ElementPayCredentials cred) {
@@ -295,12 +382,35 @@ public class ElementPayCallbackService {
         if (hash == null || hash.isBlank()) {
             return Optional.empty();
         }
+        for (PgAgency agency : listCallbackAgencyCandidates(fields)) {
+            ElementPayCredentials cred = ElementPayCredentials.from(agency);
+            if (verifyWithAnySecret(cred, method, fields, hash)) {
+                return Optional.of(new ResolvedCallbackAuth(agency, cred));
+            }
+        }
+        return Optional.empty();
+    }
+
+    /** 요청 hash 가 틀려도 응답 서명용으로 agency(Signing Secret)를 찾는다. */
+    private Optional<ElementPayCredentials> resolveAgencyCredentialsForSigning(Map<String, String> fields) {
+        for (PgAgency agency : listCallbackAgencyCandidates(fields)) {
+            ElementPayCredentials cred = ElementPayCredentials.from(agency);
+            String wh = cred.webhookSecretKey();
+            String api = cred.apiSecretKey();
+            if ((wh != null && !wh.isBlank()) || (api != null && !api.isBlank())) {
+                return Optional.of(cred);
+            }
+        }
+        return Optional.empty();
+    }
+
+    private List<PgAgency> listCallbackAgencyCandidates(Map<String, String> fields) {
         List<PgAgency> candidates = new java.util.ArrayList<>();
-        String key = fields.get("key");
+        String key = fields != null ? fields.get("key") : null;
         if (key != null && !key.isBlank()) {
             elementPayPaymentService.resolveAgencyByMerchantKey(key).ifPresent(candidates::add);
         }
-        String orderNo = nz(fields.get("order"));
+        String orderNo = nz(fields != null ? fields.get("order") : null);
         if (!orderNo.isBlank()) {
             elementPayPaymentService.resolveAgencyByOrderNo(orderNo).ifPresent(a -> {
                 if (candidates.stream().noneMatch(x -> x.getId() != null && x.getId().equals(a.getId()))) {
@@ -313,13 +423,7 @@ public class ElementPayCallbackService {
                 candidates.add(a);
             }
         }
-        for (PgAgency agency : candidates) {
-            ElementPayCredentials cred = ElementPayCredentials.from(agency);
-            if (verifyWithAnySecret(cred, method, fields, hash)) {
-                return Optional.of(new ResolvedCallbackAuth(agency, cred));
-            }
-        }
-        return Optional.empty();
+        return candidates;
     }
 
     private static boolean verifyWithAnySecret(ElementPayCredentials cred, String method,

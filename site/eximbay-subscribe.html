@@ -13,7 +13,7 @@
   <script src="/js/eximbay-pay-msg-i18n.js?v=5"></script>
   <script src="/js/icopay-pay-method-logos.js?v=1"></script>
   <script src="/js/jpay-card-expiry.js?v=1"></script>
-  <script src="/js/icopay-card-pay-policy.js?v=4"></script>
+  <script src="/js/icopay-card-pay-policy.js?v=7"></script>
 </head>
 <body class="pay-inline-body">
   <div class="pay-shell">
@@ -661,6 +661,14 @@
           cvvRaw = String(document.getElementById('payCardcvv').value || '').replace(/\D/g, '');
           if (panRaw.length < 13 || panRaw.length > 19 || !/^\d{3,4}$/.test(cvvRaw) || mmRaw.length < 1) {
             showErr(t('errCard')); payGuardUnlock(btn); return;
+          }
+          if (cardPolicyCtrl && typeof cardPolicyCtrl.validateFinal === 'function') {
+            var cardChk = cardPolicyCtrl.validateFinal();
+            if (!cardChk.valid) {
+              showErr(cardChk.message || t('errCard'));
+              payGuardUnlock(btn);
+              return;
+            }
           }
         }
 

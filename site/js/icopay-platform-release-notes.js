@@ -6,13 +6,123 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '3.31';
+  var CURRENT_LIVE = '3.36';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '3.36',
+      kind: 'minor',
+      date: '2026-08-18',
+      items: {
+        KO: [
+          '업체관리: 채널과 정산주기 사이에 카드 열 추가. 가맹 결제대행사 카드브랜드를 괄호 설명 없이 표시(예: VM)'
+        ],
+        EN: [
+          'Company management: Card column between Channel and settlement cycle. Shows merchant processor card-brand codes without parenthetical notes (e.g. VM)'
+        ],
+        JP: [
+          '加盟店管理: チャネルと精算周期の間にカード列。決済代行のカードブランドを括弧説明なしで表示(例: VM)'
+        ],
+        CH: [
+          '商户管理：在渠道与结算周期之间增加卡列。显示支付服务机构卡品牌代码、不含括号说明（如 VM）'
+        ],
+        TH: [
+          'จัดการร้าน: คอลัมน์บัตรระหว่างช่องทางกับรอบชำระ แสดงรหัสแบรนด์บัตรโดยไม่มีข้อความในวงเล็บ (เช่น VM)'
+        ]
+      }
+    },
+    {
+      version: '3.35',
+      kind: 'minor',
+      date: '2026-08-18',
+      items: {
+        KO: [
+          '가맹 결제대행사 카드브랜드(예: V+M)만 결제창 자동인식에 표시. 그 외 카드 입력 시 사용 가능 브랜드 안내 후 결제 차단'
+        ],
+        EN: [
+          'Checkout auto-detect lists only merchant-allowed card brands (e.g. V+M). Other cards show an allowed-brand notice and payment is blocked'
+        ],
+        JP: [
+          '加盟店決済代行のカードブランド(例: V+M)のみ自動認識に表示。それ以外は利用可能ブランドを案内して決済を遮断'
+        ],
+        CH: [
+          '结账自动识别仅显示商户允许的卡品牌（如 V+M）。其他卡会提示可用品牌并阻止支付'
+        ],
+        TH: [
+          'ตรวจจับบัตรอัตโนมัติแสดงเฉพาะแบรนด์ที่ร้านอนุญาต (เช่น V+M) บัตรอื่นแจ้งแบรนด์ที่ใช้ได้และบล็อกการชำระ'
+        ]
+      }
+    },
+    {
+      version: '3.34',
+      kind: 'minor',
+      date: '2026-08-14',
+      items: {
+        KO: [
+          'ElementPay: 별도 인증 팝업을 없애고 같은 탭에서만 처리(대기 창이 두 개 열리던 문제). 샌드박스는 3DS 창이 필수가 아님'
+        ],
+        EN: [
+          'ElementPay: no extra auth popup — same tab only (fixes two waiting windows). Sandbox does not always need a 3DS screen'
+        ],
+        JP: [
+          'ElementPay: 別ウィンドウ認証をやめ同一タブのみ（待機画面が二重になる問題）。サンドボックスでは3DS画面は必須ではない'
+        ],
+        CH: [
+          'ElementPay：取消单独认证弹窗，仅同标签处理（避免两个等待窗）。沙箱不一定需要 3DS 画面'
+        ],
+        TH: [
+          'ElementPay: ไม่เปิดป๊อปอัปยืนยัน ใช้แท็บเดียว (แก้หน้าต่างรอสองอัน) แซนด์บ็อกซ์ไม่จำเป็นต้องมีหน้า 3DS เสมอ'
+        ]
+      }
+    },
+    {
+      version: '3.33',
+      kind: 'minor',
+      date: '2026-08-14',
+      items: {
+        KO: [
+          'ElementPay 3DS: 결제 클릭 즉시 인증 창을 열고 은행 승인 폼을 넣음(비동기 후 창이 안 뜨던 문제)'
+        ],
+        EN: [
+          'ElementPay 3DS: open the auth window on Pay click, then post the bank form (fixes blank wait after async)'
+        ],
+        JP: [
+          'ElementPay 3DS: 支払いクリック直後に認証窓を開き銀行フォームを送信（非同期後に画面が出ない問題）'
+        ],
+        CH: [
+          'ElementPay 3DS：点击支付即打开认证窗再提交银行表单（修复异步后不弹出）'
+        ],
+        TH: [
+          'ElementPay 3DS: เปิดหน้าต่างยืนยันทันทีที่กด Pay แล้วส่งฟอร์มธนาคาร (แก้รอแล้วไม่ขึ้นหน้าต่าง)'
+        ]
+      }
+    },
+    {
+      version: '3.32',
+      kind: 'minor',
+      date: '2026-08-14',
+      items: {
+        KO: [
+          'ElementPay 샌드박스: 운영 API URL이 있어도 api-sbox 고정, 가이드 테스트카드 안내(REJECT BY BANK 방지)'
+        ],
+        EN: [
+          'ElementPay sandbox: keep api-sbox even if live endpoint is stored; show guide test-card hint (avoid REJECT BY BANK)'
+        ],
+        JP: [
+          'ElementPayサンドボックス: 本番API URLがあってもapi-sbox固定。ガイドのテストカード案内'
+        ],
+        CH: [
+          'ElementPay 沙箱：即使登记了生产 API 也固定 api-sbox，并提示指南测试卡'
+        ],
+        TH: [
+          'ElementPay sandbox: บังคับ api-sbox แม้มี URL จริง และแสดงบัตรทดสอบตามคู่มือ'
+        ]
+      }
+    },
     {
       version: '3.31',
       kind: 'minor',

@@ -8222,7 +8222,7 @@
     compId: 1, regNo: 1, contact: 1, accountNo: 1, zipCode: 1, loginId: 1,
     ceoMobile: 1, compTel: 1, bankNm: 1, rowNo: 1, terminalCountTerminal: 1, terminalCountWeb: 1,
     transferType: 1, calcProcType: 1, calcCycle: 1, calcExcludeYn: 1, payHoldYn: 1, useYn: 1, compDivNm: 1,
-    siteRoot: 1, payIntegrationMode: 1, apiIntegrationChannel: 1, urlPayInputModeLabel: 1, approvalNo: 1, chillTransactionId: 1, transactionId: 1, cardAprvNo: 1, pgApproveNo: 1,
+    siteRoot: 1, payIntegrationMode: 1, apiIntegrationChannel: 1, cardBrandScope: 1, urlPayInputModeLabel: 1, approvalNo: 1, chillTransactionId: 1, transactionId: 1, cardAprvNo: 1, pgApproveNo: 1,
     trnId: 1, orderNo: 1, routeNo: 1, merchantMid: 1, pgCd: 1, trnDate: 1, trnTime: 1, paymentTime: 1,
     day: 1, regDt: 1, calcDt: 1, settlementRunId: 1
   };
@@ -16598,6 +16598,13 @@
                   var aic0 = String(row.apiIntegrationChannel != null ? row.apiIntegrationChannel : val || '').trim().toUpperCase();
                   if (aic0 && aic0 !== '-') {
                     html += '<td class="text-center align-middle text-nowrap small"><span class="pg-comp-grid-clamp" title="' + escHtmlTitle(aic0) + '">' + escHtmlBody(aic0) + '</span></td>';
+                  } else {
+                    html += '<td class="text-center align-middle small">-</td>';
+                  }
+                } else if (isCompMngTree && c.key === 'cardBrandScope') {
+                  var cbs0 = String(row.cardBrandScope != null ? row.cardBrandScope : val || '').trim().toUpperCase();
+                  if (cbs0 && cbs0 !== '-') {
+                    html += '<td class="text-center align-middle text-nowrap small"><span class="pg-comp-grid-clamp" title="' + escHtmlTitle(cbs0) + '">' + escHtmlBody(cbs0) + '</span></td>';
                   } else {
                     html += '<td class="text-center align-middle small">-</td>';
                   }

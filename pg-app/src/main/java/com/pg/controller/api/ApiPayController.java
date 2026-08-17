@@ -488,6 +488,7 @@ public class ApiPayController {
         checkoutHeaderLogoResolver.applyToCheckoutMap(data, orgUnitId);
         urlPayCardExpiryModeService.putEffectiveIntoMap(data, orgUnitId);
         data.put("checkoutContactRememberEnabled", payContactRememberPolicyService.isEnabledForOrgUnit(orgUnitId));
+        data.put("cardPayPolicy", payCardPolicyService.buildClientPolicy(PgVendor.JPAY, orgUnitId));
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
@@ -642,6 +643,7 @@ public class ApiPayController {
         checkoutHeaderLogoResolver.applyToCheckoutMap(data, orgUnitId);
         urlPayCardExpiryModeService.putEffectiveIntoMap(data, orgUnitId);
         data.put("checkoutContactRememberEnabled", payContactRememberPolicyService.isEnabledForOrgUnit(orgUnitId));
+        data.put("cardPayPolicy", payCardPolicyService.buildClientPolicy(PgVendor.EXIMBAY, orgUnitId));
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
@@ -670,6 +672,11 @@ public class ApiPayController {
         }
         if (!eximbayPaymentService.hasOperationalWebBinding(orgUnitId)) {
             return ResponseEntity.ok(ApiResponse.fail("Eximbay 운영(WEB) 바인딩이 없습니다.", "SUBSCRIPTION_PG_MISSING"));
+        }
+        Map<String, Object> cardBlock = payCardPolicyService.saleFailIfCardRejected(orgUnitId, PgVendor.EXIMBAY, body);
+        if (cardBlock != null) {
+            return ResponseEntity.ok(MerchantApiResponseMapper.failFromResultMap(
+                    cardBlock, "카드 정책을 확인해 주세요.", "CARD_POLICY"));
         }
         Map<String, Object> plan = extractSubscriptionPlan(body);
         body.put("txnOrigin", "SUBSCRIPTION");

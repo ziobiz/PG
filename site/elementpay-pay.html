@@ -15,8 +15,8 @@
   <script src="/js/jpay-contact-remember.js?v=1"></script>
   <script src="/js/jpay-card-expiry.js?v=1"></script>
   <script src="/js/pay-form-input-guard.js?v=2"></script>
-  <script src="/js/icopay-card-pay-policy.js?v=4"></script>
-  <script src="/js/icopay-checkout-3ds.js?v=1"></script>
+  <script src="/js/icopay-card-pay-policy.js?v=7"></script>
+  <script src="/js/icopay-checkout-3ds.js?v=3"></script>
   <script src="/js/elementpay-pay-msg-i18n.js?v=1"></script>
   <style>
     .ep-qr-wrap { text-align: center; margin: 12px 0; }
@@ -120,6 +120,7 @@
           <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round jpay-field-input" id="payPostcode" data-i18n-placeholder="postcode" required></div>
         </div>
         <button type="submit" class="btn btn-primary btn-pay w-100" id="submitBtn" data-i18n="pay">Pay</button>
+        <p class="small text-primary mt-2 mb-0 text-center" id="elementPaySandboxHint" style="display:none;"></p>
       </form>
     </div>
   </div>
@@ -251,6 +252,7 @@
           errPayIncomplete: '결제가 완료되지 않았습니다. EP 가이드 테스트카드(Visa 4242…4242 / Master 5555…4444, CVC 임의 3자리, 미래 만료)로 다시 시도하세요. 샌드박스는 3DS OTP 화면 없이 바로 결과가 나올 수 있습니다.',
           statusRejectedByBank: '은행에서 거절됨',
           noteSandbox3ds: '샌드박스에서는 3DS 인증 화면이 생략(frictionless)될 수 있습니다.',
+          sandboxHint: '샌드박스 테스트 카드 — Visa 4242424242424242 · Master 5555555555554444 · JCB 3566002020360505 · UnionPay 6200000000000005 / CVC 임의 3자리 / 미래 만료. 4111… 카드는 이 결제에 쓰면 은행 거절됩니다.',
           pgMissing: '결제 설정이 없습니다.'
         },
         ENG: {
@@ -300,6 +302,7 @@
           errPayIncomplete: 'Payment was not completed. Retry with EP guide test cards (Visa 4242…4242 / Master 5555…4444, any 3-digit CVC, future expiry). Sandbox may skip the 3DS OTP screen and return a result directly.',
           statusRejectedByBank: 'Rejected by bank',
           noteSandbox3ds: 'In sandbox, the 3DS challenge screen may be skipped (frictionless).',
+          sandboxHint: 'Sandbox test cards — Visa 4242424242424242 · Master 5555555555554444 · JCB 3566002020360505 · UnionPay 6200000000000005 / any 3-digit CVC / future expiry. Cards starting 4111… are rejected by the bank on this payment.',
           pgMissing: 'Payment is not configured.'
         },
         JPN: {
@@ -349,6 +352,7 @@
           errPayIncomplete: '決済が完了していません。EPガイドのテストカード（Visa 4242…4242 / Master 5555…4444、CVC任意3桁、将来の有効期限）で再試行してください。サンドボックスでは3DS OTP画面なしで結果が出ることがあります。',
           statusRejectedByBank: '銀行により拒否',
           noteSandbox3ds: 'サンドボックスでは3DS認証画面が省略（frictionless）されることがあります。',
+          sandboxHint: 'サンドボックステストカード — Visa 4242424242424242 · Master 5555555555554444 · JCB 3566002020360505 · UnionPay 6200000000000005 / CVC任意3桁 / 未来の有効期限。4111…は銀行拒否になります。',
           pgMissing: '決済設定がありません。'
         },
         CHN: {
@@ -398,6 +402,7 @@
           errPayIncomplete: '支付未完成。请使用 EP 指南测试卡重试（Visa 4242…4242 / Master 5555…4444，任意 3 位 CVC，未来有效期）。沙盒可能跳过 3DS OTP 界面并直接返回结果。',
           statusRejectedByBank: '银行拒绝',
           noteSandbox3ds: '沙盒环境下可能跳过 3DS 验证界面（frictionless）。',
+          sandboxHint: '沙箱测试卡 — Visa 4242424242424242 · Master 5555555555554444 · JCB 3566002020360505 · UnionPay 6200000000000005 / 任意3位CVC / 未来有效期。4111…开头的卡会被银行拒绝。',
           pgMissing: '未配置支付。'
         },
         THA: {
@@ -447,6 +452,7 @@
           errPayIncomplete: 'การชำระยังไม่สำเร็จ ลองใหม่ด้วยบัตรทดสอบตามคู่มือ EP (Visa 4242…4242 / Master 5555…4444, CVC 3 หลักใดก็ได้, วันหมดอายุในอนาคต) แซนด์บ็อกซ์อาจข้ามหน้า 3DS OTP แล้วคืนผลทันที',
           statusRejectedByBank: 'ธนาคารปฏิเสธ',
           noteSandbox3ds: 'ในแซนด์บ็อกซ์หน้าจอยืนยัน 3DS อาจถูกข้าม (frictionless)',
+          sandboxHint: 'บัตรทดสอบ sandbox — Visa 4242424242424242 · Master 5555555555554444 · JCB 3566002020360505 · UnionPay 6200000000000005 / CVC 3 หลักใดก็ได้ / วันหมดอายุในอนาคต บัตร 4111… จะถูกธนาคารปฏิเสธ',
           pgMissing: 'ยังไม่ได้ตั้งค่าการชำระเงิน'
         }
       };
@@ -514,6 +520,13 @@
         }
       }
 
+      function applySandboxHint() {
+        var el = document.getElementById('elementPaySandboxHint');
+        if (!el) return;
+        var sb = checkoutCtx && checkoutCtx.elementPaySandbox === true;
+        el.style.display = sb ? 'block' : 'none';
+        if (sb) el.textContent = t('sandboxHint');
+      }
       function applyI18n() {
         document.querySelectorAll('[data-i18n]').forEach(function (el) {
           var k = el.getAttribute('data-i18n');
@@ -550,6 +563,7 @@
           }
         }
         if (cardExpiryCtrl && cardExpiryCtrl.refreshI18n) cardExpiryCtrl.refreshI18n(t);
+        applySandboxHint();
         if (cardPolicyCtrl && cardPolicyCtrl.refreshAutoDetectLabel) {
           cardPolicyCtrl.refreshAutoDetectLabel(t('cardAutoDetectOption'));
         }
@@ -819,8 +833,8 @@
           startBkbInlineCheckout(bkb, data);
           return;
         }
-        var acs = data.redirectUrl || '';
-        if (acs && data.needs3ds && !isLightCategoryUrl(acs)) {
+        var acs = data.redirectUrl || data.epCardFormUrl || '';
+        if (acs && (data.needs3ds || data.inlineAcs) && !isLightCategoryUrl(acs) && !isIcopayCheckoutUrl(acs)) {
           try {
             sessionStorage.setItem('pg_ep_pending_order', data.orderNo || '');
             sessionStorage.setItem('pg_ep_pending_payment', data.paymentId || '');
@@ -841,8 +855,31 @@
           && (u.indexOf('/services/') >= 0 || u.indexOf('/categories') >= 0 || u.indexOf('#/services') >= 0);
       }
 
-      /** 카드 필드 포함 숨은 폼을 _top 으로 자동 POST — 구매자는 카드 재입력 없음. 결과는 ICOPAY 복귀 URL. */
+      function isIcopayCheckoutUrl(url) {
+        var u = String(url || '').toLowerCase();
+        return u.indexOf('icopay.co.kr/checkout/') >= 0 || (u.indexOf('/checkout/') >= 0 && u.indexOf('elementpayreturn') >= 0);
+      }
+
+      /** 카드 필드 포함 숨은 폼을 같은 탭(_top)으로 자동 POST — 별도 팝업 없음. */
       function startBkbInlineCheckout(bkb, data) {
+        var action = String((bkb && bkb.actionUrl) || '').trim();
+        if (!action || isIcopayCheckoutUrl(action) || isLightCategoryUrl(action)) {
+          var fallback = (data && (data.redirectUrl || data.epCardFormUrl)) || '';
+          if (fallback && !isIcopayCheckoutUrl(fallback) && !isLightCategoryUrl(fallback)) {
+            try {
+              sessionStorage.setItem('pg_ep_pending_order', (data && data.orderNo) || '');
+              sessionStorage.setItem('pg_ep_pending_payment', (data && data.paymentId) || '');
+            } catch (eF) {}
+            if (window.IcopayCheckout3ds && IcopayCheckout3ds.navigateToPaymentUrl) {
+              IcopayCheckout3ds.navigateToPaymentUrl(fallback, { embed: false, waitMessage: t('waitInlinePay') });
+            } else {
+              location.href = fallback;
+            }
+            return;
+          }
+          showResult(false, t('errInlinePay'));
+          return;
+        }
         if (window.IcopayCheckout3ds && IcopayCheckout3ds.showWaitOverlay) {
           IcopayCheckout3ds.showWaitOverlay(t('waitInlinePay'));
         }
@@ -852,24 +889,19 @@
         } catch (eS) {}
         var form = document.createElement('form');
         form.method = 'POST';
-        form.action = bkb.actionUrl;
+        form.action = action;
         form.target = '_top';
         form.acceptCharset = 'UTF-8';
         form.style.display = 'none';
-        var fields = [
-          'merchantId', 'amount', 'orderRef', 'currCode', 'pMethod', 'payType', 'TxType',
-          'successUrl', 'failUrl', 'errorUrl', 'lang', 'remark',
-          'threeDSCustomerIP', 'threeDSCustomerEmail',
-          'cardNo', 'epMonth', 'epYear', 'securityCode', 'cardHolder', 'orderRef1'
-        ];
-        for (var i = 0; i < fields.length; i++) {
-          var k = fields[i];
+        var skip = { actionUrl: 1, cardFormSource: 1, needsBkbForm: 1 };
+        Object.keys(bkb).forEach(function (k) {
+          if (skip[k]) return;
           var inp = document.createElement('input');
           inp.type = 'hidden';
           inp.name = k;
           inp.value = bkb[k] != null ? String(bkb[k]) : '';
           form.appendChild(inp);
-        }
+        });
         document.body.appendChild(form);
         try { form.submit(); } catch (eSub) {
           showResult(false, (eSub && eSub.message) || t('payFailed'));

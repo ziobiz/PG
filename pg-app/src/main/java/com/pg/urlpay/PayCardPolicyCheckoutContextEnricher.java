@@ -28,6 +28,6 @@ public class PayCardPolicyCheckoutContextEnricher implements UrlPayCheckoutConte
                        Optional<MerchantProfile> profile,
                        HttpServletRequest request) {
         String opPg = String.valueOf(data.getOrDefault("urlPayOperationalPgCd", ""));
-        data.put("cardPayPolicy", payCardPolicyService.buildClientPolicy(opPg));
+        data.put("cardPayPolicy", payCardPolicyService.buildClientPolicy(opPg, orgUnitId));
     }
 }

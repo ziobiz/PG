@@ -16401,6 +16401,12 @@
       CH: '方式',
       TH: 'รูปแบบ'
     },
+    '카드': {
+      EN: 'Card',
+      JP: 'カード',
+      CH: '卡',
+      TH: 'บัตร'
+    },
     '가맹 결제 연동: 웹결제(Y) 및 브로커 시크릿 발급 시 API, 미발급 시 URL': {
       EN: 'Merchant integration: API when web payment (Y) and broker secret are active; URL otherwise.',
       JP: '加盟店連携: ウェブ決済(Y)かつブローカーシークレット発行時はAPI、未発行時はURL。',
@@ -16412,6 +16418,12 @@
       JP: '加盟店APIチャネル: IN=INLINE, RE=REDIRECT, WO=WordPress/WooCommerce。複数は IN/RE 形式。',
       CH: '商户 API 渠道：IN=INLINE，RE=REDIRECT，WO=WordPress/WooCommerce。多个时为 IN/RE 格式。',
       TH: 'ช่อง Merchant API: IN=INLINE, RE=REDIRECT, WO=WordPress/WooCommerce หลายช่องแสดง IN/RE'
+    },
+    '가맹 결제대행사 설정의 카드브랜드(괄호 설명 제외). 예: VM': {
+      EN: 'Card brands from merchant payment-processor settings (without parenthetical notes). e.g. VM',
+      JP: '加盟店決済代行設定のカードブランド（括弧内の説明は除く）。例: VM',
+      CH: '商户支付服务机构设置中的卡品牌（不含括号说明）。例：VM',
+      TH: 'แบรนด์บัตรจากการตั้งค่าผู้ให้บริการชำระเงินของร้าน (ไม่รวมข้อความในวงเล็บ) เช่น VM'
     },
     '순서': {
       EN: 'Order',

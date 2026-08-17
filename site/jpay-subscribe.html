@@ -15,7 +15,7 @@
   <script src="/js/jpay-card-expiry.js?v=1"></script>
   <script src="/js/pay-form-input-guard.js?v=2"></script>
   <script src="/js/jpay-contact-remember.js?v=2"></script>
-  <script src="/js/icopay-card-pay-policy.js?v=4"></script>
+  <script src="/js/icopay-card-pay-policy.js?v=7"></script>
   <script src="/js/icopay-checkout-3ds.js?v=1"></script>
   <script>
     (function () {
@@ -62,6 +62,12 @@
           </div>
         </div>
         <div class="pay-label mb-2">Card</div>
+        <div class="mb-2" id="payCardBrandRow">
+          <select class="form-select form-select-sm pay-input-round" id="payCardBrandSelect" data-i18n-aria="cardAutoDetectOption" aria-label="Card auto detect">
+            <option value="AUTO" data-i18n="cardAutoDetectOption">Card auto detect</option>
+          </select>
+        </div>
+        <div id="payCardPolicyAlert" class="alert alert-danger py-2 small d-none mb-2" role="alert"></div>
         <div class="row g-2 mb-2">
           <div class="col-12"><input type="text" class="form-control form-control-sm pay-input-round" id="payCardno" inputmode="numeric" autocomplete="cc-number" placeholder="Card number" required></div>
         </div>
@@ -162,7 +168,7 @@
           warnDigitsOnly: '숫자만 입력 가능합니다.',
           warnAmountOnly: '숫자만 입력 가능합니다.',
           warnEmailChars: '이메일에 사용할 수 있는 문자만 입력 가능합니다.',
-          mm: 'MM', yyyy: 'YYYY', cvv: 'CVV'
+          mm: 'MM', yyyy: 'YYYY', cvv: 'CVV', cardAutoDetectOption: '카드 자동 인식'
         },
         ENG: {
           title: 'ICOPAY Easy Payment', brandSub3ds: '3DS Secure Payment', merchant: 'Merchant', item: 'Item', amount: 'Amount', card: 'Card',
@@ -185,7 +191,7 @@
           warnDigitsOnly: 'Only digits are allowed.',
           warnAmountOnly: 'Only numbers are allowed.',
           warnEmailChars: 'Only characters valid for email are allowed.',
-          mm: 'MM', yyyy: 'YYYY', cvv: 'CVV'
+          mm: 'MM', yyyy: 'YYYY', cvv: 'CVV', cardAutoDetectOption: 'Card auto detect'
         },
         JPN: {
           title: 'ICOPAY かんたん決済', brandSub3ds: '3DSセキュア決済', merchant: '加盟店', item: '商品名', amount: '金額', card: 'カード',
@@ -206,7 +212,7 @@
           warnDigitsOnly: '数字のみ入力できます。',
           warnAmountOnly: '数字のみ入力できます。',
           warnEmailChars: 'メールに使用できる文字のみ入力できます。',
-          mm: 'MM', yyyy: 'YYYY', cvv: 'CVV'
+          mm: 'MM', yyyy: 'YYYY', cvv: 'CVV', cardAutoDetectOption: 'カード自動認識'
         },
         CHN: {
           title: 'ICOPAY 便捷支付', brandSub3ds: '3DS 安全支付', merchant: '商户', item: '商品', amount: '金额', card: '银行卡',
@@ -227,7 +233,7 @@
           warnDigitsOnly: '只能输入数字。',
           warnAmountOnly: '只能输入数字。',
           warnEmailChars: '只能输入邮箱允许的字符。',
-          mm: 'MM', yyyy: 'YYYY', cvv: 'CVV'
+          mm: 'MM', yyyy: 'YYYY', cvv: 'CVV', cardAutoDetectOption: '卡片自动识别'
         },
         THA: {
           title: 'ICOPAY ชำระเงินง่าย', brandSub3ds: '3DS ชำระเงินปลอดภัย', merchant: 'ร้านค้า', item: 'สินค้า', amount: 'จำนวนเงิน', card: 'บัตร',
@@ -248,7 +254,7 @@
           warnDigitsOnly: 'ใช้ได้เฉพาะตัวเลข',
           warnAmountOnly: 'ใช้ได้เฉพาะตัวเลข',
           warnEmailChars: 'ใช้ได้เฉพาะอักขระที่ใช้ในอีเมลได้',
-          mm: 'MM', yyyy: 'YYYY', cvv: 'CVV'
+          mm: 'MM', yyyy: 'YYYY', cvv: 'CVV', cardAutoDetectOption: 'ตรวจจับบัตรอัตโนมัติ'
         }
       };
       function t(key) {
@@ -322,6 +328,12 @@
         if (amtLbl) amtLbl.textContent = t('amount');
         var cardLbl = document.querySelector('.pay-label');
         if (cardLbl) cardLbl.textContent = t('card');
+        if (cardPolicyCtrl && cardPolicyCtrl.refreshAutoDetectLabel) {
+          cardPolicyCtrl.refreshAutoDetectLabel(t('cardAutoDetectOption'));
+        }
+        if (cardPolicyCtrl && typeof cardPolicyCtrl.refreshLang === 'function') {
+          cardPolicyCtrl.refreshLang();
+        }
         var cardNo = document.getElementById('payCardno');
         if (cardNo) cardNo.placeholder = t('cardNo');
         var cmm = document.getElementById('payCardmonth');
@@ -464,6 +476,7 @@
 
       var checkoutCtx = null;
       var cardExpiryCtrl = null;
+      var cardPolicyCtrl = null;
       var sessionPayload = null;
 
       var sessionToken = '';
@@ -510,10 +523,6 @@
 
       function boot() {
         applyI18n();
-        if (window.PG_CARD_PAY_POLICY && typeof PG_CARD_PAY_POLICY.attachPanFormatter === 'function') {
-          var panEl = document.getElementById('payCardno');
-          if (panEl) PG_CARD_PAY_POLICY.attachPanFormatter(panEl, function () { return 'AUTO'; });
-        }
         var compId = getCompId();
         if (!compId) { showErr(t('errMerchant')); return; }
         document.getElementById('compIdHidden').value = compId;
@@ -533,6 +542,31 @@
             checkoutCtx = ctx;
             if (window.PG_JPAY_CARD_EXPIRY) {
               cardExpiryCtrl = PG_JPAY_CARD_EXPIRY.init(document.getElementById('payCardExpiryRow'), ctx, t);
+            }
+            if (window.PG_CARD_PAY_POLICY && ctx.cardPayPolicy) {
+              cardPolicyCtrl = PG_CARD_PAY_POLICY.init({
+                policy: ctx.cardPayPolicy,
+                panInput: document.getElementById('payCardno'),
+                brandSelect: document.getElementById('payCardBrandSelect'),
+                alertEl: document.getElementById('payCardPolicyAlert'),
+                cvvInput: document.getElementById('payCardcvv'),
+                lang: LANG,
+                autoDetectLabel: t('cardAutoDetectOption'),
+                onLangChange: function () { return LANG; },
+                getCompId: getCompId,
+                apiBase: API_BASE,
+                checkUrl: '/api/pay/url/card-policy-check',
+                postJson: function (url, bodyStr) {
+                  return fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: bodyStr
+                  }).then(function (r) { return r.json(); });
+                }
+              });
+            } else if (window.PG_CARD_PAY_POLICY && typeof PG_CARD_PAY_POLICY.attachPanFormatter === 'function') {
+              var panEl = document.getElementById('payCardno');
+              if (panEl) PG_CARD_PAY_POLICY.attachPanFormatter(panEl, function () { return 'AUTO'; });
             }
             if (ctx.merchantName) document.getElementById('merchantNameDisplay').textContent = ctx.merchantName;
             if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyCheckoutHeaderLogo) {
@@ -600,6 +634,14 @@
           showErr(t('errCvvFormat'));
           payGuardUnlock(btn);
           return;
+        }
+        if (cardPolicyCtrl && typeof cardPolicyCtrl.validateFinal === 'function') {
+          var cardChk = cardPolicyCtrl.validateFinal();
+          if (!cardChk.valid) {
+            showErr(cardChk.message || t('errLoad'));
+            payGuardUnlock(btn);
+            return;
+          }
         }
         var pfg = window.PG_PAY_FORM_INPUT_GUARD;
         if (pfg) {

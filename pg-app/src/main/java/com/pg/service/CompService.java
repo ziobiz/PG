@@ -5234,6 +5234,29 @@ public class CompService {
     }
 
     /**
+     * 업체관리 그리드 「카드」: 결제대행사 설정의 카드브랜드 코드만(괄호 설명 제외). 예: VM.
+     * 운영(Y) 행이 있으면 그 값만, 없으면 등록된 전 행. 가맹이 아니거나 바인딩이 없으면 {@code -}.
+     */
+    private static String cardBrandScopeFromPgBindings(List<MerchantPgBinding> bindings) {
+        if (bindings == null || bindings.isEmpty()) {
+            return "-";
+        }
+        List<String> operational = new ArrayList<>();
+        List<String> all = new ArrayList<>();
+        for (MerchantPgBinding b : bindings) {
+            if (b == null) {
+                continue;
+            }
+            all.add(b.getCardBrandScope());
+            String op = b.getOperationalYn();
+            if (op != null && "Y".equalsIgnoreCase(op.trim())) {
+                operational.add(b.getCardBrandScope());
+            }
+        }
+        return CardBrandScopeUtil.displayCodesJoined(operational.isEmpty() ? all : operational);
+    }
+
+    /**
      * 업체관리 목록 「통화」열: 총판·지사·대리점·영업점·가맹점만 기준통화 표시. 총본사·본사는 비움.
      */
     private static boolean compListRowShowsBaseCurrency(OrgLevel lvl) {
@@ -5295,8 +5318,11 @@ public class CompService {
         m.put("terminalCountWeb", "-");
         m.put("settlementAmt", "-");
         m.put("receivables", "-");
-        m.put("siteRoot", siteRootFromPgBindings(
-                merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(o.getId())));
+        List<MerchantPgBinding> pgBinds = merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(o.getId());
+        m.put("siteRoot", siteRootFromPgBindings(pgBinds));
+        m.put("cardBrandScope", o.getOrgLevel() == OrgLevel.MERCHANT
+                ? cardBrandScopeFromPgBindings(pgBinds)
+                : "-");
         m.put("payIntegrationMode", resolvePayIntegrationModeDisplay(o));
         m.put("apiIntegrationChannel", resolveApiIntegrationChannelDisplay(o));
         m.put("urlPayInputModeLabel", resolveUrlPayInputModeDisplay(o));
