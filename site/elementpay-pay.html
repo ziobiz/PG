@@ -249,6 +249,8 @@
           waitInlinePay: '카드 결제를 처리하는 중입니다. 잠시만 기다려 주세요…',
           errInlinePay: 'INLINE 카드 결제 경로를 준비하지 못했습니다. 다시 시도하거나 가맹점에 문의해 주세요.',
           payWaiting: '결제 처리 중입니다. 결과를 확인하는 중…',
+          payWaitingBank: '은행 응답을 확인하는 중입니다. 잠시만 기다려 주세요…',
+          payWaitingBankHint: '처음 거절처럼 보여도 승인 통보가 이어질 수 있습니다.',
           errPayIncomplete: '결제가 완료되지 않았습니다. EP 가이드 테스트카드(Visa 4242…4242 / Master 5555…4444, CVC 임의 3자리, 미래 만료)로 다시 시도하세요. 샌드박스는 3DS OTP 화면 없이 바로 결과가 나올 수 있습니다.',
           statusRejectedByBank: '은행에서 거절됨',
           statusRejected: '결제가 거절되었습니다.',
@@ -304,6 +306,8 @@
           waitInlinePay: 'Processing card payment. Please wait…',
           errInlinePay: 'Could not prepare inline card payment. Please retry or contact the merchant.',
           payWaiting: 'Payment is being processed. Confirming the result…',
+          payWaitingBank: 'Confirming the bank response. Please wait…',
+          payWaitingBankHint: 'A first decline may still be followed by an approval notice.',
           errPayIncomplete: 'Payment was not completed. Retry with EP guide test cards (Visa 4242…4242 / Master 5555…4444, any 3-digit CVC, future expiry). Sandbox may skip the 3DS OTP screen and return a result directly.',
           statusRejectedByBank: 'Rejected by bank',
           statusRejected: 'Payment was rejected.',
@@ -359,6 +363,8 @@
           waitInlinePay: 'カード決済を処理しています。しばらくお待ちください…',
           errInlinePay: 'INLINEカード決済の準備に失敗しました。再試行するか加盟店へお問い合わせください。',
           payWaiting: '決済処理中です。結果を確認しています…',
+          payWaitingBank: '銀行の応答を確認しています。しばらくお待ちください…',
+          payWaitingBankHint: '最初は拒否のように見えても、その後承認通知が続くことがあります。',
           errPayIncomplete: '決済が完了していません。EPガイドのテストカード（Visa 4242…4242 / Master 5555…4444、CVC任意3桁、将来の有効期限）で再試行してください。サンドボックスでは3DS OTP画面なしで結果が出ることがあります。',
           statusRejectedByBank: '銀行により拒否',
           statusRejected: '決済が拒否されました。',
@@ -414,6 +420,8 @@
           waitInlinePay: '正在处理银行卡支付，请稍候…',
           errInlinePay: '未能准备 INLINE 卡支付。请重试或联系商户。',
           payWaiting: '支付处理中，正在确认结果…',
+          payWaitingBank: '正在确认银行响应，请稍候…',
+          payWaitingBankHint: '即使起初显示拒绝，随后仍可能收到核准通知。',
           errPayIncomplete: '支付未完成。请使用 EP 指南测试卡重试（Visa 4242…4242 / Master 5555…4444，任意 3 位 CVC，未来有效期）。沙盒可能跳过 3DS OTP 界面并直接返回结果。',
           statusRejectedByBank: '银行拒绝',
           statusRejected: '支付已被拒绝。',
@@ -469,6 +477,8 @@
           waitInlinePay: 'กำลังดำเนินการชำระบัตร กรุณารอสักครู่…',
           errInlinePay: 'เตรียมชำระบัตรแบบ INLINE ไม่สำเร็จ ลองใหม่หรือติดต่อร้านค้า',
           payWaiting: 'กำลังประมวลผลการชำระ และยืนยันผล…',
+          payWaitingBank: 'กำลังยืนยันผลจากธนาคาร กรุณารอสักครู่…',
+          payWaitingBankHint: 'แม้ตอนแรกดูเหมือนถูกปฏิเสธ อาจมีแจ้งอนุมัติตามมาได้',
           errPayIncomplete: 'การชำระยังไม่สำเร็จ ลองใหม่ด้วยบัตรทดสอบตามคู่มือ EP (Visa 4242…4242 / Master 5555…4444, CVC 3 หลักใดก็ได้, วันหมดอายุในอนาคต) แซนด์บ็อกซ์อาจข้ามหน้า 3DS OTP แล้วคืนผลทันที',
           statusRejectedByBank: 'ธนาคารปฏิเสธ',
           statusRejected: 'การชำระถูกปฏิเสธ',
@@ -974,6 +984,35 @@
         var compId = getCompId() || document.getElementById('compIdHidden').value;
         var attempts = 0;
         var max = 60;
+        function failMsgFromStatus(res) {
+          var mk = res && res.data && res.data.messageKey ? String(res.data.messageKey).trim() : '';
+          var detail = res && res.data && res.data.statusMessage ? String(res.data.statusMessage).trim() : '';
+          var msg = '';
+          if (mk && window.PG_ELEMENTPAY_PAY_MSG && PG_ELEMENTPAY_PAY_MSG.translate) {
+            var tr = PG_ELEMENTPAY_PAY_MSG.translate(mk, (window.PG_UI_LANG || document.documentElement.lang || 'KO'));
+            if (tr && tr !== mk) msg = tr;
+          }
+          if (!msg && mk) {
+            var keyMap = {
+              ELEMENTPAY_PAYMENT_REJECTED: 'statusRejected',
+              ELEMENTPAY_PAYMENT_REVERSED: 'statusReversed',
+              ELEMENTPAY_PAYMENT_REFUNDED: 'statusRefunded',
+              ELEMENTPAY_REFUND_PAID: 'statusRefunded',
+              ELEMENTPAY_WRONG_PAYER: 'statusWrongPayer',
+              ELEMENTPAY_DISPUTED: 'statusDisputed',
+              ELEMENTPAY_REJECTED_BY_BANK: 'statusRejectedByBank'
+            };
+            if (keyMap[mk]) msg = t(keyMap[mk]);
+          }
+          if (!msg && detail) {
+            if (/rejected by bank/i.test(detail)) msg = t('statusRejectedByBank');
+            else if (window.PG_ELEMENTPAY_PAY_MSG && PG_ELEMENTPAY_PAY_MSG.translate) {
+              var dtr = PG_ELEMENTPAY_PAY_MSG.translate(detail, (window.PG_UI_LANG || 'KO'));
+              msg = (dtr && dtr !== detail) ? dtr : detail;
+            } else msg = detail;
+          }
+          return msg || t('errPayIncomplete');
+        }
         function tick() {
           attempts += 1;
           if (!orderNo && !paymentId) {
@@ -981,12 +1020,15 @@
             showResult(false, t('errPayIncomplete'));
             return;
           }
+          var last = attempts >= max;
           var q = 'compId=' + encodeURIComponent(compId || '')
             + (orderNo ? '&orderNo=' + encodeURIComponent(orderNo) : '')
-            + (paymentId ? '&paymentId=' + encodeURIComponent(paymentId) : '');
+            + (paymentId ? '&paymentId=' + encodeURIComponent(paymentId) : '')
+            + (last ? '&finalize=1' : '');
           fetchJson(apiUrl('/api/pay/url/elementpay-status', q))
             .then(function (res) {
-              var st = res && res.data ? String(res.data.paymentStatus || '').toUpperCase() : '';
+              var d = res && res.data ? res.data : {};
+              var st = String(d.paymentStatus || '').toUpperCase();
               if (st === 'PAID') {
                 if (window.IcopayCheckout3ds && IcopayCheckout3ds.hideWaitOverlay) IcopayCheckout3ds.hideWaitOverlay();
                 showResult(true, '');
@@ -994,38 +1036,15 @@
               }
               if (st === 'FAILED' || st === 'REFUNDED' || st === 'DISPUTED' || st === 'REVERSED') {
                 if (window.IcopayCheckout3ds && IcopayCheckout3ds.hideWaitOverlay) IcopayCheckout3ds.hideWaitOverlay();
-                var mk = res && res.data && res.data.messageKey ? String(res.data.messageKey).trim() : '';
-                var detail = res && res.data && res.data.statusMessage ? String(res.data.statusMessage).trim() : '';
-                var msg = '';
-                if (mk && window.PG_ELEMENTPAY_PAY_MSG && PG_ELEMENTPAY_PAY_MSG.translate) {
-                  var tr = PG_ELEMENTPAY_PAY_MSG.translate(mk, (window.PG_UI_LANG || document.documentElement.lang || 'KO'));
-                  if (tr && tr !== mk) msg = tr;
-                }
-                if (!msg && mk) {
-                  var keyMap = {
-                    ELEMENTPAY_PAYMENT_REJECTED: 'statusRejected',
-                    ELEMENTPAY_PAYMENT_REVERSED: 'statusReversed',
-                    ELEMENTPAY_PAYMENT_REFUNDED: 'statusRefunded',
-                    ELEMENTPAY_REFUND_PAID: 'statusRefunded',
-                    ELEMENTPAY_WRONG_PAYER: 'statusWrongPayer',
-                    ELEMENTPAY_DISPUTED: 'statusDisputed',
-                    ELEMENTPAY_REJECTED_BY_BANK: 'statusRejectedByBank'
-                  };
-                  if (keyMap[mk]) msg = t(keyMap[mk]);
-                }
-                if (!msg && detail) {
-                  if (/rejected by bank/i.test(detail)) msg = t('statusRejectedByBank');
-                  else if (window.PG_ELEMENTPAY_PAY_MSG && PG_ELEMENTPAY_PAY_MSG.translate) {
-                    var dtr = PG_ELEMENTPAY_PAY_MSG.translate(detail, (window.PG_UI_LANG || 'KO'));
-                    msg = (dtr && dtr !== detail) ? dtr : detail;
-                  } else msg = detail;
-                }
-                showResult(false, msg || t('errPayIncomplete'));
+                showResult(false, failMsgFromStatus(res));
                 return;
               }
-              if (attempts >= max) {
+              if (d.provisionalReject && window.IcopayCheckout3ds && IcopayCheckout3ds.showWaitOverlay) {
+                IcopayCheckout3ds.showWaitOverlay(t('payWaitingBank'), t('payWaitingBankHint'));
+              }
+              if (last) {
                 if (window.IcopayCheckout3ds && IcopayCheckout3ds.hideWaitOverlay) IcopayCheckout3ds.hideWaitOverlay();
-                showResult(false, t('errPayIncomplete'));
+                showResult(false, failMsgFromStatus(res) || t('errPayIncomplete'));
                 return;
               }
               setTimeout(tick, 2000);
@@ -1361,16 +1380,15 @@
       var epReturnResult = '';
       try {
         epReturnResult = resolveEpReturnKindFromLocation();
-        if (epReturnResult === 'success') {
-          showResult(true, '');
-        } else if (epReturnResult === 'reject') {
-          showResult(false, '');
-        } else if (epReturnResult === 'waiting') {
+        if (epReturnResult === 'success' || epReturnResult === 'reject' || epReturnResult === 'waiting') {
           document.getElementById('epForm').style.display = 'none';
           if (window.IcopayCheckout3ds && IcopayCheckout3ds.showWaitOverlay) {
-            IcopayCheckout3ds.showWaitOverlay(t('payWaiting'));
+            IcopayCheckout3ds.showWaitOverlay(
+              epReturnResult === 'reject' ? t('payWaitingBank') : t('payWaiting'),
+              epReturnResult === 'reject' ? t('payWaitingBankHint') : ''
+            );
           } else {
-            showPayWarn(t('payWaiting'));
+            showPayWarn(epReturnResult === 'reject' ? t('payWaitingBank') : t('payWaiting'));
           }
           var ids = resolveEpReturnIdsFromLocation();
           startInlineStatusPoll({ orderNo: ids.orderNo, paymentId: ids.paymentId });

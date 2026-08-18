@@ -6,13 +6,35 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '3.37';
+  var CURRENT_LIVE = '3.38';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '3.38',
+      kind: 'minor',
+      date: '2026-08-18',
+      items: {
+        KO: [
+          'ElementPay URL결제: 은행 거절(204)을 바로 실패로 확정하지 않고 pay 웹훅·승인 상태를 확인한 뒤 결과를 표시. 결제창 대기 문구 5개국어'
+        ],
+        EN: [
+          'ElementPay URL checkout: bank decline (204) is not finalized until pay webhook/approval is confirmed. Waiting copy in 5 languages'
+        ],
+        JP: [
+          'ElementPay URL決済: 銀行拒否(204)を即失敗確定せず、pay Webhook・承認を確認してから結果表示。待機文言5言語'
+        ],
+        CH: [
+          'ElementPay URL 结账：银行拒绝(204)不立即定为失败，确认 pay Webhook/核准后再显示结果。等待文案 5 语'
+        ],
+        TH: [
+          'ElementPay URL ชำระ: ไม่ปิดสถานะล้มเหลวทันทีเมื่อธนาคารปฏิเสธ (204) รอยืนยัน webhook pay/อนุมัติก่อน ข้อความรอ 5 ภาษา'
+        ]
+      }
+    },
     {
       version: '3.37',
       kind: 'minor',

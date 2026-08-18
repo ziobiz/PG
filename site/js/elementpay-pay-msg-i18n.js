@@ -122,6 +122,13 @@
       JPN: '銀行により拒否',
       CHN: '银行拒绝',
       THA: 'ธนาคารปฏิเสธ'
+    },
+    'ELEMENTPAY_WAITING_BANK_CONFIRM': {
+      KOR: '은행 응답을 확인하는 중입니다. 잠시만 기다려 주세요…',
+      ENG: 'Confirming the bank response. Please wait…',
+      JPN: '銀行の応答を確認しています。しばらくお待ちください…',
+      CHN: '正在确认银行响应，请稍候…',
+      THA: 'กำลังยืนยันผลจากธนาคาร กรุณารอสักครู่…'
     }
   };
   function translate(msg, lang) {

@@ -571,13 +571,15 @@ public class ApiPayController {
 
     /**
      * ElementPay INLINE 결제 결과 폴링 — getStatus 요약({@code PAID}/{@code FAILED}/{@code PENDING}).
+     * {@code finalize=true} 는 마지막 폴링에서만 204를 로컬 실패로 확정합니다.
      */
     @GetMapping("/url/elementpay-status")
     public ResponseEntity<ApiResponse<Map<String, Object>>> elementpayInlineStatus(
             @RequestParam(required = false) String compId,
             @RequestParam(required = false) Long merchantId,
             @RequestParam(required = false) String orderNo,
-            @RequestParam(required = false) String paymentId) {
+            @RequestParam(required = false) String paymentId,
+            @RequestParam(required = false, defaultValue = "false") boolean finalize) {
         Long orgUnitId = resolveMerchantOrgUnitId(merchantId, compId);
         if (orgUnitId == null) {
             return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
@@ -585,7 +587,8 @@ public class ApiPayController {
         if (!elementPayPaymentService.hasOperationalWebBinding(orgUnitId)) {
             return ResponseEntity.ok(ApiResponse.fail("ElementPay 운영 바인딩이 없습니다.", "ELEMENTPAY_PG_MISSING"));
         }
-        Map<String, Object> res = elementPayPaymentService.queryInlineStatus(orgUnitId, paymentId, orderNo);
+        Map<String, Object> res = elementPayPaymentService.queryInlineStatus(
+                orgUnitId, paymentId, orderNo, finalize);
         if (!Boolean.TRUE.equals(res.get("success"))) {
             return ResponseEntity.ok(ApiResponse.fail(
                     res.get("message") != null ? res.get("message").toString() : "status failed",

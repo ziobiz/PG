@@ -17,6 +17,7 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgAgencyRepository;
 import com.pg.urlpay.PayerContextCapture;
 import com.pg.util.ElementPayHashUtil;
+import com.pg.util.ElementPayInlineStatusUtil;
 import com.pg.util.PayPresaleRiskFilterCodes;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -779,14 +780,21 @@ public class ElementPayPaymentService {
 
     /**
      * INLINE 결제 후 폴링용 — getStatus + 로컬 거래 상태를 paid/failed/pending 으로 요약합니다.
+     * {@code finalizeReject=true} 일 때만 getStatus 204를 로컬 실패로 확정합니다.
+     * (은행 204 직후 EP {@code pay} 웹훅이 올 수 있어, 폴링 중에는 대기를 유지합니다.)
      */
     public Map<String, Object> queryInlineStatus(Long orgUnitId, String paymentId, String orderNo) {
-        /* 로컬 승인/실패가 있으면 EP getStatus 보다 우선 (웹훅 반영분) */
+        return queryInlineStatus(orgUnitId, paymentId, orderNo, false);
+    }
+
+    public Map<String, Object> queryInlineStatus(Long orgUnitId, String paymentId, String orderNo,
+                                                 boolean finalizeReject) {
+        /* 로컬 승인은 웹훅(pay) 반영분 — getStatus 보다 우선. 99(선제 실패)는 회복 가능하므로 단축하지 않음. */
         if (orderNo != null && !orderNo.isBlank()) {
             Optional<com.pg.entity.PgTrnsctn> local = elementPaySaleRecordService.findAnyByOrder(orderNo.trim());
             if (local.isPresent()) {
                 String stLocal = local.get().getStatus() != null ? local.get().getStatus().trim() : "";
-                if ("10".equals(stLocal)) {
+                if (ElementPayInlineStatusUtil.isLocalPaid(stLocal)) {
                     Map<String, Object> out = new LinkedHashMap<>();
                     out.put("success", true);
                     out.put("paymentStatus", "PAID");
@@ -796,7 +804,7 @@ public class ElementPayPaymentService {
                     out.put("source", "LOCAL");
                     return out;
                 }
-                if ("99".equals(stLocal) || "20".equals(stLocal) || "21".equals(stLocal)) {
+                if (ElementPayInlineStatusUtil.isLocalHardFail(stLocal)) {
                     Map<String, Object> out = new LinkedHashMap<>();
                     out.put("success", true);
                     out.put("paymentStatus", "FAILED");
@@ -817,7 +825,7 @@ public class ElementPayPaymentService {
                     }
                     return out;
                 }
-                if ("42".equals(stLocal) || "31".equals(stLocal) || "30".equals(stLocal)) {
+                if (ElementPayInlineStatusUtil.isLocalRefundOrChargeback(stLocal)) {
                     Map<String, Object> out = new LinkedHashMap<>();
                     out.put("success", true);
                     boolean chargeback = "31".equals(stLocal);
@@ -870,37 +878,33 @@ public class ElementPayPaymentService {
         if (!statusMessage.isBlank()) {
             out.put("statusMessage", statusMessage);
         }
-        if (st == 203 || st == 205) {
-            out.put("paymentStatus", "PAID");
-            out.put("paid", true);
-            syncLocalOutcomeFromStatus(orderNo, paymentId, true, statusMessage);
-        } else if (st == 208) {
-            out.put("paymentStatus", "DISPUTED");
-            out.put("paid", false);
-            out.put("messageKey", "ELEMENTPAY_DISPUTED");
-            syncLocalOutcomeFromStatus(orderNo, paymentId, false,
-                    !statusMessage.isBlank() ? statusMessage : "ELEMENTPAY_DISPUTED");
-        } else if (st == 207) {
-            out.put("paymentStatus", "REFUNDED");
-            out.put("paid", false);
+        ElementPayInlineStatusUtil.Mapped mapped =
+                ElementPayInlineStatusUtil.fromGetStatus(st, finalizeReject);
+        out.put("paymentStatus", mapped.paymentStatus());
+        out.put("paid", mapped.paid());
+        if (mapped.kind() == ElementPayInlineStatusUtil.Kind.REFUNDED) {
             out.put("refunded", true);
-            out.put("messageKey", "ELEMENTPAY_PAYMENT_REFUNDED");
+        }
+        if (mapped.provisionalReject()) {
+            out.put("provisionalReject", true);
+        }
+        String mk = checkoutMessageKey(statusMessage);
+        if (mk == null) {
+            mk = mapped.defaultMessageKey();
+        }
+        if (mk != null) {
+            out.put("messageKey", mk);
+        }
+        if (mapped.persistPaid()) {
+            syncLocalOutcomeFromStatus(orderNo, paymentId, true, statusMessage);
+        } else if (mapped.persistFail()) {
+            String failMsg = !statusMessage.isBlank() ? statusMessage
+                    : (mapped.kind() == ElementPayInlineStatusUtil.Kind.DISPUTED
+                    ? "ELEMENTPAY_DISPUTED" : "ElementPay rejected");
+            syncLocalOutcomeFromStatus(orderNo, paymentId, false, failMsg);
+        } else if (mapped.persistRefund()) {
             syncLocalRefundFromStatus(orderNo, paymentId,
                     !statusMessage.isBlank() ? statusMessage : "Payment is refunded");
-        } else if (st == 204 || st == 209) {
-            out.put("paymentStatus", "FAILED");
-            out.put("paid", false);
-            String mk = checkoutMessageKey(statusMessage);
-            if (mk == null) {
-                mk = "ELEMENTPAY_PAYMENT_REJECTED";
-            }
-            out.put("messageKey", mk);
-            syncLocalOutcomeFromStatus(orderNo, paymentId, false,
-                    !statusMessage.isBlank() ? statusMessage : "ElementPay rejected");
-        } else {
-            /* 201/206/214/999 등 — 아직 미완료 */
-            out.put("paymentStatus", "PENDING");
-            out.put("paid", false);
         }
         return out;
     }
@@ -913,8 +917,12 @@ public class ElementPayPaymentService {
         try {
             elementPaySaleRecordService.findAnyByOrder(orderNo.trim()).ifPresent(t -> {
                 String st = t.getStatus() != null ? t.getStatus().trim() : "";
-                if ("10".equals(st) || "99".equals(st) || "20".equals(st) || "21".equals(st)
-                        || "42".equals(st) || "31".equals(st) || "30".equals(st)) {
+                if (paid) {
+                    if (ElementPayInlineStatusUtil.skipSyncWhenPaid(st)) {
+                        return;
+                    }
+                    /* 99(선제 실패)여도 getStatus 203/205 또는 pay 웹훅이 있으면 승인으로 회복 */
+                } else if (ElementPayInlineStatusUtil.skipSyncWhenUnpaid(st)) {
                     return;
                 }
                 if (t.getMerchantId() == null || t.getMerchantId().isBlank()) {
