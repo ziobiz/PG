@@ -575,7 +575,7 @@ public class ApiHqController {
             String pgNm = hqStr(body, "pgNm");
             String pgCdRaw = hqStr(body, "pgCd");
             if (pgNm == null || pgNm.isBlank() || pgCdRaw == null || pgCdRaw.isBlank()) {
-                return ResponseEntity.ok(ApiResponse.fail("PG코드와 결제대행사는 필수입니다.", "VALIDATION"));
+                return ResponseEntity.ok(ApiResponse.fail("결제코드와 결제대행사는 필수입니다.", "VALIDATION"));
             }
             String pgCd = pgCdRaw.trim().toUpperCase(Locale.ROOT);
             String useYn = "N".equalsIgnoreCase(hqStr(body, "useYn")) ? "N" : "Y";
@@ -593,7 +593,7 @@ public class ApiHqController {
             if (idObj != null && !idObj.toString().isBlank()) {
                 long id = Long.parseLong(idObj.toString().trim());
                 entity = pgAgencyRepository.findById(id)
-                        .orElseThrow(() -> new IllegalArgumentException("PG사 정보를 찾을 수 없습니다."));
+                        .orElseThrow(() -> new IllegalArgumentException("결제대행사 정보를 찾을 수 없습니다."));
                 entity.setPgNm(pgNm.trim());
                 if (body.containsKey("apiEndpoint")) {
                     String ep = hqStr(body, "apiEndpoint");
@@ -604,7 +604,7 @@ public class ApiHqController {
                 applyPgAgencyIntegrationScope(entity, body, true);
             } else {
                 if (pgAgencyRepository.findByPgCd(pgCd).isPresent()) {
-                    return ResponseEntity.ok(ApiResponse.fail("이미 등록된 PG사코드입니다.", "DUPLICATE"));
+                    return ResponseEntity.ok(ApiResponse.fail("이미 등록된 결제코드입니다.", "DUPLICATE"));
                 }
                 entity = new PgAgency();
                 entity.setPgCd(pgCd);
@@ -660,11 +660,11 @@ public class ApiHqController {
         try {
             Object idObj = body != null ? body.get("id") : null;
             if (idObj == null || idObj.toString().isBlank()) {
-                return ResponseEntity.ok(ApiResponse.fail("삭제할 PG사 ID가 필요합니다.", "VALIDATION"));
+                return ResponseEntity.ok(ApiResponse.fail("삭제할 결제대행사 ID가 필요합니다.", "VALIDATION"));
             }
             long id = Long.parseLong(idObj.toString().trim());
             PgAgency entity = pgAgencyRepository.findById(id)
-                    .orElseThrow(() -> new IllegalArgumentException("PG사 정보를 찾을 수 없습니다."));
+                    .orElseThrow(() -> new IllegalArgumentException("결제대행사 정보를 찾을 수 없습니다."));
             String pgCd = entity.getPgCd();
             if (pgCd != null && merchantPgBindingRepository.existsByPgCd(pgCd.trim())) {
                 return ResponseEntity.ok(ApiResponse.fail(

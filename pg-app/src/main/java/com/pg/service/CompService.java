@@ -5888,7 +5888,7 @@ public class CompService {
             throw new IllegalArgumentException("결제대행사(PG) 코드가 비었습니다.");
         }
         PgAgency agency = pgAgencyRepository.findByPgCd(pc)
-                .orElseThrow(() -> new IllegalArgumentException("등록되지 않은 PG사코드입니다. 배포설정 > API연동설정에서 먼저 등록하세요."));
+                .orElseThrow(() -> new IllegalArgumentException("등록되지 않은 결제코드입니다. 배포설정 > API연동설정에서 먼저 등록하세요."));
         if (!"Y".equalsIgnoreCase(agency.getUseYn())) {
             throw new IllegalArgumentException("사용 중지된 결제대행사입니다: " + pc);
         }

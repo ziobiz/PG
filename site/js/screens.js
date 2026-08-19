@@ -1739,10 +1739,10 @@
   function hqPgAgencyCostPolicyPageHtml() {
     return '<div id="hqPgAgencyCostFlash" class="alert alert-dismissible d-none mb-3" role="alert"><span data-pg-banner-text></span>' +
       '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="' + escUi(L('닫기')) + '"></button></div>' +
-      '<p class="small text-muted mb-3" data-pg-ui-html="노티·거래는 동일 저장소를 사용합니다. 여기서는 <strong>ICOPAY↔PG대행사 계약</strong> 관점의 수수료·담보·정산 주기(T+N 등)만 설정합니다. PG는 <strong>API연동설정</strong>에 등록된 PG코드별로 1건씩 저장합니다.">' + L('노티·거래는 동일 저장소를 사용합니다. 여기서는 <strong>ICOPAY↔PG대행사 계약</strong> 관점의 수수료·담보·정산 주기(T+N 등)만 설정합니다. PG는 <strong>API연동설정</strong>에 등록된 PG코드별로 1건씩 저장합니다.') + '</p>' +
+      '<p class="small text-muted mb-3" data-pg-ui-html="노티·거래는 동일 저장소를 사용합니다. 여기서는 <strong>ICOPAY↔PG대행사 계약</strong> 관점의 수수료·담보·정산 주기(T+N 등)만 설정합니다. PG는 <strong>API연동설정</strong>에 등록된 결제코드별로 1건씩 저장합니다.">' + L('노티·거래는 동일 저장소를 사용합니다. 여기서는 <strong>ICOPAY↔PG대행사 계약</strong> 관점의 수수료·담보·정산 주기(T+N 등)만 설정합니다. PG는 <strong>API연동설정</strong>에 등록된 결제코드별로 1건씩 저장합니다.') + '</p>' +
       '<div class="row g-3"><div class="col-12 col-lg-5"><div class="card h-100"><div class="card-header py-2 small fw-semibold" data-pg-ui-t="저장된 원가 정책">' + escUi(L('저장된 원가 정책')) + '</div><div class="card-body p-2">' +
       '<div class="table-responsive border rounded" style="max-height:520px;overflow-y:auto"><table class="table table-sm table-hover align-middle mb-0 hq-pg-cost-policy-list-table">' +
-      '<thead class="table-light"><tr><th class="text-nowrap" data-pg-ui-t="PG코드">' + escUi(L('PG코드')) + '</th><th data-pg-ui-t="PG대행사">' + escUi(L('PG대행사')) + '</th><th class="text-nowrap" data-pg-ui-t="결제%">' + escUi(L('결제%')) + '</th><th class="text-nowrap" data-pg-ui-t="정산주기">' + escUi(L('정산주기')) + '</th><th class="text-nowrap" data-pg-ui-t="통화">' + escUi(L('통화')) + '</th></tr></thead>' +
+      '<thead class="table-light"><tr><th class="text-nowrap" data-pg-ui-t="결제코드">' + escUi(L('결제코드')) + '</th><th data-pg-ui-t="PG대행사">' + escUi(L('PG대행사')) + '</th><th class="text-nowrap" data-pg-ui-t="결제%">' + escUi(L('결제%')) + '</th><th class="text-nowrap" data-pg-ui-t="정산주기">' + escUi(L('정산주기')) + '</th><th class="text-nowrap" data-pg-ui-t="통화">' + escUi(L('통화')) + '</th></tr></thead>' +
       '<tbody id="hqPgAgencyCostListTbody"><tr><td colspan="5" class="text-muted text-center small">' + escUi(L('불러오는 중…')) + '</td></tr></tbody></table></div>' +
       '<button type="button" class="btn btn-success btn-sm mt-2 w-100" id="hqPgAgencyCostNewBtn" data-pg-ui-t="신규 PG">' + escUi(L('신규 PG')) + '</button></div></div></div>' +
       '<div class="col-12 col-lg-7"><div class="card h-100"><div class="card-header py-2 small fw-semibold" data-pg-ui-t="편집">' + escUi(L('편집')) + '</div><div class="card-body p-2">' +
@@ -2118,7 +2118,7 @@
   var DEPLOY_STATIC_HTML = {
     integrationPlan: '<div class="deploy-static-doc text-muted small">' +
       '<h5 class="text-dark fw-semibold mb-3">PG 중계·미들웨어 연동 — 총괄 진행안</h5>' +
-      '<p class="mb-2"><strong class="text-body">목표</strong> · PG사와는 1:1(단일 연동 자격), 가맹점에는 1:N으로 ICOPAY 통합 API를 제공하고, 결제·3DS·노티 결과를 <strong class="text-body">미들웨어에 적재</strong>한 뒤 가맹점에 통지하는 구조입니다. 신규 PG는 동일 패턴으로 단계적 추가합니다.</p>' +
+      '<p class="mb-2"><strong class="text-body">목표</strong> · 결제대행사와는 1:1(단일 연동 자격), 가맹점에는 1:N으로 ICOPAY 통합 API를 제공하고, 결제·3DS·노티 결과를 <strong class="text-body">미들웨어에 적재</strong>한 뒤 가맹점에 통지하는 구조입니다. 신규 PG는 동일 패턴으로 단계적 추가합니다.</p>' +
       '<ul class="mb-3 ps-3">' +
       '<li class="mb-1"><strong class="text-body">본사설정과의 구분</strong> · 수수료·노티 URL·도메인·권한 등 <em>전사 운영 설정</em>은 <strong class="text-body">본사설정</strong>에 두고, <strong class="text-body">PG API 연동·배포 자격·중계 출시·가맹점 API 문서·체크리스트</strong>는 이 <strong class="text-body">배포설정</strong>에서 관리합니다.</li>' +
       '<li class="mb-1"><strong class="text-body">노티</strong> · PG → 우리 <code>/api/open/pg-notify/…</code> 수신·<code>pg_trnsctn</code> 적재는 기존 파이프를 활용합니다. 가맹점으로의 아웃바운드 노티는 별도 설계(콜백 URL·서명·재시도)로 추가합니다.</li>' +
@@ -2423,7 +2423,7 @@
     '<div class="alert alert-light border small mb-3">' +
     '<p class="fw-semibold text-dark mb-2" data-pg-ui-t="순서">순서</p>' +
     '<ol class="mb-2 ps-3">' +
-    '<li class="mb-1"><span data-pg-ui-t="API연동설정에서 PG사 연동 추가 후, 연동용도에 API를 켭니다.">API연동설정에서 PG사 연동 추가 후, 연동용도에 API를 켭니다.</span></li>' +
+    '<li class="mb-1"><span data-pg-ui-t="API연동설정에서 결제대행사 설정 추가 후, 연동용도에 API를 켭니다.">API연동설정에서 결제대행사 설정 추가 후, 연동용도에 API를 켭니다.</span></li>' +
     '<li class="mb-1"><span data-pg-ui-t="업체등록·업체관리에서 조직을 가맹점으로 등록하고, 「가맹 API 연동 채널」에서 인라인·리다이렉트·WordPress 중 해당 가맹에 맞는 방식만 켭니다.">업체등록·업체관리에서 조직을 가맹점으로 등록하고, 「가맹 API 연동 채널」에서 인라인·리다이렉트·WordPress 중 해당 가맹에 맞는 방식만 켭니다.</span></li>' +
     '<li class="mb-1"><span data-pg-ui-t="결제대행사(PG) 바인딩은 업체정보 결제대행사에서 저장합니다. PG와 연동 채널은 별개입니다.">결제대행사(PG) 바인딩은 업체정보 결제대행사에서 저장합니다. PG와 연동 채널은 별개입니다.</span></li>' +
     '<li class="mb-1"><span data-pg-ui-t="콜백·결과 URL은 업체정보 또는 통보관리 메뉴에서 등록합니다.">콜백·결과 URL은 업체정보 또는 통보관리 메뉴에서 등록합니다.</span></li>' +
@@ -2437,7 +2437,7 @@
     '<label class="form-label small fw-semibold mb-1" data-pg-ui-t="연동용도에 API가 켜진 결제대행사">연동용도에 API가 켜진 결제대행사</label>' +
     '<div class="table-no-col-resize-wrap border rounded mb-2">' +
     '<table class="table table-sm table-bordered align-middle mb-0 w-100 table-no-col-resize">' +
-    '<thead class="table-light"><tr><th class="text-nowrap" data-pg-ui-t="PG코드">PG코드</th><th data-pg-ui-t="결제대행사명">결제대행사명</th><th class="text-nowrap" data-pg-ui-t="연동용도">연동용도</th><th class="text-nowrap" data-pg-ui-t="본사 MID">본사 MID</th><th class="text-center text-nowrap" data-pg-ui-t="본사운영">본사운영</th></tr></thead>' +
+    '<thead class="table-light"><tr><th class="text-nowrap" data-pg-ui-t="결제코드">결제코드</th><th data-pg-ui-t="결제대행사명">결제대행사명</th><th class="text-nowrap" data-pg-ui-t="연동용도">연동용도</th><th class="text-nowrap" data-pg-ui-t="본사 MID">본사 MID</th><th class="text-center text-nowrap" data-pg-ui-t="본사운영">본사운영</th></tr></thead>' +
     '<tbody id="apiMerchRegPgTbody"><tr><td colspan="5" class="text-center text-muted py-3" data-pg-ui-t="불러오는 중…">불러오는 중…</td></tr></tbody></table></div>' +
     '<p class="small text-muted mb-0" data-pg-ui-t="가맹 전용 MID·키는 업체 저장 시 가맹 바인딩에 들어갑니다. 본사 행과 다를 수 있습니다.">가맹 전용 MID·키는 업체 저장 시 가맹 바인딩에 들어갑니다. 본사 행과 다를 수 있습니다.</p></div>';
 
@@ -2670,24 +2670,24 @@
       /* 열 너비는 CSS(data-key)로 균형 — col-resize 저장값이 엔드포인트 열만 과도하게 넓히는 것 방지 */
       tableExtraClass: 'hq-pg-api-mng-table table-no-col-resize',
       searchRows: [[
-        { label: 'PG사명', type: 'text', name: 'searchPgNm' },
+        { label: '결제대행', type: 'text', name: 'searchPgNm' },
         { label: '사용여부', type: 'select', name: 'searchUseYn', options: [{ v: '', t: '전체' }, { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }] },
         { type: 'searchBtn', label: '검색' }
       ]],
       noticeList: [
-        '연동 용도(노티·URL·챗봇·API)를 한 행에서 복수 선택해 저장할 수 있습니다. URL 용도 행은 「URL금액」에서 일반(일반형) / DP(DISPLAY) / BLIND를 지정할 수 있으며, 본사 URL결제설정(FX JSON)의 해당 PG 금액 모드와 동일합니다. 노티=미들웨어 수신 매칭, URL=공개 URL 결제 플로우, 챗봇/API=PG사 API 직연동(동일 연동 URL). 목록 「연동용도」는 파스텔 색으로 구분됩니다. API Key·MD5는 목록 미노출. [삭제]는 등록일 오른쪽, 신규는 [PG사 연동 추가]입니다.',
-        '통합정산 「예정(ICOPAY)」열: PG사 연동 편집에서 T+N(주말 제외 영업일·결제와 동일 시각) 또는 D+N(달력+N일·일괄 시각)을 저장합니다. OFF면 예정일을 채우지 않습니다. D는 일괄 시각(HH:mm) 필수.',
-        'ChillPay는 PG코드 CHILLPAY, API·URL 엔드포인트는 ChillPayService가 병합 반영합니다. 운영 DB는 db/V35_pg_agency_integration_scope.sql 적용 후 배포하세요.'
+        '연동 용도(노티·URL·챗봇·API)를 한 행에서 복수 선택해 저장할 수 있습니다. URL 용도 행은 「URL금액」에서 일반(일반형) / DP(DISPLAY) / BLIND를 지정할 수 있으며, 본사 URL결제설정(FX JSON)의 해당 PG 금액 모드와 동일합니다. 노티=미들웨어 수신 매칭, URL=공개 URL 결제 플로우, 챗봇/API=결제대행 API 직연동(동일 연동 URL). 목록 「연동용도」는 파스텔 색으로 구분됩니다. API Key·MD5는 목록 미노출. [삭제]는 등록일 오른쪽, 신규는 [결제대행사 설정 추가]입니다.',
+        '통합정산 「예정(ICOPAY)」열: 결제대행사 설정 편집에서 T+N(주말 제외 영업일·결제와 동일 시각) 또는 D+N(달력+N일·일괄 시각)을 저장합니다. OFF면 예정일을 채우지 않습니다. D는 일괄 시각(HH:mm) 필수.',
+        'ChillPay는 결제코드 CHILLPAY, API·URL 엔드포인트는 ChillPayService가 병합 반영합니다. 운영 DB는 db/V35_pg_agency_integration_scope.sql 적용 후 배포하세요.'
       ],
       tableColumnGuide: true,
       summary: ['건수'],
       buttons: [
         { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
         { id: 'hqPgApiOperationalSaveBtn', label: '운영 저장', cls: 'btn-outline-primary' },
-        { id: 'hqPgApiAddBtn', label: 'PG사 연동 추가', cls: 'btn-success' }
+        { id: 'hqPgApiAddBtn', label: '결제대행사 설정 추가', cls: 'btn-success' }
       ],
       columnGuideFixedKeys: ['rowNo', '_pgRowAct'],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'pgNm', label: '결제대행사', thClass: 'text-nowrap' }, { key: 'pgCd', label: 'PG코드', thClass: 'text-nowrap' }, { key: 'integrationScopeLabel', label: '연동용도', thClass: 'pg-api-mng-scope-th text-nowrap' }, { key: 'urlPayAmountModeLabel', label: 'URL금액', thClass: 'text-nowrap', title: 'URL결제: 일반형 / DP(DISPLAY) / BLIND' }, { key: 'endpointsSummary', label: '엔드포인트', thClass: 'pg-api-mng-endpoints-th' }, { key: 'merchantMid', label: 'MID', thClass: 'text-nowrap' }, { key: 'hasApiKey', label: 'API', thClass: 'text-nowrap' }, { key: 'hasMd5Key', label: 'MD5', thClass: 'text-nowrap' }, { key: 'routeNo', label: 'RT', thClass: 'text-nowrap', title: 'Route 번호' }, { key: 'sandboxYn', label: '환경', thClass: 'text-nowrap', title: 'Sandbox / Production' }, { key: 'extSettleMode', label: '예정', thClass: 'text-nowrap', title: '통합정산 ICOPAY 예정: OFF/T/D' }, { key: 'extSettleLag', label: 'N', thClass: 'text-nowrap' }, { key: 'extSettleBatchTime', label: 'D시각', thClass: 'text-nowrap' }, { key: 'operationalYn', label: '운영', thClass: 'text-nowrap' }, { key: 'useYn', label: '사용', thClass: 'text-nowrap' }, { key: 'regDt', label: '등록일', thClass: 'text-nowrap' }, { key: '_pgRowAct', type: 'pgApiMngRowActions', label: '관리', thClass: 'text-nowrap' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'pgNm', label: '결제대행사', thClass: 'text-nowrap' }, { key: 'pgCd', label: '결제코드', thClass: 'text-nowrap' }, { key: 'integrationScopeLabel', label: '연동용도', thClass: 'pg-api-mng-scope-th text-nowrap' }, { key: 'urlPayAmountModeLabel', label: 'URL금액', thClass: 'text-nowrap', title: 'URL결제: 일반형 / DP(DISPLAY) / BLIND' }, { key: 'endpointsSummary', label: '엔드포인트', thClass: 'pg-api-mng-endpoints-th' }, { key: 'merchantMid', label: 'MID', thClass: 'text-nowrap' }, { key: 'hasApiKey', label: 'API', thClass: 'text-nowrap' }, { key: 'hasMd5Key', label: 'MD5', thClass: 'text-nowrap' }, { key: 'routeNo', label: 'RT', thClass: 'text-nowrap', title: 'Route 번호' }, { key: 'sandboxYn', label: '환경', thClass: 'text-nowrap', title: 'Sandbox / Production' }, { key: 'extSettleMode', label: '예정', thClass: 'text-nowrap', title: '통합정산 ICOPAY 예정: OFF/T/D' }, { key: 'extSettleLag', label: 'N', thClass: 'text-nowrap' }, { key: 'extSettleBatchTime', label: 'D시각', thClass: 'text-nowrap' }, { key: 'operationalYn', label: '운영', thClass: 'text-nowrap' }, { key: 'useYn', label: '사용', thClass: 'text-nowrap' }, { key: 'regDt', label: '등록일', thClass: 'text-nowrap' }, { key: '_pgRowAct', type: 'pgApiMngRowActions', label: '관리', thClass: 'text-nowrap' }]
     },
     '/hq/defaultCommission': {
       isForm: true,
@@ -2905,7 +2905,7 @@
       isForm: true,
       formSections: [{
         title: '대행수수료설정',
-        notice: '가맹 수수료(수수료설정)와 별도로, PG사와의 계약 원가·정산 주기를 PG코드(MID) 단위로 관리합니다. 운영 PG결제·PG정산 화면(예정)에서 이 정책을 참조합니다.',
+        notice: '가맹 수수료(수수료설정)와 별도로, 결제대행사와의 계약 원가·정산 주기를 결제코드(MID) 단위로 관리합니다. 운영 PG결제·PG정산 화면(예정)에서 이 정책을 참조합니다.',
         rows: [[{ type: 'customHtml', col: 12, html: hqPgAgencyCostPolicyPageHtml }]]
       }],
       buttons: [{ id: 'hqPgAgencyCostReloadBtn', label: '목록 새로고침', cls: 'btn-outline-secondary' }]
@@ -3439,7 +3439,7 @@
         {
           title: '고객 거래명세서 이메일',
           id: 'hqReceiptEmailCard',
-          notice: '결제 승인 시 구매자에게 HTML 거래명세서를 보냅니다. 본사 기본값은 총판·가맹이 「상위 따름」일 때 적용됩니다. 실제 발송은 총판·가맹 설정이 우선합니다. 아래 테스트는 SMTP(위에 저장한 값)로 샘플 메일을 보내 수신함 UI를 확인합니다. Acquirer·Switcher는 통상 PG사 연동에, Payment Provider는 총판, Merchant는 가맹 정보가 들어가며 테스트에서는 직접 넣을 수 있습니다.',
+          notice: '결제 승인 시 구매자에게 HTML 거래명세서를 보냅니다. 본사 기본값은 총판·가맹이 「상위 따름」일 때 적용됩니다. 실제 발송은 총판·가맹 설정이 우선합니다. 아래 테스트는 SMTP(위에 저장한 값)로 샘플 메일을 보내 수신함 UI를 확인합니다. Acquirer·Switcher는 통상 결제대행사 설정에, Payment Provider는 총판, Merchant는 가맹 정보가 들어가며 테스트에서는 직접 넣을 수 있습니다.',
           rows: [
             [{ label: '본사 기본(사용)', type: 'select', name: 'receiptEmailDefaultYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2,
               title: '총판·가맹이 상위 정책을 따를 때의 기본값' }],
@@ -3645,7 +3645,7 @@
       formSections: [
         {
           title: 'API배포설정',
-          notice: '가맹점에 발급하는 통합 API의 기본 URL·인증·타임아웃입니다. PG사별 MID·API Key·시크릿은 배포설정 > 「API연동설정」에서 PG코드 단위로 추가·저장하세요(여 PG 병행).',
+          notice: '가맹점에 발급하는 통합 API의 기본 URL·인증·타임아웃입니다. 결제대행별 MID·API Key·시크릿은 배포설정 > 「API연동설정」에서 결제코드 단위로 추가·저장하세요(여 PG 병행).',
           rows: [
             [{ label: 'API 기본 URL', type: 'text', name: 'baseUrl', col: 6, placeholder: 'https://api.example.com/v1' }],
             [{ label: '인증방식', type: 'select', name: 'authType', options: [{ v: 'API_KEY', t: 'API Key' }, { v: 'Bearer', t: 'Bearer Token' }, { v: 'BASIC', t: 'Basic' }], col: 2 }, { label: '타임아웃(초)', type: 'text', name: 'timeoutSec', col: 2 }],
@@ -3654,7 +3654,7 @@
         },
         {
           title: 'PG 자격 증명 (등록 위치)',
-          notice: '[PG사 연동 추가]로 PG코드·표시명을 만든 뒤, 동일 화면에서 MID·API Key·MD5(또는 서명키)·Route·Environment (Sandbox/Production)을 입력합니다. ChillPay 결제는 PG코드 CHILLPAY 행에 값이 있으면 그것을 최우선으로 사용하고, 비어 있을 때만 아래 레거시 필드를 사용합니다.',
+          notice: '[결제대행사 설정 추가]로 결제코드·표시명을 만든 뒤, 동일 화면에서 MID·API Key·MD5(또는 서명키)·Route·Environment (Sandbox/Production)을 입력합니다. ChillPay 결제는 결제코드 CHILLPAY 행에 값이 있으면 그것을 최우선으로 사용하고, 비어 있을 때만 아래 레거시 필드를 사용합니다.',
           rows: [[{
             type: 'customHtml',
             col: 12,
@@ -3903,7 +3903,7 @@
         },
         {
           title: 'JPAY 포털 통합내역 (총판별 계정)',
-          notice: 'JPAY는 목록 API가 없습니다. 총판(MASTER_DIST)마다 merchant.j-pay.net 포털 계정을 <strong>복수</strong> 등록할 수 있습니다(예: 동일 총판에 JPY·USD PG코드별 ID). 동기화 시 활성 계정을 순회해 Export 엑셀을 병합·대조합니다. 비밀번호는 저장 시에만 갱신됩니다.',
+          notice: 'JPAY는 목록 API가 없습니다. 총판(MASTER_DIST)마다 merchant.j-pay.net 포털 계정을 <strong>복수</strong> 등록할 수 있습니다(예: 동일 총판에 JPY·USD 결제코드별 ID). 동기화 시 활성 계정을 순회해 Export 엑셀을 병합·대조합니다. 비밀번호는 저장 시에만 갱신됩니다.',
           rows: [
             [{
               type: 'customHtml',
@@ -3913,7 +3913,7 @@
                 '<div class="row g-2 align-items-end">' +
                 '<div class="col-md-3"><label class="form-label small mb-0" for="hqJpayPortalMasterDist" data-pg-ui-t="총판">총판</label>' +
                 '<select class="form-select form-select-sm" id="hqJpayPortalMasterDist"><option value="" data-pg-ui-t="선택">선택</option></select></div>' +
-                '<div class="col-md-2"><label class="form-label small mb-0" for="hqJpayPortalPgCd" data-pg-ui-t="PG코드">PG코드</label>' +
+                '<div class="col-md-2"><label class="form-label small mb-0" for="hqJpayPortalPgCd" data-pg-ui-t="결제코드">결제코드</label>' +
                 '<select class="form-select form-select-sm" id="hqJpayPortalPgCd"><option value="" data-pg-ui-t="선택">선택</option></select></div>' +
                 '<div class="col-md-2"><label class="form-label small mb-0" for="hqJpayPortalLabel" data-pg-ui-t="표시명">표시명</label>' +
                 '<input type="text" class="form-control form-control-sm" id="hqJpayPortalLabel" maxlength="200" data-pg-ui-placeholder="예: JPY 총판" placeholder="예: JPY 총판"></div>' +
@@ -3932,7 +3932,7 @@
                 '<th class="text-center" style="width:3rem">#</th>' +
                 '<th style="min-width:8rem" data-pg-ui-t="총판코드">총판코드</th>' +
                 '<th style="min-width:8rem" data-pg-ui-t="표시명">표시명</th>' +
-                '<th style="min-width:6rem" data-pg-ui-t="PG코드">PG코드</th>' +
+                '<th style="min-width:6rem" data-pg-ui-t="결제코드">결제코드</th>' +
                 '<th style="min-width:9rem" data-pg-ui-t="포털 ID">포털 ID</th>' +
                 '<th class="text-center" style="width:5rem" data-pg-ui-t="비밀번호">비밀번호</th>' +
                 '<th class="text-center" style="width:4rem" data-pg-ui-t="사용">사용</th>' +
@@ -4058,7 +4058,7 @@
                 '<div class="col-12"><label class="form-label small mb-0" data-pg-ui-t="내용 1 (한국어)">내용 1 (한국어)</label>' +
                 '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftBody1" rows="4" maxlength="4000" data-pg-ui-placeholder="카드 정보는 위 각 칸 안의 ChillPay 보안 입력(iframe)에서만 입력합니다. 카드 명의(Name on card)도 위 칸에만 입력하면 되며, iframe 밖에서는 값을 읽을 수 없어 하단 이름·성 입력은 표시하지 않습니다. ChillPay가 안전하게 처리하며, 당사 서버로 카드번호 평문이 전달되지 않습니다." placeholder="카드 정보는 위 각 칸 안의 ChillPay 보안 입력(iframe)에서만 입력합니다. 카드 명의(Name on card)도 위 칸에만 입력하면 되며, iframe 밖에서는 값을 읽을 수 없어 하단 이름·성 입력은 표시하지 않습니다. ChillPay가 안전하게 처리하며, 당사 서버로 카드번호 평문이 전달되지 않습니다."></textarea></div>' +
                 '<div class="col-12"><label class="form-label small mb-0" data-pg-ui-t="내용 2 (한국어)">내용 2 (한국어)</label>' +
-                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftBody2" rows="4" maxlength="4000" data-pg-ui-placeholder="카드 입력은 연동된 PG사 보안 위젯(iframe 등)에서 제공합니다. 브랜드별 자릿수·CVV 규칙은 해당 PG가 처리하며, ChillPay는 AMEX 미지원입니다. 다른 PG 연동 시 같은 결제 껍데기 안에서 벤더별 위젯으로 갈아끼우는 형태가 일반적입니다." placeholder="카드 입력은 연동된 PG사 보안 위젯(iframe 등)에서 제공합니다. 브랜드별 자릿수·CVV 규칙은 해당 PG가 처리하며, ChillPay는 AMEX 미지원입니다. 다른 PG 연동 시 같은 결제 껍데기 안에서 벤더별 위젯으로 갈아끼우는 형태가 일반적입니다."></textarea></div>' +
+                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftBody2" rows="4" maxlength="4000" data-pg-ui-placeholder="카드 입력은 연동된 결제대행 보안 위젯(iframe 등)에서 제공합니다. 브랜드별 자릿수·CVV 규칙은 해당 PG가 처리하며, ChillPay는 AMEX 미지원입니다. 다른 PG 연동 시 같은 결제 껍데기 안에서 벤더별 위젯으로 갈아끼우는 형태가 일반적입니다." placeholder="카드 입력은 연동된 결제대행 보안 위젯(iframe 등)에서 제공합니다. 브랜드별 자릿수·CVV 규칙은 해당 PG가 처리하며, ChillPay는 AMEX 미지원입니다. 다른 PG 연동 시 같은 결제 껍데기 안에서 벤더별 위젯으로 갈아끼우는 형태가 일반적입니다."></textarea></div>' +
                 '<div class="col-12"><label class="form-label small mb-0" data-pg-ui-t="내용 3 (한국어)">내용 3 (한국어)</label>' +
                 '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftBody3" rows="3" maxlength="4000" data-pg-ui-placeholder="예: 사용카드 안내(VISA, MASTER 등), 카드 표기와 동일한 명의 입력 안내 등" placeholder="예: 사용카드 안내(VISA, MASTER 등), 카드 표기와 동일한 명의 입력 안내 등"></textarea></div>' +
                 '<div class="col-12 mt-2"><hr class="my-2"><p class="small fw-semibold mb-2" data-pg-ui-t="URL 결제 결과 화면 (성공/실패 큰 글씨·하단 안내)">URL 결제 결과 화면 (성공/실패 큰 글씨·하단 안내)</p></div>' +
@@ -4091,7 +4091,7 @@
         },
         {
           title: '확장형 PG 레지스트리',
-          notice: '향후 PG사 추가를 위해 벤더별 기능/방식/엔드포인트를 JSON으로 관리합니다. 기본 구조를 유지한 채 vendors 배열에 계속 추가하면 됩니다.',
+          notice: '향후 결제대행 추가를 위해 벤더별 기능/방식/엔드포인트를 JSON으로 관리합니다. 기본 구조를 유지한 채 vendors 배열에 계속 추가하면 됩니다.',
           rows: [
             [{ label: '결제연동 레지스트리(JSON)', type: 'textarea', name: 'paymentProviderRegistryJson', col: 8, rows: 16,
                placeholder: '{\n  "version": 1,\n  "vendors": [\n    {\n      "vendorCode": "CHILLPAY",\n      "vendorName": "칠리페이",\n      "integrationTypes": ["API_BROKER", "URL_PAY"],\n      "flowTypes": ["INLINE", "REDIRECT"],\n      "activeYn": "Y"\n    }\n  ]\n}' }]
@@ -7511,8 +7511,8 @@
       ],
       noticeList: [
         '총본사·본사(REGIONAL)·총판(MASTER_DIST) 또는 ADMIN만 이용합니다. 조회 범위는 로그인 조직 하위 가맹 거래입니다.',
-        '결제대행사(PG) 계약 수수료를 건별로 표시합니다. 본사설정 「대행수수료설정」과 가맹 결제대행사 설정 PG코드·거래 통화로 정책을 찾아, <strong>과거 거래도 현재 설정 기준으로 재계산</strong>합니다. 정산관리 수수료내역과 유사한 구조이며 가맹 수수료·가맹 정산(settled_yn)과 별개입니다.',
-        '과거 거래도 현재 「대행수수료설정」 기준으로 건별 수수료를 재계산해 표시합니다. 정책이 없거나 PG코드·통화가 일치하지 않으면 수수료 열은 0 또는 빈 칸입니다.',
+        '결제대행사(PG) 계약 수수료를 건별로 표시합니다. 본사설정 「대행수수료설정」과 가맹 결제대행사 설정 결제코드·거래 통화로 정책을 찾아, <strong>과거 거래도 현재 설정 기준으로 재계산</strong>합니다. 정산관리 수수료내역과 유사한 구조이며 가맹 수수료·가맹 정산(settled_yn)과 별개입니다.',
+        '과거 거래도 현재 「대행수수료설정」 기준으로 건별 수수료를 재계산해 표시합니다. 정책이 없거나 결제코드·통화가 일치하지 않으면 수수료 열은 0 또는 빈 칸입니다.',
         'JPAY 포털 Export 캐시(tb_jpay_portal_export_cache)는 통합개요·일별조회와 동일합니다. JPAY 건 검수·대조 전 본 화면 [JPAY 동기화]·[전체 재동기화]로 캐시를 갱신할 수 있습니다. 전산설정 JPAY 통합개요 스케줄로 자동 동기화됩니다.',
         '상단 「최근동기화」 시각·당일 횟수는 통합개요와 동일합니다. 스케줄 또는 [JPAY 동기화] 완료 후 이 화면이 열려 있으면 자동으로 다시 조회됩니다.'
       ],
@@ -7524,7 +7524,7 @@
         [
           { label: '검색구분', type: 'select', name: 'searchFieldType', options: [
             { v: 'ALL', t: '전체' },
-            { v: 'PG_CD', t: 'PG코드' },
+            { v: 'PG_CD', t: '결제코드' },
             { v: 'COMP_NM', t: '업체명' },
             { v: 'COMP_ID', t: '업체코드' },
             { v: 'APPROVAL_NO', t: '승인번호' },
@@ -7570,7 +7570,7 @@
         { key: 'compNm', label: '업체명' },
         { key: 'compId', label: '업체코드' },
         { key: 'trnDate', label: '거래일' },
-        { key: 'pgNm', label: 'PG명' },
+        { key: 'pgNm', label: '결제대행' },
         { key: 'pgCd', label: '결제대행사' },
         { key: 'trnTime', label: '거래시간' },
         { key: 'routeNo', label: '루트' },

@@ -139,7 +139,7 @@ public class JpayPaymentService {
         MerchantPgBinding binding = bindOpt.get();
         Optional<PgAgency> agOpt = pgAgencyRepository.findByPgCd(binding.getPgCd() != null ? binding.getPgCd().trim() : "");
         if (agOpt.isEmpty()) {
-            return failOut("PG사 연동(tb_pg_agency) 행을 찾을 수 없습니다.", "PG_AGENCY_MISSING");
+            return failOut("결제대행사 설정(tb_pg_agency) 행을 찾을 수 없습니다.", "PG_AGENCY_MISSING");
         }
         PgAgency agency = agOpt.get();
         MerchantPgCredentialUtil.Resolved cred = MerchantPgCredentialUtil.resolve(binding, agency);
@@ -403,7 +403,7 @@ public class JpayPaymentService {
         MerchantPgBinding binding = bindOpt.get();
         Optional<PgAgency> agOpt = pgAgencyRepository.findByPgCd(binding.getPgCd() != null ? binding.getPgCd().trim() : "");
         if (agOpt.isEmpty()) {
-            return failOut("PG사 연동(tb_pg_agency) 행을 찾을 수 없습니다.", "PG_AGENCY_MISSING");
+            return failOut("결제대행사 설정(tb_pg_agency) 행을 찾을 수 없습니다.", "PG_AGENCY_MISSING");
         }
         PgAgency agency = agOpt.get();
         MerchantPgCredentialUtil.Resolved cred = MerchantPgCredentialUtil.resolve(binding, agency);
@@ -595,7 +595,7 @@ public class JpayPaymentService {
         MerchantPgBinding binding = bindOpt.get();
         Optional<PgAgency> agOpt = pgAgencyRepository.findByPgCd(binding.getPgCd() != null ? binding.getPgCd().trim() : "");
         if (agOpt.isEmpty()) {
-            return failOut("PG사 연동 행을 찾을 수 없습니다.", "PG_AGENCY_MISSING");
+            return failOut("결제대행사 설정 행을 찾을 수 없습니다.", "PG_AGENCY_MISSING");
         }
         PgAgency agency = agOpt.get();
         MerchantPgCredentialUtil.Resolved cred = MerchantPgCredentialUtil.resolve(binding, agency);

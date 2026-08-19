@@ -121,7 +121,7 @@
       { key: 'instalMonth', label: '할부개월' },
       { key: 'payMethod', label: '결제수단' },
       { key: 'corpNm', label: '법인명' },
-      { key: 'pgNm', label: 'PG사' },
+      { key: 'pgNm', label: '결제대행' },
       { key: 'terminalId', label: '단말기' },
       { key: 'calcCycle', label: '정산주기' },
       { key: 'pgApproveAmt', label: '금액' },

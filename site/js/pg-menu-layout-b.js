@@ -125,7 +125,7 @@
   ];
 
   var DEPLOY_STANDALONE = [
-    { url: '/hq/pgApiMng', menuId: 'M0101', label: 'PG사 연동', parent: '연동·배포' }
+    { url: '/hq/pgApiMng', menuId: 'M0101', label: '결제대행사 설정', parent: '연동·배포' }
   ];
 
   var MERCHANT_API_HUB = {

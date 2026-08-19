@@ -2858,7 +2858,7 @@
 
   // 메뉴별 URL → 라벨, parent (브레드크럼/탭 제목용) - FXHJ + 본사설정 + 리스크 통합
   var MENU_INFO = {
-    '/hq/pgApiMng': { label: 'PG사 연동', parent: '연동·배포' },
+    '/hq/pgApiMng': { label: '결제대행사 설정', parent: '연동·배포' },
     '/hq/defaultCommission': { label: '수수료', parent: '본사정책' },
     '/hq/chargebackPolicy': { label: '차지백', parent: '본사정책' },
     '/hq/riskCardPolicy': { label: '리스크', parent: '본사정책' },
@@ -5463,11 +5463,12 @@
           }
         } else {
           if (countryOtherWrap) countryOtherWrap.classList.add('d-none');
-          if (v === 'KR') {
+          if (v === 'KR' || v === 'JP') {
             if (searchBtn) searchBtn.style.display = '';
             if (zipInput) {
-              zipInput.placeholder = pgAdminUiT('검색');
-              zipInput.setAttribute('data-pg-ui-placeholder', '검색');
+              var phKey = v === 'JP' ? '예: 100-0001' : '검색';
+              zipInput.placeholder = pgAdminUiT(phKey);
+              zipInput.setAttribute('data-pg-ui-placeholder', phKey);
             }
           } else {
             if (searchBtn) searchBtn.style.display = 'none';
@@ -5478,16 +5479,77 @@
           }
         }
       }
+      function fillJpAddr(rowData) {
+        if (!rowData) return;
+        zipInput.value = rowData.zip || '';
+        if (addrInput) addrInput.value = rowData.address || '';
+        var detail = row.querySelector('input[name="addrDetail"]');
+        if (detail) {
+          try { detail.focus(); } catch (eFocus) {}
+        }
+      }
+      function searchJpZip() {
+        if (!window.PG_API || typeof window.PG_API.jpZipSearch !== 'function') {
+          alert(pgAdminUiT('일본 우편번호 조회에 실패했습니다.'));
+          return;
+        }
+        var digits = String(zipInput.value || '').replace(/\D/g, '');
+        if (digits.length !== 7) {
+          alert(pgAdminUiT('일본 우편번호(7자리)를 입력한 뒤 검색하세요.'));
+          try { zipInput.focus(); } catch (eZip) {}
+          return;
+        }
+        if (searchBtn) searchBtn.disabled = true;
+        window.PG_API.jpZipSearch(digits).then(function (list) {
+          if (searchBtn) searchBtn.disabled = false;
+          if (!list || !list.length) {
+            alert(pgAdminUiT('해당 우편번호의 주소를 찾을 수 없습니다.'));
+            return;
+          }
+          var picked = list[0];
+          if (list.length > 1) {
+            var lines = [pgAdminUiT('여러 건이 있습니다. 번호를 입력하세요.')];
+            for (var i = 0; i < list.length; i++) {
+              lines.push((i + 1) + '. ' + (list[i].address || ''));
+            }
+            var ans = window.prompt(lines.join('\n'), '1');
+            if (ans == null) return;
+            var n = parseInt(String(ans).trim(), 10);
+            if (isNaN(n) || n < 1 || n > list.length) {
+              alert(pgAdminUiT('해당 우편번호의 주소를 찾을 수 없습니다.'));
+              return;
+            }
+            picked = list[n - 1];
+          }
+          fillJpAddr(picked);
+        }).catch(function (e) {
+          if (searchBtn) searchBtn.disabled = false;
+          alert((e && e.message) ? e.message : pgAdminUiT('일본 우편번호 조회에 실패했습니다.'));
+        });
+      }
       countrySel.addEventListener('change', toggleByCountry);
       toggleByCountry();
+      if (zipInput && !zipInput._jpZipEnterBound) {
+        zipInput._jpZipEnterBound = true;
+        zipInput.addEventListener('keydown', function (ev) {
+          if (ev.key !== 'Enter') return;
+          if (countrySel.value !== 'JP') return;
+          ev.preventDefault();
+          searchJpZip();
+        });
+      }
       if (searchBtn) {
         searchBtn.addEventListener('click', function () {
+          if (countrySel.value === 'JP') {
+            searchJpZip();
+            return;
+          }
           if (countrySel.value !== 'KR') return;
           if (typeof daum === 'undefined') { alert(pgAdminUiT('우편번호 서비스를 불러올 수 없습니다.')); return; }
           new daum.Postcode({
             oncomplete: function (data) {
               zipInput.value = data.zonecode || '';
-              addrInput.value = data.roadAddress || data.jibunAddress || '';
+              if (addrInput) addrInput.value = data.roadAddress || data.jibunAddress || '';
             }
           }).open();
         });
@@ -5938,7 +6000,7 @@
 
   /**
    * URL 결제 공통 플랫폼 — 결제 페이지 경로(서버 {@code UrlPayVendorCapabilityRegistry} 와 동일).
-   * 가맹·구매자 노출은 PG명 없이 중립 {@code /checkout/{업체코드}} 를 사용합니다.
+   * 가맹·구매자 노출은 결제대행 없이 중립 {@code /checkout/{업체코드}} 를 사용합니다.
    * @see docs/URL결제_공통플랫폼_가이드.md
    */
   function pgUrlPayCheckoutPagePath(pgCd) {
@@ -9814,7 +9876,7 @@
         '<h6 class="text-secondary small fw-bold mt-0 mb-1" data-pg-ui-t="등록된 매핑 전체 목록">등록된 매핑 전체 목록</h6>' +
         '<p class="text-muted small mb-2" data-pg-ui-t="노티매핑 요약 표 안내">PG·채널별로 쌓인 내역입니다. 편집은 위 매핑 표에서 해당 PG를 고른 뒤 저장분 불러오기를 사용하세요.</p>' +
         '<div class="table-responsive border rounded mb-0"><table class="table table-sm align-middle mb-0">' +
-        '<thead class="table-light"><tr><th data-pg-ui-t="PG코드">PG코드</th><th data-pg-ui-t="채널">채널</th><th data-pg-ui-t="PG 파라미터">PG 파라미터</th><th data-pg-ui-t="우리 열(key)">우리 열(key)</th><th data-pg-ui-t="비고">비고</th><th style="min-width:7rem" data-pg-ui-t="작업">작업</th></tr></thead>' +
+        '<thead class="table-light"><tr><th data-pg-ui-t="결제코드">결제코드</th><th data-pg-ui-t="채널">채널</th><th data-pg-ui-t="PG 파라미터">PG 파라미터</th><th data-pg-ui-t="우리 열(key)">우리 열(key)</th><th data-pg-ui-t="비고">비고</th><th style="min-width:7rem" data-pg-ui-t="작업">작업</th></tr></thead>' +
         '<tbody id="hqNmSummaryTbody">' + nmBuildSummaryRowsHtml(state.root, catKeys) + '</tbody></table></div>';
       var introBlock =
         '<div class="alert alert-light border hq-nm-intro mb-3">' +
@@ -25181,7 +25243,7 @@
       if (hqNotifyRegen && !hqNotifyRegen._hqNeBound) {
         hqNotifyRegen._hqNeBound = true;
         hqNotifyRegen.addEventListener('click', function () {
-          if (!window.confirm(pgAdminUiT('노티 URL 토큰이 바뀝니다. NOTI/연동 PG사에 등록된 URL도 함께 바꿔야 합니다. 계속하시겠습니까?'))) return;
+          if (!window.confirm(pgAdminUiT('노티 URL 토큰이 바뀝니다. NOTI/연동 결제대행에 등록된 URL도 함께 바꿔야 합니다. 계속하시겠습니까?'))) return;
           if (dimmN) dimmN.style.display = 'flex';
           window.PG_API.hqNotifyEnvRegenerateToken().then(function (data) { fillNotifyEnv(data); alert(pgAdminUiT('토큰이 재발급되었습니다. 새 URL을 NOTI에 반영하세요.')); }).catch(function (e) { alert(pgErrMsg(e, '실패')); }).finally(function () { if (dimmN) dimmN.style.display = 'none'; });
         });
@@ -32341,7 +32403,7 @@
                 && (!hidId || !hidId.value || String(r.id) !== String(hidId.value));
             });
             if (sameMaster.length > 0) {
-              alert(pgAdminUiT('동일 총판에 추가 계정은 PG코드(JPY/USD 등)를 선택하세요.'));
+              alert(pgAdminUiT('동일 총판에 추가 계정은 결제코드(JPY/USD 등)를 선택하세요.'));
               return;
             }
           }
@@ -35604,7 +35666,7 @@
           return r && String(r.integApiYn || '').toUpperCase() === 'Y';
         });
         if (!apiRows.length) {
-          tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">' + pgAdminEscHtml(pgAdminUiT('API연동설정에서 연동용도에 API를 켠 결제대행사가 없습니다. 먼저 PG사 연동 추가 후 저장하세요.')) + '</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">' + pgAdminEscHtml(pgAdminUiT('API연동설정에서 연동용도에 API를 켠 결제대행사가 없습니다. 먼저 결제대행사 설정 추가 후 저장하세요.')) + '</td></tr>';
           return;
         }
         tbody.innerHTML = apiRows.map(function (r) {
@@ -39865,7 +39927,7 @@
     if (pgAgSave && !pgAgSave._bound) {
       pgAgSave._bound = true;
       pgAgSave.addEventListener('click', function () {
-        if (!window.pgDoubleConfirm || !window.pgDoubleConfirm(pgAdminUiT('PG사 연동 정보를 저장하시겠습니까?'), pgAdminUiT('정말 저장하시겠습니까?'))) return;
+        if (!window.pgDoubleConfirm || !window.pgDoubleConfirm(pgAdminUiT('결제대행사 설정 정보를 저장하시겠습니까?'), pgAdminUiT('정말 저장하시겠습니까?'))) return;
         var idVal = document.getElementById('pgAgencyEditId').value.trim();
         var integKinds = [];
         document.querySelectorAll('.pg-agency-integ-kind').forEach(function (cb) {
@@ -39942,7 +40004,7 @@
         body.paymentSwitcherEmail = (document.getElementById('pgAgencyEditPaymentSwitcherEmail') || {}).value
           ? String(document.getElementById('pgAgencyEditPaymentSwitcherEmail').value).trim() : '';
         if (idVal) body.id = idVal;
-        if (!body.pgCd || !body.pgNm) { alert(pgAdminUiT('PG코드와 결제대행사는 필수입니다.')); return; }
+        if (!body.pgCd || !body.pgNm) { alert(pgAdminUiT('결제코드와 결제대행사는 필수입니다.')); return; }
         if (!integKinds.length) { alert(pgAdminUiT('연동 용도를 한 가지 이상 선택하세요. 동일 자격이면 노티+URL 등 복수 선택이 가능합니다.')); return; }
         if (integKinds.indexOf('URL_PAY') >= 0 || integKinds.indexOf('URL_PAY_REPAY') >= 0) {
           var upm = document.getElementById('pgAgencyEditUrlPayAmountMode');

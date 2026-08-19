@@ -91,7 +91,7 @@ public class JpayPortalAccountService {
             sameMasterCount = Math.max(0, sameMasterCount - 1);
         }
         if (pgCd.isEmpty() && sameMasterCount > 0) {
-            throw new IllegalArgumentException("동일 총판에 추가 계정은 PG코드(JPY/USD 등)를 선택하세요.");
+            throw new IllegalArgumentException("동일 총판에 추가 계정은 결제코드(JPY/USD 등)를 선택하세요.");
         }
         if (!pgCd.isEmpty()) {
             Optional<JpayPortalAccount> dupPg = repository.findByMasterOrgUnitIdAndPgCd(masterOrgUnitId, pgCd);

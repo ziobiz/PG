@@ -17,7 +17,7 @@ alwaysApply: true
    ```
    DB SQL이 있으면 `-SqlFiles @(...)` 로 해당 `pg-app/src/main/resources/db/V*.sql` 경로를 넘긴다.
 3. 실패 시 로그를 보고 **수정 가능한 코드/스크립트 오류**면 고친 뒤 **재배포 1~2회** 시도. 자격증명·디스크·방화벽 등은 사용자에게 알리고 중단.
-4. 성공 시 JAR 경로·적용 SQL·재시작 여부·확인 URL을 짧게 보고한다.
+4. 성공 시 JAR 경로·적용 SQL·재시작 여부·확인 URL을 짧게 보고한다. 답변 **맨 마지막 줄**은 **`deploy-status-comment.mdc`** 대로 `**운영 배포 완료.**` 를 적는다.
 5. **자동 배포가 계속 안 되면** 폴백: 에이전트는 `bootJar`(및 SQL 경로 안내)까지 하고, 사용자는 예전처럼 FTP JAR·DB·수동 `./restart-pg-app.sh` 로 반영한다. (`scripts/deploy/README.md` 수동 폴백)
 
 ## 금지

@@ -16,6 +16,19 @@
       TH: 'ไม่มีคำจำกัดความหน้าจอสำหรับ URL นี้'
     },
     '헬로': { EN: 'Hello', JP: 'Hello', CH: '提示', TH: 'Hello' },
+    'PG사': { EN: 'Payment agency', JP: '決済代行', CH: '支付代理', TH: 'ตัวแทนรับชำระ' },
+    'PG명': { EN: 'Payment agency', JP: '決済代行', CH: '支付代理', TH: 'ตัวแทนรับชำระ' },
+    'PG사명': { EN: 'Payment agency', JP: '決済代行', CH: '支付代理', TH: 'ตัวแทนรับชำระ' },
+    'PG코드': { EN: 'Payment code', JP: '決済コード', CH: '支付代码', TH: 'รหัสชำระ' },
+    'PG사코드': { EN: 'Payment code', JP: '決済コード', CH: '支付代码', TH: 'รหัสชำระ' },
+    'PG사 연동': { EN: 'Payment agency settings', JP: '決済代行業者設定', CH: '支付服务机构设置', TH: 'ตั้งค่าผู้ให้บริการชำระเงิน' },
+    'PG사 연동 추가': { EN: 'Add payment agency settings', JP: '決済代行業者設定を追加', CH: '添加支付服务机构设置', TH: 'เพิ่มตั้งค่าผู้ให้บริการชำระเงิน' },
+    '동일 총판에 추가 계정은 결제코드(JPY/USD 등)를 선택하세요.': {
+      EN: 'Select a payment code (JPY/USD, etc.) for additional accounts under the same master distributor.',
+      JP: '同一総販の追加アカウントは決済コード(JPY/USDなど)を選択してください。',
+      CH: '同一总代的追加账号请选择支付代码（JPY/USD 等）。',
+      TH: 'บัญชีเพิ่มภายใต้ตัวแทนหลักเดียวกันต้องเลือกรหัสชำระ (เช่น JPY/USD)'
+    },
     '태블릿': { EN: 'Tablet', JP: 'タブレット', CH: '平板', TH: 'แท็บเล็ต' },
     '태블릿 UI 전환': { EN: 'Toggle tablet UI', JP: 'タブレットUI切替', CH: '切换平板界面', TH: 'สลับ UI แท็บเล็ต' },
     '태블릿 UI 기능': { EN: 'Tablet UI feature', JP: 'タブレットUI機能', CH: '平板UI功能', TH: 'ฟีเจอร์ UI แท็บเล็ต' },
@@ -266,7 +279,7 @@
       CH: '谨防冒充诈骗',
       TH: 'คำเตือนการแอบอ้างตัวตน'
     },
-    '최근 본사나 PG사를 사칭해 금전적 요구를 하는 사례가 발생하고 있습니다.': {
+    '최근 본사나 결제대행를 사칭해 금전적 요구를 하는 사례가 발생하고 있습니다.': {
       EN: 'There have been cases of people impersonating our company or a PG provider to request money.',
       JP: '最近、当社やPG会社を装って金銭を要求する事例が発生しています。',
       CH: '近期出现冒充本公司或PG公司要求汇款的情况。',
@@ -993,11 +1006,11 @@
       CH: '费率·分成',
       TH: 'เรทค่าธรรมเนียมและแบ่ง'
     },
-    'PG사 연동': {
-      EN: 'PG linkage',
-      JP: 'PG連携',
-      CH: 'PG对接',
-      TH: 'เชื่อม PG'
+    '결제대행사 설정': {
+      EN: 'Payment agency settings',
+      JP: '決済代行業者設定',
+      CH: '支付服务机构设置',
+      TH: 'ตั้งค่าผู้ให้บริการชำระเงิน'
     },
     'API·MID': {
       EN: 'API · MID',
@@ -4001,6 +4014,42 @@
       CH: '邮编',
       TH: 'รหัสไปรษณีย์'
     },
+    '우편번호 서비스를 불러올 수 없습니다.': {
+      EN: 'Postal code service unavailable.',
+      JP: '郵便番号サービスを読み込めません。',
+      CH: '无法加载邮编服务。',
+      TH: 'ใช้บริการรหัสไปรษณีย์ไม่ได้'
+    },
+    '예: 100-0001': {
+      EN: 'e.g. 100-0001',
+      JP: '例: 100-0001',
+      CH: '例: 100-0001',
+      TH: 'เช่น 100-0001'
+    },
+    '일본 우편번호(7자리)를 입력한 뒤 검색하세요.': {
+      EN: 'Enter a 7-digit Japan postal code, then search.',
+      JP: '日本の郵便番号(7桁)を入力してから検索してください。',
+      CH: '请输入7位日本邮编后再搜索。',
+      TH: 'กรอกรหัสไปรษณีย์ญี่ปุ่น 7 หลักแล้วค้นหา'
+    },
+    '해당 우편번호의 주소를 찾을 수 없습니다.': {
+      EN: 'No address found for this postal code.',
+      JP: 'この郵便番号の住所が見つかりません。',
+      CH: '找不到该邮编对应的地址。',
+      TH: 'ไม่พบที่อยู่สำหรับรหัสไปรษณีย์นี้'
+    },
+    '일본 우편번호 조회에 실패했습니다.': {
+      EN: 'Japan postal code lookup failed.',
+      JP: '日本の郵便番号検索に失敗しました。',
+      CH: '日本邮编查询失败。',
+      TH: 'ค้นหารหัสไปรษณีย์ญี่ปุ่นไม่สำเร็จ'
+    },
+    '여러 건이 있습니다. 번호를 입력하세요.': {
+      EN: 'Multiple matches. Enter a number.',
+      JP: '複数件あります。番号を入力してください。',
+      CH: '有多条结果，请输入编号。',
+      TH: 'มีหลายรายการ กรอกหมายเลข'
+    },
     '주소': {
       EN: 'Address',
       JP: '住所',
@@ -5989,19 +6038,19 @@
       TH: 'จำนวนครั้งที่ส่งซ้ำ'
     },
     /* /hq/pgApiMng — 그리드·모달·알림·헬로 안내 */
-    '연동 용도(노티·URL·챗봇·API)를 한 행에서 복수 선택해 저장할 수 있습니다. URL 용도 행은 「URL금액」에서 일반(일반형) / DP(DISPLAY) / BLIND를 지정할 수 있으며, 본사 URL결제설정(FX JSON)의 해당 PG 금액 모드와 동일합니다. 노티=미들웨어 수신 매칭, URL=공개 URL 결제 플로우, 챗봇/API=PG사 API 직연동(동일 연동 URL). 목록 「연동용도」는 파스텔 색으로 구분됩니다. API Key·MD5는 목록 미노출. [삭제]는 등록일 오른쪽, 신규는 [PG사 연동 추가]입니다.': {
+    '연동 용도(노티·URL·챗봇·API)를 한 행에서 복수 선택해 저장할 수 있습니다. URL 용도 행은 「URL금액」에서 일반(일반형) / DP(DISPLAY) / BLIND를 지정할 수 있으며, 본사 URL결제설정(FX JSON)의 해당 PG 금액 모드와 동일합니다. 노티=미들웨어 수신 매칭, URL=공개 URL 결제 플로우, 챗봇/API=결제대행 API 직연동(동일 연동 URL). 목록 「연동용도」는 파스텔 색으로 구분됩니다. API Key·MD5는 목록 미노출. [삭제]는 등록일 오른쪽, 신규는 [결제대행사 설정 추가]입니다.': {
       EN: 'You can select multiple integration scopes (notify, URL, chatbot, API) on one PG row. For URL scope, set Standard / DP (DISPLAY) / BLIND under URL amount — same as the HQ URL pay FX JSON amount mode for that PG. Notify = middleware receive matching; URL = public URL checkout; chatbot/API = direct PG API (same linkage URL). Scope badges use pastel colors. API Key and MD5 are hidden in the list. [Delete] is right of Registered; add new via [Add PG linkage].',
       JP: '連携用途（ノティ・URL・チャットボット・API）を1行で複数選択して保存できます。URL用途は「URL金額」で標準 / DP(DISPLAY) / BLIND を指定でき、本社URL決済設定（FX JSON）の当該PG金額モードと同じです。ノティ=ミドルウェア受信マッチ、URL=公開URL決済、チャットボット/API=PG API直連携（同一連携URL）。一覧「連携用途」はパステル色で区別。API Key・MD5は一覧非表示。[削除]は登録日の右、[PG連携追加]で新規登録。',
       CH: '可在同一 PG 行多选对接用途（通知·URL·聊天机器人·API）。URL 用途可在「URL 金额」选择标准 / DP(DISPLAY) / BLIND，与总部 URL 支付设置（FX JSON）中该 PG 的金额模式一致。通知=中间件接收匹配，URL=公开 URL 支付流程，聊天机器人/API=直连 PG API（同一对接 URL）。列表「对接用途」以淡色区分。API Key·MD5 不在列表显示。[删除]在注册日期右侧，新增用 [添加 PG 对接]。',
       TH: 'เลือกขอบเขตการเชื่อมหลายอย่างในแถว PG เดียวได้ (แจ้ง·URL·แชทบอท·API) ขอบเขต URL ตั้ง มาตรฐาน / DP (DISPLAY) / BLIND ที่「โหมดจำนวน URL» — ตรงกับโหมดจำนวน PG ในการตั้งค่า URL สำนักงานใหญ่ (FX JSON) แจ้ง=จับคู่รับ middleware URL=เช็คเอาต์สาธารณะ แชทบอท/API=เชื่อม PG โดยตรง ป้ายขอบเขตใช้สีพาสเทล API Key·MD5 ไม่แสดงในรายการ [ลบ] อยู่ขวาของวันที่ลงทะเบียน สร้างใหม่ด้วย [เพิ่มการเชื่อม PG]'
     },
-    '통합정산 「예정(ICOPAY)」열: PG사 연동 편집에서 T+N(주말 제외 영업일·결제와 동일 시각) 또는 D+N(달력+N일·일괄 시각)을 저장합니다. OFF면 예정일을 채우지 않습니다. D는 일괄 시각(HH:mm) 필수.': {
+    '통합정산 「예정(ICOPAY)」열: 결제대행사 설정 편집에서 T+N(주말 제외 영업일·결제와 동일 시각) 또는 D+N(달력+N일·일괄 시각)을 저장합니다. OFF면 예정일을 채우지 않습니다. D는 일괄 시각(HH:mm) 필수.': {
       EN: 'Integrated settlement Sched. (ICOPAY): in PG linkage edit, save T+N (business days excluding weekends, same time as payment) or D+N (calendar +N days, batch time). OFF leaves the expected date blank. D requires batch time (HH:mm).',
       JP: '統合精算「予定(ICOPAY)」列: PG連携編集で T+N（週末除く営業日・決済と同時刻）または D+N（暦+N日・一括時刻）を保存。OFF なら予定日を空に。D は一括時刻(HH:mm)必須。',
       CH: '综合结算「预计(ICOPAY)」列：在 PG 对接编辑中保存 T+N（不含周末的营业日·与支付同时刻）或 D+N（日历+N 天·批量时刻）。OFF 则不填预计日。D 必须填写批量时刻(HH:mm)。',
       TH: 'คอลัมน์กำหนด (ICOPAY) การชำระรวม: แก้การเชื่อม PG บันทึก T+N (วันทำการไม่รวมสุดสัปดาห์·เวลาเดียวกับชำระ) หรือ D+N (ปฏิทิน+N วัน·เวลารวม) OFF ไม่เติมวันคาด D ต้องมีเวลารวม (HH:mm)'
     },
-    'ChillPay는 PG코드 CHILLPAY, API·URL 엔드포인트는 ChillPayService가 병합 반영합니다. 운영 DB는 db/V35_pg_agency_integration_scope.sql 적용 후 배포하세요.': {
+    'ChillPay는 결제코드 CHILLPAY, API·URL 엔드포인트는 ChillPayService가 병합 반영합니다. 운영 DB는 db/V35_pg_agency_integration_scope.sql 적용 후 배포하세요.': {
       EN: 'ChillPay uses PG code CHILLPAY; API/URL endpoints are merged by ChillPayService. Apply db/V35_pg_agency_integration_scope.sql on the production DB before deploy.',
       JP: 'ChillPay は PGコード CHILLPAY。API・URL エンドポイントは ChillPayService がマージ反映。本番 DB に db/V35_pg_agency_integration_scope.sql を適用してからデプロイしてください。',
       CH: 'ChillPay 使用 PG 代码 CHILLPAY；API·URL 端点由 ChillPayService 合并写入。请在运营 DB 执行 db/V35_pg_agency_integration_scope.sql 后再部署。',
@@ -6013,11 +6062,11 @@
       CH: '保存运营',
       TH: 'บันทึกการทำงานจริง'
     },
-    'PG사 연동 추가': {
-      EN: 'Add PG linkage',
-      JP: 'PG連携追加',
-      CH: '添加 PG 对接',
-      TH: 'เพิ่มการเชื่อม PG'
+    '결제대행사 설정 추가': {
+      EN: 'Add payment agency settings',
+      JP: '決済代行業者設定を追加',
+      CH: '添加支付服务机构设置',
+      TH: 'เพิ่มตั้งค่าผู้ให้บริการชำระเงิน'
     },
     '조회된 데이터가 없습니다.': {
       EN: 'No records found.',
@@ -6037,7 +6086,7 @@
       CH: '终端 ID',
       TH: 'รหัสเทอร์มินัล'
     },
-    'PG코드': { EN: 'PG code', JP: 'PGコード', CH: 'PG 代码', TH: 'รหัส PG' },
+    '결제코드': { EN: 'PG code', JP: 'PGコード', CH: 'PG 代码', TH: 'รหัส PG' },
     '연동용도': { EN: 'Integration scope', JP: '連携用途', CH: '对接用途', TH: 'ขอบเขตการเชื่อม' },
     'URL금액': { EN: 'URL amount mode', JP: 'URL金額', CH: 'URL 金额', TH: 'โหมดจำนวน URL' },
     '엔드포인트': { EN: 'Endpoint', JP: 'エンドポイント', CH: '端点', TH: 'เอนด์พอยต์' },
@@ -6229,11 +6278,11 @@
       CH: '商户仍在使用该 PG，无法删除。',
       TH: 'ร้านค้ายังใช้ PG นี้อยู่ จึงลบไม่ได้'
     },
-    'PG사 연동 정보를 저장하시겠습니까?': {
-      EN: 'Save PG linkage information?',
-      JP: 'PG連携情報を保存しますか？',
-      CH: '要保存 PG 对接信息吗？',
-      TH: 'บันทึกข้อมูลการเชื่อม PG หรือไม่'
+    '결제대행사 설정 정보를 저장하시겠습니까?': {
+      EN: 'Save payment agency settings?',
+      JP: '決済代行業者設定を保存しますか？',
+      CH: '要保存支付服务机构设置吗？',
+      TH: 'บันทึกตั้งค่าผู้ให้บริการชำระเงินหรือไม่'
     },
     '정말 저장하시겠습니까?': {
       EN: 'Really save?',
@@ -6241,11 +6290,11 @@
       CH: '确定要保存吗？',
       TH: 'ยืนยันบันทึกหรือไม่'
     },
-    'PG코드와 결제대행사는 필수입니다.': {
-      EN: 'PG code and acquirer name are required.',
-      JP: 'PGコードと決済代行名は必須です。',
-      CH: 'PG 代码与支付机构名称为必填。',
-      TH: 'ต้องกรอกรหัส PG และชื่อผู้ให้บริการชำระ'
+    '결제코드와 결제대행사는 필수입니다.': {
+      EN: 'Payment code and payment agency are required.',
+      JP: '決済コードと決済代行業者は必須です。',
+      CH: '支付代码与支付服务机构为必填。',
+      TH: 'ต้องกรอกรหัสชำระและผู้ให้บริการชำระเงิน'
     },
     '연동 용도를 한 가지 이상 선택하세요. 동일 자격이면 노티+URL 등 복수 선택이 가능합니다.': {
       EN: 'Select at least one integration scope. With the same credentials you may multi-select (e.g. Notify+URL).',
@@ -6253,20 +6302,20 @@
       CH: '请至少选择一个对接用途。同一凭据时可多选（如通知+URL）。',
       TH: 'เลือกขอบเขตอย่างน้อยหนึ่งรายการ ถ้าใช้ข้อมูลยืนยันชุดเดียวเลือกหลายอย่างได้ (เช่น แจ้ง+URL)'
     },
-    '연동 용도를 선택하세요. 용도별로 PG코드를 나누어 등록합니다.': {
+    '연동 용도를 선택하세요. 용도별로 결제코드를 나누어 등록합니다.': {
       EN: 'Select at least one integration scope. Same credentials may use multi-select; different credentials need separate PG codes.',
       JP: '連携用途を1つ以上選択。同一資格は複数選択可。資格が異なればPGコードを分けて登録。',
       CH: '请至少选择一个对接用途。同一凭据可多选；凭据不同请分 PG 代码注册。',
       TH: 'เลือกขอบเขตอย่างน้อยหนึ่ง ชุดข้อมูลยืนยันเดียวกันเลือกหลายอย่างได้ ต่างชุดให้แยกรหัส PG'
     },
-    'PG사 연동': {
-      EN: 'PG linkage',
-      JP: 'PG連携',
-      CH: 'PG 对接',
-      TH: 'การเชื่อม PG'
+    '결제대행사 설정': {
+      EN: 'Payment agency settings',
+      JP: '決済代行業者設定',
+      CH: '支付服务机构设置',
+      TH: 'ตั้งค่าผู้ให้บริการชำระเงิน'
     },
     '닫기': { EN: 'Close', JP: '閉じる', CH: '关闭', TH: 'ปิด' },
-    'PG사코드': { EN: 'PG code', JP: 'PG社コード', CH: 'PG 代码', TH: 'รหัส PG' },
+    '결제코드': { EN: 'PG code', JP: 'PG社コード', CH: 'PG 代码', TH: 'รหัส PG' },
     '연동 용도': { EN: 'Integration scope', JP: '連携用途', CH: '对接用途', TH: 'ประเภทการเชื่อม' },
     '엔드포인트 URL': {
       EN: 'Endpoint URL',
@@ -7169,13 +7218,13 @@
       CH: '代理手续费设置',
       TH: 'ตั้งค่าค่าธรรมเนียมตัวแทน'
     },
-    '노티·거래는 동일 저장소를 사용합니다. 여기서는 <strong>ICOPAY↔PG대행사 계약</strong> 관점의 수수료·담보·정산 주기(T+N 등)만 설정합니다. PG는 <strong>API연동설정</strong>에 등록된 PG코드별로 1건씩 저장합니다.': {
+    '노티·거래는 동일 저장소를 사용합니다. 여기서는 <strong>ICOPAY↔PG대행사 계약</strong> 관점의 수수료·담보·정산 주기(T+N 등)만 설정합니다. PG는 <strong>API연동설정</strong>에 등록된 결제코드별로 1건씩 저장합니다.': {
       EN: 'The same noti/transaction store is used. Configure <strong>ICOPAY↔PG agency contract</strong> fees, collateral, and settlement timing (T+N, etc.) only. One row per PG code from <strong>API integration</strong>.',
       JP: 'ノティ・取引は同一ストアです。<strong>ICOPAY↔PG代行契約</strong>の手数료・担保・精算のみ設定します。PGは<strong>API連携設定</strong>のPGコードごとに1件です。',
       CH: '通知与交易共用存储。仅配置 <strong>ICOPAY↔PG 代理商合同</strong> 手续费、保证金与结算周期。每个 API 联动中的 PG 代码一条。',
       TH: 'ใช้คลังเดียวกัน ตั้งค่า<strong>สัญญา ICOPAY↔PG</strong> ค่าธรรมเนียม หลักประกัน รอบชำระ เท่านั้น หนึ่งรายการต่อรหัส PG จาก<strong>การเชื่อม API</strong>'
     },
-    '가맹 수수료(수수료설정)와 별도로, PG사와의 계약 원가·정산 주기를 PG코드(MID) 단위로 관리합니다. 운영 PG결제·PG정산 화면(예정)에서 이 정책을 참조합니다.': {
+    '가맹 수수료(수수료설정)와 별도로, 결제대행사와의 계약 원가·정산 주기를 결제코드(MID) 단위로 관리합니다. 운영 PG결제·PG정산 화면(예정)에서 이 정책을 참조합니다.': {
       EN: 'Separate from merchant fees ([Commission]). Manage PG contract cost and settlement per PG code (MID). Planned PG payment/settlement ops screens will reference this policy.',
       JP: '加盟店手数料（手数料設定）とは別に、PG契約原価・精算をPGコード（MID）単位で管理します。予定のPG決済・PG精算画面が参照します。',
       CH: '与商户手续费（手续费设置）分开，按 PG 代码（MID）管理 PG 合同成本与结算周期。计划中的 PG 支付/结算运营画面将引用此政策。',
@@ -7361,7 +7410,7 @@
       CH: 'D（日历日·批量时刻）',
       TH: 'D (ปฏิทิน เวลารวม)'
     },
-    'PG코드를 선택하세요.': {
+    '결제코드를 선택하세요.': {
       EN: 'Select a PG code.',
       JP: 'PGコードを選択してください。',
       CH: '请选择 PG 代码。',
@@ -11180,7 +11229,7 @@
       CH: '扩展型 PG 注册表',
       TH: 'ทะเบียน PG แบบขยาย'
     },
-    '향후 PG사 추가를 위해 벤더별 기능/방식/엔드포인트를 JSON으로 관리합니다. 기본 구조를 유지한 채 vendors 배열에 계속 추가하면 됩니다.': {
+    '향후 결제대행 추가를 위해 벤더별 기능/방식/엔드포인트를 JSON으로 관리합니다. 기본 구조를 유지한 채 vendors 배열에 계속 추가하면 됩니다.': {
       EN: 'Manage per-vendor features, flows, and endpoints in JSON for future PG additions. Keep the base shape and keep appending to the vendors array.',
       JP: '将来のPG追加のため、ベンダー別の機能・方式・エンドポイントをJSONで管理します。基本構造を保ったままvendors配列に追加し続けられます。',
       CH: '以 JSON 管理各厂商功能、方式与端点，便于后续新增 PG。保持基础结构并向 vendors 数组追加即可。',
@@ -11510,7 +11559,7 @@
       CH: '卡信息仅在上方 ChillPay 安全 iframe 中输入。卡面姓名也在该 iframe 内填写；iframe 外无法读取值故不显示下方姓名栏。ChillPay 安全处理，卡号明文不会传到本公司服务器。',
       TH: 'กรอกข้อมูลบัตรเฉพาะใน iframe ของ ChillPay ด้านบน ชื่อบนบัตรกรอกใน iframe เช่นกัน ไม่แสดงช่องชื่อล่างเพราะอ่านค่านอก iframe ไม่ได้ ChillPay จัดการความปลอดภัย หมายเลขบัตรไม่ส่งแบบข้อความเปล่า'
     },
-    '카드 입력은 연동된 PG사 보안 위젯(iframe 등)에서 제공합니다. 브랜드별 자릿수·CVV 규칙은 해당 PG가 처리하며, ChillPay는 AMEX 미지원입니다. 다른 PG 연동 시 같은 결제 껍데기 안에서 벤더별 위젯으로 갈아끼우는 형태가 일반적입니다.': {
+    '카드 입력은 연동된 결제대행 보안 위젯(iframe 등)에서 제공합니다. 브랜드별 자릿수·CVV 규칙은 해당 PG가 처리하며, ChillPay는 AMEX 미지원입니다. 다른 PG 연동 시 같은 결제 껍데기 안에서 벤더별 위젯으로 갈아끼우는 형태가 일반적입니다.': {
       EN: 'Card entry is provided by the linked PG’s secure widget (iframe, etc.). Digit/CVV rules are handled by that PG; ChillPay does not support AMEX. With other PGs, the same payment shell typically swaps vendor-specific widgets.',
       JP: 'カード入力は連携したPGのセキュアウィジェット(iframe等)で提供されます。桁数・CVVは各PGが処理し、ChillPayはAMEX非対応です。他PGでは同じ決済枠内でベンダー別ウィジェットに切り替える形が一般的です。',
       CH: '卡输入由所对接 PG 的安全组件（iframe 等）提供。位数与 CVV 规则由该 PG 处理；ChillPay 不支持 AMEX。对接其他 PG 时通常在相同支付外壳内切换各厂商组件。',
@@ -11796,7 +11845,7 @@
       CH: '无法加载总代列表。',
       TH: 'โหลดรายการตัวแทนหลักไม่สำเร็จ'
     },
-    '노티 URL 토큰이 바뀝니다. NOTI/연동 PG사에 등록된 URL도 함께 바꿔야 합니다. 계속하시겠습니까?': {
+    '노티 URL 토큰이 바뀝니다. NOTI/연동 결제대행에 등록된 URL도 함께 바꿔야 합니다. 계속하시겠습니까?': {
       EN: 'The notify URL token will change. Update the URL registered in NOTI/ChillPay as well. Continue?',
       JP: 'ノティURLのトークンが変わります。NOTI/チルペイに登録したURLも合わせて変更してください。続行しますか？',
       CH: '通知 URL 令牌将变更。请在 NOTI/ChillPay 中同步更新已登记的 URL。是否继续？',
@@ -14202,7 +14251,7 @@
       CH: '按 PSP 与渠道汇总。编辑请在上方表选择 PSP 后使用「加载已保存」。',
       TH: 'เรียงตาม PSP และช่องทาง แก้ไขโดยเลือก PSP ในตารางด้านบนแล้วกดโหลดที่บันทึก'
     },
-    'PG코드': {
+    '결제코드': {
       EN: 'PSP code',
       JP: 'PGコード',
       CH: 'PG 代码',
@@ -14595,19 +14644,19 @@
     '예 ELEMENTPAY_SAN, CHILLPAY': { EN: 'e.g. ELEMENTPAY_SAN, CHILLPAY', JP: '例 ELEMENTPAY_SAN, CHILLPAY', CH: '例 ELEMENTPAY_SAN, CHILLPAY', TH: 'เช่น ELEMENTPAY_SAN, CHILLPAY' },
     '표시 이름 (예 ElementPay · THB)': { EN: 'Display name (e.g. ElementPay · THB)', JP: '表示名（例 ElementPay · THB）', CH: '显示名称（例 ElementPay · THB）', TH: 'ชื่อแสดง (เช่น ElementPay · THB)' },
     '연동 용도 복수 선택': { EN: 'Multi-select integration scopes', JP: '連携用途の複数選択', CH: '多选对接用途', TH: 'เลือกขอบเขตหลายอย่าง' },
-    '한 행당 용도 1개. 다른 용도는 PG코드를 달리 해 추가 등록하세요.': {
+    '한 행당 용도 1개. 다른 용도는 결제코드를 달리 해 추가 등록하세요.': {
       EN: 'Multi-select scopes on one row when credentials are shared. Use a different PG code only when credentials differ.',
       JP: '同一資格なら1行で複数用途を選択。資格が異なる場合のみPGコードを分けて登録。',
       CH: '同一凭据可在一行多选用途；仅当凭据不同时再分 PG 代码注册。',
       TH: 'ชุดข้อมูลยืนยันเดียวกันเลือกหลายขอบเขตในแถวเดียว ได้ แยกรหัส PG เมื่อข้อมูลยืนยันต่างกันเท่านั้น'
     },
-    '신규만 입력·수정 시 변경 불가. 동일 MID·자격으로 여러 용도(노티+URL 등)면 한 행에 복수 선택. 자격·코드가 다르면 PG코드를 나누어 등록. ChillPay 계열은 CHILLPAY로 시작하는 코드가 URL·자격 병합에 함께 쓰입니다.': {
+    '신규만 입력·수정 시 변경 불가. 동일 MID·자격으로 여러 용도(노티+URL 등)면 한 행에 복수 선택. 자격·코드가 다르면 결제코드를 나누어 등록. ChillPay 계열은 CHILLPAY로 시작하는 코드가 URL·자격 병합에 함께 쓰입니다.': {
       EN: 'New rows only; cannot change after save. Same MID/credentials with multiple scopes (e.g. Notify+URL): multi-select on one row. Different credentials: separate PG codes. ChillPay family: codes starting with CHILLPAY merge URL and credentials.',
       JP: '新規のみ入力・修正時は変更不可。同一MID・資格で複数用途(ノティ+URL等)なら1行で複数選択。資格・コードが異なればPGコードを分けて登録。ChillPay系はCHILLPAYで始まるコードがURL・資格マージに使われます。',
       CH: '仅新建可填，保存后不可改。同一 MID/凭据多用途（如通知+URL）请在一行多选；凭据或代码不同请分 PG 代码。ChillPay 系列以 CHILLPAY 开头的代码会合并 URL 与凭据。',
       TH: 'กรอกเฉพาะแถวใหม่ แก้แล้วเปลี่ยนไม่ได้ MID/ข้อมูลยืนยันชุดเดียวหลายขอบเขต (เช่น แจ้ง+URL) ให้เลือกหลายอย่างในแถวเดียว ถ้าต่างชุดให้แยกรหัส PG ChillPay ใช้รหัสขึ้นต้น CHILLPAY รวม URL และข้อมูลยืนยัน'
     },
-    '신규만 입력·수정 시 변경 불가. 용도마다 PG코드를 나누어 등록하면 가맹점 결제대행사 선택 시 구분됩니다. ChillPay 계열은 CHILLPAY로 시작하는 코드가 URL·자격 병합에 함께 쓰입니다.': {
+    '신규만 입력·수정 시 변경 불가. 용도마다 결제코드를 나누어 등록하면 가맹점 결제대행사 선택 시 구분됩니다. ChillPay 계열은 CHILLPAY로 시작하는 코드가 URL·자격 병합에 함께 쓰입니다.': {
       EN: 'New rows only; cannot change after save. Same MID/credentials with multiple scopes: multi-select on one row. Different credentials: separate PG codes. ChillPay family: codes starting with CHILLPAY merge URL and credentials.',
       JP: '新規のみ入力・修正時は変更不可。同一資格の複数用途は1行で複数選択。資格が異なればPGコードを分けて登録。ChillPay系はCHILLPAYで始まるコードがURL・資格マージに使われます。',
       CH: '仅新建可填，保存后不可改。同一凭据多用途请一行多选；凭据不同再分 PG 代码。ChillPay 系列以 CHILLPAY 开头的代码会合并 URL 与凭据。',
@@ -14625,7 +14674,7 @@
       CH: 'ChillPay 等：以 CHILLPAY 开头的启用(Y) 行的端点与本字段会并入 URL 设置。',
       TH: 'ChillPay ฯลฯ: endpoint ของแถวที่ใช้ (Y) ขึ้นต้น CHILLPAY และช่องนี้ รวมในตั้งค่า URL'
     },
-    '아래는 PG사별 연동 자격입니다. ChillPay는 MID·API Key·MD5·Route·Environment (Sandbox / Production)을 입력하세요. 수정 시 API Key·MD5는 바꿀 때만 입력(비우면 기존 유지).': {
+    '아래는 결제대행별 연동 자격입니다. ChillPay는 MID·API Key·MD5·Route·Environment (Sandbox / Production)을 입력하세요. 수정 시 API Key·MD5는 바꿀 때만 입력(비우면 기존 유지).': {
       EN: 'Below are per-PG credentials. For ChillPay enter MID, API Key, MD5, Route, Environment (Sandbox / Production). When editing, fill API Key / MD5 only to rotate; leave blank to keep existing.',
       JP: '以下はPG別の連携資格です。ChillPayはMID・API Key・MD5・Route・Environmentを入力。修正時はAPI Key・MD5は変更時のみ入力（空なら維持）。',
       CH: '以下为各 PG 的对接凭据。ChillPay 请填写 MID、API Key、MD5、Route、Environment。编辑时仅在轮换时填写 API Key/MD5；留空则保留原值。',
@@ -14660,7 +14709,7 @@
       CH: 'API 部署',
       TH: 'การตั้งค่า API'
     },
-    '가맹점에 발급하는 통합 API의 기본 URL·인증·타임아웃입니다. PG사별 MID·API Key·시크릿은 배포설정 > 「API연동설정」에서 PG코드 단위로 추가·저장하세요(여 PG 병행).': {
+    '가맹점에 발급하는 통합 API의 기본 URL·인증·타임아웃입니다. 결제대행별 MID·API Key·시크릿은 배포설정 > 「API연동설정」에서 결제코드 단위로 추가·저장하세요(여 PG 병행).': {
       EN: 'Base URL, authentication, and timeout for the unified API issued to merchants. Per-PG MID, API key, and secrets are added and saved per PG code under Deployment > “API integration” (multiple PGs supported).',
       JP: '加盟店向け統合APIのベースURL・認証・タイムアウトです。PG別のMID・APIキー・シークレットはデプロイ設定＞「API連携設定」でPGコード単位に追加・保存してください（複数PG併用可）。',
       CH: '面向商户的统一 API 的基础 URL、认证与超时。各 PG 的 MID、API 密钥请在「部署设置 > API 联动设置」中按 PG 代码添加并保存（可多 PG 并行）。',
@@ -14696,7 +14745,7 @@
       CH: 'PG 凭据（登记位置）',
       TH: 'ข้อมูลรับรอง PG (ตำแหน่งที่ลงทะเบียน)'
     },
-    '[PG사 연동 추가]로 PG코드·표시명을 만든 뒤, 동일 화면에서 MID·API Key·MD5(또는 서명키)·Route·Environment (Sandbox/Production)을 입력합니다. ChillPay 결제는 PG코드 CHILLPAY 행에 값이 있면 그것을 최우선으로 사용하고, 비어 있을 때만 아래 레거시 필드를 사용합니다.': {
+    '[결제대행사 설정 추가]로 결제코드·표시명을 만든 뒤, 동일 화면에서 MID·API Key·MD5(또는 서명키)·Route·Environment (Sandbox/Production)을 입력합니다. ChillPay 결제는 결제코드 CHILLPAY 행에 값이 있면 그것을 최우선으로 사용하고, 비어 있을 때만 아래 레거시 필드를 사용합니다.': {
       EN: 'Use [Add PG linkage] to create the PG code and display name, then on the same screen enter MID, API Key, MD5 (or signing key), Route, and Environment (Sandbox/Production). For ChillPay, if the CHILLPAY row has values they take highest priority; the legacy fields below are used only when those are empty.',
       JP: '「PG連携追加」でPGコード・表示名を作成し、同一画面でMID・APIキー・MD5（または署名キー）・Route・Environment (Sandbox/Production)を入力します。ChillPay決済はPGコードCHILLPAY行に値があれば最優先で使用し、空のときのみ下のレガシー欄を使います。',
       CH: '通过「添加 PG 对接」创建 PG 代码与显示名，并在同一画面填写 MID、API Key、MD5（或签名密钥）、Route、Environment (Sandbox/Production)。ChillPay 若 CHILLPAY 行有值则优先使用，仅在为空时使用下方兼容字段。',
@@ -16040,7 +16089,7 @@
       CH: '步骤',
       TH: 'ขั้นตอน'
     },
-    'API연동설정에서 PG사 연동 추가 후, 연동용도에 API를 켭니다.': {
+    'API연동설정에서 결제대행사 설정 추가 후, 연동용도에 API를 켭니다.': {
       EN: 'In API integration settings, add a PG linkage, then turn on API in the integration scope.',
       JP: '「API連携設定」でPG連携を追加し、連携用途でAPIを有効にします。',
       CH: '在「API 联动设置」中添加 PG 对接后，在对接用途中开启 API。',
@@ -16124,7 +16173,7 @@
       CH: '商户专用 MID 与密钥在保存商户时写入商户绑定，可能与总部行不同。',
       TH: 'MID/คีย์เฉพาะร้านจะถูกผูกตอนบันทึกร้าน อาจต่างจากแถวสำนักงานใหญ่'
     },
-    'API연동설정에서 연동용도에 API를 켠 결제대행사가 없습니다. 먼저 PG사 연동 추가 후 저장하세요.': {
+    'API연동설정에서 연동용도에 API를 켠 결제대행사가 없습니다. 먼저 결제대행사 설정 추가 후 저장하세요.': {
       EN: 'No acquirer has API enabled in integration scope. Add a PG linkage in API integration settings first, then save.',
       JP: '連携用途でAPIを有効にした決済代行がありません。先に「API連携設定」でPG連携を追加して保存してください。',
       CH: '没有在对接用途中开启 API 的支付机构。请先在「API 联动设置」中添加 PG 对接并保存。',
@@ -19661,8 +19710,8 @@
     '통합수수료': { EN: 'Agency fees', JP: '代行手数료', CH: '代理手续费', TH: 'ค่าธรรมเนียมตัวแทน' },
     '대행거래내역': { EN: 'Integrated fee', JP: '統合手数料', CH: '整合手续费', TH: 'ค่าธรรมเนียมรวม' },
     'PG정산유무': { EN: 'PG settlement due', JP: 'PG精算可否', CH: 'PG 是否应结算', TH: 'ครบกำหนด PG' },
-    'PG명': { EN: 'PG name', JP: 'PG名', CH: 'PG 名称', TH: 'ชื่อ PG' },
-    'PG코드': { EN: 'PG code', JP: 'PGコード', CH: 'PG 代码', TH: 'รหัส PG' },
+    '결제대행': { EN: 'Payment agency', JP: '決済代行', CH: '支付代理', TH: 'ตัวแทนรับชำระ' },
+    '결제코드': { EN: 'Payment code', JP: '決済コード', CH: '支付代码', TH: 'รหัสชำระ' },
     '대행수수료합': { EN: 'Agency fee total', JP: '代行手数料合計', CH: '代行手续费合计', TH: 'รวมค่าธรรมเนียมตัวแทน' },
     'TAX 리포트': { EN: 'TAX report', JP: 'TAXレポート', CH: 'TAX 报表', TH: 'รายงาน TAX' },
     '메일로그': { EN: 'Mail log', JP: 'メールログ', CH: '邮件日志', TH: 'บันทึกเมล' },
@@ -20934,11 +20983,11 @@
       CH: '등록·해지 权限이 없습니다(总部权限设置).',
       TH: '등록·해지 สิทธิ์이 없습니다(สำนักงานใหญ่สิทธิ์การตั้งค่า).'
     },
-    '등록되지 않은 PG사코드입니다. 배포설정 > API연동설정에서 먼저 등록하세요.': {
-      EN: '등록되지 않은 PG사code입니다. 배포setting > API연동setting에서 먼저 등록하세요.',
-      JP: '등록되지 않은 PG사コード입니다. 배포設定 > API연동設定에서 먼저 등록하세요.',
-      CH: '등록되지 않은 PG사代码입니다. 배포设置 > API연동设置에서 먼저 등록하세요.',
-      TH: '등록되지 않은 PG사รหัส입니다. 배포การตั้งค่า > API연동การตั้งค่า에서 먼저 등록하세요.'
+    '등록되지 않은 결제코드입니다. 배포설정 > API연동설정에서 먼저 등록하세요.': {
+      EN: '등록되지 않은 결제대행code입니다. 배포setting > API연동setting에서 먼저 등록하세요.',
+      JP: '등록되지 않은 결제대행コード입니다. 배포設定 > API연동設定에서 먼저 등록하세요.',
+      CH: '등록되지 않은 결제대행代码입니다. 배포设置 > API연동设置에서 먼저 등록하세요.',
+      TH: '등록되지 않은 결제대행รหัส입니다. 배포การตั้งค่า > API연동การตั้งค่า에서 먼저 등록하세요.'
     },
     '등록된 총본사가 없어 본사를 등록할 수 없습니다.': {
       EN: '등록된 headquarters가 없어 head office를 등록할 수 없습니다.',
@@ -21258,11 +21307,11 @@
       CH: '需要삭제할 ID。',
       TH: 'ต้องระบุ삭제할 ID'
     },
-    '삭제할 PG사 ID가 필요합니다.': {
-      EN: '삭제할 PG사 ID is required.',
-      JP: '삭제할 PG사 IDが必要です。',
-      CH: '需要삭제할 PG사 ID。',
-      TH: 'ต้องระบุ삭제할 PG사 ID'
+    '삭제할 결제대행 ID가 필요합니다.': {
+      EN: '삭제할 결제대행 ID is required.',
+      JP: '삭제할 결제대행 IDが必要です。',
+      CH: '需要삭제할 결제대행 ID。',
+      TH: 'ต้องระบุ삭제할 결제대행 ID'
     },
     '산하 허용 상품 유형이 올바르지 않습니다. 예: SALE,RESERVATION_TIME,RESERVATION_PLACE': {
       EN: 'subordinate 허용 상품 유형이 올바르지 않습니다. 예: SALE,RESERVATION_TIME,RESERVATION_PLACE',
@@ -21504,7 +21553,7 @@
       CH: '승인번호(approvalNo)는 필수입니다.',
       TH: '승인번호(approvalNo)는 필수입니다.'
     },
-    '신규 PG 연동은 연동용도를 선택해야 합니다. (PG코드는 용도별로 나누어 등록하세요)': {
+    '신규 PG 연동은 연동용도를 선택해야 합니다. (결제코드는 용도별로 나누어 등록하세요)': {
       EN: '신규 PG 연동은 연동용도를 선택해야 합니다. (PGcode는 용도별로 나누어 등록하세요)',
       JP: '신규 PG 연동은 연동용도를 선택해야 합니다. (PGコード는 용도별로 나누어 등록하세요)',
       CH: '신규 PG 연동은 연동용도를 선택해야 합니다. (PG代码는 용도별로 나누어 등록하세요)',
@@ -21822,11 +21871,11 @@
       CH: '이미 동일한 접근 규칙이 있습니다.',
       TH: '이미 동일한 접근 규칙이 있습니다.'
     },
-    '이미 등록된 PG사코드입니다.': {
-      EN: '이미 등록된 PG사code입니다.',
-      JP: '이미 등록된 PG사コード입니다.',
-      CH: '이미 등록된 PG사代码입니다.',
-      TH: '이미 등록된 PG사รหัส입니다.'
+    '이미 등록된 결제코드입니다.': {
+      EN: '이미 등록된 결제대행code입니다.',
+      JP: '이미 등록된 결제대행コード입니다.',
+      CH: '이미 등록된 결제대행代码입니다.',
+      TH: '이미 등록된 결제대행รหัส입니다.'
     },
     '이미 사용 중인 로그인ID입니다. 다른 가맹점 소속 계정이거나 사용자관리 등에 등록된 ID는 지정할 수 없습니다.': {
       EN: '이미 사용 중인 loginID입니다. 다른 merchant 소속 account이거나 사용자관리 등에 등록된 ID는 지정할 수 없습니다.',
@@ -23124,23 +23173,23 @@
       CH: 'PG 结算예정: T/D 모드일 때 N(1~10)이 필요합니다.',
       TH: 'PG การชำระบัญชี예정: T/D 모드일 때 N(1~10)이 필요합니다.'
     },
-    'PG사 연동 행을 찾을 수 없습니다.': {
-      EN: 'PG사 연동 행 could not be found.',
-      JP: 'PG사 연동 행が見つかりません。',
-      CH: '未找到PG사 연동 행。',
-      TH: 'ไม่พบPG사 연동 행'
+    '결제대행사 설정 행을 찾을 수 없습니다.': {
+      EN: '결제대행사 설정 행 could not be found.',
+      JP: '결제대행사 설정 행が見つかりません。',
+      CH: '未找到결제대행사 설정 행。',
+      TH: 'ไม่พบ결제대행사 설정 행'
     },
-    'PG사 연동(tb_pg_agency) 행을 찾을 수 없습니다.': {
-      EN: 'PG사 연동(tb_pg_agency) 행 could not be found.',
-      JP: 'PG사 연동(tb_pg_agency) 행が見つかりません。',
-      CH: '未找到PG사 연동(tb_pg_agency) 행。',
-      TH: 'ไม่พบPG사 연동(tb_pg_agency) 행'
+    '결제대행사 설정(tb_pg_agency) 행을 찾을 수 없습니다.': {
+      EN: '결제대행사 설정(tb_pg_agency) 행 could not be found.',
+      JP: '결제대행사 설정(tb_pg_agency) 행が見つかりません。',
+      CH: '未找到결제대행사 설정(tb_pg_agency) 행。',
+      TH: 'ไม่พบ결제대행사 설정(tb_pg_agency) 행'
     },
-    'PG사 정보를 찾을 수 없습니다.': {
-      EN: 'PG사 information could not be found.',
-      JP: 'PG사 情報が見つかりません。',
-      CH: '未找到PG사 信息。',
-      TH: 'ไม่พบPG사 ข้อมูล'
+    '결제대행 정보를 찾을 수 없습니다.': {
+      EN: '결제대행 information could not be found.',
+      JP: '결제대행 情報が見つかりません。',
+      CH: '未找到결제대행 信息。',
+      TH: 'ไม่พบ결제대행 ข้อมูล'
     },
     'PG중계 콜백 시크릿은 256자 이하여야 합니다.': {
       EN: 'PG중계 콜백 시크릿은 256자 이하여야 합니다.',

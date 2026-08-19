@@ -47,7 +47,7 @@
     },
     userAdd: { KO: '추가', EN: 'Add', JP: '追加', CH: '添加', TH: 'เพิ่ม' },
     hqPgApiOpSave: { KO: '운영 저장', EN: 'Save operational', JP: '運用を保存', CH: '保存运营', TH: 'บันทึกการทำงาน' },
-    hqPgApiAdd: { KO: 'PG사 연동 추가', EN: 'Add PG linkage', JP: 'PG連携を追加', CH: '添加 PG 对接', TH: 'เพิ่มการเชื่อม PG' },
+    hqPgApiAdd: { KO: '결제대행사 설정 추가', EN: 'Add payment agency settings', JP: '決済代行業者設定を追加', CH: '添加支付服务机构设置', TH: 'เพิ่มตั้งค่าผู้ให้บริการชำระเงิน' },
     commissionSetting: { KO: '수수료설정', EN: 'Fee settings', JP: '手数料設定', CH: '手续费设置', TH: 'ตั้งค่าค่าธรรมเนียม' },
     /** 정산배포(/settlement/settlementResultDistribute) 툴바 */
     settlementPublishDistribute: { KO: '배포실행', EN: 'Deploy run', JP: '配布実行', CH: '下发执行', TH: 'รันแจกจ่าย' },
@@ -149,7 +149,7 @@
     searchUserNm: { KO: '사용자명', EN: 'User name', JP: 'ユーザー名', CH: '用户名', TH: 'ชื่อผู้ใช้' },
     'searchUserNm:label': { KO: '사용자명', EN: 'User name', JP: 'ユーザー名', CH: '用户名', TH: 'ชื่อผู้ใช้' },
     searchUseStatus: { KO: '사용여부', EN: 'Status', JP: '使用状態', CH: '使用状态', TH: 'สถานะการใช้งาน' },
-    'searchPgNm:label': { KO: 'PG사명', EN: 'PG name', JP: 'PG社名', CH: 'PG 名称', TH: 'ชื่อ PG' },
+    'searchPgNm:label': { KO: '결제대행', EN: 'Payment agency', JP: '決済代行', CH: '支付代理', TH: 'ตัวแทนรับชำระ' },
     searchUseYn: { KO: '사용여부', EN: 'In use', JP: '使用状態', CH: '使用状态', TH: 'สถานะการใช้งาน' },
     compTreeSearchUseStatus: { KO: '업체사용상태', EN: 'Company status', JP: '加盟店使用状態', CH: '商户使用状态', TH: 'สถานะการใช้งานร้าน' },
     searchPayHoldYn: { KO: '지급보류', EN: 'Payout hold', JP: '支払保留', CH: '支付暂缓', TH: 'ระงับการจ่าย' },
@@ -260,7 +260,7 @@
     'searchFieldType|APPROVAL_NO': optMap({ EN: 'Approval no.', JP: '承認番号', CH: '授权号', TH: 'เลขอนุมัติ' }),
     'searchFieldType|ORDER_NO': optMap({ EN: 'Order no.', JP: '注文番号', CH: '订单号', TH: 'เลขคำสั่งซื้อ' }),
     'searchFieldType|MID': optMap({ EN: 'MID', JP: 'MID', CH: 'MID', TH: 'MID' }),
-    'searchFieldType|PG_CD': optMap({ EN: 'PG code', JP: 'PGコード', CH: 'PG 代码', TH: 'รหัส PG' }),
+    'searchFieldType|PG_CD': optMap({ EN: 'Payment code', JP: '決済コード', CH: '支付代码', TH: 'รหัสชำระ' }),
     'searchFieldType|ROUTE': optMap({ EN: 'Route', JP: 'ルート', CH: '路由', TH: 'Route' }),
     'searchFieldType|CURRENCY': optMap({ EN: 'Currency', JP: '通貨', CH: '币种', TH: 'สกุลเงิน' }),
     'searchFieldType|STATUS': optMap({ EN: 'Status', JP: '状態', CH: '状态', TH: 'สถานะ' }),
@@ -726,9 +726,9 @@
       packN('가맹이 본사설정 「환수/미수금설정」에서 수동(MANUAL)인 경우에만 행의 [환수처리]로 다음 정산 마감 반영을 요청할 수 있습니다. 자동(AUTO) 가맹은 정산 시 미수금이 FIFO로 차감됩니다.', 'Only merchants set to manual recovery in HQ 「Recovery / receivables」can use row **[Request recovery]** to ask for deduction on the next settlement close. AUTO merchants have receivables deducted FIFO during settlement.', '加盟店が本社設定「回収・未収設定」で手動(MANUAL)のときのみ、行の［回収処理］で次回精算締め時の反映を依頼できます。自動(AUTO)の加盟店は精算時に未収金を FIFO で控除します。', '仅当商户在总部「回款/应收」设为手动(MANUAL)时，才可用行的【回款处理】请求在下次结算关账时扣减。自动(AUTO)商户在结算时按 FIFO 扣减应收。', 'ร้านที่ตั้งเป็น MANUAL ใน HQ 「กู้คืน/ลูกหนี้」เท่านั้นที่กด [ดำเนินการกู้คืน] ในแถวเพื่อขอหักรอบปิดชำระถัดไป ร้าน AUTO ระบบหักลูกหนี้ FIFO ตอนชำระ')
     ],
     '/hq/pgApiMng': [
-      packN('연동 용도(노티·URL·챗봇·API)와 용도별 엔드포인트를 구분해 저장합니다. URL 용도 행은 「URL금액」에서 일반(일반형) / DP(DISPLAY) / BLIND를 지정할 수 있으며, 본사 URL결제설정(FX JSON)의 해당 PG 금액 모드와 동일합니다. 노티=미들웨어 수신 매칭, URL=공개 URL 결제 플로우, 챗봇/API=PG사 API 직연동(동일 연동 URL). 목록 「연동용도」는 파스텔 색으로 구분됩니다. API Key·MD5는 목록 미노출. [삭제]는 등록일 오른쪽, 신규는 [PG사 연동 추가]입니다.', 'Integration kinds (notify, URL, chatbot, API) and per-kind endpoints are stored separately. For URL rows, set Normal / DP (DISPLAY) / BLIND under “URL amount”; this matches HQ URL pay FX JSON per PG. Notify = middleware inbound match; URL = public URL pay; Chatbot/API = direct PG API (same URL). Scope badges use pastel colors. API key / MD5 are hidden in the list. Delete sits right of reg. date; use “Add PG linkage” for new.', '連携用途（ノティ・URL・チャットボット・API）と用途別エンドポイントを分けて保存します。URL行は「URL金額」で標準／DP(DISPLAY)／BLINDを指定でき、本社URL決済設定(FX JSON)の当該PGモードと一致します。ノティ=ミドルウェア受信、URL=公開URL決済、チャットボット／API=PG API直連携。一覧の用途はパステル色。API Key・MD5は一覧非表示。削除は登録日の右、新規は「PG連携を追加」。', '按用途（通知、URL、聊天机器人、API）及各自端点分别保存。URL 行可在「URL 金额」指定标准／DP(DISPLAY)／BLIND，与总部 URL 支付 FX JSON 中该 PG 的模式一致。通知=中间件入账匹配；URL=公开 URL 支付；聊天机器人/API=直连 PG API。列表用途用浅色区分。列表不显示 API Key/MD5。删除在注册日期右侧，新增用「添加 PG 对接」。', 'บันทึกแยกตามประเภท (แจ้งเตือน URL แชทบอท API) และ endpoint ต่อประเภท แถว URL ตั้งค่า มาตรฐาน/DP/BLIND ที่คอลัมน์ URL ตรงกับ FX JSON ของ HQ แจ้งเตือน=จับคู่ middleware URL=จ่ายสาธารณะ แชทบอท/API=เชื่อม API โดยตรง ไม่แสดง API Key/MD5 ในรายการ ลบอยู่ขวาวันที่ ลงทะเบียน ใหม่ใช้ปุ่มเพิ่มการเชื่อม PG'),
-      packN('통합정산 「예정(ICOPAY)」열: PG사 연동 편집에서 T+N(주말 제외 영업일·결제와 동일 시각) 또는 D+N(달력+N일·일괄 시각)을 저장합니다. OFF면 예정일을 채우지 않습니다. D는 일괄 시각(HH:mm) 필수.', '“Expected (ICOPAY)” uses T+N (business days, same time as payment) or D+N (calendar days + batch time) from the PG linkage editor. OFF leaves the date empty. D requires batch time (HH:mm).', '統合精算の「予定(ICOPAY)」列は、PG連携編集で T+N（営業日・決済と同時刻）または D+N（暦日+N・一括時刻）を保存します。OFF は予定日を空にします。D は一括時刻(HH:mm)が必須です。', '「预计(ICOPAY)」列在 PG 对接编辑中保存 T+N（营业日、与支付同时刻）或 D+N（自然日+N、批量时刻）。OFF 不填预计日。D 必须填写批量时刻(HH:mm)。', 'คอลัมน์คาด(ICOPAY) ใช้ T+N (วันทำการ เวลาเดียวกับการชำระ) หรือ D+N (ปฏิทิน+N เวลารวม) จากแก้ไขการเชื่อม PG ถ้า OFF ไม่เติมวันที่ D ต้องมีเวลารวม HH:mm'),
-      packN('ChillPay는 PG코드 CHILLPAY, API·URL 엔드포인트는 ChillPayService가 병합 반영합니다. 운영 DB는 db/V35_pg_agency_integration_scope.sql 적용 후 배포하세요.', 'ChillPay expects PG codes starting with CHILLPAY; ChillPayService merges API/URL endpoints. Apply db/V35_pg_agency_integration_scope.sql to the production DB before deploy.', 'ChillPay は PGコード CHILLPAY、API/URL エンドポイントは ChillPayService がマージ反映します。本番 DB には db/V35_pg_agency_integration_scope.sql を適用してからデプロイしてください。', 'ChillPay 要求 PG 代码以 CHILLPAY 开头；API/URL 端点由 ChillPayService 合并。生产库请先执行 db/V35_pg_agency_integration_scope.sql 再部署。', 'ChillPay ใช้รหัส PG ขึ้นต้น CHILLPAY ChillPayService รวม endpoint API/URL ใช้สคริปต์ db/V35_pg_agency_integration_scope.sql กับ DB ก่อน deploy')
+      packN('연동 용도(노티·URL·챗봇·API)와 용도별 엔드포인트를 구분해 저장합니다. URL 용도 행은 「URL금액」에서 일반(일반형) / DP(DISPLAY) / BLIND를 지정할 수 있으며, 본사 URL결제설정(FX JSON)의 해당 PG 금액 모드와 동일합니다. 노티=미들웨어 수신 매칭, URL=공개 URL 결제 플로우, 챗봇/API=결제대행 API 직연동(동일 연동 URL). 목록 「연동용도」는 파스텔 색으로 구분됩니다. API Key·MD5는 목록 미노출. [삭제]는 등록일 오른쪽, 신규는 [결제대행사 설정 추가]입니다.', 'Integration kinds (notify, URL, chatbot, API) and per-kind endpoints are stored separately. For URL rows, set Normal / DP (DISPLAY) / BLIND under “URL amount”; this matches HQ URL pay FX JSON per PG. Notify = middleware inbound match; URL = public URL pay; Chatbot/API = direct PG API (same URL). Scope badges use pastel colors. API key / MD5 are hidden in the list. Delete sits right of reg. date; use “Add PG linkage” for new.', '連携用途（ノティ・URL・チャットボット・API）と用途別エンドポイントを分けて保存します。URL行は「URL金額」で標準／DP(DISPLAY)／BLINDを指定でき、本社URL決済設定(FX JSON)の当該PGモードと一致します。ノティ=ミドルウェア受信、URL=公開URL決済、チャットボット／API=PG API直連携。一覧の用途はパステル色。API Key・MD5は一覧非表示。削除は登録日の右、新規は「PG連携を追加」。', '按用途（通知、URL、聊天机器人、API）及各自端点分别保存。URL 行可在「URL 金额」指定标准／DP(DISPLAY)／BLIND，与总部 URL 支付 FX JSON 中该 PG 的模式一致。通知=中间件入账匹配；URL=公开 URL 支付；聊天机器人/API=直连 PG API。列表用途用浅色区分。列表不显示 API Key/MD5。删除在注册日期右侧，新增用「添加 PG 对接」。', 'บันทึกแยกตามประเภท (แจ้งเตือน URL แชทบอท API) และ endpoint ต่อประเภท แถว URL ตั้งค่า มาตรฐาน/DP/BLIND ที่คอลัมน์ URL ตรงกับ FX JSON ของ HQ แจ้งเตือน=จับคู่ middleware URL=จ่ายสาธารณะ แชทบอท/API=เชื่อม API โดยตรง ไม่แสดง API Key/MD5 ในรายการ ลบอยู่ขวาวันที่ ลงทะเบียน ใหม่ใช้ปุ่มเพิ่มการเชื่อม PG'),
+      packN('통합정산 「예정(ICOPAY)」열: 결제대행사 설정 편집에서 T+N(주말 제외 영업일·결제와 동일 시각) 또는 D+N(달력+N일·일괄 시각)을 저장합니다. OFF면 예정일을 채우지 않습니다. D는 일괄 시각(HH:mm) 필수.', '“Expected (ICOPAY)” uses T+N (business days, same time as payment) or D+N (calendar days + batch time) from the PG linkage editor. OFF leaves the date empty. D requires batch time (HH:mm).', '統合精算の「予定(ICOPAY)」列は、PG連携編集で T+N（営業日・決済と同時刻）または D+N（暦日+N・一括時刻）を保存します。OFF は予定日を空にします。D は一括時刻(HH:mm)が必須です。', '「预计(ICOPAY)」列在 PG 对接编辑中保存 T+N（营业日、与支付同时刻）或 D+N（自然日+N、批量时刻）。OFF 不填预计日。D 必须填写批量时刻(HH:mm)。', 'คอลัมน์คาด(ICOPAY) ใช้ T+N (วันทำการ เวลาเดียวกับการชำระ) หรือ D+N (ปฏิทิน+N เวลารวม) จากแก้ไขการเชื่อม PG ถ้า OFF ไม่เติมวันที่ D ต้องมีเวลารวม HH:mm'),
+      packN('ChillPay는 결제코드 CHILLPAY, API·URL 엔드포인트는 ChillPayService가 병합 반영합니다. 운영 DB는 db/V35_pg_agency_integration_scope.sql 적용 후 배포하세요.', 'ChillPay expects PG codes starting with CHILLPAY; ChillPayService merges API/URL endpoints. Apply db/V35_pg_agency_integration_scope.sql to the production DB before deploy.', 'ChillPay は PGコード CHILLPAY、API/URL エンドポイントは ChillPayService がマージ反映します。本番 DB には db/V35_pg_agency_integration_scope.sql を適用してからデプロイしてください。', 'ChillPay 要求 PG 代码以 CHILLPAY 开头；API/URL 端点由 ChillPayService 合并。生产库请先执行 db/V35_pg_agency_integration_scope.sql 再部署。', 'ChillPay ใช้รหัส PG ขึ้นต้น CHILLPAY ChillPayService รวม endpoint API/URL ใช้สคริปต์ db/V35_pg_agency_integration_scope.sql กับ DB ก่อน deploy')
     ],
     '/calc/compPointMngList': [
       packN('「환수금」은 정산이 반영된 뒤(승인 건이 settled 등으로 정산에 올라간 이후) 같은 거래가 환불·취소·무효·차지백 등으로 바뀔 때 정산에서 거둬야 할 금액이 자동으로 잡히는 내역입니다. 금액은 전산설정(환수금 수수료 포함) 및 수수료내역과 동일한 건별 산식입니다. 다음 정산 지급액에서는 환수금(FIFO)을 먼저 차감한 뒤 미수금(FIFO)을 차감합니다. 거래별 산출·검증은 「회수·거래기준」(/settlement/recallMng) 화면을 참고하세요.', 'Recovery rows are created when a transaction was already reflected in settlement (e.g. settled) and later changes to refund, cancel, void, chargeback, etc. Amounts follow ledger settings (whether fees are included in recovery) and the same per-txn rules as fee history. On the next payout, recovery (FIFO) is deducted first, then receivables (FIFO). For per-txn calculation and checks, use the “Recovery by transaction” screen (/settlement/recallMng).', '「回収金」は、精算反映後（承認取引が settled 等で精算に載った後）に同一取引が返金・取消・無効・チャージバック等へ変わったとき、精算で回収すべき金額が自動計上される明細です。金額は全算設定（回収金に手数料を含むか）および手数料一覧と同じ件別計算式です。次回の支払額からは回収金(FIFO)を先に差し引いた後、未収金(FIFO)を差し引きます。取引別の算出・照合は「回収・取引基準」(/settlement/recallMng) を参照してください。', '「回款」指：交易已参与结算（如 settled）之后又变为退款、取消、作废、拒付等时，系统自动生成的应从结算侧收回的金额。金额按账务设置（回款是否含手续费）及与手续费明细相同的逐笔规则计算。下次拨付时先按 FIFO 扣回款，再扣应收。逐笔计算与核对请使用「回款·按交易」(/settlement/recallMng) 画面。', 'รายการกู้คืนเกิดเมื่อธุรกรรมถูกสะท้อนชำระแล้ว (เช่น settled) ต่อมาเปลี่ยนเป็นคืนเงิน·ยกเลิก·โมฆะ·ชาร์จแบ็ก ฯลฯ ยอดคิดตามการตั้งค่า (รวมค่าธรรมเนียมหรือไม่) และกฎรายรายการเดียวกับประวัติค่าธรรมเนียม รอบถัดไปหักกู้คืน FIFO แล้วจึงหักลูกหนี้ FIFO ตรวจรายรายการที่ /settlement/recallMng')
@@ -1127,14 +1127,14 @@
         'เฉพาะ HQ สูงสุด/ภูมิภาค/ตัวแทนหลักหรือ ADMIN ขอบเขตคือร้านใต้องค์กรที่ล็อกอิน'
       ),
       packN(
-        '결제대행사(PG) 계약 수수료를 건별로 표시합니다. 본사설정 「대행수수료설정」과 가맹 결제대행사 설정 PG코드·거래 통화로 정책을 찾아, 과거 거래도 현재 설정 기준으로 재계산합니다. 정산관리 수수료내역과 유사한 구조이며 가맹 수수료·가맹 정산(settled_yn)과 별개입니다.',
+        '결제대행사(PG) 계약 수수료를 건별로 표시합니다. 본사설정 「대행수수료설정」과 가맹 결제대행사 설정 결제코드·거래 통화로 정책을 찾아, 과거 거래도 현재 설정 기준으로 재계산합니다. 정산관리 수수료내역과 유사한 구조이며 가맹 수수료·가맹 정산(settled_yn)과 별개입니다.',
         'Per-txn PG contract fees: resolves policy from Agency fee settings + merchant PG binding code and txn currency; past txns are recalculated with current policy. Similar to settlement fee list; separate from merchant fees and settled_yn.',
         '決済代行(PG)契約手数料を取引ごとに表示。代行手数料設定と加盟店PGコード・取引通貨で政策を解決し、過去取引も現行設定で再計算します。精算手数料明細と同型で加盟店手数料・settled_ynとは別です。',
         '按笔显示 PG 合同手续费：按代行手续费设置与商户 PG 绑定代码、交易币种匹配政策，历史交易亦按当前设置重算。结构与结算手续费明细类似，与商户手续费及 settled_yn 无关。',
         'แสดงค่าธรรมเนียมสัญญา PG รายรายการ: จับคู่นโยบายจากตั้งค่าตัวแทน+รหัส PG ร้าน·สกุลเงินธุรกรรม ธุรกรรมเก่าคำนวณใหม่ตามนโยบายปัจจุบัน คล้ายรายการค่าธรรมเนียมชำระ แยกจากค่าธรรมเนียมร้านและ settled_yn'
       ),
       packN(
-        '과거 거래도 현재 「대행수수료설정」 기준으로 건별 수수료를 재계산해 표시합니다. 정책이 없거나 PG코드·통화가 일치하지 않으면 수수료 열은 0 또는 빈 칸입니다.',
+        '과거 거래도 현재 「대행수수료설정」 기준으로 건별 수수료를 재계산해 표시합니다. 정책이 없거나 결제코드·통화가 일치하지 않으면 수수료 열은 0 또는 빈 칸입니다.',
         'Past transactions are recalculated per current Agency fee settings. Fee columns show 0 or blank when no policy matches PG code/currency.',
         '過去取引も現行「代行手数料設定」で再計算して表示します。政策なし・PGコード・通貨不一致の場合は手数료列は0または空欄です。',
         '历史交易亦按当前「代行手续费设置」重算；无匹配政策或 PG 代码/币种不一致时手续费列为 0 或空。',
@@ -1401,7 +1401,7 @@
     instalMonth: { EN: 'Installment', JP: '分割回数', CH: '分期月数', TH: 'งวดผ่อน' },
     payMethod: { EN: 'Pay method', JP: '決済手段', CH: '支付方式', TH: 'วิธีชำระ' },
     corpNm: { EN: 'Corporate name', JP: '法人名', CH: '法人名称', TH: 'ชื่อนิติบุคคล' },
-    pgNm: { EN: 'PG', JP: 'PG', CH: 'PG', TH: 'PG' },
+    pgNm: { EN: 'Payment agency', JP: '決済代行', CH: '支付代理', TH: 'ตัวแทนรับชำระ' },
     terminalId: { EN: 'Terminal', JP: '端末', CH: '终端', TH: 'เทอร์มินัล' },
     calcCycle: { EN: 'Settle cycle', JP: '精算周期', CH: '结算周期', TH: 'รอบชำระ' },
     calcProcType: { EN: 'Settlement class', JP: '精算区分', CH: '结算类别', TH: 'ประเภทการชำระ' },
@@ -1509,8 +1509,8 @@
   };
 
   var AGENCY_COL = Object.assign({}, COL, {
-    pgNm: { EN: 'PG name', JP: 'PG名', CH: 'PG 名称', TH: 'ชื่อ PG' },
-    pgCd: { EN: 'Payment processor', JP: '決済代行業者', CH: '支付服务机构', TH: 'ผู้ให้บริการชำระเงิน' },
+    pgNm: { EN: 'Payment agency', JP: '決済代行', CH: '支付代理', TH: 'ตัวแทนรับชำระ' },
+    pgCd: { EN: 'Payment code', JP: '決済コード', CH: '支付代码', TH: 'รหัสชำระ' },
     curType: { EN: 'Currency', JP: '通貨', CH: '币种', TH: 'สกุลเงิน' },
     totalAgencyFee: { EN: 'Agency fee total', JP: '代行手数료合計', CH: '代行手续费合计', TH: 'รวมค่าธรรมเนียมตัวแทน' },
     agencySettleYn: { EN: 'PG settlement due', JP: 'PG精算可否', CH: 'PG 是否应结算', TH: 'ครบกำหนด PG' }

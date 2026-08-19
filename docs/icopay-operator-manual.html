@@ -135,7 +135,7 @@
         <li><a href="#access-perm">본사정책 — 접근·권한</a></li>
         <li><a href="#ai-chatbot">본사정책 — AI·챗봇</a></li>
         <li><a href="#platform">본사정책 — 플랫폼</a></li>
-        <li><a href="#pg-integration">연동·배포 — PG사 연동</a></li>
+        <li><a href="#pg-integration">연동·배포 — 결제대행사 설정</a></li>
         <li><a href="#api-launch">연동·배포 — 가맹 API 출시</a></li>
         <li><a href="#merchant-mgmt">업체관리</a></li>
         <li><a href="#payment-mgmt">결제관리</a></li>
@@ -175,7 +175,7 @@
         <tr><td>접근·권한 허브</td><td>본사 권한, 사용자, 업체 접근</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
         <tr><td>AI·챗봇 (단독)</td><td>AI 모델 설정, 챗봇 전역 설정</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
         <tr><td>플랫폼 허브</td><td>전산·동기화, 도메인·SSL, 서버, <strong>업데이트 내용</strong></td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
-        <tr><td rowspan="2"><strong>연동·배포</strong><br><small>(총본사 전용)</small></td><td>PG사 연동</td><td>PG코드, MID, API키</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
+        <tr><td rowspan="2"><strong>연동·배포</strong><br><small>(총본사 전용)</small></td><td>결제대행사 설정</td><td>결제코드, MID, API키</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
         <tr><td>가맹 API 출시 허브</td><td>①공통설정, ②가맹 등록, ③키·문서, API 문서</td><td class="icon">✅</td><td class="icon">❌</td><td class="icon">❌</td></tr>
         <tr><td rowspan="5"><strong>업체관리</strong></td><td colspan="2">공지사항, 업체등록, 업체관리, 수수료관리, 업체변경이력</td><td class="icon">✅</td><td class="icon">✅</td><td class="icon">✅</td></tr>
         <tr><td colspan="2">결제관리: 결제내역, 통합내역, 통합정산</td><td class="icon">✅</td><td class="icon">✅ / ❌*</td><td class="icon">✅ / ❌*</td></tr>
@@ -191,7 +191,7 @@
       <thead><tr><th>메뉴</th><th>설명</th><th class="center">총본사</th><th class="center">본사·총판</th></tr></thead>
       <tbody>
         <tr><td>본사정책 전체</td><td>수수료·리스크·결제·노티·정산·조직·접근·AI·플랫폼 정책 설정</td><td class="icon">✅</td><td class="icon">❌</td></tr>
-        <tr><td>연동·배포 전체</td><td>PG사 연동, 가맹 API 출시 위저드</td><td class="icon">✅</td><td class="icon">❌</td></tr>
+        <tr><td>연동·배포 전체</td><td>결제대행사 설정, 가맹 API 출시 위저드</td><td class="icon">✅</td><td class="icon">❌</td></tr>
         <tr><td>정산실행·배포·대기·통합정산</td><td>정산 처리 및 배포 실행</td><td class="icon">✅</td><td class="icon">❌</td></tr>
         <tr><td>통보관리 전체</td><td>결제통보 URL, 전송관리, 현금영수증통보</td><td class="icon">✅</td><td class="icon">❌</td></tr>
         <tr><td>운영관리(운영관리·TAX·검증·대행수수료)</td><td>운영 핵심 리포트 및 관리</td><td class="icon">✅</td><td class="icon">❌</td></tr>
@@ -228,11 +228,11 @@
 
     <h3 class="sub-title">2-2. 대행수수료 탭</h3>
     <span class="menu-path">본사정책 &gt; 수수료·리스크 &gt; 대행수수료 탭</span>
-    <p>PG사 대행 수수료(ICOPAY가 PG사에 지불하는 원가 수수료)를 관리합니다.</p>
+    <p>결제대행 대행 수수료(ICOPAY가 결제대행에 지불하는 원가 수수료)를 관리합니다.</p>
     <table>
       <thead><tr><th>설정 항목</th><th>설명</th></tr></thead>
       <tbody>
-        <tr><td>PG사별 대행 수수료율</td><td>각 결제대행사(PG코드)별 원가 수수료 % (Eximbay 등 신규 PG 포함)</td></tr>
+        <tr><td>결제대행별 대행 수수료율</td><td>각 결제대행사(결제코드)별 원가 수수료 % (Eximbay 등 신규 PG 포함)</td></tr>
         <tr><td>통화별 대행 수수료</td><td>거래 통화 단위별 대행 수수료 차등 적용</td></tr>
         <tr><td>마진 계산 도구</td><td>기본 수수료 - 대행수수료 = 순마진 자동 계산 표시</td></tr>
       </tbody>
@@ -339,7 +339,7 @@
         <tr><td>결제 수단 정보</td><td>payment_method, card_brand, card_last4</td></tr>
       </tbody>
     </table>
-    <div class="block-box"><strong>🔒 PG사 MID·API키는 노티 페이로드에 절대 포함되지 않습니다.</strong> ICOPAY 내부 식별 정보만 전송됩니다.</div>
+    <div class="block-box"><strong>🔒 결제대행 MID·API키는 노티 페이로드에 절대 포함되지 않습니다.</strong> ICOPAY 내부 식별 정보만 전송됩니다.</div>
 
     <h3 class="sub-title">4-3. 수령 로그 탭</h3>
     <span class="menu-path">본사정책 &gt; 노티 센터 &gt; 수령 로그 탭</span>
@@ -494,7 +494,7 @@
     <table>
       <thead><tr><th>설정 항목</th><th>설명</th></tr></thead>
       <tbody>
-        <tr><td>데이터 동기화 스케줄</td><td>PG사 거래 데이터 주기적 동기화 설정 (크론 식)</td></tr>
+        <tr><td>데이터 동기화 스케줄</td><td>결제대행 거래 데이터 주기적 동기화 설정 (크론 식)</td></tr>
         <tr><td>동기화 로그 조회</td><td>마지막 동기화 시각, 성공/실패 건수 확인</td></tr>
         <tr><td>수동 동기화 실행</td><td>즉시 데이터 동기화 트리거</td></tr>
       </tbody>
@@ -537,18 +537,18 @@
 
     <hr class="rule">
 
-    <!-- ══ 10. PG사 연동 ══ -->
-    <h2 class="section-title" id="pg-integration">10. 연동·배포 — PG사 연동 <span class="r-all">총본사 전용</span></h2>
-    <span class="menu-path">연동·배포 &gt; PG사 연동</span>
-    <p>ICOPAY와 연동된 PG사(결제대행사)의 코드, MID, API 키를 등록하고 관리합니다.</p>
+    <!-- ══ 10. 결제대행사 설정 ══ -->
+    <h2 class="section-title" id="pg-integration">10. 연동·배포 — 결제대행사 설정 <span class="r-all">총본사 전용</span></h2>
+    <span class="menu-path">연동·배포 &gt; 결제대행사 설정</span>
+    <p>ICOPAY와 연동된 결제대행(결제대행사)의 코드, MID, API 키를 등록하고 관리합니다.</p>
 
-    <div class="block-box"><strong>🔒 PG사 MID·API키는 절대 가맹점에게 노출되지 않습니다.</strong> 내부 라우팅 전용으로만 사용됩니다.</div>
+    <div class="block-box"><strong>🔒 결제대행 MID·API키는 절대 가맹점에게 노출되지 않습니다.</strong> 내부 라우팅 전용으로만 사용됩니다.</div>
 
     <h3 class="sub-title">10-1. PG 코드 등록</h3>
     <div class="flow">
-      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc"><strong>연동·배포 &gt; PG사 연동</strong> 진입</span></div>
-      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">PG사 선택 또는 신규 PG코드 등록 (연동용도·MID·Route 지정)</span></div>
-      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">PG사 환경 선택: Sandbox(테스트) / Production(운영)</span></div>
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc"><strong>연동·배포 &gt; 결제대행사 설정</strong> 진입</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">결제대행 선택 또는 신규 결제코드 등록 (연동용도·MID·Route 지정)</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">결제대행 환경 선택: Sandbox(테스트) / Production(운영)</span></div>
       <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">MID(Merchant ID), API Key, Secret Key 입력</span></div>
       <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc">연동 테스트 실행 → 응답 코드 확인</span></div>
       <div class="flow-row"><span class="flow-num">⑥</span><span class="flow-desc">저장 → 결제 라우팅에서 해당 PG 선택 가능</span></div>
@@ -557,9 +557,9 @@
     <table>
       <thead><tr><th>설정 항목</th><th>설명</th></tr></thead>
       <tbody>
-        <tr><td>PG사 코드</td><td>시스템 내부 PG 식별 코드 (내부 등록 PG코드)</td></tr>
-        <tr><td>MID (Merchant ID)</td><td>PG사가 발급한 가맹점 식별 번호</td></tr>
-        <tr><td>API Key / Secret</td><td>PG사 API 인증 자격증명</td></tr>
+        <tr><td>결제대행 코드</td><td>시스템 내부 PG 식별 코드 (내부 등록 결제코드)</td></tr>
+        <tr><td>MID (Merchant ID)</td><td>결제대행가 발급한 가맹점 식별 번호</td></tr>
+        <tr><td>API Key / Secret</td><td>결제대행 API 인증 자격증명</td></tr>
         <tr><td>환경 구분</td><td>Sandbox / Production 환경 설정</td></tr>
         <tr><td>결제 수단 지원 목록</td><td>해당 PG가 지원하는 결제 수단 체크</td></tr>
         <tr><td>통화 지원 목록</td><td>해당 PG가 처리 가능한 통화 목록</td></tr>
@@ -623,7 +623,7 @@
         <tr><td>구독 결제 취소</td><td>/api/middleware/v1/merchant/checkout/subscription/cancel</td></tr>
       </tbody>
     </table>
-    <div class="info-box">모든 API 응답의 <code>pgVendor</code> 필드는 항상 <strong>ICOPAY</strong>입니다. PG사 코드·MID는 응답에 포함되지 않습니다.</div>
+    <div class="info-box">모든 API 응답의 <code>pgVendor</code> 필드는 항상 <strong>ICOPAY</strong>입니다. 결제대행 코드·MID는 응답에 포함되지 않습니다.</div>
 
     <hr class="rule">
 
@@ -681,11 +681,11 @@
 
     <h3 class="sub-title">13-2. 통합내역</h3>
     <span class="menu-path">결제관리 &gt; 통합내역</span>
-    <p>모든 PG사를 통한 거래를 통합 조회합니다. PG사별 거래 상태를 한눈에 확인할 수 있습니다.</p>
+    <p>모든 결제대행를 통한 거래를 통합 조회합니다. 결제대행별 거래 상태를 한눈에 확인할 수 있습니다.</p>
 
     <h3 class="sub-title">13-3. 통합정산 <span class="r-all">총본사 전용</span></h3>
     <span class="menu-path">결제관리 &gt; 통합정산</span>
-    <p>전체 PG사 거래를 통합하여 정산 처리합니다. 총본사만 접근 가능합니다.</p>
+    <p>전체 결제대행 거래를 통합하여 정산 처리합니다. 총본사만 접근 가능합니다.</p>
 
     <hr class="rule">
 
@@ -746,8 +746,8 @@
     </div>
 
     <div class="faq-item">
-      <div class="faq-q">PG사 연동 정보(MID, API키)가 가맹점에게 노출될 위험은 없나요?</div>
-      <div class="faq-a">전혀 없습니다. PG사 MID·API키는 ICOPAY 내부 서버에서만 사용되며, 가맹점 API 응답이나 노티 페이로드에는 절대 포함되지 않습니다. 가맹점에는 ICOPAY 집계 MID(order_id 기반)만 전달됩니다.</div>
+      <div class="faq-q">결제대행사 설정 정보(MID, API키)가 가맹점에게 노출될 위험은 없나요?</div>
+      <div class="faq-a">전혀 없습니다. 결제대행 MID·API키는 ICOPAY 내부 서버에서만 사용되며, 가맹점 API 응답이나 노티 페이로드에는 절대 포함되지 않습니다. 가맹점에는 ICOPAY 집계 MID(order_id 기반)만 전달됩니다.</div>
     </div>
 
     <div class="faq-item">

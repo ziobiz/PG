@@ -45,13 +45,13 @@ const MANUALS = [
     sections: {
       ko: [
         { h: '역할', html: '<p>총본사(HEADQUARTERS)는 <strong>본사정책</strong>·<strong>연동·배포</strong> 허브와 전 조직 권한을 관리합니다. 본사·총판·가맹 운영 매뉴얼과 함께 사용하십시오.</p>' },
-        { h: '주요 메뉴', html: '<ul><li>본사정책 → 플랫폼(전산·도메인·서버·업데이트 내용)</li><li>운영관리 → <strong>운영매뉴얼</strong>(통합리포트 아래)</li><li>접근·권한 · 수수료·리스크 · AI·챗봇</li><li>연동·배포 → PG사 연동 · 가맹 API 출시</li><li>업체관리 · 결제·정산</li></ul>' },
+        { h: '주요 메뉴', html: '<ul><li>본사정책 → 플랫폼(전산·도메인·서버·업데이트 내용)</li><li>운영관리 → <strong>운영매뉴얼</strong>(통합리포트 아래)</li><li>접근·권한 · 수수료·리스크 · AI·챗봇</li><li>연동·배포 → 결제대행사 설정 · 가맹 API 출시</li><li>업체관리 · 결제·정산</li></ul>' },
         { h: '권장 운영 순서', html: '<ol><li>총본사 기본정보·브랜딩(로고·사이트명) 확인</li><li>본사 권한·조직 단계 메뉴 권한</li><li>PG·노티·리스크 기본값</li><li>하위 본사/총판 등록 후 가맹 온보딩</li></ol>' },
         { h: '버전', html: '<p>본 문서는 플랫폼 라이브 버전과 동일하게 관리됩니다. <strong>본사정책 → 플랫폼 → 업데이트 내용</strong>과 맞춰 확인하십시오.</p>' }
       ],
       en: [
         { h: 'Role', html: '<p>Super HQ manages <strong>HQ Policy</strong> and <strong>Integration &amp; Deploy</strong> hubs and org-wide permissions.</p>' },
-        { h: 'Key menus', html: '<ul><li>HQ Policy → Platform (ledger, domain, server, releases)</li><li>Operations → <strong>Ops manuals</strong> (below Integrated report)</li><li>Access · Fees &amp; Risk · AI/Chatbot</li><li>Integration &amp; Deploy → PG · Merchant API launch</li></ul>' },
+        { h: 'Key menus', html: '<ul><li>HQ Policy → Platform (ledger, domain, server, releases)</li><li>Operations → <strong>Ops manuals</strong> (below Integrated report)</li><li>Access · Fees &amp; Risk · AI/Chatbot</li><li>Integration &amp; Deploy → Payment agency settings · Merchant API launch</li></ul>' },
         { h: 'Suggested flow', html: '<ol><li>HQ basic info &amp; branding</li><li>Permissions</li><li>PG / NOTI / risk defaults</li><li>Register HQ/distributor then merchants</li></ol>' },
         { h: 'Version', html: '<p>Kept in sync with the live platform version under Platform → Release notes.</p>' }
       ],
@@ -349,7 +349,7 @@ const MANUALS = [
     },
     sections: {
       ko: [
-        { h: '개념', html: '<p>ICOPAY 통합 구독 API·화면으로 주기 청구합니다. 가맹·구매자 UI에는 PG명을 노출하지 않습니다. 초회는 보안 정책상 3DS가 적용될 수 있습니다.</p>' },
+        { h: '개념', html: '<p>ICOPAY 통합 구독 API·화면으로 주기 청구합니다. 가맹·구매자 UI에는 결제대행을 노출하지 않습니다. 초회는 보안 정책상 3DS가 적용될 수 있습니다.</p>' },
         { h: '설정', html: '<ol><li>가맹 「구독결제 사용여부」=Y</li><li>플랜(주기·금액·통화)</li><li>구독 URL / 통합 subscription prepare</li></ol>' },
         { h: '운영', html: '<ul><li>결제관리 → 구독결제내역</li><li>상태: 활성/정지/해지/만료</li><li>실패 시 재시도·고객 안내</li></ul>' },
         { h: '주의', html: '<p>재구매(고객 선택 재결제)와 다릅니다. API 상세 스펙은 연동·배포 허브의 API 문서를 안내하십시오(본 매뉴얼은 운영 절차).</p>' }

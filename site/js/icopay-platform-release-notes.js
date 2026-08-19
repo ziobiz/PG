@@ -6,13 +6,57 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '3.38';
+  var CURRENT_LIVE = '3.40';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '3.40',
+      kind: 'minor',
+      date: '2026-08-19',
+      items: {
+        KO: [
+          '업체등록 기본정보 주소: 국가가 일본일 때도 우편번호 검색으로 주소를 채울 수 있음(7자리 입력 후 검색, 5개국어)'
+        ],
+        EN: [
+          'Company registration address: Japan postal-code search fills the address (7 digits then Search, 5 languages)'
+        ],
+        JP: [
+          '業者登録の住所: 国が日本のときも郵便番号検索で住所を入力(7桁入力後に検索、5言語)'
+        ],
+        CH: [
+          '商户登记地址：国家为日本时也可按邮编搜索填写地址（输入7位后搜索，5语）'
+        ],
+        TH: [
+          'ที่อยู่ลงทะเบียนร้าน: ประเทศญี่ปุ่นค้นหารหัสไปรษณีย์แล้วกรอกที่อยู่ได้ (7 หลักแล้วค้นหา, 5 ภาษา)'
+        ]
+      }
+    },
+    {
+      version: '3.39',
+      kind: 'minor',
+      date: '2026-08-19',
+      items: {
+        KO: [
+          '관리자 표시명: PG사·PG명을 결제대행, PG코드를 결제코드로 통일. 연동·배포 「PG사 연동」을 「결제대행사 설정」으로 변경(5개국어·매뉴얼)'
+        ],
+        EN: [
+          'Admin labels: PG company/name → Payment agency, PG code → Payment code. Integration menu “PG linkage” renamed to Payment agency settings (5 languages, manuals)'
+        ],
+        JP: [
+          '管理画面表示: PG社・PG名を決済代行、PGコードを決済コードに統一。連携「PG連携」を「決済代行業者設定」に変更（5言語・マニュアル）'
+        ],
+        CH: [
+          '管理端名称：PG公司/名称改为支付代理，PG代码改为支付代码。对接菜单「PG 联动」改为「支付服务机构设置」（5语、手册）'
+        ],
+        TH: [
+          'ป้ายผู้ดูแล: PG/ชื่อ PG เป็นตัวแทนรับชำระ รหัส PG เป็นรหัสชำระ เมนูเชื่อม PG เป็นตั้งค่าผู้ให้บริการชำระเงิน (5 ภาษา คู่มือ)'
+        ]
+      }
+    },
     {
       version: '3.38',
       kind: 'minor',

@@ -173,7 +173,7 @@ public class DashboardHqHubService {
         addTile(tiles, "/calc/unpaidMng", "미수금", "잔액·환수", "bi-cash-coin", true);
         addTile(tiles, "/comp/compMngTree", "업체 트리", "조직·가맹 구조", "bi-diagram-2", true);
         addTile(tiles, "/commission/commisionList", "수수료", "요율·배분", "bi-percent", true);
-        addTile(tiles, "/hq/pgApiMng", "PG사 연동", "API·MID", "bi-plug", true);
+        addTile(tiles, "/hq/pgApiMng", "결제대행사 설정", "API·MID", "bi-plug", true);
         addTile(tiles, "/hq/domainConfig", "도메인·포털", "호스트·브랜딩", "bi-globe2", true);
         return tiles;
     }

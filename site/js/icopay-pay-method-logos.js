@@ -1,6 +1,6 @@
 /**
  * ICOPAY 결제창 결제수단 로고(인라인 SVG) — 신용카드 브랜드·PayPay·편의점/Pay-easy·UnionPay.
- * 구매자 UI에 PG사명은 넣지 않는다.
+ * 구매자 UI에 결제대행은 넣지 않는다.
  */
 (function (global) {
   'use strict';

@@ -679,6 +679,14 @@
       return get('/api/auth/me');
     },
 
+    /** 업체등록 주소 — 일본 우편번호 검색 */
+    jpZipSearch: function (zip) {
+      return get('/api/addr/jp-zip', { zip: zip }).then(function (r) {
+        var d = r && r.data != null ? r.data : r;
+        return Array.isArray(d) ? d : [];
+      });
+    },
+
     /** 메인(/main) 대시보드: 조직별 거래 요약·서버 요약·가맹 정산 달력 */
     /** 메인 영업일 3개월 — anchorMonth: YYYY-MM (당월=기준, 표시는 전·당·익월) */
     dashboardBusinessDayCalendar: function (anchorMonth) {

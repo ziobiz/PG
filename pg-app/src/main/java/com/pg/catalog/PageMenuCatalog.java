@@ -113,7 +113,7 @@ public final class PageMenuCatalog {
         add(list, "/ops/verifyReport", "M0605", "검증리포트", "운영관리");
         add(list, "/ops/taxReport", "M0603", "TAX리포트", "운영관리");
         /* 연동·배포 — 사이드바 허브·탭 순서 */
-        add(list, "/hq/pgApiMng", "M0101", "PG사 연동", "연동·배포");
+        add(list, "/hq/pgApiMng", "M0101", "결제대행사 설정", "연동·배포");
         add(list, "/hq/apiConfig", "M0103", "공통설정", "연동·배포");
         add(list, "/hq/apiMerchantDeployReg", "M0906", "가맹 등록", "연동·배포");
         add(list, "/hq/merchantApiGenerate", "M0905", "키·문서", "연동·배포");

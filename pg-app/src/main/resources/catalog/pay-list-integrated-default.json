@@ -52,7 +52,7 @@
     { "key": "instalMonth", "label": "할부개월", "visible": true, "order": 35 },
     { "key": "payMethod", "label": "결제수단", "visible": true, "order": 36 },
     { "key": "corpNm", "label": "법인명", "visible": true, "order": 37 },
-    { "key": "pgNm", "label": "PG사", "visible": true, "order": 38 },
+    { "key": "pgNm", "label": "결제대행", "visible": true, "order": 38 },
     { "key": "terminalId", "label": "단말기", "visible": true, "order": 39 },
     { "key": "calcCycle", "label": "정산주기", "visible": true, "order": 40 },
     { "key": "pgApproveAmt", "label": "금액", "visible": true, "order": 41 },

@@ -87,7 +87,7 @@ public class PgAgencyCostPolicyService {
     public Map<String, Object> save(Map<String, Object> body) {
         String pgCdRaw = str(body, "pgCd");
         if (pgCdRaw == null || pgCdRaw.isBlank()) {
-            throw new IllegalArgumentException("PG코드를 선택하세요.");
+            throw new IllegalArgumentException("결제코드를 선택하세요.");
         }
         String pgCd = pgCdRaw.trim().toUpperCase(Locale.ROOT);
         if (pgAgencyRepository.findByPgCd(pgCd).isEmpty()) {
