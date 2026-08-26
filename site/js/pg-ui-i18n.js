@@ -29,6 +29,48 @@
       CH: '代行',
       TH: 'ตัวแทน'
     },
+    '후속조치 기준 시간은 전산설정 표준시입니다.': {
+      EN: 'Follow-up time windows use ledger standard timezone.',
+      JP: '後続措置の時間は全算設定の標準時です。',
+      CH: '后续处理时间窗口使用账务标准时区。',
+      TH: 'ช่วงเวลาดำเนินการต่อใช้โซนมาตรฐานในตั้งค่าบัญชี'
+    },
+    '상호명': {
+      EN: 'Trade name',
+      JP: '屋号',
+      CH: '商号',
+      TH: 'ชื่อทางการค้า'
+    },
+    '상호명*': {
+      EN: 'Trade name*',
+      JP: '屋号*',
+      CH: '商号*',
+      TH: 'ชื่อทางการค้า*'
+    },
+    '거래명세서 결제대행사 표시명': {
+      EN: 'Shown as Payment Provider on receipt',
+      JP: '取引明細の決済代行表示名',
+      CH: '交易明细支付服务商显示名',
+      TH: 'ชื่อที่แสดงในผู้ให้บริการชำระเงินบนใบเสร็จ'
+    },
+    '상호명을 입력하세요.': {
+      EN: 'Enter the trade name.',
+      JP: '屋号を入力してください。',
+      CH: '请输入商号。',
+      TH: 'กรอกชื่อทางการค้า'
+    },
+    '상호명은 200자 이내로 입력하세요.': {
+      EN: 'Trade name must be 200 characters or fewer.',
+      JP: '屋号は200文字以内で入力してください。',
+      CH: '商号请在 200 字以内。',
+      TH: 'ชื่อทางการค้าไม่เกิน 200 ตัวอักษ'
+    },
+    '결제대행사': {
+      EN: 'Payment Provider',
+      JP: '決済代行',
+      CH: '支付服务商',
+      TH: 'ผู้ให้บริการชำระเงิน'
+    },
     '후속조치는 이 거래를 처리한 결제대행사 기준입니다. 기준 시간은 전산설정 표준시입니다.': {
       EN: 'Follow-up actions apply to the payment agency that processed this transaction. Time windows use ledger standard timezone.',
       JP: '後続措置はこの取引を処理した決済代行基準です。時間は全算設定の標準時です。',

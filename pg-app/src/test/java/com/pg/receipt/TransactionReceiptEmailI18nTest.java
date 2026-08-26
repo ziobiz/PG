@@ -21,6 +21,13 @@ class TransactionReceiptEmailI18nTest {
     }
 
     @Test
+    void paymentProviderLabelIsNeutralWithoutMasterDistSuffix() {
+        assertEquals("결제대행사", TransactionReceiptEmailI18n.fieldLabels("KOR").get("paymentProvider"));
+        assertEquals("Payment Provider", TransactionReceiptEmailI18n.fieldLabels("ENG").get("paymentProvider"));
+        assertTrue(!TransactionReceiptEmailI18n.fieldLabels("KOR").get("paymentProvider").contains("총판"));
+    }
+
+    @Test
     void outcomeFromStatus() {
         assertEquals(TransactionReceiptOutcome.PAID, TransactionReceiptOutcome.fromTxnStatus("10"));
         assertEquals(TransactionReceiptOutcome.REFUNDED, TransactionReceiptOutcome.fromTxnStatus("42"));

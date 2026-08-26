@@ -333,9 +333,9 @@ public class TransactionReceiptEmailService {
         String lang = resolveLang(t);
         PgAgency agency = resolvePgAgency(t.getVan());
         MerchantProfile mp = merchantProfileRepository.findByOrgUnitId(merchantOu.getId()).orElse(null);
-        OrgUnit masterDist = policyService.findMasterDistForMerchantOrgUnitId(merchantOu.getId()).orElse(null);
-        MerchantProfile mdProfile = masterDist != null
-                ? merchantProfileRepository.findByOrgUnitId(masterDist.getId()).orElse(null) : null;
+        OrgUnit providerOu = policyService.findPaymentProviderOrgForMerchantOrgUnitId(merchantOu.getId()).orElse(null);
+        MerchantProfile providerProfile = providerOu != null
+                ? merchantProfileRepository.findByOrgUnitId(providerOu.getId()).orElse(null) : null;
 
         String acquirer = agency != null
                 ? TransactionReceiptContactBlock.of(agency.getAcquirerNm(), agency.getAcquirerTel(), agency.getAcquirerEmail()).displayLine()
@@ -343,12 +343,15 @@ public class TransactionReceiptEmailService {
         String switcher = agency != null
                 ? TransactionReceiptContactBlock.of(agency.getPaymentSwitcherNm(), agency.getPaymentSwitcherTel(),
                 agency.getPaymentSwitcherEmail()).displayLine() : "";
-        /* 결제대행(총판): PG사 연동에 입력란 없음 → 상위 총판 업체정보의 이메일·전화(국가번호 포함) */
+        /* 결제대행사: 총판 상호명 우선, 총판 없으면 본사(또는 총본사) 상호명. 전화·이메일은 해당 조직 업체정보 유지 */
         String provider = "";
-        if (masterDist != null) {
-            String mdTel = formatProfileTelWithDial(mdProfile);
-            String mdEmail = mdProfile != null ? firstNonBlank(mdProfile.getEmail()) : "";
-            provider = TransactionReceiptContactBlock.of(masterDist.getName(), mdTel, mdEmail).displayLine();
+        if (providerOu != null) {
+            String providerNm = firstNonBlank(
+                    providerProfile != null ? providerProfile.getTradeNm() : null,
+                    providerOu.getName());
+            String mdTel = formatProfileTelWithDial(providerProfile);
+            String mdEmail = providerProfile != null ? firstNonBlank(providerProfile.getEmail()) : "";
+            provider = TransactionReceiptContactBlock.of(providerNm, mdTel, mdEmail).displayLine();
         }
         String merchant = TransactionReceiptContactBlock.ofMerchant(
                 merchantOu.getName(),

@@ -217,6 +217,7 @@ public class ApiCompController {
             @RequestParam(required = false) String useYn,
             @RequestParam(required = false) String loginId,
             @RequestParam(required = false) String pwd,
+            @RequestParam(required = false) String tradeNm,
             @RequestParam(required = false) String regNo,
             @RequestParam(required = false) String bizType,
             @RequestParam(required = false) String industry,
@@ -459,6 +460,7 @@ public class ApiCompController {
                 cardRiskPresaleVelIpMax);
         compService.patchMerchantMobileCheckoutMode(saved.getCode(), mobileCheckoutMode);
         compService.applyMerchantOperationRecord(saved.getCode(), operationRecord);
+        compService.saveTradeNmForOrg(saved.getId(), tradeNm, compDiv);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("compId", saved.getCode(), "compNm", saved.getName())));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
@@ -528,6 +530,7 @@ public class ApiCompController {
             @RequestParam(required = false) String useYn,
             @RequestParam(required = false) String loginId,
             @RequestParam(required = false) String pwd,
+            @RequestParam(required = false) String tradeNm,
             @RequestParam(required = false) String regNo,
             @RequestParam(required = false) String bizType,
             @RequestParam(required = false) String industry,
@@ -778,6 +781,7 @@ public class ApiCompController {
             if (ok) {
                 compService.patchMerchantMobileCheckoutMode(compId, mobileCheckoutMode);
                 compService.applyMerchantOperationRecord(compId, operationRecord);
+                compService.saveTradeNmByCompCode(compId, tradeNm, compDiv);
             }
             return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다."))
                     : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));

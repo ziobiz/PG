@@ -109,6 +109,40 @@ public class TransactionReceiptEmailPolicyService {
         return findNearestMasterDistAncestorId(merchantOrgUnitId).flatMap(orgUnitRepository::findById);
     }
 
+    /**
+     * 거래명세서 결제대행사 조직: 총판(MASTER_DIST) 우선, 없으면 본사(REGIONAL), 없으면 총본사(HEADQUARTERS).
+     */
+    public Optional<OrgUnit> findPaymentProviderOrgForMerchantOrgUnitId(long merchantOrgUnitId) {
+        Optional<OrgUnit> md = findMasterDistForMerchantOrgUnitId(merchantOrgUnitId);
+        if (md.isPresent()) {
+            return md;
+        }
+        Optional<OrgUnit> regional = findNearestAncestorByLevel(merchantOrgUnitId, OrgLevel.REGIONAL);
+        if (regional.isPresent()) {
+            return regional;
+        }
+        return findNearestAncestorByLevel(merchantOrgUnitId, OrgLevel.HEADQUARTERS);
+    }
+
+    private Optional<OrgUnit> findNearestAncestorByLevel(Long orgUnitId, OrgLevel level) {
+        if (orgUnitId == null || level == null) {
+            return Optional.empty();
+        }
+        Long cur = orgUnitId;
+        Set<Long> seen = new HashSet<>();
+        while (cur != null && seen.add(cur)) {
+            OrgUnit ou = orgUnitRepository.findById(cur).orElse(null);
+            if (ou == null) {
+                break;
+            }
+            if (ou.getOrgLevel() == level) {
+                return Optional.of(ou);
+            }
+            cur = ou.getParentId();
+        }
+        return Optional.empty();
+    }
+
     private String normalizeYn(String v) {
         return yn(v) ? "Y" : "N";
     }

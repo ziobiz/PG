@@ -68,6 +68,13 @@ public class MerchantProfile {
     @Column(name = "industry", length = 100)
     private String industry;
 
+    /**
+     * 거래명세서 「결제대행사」에 표시하는 상호명.
+     * 본사(REGIONAL)·총판(MASTER_DIST)만 사용. 업체명({@code OrgUnit.name})은 그룹명으로 분리.
+     */
+    @Column(name = "trade_nm", length = 200)
+    private String tradeNm;
+
     /** 사업자형태 (가맹점 전용) */
     @Column(name = "biz_nature", length = 100)
     private String bizNature;
@@ -642,6 +649,8 @@ public class MerchantProfile {
     public void setBizType(String bizType) { this.bizType = bizType; }
     public String getIndustry() { return industry; }
     public void setIndustry(String industry) { this.industry = industry; }
+    public String getTradeNm() { return tradeNm; }
+    public void setTradeNm(String tradeNm) { this.tradeNm = tradeNm; }
     public String getBizNature() { return bizNature; }
     public void setBizNature(String bizNature) { this.bizNature = bizNature; }
     public String getProduct() { return product; }

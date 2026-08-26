@@ -105,7 +105,7 @@ public final class TransactionReceiptEmailI18n {
         Map<String, String> m = new LinkedHashMap<>();
         m.put("acquirer", field(l, "Acquirer", "카드매입사", "アクワイアラ", "收单行", "ผู้รับชำระ"));
         m.put("paymentSwitcher", field(l, "Payment Switcher", "결제중계사", "決済スイッチャー", "支付交换", "ตัวกลางชำระ"));
-        m.put("paymentProvider", field(l, "Payment Provider", "결제대행(총판)", "決済プロバイダー", "支付服务商", "ผู้ให้บริการชำระ"));
+        m.put("paymentProvider", field(l, "Payment Provider", "결제대행사", "決済代行", "支付服务商", "ผู้ให้บริการชำระเงิน"));
         m.put("merchant", field(l, "Merchant", "가맹점", "加盟店", "商户", "ร้านค้า"));
         m.put("transactionId", field(l, "Transaction ID", "거래번호", "取引ID", "交易编号", "รหัสธุรกรรม"));
         m.put("email", field(l, "Email", "이메일", "メール", "邮箱", "อีเมล"));

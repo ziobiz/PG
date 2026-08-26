@@ -6,13 +6,79 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '3.69';
+  var CURRENT_LIVE = '3.72';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '3.72',
+      kind: 'minor',
+      date: '2026-08-27',
+      items: {
+        KO: [
+          '업체정보 상호명: 업체 전환 시 이전 총판·본사 값이 남는 오류 수정(업체별 재조회). 5개국어'
+        ],
+        EN: [
+          'Trade name on merchant detail: fix leftover value when switching distributors/HQ (reload per org). 5 languages'
+        ],
+        JP: [
+          '加盟情報の屋号: 総販・本社切替時に前値が残る不具合を修正（組織ごとに再読込）。5言語'
+        ],
+        CH: [
+          '商户信息商号：切换总代/本社时残留旧值的问题已修复（按组织重新加载）。5 语'
+        ],
+        TH: [
+          'ชื่อทางการค้าในรายละเอียดร้าน: แก้ค่าค้างเมื่อสลับตัวแทนหลัก/HQ (โหลดใหม่ตามองค์กร) 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.71',
+      kind: 'minor',
+      date: '2026-08-27',
+      items: {
+        KO: [
+          '업체등록·정보: 본사·총판 상호명(필수, 비밀번호 옆). 거래명세서 「결제대행사」에 총판 상호명(없으면 본사) 표시·(총판) 표기 제거. 5개국어'
+        ],
+        EN: [
+          'Merchant reg: required trade name for HQ/distributor (beside password). Receipt「Payment Provider」shows distributor trade name (else regional HQ); drop「(distributor)」. 5 languages'
+        ],
+        JP: [
+          '加盟登録: 本社・総販に屋号必須(パスワード右)。取引明細「決済代行」は総販屋号(なければ本社)。「(総販)」表記削除。5言語'
+        ],
+        CH: [
+          '商户注册：本社/总代必填商号(密码右侧)。交易明细「支付服务商」显示总代商号(无则本社)；去掉「(总代)」。5 语'
+        ],
+        TH: [
+          'ลงทะเบียนร้าน: ชื่อทางการค้าบังคับสำหรับ HQ/ตัวแทนหลัก (ข้างรหัสผ่าน) ใบเสร็จ「ผู้ให้บริการชำระเงิน」ใช้ชื่อทางการค้าตัวแทนหลัก (ไม่มีก็ HQ) ตัด「(ตัวแทน)」 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.70',
+      kind: 'minor',
+      date: '2026-08-26',
+      items: {
+        KO: [
+          '결제내역 후속조치: 결제대행사명·코드 배지 제거(ICOPAY 중립). 버튼만 표시. 5개국어'
+        ],
+        EN: [
+          'Payment list follow-up: hide payment-processor name/code badge (ICOPAY-neutral). Buttons only. 5 languages'
+        ],
+        JP: [
+          '決済一覧の後続措置: 決済代行名・コードバッジ非表示（ICOPAY中立）。ボタンのみ。5言語'
+        ],
+        CH: [
+          '支付列表后续处理：隐藏支付机构名称/代码徽章（ICOPAY 中立），仅显示按钮。5 语'
+        ],
+        TH: [
+          'รายการชำระ·ดำเนินการต่อ: ซ่อนชื่อ/รหัสผู้ให้บริการ (เป็นกลาง ICOPAY) แสดงเฉพาะปุ่ม 5 ภาษา'
+        ]
+      }
+    },
     {
       version: '3.69',
       kind: 'minor',

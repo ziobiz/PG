@@ -1893,6 +1893,7 @@ public class CompService {
                             m.put("regNo", mp.getRegNo());
                             m.put("bizType", mp.getBizType());
                             m.put("industry", mp.getIndustry());
+                            m.put("tradeNm", mp.getTradeNm() != null ? mp.getTradeNm() : "");
                             m.put("bizNature", mp.getBizNature());
                             m.put("product", mp.getProduct());
                             m.put("homepage", mp.getHomepage());
@@ -2191,6 +2192,47 @@ public class CompService {
                             }
                             return m;
                         }));
+    }
+
+    /**
+     * 본사(REGIONAL)·총판(MASTER_DIST) 상호명 저장. 다른 구분은 무시(비움).
+     * 해당 구분인데 값이 비면 검증 오류.
+     */
+    @Transactional
+    public void saveTradeNmForOrg(Long orgUnitId, String tradeNm, String compDiv) {
+        if (orgUnitId == null) {
+            return;
+        }
+        String div = compDiv != null ? compDiv.trim().toUpperCase(Locale.ROOT) : "";
+        boolean need = "REGIONAL".equals(div) || "MASTER_DIST".equals(div);
+        if (!need) {
+            return;
+        }
+        String t = tradeNm != null ? tradeNm.trim() : "";
+        if (t.isEmpty()) {
+            throw new IllegalArgumentException("상호명을 입력하세요.");
+        }
+        if (t.length() > 200) {
+            throw new IllegalArgumentException("상호명은 200자 이내로 입력하세요.");
+        }
+        MerchantProfile mp = merchantProfileRepository.findByOrgUnitId(orgUnitId)
+                .orElseThrow(() -> new IllegalArgumentException("업체 프로필을 찾을 수 없습니다."));
+        mp.setTradeNm(t);
+        merchantProfileRepository.save(mp);
+    }
+
+    @Transactional
+    public void saveTradeNmByCompCode(String compCode, String tradeNm, String compDiv) {
+        if (compCode == null || compCode.isBlank()) {
+            return;
+        }
+        Long id = orgUnitRepository.findByCode(compCode.trim())
+                .or(() -> orgUnitRepository.findByCodeIgnoreCase(compCode.trim()))
+                .map(OrgUnit::getId)
+                .orElse(null);
+        if (id != null) {
+            saveTradeNmForOrg(id, tradeNm, compDiv);
+        }
     }
 
     /** 지역 본사(업체) 정보 수정 */
