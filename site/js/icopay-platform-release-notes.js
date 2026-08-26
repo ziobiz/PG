@@ -6,13 +6,35 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '3.72';
+  var CURRENT_LIVE = '3.73';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '3.73',
+      kind: 'minor',
+      date: '2026-08-27',
+      items: {
+        KO: [
+          '거래명세서: 결제대행사(총판·본사)·가맹점 전화는 업체등록 국가번호·전화·이메일을 그대로 표시(은행국가로 +82 덮어쓰기 방지). 5개국어'
+        ],
+        EN: [
+          'Receipt: Payment Provider (distributor/HQ) and Merchant phone use registered dial+number+email as-is (do not override with bank-country +82). 5 languages'
+        ],
+        JP: [
+          '取引明細: 決済代行(総販・本社)・加盟店の電話は登録の国番号・電話・メールをそのまま表示(銀行国で+82上書きしない)。5言語'
+        ],
+        CH: [
+          '交易明细：支付服务商(总代/本社)与商户电话按注册国家号·电话·邮箱原样显示(不以银行国家覆盖为+82)。5 语'
+        ],
+        TH: [
+          'ใบเสร็จ: ผู้ให้บริการชำระเงิน(ตัวแทนหลัก/HQ) และร้านค้า ใช้รหัสประเทศ·โทร·อีเมลตามที่ลงทะเบียน (ไม่ทับเป็น +82 จากประเทศธนาคาร) 5 ภาษา'
+        ]
+      }
+    },
     {
       version: '3.72',
       kind: 'minor',

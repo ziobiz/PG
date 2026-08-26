@@ -385,20 +385,42 @@ public class TransactionReceiptEmailService {
     }
 
     /**
-     * 총판·가맹 업체전화 우선. 이미 +국가번호가 있으면 유지, 없으면 countryCd·addrCountryCd 로 국가번호 부여.
+     * 결제대행사(총판·본사)·가맹점 업체전화.
+     * 업체등록에 저장된 국가번호(+81 등)+전화번호를 그대로 표시한다.
+     * 레거시(선행 + 없음)만 주소국가 → 은행국가 순으로 보완하며, 은행국가(KR)로 덮어쓰지 않는다.
      */
     private static String formatProfileTelWithDial(MerchantProfile p) {
         if (p == null) {
             return "";
         }
-        String raw = firstNonBlank(p.getCompTel(), p.getContactTel(), p.getCeoMobile());
-        if (raw.isEmpty()) {
-            return "";
-        }
-        String country = firstNonBlank(p.getCountryCd(), p.getAddrCountryCd());
-        return ensureIntlDialPrefix(raw, country);
+        return resolveProfileTelForReceipt(
+                firstNonBlank(p.getCompTel(), p.getContactTel(), p.getCeoMobile()),
+                p.getAddrCountryCd(),
+                p.getCountryCd());
     }
 
+    /** 패키지 테스트·영수증 공통: 등록 전화 그대로, 없으면 주소국가→은행국가. */
+    static String resolveProfileTelForReceipt(String rawTel, String addrCountryCd, String bankCountryCd) {
+        if (rawTel == null || rawTel.isBlank()) {
+            return "";
+        }
+        String t = rawTel.trim().replaceAll("\\s+", " ");
+        if (t.startsWith("+")) {
+            return t;
+        }
+        String country = firstNonBlank(iso2OrEmpty(addrCountryCd), iso2OrEmpty(bankCountryCd));
+        return ensureIntlDialPrefix(t, country);
+    }
+
+    private static String iso2OrEmpty(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "";
+        }
+        String n = PhoneDialCodeCatalog.canonicalIso2(raw.trim());
+        return n != null ? n : "";
+    }
+
+    /** 패키지 테스트용: 등록 전화에 +국가번호가 있으면 유지, 없을 때만 ISO2로 보완. */
     static String ensureIntlDialPrefix(String tel, String countryCd) {
         if (tel == null || tel.isBlank()) {
             return "";

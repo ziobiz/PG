@@ -2797,11 +2797,22 @@
   }
   buildIntlPhoneOptionsHtml();
 
-  function parseIntlPhone(rawValue) {
+  function defaultIntlDialFromAddrCountry(form) {
+    var el = form && form.querySelector ? form.querySelector('[name="addrCountryCd"]') : null;
+    var iso = el && el.value != null ? String(el.value).trim().toUpperCase() : '';
+    var map = {
+      JP: '+81', KR: '+82', TH: '+66', CN: '+86', US: '+1', SG: '+65', HK: '+852', TW: '+886',
+      VN: '+84', PH: '+63', MY: '+60', ID: '+62', AU: '+61', GB: '+44', DE: '+49', FR: '+33'
+    };
+    return map[iso] || '+82';
+  }
+
+  function parseIntlPhone(rawValue, fallbackCode) {
+    var fb = (fallbackCode && String(fallbackCode).trim()) ? String(fallbackCode).trim() : '+82';
     var raw = (rawValue == null) ? '' : String(rawValue).trim();
-    if (!raw) return { code: '+82', number: '' };
+    if (!raw) return { code: fb, number: '' };
     var m = raw.match(/^(\+\d{1,4})[\s-]*(.*)$/);
-    if (!m) return { code: '+82', number: raw };
+    if (!m) return { code: fb, number: raw };
     return { code: m[1], number: (m[2] || '').trim() };
   }
 
@@ -2813,26 +2824,31 @@
     if (!hidden || !codeSel || !numInp) return;
     var code = String(codeSel.value || '').trim();
     var number = String(numInp.value || '').trim();
-    hidden.value = number ? ((code || '+82') + ' ' + number) : '';
+    var fb = defaultIntlDialFromAddrCountry(form);
+    hidden.value = number ? ((code || fb) + ' ' + number) : '';
   }
 
+  /** 숨김값(등록 국가번호+전화)을 UI에 반영. 업체 전환 시에도 매번 재적용. */
   function initIntlPhoneFields(root) {
     if (!root) return;
+    var form = (root.tagName === 'FORM') ? root : (root.querySelector && root.querySelector('form')) || root;
     root.querySelectorAll('[data-intl-phone-group]').forEach(function (group) {
-      if (group._intlPhoneInit) return;
-      group._intlPhoneInit = true;
       var fieldName = group.getAttribute('data-intl-phone-group') || '';
       var hidden = group.querySelector('input[type="hidden"][name="' + fieldName + '"]');
       var codeSel = group.querySelector('[data-intl-phone-code-for="' + fieldName + '"]');
       var numInp = group.querySelector('[data-intl-phone-number-for="' + fieldName + '"]');
       if (!hidden || !codeSel || !numInp) return;
       if (!codeSel.querySelector('option')) codeSel.innerHTML = buildIntlPhoneOptionsHtml();
-      var parsed = parseIntlPhone(hidden.value);
+      var fb = defaultIntlDialFromAddrCountry(form);
+      var parsed = parseIntlPhone(hidden.value, fb);
       if (codeSel.querySelector('option[value="' + parsed.code + '"]')) codeSel.value = parsed.code;
-      else codeSel.value = '+82';
+      else codeSel.value = fb;
       numInp.value = parsed.number;
-      codeSel.addEventListener('change', function () { syncIntlPhoneHidden(root, fieldName); });
-      numInp.addEventListener('input', function () { syncIntlPhoneHidden(root, fieldName); });
+      if (!group._intlPhoneInit) {
+        group._intlPhoneInit = true;
+        codeSel.addEventListener('change', function () { syncIntlPhoneHidden(form, fieldName); });
+        numInp.addEventListener('input', function () { syncIntlPhoneHidden(form, fieldName); });
+      }
     });
   }
 
