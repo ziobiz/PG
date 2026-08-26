@@ -45,7 +45,7 @@ class PayCardPolicyMerchantBrandScopeTest {
     @BeforeEach
     void setUp() {
         policyService = new PayCardPolicyService(
-                blockPrefixRepository, blacklistRepository, cooldownService, orgUnitRepository, pgBindingRouter);
+                blockPrefixRepository, null, blacklistRepository, cooldownService, orgUnitRepository, pgBindingRouter);
     }
 
     @Test

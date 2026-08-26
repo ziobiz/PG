@@ -203,6 +203,7 @@ public final class PayCardPolicyI18n {
                 case MASTERCARD -> "Mastercard";
                 case JCB -> "JCB";
                 case UNIONPAY -> "UnionPay";
+                case DINERS -> "Diners Club";
                 case AMEX -> "American Express";
                 default -> "Unknown";
             };
@@ -211,6 +212,7 @@ public final class PayCardPolicyI18n {
                 case MASTERCARD -> "Mastercard";
                 case JCB -> "JCB";
                 case UNIONPAY -> "銀聯";
+                case DINERS -> "ダイナース";
                 case AMEX -> "American Express";
                 default -> "不明";
             };
@@ -219,6 +221,7 @@ public final class PayCardPolicyI18n {
                 case MASTERCARD -> "Mastercard";
                 case JCB -> "JCB";
                 case UNIONPAY -> "银联";
+                case DINERS -> "大来";
                 case AMEX -> "美国运通";
                 default -> "未知";
             };
@@ -227,6 +230,7 @@ public final class PayCardPolicyI18n {
                 case MASTERCARD -> "Mastercard";
                 case JCB -> "JCB";
                 case UNIONPAY -> "UnionPay";
+                case DINERS -> "Diners Club";
                 case AMEX -> "American Express";
                 default -> "ไม่ทราบ";
             };
@@ -235,6 +239,7 @@ public final class PayCardPolicyI18n {
                 case MASTERCARD -> "마스터";
                 case JCB -> "JCB";
                 case UNIONPAY -> "유니온페이";
+                case DINERS -> "다이너스";
                 case AMEX -> "아메리칸 익스프레스";
                 default -> "알 수 없음";
             };
@@ -251,6 +256,7 @@ public final class PayCardPolicyI18n {
             case MASTERCARD -> "Master";
             case JCB -> "JCB";
             case UNIONPAY -> "UNION";
+            case DINERS -> "DINERS";
             case AMEX -> "AMX";
             default -> "";
         };

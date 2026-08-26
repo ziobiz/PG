@@ -6,13 +6,519 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '3.40';
+  var CURRENT_LIVE = '3.63';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '3.63',
+      kind: 'minor',
+      date: '2026-08-26',
+      items: {
+        KO: [
+          '전산설정 「사용불가브랜드 등록」: PG별 VISA·MASTER·JCB·UNION·DINERS·AMX 선택 등록. 본사 결제대행사 전체에서 PG 선택. 결제 시 미지원 브랜드 경고·차단. 5개국어'
+        ],
+        EN: [
+          'Ledger “Unsupported card brands”: per-PG VISA/MASTER/JCB/UNION/DINERS/AMX. PG list from all HQ processors. Warn and block unsupported brands at checkout. 5 languages'
+        ],
+        JP: [
+          '全算設定「使用不可ブランド登録」: PGごとにVISA・MASTER・JCB・UNION・DINERS・AMXを選択。本社の決済代行一覧からPG選択。決済時に未対応ブランドを警告・遮断。5言語'
+        ],
+        CH: [
+          '账务设置「不可用卡品牌登记」：按支付机构选择 VISA/MASTER/JCB/UNION/DINERS/AMX。PG 来自总部全部机构。支付时警告并拦截不支持品牌。5 语'
+        ],
+        TH: [
+          'ตั้งค่าบัญชี 「แบรนด์ใช้ไม่ได้」: เลือก VISA/MASTER/JCB/UNION/DINERS/AMX ต่อ PG จากรายการผู้ให้บริการทั้งหมดที่ HQ แจ้งเตือนและบล็อกแบรนด์ที่ไม่รองรับตอนชำระ 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.62',
+      kind: 'minor',
+      date: '2026-08-26',
+      items: {
+        KO: [
+          'VIEW SETTING 열 이름(가맹점 접근 등)을 화면 언어로 표시. 사용불가카드 등록·수정의 PG는 본사 결제대행사 목록 전체에서 선택. 5개국어'
+        ],
+        EN: [
+          'VIEW SETTING column names (Merchant access, etc.) follow the UI language. Blocked-card register/edit PG lists all HQ payment processors. 5 languages'
+        ],
+        JP: [
+          'VIEW SETTINGの列名（加盟店アクセス等）を画面言語で表示。使用不可カードの登録・修正PGは本社の決済代行一覧すべてから選択。5言語'
+        ],
+        CH: [
+          'VIEW SETTING 列名（商户访问等）随界面语言。不可用卡登记/修改的 PG 可选总部全部支付机构。5 语'
+        ],
+        TH: [
+          'ชื่อคอลัมน์ VIEW SETTING ตามภาษาหน้าจอ (เช่น การเข้าถึงร้าน) PG ของบัตรใช้ไม่ได้เลือกได้จากผู้ให้บริการทั้งหมดที่ HQ 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.61',
+      kind: 'minor',
+      date: '2026-08-26',
+      items: {
+        KO: [
+          '관리자 다국어: 전산동기화 주문별 노티 재반영·이메일무효 제목, 가맹점 접근 그리드(업체코드·사용자ID·등록일시), 수수료 「저장 시 자동 부여」. 영업일·노티 재반영 달력은 OS 한글 연도-월-일 대신 오늘 날짜를 기본 표시. 5개국어'
+        ],
+        EN: [
+          'Admin i18n: ledger replay-notify-by-order and email-void heading, merchant-access grid (company code, user ID, registered at), fee “(assigned on save)”. Business-day and replay date pickers default to today instead of empty OS Korean year/month/day chrome. 5 languages'
+        ],
+        JP: [
+          '管理画面の多言語: 全算同期の注文別ノティ再反映・メール無効見出し、加盟店アクセスの列(店番号・ユーザーID・登録日時)、手数料「保存時に自動付与」。営業日・再反映の日付は空の韓国語年/月/日ではなく当日を初期表示。5言語'
+        ],
+        CH: [
+          '管理端多语言：账务同步按订单重放通知与邮件无效标题、商户访问列（商户代码、用户ID、登记时间）、手续费「保存时自动分配」。营业日与重放日期默认今天，避免空的韩文年/月/日。5 语'
+        ],
+        TH: [
+          'หลายภาษาแอดมิน: เล่นซ้ำแจ้งเตือนตามออเดอร์และหัวข้อ void อีเมล คอลัมน์เข้าถึงร้าน (รหัสร้าน รหัสผู้ใช้ วันที่ลงทะเบียน) ค่าธรรมเนียมกำหนดเมื่อบันทึก ปฏิทินวันทำการ/เล่นซ้ำเริ่มเป็นวันนี้แทนปี/เดือน/วันเกาหลีว่าง 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.60',
+      kind: 'minor',
+      date: '2026-08-26',
+      items: {
+        KO: [
+          '대시보드 규칙 인사이트 문장(최근 7일 리스크 점수·구성·미수금 잔액 등)을 문장 단위로 5개국어 번역. 이어 붙인 한글 문장도 화면 언어로 표시'
+        ],
+        EN: [
+          'Dashboard rule-insight sentences (7-day risk score, breakdown, receivable balance, etc.) translated sentence-by-sentence in 5 languages, including concatenated Korean text'
+        ],
+        JP: [
+          'ダッシュボードの規則インサイト文（直近7日リスク・内訳・未収金残など）を文単位で5言語化。連結された韓国語も画面言語で表示'
+        ],
+        CH: [
+          '仪表盘规则洞察句子（近7日风险分、构成、应收余额等）按句翻译为 5 语；拼接的韩文也按界面语言显示'
+        ],
+        TH: [
+          'แปลประโยคอินไซต์แดชบอร์ด (คะแนนความเสี่ยง 7 วัน รายละเอียด ยอดลูกหนี้ ฯลฯ) เป็น 5 ภาษา แม้ต่อกันเป็นข้อความเกาหลี'
+        ]
+      }
+    },
+    {
+      version: '3.59',
+      kind: 'minor',
+      date: '2026-08-26',
+      items: {
+        KO: [
+          '관리자 다국어 보강: 대시보드 미수금 잔액(다통화), 전산동기화 받는사람 이메일, 리스크설정 안내, 엑심베이 신용카드, URL결제 폼 탭제목·CHILLPAY 안내문, 영업일 날짜(연·월·일). 5개국어'
+        ],
+        EN: [
+          'Admin i18n: dashboard receivable (multi-currency), ledger recipient email, HQ risk notice, Eximbay credit card, URL-pay tab title and ChillPay copy, business-day date chrome (year/month/day). 5 languages'
+        ],
+        JP: [
+          '管理画面の多言語補強: ダッシュボード未収金(複数通貨)、全算同期の宛先メール、リスク設定案内、Eximbayクレジットカード、URL決済タブ名・CHILLPAY案内、営業日の年/月/日。5言語'
+        ],
+        CH: [
+          '管理端多语言：仪表盘应收（多币种）、账务同步收件邮箱、风险设置说明、Eximbay 信用卡、URL 支付标签名与 CHILLPAY 文案、营业日年/月/日。5 语'
+        ],
+        TH: [
+          'เสริมหลายภาษาแอดมิน: ลูกหนี้แดชบอร์ด (หลายสกุล) อีเมลผู้รับซิงค์บัญชี ข้อความความเสี่ยง บัตรเครดิต Eximbay ชื่อแท็บ URL และข้อความ CHILLPAY ปี/เดือน/วันของวันทำการ 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.58',
+      kind: 'minor',
+      date: '2026-08-26',
+      items: {
+        KO: [
+          '업체등록 결제대행사는 본사 연동배포에서 사용인 항목만 신규 선택. 이미 묶인 대행사가 미사용이면 선택란 회색·목록 업체코드/아이콘 경고색. Hello VIEW SETTING 「대행」열(기본 비활성). 결제대행사마다 ICOPAY 후속조치 허용을 고르며, 노티 미들웨어(적재)와 전산·단계·가맹 스위치가 모두 맞을 때만 결제내역 버튼이 켜집니다. 5개국어'
+        ],
+        EN: [
+          'Merchant PG picker lists only HQ In-use processors; a bound unused processor stays gray and the merchant code/icon use warning color. Hello VIEW SETTING column 「대행」 is off by default. Per-processor ICOPAY follow-up allows AND notify middleware (ingest) AND ledger/org/merchant switches. 5 languages'
+        ],
+        JP: [
+          '加盟店の決済代行は本社「使用」のみ新規選択。既存が未使用なら灰色・一覧コード/アイコンは警告色。Hello VIEW SETTING「代行」は既定オフ。代行業者別後続許可 AND ノティ取込 AND 全算/段階/加盟。5言語'
+        ],
+        CH: [
+          '商户支付机构仅可选总部「使用」项；已绑定后改为未使用则下拉灰色、列表代码/图标警告色。Hello VIEW SETTING「代行」默认关。按机构后续允许 AND 通知入账 AND 账务/层级/商户。5 语'
+        ],
+        TH: [
+          'เลือกร้านได้เฉพาะผู้ให้บริการที่ HQ ตั้งใช้งาน ของเดิมที่ถูกตั้งไม่ใช้เป็นสีเทา รหัสร้าน/ไอคอนเป็นสีเตือน คอลัมน์ Hello 「대행」 ปิดเป็นค่าเริ่ม อนุญาตติดตามต่อผู้ให้บริการ AND โหลด NOTI AND สวิตช์ระบบ/ระดับ/ร้าน 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.57',
+      kind: 'minor',
+      date: '2026-08-26',
+      items: {
+        KO: [
+          '전산설정·조직 단계별 후속조치: 수동무효·수동환불을 무효처리·환불처리와 분리해 각각 사용/미사용 설정. 가맹점 등록에도 동일 항목 추가. 표시명 통일(무효처리·환불처리·수동무효·수동환불·강제환불·당일환불). 5개국어'
+        ],
+        EN: [
+          'Ledger & per-org pay-follow: manual void/refund toggles independent from void/refund processing; merchant registration updated. Unified labels (void processing, refund processing, manual void/refund, force refund, same-day refund). 5 languages'
+        ],
+        JP: [
+          '全算・組織段階別後続措置: 手動無効・手動返金を無効処理・返金処理から分離し個別ON/OFF。加盟店登録も同項目。表示名統一。5言語'
+        ],
+        CH: [
+          '账务与组织层级后续措施：手动作废/手动退款与作废/退款处理独立开关；商户注册同步。名称统一。5 语'
+        ],
+        TH: [
+          'ตั้งค่าระบบ/ตามระดับองค์กร: โมฆะ/คืนเงินด้วยมือแยกจากโมฆะ/คืนเงิน ลงทะเบียนร้านค้าอัปเดต ชื่อรวมศูนย์ 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.56',
+      kind: 'minor',
+      date: '2026-08-26',
+      items: {
+        KO: [
+          '결제내역: URL 환불이 결제망 가용잔액 부족(409)으로 거절되면 원인 안내가 나갑니다. 당일환불은 ICOPAY 버튼 허용이며, 환불은 캐비닛 가용잔액(홀드 해제)이 있어야 됩니다. JPAY 연동 파라미터 변경 없음. 5개국어'
+        ],
+        EN: [
+          'Pay list: URL refunds refused for insufficient available funds (409) now show a clear reason. Same-day refund only unlocks the ICOPAY button; the network still needs cabinet available funds after hold release. JPAY parameters unchanged. 5 languages'
+        ],
+        JP: [
+          '決済一覧: URL返金が利用可能残高不足(409)で拒否されたとき原因案内を表示。当日返金はICOPAYボタン許可のみ。決済網はキャビネット残高（ホールド解除後）が必要。JPAY連携パラメータ変更なし。5言語'
+        ],
+        CH: [
+          '支付明细：URL 退款因可用余额不足(409)被拒时显示原因。当日退款仅开放 ICOPAY 按钮；网络仍需柜面可用余额（解除冻结后）。JPAY 参数未改。5 语'
+        ],
+        TH: [
+          'รายการชำระ: คืนเงิน URL ที่ถูกปฏิเสธเพราะยอดใช้ได้ไม่พอ (409) แสดงเหตุผล คืนวันเดียวกันปลดปุ่ม ICOPAY เท่านั้น เครือข่ายยังต้องมียอดใช้ได้ในตู้หลังปลดโฮลด์ พารามิเตอร์ JPAY ไม่เปลี่ยน 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.55',
+      kind: 'minor',
+      date: '2026-08-26',
+      items: {
+        KO: [
+          '결제내역: 이메일무효는 ChillPay만 표시·실행됩니다. URL·JPAY 건에서는 숨깁니다. JPAY 연동 파라미터 변경 없음. 5개국어'
+        ],
+        EN: [
+          'Pay list: email void is shown and executed for ChillPay only. Hidden on URL and JPAY rows. JPAY parameters unchanged. 5 languages'
+        ],
+        JP: [
+          '決済一覧: メール無効はChillPayのみ表示・実行。URL・JPAY行では非表示。JPAY連携パラメータ変更なし。5言語'
+        ],
+        CH: [
+          '支付明细：邮件作废仅对 ChillPay 显示并执行。URL、JPAY 行隐藏。JPAY 参数未改。5 语'
+        ],
+        TH: [
+          'รายการชำระ: โมฆะอีเมลแสดงและทำงานเฉพาะ ChillPay ซ่อนที่แถว URL และ JPAY พารามิเตอร์ JPAY ไม่เปลี่ยน 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.54',
+      kind: 'minor',
+      date: '2026-08-25',
+      items: {
+        KO: [
+          'URL 결제: 승인·환불·무효 시 구매자 이메일로 거래명세서가 발송됩니다. 결제창 언어(5개국어)로 본문이 나갑니다. JPAY 연동 파라미터 변경 없음.'
+        ],
+        EN: [
+          'URL checkout: the buyer receives a transaction receipt email on approval, refund, and void. Body follows checkout language (5 locales). JPAY parameters unchanged.'
+        ],
+        JP: [
+          'URL決済: 承認・返金・無効時に購入者メールへ取引明細を送信。決済画面言語（5言語）。JPAY連携パラメータ変更なし。'
+        ],
+        CH: [
+          'URL 支付：批准、退款、作废时向买家邮箱发送交易明细。正文随结账语言（5 语）。JPAY 参数未改。'
+        ],
+        TH: [
+          'ชำระ URL: ส่งใบเสร็จไปอีเมลผู้ซื้อเมื่ออนุมัติ คืนเงิน และโมฆะ ตามภาษาหน้าชำระ (5 ภาษา) พารามิเตอร์ JPAY ไม่เปลี่ยน'
+        ]
+      }
+    },
+    {
+      version: '3.53',
+      kind: 'minor',
+      date: '2026-08-25',
+      items: {
+        KO: [
+          '결제내역: URL 결제는 본사 전산설정의 당일환불을 켜고 단계별 허용을 주면 승인 당일에도 환불처리가 됩니다. 익일 환불과 별도. JPAY 연동 파라미터 변경 없음. 5개국어'
+        ],
+        EN: [
+          'Pay list: URL payments can use same-day refund when HQ ledger same-day refund is on and the org-level cap allows it. Separate from next-day refund. JPAY parameters unchanged. 5 languages'
+        ],
+        JP: [
+          '決済一覧: URL決済は本社全算の当日返金をオンにし段階別許可があれば承認当日も返金処理。翌日返金とは別。JPAY連携パラメータ変更なし。5言語'
+        ],
+        CH: [
+          '支付明细：URL 支付在总部账务开启当日退款且层级允许时，批准当日也可退款处理。与次日退款分开。JPAY 参数未改。5 语'
+        ],
+        TH: [
+          'รายการชำระ: ชำระ URL คืนเงินวันเดียวกันได้เมื่อสำนักงานใหญ่เปิดและอนุญาตตามระดับ แยกจากคืนวันถัดไป พารามิเตอร์ JPAY ไม่เปลี่ยน 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.52',
+      kind: 'minor',
+      date: '2026-08-25',
+      items: {
+        KO: [
+          '결제내역: URL 결제 건도 자동환불·강제환불을 결제망 API로 요청하고, 캐비닛에서 처리한 환불은 노티로 반영됩니다. 자동무효는 해당 없음. JPAY 연동 파라미터 변경 없음. 5개국어'
+        ],
+        EN: [
+          'Pay list: URL payments can request auto/force refund via the processor API; cabinet refunds apply via notify. Auto-void does not apply. JPAY parameters unchanged. 5 languages'
+        ],
+        JP: [
+          '決済一覧: URL決済も自動・強制返金を決済網APIで依頼し、キャビネット処理は通知で反映。自動無効は対象外。JPAY連携パラメータ変更なし。5言語'
+        ],
+        CH: [
+          '支付明细：URL 支付可通过通道 API 申请自动/强制退款；后台退款经通知回写。不适用自动作废。JPAY 参数未改。5 语'
+        ],
+        TH: [
+          'รายการชำระ: ชำระ URL ขอคืนเงินอัตโนมัติ/บังคับผ่าน API ช่องทางได้ การคืนที่ตู้ถูกแจ้งเตือนกลับ ไม่มีโมฆะอัตโนมัติ พารามิเตอร์ JPAY ไม่เปลี่ยน 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.51',
+      kind: 'minor',
+      date: '2026-08-25',
+      items: {
+        KO: [
+          'URL 결제: 결제내역에 고객명·마스킹 카드번호·위치·단말기가 JPAY와 같이 표시됩니다. JPAY 연동 파라미터 변경 없음. 5개국어'
+        ],
+        EN: [
+          'URL checkout: pay list now shows payer name, masked card, location, and device like JPAY. JPAY parameters unchanged. 5 languages'
+        ],
+        JP: [
+          'URL決済: 決済一覧に顧客名・マスクカード番号・位置・端末がJPAYと同様に表示。JPAY連携パラメータ変更なし。5言語'
+        ],
+        CH: [
+          'URL 支付：支付明细现与 JPAY 一样显示付款人姓名、掩码卡号、位置和终端。JPAY 参数未改。5 语'
+        ],
+        TH: [
+          'ชำระ URL: รายการชำระแสดงชื่อผู้จ่าย เลขบัตรปิดบัง ตำแหน่ง และอุปกรณ์เหมือน JPAY พารามิเตอร์ JPAY ไม่เปลี่ยน 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.50',
+      kind: 'minor',
+      date: '2026-08-25',
+      items: {
+        KO: [
+          'URL 결제: 라이브 카드 초기화는 결제망에 실제로 열린 카드 수단을 사용합니다. 화면 필수는 JPAY와 동일. JPAY 연동 파라미터 변경 없음. 5개국어'
+        ],
+        EN: [
+          'URL checkout: live card init uses the card method actually enabled on the processor. On-screen required still match JPAY. JPAY parameters unchanged. 5 languages'
+        ],
+        JP: [
+          'URL決済: ライブのカード初期化は決済網で実際に開いているカード手段を使用。画面必須はJPAYと同じ。JPAY連携パラメータ変更なし。5言語'
+        ],
+        CH: [
+          'URL 支付：线上卡初始化使用通道上实际开通的卡方式。页面必填仍与 JPAY 相同。JPAY 参数未改。5 语'
+        ],
+        TH: [
+          'ชำระ URL: init บัตรไลฟ์ใช้วิธีบัตรที่เปิดจริงที่ช่องทาง หน้าจอจำเป็นเหมือน JPAY พารามิเตอร์ JPAY ไม่เปลี่ยน 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.49',
+      kind: 'minor',
+      date: '2026-08-25',
+      items: {
+        KO: [
+          'URL 결제: 카드 초기화 서명 오류를 고쳤습니다. 화면 필수는 JPAY와 동일. JPAY 연동 파라미터 변경 없음. 5개국어'
+        ],
+        EN: [
+          'URL checkout: fixed card-init signature errors. On-screen required still match JPAY. JPAY parameters unchanged. 5 languages'
+        ],
+        JP: [
+          'URL決済: カード初期化の署名エラーを修正。画面必須はJPAYと同じ。JPAY連携パラメータ変更なし。5言語'
+        ],
+        CH: [
+          'URL 支付：修复卡初始化签名错误。页面必填仍与 JPAY 相同。JPAY 参数未改。5 语'
+        ],
+        TH: [
+          'ชำระ URL: แก้ข้อผิดพลาดลายเซ็นตอน init บัตร หน้าจอจำเป็นเหมือน JPAY พารามิเตอร์ JPAY ไม่เปลี่ยน 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.48',
+      kind: 'minor',
+      date: '2026-08-25',
+      items: {
+        KO: [
+          '관리자: 로그인 후 메뉴·화면 이동이 되지 않던 오류를 수정했습니다. 5개국어'
+        ],
+        EN: [
+          'Admin: fixed a fault that blocked moving to other pages after login. 5 languages'
+        ],
+        JP: [
+          '管理画面: ログイン後に他画面へ移れなかった不具合を修正。5言語'
+        ],
+        CH: [
+          '管理端：修复登录后无法进入其他页面的问题。5 语'
+        ],
+        TH: [
+          'ผู้ดูแล: แก้ปัญหาเข้าหน้าอื่นไม่ได้หลังล็อกอิน 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.47',
+      kind: 'minor',
+      date: '2026-08-25',
+      items: {
+        KO: [
+          'URL 결제: 라이브 카드 초기화가 결제망에 건을 만들지 못하던 오류를 수정(속성 별칭·Light/구버전 파라미터). 화면 필수는 JPAY와 동일. JPAY 연동 파라미터 변경 없음. 5개국어'
+        ],
+        EN: [
+          'URL checkout: live card init now reaches the processor (attribute aliases and Light/classic parameter shapes). On-screen required still match JPAY. JPAY parameters unchanged. 5 languages'
+        ],
+        JP: [
+          'URL決済: ライブのカード初期化が決済網に届かない不具合を修正。画面必須はJPAYと同じ。JPAY連携パラメータ変更なし。5言語'
+        ],
+        CH: [
+          'URL 支付：修复线上卡初始化无法在通道建单的问题。页面必填仍与 JPAY 相同。JPAY 参数未改。5 语'
+        ],
+        TH: [
+          'ชำระ URL: แก้ init บัตรไลฟ์ที่ไม่สร้างรายการที่ช่องทาง หน้าจอจำเป็นเหมือน JPAY พารามิเตอร์ JPAY ไม่เปลี่ยน 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.46',
+      kind: 'minor',
+      date: '2026-08-25',
+      items: {
+        KO: [
+          'URL 결제: 라이브 카드 초기화는 결제망 필수 속성을 JSON과 함께 보내고, 결제 진행 URL은 초기화 응답의 이동 주소를 사용. 화면 필수는 JPAY와 동일(이메일·전화·국가). JPAY 연동 파라미터 변경 없음. 5개국어'
+        ],
+        EN: [
+          'URL checkout: live card init sends payer attributes (JSON + fields) and continues with the init redirect URL. On-screen required still match JPAY (email, phone, country). JPAY parameters unchanged. 5 languages'
+        ],
+        JP: [
+          'URL決済: ライブのカード初期化は属性をJSONと一緒に送り、初期化応答の遷移URLで続行。画面必須はJPAYと同じ（メール・電話・国）。JPAY連携パラメータ変更なし。5言語'
+        ],
+        CH: [
+          'URL 支付：线上卡初始化同时发送付款人属性（JSON+字段），并用初始化返回的跳转地址继续。页面必填仍与 JPAY 相同（邮箱、电话、国家）。JPAY 参数未改。5 语'
+        ],
+        TH: [
+          'ชำระ URL: โหมดไลฟ์ส่งคุณสมบัติผู้จ่าย (JSON+ฟิลด์) แล้วไปต่อด้วย URL จาก init หน้าจอจำเป็นเหมือน JPAY (อีเมล โทร ประเทศ) พารามิเตอร์ JPAY ไม่เปลี่ยน 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.45',
+      kind: 'minor',
+      date: '2026-08-25',
+      items: {
+        KO: [
+          'URL 결제: 카드 초기화는 필수 속성이 없으면 추가 필드 없이 진행(JPAY와 동일하게 화면 필수는 이메일·전화·국가). 잘못된 오류 문구 제거. JPAY 연동 파라미터 변경 없음. 5개국어'
+        ],
+        EN: [
+          'URL checkout: card init sends extra fields only when the method requires them (on-screen required still email, phone, country like JPAY). Misleading errors removed. JPAY parameters unchanged. 5 languages'
+        ],
+        JP: [
+          'URL決済: カード初期化は必須属性があるときだけ追加送信。画面必須はJPAYと同じメール・電話・国。誤ったエラー文言を削除。JPAY連携パラメータ変更なし。5言語'
+        ],
+        CH: [
+          'URL 支付：仅在方式要求时才发送额外字段。页面必填仍与 JPAY 相同（邮箱、电话、国家）。去掉误导错误文案。JPAY 参数未改。5 语'
+        ],
+        TH: [
+          'ชำระ URL: ส่งฟิลด์เพิ่มเมื่อวิธีบังคับเท่านั้น ค่าจำเป็นบนจอเหมือน JPAY (อีเมล โทร ประเทศ) ตัดข้อความผิด  พารามิเตอร์ JPAY ไม่เปลี่ยน 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.44',
+      kind: 'minor',
+      date: '2026-08-25',
+      items: {
+        KO: [
+          'URL 결제: 필수값은 JPAY와 동일(이메일·전화·국가). 주소는 화면에 없으면 서버만 보완. 카드 진행 실패 문구는 ICOPAY 5개국어. JPAY 연동 파라미터는 변경 없음'
+        ],
+        EN: [
+          'URL checkout: required fields match JPAY (email, phone, country). Hidden address is filled server-side only. Card-path errors are ICOPAY copy in 5 languages. JPAY integration parameters unchanged'
+        ],
+        JP: [
+          'URL決済: 必須はJPAYと同じ（メール・電話・国）。非表示住所はサーバー補完のみ。カード進行エラーはICOPAY 5言語。JPAY連携パラメータは変更なし'
+        ],
+        CH: [
+          'URL 支付：必填与 JPAY 相同（邮箱、电话、国家）。隐藏地址仅由服务器补全。无法继续支付的文案为 ICOPAY 5 语。JPAY 对接参数未改'
+        ],
+        TH: [
+          'ชำระ URL: ค่าจำเป็นเหมือน JPAY (อีเมล โทร ประเทศ) ที่อยู่ที่ซ่อนเซิร์ฟเวอร์เติมเท่านั้น ข้อผิดพลาดเดินหน้าบัตรเป็น ICOPAY 5 ภาษา พารามิเตอร์เชื่อม JPAY ไม่เปลี่ยน'
+        ]
+      }
+    },
+    {
+      version: '3.43',
+      kind: 'minor',
+      date: '2026-08-25',
+      items: {
+        KO: [
+          'URL 결제: 도시·우편번호는 필수가 아님. 숨긴 주소는 서버가 채워 보내고, 오류 문구에서 주소 입력을 요구하지 않음(5개국어)'
+        ],
+        EN: [
+          'URL checkout: city and postal code are not required. Hidden address is filled server-side; error copy no longer asks for address (5 languages)'
+        ],
+        JP: [
+          'URL決済: 市区・郵便番号は必須ではない。非表示の住所はサーバーが補完し、エラーで住所入力を求めない（5言語）'
+        ],
+        CH: [
+          'URL 支付：城市、邮编非必填。隐藏地址由服务器补全，错误文案不再要求填写地址（5 语）'
+        ],
+        TH: [
+          'ชำระ URL: เมืองและรหัสไปรษณีย์ไม่บังคับ ที่อยู่ที่ซ่อนเซิร์ฟเวอร์เติมให้ และข้อความผิดพลาดไม่ให้กรอกที่อยู่ (5 ภาษา)'
+        ]
+      }
+    },
+    {
+      version: '3.42',
+      kind: 'minor',
+      date: '2026-08-25',
+      items: {
+        KO: [
+          'URL 결제: 화면에 이메일·전화·국가를 넣어도 실패하던 오류를 수정. 숨긴 주소 항목은 서버가 채워 전송. 오류 문구는 결제창 기준 5개국어(prepare 안내와 구분)'
+        ],
+        EN: [
+          'URL checkout: fixed failure even when email, phone, and country were filled. Hidden address fields are filled server-side. Error copy is checkout-page wording in 5 languages (separate from prepare)'
+        ],
+        JP: [
+          'URL決済: 画面にメール・電話・国を入れても失敗していた不具合を修正。非表示の住所はサーバーが補完。エラー文言は決済画面向け5言語（prepare 案内と分離）'
+        ],
+        CH: [
+          'URL 支付：修正已填写邮箱、电话、国家仍失败的问题。隐藏地址由服务器补全。错误文案按支付页 5 语（与 prepare 说明分开）'
+        ],
+        TH: [
+          'ชำระ URL: แก้กรณีกรอกอีเมล โทร ประเทศแล้วยังล้มเหลว ที่อยู่ที่ซ่อนเซิร์ฟเวอร์เติมให้ ข้อความผิดพลาดเป็นหน้าชำระ 5 ภาษา (แยกจาก prepare)'
+        ]
+      }
+    },
+    {
+      version: '3.41',
+      kind: 'minor',
+      date: '2026-08-25',
+      items: {
+        KO: [
+          '가맹 ICOPAY 연동 문서(규격 1.2)·키트: prepare 필수값(buyer.email·phone·countryIso2)을 강조. 누락 시 BUYER_* 오류와 5개국어 messages. 빈 문자열도 누락으로 처리'
+        ],
+        EN: [
+          'ICOPAY merchant integration spec 1.2 and kit: required prepare fields (buyer.email, phone, countryIso2) highlighted. Missing values return BUYER_* with 5-language messages. Empty strings count as missing'
+        ],
+        JP: [
+          '加盟店 ICOPAY 連携文書(規格1.2)・キット: prepare 必須(buyer.email・phone・countryIso2)を明示。欠落時は BUYER_* と5言語 messages。空文字も欠落'
+        ],
+        CH: [
+          'ICOPAY 商户对接文档（规格 1.2）与套件：强调 prepare 必填（buyer.email、phone、countryIso2）。缺省返回 BUYER_* 及 5 语 messages。空字符串视为缺失'
+        ],
+        TH: [
+          'เอกสารเชื่อม ICOPAY ของร้าน (สเปก 1.2) และชุด: เน้นค่าจำเป็นใน prepare (buyer.email phone countryIso2) หากขาดได้ BUYER_* พร้อม messages 5 ภาษา ค่าว่างถือว่าขาด'
+        ]
+      }
+    },
     {
       version: '3.40',
       kind: 'minor',

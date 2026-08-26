@@ -1,10 +1,12 @@
 package com.pg.service;
 
 import com.pg.entity.HqPayCardBlacklist;
+import com.pg.entity.HqPayCardBlockBrand;
 import com.pg.entity.HqPayCardBlockPrefix;
 import com.pg.entity.OrgUnit;
 import com.pg.integration.pg.PgVendor;
 import com.pg.repository.HqPayCardBlacklistRepository;
+import com.pg.repository.HqPayCardBlockBrandRepository;
 import com.pg.repository.HqPayCardBlockPrefixRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.util.CardBrandScopeUtil;
@@ -30,7 +32,7 @@ import java.util.Set;
 
 /**
  * PG별 카드 브랜드·BIN 접두·블랙리스트 정책.
- * <p>JPAY: Visa/MC/JCB/UnionPay(62)/AMEX. ChillPay: AMEX 불가.
+ * <p>본사 전산설정의 사용불가브랜드가 PG 지원 상한에서 해당 브랜드를 제외합니다.
  */
 @Service
 public class PayCardPolicyService {
@@ -39,6 +41,15 @@ public class PayCardPolicyService {
 
     public static final String MATCH_MODE_FULL_PAN = "FULL_PAN";
     public static final String MATCH_MODE_MASK_6_4 = "MASK_6_4";
+
+    /** 전산설정에서 등록 가능한 브랜드 목록(표시 순서). */
+    public static final List<PayCardBrand> MANAGEABLE_BLOCK_BRANDS = List.of(
+            PayCardBrand.VISA,
+            PayCardBrand.MASTERCARD,
+            PayCardBrand.JCB,
+            PayCardBrand.UNIONPAY,
+            PayCardBrand.DINERS,
+            PayCardBrand.AMEX);
 
     private static final Set<PayCardBrand> JPAY_ALLOWED = EnumSet.of(
             PayCardBrand.VISA, PayCardBrand.MASTERCARD, PayCardBrand.JCB,
@@ -50,17 +61,20 @@ public class PayCardPolicyService {
             PayCardBrand.VISA, PayCardBrand.MASTERCARD, PayCardBrand.JCB, PayCardBrand.UNIONPAY);
 
     private final HqPayCardBlockPrefixRepository blockPrefixRepository;
+    private final HqPayCardBlockBrandRepository blockBrandRepository;
     private final HqPayCardBlacklistRepository blacklistRepository;
     private final PayCardFailCooldownService payCardFailCooldownService;
     private final OrgUnitRepository orgUnitRepository;
     private final MerchantPgBindingRouterService pgBindingRouter;
 
     public PayCardPolicyService(HqPayCardBlockPrefixRepository blockPrefixRepository,
+                                HqPayCardBlockBrandRepository blockBrandRepository,
                                 HqPayCardBlacklistRepository blacklistRepository,
                                 @Lazy PayCardFailCooldownService payCardFailCooldownService,
                                 OrgUnitRepository orgUnitRepository,
                                 MerchantPgBindingRouterService pgBindingRouter) {
         this.blockPrefixRepository = blockPrefixRepository;
+        this.blockBrandRepository = blockBrandRepository;
         this.blacklistRepository = blacklistRepository;
         this.payCardFailCooldownService = payCardFailCooldownService;
         this.orgUnitRepository = orgUnitRepository;
@@ -97,21 +111,28 @@ public class PayCardPolicyService {
      */
     public Set<PayCardBrand> allowedBrandsForMerchant(String pgVendorRaw, Long orgUnitId) {
         Set<PayCardBrand> pgAllowed = allowedBrandsForPg(pgVendorRaw);
+        Set<PayCardBrand> out;
         if (orgUnitId == null || pgBindingRouter == null) {
-            return pgAllowed;
+            out = EnumSet.copyOf(pgAllowed);
+        } else {
+            List<Map<String, Object>> routes = pgBindingRouter.listOperationalRouteSummaries(orgUnitId, false);
+            if (routes == null || routes.isEmpty()) {
+                out = EnumSet.copyOf(pgAllowed);
+            } else {
+                out = new LinkedHashSet<>();
+                for (Map<String, Object> row : routes) {
+                    String pgCd = row.get("pgCd") != null ? row.get("pgCd").toString() : "";
+                    String scope = row.get("cardBrandScope") != null ? row.get("cardBrandScope").toString() : "ALL";
+                    Set<PayCardBrand> rowPg = allowedBrandsForPg(pgCd.isBlank() ? pgVendorRaw : pgCd);
+                    out.addAll(CardBrandScopeUtil.filterBrands(scope, rowPg));
+                }
+                if (out.isEmpty()) {
+                    out = EnumSet.copyOf(pgAllowed);
+                }
+            }
         }
-        List<Map<String, Object>> routes = pgBindingRouter.listOperationalRouteSummaries(orgUnitId, false);
-        if (routes == null || routes.isEmpty()) {
-            return pgAllowed;
-        }
-        Set<PayCardBrand> out = new LinkedHashSet<>();
-        for (Map<String, Object> row : routes) {
-            String pgCd = row.get("pgCd") != null ? row.get("pgCd").toString() : "";
-            String scope = row.get("cardBrandScope") != null ? row.get("cardBrandScope").toString() : "ALL";
-            Set<PayCardBrand> rowPg = allowedBrandsForPg(pgCd.isBlank() ? pgVendorRaw : pgCd);
-            out.addAll(CardBrandScopeUtil.filterBrands(scope, rowPg));
-        }
-        return out.isEmpty() ? pgAllowed : out;
+        out.removeAll(loadBlockedBrands(pgVendorRaw));
+        return out;
     }
 
     public boolean isBrandSelectEnabled(String pgVendor) {
@@ -129,15 +150,20 @@ public class PayCardPolicyService {
 
     public Map<String, Object> buildClientPolicy(String pgVendorRaw, Long orgUnitId) {
         String pg = normalizePgVendor(pgVendorRaw);
+        Set<PayCardBrand> pgCeiling = allowedBrandsForPg(pg);
+        Set<PayCardBrand> blocked = loadBlockedBrands(pg);
         Set<PayCardBrand> allowed = allowedBrandsForMerchant(pg, orgUnitId);
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("pgVendor", pg);
-        out.put("brandSelectEnabled", isBrandSelectEnabled(pg) || allowed.size() < allowedBrandsForPg(pg).size());
+        out.put("brandSelectEnabled", isBrandSelectEnabled(pg) || allowed.size() < pgCeiling.size());
         List<String> brands = brandNames(allowed);
         out.put("allowedBrands", brands);
-        List<PayCardBrand> paused = PayCardPolicyI18n.pausedBrands(allowed, allowedBrandsForPg(pg));
+        Set<PayCardBrand> pausedBase = EnumSet.copyOf(pgCeiling);
+        pausedBase.addAll(blocked);
+        List<PayCardBrand> paused = PayCardPolicyI18n.pausedBrands(allowed, pausedBase);
         out.put("pausedBrands", brandNames(paused));
-        out.put("pgBrands", brandNames(allowedBrandsForPg(pg)));
+        out.put("blockedBrands", brandNames(blocked));
+        out.put("pgBrands", brandNames(pgCeiling));
         out.put("blockedPrefixes", loadActivePrefixDigits(pg));
         out.put("amexDigitLength", 15);
         out.put("defaultDigitLength", 16);
@@ -215,6 +241,15 @@ public class PayCardPolicyService {
             return fail("BLOCKED_PREFIX", "BLOCKED_PREFIX", langNorm, blockedPrefix);
         }
 
+        Set<PayCardBrand> blockedBrands = loadBlockedBrands(pg);
+        if (brand != PayCardBrand.UNKNOWN && blockedBrands.contains(brand)) {
+            Set<PayCardBrand> merchantAllowed = allowedBrandsForMerchant(pg, orgUnitId);
+            Set<PayCardBrand> pgAllowed = allowedBrandsForPg(pg);
+            Set<PayCardBrand> pausedBase = EnumSet.copyOf(pgAllowed);
+            pausedBase.addAll(blockedBrands);
+            return failBrandNotAllowed(langNorm, merchantAllowed, pausedBase);
+        }
+
         if (PgVendor.JPAY.equals(pg)) {
             if (pan.startsWith("60") || pan.startsWith("81")) {
                 return fail("UNION_60_81", "UNION_60_81", langNorm);
@@ -227,7 +262,9 @@ public class PayCardPolicyService {
         Set<PayCardBrand> merchantAllowed = allowedBrandsForMerchant(pg, orgUnitId);
         Set<PayCardBrand> pgAllowed = allowedBrandsForPg(pg);
         if (brand == PayCardBrand.UNKNOWN || !merchantAllowed.contains(brand)) {
-            return failBrandNotAllowed(langNorm, merchantAllowed, pgAllowed);
+            Set<PayCardBrand> pausedBase = EnumSet.copyOf(pgAllowed);
+            pausedBase.addAll(blockedBrands);
+            return failBrandNotAllowed(langNorm, merchantAllowed, pausedBase);
         }
         if (detected != PayCardBrand.UNKNOWN && detected != brand && selected != null) {
             return fail("INVALID_PAN", "INVALID_PAN", langNorm);
@@ -395,6 +432,80 @@ public class PayCardPolicyService {
         return list;
     }
 
+    public Set<PayCardBrand> loadBlockedBrands(String pgVendor) {
+        String pg = normalizePgVendor(pgVendor);
+        Set<PayCardBrand> out = EnumSet.noneOf(PayCardBrand.class);
+        if (blockBrandRepository == null) {
+            return out;
+        }
+        for (HqPayCardBlockBrand row : blockBrandRepository.findByPgVendorAndActiveYnOrderByBrandCodeAsc(pg, "Y")) {
+            PayCardBrand b = PayCardBrandDetector.parseBrandKey(row.getBrandCode());
+            if (b != null && b != PayCardBrand.UNKNOWN) {
+                out.add(b);
+            }
+        }
+        return out;
+    }
+
+    public List<Map<String, Object>> listBlockBrandsForAdmin() {
+        List<Map<String, Object>> list = new ArrayList<>();
+        if (blockBrandRepository == null) {
+            return list;
+        }
+        for (HqPayCardBlockBrand row : blockBrandRepository.findByActiveYnOrderByPgVendorAscBrandCodeAsc("Y")) {
+            list.add(brandBlockToMap(row));
+        }
+        return list;
+    }
+
+    public List<Map<String, Object>> manageableBlockBrandOptions() {
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (PayCardBrand b : MANAGEABLE_BLOCK_BRANDS) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("code", b.name());
+            m.put("label", PayCardPolicyI18n.brandShort(b));
+            list.add(m);
+        }
+        return list;
+    }
+
+    @Transactional
+    public HqPayCardBlockBrand addBlockBrand(String pgVendor, String brandCodeRaw, String remark) {
+        String pg = normalizePgVendor(pgVendor);
+        PayCardBrand brand = PayCardBrandDetector.parseBrandKey(brandCodeRaw);
+        if (brand == null || brand == PayCardBrand.UNKNOWN || !MANAGEABLE_BLOCK_BRANDS.contains(brand)) {
+            throw new IllegalArgumentException("지원 브랜드를 선택해 주세요. (VISA, MASTER, JCB, UNION, DINERS, AMX)");
+        }
+        String code = brand.name();
+        if (blockBrandRepository.existsByPgVendorAndBrandCodeAndActiveYn(pg, code, "Y")) {
+            throw new IllegalArgumentException("이미 등록된 사용불가 브랜드입니다: " + PayCardPolicyI18n.brandShort(brand));
+        }
+        var existing = blockBrandRepository.findFirstByPgVendorAndBrandCodeOrderByIdDesc(pg, code);
+        if (existing.isPresent()) {
+            HqPayCardBlockBrand row = existing.get();
+            row.setActiveYn("Y");
+            row.setRemark(remark != null ? remark.trim() : null);
+            return blockBrandRepository.save(row);
+        }
+        HqPayCardBlockBrand row = new HqPayCardBlockBrand();
+        row.setPgVendor(pg);
+        row.setBrandCode(code);
+        row.setRemark(remark != null ? remark.trim() : null);
+        row.setActiveYn("Y");
+        return blockBrandRepository.save(row);
+    }
+
+    @Transactional
+    public void deleteBlockBrand(Long id) {
+        if (blockBrandRepository == null || id == null) {
+            return;
+        }
+        blockBrandRepository.findById(id).ifPresent(row -> {
+            row.setActiveYn("N");
+            blockBrandRepository.save(row);
+        });
+    }
+
     public List<Map<String, Object>> listBlacklistForAdmin() {
         List<Map<String, Object>> list = new ArrayList<>();
         for (HqPayCardBlacklist row : blacklistRepository.findByActiveYnOrderByIdDesc("Y")) {
@@ -448,15 +559,17 @@ public class PayCardPolicyService {
                                                String cardBrand, String holderName,
                                                Long orgUnitId, String compId, String compNm) {
         String pg = pgVendor != null && !pgVendor.isBlank() ? normalizePgVendor(pgVendor) : null;
-        String pgScope = pg != null ? pg : PgVendor.JPAY;
 
         if (PayCardMaskKeyUtil.isMaskInput(panRaw)) {
             String maskKey = PayCardMaskKeyUtil.normalizeMaskInput(panRaw);
             OpsInactiveCardPanRules.validateForMaskRegister(maskKey);
-            if (blacklistRepository.findActiveMaskDisplayHit(maskKey, pgScope).isPresent()) {
+            String hash = PayCardMaskKeyUtil.hashForMaskKey(maskKey);
+            boolean dup = pg == null
+                    ? !blacklistRepository.findActiveSiblingsByPanIdentity(hash, maskKey).isEmpty()
+                    : blacklistRepository.findActiveMaskDisplayHit(maskKey, pg).isPresent();
+            if (dup) {
                 throw new IllegalArgumentException("이미 비활성 등록된 카드입니다.");
             }
-            String hash = PayCardMaskKeyUtil.hashForMaskKey(maskKey);
             HqPayCardBlacklist row = new HqPayCardBlacklist();
             row.setPgVendor(pg);
             row.setPanHash(hash);
@@ -474,11 +587,13 @@ public class PayCardPolicyService {
         String pan = PayCardBrandDetector.normalizePan(panRaw);
         OpsInactiveCardPanRules.validateForRegister(cardBrand, pan);
         String hash = PayCardPanHashUtil.hashPan(pan);
-        if (blacklistRepository.findActiveHit(hash, pgScope).isPresent()) {
-            throw new IllegalArgumentException("이미 비활성 등록된 카드입니다.");
-        }
         String maskKey = PayCardMaskKeyUtil.maskKeyFromPan(pan);
-        if (!maskKey.isEmpty() && blacklistRepository.findActiveMaskDisplayHit(maskKey, pgScope).isPresent()) {
+        boolean dup = pg == null
+                ? !blacklistRepository.findActiveSiblingsByPanIdentity(hash,
+                    maskKey.isEmpty() ? PayCardPanHashUtil.maskForDisplay(pan) : maskKey).isEmpty()
+                : (blacklistRepository.findActiveHit(hash, pg).isPresent()
+                    || (!maskKey.isEmpty() && blacklistRepository.findActiveMaskDisplayHit(maskKey, pg).isPresent()));
+        if (dup) {
             throw new IllegalArgumentException("이미 비활성 등록된 카드입니다.");
         }
         HqPayCardBlacklist row = new HqPayCardBlacklist();
@@ -702,6 +817,18 @@ public class PayCardPolicyService {
         m.put("id", row.getId());
         m.put("pgVendor", row.getPgVendor());
         m.put("prefixDigits", row.getPrefixDigits());
+        m.put("remark", row.getRemark());
+        m.put("activeYn", row.getActiveYn());
+        return m;
+    }
+
+    private static Map<String, Object> brandBlockToMap(HqPayCardBlockBrand row) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", row.getId());
+        m.put("pgVendor", row.getPgVendor());
+        PayCardBrand brand = PayCardBrandDetector.parseBrandKey(row.getBrandCode());
+        m.put("brandCode", brand != null ? brand.name() : row.getBrandCode());
+        m.put("brandLabel", brand != null ? PayCardPolicyI18n.brandShort(brand) : row.getBrandCode());
         m.put("remark", row.getRemark());
         m.put("activeYn", row.getActiveYn());
         return m;

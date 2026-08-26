@@ -47,7 +47,7 @@
       }
     })();
   </script>
-  <script src="js/api.js?v=47"></script>
+  <script src="js/api.js?v=48"></script>
   <script src="js/hq-holiday-calendar.js?v=3"></script>
   <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 </head>
@@ -585,6 +585,40 @@
               </div>
               <div class="form-text" id="pgAgencyEditExtSettleHint"><span data-pg-ui-t="OFF면 통합정산에 ICOPAY 예정일을 채우지 않습니다. T는 주말 제외 영업일 기준입니다.">OFF면 통합정산에 ICOPAY 예정일을 채우지 않습니다. T는 주말 제외 영업일 기준입니다.</span></div>
             </div>
+            <div class="mb-2 border-top pt-2" id="pgAgencyPayFollowWrap">
+              <label class="form-label mb-1" data-pg-ui-t="ICOPAY 후속조치 (대행사별 허용)">ICOPAY 후속조치 (대행사별 허용)</label>
+              <p class="small text-muted mb-2" data-pg-ui-t="노티 미들웨어는 거래 적재만 담당합니다. 결제내역 버튼은 아래 허용과 전산설정(NOTI)·조직 단계·가맹 스위치가 모두 켜져 있고, 해당 결제망 API가 가능할 때만 활성화됩니다.">노티 미들웨어는 거래 적재만 담당합니다. 결제내역 버튼은 아래 허용과 전산설정(NOTI)·조직 단계·가맹 스위치가 모두 켜져 있고, 해당 결제망 API가 가능할 때만 활성화됩니다.</p>
+              <div class="d-flex flex-wrap gap-3">
+                <div class="form-check mb-0">
+                  <input class="form-check-input pg-agency-pay-follow" type="checkbox" id="pgAgencyPayFollowAutoVoid" data-pg-follow="AUTO_VOID">
+                  <label class="form-check-label" for="pgAgencyPayFollowAutoVoid" data-pg-ui-t="무효처리">무효처리</label>
+                </div>
+                <div class="form-check mb-0">
+                  <input class="form-check-input pg-agency-pay-follow" type="checkbox" id="pgAgencyPayFollowEmailVoid" data-pg-follow="EMAIL_VOID">
+                  <label class="form-check-label" for="pgAgencyPayFollowEmailVoid" data-pg-ui-t="이메일 무효">이메일 무효</label>
+                </div>
+                <div class="form-check mb-0">
+                  <input class="form-check-input pg-agency-pay-follow" type="checkbox" id="pgAgencyPayFollowManualVoid" data-pg-follow="MANUAL_VOID">
+                  <label class="form-check-label" for="pgAgencyPayFollowManualVoid" data-pg-ui-t="수동무효">수동무효</label>
+                </div>
+                <div class="form-check mb-0">
+                  <input class="form-check-input pg-agency-pay-follow" type="checkbox" id="pgAgencyPayFollowAutoRefund" data-pg-follow="AUTO_REFUND">
+                  <label class="form-check-label" for="pgAgencyPayFollowAutoRefund" data-pg-ui-t="환불처리">환불처리</label>
+                </div>
+                <div class="form-check mb-0">
+                  <input class="form-check-input pg-agency-pay-follow" type="checkbox" id="pgAgencyPayFollowManualRefund" data-pg-follow="MANUAL_REFUND">
+                  <label class="form-check-label" for="pgAgencyPayFollowManualRefund" data-pg-ui-t="수동환불">수동환불</label>
+                </div>
+                <div class="form-check mb-0">
+                  <input class="form-check-input pg-agency-pay-follow" type="checkbox" id="pgAgencyPayFollowForceRefund" data-pg-follow="FORCE_REFUND">
+                  <label class="form-check-label" for="pgAgencyPayFollowForceRefund" data-pg-ui-t="강제환불">강제환불</label>
+                </div>
+                <div class="form-check mb-0">
+                  <input class="form-check-input pg-agency-pay-follow" type="checkbox" id="pgAgencyPayFollowSameDayRefund" data-pg-follow="SAME_DAY">
+                  <label class="form-check-label" for="pgAgencyPayFollowSameDayRefund" data-pg-ui-t="당일환불">당일환불</label>
+                </div>
+              </div>
+            </div>
             <div class="mb-2">
               <label class="form-label" data-pg-ui-t="사용여부">사용여부</label>
               <select class="form-select form-select-sm" id="pgAgencyEditUseYn">
@@ -715,7 +749,7 @@
       <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title"><span id="pgHqAccountAccessModalTitle">접근권한 추가</span></h5>
+            <h5 class="modal-title"><span id="pgHqAccountAccessModalTitle" data-pg-ui-t="접근권한 추가">접근권한 추가</span></h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" data-pg-ui-aria-label="닫기" aria-label="닫기"></button>
           </div>
           <div class="modal-body">
@@ -759,20 +793,21 @@
 <script src="js/pay-list-overview-catalog.js?v=3"></script>
 <script src="js/pay-list-jpay-overview-catalog.js?v=1"></script>
 <script src="js/table-column-resize.js?v=4"></script>
-  <script src="js/pg-ui-string-map.js?v=41"></script>
-  <script src="js/pg-ui-i18n.js?v=86"></script>
+  <script src="js/pg-ui-string-map.js?v=42"></script>
+  <script src="js/pg-ui-i18n.js?v=90"></script>
+  <script src="js/url-pay-copy-phrase-i18n.js?v=1"></script>
   <script src="js/checkout-header-subtitle-presets.js?v=1"></script>
   <script src="js/url-pay-input-mode.js?v=4"></script>
   <script src="js/pg-view-display-tz.js?v=2"></script>
   <script src="js/pg-menu-layout-b.js?v=3"></script>
   <script src="js/pg-hub-shell.js?v=4"></script>
-  <script src="js/icopay-platform-release-notes.js?v=2.95"></script>
+  <script src="js/icopay-platform-release-notes.js?v=3.63"></script>
   <script src="js/icopay-platform-manuals.js?v=2.81"></script>
-  <script src="js/screens.js?v=267"></script>
-  <script src="js/pg-pay-list-i18n.js?v=43"></script>
-  <script src="js/pg-home-dashboard.js?v=27"></script>
+  <script src="js/screens.js?v=270"></script>
+  <script src="js/pg-pay-list-i18n.js?v=45"></script>
+  <script src="js/pg-home-dashboard.js?v=29"></script>
   <script src="js/ops-inactive-card-brand.js?v=1"></script>
-  <script src="js/app.js?v=326"></script
+  <script src="js/app.js?v=331"></script>
   <script src="js/pg-login-tablet-shell.js?v=5"></script>
   <script src="js/pg-topbar-contrast.js?v=1"></script>
   <script src="js/pg-admin-tablet-shell.js?v=9"></script>

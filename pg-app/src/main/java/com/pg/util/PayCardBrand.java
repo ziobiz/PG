@@ -6,6 +6,7 @@ public enum PayCardBrand {
     MASTERCARD,
     JCB,
     UNIONPAY,
+    DINERS,
     AMEX,
     UNKNOWN
 }

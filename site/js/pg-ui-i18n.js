@@ -17,6 +17,36 @@
     },
     '헬로': { EN: 'Hello', JP: 'Hello', CH: '提示', TH: 'Hello' },
     'PG사': { EN: 'Payment agency', JP: '決済代行', CH: '支付代理', TH: 'ตัวแทนรับชำระ' },
+    '결제대행사': {
+      EN: 'Payment processor',
+      JP: '決済代行業者',
+      CH: '支付服务机构',
+      TH: 'ผู้ให้บริการชำระเงิน'
+    },
+    '대행': {
+      EN: 'PG',
+      JP: '代行',
+      CH: '代行',
+      TH: 'ตัวแทน'
+    },
+    'ICOPAY 후속조치 (대행사별 허용)': {
+      EN: 'ICOPAY follow-up (per processor)',
+      JP: 'ICOPAY後続措置（代行業者別）',
+      CH: 'ICOPAY 后续处理（按机构）',
+      TH: 'ติดตาม ICOPAY (ต่อผู้ให้บริการ)'
+    },
+    '노티 미들웨어는 거래 적재만 담당합니다. 결제내역 버튼은 아래 허용과 전산설정(NOTI)·조직 단계·가맹 스위치가 모두 켜져 있고, 해당 결제망 API가 가능할 때만 활성화됩니다.': {
+      EN: 'Notify middleware only loads transactions. Pay-list buttons turn on only when this processor allows the action AND ledger NOTI, org-level cap, merchant flags, and the network API all match.',
+      JP: 'ノティミドルウェアは取引取込のみです。決済一覧ボタンは代行業者許可 AND 全算NOTI AND 組織段階 AND 加盟店 AND 決済網APIが揃ったときだけ有効です。',
+      CH: '通知中间件只负责入账。支付明细按钮仅在本机构允许、账务 NOTI、组织层级、商户开关与网络 API 同时满足时启用。',
+      TH: 'มิดเดิลแวร์แจ้งเตือนทำหน้าที่โหลดธุรกรรมเท่านั้น ปุ่มรายการชำระเปิดเมื่อผู้ให้บริการอนุญาต และตั้งค่า NOTI ระดับองค์กร ร้านค้า และ API ของเครือข่ายครบ'
+    },
+    '미사용 결제대행사가 선택되어 있습니다.': {
+      EN: 'An unused payment processor is selected.',
+      JP: '未使用の決済代行業者が選択されています。',
+      CH: '已选择未使用的支付机构。',
+      TH: 'เลือกผู้ให้บริการที่ไม่ได้ใช้งานอยู่'
+    },
     'PG명': { EN: 'Payment agency', JP: '決済代行', CH: '支付代理', TH: 'ตัวแทนรับชำระ' },
     'PG사명': { EN: 'Payment agency', JP: '決済代行', CH: '支付代理', TH: 'ตัวแทนรับชำระ' },
     'PG코드': { EN: 'Payment code', JP: '決済コード', CH: '支付代码', TH: 'รหัสชำระ' },
@@ -694,6 +724,49 @@
     '강제환불': { EN: 'Forced refund', JP: '強制返金', CH: '强制退款', TH: 'บังคับคืนเงิน' },
     '자동무효': { EN: 'Auto void', JP: '自動無効', CH: '自动作废', TH: 'โมฆะอัตโนมัติ' },
     '자동환불': { EN: 'Auto refund', JP: '自動返金', CH: '自动退款', TH: 'คืนเงินอัตโนมัติ' },
+    '당일환불': { EN: 'Same-day refund', JP: '当日返金', CH: '当日退款', TH: 'คืนเงินวันเดียวกัน' },
+    'URL 결제만. 태국 결제일 당일. 환불처리와 동일 API. 전역·단계별 허용 필요. 결제망 가용잔액(홀드 해제)이 있어야 환불됨': {
+      EN: 'URL payments only. Thailand payment date. Same API as refund. Global use AND per-level cap required. The payment network pays refunds from cabinet available funds (hold must be released).',
+      JP: 'URL決済のみ。タイ決済日の当日。返金処理と同じAPI。全体使用と段階別許可が必要。決済網はキャビネット利用可能残高から返金します（ホールド解除後）。',
+      CH: '仅限 URL 支付。泰国付款当日。与退款处理同一 API。须全局使用与层级允许。支付网络从柜面可用余额退款（须解除冻结）。',
+      TH: 'เฉพาะชำระ URL วันชำระตามไทย API เดียวกับคืนเงิน ต้องเปิดทั้งระบบและตามระดับ เครือข่ายจ่ายคืนจากยอดใช้ได้ในตู้ (ต้องปลดโฮลด์)'
+    },
+    'URL 결제만. 태국 결제일 당일. 환불처리와 동일 API. 전역 사용과 단계별 허용이 모두 켜져야 함': {
+      EN: 'URL payments only. Payment date in Thailand. Same API as refund. Global use AND per-level cap must both be on.',
+      JP: 'URL決済のみ。タイ決済日の当日。返金処理と同じAPI。全体使用と段階別許可の両方がオンである必要があります。',
+      CH: '仅限 URL 支付。泰国付款当日。与退款处理同一 API。须同时开启全局使用与层级允许。',
+      TH: 'เฉพาะชำระ URL วันชำระตามไทย API เดียวกับคืนเงิน ต้องเปิดทั้งใช้ทั้งระบบและอนุญาตตามระดับ'
+    },
+    '당일(태국). 익일 자동환불 기간과는 별도': {
+      EN: 'Same calendar day (Thailand). Separate from next-day auto-refund window.',
+      JP: '当日（タイ）。翌日からの自動返金期間とは別です。',
+      CH: '当日（泰国）。与次日起的自动退款期间分开。',
+      TH: 'วันเดียวกัน (ไทย) แยกจากช่วงคืนเงินอัตโนมัติวันถัดไป'
+    },
+    '환불과 동일': {
+      EN: 'Same as refund',
+      JP: '返金と同じ',
+      CH: '与退款相同',
+      TH: 'เหมือนคืนเงิน'
+    },
+    '테이블에 동기화됩니다. 무효·수동무효는 승인일(「시간 선택 국가」Zone) 당일입니다. 환불은 태국 기준 결제일 익일의 설정 시각부터 일수이며, 강제환불은 그 일반 환불이 끝난 다음날 같은 시각부터입니다. 당일환불은 URL 결제만, 태국 결제일 당일이며 전역·단계별 허용이 별도입니다. TH·JP 시계는 참고용입니다.': {
+      EN: 'Syncs to the table. Void/manual void: approval date (selected zone) same day. Refund: from Thailand next-day start for N days. Forced refund: after that window. Same-day refund is URL payments only, Thailand payment date, with a separate global and per-level switch. TH/JP clocks are reference.',
+      JP: 'テーブルに同期。無効は承認日（選択Zone）当日。返金はタイ翌日から日数。強制返金はその後。当日返金はURL決済のみ・タイ決済日当日で、全体と段階別許可は別です。TH/JP時計は参考。',
+      CH: '同步到表。作废按授权日（所选时区）当日。退款从泰国次日起计。强制退款在其后。当日退款仅 URL 支付、泰国付款当日，全局与层级开关分开。TH/JP 时钟仅供参考。',
+      TH: 'ซิงค์ตาราง โมฆะวันอนุมัติตามโซน คืนเงินจากวันถัดไปตามไทย บังคับคืนหลังนั้น คืนเงินวันเดียวกันเฉพาะชำระ URL วันชำระไทย สวิตช์ทั้งระบบและตามระดับแยก นาฬิกา TH/JP อ้างอิง'
+    },
+    'URL 환불은 결제망 캐비닛 가용잔액에서 지급됩니다. 승인 직후 홀드 중이면 거절될 수 있습니다.': {
+      EN: 'URL refunds are paid from the payment-network cabinet available balance. They may be refused while the amount is still on hold right after approval.',
+      JP: 'URL返金は決済網キャビネットの利用可能残高から支払われます。承認直後のホールド中は拒否されることがあります。',
+      CH: 'URL 退款从支付网络柜面可用余额支付。批准后仍处于冻结时可能被拒绝。',
+      TH: 'การคืนเงิน URL จ่ายจากยอดใช้ได้ในตู้ของเครือข่าย อาจถูกปฏิเสธช่วงโฮลด์ทันทีหลังอนุมัติ'
+    },
+    'URL 결제는 결제망 가용잔액이 있어야 환불됩니다. 승인 직후 금액이 홀드이면 거절될 수 있습니다.': {
+      EN: 'URL payments need payment-network available funds to refund. Refusal is possible while the amount is on hold right after approval.',
+      JP: 'URL決済の返金には決済網の利用可能残高が必要です。承認直後のホールド中は拒否されることがあります。',
+      CH: 'URL 支付退款需要支付网络可用余额。批准后仍冻结时可能被拒绝。',
+      TH: 'ชำระ URL ต้องมียอดใช้ได้ของเครือข่ายจึงคืนเงินได้ ช่วงโฮลด์ทันทีหลังอนุมัติอาจถูกปฏิเสธ'
+    },
 
     /* 공통 — API/팝업 오류 메시지 */
     'ID 변경 실패': { EN: 'Failed to change ID', JP: 'ID変更に失敗しました', CH: 'ID更改失败', TH: 'เปลี่ยน ID ไม่สำเร็จ' },
@@ -848,6 +921,36 @@
       JP: '直近7日リスクスコアは {score}、直前7日比 {delta} です。内訳: 失敗 {fail}・無効系 {void}・返金 {refund}・キャンセル {cancel} 件。ノティ未マッピング/未取込（7日） {notify} 件。',
       CH: '最近7天风险分数为 {score}，较前7天变化 {delta}。构成：失败 {fail}、无效 {void}、退款 {refund}、取消 {cancel}。通知未映射/未入库（7天）{notify}。',
       TH: 'คะแนนความเสี่ยง 7 วัน = {score}, เปลี่ยนเทียบ 7 วันก่อน {delta}. รายละเอียด: ล้มเหลว {fail}, โมฆะ {void}, คืนเงิน {refund}, ยกเลิก {cancel}. โนติ ไม่แมป/ไม่โหลด (7 วัน) {notify}.'
+    },
+    '최근 7일 리스크 점수는 {score}점이며, 직전 7일 대비 {delta}입니다.': {
+      EN: 'Risk score (last 7 days) is {score}; change vs previous 7 days: {delta}.',
+      JP: '直近7日のリスクスコアは {score} で、直前7日比 {delta} です。',
+      CH: '最近7天风险分数为 {score}，较前7天变化 {delta}。',
+      TH: 'คะแนนความเสี่ยง 7 วันล่าสุดคือ {score} เทียบ 7 วันก่อน {delta}'
+    },
+    '구성은 실패 {fail}·무효계열 {void}·환불 {refund}·취소 {cancel}건입니다.': {
+      EN: 'Breakdown: fail {fail} · void family {void} · refund {refund} · cancel {cancel}.',
+      JP: '内訳は失敗 {fail}・無効系 {void}・返金 {refund}・キャンセル {cancel} 件です。',
+      CH: '构成：失败 {fail}、无效类 {void}、退款 {refund}、取消 {cancel}。',
+      TH: 'รายละเอียด: ล้มเหลว {fail} · กลุ่มโมฆะ {void} · คืนเงิน {refund} · ยกเลิก {cancel}'
+    },
+    '노티 미매핑/미적재가 7일간 {0}건입니다.': {
+      EN: 'Notify unmapped/unloaded over 7 days: {0}.',
+      JP: 'ノティ未マッピング／未取込が7日間 {0} 件です。',
+      CH: '通知未映射/未入库（7天）{0} 笔。',
+      TH: 'โนติที่ยังไม่แมป/ยังไม่โหลดใน 7 วัน: {0}'
+    },
+    '정산 보류/지급보류 실행이 30일 내 {0}건 있습니다.': {
+      EN: 'Settlement hold / payout-hold runs in the last 30 days: {0}.',
+      JP: '精算保留／支払保留の実行が30日以内に {0} 件あります。',
+      CH: '最近30天内结算暂缓/拨付暂缓运行 {0} 笔。',
+      TH: 'มีรายการพักชำระ/พักจ่ายใน 30 วัน: {0}'
+    },
+    '가맹 화면에서는 본인 정산·미수·노티만 집계됩니다.': {
+      EN: 'On the merchant screen, only your own settlement, receivables, and notify data are aggregated.',
+      JP: '加盟店画面ではご自身の精算・未収・ノティのみ集計されます。',
+      CH: '商户画面仅汇总本店的结算、应收与通知。',
+      TH: 'หน้าร้านค้าสรุปเฉพาะการชำระ ลูกหนี้ และโนติของร้านนี้'
     },
     '전사 기준 거래·매출 요약입니다. 서버 트래픽은 일간 수집 데이터 기반입니다.': {
       EN: 'Company-wide transaction/sales summary. Server traffic is based on daily collected data.',
@@ -1071,6 +1174,18 @@
       JP: '未収金残 {0} 件・合計 約 {1} {2}',
       CH: '应收余额 {0} 笔 · 合计约 {1} {2}',
       TH: 'ลูกหนี้ {0} รายการ · รวมประมาณ {1} {2}'
+    },
+    '미수금 잔액 {0}건 · {1}': {
+      EN: 'Receivable balance {0} rows · {1}',
+      JP: '未収金残 {0} 件 · {1}',
+      CH: '应收余额 {0} 笔 · {1}',
+      TH: 'ลูกหนี้ {0} รายการ · {1}'
+    },
+    '미수금 잔액이 {0} 남아 있습니다.': {
+      EN: 'Receivable balance remaining: {0}.',
+      JP: '未収金残が {0} 残っています。',
+      CH: '应收余额剩余 {0}。',
+      TH: 'ยอดลูกหนี้คงเหลือ {0}'
     },
     '최근 30일 정산 보류/지급보류 실행 {0}건': {
       EN: '{0} settlement hold / payout-hold runs in the last 30 days',
@@ -2309,11 +2424,17 @@
       CH: '仅用于整合结算画面的「预计(ICOPAY)」显示。要与部署 API 联动规则一致，请将预定模式设为联动默认。保存时将下方值应用到所有已登记支付机构行。',
       TH: 'ใช้เฉพาะป้ายกำหนดการ(ICOPAY) ในหน้าชำระรวม ตั้งโหมดตามค่าเริ่มต้นการเชื่อมต่อ บันทึกแล้วใช้กับทุกแถว PG'
     },
-    '관리자 화면의 자동무효·이메일무효·자동환불·강제환불 사용 여부입니다. 전산설정관리(전역) 및 본사권한설정의 조직 단계 상한과 함께 적용됩니다. [기본·종전]은 미설정과 동일(허용으로 해석)입니다.': {
-      EN: 'Whether auto-void, email void, auto-refund, and force-refund are enabled in admin. Combined with global HQ ledger settings and per-org caps in HQ permissions. [Default / legacy] means unset (treated as allowed).',
-      JP: '管理画面の自動無効・メール無効・自動返金・強制返金の使用可否です。電算設定(全体)と本社権限の組織段階上限と併せて適用されます。[既定・従前]は未設定と同義（許可として解釈）です。',
-      CH: '管理员界面中自动作废、邮件作废、自动退款、强制退款的开关。与全局电算设置及总部权限中的组织级上限一并生效。【默认/沿用】等同未设置（视为允许）。',
-      TH: 'เปิด/ปิด โมฆะอัตโนมัติ·อีเมล·คืนอัตโนมัติ·บังคับคืน ร่วมกับเพดานระดับองค์กร'
+    '관리자 화면의 무효처리·이메일 무효·수동무효·환불처리·수동환불·강제환불 사용 여부입니다. 전산설정관리(전역) 및 본사권한설정의 조직 단계 상한과 함께 적용됩니다. [기본·종전]은 미설정과 동일(허용으로 해석)입니다.': {
+      EN: 'Whether void processing, email void, manual void, refund processing, manual refund, and force refund are enabled in admin. Combined with global HQ ledger settings and per-org caps. [Default / legacy] means unset (treated as allowed).',
+      JP: '管理画面の無効処理・メール無効・手動無効・返金処理・手動返金・強制返金の使用可否です。電算設定(全体)と本社権限の組織段階上限と併せて適用されます。[既定・従前]は未設定と同義（許可として解釈）です。',
+      CH: '管理员界面中作废处理、邮件作废、手动作废、退款处理、手动退款、强制退款的开关。与全局电算设置及总部权限中的组织级上限一并生效。【默认/沿用】等同未设置（视为允许）。',
+      TH: 'เปิด/ปิด โมฆะ โมฆะอีเมล โมฆะด้วยมือ คืนเงิน คืนเงินด้วยมือ บังคับคืน ร่วมกับเพดานระดับองค์กร'
+    },
+    'ChillPay만. 승인일(기준 Zone) 당일 시작~마감(무효처리와 동일 형식)': {
+      EN: 'ChillPay only. Same-day start–end (same format as void processing)',
+      JP: 'ChillPayのみ。承認日（基準Zone）当日 開始〜締切（無効処理と同形式）',
+      CH: '仅 ChillPay。授权日（基准 Zone）当日起止（与作废处理格式相同）',
+      TH: 'เฉพาะ ChillPay เริ่ม~สิ้นวันเดียวกัน (รูปแบบเดียวกับโมฆะ)'
     },
     '본사정책 따름이면 위에서 고른 본사 정책 템플릿의 3DS·차지백 설정이 적용됩니다. 직접입력일 때만 아래를 저장할 수 있습니다.': {
       EN: 'When following HQ policy, 3DS and chargeback settings from the selected HQ template apply. You can save the fields below only in manual mode.',
@@ -4703,6 +4824,12 @@
       JP: '手動無効',
       CH: '手动作废',
       TH: 'โมฆะด้วยมือ'
+    },
+    수동환불: {
+      EN: 'Manual refund',
+      JP: '手動返金',
+      CH: '手动退款',
+      TH: 'คืนเงินด้วยมือ'
     },
     환불: {
       EN: 'Refund',
@@ -8704,6 +8831,12 @@
       CH: '用户ID',
       TH: 'รหัสผู้ใช้'
     },
+    '사용자id': {
+      EN: 'User ID',
+      JP: 'ユーザーID',
+      CH: '用户ID',
+      TH: 'รหัสผู้ใช้'
+    },
     '사용자 ID (로그인 ID)': {
       EN: 'User ID (login ID)',
       JP: 'ユーザーID（ログインID）',
@@ -9353,6 +9486,18 @@
       JP: '返金処理',
       CH: '退款处理',
       TH: 'คืนเงิน'
+    },
+    '수동무효': {
+      EN: 'Manual void',
+      JP: '手動無効',
+      CH: '手动作废',
+      TH: 'โมฆะด้วยมือ'
+    },
+    '수동환불': {
+      EN: 'Manual refund',
+      JP: '手動返金',
+      CH: '手动退款',
+      TH: 'คืนเงินด้วยมือ'
     },
     '강제환불': {
       EN: 'Force refund',
@@ -11063,6 +11208,141 @@
       CH: '解约',
       TH: 'ยกเลิกสมัคร'
     },
+    '신용카드': {
+      EN: 'Credit card',
+      JP: 'クレジットカード',
+      CH: '信用卡',
+      TH: 'บัตรเครดิต'
+    },
+    '편의점·은행페이': {
+      EN: 'Convenience store / bank pay',
+      JP: 'コンビニ・銀行ペイ',
+      CH: '便利店/银行支付',
+      TH: 'ร้านสะดวกซื้อ/ธนาคาร'
+    },
+    '받는사람 이메일': {
+      EN: 'Recipient email',
+      JP: '宛先メール',
+      CH: '收件邮箱',
+      TH: 'อีเมลผู้รับ'
+    },
+    '받는사람 이메일을 입력하세요.': {
+      EN: 'Enter the recipient email.',
+      JP: '宛先メールを入力してください。',
+      CH: '请输入收件邮箱。',
+      TH: 'กรอกอีเมลผู้รับ'
+    },
+    '받는사람 이메일을 올바르게 입력하세요.': {
+      EN: 'Enter a valid recipient email.',
+      JP: '宛先メールを正しく入力してください。',
+      CH: '请输入正确的收件邮箱。',
+      TH: 'กรอกอีเมลผู้รับให้ถูกต้อง'
+    },
+    '제목(한)': {
+      EN: 'Title (KO)',
+      JP: 'タイトル(韓)',
+      CH: '标题(韩)',
+      TH: 'หัวข้อ (KO)'
+    },
+    '한국어 제목': {
+      EN: 'Korean title',
+      JP: '韓国語タイトル',
+      CH: '韩语标题',
+      TH: 'หัวข้อภาษาเกาหลี'
+    },
+    '결제 금액 하단 안내': {
+      EN: 'Amount-field notice',
+      JP: '決済金額下の案内',
+      CH: '金额栏下方说明',
+      TH: 'คำแนะนำใต้ยอดชำระ'
+    },
+    '금액안내': {
+      EN: 'Amount notice',
+      JP: '金額案内',
+      CH: '金额说明',
+      TH: 'คำแนะนำยอด'
+    },
+    '내용1': { EN: 'Body 1', JP: '本文1', CH: '内容1', TH: 'เนื้อหา 1' },
+    '내용2': { EN: 'Body 2', JP: '本文2', CH: '内容2', TH: 'เนื้อหา 2' },
+    '내용3': { EN: 'Body 3', JP: '本文3', CH: '内容3', TH: 'เนื้อหา 3' },
+    '성공 제목': {
+      EN: 'Success title',
+      JP: '成功タイトル',
+      CH: '成功标题',
+      TH: 'หัวข้อสำเร็จ'
+    },
+    '성공 하단': {
+      EN: 'Success footer',
+      JP: '成功フッター',
+      CH: '成功页脚',
+      TH: 'ท้ายสำเร็จ'
+    },
+    '실패 제목': {
+      EN: 'Failure title',
+      JP: '失敗タイトル',
+      CH: '失败标题',
+      TH: 'หัวข้อล้มเหลว'
+    },
+    '실패 하단': {
+      EN: 'Failure footer',
+      JP: '失敗フッター',
+      CH: '失败页脚',
+      TH: 'ท้ายล้มเหลว'
+    },
+    '온더라인 간편결제 시스템': {
+      EN: 'OnTheLine Easy Payment System',
+      JP: 'オンザラインかんたん決済システム',
+      CH: 'OnTheLine 便捷支付系统',
+      TH: 'ระบบชำระเงินง่าย OnTheLine'
+    },
+    '결제안내': {
+      EN: 'Payment information',
+      JP: '決済案内',
+      CH: '支付说明',
+      TH: 'ข้อมูลการชำระเงิน'
+    },
+    '감사합니다': {
+      EN: 'Thank you',
+      JP: 'ありがとうございます',
+      CH: '谢谢',
+      TH: 'ขอบคุณ'
+    },
+    '주의 - 최종 결제 통화는 태국 바트입니다.': {
+      EN: 'Note — the final payment currency is Thai Baht.',
+      JP: '注意 — 最終決済通貨はタイバーツです。',
+      CH: '注意 — 最终支付货币为泰铢。',
+      TH: 'หมายเหตุ — สกุลเงินที่ชำระจริงคือบาทไทย'
+    },
+    '해외결제 가능 카드만 허용': {
+      EN: 'Only cards eligible for overseas payment are accepted',
+      JP: '海外決済可能なカードのみご利用いただけます',
+      CH: '仅限可用于境外支付的卡',
+      TH: 'รับเฉพาะบัตรที่ใช้ชำระต่างประเทศได้'
+    },
+    '(국내카드 사용불가)': {
+      EN: '(Domestic cards cannot be used)',
+      JP: '(国内カードはご利用いただけません)',
+      CH: '(不可使用国内卡)',
+      TH: '(ใช้บัตรในประเทศไม่ได้)'
+    },
+    '해외결제 가능 카드만 허용 (국내카드 사용불가)': {
+      EN: 'Only cards eligible for overseas payment are accepted (domestic cards cannot be used)',
+      JP: '海外決済可能なカードのみご利用いただけます（国内カードはご利用いただけません）',
+      CH: '仅限可用于境外支付的卡（不可使用国内卡）',
+      TH: 'รับเฉพาะบัตรที่ใช้ชำระต่างประเทศได้ (ใช้บัตรในประเทศไม่ได้)'
+    },
+    '이름 입력은 카드에 표시된 이름형식과 동일하게 입력해야 합니다.': {
+      EN: 'Enter the name in the same format as printed on the card.',
+      JP: 'カードに記載の氏名と同じ形式で入力してください。',
+      CH: '请按卡面记载的姓名格式输入。',
+      TH: 'กรอกชื่อให้ตรงกับรูปแบบที่พิมพ์บนบัตร'
+    },
+    '사용카드: VISA, MASTER, JCB, UNIONPAY': {
+      EN: 'Cards accepted: VISA, MASTER, JCB, UNIONPAY',
+      JP: 'ご利用カード: VISA, MASTER, JCB, UNIONPAY',
+      CH: '可用卡: VISA, MASTER, JCB, UNIONPAY',
+      TH: 'บัตรที่ใช้ได้: VISA, MASTER, JCB, UNIONPAY'
+    },
     'URL 결제 폼 설정': {
       EN: 'URL payment form settings',
       JP: 'URL決済フォーム設定',
@@ -12077,6 +12357,91 @@
       TH: 'ลบ <strong>pg_trnsctn</strong> ตามวันที่เลือก (เขตเวลาแสดง HQ) และเลือกลบ <strong>tb_pg_notify_inbound</strong> ช่วงเดียวกัน ใช้<strong>ก่อน NOTI ส่งซ้ำ</strong> เก็บการลงทะเบียนร้าน นโยบายค่าธรรมเนียม การตั้งค่าชำระ เว้นรหัสร้านว่าง =<strong>ทุกร้าน</strong>ในวันนั้น'
     },
     '대상 일자': { EN: 'Target date', JP: '対象日', CH: '目标日期', TH: 'วันที่เป้าหมาย' },
+    '주문별 노티 재반영(icopayCompId)': {
+      EN: 'Replay notify by order (icopayCompId)',
+      JP: '注文別ノティ再反映 (icopayCompId)',
+      CH: '按订单重放通知 (icopayCompId)',
+      TH: 'เล่นซ้ำแจ้งเตือนตามออเดอร์ (icopayCompId)'
+    },
+    '결제내역만 삭제하고 노티수령정보(raw_body)가 남아 있을 때, 지정 일자·주문번호별 최신 노티 원문을 icopayCompId와 함께 재반영해 pg_trnsctn을 복구합니다. 공통 MID·복수 가맹점 환경에서 업체코드가 필요합니다.': {
+      EN: 'When payment rows were deleted but notify inbound (raw_body) remains, replay the latest notify payload for the selected date and order numbers together with icopayCompId to restore pg_trnsctn. A company code is required when one MID is shared by multiple merchants.',
+      JP: '決済明細のみ削除しノティ受信情報(raw_body)が残っているとき、指定日・注文番号ごとの最新ノティ原文を icopayCompId とともに再反映し pg_trnsctn を復元します。共通MID・複数加盟店では加盟店コードが必要です。',
+      CH: '仅删除支付明细而通知接收原文(raw_body)仍在时，按指定日期与订单号将最新通知原文连同 icopayCompId 重放以恢复 pg_trnsctn。共用 MID、多商户时需要商户代码。',
+      TH: 'เมื่อลบเฉพาะรายการชำระแต่ยังมีข้อมูลรับแจ้ง (raw_body) จะเล่นซ้ำต้นฉบับแจ้งเตือนล่าสุดตามวันที่และเลขคำสั่งพร้อม icopayCompId เพื่อกู้ pg_trnsctn รหัสร้านจำเป็นเมื่อ MID ร่วมหลายร้าน'
+    },
+    '주문번호(쉼표 구분)': {
+      EN: 'Order nos. (comma-separated)',
+      JP: '注文番号（カンマ区切り）',
+      CH: '订单号（逗号分隔）',
+      TH: 'เลขคำสั่งซื้อ (คั่นด้วยจุลภาค)'
+    },
+    '주문별 노티 재반영…': {
+      EN: 'Replay notify by order…',
+      JP: '注文別ノティ再反映…',
+      CH: '按订单重放通知…',
+      TH: 'เล่นซ้ำแจ้งเตือนตามออเดอร์…'
+    },
+    'icopayCompId(업체코드)를 입력하세요.': {
+      EN: 'Enter icopayCompId (company code).',
+      JP: 'icopayCompId（加盟店コード）を入力してください。',
+      CH: '请输入 icopayCompId（商户代码）。',
+      TH: 'กรอก icopayCompId (รหัสร้าน)'
+    },
+    'icopayCompId(업체코드)가 필요합니다.': {
+      EN: 'icopayCompId (company code) is required.',
+      JP: 'icopayCompId（加盟店コード）が必要です。',
+      CH: '需要 icopayCompId（商户代码）。',
+      TH: 'ต้องมี icopayCompId (รหัสร้าน)'
+    },
+    'date(YYYY-MM-DD)가 필요합니다.': {
+      EN: 'date (YYYY-MM-DD) is required.',
+      JP: 'date (YYYY-MM-DD) が必要です。',
+      CH: '需要 date（YYYY-MM-DD）。',
+      TH: 'ต้องมี date (YYYY-MM-DD)'
+    },
+    'orderNos(주문번호 목록)가 필요합니다.': {
+      EN: 'orderNos (order number list) is required.',
+      JP: 'orderNos（注文番号一覧）が必要です。',
+      CH: '需要 orderNos（订单号列表）。',
+      TH: 'ต้องมี orderNos (รายการเลขคำสั่ง)'
+    },
+    '주문번호를 입력하세요.': {
+      EN: 'Enter order numbers.',
+      JP: '注文番号を入力してください。',
+      CH: '请输入订单号。',
+      TH: 'กรอกเลขคำสั่งซื้อ'
+    },
+    '일자 {0} · 업체 {1} · 주문 {2}건의 노티 원문을 재반영합니다.\n\n노티수령정보가 해당 일자에 있어야 합니다.\n\n계속할까요?': {
+      EN: 'Replay notify payloads for date {0} · company {1} · {2} order(s).\n\nNotify inbound for that date must exist.\n\nContinue?',
+      JP: '日付 {0} · 加盟店 {1} · 注文 {2}件のノティ原文を再反映します。\n\nノティ受信情報がその日にある必要があります。\n\n続けますか？',
+      CH: '将重放日期 {0} · 商户 {1} · {2} 笔订单的通知原文。\n\n该日须有通知接收记录。\n\n是否继续？',
+      TH: 'จะเล่นซ้ำต้นฉบับแจ้งเตือน วันที่ {0} · ร้าน {1} · {2} ออเดอร์\n\nต้องมีข้อมูลรับแจ้งในวันนั้น\n\nดำเนินการต่อ?'
+    },
+    '마지막 확인입니다.\n\n주문 {0}건에 대해 결제내역(pg_trnsctn) 적재를 시도합니다.': {
+      EN: 'Final confirmation.\n\nWill try to load payment rows (pg_trnsctn) for {0} order(s).',
+      JP: '最終確認です。\n\n注文 {0}件について決済明細(pg_trnsctn)の積載を試みます。',
+      CH: '最终确认。\n\n将尝试为 {0} 笔订单装载支付明细 (pg_trnsctn)。',
+      TH: 'ยืนยันขั้นสุดท้าย\n\nจะลองโหลดรายการชำระ (pg_trnsctn) สำหรับ {0} ออเดอร์'
+    },
+    '완료: 성공 {0}, 실패 {1}, 건너뜀 {2}': {
+      EN: 'Done: ok {0}, failed {1}, skipped {2}',
+      JP: '完了: 成功 {0}、失敗 {1}、スキップ {2}',
+      CH: '完成：成功 {0}，失败 {1}，跳过 {2}',
+      TH: 'เสร็จ: สำเร็จ {0} ล้มเหลว {1} ข้าม {2}'
+    },
+    '노티 재반영에 실패했습니다.': {
+      EN: 'Notify replay failed.',
+      JP: 'ノティ再反映に失敗しました。',
+      CH: '通知重放失败。',
+      TH: 'เล่นซ้ำการแจ้งเตือนไม่สำเร็จ'
+    },
+    '건너뜀': { EN: 'Skipped', JP: 'スキップ', CH: '跳过', TH: 'ข้าม' },
+    'INBOUND_NOT_FOUND': {
+      EN: 'Notify inbound not found',
+      JP: 'ノティ受信なし',
+      CH: '未找到通知接收记录',
+      TH: 'ไม่พบบันทึกแจ้งเตือน'
+    },
     '가맹점 ID(선택)': { EN: 'Merchant ID (optional)', JP: '加盟店ID(任意)', CH: '商户 ID（可选）', TH: 'รหัสร้าน (ไม่บังคับ)' },
     '비우면 전체 가맹': { EN: 'All merchants if empty', JP: '空欄は全加盟店', CH: '留空为全部商户', TH: 'ว่าง = ทุกร้าน' },
     '노티수령정보도 삭제': { EN: 'Also delete notify inbound log', JP: 'ノティ受信情報も削除', CH: '同时删除通知接收记录', TH: 'ลบบันทึกแจ้งเตือนด้วย' },
@@ -12351,6 +12716,12 @@
       CH: '支付后续（NOTI 环境）',
       TH: 'การติดตามการชำระ (NOTI)'
     },
+    '시간 선택 국가(기준 Zone)는 무효·이메일무효에 적용됩니다. 이메일무효는 ChillPay만. 무효 기본은 당일 <strong>0:00~21:00</strong>. 수동무효(이메일)도 당일 <strong>시작~마감</strong>을 지정(마감 비우면 23:59). 환불은 <strong>태국</strong> 기준 결제일 <strong>익일</strong>의 <strong>시작 시각</strong>부터 일수입니다. 「설정(사용)」이 사용일 때만 편집할 수 있습니다. 아래 표에서 <strong>본사·총판</strong> 등 조직 단계별로 동일 네 기능의 허용 여부를 둡니다.': {
+      EN: 'Selected country (Zone) applies to void and email void. Email void is ChillPay only. Auto void default is same-day <strong>0:00–21:00</strong>. Manual void (email) uses same-day <strong>start–end</strong> (end empty = 23:59). Refunds count days from the <strong>next calendar day</strong> in <strong>Thailand</strong> after the payment date at the <strong>start time</strong>. Fields are editable only when the feature is Active. The table below caps features per org tier (HQ, master distributor, etc.).',
+      JP: '時間選択国（基準Zone）は無効・メール無効に適用。メール無効はChillPayのみ。自動無効の既定は当日<strong>0:00～21:00</strong>。手動無効（メール）も当日<strong>開始～終了</strong>（終了空欄は23:59）。返金は<strong>タイ</strong>基準で決済日の<strong>翌日</strong>の<strong>開始時刻</strong>から日数。「設定（使用）」が使用のときのみ編集可。下表で段階ごとに許可上限を設定します。',
+      CH: '所选国家（Zone）用于自动无效与邮件无效。邮件无效仅 ChillPay。自动无效默认当日<strong>0:00–21:00</strong>。邮件无效同样指定当日<strong>开始–结束</strong>（结束空为 23:59）。退款从<strong>泰国</strong>时区支付日<strong>次日</strong>的<strong>开始时刻</strong>起计天数。仅「启用」时可编辑。下表按阶段限制功能。',
+      TH: 'ประเทศโซนใช้กับโมฆะและโมฆะอีเมล โมฆะอีเมลเฉพาะ ChillPay โมฆะอัตโนมัติเริ่ม 0:00–21:00 วันเดียวกัน คืนเงินนับจากวันถัดไปตามไทย'
+    },
     '시간 선택 국가(기준 Zone)는 무효·이메일무효에 적용됩니다. 무효 기본은 당일 <strong>0:00~21:00</strong>. 수동무효(이메일)도 당일 <strong>시작~마감</strong>을 지정(마감 비우면 23:59). 환불은 <strong>태국</strong> 기준 결제일 <strong>익일</strong>의 <strong>시작 시각</strong>부터 일수입니다. 「설정(사용)」이 사용일 때만 편집할 수 있습니다. 아래 표에서 <strong>본사·총판</strong> 등 조직 단계별로 동일 네 기능의 허용 여부를 둡니다.': {
       EN: 'Selected country (Zone) applies to void and email void. Auto void default is same-day <strong>0:00–21:00</strong>. Manual void (email) uses same-day <strong>start–end</strong> (end empty = 23:59). Refunds count days from the <strong>next calendar day</strong> in <strong>Thailand</strong> after the payment date at the <strong>start time</strong>. Fields are editable only when the feature is Active. The table below caps the four features per org tier (HQ, master distributor, etc.).',
       JP: '時間選択国（基準Zone）は無効・メール無効に適用。自動無効の既定は当日<strong>0:00～21:00</strong>。手動無効（メール）も当日<strong>開始～終了</strong>（終了空欄は23:59）。返金は<strong>タイ</strong>基準で決済日の<strong>翌日</strong>の<strong>開始時刻</strong>から日数。「設定（使用）」が使用のときのみ編集可。下表で<strong>本社・総販</strong>など段階ごとに同じ4機能の許可上限を設定します。',
@@ -12362,6 +12733,12 @@
       JP: '自動メール設定',
       CH: '自动化邮件设置',
       TH: 'อีเมลอัตโนมัติ'
+    },
+    'SMTP는 배치 알림·기타 자동 메일과 「이메일무효」 수동 요청 메일 발송에 공통으로 사용합니다. 아래 「이메일무효(ChillPay)」에서 수신처·제목·본문을 지정하면, 결제내역에서 ChillPay 건의 이메일무효 실행 시 치환된 본문이 발송됩니다. URL·JPAY에는 이메일무효가 없습니다. 자동무효·자동환불·강제환불은 ChillPay Transaction API(무효/환불 요청)로 처리됩니다. 비밀번호는 저장 시에만 갱신하며, 조회 시에는 설정 여부만 표시됩니다.': {
+      EN: 'SMTP is shared for batch alerts and ChillPay email-void request mail. Recipients, subject, and body under Email void (ChillPay) are used when you run email void on a ChillPay row. URL and JPAY have no email void. Auto void / auto refund / force refund for ChillPay use the Transaction API. Passwords update only on save; on load you only see whether one is set.',
+      JP: 'SMTPはバッチ通知とChillPay「メール無効」依頼メールに共通。下の「メール無効(ChillPay)」の宛先・件名・本文は決済一覧のChillPay行でメール無効実行時に送信。URL・JPAYにメール無効はありません。自動無効・自動返金・強制返金はChillPay取引API。パスワードは保存時のみ更新。',
+      CH: 'SMTP 用于批量通知及 ChillPay「邮件作废」请求邮件。下方 ChillPay 收件人/主题/正文仅在支付明细对 ChillPay 行执行邮件作废时发送。URL、JPAY 无邮件作废。ChillPay 自动无效/退款走交易 API。密码仅保存时更新。',
+      TH: 'SMTP ใช้แจ้งเตือนแบตช์และเมลโมฆะอีเมล ChillPay ตั้งค่าด้านล่างใช้เมื่อรันโมฆะอีเมลที่แถว ChillPay URL และ JPAY ไม่มีโมฆะอีเมล'
     },
     'SMTP는 배치 알림·기타 자동 메일과 「이메일무효」 수동 요청 메일 발송에 공통으로 사용합니다. 아래 「이메일무효(ChillPay 등)」에서 수신처·제목·본문을 지정하면, 결제내역에서 이메일무효 실행 시 치환된 본문이 발송됩니다. 자동무효·자동환불·강제환불은 ChillPay Transaction API(무효/환불 요청)로 처리됩니다. 비밀번호는 저장 시에만 갱신하며, 조회 시에는 설정 여부만 표시됩니다.': {
       EN: 'SMTP is shared for batch alerts, other automated mail, and manual email-void requests. Recipients, subject, and body configured under Email void (ChillPay, etc.) are merged when you run email void from the pay list. Auto void / auto refund / force refund use the ChillPay Transaction API. Passwords update only on save; on load you only see whether one is set.',
@@ -13029,6 +13406,36 @@
       CH: '总部分别限制四种后续措施（自动作废、邮件作废、自动退款、强制退款）的使用上限。若全局 NOTI 设置关闭某功能则不生效。商户另按注册时的选择（未选=未使用）；本表为各层级上限。',
       TH: 'สำนักงานใหญ่กำหนดเพดาน 4 การหลังชำระ (โมฆะอัตโนมัติ โมฆะอีเมล คืนเงินอัตโนมัติ บังคับคืนเงิน) ตามระดับองค์กร หาก NOTI ปิดฟีเจอร์จะไม่ทำงาน ร้านค้ายังตามที่เลือกตอนลงทะเบียน (ไม่เลือก=ไม่ใช้) ตารางนี้คือเพดานต่อระดับ'
     },
+    '총본사가 단계마다 사용할 수 있는 후속조치를 제한합니다. 무효처리·환불처리·수동무효·수동환불·강제환불·당일환불을 각각 켜거나 끌 수 있습니다. 전역 전산설정이 꺼져 있으면 해당 기능은 동작하지 않습니다. 가맹점은 등록 시 개별 선택과 함께 적용되며(미선택 시 미사용), 이 표는 단계별 상한입니다.': {
+      EN: 'HQ caps post-payment actions per organization level. Void processing, refund processing, manual void, manual refund, force refund, and same-day refund can each be enabled or disabled. If global ledger settings disable a feature, it does not run. Merchants also follow per-registration choices (unset = disabled); this grid is the per-level ceiling.',
+      JP: '総本社が組織段階ごとに後続措置の上限を設定します。無効処理・返金処理・手動無効・手動返金・強制返金・当日返金をそれぞれオン/オフできます。全算設定でオフの機能は動作しません。加盟店は登録時の個別選択も適用され（未選択は未使用）、この表は段階別の上限です。',
+      CH: '总部按组织层级限制后续措施。作废处理、退款处理、手动作废、手动退款、强制退款、当日退款可分别开关。若全局账务设置关闭某功能则不生效。商户另按注册时的选择（未选=未使用）；本表为各层级上限。',
+      TH: 'สำนักงานใหญ่กำหนดเพดานหลังชำระตามระดับ เปิด/ปิดโมฆะ คืนเงิน โมฆะด้วยมือ คืนเงินด้วยมือ บังคับคืน และคืนวันเดียวกันได้แยกกัน หากตั้งค่าระบบปิดฟีเจอร์จะไม่ทำงาน ร้านค้ายังตามที่เลือกตอนลงทะเบียน ตารางนี้คือเพดานต่อระดับ'
+    },
+    'JPAY만. JPAY 포털 처리 후 ICOPAY 상태만 반영': {
+      EN: 'JPAY only. Updates ICOPAY status after JPAY portal processing.',
+      JP: 'JPAYのみ。JPAYポータル処理後にICOPAY状態のみ反映。',
+      CH: '仅 JPAY。JPAY 门户处理后仅反映 ICOPAY 状态。',
+      TH: 'เฉพาะ JPAY สะท้อนสถานะ ICOPAY หลังประมวลผลที่พอร์ทัล JPAY'
+    },
+    '무효처리·이메일 무효를 함께 켠 경우: 시작은 지정할 수 없고 무효처리 마감({0}) 다음 분부터입니다. 마감은 오른쪽 시간으로 설정합니다.': {
+      EN: 'When void processing and email void are both on: start is fixed; effective start is the minute after void-processing end ({0}). Set end on the right.',
+      JP: '無効処理とメール無効を同時にオン: 開始は指定不可。実開始は無効処理終了({0})の次分から。終了は右で設定。',
+      CH: '同时开启作废处理与邮件作废：不可指定开始；实际开始为作废处理结束({0})的下一分钟。结束在右侧设置。',
+      TH: 'เปิดโมฆะและโมฆะอีเมลพร้อมกัน: เริ่มต้นกำหนดไม่ได้ เริ่มจริงหลังสิ้นสุดโมฆะ ({0}) 1 นาที ตั้งสิ้นสุดทางขวา'
+    },
+    '무효처리·이메일 무효를 함께 켠 경우: 시작 입력은 비활성입니다. 마감은 오른쪽 시간으로 설정합니다.': {
+      EN: 'When void processing and email void are both on: start is disabled. Set end on the right.',
+      JP: '無効処理とメール無効を同時にオン: 開始入力は無効。終了は右で設定。',
+      CH: '同时开启作废处理与邮件作废：开始输入禁用。结束在右侧设置。',
+      TH: 'เปิดโมฆะและโมฆะอีเมลพร้อมกัน: ช่องเริ่มต้นปิดใช้ ตั้งสิ้นสุดทางขวา'
+    },
+    '이메일무효는 ChillPay 결제만 적용됩니다. URL·JPAY 건에는 버튼이 나오지 않습니다. 무효처리·이메일 무효를 함께 켜면 시작만 비활성화되고, 실제 시작은 무효처리 마감 다음 분부터입니다. 마감은 항상 지정 가능합니다(비우면 23:59). 이메일 무효만 켜면 시작·마감 모두 설정합니다.': {
+      EN: 'Email void applies to ChillPay only. No buttons for URL/JPAY. With void processing + email void, start is disabled; effective start is the minute after void-processing end. End always editable (empty = 23:59). Email void only: set both start and end.',
+      JP: 'メール無効はChillPayのみ。URL・JPAYにはボタンなし。無効処理と同時オン時は開始のみ無効、実開始は無効処理終了の次分。終了は常に指定可（空欄23:59）。メール無効のみは開始・終了両方。',
+      CH: '邮件作废仅适用于 ChillPay。URL/JPAY 无按钮。与作废处理同开时开始禁用，实际开始为作废处理结束的下一分钟。结束始终可设（空=23:59）。仅邮件作废时可设开始与结束。',
+      TH: 'โมฆะอีเมลเฉพาะ ChillPay ไม่มีปุ่ม URL/JPAY เปิดโมฆะพร้อมกันเริ่มต้นปิด เริ่มจริงหลังสิ้นสุดโมฆะ 1 นาที สิ้นสุดตั้งได้เสมอ (ว่าง=23:59) โมฆะอีเมลอย่างเดียวตั้งเริ่ม-สิ้นสุด'
+    },
     '[단계별 허용 저장]으로만 반영됩니다(하단 전체 저장과 별도). 총본사·시스템 관리자만 변경할 수 있습니다.': {
       EN: 'Applies only via [Save per-level caps] (separate from Save at the bottom of the screen). Only root HQ and system administrators can change this.',
       JP: '「段階別許可を保存」でのみ反映されます（画面下部の一括保存とは別です）。総本社・システム管理者のみ変更できます。',
@@ -13046,6 +13453,18 @@
       JP: '各段階の自動無効・メール無効・自動返金・強制返金の上限がサーバーに反映されます。続行しますか？',
       CH: '将把各层级的四项后续功能上限写入服务器。是否继续？',
       TH: 'บันทึกเพดานสี่ฟังก์ชันต่อระดับ ดำเนินการต่อหรือไม่'
+    },
+    '각 단계의 자동무효·이메일무효·자동환불·강제환불·당일환불 사용 상한이 서버에 반영됩니다. 계속하시겠습니까?': {
+      EN: 'Caps for auto void, email void, auto refund, force refund, and same-day refund per tier will be saved. Continue?',
+      JP: '各段階の自動無効・メール無効・自動返金・強制返金・当日返金の上限がサーバーに反映されます。続行しますか？',
+      CH: '将把各层级的自动作废、邮件作废、自动退款、强制退款、当日退款上限写入服务器。是否继续？',
+      TH: 'บันทึกเพดานโมฆะอัตโนมัติ โมฆะอีเมล คืนเงินอัตโนมัติ บังคับคืนเงิน และคืนเงินวันเดียวกันต่อระดับ ดำเนินการต่อหรือไม่'
+    },
+    '각 단계의 무효처리·이메일 무효·수동무효·환불처리·수동환불·강제환불·당일환불 사용 상한이 서버에 반영됩니다. 계속하시겠습니까?': {
+      EN: 'Caps for void processing, email void, manual void, refund processing, manual refund, force refund, and same-day refund per tier will be saved. Continue?',
+      JP: '各段階の無効処理・メール無効・手動無効・返金処理・手動返金・強制返金・当日返金の上限がサーバーに反映されます。続行しますか？',
+      CH: '将把各层级的作废处理、邮件作废、手动作废、退款处理、手动退款、强制退款、当日退款上限写入服务器。是否继续？',
+      TH: 'บันทึกเพดานโมฆะ โมฆะอีเมล โมฆะด้วยมือ คืนเงิน คืนเงินด้วยมือ บังคับคืน และคืนวันเดียวกันต่อระดับ ดำเนินการต่อหรือไม่'
     },
     'API를 사용할 수 없습니다.': {
       EN: 'API is not available.',
@@ -19905,6 +20324,12 @@
       CH: '同一张卡的 FAIL、取消、无效、未支付等非成功累计后，将在调用 JPAY 之前临时拦截(第1~4次等待)。不统计 CVV 与卡号格式错误，支付成功时计数清零。成功不会成为自动登记触发的原因。自动登记触发第N次: 在追踪周期内完成N次非成功后立即将该卡(掩码)登记为停用卡，并从第(N+1)次支付尝试起拦截。周期政策 — 未使用: 在服务期间内不限期累计(成功时清零);遵循总部政策: 使用总部追踪周期;单独政策: 商户追踪周期(日·月·年)与设定周期优先于总部。风险政策遵循总部时使用[总部设置 → 风险设置];单独政策优先于总部。未使用时关闭该商户的风险管理。',
       TH: 'เมื่อผลลัพธ์ที่ไม่สำเร็จ (FAIL, ยกเลิก, โมฆะ, ยังไม่ชำระ ฯลฯ) ของบัตรใบเดียวกันสะสม จะถูกบล็อกชั่วคราวก่อนเรียก JPAY (รอครั้งที่ 1–4) ข้อผิดพลาด CVV และรูปแบบหมายเลขบัตรจะไม่ถูกนับ และจะรีเซ็ตจำนวนเมื่อชำระสำเร็จ ความสำเร็จไม่เป็นสาเหตุของทริกเกอร์ลงทะเบียนอัตโนมัติ ทริกเกอร์ลงทะเบียนอัตโนมัติครั้งที่ N: เมื่อเหตุการณ์ไม่สำเร็จครบ N ครั้งภายในช่วงติดตาม บัตรจะถูกลงทะเบียนเป็นบัตรปิดใช้งาน (ปกปิด) ทันที และเริ่มบล็อกตั้งแต่การชำระครั้งที่ (N+1) นโยบายช่วงเวลา — ไม่ใช้งาน: สะสมตลอดช่วงให้บริการโดยไม่จำกัดเวลา (รีเซ็ตเมื่อสำเร็จ), ตามนโยบาย HQ: ใช้ช่วงติดตามของ HQ, นโยบายแยก: ใช้ช่วงติดตามของร้าน (วัน·เดือน·ปี) และค่าช่วงเวลาเหนือกว่า HQ เมื่อนโยบายความเสี่ยงตาม HQ จะใช้ [ตั้งค่า HQ → ตั้งค่าความเสี่ยง]; นโยบายแยกมีลำดับเหนือ HQ เมื่อไม่ใช้งานจะปิดการจัดการความเสี่ยงของร้านนี้'
     },
+    '동일 카드 FAIL·취소·무효·미결제 등 비성공이 누적되면 결제 시도 전 일시 차단(1~4차 대기)합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 성공은 자동등록 트리거 원인이 되지 않습니다. 자동 등록 트리거 N차: 추적기간 안에서 비성공 N회가 완료되는 즉시 비활성카드(마스킹)에 등록되며 (N+1)번째 결제 시도부터 차단됩니다. 추적기간 미사용 시 성공 전까지 기간 제한 없이 누적합니다. 동기 응답·노티 확정 모두 반영하며 3DS 대기(08)는 제외합니다. 운영 매뉴얼(HTML/PDF): docs/icopay-hq-risk-manual.html': {
+      EN: 'When non-successful results (FAIL, cancel, void, unpaid, etc.) on the same card accumulate, attempts are temporarily blocked before payment (1st–4th wait). CVV and invalid card-number format are not counted, and the count resets on a successful payment. A success is never a cause for the auto-register trigger. Auto-register trigger tier N: as soon as N non-success events complete within the tracking period, the card is registered (masked) as inactive and blocking starts from the (N+1)th payment attempt. When the tracking period is Disabled, it accumulates with no time limit until a success. Both synchronous responses and confirmed notifications are reflected; 3DS pending (08) is excluded. Operations manual (HTML/PDF): docs/icopay-hq-risk-manual.html',
+      JP: '同一カードのFAIL・取消・無効・未決済などの非成功が累積すると、決済試行前に一時ブロック(1〜4次待機)します。CVV・カード番号形式エラーは集計せず、成功決済時にカウントが初期化されます。成功は自動登録トリガーの原因になりません。自動登録トリガーN次: 追跡期間内に非成功N回が完了した時点で無効カード(マスキング)に登録され、(N+1)回目の決済試行からブロックされます。追跡期間が未使用の場合、成功までは期間制限なく累積します。同期応答・通知確定の両方を反映し、3DS待機(08)は除外します。運用マニュアル(HTML/PDF): docs/icopay-hq-risk-manual.html',
+      CH: '同一张卡的 FAIL、取消、无效、未支付等非成功累计后，将在支付尝试前临时拦截(第1~4次等待)。不统计 CVV 与卡号格式错误，支付成功时计数清零。成功不会成为自动登记触发的原因。自动登记触发第N次: 在追踪周期内完成N次非成功后立即将该卡(掩码)登记为停用卡，并从第(N+1)次支付尝试起拦截。追踪周期未使用时，在成功之前不限期累计。同步响应与通知确认均会反映;3DS 等待(08)除外。运营手册(HTML/PDF): docs/icopay-hq-risk-manual.html',
+      TH: 'เมื่อผลลัพธ์ที่ไม่สำเร็จ (FAIL, ยกเลิก, โมฆะ, ยังไม่ชำระ ฯลฯ) ของบัตรใบเดียวกันสะสม จะถูกบล็อกชั่วคราวก่อนลองชำระ (รอครั้งที่ 1–4) ข้อผิดพลาด CVV และรูปแบบหมายเลขบัตรจะไม่ถูกนับ และจะรีเซ็ตจำนวนเมื่อชำระสำเร็จ ความสำเร็จไม่เป็นสาเหตุของทริกเกอร์ลงทะเบียนอัตโนมัติ ทริกเกอร์ลงทะเบียนอัตโนมัติครั้งที่ N: เมื่อเหตุการณ์ไม่สำเร็จครบ N ครั้งภายในช่วงติดตาม บัตรจะถูกลงทะเบียนเป็นบัตรปิดใช้งาน (ปกปิด) ทันที และเริ่มบล็อกตั้งแต่การชำระครั้งที่ (N+1) เมื่อไม่ใช้ช่วงติดตาม จะสะสมโดยไม่จำกัดเวลาจนกว่าจะสำเร็จ สะท้อนทั้งการตอบสนองแบบซิงค์และการยืนยันการแจ้งเตือน ยกเว้น 3DS รอ (08) คู่มือปฏิบัติการ (HTML/PDF): docs/icopay-hq-risk-manual.html'
+    },
     '동일 카드 FAIL·취소·무효·미결제 등 비성공이 누적되면 JPAY 호출 전 일시 차단(1~4차 대기)합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 성공은 자동등록 트리거 원인이 되지 않습니다. 자동 등록 트리거 N차: 추적기간 안에서 비성공 N회가 완료되는 즉시 비활성카드(마스킹)에 등록되며 (N+1)번째 결제 시도부터 차단됩니다. 추적기간 미사용 시 성공 전까지 기간 제한 없이 누적합니다. 동기 응답·노티 확정 모두 반영하며 3DS 대기(08)는 제외합니다.': {
       EN: 'When non-successful results (FAIL, cancel, void, unpaid, etc.) on the same card accumulate, it is temporarily blocked before the JPAY call (1st–4th wait). CVV and invalid card-number format are not counted, and the count resets on a successful payment. A success is never a cause for the auto-register trigger. Auto-register trigger tier N: as soon as N non-success events complete within the tracking period, the card is registered (masked) as inactive and blocking starts from the (N+1)th payment attempt. When the tracking period is Disabled, it accumulates with no time limit until a success. Both synchronous responses and confirmed notifications are reflected; 3DS pending (08) is excluded.',
       JP: '同一カードのFAIL・取消・無効・未決済などの非成功が累積すると、JPAY呼び出し前に一時ブロック(1〜4次待機)します。CVV・カード番号形式エラーは集計せず、成功決済時にカウントが初期化されます。成功は自動登録トリガーの原因になりません。自動登録トリガーN次: 追跡期間内に非成功N回が完了した時点で無効カード(マスキング)に登録され、(N+1)回目の決済試行からブロックされます。追跡期間が未使用の場合、成功までは期間制限なく累積します。同期応答・通知確定の両方を反映し、3DS待機(08)は除外します。',
@@ -20055,6 +20480,50 @@
       JP: '解除時は Google OTP 6桁が必要です。',
       CH: '解除时需要 Google OTP 6 位。',
       TH: 'ยกเลิกต้องใช้ Google OTP 6 หลัก'
+    },
+    '사용불가브랜드 등록': {
+      EN: 'Unsupported card brands',
+      JP: '使用不可ブランド登録',
+      CH: '不可用卡品牌登记',
+      TH: 'ลงทะเบียนแบรนด์ใช้ไม่ได้'
+    },
+    '사용불가 카드 브랜드': {
+      EN: 'Unsupported card brand',
+      JP: '使用不可カードブランド',
+      CH: '不可用卡品牌',
+      TH: 'แบรนด์บัตรที่ใช้ไม่ได้'
+    },
+    '브랜드': { EN: 'Brand', JP: 'ブランド', CH: '品牌', TH: 'แบรนด์' },
+    '브랜드 등록': { EN: 'Register brand', JP: 'ブランド登録', CH: '登记品牌', TH: 'ลงทะเบียนแบรนด์' },
+    '등록된 브랜드가 없습니다.': {
+      EN: 'No blocked brands registered.',
+      JP: '登録されたブランドがありません。',
+      CH: '没有已登记的不可用品牌。',
+      TH: 'ยังไม่มีแบรนด์ที่ลงทะเบียน'
+    },
+    '이 사용불가 브랜드 규칙을 삭제할까요?': {
+      EN: 'Delete this unsupported-brand rule?',
+      JP: 'この使用不可ブランド規則を削除しますか？',
+      CH: '删除此不可用品牌规则？',
+      TH: 'ลบกฎแบรนด์ใช้ไม่ได้รายการนี้หรือไม่?'
+    },
+    '브랜드를 선택해 주세요.': {
+      EN: 'Please select a brand.',
+      JP: 'ブランドを選択してください。',
+      CH: '请选择品牌。',
+      TH: 'โปรดเลือกแบรนด์'
+    },
+    'PG를 선택해 주세요.': {
+      EN: 'Please select a PG.',
+      JP: 'PGを選択してください。',
+      CH: '请选择支付机构。',
+      TH: 'โปรดเลือก PG'
+    },
+    '예: 해당 PG 미지원': {
+      EN: 'e.g. Not supported by this PG',
+      JP: '例: 当該PG未対応',
+      CH: '例：该支付机构不支持',
+      TH: 'เช่น PG นี้ไม่รองรับ'
     },
     '사용불가카드 등록': { EN: 'Blocked card (BIN)', JP: '使用不可カード登録', CH: '不可用卡(BIN)', TH: 'ลงทะเบียนบัตรใช้ไม่ได้' },
     'PG별 카드번호 <strong>앞자리(BIN) 접두</strong>만 등록합니다. 입력 시 결제창·승인 API에서 즉시 차단됩니다. 개별 카드번호(비활성카드)는 <strong>운영관리 → 비활성카드등록</strong> 메뉴에서 관리합니다.': {
@@ -21859,6 +22328,43 @@
       CH: '이메일무효 시작은 자동무효 마감 다음 분 이후여야 합니다. 자동무효·이메일무효를 함께 쓰는 경우 시작 입력은 비우면 자동무효 직후부터 적용됩니다.',
       TH: '이메일무효 시작은 자동무효 마감 다음 분 이후여야 합니다. 자동무효·이메일무효를 함께 쓰는 경우 시작 입력은 비우면 자동무효 직후부터 적용됩니다.'
     },
+    '이메일무효는 ChillPay 거래만 사용할 수 있습니다.': {
+      EN: 'Email void is available for ChillPay transactions only.',
+      JP: 'メール無効はChillPay取引のみ利用できます。',
+      CH: '邮件作废仅可用于 ChillPay 交易。',
+      TH: 'โมฆะอีเมลใช้ได้เฉพาะรายการ ChillPay'
+    },
+    '결제망 가용잔액이 부족하여 환불을 거절했습니다. 승인 직후에는 해당 결제 금액이 홀드되어 가용잔액에 아직 안 잡힐 수 있습니다. 캐비닛 가용잔액을 확인하거나 홀드가 풀린 뒤(보통 정산 이후) 다시 시도해 주세요.': {
+      EN: 'The payment network refused the refund because available funds are insufficient. Right after approval the amount may still be on hold and not in available balance. Check cabinet available funds, or retry after the hold is released (usually after settlement).',
+      JP: '決済網の利用可能残高不足で返金が拒否されました。承認直後は金額がホールドされ、利用可能残高に未反映のことがあります。キャビネット残高を確認するか、ホールド解除後（通常は精算後）に再試行してください。',
+      CH: '支付网络因可用余额不足拒绝退款。批准后金额可能仍处于冻结、尚未计入可用余额。请核对柜面可用余额，或在冻结解除后（通常为结算后）再试。',
+      TH: 'เครือข่ายปฏิเสธคืนเงินเพราะยอดใช้ได้ไม่พอ หลังอนุมัติทันทีจำนวนอาจยังโฮลด์และยังไม่เข้ายอดใช้ได้ ตรวจยอดในตู้ หรือลองใหม่หลังปลดโฮลด์ (มักหลังชำระบัญชี)'
+    },
+    '결제망 환불 거부 (409): Insufficient of available fund': {
+      KO: '결제망 가용잔액이 부족하여 환불을 거절했습니다. 승인 직후에는 해당 결제 금액이 홀드되어 가용잔액에 아직 안 잡힐 수 있습니다. 캐비닛 가용잔액을 확인하거나 홀드가 풀린 뒤(보통 정산 이후) 다시 시도해 주세요.',
+      EN: 'The payment network refused the refund because available funds are insufficient. Right after approval the amount may still be on hold. Check cabinet available funds, or retry after the hold is released (usually after settlement).',
+      JP: '決済網の利用可能残高不足で返金が拒否されました。承認直後はホールド中のことがあります。キャビネット残高を確認するか、ホールド解除後に再試行してください。',
+      CH: '支付网络因可用余额不足拒绝退款。批准后可能仍冻结。请核对柜面可用余额，或在冻结解除后再试。',
+      TH: 'เครือข่ายปฏิเสธคืนเงินเพราะยอดใช้ได้ไม่พอ หลังอนุมัติอาจยังโฮลด์ ตรวจยอดในตู้ หรือลองใหม่หลังปลดโฮลด์'
+    },
+    '환불 금액이 해당 결제의 환불 가능 금액을 초과합니다.': {
+      EN: 'The refund amount exceeds the refundable amount for this payment.',
+      JP: '返金額がこの決済の返金可能額を超えています。',
+      CH: '退款金额超过该笔支付的可退金额。',
+      TH: 'จำนวนคืนเงินเกินยอดที่คืนได้ของรายการนี้'
+    },
+    '해당 결제는 이미 출금(페이아웃) 처리되어 환불할 수 없습니다.': {
+      EN: 'This payment is already marked for payout and cannot be refunded.',
+      JP: 'この決済は既に出金（ペイアウト）処理済みで返金できません。',
+      CH: '该笔支付已进入出金（payout），无法退款。',
+      TH: 'รายการนี้ถูกทำจ่ายออกแล้ว คืนเงินไม่ได้'
+    },
+    '결제망에서 해당 결제를 찾지 못했습니다. payment_id를 확인해 주세요.': {
+      EN: 'The payment network could not find this payment. Check payment_id.',
+      JP: '決済網で該当決済が見つかりません。payment_id を確認してください。',
+      CH: '支付网络未找到该笔支付。请核对 payment_id。',
+      TH: 'เครือข่ายไม่พบรายการนี้ ตรวจ payment_id'
+    },
     '이메일무효는 승인일(기준 Zone) 당일, 설정한 시작~마감 시각 안에서만 가능합니다.': {
       EN: '이메일무효는 승인일(기준 Zone) 당일, setting한 시작~마감 시각 안에서만 가능합니다.',
       JP: '이메일무효는 승인일(기준 Zone) 당일, 設定한 시작~마감 시각 안에서만 가능합니다.',
@@ -21972,6 +22478,12 @@
       JP: '자동환불 처리 가능 기간이 아닙니다. (태국 기준 결제일 익일 設定 시각부터 환불 가능 일수 확인)',
       CH: '자동환불 처리 가능 기간이 아닙니다. (태국 기준 결제일 익일 设置 시각부터 환불 가능 일수 확인)',
       TH: '자동환불 처리 가능 기간이 아닙니다. (태국 기준 결제일 익일 การตั้งค่า 시각부터 환불 가능 일수 확인)'
+    },
+    '자동환불 처리 가능 기간이 아닙니다. (태국 기준 결제일 익일부터이거나, URL 결제 당일환불이 켜진 당일인지 확인)': {
+      EN: 'Auto refund is not in the allowed period. Check the next-day Thailand window, or same-day refund for URL payments.',
+      JP: '自動返金の可能期間ではありません。タイ基準の翌日から、またはURL決済の当日返金が当日オンかを確認してください。',
+      CH: '不在自动退款允许期间。请核对泰国次日窗口，或 URL 支付的当日退款是否已开启。',
+      TH: 'ไม่อยู่ช่วงคืนเงินอัตโนมัติ ตรวจช่วงวันถัดไปตามไทย หรือคืนเงินวันเดียวกันของชำระ URL'
     },
     '재결제 URL 방식을 사용하려면 운영(Y)·연동용도 URL재결제 결제대행사 바인딩이 필요합니다.': {
       EN: '재결제 URL 방식을 사용하려면 운영(Y)·연동용도 URL재결제 payment gateway 바인딩이 필요합니다.',
@@ -23447,11 +23959,16 @@
   }
 
   /**
-   * Native input type=date empty/format chrome follows the element lang attribute, not STRING_MAP.
-   * en-CA yields ISO-style yyyy-mm-dd numerics across KO/EN/JP/CH/TH UI without OS-locale bleed (e.g. Korean placeholder on a Japanese screen).
+   * Native input type=date inner chrome (year/month/day) follows the element lang.
+   * Match the admin UI locale so Japanese UI shows 年/月/日 instead of OS-Korean 연도/월/일.
    */
   function dateInputBcp47() {
-    return 'en-CA';
+    var loc = getLocale();
+    if (loc === 'JP') return 'ja-JP';
+    if (loc === 'CH') return 'zh-CN';
+    if (loc === 'TH') return 'th-TH';
+    if (loc === 'EN') return 'en-CA';
+    return 'ko-KR';
   }
 
   /** type=time 네이티브 픽커 — 모든 UI 로케일에서 AM/PM(en-US)로 통일. */
@@ -23463,9 +23980,21 @@
     if (!root || typeof root.querySelectorAll !== 'function') return;
     var bcp = dateInputBcp47();
     var bcpTime = timeInputBcp47();
+    var todayIso = (function () {
+      try {
+        var d = new Date();
+        if (isNaN(d.getTime())) return '';
+        return String(d.getFullYear()) + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      } catch (eIso) {
+        return '';
+      }
+    })();
     try {
       root.querySelectorAll('input[type="date"]').forEach(function (el) {
         el.setAttribute('lang', bcp);
+        if (todayIso && el.classList && el.classList.contains('pg-date-default-today') && !String(el.value || '').trim()) {
+          el.value = todayIso;
+        }
       });
     } catch (eDt) {}
     try {

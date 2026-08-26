@@ -2141,6 +2141,12 @@
     hqPayCardBlockPrefixDelete: function (body) {
       return post('/api/hq/ledgerSysSettings/payCardBlockPrefix/delete', body).then(function (r) { return r.data; });
     },
+    hqPayCardBlockBrandAdd: function (body) {
+      return post('/api/hq/ledgerSysSettings/payCardBlockBrand', body).then(function (r) { return r.data; });
+    },
+    hqPayCardBlockBrandDelete: function (body) {
+      return post('/api/hq/ledgerSysSettings/payCardBlockBrand/delete', body).then(function (r) { return r.data; });
+    },
     opsInactiveCardAccess: function () {
       return get('/api/ops/inactiveCard/access').then(function (r) { return r.data; });
     },

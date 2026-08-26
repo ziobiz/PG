@@ -82,6 +82,8 @@ public class ApiHqLedgerSysSettingsController {
         Map<String, Object> m = service.toMap(s);
         m.put("payFollowLevelCaps", payFollowPolicyService.buildLevelCapsPayload());
         m.put("payCardBlockPrefixes", payCardPolicyService.listBlockPrefixesForAdmin());
+        m.put("payCardBlockBrands", payCardPolicyService.listBlockBrandsForAdmin());
+        m.put("payCardBlockBrandOptions", payCardPolicyService.manageableBlockBrandOptions());
         return m;
     }
 
@@ -154,6 +156,26 @@ public class ApiHqLedgerSysSettingsController {
         }
     }
 
+    @PostMapping("/payCardBlockBrand")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> addPayCardBlockBrand(
+            Authentication authentication,
+            @RequestBody Map<String, Object> body) {
+        if (!canResetOperationalData(authentication)) {
+            return ResponseEntity.ok(ApiResponse.fail("총본사(HEADQUARTERS) 또는 시스템 관리자만 등록할 수 있습니다.", "FORBIDDEN"));
+        }
+        try {
+            String pg = body != null && body.get("pgVendor") != null ? body.get("pgVendor").toString() : "";
+            String brand = body != null && body.get("brandCode") != null ? body.get("brandCode").toString() : "";
+            String remark = body != null && body.get("remark") != null ? body.get("remark").toString() : "";
+            var row = payCardPolicyService.addBlockBrand(pg, brand, remark);
+            return ResponseEntity.ok(ApiResponse.ok(Map.of(
+                    "id", row.getId(),
+                    "brandCode", row.getBrandCode() != null ? row.getBrandCode() : "")));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "ERROR"));
+        }
+    }
+
     @PostMapping("/payCardBlockPrefix/delete")
     public ResponseEntity<ApiResponse<Void>> deletePayCardBlockPrefix(
             Authentication authentication,
@@ -167,6 +189,25 @@ public class ApiHqLedgerSysSettingsController {
                 return ResponseEntity.ok(ApiResponse.fail("id가 필요합니다.", "VALIDATION"));
             }
             payCardPolicyService.deleteBlockPrefix(Long.parseLong(idObj.toString().trim()));
+            return ResponseEntity.ok(ApiResponse.ok(null));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "ERROR"));
+        }
+    }
+
+    @PostMapping("/payCardBlockBrand/delete")
+    public ResponseEntity<ApiResponse<Void>> deletePayCardBlockBrand(
+            Authentication authentication,
+            @RequestBody Map<String, Object> body) {
+        if (!canResetOperationalData(authentication)) {
+            return ResponseEntity.ok(ApiResponse.fail("총본사(HEADQUARTERS) 또는 시스템 관리자만 삭제할 수 있습니다.", "FORBIDDEN"));
+        }
+        try {
+            Object idObj = body != null ? body.get("id") : null;
+            if (idObj == null) {
+                return ResponseEntity.ok(ApiResponse.fail("id가 필요합니다.", "VALIDATION"));
+            }
+            payCardPolicyService.deleteBlockBrand(Long.parseLong(idObj.toString().trim()));
             return ResponseEntity.ok(ApiResponse.ok(null));
         } catch (Exception e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "ERROR"));

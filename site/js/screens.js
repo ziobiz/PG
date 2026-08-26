@@ -18,6 +18,16 @@
   function escUi(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   }
+  /** 로컬 달력 오늘(YYYY-MM-DD). 빈 type=date 의 OS 한글 연도-월-일 크롬을 피하기 위해 기본값으로 씁니다. */
+  function pgAdminTodayIsoLocal() {
+    try {
+      var d = new Date();
+      if (isNaN(d.getTime())) return '';
+      return String(d.getFullYear()) + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    } catch (eTod) {
+      return '';
+    }
+  }
 
   /** 라벨: data-pg-ui-t는 내부 span만 적용(applyDom이 textContent를 덮어써도 필수 * 표시 유지). */
   function pgUiFormLabelSpan(keyKo, hasStar) {
@@ -1499,8 +1509,9 @@
     var days = pgUiOptHtml(HQ_PAY_FOLLOW_ELAPSED_DAY_OPTIONS);
     var forceDays = pgUiOptHtml(HQ_PAY_FOLLOW_FORCE_DAY_OPTIONS);
     var timeInputCls = 'form-control form-control-sm hq-pay-follow-time';
-    var emailVoidHintKey = '자동무효·이메일무효를 함께 켜면 시작만 비활성화되고, 실제 시작은 자동무효 마감 다음 분부터입니다. 마감은 항상 지정 가능합니다(비우면 23:59). 이메일무효만 켜면 시작·마감 모두 설정합니다.';
-    var pfFooterTailKey = '테이블에 동기화됩니다. 무효·수동무효는 승인일(「시간 선택 국가」Zone) 당일입니다. 환불은 태국 기준 결제일 익일의 설정 시각부터 일수이며, 강제환불은 그 일반 환불이 끝난 다음날 같은 시각부터입니다. TH·JP 시계는 참고용입니다.';
+    var emailVoidHintKey = '이메일무효는 ChillPay 결제만 적용됩니다. URL·JPAY 건에는 버튼이 나오지 않습니다. 무효처리·이메일 무효를 함께 켜면 시작만 비활성화되고, 실제 시작은 무효처리 마감 다음 분부터입니다. 마감은 항상 지정 가능합니다(비우면 23:59). 이메일 무효만 켜면 시작·마감 모두 설정합니다.';
+    var pfFooterTailKey = '테이블에 동기화됩니다. 무효·수동무효는 승인일(「시간 선택 국가」Zone) 당일입니다. 환불은 태국 기준 결제일 익일의 설정 시각부터 일수이며, 강제환불은 그 일반 환불이 끝난 다음날 같은 시각부터입니다. 당일환불은 URL 결제만, 태국 결제일 당일이며 전역·단계별 허용이 별도입니다. TH·JP 시계는 참고용입니다.';
+    var pfEpFundKey = 'URL 환불은 결제망 캐비닛 가용잔액에서 지급됩니다. 승인 직후 홀드 중이면 거절될 수 있습니다.';
     return '<div class="border rounded hq-pay-follow-wrap">' +
       '<table class="table table-sm table-bordered align-middle mb-0 hq-pay-follow-table">' +
       '<thead class="table-light"><tr>' +
@@ -1522,7 +1533,7 @@
       '</div></td>' +
       '<td class="text-center text-muted small">—</td></tr>' +
       '<tr>' +
-      '<td class="fw-semibold">' + pgUiSpanT('무효') + ' <span class="badge bg-secondary" data-pg-ui-t="자동무효">' + escA(L('자동무효')) + '</span></td>' +
+      '<td class="fw-semibold" data-pg-ui-t="무효처리">' + escA(L('무효처리')) + '</td>' +
       '<td class="small" data-pg-ui-t="승인일(기준 Zone) 당일 구간">' + escA(L('승인일(기준 Zone) 당일 구간')) + '</td>' +
       '<td class="text-center"><select name="autoVoidYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
       '<td class="hq-pay-follow-void-times"><div class="d-flex flex-wrap align-items-center gap-1 gap-md-2">' +
@@ -1533,8 +1544,8 @@
       '</div></td>' +
       '<td class="text-center"><select name="autoVoidReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td></tr>' +
       '<tr>' +
-      '<td class="fw-semibold">' + pgUiSpanT('수동무효') + ' <span class="badge bg-secondary" data-pg-ui-t="이메일 무효">' + escA(L('이메일 무효')) + '</span></td>' +
-      '<td class="small" data-pg-ui-t="승인일(기준 Zone) 당일 시작~마감(자동무효와 동일 형식)">' + escA(L('승인일(기준 Zone) 당일 시작~마감(자동무효와 동일 형식)')) + '</td>' +
+      '<td class="fw-semibold" data-pg-ui-t="이메일 무효">' + escA(L('이메일 무효')) + '</td>' +
+      '<td class="small" data-pg-ui-t="ChillPay만. 승인일(기준 Zone) 당일 시작~마감(무효처리와 동일 형식)">' + escA(L('ChillPay만. 승인일(기준 Zone) 당일 시작~마감(무효처리와 동일 형식)')) + '</td>' +
       '<td class="text-center"><select name="emailVoidYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
       '<td class="hq-pay-follow-void-times"><div class="d-flex flex-wrap align-items-center gap-1 gap-md-2">' +
       pgUiSpanT('시작', 'text-nowrap small') +
@@ -1544,7 +1555,13 @@
       '</div><div class="small text-muted mt-1" data-pg-ui-html="' + escUi(emailVoidHintKey) + '">' + L(emailVoidHintKey) + '</div></td>' +
       '<td class="text-center"><select name="emailVoidReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td></tr>' +
       '<tr>' +
-      '<td class="fw-semibold">' + pgUiSpanT('환불') + ' <span class="badge bg-secondary" data-pg-ui-t="자동환불">' + escA(L('자동환불')) + '</span></td>' +
+      '<td class="fw-semibold" data-pg-ui-t="수동무효">' + escA(L('수동무효')) + '</td>' +
+      '<td class="small" data-pg-ui-t="JPAY만. JPAY 포털 처리 후 ICOPAY 상태만 반영">' + escA(L('JPAY만. JPAY 포털 처리 후 ICOPAY 상태만 반영')) + '</td>' +
+      '<td class="text-center"><select name="manualVoidYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
+      '<td class="small text-muted">—</td>' +
+      '<td class="text-center text-muted small">—</td></tr>' +
+      '<tr>' +
+      '<td class="fw-semibold" data-pg-ui-t="환불처리">' + escA(L('환불처리')) + '</td>' +
       '<td class="small" data-pg-ui-t="태국(Asia/Bangkok) 기준 결제일 익일 지정 시각부터 N일(기본 7)">' + escA(L('태국(Asia/Bangkok) 기준 결제일 익일 지정 시각부터 N일(기본 7)')) + '</td>' +
       '<td class="text-center"><select name="autoRefundYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
       '<td><div class="d-flex flex-wrap align-items-center gap-2">' +
@@ -1552,6 +1569,20 @@
       window.PG_UI_I18N.buildTimeSelectHtml('autoRefundWindowStartTime', { inline: true, titleKey: '비우면 0:00' }) +
       '<select name="autoRefundAfterDays" class="form-select form-select-sm hq-pay-follow-sel-days">' + days + '</select></div></td>' +
       '<td class="text-center"><select name="autoRefundReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td></tr>' +
+      '<tr>' +
+      '<td class="fw-semibold" data-pg-ui-t="수동환불">' + escA(L('수동환불')) + '</td>' +
+      '<td class="small" data-pg-ui-t="JPAY만. JPAY 포털 처리 후 ICOPAY 상태만 반영">' + escA(L('JPAY만. JPAY 포털 처리 후 ICOPAY 상태만 반영')) + '</td>' +
+      '<td class="text-center"><select name="manualRefundYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
+      '<td class="small text-muted">—</td>' +
+      '<td class="text-center text-muted small">—</td></tr>' +
+      '<tr>' +
+      '<td class="fw-semibold">' + pgUiSpanT('환불') + ' <span class="badge bg-info text-dark" data-pg-ui-t="당일환불">' + escA(L('당일환불')) + '</span></td>' +
+      '<td class="small" data-pg-ui-t="URL 결제만. 태국 결제일 당일. 환불처리와 동일 API. 전역·단계별 허용 필요. 결제망 가용잔액(홀드 해제)이 있어야 환불됨">' +
+      escA(L('URL 결제만. 태국 결제일 당일. 환불처리와 동일 API. 전역·단계별 허용 필요. 결제망 가용잔액(홀드 해제)이 있어야 환불됨')) + '</td>' +
+      '<td class="text-center"><select name="epSameDayRefundYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
+      '<td class="small text-muted" data-pg-ui-t="당일(태국). 익일 자동환불 기간과는 별도">' +
+      escA(L('당일(태국). 익일 자동환불 기간과는 별도')) + '</td>' +
+      '<td class="text-center small text-muted" data-pg-ui-t="환불과 동일">' + escA(L('환불과 동일')) + '</td></tr>' +
       '<tr>' +
       '<td class="fw-semibold" data-pg-ui-t="강제환불">' + escA(L('강제환불')) + '</td>' +
       '<td class="small" data-pg-ui-t="태국 기준 일반 환불이 끝난 다음날 동일 시각부터 M일(M=0이면 메뉴 비노출)">' + escA(L('태국 기준 일반 환불이 끝난 다음날 동일 시각부터 M일(M=0이면 메뉴 비노출)')) + '</td>' +
@@ -1562,23 +1593,27 @@
       '<p class="small text-muted px-2 py-2 mb-0">' +
       '<span data-pg-ui-t="저장은 화면 하단 [저장]으로 합니다.">' + escA(L('저장은 화면 하단 [저장]으로 합니다.')) + '</span> ' +
       '<code>tb_hq_notify_env_config</code> ' +
-      '<span data-pg-ui-html="' + escUi(pfFooterTailKey) + '">' + L(pfFooterTailKey) + '</span></p>' +
+      '<span data-pg-ui-html="' + escUi(pfFooterTailKey) + '">' + L(pfFooterTailKey) + '</span> ' +
+      '<span data-pg-ui-t="' + escA(pfEpFundKey) + '">' + escA(L(pfEpFundKey)) + '</span></p>' +
       '</div>';
   }
 
-  /** 전산설정 — 조직 단계별 결제 후속조치(4종) 허용 상한 */
+  /** 전산설정 — 조직 단계별 결제 후속조치 허용 상한 */
   function hqLedgerPayFollowLevelCapsTableHtml() {
     function escA(s) {
       return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
     }
     var capYn = pgUiOptHtml([{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }]);
     var fields = [
-      { k: 'autoVoid', t: '자동무효' },
+      { k: 'autoVoid', t: '무효처리' },
       { k: 'emailVoid', t: '이메일 무효' },
-      { k: 'autoRefund', t: '자동환불' },
-      { k: 'forceRefund', t: '강제환불' }
+      { k: 'manualVoid', t: '수동무효' },
+      { k: 'autoRefund', t: '환불처리' },
+      { k: 'manualRefund', t: '수동환불' },
+      { k: 'forceRefund', t: '강제환불' },
+      { k: 'sameDayRefund', t: '당일환불' }
     ];
-    var capIntroKey = '총본사가 단계마다 사용할 수 있는 네 가지 후속조치를 제한합니다. 전역 NOTI 설정이 꺼져 있으면 해당 기능은 동작하지 않습니다. 가맹점은 등록 시 개별 선택과 함께 적용되며(미선택 시 미사용), 이 표는 단계별 상한입니다.';
+    var capIntroKey = '총본사가 단계마다 사용할 수 있는 후속조치를 제한합니다. 무효처리·환불처리·수동무효·수동환불·강제환불·당일환불을 각각 켜거나 끌 수 있습니다. 전역 전산설정이 꺼져 있으면 해당 기능은 동작하지 않습니다. 가맹점은 등록 시 개별 선택과 함께 적용되며(미선택 시 미사용), 이 표는 단계별 상한입니다.';
     var capFooterKey = '[단계별 허용 저장]으로만 반영됩니다(하단 전체 저장과 별도). 총본사·시스템 관리자만 변경할 수 있습니다.';
     var thead = '<tr>' + pgUiThT('조직 단계', 'text-nowrap') +
       fields.map(function (f) { return pgUiThT(String(f.t), 'text-center text-nowrap'); }).join('') + '</tr>';
@@ -2062,8 +2097,8 @@
   /** 본사 영업일·휴일: 기간형 추가 목록(언제부터~언제까지/내용/추가일/작성자) */
   var REGIONAL_BIZDAY_RANGE_UI_HTML = '<div class="col-12"><div class="border rounded p-2 bg-light mt-1">' +
     '<div class="d-flex flex-wrap align-items-end gap-2 mb-2">' +
-    '<div><label class="form-label mb-1" data-pg-ui-t="언제부터">' + escUi(L('언제부터')) + '</label><input type="date" lang="en-CA" class="form-control form-control-sm pg-date-input-iso" id="bizHolidayFromDate"></div>' +
-    '<div><label class="form-label mb-1" data-pg-ui-t="언제까지">' + escUi(L('언제까지')) + '</label><input type="date" lang="en-CA" class="form-control form-control-sm pg-date-input-iso" id="bizHolidayToDate"></div>' +
+    '<div><label class="form-label mb-1" data-pg-ui-t="언제부터">' + escUi(L('언제부터')) + '</label><input type="date" lang="en-CA" class="form-control form-control-sm pg-date-input-iso pg-date-default-today" id="bizHolidayFromDate"' + (pgAdminTodayIsoLocal() ? (' value="' + escUi(pgAdminTodayIsoLocal()) + '"') : '') + '></div>' +
+    '<div><label class="form-label mb-1" data-pg-ui-t="언제까지">' + escUi(L('언제까지')) + '</label><input type="date" lang="en-CA" class="form-control form-control-sm pg-date-input-iso pg-date-default-today" id="bizHolidayToDate"' + (pgAdminTodayIsoLocal() ? (' value="' + escUi(pgAdminTodayIsoLocal()) + '"') : '') + '></div>' +
     '<div style="min-width:220px"><label class="form-label mb-1" data-pg-ui-t="내용">' + escUi(L('내용')) + '</label><input type="text" class="form-control form-control-sm" id="bizHolidayReason" data-pg-ui-placeholder="예: 설 연휴" placeholder="' + escUi(L('예: 설 연휴')) + '"></div>' +
     '<div><label class="form-label mb-1" data-pg-ui-t="작성자">' + escUi(L('작성자')) + '</label><input type="text" class="form-control form-control-sm" id="bizHolidayWriter" data-pg-ui-placeholder="작성자" placeholder="' + escUi(L('작성자')) + '"></div>' +
     '<div><button type="button" class="btn btn-sm btn-primary" id="bizHolidayAddBtn" data-pg-ui-t="추가">' + escUi(L('추가')) + '</button></div>' +
@@ -2087,8 +2122,8 @@
       '<strong class="small d-block mb-2" data-pg-ui-t="휴일·비영업일 구간 등록">' + escUi(L('휴일·비영업일 구간 등록')) + '</strong>' +
       pgUiParagraph('시작·종료일·구분·내용을 입력한 뒤 [구간 추가]로 넣거나, 목록의 [수정]으로 불러온 뒤 [수정 반영]으로 바꿉니다. [삭제]로 행을 제거할 수 있습니다. 하단 달력에 반영됩니다.', 'text-muted small mb-2') +
       '<div class="row g-2 align-items-end mb-2">' +
-      '<div class="col-sm-6 col-md-2"><label class="form-label mb-1 small" data-pg-ui-t="시작일">' + escUi(L('시작일')) + '</label><input type="date" lang="en-CA" class="form-control form-control-sm pg-date-input-iso" id="hqBizdayRangeFrom" data-pg-ui-title="연도-월-일"></div>' +
-      '<div class="col-sm-6 col-md-2"><label class="form-label mb-1 small" data-pg-ui-t="종료일">' + escUi(L('종료일')) + '</label><input type="date" lang="en-CA" class="form-control form-control-sm pg-date-input-iso" id="hqBizdayRangeTo" data-pg-ui-title="연도-월-일"></div>' +
+      '<div class="col-sm-6 col-md-2"><label class="form-label mb-1 small" data-pg-ui-t="시작일">' + escUi(L('시작일')) + '</label><input type="date" lang="en-CA" class="form-control form-control-sm pg-date-input-iso pg-date-default-today" id="hqBizdayRangeFrom" data-pg-ui-title="연도-월-일"' + (pgAdminTodayIsoLocal() ? (' value="' + escUi(pgAdminTodayIsoLocal()) + '"') : '') + '></div>' +
+      '<div class="col-sm-6 col-md-2"><label class="form-label mb-1 small" data-pg-ui-t="종료일">' + escUi(L('종료일')) + '</label><input type="date" lang="en-CA" class="form-control form-control-sm pg-date-input-iso pg-date-default-today" id="hqBizdayRangeTo" data-pg-ui-title="연도-월-일"' + (pgAdminTodayIsoLocal() ? (' value="' + escUi(pgAdminTodayIsoLocal()) + '"') : '') + '></div>' +
       '<div class="col-sm-6 col-md-2"><label class="form-label mb-1 small" data-pg-ui-t="일자 구분">' + escUi(L('일자 구분')) + '</label><select class="form-select form-select-sm" id="hqBizdayRangeKind">' +
       hqBizdayKindOptionsHtml() +
       '</select></div>' +
@@ -2361,8 +2396,8 @@
     escUi(L('본사권한설정에서 이 화면에 삭제(전체) 또는 수정 권한이 있어야 등록·해지할 수 있습니다.')) + '</p>' +
     '<div class="d-flex flex-wrap gap-2 align-items-end">' +
     '<div><label class="form-label small mb-0" data-pg-ui-t="PG">PG</label>' +
-    '<select class="form-select form-select-sm" id="opsIcRegPg" style="min-width:7rem">' +
-    '<option value="" data-pg-ui-t="전체 PG">전체 PG</option><option value="JPAY">JPAY</option><option value="CHILLPAY">ChillPay</option></select></div>' +
+    '<select class="form-select form-select-sm" id="opsIcRegPg" style="min-width:12rem">' +
+    '<option value="" data-pg-ui-t="전체 PG">전체 PG</option></select></div>' +
     '<div style="min-width:8rem"><label class="form-label small mb-0" data-pg-ui-t="업체코드">업체코드</label>' +
     '<input type="text" class="form-control form-control-sm" id="opsIcRegCompId" maxlength="32" data-pg-ui-placeholder="예: M001" placeholder="' + escUi(L('예: M001')) + '" autocomplete="off"></div>' +
     '<div class="ops-ic-reg-comp-nm-field"><label class="form-label small mb-0" data-pg-ui-t="업체명">업체명</label>' +
@@ -2391,7 +2426,7 @@
     '<input type="text" class="form-control form-control-sm" id="opsIcEditHolderName" maxlength="100"></div>' +
     '<div class="mb-2"><label class="form-label small mb-0" data-pg-ui-t="PG">PG</label>' +
     '<select class="form-select form-select-sm" id="opsIcEditPg">' +
-    '<option value="" data-pg-ui-t="전체 PG">전체 PG</option><option value="JPAY">JPAY</option><option value="CHILLPAY">ChillPay</option></select></div>' +
+    '<option value="" data-pg-ui-t="전체 PG">전체 PG</option></select></div>' +
     '<div class="mb-0"><label class="form-label small mb-0" data-pg-ui-t="사유">사유</label>' +
     '<input type="text" class="form-control form-control-sm" id="opsIcEditReason" maxlength="500"></div>' +
     '</div><div class="modal-footer py-2">' +
@@ -2677,7 +2712,8 @@
       noticeList: [
         '연동 용도(노티·URL·챗봇·API)를 한 행에서 복수 선택해 저장할 수 있습니다. URL 용도 행은 「URL금액」에서 일반(일반형) / DP(DISPLAY) / BLIND를 지정할 수 있으며, 본사 URL결제설정(FX JSON)의 해당 PG 금액 모드와 동일합니다. 노티=미들웨어 수신 매칭, URL=공개 URL 결제 플로우, 챗봇/API=결제대행 API 직연동(동일 연동 URL). 목록 「연동용도」는 파스텔 색으로 구분됩니다. API Key·MD5는 목록 미노출. [삭제]는 등록일 오른쪽, 신규는 [결제대행사 설정 추가]입니다.',
         '통합정산 「예정(ICOPAY)」열: 결제대행사 설정 편집에서 T+N(주말 제외 영업일·결제와 동일 시각) 또는 D+N(달력+N일·일괄 시각)을 저장합니다. OFF면 예정일을 채우지 않습니다. D는 일괄 시각(HH:mm) 필수.',
-        'ChillPay는 결제코드 CHILLPAY, API·URL 엔드포인트는 ChillPayService가 병합 반영합니다. 운영 DB는 db/V35_pg_agency_integration_scope.sql 적용 후 배포하세요.'
+        'ChillPay는 결제코드 CHILLPAY, API·URL 엔드포인트는 ChillPayService가 병합 반영합니다. 운영 DB는 db/V35_pg_agency_integration_scope.sql 적용 후 배포하세요.',
+        'ICOPAY 후속조치(무효처리·이메일 무효·수동무효·환불처리·수동환불·강제환불·당일환불)는 결제대행사마다 허용을 고릅니다. 노티 미들웨어는 거래 적재만 담당하며, 결제내역 버튼은 대행사 허용 AND 전산설정(NOTI) AND 조직 단계 AND 가맹 스위치 AND 계열 API가 모두 맞을 때만 활성화됩니다.'
       ],
       tableColumnGuide: true,
       summary: ['건수'],
@@ -2701,8 +2737,8 @@
               return '<div class="form-field-block">' +
               '<label class="form-label" data-pg-ui-t="정책코드">' + escUi(L('정책코드')) + '</label>' +
               '<input type="hidden" name="templateScope" id="hqDefCommTemplateScope" value="">' +
-              '<select id="hqDefCommTemplateScopeDisplay" class="form-control form-control-sm" disabled title="' + escUi(L('코드는 저장 시 자동 부여되며, 수정할 수 없습니다.')) + '">' +
-              '<option value="">' + escUi(L('(신규) 저장 시 자동 부여')) + '</option></select>' +
+              '<select id="hqDefCommTemplateScopeDisplay" class="form-control form-control-sm" disabled data-pg-ui-title="코드는 저장 시 자동 부여되며, 수정할 수 없습니다." title="' + escUi(L('코드는 저장 시 자동 부여되며, 수정할 수 없습니다.')) + '">' +
+              '<option value="" data-pg-ui-t="(신규) 저장 시 자동 부여">' + escUi(L('(신규) 저장 시 자동 부여')) + '</option></select>' +
               '<p class="text-muted small mb-0 mt-1" data-pg-ui-t="고유 코드는 시스템이 부여합니다. 목록에서 정책을 불러와 편집만 할 수 있습니다.">' + escUi(L('고유 코드는 시스템이 부여합니다. 목록에서 정책을 불러와 편집만 할 수 있습니다.')) + '</p></div>';
             } }, { label: '정책명', type: 'text', name: 'policyName', col: 2, placeholder: '예: 기본정책 A' }, { label: '배포', type: 'select', name: 'deployYn', options: [{ v: 'Y', t: '배포' }, { v: 'N', t: '미배포' }], col: 2 }, { label: '통화코드', type: 'select', name: 'currencyCode', col: 2, options: [{ v: 'KRW', t: 'KRW' }, { v: 'USD', t: 'USD' }, { v: 'JPY', t: 'JPY' }, { v: 'EUR', t: 'EUR' }, { v: 'CNY', t: 'CNY' }, { v: 'THB', t: 'THB' }, { v: 'VND', t: 'VND' }, { v: 'GBP', t: 'GBP' }, { v: 'TWD', t: 'TWD' }, { v: 'HKD', t: 'HKD' }, { v: 'USDT', t: 'USDT' }] }],
             [{ type: 'customHtml', col: 12, html: hqDefaultCommissionTierMatrixHtml }],
@@ -3234,9 +3270,9 @@
                 pgUiParagraphHtml('전산설정 금일 결제 노티 삭제 카드 본문', 'mb-2 text-muted') +
                 '<div class="d-flex flex-wrap gap-2 align-items-end">' +
                 '<div><label class="form-label small mb-0" for="hqLedgerPurgePayDate" data-pg-ui-t="대상 일자">대상 일자</label>' +
-                '<input type="date" class="form-control form-control-sm" id="hqLedgerPurgePayDate" style="min-width:9.5rem"></div>' +
+                '<input type="date" lang="en-CA" class="form-control form-control-sm pg-date-input-iso pg-date-default-today" id="hqLedgerPurgePayDate" style="min-width:9.5rem"' + (pgAdminTodayIsoLocal() ? (' value="' + escUi(pgAdminTodayIsoLocal()) + '"') : '') + '></div>' +
                 '<div><label class="form-label small mb-0" for="hqLedgerPurgeMerchantId" data-pg-ui-t="가맹점 ID(선택)">가맹점 ID(선택)</label>' +
-                '<input type="text" class="form-control form-control-sm" id="hqLedgerPurgeMerchantId" maxlength="20" placeholder="' + escUi(L('비우면 전체 가맹')) + '" style="min-width:10rem"></div>' +
+                '<input type="text" class="form-control form-control-sm" id="hqLedgerPurgeMerchantId" maxlength="20" data-pg-ui-placeholder="비우면 전체 가맹" placeholder="' + escUi(L('비우면 전체 가맹')) + '" style="min-width:10rem"></div>' +
                 '<div class="form-check mb-1"><input class="form-check-input" type="checkbox" id="hqLedgerPurgeInboundYn" checked>' +
                 '<label class="form-check-label small" for="hqLedgerPurgeInboundYn" data-pg-ui-t="노티수령정보도 삭제">노티수령정보도 삭제</label></div>' +
                 '</div></div>' +
@@ -3244,17 +3280,17 @@
             [{ type: 'customHtml', col: 12,
               html: '<div class="d-flex flex-wrap align-items-start justify-content-between gap-3 border border-success-subtle rounded p-3 mb-2 bg-body-secondary">' +
                 '<div class="flex-grow-1 small">' +
-                '<div class="fw-semibold text-success mb-1">' + escUi(L('주문별 노티 재반영(icopayCompId)')) + '</div>' +
-                '<p class="mb-2 text-muted">' + escUi(L('결제내역만 삭제하고 노티수령정보(raw_body)가 남아 있을 때, 지정 일자·주문번호별 최신 노티 원문을 icopayCompId와 함께 재반영해 pg_trnsctn을 복구합니다. 공통 MID·복수 가맹점 환경에서 업체코드가 필요합니다.')) + '</p>' +
+                '<div class="fw-semibold text-success mb-1" data-pg-ui-t="주문별 노티 재반영(icopayCompId)">' + escUi(L('주문별 노티 재반영(icopayCompId)')) + '</div>' +
+                '<p class="mb-2 text-muted" data-pg-ui-t="결제내역만 삭제하고 노티수령정보(raw_body)가 남아 있을 때, 지정 일자·주문번호별 최신 노티 원문을 icopayCompId와 함께 재반영해 pg_trnsctn을 복구합니다. 공통 MID·복수 가맹점 환경에서 업체코드가 필요합니다.">' + escUi(L('결제내역만 삭제하고 노티수령정보(raw_body)가 남아 있을 때, 지정 일자·주문번호별 최신 노티 원문을 icopayCompId와 함께 재반영해 pg_trnsctn을 복구합니다. 공통 MID·복수 가맹점 환경에서 업체코드가 필요합니다.')) + '</p>' +
                 '<div class="d-flex flex-wrap gap-2 align-items-end">' +
-                '<div><label class="form-label small mb-0" for="hqLedgerReplayNotifyDate">' + escUi(L('대상 일자')) + '</label>' +
-                '<input type="date" class="form-control form-control-sm" id="hqLedgerReplayNotifyDate" style="min-width:9.5rem"></div>' +
-                '<div><label class="form-label small mb-0" for="hqLedgerReplayNotifyCompId">icopayCompId</label>' +
+                '<div><label class="form-label small mb-0" for="hqLedgerReplayNotifyDate" data-pg-ui-t="대상 일자">' + escUi(L('대상 일자')) + '</label>' +
+                '<input type="date" lang="en-CA" class="form-control form-control-sm pg-date-input-iso pg-date-default-today" id="hqLedgerReplayNotifyDate" style="min-width:9.5rem"' + (pgAdminTodayIsoLocal() ? (' value="' + escUi(pgAdminTodayIsoLocal()) + '"') : '') + '></div>' +
+                '<div><label class="form-label small mb-0" for="hqLedgerReplayNotifyCompId" data-pg-ui-t="재반영 업체코드(icopayCompId)">' + escUi(L('재반영 업체코드(icopayCompId)')) + '</label>' +
                 '<input type="text" class="form-control form-control-sm" id="hqLedgerReplayNotifyCompId" maxlength="20" placeholder="6000000041" style="min-width:10rem"></div>' +
-                '<div class="flex-grow-1" style="min-width:14rem"><label class="form-label small mb-0" for="hqLedgerReplayNotifyOrders">' + escUi(L('주문번호(쉼표 구분)')) + '</label>' +
+                '<div class="flex-grow-1" style="min-width:14rem"><label class="form-label small mb-0" for="hqLedgerReplayNotifyOrders" data-pg-ui-t="주문번호(쉼표 구분)">' + escUi(L('주문번호(쉼표 구분)')) + '</label>' +
                 '<input type="text" class="form-control form-control-sm" id="hqLedgerReplayNotifyOrders" placeholder="451,448,444,441,440,439,438,436"></div>' +
                 '</div></div>' +
-                '<button type="button" class="btn btn-success btn-sm flex-shrink-0 align-self-center" id="hqLedgerReplayNotifyOrdersBtn">' + escUi(L('주문별 노티 재반영…')) + '</button></div>' }],
+                '<button type="button" class="btn btn-success btn-sm flex-shrink-0 align-self-center" id="hqLedgerReplayNotifyOrdersBtn" data-pg-ui-t="주문별 노티 재반영…">' + escUi(L('주문별 노티 재반영…')) + '</button></div>' }],
             [{ type: 'customHtml', col: 12,
               html: '<div class="d-flex flex-wrap align-items-start justify-content-between gap-3 border border-primary-subtle rounded p-3 mb-2 bg-body-secondary">' +
                 '<div class="flex-grow-1 small">' +
@@ -3373,35 +3409,41 @@
           ]
         },
         {
-          title: '사용불가카드 등록',
-          notice: 'PG별 카드번호 <strong>앞자리(BIN) 접두</strong>만 등록합니다. 입력 시 결제창·승인 API에서 즉시 차단됩니다. 개별 카드번호(비활성카드)는 <strong>운영관리 → 비활성카드등록</strong> 메뉴에서 관리합니다.',
+          title: '사용불가브랜드 등록',
+          notice: '결제대행사(PG)마다 <strong>지원하지 않는 카드 브랜드</strong>를 등록합니다. 해당 브랜드로 결제 시도 시 결제창·승인 API에서 경고 후 차단됩니다. 개별 카드번호(마스킹) 차단은 <strong>운영관리 → 비활성카드등록</strong>에서 관리합니다.',
           rows: [
             [{ type: 'customHtml', col: 12,
-              html: '<p class="small fw-semibold mb-1" data-pg-ui-t="사용불가 카드 BIN 접두">사용불가 카드 BIN 접두</p>' +
+              html: '<p class="small fw-semibold mb-1" data-pg-ui-t="사용불가 카드 브랜드">사용불가 카드 브랜드</p>' +
                 '<div class="d-flex flex-wrap gap-2 align-items-end mb-2">' +
                 '<div><label class="form-label small mb-0" data-pg-ui-t="PG">PG</label>' +
-                '<select class="form-select form-select-sm" id="hqPayCardPrefixPg" style="min-width:8rem">' +
-                '<option value="JPAY">JPAY</option><option value="CHILLPAY">ChillPay</option></select></div>' +
-                '<div><label class="form-label small mb-0" data-pg-ui-t="접두(숫자)">접두(숫자)</label>' +
-                '<input type="text" class="form-control form-control-sm" id="hqPayCardPrefixDigits" maxlength="8" inputmode="numeric" style="width:6rem"></div>' +
+                '<select class="form-select form-select-sm" id="hqPayCardBrandPg" style="min-width:10rem">' +
+                '<option value="">…</option></select></div>' +
+                '<div><label class="form-label small mb-0" data-pg-ui-t="브랜드">브랜드</label>' +
+                '<select class="form-select form-select-sm" id="hqPayCardBrandCode" style="min-width:9rem">' +
+                '<option value="VISA">VISA</option>' +
+                '<option value="MASTERCARD">MASTER</option>' +
+                '<option value="JCB">JCB</option>' +
+                '<option value="UNIONPAY">UNION</option>' +
+                '<option value="DINERS">DINERS</option>' +
+                '<option value="AMEX">AMX</option></select></div>' +
                 '<div class="flex-grow-1"><label class="form-label small mb-0" data-pg-ui-t="비고">비고</label>' +
-                '<input type="text" class="form-control form-control-sm" id="hqPayCardPrefixRemark"></div>' +
-                '<button type="button" class="btn btn-primary btn-sm" id="hqPayCardPrefixAddBtn" data-pg-ui-t="접두 등록">접두 등록</button></div>' +
+                '<input type="text" class="form-control form-control-sm" id="hqPayCardBrandRemark" data-pg-ui-placeholder="예: 해당 PG 미지원" placeholder="예: 해당 PG 미지원"></div>' +
+                '<button type="button" class="btn btn-primary btn-sm" id="hqPayCardBrandAddBtn" data-pg-ui-t="브랜드 등록">브랜드 등록</button></div>' +
                 '<div class="border rounded mb-3"><table class="table table-sm table-bordered mb-0">' +
-                '<thead class="table-light"><tr><th data-pg-ui-t="PG">PG</th><th data-pg-ui-t="접두">접두</th><th data-pg-ui-t="비고">비고</th><th class="text-center" data-pg-ui-t="관리">관리</th></tr></thead>' +
-                '<tbody id="hqPayCardBlockPrefixTbody"><tr><td colspan="4" class="text-center text-muted py-2" data-pg-ui-t="불러오는 중…">불러오는 중…</td></tr></tbody></table></div>' }]
+                '<thead class="table-light"><tr><th data-pg-ui-t="PG">PG</th><th data-pg-ui-t="브랜드">브랜드</th><th data-pg-ui-t="비고">비고</th><th class="text-center" data-pg-ui-t="관리">관리</th></tr></thead>' +
+                '<tbody id="hqPayCardBlockBrandTbody"><tr><td colspan="4" class="text-center text-muted py-2" data-pg-ui-t="불러오는 중…">불러오는 중…</td></tr></tbody></table></div>' }]
           ]
         },
         {
           title: '결제 후속조치 (NOTI 환경설정 대응)',
-          notice: '시간 선택 국가(기준 Zone)는 무효·이메일무효에 적용됩니다. 무효 기본은 당일 <strong>0:00~21:00</strong>. 수동무효(이메일)도 당일 <strong>시작~마감</strong>을 지정(마감 비우면 23:59). 환불은 <strong>태국</strong> 기준 결제일 <strong>익일</strong>의 <strong>시작 시각</strong>부터 일수입니다. 「설정(사용)」이 사용일 때만 편집할 수 있습니다. 아래 표에서 <strong>본사·총판</strong> 등 조직 단계별로 동일 네 기능의 허용 여부를 둡니다.',
+          notice: '시간 선택 국가(기준 Zone)는 무효·이메일무효에 적용됩니다. 이메일무효는 ChillPay만. 무효 기본은 당일 <strong>0:00~21:00</strong>. 수동무효(이메일)도 당일 <strong>시작~마감</strong>을 지정(마감 비우면 23:59). 환불은 <strong>태국</strong> 기준 결제일 <strong>익일</strong>의 <strong>시작 시각</strong>부터 일수입니다. 「설정(사용)」이 사용일 때만 편집할 수 있습니다. 아래 표에서 <strong>본사·총판</strong> 등 조직 단계별로 동일 네 기능의 허용 여부를 둡니다.',
           rows: [
             [{ type: 'customHtml', col: 12, html: function () { return hqLedgerPayFollowNotiTableHtml() + hqLedgerPayFollowLevelCapsTableHtml(); } }]
           ]
         },
         {
           title: '자동화 이메일 설정',
-          notice: 'SMTP는 배치 알림·기타 자동 메일과 「이메일무효」 수동 요청 메일 발송에 공통으로 사용합니다. 아래 「이메일무효(ChillPay 등)」에서 수신처·제목·본문을 지정하면, 결제내역에서 이메일무효 실행 시 치환된 본문이 발송됩니다. 자동무효·자동환불·강제환불은 ChillPay Transaction API(무효/환불 요청)로 처리됩니다. 비밀번호는 저장 시에만 갱신하며, 조회 시에는 설정 여부만 표시됩니다.',
+          notice: 'SMTP는 배치 알림·기타 자동 메일과 「이메일무효」 수동 요청 메일 발송에 공통으로 사용합니다. 아래 「이메일무효(ChillPay)」에서 수신처·제목·본문을 지정하면, 결제내역에서 ChillPay 건의 이메일무효 실행 시 치환된 본문이 발송됩니다. URL·JPAY에는 이메일무효가 없습니다. 자동무효·자동환불·강제환불은 ChillPay Transaction API(무효/환불 요청)로 처리됩니다. 비밀번호는 저장 시에만 갱신하며, 조회 시에는 설정 여부만 표시됩니다.',
           rows: [
             [{ label: 'SMTP 호스트', type: 'text', name: 'smtpHost', col: 3, placeholder: 'smtp.example.com' },
              { label: 'SMTP 포트', type: 'number', name: 'smtpPort', col: 2, placeholder: '587' },
@@ -3420,7 +3462,7 @@
             [{ label: '메모', type: 'textarea', name: 'memo', col: 8, rows: 2 }],
             [{ label: '최종 수정', type: 'text', name: 'updatedAt', col: 4, readonly: true }],
             [{ type: 'customHtml', col: 12,
-              html: '<hr class="my-2" /><p class="small text-muted mb-2 fw-semibold">' + escUi(L('이메일무효(수동 VOID 요청 메일)')) + '</p>' }],
+              html: '<hr class="my-2" /><p class="small text-muted mb-2 fw-semibold" data-pg-ui-t="이메일무효(수동 VOID 요청 메일)">' + escUi(L('이메일무효(수동 VOID 요청 메일)')) + '</p>' }],
             [{ label: '수신 이메일', type: 'text', name: 'emailVoidTo', col: 4, placeholder: '예: help@chillpay.co' },
              { label: '회사명(본문 치환)', type: 'text', name: 'emailVoidCompanyName', col: 4 },
              { label: '담당자 성명(본문 치환)', type: 'text', name: 'emailVoidContactName', col: 4 }],
@@ -3439,7 +3481,7 @@
         {
           title: '고객 거래명세서 이메일',
           id: 'hqReceiptEmailCard',
-          notice: '결제 승인 시 구매자에게 HTML 거래명세서를 보냅니다. 본사 기본값은 총판·가맹이 「상위 따름」일 때 적용됩니다. 실제 발송은 총판·가맹 설정이 우선합니다. 아래 테스트는 SMTP(위에 저장한 값)로 샘플 메일을 보내 수신함 UI를 확인합니다. Acquirer·Switcher는 통상 결제대행사 설정에, Payment Provider는 총판, Merchant는 가맹 정보가 들어가며 테스트에서는 직접 넣을 수 있습니다.',
+          notice: '결제·환불·무효 시 구매자 이메일로 HTML 거래명세서를 보냅니다. URL 결제도 동일합니다. 본사 기본값은 총판·가맹이 「상위 따름」일 때 적용됩니다. 실제 발송은 총판·가맹 설정이 우선합니다. 아래 테스트는 SMTP(위에 저장한 값)로 샘플 메일을 보내 수신함 UI를 확인합니다. Acquirer·Switcher는 통상 결제대행사 설정에, Payment Provider는 총판, Merchant는 가맹 정보가 들어가며 테스트에서는 직접 넣을 수 있습니다.',
           rows: [
             [{ label: '본사 기본(사용)', type: 'select', name: 'receiptEmailDefaultYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2,
               title: '총판·가맹이 상위 정책을 따를 때의 기본값' }],
@@ -4284,10 +4326,11 @@
           title: '결제 후속조치 (가맹점 관리자)',
           id: 'payFollowMerchantCard',
           merchantOnly: true,
-          notice: '관리자 화면의 자동무효·이메일무효·자동환불·강제환불 사용 여부입니다. 전산설정관리(전역) 및 본사권한설정의 조직 단계 상한과 함께 적용됩니다. [기본·종전]은 미설정과 동일(허용으로 해석)입니다.',
+          notice: '관리자 화면의 무효처리·이메일 무효·수동무효·환불처리·수동환불·강제환불 사용 여부입니다. 전산설정관리(전역) 및 본사권한설정의 조직 단계 상한과 함께 적용됩니다. [기본·종전]은 미설정과 동일(허용으로 해석)입니다.',
           rows: [
             [{ label: '후속조치 사용', type: 'select', name: 'payFollowMerchantUseYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
-            [{ label: '자동무효', type: 'select', name: 'payFollowAutoVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '이메일 무효', type: 'select', name: 'payFollowEmailVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '자동환불', type: 'select', name: 'payFollowAutoRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '강제환불', type: 'select', name: 'payFollowForceRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }]
+            [{ label: '무효처리', type: 'select', name: 'payFollowAutoVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '이메일 무효', type: 'select', name: 'payFollowEmailVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '수동무효', type: 'select', name: 'payFollowManualVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }],
+            [{ label: '환불처리', type: 'select', name: 'payFollowAutoRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '수동환불', type: 'select', name: 'payFollowManualRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '강제환불', type: 'select', name: 'payFollowForceRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }]
           ]
         },
         {
@@ -4444,7 +4487,7 @@
           title: '고객 거래명세서 이메일',
           id: 'receiptEmailCard',
           merchantOnly: true,
-          notice: '결제 완료(승인) 시 구매자 이메일로 HTML 거래명세서를 발송합니다. 본사·총판 정책을 따르거나 가맹에서 직접 지정할 수 있습니다. SMTP는 전산설정을 사용합니다.',
+          notice: '결제 완료·환불·무효 시 구매자 이메일로 HTML 거래명세서를 발송합니다. 본사·총판 정책을 따르거나 가맹에서 직접 지정할 수 있습니다. SMTP는 전산설정을 사용합니다.',
           rows: [
             [{ label: '정책', type: 'select', name: 'receiptEmailFollowHqYn', options: [{ v: 'Y', t: '총판·본사 따름' }, { v: 'N', t: '가맹 직접' }], col: 2 },
              { label: '발송', type: 'select', name: 'receiptEmailUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 }]
@@ -4483,10 +4526,12 @@
           { type: 'compMngSearchActions', label: '하위업체포함', checkboxName: 'searchIncludeSub', searchLabel: '검색' }
         ]
       ],
-      noticeList: ['기본 조회는 업체사용상태가 사용인 업체만 표시합니다. 미사용·영구정지·전체는 셀렉트에서 선택하세요. 미사용(N)은 로그인은 가능하나 신규 결제·정산이 중단됩니다. 영구정지(S)는 연동 사용자 계정이 정지되며 로그인할 수 없습니다. 상위를 미사용/영구정지로 두면 하위 프로필도 함께 연쇄 처리됩니다.', '엑셀등록: [SAMPLE]으로 서식 있는 xlsx(헤더 색·표선·가운데 정렬)를 받아 예시 행을 수정·추가한 뒤 [엑셀등록]에 업로드하세요.'],
+      noticeList: ['기본 조회는 업체사용상태가 사용인 업체만 표시합니다. 미사용·영구정지·전체는 셀렉트에서 선택하세요. 미사용(N)은 로그인은 가능하나 신규 결제·정산이 중단됩니다. 영구정지(S)는 연동 사용자 계정이 정지되며 로그인할 수 없습니다. 상위를 미사용/영구정지로 두면 하위 프로필도 함께 연쇄 처리됩니다.', '엑셀등록: [SAMPLE]으로 서식 있는 xlsx(헤더 색·표선·가운데 정렬)을 받아 예시 행을 수정·추가한 뒤 [엑셀등록]에 업로드하세요.', '결제대행사는 본사설정/연동배포/결제대행사 설정에서 사용인 항목만 신규 선택됩니다. 이미 묶인 대행사가 미사용으로 바뀌면 업체등록 선택란이 회색으로 남고, 목록의 업체코드·아이콘이 경고색으로 표시됩니다. Hello VIEW SETTING의 「대행」열은 기본 비활성이며 켜면 결제대행사를 볼 수 있습니다.'],
       summary: ['건수'],
       buttons: [{ id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }, { id: 'excelSampleBtn', label: 'SAMPLE', cls: 'btn-outline-secondary' }, { id: 'excelRegBtn', label: '엑셀등록', cls: 'btn-outline-success' }, { id: 'compRegBtn', label: '등록', cls: 'btn-danger' }],
       tableColumnGuide: true,
+      columnGuideFixedKeys: ['_chk', 'rowNo', 'compId', 'compNm', 'compDivNm'],
+      columnGuideDefaultOffKeys: ['pgAgencyLabel'],
       columns: [
         { key: '_chk', type: 'checkbox' },
         { key: 'rowNo', label: '번호' },
@@ -4495,6 +4540,7 @@
         { key: 'compDivNm', label: '업체구분' },
         { key: 'baseCurrency', label: '통화', title: '총판·지사·대리점·영업점·가맹점만 표시. 지사 이하는 소속 총판 기준통화와 동일. 총본사·본사는 비움.' },
         { key: 'siteRoot', label: '루트', title: '결제대행사 설정의 루트번호', align: 'center' },
+        { key: 'pgAgencyLabel', label: '대행', title: '가맹점에 묶인 결제대행사. Hello VIEW SETTING에서 기본 비활성.', align: 'center', columnGuideLabel: '대행' },
         { key: 'settlementAmt', label: '정산금' },
         { key: 'receivables', label: '미수금' },
         { key: 'regNo', label: '사업자번호' },
@@ -4724,10 +4770,11 @@
           title: '결제 후속조치 (가맹점 관리자)',
           id: 'payFollowMerchantCard',
           merchantOnly: true,
-          notice: '관리자 화면의 자동무효·이메일무효·자동환불·강제환불 사용 여부입니다. 전산설정관리(전역) 및 본사권한설정의 조직 단계 상한과 함께 적용됩니다. [기본·종전]은 미설정과 동일(허용으로 해석)입니다.',
+          notice: '관리자 화면의 무효처리·이메일 무효·수동무효·환불처리·수동환불·강제환불 사용 여부입니다. 전산설정관리(전역) 및 본사권한설정의 조직 단계 상한과 함께 적용됩니다. [기본·종전]은 미설정과 동일(허용으로 해석)입니다.',
           rows: [
             [{ label: '후속조치 사용', type: 'select', name: 'payFollowMerchantUseYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
-            [{ label: '자동무효', type: 'select', name: 'payFollowAutoVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '이메일 무효', type: 'select', name: 'payFollowEmailVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '자동환불', type: 'select', name: 'payFollowAutoRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '강제환불', type: 'select', name: 'payFollowForceRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }]
+            [{ label: '무효처리', type: 'select', name: 'payFollowAutoVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '이메일 무효', type: 'select', name: 'payFollowEmailVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '수동무효', type: 'select', name: 'payFollowManualVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }],
+            [{ label: '환불처리', type: 'select', name: 'payFollowAutoRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '수동환불', type: 'select', name: 'payFollowManualRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '강제환불', type: 'select', name: 'payFollowForceRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }]
           ]
         },
         {
@@ -4872,7 +4919,7 @@
           title: '고객 거래명세서 이메일',
           id: 'receiptEmailCard',
           merchantOnly: true,
-          notice: '결제 완료(승인) 시 구매자 이메일로 HTML 거래명세서를 발송합니다. 본사·총판 정책을 따르거나 가맹에서 직접 지정할 수 있습니다. SMTP는 전산설정을 사용합니다.',
+          notice: '결제 완료·환불·무효 시 구매자 이메일로 HTML 거래명세서를 발송합니다. 본사·총판 정책을 따르거나 가맹에서 직접 지정할 수 있습니다. SMTP는 전산설정을 사용합니다.',
           rows: [
             [{ label: '정책', type: 'select', name: 'receiptEmailFollowHqYn', options: [{ v: 'Y', t: '총판·본사 따름' }, { v: 'N', t: '가맹 직접' }], col: 2 },
              { label: '발송', type: 'select', name: 'receiptEmailUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 }]
@@ -5093,10 +5140,11 @@
           title: '결제 후속조치 (가맹점 관리자)',
           id: 'payFollowMerchantCard',
           merchantOnly: true,
-          notice: '관리자 화면의 자동무효·이메일무효·자동환불·강제환불 사용 여부입니다. 전산설정관리(전역) 및 본사권한설정의 조직 단계 상한과 함께 적용됩니다. [기본·종전]은 미설정과 동일(허용으로 해석)입니다.',
+          notice: '관리자 화면의 무효처리·이메일 무효·수동무효·환불처리·수동환불·강제환불 사용 여부입니다. 전산설정관리(전역) 및 본사권한설정의 조직 단계 상한과 함께 적용됩니다. [기본·종전]은 미설정과 동일(허용으로 해석)입니다.',
           rows: [
             [{ label: '후속조치 사용', type: 'select', name: 'payFollowMerchantUseYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
-            [{ label: '자동무효', type: 'select', name: 'payFollowAutoVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '이메일 무효', type: 'select', name: 'payFollowEmailVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '자동환불', type: 'select', name: 'payFollowAutoRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '강제환불', type: 'select', name: 'payFollowForceRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }]
+            [{ label: '무효처리', type: 'select', name: 'payFollowAutoVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '이메일 무효', type: 'select', name: 'payFollowEmailVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '수동무효', type: 'select', name: 'payFollowManualVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }],
+            [{ label: '환불처리', type: 'select', name: 'payFollowAutoRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '수동환불', type: 'select', name: 'payFollowManualRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '강제환불', type: 'select', name: 'payFollowForceRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }]
           ]
         },
         {
@@ -5240,7 +5288,7 @@
           title: '고객 거래명세서 이메일',
           id: 'receiptEmailCard',
           merchantOnly: true,
-          notice: '결제 완료(승인) 시 구매자 이메일로 HTML 거래명세서를 발송합니다. 본사·총판 정책을 따르거나 가맹에서 직접 지정할 수 있습니다. SMTP는 전산설정을 사용합니다.',
+          notice: '결제 완료·환불·무효 시 구매자 이메일로 HTML 거래명세서를 발송합니다. 본사·총판 정책을 따르거나 가맹에서 직접 지정할 수 있습니다. SMTP는 전산설정을 사용합니다.',
           rows: [
             [{ label: '정책', type: 'select', name: 'receiptEmailFollowHqYn', options: [{ v: 'Y', t: '총판·본사 따름' }, { v: 'N', t: '가맹 직접' }], col: 2 },
              { label: '발송', type: 'select', name: 'receiptEmailUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 }]
@@ -7146,10 +7194,11 @@
           title: '결제 후속조치 (가맹점 관리자)',
           id: 'payFollowMerchantCard',
           merchantOnly: true,
-          notice: '관리자 화면의 자동무효·이메일무효·자동환불·강제환불 사용 여부입니다. 전산설정관리(전역) 및 본사권한설정의 조직 단계 상한과 함께 적용됩니다. [기본·종전]은 미설정과 동일(허용으로 해석)입니다.',
+          notice: '관리자 화면의 무효처리·이메일 무효·수동무효·환불처리·수동환불·강제환불 사용 여부입니다. 전산설정관리(전역) 및 본사권한설정의 조직 단계 상한과 함께 적용됩니다. [기본·종전]은 미설정과 동일(허용으로 해석)입니다.',
           rows: [
             [{ label: '후속조치 사용', type: 'select', name: 'payFollowMerchantUseYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
-            [{ label: '자동무효', type: 'select', name: 'payFollowAutoVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '이메일 무효', type: 'select', name: 'payFollowEmailVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '자동환불', type: 'select', name: 'payFollowAutoRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '강제환불', type: 'select', name: 'payFollowForceRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }]
+            [{ label: '무효처리', type: 'select', name: 'payFollowAutoVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '이메일 무효', type: 'select', name: 'payFollowEmailVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '수동무효', type: 'select', name: 'payFollowManualVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }],
+            [{ label: '환불처리', type: 'select', name: 'payFollowAutoRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '수동환불', type: 'select', name: 'payFollowManualRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '강제환불', type: 'select', name: 'payFollowForceRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }]
           ]
         },
         {
@@ -7166,7 +7215,7 @@
           title: '고객 거래명세서 이메일',
           id: 'receiptEmailCard',
           merchantOnly: true,
-          notice: '결제 완료(승인) 시 구매자 이메일로 HTML 거래명세서를 발송합니다. 본사·총판 정책을 따르거나 가맹에서 직접 지정할 수 있습니다. SMTP는 전산설정을 사용합니다.',
+          notice: '결제 완료·환불·무효 시 구매자 이메일로 HTML 거래명세서를 발송합니다. 본사·총판 정책을 따르거나 가맹에서 직접 지정할 수 있습니다. SMTP는 전산설정을 사용합니다.',
           rows: [
             [{ label: '정책', type: 'select', name: 'receiptEmailFollowHqYn', options: [{ v: 'Y', t: '총판·본사 따름' }, { v: 'N', t: '가맹 직접' }], col: 2 },
              { label: '발송', type: 'select', name: 'receiptEmailUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 }]
@@ -8031,7 +8080,7 @@
       '비활성카드·쿨다운 대기 중 재시도는 결제내역에 남기지 않습니다. 카드위험 트리거 N차까지의 유효 실패·JPAY 시도 완료 건만 표시됩니다.'
     ])));
     MENU_SCREENS['/calc/payRefundList'] = asStatusOnlyPayScreen(stripStatusDiv(cloneWith('REFUND', [
-      '환불처리: 통합 결제내역에서 일반·자동환불(내부 30·42)만 간추렸습니다.',
+      '환불처리: 통합 결제내역에서 환불(내부 30·42)만 간추렸습니다.',
       '상단은 건수와 해당 상태(환불) 요약 pill만 표시합니다(일별통합과 동일).'
     ])));
     MENU_SCREENS['/calc/payForceRefundList'] = asStatusOnlyPayScreen(stripStatusDiv(cloneWith('FORCE_REFUND', [
@@ -8047,7 +8096,7 @@
       '상단은 건수와 해당 상태(무효) 요약 pill만 표시합니다(일별통합과 동일).'
     ])));
     MENU_SCREENS['/calc/payEmailVoidList'] = asStatusOnlyPayScreen(stripStatusDiv(cloneWith('MANUAL_VOID', [
-      '이메일무효: 통합 결제내역에서 수동·이메일 무효(내부 22·41)만 표시합니다. 자동무효(21·40)는 「무효처리」메뉴입니다.',
+      '이메일 무효: 통합 결제내역에서 이메일 무효(내부 22·41)만 표시합니다. 무효처리(21·40)는 「무효처리」메뉴입니다.',
       '상단은 건수와 해당 상태(이메일 무효) 요약 pill만 표시합니다(일별통합과 동일).'
     ])));
     MENU_SCREENS['/calc/offsetCancList'] = cloneWith('OFFSET_CANCEL', [
@@ -8686,7 +8735,7 @@
     var items = cols.map(function (c) {
       var key = gridColGuideKey(c);
       var label = c.columnGuideLabel || c.label || c.key;
-      return '<label class="column-guide-item column-guide-item--on"><input type="checkbox" class="column-guide-check" data-key="' + escGl(key) + '" checked> <span class="column-guide-label">' + escGl(L(String(label))) + '</span></label>';
+      return '<label class="column-guide-item column-guide-item--on"><input type="checkbox" class="column-guide-check" data-key="' + escGl(key) + '" checked> <span class="column-guide-label" data-pg-ui-t="' + escGl(String(label)) + '">' + escGl(L(String(label))) + '</span></label>';
     }).join('');
     var actionsHtml =
       '<button type="button" class="btn btn-xs btn-outline-secondary column-guide-action-btn" id="compMngDefaultColumnsBtn" data-pg-i18n-cg-act="default">' + escGl(L('기본')) + '</button>' +

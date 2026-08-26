@@ -20,6 +20,15 @@
     if (window.PG_UI_I18N && typeof window.PG_UI_I18N.t === 'function') return String(window.PG_UI_I18N.t(String(s)));
     return String(s);
   }
+  function pgAdminTodayIsoLocal() {
+    try {
+      var d = new Date();
+      if (isNaN(d.getTime())) return '';
+      return String(d.getFullYear()) + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    } catch (eTod) {
+      return '';
+    }
+  }
   /** NOTI Provision 등 — 서버 Accept-Language 매핑용 관리자 UI 언어 */
   function pgAdminLangParam() {
     if (window.PG_UI_I18N && typeof window.PG_UI_I18N.getLocale === 'function') {
@@ -425,6 +434,7 @@
         var titleEl = document.getElementById('pgHqAccountAccessModalTitle');
         if (idEl) idEl.value = '';
         if (titleEl) titleEl.textContent = pgAdminUiT('접근권한 추가');
+        if (titleEl) titleEl.setAttribute('data-pg-ui-t', '접근권한 추가');
       });
     }
     (function initHqAccountAccessAddModalSelects() {
@@ -3646,6 +3656,58 @@
     applyOpsIcRegPanBrandUi(pane);
   }
 
+  function opsIcPgVendorOptionLabel(row) {
+    var cd = String(row && row.pgCd != null ? row.pgCd : '').trim();
+    var nm = String(row && row.pgNm != null ? row.pgNm : '').trim();
+    if (nm && cd && nm.toUpperCase() !== cd.toUpperCase()) return nm + ' (' + cd + ')';
+    return nm || cd;
+  }
+
+  function fillOpsIcPgVendorSelect(sel, selectedValue) {
+    if (!sel) return Promise.resolve();
+    var keep = selectedValue != null ? String(selectedValue) : String(sel.value || '');
+    function applyList(list) {
+      var html = '<option value="" data-pg-ui-t="전체 PG">' + pgAdminEscHtml(pgAdminUiT('전체 PG')) + '</option>';
+      (list || []).forEach(function (row) {
+        var cd = String(row && row.pgCd != null ? row.pgCd : '').trim();
+        if (!cd) return;
+        var lab = opsIcPgVendorOptionLabel(row);
+        html += '<option value="' + String(cd).replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '">' + pgAdminEscHtml(lab) + '</option>';
+      });
+      sel.innerHTML = html;
+      if (keep) {
+        var found = false;
+        for (var i = 0; i < sel.options.length; i++) {
+          if (sel.options[i].value === keep) { found = true; break; }
+        }
+        if (!found) {
+          var o = document.createElement('option');
+          o.value = keep;
+          o.textContent = keep;
+          sel.appendChild(o);
+        }
+        sel.value = keep;
+      }
+      if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
+        try { window.PG_UI_I18N.applyDom(sel); } catch (ePgIc) {}
+      }
+    }
+    if (window._pgOpsIcAgencyList) {
+      applyList(window._pgOpsIcAgencyList);
+      return Promise.resolve();
+    }
+    if (!window.PG_API || typeof window.PG_API.pgAgencyList !== 'function') {
+      applyList([{ pgCd: 'JPAY', pgNm: 'JPAY' }, { pgCd: 'CHILLPAY', pgNm: 'ChillPay' }]);
+      return Promise.resolve();
+    }
+    return window.PG_API.pgAgencyList().then(function (list) {
+      window._pgOpsIcAgencyList = Array.isArray(list) ? list : [];
+      applyList(window._pgOpsIcAgencyList);
+    }).catch(function () {
+      applyList([{ pgCd: 'JPAY', pgNm: 'JPAY' }, { pgCd: 'CHILLPAY', pgNm: 'ChillPay' }]);
+    });
+  }
+
   function applyOpsInactiveCardWriteUi(pane, canWrite) {
     if (!pane) return;
     pane._opsIcCanWrite = !!canWrite;
@@ -5086,7 +5148,12 @@
   }
 
   function bindOpsInactiveCardScreen(pane, tabId, doSearchFn) {
-    if (!pane || pane._inactiveCardBound) return;
+    if (!pane) return;
+    if (pane._inactiveCardBound) {
+      fillOpsIcPgVendorSelect(pane.querySelector('#opsIcRegPg'));
+      fillOpsIcPgVendorSelect(document.getElementById('opsIcEditPg'));
+      return;
+    }
     pane._inactiveCardBound = true;
     var opsIcEditModal = ensureOpsInactiveCardEditModal();
     if (opsIcEditModal) bindOpsIcEditModalOnce(opsIcEditModal);
@@ -5105,6 +5172,8 @@
       }
     }
     applyOpsInactiveCardWriteUi(pane, canWriteOpsInactiveCard());
+    fillOpsIcPgVendorSelect(pane.querySelector('#opsIcRegPg'), '');
+    fillOpsIcPgVendorSelect(document.getElementById('opsIcEditPg'), '');
     if (window.PG_API && typeof window.PG_API.opsInactiveCardAccess === 'function') {
       window.PG_API.opsInactiveCardAccess().then(function (meta) {
         if (meta && meta.allowed === false) {
@@ -5197,8 +5266,11 @@
       if (cIdEl) cIdEl.value = editBtn.getAttribute('data-comp-id') || '';
       if (cNmEl) cNmEl.value = editBtn.getAttribute('data-comp-nm') || '';
       if (hEl) hEl.value = editBtn.getAttribute('data-holder') || '';
-      if (pgEl) pgEl.value = editBtn.getAttribute('data-pg') || '';
       if (rEl) rEl.value = editBtn.getAttribute('data-reason') || '';
+      var editPgVal = editBtn.getAttribute('data-pg') || '';
+      fillOpsIcPgVendorSelect(pgEl, editPgVal).then(function () {
+        if (pgEl) pgEl.value = editPgVal;
+      });
       if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
         try { window.PG_UI_I18N.applyDom(modalEl); } catch (eIcModI18n) {}
       }
@@ -7112,6 +7184,7 @@
         pgSel._pgAgencyTemplateBound = true;
         pgSel.addEventListener('change', function () {
           applyPgAgencyTemplateDefaults(tr, true);
+          syncPgBindingUnusedSelect(tr);
           if (typeof window.pgApplyUrlPayWebSettingsCardState === 'function') window.pgApplyUrlPayWebSettingsCardState(pane);
           else {
             var cidPg = getCompId();
@@ -7332,6 +7405,7 @@
 
       tr.querySelector('[data-field="activationYn"]').value = data.activationYn || 'Y';
       tr.querySelector('[data-field="pgCd"]').value = data.pgCd || '';
+      syncPgBindingUnusedSelect(tr);
       tr.querySelector('[data-field="payMethod"]').value = data.payMethod || 'WEB';
       tr.querySelector('[data-field="mid"]').value = data.mid || '';
       tr.querySelector('[data-field="rootNo"]').value = data.rootNo || '';
@@ -7436,6 +7510,48 @@
     }
 
     var pgAgencyCatalog = null;
+    var pgAgencyAllList = [];
+
+    function pgAgencyUseY(p) {
+      return String(p && p.useYn != null ? p.useYn : 'Y').toUpperCase() !== 'N';
+    }
+    function pgAgencyOptionHtml(p, unused) {
+      var cd = (p && p.pgCd ? String(p.pgCd) : '').trim();
+      var lab = ((p && p.pgNm) ? p.pgNm : cd) + ' (' + cd + ')';
+      var kLab = (p && p.integKindLabel ? String(p.integKindLabel) : '').trim();
+      if (kLab) lab += ' · ' + kLab;
+      if (!unused && p && p.hqOperationalYn === 'N') lab += ' · 본사미운영';
+      if (unused) lab += ' · ' + pgAdminUiT('미사용');
+      var extra = unused ? ' class="pg-agency-opt--unused" data-pg-use-yn="N"' : ' data-pg-use-yn="Y"';
+      return '<option value="' + escPgOpt(cd) + '"' + extra + '>' + escPgOpt(lab) + '</option>';
+    }
+    function pgAgencyOptsHtmlForBound(boundCd) {
+      var html = pgBindingSelectOptsHtml([{ v: '', t: '선택' }]);
+      var seen = {};
+      (pgAgencyAllList || []).forEach(function (p) {
+        if (!pgAgencyUseY(p)) return;
+        var cd = (p.pgCd || '').trim();
+        if (!cd) return;
+        seen[cd.toUpperCase()] = true;
+        html += pgAgencyOptionHtml(p, false);
+      });
+      var b = boundCd ? String(boundCd).trim() : '';
+      if (b && !seen[b.toUpperCase()]) {
+        var key = typeof pgNormalizePgCdKey === 'function' ? pgNormalizePgCdKey(b) : b.toUpperCase();
+        var pBound = (pgAgencyCatalog && (pgAgencyCatalog[key] || pgAgencyCatalog[b.toUpperCase()])) || { pgCd: b, pgNm: b, useYn: 'N' };
+        html += pgAgencyOptionHtml(pBound, true);
+      }
+      return html;
+    }
+    function syncPgBindingUnusedSelect(trSync) {
+      if (!trSync) return;
+      var sel = trSync.querySelector('[data-field="pgCd"]');
+      if (!sel) return;
+      var opt = sel.options[sel.selectedIndex];
+      var unused = !!(opt && String(opt.getAttribute('data-pg-use-yn') || 'Y').toUpperCase() === 'N');
+      sel.classList.toggle('pg-binding-pg--unused', unused);
+      trSync.classList.toggle('pg-binding-row--pg-unused', unused);
+    }
 
     window.PG_API.pgAgencyList().then(function (list) {
       return window.PG_API.hqApiConfig().catch(function () { return {}; }).then(function (cfg) {
@@ -7445,21 +7561,13 @@
       });
     }).then(function (list) {
       pgAgencyCatalog = {};
-      (list || []).forEach(function (p) {
+      pgAgencyAllList = list || [];
+      pgAgencyAllList.forEach(function (p) {
         var cd = (p.pgCd || '').trim();
         if (!cd) return;
         var key = pgNormalizePgCdKey(cd);
         pgAgencyCatalog[key] = p;
         if (cd.toUpperCase() !== key) pgAgencyCatalog[cd.toUpperCase()] = p;
-      });
-      var pgAgencyOptsHtml = pgBindingSelectOptsHtml([{ v: '', t: '선택' }]);
-      (list || []).forEach(function (p) {
-        var cd = (p.pgCd || '').trim();
-        var lab = (p.pgNm || cd) + ' (' + cd + ')';
-        var kLab = (p.integKindLabel || '').trim();
-        if (kLab) lab += ' · ' + kLab;
-        if (p.hqOperationalYn === 'N') lab += ' · 본사미운영';
-        pgAgencyOptsHtml += '<option value="' + escPgOpt(cd) + '">' + escPgOpt(lab) + '</option>';
       });
       var bindings = initialBindings || [];
       if (bindings.length > 0) {
@@ -7492,7 +7600,7 @@
             extSettleMode: b.extSettleMode != null ? String(b.extSettleMode) : '',
             extSettleLag: b.extSettleLag != null ? String(b.extSettleLag) : '',
             extSettleBatchTime: b.extSettleBatchTime != null ? String(b.extSettleBatchTime) : ''
-          }, pgAgencyOptsHtml);
+          }, pgAgencyOptsHtmlForBound(b.pgCd));
         });
         ensureSingleRowOperationalCheckbox();
         tbody.querySelectorAll('tr').forEach(function (tRow) { pgSyncPgBindingRowRoutingScopeUi(tRow, pgAgencyCatalog); });
@@ -7518,16 +7626,17 @@
       addBtn.addEventListener('click', function () {
         var idx = tbody.querySelectorAll('tr').length;
         if (rowActionMode) {
-          addRow(idx, { operationalYn: idx === 0 ? 'Y' : 'N' }, pgAgencyOptsHtml);
+          addRow(idx, { operationalYn: idx === 0 ? 'Y' : 'N' }, pgAgencyOptsHtmlForBound(''));
         } else {
-          addRow(idx, idx === 0 ? { operationalYn: 'Y' } : {}, pgAgencyOptsHtml);
+          addRow(idx, idx === 0 ? { operationalYn: 'Y' } : {}, pgAgencyOptsHtmlForBound(''));
         }
         reindexRows();
       });
     }).catch(function () {
       pgAgencyCatalog = {};
+      pgAgencyAllList = [];
       pane._pgAgencyCatalog = {};
-      var pgAgencyOptsHtml = pgBindingSelectOptsHtml([{ v: '', t: '선택' }]);
+      var pgAgencyOptsHtml = pgAgencyOptsHtmlForBound('');
       if (typeof window.pgApplyUrlPayWebSettingsCardState === 'function') window.pgApplyUrlPayWebSettingsCardState(pane);
       if (typeof window.applyReadOnlyCompInfoDetailIfOwn === 'function' && pane._lastCompInfoDetailData) {
         var fuInit2 = pane.getAttribute('formurl') || '';
@@ -7642,6 +7751,67 @@
     }
     syncPgAgencyIntegKindUi();
     if (uyEl) uyEl.value = (preset.useYn === 'N') ? 'N' : 'Y';
+    (function fillPgAgencyPayFollow() {
+      function ynY(v) { return String(v || '').toUpperCase() === 'Y'; }
+      var map = {
+        AUTO_VOID: document.getElementById('pgAgencyPayFollowAutoVoid'),
+        EMAIL_VOID: document.getElementById('pgAgencyPayFollowEmailVoid'),
+        MANUAL_VOID: document.getElementById('pgAgencyPayFollowManualVoid'),
+        AUTO_REFUND: document.getElementById('pgAgencyPayFollowAutoRefund'),
+        MANUAL_REFUND: document.getElementById('pgAgencyPayFollowManualRefund'),
+        FORCE_REFUND: document.getElementById('pgAgencyPayFollowForceRefund'),
+        SAME_DAY: document.getElementById('pgAgencyPayFollowSameDayRefund')
+      };
+      if (map.AUTO_VOID) map.AUTO_VOID.checked = ynY(preset.payFollowAutoVoidYn);
+      if (map.EMAIL_VOID) map.EMAIL_VOID.checked = ynY(preset.payFollowEmailVoidYn);
+      if (map.MANUAL_VOID) map.MANUAL_VOID.checked = ynY(preset.payFollowManualVoidYn);
+      if (map.AUTO_REFUND) map.AUTO_REFUND.checked = ynY(preset.payFollowAutoRefundYn) || pgNewBlank;
+      if (map.MANUAL_REFUND) map.MANUAL_REFUND.checked = ynY(preset.payFollowManualRefundYn);
+      if (map.FORCE_REFUND) map.FORCE_REFUND.checked = ynY(preset.payFollowForceRefundYn) || pgNewBlank;
+      if (map.SAME_DAY) map.SAME_DAY.checked = ynY(preset.payFollowSameDayRefundYn);
+      function familyMask(pgCd) {
+        var chill = typeof pgIsChillPayFamilyPgCd === 'function' && pgIsChillPayFamilyPgCd(pgCd);
+        var jpay = typeof pgIsJpayFamilyPgCd === 'function' && pgIsJpayFamilyPgCd(pgCd);
+        var ep = typeof pgIsElementPayFamilyPgCd === 'function' && pgIsElementPayFamilyPgCd(pgCd);
+        if (!jpay && String(pgCd || '').toUpperCase().indexOf('JPAY') === 0) jpay = true;
+        if (!ep && String(pgCd || '').toUpperCase().indexOf('ELEMENTPAY') === 0) ep = true;
+        var allow = {
+          AUTO_VOID: !!chill && !jpay && !ep,
+          EMAIL_VOID: !!chill && !jpay,
+          MANUAL_VOID: !!jpay,
+          AUTO_REFUND: true,
+          MANUAL_REFUND: !!jpay,
+          FORCE_REFUND: true,
+          SAME_DAY: !!ep
+        };
+        Object.keys(map).forEach(function (k) {
+          var el = map[k];
+          if (!el) return;
+          var ok = allow[k] !== false;
+          el.disabled = !ok;
+          if (!ok) el.checked = false;
+          var wrap = el.closest('.form-check');
+          if (wrap) wrap.classList.toggle('opacity-50', !ok);
+        });
+        if (pgNewBlank) {
+          if (map.AUTO_VOID && allow.AUTO_VOID) map.AUTO_VOID.checked = true;
+          if (map.EMAIL_VOID && allow.EMAIL_VOID) map.EMAIL_VOID.checked = true;
+          if (map.MANUAL_VOID && allow.MANUAL_VOID) map.MANUAL_VOID.checked = true;
+          if (map.AUTO_REFUND && allow.AUTO_REFUND) map.AUTO_REFUND.checked = true;
+          if (map.MANUAL_REFUND && allow.MANUAL_REFUND) map.MANUAL_REFUND.checked = true;
+          if (map.FORCE_REFUND && allow.FORCE_REFUND) map.FORCE_REFUND.checked = true;
+          if (map.SAME_DAY && allow.SAME_DAY) map.SAME_DAY.checked = true;
+        }
+      }
+      var cdNow = (cdEl && cdEl.value) ? String(cdEl.value) : (preset.pgCd || '');
+      familyMask(cdNow);
+      if (cdEl && !cdEl._pgFollowCdBound) {
+        cdEl._pgFollowCdBound = true;
+        cdEl.addEventListener('input', function () {
+          familyMask(cdEl.value || '');
+        });
+      }
+    })();
     if (midEl) midEl.value = preset.merchantMid != null ? String(preset.merchantMid) : '';
     if (rnEl) rnEl.value = preset.routeNo != null && preset.routeNo !== '' ? String(preset.routeNo) : '';
     (function syncRouteNoForPg() {
@@ -7893,8 +8063,9 @@
       if (jsonEl) jsonEl.value = JSON.stringify(readRows());
     }
     function clearEditor() {
-      if (fromEl) fromEl.value = '';
-      if (toEl) toEl.value = '';
+      var today = todayYmd();
+      if (fromEl) fromEl.value = today;
+      if (toEl) toEl.value = today;
       if (reasonEl) reasonEl.value = '';
       if (writerEl) writerEl.value = '';
       addBtn.textContent = pgAdminUiT('추가');
@@ -8937,6 +9108,20 @@
           return k && distOpsFixed.indexOf(k) === -1;
         });
       }
+    } else if (pageUrl === '/comp/compMngTree') {
+      var screensCompTree = window.PG_SCREENS && typeof window.PG_SCREENS.getMenuScreens === 'function' ? window.PG_SCREENS.getMenuScreens() : null;
+      var compTreeCfg = screensCompTree && screensCompTree['/comp/compMngTree'];
+      if (!compTreeCfg || !compTreeCfg.columns) return null;
+      var ctFixed = compTreeCfg.columnGuideFixedKeys || ['_chk', 'rowNo', 'compId', 'compNm', 'compDivNm'];
+      var ctOff = {};
+      (compTreeCfg.columnGuideDefaultOffKeys || []).forEach(function (k) { if (k) ctOff[k] = true; });
+      if (compTreeCfg.viewSettingDefaultSelectedKeys && compTreeCfg.viewSettingDefaultSelectedKeys.length) {
+        def = compTreeCfg.viewSettingDefaultSelectedKeys.slice();
+      } else {
+        def = compTreeCfg.columns.map(function (cc) { return cc.key; }).filter(function (k) {
+          return k && ctFixed.indexOf(k) === -1 && k !== '_chk' && !ctOff[k];
+        });
+      }
     } else {
       return null;
     }
@@ -9237,6 +9422,8 @@
     var tailSet = {};
     tailKeys.forEach(function (k) { if (k) tailSet[k] = true; });
     var hiddenSet = payListColumnGuideHiddenKeySet(cfg);
+    var offSet = {};
+    (cfg.columnGuideDefaultOffKeys || []).forEach(function (k) { if (k) offSet[k] = true; });
     var cols = cfg.columns.filter(function (c) {
       if (!c || hiddenSet[c.key]) return false;
       if (c.type === 'checkbox' || c.type === 'accountAccessActions' || c.type === 'accountAccessDelete' || c.type === 'userResetPassword' || c.type === 'userDelete' || c.type === 'payoutHoldReleaseBtn' || c.type === 'inactiveCardRelease' || c.type === 'inactiveCardEdit') return false;
@@ -9245,7 +9432,8 @@
     var html = cols.map(function (c) {
       var key = c.key || '';
       var lab = c.columnGuideLabel || c.label || c.key;
-      return '<label class="column-guide-item column-guide-item--on"><input type="checkbox" class="column-guide-check" data-key="' + escPayCatalogHtml(key) + '" checked> <span class="column-guide-label">' + escPayCatalogHtml(lab) + '</span></label>';
+      var checkedAttr = offSet[key] ? '' : ' checked';
+      return '<label class="column-guide-item column-guide-item--on"><input type="checkbox" class="column-guide-check" data-key="' + escPayCatalogHtml(key) + '"' + checkedAttr + '> <span class="column-guide-label">' + escPayCatalogHtml(lab) + '</span></label>';
     }).join('');
     var defs = pane._viewCustomColumnDefs;
     if (defs && defs.length) {
@@ -11837,6 +12025,11 @@
         }
 
         if (!data || data.hasSetting !== true) {
+          var guideOffKeys = ((pane._payListMergedCfg && pane._payListMergedCfg.columnGuideDefaultOffKeys) || []);
+          function withoutGuideDefaultOff(keys) {
+            if (!guideOffKeys.length || !keys) return keys;
+            return keys.filter(function (k) { return guideOffKeys.indexOf(k) === -1; });
+          }
           var hqDefSel = null;
           if (data && data.defaultSelectedKeysJson != null) {
             try {
@@ -11849,6 +12042,7 @@
               hqDefSel = hqDefSel.filter(function (k) { return pane._allowedColumnKeys.indexOf(k) !== -1; });
             }
             hqDefSel = ensurePayActionsInPayListViewKeys(url, hqDefSel, pane);
+            hqDefSel = withoutGuideDefaultOff(hqDefSel);
             if (hqDefSel.length) {
               applySelectedGuideKeys(hqDefSel);
               captureViewSettingLastSavedSnapshot();
@@ -11862,15 +12056,16 @@
               if (!payDef0.length) payDef0 = pane._allowedColumnKeys.slice();
             }
             payDef0 = ensurePayActionsInPayListViewKeys(url, payDef0, pane);
+            payDef0 = withoutGuideDefaultOff(payDef0);
             if (payDef0.length) applySelectedGuideKeys(payDef0);
-            else applySelectedGuideKeys(getVisibleGuideKeys());
+            else applySelectedGuideKeys(withoutGuideDefaultOff(getVisibleGuideKeys()));
             captureViewSettingLastSavedSnapshot();
             return;
           }
           if (pane._columnAllowanceRestricted && pane._allowedColumnKeys && pane._allowedColumnKeys.length) {
-            applySelectedGuideKeys(pane._allowedColumnKeys.slice());
+            applySelectedGuideKeys(withoutGuideDefaultOff(pane._allowedColumnKeys.slice()));
           } else {
-            applySelectedGuideKeys(getVisibleGuideKeys());
+            applySelectedGuideKeys(withoutGuideDefaultOff(getVisibleGuideKeys()));
           }
           captureViewSettingLastSavedSnapshot();
           return;
@@ -15814,6 +16009,11 @@
           /** 번호·관리(_pgRowAct는 아래 별도 처리)만 고정. Route·엔드포인트 등은 VIEW SETTING과 동일 */
           fixedKeys = ['rowNo'];
         }
+        if (url === '/comp/compMngTree') {
+          fixedKeys = (cfg && cfg.columnGuideFixedKeys && cfg.columnGuideFixedKeys.length)
+            ? cfg.columnGuideFixedKeys.slice()
+            : ['_chk', 'rowNo', 'compId', 'compNm', 'compDivNm'];
+        }
         if (url === '/commission/commisionList') {
           /** 체크·No·가맹점·업체코드만 항상 표시. 관리(inlineActions) 포함 나머지는 VIEW SETTING·조직항목설정과 동일 키로 토글 */
           fixedKeys = ['_chk', 'rowNo', 'compNm', 'compId'];
@@ -16031,6 +16231,9 @@
             if (isCompMngTree && row.treeRowMuted === true) {
               trExtraClass = (trExtraClass || '') + ' comp-tree-row-muted';
             }
+            if (isCompMngTree && (row.pgAgencyInactiveYn === true || String(row.pgAgencyInactiveYn || '').toUpperCase() === 'Y')) {
+              trExtraClass = (trExtraClass || '') + ' comp-tree-pg-agency-issue';
+            }
             var dataCompAttr = (url === '/commission/commisionList' && row.compId) ? (' data-comp-id="' + String(row.compId).replace(/"/g, '&quot;') + '"') : '';
             var draftAttr = (url === '/user/userMng' && row._draft) ? (' data-draft="1" data-temp-id="' + escAttr(row._tempId) + '"') : '';
             html += '<tr' + (trExtraClass ? ' class="' + trExtraClass.trim() + '"' : '') + ' data-row-idx="' + idx + '" data-id="' + (rowId || '') + '" data-parent-id="' + (parentId || '') + '" data-row="' + (isCompMngTree ? encodeURIComponent(JSON.stringify(row)) : '') + '"' + dataCompAttr + draftAttr + '>';
@@ -16068,10 +16271,36 @@
                   }
                   html += '<td class="small pay-actions-cell">' +
                     '<div class="pay-follow-pill-row d-inline-flex flex-wrap align-items-center gap-1">' +
-                    payFollowBtnJpay('AUTO_REFUND', '자동환불') +
+                    payFollowBtnJpay('AUTO_REFUND', '환불처리') +
                     payFollowBtnJpay('FORCE_REFUND', '강제환불') +
                     payFollowBtnJpay('MANUAL_VOID', '수동무효') +
                     payFollowBtnJpay('MANUAL_REFUND', '수동환불') +
+                    '</div></td>';
+                } else if (row.payFollowRefundApiOnly === true) {
+                  var seqEp = row.paySeq != null ? String(row.paySeq) : '';
+                  var escEp = function (s) {
+                    return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+                  };
+                  var esEp = escEp(seqEp);
+                  var pfaEp = (data && data.meta && data.meta.payFollowAllowed) || {};
+                  var pfrEp = row.payFollowRow || {};
+                  function payFollowBtnEp(act, labelKo) {
+                    var metaOk = pfaEp[act] === true;
+                    var rowOk = pfrEp[act];
+                    if (rowOk === undefined || rowOk === null) rowOk = true;
+                    var ok = metaOk && rowOk === true;
+                    var dis = ok ? '' : ' disabled';
+                    var pill = ok ? 'pay-follow-pill--active' : 'pay-follow-pill--disabled pay-follow--off';
+                    var cls = 'pay-follow pay-follow-pill ' + pill;
+                    var lab = (window.PG_PAY_LIST_I18N && typeof window.PG_PAY_LIST_I18N.payFollowLabel === 'function')
+                      ? window.PG_PAY_LIST_I18N.payFollowLabel(act) : labelKo;
+                    var urlRf = (act === 'AUTO_REFUND' || act === 'FORCE_REFUND') ? ' data-pg-url-refund="1"' : '';
+                    return '<button type="button" class="' + cls + '"' + dis + ' data-act="' + act + '" data-pg-pay-follow="' + act + '" data-trn="' + esEp + '"' + urlRf + '>' + lab + '</button>';
+                  }
+                  html += '<td class="small pay-actions-cell">' +
+                    '<div class="pay-follow-pill-row d-inline-flex flex-wrap align-items-center gap-1">' +
+                    payFollowBtnEp('AUTO_REFUND', '환불처리') +
+                    payFollowBtnEp('FORCE_REFUND', '강제환불') +
                     '</div></td>';
                 } else {
                   var seq = row.paySeq != null ? String(row.paySeq) : '';
@@ -16095,9 +16324,9 @@
                   }
                   html += '<td class="small pay-actions-cell">' +
                     '<div class="pay-follow-pill-row d-inline-flex flex-wrap align-items-center gap-1">' +
-                    payFollowBtn('AUTO_VOID', '자동무효') +
+                    payFollowBtn('AUTO_VOID', '무효처리') +
                     payFollowBtn('EMAIL_VOID', '이메일 무효') +
-                    payFollowBtn('AUTO_REFUND', '자동환불') +
+                    payFollowBtn('AUTO_REFUND', '환불처리') +
                     payFollowBtn('FORCE_REFUND', '강제환불') +
                     '</div></td>';
                 }
@@ -16626,18 +16855,23 @@
                     }
                   }
                   var mutedCls = row.treeRowMuted === true ? ' tree-row-muted' : '';
-                  var folderSvg = '<svg class="tree-icon tree-icon-folder ' + orgLevelClass + merchFolderTone + mutedCls + '" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>';
-                  var docSvg = '<svg class="tree-icon tree-icon-doc ' + orgLevelClass + merchFolderTone + mutedCls + '" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z"/></svg>';
+                  var pgIssueCls = (row.pgAgencyInactiveYn === true || String(row.pgAgencyInactiveYn || '').toUpperCase() === 'Y')
+                    ? ' tree-pg-agency-issue' : '';
+                  var folderSvg = '<svg class="tree-icon tree-icon-folder ' + orgLevelClass + merchFolderTone + mutedCls + pgIssueCls + '" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>';
+                  var docSvg = '<svg class="tree-icon tree-icon-doc ' + orgLevelClass + merchFolderTone + mutedCls + pgIssueCls + '" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z"/></svg>';
                   var icon = hasChildren ? folderSvg : docSvg;
                   var escTreeAttr = function (s) {
                     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
                   };
                   var merchToneData = merchToneSlug ? (' data-merch-tone="' + escTreeAttr(merchToneSlug) + '"') : '';
                   var toggle = hasChildren
-                    ? '<span class="tree-toggle ' + orgLevelClass + merchFolderTone + mutedCls + ' ' + (expanded ? 'expanded' : 'collapsed') + '" data-id="' + escTreeAttr(rowId) + '" data-org-level="' + escTreeAttr(compDivRaw) + '"' + merchToneData + ' title="' + (expanded ? '접기' : '펼치기') + '">' + (expanded ? '\u25BC' : '\u25B6') + '</span>'
+                    ? '<span class="tree-toggle ' + orgLevelClass + merchFolderTone + mutedCls + pgIssueCls + ' ' + (expanded ? 'expanded' : 'collapsed') + '" data-id="' + escTreeAttr(rowId) + '" data-org-level="' + escTreeAttr(compDivRaw) + '"' + merchToneData + ' title="' + (expanded ? '접기' : '펼치기') + '">' + (expanded ? '\u25BC' : '\u25B6') + '</span>'
                     : '<span class="tree-toggle-placeholder"></span>';
                   var compTreeValEsc = escHtmlBody(val || '');
-                  html += '<td class="tree-comp-cell' + mutedCls + '" style="padding-left:' + px + 'px"><div class="tree-comp-cell-inner">' + icon + toggle + '<span class="pg-comp-grid-clamp" title="' + escHtmlTitle(val || '') + '">' + compTreeValEsc + '</span></div></td>';
+                  var pgIssueTitle = pgIssueCls
+                    ? (' title="' + escHtmlTitle(pgAdminUiT('미사용 결제대행사가 선택되어 있습니다.')) + ' ' + escHtmlTitle(val || '') + '"')
+                    : (' title="' + escHtmlTitle(val || '') + '"');
+                  html += '<td class="tree-comp-cell' + mutedCls + pgIssueCls + '" style="padding-left:' + px + 'px"><div class="tree-comp-cell-inner">' + icon + toggle + '<span class="pg-comp-grid-clamp"' + pgIssueTitle + '>' + compTreeValEsc + '</span></div></td>';
                 } else if (isCompMngTree && c.key === 'compNm') {
                   var compNmPlain = val == null ? '' : String(val);
                   var nmMuted = row.treeRowMuted === true ? ' comp-tree-cell-muted' : '';
@@ -16648,6 +16882,14 @@
                     html += '<td class="text-center align-middle small">-</td>';
                   } else {
                     html += '<td class="text-center align-middle small"><span class="pg-comp-grid-clamp" title="' + escHtmlTitle(sr0) + '">' + escHtmlBody(sr0) + '</span></td>';
+                  }
+                } else if (isCompMngTree && c.key === 'pgAgencyLabel') {
+                  var pgLab0 = String(row.pgAgencyLabel != null ? row.pgAgencyLabel : val || '').trim();
+                  var pgIssueCell = (row.pgAgencyInactiveYn === true || String(row.pgAgencyInactiveYn || '').toUpperCase() === 'Y');
+                  if (!pgLab0 || pgLab0 === '-') {
+                    html += '<td class="text-center align-middle small">-</td>';
+                  } else {
+                    html += '<td class="text-center align-middle small' + (pgIssueCell ? ' tree-pg-agency-issue' : '') + '"><span class="pg-comp-grid-clamp" title="' + escHtmlTitle(pgLab0) + '">' + escHtmlBody(pgLab0) + '</span></td>';
                   }
                 } else if (isCompMngTree && c.key === 'payIntegrationMode') {
                   var pim0 = String(row.payIntegrationMode != null ? row.payIntegrationMode : val || '').trim().toUpperCase();
@@ -21159,7 +21401,7 @@
         form.querySelectorAll('input, select, textarea').forEach(function (el) { el.disabled = false; });
         var updBtnReset = pane.querySelector('#compInfoUpdateBtn');
         if (updBtnReset) updBtnReset.style.display = '';
-        var allFieldsInfo = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'webPaymentHeaderLogoMode', 'webPaymentHeaderLogoUrl', 'webPaymentHeaderHtmlTitle', 'webPaymentHeaderSubtitleMode', 'webPaymentHeaderSubtitleText', 'urlPayCheckoutMode', 'urlPayInputMode', 'urlPayCardExpiryMode', 'urlPayProductNameUseYn', 'urlPayCompanyNameShowYn', 'urlPayLangMenuUseYn', 'checkoutContactRememberMode', 'urlPayShippingAddressUseYn', 'apiUrlPayCheckoutMode', 'splitPayEnabledYn', 'splitPayIntervalMonthYn', 'splitPayIntervalDayYn', 'splitPayIntervalMultiYn', 'splitPayDayIntervalDays', 'splitPayMonthIntervalMonths', 'splitPayMultiMaxMonths', 'splitPayFirstPayMode', 'splitPayHeaderLogoMode', 'splitPayHeaderLogoUrl', 'splitPayHeaderHtmlTitle', 'splitPayHeaderSubtitleMode', 'splitPayHeaderSubtitleText', 'splitPayLangMenuUseYn', 'chatbotUrlPayCheckoutMode', 'jpayCheckoutFieldMode', 'apiJpaySubscriptionUseYn', 'apiBrokerInlineUseYn', 'apiBrokerRedirectUseYn', 'apiWordpressUseYn', 'mobileCheckoutMode', 'chatbotPaymentUseYn', 'chatbotProductSlotLimit', 'chatbotHeaderLogoUrl', 'chatbotAdminUsername', 'chatbotCatalogListingGrant', 'chatbotMaxProductImagesGrant', 'chatbotCatalogListingEnabled', 'baseCurrency', 'remark', 'operationRecord', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'voidSettlementMode', 'manualVoidSettlementMode', 'refundSettlementMode', 'forceRefundSettlementMode', 'commissionMemo', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'chargebackPolicyId', 'payFollowMerchantUseYn', 'payFollowAutoVoidYn', 'payFollowEmailVoidYn', 'payFollowAutoRefundYn', 'payFollowForceRefundYn', 'urlPayAlertEmailYn', 'receiptEmailFollowHqYn', 'receiptEmailUseYn', 'receiptEmailEnabledYn', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'feeVatApplyYn', 'feeVatRatePct', 'calcCycleTransitionMode', 'calcCycleChangeRemark', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'jpayNotifyUrl', 'jpayCallbackUrl', 'assistantLoginId', 'assistantPwd', 'assistantRoleType', 'brandingEditAllowedYn', 'cardRiskPolicyMode', 'cardRiskTier1Hours', 'cardRiskTier1Min', 'cardRiskTier2Hours', 'cardRiskTier2Min', 'cardRiskTier3Hours', 'cardRiskTier3Min', 'cardRiskTier4Hours', 'cardRiskTier4Min', 'cardRiskAutoBlacklistTier', 'cardRiskTrackPeriodPolicy', 'cardRiskTrackPeriodMode', 'cardRiskTrackPeriodValue', 'cardRiskPresaleMode', 'cardRiskPresaleBuyerMismatchYn', 'cardRiskPresaleHolderNameYn', 'cardRiskPresalePhoneInvalidYn', 'cardRiskPresaleEmailInvalidYn', 'cardRiskPresaleVelocityCardYn', 'cardRiskPresaleVelocityEmailYn', 'cardRiskPresaleVelocityIpYn', 'cardRiskPresaleVelCardWinMin', 'cardRiskPresaleVelCardMax', 'cardRiskPresaleVelEmailWinMin', 'cardRiskPresaleVelEmailMax', 'cardRiskPresaleVelIpWinMin', 'cardRiskPresaleVelIpMax', 'copyright'];
+        var allFieldsInfo = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'webPaymentHeaderLogoMode', 'webPaymentHeaderLogoUrl', 'webPaymentHeaderHtmlTitle', 'webPaymentHeaderSubtitleMode', 'webPaymentHeaderSubtitleText', 'urlPayCheckoutMode', 'urlPayInputMode', 'urlPayCardExpiryMode', 'urlPayProductNameUseYn', 'urlPayCompanyNameShowYn', 'urlPayLangMenuUseYn', 'checkoutContactRememberMode', 'urlPayShippingAddressUseYn', 'apiUrlPayCheckoutMode', 'splitPayEnabledYn', 'splitPayIntervalMonthYn', 'splitPayIntervalDayYn', 'splitPayIntervalMultiYn', 'splitPayDayIntervalDays', 'splitPayMonthIntervalMonths', 'splitPayMultiMaxMonths', 'splitPayFirstPayMode', 'splitPayHeaderLogoMode', 'splitPayHeaderLogoUrl', 'splitPayHeaderHtmlTitle', 'splitPayHeaderSubtitleMode', 'splitPayHeaderSubtitleText', 'splitPayLangMenuUseYn', 'chatbotUrlPayCheckoutMode', 'jpayCheckoutFieldMode', 'apiJpaySubscriptionUseYn', 'apiBrokerInlineUseYn', 'apiBrokerRedirectUseYn', 'apiWordpressUseYn', 'mobileCheckoutMode', 'chatbotPaymentUseYn', 'chatbotProductSlotLimit', 'chatbotHeaderLogoUrl', 'chatbotAdminUsername', 'chatbotCatalogListingGrant', 'chatbotMaxProductImagesGrant', 'chatbotCatalogListingEnabled', 'baseCurrency', 'remark', 'operationRecord', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'voidSettlementMode', 'manualVoidSettlementMode', 'refundSettlementMode', 'forceRefundSettlementMode', 'commissionMemo', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'chargebackPolicyId', 'payFollowMerchantUseYn', 'payFollowAutoVoidYn', 'payFollowEmailVoidYn', 'payFollowManualVoidYn', 'payFollowAutoRefundYn', 'payFollowManualRefundYn', 'payFollowForceRefundYn', 'urlPayAlertEmailYn', 'receiptEmailFollowHqYn', 'receiptEmailUseYn', 'receiptEmailEnabledYn', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'feeVatApplyYn', 'feeVatRatePct', 'calcCycleTransitionMode', 'calcCycleChangeRemark', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'jpayNotifyUrl', 'jpayCallbackUrl', 'assistantLoginId', 'assistantPwd', 'assistantRoleType', 'brandingEditAllowedYn', 'cardRiskPolicyMode', 'cardRiskTier1Hours', 'cardRiskTier1Min', 'cardRiskTier2Hours', 'cardRiskTier2Min', 'cardRiskTier3Hours', 'cardRiskTier3Min', 'cardRiskTier4Hours', 'cardRiskTier4Min', 'cardRiskAutoBlacklistTier', 'cardRiskTrackPeriodPolicy', 'cardRiskTrackPeriodMode', 'cardRiskTrackPeriodValue', 'cardRiskPresaleMode', 'cardRiskPresaleBuyerMismatchYn', 'cardRiskPresaleHolderNameYn', 'cardRiskPresalePhoneInvalidYn', 'cardRiskPresaleEmailInvalidYn', 'cardRiskPresaleVelocityCardYn', 'cardRiskPresaleVelocityEmailYn', 'cardRiskPresaleVelocityIpYn', 'cardRiskPresaleVelCardWinMin', 'cardRiskPresaleVelCardMax', 'cardRiskPresaleVelEmailWinMin', 'cardRiskPresaleVelEmailMax', 'cardRiskPresaleVelIpWinMin', 'cardRiskPresaleVelIpMax', 'copyright'];
         allFieldsInfo.forEach(function (k) {
           if (data[k] != null) pgSetCompFormFieldValues(form, k, data[k]);
         });
@@ -21178,7 +21420,7 @@
           apiUcmInfo.value = (amInfo === 'REPAY' || amInfo === 'SPLIT_PAY') ? amInfo : 'STANDARD';
         }
         pgSyncSplitPayCardUi(pane);
-        ['payFollowMerchantUseYn', 'payFollowAutoVoidYn', 'payFollowEmailVoidYn', 'payFollowAutoRefundYn', 'payFollowForceRefundYn'].forEach(function (k) {
+        ['payFollowMerchantUseYn', 'payFollowAutoVoidYn', 'payFollowEmailVoidYn', 'payFollowManualVoidYn', 'payFollowAutoRefundYn', 'payFollowManualRefundYn', 'payFollowForceRefundYn'].forEach(function (k) {
           if (data[k] == null || data[k] === '') {
             form.querySelectorAll('[name="' + k + '"]').forEach(function (el) {
               if (el.tagName === 'SELECT') el.value = '';
@@ -22238,7 +22480,7 @@
         var form = pane.querySelector('#compDetailForm');
         if (!form) return;
         initAttachmentSection(pane);
-        var allFields = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'webPaymentHeaderLogoMode', 'webPaymentHeaderLogoUrl', 'webPaymentHeaderHtmlTitle', 'webPaymentHeaderSubtitleMode', 'webPaymentHeaderSubtitleText', 'urlPayCheckoutMode', 'urlPayInputMode', 'urlPayCardExpiryMode', 'urlPayProductNameUseYn', 'urlPayCompanyNameShowYn', 'urlPayLangMenuUseYn', 'checkoutContactRememberMode', 'urlPayShippingAddressUseYn', 'apiUrlPayCheckoutMode', 'splitPayEnabledYn', 'splitPayIntervalMonthYn', 'splitPayIntervalDayYn', 'splitPayIntervalMultiYn', 'splitPayDayIntervalDays', 'splitPayMonthIntervalMonths', 'splitPayMultiMaxMonths', 'splitPayFirstPayMode', 'splitPayHeaderLogoMode', 'splitPayHeaderLogoUrl', 'splitPayHeaderHtmlTitle', 'splitPayHeaderSubtitleMode', 'splitPayHeaderSubtitleText', 'splitPayLangMenuUseYn', 'chatbotUrlPayCheckoutMode', 'jpayCheckoutFieldMode', 'apiJpaySubscriptionUseYn', 'apiBrokerInlineUseYn', 'apiBrokerRedirectUseYn', 'apiWordpressUseYn', 'mobileCheckoutMode', 'chatbotPaymentUseYn', 'chatbotProductSlotLimit', 'chatbotHeaderLogoUrl', 'chatbotAdminUsername', 'chatbotCatalogListingGrant', 'chatbotMaxProductImagesGrant', 'chatbotCatalogListingEnabled', 'baseCurrency', 'remark', 'operationRecord', 'settleType', 'commissionRate', 'limitAmt', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'voidSettlementMode', 'manualVoidSettlementMode', 'refundSettlementMode', 'forceRefundSettlementMode', 'commissionMemo', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'chargebackPolicyId', 'payFollowMerchantUseYn', 'payFollowAutoVoidYn', 'payFollowEmailVoidYn', 'payFollowAutoRefundYn', 'payFollowForceRefundYn', 'urlPayAlertEmailYn', 'receiptEmailFollowHqYn', 'receiptEmailUseYn', 'receiptEmailEnabledYn', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'feeVatApplyYn', 'feeVatRatePct', 'calcCycleTransitionMode', 'calcCycleChangeRemark', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'jpayNotifyUrl', 'jpayCallbackUrl', 'notifyUrl1', 'notifyUrl2', 'notifyUrl3', 'notifyUrl4', 'remitterName', 'balanceNotifyAmt', 'suspiciousNotifyAmt', 'overseasLoginNotifyAmt', 'tempPwdNotifyAmt', 'nonTranCriterionMonth', 'sameCardLimitWebDay', 'sameCardLimitWebTimes', 'sameCardLimitWebAmt', 'sameCardLimitTerminalDay', 'sameCardLimitTerminalTimes', 'sameCardLimitTerminalAmt', 'dailyUsageFee', 'depositNameLookup', 'transferAuthNo', 'autoConvertNewMemberLimit', 'newMemberDailyLimit', 'convertRefDate', 'convertDailyLimit', 'applyStartDate', 'pgFeeGeneral', 'settleDiffMonthCnt', 'settleReportBankCd', 'pgFeeSamsung', 'smsFee', 'taxInvoiceEmail', 'settleAccountNo', 'directFee', 'solutionFee', 'settleAccountHolder', 'withdrawRestrictType', 'withdrawRestrictStartTime', 'withdrawRestrictEndTime', 'terminalPayRestrict', 'webPayRestrict', 'defaultFeeHq', 'defaultFeeDist', 'defaultFeeBranch', 'defaultFeeAgency', 'defaultFeeSalesOffice', 'defaultPayLimitPerTx', 'defaultPayLimitDay', 'defaultPayLimitMonth', 'defaultPayLimitYearCorp', 'defaultPayLimitYearInd', 'cardRiskPolicyMode', 'cardRiskTier1Hours', 'cardRiskTier1Min', 'cardRiskTier2Hours', 'cardRiskTier2Min', 'cardRiskTier3Hours', 'cardRiskTier3Min', 'cardRiskTier4Hours', 'cardRiskTier4Min', 'cardRiskAutoBlacklistTier', 'cardRiskTrackPeriodPolicy', 'cardRiskTrackPeriodMode', 'cardRiskTrackPeriodValue', 'cardRiskPresaleMode', 'cardRiskPresaleBuyerMismatchYn', 'cardRiskPresaleHolderNameYn', 'cardRiskPresalePhoneInvalidYn', 'cardRiskPresaleEmailInvalidYn', 'cardRiskPresaleVelocityCardYn', 'cardRiskPresaleVelocityEmailYn', 'cardRiskPresaleVelocityIpYn', 'cardRiskPresaleVelCardWinMin', 'cardRiskPresaleVelCardMax', 'cardRiskPresaleVelEmailWinMin', 'cardRiskPresaleVelEmailMax', 'cardRiskPresaleVelIpWinMin', 'cardRiskPresaleVelIpMax', 'copyright', 'holidayProfileName', 'holidayProfileCountry', 'holidayCountryCode', 'holidayCountryCodes', 'businessHolidayRangesJson', 'businessHolidayExtraDates'];
+        var allFields = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'webPaymentHeaderLogoMode', 'webPaymentHeaderLogoUrl', 'webPaymentHeaderHtmlTitle', 'webPaymentHeaderSubtitleMode', 'webPaymentHeaderSubtitleText', 'urlPayCheckoutMode', 'urlPayInputMode', 'urlPayCardExpiryMode', 'urlPayProductNameUseYn', 'urlPayCompanyNameShowYn', 'urlPayLangMenuUseYn', 'checkoutContactRememberMode', 'urlPayShippingAddressUseYn', 'apiUrlPayCheckoutMode', 'splitPayEnabledYn', 'splitPayIntervalMonthYn', 'splitPayIntervalDayYn', 'splitPayIntervalMultiYn', 'splitPayDayIntervalDays', 'splitPayMonthIntervalMonths', 'splitPayMultiMaxMonths', 'splitPayFirstPayMode', 'splitPayHeaderLogoMode', 'splitPayHeaderLogoUrl', 'splitPayHeaderHtmlTitle', 'splitPayHeaderSubtitleMode', 'splitPayHeaderSubtitleText', 'splitPayLangMenuUseYn', 'chatbotUrlPayCheckoutMode', 'jpayCheckoutFieldMode', 'apiJpaySubscriptionUseYn', 'apiBrokerInlineUseYn', 'apiBrokerRedirectUseYn', 'apiWordpressUseYn', 'mobileCheckoutMode', 'chatbotPaymentUseYn', 'chatbotProductSlotLimit', 'chatbotHeaderLogoUrl', 'chatbotAdminUsername', 'chatbotCatalogListingGrant', 'chatbotMaxProductImagesGrant', 'chatbotCatalogListingEnabled', 'baseCurrency', 'remark', 'operationRecord', 'settleType', 'commissionRate', 'limitAmt', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'voidSettlementMode', 'manualVoidSettlementMode', 'refundSettlementMode', 'forceRefundSettlementMode', 'commissionMemo', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'chargebackPolicyId', 'payFollowMerchantUseYn', 'payFollowAutoVoidYn', 'payFollowEmailVoidYn', 'payFollowManualVoidYn', 'payFollowAutoRefundYn', 'payFollowManualRefundYn', 'payFollowForceRefundYn', 'urlPayAlertEmailYn', 'receiptEmailFollowHqYn', 'receiptEmailUseYn', 'receiptEmailEnabledYn', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'feeVatApplyYn', 'feeVatRatePct', 'calcCycleTransitionMode', 'calcCycleChangeRemark', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'jpayNotifyUrl', 'jpayCallbackUrl', 'notifyUrl1', 'notifyUrl2', 'notifyUrl3', 'notifyUrl4', 'remitterName', 'balanceNotifyAmt', 'suspiciousNotifyAmt', 'overseasLoginNotifyAmt', 'tempPwdNotifyAmt', 'nonTranCriterionMonth', 'sameCardLimitWebDay', 'sameCardLimitWebTimes', 'sameCardLimitWebAmt', 'sameCardLimitTerminalDay', 'sameCardLimitTerminalTimes', 'sameCardLimitTerminalAmt', 'dailyUsageFee', 'depositNameLookup', 'transferAuthNo', 'autoConvertNewMemberLimit', 'newMemberDailyLimit', 'convertRefDate', 'convertDailyLimit', 'applyStartDate', 'pgFeeGeneral', 'settleDiffMonthCnt', 'settleReportBankCd', 'pgFeeSamsung', 'smsFee', 'taxInvoiceEmail', 'settleAccountNo', 'directFee', 'solutionFee', 'settleAccountHolder', 'withdrawRestrictType', 'withdrawRestrictStartTime', 'withdrawRestrictEndTime', 'terminalPayRestrict', 'webPayRestrict', 'defaultFeeHq', 'defaultFeeDist', 'defaultFeeBranch', 'defaultFeeAgency', 'defaultFeeSalesOffice', 'defaultPayLimitPerTx', 'defaultPayLimitDay', 'defaultPayLimitMonth', 'defaultPayLimitYearCorp', 'defaultPayLimitYearInd', 'cardRiskPolicyMode', 'cardRiskTier1Hours', 'cardRiskTier1Min', 'cardRiskTier2Hours', 'cardRiskTier2Min', 'cardRiskTier3Hours', 'cardRiskTier3Min', 'cardRiskTier4Hours', 'cardRiskTier4Min', 'cardRiskAutoBlacklistTier', 'cardRiskTrackPeriodPolicy', 'cardRiskTrackPeriodMode', 'cardRiskTrackPeriodValue', 'cardRiskPresaleMode', 'cardRiskPresaleBuyerMismatchYn', 'cardRiskPresaleHolderNameYn', 'cardRiskPresalePhoneInvalidYn', 'cardRiskPresaleEmailInvalidYn', 'cardRiskPresaleVelocityCardYn', 'cardRiskPresaleVelocityEmailYn', 'cardRiskPresaleVelocityIpYn', 'cardRiskPresaleVelCardWinMin', 'cardRiskPresaleVelCardMax', 'cardRiskPresaleVelEmailWinMin', 'cardRiskPresaleVelEmailMax', 'cardRiskPresaleVelIpWinMin', 'cardRiskPresaleVelIpMax', 'copyright', 'holidayProfileName', 'holidayProfileCountry', 'holidayCountryCode', 'holidayCountryCodes', 'businessHolidayRangesJson', 'businessHolidayExtraDates'];
         allFields.forEach(function (k) {
           if (data[k] != null) pgSetCompFormFieldValues(form, k, data[k]);
         });
@@ -22257,7 +22499,7 @@
           apiUcmDet.value = (amDet === 'REPAY' || amDet === 'SPLIT_PAY') ? amDet : 'STANDARD';
         }
         pgSyncSplitPayCardUi(pane);
-        ['payFollowMerchantUseYn', 'payFollowAutoVoidYn', 'payFollowEmailVoidYn', 'payFollowAutoRefundYn', 'payFollowForceRefundYn'].forEach(function (k) {
+        ['payFollowMerchantUseYn', 'payFollowAutoVoidYn', 'payFollowEmailVoidYn', 'payFollowManualVoidYn', 'payFollowAutoRefundYn', 'payFollowManualRefundYn', 'payFollowForceRefundYn'].forEach(function (k) {
           if (data[k] == null || data[k] === '') {
             form.querySelectorAll('[name="' + k + '"]').forEach(function (el) {
               if (el.tagName === 'SELECT') el.value = '';
@@ -22945,13 +23187,16 @@
         if (!hid || !disp) return;
         var prev = hid.value || '';
         var templates = (data && data.templates) ? data.templates : [];
-        var h = '<option value="">' + String(pgAdminUiT('(신규) 저장 시 자동 부여')).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;') + '</option>';
+        var h = '<option value="" data-pg-ui-t="(신규) 저장 시 자동 부여">' + String(pgAdminUiT('(신규) 저장 시 자동 부여')).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;') + '</option>';
         templates.forEach(function (t) {
           var s = t.scope || '';
           var nm = t.policyName || s.replace('HQPOL:', '');
           h += '<option value="' + String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '">' + String(nm).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;') + '</option>';
         });
         disp.innerHTML = h;
+        if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
+          try { window.PG_UI_I18N.applyDom(disp); } catch (eDispI18n) {}
+        }
         function applyScope(v) {
           hid.value = v != null ? String(v) : '';
           syncHqDefCommTemplateScopeDisplay();
@@ -30661,8 +30906,8 @@
             esInp.disabled = true;
             var endV = autoEndInp && String(autoEndInp.value || '').trim();
             esInp.title = endV
-              ? hqLedgerUiFill('자동무효·이메일무효를 함께 켠 경우: 시작은 지정할 수 없고 자동무효 마감({0}) 다음 분부터입니다. 마감은 오른쪽 시간으로 설정합니다.', [endV])
-              : pgAdminUiT('자동무효·이메일무효를 함께 켠 경우: 시작 입력은 비활성입니다. 마감은 오른쪽 시간으로 설정합니다.');
+              ? hqLedgerUiFill('무효처리·이메일 무효를 함께 켠 경우: 시작은 지정할 수 없고 무효처리 마감({0}) 다음 분부터입니다. 마감은 오른쪽 시간으로 설정합니다.', [endV])
+              : pgAdminUiT('무효처리·이메일 무효를 함께 켠 경우: 시작 입력은 비활성입니다. 마감은 오른쪽 시간으로 설정합니다.');
           } else if (emailOn) {
             esInp.disabled = false;
             esInp.title = pgAdminUiT('비우면 당일 0:00부터. 마감은 오른쪽 시간(비우면 23:59).');
@@ -30682,7 +30927,7 @@
         }
       }
       var PAY_FOLLOW_CAP_LEVELS = ['HEADQUARTERS', 'REGIONAL', 'MASTER_DIST', 'BRANCH', 'AGENCY', 'SALES_OFFICE', 'MERCHANT'];
-      var PAY_FOLLOW_CAP_FIELDS = ['autoVoid', 'emailVoid', 'autoRefund', 'forceRefund'];
+      var PAY_FOLLOW_CAP_FIELDS = ['autoVoid', 'emailVoid', 'manualVoid', 'autoRefund', 'manualRefund', 'forceRefund', 'sameDayRefund'];
       function fillPayFollowLevelCaps(caps) {
         PAY_FOLLOW_CAP_LEVELS.forEach(function (lv) {
           var node = caps && caps[lv];
@@ -30778,7 +31023,7 @@
           'emailVoidTo', 'emailVoidSubject', 'emailVoidBodyTemplate', 'emailVoidCompanyName', 'emailVoidContactName',
           'emailOnSyncFailureYn', 'emailDailyDigestYn', 'emailNotifyVoidBatchYn', 'emailNotifyRefundBatchYn', 'memo', 'updatedAt',
           'receiptEmailDefaultYn',
-          'autoVoidYn', 'emailVoidYn', 'autoRefundYn', 'forceRefundYn',
+          'autoVoidYn', 'emailVoidYn', 'autoRefundYn', 'forceRefundYn', 'manualVoidYn', 'manualRefundYn', 'epSameDayRefundYn',
           'autoVoidStartTime', 'autoVoidEndTime', 'emailVoidStartTime', 'emailVoidEndTime',
           'payFollowRefZone', 'autoRefundAfterDays', 'autoRefundWindowStartTime', 'forceRefundAfterDays',
           'autoVoidReflectSettlementYn', 'emailVoidReflectSettlementYn', 'autoRefundReflectSettlementYn', 'forceRefundReflectSettlementYn',
@@ -30853,11 +31098,15 @@
         var lab = pane.querySelector('[name="smtpPasswordSetLabel"]');
         if (lab) lab.value = d.smtpPasswordSet ? pgAdminUiT('저장됨') : pgAdminUiT('미설정');
         (function syncLedgerPurgePayDateDefault() {
-          var dateEl = pane.querySelector('#hqLedgerPurgePayDate');
-          if (!dateEl) return;
-          if (String(dateEl.value || '').trim()) return;
           var iso = d.serverTimeIso != null ? String(d.serverTimeIso).trim() : '';
-          if (iso.length >= 10) dateEl.value = iso.slice(0, 10);
+          var day = (iso.length >= 10) ? iso.slice(0, 10) : pgAdminTodayIsoLocal();
+          if (!day) return;
+          ['#hqLedgerPurgePayDate', '#hqLedgerReplayNotifyDate'].forEach(function (sel) {
+            var dateEl = pane.querySelector(sel);
+            if (!dateEl) return;
+            if (String(dateEl.value || '').trim()) return;
+            dateEl.value = day;
+          });
         })();
         renderHqDataRetentionRows(d.dataRetentionRows);
         renderHqFeeCurrencyRows(d.feeCurrencyFormats);
@@ -30870,22 +31119,87 @@
           try { window.PG_UI_I18N.applyDom(pane); } catch (eLdDom) {}
         }
       }
+      function fillHqPayCardBrandPgSelect(sel, selectedValue) {
+        if (!sel) return Promise.resolve();
+        var keep = selectedValue != null ? String(selectedValue) : String(sel.value || '');
+        function applyList(list) {
+          var html = '';
+          (list || []).forEach(function (row) {
+            var cd = String(row && row.pgCd != null ? row.pgCd : '').trim();
+            if (!cd) return;
+            var lab = opsIcPgVendorOptionLabel(row);
+            html += '<option value="' + String(cd).replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '">' + pgAdminEscHtml(lab) + '</option>';
+          });
+          if (!html) {
+            html = '<option value="JPAY">JPAY</option><option value="CHILLPAY">ChillPay</option>';
+          }
+          sel.innerHTML = html;
+          if (keep) {
+            var found = false;
+            for (var i = 0; i < sel.options.length; i++) {
+              if (sel.options[i].value === keep) { found = true; break; }
+            }
+            if (!found) {
+              var o = document.createElement('option');
+              o.value = keep;
+              o.textContent = keep;
+              sel.appendChild(o);
+            }
+            sel.value = keep;
+          }
+        }
+        if (window._pgOpsIcAgencyList) {
+          applyList(window._pgOpsIcAgencyList);
+          return Promise.resolve();
+        }
+        if (!window.PG_API || typeof window.PG_API.pgAgencyList !== 'function') {
+          applyList([{ pgCd: 'JPAY', pgNm: 'JPAY' }, { pgCd: 'CHILLPAY', pgNm: 'ChillPay' }]);
+          return Promise.resolve();
+        }
+        return window.PG_API.pgAgencyList().then(function (list) {
+          window._pgOpsIcAgencyList = Array.isArray(list) ? list : [];
+          applyList(window._pgOpsIcAgencyList);
+        }).catch(function () {
+          applyList([{ pgCd: 'JPAY', pgNm: 'JPAY' }, { pgCd: 'CHILLPAY', pgNm: 'ChillPay' }]);
+        });
+      }
+      function syncHqPayCardBrandOptions(d) {
+        var sel = pane.querySelector('#hqPayCardBrandCode');
+        if (!sel) return;
+        var opts = (d && d.payCardBlockBrandOptions) ? d.payCardBlockBrandOptions : [];
+        if (!opts.length) return;
+        var keep = String(sel.value || '');
+        var html = '';
+        opts.forEach(function (o) {
+          var code = String(o && o.code != null ? o.code : '').trim();
+          if (!code) return;
+          var lab = String(o.label != null ? o.label : code);
+          html += '<option value="' + code.replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '">' + pgAdminEscHtml(lab) + '</option>';
+        });
+        if (html) {
+          sel.innerHTML = html;
+          if (keep) sel.value = keep;
+        }
+      }
       function renderHqPayCardPolicyTables(d) {
-        var pTb = pane.querySelector('#hqPayCardBlockPrefixTbody');
-        var prefixes = (d && d.payCardBlockPrefixes) ? d.payCardBlockPrefixes : [];
+        var pTb = pane.querySelector('#hqPayCardBlockBrandTbody');
+        var brands = (d && d.payCardBlockBrands) ? d.payCardBlockBrands : [];
         function escH(s) {
           return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
         }
+        fillHqPayCardBrandPgSelect(pane.querySelector('#hqPayCardBrandPg'));
+        syncHqPayCardBrandOptions(d);
         if (!pTb) return;
         pTb.innerHTML = '';
-        if (!prefixes.length) {
-          pTb.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-2">' + escH(pgAdminUiT('등록된 접두가 없습니다.')) + '</td></tr>';
+        if (!brands.length) {
+          pTb.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-2">' + escH(pgAdminUiT('등록된 브랜드가 없습니다.')) + '</td></tr>';
           return;
         }
-        prefixes.forEach(function (row) {
-          pTb.innerHTML += '<tr><td>' + escH(row.pgVendor) + '</td><td class="font-monospace">' + escH(row.prefixDigits) +
+        brands.forEach(function (row) {
+          var brandLab = row.brandLabel || row.brandCode || '';
+          pTb.innerHTML += '<tr><td>' + escH(row.pgVendor) + '</td><td class="font-monospace">' + escH(brandLab) +
             '</td><td>' + escH(row.remark || '') + '</td><td class="text-center">' +
-            '<button type="button" class="btn btn-link btn-sm text-danger hq-pay-card-prefix-del" data-id="' + escH(row.id) + '">' +
+            '<button type="button" class="btn btn-link btn-sm text-danger hq-pay-card-brand-del" data-id="' + escH(row.id) + '">' +
             escH(pgAdminUiT('삭제')) + '</button></td></tr>';
         });
       }
@@ -30902,25 +31216,34 @@
         pane._hqPayCardPolicyBound = true;
         pane.addEventListener('click', function (ev) {
           var t = ev.target;
-          if (t && t.classList && t.classList.contains('hq-pay-card-prefix-del')) {
+          if (t && t.classList && t.classList.contains('hq-pay-card-brand-del')) {
             var id = t.getAttribute('data-id');
-            if (!id || !window.confirm(pgAdminUiT('이 접두 규칙을 삭제할까요?'))) return;
-            window.PG_API.hqPayCardBlockPrefixDelete({ id: id }).then(function () { reloadLedgerSysCardPolicy(); })
+            if (!id || !window.confirm(pgAdminUiT('이 사용불가 브랜드 규칙을 삭제할까요?'))) return;
+            window.PG_API.hqPayCardBlockBrandDelete({ id: id }).then(function () { reloadLedgerSysCardPolicy(); })
               .catch(function (e) { alert(pgErrMsg(e, '삭제 실패')); });
           }
         });
-        var prefixAdd = pane.querySelector('#hqPayCardPrefixAddBtn');
-        if (prefixAdd) {
-          prefixAdd.addEventListener('click', function () {
-            var pg = pane.querySelector('#hqPayCardPrefixPg');
-            var dig = pane.querySelector('#hqPayCardPrefixDigits');
-            var rem = pane.querySelector('#hqPayCardPrefixRemark');
-            window.PG_API.hqPayCardBlockPrefixAdd({
-              pgVendor: pg ? pg.value : 'JPAY',
-              prefixDigits: dig ? dig.value : '',
+        var brandAdd = pane.querySelector('#hqPayCardBrandAddBtn');
+        if (brandAdd) {
+          brandAdd.addEventListener('click', function () {
+            var pg = pane.querySelector('#hqPayCardBrandPg');
+            var code = pane.querySelector('#hqPayCardBrandCode');
+            var rem = pane.querySelector('#hqPayCardBrandRemark');
+            var pgVal = pg ? String(pg.value || '').trim() : '';
+            var brandVal = code ? String(code.value || '').trim() : '';
+            if (!pgVal) {
+              alert(pgAdminUiT('PG를 선택해 주세요.'));
+              return;
+            }
+            if (!brandVal) {
+              alert(pgAdminUiT('브랜드를 선택해 주세요.'));
+              return;
+            }
+            window.PG_API.hqPayCardBlockBrandAdd({
+              pgVendor: pgVal,
+              brandCode: brandVal,
               remark: rem ? rem.value : ''
             }).then(function () {
-              if (dig) dig.value = '';
               if (rem) rem.value = '';
               reloadLedgerSysCardPolicy();
             }).catch(function (e) { alert(pgErrMsg(e, '등록 실패')); });
@@ -31107,7 +31430,7 @@
           'emailVoidTo', 'emailVoidSubject', 'emailVoidBodyTemplate', 'emailVoidCompanyName', 'emailVoidContactName',
           'emailOnSyncFailureYn', 'emailDailyDigestYn', 'emailNotifyVoidBatchYn', 'emailNotifyRefundBatchYn', 'memo',
           'receiptEmailDefaultYn',
-          'autoVoidYn', 'emailVoidYn', 'autoRefundYn', 'forceRefundYn',
+          'autoVoidYn', 'emailVoidYn', 'autoRefundYn', 'forceRefundYn', 'manualVoidYn', 'manualRefundYn', 'epSameDayRefundYn',
           'autoVoidStartTime', 'autoVoidEndTime', 'emailVoidStartTime', 'emailVoidEndTime',
           'payFollowRefZone', 'autoRefundAfterDays', 'autoRefundWindowStartTime', 'forceRefundAfterDays',
           'autoVoidReflectSettlementYn', 'emailVoidReflectSettlementYn', 'autoRefundReflectSettlementYn', 'forceRefundReflectSettlementYn',
@@ -31292,7 +31615,7 @@
             }
             if (typeof dc !== 'function' || !dc(
               pgAdminUiT('조직 단계별 후속조치 허용을 저장하시겠습니까?'),
-              pgAdminUiT('각 단계의 자동무효·이메일무효·자동환불·강제환불 사용 상한이 서버에 반영됩니다. 계속하시겠습니까?'))) return;
+              pgAdminUiT('각 단계의 무효처리·이메일 무효·수동무효·환불처리·수동환불·강제환불·당일환불 사용 상한이 서버에 반영됩니다. 계속하시겠습니까?'))) return;
             if (!window.PG_API || !window.PG_API.hqLedgerSysSettingsSavePayFollowLevelCaps) {
               alert(pgAdminUiT('API를 사용할 수 없습니다.'));
               return;
@@ -31500,7 +31823,7 @@
               return;
             }
             if (!replayComp) {
-              alert('icopayCompId(업체코드)를 입력하세요.');
+              alert(pgAdminUiT('icopayCompId(업체코드)를 입력하세요.'));
               return;
             }
             var replayOrderNos = replayOrdersRaw.split(/[,;\s]+/).map(function (s) { return s.trim(); }).filter(Boolean);
@@ -31523,8 +31846,8 @@
                 var lines = d.results.map(function (r) {
                   r = r || {};
                   var on = r.orderNo != null ? r.orderNo : (r.inboundId != null ? ('inbound ' + r.inboundId) : '?');
-                  if (r.skipped) return on + ': 건너뜀(' + (r.reason || '') + ')';
-                  if (r.error) return on + ': 오류(' + r.error + ')';
+                  if (r.skipped) return on + ': ' + pgAdminUiT('건너뜀') + '(' + pgAdminUiT(String(r.reason || '')) + ')';
+                  if (r.error) return on + ': ' + pgAdminUiT('오류') + '(' + String(r.error) + ')';
                   return on + ': ' + (r.processStatus || '') + (r.merchantId ? ' · ' + r.merchantId : '');
                 });
                 msg += '\n\n' + lines.join('\n');
@@ -31605,7 +31928,7 @@
         function hqLedgerPayFollowSyncIfNeeded(target) {
           var t = target;
           if (!t || !t.name || !pane.contains(t)) return;
-          var payFollowSyncNames = ['autoVoidYn', 'emailVoidYn', 'autoRefundYn', 'forceRefundYn', 'payFollowRefZone', 'displayTimezone',
+          var payFollowSyncNames = ['autoVoidYn', 'emailVoidYn', 'manualVoidYn', 'manualRefundYn', 'autoRefundYn', 'forceRefundYn', 'epSameDayRefundYn', 'payFollowRefZone', 'displayTimezone',
             'autoVoidStartTime', 'autoVoidEndTime', 'emailVoidEndTime', 'autoRefundWindowStartTime'];
           if (payFollowSyncNames.indexOf(t.name) !== -1) syncPayFollowLedgerUi(pane);
         }
@@ -31880,7 +32203,11 @@
         var idEl = document.getElementById('pgHqAccountAccessEditId');
         var titleEl = document.getElementById('pgHqAccountAccessModalTitle');
         if (idEl) idEl.value = edit && edit.id ? String(edit.id) : '';
-        if (titleEl) titleEl.textContent = edit && edit.id ? pgAdminUiT('접근권한 수정') : pgAdminUiT('접근권한 추가');
+        if (titleEl) {
+          var accTitleKey = (edit && edit.id) ? '접근권한 수정' : '접근권한 추가';
+          titleEl.setAttribute('data-pg-ui-t', accTitleKey);
+          titleEl.textContent = pgAdminUiT(accTitleKey);
+        }
         function populateHqAccCompSelect(comps) {
           if (!compSel) return;
           compSel.innerHTML = '';
@@ -32254,9 +32581,13 @@
         var trn = btn.getAttribute('data-trn') || '';
         var act = btn.getAttribute('data-act') || '';
         if (!trn || !act) return;
-        if (!window.confirm(pgAdminUiTFmtN('거래 {0}에 대해 [{1}] 를 실행할까요?', [trn,
+        var followConfirm = pgAdminUiTFmtN('거래 {0}에 대해 [{1}] 를 실행할까요?', [trn,
           (window.PG_PAY_LIST_I18N && typeof window.PG_PAY_LIST_I18N.payFollowLabel === 'function')
-            ? window.PG_PAY_LIST_I18N.payFollowLabel(act) : act]))) return;
+            ? window.PG_PAY_LIST_I18N.payFollowLabel(act) : act]);
+        if ((act === 'AUTO_REFUND' || act === 'FORCE_REFUND') && btn.getAttribute('data-pg-url-refund') === '1') {
+          followConfirm += '\n\n' + pgAdminUiT('URL 결제는 결제망 가용잔액이 있어야 환불됩니다. 승인 직후 금액이 홀드이면 거절될 수 있습니다.');
+        }
+        if (!window.confirm(followConfirm)) return;
         var adminReason = '';
         if (act === 'FORCE_REFUND' || act === 'EMAIL_VOID' || act === 'MANUAL_VOID' || act === 'MANUAL_REFUND') {
           adminReason = window.prompt(pgAdminUiT('처리 사유를 입력하세요 (선택).'), '');
@@ -32773,8 +33104,14 @@
       function syncKoToHidden() {
         var o = parseTabObj();
         var k = String(koIn.value || '').trim();
-        if (k) o.KOR = k;
-        else delete o.KOR;
+        if (k) {
+          try {
+            if (window.PG_URL_PAY_COPY_I18N && typeof window.PG_URL_PAY_COPY_I18N.mergeFill === 'function') {
+              o = window.PG_URL_PAY_COPY_I18N.mergeFill(o, k);
+            }
+          } catch (eMf) {}
+          o.KOR = k;
+        } else delete o.KOR;
         hidTab.value = JSON.stringify(o);
       }
       function applyHiddenToKo() {
@@ -32804,6 +33141,11 @@
           if (dimmT) dimmT.style.display = 'flex';
           window.PG_API.hqUrlPayTabTitleTranslateFromKo({ tabTitleKo: ko }).then(function (data) {
             var m = data && data.tabTitle && typeof data.tabTitle === 'object' ? data.tabTitle : {};
+            try {
+              if (window.PG_URL_PAY_COPY_I18N && typeof window.PG_URL_PAY_COPY_I18N.mergeFill === 'function') {
+                m = window.PG_URL_PAY_COPY_I18N.mergeFill(m, ko);
+              }
+            } catch (eMf2) {}
             hidTab.value = JSON.stringify(m);
             applyHiddenToKo();
           }).catch(function (e) {
@@ -33027,9 +33369,37 @@
       }
       function cellPreview(txt) {
         var s = pickKo(typeof txt === 'object' && txt ? txt : '');
+        var shown = translateCopyPreview(s);
         if (!String(s).trim()) return '<span class="text-muted small">—</span>';
-        var body = escA(String(s)).replace(/\r\n|\r|\n/g, '<br>');
-        return '<div class="small hq-pay-card-copy-preview" title="' + escA(String(s)) + '">' + body + '</div>';
+        var body = escA(String(shown)).replace(/\r\n|\r|\n/g, '<br>');
+        return '<div class="small hq-pay-card-copy-preview" title="' + escA(String(shown)) + '">' + body + '</div>';
+      }
+      function translateCopyPreview(s) {
+        var raw = String(s || '');
+        if (!raw.trim()) return '';
+        try {
+          if (window.PG_URL_PAY_COPY_I18N && typeof window.PG_URL_PAY_COPY_I18N.lookup === 'function') {
+            var loc = 'KO';
+            try {
+              if (window.PG_UI_I18N && typeof window.PG_UI_I18N.getLocale === 'function') loc = window.PG_UI_I18N.getLocale();
+            } catch (eLoc) {}
+            if (loc && loc !== 'KO') {
+              var tr = window.PG_URL_PAY_COPY_I18N.lookup(raw, loc);
+              if (tr) return tr;
+            }
+          }
+        } catch (e0) {}
+        return pgAdminUiT(raw);
+      }
+      function mergeKnownCopyMap(m, ko) {
+        try {
+          if (window.PG_URL_PAY_COPY_I18N && typeof window.PG_URL_PAY_COPY_I18N.mergeFill === 'function') {
+            return window.PG_URL_PAY_COPY_I18N.mergeFill(m && typeof m === 'object' ? m : {}, ko);
+          }
+        } catch (e0) {}
+        var o = m && typeof m === 'object' ? m : {};
+        if (ko) o.KOR = ko;
+        return o;
       }
       function renderTable() {
         var html = '';
@@ -33182,21 +33552,25 @@
       }
       function applyKoreanToEntry(en, d) {
         en.pgCd = d.pgCd;
-        if (!en.title) en.title = {};
-        if (!en.body1) en.body1 = {};
-        if (!en.body2) en.body2 = {};
-        if (!en.body3) en.body3 = {};
+        en.title = mergeKnownCopyMap(en.title, d.titleKo);
+        en.body1 = mergeKnownCopyMap(en.body1, d.b1);
+        en.body2 = mergeKnownCopyMap(en.body2, d.b2);
+        en.body3 = mergeKnownCopyMap(en.body3, d.b3);
         en.title.KOR = d.titleKo;
         en.body1.KOR = d.b1;
         en.body2.KOR = d.b2;
         en.body3.KOR = d.b3;
         setEntryLangKo(en, 'resultSuccessMain', d.resultOk1Ko);
+        if (d.resultOk1Ko) en.resultSuccessMain = mergeKnownCopyMap(en.resultSuccessMain, d.resultOk1Ko);
         setEntryLangKo(en, 'resultSuccessFoot', d.resultOk2Ko);
+        if (d.resultOk2Ko) en.resultSuccessFoot = mergeKnownCopyMap(en.resultSuccessFoot, d.resultOk2Ko);
         setEntryLangKo(en, 'resultFailMain', d.resultFail1Ko);
+        if (d.resultFail1Ko) en.resultFailMain = mergeKnownCopyMap(en.resultFailMain, d.resultFail1Ko);
         setEntryLangKo(en, 'resultFailFoot', d.resultFail2Ko);
+        if (d.resultFail2Ko) en.resultFailFoot = mergeKnownCopyMap(en.resultFailFoot, d.resultFail2Ko);
         en.amountScaleNoticeShowYn = d.amtShow ? 'Y' : 'N';
         if (d.amtNoticeKo) {
-          if (!en.amountScaleNotice) en.amountScaleNotice = {};
+          en.amountScaleNotice = mergeKnownCopyMap(en.amountScaleNotice, d.amtNoticeKo);
           en.amountScaleNotice.KOR = d.amtNoticeKo;
         } else {
           delete en.amountScaleNotice;
@@ -33229,15 +33603,15 @@
           return;
         }
         pushEntry({
-          title: { KOR: d.titleKo },
-          body1: { KOR: d.b1 },
-          body2: { KOR: d.b2 },
-          body3: { KOR: d.b3 },
-          resultSuccessMain: d.resultOk1Ko ? { KOR: d.resultOk1Ko } : {},
-          resultSuccessFoot: d.resultOk2Ko ? { KOR: d.resultOk2Ko } : {},
-          resultFailMain: d.resultFail1Ko ? { KOR: d.resultFail1Ko } : {},
-          resultFailFoot: d.resultFail2Ko ? { KOR: d.resultFail2Ko } : {},
-          amountScaleNotice: d.amtNoticeKo ? { KOR: d.amtNoticeKo } : {}
+          title: mergeKnownCopyMap({ KOR: d.titleKo }, d.titleKo),
+          body1: mergeKnownCopyMap({ KOR: d.b1 }, d.b1),
+          body2: mergeKnownCopyMap({ KOR: d.b2 }, d.b2),
+          body3: mergeKnownCopyMap({ KOR: d.b3 }, d.b3),
+          resultSuccessMain: d.resultOk1Ko ? mergeKnownCopyMap({ KOR: d.resultOk1Ko }, d.resultOk1Ko) : {},
+          resultSuccessFoot: d.resultOk2Ko ? mergeKnownCopyMap({ KOR: d.resultOk2Ko }, d.resultOk2Ko) : {},
+          resultFailMain: d.resultFail1Ko ? mergeKnownCopyMap({ KOR: d.resultFail1Ko }, d.resultFail1Ko) : {},
+          resultFailFoot: d.resultFail2Ko ? mergeKnownCopyMap({ KOR: d.resultFail2Ko }, d.resultFail2Ko) : {},
+          amountScaleNotice: d.amtNoticeKo ? mergeKnownCopyMap({ KOR: d.amtNoticeKo }, d.amtNoticeKo) : {}
         });
       }
       function doSaveI18n() {
@@ -33246,6 +33620,15 @@
         var dimm = document.getElementById('dimm');
         if (dimm) dimm.style.display = 'flex';
         fillAllTranslations(d.titleKo, d.b1, d.b2, d.b3, d.resultOk1Ko, d.resultOk2Ko, d.resultFail1Ko, d.resultFail2Ko, d.amtNoticeKo).then(function (maps) {
+          maps.title = mergeKnownCopyMap(maps.title, d.titleKo);
+          maps.body1 = mergeKnownCopyMap(maps.body1, d.b1);
+          maps.body2 = mergeKnownCopyMap(maps.body2, d.b2);
+          maps.body3 = mergeKnownCopyMap(maps.body3, d.b3);
+          maps.resultSuccessMain = d.resultOk1Ko ? mergeKnownCopyMap(maps.resultSuccessMain, d.resultOk1Ko) : (maps.resultSuccessMain || {});
+          maps.resultSuccessFoot = d.resultOk2Ko ? mergeKnownCopyMap(maps.resultSuccessFoot, d.resultOk2Ko) : (maps.resultSuccessFoot || {});
+          maps.resultFailMain = d.resultFail1Ko ? mergeKnownCopyMap(maps.resultFailMain, d.resultFail1Ko) : (maps.resultFailMain || {});
+          maps.resultFailFoot = d.resultFail2Ko ? mergeKnownCopyMap(maps.resultFailFoot, d.resultFail2Ko) : (maps.resultFailFoot || {});
+          maps.amountScaleNotice = d.amtNoticeKo ? mergeKnownCopyMap(maps.amountScaleNotice, d.amtNoticeKo) : (maps.amountScaleNotice || {});
           if (state.editingId) {
             var en = findEntry(state.editingId);
             if (!en) {
@@ -34841,12 +35224,13 @@
       }
 
       function clearManualRangeInputs() {
+        var today = pgAdminTodayIsoLocal();
         var rf = pane.querySelector('#hqBizdayRangeFrom');
         var rt = pane.querySelector('#hqBizdayRangeTo');
         var rk = pane.querySelector('#hqBizdayRangeKind');
         var rn = pane.querySelector('#hqBizdayRangeNote');
-        if (rf) rf.value = '';
-        if (rt) rt.value = '';
+        if (rf) rf.value = today;
+        if (rt) rt.value = today;
         if (rk) rk.value = '공휴일'; /* API/저장 구분값(한국어 유지) */
         if (rn) rn.value = '';
       }
@@ -39948,6 +40332,13 @@
           endpointApi: epField('pgAgencyEditEndpointApi'),
           endpointApiSubscription: epField('pgAgencyEditEndpointApiSub'),
           useYn: (document.getElementById('pgAgencyEditUseYn') && document.getElementById('pgAgencyEditUseYn').value) || 'Y',
+          payFollowAutoVoidYn: (document.getElementById('pgAgencyPayFollowAutoVoid') && document.getElementById('pgAgencyPayFollowAutoVoid').checked) ? 'Y' : 'N',
+          payFollowEmailVoidYn: (document.getElementById('pgAgencyPayFollowEmailVoid') && document.getElementById('pgAgencyPayFollowEmailVoid').checked) ? 'Y' : 'N',
+          payFollowManualVoidYn: (document.getElementById('pgAgencyPayFollowManualVoid') && document.getElementById('pgAgencyPayFollowManualVoid').checked) ? 'Y' : 'N',
+          payFollowAutoRefundYn: (document.getElementById('pgAgencyPayFollowAutoRefund') && document.getElementById('pgAgencyPayFollowAutoRefund').checked) ? 'Y' : 'N',
+          payFollowManualRefundYn: (document.getElementById('pgAgencyPayFollowManualRefund') && document.getElementById('pgAgencyPayFollowManualRefund').checked) ? 'Y' : 'N',
+          payFollowForceRefundYn: (document.getElementById('pgAgencyPayFollowForceRefund') && document.getElementById('pgAgencyPayFollowForceRefund').checked) ? 'Y' : 'N',
+          payFollowSameDayRefundYn: (document.getElementById('pgAgencyPayFollowSameDayRefund') && document.getElementById('pgAgencyPayFollowSameDayRefund').checked) ? 'Y' : 'N',
           mid: (document.getElementById('pgAgencyEditMid') && document.getElementById('pgAgencyEditMid').value) ? document.getElementById('pgAgencyEditMid').value.trim() : '',
           routeNo: '',
           sandboxYn: (document.getElementById('pgAgencyEditSandboxYn') && document.getElementById('pgAgencyEditSandboxYn').value) ? document.getElementById('pgAgencyEditSandboxYn').value : 'Y',
