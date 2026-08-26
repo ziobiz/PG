@@ -172,6 +172,10 @@ public class PgTrnsctn {
     @Column(name = "receipt_mail_sent_at")
     private LocalDateTime receiptMailSentAt;
 
+    /** 고객 거래명세서(환불·무효) 이메일 발송 시각 */
+    @Column(name = "receipt_followup_mail_sent_at")
+    private LocalDateTime receiptFollowupMailSentAt;
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
@@ -265,4 +269,8 @@ public class PgTrnsctn {
     public void setCheckoutLang(String checkoutLang) { this.checkoutLang = checkoutLang; }
     public LocalDateTime getReceiptMailSentAt() { return receiptMailSentAt; }
     public void setReceiptMailSentAt(LocalDateTime receiptMailSentAt) { this.receiptMailSentAt = receiptMailSentAt; }
+    public LocalDateTime getReceiptFollowupMailSentAt() { return receiptFollowupMailSentAt; }
+    public void setReceiptFollowupMailSentAt(LocalDateTime receiptFollowupMailSentAt) {
+        this.receiptFollowupMailSentAt = receiptFollowupMailSentAt;
+    }
 }

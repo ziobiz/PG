@@ -1,9 +1,15 @@
-﻿ICOPAY 统一 Checkout Prepare API 请求参数 (Spec ICOPAY-CHECKOUT-PREPARE-001 v1.0)
+ICOPAY 统一 Checkout Prepare API 请求参数 (Spec ICOPAY-CHECKOUT-PREPARE-001 v1.2)
 ======================================================================================
 
 POST {publicApiBaseUrl}/api/middleware/v1/merchant/checkout/prepare
 Content-Type: application/json
 X-Icopay-Merchant-Broker-Secret: {brokerSecret}  (when enforce is on)
+
+必填 — 缺省则 ICOPAY BUYER_* 失败（空字符串视为缺失）
+  表 1.1: compId 或 merchantId, orderNo, amount, buyer
+  表 1.2: buyer.email, buyer.phone（本地号）, buyer.countryIso2（两位大写）
+  代码: BUYER_EMAIL_REQUIRED / BUYER_PHONE_REQUIRED / BUYER_COUNTRY_REQUIRED
+  messages: KOR ENG JPN CHN THA
 
 Table 1.1 — Request body
 No.  Parameter     Type     Len   M/O   Description                    Remark
@@ -19,9 +25,9 @@ No.  Parameter     Type     Len   M/O   Description                    Remark
 
 Table 1.2 — buyer object
 No.  Parameter          Type     Len   M/O   Remark
-1    email              String   254   M     Required by ICOPAY
-2    phone              String   32    M     Local number (no +country)
-3    countryIso2        String   2     M     ISO2 e.g. KR
+1    email              String   254   M     必填。缺省 → BUYER_EMAIL_REQUIRED
+2    phone              String   32    M     本地号。缺省 → BUYER_PHONE_REQUIRED
+3    countryIso2        String   2     M     ISO2。缺省 → BUYER_COUNTRY_REQUIRED
 4    address            String   200   O     Shipping prefill
 5-10 (optional shipping fields — see HTML/MD doc)
 

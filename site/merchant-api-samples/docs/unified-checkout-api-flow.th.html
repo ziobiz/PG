@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="th">
 <head>
   <meta charset="UTF-8">
@@ -39,6 +39,9 @@
     <tr><th>Embed script</th><td><code>{publicApiBaseUrl}/v1/embed-checkout/{compId}</code></td></tr>
   </table>
   <p>Example <code>compId</code>: <code>6000000028</code> (assigned per merchant at HQ deployment).</p>
+  <p><strong>จำเป็นใน prepare:</strong> <code>compId</code> (หรือ merchantId), <code>orderNo</code>, <code>amount</code>,
+    <code>buyer.email</code>, <code>buyer.phone</code>, <code>buyer.countryIso2</code>
+    หากขาดได้ ICOPAY <code>BUYER_*</code> (5 ภาษา) ค่าว่างถือว่าขาด</p>
 
   <h2>2. สรุปเอ็นด์พอยต์</h2>
   <table>

@@ -363,9 +363,9 @@
   };
 
   var PAY_FOLLOW = {
-    AUTO_VOID: { KO: '무효처리', EN: 'Auto void', JP: '自動無効', CH: '自动作废', TH: 'โมฆะอัตโนมัติ' },
+    AUTO_VOID: { KO: '무효처리', EN: 'Void processing', JP: '無効処理', CH: '作废处理', TH: 'โมฆะ' },
     EMAIL_VOID: { KO: '이메일 무효', EN: 'Email void', JP: 'メール無効', CH: '邮件作废', TH: 'โมฆะทางอีเมล' },
-    AUTO_REFUND: { KO: '환불처리', EN: 'Auto refund', JP: '自動返金', CH: '自动退款', TH: 'คืนเงินอัตโนมัติ' },
+    AUTO_REFUND: { KO: '환불처리', EN: 'Refund processing', JP: '返金処理', CH: '退款处理', TH: 'คืนเงิน' },
     FORCE_REFUND: { KO: '강제환불', EN: 'Force refund', JP: '強制返金', CH: '强制退款', TH: 'บังคับคืนเงิน' },
     MANUAL_VOID: {
       KO: '수동무효',
@@ -471,6 +471,7 @@
       packN('통합 결제내역: 칠페이 API 동기화·노티 적재·URL직접결제 등 전 출처를 한 그리드에 표시합니다. 앞쪽 컬럼(거래일~Settled)은 칠페이 거래내역 시트와 대응합니다.', 'Integrated payment history shows all sources (ChillPay API sync, inbound notify, URL pay, etc.) in one grid. Leading columns align with the ChillPay transaction sheet.', '統合決済履歴は、ChillPay API 同期・ノティ取込・URL 直決済など全ソースを一つのグリッドに表示します。先頭列は ChillPay 取引シートに対応します。', '综合支付历史在一个表格中展示所有来源（ChillPay API 同步、入账通知、URL 支付等）。前列与 ChillPay 交易表对应。', 'ประวัติการชำระเงินรวมแสดงทุกแหล่ง (ซิงค์ ChillPay API, แจ้งเวียน, URL ฯลฯ) ในตารางเดียว คอลัมน์หน้าสอดคล้องกับชีต ChillPay'),
       packN('[순서] 내림차순·오름차순은 상단 [새로고침] 왼쪽 메뉴에서 고르며, 누르는 즉시 목록을 다시 조회합니다.', '[Sort] Choose Descending/Ascending in the menu left of [Refresh]; the list reloads immediately.', '[並び順][再読込]左のメニューで降順・昇順を選ぶと、すぐに一覧を再取得します。', '[排序] 在顶部 [刷新] 左侧菜单选择升/降序，点击后立即重新查询。', '[เรียงลำดับ] เลือกจาก/มากไปน้อยทางเมนูซ้ายของ [รีเฟรช] แล้วรายการจะโหลดใหม่ทันที'),
       packN('[후속조치]는 본사설정 > 전산설정관리에서 기능을 켠 경우에만 동작합니다 (NOTI 환경설정과 동일).', '[Follow-up] actions run only when enabled in HQ Settings > Ledger system settings (same as NOTI).', '[後続対応]は本社設定＞全算設定で有効化した場合のみ動作します（NOTI と同様）。', '[后续处理] 仅在「本社设置 > 账务系统设置」开启时生效（与 NOTI 相同）。', '[ดำเนินการต่อ] ทำงานเมื่อเปิดในตั้งค่าระบบบัญชีเท่านั้น (เหมือน NOTI)'),
+      packN('멀티 PG 가맹: 후속조치는 행마다 실제 결제된 대행사 기준입니다(ChillPay·JPAY 버튼 구성이 다를 수 있음). 시간 창은 전산설정 표준시입니다.', 'Multi-PG merchants: follow-up buttons follow the agency that processed each row (ChillPay vs JPAY sets may differ). Time windows use ledger standard timezone.', 'マルチPG加盟: 後続措置は行ごとに実際の決済代行基準(ChillPayとJPAYでボタンが異なる場合あり)。時間は全算標準時。', '多机构商户：后续按钮按该行实际支付机构（ChillPay 与 JPAY 可能不同）。时间窗口用账务标准时区。', 'ร้านหลาย PG: ปุ่มดำเนินการตามผู้ให้บริการของแถวนั้น (ChillPay/JPAY ต่างกันได้) ช่วงเวลาใช้โซนมาตรฐานบัญชี'),
       packN('취소 건에 대한 정산 수수료 및 부가세는 정산 주기에 따라 반영됩니다.', 'Settlement fees and VAT for cancelled items follow the settlement cycle.', '取消取引の精算手数料・消費税は精算サイクルに従って反映されます。', '取消交易的结算手续费与增值税按结算周期反映。', 'ค่าธรรมเนียมและ VAT ของรายการยกเลิกสะท้อนตามรอบชำระบัญชี'),
       packN('정산 주기 및 정산 수수료는 가맹점별로 상이할 수 있습니다.', 'Settlement cycle and fees may differ per merchant.', '精算サイクル・手数料は加盟店ごとに異なる場合があります。', '结算周期与手续费可能因商户而异。', 'รอบและค่าธรรมเนียมอาจต่างกันในแต่ละร้าน'),
       packN('상단 한 줄: 건수(0이어도 항상 표시)·통화별 총거래·승인·환불·실패·수수료·담보·부가세·추정결산. 금액이 0인 항목·통화는 표시하지 않습니다(건수 제외). 「환불」은 상태 30·42만, 「실패」는 99·F0만. 아래: 상태 pill. 본사·총본사는 통화별 병기.', 'Top row: count (always shown, even 0) and per-currency metrics. Items/currencies with zero amount are hidden (except count). Refund=30·42 only; fail=99·F0. Below: status pills. HQ shows multiple currencies.', '上段: 件数(0でも常時表示)・通貨別各指標。金額0の項目・通貨は非表示(件数除く)。返金=30・42、失敗=99・F0。下段: pill。', '首行：件数(0 也显示)及各币种指标；金额为 0 的项/币种不显示(件数除外)。退款=30·42，失败=99·F0。下方 pill。', 'แถวบน: จำนวน(แสดงแม้ 0) และยอดตามสกุล — ซ่อนรายการ/สกุลที่ยอด 0 (ยกเว้นจำนวน) คืนเงิน=30·42 ล้มเหลว=99·F0'),
@@ -498,7 +499,7 @@
       packN('비활성카드·쿨다운 대기 중 재시도는 결제내역에 남기지 않습니다. 카드위험 트리거 N차까지의 유효 실패·JPAY 시도 완료 건만 표시됩니다.', 'Retries while card is inactive or in cooldown wait are not listed. Only qualifying failures up to the risk trigger tier and completed JPAY attempts appear.', '非活性カード・クールダウン待機中の再試行は決済履歴に残しません。リスクトリガー N 次までの有効失敗・J-Pay 試行完了分のみ表示します。', '非活跃卡或冷却等待期间的重复尝试不会写入支付历史。仅显示达到风险触发档位前的有效失败及已完成 J-Pay 尝试。', 'ไม่บันทึกการลองซ้ำระหว่างบัตรไม่ใช้งานหรือรอคูลดาวน์ แสดงเฉพาะความล้มเหลวที่นับถึงระดับทริกเกอร์และการลอง J-Pay ที่เสร็จสมบูรณ์')
     ],
     '/calc/payRefundList': [
-      packN('환불처리: 통합 결제내역에서 일반·자동환불(내부 30·42)만 간추렸습니다.', 'Refund processing: refund states (30·42) only.', '返金処理: 30・42 のみ。', '退款处理：仅内部状态 30·42。', 'คืนเงิน: เฉพาะสถานะ 30·42'),
+      packN('환불처리: 통합 결제내역에서 환불(내부 30·42)만 간추렸습니다.', 'Refund processing: refund states (30·42) only.', '返金処理: 30・42 のみ。', '退款处理：仅内部状态 30·42。', 'คืนเงิน: เฉพาะสถานะ 30·42'),
       packN('상단은 건수와 해당 상태(환불) 요약 pill만 표시합니다(일별통합과 동일).', 'Top shows count and refund status pill only.', '上段は件数と返金 pill のみ。', '顶部仅显示件数与退款状态 pill。', 'ด้านบนแสดงจำนวนและ pill คืนเงินเท่านั้น')
     ],
     '/calc/payForceRefundList': [
@@ -514,7 +515,7 @@
       packN('상단은 건수와 해당 상태(무효) 요약 pill만 표시합니다(일별통합과 동일).', 'Top shows count and void pill only.', '上段は件数と無効 pill のみ。', '顶部仅显示件数与作废 pill。', 'ด้านบนแสดงจำนวนและ pill โมฆะเท่านั้น')
     ],
     '/calc/payEmailVoidList': [
-      packN('이메일무효: 통합 결제내역에서 수동·이메일 무효(내부 22·41)만 표시합니다. 자동무효(21·40)는 「무효처리」메뉴입니다.', 'Email/manual void: internal 22·41 only. Auto void (21·40) is on void menu.', 'メール無効: 22・41 のみ。自動無効は無効処理メニュー。', '邮件作废：仅 22·41；自动作废见作废菜单。', 'โมฆะอีเมล: 22·41 โมฆะอัตโนมัติเมนูแยก'),
+      packN('이메일 무효: 통합 결제내역에서 이메일 무효(내부 22·41)만 표시합니다. 무효처리(21·40)는 「무효처리」메뉴입니다.', 'Email void: internal 22·41 only. Void processing (21·40) is on void menu.', 'メール無効: 22・41 のみ。無効処理(21・40)は無効処理メニュー。', '邮件作废：仅 22·41；作废处理(21·40)见作废菜单。', 'โมฆะอีเมล: 22·41 โมฆะเมนูแยก'),
       packN('상단은 건수와 해당 상태(이메일 무효) 요약 pill만 표시합니다(일별통합과 동일).', 'Top shows count and email-void pill only.', '上段は件数とメール無効 pill のみ。', '顶部仅显示件数与邮件作废 pill。', 'ด้านบนแสดงจำนวนและ pill อีเมลโมฆะเท่านั้น')
     ],
     '/calc/offsetCancList': [
@@ -728,7 +729,8 @@
     '/hq/pgApiMng': [
       packN('연동 용도(노티·URL·챗봇·API)와 용도별 엔드포인트를 구분해 저장합니다. URL 용도 행은 「URL금액」에서 일반(일반형) / DP(DISPLAY) / BLIND를 지정할 수 있으며, 본사 URL결제설정(FX JSON)의 해당 PG 금액 모드와 동일합니다. 노티=미들웨어 수신 매칭, URL=공개 URL 결제 플로우, 챗봇/API=결제대행 API 직연동(동일 연동 URL). 목록 「연동용도」는 파스텔 색으로 구분됩니다. API Key·MD5는 목록 미노출. [삭제]는 등록일 오른쪽, 신규는 [결제대행사 설정 추가]입니다.', 'Integration kinds (notify, URL, chatbot, API) and per-kind endpoints are stored separately. For URL rows, set Normal / DP (DISPLAY) / BLIND under “URL amount”; this matches HQ URL pay FX JSON per PG. Notify = middleware inbound match; URL = public URL pay; Chatbot/API = direct PG API (same URL). Scope badges use pastel colors. API key / MD5 are hidden in the list. Delete sits right of reg. date; use “Add PG linkage” for new.', '連携用途（ノティ・URL・チャットボット・API）と用途別エンドポイントを分けて保存します。URL行は「URL金額」で標準／DP(DISPLAY)／BLINDを指定でき、本社URL決済設定(FX JSON)の当該PGモードと一致します。ノティ=ミドルウェア受信、URL=公開URL決済、チャットボット／API=PG API直連携。一覧の用途はパステル色。API Key・MD5は一覧非表示。削除は登録日の右、新規は「PG連携を追加」。', '按用途（通知、URL、聊天机器人、API）及各自端点分别保存。URL 行可在「URL 金额」指定标准／DP(DISPLAY)／BLIND，与总部 URL 支付 FX JSON 中该 PG 的模式一致。通知=中间件入账匹配；URL=公开 URL 支付；聊天机器人/API=直连 PG API。列表用途用浅色区分。列表不显示 API Key/MD5。删除在注册日期右侧，新增用「添加 PG 对接」。', 'บันทึกแยกตามประเภท (แจ้งเตือน URL แชทบอท API) และ endpoint ต่อประเภท แถว URL ตั้งค่า มาตรฐาน/DP/BLIND ที่คอลัมน์ URL ตรงกับ FX JSON ของ HQ แจ้งเตือน=จับคู่ middleware URL=จ่ายสาธารณะ แชทบอท/API=เชื่อม API โดยตรง ไม่แสดง API Key/MD5 ในรายการ ลบอยู่ขวาวันที่ ลงทะเบียน ใหม่ใช้ปุ่มเพิ่มการเชื่อม PG'),
       packN('통합정산 「예정(ICOPAY)」열: 결제대행사 설정 편집에서 T+N(주말 제외 영업일·결제와 동일 시각) 또는 D+N(달력+N일·일괄 시각)을 저장합니다. OFF면 예정일을 채우지 않습니다. D는 일괄 시각(HH:mm) 필수.', '“Expected (ICOPAY)” uses T+N (business days, same time as payment) or D+N (calendar days + batch time) from the PG linkage editor. OFF leaves the date empty. D requires batch time (HH:mm).', '統合精算の「予定(ICOPAY)」列は、PG連携編集で T+N（営業日・決済と同時刻）または D+N（暦日+N・一括時刻）を保存します。OFF は予定日を空にします。D は一括時刻(HH:mm)が必須です。', '「预计(ICOPAY)」列在 PG 对接编辑中保存 T+N（营业日、与支付同时刻）或 D+N（自然日+N、批量时刻）。OFF 不填预计日。D 必须填写批量时刻(HH:mm)。', 'คอลัมน์คาด(ICOPAY) ใช้ T+N (วันทำการ เวลาเดียวกับการชำระ) หรือ D+N (ปฏิทิน+N เวลารวม) จากแก้ไขการเชื่อม PG ถ้า OFF ไม่เติมวันที่ D ต้องมีเวลารวม HH:mm'),
-      packN('ChillPay는 결제코드 CHILLPAY, API·URL 엔드포인트는 ChillPayService가 병합 반영합니다. 운영 DB는 db/V35_pg_agency_integration_scope.sql 적용 후 배포하세요.', 'ChillPay expects PG codes starting with CHILLPAY; ChillPayService merges API/URL endpoints. Apply db/V35_pg_agency_integration_scope.sql to the production DB before deploy.', 'ChillPay は PGコード CHILLPAY、API/URL エンドポイントは ChillPayService がマージ反映します。本番 DB には db/V35_pg_agency_integration_scope.sql を適用してからデプロイしてください。', 'ChillPay 要求 PG 代码以 CHILLPAY 开头；API/URL 端点由 ChillPayService 合并。生产库请先执行 db/V35_pg_agency_integration_scope.sql 再部署。', 'ChillPay ใช้รหัส PG ขึ้นต้น CHILLPAY ChillPayService รวม endpoint API/URL ใช้สคริปต์ db/V35_pg_agency_integration_scope.sql กับ DB ก่อน deploy')
+      packN('ChillPay는 결제코드 CHILLPAY, API·URL 엔드포인트는 ChillPayService가 병합 반영합니다. 운영 DB는 db/V35_pg_agency_integration_scope.sql 적용 후 배포하세요.', 'ChillPay expects PG codes starting with CHILLPAY; ChillPayService merges API/URL endpoints. Apply db/V35_pg_agency_integration_scope.sql to the production DB before deploy.', 'ChillPay は PGコード CHILLPAY、API/URL エンドポイントは ChillPayService がマージ反映します。本番 DB には db/V35_pg_agency_integration_scope.sql を適用してからデプロイしてください。', 'ChillPay 要求 PG 代码以 CHILLPAY 开头；API/URL 端点由 ChillPayService 合并。生产库请先执行 db/V35_pg_agency_integration_scope.sql 再部署。', 'ChillPay ใช้รหัส PG ขึ้นต้น CHILLPAY ChillPayService รวม endpoint API/URL ใช้สคริปต์ db/V35_pg_agency_integration_scope.sql กับ DB ก่อน deploy'),
+      packN('ICOPAY 후속조치(무효처리·이메일 무효·수동무효·환불처리·수동환불·강제환불·당일환불)는 결제대행사마다 허용을 고릅니다. 노티 미들웨어는 거래 적재만 담당하며, 결제내역 버튼은 대행사 허용 AND 전산설정(NOTI) AND 조직 단계 AND 가맹 스위치 AND 계열 API가 모두 맞을 때만 활성화됩니다.', 'ICOPAY follow-up (void, email void, manual void, refund, manual refund, force refund, same-day refund) is chosen per processor. Notify middleware only loads transactions; pay-list buttons require processor allow AND ledger NOTI AND org-level cap AND merchant flags AND family API.', 'ICOPAY後続措置は決済代行業者ごとに許可します。ノティミドルウェアは取込のみ。一覧ボタンは代行許可 AND 全算NOTI AND 組織段階 AND 加盟 AND 系列APIが揃ったときだけ有効です。', 'ICOPAY 后续处理按支付机构分别允许。通知中间件只负责入账；明细按钮需机构允许、账务 NOTI、组织层级、商户开关与系列 API 同时满足。', 'ICOPAY ติดตามเลือกอนุญาตต่อผู้ให้บริการ มิดเดิลแวร์แจ้งเตือนโหลดธุรกรรมเท่านั้น ปุ่มรายการต้องอนุญาตผู้ให้บริการ AND NOTI AND ระดับองค์กร AND ร้าน AND API ของตระกูล')
     ],
     '/calc/compPointMngList': [
       packN('「환수금」은 정산이 반영된 뒤(승인 건이 settled 등으로 정산에 올라간 이후) 같은 거래가 환불·취소·무효·차지백 등으로 바뀔 때 정산에서 거둬야 할 금액이 자동으로 잡히는 내역입니다. 금액은 전산설정(환수금 수수료 포함) 및 수수료내역과 동일한 건별 산식입니다. 다음 정산 지급액에서는 환수금(FIFO)을 먼저 차감한 뒤 미수금(FIFO)을 차감합니다. 거래별 산출·검증은 「회수·거래기준」(/settlement/recallMng) 화면을 참고하세요.', 'Recovery rows are created when a transaction was already reflected in settlement (e.g. settled) and later changes to refund, cancel, void, chargeback, etc. Amounts follow ledger settings (whether fees are included in recovery) and the same per-txn rules as fee history. On the next payout, recovery (FIFO) is deducted first, then receivables (FIFO). For per-txn calculation and checks, use the “Recovery by transaction” screen (/settlement/recallMng).', '「回収金」は、精算反映後（承認取引が settled 等で精算に載った後）に同一取引が返金・取消・無効・チャージバック等へ変わったとき、精算で回収すべき金額が自動計上される明細です。金額は全算設定（回収金に手数料を含むか）および手数料一覧と同じ件別計算式です。次回の支払額からは回収金(FIFO)を先に差し引いた後、未収金(FIFO)を差し引きます。取引別の算出・照合は「回収・取引基準」(/settlement/recallMng) を参照してください。', '「回款」指：交易已参与结算（如 settled）之后又变为退款、取消、作废、拒付等时，系统自动生成的应从结算侧收回的金额。金额按账务设置（回款是否含手续费）及与手续费明细相同的逐笔规则计算。下次拨付时先按 FIFO 扣回款，再扣应收。逐笔计算与核对请使用「回款·按交易」(/settlement/recallMng) 画面。', 'รายการกู้คืนเกิดเมื่อธุรกรรมถูกสะท้อนชำระแล้ว (เช่น settled) ต่อมาเปลี่ยนเป็นคืนเงิน·ยกเลิก·โมฆะ·ชาร์จแบ็ก ฯลฯ ยอดคิดตามการตั้งค่า (รวมค่าธรรมเนียมหรือไม่) และกฎรายรายการเดียวกับประวัติค่าธรรมเนียม รอบถัดไปหักกู้คืน FIFO แล้วจึงหักลูกหนี้ FIFO ตรวจรายรายการที่ /settlement/recallMng')
@@ -1310,11 +1312,18 @@
         'ค่าเริ่มต้นแสดงเฉพาะร้านที่สถานะใช้งาน เลือกไม่ใช้ ระงับถาวร หรือทั้งหมดในตัวกรอง ไม่ใช้(N) ยังเข้าสู่ระบบได้แต่หยุดการชำระและหักบัญชีใหม่ ระงับถาวร(S) จะระงับบัญชีผู้ใช้ที่เชื่อมโยงและเข้าสู่ระบบไม่ได้ ตั้งระดับบนเป็นไม่ใช้/ระงับถาวรจะส่งผลต่อโปรไฟล์ลูกด้วย'
       ),
       packN(
-        '엑셀등록: [SAMPLE]으로 서식 있는 xlsx(헤더 색·표선·가운데 정렬)를 받아 예시 행을 수정·추가한 뒤 [엑셀등록]에 업로드하세요.',
+        '엑셀등록: [SAMPLE]으로 서식 있는 xlsx(헤더 색·표선·가운데 정렬)을 받아 예시 행을 수정·추가한 뒤 [엑셀등록]에 업로드하세요.',
         'Excel register: download [SAMPLE] styled xlsx (header color, borders, center align), edit sample rows, then upload via [Excel register].',
         'Excel登録: [SAMPLE]の書式付きxlsxを取得し、例示行を編集・追加してから[Excel登録]へアップロードしてください。',
         'Excel 导入：下载带格式的 [SAMPLE] xlsx（表头颜色、边框、居中），修改示例行后通过「Excel 导入」上传。',
         'นำเข้า Excel: ดาวน์โหลด [SAMPLE] แบบมีรูปแบบ แก้ไขแถวตัวอย่าง แล้วอัปโหลดที่ [นำเข้า Excel]'
+      ),
+      packN(
+        '결제대행사는 본사설정/연동배포/결제대행사 설정에서 사용인 항목만 신규 선택됩니다. 이미 묶인 대행사가 미사용으로 바뀌면 업체등록 선택란이 회색으로 남고, 목록의 업체코드·아이콘이 경고색으로 표시됩니다. Hello VIEW SETTING의 「대행」열은 기본 비활성이며 켜면 결제대행사를 볼 수 있습니다.',
+        'New merchant PG rows only list processors marked In use in HQ Integration / Payment processor settings. If a bound processor is later set unused, the register dropdown stays gray and the merchant code plus tree icon turn warning color. Hello VIEW SETTING item 「대행」 is off by default; turn it on to show the processor column.',
+        '新規の決済代行選択は本社の連携・決済代行設定で使用中の項目のみです。既存の代行が未使用になると登録の選択欄は灰色のまま残り、一覧の加盟店コードとアイコンが警告色になります。Hello VIEW SETTINGの「代行」列は既定オフで、オンにすると表示されます。',
+        '新建商户支付机构仅显示总部「联动部署 / 支付机构设置」中为使用的项目。若已绑定机构后来改为未使用，注册下拉保持灰色，列表商户代码与图标变为警告色。Hello VIEW SETTING「代行」列默认关闭，打开后可见。',
+        'แถวใหม่เลือกได้เฉพาะผู้ให้บริการที่ตั้งเป็นใช้งานใน HQ การเชื่อมต่อ/ตั้งค่าผู้ให้บริการ ถ้าที่ผูกไว้ถูกตั้งไม่ใช้ รายการเลือกยังเป็นสีเทา และรหัสร้านกับไอคอนเป็นสีเตือน คอลัมน์ Hello VIEW SETTING 「대행」 ปิดเป็นค่าเริ่ม เปิดเพื่อดูผู้ให้บริการ'
       )
     ]
   };
@@ -1427,6 +1436,7 @@
     settlementAmt: { EN: 'Settlement', JP: '精算金', CH: '结算款', TH: 'เงินชำระ' },
     receivables: { EN: 'Receivable', JP: '未収金', CH: '应收', TH: 'ลูกหนี้' },
     siteRoot: { EN: 'Root', JP: 'ルート', CH: '根路由', TH: 'รูท' },
+    pgAgencyLabel: { KO: '대행', EN: 'PG', JP: '代行', CH: '代行', TH: 'ตัวแทน' },
     payIntegrationMode: { EN: 'Method', JP: '方式', CH: '方式', TH: 'รูปแบบ' },
     apiIntegrationChannel: { EN: 'Channel', JP: 'チャネル', CH: '渠道', TH: 'ช่องทาง' },
     cardBrandScope: { EN: 'Card', JP: 'カード', CH: '卡', TH: 'บัตร' },
@@ -2901,10 +2911,18 @@
           var k = cb ? cb.getAttribute('data-key') : '';
           if (!k || !sp) return;
           var col = cfg.columns.filter(function (cc) { return cc && cc.key === k; })[0];
-          if (col && col.label) {
-            sp.textContent = w.PG_UI_I18N && typeof w.PG_UI_I18N.t === 'function' ? w.PG_UI_I18N.t(String(col.label)) : col.label;
-          }
+          if (!col) return;
+          var labKo = col.columnGuideLabel || col.label;
+          if (!labKo) return;
+          sp.setAttribute('data-pg-ui-t', String(labKo));
+          sp.textContent = w.PG_UI_I18N && typeof w.PG_UI_I18N.t === 'function' ? w.PG_UI_I18N.t(String(labKo)) : String(labKo);
         });
+      }
+      if (w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
+        try {
+          var cgRoot = pane.querySelector('#tableColumnGuide');
+          if (cgRoot) w.PG_UI_I18N.applyDom(cgRoot);
+        } catch (eCgDom) {}
       }
       if (url === '/hq/pgApiMng' && pane._lastGridCols && pane._lastGridCols.length) {
         var buildTh2 = w.PG_SCREENS && w.PG_SCREENS.buildStandardDataGridTheadHtml;
@@ -2961,6 +2979,15 @@
           var tbUm = pane.querySelector('#grid_' + tid + ' tbody');
           if (tbUm) w.PG_UI_I18N.applyDom(tbUm);
         } catch (eUmPaneI18n) {}
+      }
+      if (url === '/hq/accountMng' && w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
+        try { w.PG_UI_I18N.applyDom(pane); } catch (eAccPaneI18n) {}
+      }
+      if (url === '/hq/defaultCommission' && w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
+        try {
+          var dispFee = pane.querySelector('#hqDefCommTemplateScopeDisplay');
+          if (dispFee) w.PG_UI_I18N.applyDom(dispFee);
+        } catch (eFeeOptI18n) {}
       }
       if (cfg && (cfg.isForm || cfg.hasCompInfoDetailForm) && w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
         try { w.PG_UI_I18N.applyDom(pane); } catch (eFormPaneDom) {}

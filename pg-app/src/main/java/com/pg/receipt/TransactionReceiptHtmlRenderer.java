@@ -18,7 +18,10 @@ public final class TransactionReceiptHtmlRenderer {
         }
         String lang = vm.lang();
         Map<String, String> labels = TransactionReceiptEmailI18n.fieldLabels(lang);
+        TransactionReceiptOutcome outcome = TransactionReceiptOutcome.parse(vm.outcomeKind());
+        String badgeColor = TransactionReceiptEmailI18n.outcomeBadgeColor(outcome);
         String amountLine = escape(vm.currency()) + " " + escape(formatAmount(vm.amount()));
+        String eventDateLabel = eventDateLabel(labels, outcome);
 
         StringBuilder providerBlock = new StringBuilder();
         appendProviderSection(providerBlock, labels, vm);
@@ -31,7 +34,7 @@ public final class TransactionReceiptHtmlRenderer {
         appendDetailRow(detailRows, labels.get("serviceItem"), vm.serviceItem(), false);
         appendDetailRow(detailRows, labels.get("orderNumber"), vm.orderNumber(), false);
         appendDetailRow(detailRows, labels.get("cardholder"), maskName(vm.cardholder()), false);
-        appendDetailRow(detailRows, labels.get("authorizedDateTime"), vm.authorizedDateTime(), false);
+        appendDetailRow(detailRows, eventDateLabel, vm.authorizedDateTime(), false);
         if (vm.approvalCode() != null && !vm.approvalCode().isBlank()) {
             appendDetailRow(detailRows, labels.get("approvalCode"), vm.approvalCode(), false);
         }
@@ -50,10 +53,10 @@ public final class TransactionReceiptHtmlRenderer {
                 <tr><td style="padding:20px 24px 8px 24px;">
                   <table role="presentation" width="100%%"><tr>
                     <td style="font-size:13px;font-weight:700;color:#1e3a5f;">ICOPAY</td>
-                    <td align="right"><span style="display:inline-block;background:#22c55e;color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:4px;">%s</span></td>
+                    <td align="right"><span style="display:inline-block;background:%s;color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:4px;">%s</span></td>
                   </tr></table>
                 </td></tr>
-                <tr><td style="padding:8px 24px 20px 24px;border-bottom:2px solid #22c55e;text-align:center;">
+                <tr><td style="padding:8px 24px 20px 24px;border-bottom:2px solid %s;text-align:center;">
                   <div style="font-size:32px;font-weight:700;color:%s;letter-spacing:0.02em;">%s</div>
                 </td></tr>
                 <tr><td style="padding:20px 24px 8px 24px;">
@@ -73,7 +76,9 @@ public final class TransactionReceiptHtmlRenderer {
                 </td></tr></table>
                 </body></html>
                 """.formatted(
-                escape(TransactionReceiptEmailI18n.paymentSuccessful(lang)),
+                badgeColor,
+                escape(TransactionReceiptEmailI18n.outcomeBadge(lang, outcome)),
+                badgeColor,
                 AMOUNT_BLUE,
                 amountLine,
                 escape(TransactionReceiptEmailI18n.serviceProvider(lang)),
@@ -84,8 +89,9 @@ public final class TransactionReceiptHtmlRenderer {
 
     public static String renderPlainText(TransactionReceiptViewModel vm) {
         Map<String, String> labels = TransactionReceiptEmailI18n.fieldLabels(vm.lang());
+        TransactionReceiptOutcome outcome = TransactionReceiptOutcome.parse(vm.outcomeKind());
         StringBuilder sb = new StringBuilder();
-        sb.append(TransactionReceiptEmailI18n.paymentSuccessful(vm.lang())).append('\n');
+        sb.append(TransactionReceiptEmailI18n.outcomeBadge(vm.lang(), outcome)).append('\n');
         sb.append(vm.currency()).append(' ').append(formatAmount(vm.amount())).append("\n\n");
         sb.append(TransactionReceiptEmailI18n.serviceProvider(vm.lang())).append("\n");
         line(sb, labels.get("acquirer"), vm.acquirer());
@@ -100,7 +106,7 @@ public final class TransactionReceiptHtmlRenderer {
         line(sb, labels.get("serviceItem"), vm.serviceItem());
         line(sb, labels.get("orderNumber"), vm.orderNumber());
         line(sb, labels.get("cardholder"), maskName(vm.cardholder()));
-        line(sb, labels.get("authorizedDateTime"), vm.authorizedDateTime());
+        line(sb, eventDateLabel(labels, outcome), vm.authorizedDateTime());
         if (vm.approvalCode() != null && !vm.approvalCode().isBlank()) {
             line(sb, labels.get("approvalCode"), vm.approvalCode());
         }
@@ -108,6 +114,17 @@ public final class TransactionReceiptHtmlRenderer {
             line(sb, labels.get("paymentMethod"), vm.paymentMethod());
         }
         return sb.toString();
+    }
+
+    private static String eventDateLabel(Map<String, String> labels, TransactionReceiptOutcome outcome) {
+        TransactionReceiptOutcome o = outcome != null ? outcome : TransactionReceiptOutcome.PAID;
+        String key = switch (o) {
+            case REFUNDED -> "refundedDateTime";
+            case VOIDED -> "voidedDateTime";
+            default -> "authorizedDateTime";
+        };
+        String v = labels.get(key);
+        return v != null && !v.isBlank() ? v : labels.get("authorizedDateTime");
     }
 
     /** SERVICE PROVIDER — 단일 박스에 Acquirer / Payment Switcher / Payment Provider 나열 */
@@ -260,7 +277,8 @@ public final class TransactionReceiptHtmlRenderer {
             String cardholder,
             String authorizedDateTime,
             String approvalCode,
-            String paymentMethod
+            String paymentMethod,
+            String outcomeKind
     ) {
         public static Builder builder() {
             return new Builder();
@@ -285,6 +303,11 @@ public final class TransactionReceiptHtmlRenderer {
             public Builder authorizedDateTime(String v) { data.put("authorizedDateTime", v); return this; }
             public Builder approvalCode(String v) { data.put("approvalCode", v); return this; }
             public Builder paymentMethod(String v) { data.put("paymentMethod", v); return this; }
+            public Builder outcomeKind(String v) { data.put("outcomeKind", v); return this; }
+            public Builder outcomeKind(TransactionReceiptOutcome v) {
+                data.put("outcomeKind", v != null ? v.name() : TransactionReceiptOutcome.PAID.name());
+                return this;
+            }
 
             public TransactionReceiptViewModel build() {
                 BigDecimal amt = null;
@@ -310,7 +333,8 @@ public final class TransactionReceiptHtmlRenderer {
                         data.get("cardholder"),
                         data.get("authorizedDateTime"),
                         data.get("approvalCode"),
-                        data.get("paymentMethod"));
+                        data.get("paymentMethod"),
+                        data.get("outcomeKind"));
             }
         }
     }

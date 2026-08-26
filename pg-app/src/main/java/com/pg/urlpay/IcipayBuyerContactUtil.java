@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -15,22 +14,91 @@ public final class IcipayBuyerContactUtil {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    public enum BuyerFailKind {
+        OBJECT, JSON, EMAIL, PHONE, COUNTRY
+    }
+
+    public static final class BuyerRequiredException extends IllegalArgumentException {
+        private final BuyerFailKind kind;
+
+        public BuyerRequiredException(BuyerFailKind kind, String message) {
+            super(message);
+            this.kind = kind != null ? kind : BuyerFailKind.OBJECT;
+        }
+
+        public BuyerFailKind kind() {
+            return kind;
+        }
+
+        public Map<String, Object> toFailMap() {
+            return switch (kind) {
+                case JSON -> CheckoutFailI18n.buyerJsonInvalid();
+                case EMAIL -> CheckoutFailI18n.buyerEmailRequired();
+                case PHONE -> CheckoutFailI18n.buyerPhoneRequired();
+                case COUNTRY -> CheckoutFailI18n.buyerCountryRequired();
+                default -> CheckoutFailI18n.buyerObjectRequired();
+            };
+        }
+    }
+
     private IcipayBuyerContactUtil() {
     }
 
     /**
      * 통합 prepare 필수: {@code buyer.email}, {@code buyer.phone}, {@code buyer.countryIso2}.
      *
-     * @throws IllegalArgumentException 검증 실패
+     * @throws BuyerRequiredException 검증 실패(5개국어 fail map: {@link BuyerRequiredException#toFailMap()})
      */
     public static Map<String, String> extractAndValidateRequired(Map<String, Object> body) {
         Map<String, Object> raw = extractRawMap(body);
         if (raw.isEmpty()) {
-            throw new IllegalArgumentException("buyer 객체(email·phone·countryIso2)가 필요합니다.");
+            throw new BuyerRequiredException(BuyerFailKind.OBJECT,
+                    "buyer 객체(email·phone·countryIso2)가 필요합니다.");
         }
         Map<String, String> normalized = normalize(raw);
         validateRequired(normalized);
         return normalized;
+    }
+
+    /**
+     * URL sale 본문({@code payEmailAddress} 등)에 구매자 연락처가 없으면 ICOPAY fail map.
+     * 통과하면 {@code null}.
+     */
+    public static Map<String, Object> failMapIfSaleContactMissing(Map<String, Object> saleBody) {
+        try {
+            extractAndValidateRequired(wrapSaleFieldsAsBuyerBody(saleBody));
+            return null;
+        } catch (BuyerRequiredException ex) {
+            return ex.toFailMap();
+        }
+    }
+
+    static Map<String, Object> wrapSaleFieldsAsBuyerBody(Map<String, Object> saleBody) {
+        Map<String, Object> raw = new LinkedHashMap<>(extractRawMap(saleBody));
+        putIfBlank(raw, "email", saleBody, "payEmailAddress", "email");
+        putIfBlank(raw, "phone", saleBody, "payTelephone", "phone", "telephone");
+        putIfBlank(raw, "countryIso2", saleBody, "payCountryIsoCode2", "countryIso2", "country");
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("buyer", raw);
+        return body;
+    }
+
+    private static void putIfBlank(Map<String, Object> raw, String canonical,
+                                   Map<String, Object> saleBody, String... keys) {
+        Object cur = raw.get(canonical);
+        if (cur != null && !cur.toString().isBlank()) {
+            return;
+        }
+        if (saleBody == null) {
+            return;
+        }
+        for (String k : keys) {
+            Object v = saleBody.get(k);
+            if (v != null && !v.toString().isBlank()) {
+                raw.put(canonical, v.toString().trim());
+                return;
+            }
+        }
     }
 
     /**
@@ -92,7 +160,7 @@ public final class IcipayBuyerContactUtil {
             try {
                 return MAPPER.readValue(s.trim(), Map.class);
             } catch (JsonProcessingException e) {
-                throw new IllegalArgumentException("buyer JSON 형식이 올바르지 않습니다.");
+                throw new BuyerRequiredException(BuyerFailKind.JSON, "buyer JSON 형식이 올바르지 않습니다.");
             }
         }
         return Map.of();
@@ -103,6 +171,8 @@ public final class IcipayBuyerContactUtil {
         putAlias(out, raw, "email", "payEmailAddress");
         putAlias(out, raw, "phone", "payTelephone", "telephone");
         putAlias(out, raw, "countryIso2", "payCountryIsoCode2", "country");
+        putAlias(out, raw, "firstName", "payFirstname", "firstname", "givenName");
+        putAlias(out, raw, "lastName", "payLastname", "lastname", "surname", "familyName");
         putAlias(out, raw, "address", "payStreetAddress1", "streetAddress1", "billingAddress");
         putAlias(out, raw, "address2", "payStreetAddress2", "streetAddress2");
         putAlias(out, raw, "city", "payCity");
@@ -126,14 +196,15 @@ public final class IcipayBuyerContactUtil {
 
     private static void validateRequired(Map<String, String> n) {
         if (n.get("email") == null || n.get("email").isBlank()) {
-            throw new IllegalArgumentException("buyer.email 이 필요합니다.");
+            throw new BuyerRequiredException(BuyerFailKind.EMAIL, "buyer.email 이 필요합니다.");
         }
         if (n.get("phone") == null || n.get("phone").isBlank()) {
-            throw new IllegalArgumentException("buyer.phone 이 필요합니다.");
+            throw new BuyerRequiredException(BuyerFailKind.PHONE, "buyer.phone 이 필요합니다.");
         }
         String country = n.get("countryIso2");
         if (country == null || country.length() != 2) {
-            throw new IllegalArgumentException("buyer.countryIso2(ISO2 국가코드)가 필요합니다.");
+            throw new BuyerRequiredException(BuyerFailKind.COUNTRY,
+                    "buyer.countryIso2(ISO2 국가코드)가 필요합니다.");
         }
     }
 

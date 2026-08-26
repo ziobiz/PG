@@ -199,6 +199,7 @@
     '/hq/notifyEnv': T('Notify setup', 'ノティ構成', '通知配置', 'ตั้งค่าแจ้งเตือน'),
     '/hq/notifyMapping': T('Field mapping', 'フィールド対応', '字段映射', 'แมปฟิลด์'),
     '/hq/notifyInbound': T('Inbound log', '受信ログ', '接收日志', 'บันทึกรับ'),
+    '/hq/notifyEpMirror': T('Mirror resend', 'ミラー再送', '镜像重发', 'ส่งมิเรอร์ซ้ำ'),
     '/hq/ledgerSysSettings': T('Ledger & sync', '電算・同期', '账务与同步', 'บัญชีและการซิงค์'),
     '/hq/settlementAdmin': T('Settlement cycle', '精算周期', '结算周期', 'รอบชำระบัญชี'),
     '/hq/receivableRecoverySettings': T('Recovery & receivables', '回収・未収', '回款与应收', 'กู้คืนและลูกหนี้'),

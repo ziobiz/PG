@@ -96,16 +96,17 @@ ElementPay(EP) Cabinet에는 **Webhook(서버 통보) URL을 본사 고정 1개�
 
 ---
 
-## 4. ICOPAY 측 (연동 상태 — V2.98)
+## 4. ICOPAY 측 (연동 상태 — V3.66)
 
 | # | 항목 | 상태 |
 |---|------|------|
-| 1 | `initPayment` `_successUrl`/`_rejectUrl`/`_waitingUrl` → `/noti/result/elementpay?order=&compId=&merchantId=` | **ICOPAY V2.98** |
+| 1 | `initPayment` `_successUrl`/`_rejectUrl`/`_waitingUrl` → `/noti/result/elementpay?order=&compId=&merchantId=` | **ICOPAY V3.66** (재적용) |
 | 2 | ElementPay 노티생성 시 수신통보에 Webhook·Result 저장 | **ICOPAY V2.97+** |
 | 3 | EP Cabinet Webhooks = `/noti/elementpay` | 본사 운영 설정 |
 | 4 | NOTI `/noti/result/elementpay` 핸들러·매칭 | **NOTI 구현됨** (compId → lookup → log) |
+| 5 | 승인 후 가맹 MIDDLEWARE/Background/Result(Dealmai 등) — JPAY와 동일 `MerchantOutboundNotifyService` | **ICOPAY V3.66** (웹훅·getStatus 동기) |
 
-가맹 수정 없이 본사 PG 전환: Webhook Callback + Result 브라우저 전달까지 연동 완료.
+가맹 수정 없이 본사 PG 전환: Webhook Callback + Result 브라우저 전달 + Dealmai 릴레이까지 연동 완료.
 
 ---
 

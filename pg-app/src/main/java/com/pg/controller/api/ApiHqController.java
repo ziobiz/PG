@@ -27,6 +27,7 @@ import com.pg.service.OrgUnitChangeAuditService;
 import com.pg.service.ServerUsageService;
 import com.pg.util.CommissionTierJsonHelper;
 import com.pg.util.PercentDecimalHelper;
+import com.pg.util.PgAgencyPayFollowCapability;
 import com.pg.util.RouteNoDisplayUtil;
 import com.pg.util.VoidRefundSettlementModeUtil;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -462,6 +463,7 @@ public class ApiHqController {
                     m.put("paymentSwitcherNm", p.getPaymentSwitcherNm() != null ? p.getPaymentSwitcherNm() : "");
                     m.put("paymentSwitcherTel", p.getPaymentSwitcherTel() != null ? p.getPaymentSwitcherTel() : "");
                     m.put("paymentSwitcherEmail", p.getPaymentSwitcherEmail() != null ? p.getPaymentSwitcherEmail() : "");
+                    PgAgencyPayFollowCapability.putFlags(m, p);
                     m.put("regDt", p.getCreatedAt() != null ? p.getCreatedAt().toString().substring(0, 10) : null);
                     return m;
                 })
@@ -477,18 +479,21 @@ public class ApiHqController {
 
     /**
      * 결제대행사 목록 (가맹점 등록·결제대행사 설정 드롭다운용).
-     * API연동설정에서 <strong>사용(Y)</strong>인 행 전부. 본사 「운영」체크 여부는 참고용(hqOperationalYn)으로만 내려가며,
+     * 사용(Y)·미사용(N) 행을 모두 내려 {@code useYn}으로 구분한다.
+     * 신규 행은 사용(Y)만 선택 가능하고, 이미 묶인 미사용 대행사는 회색으로 유지한다.
+     * 본사 「운영」체크 여부는 참고용(hqOperationalYn)으로만 내려가며,
      * 가맹점이 선택·운영(가맹점 행의 operational)하는 데 필수는 아닙니다.
      */
     @GetMapping("/pgAgencyList")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> pgAgencyList() {
         ensureSingleUseAgencyOperational();
         Map<String, String> urlPayAmByPg = urlPayAmountModeMapFromHqFxJson();
-        List<Map<String, Object>> list = pgAgencyRepository.findByUseYnOrderByPgCdAsc("Y").stream()
+        List<Map<String, Object>> list = pgAgencyRepository.findAllByOrderByPgCdAsc().stream()
                 .map(p -> {
                     Map<String, Object> m = new LinkedHashMap<>();
                     m.put("pgCd", p.getPgCd());
                     m.put("pgNm", p.getPgNm());
+                    m.put("useYn", p.getUseYn() != null && "N".equalsIgnoreCase(p.getUseYn().trim()) ? "N" : "Y");
                     m.put("defaultMid", p.getMerchantMid() != null ? p.getMerchantMid() : "");
                     m.put("routeNo", RouteNoDisplayUtil.formatForDisplay(p.getRouteNo()));
                     m.put("sandboxYn", p.getSandboxYn() != null ? p.getSandboxYn() : "Y");
@@ -524,6 +529,7 @@ public class ApiHqController {
                     m.put("hasMd5Key", hasMd5 ? "Y" : "N");
                     m.put("apiKeyMasked", hasApi ? maskSecretPreview(p.getApiKey()) : "");
                     m.put("md5KeyMasked", hasMd5 ? maskSecretPreview(p.getMd5SecretKey()) : "");
+                    PgAgencyPayFollowCapability.putFlags(m, p);
                     return m;
                 })
                 .toList();
@@ -616,6 +622,7 @@ public class ApiHqController {
                 applyPgAgencyIntegrationScope(entity, body, false);
             }
             applyPgAgencyExtSettlementFields(entity, body, !isNew);
+            applyPgAgencyPayFollowFields(entity, body, !isNew);
             if ("Y".equalsIgnoreCase(entity.getUseYn())) {
                 if (!ynPg(entity.getIntegNotiYn()) && !ynPg(entity.getIntegUrlPayYn())
                         && !ynPg(entity.getIntegUrlPayRepayYn())
@@ -686,6 +693,53 @@ public class ApiHqController {
     private static String hqStr(Map<String, Object> body, String key) {
         Object v = body.get(key);
         return v == null ? null : v.toString();
+    }
+
+    /**
+     * 대행사별 ICOPAY 후속조치 허용. 신규이거나 본문에 플래그가 없으면 계열 기본값.
+     * 불가능한 계열 조합(예: JPAY 무효처리)은 저장 시 N으로 내린다.
+     */
+    private static void applyPgAgencyPayFollowFields(PgAgency entity, Map<String, Object> body, boolean isUpdate) {
+        boolean anyFlag = body.containsKey("payFollowAutoVoidYn")
+                || body.containsKey("payFollowEmailVoidYn")
+                || body.containsKey("payFollowManualVoidYn")
+                || body.containsKey("payFollowAutoRefundYn")
+                || body.containsKey("payFollowManualRefundYn")
+                || body.containsKey("payFollowForceRefundYn")
+                || body.containsKey("payFollowSameDayRefundYn");
+        if (!anyFlag) {
+            if (!isUpdate) {
+                PgAgencyPayFollowCapability.applyFamilyDefaults(entity);
+            }
+            return;
+        }
+        entity.setPayFollowAutoVoidYn(pgFollowYnFromBody(body, "payFollowAutoVoidYn"));
+        entity.setPayFollowEmailVoidYn(pgFollowYnFromBody(body, "payFollowEmailVoidYn"));
+        entity.setPayFollowManualVoidYn(pgFollowYnFromBody(body, "payFollowManualVoidYn"));
+        entity.setPayFollowAutoRefundYn(pgFollowYnFromBody(body, "payFollowAutoRefundYn"));
+        entity.setPayFollowManualRefundYn(pgFollowYnFromBody(body, "payFollowManualRefundYn"));
+        entity.setPayFollowForceRefundYn(pgFollowYnFromBody(body, "payFollowForceRefundYn"));
+        entity.setPayFollowSameDayRefundYn(pgFollowYnFromBody(body, "payFollowSameDayRefundYn"));
+        String cd = entity.getPgCd();
+        if (!PgAgencyPayFollowCapability.familyApiAllows(cd, com.pg.service.PayListActionService.PayFollowAction.AUTO_VOID)) {
+            entity.setPayFollowAutoVoidYn("N");
+        }
+        if (!PgAgencyPayFollowCapability.familyApiAllows(cd, com.pg.service.PayListActionService.PayFollowAction.EMAIL_VOID)) {
+            entity.setPayFollowEmailVoidYn("N");
+        }
+        if (!PgAgencyPayFollowCapability.familyApiAllows(cd, com.pg.service.PayListActionService.PayFollowAction.MANUAL_VOID)) {
+            entity.setPayFollowManualVoidYn("N");
+        }
+        if (!PgAgencyPayFollowCapability.familyApiAllows(cd, com.pg.service.PayListActionService.PayFollowAction.MANUAL_REFUND)) {
+            entity.setPayFollowManualRefundYn("N");
+        }
+        if (!PgAgencyPayFollowCapability.familyAllowsSameDayRefund(cd)) {
+            entity.setPayFollowSameDayRefundYn("N");
+        }
+    }
+
+    private static String pgFollowYnFromBody(Map<String, Object> body, String key) {
+        return ynPg(hqStr(body, key)) ? "Y" : "N";
     }
 
     private static LocalTime hqParseHm(String s) {

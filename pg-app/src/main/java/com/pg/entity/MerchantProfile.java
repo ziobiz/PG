@@ -509,6 +509,12 @@ public class MerchantProfile {
     @Column(name = "pay_follow_force_refund_yn", length = 1)
     private String payFollowForceRefundYn;
 
+    @Column(name = "pay_follow_manual_void_yn", length = 1)
+    private String payFollowManualVoidYn;
+
+    @Column(name = "pay_follow_manual_refund_yn", length = 1)
+    private String payFollowManualRefundYn;
+
     /** FOLLOW_HQ | CUSTOM | DISABLED */
     @Column(name = "card_risk_policy_mode", length = 16)
     private String cardRiskPolicyMode = "DISABLED";
@@ -1012,6 +1018,10 @@ public class MerchantProfile {
     public void setPayFollowAutoRefundYn(String payFollowAutoRefundYn) { this.payFollowAutoRefundYn = payFollowAutoRefundYn; }
     public String getPayFollowForceRefundYn() { return payFollowForceRefundYn; }
     public void setPayFollowForceRefundYn(String payFollowForceRefundYn) { this.payFollowForceRefundYn = payFollowForceRefundYn; }
+    public String getPayFollowManualVoidYn() { return payFollowManualVoidYn; }
+    public void setPayFollowManualVoidYn(String payFollowManualVoidYn) { this.payFollowManualVoidYn = payFollowManualVoidYn; }
+    public String getPayFollowManualRefundYn() { return payFollowManualRefundYn; }
+    public void setPayFollowManualRefundYn(String payFollowManualRefundYn) { this.payFollowManualRefundYn = payFollowManualRefundYn; }
     public String getCardRiskPolicyMode() { return cardRiskPolicyMode; }
     public void setCardRiskPolicyMode(String cardRiskPolicyMode) { this.cardRiskPolicyMode = cardRiskPolicyMode; }
     public Integer getCardRiskTier1Hours() { return cardRiskTier1Hours; }

@@ -12,6 +12,7 @@ import com.pg.splitpay.SplitPayPaymentHookService;
 import com.pg.util.ElementPayCallbackEventUtil;
 import com.pg.util.ElementPayCallbackOrderUtil;
 import com.pg.util.ElementPayHashUtil;
+import com.pg.util.ElementPayPaymentIdUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import jakarta.servlet.http.HttpServletRequest;
@@ -159,7 +160,7 @@ public class ElementPayCallbackService {
     private NotifyReceiveOutcome handleCheck(String orderNo, String compCode,
                                              Map<String, String> fields, ElementPayCredentials cred) {
         if (orderNo.isBlank()) {
-            return jsonResponse(475, "Order required", cred);
+            return jsonResponse(475, "Order required", cred, null, orderNo);
         }
         List<String> orderIds = ElementPayCallbackOrderUtil.orderCandidates(orderNo, fields);
         Optional<PgTrnsctn> txn = findTxnByOrderCandidates(compCode, orderIds);
@@ -176,11 +177,13 @@ public class ElementPayCallbackService {
                     && elementPaySaleRecordService.findAnyByPaymentId(paymentId).isPresent()) {
                 log.warn("ElementPay check: payment_id 는 있으나 order 불일치 → 475 order={} id={}",
                         orderNo, paymentId);
-                return jsonResponse(475, "Wrong order data", cred);
+                return jsonResponse(475, "Wrong order data", cred, null, orderNo);
             }
             log.warn("ElementPay check: 로컬 주문 없음 → 270 허용 order={} id={}", orderNo, paymentId);
-            return jsonResponse(270, "Payment can process", cred);
+            return jsonResponse(270, "Payment can process", cred, null, orderNo);
         }
+        String resolvedComp = !compCode.isBlank() ? compCode
+                : (txn.get().getMerchantId() != null ? txn.get().getMerchantId() : "");
         BigDecimal expected = txn.get().getAmtKrw();
         BigDecimal received = parseAmount(fields.get("amount"));
         String localPayId = nz(txn.get().getChillTransactionId());
@@ -190,9 +193,9 @@ public class ElementPayCallbackService {
                 .compareTo(received.setScale(2, java.math.RoundingMode.HALF_UP)) != 0) {
             log.warn("ElementPay check amount mismatch order={} expected={} received={}",
                     orderNo, expected, received);
-            return jsonResponse(475, "Wrong order data", cred);
+            return jsonResponse(475, "Wrong order data", cred, resolvedComp, orderNo);
         }
-        return jsonResponse(270, "Payment can process", cred);
+        return jsonResponse(270, "Payment can process", cred, resolvedComp, orderNo);
     }
 
     private NotifyReceiveOutcome handlePay(String orderNo, String compCode,
@@ -267,18 +270,26 @@ public class ElementPayCallbackService {
              * 로컬에 승인 건이 있으면 재통보로 본다.
              */
             if (existing.isPresent() && isAlreadyPaidStatus(existing.get().getStatus())) {
-                return jsonResponse(205, "Payment success", cred);
+                String mid = !compCode.isBlank() ? compCode : nz(existing.get().getMerchantId());
+                String oid = !nz(existing.get().getOrderNo()).isBlank()
+                        ? nz(existing.get().getOrderNo()) : orderNo;
+                return jsonResponse(205, "Payment success", cred, mid, oid);
             }
             log.warn("ElementPay pay: 로컬 주문 없음 order={} id={} — 206 재시도 요청", orderNo, paymentId);
-            return jsonResponse(206, "Payment pending local record", cred);
+            return jsonResponse(206, "Payment pending local record", cred, compCode, orderNo);
         }
         PgTrnsctn t = updated.get();
+        try {
+            elementPaySaleRecordService.enrichBuyerContact(t, fields);
+        } catch (Exception e) {
+            log.debug("ElementPay pay 연락처 보강 생략: {}", e.getMessage());
+        }
         try {
             splitPayPaymentHookService.onTxnStatusChange(t.getOrderNo(), t.getStatus(), t.getTrnId());
         } catch (Exception ignored) {
         }
         try {
-            transactionReceiptEmailService.scheduleAfterPaid(t);
+            transactionReceiptEmailService.scheduleIfDue(t);
         } catch (Exception e) {
             log.warn("ElementPay 거래 영수증 메일 연동 실패 trnId={}: {}", t.getTrnId(), e.getMessage());
         }
@@ -294,7 +305,7 @@ public class ElementPayCallbackService {
         } catch (Exception e) {
             log.warn("ElementPay outbound 노티 예약 실패: {}", e.getMessage());
         }
-        return jsonResponse(205, "Payment success", cred);
+        return jsonResponse(205, "Payment success", cred, t.getMerchantId(), t.getOrderNo());
     }
 
     private static boolean isAlreadyPaidStatus(String status) {
@@ -310,17 +321,17 @@ public class ElementPayCallbackService {
                                                   Map<String, String> fields, ElementPayCredentials cred) {
         ElementPayCallbackEventUtil.Spec spec = ElementPayCallbackEventUtil.classify(method);
         if (!spec.changesTxn()) {
-            return jsonResponse(270, "Notification received", cred);
+            return jsonResponse(270, "Notification received", cred, compCode, orderNo);
         }
         List<String> orderIds = ElementPayCallbackOrderUtil.orderCandidates(orderNo, fields);
-        String paymentId = nz(fields.get("id"));
+        String paymentId = ElementPayPaymentIdUtil.fromCallbackFields(fields);
         Optional<PgTrnsctn> existing = findTxnByOrderCandidates(compCode, orderIds);
         if (existing.isEmpty() && !paymentId.isBlank()) {
             existing = elementPaySaleRecordService.findAnyByPaymentId(paymentId);
         }
         if (existing.isEmpty() && spec.requireTxn()) {
             log.warn("ElementPay async {}: 로컬 주문 없음 order={} id={} → 474", method, orderNo, paymentId);
-            return jsonResponse(474, "Payment Not Found", cred);
+            return jsonResponse(474, "Payment Not Found", cred, compCode, orderNo);
         }
         PgTrnsctn before = existing.orElse(null);
         String applyMerchant = !compCode.isBlank() ? compCode
@@ -332,12 +343,14 @@ public class ElementPayCallbackService {
         Optional<PgTrnsctn> updated = elementPaySaleRecordService.applyAsyncEvent(
                 applyMerchant, applyOrder, paymentId, spec, method);
         if (updated.isEmpty() && spec.requireTxn()) {
-            return jsonResponse(474, "Payment Not Found", cred);
+            return jsonResponse(474, "Payment Not Found", cred, applyMerchant, applyOrder);
         }
         if (updated.isPresent()) {
             afterAsyncApplied(updated.get(), prevStatus, prevSettled);
+            return jsonResponse(270, "Notification received", cred,
+                    updated.get().getMerchantId(), updated.get().getOrderNo());
         }
-        return jsonResponse(270, "Notification received", cred);
+        return jsonResponse(270, "Notification received", cred, applyMerchant, applyOrder);
     }
 
     private void afterAsyncApplied(PgTrnsctn t, String prevStatus, String prevSettledYn) {
@@ -349,6 +362,11 @@ public class ElementPayCallbackService {
             settlementArrearsService.registerPostSettlementRecoveryIfDue(prevStatus, prevSettledYn, t);
         } catch (Exception e) {
             log.warn("ElementPay async 환수금 등록 실패 trnId={}: {}", t.getTrnId(), e.getMessage());
+        }
+        try {
+            transactionReceiptEmailService.scheduleIfDue(t);
+        } catch (Exception e) {
+            log.warn("ElementPay async 거래명세서 메일 연동 실패 trnId={}: {}", t.getTrnId(), e.getMessage());
         }
         try {
             merchantOutboundNotifyService.scheduleAfterTxnCommit(t, null, "CALLBACK");
@@ -380,6 +398,11 @@ public class ElementPayCallbackService {
     }
 
     private NotifyReceiveOutcome jsonResponse(int status, String message, ElementPayCredentials cred) {
+        return jsonResponse(status, message, cred, null, null);
+    }
+
+    private NotifyReceiveOutcome jsonResponse(int status, String message, ElementPayCredentials cred,
+                                              String compId, String orderNo) {
         /* EP 문서 예시·HMAC 은 ms timestamp 사용 */
         long ts = Instant.now().toEpochMilli();
         Map<String, Object> response = new LinkedHashMap<>();
@@ -394,11 +417,18 @@ public class ElementPayCallbackService {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("response", response);
         body.put("hash", hash);
+        Map<String, String> headers = new LinkedHashMap<>();
+        if (compId != null && !compId.isBlank()) {
+            headers.put("X-Icopay-Comp-Id", compId.trim());
+        }
+        if (orderNo != null && !orderNo.isBlank()) {
+            headers.put("X-Icopay-Order-No", orderNo.trim());
+        }
         try {
             String json = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(body);
-            return NotifyReceiveOutcome.json(json, HttpStatus.OK);
+            return NotifyReceiveOutcome.json(json, HttpStatus.OK, headers);
         } catch (Exception e) {
-            return NotifyReceiveOutcome.json("{\"response\":{\"status\":500}}", HttpStatus.OK);
+            return NotifyReceiveOutcome.json("{\"response\":{\"status\":500}}", HttpStatus.OK, headers);
         }
     }
 

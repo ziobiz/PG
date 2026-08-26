@@ -2114,6 +2114,12 @@
     hqNotifyInboundCleanupDuplicates: function (payload) {
       return post('/api/hq/notifyInbound/cleanup-duplicates', payload || {}).then(function (r) { return r.data; });
     },
+    hqNotifyEpMirrorLookup: function (params) {
+      return get('/api/hq/notifyEpMirror/lookup', params || {}).then(function (r) { return r.data; });
+    },
+    hqNotifyEpMirrorResend: function (body) {
+      return post('/api/hq/notifyEpMirror/resend', body || {}).then(function (r) { return r.data; });
+    },
     hqLedgerSysSettings: function () {
       return get('/api/hq/ledgerSysSettings').then(function (r) { return r.data; });
     },

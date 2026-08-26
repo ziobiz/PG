@@ -129,6 +129,83 @@
       JPN: '銀行の応答を確認しています。しばらくお待ちください…',
       CHN: '正在确认银行响应，请稍候…',
       THA: 'กำลังยืนยันผลจากธนาคาร กรุณารอสักครู่…'
+    },
+    'BUYER_REQUIRED': {
+      KOR: '이메일·전화번호·국가코드를 결제창에 입력해 주세요.',
+      ENG: 'Please enter email, phone, and country code on the payment page.',
+      JPN: '決済画面でメール・電話番号・国コードを入力してください。',
+      CHN: '请在支付页填写邮箱、电话和国家代码。',
+      THA: 'กรอกอีเมล โทรศัพท์ และรหัสประเทศในหน้าชำระเงิน'
+    },
+    'BUYER_EMAIL_REQUIRED': {
+      KOR: '이메일이 필수입니다. 결제창에 입력해 주세요.',
+      ENG: 'Email is required. Enter it on the payment page.',
+      JPN: 'メールは必須です。決済画面で入力してください。',
+      CHN: '邮箱为必填。请在支付页填写。',
+      THA: 'ต้องระบุอีเมล กรอกในหน้าชำระเงิน'
+    },
+    'BUYER_PHONE_REQUIRED': {
+      KOR: '전화번호가 필수입니다. 국가번호 + 는 빼고 로컬 번호만 입력하세요.',
+      ENG: 'Phone is required. Enter the local number without the +country prefix.',
+      JPN: '電話番号は必須です。国番号 + を除いた国内番号を入力してください。',
+      CHN: '电话为必填。请填写不含 +国家码 的本地号码。',
+      THA: 'ต้องระบุโทรศัพท์ กรอกเลขในประเทศ ไม่ใส่รหัสประเทศ +'
+    },
+    'BUYER_COUNTRY_REQUIRED': {
+      KOR: '국가코드(대문자 2자)가 필수입니다. 예: KR, US, TH, JP.',
+      ENG: 'Country code (2 uppercase letters) is required. e.g. KR, US, TH, JP.',
+      JPN: '国コード（大文字2文字）は必須です。例: KR, US, TH, JP。',
+      CHN: '国家代码（两位大写）为必填。例：KR、US、TH、JP。',
+      THA: 'ต้องระบุรหัสประเทศ (ตัวพิมพ์ใหญ่ 2 ตัว) เช่น KR US TH JP'
+    },
+    'BUYER_JSON_INVALID': {
+      KOR: 'buyer JSON 형식이 올바르지 않습니다.',
+      ENG: 'buyer JSON is not valid.',
+      JPN: 'buyer の JSON 形式が正しくありません。',
+      CHN: 'buyer JSON 格式无效。',
+      THA: 'รูปแบบ JSON ของ buyer ไม่ถูกต้อง'
+    },
+    'CHECKOUT_START_FAILED': {
+      KOR: '결제를 진행할 수 없습니다. 잠시 후 다시 시도해 주세요.',
+      ENG: 'Payment could not continue. Please try again shortly.',
+      JPN: '決済を続けられません。しばらくしてから再度お試しください。',
+      CHN: '无法继续支付。请稍后再试。',
+      THA: 'ดำเนินการชำระต่อไม่ได้ กรุณาลองใหม่ในอีกสักครู่'
+    },
+    'CHECKOUT_ATTRIBUTE_REQUIRED': {
+      KOR: '결제를 진행할 수 없습니다. 잠시 후 다시 시도해 주세요.',
+      ENG: 'Payment could not continue. Please try again shortly.',
+      JPN: '決済を続けられません。しばらくしてから再度お試しください。',
+      CHN: '无法继续支付。请稍后再试。',
+      THA: 'ดำเนินการชำระต่อไม่ได้ กรุณาลองใหม่ในอีกสักครู่'
+    },
+    'ELEMENTPAY_MISSING_ATTRIBUTE': {
+      KOR: '결제를 진행할 수 없습니다. 잠시 후 다시 시도해 주세요.',
+      ENG: 'Payment could not continue. Please try again shortly.',
+      JPN: '決済を続けられません。しばらくしてから再度お試しください。',
+      CHN: '无法继续支付。请稍后再试。',
+      THA: 'ดำเนินการชำระต่อไม่ได้ กรุณาลองใหม่ในอีกสักครู่'
+    },
+    'Missed required attribute': {
+      KOR: '결제를 진행할 수 없습니다. 잠시 후 다시 시도해 주세요.',
+      ENG: 'Payment could not continue. Please try again shortly.',
+      JPN: '決済を続けられません。しばらくしてから再度お試しください。',
+      CHN: '无法继续支付。请稍后再试。',
+      THA: 'ดำเนินการชำระต่อไม่ได้ กรุณาลองใหม่ในอีกสักครู่'
+    },
+    'CHECKOUT_CARD_PATH_FAILED': {
+      KOR: '결제를 진행할 수 없습니다. 잠시 후 다시 시도해 주세요.',
+      ENG: 'Payment could not continue. Please try again shortly.',
+      JPN: '決済を続けられません。しばらくしてから再度お試しください。',
+      CHN: '无法继续支付。请稍后再试。',
+      THA: 'ดำเนินการชำระต่อไม่ได้ กรุณาลองใหม่ในอีกสักครู่'
+    },
+    'ELEMENTPAY_CARD_PATH_FAILED': {
+      KOR: '결제를 진행할 수 없습니다. 잠시 후 다시 시도해 주세요.',
+      ENG: 'Payment could not continue. Please try again shortly.',
+      JPN: '決済を続けられません。しばらくしてから再度お試しください。',
+      CHN: '无法继续支付。请稍后再试。',
+      THA: 'ดำเนินการชำระต่อไม่ได้ กรุณาลองใหม่ในอีกสักครู่'
     }
   };
   function translate(msg, lang) {
@@ -139,8 +216,22 @@
     if (L === 'JA' || L === 'JP') L = 'JPN';
     if (L === 'ZH' || L === 'CN') L = 'CHN';
     if (L === 'TH') L = 'THA';
-    var row = TABLE[msg] || TABLE[String(msg).trim()];
+    var key = String(msg).trim();
+    var row = TABLE[key] || TABLE[msg];
     if (row && row[L]) return row[L];
+    var low = key.toLowerCase();
+    if (low.indexOf('missed required') >= 0 || low.indexOf('required attribute') >= 0) {
+      var br = TABLE.CHECKOUT_CARD_PATH_FAILED || TABLE.CHECKOUT_START_FAILED || TABLE.BUYER_REQUIRED;
+      if (br && br[L]) return br[L];
+    }
+    if (low.indexOf('no commission has been set') >= 0) {
+      var cm = TABLE.CHECKOUT_CARD_PATH_FAILED;
+      if (cm && cm[L]) return cm[L];
+    }
+    if (low.indexOf('card_path') >= 0 || low.indexOf('카드 승인 경로') >= 0 || (low.indexOf('inline') >= 0 && low.indexOf('card') >= 0)) {
+      var cp = TABLE.CHECKOUT_CARD_PATH_FAILED || TABLE.ELEMENTPAY_CARD_PATH_FAILED;
+      if (cp && cp[L]) return cp[L];
+    }
     return msg;
   }
   global.PG_ELEMENTPAY_PAY_MSG = { translate: translate, TABLE: TABLE };

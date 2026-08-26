@@ -6,13 +6,145 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '3.63';
+  var CURRENT_LIVE = '3.69';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '3.69',
+      kind: 'minor',
+      date: '2026-08-26',
+      items: {
+        KO: [
+          '본사정책→노티 센터→미러 재전송: ElementPay 성공 건을 재결제 없이 NOTI /noti/elementpay pay 미러 재송신(본사 전용·강제 재전송). 5개국어'
+        ],
+        EN: [
+          'HQ Notify center → Mirror resend: resend ElementPay paid pay-mirror to NOTI /noti/elementpay without recharging (HQ only, force bypass). 5 languages'
+        ],
+        JP: [
+          '本社政策→ノティセンター→ミラー再送: ElementPay成功件を再決済なしでNOTI /noti/elementpayへpayミラー再送（本社専用・強制再送）。5言語'
+        ],
+        CH: [
+          '总部政策→通知中心→镜像重发：无需重新扣款即可将 ElementPay 成功交易 pay 镜像重发至 NOTI /noti/elementpay（仅总部·强制重发）。5 语'
+        ],
+        TH: [
+          'นโยบาย HQ→ศูนย์แจ้งเตือน→ส่งมิเรอร์ซ้ำ: ส่ง pay มิเรอร์ ElementPay สำเร็จไป NOTI /noti/elementpay โดยไม่ชำระซ้ำ (HQ เท่านั้น·บังคับ). 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.68',
+      kind: 'minor',
+      date: '2026-08-26',
+      items: {
+        KO: [
+          'ElementPay URL결제: NOTI Result→ICOPAY(rsJpay 형태)로만 승인돼도 NOTI /noti/elementpay pay 미러 송신. getStatus·3DS복귀 모두. 5개국어'
+        ],
+        EN: [
+          'ElementPay URL pay: also mirror pay to NOTI /noti/elementpay when approved only via NOTI Result→ICOPAY (rsJpay-shaped). getStatus + 3DS return. 5 languages'
+        ],
+        JP: [
+          'ElementPay URL決済: NOTI Result→ICOPAY(rsJpay形)のみ承認でもNOTI /noti/elementpayへpayミラー。getStatus・3DS復帰両方。5言語'
+        ],
+        CH: [
+          'ElementPay URL：仅经 NOTI Result→ICOPAY(rsJpay 形态)批准时也向 NOTI 镜像 pay。getStatus 与 3DS 回跳。5 语'
+        ],
+        TH: [
+          'ElementPay URL: แม้อนุมัติแค่ผ่าน NOTI Result→ICOPAY (rsJpay) ก็ mirror pay ไป NOTI — getStatus และ 3DS 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.67',
+      kind: 'minor',
+      date: '2026-08-26',
+      items: {
+        KO: [
+          'ElementPay URL결제: getStatus 승인 시 ICOPAY→NOTI(/noti/elementpay) pay 미러·X-Icopay-Comp-Id 응답 — NOTI 로그·가맹/Dealmai 적재. Result URL·5개국어'
+        ],
+        EN: [
+          'ElementPay URL pay: on getStatus approve, ICOPAY mirrors pay to NOTI (/noti/elementpay) and returns X-Icopay-Comp-Id — NOTI logs & merchant/Dealmai. Result URL. 5 languages'
+        ],
+        JP: [
+          'ElementPay URL決済: getStatus承認時ICOPAY→NOTI(/noti/elementpay)へpayミラー・X-Icopay-Comp-Id。NOTIログ・加盟/Dealmai。Result URL。5言語'
+        ],
+        CH: [
+          'ElementPay URL 支付：getStatus 批准后 ICOPAY→NOTI 镜像 pay 并返回 X-Icopay-Comp-Id，写入 NOTI/加盟/Dealmai。Result URL。5 语'
+        ],
+        TH: [
+          'ElementPay URL: เมื่อ getStatus อนุมัติ ICOPAY ส่ง pay ไป NOTI + X-Icopay-Comp-Id — บันทึก NOTI/ร้าน/Dealmai และ Result URL 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.66',
+      kind: 'minor',
+      date: '2026-08-26',
+      items: {
+        KO: [
+          'ElementPay URL결제: 브라우저 복귀를 NOTI Result(/noti/result/elementpay) 경유·승인 후 가맹/Dealmai 통보를 JPAY와 동일 파이프. 웹훅·getStatus 동기 모두. 5개국어'
+        ],
+        EN: [
+          'ElementPay URL pay: browser return via NOTI Result (/noti/result/elementpay); merchant/Dealmai notify on same pipe as JPAY after approve (webhook + getStatus). 5 languages'
+        ],
+        JP: [
+          'ElementPay URL決済: ブラウザ復帰はNOTI Result経由。承認後の加盟/Dealmai通知はJPAYと同じパイプ(Webhook・getStatus)。5言語'
+        ],
+        CH: [
+          'ElementPay URL 支付：浏览器经 NOTI Result 返回；批准后加盟/Dealmai 通知与 JPAY 同管道（Webhook+getStatus）。5 语'
+        ],
+        TH: [
+          'ElementPay URL: เบราว์เซอร์กลับผ่าน NOTI Result; แจ้งร้าน/Dealmai หลังอนุมัติท่อเดียวกับ JPAY (webhook+getStatus) 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.65',
+      kind: 'minor',
+      date: '2026-08-26',
+      items: {
+        KO: [
+          '멀티 PG 후속조치: 결제내역 행마다 실제 결제 대행사 태그·버튼 구성(ChillPay≠JPAY). 시간은 전산 표준시. 안내·5개국어'
+        ],
+        EN: [
+          'Multi-PG follow-up: each pay-list row shows the processing agency tag and that agency’s buttons (ChillPay≠JPAY). Time windows use ledger standard TZ. Tips in 5 languages'
+        ],
+        JP: [
+          'マルチPG後続措置: 決済一覧は行ごとに実決済代行タグ・ボタン(ChillPay≠JPAY)。時間は全算標準時。案内5言語'
+        ],
+        CH: [
+          '多机构后续处理：支付列表每行显示实际机构标签与该机构按钮（ChillPay≠JPAY）。时间用账务标准时区。5 语说明'
+        ],
+        TH: [
+          'หลาย PG: รายการชำระแสดงแท็กผู้ให้บริการจริงและปุ่มของแถวนั้น (ChillPay≠JPAY) เวลาใช้โซนมาตรฐาน 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.64',
+      kind: 'minor',
+      date: '2026-08-26',
+      items: {
+        KO: [
+          '사용불가브랜드와 가맹 멀티 PG 카드브랜드 라우팅 충돌 해소: 본사 차단은 「해당 PG」에만 적용. A에 JCB 사용불가도 B로 제공 중인 JCB는 결제창·라우팅 유지. 5개국어'
+        ],
+        EN: [
+          'No conflict between HQ unsupported brands and merchant multi-PG brand routing: HQ blocks apply only to that PG. JCB blocked on A still works via B. 5 languages'
+        ],
+        JP: [
+          '使用不可ブランドと加盟マルチPGブランド振分の衝突解消。本社遮断はそのPGのみ。AでJCB不可でもB提供のJCBは維持。5言語'
+        ],
+        CH: [
+          '总部不可用品牌与商户多机构品牌路由不再冲突：总部限制只作用于该机构。A 禁用 JCB 时仍可由 B 提供。5 语'
+        ],
+        TH: [
+          'แก้การชนระหว่างแบรนด์ HQ ที่ใช้ไม่ได้กับการแบ่งแบรนด์หลาย PG ของร้าน — บล็อก HQ ใช้กับ PG นั้นเท่านั้น JCB บน A ยังใช้ผ่าน B ได้ 5 ภาษา'
+        ]
+      }
+    },
     {
       version: '3.63',
       kind: 'minor',

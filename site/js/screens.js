@@ -3235,6 +3235,44 @@
       ],
       buttons: []
     },
+    '/hq/notifyEpMirror': {
+      isForm: true,
+      formSections: [
+        {
+          title: 'ElementPay NOTI 미러 재전송',
+          notice: 'URL/INLINE ElementPay 결제가 ICOPAY에서만 승인되고 NOTI에 pay 웹훅이 없는 경우, 재결제 없이 NOTI <code>/noti/elementpay</code> 로 pay 미러를 1회 보냅니다. <strong>수령 로그</strong>(ICOPAY가 받은 원문)와 달리 이 화면은 ICOPAY→NOTI <strong>송신</strong>입니다. ElementPay·성공(승인) 건만 가능합니다. 120초 내 동일 주문 중복은 기본 생략되며, 강제 재전송으로 우회할 수 있습니다.',
+          rows: [
+            [{ type: 'customHtml', col: 12, html:
+              '<div class="row g-2 align-items-end mb-3">' +
+              '<div class="col-12 col-md-4"><label class="form-label small mb-0" data-pg-ui-t="주문번호">' + escUi(L('주문번호')) + '</label>' +
+              '<input type="text" class="form-control form-control-sm" id="hqEpMirrorOrderNo" maxlength="80" autocomplete="off" placeholder="EP6000001787746458074"></div>' +
+              '<div class="col-12 col-md-4"><label class="form-label small mb-0" data-pg-ui-t="거래번호">' + escUi(L('거래번호')) + '</label>' +
+              '<input type="text" class="form-control form-control-sm" id="hqEpMirrorTrnId" maxlength="80" autocomplete="off" data-pg-ui-placeholder="trnId 또는 EP payment id" placeholder="' + escUi(L('trnId 또는 EP payment id')) + '"></div>' +
+              '<div class="col-6 col-md-2 d-grid"><label class="form-label small mb-0 d-none d-md-block">&nbsp;</label>' +
+              '<button type="button" class="btn btn-outline-primary btn-sm" id="hqEpMirrorLookupBtn" data-pg-ui-t="조회">' + escUi(L('조회')) + '</button></div>' +
+              '</div>' +
+              '<div class="table-responsive border rounded mb-3"><table class="table table-sm table-bordered align-middle mb-0" id="hqEpMirrorPreviewTable">' +
+              '<thead class="table-light"><tr>' +
+              '<th data-pg-ui-t="업체코드">' + escUi(L('업체코드')) + '</th>' +
+              '<th data-pg-ui-t="주문번호">' + escUi(L('주문번호')) + '</th>' +
+              '<th>trnId</th><th data-pg-ui-t="금액">' + escUi(L('금액')) + '</th>' +
+              '<th data-pg-ui-t="상태">' + escUi(L('상태')) + '</th><th>van</th>' +
+              '</tr></thead>' +
+              '<tbody id="hqEpMirrorPreviewBody"><tr><td colspan="6" class="text-center text-muted py-3" data-pg-ui-t="주문번호 또는 거래번호로 조회하세요.">' +
+              escUi(L('주문번호 또는 거래번호로 조회하세요.')) + '</td></tr></tbody></table></div>' +
+              '<div class="d-flex flex-wrap gap-2 align-items-center mb-2">' +
+              '<div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="hqEpMirrorForce">' +
+              '<label class="form-check-label small" for="hqEpMirrorForce" data-pg-ui-t="강제 재전송 (120초 중복 생략 우회)">' +
+              escUi(L('강제 재전송 (120초 중복 생략 우회)')) + '</label></div>' +
+              '<button type="button" class="btn btn-primary btn-sm" id="hqEpMirrorResendBtn" data-pg-ui-t="NOTI 미러 재전송">' +
+              escUi(L('NOTI 미러 재전송')) + '</button></div>' +
+              '<pre class="small bg-light border rounded p-2 mb-0 d-none" id="hqEpMirrorResult" style="white-space:pre-wrap;max-height:16rem;overflow:auto"></pre>'
+            }]
+          ]
+        }
+      ],
+      buttons: []
+    },
     '/hq/ledgerSysSettings': {
       isForm: true,
       formSections: [
@@ -3410,10 +3448,13 @@
         },
         {
           title: '사용불가브랜드 등록',
-          notice: '결제대행사(PG)마다 <strong>지원하지 않는 카드 브랜드</strong>를 등록합니다. 해당 브랜드로 결제 시도 시 결제창·승인 API에서 경고 후 차단됩니다. 개별 카드번호(마스킹) 차단은 <strong>운영관리 → 비활성카드등록</strong>에서 관리합니다.',
+          notice: '결제대행사(PG)마다 <strong>지원하지 않는 카드 브랜드</strong>를 등록합니다. <strong>해당 PG로 승인할 때만</strong> 적용되며, 가맹 「결제대행사 설정」의 카드브랜드(멀티 PG)와 충돌하지 않습니다. 예: A=비자·마스터, B=JCB, C=AMX 이고 A에 JCB·AMX 사용불가여도 B·C로 제공되는 브랜드는 결제창에서 유지됩니다. 개별 카드번호 차단은 <strong>운영관리 → 비활성카드등록</strong>입니다.',
           rows: [
             [{ type: 'customHtml', col: 12,
-              html: '<p class="small fw-semibold mb-1" data-pg-ui-t="사용불가 카드 브랜드">사용불가 카드 브랜드</p>' +
+              html: '<p class="small text-muted mb-2" data-pg-ui-html="사용불가브랜드 적용 안내">' +
+                '결제대행사(PG)마다 <strong>지원하지 않는 카드 브랜드</strong>를 등록합니다. <strong>해당 PG로 승인할 때만</strong> 적용되며, 가맹 「결제대행사 설정」의 카드브랜드(멀티 PG)와 충돌하지 않습니다. 예: A=비자·마스터, B=JCB, C=AMX 이고 A에 JCB·AMX 사용불가여도 B·C로 제공되는 브랜드는 결제창에서 유지됩니다. 개별 카드번호 차단은 <strong>운영관리 → 비활성카드등록</strong>입니다.' +
+                '</p>' +
+                '<p class="small fw-semibold mb-1" data-pg-ui-t="사용불가 카드 브랜드">사용불가 카드 브랜드</p>' +
                 '<div class="d-flex flex-wrap gap-2 align-items-end mb-2">' +
                 '<div><label class="form-label small mb-0" data-pg-ui-t="PG">PG</label>' +
                 '<select class="form-select form-select-sm" id="hqPayCardBrandPg" style="min-width:10rem">' +
@@ -3436,7 +3477,7 @@
         },
         {
           title: '결제 후속조치 (NOTI 환경설정 대응)',
-          notice: '시간 선택 국가(기준 Zone)는 무효·이메일무효에 적용됩니다. 이메일무효는 ChillPay만. 무효 기본은 당일 <strong>0:00~21:00</strong>. 수동무효(이메일)도 당일 <strong>시작~마감</strong>을 지정(마감 비우면 23:59). 환불은 <strong>태국</strong> 기준 결제일 <strong>익일</strong>의 <strong>시작 시각</strong>부터 일수입니다. 「설정(사용)」이 사용일 때만 편집할 수 있습니다. 아래 표에서 <strong>본사·총판</strong> 등 조직 단계별로 동일 네 기능의 허용 여부를 둡니다.',
+          notice: '시간 선택 국가(기준 Zone)는 무효·이메일무효에 적용됩니다(전산 표준시). 이메일무효는 ChillPay만. 무효 기본은 당일 <strong>0:00~21:00</strong>. 환불은 <strong>태국</strong> 기준 결제일 <strong>익일</strong>부터 일수입니다. <strong>멀티 PG</strong> 가맹은 결제내역 <strong>행마다 실제 결제된 대행사</strong>의 후속조치만 표시·활성됩니다(ChillPay 건≠JPAY 건). 「설정(사용)」이 사용일 때만 편집할 수 있습니다.',
           rows: [
             [{ type: 'customHtml', col: 12, html: function () { return hqLedgerPayFollowNotiTableHtml() + hqLedgerPayFollowLevelCapsTableHtml(); } }]
           ]

@@ -29,6 +29,12 @@
       CH: '代行',
       TH: 'ตัวแทน'
     },
+    '후속조치는 이 거래를 처리한 결제대행사 기준입니다. 기준 시간은 전산설정 표준시입니다.': {
+      EN: 'Follow-up actions apply to the payment agency that processed this transaction. Time windows use ledger standard timezone.',
+      JP: '後続措置はこの取引を処理した決済代行基準です。時間は全算設定の標準時です。',
+      CH: '后续处理以处理本笔交易的支付机构为准。时间窗口使用账务标准时区。',
+      TH: 'การดำเนินการต่ออิงผู้ให้บริการที่ชำระรายการนี้ ช่วงเวลาใช้โซนมาตรฐานในตั้งค่าบัญชี'
+    },
     'ICOPAY 후속조치 (대행사별 허용)': {
       EN: 'ICOPAY follow-up (per processor)',
       JP: 'ICOPAY後続措置（代行業者別）',
@@ -13742,6 +13748,109 @@
       CH: '与账务标准时相同',
       TH: 'เหมือนเขตเวลามาตรฐานบัญชี'
     },
+    /* HQ /hq/notifyEpMirror — ElementPay NOTI 미러 재전송 */
+    '미러 재전송': {
+      EN: 'Mirror resend',
+      JP: 'ミラー再送',
+      CH: '镜像重发',
+      TH: 'ส่งมิเรอร์ซ้ำ'
+    },
+    'ElementPay NOTI 미러 재전송': {
+      EN: 'ElementPay NOTI mirror resend',
+      JP: 'ElementPay NOTIミラー再送',
+      CH: 'ElementPay NOTI 镜像重发',
+      TH: 'ส่งมิเรอร์ NOTI ElementPay ซ้ำ'
+    },
+    'URL/INLINE ElementPay 결제가 ICOPAY에서만 승인되고 NOTI에 pay 웹훅이 없는 경우, 재결제 없이 NOTI <code>/noti/elementpay</code> 로 pay 미러를 1회 보냅니다. <strong>수령 로그</strong>(ICOPAY가 받은 원문)와 달리 이 화면은 ICOPAY→NOTI <strong>송신</strong>입니다. ElementPay·성공(승인) 건만 가능합니다. 120초 내 동일 주문 중복은 기본 생략되며, 강제 재전송으로 우회할 수 있습니다.': {
+      EN: 'When URL/INLINE ElementPay was approved only on ICOPAY and NOTI never got a pay webhook, send one pay mirror to NOTI <code>/noti/elementpay</code> without recharging. Unlike <strong>Inbound log</strong> (what ICOPAY received), this screen is ICOPAY→NOTI <strong>outbound</strong>. ElementPay paid rows only. Same-order mirrors within 120s are skipped unless Force resend is checked.',
+      JP: 'URL/INLINE ElementPayがICOPAYのみで承認されNOTIにpayウェブフックが無い場合、再決済なしでNOTI <code>/noti/elementpay</code>へpayミラーを1回送ります。<strong>受信ログ</strong>（ICOPAYが受け取った原文）と違い、本画面はICOPAY→NOTIの<strong>送信</strong>です。ElementPay・成功（承認）のみ。120秒以内の同一注文重複は既定で省略し、強制再送で迂回できます。',
+      CH: '当 URL/INLINE ElementPay 仅在 ICOPAY 批准且 NOTI 未收到 pay webhook 时，无需重新扣款即可向 NOTI <code>/noti/elementpay</code> 发送一次 pay 镜像。与<strong>接收日志</strong>（ICOPAY 收到的原文）不同，本页是 ICOPAY→NOTI 的<strong>发送</strong>。仅 ElementPay 成功（批准）交易。120 秒内同订单默认跳过，勾选强制重发可绕过。',
+      TH: 'เมื่อ ElementPay URL/INLINE อนุมัติที่ ICOPAY อย่างเดียวและ NOTI ไม่ได้ pay webhook ให้ส่งมิเรอร์ pay ไป NOTI <code>/noti/elementpay</code> 1 ครั้งโดยไม่ชำระซ้ำ ต่างจาก<strong>บันทึกรับ</strong>（ที่ ICOPAY รับ）หน้านี้คือ<strong>ส่งออก</strong> ICOPAY→NOTI เฉพาะ ElementPay สำเร็จ ภายใน 120 วินาทีข้ามซ้ำเว้นบังคับส่งซ้ำ'
+    },
+    'trnId 또는 EP payment id': {
+      EN: 'trnId or EP payment id',
+      JP: 'trnIdまたはEP payment id',
+      CH: 'trnId 或 EP payment id',
+      TH: 'trnId หรือ EP payment id'
+    },
+    '주문번호 또는 거래번호로 조회하세요.': {
+      EN: 'Look up by order no. or transaction id.',
+      JP: '注文番号または取引番号で照会してください。',
+      CH: '请用订单号或交易号查询。',
+      TH: 'ค้นด้วยเลขคำสั่งซื้อหรือเลขธุรกรรม'
+    },
+    '강제 재전송 (120초 중복 생략 우회)': {
+      EN: 'Force resend (bypass 120s dedupe)',
+      JP: '強制再送（120秒重複省略を迂回）',
+      CH: '强制重发（绕过 120 秒去重）',
+      TH: 'บังคับส่งซ้ำ (ข้ามกันซ้ำ 120 วินาที)'
+    },
+    'NOTI 미러 재전송': {
+      EN: 'Resend NOTI mirror',
+      JP: 'NOTIミラー再送',
+      CH: '重发 NOTI 镜像',
+      TH: 'ส่งมิเรอร์ NOTI ซ้ำ'
+    },
+    '주문번호 또는 거래번호를 입력하세요.': {
+      EN: 'Enter an order number or transaction id.',
+      JP: '注文番号または取引番号を入力してください。',
+      CH: '请输入订单号或交易号。',
+      TH: 'กรอกเลขคำสั่งซื้อหรือเลขธุรกรรม'
+    },
+    'NOTI /noti/elementpay 로 pay 미러를 재전송할까요? (재결제 아님)': {
+      EN: 'Resend pay mirror to NOTI /noti/elementpay? (not a new charge)',
+      JP: 'NOTI /noti/elementpay へpayミラーを再送しますか？（再決済ではありません）',
+      CH: '向 NOTI /noti/elementpay 重发 pay 镜像？（不是重新扣款）',
+      TH: 'ส่งมิเรอร์ pay ไป NOTI /noti/elementpay อีกครั้ง? (ไม่ใช่การชำระใหม่)'
+    },
+    'NOTI 미러 재전송 완료': {
+      EN: 'NOTI mirror resend completed',
+      JP: 'NOTIミラー再送完了',
+      CH: 'NOTI 镜像重发完成',
+      TH: 'ส่งมิเรอร์ NOTI ซ้ำเสร็จแล้ว'
+    },
+    '미러 재전송 실패': {
+      EN: 'Mirror resend failed',
+      JP: 'ミラー再送失敗',
+      CH: '镜像重发失败',
+      TH: 'ส่งมิเรอร์ซ้ำล้มเหลว'
+    },
+    '거래를 찾을 수 없습니다. 주문번호 또는 거래번호를 확인하세요.': {
+      EN: 'Transaction not found. Check the order or transaction id.',
+      JP: '取引が見つかりません。注文番号または取引番号を確認してください。',
+      CH: '找不到交易。请核对订单号或交易号。',
+      TH: 'ไม่พบธุรกรรม ตรวจเลขคำสั่งซื้อหรือเลขธุรกรรม'
+    },
+    '거래를 찾을 수 없습니다.': {
+      EN: 'Transaction not found.',
+      JP: '取引が見つかりません。',
+      CH: '找不到交易。',
+      TH: 'ไม่พบธุรกรรม'
+    },
+    'ElementPay 거래만 미러 재전송할 수 있습니다.': {
+      EN: 'Only ElementPay transactions can be mirror-resent.',
+      JP: 'ElementPay取引のみミラー再送できます。',
+      CH: '仅 ElementPay 交易可镜像重发。',
+      TH: 'ส่งมิเรอร์ซ้ำได้เฉพาะธุรกรรม ElementPay'
+    },
+    '120초 이내 동일 주문 미러가 있어 생략했습니다. 강제 재전송을 사용하세요.': {
+      EN: 'Skipped: same-order mirror within 120s. Use force resend.',
+      JP: '120秒以内の同一注文ミラーがあるため省略しました。強制再送を使用してください。',
+      CH: '已跳过：120 秒内已有同订单镜像。请使用强制重发。',
+      TH: 'ข้ามแล้ว: มีมิเรอร์ออเดอร์เดียวกันใน 120 วินาที ใช้บังคับส่งซ้ำ'
+    },
+    'NOTI /noti/elementpay 미러 전송 완료': {
+      EN: 'NOTI /noti/elementpay mirror posted',
+      JP: 'NOTI /noti/elementpay ミラー送信完了',
+      CH: '已向 NOTI /noti/elementpay 发送镜像',
+      TH: 'ส่งมิเรอร์ไป NOTI /noti/elementpay แล้ว'
+    },
+    '총본사(HEADQUARTERS) 또는 시스템 관리자만 사용할 수 있습니다.': {
+      EN: 'Headquarters or system admin only.',
+      JP: '総本社（HEADQUARTERS）またはシステム管理者のみ利用できます。',
+      CH: '仅总总部（HEADQUARTERS）或系统管理员可用。',
+      TH: 'ใช้ได้เฉพาะสำนักงานใหญ่หรือผู้ดูแลระบบ'
+    },
     /* HQ /hq/notifyInbound — 노티受信情報 (screens L + app.js pgAdminUiT) */
     '노티 수령 정보': {
       EN: 'Notify inbound log',
@@ -20480,6 +20589,12 @@
       JP: '解除時は Google OTP 6桁が必要です。',
       CH: '解除时需要 Google OTP 6 位。',
       TH: 'ยกเลิกต้องใช้ Google OTP 6 หลัก'
+    },
+    '사용불가브랜드 적용 안내': {
+      EN: 'Register card brands each payment agency does not support. Rules apply <strong>only when that PG processes the payment</strong>, so they do not conflict with merchant multi-PG brand routing (e.g. A=Visa/Master, B=JCB, C=AMX — blocking JCB/AMX on A still keeps brands served by B/C). Individual card blocks are under Ops → Inactive cards.',
+      JP: '決済代行ごとに未対応カードブランドを登録します。<strong>そのPGで承認する時だけ</strong>適用され、加盟店のマルチPGブランド振り分けと衝突しません（例: A=Visa/Master、B=JCB、C=AMX。AでJCB・AMX不可でもB・C提供分は維持）。個別カード番号の停止は運用管理→非活性カードです。',
+      CH: '按支付机构登记不支持的卡品牌。<strong>仅在该机构处理付款时</strong>生效，不与商户多机构按品牌路由冲突（例：A=Visa/Master，B=JCB，C=AMX；在 A 禁用 JCB/AMX 仍保留 B/C 提供的品牌）。单卡拦截见运营管理→停用卡。',
+      TH: 'ลงทะเบียนแบรนด์ที่ผู้ให้บริการแต่ละรายไม่รองรับ ใช้<strong>เฉพาะเมื่อ PG นั้นอนุมัติ</strong> จึงไม่ชนกับการแบ่งแบรนด์หลาย PG ของร้าน (เช่น A=Visa/Master, B=JCB, C=AMX — บล็อก JCB/AMX บน A ยังคงแบรนด์จาก B/C) การบล็อกบัตรรายใบอยู่ที่ Ops → บัตรไม่ใช้งาน'
     },
     '사용불가브랜드 등록': {
       EN: 'Unsupported card brands',

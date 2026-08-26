@@ -916,7 +916,9 @@ public class CompService {
             String payFollowAutoVoidYn,
             String payFollowEmailVoidYn,
             String payFollowAutoRefundYn,
-            String payFollowForceRefundYn) {
+            String payFollowForceRefundYn,
+            String payFollowManualVoidYn,
+            String payFollowManualRefundYn) {
         if (mp == null) {
             return;
         }
@@ -934,6 +936,12 @@ public class CompService {
         }
         if (payFollowForceRefundYn != null && !payFollowForceRefundYn.isBlank()) {
             mp.setPayFollowForceRefundYn("Y".equalsIgnoreCase(payFollowForceRefundYn.trim()) ? "Y" : "N");
+        }
+        if (payFollowManualVoidYn != null && !payFollowManualVoidYn.isBlank()) {
+            mp.setPayFollowManualVoidYn("Y".equalsIgnoreCase(payFollowManualVoidYn.trim()) ? "Y" : "N");
+        }
+        if (payFollowManualRefundYn != null && !payFollowManualRefundYn.isBlank()) {
+            mp.setPayFollowManualRefundYn("Y".equalsIgnoreCase(payFollowManualRefundYn.trim()) ? "Y" : "N");
         }
         payFollowPolicyService.clampMerchantPayFollowToLevelCeiling(mp);
     }
@@ -1196,9 +1204,15 @@ public class CompService {
         if (start < filtered.size()) {
             List<OrgUnit> pageList = filtered.subList(start, end);
             Map<Long, String> masterDistBaseCurrencyCache = new HashMap<>();
+            Map<String, PgAgency> agencyByCd = new HashMap<>();
+            for (PgAgency a : pgAgencyRepository.findAllByOrderByPgCdAsc()) {
+                if (a.getPgCd() != null && !a.getPgCd().isBlank()) {
+                    agencyByCd.put(a.getPgCd().trim().toUpperCase(Locale.ROOT), a);
+                }
+            }
             for (int i = 0; i < pageList.size(); i++) {
                 OrgUnit ou = pageList.get(i);
-                Map<String, Object> row = buildCompListItem(ou, masterDistBaseCurrencyCache);
+                Map<String, Object> row = buildCompListItem(ou, masterDistBaseCurrencyCache, agencyByCd);
                 row.put("rowNo", start + i + 1);
                 row.put("parentId", ou.getParentId());
                 int levelCode = ou.getOrgLevel() != null ? ou.getOrgLevel().getCode() : 99;
@@ -1940,6 +1954,8 @@ public class CompService {
                                 m.put("payFollowEmailVoidYn", mp.getPayFollowEmailVoidYn());
                                 m.put("payFollowAutoRefundYn", mp.getPayFollowAutoRefundYn());
                                 m.put("payFollowForceRefundYn", mp.getPayFollowForceRefundYn());
+                                m.put("payFollowManualVoidYn", mp.getPayFollowManualVoidYn());
+                                m.put("payFollowManualRefundYn", mp.getPayFollowManualRefundYn());
                                 hqRiskCardPolicyService.putMerchantCardRiskOnMap(m, mp);
                                 m.put("chatbotHeaderLogoUrl", mp.getChatbotHeaderLogoUrl() != null ? mp.getChatbotHeaderLogoUrl() : "");
                                 m.put("webPaymentHeaderLogoUrl", mp.getWebPaymentHeaderLogoUrl() != null ? mp.getWebPaymentHeaderLogoUrl() : "");
@@ -2204,6 +2220,7 @@ public class CompService {
                           String voidSettlementMode, String manualVoidSettlementMode, String refundSettlementMode, String forceRefundSettlementMode,
                           String payFollowMerchantUseYn, String payFollowAutoVoidYn, String payFollowEmailVoidYn,
                           String payFollowAutoRefundYn, String payFollowForceRefundYn,
+                          String payFollowManualVoidYn, String payFollowManualRefundYn,
                           String urlPayAlertEmailYn, String urlPayLineNotifyToken,
                           String receiptEmailFollowHqYn, String receiptEmailUseYn, String receiptEmailEnabledYn,
                           String chatbotHeaderLogoUrl, String chatbotAdminUsername,
@@ -2607,7 +2624,8 @@ public class CompService {
                             }
                             if (childLevel == OrgLevel.MERCHANT) {
                                 mergeMerchantPayFollowFromRequest(mp, payFollowMerchantUseYn, payFollowAutoVoidYn,
-                                        payFollowEmailVoidYn, payFollowAutoRefundYn, payFollowForceRefundYn);
+                                        payFollowEmailVoidYn, payFollowAutoRefundYn, payFollowForceRefundYn,
+                                        payFollowManualVoidYn, payFollowManualRefundYn);
                                 mergeMerchantCardRiskIfAny(mp, cardRiskPolicyMode,
                                         cardRiskTier1Hours, cardRiskTier1Min,
                                         cardRiskTier2Hours, cardRiskTier2Min,
@@ -3834,6 +3852,7 @@ public class CompService {
                 null, null, null,
                 null, null, null, null,
                 null, null, null, null, null,
+                null, null,
                 urlPayAlertEmailYn, urlPayLineNotifyToken,
                 receiptEmailFollowHqYn, receiptEmailUseYn, receiptEmailEnabledYn,
                 feeVatApplyYn, feeVatRatePct,
@@ -3911,6 +3930,7 @@ public class CompService {
                                      String voidSettlementMode, String manualVoidSettlementMode, String refundSettlementMode, String forceRefundSettlementMode,
                                      String payFollowMerchantUseYn, String payFollowAutoVoidYn, String payFollowEmailVoidYn,
                                      String payFollowAutoRefundYn, String payFollowForceRefundYn,
+                                     String payFollowManualVoidYn, String payFollowManualRefundYn,
                                      String urlPayAlertEmailYn, String urlPayLineNotifyToken,
                                      String receiptEmailFollowHqYn, String receiptEmailUseYn, String receiptEmailEnabledYn,
                                      String feeVatApplyYn, String feeVatRatePct,
@@ -4075,7 +4095,8 @@ public class CompService {
             validateMerchantBaseCurrencyAgainstParent(effectiveParentId, chosenCur);
             validateMerchantPolicyCurrencyCompatibility(chosenCur, commissionFollowHq, hqPolicyScope, null);
             mergeMerchantPayFollowFromRequest(mp, payFollowMerchantUseYn, payFollowAutoVoidYn,
-                    payFollowEmailVoidYn, payFollowAutoRefundYn, payFollowForceRefundYn);
+                    payFollowEmailVoidYn, payFollowAutoRefundYn, payFollowForceRefundYn,
+                    payFollowManualVoidYn, payFollowManualRefundYn);
             mergeMerchantCardRiskIfAny(mp, cardRiskPolicyMode,
                     cardRiskTier1Hours, cardRiskTier1Min,
                     cardRiskTier2Hours, cardRiskTier2Min,
@@ -5234,6 +5255,48 @@ public class CompService {
     }
 
     /**
+     * 업체관리 「대행」열·미사용 결제대행사 경고.
+     * 본사 연동배포에서 미사용(use_yn=N)이거나 카탈로그에 없는 PG가 묶여 있으면 {@code pgAgencyInactiveYn=Y}.
+     */
+    private static void putPgAgencyListFields(Map<String, Object> m, OrgUnit o,
+                                              List<MerchantPgBinding> bindings,
+                                              Map<String, PgAgency> agencyByCd) {
+        if (o == null || o.getOrgLevel() != OrgLevel.MERCHANT) {
+            m.put("pgAgencyLabel", "-");
+            m.put("pgAgencyInactiveYn", "N");
+            return;
+        }
+        if (bindings == null || bindings.isEmpty()) {
+            m.put("pgAgencyLabel", "-");
+            m.put("pgAgencyInactiveYn", "N");
+            return;
+        }
+        Map<String, PgAgency> map = agencyByCd != null ? agencyByCd : Map.of();
+        List<String> labels = new ArrayList<>();
+        boolean inactive = false;
+        for (MerchantPgBinding b : bindings) {
+            if (b == null || b.getPgCd() == null || b.getPgCd().isBlank()) {
+                continue;
+            }
+            String cd = b.getPgCd().trim();
+            PgAgency a = map.get(cd.toUpperCase(Locale.ROOT));
+            if (a == null) {
+                labels.add(cd);
+                inactive = true;
+                continue;
+            }
+            String nm = (a.getPgNm() != null && !a.getPgNm().isBlank()) ? a.getPgNm().trim() : cd;
+            boolean useY = a.getUseYn() != null && "Y".equalsIgnoreCase(a.getUseYn().trim());
+            if (!useY) {
+                inactive = true;
+            }
+            labels.add(nm);
+        }
+        m.put("pgAgencyLabel", labels.isEmpty() ? "-" : String.join(", ", labels));
+        m.put("pgAgencyInactiveYn", inactive ? "Y" : "N");
+    }
+
+    /**
      * 업체관리 그리드 「카드」: 결제대행사 설정의 카드브랜드 코드만(괄호 설명 제외). 예: VM.
      * 운영(Y) 행이 있으면 그 값만, 없으면 등록된 전 행. 가맹이 아니거나 바인딩이 없으면 {@code -}.
      */
@@ -5297,7 +5360,8 @@ public class CompService {
     }
 
     /** 업체관리 목록용 행 구성 (정산금, 미수금, 대표자명, 연락처, 은행, 계좌번호, 이체수수료, 정산주기, 이체구분 등) */
-    private Map<String, Object> buildCompListItem(OrgUnit o, Map<Long, String> masterDistBaseCurrencyCache) {
+    private Map<String, Object> buildCompListItem(OrgUnit o, Map<Long, String> masterDistBaseCurrencyCache,
+                                                  Map<String, PgAgency> agencyByCd) {
         Map<String, Object> m = CompListItemDto.from(o);
         m.put("regNo", "-");
         m.put("ceoNm", "-");
@@ -5320,6 +5384,7 @@ public class CompService {
         m.put("receivables", "-");
         List<MerchantPgBinding> pgBinds = merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(o.getId());
         m.put("siteRoot", siteRootFromPgBindings(pgBinds));
+        putPgAgencyListFields(m, o, pgBinds, agencyByCd);
         m.put("cardBrandScope", o.getOrgLevel() == OrgLevel.MERCHANT
                 ? cardBrandScopeFromPgBindings(pgBinds)
                 : "-");

@@ -89,6 +89,8 @@ ElementPay는 **PG가 ICOPAY를 직접 호출하지 않습니다.** 외부 NOTI�
 | 3. ICOPAY 처리 | `check`/`pay` → ElementPay JSON+HMAC / `payment.*` → `pg_trnsctn` |
 | 4. NOTI → 가맹 Callback | Webhook 후 가맹 **callbackUrl** 릴레이 (`raw`/`json`/`form`) |
 | 5. 브라우저 Result | ICOPAY `_successUrl` 등 = `https://noti.icopay.net/noti/result/elementpay?order=…&compId=…&merchantId=…` → NOTI가 가맹 **resultUrl**로 전달 |
+| 6. URL결제 getStatus 승인 | EP 웹훅이 없어도 ICOPAY가 NOTI `/noti/elementpay` 에 **pay 미러** POST (V3.67+) → 노티로그·가맹 Callback/Dealmai. 응답 `X-Icopay-Comp-Id` |
+| 7. 본사 미러 재전송 | 본사정책 → 노티 센터 → **미러 재전송** (`/hq/notifyEpMirror`, V3.69). 기존 성공 ElementPay 건을 재결제 없이 NOTI로 재송신 |
 
 **NOTI 가맹 매칭 순서:** ① 쿼리/바디 `compId`·`merchantId` → ② (선택) `icopayOrderLookupUrl` Comp-Id 조회 → ③ 최근 `elementpay/webhook` 로그 order → 실패 시 폴백 페이지(타 가맹 오전달 없음).
 
@@ -96,7 +98,7 @@ ElementPay는 **PG가 ICOPAY를 직접 호출하지 않습니다.** 외부 NOTI�
 **전산 대상(THB):** 본사설정 → 결제환경 → 「전산 대상 매핑」에 **THB 전산 대상 ID**를 지정하면, 기준화폐 THB 가맹 노티생성 시 드롭다운·자동 제안에 노출됩니다(JPY/USD와 동일).
 
 **NOTI 필수:** `check`·`pay` 응답 본문 `{response,hash}` **무변환** 패스스루.  
-**Result 입구:** [`docs/NOTI_ElementPay_Result입구_개발요청.md`](./NOTI_ElementPay_Result입구_개발요청.md) — NOTI `/noti/result/elementpay` (ICOPAY V2.97 연동).
+**Result 입구:** [`docs/NOTI_ElementPay_Result입구_개발요청.md`](./NOTI_ElementPay_Result입구_개발요청.md) — NOTI `/noti/result/elementpay` (ICOPAY `initPayment` 복귀 URL·가맹 통보 Dealmai 파이프: **V3.66**).
 
 **가맹 비식별:**
 

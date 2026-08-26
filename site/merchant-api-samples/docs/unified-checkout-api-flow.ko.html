@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -39,6 +39,9 @@
     <tr><th>Embed 스크립트</th><td><code>{publicApiBaseUrl}/v1/embed-checkout/{compId}</code></td></tr>
   </table>
   <p><code>compId</code> 예: <code>6000000028</code> (본사 API 배포 시 가맹점별 할당)</p>
+  <p><strong>prepare 필수:</strong> <code>compId</code>(또는 merchantId), <code>orderNo</code>, <code>amount</code>,
+    <code>buyer.email</code>, <code>buyer.phone</code>, <code>buyer.countryIso2</code>.
+    빠지면 ICOPAY <code>BUYER_*</code> (5개국어). 빈 문자열도 누락입니다.</p>
 
   <h2>2. 엔드포인트 요약</h2>
   <table>

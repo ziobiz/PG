@@ -76,6 +76,12 @@ class OutcomeReasonTranslateServiceTest {
     }
 
     @Test
+    void phraseDictionary_insufficientAvailableFund() {
+        String hit = com.pg.util.OutcomeReasonPhraseDictionary.lookup("Insufficient of available fund", "KO");
+        assertEquals("결제망 가용잔액 부족", hit);
+    }
+
+    @Test
     void translateBatchFromCacheOnly_doesNotInvokeAiPath() {
         OutcomeReasonTranslateService svc = new OutcomeReasonTranslateService(null, null, null);
         Map<String, String> out = svc.translateBatchFromCacheOnly(List.of("잔액이 부족합니다"), "KO");

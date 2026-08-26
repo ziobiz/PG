@@ -150,7 +150,7 @@ EP 웹훅에는 가맹 업체코드가 없음. **`order`(주문번호)** 가 키
 
 **브라우저 Result vs EP Redirect**
 
-- EP는 `_successUrl` / `_rejectUrl` / `_waitingUrl` 로 **구매자 브라우저**를 ICOPAY 중립 페이지로 보낼 수 있음.
+- EP는 `_successUrl` / `_rejectUrl` / `_waitingUrl` 로 **구매자 브라우저**를 NOTI `/noti/result/elementpay` 로 보낸 뒤, NOTI가 가맹 **resultUrl**로 전달(ICOPAY V3.66).
 - NOTI Result URL은 JPAY와 같이 **가맹 Result 페이지**용.  
   EP에서 Result를 NOTI가 직접 제어하지 못하는 경우가 많으므로, **1차는 Callback(서버) 필수**, Result는 가맹 설정이 있고 전달 가능한 이벤트에서만 (기존 `resultDeliveryMode`).
 

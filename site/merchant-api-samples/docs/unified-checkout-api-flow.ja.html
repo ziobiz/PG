@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -39,6 +39,9 @@
     <tr><th>Embed スクリプト</th><td><code>{publicApiBaseUrl}/v1/embed-checkout/{compId}</code></td></tr>
   </table>
   <p><code>compId</code> 例: <code>6000000028</code>（本社 API 配信時に加盟店ごとに付与）</p>
+  <p><strong>prepare 必須:</strong> <code>compId</code>（または merchantId）、<code>orderNo</code>、<code>amount</code>、
+    <code>buyer.email</code>、<code>buyer.phone</code>、<code>buyer.countryIso2</code>。
+    欠けると ICOPAY <code>BUYER_*</code>（5言語）。空文字も欠落です。</p>
 
   <h2>2. エンドポイント概要</h2>
   <table>

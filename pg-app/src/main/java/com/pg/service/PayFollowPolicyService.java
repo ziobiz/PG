@@ -6,13 +6,16 @@ import com.pg.entity.HqNotifyEnvConfig;
 import com.pg.entity.MerchantProfile;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgLevelPayFollowCap;
+import com.pg.entity.PgAgency;
 import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.PgVendor;
 import com.pg.repository.HqLedgerSysSettingsRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgLevelPayFollowCapRepository;
 import com.pg.repository.OrgUnitRepository;
+import com.pg.repository.PgAgencyRepository;
 import com.pg.repository.PgTrnsctnRepository;
+import com.pg.util.PgAgencyPayFollowCapability;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,7 +30,8 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * 결제 후속조치: 전산설정(전역) + 조직 단계 상한 + 가맹점(MERCHANT 로그인)별 세부.
+ * 결제 후속조치: 대행사별 허용 AND 전산설정(전역) AND 조직 단계 상한 AND 가맹점(MERCHANT) AND 계열·시간 창.
+ * 노티 미들웨어는 거래 적재만 담당하며, 후속조치 스위치와 독립이다.
  */
 @Service
 public class PayFollowPolicyService {
@@ -50,6 +54,7 @@ public class PayFollowPolicyService {
     private final MerchantProfileRepository merchantProfileRepository;
     private final PgTrnsctnRepository trnsctnRepository;
     private final OrgAccessService orgAccessService;
+    private final PgAgencyRepository pgAgencyRepository;
 
     public PayFollowPolicyService(HqNotifyEnvService hqNotifyEnvService,
                                   HqLedgerSysSettingsRepository ledgerSysSettingsRepository,
@@ -58,7 +63,8 @@ public class PayFollowPolicyService {
                                   OrgUnitRepository orgUnitRepository,
                                   MerchantProfileRepository merchantProfileRepository,
                                   PgTrnsctnRepository trnsctnRepository,
-                                  OrgAccessService orgAccessService) {
+                                  OrgAccessService orgAccessService,
+                                  PgAgencyRepository pgAgencyRepository) {
         this.hqNotifyEnvService = hqNotifyEnvService;
         this.ledgerSysSettingsRepository = ledgerSysSettingsRepository;
         this.capRepository = capRepository;
@@ -67,6 +73,7 @@ public class PayFollowPolicyService {
         this.merchantProfileRepository = merchantProfileRepository;
         this.trnsctnRepository = trnsctnRepository;
         this.orgAccessService = orgAccessService;
+        this.pgAgencyRepository = pgAgencyRepository;
     }
 
     /** 본사권한설정 화면용: 단계별 Y/N (항상 7단계 키) */
@@ -79,8 +86,11 @@ public class PayFollowPolicyService {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("autoVoid", yn(row.getAutoVoidYn()));
             m.put("emailVoid", yn(row.getEmailVoidYn()));
+            m.put("manualVoid", yn(row.getManualVoidYn()));
             m.put("autoRefund", yn(row.getAutoRefundYn()));
+            m.put("manualRefund", yn(row.getManualRefundYn()));
             m.put("forceRefund", yn(row.getForceRefundYn()));
+            m.put("sameDayRefund", yn(row.getSameDayRefundYn()));
             out.put(code, m);
         }
         return out;
@@ -91,8 +101,11 @@ public class PayFollowPolicyService {
         c.setOrgLevel(code);
         c.setAutoVoidYn("Y");
         c.setEmailVoidYn("Y");
+        c.setManualVoidYn("Y");
         c.setAutoRefundYn("Y");
+        c.setManualRefundYn("Y");
         c.setForceRefundYn("Y");
+        c.setSameDayRefundYn("N");
         return c;
     }
 
@@ -114,8 +127,15 @@ public class PayFollowPolicyService {
             });
             row.setAutoVoidYn(boolToYn(sub.get("autoVoid")));
             row.setEmailVoidYn(boolToYn(sub.get("emailVoid")));
+            row.setManualVoidYn(boolToYn(sub.get("manualVoid")));
             row.setAutoRefundYn(boolToYn(sub.get("autoRefund")));
+            row.setManualRefundYn(boolToYn(sub.get("manualRefund")));
             row.setForceRefundYn(boolToYn(sub.get("forceRefund")));
+            if (sub.containsKey("sameDayRefund")) {
+                row.setSameDayRefundYn(boolToYn(sub.get("sameDayRefund")));
+            } else if (row.getSameDayRefundYn() == null || row.getSameDayRefundYn().isBlank()) {
+                row.setSameDayRefundYn("N");
+            }
             capRepository.save(row);
         }
     }
@@ -163,8 +183,8 @@ public class PayFollowPolicyService {
             m.put("EMAIL_VOID", yn(env.getEmailVoidYn()));
             m.put("AUTO_REFUND", yn(env.getAutoRefundYn()));
             m.put("FORCE_REFUND", yn(env.getForceRefundYn()) && forceRefundPeriodPositive(env));
-            m.put("MANUAL_VOID", yn(env.getAutoVoidYn()));
-            m.put("MANUAL_REFUND", yn(env.getAutoRefundYn()));
+            m.put("MANUAL_VOID", yn(env.getManualVoidYn()));
+            m.put("MANUAL_REFUND", yn(env.getManualRefundYn()));
             return m;
         }
         Map<String, Object> org = authService.getOrgInfo(user.getUsername());
@@ -180,14 +200,16 @@ public class PayFollowPolicyService {
         boolean gRef = yn(env.getAutoRefundYn()) && capAllows(cap, PayListActionService.PayFollowAction.AUTO_REFUND);
         boolean gForce = yn(env.getForceRefundYn()) && forceRefundPeriodPositive(env)
                 && capAllows(cap, PayListActionService.PayFollowAction.FORCE_REFUND);
+        boolean gManualVoid = yn(env.getManualVoidYn()) && capAllows(cap, PayListActionService.PayFollowAction.MANUAL_VOID);
+        boolean gManualRefund = yn(env.getManualRefundYn()) && capAllows(cap, PayListActionService.PayFollowAction.MANUAL_REFUND);
 
         if (!"MERCHANT".equals(level)) {
             m.put("AUTO_VOID", gVoid);
             m.put("EMAIL_VOID", gEmail);
             m.put("AUTO_REFUND", gRef);
             m.put("FORCE_REFUND", gForce);
-            m.put("MANUAL_VOID", gVoid);
-            m.put("MANUAL_REFUND", gRef);
+            m.put("MANUAL_VOID", gManualVoid);
+            m.put("MANUAL_REFUND", gManualRefund);
             return m;
         }
 
@@ -213,14 +235,24 @@ public class PayFollowPolicyService {
         m.put("EMAIL_VOID", gEmail && merchantActionEffective(mp.getPayFollowEmailVoidYn()));
         m.put("AUTO_REFUND", gRef && merchantActionEffective(mp.getPayFollowAutoRefundYn()));
         m.put("FORCE_REFUND", gForce && merchantActionEffective(mp.getPayFollowForceRefundYn()));
-        m.put("MANUAL_VOID", gVoid && merchantActionEffective(mp.getPayFollowAutoVoidYn()));
-        m.put("MANUAL_REFUND", gRef && merchantActionEffective(mp.getPayFollowAutoRefundYn()));
+        m.put("MANUAL_VOID", gManualVoid && merchantActionEffective(mp.getPayFollowManualVoidYn()));
+        m.put("MANUAL_REFUND", gManualRefund && merchantActionEffective(mp.getPayFollowManualRefundYn()));
         return m;
     }
 
     /** JPAY — 자동환불·강제환불 API + 수동무효·수동환불 */
     public static boolean isJpayManualFollowTransaction(PgTrnsctn t) {
         return t != null && PgVendor.isJpayFamily(t.getVan());
+    }
+
+    /** 이메일무효 — ChillPay만. JPAY·URL(ElementPay)·Eximbay 등은 미지원. */
+    public static boolean isEmailVoidFollowTransaction(PgTrnsctn t) {
+        return t != null && PgVendor.isChillPayFamily(t.getVan());
+    }
+
+    /** ElementPay·Eximbay — 환불 API만(자동무효·이메일무효 없음). 캐비닛 환불은 웹훅으로 반영. */
+    public static boolean isRefundApiFollowTransaction(PgTrnsctn t) {
+        return t != null && (PgVendor.isElementPayFamily(t.getVan()) || PgVendor.isEximbayFamily(t.getVan()));
     }
 
     /**
@@ -247,27 +279,46 @@ public class PayFollowPolicyService {
         }
         if (isJpayManualFollowTransaction(t)) {
             HqNotifyEnvConfig env = hqNotifyEnvService.getOrCreate();
-            out.put("AUTO_REFUND", Boolean.TRUE.equals(base.get("AUTO_REFUND")) && withinAutoRefundDays(t, env, REFUND_DAY_ZONE));
-            out.put("FORCE_REFUND", Boolean.TRUE.equals(base.get("FORCE_REFUND")) && withinForceRefundDays(t, env, REFUND_DAY_ZONE));
-            out.put("MANUAL_VOID", Boolean.TRUE.equals(base.get("MANUAL_VOID")));
-            out.put("MANUAL_REFUND", Boolean.TRUE.equals(base.get("MANUAL_REFUND")));
+            out.put("AUTO_REFUND", Boolean.TRUE.equals(base.get("AUTO_REFUND"))
+                    && agencyAllows(t, PayListActionService.PayFollowAction.AUTO_REFUND)
+                    && withinAutoRefundDays(t, env, REFUND_DAY_ZONE));
+            out.put("FORCE_REFUND", Boolean.TRUE.equals(base.get("FORCE_REFUND"))
+                    && agencyAllows(t, PayListActionService.PayFollowAction.FORCE_REFUND)
+                    && withinForceRefundDays(t, env, REFUND_DAY_ZONE));
+            out.put("MANUAL_VOID", Boolean.TRUE.equals(base.get("MANUAL_VOID"))
+                    && agencyAllows(t, PayListActionService.PayFollowAction.MANUAL_VOID));
+            out.put("MANUAL_REFUND", Boolean.TRUE.equals(base.get("MANUAL_REFUND"))
+                    && agencyAllows(t, PayListActionService.PayFollowAction.MANUAL_REFUND));
             return out;
         }
-        /* ElementPay·Eximbay: 환불 API만 — 자동무효 비활성. 이메일무효는 유지. */
+        /* ElementPay·Eximbay: 환불 API만 — 자동무효·이메일무효 비활성 */
         if (PgVendor.isElementPayFamily(t.getVan()) || PgVendor.isEximbayFamily(t.getVan())) {
             HqNotifyEnvConfig env = hqNotifyEnvService.getOrCreate();
-            ZoneId ref = resolvePayFollowZone(env);
-            out.put("EMAIL_VOID", Boolean.TRUE.equals(base.get("EMAIL_VOID")) && withinEmailVoidWindow(t, env, ref));
-            out.put("AUTO_REFUND", Boolean.TRUE.equals(base.get("AUTO_REFUND")) && withinAutoRefundDays(t, env, REFUND_DAY_ZONE));
-            out.put("FORCE_REFUND", Boolean.TRUE.equals(base.get("FORCE_REFUND")) && withinForceRefundDays(t, env, REFUND_DAY_ZONE));
+            boolean refundWin = withinAutoRefundDays(t, env, REFUND_DAY_ZONE)
+                    || sameDayRefundOpen(viewer, t, env);
+            out.put("AUTO_REFUND", Boolean.TRUE.equals(base.get("AUTO_REFUND"))
+                    && agencyAllows(t, PayListActionService.PayFollowAction.AUTO_REFUND)
+                    && refundWin);
+            out.put("FORCE_REFUND", Boolean.TRUE.equals(base.get("FORCE_REFUND"))
+                    && agencyAllows(t, PayListActionService.PayFollowAction.FORCE_REFUND)
+                    && withinForceRefundDays(t, env, REFUND_DAY_ZONE));
             return out;
         }
         HqNotifyEnvConfig env = hqNotifyEnvService.getOrCreate();
         ZoneId ref = resolvePayFollowZone(env);
-        out.put("AUTO_VOID", Boolean.TRUE.equals(base.get("AUTO_VOID")) && withinAutoVoidWindow(t, env, ref));
-        out.put("EMAIL_VOID", Boolean.TRUE.equals(base.get("EMAIL_VOID")) && withinEmailVoidWindow(t, env, ref));
-        out.put("AUTO_REFUND", Boolean.TRUE.equals(base.get("AUTO_REFUND")) && withinAutoRefundDays(t, env, REFUND_DAY_ZONE));
-        out.put("FORCE_REFUND", Boolean.TRUE.equals(base.get("FORCE_REFUND")) && withinForceRefundDays(t, env, REFUND_DAY_ZONE));
+        out.put("AUTO_VOID", Boolean.TRUE.equals(base.get("AUTO_VOID"))
+                && agencyAllows(t, PayListActionService.PayFollowAction.AUTO_VOID)
+                && withinAutoVoidWindow(t, env, ref));
+        out.put("EMAIL_VOID", isEmailVoidFollowTransaction(t)
+                && Boolean.TRUE.equals(base.get("EMAIL_VOID"))
+                && agencyAllows(t, PayListActionService.PayFollowAction.EMAIL_VOID)
+                && withinEmailVoidWindow(t, env, ref));
+        out.put("AUTO_REFUND", Boolean.TRUE.equals(base.get("AUTO_REFUND"))
+                && agencyAllows(t, PayListActionService.PayFollowAction.AUTO_REFUND)
+                && withinAutoRefundDays(t, env, REFUND_DAY_ZONE));
+        out.put("FORCE_REFUND", Boolean.TRUE.equals(base.get("FORCE_REFUND"))
+                && agencyAllows(t, PayListActionService.PayFollowAction.FORCE_REFUND)
+                && withinForceRefundDays(t, env, REFUND_DAY_ZONE));
         return out;
     }
 
@@ -382,6 +433,48 @@ public class PayFollowPolicyService {
     }
 
     /**
+     * URL 결제(ElementPay) 당일환불: 전역 Y + 단계별 허용(ADMIN은 전역만) + 태국 결제일 당일.
+     * 환불처리는 기존 자동환불과 동일 API.
+     */
+    private boolean sameDayRefundOpen(AppUser viewer, PgTrnsctn t, HqNotifyEnvConfig env) {
+        if (t == null || env == null || !PgVendor.isElementPayFamily(t.getVan())) {
+            return false;
+        }
+        if (!yn(env.getEpSameDayRefundYn())) {
+            return false;
+        }
+        if (!agencyAllowsSameDayRefund(t)) {
+            return false;
+        }
+        if (!withinElementPaySameDayRefund(t)) {
+            return false;
+        }
+        if (viewer != null && "ADMIN".equalsIgnoreCase(viewer.getRole())) {
+            return true;
+        }
+        if (viewer == null) {
+            return false;
+        }
+        Map<String, Object> org = authService.getOrgInfo(viewer.getUsername());
+        if (org == null) {
+            return false;
+        }
+        String level = String.valueOf(org.getOrDefault("orgLevel", "")).trim().toUpperCase(Locale.ROOT);
+        OrgLevelPayFollowCap cap = capRepository.findById(level).orElse(null);
+        return cap != null && yn(cap.getSameDayRefundYn());
+    }
+
+    /** 태국(Asia/Bangkok) 달력 기준 결제일 = 오늘. */
+    private static boolean withinElementPaySameDayRefund(PgTrnsctn t) {
+        ZonedDateTime approval = approvalAtZone(t, REFUND_DAY_ZONE);
+        if (approval == null) {
+            return false;
+        }
+        LocalDate today = ZonedDateTime.now(REFUND_DAY_ZONE).toLocalDate();
+        return today.equals(approval.toLocalDate());
+    }
+
+    /**
      * 결제일(paidAt, 없으면 생성시각)을 {@link #REFUND_DAY_ZONE}(태국) 달력으로 본 뒤, 그 익일 0시부터 N일.
      * N이 DB NULL이면 7일. N≤0이면 익일 0시 이후 제한 없음.
      */
@@ -478,22 +571,58 @@ public class PayFollowPolicyService {
             return true;
         }
         return switch (a) {
-            case AUTO_VOID, MANUAL_VOID -> yn(cap.getAutoVoidYn());
+            case AUTO_VOID -> yn(cap.getAutoVoidYn());
             case EMAIL_VOID -> yn(cap.getEmailVoidYn());
-            case AUTO_REFUND, MANUAL_REFUND -> yn(cap.getAutoRefundYn());
+            case MANUAL_VOID -> yn(cap.getManualVoidYn());
+            case AUTO_REFUND -> yn(cap.getAutoRefundYn());
+            case MANUAL_REFUND -> yn(cap.getManualRefundYn());
             case FORCE_REFUND -> yn(cap.getForceRefundYn());
         };
+    }
+
+    boolean agencyAllows(PgTrnsctn t, PayListActionService.PayFollowAction action) {
+        return PgAgencyPayFollowCapability.allows(resolveAgencyForVan(t != null ? t.getVan() : null), action);
+    }
+
+    boolean agencyAllowsSameDayRefund(PgTrnsctn t) {
+        return PgAgencyPayFollowCapability.allowsSameDayRefund(resolveAgencyForVan(t != null ? t.getVan() : null));
+    }
+
+    private PgAgency resolveAgencyForVan(String van) {
+        if (van == null || van.isBlank() || pgAgencyRepository == null) {
+            return fallbackAgency(van);
+        }
+        String key = van.trim();
+        Optional<PgAgency> exact = pgAgencyRepository.findByPgCd(key);
+        if (exact.isPresent()) {
+            return exact.get();
+        }
+        String norm = PgVendor.normalizePgCdKey(key);
+        if (!norm.equalsIgnoreCase(key)) {
+            Optional<PgAgency> alt = pgAgencyRepository.findByPgCd(norm);
+            if (alt.isPresent()) {
+                return alt.get();
+            }
+        }
+        return fallbackAgency(van);
+    }
+
+    private static PgAgency fallbackAgency(String van) {
+        PgAgency fake = new PgAgency();
+        fake.setPgCd(van);
+        PgAgencyPayFollowCapability.applyFamilyDefaults(fake);
+        return fake;
     }
 
     public void assertMayExecute(AppUser user, String trnId, PayListActionService.PayFollowAction action) {
         HqNotifyEnvConfig env = hqNotifyEnvService.getOrCreate();
         switch (action) {
-            case AUTO_VOID -> requireYn(env.getAutoVoidYn(), "자동무효");
-            case EMAIL_VOID -> requireYn(env.getEmailVoidYn(), "이메일무효");
-            case AUTO_REFUND -> requireYn(env.getAutoRefundYn(), "자동환불");
+            case AUTO_VOID -> requireYn(env.getAutoVoidYn(), "무효처리");
+            case EMAIL_VOID -> requireYn(env.getEmailVoidYn(), "이메일 무효");
+            case AUTO_REFUND -> requireYn(env.getAutoRefundYn(), "환불처리");
             case FORCE_REFUND -> requireYn(env.getForceRefundYn(), "강제환불");
-            case MANUAL_VOID -> requireYn(env.getAutoVoidYn(), "수동무효");
-            case MANUAL_REFUND -> requireYn(env.getAutoRefundYn(), "수동환불");
+            case MANUAL_VOID -> requireYn(env.getManualVoidYn(), "수동무효");
+            case MANUAL_REFUND -> requireYn(env.getManualRefundYn(), "수동환불");
         }
         if (user == null) {
             throw new IllegalStateException("로그인이 필요합니다.");
@@ -504,14 +633,23 @@ public class PayFollowPolicyService {
             throw new IllegalStateException("승인(결제) 완료 건만 후속조치할 수 있습니다.");
         }
         boolean jpay = isJpayManualFollowTransaction(t);
-        if (jpay && (action == PayListActionService.PayFollowAction.AUTO_VOID
-                || action == PayListActionService.PayFollowAction.EMAIL_VOID)) {
+        if (action == PayListActionService.PayFollowAction.EMAIL_VOID && !isEmailVoidFollowTransaction(t)) {
+            throw new IllegalStateException("이메일무효는 ChillPay 거래만 사용할 수 있습니다.");
+        }
+        if (jpay && action == PayListActionService.PayFollowAction.AUTO_VOID) {
             throw new IllegalStateException(
-                    "JPAY 거래는 자동무효·이메일무효를 사용할 수 없습니다.");
+                    "JPAY 거래는 무효처리·이메일 무효를 사용할 수 없습니다. 수동무효 또는 JPAY 포털에서 처리하세요.");
+        }
+        if (isRefundApiFollowTransaction(t) && action == PayListActionService.PayFollowAction.AUTO_VOID) {
+            throw new IllegalStateException(
+                    "이 거래는 승인 후 무효(void) API가 없습니다. 결제내역의 환불처리·강제환불을 사용하세요.");
         }
         if (!jpay && (action == PayListActionService.PayFollowAction.MANUAL_VOID
                 || action == PayListActionService.PayFollowAction.MANUAL_REFUND)) {
             throw new IllegalStateException("수동무효·수동환불은 JPAY 거래만 지원합니다.");
+        }
+        if (!agencyAllows(t, action)) {
+            throw new IllegalStateException("이 결제대행사는 해당 후속조치를 ICOPAY에서 허용하지 않습니다.");
         }
         if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
             Map<String, Object> org = authService.getOrgInfo(user.getUsername());
@@ -539,9 +677,11 @@ public class PayFollowPolicyService {
                     throw new IllegalStateException("가맹점 정보에서 결제 후속조치 사용이 꺼져 있습니다.");
                 }
                 boolean ok = switch (action) {
-                    case AUTO_VOID, MANUAL_VOID -> merchantActionEffective(mp.getPayFollowAutoVoidYn());
+                    case AUTO_VOID -> merchantActionEffective(mp.getPayFollowAutoVoidYn());
                     case EMAIL_VOID -> merchantActionEffective(mp.getPayFollowEmailVoidYn());
-                    case AUTO_REFUND, MANUAL_REFUND -> merchantActionEffective(mp.getPayFollowAutoRefundYn());
+                    case MANUAL_VOID -> merchantActionEffective(mp.getPayFollowManualVoidYn());
+                    case AUTO_REFUND -> merchantActionEffective(mp.getPayFollowAutoRefundYn());
+                    case MANUAL_REFUND -> merchantActionEffective(mp.getPayFollowManualRefundYn());
                     case FORCE_REFUND -> merchantActionEffective(mp.getPayFollowForceRefundYn());
                 };
                 if (!ok) {
@@ -565,19 +705,19 @@ public class PayFollowPolicyService {
             case AUTO_VOID -> {
                 if (!withinAutoVoidWindow(t, env, ref)) {
                     throw new IllegalStateException(
-                            "자동무효는 승인일(시간 선택 국가 기준) 당일, 설정한 시작~마감 시각 안에서만 가능합니다.");
+                            "무효처리는 승인일(시간 선택 국가 기준) 당일, 설정한 시작~마감 시각 안에서만 가능합니다.");
                 }
             }
             case EMAIL_VOID -> {
                 if (!withinEmailVoidWindow(t, env, ref)) {
                     throw new IllegalStateException(
-                            "이메일무효는 승인일(기준 Zone) 당일, 설정한 시작~마감 시각 안에서만 가능합니다.");
+                            "이메일 무효는 승인일(기준 Zone) 당일, 설정한 시작~마감 시각 안에서만 가능합니다.");
                 }
             }
             case AUTO_REFUND -> {
-                if (!withinAutoRefundDays(t, env, REFUND_DAY_ZONE)) {
+                if (!withinAutoRefundDays(t, env, REFUND_DAY_ZONE) && !sameDayRefundOpen(user, t, env)) {
                     throw new IllegalStateException(
-                            "자동환불 처리 가능 기간이 아닙니다. (태국 기준 결제일 익일 설정 시각부터 환불 가능 일수 확인)");
+                            "환불처리 가능 기간이 아닙니다. (태국 기준 결제일 익일부터이거나, URL 결제 당일환불이 켜진 당일인지 확인)");
                 }
             }
             case FORCE_REFUND -> {
@@ -619,10 +759,17 @@ public class PayFollowPolicyService {
         if (!yn(cap.getAutoRefundYn()) && mp.getPayFollowAutoRefundYn() != null && yn(mp.getPayFollowAutoRefundYn())) {
             mp.setPayFollowAutoRefundYn("N");
         }
+        if (!yn(cap.getManualVoidYn()) && mp.getPayFollowManualVoidYn() != null && yn(mp.getPayFollowManualVoidYn())) {
+            mp.setPayFollowManualVoidYn("N");
+        }
+        if (!yn(cap.getManualRefundYn()) && mp.getPayFollowManualRefundYn() != null && yn(mp.getPayFollowManualRefundYn())) {
+            mp.setPayFollowManualRefundYn("N");
+        }
         if (!yn(cap.getForceRefundYn()) && mp.getPayFollowForceRefundYn() != null && yn(mp.getPayFollowForceRefundYn())) {
             mp.setPayFollowForceRefundYn("N");
         }
-        if (!yn(cap.getAutoVoidYn()) && !yn(cap.getEmailVoidYn()) && !yn(cap.getAutoRefundYn()) && !yn(cap.getForceRefundYn())) {
+        if (!yn(cap.getAutoVoidYn()) && !yn(cap.getEmailVoidYn()) && !yn(cap.getManualVoidYn())
+                && !yn(cap.getAutoRefundYn()) && !yn(cap.getManualRefundYn()) && !yn(cap.getForceRefundYn())) {
             mp.setPayFollowMerchantUseYn("N");
         }
     }

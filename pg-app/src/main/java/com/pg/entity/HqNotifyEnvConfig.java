@@ -37,6 +37,21 @@ public class HqNotifyEnvConfig {
     @Column(name = "force_refund_yn", length = 1)
     private String forceRefundYn = "N";
 
+    /** 수동무효(JPAY). {@link #autoVoidYn} 과 별도. */
+    @Column(name = "manual_void_yn", length = 1)
+    private String manualVoidYn = "N";
+
+    /** 수동환불(JPAY). {@link #autoRefundYn} 과 별도. */
+    @Column(name = "manual_refund_yn", length = 1)
+    private String manualRefundYn = "N";
+
+    /**
+     * URL 결제(ElementPay) 당일환불 전역 사용.
+     * 환불처리는 {@link #autoRefundYn} 과 동일 API. 태국 결제일 당일만. 단계별 허용과 AND.
+     */
+    @Column(name = "ep_same_day_refund_yn", length = 1)
+    private String epSameDayRefundYn = "N";
+
     /** 자동무효: 레거시(승인 후 N시간) — 미사용, {@link #autoVoidStartMin}/{@link #autoVoidEndMin} 사용 */
     @Column(name = "auto_void_after_hours")
     private Integer autoVoidAfterHours;
@@ -176,6 +191,12 @@ public class HqNotifyEnvConfig {
     public void setAutoRefundYn(String autoRefundYn) { this.autoRefundYn = autoRefundYn; }
     public String getForceRefundYn() { return forceRefundYn; }
     public void setForceRefundYn(String forceRefundYn) { this.forceRefundYn = forceRefundYn; }
+    public String getManualVoidYn() { return manualVoidYn; }
+    public void setManualVoidYn(String manualVoidYn) { this.manualVoidYn = manualVoidYn; }
+    public String getManualRefundYn() { return manualRefundYn; }
+    public void setManualRefundYn(String manualRefundYn) { this.manualRefundYn = manualRefundYn; }
+    public String getEpSameDayRefundYn() { return epSameDayRefundYn; }
+    public void setEpSameDayRefundYn(String epSameDayRefundYn) { this.epSameDayRefundYn = epSameDayRefundYn; }
     public Integer getAutoVoidAfterHours() { return autoVoidAfterHours; }
     public void setAutoVoidAfterHours(Integer autoVoidAfterHours) { this.autoVoidAfterHours = autoVoidAfterHours; }
     public Integer getEmailVoidAfterHours() { return emailVoidAfterHours; }

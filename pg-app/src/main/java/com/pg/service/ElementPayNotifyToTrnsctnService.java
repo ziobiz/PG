@@ -4,9 +4,11 @@ import com.pg.entity.PgNotifyInbound;
 import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.notify.NotifyIdempotencyLock;
 import com.pg.integration.pg.notify.PgNotifyInboundTxnHandler;
+import com.pg.receipt.TransactionReceiptEmailService;
 import com.pg.splitpay.SplitPayPaymentHookService;
 import com.pg.util.ElementPayCallbackEventUtil;
 import com.pg.util.ElementPayCallbackOrderUtil;
+import com.pg.util.ElementPayPaymentIdUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -38,17 +40,20 @@ public class ElementPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandl
     private final SettlementCalcService settlementCalcService;
     private final MerchantOutboundNotifyService merchantOutboundNotifyService;
     private final SplitPayPaymentHookService splitPayPaymentHookService;
+    private final TransactionReceiptEmailService transactionReceiptEmailService;
 
     public ElementPayNotifyToTrnsctnService(ElementPaySaleRecordService elementPaySaleRecordService,
                                             NotifyIdempotencyLock notifyIdempotencyLock,
                                             SettlementCalcService settlementCalcService,
                                             MerchantOutboundNotifyService merchantOutboundNotifyService,
-                                            SplitPayPaymentHookService splitPayPaymentHookService) {
+                                            SplitPayPaymentHookService splitPayPaymentHookService,
+                                            TransactionReceiptEmailService transactionReceiptEmailService) {
         this.elementPaySaleRecordService = elementPaySaleRecordService;
         this.notifyIdempotencyLock = notifyIdempotencyLock;
         this.settlementCalcService = settlementCalcService;
         this.merchantOutboundNotifyService = merchantOutboundNotifyService;
         this.splitPayPaymentHookService = splitPayPaymentHookService;
+        this.transactionReceiptEmailService = transactionReceiptEmailService;
     }
 
     @Override
@@ -92,7 +97,7 @@ public class ElementPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandl
         if (orderNo.isBlank()) {
             return false;
         }
-        String paymentId = first(f, "id");
+        String paymentId = ElementPayPaymentIdUtil.fromCallbackFields(f);
         String compCode = resolveCompCode(in, f, orderNo);
         if (compCode.isBlank() && !paymentId.isBlank()) {
             compCode = elementPaySaleRecordService.findAnyByPaymentId(paymentId)
@@ -111,6 +116,11 @@ public class ElementPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandl
         try {
             splitPayPaymentHookService.onTxnStatusChange(t.getOrderNo(), t.getStatus(), t.getTrnId());
         } catch (Exception ignored) {
+        }
+        try {
+            transactionReceiptEmailService.scheduleIfDue(t);
+        } catch (Exception e) {
+            log.warn("ElementPay 노티 거래명세서 메일 연동 실패 trnId={}: {}", t.getTrnId(), e.getMessage());
         }
         try {
             merchantOutboundNotifyService.scheduleAfterTxnCommit(t, in, notifyChannel);

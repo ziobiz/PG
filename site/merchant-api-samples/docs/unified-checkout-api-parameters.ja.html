@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -17,16 +17,28 @@
     pre { background: #f8f8f8; border: 1px solid #ddd; padding: 0.75rem; overflow: auto; font-size: 0.82rem; }
     a { color: #0d6efd; }
     .lang-nav { font-size: 0.92rem; margin-bottom: 1rem; padding: 0.5rem 0; border-bottom: 1px solid #eee; }
+    .req-box { background:#fff5f5; border:2px solid #c92a2a; padding:0.85rem 1rem; margin:1.1rem 0; border-radius:6px; }
+    .req-box h3 { margin:0 0 0.45rem; color:#c92a2a; font-size:1.02rem; }
+    .req-box ul { margin:0.25rem 0 0.5rem; padding-left:1.2rem; }
+    .req-box li { margin:0.2rem 0; }
   </style>
 </head>
 <body>
   <p class="lang-nav"><strong>言語:</strong>
     <a href="unified-checkout-api-parameters.html">English</a> · <a href="unified-checkout-api-parameters.ko.html">한국어</a> · <strong>日本語</strong> · <a href="unified-checkout-api-parameters.ch.html">中文</a> · <a href="unified-checkout-api-parameters.th.html">ไทย</a></p>
   <h1>表 1.1 · ICOPAY 統合 Checkout Prepare API リクエストパラメータ</h1>
-  <p class="meta">文書 ID: ICOPAY-CHECKOUT-PREPARE-001 · v1.1 · PG 非依存の統合インライン checkout（ICOPAY 統合）</p>
+  <p class="meta">文書 ID: ICOPAY-CHECKOUT-PREPARE-001 · v1.2 · PG 非依存の統合インライン checkout（ICOPAY 統合）</p>
   <p><strong>エンドポイント:</strong> <code>POST {publicApiBaseUrl}/api/middleware/v1/merchant/checkout/prepare</code></p>
   <p><strong>ヘッダー:</strong> <code>Content-Type: application/json</code>, <code>Accept: application/json</code>,
     <code>X-Icopay-Merchant-Broker-Secret</code>（ブローカーシークレット強制時は必須）</p>
+  <div class="req-box">
+    <h3>必須 — 欠けると prepare は ICOPAY <code>BUYER_*</code> で失敗します（決済代行の英文エラーではありません）</h3>
+    <ul>
+      <li>表 1.1: <code>compId</code> または <code>merchantId</code>、<code>orderNo</code>、<code>amount</code>、<code>buyer</code></li>
+      <li>表 1.2: <code>buyer.email</code>、<code>buyer.phone</code>（国内番号、国番号 + 除去）、<code>buyer.countryIso2</code>（大文字2文字、例: KR, TH, JP）</li>
+    </ul>
+    <p>空文字も欠落です。応答に <code>errorCode</code>、<code>messageKey</code>、5言語 <code>messages</code>（KOR/ENG/JPN/CHN/THA）が含まれます。</p>
+  </div>
 
   <h2>表 1.1 — リクエスト本文（JSON ルート）</h2>
   <table>
@@ -54,16 +66,18 @@
       <tr><th>番号</th><th>項目</th><th>タイプ</th><th>長さ</th><th>必須</th><th>説明</th><th>備考</th></tr>
     </thead>
     <tbody>
-      <tr><td>1</td><td>email</td><td>String</td><td>254</td><td class="m">M</td><td>購入者メール</td><td>ICOPAY 必須</td></tr>
-      <tr><td>2</td><td>phone</td><td>String</td><td>32</td><td class="m">M</td><td>ローカル電話番号</td><td>国番号 + 除去。ICOPAY 必須</td></tr>
-      <tr><td>3</td><td>countryIso2</td><td>String</td><td>2</td><td class="m">M</td><td>国 ISO 3166-1 alpha-2</td><td>例: KR, US, TH — 大文字。ICOPAY 必須</td></tr>
+      <tr><td>1</td><td>email</td><td>String</td><td>254</td><td class="m">M</td><td>購入者メール</td><td>必須。欠落 → <code>BUYER_EMAIL_REQUIRED</code></td></tr>
+      <tr><td>2</td><td>phone</td><td>String</td><td>32</td><td class="m">M</td><td>ローカル電話番号</td><td>国番号 + 除去。欠落 → <code>BUYER_PHONE_REQUIRED</code></td></tr>
+      <tr><td>3</td><td>countryIso2</td><td>String</td><td>2</td><td class="m">M</td><td>国 ISO 3166-1 alpha-2</td><td>例: KR, US, TH — 大文字。欠落 → <code>BUYER_COUNTRY_REQUIRED</code></td></tr>
       <tr><td>4</td><td>address</td><td>String</td><td>200</td><td>O</td><td>配送住所 1 行目</td><td>任意 prefill</td></tr>
       <tr><td>5</td><td>address2</td><td>String</td><td>200</td><td>O</td><td>配送住所 2 行目</td><td></td></tr>
       <tr><td>6</td><td>city</td><td>String</td><td>100</td><td>O</td><td>都市</td><td></td></tr>
       <tr><td>7</td><td>state</td><td>String</td><td>100</td><td>O</td><td>州・県</td><td></td></tr>
       <tr><td>8</td><td>postcode</td><td>String</td><td>20</td><td>O</td><td>郵便番号</td><td>zip の別名</td></tr>
-      <tr><td>9</td><td>shippingAddress</td><td>String</td><td>200</td><td>O</td><td>別配送先住所</td><td>address と異なる場合</td></tr>
-      <tr><td>10</td><td>shippingPhone</td><td>String</td><td>32</td><td>O</td><td>別配送先電話</td><td></td></tr>
+      <tr><td>9</td><td>firstName</td><td>String</td><td>80</td><td>O</td><td>名（カード名義 prefill）</td><td>推奨。決済画面では必須</td></tr>
+      <tr><td>10</td><td>lastName</td><td>String</td><td>80</td><td>O</td><td>姓（カード名義 prefill）</td><td>推奨。決済画面では必須</td></tr>
+      <tr><td>11</td><td>shippingAddress</td><td>String</td><td>200</td><td>O</td><td>別配送先住所</td><td>address と異なる場合</td></tr>
+      <tr><td>12</td><td>shippingPhone</td><td>String</td><td>32</td><td>O</td><td>別配送先電話</td><td></td></tr>
     </tbody>
   </table>
 
@@ -81,6 +95,18 @@
     "countryIso2": "KR"
   }
 }</pre>
+
+  <h2>errorCode（必須項目）</h2>
+  <table>
+    <thead><tr><th>errorCode</th><th>意味</th></tr></thead>
+    <tbody>
+      <tr><td><code>BUYER_REQUIRED</code></td><td>buyer 欠落、または email・phone・countryIso2 不足（空文字含む）</td></tr>
+      <tr><td><code>BUYER_EMAIL_REQUIRED</code></td><td><code>buyer.email</code> 不足</td></tr>
+      <tr><td><code>BUYER_PHONE_REQUIRED</code></td><td><code>buyer.phone</code> 不足</td></tr>
+      <tr><td><code>BUYER_COUNTRY_REQUIRED</code></td><td><code>buyer.countryIso2</code> 不足または ISO2 ではない</td></tr>
+      <tr><td><code>BUYER_JSON_INVALID</code></td><td>buyer JSON 形式エラー</td></tr>
+    </tbody>
+  </table>
 
   <h2>連携方式</h2>
   <ul>

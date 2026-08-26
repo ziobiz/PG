@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-Hans">
 <head>
   <meta charset="UTF-8">
@@ -17,16 +17,28 @@
     pre { background: #f8f8f8; border: 1px solid #ddd; padding: 0.75rem; overflow: auto; font-size: 0.82rem; }
     a { color: #0d6efd; }
     .lang-nav { font-size: 0.92rem; margin-bottom: 1rem; padding: 0.5rem 0; border-bottom: 1px solid #eee; }
+    .req-box { background:#fff5f5; border:2px solid #c92a2a; padding:0.85rem 1rem; margin:1.1rem 0; border-radius:6px; }
+    .req-box h3 { margin:0 0 0.45rem; color:#c92a2a; font-size:1.02rem; }
+    .req-box ul { margin:0.25rem 0 0.5rem; padding-left:1.2rem; }
+    .req-box li { margin:0.2rem 0; }
   </style>
 </head>
 <body>
   <p class="lang-nav"><strong>语言:</strong>
     <a href="unified-checkout-api-parameters.html">English</a> · <a href="unified-checkout-api-parameters.ko.html">한국어</a> · <a href="unified-checkout-api-parameters.ja.html">日本語</a> · <strong>中文</strong> · <a href="unified-checkout-api-parameters.th.html">ไทย</a></p>
   <h1>表 1.1 · ICOPAY 统一 Checkout Prepare API 请求参数</h1>
-  <p class="meta">文档 ID: ICOPAY-CHECKOUT-PREPARE-001 · v1.1 · 与 PG 无关的统一内联 checkout（ICOPAY 统一）</p>
+  <p class="meta">文档 ID: ICOPAY-CHECKOUT-PREPARE-001 · v1.2 · 与 PG 无关的统一内联 checkout（ICOPAY 统一）</p>
   <p><strong>端点:</strong> <code>POST {publicApiBaseUrl}/api/middleware/v1/merchant/checkout/prepare</code></p>
   <p><strong>请求头:</strong> <code>Content-Type: application/json</code>, <code>Accept: application/json</code>,
     <code>X-Icopay-Merchant-Broker-Secret</code>（强制校验 broker 密钥时必填）</p>
+  <div class="req-box">
+    <h3>必填 — 缺省则 prepare 以 ICOPAY <code>BUYER_*</code> 失败（不是第三方英文报错）</h3>
+    <ul>
+      <li>表 1.1：<code>compId</code> 或 <code>merchantId</code>、<code>orderNo</code>、<code>amount</code>、<code>buyer</code></li>
+      <li>表 1.2：<code>buyer.email</code>、<code>buyer.phone</code>（本地号码，去掉 +国家码）、<code>buyer.countryIso2</code>（两位大写，如 KR、TH、JP）</li>
+    </ul>
+    <p>空字符串视为缺失。响应包含 <code>errorCode</code>、<code>messageKey</code> 以及 5 语 <code>messages</code>（KOR/ENG/JPN/CHN/THA）。</p>
+  </div>
 
   <h2>表 1.1 — 请求体（JSON 根节点）</h2>
   <table>
@@ -54,16 +66,18 @@
       <tr><th>编号</th><th>项目</th><th>类型</th><th>长度</th><th>必填</th><th>说明</th><th>备注</th></tr>
     </thead>
     <tbody>
-      <tr><td>1</td><td>email</td><td>String</td><td>254</td><td class="m">M</td><td>购买者邮箱</td><td>ICOPAY 必填</td></tr>
-      <tr><td>2</td><td>phone</td><td>String</td><td>32</td><td class="m">M</td><td>本地电话号码</td><td>去除国家区号 +。ICOPAY 必填</td></tr>
-      <tr><td>3</td><td>countryIso2</td><td>String</td><td>2</td><td class="m">M</td><td>国家 ISO 3166-1 alpha-2</td><td>例: KR, US, TH — 大写。ICOPAY 必填</td></tr>
+      <tr><td>1</td><td>email</td><td>String</td><td>254</td><td class="m">M</td><td>购买者邮箱</td><td>必填。缺省 → <code>BUYER_EMAIL_REQUIRED</code></td></tr>
+      <tr><td>2</td><td>phone</td><td>String</td><td>32</td><td class="m">M</td><td>本地电话号码</td><td>去除国家区号 +。缺省 → <code>BUYER_PHONE_REQUIRED</code></td></tr>
+      <tr><td>3</td><td>countryIso2</td><td>String</td><td>2</td><td class="m">M</td><td>国家 ISO 3166-1 alpha-2</td><td>例: KR, US, TH — 大写。缺省 → <code>BUYER_COUNTRY_REQUIRED</code></td></tr>
       <tr><td>4</td><td>address</td><td>String</td><td>200</td><td>O</td><td>配送地址第 1 行</td><td>可选预填</td></tr>
       <tr><td>5</td><td>address2</td><td>String</td><td>200</td><td>O</td><td>配送地址第 2 行</td><td></td></tr>
       <tr><td>6</td><td>city</td><td>String</td><td>100</td><td>O</td><td>城市</td><td></td></tr>
       <tr><td>7</td><td>state</td><td>String</td><td>100</td><td>O</td><td>省/州</td><td></td></tr>
       <tr><td>8</td><td>postcode</td><td>String</td><td>20</td><td>O</td><td>邮政编码</td><td>zip 别名</td></tr>
-      <tr><td>9</td><td>shippingAddress</td><td>String</td><td>200</td><td>O</td><td>独立配送地址</td><td>与 address 不同时使用</td></tr>
-      <tr><td>10</td><td>shippingPhone</td><td>String</td><td>32</td><td>O</td><td>独立配送电话</td><td></td></tr>
+      <tr><td>9</td><td>firstName</td><td>String</td><td>80</td><td>O</td><td>名（持卡人预填）</td><td>建议。支付页必填</td></tr>
+      <tr><td>10</td><td>lastName</td><td>String</td><td>80</td><td>O</td><td>姓（持卡人预填）</td><td>建议。支付页必填</td></tr>
+      <tr><td>11</td><td>shippingAddress</td><td>String</td><td>200</td><td>O</td><td>独立配送地址</td><td>与 address 不同时使用</td></tr>
+      <tr><td>12</td><td>shippingPhone</td><td>String</td><td>32</td><td>O</td><td>独立配送电话</td><td></td></tr>
     </tbody>
   </table>
 
@@ -81,6 +95,18 @@
     "countryIso2": "KR"
   }
 }</pre>
+
+  <h2>errorCode（必填项）</h2>
+  <table>
+    <thead><tr><th>errorCode</th><th>含义</th></tr></thead>
+    <tbody>
+      <tr><td><code>BUYER_REQUIRED</code></td><td>缺少 buyer，或缺少 email/phone/countryIso2（含空字符串）</td></tr>
+      <tr><td><code>BUYER_EMAIL_REQUIRED</code></td><td>缺少 <code>buyer.email</code></td></tr>
+      <tr><td><code>BUYER_PHONE_REQUIRED</code></td><td>缺少 <code>buyer.phone</code></td></tr>
+      <tr><td><code>BUYER_COUNTRY_REQUIRED</code></td><td>缺少或无效的 <code>buyer.countryIso2</code></td></tr>
+      <tr><td><code>BUYER_JSON_INVALID</code></td><td>buyer JSON 格式错误</td></tr>
+    </tbody>
+  </table>
 
   <h2>对接方式</h2>
   <ul>

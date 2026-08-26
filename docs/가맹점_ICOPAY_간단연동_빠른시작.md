@@ -35,7 +35,16 @@ X-Icopay-Merchant-Broker-Secret: {브로커시크릿}
 }
 ```
 
-**필수:** `compId`(또는 merchantId), `orderNo`, `amount`, `buyer.email`, `buyer.phone`, `buyer.countryIso2`
+**필수 (빼면 prepare가 ICOPAY `BUYER_*` 로 실패합니다. 빈 문자열도 누락입니다):**
+- `compId`(또는 `merchantId`)
+- `orderNo`
+- `amount`
+- `buyer.email`
+- `buyer.phone` — 로컬 번호만. 국가번호 `+82` 등은 **제거**
+- `buyer.countryIso2` — 대문자 2자 (예: `KR`, `TH`, `JP`)
+
+필드별 오류 코드: `BUYER_EMAIL_REQUIRED` · `BUYER_PHONE_REQUIRED` · `BUYER_COUNTRY_REQUIRED`  
+응답 `messages` 는 KOR/ENG/JPN/CHN/THA 입니다. 결제대행사 영문 오류가 아닙니다.
 
 **응답에서 쓸 값:** `data.sessionToken`, `data.payUrl`, `data.embedScriptUrl`  
 **응답 `pgVendor`:** 항상 `ICOPAY` (그 외 벤더명·운영 PG 코드는 오지 않음)
@@ -82,6 +91,20 @@ X-Icopay-Merchant-Broker-Secret: {브로커시크릿}
 또는 본사에 등록한 **가맹 Webhook URL**로 PAID 통보를 수신합니다.
 
 브라우저 `postMessage` 이벤트: `ICOPAY_INLINE_CHECKOUT` (참고용). **최종 확정은 Status API 또는 Webhook**으로 하세요.
+
+---
+
+## 4. 취소·환불
+
+가맹 Checkout API에는 **취소·환불 요청 엔드포인트가 없습니다.** 승인 건의 취소·환불은 **ICOPAY 관리자 결제내역**에서 자동환불·강제환불로 요청합니다. (당일 무효 API는 해당 결제 방식에 없습니다.)
+
+| 경로 | 동작 |
+|------|------|
+| ICOPAY 결제내역 → 자동환불·강제환불 | ICOPAY가 결제망에 환불을 요청하고 결과를 반영 |
+| 결제망 캐비닛에서 환불 | 노티가 ICOPAY로 오면 거래 상태를 환불로 맞춤 |
+| 가맹 확인 | 등록한 **Webhook** 통보 및 `GET …/checkout/status` 의 `paymentStatus` (`PAID` · `REFUNDED` · `CHARGEBACK` 등) |
+
+부분 환불이 필요하면 본사 운영 정책에 따릅니다.
 
 ---
 

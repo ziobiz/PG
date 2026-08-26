@@ -317,8 +317,13 @@ public class PayListService {
             hqNotifyMappingService.applyDisplayTransform(displayCache, pgCd, row);
             boolean payFollowJpay = PayFollowPolicyService.isJpayManualFollowTransaction(t);
             row.put("payFollowJpay", payFollowJpay);
+            row.put("payFollowRefundApiOnly", PayFollowPolicyService.isRefundApiFollowTransaction(t));
             row.put("payFollowHidden", false);
             row.put("payFollowRow", payFollowPolicyService.payFollowRowEnabled(payListViewer, t));
+            String followPg = t.getVan() != null ? t.getVan().trim() : "";
+            row.put("payFollowPgCd", followPg.isEmpty() ? pgCd : followPg);
+            /* 멀티 PG 가맹: 행마다 「이 거래를 처리한 대행사」후속조치만 노출·활성 */
+            row.put("payFollowPerTxnPg", true);
             row.put("rowNo", rowNoStart + rowIdx);
             rowIdx++;
             list.add(row);

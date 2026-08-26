@@ -26,6 +26,7 @@ public final class PageMenuCatalog {
         add(list, "/hq/notifyEnv", "M0105", "노티 구성", "본사정책");
         add(list, "/hq/notifyMapping", "M0107", "필드 매핑", "본사정책");
         add(list, "/hq/notifyInbound", "M0121", "수령 로그", "본사정책");
+        add(list, "/hq/notifyEpMirror", "M0130", "미러 재전송", "본사정책");
         add(list, "/hq/settlementAdmin", "M0123", "정산주기", "본사정책");
         add(list, "/hq/receivableRecoverySettings", "M0124", "환수·미수금", "본사정책");
         add(list, "/hq/businessDaySetting", "M0109", "영업일", "본사정책");

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-Hans">
 <head>
   <meta charset="UTF-8">
@@ -39,6 +39,9 @@
     <tr><th>Embed script</th><td><code>{publicApiBaseUrl}/v1/embed-checkout/{compId}</code></td></tr>
   </table>
   <p>Example <code>compId</code>: <code>6000000028</code> (assigned per merchant at HQ deployment).</p>
+  <p><strong>prepare 必填：</strong><code>compId</code>（或 merchantId）、<code>orderNo</code>、<code>amount</code>、
+    <code>buyer.email</code>、<code>buyer.phone</code>、<code>buyer.countryIso2</code>。
+    缺省返回 ICOPAY <code>BUYER_*</code>（5 语）。空字符串视为缺失。</p>
 
   <h2>2. 端点概览</h2>
   <table>

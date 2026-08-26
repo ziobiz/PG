@@ -15,6 +15,7 @@ import com.pg.service.LedgerSmtpMailService;
 import com.pg.service.MailSendLogService;
 import com.pg.splitpay.SplitPayMailLocaleUtil;
 import com.pg.urlpay.PhoneDialCodeCatalog;
+import com.pg.util.PayerContactDisplayUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -118,6 +119,7 @@ public class TransactionReceiptEmailService {
                                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
                         .approvalCode("TESTOK")
                         .paymentMethod("Credit/Debit Card")
+                        .outcomeKind(TransactionReceiptOutcome.PAID)
                         .build();
         String subject = "[TEST] " + TransactionReceiptEmailI18n.subject(lang);
         String html = TransactionReceiptHtmlRenderer.render(vm);
@@ -158,14 +160,49 @@ public class TransactionReceiptEmailService {
     }
 
     public void scheduleAfterPaid(PgTrnsctn txn) {
-        if (txn == null || txn.getTrnId() == null || txn.getTrnId().isBlank()) {
+        scheduleReceipt(txn, TransactionReceiptOutcome.PAID);
+    }
+
+    /** 환불·무효 등 후속 상태의 고객 거래명세서 */
+    public void scheduleAfterFollowUp(PgTrnsctn txn) {
+        if (txn == null) {
             return;
         }
-        if (!STATUS_PAID.equals(txn.getStatus())) {
+        TransactionReceiptOutcome outcome = TransactionReceiptOutcome.fromTxnStatus(txn.getStatus());
+        if (outcome == null || !outcome.isFollowUp()) {
             return;
+        }
+        scheduleReceipt(txn, outcome);
+    }
+
+    /** 승인·환불·무효 중 해당되는 명세서를 예약 */
+    public void scheduleIfDue(PgTrnsctn txn) {
+        if (txn == null) {
+            return;
+        }
+        TransactionReceiptOutcome outcome = TransactionReceiptOutcome.fromTxnStatus(txn.getStatus());
+        if (outcome == null) {
+            return;
+        }
+        scheduleReceipt(txn, outcome);
+    }
+
+    private void scheduleReceipt(PgTrnsctn txn, TransactionReceiptOutcome outcome) {
+        if (txn == null || txn.getTrnId() == null || txn.getTrnId().isBlank() || outcome == null) {
+            return;
+        }
+        if (outcome.isPaid() && !STATUS_PAID.equals(txn.getStatus()) && !"00".equals(trimStatus(txn.getStatus()))) {
+            return;
+        }
+        if (outcome.isFollowUp()) {
+            TransactionReceiptOutcome actual = TransactionReceiptOutcome.fromTxnStatus(txn.getStatus());
+            if (actual != outcome) {
+                return;
+            }
         }
         final String trnId = txn.getTrnId().trim();
-        Runnable job = () -> sendIfDue(trnId);
+        final TransactionReceiptOutcome expected = outcome;
+        Runnable job = () -> sendIfDue(trnId, expected);
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
@@ -178,29 +215,51 @@ public class TransactionReceiptEmailService {
         }
     }
 
+    private static String trimStatus(String status) {
+        return status == null ? "" : status.trim();
+    }
+
     private void sendIfDue(String trnId) {
+        sendIfDue(trnId, TransactionReceiptOutcome.PAID);
+    }
+
+    private void sendIfDue(String trnId, TransactionReceiptOutcome expected) {
         try {
             Optional<PgTrnsctn> opt = pgTrnsctnRepository.findById(trnId);
             if (opt.isEmpty()) {
                 return;
             }
             PgTrnsctn t = opt.get();
-            if (!STATUS_PAID.equals(t.getStatus())) {
-                return;
-            }
-            if (t.getReceiptMailSentAt() != null) {
-                return;
+            TransactionReceiptOutcome actual = expected != null && expected.isFollowUp()
+                    ? TransactionReceiptOutcome.fromTxnStatus(t.getStatus())
+                    : TransactionReceiptOutcome.PAID;
+            if (expected != null && expected.isPaid()) {
+                if (!STATUS_PAID.equals(t.getStatus()) && !"00".equals(trimStatus(t.getStatus()))) {
+                    return;
+                }
+                if (t.getReceiptMailSentAt() != null) {
+                    return;
+                }
+                actual = TransactionReceiptOutcome.PAID;
+            } else {
+                if (actual == null || !actual.isFollowUp() || actual != expected) {
+                    return;
+                }
+                if (t.getReceiptFollowupMailSentAt() != null) {
+                    return;
+                }
             }
             String merchantCode = t.getMerchantId();
             if (merchantCode == null || merchantCode.isBlank()) {
                 return;
             }
             if (!policyService.isEnabledForMerchantCode(merchantCode)) {
+                log.debug("거래명세서 스킵 — 가맹 정책 미사용 trnId={} kind={}", trnId, actual);
                 return;
             }
             String to = resolveCustomerEmail(t);
             if (to == null || to.isBlank()) {
-                log.debug("거래명세서 스킵 — 고객 이메일 없음 trnId={}", trnId);
+                log.info("거래명세서 스킵 — 고객 이메일 없음 trnId={} kind={}", trnId, actual);
                 return;
             }
             Optional<OrgUnit> merchantOu = orgUnitRepository.findByCode(merchantCode.trim());
@@ -211,26 +270,41 @@ public class TransactionReceiptEmailService {
                 return;
             }
             TransactionReceiptHtmlRenderer.TransactionReceiptViewModel vm =
-                    buildViewModel(t, merchantOu.get());
+                    buildViewModel(t, merchantOu.get(), actual);
             String lang = vm.lang();
-            String subject = TransactionReceiptEmailI18n.subject(lang);
+            String subject = TransactionReceiptEmailI18n.subject(lang, actual);
             String html = TransactionReceiptHtmlRenderer.render(vm);
             String plain = TransactionReceiptHtmlRenderer.renderPlainText(vm);
+            String mailKind = mailKind(actual);
             var smtp = hqLedgerSysSettingsService.getOrCreate();
             try {
                 ledgerSmtpMailService.sendHtml(smtp, to, subject, html, plain);
-                markSent(trnId);
-                mailSendLogService.append(MAIL_KIND, MailSendLogService.STATUS_SUCCESS, to, subject, plain,
+                if (actual.isPaid()) {
+                    markSent(trnId);
+                } else {
+                    markFollowupSent(trnId);
+                }
+                mailSendLogService.append(mailKind, MailSendLogService.STATUS_SUCCESS, to, subject, plain,
                         null, trnId, null);
             } catch (Exception ex) {
                 String msg = ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName();
-                mailSendLogService.append(MAIL_KIND, MailSendLogService.STATUS_FAIL, to, subject, plain,
+                mailSendLogService.append(mailKind, MailSendLogService.STATUS_FAIL, to, subject, plain,
                         msg, trnId, null);
-                log.warn("거래명세서 메일 실패 trnId={}: {}", trnId, msg);
+                log.warn("거래명세서 메일 실패 trnId={} kind={}: {}", trnId, actual, msg);
             }
         } catch (Exception e) {
             log.warn("거래명세서 처리 오류 trnId={}: {}", trnId, e.getMessage());
         }
+    }
+
+    private static String mailKind(TransactionReceiptOutcome outcome) {
+        if (outcome == TransactionReceiptOutcome.REFUNDED) {
+            return MailSendLogService.KIND_RECEIPT_REFUND;
+        }
+        if (outcome == TransactionReceiptOutcome.VOIDED) {
+            return MailSendLogService.KIND_RECEIPT_VOID;
+        }
+        return MAIL_KIND;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -241,7 +315,21 @@ public class TransactionReceiptEmailService {
         });
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void markFollowupSent(String trnId) {
+        pgTrnsctnRepository.findById(trnId).ifPresent(t -> {
+            t.setReceiptFollowupMailSentAt(LocalDateTime.now());
+            pgTrnsctnRepository.save(t);
+        });
+    }
+
     private TransactionReceiptHtmlRenderer.TransactionReceiptViewModel buildViewModel(PgTrnsctn t, OrgUnit merchantOu) {
+        return buildViewModel(t, merchantOu, TransactionReceiptOutcome.PAID);
+    }
+
+    private TransactionReceiptHtmlRenderer.TransactionReceiptViewModel buildViewModel(
+            PgTrnsctn t, OrgUnit merchantOu, TransactionReceiptOutcome outcome) {
+        TransactionReceiptOutcome kind = outcome != null ? outcome : TransactionReceiptOutcome.PAID;
         String lang = resolveLang(t);
         PgAgency agency = resolvePgAgency(t.getVan());
         MerchantProfile mp = merchantProfileRepository.findByOrgUnitId(merchantOu.getId()).orElse(null);
@@ -286,9 +374,10 @@ public class TransactionReceiptEmailService {
                 .serviceItem(firstNonBlank(t.getOrderNo(), t.getPayNo()))
                 .orderNumber(t.getOrderNo())
                 .cardholder(firstNonBlank(t.getCustomerNm(), t.getCustomerId()))
-                .authorizedDateTime(formatPaidAt(t.getPaidAt()))
+                .authorizedDateTime(formatEventAt(t, kind))
                 .approvalCode(t.getApprovalNo())
                 .paymentMethod(resolvePaymentMethod(t))
+                .outcomeKind(kind)
                 .build();
     }
 
@@ -370,11 +459,14 @@ public class TransactionReceiptEmailService {
         if (t == null) {
             return null;
         }
-        String cid = t.getCustomerId();
-        if (cid != null && looksLikeEmail(cid)) {
-            return cid.trim();
+        String cid = PayerContactDisplayUtil.resolvePayerEmail(t);
+        if (cid == null || cid.isBlank() || PayerContactDisplayUtil.isPlaceholderReceiptEmail(cid)) {
+            return null;
         }
-        return null;
+        if (!looksLikeEmail(cid)) {
+            return null;
+        }
+        return cid.trim();
     }
 
     private static boolean looksLikeEmail(String s) {
@@ -389,6 +481,23 @@ public class TransactionReceiptEmailService {
             return t.getPaymentChannel().trim();
         }
         return "Credit/Debit Card";
+    }
+
+    private static String formatEventAt(PgTrnsctn t, TransactionReceiptOutcome outcome) {
+        LocalDateTime at = null;
+        if (outcome == null || outcome.isPaid()) {
+            at = t.getPaidAt();
+        }
+        if (at == null) {
+            at = t.getOutcomeReasonAt();
+        }
+        if (at == null) {
+            at = t.getPaidAt();
+        }
+        if (at == null) {
+            at = t.getCreatedAt();
+        }
+        return formatPaidAt(at);
     }
 
     private static String formatPaidAt(LocalDateTime paidAt) {

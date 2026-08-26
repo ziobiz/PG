@@ -106,33 +106,76 @@ public class PayCardPolicyService {
     }
 
     /**
-     * 가맹 운영 URL PG 행의 카드브랜드(VM 등) ∩ PG 지원 브랜드.
-     * 멀티 PG면 운영 URL 행을 합칩니다.
+     * 가맹이 결제창에서 쓸 수 있는 브랜드 합집합.
+     * <p>행마다 {@code 카드브랜드 스코프 ∩ (PG 지원 − 본사 사용불가브랜드)} 를 구한 뒤 합칩니다.
+     * 멀티 PG(A=비자·마스터, B=JCB, C=AMX)에서 A에 JCB 사용불가가 있어도 B로 제공되는 JCB는 유지됩니다.
+     * 단일 PG면 해당 PG의 사용불가브랜드만 적용됩니다.
      */
     public Set<PayCardBrand> allowedBrandsForMerchant(String pgVendorRaw, Long orgUnitId) {
-        Set<PayCardBrand> pgAllowed = allowedBrandsForPg(pgVendorRaw);
-        Set<PayCardBrand> out;
+        Set<PayCardBrand> fallbackPg = allowedBrandsForPgEffective(pgVendorRaw);
         if (orgUnitId == null || pgBindingRouter == null) {
-            out = EnumSet.copyOf(pgAllowed);
-        } else {
-            List<Map<String, Object>> routes = pgBindingRouter.listOperationalRouteSummaries(orgUnitId, false);
-            if (routes == null || routes.isEmpty()) {
-                out = EnumSet.copyOf(pgAllowed);
-            } else {
-                out = new LinkedHashSet<>();
-                for (Map<String, Object> row : routes) {
-                    String pgCd = row.get("pgCd") != null ? row.get("pgCd").toString() : "";
-                    String scope = row.get("cardBrandScope") != null ? row.get("cardBrandScope").toString() : "ALL";
-                    Set<PayCardBrand> rowPg = allowedBrandsForPg(pgCd.isBlank() ? pgVendorRaw : pgCd);
-                    out.addAll(CardBrandScopeUtil.filterBrands(scope, rowPg));
-                }
-                if (out.isEmpty()) {
-                    out = EnumSet.copyOf(pgAllowed);
-                }
-            }
+            return EnumSet.copyOf(fallbackPg);
         }
-        out.removeAll(loadBlockedBrands(pgVendorRaw));
+        List<Map<String, Object>> routes = pgBindingRouter.listOperationalRouteSummaries(orgUnitId, false);
+        if (routes == null || routes.isEmpty()) {
+            return EnumSet.copyOf(fallbackPg);
+        }
+        Set<PayCardBrand> out = new LinkedHashSet<>();
+        for (Map<String, Object> row : routes) {
+            String pgCd = row.get("pgCd") != null ? row.get("pgCd").toString() : "";
+            String scope = row.get("cardBrandScope") != null ? row.get("cardBrandScope").toString() : "ALL";
+            String rowPg = pgCd.isBlank() ? pgVendorRaw : pgCd;
+            out.addAll(CardBrandScopeUtil.filterBrands(scope, allowedBrandsForPgEffective(rowPg)));
+        }
+        return out.isEmpty() ? EnumSet.copyOf(fallbackPg) : out;
+    }
+
+    /**
+     * PG 하드코딩 지원 상한에서 본사 사용불가브랜드를 뺀 실효 지원 집합.
+     * 라우팅·가맹 스코프 계산의 공통 기준입니다.
+     */
+    public Set<PayCardBrand> allowedBrandsForPgEffective(String pgVendor) {
+        Set<PayCardBrand> base = allowedBrandsForPg(pgVendor);
+        if (base.isEmpty()) {
+            return EnumSet.noneOf(PayCardBrand.class);
+        }
+        Set<PayCardBrand> out = EnumSet.copyOf(base);
+        out.removeAll(loadBlockedBrands(pgVendor));
         return out;
+    }
+
+    /** 해당 PG에 본사 사용불가브랜드로 막혀 있으면 true. */
+    public boolean isBrandBlockedByHq(String pgVendor, PayCardBrand brand) {
+        if (brand == null || brand == PayCardBrand.UNKNOWN) {
+            return false;
+        }
+        return loadBlockedBrands(pgVendor).contains(brand);
+    }
+
+    public boolean isBrandBlockedByHq(String pgVendor, String brandRaw) {
+        PayCardBrand brand = PayCardBrandDetector.parseBrandKey(brandRaw);
+        if (brand == null) {
+            String letter = CardBrandScopeUtil.toScopeLetter(brandRaw);
+            brand = switch (letter) {
+                case "V" -> PayCardBrand.VISA;
+                case "M" -> PayCardBrand.MASTERCARD;
+                case "J" -> PayCardBrand.JCB;
+                case "U" -> PayCardBrand.UNIONPAY;
+                case "A" -> PayCardBrand.AMEX;
+                case "D" -> PayCardBrand.DINERS;
+                default -> null;
+            };
+        }
+        return isBrandBlockedByHq(pgVendor, brand);
+    }
+
+    /** 운영 URL 바인딩이 2개 이상이면 멀티 PG 브랜드 라우팅 가맹으로 봅니다. */
+    public boolean isMultiPgBrandMerchant(Long orgUnitId) {
+        if (orgUnitId == null || pgBindingRouter == null) {
+            return false;
+        }
+        List<Map<String, Object>> routes = pgBindingRouter.listOperationalRouteSummaries(orgUnitId, false);
+        return routes != null && routes.size() >= 2;
     }
 
     public boolean isBrandSelectEnabled(String pgVendor) {
@@ -150,19 +193,35 @@ public class PayCardPolicyService {
 
     public Map<String, Object> buildClientPolicy(String pgVendorRaw, Long orgUnitId) {
         String pg = normalizePgVendor(pgVendorRaw);
+        boolean multiPg = isMultiPgBrandMerchant(orgUnitId);
         Set<PayCardBrand> pgCeiling = allowedBrandsForPg(pg);
-        Set<PayCardBrand> blocked = loadBlockedBrands(pg);
+        Set<PayCardBrand> blockedOnThisPg = loadBlockedBrands(pg);
         Set<PayCardBrand> allowed = allowedBrandsForMerchant(pg, orgUnitId);
+        Set<PayCardBrand> pausedCatalog = EnumSet.copyOf(pgCeiling);
+        if (orgUnitId != null && pgBindingRouter != null) {
+            List<Map<String, Object>> routes = pgBindingRouter.listOperationalRouteSummaries(orgUnitId, false);
+            if (routes != null) {
+                for (Map<String, Object> row : routes) {
+                    String pgCd = row.get("pgCd") != null ? row.get("pgCd").toString() : "";
+                    if (!pgCd.isBlank()) {
+                        pausedCatalog.addAll(allowedBrandsForPg(pgCd));
+                    }
+                }
+            }
+        }
+        pausedCatalog.addAll(blockedOnThisPg);
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("pgVendor", pg);
-        out.put("brandSelectEnabled", isBrandSelectEnabled(pg) || allowed.size() < pgCeiling.size());
+        out.put("multiPgBrandRouting", multiPg);
+        /* 사용불가브랜드는 항상 「해당 PG에만」 적용. 멀티 PG여도 다른 PG 행 브랜드는 유지. */
+        out.put("hqBrandBlockMode", "PER_PG");
+        out.put("brandSelectEnabled", isBrandSelectEnabled(pg) || allowed.size() < pgCeiling.size() || multiPg);
         List<String> brands = brandNames(allowed);
         out.put("allowedBrands", brands);
-        Set<PayCardBrand> pausedBase = EnumSet.copyOf(pgCeiling);
-        pausedBase.addAll(blocked);
-        List<PayCardBrand> paused = PayCardPolicyI18n.pausedBrands(allowed, pausedBase);
+        List<PayCardBrand> paused = PayCardPolicyI18n.pausedBrands(allowed, pausedCatalog);
         out.put("pausedBrands", brandNames(paused));
-        out.put("blockedBrands", brandNames(blocked));
+        /* 결제창 경고용: 이 요청 PG의 본사 차단 목록(멀티 PG여도 현재 PG 기준) */
+        out.put("blockedBrands", brandNames(blockedOnThisPg));
         out.put("pgBrands", brandNames(pgCeiling));
         out.put("blockedPrefixes", loadActivePrefixDigits(pg));
         out.put("amexDigitLength", 15);
@@ -242,10 +301,13 @@ public class PayCardPolicyService {
         }
 
         Set<PayCardBrand> blockedBrands = loadBlockedBrands(pg);
+        /*
+         * 승인 대상 PG에 대한 본사 사용불가브랜드만 적용.
+         * 다른 PG로 브랜드를 제공하는 멀티 PG 가맹이어도, 이 PG로 들어온 승인은 이 PG 규칙을 따릅니다.
+         */
         if (brand != PayCardBrand.UNKNOWN && blockedBrands.contains(brand)) {
             Set<PayCardBrand> merchantAllowed = allowedBrandsForMerchant(pg, orgUnitId);
-            Set<PayCardBrand> pgAllowed = allowedBrandsForPg(pg);
-            Set<PayCardBrand> pausedBase = EnumSet.copyOf(pgAllowed);
+            Set<PayCardBrand> pausedBase = EnumSet.copyOf(allowedBrandsForPg(pg));
             pausedBase.addAll(blockedBrands);
             return failBrandNotAllowed(langNorm, merchantAllowed, pausedBase);
         }

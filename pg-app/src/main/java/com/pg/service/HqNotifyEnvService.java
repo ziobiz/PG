@@ -96,6 +96,9 @@ public class HqNotifyEnvService {
         m.put("emailVoidYn", yn(c.getEmailVoidYn()));
         m.put("autoRefundYn", yn(c.getAutoRefundYn()));
         m.put("forceRefundYn", yn(c.getForceRefundYn()));
+        m.put("manualVoidYn", yn(c.getManualVoidYn()));
+        m.put("manualRefundYn", yn(c.getManualRefundYn()));
+        m.put("epSameDayRefundYn", yn(c.getEpSameDayRefundYn()));
         m.put("autoVoidAfterHours", c.getAutoVoidAfterHours() != null ? c.getAutoVoidAfterHours() : "");
         m.put("emailVoidAfterHours", c.getEmailVoidAfterHours() != null ? c.getEmailVoidAfterHours() : "");
         m.put("autoVoidStartTime", formatMinutesToHm(c.getAutoVoidStartMin()));
@@ -166,6 +169,9 @@ public class HqNotifyEnvService {
         m.put("emailVoidYn", yn(c.getEmailVoidYn()));
         m.put("autoRefundYn", yn(c.getAutoRefundYn()));
         m.put("forceRefundYn", yn(c.getForceRefundYn()));
+        m.put("manualVoidYn", yn(c.getManualVoidYn()));
+        m.put("manualRefundYn", yn(c.getManualRefundYn()));
+        m.put("epSameDayRefundYn", yn(c.getEpSameDayRefundYn()));
         m.put("autoVoidAfterHours", "");
         m.put("emailVoidAfterHours", "");
         m.put("autoVoidStartTime", formatMinutesToHm(c.getAutoVoidStartMin()));
@@ -198,6 +204,15 @@ public class HqNotifyEnvService {
         }
         if (body.containsKey("forceRefundYn")) {
             c.setForceRefundYn(yn(String.valueOf(body.get("forceRefundYn"))));
+        }
+        if (body.containsKey("manualVoidYn")) {
+            c.setManualVoidYn(yn(String.valueOf(body.get("manualVoidYn"))));
+        }
+        if (body.containsKey("manualRefundYn")) {
+            c.setManualRefundYn(yn(String.valueOf(body.get("manualRefundYn"))));
+        }
+        if (body.containsKey("epSameDayRefundYn")) {
+            c.setEpSameDayRefundYn(yn(String.valueOf(body.get("epSameDayRefundYn"))));
         }
         if (body.containsKey("autoVoidAfterHours")) {
             c.setAutoVoidAfterHours(parseHoursOrNull(body.get("autoVoidAfterHours")));
@@ -417,7 +432,8 @@ public class HqNotifyEnvService {
             return;
         }
         if (!body.containsKey("autoVoidYn") && !body.containsKey("emailVoidYn") && !body.containsKey("autoRefundYn")
-                && !body.containsKey("forceRefundYn") && !body.containsKey("autoVoidAfterHours")
+                && !body.containsKey("forceRefundYn") && !body.containsKey("manualVoidYn") && !body.containsKey("manualRefundYn")
+                && !body.containsKey("epSameDayRefundYn") && !body.containsKey("autoVoidAfterHours")
                 && !body.containsKey("emailVoidAfterHours") && !body.containsKey("payFollowRefZone")
                 && !body.containsKey("autoRefundAfterDays") && !body.containsKey("forceRefundAfterDays")
                 && !body.containsKey("autoVoidReflectSettlementYn") && !body.containsKey("emailVoidReflectSettlementYn")
@@ -631,7 +647,8 @@ public class HqNotifyEnvService {
             return false;
         }
         return body.containsKey("autoVoidYn") || body.containsKey("emailVoidYn") || body.containsKey("autoRefundYn")
-                || body.containsKey("forceRefundYn") || body.containsKey("autoVoidAfterHours")
+                || body.containsKey("forceRefundYn") || body.containsKey("manualVoidYn") || body.containsKey("manualRefundYn")
+                || body.containsKey("epSameDayRefundYn") || body.containsKey("autoVoidAfterHours")
                 || body.containsKey("emailVoidAfterHours") || body.containsKey("payFollowRefZone")
                 || body.containsKey("autoRefundAfterDays") || body.containsKey("forceRefundAfterDays")
                 || body.containsKey("autoVoidReflectSettlementYn") || body.containsKey("emailVoidReflectSettlementYn")

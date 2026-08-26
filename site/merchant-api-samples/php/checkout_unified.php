@@ -1,7 +1,7 @@
 <?php
 /**
  * ICOPAY unified inline checkout — PHP integration sample (auto PG routing).
- * buyer (email, phone, countryIso2) is required.
+ * buyer.email, buyer.phone, buyer.countryIso2 are required (empty string = missing).
  */
 declare(strict_types=1);
 

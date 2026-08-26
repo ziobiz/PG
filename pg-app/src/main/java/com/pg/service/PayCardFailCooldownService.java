@@ -373,7 +373,7 @@ public class PayCardFailCooldownService {
 
     private static List<String> pgScopesForInactiveCardRelease(String pgVendorRaw) {
         if (pgVendorRaw == null || pgVendorRaw.isBlank()) {
-            return List.of(PgVendor.JPAY, PgVendor.CHILLPAY);
+            return List.of(PgVendor.JPAY, PgVendor.CHILLPAY, PgVendor.EXIMBAY, PgVendor.ELEMENTPAY, PgVendor.ILK);
         }
         String pg = pgVendorRaw.trim().toUpperCase(Locale.ROOT);
         if (PgVendor.isJpayFamily(pg)) {
@@ -381,6 +381,15 @@ public class PayCardFailCooldownService {
         }
         if (PgVendor.isChillPayFamily(pg)) {
             return List.of(PgVendor.CHILLPAY);
+        }
+        if (PgVendor.isEximbayFamily(pg)) {
+            return List.of(PgVendor.EXIMBAY);
+        }
+        if (PgVendor.isElementPayFamily(pg)) {
+            return List.of(PgVendor.ELEMENTPAY);
+        }
+        if (PgVendor.isIlkFamily(pg)) {
+            return List.of(PgVendor.ILK);
         }
         return List.of(pg);
     }

@@ -37,7 +37,9 @@ import java.util.Optional;
  *   <li>{@link #URL_TYPE_MIDDLEWARE} — PG중계 동일 페이로드(+선택 HMAC).</li>
  *   <li>{@link #URL_TYPE_BACKGROUND},{@link #URL_TYPE_RESULT} — 업체등록 「결제통보 URL」(URL·챗봇·노티·인라인 DirectCredit 공통 ChillPay 플로우).</li>
  * </ul>
- * ChillPay·JPAY 결제 확정 후 가맹점 URL Background/Result/MIDDLEWARE 로 JSON POST.
+ * ChillPay·JPAY·ElementPay 결제 확정 후 가맹점 URL Background/Result/MIDDLEWARE 로 JSON POST.
+ * ElementPay는 Cabinet Webhook이 NOTI 고정 1개이므로, ICOPAY가 승인 적재(노티 수신 또는 status 동기) 후
+ * 가맹 통보(Dealmai 등)를 JPAY와 동일 파이프로 보냅니다.
  */
 @Service
 public class MerchantOutboundNotifyService {
@@ -73,7 +75,9 @@ public class MerchantOutboundNotifyService {
         if (savedTxn == null || savedTxn.getTrnId() == null || savedTxn.getTrnId().isBlank()) {
             return;
         }
-        if (!PgVendor.isChillPayVendorCode(savedTxn.getVan()) && !PgVendor.isJpayFamily(savedTxn.getVan())) {
+        if (!PgVendor.isChillPayVendorCode(savedTxn.getVan())
+                && !PgVendor.isJpayFamily(savedTxn.getVan())
+                && !PgVendor.isElementPayFamily(savedTxn.getVan())) {
             return;
         }
         final String trnId = savedTxn.getTrnId().trim();

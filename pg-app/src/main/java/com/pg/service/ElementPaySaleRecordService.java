@@ -3,11 +3,15 @@ package com.pg.service;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.PgVendor;
+import com.pg.merchantdeploy.MerchantCheckoutLangUtil;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.util.ElementPayCallbackEventUtil;
+import com.pg.util.JpayBuyerContactApplier;
+import com.pg.util.PayerContactDisplayUtil;
 import com.pg.util.PgTrnsctnOrderLookup;
 import com.pg.util.RouteNoDisplayUtil;
+import com.pg.util.UrlPaySaleTxnFieldApplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -17,7 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -38,13 +44,16 @@ public class ElementPaySaleRecordService {
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final OrgUnitRepository orgUnitRepository;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
+    private final PayerLocationEnrichmentService payerLocationEnrichmentService;
 
     public ElementPaySaleRecordService(PgTrnsctnRepository pgTrnsctnRepository,
                                        OrgUnitRepository orgUnitRepository,
-                                       HqLedgerSysSettingsService hqLedgerSysSettingsService) {
+                                       HqLedgerSysSettingsService hqLedgerSysSettingsService,
+                                       PayerLocationEnrichmentService payerLocationEnrichmentService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
+        this.payerLocationEnrichmentService = payerLocationEnrichmentService;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -62,10 +71,31 @@ public class ElementPaySaleRecordService {
                                      String shopperDisplayCurrency,
                                      boolean subscription,
                                      String elementPayPaymentId) {
+        recordOrTouchPending(orgUnitId, orderNo, amount, currency, routeNo, productName, txnOrigin,
+                buyerName, buyerEmail, paymentMethodChannel, shopperDisplayAmount, shopperDisplayCurrency,
+                subscription, elementPayPaymentId, null);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void recordOrTouchPending(Long orgUnitId,
+                                     String orderNo,
+                                     BigDecimal amount,
+                                     String currency,
+                                     Integer routeNo,
+                                     String productName,
+                                     String txnOrigin,
+                                     String buyerName,
+                                     String buyerEmail,
+                                     String paymentMethodChannel,
+                                     BigDecimal shopperDisplayAmount,
+                                     String shopperDisplayCurrency,
+                                     boolean subscription,
+                                     String elementPayPaymentId,
+                                     Map<String, Object> saleBody) {
         try {
             doRecord(orgUnitId, orderNo, amount, currency, routeNo, productName, txnOrigin,
                     buyerName, buyerEmail, paymentMethodChannel, shopperDisplayAmount, shopperDisplayCurrency,
-                    subscription, elementPayPaymentId);
+                    subscription, elementPayPaymentId, saleBody);
         } catch (Exception e) {
             log.warn("ElementPay ready 거래 적재(대기) 실패: {}", e.getMessage());
         }
@@ -84,7 +114,8 @@ public class ElementPaySaleRecordService {
                           BigDecimal shopperDisplayAmount,
                           String shopperDisplayCurrency,
                           boolean subscription,
-                          String elementPayPaymentId) {
+                          String elementPayPaymentId,
+                          Map<String, Object> saleBody) {
         if (orgUnitId == null || orderNo == null || orderNo.isBlank()) {
             return;
         }
@@ -125,15 +156,15 @@ public class ElementPaySaleRecordService {
         if (routeStored != null) {
             t.setRouteNo(routeStored);
         }
-        if (buyerName != null && !buyerName.isBlank()) {
+        UrlPaySaleTxnFieldApplier.apply(t, saleBody);
+        UrlPaySaleTxnFieldApplier.ensureUrlWebDevice(t, origin);
+        MerchantCheckoutLangUtil.applyToTxn(t, saleBody);
+        payerLocationEnrichmentService.enrichFromTxnContext(t);
+        if ((t.getCustomerNm() == null || t.getCustomerNm().isBlank())
+                && buyerName != null && !buyerName.isBlank()) {
             t.setCustomerNm(truncate(buyerName.trim(), 200));
         }
-        if (buyerEmail != null && !buyerEmail.isBlank()) {
-            t.setCustomerId(truncate(buyerEmail.trim(), 100));
-        }
-        if (t.getCustomerId() == null || t.getCustomerId().isBlank()) {
-            t.setCustomerId("guest");
-        }
+        PayerContactDisplayUtil.applyEmailIfUsable(t, firstBuyerEmail(buyerEmail, saleBody), 100);
         String desc = "ELEMENTPAY_URL";
         if (productName != null && !productName.isBlank()) {
             desc = desc + " " + productName.trim();
@@ -155,6 +186,39 @@ public class ElementPaySaleRecordService {
             t.setSettledYn("N");
         }
         pgTrnsctnRepository.save(t);
+    }
+
+    @Transactional
+    public void enrichBuyerContact(PgTrnsctn t, Map<String, String> form) {
+        if (t == null || form == null || form.isEmpty()) {
+            return;
+        }
+        Map<String, String> lower = new LinkedHashMap<>();
+        for (Map.Entry<String, String> e : form.entrySet()) {
+            if (e.getKey() == null || e.getKey().isBlank()) {
+                continue;
+            }
+            lower.put(e.getKey().trim().toLowerCase(Locale.ROOT), e.getValue());
+        }
+        JpayBuyerContactApplier.mergeFromNotifyForm(t, lower);
+        pgTrnsctnRepository.save(t);
+    }
+
+    private static String firstBuyerEmail(String buyerEmail, Map<String, Object> saleBody) {
+        if (buyerEmail != null && !buyerEmail.isBlank()) {
+            return buyerEmail.trim();
+        }
+        if (saleBody == null || saleBody.isEmpty()) {
+            return "";
+        }
+        for (String k : new String[]{
+                "payEmailAddress", "pay_email_address", "email", "buyerEmail", "PayerEmail", "payer_email", "customer_email"}) {
+            Object v = saleBody.get(k);
+            if (v != null && !v.toString().isBlank()) {
+                return v.toString().trim();
+            }
+        }
+        return "";
     }
 
     @Transactional
@@ -231,18 +295,18 @@ public class ElementPaySaleRecordService {
         PgTrnsctn t = found.get();
         String cur = t.getStatus() != null ? t.getStatus().trim() : "";
         String msg = ElementPayCallbackEventUtil.defaultMessage(spec, rawMethod);
-        if (paymentId != null && !paymentId.isBlank()) {
-            t.setChillTransactionId(truncate(paymentId.trim(), 64));
-        }
+        rememberPaymentIdIfBlank(t, paymentId);
         switch (spec.kind()) {
             case PAY_REJECT -> {
                 if (ST_PAID.equals(cur) || isRefundOrChargebackStatus(cur)) {
+                    pgTrnsctnRepository.save(t);
                     return Optional.of(t);
                 }
                 applyFailFields(t, msg);
             }
             case PAY_REVERSED -> {
                 if ("31".equals(cur)) {
+                    pgTrnsctnRepository.save(t);
                     return Optional.of(t);
                 }
                 t.setStatus("31");
@@ -259,14 +323,13 @@ public class ElementPaySaleRecordService {
                     t.setPaidAt(null);
                     applyReason(t, msg);
                 } else if (isRefundOrChargebackStatus(cur)) {
-                    return Optional.of(t);
+                    /* 이미 환불·차지백 — payment_id 만 보강 */
                 } else {
                     applyFailFields(t, msg);
                 }
             }
             case REFUND_CREATED, REFUND_CANCELED -> applyReason(t, msg);
             default -> {
-                return Optional.of(t);
             }
         }
         pgTrnsctnRepository.save(t);
@@ -289,6 +352,17 @@ public class ElementPaySaleRecordService {
         t.setOutcomeReasonAt(LocalDateTime.now());
     }
 
+    /** refund.* 웹훅 id 가 환불건 ID여도 기존 결제 ID 를 덮어쓰지 않는다. */
+    private static void rememberPaymentIdIfBlank(PgTrnsctn t, String paymentId) {
+        if (t == null || paymentId == null || paymentId.isBlank()) {
+            return;
+        }
+        if (t.getChillTransactionId() != null && !t.getChillTransactionId().isBlank()) {
+            return;
+        }
+        t.setChillTransactionId(truncate(paymentId.trim(), 64));
+    }
+
     private static boolean isRefundOrChargebackStatus(String cur) {
         return "42".equals(cur) || "31".equals(cur) || "30".equals(cur)
                 || "21".equals(cur) || "22".equals(cur);
@@ -305,14 +379,14 @@ public class ElementPaySaleRecordService {
         }
         String cur = t.getStatus() != null ? t.getStatus().trim() : "";
         if ("42".equals(cur) || "31".equals(cur) || "30".equals(cur)) {
+            rememberPaymentIdIfBlank(t, paymentId);
+            pgTrnsctnRepository.save(t);
             return;
         }
         String st = (statusCode != null && !statusCode.isBlank()) ? statusCode.trim() : "42";
         t.setStatus(st);
         t.setPaidAt(null);
-        if (paymentId != null && !paymentId.isBlank()) {
-            t.setChillTransactionId(truncate(paymentId.trim(), 64));
-        }
+        rememberPaymentIdIfBlank(t, paymentId);
         String reason = msg != null && !msg.isBlank() ? msg.trim() : "Payment is refunded";
         t.setChillPaymentStatus(truncate(reason, 50));
         t.setOutcomeReason(reason);

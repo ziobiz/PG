@@ -32,11 +32,32 @@
   function pickLangMap(m, lang) {
     if (!m || typeof m !== 'object') return '';
     var L = lang || 'ENG';
-    if (m[L]) return String(m[L]);
+    if (m[L]) {
+      var hit = String(m[L]);
+      var ko0 = m.KOR != null ? String(m.KOR) : (m.KO != null ? String(m.KO) : '');
+      if (hit && ko0 && hit === ko0 && L !== 'KOR' && L !== 'KO') {
+        var trSame = translateKnownCopy(ko0, L);
+        if (trSame) return trSame;
+      }
+      if (hit) return hit;
+    }
+    var ko = m.KOR != null ? String(m.KOR) : (m.KO != null ? String(m.KO) : '');
+    var tr = translateKnownCopy(ko, L);
+    if (tr) return tr;
     if (m.ENG) return String(m.ENG);
-    if (m.KOR) return String(m.KOR);
+    if (ko) return ko;
     var ks = Object.keys(m);
     return ks.length ? String(m[ks[0]]) : '';
+  }
+
+  function translateKnownCopy(ko, lang) {
+    if (!ko) return '';
+    try {
+      if (g.PG_URL_PAY_COPY_I18N && typeof g.PG_URL_PAY_COPY_I18N.lookup === 'function') {
+        return String(g.PG_URL_PAY_COPY_I18N.lookup(ko, lang) || '');
+      }
+    } catch (e0) {}
+    return '';
   }
 
   function absPayAssetUrl(path) {

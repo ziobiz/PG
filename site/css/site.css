@@ -2635,6 +2635,28 @@ colgroup.pg-col-resize-group col {
 #contentsMain tr.comp-tree-row-muted .tree-toggle.tree-row-muted.collapsed {
   color: #bdbdbd !important;
 }
+/* 업체관리: 미사용 결제대행사 경고 — 업체코드·아이콘을 주황 경고색으로 */
+#contentsMain tr.comp-tree-pg-agency-issue .tree-icon.tree-pg-agency-issue,
+#contentsMain tr.comp-tree-pg-agency-issue .tree-toggle.tree-pg-agency-issue,
+#contentsMain tr.comp-tree-pg-agency-issue .tree-comp-cell.tree-pg-agency-issue .pg-comp-grid-clamp,
+#contentsMain tr.comp-tree-pg-agency-issue td.tree-pg-agency-issue,
+#contentsMain tr.comp-tree-pg-agency-issue td.tree-pg-agency-issue .pg-comp-grid-clamp {
+  color: #d84315 !important;
+}
+#contentsMain tr.comp-tree-pg-agency-issue .tree-toggle.tree-pg-agency-issue.expanded,
+#contentsMain tr.comp-tree-pg-agency-issue .tree-toggle.tree-pg-agency-issue.collapsed {
+  color: #ef6c00 !important;
+}
+select.pg-binding-pg--unused,
+select.pg-binding-pg--unused option,
+tr.pg-binding-row--pg-unused [data-field="pgCd"] {
+  color: #9e9e9e;
+  background-color: #eceff1;
+}
+option.pg-agency-opt--unused {
+  color: #9e9e9e;
+  background-color: #eceff1;
+}
 td.empty-state-cell {
   width: 100%;
   text-align: center !important;

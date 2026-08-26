@@ -3,7 +3,7 @@
 | 항목 | 내용 |
 |------|------|
 | **문서 ID** | ICOPAY-CHECKOUT-PREPARE-001 |
-| **버전** | 1.1 |
+| **버전** | 1.3 |
 | **대상** | ICOPAY와 API 연동하는 가맹점(백엔드 개발자) |
 | **API** | `POST /api/middleware/v1/merchant/checkout/prepare` (통합, 권장) |
 | **연동 방식** | JSON(REST) · PHP(`IcopayMerchantApi.php`) |
@@ -11,6 +11,11 @@
 
 본 문서는 **가맹점이 ICOPAY prepare 호출 시 반드시·선택적으로 넣어야 하는 JSON 필드**를 규정합니다.
 가맹점에게 결제대행사(운영 PG) 이름은 노출되지 않으며, API 응답 `pgVendor`는 항상 **ICOPAY** 입니다.
+
+> **필수값 (빼면 prepare 실패).**  
+> 표 1.1: `compId` 또는 `merchantId`, `orderNo`, `amount`, `buyer`  
+> 표 1.2: `buyer.email`, `buyer.phone`(로컬 번호, 국가번호 + 제거), `buyer.countryIso2`(대문자 2자)  
+> 빈 문자열도 누락입니다. ICOPAY는 `BUYER_REQUIRED` / `BUYER_EMAIL_REQUIRED` / `BUYER_PHONE_REQUIRED` / `BUYER_COUNTRY_REQUIRED` 와 5개국어 `messages` 를 반환합니다. 결제대행사 영문 오류가 아닙니다.
 
 ---
 
@@ -80,20 +85,24 @@
 
 표 1.1의 `buyer`는 **객체**이며, 이메일·전화·국가코드는 루트가 아니라 **아래 하위 필드**로 전달합니다. **필수(M)** 입니다.
 
-ICOPAY는 **email · phone · countryIso2** 를 모든 가맹 prepare 에서 **필수**로 수집·검증합니다. JPAY 서버 직접 `sale` 호출 시에는 동일 정보를 `payEmailAddress` · `payTelephone` · `payCountryIsoCode2` 로 보냅니다.
+ICOPAY는 **email · phone · countryIso2** 를 모든 가맹 prepare(인라인·리다이렉트·구독)에서 **필수**로 수집·검증합니다.
+빈 문자열·공백만 있는 값은 누락과 같습니다. 결제창에서 카드 결제 시 동일 값은 `payEmailAddress` · `payTelephone` · `payCountryIsoCode2` 로 전달됩니다.
+카드 명의자 성명(이름·성)은 ICOPAY 결제창에서 구매자가 입력합니다(해당 화면 필수). prepare에서 `firstName`·`lastName` prefill을 권장합니다.
 
 | No. | Parameter | Data Type | Length | M/O | Description | Remark |
 |-----|-----------|-----------|--------|-----|-------------|--------|
-| 1 | email | String | 254 | **M** | 구매자 이메일 | JPAY·ICOPAY 필수. sale: `payEmailAddress` |
-| 2 | phone | String | 32 | **M** | 구매자 전화(로컬) | JPAY·ICOPAY 필수. 국가번호 `+82` 등 **제거**, 로컬 번호만. sale: `payTelephone` |
-| 3 | countryIso2 | String | 2 | **M** | 국가 ISO2 | JPAY·ICOPAY 필수. KR, US, TH 등 **대문자 2자**. sale: `payCountryIsoCode2` |
+| 1 | email | String | 254 | **M** | 구매자 이메일 | ICOPAY 필수. 누락 시 `BUYER_EMAIL_REQUIRED` |
+| 2 | phone | String | 32 | **M** | 구매자 전화(로컬) | 국가번호 `+82` 등 **제거**, 로컬 번호만. 누락 시 `BUYER_PHONE_REQUIRED` |
+| 3 | countryIso2 | String | 2 | **M** | 국가 ISO2 | KR, US, TH, JP 등 **대문자 2자**. 누락·형식 오류 시 `BUYER_COUNTRY_REQUIRED` |
 | 4 | address | String | 200 | O | 배송 주소 1행 | shipping prefill (선택) |
 | 5 | address2 | String | 200 | O | 배송 주소 2행 | |
 | 6 | city | String | 100 | O | 도시 | |
 | 7 | state | String | 100 | O | 주·도 | |
 | 8 | postcode | String | 20 | O | 우편번호 | zip 별칭 |
-| 9 | shippingAddress | String | 200 | O | 별도 배송지 | address 와 다를 때 |
-| 10 | shippingPhone | String | 32 | O | 별도 배송지 전화 | |
+| 9 | firstName | String | 80 | O | 이름(카드 명의 prefill) | 권장. 결제창에서 카드 명의자 이름은 필수 |
+| 10 | lastName | String | 80 | O | 성(카드 명의 prefill) | 권장. 결제창에서 카드 명의자 성은 필수 |
+| 11 | shippingAddress | String | 200 | O | 별도 배송지 | address 와 다를 때 |
+| 12 | shippingPhone | String | 32 | O | 별도 배송지 전화 | |
 
 ---
 
@@ -120,18 +129,44 @@ ICOPAY는 **email · phone · countryIso2** 를 모든 가맹 prepare 에서 **�
 
 `GET {BASE}/api/middleware/v1/merchant/checkout/status?compId=&orderNo=`
 
+성공 시 `data.paymentStatus` 예: `PAID` · `PENDING` · `FAILED` · `CANCELLED` · `REFUNDED` · `CHARGEBACK` · `VOIDED` · `NOT_FOUND`.
+
+가맹 Checkout에는 **취소·환불 요청 엔드포인트가 없습니다.** 환불은 ICOPAY 결제내역(자동환불·강제환불) 또는 결제망 캐비닛 처리 후 **Webhook + Status API**로 확인합니다.
+
 ---
 
 ## 7. 주요 errorCode
 
 | errorCode | 의미 |
 |-----------|------|
-| BUYER_REQUIRED | buyer.email·phone·countryIso2 누락 |
+| BUYER_REQUIRED | buyer 객체 누락 또는 email·phone·countryIso2 중 하나 이상 없음(빈 문자열 포함) |
+| BUYER_EMAIL_REQUIRED | buyer.email 누락 |
+| BUYER_PHONE_REQUIRED | buyer.phone 누락(로컬 번호, 국가번호 + 제거) |
+| BUYER_COUNTRY_REQUIRED | buyer.countryIso2 누락 또는 ISO2(대문자 2자) 아님 |
+| BUYER_JSON_INVALID | buyer JSON 형식 오류 |
 | BROKER_AUTH | 브로커 시크릿 오류(403) |
 | INVALID_ORDER_NO | orderNo 형식·길이 |
 | INVALID_AMOUNT | amount 누락 또는 ≤ 0 |
 | NOT_FOUND | compId 미등록 |
 | URL_PAYMENT_PG_MISSING | 운영 WEB PG 미설정 |
+
+실패 응답 예:
+
+```json
+{
+  "success": false,
+  "errorCode": "BUYER_EMAIL_REQUIRED",
+  "messageKey": "BUYER_EMAIL_REQUIRED",
+  "message": "buyer.email(구매자 이메일)이 필수입니다. 빈 값은 허용되지 않습니다.",
+  "messages": {
+    "KOR": "buyer.email(구매자 이메일)이 필수입니다. 빈 값은 허용되지 않습니다.",
+    "ENG": "buyer.email (buyer email) is required. Empty values are not allowed.",
+    "JPN": "buyer.email（購入者メール）は必須です。空文字は不可です。",
+    "CHN": "buyer.email（买家邮箱）为必填，不允许空值。",
+    "THA": "buyer.email (อีเมลผู้ซื้อ) จำเป็น ค่าว่างใช้ไม่ได้"
+  }
+}
+```
 
 ---
 
@@ -161,3 +196,6 @@ HTML 표: `{BASE}/merchant-api-samples/docs/unified-checkout-api-parameters.html
 | 버전 | 일자 | 요약 |
 |------|------|------|
 | 1.0 | 2026-06-01 | 통합 checkout prepare 파라미터 규격 최초 작성 |
+| 1.1 | 2026-06 | buyer.email·phone·countryIso2 필수 명시 |
+| 1.2 | 2026-08-25 | 필수값 강조·필드별 BUYER_* errorCode·5개국어 messages. JPAY 표기 제거(ICOPAY만) |
+| 1.3 | 2026-08-25 | Status `paymentStatus`·취소/환불은 ICOPAY 후속조치·Webhook (가맹 요청 API 없음) |

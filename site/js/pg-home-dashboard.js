@@ -31,90 +31,126 @@
     return String(s);
   }
 
-  /**
-   * 서버가 내려주는 문장/요약 안의 한글 라벨을 로케일별로 치환한다.
-   * (정산일/가맹/지급/상태 등) 숫자·코드는 원문 유지.
-   */
-  function translateInlineKo(s) {
-    if (s == null) return '';
-    var raw = String(s);
-    if (!/[가-힣]/.test(raw)) return raw;
+  /** 서버 한글 문장(입니다./있습니다. 등)을 문장 단위로 나눈다. */
+  function splitKoSentences(s) {
+    var t = String(s || '').trim();
+    if (!t) return [];
+    var out = [];
+    var re = /[\s\S]*?다\.(?:\s+|$)/g;
+    var m;
+    var last = 0;
+    while ((m = re.exec(t)) !== null) {
+      var p = String(m[0] || '').trim();
+      if (p) out.push(p);
+      last = re.lastIndex;
+    }
+    if (last < t.length) {
+      var rest = t.slice(last).trim();
+      if (rest) out.push(rest);
+    }
+    return out.length ? out : [t];
+  }
+
+  function translateOneKoChunk(raw) {
+    var s = String(raw || '').trim();
+    if (!s) return '';
+    if (!/[가-힣]/.test(s)) return s;
+    var exact = uiT(s);
+    if (exact && exact !== s) return exact;
 
     var m;
-    // 정산일 2026-05-09 · 가맹 ****0024 · 지급 3390
-    m = raw.match(/^정산일\s*([0-9]{4}-[0-9]{2}-[0-9]{2})\s*·\s*가맹\s*([^\s·]+)\s*·\s*지급\s*([\-0-9.,]+)\s*$/);
+    m = s.match(/^정산일\s*([0-9]{4}-[0-9]{2}-[0-9]{2})\s*·\s*가맹\s*([^\s·]+)\s*·\s*지급\s*([\-0-9.,]+)\s*$/);
     if (m) {
       return uiT('정산일') + ' ' + m[1] + ' · ' + uiT('가맹') + ' ' + m[2] + ' · ' + uiT('지급') + ' ' + m[3];
     }
-    // 상태 MERCHANT_UNRESOLVED · —
-    m = raw.match(/^상태\s*([A-Z0-9_]+)\s*·\s*(.+)\s*$/);
+    m = s.match(/^상태\s*([A-Z0-9_]+)\s*·\s*(.+)\s*$/);
     if (m) {
       return uiT('상태') + ' ' + m[1] + ' · ' + m[2];
     }
-    // 최근 7일 노티 미매핑/미적재 43건
-    m = raw.match(/^최근\s*7일\s*노티\s*미매핑\/미적재\s*([0-9,]+)\s*건\s*$/);
+    m = s.match(/^최근\s*7일\s*노티\s*미매핑\/미적재\s*([0-9,]+)\s*건\s*$/);
     if (m) {
       return uiT('최근 7일 노티 미매핑/미적재 {0}건').replace('{0}', m[1]);
     }
-    // 리스크 점수가 지난주 대비 +17 상승
-    m = raw.match(/^리스크\s*점수가\s*지난주\s*대비\s*([+\-]?[0-9,]+)\s*상승\s*$/);
+    m = s.match(/^리스크\s*점수가\s*지난주\s*대비\s*([+\-]?[0-9,]+)\s*상승\s*$/);
     if (m) {
       return uiT('리스크 점수가 지난주 대비 {0} 상승').replace('{0}', m[1]);
     }
-    // 환불·무효 추이를 결제내역에서 필터로 확인
-    if (raw === '환불·무효 추이를 결제내역에서 필터로 확인') {
-      return uiT(raw);
-    }
-
-    // 긴 규칙 기반 내러티브(서버 문장) — 구조가 고정된 경우만 번역
-    m = raw.match(/^최근\s*7일\s*리스크\s*점수는\s*([0-9,]+)점이며,\s*직전\s*7일\s*대비\s*([+\-]?[0-9,]+)입니다\.\s*구성은\s*실패\s*([0-9,]+)·무효계열\s*([0-9,]+)·환불\s*([0-9,]+)·취소\s*([0-9,]+)건입니다\.\s*노티\s*미매핑\/미적재가\s*7일간\s*([0-9,]+)건입니다\.\s*$/);
+    m = s.match(/^최근\s*7일\s*리스크\s*점수는\s*([0-9,]+)점이며,\s*직전\s*7일\s*대비\s*([+\-]?[0-9,]+)입니다\.?$/);
     if (m) {
-      var tpl = uiT('최근 7일 리스크 내러티브 템플릿');
-      return tpl
+      return uiT('최근 7일 리스크 점수는 {score}점이며, 직전 7일 대비 {delta}입니다.')
         .replace('{score}', m[1])
-        .replace('{delta}', m[2])
-        .replace('{fail}', m[3])
-        .replace('{void}', m[4])
-        .replace('{refund}', m[5])
-        .replace('{cancel}', m[6])
-        .replace('{notify}', m[7]);
+        .replace('{delta}', m[2]);
     }
-
-    // 미수금 라인 상세 · 잔액 · (메모)
-    m = raw.match(/^([\s\S]+?)\s*·\s*잔액\s*([\s\S]+?)\s*·\s*([\s\S]+)$/);
+    m = s.match(/^구성은\s*실패\s*([0-9,]+)·무효계열\s*([0-9,]+)·환불\s*([0-9,]+)·취소\s*([0-9,]+)건입니다\.?$/);
+    if (m) {
+      return uiT('구성은 실패 {fail}·무효계열 {void}·환불 {refund}·취소 {cancel}건입니다.')
+        .replace('{fail}', m[1])
+        .replace('{void}', m[2])
+        .replace('{refund}', m[3])
+        .replace('{cancel}', m[4]);
+    }
+    m = s.match(/^미수금\s*잔액이\s+(.+?)\s+남아 있습니다\.?$/);
+    if (m) {
+      return uiT('미수금 잔액이 {0} 남아 있습니다.').replace('{0}', String(m[1]).trim());
+    }
+    m = s.match(/^노티\s*미매핑\/미적재가\s*7일간\s*([0-9,]+)건입니다\.?$/);
+    if (m) {
+      return uiT('노티 미매핑/미적재가 7일간 {0}건입니다.').replace('{0}', m[1]);
+    }
+    m = s.match(/^정산\s*보류\/지급보류\s*실행이\s*30일\s*내\s*([0-9,]+)건\s*있습니다\.?$/);
+    if (m) {
+      return uiT('정산 보류/지급보류 실행이 30일 내 {0}건 있습니다.').replace('{0}', m[1]);
+    }
+    m = s.match(/^([\s\S]+?)\s*·\s*잔액\s*([\s\S]+?)\s*·\s*([\s\S]+)$/);
     if (m) {
       return m[1] + ' · ' + uiT('잔액') + ' ' + m[2] + ' · ' + m[3];
     }
-
-    // 우선 처리 TOP5 제목 패턴들
-    m = raw.match(/^미수금\s*잔액\s*([0-9,]+)건\s*·\s*합계\s*약\s*(.+)\s*원$/);
+    m = s.match(/^미수금\s*잔액\s*([0-9,]+)건\s*·\s*합계\s*약\s*(.+)\s*원$/);
     if (m) {
       return uiT('미수금 잔액 {0}건 · 합계 약 {1} 원').replace('{0}', m[1]).replace('{1}', String(m[2]).trim());
     }
-    m = raw.match(/^미수금\s*잔액\s*([0-9,]+)건\s*·\s*합계\s*약\s*(.+)\s+([A-Z]{3})$/);
+    m = s.match(/^미수금\s*잔액\s*([0-9,]+)건\s*·\s*합계\s*약\s*(.+)\s+([A-Z]{3})$/);
     if (m) {
       return uiT('미수금 잔액 {0}건 · 합계 약 {1} {2}')
         .replace('{0}', m[1])
         .replace('{1}', String(m[2]).trim())
         .replace('{2}', m[3]);
     }
-    m = raw.match(/^최근\s*30일\s*정산\s*보류\/지급보류\s*실행\s*([0-9,]+)건$/);
+    m = s.match(/^미수금\s*잔액\s*([0-9,]+)건\s*·\s*(.+)$/);
+    if (m) {
+      return uiT('미수금 잔액 {0}건 · {1}').replace('{0}', m[1]).replace('{1}', String(m[2]).trim());
+    }
+    m = s.match(/^최근\s*30일\s*정산\s*보류\/지급보류\s*실행\s*([0-9,]+)건$/);
     if (m) {
       return uiT('최근 30일 정산 보류/지급보류 실행 {0}건').replace('{0}', m[1]);
     }
-
-    // 가맹 지급 참고 다음 정산 힌트 (정산주기 값 가변)
-    m = raw.match(/^다음\s*정산\s*실행\s*일시는\s*정산주기\((.+)\)\s*및\s*정산실행\s*배치\s*기준입니다\.\s*$/);
+    m = s.match(/^다음\s*정산\s*실행\s*일시는\s*정산주기\((.+)\)\s*및\s*정산실행\s*배치\s*기준입니다\.?$/);
     if (m) {
       return uiT('다음 정산 실행 일시는 정산주기({cycle}) 및 정산실행 배치 기준입니다.').replace('{cycle}', m[1]);
     }
-
-    // 마지막 fallback: 부분 라벨만 치환
-    return raw
+    return s
       .split('정산일').join(uiT('정산일'))
       .split('가맹').join(uiT('가맹'))
       .split('지급').join(uiT('지급'))
       .split('상태').join(uiT('상태'));
+  }
+
+  /**
+   * 서버가 내려주는 문장/요약 안의 한글을 로케일별로 치환한다.
+   * 규칙 인사이트는 문장 여러 개가 이어지므로 문장 단위로 번역한다.
+   */
+  function translateInlineKo(s) {
+    if (s == null) return '';
+    var raw = String(s).trim();
+    if (!raw) return '';
+    if (!/[가-힣]/.test(raw)) return raw;
+    var whole = uiT(raw);
+    if (whole && whole !== raw) return whole;
+    var chunks = splitKoSentences(raw);
+    if (chunks.length > 1) {
+      return chunks.map(translateOneKoChunk).join(' ');
+    }
+    return translateOneKoChunk(raw);
   }
 
   /** 결제내역·수수료와 동일: ISO 4217 숫자(764=THB, 392=JPY…) → 알파 */

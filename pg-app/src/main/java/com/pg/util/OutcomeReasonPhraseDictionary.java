@@ -66,6 +66,18 @@ public final class OutcomeReasonPhraseDictionary {
                 "JP", "残高不足",
                 "CH", "余额不足",
                 "TH", "ยอดเงินไม่เพียงพอ");
+        putExact("Insufficient of available fund",
+                "KO", "결제망 가용잔액 부족",
+                "EN", "Insufficient available funds (payment network)",
+                "JP", "決済網の利用可能残高不足",
+                "CH", "支付网络可用余额不足",
+                "TH", "ยอดใช้ได้ของเครือข่ายชำระไม่พอ");
+        putExact("Insufficient of available funds",
+                "KO", "결제망 가용잔액 부족",
+                "EN", "Insufficient available funds (payment network)",
+                "JP", "決済網の利用可能残高不足",
+                "CH", "支付网络可用余额不足",
+                "TH", "ยอดใช้ได้ของเครือข่ายชำระไม่พอ");
         putExact("Transaction failed",
                 "KO", "거래 실패",
                 "EN", "Transaction failed",

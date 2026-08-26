@@ -4,6 +4,7 @@ import com.pg.entity.AppUser;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.PgVendor;
+import com.pg.receipt.TransactionReceiptEmailService;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.service.settlement.SettlementArrearsService;
@@ -21,7 +22,8 @@ import java.util.Optional;
  * <p>
  * ChillPay: 자동무효·환불·강제환불은 Transaction API 호출 후 내부 상태 갱신.
  * JPAY: 자동환불·강제환불은 {@code /pay/trade/refund} API 호출. 무효는 수동무효·포털 처리.
- * ElementPay: 자동환불·강제환불은 {@code /merchant/initRefund}. 자동무효(voidPayment)는 2단계 결제 전용이라 미지원.
+ * ElementPay: 자동환불·강제환불은 {@code /merchant/initRefund}. 캐비닛 환불은 payment.refunded·refund.paid 웹훅으로 반영.
+ * 자동무효(voidPayment)·이메일무효는 미지원 — UI에서 숨김.
  * Eximbay: 자동환불·강제환불은 {@code /v1/payments/{transaction_id}/cancel}. 자동무효는 미지원.
  */
 @Service
@@ -49,6 +51,8 @@ public class PayListActionService {
     private final ElementPayPaymentService elementPayPaymentService;
     private final EximbayPaymentService eximbayPaymentService;
     private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
+    private final MerchantOutboundNotifyService merchantOutboundNotifyService;
+    private final TransactionReceiptEmailService transactionReceiptEmailService;
 
     public PayListActionService(PayFollowPolicyService payFollowPolicyService,
                                 PgTrnsctnRepository trnsctnRepository,
@@ -60,7 +64,9 @@ public class PayListActionService {
                                 JpayTradeApiService jpayTradeApiService,
                                 ElementPayPaymentService elementPayPaymentService,
                                 EximbayPaymentService eximbayPaymentService,
-                                OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator) {
+                                OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator,
+                                MerchantOutboundNotifyService merchantOutboundNotifyService,
+                                TransactionReceiptEmailService transactionReceiptEmailService) {
         this.payFollowPolicyService = payFollowPolicyService;
         this.trnsctnRepository = trnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
@@ -72,6 +78,8 @@ public class PayListActionService {
         this.elementPayPaymentService = elementPayPaymentService;
         this.eximbayPaymentService = eximbayPaymentService;
         this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
+        this.merchantOutboundNotifyService = merchantOutboundNotifyService;
+        this.transactionReceiptEmailService = transactionReceiptEmailService;
     }
 
     @Transactional
@@ -101,13 +109,16 @@ public class PayListActionService {
         boolean jpay = PgVendor.isJpayFamily(t.getVan());
         boolean elementPay = PgVendor.isElementPayFamily(t.getVan());
         boolean eximbay = PgVendor.isEximbayFamily(t.getVan());
-        if (jpay && (action == PayFollowAction.AUTO_VOID || action == PayFollowAction.EMAIL_VOID)) {
+        if (action == PayFollowAction.EMAIL_VOID && !PayFollowPolicyService.isEmailVoidFollowTransaction(t)) {
+            throw new IllegalStateException("이메일무효는 ChillPay 거래만 사용할 수 있습니다.");
+        }
+        if (jpay && action == PayFollowAction.AUTO_VOID) {
             throw new IllegalStateException(
                     "JPAY 거래는 자동무효·이메일무효를 사용할 수 없습니다. 수동무효 또는 JPAY 포털에서 처리하세요.");
         }
         if (elementPay && action == PayFollowAction.AUTO_VOID) {
             throw new IllegalStateException(
-                    "ElementPay 거래는 자동무효를 지원하지 않습니다. 승인 완료 건은 자동환불·강제환불을 사용하세요.");
+                    "이 거래는 승인 후 무효(void) API가 없습니다. 결제내역의 자동환불·강제환불로 처리하세요.");
         }
         if (eximbay && action == PayFollowAction.AUTO_VOID) {
             throw new IllegalStateException(
@@ -187,6 +198,21 @@ public class PayListActionService {
 
         if (action == PayFollowAction.MANUAL_VOID || action == PayFollowAction.MANUAL_REFUND) {
             jpayManualFollowUpNotifyService.sendAfterManualFollowUp(t, action, actor);
+        }
+        if (elementPay && (action == PayFollowAction.AUTO_REFUND || action == PayFollowAction.FORCE_REFUND
+                || action == PayFollowAction.AUTO_VOID)) {
+            try {
+                merchantOutboundNotifyService.scheduleAfterTxnCommit(t, null, "PAY_FOLLOW");
+            } catch (Exception e) {
+                org.slf4j.LoggerFactory.getLogger(PayListActionService.class)
+                        .warn("후속 환불 가맹 통보 예약 실패 trnId={}: {}", t.getTrnId(), e.getMessage());
+            }
+            try {
+                transactionReceiptEmailService.scheduleAfterFollowUp(t);
+            } catch (Exception e) {
+                org.slf4j.LoggerFactory.getLogger(PayListActionService.class)
+                        .warn("후속 거래명세서 메일 예약 실패 trnId={}: {}", t.getTrnId(), e.getMessage());
+            }
         }
     }
 

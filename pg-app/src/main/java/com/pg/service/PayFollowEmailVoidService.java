@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
- * 결제내역 「이메일무효」 — 전산설정 SMTP·템플릿으로 PG사(예: ChillPay)에 VOID 요청 메일 발송.
+ * 결제내역 「이메일무효」 — ChillPay 전용. 전산설정 SMTP·템플릿으로 VOID 요청 메일 발송.
  */
 @Service
 public class PayFollowEmailVoidService {

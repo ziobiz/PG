@@ -10,6 +10,7 @@ import com.pg.integration.pg.PgVendor;
 import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.OrgBrandingRepository;
 import com.pg.repository.OrgUnitRepository;
+import com.pg.urlpay.UrlPayCopyPhraseI18n;
 import org.springframework.stereotype.Service;
 
 import java.util.LinkedHashMap;
@@ -215,7 +216,7 @@ public class UrlPayCardCopyService {
                 }
             }
         });
-        return m;
+        return UrlPayCopyPhraseI18n.fillMissing(m);
     }
 
     private static String safeFaviconUrl(String raw) {

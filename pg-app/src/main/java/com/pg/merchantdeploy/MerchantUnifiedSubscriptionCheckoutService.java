@@ -5,6 +5,8 @@ import com.pg.integration.pg.PgVendor;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.service.JpaySubscriptionConfigService;
 import com.pg.service.MerchantChatbotProductService;
+import com.pg.urlpay.CheckoutFailI18n;
+import com.pg.urlpay.IcipayBuyerContactUtil;
 import com.pg.urlpay.NeutralCheckoutRoute;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
@@ -42,15 +44,26 @@ public class MerchantUnifiedSubscriptionCheckoutService {
     }
 
     public Map<String, Object> prepare(Long orgUnitId, Map<String, Object> body, HttpServletRequest request) {
+        Map<String, String> buyer;
+        try {
+            buyer = IcipayBuyerContactUtil.extractAndValidateRequired(body);
+        } catch (IcipayBuyerContactUtil.BuyerRequiredException ex) {
+            return ex.toFailMap();
+        } catch (IllegalArgumentException ex) {
+            return CheckoutFailI18n.buyerRequiredGeneric();
+        }
+        Map<String, Object> enriched = new LinkedHashMap<>(body != null ? body : Map.of());
+        enriched.put("buyerPrefill", IcipayBuyerContactUtil.toPublicMap(buyer));
+
         String opPg = resolveOperationalSubscriptionPgCd(orgUnitId);
         if (opPg.isBlank()) {
             return fail("구독(정기결제) 운영 바인딩이 없습니다.", "SUBSCRIPTION_PG_MISSING");
         }
         Map<String, Object> result;
         if (PgVendor.isJpayFamily(opPg)) {
-            result = jpaySubscriptionCheckoutService.prepare(orgUnitId, body, request);
+            result = jpaySubscriptionCheckoutService.prepare(orgUnitId, enriched, request);
         } else if (PgVendor.isIlkFamily(opPg)) {
-            result = ilkSubscriptionCheckoutService.prepare(orgUnitId, body, request);
+            result = ilkSubscriptionCheckoutService.prepare(orgUnitId, enriched, request);
         } else {
             return fail("지원하지 않는 구독 결제 구성입니다.", "SUBSCRIPTION_PG_NOT_SUPPORTED");
         }

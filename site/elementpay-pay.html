@@ -10,14 +10,15 @@
   <script src="/js/pg-pay-submit-guard.js?v=1"></script>
   <script src="/js/url-pay-input-mode.js?v=4"></script>
   <script src="/js/checkout-header-subtitle-presets.js?v=1"></script>
-  <script src="/js/url-pay-public-shell.js?v=14"></script>
+  <script src="/js/url-pay-copy-phrase-i18n.js?v=1"></script>
+  <script src="/js/url-pay-public-shell.js?v=15"></script>
   <script src="/js/jpay-contact-fields.js?v=3"></script>
   <script src="/js/jpay-contact-remember.js?v=1"></script>
   <script src="/js/jpay-card-expiry.js?v=1"></script>
   <script src="/js/pay-form-input-guard.js?v=2"></script>
   <script src="/js/icopay-card-pay-policy.js?v=7"></script>
   <script src="/js/icopay-checkout-3ds.js?v=3"></script>
-  <script src="/js/elementpay-pay-msg-i18n.js?v=1"></script>
+  <script src="/js/elementpay-pay-msg-i18n.js?v=6"></script>
   <style>
     .ep-qr-wrap { text-align: center; margin: 12px 0; }
     .ep-qr-wrap img { max-width: 220px; height: auto; }
@@ -69,8 +70,8 @@
             <div class="pay-row-value d-flex align-items-center gap-2 flex-wrap">
               <select class="form-select form-select-sm pay-input-round jpay-field-input" id="payDisplayCurrencySelect" style="max-width:8rem"></select>
               <span class="small text-muted" id="payFxDisplayCurrencyStatic"></span>
-            </div>
-          </div>
+        </div>
+        </div>
           <div class="pay-row d-none" id="payFxQuoteRow">
             <div class="pay-row-label"><span data-i18n="fxThbEstimate">Estimated charge</span></div>
             <div class="pay-row-value"><span id="payFxThbEstimateText" class="small fw-semibold">—</span></div>
@@ -115,9 +116,9 @@
         </div>
         <div class="pay-label mb-2" id="billingLabel" data-i18n="shipping">Shipping address</div>
         <div class="row g-2 mb-3" id="billingAddressRow">
-          <div class="col-12"><input type="text" class="form-control form-control-sm pay-input-round jpay-field-input" id="payStreetAddress1" data-i18n-placeholder="address" required></div>
-          <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round jpay-field-input" id="payCity" data-i18n-placeholder="city" required></div>
-          <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round jpay-field-input" id="payPostcode" data-i18n-placeholder="postcode" required></div>
+          <div class="col-12"><input type="text" class="form-control form-control-sm pay-input-round jpay-field-input" id="payStreetAddress1" data-i18n-placeholder="address"></div>
+          <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round jpay-field-input" id="payCity" data-i18n-placeholder="city"></div>
+          <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round jpay-field-input" id="payPostcode" data-i18n-placeholder="postcode"></div>
         </div>
         <button type="submit" class="btn btn-primary btn-pay w-100" id="submitBtn" data-i18n="pay">Pay</button>
         <p class="small text-primary mt-2 mb-0 text-center" id="elementPaySandboxHint" style="display:none;"></p>
@@ -508,14 +509,25 @@
         return raw;
       }
       function localizeMsg(msg, code) {
-        if (window.PG_ELEMENTPAY_PAY_MSG && PG_ELEMENTPAY_PAY_MSG.translate && code) {
+        if (window.PG_ELEMENTPAY_PAY_MSG && PG_ELEMENTPAY_PAY_MSG.translate) {
+          if (code) {
           var tr = PG_ELEMENTPAY_PAY_MSG.translate(code, LANG);
           if (tr && tr !== code) return tr;
+          }
+          if (msg) {
+            var tr2 = PG_ELEMENTPAY_PAY_MSG.translate(String(msg).trim(), LANG);
+            if (tr2 && tr2 !== String(msg).trim()) return tr2;
+          }
         }
         return msg || t('payFailed');
       }
       function resolveApiErrorMessage(res) {
         res = res || {};
+        var pack = res.messages;
+        if (pack && typeof pack === 'object') {
+          var loc = pack[LANG] || pack.ENG || pack.KOR || pack.KO || pack.EN;
+          if (loc) return loc;
+        }
         var code = res.errorCode ? String(res.errorCode).trim() : '';
         if (code === 'ORG_DISABLED' || code === 'WEB_PAYMENT_DISABLED') return res.message || t('orgDisabled');
         if (code === 'ORDER_DUP' || code === 'ORDER_ALREADY_ATTEMPTED') return t('errOrderDup');
@@ -1339,6 +1351,7 @@
             payEmailAddress: document.getElementById('payEmailAddress').value.trim(),
             payTelephone: document.getElementById('payTelephone').value.trim(),
             payCountryIsoCode2: ccVal,
+            payContactCountryCode: ccVal,
             payStreetAddress1: document.getElementById('payStreetAddress1').value.trim(),
             payCity: document.getElementById('payCity').value.trim(),
             payPostcode: document.getElementById('payPostcode').value.trim(),

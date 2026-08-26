@@ -6,6 +6,7 @@ import com.pg.repository.HqApiConfigRepository;
 import com.pg.util.CardBrandScopeUtil;
 import com.pg.util.CurrencyScopeUtil;
 import com.pg.util.MultiPgRoutingModeUtil;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 
 /**
  * 가맹 URL 결제 운영 PG 선택 — 본사 멀티 PG 스위치·라우팅 차원(브랜드/통화/혼합)·힌트 기반.
+ * <p>본사 사용불가브랜드가 등록된 PG로는 해당 브랜드를 라우팅하지 않습니다(행 스코프와 AND).
  */
 @Service
 public class MerchantPgBindingRouterService {
@@ -35,11 +37,14 @@ public class MerchantPgBindingRouterService {
 
     private final HqApiConfigRepository hqApiConfigRepository;
     private final ChillPayService chillPayService;
+    private final PayCardPolicyService payCardPolicyService;
 
     public MerchantPgBindingRouterService(HqApiConfigRepository hqApiConfigRepository,
-                                          ChillPayService chillPayService) {
+                                          ChillPayService chillPayService,
+                                          @Lazy PayCardPolicyService payCardPolicyService) {
         this.hqApiConfigRepository = hqApiConfigRepository;
         this.chillPayService = chillPayService;
+        this.payCardPolicyService = payCardPolicyService;
     }
 
     private Optional<HqApiConfig> hqConfig() {
@@ -122,6 +127,10 @@ public class MerchantPgBindingRouterService {
         if (MultiPgRoutingModeUtil.BRAND.equals(mode) || MultiPgRoutingModeUtil.BRAND_AND_CURRENCY.equals(mode)) {
             if (!brandLetter.isEmpty()) {
                 brandOk = CardBrandScopeUtil.matchesScope(binding.getCardBrandScope(), brandLetter);
+                if (brandOk && payCardPolicyService != null && binding.getPgCd() != null) {
+                    /* 본사 사용불가브랜드: 해당 PG에는 이 브랜드를 보내지 않음 */
+                    brandOk = !payCardPolicyService.isBrandBlockedByHq(binding.getPgCd(), brandLetter);
+                }
             }
         }
         if (MultiPgRoutingModeUtil.CURRENCY.equals(mode) || MultiPgRoutingModeUtil.BRAND_AND_CURRENCY.equals(mode)) {

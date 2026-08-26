@@ -84,6 +84,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
     private final OrgUnitRepository orgUnitRepository;
     private final PgTrnsctnOrderDedupeService pgTrnsctnOrderDedupeService;
     private final JpayPostSaleRiskCooldownService jpayPostSaleRiskCooldownService;
+    private final ElementPayNotiMiddlewareMirrorService elementPayNotiMiddlewareMirrorService;
 
     public JpayNotifyToTrnsctnService(PgTrnsctnRepository pgTrnsctnRepository,
                                       PgAgencyRepository pgAgencyRepository,
@@ -99,7 +100,8 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
                                       PayCardFailCooldownService payCardFailCooldownService,
                                       OrgUnitRepository orgUnitRepository,
                                       PgTrnsctnOrderDedupeService pgTrnsctnOrderDedupeService,
-                                      JpayPostSaleRiskCooldownService jpayPostSaleRiskCooldownService) {
+                                      JpayPostSaleRiskCooldownService jpayPostSaleRiskCooldownService,
+                                      ElementPayNotiMiddlewareMirrorService elementPayNotiMiddlewareMirrorService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.settlementCalcService = settlementCalcService;
@@ -115,6 +117,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         this.orgUnitRepository = orgUnitRepository;
         this.pgTrnsctnOrderDedupeService = pgTrnsctnOrderDedupeService;
         this.jpayPostSaleRiskCooldownService = jpayPostSaleRiskCooldownService;
+        this.elementPayNotiMiddlewareMirrorService = elementPayNotiMiddlewareMirrorService;
     }
 
     @Override
@@ -297,6 +300,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         log.info("JPAY 노티 반영 trnId={} merchantId={} orderNo={} returncode={} manualEcho={}",
                 t.getTrnId(), merchantId, orderKey, ret, icopayManualEcho);
         merchantOutboundNotifyService.scheduleAfterTxnCommit(t, in, ch);
+        scheduleElementPayNotiMirrorIfDue(t, merged);
         return true;
     }
 
@@ -376,7 +380,24 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         }
         log.info("JPAY 3DS 동기 복귀 반영 trnId={} merchantId={} orderNo={} paymentStatus={}", t.getTrnId(), merchantId, on, paySt);
         merchantOutboundNotifyService.scheduleAfterTxnCommit(t, in, ch);
+        scheduleElementPayNotiMirrorIfDue(t, merged);
         return true;
+    }
+
+    /**
+     * EP URL 결제가 NOTI Result→ICOPAY(rsJpay 형태)로만 승인된 경우에도
+     * NOTI {@code /noti/elementpay} 웹훅 로그·가맹 릴레이가 쌓이도록 미러.
+     */
+    private void scheduleElementPayNotiMirrorIfDue(PgTrnsctn t, String mergedStatus) {
+        if (t == null || !PgVendor.isElementPayFamily(t.getVan())) {
+            return;
+        }
+        boolean paid = ST_PAID.equals(mergedStatus != null ? mergedStatus.trim() : "");
+        try {
+            elementPayNotiMiddlewareMirrorService.scheduleUrlPayMirrorAfterCommit(t, paid);
+        } catch (Exception e) {
+            log.warn("ElementPay NOTI mirror(JPAY sync path) 예약 실패 trnId={}: {}", t.getTrnId(), e.getMessage());
+        }
     }
 
     private void hookSplitPayInstallment(PgTrnsctn t) {

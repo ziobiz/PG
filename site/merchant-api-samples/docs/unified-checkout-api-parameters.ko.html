@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -17,16 +17,28 @@
     pre { background: #f8f8f8; border: 1px solid #ddd; padding: 0.75rem; overflow: auto; font-size: 0.82rem; }
     a { color: #0d6efd; }
     .lang-nav { font-size: 0.92rem; margin-bottom: 1rem; padding: 0.5rem 0; border-bottom: 1px solid #eee; }
+    .req-box { background:#fff5f5; border:2px solid #c92a2a; padding:0.85rem 1rem; margin:1.1rem 0; border-radius:6px; }
+    .req-box h3 { margin:0 0 0.45rem; color:#c92a2a; font-size:1.02rem; }
+    .req-box ul { margin:0.25rem 0 0.5rem; padding-left:1.2rem; }
+    .req-box li { margin:0.2rem 0; }
   </style>
 </head>
 <body>
   <p class="lang-nav"><strong>언어:</strong>
     <a href="unified-checkout-api-parameters.html">English</a> · <strong>한국어</strong> · <a href="unified-checkout-api-parameters.ja.html">日本語</a> · <a href="unified-checkout-api-parameters.ch.html">中文</a> · <a href="unified-checkout-api-parameters.th.html">ไทย</a></p>
   <h1>표 1.1 · ICOPAY 통합 Checkout Prepare API 요청 파라미터</h1>
-  <p class="meta">문서 ID: ICOPAY-CHECKOUT-PREPARE-001 · v1.1 · PG 무관 통합 인라인 checkout (ICOPAY 통합)</p>
+  <p class="meta">문서 ID: ICOPAY-CHECKOUT-PREPARE-001 · v1.2 · PG 무관 통합 인라인 checkout (ICOPAY 통합)</p>
   <p><strong>엔드포인트:</strong> <code>POST {publicApiBaseUrl}/api/middleware/v1/merchant/checkout/prepare</code></p>
   <p><strong>헤더:</strong> <code>Content-Type: application/json</code>, <code>Accept: application/json</code>,
     <code>X-Icopay-Merchant-Broker-Secret</code> (브로커 시크릿 강제 시 필수)</p>
+  <div class="req-box">
+    <h3>필수값 — 빠지면 prepare가 ICOPAY <code>BUYER_*</code> 로 실패합니다 (결제대행사 영문 오류가 아님)</h3>
+    <ul>
+      <li>표 1.1: <code>compId</code> 또는 <code>merchantId</code>, <code>orderNo</code>, <code>amount</code>, <code>buyer</code></li>
+      <li>표 1.2: <code>buyer.email</code>, <code>buyer.phone</code>(로컬 번호, 국가번호 + 제거), <code>buyer.countryIso2</code>(대문자 2자, 예: KR, TH, JP)</li>
+    </ul>
+    <p>빈 문자열도 누락입니다. 응답에 <code>errorCode</code>, <code>messageKey</code>, 5개국어 <code>messages</code>(KOR/ENG/JPN/CHN/THA)가 포함됩니다.</p>
+  </div>
 
   <h2>표 1.1 — 요청 본문(JSON 루트)</h2>
   <table>
@@ -48,22 +60,25 @@
 
   <h2>표 1.2 — buyer 객체</h2>
   <p class="meta"><strong>ICOPAY 필수(M):</strong> <code>email</code>, <code>phone</code>(로컬 번호, 국가번호 + 제거), <code>countryIso2</code>(ISO2 대문자).
-    카드 입력란은 ICOPAY 결제창이 처리합니다.</p>
+    빈 문자열도 누락입니다. 필드별 오류: <code>BUYER_EMAIL_REQUIRED</code> / <code>BUYER_PHONE_REQUIRED</code> / <code>BUYER_COUNTRY_REQUIRED</code>.
+    카드번호는 ICOPAY 결제창에서 입력합니다. 카드 명의자 이름·성은 결제창에서 필수(prepare prefill: <code>firstName</code>/<code>lastName</code> 권장).</p>
   <table>
     <thead>
       <tr><th>번호</th><th>항목</th><th>타입</th><th>길이</th><th>필수</th><th>설명</th><th>비고</th></tr>
     </thead>
     <tbody>
-      <tr><td>1</td><td>email</td><td>String</td><td>254</td><td class="m">M</td><td>구매자 이메일</td><td>ICOPAY 필수</td></tr>
-      <tr><td>2</td><td>phone</td><td>String</td><td>32</td><td class="m">M</td><td>로컬 전화번호</td><td>국가번호 + 제거, 로컬만. ICOPAY 필수</td></tr>
-      <tr><td>3</td><td>countryIso2</td><td>String</td><td>2</td><td class="m">M</td><td>국가 ISO 3166-1 alpha-2</td><td>예: KR, US, TH — 대문자. ICOPAY 필수</td></tr>
+      <tr><td>1</td><td>email</td><td>String</td><td>254</td><td class="m">M</td><td>구매자 이메일</td><td>필수. 누락 → <code>BUYER_EMAIL_REQUIRED</code></td></tr>
+      <tr><td>2</td><td>phone</td><td>String</td><td>32</td><td class="m">M</td><td>로컬 전화번호</td><td>국가번호 + 제거. 누락 → <code>BUYER_PHONE_REQUIRED</code></td></tr>
+      <tr><td>3</td><td>countryIso2</td><td>String</td><td>2</td><td class="m">M</td><td>국가 ISO 3166-1 alpha-2</td><td>예: KR, US, TH — 대문자. 누락 → <code>BUYER_COUNTRY_REQUIRED</code></td></tr>
       <tr><td>4</td><td>address</td><td>String</td><td>200</td><td>O</td><td>배송 주소 1행</td><td>선택 prefill</td></tr>
       <tr><td>5</td><td>address2</td><td>String</td><td>200</td><td>O</td><td>배송 주소 2행</td><td></td></tr>
       <tr><td>6</td><td>city</td><td>String</td><td>100</td><td>O</td><td>도시</td><td></td></tr>
       <tr><td>7</td><td>state</td><td>String</td><td>100</td><td>O</td><td>주·도</td><td></td></tr>
       <tr><td>8</td><td>postcode</td><td>String</td><td>20</td><td>O</td><td>우편번호</td><td>zip 별칭</td></tr>
-      <tr><td>9</td><td>shippingAddress</td><td>String</td><td>200</td><td>O</td><td>별도 배송지 주소</td><td>address 와 다를 때</td></tr>
-      <tr><td>10</td><td>shippingPhone</td><td>String</td><td>32</td><td>O</td><td>별도 배송지 전화</td><td></td></tr>
+      <tr><td>9</td><td>firstName</td><td>String</td><td>80</td><td>O</td><td>이름(카드 명의 prefill)</td><td>권장. 결제창에서 필수</td></tr>
+      <tr><td>10</td><td>lastName</td><td>String</td><td>80</td><td>O</td><td>성(카드 명의 prefill)</td><td>권장. 결제창에서 필수</td></tr>
+      <tr><td>11</td><td>shippingAddress</td><td>String</td><td>200</td><td>O</td><td>별도 배송지 주소</td><td>address 와 다를 때</td></tr>
+      <tr><td>12</td><td>shippingPhone</td><td>String</td><td>32</td><td>O</td><td>별도 배송지 전화</td><td></td></tr>
     </tbody>
   </table>
 
@@ -79,6 +94,31 @@
     "email": "buyer@example.com",
     "phone": "1012345678",
     "countryIso2": "KR"
+  }
+}</pre>
+
+  <h2>errorCode (필수값)</h2>
+  <table>
+    <thead><tr><th>errorCode</th><th>의미</th></tr></thead>
+    <tbody>
+      <tr><td><code>BUYER_REQUIRED</code></td><td>buyer 객체 누락, 또는 email·phone·countryIso2 없음(빈 문자열 포함)</td></tr>
+      <tr><td><code>BUYER_EMAIL_REQUIRED</code></td><td><code>buyer.email</code> 누락</td></tr>
+      <tr><td><code>BUYER_PHONE_REQUIRED</code></td><td><code>buyer.phone</code> 누락(로컬 번호)</td></tr>
+      <tr><td><code>BUYER_COUNTRY_REQUIRED</code></td><td><code>buyer.countryIso2</code> 누락 또는 ISO2 아님</td></tr>
+      <tr><td><code>BUYER_JSON_INVALID</code></td><td>buyer JSON 형식 오류</td></tr>
+    </tbody>
+  </table>
+  <pre>{
+  "success": false,
+  "errorCode": "BUYER_EMAIL_REQUIRED",
+  "messageKey": "BUYER_EMAIL_REQUIRED",
+  "message": "buyer.email(구매자 이메일)이 필수입니다. 빈 값은 허용되지 않습니다.",
+  "messages": {
+    "KOR": "buyer.email(구매자 이메일)이 필수입니다. 빈 값은 허용되지 않습니다.",
+    "ENG": "buyer.email (buyer email) is required. Empty values are not allowed.",
+    "JPN": "buyer.email（購入者メール）は必須です。空文字は不可です。",
+    "CHN": "buyer.email（买家邮箱）为必填，不允许空值。",
+    "THA": "buyer.email (อีเมลผู้ซื้อ) จำเป็น ค่าว่างใช้ไม่ได้"
   }
 }</pre>
 

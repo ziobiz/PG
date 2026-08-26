@@ -162,6 +162,7 @@
       '/hq/notifyMapping': ['_hqNotifyMappingBound'],
       '/hq/notifyEnv': ['_hqNotifyTargetTableActionDelegated'],
       '/hq/notifyInbound': ['_hqNotifyInboundBound'],
+      '/hq/notifyEpMirror': ['_hqNotifyEpMirrorBound'],
       '/hq/ledgerSysSettings': ['_hqLedgerPaneInit'],
       '/hq/platformReleaseNotes': ['_icopayReleaseNotesMounted'],
       '/ops/opsManuals': ['_icopayPmBound'],

@@ -2897,6 +2897,7 @@
     '/hq/notifyEnv': { label: '노티 구성', parent: '본사정책' },
     '/hq/notifyMapping': { label: '필드 매핑', parent: '본사정책' },
     '/hq/notifyInbound': { label: '수령 로그', parent: '본사정책' },
+    '/hq/notifyEpMirror': { label: '미러 재전송', parent: '본사정책' },
     '/hq/ledgerSysSettings': { label: '전산·동기화', parent: '본사정책' },
     '/hq/settlementAdmin': { label: '정산주기', parent: '본사정책' },
     '/hq/receivableRecoverySettings': { label: '환수·미수금', parent: '본사정책' },
@@ -3395,6 +3396,7 @@
     var urlPath = String(url || '').split('?')[0];
     if (pgIsHubUrlPath(urlPath)) return pgHubMenuAllowed(urlPath);
     if (urlPath === '/hq/businessDaySetting' && !isHeadquartersSessionUser()) return false;
+    if (urlPath === '/hq/notifyEpMirror' && !isHeadquartersSessionUser()) return false;
     if (urlPath === '/splitpay/emailSettings' && !isHeadquartersSessionUser()) return false;
     if (getPagePermissionForUrl(urlPath) === 'NONE') return false;
     if (isMerchantChatbotMenuForbidden(url)) return false;
@@ -16249,7 +16251,17 @@
               else if (c.type === 'payActions') {
                 if (url === '/calc/paySuccessList') {
                   html += '<td class="text-muted text-center small pay-actions-cell">—</td>';
-                } else if (row.payFollowJpay === true) {
+                } else {
+                  var followPgLab = String(row.payFollowPgCd || row.pgNm || row.van || '').trim();
+                  var followPgEsc = followPgLab.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+                  var followTip = typeof pgAdminUiT === 'function'
+                    ? pgAdminUiT('후속조치는 이 거래를 처리한 결제대행사 기준입니다. 기준 시간은 전산설정 표준시입니다.')
+                    : '후속조치는 이 거래를 처리한 결제대행사 기준입니다. 기준 시간은 전산설정 표준시입니다.';
+                  var followPgTag = followPgLab
+                    ? ('<span class="pay-follow-pg-tag badge bg-light text-dark border me-1 align-middle" title="' +
+                      String(followTip).replace(/"/g, '&quot;') + '">' + followPgEsc + '</span>')
+                    : '';
+                if (row.payFollowJpay === true) {
                   var seqJ = row.paySeq != null ? String(row.paySeq) : '';
                   var escJ = function (s) {
                     return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
@@ -16269,8 +16281,9 @@
                       ? window.PG_PAY_LIST_I18N.payFollowLabel(act) : labelKo;
                     return '<button type="button" class="' + cls + '"' + dis + ' data-act="' + act + '" data-pg-pay-follow="' + act + '" data-trn="' + esJ + '">' + lab + '</button>';
                   }
-                  html += '<td class="small pay-actions-cell">' +
+                  html += '<td class="small pay-actions-cell" title="' + String(followTip).replace(/"/g, '&quot;') + '">' +
                     '<div class="pay-follow-pill-row d-inline-flex flex-wrap align-items-center gap-1">' +
+                    followPgTag +
                     payFollowBtnJpay('AUTO_REFUND', '환불처리') +
                     payFollowBtnJpay('FORCE_REFUND', '강제환불') +
                     payFollowBtnJpay('MANUAL_VOID', '수동무효') +
@@ -16297,8 +16310,9 @@
                     var urlRf = (act === 'AUTO_REFUND' || act === 'FORCE_REFUND') ? ' data-pg-url-refund="1"' : '';
                     return '<button type="button" class="' + cls + '"' + dis + ' data-act="' + act + '" data-pg-pay-follow="' + act + '" data-trn="' + esEp + '"' + urlRf + '>' + lab + '</button>';
                   }
-                  html += '<td class="small pay-actions-cell">' +
+                  html += '<td class="small pay-actions-cell" title="' + String(followTip).replace(/"/g, '&quot;') + '">' +
                     '<div class="pay-follow-pill-row d-inline-flex flex-wrap align-items-center gap-1">' +
+                    followPgTag +
                     payFollowBtnEp('AUTO_REFUND', '환불처리') +
                     payFollowBtnEp('FORCE_REFUND', '강제환불') +
                     '</div></td>';
@@ -16322,13 +16336,15 @@
                       ? window.PG_PAY_LIST_I18N.payFollowLabel(act) : labelKo;
                     return '<button type="button" class="' + cls + '"' + dis + ' data-act="' + act + '" data-pg-pay-follow="' + act + '" data-trn="' + es + '">' + lab + '</button>';
                   }
-                  html += '<td class="small pay-actions-cell">' +
+                  html += '<td class="small pay-actions-cell" title="' + String(followTip).replace(/"/g, '&quot;') + '">' +
                     '<div class="pay-follow-pill-row d-inline-flex flex-wrap align-items-center gap-1">' +
+                    followPgTag +
                     payFollowBtn('AUTO_VOID', '무효처리') +
                     payFollowBtn('EMAIL_VOID', '이메일 무효') +
                     payFollowBtn('AUTO_REFUND', '환불처리') +
                     payFollowBtn('FORCE_REFUND', '강제환불') +
                     '</div></td>';
+                }
                 }
               } else if (c.type === 'payRemark') {
                 if (row.payFollowJpay === true) {
@@ -29867,6 +29883,99 @@
       }
       niLoad();
     }
+    if (url === '/hq/notifyEpMirror' && !pane._hqNotifyEpMirrorBound) {
+      pane._hqNotifyEpMirrorBound = true;
+      var epMirrorDimm = document.getElementById('dimm');
+      function epMirrorEsc(s) {
+        return pgEscapeHtml(s == null ? '' : String(s));
+      }
+      function epMirrorFillPreview(d) {
+        var tbody = pane.querySelector('#hqEpMirrorPreviewBody');
+        if (!tbody) return;
+        if (!d) {
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">' +
+            epMirrorEsc(pgAdminUiT('주문번호 또는 거래번호로 조회하세요.')) + '</td></tr>';
+          return;
+        }
+        var amt = (d.amount != null ? String(d.amount) : '') + (d.currency ? (' ' + d.currency) : '');
+        tbody.innerHTML = '<tr>' +
+          '<td>' + epMirrorEsc(d.merchantId) + '</td>' +
+          '<td><code>' + epMirrorEsc(d.orderNo) + '</code></td>' +
+          '<td><code class="small">' + epMirrorEsc(d.trnId) + '</code></td>' +
+          '<td>' + epMirrorEsc(amt) + '</td>' +
+          '<td>' + epMirrorEsc(d.status) + '</td>' +
+          '<td>' + epMirrorEsc(d.van) + '</td></tr>';
+        pane._hqEpMirrorLast = d;
+      }
+      function epMirrorShowResult(obj) {
+        var pre = pane.querySelector('#hqEpMirrorResult');
+        if (!pre) return;
+        pre.classList.remove('d-none');
+        try {
+          pre.textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+        } catch (eJson) {
+          pre.textContent = String(obj);
+        }
+      }
+      var lookupBtn = pane.querySelector('#hqEpMirrorLookupBtn');
+      if (lookupBtn) {
+        lookupBtn.addEventListener('click', function () {
+          var orderNo = (pane.querySelector('#hqEpMirrorOrderNo') || {}).value || '';
+          var trnId = (pane.querySelector('#hqEpMirrorTrnId') || {}).value || '';
+          orderNo = String(orderNo).trim();
+          trnId = String(trnId).trim();
+          if (!orderNo && !trnId) {
+            alert(pgAdminUiT('주문번호 또는 거래번호를 입력하세요.'));
+            return;
+          }
+          if (epMirrorDimm) epMirrorDimm.style.display = 'flex';
+          window.PG_API.hqNotifyEpMirrorLookup({ orderNo: orderNo, trnId: trnId }).then(function (d) {
+            epMirrorFillPreview(d);
+            epMirrorShowResult({ lookup: d });
+          }).catch(function (e) {
+            pane._hqEpMirrorLast = null;
+            epMirrorFillPreview(null);
+            alert(pgErrMsg(e, '조회 실패'));
+          }).finally(function () {
+            if (epMirrorDimm) epMirrorDimm.style.display = 'none';
+          });
+        });
+      }
+      var resendBtn = pane.querySelector('#hqEpMirrorResendBtn');
+      if (resendBtn) {
+        resendBtn.addEventListener('click', function () {
+          var orderNo = (pane.querySelector('#hqEpMirrorOrderNo') || {}).value || '';
+          var trnId = (pane.querySelector('#hqEpMirrorTrnId') || {}).value || '';
+          orderNo = String(orderNo).trim();
+          trnId = String(trnId).trim();
+          var last = pane._hqEpMirrorLast;
+          if (!orderNo && last && last.orderNo) orderNo = String(last.orderNo);
+          if (!trnId && last && last.trnId) trnId = String(last.trnId);
+          if (!orderNo && !trnId) {
+            alert(pgAdminUiT('주문번호 또는 거래번호를 입력하세요.'));
+            return;
+          }
+          var forceEl = pane.querySelector('#hqEpMirrorForce');
+          var force = !!(forceEl && forceEl.checked);
+          if (!window.confirm(pgAdminUiT('NOTI /noti/elementpay 로 pay 미러를 재전송할까요? (재결제 아님)'))) {
+            return;
+          }
+          if (epMirrorDimm) epMirrorDimm.style.display = 'flex';
+          window.PG_API.hqNotifyEpMirrorResend({ orderNo: orderNo, trnId: trnId, force: force }).then(function (d) {
+            if (d) epMirrorFillPreview(d);
+            epMirrorShowResult(d);
+            alert(pgAdminUiT((d && d.message) ? String(d.message) : 'NOTI 미러 재전송 완료'));
+          }).catch(function (e) {
+            alert(pgErrMsg(e, '미러 재전송 실패'));
+          }).finally(function () {
+            if (epMirrorDimm) epMirrorDimm.style.display = 'none';
+          });
+        });
+      }
+      if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
+        try { window.PG_UI_I18N.applyDom(pane); } catch (eEpMirI18n) {}
+      }
+    }
     if (url === '/hq/settlementAdmin' && !pane._hqSettlementAdminBound) {
       pane._hqSettlementAdminBound = true;
       function escHqSt(s) { return pgEscapeHtml(s); }
@@ -37762,6 +37871,9 @@
     }
     if (urlPath === '/hq/notifyInbound') {
       pane._hqNotifyInboundBound = false;
+    }
+    if (urlPath === '/hq/notifyEpMirror') {
+      pane._hqNotifyEpMirrorBound = false;
     }
     if (urlPath === '/hq/ledgerSysSettings') {
       pane._hqLedgerPaneInit = false;

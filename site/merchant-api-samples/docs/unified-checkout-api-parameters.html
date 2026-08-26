@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -17,16 +17,28 @@
     pre { background: #f8f8f8; border: 1px solid #ddd; padding: 0.75rem; overflow: auto; font-size: 0.82rem; }
     a { color: #0d6efd; }
     .lang-nav { font-size: 0.92rem; margin-bottom: 1rem; padding: 0.5rem 0; border-bottom: 1px solid #eee; }
+    .req-box { background:#fff5f5; border:2px solid #c92a2a; padding:0.85rem 1rem; margin:1.1rem 0; border-radius:6px; }
+    .req-box h3 { margin:0 0 0.45rem; color:#c92a2a; font-size:1.02rem; }
+    .req-box ul { margin:0.25rem 0 0.5rem; padding-left:1.2rem; }
+    .req-box li { margin:0.2rem 0; }
   </style>
 </head>
 <body>
   <p class="lang-nav"><strong>Language:</strong>
     <strong>English</strong> · <a href="unified-checkout-api-parameters.ko.html">한국어</a> · <a href="unified-checkout-api-parameters.ja.html">日本語</a> · <a href="unified-checkout-api-parameters.ch.html">中文</a> · <a href="unified-checkout-api-parameters.th.html">ไทย</a></p>
   <h1>Table 1.1 · ICOPAY Unified Checkout Prepare API Request Parameters</h1>
-  <p class="meta">Spec ID: ICOPAY-CHECKOUT-PREPARE-001 · v1.1 · PG-agnostic inline checkout (ICOPAY unified)</p>
+  <p class="meta">Spec ID: ICOPAY-CHECKOUT-PREPARE-001 · v1.2 · PG-agnostic inline checkout (ICOPAY unified)</p>
   <p><strong>Endpoint:</strong> <code>POST {publicApiBaseUrl}/api/middleware/v1/merchant/checkout/prepare</code></p>
   <p><strong>Headers:</strong> <code>Content-Type: application/json</code>, <code>Accept: application/json</code>,
     <code>X-Icopay-Merchant-Broker-Secret</code> (required when broker secret enforce is on)</p>
+  <div class="req-box">
+    <h3>Required — omit these and prepare fails with ICOPAY <code>BUYER_*</code> (not a third-party English error)</h3>
+    <ul>
+      <li>Table 1.1: <code>compId</code> or <code>merchantId</code>, <code>orderNo</code>, <code>amount</code>, <code>buyer</code></li>
+      <li>Table 1.2: <code>buyer.email</code>, <code>buyer.phone</code> (local digits; strip +country), <code>buyer.countryIso2</code> (2 uppercase letters, e.g. KR, TH, JP)</li>
+    </ul>
+    <p>Empty strings count as missing. Response includes <code>errorCode</code>, <code>messageKey</code>, and <code>messages</code> in KOR/ENG/JPN/CHN/THA.</p>
+  </div>
 
   <h2>Table 1.1 — Request body (JSON root)</h2>
   <table>
@@ -48,22 +60,25 @@
 
   <h2>Table 1.2 — buyer object</h2>
   <p class="meta"><strong>Required for ICOPAY (M):</strong> <code>email</code>, <code>phone</code> (local digits; strip + country code), <code>countryIso2</code> (uppercase ISO2).
-    Card fields are collected on the ICOPAY checkout page.</p>
+    Empty strings fail. Missing fields return <code>BUYER_EMAIL_REQUIRED</code> / <code>BUYER_PHONE_REQUIRED</code> / <code>BUYER_COUNTRY_REQUIRED</code>.
+    Card number is entered on the ICOPAY checkout page. Cardholder first/last name is required there (optional prefill: <code>firstName</code>/<code>lastName</code>).</p>
   <table>
     <thead>
       <tr><th>No.</th><th>Parameter</th><th>Type</th><th>Len</th><th>M/O</th><th>Description</th><th>Remark</th></tr>
     </thead>
     <tbody>
-      <tr><td>1</td><td>email</td><td>String</td><td>254</td><td class="m">M</td><td>Buyer email</td><td>Required ICOPAY</td></tr>
-      <tr><td>2</td><td>phone</td><td>String</td><td>32</td><td class="m">M</td><td>Local phone number</td><td>Strip country dial code (+82…). Required ICOPAY</td></tr>
-      <tr><td>3</td><td>countryIso2</td><td>String</td><td>2</td><td class="m">M</td><td>Country ISO 3166-1 alpha-2</td><td>e.g. KR, US, TH — uppercase. Required ICOPAY</td></tr>
+      <tr><td>1</td><td>email</td><td>String</td><td>254</td><td class="m">M</td><td>Buyer email</td><td>Required. Missing → <code>BUYER_EMAIL_REQUIRED</code></td></tr>
+      <tr><td>2</td><td>phone</td><td>String</td><td>32</td><td class="m">M</td><td>Local phone number</td><td>Strip +country. Missing → <code>BUYER_PHONE_REQUIRED</code></td></tr>
+      <tr><td>3</td><td>countryIso2</td><td>String</td><td>2</td><td class="m">M</td><td>Country ISO 3166-1 alpha-2</td><td>e.g. KR, US, TH — uppercase. Missing/invalid → <code>BUYER_COUNTRY_REQUIRED</code></td></tr>
       <tr><td>4</td><td>address</td><td>String</td><td>200</td><td>O</td><td>Shipping address line 1</td><td>Optional prefill</td></tr>
       <tr><td>5</td><td>address2</td><td>String</td><td>200</td><td>O</td><td>Shipping address line 2</td><td></td></tr>
       <tr><td>6</td><td>city</td><td>String</td><td>100</td><td>O</td><td>City</td><td></td></tr>
       <tr><td>7</td><td>state</td><td>String</td><td>100</td><td>O</td><td>State / province</td><td></td></tr>
       <tr><td>8</td><td>postcode</td><td>String</td><td>20</td><td>O</td><td>Postal code</td><td>Alias: zip</td></tr>
-      <tr><td>9</td><td>shippingAddress</td><td>String</td><td>200</td><td>O</td><td>Separate shipping street</td><td>If different from address</td></tr>
-      <tr><td>10</td><td>shippingPhone</td><td>String</td><td>32</td><td>O</td><td>Separate shipping phone</td><td></td></tr>
+      <tr><td>9</td><td>firstName</td><td>String</td><td>80</td><td>O</td><td>Given name (cardholder prefill)</td><td>Recommended. Required on checkout page</td></tr>
+      <tr><td>10</td><td>lastName</td><td>String</td><td>80</td><td>O</td><td>Family name (cardholder prefill)</td><td>Recommended. Required on checkout page</td></tr>
+      <tr><td>11</td><td>shippingAddress</td><td>String</td><td>200</td><td>O</td><td>Separate shipping street</td><td>If different from address</td></tr>
+      <tr><td>12</td><td>shippingPhone</td><td>String</td><td>32</td><td>O</td><td>Separate shipping phone</td><td></td></tr>
     </tbody>
   </table>
 
@@ -79,6 +94,31 @@
     "email": "buyer@example.com",
     "phone": "1012345678",
     "countryIso2": "KR"
+  }
+}</pre>
+
+  <h2>errorCode (required fields)</h2>
+  <table>
+    <thead><tr><th>errorCode</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>BUYER_REQUIRED</code></td><td>buyer object missing, or email/phone/countryIso2 absent (empty string counts)</td></tr>
+      <tr><td><code>BUYER_EMAIL_REQUIRED</code></td><td>Missing <code>buyer.email</code></td></tr>
+      <tr><td><code>BUYER_PHONE_REQUIRED</code></td><td>Missing <code>buyer.phone</code> (local digits)</td></tr>
+      <tr><td><code>BUYER_COUNTRY_REQUIRED</code></td><td>Missing or invalid <code>buyer.countryIso2</code> (2-letter ISO2)</td></tr>
+      <tr><td><code>BUYER_JSON_INVALID</code></td><td>Invalid buyer JSON</td></tr>
+    </tbody>
+  </table>
+  <pre>{
+  "success": false,
+  "errorCode": "BUYER_EMAIL_REQUIRED",
+  "messageKey": "BUYER_EMAIL_REQUIRED",
+  "message": "buyer.email (buyer email) is required. Empty values are not allowed.",
+  "messages": {
+    "KOR": "buyer.email(구매자 이메일)이 필수입니다. 빈 값은 허용되지 않습니다.",
+    "ENG": "buyer.email (buyer email) is required. Empty values are not allowed.",
+    "JPN": "buyer.email（購入者メール）は必須です。空文字は不可です。",
+    "CHN": "buyer.email（买家邮箱）为必填，不允许空值。",
+    "THA": "buyer.email (อีเมลผู้ซื้อ) จำเป็น ค่าว่างใช้ไม่ได้"
   }
 }</pre>
 

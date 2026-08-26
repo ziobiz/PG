@@ -25,12 +25,17 @@ public final class JpayBuyerContactApplier {
         if (t == null || body == null || body.isEmpty()) {
             return;
         }
-        String email = first(body, "payEmailAddress", "pay_email_address", "email");
+        String email = first(body, "payEmailAddress", "pay_email_address", "email",
+                "buyerEmail", "PayerEmail", "payer_email", "customer_email");
         String first = first(body, "payFirstname", "pay_firstname", "firstname");
         String last = first(body, "payLastname", "pay_lastname", "lastname");
+        String name = JpayCardPanMaskUtil.formatBuyerName(first, last);
+        if (name == null || name.isBlank()) {
+            name = first(body, "customerNm", "customer_nm", "buyerName", "payerName");
+        }
         String tel = first(body, "payTelephone", "pay_telephone", "telephone", "phone");
         String card = first(body, "payCardno", "pay_cardno", "cardno", "card_no");
-        applyResolved(t, email, JpayCardPanMaskUtil.formatBuyerName(first, last), tel, card, false);
+        applyResolved(t, email, name, tel, card, false);
     }
 
     /** JPAY 포털 Export 행 — Customer Email·Name 보강(guest·빈 값만). */
@@ -47,7 +52,8 @@ public final class JpayBuyerContactApplier {
             return;
         }
         String email = mapFirst(form,
-                "email", "email_address", "pay_email_address", "customer_email", "payemailaddress");
+                "email", "email_address", "pay_email_address", "customer_email", "payemailaddress",
+                "buyeremail", "payeremail", "payer_email", "payerEmail");
         String first = mapFirst(form, "firstname", "pay_firstname", "payfirstname", "first_name");
         String last = mapFirst(form, "lastname", "pay_lastname", "paylastname", "last_name");
         String name = mapFirst(form, "customername", "customer_name", "payername", "username");
@@ -67,7 +73,8 @@ public final class JpayBuyerContactApplier {
                                       boolean mergeOnly) {
         if (!mergeOnly || isBlank(t.getCustomerId()) || isGuestMarker(String.valueOf(t.getCustomerId()))) {
             String em = JpayCardPanMaskUtil.truncate(email, 100);
-            if (em != null && !em.isBlank()) {
+            if (em != null && !em.isBlank() && !PayerContactDisplayUtil.isPlaceholderReceiptEmail(em)
+                    && PayerContactDisplayUtil.looksLikeEmail(em)) {
                 t.setCustomerId(em);
             } else if (!mergeOnly && (t.getCustomerId() == null || t.getCustomerId().isBlank())) {
                 t.setCustomerId("guest");

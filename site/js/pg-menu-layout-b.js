@@ -61,7 +61,8 @@
       tabs: [
         { tab: 'env', url: '/hq/notifyEnv', menuId: 'M0105', label: '노티 구성' },
         { tab: 'mapping', url: '/hq/notifyMapping', menuId: 'M0107', label: '필드 매핑' },
-        { tab: 'inbound', url: '/hq/notifyInbound', menuId: 'M0121', label: '수령 로그' }
+        { tab: 'inbound', url: '/hq/notifyInbound', menuId: 'M0121', label: '수령 로그' },
+        { tab: 'ep-mirror', url: '/hq/notifyEpMirror', menuId: 'M0130', label: '미러 재전송' }
       ]
     },
     {

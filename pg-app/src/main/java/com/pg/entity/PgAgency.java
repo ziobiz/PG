@@ -75,6 +75,28 @@ public class PgAgency {
     @Column(name = "operational_yn", length = 1)
     private String operationalYn = "N";
 
+    /** ICOPAY 후속조치 노출 허용 — 노티 적재(integ_noti_yn)와 별개. 전산·단계·가맹 스위치와 AND */
+    @Column(name = "pay_follow_auto_void_yn", nullable = false, length = 1)
+    private String payFollowAutoVoidYn = "N";
+
+    @Column(name = "pay_follow_email_void_yn", nullable = false, length = 1)
+    private String payFollowEmailVoidYn = "N";
+
+    @Column(name = "pay_follow_manual_void_yn", nullable = false, length = 1)
+    private String payFollowManualVoidYn = "N";
+
+    @Column(name = "pay_follow_auto_refund_yn", nullable = false, length = 1)
+    private String payFollowAutoRefundYn = "Y";
+
+    @Column(name = "pay_follow_manual_refund_yn", nullable = false, length = 1)
+    private String payFollowManualRefundYn = "N";
+
+    @Column(name = "pay_follow_force_refund_yn", nullable = false, length = 1)
+    private String payFollowForceRefundYn = "Y";
+
+    @Column(name = "pay_follow_same_day_refund_yn", nullable = false, length = 1)
+    private String payFollowSameDayRefundYn = "N";
+
     /** PG별 MID / Merchant Code */
     @Column(name = "merchant_mid", length = 100)
     private String merchantMid;
@@ -199,6 +221,20 @@ public class PgAgency {
     public void setUseYn(String useYn) { this.useYn = useYn; }
     public String getOperationalYn() { return operationalYn; }
     public void setOperationalYn(String operationalYn) { this.operationalYn = operationalYn; }
+    public String getPayFollowAutoVoidYn() { return payFollowAutoVoidYn; }
+    public void setPayFollowAutoVoidYn(String payFollowAutoVoidYn) { this.payFollowAutoVoidYn = payFollowAutoVoidYn; }
+    public String getPayFollowEmailVoidYn() { return payFollowEmailVoidYn; }
+    public void setPayFollowEmailVoidYn(String payFollowEmailVoidYn) { this.payFollowEmailVoidYn = payFollowEmailVoidYn; }
+    public String getPayFollowManualVoidYn() { return payFollowManualVoidYn; }
+    public void setPayFollowManualVoidYn(String payFollowManualVoidYn) { this.payFollowManualVoidYn = payFollowManualVoidYn; }
+    public String getPayFollowAutoRefundYn() { return payFollowAutoRefundYn; }
+    public void setPayFollowAutoRefundYn(String payFollowAutoRefundYn) { this.payFollowAutoRefundYn = payFollowAutoRefundYn; }
+    public String getPayFollowManualRefundYn() { return payFollowManualRefundYn; }
+    public void setPayFollowManualRefundYn(String payFollowManualRefundYn) { this.payFollowManualRefundYn = payFollowManualRefundYn; }
+    public String getPayFollowForceRefundYn() { return payFollowForceRefundYn; }
+    public void setPayFollowForceRefundYn(String payFollowForceRefundYn) { this.payFollowForceRefundYn = payFollowForceRefundYn; }
+    public String getPayFollowSameDayRefundYn() { return payFollowSameDayRefundYn; }
+    public void setPayFollowSameDayRefundYn(String payFollowSameDayRefundYn) { this.payFollowSameDayRefundYn = payFollowSameDayRefundYn; }
     public String getMerchantMid() { return merchantMid; }
     public void setMerchantMid(String merchantMid) { this.merchantMid = merchantMid; }
     public String getApiKey() { return apiKey; }

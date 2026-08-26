@@ -1,6 +1,12 @@
-﻿ICOPAY 통합 Checkout Prepare API 요청 파라미터
+ICOPAY 통합 Checkout Prepare API 요청 파라미터
 ==============================================
-문서 ID: ICOPAY-CHECKOUT-PREPARE-001 · v1.1
+문서 ID: ICOPAY-CHECKOUT-PREPARE-001 · v1.2
+
+필수(빼면 BUYER_* 실패, 빈 문자열도 누락):
+  표 1.1  compId 또는 merchantId, orderNo, amount, buyer
+  표 1.2  buyer.email, buyer.phone(로컬, +국가번호 제거), buyer.countryIso2(대문자 2자)
+  오류    BUYER_EMAIL_REQUIRED / BUYER_PHONE_REQUIRED / BUYER_COUNTRY_REQUIRED
+  응답    messages: KOR ENG JPN CHN THA (ICOPAY 오류)
 
 HTML (한국어): {BASE}/merchant-api-samples/docs/unified-checkout-api-parameters.ko.html
 English:       {BASE}/merchant-api-samples/docs/unified-checkout-api-parameters.html
@@ -10,4 +16,3 @@ English:       {BASE}/merchant-api-samples/docs/unified-checkout-api-parameters.
 연동 흐름:     {BASE}/merchant-api-samples/docs/unified-checkout-api-flow.ko.html
 
 Kit JSON key: merchantCheckoutApiParameterSpec
-

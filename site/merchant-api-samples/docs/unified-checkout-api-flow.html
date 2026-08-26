@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -39,6 +39,9 @@
     <tr><th>Embed script</th><td><code>{publicApiBaseUrl}/v1/embed-checkout/{compId}</code></td></tr>
   </table>
   <p>Example <code>compId</code>: <code>6000000028</code> (assigned per merchant at HQ deployment).</p>
+  <p><strong>Required on prepare:</strong> <code>compId</code> (or merchantId), <code>orderNo</code>, <code>amount</code>,
+    <code>buyer.email</code>, <code>buyer.phone</code>, <code>buyer.countryIso2</code>.
+    Omission returns ICOPAY <code>BUYER_*</code> (5 languages). Empty strings count as missing.</p>
 
   <h2>2. Endpoint summary</h2>
   <table>

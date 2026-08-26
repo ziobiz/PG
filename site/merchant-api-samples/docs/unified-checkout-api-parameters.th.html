@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="th">
 <head>
   <meta charset="UTF-8">
@@ -17,16 +17,28 @@
     pre { background: #f8f8f8; border: 1px solid #ddd; padding: 0.75rem; overflow: auto; font-size: 0.82rem; }
     a { color: #0d6efd; }
     .lang-nav { font-size: 0.92rem; margin-bottom: 1rem; padding: 0.5rem 0; border-bottom: 1px solid #eee; }
+    .req-box { background:#fff5f5; border:2px solid #c92a2a; padding:0.85rem 1rem; margin:1.1rem 0; border-radius:6px; }
+    .req-box h3 { margin:0 0 0.45rem; color:#c92a2a; font-size:1.02rem; }
+    .req-box ul { margin:0.25rem 0 0.5rem; padding-left:1.2rem; }
+    .req-box li { margin:0.2rem 0; }
   </style>
 </head>
 <body>
   <p class="lang-nav"><strong>ภาษา:</strong>
     <a href="unified-checkout-api-parameters.html">English</a> · <a href="unified-checkout-api-parameters.ko.html">한국어</a> · <a href="unified-checkout-api-parameters.ja.html">日本語</a> · <a href="unified-checkout-api-parameters.ch.html">中文</a> · <strong>ไทย</strong></p>
   <h1>ตาราง 1.1 · ICOPAY Unified Checkout Prepare API พารามิเตอร์คำขอ</h1>
-  <p class="meta">รหัสเอกสาร: ICOPAY-CHECKOUT-PREPARE-001 · v1.1 · Checkout แบบ inline รวมศูนย์ไม่ผูก PG (ICOPAY รวมศูนย์)</p>
+  <p class="meta">รหัสเอกสาร: ICOPAY-CHECKOUT-PREPARE-001 · v1.2 · Checkout แบบ inline รวมศูนย์ไม่ผูก PG (ICOPAY รวมศูนย์)</p>
   <p><strong>Endpoint:</strong> <code>POST {publicApiBaseUrl}/api/middleware/v1/merchant/checkout/prepare</code></p>
   <p><strong>Headers:</strong> <code>Content-Type: application/json</code>, <code>Accept: application/json</code>,
     <code>X-Icopay-Merchant-Broker-Secret</code> (จำเป็นเมื่อบังคับใช้ broker secret)</p>
+  <div class="req-box">
+    <h3>ค่าจำเป็น — หากขาด prepare จะล้มเหลวด้วย ICOPAY <code>BUYER_*</code> (ไม่ใช่ข้อความภาษาอังกฤษจากผู้ให้บริการ)</h3>
+    <ul>
+      <li>ตาราง 1.1: <code>compId</code> หรือ <code>merchantId</code>, <code>orderNo</code>, <code>amount</code>, <code>buyer</code></li>
+      <li>ตาราง 1.2: <code>buyer.email</code>, <code>buyer.phone</code> (เลขในประเทศ ตัด + รหัสประเทศ), <code>buyer.countryIso2</code> (ตัวพิมพ์ใหญ่ 2 ตัว เช่น KR, TH, JP)</li>
+    </ul>
+    <p>ค่าว่างถือว่าขาด การตอบมี <code>errorCode</code>, <code>messageKey</code> และ <code>messages</code> 5 ภาษา (KOR/ENG/JPN/CHN/THA)</p>
+  </div>
 
   <h2>ตาราง 1.1 — Request body (JSON root)</h2>
   <table>
@@ -54,16 +66,18 @@
       <tr><th>ลำดับ</th><th>รายการ</th><th>ประเภท</th><th>ความยาว</th><th>บังคับ</th><th>คำอธิบาย</th><th>หมายเหตุ</th></tr>
     </thead>
     <tbody>
-      <tr><td>1</td><td>email</td><td>String</td><td>254</td><td class="m">M</td><td>อีเมลผู้ซื้อ</td><td>บังคับ ICOPAY</td></tr>
-      <tr><td>2</td><td>phone</td><td>String</td><td>32</td><td class="m">M</td><td>เบอร์โทรท้องถิ่น</td><td>ตัดรหัสประเทศ + บังคับ ICOPAY</td></tr>
-      <tr><td>3</td><td>countryIso2</td><td>String</td><td>2</td><td class="m">M</td><td>ประเทศ ISO 3166-1 alpha-2</td><td>เช่น KR, US, TH — ตัวพิมพ์ใหญ่ บังคับ ICOPAY</td></tr>
+      <tr><td>1</td><td>email</td><td>String</td><td>254</td><td class="m">M</td><td>อีเมลผู้ซื้อ</td><td>จำเป็น หากขาด → <code>BUYER_EMAIL_REQUIRED</code></td></tr>
+      <tr><td>2</td><td>phone</td><td>String</td><td>32</td><td class="m">M</td><td>เบอร์โทรท้องถิ่น</td><td>ตัดรหัสประเทศ + หากขาด → <code>BUYER_PHONE_REQUIRED</code></td></tr>
+      <tr><td>3</td><td>countryIso2</td><td>String</td><td>2</td><td class="m">M</td><td>ประเทศ ISO 3166-1 alpha-2</td><td>เช่น KR, US, TH — ตัวพิมพ์ใหญ่ หากขาด → <code>BUYER_COUNTRY_REQUIRED</code></td></tr>
       <tr><td>4</td><td>address</td><td>String</td><td>200</td><td>O</td><td>ที่อยู่จัดส่งบรรทัด 1</td><td>prefill ทางเลือก</td></tr>
       <tr><td>5</td><td>address2</td><td>String</td><td>200</td><td>O</td><td>ที่อยู่จัดส่งบรรทัด 2</td><td></td></tr>
       <tr><td>6</td><td>city</td><td>String</td><td>100</td><td>O</td><td>เมือง</td><td></td></tr>
       <tr><td>7</td><td>state</td><td>String</td><td>100</td><td>O</td><td>รัฐ/จังหวัด</td><td></td></tr>
       <tr><td>8</td><td>postcode</td><td>String</td><td>20</td><td>O</td><td>รหัสไปรษณีย์</td><td>ชื่อทางเลือก: zip</td></tr>
-      <tr><td>9</td><td>shippingAddress</td><td>String</td><td>200</td><td>O</td><td>ที่อยู่จัดส่งแยก</td><td>เมื่อต่างจาก address</td></tr>
-      <tr><td>10</td><td>shippingPhone</td><td>String</td><td>32</td><td>O</td><td>เบอร์จัดส่งแยก</td><td></td></tr>
+      <tr><td>9</td><td>firstName</td><td>String</td><td>80</td><td>O</td><td>ชื่อ (prefill ผู้ถือบัตร)</td><td>แนะนำ หน้าชำระจำเป็น</td></tr>
+      <tr><td>10</td><td>lastName</td><td>String</td><td>80</td><td>O</td><td>นามสกุล (prefill ผู้ถือบัตร)</td><td>แนะนำ หน้าชำระจำเป็น</td></tr>
+      <tr><td>11</td><td>shippingAddress</td><td>String</td><td>200</td><td>O</td><td>ที่อยู่จัดส่งแยก</td><td>เมื่อต่างจาก address</td></tr>
+      <tr><td>12</td><td>shippingPhone</td><td>String</td><td>32</td><td>O</td><td>เบอร์จัดส่งแยก</td><td></td></tr>
     </tbody>
   </table>
 
@@ -81,6 +95,18 @@
     "countryIso2": "KR"
   }
 }</pre>
+
+  <h2>errorCode (ค่าจำเป็น)</h2>
+  <table>
+    <thead><tr><th>errorCode</th><th>ความหมาย</th></tr></thead>
+    <tbody>
+      <tr><td><code>BUYER_REQUIRED</code></td><td>ขาด buyer หรือขาด email/phone/countryIso2 (รวมค่าว่าง)</td></tr>
+      <tr><td><code>BUYER_EMAIL_REQUIRED</code></td><td>ขาด <code>buyer.email</code></td></tr>
+      <tr><td><code>BUYER_PHONE_REQUIRED</code></td><td>ขาด <code>buyer.phone</code></td></tr>
+      <tr><td><code>BUYER_COUNTRY_REQUIRED</code></td><td>ขาดหรือไม่ใช่ <code>buyer.countryIso2</code></td></tr>
+      <tr><td><code>BUYER_JSON_INVALID</code></td><td>รูปแบบ JSON ของ buyer ไม่ถูกต้อง</td></tr>
+    </tbody>
+  </table>
 
   <h2>รูปแบบการเชื่อมต่อ</h2>
   <ul>

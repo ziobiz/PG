@@ -24,7 +24,7 @@ public final class MerchantCheckoutApiParameterSpec {
         String base = publicApiBase != null ? publicApiBase.trim() : "";
         String cid = compId != null ? compId.trim() : "";
         Map<String, Object> spec = new LinkedHashMap<>();
-        spec.put("specVersion", "1.1");
+        spec.put("specVersion", "1.3");
         spec.put("specId", "ICOPAY-CHECKOUT-PREPARE-001");
         putTextFields(spec, "title", new Bundle(
                 "표 1.1: ICOPAY 통합 Checkout Prepare API 요청 파라미터",
@@ -74,12 +74,41 @@ public final class MerchantCheckoutApiParameterSpec {
         spec.put("prepareResponseFields", prepareResponseFields());
         spec.put("errorCodes", commonErrorCodes());
         spec.put("integrationModes", List.of("JSON", "PHP"));
+        spec.put("requiredCallout", textMap(new Bundle(
+                "prepare 필수(M): compId 또는 merchantId, orderNo, amount, buyer. "
+                        + "buyer 하위 필수: email, phone, countryIso2(대문자 2자). 빈 문자열은 누락과 같습니다. "
+                        + "빠지면 errorCode BUYER_REQUIRED / BUYER_EMAIL_REQUIRED / BUYER_PHONE_REQUIRED / BUYER_COUNTRY_REQUIRED "
+                        + "(5개국어 messages). 결제대행사 영문 오류가 아니라 ICOPAY 오류입니다.",
+                "Required (M) on prepare: compId or merchantId, orderNo, amount, buyer. "
+                        + "Required under buyer: email, phone, countryIso2 (2 uppercase letters). Empty strings count as missing. "
+                        + "Omission returns BUYER_REQUIRED / BUYER_EMAIL_REQUIRED / BUYER_PHONE_REQUIRED / BUYER_COUNTRY_REQUIRED "
+                        + "(messages in 5 languages). This is an ICOPAY error, not a third-party English message.",
+                "prepare 必須(M): compId または merchantId、orderNo、amount、buyer。"
+                        + "buyer 配下必須: email、phone、countryIso2（大文字2文字）。空文字は欠落と同じ。"
+                        + "欠けると BUYER_REQUIRED / BUYER_EMAIL_REQUIRED / BUYER_PHONE_REQUIRED / BUYER_COUNTRY_REQUIRED"
+                        + "（5言語 messages）。決済代行の英文エラーではなく ICOPAY エラーです。",
+                "prepare 必填(M)：compId 或 merchantId、orderNo、amount、buyer。"
+                        + "buyer 子字段必填：email、phone、countryIso2（两位大写）。空字符串视为缺失。"
+                        + "缺省返回 BUYER_REQUIRED / BUYER_EMAIL_REQUIRED / BUYER_PHONE_REQUIRED / BUYER_COUNTRY_REQUIRED"
+                        + "（5 语 messages）。这是 ICOPAY 错误，不是第三方英文报错。",
+                "จำเป็น(M) ใน prepare: compId หรือ merchantId, orderNo, amount, buyer "
+                        + "ภายใต้ buyer: email, phone, countryIso2 (ตัวพิมพ์ใหญ่ 2 ตัว) ค่าว่างถือว่าขาด "
+                        + "หากขาดได้ BUYER_REQUIRED / BUYER_EMAIL_REQUIRED / BUYER_PHONE_REQUIRED / BUYER_COUNTRY_REQUIRED "
+                        + "(messages 5 ภาษา) เป็นข้อผิดพลาด ICOPAY ไม่ใช่ข้อความภาษาอังกฤษจากผู้ให้บริการ"
+        )));
         spec.put("notes", notes());
         return spec;
     }
 
     private static List<Map<String, Object>> notes() {
         List<Map<String, Object>> rows = new ArrayList<>();
+        rows.add(textMap(new Bundle(
+                "필수값 누락은 ICOPAY errorCode(BUYER_*)로 실패합니다. 빈 문자열·공백만 있는 값도 누락입니다.",
+                "Missing required fields fail with ICOPAY errorCode (BUYER_*). Empty or whitespace-only values count as missing.",
+                "必須値の欠落は ICOPAY errorCode(BUYER_*) で失敗します。空文字・空白のみも欠落です。",
+                "缺少必填项会以 ICOPAY errorCode（BUYER_*）失败。空字符串或仅空白也视为缺失。",
+                "ถ้าขาดค่าจำเป็น จะล้มเหลวด้วย errorCode ICOPAY (BUYER_*) ค่าว่างหรือช่องว่างอย่างเดียวถือว่าขาด"
+        )));
         rows.add(textMap(new Bundle(
                 "가맹 서버에서 prepare 호출 — 브라우저·앱에 브로커 시크릿 노출 금지.",
                 "Call prepare from the merchant server — never expose broker secret in browsers or apps.",
@@ -88,16 +117,21 @@ public final class MerchantCheckoutApiParameterSpec {
                 "เรียก prepare จากเซิร์ฟเวอร์ร้าน — ห้ามเปิด broker secret ในเบราว์เซอร์หรือแอป"
         )));
         rows.add(textMap(new Bundle(
-                "표 1.1의 buyer 객체 하위 필드 email·phone·countryIso2 는 ICOPAY prepare 필수(M). "
-                        + "서버 직접 sale API 사용 시 payEmailAddress·payTelephone·payCountryIsoCode2 로 동일 요건.",
+                "표 1.2의 buyer.email·phone·countryIso2 는 ICOPAY prepare 필수(M). "
+                        + "결제창에서 카드 결제 시 동일 값은 payEmailAddress·payTelephone·payCountryIsoCode2 로 전달됩니다. "
+                        + "카드 명의자 성명(이름·성)은 ICOPAY 결제창에서 구매자가 입력합니다(필수).",
                 "Under buyer (Table 1.2), email, phone, and countryIso2 are required (M) for ICOPAY prepare. "
-                        + "For direct sale API, use payEmailAddress, payTelephone, payCountryIsoCode2 with the same rules.",
-                "表 1.1 の buyer 配下の email・phone・countryIso2 は ICOPAY prepare 必須(M)。"
-                        + "直接 sale API では payEmailAddress・payTelephone・payCountryIsoCode2 が同要件。",
-                "表 1.1 的 buyer 子字段 email、phone、countryIso2 为 ICOPAY prepare 必填(M)。"
-                        + "直接 sale API 对应 payEmailAddress、payTelephone、payCountryIsoCode2。",
+                        + "On the checkout page the same values are sent as payEmailAddress, payTelephone, payCountryIsoCode2. "
+                        + "Cardholder first/last name is collected on the ICOPAY checkout page (required there).",
+                "表 1.2 の buyer.email・phone・countryIso2 は ICOPAY prepare 必須(M)。"
+                        + "決済画面では payEmailAddress・payTelephone・payCountryIsoCode2 として送られます。"
+                        + "カード名義（名・姓）は ICOPAY 決済画面で購入者が入力します（必須）。",
+                "表 1.2 的 buyer.email、phone、countryIso2 为 ICOPAY prepare 必填(M)。"
+                        + "支付页以 payEmailAddress、payTelephone、payCountryIsoCode2 传递。"
+                        + "持卡人姓名在 ICOPAY 支付页由买家填写（该页必填）。",
                 "ภายใต้ buyer (ตาราง 1.2) email phone countryIso2 จำเป็น(M) สำหรับ ICOPAY prepare "
-                        + "sale API ตรง ใช้ payEmailAddress payTelephone payCountryIsoCode2"
+                        + "หน้าชำระส่งเป็น payEmailAddress payTelephone payCountryIsoCode2 "
+                        + "ชื่อ-นามสกุลผู้ถือบัตรกรอกที่หน้าชำระ ICOPAY (จำเป็นที่หน้านั้น)"
         )));
         rows.add(textMap(new Bundle(
                 "orderNo 는 영숫자·하이픈(-)·언더스코어(_) 만, 최대 20자 권장(모든 결제망 호환).",
@@ -119,6 +153,18 @@ public final class MerchantCheckoutApiParameterSpec {
                 "連携は ICOPAY 統合 checkout パスのみ使用。決済代行会社・MID 変更は ICOPAY が処理し、加盟店の追加開発は不要。",
                 "对接仅使用 ICOPAY 统一 checkout 路径。支付机构·MID 变更由 ICOPAY 处理，商户无需额外开发。",
                 "ใช้เฉพาะเส้นทาง ICOPAY unified checkout การเปลี่ยนผู้ให้บริการ/MID ICOPAY จัดการให้ ร้านไม่ต้องพัฒนาเพิ่ม"
+        )));
+        rows.add(textMap(new Bundle(
+                "취소·환불 요청 API는 가맹 Checkout에 없습니다. ICOPAY 결제내역에서 자동환불·강제환불로 처리합니다. "
+                        + "처리 후 등록한 가맹 Webhook으로 상태가 통보되며, GET status 의 paymentStatus 는 PAID·REFUNDED·CHARGEBACK 등을 반환합니다.",
+                "There is no merchant Checkout cancel/refund request API. ICOPAY pay-list auto/force refund handles it. "
+                        + "After processing, the registered merchant webhook is notified; GET status paymentStatus returns PAID, REFUNDED, CHARGEBACK, etc.",
+                "取消・返金リクエスト API は加盟 Checkout にありません。ICOPAY 決済一覧の自動・強制返金で処理します。"
+                        + "処理後は登録した加盟 Webhook に状態が通知され、GET status の paymentStatus は PAID・REFUNDED・CHARGEBACK 等を返します。",
+                "商户 Checkout 无取消/退款请求 API。由 ICOPAY 支付明细的自动/强制退款处理。"
+                        + "处理后通过已登记的商户 Webhook 通知状态；GET status 的 paymentStatus 返回 PAID、REFUNDED、CHARGEBACK 等。",
+                "API ขอยกเลิก/คืนเงินไม่มีใน Checkout ของร้าน ICOPAY รายการชำระ ใช้คืนเงินอัตโนมัติ/บังคับ "
+                        + "หลังประมวลผลจะแจ้ง Webhook ที่ลงทะเบียน GET status paymentStatus คืน PAID REFUNDED CHARGEBACK เป็นต้น"
         )));
         return rows;
     }
@@ -212,11 +258,11 @@ public final class MerchantCheckoutApiParameterSpec {
         rows.add(param(9, "buyer", "buyer", "Object", null, "M",
                 new Bundle("구매자 연락처·배송 prefill", "Buyer contact & optional shipping prefill",
                         "購入者連絡先・配送 prefill", "买家联系信息与配送预填", "ข้อมูลผู้ซื้อและ prefill จัดส่ง"),
-                new Bundle("표 1.2 필수 하위: email·phone·countryIso2 (ICOPAY). buyerPrefill 동일 구조",
-                        "Table 1.2 required: email, phone, countryIso2 (ICOPAY). buyerPrefill same shape",
-                        "表 1.2 必須: email・phone・countryIso2 (ICOPAY)。buyerPrefill も同構造",
-                        "表 1.2 必填子字段：email、phone、countryIso2（ICOPAY）。buyerPrefill 结构相同",
-                        "ตาราง 1.2 บังคับ: email phone countryIso2 (ICOPAY) buyerPrefill เหมือนกัน")));
+                new Bundle("표 1.2 필수 하위: email·phone·countryIso2 (ICOPAY, 빈 값 불가). buyerPrefill 동일 구조",
+                        "Table 1.2 required: email, phone, countryIso2 (ICOPAY; empty not allowed). buyerPrefill same shape",
+                        "表 1.2 必須: email・phone・countryIso2 (ICOPAY、空不可)。buyerPrefill も同構造",
+                        "表 1.2 必填子字段：email、phone、countryIso2（ICOPAY，不允许空值）。buyerPrefill 结构相同",
+                        "ตาราง 1.2 บังคับ: email phone countryIso2 (ICOPAY ค่าว่างใช้ไม่ได้) buyerPrefill เหมือนกัน")));
         return rows;
     }
 
@@ -224,27 +270,27 @@ public final class MerchantCheckoutApiParameterSpec {
         List<Map<String, Object>> rows = new ArrayList<>();
         rows.add(param(1, "email", "buyer.email", "String", 254, "M",
                 new Bundle("구매자 이메일", "Buyer email", "購入者メール", "买家邮箱", "อีเมลผู้ซื้อ"),
-                new Bundle("결제·영수증·3DS 연락용. ICOPAY 필수. sale: payEmailAddress",
-                        "Payment, receipt, 3DS contact. Required for ICOPAY. sale: payEmailAddress",
-                        "決済・領収・3DS 連絡用。ICOPAY 必須。sale: payEmailAddress",
-                        "支付、收据、3DS 联系。ICOPAY 必填。sale: payEmailAddress",
-                        "ติดต่อชำระ/ใบเสร็จ/3DS จำเป็น ICOPAY sale: payEmailAddress")));
+                new Bundle("결제·영수증·3DS 연락용. ICOPAY 필수(M). 누락 시 BUYER_EMAIL_REQUIRED. sale: payEmailAddress",
+                        "Payment, receipt, 3DS contact. Required (M) for ICOPAY. Missing → BUYER_EMAIL_REQUIRED. sale: payEmailAddress",
+                        "決済・領収・3DS 連絡用。ICOPAY 必須(M)。欠落時 BUYER_EMAIL_REQUIRED。sale: payEmailAddress",
+                        "支付、收据、3DS 联系。ICOPAY 必填(M)。缺省 → BUYER_EMAIL_REQUIRED。sale: payEmailAddress",
+                        "ติดต่อชำระ/ใบเสร็จ/3DS จำเป็น(M) ICOPAY หากขาด BUYER_EMAIL_REQUIRED sale: payEmailAddress")));
         rows.add(param(2, "phone", "buyer.phone", "String", 32, "M",
                 new Bundle("구매자 전화(로컬 번호)", "Buyer local phone",
                         "購入者電話（国内番号）", "买家电话（本地号）", "โทรศัพท์ผู้ซื้อ (เลขในประเทศ)"),
-                new Bundle("국가번호 + 제거·로컬만. ICOPAY 필수. sale: payTelephone",
-                        "Strip country code +; local digits only. Required for ICOPAY. sale: payTelephone",
-                        "国番号 + 除去・国内番号のみ。ICOPAY 必須。sale: payTelephone",
-                        "去掉国家码 +，仅本地号码。ICOPAY 必填。sale: payTelephone",
-                        "ตัดรหัสประเทศ + เลขในประเทศ จำเป็น ICOPAY sale: payTelephone")));
+                new Bundle("국가번호 + 제거·로컬만. ICOPAY 필수(M). 누락 시 BUYER_PHONE_REQUIRED. sale: payTelephone",
+                        "Strip country code +; local digits only. Required (M) for ICOPAY. Missing → BUYER_PHONE_REQUIRED. sale: payTelephone",
+                        "国番号 + 除去・国内番号のみ。ICOPAY 必須(M)。欠落時 BUYER_PHONE_REQUIRED。sale: payTelephone",
+                        "去掉国家码 +，仅本地号码。ICOPAY 必填(M)。缺省 → BUYER_PHONE_REQUIRED。sale: payTelephone",
+                        "ตัดรหัสประเทศ + เลขในประเทศ จำเป็น(M) ICOPAY หากขาด BUYER_PHONE_REQUIRED sale: payTelephone")));
         rows.add(param(3, "countryIso2", "buyer.countryIso2", "String", 2, "M",
                 new Bundle("구매자 국가 ISO2", "Buyer country ISO 3166-1 alpha-2",
                         "購入者国 ISO2", "买家国家 ISO2", "ประเทศผู้ซื้อ ISO2"),
-                new Bundle("예: KR, US, TH. 대문자 2자. ICOPAY 필수. sale: payCountryIsoCode2",
-                        "e.g. KR, US, TH. Uppercase ISO2. Required for ICOPAY. sale: payCountryIsoCode2",
-                        "例: KR, US, TH。大文字2文字。ICOPAY 必須。sale: payCountryIsoCode2",
-                        "例：KR、US、TH。两位大写。ICOPAY 必填。sale: payCountryIsoCode2",
-                        "เช่น KR US TH ตัวพิมพ์ใหญ่ จำเป็น ICOPAY sale: payCountryIsoCode2")));
+                new Bundle("예: KR, US, TH. 대문자 2자. ICOPAY 필수(M). 누락·형식 오류 시 BUYER_COUNTRY_REQUIRED. sale: payCountryIsoCode2",
+                        "e.g. KR, US, TH. Uppercase ISO2. Required (M) for ICOPAY. Missing/invalid → BUYER_COUNTRY_REQUIRED. sale: payCountryIsoCode2",
+                        "例: KR, US, TH。大文字2文字。ICOPAY 必須(M)。欠落・形式エラー時 BUYER_COUNTRY_REQUIRED。sale: payCountryIsoCode2",
+                        "例：KR、US、TH。两位大写。ICOPAY 必填(M)。缺省/格式错误 → BUYER_COUNTRY_REQUIRED。sale: payCountryIsoCode2",
+                        "เช่น KR US TH ตัวพิมพ์ใหญ่ จำเป็น(M) ICOPAY หากขาด/รูปแบบผิด BUYER_COUNTRY_REQUIRED sale: payCountryIsoCode2")));
         rows.add(param(4, "address", "buyer.address", "String", 200, "O",
                 new Bundle("배송 주소 1행(선택 prefill)", "Shipping address line 1 (optional)",
                         "配送住所1行（任意 prefill）", "配送地址第 1 行（可选）", "ที่อยู่จัดส่งบรรทัด 1 (ไม่บังคับ)"),
@@ -262,12 +308,28 @@ public final class MerchantCheckoutApiParameterSpec {
         rows.add(param(8, "postcode", "buyer.postcode", "String", 20, "O",
                 new Bundle("우편번호", "Postal / ZIP code", "郵便番号", "邮编", "รหัสไปรษณีย์"),
                 new Bundle("zip 별칭", "zip alias", "zip 別名", "zip 别名", "ชื่อ zip")));
-        rows.add(param(9, "shippingAddress", "buyer.shippingAddress", "String", 200, "O",
+        rows.add(param(9, "firstName", "buyer.firstName", "String", 80, "O",
+                new Bundle("구매자 이름(결제창 카드 명의 미리채움)", "Buyer given name (checkout cardholder prefill)",
+                        "購入者の名（決済画面カード名義 prefill）", "买家名（支付页持卡人预填）", "ชื่อผู้ซื้อ (prefill ชื่อผู้ถือบัตร)"),
+                new Bundle("권장. 결제창에서 카드 명의자 이름은 구매자 입력 필수",
+                        "Recommended. Cardholder first name is required on the ICOPAY checkout page",
+                        "推奨。カード名義の名は ICOPAY 決済画面で購入者入力必須",
+                        "建议填写。持卡人名在 ICOPAY 支付页由买家必填",
+                        "แนะนำ ชื่อผู้ถือบัตรกรอกที่หน้าชำระ ICOPAY (จำเป็น)")));
+        rows.add(param(10, "lastName", "buyer.lastName", "String", 80, "O",
+                new Bundle("구매자 성(결제창 카드 명의 미리채움)", "Buyer family name (checkout cardholder prefill)",
+                        "購入者の姓（決済画面カード名義 prefill）", "买家姓（支付页持卡人预填）", "นามสกุลผู้ซื้อ (prefill ชื่อผู้ถือบัตร)"),
+                new Bundle("권장. 결제창에서 카드 명의자 성은 구매자 입력 필수",
+                        "Recommended. Cardholder last name is required on the ICOPAY checkout page",
+                        "推奨。カード名義の姓は ICOPAY 決済画面で購入者入力必須",
+                        "建议填写。持卡人姓在 ICOPAY 支付页由买家必填",
+                        "แนะนำ นามสกุลผู้ถือบัตรกรอกที่หน้าชำระ ICOPAY (จำเป็น)")));
+        rows.add(param(11, "shippingAddress", "buyer.shippingAddress", "String", 200, "O",
                 new Bundle("별도 배송지 주소(선택)", "Separate shipping street (optional)",
                         "別配送先住所（任意）", "单独配送地址（可选）", "ที่อยู่จัดส่งแยก (ไม่บังคับ)"),
                 new Bundle("address 와 다를 때", "When different from address",
                         "address と異なる場合", "与 address 不同时", "เมื่อต่างจาก address")));
-        rows.add(param(10, "shippingPhone", "buyer.shippingPhone", "String", 32, "O",
+        rows.add(param(12, "shippingPhone", "buyer.shippingPhone", "String", 32, "O",
                 new Bundle("별도 배송지 전화(선택)", "Separate shipping phone (optional)",
                         "別配送先電話（任意）", "单独配送电话（可选）", "โทรจัดส่งแยก (ไม่บังคับ)"),
                 emptyRemark()));
@@ -321,11 +383,28 @@ public final class MerchantCheckoutApiParameterSpec {
     private static List<Map<String, Object>> commonErrorCodes() {
         List<Map<String, Object>> rows = new ArrayList<>();
         rows.add(errorCode("BUYER_REQUIRED", new Bundle(
-                "buyer.email·phone·countryIso2 누락",
-                "Missing buyer.email, phone, or countryIso2",
-                "buyer.email・phone・countryIso2 不足",
-                "缺少 buyer.email、phone 或 countryIso2",
-                "ขาด buyer.email phone หรือ countryIso2")));
+                "buyer 객체 누락 또는 이메일·전화·국가코드 중 하나 이상 없음(빈 문자열 포함)",
+                "buyer object missing, or email/phone/countryIso2 absent (including empty strings)",
+                "buyer オブジェクト欠落、または email・phone・countryIso2 のいずれか不足（空文字含む）",
+                "缺少 buyer 对象，或缺少 email/phone/countryIso2（含空字符串）",
+                "ขาดออบเจ็กต์ buyer หรือขาด email/phone/countryIso2 (รวมค่าว่าง)")));
+        rows.add(errorCode("BUYER_EMAIL_REQUIRED", new Bundle(
+                "buyer.email 누락", "Missing buyer.email", "buyer.email 不足", "缺少 buyer.email", "ขาด buyer.email")));
+        rows.add(errorCode("BUYER_PHONE_REQUIRED", new Bundle(
+                "buyer.phone 누락(로컬 번호, 국가번호 + 제거)",
+                "Missing buyer.phone (local digits; strip +country)",
+                "buyer.phone 不足（国内番号、国番号 + 除去）",
+                "缺少 buyer.phone（本地号，去掉 +国家码）",
+                "ขาด buyer.phone (เลขในประเทศ ตัด + รหัสประเทศ)")));
+        rows.add(errorCode("BUYER_COUNTRY_REQUIRED", new Bundle(
+                "buyer.countryIso2 누락 또는 ISO2(대문자 2자) 아님",
+                "Missing or invalid buyer.countryIso2 (must be 2-letter ISO2)",
+                "buyer.countryIso2 不足または ISO2（大文字2文字）ではない",
+                "缺少或无效的 buyer.countryIso2（须为两位 ISO2）",
+                "ขาดหรือไม่ใช่ buyer.countryIso2 (ISO2 2 ตัว)")));
+        rows.add(errorCode("BUYER_JSON_INVALID", new Bundle(
+                "buyer JSON 형식 오류", "Invalid buyer JSON", "buyer JSON 形式エラー",
+                "buyer JSON 格式错误", "รูปแบบ JSON ของ buyer ไม่ถูกต้อง")));
         rows.add(errorCode("BROKER_AUTH", new Bundle(
                 "브로커 시크릿 누락·불일치(403)",
                 "Broker secret missing or mismatch (403)",

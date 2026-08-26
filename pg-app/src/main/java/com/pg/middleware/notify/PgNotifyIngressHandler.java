@@ -94,16 +94,32 @@ public class PgNotifyIngressHandler {
 
     private static ResponseEntity<?> toResponse(NotifyReceiveOutcome out) {
         if (out.isRedirect()) {
-            return ResponseEntity.status(HttpStatus.SEE_OTHER)
-                    .location(URI.create(out.redirectLocation()))
-                    .build();
+            ResponseEntity.BodyBuilder redirect = ResponseEntity.status(HttpStatus.SEE_OTHER)
+                    .location(URI.create(out.redirectLocation()));
+            applyOutcomeHeaders(redirect, out);
+            return redirect.build();
         }
         String resp = out.body();
         MediaType mt = MediaType.TEXT_PLAIN;
         if (resp != null && resp.trim().startsWith("{")) {
             mt = MediaType.APPLICATION_JSON;
         }
-        return ResponseEntity.status(out.responseStatus()).contentType(mt).body(resp);
+        ResponseEntity.BodyBuilder ok = ResponseEntity.status(out.responseStatus()).contentType(mt);
+        applyOutcomeHeaders(ok, out);
+        return ok.body(resp);
+    }
+
+    /** NOTI ElementPay 가맹 매칭용 {@code X-Icopay-Comp-Id} 등. */
+    private static void applyOutcomeHeaders(ResponseEntity.BodyBuilder builder, NotifyReceiveOutcome out) {
+        if (out == null || out.responseHeaders() == null || out.responseHeaders().isEmpty()) {
+            return;
+        }
+        for (Map.Entry<String, String> e : out.responseHeaders().entrySet()) {
+            if (e.getKey() == null || e.getKey().isBlank() || e.getValue() == null || e.getValue().isBlank()) {
+                continue;
+            }
+            builder.header(e.getKey().trim(), e.getValue().trim());
+        }
     }
 
     private static String queryStringToFormBody(HttpServletRequest req) {

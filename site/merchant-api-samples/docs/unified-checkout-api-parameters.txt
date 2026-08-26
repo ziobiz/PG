@@ -1,9 +1,15 @@
-﻿ICOPAY Unified Checkout API — Request Parameters (Spec ICOPAY-CHECKOUT-PREPARE-001 v1.0)
+ICOPAY Unified Checkout API — Request Parameters (Spec ICOPAY-CHECKOUT-PREPARE-001 v1.2)
 ======================================================================================
 
 POST {publicApiBaseUrl}/api/middleware/v1/merchant/checkout/prepare
 Content-Type: application/json
 X-Icopay-Merchant-Broker-Secret: {brokerSecret}  (when enforce is on)
+
+REQUIRED — prepare fails with ICOPAY BUYER_* if omitted (empty string = missing)
+  Table 1.1: compId or merchantId, orderNo, amount, buyer
+  Table 1.2: buyer.email, buyer.phone (local digits; strip +country), buyer.countryIso2 (2 uppercase letters)
+  Field codes: BUYER_EMAIL_REQUIRED / BUYER_PHONE_REQUIRED / BUYER_COUNTRY_REQUIRED
+  Response messages: KOR / ENG / JPN / CHN / THA  (ICOPAY error, not a third-party English message)
 
 Table 1.1 — Request body
 No.  Parameter     Type     Len   M/O   Description                    Remark
@@ -19,11 +25,13 @@ No.  Parameter     Type     Len   M/O   Description                    Remark
 
 Table 1.2 — buyer object
 No.  Parameter          Type     Len   M/O   Remark
-1    email              String   254   M     Required by ICOPAY
-2    phone              String   32    M     Local number (no +country)
-3    countryIso2        String   2     M     ISO2 e.g. KR
+1    email              String   254   M     Required. Missing → BUYER_EMAIL_REQUIRED
+2    phone              String   32    M     Local number (no +country). Missing → BUYER_PHONE_REQUIRED
+3    countryIso2        String   2     M     ISO2 e.g. KR. Missing/invalid → BUYER_COUNTRY_REQUIRED
 4    address            String   200   O     Shipping prefill
-5-10 (optional shipping fields — see HTML/MD doc)
+9    firstName          String   80    O     Cardholder prefill (required on checkout page)
+10   lastName           String   80    O     Cardholder prefill (required on checkout page)
+5-12 optional shipping fields — see HTML/MD doc
 
 Kit JSON key: merchantCheckoutApiParameterSpec
 HTML (EN): {BASE}/merchant-api-samples/docs/unified-checkout-api-parameters.html
@@ -32,4 +40,3 @@ HTML (EN): {BASE}/merchant-api-samples/docs/unified-checkout-api-parameters.html
 中文:      {BASE}/merchant-api-samples/docs/unified-checkout-api-parameters.ch.html
 ไทย:       {BASE}/merchant-api-samples/docs/unified-checkout-api-parameters.th.html
 Kit:  merchantCheckoutApiParameterSpec (deployment kit JSON)
-

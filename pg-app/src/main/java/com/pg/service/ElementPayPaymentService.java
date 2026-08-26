@@ -15,9 +15,18 @@ import com.pg.repository.MerchantNotifyUrlRepository;
 import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgAgencyRepository;
+import com.pg.receipt.TransactionReceiptEmailService;
+import com.pg.splitpay.SplitPayPaymentHookService;
+import com.pg.urlpay.CheckoutFailI18n;
+import com.pg.urlpay.IcipayBuyerContactUtil;
 import com.pg.urlpay.PayerContextCapture;
+import com.pg.util.CountryCallingCode;
+import com.pg.util.ElementPayAdditionalParameters;
+import com.pg.util.ElementPayCardServiceAlias;
 import com.pg.util.ElementPayHashUtil;
 import com.pg.util.ElementPayInlineStatusUtil;
+import com.pg.util.ElementPayPaymentIdUtil;
+import com.pg.util.ElementPayRefundRejectMapper;
 import com.pg.util.PayPresaleRiskFilterCodes;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -28,6 +37,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
@@ -50,17 +60,15 @@ import java.util.Optional;
 
 /**
  * ElementPay Payment API — THB 전용 initPayment·getStatus.
- * <p><b>노티미들웨어(외부 NOTI) — ChillPay·Eximbay 와 동일:</b>
- * ElementPay 캐비net Webhook 은 NOTI 서버에 등록하고, NOTI 가
- * {@link com.pg.middleware.notify.PgNotifyIngressPaths#MIDDLEWARE_PREFIX} 경로
- * {@code …/ELEMENTPAY} 로 ICOPAY 에 전달합니다. {@code notifyUrl} 은 운영 등록용 안내 값입니다.
- * <p><b>가맹 비식별:</b> ElementPay API·웹훅에는 ICOPAY 집계 Merchant Key 만 사용하며,
- * {@code _merchantData}·{@code icopayCompId=} 등 가맹 업체코드는 PG 로 전송하지 않습니다.
- * 웹훅 {@code order} 와 내부 {@code pg_trnsctn} 으로 가맹을 복원합니다.
- * <p><b>브라우저 RESULT:</b> INLINE 결제는 ICOPAY 중립 checkout
- * ({@code /checkout/{compId}?elementpayReturn=…}) 로 복귀합니다.
- * 웹훅은 NOTI {@code /noti/elementpay} → ICOPAY ingress 를 유지합니다.
- * 가맹 쇼핑몰 도메인은 EP 에 넣지 않습니다.
+ * <p><b>노티미들웨어(외부 NOTI) — JPAY 와 동일 토폴로지:</b>
+ * ElementPay Cabinet Webhook 은 NOTI {@code /noti/elementpay}(고정 1개)에 등록하고, NOTI 가
+ * {@link com.pg.middleware.notify.PgNotifyIngressPaths#MIDDLEWARE_PREFIX}{@code …/ELEMENTPAY} 로 ICOPAY 에 전달합니다.
+ * <p><b>브라우저 RESULT:</b> {@code _successUrl}/{@code _rejectUrl}/{@code _waitingUrl} 은
+ * NOTI {@code /noti/result/elementpay?order=&compId=} 경유(가맹 resultUrl·Dealmai 릴레이). JPAY callback 슬롯과 동일 역할.
+ * <p><b>가맹 통보:</b> 웹훅 적재 또는 getStatus 동기 승인 후 {@link MerchantOutboundNotifyService} 로
+ * Background/Result/MIDDLEWARE(Dealmai 등)에 JPAY와 동일 JSON POST.
+ * getStatus 만으로 승인된 URL 결제는 {@link ElementPayNotiMiddlewareMirrorService} 가
+ * NOTI {@code /noti/elementpay} 에 pay 미러를 보내 노티로그·가맹 릴레이가 쌓이게 합니다.
  */
 @Service
 public class ElementPayPaymentService {
@@ -80,6 +88,11 @@ public class ElementPayPaymentService {
     private final ElementPaySaleRecordService elementPaySaleRecordService;
     private final PayPresaleRiskFilterService payPresaleRiskFilterService;
     private final MerchantChatbotProductService productService;
+    private final MerchantOutboundNotifyService merchantOutboundNotifyService;
+    private final SettlementCalcService settlementCalcService;
+    private final TransactionReceiptEmailService transactionReceiptEmailService;
+    private final SplitPayPaymentHookService splitPayPaymentHookService;
+    private final ElementPayNotiMiddlewareMirrorService elementPayNotiMiddlewareMirrorService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final RestTemplate restTemplate = new RestTemplate();
@@ -91,7 +104,12 @@ public class ElementPayPaymentService {
                                       HqNotifyEnvService hqNotifyEnvService,
                                       ElementPaySaleRecordService elementPaySaleRecordService,
                                       PayPresaleRiskFilterService payPresaleRiskFilterService,
-                                      MerchantChatbotProductService productService) {
+                                      MerchantChatbotProductService productService,
+                                      MerchantOutboundNotifyService merchantOutboundNotifyService,
+                                      SettlementCalcService settlementCalcService,
+                                      TransactionReceiptEmailService transactionReceiptEmailService,
+                                      SplitPayPaymentHookService splitPayPaymentHookService,
+                                      ElementPayNotiMiddlewareMirrorService elementPayNotiMiddlewareMirrorService) {
         this.pgAgencyRepository = pgAgencyRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
         this.orgUnitRepository = orgUnitRepository;
@@ -100,6 +118,11 @@ public class ElementPayPaymentService {
         this.elementPaySaleRecordService = elementPaySaleRecordService;
         this.payPresaleRiskFilterService = payPresaleRiskFilterService;
         this.productService = productService;
+        this.merchantOutboundNotifyService = merchantOutboundNotifyService;
+        this.settlementCalcService = settlementCalcService;
+        this.transactionReceiptEmailService = transactionReceiptEmailService;
+        this.splitPayPaymentHookService = splitPayPaymentHookService;
+        this.elementPayNotiMiddlewareMirrorService = elementPayNotiMiddlewareMirrorService;
     }
 
     public boolean hasOperationalWebBinding(Long orgUnitId) {
@@ -147,6 +170,11 @@ public class ElementPayPaymentService {
             return fail("ElementPay는 THB(태국 바트)만 지원합니다.", "ELEMENTPAY_THB_ONLY");
         }
 
+        Map<String, Object> buyerFail = IcipayBuyerContactUtil.failMapIfSaleContactMissing(body);
+        if (buyerFail != null) {
+            return CheckoutFailI18n.checkoutContactRequired();
+        }
+
         String paymentMethod = str(body.get("paymentMethod"));
         if (paymentMethod.isBlank()) {
             paymentMethod = "CARD";
@@ -160,11 +188,11 @@ public class ElementPayPaymentService {
         if (pan.isBlank()) {
             return fail("카드번호가 필요합니다. INLINE 결제는 카드 정보가 필수입니다.", "ELEMENTPAY_CARD_REQUIRED");
         }
-        String serviceAlias = cred.serviceAliasForMethod(paymentMethod);
-        if (serviceAlias == null || serviceAlias.isBlank() || "card".equalsIgnoreCase(serviceAlias)) {
-            /* EP THB 샌드박스 실제 카드 alias 는 kCards (getMethods). 레거시 기본값 card 보정 */
-            serviceAlias = "kCards";
-        }
+        String serviceAlias = ElementPayCardServiceAlias.resolveConfigured(
+                cred.serviceAliasForMethod(paymentMethod), cred.sandbox());
+        CardMethodCatalog catalog = loadCardMethodCatalog(agency, cred, serviceAlias);
+        serviceAlias = catalog.serviceAlias();
+        List<String> methodKeys = catalog.attrKeys();
 
         Optional<PayPresaleRiskFilterService.PresaleRiskBlock> presaleRisk =
                 payPresaleRiskFilterService.evaluate(orgUnitId, compCode, PgVendor.ELEMENTPAY, body);
@@ -184,39 +212,79 @@ public class ElementPayPaymentService {
         String notifyBase = PgNotifyIngressPaths.buildIngressBase(publicBase, ingressToken) + "/ELEMENTPAY";
 
         String amountPlain = formatAmount(amount);
-        String successReturn = resolveIcopayCheckoutReturnUrl(publicBase, compCode, orderNo, "success");
-        String rejectReturn = resolveIcopayCheckoutReturnUrl(publicBase, compCode, orderNo, "reject");
-        String waitingReturn = resolveIcopayCheckoutReturnUrl(publicBase, compCode, orderNo, "waiting");
+        /* JPAY callback 슬롯과 동일: 브라우저는 NOTI Result 입구 경유 → 가맹 resultUrl·Dealmai */
+        String browserReturn = resolveElementPayBrowserReturnUrl(orgUnitId, orderNo, compCode);
+        if (browserReturn == null || browserReturn.isBlank()) {
+            browserReturn = resolveIcopayCheckoutReturnUrl(publicBase, compCode, orderNo, "success");
+        }
+        String successReturn = browserReturn;
+        String rejectReturn = browserReturn;
+        String waitingReturn = browserReturn;
 
-        JsonNode resp = postInitPayment(agency, cred, serviceAlias, amountPlain, orderNo,
-                successReturn, rejectReturn, waitingReturn);
+        Map<String, String> canonical = ElementPayAdditionalParameters.build(body, clientIp, combineBuyerPhone(body));
+        Map<String, String> extra = extrasForInit(canonical, methodKeys);
+        log.info("ElementPay init attrs service={} methodKeys={} extraKeys={} ipHint={}",
+                serviceAlias, methodKeys, extra.keySet(), extra.get("ip"));
+
+        JsonNode resp = initPaymentTryingModes(agency, cred, serviceAlias, amountPlain, orderNo,
+                successReturn, rejectReturn, waitingReturn, extra);
         if (resp == null) {
             return fail("ElementPay 결제 초기화에 실패했습니다.", "ELEMENTPAY_INIT_FAILED");
         }
 
         if (resp.has("error")) {
-            String msg = resp.path("error").path("message").asText("ElementPay error");
-            String code = resp.path("error").path("code").asText("ERROR");
+            String msg = extractEpErrorMessage(resp);
+            if (isMissingBuyerAttribute(msg)) {
+                log.warn("ElementPay missed required after attrs keys={} msg={}", extra.keySet(), msg);
+                return CheckoutFailI18n.cardPathFailed();
+            }
+            String code = resp.path("error").isObject()
+                    ? resp.path("error").path("code").asText("ERROR")
+                    : "ERROR";
             if (msg != null && msg.toLowerCase(Locale.ROOT).contains("wrong signature")) {
                 return fail(
                         "ElementPay 서명 검증 실패(Wrong signature). Secret Key·Merchant Key·샌드박스 여부 및 Result URL 서명 인코딩을 확인하세요.",
                         "ELEMENTPAY_WRONG_SIGNATURE");
             }
-            if (msg != null && msg.toLowerCase(Locale.ROOT).contains("payment method is disabled")) {
+            if (isMerchantCommissionUnset(msg)) {
+                log.warn("ElementPay init commission-missing service={} msg={}", serviceAlias, msg);
+                if (!"kCards".equalsIgnoreCase(serviceAlias)) {
+                    String retryAlias = "kCards";
+                    extra = extrasForInit(canonical, fetchMethodAttributeKeys(agency, cred, retryAlias));
+                    log.info("ElementPay retry init with catalog card alias={}", retryAlias);
+                    resp = initPaymentTryingModes(agency, cred, retryAlias, amountPlain, orderNo,
+                            successReturn, rejectReturn, waitingReturn, extra);
+                    if (resp != null && !resp.has("error")) {
+                        serviceAlias = retryAlias;
+                    } else {
+                        String msgRetry = extractEpErrorMessage(resp);
+                        log.warn("ElementPay kCards retry still failed msg={}", msgRetry);
+                        return CheckoutFailI18n.cardPathFailed();
+                    }
+                } else {
+                    return CheckoutFailI18n.cardPathFailed();
+                }
+            }
+            if (resp != null && resp.has("error")
+                    && msg != null && msg.toLowerCase(Locale.ROOT).contains("payment method is disabled")) {
                 Map<String, Object> methodsOut = listPaymentMethods(agency.getId());
                 String suggested = str(methodsOut.get("suggestedCardServiceAlias"));
                 if (!suggested.isBlank() && !suggested.equalsIgnoreCase(serviceAlias)) {
                     log.info("ElementPay service_id={} disabled → retry with suggested={}", serviceAlias, suggested);
                     serviceAlias = suggested;
-                    resp = postInitPayment(agency, cred, serviceAlias, amountPlain, orderNo,
-                            successReturn, rejectReturn, waitingReturn);
+                    extra = extrasForInit(canonical, fetchMethodAttributeKeys(agency, cred, serviceAlias));
+                    resp = initPaymentTryingModes(agency, cred, serviceAlias, amountPlain, orderNo,
+                            successReturn, rejectReturn, waitingReturn, extra);
                     if (resp == null) {
                         return fail("ElementPay 결제 초기화에 실패했습니다.", "ELEMENTPAY_INIT_FAILED");
                     }
                     if (!resp.has("error")) {
                         /* 재시도 성공 — 아래로 진행 */
                     } else {
-                        String msg2 = resp.path("error").path("message").asText(msg);
+                        String msg2 = extractEpErrorMessage(resp);
+                        if (isMissingBuyerAttribute(msg2)) {
+                            return CheckoutFailI18n.cardPathFailed();
+                        }
                         return fail(
                                 "ElementPay 결제수단이 맞지 않습니다. 본사 PG cardServiceAlias를 맞추세요(예: kCards). 현재 시도="
                                         + serviceAlias + " / EP=" + msg2,
@@ -227,14 +295,12 @@ public class ElementPayPaymentService {
                             "ElementPay 결제수단이 맞지 않습니다. 본사 PG에서 [결제수단 조회] 후 cardServiceAlias를 맞추세요(예: kCards).",
                             "ELEMENTPAY_METHOD_DISABLED");
                 }
-            } else {
+            } else if (resp == null || resp.has("error")) {
+                if (isMerchantCommissionUnset(msg)) {
+                    return CheckoutFailI18n.cardPathFailed();
+                }
                 return fail(msg, "ELEMENTPAY_" + code);
             }
-        }
-
-        if (resp.has("error")) {
-            String msg = resp.path("error").path("message").asText("ElementPay error");
-            return fail(msg, "ELEMENTPAY_" + resp.path("error").path("code").asText("ERROR"));
         }
 
         JsonNode response = resp.path("response");
@@ -249,7 +315,7 @@ public class ElementPayPaymentService {
                 orgUnitId, orderNo, amount, THB, binding.getSortOrder(),
                 str(body.get("item")), resolveTxnOrigin(body),
                 str(body.get("customerNm")), str(body.get("payEmailAddress")),
-                paymentMethod, null, null, false, paymentId);
+                paymentMethod, null, null, false, paymentId, body);
 
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("success", true);
@@ -275,25 +341,31 @@ public class ElementPayPaymentService {
         out.put("resultRejectUrl", rejectReturn);
 
         /*
-         * THB 카드(kCards):
-         * initPayment attributes.redirectUrl = EP /k/cards/form (KTC 승인 폼).
-         * 이 HTML을 서버에서 읽어 카드값을 채워 자동 POST (구매자 2회 입력 없음).
-         * bangkokbank/card/keys 의 redirect_url 이 ICOPAY waiting 으로 오면 무시.
+         * 라이브 카드: getMethods 에 있는 수단(보통 kCards). 호스티드 폼이면 init redirectUrl.
+         * 샌드박스 kCards: /k/cards/form → KTC 자동 POST. BKB card/keys 의 ICOPAY waiting 은 무시.
          */
-        String epCardFormUrl = firstAttr(attrs, "redirectUrl", "redirect_url", "redirect", "RedirectUrl");
-        if (epCardFormUrl != null && !epCardFormUrl.isBlank()
-                && isElementPayCardFormUrl(epCardFormUrl)
-                && !isOurCheckoutReturnUrl(epCardFormUrl, publicBase)) {
-            Map<String, String> ktcForm = fetchAndBuildKtcInlineForm(epCardFormUrl, body, pan, clientIp);
+        String epPayUrl = firstUsablePayUrl(attrs, publicBase);
+        log.info("ElementPay init ok paymentId={} service={} attrKeys={} payUrl={}",
+                paymentId, serviceAlias, attrKeys(attrs), urlHostPath(epPayUrl));
+        if (epPayUrl != null && !epPayUrl.isBlank() && isElementPayCardFormUrl(epPayUrl)) {
+            Map<String, String> ktcForm = fetchAndBuildKtcInlineForm(epPayUrl, body, pan, clientIp);
             if (ktcForm != null && ktcForm.get("actionUrl") != null && !ktcForm.get("actionUrl").isBlank()) {
                 out.put("bkbInlineCheckout", ktcForm);
                 out.put("needsBkbForm", true);
                 out.put("cardFormSource", "K_CARDS_FORM");
-                out.put("epCardFormUrl", epCardFormUrl);
+                out.put("epCardFormUrl", epPayUrl);
                 out.put("needs3dsWindow", true);
                 return out;
             }
-            log.warn("ElementPay /k/cards/form 파싱 실패 order={} url={}", orderNo, epCardFormUrl);
+            log.warn("ElementPay card-form 파싱 실패 order={} url={}", orderNo, urlHostPath(epPayUrl));
+        }
+        if (isUsablePayUrl(epPayUrl, publicBase) && !cred.sandbox()) {
+            out.put("redirectUrl", epPayUrl);
+            out.put("epCardFormUrl", epPayUrl);
+            out.put("needs3ds", true);
+            out.put("inlineAcs", true);
+            out.put("cardFormSource", "INIT_REDIRECT");
+            return out;
         }
 
         JsonNode bkb = fetchBangkokBankCardKeys(agency, cred, paymentId);
@@ -301,7 +373,8 @@ public class ElementPayPaymentService {
             Map<String, String> form = buildBkbInlineForm(
                     bkb, body, pan, paymentId, amountPlain,
                     successReturn, rejectReturn, rejectReturn);
-            if (form != null && form.get("actionUrl") != null && !form.get("actionUrl").isBlank()) {
+            if (form != null && form.get("actionUrl") != null && !form.get("actionUrl").isBlank()
+                    && !isOurCheckoutReturnUrl(form.get("actionUrl"), publicBase)) {
                 out.put("bkbInlineCheckout", form);
                 out.put("needsBkbForm", true);
                 out.put("cardFormSource", "BKB_KEYS");
@@ -310,34 +383,33 @@ public class ElementPayPaymentService {
             String acs = firstNonBlank(
                     bkb.path("redirect_url").asText(""),
                     bkb.path("redirectUrl").asText(""));
-            if (acs != null && !acs.isBlank()
-                    && !isElementPayLightCategoryUrl(acs)
-                    && !isOurCheckoutReturnUrl(acs, publicBase)
-                    && isExternalAcsUrl(acs)) {
+            if (isUsablePayUrl(acs, publicBase) && isExternalAcsUrl(acs)
+                    && !isOurCheckoutReturnUrl(acs, publicBase)) {
                 out.put("redirectUrl", acs);
                 out.put("needs3ds", true);
                 out.put("inlineAcs", true);
                 return out;
             }
-            log.warn("ElementPay BKB keys 에 사용 가능한 폼/ACS 없음 order={} body={}", orderNo, bkb);
+            log.warn("ElementPay BKB keys 에 사용 가능한 폼/ACS 없음 order={} payUrl={}",
+                    orderNo, urlHostPath(epPayUrl));
         } else {
             String errMsg = bkb != null ? bkb.path("error").path("message").asText("") : "";
             log.warn("ElementPay bangkokbank/card/keys 실패 order={} paymentId={} err={}",
                     orderNo, paymentId, errMsg);
         }
 
-        /* 최후: EP 카드폼 URL 을 그대로 ACS/호스티드로 (카드 재입력 가능 — 폴백) */
-        if (epCardFormUrl != null && !epCardFormUrl.isBlank()
-                && !isElementPayLightCategoryUrl(epCardFormUrl)
-                && !isOurCheckoutReturnUrl(epCardFormUrl, publicBase)) {
-            out.put("redirectUrl", epCardFormUrl);
+        if (isUsablePayUrl(epPayUrl, publicBase)) {
+            out.put("redirectUrl", epPayUrl);
+            out.put("epCardFormUrl", epPayUrl);
             out.put("needs3ds", true);
             out.put("inlineAcs", true);
             out.put("cardFormSource", "REDIRECT_FALLBACK");
             return out;
         }
 
-        return fail("ElementPay INLINE 카드 승인 경로를 준비하지 못했습니다.", "ELEMENTPAY_CARD_PATH_FAILED");
+        log.warn("INLINE card path missing order={} paymentId={} attrKeys={} payUrl={}",
+                orderNo, paymentId, attrKeys(attrs), urlHostPath(epPayUrl));
+        return CheckoutFailI18n.cardPathFailed();
     }
 
     /**
@@ -518,12 +590,84 @@ public class ElementPayPaymentService {
         }
     }
 
+    private static String attrKeys(List<Map<String, String>> attrs) {
+        if (attrs == null || attrs.isEmpty()) {
+            return "";
+        }
+        List<String> keys = new ArrayList<>();
+        for (Map<String, String> a : attrs) {
+            if (a == null) {
+                continue;
+            }
+            String k = a.get("key");
+            if (k != null && !k.isBlank()) {
+                keys.add(k);
+            }
+        }
+        return String.join(",", keys);
+    }
+
     private static boolean isElementPayCardFormUrl(String url) {
         if (url == null || url.isBlank()) {
             return false;
         }
         String u = url.toLowerCase(Locale.ROOT);
-        return u.contains("elementpay.io") && (u.contains("/k/cards/form") || u.contains("/cards/form"));
+        return u.contains("elementpay.io") && (u.contains("/k/cards/form") || u.contains("/cards/form")
+                || u.contains("/th/cards") || u.contains("/card/form"));
+    }
+
+    private static String firstUsablePayUrl(List<Map<String, String>> attrs, String publicBase) {
+        String preferred = firstAttr(attrs, "redirectUrl", "redirect_url", "redirect", "RedirectUrl",
+                "paymentUrl", "payment_url", "formUrl", "hostedUrl", "checkoutUrl", "url");
+        if (isUsablePayUrl(preferred, publicBase)) {
+            return preferred;
+        }
+        String https = firstUsableHttpsAttribute(attrs, publicBase);
+        return https != null && !https.isBlank() ? https : "";
+    }
+
+    private static boolean isUsablePayUrl(String url, String publicBase) {
+        if (url == null || url.isBlank()) {
+            return false;
+        }
+        String t = url.trim();
+        if (!(t.startsWith("https://") || t.startsWith("http://"))) {
+            return false;
+        }
+        if (isOurCheckoutReturnUrl(t, publicBase) || isElementPayLightCategoryUrl(t)) {
+            return false;
+        }
+        return true;
+    }
+
+    private static String firstUsableHttpsAttribute(List<Map<String, String>> attrs, String publicBase) {
+        if (attrs == null) {
+            return "";
+        }
+        for (Map<String, String> a : attrs) {
+            if (a == null) {
+                continue;
+            }
+            String v = a.get("value");
+            if (isUsablePayUrl(v, publicBase)) {
+                return v.trim();
+            }
+        }
+        return "";
+    }
+
+    private static String urlHostPath(String url) {
+        if (url == null || url.isBlank()) {
+            return "";
+        }
+        try {
+            URI u = URI.create(url.trim());
+            String host = u.getHost() != null ? u.getHost() : "";
+            String path = u.getPath() != null ? u.getPath() : "";
+            return host + path;
+        } catch (Exception e) {
+            return "(unparseable)";
+        }
     }
 
     private static boolean isOurCheckoutReturnUrl(String url, String publicBase) {
@@ -928,11 +1072,59 @@ public class ElementPayPaymentService {
                 if (t.getMerchantId() == null || t.getMerchantId().isBlank()) {
                     return;
                 }
-                elementPaySaleRecordService.applyOutcome(
+                Optional<PgTrnsctn> updated = elementPaySaleRecordService.applyOutcome(
                         t.getMerchantId(), orderNo.trim(), paid, paymentId, msg);
+                if (updated.isEmpty()) {
+                    return;
+                }
+                PgTrnsctn u = updated.get();
+                if (paid && ElementPayInlineStatusUtil.isLocalPaid(u.getStatus())) {
+                    afterStatusSyncPaid(u);
+                } else {
+                    try {
+                        merchantOutboundNotifyService.scheduleAfterTxnCommit(u, null, "STATUS_SYNC");
+                    } catch (Exception e) {
+                        log.warn("ElementPay status-sync outbound 실패: {}", e.getMessage());
+                    }
+                    try {
+                        elementPayNotiMiddlewareMirrorService.scheduleUrlPayMirrorAfterCommit(u, false);
+                    } catch (Exception e) {
+                        log.warn("ElementPay NOTI mirror(fail) 예약 실패: {}", e.getMessage());
+                    }
+                }
             });
         } catch (Exception e) {
             log.debug("ElementPay 로컬 상태 동기화 생략: {}", e.getMessage());
+        }
+    }
+
+    /** getStatus 승인 반영 후 — 웹훅 Callback 경로와 동일(정산·영수증·가맹/Dealmai 통보) + NOTI 미러. */
+    private void afterStatusSyncPaid(PgTrnsctn t) {
+        try {
+            splitPayPaymentHookService.onTxnStatusChange(t.getOrderNo(), t.getStatus(), t.getTrnId());
+        } catch (Exception ignored) {
+        }
+        try {
+            transactionReceiptEmailService.scheduleIfDue(t);
+        } catch (Exception e) {
+            log.warn("ElementPay status-sync 영수증 메일 실패 trnId={}: {}", t.getTrnId(), e.getMessage());
+        }
+        try {
+            if (t.getMerchantId() != null && !t.getMerchantId().isBlank()) {
+                settlementCalcService.triggerRealtimeAutoSettlementIfDue(t.getMerchantId().trim(), t);
+            }
+        } catch (Exception e) {
+            log.warn("ElementPay status-sync 정산 트리거 실패: {}", e.getMessage());
+        }
+        try {
+            merchantOutboundNotifyService.scheduleAfterTxnCommit(t, null, "STATUS_SYNC");
+        } catch (Exception e) {
+            log.warn("ElementPay status-sync outbound 실패: {}", e.getMessage());
+        }
+        try {
+            elementPayNotiMiddlewareMirrorService.scheduleUrlPayMirrorAfterCommit(t, true);
+        } catch (Exception e) {
+            log.warn("ElementPay NOTI mirror 예약 실패: {}", e.getMessage());
         }
     }
 
@@ -954,21 +1146,90 @@ public class ElementPayPaymentService {
         }
     }
 
-    /** initPayment POST — 실패 시 null. 브라우저 복귀는 ICOPAY checkout 결과 페이지. */
+    /**
+     * Merchant API initPayment (문서 1.19.2).
+     * Light 위젯의 {@code light=true} 는 Merchant Key HMAC 이라 API Secret 서명과 섞지 않는다.
+     * 서명 실패·필수속성 누락이면 다음 전송 형태로 재시도한다.
+     */
+    private enum InitAttrMode {
+        YAML_JSON_AND_TOP,
+        USER_PARAMETER,
+        PHP_NESTED,
+        TOP_LEVEL_ONLY
+    }
+
+    private JsonNode initPaymentTryingModes(PgAgency agency, ElementPayCredentials cred, String serviceAlias,
+                                            String amountPlain, String orderNo,
+                                            String successUrl, String rejectUrl, String waitingUrl,
+                                            Map<String, String> extra) {
+        JsonNode last = null;
+        for (InitAttrMode mode : InitAttrMode.values()) {
+            last = postInitPayment(agency, cred, serviceAlias, amountPlain, orderNo,
+                    successUrl, rejectUrl, waitingUrl, extra, mode);
+            if (last == null) {
+                continue;
+            }
+            if (!last.has("error")) {
+                log.info("ElementPay init ok mode={} service={}", mode, serviceAlias);
+                return last;
+            }
+            String msg = extractEpErrorMessage(last);
+            log.warn("ElementPay init miss mode={} service={} msg={}", mode, serviceAlias, msg);
+            if (!isRetryableInitError(msg)) {
+                return last;
+            }
+        }
+        return last;
+    }
+
     private JsonNode postInitPayment(PgAgency agency, ElementPayCredentials cred, String serviceAlias,
                                      String amountPlain, String orderNo,
-                                     String successUrl, String rejectUrl, String waitingUrl) {
+                                     String successUrl, String rejectUrl, String waitingUrl,
+                                     Map<String, String> payerAttrs,
+                                     InitAttrMode mode) {
         long ts = Instant.now().getEpochSecond();
         Map<String, String> signParams = new LinkedHashMap<>();
         signParams.put("service_id", serviceAlias);
         signParams.put("amount", amountPlain);
         signParams.put("order", orderNo);
         signParams.put("currency", THB);
+        Map<String, String> clean = new LinkedHashMap<>();
+        if (payerAttrs != null) {
+            for (Map.Entry<String, String> e : payerAttrs.entrySet()) {
+                if (e.getKey() == null || e.getValue() == null || e.getValue().isBlank()) {
+                    continue;
+                }
+                if (ElementPayAdditionalParameters.isReservedInitKey(e.getKey())) {
+                    continue;
+                }
+                clean.put(e.getKey(), e.getValue());
+            }
+        }
+        try {
+            if (mode == InitAttrMode.YAML_JSON_AND_TOP && !clean.isEmpty()) {
+                signParams.put("additional_parameters", objectMapper.writeValueAsString(clean));
+            }
+            if (mode == InitAttrMode.USER_PARAMETER && !clean.isEmpty()) {
+                signParams.put("user_parameter", objectMapper.writeValueAsString(clean));
+            }
+        } catch (Exception e) {
+            log.warn("ElementPay attr JSON 실패 mode={}: {}", mode, e.getMessage());
+        }
+        if (mode == InitAttrMode.PHP_NESTED) {
+            for (Map.Entry<String, String> e : clean.entrySet()) {
+                signParams.put("additional_parameters[" + e.getKey() + "]", e.getValue());
+                signParams.put("user_parameter[" + e.getKey() + "]", e.getValue());
+            }
+        } else {
+            signParams.putAll(clean);
+        }
         signParams.put("_successUrl", successUrl != null ? successUrl : "");
         signParams.put("_waitingUrl", waitingUrl != null ? waitingUrl : "");
         signParams.put("_rejectUrl", rejectUrl != null ? rejectUrl : "");
         signParams.put("key", cred.merchantKey());
         signParams.put("timestamp", String.valueOf(ts));
+        log.info("ElementPay initPayment POST service={} mode={} extraKeys={}",
+                serviceAlias, mode, clean.keySet());
         String query = ElementPayHashUtil.buildApiQueryString(signParams);
         String hash = ElementPayHashUtil.signApiRequest(cred.apiSecretKey(), "initPayment", signParams);
         String formBody = query + "&hash=" + hash;
@@ -980,9 +1241,20 @@ public class ElementPayPaymentService {
             ResponseEntity<String> entity = restTemplate.postForEntity(url, new HttpEntity<>(formBody, headers), String.class);
             return parseEpApiJson("initPayment", cred, entity.getBody());
         } catch (Exception e) {
-            log.warn("ElementPay initPayment HTTP 실패 service_id={}: {}", serviceAlias, e.getMessage());
+            log.warn("ElementPay initPayment HTTP 실패 service_id={} mode={}: {}", serviceAlias, mode, e.getMessage());
             return null;
         }
+    }
+
+    private static Map<String, String> extrasForInit(Map<String, String> canonical, List<String> methodKeys) {
+        List<String> keysToSend = (methodKeys == null || methodKeys.isEmpty())
+                ? ElementPayAdditionalParameters.FALLBACK_ATTR_KEYS
+                : methodKeys;
+        Map<String, String> extra = new LinkedHashMap<>(
+                ElementPayAdditionalParameters.onlyKeys(canonical, keysToSend));
+        extra.putAll(ElementPayAdditionalParameters.onlyKeys(canonical,
+                ElementPayAdditionalParameters.FALLBACK_ATTR_KEYS));
+        return ElementPayAdditionalParameters.withAliases(extra);
     }
 
     public Map<String, Object> queryStatus(Long orgUnitId, String paymentId, String orderNo) {
@@ -1034,9 +1306,15 @@ public class ElementPayPaymentService {
         if (t == null || !PgVendor.isElementPayFamily(t.getVan())) {
             throw new IllegalStateException("ElementPay 거래만 환불 API를 호출할 수 있습니다.");
         }
-        String paymentId = t.getChillTransactionId();
+        String paymentId = ElementPayPaymentIdUtil.fromTxn(t);
+        if (paymentId.isBlank()) {
+            paymentId = lookupPaymentIdByOrder(t);
+        }
         if (paymentId == null || paymentId.isBlank()) {
-            throw new IllegalStateException("ElementPay payment_id가 없어 환불 API를 호출할 수 없습니다.");
+            throw new IllegalStateException("결제망 payment_id가 없어 환불 API를 호출할 수 없습니다. 주문번호로 상태 조회에 실패했습니다.");
+        }
+        if (t.getChillTransactionId() == null || t.getChillTransactionId().isBlank()) {
+            t.setChillTransactionId(paymentId.length() > 64 ? paymentId.substring(0, 64) : paymentId);
         }
         PgAgency agency = resolveAgencyForTxn(t);
         ElementPayCredentials cred = ElementPayCredentials.from(agency);
@@ -1073,23 +1351,71 @@ public class ElementPayPaymentService {
             ResponseEntity<String> entity = restTemplate.postForEntity(
                     url, new HttpEntity<>(formBody, headers), String.class);
             resp = parseEpApiJson("initRefund", cred, entity.getBody());
+        } catch (HttpStatusCodeException e) {
+            String body = e.getResponseBodyAsString();
+            log.warn("ElementPay initRefund HTTP {} paymentId={} body={}",
+                    e.getStatusCode().value(), paymentId, body);
+            resp = parseEpApiJsonQuiet("initRefund", cred, body);
+            if (resp == null || !resp.has("error")) {
+                throw new IllegalStateException(ElementPayRefundRejectMapper.operatorMessage(
+                        String.valueOf(e.getStatusCode().value()),
+                        body != null && !body.isBlank() ? body : e.getStatusText()));
+            }
         } catch (Exception e) {
             log.warn("ElementPay initRefund HTTP 실패 paymentId={}: {}", paymentId, e.getMessage());
-            throw new IllegalStateException("ElementPay 환불 요청에 실패했습니다: " + e.getMessage());
+            throw new IllegalStateException("결제망 환불 요청에 실패했습니다: " + e.getMessage());
         }
-        if (resp.has("error")) {
-            String code = resp.path("error").path("code").asText("");
-            String msg = resp.path("error").path("message").asText("ElementPay refund error");
-            throw new IllegalStateException("ElementPay 환불 거부"
-                    + (!code.isBlank() ? " (" + code + ")" : "") + ": " + msg);
+        return interpretInitRefundResponse(resp, t, paymentId);
+    }
+
+    private String interpretInitRefundResponse(JsonNode resp, PgTrnsctn t, String paymentId) {
+        if (resp != null && resp.has("error")) {
+            String code = extractEpErrorCode(resp);
+            String msg = extractEpErrorMessage(resp);
+            String low = msg.toLowerCase(Locale.ROOT);
+            if ("479".equals(code) || low.contains("already refunded")) {
+                log.info("ElementPay initRefund already refunded orderNo={} paymentId={}", t.getOrderNo(), paymentId);
+                return "already refunded";
+            }
+            if ("470".equals(code) || low.contains("already has refund")) {
+                log.info("ElementPay initRefund already in progress orderNo={} paymentId={}", t.getOrderNo(), paymentId);
+                return "refund in progress";
+            }
+            throw new IllegalStateException(ElementPayRefundRejectMapper.operatorMessage(code, msg));
         }
-        String status = resp.path("response").path("status").asText("");
-        String id = resp.path("response").path("id").asText(paymentId);
+        String status = resp != null ? resp.path("response").path("status").asText("") : "";
+        String id = resp != null ? resp.path("response").path("id").asText(paymentId) : paymentId;
         String summary = "ElementPay initRefund OK id=" + id
                 + (!status.isBlank() ? " status=" + status : "");
         log.info("ElementPay refund OK orderNo={} paymentId={} status={}",
                 t.getOrderNo(), paymentId, status);
         return summary;
+    }
+
+    private String lookupPaymentIdByOrder(PgTrnsctn t) {
+        if (t == null || t.getOrderNo() == null || t.getOrderNo().isBlank()) {
+            return "";
+        }
+        try {
+            long ouId = resolveMerchantOrgUnitIdForRefund(t);
+            Map<String, Object> st = queryStatus(ouId, null, t.getOrderNo().trim());
+            if (!Boolean.TRUE.equals(st.get("success"))) {
+                return "";
+            }
+            Object raw = st.get("raw");
+            if (!(raw instanceof Map<?, ?> tree)) {
+                return "";
+            }
+            Object responseObj = tree.get("response");
+            if (!(responseObj instanceof Map<?, ?> rm)) {
+                return "";
+            }
+            Object id = rm.get("id");
+            return id != null ? String.valueOf(id).trim() : "";
+        } catch (Exception e) {
+            log.warn("ElementPay getStatus(order) for refund lookup failed: {}", e.getMessage());
+            return "";
+        }
     }
 
     private PgAgency resolveAgencyForTxn(PgTrnsctn t) {
@@ -1172,17 +1498,33 @@ public class ElementPayPaymentService {
                 row.put("currency", m.path("currency").asText(""));
                 row.put("min", m.path("min").asText(""));
                 row.put("max", m.path("max").asText(""));
+                JsonNode attrs = m.get("attributes");
+                if (attrs != null && attrs.isArray() && !attrs.isEmpty()) {
+                    List<String> attrNames = new ArrayList<>();
+                    for (JsonNode a : attrs) {
+                        String an = firstNonBlank(a.path("alias").asText(""), a.path("name").asText(""),
+                                a.path("key").asText(""), a.asText(""));
+                        if (an != null && !an.isBlank()) {
+                            attrNames.add(an);
+                        }
+                    }
+                    if (!attrNames.isEmpty()) {
+                        row.put("attributes", attrNames);
+                    }
+                }
                 methods.add(row);
             }
         }
-        String suggestedCard = suggestCardAlias(methods, cred.cardServiceAlias());
+        String suggestedCard = ElementPayCardServiceAlias.resolveAgainstCatalog(
+                ElementPayCardServiceAlias.resolveConfigured(cred.cardServiceAlias(), cred.sandbox()),
+                methods);
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("success", true);
         out.put("sandbox", cred.sandbox());
         out.put("currentCardServiceAlias", cred.cardServiceAlias());
         out.put("suggestedCardServiceAlias", suggestedCard);
         out.put("methods", methods);
-        out.put("hint", "목록의 alias(또는 id)를 cardServiceAlias 에 넣고 저장하세요. 카드는 보통 kCards · Visa/MasterCard/JCB/UnionPay 줄입니다.");
+        out.put("hint", "목록의 alias(또는 id)를 cardServiceAlias 에 넣고 저장하세요. getMethods에 있는 카드 수단만 사용합니다.");
         out.put("webhookUrl", "https://noti.icopay.net/noti/elementpay");
         out.put("callbackSourceIps", List.of("3.0.36.253", "3.1.29.20"));
         out.put("liveChecklist", List.of(
@@ -1195,30 +1537,114 @@ public class ElementPayPaymentService {
         return out;
     }
 
-    private static String suggestCardAlias(List<Map<String, Object>> methods, String current) {
-        if (methods == null || methods.isEmpty()) {
-            return current != null && !current.isBlank() ? current : "card";
+    private static final class CardMethodCatalog {
+        private final String serviceAlias;
+        private final List<String> attrKeys;
+
+        private CardMethodCatalog(String serviceAlias, List<String> attrKeys) {
+            this.serviceAlias = serviceAlias;
+            this.attrKeys = attrKeys != null ? attrKeys : List.of();
         }
-        /* Visa/Master/JCB/UnionPay · kCards 우선 */
+
+        private String serviceAlias() {
+            return serviceAlias;
+        }
+
+        private List<String> attrKeys() {
+            return attrKeys;
+        }
+    }
+
+    private CardMethodCatalog loadCardMethodCatalog(PgAgency agency, ElementPayCredentials cred, String wantedAlias) {
+        List<Map<String, Object>> methods = fetchMethodsRows(agency, cred);
+        String resolved = ElementPayCardServiceAlias.resolveAgainstCatalog(wantedAlias, methods);
+        if (wantedAlias != null && !wantedAlias.equalsIgnoreCase(resolved)) {
+            log.warn("ElementPay service_id={} not in getMethods, using {}", wantedAlias, resolved);
+        }
+        List<String> keys = attrKeysForAlias(methods, resolved);
+        List<String> catalog = new ArrayList<>();
         for (Map<String, Object> m : methods) {
-            String alias = str(m.get("alias"));
-            String aliasL = alias.toLowerCase(Locale.ROOT);
-            String name = str(m.get("name")).toLowerCase(Locale.ROOT);
-            if (aliasL.equals("kcards") || aliasL.equals("card")
-                    || (name.contains("visa") && name.contains("master"))
-                    || name.contains("jcb") || name.contains("unionpay")
-                    || (name.contains("credit") && name.contains("card"))) {
-                return alias.isBlank() ? str(m.get("id")) : alias;
+            catalog.add(str(m.get("alias")) + "/" + str(m.get("id")) + ":" + m.get("attributes"));
+        }
+        log.info("ElementPay getMethods catalog want={} resolved={} matchedKeys={} list={}",
+                wantedAlias, resolved, keys, catalog);
+        return new CardMethodCatalog(resolved, keys);
+    }
+
+    private static List<String> attrKeysForAlias(List<Map<String, Object>> methods, String alias) {
+        List<String> keys = new ArrayList<>();
+        if (methods == null || alias == null) {
+            return keys;
+        }
+        for (Map<String, Object> m : methods) {
+            if (m == null) {
+                continue;
+            }
+            String a = str(m.get("alias"));
+            String id = str(m.get("id"));
+            if (!alias.equalsIgnoreCase(a) && !alias.equals(id)) {
+                continue;
+            }
+            Object attrs = m.get("attributes");
+            if (attrs instanceof List<?> list) {
+                for (Object o : list) {
+                    String k = o == null ? "" : String.valueOf(o).trim();
+                    if (!k.isBlank() && !keys.contains(k)) {
+                        keys.add(k);
+                    }
+                }
             }
         }
-        for (Map<String, Object> m : methods) {
-            String alias = str(m.get("alias")).toLowerCase(Locale.ROOT);
-            String name = str(m.get("name")).toLowerCase(Locale.ROOT);
-            if (alias.contains("card") || name.contains("card")) {
-                return str(m.get("alias"));
-            }
+        return keys;
+    }
+
+    private List<Map<String, Object>> fetchMethodsRows(PgAgency agency, ElementPayCredentials cred) {
+        List<Map<String, Object>> methods = new ArrayList<>();
+        if (agency == null || cred == null || !cred.isConfigured()) {
+            return methods;
         }
-        return str(methods.get(0).get("alias"));
+        try {
+            long ts = Instant.now().getEpochSecond();
+            Map<String, String> signParams = new LinkedHashMap<>();
+            signParams.put("key", cred.merchantKey());
+            signParams.put("timestamp", String.valueOf(ts));
+            String query = ElementPayHashUtil.buildApiQueryString(signParams);
+            String hash = ElementPayHashUtil.signApiRequest(cred.apiSecretKey(), "getMethods", signParams);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            headers.set(HttpHeaders.USER_AGENT, USER_AGENT);
+            String url = resolveBase(agency) + "/merchant/getMethods";
+            ResponseEntity<String> entity = restTemplate.postForEntity(
+                    url, new HttpEntity<>(query + "&hash=" + hash, headers), String.class);
+            JsonNode resp = parseEpApiJson("getMethods", cred, entity.getBody());
+            JsonNode arr = resp.path("response").path("methods");
+            if (!arr.isArray()) {
+                return methods;
+            }
+            for (JsonNode m : arr) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("id", m.path("id").asText(""));
+                row.put("alias", m.path("alias").asText(""));
+                row.put("name", m.path("name").asText(""));
+                row.put("type", m.path("type").asText(""));
+                row.put("currency", m.path("currency").asText(""));
+                row.put("min", m.path("min").asText(""));
+                row.put("max", m.path("max").asText(""));
+                List<String> methodKeys = extractMethodAttrKeys(m.get("attributes"));
+                if (!methodKeys.isEmpty()) {
+                    row.put("attributes", methodKeys);
+                }
+                methods.add(row);
+            }
+        } catch (Exception e) {
+            log.warn("ElementPay getMethods 생략: {}", e.getMessage());
+        }
+        return methods;
+    }
+
+    /** getMethods 는 필터 없이 전체 목록을 받은 뒤 alias 로 고른다. */
+    private List<String> fetchMethodAttributeKeys(PgAgency agency, ElementPayCredentials cred, String serviceAlias) {
+        return loadCardMethodCatalog(agency, cred, serviceAlias).attrKeys();
     }
 
     public Optional<PgAgency> resolveAgencyByMerchantKey(String merchantKey) {
@@ -1256,8 +1682,8 @@ public class ElementPayPaymentService {
     }
 
     /**
-     * 구매자 브라우저 복귀 — ICOPAY 중립 checkout 결과 화면.
-     * (웹훅/가맹 노티는 NOTI 입구 유지. 가맹 쇼핑몰 URL 은 EP 에 넣지 않음.)
+     * NOTI Result 미가용 시 폴백 — ICOPAY 중립 checkout 결과 화면.
+     * (가맹 쇼핑몰 URL 은 EP 에 넣지 않음.)
      */
     private static String resolveIcopayCheckoutReturnUrl(String publicBase, String compId,
                                                          String orderNo, String result) {
@@ -1281,7 +1707,7 @@ public class ElementPayPaymentService {
     }
 
     /**
-     * NOTI Result 입구(운영 진단·레거시) — 브라우저 INLINE 복귀에는 {@link #resolveIcopayCheckoutReturnUrl} 사용.
+     * 브라우저 INLINE 복귀 — NOTI {@code /noti/result/elementpay}(JPAY Result 슬롯과 동일 역할).
      */
     private String resolveElementPayBrowserReturnUrl(Long orgUnitId, String orderNo, String compId) {
         String configured = resolveMerchantNotiResultUrl(orgUnitId);
@@ -1387,7 +1813,7 @@ public class ElementPayPaymentService {
         }
         for (JsonNode n : attrs) {
             Map<String, String> m = new LinkedHashMap<>();
-            m.put("key", n.path("key").asText(""));
+            m.put("key", firstNonBlank(n.path("key").asText(""), n.path("alias").asText("")));
             m.put("value", n.path("value").asText(""));
             m.put("name", n.path("name").asText(""));
             list.add(m);
@@ -1447,6 +1873,67 @@ public class ElementPayPaymentService {
         return LIVE_BASE;
     }
 
+    private static List<String> extractMethodAttrKeys(JsonNode attrs) {
+        List<String> keys = new ArrayList<>();
+        if (attrs == null || attrs.isNull() || attrs.isMissingNode()) {
+            return keys;
+        }
+        if (attrs.isObject()) {
+            attrs.fieldNames().forEachRemaining(name -> {
+                if (name != null && !name.isBlank() && !ElementPayAdditionalParameters.isReservedInitKey(name)
+                        && !keys.contains(name)) {
+                    keys.add(name);
+                }
+            });
+            return keys;
+        }
+        if (!attrs.isArray()) {
+            return keys;
+        }
+        for (JsonNode a : attrs) {
+            String k = firstNonBlank(a.path("key").asText(""), a.path("alias").asText(""), a.path("name").asText(""));
+            if (!k.isBlank() && !k.contains(" ") && !ElementPayAdditionalParameters.isReservedInitKey(k)
+                    && !keys.contains(k)) {
+                keys.add(k);
+            }
+        }
+        return keys;
+    }
+
+    private static String combineBuyerPhone(Map<String, Object> body) {
+        if (body == null) {
+            return "";
+        }
+        String tel = digitsOnly(str(body.get("payTelephone")));
+        if (tel.isBlank()) {
+            tel = digitsOnly(str(body.get("phone")));
+        }
+        if (tel.isBlank()) {
+            return "";
+        }
+        String iso = str(body.get("payCountryIsoCode2")).toUpperCase(Locale.ROOT);
+        if (iso.length() != 2) {
+            iso = str(body.get("payContactCountryCode")).toUpperCase(Locale.ROOT);
+        }
+        if (iso.length() != 2) {
+            iso = str(body.get("countryIso2")).toUpperCase(Locale.ROOT);
+        }
+        String cc = CountryCallingCode.forIso2(iso);
+        if (cc.isBlank()) {
+            cc = digitsOnly(str(body.get("payContactCountryCode")));
+        }
+        if (cc.isBlank() && "TH".equals(iso)) {
+            cc = "66";
+        }
+        if (!cc.isBlank() && !tel.startsWith(cc)) {
+            if (tel.startsWith("0") && tel.length() > 8) {
+                tel = tel.substring(1);
+            }
+            return cc + tel;
+        }
+        return tel;
+    }
+
     private static String extraApiBase(PgAgency agency) {
         if (agency == null || agency.getCredentialsExtraJson() == null) {
             return "";
@@ -1485,15 +1972,97 @@ public class ElementPayPaymentService {
         return resp;
     }
 
+    private JsonNode parseEpApiJsonQuiet(String method, ElementPayCredentials cred, String rawBody) {
+        try {
+            return parseEpApiJson(method, cred, rawBody);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static String extractEpErrorCode(JsonNode resp) {
+        if (resp == null || resp.isMissingNode() || resp.isNull()) {
+            return "";
+        }
+        JsonNode err = resp.get("error");
+        if (err == null || err.isNull() || err.isMissingNode() || err.isTextual() || err.isNumber()) {
+            return "";
+        }
+        JsonNode code = err.get("code");
+        if (code == null || code.isNull() || code.isMissingNode()) {
+            return "";
+        }
+        return code.asText("").trim();
+    }
+
+    private static boolean isRetryableInitError(String raw) {
+        if (isMissingBuyerAttribute(raw)) {
+            return true;
+        }
+        if (raw == null || raw.isBlank()) {
+            return false;
+        }
+        String l = raw.toLowerCase(Locale.ROOT);
+        return l.contains("wrong signature") || l.contains("invalid signature") || l.contains("invalid hash");
+    }
+
+    private static boolean isMissingBuyerAttribute(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return false;
+        }
+        String key = checkoutMessageKey(raw);
+        if ("BUYER_REQUIRED".equals(key) || "ELEMENTPAY_MISSING_ATTRIBUTE".equals(key)) {
+            return true;
+        }
+        String l = raw.toLowerCase(Locale.ROOT);
+        return l.contains("missed required") || l.contains("required attribute");
+    }
+
+    private static boolean isMerchantCommissionUnset(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return false;
+        }
+        return raw.toLowerCase(Locale.ROOT).contains("no commission has been set");
+    }
+
+    /** EP error 가 객체·문자열 어느 쪽이든 메시지 추출 */
+    private static String extractEpErrorMessage(JsonNode resp) {
+        if (resp == null || resp.isMissingNode() || resp.isNull()) {
+            return "";
+        }
+        JsonNode err = resp.get("error");
+        if (err != null && !err.isNull() && !err.isMissingNode()) {
+            if (err.isTextual() || err.isNumber()) {
+                return err.asText("").trim();
+            }
+            String m = firstNonBlank(
+                    err.path("message").asText(""),
+                    err.path("msg").asText(""),
+                    err.path("error").asText(""),
+                    err.path("description").asText(""));
+            if (!m.isBlank()) {
+                return m.trim();
+            }
+            return err.toString();
+        }
+        return firstNonBlank(resp.path("message").asText(""), resp.path("msg").asText("")).trim();
+    }
+
     private static String checkoutMessageKey(String raw) {
         if (raw == null || raw.isBlank()) {
             return null;
         }
         String u = raw.trim().toUpperCase(Locale.ROOT);
-        if (u.startsWith("ELEMENTPAY_")) {
+        if (u.startsWith("ELEMENTPAY_") || u.startsWith("BUYER_")) {
             return raw.trim();
         }
         String l = raw.toLowerCase(Locale.ROOT);
+        if (l.contains("missed required") || l.contains("required attribute")) {
+            return "BUYER_REQUIRED";
+        }
+        if (l.contains("no commission has been set")) {
+            return "CHECKOUT_CARD_PATH_FAILED";
+        }
         if (l.contains("rejected by bank") || l.contains("bank reject")) {
             return "ELEMENTPAY_REJECTED_BY_BANK";
         }
@@ -1513,6 +2082,9 @@ public class ElementPayPaymentService {
     }
 
     private static Map<String, Object> fail(String message, String code) {
+        if (isMissingBuyerAttribute(message) || isMissingBuyerAttribute(code)) {
+            return CheckoutFailI18n.cardPathFailed();
+        }
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("success", false);
         out.put("message", message);

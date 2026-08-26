@@ -1,9 +1,15 @@
-﻿ICOPAY Unified Checkout Prepare API พารามิเตอร์คำขอ (Spec ICOPAY-CHECKOUT-PREPARE-001 v1.0)
+ICOPAY Unified Checkout Prepare API พารามิเตอร์คำขอ (Spec ICOPAY-CHECKOUT-PREPARE-001 v1.2)
 ======================================================================================
 
 POST {publicApiBaseUrl}/api/middleware/v1/merchant/checkout/prepare
 Content-Type: application/json
 X-Icopay-Merchant-Broker-Secret: {brokerSecret}  (when enforce is on)
+
+จำเป็น — หากขาด ICOPAY BUYER_* (ค่าว่างถือว่าขาด)
+  ตาราง 1.1: compId หรือ merchantId, orderNo, amount, buyer
+  ตาราง 1.2: buyer.email, buyer.phone (เลขในประเทศ), buyer.countryIso2 (ตัวพิมพ์ใหญ่ 2 ตัว)
+  รหัส: BUYER_EMAIL_REQUIRED / BUYER_PHONE_REQUIRED / BUYER_COUNTRY_REQUIRED
+  messages: KOR ENG JPN CHN THA
 
 Table 1.1 — Request body
 No.  Parameter     Type     Len   M/O   Description                    Remark
@@ -19,9 +25,9 @@ No.  Parameter     Type     Len   M/O   Description                    Remark
 
 Table 1.2 — buyer object
 No.  Parameter          Type     Len   M/O   Remark
-1    email              String   254   M     Required by ICOPAY
-2    phone              String   32    M     Local number (no +country)
-3    countryIso2        String   2     M     ISO2 e.g. KR
+1    email              String   254   M     จำเป็น หากขาด → BUYER_EMAIL_REQUIRED
+2    phone              String   32    M     เลขในประเทศ หากขาด → BUYER_PHONE_REQUIRED
+3    countryIso2        String   2     M     ISO2 หากขาด → BUYER_COUNTRY_REQUIRED
 4    address            String   200   O     Shipping prefill
 5-10 (optional shipping fields — see HTML/MD doc)
 

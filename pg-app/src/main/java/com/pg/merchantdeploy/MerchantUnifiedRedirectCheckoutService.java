@@ -3,6 +3,7 @@ package com.pg.merchantdeploy;
 import com.pg.integration.pg.PgVendor;
 import com.pg.service.ChillPayService;
 import com.pg.service.MerchantChatbotProductService;
+import com.pg.urlpay.CheckoutFailI18n;
 import com.pg.urlpay.IcipayBuyerContactUtil;
 import com.pg.urlpay.NeutralCheckoutRoute;
 import jakarta.servlet.http.HttpServletRequest;
@@ -63,8 +64,10 @@ public class MerchantUnifiedRedirectCheckoutService {
         Map<String, String> buyer;
         try {
             buyer = IcipayBuyerContactUtil.extractAndValidateRequired(body);
+        } catch (IcipayBuyerContactUtil.BuyerRequiredException ex) {
+            return ex.toFailMap();
         } catch (IllegalArgumentException ex) {
-            return fail(ex.getMessage(), "BUYER_REQUIRED");
+            return CheckoutFailI18n.buyerRequiredGeneric();
         }
 
         String opPg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
