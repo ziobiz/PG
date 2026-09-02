@@ -6,13 +6,35 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '3.77';
+  var CURRENT_LIVE = '3.78';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '3.78',
+      kind: 'minor',
+      date: '2026-09-02',
+      items: {
+        KO: [
+          '사용자관리: 비밀번호 초기화 후 배지가 OTP와 같이 회색(미등록)으로 표시 — passwordMustChangeYn 반영. 5개국어'
+        ],
+        EN: [
+          'User management: password reset badge turns grey (unregistered) like OTP — reflects passwordMustChangeYn. 5 languages'
+        ],
+        JP: [
+          'ユーザー管理: パスワード初期化後バッジをOTP同様グレー(未登録)表示 — passwordMustChangeYn反映。5言語'
+        ],
+        CH: [
+          '用户管理：密码重置后徽章与OTP相同显示灰色（未注册）— 反映 passwordMustChangeYn。5种语言'
+        ],
+        TH: [
+          'จัดการผู้ใช้: หลังรีเซ็ตรหัสผ่านแสดงป้ายสีเทา(ยังไม่ลงทะเบียน)เหมือน OTP — สะท้อน passwordMustChangeYn. 5 ภาษา'
+        ]
+      }
+    },
     {
       version: '3.77',
       kind: 'minor',

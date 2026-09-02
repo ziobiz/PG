@@ -16528,12 +16528,13 @@
                   var pwdRid = row.id != null ? String(row.id) : '';
                   var canResetPwd = String(row.canResetPassword || 'N') === 'Y';
                   var isPwdDraft = !!row._draft;
-                  var pwdRegistered = !isPwdDraft;
-                  var pwdBadge = pwdRegistered
+                  /* OTP(otpRegisteredYn)와 동일 — 임시·미변경 비밀번호(passwordMustChangeYn=Y)는 회색 미등록 */
+                  var pwdSettled = !isPwdDraft && String(row.passwordMustChangeYn || 'N') !== 'Y';
+                  var pwdBadge = pwdSettled
                     ? '<span class="badge rounded-pill bg-success small" data-pg-ui-t="등록">등록</span>'
                     : '<span class="badge rounded-pill bg-secondary small" data-pg-ui-t="미등록">미등록</span>';
                   var pwdSep = '<span class="text-muted small user-select-none align-middle" aria-hidden="true">|</span>';
-                  var pwdDropEnabled = canResetPwd && pwdRegistered;
+                  var pwdDropEnabled = canResetPwd && !isPwdDraft;
                   var pwdMenu = pwdDropEnabled
                     ? ('<button type="button" class="badge rounded-pill bg-success small border-0 align-middle user-reset-pwd-btn" data-id="' + escAttr(pwdRid) + '"><span data-pg-ui-t="초기화">초기화</span></button>')
                     : ('<span class="badge rounded-pill bg-secondary small align-middle" data-pg-ui-t="초기화">초기화</span>');
