@@ -232,11 +232,12 @@ public final class MerchantCheckoutApiParameterSpec {
         rows.add(param(5, "currency", "currency", "String", 3, "O",
                 new Bundle("ISO 4217 통화코드", "ISO 4217 currency code",
                         "ISO 4217 通貨コード", "ISO 4217 货币代码", "รหัสสกุล ISO 4217"),
-                new Bundle("예: USD, JPY, KRW, THB. 생략 시 가맹 기준통화·운영 PG 정책",
-                        "e.g. USD, JPY, KRW, THB. Omit to use merchant base currency / PG policy",
-                        "例: USD, JPY, KRW, THB。省略時は基準通貨・PG 方針",
-                        "例：USD、JPY、KRW、THB。省略则按商户基准货币/PG 策略",
-                        "เช่น USD JPY KRW THB ไม่ระบุใช้สกุลฐานร้าน")));
+                new Bundle(
+                        "DP(DISPLAY/BLIND): display currency (JPY etc). Settlement = HQ PG settlementCurrency (THB/USD). Else merchant base currency",
+                        "DP(DISPLAY/BLIND): display currency (JPY etc). Settlement = HQ PG settlementCurrency (THB/USD). Else merchant base currency",
+                        "DP(DISPLAY/BLIND): display currency (JPY etc). Settlement = HQ PG settlementCurrency (THB/USD). Else merchant base currency",
+                        "DP(DISPLAY/BLIND): display currency (JPY etc). Settlement = HQ PG settlementCurrency (THB/USD). Else merchant base currency",
+                        "DP(DISPLAY/BLIND): display currency (JPY etc). Settlement = HQ PG settlementCurrency (THB/USD). Else merchant base currency")));
         rows.add(param(6, "productName", "productName", "String", 500, "O",
                 new Bundle("상품명·주문 설명", "Product name or order description",
                         "商品名・注文説明", "商品名/订单说明", "ชื่อสินค้าหรือคำอธิบาย"),

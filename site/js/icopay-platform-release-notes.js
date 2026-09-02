@@ -6,13 +6,169 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '3.79';
+  var CURRENT_LIVE = '3.81';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '3.81',
+      kind: 'minor',
+      date: '2026-09-02',
+      items: {
+        KO: [
+          'URL결제 가맹 메뉴얼 V2.80: 전 PG 공통 DP·단독/멀티 혼용·API prepare 표시통화·총판통화 vs URL결제설정 실결제 통화 안내. 5개국어 HTML/PDF',
+          '플랫폼 가이드·가맹 API 문서 동기화. 신규 PG는 체크리스트 연동 시 동일 DP 사용'
+        ],
+        EN: [
+          'URL pay merchant manual V2.80: all-PG DP, single vs multi mix, API prepare display currency, distributor vs HQ settlement. 5-language HTML/PDF',
+          'Platform & merchant API docs synced. New PGs get the same DP when checklist-wired'
+        ],
+        JP: [
+          'URL決済加盟マニュアルV2.80: 全PG共通DP・単独/混在・API表示通貨・総代理通貨と実決済。5言語HTML/PDF',
+          'プラットフォーム・加盟API文書同期。新規PGはチェックリスト実装で同一DP'
+        ],
+        CH: [
+          'URL 支付商户手册 V2.80：全 PG DP、单/多混用、API 展示币、总代理币与实结算。5 语 HTML/PDF',
+          '平台与商户 API 文档同步。新 PG 按清单接入即可同 DP'
+        ],
+        TH: [
+          'คู่มือ URL ร้าน V2.80: DP ทุก PG เดี่ยว/ผสม API สกุลแสดง สกุลตัวแทน vs ชำระจริง. HTML/PDF 5 ภาษา',
+          'ซิงก์คู่มือแพลตฟอร์ม/API PG ใหม่ใช้ DP เดียวกันเมื่อทำเช็คลิสต์'
+        ]
+      },
+      howTo: {
+        KO: [
+          {
+            title: '표시통화 DP 사용 (본사)',
+            steps: [
+              '본사 → URL결제설정에서 기능 ON',
+              '해당 PG 행 amountMode = DISPLAY 또는 BLIND',
+              '표시통화·실결제 통화(settlementCurrency)·FX 설정 (일반 STANDARD면 총판 통화만 사용)',
+              '가맹 운영 URL PG 바인딩 확인 후 결제 URL·API prepare 테스트'
+            ]
+          },
+          {
+            title: '신규 결제대행사 추가 시',
+            steps: [
+              '통합 prepare/sale·중립 checkout 경로 등록',
+              'MerchantCheckoutPrepareCurrencyService 로 DP/일반 통화 공통 처리',
+              '결제 HTML이 url-pay-public-shell DP 패턴 공유',
+              '다국어 5개 + 플랫폼 버전 +0.1 + 메뉴얼 반영'
+            ]
+          }
+        ],
+        EN: [
+          {
+            title: 'Enable display-currency DP (HQ)',
+            steps: [
+              'HQ → URL pay settings: feature ON',
+              'Set PG amountMode = DISPLAY or BLIND',
+              'Set display/settlement currency and FX (STANDARD uses distributor currency only)',
+              'Confirm merchant URL PG binding; test checkout URL and API prepare'
+            ]
+          },
+          {
+            title: 'When adding a new PG',
+            steps: [
+              'Register unified prepare/sale and neutral checkout routes',
+              'Use MerchantCheckoutPrepareCurrencyService for DP/standard currency',
+              'Share url-pay-public-shell DP patterns in checkout HTML',
+              '5 languages + platform version +0.1 + update manuals'
+            ]
+          }
+        ],
+        JP: [
+          {
+            title: '表示通貨DPの有効化（本社）',
+            steps: [
+              '本社→URL決済設定で機能ON',
+              '当該PGのamountModeをDISPLAYまたはBLIND',
+              '表示・実決済通貨とFXを設定（STANDARDは総代理通貨のみ）',
+              '加盟のURL PGバインド確認後、決済URL・API prepareをテスト'
+            ]
+          },
+          {
+            title: '新規決済代行追加時',
+            steps: [
+              '統合prepare/sale・中立checkoutを登録',
+              'MerchantCheckoutPrepareCurrencyServiceでDP/通常通貨を共通処理',
+              '決済HTMLでurl-pay-public-shellのDPパターンを共有',
+              '5言語 + プラットフォーム版+0.1 + マニュアル反映'
+            ]
+          }
+        ],
+        CH: [
+          {
+            title: '启用展示币 DP（总部）',
+            steps: [
+              '总部 → URL 支付设置：功能开启',
+              '该 PG 的 amountMode = DISPLAY 或 BLIND',
+              '设置展示/实结算币与 FX（STANDARD 仅用总代理币）',
+              '确认商户 URL PG 绑定后测试支付 URL 与 API prepare'
+            ]
+          },
+          {
+            title: '新增支付机构时',
+            steps: [
+              '注册统一 prepare/sale 与中立 checkout',
+              '用 MerchantCheckoutPrepareCurrencyService 处理 DP/普通币种',
+              '支付页共用 url-pay-public-shell DP 模式',
+              '5 语 + 平台版本 +0.1 + 更新手册'
+            ]
+          }
+        ],
+        TH: [
+          {
+            title: 'เปิด DP สกุลแสดง (HQ)',
+            steps: [
+              'HQ → ตั้งค่า URL pay: เปิดฟีเจอร์',
+              'ตั้ง amountMode ของ PG = DISPLAY หรือ BLIND',
+              'ตั้งสกุลแสดง/ชำระจริงและ FX (STANDARD ใช้สกุลตัวแทนอย่างเดียว)',
+              'ตรวจ binding URL PG ของร้าน แล้วทดสอบ URL และ API prepare'
+            ]
+          },
+          {
+            title: 'เมื่อเพิ่ม PG ใหม่',
+            steps: [
+              'ลงทะเบียน prepare/sale รวมและเส้นทาง checkout กลาง',
+              'ใช้ MerchantCheckoutPrepareCurrencyService สำหรับ DP/ปกติ',
+              'หน้าชำระใช้แพทเทิร์น DP ของ url-pay-public-shell',
+              '5 ภาษา + เวอร์ชันแพลตฟอร์ม +0.1 + อัปเดตคู่มือ'
+            ]
+          }
+        ]
+      }
+    },
+    {
+      version: '3.80',
+      kind: 'minor',
+      date: '2026-09-02',
+      items: {
+        KO: [
+          '전 PG 공통 DP 강화: 실결제 통화는 본사 settlementCurrency(THB·USD 등). API prepare(ChillPay·JPAY·EP·Eximbay·ILK) 동일 필드(urlPayPricingMode·displayCurrency·settlementCurrencyHint)',
+          'EP 승인·initPayment도 설정 실결제 통화 사용. 신규 PG 추가 규칙(pg-display-fx-all-pg)·다국어·자동배포 영구 규칙. 5개국어'
+        ],
+        EN: [
+          'All-PG DP hardened: settlement currency = HQ settlementCurrency (THB/USD/…). API prepare (ChillPay/JPAY/EP/Eximbay/ILK) shares the same fields',
+          'EP initPayment uses configured settlement currency. New-PG rule (pg-display-fx-all-pg); permanent i18n+auto-deploy. 5 languages'
+        ],
+        JP: [
+          '全PG共通DP強化: 実決済通貨は本社settlementCurrency(THB・USD等)。API prepare(全PG)で同一フィールド',
+          'EP initPaymentも設定実決済通貨。新規PG規則・多言語・自動デプロイ恒久化。5言語'
+        ],
+        CH: [
+          '全 PG DP 强化：实结算货币=总部 settlementCurrency(THB/USD 等)。各 PG API prepare 字段统一',
+          'EP initPayment 使用配置实结算货币。新增 PG 规则；多语言+自动部署永久。5 种语言'
+        ],
+        TH: [
+          'เสริม DP ทุก PG: สกุลชำระจริง=settlementCurrency ของ HQ (THB/USD ฯลฯ) prepare API ฟิลด์เดียวกันทุก PG',
+          'EP initPayment ใช้สกุลชำระตามตั้งค่า กฏ PG ใหม่ + i18n/auto-deploy ถาวร. 5 ภาษา'
+        ]
+      }
+    },
     {
       version: '3.79',
       kind: 'minor',

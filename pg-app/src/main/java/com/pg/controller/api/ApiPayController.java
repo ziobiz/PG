@@ -807,7 +807,7 @@ public class ApiPayController {
             return vendorBlock;
         }
         if (!UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equals(chillPayService.resolveUrlPayPricingMode(orgUnitId))) {
-            return ResponseEntity.ok(ApiResponse.fail("이 가맹점 URL 결제는 표시통화(THB정산) 모드가 아닙니다.", "DISPLAY_FX_NOT_CONFIGURED"));
+            return ResponseEntity.ok(ApiResponse.fail("이 가맹점 URL 결제는 표시통화(DP) 모드가 아닙니다.", "DISPLAY_FX_NOT_CONFIGURED"));
         }
         if (!urlPayDisplayFxService.isHqFeatureEnabled()) {
             return ResponseEntity.ok(ApiResponse.fail("본사 「URL 표시통화(THB정산)」 설정이 꺼져 있거나 비어 있습니다.", "DISPLAY_FX_HQ_DISABLED"));
@@ -857,7 +857,7 @@ public class ApiPayController {
         out.put("oneToOneDisplaySettlement", false);
         String set = r.settlementCurrency();
         String scaleNote = ("JPY".equals(set) || "KRW".equals(set)) ? "정수 반올림" : "소수 둘째";
-        out.put("formulaNote", "청구 " + set + "(" + scaleNote + ") = 표시금액 × settlementPerUnit × (1+margin). 자동은 BOT 일평균을 THB 경유로 환산합니다.");
+        out.put("formulaNote", "청구 " + set + "(" + scaleNote + ") = 표시금액 × settlementPerUnit × (1+margin). 자동은 BOT 일평균을 THB 경유로 환산합니다(실결제 " + set + ").");
         return ResponseEntity.ok(ApiResponse.ok(out));
     }
 

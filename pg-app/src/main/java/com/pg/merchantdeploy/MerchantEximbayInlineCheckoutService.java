@@ -39,6 +39,7 @@ public class MerchantEximbayInlineCheckoutService {
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService;
     private final MerchantApiIntegrationChannelService integrationChannelService;
+    private final MerchantCheckoutPrepareCurrencyService prepareCurrencyService;
 
     public MerchantEximbayInlineCheckoutService(OrgUnitRepository orgUnitRepository,
                                                 MerchantProfileRepository merchantProfileRepository,
@@ -48,7 +49,8 @@ public class MerchantEximbayInlineCheckoutService {
                                                 MerchantInlineCheckoutTokenService tokenService,
                                                 PgTrnsctnRepository pgTrnsctnRepository,
                                                 UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService,
-                                                MerchantApiIntegrationChannelService integrationChannelService) {
+                                                MerchantApiIntegrationChannelService integrationChannelService,
+                                                MerchantCheckoutPrepareCurrencyService prepareCurrencyService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.orgServiceUseService = orgServiceUseService;
@@ -58,6 +60,7 @@ public class MerchantEximbayInlineCheckoutService {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.urlPayCheckoutCurrencyService = urlPayCheckoutCurrencyService;
         this.integrationChannelService = integrationChannelService;
+        this.prepareCurrencyService = prepareCurrencyService;
     }
 
     public Map<String, Object> prepare(Long orgUnitId, Map<String, Object> body, HttpServletRequest request) {
@@ -94,7 +97,12 @@ public class MerchantEximbayInlineCheckoutService {
             return fail("유효한 amount가 필요합니다.", "INVALID_AMOUNT");
         }
         String amountPlain = amount.stripTrailingZeros().toPlainString();
-        String currency = urlPayCheckoutCurrencyService.resolveCheckoutCurrency(orgUnitId, str(body.get("currency")));
+        MerchantCheckoutPrepareCurrencyService.Resolved curResolved =
+                prepareCurrencyService.resolveOrgCheckout(orgUnitId, str(body.get("currency")));
+        if (!curResolved.ok()) {
+            return prepareCurrencyService.failMap(curResolved);
+        }
+        String currency = curResolved.sessionCurrency();
         String productName = clamp(str(body.get("productName")), 500);
         if (productName.isBlank()) {
             productName = clamp(str(body.get("item")), 500);
@@ -133,6 +141,7 @@ public class MerchantEximbayInlineCheckoutService {
         data.put("integrationMode", "INLINE");
         // 실제 PG 는 노출하지 않는다 — 항상 ICOPAY
         data.put("pgVendor", MerchantApiResponseMapper.MERCHANT_FACING_BRAND);
+        prepareCurrencyService.putPublicFields(data, curResolved);
         if (langCode != null && !langCode.isBlank()) {
             data.put("langCode", langCode);
         }

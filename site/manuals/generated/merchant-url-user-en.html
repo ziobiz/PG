@@ -84,7 +84,7 @@
       <div class="logo-line">ICOPAY · Payment Gateway</div>
       <h1>URL Payment<br>Merchant Manual</h1>
       <div class="subtitle">Merchant perspective — share public payment URLs, verify approvals, and run daily operations</div>
-      <div class="meta">Based on: ICOPAY Merchant Permission Levels &nbsp;|&nbsp; Target: URL Payment Merchants &nbsp;|&nbsp; Published: July 2026 &nbsp;|&nbsp; V2.74</div>
+      <div class="meta">Based on: ICOPAY Merchant Permission Levels &nbsp;|&nbsp; Target: URL Payment Merchants &nbsp;|&nbsp; Published: September 2026 &nbsp;|&nbsp; V2.80</div>
     </div>
     <div class="cover-logo">
       <img src="../assets/logo-ontheline.png" alt="Brand">
@@ -120,6 +120,14 @@
       <tr><td>View payment history</td><td>Menu permissions, fees, settlement</td></tr>
       <tr><td>Read notices & daily checks</td><td>Company master data changes</td></tr>
     </table>
+    <h3 class="sub-title">Display currency DP (HQ URL-pay settings)</h3>
+    <p>If HQ sets the PG amount mode to <strong>DISPLAY</strong> or <strong>BLIND</strong>, shoppers and merchant API see a <strong>display currency</strong> (e.g. JPY), while the charge sent to the network uses HQ's <strong>settlement currency</strong> (often THB matching the distributor org). Under <strong>STANDARD</strong>, checkout uses the distributor/org base currency as usual.</p>
+    <table>
+      <tr><th>Setup</th><th>Checkout &amp; sale</th></tr>
+      <tr><td>Single PG + DP</td><td>DP from the start (display + estimate when DISPLAY). No brand-based PG split</td></tr>
+      <tr><td>Multi-PG STANDARD/DP mix</td><td>UI looks like DP; after card auto-detect, STANDARD PG = 1:1 display, DP PG = FX settlement</td></tr>
+    </table>
+    <div class="info-box">PG agency registration has no currency field. STANDARD follows distributor currency; DP settlement currency is only in <strong>HQ → URL pay settings</strong> per PG. Buyer/merchant UI always shows <strong>ICOPAY</strong>. New PGs follow the same platform rule.</div>
     <hr class="section-rule">
     <h2 class="section-title" id="s2">2. Before You Start (HQ activation)</h2>
     <table>
@@ -169,10 +177,12 @@
     <div class="faq-item"><div class="faq-q">Link opens a notice only.</div><div class="faq-a">Often suspend/maintenance — check notices and HQ.</div></div>
     <div class="faq-item"><div class="faq-q">Payment failed.</div><div class="faq-a">Check fail reason in the list; escalate with order id if needed.</div></div>
     <div class="faq-item"><div class="faq-q">Menu not in sidebar.</div><div class="faq-a">Request Access permissions from HQ/distributor.</div></div>
-    <div class="faq-item"><div class="faq-q">Need API integration.</div><div class="faq-a">This is an ops manual — ask HQ for Merchant API launch docs.</div></div>
+    <div class="faq-item"><div class="faq-q">Need API integration.</div><div class="faq-a">This is an ops manual — ask HQ for Merchant API launch docs. For DP merchants, send display currency (e.g. JPY) in prepare <code>currency</code>.</div></div>
+    <div class="faq-item"><div class="faq-q">Display currency differs from payment history currency.</div><div class="faq-a">Under DP (DISPLAY/BLIND), shoppers see display currency while approval/settlement records may use settlement currency. Confirm with HQ URL-pay settings.</div></div>
+    <div class="faq-item"><div class="faq-q">Does card brand change the charge currency?</div><div class="faq-a">With a single PG on DP only, checkout is DP from the start. Brand-based split applies only when multiple PGs mix STANDARD and DP.</div></div>
 
   </div>
-  <div class="footer">ICOPAY URL Payment Merchant Manual · V2.74<br>ICOPAY &nbsp;|&nbsp; icopay.co.kr &nbsp;|&nbsp; Contact: ICOPAY HQ / Distributor</div>
+  <div class="footer">ICOPAY URL Payment Merchant Manual · V2.80<br>ICOPAY &nbsp;|&nbsp; icopay.co.kr &nbsp;|&nbsp; Contact: ICOPAY HQ / Distributor</div>
 </div>
 </body>
 </html>

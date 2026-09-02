@@ -11,8 +11,9 @@ import java.util.Map;
  * <ul>
  *   <li>표시 금액(JPY 등)은 가맹/구매자 계약 — prepare·화면에서 고정</li>
  *   <li>실결제는 라우팅된 운영 PG의 금액 모드로 확정
- *       ({@link UrlPayDisplayFxService#MODE_DISPLAY_FX_THB} → FX, 일반 → 표시통화 1:1)</li>
- *   <li>혼용 가맹: UI는 DP 통일, V/M→일반 PG는 JPY, DP PG는 THB 등</li>
+ *       ({@link UrlPayDisplayFxService#MODE_DISPLAY_FX_THB} → FX → PG {@code settlementCurrency},
+ *       일반 → 표시통화 1:1). 실결제는 THB에 한정되지 않음(USD 등)</li>
+ *   <li>혼용 가맹: UI는 DP 통일, V/M→일반 PG는 표시통화 1:1, DP PG는 FX 실결제</li>
  * </ul>
  */
 @Service

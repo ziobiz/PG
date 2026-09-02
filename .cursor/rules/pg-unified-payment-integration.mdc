@@ -31,13 +31,17 @@ alwaysApply: true
 ## 4. 신규 PG 체크리스트
 
 1. `PgVendor`·`MerchantPgBrokerCatalog`(내부) 등록
-2. `Merchant*InlineCheckoutService` (prepare/session/status)
+2. `Merchant*InlineCheckoutService` (prepare/session/status) —
+   **`MerchantCheckoutPrepareCurrencyService`로 DP/일반 통화 공통 처리** (`putPublicFields`)
 3. `MerchantUnifiedInlineCheckoutService`·`Redirect`·`Subscription` 분기 추가
-4. 결제 HTML + presale 리스크 필터 + 노티(가맹 비식별)
+4. 결제 HTML + presale 리스크 필터 + 노티(가맹 비식별) —
+   **표시통화 DP·실결제통화(THB/USD 등)는 `pg-display-fx-all-pg.mdc` 필수**
 5. `MerchantApiResponseMapper.neutralizePgIdentity` 경유 응답
 6. **다국어 5개**(KOR·ENG·JPN·CHN·THA) — UI·오류·배포 문서
 7. `SecurityConfig` embeddable chain에 결제 HTML·중립 경로 permit
 8. 배포 키트·체크리스트·파라미터 규격 — **ICOPAY만** 노출 (PG별 블록 추가 금지)
+9. **플랫폼 버전 마이너 +0.1** (`icopay-platform-version.mdc`) — PG 신규 연동 시
+10. URL sale → `UrlPaySaleDispatcher`/`UrlPayChargeResolutionService` (표시금액 persist)
 
 ## 5. 레거시
 

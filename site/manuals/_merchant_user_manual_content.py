@@ -62,6 +62,14 @@ def url_doc(lang: str) -> dict:
       <tr><td>결제내역 조회</td><td>메뉴 권한·수수료·정산 정책</td></tr>
       <tr><td>공지 확인·일상 점검</td><td>업체 기본정보 변경</td></tr>
     </table>
+    <h3 class="sub-title">표시통화 DP (본사 URL결제설정)</h3>
+    <p>본사에서 해당 결제대행사(PG)의 금액 모드를 <strong>DISPLAY</strong> 또는 <strong>BLIND</strong>로 두면, 고객·가맹 API에는 <strong>표시통화</strong>(예: JPY)로 금액이 보이고, 실제 승인 금액은 본사가 지정한 <strong>실결제 통화</strong>(보통 총판·조직 통화와 맞는 THB 등)로 환산됩니다. <strong>일반(STANDARD)</strong>이면 총판(조직) 기준통화 그대로 결제됩니다.</p>
+    <table>
+      <tr><th>구성</th><th>결제창·승인</th></tr>
+      <tr><td>PG <strong>단독 + DP</strong></td><td>처음부터 표시통화·(DISPLAY면)청구예상. 카드 브랜드로 PG를 나누지 않음</td></tr>
+      <tr><td>PG <strong>멀티 + 일반/DP 혼용</strong></td><td>화면은 DP처럼 통일. 카드 자동인식 후 일반 PG는 표시통화 1:1, DP PG는 FX 실결제</td></tr>
+    </table>
+    <div class="info-box">결제대행사 등록 화면에는 통화 항목이 없습니다. 일반 결제는 총판 통화를 따르고, DP의 실결제 통화는 <strong>본사 → URL결제설정</strong>의 해당 PG 행에서만 다룹니다. 가맹·구매자 UI에는 PG명이 보이지 않으며 모두 <strong>ICOPAY</strong>입니다. 새로 추가되는 PG도 동일 플랫폼 규칙을 따릅니다.</div>
     <hr class="section-rule">
 
     <h2 class="section-title" id="s2">2. 시작 전 확인 사항 (본사·상위 활성화)</h2>
@@ -144,7 +152,9 @@ def url_doc(lang: str) -> dict:
     <div class="faq-item"><div class="faq-q">결제가 실패했습니다.</div><div class="faq-a">결제내역의 실패 사유를 확인하세요. 필요 시 주문번호와 함께 상위에 「리스크·거래」 문의를 하세요.</div></div>
     <div class="faq-item"><div class="faq-q">메뉴가 사이드바에 없습니다.</div><div class="faq-a">본사정책 → 접근·권한에서 메뉴가 닫혀 있습니다. 상위에 권한 개방을 요청하세요.</div></div>
     <div class="faq-item"><div class="faq-q">업체정보를 직접 수정하고 싶습니다.</div><div class="faq-a">내 업체정보는 조회 전용입니다. 상호·주소 변경은 본사·총판에 요청하세요.</div></div>
-    <div class="faq-item"><div class="faq-q">API 연동이 필요합니다.</div><div class="faq-a">이 메뉴얼은 사용자 운영 안내입니다. 연동은 상위 「가맹 API 출시」 문서를 요청하세요.</div></div>
+    <div class="faq-item"><div class="faq-q">API 연동이 필요합니다.</div><div class="faq-a">이 메뉴얼은 사용자 운영 안내입니다. 연동은 상위 「가맹 API 출시」 문서를 요청하세요. DP 가맹은 prepare 시 currency에 표시통화(예: JPY)를 넣습니다.</div></div>
+    <div class="faq-item"><div class="faq-q">표시통화와 결제내역 통화가 달라 보여요.</div><div class="faq-a">DP(DISPLAY/BLIND)이면 고객에게는 표시통화, 승인·정산 기록은 실결제 통화일 수 있습니다. 본사 URL결제설정과 상위 담당자에게 확인하세요.</div></div>
+    <div class="faq-item"><div class="faq-q">카드 브랜드마다 청구 통화가 바뀌나요?</div><div class="faq-a">운영 PG가 하나이고 DP만 쓰면 처음부터 DP입니다. 여러 PG를 섞어 일반+DP인 경우에만 카드 인식 후 실결제가 나뉠 수 있습니다.</div></div>
 """,
         }
     if lang == "en":
@@ -188,6 +198,14 @@ def url_doc(lang: str) -> dict:
       <tr><td>View payment history</td><td>Menu permissions, fees, settlement</td></tr>
       <tr><td>Read notices & daily checks</td><td>Company master data changes</td></tr>
     </table>
+    <h3 class="sub-title">Display currency DP (HQ URL-pay settings)</h3>
+    <p>If HQ sets the PG amount mode to <strong>DISPLAY</strong> or <strong>BLIND</strong>, shoppers and merchant API see a <strong>display currency</strong> (e.g. JPY), while the charge sent to the network uses HQ's <strong>settlement currency</strong> (often THB matching the distributor org). Under <strong>STANDARD</strong>, checkout uses the distributor/org base currency as usual.</p>
+    <table>
+      <tr><th>Setup</th><th>Checkout &amp; sale</th></tr>
+      <tr><td>Single PG + DP</td><td>DP from the start (display + estimate when DISPLAY). No brand-based PG split</td></tr>
+      <tr><td>Multi-PG STANDARD/DP mix</td><td>UI looks like DP; after card auto-detect, STANDARD PG = 1:1 display, DP PG = FX settlement</td></tr>
+    </table>
+    <div class="info-box">PG agency registration has no currency field. STANDARD follows distributor currency; DP settlement currency is only in <strong>HQ → URL pay settings</strong> per PG. Buyer/merchant UI always shows <strong>ICOPAY</strong>. New PGs follow the same platform rule.</div>
     <hr class="section-rule">
     <h2 class="section-title" id="s2">2. Before You Start (HQ activation)</h2>
     <table>
@@ -237,7 +255,9 @@ def url_doc(lang: str) -> dict:
     <div class="faq-item"><div class="faq-q">Link opens a notice only.</div><div class="faq-a">Often suspend/maintenance — check notices and HQ.</div></div>
     <div class="faq-item"><div class="faq-q">Payment failed.</div><div class="faq-a">Check fail reason in the list; escalate with order id if needed.</div></div>
     <div class="faq-item"><div class="faq-q">Menu not in sidebar.</div><div class="faq-a">Request Access permissions from HQ/distributor.</div></div>
-    <div class="faq-item"><div class="faq-q">Need API integration.</div><div class="faq-a">This is an ops manual — ask HQ for Merchant API launch docs.</div></div>
+    <div class="faq-item"><div class="faq-q">Need API integration.</div><div class="faq-a">This is an ops manual — ask HQ for Merchant API launch docs. For DP merchants, send display currency (e.g. JPY) in prepare <code>currency</code>.</div></div>
+    <div class="faq-item"><div class="faq-q">Display currency differs from payment history currency.</div><div class="faq-a">Under DP (DISPLAY/BLIND), shoppers see display currency while approval/settlement records may use settlement currency. Confirm with HQ URL-pay settings.</div></div>
+    <div class="faq-item"><div class="faq-q">Does card brand change the charge currency?</div><div class="faq-a">With a single PG on DP only, checkout is DP from the start. Brand-based split applies only when multiple PGs mix STANDARD and DP.</div></div>
 """,
         }
     # ja / zh / th — structured translations
@@ -262,7 +282,34 @@ def _url_loc(lang: str) -> dict:
         .replace("STEP 3</span> Review payment history", "STEP 3</span> 決済履歴の確認")
         .replace("Using Re-pay URL safely", "再決済URL利用時の注意")
         .replace("Daily checklist", "日常チェックリスト")
-        .replace(">FAQ<", ">よくある質問 (FAQ)<"),
+        .replace(">FAQ<", ">よくある質問 (FAQ)<")
+        .replace("Display currency DP (HQ URL-pay settings)", "表示通貨DP（本社URL決済設定）")
+        .replace(
+            "If HQ sets the PG amount mode to <strong>DISPLAY</strong> or <strong>BLIND</strong>, shoppers and merchant API see a <strong>display currency</strong> (e.g. JPY), while the charge sent to the network uses HQ's <strong>settlement currency</strong> (often THB matching the distributor org). Under <strong>STANDARD</strong>, checkout uses the distributor/org base currency as usual.",
+            "本社が当該PGの金額モードを<strong>DISPLAY</strong>または<strong>BLIND</strong>にすると、購入者・加盟APIには<strong>表示通貨</strong>（例: JPY）で見え、実承認は本社指定の<strong>実決済通貨</strong>（多くは総代理の組織通貨に合うTHB等）へ換算されます。<strong>STANDARD</strong>では従来どおり総代理/組織の基準通貨で決済します。",
+        )
+        .replace("<tr><th>Setup</th><th>Checkout &amp; sale</th></tr>", "<tr><th>構成</th><th>決済画面・承認</th></tr>")
+        .replace("<td>Single PG + DP</td><td>DP from the start (display + estimate when DISPLAY). No brand-based PG split</td>", "<td>PG<strong>単独+DP</strong></td><td>最初から表示通貨・(DISPLAY時)請求見積。カードブランドでPG分岐なし</td>")
+        .replace("<td>Multi-PG STANDARD/DP mix</td><td>UI looks like DP; after card auto-detect, STANDARD PG = 1:1 display, DP PG = FX settlement</td>", "<td>PG<strong>複数+標準/DP混在</strong></td><td>UIはDP統一。カード自動認識後、標準PGは表示通貨1:1、DP PGはFX実決済</td>")
+        .replace(
+            "PG agency registration has no currency field. STANDARD follows distributor currency; DP settlement currency is only in <strong>HQ → URL pay settings</strong> per PG. Buyer/merchant UI always shows <strong>ICOPAY</strong>. New PGs follow the same platform rule.",
+            "決済代行登録画面に通貨項目はありません。標準決済は総代理通貨に従い、DPの実決済通貨は<strong>本社→URL決済設定</strong>の当該PG行のみです。購入者・加盟UIは常に<strong>ICOPAY</strong>。新規PGも同一プラットフォーム規則です。",
+        )
+        .replace("Need API integration.", "API連携が必要です。")
+        .replace(
+            "This is an ops manual — ask HQ for Merchant API launch docs. For DP merchants, send display currency (e.g. JPY) in prepare <code>currency</code>.",
+            "本マニュアルは運用案内です。連携は上位の「加盟API公開」資料を依頼してください。DP加盟は prepare の currency に表示通貨（例: JPY）を指定します。",
+        )
+        .replace("Display currency differs from payment history currency.", "表示通貨と決済履歴の通貨が違って見えます。")
+        .replace(
+            "Under DP (DISPLAY/BLIND), shoppers see display currency while approval/settlement records may use settlement currency. Confirm with HQ URL-pay settings.",
+            "DP(DISPLAY/BLIND)では顧客には表示通貨、承認・精算記録は実決済通貨になることがあります。本社URL決済設定を確認してください。",
+        )
+        .replace("Does card brand change the charge currency?", "カードブランドで請求通貨が変わりますか？")
+        .replace(
+            "With a single PG on DP only, checkout is DP from the start. Brand-based split applies only when multiple PGs mix STANDARD and DP.",
+            "運用PGが1つでDPのみなら最初からDPです。複数PGで標準+DP混在のときだけカード認識後に実決済が分かれることがあります。",
+        ),
         "zh": en["body"]
         .replace("What is URL Payment?", "什么是 URL 支付？")
         .replace("Before You Start (HQ activation)", "开始前确认（需总部启用）")
@@ -271,7 +318,34 @@ def _url_loc(lang: str) -> dict:
         .replace("STEP 3</span> Review payment history", "STEP 3</span> 查看支付明细")
         .replace("Using Re-pay URL safely", "再支付 URL 使用注意")
         .replace("Daily checklist", "日常清单")
-        .replace(">FAQ<", ">常见问题 (FAQ)<"),
+        .replace(">FAQ<", ">常见问题 (FAQ)<")
+        .replace("Display currency DP (HQ URL-pay settings)", "展示币种 DP（总部 URL 支付设置）")
+        .replace(
+            "If HQ sets the PG amount mode to <strong>DISPLAY</strong> or <strong>BLIND</strong>, shoppers and merchant API see a <strong>display currency</strong> (e.g. JPY), while the charge sent to the network uses HQ's <strong>settlement currency</strong> (often THB matching the distributor org). Under <strong>STANDARD</strong>, checkout uses the distributor/org base currency as usual.",
+            "总部将该 PG 金额模式设为 <strong>DISPLAY</strong> 或 <strong>BLIND</strong> 时，买家与商户 API 看到<strong>展示币种</strong>（如 JPY），实际批准使用总部指定的<strong>实结算币种</strong>（常为与总代理组织一致的 THB 等）。<strong>STANDARD</strong> 则仍按总代理/组织基准币支付。",
+        )
+        .replace("<tr><th>Setup</th><th>Checkout &amp; sale</th></tr>", "<tr><th>配置</th><th>支付页与批准</th></tr>")
+        .replace("<td>Single PG + DP</td><td>DP from the start (display + estimate when DISPLAY). No brand-based PG split</td>", "<td>单一 PG + DP</td><td>一开始即为 DP（DISPLAY 时含预估）。不按卡品牌分 PG</td>")
+        .replace("<td>Multi-PG STANDARD/DP mix</td><td>UI looks like DP; after card auto-detect, STANDARD PG = 1:1 display, DP PG = FX settlement</td>", "<td>多 PG 标准/DP 混用</td><td>界面统一为 DP；卡识别后，标准 PG=展示币 1:1，DP PG=FX 实结算</td>")
+        .replace(
+            "PG agency registration has no currency field. STANDARD follows distributor currency; DP settlement currency is only in <strong>HQ → URL pay settings</strong> per PG. Buyer/merchant UI always shows <strong>ICOPAY</strong>. New PGs follow the same platform rule.",
+            "支付机构注册无币种字段。标准支付跟随总代理币种；DP 实结算币种仅在<strong>总部→URL 支付设置</strong>各 PG 行。买家/商户界面始终为 <strong>ICOPAY</strong>。新 PG 遵循同一平台规则。",
+        )
+        .replace("Need API integration.", "需要 API 对接。")
+        .replace(
+            "This is an ops manual — ask HQ for Merchant API launch docs. For DP merchants, send display currency (e.g. JPY) in prepare <code>currency</code>.",
+            "本手册为运营说明。对接请向上级索取「商户 API 发布」文档。DP 商户在 prepare 的 currency 中传展示币种（如 JPY）。",
+        )
+        .replace("Display currency differs from payment history currency.", "展示币种与明细币种不一致。")
+        .replace(
+            "Under DP (DISPLAY/BLIND), shoppers see display currency while approval/settlement records may use settlement currency. Confirm with HQ URL-pay settings.",
+            "DP(DISPLAY/BLIND) 下买家看展示币，批准/结算记录可能是实结算币。请核对总部 URL 支付设置。",
+        )
+        .replace("Does card brand change the charge currency?", "卡品牌会改变扣款币种吗？")
+        .replace(
+            "With a single PG on DP only, checkout is DP from the start. Brand-based split applies only when multiple PGs mix STANDARD and DP.",
+            "仅一个运营 PG 且为 DP 时，一开始就是 DP。仅在多 PG 混用标准+DP 时，才会在识卡后拆分实结算。",
+        ),
         "th": en["body"]
         .replace("What is URL Payment?", "ชำระด้วย URL คืออะไร?")
         .replace("Before You Start (HQ activation)", "ก่อนเริ่มใช้ (ต้องเปิดโดย HQ)")
@@ -280,7 +354,34 @@ def _url_loc(lang: str) -> dict:
         .replace("STEP 3</span> Review payment history", "STEP 3</span> ตรวจรายการชำระ")
         .replace("Using Re-pay URL safely", "ใช้ Re-pay URL อย่างระวัง")
         .replace("Daily checklist", "เช็คลิสต์ประจำวัน")
-        .replace(">FAQ<", ">คำถามที่พบบ่อย (FAQ)<"),
+        .replace(">FAQ<", ">คำถามที่พบบ่อย (FAQ)<")
+        .replace("Display currency DP (HQ URL-pay settings)", "สกุลแสดง DP (ตั้งค่า URL pay ของ HQ)")
+        .replace(
+            "If HQ sets the PG amount mode to <strong>DISPLAY</strong> or <strong>BLIND</strong>, shoppers and merchant API see a <strong>display currency</strong> (e.g. JPY), while the charge sent to the network uses HQ's <strong>settlement currency</strong> (often THB matching the distributor org). Under <strong>STANDARD</strong>, checkout uses the distributor/org base currency as usual.",
+            "หาก HQ ตั้งโหมดจำนวนของ PG เป็น <strong>DISPLAY</strong> หรือ <strong>BLIND</strong> ผู้ซื้อและ API ร้านจะเห็น<strong>สกุลแสดง</strong> (เช่น JPY) ส่วนยอดอนุมัติจริงใช้<strong>สกุลชำระจริง</strong>ที่ HQ กำหนด (มักเป็น THB ตามองค์กรตัวแทน) โหมด <strong>STANDARD</strong> ชำระตามสกุลฐานของตัวแทน/องค์กรตามเดิม",
+        )
+        .replace("<tr><th>Setup</th><th>Checkout &amp; sale</th></tr>", "<tr><th>รูปแบบ</th><th>หน้าชำระและการอนุมัติ</th></tr>")
+        .replace("<td>Single PG + DP</td><td>DP from the start (display + estimate when DISPLAY). No brand-based PG split</td>", "<td>PG เดียว + DP</td><td>เป็น DP ตั้งแต่ต้น (มีประมาณการเมื่อ DISPLAY) ไม่แยก PG ตามแบรนด์การ์ด</td>")
+        .replace("<td>Multi-PG STANDARD/DP mix</td><td>UI looks like DP; after card auto-detect, STANDARD PG = 1:1 display, DP PG = FX settlement</td>", "<td>หลาย PG ผสม STANDARD/DP</td><td>UI เป็น DP หลังรู้แบรนด์การ์ด: STANDARD=1:1 สกุลแสดง, DP=FX ชำระจริง</td>")
+        .replace(
+            "PG agency registration has no currency field. STANDARD follows distributor currency; DP settlement currency is only in <strong>HQ → URL pay settings</strong> per PG. Buyer/merchant UI always shows <strong>ICOPAY</strong>. New PGs follow the same platform rule.",
+            "หน้าลงทะเบียน PG ไม่มีฟิลด์สกุล STANDARD ตามสกุลตัวแทน สกุลชำระจริงของ DP อยู่ที่<strong>HQ → ตั้งค่า URL pay</strong> ต่อ PG เท่านั้น UI ผู้ซื้อ/ร้านแสดง <strong>ICOPAY</strong> เสมอ PG ใหม่ใช้กฏแพลตฟอร์มเดียวกัน",
+        )
+        .replace("Need API integration.", "ต้องการเชื่อม API")
+        .replace(
+            "This is an ops manual — ask HQ for Merchant API launch docs. For DP merchants, send display currency (e.g. JPY) in prepare <code>currency</code>.",
+            "คู่มือนี้เป็นคู่มือปฏิบัติการ ขอเอกสารเปิด API จาก HQ สำหรับร้าน DP ให้ส่งสกุลแสดง (เช่น JPY) ใน currency ของ prepare",
+        )
+        .replace("Display currency differs from payment history currency.", "สกุลแสดงกับสกุลในรายการชำระไม่ตรงกัน")
+        .replace(
+            "Under DP (DISPLAY/BLIND), shoppers see display currency while approval/settlement records may use settlement currency. Confirm with HQ URL-pay settings.",
+            "โหมด DP (DISPLAY/BLIND) ผู้ซื้อเห็นสกุลแสดง แต่บันทึกอนุมัติ/ชำระจริงอาจเป็นสกุลชำระจริง ตรวจที่ตั้งค่า URL pay ของ HQ",
+        )
+        .replace("Does card brand change the charge currency?", "แบรนด์การ์ดเปลี่ยนสกุลเรียกเก็บหรือไม่?")
+        .replace(
+            "With a single PG on DP only, checkout is DP from the start. Brand-based split applies only when multiple PGs mix STANDARD and DP.",
+            "ถ้ามี PG เดียวและเป็น DP จะเป็น DP ตั้งแต่ต้น การแยกตามแบรนด์ใช้เมื่อผสมหลาย PG แบบ STANDARD+DP เท่านั้น",
+        ),
     }
     toc_map = {
         "ja": [("s1", "URL決済とは？"), ("s2", "開始前の確認"), ("s3", "STEP 1 — 決済URL確認"), ("s4", "STEP 2 — URL配布"), ("s5", "STEP 3 — 決済履歴"), ("s6", "再決済URL注意"), ("s7", "チェックリスト"), ("s8", "FAQ")],

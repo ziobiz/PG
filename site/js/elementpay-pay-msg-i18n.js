@@ -5,11 +5,18 @@
   'use strict';
   var TABLE = {
     'ELEMENTPAY_THB_ONLY': {
-      KOR: 'ElementPay는 THB(태국 바트)만 지원합니다.',
-      ENG: 'ElementPay supports THB (Thai Baht) only.',
-      JPN: 'ElementPayはTHB（タイバーツ）のみ対応です。',
-      CHN: 'ElementPay仅支持泰铢(THB)。',
-      THA: 'ElementPay รองรับเฉพาะ THB (บาทไทย) เท่านั้น'
+      KOR: '이 PG의 실결제 통화와 맞지 않습니다. 본사 URL결제설정의 실결제 통화(settlementCurrency)를 확인하세요.',
+      ENG: 'Currency does not match this PG settlement currency. Check HQ URL-pay settlementCurrency.',
+      JPN: 'このPGの実決済通貨と一致しません。本社URL決済設定のsettlementCurrencyを確認してください。',
+      CHN: '货币与该 PG 实结算货币不符。请检查总部 URL 支付的 settlementCurrency。',
+      THA: 'สกุลเงินไม่ตรงกับสกุลชำระจริงของ PG นี้ ตรวจ settlementCurrency ที่ตั้งค่า URL pay ของ HQ'
+    },
+    'ELEMENTPAY_SETTLEMENT_CURRENCY': {
+      KOR: '이 PG의 실결제 통화와 맞지 않습니다. 본사 URL결제설정의 실결제 통화(settlementCurrency)를 확인하세요. DP(DISPLAY/BLIND)면 표시통화를 사용하세요.',
+      ENG: 'Currency does not match PG settlement currency (HQ settlementCurrency). Under DP(DISPLAY/BLIND) use a display currency.',
+      JPN: 'このPGの実決済通貨と一致しません（本社settlementCurrency）。DP(DISPLAY/BLIND)時は表示通貨を指定してください。',
+      CHN: '货币与 PG 实结算货币不符（总部 settlementCurrency）。DP(DISPLAY/BLIND) 请使用展示币种。',
+      THA: 'สกุลไม่ตรงสกุลชำระจริงของ PG (settlementCurrency ของ HQ) โหมด DP ให้ใช้สกุลแสดง'
     },
     'ELEMENTPAY_INIT_FAILED': {
       KOR: '결제 초기화에 실패했습니다. Merchant Key·Secret Key·서비스 alias를 확인하세요.',

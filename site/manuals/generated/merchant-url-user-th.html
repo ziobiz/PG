@@ -84,7 +84,7 @@
       <div class="logo-line">ICOPAY · Payment Gateway</div>
       <h1>ชำระด้วย URL<br>คู่มือร้านค้า</h1>
       <div class="subtitle">มุมมองร้าน — แชร์ URL สาธารณะ ตรวจอนุมัติ และงานประจำวัน</div>
-      <div class="meta">อ้างอิง: สิทธิ์ร้าน ICOPAY &nbsp;|&nbsp; กลุ่มเป้าหมาย: ร้านที่ใช้ชำระ URL &nbsp;|&nbsp; เผยแพร่: July 2026 &nbsp;|&nbsp; V2.74</div>
+      <div class="meta">อ้างอิง: สิทธิ์ร้าน ICOPAY &nbsp;|&nbsp; กลุ่มเป้าหมาย: ร้านที่ใช้ชำระ URL &nbsp;|&nbsp; เผยแพร่: September 2026 &nbsp;|&nbsp; V2.80</div>
     </div>
     <div class="cover-logo">
       <img src="../assets/logo-ontheline.png" alt="Brand">
@@ -120,6 +120,14 @@
       <tr><td>View payment history</td><td>Menu permissions, fees, settlement</td></tr>
       <tr><td>Read notices & daily checks</td><td>Company master data changes</td></tr>
     </table>
+    <h3 class="sub-title">สกุลแสดง DP (ตั้งค่า URL pay ของ HQ)</h3>
+    <p>หาก HQ ตั้งโหมดจำนวนของ PG เป็น <strong>DISPLAY</strong> หรือ <strong>BLIND</strong> ผู้ซื้อและ API ร้านจะเห็น<strong>สกุลแสดง</strong> (เช่น JPY) ส่วนยอดอนุมัติจริงใช้<strong>สกุลชำระจริง</strong>ที่ HQ กำหนด (มักเป็น THB ตามองค์กรตัวแทน) โหมด <strong>STANDARD</strong> ชำระตามสกุลฐานของตัวแทน/องค์กรตามเดิม</p>
+    <table>
+      <tr><th>รูปแบบ</th><th>หน้าชำระและการอนุมัติ</th></tr>
+      <tr><td>PG เดียว + DP</td><td>เป็น DP ตั้งแต่ต้น (มีประมาณการเมื่อ DISPLAY) ไม่แยก PG ตามแบรนด์การ์ด</td></tr>
+      <tr><td>หลาย PG ผสม STANDARD/DP</td><td>UI เป็น DP หลังรู้แบรนด์การ์ด: STANDARD=1:1 สกุลแสดง, DP=FX ชำระจริง</td></tr>
+    </table>
+    <div class="info-box">หน้าลงทะเบียน PG ไม่มีฟิลด์สกุล STANDARD ตามสกุลตัวแทน สกุลชำระจริงของ DP อยู่ที่<strong>HQ → ตั้งค่า URL pay</strong> ต่อ PG เท่านั้น UI ผู้ซื้อ/ร้านแสดง <strong>ICOPAY</strong> เสมอ PG ใหม่ใช้กฏแพลตฟอร์มเดียวกัน</div>
     <hr class="section-rule">
     <h2 class="section-title" id="s2">2. ก่อนเริ่มใช้ (ต้องเปิดโดย HQ)</h2>
     <table>
@@ -169,10 +177,12 @@
     <div class="faq-item"><div class="faq-q">Link opens a notice only.</div><div class="faq-a">Often suspend/maintenance — check notices and HQ.</div></div>
     <div class="faq-item"><div class="faq-q">Payment failed.</div><div class="faq-a">Check fail reason in the list; escalate with order id if needed.</div></div>
     <div class="faq-item"><div class="faq-q">Menu not in sidebar.</div><div class="faq-a">Request Access permissions from HQ/distributor.</div></div>
-    <div class="faq-item"><div class="faq-q">Need API integration.</div><div class="faq-a">This is an ops manual — ask HQ for Merchant API launch docs.</div></div>
+    <div class="faq-item"><div class="faq-q">ต้องการเชื่อม API</div><div class="faq-a">คู่มือนี้เป็นคู่มือปฏิบัติการ ขอเอกสารเปิด API จาก HQ สำหรับร้าน DP ให้ส่งสกุลแสดง (เช่น JPY) ใน currency ของ prepare</div></div>
+    <div class="faq-item"><div class="faq-q">สกุลแสดงกับสกุลในรายการชำระไม่ตรงกัน</div><div class="faq-a">โหมด DP (DISPLAY/BLIND) ผู้ซื้อเห็นสกุลแสดง แต่บันทึกอนุมัติ/ชำระจริงอาจเป็นสกุลชำระจริง ตรวจที่ตั้งค่า URL pay ของ HQ</div></div>
+    <div class="faq-item"><div class="faq-q">แบรนด์การ์ดเปลี่ยนสกุลเรียกเก็บหรือไม่?</div><div class="faq-a">ถ้ามี PG เดียวและเป็น DP จะเป็น DP ตั้งแต่ต้น การแยกตามแบรนด์ใช้เมื่อผสมหลาย PG แบบ STANDARD+DP เท่านั้น</div></div>
 
   </div>
-  <div class="footer">ICOPAY URL · V2.74<br>ICOPAY &nbsp;|&nbsp; icopay.co.kr &nbsp;|&nbsp; ติดต่อ: ICOPAY HQ / ตัวแทน</div>
+  <div class="footer">ICOPAY URL · V2.80<br>ICOPAY &nbsp;|&nbsp; icopay.co.kr &nbsp;|&nbsp; ติดต่อ: ICOPAY HQ / ตัวแทน</div>
 </div>
 </body>
 </html>

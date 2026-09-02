@@ -44,6 +44,7 @@ public class MerchantInlineCheckoutService {
     private final MerchantApiIntegrationChannelService integrationChannelService;
     private final MerchantOperationalPgGuard operationalPgGuard;
     private final SplitPayCheckoutModeGuard splitPayCheckoutModeGuard;
+    private final MerchantCheckoutPrepareCurrencyService prepareCurrencyService;
 
     public MerchantInlineCheckoutService(OrgUnitRepository orgUnitRepository,
                                          MerchantProfileRepository merchantProfileRepository,
@@ -55,7 +56,8 @@ public class MerchantInlineCheckoutService {
                                          PgTrnsctnRepository pgTrnsctnRepository,
                                          MerchantApiIntegrationChannelService integrationChannelService,
                                          MerchantOperationalPgGuard operationalPgGuard,
-                                         SplitPayCheckoutModeGuard splitPayCheckoutModeGuard) {
+                                         SplitPayCheckoutModeGuard splitPayCheckoutModeGuard,
+                                         MerchantCheckoutPrepareCurrencyService prepareCurrencyService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.orgServiceUseService = orgServiceUseService;
@@ -67,6 +69,7 @@ public class MerchantInlineCheckoutService {
         this.integrationChannelService = integrationChannelService;
         this.operationalPgGuard = operationalPgGuard;
         this.splitPayCheckoutModeGuard = splitPayCheckoutModeGuard;
+        this.prepareCurrencyService = prepareCurrencyService;
     }
 
     public Map<String, Object> prepare(Long orgUnitId, Map<String, Object> body, HttpServletRequest request) {
@@ -127,7 +130,13 @@ public class MerchantInlineCheckoutService {
             return fail("유효한 amount가 필요합니다.", "INVALID_AMOUNT");
         }
         String amountPlain = amount.stripTrailingZeros().toPlainString();
-        String currency = MerchantInlineCheckoutTokenService.normalizeCurrency(str(body.get("currency")));
+        MerchantCheckoutPrepareCurrencyService.Resolved curResolved =
+                prepareCurrencyService.resolve(orgUnitId, str(body.get("currency")),
+                        () -> MerchantInlineCheckoutTokenService.normalizeCurrency(str(body.get("currency"))));
+        if (!curResolved.ok()) {
+            return prepareCurrencyService.failMap(curResolved);
+        }
+        String currency = curResolved.sessionCurrency();
         String productName = clamp(str(body.get("productName")), 500);
         if (productName.isBlank()) {
             productName = clamp(str(body.get("item")), 500);
@@ -169,6 +178,7 @@ public class MerchantInlineCheckoutService {
         data.put("pgVendor", MerchantPgBrokerVendor.CHILLPAY);
         data.put("urlPayCheckoutMode", checkoutMode);
         data.put("effectiveUrlPayVariant", repayMode ? UrlPayCheckoutModeUtil.REPAY : UrlPayCheckoutModeUtil.STANDARD);
+        prepareCurrencyService.putPublicFields(data, curResolved);
         if (langCode != null && !langCode.isBlank()) {
             data.put("langCode", langCode);
         }

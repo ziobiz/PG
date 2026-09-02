@@ -84,7 +84,7 @@
       <div class="logo-line">ICOPAY · Payment Gateway</div>
       <h1>URL決済<br>加盟店マニュアル</h1>
       <div class="subtitle">加盟店視点 — 公開決済URL共有から承認確認・日常運用まで</div>
-      <div class="meta">基準: ICOPAY加盟店権限 &nbsp;|&nbsp; 対象: URL決済利用加盟店 &nbsp;|&nbsp; 発行: July 2026 &nbsp;|&nbsp; V2.74</div>
+      <div class="meta">基準: ICOPAY加盟店権限 &nbsp;|&nbsp; 対象: URL決済利用加盟店 &nbsp;|&nbsp; 発行: September 2026 &nbsp;|&nbsp; V2.80</div>
     </div>
     <div class="cover-logo">
       <img src="../assets/logo-ontheline.png" alt="Brand">
@@ -120,6 +120,14 @@
       <tr><td>View payment history</td><td>Menu permissions, fees, settlement</td></tr>
       <tr><td>Read notices & daily checks</td><td>Company master data changes</td></tr>
     </table>
+    <h3 class="sub-title">表示通貨DP（本社URL決済設定）</h3>
+    <p>本社が当該PGの金額モードを<strong>DISPLAY</strong>または<strong>BLIND</strong>にすると、購入者・加盟APIには<strong>表示通貨</strong>（例: JPY）で見え、実承認は本社指定の<strong>実決済通貨</strong>（多くは総代理の組織通貨に合うTHB等）へ換算されます。<strong>STANDARD</strong>では従来どおり総代理/組織の基準通貨で決済します。</p>
+    <table>
+      <tr><th>構成</th><th>決済画面・承認</th></tr>
+      <tr><td>PG<strong>単独+DP</strong></td><td>最初から表示通貨・(DISPLAY時)請求見積。カードブランドでPG分岐なし</td></tr>
+      <tr><td>PG<strong>複数+標準/DP混在</strong></td><td>UIはDP統一。カード自動認識後、標準PGは表示通貨1:1、DP PGはFX実決済</td></tr>
+    </table>
+    <div class="info-box">決済代行登録画面に通貨項目はありません。標準決済は総代理通貨に従い、DPの実決済通貨は<strong>本社→URL決済設定</strong>の当該PG行のみです。購入者・加盟UIは常に<strong>ICOPAY</strong>。新規PGも同一プラットフォーム規則です。</div>
     <hr class="section-rule">
     <h2 class="section-title" id="s2">2. 開始前の確認（本社・上位の有効化）</h2>
     <table>
@@ -169,10 +177,12 @@
     <div class="faq-item"><div class="faq-q">Link opens a notice only.</div><div class="faq-a">Often suspend/maintenance — check notices and HQ.</div></div>
     <div class="faq-item"><div class="faq-q">Payment failed.</div><div class="faq-a">Check fail reason in the list; escalate with order id if needed.</div></div>
     <div class="faq-item"><div class="faq-q">Menu not in sidebar.</div><div class="faq-a">Request Access permissions from HQ/distributor.</div></div>
-    <div class="faq-item"><div class="faq-q">Need API integration.</div><div class="faq-a">This is an ops manual — ask HQ for Merchant API launch docs.</div></div>
+    <div class="faq-item"><div class="faq-q">API連携が必要です。</div><div class="faq-a">本マニュアルは運用案内です。連携は上位の「加盟API公開」資料を依頼してください。DP加盟は prepare の currency に表示通貨（例: JPY）を指定します。</div></div>
+    <div class="faq-item"><div class="faq-q">表示通貨と決済履歴の通貨が違って見えます。</div><div class="faq-a">DP(DISPLAY/BLIND)では顧客には表示通貨、承認・精算記録は実決済通貨になることがあります。本社URL決済設定を確認してください。</div></div>
+    <div class="faq-item"><div class="faq-q">カードブランドで請求通貨が変わりますか？</div><div class="faq-a">運用PGが1つでDPのみなら最初からDPです。複数PGで標準+DP混在のときだけカード認識後に実決済が分かれることがあります。</div></div>
 
   </div>
-  <div class="footer">ICOPAY URL · V2.74<br>ICOPAY &nbsp;|&nbsp; icopay.co.kr &nbsp;|&nbsp; 問合せ: ICOPAY本社・総代理</div>
+  <div class="footer">ICOPAY URL · V2.80<br>ICOPAY &nbsp;|&nbsp; icopay.co.kr &nbsp;|&nbsp; 問合せ: ICOPAY本社・総代理</div>
 </div>
 </body>
 </html>

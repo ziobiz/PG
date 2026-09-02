@@ -45,7 +45,7 @@
     { id: 'hqdist-risk-intro', audience: 'hqdist', title: '리스크 트리거 발동 소개 안내', docVersion: '2.43' },
     { id: 'merchant-ops', audience: 'merchant', title: '가맹점 운영 메뉴얼', docVersion: '2.74' },
     { id: 'merchant-chatbot', audience: 'merchant', title: '챗봇결제 가맹점 사용 메뉴얼', docVersion: '2.46' },
-    { id: 'merchant-url-user', audience: 'merchant', title: 'URL결제 사용자 메뉴얼', docVersion: '2.74' },
+    { id: 'merchant-url-user', audience: 'merchant', title: 'URL결제 사용자 메뉴얼', docVersion: '2.80' },
     { id: 'merchant-split-user', audience: 'merchant', title: '분할결제 사용자 메뉴얼', docVersion: '2.74' },
     { id: 'merchant-subscribe-user', audience: 'merchant', title: '구독결제 사용자 메뉴얼', docVersion: '2.74' }
   ];

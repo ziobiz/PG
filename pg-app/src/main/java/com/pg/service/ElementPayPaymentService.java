@@ -59,7 +59,9 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * ElementPay Payment API — THB 전용 initPayment·getStatus.
+ * ElementPay Payment API — initPayment·getStatus.
+ * 실결제 통화는 본사 URL결제설정 PG {@code settlementCurrency}(기본 THB, USD 등 가능).
+ * DP(DISPLAY/BLIND) 시 표시통화→실결제 환산은 {@link UrlPayChargeResolutionService} 가 선행합니다.
  * <p><b>노티미들웨어(외부 NOTI) — JPAY 와 동일 토폴로지:</b>
  * ElementPay Cabinet Webhook 은 NOTI {@code /noti/elementpay}(고정 1개)에 등록하고, NOTI 가
  * {@link com.pg.middleware.notify.PgNotifyIngressPaths#MIDDLEWARE_PREFIX}{@code …/ELEMENTPAY} 로 ICOPAY 에 전달합니다.
@@ -77,7 +79,7 @@ public class ElementPayPaymentService {
 
     private static final String SANDBOX_BASE = "https://api-sbox.elementpay.io";
     private static final String LIVE_BASE = "https://api.elementpay.io";
-    private static final String THB = "THB";
+    private static final String DEFAULT_SETTLEMENT = "THB";
     private static final String USER_AGENT = "Mozilla/5.0 (ICOPAY; compatible)";
 
     private final PgAgencyRepository pgAgencyRepository;
@@ -93,6 +95,7 @@ public class ElementPayPaymentService {
     private final TransactionReceiptEmailService transactionReceiptEmailService;
     private final SplitPayPaymentHookService splitPayPaymentHookService;
     private final ElementPayNotiMiddlewareMirrorService elementPayNotiMiddlewareMirrorService;
+    private final UrlPayDisplayFxService urlPayDisplayFxService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final RestTemplate restTemplate = new RestTemplate();
@@ -109,7 +112,8 @@ public class ElementPayPaymentService {
                                       SettlementCalcService settlementCalcService,
                                       TransactionReceiptEmailService transactionReceiptEmailService,
                                       SplitPayPaymentHookService splitPayPaymentHookService,
-                                      ElementPayNotiMiddlewareMirrorService elementPayNotiMiddlewareMirrorService) {
+                                      ElementPayNotiMiddlewareMirrorService elementPayNotiMiddlewareMirrorService,
+                                      UrlPayDisplayFxService urlPayDisplayFxService) {
         this.pgAgencyRepository = pgAgencyRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
         this.orgUnitRepository = orgUnitRepository;
@@ -123,6 +127,7 @@ public class ElementPayPaymentService {
         this.transactionReceiptEmailService = transactionReceiptEmailService;
         this.splitPayPaymentHookService = splitPayPaymentHookService;
         this.elementPayNotiMiddlewareMirrorService = elementPayNotiMiddlewareMirrorService;
+        this.urlPayDisplayFxService = urlPayDisplayFxService;
     }
 
     public boolean hasOperationalWebBinding(Long orgUnitId) {
@@ -162,12 +167,15 @@ public class ElementPayPaymentService {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             return fail("유효한 amount가 필요합니다.", "INVALID_AMOUNT");
         }
+        String settleCurrency = resolveSettlementCurrency(binding);
         String currency = str(body.get("currency"));
         if (currency.isBlank()) {
-            currency = THB;
+            currency = settleCurrency;
         }
-        if (!THB.equalsIgnoreCase(currency)) {
-            return fail("ElementPay는 THB(태국 바트)만 지원합니다.", "ELEMENTPAY_THB_ONLY");
+        currency = currency.trim().toUpperCase(Locale.ROOT);
+        if (!settleCurrency.equalsIgnoreCase(currency)) {
+            return fail("ElementPay 실결제 통화는 " + settleCurrency + " 입니다. (본사 URL결제설정 settlementCurrency)",
+                    "ELEMENTPAY_SETTLEMENT_CURRENCY");
         }
 
         Map<String, Object> buyerFail = IcipayBuyerContactUtil.failMapIfSaleContactMissing(body);
@@ -226,7 +234,7 @@ public class ElementPayPaymentService {
         log.info("ElementPay init attrs service={} methodKeys={} extraKeys={} ipHint={}",
                 serviceAlias, methodKeys, extra.keySet(), extra.get("ip"));
 
-        JsonNode resp = initPaymentTryingModes(agency, cred, serviceAlias, amountPlain, orderNo,
+        JsonNode resp = initPaymentTryingModes(agency, cred, serviceAlias, amountPlain, orderNo, currency,
                 successReturn, rejectReturn, waitingReturn, extra);
         if (resp == null) {
             return fail("ElementPay 결제 초기화에 실패했습니다.", "ELEMENTPAY_INIT_FAILED");
@@ -252,7 +260,7 @@ public class ElementPayPaymentService {
                     String retryAlias = "kCards";
                     extra = extrasForInit(canonical, fetchMethodAttributeKeys(agency, cred, retryAlias));
                     log.info("ElementPay retry init with catalog card alias={}", retryAlias);
-                    resp = initPaymentTryingModes(agency, cred, retryAlias, amountPlain, orderNo,
+                    resp = initPaymentTryingModes(agency, cred, retryAlias, amountPlain, orderNo, currency,
                             successReturn, rejectReturn, waitingReturn, extra);
                     if (resp != null && !resp.has("error")) {
                         serviceAlias = retryAlias;
@@ -273,7 +281,7 @@ public class ElementPayPaymentService {
                     log.info("ElementPay service_id={} disabled → retry with suggested={}", serviceAlias, suggested);
                     serviceAlias = suggested;
                     extra = extrasForInit(canonical, fetchMethodAttributeKeys(agency, cred, serviceAlias));
-                    resp = initPaymentTryingModes(agency, cred, serviceAlias, amountPlain, orderNo,
+                    resp = initPaymentTryingModes(agency, cred, serviceAlias, amountPlain, orderNo, currency,
                             successReturn, rejectReturn, waitingReturn, extra);
                     if (resp == null) {
                         return fail("ElementPay 결제 초기화에 실패했습니다.", "ELEMENTPAY_INIT_FAILED");
@@ -321,7 +329,7 @@ public class ElementPayPaymentService {
         }
 
         elementPaySaleRecordService.recordOrTouchPending(
-                orgUnitId, orderNo, amount, THB, binding.getSortOrder(),
+                orgUnitId, orderNo, amount, currency, binding.getSortOrder(),
                 str(body.get("item")), resolveTxnOrigin(body),
                 str(body.get("customerNm")), str(body.get("payEmailAddress")),
                 paymentMethod, shopperDispAmt, shopperDispCur.isBlank() ? null : shopperDispCur,
@@ -334,7 +342,7 @@ public class ElementPayPaymentService {
         out.put("elementPayStatus", status);
         out.put("paymentMethod", paymentMethod);
         out.put("serviceId", serviceAlias);
-        out.put("currency", THB);
+        out.put("currency", currency);
         out.put("amount", amountPlain);
         out.put("notifyUrl", notifyBase);
 
@@ -1169,18 +1177,18 @@ public class ElementPayPaymentService {
     }
 
     private JsonNode initPaymentTryingModes(PgAgency agency, ElementPayCredentials cred, String serviceAlias,
-                                            String amountPlain, String orderNo,
+                                            String amountPlain, String orderNo, String currency,
                                             String successUrl, String rejectUrl, String waitingUrl,
                                             Map<String, String> extra) {
         JsonNode last = null;
         for (InitAttrMode mode : InitAttrMode.values()) {
-            last = postInitPayment(agency, cred, serviceAlias, amountPlain, orderNo,
+            last = postInitPayment(agency, cred, serviceAlias, amountPlain, orderNo, currency,
                     successUrl, rejectUrl, waitingUrl, extra, mode);
             if (last == null) {
                 continue;
             }
             if (!last.has("error")) {
-                log.info("ElementPay init ok mode={} service={}", mode, serviceAlias);
+                log.info("ElementPay init ok mode={} service={} currency={}", mode, serviceAlias, currency);
                 return last;
             }
             String msg = extractEpErrorMessage(last);
@@ -1193,7 +1201,7 @@ public class ElementPayPaymentService {
     }
 
     private JsonNode postInitPayment(PgAgency agency, ElementPayCredentials cred, String serviceAlias,
-                                     String amountPlain, String orderNo,
+                                     String amountPlain, String orderNo, String currency,
                                      String successUrl, String rejectUrl, String waitingUrl,
                                      Map<String, String> payerAttrs,
                                      InitAttrMode mode) {
@@ -1202,7 +1210,7 @@ public class ElementPayPaymentService {
         signParams.put("service_id", serviceAlias);
         signParams.put("amount", amountPlain);
         signParams.put("order", orderNo);
-        signParams.put("currency", THB);
+        signParams.put("currency", currency != null && !currency.isBlank() ? currency : DEFAULT_SETTLEMENT);
         Map<String, String> clean = new LinkedHashMap<>();
         if (payerAttrs != null) {
             for (Map.Entry<String, String> e : payerAttrs.entrySet()) {
@@ -2089,6 +2097,16 @@ public class ElementPayPaymentService {
             return "ELEMENTPAY_PAYMENT_REJECTED";
         }
         return null;
+    }
+
+    /** 본사 URL결제설정 PG별 실결제 통화(미설정·비허용 시 THB). */
+    private String resolveSettlementCurrency(MerchantPgBinding binding) {
+        String pg = binding != null && binding.getPgCd() != null ? binding.getPgCd().trim() : "";
+        String settle = urlPayDisplayFxService.settlementCurrencyForPg(pg);
+        if (settle == null || settle.isBlank() || !urlPayDisplayFxService.isAllowedSettlementCurrency(settle)) {
+            return DEFAULT_SETTLEMENT;
+        }
+        return settle.trim().toUpperCase(Locale.ROOT);
     }
 
     private static Map<String, Object> fail(String message, String code) {

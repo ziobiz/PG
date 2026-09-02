@@ -23,19 +23,24 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * URL 결제 「표시통화 → 실결제 통화」 본사 설정.
+ * URL 결제 「표시통화 → 실결제 통화」 본사 설정 — <strong>모든 결제대행사(PG) 공통</strong>.
  * <ul>
  *   <li>전역 {@code enabled}, 갱신 주기, 견적 TTL, {@code botRateAsOf}({@code PREVIOUS_DAY_CLOSE}|{@code LATEST_BOT_PERIOD}), {@code marginByCurrency}</li>
- *   <li>PG별 {@code pgSettings}: DISPLAY 시 표시·실결제 통화, {@code displayCurrencyMode}({@value #DISPLAY_CURRENCY_MODE_FIXED}|{@value #DISPLAY_CURRENCY_MODE_MULTI}),
+ *   <li>PG별 {@code pgSettings}: {@code amountMode} STANDARD|DISPLAY|BLIND, 표시·실결제 통화({@code settlementCurrency}=THB·USD·JPY 등),
+ *       {@code displayCurrencyMode}({@value #DISPLAY_CURRENCY_MODE_FIXED}|{@value #DISPLAY_CURRENCY_MODE_MULTI}),
  *       멀티 시 선택지는 {@code displayCurrencies} 배열 또는 전역 순서, FX 자동(BOT)·수동, 마진.
  *       수동(THB 정산) 시 표시통화별 환산은 {@code manualThbPerByDisplayCurrency} JSON 객체(예: 키 KRW·JPY)로 지정 가능</li>
  *   <li>레거시: {@code pgSettings} 없을 때 가맹점 바인딩 {@code DISPLAY_FX_THB} + 전역 마진, 실결제 THB</li>
  * </ul>
+ * <p>{@link #MODE_DISPLAY_FX_THB} 는 레거시 코드명입니다. 의미는 「표시통화 DP → PG 실결제 통화(THB에 한정되지 않음)」입니다.
  * 청구: {@code 실결제금액 = 표시금액 × (실결제/1표시단위) × (1+마진)} (실결제 통화별 소수는 ChillPay DirectCredit·일반 URL 결제와 동일: JPY/KRW 정수, 그 외 소수 둘째 HALF_UP).
  */
 @Service
 public class UrlPayDisplayFxService {
 
+    /**
+     * 표시통화 DP 모드 코드(레거시 이름). 실결제 통화는 {@link #settlementCurrencyForPg} (THB·USD 등).
+     */
     public static final String MODE_DISPLAY_FX_THB = "DISPLAY_FX_THB";
     public static final String AMOUNT_MODE_STANDARD = "STANDARD";
     public static final String AMOUNT_MODE_DISPLAY = "DISPLAY";
@@ -49,6 +54,21 @@ public class UrlPayDisplayFxService {
         }
         String m = amountMode.trim().toUpperCase(Locale.ROOT);
         return AMOUNT_MODE_DISPLAY.equals(m) || AMOUNT_MODE_BLIND.equals(m);
+    }
+
+    /** prepare·견적·결제창에서 쓰는 DP 금액모드 코드인지. */
+    public static boolean isDisplayFxPricingMode(String pricingMode) {
+        return MODE_DISPLAY_FX_THB.equalsIgnoreCase(pricingMode != null ? pricingMode.trim() : "");
+    }
+
+    public boolean isAllowedDisplayCurrency(String currency) {
+        String c = currency != null ? currency.trim().toUpperCase(Locale.ROOT) : "";
+        return DISPLAY_CURRENCIES.contains(c);
+    }
+
+    public boolean isAllowedSettlementCurrency(String currency) {
+        String c = currency != null ? currency.trim().toUpperCase(Locale.ROOT) : "";
+        return SETTLEMENT_CURRENCIES.contains(c);
     }
     /** 결제 페이지에서 표시 통화를 고객이 고를 수 있음(본사 전역 또는 PG별 {@code displayCurrencies}). */
     public static final String DISPLAY_CURRENCY_MODE_MULTI = "MULTI";

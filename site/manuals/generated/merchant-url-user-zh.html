@@ -84,7 +84,7 @@
       <div class="logo-line">ICOPAY · Payment Gateway</div>
       <h1>URL支付<br>商户使用手册</h1>
       <div class="subtitle">商户视角 — 从分享公开支付 URL 到核对成功与日常运营</div>
-      <div class="meta">依据: ICOPAY 商户权限标准 &nbsp;|&nbsp; 对象: URL支付商户 &nbsp;|&nbsp; 发布: July 2026 &nbsp;|&nbsp; V2.74</div>
+      <div class="meta">依据: ICOPAY 商户权限标准 &nbsp;|&nbsp; 对象: URL支付商户 &nbsp;|&nbsp; 发布: September 2026 &nbsp;|&nbsp; V2.80</div>
     </div>
     <div class="cover-logo">
       <img src="../assets/logo-ontheline.png" alt="Brand">
@@ -120,6 +120,14 @@
       <tr><td>View payment history</td><td>Menu permissions, fees, settlement</td></tr>
       <tr><td>Read notices & daily checks</td><td>Company master data changes</td></tr>
     </table>
+    <h3 class="sub-title">展示币种 DP（总部 URL 支付设置）</h3>
+    <p>总部将该 PG 金额模式设为 <strong>DISPLAY</strong> 或 <strong>BLIND</strong> 时，买家与商户 API 看到<strong>展示币种</strong>（如 JPY），实际批准使用总部指定的<strong>实结算币种</strong>（常为与总代理组织一致的 THB 等）。<strong>STANDARD</strong> 则仍按总代理/组织基准币支付。</p>
+    <table>
+      <tr><th>配置</th><th>支付页与批准</th></tr>
+      <tr><td>单一 PG + DP</td><td>一开始即为 DP（DISPLAY 时含预估）。不按卡品牌分 PG</td></tr>
+      <tr><td>多 PG 标准/DP 混用</td><td>界面统一为 DP；卡识别后，标准 PG=展示币 1:1，DP PG=FX 实结算</td></tr>
+    </table>
+    <div class="info-box">支付机构注册无币种字段。标准支付跟随总代理币种；DP 实结算币种仅在<strong>总部→URL 支付设置</strong>各 PG 行。买家/商户界面始终为 <strong>ICOPAY</strong>。新 PG 遵循同一平台规则。</div>
     <hr class="section-rule">
     <h2 class="section-title" id="s2">2. 开始前确认（需总部启用）</h2>
     <table>
@@ -169,10 +177,12 @@
     <div class="faq-item"><div class="faq-q">Link opens a notice only.</div><div class="faq-a">Often suspend/maintenance — check notices and HQ.</div></div>
     <div class="faq-item"><div class="faq-q">Payment failed.</div><div class="faq-a">Check fail reason in the list; escalate with order id if needed.</div></div>
     <div class="faq-item"><div class="faq-q">Menu not in sidebar.</div><div class="faq-a">Request Access permissions from HQ/distributor.</div></div>
-    <div class="faq-item"><div class="faq-q">Need API integration.</div><div class="faq-a">This is an ops manual — ask HQ for Merchant API launch docs.</div></div>
+    <div class="faq-item"><div class="faq-q">需要 API 对接。</div><div class="faq-a">本手册为运营说明。对接请向上级索取「商户 API 发布」文档。DP 商户在 prepare 的 currency 中传展示币种（如 JPY）。</div></div>
+    <div class="faq-item"><div class="faq-q">展示币种与明细币种不一致。</div><div class="faq-a">DP(DISPLAY/BLIND) 下买家看展示币，批准/结算记录可能是实结算币。请核对总部 URL 支付设置。</div></div>
+    <div class="faq-item"><div class="faq-q">卡品牌会改变扣款币种吗？</div><div class="faq-a">仅一个运营 PG 且为 DP 时，一开始就是 DP。仅在多 PG 混用标准+DP 时，才会在识卡后拆分实结算。</div></div>
 
   </div>
-  <div class="footer">ICOPAY URL · V2.74<br>ICOPAY &nbsp;|&nbsp; icopay.co.kr &nbsp;|&nbsp; 咨询: ICOPAY 总部/总代理</div>
+  <div class="footer">ICOPAY URL · V2.80<br>ICOPAY &nbsp;|&nbsp; icopay.co.kr &nbsp;|&nbsp; 咨询: ICOPAY 总部/总代理</div>
 </div>
 </body>
 </html>

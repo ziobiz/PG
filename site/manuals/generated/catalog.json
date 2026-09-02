@@ -132,7 +132,7 @@
         "th": "คู่มือผู้ใช้ชำระด้วย URL"
       },
       "pdfDir": "manuals/pdf/merchant-url-user",
-      "docVersion": "2.74"
+      "docVersion": "2.80"
     },
     {
       "id": "merchant-split-user",

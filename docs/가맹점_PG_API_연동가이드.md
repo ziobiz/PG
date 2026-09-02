@@ -189,7 +189,7 @@
 |------|--------|------|------|
 | 1 | GET | `/config` | 결제·CCD 연동에 필요한 설정 |
 | 2 | GET | `/checkout-context` | 체크아웃 화면용 컨텍스트(가맹 표시명, 기본 금액, 통화 등) |
-| 3 | GET | `/display-fx-quote` | **표시통화(THB 정산) 모드** 가맹점만 — 견적·토큰 발급 |
+| 3 | GET | `/display-fx-quote` | **표시통화 DP 모드** 가맹점만 — 견적·토큰 발급 (실결제는 본사 URL결제설정 PG `settlementCurrency`, THB 한정 아님) |
 | 4 | GET | `/url-result-copy` | 결과 페이지용 문구(다국어, 없을 수 있음) |
 | 5 | POST | `/request` | DirectCredit 승인 요청 |
 

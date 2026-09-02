@@ -36,10 +36,30 @@
 | 기능 | 설명 |
 |------|------|
 | 다국어 | KOR/ENG/JPN/CHN/THA, `url-pay-public-shell.js` |
-| 표시통화 FX | `UrlPayDisplayFxService`, `display-fx-quote` API |
-| 결제통화 | `UrlPayCheckoutCurrencyService` + 스케일 |
+| 표시통화 FX (DP) | `UrlPayDisplayFxService`, `display-fx-quote` API — **모든 운영 PG**에 동일. `amountMode` STANDARD / DISPLAY / BLIND |
+| API prepare 통화 | `MerchantCheckoutPrepareCurrencyService` — ChillPay·JPAY·ElementPay·Eximbay·ILK·신규 PG prepare 가 동일 필드 |
+| 승인 금액 해석 | `UrlPayChargeResolutionService` — 표시→실결제(FX) 또는 1:1 |
+| 결제통화(일반) | `UrlPayCheckoutCurrencyService` (총판·조직 `base_currency`) + 스케일 |
 | 결제문구 | `UrlPayCardCopyService` |
 | URL 폼 모드 | FULL / SIMPLE (본사 결제로직설정) |
+
+### 일반 vs DP (중요)
+
+- **결제대행사 생성 화면에는 통화 필드가 없음.** 일반(STANDARD) 실결제는 **총판(조직) 기준통화**.
+- **DP(DISPLAY/BLIND)** 일 때만 본사 **URL결제설정** PG 행의 표시통화·실결제 통화(`settlementCurrency`, 기본 THB 등)·FX를 사용.
+- **PG 단독 + DP**: 처음부터 DP. 카드 브랜드로 PG를 나누지 않음.
+- **멀티 PG + 일반/DP 혼용**: UI는 DP 통일, 카드 자동인식 후 실결제 분기.
+
+### 신규 PG 추가 시 DP (필수)
+
+등록만으로 자동 완결되지 않습니다. 아래를 **반드시** 구현해야 기존 PG와 **동일 기능**을 씁니다.
+
+1. `PgVendor`·바인딩·`UrlPayVendorCapabilityRegistry`·`UrlPaySaleDispatcher`
+2. `Merchant*InlineCheckoutService.prepare` → `MerchantCheckoutPrepareCurrencyService` (`putPublicFields`)
+3. 결제 HTML이 `url-pay-public-shell.js` DP·(혼용 시) `resolve-route` 패턴 공유
+4. 분할결제 페이지 유틸 등록
+5. 다국어 5개 + 플랫폼 버전 마이너 +0.1  
+규칙 파일: `.cursor/rules/pg-display-fx-all-pg.mdc`, `pg-unified-payment-integration.mdc`
 
 ## PG 어댑터 (`UrlPayVendorCapability`)
 
@@ -71,7 +91,8 @@
 3. 승인 서비스 + `UrlPaySaleDispatcher` case  
 4. (선택) `UrlPayCheckoutContextEnricher`  
 5. 결제 HTML 페이지 또는 공통 셸 재사용  
-6. 문서·테스트: 본사 URL결제설정 DISPLAY/CHECKOUT 각 1건  
+6. 문서·테스트: 본사 URL결제설정 DISPLAY·STANDARD·(선택) 멀티 혼용 각 1건 + 가맹 prepare 표시통화  
+7. **DP 체크리스트** (`pg-display-fx-all-pg.mdc`) 전 항목 
 
 ## 관련 코드
 

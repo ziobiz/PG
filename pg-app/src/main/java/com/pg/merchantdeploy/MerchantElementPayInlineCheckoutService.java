@@ -25,15 +25,11 @@ import java.util.Optional;
 
 /**
  * 가맹점 통합 API — ElementPay 인라인 결제창 세션 준비.
- * <p>DP(표시통화→실결제 THB) 가맹은 prepare 에 JPY 등 표시통화를 받고,
- * 승인({@code /api/pay/url/sale}) 시 공통 ChargeResolution 으로 THB 환산합니다.
+ * <p>DP(DISPLAY/BLIND) 가맹은 prepare 에 표시통화(JPY 등)를 받고,
+ * 승인({@code /api/pay/url/sale}) 시 공통 ChargeResolution 으로 PG 실결제 통화(THB·USD 등)로 환산합니다.
  */
 @Service
 public class MerchantElementPayInlineCheckoutService {
-
-    private static final String THB = "THB";
-    private static final java.util.Set<String> DISPLAY_CURRENCIES =
-            java.util.Set.of("JPY", "USD", "KRW", "THB", "SGD", "HKD", "CNY");
 
     private final OrgUnitRepository orgUnitRepository;
     private final MerchantProfileRepository merchantProfileRepository;
@@ -44,6 +40,8 @@ public class MerchantElementPayInlineCheckoutService {
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final MerchantApiIntegrationChannelService integrationChannelService;
     private final ChillPayService chillPayService;
+    private final UrlPayDisplayFxService urlPayDisplayFxService;
+    private final MerchantCheckoutPrepareCurrencyService prepareCurrencyService;
 
     public MerchantElementPayInlineCheckoutService(OrgUnitRepository orgUnitRepository,
                                                      MerchantProfileRepository merchantProfileRepository,
@@ -53,7 +51,9 @@ public class MerchantElementPayInlineCheckoutService {
                                                      MerchantInlineCheckoutTokenService tokenService,
                                                      PgTrnsctnRepository pgTrnsctnRepository,
                                                      MerchantApiIntegrationChannelService integrationChannelService,
-                                                     ChillPayService chillPayService) {
+                                                     ChillPayService chillPayService,
+                                                     UrlPayDisplayFxService urlPayDisplayFxService,
+                                                     MerchantCheckoutPrepareCurrencyService prepareCurrencyService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.orgServiceUseService = orgServiceUseService;
@@ -63,6 +63,8 @@ public class MerchantElementPayInlineCheckoutService {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.integrationChannelService = integrationChannelService;
         this.chillPayService = chillPayService;
+        this.urlPayDisplayFxService = urlPayDisplayFxService;
+        this.prepareCurrencyService = prepareCurrencyService;
     }
 
     public Map<String, Object> prepare(Long orgUnitId, Map<String, Object> body, HttpServletRequest request) {
@@ -98,22 +100,14 @@ public class MerchantElementPayInlineCheckoutService {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             return fail("유효한 amount가 필요합니다.", "INVALID_AMOUNT");
         }
-        boolean displayFx = chillPayService.merchantAllowsDisplayFx(orgUnitId);
-        String currency = str(body.get("currency"));
-        if (displayFx) {
-            if (currency.isBlank()) {
-                currency = "JPY";
-            }
-            currency = currency.trim().toUpperCase(java.util.Locale.ROOT);
-            if (!DISPLAY_CURRENCIES.contains(currency)) {
-                return fail("지원하지 않는 표시 통화입니다.", "INVALID_DISPLAY_CURRENCY");
-            }
-        } else {
-            if (!currency.isBlank() && !THB.equalsIgnoreCase(currency)) {
-                return fail("ElementPay는 THB(태국 바트)만 지원합니다. (표시통화 DP 가맹은 JPY 등 가능)", "ELEMENTPAY_THB_ONLY");
-            }
-            currency = THB;
+        String opPg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
+        String settle = urlPayDisplayFxService.settlementCurrencyForPg(opPg);
+        MerchantCheckoutPrepareCurrencyService.Resolved curResolved =
+                prepareCurrencyService.resolveWithFixedSettlement(orgUnitId, str(body.get("currency")), settle);
+        if (!curResolved.ok()) {
+            return prepareCurrencyService.failMap(curResolved);
         }
+        String currency = curResolved.sessionCurrency();
         String amountPlain = amount.stripTrailingZeros().toPlainString();
         String productName = clamp(str(body.get("productName")), 500);
         if (productName.isBlank()) {
@@ -151,13 +145,7 @@ public class MerchantElementPayInlineCheckoutService {
         data.put("embedScriptUrl", embedScriptUrl);
         data.put("integrationMode", "INLINE");
         data.put("pgVendor", MerchantApiResponseMapper.MERCHANT_FACING_BRAND);
-        data.put("currency", currency);
-        data.put("urlPayPricingMode", displayFx
-                ? UrlPayDisplayFxService.MODE_DISPLAY_FX_THB : "CHECKOUT_CURRENCY");
-        if (displayFx) {
-            data.put("displayCurrency", currency);
-            data.put("settlementCurrencyHint", THB);
-        }
+        prepareCurrencyService.putPublicFields(data, curResolved);
         if (langCode != null && !langCode.isBlank()) {
             data.put("langCode", langCode);
         }
@@ -218,43 +206,42 @@ public class MerchantElementPayInlineCheckoutService {
         if (status == null) {
             return "UNKNOWN";
         }
-        return switch (status.trim()) {
-            case "10" -> "PAID";
-            case "08" -> "PENDING";
-            case "20" -> "CANCELLED";
-            case "30", "42" -> "REFUNDED";
-            case "31" -> "CHARGEBACK";
-            case "21", "22" -> "VOIDED";
-            case "99" -> "FAILED";
-            default -> "UNKNOWN";
-        };
-    }
-
-    private static Map<String, Object> fail(String message, String code) {
-        Map<String, Object> out = new LinkedHashMap<>();
-        out.put("success", false);
-        out.put("message", message);
-        out.put("errorCode", code);
-        return out;
+        String u = status.trim().toUpperCase(java.util.Locale.ROOT);
+        if ("APPROVED".equals(u) || "SUCCESS".equals(u) || "PAID".equals(u) || "00".equals(u)) {
+            return "APPROVED";
+        }
+        if ("PENDING".equals(u) || "READY".equals(u) || "INIT".equals(u)) {
+            return "PENDING";
+        }
+        if ("CANCEL".equals(u) || "CANCELED".equals(u) || "CANCELLED".equals(u) || "VOID".equals(u)) {
+            return "CANCELLED";
+        }
+        if ("FAIL".equals(u) || "FAILED".equals(u) || "ERROR".equals(u) || "DECLINED".equals(u)) {
+            return "FAILED";
+        }
+        return u;
     }
 
     private static String normalizeOrderNo(String raw) {
-        return raw != null ? raw.trim() : "";
+        if (raw == null) {
+            return "";
+        }
+        return raw.trim();
     }
 
-    private static BigDecimal parseAmount(Object raw) {
-        if (raw == null) {
+    private static BigDecimal parseAmount(Object v) {
+        if (v == null) {
             return null;
         }
         try {
-            return new BigDecimal(raw.toString().trim());
-        } catch (NumberFormatException e) {
+            return new BigDecimal(String.valueOf(v).replace(",", "").trim());
+        } catch (Exception e) {
             return null;
         }
     }
 
-    private static String str(Object o) {
-        return o != null ? o.toString().trim() : "";
+    private static String str(Object v) {
+        return v == null ? "" : String.valueOf(v).trim();
     }
 
     private static String clamp(String s, int max) {
@@ -268,7 +255,10 @@ public class MerchantElementPayInlineCheckoutService {
         if (s == null) {
             return "";
         }
-        return s.trim().replaceAll("/+$", "");
+        while (s.endsWith("/")) {
+            s = s.substring(0, s.length() - 1);
+        }
+        return s;
     }
 
     private static String urlEnc(String s) {
@@ -277,5 +267,13 @@ public class MerchantElementPayInlineCheckoutService {
         } catch (Exception e) {
             return s != null ? s : "";
         }
+    }
+
+    private static Map<String, Object> fail(String message, String code) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("success", false);
+        out.put("message", message);
+        out.put("errorCode", code);
+        return out;
     }
 }

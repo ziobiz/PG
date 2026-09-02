@@ -34,6 +34,7 @@ public class MerchantIlkInlineCheckoutService {
     private final MerchantInlineCheckoutTokenService tokenService;
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final MerchantApiIntegrationChannelService integrationChannelService;
+    private final MerchantCheckoutPrepareCurrencyService prepareCurrencyService;
 
     public MerchantIlkInlineCheckoutService(OrgUnitRepository orgUnitRepository,
                                             MerchantProfileRepository merchantProfileRepository,
@@ -42,7 +43,8 @@ public class MerchantIlkInlineCheckoutService {
                                             MerchantChatbotProductService productService,
                                             MerchantInlineCheckoutTokenService tokenService,
                                             PgTrnsctnRepository pgTrnsctnRepository,
-                                            MerchantApiIntegrationChannelService integrationChannelService) {
+                                            MerchantApiIntegrationChannelService integrationChannelService,
+                                            MerchantCheckoutPrepareCurrencyService prepareCurrencyService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.orgServiceUseService = orgServiceUseService;
@@ -51,6 +53,7 @@ public class MerchantIlkInlineCheckoutService {
         this.tokenService = tokenService;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.integrationChannelService = integrationChannelService;
+        this.prepareCurrencyService = prepareCurrencyService;
     }
 
     public Map<String, Object> prepare(Long orgUnitId, Map<String, Object> body, HttpServletRequest request) {
@@ -86,10 +89,15 @@ public class MerchantIlkInlineCheckoutService {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             return CheckoutFailI18n.invalidAmount();
         }
-        String currency = str(body.get("currency"));
-        if (currency.isBlank()) {
-            currency = "KRW";
+        MerchantCheckoutPrepareCurrencyService.Resolved curResolved =
+                prepareCurrencyService.resolve(orgUnitId, str(body.get("currency")), () -> {
+                    String c = str(body.get("currency"));
+                    return c.isBlank() ? "KRW" : c.trim().toUpperCase(java.util.Locale.ROOT);
+                });
+        if (!curResolved.ok()) {
+            return prepareCurrencyService.failMap(curResolved);
         }
+        String currency = curResolved.sessionCurrency();
         String amountPlain = amount.stripTrailingZeros().toPlainString();
         String productName = clamp(str(body.get("productName")), 500);
         if (productName.isBlank()) {
@@ -127,7 +135,7 @@ public class MerchantIlkInlineCheckoutService {
         data.put("embedScriptUrl", embedScriptUrl);
         data.put("integrationMode", "INLINE");
         data.put("pgVendor", MerchantApiResponseMapper.MERCHANT_FACING_BRAND);
-        data.put("currency", currency.toUpperCase());
+        prepareCurrencyService.putPublicFields(data, curResolved);
         if (langCode != null && !langCode.isBlank()) {
             data.put("langCode", langCode);
         }

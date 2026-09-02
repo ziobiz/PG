@@ -1,25 +1,35 @@
 ---
-description: 운영 배포는 사용자 「배포해」 요청 시에만 Deploy-Prod.ps1 실행
+description: 운영 배포 — 파일 수정 턴은 pg-i18n-auto-deploy가 자동 Deploy-Prod (확인 질문 없음)
 alwaysApply: true
 ---
 
-# 운영 배포 자동화 (확인 후 실행)
+# 운영 배포 자동화
 
-## 개발 완료 시
-1. 변경·`bootJar`·DB SQL 필요 여부를 정리한다.
-2. 답변에서 **「배포할까요?」** 로 한 번 확인한다. (이 규칙이 있어도 **勝手に 배포하지 않는다.**)
+## 우선 규칙 (필수)
 
-## 사용자가 「배포해」 / 「배포」 라고 하면
+저장소 파일을 **하나라도** 수정한 턴에는 **`pg-i18n-auto-deploy.mdc`가 최우선**이다.
+
+- `bootJar` 후 **`Deploy-Prod.ps1` 자동 실행**
+- 사용자에게 **「배포할까요?」를 묻지 않는다**
+- 사용자가 「다국어」「자동 배포」를 다시 말하지 않아도 동일
+
+이 파일의 예전 「확인 후 실행」문구는 **위 자동 배포 규칙에 종속**되며, 그와 충돌하면 **자동 배포가 이긴다.**
+
+## 수동 「배포해」 (추가 요청 시)
+
+사용자가 별도로 「배포해」라고 하면 동일 스크립트를 실행·재시도한다.
+
 1. `%USERPROFILE%\.pg-deploy\credentials.env` 존재 확인. 없으면 `Setup-Credentials.ps1` 안내 후 중단.
-2. 저장소 루트에서 실행:
+2. 저장소 루트:
    ```powershell
    .\scripts\deploy\Deploy-Prod.ps1
    ```
-   DB SQL이 있으면 `-SqlFiles @(...)` 로 해당 `pg-app/src/main/resources/db/V*.sql` 경로를 넘긴다.
-3. 실패 시 로그를 보고 **수정 가능한 코드/스크립트 오류**면 고친 뒤 **재배포 1~2회** 시도. 자격증명·디스크·방화벽 등은 사용자에게 알리고 중단.
-4. 성공 시 JAR 경로·적용 SQL·재시작 여부·확인 URL을 짧게 보고한다. 답변 **맨 마지막 줄**은 **`deploy-status-comment.mdc`** 대로 `**운영 배포 완료.**` 를 적는다.
-5. **자동 배포가 계속 안 되면** 폴백: 에이전트는 `bootJar`(및 SQL 경로 안내)까지 하고, 사용자는 예전처럼 FTP JAR·DB·수동 `./restart-pg-app.sh` 로 반영한다. (`scripts/deploy/README.md` 수동 폴백)
+   DB SQL이 있으면 `-SqlFiles @(...)` 로 `pg-app/src/main/resources/db/V*.sql` 경로를 넘긴다.
+3. 실패 시 수정 가능하면 재배포 1~2회. 자격증명·디스크·방화벽은 사용자에게 알리고 중단.
+4. 성공 시 JAR·SQL·재시작·확인 URL을 짧게 보고. 답변 **맨 마지막 줄**은 `deploy-status-comment.mdc`.
+5. 자동 배포가 막히면 폴백: `bootJar`(+SQL 안내)까지, 사용자는 FTP JAR·DB·`./restart-pg-app.sh`.
 
 ## 금지
-- credentials.env / 비밀번호를 Git·채팅 답변·규칙 파일에 넣지 않는다.
-- 「배포해」 없이 SCP/SSH로 운영에 올리지 않는다.
+
+- credentials.env / 비밀번호를 Git·채팅·규칙 파일에 넣지 않는다.
+- 자동 배포 규칙을 「확인 질문」으로 되돌리지 않는다.

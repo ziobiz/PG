@@ -11540,10 +11540,16 @@
       TH: 'API อัตราเฉลี่ยรายวัน BOT'
     },
     'URL 표시통화 → 실결제 THB': {
-      EN: 'URL display currency → settled THB',
-      JP: 'URL表示通貨→実決済THB',
-      CH: 'URL 展示币种→实际结算 THB',
-      TH: 'สกุลแสดง URL → THB จริง'
+      EN: 'URL display currency → settlement currency',
+      JP: 'URL表示通貨→実決済通貨',
+      CH: 'URL 展示币种→实结算币种',
+      TH: 'สกุลแสดง URL → สกุลชำระจริง'
+    },
+    'URL 표시통화 → 실결제': {
+      EN: 'URL display currency → settlement currency',
+      JP: 'URL表示通貨→実決済通貨',
+      CH: 'URL 展示币种→实结算币种',
+      TH: 'สกุลแสดง URL → สกุลชำระจริง'
     },
     '결제구문설정': {
       EN: 'Payment copy settings',

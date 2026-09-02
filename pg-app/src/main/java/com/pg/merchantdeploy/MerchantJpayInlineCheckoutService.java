@@ -46,6 +46,7 @@ public class MerchantJpayInlineCheckoutService {
     private final MerchantOperationalPgGuard operationalPgGuard;
     private final SplitPayCheckoutModeGuard splitPayCheckoutModeGuard;
     private final JpayInlineCheckoutPrepareGuard jpayInlineCheckoutPrepareGuard;
+    private final MerchantCheckoutPrepareCurrencyService prepareCurrencyService;
 
     public MerchantJpayInlineCheckoutService(OrgUnitRepository orgUnitRepository,
                                              MerchantProfileRepository merchantProfileRepository,
@@ -59,7 +60,8 @@ public class MerchantJpayInlineCheckoutService {
                                              MerchantApiIntegrationChannelService integrationChannelService,
                                              MerchantOperationalPgGuard operationalPgGuard,
                                              SplitPayCheckoutModeGuard splitPayCheckoutModeGuard,
-                                             JpayInlineCheckoutPrepareGuard jpayInlineCheckoutPrepareGuard) {
+                                             JpayInlineCheckoutPrepareGuard jpayInlineCheckoutPrepareGuard,
+                                             MerchantCheckoutPrepareCurrencyService prepareCurrencyService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.orgServiceUseService = orgServiceUseService;
@@ -73,6 +75,7 @@ public class MerchantJpayInlineCheckoutService {
         this.operationalPgGuard = operationalPgGuard;
         this.splitPayCheckoutModeGuard = splitPayCheckoutModeGuard;
         this.jpayInlineCheckoutPrepareGuard = jpayInlineCheckoutPrepareGuard;
+        this.prepareCurrencyService = prepareCurrencyService;
     }
 
     public Map<String, Object> prepare(Long orgUnitId, Map<String, Object> body, HttpServletRequest request) {
@@ -138,8 +141,12 @@ public class MerchantJpayInlineCheckoutService {
             return fail("유효한 amount가 필요합니다.", "INVALID_AMOUNT");
         }
         String amountPlain = amount.stripTrailingZeros().toPlainString();
-        String currency = urlPayCheckoutCurrencyService.resolveCheckoutCurrency(
-                orgUnitId, str(body.get("currency")));
+        MerchantCheckoutPrepareCurrencyService.Resolved curResolved =
+                prepareCurrencyService.resolveOrgCheckout(orgUnitId, str(body.get("currency")));
+        if (!curResolved.ok()) {
+            return prepareCurrencyService.failMap(curResolved);
+        }
+        String currency = curResolved.sessionCurrency();
         Optional<Map<String, Object>> prepareGuard = jpayInlineCheckoutPrepareGuard.validatePrepare(
                 orgUnitId, orderNo, amount, currency);
         if (prepareGuard.isPresent()) {
@@ -190,6 +197,7 @@ public class MerchantJpayInlineCheckoutService {
                         + "/api/middleware/v1/merchant/checkout/prepare");
         data.put("integrationMode", "INLINE");
         data.put("pgVendor", MerchantPgBrokerVendor.JPAY);
+        prepareCurrencyService.putPublicFields(data, curResolved);
         if (langCode != null && !langCode.isBlank()) {
             data.put("langCode", langCode);
         }
