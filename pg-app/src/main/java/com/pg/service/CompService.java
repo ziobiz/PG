@@ -2423,8 +2423,8 @@ public class CompService {
                                 String htmlTitle = webPaymentHeaderHtmlTitle.trim();
                                 if (htmlTitle.isEmpty()) {
                                     mp.setWebPaymentHeaderHtmlTitle(null);
-                                } else if (htmlTitle.length() > 20) {
-                                    throw new IllegalArgumentException("웹결제 HTML 표시명은 20자 이하여야 합니다.");
+                                } else if (htmlTitle.length() > 80) {
+                                    throw new IllegalArgumentException("웹결제 HTML 표시명은 80자 이하여야 합니다.");
                                 } else {
                                     mp.setWebPaymentHeaderHtmlTitle(htmlTitle);
                                 }
@@ -3176,8 +3176,8 @@ public class CompService {
             String htmlTitle = headerHtmlTitle.trim();
             if (htmlTitle.isEmpty()) {
                 mp.setSplitPayHeaderHtmlTitle(null);
-            } else if (htmlTitle.length() > 20) {
-                throw new IllegalArgumentException("분할결제 HTML 표시명은 20자 이하여야 합니다.");
+            } else if (htmlTitle.length() > 80) {
+                throw new IllegalArgumentException("분할결제 HTML 표시명은 80자 이하여야 합니다.");
             } else {
                 mp.setSplitPayHeaderHtmlTitle(htmlTitle);
             }
@@ -4051,6 +4051,7 @@ public class CompService {
         mp.setZipCode(zipCode);
         mp.setAddr(addr);
         mp.setAddrDetail(addrDetail);
+        if (addrEtc != null && !addrEtc.isBlank()) mp.setAddrEtc(addrEtc.trim());
         if (addrCountryCd != null) mp.setAddrCountryCd(addrCountryCd.trim());
         mp.setCeoNm(ceoNm);
         mp.setCeoMobile(ceoMobile);
@@ -4163,6 +4164,10 @@ public class CompService {
             applyMerchantReceiptEmail(mp, receiptEmailFollowHqYn, receiptEmailUseYn);
             merchantChatbotKbService.seedFromRegistration(mp, saved);
         }
+        assertMaxLen("우편번호", zipCode, 32);
+        assertMaxLen("은행", bankCd, 100);
+        assertMaxLen("계좌국가", countryCd, 64);
+        assertMaxLen("주소국가", addrCountryCd, 64);
         merchantProfileRepository.save(mp);
 
         SettlementSetting ss = new SettlementSetting();
@@ -4266,6 +4271,7 @@ public class CompService {
                 for (Map<String, Object> m : list) {
                     String pc = m.get("pgCd") != null ? m.get("pgCd").toString().trim() : "";
                     if (pc.isEmpty()) continue;
+                    assertMaxLen("결제대행사 코드", pc, 40);
                     MerchantPgBinding binding = new MerchantPgBinding();
                     binding.setOrgUnitId(saved.getId());
                     binding.setPgCd(pc);
@@ -6376,6 +6382,15 @@ public class CompService {
         out.put("profileUpdated", profileUpdated);
         out.put("rootCompId", root.getCode());
         return out;
+    }
+
+    private static void assertMaxLen(String label, String value, int max) {
+        if (value == null || value.isBlank()) {
+            return;
+        }
+        if (value.trim().length() > max) {
+            throw new IllegalArgumentException(label + " 길이가 " + max + "자를 초과합니다. (현재 " + value.trim().length() + "자)");
+        }
     }
 
     private static String merchantPgBindingStableKey(String pgCd, String payMethod) {

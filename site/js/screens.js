@@ -285,7 +285,7 @@
       merchantWebPaymentCardPrimaryRow(),
       merchantWebPaymentCardSecondaryRow(),
       [{ label: '로고설정', type: 'select', name: 'webPaymentHeaderLogoMode', options: logoOpts, col: 3 },
-      { label: 'HTML 표시명', type: 'text', name: 'webPaymentHeaderHtmlTitle', col: 3, maxlength: 20, placeholder: 'ICOPAY', blockExtraClass: 'web-payment-html-title-field' }],
+      { label: 'HTML 표시명', type: 'text', name: 'webPaymentHeaderHtmlTitle', col: 3, maxlength: 80, placeholder: 'ICOPAY', blockExtraClass: 'web-payment-html-title-field' }],
       [{ type: 'customHtml', col: 12, html: webPaymentHeaderLogoFieldBlock }],
       [{ label: '경고메세지', type: 'select', name: 'webPaymentHeaderSubtitleMode', options: subtitleOpts, col: 3 },
       { label: '배송주소', type: 'select', name: 'urlPayShippingAddressUseYn', options: [
@@ -658,7 +658,7 @@
           { v: 'ACTIVE', t: '활성(가맹점 로고)' },
           { v: 'DISABLED', t: '비활성' }
         ], col: 3 },
-         { label: 'HTML 표시명', type: 'text', name: 'splitPayHeaderHtmlTitle', col: 3, maxlength: 20, placeholder: 'ICOPAY', blockExtraClass: 'split-pay-html-title-field' }],
+         { label: 'HTML 표시명', type: 'text', name: 'splitPayHeaderHtmlTitle', col: 3, maxlength: 80, placeholder: 'ICOPAY', blockExtraClass: 'split-pay-html-title-field' }],
         [{ type: 'customHtml', col: 12, html: splitPayHeaderLogoFieldBlock }],
         [{ label: '안내메세지', type: 'select', name: 'splitPayHeaderSubtitleMode', options: checkoutHeaderSubtitleModeOptions(true), col: 3 },
          { label: '다국어 메뉴', type: 'select', name: 'splitPayLangMenuUseYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 3 }],
@@ -8897,7 +8897,8 @@
       inp = '<input type="date" lang="en-CA" class="form-control form-control-sm pg-date-input-iso' + reqClass + '" name="' + name + '" id="' + id + '"' + ro + '>';
     } else if (f.type === 'text' || f.type === 'password') {
       var txPh = f.placeholder ? (' placeholder="' + escUi(L(String(f.placeholder))) + '" data-pg-ui-placeholder="' + escUi(String(f.placeholder)) + '"') : '';
-      inp = '<input type="' + (f.type || 'text') + '" class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '"' + txPh + ro + '>';
+      var txMax = (f.maxlength != null && f.maxlength !== '') ? (' maxlength="' + String(f.maxlength) + '"') : '';
+      inp = '<input type="' + (f.type || 'text') + '" class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '"' + txPh + txMax + ro + '>';
     } else if (f.type === 'time') {
       var isSettlementTime = (name === 'calcCloseTime' || name === 'calcStartTime' || name === 'transferExecTime');
       var isWithdrawLimitTime = (name === 'withdrawRestrictStartTime' || name === 'withdrawRestrictEndTime' || name === 'withdrawStartTime' || name === 'withdrawEndTime');
@@ -9121,7 +9122,7 @@
             html += '<div class="row country-address-row" data-country-address="true">' +
               '<div class="col-sm-2 form-field-block"><label class="form-label" data-pg-ui-t="국가">국가</label><select class="form-control form-control-sm" name="addrCountryCd" data-addr-country-select><option value="" data-pg-ui-t="선택">선택</option><option value="JP">JAPAN</option><option value="KR">KOREA</option><option value="TH">THAILAND</option><option value="OTHER" data-pg-ui-t="기타">기타</option></select></div>' +
               '<div class="col-sm-2 form-field-block addr-country-other-wrap d-none"><label class="form-label" data-pg-ui-t="국가">국가</label><select class="form-control form-control-sm" name="addrCountryCdOther">' + (window.PG_COUNTRY_OTHER_OPTIONS || '<option value="" data-pg-ui-t="선택">선택</option>') + '</select></div>' +
-              '<div class="col-sm-2 form-field-block zip-wrap">' + pgUiFormLabelSpan(_addrKey(zipRaw), _addrStar(zipRaw)) + '<div class="form-input-with-btn" data-zip-search-wrap><input type="text" class="form-control form-control-sm" name="zipCode" data-pg-ui-placeholder="검색" placeholder="' + escUi(L('검색')) + '" data-zip-input><button type="button" class="btn btn-outline-secondary btn-sm" data-addr-zip-search data-pg-ui-t="검색">' + escUi(L('검색')) + '</button></div></div>' +
+              '<div class="col-sm-2 form-field-block zip-wrap">' + pgUiFormLabelSpan(_addrKey(zipRaw), _addrStar(zipRaw)) + '<div class="form-input-with-btn" data-zip-search-wrap><input type="text" class="form-control form-control-sm" name="zipCode" maxlength="32" data-pg-ui-placeholder="검색" placeholder="' + escUi(L('검색')) + '" data-zip-input><button type="button" class="btn btn-outline-secondary btn-sm" data-addr-zip-search data-pg-ui-t="검색">' + escUi(L('검색')) + '</button></div></div>' +
               '<div class="col-sm-2 form-field-block">' + pgUiFormLabelSpan(_addrKey(addrRaw), _addrStar(addrRaw)) + '<input type="text" class="form-control form-control-sm" name="addr" data-addr-input></div>' +
               '<div class="col-sm-2 form-field-block">' + pgUiFormLabelSpan(addrDetRaw, false) + '<input type="text" class="form-control form-control-sm" name="addrDetail"></div>' +
               etcBlock +
@@ -9142,7 +9143,7 @@
               '<div class="col-sm-2 form-field-block"><label class="form-label" data-pg-ui-t="국가">국가</label><select class="form-control form-control-sm" name="countryCd" data-country-select><option value="" data-pg-ui-t="선택">선택</option><option value="JP">JAPAN</option><option value="KR">KOREA</option><option value="TH">THAILAND</option><option value="OTHER" data-pg-ui-t="기타">기타</option></select></div>' +
               '<div class="col-sm-2 form-field-block country-other-wrap d-none"><label class="form-label" data-pg-ui-t="국가">국가</label><select class="form-control form-control-sm" name="countryCdOther">' + (window.PG_COUNTRY_OTHER_OPTIONS || '<option value="" data-pg-ui-t="선택">선택</option>') + '</select></div>' +
               '<div class="col-sm-2 form-field-block bank-select-wrap">' + pgUiFormLabelSpan(_bankKey(bankRaw), _bankStar(bankRaw)) + '<select class="form-control form-control-sm" name="bankCd" data-bank-select><option value="" data-pg-ui-t="국가 선택 후">국가 선택 후</option></select></div>' +
-              '<div class="col-sm-2 form-field-block bank-text-wrap d-none">' + pgUiFormLabelSpan(_bankKey(bankRaw), _bankStar(bankRaw)) + '<input type="text" class="form-control form-control-sm" name="bankCdText" data-pg-ui-placeholder="은행명 직접입력" placeholder="' + escUi(L('은행명 직접입력')) + '"></div>' +
+              '<div class="col-sm-2 form-field-block bank-text-wrap d-none">' + pgUiFormLabelSpan(_bankKey(bankRaw), _bankStar(bankRaw)) + '<input type="text" class="form-control form-control-sm" name="bankCdText" maxlength="100" data-pg-ui-placeholder="은행명 직접입력" placeholder="' + escUi(L('은행명 직접입력')) + '"></div>' +
               '<div class="col-sm-2 form-field-block">' + pgUiFormLabelSpan(_bankKey(acctRaw), _bankStar(acctRaw)) + '<input type="text" class="form-control form-control-sm" name="' + (opt.accountNoName || 'accountNo') + '"></div>' +
               '<div class="col-sm-2 form-field-block">' + pgUiFormLabelSpan(_bankKey(holdRaw), _bankStar(holdRaw)) + '<input type="text" class="form-control form-control-sm" name="' + (opt.accountHolderName || 'accountHolder') + '"></div>' +
               (opt.extraFields ? opt.extraFields.map(function (ef) {
@@ -9594,6 +9595,9 @@
       '<div class="col-lg-2 col-md-6">' +
       '<label class="form-label small mb-1" data-pg-ui-t="설정 이름">설정 이름</label>' +
       '<input type="text" class="form-control form-control-sm" id="hqDomainSettingName_' + sid + '" data-pg-ui-placeholder="표시용 이름" placeholder="표시용 이름" disabled></div>' +
+      '<div class="col-lg-3 col-md-6">' +
+      '<label class="form-label small mb-1" data-pg-ui-t="타이틀태그">타이틀태그</label>' +
+      '<input type="text" class="form-control form-control-sm" id="hqDomainPageTitle_' + sid + '" maxlength="200" data-pg-ui-placeholder="브라우저 탭 제목 (예: OTL PAY 관리자)" placeholder="브라우저 탭 제목 (예: OTL PAY 관리자)" disabled></div>' +
       '</div>' +
       '<div class="row g-2 align-items-end mb-2">' +
       '<div class="col-lg-4 col-md-6">' +
@@ -9615,13 +9619,14 @@
       '<th class="text-nowrap" style="width:9rem" data-pg-ui-t="업체코드">업체코드</th>' +
       '<th class="text-nowrap" style="width:5rem" data-pg-ui-t="조직구분">조직구분</th>' +
       '<th data-pg-ui-t="설정 이름">설정 이름</th>' +
+      '<th data-pg-ui-t="타이틀태그">타이틀태그</th>' +
       '<th data-pg-ui-t="관리자(웹) URL">관리자(웹) URL</th>' +
       '<th data-pg-ui-t="API URL">API URL</th>' +
       '<th class="text-center text-nowrap" style="width:5rem" data-pg-ui-t="삭제">삭제</th>' +
       '<th class="text-nowrap" style="width:10rem" data-pg-ui-t="수정일시">수정일시</th>' +
       '</tr></thead>' +
       '<tbody id="hqDomainOrgTableTbody_' + sid + '">' +
-      '<tr><td colspan="9" class="text-center text-muted py-3"><span data-pg-ui-t="불러오는 중…">' + escUi(L('불러오는 중…')) + '</span></td></tr>' +
+      '<tr><td colspan="10" class="text-center text-muted py-3"><span data-pg-ui-t="불러오는 중…">' + escUi(L('불러오는 중…')) + '</span></td></tr>' +
       '</tbody></table></div>' +
       '</div></div></div>'
     );

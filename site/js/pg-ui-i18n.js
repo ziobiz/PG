@@ -18357,6 +18357,18 @@
       CH: '设置名称',
       TH: 'ชื่อการตั้งค่า'
     },
+    '타이틀태그': {
+      EN: 'Title tag',
+      JP: 'タイトルタグ',
+      CH: '标题标签',
+      TH: 'แท็กชื่อหน้า'
+    },
+    '브라우저 탭 제목 (예: OTL PAY 관리자)': {
+      EN: 'Browser tab title (e.g. OTL PAY Admin)',
+      JP: 'ブラウザタブのタイトル（例: OTL PAY 管理）',
+      CH: '浏览器标签标题（例：OTL PAY 管理端）',
+      TH: 'ชื่อแท็บเบราว์เซอร์ (เช่น OTL PAY Admin)'
+    },
     'API URL': {
       EN: 'API URL',
       JP: 'API URL',
@@ -22648,6 +22660,18 @@
       CH: '재결제 URL 방식을 사용하려면 운영(Y)·연동용도 URL재결제 支付机构 바인딩이 필요합니다.',
       TH: '재결제 URL 방식을 사용하려면 운영(Y)·연동용도 URL재결제 ผู้ให้บริการชำระเงิน 바인딩이 필요합니다.'
     },
+    '웹결제 HTML 표시명은 80자 이하여야 합니다.': {
+      EN: 'Web payment HTML title must be 80 characters or fewer.',
+      JP: 'WEB決済のHTML表示名は80文字以内です。',
+      CH: '网页支付 HTML 显示名不能超过 80 个字符。',
+      TH: 'ชื่อ HTML ของชำระเว็บต้องไม่เกิน 80 ตัวอักษร'
+    },
+    '분할결제 HTML 표시명은 80자 이하여야 합니다.': {
+      EN: 'Split-pay HTML title must be 80 characters or fewer.',
+      JP: '分割決済のHTML表示名は80文字以内です。',
+      CH: '分期支付 HTML 显示名不能超过 80 个字符。',
+      TH: 'ชื่อ HTML ของชำระผ่อนต้องไม่เกิน 80 ตัวอักษร'
+    },
     '저장 권한이 없습니다.': {
       EN: 'You do not have 저장 permission.',
       JP: '저장権限がありません。',
@@ -22655,10 +22679,34 @@
       TH: 'ไม่มีสิทธิ์저장'
     },
     '저장 중 DB 제약 오류가 났습니다. 노티 URL이 너무 길지 않은지 확인하고, 운영 DB에 db/V48_merchant_notify_url_length.sql 적용 여부를 확인하세요.': {
-      EN: '저장 중 DB 제약 오류가 났습니다. notification URL이 너무 길지 않은지 확인하고, 운영 DB에 db/V48_merchant_notify_url_length.sql 적용 여부를 확인하세요.',
-      JP: '저장 중 DB 제약 오류가 났습니다. 通知 URL이 너무 길지 않은지 확인하고, 운영 DB에 db/V48_merchant_notify_url_length.sql 적용 여부를 확인하세요.',
-      CH: '저장 중 DB 제약 오류가 났습니다. 通知 URL이 너무 길지 않은지 확인하고, 운영 DB에 db/V48_merchant_notify_url_length.sql 적용 여부를 확인하세요.',
-      TH: '저장 중 DB 제약 오류가 났습니다. การแจ้งเตือน URL이 너무 길지 않은지 확인하고, 운영 DB에 db/V48_merchant_notify_url_length.sql 적용 여부를 확인하세요.'
+      EN: 'A database constraint error occurred. Check that the notify URL is not too long, and that db/V48_merchant_notify_url_length.sql is applied on production.',
+      JP: 'DB制約エラーです。通知URLが長すぎないか、本番DBに db/V48_merchant_notify_url_length.sql が適用されているか確認してください。',
+      CH: '数据库约束错误。请检查通知 URL 是否过长，以及生产库是否已执行 db/V48_merchant_notify_url_length.sql。',
+      TH: 'ข้อผิดพลาดข้อจำกัดฐานข้อมูล ตรวจสอบว่า URL แจ้งเตือนไม่ยาวเกินไป และได้ใช้ db/V48_merchant_notify_url_length.sql บนระบบจริงแล้ว'
+    },
+    '저장 값이 너무 깁니다. 은행명·우편번호·주소국가·웹결제 HTML표시명·결제대행사 코드를 줄이거나, 운영 DB에 V251_merchant_register_varchar20.sql 적용 여부를 확인하세요.': {
+      EN: 'A value is too long. Shorten bank name, postal code, address country, checkout HTML title, or PG code — or apply V251_merchant_register_varchar20.sql on production.',
+      JP: '値が長すぎます。銀行名・郵便番号・住所国・HTML表示名・決済代行コードを短くするか、本番に V251_merchant_register_varchar20.sql を適用してください。',
+      CH: '保存值过长。请缩短银行名、邮编、地址国家、HTML 显示名或支付机构代码，或在生产库执行 V251_merchant_register_varchar20.sql。',
+      TH: 'ค่าที่บันทึกยาวเกินไป ย่อชื่อธนาคาร รหัสไปรษณีย์ ประเทศที่อยู่ ชื่อ HTML หรือรหัสผู้ให้บริการชำระเงิน หรือใช้ V251_merchant_register_varchar20.sql บนระบบจริง'
+    },
+    '상호명 저장에 실패했습니다. 운영 DB에 db/V250_org_trade_nm.sql 적용 여부를 확인하세요.': {
+      EN: 'Failed to save the trade name. Check that db/V250_org_trade_nm.sql is applied on production.',
+      JP: '屋号の保存に失敗しました。本番DBに db/V250_org_trade_nm.sql が適用されているか確認してください。',
+      CH: '商号保存失败。请确认生产库已执行 db/V250_org_trade_nm.sql。',
+      TH: 'บันทึกชื่อทางการค้าไม่สำเร็จ ตรวจสอบว่าใช้ db/V250_org_trade_nm.sql บนระบบจริงแล้ว'
+    },
+    '저장 중 중복 값이 있습니다. 로그인ID, 결제대행사(PG)·결제구분 중복, 노티 URL 구분을 확인하세요.': {
+      EN: 'A duplicate value was saved. Check login ID, duplicate PG+payment type, and notify URL types.',
+      JP: '重複があります。ログインID、決済代行(PG)・決済区分の重複、通知URL区分を確認してください。',
+      CH: '存在重复值。请检查登录 ID、支付机构+支付类型重复、通知 URL 类型。',
+      TH: 'มีค่าซ้ำ ตรวจสอบรหัสเข้าสู่ระบบ PG+ประเภทชำระซ้ำ และประเภท URL แจ้งเตือน'
+    },
+    '저장 중 DB 제약 오류가 났습니다. 입력 길이·중복 여부를 확인하세요.': {
+      EN: 'A database constraint error occurred. Check input length and duplicates.',
+      JP: 'DB制約エラーです。入力長・重複を確認してください。',
+      CH: '数据库约束错误。请检查输入长度与重复。',
+      TH: 'ข้อผิดพลาดข้อจำกัดฐานข้อมูล ตรวจสอบความยาวและค่าซ้ำ'
     },
     '저장된 사용자는 삭제할 수 없습니다. 미사용·영구정지 처리로 변경하세요.': {
       EN: 'Saved users cannot be deleted. Change their status to inactive or permanently suspended instead.',

@@ -425,7 +425,9 @@
     el = document.getElementById('pgShellMainHint2');
     if (el) el.textContent = pick(SHELL.mainHint2, loc);
     try {
-      document.title = pick(SHELL.pageTitle, loc);
+      var customTitle = (typeof w.PG_PORTAL_PAGE_TITLE === 'string' && w.PG_PORTAL_PAGE_TITLE.trim())
+        ? w.PG_PORTAL_PAGE_TITLE.trim() : '';
+      document.title = customTitle || pick(SHELL.pageTitle, loc);
     } catch (e0) {}
 
     var leftMenu = document.querySelector('.left-side-menu');

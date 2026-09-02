@@ -794,24 +794,24 @@
 <script src="js/pay-list-jpay-overview-catalog.js?v=1"></script>
 <script src="js/table-column-resize.js?v=4"></script>
   <script src="js/pg-ui-string-map.js?v=46"></script>
-  <script src="js/pg-ui-i18n.js?v=95"></script>
+  <script src="js/pg-ui-i18n.js?v=96"></script>
   <script src="js/url-pay-copy-phrase-i18n.js?v=1"></script>
   <script src="js/checkout-header-subtitle-presets.js?v=1"></script>
   <script src="js/url-pay-input-mode.js?v=4"></script>
   <script src="js/pg-view-display-tz.js?v=2"></script>
   <script src="js/pg-menu-layout-b.js?v=4"></script>
   <script src="js/pg-hub-shell.js?v=5"></script>
-  <script src="js/icopay-platform-release-notes.js?v=3.73"></script>
+  <script src="js/icopay-platform-release-notes.js?v=3.77"></script>
   <script src="js/icopay-platform-manuals.js?v=2.81"></script>
-  <script src="js/screens.js?v=274"></script>
+  <script src="js/screens.js?v=275"></script>
   <script src="js/pg-pay-list-i18n.js?v=46"></script>
   <script src="js/pg-home-dashboard.js?v=29"></script>
   <script src="js/ops-inactive-card-brand.js?v=1"></script>
-  <script src="js/app.js?v=337"></script>
+  <script src="js/app.js?v=340"></script>
   <script src="js/pg-login-tablet-shell.js?v=5"></script>
   <script src="js/pg-topbar-contrast.js?v=1"></script>
   <script src="js/pg-admin-tablet-shell.js?v=9"></script>
-<script src="js/pg-admin-shell-i18n.js?v=11"></script>
+<script src="js/pg-admin-shell-i18n.js?v=12"></script>
   <script>
     (function () {
       var user = null;
@@ -1006,13 +1006,23 @@
         if (window.PG_TOPBAR_CONTRAST && typeof window.PG_TOPBAR_CONTRAST.schedule === 'function') {
           window.PG_TOPBAR_CONTRAST.schedule();
         }
-        if (b.siteName) {
+        if (b.siteName && !(window.PG_PORTAL_PAGE_TITLE && String(window.PG_PORTAL_PAGE_TITLE).trim())) {
           try { document.title = String(b.siteName); } catch (eTitle) {}
         }
+      }
+      function applyPortalPageTitleFromPayload(p0) {
+        if (!p0 || !p0.pageTitle || !String(p0.pageTitle).trim()) return;
+        try {
+          window.PG_PORTAL_PAGE_TITLE = String(p0.pageTitle).trim();
+          document.title = window.PG_PORTAL_PAGE_TITLE;
+        } catch (ePt) {}
       }
       if (host && window.PG_API && window.PG_API.orgPortalByHost) {
         window.PG_API.orgPortalByHost(host).then(function (resHost) {
           var p0 = resHost && resHost.data !== undefined ? resHost.data : resHost;
+          if (p0 && p0.matched) {
+            applyPortalPageTitleFromPayload(p0);
+          }
           if (p0 && p0.matched && p0.branding) {
             hostBrandingApplied = true;
             applyRuntimeBranding(p0.branding);

@@ -224,12 +224,12 @@ public class EximbayPaymentService {
         // 사전 리스크 필터 — 샌드박스는 테스트 카드·반복 이메일로 막히지 않게 생략.
         String txnOrigin = subscription ? "SUBSCRIPTION" : str(body.get("txnOrigin"));
         if (!sandbox) {
-            Optional<PayPresaleRiskFilterService.PresaleRiskBlock> presaleRisk =
-                    payPresaleRiskFilterService.evaluate(orgUnitId, compCode, PgVendor.EXIMBAY, body);
-            if (presaleRisk.isPresent()) {
-                return presaleRiskBlockOut(presaleRisk.get(), orgUnitId, compCode, orderNo, txnOrigin,
-                        amountBd, currency, binding.getSortOrder(), productName, buyerName, buyerEmail,
-                        methodKey.isBlank() ? "EXIMBAY" : methodKey, subscription);
+        Optional<PayPresaleRiskFilterService.PresaleRiskBlock> presaleRisk =
+                payPresaleRiskFilterService.evaluate(orgUnitId, compCode, PgVendor.EXIMBAY, body);
+        if (presaleRisk.isPresent()) {
+            return presaleRiskBlockOut(presaleRisk.get(), orgUnitId, compCode, orderNo, txnOrigin,
+                    amountBd, currency, binding.getSortOrder(), productName, buyerName, buyerEmail,
+                    methodKey.isBlank() ? "EXIMBAY" : methodKey, subscription);
             }
         }
 
@@ -701,7 +701,7 @@ public class EximbayPaymentService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         if (basicAuth && secretKey != null && !secretKey.isBlank()) {
-            headers.setBasicAuth(secretKey, "");
+        headers.setBasicAuth(secretKey, "");
         }
         String json = objectMapper.writeValueAsString(body);
         HttpEntity<String> entity = new HttpEntity<>(json, headers);

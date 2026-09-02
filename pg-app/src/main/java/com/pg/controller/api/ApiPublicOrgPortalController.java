@@ -51,6 +51,7 @@ public class ApiPublicOrgPortalController {
         out.put("orgLevel", ou.getOrgLevel() != null ? ou.getOrgLevel().name() : "");
         out.put("orgUnitId", ou.getId());
         out.put("adminWebUrl", ou.getOrgDomainAdminUrl() != null ? ou.getOrgDomainAdminUrl() : "");
+        out.put("pageTitle", ou.getDomainPageTitle() != null ? ou.getDomainPageTitle().trim() : "");
 
         Map<String, Object> branding = new LinkedHashMap<>();
         branding.put("mainImageUrl", "");

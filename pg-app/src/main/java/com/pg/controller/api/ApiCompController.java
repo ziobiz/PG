@@ -10,6 +10,7 @@ import com.pg.entity.OrgUnit;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.MerchantReceivableRepository;
 import com.pg.service.AuthService;
+import com.pg.service.CompDataIntegrityMessages;
 import com.pg.service.CompService;
 import com.pg.service.ExcelStyledExportService;
 import com.pg.util.ChatbotProductPricingUtil;
@@ -466,9 +467,7 @@ public class ApiCompController {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         } catch (DataIntegrityViolationException e) {
             log.warn("comp register data integrity: {}", e.getMostSpecificCause() != null ? e.getMostSpecificCause().getMessage() : e.getMessage());
-            return ResponseEntity.ok(ApiResponse.fail(
-                    "저장 중 DB 제약 오류가 났습니다. 노티 URL이 너무 길지 않은지 확인하고, 운영 DB에 db/V48_merchant_notify_url_length.sql 적용 여부를 확인하세요.",
-                    "DATA_INTEGRITY"));
+            return ResponseEntity.ok(ApiResponse.fail(CompDataIntegrityMessages.forException(e), "DATA_INTEGRITY"));
         }
     }
 
@@ -790,10 +789,7 @@ public class ApiCompController {
         } catch (DataIntegrityViolationException e) {
             String cause = e.getMostSpecificCause() != null ? e.getMostSpecificCause().getMessage() : e.getMessage();
             log.warn("comp update data integrity: {}", cause);
-            return ResponseEntity.ok(ApiResponse.fail(
-                    "저장 중 DB 제약 오류가 났습니다. (" + (cause != null ? cause : "")
-                            + ") 결제대행사(PG) 목록에 동일 PG·결제구분(WEB 등)이 중복되지 않는지, 총판·가맹 노티 URL(tb_merchant_notify_url 의 org_unit_id+url_type 중복), 노티 URL 길이(2048자) 등을 확인하세요. (tb_merchant_pg_binding 유니크 / V48 노티 URL 컬럼 길이)",
-                    "DATA_INTEGRITY"));
+            return ResponseEntity.ok(ApiResponse.fail(CompDataIntegrityMessages.forException(e), "DATA_INTEGRITY"));
         }
     }
 

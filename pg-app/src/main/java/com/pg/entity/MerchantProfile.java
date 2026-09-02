@@ -24,7 +24,7 @@ public class MerchantProfile {
     @Column(name = "tel", length = 50)
     private String compTel;
 
-    @Column(name = "zip_code", length = 20)
+    @Column(name = "zip_code", length = 32)
     private String zipCode;
 
     @Column(name = "addr", length = 255)
@@ -124,7 +124,7 @@ public class MerchantProfile {
     @Column(name = "pwd", length = 200)
     private String pwd;
 
-    @Column(name = "bank_cd", length = 20)
+    @Column(name = "bank_cd", length = 100)
     private String bankCd;
 
     @Column(name = "transfer_fee", length = 50)
@@ -139,11 +139,11 @@ public class MerchantProfile {
     @Column(name = "account_holder", length = 100)
     private String accountHolder;
 
-    @Column(name = "country_cd", length = 10)
+    @Column(name = "country_cd", length = 64)
     private String countryCd;
 
     /** 주소 국가 (기본정보) JP/KR/TH 또는 기타 시 국가명 */
-    @Column(name = "addr_country_cd", length = 20)
+    @Column(name = "addr_country_cd", length = 64)
     private String addrCountryCd;
 
     @Column(name = "swift", length = 50)
@@ -193,7 +193,7 @@ public class MerchantProfile {
     private String webPaymentHeaderLogoUrl;
 
     /** 웹결제 HTML 로고 모드 상단 표시명 — mode=HTML 일 때 결제창 상단 문구(최대 20자) */
-    @Column(name = "web_payment_header_html_title", length = 20)
+    @Column(name = "web_payment_header_html_title", length = 80)
     private String webPaymentHeaderHtmlTitle;
 
     /**
@@ -469,7 +469,7 @@ public class MerchantProfile {
     private String splitPayHeaderLogoUrl;
 
     /** URL 분할결제 HTML 로고 모드 상단 표시명 — mode=HTML 일 때 결제창 상단 문구(최대 20자) */
-    @Column(name = "split_pay_header_html_title", length = 20)
+    @Column(name = "split_pay_header_html_title", length = 80)
     private String splitPayHeaderHtmlTitle;
 
     /** URL 분할결제 결제창 로고 아래 안내문구 — {@link com.pg.urlpay.WebPaymentHeaderLogoModeUtil} */

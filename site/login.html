@@ -375,7 +375,7 @@
           }
         }
         if (b.popconImageUrl) applyFavicon(b.popconImageUrl);
-        if (b.siteName) {
+        if (b.siteName && !(window.PG_PORTAL_PAGE_TITLE && String(window.PG_PORTAL_PAGE_TITLE).trim())) {
           try { document.title = String(b.siteName); } catch (eTitle) {}
         }
         var theme = (b.theme || 'DEFAULT').toUpperCase();
@@ -389,6 +389,12 @@
             var payload = res && res.data !== undefined ? res.data : res;
             if (payload && payload.matched && payload.compId) {
               compId = String(payload.compId);
+              if (payload.pageTitle && String(payload.pageTitle).trim()) {
+                try {
+                  window.PG_PORTAL_PAGE_TITLE = String(payload.pageTitle).trim();
+                  document.title = window.PG_PORTAL_PAGE_TITLE;
+                } catch (ePt) {}
+              }
               if (payload.branding && typeof payload.branding === 'object') {
                 applyBranding(payload.branding);
               }

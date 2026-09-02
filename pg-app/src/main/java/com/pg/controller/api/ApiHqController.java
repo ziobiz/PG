@@ -2173,9 +2173,11 @@ public class ApiHqController {
             return ResponseEntity.ok(ApiResponse.fail("본사·총판만 도메인을 설정할 수 있습니다.", "VALIDATION"));
         }
         String oldNm = ou.getDomainSettingName() != null ? ou.getDomainSettingName().trim() : "";
+        String oldTitle = ou.getDomainPageTitle() != null ? ou.getDomainPageTitle().trim() : "";
         String oldAdm = ou.getOrgDomainAdminUrl() != null ? ou.getOrgDomainAdminUrl().trim() : "";
         String oldApi = ou.getOrgDomainApiUrl() != null ? ou.getOrgDomainApiUrl().trim() : "";
         ou.setDomainSettingName(hqTrimToNull(body.get("domainSettingName")));
+        ou.setDomainPageTitle(hqTrimToNull(body.get("domainPageTitle")));
         ou.setOrgDomainAdminUrl(hqHttpsUrlForSave(body.get("orgDomainAdminUrl")));
         ou.setOrgDomainApiUrl(hqHttpsUrlForSave(body.get("orgDomainApiUrl")));
         ou.setDomainUrlsUpdatedAt(LocalDateTime.now());
@@ -2184,6 +2186,8 @@ public class ApiHqController {
         String p = "[도메인구성설정] ";
         orgUnitChangeAuditService.appendIfChanged(ou.getId(), ou.getCode(), compNm, p + "설정표시명",
                 oldNm, ou.getDomainSettingName() != null ? ou.getDomainSettingName().trim() : "");
+        orgUnitChangeAuditService.appendIfChanged(ou.getId(), ou.getCode(), compNm, p + "타이틀태그",
+                oldTitle, ou.getDomainPageTitle() != null ? ou.getDomainPageTitle().trim() : "");
         orgUnitChangeAuditService.appendIfChanged(ou.getId(), ou.getCode(), compNm, p + "관리자 URL",
                 oldAdm, ou.getOrgDomainAdminUrl() != null ? ou.getOrgDomainAdminUrl().trim() : "");
         orgUnitChangeAuditService.appendIfChanged(ou.getId(), ou.getCode(), compNm, p + "API URL",
@@ -2232,9 +2236,11 @@ public class ApiHqController {
             return ResponseEntity.ok(ApiResponse.fail("본사·총판만 도메인 설정 대상입니다.", "VALIDATION"));
         }
         String oldNm = ou.getDomainSettingName() != null ? ou.getDomainSettingName().trim() : "";
+        String oldTitle = ou.getDomainPageTitle() != null ? ou.getDomainPageTitle().trim() : "";
         String oldAdm = ou.getOrgDomainAdminUrl() != null ? ou.getOrgDomainAdminUrl().trim() : "";
         String oldApi = ou.getOrgDomainApiUrl() != null ? ou.getOrgDomainApiUrl().trim() : "";
         ou.setDomainSettingName(null);
+        ou.setDomainPageTitle(null);
         ou.setOrgDomainAdminUrl(null);
         ou.setOrgDomainApiUrl(null);
         ou.setDomainUrlsUpdatedAt(LocalDateTime.now());
@@ -2242,6 +2248,7 @@ public class ApiHqController {
         String compNm = ou.getName() != null ? ou.getName().trim() : "";
         String p = "[도메인구성설정] ";
         orgUnitChangeAuditService.appendIfChanged(ou.getId(), ou.getCode(), compNm, p + "설정표시명", oldNm, "");
+        orgUnitChangeAuditService.appendIfChanged(ou.getId(), ou.getCode(), compNm, p + "타이틀태그", oldTitle, "");
         orgUnitChangeAuditService.appendIfChanged(ou.getId(), ou.getCode(), compNm, p + "관리자 URL", oldAdm, "");
         orgUnitChangeAuditService.appendIfChanged(ou.getId(), ou.getCode(), compNm, p + "API URL", oldApi, "");
         List<Map<String, Object>> orgRows = loadOrgDomainRows();
@@ -2280,6 +2287,7 @@ public class ApiHqController {
         m.put("orgLevel", o.getOrgLevel() != null ? o.getOrgLevel().name() : "");
         m.put("orgLevelLabel", o.getOrgLevel() != null ? o.getOrgLevel().getNameKo() : "");
         m.put("domainSettingName", o.getDomainSettingName() != null ? o.getDomainSettingName() : "");
+        m.put("domainPageTitle", o.getDomainPageTitle() != null ? o.getDomainPageTitle() : "");
         m.put("orgDomainAdminUrl", hqHttpsUrlForDisplay(o.getOrgDomainAdminUrl()));
         m.put("orgDomainApiUrl", hqHttpsUrlForDisplay(o.getOrgDomainApiUrl()));
         m.put("domainUrlsUpdatedAt", o.getDomainUrlsUpdatedAt() != null ? o.getDomainUrlsUpdatedAt().toString() : "");

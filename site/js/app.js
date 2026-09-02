@@ -8269,6 +8269,41 @@
   var COMP_LIST_REVISIT_REFRESH_URLS = ['/comp/compMngTree', '/comp/compMng', '/comp/compInfo'];
   var LIST_PANE_REVISIT_REFRESH_URLS = PAY_LIST_MENU_RECLICK_REFRESH_URLS.concat(COMP_LIST_REVISIT_REFRESH_URLS);
 
+  /** 가맹점 등록 저장 직후 수수료관리 검색·선택에 방금 등록한 업체코드 반영 */
+  function pgApplyLastRegisteredCompToCommissionPane(pane) {
+    if (!pane || !window.PG_LAST_REGISTERED_COMP) return '';
+    var regCid = String(window.PG_LAST_REGISTERED_COMP != null ? window.PG_LAST_REGISTERED_COMP : '').trim();
+    if (!regCid) {
+      window.PG_LAST_REGISTERED_COMP = null;
+      return '';
+    }
+    var sid = pane.querySelector('input[name="searchCompId"]');
+    if (sid) sid.value = regCid;
+    var snm = pane.querySelector('input[name="searchCompNm"]');
+    if (snm) snm.value = '';
+    var pgCnt = pane.querySelector('#pageCnt');
+    if (pgCnt) pgCnt.value = '1';
+    pane._commissionHistCompId = regCid;
+    window.PG_LAST_REGISTERED_COMP = null;
+    return regCid;
+  }
+
+  /** 수수료관리 탭이 이미 열려 있을 때(쉘 재사용)에도 신규 가맹 등록 후 재조회 */
+  function pgRefreshCommissionPaneForLastRegistered(pane, tabId) {
+    if (!pane || !window.PG_LAST_REGISTERED_COMP) return;
+    setTimeout(function () {
+      var regCid = pgApplyLastRegisteredCompToCommissionPane(pane);
+      if (!regCid) return;
+      var loadFn = typeof pane._pgLoadViewSetting === 'function' ? pane._pgLoadViewSetting : null;
+      var pending = loadFn ? loadFn() : Promise.resolve();
+      pending.finally(function () {
+        if (typeof pane._pgRunListSearch === 'function') {
+          pane._pgRunListSearch(pane, tabId, 1);
+        }
+      });
+    }, 0);
+  }
+
   function refreshListPaneIfRevisited(url, tabId) {
     if (LIST_PANE_REVISIT_REFRESH_URLS.indexOf(url) === -1) return;
     var pane = document.getElementById(tabId);
@@ -18811,11 +18846,7 @@
     } else if (autoSearchUrls.indexOf(url) !== -1) {
       setTimeout(function () {
         if (window.PG_LAST_REGISTERED_COMP && url === '/commission/commisionList') {
-          var regCid = String(window.PG_LAST_REGISTERED_COMP != null ? window.PG_LAST_REGISTERED_COMP : '').trim();
-          var sid = pane.querySelector('input[name="searchCompId"]');
-          if (sid) sid.value = regCid;
-          if (regCid) pane._commissionHistCompId = regCid;
-          window.PG_LAST_REGISTERED_COMP = null;
+          pgApplyLastRegisteredCompToCommissionPane(pane);
         }
         function runPayListInitialSearch() {
           loadViewSetting().finally(function () {
@@ -34431,7 +34462,7 @@
         if (!tb) return;
         var list = Array.isArray(rows) ? rows : [];
         if (!list.length) {
-          tb.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">' + escDomCfg(pgAdminUiT('등록된 본사·총판 조직이 없습니다.')) + '</td></tr>';
+          tb.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-3">' + escDomCfg(pgAdminUiT('등록된 본사·총판 조직이 없습니다.')) + '</td></tr>';
           return;
         }
         var html = '';
@@ -34444,6 +34475,7 @@
             '<td class="font-monospace small">' + escDomCfg(r.code) + '</td>' +
             '<td>' + domainCfgOrgLevelDisp(r) + '</td>' +
             '<td>' + escDomCfg(r.domainSettingName) + '</td>' +
+            '<td>' + escDomCfg(r.domainPageTitle) + '</td>' +
             '<td class="text-center">' + domainCfgUrlCell(r.orgDomainAdminUrl) + '</td>' +
             '<td class="text-center">' + domainCfgUrlCell(r.orgDomainApiUrl) + '</td>' +
             '<td class="text-center">' +
@@ -34463,7 +34495,7 @@
         return null;
       }
       function setOrgEditorEnabled(on) {
-        ['hqDomainSettingName_' + sid, 'hqDomainOrgAdminUrl_' + sid, 'hqDomainOrgApiUrl_' + sid].forEach(function (id) {
+        ['hqDomainSettingName_' + sid, 'hqDomainPageTitle_' + sid, 'hqDomainOrgAdminUrl_' + sid, 'hqDomainOrgApiUrl_' + sid].forEach(function (id) {
           var el = pane.querySelector('#' + id);
           if (el) el.disabled = !on;
         });
@@ -34474,12 +34506,14 @@
         var codeEl = pane.querySelector('#hqDomainOrgCode_' + sid);
         var lvEl = pane.querySelector('#hqDomainOrgLevel_' + sid);
         var nmEl = pane.querySelector('#hqDomainSettingName_' + sid);
+        var titleEl = pane.querySelector('#hqDomainPageTitle_' + sid);
         var adEl = pane.querySelector('#hqDomainOrgAdminUrl_' + sid);
         var apEl = pane.querySelector('#hqDomainOrgApiUrl_' + sid);
         if (!row) {
           if (codeEl) codeEl.value = '';
           if (lvEl) lvEl.value = '';
           if (nmEl) nmEl.value = '';
+          if (titleEl) titleEl.value = '';
           if (adEl) adEl.value = '';
           if (apEl) apEl.value = '';
           return;
@@ -34487,6 +34521,7 @@
         if (codeEl) codeEl.value = row.code || '';
         if (lvEl) lvEl.value = domainCfgOrgLevelDisp(row);
         if (nmEl) nmEl.value = row.domainSettingName || '';
+        if (titleEl) titleEl.value = row.domainPageTitle || '';
         if (adEl) adEl.value = row.orgDomainAdminUrl ? domainCfgDisplayWithHttps(row.orgDomainAdminUrl) : '';
         if (apEl) apEl.value = row.orgDomainApiUrl ? domainCfgDisplayWithHttps(row.orgDomainApiUrl) : '';
       }
@@ -34636,6 +34671,7 @@
           var body = {
             orgUnitId: oid,
             domainSettingName: (pane.querySelector('#hqDomainSettingName_' + sid) || {}).value || '',
+            domainPageTitle: (pane.querySelector('#hqDomainPageTitle_' + sid) || {}).value || '',
             orgDomainAdminUrl: domainCfgNormalizeUrlForSave((pane.querySelector('#hqDomainOrgAdminUrl_' + sid) || {}).value || ''),
             orgDomainApiUrl: domainCfgNormalizeUrlForSave((pane.querySelector('#hqDomainOrgApiUrl_' + sid) || {}).value || '')
           };
@@ -38132,6 +38168,10 @@
         pane.setAttribute('formurl', urlPath || '');
         /* 허브도 포함: 상단 탭 왕복 시 DOM 유지(마지막 서브탭 보존). 언어 전환 등 재생성은 별도 경로. */
         shellReady = pane.getAttribute('data-pg-shell-ready') === '1' && pane.childElementCount > 0;
+        /* 신규 업체등록: 메뉴·빨간 [등록] 재진입 시 직전 입력값이 남지 않도록 항상 빈 폼으로 다시 그림 */
+        if (urlPath === '/comp/compReg') {
+          shellReady = false;
+        }
         if (shellReady) {
           pgActivateTabPane(pane, tabId);
           if (isHub && window.PG_HUB_SHELL && typeof window.PG_HUB_SHELL.ensureActiveTab === 'function') {
@@ -38149,7 +38189,11 @@
           if (url === '/comp/compDetail' && typeof pane._pgReloadCompDetailFromSession === 'function') {
             pane._pgReloadCompDetailFromSession();
           }
-          refreshListPaneIfRevisited(url, tabId);
+          if (urlPath === '/commission/commisionList' && window.PG_LAST_REGISTERED_COMP) {
+            pgRefreshCommissionPaneForLastRegistered(pane, tabId);
+          } else {
+            refreshListPaneIfRevisited(url, tabId);
+          }
         } else {
         if (isHub) {
           pane._pgHubShellBound = false;

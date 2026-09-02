@@ -48,6 +48,10 @@ public class OrgUnit {
     @Column(name = "domain_setting_name", length = 200)
     private String domainSettingName;
 
+    /** 본사·총판 도메인 설정 — 브라우저 &lt;title&gt; (설정 이름·브랜딩 siteName 과 별도) */
+    @Column(name = "domain_page_title", length = 200)
+    private String domainPageTitle;
+
     @Column(name = "org_domain_admin_url", length = 500)
     private String orgDomainAdminUrl;
 
@@ -107,6 +111,8 @@ public class OrgUnit {
     public void setTabletFeatureUseYn(String tabletFeatureUseYn) { this.tabletFeatureUseYn = tabletFeatureUseYn; }
     public String getDomainSettingName() { return domainSettingName; }
     public void setDomainSettingName(String domainSettingName) { this.domainSettingName = domainSettingName; }
+    public String getDomainPageTitle() { return domainPageTitle; }
+    public void setDomainPageTitle(String domainPageTitle) { this.domainPageTitle = domainPageTitle; }
     public String getOrgDomainAdminUrl() { return orgDomainAdminUrl; }
     public void setOrgDomainAdminUrl(String orgDomainAdminUrl) { this.orgDomainAdminUrl = orgDomainAdminUrl; }
     public String getOrgDomainApiUrl() { return orgDomainApiUrl; }

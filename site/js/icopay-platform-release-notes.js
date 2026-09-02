@@ -6,13 +6,106 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '3.73';
+  var CURRENT_LIVE = '3.77';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '3.77',
+      kind: 'minor',
+      date: '2026-09-02',
+      items: {
+        KO: [
+          '도메인구성설정: 본사·총판 「타이틀태그」 추가 — 브라우저 탭 제목(설정 이름과 별도)',
+          '가맹점 등록: 영업정보/기타(addrEtc) 신규 저장 누락 수정 — 재조회 시 값 유지. 5개국어'
+        ],
+        EN: [
+          'Domain config: HQ/master-distributor Title tag for browser tab (separate from setting name)',
+          'Merchant register: fix sales info/other (addrEtc) not saved on create — persists on reopen. 5 languages'
+        ],
+        JP: [
+          'ドメイン構成: 本社・総販「タイトルタグ」追加 — ブラウザタブ題名（設定名と別）',
+          '加盟店登録: 営業情報/その他(addrEtc)新規保存漏れ修正 — 再表示で値維持。5言語'
+        ],
+        CH: [
+          '域名配置：总部/总代新增「标题标签」— 浏览器标签标题（与设置名称分开）',
+          '商户注册：修复营业信息/其他(addrEtc)新建未保存 — 再次打开保留。5 语'
+        ],
+        TH: [
+          'โดเมน: เพิ่ม Title tag สำนักงานใหญ่/ตัวแทนหลัก — ชื่อแท็บเบราว์เซอร์ (แยกจากชื่อการตั้งค่า)',
+          'ลงทะเบียนร้าน: แก้ไม่บันทึกข้อมูลขาย/อื่น(addrEtc) ตอนสร้าง — เปิดใหม่ยังอยู่ 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.76',
+      kind: 'minor',
+      date: '2026-09-02',
+      items: {
+        KO: [
+          '가맹점 등록 저장 후 수수료관리 자동 이동 시 방금 등록한 업체가 바로 조회·선택되도록 수정(기존 탭 재사용 포함). 5개국어'
+        ],
+        EN: [
+          'After merchant register save, commission management now loads the newly registered merchant immediately (including reused tab). 5 languages'
+        ],
+        JP: [
+          '加盟店登録保存後、手数料管理へ自動遷移時に直前登録加盟店を即時表示・選択（既存タブ再利用含む）。5言語'
+        ],
+        CH: [
+          '商户注册保存后跳转手续费管理时，立即查询并选中刚注册的商户（含已打开标签页）。5 语'
+        ],
+        TH: [
+          'หลังบันทึกลงทะเบียนร้าน หน้าค่าธรรมเนียมโหลดร้านที่เพิ่งลงทะเบียนทันที (รวมแท็บเดิม) 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.75',
+      kind: 'minor',
+      date: '2026-09-01',
+      items: {
+        KO: [
+          '업체등록: 메뉴·빨간 [등록] 재진입 시 직전 입력값이 남는 오류 수정(항상 빈 폼으로 신규 등록). 5개국어'
+        ],
+        EN: [
+          'Company register: clear leftover form data when reopening via menu or red Register (always blank for new). 5 languages'
+        ],
+        JP: [
+          '加盟登録: メニュー・赤の[登録]再入場時に前回入力が残る不具合を修正（常に空フォーム）。5言語'
+        ],
+        CH: [
+          '商户注册：经菜单或红色[注册]再次进入时残留上次输入的问题已修复（始终空白新表单）。5 语'
+        ],
+        TH: [
+          'ลงทะเบียนร้าน: แก้ค่าค้างเมื่อเปิดใหม่จากเมนูหรือปุ่มลงทะเบียนสีแดง (ฟอร์มว่างเสมอ) 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '3.74',
+      kind: 'minor',
+      date: '2026-09-01',
+      items: {
+        KO: [
+          '업체등록: VARCHAR(20) 초과로 저장 실패하던 오류 수정(은행명·우편번호·국가명·HTML표시명·PG코드 길이). 안내 문구 5개국어'
+        ],
+        EN: [
+          'Merchant register: fix save failure from VARCHAR(20) overflow (bank name, postal code, country, HTML title, PG code). 5-language messages'
+        ],
+        JP: [
+          '加盟登録: VARCHAR(20)超過による保存失敗を修正（銀行名・郵便番号・国名・HTML表示名・PGコード）。案内は5言語'
+        ],
+        CH: [
+          '商户注册：修复 VARCHAR(20) 超长导致保存失败（银行名、邮编、国家、HTML 显示名、PG 代码）。提示 5 语'
+        ],
+        TH: [
+          'ลงทะเบียนร้าน: แก้บันทึกไม่สำเร็จจาก VARCHAR(20) (ธนาคาร รหัสไปรษณีย์ ประเทศ ชื่อ HTML รหัส PG) ข้อความ 5 ภาษา'
+        ]
+      }
+    },
     {
       version: '3.73',
       kind: 'minor',

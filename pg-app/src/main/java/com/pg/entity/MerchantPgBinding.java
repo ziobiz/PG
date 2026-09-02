@@ -18,7 +18,7 @@ public class MerchantPgBinding {
     @Column(name = "org_unit_id", nullable = false)
     private Long orgUnitId;
 
-    @Column(name = "pg_cd", nullable = false, length = 20)
+    @Column(name = "pg_cd", nullable = false, length = 40)
     private String pgCd;
 
     /** 착신화 유무 (활성화) */
