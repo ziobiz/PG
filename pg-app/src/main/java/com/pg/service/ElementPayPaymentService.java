@@ -311,11 +311,21 @@ public class ElementPayPaymentService {
         String paymentId = response.path("id").asText("");
         int status = response.path("status").asInt(0);
 
+        BigDecimal shopperDispAmt = parseAmount(body.get("shopperDisplayAmount"));
+        if (shopperDispAmt == null) {
+            shopperDispAmt = parseAmount(body.get("displayAmount"));
+        }
+        String shopperDispCur = str(body.get("shopperDisplayCurrency"));
+        if (shopperDispCur.isBlank()) {
+            shopperDispCur = str(body.get("displayCurrency"));
+        }
+
         elementPaySaleRecordService.recordOrTouchPending(
                 orgUnitId, orderNo, amount, THB, binding.getSortOrder(),
                 str(body.get("item")), resolveTxnOrigin(body),
                 str(body.get("customerNm")), str(body.get("payEmailAddress")),
-                paymentMethod, null, null, false, paymentId, body);
+                paymentMethod, shopperDispAmt, shopperDispCur.isBlank() ? null : shopperDispCur,
+                false, paymentId, body);
 
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("success", true);

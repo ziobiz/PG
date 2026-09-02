@@ -6,13 +6,40 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '3.78';
+  var CURRENT_LIVE = '3.79';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '3.79',
+      kind: 'minor',
+      date: '2026-09-02',
+      items: {
+        KO: [
+          '전 PG 공통 DP: API prepare 표시통화(JPY 등) 허용 → 승인 시 라우팅 PG별 실결제(EP는 THB). ElementPay 표시금액 저장',
+          '멀티 PG 혼용: UI는 DP 통일, 카드 자동인식 후 청구예상·실결제 분기(일반=표시통화 1:1 / DP=FX). 분할결제 EP·EX·ILK 지원. 5개국어'
+        ],
+        EN: [
+          'All-PG DP: API prepare accepts display currency (e.g. JPY) → settlement by routed PG at sale (EP→THB). ElementPay stores shopper display amount',
+          'Multi-PG mix: DP UI unified; after card auto-detect, estimate/settlement split (standard=1:1 display / DP=FX). Split-pay supports EP/EX/ILK. 5 languages'
+        ],
+        JP: [
+          '全PG共通DP: API prepareで表示通貨(JPY等)可→承認時ルーティングPG別実決済(EPはTHB)。ElementPay表示金額保存',
+          'マルチPG混在: UIはDP統一、カード自動認識後に請求見積・実決済分岐。分割決済にEP・EX・ILK対応。5言語'
+        ],
+        CH: [
+          '全 PG 统一 DP：API prepare 允许展示币种(JPY 等)→批准时按路由 PG 实结算(EP→THB)。ElementPay 保存展示金额',
+          '多 PG 混用：UI 统一 DP，卡自动识别后分支预估/实结算。分期支付支持 EP/EX/ILK。5 种语言'
+        ],
+        TH: [
+          'DP ทุก PG: API prepare รับสกุลแสดง (เช่น JPY) → ชำระจริงตาม PG ที่ route (EP→THB) บันทึกยอดแสดง ElementPay',
+          'ผสมหลาย PG: UI เป็น DP หลังรู้แบรนด์การ์ดแยกประมาณการ/ชำระจริง แยกชำระรองรับ EP/EX/ILK. 5 ภาษา'
+        ]
+      }
+    },
     {
       version: '3.78',
       kind: 'minor',

@@ -314,12 +314,13 @@ public class ApiPayController {
         return urlPayCheckoutContextInternal(orgUnitId, repay, request);
     }
 
-    /** {@link #urlPayCheckoutContext} 와 동일 — 표시통화 견적(PG 무관). */
+    /** {@link #urlPayDisplayFxQuote} 와 동일 — 표시통화 견적(PG 무관). */
     @GetMapping("/url/display-fx-quote")
     public ResponseEntity<ApiResponse<Map<String, Object>>> urlPayDisplayFxQuote(
             @RequestParam String compId,
-            @RequestParam(name = "displayCurrency", required = false) String displayCurrency) {
-        return chillpayDisplayFxQuote(compId, displayCurrency);
+            @RequestParam(name = "displayCurrency", required = false) String displayCurrency,
+            @RequestParam(name = "operationalPgCd", required = false) String operationalPgCd) {
+        return chillpayDisplayFxQuote(compId, displayCurrency, operationalPgCd);
     }
 
     @PostMapping("/url/resolve-route")
@@ -363,6 +364,14 @@ public class ApiPayController {
         UrlPayVendorCapability cap = urlPaySaleDispatcher.resolveCapability(orgUnitId, cardBrand, currency);
         out.put("resolved", true);
         out.put("urlPayOperationalPgCd", opPg);
+        out.put("urlPayPricingMode", chillPayService.resolveUrlPayPricingModeForPg(orgUnitId, opPg));
+        out.put("urlPaySettlementCurrencyCode",
+                UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equalsIgnoreCase(
+                        chillPayService.resolveUrlPayPricingModeForPg(orgUnitId, opPg))
+                        ? urlPayDisplayFxService.settlementCurrencyForPg(opPg)
+                        : (currency != null && !currency.isBlank()
+                        ? currency.trim().toUpperCase(Locale.ROOT)
+                        : ""));
         out.put("cardBrandScope", binding.get().getCardBrandScope());
         out.put("currencyScope", binding.get().getCurrencyScope());
         out.put("urlPayCapabilities", cap.toMap());
@@ -782,7 +791,8 @@ public class ApiPayController {
     @GetMapping("/chillpay/display-fx-quote")
     public ResponseEntity<ApiResponse<Map<String, Object>>> chillpayDisplayFxQuote(
             @RequestParam String compId,
-            @RequestParam(name = "displayCurrency", required = false) String displayCurrency) {
+            @RequestParam(name = "displayCurrency", required = false) String displayCurrency,
+            @RequestParam(name = "operationalPgCd", required = false) String operationalPgCd) {
         Long orgUnitId = resolveMerchantOrgUnitId(null, compId);
         if (orgUnitId == null) {
             return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
@@ -803,7 +813,28 @@ public class ApiPayController {
             return ResponseEntity.ok(ApiResponse.fail("본사 「URL 표시통화(THB정산)」 설정이 꺼져 있거나 비어 있습니다.", "DISPLAY_FX_HQ_DISABLED"));
         }
         String cur = displayCurrency != null && !displayCurrency.isBlank() ? displayCurrency.trim() : "JPY";
-        String opPgQ = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
+        String opPgQ = operationalPgCd != null && !operationalPgCd.isBlank()
+                ? operationalPgCd.trim()
+                : chillPayService.resolveUrlPayDisplayFxQuotePgCd(orgUnitId);
+        if (opPgQ == null || opPgQ.isBlank()) {
+            opPgQ = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
+        }
+        /* 라우팅 PG가 일반형이면 1:1 견적 대신 표시통화 정산 힌트만 */
+        String modeForPg = chillPayService.resolveUrlPayPricingModeForPg(orgUnitId, opPgQ);
+        if (!UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equalsIgnoreCase(modeForPg)) {
+            Map<String, Object> oneToOne = new LinkedHashMap<>();
+            oneToOne.put("displayCurrency", cur.toUpperCase(Locale.ROOT));
+            oneToOne.put("settlementCurrency", cur.toUpperCase(Locale.ROOT));
+            oneToOne.put("settlementPerUnit", "1");
+            oneToOne.put("thbPerUnit", "1");
+            oneToOne.put("marginRate", "0");
+            oneToOne.put("pricingMode", "CHECKOUT_CURRENCY");
+            oneToOne.put("urlPayOperationalPgCd", opPgQ);
+            oneToOne.put("oneToOneDisplaySettlement", true);
+            oneToOne.put("fxQuoteToken", "");
+            oneToOne.put("rateDescription", "1:1 " + cur.toUpperCase(Locale.ROOT));
+            return ResponseEntity.ok(ApiResponse.ok(oneToOne));
+        }
         Optional<UrlPayDisplayFxService.QuoteResult> q = urlPayDisplayFxService.buildQuote(compId.trim(), cur, opPgQ);
         if (q.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.fail(
@@ -821,6 +852,9 @@ public class ApiPayController {
         out.put("expEpochSec", r.expEpochSec());
         out.put("fxQuoteToken", r.quoteToken());
         out.put("rateDescription", r.rateDescription());
+        out.put("pricingMode", UrlPayDisplayFxService.MODE_DISPLAY_FX_THB);
+        out.put("urlPayOperationalPgCd", opPgQ);
+        out.put("oneToOneDisplaySettlement", false);
         String set = r.settlementCurrency();
         String scaleNote = ("JPY".equals(set) || "KRW".equals(set)) ? "정수 반올림" : "소수 둘째";
         out.put("formulaNote", "청구 " + set + "(" + scaleNote + ") = 표시금액 × settlementPerUnit × (1+margin). 자동은 BOT 일평균을 THB 경유로 환산합니다.");

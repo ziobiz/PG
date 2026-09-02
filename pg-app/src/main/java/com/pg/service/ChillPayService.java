@@ -436,18 +436,72 @@ public class ChillPayService {
     }
 
     /**
-     * URL 결제 운영 WEB 바인딩의 금액 모드.
-     * {@link UrlPayDisplayFxService#MODE_DISPLAY_FX_THB} 이면 표시통화(JPY/USD)→실결제 THB.
+     * URL/API 결제 화면용 금액 모드.
+     * 운영 바인딩 중 <strong>하나라도</strong> {@link UrlPayDisplayFxService#MODE_DISPLAY_FX_THB} 이면
+     * UI는 DP로 통일한다(일반+DP 혼용 가맹). 실제 승인 시 실결제는
+     * {@link #resolveUrlPayPricingModeForPg(Long, String)} 로 라우팅 PG별 확정.
      */
     public String resolveUrlPayPricingMode(Long merchantOrgUnitId) {
         if (merchantOrgUnitId == null) {
             return "CHECKOUT_CURRENCY";
         }
-        Optional<MerchantPgBinding> web = findOperationalWebBindingForUrlPay(merchantOrgUnitId);
-        if (web.isEmpty()) {
+        List<MerchantPgBinding> list = listOperationalWebBindingsForUrlPay(merchantOrgUnitId);
+        if (list.isEmpty()) {
             return "CHECKOUT_CURRENCY";
         }
-        MerchantPgBinding b = web.get();
+        for (MerchantPgBinding b : list) {
+            if (UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equalsIgnoreCase(pricingModeOfBinding(b))) {
+                return UrlPayDisplayFxService.MODE_DISPLAY_FX_THB;
+            }
+        }
+        return pricingModeOfBinding(list.get(0));
+    }
+
+    /** 특정 운영 PG(라우팅 결과)의 금액 모드 — 멀티 PG 승인·견적용. */
+    public String resolveUrlPayPricingModeForPg(Long merchantOrgUnitId, String operationalPgCd) {
+        if (merchantOrgUnitId == null) {
+            return "CHECKOUT_CURRENCY";
+        }
+        String want = operationalPgCd != null ? operationalPgCd.trim() : "";
+        if (want.isEmpty()) {
+            return resolveUrlPayPricingMode(merchantOrgUnitId);
+        }
+        for (MerchantPgBinding b : listOperationalWebBindingsForUrlPay(merchantOrgUnitId)) {
+            String cd = b.getPgCd() != null ? b.getPgCd().trim() : "";
+            if (cd.equalsIgnoreCase(want) || PgVendor.normalizePgCdKey(cd).equals(PgVendor.normalizePgCdKey(want))) {
+                return pricingModeOfBinding(b);
+            }
+        }
+        String legacy = "";
+        return urlPayDisplayFxService.resolveUrlPayPricingMode(want, legacy);
+    }
+
+    /**
+     * DISPLAY_FX 견적·청구예상 UI에 쓸 PG 코드.
+     * 혼용 시 DP 바인딩을 우선(브랜드 미확정 단계).
+     */
+    public String resolveUrlPayDisplayFxQuotePgCd(Long merchantOrgUnitId) {
+        if (merchantOrgUnitId == null) {
+            return "";
+        }
+        for (MerchantPgBinding b : listOperationalWebBindingsForUrlPay(merchantOrgUnitId)) {
+            if (UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equalsIgnoreCase(pricingModeOfBinding(b))) {
+                String cd = b.getPgCd();
+                return cd != null ? cd.trim() : "";
+            }
+        }
+        return resolveUrlPayOperationalPgCd(merchantOrgUnitId);
+    }
+
+    public boolean merchantAllowsDisplayFx(Long merchantOrgUnitId) {
+        return UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equalsIgnoreCase(
+                resolveUrlPayPricingMode(merchantOrgUnitId));
+    }
+
+    private String pricingModeOfBinding(MerchantPgBinding b) {
+        if (b == null) {
+            return "CHECKOUT_CURRENCY";
+        }
         String pgCd = b.getPgCd() != null ? b.getPgCd().trim() : "";
         String legacy = b.getUrlPayPricingMode() != null ? b.getUrlPayPricingMode().trim() : "";
         return urlPayDisplayFxService.resolveUrlPayPricingMode(pgCd, legacy);

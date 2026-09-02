@@ -252,15 +252,32 @@
     function fetchFxQuote() {
       var cur = payFxResolvedDisplayCurrencyLocal();
       var q = 'compId=' + encodeURIComponent(compId) + '&displayCurrency=' + encodeURIComponent(cur);
+      var opPg = st.operationalPgCd
+        || (ctx && ctx.urlPayDisplayFxQuotePgCd)
+        || (ctx && ctx.urlPayOperationalPgCd)
+        || '';
+      if (opPg) {
+        q += '&operationalPgCd=' + encodeURIComponent(String(opPg).trim());
+      }
       return fetchJsonWithRetry(apiUrl('/api/pay/url/display-fx-quote', q), 4, 700).then(function (res) {
         if (res.success !== true || !res.data) throw new Error(res.message || t('configErr'));
         st.urlPayFxQuote = res.data;
+        if (res.data.urlPayOperationalPgCd) {
+          st.operationalPgCd = String(res.data.urlPayOperationalPgCd).trim();
+        }
         updateFxSettlementEstimateText();
+        if (typeof st.onFxQuoteUpdated === 'function') {
+          try { st.onFxQuoteUpdated(res.data); } catch (eQ) { /* ignore */ }
+        }
         if (st.urlPayFxReloadTimer) {
           try { g.clearTimeout(st.urlPayFxReloadTimer); } catch (eT) { /* ignore */ }
         }
         var sec = parseInt(st.urlPayDisplayFxRefreshSeconds, 10);
         if (isNaN(sec) || sec < 1) sec = 600;
+        /* 1:1(일반 PG) 견적은 만료 리로드 불필요 */
+        if (res.data.oneToOneDisplaySettlement === true || !res.data.fxQuoteToken) {
+          return;
+        }
         st.urlPayFxReloadTimer = g.setTimeout(function () {
           try { g.location.reload(); } catch (eR) { /* ignore */ }
         }, sec * 1000);
@@ -269,6 +286,13 @@
         var fel = g.document.getElementById('payFxThbEstimateText');
         if (fel) fel.textContent = (err && err.message) ? String(err.message) : t('configErr');
       });
+    }
+
+    /** 카드 브랜드 라우팅 후 견적 재조회(혼용 가맹). */
+    function refreshFxQuoteForOperationalPg(pgCd) {
+      st.operationalPgCd = pgCd != null ? String(pgCd).trim() : '';
+      if (!st.urlPayDisplayFxActive) return Promise.resolve(null);
+      return fetchFxQuote();
     }
 
     if (!st.urlPayDisplayFxActive) {
@@ -333,6 +357,9 @@
       amtEl._payFxAmtBound = true;
       amtEl.addEventListener('input', function () { updateFxSettlementEstimateText(); });
     }
+    st.refreshFxQuoteForOperationalPg = refreshFxQuoteForOperationalPg;
+    st.fetchFxQuote = fetchFxQuote;
+    st.updateFxSettlementEstimateText = updateFxSettlementEstimateText;
     return fetchFxQuote();
   }
 

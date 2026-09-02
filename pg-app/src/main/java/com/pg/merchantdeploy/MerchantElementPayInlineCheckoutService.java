@@ -7,9 +7,11 @@ import com.pg.integration.pg.PgVendor;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
+import com.pg.service.ChillPayService;
 import com.pg.service.ElementPayPaymentService;
 import com.pg.service.MerchantChatbotProductService;
 import com.pg.service.OrgServiceUseService;
+import com.pg.service.UrlPayDisplayFxService;
 import com.pg.urlpay.IcipayBuyerContactUtil;
 import com.pg.urlpay.NeutralCheckoutRoute;
 import com.pg.util.PgTrnsctnOrderLookup;
@@ -22,12 +24,16 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * 가맹점 통합 API — ElementPay(THB·카드·PromptPay) 인라인 결제창 세션 준비.
+ * 가맹점 통합 API — ElementPay 인라인 결제창 세션 준비.
+ * <p>DP(표시통화→실결제 THB) 가맹은 prepare 에 JPY 등 표시통화를 받고,
+ * 승인({@code /api/pay/url/sale}) 시 공통 ChargeResolution 으로 THB 환산합니다.
  */
 @Service
 public class MerchantElementPayInlineCheckoutService {
 
     private static final String THB = "THB";
+    private static final java.util.Set<String> DISPLAY_CURRENCIES =
+            java.util.Set.of("JPY", "USD", "KRW", "THB", "SGD", "HKD", "CNY");
 
     private final OrgUnitRepository orgUnitRepository;
     private final MerchantProfileRepository merchantProfileRepository;
@@ -37,6 +43,7 @@ public class MerchantElementPayInlineCheckoutService {
     private final MerchantInlineCheckoutTokenService tokenService;
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final MerchantApiIntegrationChannelService integrationChannelService;
+    private final ChillPayService chillPayService;
 
     public MerchantElementPayInlineCheckoutService(OrgUnitRepository orgUnitRepository,
                                                      MerchantProfileRepository merchantProfileRepository,
@@ -45,7 +52,8 @@ public class MerchantElementPayInlineCheckoutService {
                                                      MerchantChatbotProductService productService,
                                                      MerchantInlineCheckoutTokenService tokenService,
                                                      PgTrnsctnRepository pgTrnsctnRepository,
-                                                     MerchantApiIntegrationChannelService integrationChannelService) {
+                                                     MerchantApiIntegrationChannelService integrationChannelService,
+                                                     ChillPayService chillPayService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.orgServiceUseService = orgServiceUseService;
@@ -54,6 +62,7 @@ public class MerchantElementPayInlineCheckoutService {
         this.tokenService = tokenService;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.integrationChannelService = integrationChannelService;
+        this.chillPayService = chillPayService;
     }
 
     public Map<String, Object> prepare(Long orgUnitId, Map<String, Object> body, HttpServletRequest request) {
@@ -89,11 +98,22 @@ public class MerchantElementPayInlineCheckoutService {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             return fail("유효한 amount가 필요합니다.", "INVALID_AMOUNT");
         }
+        boolean displayFx = chillPayService.merchantAllowsDisplayFx(orgUnitId);
         String currency = str(body.get("currency"));
-        if (!currency.isBlank() && !THB.equalsIgnoreCase(currency)) {
-            return fail("ElementPay는 THB(태국 바트)만 지원합니다.", "ELEMENTPAY_THB_ONLY");
+        if (displayFx) {
+            if (currency.isBlank()) {
+                currency = "JPY";
+            }
+            currency = currency.trim().toUpperCase(java.util.Locale.ROOT);
+            if (!DISPLAY_CURRENCIES.contains(currency)) {
+                return fail("지원하지 않는 표시 통화입니다.", "INVALID_DISPLAY_CURRENCY");
+            }
+        } else {
+            if (!currency.isBlank() && !THB.equalsIgnoreCase(currency)) {
+                return fail("ElementPay는 THB(태국 바트)만 지원합니다. (표시통화 DP 가맹은 JPY 등 가능)", "ELEMENTPAY_THB_ONLY");
+            }
+            currency = THB;
         }
-        currency = THB;
         String amountPlain = amount.stripTrailingZeros().toPlainString();
         String productName = clamp(str(body.get("productName")), 500);
         if (productName.isBlank()) {
@@ -131,7 +151,13 @@ public class MerchantElementPayInlineCheckoutService {
         data.put("embedScriptUrl", embedScriptUrl);
         data.put("integrationMode", "INLINE");
         data.put("pgVendor", MerchantApiResponseMapper.MERCHANT_FACING_BRAND);
-        data.put("currency", THB);
+        data.put("currency", currency);
+        data.put("urlPayPricingMode", displayFx
+                ? UrlPayDisplayFxService.MODE_DISPLAY_FX_THB : "CHECKOUT_CURRENCY");
+        if (displayFx) {
+            data.put("displayCurrency", currency);
+            data.put("settlementCurrencyHint", THB);
+        }
         if (langCode != null && !langCode.isBlank()) {
             data.put("langCode", langCode);
         }

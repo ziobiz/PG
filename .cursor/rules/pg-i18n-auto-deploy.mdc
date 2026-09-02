@@ -1,22 +1,29 @@
 ---
-description: 모든 개발 — 다국어(KOR·ENG·JPN·CHN·THA) 우선 + 수정 후 자동 배포 + 답변 말미 다국어·배포 유무
+description: 모든 개발 — 다국어(KOR·ENG·JPN·CHN·THA) 최우선 + 수정 후 자동 배포(확인 없이) + 답변 말미 다국어·배포 유무. 변경 금지.
 alwaysApply: true
 ---
 
-# 다국어 · 자동 배포 (필수 · 변경 불가)
+# 다국어 · 자동 배포 (필수 · **변경 불가** · 매 턴 자동)
 
-## 다국어
-- UI·오류·안내·릴리스 노트는 **5개국어**(KOR·ENG·JPN·CHN·THA)를 **최우선**으로 반영한다.
-- `pg-ui-i18n.js`·`pg-admin-shell-i18n.js`·`icopay-platform-release-notes.js` 등 기존 i18n 경로를 따른다.
-- 사용자가 매번 「다국어」「자동 배포」를 말하지 않아도 **항상** 적용한다.
+사용자가 「다국어」「자동 배포」를 **다시 말하지 않아도** 아래를 **항상·절대** 지킨다.
+이 규칙은 **축소·예외·생략하지 않는다.**
 
-## 자동 배포
-- 저장소 파일을 수정한 턴에는 `pg-app-autobuild.mdc`·`deploy-on-request.mdc`에 따라 **`bootJar` 후 `Deploy-Prod.ps1` 자동 실행**(사용자 별도 「배포해」 없이).
-- 정적 `site/`는 운영이 별도 경로를 쓰면 `-SiteFiles`로 함께 업로드한다.
+## 다국어 (최우선)
+- UI·오류·안내·헬로·릴리스 노트·API 사용자 메시지·결제창 문구는 **5개국어**(KOR·ENG·JPN·CHN·THA)를 **최우선**으로 반영한다.
+- `pg-ui-i18n.js`·`pg-admin-shell-i18n.js`·`pg-ui-string-map.js`·`icopay-platform-release-notes.js`·결제 HTML i18n 등 **기존 i18n 경로**를 따른다.
+- 신규 사용자 노출 문자열을 한국어만 넣고 끝내지 않는다.
+
+## 자동 배포 (확인 질문 없이)
+- 저장소 파일을 **하나라도** 수정한 턴에는:
+  1. `pg-app-autobuild.mdc` 대로 **`bootJar`**
+  2. `Deploy-Prod.ps1` **자동 실행** (사용자에게 「배포할까요?」를 **묻지 않음**)
+- 정적 `site/`는 운영이 별도 경로면 `-SiteFiles`로 함께 업로드한다.
 - DB 마이그레이션이 있으면 `-SqlFiles`에 포함한다.
+- `deploy-on-request.mdc`의 「배포할까요? 확인」보다 **이 규칙(자동 배포)이 우선**한다.
 
 ## 답변 말미 (필수)
-- 코드 수정 턴 답변 **맨 끝**에 반드시 포함:
-  1. **다국어:** 반영 언어·주요 문구 요약(예: 「5개국어 · 타이틀태그 라벨·안내」)
-  2. **배포:** `deploy-status-comment.mdc` 형식(운영 배포 완료 / 안 함 / 실패)
-- `development-workflow.mdc`의 FTP·재시작·DB 블록과 함께 적용한다.
+코드 수정 턴 답변 **맨 끝**에 반드시:
+1. **다국어:** 반영 언어·주요 문구 요약
+2. **배포:** `deploy-status-comment.mdc` 형식  
+   (`**운영 배포 완료.**` / `**운영 배포 안 함.**` / `**운영 배포 실패.**`)
+3. `development-workflow.mdc`의 FTP·재시작·DB 블록

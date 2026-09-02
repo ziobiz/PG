@@ -1117,6 +1117,49 @@
         PG_JPAY_CONTACT.init(form, ctx || {}, LANG, contactSelectLabel());
       }
 
+      /** 혼용 PG: 카드 브랜드 자동인식 후 청구예상·견적을 라우팅 PG에 맞게 갱신 */
+      function wireMixedPgBrandFxRefresh() {
+        if (!checkoutCtx || checkoutCtx.urlPayMixedPricingModes !== true) return;
+        if (!urlPayDisplayFxActive) return;
+        var pan = document.getElementById('payCardno');
+        var brandSel = document.getElementById('payCardBrandSelect');
+        if (!pan || pan._mixedPgFxBound) return;
+        pan._mixedPgFxBound = true;
+        var timer = null;
+        function run() {
+          var brand = 'AUTO';
+          if (brandSel && brandSel.value) brand = String(brandSel.value).trim();
+          if (brand === 'AUTO' && window.PG_CARD_PAY_POLICY) {
+            brand = PG_CARD_PAY_POLICY.detectBrand(PG_CARD_PAY_POLICY.digitsOnly(pan.value)) || '';
+          }
+          if (!brand || brand === 'AUTO') return;
+          var dispCur = (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.payFxResolvedDisplayCurrency)
+            ? PG_URL_PAY_SHELL.payFxResolvedDisplayCurrency(checkoutCtx) : 'JPY';
+          fetchJson(apiUrl('/api/pay/url/resolve-route'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({
+              compId: getCompId(),
+              cardBrand: brand,
+              displayCurrency: dispCur,
+              currency: dispCur
+            })
+          }).then(function (res) {
+            if (!res.success || !res.data || !res.data.resolved) return;
+            var pg = res.data.urlPayOperationalPgCd;
+            if (!pg || typeof fxShellState.refreshFxQuoteForOperationalPg !== 'function') return;
+            return fxShellState.refreshFxQuoteForOperationalPg(pg);
+          }).catch(function () { /* ignore */ });
+        }
+        function schedule() {
+          if (timer) clearTimeout(timer);
+          timer = setTimeout(run, 350);
+        }
+        pan.addEventListener('input', schedule);
+        pan.addEventListener('change', schedule);
+        if (brandSel) brandSel.addEventListener('change', schedule);
+      }
+
       function applyCheckoutContext(ctx) {
         checkoutCtx = ctx || {};
         urlPayFormMode = ctx.urlPayFormMode != null ? String(ctx.urlPayFormMode) : 'FULL';
@@ -1152,6 +1195,7 @@
               }).then(function (r) { return r.json(); });
             }
           });
+          wireMixedPgBrandFxRefresh();
         } else if (window.PG_CARD_PAY_POLICY && typeof PG_CARD_PAY_POLICY.attachPanFormatter === 'function') {
           var panOnly = document.getElementById('payCardno');
           var brandSel = document.getElementById('payCardBrandSelect');
@@ -1358,6 +1402,29 @@
           lang: LANG,
           entry: PAY_ENTRY_MERCHANT_API ? 'merchant_api' : 'url'
         };
+        if (urlPayDisplayFxActive && urlPayPricingMode === 'DISPLAY_FX_THB') {
+          if (!fxShellState.urlPayFxQuote || (!fxShellState.urlPayFxQuote.fxQuoteToken
+              && fxShellState.urlPayFxQuote.oneToOneDisplaySettlement !== true)) {
+            showErr(t('needFxQuote'));
+            unlockBtn();
+            return;
+          }
+          body.urlPayPricingMode = 'DISPLAY_FX_THB';
+          body.displayCurrency = (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.payFxResolvedDisplayCurrency)
+            ? PG_URL_PAY_SHELL.payFxResolvedDisplayCurrency(checkoutCtx)
+            : (checkoutCtx && checkoutCtx.urlPayDisplayFxDefaultDisplayCurrency
+              ? String(checkoutCtx.urlPayDisplayFxDefaultDisplayCurrency) : 'JPY');
+          body.displayAmount = amtStr;
+          body.amount = amtStr;
+          if (fxShellState.urlPayFxQuote.fxQuoteToken) {
+            body.fxQuoteToken = String(fxShellState.urlPayFxQuote.fxQuoteToken);
+          }
+          var setCode = fxShellState.urlPayFxQuote.settlementCurrency
+            ? String(fxShellState.urlPayFxQuote.settlementCurrency).trim().toUpperCase()
+            : (checkoutCtx && checkoutCtx.urlPaySettlementCurrencyCode
+              ? String(checkoutCtx.urlPaySettlementCurrencyCode).trim().toUpperCase() : 'THB');
+          body.currency = setCode || 'THB';
+        }
         fetchJson(apiUrl('/api/pay/url/sale'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

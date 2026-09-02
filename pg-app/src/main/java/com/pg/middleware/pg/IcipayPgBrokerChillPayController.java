@@ -73,7 +73,7 @@ public class IcipayPgBrokerChillPayController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(ApiResponse.fail(e.getMessage(), "BROKER_AUTH"));
         }
-        return apiPayController.chillpayDisplayFxQuote(compId, displayCurrency);
+        return apiPayController.chillpayDisplayFxQuote(compId, displayCurrency, null);
     }
 
     @GetMapping("/url-result-copy")

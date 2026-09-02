@@ -174,21 +174,30 @@ public class UrlPayPublicCheckoutService {
                 data.put("urlPayOperationalPgCd", opPg);
             }
         }
-        String pricingMode = String.valueOf(data.getOrDefault("urlPayPricingMode", "CHECKOUT_CURRENCY"));
+        /* 견적·청구예상 UI용 PG — DP 바인딩 우선(혼용 시) */
+        String fxQuotePg = chillPayService.resolveUrlPayDisplayFxQuotePgCd(orgUnitId);
+        if (fxQuotePg != null && !fxQuotePg.isBlank()) {
+            data.put("urlPayDisplayFxQuotePgCd", fxQuotePg.trim());
+        }
+        String pricingMode = chillPayService.resolveUrlPayPricingMode(orgUnitId);
+        data.put("urlPayPricingMode", pricingMode);
         boolean fxHq = urlPayDisplayFxService.isHqFeatureEnabled();
         data.put("urlPayDisplayFxHqEnabled", fxHq);
+        String fxPg = fxQuotePg != null && !fxQuotePg.isBlank() ? fxQuotePg.trim() : opPg;
         if (UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equals(pricingMode) && fxHq) {
             data.put("urlPayDisplayFxActive", true);
             data.put("urlPayDisplayFxRefreshSeconds", urlPayDisplayFxService.refreshSeconds());
-            String setCur = urlPayDisplayFxService.settlementCurrencyForPg(opPg);
+            String setCur = urlPayDisplayFxService.settlementCurrencyForPg(fxPg);
             data.put("urlPaySettlementCurrencyCode", setCur);
-            data.put("urlPayDisplayFxDefaultDisplayCurrency", urlPayDisplayFxService.defaultDisplayCurrencyForPg(opPg));
-            data.put("urlPayDisplayFxDisplayCurrencyMulti", urlPayDisplayFxService.isDisplayCurrencyMultiForPg(opPg));
-            data.put("urlPayDisplayFxDisplayCurrencies", urlPayDisplayFxService.allowedDisplayCurrenciesForCheckout(opPg));
-            data.put("urlPayFxUiBlind", urlPayDisplayFxService.isUrlPayFxUiBlind(opPg));
+            data.put("urlPayDisplayFxDefaultDisplayCurrency", urlPayDisplayFxService.defaultDisplayCurrencyForPg(fxPg));
+            data.put("urlPayDisplayFxDisplayCurrencyMulti", urlPayDisplayFxService.isDisplayCurrencyMultiForPg(fxPg));
+            data.put("urlPayDisplayFxDisplayCurrencies", urlPayDisplayFxService.allowedDisplayCurrenciesForCheckout(fxPg));
+            data.put("urlPayFxUiBlind", urlPayDisplayFxService.isUrlPayFxUiBlind(fxPg));
+            data.put("urlPayMixedPricingModes", hasMixedPricingModes(orgUnitId));
         } else {
             data.put("urlPayDisplayFxActive", false);
             data.put("urlPayFxUiBlind", false);
+            data.put("urlPayMixedPricingModes", false);
         }
         Object checkoutCurObj = data.get("checkoutCurrencyCode");
         String checkoutCur = checkoutCurObj instanceof String ? (String) checkoutCurObj : null;
@@ -209,6 +218,24 @@ public class UrlPayPublicCheckoutService {
         if (cardCopy != null && !cardCopy.isEmpty()) {
             data.put("urlPayCardCopy", cardCopy);
         }
+    }
+
+    private boolean hasMixedPricingModes(Long orgUnitId) {
+        boolean sawDp = false;
+        boolean sawCheckout = false;
+        for (var b : chillPayService.listOperationalWebBindingsForUrlPay(orgUnitId)) {
+            String mode = chillPayService.resolveUrlPayPricingModeForPg(orgUnitId,
+                    b.getPgCd() != null ? b.getPgCd().trim() : "");
+            if (UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equalsIgnoreCase(mode)) {
+                sawDp = true;
+            } else {
+                sawCheckout = true;
+            }
+            if (sawDp && sawCheckout) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String merchantUrlPayCheckoutMode(Long orgUnitId) {

@@ -243,18 +243,24 @@ public class MerchantChatbotProductService {
         String opPg = String.valueOf(data.getOrDefault("urlPayOperationalPgCd", ""));
         urlPayCheckoutCurrencyService.resolveFromOrgChain(merchantOrgUnitId).ifPresent(cur ->
                 data.put("checkoutCurrencyCode", cur.trim().toUpperCase(Locale.ROOT)));
-        String pricingMode = String.valueOf(data.getOrDefault("urlPayPricingMode", "CHECKOUT_CURRENCY"));
+        String pricingMode = chillPayService.resolveUrlPayPricingMode(merchantOrgUnitId);
+        data.put("urlPayPricingMode", pricingMode);
         boolean fxHq = urlPayDisplayFxService.isHqFeatureEnabled();
         data.put("urlPayDisplayFxHqEnabled", fxHq);
+        String fxPg = chillPayService.resolveUrlPayDisplayFxQuotePgCd(merchantOrgUnitId);
+        if (fxPg == null || fxPg.isBlank()) {
+            fxPg = opPg;
+        }
+        data.put("urlPayDisplayFxQuotePgCd", fxPg);
         if (UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equals(pricingMode) && fxHq) {
             data.put("urlPayDisplayFxActive", true);
             data.put("urlPayDisplayFxRefreshSeconds", urlPayDisplayFxService.refreshSeconds());
-            String setCur = urlPayDisplayFxService.settlementCurrencyForPg(opPg);
+            String setCur = urlPayDisplayFxService.settlementCurrencyForPg(fxPg);
             data.put("urlPaySettlementCurrencyCode", setCur);
-            data.put("urlPayDisplayFxDefaultDisplayCurrency", urlPayDisplayFxService.defaultDisplayCurrencyForPg(opPg));
-            data.put("urlPayDisplayFxDisplayCurrencyMulti", urlPayDisplayFxService.isDisplayCurrencyMultiForPg(opPg));
-            data.put("urlPayDisplayFxDisplayCurrencies", urlPayDisplayFxService.allowedDisplayCurrenciesForCheckout(opPg));
-            data.put("urlPayFxUiBlind", urlPayDisplayFxService.isUrlPayFxUiBlind(opPg));
+            data.put("urlPayDisplayFxDefaultDisplayCurrency", urlPayDisplayFxService.defaultDisplayCurrencyForPg(fxPg));
+            data.put("urlPayDisplayFxDisplayCurrencyMulti", urlPayDisplayFxService.isDisplayCurrencyMultiForPg(fxPg));
+            data.put("urlPayDisplayFxDisplayCurrencies", urlPayDisplayFxService.allowedDisplayCurrenciesForCheckout(fxPg));
+            data.put("urlPayFxUiBlind", urlPayDisplayFxService.isUrlPayFxUiBlind(fxPg));
         } else {
             data.put("urlPayDisplayFxActive", false);
             data.put("urlPayFxUiBlind", false);

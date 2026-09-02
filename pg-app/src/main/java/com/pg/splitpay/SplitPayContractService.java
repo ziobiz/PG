@@ -318,7 +318,7 @@ public class SplitPayContractService {
         }
     }
 
-    /** ChillPay·JPAY 운영 URL 결제 PG 바인딩 필수 */
+    /** ChillPay·JPAY·ElementPay·Eximbay·ILK 등 운영 URL 결제 PG 바인딩 필수 */
     private void assertUrlPayOperationalPg(Long orgUnitId) {
         String opPg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
         if (!SplitPayCheckoutPageUtil.hasSupportedOperationalPg(opPg)) {
