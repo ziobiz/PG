@@ -6,13 +6,35 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '3.93';
+  var CURRENT_LIVE = '3.94';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '3.94',
+      kind: 'minor',
+      date: '2026-09-05',
+      items: {
+        KO: [
+          '본사 URL결제설정: 표시통화 마진율·금액·BOT 기준일 시뮬레이션(미리보기) 추가 — 저장·실결제 영향 없음'
+        ],
+        EN: [
+          'HQ URL-pay settings: add display-currency margin/amount/BOT rate simulation (preview only — does not save or charge)'
+        ],
+        JP: [
+          '本社URL決済設定: 表示通貨マージン・金額・BOT基準日のシミュレーション(プレビュー)を追加 — 保存・実決済に影響なし'
+        ],
+        CH: [
+          '总部 URL 支付设置：新增显示币种加点/金额/BOT 基准日模拟（仅预览，不影响保存与实付）'
+        ],
+        TH: [
+          'ตั้งค่า URL จ่าย HQ: เพิ่มจำลองมาร์จิ้น/จำนวน/วันอัตรา BOT ตามสกุลแสดง (พรีวิวเท่านั้น ไม่บันทึก/ไม่คิดเงินจริง)'
+        ]
+      }
+    },
     {
       version: '3.93',
       kind: 'minor',

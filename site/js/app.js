@@ -34567,6 +34567,132 @@
           }).finally(function () { if (dimmS) dimmS.style.display = 'none'; });
         });
       }
+      function urlPayFxSimMarginFieldMap() {
+        return {
+          JPY: '_urlPayFxSimMarginJpy',
+          USD: '_urlPayFxSimMarginUsd',
+          KRW: '_urlPayFxSimMarginKrw',
+          THB: '_urlPayFxSimMarginThb',
+          SGD: '_urlPayFxSimMarginSgd',
+          HKD: '_urlPayFxSimMarginHkd',
+          CNY: '_urlPayFxSimMarginCny'
+        };
+      }
+      function urlPayFxLiveMarginFieldMap() {
+        return {
+          JPY: '_urlPayFxUiMarginJpy',
+          USD: '_urlPayFxUiMarginUsd',
+          KRW: '_urlPayFxUiMarginKrw',
+          THB: '_urlPayFxUiMarginThb',
+          SGD: '_urlPayFxUiMarginSgd',
+          HKD: '_urlPayFxUiMarginHkd',
+          CNY: '_urlPayFxUiMarginCny'
+        };
+      }
+      function copyUrlPayFxMarginsToSim() {
+        var live = urlPayFxLiveMarginFieldMap();
+        var sim = urlPayFxSimMarginFieldMap();
+        Object.keys(sim).forEach(function (cur) {
+          var fromEl = pane.querySelector('[name="' + live[cur] + '"]');
+          var toEl = pane.querySelector('[name="' + sim[cur] + '"]');
+          if (toEl) toEl.value = fromEl && fromEl.value !== '' ? String(fromEl.value) : '0';
+        });
+        var liveBot = pane.querySelector('[name="_urlPayFxUiBotRateAsOf"]');
+        var simBot = pane.querySelector('[name="_urlPayFxSimBotAsOf"]');
+        if (liveBot && simBot) simBot.value = liveBot.value || 'PREVIOUS_DAY_CLOSE';
+      }
+      function collectUrlPayFxSimMargins() {
+        var sim = urlPayFxSimMarginFieldMap();
+        var o = {};
+        Object.keys(sim).forEach(function (cur) {
+          var el = pane.querySelector('[name="' + sim[cur] + '"]');
+          var raw = el && el.value != null ? String(el.value).trim().replace(/,/g, '') : '0';
+          var n = parseFloat(raw);
+          o[cur] = isFinite(n) && n >= 0 ? n : 0;
+        });
+        return o;
+      }
+      function renderUrlPayFxSimRows(data) {
+        var tb = pane.querySelector('#hqUrlPayFxSimTbody');
+        var meta = pane.querySelector('#hqUrlPayFxSimMeta');
+        if (!tb) return;
+        var rows = data && Array.isArray(data.rows) ? data.rows : [];
+        if (!rows.length) {
+          tb.innerHTML = '<tr><td colspan="6" class="text-muted text-center py-3 small">' +
+            pgAdminUiT('결과가 없습니다.') + '</td></tr>';
+          return;
+        }
+        if (meta) {
+          meta.textContent = pgAdminUiT('미리보기') + ' · BOT ' +
+            String(data.botRateAsOf || '') +
+            (data.botPeriod ? (' · ' + pgAdminUiT('고시일') + ' ' + data.botPeriod) : '') +
+            ' · ' + pgAdminUiT('실결제') + ' ' + String(data.settlementCurrency || '');
+        }
+        function esc(s) {
+          return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        }
+        function fmtNum(v) {
+          if (v == null || v === '') return '—';
+          return esc(String(v));
+        }
+        tb.innerHTML = rows.map(function (r) {
+          var ok = r && r.ok !== false;
+          var st = ok ? pgAdminUiT('OK') : pgAdminUiT(r && r.message ? String(r.message) : '실패');
+          return '<tr>' +
+            '<td>' + esc(r.displayCurrency) + '</td>' +
+            '<td class="text-end">' + fmtNum(r.displayAmount) + '</td>' +
+            '<td class="text-end">' + fmtNum(r.marginRate) + '</td>' +
+            '<td class="text-end">' + fmtNum(r.settlementPerUnit) + '</td>' +
+            '<td class="text-end fw-semibold">' +
+            (ok ? (fmtNum(r.settlementAmount) + ' ' + esc(r.settlementCurrency || '')) : '—') +
+            '</td>' +
+            '<td>' + (ok ? '<span class="text-success">' + esc(st) + '</span>'
+              : '<span class="text-danger">' + esc(st) + '</span>') + '</td>' +
+            '</tr>';
+        }).join('');
+      }
+      var copySimBtn = pane.querySelector('#hqUrlPayFxSimCopyMarginsBtn');
+      if (copySimBtn && !copySimBtn._hqUrlPayFxSimCopyBound) {
+        copySimBtn._hqUrlPayFxSimCopyBound = true;
+        copySimBtn.addEventListener('click', function () {
+          copyUrlPayFxMarginsToSim();
+        });
+        copyUrlPayFxMarginsToSim();
+      }
+      var runSimBtn = pane.querySelector('#hqUrlPayFxSimRunBtn');
+      if (runSimBtn && !runSimBtn._hqUrlPayFxSimRunBound) {
+        runSimBtn._hqUrlPayFxSimRunBound = true;
+        runSimBtn.addEventListener('click', function () {
+          var amtEl = pane.querySelector('[name="_urlPayFxSimAmount"]');
+          var settleEl = pane.querySelector('[name="_urlPayFxSimSettle"]');
+          var botEl = pane.querySelector('[name="_urlPayFxSimBotAsOf"]');
+          var amtRaw = amtEl && amtEl.value != null ? String(amtEl.value).trim().replace(/,/g, '') : '';
+          var amt = parseFloat(amtRaw);
+          if (!isFinite(amt) || amt <= 0) {
+            alert(pgAdminUiT('표시 금액을 입력하세요.'));
+            return;
+          }
+          var body = {
+            displayAmount: amt,
+            settlementCurrency: settleEl && settleEl.value ? settleEl.value : 'THB',
+            botRateAsOf: botEl && botEl.value ? botEl.value : 'PREVIOUS_DAY_CLOSE',
+            marginByCurrency: collectUrlPayFxSimMargins()
+          };
+          var dimmSim = document.getElementById('dimm');
+          if (dimmSim) dimmSim.style.display = 'flex';
+          var api = window.PG_API && window.PG_API.hqUrlPayDisplayFxSimulate
+            ? window.PG_API.hqUrlPayDisplayFxSimulate(body)
+            : Promise.reject(new Error('API unavailable'));
+          api.then(function (data) {
+            renderUrlPayFxSimRows(data || {});
+          }).catch(function (e) {
+            alert(pgErrMsg(e, pgAdminUiT('시뮬레이션에 실패했습니다.')));
+          }).finally(function () {
+            if (dimmSim) dimmSim.style.display = 'none';
+          });
+        });
+      }
     }
     if (url === '/hq/domainConfig') {
       var dimmDom = document.getElementById('dimm');

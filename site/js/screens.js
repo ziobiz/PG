@@ -3818,6 +3818,54 @@
               }
             }]
           ]
+        },
+        {
+          title: '마진율 시뮬레이션',
+          notice: '<strong>미리보기 전용</strong>입니다. 저장·실결제·견적 토큰에 <strong>영향 없음</strong>. 위에 입력한 BOT 기준일(또는 아래 선택)과 통화별 마진율·표시 금액으로, BOT 환율을 조회해 실결제 예상액을 계산합니다. 동일 금액을 각 표시통화 금액으로 가정합니다(예: 100 → 100 JPY / 100 USD …).',
+          rows: [
+            [{ label: '표시 금액', type: 'text', name: '_urlPayFxSimAmount', col: 2, placeholder: '100' },
+             { label: '실결제 통화', type: 'select', name: '_urlPayFxSimSettle', options: [
+               { v: 'THB', t: 'THB' }, { v: 'USD', t: 'USD' }, { v: 'JPY', t: 'JPY' }, { v: 'KRW', t: 'KRW' },
+               { v: 'SGD', t: 'SGD' }, { v: 'HKD', t: 'HKD' }, { v: 'CNY', t: 'CNY' }
+             ], col: 2 },
+             { label: 'BOT 환율 기준일', type: 'select', name: '_urlPayFxSimBotAsOf', options: [
+               { v: 'PREVIOUS_DAY_CLOSE', t: '전일 종가(방콕)' },
+               { v: 'LATEST_BOT_PERIOD', t: '당일·최신 고시일' }
+             ], col: 4 }],
+            [{ label: '시뮬 마진 JPY', type: 'text', name: '_urlPayFxSimMarginJpy', col: 2, placeholder: '0' },
+             { label: '시뮬 마진 USD', type: 'text', name: '_urlPayFxSimMarginUsd', col: 2, placeholder: '0' },
+             { label: '시뮬 마진 KRW', type: 'text', name: '_urlPayFxSimMarginKrw', col: 2, placeholder: '0' },
+             { label: '시뮬 마진 THB', type: 'text', name: '_urlPayFxSimMarginThb', col: 2, placeholder: '0' }],
+            [{ label: '시뮬 마진 SGD', type: 'text', name: '_urlPayFxSimMarginSgd', col: 2, placeholder: '0' },
+             { label: '시뮬 마진 HKD', type: 'text', name: '_urlPayFxSimMarginHkd', col: 2, placeholder: '0' },
+             { label: '시뮬 마진 CNY', type: 'text', name: '_urlPayFxSimMarginCny', col: 2, placeholder: '0' }],
+            [{
+              type: 'customHtml',
+              col: 12,
+              html: function hqUrlPayFxSimResultHtml() {
+                return (
+                  '<div class="d-flex flex-wrap gap-2 mb-2">' +
+                  '<button type="button" class="btn btn-sm btn-outline-secondary" id="hqUrlPayFxSimCopyMarginsBtn" data-pg-ui-t="위 마진 불러오기">위 마진 불러오기</button>' +
+                  '<button type="button" class="btn btn-sm btn-primary" id="hqUrlPayFxSimRunBtn" data-pg-ui-t="시뮬레이션">시뮬레이션</button>' +
+                  '</div>' +
+                  '<p class="small text-muted mb-2" id="hqUrlPayFxSimMeta" data-pg-ui-t="결과를 보려면 [시뮬레이션]을 누르세요.">결과를 보려면 [시뮬레이션]을 누르세요.</p>' +
+                  '<div class="table-responsive">' +
+                  '<table class="table table-sm table-bordered align-middle mb-0" id="grid_urlPayFxSim">' +
+                  '<thead class="table-light"><tr>' +
+                  '<th data-pg-ui-t="표시 통화">표시 통화</th>' +
+                  '<th class="text-end" data-pg-ui-t="표시 금액">표시 금액</th>' +
+                  '<th class="text-end" data-pg-ui-t="마진율">마진율</th>' +
+                  '<th class="text-end" data-pg-ui-t="실결제/1표시">실결제/1표시</th>' +
+                  '<th class="text-end" data-pg-ui-t="실결제 예상">실결제 예상</th>' +
+                  '<th data-pg-ui-t="상태">상태</th>' +
+                  '</tr></thead>' +
+                  '<tbody id="hqUrlPayFxSimTbody">' +
+                  '<tr><td colspan="6" class="text-muted text-center py-3 small" data-pg-ui-t="아직 실행하지 않았습니다.">아직 실행하지 않았습니다.</td></tr>' +
+                  '</tbody></table></div>'
+                );
+              }
+            }]
+          ]
         }
       ],
       buttons: [

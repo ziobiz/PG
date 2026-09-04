@@ -19,6 +19,7 @@ import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -455,6 +456,103 @@ public class UrlPayDisplayFxService {
             String quoteToken,
             String rateDescription
     ) {}
+
+    /**
+     * 본사 URL결제설정 화면용 <strong>미리보기</strong>.
+     * HQ JSON·견적 토큰을 바꾸지 않으며, BOT 환율만 조회해 통화별 실결제 예상액을 계산한다.
+     *
+     * @param settlementCurrency 실결제 통화
+     * @param displayAmount      각 표시통화에 동일하게 적용할 표시 금액
+     * @param botRateAsOfRaw     {@code PREVIOUS_DAY_CLOSE}|{@code LATEST_BOT_PERIOD} (비면 본사 저장값)
+     * @param marginByCurrency   표시통화→마진율(소수, 예: 0.02 = 2%). 없으면 0
+     */
+    public MarginSimResult simulateMargins(String settlementCurrency, BigDecimal displayAmount,
+                                           String botRateAsOfRaw,
+                                           Map<String, BigDecimal> marginByCurrency) {
+        if (displayAmount == null || displayAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("DISPLAY_AMOUNT_REQUIRED");
+        }
+        String settle = settlementCurrency != null
+                ? settlementCurrency.trim().toUpperCase(Locale.ROOT) : "";
+        if (!SETTLEMENT_CURRENCIES.contains(settle)) {
+            throw new IllegalArgumentException("SETTLEMENT_CURRENCY_INVALID");
+        }
+        BotRateAsOfMode botMode = parseBotRateMode(botRateAsOfRaw);
+        boolean needBot = DISPLAY_CURRENCY_UI_ORDER.stream().anyMatch(c -> !c.equals(settle));
+        BotThailandExchangeRateService.BotDailyRates rates = null;
+        if (needBot) {
+            rates = botThailandExchangeRateService.fetchThbPerUnitRates(botMode).orElse(null);
+            if (rates == null) {
+                throw new IllegalArgumentException("BOT_RATE_UNAVAILABLE");
+            }
+        }
+        String period = rates != null && rates.period() != null ? rates.period() : "";
+        List<MarginSimRow> rows = new ArrayList<>();
+        for (String cur : DISPLAY_CURRENCY_UI_ORDER) {
+            BigDecimal margin = BigDecimal.ZERO;
+            if (marginByCurrency != null) {
+                BigDecimal m = marginByCurrency.get(cur);
+                if (m == null) {
+                    m = marginByCurrency.get(cur.toLowerCase(Locale.ROOT));
+                }
+                if (m != null && m.compareTo(BigDecimal.ZERO) >= 0) {
+                    margin = m;
+                }
+            }
+            Optional<BigDecimal> tpuOpt = computeAutoSettlementPerUnit(cur, settle, rates);
+            if (tpuOpt.isEmpty()) {
+                rows.add(new MarginSimRow(cur, displayAmount, margin, null, null, settle, false,
+                        "RATE_UNAVAILABLE"));
+                continue;
+            }
+            BigDecimal tpu = tpuOpt.get();
+            BigDecimal factor = BigDecimal.ONE.add(margin);
+            String settleNum = ChillPayService.toChillPayCurrencyNumeric(settle);
+            int scale = ("392".equals(settleNum) || "410".equals(settleNum)) ? 0 : 2;
+            BigDecimal amt = displayAmount.multiply(tpu).multiply(factor).setScale(scale, RoundingMode.HALF_UP);
+            rows.add(new MarginSimRow(cur, displayAmount, margin, tpu, amt, settle, true, null));
+        }
+        return new MarginSimResult(
+                botMode.name(),
+                period,
+                settle,
+                displayAmount,
+                rows,
+                "SIMULATION_ONLY");
+    }
+
+    public record MarginSimRow(
+            String displayCurrency,
+            BigDecimal displayAmount,
+            BigDecimal marginRate,
+            BigDecimal settlementPerUnit,
+            BigDecimal settlementAmount,
+            String settlementCurrency,
+            boolean ok,
+            String message
+    ) {}
+
+    public record MarginSimResult(
+            String botRateAsOf,
+            String botPeriod,
+            String settlementCurrency,
+            BigDecimal displayAmount,
+            List<MarginSimRow> rows,
+            String note
+    ) {}
+
+    private BotRateAsOfMode parseBotRateMode(String botRateAsOfRaw) {
+        if (botRateAsOfRaw != null && !botRateAsOfRaw.isBlank()) {
+            String raw = botRateAsOfRaw.trim().toUpperCase(Locale.ROOT);
+            if ("LATEST_BOT_PERIOD".equals(raw) || "LATEST".equals(raw) || "TODAY".equals(raw)) {
+                return BotRateAsOfMode.LATEST_BOT_PERIOD;
+            }
+            if ("PREVIOUS_DAY_CLOSE".equals(raw) || "PREVIOUS".equals(raw) || "YESTERDAY".equals(raw)) {
+                return BotRateAsOfMode.PREVIOUS_DAY_CLOSE;
+            }
+        }
+        return resolveBotRateMode();
+    }
 
     private String defaultSettlementForBuild(JsonNode pgNode) {
         if (pgNode == null || pgNode.isMissingNode() || pgNode.size() == 0) {

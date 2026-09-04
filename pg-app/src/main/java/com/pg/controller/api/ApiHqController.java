@@ -26,6 +26,7 @@ import com.pg.service.PayFollowPolicyService;
 import com.pg.service.OrgUnitChangeAuditService;
 import com.pg.service.ServerUsageService;
 import com.pg.service.UrlPayCheckoutFieldPresetService;
+import com.pg.service.UrlPayDisplayFxService;
 import com.pg.util.CommissionTierJsonHelper;
 import com.pg.util.PercentDecimalHelper;
 import com.pg.util.PgAgencyPayFollowCapability;
@@ -76,6 +77,7 @@ public class ApiHqController {
     private final PayFollowPolicyService payFollowPolicyService;
     private final OrgTabletMenuService orgTabletMenuService;
     private final UrlPayCheckoutFieldPresetService urlPayCheckoutFieldPresetService;
+    private final UrlPayDisplayFxService urlPayDisplayFxService;
 
     public ApiHqController(CommissionPolicyRepository commissionPolicyRepository,
                            ChargebackFeePolicyRepository chargebackFeePolicyRepository,
@@ -92,7 +94,8 @@ public class ApiHqController {
                            HqPayCopyTranslationService hqPayCopyTranslationService,
                            PayFollowPolicyService payFollowPolicyService,
                            OrgTabletMenuService orgTabletMenuService,
-                           UrlPayCheckoutFieldPresetService urlPayCheckoutFieldPresetService) {
+                           UrlPayCheckoutFieldPresetService urlPayCheckoutFieldPresetService,
+                           UrlPayDisplayFxService urlPayDisplayFxService) {
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.chargebackFeePolicyRepository = chargebackFeePolicyRepository;
         this.hqApiConfigRepository = hqApiConfigRepository;
@@ -109,6 +112,7 @@ public class ApiHqController {
         this.payFollowPolicyService = payFollowPolicyService;
         this.orgTabletMenuService = orgTabletMenuService;
         this.urlPayCheckoutFieldPresetService = urlPayCheckoutFieldPresetService;
+        this.urlPayDisplayFxService = urlPayDisplayFxService;
     }
 
     private static PageResult<Map<String, Object>> emptyPage(int page, int size) {
@@ -1705,6 +1709,98 @@ public class ApiHqController {
         }
         try {
             return Integer.parseInt(o.toString().trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * URL결제설정 — 표시통화 마진·BOT 환율 미리보기(실결제·설정 저장 없음).
+     */
+    @PostMapping("/urlPayDisplayFx/simulate")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> urlPayDisplayFxSimulate(
+            @RequestBody(required = false) Map<String, Object> body) {
+        try {
+            if (body == null) {
+                body = Map.of();
+            }
+            BigDecimal amount = toBd(body.get("displayAmount"));
+            if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+                return ResponseEntity.ok(ApiResponse.fail("표시 금액을 입력하세요.", "DISPLAY_AMOUNT_REQUIRED"));
+            }
+            String settle = body.get("settlementCurrency") != null
+                    ? body.get("settlementCurrency").toString().trim() : "THB";
+            String botAsOf = body.get("botRateAsOf") != null
+                    ? body.get("botRateAsOf").toString().trim() : "";
+            Map<String, BigDecimal> margins = new LinkedHashMap<>();
+            Object rawM = body.get("marginByCurrency");
+            if (rawM instanceof Map<?, ?> mm) {
+                for (Map.Entry<?, ?> e : mm.entrySet()) {
+                    if (e.getKey() == null) {
+                        continue;
+                    }
+                    BigDecimal mv = toBd(e.getValue());
+                    if (mv != null) {
+                        margins.put(e.getKey().toString().trim().toUpperCase(Locale.ROOT), mv);
+                    }
+                }
+            }
+            UrlPayDisplayFxService.MarginSimResult sim =
+                    urlPayDisplayFxService.simulateMargins(settle, amount, botAsOf, margins);
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("simulationOnly", true);
+            out.put("botRateAsOf", sim.botRateAsOf());
+            out.put("botPeriod", sim.botPeriod());
+            out.put("settlementCurrency", sim.settlementCurrency());
+            out.put("displayAmount", sim.displayAmount());
+            out.put("note", sim.note());
+            List<Map<String, Object>> rows = new ArrayList<>();
+            for (UrlPayDisplayFxService.MarginSimRow r : sim.rows()) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("displayCurrency", r.displayCurrency());
+                row.put("displayAmount", r.displayAmount());
+                row.put("marginRate", r.marginRate());
+                row.put("settlementPerUnit", r.settlementPerUnit());
+                row.put("settlementAmount", r.settlementAmount());
+                row.put("settlementCurrency", r.settlementCurrency());
+                row.put("ok", r.ok());
+                row.put("message", r.message());
+                rows.add(row);
+            }
+            out.put("rows", rows);
+            return ResponseEntity.ok(ApiResponse.ok(out));
+        } catch (IllegalArgumentException e) {
+            String code = e.getMessage() != null ? e.getMessage() : "SIMULATE_FAILED";
+            String msg = switch (code) {
+                case "DISPLAY_AMOUNT_REQUIRED" -> "표시 금액을 입력하세요.";
+                case "SETTLEMENT_CURRENCY_INVALID" -> "실결제 통화가 올바르지 않습니다.";
+                case "BOT_RATE_UNAVAILABLE" -> "BOT 환율을 조회하지 못했습니다. API 키·기준일을 확인하세요.";
+                default -> "시뮬레이션에 실패했습니다.";
+            };
+            return ResponseEntity.ok(ApiResponse.fail(msg, code));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    e.getMessage() != null ? e.getMessage() : "시뮬레이션에 실패했습니다.",
+                    "SIMULATE_FAILED"));
+        }
+    }
+
+    private static BigDecimal toBd(Object o) {
+        if (o == null) {
+            return null;
+        }
+        if (o instanceof BigDecimal bd) {
+            return bd;
+        }
+        if (o instanceof Number n) {
+            return BigDecimal.valueOf(n.doubleValue());
+        }
+        String s = o.toString().trim().replace(",", "");
+        if (s.isEmpty()) {
+            return null;
+        }
+        try {
+            return new BigDecimal(s);
         } catch (NumberFormatException e) {
             return null;
         }

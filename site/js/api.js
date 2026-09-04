@@ -1797,6 +1797,17 @@
     hqApiConfigSave: function (body) {
       return post('/api/hq/apiConfig/save', body).then(function (r) { return r.data; });
     },
+    /** URL결제설정 — 마진·BOT 환율 미리보기(저장·실결제 없음) */
+    hqUrlPayDisplayFxSimulate: function (body) {
+      return post('/api/hq/urlPayDisplayFx/simulate', body || {}).then(function (r) {
+        if (r && r.success === false) {
+          var err = new Error((r.message || r.errorCode || 'simulate failed'));
+          err.response = r;
+          throw err;
+        }
+        return r.data;
+      });
+    },
     hqUrlPayCheckoutFieldPresets: function () {
       return get('/api/hq/urlPayCheckoutFieldPresets').then(function (r) {
         if (r && r.success === false) throw new Error(serverMsgT(r.message, '프리셋 조회 실패'));
