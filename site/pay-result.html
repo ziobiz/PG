@@ -6,12 +6,12 @@
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
   <title>Payment result</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="/css/pay-inline.css?v=30" rel="stylesheet">
+  <link href="/css/pay-inline.css?v=31" rel="stylesheet">
 </head>
 <body class="pay-inline-body">
   <div class="pay-shell">
     <div class="pay-card">
-      <div class="pay-brand mb-2">
+      <div class="pay-brand mb-2" id="payResultBrand">
         <div class="pay-brand-logo">ICOPAY</div>
         <div class="pay-brand-sub" id="payResultSub">Payment result</div>
       </div>
@@ -34,6 +34,7 @@
     </div>
   </div>
   <script src="/js/config.js?v=12"></script>
+  <script src="/js/url-pay-public-shell.js?v=16"></script>
   <script>
     (function () {
       var h = (window.location && window.location.hostname) ? window.location.hostname : '';
@@ -97,6 +98,7 @@
           ok: '결제가 완료되었습니다.',
           fail: '결제가 완료되지 않았거나 실패했습니다.',
           cancel: '결제가 취소되었습니다.',
+          waiting: '결제 결과를 확인하고 있습니다…',
           order: '주문번호',
           txn: '거래번호',
           btn: '확인 / 결제 초기화',
@@ -110,6 +112,7 @@
           ok: 'Your payment was completed.',
           fail: 'Payment was not completed or has failed.',
           cancel: 'Payment was cancelled.',
+          waiting: 'Confirming payment result…',
           order: 'Order no.',
           txn: 'Transaction no.',
           btn: 'OK / Reset checkout',
@@ -123,6 +126,7 @@
           ok: '支付已完成。',
           fail: '支付未完成或失败。',
           cancel: '支付已取消。',
+          waiting: '正在确认支付结果…',
           order: '订单号',
           txn: '交易号',
           btn: '确定 / 重置结账',
@@ -136,6 +140,7 @@
           ok: 'お支払いが完了しました。',
           fail: 'お支払いが完了していないか、失敗しました。',
           cancel: 'お支払いがキャンセルされました。',
+          waiting: '決済結果を確認しています…',
           order: '注文番号',
           txn: '取引番号',
           btn: 'OK / 決済をやり直す',
@@ -149,6 +154,7 @@
           ok: 'ชำระเงินเรียบร้อยแล้ว',
           fail: 'การชำระเงินไม่สำเร็จหรือล้มเหลว',
           cancel: 'ยกเลิกการชำระเงินแล้ว',
+          waiting: 'กำลังยืนยันผลการชำระเงิน…',
           order: 'หมายเลขคำสั่งซื้อ',
           txn: 'หมายเลขธุรกรรม',
           btn: 'ตกลง / เริ่มชำระใหม่',
@@ -196,8 +202,23 @@
         var ks = Object.keys(mapObj);
         return ks.length ? String(mapObj[ks[0]]) : '';
       }
-      /* ChillPay 복귀: PaymentStatus 문자열(Paid) 또는 숫자(10 성공 등) — 서버 노티 내부 코드와 동일 계열 */
+      /* ChillPay 복귀: PaymentStatus 문자열(Paid) 또는 숫자(10 성공 등) — 서버 노티 내부 코드와 동일 계열.
+         ElementPay(NOTI map): PaymentStatus 0=성공·1=실패, returncode 00, paymentStatus Succeeded */
       function parseStatus(p) {
+        var outcome = getParamLoose(p, ['outcome', 'elementpayReturn', 'ElementpayReturn']).toLowerCase();
+        if (outcome === 'success') return 'ok';
+        if (outcome === 'reject' || outcome === 'fail' || outcome === 'failed') return 'fail';
+        if (outcome === 'waiting' || outcome === 'pending') return '';
+        var rc = getParamLoose(p, ['returncode', 'returnCode', 'ReturnCode', 'Returncode']);
+        if (rc === '00' || rc === '0') return 'ok';
+        if (rc === '01' || rc === '99') return 'fail';
+        var paySt = getParamLoose(p, ['paymentStatus', 'PaymentStatus', 'Paymentstatus']);
+        var payU = paySt.toUpperCase();
+        if (payU === 'SUCCEEDED' || payU === 'SUCCESS' || payU === 'PAID' || payU === 'SUCCESSFUL') return 'ok';
+        if (payU === 'FAILED' || payU === 'FAIL' || payU === 'FAILURE' || payU === 'REJECTED') return 'fail';
+        /* EP/NOTI 가맹 스키마: PaymentStatus 0=성공, 1=실패 (ChillPay 0–25 코드와 별개) */
+        if (paySt === '0') return 'ok';
+        if (paySt === '1') return 'fail';
         var raw = getParamLoose(p, [
           'PaymentStatus', 'paymentStatus', 'Paymentstatus',
           'Status', 'status',
@@ -212,14 +233,21 @@
         if (u === 'COMPLETE' || u === 'COMPLETED' || u === 'AUTHORIZED' || u === 'CAPTURE' || u === 'CAPTURED') return 'ok';
         /* J-Pay returncode in query (rsJpay → pay-result 폴백) */
         if (u === '00') return 'ok';
-        /* ChillPay/ICOPAY 내부 숫자 코드 */
-        if (u === '10') return 'ok';
+        /* ChillPay/ICOPAY 내부 숫자 코드 · EP PaymentStatus 0 */
+        if (u === '10' || u === '0') return 'ok';
         if (u === '20' || u === '21' || u === '22' || u === '2') return 'cancel';
-        if (u === '99' || u === 'F0' || u === '3' || u === '4' || u === '30' || u === '31') return 'fail';
+        if (u === '99' || u === 'F0' || u === '3' || u === '4' || u === '30' || u === '31' || u === '1') return 'fail';
         if (u === 'CANCEL' || u === 'CANCELLED' || u === 'VOID' || u === 'ABORT') return 'cancel';
         if (u === 'FAIL' || u === 'FAILED' || u === 'FAILURE' || u === 'ERROR' || u === 'N') return 'fail';
         if (u === 'PROCESSING' || u === 'PENDING') return 'cancel';
         return '';
+      }
+      function looksLikeElementPayResult(p, on) {
+        var van = getParamLoose(p, ['van', 'pgKind', 'PgKind']).toLowerCase();
+        if (van === 'elementpay' || van === 'ep') return true;
+        if (/^EP/i.test(String(on || ''))) return true;
+        var outcome = getParamLoose(p, ['outcome', 'elementpayReturn']).toLowerCase();
+        return outcome === 'success' || outcome === 'reject' || outcome === 'waiting';
       }
       /** pay.html 과 동일: 브라우저 선호 언어 목록 → URL 결제 UI 코드 */
       function mapBrowserLocaleToUrlPayLang(tag) {
@@ -256,6 +284,9 @@
           var a = pickMap(customCopy.resultSuccessMain).trim();
           return a || t('ok');
         }
+        if (kind === 'waiting') {
+          return t('waiting');
+        }
         if (kind === 'cancel') {
           var b = pickMap(customCopy.resultFailMain).trim();
           return b || t('cancel');
@@ -266,6 +297,9 @@
       function footForKind() {
         if (kind === 'ok') {
           return pickMap(customCopy.resultSuccessFoot).trim() || t('foot');
+        }
+        if (kind === 'waiting') {
+          return t('foot');
         }
         return pickMap(customCopy.resultFailFoot).trim() || t('foot');
       }
@@ -279,12 +313,16 @@
         var btn = document.getElementById('payResultBtn');
         if (sub) sub.textContent = t('sub');
         if (foot) foot.textContent = footForKind();
-        if (btn) btn.textContent = t('btn');
+        if (btn) {
+          btn.textContent = t('btn');
+          btn.style.display = kind === 'waiting' ? 'none' : '';
+        }
         if (titleEl) titleEl.textContent = titleForKind();
         if (bodyEl) bodyEl.innerHTML = '';
         if (card) {
-          card.classList.remove('alert-success', 'alert-danger', 'alert-warning');
+          card.classList.remove('alert-success', 'alert-danger', 'alert-warning', 'alert-info');
           if (kind === 'ok') card.classList.add('alert-success');
+          else if (kind === 'waiting') card.classList.add('alert-info');
           else if (kind === 'cancel') card.classList.add('alert-warning');
           else card.classList.add('alert-danger');
         }
@@ -356,7 +394,9 @@
         if (!txnId) txnId = norm(sessionStorage.getItem('pg_pay_pending_txn'));
       } catch (e3b) {}
       kind = parseStatus(p);
-      if (!kind) kind = 'fail';
+      var epResult = looksLikeElementPayResult(p, orderNo);
+      if (!kind && !epResult) kind = 'fail';
+      if (!kind && epResult) kind = 'waiting';
 
       var qLang = norm(p.get('lang')).toUpperCase();
       if (qLang === 'KO' || qLang === 'KR') qLang = 'KOR';
@@ -390,11 +430,13 @@
           var qp = new URLSearchParams(window.location.search || '');
           var ck = norm(qp.get('checkout') || qp.get('from') || '').toLowerCase();
           if (ck === 'jpay-pay' || ck === 'jpay') return 'jpay-pay';
+          if (ck === 'elementpay-pay' || ck === 'elementpay' || ck === 'ep') return 'elementpay-pay';
         } catch (eQ) { /* ignore */ }
         try {
-          var kind = sessionStorage.getItem('pg_pay_return_page');
-          if (kind) return String(kind).trim().toLowerCase();
+          var kindStored = sessionStorage.getItem('pg_pay_return_page');
+          if (kindStored) return String(kindStored).trim().toLowerCase();
         } catch (eS) { /* ignore */ }
+        if (epResult) return 'elementpay-pay';
         return 'pay';
       }
       function readStoredReturnQuery() {
@@ -427,6 +469,18 @@
             window.location.href = 'jpay-pay.html?m=' + encodeURIComponent(mid)
               + '&lang=' + encodeURIComponent(LANG)
               + (extraQs ? ('&' + extraQs) : '');
+            return;
+          }
+        }
+        if (pageKind === 'elementpay-pay' && mid) {
+          try {
+            var uEp = new URL('/checkout/' + encodeURIComponent(mid), window.location.origin);
+            uEp.searchParams.set('lang', LANG);
+            window.location.href = uEp.pathname + (uEp.search ? uEp.search : '');
+            return;
+          } catch (eEp) {
+            window.location.href = 'elementpay-pay.html?m=' + encodeURIComponent(mid)
+              + '&lang=' + encodeURIComponent(LANG);
             return;
           }
         }
@@ -470,6 +524,7 @@
         }, 2600);
       }
       function onConfirm() {
+        if (kind === 'waiting') return;
         var msg = returnAlertMessage();
         runAfterReturnNotice(msg, function () {
           try {
@@ -488,11 +543,87 @@
         });
       }
 
-      function boot() {
-        setLang(LANG);
-        var btn0 = document.getElementById('payResultBtn');
-        if (btn0) btn0.addEventListener('click', onConfirm);
+      /** ElementPay: getStatus 로 화면·로컬(요청→성공)을 맞춘다. 웹훅 지연 시에도 복구. */
+      function pollElementPayStatusThenFinish(done) {
+        var paymentId = getParamLoose(p, ['paymentId', 'PaymentId', 'pid', 'id', 'TransactionId', 'transactionId']);
+        if (!paymentId) {
+          try { paymentId = norm(sessionStorage.getItem('pg_ep_pending_payment')); } catch (eP) { /* ignore */ }
+        }
+        if (!txnId && paymentId) txnId = paymentId;
+        var attempts = 0;
+        var max = kind === 'ok' ? 8 : 30;
+        function tick() {
+          attempts += 1;
+          var last = attempts >= max;
+          var q = 'compId=' + encodeURIComponent(merchantM || '')
+            + (orderNo ? '&orderNo=' + encodeURIComponent(orderNo) : '')
+            + (paymentId ? '&paymentId=' + encodeURIComponent(paymentId) : '')
+            + (last ? '&finalize=1' : '');
+          fetchJson(apiUrl('/api/pay/url/elementpay-status', q))
+            .then(function (res) {
+              var d = res && res.data ? res.data : {};
+              var st = String(d.paymentStatus || '').toUpperCase();
+              if (d.paymentId && !txnId) txnId = String(d.paymentId);
+              if (st === 'PAID') {
+                kind = 'ok';
+                done();
+                return;
+              }
+              if (st === 'FAILED' || st === 'REFUNDED' || st === 'DISPUTED' || st === 'REVERSED') {
+                kind = 'fail';
+                done();
+                return;
+              }
+              if (last) {
+                if (kind === 'waiting') kind = 'fail';
+                done();
+                return;
+              }
+              setTimeout(tick, 2000);
+            })
+            .catch(function () {
+              if (attempts >= max) {
+                if (kind === 'waiting') kind = 'fail';
+                done();
+                return;
+              }
+              setTimeout(tick, 2000);
+            });
+        }
+        setTimeout(tick, kind === 'ok' ? 400 : 800);
+      }
+
+      function applyResultBrandLogo(ctx) {
+        ctx = ctx || {};
+        var mode = String(ctx.checkoutHeaderLogoMode || '').trim().toUpperCase();
+        /* 미활성: 결제창은 로고 숨김이지만 결과 페이지는 요청대로 ICOPAY 텍스트 유지 */
+        if (mode === 'DISABLED') {
+          var brand0 = document.getElementById('payResultBrand');
+          if (brand0) {
+            brand0.style.display = '';
+            var wrap0 = brand0.querySelector('.pay-brand-logo');
+            if (wrap0) {
+              wrap0.classList.remove('d-none');
+              wrap0.innerHTML = '';
+              wrap0.className = 'pay-brand-logo';
+              wrap0.textContent = 'ICOPAY';
+            }
+          }
+          return;
+        }
+        if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyCheckoutHeaderLogo) {
+          PG_URL_PAY_SHELL.applyCheckoutHeaderLogo(ctx, {
+            brandBlockId: 'payResultBrand',
+            logoWrapSelector: '.pay-brand-logo',
+            t: function () { return 'ICOPAY'; }
+          });
+        }
+        /* DEFAULT/ACTIVE 인데 URL 없으면 결제창과 같이 숨김 → 결과도 ICOPAY 텍스트로 폴백하지 않고 동일 동작 */
+      }
+
+      function finishBootWithCopy() {
         if (!merchantM) {
+          applyResultBrandLogo({ checkoutHeaderLogoMode: 'DISABLED' });
           applyResultUi();
           return;
         }
@@ -501,11 +632,32 @@
           var payload = root && root.data !== undefined ? root.data : root;
           if (payload && typeof payload === 'object') {
             customCopy = payload;
+            applyResultBrandLogo(payload);
+          } else {
+            applyResultBrandLogo({ checkoutHeaderLogoMode: 'DISABLED' });
           }
           applyResultUi();
         }).catch(function () {
+          applyResultBrandLogo({ checkoutHeaderLogoMode: 'DISABLED' });
           applyResultUi();
         });
+      }
+
+      function boot() {
+        setLang(LANG);
+        var btn0 = document.getElementById('payResultBtn');
+        if (btn0) btn0.addEventListener('click', onConfirm);
+        var needEpPoll = epResult && merchantM && orderNo;
+        if (needEpPoll) {
+          if (kind !== 'ok') {
+            kind = 'waiting';
+          }
+          applyResultUi();
+          pollElementPayStatusThenFinish(finishBootWithCopy);
+          return;
+        }
+        if (!kind) kind = 'fail';
+        finishBootWithCopy();
       }
       boot();
     })();

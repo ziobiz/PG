@@ -1051,6 +1051,11 @@ public class PgNotifyReceiveService {
 
     private void resolveAndFillInbound(PgNotifyInbound in, ParsedNotify p, String rawBody, String contentType) {
         enrichCurrencyFromRaw(rawBody, contentType, p);
+        /* ElementPay/NOTI RESULT: merchantId=업체코드 를 PG MID 로 오인하지 않도록 정리 */
+        normalizeMerchantIdCompEcho(p, rawBody);
+        if (in != null) {
+            in.setMid(p.mid);
+        }
         Long ingressRootOrgId = resolveIngressBoundRootOrgId(in.getNotifyTargetCode());
         Set<Long> ingressScope = buildIngressOrgScope(ingressRootOrgId);
         if (rejectCurrencyMismatchIfNeeded(in, p, ingressRootOrgId)) {
@@ -1354,7 +1359,7 @@ public class PgNotifyReceiveService {
             in.setErrorMessage("해당 가맹점에 결제대행사 바인딩이 없습니다.");
             return;
         }
-        if (p.mid != null && !p.mid.isBlank()) {
+        if (p.mid != null && !p.mid.isBlank() && !compRaw.equalsIgnoreCase(p.mid.trim())) {
             String nm = p.mid.trim();
             boolean midMatch = binds.stream()
                     .anyMatch(b -> b.getMid() != null && nm.equalsIgnoreCase(b.getMid().trim()));
@@ -1383,6 +1388,43 @@ public class PgNotifyReceiveService {
         in.setMerchantId(ou.getCode());
         /* 노티 수신·적재는 감사 목적이므로 가맹점 프로필 use_yn 으로 차단하지 않음 (결제 API 게이트와 분리). */
         in.setProcessStatus("PARSED");
+    }
+
+    /**
+     * ElementPay·ICOPAY 가 {@code merchantId}/{@code MerchantId} 에 업체코드(Comp-Id)를 넣을 때
+     * 파서가 PG MID 로 오인해 {@code COMP_MID_MISMATCH} 가 나지 않게 합니다.
+     * ChillPay {@code MerchantCode}·JPAY {@code memberid} 는 그대로 MID 입니다.
+     */
+    private static void normalizeMerchantIdCompEcho(ParsedNotify p, String rawBody) {
+        if (p == null) {
+            return;
+        }
+        String body = rawBody != null ? rawBody : "";
+        boolean epHint = body.toLowerCase(Locale.ROOT).contains("elementpay")
+                || (p.orderNo != null && p.orderNo.toUpperCase(Locale.ROOT).startsWith("EP"))
+                || body.toUpperCase(Locale.ROOT).contains("ORDERID=EP")
+                || body.toUpperCase(Locale.ROOT).contains("ORDERNO=EP");
+        if (p.mid != null && !p.mid.isBlank() && p.compId != null && !p.compId.isBlank()
+                && p.mid.trim().equalsIgnoreCase(p.compId.trim())) {
+            p.mid = null;
+            return;
+        }
+        if (p.mid != null && !p.mid.isBlank() && looksLikeIcopayOrgCompCode(p.mid)
+                && (epHint || p.compId == null || p.compId.isBlank())) {
+            if (p.compId == null || p.compId.isBlank()) {
+                p.compId = p.mid.trim();
+            }
+            p.mid = null;
+        }
+    }
+
+    /** ICOPAY 업체코드(Comp-Id) — 예: 6000000035 (통상 10자리 숫자). */
+    private static boolean looksLikeIcopayOrgCompCode(String v) {
+        if (v == null) {
+            return false;
+        }
+        String s = v.trim();
+        return s.matches("6\\d{9,11}");
     }
 
     /**
@@ -1928,12 +1970,25 @@ public class PgNotifyReceiveService {
         }
         switch (k.toLowerCase()) {
             case "mid":
-            case "merchantid":
             case "merchant_code":
             case "merchantcode":
             case "mchtid":
             case "memberid":
                 if (out.mid == null) {
+                    out.mid = v;
+                }
+                break;
+            case "merchantid":
+                /*
+                 * ChillPay 는 보통 MerchantCode. JPAY 는 memberid.
+                 * ElementPay·ICOPAY RESULT 는 merchantId=업체코드(Comp-Id) 를 넣으므로
+                 * PG MID 로 넣으면 COMP_MID_MISMATCH 가 난다.
+                 */
+                if (looksLikeIcopayOrgCompCode(v)) {
+                    if (out.compId == null) {
+                        out.compId = v;
+                    }
+                } else if (out.mid == null) {
                     out.mid = v;
                 }
                 break;

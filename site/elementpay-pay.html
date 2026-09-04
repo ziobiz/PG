@@ -898,6 +898,11 @@
           return;
         }
         var acs = data.redirectUrl || data.epCardFormUrl || '';
+        /* EP 호스티드 카드 재입력(Place my order)으로 full-page 이동 금지 — 이중 입력 방지 */
+        if (acs && isElementPayHostedCardEntryUrl(acs)) {
+          showErr(t('errInlinePay') || t('errNoHostedPay') || 'Inline payment path missing.');
+          return;
+        }
         if (acs && (data.needs3ds || data.inlineAcs) && !isLightCategoryUrl(acs) && !isIcopayCheckoutUrl(acs)) {
           try {
             sessionStorage.setItem('pg_ep_pending_order', data.orderNo || '');
@@ -911,6 +916,13 @@
           return;
         }
         showErr(t('errInlinePay') || t('errNoHostedPay') || 'Inline payment path missing.');
+      }
+
+      function isElementPayHostedCardEntryUrl(url) {
+        var u = String(url || '').toLowerCase();
+        if (u.indexOf('elementpay.io') < 0 && u.indexOf('elementpay.com') < 0) return false;
+        if (u.indexOf('/acs') >= 0 || u.indexOf('3ds') >= 0 || u.indexOf('challenge') >= 0) return false;
+        return true;
       }
 
       function isLightCategoryUrl(url) {
@@ -927,9 +939,11 @@
       /** 카드 필드 포함 숨은 폼을 같은 탭(_top)으로 자동 POST — 별도 팝업 없음. */
       function startBkbInlineCheckout(bkb, data) {
         var action = String((bkb && bkb.actionUrl) || '').trim();
-        if (!action || isIcopayCheckoutUrl(action) || isLightCategoryUrl(action)) {
+        if (!action || isIcopayCheckoutUrl(action) || isLightCategoryUrl(action)
+            || isElementPayHostedCardEntryUrl(action)) {
           var fallback = (data && (data.redirectUrl || data.epCardFormUrl)) || '';
-          if (fallback && !isIcopayCheckoutUrl(fallback) && !isLightCategoryUrl(fallback)) {
+          if (fallback && !isIcopayCheckoutUrl(fallback) && !isLightCategoryUrl(fallback)
+              && !isElementPayHostedCardEntryUrl(fallback)) {
             try {
               sessionStorage.setItem('pg_ep_pending_order', (data && data.orderNo) || '');
               sessionStorage.setItem('pg_ep_pending_payment', (data && data.paymentId) || '');

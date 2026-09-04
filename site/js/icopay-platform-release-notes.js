@@ -6,13 +6,101 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '3.88';
+  var CURRENT_LIVE = '3.92';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '3.92',
+      kind: 'minor',
+      date: '2026-09-04',
+      items: {
+        KO: [
+          'URL 결제 결과(pay-result): 웹결제 로고설정(본사설정따름·기본·기본HTML·활성·미활성)을 결제창과 동일 적용 — 미활성 시 ICOPAY 텍스트'
+        ],
+        EN: [
+          'URL pay-result: apply the same web-pay logo setting (Follow HQ / Default / HTML / Active / Inactive) as checkout — Inactive shows ICOPAY text'
+        ],
+        JP: [
+          'URL決済結果: ウェブ決済ロゴ設定(本社準拠・基本・HTML・有効・無効)を決済画面と同一適用 — 無効時はICOPAYテキスト'
+        ],
+        CH: [
+          'URL 支付结果页：与结账页相同的网页支付 Logo 设置（跟随总部/默认/HTML/启用/停用）— 停用时显示 ICOPAY 文字'
+        ],
+        TH: [
+          'หน้าผล URL จ่าย: ใช้การตั้งโลโก้เว็บชำระเดียวกับหน้าชำระ (ตาม HQ/ค่าเริ่ม/HTML/เปิด/ปิด) — ปิดแล้วแสดงข้อความ ICOPAY'
+        ]
+      }
+    },
+    {
+      version: '3.91',
+      kind: 'minor',
+      date: '2026-09-04',
+      items: {
+        KO: [
+          'ElementPay RESULT 노티: merchantId(업체코드)를 PG MID로 오인해 COMP_MID_MISMATCH(MID불일치) 나던 수신 해석 수정 — 노티센터 수령·결제내역 동기화 정상화'
+        ],
+        EN: [
+          'ElementPay RESULT notify: stop treating merchantId (Comp-Id) as PG MID causing COMP_MID_MISMATCH — fix inbound parse so HQ notify log and status sync succeed'
+        ],
+        JP: [
+          'ElementPay RESULT通知: merchantId(店舗コード)をPG MIDと誤認しCOMP_MID_MISMATCHになっていた受信解釈を修正'
+        ],
+        CH: [
+          'ElementPay RESULT 通知：修正将 merchantId（商户编码）误当作 PG MID 导致 COMP_MID_MISMATCH 的接收解析'
+        ],
+        TH: [
+          'แจ้ง RESULT ของ ElementPay: แก้การตีความ merchantId (รหัสร้าน) เป็น PG MID จนเกิด COMP_MID_MISMATCH'
+        ]
+      }
+    },
+    {
+      version: '3.90',
+      kind: 'minor',
+      date: '2026-09-04',
+      items: {
+        KO: [
+          'ElementPay URL결제 결과: NOTI PaymentStatus=0(성공)을 실패로 오인하던 pay-result 수정 · getStatus 폴링으로 결제내역 요청→성공 동기화 · success/reject/waiting 복귀 URL 구분'
+        ],
+        EN: [
+          'ElementPay URL-pay result: treat NOTI PaymentStatus=0 as success on pay-result · poll getStatus to sync list from Requested→Paid · distinct success/reject/waiting return URLs'
+        ],
+        JP: [
+          'ElementPay URL決済結果: NOTIのPaymentStatus=0を成功と認識 · getStatusポーリングで履歴をリクエスト→成功へ同期 · success/reject/waiting復帰URLを分離'
+        ],
+        CH: [
+          'ElementPay URL支付结果：pay-result 正确识别 NOTI PaymentStatus=0 为成功 · getStatus 轮询将明细从请求同步为成功 · 区分 success/reject/waiting 回跳 URL'
+        ],
+        TH: [
+          'ผล URL จ่าย ElementPay: รู้จัก PaymentStatus=0 จาก NOTI ว่าสำเร็จ · โพล getStatus ให้รายการจากขอ→สำเร็จ · แยก URL กลับ success/reject/waiting'
+        ]
+      }
+    },
+    {
+      version: '3.89',
+      kind: 'minor',
+      date: '2026-09-04',
+      items: {
+        KO: [
+          'ElementPay INLINE: 라이브에서 EP 호스티드 카드폼(Place my order)으로 바로 이동하던 경로 제거 — ICOPAY 1회 입력 후 KTC/Bangkok Bank 자동 제출 우선(이중 카드입력 수정)'
+        ],
+        EN: [
+          'ElementPay INLINE: stop jumping to EP hosted card form (Place my order) on live — prefer KTC/Bangkok Bank auto-submit after one ICOPAY card entry (fix double card entry)'
+        ],
+        JP: [
+          'ElementPay INLINE: 本番でEPホスト型カードフォーム(Place my order)へ直遷移していた経路を廃止 — ICOPAY1回入力後KTC/Bangkok Bank自動送信を優先(二重入力修正)'
+        ],
+        CH: [
+          'ElementPay INLINE：取消正式环境直接跳转 EP 托管卡表单（Place my order）— ICOPAY 一次输入后优先 KTC/Bangkok Bank 自动提交（修复重复输卡）'
+        ],
+        TH: [
+          'ElementPay INLINE: หยุดพาไปฟอร์มบัตรโฮสต์ของ EP (Place my order) บนไลฟ์ — หลังกรอกครั้งเดียวที่ ICOPAY ให้ส่งอัตโนมัติ KTC/Bangkok Bank ก่อน (แก้กรอกบัตรซ้ำ)'
+        ]
+      }
+    },
     {
       version: '3.88',
       kind: 'minor',

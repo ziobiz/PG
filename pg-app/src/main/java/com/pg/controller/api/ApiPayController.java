@@ -884,6 +884,8 @@ public class ApiPayController {
             putResultCopyField(data, copy, UrlPayCardCopyService.KEY_RESULT_FAIL_MAIN);
             putResultCopyField(data, copy, UrlPayCardCopyService.KEY_RESULT_FAIL_FOOT);
         });
+        /* 결제창(웹결제 로고설정)과 동일 — pay-result 상단 브랜드 */
+        checkoutHeaderLogoResolver.applyToCheckoutMap(data, orgUnitId);
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 

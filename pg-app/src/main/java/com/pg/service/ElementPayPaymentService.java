@@ -221,14 +221,20 @@ public class ElementPayPaymentService {
         String notifyBase = PgNotifyIngressPaths.buildIngressBase(publicBase, ingressToken) + "/ELEMENTPAY";
 
         String amountPlain = formatAmount(amount);
-        /* JPAY callback 슬롯과 동일: 브라우저는 NOTI Result 입구 경유 → 가맹 resultUrl·Dealmai */
-        String browserReturn = resolveElementPayBrowserReturnUrl(orgUnitId, orderNo, compCode);
-        if (browserReturn == null || browserReturn.isBlank()) {
-            browserReturn = resolveIcopayCheckoutReturnUrl(publicBase, compCode, orderNo, "success");
+        /* JPAY callback 슬롯과 동일: 브라우저는 NOTI Result 입구 경유 → 가맹 resultUrl·Dealmai.
+         * success/reject/waiting 은 outcome 쿼리로 구분(동일 호스트라도 결과 화면이 성공·실패를 구분). */
+        String successReturn = resolveElementPayBrowserReturnUrl(orgUnitId, orderNo, compCode, "success");
+        String rejectReturn = resolveElementPayBrowserReturnUrl(orgUnitId, orderNo, compCode, "reject");
+        String waitingReturn = resolveElementPayBrowserReturnUrl(orgUnitId, orderNo, compCode, "waiting");
+        if (successReturn == null || successReturn.isBlank()) {
+            successReturn = resolveIcopayCheckoutReturnUrl(publicBase, compCode, orderNo, "success");
         }
-        String successReturn = browserReturn;
-        String rejectReturn = browserReturn;
-        String waitingReturn = browserReturn;
+        if (rejectReturn == null || rejectReturn.isBlank()) {
+            rejectReturn = resolveIcopayCheckoutReturnUrl(publicBase, compCode, orderNo, "reject");
+        }
+        if (waitingReturn == null || waitingReturn.isBlank()) {
+            waitingReturn = resolveIcopayCheckoutReturnUrl(publicBase, compCode, orderNo, "waiting");
+        }
 
         Map<String, String> canonical = ElementPayAdditionalParameters.build(body, clientIp, combineBuyerPhone(body));
         Map<String, String> extra = extrasForInit(canonical, methodKeys);
@@ -360,31 +366,26 @@ public class ElementPayPaymentService {
         out.put("resultRejectUrl", rejectReturn);
 
         /*
-         * 라이브 카드: getMethods 에 있는 수단(보통 kCards). 호스티드 폼이면 init redirectUrl.
-         * 샌드박스 kCards: /k/cards/form → KTC 자동 POST. BKB card/keys 의 ICOPAY waiting 은 무시.
+         * INLINE: 카드는 ICOPAY 화면에서 1회만 입력.
+         * 라이브에서 init attributes 의 redirectUrl(EP 호스티드 「Place my order」)을 곧바로 열면
+         * 카드·이메일을 다시 치게 된다 → KTC 폼·Bangkok Bank card/keys 를 호스티드 redirect 보다 우선.
          */
         String epPayUrl = firstUsablePayUrl(attrs, publicBase);
-        log.info("ElementPay init ok paymentId={} service={} attrKeys={} payUrl={}",
-                paymentId, serviceAlias, attrKeys(attrs), urlHostPath(epPayUrl));
-        if (epPayUrl != null && !epPayUrl.isBlank() && isElementPayCardFormUrl(epPayUrl)) {
-            Map<String, String> ktcForm = fetchAndBuildKtcInlineForm(epPayUrl, body, pan, clientIp);
+        String kCardsFormUrl = resolveKCardsFormUrl(epPayUrl, agency, cred, paymentId);
+        log.info("ElementPay init ok paymentId={} service={} attrKeys={} payUrl={} kForm={}",
+                paymentId, serviceAlias, attrKeys(attrs), urlHostPath(epPayUrl), urlHostPath(kCardsFormUrl));
+
+        if (kCardsFormUrl != null && !kCardsFormUrl.isBlank()) {
+            Map<String, String> ktcForm = fetchAndBuildKtcInlineForm(kCardsFormUrl, body, pan, clientIp);
             if (ktcForm != null && ktcForm.get("actionUrl") != null && !ktcForm.get("actionUrl").isBlank()) {
                 out.put("bkbInlineCheckout", ktcForm);
                 out.put("needsBkbForm", true);
                 out.put("cardFormSource", "K_CARDS_FORM");
-                out.put("epCardFormUrl", epPayUrl);
+                out.put("epCardFormUrl", kCardsFormUrl);
                 out.put("needs3dsWindow", true);
                 return out;
             }
-            log.warn("ElementPay card-form 파싱 실패 order={} url={}", orderNo, urlHostPath(epPayUrl));
-        }
-        if (isUsablePayUrl(epPayUrl, publicBase) && !cred.sandbox()) {
-            out.put("redirectUrl", epPayUrl);
-            out.put("epCardFormUrl", epPayUrl);
-            out.put("needs3ds", true);
-            out.put("inlineAcs", true);
-            out.put("cardFormSource", "INIT_REDIRECT");
-            return out;
+            log.warn("ElementPay card-form 파싱 실패 order={} url={}", orderNo, urlHostPath(kCardsFormUrl));
         }
 
         JsonNode bkb = fetchBangkokBankCardKeys(agency, cred, paymentId);
@@ -393,7 +394,8 @@ public class ElementPayPaymentService {
                     bkb, body, pan, paymentId, amountPlain,
                     successReturn, rejectReturn, rejectReturn);
             if (form != null && form.get("actionUrl") != null && !form.get("actionUrl").isBlank()
-                    && !isOurCheckoutReturnUrl(form.get("actionUrl"), publicBase)) {
+                    && !isOurCheckoutReturnUrl(form.get("actionUrl"), publicBase)
+                    && !isElementPayHostedCardEntryUrl(form.get("actionUrl"))) {
                 out.put("bkbInlineCheckout", form);
                 out.put("needsBkbForm", true);
                 out.put("cardFormSource", "BKB_KEYS");
@@ -403,10 +405,12 @@ public class ElementPayPaymentService {
                     bkb.path("redirect_url").asText(""),
                     bkb.path("redirectUrl").asText(""));
             if (isUsablePayUrl(acs, publicBase) && isExternalAcsUrl(acs)
-                    && !isOurCheckoutReturnUrl(acs, publicBase)) {
+                    && !isOurCheckoutReturnUrl(acs, publicBase)
+                    && !isElementPayHostedCardEntryUrl(acs)) {
                 out.put("redirectUrl", acs);
                 out.put("needs3ds", true);
                 out.put("inlineAcs", true);
+                out.put("cardFormSource", "BKB_ACS");
                 return out;
             }
             log.warn("ElementPay BKB keys 에 사용 가능한 폼/ACS 없음 order={} payUrl={}",
@@ -417,16 +421,17 @@ public class ElementPayPaymentService {
                     orderNo, paymentId, errMsg);
         }
 
-        if (isUsablePayUrl(epPayUrl, publicBase)) {
+        /* 최후: 은행 ACS 등 EP 호스티드 카드재입력 화면이 아닌 URL만 허용 */
+        if (isUsablePayUrl(epPayUrl, publicBase) && !isElementPayHostedCardEntryUrl(epPayUrl)) {
             out.put("redirectUrl", epPayUrl);
             out.put("epCardFormUrl", epPayUrl);
             out.put("needs3ds", true);
             out.put("inlineAcs", true);
-            out.put("cardFormSource", "REDIRECT_FALLBACK");
-        return out;
+            out.put("cardFormSource", "EXTERNAL_ACS");
+            return out;
         }
 
-        log.warn("INLINE card path missing order={} paymentId={} attrKeys={} payUrl={}",
+        log.warn("INLINE card path missing (hosted re-entry blocked) order={} paymentId={} attrKeys={} payUrl={}",
                 orderNo, paymentId, attrKeys(attrs), urlHostPath(epPayUrl));
         return CheckoutFailI18n.cardPathFailed();
     }
@@ -633,6 +638,44 @@ public class ElementPayPaymentService {
         String u = url.toLowerCase(Locale.ROOT);
         return u.contains("elementpay.io") && (u.contains("/k/cards/form") || u.contains("/cards/form")
                 || u.contains("/th/cards") || u.contains("/card/form"));
+    }
+
+    /**
+     * EP 호스티드 카드 재입력 화면(Place my order 등). INLINE 에서 full-page 이동하면 이중 입력이 된다.
+     * 은행 ACS·3DS challenge 는 제외.
+     */
+    private static boolean isElementPayHostedCardEntryUrl(String url) {
+        if (url == null || url.isBlank()) {
+            return false;
+        }
+        String u = url.toLowerCase(Locale.ROOT);
+        if (!(u.contains("elementpay.io") || u.contains("elementpay.com"))) {
+            return false;
+        }
+        if (u.contains("/acs") || u.contains("3ds") || u.contains("challenge") || u.contains("secure")) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * init attributes 의 redirect 가 SPA 호스티드여도 {@code /k/cards/form?key=&pid=} 로 KTC 자동 POST 시도.
+     */
+    private String resolveKCardsFormUrl(String epPayUrl, PgAgency agency, ElementPayCredentials cred,
+                                        String paymentId) {
+        if (isElementPayCardFormUrl(epPayUrl)) {
+            return epPayUrl.trim();
+        }
+        if (paymentId == null || paymentId.isBlank() || cred == null || !cred.isConfigured()) {
+            return "";
+        }
+        try {
+            String base = resolveBase(agency);
+            return trimSlash(base) + "/k/cards/form?key=" + urlEnc(cred.merchantKey())
+                    + "&pid=" + urlEnc(paymentId.trim());
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     private static String firstUsablePayUrl(List<Map<String, String>> attrs, String publicBase) {
@@ -1740,8 +1783,10 @@ public class ElementPayPaymentService {
     /**
      * 브라우저 INLINE 복귀 — NOTI {@code /noti/result/elementpay}(JPAY Result 슬롯과 동일 역할).
      * 가맹 쇼핑몰 도메인은 PG 에 넣지 않으며, ICOPAY·NOTI 호스트만 허용합니다. {@code compId} 쿼리는 유지합니다.
+     *
+     * @param outcome {@code success}|{@code reject}|{@code waiting} — EP 가 구분 URL 로 보낼 때 결과 화면 힌트
      */
-    private String resolveElementPayBrowserReturnUrl(Long orgUnitId, String orderNo, String compId) {
+    private String resolveElementPayBrowserReturnUrl(Long orgUnitId, String orderNo, String compId, String outcome) {
         String defaultNoti = defaultElementPayNotiResultUrl();
         String configured = resolveMerchantNotiResultUrl(orgUnitId);
         String base;
@@ -1750,7 +1795,7 @@ public class ElementPayPaymentService {
         } else {
             base = defaultNoti;
         }
-        return appendResultMatchQuery(base, orderNo, compId);
+        return appendResultMatchQuery(base, orderNo, compId, outcome);
     }
 
     private String defaultElementPayNotiResultUrl() {
@@ -1786,13 +1831,17 @@ public class ElementPayPaymentService {
      * NOTI {@code /noti/result/elementpay} 가맹 매칭용 쿼리.
      * 우선순위(NOTI): compId/merchantId → (선택) order lookup → webhook 로그 order.
      */
-    private static String appendResultMatchQuery(String url, String orderNo, String compId) {
+    private static String appendResultMatchQuery(String url, String orderNo, String compId, String outcome) {
         String u = url != null ? url.trim() : "";
         if (u.isEmpty()) {
             return u;
         }
         String order = orderNo != null ? orderNo.trim() : "";
         String cid = compId != null ? compId.trim() : "";
+        String oc = outcome != null ? outcome.trim().toLowerCase(Locale.ROOT) : "";
+        if (!oc.equals("success") && !oc.equals("reject") && !oc.equals("waiting")) {
+            oc = "";
+        }
         StringBuilder q = new StringBuilder();
         if (!order.isEmpty() && !queryHasKey(u, "order") && !queryHasKey(u, "orderNo")) {
             q.append("order=").append(java.net.URLEncoder.encode(order, StandardCharsets.UTF_8));
@@ -1809,6 +1858,20 @@ public class ElementPayPaymentService {
                     q.append('&');
                 }
                 q.append("merchantId=").append(java.net.URLEncoder.encode(cid, StandardCharsets.UTF_8));
+            }
+        }
+        if (!oc.isEmpty()) {
+            if (!queryHasKey(u, "outcome")) {
+                if (q.length() > 0) {
+                    q.append('&');
+                }
+                q.append("outcome=").append(java.net.URLEncoder.encode(oc, StandardCharsets.UTF_8));
+            }
+            if (!queryHasKey(u, "elementpayReturn")) {
+                if (q.length() > 0) {
+                    q.append('&');
+                }
+                q.append("elementpayReturn=").append(java.net.URLEncoder.encode(oc, StandardCharsets.UTF_8));
             }
         }
         if (q.length() == 0) {
