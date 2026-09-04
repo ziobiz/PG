@@ -3377,8 +3377,9 @@ public class CompService {
 
     /**
      * 가맹 결제창 구매자 입력 프리셋.
-     * {@code presetIdRaw == null} 이면 미전송(변경 없음). 빈 문자열이면 본사설정따름(null).
-     * 프리셋 id가 있으면 FK 저장하고 Y/N 필드를 프리셋 값으로 동기화(기본형은 FOLLOW_HQ + null).
+     * {@code presetIdRaw == null} 이면 미전송(변경 없음).
+     * 빈 문자열이면 프리셋 비활성(FK null) — 가맹 개별 활성/비활성(폼 Y/N) 우선.
+     * 프리셋 id(기본형·N형)가 있으면 FK 저장하고 Y/N을 프리셋 값으로 동기화.
      */
     @Transactional
     public void applyMerchantUrlPayCheckoutFieldPreset(String compId, String presetIdRaw) {
@@ -3393,11 +3394,8 @@ public class CompService {
         }).ifPresent(mp -> {
             String raw = presetIdRaw.trim();
             if (raw.isEmpty()) {
+                /* 비활성 — 개별 필드는 applyMerchantUrlPayPresentationOptions 에서 이미 반영 */
                 mp.setUrlPayCheckoutFieldPresetId(null);
-                mp.setUrlPayBuyerEmailUseYn(com.pg.urlpay.UrlPayFollowHqYnUtil.FOLLOW_HQ);
-                mp.setUrlPayBuyerCountryUseYn(com.pg.urlpay.UrlPayFollowHqYnUtil.FOLLOW_HQ);
-                mp.setUrlPayBuyerPhoneUseYn(com.pg.urlpay.UrlPayFollowHqYnUtil.FOLLOW_HQ);
-                mp.setUrlPayShippingAddressUseYn(com.pg.urlpay.UrlPayFollowHqYnUtil.FOLLOW_HQ);
                 syncMerchantLegacyJpayCheckoutFieldModeFromBuyerContact(mp);
                 merchantProfileRepository.save(mp);
                 return;
@@ -3410,17 +3408,11 @@ public class CompService {
             }
             var preset = urlPayCheckoutFieldPresetService.findById(pid)
                     .orElseThrow(() -> new IllegalArgumentException("결제창 필드 프리셋을 찾을 수 없습니다."));
-            if (preset.isDefault()) {
-                /* 기본형 선택 = 본사설정따름 */
-                mp.setUrlPayCheckoutFieldPresetId(null);
-                mp.setUrlPayBuyerEmailUseYn(com.pg.urlpay.UrlPayFollowHqYnUtil.FOLLOW_HQ);
-                mp.setUrlPayBuyerCountryUseYn(com.pg.urlpay.UrlPayFollowHqYnUtil.FOLLOW_HQ);
-                mp.setUrlPayBuyerPhoneUseYn(com.pg.urlpay.UrlPayFollowHqYnUtil.FOLLOW_HQ);
-                mp.setUrlPayShippingAddressUseYn(com.pg.urlpay.UrlPayFollowHqYnUtil.FOLLOW_HQ);
-            } else {
-                /* N형: FK만 저장. Y/N은 폼에서 이미 반영(선택 시 UI 채움·이후 수동 조정 허용) */
-                mp.setUrlPayCheckoutFieldPresetId(preset.getId());
-            }
+            mp.setUrlPayCheckoutFieldPresetId(preset.getId());
+            mp.setUrlPayBuyerEmailUseYn(preset.getBuyerEmailUseYn());
+            mp.setUrlPayBuyerCountryUseYn(preset.getBuyerCountryUseYn());
+            mp.setUrlPayBuyerPhoneUseYn(preset.getBuyerPhoneUseYn());
+            mp.setUrlPayShippingAddressUseYn(preset.getShippingAddressUseYn());
             syncMerchantLegacyJpayCheckoutFieldModeFromBuyerContact(mp);
             merchantProfileRepository.save(mp);
         });

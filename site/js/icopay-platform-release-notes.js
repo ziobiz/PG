@@ -6,13 +6,40 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '3.87';
+  var CURRENT_LIVE = '3.88';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '3.88',
+      kind: 'minor',
+      date: '2026-09-04',
+      items: {
+        KO: [
+          '가맹 웹결제: 배송·이메일·국가·전화 선택값을 활성/비활성으로 통일. 구매자입력 프리셋은 비활성|기본형|1형… 선택',
+          '프리셋 활성(기본형·N형)이면 프리셋 우선, 비활성일 때만 가맹 개별 4항목 설정이 반영. 다국어(본사·가맹) 보강'
+        ],
+        EN: [
+          'Merchant web pay: shipping·email·country·phone labels are Active/Inactive. Buyer preset: Inactive | Default | 1형…',
+          'When a preset is selected it wins; only Inactive allows per-field merchant settings. i18n (HQ·merchant) reinforced'
+        ],
+        JP: [
+          '加盟ウェブ決済: 配送・メール・国・電話を活性/非活性に統一。購入者入力プリセットは非活性|基本型|1型…',
+          'プリセット選択時はプリセット優先。非活性のときのみ加盟個別4項目が反映。多言語(本社・加盟)補強'
+        ],
+        CH: [
+          '商户网页支付：配送·邮箱·国家·电话统一为启用/停用。买家输入预设：停用|默认型|1형…',
+          '选中预设时以预设为准；仅「停用」时商户四项单独设置生效。多语言（总部·商户）加强'
+        ],
+        TH: [
+          'ชำระเว็บร้าน: ที่อยู่·อีเมล·ประเทศ·โทร เป็นเปิด/ปิดใช้งาน พรีเซ็ตผู้ซื้อ: ปิด|ค่าเริ่มต้น|1형…',
+          'เลือกพรีเซ็ตแล้วใช้พรีเซ็ต ปิดใช้งานเท่านั้นที่ตั้ง 4 ช่องเองได้ เสริม i18n (HQ·ร้าน)'
+        ]
+      }
+    },
     {
       version: '3.87',
       kind: 'minor',

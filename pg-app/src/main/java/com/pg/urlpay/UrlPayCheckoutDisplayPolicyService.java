@@ -14,7 +14,9 @@ import java.util.Optional;
 
 /**
  * 결제창 표시 항목 — 본사 기본 × 가맹 FOLLOW_HQ/개별 설정(가맹 우선).
- * 구매자 이메일·국가·전화·배송주소의 FOLLOW_HQ 는 기본형 프리셋(없으면 본사 HQ 설정)으로 해석.
+ * 구매자 이메일·국가·전화·배송:
+ * - 가맹에 프리셋 FK가 있으면 해당 프리셋(기본형·N형) 값 적용
+ * - FK NULL(프리셋 비활성)이면 가맹 개별 Y/N 우선(레거시 FOLLOW_HQ 는 기본형 폴백)
  */
 @Service
 public class UrlPayCheckoutDisplayPolicyService {
@@ -54,32 +56,32 @@ public class UrlPayCheckoutDisplayPolicyService {
     }
 
     public String effectiveShippingAddressUseYn(Long orgUnitId) {
-        return resolveBuyerContactYn(
-                merchantField(orgUnitId, MerchantProfile::getUrlPayShippingAddressUseYn),
+        return resolveBuyerContactYn(orgUnitId,
+                MerchantProfile::getUrlPayShippingAddressUseYn,
                 UrlPayCheckoutFieldPreset::getShippingAddressUseYn,
                 hqOrEmpty().getUrlPayShippingAddressUseDefaultYn(),
                 "N");
     }
 
     public String effectiveBuyerEmailUseYn(Long orgUnitId) {
-        return resolveBuyerContactYn(
-                merchantField(orgUnitId, MerchantProfile::getUrlPayBuyerEmailUseYn),
+        return resolveBuyerContactYn(orgUnitId,
+                MerchantProfile::getUrlPayBuyerEmailUseYn,
                 UrlPayCheckoutFieldPreset::getBuyerEmailUseYn,
                 hqOrEmpty().getUrlPayBuyerEmailUseDefaultYn(),
                 "Y");
     }
 
     public String effectiveBuyerCountryUseYn(Long orgUnitId) {
-        return resolveBuyerContactYn(
-                merchantField(orgUnitId, MerchantProfile::getUrlPayBuyerCountryUseYn),
+        return resolveBuyerContactYn(orgUnitId,
+                MerchantProfile::getUrlPayBuyerCountryUseYn,
                 UrlPayCheckoutFieldPreset::getBuyerCountryUseYn,
                 hqOrEmpty().getUrlPayBuyerCountryUseDefaultYn(),
                 "Y");
     }
 
     public String effectiveBuyerPhoneUseYn(Long orgUnitId) {
-        return resolveBuyerContactYn(
-                merchantField(orgUnitId, MerchantProfile::getUrlPayBuyerPhoneUseYn),
+        return resolveBuyerContactYn(orgUnitId,
+                MerchantProfile::getUrlPayBuyerPhoneUseYn,
                 UrlPayCheckoutFieldPreset::getBuyerPhoneUseYn,
                 hqOrEmpty().getUrlPayBuyerPhoneUseDefaultYn(),
                 "Y");
@@ -168,11 +170,27 @@ public class UrlPayCheckoutDisplayPolicyService {
         data.put("checkoutContactRememberMode", effectiveRememberMode(orgUnitId));
     }
 
-    private String resolveBuyerContactYn(String merchantStored,
+    private String resolveBuyerContactYn(Long orgUnitId,
+                                         java.util.function.Function<MerchantProfile, String> merchantGetter,
                                          java.util.function.Function<UrlPayCheckoutFieldPreset, String> presetGetter,
                                          String hqDefaultYn,
                                          String fallbackYn) {
-        String stored = UrlPayFollowHqYnUtil.normalizeStored(merchantStored);
+        Optional<MerchantProfile> mpOpt = orgUnitId == null
+                ? Optional.empty()
+                : merchantProfileRepository.findByOrgUnitId(orgUnitId);
+        Long presetId = mpOpt.map(MerchantProfile::getUrlPayCheckoutFieldPresetId).orElse(null);
+        if (presetId != null) {
+            try {
+                Optional<UrlPayCheckoutFieldPreset> preset = checkoutFieldPresetService.findById(presetId);
+                if (preset.isPresent()) {
+                    return UrlPayFollowHqYnUtil.normalizeHqDefault(presetGetter.apply(preset.get()), fallbackYn);
+                }
+            } catch (Exception ignored) {
+                /* fall through */
+            }
+        }
+        /* 프리셋 비활성(NULL) — 가맹 개별 설정 우선 */
+        String stored = UrlPayFollowHqYnUtil.normalizeStored(mpOpt.map(merchantGetter).orElse(null));
         if (!UrlPayFollowHqYnUtil.FOLLOW_HQ.equals(stored)) {
             return stored;
         }

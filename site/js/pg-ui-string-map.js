@@ -389,7 +389,7 @@
   M['공휴일 전날 18시 이후']={EN:'공휴일 전날 18시 이후',JP:'공휴일 전날 18시 이후',CH:'공휴일 전날 18시 이후',TH:'공휴일 전날 18시 이후'};
   M['공휴일 프리셋 불러오기']={EN:'공휴일 프리셋 불러오기',JP:'공휴일 프리셋 불러오기',CH:'공휴일 프리셋 불러오기',TH:'공휴일 프리셋 불러오기'};
   M['과금 기간(서울)']={EN:'과금 기간(서울)',JP:'과금 기간(서울)',CH:'과금 기간(서울)',TH:'과금 기간(서울)'};
-  M['관리']={EN:'관리',JP:'관리',CH:'관리',TH:'관리'};
+  M['관리']={EN:'Manage',JP:'管理',CH:'管理',TH:'จัดการ'};
   M['관리 열 [수정]으로 편집 모드 전환 후 변경할 수 있습니다.']={EN:'관리 열 [수정]으로 편집 모드 전환 후 변경할 수 있습니다.',JP:'관리 열 [수정]으로 편집 모드 전환 후 변경할 수 있습니다.',CH:'관리 열 [수정]으로 편집 모드 전환 후 변경할 수 있습니다.',TH:'관리 열 [수정]으로 편집 모드 전환 후 변경할 수 있습니다.'};
   M['관리(MANAGER)']={EN:'관리(MANAGER)',JP:'관리(MANAGER)',CH:'관리(MANAGER)',TH:'관리(MANAGER)'};
   M['감독(SUPERVISOR)']={EN:'Supervisor (SUPERVISOR)',JP:'監督(SUPERVISOR)',CH:'督导(SUPERVISOR)',TH:'ผู้กำกับ (SUPERVISOR)'};
@@ -3863,8 +3863,10 @@
   M['프리셋 추가']={EN:'Add preset',JP:'プリセット追加',CH:'添加预设',TH:'เพิ่มพรีเซ็ต'};
   M['프리셋 없음']={EN:'No presets',JP:'プリセットなし',CH:'暂无预设',TH:'ไม่มีพรีเซ็ต'};
   M['가맹사용']={EN:'Merchants using',JP:'加盟使用',CH:'商户使用',TH:'ร้านที่ใช้'};
-  M['hqCheckoutFieldPresetNote']={EN:'The default preset cannot be deleted. New presets are named 1형, 2형… automatically. Presets in use by merchants cannot be deleted. Merchants on Follow HQ use the default preset.',JP:'基本型は削除不可。追加時は1型・2型…と自動命名。加盟使用中のプリセットは削除不可。「本社設定に従う」加盟は基本型を適用。',CH:'默认型不可删除。新增自动命名为 1형、2형…. 商户正在使用的预设不可删除。「跟随总部」商户使用默认型。',TH:'ค่าเริ่มต้นลบไม่ได้ เพิ่มแล้วตั้งชื่อ 1형·2형… อัตโนมัติ พรีเซ็ตที่ร้านใช้อยู่ลบไม่ได้ ร้านตาม HQ ใช้ค่าเริ่มต้น'};
+  M['기본형']={EN:'Default type',JP:'基本型',CH:'默认型',TH:'แบบเริ่มต้น'};
+  M['hqCheckoutFieldPresetNote']={EN:'The default preset cannot be deleted. New presets are named 1형, 2형… automatically. Presets in use by merchants cannot be deleted. If a merchant turns the preset Off, their individual Active/Inactive settings apply.',JP:'基本型は削除不可。追加時は1型・2型…と自動命名。加盟使用中のプリセットは削除不可。加盟がプリセットを非活性にすると個別の活性/非活性が優先。',CH:'默认型不可删除。新增自动命名为 1형、2형…. 商户正在使用的预设不可删除。商户将预设设为停用时，以个别启用/停用为准。',TH:'ค่าเริ่มต้นลบไม่ได้ เพิ่มแล้วตั้งชื่อ 1형·2형… อัตโนมัติ พรีเซ็ตที่ร้านใช้อยู่ลบไม่ได้ หากร้านปิดพรีเซ็ต จะใช้ค่าเปิด/ปิดของร้านเอง'};
   M['이메일·국가코드·전화번호·배송주소는 JPAY·ElementPay 등 전 PG 결제창에 동일 적용됩니다. 비활성 시 화면 숨김 — 가맹 prepare buyerPrefill 등으로 전달 필요. 아래 프리셋 표의 「기본형」과 동기화됩니다.']={EN:'Email, country code, phone, and shipping apply the same on all PG checkouts (JPAY, ElementPay, etc.). Inactive = hidden; merchant must pass prepare buyerPrefill (or equivalent). Synced with the Default preset in the table below.',JP:'メール・国コード・電話・配送はJPAY・ElementPay等すべてのPG決済画面に同一適用。非活性は非表示—加盟店がprepare buyerPrefill等で渡す必要。下表の「基本型」と同期。',CH:'邮箱、国家代码、电话、配送在 JPAY、ElementPay 等全部 PG 结账页同样生效。停用即隐藏—商户须 prepare buyerPrefill 等传值。与下表「기본형」同步。',TH:'อีเมล รหัสประเทศ โทร ที่อยู่ ใช้เหมือนกันทุกหน้าชำระ PG (JPAY ElementPay ฯลฯ) ปิดใช้งาน=ซ่อน ร้านต้องส่ง buyerPrefill ซิงก์กับพรีเซ็ตค่าเริ่มต้นในตารางด้านล่าง'};
+  M['구매자입력 프리셋: 기본형·1형·2형…을 고르면 이메일·국가·전화·배송은 프리셋을 따릅니다. 「비활성」으로 두면 가맹이 네 항목을 개별 활성/비활성으로 설정합니다. 전 PG(URL·API 인라인) 공통입니다.']={EN:'Buyer input preset: Choosing Default/1형/2형… applies those email·country·phone·shipping settings. Set to Inactive to configure the four fields individually (Active/Inactive). Shared across all PGs (URL·API inline).',JP:'購入者入力プリセット: 基本型・1型・2型…を選ぶとメール・国・電話・配送はプリセットに従います。「非活性」にすると加盟が4項目を個別に活性/非活性設定。全PG(URL・APIインライン)共通。',CH:'买家输入预设：选择默认型·1형·2형…则邮箱·国家·电话·配送跟随预设。设为「停用」时商户可单独设置四项启用/停用。全 PG（URL·API 内联）共用。',TH:'พรีเซ็ตช่องผู้ซื้อ: เลือกแบบเริ่มต้น·1형·2형… จะตามพรีเซ็ต (อีเมล·ประเทศ·โทร·ที่อยู่) ตั้งเป็นปิดใช้งานเพื่อตั้ง 4 ช่องเอง (เปิด/ปิด) ใช้ร่วมทุก PG (URL·API inline)'};
   M['구매자입력 프리셋: 「본사설정따름」이면 본사 기본형(이메일·국가·전화·배송)을 따릅니다. N형을 고르면 해당 Y/N이 적용됩니다. 전 PG(URL·API 인라인) 공통입니다.']={EN:'Buyer input preset: Follow HQ uses the HQ default preset (email·country·phone·shipping). Choosing N형 fills those Y/N values. Shared across all PGs (URL·API inline).',JP:'購入者入力プリセット:「本社設定に従う」は本社基本型(メール・国・電話・配送)を適用。N型を選ぶと該当Y/Nが入ります。全PG(URL・APIインライン)共通。',CH:'买家输入预设：「跟随总部」用总部默认型（邮箱·国家·电话·配送）。选 N형 则填入对应 Y/N。全 PG（URL·API 内联）共用。',TH:'พรีเซ็ตช่องผู้ซื้อ: ตาม HQ ใช้ค่าเริ่มต้น HQ (อีเมล·ประเทศ·โทร·ที่อยู่) เลือก N형 จะใส่ Y/N นั้น ใช้ร่วมทุก PG (URL·API inline)'};
   M['이 프리셋을 삭제할까요?']={EN:'Delete this preset?',JP:'このプリセットを削除しますか？',CH:'要删除此预设吗？',TH:'ลบพรีเซ็ตนี้หรือไม่?'};
   M['프리셋 조회 실패']={EN:'Failed to load presets',JP:'プリセット取得に失敗',CH:'预设加载失败',TH:'โหลดพรีเซ็ตไม่สำเร็จ'};
@@ -3872,7 +3874,15 @@
   M['삭제 실패']={EN:'Delete failed',JP:'削除に失敗',CH:'删除失败',TH:'ลบไม่สำเร็จ'};
   M['기본형은 삭제할 수 없습니다.']={EN:'The default preset cannot be deleted.',JP:'基本型は削除できません。',CH:'默认型不可删除。',TH:'ลบค่าเริ่มต้นไม่ได้'};
   M['가맹점이 사용 중인 프리셋은 삭제할 수 없습니다.']={EN:'Cannot delete a preset that merchants are using.',JP:'加盟店が使用中のプリセットは削除できません。',CH:'商户正在使用的预设不可删除。',TH:'พรีเซ็ตที่ร้านใช้อยู่ลบไม่ได้'};
-
+  M['결제창 필드 프리셋 id가 올바르지 않습니다.']={EN:'Invalid checkout field preset id.',JP:'決済画面フィールドプリセットIDが不正です。',CH:'结账字段预设 id 无效。',TH:'รหัสพรีเซ็ตช่องชำระไม่ถูกต้อง'};
+  M['결제창 필드 프리셋을 찾을 수 없습니다.']={EN:'Checkout field preset not found.',JP:'決済画面フィールドプリセットが見つかりません。',CH:'找不到结账字段预设。',TH:'ไม่พบพรีเซ็ตช่องชำระ'};
+  M['프리셋이 추가되었습니다.']={EN:'Preset added.',JP:'プリセットを追加しました。',CH:'已添加预设。',TH:'เพิ่มพรีเซ็ตแล้ว'};
+  M['프리셋이 저장되었습니다.']={EN:'Preset saved.',JP:'プリセットを保存しました。',CH:'已保存预设。',TH:'บันทึกพรีเซ็ตแล้ว'};
+  M['프리셋이 삭제되었습니다.']={EN:'Preset deleted.',JP:'プリセットを削除しました。',CH:'已删除预设。',TH:'ลบพรีเซ็ตแล้ว'};
+  M['action은 CREATE|UPDATE|DELETE 중 하나여야 합니다.']={EN:'action must be CREATE, UPDATE, or DELETE.',JP:'actionはCREATE|UPDATE|DELETEのいずれかです。',CH:'action 须为 CREATE、UPDATE 或 DELETE。',TH:'action ต้องเป็น CREATE|UPDATE|DELETE'};
+  M['이름']={EN:'Name',JP:'名前',CH:'名称',TH:'ชื่อ'};
+  M['관리']={EN:'Manage',JP:'管理',CH:'管理',TH:'จัดการ'};
+  M['새로고침']={EN:'Refresh',JP:'再読込',CH:'刷新',TH:'รีเฟรช'};
   M['URL 화면 표시 기본값']={EN:'URL display default',JP:'URL画面表示既定',CH:'URL 画面显示默认',TH:'ค่าเริ่มต้นแสดง URL'};
   M['API 화면 표시 기본값']={EN:'API display default',JP:'API画面表示既定',CH:'API 画面显示默认',TH:'ค่าเริ่มต้นแสดง API'};
   M['화면 표시 (입력방식)']={EN:'Display preset (input mode)',JP:'画面表示（入力方式）',CH:'画面显示（输入方式）',TH:'แสดงผล (โหมดป้อน)'};

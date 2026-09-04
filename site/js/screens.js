@@ -289,29 +289,25 @@
       [{ type: 'customHtml', col: 12, html: webPaymentHeaderLogoFieldBlock }],
       [{ label: '경고메세지', type: 'select', name: 'webPaymentHeaderSubtitleMode', options: subtitleOpts, col: 3 },
        { label: '구매자입력 프리셋', type: 'select', name: 'urlPayCheckoutFieldPresetId', options: [
-        { v: '', t: '본사설정따름' }
+        { v: '', t: '비활성' }
       ], col: 3 }],
       [{ label: '배송주소', type: 'select', name: 'urlPayShippingAddressUseYn', options: [
-        { v: 'FOLLOW_HQ', t: '본사설정 따름' },
-        { v: 'N', t: '미사용' },
-        { v: 'Y', t: '사용' }
+        { v: 'Y', t: '활성' },
+        { v: 'N', t: '비활성' }
       ], col: 3 },
        { label: '이메일', type: 'select', name: 'urlPayBuyerEmailUseYn', options: [
-        { v: 'FOLLOW_HQ', t: '본사설정 따름' },
-        { v: 'Y', t: '사용' },
-        { v: 'N', t: '미사용' }
+        { v: 'Y', t: '활성' },
+        { v: 'N', t: '비활성' }
       ], col: 3 },
        { label: '국가코드', type: 'select', name: 'urlPayBuyerCountryUseYn', options: [
-        { v: 'FOLLOW_HQ', t: '본사설정 따름' },
-        { v: 'Y', t: '사용' },
-        { v: 'N', t: '미사용' }
+        { v: 'Y', t: '활성' },
+        { v: 'N', t: '비활성' }
       ], col: 3 },
        { label: '전화번호', type: 'select', name: 'urlPayBuyerPhoneUseYn', options: [
-        { v: 'FOLLOW_HQ', t: '본사설정 따름' },
-        { v: 'Y', t: '사용' },
-        { v: 'N', t: '미사용' }
+        { v: 'Y', t: '활성' },
+        { v: 'N', t: '비활성' }
       ], col: 3 }],
-      [{ label: '', type: 'note', col: 12, text: '구매자입력 프리셋: 「본사설정따름」이면 본사 기본형(이메일·국가·전화·배송)을 따릅니다. N형을 고르면 해당 Y/N이 적용됩니다. 전 PG(URL·API 인라인) 공통입니다.' }],
+      [{ label: '', type: 'note', col: 12, text: '구매자입력 프리셋: 기본형·1형·2형…을 고르면 이메일·국가·전화·배송은 프리셋을 따릅니다. 「비활성」으로 두면 가맹이 네 항목을 개별 활성/비활성으로 설정합니다. 전 PG(URL·API 인라인) 공통입니다.' }],
       [{ type: 'customHtml', col: 12, html: webPaymentHeaderSubtitleFieldBlock }],
       merchantWebPaymentDefaultProductRow(),
       [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml(urlPh); } },
@@ -3976,7 +3972,7 @@
                 + '<button type="button" class="btn btn-sm btn-outline-primary" id="hqCheckoutFieldPresetAddBtn" data-pg-ui-t="프리셋 추가">프리셋 추가</button>'
                 + '<button type="button" class="btn btn-sm btn-outline-secondary" id="hqCheckoutFieldPresetReloadBtn" data-pg-ui-t="새로고침">새로고침</button>'
                 + '</div></div>'
-                + '<p class="small text-muted mb-2" data-pg-ui-t="hqCheckoutFieldPresetNote">기본형은 삭제할 수 없습니다. 추가 시 1형·2형…으로 자동 명명됩니다. 가맹이 사용 중인 프리셋은 삭제할 수 없습니다. 「본사설정따름」 가맹은 기본형을 따릅니다.</p>'
+                + '<p class="small text-muted mb-2" data-pg-ui-t="hqCheckoutFieldPresetNote">기본형은 삭제할 수 없습니다. 추가 시 1형·2형…으로 자동 명명됩니다. 가맹이 사용 중인 프리셋은 삭제할 수 없습니다. 가맹에서 프리셋을 비활성하면 개별 활성/비활성이 우선합니다.</p>'
                 + '<div class="table-responsive"><table class="table table-sm table-bordered mb-0" id="hqCheckoutFieldPresetTable">'
                 + '<thead><tr>'
                 + '<th class="text-center align-middle" data-pg-ui-t="이름">이름</th>'

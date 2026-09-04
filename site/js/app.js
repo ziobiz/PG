@@ -2422,29 +2422,67 @@
     }
     reload();
   }
-  function pgFillMerchantCheckoutFieldPresetSelect(rootEl, selectedId, presets) {
+  function pgFillMerchantCheckoutFieldPresetSelect(rootEl, selectedId, presets, preferDefaultIfEmpty) {
     if (!rootEl) return;
     var list = Array.isArray(presets) ? presets : [];
+    var defaultId = '';
+    list.forEach(function (p) {
+      if (p && p.id != null && String(p.isDefaultYn || '').toUpperCase() === 'Y') {
+        defaultId = String(p.id);
+      }
+    });
     rootEl.querySelectorAll('select[name="urlPayCheckoutFieldPresetId"]').forEach(function (sel) {
       var cur = selectedId != null && selectedId !== '' ? String(selectedId) : '';
-      var html = '<option value="" data-pg-ui-t="본사설정따름">본사설정따름</option>';
+      if (!cur && preferDefaultIfEmpty && defaultId) {
+        cur = defaultId;
+      }
+      var html = '<option value="" data-pg-ui-t="비활성">비활성</option>';
       list.forEach(function (p) {
         if (!p || p.id == null) return;
-        if (String(p.isDefaultYn || '').toUpperCase() === 'Y') return; /* 기본형은 본사설정따름 */
-        html += '<option value="' + pgEscHtml(String(p.id)) + '">' + pgEscHtml(String(p.presetName || '')) + '</option>';
+        var nm = String(p.presetName || '');
+        var isDef = String(p.isDefaultYn || '').toUpperCase() === 'Y';
+        html += '<option value="' + pgEscHtml(String(p.id)) + '"'
+          + (isDef ? ' data-pg-ui-t="기본형"' : '')
+          + '>' + pgEscHtml(nm) + '</option>';
       });
       sel.innerHTML = html;
       sel.value = cur;
       if (sel.value !== cur && cur) {
-        /* 삭제된 프리셋 등 — 빈값(본사설정따름) */
         sel.value = '';
       }
       if (typeof window.PG_UI_I18N !== 'undefined' && window.PG_UI_I18N.applyDom) {
         window.PG_UI_I18N.applyDom(sel);
       }
     });
+    pgSyncMerchantBuyerContactFieldsUi(rootEl);
   }
-  function pgBindMerchantCheckoutFieldPresetSelect(rootEl, presetsCache) {
+  function pgApplyMerchantBuyerContactYnFromPreset(form, preset) {
+    if (!form || !preset) return;
+    function setYn(name, v) {
+      var el = form.querySelector('[name="' + name + '"]');
+      if (el) el.value = v;
+    }
+    setYn('urlPayBuyerEmailUseYn', String(preset.buyerEmailUseYn || 'Y').toUpperCase() === 'N' ? 'N' : 'Y');
+    setYn('urlPayBuyerCountryUseYn', String(preset.buyerCountryUseYn || 'Y').toUpperCase() === 'N' ? 'N' : 'Y');
+    setYn('urlPayBuyerPhoneUseYn', String(preset.buyerPhoneUseYn || 'Y').toUpperCase() === 'N' ? 'N' : 'Y');
+    setYn('urlPayShippingAddressUseYn', String(preset.shippingAddressUseYn || 'N').toUpperCase() === 'Y' ? 'Y' : 'N');
+  }
+  function pgSyncMerchantBuyerContactFieldsUi(rootEl) {
+    if (!rootEl) return;
+    var form = rootEl.tagName === 'FORM' ? rootEl : (rootEl.querySelector('form') || rootEl);
+    var sel = form.querySelector('[name="urlPayCheckoutFieldPresetId"]');
+    var presetActive = !!(sel && String(sel.value || '').trim());
+    ['urlPayBuyerEmailUseYn', 'urlPayBuyerCountryUseYn', 'urlPayBuyerPhoneUseYn', 'urlPayShippingAddressUseYn'].forEach(function (n) {
+      form.querySelectorAll('[name="' + n + '"]').forEach(function (el) {
+        el.disabled = presetActive;
+        /* FOLLOW_HQ 레거시 → 활성 */
+        if (String(el.value || '').toUpperCase() === 'FOLLOW_HQ') {
+          el.value = 'Y';
+        }
+      });
+    });
+  }
+  function pgBindMerchantCheckoutFieldPresetSelect(rootEl) {
     if (!rootEl || rootEl._cfpPresetBound) return;
     rootEl._cfpPresetBound = true;
     rootEl.addEventListener('change', function (e) {
@@ -2452,41 +2490,42 @@
       var sel = e.target;
       var form = sel.closest('form') || rootEl;
       var id = String(sel.value || '').trim();
-      function setYn(name, v) {
-        var el = form.querySelector('[name="' + name + '"]');
-        if (el) el.value = v;
-      }
       if (!id) {
-        setYn('urlPayBuyerEmailUseYn', 'FOLLOW_HQ');
-        setYn('urlPayBuyerCountryUseYn', 'FOLLOW_HQ');
-        setYn('urlPayBuyerPhoneUseYn', 'FOLLOW_HQ');
-        setYn('urlPayShippingAddressUseYn', 'FOLLOW_HQ');
+        pgSyncMerchantBuyerContactFieldsUi(form);
         return;
       }
-      var list = Array.isArray(presetsCache) ? presetsCache : (rootEl._cfpPresets || []);
+      var list = rootEl._cfpPresets || [];
       var found = null;
       for (var i = 0; i < list.length; i++) {
         if (list[i] && String(list[i].id) === id) { found = list[i]; break; }
       }
-      if (!found) return;
-      setYn('urlPayBuyerEmailUseYn', String(found.buyerEmailUseYn || 'Y').toUpperCase() === 'N' ? 'N' : 'Y');
-      setYn('urlPayBuyerCountryUseYn', String(found.buyerCountryUseYn || 'Y').toUpperCase() === 'N' ? 'N' : 'Y');
-      setYn('urlPayBuyerPhoneUseYn', String(found.buyerPhoneUseYn || 'Y').toUpperCase() === 'N' ? 'N' : 'Y');
-      setYn('urlPayShippingAddressUseYn', String(found.shippingAddressUseYn || 'N').toUpperCase() === 'Y' ? 'Y' : 'N');
+      if (found) pgApplyMerchantBuyerContactYnFromPreset(form, found);
+      pgSyncMerchantBuyerContactFieldsUi(form);
     });
   }
-  function pgLoadAndBindMerchantCheckoutFieldPresets(rootEl, selectedId) {
+  function pgLoadAndBindMerchantCheckoutFieldPresets(rootEl, selectedId, preferDefaultIfEmpty) {
     if (!rootEl) return Promise.resolve();
     pgBindMerchantCheckoutFieldPresetSelect(rootEl);
     if (!window.PG_API || typeof window.PG_API.hqUrlPayCheckoutFieldPresets !== 'function') {
-      pgFillMerchantCheckoutFieldPresetSelect(rootEl, selectedId, []);
+      pgFillMerchantCheckoutFieldPresetSelect(rootEl, selectedId, [], !!preferDefaultIfEmpty);
       return Promise.resolve();
     }
     return window.PG_API.hqUrlPayCheckoutFieldPresets().then(function (list) {
       rootEl._cfpPresets = list || [];
-      pgFillMerchantCheckoutFieldPresetSelect(rootEl, selectedId, list || []);
+      pgFillMerchantCheckoutFieldPresetSelect(rootEl, selectedId, list || [], !!preferDefaultIfEmpty);
+      var sel = rootEl.querySelector('[name="urlPayCheckoutFieldPresetId"]');
+      var id = sel ? String(sel.value || '').trim() : '';
+      if (id) {
+        var found = null;
+        var rows = list || [];
+        for (var i = 0; i < rows.length; i++) {
+          if (rows[i] && String(rows[i].id) === id) { found = rows[i]; break; }
+        }
+        if (found) pgApplyMerchantBuyerContactYnFromPreset(rootEl, found);
+      }
+      pgSyncMerchantBuyerContactFieldsUi(rootEl);
     }).catch(function () {
-      pgFillMerchantCheckoutFieldPresetSelect(rootEl, selectedId, []);
+      pgFillMerchantCheckoutFieldPresetSelect(rootEl, selectedId, [], !!preferDefaultIfEmpty);
     });
   }
 
@@ -20644,7 +20683,7 @@
       }
       var form = pane.querySelector('#compRegForm');
       if (form) {
-        pgLoadAndBindMerchantCheckoutFieldPresets(form, '');
+        pgLoadAndBindMerchantCheckoutFieldPresets(form, '', true);
       }
       var loginIdElForCheck = form ? form.querySelector('[name="loginId"]') : null;
       if (loginIdElForCheck && !loginIdElForCheck._dupResetBound) {

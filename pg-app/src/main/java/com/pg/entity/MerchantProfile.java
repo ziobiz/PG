@@ -247,7 +247,8 @@ public class MerchantProfile {
 
     /**
      * 결제창 구매자 입력 필드 프리셋 FK.
-     * NULL = 본사설정따름(기본형). 값이 있으면 해당 N형 프리셋(저장 시 Y/N 동기화).
+     * NULL = 프리셋 비활성(가맹이 이메일·국가·전화·배송을 개별 활성/비활성).
+     * 값이 있으면 해당 프리셋(기본형·N형)을 따르며 개별 설정은 무시.
      */
     @Column(name = "url_pay_checkout_field_preset_id")
     private Long urlPayCheckoutFieldPresetId;
