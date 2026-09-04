@@ -9,6 +9,8 @@ import java.util.Locale;
 public final class ElementPayCallbackEventUtil {
 
     public enum Kind {
+        /** Cabinet Events {@code payment.paid}/{@code payment.charged} — 승인(10). */
+        PAY_PAID,
         /** TTL 만료 등 — 미승인이면 실패(99). 이미 승인이면 유지. */
         PAY_REJECT,
         /** 기승인 취소(은행) — 강제환불(31). */
@@ -45,6 +47,7 @@ public final class ElementPayCallbackEventUtil {
             return new Spec(Kind.ACK, null, false);
         }
         return switch (m) {
+            case "payment.paid", "payment.charged" -> new Spec(Kind.PAY_PAID, null, true);
             case "payment.rejected" -> new Spec(Kind.PAY_REJECT, "ELEMENTPAY_PAYMENT_REJECTED", true);
             case "payment.reversed" -> new Spec(Kind.PAY_REVERSED, "ELEMENTPAY_PAYMENT_REVERSED", true);
             case "payment.refunded" -> new Spec(Kind.PAY_REFUNDED, "ELEMENTPAY_PAYMENT_REFUNDED", true);

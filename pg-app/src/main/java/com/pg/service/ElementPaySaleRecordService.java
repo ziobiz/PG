@@ -297,6 +297,17 @@ public class ElementPaySaleRecordService {
         String msg = ElementPayCallbackEventUtil.defaultMessage(spec, rawMethod);
         rememberPaymentIdIfBlank(t, paymentId);
         switch (spec.kind()) {
+            case PAY_PAID -> {
+                if (ST_PAID.equals(cur) || isRefundOrChargebackStatus(cur)) {
+                    pgTrnsctnRepository.save(t);
+                    return Optional.of(t);
+                }
+                t.setStatus(ST_PAID);
+                ZoneId wall = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+                t.setPaidAt(LocalDateTime.now(wall));
+                t.setChillPaymentStatus(truncate(
+                        msg != null && !msg.isBlank() ? msg.trim() : "Success", 50));
+            }
             case PAY_REJECT -> {
                 if (ST_PAID.equals(cur) || isRefundOrChargebackStatus(cur)) {
                     pgTrnsctnRepository.save(t);

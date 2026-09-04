@@ -6,13 +6,35 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '3.92';
+  var CURRENT_LIVE = '3.93';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '3.93',
+      kind: 'minor',
+      date: '2026-09-04',
+      items: {
+        KO: [
+          'ElementPay 웹훅: Cabinet Events의 payment.paid·payment.charged를 승인(10)으로 반영 — Events 목록에 pay 항목이 없어도 결제내역 동기화'
+        ],
+        EN: [
+          'ElementPay webhook: map Cabinet Events payment.paid / payment.charged to Paid (10) — sync list even when Events has no separate pay checkbox'
+        ],
+        JP: [
+          'ElementPay Webhook: Cabinet Eventsのpayment.paid・payment.chargedを承認(10)に反映 — Eventsにpayがなくても履歴同期'
+        ],
+        CH: [
+          'ElementPay Webhook：将 Cabinet Events 的 payment.paid / payment.charged 映射为成功(10) — Events 无单独 pay 项也可同步明细'
+        ],
+        TH: [
+          'Webhook ElementPay: แมป payment.paid / payment.charged จาก Cabinet Events เป็นสำเร็จ(10) — ซิงก์รายการแม้ Events ไม่มี pay แยก'
+        ]
+      }
+    },
     {
       version: '3.92',
       kind: 'minor',
