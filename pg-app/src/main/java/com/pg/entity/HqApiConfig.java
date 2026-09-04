@@ -131,6 +131,18 @@ public class HqApiConfig {
     @Column(name = "url_pay_shipping_address_use_default_yn", nullable = false, length = 1)
     private String urlPayShippingAddressUseDefaultYn = "N";
 
+    /** 결제창 이메일 입력 본사 기본 — Y/N (전 PG 공통) */
+    @Column(name = "url_pay_buyer_email_use_default_yn", nullable = false, length = 1)
+    private String urlPayBuyerEmailUseDefaultYn = "Y";
+
+    /** 결제창 국가코드 입력 본사 기본 — Y/N (전 PG 공통) */
+    @Column(name = "url_pay_buyer_country_use_default_yn", nullable = false, length = 1)
+    private String urlPayBuyerCountryUseDefaultYn = "Y";
+
+    /** 결제창 전화번호 입력 본사 기본 — Y/N (전 PG 공통) */
+    @Column(name = "url_pay_buyer_phone_use_default_yn", nullable = false, length = 1)
+    private String urlPayBuyerPhoneUseDefaultYn = "Y";
+
     /** 결제창 상품명 사용 본사 기본 — Y/N */
     @Column(name = "url_pay_product_name_use_default_yn", nullable = false, length = 1)
     private String urlPayProductNameUseDefaultYn = "Y";
@@ -445,6 +457,18 @@ public class HqApiConfig {
     public String getUrlPayShippingAddressUseDefaultYn() { return urlPayShippingAddressUseDefaultYn; }
     public void setUrlPayShippingAddressUseDefaultYn(String v) {
         this.urlPayShippingAddressUseDefaultYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(v, "N");
+    }
+    public String getUrlPayBuyerEmailUseDefaultYn() { return urlPayBuyerEmailUseDefaultYn; }
+    public void setUrlPayBuyerEmailUseDefaultYn(String v) {
+        this.urlPayBuyerEmailUseDefaultYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(v, "Y");
+    }
+    public String getUrlPayBuyerCountryUseDefaultYn() { return urlPayBuyerCountryUseDefaultYn; }
+    public void setUrlPayBuyerCountryUseDefaultYn(String v) {
+        this.urlPayBuyerCountryUseDefaultYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(v, "Y");
+    }
+    public String getUrlPayBuyerPhoneUseDefaultYn() { return urlPayBuyerPhoneUseDefaultYn; }
+    public void setUrlPayBuyerPhoneUseDefaultYn(String v) {
+        this.urlPayBuyerPhoneUseDefaultYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(v, "Y");
     }
     public String getUrlPayProductNameUseDefaultYn() { return urlPayProductNameUseDefaultYn; }
     public void setUrlPayProductNameUseDefaultYn(String v) {

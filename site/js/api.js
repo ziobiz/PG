@@ -1797,6 +1797,18 @@
     hqApiConfigSave: function (body) {
       return post('/api/hq/apiConfig/save', body).then(function (r) { return r.data; });
     },
+    hqUrlPayCheckoutFieldPresets: function () {
+      return get('/api/hq/urlPayCheckoutFieldPresets').then(function (r) {
+        if (r && r.success === false) throw new Error(serverMsgT(r.message, '프리셋 조회 실패'));
+        return r.data;
+      });
+    },
+    hqUrlPayCheckoutFieldPresetMutate: function (body) {
+      return post('/api/hq/urlPayCheckoutFieldPresets', body || {}).then(function (r) {
+        if (r && r.success === false) throw new Error(serverMsgT(r.message, '저장 실패'));
+        return r.data;
+      });
+    },
     hqJpayPortalAccounts: function () {
       return get('/api/hq/jpayPortalAccount').then(function (r) { return r.data; });
     },

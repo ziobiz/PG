@@ -233,6 +233,25 @@ public class MerchantProfile {
     @Column(name = "url_pay_shipping_address_use_yn", nullable = false, length = 16)
     private String urlPayShippingAddressUseYn = "FOLLOW_HQ";
 
+    /** 결제창 이메일 입력 — FOLLOW_HQ | Y | N (전 PG 공통) */
+    @Column(name = "url_pay_buyer_email_use_yn", nullable = false, length = 16)
+    private String urlPayBuyerEmailUseYn = "FOLLOW_HQ";
+
+    /** 결제창 국가코드 입력 — FOLLOW_HQ | Y | N (전 PG 공통) */
+    @Column(name = "url_pay_buyer_country_use_yn", nullable = false, length = 16)
+    private String urlPayBuyerCountryUseYn = "FOLLOW_HQ";
+
+    /** 결제창 전화번호 입력 — FOLLOW_HQ | Y | N (전 PG 공통) */
+    @Column(name = "url_pay_buyer_phone_use_yn", nullable = false, length = 16)
+    private String urlPayBuyerPhoneUseYn = "FOLLOW_HQ";
+
+    /**
+     * 결제창 구매자 입력 필드 프리셋 FK.
+     * NULL = 본사설정따름(기본형). 값이 있으면 해당 N형 프리셋(저장 시 Y/N 동기화).
+     */
+    @Column(name = "url_pay_checkout_field_preset_id")
+    private Long urlPayCheckoutFieldPresetId;
+
     /** URL 공개 결제창 입력방식 — {@link com.pg.urlpay.UrlPayInputModeUtil} */
     @Column(name = "url_pay_input_mode", nullable = false, length = 16)
     private String urlPayInputMode = "GENERAL";
@@ -753,6 +772,24 @@ public class MerchantProfile {
     public String getUrlPayShippingAddressUseYn() { return urlPayShippingAddressUseYn; }
     public void setUrlPayShippingAddressUseYn(String urlPayShippingAddressUseYn) {
         this.urlPayShippingAddressUseYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(urlPayShippingAddressUseYn);
+    }
+
+    public String getUrlPayBuyerEmailUseYn() { return urlPayBuyerEmailUseYn; }
+    public void setUrlPayBuyerEmailUseYn(String v) {
+        this.urlPayBuyerEmailUseYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(v);
+    }
+    public String getUrlPayBuyerCountryUseYn() { return urlPayBuyerCountryUseYn; }
+    public void setUrlPayBuyerCountryUseYn(String v) {
+        this.urlPayBuyerCountryUseYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(v);
+    }
+    public String getUrlPayBuyerPhoneUseYn() { return urlPayBuyerPhoneUseYn; }
+    public void setUrlPayBuyerPhoneUseYn(String v) {
+        this.urlPayBuyerPhoneUseYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(v);
+    }
+
+    public Long getUrlPayCheckoutFieldPresetId() { return urlPayCheckoutFieldPresetId; }
+    public void setUrlPayCheckoutFieldPresetId(Long urlPayCheckoutFieldPresetId) {
+        this.urlPayCheckoutFieldPresetId = urlPayCheckoutFieldPresetId;
     }
 
     public String getUrlPayInputMode() { return urlPayInputMode; }

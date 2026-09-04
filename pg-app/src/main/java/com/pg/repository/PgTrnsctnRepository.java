@@ -158,6 +158,19 @@ public interface PgTrnsctnRepository extends JpaRepository<PgTrnsctn, String>, J
                                                      @Param("notOlderThan") LocalDateTime notOlderThan,
                                                      Pageable pageable);
 
+    /**
+     * ElementPay 요청(08)·선제실패(99) — getStatus 자동 동기화 대상.
+     * 웹훅(NOTI→ICOPAY) 누락 시 로컬이 요청에 고착되는 것을 복구.
+     */
+    @Query("SELECT t FROM PgTrnsctn t WHERE t.status IN ('08', '99') " +
+           "AND (UPPER(t.van) = 'ELEMENTPAY' OR UPPER(t.van) LIKE 'ELEMENTPAY_%') " +
+           "AND t.orderNo IS NOT NULL AND TRIM(t.orderNo) <> '' " +
+           "AND t.createdAt <= :staleBefore AND t.createdAt >= :notOlderThan " +
+           "ORDER BY t.createdAt DESC")
+    List<PgTrnsctn> findStaleElementPayPendingForReconcile(@Param("staleBefore") LocalDateTime staleBefore,
+                                                           @Param("notOlderThan") LocalDateTime notOlderThan,
+                                                           Pageable pageable);
+
     /** payer_location_label 미적재·불완전(지역 없음) + IP 보유 — GeoIP 보정 대상 */
     @Query("SELECT t FROM PgTrnsctn t WHERE t.payerClientIp IS NOT NULL AND TRIM(t.payerClientIp) <> '' "
             + "AND (t.payerLocationLabel IS NULL OR TRIM(t.payerLocationLabel) = '' "

@@ -1,27 +1,19 @@
 package com.pg.urlpay;
 
-import com.pg.entity.HqApiConfig;
 import com.pg.entity.MerchantProfile;
 import com.pg.integration.pg.PgVendor;
-import com.pg.repository.HqApiConfigRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
 import java.util.Optional;
 
-/** JPAY 전용 checkout-context: {@code checkoutFieldMode}·접속국가(국가코드 기본값) 등 */
+/**
+ * JPAY 전용 checkout-context — 접속국가·국가코드 필수 플래그.
+ * 구매자 이메일·전화·국가 노출은 {@link UrlPayCheckoutDisplayPolicyService} 공통 토글을 사용합니다.
+ */
 @Component
 public class JpayUrlPayCheckoutContextEnricher implements UrlPayCheckoutContextEnricher {
-
-    private final HqApiConfigRepository hqApiConfigRepository;
-    private final UrlPayInputModeService urlPayInputModeService;
-
-    public JpayUrlPayCheckoutContextEnricher(HqApiConfigRepository hqApiConfigRepository,
-                                             UrlPayInputModeService urlPayInputModeService) {
-        this.hqApiConfigRepository = hqApiConfigRepository;
-        this.urlPayInputModeService = urlPayInputModeService;
-    }
 
     @Override
     public boolean supports(UrlPayVendorCapability capability) {
@@ -35,22 +27,8 @@ public class JpayUrlPayCheckoutContextEnricher implements UrlPayCheckoutContextE
                        Long orgUnitId,
                        Optional<MerchantProfile> profile,
                        HttpServletRequest request) {
-        Optional<HqApiConfig> hqOpt = hqApiConfigRepository.findAll().stream().findFirst();
-        String hqMode = hqOpt.map(HqApiConfig::getJpayCheckoutFieldMode).orElse(null);
-        String merchantMode = profile.map(MerchantProfile::getJpayCheckoutFieldMode).orElse(null);
-        String inputMode = data.containsKey("urlPayInputModeEffective")
-                ? String.valueOf(data.get("urlPayInputModeEffective"))
-                : urlPayInputModeService.resolveEffective(orgUnitId, request);
-        inputMode = UrlPayInputModeUtil.normalize(inputMode);
-        String resolved = JpayCheckoutFieldModeUtil.resolve(merchantMode, hqMode);
-        if (UrlPayInputModeUtil.isMinimalForm(inputMode)) {
-            resolved = JpayCheckoutFieldModeUtil.CARD_PREFILL;
-        } else if (UrlPayInputModeUtil.forcesFullPresentation(inputMode)) {
-            resolved = JpayCheckoutFieldModeUtil.FULL;
-        }
-        data.put("checkoutFieldMode", resolved);
+        /* 공통 putEffectiveYnIntoMap 이 이미 checkoutFieldMode·buyer*UseYn 을 넣음 — JPAY도 동일 */
         data.put("jpayCountryCodeRequired", true);
-        /* JPAY 결제창은 1·2·3형(checkoutFieldMode)만 사용 — 본사 urlPayFormMode(SIMPLE) 무시 */
         data.put("urlPayFormMode", "FULL");
         String visitorIso = VisitorCountryResolver.resolveIso2(request);
         if (!visitorIso.isEmpty()) {

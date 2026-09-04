@@ -127,6 +127,8 @@ public class CompService {
     private final HqRiskCardPolicyService hqRiskCardPolicyService;
     private final MerchantJpayNotifyUrlSyncService merchantJpayNotifyUrlSyncService;
     private final CommissionService commissionService;
+    private final com.pg.urlpay.UrlPayCheckoutDisplayPolicyService urlPayCheckoutDisplayPolicyService;
+    private final UrlPayCheckoutFieldPresetService urlPayCheckoutFieldPresetService;
 
     private static LocalTime parseTime(String s) {
         if (s == null || s.trim().isEmpty()) return null;
@@ -452,7 +454,9 @@ public class CompService {
                        MerchantApiIntegrationChannelService merchantApiIntegrationChannelService,
                        HqRiskCardPolicyService hqRiskCardPolicyService,
                        MerchantJpayNotifyUrlSyncService merchantJpayNotifyUrlSyncService,
-                       @Lazy CommissionService commissionService) {
+                       @Lazy CommissionService commissionService,
+                       com.pg.urlpay.UrlPayCheckoutDisplayPolicyService urlPayCheckoutDisplayPolicyService,
+                       UrlPayCheckoutFieldPresetService urlPayCheckoutFieldPresetService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.settlementSettingRepository = settlementSettingRepository;
@@ -485,6 +489,8 @@ public class CompService {
         this.hqRiskCardPolicyService = hqRiskCardPolicyService;
         this.merchantJpayNotifyUrlSyncService = merchantJpayNotifyUrlSyncService;
         this.commissionService = commissionService;
+        this.urlPayCheckoutDisplayPolicyService = urlPayCheckoutDisplayPolicyService;
+        this.urlPayCheckoutFieldPresetService = urlPayCheckoutFieldPresetService;
     }
 
     /** 챗봇관리 — 고객 안내 문구(병합 표시값). 가맹만. */
@@ -1568,6 +1574,9 @@ public class CompService {
         addDiffYn(rows, oid, compId, compNm, by, p + "URL가맹점명노출", snap.urlPayCompanyNameShowYn(), mp.getUrlPayCompanyNameShowYn());
         addDiffYn(rows, oid, compId, compNm, by, p + "URL다국어메뉴", snap.urlPayLangMenuUseYn(), mp.getUrlPayLangMenuUseYn());
         addDiffYn(rows, oid, compId, compNm, by, p + "URL배송주소", snap.urlPayShippingAddressUseYn(), mp.getUrlPayShippingAddressUseYn());
+        addDiffYn(rows, oid, compId, compNm, by, p + "URL구매자이메일", snap.urlPayBuyerEmailUseYn(), mp.getUrlPayBuyerEmailUseYn());
+        addDiffYn(rows, oid, compId, compNm, by, p + "URL구매자국가", snap.urlPayBuyerCountryUseYn(), mp.getUrlPayBuyerCountryUseYn());
+        addDiffYn(rows, oid, compId, compNm, by, p + "URL구매자전화", snap.urlPayBuyerPhoneUseYn(), mp.getUrlPayBuyerPhoneUseYn());
         addDiff(rows, oid, compId, compNm, by, p + "URL입력방식",
                 com.pg.urlpay.UrlPayInputModeUtil.formatAuditLabel(snap.urlPayInputMode()),
                 com.pg.urlpay.UrlPayInputModeUtil.formatAuditLabel(mp.getUrlPayInputMode()));
@@ -1669,6 +1678,9 @@ public class CompService {
             String urlPayCompanyNameShowYn,
             String urlPayLangMenuUseYn,
             String urlPayShippingAddressUseYn,
+            String urlPayBuyerEmailUseYn,
+            String urlPayBuyerCountryUseYn,
+            String urlPayBuyerPhoneUseYn,
             String urlPayInputMode,
             String apiUrlPayCheckoutMode,
             String chatbotUrlPayCheckoutMode,
@@ -1734,6 +1746,9 @@ public class CompService {
                     nz(mp.getUrlPayCompanyNameShowYn()),
                     nz(mp.getUrlPayLangMenuUseYn()),
                     nz(mp.getUrlPayShippingAddressUseYn()),
+                    nz(mp.getUrlPayBuyerEmailUseYn()),
+                    nz(mp.getUrlPayBuyerCountryUseYn()),
+                    nz(mp.getUrlPayBuyerPhoneUseYn()),
                     nz(mp.getUrlPayInputMode()),
                     nz(mp.getApiUrlPayCheckoutMode()),
                     nz(mp.getChatbotUrlPayCheckoutMode()),
@@ -1923,6 +1938,10 @@ public class CompService {
                             m.put("checkoutContactRememberMode",
                                     mp.getCheckoutContactRememberMode() != null ? mp.getCheckoutContactRememberMode() : "FOLLOW_HQ");
                             m.put("urlPayShippingAddressUseYn", mp.getUrlPayShippingAddressUseYn() != null ? mp.getUrlPayShippingAddressUseYn() : "N");
+                            m.put("urlPayBuyerEmailUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerEmailUseYn()));
+                            m.put("urlPayBuyerCountryUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerCountryUseYn()));
+                            m.put("urlPayBuyerPhoneUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerPhoneUseYn()));
+                            m.put("urlPayCheckoutFieldPresetId", mp.getUrlPayCheckoutFieldPresetId() != null ? mp.getUrlPayCheckoutFieldPresetId() : "");
                             m.put("urlPayInputMode", com.pg.urlpay.UrlPayInputModeUtil.formatMerchantUiValue(mp.getUrlPayInputMode()));
                             m.put("urlPayCardExpiryMode", com.pg.urlpay.UrlPayCardExpiryModeUtil.formatMerchantUiValue(mp.getUrlPayCardExpiryMode()));
                             m.put("cardAuthMode", com.pg.urlpay.CardAuthModeUtil.formatMerchantUiValue(mp.getCardAuthMode()));
@@ -2024,6 +2043,10 @@ public class CompService {
                             m.put("checkoutContactRememberMode",
                                     mp.getCheckoutContactRememberMode() != null ? mp.getCheckoutContactRememberMode() : "FOLLOW_HQ");
                             m.put("urlPayShippingAddressUseYn", mp.getUrlPayShippingAddressUseYn() != null ? mp.getUrlPayShippingAddressUseYn() : "N");
+                            m.put("urlPayBuyerEmailUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerEmailUseYn()));
+                            m.put("urlPayBuyerCountryUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerCountryUseYn()));
+                            m.put("urlPayBuyerPhoneUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerPhoneUseYn()));
+                            m.put("urlPayCheckoutFieldPresetId", mp.getUrlPayCheckoutFieldPresetId() != null ? mp.getUrlPayCheckoutFieldPresetId() : "");
                             m.put("urlPayInputMode", com.pg.urlpay.UrlPayInputModeUtil.formatMerchantUiValue(mp.getUrlPayInputMode()));
                             m.put("urlPayCardExpiryMode", com.pg.urlpay.UrlPayCardExpiryModeUtil.formatMerchantUiValue(mp.getUrlPayCardExpiryMode()));
                             m.put("cardAuthMode", com.pg.urlpay.CardAuthModeUtil.formatMerchantUiValue(mp.getCardAuthMode()));
@@ -2275,6 +2298,9 @@ public class CompService {
                           String urlPayLangMenuUseYn,
                           String checkoutContactRememberMode,
                           String urlPayShippingAddressUseYn,
+                          String urlPayBuyerEmailUseYn,
+                          String urlPayBuyerCountryUseYn,
+                          String urlPayBuyerPhoneUseYn,
                           String urlPayInputMode,
                           String urlPayCardExpiryMode,
                           String cardAuthMode,
@@ -2452,13 +2478,15 @@ public class CompService {
                                 applyMerchantUrlPayCheckoutMode(mp, ou.getId(), urlPayCheckoutMode);
                                 applyMerchantUrlPayPresentationOptions(mp,
                                         urlPayProductNameUseYn, urlPayCompanyNameShowYn, urlPayLangMenuUseYn,
-                                        urlPayShippingAddressUseYn, checkoutContactRememberMode);
+                                        urlPayShippingAddressUseYn, urlPayBuyerEmailUseYn, urlPayBuyerCountryUseYn,
+                                        urlPayBuyerPhoneUseYn, checkoutContactRememberMode);
                                 applyMerchantUrlPayInputMode(mp, urlPayInputMode);
                                 applyMerchantUrlPayCardExpiryMode(mp, urlPayCardExpiryMode);
                                 applyMerchantCardAuthMode(mp, cardAuthMode);
                                 applyMerchantApiUrlPayCheckoutMode(mp, ou.getId(), apiUrlPayCheckoutMode);
                                 applyMerchantChatbotUrlPayCheckoutMode(mp, ou.getId(), chatbotUrlPayCheckoutMode);
                                 applyMerchantJpayCheckoutFieldMode(mp, jpayCheckoutFieldMode);
+                                syncMerchantLegacyJpayCheckoutFieldModeFromBuyerContact(mp);
                                 applyMerchantJpayPhoneDialCodeYn(mp, jpayPhoneDialCodeYn);
                             }
                             if (childLevel == OrgLevel.MERCHANT && apiJpaySubscriptionUseYn != null && !apiJpaySubscriptionUseYn.trim().isEmpty()) {
@@ -3205,12 +3233,15 @@ public class CompService {
         }
     }
 
-    /** 가맹점 URL 결제창 표시 옵션 — 상품명·회사명·다국어 메뉴·배송 주소·자동기억 */
+    /** 가맹점 URL 결제창 표시 옵션 — 상품명·회사명·다국어 메뉴·배송 주소·구매자 연락처·자동기억 */
     private void applyMerchantUrlPayPresentationOptions(MerchantProfile mp,
                                                       String productNameUseYn,
                                                       String companyNameShowYn,
                                                       String langMenuUseYn,
                                                       String shippingAddressUseYn,
+                                                      String buyerEmailUseYn,
+                                                      String buyerCountryUseYn,
+                                                      String buyerPhoneUseYn,
                                                       String checkoutContactRememberMode) {
         if (mp == null) {
             return;
@@ -3227,9 +3258,36 @@ public class CompService {
         if (shippingAddressUseYn != null && !shippingAddressUseYn.isBlank()) {
             mp.setUrlPayShippingAddressUseYn(shippingAddressUseYn.trim());
         }
+        if (buyerEmailUseYn != null && !buyerEmailUseYn.isBlank()) {
+            mp.setUrlPayBuyerEmailUseYn(buyerEmailUseYn.trim());
+        }
+        if (buyerCountryUseYn != null && !buyerCountryUseYn.isBlank()) {
+            mp.setUrlPayBuyerCountryUseYn(buyerCountryUseYn.trim());
+        }
+        if (buyerPhoneUseYn != null && !buyerPhoneUseYn.isBlank()) {
+            mp.setUrlPayBuyerPhoneUseYn(buyerPhoneUseYn.trim());
+        }
         if (checkoutContactRememberMode != null && !checkoutContactRememberMode.isBlank()) {
             mp.setCheckoutContactRememberMode(checkoutContactRememberMode.trim());
         }
+    }
+
+    /** 구매자 연락처·배송 YN 실효값으로 레거시 JPAY checkoutFieldMode 동기화 */
+    private void syncMerchantLegacyJpayCheckoutFieldModeFromBuyerContact(MerchantProfile mp) {
+        if (mp == null) {
+            return;
+        }
+        var hq = urlPayCheckoutDisplayPolicyService.hqOrEmpty();
+        String emailYn = com.pg.urlpay.UrlPayFollowHqYnUtil.resolveEffective(
+                mp.getUrlPayBuyerEmailUseYn(), hq.getUrlPayBuyerEmailUseDefaultYn(), "Y");
+        String countryYn = com.pg.urlpay.UrlPayFollowHqYnUtil.resolveEffective(
+                mp.getUrlPayBuyerCountryUseYn(), hq.getUrlPayBuyerCountryUseDefaultYn(), "Y");
+        String phoneYn = com.pg.urlpay.UrlPayFollowHqYnUtil.resolveEffective(
+                mp.getUrlPayBuyerPhoneUseYn(), hq.getUrlPayBuyerPhoneUseDefaultYn(), "Y");
+        String shipYn = com.pg.urlpay.UrlPayFollowHqYnUtil.resolveEffective(
+                mp.getUrlPayShippingAddressUseYn(), hq.getUrlPayShippingAddressUseDefaultYn(), "N");
+        mp.setJpayCheckoutFieldMode(com.pg.urlpay.CheckoutBuyerContactUtil.toLegacyCheckoutFieldMode(
+                emailYn, countryYn, phoneYn, shipYn));
     }
 
     /** 가맹점 URL 결제창 입력방식 — GENERAL | TYPE_AA | TYPE_BA | TYPE_AN | … | TYPE_CN (구 TYPE_A/B/C 는 normalize 시 AN/BN/CN) */
@@ -3315,6 +3373,57 @@ public class CompService {
                     }
                     merchantProfileRepository.save(mp);
                 });
+    }
+
+    /**
+     * 가맹 결제창 구매자 입력 프리셋.
+     * {@code presetIdRaw == null} 이면 미전송(변경 없음). 빈 문자열이면 본사설정따름(null).
+     * 프리셋 id가 있으면 FK 저장하고 Y/N 필드를 프리셋 값으로 동기화(기본형은 FOLLOW_HQ + null).
+     */
+    @Transactional
+    public void applyMerchantUrlPayCheckoutFieldPreset(String compId, String presetIdRaw) {
+        if (compId == null || compId.isBlank() || presetIdRaw == null) {
+            return;
+        }
+        orgUnitRepository.findByCode(compId.trim()).flatMap(ou -> {
+            if (ou.getOrgLevel() != OrgLevel.MERCHANT) {
+                return Optional.empty();
+            }
+            return merchantProfileRepository.findByOrgUnitId(ou.getId());
+        }).ifPresent(mp -> {
+            String raw = presetIdRaw.trim();
+            if (raw.isEmpty()) {
+                mp.setUrlPayCheckoutFieldPresetId(null);
+                mp.setUrlPayBuyerEmailUseYn(com.pg.urlpay.UrlPayFollowHqYnUtil.FOLLOW_HQ);
+                mp.setUrlPayBuyerCountryUseYn(com.pg.urlpay.UrlPayFollowHqYnUtil.FOLLOW_HQ);
+                mp.setUrlPayBuyerPhoneUseYn(com.pg.urlpay.UrlPayFollowHqYnUtil.FOLLOW_HQ);
+                mp.setUrlPayShippingAddressUseYn(com.pg.urlpay.UrlPayFollowHqYnUtil.FOLLOW_HQ);
+                syncMerchantLegacyJpayCheckoutFieldModeFromBuyerContact(mp);
+                merchantProfileRepository.save(mp);
+                return;
+            }
+            Long pid;
+            try {
+                pid = Long.parseLong(raw);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("결제창 필드 프리셋 id가 올바르지 않습니다.");
+            }
+            var preset = urlPayCheckoutFieldPresetService.findById(pid)
+                    .orElseThrow(() -> new IllegalArgumentException("결제창 필드 프리셋을 찾을 수 없습니다."));
+            if (preset.isDefault()) {
+                /* 기본형 선택 = 본사설정따름 */
+                mp.setUrlPayCheckoutFieldPresetId(null);
+                mp.setUrlPayBuyerEmailUseYn(com.pg.urlpay.UrlPayFollowHqYnUtil.FOLLOW_HQ);
+                mp.setUrlPayBuyerCountryUseYn(com.pg.urlpay.UrlPayFollowHqYnUtil.FOLLOW_HQ);
+                mp.setUrlPayBuyerPhoneUseYn(com.pg.urlpay.UrlPayFollowHqYnUtil.FOLLOW_HQ);
+                mp.setUrlPayShippingAddressUseYn(com.pg.urlpay.UrlPayFollowHqYnUtil.FOLLOW_HQ);
+            } else {
+                /* N형: FK만 저장. Y/N은 폼에서 이미 반영(선택 시 UI 채움·이후 수동 조정 허용) */
+                mp.setUrlPayCheckoutFieldPresetId(preset.getId());
+            }
+            syncMerchantLegacyJpayCheckoutFieldModeFromBuyerContact(mp);
+            merchantProfileRepository.save(mp);
+        });
     }
 
     /** 총본사·본사·총판만 가맹점 운영기록 열람·저장 가능. */
@@ -3786,7 +3895,7 @@ public class CompService {
                 null, null, null,
                 null, null,
                 null,
-                null, null, null, null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null, null);
@@ -3831,6 +3940,9 @@ public class CompService {
                                      String urlPayLangMenuUseYn,
                                      String checkoutContactRememberMode,
                                      String urlPayShippingAddressUseYn,
+                                     String urlPayBuyerEmailUseYn,
+                                     String urlPayBuyerCountryUseYn,
+                                     String urlPayBuyerPhoneUseYn,
                                      String urlPayInputMode,
                                      String urlPayCardExpiryMode,
                                      String cardAuthMode,
@@ -3905,6 +4017,9 @@ public class CompService {
                 urlPayLangMenuUseYn,
                 checkoutContactRememberMode,
                 urlPayShippingAddressUseYn,
+                urlPayBuyerEmailUseYn,
+                urlPayBuyerCountryUseYn,
+                urlPayBuyerPhoneUseYn,
                 urlPayInputMode,
                 urlPayCardExpiryMode,
                 cardAuthMode,
@@ -3983,6 +4098,9 @@ public class CompService {
                                      String urlPayLangMenuUseYn,
                                      String checkoutContactRememberMode,
                                      String urlPayShippingAddressUseYn,
+                                     String urlPayBuyerEmailUseYn,
+                                     String urlPayBuyerCountryUseYn,
+                                     String urlPayBuyerPhoneUseYn,
                                      String urlPayInputMode,
                                      String urlPayCardExpiryMode,
                                      String cardAuthMode,
@@ -4091,13 +4209,15 @@ public class CompService {
             applyMerchantUrlPayCheckoutMode(mp, saved.getId(), urlPayCheckoutMode);
             applyMerchantUrlPayPresentationOptions(mp,
                     urlPayProductNameUseYn, urlPayCompanyNameShowYn, urlPayLangMenuUseYn,
-                    urlPayShippingAddressUseYn, checkoutContactRememberMode);
+                    urlPayShippingAddressUseYn, urlPayBuyerEmailUseYn, urlPayBuyerCountryUseYn,
+                    urlPayBuyerPhoneUseYn, checkoutContactRememberMode);
             applyMerchantUrlPayInputMode(mp, urlPayInputMode);
             applyMerchantUrlPayCardExpiryMode(mp, urlPayCardExpiryMode);
             applyMerchantCardAuthMode(mp, cardAuthMode);
             applyMerchantApiUrlPayCheckoutMode(mp, saved.getId(), apiUrlPayCheckoutMode);
             applyMerchantChatbotUrlPayCheckoutMode(mp, saved.getId(), chatbotUrlPayCheckoutMode);
             applyMerchantJpayCheckoutFieldMode(mp, jpayCheckoutFieldMode);
+            syncMerchantLegacyJpayCheckoutFieldModeFromBuyerContact(mp);
             applyMerchantJpayPhoneDialCodeYn(mp, jpayPhoneDialCodeYn);
             if (apiJpaySubscriptionUseYn != null && !apiJpaySubscriptionUseYn.trim().isEmpty()) {
                 mp.setApiJpaySubscriptionUseYn(apiJpaySubscriptionUseYn.trim());
@@ -5943,7 +6063,7 @@ public class CompService {
                             null, null, null,
                             null, null,
                             null,
-                            null, null, null, null, null, null, null, null, null, null, null, null,
+                            null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
                             null, null, null, null, null, null, null, null,
                             null, null, null, null, null, null, null, null,
                             null, null, null, null, null, null, null, null, null, null, null, null, null, null);

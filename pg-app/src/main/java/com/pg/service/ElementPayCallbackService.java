@@ -188,11 +188,10 @@ public class ElementPayCallbackService {
         BigDecimal received = parseAmount(fields.get("amount"));
         String localPayId = nz(txn.get().getChillTransactionId());
         boolean samePayment = paymentId.isBlank() || localPayId.isBlank() || localPayId.equals(paymentId);
-        if (samePayment && expected != null && received != null
-                && expected.setScale(2, java.math.RoundingMode.HALF_UP)
-                .compareTo(received.setScale(2, java.math.RoundingMode.HALF_UP)) != 0) {
-            log.warn("ElementPay check amount mismatch order={} expected={} received={}",
-                    orderNo, expected, received);
+        if (samePayment && !amountMatchesLocal(txn.get(), fields)) {
+            log.warn("ElementPay check amount mismatch order={} expected={} received={} methodAmount={} display={}",
+                    orderNo, expected, fields.get("amount"),
+                    fields.get("method_amount"), txn.get().getDisplayAmt());
             return jsonResponse(475, "Wrong order data", cred, resolvedComp, orderNo);
         }
         return jsonResponse(270, "Payment can process", cred, resolvedComp, orderNo);
@@ -233,13 +232,10 @@ public class ElementPayCallbackService {
                         orderNo, orderIds, localOrder, paymentId);
                 return jsonResponse(475, "Wrong order data", cred);
             }
-            BigDecimal expected = found.getAmtKrw();
-            BigDecimal received = parseAmount(fields.get("amount"));
-            if (expected != null && received != null
-                    && expected.setScale(2, java.math.RoundingMode.HALF_UP)
-                    .compareTo(received.setScale(2, java.math.RoundingMode.HALF_UP)) != 0) {
-                log.warn("ElementPay pay amount mismatch order={} expected={} received={}",
-                        orderNo, expected, received);
+            if (!amountMatchesLocal(found, fields)) {
+                log.warn("ElementPay pay amount mismatch order={} expected={} received={} methodAmount={} display={}",
+                        orderNo, found.getAmtKrw(), fields.get("amount"),
+                        fields.get("method_amount"), found.getDisplayAmt());
                 /* Tidem Gateway: pay wrong amount → 475 Wrong order data */
                 return jsonResponse(475, "Wrong order data", cred);
             }
@@ -562,6 +558,38 @@ public class ElementPayCallbackService {
             out.put(k, v);
         }
         return out;
+    }
+
+    /**
+     * EP 콜백 amount(실결제) 또는 method_amount·표시금액(DP) 중 하나라도 로컬과 일치하면 통과.
+     * DP 가맹에서 표시통화와 실결제 통화가 다를 때 금액 불일치 475 오판을 막습니다.
+     */
+    private static boolean amountMatchesLocal(PgTrnsctn t, Map<String, String> fields) {
+        if (t == null || fields == null) {
+            return true;
+        }
+        BigDecimal received = parseAmount(fields.get("amount"));
+        BigDecimal methodAmt = parseAmount(fields.get("method_amount"));
+        BigDecimal expected = t.getAmtKrw();
+        BigDecimal display = t.getDisplayAmt();
+        if (expected == null && display == null) {
+            return true;
+        }
+        if (received == null && methodAmt == null) {
+            return true;
+        }
+        if (amountsEqual(expected, received) || amountsEqual(expected, methodAmt)) {
+            return true;
+        }
+        return amountsEqual(display, received) || amountsEqual(display, methodAmt);
+    }
+
+    private static boolean amountsEqual(BigDecimal a, BigDecimal b) {
+        if (a == null || b == null) {
+            return false;
+        }
+        return a.setScale(2, java.math.RoundingMode.HALF_UP)
+                .compareTo(b.setScale(2, java.math.RoundingMode.HALF_UP)) == 0;
     }
 
     private static BigDecimal parseAmount(String raw) {

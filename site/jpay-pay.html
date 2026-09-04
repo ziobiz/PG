@@ -636,10 +636,12 @@
         el.readOnly = true;
       }
 
-      // JPAY 필수: (1)카드·CVV (2)성명 (3)이메일 (4)전화. (5)배송 주소.
-      // FULL=전체 | CARD_ONLY=1~4 고객입력 | CARD_PREFILL=1·2만 입력, 3~6은 prepare prefill
+      // 구매자 연락처·배송 — 본사/가맹 공통 Y/N (전 PG). 레거시 checkoutFieldMode 는 호환용.
       var CHECKOUT_FIELD_MODE = 'FULL';
       var URL_PAY_SHIPPING_USE = false;
+      var URL_PAY_BUYER_EMAIL = true;
+      var URL_PAY_BUYER_COUNTRY = true;
+      var URL_PAY_BUYER_PHONE = true;
       var ADDRESS_FIELD_IDS = ['payStreetAddress1', 'payCity', 'payPostcode'];
       var CONTACT_FIELD_IDS = ['payEmailAddress', 'payContactCountryCode', 'payTelephone'];
 
@@ -652,6 +654,15 @@
         });
       }
 
+      function setFieldWrapVisible(fieldId, visible) {
+        var el = document.getElementById(fieldId);
+        if (!el) return;
+        var wrap = el.closest('.col-12') || el;
+        wrap.style.display = visible ? '' : 'none';
+        if (visible) el.setAttribute('required', 'required');
+        else { el.required = false; el.removeAttribute('required'); }
+      }
+
       function applyCheckoutFieldMode(mode) {
         var m = String(mode || 'FULL').trim().toUpperCase();
         if (m !== 'CARD_ONLY' && m !== 'CARD_PREFILL') m = 'FULL';
@@ -660,14 +671,14 @@
       }
 
       function applyUrlPayFormMode() {
-        var m = CHECKOUT_FIELD_MODE;
-        var hideAddress = (m === 'CARD_ONLY' || m === 'CARD_PREFILL') || !URL_PAY_SHIPPING_USE;
-        var hideContact = (m === 'CARD_PREFILL');
-        /* urlPayFormMode(SIMPLE)는 ChillPay pay.html 전용. jpay-pay는 checkoutFieldMode(1·2·3형)만 적용 */
-        setFieldsRequired(CONTACT_FIELD_IDS, !hideContact);
-        setFieldsRequired(ADDRESS_FIELD_IDS, m === 'FULL' && URL_PAY_SHIPPING_USE);
+        var hideAddress = !URL_PAY_SHIPPING_USE;
+        setFieldWrapVisible('payEmailAddress', URL_PAY_BUYER_EMAIL);
+        setFieldWrapVisible('payContactCountryCode', URL_PAY_BUYER_COUNTRY);
+        setFieldWrapVisible('payTelephone', URL_PAY_BUYER_PHONE);
+        var anyContact = URL_PAY_BUYER_EMAIL || URL_PAY_BUYER_COUNTRY || URL_PAY_BUYER_PHONE;
         var contactRow = document.getElementById('contactRow');
-        if (contactRow) contactRow.style.display = hideContact ? 'none' : '';
+        if (contactRow) contactRow.style.display = anyContact ? '' : 'none';
+        setFieldsRequired(ADDRESS_FIELD_IDS, URL_PAY_SHIPPING_USE);
         ['billingLabel', 'billingAddressRow'].forEach(function (id) {
           var el = document.getElementById(id);
           if (el) el.style.display = hideAddress ? 'none' : '';
@@ -694,17 +705,18 @@
         if (window.PG_JPAY_CONTACT_REMEMBER) {
           PG_JPAY_CONTACT_REMEMBER.applyRemembered(document.getElementById('jpayForm'), getCompId(), checkoutCtx, p);
         }
-        if (CHECKOUT_FIELD_MODE !== 'CARD_PREFILL') return;
-        var addrMap = {
-          payStreetAddress1: p.address || p.payStreetAddress1,
-          payCity: p.city || p.payCity,
-          payPostcode: p.postcode || p.payPostcode
-        };
-        Object.keys(addrMap).forEach(function (id) {
-          var v = addrMap[id];
-          var el = document.getElementById(id);
-          if (el && v != null && String(v).trim() !== '') el.value = String(v).trim();
-        });
+        if (!URL_PAY_SHIPPING_USE) {
+          var addrMap = {
+            payStreetAddress1: p.address || p.payStreetAddress1,
+            payCity: p.city || p.payCity,
+            payPostcode: p.postcode || p.payPostcode
+          };
+          Object.keys(addrMap).forEach(function (id) {
+            var v = addrMap[id];
+            var el = document.getElementById(id);
+            if (el && v != null && String(v).trim() !== '') el.value = String(v).trim();
+          });
+        }
         window.__jpayShippingPrefill = {
           shippingStreetAddress1: p.shippingAddress || p.shippingStreetAddress1,
           shippingCity: p.shippingCity,
@@ -715,13 +727,21 @@
       }
 
       function assertPrefillReadyForSubmit() {
-        if (CHECKOUT_FIELD_MODE !== 'CARD_PREFILL') return true;
         var form = document.getElementById('jpayForm');
         if (window.PG_JPAY_CONTACT) PG_JPAY_CONTACT.syncBeforeSubmit(form);
-        var em = (document.getElementById('payEmailAddress').value || '').trim();
-        var ph = (document.getElementById('payTelephone').value || '').trim();
-        var cc = window.PG_JPAY_CONTACT ? PG_JPAY_CONTACT.readCountryIso2(form) : (document.getElementById('payCountryIsoCode2').value || '').trim();
-        return em.length > 0 && ph.length > 0 && cc.length === 2;
+        if (!URL_PAY_BUYER_EMAIL) {
+          var em = (document.getElementById('payEmailAddress').value || '').trim();
+          if (!em) return false;
+        }
+        if (!URL_PAY_BUYER_PHONE) {
+          var ph = (document.getElementById('payTelephone').value || '').trim();
+          if (!ph) return false;
+        }
+        if (!URL_PAY_BUYER_COUNTRY) {
+          var cc = window.PG_JPAY_CONTACT ? PG_JPAY_CONTACT.readCountryIso2(form) : (document.getElementById('payCountryIsoCode2').value || '').trim();
+          if (!cc || cc.length !== 2) return false;
+        }
+        return true;
       }
 
       function showErr(msg) {
@@ -946,6 +966,9 @@
         urlPayPricingMode = String(ctx.urlPayPricingMode || 'CHECKOUT_CURRENCY').toUpperCase();
         urlPayDisplayFxActive = ctx.urlPayDisplayFxActive === true;
         URL_PAY_SHIPPING_USE = String(ctx.urlPayShippingAddressUseYn || 'N').trim().toUpperCase() === 'Y';
+        URL_PAY_BUYER_EMAIL = String(ctx.urlPayBuyerEmailUseYn != null ? ctx.urlPayBuyerEmailUseYn : 'Y').trim().toUpperCase() === 'Y';
+        URL_PAY_BUYER_COUNTRY = String(ctx.urlPayBuyerCountryUseYn != null ? ctx.urlPayBuyerCountryUseYn : 'Y').trim().toUpperCase() === 'Y';
+        URL_PAY_BUYER_PHONE = String(ctx.urlPayBuyerPhoneUseYn != null ? ctx.urlPayBuyerPhoneUseYn : 'Y').trim().toUpperCase() === 'Y';
         window.__payUrlCardCopy = ctx.urlPayCardCopy || null;
         applyCheckoutFieldMode(ctx.checkoutFieldMode);
         if (window.PG_JPAY_CARD_EXPIRY) {

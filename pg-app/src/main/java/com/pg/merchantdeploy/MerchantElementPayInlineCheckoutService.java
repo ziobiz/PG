@@ -169,6 +169,29 @@ public class MerchantElementPayInlineCheckoutService {
         }
         String mid = ouOpt.get().getCode();
         Optional<PgTrnsctn> txn = findElementPayTxnByOrder(mid, orderNo);
+        /*
+         * 웹훅 누락 시 로컬이 요청(08)에 고착됨. Status API 호출 시 getStatus 로 동기화한 뒤 재조회.
+         */
+        if (txn.isPresent()) {
+            PgTrnsctn pending = txn.get();
+            String st = pending.getStatus() != null ? pending.getStatus().trim() : "";
+            if ("08".equals(st) || "99".equals(st)) {
+                try {
+                    boolean finalizeReject = pending.getCreatedAt() != null
+                            && pending.getCreatedAt().isBefore(
+                            java.time.LocalDateTime.now(java.time.ZoneId.of("Asia/Seoul"))
+                                    .minusMinutes(15));
+                    elementPayPaymentService.queryInlineStatus(
+                            orgUnitId,
+                            firstNonBlank(pending.getChillTransactionId(), pending.getApprovalNo()),
+                            orderNo,
+                            finalizeReject);
+                    txn = findElementPayTxnByOrder(mid, orderNo);
+                } catch (Exception ignored) {
+                    /* 로컬 상태 그대로 반환 */
+                }
+            }
+        }
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("compId", mid);
         data.put("orderNo", orderNo);
@@ -181,7 +204,8 @@ public class MerchantElementPayInlineCheckoutService {
             data.put("found", true);
             data.put("paymentStatus", mapPaymentStatus(t.getStatus()));
             data.put("transactionId", t.getTrnId());
-            data.put("approvalNo", t.getApprovalNo());
+            data.put("approvalNo", t.getApprovalNo() != null && !t.getApprovalNo().isBlank()
+                    ? t.getApprovalNo() : t.getChillTransactionId());
             data.put("amount", t.getAmtKrw());
             data.put("currency", t.getCurType());
             data.put("paidAt", t.getPaidAt() != null ? t.getPaidAt().toString() : null);
@@ -203,23 +227,29 @@ public class MerchantElementPayInlineCheckoutService {
     }
 
     private static String mapPaymentStatus(String status) {
-        if (status == null) {
+        if (status == null || status.isBlank()) {
             return "UNKNOWN";
         }
         String u = status.trim().toUpperCase(java.util.Locale.ROOT);
-        if ("APPROVED".equals(u) || "SUCCESS".equals(u) || "PAID".equals(u) || "00".equals(u)) {
-            return "APPROVED";
+        return switch (u) {
+            case "10", "00", "0000", "APPROVED", "SUCCESS", "PAID", "205", "203" -> "PAID";
+            case "08", "PENDING", "READY", "INIT" -> "PENDING";
+            case "20", "21", "CANCEL", "CANCELED", "CANCELLED", "VOID" -> "CANCELLED";
+            case "99", "02", "FAIL", "FAILED", "ERROR", "DECLINED" -> "FAILED";
+            case "42", "30" -> "REFUNDED";
+            case "31" -> "REVERSED";
+            default -> u;
+        };
+    }
+
+    private static String firstNonBlank(String a, String b) {
+        if (a != null && !a.isBlank()) {
+            return a.trim();
         }
-        if ("PENDING".equals(u) || "READY".equals(u) || "INIT".equals(u)) {
-            return "PENDING";
+        if (b != null && !b.isBlank()) {
+            return b.trim();
         }
-        if ("CANCEL".equals(u) || "CANCELED".equals(u) || "CANCELLED".equals(u) || "VOID".equals(u)) {
-            return "CANCELLED";
-        }
-        if ("FAIL".equals(u) || "FAILED".equals(u) || "ERROR".equals(u) || "DECLINED".equals(u)) {
-            return "FAILED";
-        }
-        return u;
+        return "";
     }
 
     private static String normalizeOrderNo(String raw) {

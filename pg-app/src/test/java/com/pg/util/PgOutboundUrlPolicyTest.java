@@ -23,6 +23,13 @@ class PgOutboundUrlPolicyTest {
     }
 
     @Test
+    void keepsNotiMiddlewareHost() {
+        String cand = "https://noti.icopay.net/noti/callback/j20";
+        assertEquals(cand, PgOutboundUrlPolicy.enforceOwnDomain(
+                cand, SAFE, PgOutboundUrlPolicy.allowedIcopayAndNotiBases("https://api.icopay.co.kr", null)));
+    }
+
+    @Test
     void replacesMerchantDomainWithSafeDefault() {
         String cand = "https://shop.merchant-example.com/webhook";
         assertEquals(SAFE, PgOutboundUrlPolicy.enforceOwnDomain(cand, SAFE, "https://api.icopay.co.kr"));

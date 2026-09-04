@@ -26,6 +26,7 @@ import com.pg.util.MerchantPgCredentialUtil;
 import com.pg.util.NotifyToTxnStatusMerge;
 import com.pg.util.PayPresaleRiskFilterCodes;
 import com.pg.util.PgNotifyInternalStatusMapper;
+import com.pg.noti.NotiProvisionClient;
 import com.pg.util.PgOutboundUrlPolicy;
 import com.pg.util.PgTrnsctnOrderLookup;
 import jakarta.servlet.http.HttpServletRequest;
@@ -55,8 +56,9 @@ import java.util.TreeMap;
 
 /**
  * JPAY 샌드박스·운영 {@code pay_index} 직접 호출(서버 사이드).
- * {@code pay_notifyurl}·{@code pay_callbackurl} 은 가맹 {@code tb_merchant_notify_url}(JPAY_NOTIFY/JPAY_CALLBACK)
- * — 노티미들웨어 등 외부 주소 포함 — 을 그대로 사용하고, 없으면 ICOPAY 노티 ingress(cbJpay/rsJpay) 기본값입니다.
+ * {@code pay_notifyurl}·{@code pay_callbackurl} 은 가맹 {@code JPAY_NOTIFY}/{@code JPAY_CALLBACK}
+ * (노티미들웨어 {@code noti.icopay.net} 등)을 우선 사용하고, 없으면 ICOPAY ingress(cbJpay/rsJpay) 기본값입니다.
+ * 가맹 쇼핑몰 도메인은 {@link PgOutboundUrlPolicy} 로 차단합니다. {@code attach} 의 업체코드({@code icopayCompId})는 유지합니다.
  */
 @Service
 public class JpayPaymentService {
@@ -225,8 +227,10 @@ public class JpayPaymentService {
         String notifyPathPrefix = resolveJpayNotifyPathPrefix(agency);
         String defaultNotifyUrl = publicBase + notifyPathPrefix + token + "/" + notifyTarget;
         String defaultCallbackUrl = publicBase + notifyPathPrefix + token + "/" + resultTarget;
-        String notifyUrl = resolveMerchantJpayNotifyUrl(orgUnitId, defaultNotifyUrl);
-        String callbackUrl = resolveMerchantJpayCallbackUrl(orgUnitId, defaultCallbackUrl);
+        String notifyUrl = enforceJpayOutboundNotifyUrl(
+                resolveMerchantJpayNotifyUrl(orgUnitId, defaultNotifyUrl), defaultNotifyUrl, publicBase);
+        String callbackUrl = enforceJpayOutboundNotifyUrl(
+                resolveMerchantJpayCallbackUrl(orgUnitId, defaultCallbackUrl), defaultCallbackUrl, publicBase);
 
         // 가맹 개인정보 보호: PG(pay_url)에는 가맹 몰 도메인을 절대 넣지 않는다. 우리 도메인이 아니면 publicBase 로 강제.
         String siteUrl = PgOutboundUrlPolicy.enforceOwnDomain(str(body.get("payUrl")), publicBase, publicBase);
@@ -445,8 +449,10 @@ public class JpayPaymentService {
         String notifyPathPrefix = resolveJpayNotifyPathPrefix(agency);
         String defaultNotifyUrl = publicBase + notifyPathPrefix + token + "/" + notifyTarget;
         String defaultCallbackUrl = publicBase + notifyPathPrefix + token + "/" + resultTarget;
-        String notifyUrl = resolveMerchantJpayNotifyUrl(orgUnitId, defaultNotifyUrl);
-        String callbackUrl = resolveMerchantJpayCallbackUrl(orgUnitId, defaultCallbackUrl);
+        String notifyUrl = enforceJpayOutboundNotifyUrl(
+                resolveMerchantJpayNotifyUrl(orgUnitId, defaultNotifyUrl), defaultNotifyUrl, publicBase);
+        String callbackUrl = enforceJpayOutboundNotifyUrl(
+                resolveMerchantJpayCallbackUrl(orgUnitId, defaultCallbackUrl), defaultCallbackUrl, publicBase);
 
         // 가맹 개인정보 보호: PG(pay_url)에는 가맹 몰 도메인을 절대 넣지 않는다. 우리 도메인이 아니면 publicBase 로 강제.
         String siteUrl = PgOutboundUrlPolicy.enforceOwnDomain(str(body.get("payUrl")), publicBase, publicBase);
@@ -854,9 +860,9 @@ public class JpayPaymentService {
     }
 
     /**
-     * 가맹 JPAY 수신통보(Notify/Callback) — 노티미들웨어 등 외부 URL을 그대로 {@code pay_notifyurl}/{@code pay_callbackurl} 에 사용합니다.
-     * (2026-07-04 아웃바운드 도메인 강제 치환 이전·7/3 정상 연동 방식. 미들웨어 주소의 PG 노출은 설계상 허용.)
-     * 미등록·미사용·공백일 때만 ICOPAY ingress({@code cbJpay}/{@code rsJpay}) 기본값.
+     * 가맹 JPAY 수신통보(Notify/Callback) — 노티미들웨어({@code noti.icopay.net})·ICOPAY 도메인만 PG 에 전달.
+     * 가맹 쇼핑몰 등 비허용 호스트면 ICOPAY ingress 기본값으로 대체합니다.
+     * 미등록·미사용·공백일 때도 ICOPAY ingress({@code cbJpay}/{@code rsJpay}) 기본값.
      */
     private String resolveMerchantConfiguredNotifyUrl(Long orgUnitId, String urlType, String defaultIngressUrl) {
         if (orgUnitId == null || urlType == null || urlType.isBlank()) {
@@ -875,6 +881,28 @@ public class JpayPaymentService {
             return defaultIngressUrl != null ? defaultIngressUrl : "";
         }
         return u;
+    }
+
+    /**
+     * PG({@code pay_notifyurl}/{@code pay_callbackurl}) 에 실을 URL — ICOPAY·NOTI 호스트만 허용.
+     */
+    private String enforceJpayOutboundNotifyUrl(String candidate, String safeDefault, String publicBase) {
+        String safe = safeDefault != null ? safeDefault : "";
+        String notiBase = NotiProvisionClient.defaultBaseUrlIfBlank(
+                hqNotifyEnvService.getOrCreate().getNotiProvisionBaseUrl());
+        String adminSite = "";
+        Optional<HqApiConfig> cfg = hqApiConfigRepository.findAll().stream().findFirst();
+        if (cfg.isPresent() && cfg.get().getPublicAdminSiteUrl() != null) {
+            adminSite = cfg.get().getPublicAdminSiteUrl().trim();
+        }
+        String[] allowed = PgOutboundUrlPolicy.allowedIcopayAndNotiBases(publicBase, notiBase, adminSite);
+        String enforced = PgOutboundUrlPolicy.enforceOwnDomain(candidate, safe, allowed);
+        String cand = candidate != null ? candidate.trim() : "";
+        if (!cand.isBlank() && !enforced.equals(cand)) {
+            log.warn("JPAY PG 아웃바운드 URL 가맹·외부 도메인 차단 → ICOPAY/NOTI 기본값 host={}",
+                    PgOutboundUrlPolicy.hostOf(cand));
+        }
+        return enforced;
     }
 
     private static String resolveExtraStr(PgAgency agency, String key, String def) {

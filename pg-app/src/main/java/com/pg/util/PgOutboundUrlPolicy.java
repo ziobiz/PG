@@ -6,17 +6,49 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * PG(JPAY·ChillPay 및 추가 PG) 로 나가는 결제 전문에는 <b>가맹점의 도메인·주소가 절대 포함되지 않도록</b>
- * 우리(운영사) 도메인만 허용하는 아웃바운드 URL 정책.
+ * PG(JPAY·ChillPay·ElementPay 및 추가 PG) 로 나가는 결제 전문에는 <b>가맹점의 도메인·주소가 절대 포함되지 않도록</b>
+ * 우리(운영사)·노티미들웨어 도메인만 허용하는 아웃바운드 URL 정책.
  *
  * <p>notifyUrl·callbackUrl·returnUrl·pay_url 등 PG 로 전송되는 모든 URL 은 이 정책을 거쳐,
- * 호스트가 우리 허용 도메인이 아니면 안전한 기본값(우리 ingress/결과 URL)으로 대체한다.
- * 이렇게 하면 가맹 iframe Origin/Referer, 가맹이 등록한 노티 URL, 요청 body 의 payUrl 등
- * 어떤 경로로도 가맹 도메인이 PG 로 새어 나가지 않는다.
+ * 호스트가 우리 허용 도메인이 아니면 안전한 기본값(우리 ingress/NOTI 결과 URL)으로 대체한다.
+ * ICOPAY·NOTI({@code noti.icopay.net}) 노출은 허용하고, 가맹 쇼핑몰 도메인만 차단한다.
+ * 업체코드({@code compId})는 이 정책 대상이 아니다(노티 라우팅용으로 유지).
  */
 public final class PgOutboundUrlPolicy {
 
+    /** 운영 노티미들웨어 기본 베이스 */
+    public static final String DEFAULT_NOTI_BASE = "https://noti.icopay.net";
+    /** 테스트 노티미들웨어 */
+    public static final String DEFAULT_NOTI_TEST_BASE = "https://test.noti.icopay.net";
+    /** 고객·관리 사이트 기본 */
+    public static final String DEFAULT_SITE_BASE = "https://icopay.co.kr";
+
     private PgOutboundUrlPolicy() {
+    }
+
+    /**
+     * PG 아웃바운드 허용 베이스: public API + NOTI 프로비저닝 베이스 + 잘 알려진 ICOPAY/NOTI 호스트.
+     * {@code extra} 에 관리자/고객 사이트 URL 등을 추가할 수 있다.
+     */
+    public static String[] allowedIcopayAndNotiBases(String publicApiBase, String notiProvisionBase, String... extra) {
+        java.util.LinkedHashSet<String> set = new java.util.LinkedHashSet<>();
+        addBase(set, publicApiBase);
+        addBase(set, notiProvisionBase);
+        addBase(set, DEFAULT_NOTI_BASE);
+        addBase(set, DEFAULT_NOTI_TEST_BASE);
+        addBase(set, DEFAULT_SITE_BASE);
+        if (extra != null) {
+            for (String e : extra) {
+                addBase(set, e);
+            }
+        }
+        return set.toArray(new String[0]);
+    }
+
+    private static void addBase(java.util.Set<String> set, String base) {
+        if (base != null && !base.isBlank()) {
+            set.add(base.trim());
+        }
     }
 
     /**

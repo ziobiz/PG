@@ -1522,6 +1522,10 @@ public class ChillPayService {
         if ("icopay.co.kr".equals(h) || "www.icopay.co.kr".equals(h) || h.endsWith(".icopay.co.kr")) {
             return true;
         }
+        /* 노티미들웨어 — PG ReturnUrl 에 NOTI 도메인 허용(가맹 몰 도메인과 구분) */
+        if ("noti.icopay.net".equals(h) || h.endsWith(".noti.icopay.net")) {
+            return true;
+        }
         if (cfg != null) {
             for (String urlStr : List.of(cfg.getPublicAdminSiteUrl(), cfg.getPublicApiBaseUrl())) {
                 if (urlStr == null || urlStr.isBlank()) {

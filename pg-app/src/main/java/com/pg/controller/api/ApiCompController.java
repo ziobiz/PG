@@ -333,6 +333,10 @@ public class ApiCompController {
             @RequestParam(required = false) String urlPayLangMenuUseYn,
             @RequestParam(required = false) String checkoutContactRememberMode,
             @RequestParam(required = false) String urlPayShippingAddressUseYn,
+            @RequestParam(required = false) String urlPayBuyerEmailUseYn,
+            @RequestParam(required = false) String urlPayBuyerCountryUseYn,
+            @RequestParam(required = false) String urlPayBuyerPhoneUseYn,
+            @RequestParam(required = false) String urlPayCheckoutFieldPresetId,
             @RequestParam(required = false) String urlPayInputMode,
             @RequestParam(required = false) String urlPayCardExpiryMode,
             @RequestParam(required = false) String cardAuthMode,
@@ -427,6 +431,9 @@ public class ApiCompController {
                 urlPayLangMenuUseYn,
                 checkoutContactRememberMode,
                 urlPayShippingAddressUseYn,
+                urlPayBuyerEmailUseYn,
+                urlPayBuyerCountryUseYn,
+                urlPayBuyerPhoneUseYn,
                 urlPayInputMode,
                 urlPayCardExpiryMode,
                 cardAuthMode,
@@ -460,6 +467,7 @@ public class ApiCompController {
                 cardRiskPresaleVelIpWinMin,
                 cardRiskPresaleVelIpMax);
         compService.patchMerchantMobileCheckoutMode(saved.getCode(), mobileCheckoutMode);
+        compService.applyMerchantUrlPayCheckoutFieldPreset(saved.getCode(), urlPayCheckoutFieldPresetId);
         compService.applyMerchantOperationRecord(saved.getCode(), operationRecord);
         compService.saveTradeNmForOrg(saved.getId(), tradeNm, compDiv);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("compId", saved.getCode(), "compNm", saved.getName())));
@@ -628,6 +636,10 @@ public class ApiCompController {
             @RequestParam(required = false) String urlPayLangMenuUseYn,
             @RequestParam(required = false) String checkoutContactRememberMode,
             @RequestParam(required = false) String urlPayShippingAddressUseYn,
+            @RequestParam(required = false) String urlPayBuyerEmailUseYn,
+            @RequestParam(required = false) String urlPayBuyerCountryUseYn,
+            @RequestParam(required = false) String urlPayBuyerPhoneUseYn,
+            @RequestParam(required = false) String urlPayCheckoutFieldPresetId,
             @RequestParam(required = false) String urlPayInputMode,
             @RequestParam(required = false) String urlPayCardExpiryMode,
             @RequestParam(required = false) String cardAuthMode,
@@ -729,6 +741,9 @@ public class ApiCompController {
                     urlPayLangMenuUseYn,
                     checkoutContactRememberMode,
                     urlPayShippingAddressUseYn,
+                    urlPayBuyerEmailUseYn,
+                    urlPayBuyerCountryUseYn,
+                    urlPayBuyerPhoneUseYn,
                     urlPayInputMode,
                     urlPayCardExpiryMode,
                     cardAuthMode,
@@ -779,6 +794,7 @@ public class ApiCompController {
                     cardRiskPresaleVelIpMax);
             if (ok) {
                 compService.patchMerchantMobileCheckoutMode(compId, mobileCheckoutMode);
+                compService.applyMerchantUrlPayCheckoutFieldPreset(compId, urlPayCheckoutFieldPresetId);
                 compService.applyMerchantOperationRecord(compId, operationRecord);
                 compService.saveTradeNmByCompCode(compId, tradeNm, compDiv);
             }

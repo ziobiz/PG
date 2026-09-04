@@ -28,6 +28,7 @@ import com.pg.util.ElementPayInlineStatusUtil;
 import com.pg.util.ElementPayPaymentIdUtil;
 import com.pg.util.ElementPayRefundRejectMapper;
 import com.pg.util.PayPresaleRiskFilterCodes;
+import com.pg.util.PgOutboundUrlPolicy;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1276,11 +1277,18 @@ public class ElementPayPaymentService {
     }
 
     public Map<String, Object> queryStatus(Long orgUnitId, String paymentId, String orderNo) {
+        Optional<PgAgency> agOpt = Optional.empty();
         Optional<MerchantPgBinding> bindOpt = findOperationalElementPayBinding(orgUnitId);
-        if (bindOpt.isEmpty()) {
-            return fail("ElementPay 운영 바인딩이 없습니다.", "ELEMENTPAY_PG_MISSING");
+        if (bindOpt.isPresent()) {
+            agOpt = pgAgencyRepository.findByPgCd(trim(bindOpt.get().getPgCd()));
         }
-        Optional<PgAgency> agOpt = pgAgencyRepository.findByPgCd(trim(bindOpt.get().getPgCd()));
+        if (agOpt.isEmpty()) {
+            /* 가맹 바인딩 없거나 비활성 — 본사 ElementPay agency 로 getStatus (집계 MID) */
+            List<PgAgency> agencies = listElementPayAgencies();
+            if (!agencies.isEmpty()) {
+                agOpt = Optional.of(agencies.get(0));
+            }
+        }
         if (agOpt.isEmpty()) {
             return fail("ElementPay PG 설정 없음", "ELEMENTPAY_AGENCY_MISSING");
         }
@@ -1309,10 +1317,15 @@ public class ElementPayPaymentService {
             JsonNode resp = parseEpApiJson("getStatus", cred, entity.getBody());
             Map<String, Object> out = new LinkedHashMap<>();
             out.put("success", !resp.has("error"));
+            if (resp.has("error")) {
+                out.put("message", extractEpErrorMessage(resp));
+                out.put("errorCode", "ELEMENTPAY_STATUS_ERROR");
+            }
             out.put("raw", objectMapper.convertValue(resp, Map.class));
             return out;
         } catch (Exception e) {
-            return fail("ElementPay 상태 조회 실패", "ELEMENTPAY_STATUS_FAILED");
+            log.warn("ElementPay getStatus failed paymentId={} order={}: {}", paymentId, orderNo, e.getMessage());
+            return fail("ElementPay 상태 조회 실패: " + e.getMessage(), "ELEMENTPAY_STATUS_FAILED");
         }
     }
 
@@ -1726,14 +1739,16 @@ public class ElementPayPaymentService {
 
     /**
      * 브라우저 INLINE 복귀 — NOTI {@code /noti/result/elementpay}(JPAY Result 슬롯과 동일 역할).
+     * 가맹 쇼핑몰 도메인은 PG 에 넣지 않으며, ICOPAY·NOTI 호스트만 허용합니다. {@code compId} 쿼리는 유지합니다.
      */
     private String resolveElementPayBrowserReturnUrl(Long orgUnitId, String orderNo, String compId) {
+        String defaultNoti = defaultElementPayNotiResultUrl();
         String configured = resolveMerchantNotiResultUrl(orgUnitId);
         String base;
         if (configured != null && !configured.isBlank()) {
-            base = configured.trim();
+            base = enforceElementPayOutboundReturnUrl(configured.trim(), defaultNoti);
         } else {
-            base = defaultElementPayNotiResultUrl();
+            base = defaultNoti;
         }
         return appendResultMatchQuery(base, orderNo, compId);
     }
@@ -1742,6 +1757,29 @@ public class ElementPayPaymentService {
         String notiBase = NotiProvisionClient.defaultBaseUrlIfBlank(
                 hqNotifyEnvService.getOrCreate().getNotiProvisionBaseUrl());
         return notiBase + "/noti/result/elementpay";
+    }
+
+    /**
+     * ElementPay {@code _successUrl} 등 — ICOPAY·NOTI 도메인만 PG 에 전달.
+     */
+    private String enforceElementPayOutboundReturnUrl(String candidate, String safeDefault) {
+        String safe = safeDefault != null ? safeDefault : PgOutboundUrlPolicy.DEFAULT_NOTI_BASE + "/noti/result/elementpay";
+        String publicBase = "";
+        try {
+            publicBase = trimSlash(productService.resolvePublicCustomerSiteBase(null));
+        } catch (Exception ignored) {
+            /* ignore */
+        }
+        String notiBase = NotiProvisionClient.defaultBaseUrlIfBlank(
+                hqNotifyEnvService.getOrCreate().getNotiProvisionBaseUrl());
+        String[] allowed = PgOutboundUrlPolicy.allowedIcopayAndNotiBases(publicBase, notiBase);
+        String enforced = PgOutboundUrlPolicy.enforceOwnDomain(candidate, safe, allowed);
+        String cand = candidate != null ? candidate.trim() : "";
+        if (!cand.isBlank() && !enforced.equals(cand)) {
+            log.warn("ElementPay PG return URL 가맹·외부 도메인 차단 → NOTI 기본값 host={}",
+                    PgOutboundUrlPolicy.hostOf(cand));
+        }
+        return enforced;
     }
 
     /**

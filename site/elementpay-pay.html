@@ -200,6 +200,9 @@
       var urlPayPricingMode = 'CHECKOUT_CURRENCY';
       var urlPayDisplayFxActive = false;
       var URL_PAY_SHIPPING_USE = false;
+      var URL_PAY_BUYER_EMAIL = true;
+      var URL_PAY_BUYER_COUNTRY = true;
+      var URL_PAY_BUYER_PHONE = true;
       var CHECKOUT_FIELD_MODE = 'FULL';
       var fxShellState = { urlPayFxQuote: null, urlPayFxReloadTimer: null };
       var ADDRESS_FIELD_IDS = ['payStreetAddress1', 'payCity', 'payPostcode'];
@@ -689,14 +692,24 @@
         applyUrlPayFormMode();
       }
 
+      function setFieldWrapVisible(fieldId, visible) {
+        var el = document.getElementById(fieldId);
+        if (!el) return;
+        var wrap = el.closest('.col-12') || el;
+        wrap.style.display = visible ? '' : 'none';
+        if (visible) el.setAttribute('required', 'required');
+        else { el.required = false; el.removeAttribute('required'); }
+      }
+
       function applyUrlPayFormMode() {
-        var m = CHECKOUT_FIELD_MODE;
-        var hideAddress = (m === 'CARD_ONLY' || m === 'CARD_PREFILL') || !URL_PAY_SHIPPING_USE;
-        var hideContact = (m === 'CARD_PREFILL');
-        setFieldsRequired(CONTACT_FIELD_IDS, !hideContact);
-        setFieldsRequired(ADDRESS_FIELD_IDS, m === 'FULL' && URL_PAY_SHIPPING_USE);
+        var hideAddress = !URL_PAY_SHIPPING_USE;
+        setFieldWrapVisible('payEmailAddress', URL_PAY_BUYER_EMAIL);
+        setFieldWrapVisible('payContactCountryCode', URL_PAY_BUYER_COUNTRY);
+        setFieldWrapVisible('payTelephone', URL_PAY_BUYER_PHONE);
+        var anyContact = URL_PAY_BUYER_EMAIL || URL_PAY_BUYER_COUNTRY || URL_PAY_BUYER_PHONE;
         var contactRow = document.getElementById('contactRow');
-        if (contactRow) contactRow.style.display = hideContact ? 'none' : '';
+        if (contactRow) contactRow.style.display = anyContact ? '' : 'none';
+        setFieldsRequired(ADDRESS_FIELD_IDS, URL_PAY_SHIPPING_USE);
         ['billingLabel', 'billingAddressRow'].forEach(function (id) {
           var el = document.getElementById(id);
           if (el) el.style.display = hideAddress ? 'none' : '';
@@ -1167,6 +1180,9 @@
         urlPayPricingMode = String(ctx.urlPayPricingMode || 'CHECKOUT_CURRENCY').toUpperCase();
         urlPayDisplayFxActive = ctx.urlPayDisplayFxActive === true;
         URL_PAY_SHIPPING_USE = String(ctx.urlPayShippingAddressUseYn || 'N').trim().toUpperCase() === 'Y';
+        URL_PAY_BUYER_EMAIL = String(ctx.urlPayBuyerEmailUseYn != null ? ctx.urlPayBuyerEmailUseYn : 'Y').trim().toUpperCase() === 'Y';
+        URL_PAY_BUYER_COUNTRY = String(ctx.urlPayBuyerCountryUseYn != null ? ctx.urlPayBuyerCountryUseYn : 'Y').trim().toUpperCase() === 'Y';
+        URL_PAY_BUYER_PHONE = String(ctx.urlPayBuyerPhoneUseYn != null ? ctx.urlPayBuyerPhoneUseYn : 'Y').trim().toUpperCase() === 'Y';
         window.__payUrlCardCopy = checkoutCtx.urlPayCardCopy || null;
         applyCheckoutFieldMode(ctx.checkoutFieldMode);
 

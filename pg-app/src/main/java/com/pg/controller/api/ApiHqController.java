@@ -25,6 +25,7 @@ import com.pg.service.OrgTabletMenuService;
 import com.pg.service.PayFollowPolicyService;
 import com.pg.service.OrgUnitChangeAuditService;
 import com.pg.service.ServerUsageService;
+import com.pg.service.UrlPayCheckoutFieldPresetService;
 import com.pg.util.CommissionTierJsonHelper;
 import com.pg.util.PercentDecimalHelper;
 import com.pg.util.PgAgencyPayFollowCapability;
@@ -74,6 +75,7 @@ public class ApiHqController {
     private final HqPayCopyTranslationService hqPayCopyTranslationService;
     private final PayFollowPolicyService payFollowPolicyService;
     private final OrgTabletMenuService orgTabletMenuService;
+    private final UrlPayCheckoutFieldPresetService urlPayCheckoutFieldPresetService;
 
     public ApiHqController(CommissionPolicyRepository commissionPolicyRepository,
                            ChargebackFeePolicyRepository chargebackFeePolicyRepository,
@@ -89,7 +91,8 @@ public class ApiHqController {
                            OrgUnitChangeAuditService orgUnitChangeAuditService,
                            HqPayCopyTranslationService hqPayCopyTranslationService,
                            PayFollowPolicyService payFollowPolicyService,
-                           OrgTabletMenuService orgTabletMenuService) {
+                           OrgTabletMenuService orgTabletMenuService,
+                           UrlPayCheckoutFieldPresetService urlPayCheckoutFieldPresetService) {
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.chargebackFeePolicyRepository = chargebackFeePolicyRepository;
         this.hqApiConfigRepository = hqApiConfigRepository;
@@ -105,6 +108,7 @@ public class ApiHqController {
         this.hqPayCopyTranslationService = hqPayCopyTranslationService;
         this.payFollowPolicyService = payFollowPolicyService;
         this.orgTabletMenuService = orgTabletMenuService;
+        this.urlPayCheckoutFieldPresetService = urlPayCheckoutFieldPresetService;
     }
 
     private static PageResult<Map<String, Object>> emptyPage(int page, int size) {
@@ -1739,6 +1743,9 @@ public class ApiHqController {
         data.put("webPaymentHeaderLogoModeDefault", "DEFAULT");
         data.put("webPaymentHeaderSubtitleModeDefault", "DEFAULT");
         data.put("urlPayShippingAddressUseDefaultYn", "N");
+        data.put("urlPayBuyerEmailUseDefaultYn", "Y");
+        data.put("urlPayBuyerCountryUseDefaultYn", "Y");
+        data.put("urlPayBuyerPhoneUseDefaultYn", "Y");
         data.put("urlPayProductNameUseDefaultYn", "Y");
         data.put("urlPayDefaultProductName", "");
         data.put("urlPayDefaultProductCode", "");
@@ -1829,6 +1836,31 @@ public class ApiHqController {
                 data.put("urlPayShippingAddressUseDefaultYn",
                         com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(c.getUrlPayShippingAddressUseDefaultYn(), "N"));
             }
+            if (c.getUrlPayBuyerEmailUseDefaultYn() != null) {
+                data.put("urlPayBuyerEmailUseDefaultYn",
+                        com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(c.getUrlPayBuyerEmailUseDefaultYn(), "Y"));
+            }
+            if (c.getUrlPayBuyerCountryUseDefaultYn() != null) {
+                data.put("urlPayBuyerCountryUseDefaultYn",
+                        com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(c.getUrlPayBuyerCountryUseDefaultYn(), "Y"));
+            }
+            if (c.getUrlPayBuyerPhoneUseDefaultYn() != null) {
+                data.put("urlPayBuyerPhoneUseDefaultYn",
+                        com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(c.getUrlPayBuyerPhoneUseDefaultYn(), "Y"));
+            }
+            try {
+                var defPreset = urlPayCheckoutFieldPresetService.getDefault();
+                if (defPreset != null) {
+                    data.put("urlPayBuyerEmailUseDefaultYn",
+                            com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(defPreset.getBuyerEmailUseYn(), "Y"));
+                    data.put("urlPayBuyerCountryUseDefaultYn",
+                            com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(defPreset.getBuyerCountryUseYn(), "Y"));
+                    data.put("urlPayBuyerPhoneUseDefaultYn",
+                            com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(defPreset.getBuyerPhoneUseYn(), "Y"));
+                    data.put("urlPayShippingAddressUseDefaultYn",
+                            com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(defPreset.getShippingAddressUseYn(), "N"));
+                }
+            } catch (Exception ignored) { }
             if (c.getUrlPayProductNameUseDefaultYn() != null) {
                 data.put("urlPayProductNameUseDefaultYn",
                         com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(c.getUrlPayProductNameUseDefaultYn(), "Y"));
@@ -1961,6 +1993,14 @@ public class ApiHqController {
         c.setWebPaymentHeaderLogoModeDefault(String.valueOf(body.getOrDefault("webPaymentHeaderLogoModeDefault", "DEFAULT")));
         c.setWebPaymentHeaderSubtitleModeDefault(String.valueOf(body.getOrDefault("webPaymentHeaderSubtitleModeDefault", "DEFAULT")));
         c.setUrlPayShippingAddressUseDefaultYn(String.valueOf(body.getOrDefault("urlPayShippingAddressUseDefaultYn", "N")));
+        c.setUrlPayBuyerEmailUseDefaultYn(String.valueOf(body.getOrDefault("urlPayBuyerEmailUseDefaultYn", "Y")));
+        c.setUrlPayBuyerCountryUseDefaultYn(String.valueOf(body.getOrDefault("urlPayBuyerCountryUseDefaultYn", "Y")));
+        c.setUrlPayBuyerPhoneUseDefaultYn(String.valueOf(body.getOrDefault("urlPayBuyerPhoneUseDefaultYn", "Y")));
+        urlPayCheckoutFieldPresetService.syncDefaultFromHqYn(
+                c.getUrlPayBuyerEmailUseDefaultYn(),
+                c.getUrlPayBuyerCountryUseDefaultYn(),
+                c.getUrlPayBuyerPhoneUseDefaultYn(),
+                c.getUrlPayShippingAddressUseDefaultYn());
         c.setUrlPayProductNameUseDefaultYn(String.valueOf(body.getOrDefault("urlPayProductNameUseDefaultYn", "Y")));
         Object dpn = body.get("urlPayDefaultProductName");
         c.setUrlPayDefaultProductName(dpn != null ? dpn.toString() : null);
@@ -2008,8 +2048,12 @@ public class ApiHqController {
         }
         String upForm = body.get("urlPayFormMode") != null ? body.get("urlPayFormMode").toString().trim() : "FULL";
         c.setUrlPayFormMode("SIMPLE".equalsIgnoreCase(upForm) ? "SIMPLE" : "FULL");
-        c.setJpayCheckoutFieldMode(com.pg.urlpay.JpayCheckoutFieldModeUtil.normalize(
-                body.get("jpayCheckoutFieldMode") != null ? body.get("jpayCheckoutFieldMode").toString() : null));
+        /* 레거시 JPAY 필드모드 — 공통 구매자 연락처 토글에서 동기화 */
+        c.setJpayCheckoutFieldMode(com.pg.urlpay.CheckoutBuyerContactUtil.toLegacyCheckoutFieldMode(
+                c.getUrlPayBuyerEmailUseDefaultYn(),
+                c.getUrlPayBuyerCountryUseDefaultYn(),
+                c.getUrlPayBuyerPhoneUseDefaultYn(),
+                c.getUrlPayShippingAddressUseDefaultYn()));
         c.setJpayPhoneDialCodeYn(com.pg.urlpay.JpayPhoneDialCodeUtil.isYes(
                 String.valueOf(body.getOrDefault("jpayPhoneDialCodeYn", "N"))) ? "Y" : "N");
         Object tabTitleJson = body.get("urlPayTabTitleJson");

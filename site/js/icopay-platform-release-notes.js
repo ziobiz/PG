@@ -6,13 +6,227 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '3.81';
+  var CURRENT_LIVE = '3.87';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '3.87',
+      kind: 'minor',
+      date: '2026-09-04',
+      items: {
+        KO: [
+          '본사 구매자입력 프리셋·결제창 표시 기본값(이메일·국가·전화·배송) 선택 문구를 「사용/미사용」→「활성/비활성」으로 통일'
+        ],
+        EN: [
+          'HQ buyer-input preset and checkout display defaults (email·country·phone·shipping): labels changed from Use/Unused to Active/Inactive'
+        ],
+        JP: [
+          '本社の購入者入力プリセット・決済画面表示既定(メール・国・電話・配送)の選択肢を「使用/未使用」→「活性/非活性」に統一'
+        ],
+        CH: [
+          '总部买家输入预设与结账显示默认（邮箱·国家·电话·配送）选项由「使用/未使用」改为「启用/停用」'
+        ],
+        TH: [
+          'พรีเซ็ตช่องผู้ซื้อและค่าแสดงผลหน้าชำระของ HQ (อีเมล·ประเทศ·โทร·ที่อยู่) เปลี่ยนป้ายจาก ใช้/ไม่ใช้ เป็น เปิด/ปิดใช้งาน'
+        ]
+      }
+    },
+    {
+      version: '3.86',
+      kind: 'minor',
+      date: '2026-09-04',
+      items: {
+        KO: [
+          '결제창 구매자입력 프리셋: 본사에서 기본형·1형·2형…을 무제한 관리(표 CRUD). 가맹은 「본사설정따름」=기본형 또는 N형 선택 시 이메일·국가·전화·배송 Y/N 자동 채움',
+          '가맹이 사용 중인 프리셋은 삭제 불가. 기본형 수정은 본사 결제창 표시 기본값과 동기화'
+        ],
+        EN: [
+          'Checkout buyer-input presets: HQ manages Default + 1형·2형… (unlimited table CRUD). Merchants: Follow HQ = Default, or pick N형 to fill email·country·phone·shipping Y/N',
+          'Cannot delete presets in use by merchants. Editing Default syncs HQ checkout display defaults'
+        ],
+        JP: [
+          '決済画面の購入者入力プリセット: 本社が基本型・1型・2型…を無制限管理(表CRUD)。加盟は「本社設定に従う」=基本型、またはN型選択でメール・国・電話・配送のY/Nを自動入力',
+          '加盟使用中のプリセットは削除不可。基本型の編集は本社決済画面表示既定と同期'
+        ],
+        CH: [
+          '结账买家输入预设：总部无限管理默认型·1형·2형…（表 CRUD）。商户「跟随总部」=默认型，或选 N형 自动填入邮箱·国家·电话·配送 Y/N',
+          '商户正在使用的预设不可删除。修改默认型与总部结账显示默认同步'
+        ],
+        TH: [
+          'พรีเซ็ตช่องผู้ซื้อหน้าชำระ: HQ จัดการค่าเริ่มต้น·1형·2형… ไม่จำกัด (ตาราง CRUD) ร้านตาม HQ=ค่าเริ่มต้น หรือเลือก N형 เติม Y/N อีเมล·ประเทศ·โทร·ที่อยู่',
+          'พรีเซ็ตที่ร้านใช้อยู่ลบไม่ได้ แก้ค่าเริ่มต้นซิงก์กับค่าแสดงผลหน้าชำระของ HQ'
+        ]
+      }
+    },
+    {
+      version: '3.85',
+      kind: 'minor',
+      date: '2026-09-04',
+      items: {
+        KO: [
+          '결제창 구매자 입력 공통화: 이메일·국가코드·전화번호(+기존 배송주소)를 본사 기본값·가맹(본사설정 따름)에서 전 PG 동일 적용',
+          '구 JPAY 고객 정보 1·2·3형 UI 제거 — 공통 토글로 대체. URL/API 화면 표시 프리셋은 유지'
+        ],
+        EN: [
+          'Checkout buyer fields unified: email, country code, phone (+ shipping) — HQ defaults and merchant Follow HQ apply to all PGs',
+          'Removed JPAY-only customer field types 1·2·3 UI — replaced by shared toggles. URL/API display presets unchanged'
+        ],
+        JP: [
+          '決済画面の購入者入力を共通化: メール・国コード・電話(+配送)を本社既定・加盟(本社に従う)で全PG同一適用',
+          '旧JPAY顧客情報1・2・3型UI削除—共通トグルに置換。URL/API画面表示プリセットは維持'
+        ],
+        CH: [
+          '结账买家输入统一：邮箱、国家代码、电话（+配送）—总部默认与商户「遵循总部」对全部 PG 生效',
+          '移除仅 JPAY 的客户信息 1·2·3 型 UI，改为共用开关。URL/API 显示预设保留'
+        ],
+        TH: [
+          'รวมช่องผู้ซื้อหน้าชำระ: อีเมล รหัสประเทศ โทร (+ที่อยู่) — ค่า HQ และร้านตาม HQ ใช้ร่วมทุก PG',
+          'ลบ UI แบบ JPAY 1·2·3 แทนด้วยสวิตช์ร่วม พรีเซ็ตแสดงผล URL/API คงเดิม'
+        ]
+      }
+    },
+    {
+      version: '3.84',
+      kind: 'minor',
+      date: '2026-09-04',
+      items: {
+        KO: [
+          'PG 아웃바운드 URL 가맹 비식별 보강: JPAY notify/callback·ElementPay return은 ICOPAY·NOTI(noti.icopay.net)만 허용, 가맹 몰 도메인 차단',
+          '업체코드(compId/icopayCompId)는 노티 라우팅용으로 유지. ChillPay ReturnUrl 신뢰 호스트에 NOTI 도메인 추가'
+        ],
+        EN: [
+          'PG outbound URL hardening: JPAY notify/callback and ElementPay return allow only ICOPAY/NOTI hosts; merchant shop domains blocked',
+          'Merchant code (compId/icopayCompId) kept for notify routing. ChillPay ReturnUrl trust list includes NOTI'
+        ],
+        JP: [
+          'PG送信URL強化: JPAY notify/callback・ElementPay returnはICOPAY・NOTIのみ許可、加盟店ショップドメイン遮断',
+          '業者コード(compId)は通知ルーティング用に維持。ChillPay ReturnUrl信頼ホストにNOTI追加'
+        ],
+        CH: [
+          'PG出站URL加固：JPAY notify/callback、ElementPay return仅允许ICOPAY/NOTI，拦截商户商城域名',
+          '保留商户代码(compId)用于通知路由。ChillPay ReturnUrl信任主机加入NOTI'
+        ],
+        TH: [
+          'เสริม URL ขาออก PG: JPAY notify/callback และ ElementPay return อนุญาตเฉพาะ ICOPAY/NOTI บล็อกโดเมนร้านค้า',
+          'คงรหัสร้าน (compId) สำหรับเร้าต์ notify และเพิ่ม NOTI ในโฮสต์ที่ ChillPay ไว้ใจ'
+        ]
+      }
+    },
+    {
+      version: '3.83',
+      kind: 'minor',
+      date: '2026-09-04',
+      items: {
+        KO: [
+          'ElementPay getStatus 자동 배치 기본 OFF + 완화(최근 2일·5건·30분·지연). 연속 payment_id 조회 재발 방지',
+          '상태 맞춤은 가맹 Status API(자사 주문) 또는 본사 수동 reconcile만. 웹훅 정상화가 1차 경로'
+        ],
+        EN: [
+          'ElementPay auto getStatus batch OFF by default + throttle (2 days, 5/batch, 30 min, delay). Prevents sequential payment_id scans',
+          'Status sync only via merchant Status API (own orders) or HQ manual reconcile; webhooks remain primary'
+        ],
+        JP: [
+          'ElementPay 自動getStatusバッチ既定OFF＋抑制（直近2日・5件・30分・遅延）。連続payment_id照会の再発防止',
+          '状態合わせは加盟Status API（自社注文）または本社手動のみ。Webhookが主経路'
+        ],
+        CH: [
+          'ElementPay 自动 getStatus 批次默认关闭 + 限流（近2天、每批5、30分钟、延迟）。防止连续 payment_id 再发',
+          '状态同步仅商户 Status API（本店订单）或总部手动；Webhook 仍为第一路径'
+        ],
+        TH: [
+          'ปิดชุด getStatus อัตโนมัติเป็นค่าเริ่มต้น + จำกัด (2 วัน ชุดละ 5 ทุก 30 นาที มีดีเลย์) กันสแกน payment_id ซ้ำ',
+          'ซิงก์สถานะเฉพาะ Status API ของร้าน (ออเดอร์ตนเอง) หรือ HQ มือ; webhook เป็นหลัก'
+        ]
+      }
+    },
+    {
+      version: '3.82',
+      kind: 'minor',
+      date: '2026-09-04',
+      items: {
+        KO: [
+          'ElementPay: 웹훅(NOTI→ICOPAY) 누락 시에도 getStatus로 요청(08) 대기건을 성공/거절로 자동·강제 동기화(5분 스케줄·본사 API·가맹 Status API)',
+          '가맹 Status API가 EP 대기건 조회 시 getStatus 재동기화. 결제통보(가맹 Callback)도 상태 반영 후 재발송',
+          'EP 콜백 금액 검증: 실결제·method_amount·표시금액(DP) 일치 허용 — 금액 불일치 475 오판 완화'
+        ],
+        EN: [
+          'ElementPay: auto/force sync of pending (08) via getStatus when NOTI→ICOPAY webhooks are missing (5‑min job, HQ API, merchant Status API)',
+          'Merchant Status API re-syncs EP pending via getStatus; merchant notify fires after update',
+          'EP callback amount check accepts settlement, method_amount, or display (DP) amounts'
+        ],
+        JP: [
+          'ElementPay: NOTI→ICOPAY Webhook欠落時も getStatus で待機(08)を成功/拒否へ自動・強制同期（5分・本社API・加盟Status）',
+          '加盟Status APIが EP 待機時 getStatus 再同期。状態反映後に加盟通知再送',
+          'EPコールバック金額: 実決済・method_amount・表示額(DP)一致を許容'
+        ],
+        CH: [
+          'ElementPay：NOTI→ICOPAY Webhook 缺失时仍用 getStatus 自动/强制同步待处理(08)（5分钟任务、总部 API、商户 Status）',
+          '商户 Status API 对待处理 EP 用 getStatus 再同步；状态更新后重发商户通知',
+          'EP 回调金额校验：实结算 / method_amount / 展示额(DP) 任一匹配即可'
+        ],
+        TH: [
+          'ElementPay: ซิงก์ค้าง (08) อัตโนมัติ/บังคับด้วย getStatus เมื่อ webhook NOTI→ICOPAY ขาด (งาน 5 นาที, API HQ, Status ร้าน)',
+          'Status API ของร้านซิงก์ EP ที่ค้างด้วย getStatus และส่งแจ้งร้านหลังอัปเดต',
+          'ตรวจยอด callback EP: ยอมรับยอดชำระจริง / method_amount / ยอดแสดง (DP)'
+        ]
+      },
+      howTo: {
+        KO: [
+          {
+            title: '대기 EP 건 동기화',
+            steps: [
+              '본사: POST /api/hq/pgApiMng/elementpayReconcilePending — paymentIds 또는 runBatch=true',
+              '가맹: Status API로 orderNo 조회 시 대기건이면 getStatus 자동 동기화',
+              '스케줄: 5분마다 생성 5분 이상 지난 ElementPay 요청(08) 자동 조회 (15분 이상이면 거절 확정)'
+            ]
+          }
+        ],
+        EN: [
+          {
+            title: 'Sync stuck ElementPay txns',
+            steps: [
+              'HQ: POST /api/hq/pgApiMng/elementpayReconcilePending with paymentIds or runBatch=true',
+              'Merchant Status API auto-syncs pending EP via getStatus',
+              'Scheduler every 5 min for ElementPay pending older than 5 min (finalize reject after 15 min)'
+            ]
+          }
+        ],
+        JP: [
+          {
+            title: 'ElementPay 待機の同期',
+            steps: [
+              '本社: POST /api/hq/pgApiMng/elementpayReconcilePending（paymentIds または runBatch=true）',
+              '加盟 Status API が待機時 getStatus 同期',
+              '5分ごとスケジューラ（15分超で拒否確定）'
+            ]
+          }
+        ],
+        CH: [
+          {
+            title: '同步卡住的 ElementPay',
+            steps: [
+              '总部：POST /api/hq/pgApiMng/elementpayReconcilePending（paymentIds 或 runBatch=true）',
+              '商户 Status API 对待处理自动 getStatus',
+              '每 5 分钟调度（超过 15 分钟则确认拒绝）'
+            ]
+          }
+        ],
+        TH: [
+          {
+            title: 'ซิงก์รายการ ElementPay ที่ค้าง',
+            steps: [
+              'HQ: POST /api/hq/pgApiMng/elementpayReconcilePending (paymentIds หรือ runBatch=true)',
+              'Status API ของร้านซิงก์อัตโนมัติเมื่อค้าง',
+              'ทุก 5 นาที (เกิน 15 นาทียืนยันปฏิเสธ)'
+            ]
+          }
+        ]
+      }
+    },
     {
       version: '3.81',
       kind: 'minor',

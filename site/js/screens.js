@@ -288,11 +288,30 @@
       { label: 'HTML 표시명', type: 'text', name: 'webPaymentHeaderHtmlTitle', col: 3, maxlength: 80, placeholder: 'ICOPAY', blockExtraClass: 'web-payment-html-title-field' }],
       [{ type: 'customHtml', col: 12, html: webPaymentHeaderLogoFieldBlock }],
       [{ label: '경고메세지', type: 'select', name: 'webPaymentHeaderSubtitleMode', options: subtitleOpts, col: 3 },
-      { label: '배송주소', type: 'select', name: 'urlPayShippingAddressUseYn', options: [
+       { label: '구매자입력 프리셋', type: 'select', name: 'urlPayCheckoutFieldPresetId', options: [
+        { v: '', t: '본사설정따름' }
+      ], col: 3 }],
+      [{ label: '배송주소', type: 'select', name: 'urlPayShippingAddressUseYn', options: [
         { v: 'FOLLOW_HQ', t: '본사설정 따름' },
         { v: 'N', t: '미사용' },
         { v: 'Y', t: '사용' }
+      ], col: 3 },
+       { label: '이메일', type: 'select', name: 'urlPayBuyerEmailUseYn', options: [
+        { v: 'FOLLOW_HQ', t: '본사설정 따름' },
+        { v: 'Y', t: '사용' },
+        { v: 'N', t: '미사용' }
+      ], col: 3 },
+       { label: '국가코드', type: 'select', name: 'urlPayBuyerCountryUseYn', options: [
+        { v: 'FOLLOW_HQ', t: '본사설정 따름' },
+        { v: 'Y', t: '사용' },
+        { v: 'N', t: '미사용' }
+      ], col: 3 },
+       { label: '전화번호', type: 'select', name: 'urlPayBuyerPhoneUseYn', options: [
+        { v: 'FOLLOW_HQ', t: '본사설정 따름' },
+        { v: 'Y', t: '사용' },
+        { v: 'N', t: '미사용' }
       ], col: 3 }],
+      [{ label: '', type: 'note', col: 12, text: '구매자입력 프리셋: 「본사설정따름」이면 본사 기본형(이메일·국가·전화·배송)을 따릅니다. N형을 고르면 해당 Y/N이 적용됩니다. 전 PG(URL·API 인라인) 공통입니다.' }],
       [{ type: 'customHtml', col: 12, html: webPaymentHeaderSubtitleFieldBlock }],
       merchantWebPaymentDefaultProductRow(),
       [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml(urlPh); } },
@@ -701,32 +720,28 @@
     return [{ v: 'FOLLOW_HQ', t: '본사 기본 따름' }].concat(hqJpayCheckoutFieldModeOptions());
   }
 
-  /** 본사·가맹 공통 — 결제창 구성(① JPAY 고객정보 ② URL 표시 ③ API 표시) */
+  /** 본사·가맹 공통 — 결제창 구성(① URL 표시 ② API 표시). 구매자 연락처는 「결제창 표시 기본값」공통 토글. */
   function hqCheckoutCompositionFormRows() {
     return [
-      [{ label: 'JPAY 고객 정보 입력', type: 'select', name: 'jpayCheckoutFieldMode', options: hqJpayCheckoutFieldModeOptions(), col: 4 },
-       { label: 'URL 화면 표시 기본값', type: 'select', name: 'urlPayInputModeDefault', options: urlPayInputModeTypeOptions(), col: 4 },
+      [{ label: 'URL 화면 표시 기본값', type: 'select', name: 'urlPayInputModeDefault', options: urlPayInputModeTypeOptions(), col: 4 },
        { label: 'API 화면 표시 기본값', type: 'select', name: 'apiUrlPayInputModeDefault', options: urlPayInputModeTypeOptions(), col: 4 }],
-      [{ label: '', type: 'note', col: 12, text: '① JPAY: 인라인·리다이렉트·공개 URL·챗봇·API 등 JPAY 결제 시 이메일·전화를 고객이 입력하는지 / 가맹이 buyerPrefill로 보내는지(3형). 숨김 ≠ 불필요 — 3형은 가맹이 값을 반드시 전달해야 합니다.' }],
-      [{ label: '', type: 'note', col: 12, text: '② URL·③ API: 결제창 로고·상품명·다국어 등 화면 표시 프리셋입니다. URL=공개 링크 결제, API=가맹 API 인라인(entry=merchant_api). 가맹 「입력방식」이 본사정책 따름이면 채널별로 ②·③이 각각 적용됩니다.' }],
-      [{ label: '', type: 'note', col: 12, text: 'JPAY 필수 국가코드(ISO2)는 전화와 분리합니다. 1·2형: 접속국가가 국가코드 기본값. 3형: buyerPrefill.countryIso2(없으면 접속국). 전화는 +82 없이 로컬 번호만.' }]
+      [{ label: '', type: 'note', col: 12, text: 'URL·API: 결제창 로고·상품명·다국어 등 화면 표시 프리셋입니다. URL=공개 링크 결제, API=가맹 API 인라인(entry=merchant_api). 가맹 「입력방식」이 본사정책 따름이면 채널별로 각각 적용됩니다.' }],
+      [{ label: '', type: 'note', col: 12, text: '이메일·국가코드·전화번호·배송주소 입력란은 「결제창 표시 기본값」에서 전 PG 공통으로 설정합니다. (구 JPAY 고객 정보 1·2·3형은 공통 토글로 대체)' }]
     ];
   }
 
-  /** 가맹 등록·정보 — 결제창 구성(① JPAY 고객정보 · ② URL 표시) */
+  /** 가맹 등록·정보 — 결제창 구성(화면 표시). 구매자 연락처는 웹결제 카드의 공통 토글. */
   function merchantCheckoutCompositionCardSection() {
     var inputOpts = [{ v: 'FOLLOW_HQ', t: '본사정책 따름' }].concat(urlPayInputModeTypeOptions());
     return {
       title: '결제창 구성',
       id: 'merchantCheckoutCompositionCard',
       merchantOnly: true,
-      notice: '① JPAY 고객 정보 입력은 운영 결제대행사에 JPAY가 있을 때만 적용됩니다. ② 화면 표시(입력방식)는 URL·API 채널 공통 프리셋이며, 본사정책 따름이면 본사의 URL/API 입력방식 기본값을 채널별로 적용합니다.',
+      notice: '화면 표시(입력방식)는 URL·API 채널 공통 프리셋입니다. 본사정책 따름이면 본사의 URL/API 입력방식 기본값을 채널별로 적용합니다. 이메일·국가·전화·배송주소는 「웹결제」카드에서 설정합니다.',
       rows: [
-        [{ label: 'JPAY 고객 정보 입력', type: 'select', name: 'jpayCheckoutFieldMode', options: merchantJpayCheckoutFieldModeOptions(), col: 4, blockExtraClass: 'pg-jpay-checkout-field-mode-block' },
-         { label: '화면 표시 (입력방식)', type: 'select', name: 'urlPayInputMode', options: inputOpts, col: 4 }],
-        [{ type: 'customHtml', col: 12, html: '<div id="pgJpayCheckoutFieldModeOffHint" class="text-muted small mb-0" style="display:none" data-pg-ui-t="운영 결제대행사에 JPAY가 없어 JPAY 고객 정보 입력은 적용되지 않습니다.">운영 결제대행사에 JPAY가 없어 JPAY 고객 정보 입력은 적용되지 않습니다.</div>' }],
+        [{ label: '화면 표시 (입력방식)', type: 'select', name: 'urlPayInputMode', options: inputOpts, col: 4 }],
         [{ type: 'customHtml', col: 12, html: urlPayInputModeHintHtml }],
-        [{ label: '', type: 'note', col: 12, text: 'JPAY 필수: 국가코드(ISO2)·전화번호는 분리 입력(전화에 +82 등 붙이지 않음). 1·2형은 접속국가가 국가코드 드롭다운 기본값. 3형은 prepare buyerPrefill 의 countryIso2·phone(국가코드 제외). 2형: 주소 숨김. 3형: 카드·성명만 고객 입력.' }]
+        [{ label: '', type: 'note', col: 12, text: '연락처·배송을 화면에서 끄면 가맹 prepare buyerPrefill(또는 동등 필드)로 값을 전달해야 합니다. 숨김 ≠ 불필요.' }]
       ]
     };
   }
@@ -3921,12 +3936,12 @@
         },
         {
           title: '결제창 구성',
-          notice: '가맹이 「본사정책 따름」일 때 적용되는 본사 기본값입니다. ① JPAY 고객 정보 · ② URL 채널 화면 표시 · ③ API 인라인 채널 화면 표시.',
+          notice: '가맹이 「본사정책 따름」일 때 적용되는 본사 기본값입니다. ① URL 채널 화면 표시 · ② API 인라인 채널 화면 표시. 구매자 연락처는 「결제창 표시 기본값」.',
           rows: hqCheckoutCompositionFormRows()
         },
         {
           title: '결제창 표시 기본값',
-          notice: '가맹점명·다국어·자동기억·로고·경고메세지·배송주소·상품명사용의 본사 기본값입니다. 가맹이 「본사설정 따름」이면 여기 값이 적용되고, 가맹에서 직접 고르면 본사보다 우선합니다.',
+          notice: '가맹점명·다국어·자동기억·로고·경고메세지·배송주소·이메일·국가코드·전화번호·상품명사용의 본사 기본값입니다. 가맹이 「본사설정 따름」이면 여기 값이 적용되고, 가맹에서 직접 고르면 본사보다 우선합니다. 전 PG 공통입니다.',
           rows: [
             [{ label: '가맹점명', type: 'select', name: 'urlPayCompanyNameShowDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
              { label: '다국어 메뉴', type: 'select', name: 'urlPayLangMenuUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
@@ -3946,7 +3961,33 @@
               { v: 'DISABLED', t: '미활성' }
             ], col: 3 },
              { label: '경고메세지', type: 'select', name: 'webPaymentHeaderSubtitleModeDefault', options: checkoutHeaderSubtitleModeOptions(false), col: 3 },
-             { label: '배송주소', type: 'select', name: 'urlPayShippingAddressUseDefaultYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 }],
+             { label: '배송주소', type: 'select', name: 'urlPayShippingAddressUseDefaultYn', options: [{ v: 'N', t: '비활성' }, { v: 'Y', t: '활성' }], col: 2 }],
+            [{ label: '이메일', type: 'select', name: 'urlPayBuyerEmailUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
+             { label: '국가코드', type: 'select', name: 'urlPayBuyerCountryUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
+             { label: '전화번호', type: 'select', name: 'urlPayBuyerPhoneUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 }],
+            [{ label: '', type: 'note', col: 12, text: '이메일·국가코드·전화번호·배송주소는 JPAY·ElementPay 등 전 PG 결제창에 동일 적용됩니다. 비활성 시 화면 숨김 — 가맹 prepare buyerPrefill 등으로 전달 필요. 아래 프리셋 표의 「기본형」과 동기화됩니다.' }],
+            [{
+              type: 'customHtml',
+              col: 12,
+              html: '<div class="border rounded p-2 mb-2" id="hqCheckoutFieldPresetWrap">'
+                + '<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">'
+                + '<div class="fw-semibold small" data-pg-ui-t="구매자입력 프리셋">구매자입력 프리셋</div>'
+                + '<div class="d-flex gap-2">'
+                + '<button type="button" class="btn btn-sm btn-outline-primary" id="hqCheckoutFieldPresetAddBtn" data-pg-ui-t="프리셋 추가">프리셋 추가</button>'
+                + '<button type="button" class="btn btn-sm btn-outline-secondary" id="hqCheckoutFieldPresetReloadBtn" data-pg-ui-t="새로고침">새로고침</button>'
+                + '</div></div>'
+                + '<p class="small text-muted mb-2" data-pg-ui-t="hqCheckoutFieldPresetNote">기본형은 삭제할 수 없습니다. 추가 시 1형·2형…으로 자동 명명됩니다. 가맹이 사용 중인 프리셋은 삭제할 수 없습니다. 「본사설정따름」 가맹은 기본형을 따릅니다.</p>'
+                + '<div class="table-responsive"><table class="table table-sm table-bordered mb-0" id="hqCheckoutFieldPresetTable">'
+                + '<thead><tr>'
+                + '<th class="text-center align-middle" data-pg-ui-t="이름">이름</th>'
+                + '<th class="text-center align-middle" data-pg-ui-t="이메일">이메일</th>'
+                + '<th class="text-center align-middle" data-pg-ui-t="국가코드">국가코드</th>'
+                + '<th class="text-center align-middle" data-pg-ui-t="전화번호">전화번호</th>'
+                + '<th class="text-center align-middle" data-pg-ui-t="배송주소">배송주소</th>'
+                + '<th class="text-center align-middle" data-pg-ui-t="가맹사용">가맹사용</th>'
+                + '<th class="text-center align-middle" data-pg-ui-t="관리">관리</th>'
+                + '</tr></thead><tbody></tbody></table></div></div>'
+            }],
             [{ label: '', type: 'note', col: 12, text: '상품명 사용을 「활성(직접입력)」으로 두면 아래 본사 기본 상품이 저장됩니다. 가맹이 「본사설정 따름」이면 결제창에 이 값이 노출되고, 가맹에서 상품명 사용을 직접 설정·입력하면 가맹 값이 우선합니다.' }]
           ]
         },
