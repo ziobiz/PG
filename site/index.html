@@ -340,6 +340,35 @@
         </div>
       </div>
     </div>
+    <!-- 업체등록 — 업체복사 검색 모달 -->
+    <div class="modal fade" id="compRegCopySearchModal" tabindex="-1" aria-labelledby="compRegCopySearchModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="compRegCopySearchModalLabel" data-pg-ui-t="업체복사">업체복사</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" data-pg-ui-aria-label="닫기" aria-label="닫기"></button>
+          </div>
+          <div class="modal-body">
+            <p class="text-muted small" id="compRegCopySearchHint" data-pg-ui-t="선택한 업체구분과 동일한 조직만 검색·복사됩니다. 로그인ID·비밀번호는 복사되지 않습니다.">선택한 업체구분과 동일한 조직만 검색·복사됩니다. 로그인ID·비밀번호는 복사되지 않습니다.</p>
+            <div class="row mb-3">
+              <div class="col-md-8">
+                <input type="text" class="form-control form-control-sm" id="compRegCopySearchKeyword" data-pg-ui-placeholder="업체코드 또는 업체명" placeholder="업체코드 또는 업체명">
+              </div>
+              <div class="col-md-4">
+                <button type="button" class="btn btn-primary btn-sm" id="compRegCopySearchBtn" data-pg-ui-t="검색">검색</button>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-sm table-hover">
+                <thead><tr><th data-pg-ui-t="선택">선택</th><th data-pg-ui-t="업체코드">업체코드</th><th data-pg-ui-t="업체명">업체명</th><th data-pg-ui-t="구분">구분</th></tr></thead>
+                <tbody id="compRegCopySearchTbody"></tbody>
+              </table>
+            </div>
+            <p class="text-muted small mb-0" data-pg-ui-t="행을 클릭하면 해당 업체 정보가 등록 폼에 복사됩니다.">행을 클릭하면 해당 업체 정보가 등록 폼에 복사됩니다.</p>
+          </div>
+        </div>
+      </div>
+    </div>
     <!-- 수수료 설정 모달 (수수료관리 화면용) -->
     <div class="modal fade" id="commissionSettingModal" tabindex="-1" aria-labelledby="commissionSettingModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-xl modal-dialog-scrollable">

@@ -21,4 +21,7 @@ public interface NotiProvisionLogRepository extends JpaRepository<NotiProvisionL
     Integer findMaxSlotForCurrency(@Param("baseCurrency") String baseCurrency, @Param("minSlot") int minSlot);
 
     Optional<NotiProvisionLog> findFirstByOrgUnitIdOrderByProvisionedAtDescIdDesc(Long orgUnitId);
+
+    /** 사용자별 최근 노티생성 성공 시각 — OTP 20분 유예 판정용 */
+    Optional<NotiProvisionLog> findFirstByProvisionedByIgnoreCaseOrderByProvisionedAtDescIdDesc(String provisionedBy);
 }

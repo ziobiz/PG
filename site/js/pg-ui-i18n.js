@@ -1853,6 +1853,60 @@
     },
     '승인': { EN: 'Approved', JP: '承認', CH: '授权', TH: 'อนุมัติ' },
     '전체': { EN: 'All', JP: 'すべて', CH: '全部', TH: 'ทั้งหมด' },
+    '업체복사': {
+      EN: 'Copy company',
+      JP: '業者コピー',
+      CH: '复制商户',
+      TH: 'คัดลอกบริษัท'
+    },
+    '복사하기': {
+      EN: 'Copy',
+      JP: 'コピー',
+      CH: '复制',
+      TH: 'คัดลอก'
+    },
+    '선택한 업체구분과 동일한 조직만 검색·복사됩니다. 로그인ID·비밀번호는 복사되지 않습니다.': {
+      EN: 'Only orgs of the selected type are searched. Login ID and password are not copied.',
+      JP: '選択した組織区分と同一のものだけ検索・コピーします。ログインID・パスワードはコピーしません。',
+      CH: '仅搜索并复制所选组织类型。不复制登录 ID 与密码。',
+      TH: 'ค้นหาและคัดลอกเฉพาะองค์กรประเภทที่เลือก ไม่คัดลอก Login ID และรหัสผ่าน'
+    },
+    '행을 클릭하면 해당 업체 정보가 등록 폼에 복사됩니다.': {
+      EN: 'Click a row to copy that company into the registration form.',
+      JP: '行をクリックすると登録フォームにコピーされます。',
+      CH: '点击行即可复制到注册表单。',
+      TH: 'คลิกแถวเพื่อคัดลอกไปยังฟอร์มลงทะเบียน'
+    },
+    '업체구분을 먼저 선택하세요.': {
+      EN: 'Select the organization type first.',
+      JP: '先に組織区分を選択してください。',
+      CH: '请先选择组织类型。',
+      TH: 'กรุณาเลือกประเภทองค์กรก่อน'
+    },
+    '선택한 업체구분과 다른 조직입니다. 같은 구분으로만 복사할 수 있습니다.': {
+      EN: 'Organization type does not match. Copy only within the same type.',
+      JP: '組織区分が一致しません。同一区分のみコピーできます。',
+      CH: '组织类型不一致，仅可复制相同类型。',
+      TH: 'ประเภทองค์กรไม่ตรง คัดลอกได้เฉพาะประเภทเดียวกัน'
+    },
+    '업체 정보가 복사되었습니다. 로그인ID·비밀번호를 새로 입력한 뒤 저장하세요.': {
+      EN: 'Company data copied. Enter a new login ID and password, then save.',
+      JP: '業者情報をコピーしました。ログインID・パスワードを新規入力して保存してください。',
+      CH: '已复制商户信息。请重新输入登录 ID 和密码后保存。',
+      TH: 'คัดลอกข้อมูลแล้ว กรุณาใส่ Login ID และรหัสผ่านใหม่แล้วบันทึก'
+    },
+    '업체복사 실패': {
+      EN: 'Copy company failed',
+      JP: '業者コピー失敗',
+      CH: '复制商户失败',
+      TH: 'คัดลอกบริษัทไม่สำเร็จ'
+    },
+    '조회된 업체가 없습니다.': {
+      EN: 'No companies found.',
+      JP: '該当する業者がありません。',
+      CH: '未查询到商户。',
+      TH: 'ไม่พบบริษัท'
+    },
     '건': { EN: '', JP: '件', CH: '笔', TH: 'รายการ' },
     '해당 기간 거래가 없습니다.': {
       EN: 'No transactions in this period.',
@@ -15397,6 +15451,19 @@
       TH: 'แถวนี้รับผิดชอบเพียงประเภทที่เลือกหนึ่งประเภท'
     },
     'OFF': { EN: 'OFF', JP: 'OFF', CH: 'OFF', TH: 'OFF' },
+    'ON': { EN: 'ON', JP: 'ON', CH: 'ON', TH: 'ON' },
+    '통보': {
+      EN: 'Notify',
+      JP: '通知',
+      CH: '通知',
+      TH: 'แจ้งเตือน'
+    },
+    '고객 거래명세서 이메일 발송이 사용이면 ON, 아니면 OFF (가맹점만)': {
+      EN: 'ON if customer receipt email sending is enabled; otherwise OFF (merchants only)',
+      JP: '顧客取引明細書メール送信が使用ならON、それ以外はOFF（加盟店のみ）',
+      CH: '客户交易明细邮件发用为「使用」则 ON，否则 OFF（仅商户）',
+      TH: 'ON หากส่งอีเมลใบเสร็จลูกค้าเป็นใช้ มิฉะนั้น OFF (เฉพาะร้านค้า)'
+    },
     'T': { EN: 'T', JP: 'T', CH: 'T', TH: 'T' },
     'D': { EN: 'D', JP: 'D', CH: 'D', TH: 'D' },
     /* /hq/apiConfig — API配信設定 */

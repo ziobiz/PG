@@ -392,15 +392,15 @@
   };
 
   var QD = {
-    day: optMap({ EN: 'Today', JP: '当日', CH: '今天', TH: 'วันนี้' }),
-    month: optMap({ EN: 'This month', JP: '当月', CH: '本月', TH: 'เดือนนี้' }),
-    prevDay: optMap({ EN: 'Prev. day', JP: '前日', CH: '昨天', TH: 'เมื่อวาน' }),
-    week: optMap({ EN: '1 week', JP: '1週', CH: '1周', TH: '1 สัปดาห์' }),
-    week2: optMap({ EN: '2 weeks', JP: '2週', CH: '2周', TH: '2 สัปดาห์' }),
-    prevMonth: optMap({ EN: 'Prev. month', JP: '前月', CH: '上月', TH: 'เดือนก่อน' }),
-    prevMonth2: optMap({ EN: '2 months ago', JP: '2ヶ月前', CH: '两个月前', TH: '2 เดือนก่อน' }),
-    weekCal: optMap({ EN: 'This week', JP: '今週', CH: '本周', TH: 'สัปดาห์นี้' }),
-    prevWeekCal: optMap({ EN: 'Last week', JP: '先週', CH: '上周', TH: 'สัปดาห์ที่แล้ว' })
+    day: { KO: '당일', EN: 'Today', JP: '当日', CH: '今天', TH: 'วันนี้' },
+    month: { KO: '당월', EN: 'This month', JP: '当月', CH: '本月', TH: 'เดือนนี้' },
+    prevDay: { KO: '전일', EN: 'Prev. day', JP: '前日', CH: '昨天', TH: 'เมื่อวาน' },
+    week: { KO: '1주', EN: '1 week', JP: '1週', CH: '1周', TH: '1 สัปดาห์' },
+    week2: { KO: '2주', EN: '2 weeks', JP: '2週', CH: '2周', TH: '2 สัปดาห์' },
+    prevMonth: { KO: '전월', EN: 'Prev. month', JP: '前月', CH: '上月', TH: 'เดือนก่อน' },
+    prevMonth2: { KO: '2개월 전', EN: '2 months ago', JP: '2ヶ月前', CH: '两个月前', TH: '2 เดือนก่อน' },
+    weekCal: { KO: '이번 주', EN: 'This week', JP: '今週', CH: '本周', TH: 'สัปดาห์นี้' },
+    prevWeekCal: { KO: '지난 주', EN: 'Last week', JP: '先週', CH: '上周', TH: 'สัปดาห์ที่แล้ว' }
   };
 
   var PAY_FOLLOW = {

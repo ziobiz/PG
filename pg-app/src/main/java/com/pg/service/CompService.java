@@ -1115,6 +1115,9 @@ public class CompService {
         }
         String cId = (compId != null && !compId.trim().isEmpty()) ? compId.trim() : null;
         String cNm = (compNm != null && !compNm.trim().isEmpty()) ? compNm.trim() : null;
+        /* 업체코드·업체명 검색은 대소문자 구분 없음 (업체복사 등) */
+        String cIdLower = cId != null ? cId.toLowerCase(Locale.ROOT) : null;
+        String cNmLower = cNm != null ? cNm.toLowerCase(Locale.ROOT) : null;
         String cDiv = (compDiv != null && !compDiv.trim().isEmpty()) ? compDiv.trim() : null;
         List<OrgUnit> all = orgUnitRepository.findAll();
         Map<Long, OrgUnit> allById = all.stream()
@@ -1145,14 +1148,15 @@ public class CompService {
         if (Boolean.TRUE.equals(includeSub) && cId != null) {
             Set<Long> subtreeIds = new HashSet<>();
             for (OrgUnit o : scoped) {
-                if (o.getCode() != null && o.getCode().contains(cId)) {
+                if (o.getCode() != null && o.getCode().toLowerCase(Locale.ROOT).contains(cIdLower)) {
                     subtreeIds.add(o.getId());
                     subtreeIds.addAll(collectDescendantIds(o.getId()));
                 }
             }
             filtered = scoped.stream()
                     .filter(o -> subtreeIds.contains(o.getId()))
-                    .filter(o -> (cNm == null || (o.getName() != null && o.getName().contains(cNm))))
+                    .filter(o -> (cNmLower == null || (o.getName() != null
+                            && o.getName().toLowerCase(Locale.ROOT).contains(cNmLower))))
                     .filter(o -> (cDiv == null || (o.getOrgLevel() != null && o.getOrgLevel().name().equals(cDiv))))
                     .filter(o -> matchUseYn(o, useYn))
                     .filter(o -> matchPayHoldYn(o, payHoldYn))
@@ -1162,8 +1166,10 @@ public class CompService {
                     .collect(Collectors.toList());
         } else {
             filtered = scoped.stream()
-                    .filter(o -> (cId == null || (o.getCode() != null && o.getCode().contains(cId))))
-                    .filter(o -> (cNm == null || (o.getName() != null && o.getName().contains(cNm))))
+                    .filter(o -> (cIdLower == null || (o.getCode() != null
+                            && o.getCode().toLowerCase(Locale.ROOT).contains(cIdLower))))
+                    .filter(o -> (cNmLower == null || (o.getName() != null
+                            && o.getName().toLowerCase(Locale.ROOT).contains(cNmLower))))
                     .filter(o -> (cDiv == null || (o.getOrgLevel() != null && o.getOrgLevel().name().equals(cDiv))))
                     .filter(o -> matchUseYn(o, useYn))
                     .filter(o -> matchPayHoldYn(o, payHoldYn))
@@ -5550,6 +5556,7 @@ public class CompService {
                 : "-");
         m.put("payIntegrationMode", resolvePayIntegrationModeDisplay(o));
         m.put("apiIntegrationChannel", resolveApiIntegrationChannelDisplay(o));
+        m.put("receiptEmailNotify", resolveReceiptEmailNotifyDisplay(o));
         m.put("urlPayInputModeLabel", resolveUrlPayInputModeDisplay(o));
         findNearestMasterDistAncestorId(o.getId()).ifPresentOrElse(
                 mid -> m.put("masterDistScopeOrgId", mid),
@@ -5590,6 +5597,21 @@ public class CompService {
             m.put("payHoldYn", payHoldYnToDisplay(ss.getPayHoldYn()));
         });
         return m;
+    }
+
+    /**
+     * 업체관리 「통보」— 업체등록 고객 거래명세서 이메일 「발송」이 사용(Y)이면 ON, 아니면 OFF. 비가맹은 -.
+     */
+    private String resolveReceiptEmailNotifyDisplay(OrgUnit o) {
+        if (o == null || o.getOrgLevel() != OrgLevel.MERCHANT || o.getId() == null) {
+            return "-";
+        }
+        return merchantProfileRepository.findByOrgUnitId(o.getId())
+                .map(mp -> {
+                    String use = mp.getReceiptEmailUseYn();
+                    return (use != null && "Y".equalsIgnoreCase(use.trim())) ? "ON" : "OFF";
+                })
+                .orElse("OFF");
     }
 
     /**

@@ -6,13 +6,133 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '4.02';
+  var CURRENT_LIVE = '4.07';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '4.07',
+      kind: 'minor',
+      date: '2026-09-15',
+      items: {
+        KO: [
+          '노티관리 OTP: 성공 등록 후 20분 유예가 실제 저장에도 적용(메모리·세션·생성이력). 저장 직전 상태 재동기화'
+        ],
+        EN: [
+          'NOTI provision OTP: 20-minute grace after success now applies on save (memory·session·provision log); re-sync before save'
+        ],
+        JP: [
+          'ノティ管理OTP: 成功登録後20分の猶予を保存時にも適用(メモリ・セッション・履歴)。保存直前に再同期'
+        ],
+        CH: [
+          '通知管理 OTP：成功注册后 20 分钟宽限在保存时生效（内存·会话·创建记录）；保存前重新同步'
+        ],
+        TH: [
+          'OTP จัดการ NOTI: ผ่อนผัน 20 นาทีหลังสำเร็จใช้ตอนบันทึกจริง (หน่วยความจำ·เซสชัน·ประวัติ) ซิงก์ก่อนบันทึก'
+        ]
+      }
+    },
+    {
+      version: '4.06',
+      kind: 'minor',
+      date: '2026-09-15',
+      items: {
+        KO: [
+          '업체관리: 채널과 정산주기 사이 「통보」열 — 고객 거래명세서 이메일 발송 사용=ON / 미사용=OFF (가맹점)'
+        ],
+        EN: [
+          'Company list: Notify column between Channel and Settlement cycle — receipt email Use=ON / unused=OFF (merchants)'
+        ],
+        JP: [
+          '業者管理: チャネルと精算周期の間に「通知」列 — 顧客取引明細書メール送信が使用=ON / 未使用=OFF（加盟店）'
+        ],
+        CH: [
+          '企业管理：渠道与结算周期之间「通知」列 — 客户交易明细邮件发用=ON / 未使用=OFF（商户）'
+        ],
+        TH: [
+          'จัดการบริษัท: คอลัมน์แจ้งเตือนระหว่างช่องทางกับรอบชำระ — ส่งอีเมลใบเสร็จลูกค้าใช้=ON / ไม่ใช้=OFF (ร้านค้า)'
+        ]
+      }
+    },
+    {
+      version: '4.05',
+      kind: 'minor',
+      date: '2026-09-14',
+      items: {
+        KO: [
+          '업체복사 검색: 업체명(·업체코드) 대소문자 구분 없이 조회'
+        ],
+        EN: [
+          'Copy company search: company name (and code) match case-insensitively'
+        ],
+        JP: [
+          '業者コピー検索: 業者名・コードは大文字小文字を区別しない'
+        ],
+        CH: [
+          '复制商户搜索：商户名（及代码）不区分大小写'
+        ],
+        TH: [
+          'ค้นหาคัดลอกบริษัท: ชื่อ(และรหัส) ไม่แยกตัวพิมพ์เล็ก/ใหญ่'
+        ]
+      }
+    },
+    {
+      version: '4.04',
+      kind: 'minor',
+      date: '2026-09-14',
+      items: {
+        KO: [
+          '업체등록: [업체복사] — 동일 업체구분 검색 후 기본정보 복사(가맹점은 상세·계좌·출금제한 포함). 로그인ID·비밀번호·상위는 미복사',
+          'Cursor Java Language Server: 워크스페이스에서 site/·대용량 경로 제외(크래시 완화)'
+        ],
+        EN: [
+          'Company register: [Copy company] — search same org type; basic fields (merchant also detail/account/withdraw). Login/password/parent not copied',
+          'Cursor Java LS: exclude site/ and heavy paths in workspace settings'
+        ],
+        JP: [
+          '業者登録: [業者コピー] — 同一区分を検索し基本情報をコピー(加盟店は詳細・口座・出金制限も)。ログイン・上位は非コピー',
+          'Cursor Java LS: ワークスペースで site/ 等を除外'
+        ],
+        CH: [
+          '企业注册：[复制商户] — 同类型搜索后复制基本信息（商户含详情/账户/出金限制）。不复制登录与上级',
+          'Cursor Java LS：工作区排除 site/ 等大目录'
+        ],
+        TH: [
+          'ลงทะเบียนบริษัท: [คัดลอก] — ค้นหาประเภทเดียวกัน คัดลอกข้อมูลพื้นฐาน (ร้านค้ามีรายละเอียด/บัญชี/จำกัดถอน) ไม่คัดลอก Login/parent',
+          'Cursor Java LS: ตัด site/ และโฟลเดอร์ใหญ่ใน workspace'
+        ]
+      }
+    },
+    {
+      version: '4.03',
+      kind: 'minor',
+      date: '2026-09-14',
+      items: {
+        KO: [
+          '결제내역 빠른기간(당일·당월·전일 등): 한국어만 「전체」로 보이던 오류 수정',
+          '빠른기간 라벨 사전 KO를 optMap(전체) 오염에서 분리'
+        ],
+        EN: [
+          'Pay list quick-date buttons: fixed Korean-only showing All instead of Today/This month/…',
+          'Separated QD Korean labels from optMap All placeholder'
+        ],
+        JP: [
+          '決済履歴のクイック期間: 韓国語だけ「全体」になる不具合を修正',
+          'クイック期間の韓国語ラベルを optMap(全体) 汚染から分離'
+        ],
+        CH: [
+          '支付明细快捷期间：修复仅韩语显示「全部」的问题',
+          '快捷期间韩文标签与 optMap「全部」占位分离'
+        ],
+        TH: [
+          'ปุ่มช่วงเร็วรายการชำระ: แก้บั๊กภาษาเกาหลีโชว์ 「전체」แทน วันนี้/เดือนนี้',
+          'แยกป้าย KO ของช่วงเร็วออกจาก placeholder 「전체」ของ optMap'
+        ]
+      }
+    },
     {
       version: '4.02',
       kind: 'minor',

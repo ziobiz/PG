@@ -29,7 +29,13 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -58,7 +64,11 @@ public class OpsNotiProvisionService {
 
     private static final long PROVISION_OTP_GRACE_MS = PROVISION_OTP_GRACE_MINUTES * 60L * 1000L;
 
-    /** 사용자별 마지막 노티생성 OTP 통과 시각(ms) */
+    /** 세션에 보관하는 OTP 통과 시각(재시작·인스턴스 간 보완용, sticky session) */
+    private static final String SESSION_OTP_PASSED_AT_MS = "opsNotiProvisionOtpPassedAtMs";
+    private static final String SESSION_OTP_PASSED_USER = "opsNotiProvisionOtpPassedUser";
+
+    /** 사용자별 마지막 노티생성 OTP 통과 시각(ms) — 프로세스 내 캐시 */
     private final ConcurrentHashMap<String, Long> provisionOtpPassedAtMs = new ConcurrentHashMap<>();
 
     private final HqNotifyEnvService hqNotifyEnvService;
@@ -134,7 +144,13 @@ public class OpsNotiProvisionService {
             m.put("otpRequiredForProvision", otpRequired);
             m.put("otpGraceMinutes", PROVISION_OTP_GRACE_MINUTES);
             if (!otpRequired) {
-                Long at = provisionOtpPassedAtMs.get(uname);
+                Long at = provisionOtpPassedAtMs.get(otpUserKey(uname));
+                if (at == null) {
+                    at = readSessionOtpPassedAtMs(otpUserKey(uname));
+                }
+                if (at == null) {
+                    at = readDbOtpPassedAtMs(uname);
+                }
                 if (at != null) {
                     m.put("otpGraceExpiresAtMs", at + PROVISION_OTP_GRACE_MS);
                 }
@@ -410,6 +426,7 @@ public class OpsNotiProvisionService {
                 totp = String.valueOf(body.get("otp")).trim();
             }
             authService.verifyTotpOrThrow(user, totp);
+            markProvisionOtpPassed(username);
         }
         String compId = str(body, "compId");
         if (compId.isEmpty()) {
@@ -984,6 +1001,7 @@ public class OpsNotiProvisionService {
                 totp = String.valueOf(body.get("otp")).trim();
             }
             authService.verifyTotpOrThrow(user, totp);
+            markProvisionOtpPassed(username);
         }
     }
 
@@ -1516,21 +1534,111 @@ public class OpsNotiProvisionService {
     }
 
     private boolean requiresProvisionOtp(String username) {
-        if (username == null || username.isBlank()) {
+        String key = otpUserKey(username);
+        if (key.isEmpty()) {
             return true;
         }
-        Long at = provisionOtpPassedAtMs.get(username.trim());
-        if (at == null) {
-            return true;
+        long now = System.currentTimeMillis();
+        Long memAt = provisionOtpPassedAtMs.get(key);
+        if (memAt != null && now - memAt <= PROVISION_OTP_GRACE_MS) {
+            return false;
         }
-        return System.currentTimeMillis() - at > PROVISION_OTP_GRACE_MS;
+        Long sessionAt = readSessionOtpPassedAtMs(key);
+        if (sessionAt != null && now - sessionAt <= PROVISION_OTP_GRACE_MS) {
+            provisionOtpPassedAtMs.put(key, sessionAt);
+            return false;
+        }
+        Long dbAt = readDbOtpPassedAtMs(username);
+        if (dbAt != null && now - dbAt <= PROVISION_OTP_GRACE_MS) {
+            provisionOtpPassedAtMs.put(key, dbAt);
+            writeSessionOtpPassedAtMs(key, dbAt);
+            return false;
+        }
+        return true;
     }
 
     private void markProvisionOtpPassed(String username) {
-        if (username == null || username.isBlank()) {
+        String key = otpUserKey(username);
+        if (key.isEmpty()) {
             return;
         }
-        provisionOtpPassedAtMs.put(username.trim(), System.currentTimeMillis());
+        long now = System.currentTimeMillis();
+        provisionOtpPassedAtMs.put(key, now);
+        writeSessionOtpPassedAtMs(key, now);
+    }
+
+    private static String otpUserKey(String username) {
+        if (username == null || username.isBlank()) {
+            return "";
+        }
+        return username.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private Long readDbOtpPassedAtMs(String username) {
+        if (username == null || username.isBlank()) {
+            return null;
+        }
+        try {
+            Optional<NotiProvisionLog> last = notiProvisionLogRepository
+                    .findFirstByProvisionedByIgnoreCaseOrderByProvisionedAtDescIdDesc(username.trim());
+            if (last.isEmpty() || last.get().getProvisionedAt() == null) {
+                return null;
+            }
+            return last.get().getProvisionedAt()
+                    .atZone(ZoneId.systemDefault())
+                    .toInstant()
+                    .toEpochMilli();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private Long readSessionOtpPassedAtMs(String userKey) {
+        try {
+            HttpSession session = currentHttpSession(false);
+            if (session == null) {
+                return null;
+            }
+            Object userAttr = session.getAttribute(SESSION_OTP_PASSED_USER);
+            if (userAttr == null || !userKey.equals(String.valueOf(userAttr).trim().toLowerCase(Locale.ROOT))) {
+                return null;
+            }
+            Object atAttr = session.getAttribute(SESSION_OTP_PASSED_AT_MS);
+            if (atAttr instanceof Number n) {
+                return n.longValue();
+            }
+            if (atAttr != null) {
+                return Long.parseLong(String.valueOf(atAttr).trim());
+            }
+        } catch (Exception ignored) {
+            /* 세션 미사용·비동기 스레드 등 */
+        }
+        return null;
+    }
+
+    private void writeSessionOtpPassedAtMs(String userKey, long atMs) {
+        try {
+            HttpSession session = currentHttpSession(true);
+            if (session == null) {
+                return;
+            }
+            session.setAttribute(SESSION_OTP_PASSED_USER, userKey);
+            session.setAttribute(SESSION_OTP_PASSED_AT_MS, atMs);
+        } catch (Exception ignored) {
+            /* 세션 미사용·비동기 스레드 등 */
+        }
+    }
+
+    private static HttpSession currentHttpSession(boolean create) {
+        try {
+            if (!(RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attrs)) {
+                return null;
+            }
+            HttpServletRequest req = attrs.getRequest();
+            return req != null ? req.getSession(create) : null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private static String mapRelayFormat(String v) {

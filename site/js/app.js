@@ -4488,7 +4488,9 @@
     function updateOpsNpOtpUi(meta) {
       var otpWrap = pane.querySelector('#opsNpOtpWrap');
       var graceHint = pane.querySelector('#opsNpOtpGraceHint');
-      var otpRequired = meta && meta.otpRequiredForProvision === false ? false : true;
+      var rawReq = meta && meta.otpRequiredForProvision;
+      /* false / "false" 만 유예. 그 외(true·미전달)는 OTP 필요 */
+      var otpRequired = !(rawReq === false || String(rawReq).toLowerCase() === 'false');
       opsNpOtpRequired = otpRequired;
       npLogEditCtx.opsNpOtpRequired = otpRequired;
       if (otpWrap) otpWrap.classList.toggle('d-none', !otpRequired);
@@ -5191,22 +5193,39 @@
           ? 'NOTI에 ElementPay 가맹을 생성(또는 조회)합니다. Webhook·Result 고정 URL을 수신통보에 반영합니다. 계속하시겠습니까?'
           : 'NOTI에 JPAY 가맹을 생성(또는 조회)하고 ICOPAY 업체 URL을 반영합니다. 계속하시겠습니까?';
         if (!confirm(pgAdminUiT(confirmMsg))) return;
-        if (opsNpOtpRequired) {
-          var otpVal = (pane.querySelector('#opsNpProvisionOtp') || {}).value || '';
-          if (!String(otpVal).trim()) {
-            alert(pgAdminUiT('노티생성 등록을 위해 Google OTP 6자리를 입력하세요.'));
-            return;
-          }
-        }
         var dimm = document.getElementById('dimm');
         if (dimm) dimm.style.display = 'flex';
         var body = collectOpsNpProvisionBody(cid);
-        window.PG_API.opsNotiProvision(body).then(function (data) {
-          renderOpsNpResult(data);
-          loadOpsNpList(1);
-          updateOpsNpOtpUi(data);
-          alert(pgAdminUiT(data.message || '처리되었습니다.'));
-        }).catch(function (e) { alert(pgErrMsg(e, '노티관리 실패')); })
+        function runOpsNpProvision() {
+          return window.PG_API.opsNotiProvision(body).then(function (data) {
+            renderOpsNpResult(data);
+            loadOpsNpList(1);
+            updateOpsNpOtpUi(data);
+            alert(pgAdminUiT(data.message || '처리되었습니다.'));
+          });
+        }
+        /* 저장 직전 OTP 유예 상태를 서버와 재동기화(화면만 유예로 남은 경우 방지) */
+        var syncOtp = (window.PG_API && typeof window.PG_API.opsNotiProvisionAccess === 'function')
+          ? window.PG_API.opsNotiProvisionAccess().then(function (meta) {
+              updateOpsNpOtpUi(meta);
+              if (opsNpOtpRequired) {
+                var otpVal = (pane.querySelector('#opsNpProvisionOtp') || {}).value || '';
+                if (!String(otpVal).trim()) {
+                  var prompted = window.prompt(pgAdminUiT('노티생성 등록을 위해 Google OTP 6자리를 입력하세요.'));
+                  if (prompted == null || !String(prompted).trim()) {
+                    return Promise.reject(new Error(pgAdminUiT('OTP 코드를 입력하세요.')));
+                  }
+                  body.totpCode = String(prompted).trim();
+                } else {
+                  body.totpCode = String(otpVal).trim();
+                }
+              } else {
+                body.totpCode = '';
+              }
+            })
+          : Promise.resolve();
+        syncOtp.then(runOpsNpProvision)
+          .catch(function (e) { alert(pgErrMsg(e, '노티관리 실패')); })
           .finally(function () { if (dimm) dimm.style.display = 'none'; });
       });
     }
@@ -8715,7 +8734,7 @@
     compId: 1, regNo: 1, contact: 1, accountNo: 1, zipCode: 1, loginId: 1,
     ceoMobile: 1, compTel: 1, bankNm: 1, rowNo: 1, terminalCountTerminal: 1, terminalCountWeb: 1,
     transferType: 1, calcProcType: 1, calcCycle: 1, calcExcludeYn: 1, payHoldYn: 1, useYn: 1, compDivNm: 1,
-    siteRoot: 1, payIntegrationMode: 1, apiIntegrationChannel: 1, cardBrandScope: 1, urlPayInputModeLabel: 1, approvalNo: 1, chillTransactionId: 1, transactionId: 1, cardAprvNo: 1, pgApproveNo: 1,
+    siteRoot: 1, payIntegrationMode: 1, apiIntegrationChannel: 1, receiptEmailNotify: 1, cardBrandScope: 1, urlPayInputModeLabel: 1, approvalNo: 1, chillTransactionId: 1, transactionId: 1, cardAprvNo: 1, pgApproveNo: 1,
     trnId: 1, orderNo: 1, routeNo: 1, merchantMid: 1, pgCd: 1, trnDate: 1, trnTime: 1, paymentTime: 1,
     day: 1, regDt: 1, calcDt: 1, settlementRunId: 1
   };
@@ -17173,6 +17192,13 @@
                   } else {
                     html += '<td class="text-center align-middle small">-</td>';
                   }
+                } else if (isCompMngTree && c.key === 'receiptEmailNotify') {
+                  var ren0 = String(row.receiptEmailNotify != null ? row.receiptEmailNotify : val || '').trim().toUpperCase();
+                  if (ren0 === 'ON' || ren0 === 'OFF') {
+                    html += '<td class="text-center align-middle text-nowrap small"><span data-pg-ui-t="' + escAttr(ren0) + '">' + escHtmlBody(pgAdminUiT(ren0)) + '</span></td>';
+                  } else {
+                    html += '<td class="text-center align-middle small">-</td>';
+                  }
                 } else if (isCompMngTree && c.key === 'cardBrandScope') {
                   var cbs0 = String(row.cardBrandScope != null ? row.cardBrandScope : val || '').trim().toUpperCase();
                   if (cbs0 && cbs0 !== '-') {
@@ -20739,6 +20765,7 @@
           }).finally(function () { if (dimmDup) dimmDup.style.display = 'none'; });
         });
       }
+      bindCompRegCopyFromModal(pane);
       if (form && !form.querySelector('input[name="parentId"]')) {
         var hid = document.createElement('input');
         hid.type = 'hidden';
@@ -21350,6 +21377,198 @@
         afterSet();
       });
     }
+    /**
+     * 업체등록 — 업체복사: 선택한 업체구분과 동일 조직만 검색.
+     * 가맹점: 기본정보(+가맹상세·계좌·출금제한). 그 외: 기본정보만. 로그인ID·비밀번호·상위업체는 미복사.
+     */
+    function bindCompRegCopyFromModal(pane) {
+      var openBtn = pane.querySelector('#compRegCopyBtn');
+      if (!openBtn || openBtn._compCopyBound) return;
+      openBtn._compCopyBound = true;
+      var COMP_COPY_BASIC = [
+        'compNm', 'regNo', 'bizType', 'industry', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'email',
+        'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther',
+        'useYn', 'tabletFeatureUseYn', 'tradeNm'
+      ];
+      var COMP_COPY_MERCHANT_EXTRA = [
+        'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo',
+        'bankCd', 'accountNo', 'accountHolder', 'countryCd', 'countryCdOther',
+        'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName',
+        'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime'
+      ];
+      openBtn.addEventListener('click', function () {
+        var form = pane.querySelector('#compRegForm');
+        if (!form) return;
+        var divEl = form.querySelector('[name="compDiv"]');
+        var compDiv = divEl && divEl.value ? String(divEl.value).trim() : '';
+        if (!compDiv) {
+          alert(pgAdminUiT('업체구분을 먼저 선택하세요.'));
+          return;
+        }
+        var modalEl = document.getElementById('compRegCopySearchModal');
+        if (!modalEl) return;
+        var modal = window.bootstrap && bootstrap.Modal ? new bootstrap.Modal(modalEl) : null;
+        if (modal) modal.show();
+        if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
+          try { window.PG_UI_I18N.applyDom(modalEl); } catch (eCpI18n) {}
+        }
+        var tbody = document.getElementById('compRegCopySearchTbody');
+        var kw = document.getElementById('compRegCopySearchKeyword');
+        var searchBtn = document.getElementById('compRegCopySearchBtn');
+        function runCopySearch() {
+          var dimm = document.getElementById('dimm');
+          if (dimm) dimm.style.display = 'flex';
+          var q = (kw && kw.value) ? String(kw.value).trim() : '';
+          function renderList(list) {
+            list = (list || []).filter(function (row) {
+              return String(row.compDiv || '').trim().toUpperCase() === compDiv.toUpperCase();
+            });
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if (!list.length) {
+              tbody.innerHTML = '<tr><td colspan="4" class="text-muted text-center">' +
+                pgAdminUiT('조회된 업체가 없습니다.') + '</td></tr>';
+              return;
+            }
+            list.forEach(function (row) {
+              var tr = document.createElement('tr');
+              tr.style.cursor = 'pointer';
+              tr.setAttribute('data-comp-id', row.compId != null ? String(row.compId) : '');
+              tr.innerHTML = '<td><button type="button" class="btn btn-sm btn-outline-primary">' +
+                pgAdminUiT('선택') + '</button></td><td>' + (row.compId || '') + '</td><td>' +
+                (row.compNm || '') + '</td><td>' + (row.compDivNm || row.compDiv || '') + '</td>';
+              function pick() {
+                var cid = tr.getAttribute('data-comp-id');
+                if (!cid) return;
+                applyCompRegCopyFrom(cid, form, compDiv, modal);
+              }
+              tr.addEventListener('click', function (e) {
+                if (e.target && e.target.closest && e.target.closest('button')) return;
+                pick();
+              });
+              var b = tr.querySelector('button');
+              if (b) b.addEventListener('click', function (e) { e.stopPropagation(); pick(); });
+              tbody.appendChild(tr);
+            });
+          }
+          var baseParams = { searchCompDiv: compDiv, searchUseYn: 'ALL', page: 1, size: 100 };
+          function mergeCompCopyLists(lists) {
+            var seen = Object.create(null);
+            var merged = [];
+            (lists || []).forEach(function (list) {
+              (list || []).forEach(function (row) {
+                var id = row && row.compId != null ? String(row.compId) : '';
+                if (!id || seen[id]) return;
+                seen[id] = true;
+                merged.push(row);
+              });
+            });
+            return merged;
+          }
+          var searchPromise;
+          if (!q) {
+            searchPromise = window.PG_API.compList(baseParams).then(function (data) {
+              renderList((data && data.list) ? data.list : []);
+            });
+          } else {
+            /* 코드·업체명 각각 조회 후 합침(업체명은 서버에서 대소문자 무시) */
+            searchPromise = Promise.all([
+              window.PG_API.compList(Object.assign({}, baseParams, { searchCompId: q })),
+              window.PG_API.compList(Object.assign({}, baseParams, { searchCompNm: q }))
+            ]).then(function (results) {
+              renderList(mergeCompCopyLists([
+                results[0] && results[0].list,
+                results[1] && results[1].list
+              ]));
+            });
+          }
+          searchPromise.catch(function (err) {
+            if (tbody) {
+              tbody.innerHTML = '<tr><td colspan="4" class="text-danger text-center">' +
+                (pgErrMsg(err, '조회 실패')) + '</td></tr>';
+            }
+          }).finally(function () { if (dimm) dimm.style.display = 'none'; });
+        }
+        if (searchBtn) {
+          searchBtn.onclick = function () { runCopySearch(); };
+        }
+        if (kw) {
+          kw.onkeydown = function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); runCopySearch(); }
+          };
+        }
+        runCopySearch();
+      });
+
+      function applyCompRegCopyFrom(compId, form, expectedDiv, modal) {
+        var dimm = document.getElementById('dimm');
+        if (dimm) dimm.style.display = 'flex';
+        window.PG_API.compDetail(compId).then(function (data) {
+          if (!data) throw new Error(pgAdminUiT('업체를 찾을 수 없습니다.'));
+          var srcDiv = String(data.compDiv || '').trim().toUpperCase();
+          if (srcDiv !== String(expectedDiv || '').trim().toUpperCase()) {
+            alert(pgAdminUiT('선택한 업체구분과 다른 조직입니다. 같은 구분의만 복사할 수 있습니다.'));
+            return;
+          }
+          var keepParentComp = '';
+          var keepParentId = '';
+          var pcEl = form.querySelector('[name="parentComp"]');
+          var pidEl = form.querySelector('[name="parentId"]');
+          if (pcEl) keepParentComp = pcEl.value;
+          if (pidEl) keepParentId = pidEl.value;
+
+          COMP_COPY_BASIC.forEach(function (k) {
+            if (k === 'regNo' || k === 'addrEtc') return;
+            if (data[k] != null) pgSetCompFormFieldValues(form, k, data[k]);
+          });
+          if (srcDiv === 'MERCHANT') {
+            COMP_COPY_MERCHANT_EXTRA.forEach(function (k) {
+              if (data[k] != null) pgSetCompFormFieldValues(form, k, data[k]);
+            });
+          }
+          var rnCp = data.regNo;
+          if (rnCp && String(rnCp).indexOf('|') >= 0) {
+            var pCp = String(rnCp).split('|');
+            form.querySelectorAll('[name="regType"]').forEach(function (rt) {
+              rt.value = (pCp[0] === 'PERSONAL' || pCp[0] === 'CORP') ? pCp[0] : 'CORP';
+            });
+            pgSetCompFormFieldValues(form, 'regNo', pCp.length > 1 ? pCp.slice(1).join('|') : '');
+          } else if (rnCp != null) {
+            pgSetCompFormFieldValues(form, 'regNo', rnCp);
+          }
+          pgApplySalesInfoFieldsFromAddrEtc(form, data.addrEtc);
+          pgApplyCompDetailCountryBankFill(pane, form, data);
+          initIntlPhoneFields(form);
+          initCountryAddressGroup(pane);
+          initCountryBankGroup(pane);
+          if (window.PG_UI_I18N && typeof window.PG_UI_I18N.initTimeSelects === 'function') {
+            try { window.PG_UI_I18N.initTimeSelects(form); } catch (eTsCp) {}
+          }
+
+          /* 로그인·비밀번호는 항상 비움 · 상위는 등록 화면에서 고른 값 유지 */
+          form.querySelectorAll('[name="loginId"], [name="pwd"]').forEach(function (el) {
+            el.value = '';
+          });
+          form.setAttribute('data-login-id-checked', '');
+          form.removeAttribute('data-password-confirmed');
+          if (pcEl) pcEl.value = keepParentComp;
+          if (pidEl) pidEl.value = keepParentId;
+          var divSel = form.querySelector('[name="compDiv"]');
+          if (divSel) {
+            divSel.value = expectedDiv;
+            try {
+              divSel.dispatchEvent(new Event('change', { bubbles: true }));
+            } catch (eCh) {}
+          }
+          pgMarkFormDirty(form);
+          if (modal) modal.hide();
+          alert(pgAdminUiT('업체 정보가 복사되었습니다. 로그인ID·비밀번호를 새로 입력한 뒤 저장하세요.'));
+        }).catch(function (e) {
+          alert(pgErrMsg(e, '업체복사 실패'));
+        }).finally(function () { if (dimm) dimm.style.display = 'none'; });
+      }
+    }
+
     /** 업체 등록·업체정보 상세 공통: 상위업체 검색 모달 */
     function bindParentCompSearchModal(pane) {
       var parentCompSearchBtn = pane.querySelector('button[data-field="parentComp"][data-action="검색"]');

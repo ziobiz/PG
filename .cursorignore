@@ -1,5 +1,11 @@
-﻿# 레거시 대용량 자료 — 인덱싱/검색/AI에서 제외
-# PDF는 제외하지 않음
+# 레거시·대용량·산출물 — 인덱싱/검색/AI·Java LS 부하 완화
 PG CD/
 PG소스_CD/
 *.zip
+**/node_modules/
+**/pg-app/build/
+**/.gradle/
+**/__pycache__/
+tmp_*
+tmp_*/
+site/manuals/__pycache__/
