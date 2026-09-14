@@ -763,6 +763,13 @@
     '영업점': { EN: 'Sales office', JP: '営業店', CH: '营业点', TH: 'สาขาการขาย' },
     '가맹점': { EN: 'Merchant', JP: '加盟店', CH: '商户', TH: 'ร้านค้า' },
     '성공': { EN: 'Success', JP: '成功', CH: '成功', TH: 'สำเร็จ' },
+    '콜백이슈': { EN: 'Callback issue', JP: 'コールバック問題', CH: '回调异常', TH: 'ปัญหา callback' },
+    '성공 · 콜백이슈': {
+      EN: 'Success · Callback issue',
+      JP: '成功 · コールバック問題',
+      CH: '成功 · 回调异常',
+      TH: 'สำเร็จ · ปัญหา callback'
+    },
     '요청': { EN: 'Requested', JP: '要求', CH: '请求', TH: 'ขอ' },
     '대기': { EN: 'Pending', JP: '待機', CH: '等待', TH: 'รอ' },
     '오류': { EN: 'Error', JP: 'エラー', CH: '错误', TH: 'ข้อผิดพลาด' },
@@ -12654,11 +12661,125 @@
       CH: '手续费·结算逻辑（手续费明细）',
       TH: 'ค่าธรรมเนียมและการชำระ (รายการค่าธรรมเนียม)'
     },
+    '수수료내역 (정산금액)': {
+      EN: 'Fee history (settlement amount)',
+      JP: '手数料明細（精算金額）',
+      CH: '手续费明细（结算金额）',
+      TH: 'ประวัติค่าธรรมเนียม (ยอดชำระบัญชี)'
+    },
+    '청구금액 소수 처리 (실결제 통화)': {
+      EN: 'Charge amount decimals (settlement currency)',
+      JP: '請求額の小数処理（実決済通貨）',
+      CH: '请求金额小数处理（实付币种）',
+      TH: 'ทศนิยมยอดเรียกเก็บ (สกุลชำระจริง)'
+    },
+    '정책 기본값 (비활성 시)': {
+      EN: 'Policy defaults (when Off)',
+      JP: '政策既定値（無効時）',
+      CH: '政策默认值（停用时）',
+      TH: 'ค่าเริ่มต้นนโยบาย (เมื่อปิด)'
+    },
+    '통화별 커스텀 (활성 시)': {
+      EN: 'Per-currency custom (when On)',
+      JP: '通貨別カスタム（有効時）',
+      CH: '按币种自定义（启用时）',
+      TH: 'กำหนดเองต่อสกุล (เมื่อเปิด)'
+    },
+    '팩토리 기본값 복원': {
+      EN: 'Restore factory defaults',
+      JP: 'ファクトリ既定に戻す',
+      CH: '恢复出厂默认',
+      TH: 'คืนค่าโรงงาน'
+    },
+    '커스텀 전부 비활성': {
+      EN: 'Disable all custom',
+      JP: 'カスタムを全て無効',
+      CH: '全部停用自定义',
+      TH: 'ปิดกำหนดเองทั้งหมด'
+    },
+    '비활성: 정책 기본값': {
+      EN: 'Off: policy default',
+      JP: '無効: 政策既定',
+      CH: '停用：政策默认',
+      TH: 'ปิด: ค่านโยบาย'
+    },
+    'DISPLAY·BLIND에서만 적용. 「정책 기본값」=비활성 시 적용(본사 저장, 코드 하드코딩 대체). 「통화별 커스텀」활성 시 행 설정. 일반(STANDARD) 미적용. 수수료·정산과 별개.': {
+      EN: 'DP/BL only. Policy defaults apply when custom is Off (HQ-saved; replaces former hardcode). Per-currency custom when On. Not for STANDARD. Separate from fee/settlement.',
+      JP: 'DISPLAY・BLINDのみ。「政策既定」=カスタム無効時(本社保存、旧ハードコード代替)。「通貨別カスタム」=有効時。STANDARD非適用。',
+      CH: '仅 DISPLAY/BLIND。「政策默认」=自定义停用时（总部保存，替代原硬编码）。「按币种自定义」=启用时。不适用 STANDARD。',
+      TH: 'เฉพาะ DISPLAY/BLIND 「ค่านโยบาย」=เมื่อปิดกำหนดเอง (บันทึก HQ แทนฮาร์ดโค้ด) 「กำหนดเอง」=เมื่อเปิด ไม่ใช้ STANDARD'
+    },
+    '비활성·미설정 통화에 적용됩니다. 팩토리=JPY·KRW 소수0·반올림, 그 외 소수2·반올림(이전 코드 기본).': {
+      EN: 'Applies when Off/unset. Factory = JPY/KRW 0dp half-up; others 2dp half-up (former code default).',
+      JP: '無効・未設定時に適用。ファクトリ=JPY・KRW小数0四捨五入、他は小数2（旧コード既定）。',
+      CH: '停用/未设时应用。出厂=JPY/KRW 0 位四舍五入，其他 2 位（原代码默认）。',
+      TH: 'ใช้เมื่อปิด/ไม่ได้ตั้ง โรงงาน=JPY/KRW ทศนิยม0 ปัดเศษ อื่น 2 (ค่าเดิมในโค้ด)'
+    },
+    '활성=아래 소수·처리. 비활성=위 정책 기본값. 「전역값」=정책 기본값 복사. 「커스텀 전부 비활성」=전 통화 비활성.': {
+      EN: 'On = row decimals/mode. Off = policy defaults above. Global = copy policy default. Disable all custom = all Off.',
+      JP: '有効=行の小数・処理。無効=上の政策既定。「全域値」=政策既定のコピー。全て無効=全通貨無効。',
+      CH: '启用=行小数/处理。停用=上方政策默认。「全局值」=复制政策默认。全部停用=全币种停用。',
+      TH: 'เปิด=ทศนิยมแถว ปิด=ค่านโยบายด้านบน 「ค่ากลาง」=คัดลอก 「ปิดทั้งหมด」=ทุกสกุล'
+    },
+    '청구금액 소수 처리 (실결제 통화 · DP/BL 전용)': {
+      EN: 'Charge amount decimals (settlement · DP/BL only)',
+      JP: '請求額の小数処理（実決済 · DP/BL専用）',
+      CH: '请求金额小数处理（实付 · 仅 DP/BL）',
+      TH: 'ทศนิยมยอดเรียกเก็บ (ชำระจริง · เฉพาะ DP/BL)'
+    },
+    '기본값 복원': {
+      EN: 'Restore defaults',
+      JP: '既定値に戻す',
+      CH: '恢复默认',
+      TH: 'คืนค่าเริ่มต้น'
+    },
+    '비활성: 레거시 기본': {
+      EN: 'Off: legacy default',
+      JP: '無効: レガシー既定',
+      CH: '停用：旧默认',
+      TH: 'ปิด: ค่าเดิม'
+    },
+    'DISPLAY·BLIND에서만 적용. 비활성=기능 추가 전 레거시 기본으로 계속 청구·표시(JPY·KRW 정수 반올림, 그 외 소수 2·반올림). 활성=아래 커스텀. 일반(STANDARD)에는 미적용. 「전역값」=해당 행을 레거시 기본으로. 「기본값 복원」=전 통화 레거시. 수수료·정산과 별개.': {
+      EN: 'Applies only for DISPLAY/BLIND. Off = pre-feature legacy defaults still charge and show (JPY/KRW integer half-up; others 2dp half-up). On = custom below. Not for STANDARD. Global = set row to legacy. Restore defaults = all currencies legacy. Separate from fee/settlement.',
+      JP: 'DISPLAY・BLINDのみ適用。無効=機能追加前のレガシー既定で請求・表示を継続(JPY・KRW整数四捨五入、他は小数2)。有効=下のカスタム。STANDARD非適用。「全域値」=行をレガシー。「既定復元」=全通貨レガシー。手数料・精算とは別。',
+      CH: '仅适用于 DISPLAY/BLIND。停用=仍按功能前旧默认计费并显示（JPY/KRW 整数四舍五入，其他 2 位）。启用=下方自定义。不适用于 STANDARD。「全局值」=该行旧默认。「恢复默认」=全部旧默认。与手续费结算无关。',
+      TH: 'ใช้เฉพาะ DISPLAY/BLIND ปิด=ยังคิดและแสดงตามค่าเดิมก่อนมีฟีเจอร์ (JPY/KRW จำนวนเต็ม อื่น 2 ตำแหน่ง) เปิด=กำหนดด้านล่าง ไม่ใช้ STANDARD 「ค่ากลาง」=ค่าเดิมของแถว 「คืนค่าเริ่มต้น」=ทุกสกุล แยกจากค่าธรรมเนียม'
+    },
+    'DISPLAY·BLIND(표시통화 DP)에서만 실결제(청구) 금액에 적용됩니다. 일반(STANDARD) URL·API 결제에는 적용되지 않으며, 활성으로 켜도 일반결제에는 동작하지 않습니다. 비활성=기존과 동일(JPY·KRW 정수 반올림, 그 외 소수 2·반올림). 활성 예: THB 소수 0+절상 → 123.45→124. 수수료·정산 로직과 별개입니다.': {
+      EN: 'Applies only for DISPLAY/BLIND (display-currency DP) to settlement (charge) amounts. Not used for STANDARD URL/API pay — enabling has no effect on STANDARD. Off = legacy (JPY/KRW integer half-up; others 2dp half-up). On example: THB scale 0 + ceiling → 123.45→124. Separate from fee/settlement list rounding.',
+      JP: 'DISPLAY・BLIND(表示通貨DP)の実決済(請求)額のみに適用。STANDARDのURL・API決済には使われず、有効にしても一般決済には効きません。無効=従来(JPY・KRW整数四捨五入、他は小数2・四捨五入)。有効例: THB小数0+切上→123.45→124。手数料・精算ロジックとは別。',
+      CH: '仅适用于 DISPLAY/BLIND（展示币 DP）的实付（请求）金额。不用于 STANDARD URL/API；即使启用也不作用于普通支付。停用=旧默认（JPY/KRW 整数四舍五入，其他 2 位四舍五入）。启用例：THB 小数 0+进位 → 123.45→124。与手续费结算列表无关。',
+      TH: 'ใช้เฉพาะ DISPLAY/BLIND (DP สกุลแสดง) กับยอดชำระจริง ไม่ใช้กับ URL/API แบบ STANDARD — เปิดก็ไม่กระทบการชำระทั่วไป ปิด=ค่าเดิม (JPY/KRW จำนวนเต็มปัดเศษ อื่น 2 ตำแหน่ง) เปิดเช่น THB ทศนิยม0+ปัดขึ้น → 123.45→124 แยกจากรายการค่าธรรมเนียม'
+    },
+    '비활성: 기존과 동일': {
+      EN: 'Off: same as before',
+      JP: '無効: 従来どおり',
+      CH: '停用：与原先相同',
+      TH: 'ปิด: เหมือนเดิม'
+    },
+    'URL·DP·일반 URL 결제에서 PG로 보내는 실결제(청구) 금액에 적용됩니다. 수수료·정산 로직과 별개입니다. 소수 0+절상 예: 120.38 THB → 121.': {
+      EN: 'Applies to settlement (charge) amounts sent to the PG for URL/DP/standard URL pay. Separate from fee/settlement list rounding. Example: scale 0 + ceiling → 120.38 THB → 121.',
+      JP: 'URL・DP・通常URL決済でPGへ送る実決済(請求)額に適用。手数料・精算ロジックとは別。小数0+切上例: 120.38 THB → 121。',
+      CH: '适用于 URL/DP/普通 URL 支付向 PG 发送的实付（请求）金额。与手续费结算列表取整无关。小数位 0+进位例：120.38 THB → 121。',
+      TH: 'ใช้กับยอดชำระจริงที่ส่งเข้า PG สำหรับ URL/DP/URL ทั่วไป แยกจากปัดเศษรายการค่าธรรมเนียม ตัวอย่างทศนิยม0+ปัดขึ้น: 120.38 THB → 121'
+    },
+    '실결제 통화': {
+      EN: 'Settlement currency',
+      JP: '実決済通貨',
+      CH: '实付币种',
+      TH: 'สกุลชำระจริง'
+    },
+    '통화별로 수수료내역·정산 금액의 소수 자릿수·잘리는 자리 처리(절상/반올림/버림)를 지정합니다. <strong>결제 청구액(PG 승인 금액)에는 적용되지 않습니다</strong>(청구는 본사정책 → 결제·URL → URL결제). 소수 자릿수 0이어도 절상·반올림·버림이 그대로 적용됩니다(예: 소수 0+절상 → 120.38→121). JSON에 없는 통화는 아래 「기본(통화 미지정)」값을 따릅니다.': {
+      EN: 'Per currency, set decimal places and rounding (ceiling / half-up / down) for fee history and settlement amounts. <strong>Does not apply to PG charge amounts</strong> (configure under HQ Policy → Pay/URL → URL Pay). Scale 0 still applies ceiling/round/down (e.g. 0 + ceiling → 120.38→121). Currencies missing from JSON use Default below.',
+      JP: '通貨ごとに手数料明細・精算金額の小数桁と端数処理(切上/四捨五入/切捨)を指定します。<strong>PG請求額には適用されません</strong>（本社ポリシー→決済・URL→URL決済）。小数0でも切上等が適用されます（例: 0+切上→120.38→121）。JSONにない通貨は下の既定値に従います。',
+      CH: '按币种设置手续费明细与结算金额的小数位与进位规则。<strong>不适用于 PG 请求金额</strong>（在总部政策→支付/URL→URL支付设置）。小数位为 0 时仍可进位/四舍五入/截断（例：0+进位→120.38→121）。JSON 未列币种使用下方默认。',
+      TH: 'ตั้งทศนิยม/ปัดขึ้น/ปัดเศษ/ตัดทิ้งต่อสกุลสำหรับประวัติค่าธรรมเนียมและยอดชำระบัญชี <strong>ไม่ใช้กับยอดเรียกเก็บ PG</strong> (ตั้งที่นโยบาย HQ → จ่าย/URL → URL จ่าย) ทศนิยม 0 ก็ยังปัดขึ้นได้ (เช่น 0+ปัดขึ้น → 120.38→121) สกุลที่ไม่มีใน JSON ใช้ค่าเริ่มต้นด้านล่าง'
+    },
     '통화별 표는 결제·정산 통화(알파 코드)마다 소수 자릿수·잘리는 자리 처리를 지정합니다. 소수 자릿수가 0이면 금액은 정수만 의미하므로 「잘리는 자리 처리」는 비활성화되며 저장 시 그대로(버림, DOWN)로 통일됩니다. 목록 API는 행의 결제통화·거래통화에 맞춰 이 설정을 적용합니다. JSON에 없는 통화는 아래 「기본(통화 미지정)」값을 따릅니다. 조직항목설정 VIEW SETTING의 통화 열은 가맹 정책통화·거래통화를 표시하며, 총판 하위 가맹이 쓰는 모든 통화가 데이터에 존재하면 각 행에 그대로 나타납니다.': {
-      EN: 'Per currency (alpha), set decimal places and rounding. If decimals are 0, amounts are integers so rounding mode is disabled and saved as DOWN. List APIs apply this per row payment/trade currency. Currencies missing from JSON use Default (unspecified currency) below. Org column settings show merchant policy and trade currencies; every currency used under a master distributor appears on its rows when present in data.',
-      JP: '通貨（アルファ）ごとに小数桁と端数処理を指定します。小数桁が0の場合は金額は整数のみとなり「端数処理」は無効で保存時はDOWNに統一されます。一覧APIは行の決済通貨・取引通貨に合わせて適用します。JSONにない通貨は下の「既定（通貨未指定）」に従います。',
-      CH: '按支付/结算货币（字母码）设置小数位与舍入。小数为 0 时金额为整数，舍入模式禁用并保存为 DOWN。列表 API 按行的支付/交易货币应用。JSON 未列货币使用下方「默认（未指定货币）」。',
-      TH: 'ต่อสกุลเงิน กำหนนทศนิยมและปัดเศษ ถ้า 0 ปิดโหมดปัดและบันทึกเป็น DOWN'
+      EN: 'Per currency (alpha), set decimal places and rounding. Scale 0 still applies ceiling / half-up / down (e.g. 120.38 → 121 with ceiling). List APIs apply this per row payment/trade currency. Currencies missing from JSON use Default (unspecified currency) below. Org column settings show merchant policy and trade currencies; every currency used under a master distributor appears on its rows when present in data.',
+      JP: '通貨（アルファ）ごとに小数桁と端数処理を指定します。小数桁が0でも切上・四捨五入・切捨をそのまま適用します（例: 切上で120.38→121）。一覧APIは行の決済通貨・取引通貨に合わせて適用します。JSONにない通貨は下の「既定（通貨未指定）」に従います。',
+      CH: '按支付/结算货币（字母码）设置小数位与舍入。小数为 0 时仍可应用进位/四舍五入/截断（例：进位 120.38→121）。列表 API 按行的支付/交易货币应用。JSON 未列货币使用下方「默认（未指定货币）」。',
+      TH: 'ต่อสกุลเงิน กำหนดทศนิยมและปัดเศษ แม้ทศนิยม=0 ก็ยังปัดขึ้น/ปัดเศษ/ตัดทิ้งได้ (เช่น ปัดขึ้น 120.38→121) API รายการใช้ตามสกุลแถว สกุลที่ไม่มีใน JSON ใช้ค่าเริ่มต้นด้านล่าง'
     },
     '전산설정 수수료 기본 통화 미지정 안내': {
       EN: '<strong>Default (no currency)</strong> — used for currencies not listed below and unmapped rows.',

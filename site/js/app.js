@@ -9714,10 +9714,11 @@
   function applyPayListCatalogTitleToTab(tabId, pageUrl, catalogTitle) {
     if (!catalogTitle || !tabId || !pageUrl) return;
     var parent = (MENU_INFO[pageUrl] && MENU_INFO[pageUrl].parent) ? MENU_INFO[pageUrl].parent : '결제관리';
-    if (MENU_INFO[pageUrl]) MENU_INFO[pageUrl].label = catalogTitle;
+    /* MENU_INFO.label 은 메뉴 한국어 원문 유지 — 카탈로그 표시명으로 덮어쓰면 언어 전환 시 상단/탭 KO 복원이 깨짐 */
     var tabA = document.querySelector('#' + TAB_UL + ' a[href="#' + tabId + '"]');
     if (tabA) {
       tabA.textContent = catalogTitle;
+      tabA.setAttribute('data-pg-catalog-title', catalogTitle);
       var liCat = tabA.closest('li.copyTopTab');
       if (liCat) liCat.setAttribute('data-pg-catalog-tab', '1');
     }
@@ -31316,7 +31317,7 @@
         })();
         updateHqPayFollowClocks(pane);
       }
-      /** 소수 자릿수가 0이면 「잘리는 자리 처리」는 의미 없음 — 선택 비활성·DOWN 고정 표시 */
+      /** 수수료 통화 행: 편집 모드일 때만 소수·잘리는 자리 활성 (소수 0이어도 절상/반올림/버림 유지) */
       function ledgerMayEditPayFollowLevelCaps() {
         try {
           var u = JSON.parse(sessionStorage.getItem('pg_admin_user') || '{}');
@@ -31376,16 +31377,8 @@
         var glDp = pane.querySelector('[name="feeListDecimalPlaces"]');
         var glRm = pane.querySelector('[name="feeListRoundMode"]');
         if (glDp && glRm) {
-          var gdp = parseInt(String(glDp.value != null ? glDp.value : '2'), 10);
-          if (isNaN(gdp)) gdp = 2;
-          if (gdp === 0) {
-            glRm.disabled = true;
-            glRm.value = 'DOWN';
-            glRm.title = pgAdminUiT('소수 자릿수가 0이면 금액은 정수이며, 잘리는 자리 처리는 적용되지 않습니다.');
-          } else {
-            glRm.disabled = false;
-            glRm.removeAttribute('title');
-          }
+          glRm.disabled = false;
+          glRm.removeAttribute('title');
         }
         pane.querySelectorAll('#hqFeeCurrencyFormatTbody tr[data-currency]').forEach(function (tr) {
           var dpSel = tr.querySelector('.hq-fcf-dp');
@@ -31400,17 +31393,9 @@
             return;
           }
           dpSel.disabled = false;
+          rmSel.disabled = false;
           dpSel.removeAttribute('title');
-          var d = parseInt(String(dpSel.value != null ? dpSel.value : '0'), 10);
-          if (isNaN(d)) d = 2;
-          if (d === 0) {
-            rmSel.disabled = true;
-            rmSel.value = 'DOWN';
-            rmSel.title = pgAdminUiT('소수 자릿수가 0이면 잘리는 자리 처리는 적용되지 않습니다.');
-          } else {
-            rmSel.disabled = false;
-            rmSel.removeAttribute('title');
-          }
+          rmSel.removeAttribute('title');
         });
       }
       function fillLedgerSys(d) {
@@ -31772,7 +31757,7 @@
           addActBtn('btn-outline-primary hq-fcf-row-edit', pgAdminUiT('수정'), pgAdminUiT('편집 모드(소수·잘리는 자리) 전환 — 연속 확인 후 활성화됩니다.'));
           addActBtn('btn-primary hq-fcf-row-save', pgAdminUiT('저장'), pgAdminUiT('전산설정 전체를 서버에 저장합니다. 수수료·정산 통화 형식이 즉시 반영될 수 있습니다.'));
           addActBtn('btn-outline-secondary hq-fcf-row-cancel', pgAdminUiT('취소'), pgAdminUiT('이 통화 행의 미저장 편집만 되돌리고 잠급니다.'));
-          addActBtn('btn-outline-secondary hq-fcf-copy-global', pgAdminUiT('전역값'), pgAdminUiT('편집 모드에서만 사용 가능. 기본(통화 미지정) 소수·처리를 이 통화에 복사합니다.'));
+          addActBtn('btn-outline-secondary hq-fcf-copy-global', pgAdminUiT('전역값'), pgAdminUiT('편집 모드에서만. 「기본(통화 미지정)」소수·처리를 이 통화에 복사(수정 전 값 복원이 아님). 저장 필요.'));
           td4.appendChild(wrap);
           tr.appendChild(td1);
           tr.appendChild(td2);
@@ -31792,7 +31777,8 @@
           var dp = parseInt(String(dpSel && dpSel.value != null ? dpSel.value : '2'), 10);
           if (isNaN(dp) || dp < 0) dp = 0;
           if (dp > 8) dp = 8;
-          var rm = dp === 0 ? 'DOWN' : (rmSel && rmSel.value ? String(rmSel.value).trim().toUpperCase() : 'CEILING');
+          var rm = rmSel && rmSel.value ? String(rmSel.value).trim().toUpperCase() : 'CEILING';
+          if (rm !== 'CEILING' && rm !== 'HALF_UP' && rm !== 'DOWN') rm = 'CEILING';
           arr.push({ currency: cur, decimalPlaces: dp, roundMode: rm });
         });
         return arr;
@@ -31853,12 +31839,6 @@
         if (!fd.smtpPassword || !String(fd.smtpPassword).trim()) {
           delete fd.smtpPassword;
         }
-        (function omitGlobalFeeRoundWhenZeroDp() {
-          var glDp = pane.querySelector('[name="feeListDecimalPlaces"]');
-          if (!glDp) return;
-          var gdp = parseInt(String(glDp.value != null ? glDp.value : '2'), 10);
-          if (!isNaN(gdp) && gdp === 0) delete fd.feeListRoundMode;
-        })();
         fd.dataRetentionPolicyJson = JSON.stringify(collectDataRetentionPolicyObj(omitId));
         fd.feeCurrencyFormatJson = JSON.stringify(collectFeeCurrencyFormatRows());
         return fd;
@@ -32153,6 +32133,26 @@
             if (glDp && dpSelF) dpSelF.value = String(glDp.value || '2');
             if (glRm && rmSelF) rmSelF.value = String(glRm.value || 'CEILING');
             syncLedgerFeeDecimalRoundUi();
+            return;
+          }
+          if (e.target.closest('#hqFeeCurrencyRestoreDefaultsBtn')) {
+            if (typeof dc !== 'function' || !dc(
+              pgAdminUiT('수수료내역(정산금액)을 기본값으로 복원하시겠습니까?'),
+              pgAdminUiT('시스템 초기값(소수 2·절상)으로 「기본(통화 미지정)」과 통화별 표를 되돌립니다. [확인] 후 서버에 저장합니다.'))) return;
+            var glDpR = pane.querySelector('[name="feeListDecimalPlaces"]');
+            var glRmR = pane.querySelector('[name="feeListRoundMode"]');
+            if (glDpR) glDpR.value = '2';
+            if (glRmR) glRmR.value = 'CEILING';
+            var defRows = ['KRW', 'USD', 'JPY', 'THB', 'SGD'].map(function (c) {
+              return { currency: c, decimalPlaces: 2, roundMode: 'CEILING' };
+            });
+            renderHqFeeCurrencyRows(defRows);
+            pane.querySelectorAll('#hqFeeCurrencyFormatTbody tr[data-currency]').forEach(function (trR) {
+              trR.setAttribute('data-hq-fcf-editing', '0');
+              delete trR._hqFcfSnap;
+            });
+            syncLedgerFeeDecimalRoundUi();
+            pane._pgPostLedgerSysSave(pane._pgCollectLedgerSysFd(null));
             return;
           }
           if (e.target.closest('.hq-dr-row-save')) {
@@ -34435,6 +34435,8 @@
         o.marginByCurrency.CNY = parseMargUrlPayDep(mc, 0);
         var botV = botAs && String(botAs.value || '').trim().toUpperCase();
         o.botRateAsOf = (botV === 'LATEST_BOT_PERIOD') ? 'LATEST_BOT_PERIOD' : 'PREVIOUS_DAY_CLOSE';
+        o.chargeAmountRoundPolicyDefaults = collectUrlPayChargePolicyDefaultsMap();
+        o.chargeAmountRoundByCurrency = collectUrlPayChargeRoundMap();
         var nextPg = {};
         tbodyUp.querySelectorAll('tr[data-pg-cd]').forEach(function (tr) {
           var cdU = tr.getAttribute('data-pg-cd');
@@ -34514,6 +34516,292 @@
           var br = String(fxObj.botRateAsOf || '').trim().toUpperCase();
           botAs.value = (br === 'LATEST_BOT_PERIOD' || br === 'LATEST' || br === 'TODAY') ? 'LATEST_BOT_PERIOD' : 'PREVIOUS_DAY_CLOSE';
         }
+        renderUrlPayChargePolicyDefaultsTable(fxObj.chargeAmountRoundPolicyDefaults || {});
+        renderUrlPayChargeRoundTable(fxObj.chargeAmountRoundByCurrency || {});
+      }
+      var URL_PAY_CHARGE_ROUND_CCYS = ['THB', 'JPY', 'USD', 'KRW', 'SGD', 'HKD', 'CNY'];
+      /** 코드 팩토리 폴백(정책 기본값 미저장·팩토리 복원용) */
+      function factoryUrlPayChargePolicyDefault(cur) {
+        var u = String(cur || '').toUpperCase();
+        if (u === 'JPY' || u === 'KRW') return { decimalPlaces: 0, roundMode: 'HALF_UP' };
+        return { decimalPlaces: 2, roundMode: 'HALF_UP' };
+      }
+      /** 화면 「정책 기본값」표에서 읽은 값(비활성 시 적용). 없으면 팩토리 */
+      function policyUrlPayChargeDefault(cur) {
+        var tr = pane.querySelector('#hqUrlPayChargePolicyDefaultsTbody tr[data-policy-def-cur="' + cur + '"]');
+        var fac = factoryUrlPayChargePolicyDefault(cur);
+        if (!tr) return { enabled: false, decimalPlaces: fac.decimalPlaces, roundMode: fac.roundMode };
+        var dpSel = tr.querySelector('.hq-upd-policy-dp');
+        var rmSel = tr.querySelector('.hq-upd-policy-rm');
+        var dp = parseInt(String(dpSel && dpSel.value != null ? dpSel.value : String(fac.decimalPlaces)), 10);
+        if (isNaN(dp) || dp < 0) dp = fac.decimalPlaces;
+        if (dp > 8) dp = 8;
+        var rm = rmSel && rmSel.value ? String(rmSel.value).trim().toUpperCase() : fac.roundMode;
+        if (rm !== 'CEILING' && rm !== 'HALF_UP' && rm !== 'DOWN') rm = fac.roundMode;
+        return { enabled: false, decimalPlaces: dp, roundMode: rm };
+      }
+      function defaultUrlPayChargeRound(cur) {
+        return policyUrlPayChargeDefault(cur);
+      }
+      function chargeRoundRemarkText(enabled, dp, rm, cur) {
+        var def = policyUrlPayChargeDefault(cur);
+        var rmLab = { CEILING: pgAdminUiT('절상'), HALF_UP: pgAdminUiT('반올림'), DOWN: pgAdminUiT('그대로(버림)') };
+        if (!enabled) {
+          return pgAdminUiT('비활성: 정책 기본값') + ' (소수 ' + def.decimalPlaces + '·' + (rmLab[def.roundMode] || def.roundMode) + ')';
+        }
+        var msg = pgAdminUiT('활성') + ': ' + pgAdminUiT('소수 자릿수') + ' ' + String(dp) + ' · ' + (rmLab[rm] || rm);
+        if (dp === 0 && rm === 'CEILING') {
+          msg += ' → 123.45→124';
+        }
+        return msg;
+      }
+      function renderUrlPayChargePolicyDefaultsTable(byCur) {
+        var tb = pane.querySelector('#hqUrlPayChargePolicyDefaultsTbody');
+        if (!tb) return;
+        byCur = byCur || {};
+        var rmOpts = ['CEILING', 'HALF_UP', 'DOWN'];
+        var rmLabels = { CEILING: pgAdminUiT('절상'), HALF_UP: pgAdminUiT('반올림'), DOWN: pgAdminUiT('그대로(버림)') };
+        tb.innerHTML = '';
+        URL_PAY_CHARGE_ROUND_CCYS.forEach(function (cur) {
+          var fac = factoryUrlPayChargePolicyDefault(cur);
+          var saved = byCur[cur] || {};
+          var dp0 = parseInt(String(saved.decimalPlaces != null ? saved.decimalPlaces : fac.decimalPlaces), 10);
+          if (isNaN(dp0) || dp0 < 0) dp0 = fac.decimalPlaces;
+          if (dp0 > 8) dp0 = 8;
+          var rm0 = String(saved.roundMode || fac.roundMode).trim().toUpperCase();
+          if (rmOpts.indexOf(rm0) < 0) rm0 = fac.roundMode;
+          var tr = document.createElement('tr');
+          tr.setAttribute('data-policy-def-cur', cur);
+          var td1 = document.createElement('td');
+          td1.className = 'fw-semibold';
+          td1.textContent = cur;
+          var td2 = document.createElement('td');
+          td2.className = 'text-center';
+          var selDp = document.createElement('select');
+          selDp.className = 'form-select form-select-sm hq-upd-policy-dp';
+          for (var d = 0; d <= 8; d++) {
+            var o = document.createElement('option');
+            o.value = String(d);
+            o.textContent = String(d);
+            if (d === dp0) o.selected = true;
+            selDp.appendChild(o);
+          }
+          selDp.addEventListener('change', function () {
+            pane.querySelectorAll('#hqUrlPayChargeRoundTbody tr[data-charge-round-cur]').forEach(syncUrlPayChargeRoundRowUi);
+          });
+          td2.appendChild(selDp);
+          var td3 = document.createElement('td');
+          var selRm = document.createElement('select');
+          selRm.className = 'form-select form-select-sm hq-upd-policy-rm';
+          rmOpts.forEach(function (rm) {
+            var o2 = document.createElement('option');
+            o2.value = rm;
+            o2.textContent = rmLabels[rm] || rm;
+            if (rm === rm0) o2.selected = true;
+            selRm.appendChild(o2);
+          });
+          selRm.addEventListener('change', function () {
+            pane.querySelectorAll('#hqUrlPayChargeRoundTbody tr[data-charge-round-cur]').forEach(syncUrlPayChargeRoundRowUi);
+          });
+          td3.appendChild(selRm);
+          tr.appendChild(td1);
+          tr.appendChild(td2);
+          tr.appendChild(td3);
+          tb.appendChild(tr);
+        });
+      }
+      function collectUrlPayChargePolicyDefaultsMap() {
+        var out = {};
+        pane.querySelectorAll('#hqUrlPayChargePolicyDefaultsTbody tr[data-policy-def-cur]').forEach(function (tr) {
+          var cur = tr.getAttribute('data-policy-def-cur');
+          if (!cur) return;
+          var fac = factoryUrlPayChargePolicyDefault(cur);
+          var dpSel = tr.querySelector('.hq-upd-policy-dp');
+          var rmSel = tr.querySelector('.hq-upd-policy-rm');
+          var dp = parseInt(String(dpSel && dpSel.value != null ? dpSel.value : String(fac.decimalPlaces)), 10);
+          if (isNaN(dp) || dp < 0) dp = fac.decimalPlaces;
+          if (dp > 8) dp = 8;
+          var rm = rmSel && rmSel.value ? String(rmSel.value).trim().toUpperCase() : fac.roundMode;
+          if (rm !== 'CEILING' && rm !== 'HALF_UP' && rm !== 'DOWN') rm = fac.roundMode;
+          out[cur] = { decimalPlaces: dp, roundMode: rm };
+        });
+        return out;
+      }
+      function syncUrlPayChargeRoundRowUi(tr) {
+        if (!tr) return;
+        var cur = tr.getAttribute('data-charge-round-cur') || '';
+        var enSel = tr.querySelector('.hq-upd-charge-en');
+        var dpSel = tr.querySelector('.hq-upd-charge-dp');
+        var rmSel = tr.querySelector('.hq-upd-charge-rm');
+        var note = tr.querySelector('.hq-upd-charge-note');
+        var editing = tr.getAttribute('data-hq-cr-editing') === '1';
+        var on = enSel && String(enSel.value).toUpperCase() === 'Y';
+        if (!editing) {
+          if (enSel) enSel.disabled = true;
+          if (dpSel) dpSel.disabled = true;
+          if (rmSel) rmSel.disabled = true;
+        } else {
+          if (enSel) enSel.disabled = false;
+          if (!on) {
+            var def = policyUrlPayChargeDefault(cur);
+            if (dpSel) { dpSel.value = String(def.decimalPlaces); dpSel.disabled = true; }
+            if (rmSel) { rmSel.value = def.roundMode; rmSel.disabled = true; }
+          } else {
+            if (dpSel) dpSel.disabled = false;
+            if (rmSel) rmSel.disabled = false;
+          }
+        }
+        var dp = parseInt(String(dpSel && dpSel.value != null ? dpSel.value : '2'), 10);
+        if (isNaN(dp) || dp < 0) dp = 0;
+        if (dp > 8) dp = 8;
+        var rm = rmSel && rmSel.value ? String(rmSel.value).trim().toUpperCase() : 'HALF_UP';
+        if (note) note.textContent = chargeRoundRemarkText(on, dp, rm, cur);
+      }
+      function renderUrlPayChargeRoundTable(byCur) {
+        var tb = pane.querySelector('#hqUrlPayChargeRoundTbody');
+        if (!tb) return;
+        byCur = byCur || {};
+        var rmOpts = ['CEILING', 'HALF_UP', 'DOWN'];
+        var rmLabels = { CEILING: pgAdminUiT('절상'), HALF_UP: pgAdminUiT('반올림'), DOWN: pgAdminUiT('그대로(버림)') };
+        tb.innerHTML = '';
+        URL_PAY_CHARGE_ROUND_CCYS.forEach(function (cur) {
+          var saved = byCur[cur] || {};
+          var def = policyUrlPayChargeDefault(cur);
+          var en0 = saved.enabled === true || String(saved.enabled).toUpperCase() === 'Y' || String(saved.enabled).toUpperCase() === 'TRUE';
+          var dp0 = parseInt(String(saved.decimalPlaces != null ? saved.decimalPlaces : def.decimalPlaces), 10);
+          if (isNaN(dp0) || dp0 < 0) dp0 = def.decimalPlaces;
+          if (dp0 > 8) dp0 = 8;
+          var rm0 = String(saved.roundMode || def.roundMode).trim().toUpperCase();
+          if (rmOpts.indexOf(rm0) < 0) rm0 = def.roundMode;
+          if (!en0) {
+            dp0 = def.decimalPlaces;
+            rm0 = def.roundMode;
+          }
+          var tr = document.createElement('tr');
+          tr.setAttribute('data-charge-round-cur', cur);
+          tr.setAttribute('data-hq-cr-editing', '0');
+          var td1 = document.createElement('td');
+          td1.className = 'fw-semibold';
+          td1.textContent = cur;
+          var tdEn = document.createElement('td');
+          tdEn.className = 'text-center';
+          var selEn = document.createElement('select');
+          selEn.className = 'form-select form-select-sm hq-upd-charge-en';
+          [{ v: 'N', t: pgAdminUiT('비활성') }, { v: 'Y', t: pgAdminUiT('활성') }].forEach(function (opt) {
+            var oEn = document.createElement('option');
+            oEn.value = opt.v;
+            oEn.textContent = opt.t;
+            if ((en0 && opt.v === 'Y') || (!en0 && opt.v === 'N')) oEn.selected = true;
+            selEn.appendChild(oEn);
+          });
+          selEn.addEventListener('change', function () { syncUrlPayChargeRoundRowUi(tr); });
+          tdEn.appendChild(selEn);
+          var td2 = document.createElement('td');
+          td2.className = 'text-center';
+          var selDp = document.createElement('select');
+          selDp.className = 'form-select form-select-sm hq-upd-charge-dp';
+          for (var d = 0; d <= 8; d++) {
+            var o = document.createElement('option');
+            o.value = String(d);
+            o.textContent = String(d);
+            if (d === dp0) o.selected = true;
+            selDp.appendChild(o);
+          }
+          selDp.addEventListener('change', function () { syncUrlPayChargeRoundRowUi(tr); });
+          td2.appendChild(selDp);
+          var td3 = document.createElement('td');
+          var selRm = document.createElement('select');
+          selRm.className = 'form-select form-select-sm hq-upd-charge-rm';
+          rmOpts.forEach(function (rm) {
+            var o2 = document.createElement('option');
+            o2.value = rm;
+            o2.textContent = rmLabels[rm] || rm;
+            if (rm === rm0) o2.selected = true;
+            selRm.appendChild(o2);
+          });
+          selRm.addEventListener('change', function () { syncUrlPayChargeRoundRowUi(tr); });
+          td3.appendChild(selRm);
+          var tdNote = document.createElement('td');
+          tdNote.className = 'small text-muted hq-upd-charge-note';
+          var tdAct = document.createElement('td');
+          tdAct.className = 'text-center align-middle';
+          var wrap = document.createElement('div');
+          wrap.className = 'd-flex flex-wrap gap-1 justify-content-center';
+          function addActBtn(cls, label, title) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'btn btn-sm ' + cls;
+            b.textContent = label;
+            if (title) b.title = title;
+            wrap.appendChild(b);
+            return b;
+          }
+          addActBtn('btn-outline-primary hq-cr-row-edit', pgAdminUiT('수정'), pgAdminUiT('편집 모드 전환'));
+          addActBtn('btn-primary hq-cr-row-save', pgAdminUiT('저장'), pgAdminUiT('URL결제 설정 전체를 서버에 저장합니다.'));
+          addActBtn('btn-outline-secondary hq-cr-row-cancel', pgAdminUiT('취소'), pgAdminUiT('이 행의 미저장 편집만 되돌립니다.'));
+          addActBtn('btn-outline-secondary hq-cr-copy-global', pgAdminUiT('전역값'), pgAdminUiT('이 통화를 위 「정책 기본값」으로 맞추고 비활성합니다.'));
+          tdAct.appendChild(wrap);
+          tr.appendChild(td1);
+          tr.appendChild(tdEn);
+          tr.appendChild(td2);
+          tr.appendChild(td3);
+          tr.appendChild(tdNote);
+          tr.appendChild(tdAct);
+          tb.appendChild(tr);
+          syncUrlPayChargeRoundRowUi(tr);
+        });
+      }
+      function collectUrlPayChargeRoundMap() {
+        var out = {};
+        pane.querySelectorAll('#hqUrlPayChargeRoundTbody tr[data-charge-round-cur]').forEach(function (tr) {
+          var cur = tr.getAttribute('data-charge-round-cur');
+          if (!cur) return;
+          var enSel = tr.querySelector('.hq-upd-charge-en');
+          var dpSel = tr.querySelector('.hq-upd-charge-dp');
+          var rmSel = tr.querySelector('.hq-upd-charge-rm');
+          var enabled = enSel && String(enSel.value).toUpperCase() === 'Y';
+          var def = policyUrlPayChargeDefault(cur);
+          var dp = parseInt(String(dpSel && dpSel.value != null ? dpSel.value : String(def.decimalPlaces)), 10);
+          if (isNaN(dp) || dp < 0) dp = def.decimalPlaces;
+          if (dp > 8) dp = 8;
+          var rm = rmSel && rmSel.value ? String(rmSel.value).trim().toUpperCase() : def.roundMode;
+          if (rm !== 'CEILING' && rm !== 'HALF_UP' && rm !== 'DOWN') rm = def.roundMode;
+          if (!enabled) {
+            dp = def.decimalPlaces;
+            rm = def.roundMode;
+          }
+          out[cur] = { enabled: enabled, decimalPlaces: dp, roundMode: rm };
+        });
+        return out;
+      }
+      function saveUrlPayDeployFxFromChargeRoundUi() {
+        if (!hqSnapDeploy) {
+          alert(pgAdminUiT('설정을 불러온 뒤 다시 시도하세요.'));
+          return;
+        }
+        var fd = {};
+        Object.keys(hqSnapDeploy).forEach(function (k) { fd[k] = hqSnapDeploy[k]; });
+        fd.urlPayDisplayFxJson = collectUrlPayDeployFxJson();
+        if (hiddenUp) hiddenUp.value = fd.urlPayDisplayFxJson;
+        var dimmS = document.getElementById('dimm');
+        if (dimmS) dimmS.style.display = 'flex';
+        (window.PG_API && window.PG_API.hqApiConfigSave
+          ? window.PG_API.hqApiConfigSave(fd)
+          : Promise.reject(new Error('API')))
+          .then(function (res) {
+            if (res && res.success === false) {
+              alert(res.message || pgAdminUiT('저장에 실패했습니다.'));
+              return;
+            }
+            hqSnapDeploy = Object.assign({}, hqSnapDeploy, fd);
+            alert(pgAdminUiT('저장되었습니다.'));
+            var fxObj = parseFxObjUrlPayDep(fd.urlPayDisplayFxJson);
+            applyUrlPayDeployFxToForm(fxObj);
+          })
+          .catch(function (err) {
+            alert((err && err.message) || pgAdminUiT('저장에 실패했습니다.'));
+          })
+          .finally(function () { if (dimmS) dimmS.style.display = 'none'; });
       }
       if (dimmUp) dimmUp.style.display = 'flex';
       Promise.all([
@@ -34565,6 +34853,88 @@
           }).catch(function (e) {
             alert(pgErrMsg(e, '저장 실패'));
           }).finally(function () { if (dimmS) dimmS.style.display = 'none'; });
+        });
+      }
+      if (!pane._hqUrlPayChargeRoundActBound) {
+        pane._hqUrlPayChargeRoundActBound = true;
+        pane.addEventListener('click', function (eCr) {
+          var tCr = eCr.target;
+          if (!tCr || !tCr.closest) return;
+          if (tCr.closest('#hqUrlPayChargePolicyDefaultsFactoryBtn')) {
+            if (!confirm(pgAdminUiT('정책 기본값을 팩토리(JPY·KRW 소수0·반올림, 그 외 소수2·반올림)로 복원하고 저장할까요?'))) return;
+            var facMap = {};
+            URL_PAY_CHARGE_ROUND_CCYS.forEach(function (c) { facMap[c] = factoryUrlPayChargePolicyDefault(c); });
+            renderUrlPayChargePolicyDefaultsTable(facMap);
+            pane.querySelectorAll('#hqUrlPayChargeRoundTbody tr[data-charge-round-cur]').forEach(syncUrlPayChargeRoundRowUi);
+            saveUrlPayDeployFxFromChargeRoundUi();
+            return;
+          }
+          if (tCr.closest('#hqUrlPayChargeRoundRestoreDefaultsBtn')) {
+            if (!confirm(pgAdminUiT('통화별 커스텀을 전부 비활성으로 할까요?\n각 통화는 위 「정책 기본값」으로 청구·표시됩니다. 저장됩니다.'))) return;
+            var allOff = {};
+            URL_PAY_CHARGE_ROUND_CCYS.forEach(function (c) {
+              var p = policyUrlPayChargeDefault(c);
+              allOff[c] = { enabled: false, decimalPlaces: p.decimalPlaces, roundMode: p.roundMode };
+            });
+            renderUrlPayChargeRoundTable(allOff);
+            saveUrlPayDeployFxFromChargeRoundUi();
+            return;
+          }
+          if (tCr.closest('.hq-cr-row-edit')) {
+            var trEd = tCr.closest('tr[data-charge-round-cur]');
+            if (!trEd || trEd.getAttribute('data-hq-cr-editing') === '1') return;
+            var en0 = trEd.querySelector('.hq-upd-charge-en');
+            var dp0 = trEd.querySelector('.hq-upd-charge-dp');
+            var rm0 = trEd.querySelector('.hq-upd-charge-rm');
+            trEd._hqCrSnap = {
+              en: en0 ? String(en0.value) : 'N',
+              dp: dp0 ? String(dp0.value) : '2',
+              rm: rm0 ? String(rm0.value) : 'HALF_UP'
+            };
+            trEd.setAttribute('data-hq-cr-editing', '1');
+            syncUrlPayChargeRoundRowUi(trEd);
+            return;
+          }
+          if (tCr.closest('.hq-cr-row-save')) {
+            if (!confirm(pgAdminUiT('URL결제 설정을 서버에 저장하시겠습니까? (청구금액 소수 처리 포함)'))) return;
+            saveUrlPayDeployFxFromChargeRoundUi();
+            return;
+          }
+          if (tCr.closest('.hq-cr-row-cancel')) {
+            var trCx = tCr.closest('tr[data-charge-round-cur]');
+            if (!trCx || trCx.getAttribute('data-hq-cr-editing') !== '1') return;
+            var snap = trCx._hqCrSnap;
+            var enCx = trCx.querySelector('.hq-upd-charge-en');
+            var dpCx = trCx.querySelector('.hq-upd-charge-dp');
+            var rmCx = trCx.querySelector('.hq-upd-charge-rm');
+            if (snap) {
+              if (enCx) enCx.value = snap.en;
+              if (dpCx) dpCx.value = snap.dp;
+              if (rmCx) rmCx.value = snap.rm;
+            }
+            trCx.setAttribute('data-hq-cr-editing', '0');
+            delete trCx._hqCrSnap;
+            syncUrlPayChargeRoundRowUi(trCx);
+            return;
+          }
+          if (tCr.closest('.hq-cr-copy-global')) {
+            var trG = tCr.closest('tr[data-charge-round-cur]');
+            if (!trG) return;
+            if (trG.getAttribute('data-hq-cr-editing') !== '1') {
+              alert(pgAdminUiT('먼저 [수정]으로 편집 모드로 전환한 뒤 [전역값]을 사용하세요.'));
+              return;
+            }
+            if (!confirm(pgAdminUiT('이 통화를 「정책 기본값」으로 맞추고 비활성할까요? 서버 반영은 [저장]이 필요합니다.'))) return;
+            var curG = trG.getAttribute('data-charge-round-cur');
+            var defG = policyUrlPayChargeDefault(curG);
+            var enG = trG.querySelector('.hq-upd-charge-en');
+            var dpG = trG.querySelector('.hq-upd-charge-dp');
+            var rmG = trG.querySelector('.hq-upd-charge-rm');
+            if (enG) enG.value = 'N';
+            if (dpG) dpG.value = String(defG.decimalPlaces);
+            if (rmG) rmG.value = defG.roundMode;
+            syncUrlPayChargeRoundRowUi(trG);
+          }
         });
       }
       function urlPayFxSimMarginFieldMap() {

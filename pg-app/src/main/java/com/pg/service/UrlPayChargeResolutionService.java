@@ -106,7 +106,7 @@ public class UrlPayChargeResolutionService {
                         compId, quoteCur, dispAmt, fxTok, opPg);
                 return new ResolvedCharge(fx.amount(), fx.settlementCurrency(), dispAmt, shopperCur);
             }
-            /* 혼용: UI는 DP·이 PG는 일반 — 표시통화로 1:1 실결제 */
+            /* 혼용: UI는 DP·이 PG는 일반 — 표시통화 1:1 (청구 소수 처리 미적용·STANDARD) */
             String settleCur = shopperCur != null && !shopperCur.isBlank()
                     ? shopperCur
                     : urlPayCheckoutCurrencyService.resolveCheckoutCurrency(merchantOrgUnitId, dispCur);
@@ -117,6 +117,7 @@ public class UrlPayChargeResolutionService {
             return new ResolvedCharge(pgAmount, settleCur, dispAmt, settleCur);
         }
 
+        /* STANDARD: 청구금액 소수 처리(DP/BL 전용) 미적용 */
         BigDecimal displayAmount = parsePayAmount(body.get("amount"));
         if (displayAmount == null || displayAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("INVALID_AMOUNT");

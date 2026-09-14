@@ -1793,12 +1793,24 @@
           el.textContent = '—';
           return;
         }
+        var gross = amt * tpu * (1 + mgn);
         var setCur = urlPayFxQuote.settlementCurrency != null && String(urlPayFxQuote.settlementCurrency).trim() !== ''
           ? String(urlPayFxQuote.settlementCurrency).trim().toUpperCase() : 'THB';
-        var gross = amt * tpu * (1 + mgn);
-        var intSet = (setCur === 'JPY' || setCur === 'KRW');
-        var shown = intSet ? Math.round(gross) : Math.round(gross * 100) / 100;
-        var grossStr = payFxFormatSettleAmount(shown, intSet);
+        var roundSpec = urlPayFxQuote.chargeAmountRound || null;
+        var facDp = (setCur === 'JPY' || setCur === 'KRW') ? 0 : 2;
+        var dpEff = parseInt(String(roundSpec && roundSpec.decimalPlaces != null ? roundSpec.decimalPlaces : ''), 10);
+        if (isNaN(dpEff) || dpEff < 0) dpEff = facDp;
+        if (dpEff > 8) dpEff = 8;
+        var rmEff = String(roundSpec && roundSpec.roundMode ? roundSpec.roundMode : 'HALF_UP').trim().toUpperCase();
+        if (rmEff !== 'CEILING' && rmEff !== 'HALF_UP' && rmEff !== 'DOWN') rmEff = 'HALF_UP';
+        var factor = Math.pow(10, dpEff);
+        var scaled = gross * factor;
+        var rounded;
+        if (rmEff === 'CEILING') rounded = gross >= 0 ? Math.ceil(scaled - 1e-12) : Math.floor(scaled + 1e-12);
+        else if (rmEff === 'DOWN') rounded = gross >= 0 ? Math.floor(scaled + 1e-12) : Math.ceil(scaled - 1e-12);
+        else rounded = Math.round(scaled);
+        var shown = rounded / factor;
+        var grossStr = dpEff === 0 ? String(Math.trunc(shown)) : shown.toFixed(dpEff);
         el.textContent = grossStr + ' ' + setCur;
       }
 

@@ -72,8 +72,12 @@ public final class ElementPayInlineStatusUtil {
         if (st == 203 || st == 205) {
             return new Mapped(Kind.PAID, true, false, false, false, null);
         }
+        /*
+         * 208 disputable — 대개 이미 paid 후 콜백 한도. 실패 확정(persistFail)하지 않고
+         * 호출측에서 승인 유지 + 콜백이슈 표시.
+         */
         if (st == 208) {
-            return new Mapped(Kind.DISPUTED, false, true, false, false, "ELEMENTPAY_DISPUTED");
+            return new Mapped(Kind.DISPUTED, false, false, false, false, "ELEMENTPAY_DISPUTED");
         }
         if (st == 207) {
             return new Mapped(Kind.REFUNDED, false, false, true, false, "ELEMENTPAY_PAYMENT_REFUNDED");

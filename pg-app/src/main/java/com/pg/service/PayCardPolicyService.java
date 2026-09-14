@@ -246,8 +246,50 @@ public class PayCardPolicyService {
         msg.put("INVALID_PAN", PayCardPolicyI18n.allLang("INVALID_PAN"));
         msg.put("LUHN_FAIL", PayCardPolicyI18n.allLang("LUHN_FAIL"));
         msg.put("SELECT_BRAND", PayCardPolicyI18n.allLang("SELECT_BRAND"));
+        msg.put("BRAND_AUTO_CORRECTED", PayCardPolicyI18n.allLang("BRAND_AUTO_CORRECTED", "{0}"));
         out.put("messages", msg);
         return out;
+    }
+
+    /**
+     * 승인 body의 카드 브랜드를 PAN 인식값으로 맞춥니다(선택≠인식이면 인식 브랜드 우선 · 멀티 PG 라우팅용).
+     *
+     * @return 적용된 브랜드 키(없으면 빈 문자열)
+     */
+    public String normalizeSaleCardBrand(Map<String, Object> body) {
+        if (body == null) {
+            return "";
+        }
+        String pan = firstBodyStr(body, "payCardno", "cardNo", "cardNumber", "pan");
+        String selected = firstBodyStr(body, "payCardBrand", "cardBrand");
+        String effective = resolveEffectiveBrandKey(pan, selected);
+        if (!effective.isEmpty()) {
+            body.put("payCardBrand", effective);
+            body.put("cardBrand", effective);
+        }
+        return effective;
+    }
+
+    /**
+     * 선택 브랜드와 PAN 인식이 다르면 인식 브랜드를 씁니다. AUTO/빈값이면 인식값.
+     * 인식 불가면 선택값(있을 때)을 유지합니다.
+     */
+    public static String resolveEffectiveBrandKey(String panRaw, String selectedBrandRaw) {
+        String pan = PayCardBrandDetector.normalizePan(panRaw);
+        PayCardBrand detected = pan.length() >= 2 ? PayCardBrandDetector.detect(pan) : PayCardBrand.UNKNOWN;
+        PayCardBrand selected = PayCardBrandDetector.parseBrandKey(selectedBrandRaw);
+        PayCardBrand brand;
+        if (selected == null) {
+            brand = detected;
+        } else if (detected != PayCardBrand.UNKNOWN && detected != selected) {
+            brand = detected;
+        } else {
+            brand = selected;
+        }
+        if (brand == null || brand == PayCardBrand.UNKNOWN) {
+            return selected != null && selected != PayCardBrand.UNKNOWN ? selected.name() : "";
+        }
+        return brand.name();
     }
 
     public List<String> loadActivePrefixDigits(String pgVendor) {
@@ -293,7 +335,17 @@ public class PayCardPolicyService {
 
         PayCardBrand detected = PayCardBrandDetector.detect(pan);
         PayCardBrand selected = PayCardBrandDetector.parseBrandKey(selectedBrandRaw);
-        PayCardBrand brand = selected != null ? selected : detected;
+        boolean brandCorrected = false;
+        PayCardBrand brand;
+        if (selected == null) {
+            brand = detected;
+        } else if (detected != PayCardBrand.UNKNOWN && detected != selected) {
+            /* C′: 틀린 선택을 막지 않고 PAN 인식 브랜드로 교정(멀티 PG 라우팅은 구체 브랜드 유지) */
+            brand = detected;
+            brandCorrected = true;
+        } else {
+            brand = selected;
+        }
 
         String blockedPrefix = matchBlockedPrefix(pg, pan);
         if (blockedPrefix != null) {
@@ -328,9 +380,6 @@ public class PayCardPolicyService {
             pausedBase.addAll(blockedBrands);
             return failBrandNotAllowed(langNorm, merchantAllowed, pausedBase);
         }
-        if (detected != PayCardBrand.UNKNOWN && detected != brand && selected != null) {
-            return fail("INVALID_PAN", "INVALID_PAN", langNorm);
-        }
 
         int expected = PayCardBrandDetector.expectedLength(brand);
         if (pan.length() > 0 && pan.length() != expected && pan.length() >= expected - 2) {
@@ -349,6 +398,14 @@ public class PayCardPolicyService {
         ok.put("valid", true);
         ok.put("brand", brand.name());
         ok.put("expectedLength", expected);
+        if (brandCorrected) {
+            ok.put("brandCorrected", true);
+            ok.put("messageKey", "BRAND_AUTO_CORRECTED");
+            String label = PayCardPolicyI18n.brandLabel(langNorm, brand);
+            ok.put("message", PayCardPolicyI18n.format(langNorm, "BRAND_AUTO_CORRECTED", label));
+            ok.put("messages", PayCardPolicyI18n.allLang("BRAND_AUTO_CORRECTED", label));
+            ok.put("arg0", label);
+        }
         return ok;
     }
 
@@ -390,6 +447,14 @@ public class PayCardPolicyService {
             holder = (fn + " " + ln).trim();
         }
         Map<String, Object> cardVal = validateForSale(pgVendorRaw, pan, brand, lang, orgUnitId, holder);
+        if (cardVal != null && Boolean.TRUE.equals(cardVal.get("valid"))) {
+            Object okBrand = cardVal.get("brand");
+            if (okBrand != null && !okBrand.toString().isBlank()) {
+                body.put("payCardBrand", okBrand.toString());
+                body.put("cardBrand", okBrand.toString());
+            }
+            return null;
+        }
         if (cardVal == null || !Boolean.FALSE.equals(cardVal.get("valid"))) {
             return null;
         }

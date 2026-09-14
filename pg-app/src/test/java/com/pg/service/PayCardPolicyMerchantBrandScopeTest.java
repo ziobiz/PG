@@ -88,6 +88,28 @@ class PayCardPolicyMerchantBrandScopeTest {
     }
 
     @Test
+    void mismatchSelectedBrandCorrectsToDetectedWhenAllowed() {
+        stubOpenCardChecks();
+        when(pgBindingRouter.listOperationalRouteSummaries(eq(7L), anyBoolean())).thenReturn(List.of(
+                Map.of("pgCd", "JPAY", "cardBrandScope", "VM")));
+
+        Map<String, Object> result = policyService.validateForSale("JPAY", VISA_PAN, "MASTERCARD", "KO", 7L);
+        assertEquals(Boolean.TRUE, result.get("valid"));
+        assertEquals(PayCardBrand.VISA.name(), result.get("brand"));
+        assertEquals(Boolean.TRUE, result.get("brandCorrected"));
+        assertEquals("BRAND_AUTO_CORRECTED", result.get("messageKey"));
+        assertTrue(String.valueOf(result.get("message")).contains("비자")
+                || String.valueOf(result.get("message")).contains("Visa"));
+    }
+
+    @Test
+    void resolveEffectiveBrandKeyPrefersDetectedOverMismatch() {
+        assertEquals("VISA", PayCardPolicyService.resolveEffectiveBrandKey(VISA_PAN, "MASTERCARD"));
+        assertEquals("VISA", PayCardPolicyService.resolveEffectiveBrandKey(VISA_PAN, "AUTO"));
+        assertEquals("VISA", PayCardPolicyService.resolveEffectiveBrandKey(VISA_PAN, ""));
+    }
+
+    @Test
     void merchantAllowedBrandsIntersectPgSupport() {
         when(pgBindingRouter.listOperationalRouteSummaries(eq(7L), eq(false))).thenReturn(List.of(
                 Map.of("pgCd", "ELEMENTPAY", "cardBrandScope", "VMJUA")));

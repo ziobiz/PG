@@ -1137,13 +1137,21 @@ public class JpayPaymentService {
     }
 
     private Map<String, Object> validateCardPolicyForDirectSale(Long orgUnitId, Map<String, Object> body) {
-        return payCardPolicyService.validateForSale(
+        Map<String, Object> cardVal = payCardPolicyService.validateForSale(
                 PgVendor.JPAY,
                 str(body.get("payCardno")),
                 str(body.get("payCardBrand")),
                 str(body.get("payLanguage")),
                 orgUnitId,
                 joinPayerName(str(body.get("payFirstname")), str(body.get("payLastname"))));
+        if (Boolean.TRUE.equals(cardVal.get("valid")) && cardVal.get("brand") != null) {
+            String b = cardVal.get("brand").toString().trim();
+            if (!b.isEmpty()) {
+                body.put("payCardBrand", b);
+                body.put("cardBrand", b);
+            }
+        }
+        return cardVal;
     }
 
     private Map<String, Object> cardPolicyBlockOut(Map<String, Object> cardVal,

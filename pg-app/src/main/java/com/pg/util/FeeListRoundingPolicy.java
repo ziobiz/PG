@@ -20,10 +20,7 @@ public record FeeListRoundingPolicy(int decimalPlaces, RoundingMode roundMode) {
         } else if (decimalPlaces > 8) {
             decimalPlaces = 8;
         }
-        /* 소수 0이면 금액은 정수 스케일만 의미 있음 — 절상/반올림은 적용하지 않고 버림(DOWN)으로 통일 */
-        if (decimalPlaces == 0) {
-            roundMode = RoundingMode.DOWN;
-        } else if (roundMode == null) {
+        if (roundMode == null) {
             roundMode = DEFAULT_ROUND_MODE;
         }
     }

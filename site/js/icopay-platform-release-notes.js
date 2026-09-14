@@ -6,13 +6,234 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '3.94';
+  var CURRENT_LIVE = '4.02';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '4.02',
+      kind: 'minor',
+      date: '2026-09-14',
+      items: {
+        KO: [
+          '결제내역 상태: ElementPay paid 가 언어 전환 후에도 「성공」으로 유지(KO·EN·JP·CH·TH)',
+          '승인 반영 시 상태 표시를 내부 코드(10)로 정규화 · 뱃지 언어 전환 시 status 코드 유지'
+        ],
+        EN: [
+          'Pay list status: ElementPay paid stays as Success after language switch (KO·EN·JP·CH·TH)',
+          'Normalize paid marker to status 10; badges keep status code across locale changes'
+        ],
+        JP: [
+          '決済履歴の状態: ElementPay paid が言語切替後も「成功」のまま(KO·EN·JP·CH·TH)',
+          '承認時は内部コード10へ正規化。バッジは言語切替時もstatusコードを保持'
+        ],
+        CH: [
+          '支付明细状态：语言切换后 ElementPay paid 仍显示为「成功」(KO·EN·JP·CH·TH)',
+          '批准时规范为内部码 10；切换语言时徽章保留 status 代码'
+        ],
+        TH: [
+          'สถานะรายการชำระ: ElementPay paid ยังแสดงเป็น สำเร็จ หลังเปลี่ยนภาษา (KO·EN·JP·CH·TH)',
+          'เมื่ออนุมัติปรับเป็นรหัส 10 · ป้ายสถานะเก็บรหัส status ตอนสลับภาษา'
+        ]
+      }
+    },
+    {
+      version: '4.01',
+      kind: 'minor',
+      date: '2026-09-14',
+      items: {
+        KO: [
+          '결제내역 등 관리자 화면: 일본어·기타 언어 → 한국어로 되돌릴 때 그리드·검색폼·상단이 일본어에 고정되던 오류 수정',
+          '헤더·옵션 라벨은 항상 한국어 키로 복원한 뒤 현재 언어로 표시'
+        ],
+        EN: [
+          'Admin pay list and related screens: fixed KO not restoring after JP/other (grid, search form, top chrome stuck in JP)',
+          'Headers/options always restore Korean keys then display in the current locale'
+        ],
+        JP: [
+          '決済履歴など管理画面: 日本語などから韓国語に戻すと日本語のまま固定される不具合を修正',
+          'ヘッダー・オプションは常に韓国語キーへ復元してから現在言語で表示'
+        ],
+        CH: [
+          '支付明细等管理端：从日语等切回韩语后仍停留在日语的问题已修复',
+          '表头与选项始终先恢复韩文键再按当前语言显示'
+        ],
+        TH: [
+          'หน้าประวัติชำระฝั่งแอดมิน: แก้บั๊กที่กลับเป็นเกาหลีแล้วค้างภาษาญี่ปุ่น (กริด ฟอร์มค้นหา แถบบน)',
+          'ส่วนหัว/ตัวเลือกคืนคีย์เกาหลีก่อนแล้วแสดงตามภาษาปัจจุบัน'
+        ]
+      }
+    },
+    {
+      version: '4.00',
+      kind: 'minor',
+      date: '2026-09-08',
+      items: {
+        KO: [
+          '결제창 카드 종류: 선택과 번호(BIN)가 다르면 막지 않고 인식 브랜드로 자동 교정(멀티 PG 라우팅은 구체 브랜드 유지, AUTO 고정 아님)',
+          '안내 문구 5개국어. 서버 승인·resolve-route·card-policy-check도 동일 기준'
+        ],
+        EN: [
+          'Checkout card brand: on select≠BIN mismatch, auto-correct to detected brand (keep concrete brand for multi-PG routing; not forced AUTO)',
+          'Notice in 5 languages; sale / resolve-route / card-policy-check aligned'
+        ],
+        JP: [
+          '決済画面カードブランド: 選択≠番号のとき拒否せず認識ブランドへ自動修正(マルチPGは具体ブランド維持、AUTO固定なし)',
+          '案内5言語。承認・resolve-route・card-policy-checkも同一'
+        ],
+        CH: [
+          '支付页卡品牌：选择与卡号不符时不拦截，自动更正为识别品牌（多 PG 路由保留具体品牌，非强制 AUTO）',
+          '提示五语；批准 / resolve-route / card-policy-check 一致'
+        ],
+        TH: [
+          'หน้าชำระ: ถ้าแบรนด์ที่เลือกไม่ตรงหมายเลข จะปรับเป็นแบรนด์ที่ตรวจจับ (คงแบรนด์จริงสำหรับ multi-PG ไม่บังคับ AUTO)',
+          'ข้อความ 5 ภาษา; sale / resolve-route / card-policy-check ตามเกณฑ์เดียวกัน'
+        ]
+      }
+    },
+    {
+      version: '3.99',
+      kind: 'minor',
+      date: '2026-09-08',
+      items: {
+        KO: [
+          'ElementPay Pay 콜백: 승인(10) 재통보·주문/금액 표기 차이 시에도 205 확인 응답(206/475 반복→Cabinet disputable 감소)',
+          'getStatus 208(콜백 한도): 승인 유지 + 결제내역 「성공 · 콜백이슈」표시(5개국어). NOTI는 EP 응답 즉시 패스스루·가맹 릴레이 비동기'
+        ],
+        EN: [
+          'ElementPay Pay callback: ack 205 on already-paid retries and order/amount label mismatches (fewer 206/475 → less Cabinet disputable)',
+          'getStatus 208 (callback limit): keep approval + show Success · Callback issue (5 langs). NOTI returns EP body immediately; merchant relay async'
+        ],
+        JP: [
+          'ElementPay Payコールバック: 承認済再通知・注文/金額表記差でも205確認(206/475反復→Cabinet disputable低減)',
+          'getStatus 208(コールバック上限): 承認維持 + 「成功 · コールバック問題」(5言語)。NOTIはEP応答を即パススルー、加盟店リレーは非同期'
+        ],
+        CH: [
+          'ElementPay Pay 回调：已批准重试及订单/金额标注差异仍回 205（减少 206/475→Cabinet disputable）',
+          'getStatus 208（回调上限）：保留批准并显示「成功 · 回调异常」（5语）。NOTI 立即透传 EP 正文，商户转发异步'
+        ],
+        TH: [
+          'ElementPay Pay callback: ตอบ 205 เมื่ออนุมัติแล้ว/เลขออเดอร์·ยอดไม่ตรงรูปแบบ (ลด 206/475→disputable)',
+          'getStatus 208 (ขีดจำกัด callback): คงการอนุมัติ + แสดง「สำเร็จ · ปัญหา callback」(5 ภาษา). NOTI ส่งต่อ EP ทันที รีเลย์ร้านแบบ async'
+        ]
+      }
+    },
+    {
+      version: '3.98',
+      kind: 'minor',
+      date: '2026-09-07',
+      items: {
+        KO: [
+          'URL결제 DP/BL: 「정책 기본값」설정 추가 — 비활성 시 적용(기존 코드 하드코딩 JPY/KRW 0·그 외 2 대체, 본사 저장·수정 가능)',
+          '팩토리 기본값 복원·통화별 커스텀과 분리. 견적·결제창은 서버 정책 기본값을 따름'
+        ],
+        EN: [
+          'URL-pay DP/BL: add Policy defaults (used when custom Off) — replaces hardcoded JPY/KRW 0 / others 2; HQ editable',
+          'Factory restore; checkout uses server policy defaults'
+        ],
+        JP: [
+          'URL決済DP/BL: 「政策既定値」追加 — カスタム無効時に適用(旧ハードコード代替、本社で編集可)',
+          'ファクトリ復元。見積・決済画面はサーバ政策既定に従う'
+        ],
+        CH: [
+          'URL 支付 DP/BL：新增「政策默认值」（自定义停用时应用）— 替代原硬编码，总部可改',
+          '恢复出厂默认；支付页跟随服务器政策默认'
+        ],
+        TH: [
+          'URL DP/BL: เพิ่ม「ค่าเริ่มต้นนโยบาย」ใช้เมื่อปิดกำหนดเอง — แทนฮาร์ดโค้ด แก้ที่ HQ ได้',
+          'คืนค่าโรงงาน; หน้าชำระตามค่าเริ่มต้นจากเซิร์ฟเวอร์'
+        ]
+      }
+    },
+    {
+      version: '3.97',
+      kind: 'minor',
+      date: '2026-09-07',
+      items: {
+        KO: [
+          'URL결제 청구금액 소수(DP/BL): 비활성=레거시 기본으로 계속 청구·표시(끄기 아님). 수정·저장·취소·전역값·기본값 복원 추가',
+          '수수료내역(정산금액): 기본값 복원 추가. 「전역값」=기본(통화 미지정) 복사(수정 전 복원 아님)'
+        ],
+        EN: [
+          'URL-pay charge round (DP/BL): Off = legacy defaults still charge/show (not disabled). Add edit/save/cancel/global/restore-defaults',
+          'Fee history (settlement): add restore defaults. Global = copy Default (unspecified), not undo-edit'
+        ],
+        JP: [
+          'URL決済請求小数(DP/BL): 無効=レガシー既定で請求・表示継続。修正・保存・取消・全域・既定復元を追加',
+          '手数料明細(精算): 既定復元追加。「全域値」=未指定既定のコピー(編集前復元ではない)'
+        ],
+        CH: [
+          'URL 支付请求小数(DP/BL)：停用=仍按旧默认计费/显示。新增修改/保存/取消/全局/恢复默认',
+          '手续费明细（结算）：新增恢复默认。「全局值」=复制未指定默认（非撤销编辑）'
+        ],
+        TH: [
+          'ปัดยอดเรียกเก็บ URL (DP/BL): ปิด=ยังคิด/แสดงตามค่าเดิม. เพิ่มแก้/บันทึก/ยกเลิก/ค่ากลาง/คืนค่าเริ่มต้น',
+          'ประวัติค่าธรรมเนียม: เพิ่มคืนค่าเริ่มต้น 「ค่ากลาง」=คัดลอกค่าเริ่มต้น (ไม่ใช่ยกเลิกการแก้)'
+        ]
+      }
+    },
+    {
+      version: '3.96',
+      kind: 'minor',
+      date: '2026-09-07',
+      items: {
+        KO: [
+          'URL결제: 청구금액 소수 처리를 DP/BL 전용으로 명시 — 사용(활성/비활성)·비고 추가',
+          '비활성 시 기존과 동일, 활성 시 실결제 통화별 소수·절상 적용(예: THB 0+절상 123.45→124). 일반(STANDARD)에는 미적용',
+          '결제창 청구예상이 HQ 설정과 동일하게 반영되도록 수정'
+        ],
+        EN: [
+          'URL-pay: charge-amount rounding is DP/BL-only — add enable/disable and remarks',
+          'When off: legacy defaults; when on: per settlement currency (e.g. THB 0+ceiling 123.45→124). Not applied to STANDARD',
+          'Checkout estimate now follows HQ charge-round settings'
+        ],
+        JP: [
+          'URL決済: 請求額小数処理をDP/BL専用に明示 — 有効/無効・備考を追加',
+          '無効時は従来どおり、有効時は実決済通貨ごとの小数・切上(例: THB 0+切上 123.45→124)。STANDARDには非適用',
+          '決済画面の請求見積が本社設定と同じになるよう修正'
+        ],
+        CH: [
+          'URL 支付：请求金额小数处理标明为 DP/BL 专用 — 增加启用/停用与备注',
+          '停用=旧默认；启用=按实付币种小数/进位（如 THB 0+进位 123.45→124）。不适用于 STANDARD',
+          '支付页预计扣款与总部设置一致'
+        ],
+        TH: [
+          'URL จ่าย: ปัดทศนิยมยอดเรียกเก็บเป็นเฉพาะ DP/BL — เพิ่มเปิด/ปิดและหมายเหตุ',
+          'ปิด=ค่าเดิม; เปิด=ตามสกุลชำระจริง (เช่น THB 0+ปัดขึ้น 123.45→124) ไม่ใช้กับ STANDARD',
+          'ประมาณการในหน้าชำระตรงกับการตั้งค่า HQ'
+        ]
+      }
+    },
+    {
+      version: '3.95',
+      kind: 'minor',
+      date: '2026-09-07',
+      items: {
+        KO: [
+          '전산·동기화: 수수료내역(정산금액) 소수 0에서도 절상·반올림·버림 정상 적용',
+          'URL결제: 청구금액(실결제 통화) 소수·절상/반올림/버림 설정 추가 — DP·일반 URL 청구에 반영'
+        ],
+        EN: [
+          'Ledger sync: fee/settlement rounding modes apply even when decimal places = 0',
+          'URL-pay: add charge-amount decimal/ceiling/round/down by settlement currency (DP and standard URL)'
+        ],
+        JP: [
+          '電算・同期: 手数料明細(精算金額)で小数0でも切上・四捨五入・切捨を適用',
+          'URL決済: 請求額(実決済通貨)の小数・切上/四捨五入/切捨設定を追加'
+        ],
+        CH: [
+          '账务同步：手续费明细（结算金额）小数位为 0 时仍可应用进位/四舍五入/截断',
+          'URL 支付：新增实付币种的请求金额小数与进位规则（DP/普通 URL）'
+        ],
+        TH: [
+          'บัญชี/ซิงค์: ใช้ปัดขึ้น/ปัดเศษ/ตัดทิ้งได้แม้ทศนิยม=0 ในประวัติค่าธรรมเนียม (ยอดชำระบัญชี)',
+          'URL จ่าย: เพิ่มตั้งทศนิยม/ปัดขึ้นของยอดเรียกเก็บตามสกุลชำระจริง'
+        ]
+      }
+    },
     {
       version: '3.94',
       kind: 'minor',

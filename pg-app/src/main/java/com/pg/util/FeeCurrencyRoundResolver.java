@@ -198,9 +198,6 @@ public final class FeeCurrencyRoundResolver {
                         throw new IllegalArgumentException("roundMode 는 CEILING, HALF_UP, DOWN 중 하나여야 합니다.");
                     }
                 }
-                if (dp == 0) {
-                    rm = "DOWN";
-                }
                 byCur.put(u, rowNode(u, dp, rm));
             }
             for (String c : DEFAULT_CURRENCY_ORDER) {

@@ -86,6 +86,7 @@ public final class PayCardPolicyI18n {
             case "INVALID_PAN" -> "카드번호를 확인해 주세요.";
             case "LUHN_FAIL" -> "카드번호를 다시 확인해 주세요.";
             case "SELECT_BRAND" -> "카드 종류를 선택해 주세요.";
+            case "BRAND_AUTO_CORRECTED" -> "선택한 카드 종류가 번호와 달라 {0}(으)로 변경했습니다.";
             default -> k;
         };
     }
@@ -110,6 +111,7 @@ public final class PayCardPolicyI18n {
             case "INVALID_PAN" -> "Please check the card number.";
             case "LUHN_FAIL" -> "Please check the card number again.";
             case "SELECT_BRAND" -> "Please select a card brand.";
+            case "BRAND_AUTO_CORRECTED" -> "Card brand did not match the number; corrected to {0}.";
             default -> k;
         };
     }
@@ -134,6 +136,7 @@ public final class PayCardPolicyI18n {
             case "INVALID_PAN" -> "カード番号をご確認ください。";
             case "LUHN_FAIL" -> "カード番号を再度ご確認ください。";
             case "SELECT_BRAND" -> "カードブランドを選択してください。";
+            case "BRAND_AUTO_CORRECTED" -> "選択ブランドが番号と一致しないため、{0}に変更しました。";
             default -> k;
         };
     }
@@ -158,6 +161,7 @@ public final class PayCardPolicyI18n {
             case "INVALID_PAN" -> "请检查卡号。";
             case "LUHN_FAIL" -> "请再次确认卡号。";
             case "SELECT_BRAND" -> "请选择卡品牌。";
+            case "BRAND_AUTO_CORRECTED" -> "所选卡品牌与卡号不符，已更正为 {0}。";
             default -> k;
         };
     }
@@ -182,6 +186,7 @@ public final class PayCardPolicyI18n {
             case "INVALID_PAN" -> "กรุณาตรวจสอบหมายเลขบัตร";
             case "LUHN_FAIL" -> "กรุณาตรวจสอบหมายเลขบัตรอีกครั้ง";
             case "SELECT_BRAND" -> "กรุณาเลือกแบรนด์บัตร";
+            case "BRAND_AUTO_CORRECTED" -> "แบรนด์ที่เลือกไม่ตรงกับหมายเลข จึงปรับเป็น {0}";
             default -> k;
         };
     }

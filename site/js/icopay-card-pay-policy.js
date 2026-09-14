@@ -144,6 +144,21 @@
       if (arg1 != null) s = s.replace('{1}', String(arg1));
       return s;
     }
+    var fallback = {
+      BRAND_AUTO_CORRECTED: {
+        KO: '선택한 카드 종류가 번호와 달라 {0}(으)로 변경했습니다.',
+        EN: 'Card brand did not match the number; corrected to {0}.',
+        JP: '選択ブランドが番号と一致しないため、{0}に変更しました。',
+        CH: '所选卡品牌与卡号不符，已更正为 {0}。',
+        TH: 'แบรนด์ที่เลือกไม่ตรงกับหมายเลข จึงปรับเป็น {0}'
+      }
+    };
+    if (fallback[key] && fallback[key][lk]) {
+      var f = fallback[key][lk];
+      if (arg != null) f = f.replace('{0}', String(arg));
+      if (arg1 != null) f = f.replace('{1}', String(arg1));
+      return f;
+    }
     return key;
   }
 
@@ -259,8 +274,18 @@
       }
     }
     var detected = detectBrand(pan);
-    var brand = selectedBrand && selectedBrand !== 'AUTO' ? selectedBrand : detected;
-    if (brand === 'UNKNOWN' && selectedBrand && selectedBrand !== 'AUTO') brand = selectedBrand;
+    var selected = selectedBrand && selectedBrand !== 'AUTO' ? String(selectedBrand).toUpperCase() : '';
+    var brandCorrected = false;
+    var brand;
+    if (!selected) {
+      brand = detected;
+    } else if (detected !== 'UNKNOWN' && detected !== selected) {
+      brand = detected;
+      brandCorrected = true;
+    } else {
+      brand = selected;
+    }
+    if (brand === 'UNKNOWN' && selected) brand = selected;
     var allowed = policy.allowedBrands || [];
     if (allowed.length && brand === 'UNKNOWN') {
       return brandNotAllowedResult(policy, lang);
@@ -279,7 +304,14 @@
     if (pan.length === exp && !luhnValid(pan)) {
       return { valid: false, message: msg(policy, 'LUHN_FAIL', lang), errorCode: 'LUHN_FAIL', messageKey: 'LUHN_FAIL' };
     }
-    return { valid: true, brand: brand, expectedLength: exp };
+    var out = { valid: true, brand: brand, expectedLength: exp };
+    if (brandCorrected) {
+      out.brandCorrected = true;
+      out.messageKey = 'BRAND_AUTO_CORRECTED';
+      out.arg0 = brandLabelI18n(brand, lang);
+      out.message = msg(policy, 'BRAND_AUTO_CORRECTED', lang, out.arg0);
+    }
+    return out;
   }
 
   function formatPanInput(input, brand) {
@@ -403,15 +435,33 @@
 
     function showAlert(res) {
       if (!alertEl) return;
-      if (!res || res.valid) {
+      if (!res || (res.valid && !res.brandCorrected && res.messageKey !== 'BRAND_AUTO_CORRECTED')) {
         alertEl.classList.add('d-none');
         alertEl.textContent = '';
+        alertEl.classList.remove('alert-info');
+        if (!alertEl.classList.contains('alert-warning') && !alertEl.classList.contains('alert-danger')) {
+          alertEl.classList.add('alert-warning');
+        }
         return;
       }
       var curLang = resolveLang({ lang: lang, onLangChange: onLangChange });
       var text = res.message;
       if (res.messageKey || res.errorCode) {
         text = resolveMessage(policy, res, res.messageKey || res.errorCode, curLang, res);
+      }
+      if (res.brandCorrected || res.messageKey === 'BRAND_AUTO_CORRECTED') {
+        if (res.arg0 == null && res.brand) {
+          res.arg0 = brandLabelI18n(res.brand, curLang);
+        }
+        text = resolveMessage(policy, res, 'BRAND_AUTO_CORRECTED', curLang, res)
+          || msg(policy, 'BRAND_AUTO_CORRECTED', curLang, res.arg0 || brandLabelI18n(res.brand, curLang));
+        alertEl.classList.remove('alert-warning', 'alert-danger');
+        alertEl.classList.add('alert-info');
+      } else {
+        alertEl.classList.remove('alert-info');
+        if (!alertEl.classList.contains('alert-warning') && !alertEl.classList.contains('alert-danger')) {
+          alertEl.classList.add('alert-warning');
+        }
       }
       alertEl.textContent = text || '';
       alertEl.classList.remove('d-none');
@@ -464,7 +514,22 @@
             showAlert(lastServerBlock);
           } else {
             lastServerBlock = null;
+            if (data.brand && brandSelect) {
+              applyBrandToSelect(String(data.brand).toUpperCase(), !!data.brandCorrected);
+            }
             runValidate();
+            if (data.brandCorrected && data.brand) {
+              var noticeLang = resolveLang({ lang: lang, onLangChange: onLangChange });
+              showAlert({
+                valid: true,
+                brandCorrected: true,
+                brand: String(data.brand).toUpperCase(),
+                messageKey: 'BRAND_AUTO_CORRECTED',
+                messages: data.messages || null,
+                message: data.message,
+                arg0: data.arg0 || brandLabelI18n(data.brand, noticeLang)
+              });
+            }
           }
         }).catch(function () {});
       }, 400);
@@ -478,18 +543,40 @@
       if (cvvInput) cvvInput.placeholder = (b === 'AMEX') ? '4' : '3';
     }
 
-    function syncDetectedBrandToSelect() {
-      if (!brandSelect) return;
-      if (brandSelect.value && brandSelect.value !== 'AUTO') return;
-      var d = detectBrand(digitsOnly(panInput.value));
-      if (d === 'UNKNOWN') return;
+    /** AUTO 또는 선택≠인식일 때 허용 목록 안이면 인식 브랜드로 셀렉트 교정 */
+    function applyBrandToSelect(targetBrand, fireChange) {
+      if (!brandSelect || !targetBrand || targetBrand === 'UNKNOWN') return false;
+      var has = false;
       for (var oi = 0; oi < brandSelect.options.length; oi++) {
-        if (brandSelect.options[oi].value === d) {
-          brandSelect.value = d;
-          return;
+        if (brandSelect.options[oi].value === targetBrand) { has = true; break; }
+      }
+      if (!has) return false;
+      if (brandSelect.value === targetBrand) return false;
+      brandSelect.value = targetBrand;
+      if (fireChange) {
+        try {
+          brandSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        } catch (eFire) { /* ignore */ }
+        if (typeof opts.onBrandCorrected === 'function') {
+          try { opts.onBrandCorrected(targetBrand); } catch (eCb) { /* ignore */ }
         }
       }
-      brandSelect.value = 'AUTO';
+      return true;
+    }
+
+    function syncDetectedBrandToSelect() {
+      if (!brandSelect) return null;
+      var d = detectBrand(digitsOnly(panInput.value));
+      if (d === 'UNKNOWN') return null;
+      var cur = brandSelect.value || 'AUTO';
+      if (cur === 'AUTO') {
+        applyBrandToSelect(d, false);
+        return null;
+      }
+      if (cur !== d) {
+        return applyBrandToSelect(d, true) ? d : null;
+      }
+      return null;
     }
 
     if (brandSelect) {
@@ -505,9 +592,19 @@
     }
 
     panInput.addEventListener('input', function () {
-      syncDetectedBrandToSelect();
+      var correctedTo = syncDetectedBrandToSelect();
       applyBrandUi();
       runValidate();
+      if (correctedTo) {
+        var curLang = resolveLang({ lang: lang, onLangChange: onLangChange });
+        showAlert({
+          valid: true,
+          brandCorrected: true,
+          brand: correctedTo,
+          messageKey: 'BRAND_AUTO_CORRECTED',
+          arg0: brandLabelI18n(correctedTo, curLang)
+        });
+      }
       scheduleServerCheck();
     });
 
@@ -529,10 +626,15 @@
       },
       validateFinal: function () {
         var pan = digitsOnly(panInput.value);
+        syncDetectedBrandToSelect();
         var b = currentBrand();
         if (b === 'AUTO') b = detectBrand(pan);
         var curLang = resolveLang({ lang: lang, onLangChange: onLangChange });
         var brandGate = validate(policy, pan, b, curLang);
+        if (brandGate.valid && brandGate.brand) {
+          b = brandGate.brand;
+          applyBrandToSelect(b, !!brandGate.brandCorrected);
+        }
         if (!brandGate.valid && (brandGate.errorCode === 'BRAND_NOT_ALLOWED'
             || brandGate.messageKey === 'BRAND_NOT_ALLOWED'
             || brandGate.messageKey === 'BRAND_SCOPE_ALLOWED'

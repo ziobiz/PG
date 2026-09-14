@@ -213,11 +213,54 @@
       }
     }
 
+    function payFxEffectiveRoundSpec(setCur, roundSpec) {
+      var spec = roundSpec || {};
+      var customOn = spec.enabled === true || String(spec.enabled).toUpperCase() === 'Y' || String(spec.enabled).toUpperCase() === 'TRUE';
+      var facDp = (setCur === 'JPY' || setCur === 'KRW') ? 0 : 2;
+      var dp = parseInt(String(spec.decimalPlaces != null ? spec.decimalPlaces : ''), 10);
+      if (isNaN(dp) || dp < 0) dp = facDp;
+      if (dp > 8) dp = 8;
+      var rm = String(spec.roundMode || 'HALF_UP').trim().toUpperCase();
+      if (rm !== 'CEILING' && rm !== 'HALF_UP' && rm !== 'DOWN') rm = 'HALF_UP';
+      /* 서버가 비활성 시에도 정책 기본값 decimalPlaces/roundMode를 내려줌 — 클라이언트 하드코딩 대체 */
+      return { enabled: true, decimalPlaces: dp, roundMode: rm, legacyDefault: !customOn };
+    }
+
+    function payFxRoundSettleAmount(n, roundSpec) {
+      if (!isFinite(n)) return n;
+      var spec = roundSpec || {};
+      var dp = parseInt(String(spec.decimalPlaces != null ? spec.decimalPlaces : '2'), 10);
+      if (isNaN(dp) || dp < 0) dp = 2;
+      if (dp > 8) dp = 8;
+      var rm = String(spec.roundMode || 'HALF_UP').trim().toUpperCase();
+      var factor = Math.pow(10, dp);
+      var scaled = n * factor;
+      var rounded;
+      if (rm === 'CEILING') {
+        rounded = n >= 0 ? Math.ceil(scaled - 1e-12) : Math.floor(scaled + 1e-12);
+      } else if (rm === 'DOWN') {
+        rounded = n >= 0 ? Math.floor(scaled + 1e-12) : Math.ceil(scaled - 1e-12);
+      } else {
+        rounded = Math.round(scaled);
+      }
+      return rounded / factor;
+    }
+
     function payFxFormatSettleAmount(n, intSet) {
       if (!isFinite(n)) return String(n);
       if (intSet) return String(Math.round(n));
       var r = Math.round(n * 100) / 100;
       return (Math.abs(r - Math.round(r)) < 1e-6) ? String(Math.round(r)) : r.toFixed(2);
+    }
+
+    function payFxFormatSettleAmountByPolicy(n, setCur, roundSpec) {
+      var eff = payFxEffectiveRoundSpec(setCur, roundSpec);
+      var applied = payFxRoundSettleAmount(n, eff);
+      if (!isFinite(applied)) {
+        return payFxFormatSettleAmount(n, setCur === 'JPY' || setCur === 'KRW');
+      }
+      if (eff.decimalPlaces === 0) return String(Math.trunc(applied));
+      return applied.toFixed(eff.decimalPlaces);
     }
 
     function updateFxSettlementEstimateText() {
@@ -244,9 +287,8 @@
       var setCur = q.settlementCurrency != null && String(q.settlementCurrency).trim() !== ''
         ? String(q.settlementCurrency).trim().toUpperCase() : 'THB';
       var gross = amt * tpu * (1 + mgn);
-      var intSet = (setCur === 'JPY' || setCur === 'KRW');
-      var shown = intSet ? Math.round(gross) : Math.round(gross * 100) / 100;
-      el.textContent = payFxFormatSettleAmount(shown, intSet) + ' ' + setCur;
+      var roundSpec = q.chargeAmountRound || null;
+      el.textContent = payFxFormatSettleAmountByPolicy(gross, setCur, roundSpec) + ' ' + setCur;
     }
 
     function fetchFxQuote() {

@@ -207,11 +207,52 @@
 
   /** OPT[name|value] 또는 한글 「전체」 공통 라벨(OPT0) */
   function resolveOptText(loc, optKey, fallback) {
-    if (loc === 'KO') return fallback;
     var row = OPT[optKey];
+    if (loc === 'KO') {
+      /* optMap 항목의 KO 는 '전체' placeholder — 실제 한국어는 fallback(스냅/원문)만 사용 */
+      if (isOptAllTranslatedText(fallback)) return OPT0.KO;
+      return fallback;
+    }
     if (row) return row[loc] || row.EN || fallback;
-    if (isOptAllKoText(fallback)) return OPT0[loc] || OPT0.EN || fallback;
+    if (isOptAllKoText(fallback) || isOptAllTranslatedText(fallback)) return OPT0[loc] || OPT0.EN || fallback;
     return fallback;
+  }
+
+  function isOptAllTranslatedText(s) {
+    var t = String(s == null ? '' : s).trim();
+    return t === OPT0.KO || t === OPT0.EN || t === OPT0.JP || t === OPT0.CH || t === OPT0.TH;
+  }
+
+  /** 화면 스냅(한국어)에서 select option 원문 복원 — optMap.KO 가 '전체'로 오염된 경우 대비 */
+  function findOptKoInSnap(url, optKey) {
+    if (!url || !optKey || !_screenSnap || !_screenSnap.scrKo) return null;
+    var snap = _screenSnap.scrKo[url];
+    if (!snap) return null;
+    var pipe = String(optKey).indexOf('|');
+    if (pipe < 0) return null;
+    var name = String(optKey).slice(0, pipe);
+    var val = String(optKey).slice(pipe + 1);
+    function walk(rows) {
+      if (!rows) return null;
+      for (var r = 0; r < rows.length; r++) {
+        var row = rows[r];
+        if (!row) continue;
+        for (var c = 0; c < row.length; c++) {
+          var cell = row[c];
+          if (!cell || cell.type !== 'select' || String(cell.name || '') !== name) continue;
+          var opts = cell.options || [];
+          for (var oi = 0; oi < opts.length; oi++) {
+            var o = opts[oi];
+            if (!o) continue;
+            if (String(o.v != null ? o.v : '') === val) {
+              return o.t != null ? String(o.t) : '';
+            }
+          }
+        }
+      }
+      return null;
+    }
+    return walk(snap.searchRows) || walk(snap.searchRows2) || walk(snap.searchRows3);
   }
 
   var OPT = {
@@ -2353,6 +2394,38 @@
       || (url.indexOf('/comp/') === 0);
   }
 
+  /** thead data-pg-ui-t 는 항상 한국어 키 — 번역된 label 을 키로 쓰면 KO 복원 불가 */
+  function koSnapColsForUrl(url, cfg) {
+    var snapCols = (_screenSnap && _screenSnap.scrKo && _screenSnap.scrKo[url])
+      ? _screenSnap.scrKo[url].columns : null;
+    if (snapCols && snapCols.length) return snapCols;
+    var P = w.PG_PAY_LIST_INTEGRATED;
+    if (P && P._i18nKoSnap && P._i18nKoSnap.cols && P._i18nKoSnap.cols.length) return P._i18nKoSnap.cols;
+    if (cfg && cfg._i18nColSnap && cfg._i18nColSnap.cols) return cfg._i18nColSnap.cols;
+    return null;
+  }
+
+  function koHeaderGroupsForUrl(url, cfg) {
+    var P = w.PG_PAY_LIST_INTEGRATED;
+    var urls = w.PG_SCREENS && w.PG_SCREENS.getPayListIntegratedSyncUrls
+      ? w.PG_SCREENS.getPayListIntegratedSyncUrls() : [];
+    if (urls.indexOf(url) !== -1 && P && P._i18nKoSnap && P._i18nKoSnap.hg && P._i18nKoSnap.hg.length) {
+      return JSON.parse(JSON.stringify(P._i18nKoSnap.hg));
+    }
+    var Po = w.PG_PAY_LIST_OVERVIEW;
+    if (url === '/calc/payOverview' && Po && Po._i18nKoSnap && Po._i18nKoSnap.hg && Po._i18nKoSnap.hg.length) {
+      return JSON.parse(JSON.stringify(Po._i18nKoSnap.hg));
+    }
+    var Pj = w.PG_JPAY_TR_OVERVIEW;
+    if (url === '/calc/jpayTrList' && Pj && Pj._i18nKoSnap && Pj._i18nKoSnap.hg && Pj._i18nKoSnap.hg.length) {
+      return JSON.parse(JSON.stringify(Pj._i18nKoSnap.hg));
+    }
+    if (cfg && cfg._i18nColSnap && cfg._i18nColSnap.hg && cfg._i18nColSnap.hg.length) {
+      return JSON.parse(JSON.stringify(cfg._i18nColSnap.hg));
+    }
+    return (cfg && cfg.headerGroups) ? cfg.headerGroups : [];
+  }
+
   function refreshOpenPayListTheads(loc) {
     if (!_screenSnap) ensureScreenSnap();
     var screens = w.PG_SCREENS && w.PG_SCREENS.getMenuScreens ? w.PG_SCREENS.getMenuScreens() : null;
@@ -2372,15 +2445,20 @@
       var tid = pane.id;
       var thead = pane.querySelector('#grid_' + tid + ' thead');
       if (!thead || !pane._lastGridCols || !pane._lastGridCols.length) return;
-      var snapColsThead = (_screenSnap && _screenSnap.scrKo && _screenSnap.scrKo[url])
-        ? _screenSnap.scrKo[url].columns : null;
-      var colsBuild = compSingle && snapColsThead
+      var snapColsThead = koSnapColsForUrl(url, cfg);
+      var colsBuild = snapColsThead
         ? compGridColsWithKoLabels(pane._lastGridCols, snapColsThead)
         : pane._lastGridCols;
+      /* _lastGridCols 도 한국어 라벨로 맞춰 이후 검색·엑셀 헤더가 다시 오염되지 않게 */
+      if (snapColsThead && pane._lastGridCols) {
+        pane._lastGridCols = compGridColsWithKoLabels(pane._lastGridCols, snapColsThead);
+        colsBuild = pane._lastGridCols;
+      }
+      var hgBuild = koHeaderGroupsForUrl(url, cfg);
       if (cfg.distributionThreeRowHeader && buildDist) {
         thead.innerHTML = buildDist(colsBuild);
       } else {
-        thead.innerHTML = build(colsBuild, cfg.headerGroups || [], { selectAllTitle: '전체선택' });
+        thead.innerHTML = build(colsBuild, hgBuild || [], { selectAllTitle: '전체선택' });
       }
       if (w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
         try { w.PG_UI_I18N.applyDom(thead); } catch (eTheadI18n) {}
@@ -2496,15 +2574,15 @@
           && pane._lastGridCols && pane._lastGridCols.length && cfg) {
         var buildThSp = w.PG_SCREENS && w.PG_SCREENS.buildStandardDataGridTheadHtml;
         if (typeof buildThSp === 'function') {
-          var snapColsSp = (_screenSnap && _screenSnap.scrKo && _screenSnap.scrKo[url])
-            ? _screenSnap.scrKo[url].columns : null;
+          var snapColsSp = koSnapColsForUrl(url, cfg);
           var colsSp = snapColsSp
             ? compGridColsWithKoLabels(pane._lastGridCols, snapColsSp)
             : pane._lastGridCols;
+          if (snapColsSp) pane._lastGridCols = colsSp;
           var theadSp = pane.querySelector('#grid_' + tid + ' thead');
           if (theadSp) {
-            var selTSp = (loc === 'KO' ? UI.selectAll.KO : (UI.selectAll[loc] || UI.selectAll.EN));
-            theadSp.innerHTML = buildThSp(colsSp, cfg.headerGroups || [], { selectAllTitle: selTSp });
+            /* selectAllTitle 은 data-pg-ui-title 키(한국어) — 번역문은 applyDom 이 채움 */
+            theadSp.innerHTML = buildThSp(colsSp, koHeaderGroupsForUrl(url, cfg), { selectAllTitle: '전체선택' });
             if (w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
               try { w.PG_UI_I18N.applyDom(theadSp); } catch (eSpTh) {}
             }
@@ -2802,8 +2880,16 @@
 
   function lblText(row, loc, fallback) {
     if (!row) return fallback;
-    if (loc === 'KO') return fallback;
+    /* KO 복원 시 현재 DOM(이미 JP 등)을 fallback 으로 쓰면 한국어로 돌아가지 않음 → 사전 KO 우선 */
+    if (loc === 'KO') return row.KO != null ? String(row.KO) : (fallback || '');
     return row[loc] || row.EN || fallback;
+  }
+
+  /** optMap 항목은 KO 가 항상 OPT0('전체') — 실제 한국어 원문이 아님 */
+  function isOptMapKoPlaceholder(row) {
+    if (!row || row.KO == null) return false;
+    if (String(row.KO) !== OPT0.KO) return false;
+    return row.EN !== OPT0.EN || row.JP !== OPT0.JP || row.CH !== OPT0.CH || row.TH !== OPT0.TH;
   }
 
   function refreshOpenPayMngDomI18n(loc) {
@@ -2831,8 +2917,25 @@
         var k = el.getAttribute('data-pg-i18n-opt');
         if (!k) return;
         var row = OPT[k];
-        if (row) el.textContent = lblText(row, loc, el.textContent);
-        else el.textContent = resolveOptText(loc, k, el.textContent);
+        if (loc === 'KO') {
+          var koSnap = findOptKoInSnap(url, k);
+          if (koSnap != null && String(koSnap).length) {
+            el.textContent = koSnap;
+          } else if (row && !isOptMapKoPlaceholder(row) && row.KO != null) {
+            el.textContent = String(row.KO);
+          } else {
+            el.textContent = resolveOptText('KO', k, el.getAttribute('data-pg-i18n-ko') || el.textContent);
+          }
+          return;
+        }
+        if (!el.getAttribute('data-pg-i18n-ko')) {
+          var ko0 = findOptKoInSnap(url, k);
+          if (ko0 != null && String(ko0).length) el.setAttribute('data-pg-i18n-ko', ko0);
+        }
+        var fbKo = el.getAttribute('data-pg-i18n-ko') || el.textContent;
+        if (row && !isOptMapKoPlaceholder(row)) el.textContent = row[loc] || row.EN || fbKo;
+        else if (row) el.textContent = row[loc] || row.EN || fbKo;
+        else el.textContent = resolveOptText(loc, k, fbKo);
       });
       pane.querySelectorAll('[data-pg-i18n-qd]').forEach(function (el) {
         var k = el.getAttribute('data-pg-i18n-qd');
@@ -2905,6 +3008,7 @@
       var hello = pane.querySelector('#viewSettingHelloBtn_' + tid);
       if (hello) hello.textContent = lblText(UI.helloBtn, loc, hello.textContent);
       if (cfg && cfg.columns) {
+        var snapCgCols = koSnapColsForUrl(url, cfg);
         pane.querySelectorAll('.column-guide-item').forEach(function (item) {
           var cb = item.querySelector('.column-guide-check');
           var sp = item.querySelector('.column-guide-label');
@@ -2913,6 +3017,15 @@
           var col = cfg.columns.filter(function (cc) { return cc && cc.key === k; })[0];
           if (!col) return;
           var labKo = col.columnGuideLabel || col.label;
+          if (snapCgCols && snapCgCols.length) {
+            for (var sci = 0; sci < snapCgCols.length; sci++) {
+              var sc = snapCgCols[sci];
+              if (sc && sc.key === k && sc.label != null) {
+                labKo = sc.label;
+                break;
+              }
+            }
+          }
           if (!labKo) return;
           sp.setAttribute('data-pg-ui-t', String(labKo));
           sp.textContent = w.PG_UI_I18N && typeof w.PG_UI_I18N.t === 'function' ? w.PG_UI_I18N.t(String(labKo)) : String(labKo);
@@ -2929,8 +3042,10 @@
         if (typeof buildTh2 === 'function' && cfg) {
           var theadPg2 = pane.querySelector('#grid_' + tid + ' thead');
           if (theadPg2) {
-            var selT3 = (loc === 'KO' ? UI.selectAll.KO : (UI.selectAll[loc] || UI.selectAll.EN));
-            theadPg2.innerHTML = buildTh2(pane._lastGridCols, cfg.headerGroups || [], { selectAllTitle: selT3 });
+            var snapPg2 = koSnapColsForUrl(url, cfg);
+            var colsPg2 = snapPg2 ? compGridColsWithKoLabels(pane._lastGridCols, snapPg2) : pane._lastGridCols;
+            if (snapPg2) pane._lastGridCols = colsPg2;
+            theadPg2.innerHTML = buildTh2(colsPg2, koHeaderGroupsForUrl(url, cfg), { selectAllTitle: '전체선택' });
             if (w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
               try { w.PG_UI_I18N.applyDom(theadPg2); } catch (ePgThI18n) {}
             }

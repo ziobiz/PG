@@ -132,7 +132,13 @@ public class PayListItemDto {
         row.put("settleDiv", "정산");
         String effStatus = effectiveStatusForPayLabels(t);
         row.put("payDivNm", payDivLabel(effStatus));
-        row.put("statusNm", PayListStatusBarBuckets.pgStatusDisplayLabel(effStatus));
+        String statusNm = PayListStatusBarBuckets.pgStatusDisplayLabel(effStatus);
+        boolean callbackIssue = isElementPayCallbackIssue(t);
+        if (callbackIssue && "10".equals(effStatus)) {
+            statusNm = statusNm + " · 콜백이슈";
+        }
+        row.put("statusNm", statusNm);
+        row.put("callbackIssue", callbackIssue);
         row.put("payProcNm", payProcLabel(effStatus));
         row.put("payCard", "-");
         row.put("cardAprvNo", resolveApprovalNoForDisplay(t));
@@ -675,6 +681,9 @@ public class PayListItemDto {
             }
         }
         if (!rawStored.isEmpty()) {
+            if (isCallbackIssueText(rawStored)) {
+                return "콜백이슈";
+            }
             String fromCallback = chillNotiPaymentStatusDigitToKo(rawStored);
             if (fromCallback != null) {
                 return fromCallback;
@@ -682,6 +691,10 @@ public class PayListItemDto {
             String fromIcCode = chillIcPayStatusCodeTokenToKo(rawStored);
             if (fromIcCode != null) {
                 return fromIcCode;
+            }
+            /* ElementPay paid / ELEMENTPAY_URL 등 벤더 영문 원문은 내부 status 한글 표기로 대체 */
+            if (isVendorOpaqueChillDisplay(rawStored) && hasDefinitiveInternalPayStatus(t.getStatus())) {
+                return chillInternalPayStatusToKo(t.getStatus());
             }
             if (!isBareNumericChillStatus(rawStored)) {
                 if (!isAmbiguousProgressChillDisplay(rawStored) || !hasDefinitiveInternalPayStatus(t.getStatus())) {
@@ -760,14 +773,64 @@ public class PayListItemDto {
                 || u.equals("waitauthorize") || u.equals("wait_authorize");
     }
 
-    private static boolean hasDefinitiveInternalPayStatus(String st) {
-        if (st == null) {
+    /**
+     * PG 벤더가 chillPaymentStatus 에 넣은 영문·내부 마커(ElementPay paid 등).
+     * 그리드에는 ICOPAY 내부 status 기반 한글(성공/실패…)을 쓴다.
+     */
+    private static boolean isVendorOpaqueChillDisplay(String raw) {
+        if (raw == null || raw.isBlank()) {
             return false;
         }
-        return switch (st) {
-            case "10", "20", "21", "22", "30", "31", "40", "41", "42", "99", "F0", "f0" -> true;
-            default -> false;
-        };
+        String u = raw.trim().toLowerCase(Locale.ROOT).replace('_', ' ');
+        if (u.startsWith("elementpay")) {
+            return true;
+        }
+        if (u.equals("success") || u.equals("paid") || u.equals("complete") || u.equals("completed")
+                || u.equals("authorized") || u.equals("payment success")) {
+            return true;
+        }
+        /* "ElementPay paid" · "xxx paid" — unpaid / not paid 제외 */
+        if (u.contains("paid") && !u.contains("unpaid") && !u.contains("not paid")) {
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean hasDefinitiveInternalPayStatus(String st) {
+        if (st == null || st.isBlank()) {
+            return false;
+        }
+        String s = st.trim();
+        return "10".equals(s) || "08".equals(s) || "20".equals(s) || "21".equals(s) || "22".equals(s)
+                || "30".equals(s) || "31".equals(s) || "40".equals(s) || "41".equals(s) || "42".equals(s)
+                || "99".equals(s) || "F0".equalsIgnoreCase(s);
+    }
+
+    /** ElementPay Cabinet disputable / pay-callback 한도 — 승인 유지 + 표시용. */
+    private static boolean isElementPayCallbackIssue(PgTrnsctn t) {
+        if (t == null) {
+            return false;
+        }
+        if (isCallbackIssueText(t.getChillPaymentStatus())) {
+            return true;
+        }
+        if (isCallbackIssueText(t.getOutcomeReason())) {
+            return true;
+        }
+        return "ELEMENTPAY_CALLBACK".equalsIgnoreCase(
+                t.getOutcomeReasonSource() != null ? t.getOutcomeReasonSource().trim() : "");
+    }
+
+    private static boolean isCallbackIssueText(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return false;
+        }
+        String u = raw.trim().toUpperCase(Locale.ROOT);
+        return u.contains("CALLBACK_LIMIT")
+                || u.contains("ELEMENTPAY_DISPUTED")
+                || u.contains("REACHED LIMIT")
+                || u.contains("DISPUTABLE")
+                || raw.trim().contains("콜백이슈");
     }
 
     private static String regNo(MerchantProfile mp) {

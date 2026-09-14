@@ -113,16 +113,36 @@
     var s = rawText == null ? '' : String(rawText).trim();
     if (s === '이메일무효') s = '이메일 무효';
     if (!s || s === '—' || s === '-') return '—';
+    var callbackIssue = !!(rowOpt && (rowOpt.callbackIssue === true || rowOpt.callbackIssue === 'true'))
+      || /콜백이슈|callback.?issue|CALLBACK_LIMIT|ELEMENTPAY_DISPUTED|REACHED LIMIT|DISPUTABLE/i.test(s)
+      || (rowOpt && rowOpt.chillPaymentStatus
+        && /CALLBACK_LIMIT|ELEMENTPAY_DISPUTED|REACHED LIMIT|DISPUTABLE|콜백이슈/i.test(String(rowOpt.chillPaymentStatus)));
     if (rowOpt && rowOpt.status != null) {
       var stCode = String(rowOpt.status).trim();
       if (stCode && typeof global.PG_UI.internalPayStatusToKo === 'function') {
         var fromCode = global.PG_UI.internalPayStatusToKo(stCode);
-        if (fromCode && fromCode !== '—' && fromCode !== stCode) return fromCode;
+        if (fromCode && fromCode !== '—' && fromCode !== stCode) {
+          return callbackIssue && stCode === '10'
+            ? (uiT('성공') + ' · ' + uiT('콜백이슈'))
+            : fromCode;
+        }
       }
     }
     if (/^[0-4]$/.test(s) || /^(08|10|20|21|22|30|31|40|41|42|99|F0|f0)$/.test(s)) {
       if (typeof global.PG_UI.internalPayStatusToKo === 'function') {
-        return global.PG_UI.internalPayStatusToKo(s);
+        var codeLab = global.PG_UI.internalPayStatusToKo(s);
+        if (callbackIssue && (s === '10' || codeLab === uiT('성공'))) {
+          return uiT('성공') + ' · ' + uiT('콜백이슈');
+        }
+        return codeLab;
+      }
+    }
+    if (callbackIssue) {
+      if (/성공|success|paid/i.test(s) || (rowOpt && String(rowOpt.status || '').trim() === '10')) {
+        return uiT('성공') + ' · ' + uiT('콜백이슈');
+      }
+      if (/^콜백이슈$/i.test(s) || /CALLBACK_LIMIT|ELEMENTPAY_DISPUTED/i.test(s)) {
+        return uiT('콜백이슈');
       }
     }
     var low = s.toLowerCase().replace(/\s+/g, ' ').trim();
@@ -131,7 +151,11 @@
     if (PAY_STATUS_KO_KEYS.indexOf(s) >= 0) return uiT(s);
     if (/^(성공|취소|실패|무효|환불|요청|오류|이메일 무효|이메일무효|자동무효|자동환불|강제환불|수동무효|승인|인증대기|기타)/.test(s)) {
       var m = s.match(/^(성공|취소|실패|무효|환불|요청|오류|이메일 무효|이메일무효|자동무효|자동환불|강제환불|수동무효|승인|인증대기|기타)/);
-      if (m) return uiT(m[1] === '이메일무효' ? '이메일 무효' : m[1]);
+      if (m) {
+        var base = uiT(m[1] === '이메일무효' ? '이메일 무효' : m[1]);
+        if (callbackIssue && m[1] === '성공') return base + ' · ' + uiT('콜백이슈');
+        return base;
+      }
     }
     if (low.indexOf('email') >= 0 && low.indexOf('void') >= 0) return uiT('이메일 무효');
     if (low.indexOf('force') >= 0 && low.indexOf('refund') >= 0) return uiT('강제환불');
@@ -145,7 +169,15 @@
     if (low.indexOf('refund') >= 0 || s.indexOf('환불') >= 0) return uiT('환불');
     if (low.indexOf('cancel') >= 0 || s === '취소') return uiT('취소');
     if (low.indexOf('fail') >= 0 || low.indexOf('declin') >= 0 || s === '실패') return uiT('실패');
-    if (low.indexOf('success') >= 0 || low === 'paid' || s === '성공') return uiT('성공');
+    /* ElementPay paid · xxx paid (unpaid 제외) · success */
+    if (low.indexOf('elementpay') >= 0 && (low.indexOf('paid') >= 0 || low.indexOf('success') >= 0)) {
+      return uiT('성공');
+    }
+    if ((low.indexOf('success') >= 0 || low === 'paid' || /(^|[^a-z])paid([^a-z]|$)/.test(low))
+        && low.indexOf('unpaid') < 0 && low.indexOf('not paid') < 0) {
+      return uiT('성공');
+    }
+    if (s === '성공') return uiT('성공');
     if (low.indexOf('pending') >= 0 || low.indexOf('request') >= 0 || s === '요청') return uiT('요청');
     var tr = uiT(s);
     return tr !== s ? tr : s;
@@ -157,7 +189,10 @@
     root.querySelectorAll('.pay-grid-status-badge').forEach(function (el) {
       var raw = el.getAttribute('data-pg-status-raw');
       if (raw == null || raw === '') raw = el.textContent || '';
-      el.textContent = global.PG_UI.localizePayStatusLabel(raw, null);
+      var stCode = el.getAttribute('data-pg-status-code') || '';
+      var rowOpt = stCode ? { status: stCode, chillPaymentStatus: raw } : { chillPaymentStatus: raw };
+      if (el.getAttribute('data-pg-callback-issue') === '1') rowOpt.callbackIssue = true;
+      el.textContent = global.PG_UI.localizePayStatusLabel(raw, rowOpt);
     });
   };
 
@@ -317,8 +352,27 @@
     var label = global.PG_UI.localizePayStatusLabel(raw, rowOpt);
     var inner = escHtml(label);
     if (!inner) inner = '—';
-    var rawAttr = escAttr(raw || rawText || '');
-    return '<span class="pay-grid-status-badge pay-grid-status-badge--' + t + '" data-pg-status-raw="' + rawAttr + '">' + inner + '</span>';
+    /* data-pg-status-raw: 가능하면 내부 코드(10 등) — 언어 전환 시 ElementPay paid 고착 방지 */
+    var rawForAttr = raw;
+    var stAttr = (rowOpt && rowOpt.status != null) ? String(rowOpt.status).trim() : '';
+    if (stAttr && /^(08|10|20|21|22|30|31|40|41|42|99|F0|f0|[0-4])$/i.test(stAttr)) {
+      rawForAttr = stAttr;
+    } else {
+      var lowR = raw.toLowerCase().replace(/\s+/g, ' ').trim();
+      if (lowR.indexOf('elementpay') >= 0 && (lowR.indexOf('paid') >= 0 || lowR.indexOf('success') >= 0)) {
+        rawForAttr = '10';
+      } else if ((lowR === 'paid' || lowR === 'success' || /(^|[^a-z])paid([^a-z]|$)/.test(lowR))
+          && lowR.indexOf('unpaid') < 0 && lowR.indexOf('not paid') < 0) {
+        rawForAttr = '10';
+      }
+    }
+    var rawAttr = escAttr(rawForAttr || raw || rawText || '');
+    var codeAttr = stAttr ? (' data-pg-status-code="' + escAttr(stAttr) + '"') : '';
+    var cbAttr = '';
+    if (rowOpt && (rowOpt.callbackIssue === true || rowOpt.callbackIssue === 'true')) {
+      cbAttr = ' data-pg-callback-issue="1"';
+    }
+    return '<span class="pay-grid-status-badge pay-grid-status-badge--' + t + '" data-pg-status-raw="' + rawAttr + '"' + codeAttr + cbAttr + '>' + inner + '</span>';
   };
 
   /**

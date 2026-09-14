@@ -283,13 +283,17 @@ public class ApiPayController {
             return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
         }
         String brand = firstNonBlankStr(safe, "cardBrand", "payCardBrand");
+        String pan = firstNonBlankStr(safe, "pan", "payCardno", "cardno");
         String currency = firstNonBlankStr(safe, "currency", "displayCurrency");
+        String effectiveBrand = PayCardPolicyService.resolveEffectiveBrandKey(pan, brand);
+        if (effectiveBrand != null && !effectiveBrand.isBlank()) {
+            brand = effectiveBrand;
+        }
         String pg = pgBindingRouter.resolveOperationalPgCd(
                 orgUnitId, MerchantPgBindingRouterService.RoutingHint.standard(brand, currency));
         if (pg == null || pg.isBlank()) {
             pg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
         }
-        String pan = firstNonBlankStr(safe, "pan", "payCardno", "cardno");
         String lang = firstNonBlankStr(safe, "lang", "language");
         String holderName = firstNonBlankStr(safe, "holderName", "customerNm");
         if (holderName == null || holderName.isBlank()) {
@@ -856,8 +860,18 @@ public class ApiPayController {
         out.put("urlPayOperationalPgCd", opPgQ);
         out.put("oneToOneDisplaySettlement", false);
         String set = r.settlementCurrency();
-        String scaleNote = ("JPY".equals(set) || "KRW".equals(set)) ? "정수 반올림" : "소수 둘째";
-        out.put("formulaNote", "청구 " + set + "(" + scaleNote + ") = 표시금액 × settlementPerUnit × (1+margin). 자동은 BOT 일평균을 THB 경유로 환산합니다(실결제 " + set + ").");
+        Map<String, Object> chargeRound = urlPayDisplayFxService.chargeAmountRoundPolicyForCurrency(set);
+        out.put("chargeAmountRound", chargeRound);
+        boolean roundOn = Boolean.TRUE.equals(chargeRound.get("enabled"));
+        int dp = chargeRound.get("decimalPlaces") instanceof Number n
+                ? n.intValue() : (("JPY".equals(set) || "KRW".equals(set)) ? 0 : 2);
+        String rm = String.valueOf(chargeRound.getOrDefault("roundMode", "HALF_UP"));
+        String scaleNote = roundOn
+                ? ("커스텀 소수 " + dp + "·" + rm)
+                : (("JPY".equals(set) || "KRW".equals(set))
+                ? "레거시 정수 반올림"
+                : "레거시 소수 둘째 반올림");
+        out.put("formulaNote", "청구 " + set + "(" + scaleNote + ") = 표시금액 × settlementPerUnit × (1+margin). 자동은 BOT 일평균을 THB 경유로 환산합니다(실결제 " + set + "). DP/BL 청구 소수: 활성=HQ 커스텀, 비활성=기능 추가 전 레거시(청구·표시 유지).");
         return ResponseEntity.ok(ApiResponse.ok(out));
     }
 

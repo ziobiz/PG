@@ -221,6 +221,9 @@ public class ElementPaySaleRecordService {
         return "";
     }
 
+    /** EP Cabinet disputable / pay-callback 한도 — 승인(10) 유지, 표시용 마커만. */
+    public static final String CALLBACK_ISSUE_STATUS = "ELEMENTPAY_CALLBACK_LIMIT";
+
     @Transactional
     public Optional<PgTrnsctn> applyOutcome(String merchantId, String orderNo, boolean paid,
                                             String paymentId, String msg) {
@@ -239,12 +242,24 @@ public class ElementPaySaleRecordService {
             }
             if (paid) {
                 if (ST_PAID.equals(t.getStatus())) {
+                    /* 이미 승인인데 벤더 영문(ElementPay paid 등)이 남아 있으면 표시용 코드로 정규화 */
+                    if (isOpaqueVendorPaidMarker(t.getChillPaymentStatus())) {
+                        t.setChillPaymentStatus("10");
+                        pgTrnsctnRepository.save(t);
+                    }
                     return Optional.of(t);
                 }
                 t.setStatus(ST_PAID);
                 ZoneId wall = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
                 t.setPaidAt(LocalDateTime.now(wall));
-                t.setChillPaymentStatus(truncate(msg != null && !msg.isBlank() ? msg.trim() : "Success", 50));
+                /* 그리드 상태는 내부 코드 10(성공) — msg 는 outcome 추적용으로만 남김 */
+                t.setChillPaymentStatus("10");
+                if (msg != null && !msg.isBlank()
+                        && (t.getOutcomeReason() == null || t.getOutcomeReason().isBlank())) {
+                    t.setOutcomeReason(msg.trim());
+                    t.setOutcomeReasonSource("ELEMENTPAY");
+                    t.setOutcomeReasonAt(LocalDateTime.now(wall));
+                }
             } else {
                 String cur = t.getStatus() != null ? t.getStatus().trim() : "";
                 if (ST_PAID.equals(cur) || isRefundOrChargebackStatus(cur)) {
@@ -265,6 +280,82 @@ public class ElementPaySaleRecordService {
             log.warn("ElementPay 결과 반영 실패: {}", e.getMessage());
             return Optional.empty();
         }
+    }
+
+    /**
+     * getStatus 208 / callback-limit — 이미 승인이면 status 10 유지하고 콜백이슈만 표시.
+     */
+    @Transactional
+    public Optional<PgTrnsctn> annotateCallbackIssue(String merchantId, String orderNo,
+                                                     String paymentId, String detailMsg) {
+        Optional<PgTrnsctn> found = Optional.empty();
+        if (merchantId != null && !merchantId.isBlank() && orderNo != null && !orderNo.isBlank()) {
+            found = findTxnForOrder(merchantId.trim(), orderNo.trim());
+        }
+        if (found.isEmpty() && orderNo != null && !orderNo.isBlank()) {
+            found = findAnyByOrder(orderNo.trim());
+        }
+        if (found.isEmpty() && paymentId != null && !paymentId.isBlank()) {
+            found = findAnyByPaymentId(paymentId.trim());
+        }
+        if (found.isEmpty()) {
+            return Optional.empty();
+        }
+        try {
+            PgTrnsctn t = found.get();
+            if (paymentId != null && !paymentId.isBlank()) {
+                rememberPaymentIdIfBlank(t, paymentId);
+            }
+            String cur = t.getStatus() != null ? t.getStatus().trim() : "";
+            if (!ST_PAID.equals(cur)) {
+                log.info("ElementPay callback-issue annotate (non-paid kept) order={} status={}",
+                        t.getOrderNo(), cur);
+            }
+            t.setChillPaymentStatus(truncate(CALLBACK_ISSUE_STATUS, 50));
+            if (detailMsg != null && !detailMsg.isBlank()) {
+                String note = detailMsg.trim();
+                if (note.length() > 400) {
+                    note = note.substring(0, 400);
+                }
+                t.setOutcomeReason(note);
+                t.setOutcomeReasonSource("ELEMENTPAY_CALLBACK");
+                t.setOutcomeReasonAt(LocalDateTime.now());
+            }
+            pgTrnsctnRepository.save(t);
+            return Optional.of(t);
+        } catch (Exception e) {
+            log.warn("ElementPay 콜백이슈 표시 실패: {}", e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    public static boolean isCallbackIssueMarker(String chillPaymentStatus) {
+        if (chillPaymentStatus == null || chillPaymentStatus.isBlank()) {
+            return false;
+        }
+        String u = chillPaymentStatus.trim().toUpperCase(Locale.ROOT);
+        return u.contains("CALLBACK_LIMIT")
+                || u.contains("ELEMENTPAY_DISPUTED")
+                || u.contains("REACHED LIMIT")
+                || u.contains("DISPUTABLE");
+    }
+
+    /** 과거 승인 반영 시 chillPaymentStatus 에 남긴 ElementPay paid 등 — 표시·재저장 시 10 으로 정규화 */
+    static boolean isOpaqueVendorPaidMarker(String chillPaymentStatus) {
+        if (chillPaymentStatus == null || chillPaymentStatus.isBlank()) {
+            return false;
+        }
+        String u = chillPaymentStatus.trim().toLowerCase(Locale.ROOT).replace('_', ' ');
+        if ("10".equals(u) || "0".equals(u) || "성공".equals(chillPaymentStatus.trim())) {
+            return false;
+        }
+        if (u.startsWith("elementpay")) {
+            return true;
+        }
+        if (u.equals("success") || u.equals("paid") || u.equals("complete") || u.equals("completed")) {
+            return true;
+        }
+        return u.contains("paid") && !u.contains("unpaid") && !u.contains("not paid");
     }
 
     /**

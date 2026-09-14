@@ -1103,16 +1103,32 @@ public class ElementPayPaymentService {
         }
         if (mapped.persistPaid()) {
             syncLocalOutcomeFromStatus(orderNo, paymentId, true, statusMessage);
+        } else if (mapped.kind() == ElementPayInlineStatusUtil.Kind.DISPUTED) {
+            annotateCallbackIssueFromStatus(orderNo, paymentId, statusMessage);
         } else if (mapped.persistFail()) {
-            String failMsg = !statusMessage.isBlank() ? statusMessage
-                    : (mapped.kind() == ElementPayInlineStatusUtil.Kind.DISPUTED
-                    ? "ELEMENTPAY_DISPUTED" : "ElementPay rejected");
+            String failMsg = !statusMessage.isBlank() ? statusMessage : "ElementPay rejected";
             syncLocalOutcomeFromStatus(orderNo, paymentId, false, failMsg);
         } else if (mapped.persistRefund()) {
             syncLocalRefundFromStatus(orderNo, paymentId,
                     !statusMessage.isBlank() ? statusMessage : "Payment is refunded");
         }
         return out;
+    }
+
+    /** getStatus 208 — 승인 유지 + 콜백이슈 마커. */
+    private void annotateCallbackIssueFromStatus(String orderNo, String paymentId, String msg) {
+        try {
+            String detail = (msg != null && !msg.isBlank()) ? msg.trim() : "ELEMENTPAY_DISPUTED";
+            Optional<PgTrnsctn> updated = elementPaySaleRecordService.annotateCallbackIssue(
+                    null, orderNo, paymentId, detail);
+            if (updated.isEmpty() && orderNo != null && !orderNo.isBlank()) {
+                elementPaySaleRecordService.findAnyByOrder(orderNo.trim()).ifPresent(t ->
+                        elementPaySaleRecordService.annotateCallbackIssue(
+                                t.getMerchantId(), t.getOrderNo(), paymentId, detail));
+            }
+        } catch (Exception e) {
+            log.debug("ElementPay 콜백이슈 동기화 생략: {}", e.getMessage());
+        }
     }
 
     /** getStatus 가 최종 승인/거절이면 웹훅 누락 시에도 로컬 대기를 맞춘다. */

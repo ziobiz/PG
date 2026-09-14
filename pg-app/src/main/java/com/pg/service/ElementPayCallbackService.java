@@ -225,19 +225,32 @@ public class ElementPayCallbackService {
         }
         if (existing.isPresent()) {
             PgTrnsctn found = existing.get();
+            boolean alreadyPaid = isAlreadyPaidStatus(found.getStatus());
             String localOrder = nz(found.getOrderNo());
             boolean orderMatches = ElementPayCallbackOrderUtil.matchesLocalOrder(localOrder, orderIds);
             if (!orderMatches && !localOrder.isBlank()) {
+                if (alreadyPaid && !paymentId.isBlank()) {
+                    String mid = !compCode.isBlank() ? compCode : nz(found.getMerchantId());
+                    log.warn("ElementPay pay: order mismatch but already paid → 205 request={} local={} id={} mid={}",
+                            orderNo, localOrder, paymentId, mid);
+                    return jsonResponse(205, "Payment success", cred, mid, localOrder);
+                }
                 log.warn("ElementPay pay order mismatch request={} candidates={} local={} id={}",
                         orderNo, orderIds, localOrder, paymentId);
-                return jsonResponse(475, "Wrong order data", cred);
+                return jsonResponse(475, "Wrong order data", cred, compCode, orderNo);
             }
             if (!amountMatchesLocal(found, fields)) {
+                if (alreadyPaid) {
+                    String mid = !compCode.isBlank() ? compCode : nz(found.getMerchantId());
+                    String oid = !localOrder.isBlank() ? localOrder : orderNo;
+                    log.warn("ElementPay pay: amount mismatch but already paid → 205 order={} id={} expected={} received={}",
+                            oid, paymentId, found.getAmtKrw(), fields.get("amount"));
+                    return jsonResponse(205, "Payment success", cred, mid, oid);
+                }
                 log.warn("ElementPay pay amount mismatch order={} expected={} received={} methodAmount={} display={}",
                         orderNo, found.getAmtKrw(), fields.get("amount"),
                         fields.get("method_amount"), found.getDisplayAmt());
-                /* Tidem Gateway: pay wrong amount → 475 Wrong order data */
-                return jsonResponse(475, "Wrong order data", cred);
+                return jsonResponse(475, "Wrong order data", cred, compCode, orderNo);
             }
             if (compCode.isBlank() && found.getMerchantId() != null) {
                 compCode = found.getMerchantId();
@@ -260,18 +273,27 @@ public class ElementPayCallbackService {
                 }
             }
         }
+        if (updated.isEmpty() && existing.isPresent()) {
+            updated = elementPaySaleRecordService.applyOutcome(
+                    nz(existing.get().getMerchantId()),
+                    nz(existing.get().getOrderNo()).isBlank() ? applyOrder : nz(existing.get().getOrderNo()),
+                    true, paymentId, "ElementPay paid");
+        }
         if (updated.isEmpty()) {
-            /*
-             * EP 문서: 이미 결제 확정된 주문에 대한 Pay 는 오류 대신 205.
-             * 로컬에 승인 건이 있으면 재통보로 본다.
-             */
             if (existing.isPresent() && isAlreadyPaidStatus(existing.get().getStatus())) {
                 String mid = !compCode.isBlank() ? compCode : nz(existing.get().getMerchantId());
                 String oid = !nz(existing.get().getOrderNo()).isBlank()
                         ? nz(existing.get().getOrderNo()) : orderNo;
+                log.info("ElementPay pay: already-paid local → 205 order={} id={} mid={} localStatus={}",
+                        oid, paymentId, mid, existing.get().getStatus());
                 return jsonResponse(205, "Payment success", cred, mid, oid);
             }
-            log.warn("ElementPay pay: 로컬 주문 없음 order={} id={} — 206 재시도 요청", orderNo, paymentId);
+            NotifyReceiveOutcome fromEp = tryPayAckFromGetStatus(paymentId, orderNo, compCode, cred);
+            if (fromEp != null) {
+                return fromEp;
+            }
+            log.warn("ElementPay pay: 로컬 주문 없음 order={} id={} mid={} — 206 재시도 요청",
+                    orderNo, paymentId, compCode);
             return jsonResponse(206, "Payment pending local record", cred, compCode, orderNo);
         }
         PgTrnsctn t = updated.get();
@@ -301,7 +323,106 @@ public class ElementPayCallbackService {
         } catch (Exception e) {
             log.warn("ElementPay outbound 노티 예약 실패: {}", e.getMessage());
         }
+        log.info("ElementPay pay: success → 205 order={} id={} mid={} trnId={}",
+                t.getOrderNo(), paymentId, t.getMerchantId(), t.getTrnId());
         return jsonResponse(205, "Payment success", cred, t.getMerchantId(), t.getOrderNo());
+    }
+
+    private NotifyReceiveOutcome tryPayAckFromGetStatus(String paymentId, String orderNo,
+                                                        String compCode, ElementPayCredentials cred) {
+        if ((paymentId == null || paymentId.isBlank()) && (orderNo == null || orderNo.isBlank())) {
+            return null;
+        }
+        try {
+            Map<String, Object> stMap = elementPayPaymentService.queryStatus(null, paymentId, orderNo);
+            int epSt = extractEpResponseStatus(stMap);
+            String msg = extractEpResponseMessage(stMap);
+            log.info("ElementPay pay: getStatus probe order={} id={} epStatus={} msg={}",
+                    orderNo, paymentId, epSt, msg);
+            if (epSt == 203 || epSt == 205) {
+                Optional<PgTrnsctn> recovered = Optional.empty();
+                if (paymentId != null && !paymentId.isBlank()) {
+                    recovered = elementPaySaleRecordService.findAnyByPaymentId(paymentId);
+                }
+                if (recovered.isEmpty() && orderNo != null && !orderNo.isBlank()) {
+                    recovered = elementPaySaleRecordService.findAnyByOrder(orderNo.trim());
+                }
+                if (recovered.isPresent()) {
+                    PgTrnsctn t = recovered.get();
+                    elementPaySaleRecordService.applyOutcome(
+                            nz(t.getMerchantId()), nz(t.getOrderNo()), true, paymentId, "ElementPay paid");
+                    log.info("ElementPay pay: getStatus paid → local apply → 205 order={} id={} mid={}",
+                            t.getOrderNo(), paymentId, t.getMerchantId());
+                    return jsonResponse(205, "Payment success", cred, t.getMerchantId(), t.getOrderNo());
+                }
+                log.warn("ElementPay pay: getStatus paid but no local row → 205 ack order={} id={} epSt={}",
+                        orderNo, paymentId, epSt);
+                return jsonResponse(205, "Payment success", cred, compCode, orderNo);
+            }
+            if (epSt == 208) {
+                Optional<PgTrnsctn> local = Optional.empty();
+                if (paymentId != null && !paymentId.isBlank()) {
+                    local = elementPaySaleRecordService.findAnyByPaymentId(paymentId);
+                }
+                if (local.isEmpty() && orderNo != null && !orderNo.isBlank()) {
+                    local = elementPaySaleRecordService.findAnyByOrder(orderNo.trim());
+                }
+                if (local.isPresent() && isAlreadyPaidStatus(local.get().getStatus())) {
+                    elementPaySaleRecordService.annotateCallbackIssue(
+                            local.get().getMerchantId(), local.get().getOrderNo(), paymentId, msg);
+                    log.warn("ElementPay pay: getStatus 208 callback-limit on paid → annotate+205 order={} id={}",
+                            local.get().getOrderNo(), paymentId);
+                    return jsonResponse(205, "Payment success", cred,
+                            local.get().getMerchantId(), local.get().getOrderNo());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("ElementPay pay: getStatus probe failed order={} id={}: {}",
+                    orderNo, paymentId, e.getMessage());
+        }
+        return null;
+    }
+
+    private static int extractEpResponseStatus(Map<String, Object> stMap) {
+        if (stMap == null) {
+            return 0;
+        }
+        Object raw = stMap.get("raw");
+        if (!(raw instanceof Map<?, ?> tree)) {
+            return 0;
+        }
+        Object responseObj = tree.get("response");
+        if (!(responseObj instanceof Map<?, ?> rm)) {
+            return 0;
+        }
+        Object sv = rm.get("status");
+        if (sv == null) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(String.valueOf(sv).trim());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    private static String extractEpResponseMessage(Map<String, Object> stMap) {
+        if (stMap == null) {
+            return "";
+        }
+        Object raw = stMap.get("raw");
+        if (!(raw instanceof Map<?, ?> tree)) {
+            return "";
+        }
+        Object responseObj = tree.get("response");
+        if (!(responseObj instanceof Map<?, ?> rm)) {
+            return "";
+        }
+        Object sm = rm.get("status_message");
+        if (sm == null) {
+            sm = rm.get("message");
+        }
+        return sm != null ? String.valueOf(sm).trim() : "";
     }
 
     private static boolean isAlreadyPaidStatus(String status) {
@@ -309,8 +430,9 @@ public class ElementPayCallbackService {
             return false;
         }
         String s = status.trim();
-        return "00".equals(s) || "0000".equals(s) || "PAID".equalsIgnoreCase(s)
-                || "SUCCESS".equalsIgnoreCase(s) || "205".equals(s);
+        return "10".equals(s) || "00".equals(s) || "0000".equals(s)
+                || "PAID".equalsIgnoreCase(s) || "SUCCESS".equalsIgnoreCase(s)
+                || "205".equals(s) || "203".equals(s);
     }
 
     private NotifyReceiveOutcome handleAsyncEvent(String method, String orderNo, String compCode,

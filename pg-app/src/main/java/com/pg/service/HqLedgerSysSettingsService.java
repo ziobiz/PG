@@ -312,19 +312,13 @@ public class HqLedgerSysSettingsService {
             s.setFeeListDecimalPlaces(clampInt(body.get("feeListDecimalPlaces"), 2, 0, 8));
         }
         if (body.containsKey("feeListRoundMode")) {
-            Integer dpCur = s.getFeeListDecimalPlaces();
-            if (dpCur == null || dpCur != 0) {
-                String rm = trimToNull(body.get("feeListRoundMode"));
-                if (rm != null) {
-                    String u = rm.toUpperCase();
-                    if ("CEILING".equals(u) || "HALF_UP".equals(u) || "DOWN".equals(u)) {
-                        s.setFeeListRoundMode(u);
-                    }
+            String rm = trimToNull(body.get("feeListRoundMode"));
+            if (rm != null) {
+                String u = rm.toUpperCase();
+                if ("CEILING".equals(u) || "HALF_UP".equals(u) || "DOWN".equals(u)) {
+                    s.setFeeListRoundMode(u);
                 }
             }
-        }
-        if (s.getFeeListDecimalPlaces() != null && s.getFeeListDecimalPlaces() == 0) {
-            s.setFeeListRoundMode("DOWN");
         }
         /* payDisplayCurrencyIsoNum: 전역 표시 기준 통화 — 전산설정 UI·본 API 저장 본문으로는 변경하지 않음(DB·배포 스키마로만 관리). */
         if (body.containsKey("feeCurrencyFormatJson")) {

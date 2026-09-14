@@ -3427,14 +3427,15 @@
           ]
         },
         {
-          title: '수수료·정산 로직 (수수료내역)',
-          notice: '통화별 표는 결제·정산 통화(알파 코드)마다 소수 자릿수·잘리는 자리 처리를 지정합니다. 소수 자릿수가 0이면 금액은 정수만 의미하므로 「잘리는 자리 처리」는 비활성화되며 저장 시 그대로(버림, DOWN)로 통일됩니다. 목록 API는 행의 결제통화·거래통화에 맞춰 이 설정을 적용합니다. JSON에 없는 통화는 아래 「기본(통화 미지정)」값을 따릅니다. 조직항목설정 VIEW SETTING의 통화 열은 가맹 정책통화·거래통화를 표시하며, 총판 하위 가맹이 쓰는 모든 통화가 데이터에 존재하면 각 행에 그대로 나타납니다.',
+          title: '수수료내역 (정산금액)',
+          notice: '통화별로 수수료내역·정산 금액의 소수 자릿수·잘리는 자리 처리(절상/반올림/버림)를 지정합니다. <strong>결제 청구액(PG 승인 금액)에는 적용되지 않습니다</strong>(청구는 본사정책 → 결제·URL → URL결제 · DP/BL 전용). 소수 자릿수 0이어도 절상·반올림·버림이 그대로 적용됩니다(예: 소수 0+절상 → 120.38→121). JSON에 없는 통화는 아래 「기본(통화 미지정)」값을 따릅니다. 「전역값」은 수정 취소용가 아니라, 위 「기본(통화 미지정)」소수·처리를 해당 통화 행에 복사합니다(저장 전). 「기본값 복원」은 시스템 초기값(소수 2·절상)으로 전역·통화 표를 되돌립니다.',
           rows: [
             [{ type: 'customHtml', col: 12, html: pgUiParagraphHtml('전산설정 수수료 기본 통화 미지정 안내', 'small text-muted mb-1') }],
             [{ label: '소수 자릿수', type: 'select', name: 'feeListDecimalPlaces', col: 2,
               options: [{ v: '0', t: '0' }, { v: '1', t: '1' }, { v: '2', t: '2' }, { v: '3', t: '3' }, { v: '4', t: '4' }, { v: '5', t: '5' }, { v: '6', t: '6' }, { v: '7', t: '7' }, { v: '8', t: '8' }] },
              { label: '잘리는 자리 처리', type: 'select', name: 'feeListRoundMode', col: 3,
-              options: [{ v: 'CEILING', t: '절상' }, { v: 'HALF_UP', t: '반올림' }, { v: 'DOWN', t: '그대로(버림)' }] }],
+              options: [{ v: 'CEILING', t: '절상' }, { v: 'HALF_UP', t: '반올림' }, { v: 'DOWN', t: '그대로(버림)' }] },
+             { type: 'customHtml', col: 3, html: '<div class="d-flex align-items-end h-100 pb-1"><button type="button" class="btn btn-outline-secondary btn-sm" id="hqFeeCurrencyRestoreDefaultsBtn" data-pg-ui-t="기본값 복원">기본값 복원</button></div>' }],
             [{ type: 'customHtml', col: 12,
               html: '<div class="border rounded"><table class="table table-sm table-bordered align-middle mb-0 w-100">' +
                 '<thead class="table-light"><tr>' + pgUiThT('기준통화') + pgUiThT('소수 자릿수', 'text-center text-nowrap') + pgUiThT('잘리는 자리 처리', 'text-nowrap') + pgUiThT('관리', 'text-center text-nowrap') + '</tr></thead>' +
@@ -3814,6 +3815,41 @@
                   '<th style="min-width:6rem" data-pg-ui-t="마진율">마진율</th>' +
                   '</tr></thead><tbody id="hqUrlPayDeployPgTbody"><tr><td colspan="8" class="text-muted text-center py-3 small" data-pg-ui-t="목록을 불러오는 중…">목록을 불러오는 중…</td></tr></tbody></table></div>' +
                   '<input type="hidden" name="urlPayDisplayFxJson" id="hqUrlPayDeployFxHidden" value="">'
+                );
+              }
+            }],
+            [{
+              type: 'customHtml',
+              col: 12,
+              html: function hqUrlPayChargeRoundHtml() {
+                return (
+                  '<div class="border rounded p-2 mt-2">' +
+                  '<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-1">' +
+                  '<p class="small fw-semibold mb-0" data-pg-ui-t="청구금액 소수 처리 (실결제 통화 · DP/BL 전용)">청구금액 소수 처리 (실결제 통화 · DP/BL 전용)</p></div>' +
+                  '<p class="small text-muted mb-2" data-pg-ui-t="DISPLAY·BLIND에서만 적용. 「정책 기본값」=비활성 시 적용(본사 저장, 코드 하드코딩 대체). 「통화별 커스텀」활성 시 행 설정. 일반(STANDARD) 미적용. 수수료·정산과 별개.">DISPLAY·BLIND에서만 적용. 「정책 기본값」=비활성 시 적용(본사 저장, 코드 하드코딩 대체). 「통화별 커스텀」활성 시 행 설정. 일반(STANDARD) 미적용. 수수료·정산과 별개.</p>' +
+                  '<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-1">' +
+                  '<p class="small fw-semibold mb-0" data-pg-ui-t="정책 기본값 (비활성 시)">정책 기본값 (비활성 시)</p>' +
+                  '<button type="button" class="btn btn-outline-secondary btn-sm" id="hqUrlPayChargePolicyDefaultsFactoryBtn" data-pg-ui-t="팩토리 기본값 복원">팩토리 기본값 복원</button></div>' +
+                  '<p class="small text-muted mb-2" data-pg-ui-t="비활성·미설정 통화에 적용됩니다. 팩토리=JPY·KRW 소수0·반올림, 그 외 소수2·반올림(이전 코드 기본).">비활성·미설정 통화에 적용됩니다. 팩토리=JPY·KRW 소수0·반올림, 그 외 소수2·반올림(이전 코드 기본).</p>' +
+                  '<div class="table-responsive mb-3"><table class="table table-sm table-bordered align-middle mb-0" id="grid_urlPayChargePolicyDefaults">' +
+                  '<thead class="table-light"><tr>' +
+                  '<th data-pg-ui-t="실결제 통화">실결제 통화</th>' +
+                  '<th class="text-center" data-pg-ui-t="소수 자릿수">소수 자릿수</th>' +
+                  '<th data-pg-ui-t="잘리는 자리 처리">잘리는 자리 처리</th>' +
+                  '</tr></thead><tbody id="hqUrlPayChargePolicyDefaultsTbody"></tbody></table></div>' +
+                  '<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-1">' +
+                  '<p class="small fw-semibold mb-0" data-pg-ui-t="통화별 커스텀 (활성 시)">통화별 커스텀 (활성 시)</p>' +
+                  '<button type="button" class="btn btn-outline-secondary btn-sm" id="hqUrlPayChargeRoundRestoreDefaultsBtn" data-pg-ui-t="커스텀 전부 비활성">커스텀 전부 비활성</button></div>' +
+                  '<p class="small text-muted mb-2" data-pg-ui-t="활성=아래 소수·처리. 비활성=위 정책 기본값. 「전역값」=정책 기본값 복사. 「커스텀 전부 비활성」=전 통화 비활성.">활성=아래 소수·처리. 비활성=위 정책 기본값. 「전역값」=정책 기본값 복사. 「커스텀 전부 비활성」=전 통화 비활성.</p>' +
+                  '<div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0" id="grid_urlPayChargeRound">' +
+                  '<thead class="table-light"><tr>' +
+                  '<th data-pg-ui-t="실결제 통화">실결제 통화</th>' +
+                  '<th class="text-center" data-pg-ui-t="사용">사용</th>' +
+                  '<th class="text-center" data-pg-ui-t="소수 자릿수">소수 자릿수</th>' +
+                  '<th data-pg-ui-t="잘리는 자리 처리">잘리는 자리 처리</th>' +
+                  '<th data-pg-ui-t="비고">비고</th>' +
+                  '<th class="text-center text-nowrap" data-pg-ui-t="관리">관리</th>' +
+                  '</tr></thead><tbody id="hqUrlPayChargeRoundTbody"></tbody></table></div></div>'
                 );
               }
             }]

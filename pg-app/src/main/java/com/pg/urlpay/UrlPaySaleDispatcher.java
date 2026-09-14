@@ -62,7 +62,11 @@ public class UrlPaySaleDispatcher {
                                            Map<String, Object> body,
                                            HttpServletRequest request,
                                            String clientIp) {
-        String cardBrand = firstNonBlank(body, "cardBrand", "payCardBrand");
+        /* 선택≠PAN 인식 시 인식 브랜드로 맞춘 뒤 멀티 PG 라우팅(AUTO 고정 금지) */
+        String cardBrand = payCardPolicyService.normalizeSaleCardBrand(body);
+        if (cardBrand.isBlank()) {
+            cardBrand = firstNonBlank(body, "cardBrand", "payCardBrand");
+        }
         String currency = firstNonBlank(body, "currency", "displayCurrency");
         MerchantPgBindingRouterService.RoutingHint hint =
                 MerchantPgBindingRouterService.RoutingHint.standard(cardBrand, currency);

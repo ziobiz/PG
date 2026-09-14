@@ -47,4 +47,13 @@ class ElementPayInlineStatusUtilTest {
         assertTrue(ElementPayInlineStatusUtil.skipSyncWhenPaid("21"));
         assertTrue(ElementPayInlineStatusUtil.skipSyncWhenPaid("42"));
     }
+
+    @Test
+    void disputable208DoesNotPersistFail() {
+        ElementPayInlineStatusUtil.Mapped m = ElementPayInlineStatusUtil.fromGetStatus(208, true);
+        assertEquals("DISPUTED", m.paymentStatus());
+        assertFalse(m.persistFail());
+        assertFalse(m.persistPaid());
+        assertEquals("ELEMENTPAY_DISPUTED", m.defaultMessageKey());
+    }
 }

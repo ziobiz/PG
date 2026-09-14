@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.pg.entity.HqApiConfig;
 import com.pg.repository.HqApiConfigRepository;
+import com.pg.util.FeeListRoundingPolicy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +18,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -430,10 +432,8 @@ public class UrlPayDisplayFxService {
             throw new IllegalArgumentException("FX_QUOTE_MARGIN_MISMATCH");
         }
         BigDecimal factor = BigDecimal.ONE.add(m);
-        /* 실결제 통화의 “주단위” 금액(엔·원은 정수, THB·USD 등은 소수 둘째까지). ChillPay 전송 시 ×100 정수화는 ChillPayService 에서 수행 */
-        String settleNum = ChillPayService.toChillPayCurrencyNumeric(tokenSettlement);
-        int scale = ("392".equals(settleNum) || "410".equals(settleNum)) ? 0 : 2;
-        BigDecimal amt = displayAmount.multiply(tpu).multiply(factor).setScale(scale, RoundingMode.HALF_UP);
+        BigDecimal raw = displayAmount.multiply(tpu).multiply(factor);
+        BigDecimal amt = applyChargeAmountRound(tokenSettlement, raw);
         return new FxComputedSettlement(amt, tokenSettlement);
     }
 
@@ -507,9 +507,8 @@ public class UrlPayDisplayFxService {
             }
             BigDecimal tpu = tpuOpt.get();
             BigDecimal factor = BigDecimal.ONE.add(margin);
-            String settleNum = ChillPayService.toChillPayCurrencyNumeric(settle);
-            int scale = ("392".equals(settleNum) || "410".equals(settleNum)) ? 0 : 2;
-            BigDecimal amt = displayAmount.multiply(tpu).multiply(factor).setScale(scale, RoundingMode.HALF_UP);
+            BigDecimal raw = displayAmount.multiply(tpu).multiply(factor);
+            BigDecimal amt = applyChargeAmountRound(settle, raw);
             rows.add(new MarginSimRow(cur, displayAmount, margin, tpu, amt, settle, true, null));
         }
         return new MarginSimResult(
@@ -540,6 +539,139 @@ public class UrlPayDisplayFxService {
             List<MarginSimRow> rows,
             String note
     ) {}
+
+    /**
+     * DP/BL 실결제(청구) 금액 소수 처리 — 본사 URL결제 {@code chargeAmountRoundByCurrency}.
+     * {@code enabled=true}: 통화별 커스텀 소수·모드.
+     * {@code enabled=false}/미설정: {@code chargeAmountRoundPolicyDefaults}(정책 기본값) 적용.
+     * 정책 기본값도 없으면 팩토리 폴백(JPY·KRW 0 HALF_UP, 그 외 2 HALF_UP).
+     */
+    public BigDecimal applyChargeAmountRound(String settlementCurrency, BigDecimal rawAmount) {
+        if (rawAmount == null) {
+            return null;
+        }
+        ChargeRoundSpec spec = resolveChargeAmountRoundSpec(settlementCurrency);
+        return rawAmount.setScale(spec.decimalPlaces(), spec.roundMode());
+    }
+
+    /**
+     * 견적·결제창용 — 실효 정책(비활성이면 정책 기본값, enabled=false).
+     */
+    public Map<String, Object> chargeAmountRoundPolicyForCurrency(String settlementCurrency) {
+        ChargeRoundSpec spec = resolveChargeAmountRoundSpec(settlementCurrency);
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("enabled", spec.enabled());
+        out.put("decimalPlaces", spec.decimalPlaces());
+        out.put("roundMode", roundingModeLabel(spec.roundMode()));
+        out.put("legacyDefault", !spec.enabled());
+        out.put("fromPolicyDefault", !spec.enabled());
+        return out;
+    }
+
+    /** UI·저장용 — 통화별 정책 기본값(비활성 시 적용). 미저장 시 팩토리 폴백. */
+    public List<Map<String, Object>> chargeAmountRoundPolicyDefaultRowsForUi() {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (String cur : DISPLAY_CURRENCY_UI_ORDER) {
+            ChargeRoundSpec d = resolvePolicyDefaultSpec(cur);
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("currency", cur);
+            row.put("decimalPlaces", d.decimalPlaces());
+            row.put("roundMode", roundingModeLabel(d.roundMode()));
+            rows.add(row);
+        }
+        return rows;
+    }
+
+    private record ChargeRoundSpec(boolean enabled, int decimalPlaces, RoundingMode roundMode) {}
+
+    private ChargeRoundSpec resolveChargeAmountRoundSpec(String settlementCurrency) {
+        String cur = settlementCurrency != null
+                ? settlementCurrency.trim().toUpperCase(Locale.ROOT) : "";
+        ChargeRoundSpec policyDefault = resolvePolicyDefaultSpec(cur);
+        JsonNode node = readHqFxJson().path("chargeAmountRoundByCurrency").path(cur);
+        if (node == null || !node.isObject() || node.isEmpty()) {
+            return new ChargeRoundSpec(false, policyDefault.decimalPlaces(), policyDefault.roundMode());
+        }
+        boolean enabled = node.path("enabled").asBoolean(false);
+        if (!enabled) {
+            String enRaw = node.path("enabled").asText("").trim().toUpperCase(Locale.ROOT);
+            enabled = "Y".equals(enRaw) || "TRUE".equals(enRaw) || "1".equals(enRaw);
+        }
+        if (!enabled) {
+            return new ChargeRoundSpec(false, policyDefault.decimalPlaces(), policyDefault.roundMode());
+        }
+        int scale = Math.min(8, Math.max(0, node.path("decimalPlaces").asInt(policyDefault.decimalPlaces())));
+        RoundingMode mode = FeeListRoundingPolicy.parseRoundMode(
+                node.path("roundMode").asText(roundingModeLabel(policyDefault.roundMode())));
+        return new ChargeRoundSpec(true, scale, mode);
+    }
+
+    /**
+     * HQ {@code chargeAmountRoundPolicyDefaults}.{CUR} — 없으면 팩토리(JPY/KRW=0, else=2, HALF_UP).
+     */
+    private ChargeRoundSpec resolvePolicyDefaultSpec(String currencyUpper) {
+        String cur = currencyUpper != null ? currencyUpper.trim().toUpperCase(Locale.ROOT) : "";
+        int factoryScale = factoryChargeScale(cur);
+        JsonNode node = readHqFxJson().path("chargeAmountRoundPolicyDefaults").path(cur);
+        if (node == null || !node.isObject() || node.isEmpty()) {
+            return new ChargeRoundSpec(false, factoryScale, RoundingMode.HALF_UP);
+        }
+        int scale = Math.min(8, Math.max(0, node.path("decimalPlaces").asInt(factoryScale)));
+        RoundingMode mode = FeeListRoundingPolicy.parseRoundMode(node.path("roundMode").asText("HALF_UP"));
+        return new ChargeRoundSpec(false, scale, mode);
+    }
+
+    private static String roundingModeLabel(RoundingMode m) {
+        if (m == RoundingMode.HALF_UP) {
+            return "HALF_UP";
+        }
+        if (m == RoundingMode.DOWN) {
+            return "DOWN";
+        }
+        return "CEILING";
+    }
+
+    /** 코드 팩토리 폴백(본사 정책 기본값이 비어 있을 때만). */
+    private static int factoryChargeScale(String currencyUpper) {
+        if ("JPY".equals(currencyUpper) || "KRW".equals(currencyUpper)) {
+            return 0;
+        }
+        return 2;
+    }
+
+    /** URL결제설정 UI용 — 통화별 커스텀(활성) 행. */
+    public List<Map<String, Object>> chargeAmountRoundRowsForUi() {
+        JsonNode root = readHqFxJson().path("chargeAmountRoundByCurrency");
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (String cur : DISPLAY_CURRENCY_UI_ORDER) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("currency", cur);
+            ChargeRoundSpec policy = resolvePolicyDefaultSpec(cur);
+            JsonNode n = root.path(cur);
+            boolean enabled = false;
+            int dp = policy.decimalPlaces();
+            String rm = roundingModeLabel(policy.roundMode());
+            if (n != null && n.isObject() && !n.isEmpty()) {
+                enabled = n.path("enabled").asBoolean(false);
+                if (!enabled) {
+                    String enRaw = n.path("enabled").asText("").trim().toUpperCase(Locale.ROOT);
+                    enabled = "Y".equals(enRaw) || "TRUE".equals(enRaw) || "1".equals(enRaw);
+                }
+                dp = Math.min(8, Math.max(0, n.path("decimalPlaces").asInt(policy.decimalPlaces())));
+                rm = n.path("roundMode").asText(roundingModeLabel(policy.roundMode())).trim().toUpperCase(Locale.ROOT);
+                if (!Set.of("CEILING", "HALF_UP", "DOWN").contains(rm)) {
+                    rm = roundingModeLabel(policy.roundMode());
+                }
+            }
+            row.put("enabled", enabled);
+            row.put("decimalPlaces", dp);
+            row.put("roundMode", rm);
+            row.put("policyDecimalPlaces", policy.decimalPlaces());
+            row.put("policyRoundMode", roundingModeLabel(policy.roundMode()));
+            rows.add(row);
+        }
+        return rows;
+    }
 
     private BotRateAsOfMode parseBotRateMode(String botRateAsOfRaw) {
         if (botRateAsOfRaw != null && !botRateAsOfRaw.isBlank()) {
