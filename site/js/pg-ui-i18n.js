@@ -2905,6 +2905,126 @@
       CH: 'Logo 设置',
       TH: 'ตั้งค่าโลโก้'
     },
+    '카드입력': {
+      EN: 'Card input',
+      JP: 'カード入力',
+      CH: '卡号输入',
+      TH: 'กรอกบัตร'
+    },
+    '결제창이동': {
+      EN: 'Checkout redirect',
+      JP: '決済画面移動',
+      CH: '结账跳转',
+      TH: 'ย้ายหน้าชำระ'
+    },
+    '결제창이동문구': {
+      EN: 'Checkout redirect message',
+      JP: '決済移動メッセージ',
+      CH: '结账跳转文案',
+      TH: 'ข้อความย้ายหน้าชำระ'
+    },
+    '이동 대상': {
+      EN: 'Destination type',
+      JP: '移動先の種類',
+      CH: '跳转对象类型',
+      TH: 'ประเภทปลายทาง'
+    },
+    '이동 주소·코드': {
+      EN: 'Destination code or URL',
+      JP: '移動先コード/URL',
+      CH: '跳转代码或网址',
+      TH: 'รหัสหรือ URL ปลายทาง'
+    },
+    '업체코드': {
+      EN: 'Merchant code',
+      JP: '加盟店コード',
+      CH: '商户编码',
+      TH: 'รหัสร้านค้า'
+    },
+    '자동이동': {
+      EN: 'Auto redirect',
+      JP: '自動移動',
+      CH: '自动跳转',
+      TH: 'ย้ายอัตโนมัติ'
+    },
+    '이동할 업체코드 (예: 6000000062)': {
+      EN: 'Destination merchant code (e.g. 6000000062)',
+      JP: '移動先加盟店コード（例: 6000000062）',
+      CH: '跳转商户编码（例: 6000000062）',
+      TH: 'รหัสร้านค้าปลายทาง (เช่น 6000000062)'
+    },
+    '「비활성」이 아니면 업체코드 또는 URL 중 하나만 입력합니다. URL은 다른 서브도메인·외부 사이트도 가능합니다. 이 기능은 공개 URL 결제에만 적용되며, 가맹 API 인라인·리다이렉트·WooCommerce에는 적용되지 않습니다.': {
+      EN: 'When not Inactive, enter either a merchant code or a URL. Other subdomains and external sites are allowed. This applies only to public URL checkout — not merchant API inline, redirect, or WooCommerce.',
+      JP: '「非活性」以外では加盟店コードまたはURLのどちらか一方。別サブドメイン・外部サイトも可。公開URL決済のみ適用。加盟APIインライン・リダイレクト・WooCommerceには適用しません。',
+      CH: '非「停用」时填写商户编码或网址（二选一）。允许其他子域名及外部站点。仅用于公开 URL 支付，不用于商户 API 内联、跳转或 WooCommerce。',
+      TH: 'ถ้าไม่ใช่「ปิด」ให้ใส่รหัสร้านค้าหรือ URL อย่างใดอย่างหนึ่ง ใช้ได้เฉพาะชำระ URL สาธารณะ ไม่ใช้กับ API ร้านแบบ inline/redirect/WooCommerce'
+    },
+    '결제창이동은 공개 URL 결제에만 적용됩니다. 가맹 API(인라인·리다이렉트·WooCommerce)는 자체 쇼핑몰 연동이라 적용하지 않습니다. 기본은 비활성입니다.': {
+      EN: 'Checkout redirect applies only to public URL pay. Merchant API (inline, redirect, WooCommerce) is not used — those shops already host checkout. Default is Inactive.',
+      JP: '決済画面移動は公開URL決済のみ。加盟API（インライン・リダイレクト・WooCommerce）は自社モール連携のため適用しません。既定は非活性。',
+      CH: '结账跳转仅用于公开 URL 支付。商户 API（内联、跳转、WooCommerce）因已接入自有商城而不适用。默认为停用。',
+      TH: 'การย้ายหน้าชำระใช้ได้เฉพาะ URL สาธารณะ ไม่ใช้กับ Merchant API (inline/redirect/WooCommerce) เพราะร้านมีหน้าร้านเอง ค่าเริ่มต้นคือปิด'
+    },
+    '결제창이동은 가맹 업체등록에서만 설정하며 기본은 비활성입니다. 공개 URL 결제에만 적용되고 가맹 API(인라인·리다이렉트·WooCommerce)에는 적용되지 않습니다. 위 문구는 가맹이 직접입력 안내를 비웠을 때 사용합니다.': {
+      EN: 'Checkout redirect is set only on merchant registration (default Inactive). Public URL pay only — not merchant API inline/redirect/WooCommerce. The text above is used when the merchant leaves custom notice empty.',
+      JP: '決済画面移動は加盟店登録でのみ設定（既定は非活性）。公開URL決済のみ。加盟API（インライン・リダイレクト・WooCommerce）には適用しません。上記文は加盟店が直接入力案内を空にしたときに使います。',
+      CH: '结账跳转仅在商户登记中设置（默认停用）。仅公开 URL 支付，不用于商户 API 内联/跳转/WooCommerce。上文案在商户未填自定义说明时使用。',
+      TH: 'การย้ายหน้าชำระตั้งได้ที่ลงทะเบียนร้านเท่านั้น (ค่าเริ่มต้นปิด) ใช้เฉพาะ URL สาธารณะ ไม่ใช้ API ร้าน ข้อความด้านบนใช้เมื่อร้านไม่กรอกข้อความเอง'
+    },
+    '「비활성」이 아니면 업체코드 또는 URL 중 하나만 입력합니다. URL은 다른 서브도메인·외부 사이트도 가능합니다.': {
+      EN: 'When not Inactive, enter either a merchant code or a URL. Other subdomains and external sites are allowed.',
+      JP: '「非活性」以外では加盟店コードまたはURLのどちらか一方。別サブドメイン・外部サイトも可。',
+      CH: '非「停用」时填写商户编码或网址（二选一）。允许其他子域名及外部站点。',
+      TH: 'ถ้าไม่ใช่「ปิด」ให้ใส่รหัสร้านค้าหรือ URL อย่างใดอย่างหนึ่ง ซับโดเมนอื่นและเว็บภายนอกใช้ได้'
+    },
+    '「직접입력」일 때만 수정합니다. 저장 시 5개국어로 1회 번역·저장되며 결제창에서는 저장된 문구만 표시합니다. 비우면 본사 기본 문구를 씁니다.': {
+      EN: 'Editable only for Custom text. Translated once into 5 languages on save; checkout uses stored text only. Empty uses HQ default.',
+      JP: '「直接入力」時のみ編集。保存時に5言語へ1回翻訳し、決済画面は保存文のみ。空なら本社既定文。',
+      CH: '仅「直接输入」时可编辑。保存时一次译成五语；结账页只用已存文案。留空则用总部默认。',
+      TH: 'แก้ไขได้เมื่อ「กรอกเอง」 ตอนบันทึกแปลครั้งเดียวเป็น 5 ภาษา หน้าชำระใช้ข้อความที่เก็บไว้ ถ้าเว้นว่างใช้ข้อความสำนักงานใหญ่'
+    },
+    '확인 후 이동할 때 구매자에게 보여줄 안내': {
+      EN: 'Notice shown to the shopper before they confirm the redirect',
+      JP: '確認後に移動する際、購入者へ表示する案内',
+      CH: '确认跳转前向买家展示的说明',
+      TH: 'ข้อความที่แสดงให้ผู้ซื้อก่อนยืนยันการย้าย'
+    },
+    '카드입력 비활성 안내 문구': {
+      EN: 'Message when card input is off',
+      JP: 'カード入力オフ時の案内文',
+      CH: '关闭卡号输入时的提示文案',
+      TH: 'ข้อความเมื่อปิดการกรอกบัตร'
+    },
+    '카드입력을 끈 결제창에 표시할 안내 문구': {
+      EN: 'Notice shown on checkout when card fields are hidden',
+      JP: 'カード入力をオフにした決済画面に表示する案内',
+      CH: '关闭卡号输入后在结账页显示的提示',
+      TH: 'ข้อความบนหน้าชำระเมื่อซ่อนช่องบัตร'
+    },
+    '「비활성」이면 결제창에서 금액·카드번호·유효기간·CVV·성·이름 입력란을 숨깁니다. 저장 시 5개국어로 1회 번역·저장되며, 결제창에서는 저장된 문구만 표시합니다(표시마다 재번역하지 않음). URL이 있으면 자동 하이퍼링크됩니다.': {
+      EN: 'Inactive hides amount, card number, expiry, CVV, first and last name on checkout. On save, text is translated once into 5 languages; checkout shows stored text only. URLs become auto hyperlinks.',
+      JP: '「非活性」では決済画面の金額・カード番号・有効期限・CVV・姓・名を非表示。保存時に5言語へ1回翻訳し、決済画面は保存文のみ。URLは自動ハイパーリンク。',
+      CH: '「停用」时结账页隐藏金额、卡号、有效期、CVV、姓与名。保存时一次译成五语；结账页只显示已存文案。含 URL 时自动超链接。',
+      TH: '「ปิด」จะซ่อนจำนวนเงิน เลขบัตร วันหมดอายุ CVV ชื่อและนามสกุลในหน้าชำระ ตอนบันทึกแปลครั้งเดียวเป็น 5 ภาษา หน้าชำระใช้ข้อความที่เก็บไว้ หากมี URL จะลิงก์อัตโนมัติ'
+    },
+    '「비활성」일 때만 입력합니다. 저장 시 5개국어로 1회 번역·저장되며, 결제창에서는 저장된 문구만 표시합니다(표시마다 재번역하지 않음). URL이 있으면 자동 하이퍼링크됩니다.': {
+      EN: 'Editable only when Inactive. On save, text is translated once into 5 languages and stored; checkout shows the stored text only (no re-translate on each view). URLs become auto hyperlinks.',
+      JP: '「非活性」のときのみ入力。保存時に5言語へ1回翻訳・保存し、決済画面は保存文のみ表示（表示のたび再翻訳しません）。URLは自動ハイパーリンク。',
+      CH: '仅在「停用」时可编辑。保存时一次性译成五种语言并存储；结账页只显示已存文案（不会每次显示再翻译）。含 URL 时自动超链接。',
+      TH: 'แก้ไขได้เมื่อเลือก「ปิด」เท่านั้น ตอนบันทึกแปลครั้งเดียวเป็น 5 ภาษาแล้วเก็บไว้ หน้าชำระแสดงข้อความที่บันทึกแล้วเท่านั้น (ไม่แปลใหม่ทุกครั้งที่แสดง) หากมี URL จะลิงก์อัตโนมัติ'
+    },
+    '「활성(직접입력)」은 직접 수정 가능합니다. 저장 시 AI가 5개국어로 1회 번역·저장되며, 결제창 다국어 메뉴를 누르면 해당 언어 문구가 표시됩니다(표시마다 재번역하지 않음). 프리셋은 언어별 내장 문구입니다. 「기본」은 3DS 안전 결제 문구가 언어별로 표시됩니다. URL이 있으면 자동 하이퍼링크됩니다.': {
+      EN: 'Editable when Active (custom). On save, AI translates once into 5 languages; the checkout language menu shows that stored text (no re-translate on each view). Presets use built-in per-language copy. Default shows 3DS secure payment per language. URLs become auto hyperlinks.',
+      JP: '「有効(直接入力)」時のみ編集可。保存時にAIが5言語へ1回翻訳し、決済画面の多言語メニューでその保存文を表示（表示のたび再翻訳しません）。プリセットは言語別内蔵文。「基本」は言語別3DS文言。URLは自動ハイパーリンク。',
+      CH: '「启用(直接输入)」时可编辑。保存时 AI 一次译成五语；结账页点语言菜单即显示已存文案（不会每次显示再翻译）。预设为各语言内置文案。「默认」按语言显示 3DS。含 URL 时自动超链接。',
+      TH: 'แก้ไขได้เมื่อ「เปิด(กรอกเอง)」 ตอนบันทึก AI แปลครั้งเดียวเป็น 5 ภาษา เมนูภาษาในหน้าชำระแสดงข้อความที่เก็บไว้ (ไม่แปลใหม่ทุกครั้ง) พรีเซ็ตใช้ข้อความในตัวตามภาษา 「ค่าเริ่มต้น」แสดง 3DS ตามภาษา หากมี URL จะลิงก์อัตโนมัติ'
+    },
+    '「활성(직접입력)」은 직접 수정 가능합니다. 프리셋 선택 시 문구가 자동 입력되며 결제창에서는 언어별로 표시됩니다. 「기본」은 3DS 안전 결제 문구가 언어별로 표시됩니다. URL(http·https·www)이 포함되면 결제창에서 자동 하이퍼링크됩니다.': {
+      EN: 'Editable when Active (custom). Presets fill text automatically and show per language on checkout. Default shows 3DS secure payment per language. URLs (http/https/www) become auto hyperlinks on checkout.',
+      JP: '「有効(直接入力)」時のみ編集可。プリセット選択時は自動入力され決済画面で言語別に表示。「基本」は言語別の3DS文言。URL含む場合は決済画面で自動ハイパーリンク。',
+      CH: '「启用(直接输入)」时可编辑。选择预设会自动填入并在结账页按语言显示。「默认」按语言显示 3DS 安全支付。含 URL 时在结账页自动超链接。',
+      TH: 'แก้ไขได้เมื่อ「เปิด(กรอกเอง)」 เลือกพรีเซ็ตจะใส่ข้อความอัตโนมัติและแสดงตามภาษาในหน้าชำระ 「ค่าเริ่มต้น」แสดงข้อความ 3DS ตามภาษา หากมี URL จะลิงก์อัตโนมัติในหน้าชำระ'
+    },
     '웹결제 상단 로고': {
       EN: 'Web payment header logo',
       JP: 'ウェブ決済上部ロゴ',

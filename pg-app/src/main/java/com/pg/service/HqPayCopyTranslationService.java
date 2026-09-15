@@ -54,6 +54,11 @@ public class HqPayCopyTranslationService {
         return out;
     }
 
+    /** 단문(경고·카드비활성 안내) — KOR·ENG·JPN·CHN·THA 맵 (저장 시 1회) */
+    public Map<String, String> translateLineFromKo(String textKo) {
+        return buildLangMap(textKo != null ? textKo : "");
+    }
+
     private Map<String, String> buildLangMap(String koRaw) {
         Map<String, String> m = new LinkedHashMap<>();
         String ko = koRaw != null ? koRaw.trim() : "";

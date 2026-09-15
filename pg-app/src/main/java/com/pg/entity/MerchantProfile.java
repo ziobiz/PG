@@ -206,6 +206,40 @@ public class MerchantProfile {
     @Column(name = "web_payment_header_subtitle_text", length = 200)
     private String webPaymentHeaderSubtitleText;
 
+    /** 경고메세지 직접입력 다국어 JSON — 저장 시 1회 번역, 표시 시 재번역 금지 */
+    @Column(name = "web_payment_header_subtitle_text_i18n", columnDefinition = "TEXT")
+    private String webPaymentHeaderSubtitleTextI18n;
+
+    /**
+     * 웹결제 카드입력 — ACTIVE=기존 입력 / DISABLED=금액·카드번호·유효·CVV·성·이름 숨김.
+     */
+    @Column(name = "url_pay_card_input_mode", nullable = false, length = 16)
+    private String urlPayCardInputMode = "ACTIVE";
+
+    /** 카드입력 비활성 시 안내 원문(KO) */
+    @Column(name = "url_pay_card_input_disabled_text", length = 500)
+    private String urlPayCardInputDisabledText;
+
+    /** 카드입력 비활성 안내 다국어 JSON — 저장 시 1회 번역, 표시 시 재번역 금지 */
+    @Column(name = "url_pay_card_input_disabled_text_i18n", columnDefinition = "TEXT")
+    private String urlPayCardInputDisabledTextI18n;
+
+    /** 결제창이동 — {@link com.pg.urlpay.UrlPayCheckoutMoveModeUtil} */
+    @Column(name = "url_pay_checkout_move_mode", nullable = false, length = 16)
+    private String urlPayCheckoutMoveMode = "DISABLED";
+
+    @Column(name = "url_pay_checkout_move_target_type", nullable = false, length = 16)
+    private String urlPayCheckoutMoveTargetType = "COMP_CODE";
+
+    @Column(name = "url_pay_checkout_move_target", length = 500)
+    private String urlPayCheckoutMoveTarget;
+
+    @Column(name = "url_pay_checkout_move_message", length = 2000)
+    private String urlPayCheckoutMoveMessage;
+
+    @Column(name = "url_pay_checkout_move_message_i18n", columnDefinition = "TEXT")
+    private String urlPayCheckoutMoveMessageI18n;
+
     /**
      * 공개 URL 결제 방식 — {@link com.pg.urlpay.UrlPayCheckoutModeUtil}.
      * STANDARD=일반 URL, REPAY=저장 카드 재결제 URL.
@@ -745,6 +779,45 @@ public class MerchantProfile {
     }
     public String getWebPaymentHeaderSubtitleText() { return webPaymentHeaderSubtitleText; }
     public void setWebPaymentHeaderSubtitleText(String webPaymentHeaderSubtitleText) { this.webPaymentHeaderSubtitleText = webPaymentHeaderSubtitleText; }
+    public String getWebPaymentHeaderSubtitleTextI18n() { return webPaymentHeaderSubtitleTextI18n; }
+    public void setWebPaymentHeaderSubtitleTextI18n(String webPaymentHeaderSubtitleTextI18n) {
+        this.webPaymentHeaderSubtitleTextI18n = webPaymentHeaderSubtitleTextI18n;
+    }
+
+    public String getUrlPayCardInputMode() { return urlPayCardInputMode; }
+    public void setUrlPayCardInputMode(String urlPayCardInputMode) {
+        this.urlPayCardInputMode = com.pg.urlpay.UrlPayCardInputModeUtil.normalize(urlPayCardInputMode);
+    }
+    public String getUrlPayCardInputDisabledText() { return urlPayCardInputDisabledText; }
+    public void setUrlPayCardInputDisabledText(String urlPayCardInputDisabledText) {
+        this.urlPayCardInputDisabledText = urlPayCardInputDisabledText;
+    }
+    public String getUrlPayCardInputDisabledTextI18n() { return urlPayCardInputDisabledTextI18n; }
+    public void setUrlPayCardInputDisabledTextI18n(String urlPayCardInputDisabledTextI18n) {
+        this.urlPayCardInputDisabledTextI18n = urlPayCardInputDisabledTextI18n;
+    }
+
+    public String getUrlPayCheckoutMoveMode() { return urlPayCheckoutMoveMode; }
+    public void setUrlPayCheckoutMoveMode(String urlPayCheckoutMoveMode) {
+        this.urlPayCheckoutMoveMode = com.pg.urlpay.UrlPayCheckoutMoveModeUtil.normalizeMerchant(urlPayCheckoutMoveMode);
+    }
+    public String getUrlPayCheckoutMoveTargetType() { return urlPayCheckoutMoveTargetType; }
+    public void setUrlPayCheckoutMoveTargetType(String urlPayCheckoutMoveTargetType) {
+        this.urlPayCheckoutMoveTargetType = com.pg.urlpay.UrlPayCheckoutMoveTargetTypeUtil.normalize(urlPayCheckoutMoveTargetType);
+    }
+    public String getUrlPayCheckoutMoveTarget() { return urlPayCheckoutMoveTarget; }
+    public void setUrlPayCheckoutMoveTarget(String urlPayCheckoutMoveTarget) {
+        this.urlPayCheckoutMoveTarget = urlPayCheckoutMoveTarget;
+    }
+    public String getUrlPayCheckoutMoveMessage() { return urlPayCheckoutMoveMessage; }
+    public void setUrlPayCheckoutMoveMessage(String urlPayCheckoutMoveMessage) {
+        this.urlPayCheckoutMoveMessage = urlPayCheckoutMoveMessage;
+    }
+    public String getUrlPayCheckoutMoveMessageI18n() { return urlPayCheckoutMoveMessageI18n; }
+    public void setUrlPayCheckoutMoveMessageI18n(String urlPayCheckoutMoveMessageI18n) {
+        this.urlPayCheckoutMoveMessageI18n = urlPayCheckoutMoveMessageI18n;
+    }
+
     public String getUrlPayCheckoutMode() { return urlPayCheckoutMode; }
     public void setUrlPayCheckoutMode(String urlPayCheckoutMode) {
         this.urlPayCheckoutMode = urlPayCheckoutMode != null && !urlPayCheckoutMode.isBlank()

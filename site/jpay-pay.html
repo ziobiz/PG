@@ -9,9 +9,9 @@
   <link href="/css/pay-inline.css?v=38" rel="stylesheet">
   <script src="/js/pg-pay-submit-guard.js?v=1"></script>
   <script src="/js/url-pay-input-mode.js?v=4"></script>
-  <script src="/js/checkout-header-subtitle-presets.js?v=1"></script>
+  <script src="/js/checkout-header-subtitle-presets.js?v=2"></script>
   <script src="/js/url-pay-copy-phrase-i18n.js?v=1"></script>
-  <script src="/js/url-pay-public-shell.js?v=15"></script>
+  <script src="/js/url-pay-public-shell.js?v=18"></script>
   <script src="/js/jpay-contact-fields.js?v=3"></script>
   <script src="/js/jpay-contact-remember.js?v=1"></script>
   <script src="/js/jpay-card-expiry.js?v=1"></script>
@@ -79,6 +79,8 @@
         </div>
         <div class="pay-label mb-1"><span id="payCardSectionLabel" data-i18n="card">Card</span></div>
         <p class="small text-muted mb-2 d-none" id="payCardNoteText"></p>
+        <div id="payCardInputDisabledMsg" class="alert alert-warning py-2 small mb-2 d-none" role="status" style="display:none;white-space:pre-wrap;word-break:break-word;"></div>
+        <div id="payCardInputFieldsWrap">
         <div class="mb-2" id="payCardBrandRow">
           <select class="form-select form-select-sm pay-input-round jpay-field-input" id="payCardBrandSelect" data-i18n-aria="cardAutoDetectOption" aria-label="Card auto detect">
             <option value="AUTO" data-i18n="cardAutoDetectOption">Card auto detect</option>
@@ -97,6 +99,7 @@
           <div class="col-4"><input type="text" class="form-control form-control-sm pay-input-round jpay-field-input" id="payCardmonth" maxlength="2" data-i18n-placeholder="mm" required></div>
           <div class="col-4"><input type="text" class="form-control form-control-sm pay-input-round jpay-field-input" id="payCardyear" maxlength="4" data-i18n-placeholder="yyyy" required></div>
           <div class="col-4"><input type="text" class="form-control form-control-sm pay-input-round jpay-field-input" id="payCardcvv" maxlength="4" data-i18n-placeholder="cvv" required></div>
+        </div>
         </div>
         <div class="row g-2 mb-2" id="nameRow">
           <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round jpay-field-input" id="payFirstname" data-i18n-placeholder="firstName" required></div>
@@ -509,7 +512,7 @@
             lang: LANG, cardCopy: window.__payUrlCardCopy, t: t, skipBrandSub: true,
             onApply: function () { PG_URL_PAY_SHELL.applyAmountScaleNotice({ lang: LANG, cardCopy: window.__payUrlCardCopy, scaleMode: urlPayAmountScaleMode }); }
           });
-          PG_URL_PAY_SHELL.applyCheckoutHeaderSubtitle(checkoutCtx, { t: t });
+          PG_URL_PAY_SHELL.applyCheckoutHeaderSubtitle(checkoutCtx, { t: t, getLang: function () { return LANG; } });
         }
       }
       function applyI18n() {
@@ -561,7 +564,7 @@
           PG_PAY_FORM_INPUT_GUARD.refreshHints(document.getElementById('jpayForm'));
         }
         if (window.PG_URL_PAY_SHELL && checkoutCtx) {
-          PG_URL_PAY_SHELL.applyCheckoutHeaderSubtitle(checkoutCtx, { t: t });
+          PG_URL_PAY_SHELL.applyCheckoutHeaderSubtitle(checkoutCtx, { t: t, getLang: function () { return LANG; } });
         }
       }
 
@@ -1043,7 +1046,7 @@
         if (window.PG_URL_PAY_SHELL) {
           PG_URL_PAY_SHELL.applyCardCopyPresentation({ lang: LANG, cardCopy: window.__payUrlCardCopy, t: t, skipBrandSub: true });
           PG_URL_PAY_SHELL.applyAmountScaleNotice({ lang: LANG, cardCopy: window.__payUrlCardCopy, scaleMode: urlPayAmountScaleMode });
-          PG_URL_PAY_SHELL.applyCheckoutHeaderSubtitle(checkoutCtx, { t: t });
+          PG_URL_PAY_SHELL.applyCheckoutHeaderSubtitle(checkoutCtx, { t: t, getLang: function () { return LANG; } });
         }
         initJpayContactFields(ctx);
         if (window.PG_PAY_FORM_INPUT_GUARD) {

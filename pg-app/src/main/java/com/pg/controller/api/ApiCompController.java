@@ -272,6 +272,12 @@ public class ApiCompController {
             @RequestParam(required = false) String transferExecTime,
             @RequestParam(required = false) String pgBindings,
             @RequestParam(required = false) String webPaymentUseYn,
+            @RequestParam(required = false) String urlPayCardInputMode,
+            @RequestParam(required = false) String urlPayCardInputDisabledText,
+            @RequestParam(required = false) String urlPayCheckoutMoveMode,
+            @RequestParam(required = false) String urlPayCheckoutMoveTargetType,
+            @RequestParam(required = false) String urlPayCheckoutMoveTarget,
+            @RequestParam(required = false) String urlPayCheckoutMoveMessage,
             @RequestParam(required = false) String chatbotPaymentUseYn,
             @RequestParam(required = false) String baseCurrency,
             @RequestParam(required = false) String defaultProductName,
@@ -468,6 +474,9 @@ public class ApiCompController {
                 cardRiskPresaleVelIpMax);
         compService.patchMerchantMobileCheckoutMode(saved.getCode(), mobileCheckoutMode);
         compService.applyMerchantUrlPayCheckoutFieldPreset(saved.getCode(), urlPayCheckoutFieldPresetId);
+        compService.applyMerchantUrlPayCardInput(saved.getCode(), urlPayCardInputMode, urlPayCardInputDisabledText);
+        compService.applyMerchantUrlPayCheckoutMove(saved.getCode(), urlPayCheckoutMoveMode,
+                urlPayCheckoutMoveTargetType, urlPayCheckoutMoveTarget, urlPayCheckoutMoveMessage);
         compService.applyMerchantOperationRecord(saved.getCode(), operationRecord);
         compService.saveTradeNmForOrg(saved.getId(), tradeNm, compDiv);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("compId", saved.getCode(), "compNm", saved.getName())));
@@ -562,6 +571,12 @@ public class ApiCompController {
             @RequestParam(required = false) String webPaymentHeaderHtmlTitle,
             @RequestParam(required = false) String webPaymentHeaderSubtitleMode,
             @RequestParam(required = false) String webPaymentHeaderSubtitleText,
+            @RequestParam(required = false) String urlPayCardInputMode,
+            @RequestParam(required = false) String urlPayCardInputDisabledText,
+            @RequestParam(required = false) String urlPayCheckoutMoveMode,
+            @RequestParam(required = false) String urlPayCheckoutMoveTargetType,
+            @RequestParam(required = false) String urlPayCheckoutMoveTarget,
+            @RequestParam(required = false) String urlPayCheckoutMoveMessage,
             @RequestParam(required = false) String chatbotPaymentUseYn,
             @RequestParam(required = false) Integer chatbotProductSlotLimit,
             @RequestParam(required = false) String baseCurrency,
@@ -795,6 +810,9 @@ public class ApiCompController {
             if (ok) {
                 compService.patchMerchantMobileCheckoutMode(compId, mobileCheckoutMode);
                 compService.applyMerchantUrlPayCheckoutFieldPreset(compId, urlPayCheckoutFieldPresetId);
+                compService.applyMerchantUrlPayCardInput(compId, urlPayCardInputMode, urlPayCardInputDisabledText);
+                compService.applyMerchantUrlPayCheckoutMove(compId, urlPayCheckoutMoveMode,
+                        urlPayCheckoutMoveTargetType, urlPayCheckoutMoveTarget, urlPayCheckoutMoveMessage);
                 compService.applyMerchantOperationRecord(compId, operationRecord);
                 compService.saveTradeNmByCompCode(compId, tradeNm, compDiv);
             }

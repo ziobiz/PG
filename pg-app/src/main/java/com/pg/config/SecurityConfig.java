@@ -66,6 +66,7 @@ public class SecurityConfig {
                 /* PG 무관 중립 결제창 — 서버 forward 로 실제 PG 페이지를 노출 없이 제공 */
                 AntPathRequestMatcher.antMatcher("/checkout"),
                 AntPathRequestMatcher.antMatcher("/checkout/**"),
+                AntPathRequestMatcher.antMatcher("/checkout-move.html"),
                 AntPathRequestMatcher.antMatcher("/checkout-subscribe"),
                 AntPathRequestMatcher.antMatcher("/checkout-subscribe/**"),
                 AntPathRequestMatcher.antMatcher("/pay-result.html"),

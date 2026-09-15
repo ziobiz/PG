@@ -520,6 +520,8 @@
       var cur = typeof opts.getLang === 'function' ? opts.getLang() : '';
       if (bl && bl !== cur) opts.setLang(bl);
     }
+    var langForCard = (typeof opts.getLang === 'function' ? opts.getLang() : null) || opts.lang || 'KOR';
+    applyUrlPayCardInputMode(ctx, langForCard);
   }
 
   function resolveUrlPayItemValue(ctx) {
@@ -666,25 +668,72 @@
     }
   }
 
+  /** XSS-safe escape then auto-link http(s)/www URLs for checkout notice text. */
+  function escapeHtmlText(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function linkifySafeHtml(text) {
+    var esc = escapeHtmlText(text);
+    return esc.replace(/(https?:\/\/[^\s<&]+|www\.[^\s<&]+)/gi, function (raw) {
+      var trail = '';
+      var core = raw;
+      while (/[.,);:!?>]$/.test(core)) {
+        trail = core.slice(-1) + trail;
+        core = core.slice(0, -1);
+      }
+      if (!core) return raw;
+      var href = /^https?:\/\//i.test(core) ? core : ('https://' + core);
+      return '<a href="' + href + '" target="_blank" rel="noopener noreferrer">' + core + '</a>' + trail;
+    });
+  }
+
+  function setLinkedText(el, text) {
+    if (!el) return;
+    var t = text != null ? String(text) : '';
+    if (!t) {
+      el.textContent = '';
+      return;
+    }
+    el.innerHTML = linkifySafeHtml(t);
+  }
+
   /**
    * 결제창 로고 아래 경고/안내 문구 — 로고설정과 무관하게 단독 표시 가능.
+   * URL 포함 시 자동 하이퍼링크(저장 문구 그대로, 재번역 없음).
    * @param {object} ctx checkout-context
    * @param {{ t?: function }} [opts]
    */
   function applyCheckoutHeaderSubtitle(ctx, opts) {
     opts = opts || {};
-    var sub = g.document.querySelector('#jpayBrandBlock .pay-brand-sub, #payBrandTextWrap .pay-brand-sub, .pay-brand-sub');
-    if (!sub) return;
     ctx = ctx || {};
+    var langEarly = opts.lang;
+    if (langEarly == null && typeof opts.getLang === 'function') langEarly = opts.getLang();
+    var sub = g.document.querySelector('#jpayBrandBlock .pay-brand-sub, #payBrandTextWrap .pay-brand-sub, .pay-brand-sub');
+    if (!sub) {
+      applyUrlPayCardInputMode(ctx, langEarly || 'KOR');
+      return;
+    }
     var brand = g.document.getElementById('jpayBrandBlock') || g.document.querySelector('.pay-brand');
     var resolved;
     if (g.PG_CHECKOUT_HEADER_SUBTITLE && PG_CHECKOUT_HEADER_SUBTITLE.resolveCheckoutText) {
-      resolved = PG_CHECKOUT_HEADER_SUBTITLE.resolveCheckoutText(ctx, opts.t, ['brandSub3ds', 'brandSub']);
+      resolved = PG_CHECKOUT_HEADER_SUBTITLE.resolveCheckoutText(ctx, opts.t, ['brandSub3ds', 'brandSub'], langEarly);
     } else {
       var mode = String(ctx.checkoutHeaderSubtitleMode || 'DEFAULT').trim().toUpperCase();
       if (mode === 'DISABLED') resolved = { show: false, text: '' };
       else if (mode === 'ACTIVE') {
-        var custom = ctx.checkoutHeaderSubtitleText ? String(ctx.checkoutHeaderSubtitleText).trim() : '';
+        var i18n = ctx.checkoutHeaderSubtitleTextI18n;
+        var custom = '';
+        if (i18n && typeof i18n === 'object') {
+          var lk = normalizeCheckoutLang(langEarly);
+          custom = String(i18n[lk] || i18n.KOR || i18n.ENG || '').trim();
+        }
+        if (!custom) custom = ctx.checkoutHeaderSubtitleText ? String(ctx.checkoutHeaderSubtitleText).trim() : '';
         resolved = custom ? { show: true, text: custom } : { show: false, text: '' };
       } else {
         var def = opts.t ? (opts.t('brandSub3ds') || opts.t('brandSub') || '3DS Secure Payment') : '3DS Secure Payment';
@@ -697,11 +746,116 @@
       if (brand && isCheckoutHeaderBrandEmpty(ctx, brand)) {
         brand.style.display = 'none';
       }
+      applyUrlPayCardInputMode(ctx, langEarly || 'KOR');
       return;
     }
     if (brand) brand.style.display = '';
     sub.style.display = '';
-    sub.textContent = resolved.text;
+    setLinkedText(sub, resolved.text);
+    applyUrlPayCardInputMode(ctx, langEarly || 'KOR');
+  }
+
+  function normalizeCheckoutLang(lang) {
+    if (!lang) return 'KOR';
+    var u = String(lang).trim().toUpperCase();
+    if (u.indexOf('KO') === 0) return 'KOR';
+    if (u.indexOf('EN') === 0) return 'ENG';
+    if (u.indexOf('JP') === 0 || u.indexOf('JA') === 0) return 'JPN';
+    if (u.indexOf('CH') === 0 || u.indexOf('ZH') === 0) return 'CHN';
+    if (u.indexOf('TH') === 0) return 'THA';
+    return 'KOR';
+  }
+
+  function resolveCardInputDisabledText(ctx, lang) {
+    ctx = ctx || {};
+    var i18n = ctx.checkoutCardInputDisabledTextI18n;
+    var langKey = normalizeCheckoutLang(lang);
+    if (i18n && typeof i18n === 'object') {
+      var hit = i18n[langKey] || i18n.KOR || i18n.ENG;
+      if (hit != null && String(hit).trim()) return String(hit).trim();
+    }
+    var plain = ctx.checkoutCardInputDisabledText;
+    return plain != null ? String(plain).trim() : '';
+  }
+
+  function resolveCardInputHideWrap(el) {
+    if (!el) return null;
+    if (el.id === 'nameRow' || el.id === 'payCardInputFieldsWrap' || el.id === 'payFxDisplayCurrencyRow' || el.id === 'payFxQuoteRow') {
+      return el;
+    }
+    return el.closest('#nameRow') || el.closest('.pay-row') || el.closest('.row') || el;
+  }
+
+  function setCheckoutInputsDisabled(root, disabled) {
+    if (!root) return;
+    var list = root.matches && root.matches('input, select, textarea')
+      ? [root]
+      : Array.prototype.slice.call(root.querySelectorAll('input, select, textarea'));
+    list.forEach(function (el) {
+      if (disabled) {
+        if (!el.hasAttribute('data-pg-card-req-was')) {
+          el.setAttribute('data-pg-card-req-was', el.required ? '1' : '0');
+        }
+        el.required = false;
+        el.disabled = true;
+      } else {
+        el.disabled = false;
+        if (el.getAttribute('data-pg-card-req-was') === '1') el.required = true;
+      }
+    });
+  }
+
+  /**
+   * 카드입력 ACTIVE=기존 입력 / DISABLED=금액·카드번호·유효·CVV·성·이름 숨김 + 저장된 다국어 안내.
+   * 표시 시 재번역하지 않음(checkoutCardInputDisabledTextI18n 사용).
+   */
+  function applyUrlPayCardInputMode(ctx, lang) {
+    ctx = ctx || {};
+    var mode = String(ctx.checkoutCardInputMode || 'ACTIVE').trim().toUpperCase();
+    var disabled = mode === 'DISABLED';
+    var wrap = g.document.getElementById('payCardInputFieldsWrap');
+    var msg = g.document.getElementById('payCardInputDisabledMsg');
+    var submit = g.document.getElementById('submitBtn');
+    var seen = [];
+    function hideGroup(el) {
+      var box = resolveCardInputHideWrap(el);
+      if (!box || seen.indexOf(box) >= 0) return;
+      seen.push(box);
+      box.classList.toggle('d-none', disabled);
+      if (disabled) box.setAttribute('data-pg-card-input-hidden', '1');
+      else box.removeAttribute('data-pg-card-input-hidden');
+      setCheckoutInputsDisabled(box, disabled);
+    }
+    hideGroup(wrap);
+    hideGroup(g.document.getElementById('amount'));
+    hideGroup(g.document.getElementById('payFxDisplayCurrencyRow'));
+    hideGroup(g.document.getElementById('payFxQuoteRow'));
+    hideGroup(g.document.getElementById('nameRow'));
+    hideGroup(g.document.getElementById('payFirstname'));
+    hideGroup(g.document.getElementById('payLastname'));
+    ['payCardSectionLabel', 'payCardNoteText', 'payCardCcdHintText'].forEach(function (id) {
+      var el = g.document.getElementById(id);
+      if (!el) return;
+      var box = el.closest('.pay-label') || el;
+      box.classList.toggle('d-none', disabled);
+    });
+    if (msg) {
+      if (disabled) {
+        var text = resolveCardInputDisabledText(ctx, lang);
+        setLinkedText(msg, text);
+        msg.classList.toggle('d-none', !text);
+        msg.style.display = text ? '' : 'none';
+      } else {
+        msg.classList.add('d-none');
+        msg.textContent = '';
+        msg.style.display = 'none';
+      }
+    }
+    if (submit) {
+      submit.classList.toggle('d-none', disabled);
+      submit.disabled = disabled;
+    }
+    g.__urlPayCardInputDisabled = disabled;
   }
 
   function isCheckoutHeaderBrandEmpty(ctx, brand) {
@@ -727,6 +881,9 @@
     applyCardCopyPresentation: applyCardCopyPresentation,
     applyCheckoutHeaderLogo: applyCheckoutHeaderLogo,
     applyCheckoutHeaderSubtitle: applyCheckoutHeaderSubtitle,
+    applyUrlPayCardInputMode: applyUrlPayCardInputMode,
+    linkifySafeHtml: linkifySafeHtml,
+    setLinkedText: setLinkedText,
     applyAmountScaleNotice: applyAmountScaleNotice,
     initDisplayFx: initDisplayFx,
     wireLanguageButtons: wireLanguageButtons,

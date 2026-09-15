@@ -4,6 +4,8 @@ import com.pg.entity.OrgUnit;
 import com.pg.integration.pg.PgVendor;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.service.ChillPayService;
+import com.pg.urlpay.UrlPayCheckoutMoveService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,21 +17,37 @@ import java.nio.charset.StandardCharsets;
  * PG 무관 중립 결제창 라우트 — {@code /checkout/{compId}}.
  * 가맹점·구매자에게 결제 대행사를 노출하지 않기 위해, 운영 PG를 서버에서 판별한 뒤
  * 실제 결제 페이지로 <b>내부 forward</b> 한다(브라우저 URL 은 {@code /checkout/...} 로 유지).
+ * 결제창이동은 공개 URL 결제에만 적용({@code entry=merchant_api} 인라인·리다이렉트·Woo 제외).
  */
 @Controller
 public class NeutralCheckoutRouteController {
 
     private final OrgUnitRepository orgUnitRepository;
     private final ChillPayService chillPayService;
+    private final UrlPayCheckoutMoveService urlPayCheckoutMoveService;
 
     public NeutralCheckoutRouteController(OrgUnitRepository orgUnitRepository,
-                                          ChillPayService chillPayService) {
+                                          ChillPayService chillPayService,
+                                          UrlPayCheckoutMoveService urlPayCheckoutMoveService) {
         this.orgUnitRepository = orgUnitRepository;
         this.chillPayService = chillPayService;
+        this.urlPayCheckoutMoveService = urlPayCheckoutMoveService;
     }
 
     @GetMapping("/checkout/{compId}")
-    public String checkout(@PathVariable("compId") String compId) {
+    public String checkout(@PathVariable("compId") String compId, HttpServletRequest request) {
+        if (!urlPayCheckoutMoveService.skipBecauseHop(request)) {
+            var move = urlPayCheckoutMoveService.resolve(compId, request);
+            if (move.isPresent()) {
+                var r = move.get();
+                if (r.auto()) {
+                    return "redirect:" + r.targetUrl();
+                }
+                if (r.direct()) {
+                    return "forward:/checkout-move.html";
+                }
+            }
+        }
         return "forward:" + resolvePagePath(compId);
     }
 

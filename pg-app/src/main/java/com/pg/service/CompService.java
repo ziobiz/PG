@@ -129,6 +129,9 @@ public class CompService {
     private final CommissionService commissionService;
     private final com.pg.urlpay.UrlPayCheckoutDisplayPolicyService urlPayCheckoutDisplayPolicyService;
     private final UrlPayCheckoutFieldPresetService urlPayCheckoutFieldPresetService;
+    private final com.pg.urlpay.UrlPayCardInputCopyService urlPayCardInputCopyService;
+    private final com.pg.urlpay.UrlPayCheckoutMoveService urlPayCheckoutMoveService;
+    private final com.pg.urlpay.CheckoutHeaderSubtitleCopyService checkoutHeaderSubtitleCopyService;
 
     private static LocalTime parseTime(String s) {
         if (s == null || s.trim().isEmpty()) return null;
@@ -456,7 +459,10 @@ public class CompService {
                        MerchantJpayNotifyUrlSyncService merchantJpayNotifyUrlSyncService,
                        @Lazy CommissionService commissionService,
                        com.pg.urlpay.UrlPayCheckoutDisplayPolicyService urlPayCheckoutDisplayPolicyService,
-                       UrlPayCheckoutFieldPresetService urlPayCheckoutFieldPresetService) {
+                       UrlPayCheckoutFieldPresetService urlPayCheckoutFieldPresetService,
+                       com.pg.urlpay.UrlPayCardInputCopyService urlPayCardInputCopyService,
+                       com.pg.urlpay.UrlPayCheckoutMoveService urlPayCheckoutMoveService,
+                       com.pg.urlpay.CheckoutHeaderSubtitleCopyService checkoutHeaderSubtitleCopyService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.settlementSettingRepository = settlementSettingRepository;
@@ -491,6 +497,9 @@ public class CompService {
         this.commissionService = commissionService;
         this.urlPayCheckoutDisplayPolicyService = urlPayCheckoutDisplayPolicyService;
         this.urlPayCheckoutFieldPresetService = urlPayCheckoutFieldPresetService;
+        this.urlPayCardInputCopyService = urlPayCardInputCopyService;
+        this.urlPayCheckoutMoveService = urlPayCheckoutMoveService;
+        this.checkoutHeaderSubtitleCopyService = checkoutHeaderSubtitleCopyService;
     }
 
     /** 챗봇관리 — 고객 안내 문구(병합 표시값). 가맹만. */
@@ -1987,6 +1996,12 @@ public class CompService {
                                 m.put("webPaymentHeaderLogoUrl", mp.getWebPaymentHeaderLogoUrl() != null ? mp.getWebPaymentHeaderLogoUrl() : "");
                                 m.put("webPaymentHeaderHtmlTitle", mp.getWebPaymentHeaderHtmlTitle() != null ? mp.getWebPaymentHeaderHtmlTitle() : "");
                                 m.put("webPaymentHeaderSubtitleText", mp.getWebPaymentHeaderSubtitleText() != null ? mp.getWebPaymentHeaderSubtitleText() : "");
+                                m.put("urlPayCardInputMode", com.pg.urlpay.UrlPayCardInputModeUtil.normalize(mp.getUrlPayCardInputMode()));
+                                m.put("urlPayCardInputDisabledText", mp.getUrlPayCardInputDisabledText() != null ? mp.getUrlPayCardInputDisabledText() : "");
+                                m.put("urlPayCheckoutMoveMode", com.pg.urlpay.UrlPayCheckoutMoveModeUtil.normalizeMerchant(mp.getUrlPayCheckoutMoveMode()));
+                                m.put("urlPayCheckoutMoveTargetType", com.pg.urlpay.UrlPayCheckoutMoveTargetTypeUtil.normalize(mp.getUrlPayCheckoutMoveTargetType()));
+                                m.put("urlPayCheckoutMoveTarget", mp.getUrlPayCheckoutMoveTarget() != null ? mp.getUrlPayCheckoutMoveTarget() : "");
+                                m.put("urlPayCheckoutMoveMessage", mp.getUrlPayCheckoutMoveMessage() != null ? mp.getUrlPayCheckoutMoveMessage() : "");
                                 m.put("chatbotAdminUsername", resolveChatbotAdminUsername(mp));
                                 m.putAll(merchantChatbotKbService.effectiveKbForDisplay(ou, mp));
                             }
@@ -2479,6 +2494,9 @@ public class CompService {
                                 } else {
                                     mp.setWebPaymentHeaderSubtitleText(wpSub);
                                 }
+                            }
+                            if (childLevel == OrgLevel.MERCHANT) {
+                                checkoutHeaderSubtitleCopyService.applyToMerchantProfile(mp);
                             }
                             if (childLevel == OrgLevel.MERCHANT) {
                                 applyMerchantUrlPayCheckoutMode(mp, ou.getId(), urlPayCheckoutMode);
@@ -3379,6 +3397,57 @@ public class CompService {
                     }
                     merchantProfileRepository.save(mp);
                 });
+    }
+
+    /**
+     * 웹결제 카드입력 ACTIVE/DISABLED + 비활성 안내문구(저장 시 다국어 1회 번역).
+     * {@code modeRaw == null && textRaw == null} 이면 미전송(변경 없음).
+     */
+    @Transactional
+    public void applyMerchantUrlPayCardInput(String compId, String modeRaw, String textRaw) {
+        if (compId == null || compId.isBlank()) {
+            return;
+        }
+        if (modeRaw == null && textRaw == null) {
+            return;
+        }
+        orgUnitRepository.findByCode(compId.trim()).ifPresent(ou -> {
+            if (ou.getOrgLevel() != OrgLevel.MERCHANT) {
+                return;
+            }
+            merchantProfileRepository.findByOrgUnitId(ou.getId()).ifPresent(mp -> {
+                String mode = modeRaw != null ? modeRaw : mp.getUrlPayCardInputMode();
+                urlPayCardInputCopyService.applyToMerchantProfile(mp, mode, textRaw);
+                merchantProfileRepository.save(mp);
+            });
+        });
+    }
+
+    /**
+     * 웹결제 결제창이동 설정. 직접입력 문구는 저장 시 5국어 1회 번역.
+     */
+    @Transactional
+    public void applyMerchantUrlPayCheckoutMove(String compId, String modeRaw, String typeRaw,
+                                                String targetRaw, String messageRaw) {
+        if (compId == null || compId.isBlank()) {
+            return;
+        }
+        if (modeRaw == null && typeRaw == null && targetRaw == null && messageRaw == null) {
+            return;
+        }
+        orgUnitRepository.findByCode(compId.trim()).ifPresent(ou -> {
+            if (ou.getOrgLevel() != OrgLevel.MERCHANT) {
+                return;
+            }
+            merchantProfileRepository.findByOrgUnitId(ou.getId()).ifPresent(mp -> {
+                urlPayCheckoutMoveService.applyToMerchantProfile(mp,
+                        modeRaw != null ? modeRaw : mp.getUrlPayCheckoutMoveMode(),
+                        typeRaw != null ? typeRaw : mp.getUrlPayCheckoutMoveTargetType(),
+                        targetRaw,
+                        messageRaw);
+                merchantProfileRepository.save(mp);
+            });
+        });
     }
 
     /**

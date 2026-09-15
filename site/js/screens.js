@@ -134,11 +134,11 @@
     return '<div class="row mb-2"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="URL 재결제 URL">' + escUi(L('URL 재결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentRepayUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '" data-pg-ui-placeholder="' + escUi(String(ph)) + '"><button type="button" class="btn btn-outline-primary" id="paymentRepayUrlCopyBtn" data-pg-ui-t="복사">' + escUi(L('복사')) + '</button></div></div></div>';
   }
 
-  /** 웹결제(URL·JPAY) 상단 로고 — 로고설정「활성」일 때만 업로드 */
+  /** 웹결제(URL·JPAY) 상단 로고 — 로고설정「활성」일 때만 업로드 (로고설정 옆 배치) */
   function webPaymentHeaderLogoFieldBlock() {
     var phLogo = '업로드 시 자동 반영 · 또는 HTTPS URL 직접 입력';
-    var logoHint = '「활성」일 때만 업로드 가능합니다. PNG·JPEG, 원본 최대 40MB. 서버에서 목표 2MB 이하(본사 AI챗봇설정과 동일)로 재압축합니다.';
-    return '<div class="form-field-block web-payment-header-logo-upload-block w-100" id="webPaymentHeaderLogoBlock">' +
+    var logoHint = '「활성」일 때만 업로드 가능합니다. PNG·JPEG, 원본 최대 40MB. 서버에서 목표 2MB 이하로 재압축합니다.';
+    return '<div class="form-field-block web-payment-header-logo-upload-block" id="webPaymentHeaderLogoBlock">' +
       '<label class="form-label" data-pg-ui-t="웹결제 상단 로고">' + escUi(L('웹결제 상단 로고')) + '</label>' +
       '<div class="input-group input-group-sm mb-1">' +
       '<input type="text" class="form-control form-control-sm" name="webPaymentHeaderLogoUrl" id="webPaymentHeaderLogoUrl" ' +
@@ -172,11 +172,55 @@
   /** 웹결제 결제창 로고 아래 경고문구 — 직접입력·프리셋일 때 문구 표시 */
   function webPaymentHeaderSubtitleFieldBlock() {
     var ph = '결제창 로고 아래에 표시할 문구';
-    var hint = '「활성(직접입력)」은 직접 수정 가능합니다. 프리셋 선택 시 문구가 자동 입력되며 결제창에서는 언어별로 표시됩니다. 「기본」은 3DS 안전 결제 문구가 언어별로 표시됩니다.';
+    var hint = '「활성(직접입력)」은 직접 수정 가능합니다. 저장 시 AI가 5개국어로 1회 번역·저장되며, 결제창 다국어 메뉴를 누르면 해당 언어 문구가 표시됩니다(표시마다 재번역하지 않음). 프리셋은 언어별 내장 문구입니다. 「기본」은 3DS 안전 결제 문구가 언어별로 표시됩니다. URL이 있으면 자동 하이퍼링크됩니다.';
     return '<div class="form-field-block web-payment-header-subtitle-block w-100" id="webPaymentHeaderSubtitleBlock">' +
       '<label class="form-label" data-pg-ui-t="경고메세지 문구">' + escUi(L('경고메세지 문구')) + '</label>' +
       '<input type="text" class="form-control form-control-sm" name="webPaymentHeaderSubtitleText" id="webPaymentHeaderSubtitleText" ' +
       'maxlength="200" placeholder="' + escUi(L(ph)) + '" data-pg-ui-placeholder="' + escUi(ph) + '">' +
+      '<div class="form-text text-muted small" data-pg-ui-t="' + escUi(hint) + '">' +
+      escUi(L(hint)) +
+      '</div></div>';
+  }
+
+  /** 결제창이동 대상·안내문구 */
+  function urlPayCheckoutMoveFieldsBlock() {
+    var phCode = '이동할 업체코드 (예: 6000000062)';
+    var phUrl = 'https://jp.icopay.co.kr/checkout/6000000062';
+    var hintTarget = '「비활성」이 아니면 업체코드 또는 URL 중 하나만 입력합니다. URL은 다른 서브도메인·외부 사이트도 가능합니다. 이 기능은 공개 URL 결제에만 적용되며, 가맹 API 인라인·리다이렉트·WooCommerce에는 적용되지 않습니다.';
+    var hintMsg = '「직접입력」일 때만 수정합니다. 저장 시 5개국어로 1회 번역·저장되며 결제창에서는 저장된 문구만 표시합니다. 비우면 본사 기본 문구를 씁니다.';
+    return '<div class="url-pay-checkout-move-fields w-100" id="urlPayCheckoutMoveFieldsBlock">' +
+      '<div class="row g-2">' +
+      '<div class="col-sm-3" id="urlPayCheckoutMoveTargetTypeCol">' +
+      '<div class="form-field-block">' +
+      '<label class="form-label" data-pg-ui-t="이동 대상">' + escUi(L('이동 대상')) + '</label>' +
+      '<select class="form-select form-select-sm" name="urlPayCheckoutMoveTargetType">' +
+      '<option value="COMP_CODE" data-pg-ui-t="업체코드">' + escUi(L('업체코드')) + '</option>' +
+      '<option value="URL" data-pg-ui-t="URL">URL</option>' +
+      '</select></div></div>' +
+      '<div class="col-sm-9" id="urlPayCheckoutMoveTargetCol">' +
+      '<div class="form-field-block">' +
+      '<label class="form-label" data-pg-ui-t="이동 주소·코드">' + escUi(L('이동 주소·코드')) + '</label>' +
+      '<input type="text" class="form-control form-control-sm" name="urlPayCheckoutMoveTarget" id="urlPayCheckoutMoveTarget" maxlength="500" ' +
+      'placeholder="' + escUi(L(phCode)) + '" data-pg-ui-placeholder="' + escUi(phCode) + '" data-pg-ph-code="' + escUi(phCode) + '" data-pg-ph-url="' + escUi(phUrl) + '">' +
+      '<div class="form-text text-muted small" data-pg-ui-t="' + escUi(hintTarget) + '">' + escUi(L(hintTarget)) + '</div>' +
+      '</div></div>' +
+      '<div class="col-12" id="urlPayCheckoutMoveMessageCol">' +
+      '<div class="form-field-block" id="urlPayCheckoutMoveMessageBlock">' +
+      '<label class="form-label" data-pg-ui-t="결제창이동문구">' + escUi(L('결제창이동문구')) + '</label>' +
+      '<textarea class="form-control form-control-sm" name="urlPayCheckoutMoveMessage" id="urlPayCheckoutMoveMessage" rows="6" maxlength="2000" ' +
+      'placeholder="' + escUi(L('확인 후 이동할 때 구매자에게 보여줄 안내')) + '"></textarea>' +
+      '<div class="form-text text-muted small" data-pg-ui-t="' + escUi(hintMsg) + '">' + escUi(L(hintMsg)) + '</div>' +
+      '</div></div></div></div>';
+  }
+
+  /** 카드입력 비활성 시 결제창 안내문구(저장 시 다국어 1회 번역) — 카드입력 셀렉트 옆 */
+  function urlPayCardInputDisabledTextFieldBlock() {
+    var ph = '카드입력을 끈 결제창에 표시할 안내 문구';
+    var hint = '「비활성」이면 결제창에서 금액·카드번호·유효기간·CVV·성·이름 입력란을 숨깁니다. 저장 시 5개국어로 1회 번역·저장되며, 결제창에서는 저장된 문구만 표시합니다(표시마다 재번역하지 않음). URL이 있으면 자동 하이퍼링크됩니다.';
+    return '<div class="form-field-block url-pay-card-input-disabled-text-block" id="urlPayCardInputDisabledTextBlock">' +
+      '<label class="form-label" data-pg-ui-t="카드입력 비활성 안내 문구">' + escUi(L('카드입력 비활성 안내 문구')) + '</label>' +
+      '<input type="text" class="form-control form-control-sm" name="urlPayCardInputDisabledText" id="urlPayCardInputDisabledText" ' +
+      'maxlength="500" placeholder="' + escUi(L(ph)) + '" data-pg-ui-placeholder="' + escUi(ph) + '">' +
       '<div class="form-text text-muted small" data-pg-ui-t="' + escUi(hint) + '">' +
       escUi(L(hint)) +
       '</div></div>';
@@ -284,9 +328,23 @@
     return [
       merchantWebPaymentCardPrimaryRow(),
       merchantWebPaymentCardSecondaryRow(),
+      /* 1행: 로고설정 | 웹결제 상단 로고 | HTML표시명(기본HTML일 때만) */
       [{ label: '로고설정', type: 'select', name: 'webPaymentHeaderLogoMode', options: logoOpts, col: 3 },
-      { label: 'HTML 표시명', type: 'text', name: 'webPaymentHeaderHtmlTitle', col: 3, maxlength: 80, placeholder: 'ICOPAY', blockExtraClass: 'web-payment-html-title-field' }],
-      [{ type: 'customHtml', col: 12, html: webPaymentHeaderLogoFieldBlock }],
+      { type: 'customHtml', col: 7, html: webPaymentHeaderLogoFieldBlock },
+      { label: 'HTML 표시명', type: 'text', name: 'webPaymentHeaderHtmlTitle', col: 2, maxlength: 80, placeholder: 'ICOPAY', blockExtraClass: 'web-payment-html-title-field' }],
+      /* 2행: 카드입력 | 카드입력 비활성 안내 문구 */
+      [{ label: '카드입력', type: 'select', name: 'urlPayCardInputMode', options: [
+        { v: 'ACTIVE', t: '활성' },
+        { v: 'DISABLED', t: '비활성' }
+      ], col: 2 },
+      { type: 'customHtml', col: 10, html: urlPayCardInputDisabledTextFieldBlock }],
+      [{ label: '결제창이동', type: 'select', name: 'urlPayCheckoutMoveMode', options: [
+        { v: 'DISABLED', t: '비활성' },
+        { v: 'DIRECT', t: '직접입력' },
+        { v: 'AUTO', t: '자동이동' }
+      ], col: 3 }],
+      [{ type: 'customHtml', col: 12, html: urlPayCheckoutMoveFieldsBlock }],
+      [{ label: '', type: 'note', col: 12, text: '결제창이동은 공개 URL 결제에만 적용됩니다. 가맹 API(인라인·리다이렉트·WooCommerce)는 자체 쇼핑몰 연동이라 적용하지 않습니다. 기본은 비활성입니다.' }],
       [{ label: '경고메세지', type: 'select', name: 'webPaymentHeaderSubtitleMode', options: subtitleOpts, col: 3 },
        { label: '구매자입력 프리셋', type: 'select', name: 'urlPayCheckoutFieldPresetId', options: [
         { v: '', t: '비활성' }
@@ -4041,7 +4099,10 @@
               { v: 'DISABLED', t: '미활성' }
             ], col: 3 },
              { label: '경고메세지', type: 'select', name: 'webPaymentHeaderSubtitleModeDefault', options: checkoutHeaderSubtitleModeOptions(false), col: 3 },
-             { label: '배송주소', type: 'select', name: 'urlPayShippingAddressUseDefaultYn', options: [{ v: 'N', t: '비활성' }, { v: 'Y', t: '활성' }], col: 2 }],
+             { label: '배송주소', type: 'select', name: 'urlPayShippingAddressUseDefaultYn', options: [{ v: 'N', t: '비활성' }, { v: 'Y', t: '활성' }], col: 3 }],
+            [{ label: '결제창이동문구', type: 'textarea', name: 'urlPayCheckoutMoveMessageDefault', col: 12, rows: 6,
+              placeholder: '고객님, 안녕하세요. 기존 결제 링크가 변경되었습니다…' }],
+            [{ label: '', type: 'note', col: 12, text: '결제창이동은 가맹 업체등록에서만 설정하며 기본은 비활성입니다. 공개 URL 결제에만 적용되고 가맹 API(인라인·리다이렉트·WooCommerce)에는 적용되지 않습니다. 위 문구는 가맹이 직접입력 안내를 비웠을 때 사용합니다.' }],
             [{ label: '이메일', type: 'select', name: 'urlPayBuyerEmailUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
              { label: '국가코드', type: 'select', name: 'urlPayBuyerCountryUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
              { label: '전화번호', type: 'select', name: 'urlPayBuyerPhoneUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 }],

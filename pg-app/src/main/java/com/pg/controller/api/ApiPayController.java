@@ -91,6 +91,7 @@ public class ApiPayController {
     private final UrlPayCardExpiryModeService urlPayCardExpiryModeService;
     private final PayContactRememberPolicyService payContactRememberPolicyService;
     private final MerchantPgBindingRouterService pgBindingRouter;
+    private final com.pg.urlpay.UrlPayCheckoutMoveService urlPayCheckoutMoveService;
 
     public ApiPayController(ChillPayService chillPayService,
                             JpayPaymentService jpayPaymentService,
@@ -117,7 +118,8 @@ public class ApiPayController {
                             PayPresaleRiskFilterService payPresaleRiskFilterService,
                             UrlPayCardExpiryModeService urlPayCardExpiryModeService,
                             PayContactRememberPolicyService payContactRememberPolicyService,
-                            MerchantPgBindingRouterService pgBindingRouter) {
+                            MerchantPgBindingRouterService pgBindingRouter,
+                            com.pg.urlpay.UrlPayCheckoutMoveService urlPayCheckoutMoveService) {
         this.chillPayService = chillPayService;
         this.jpayPaymentService = jpayPaymentService;
         this.eximbayPaymentService = eximbayPaymentService;
@@ -144,6 +146,7 @@ public class ApiPayController {
         this.urlPayCardExpiryModeService = urlPayCardExpiryModeService;
         this.payContactRememberPolicyService = payContactRememberPolicyService;
         this.pgBindingRouter = pgBindingRouter;
+        this.urlPayCheckoutMoveService = urlPayCheckoutMoveService;
     }
 
     private <T> ResponseEntity<ApiResponse<T>> vendorMismatchIfAny(Long orgUnitId,
@@ -316,6 +319,21 @@ public class ApiPayController {
         Long orgUnitId = resolveMerchantOrgUnitId(merchantId, compId);
         boolean repay = resolveEffectiveUrlPayRepay(urlPayVariant, orgUnitId);
         return urlPayCheckoutContextInternal(orgUnitId, repay, request);
+    }
+
+    /**
+     * 결제창이동 안내(직접입력) — 저장된 다국어만 반환(표시 시 재번역 없음).
+     */
+    @GetMapping("/url/checkout-move")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> urlPayCheckoutMove(
+            @RequestParam(required = false) String compId,
+            HttpServletRequest request) {
+        if (compId == null || compId.isBlank()) {
+            return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        return urlPayCheckoutMoveService.resolve(compId, request)
+                .map(r -> ResponseEntity.ok(ApiResponse.ok(urlPayCheckoutMoveService.toPublicMap(r))))
+                .orElseGet(() -> ResponseEntity.ok(ApiResponse.ok(urlPayCheckoutMoveService.toPublicMap(null))));
     }
 
     /** {@link #urlPayDisplayFxQuote} 와 동일 — 표시통화 견적(PG 무관). */

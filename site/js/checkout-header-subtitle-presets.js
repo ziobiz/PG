@@ -54,13 +54,26 @@
     return ko;
   }
 
-  function resolveCheckoutText(ctx, tFn, defaultKeys) {
+  function pickStoredLang(map, lang, fallback) {
+    if (!map || typeof map !== 'object') return fallback || '';
+    var L = String(lang || 'KOR').trim().toUpperCase();
+    if (L.indexOf('KO') === 0) L = 'KOR';
+    else if (L.indexOf('EN') === 0) L = 'ENG';
+    else if (L.indexOf('JP') === 0 || L.indexOf('JA') === 0) L = 'JPN';
+    else if (L.indexOf('CH') === 0 || L.indexOf('ZH') === 0) L = 'CHN';
+    else if (L.indexOf('TH') === 0) L = 'THA';
+    var hit = map[L] || map.KOR || map.ENG || fallback || '';
+    return String(hit || '').trim();
+  }
+
+  function resolveCheckoutText(ctx, tFn, defaultKeys, lang) {
     ctx = ctx || {};
     defaultKeys = defaultKeys || ['brandSub3ds', 'brandSub'];
     var mode = norm(ctx.checkoutHeaderSubtitleMode);
     if (mode === 'DISABLED') return { show: false, text: '' };
     if (mode === 'ACTIVE') {
-      var custom = ctx.checkoutHeaderSubtitleText ? String(ctx.checkoutHeaderSubtitleText).trim() : '';
+      var custom = pickStoredLang(ctx.checkoutHeaderSubtitleTextI18n, lang, ctx.checkoutHeaderSubtitleText);
+      if (!custom) custom = ctx.checkoutHeaderSubtitleText ? String(ctx.checkoutHeaderSubtitleText).trim() : '';
       if (!custom) return { show: false, text: '' };
       return { show: true, text: custom };
     }

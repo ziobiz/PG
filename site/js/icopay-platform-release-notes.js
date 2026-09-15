@@ -6,13 +6,128 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '4.07';
+  var CURRENT_LIVE = '4.12';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '4.12',
+      kind: 'minor',
+      date: '2026-09-15',
+      items: {
+        KO: [
+          '결제창이동 확인 화면 상단 로고: 웹결제 로고설정(기본·HTML·가맹 로고·미활성)을 그대로 따름'
+        ],
+        EN: [
+          'Checkout-redirect confirm page header logo now follows web-pay logo settings (default, HTML, merchant logo, off)'
+        ],
+        JP: [
+          '決済画面移動の確認ページ上部ロゴ: ウェブ決済のロゴ設定(基本・HTML・加盟店ロゴ・非表示)に従う'
+        ],
+        CH: [
+          '结账跳转确认页顶部 Logo 跟随网页支付 Logo 设置（默认、HTML、商户 Logo、关闭）'
+        ],
+        TH: [
+          'โลโก้หัวหน้ายืนยันย้ายหน้าชำระ ตามตั้งค่าโลโก้ชำระเว็บ (ค่าเริ่มต้น·HTML·โลโก้ร้าน·ปิด)'
+        ]
+      }
+    },
+    {
+      version: '4.11',
+      kind: 'minor',
+      date: '2026-09-15',
+      items: {
+        KO: [
+          '결제창이동: 본사설정 따름 제거(기본 비활성). 공개 URL 결제만 적용 — 가맹 API 인라인·리다이렉트·WooCommerce는 제외',
+          '웹결제 경고메세지 직접입력: 저장 시 AI 5국어 1회 번역, 결제창 다국어 메뉴에서 해당 언어 표시(표시 시 재번역 없음)'
+        ],
+        EN: [
+          'Checkout redirect: removed Follow HQ (default Inactive). Public URL pay only — not merchant API inline, redirect, or WooCommerce',
+          'Web-pay warning custom text: AI translates once into 5 languages on save; language menu shows stored text (no re-translate on view)'
+        ],
+        JP: [
+          '決済画面移動: 「本社設定に従う」削除（既定は非活性）。公開URL決済のみ — 加盟APIインライン・リダイレクト・WooCommerceは対象外',
+          'ウェブ決済警告の直接入力: 保存時AIが5言語へ1回翻訳。多言語メニューで保存文を表示（表示時再翻訳なし）'
+        ],
+        CH: [
+          '结账跳转：去掉「遵循总部」（默认停用）。仅公开 URL 支付 — 不含商户 API 内联、跳转、WooCommerce',
+          '网页支付警告自定义：保存时 AI 一次译成五语；语言菜单显示已存文案（显示时不再翻译）'
+        ],
+        TH: [
+          'ย้ายหน้าชำระ: ลบ「ตาม HQ」(ค่าเริ่มต้นปิด) ใช้เฉพาะ URL สาธารณะ — ไม่ใช้ API ร้าน inline/redirect/WooCommerce',
+          'ข้อความเตือนชำระเว็บแบบกรอกเอง: ตอนบันทึก AI แปลครั้งเดียว 5 ภาษา เมนูภาษาแสดงข้อความที่เก็บไว้ (ไม่แปลใหม่ตอนแสดง)'
+        ]
+      }
+    },
+    {
+      version: '4.10',
+      kind: 'minor',
+      date: '2026-09-15',
+      items: {
+        KO: [
+          '웹결제 카드입력 비활성: 카드번호·유효·CVV에 더해 금액·성·이름 입력란도 숨김(안내 문구만 표시)'
+        ],
+        EN: [
+          'Web-pay card input Inactive: also hide amount, first and last name (as well as PAN/expiry/CVV); notice text only'
+        ],
+        JP: [
+          'ウェブ決済カード入力オフ: 番号・有効・CVVに加え金額・姓・名も非表示（案内文のみ）'
+        ],
+        CH: [
+          '网页支付卡号输入停用：除卡号/有效期/CVV外同时隐藏金额与姓名（仅显示提示文案）'
+        ],
+        TH: [
+          'ปิดกรอกบัตรชำระเว็บ: ซ่อนจำนวนเงิน ชื่อ นามสกุล รวมถึงเลขบัตร/หมดอายุ/CVV (แสดงเฉพาะข้อความ)'
+        ]
+      }
+    },
+    {
+      version: '4.09',
+      kind: 'minor',
+      date: '2026-09-15',
+      items: {
+        KO: [
+          '웹결제 결제창이동: 구 URL에서 업체코드 또는 임의 URL(서브도메인·외부 포함)로 확인 후 이동/자동이동. 안내 문구는 저장 시 5국어 1회 번역'
+        ],
+        EN: [
+          'Web-pay checkout redirect: from the old URL, confirm or auto-go to a merchant code or any URL (other subdomains/external). Notice text translated once into 5 langs on save'
+        ],
+        JP: [
+          'ウェブ決済の画面移動: 旧URLから加盟店コードまたは任意URL(別サブドメイン・外部含む)へ確認後/自動移動。案内文は保存時5言語1回翻訳'
+        ],
+        CH: [
+          '网页支付结账跳转：从旧地址确认或自动跳转到商户编码或任意网址（含子域名/外部）。说明文案保存时一次译成五语'
+        ],
+        TH: [
+          'ย้ายหน้าชำระเว็บ: จาก URL เดิม ยืนยันหรือย้ายอัตโนมัติไปรหัสร้านค้าหรือ URL ใดก็ได้ (ซับโดเมน/ภายนอก) ข้อความแปลครั้งเดียวตอนบันทึกเป็น 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '4.08',
+      kind: 'minor',
+      date: '2026-09-15',
+      items: {
+        KO: [
+          '업체등록 웹결제: 경고메세지 URL 자동 하이퍼링크 · 로고설정 옆「카드입력」활성/비활성 · 비활성 시 카드번호·유효·CVV 숨김+안내문구(저장 시 5국어 1회 번역·표시 시 재번역 금지)'
+        ],
+        EN: [
+          'Merchant web pay: auto-hyperlink URLs in warning text · Card input Active/Inactive beside logo setting · Inactive hides PAN/expiry/CVV and shows notice (translate once on save into 5 langs; never re-translate on display)'
+        ],
+        JP: [
+          '加盟店ウェブ決済: 警告文のURL自動ハイパーリンク · ロゴ設定横「カード入力」有効/非活性 · 非活性時は番号・有効・CVV非表示+案内(保存時5言語1回翻訳・表示時再翻訳なし)'
+        ],
+        CH: [
+          '商户网页支付：警告文案 URL 自动超链接 · Logo 旁「卡号输入」启用/停用 · 停用时隐藏卡号/有效期/CVV并显示提示（保存时一次译成五语，显示不再翻译）'
+        ],
+        TH: [
+          'ชำระเว็บร้านค้า: ลิงก์ URL ในข้อความเตือนอัตโนมัติ · 「กรอกบัตร」เปิด/ปิดข้างตั้งค่าโลโก้ · ปิดแล้วซ่อนเลขบัตร/หมดอายุ/CVV + ข้อความ (แปลครั้งเดียวตอนบันทึกเป็น 5 ภาษา ไม่แปลใหม่ตอนแสดง)'
+        ]
+      }
+    },
     {
       version: '4.07',
       kind: 'minor',

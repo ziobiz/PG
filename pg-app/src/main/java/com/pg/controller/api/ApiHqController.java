@@ -78,6 +78,7 @@ public class ApiHqController {
     private final OrgTabletMenuService orgTabletMenuService;
     private final UrlPayCheckoutFieldPresetService urlPayCheckoutFieldPresetService;
     private final UrlPayDisplayFxService urlPayDisplayFxService;
+    private final com.pg.urlpay.UrlPayCheckoutMoveService urlPayCheckoutMoveService;
 
     public ApiHqController(CommissionPolicyRepository commissionPolicyRepository,
                            ChargebackFeePolicyRepository chargebackFeePolicyRepository,
@@ -95,7 +96,8 @@ public class ApiHqController {
                            PayFollowPolicyService payFollowPolicyService,
                            OrgTabletMenuService orgTabletMenuService,
                            UrlPayCheckoutFieldPresetService urlPayCheckoutFieldPresetService,
-                           UrlPayDisplayFxService urlPayDisplayFxService) {
+                           UrlPayDisplayFxService urlPayDisplayFxService,
+                           com.pg.urlpay.UrlPayCheckoutMoveService urlPayCheckoutMoveService) {
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.chargebackFeePolicyRepository = chargebackFeePolicyRepository;
         this.hqApiConfigRepository = hqApiConfigRepository;
@@ -113,6 +115,7 @@ public class ApiHqController {
         this.orgTabletMenuService = orgTabletMenuService;
         this.urlPayCheckoutFieldPresetService = urlPayCheckoutFieldPresetService;
         this.urlPayDisplayFxService = urlPayDisplayFxService;
+        this.urlPayCheckoutMoveService = urlPayCheckoutMoveService;
     }
 
     private static PageResult<Map<String, Object>> emptyPage(int page, int size) {
@@ -1838,6 +1841,8 @@ public class ApiHqController {
         data.put("checkoutContactRememberDefaultYn", "Y");
         data.put("webPaymentHeaderLogoModeDefault", "DEFAULT");
         data.put("webPaymentHeaderSubtitleModeDefault", "DEFAULT");
+        data.put("urlPayCheckoutMoveModeDefault", "DISABLED");
+        data.put("urlPayCheckoutMoveMessageDefault", com.pg.urlpay.UrlPayCheckoutMoveService.DEFAULT_MESSAGE_KO);
         data.put("urlPayShippingAddressUseDefaultYn", "N");
         data.put("urlPayBuyerEmailUseDefaultYn", "Y");
         data.put("urlPayBuyerCountryUseDefaultYn", "Y");
@@ -1928,6 +1933,14 @@ public class ApiHqController {
                 data.put("webPaymentHeaderSubtitleModeDefault",
                         com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.normalize(c.getWebPaymentHeaderSubtitleModeDefault()));
             }
+            if (c.getUrlPayCheckoutMoveModeDefault() != null) {
+                data.put("urlPayCheckoutMoveModeDefault",
+                        com.pg.urlpay.UrlPayCheckoutMoveModeUtil.normalizeHq(c.getUrlPayCheckoutMoveModeDefault()));
+            }
+            data.put("urlPayCheckoutMoveMessageDefault",
+                    c.getUrlPayCheckoutMoveMessageDefault() != null && !c.getUrlPayCheckoutMoveMessageDefault().isBlank()
+                            ? c.getUrlPayCheckoutMoveMessageDefault()
+                            : com.pg.urlpay.UrlPayCheckoutMoveService.DEFAULT_MESSAGE_KO);
             if (c.getUrlPayShippingAddressUseDefaultYn() != null) {
                 data.put("urlPayShippingAddressUseDefaultYn",
                         com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(c.getUrlPayShippingAddressUseDefaultYn(), "N"));
@@ -2088,6 +2101,10 @@ public class ApiHqController {
         c.setCheckoutContactRememberDefaultYn(String.valueOf(body.getOrDefault("checkoutContactRememberDefaultYn", "Y")));
         c.setWebPaymentHeaderLogoModeDefault(String.valueOf(body.getOrDefault("webPaymentHeaderLogoModeDefault", "DEFAULT")));
         c.setWebPaymentHeaderSubtitleModeDefault(String.valueOf(body.getOrDefault("webPaymentHeaderSubtitleModeDefault", "DEFAULT")));
+        urlPayCheckoutMoveService.applyHqMessage(c,
+                String.valueOf(body.getOrDefault("urlPayCheckoutMoveModeDefault", "DISABLED")),
+                body.get("urlPayCheckoutMoveMessageDefault") != null
+                        ? String.valueOf(body.get("urlPayCheckoutMoveMessageDefault")) : null);
         c.setUrlPayShippingAddressUseDefaultYn(String.valueOf(body.getOrDefault("urlPayShippingAddressUseDefaultYn", "N")));
         c.setUrlPayBuyerEmailUseDefaultYn(String.valueOf(body.getOrDefault("urlPayBuyerEmailUseDefaultYn", "Y")));
         c.setUrlPayBuyerCountryUseDefaultYn(String.valueOf(body.getOrDefault("urlPayBuyerCountryUseDefaultYn", "Y")));

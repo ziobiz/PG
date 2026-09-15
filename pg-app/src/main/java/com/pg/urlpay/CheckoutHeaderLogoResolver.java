@@ -22,15 +22,21 @@ public class CheckoutHeaderLogoResolver {
     private final OrgUnitRepository orgUnitRepository;
     private final OrgBrandingRepository orgBrandingRepository;
     private final UrlPayCheckoutDisplayPolicyService checkoutDisplayPolicyService;
+    private final UrlPayCardInputCopyService urlPayCardInputCopyService;
+    private final CheckoutHeaderSubtitleCopyService checkoutHeaderSubtitleCopyService;
 
     public CheckoutHeaderLogoResolver(MerchantProfileRepository merchantProfileRepository,
                                       OrgUnitRepository orgUnitRepository,
                                       OrgBrandingRepository orgBrandingRepository,
-                                      UrlPayCheckoutDisplayPolicyService checkoutDisplayPolicyService) {
+                                      UrlPayCheckoutDisplayPolicyService checkoutDisplayPolicyService,
+                                      UrlPayCardInputCopyService urlPayCardInputCopyService,
+                                      CheckoutHeaderSubtitleCopyService checkoutHeaderSubtitleCopyService) {
         this.merchantProfileRepository = merchantProfileRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.orgBrandingRepository = orgBrandingRepository;
         this.checkoutDisplayPolicyService = checkoutDisplayPolicyService;
+        this.urlPayCardInputCopyService = urlPayCardInputCopyService;
+        this.checkoutHeaderSubtitleCopyService = checkoutHeaderSubtitleCopyService;
     }
 
     public record Resolved(String mode, Optional<String> url) {
@@ -91,6 +97,10 @@ public class CheckoutHeaderLogoResolver {
         SubtitleResolved st = resolveSubtitle(merchantOrgUnitId);
         data.put("checkoutHeaderSubtitleMode", st.mode());
         st.text().ifPresent(t -> data.put("checkoutHeaderSubtitleText", t));
+        prof.ifPresent(mp -> {
+            urlPayCardInputCopyService.putCheckoutFields(data, mp);
+            checkoutHeaderSubtitleCopyService.putCheckoutFields(data, mp);
+        });
     }
 
     public Resolved resolveSplitPay(Long merchantOrgUnitId) {

@@ -127,6 +127,16 @@ public class HqApiConfig {
     @Column(name = "web_payment_header_subtitle_mode_default", nullable = false, length = 16)
     private String webPaymentHeaderSubtitleModeDefault = "DEFAULT";
 
+    /** 결제창이동 본사 기본 안내 문구용(가맹 직접입력 비움 시). 모드는 가맹이 설정(기본 비활성). */
+    @Column(name = "url_pay_checkout_move_mode_default", nullable = false, length = 16)
+    private String urlPayCheckoutMoveModeDefault = "DISABLED";
+
+    @Column(name = "url_pay_checkout_move_message_default", length = 2000)
+    private String urlPayCheckoutMoveMessageDefault;
+
+    @Column(name = "url_pay_checkout_move_message_default_i18n", columnDefinition = "TEXT")
+    private String urlPayCheckoutMoveMessageDefaultI18n;
+
     /** 결제창 배송주소 본사 기본 — Y/N */
     @Column(name = "url_pay_shipping_address_use_default_yn", nullable = false, length = 1)
     private String urlPayShippingAddressUseDefaultYn = "N";
@@ -453,6 +463,18 @@ public class HqApiConfig {
     public void setWebPaymentHeaderSubtitleModeDefault(String v) {
         this.webPaymentHeaderSubtitleModeDefault = com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.normalize(
                 v != null ? v : com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.DEFAULT);
+    }
+    public String getUrlPayCheckoutMoveModeDefault() { return urlPayCheckoutMoveModeDefault; }
+    public void setUrlPayCheckoutMoveModeDefault(String v) {
+        this.urlPayCheckoutMoveModeDefault = com.pg.urlpay.UrlPayCheckoutMoveModeUtil.normalizeHq(v);
+    }
+    public String getUrlPayCheckoutMoveMessageDefault() { return urlPayCheckoutMoveMessageDefault; }
+    public void setUrlPayCheckoutMoveMessageDefault(String urlPayCheckoutMoveMessageDefault) {
+        this.urlPayCheckoutMoveMessageDefault = urlPayCheckoutMoveMessageDefault;
+    }
+    public String getUrlPayCheckoutMoveMessageDefaultI18n() { return urlPayCheckoutMoveMessageDefaultI18n; }
+    public void setUrlPayCheckoutMoveMessageDefaultI18n(String urlPayCheckoutMoveMessageDefaultI18n) {
+        this.urlPayCheckoutMoveMessageDefaultI18n = urlPayCheckoutMoveMessageDefaultI18n;
     }
     public String getUrlPayShippingAddressUseDefaultYn() { return urlPayShippingAddressUseDefaultYn; }
     public void setUrlPayShippingAddressUseDefaultYn(String v) {
