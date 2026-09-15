@@ -16,6 +16,9 @@ app:
     seed-legacy-demo-hierarchy: false
   cors:
     allowed-origin-patterns: http://localhost:*,http://127.0.0.1:*,http://localhost:8080,http://127.0.0.1:8080,http://localhost:5500,http://127.0.0.1:5500,http://localhost:3000
+  # 단위·통합 테스트(MockMvc 로그인)에서 Cloudflare 호출 생략
+  turnstile:
+    enabled: false
 
 spring:
   datasource:

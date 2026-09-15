@@ -47,6 +47,8 @@
     .notice-section p { margin: 0 0 8px; }
     .notice-section p:last-child { margin-bottom: 0; }
     .login-host-note { font-size: 11px; color: #334155; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 4px; padding: 6px 8px; margin-top: 0; }
+    #loginTurnstileWrap { min-height: 70px; }
+    #loginTurnstile { display: flex; justify-content: center; }
     .login-popcon { position: fixed; right: 14px; bottom: 14px; z-index: 1200; max-width: 220px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.18); overflow: hidden; }
     .login-popcon img { display: block; width: 100%; height: auto; }
     .login-popcon .btn-close-wrap { position: absolute; top: 6px; right: 6px; }
@@ -158,6 +160,9 @@
             <label for="otpNo" class="form-label" data-pg-ui-t="OTP번호">OTP번호</label>
             <input type="text" class="form-control" id="otpNo" name="otpNo">
           </div>
+          <div class="mb-3" id="loginTurnstileWrap">
+            <div id="loginTurnstile" class="cf-turnstile" aria-label="보안 확인"></div>
+          </div>
           <button type="submit" class="btn btn-primary w-100" id="loginBtn" data-pg-ui-t="로그인">로그인</button>
         </form>
         </div>
@@ -243,9 +248,9 @@
       }
     })();
   </script>
-  <script src="js/api.js?v=14"></script>
+  <script src="js/api.js?v=15"></script>
   <script src="js/pg-ui-string-map.js?v=16"></script>
-  <script src="js/pg-ui-i18n.js?v=31"></script>
+  <script src="js/pg-ui-i18n.js?v=99"></script>
   <script src="js/pg-login-tablet-shell.js?v=5"></script>
   <script>
     (function () {
@@ -542,6 +547,87 @@
       }
 
       var loginPending = null;
+      var LOGIN_TURNSTILE_SITE_KEY = '0x4AAAAAAE1pxXBOGzlF1ppP';
+      var loginTurnstileWidgetId = null;
+
+      function loginTurnstileLang() {
+        try {
+          var loc = '';
+          if (window.PG_UI_I18N && typeof window.PG_UI_I18N.getLocale === 'function') {
+            loc = String(window.PG_UI_I18N.getLocale() || '').toUpperCase();
+          }
+          if (loc === 'KO' || loc === 'KOR' || loc === 'KR') return 'ko';
+          if (loc === 'EN' || loc === 'ENG') return 'en';
+          if (loc === 'JP' || loc === 'JPN' || loc === 'JA') return 'ja';
+          if (loc === 'CH' || loc === 'CHN' || loc === 'ZH' || loc === 'CN') return 'zh-cn';
+          if (loc === 'TH' || loc === 'THA') return 'th';
+        } catch (eLang) { /* ignore */ }
+        return 'auto';
+      }
+
+      function getLoginTurnstileToken() {
+        try {
+          if (window.turnstile && loginTurnstileWidgetId != null) {
+            return String(window.turnstile.getResponse(loginTurnstileWidgetId) || '').trim();
+          }
+        } catch (eTok) { /* ignore */ }
+        var hidden = document.querySelector('input[name="cf-turnstile-response"]');
+        return hidden ? String(hidden.value || '').trim() : '';
+      }
+
+      function resetLoginTurnstile() {
+        try {
+          if (window.turnstile && loginTurnstileWidgetId != null) {
+            window.turnstile.reset(loginTurnstileWidgetId);
+          }
+        } catch (eRs) { /* ignore */ }
+      }
+
+      function tryAutoSubmitTotpIfReady() {
+        var totpField = document.getElementById('loginTotpMfaCode');
+        var mfaBlock = document.getElementById('loginTotpMfaBlock');
+        if (!mfaBlock || mfaBlock.classList.contains('d-none')) return;
+        var digits = String((totpField && totpField.value) || '').replace(/\D/g, '').slice(0, 6);
+        if (digits.length !== 6) return;
+        if (!getLoginTurnstileToken()) return;
+        var form = document.getElementById('loginForm');
+        if (form && typeof form.requestSubmit === 'function') form.requestSubmit();
+        else {
+          var btn = document.getElementById('loginBtn');
+          if (btn) btn.click();
+        }
+      }
+
+      function renderLoginTurnstile() {
+        var el = document.getElementById('loginTurnstile');
+        if (!el || !window.turnstile) return;
+        if (loginTurnstileWidgetId != null) return;
+        try {
+          loginTurnstileWidgetId = window.turnstile.render(el, {
+            sitekey: LOGIN_TURNSTILE_SITE_KEY,
+            theme: 'light',
+            appearance: 'always',
+            language: loginTurnstileLang(),
+            callback: function () { tryAutoSubmitTotpIfReady(); },
+            'expired-callback': function () { /* token expired — user must wait for a new challenge */ },
+            'error-callback': function () { /* widget error — submit will prompt again */ }
+          });
+        } catch (eRender) { /* ignore */ }
+      }
+      window.pgOnTurnstileLoad = renderLoginTurnstile;
+      if (window.turnstile) renderLoginTurnstile();
+      else {
+        var tsWait = 0;
+        var tsTimer = setInterval(function () {
+          tsWait += 1;
+          if (window.turnstile) {
+            clearInterval(tsTimer);
+            renderLoginTurnstile();
+          } else if (tsWait > 80) {
+            clearInterval(tsTimer);
+          }
+        }, 100);
+      }
 
       function getLoginTotpMfaHintEl() {
         return document.getElementById('loginTotpMfaHint');
@@ -579,12 +665,7 @@
           if (digits.length !== 6) return;
           clearTimeout(totpField._pgTotpAutoSubTimer);
           totpField._pgTotpAutoSubTimer = setTimeout(function () {
-            var form = document.getElementById('loginForm');
-            if (form && typeof form.requestSubmit === 'function') form.requestSubmit();
-            else {
-              var btn = document.getElementById('loginBtn');
-              if (btn) btn.click();
-            }
+            tryAutoSubmitTotpIfReady();
           }, 250);
         });
       }
@@ -594,8 +675,10 @@
         var userId = document.getElementById('userId').value.trim();
         var userPwd = document.getElementById('userPwd').value;
         if (!userId || !userPwd) { alert(trKo('아이디와 비밀번호를 입력하세요.', 'Enter user ID and password.')); return; }
-        // SPA 로그인: 서버는 /api/auth/login 의 (아이디 + 아래 입력 비밀번호)만 검증합니다.
-        // 예전 "첫 로그인" 모달은 새 비번으로 doLogin()을 호출해 서버 비번과 달라 항상 실패했음 → 제거.
+        if (!getLoginTurnstileToken()) {
+          alert(trKo('보안 확인을 완료해 주세요.', 'Please complete the security check.'));
+          return;
+        }
         doLogin(userId, userPwd);
       });
 
@@ -637,7 +720,7 @@
         var totpField = document.getElementById('loginTotpMfaCode');
         var totpVal = totpField && totpField.value ? String(totpField.value).trim() : '';
         if (api && api.login) {
-          api.login(userId, pwd, totpVal || undefined).then(function (res) {
+          api.login(userId, pwd, totpVal || undefined, getLoginTurnstileToken() || undefined).then(function (res) {
             clearLoginTotpMfaHint();
             if (mfaBlock) mfaBlock.classList.add('d-none');
             if (totpField) totpField.value = '';
@@ -663,6 +746,7 @@
             } else { alert(res && res.message ? res.message : trKo('로그인에 실패했습니다.', 'Login failed.')); }
           }).catch(function (err) {
             var ec = err && err.errorCode ? String(err.errorCode) : '';
+            resetLoginTurnstile();
             if (ec === 'OTP_REQUIRED') {
               if (mfaBlock) mfaBlock.classList.remove('d-none');
               if (totpField) {
@@ -685,6 +769,10 @@
               try {
                 if (mfaBlock) mfaBlock.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
               } catch (eSc2) {}
+              return;
+            }
+            if (ec === 'TURNSTILE_REQUIRED' || ec === 'TURNSTILE_FAIL' || ec === 'TURNSTILE_ERROR') {
+              alert(err && err.message ? err.message : trKo('보안 확인을 완료해 주세요.', 'Please complete the security check.'));
               return;
             }
             if (mfaBlock) mfaBlock.classList.add('d-none');
@@ -826,5 +914,6 @@
       resumeOtpOnLoginIfNeeded();
     })();
   </script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=pgOnTurnstileLoad" async defer></script>
 </body>
 </html>

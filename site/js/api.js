@@ -662,7 +662,7 @@
     clearAuth: clearAuth,
     getBaseUrl: getBaseUrl,
 
-    login: function (username, password, totpCode) {
+    login: function (username, password, totpCode, turnstileToken) {
       var ch = '';
       try {
         if (typeof location !== 'undefined' && location.host) ch = location.host;
@@ -670,6 +670,9 @@
       var body = { username: username, password: password, clientHost: ch };
       if (totpCode != null && String(totpCode).trim() !== '') {
         body.totpCode = String(totpCode).trim();
+      }
+      if (turnstileToken != null && String(turnstileToken).trim() !== '') {
+        body.turnstileToken = String(turnstileToken).trim();
       }
       return post('/api/auth/login', body);
     },

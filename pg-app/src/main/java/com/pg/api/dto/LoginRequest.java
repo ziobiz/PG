@@ -1,5 +1,7 @@
 package com.pg.api.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 public class LoginRequest {
     private String username;
     private String password;
@@ -7,6 +9,9 @@ public class LoginRequest {
     private String totpCode;
     /** 브라우저 location.host — 조직에 관리자(웹) URL이 있으면 호스트 일치 시에만 로그인 허용 */
     private String clientHost;
+    /** Cloudflare Turnstile 위젯 토큰 (cf-turnstile-response) */
+    @JsonAlias({"cf-turnstile-response", "cfTurnstileResponse", "turnstile_token"})
+    private String turnstileToken;
 
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
@@ -16,4 +21,6 @@ public class LoginRequest {
     public void setTotpCode(String totpCode) { this.totpCode = totpCode; }
     public String getClientHost() { return clientHost; }
     public void setClientHost(String clientHost) { this.clientHost = clientHost; }
+    public String getTurnstileToken() { return turnstileToken; }
+    public void setTurnstileToken(String turnstileToken) { this.turnstileToken = turnstileToken; }
 }

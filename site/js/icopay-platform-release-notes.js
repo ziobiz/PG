@@ -6,13 +6,35 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '4.12';
+  var CURRENT_LIVE = '4.13';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '4.13',
+      kind: 'minor',
+      date: '2026-09-15',
+      items: {
+        KO: [
+          '관리자 로그인에 Cloudflare Turnstile 보안 확인을 적용했습니다. icopay.co.kr 및 하위 도메인(hqth 등) 공통 로그인 화면에 표시됩니다'
+        ],
+        EN: [
+          'Admin sign-in now uses Cloudflare Turnstile. The check appears on the shared login page for icopay.co.kr and subdomains (e.g. hqth)'
+        ],
+        JP: [
+          '管理者ログインに Cloudflare Turnstile を適用しました。icopay.co.kr およびサブドメイン(hqth 等)の共通ログイン画面に表示されます'
+        ],
+        CH: [
+          '管理员登录已启用 Cloudflare Turnstile 安全验证。icopay.co.kr 及子域名（如 hqth）共用登录页均会显示'
+        ],
+        TH: [
+          'หน้าเข้าสู่ระบบผู้ดูแลใช้ Cloudflare Turnstile แล้ว แสดงที่หน้า login ร่วมของ icopay.co.kr และโดเมนย่อย (เช่น hqth)'
+        ]
+      }
+    },
     {
       version: '4.12',
       kind: 'minor',

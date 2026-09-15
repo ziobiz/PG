@@ -6,6 +6,7 @@ import com.pg.api.dto.LoginAttempt;
 import com.pg.api.dto.LoginRequest;
 import com.pg.service.AuthService;
 import com.pg.service.OrgUserSuspensionService;
+import com.pg.service.TurnstileVerificationService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,10 +24,12 @@ import java.io.IOException;
 public class ApiLoginBypassFilter extends OncePerRequestFilter {
 
     private final AuthService authService;
+    private final TurnstileVerificationService turnstileVerificationService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public ApiLoginBypassFilter(AuthService authService) {
+    public ApiLoginBypassFilter(AuthService authService, TurnstileVerificationService turnstileVerificationService) {
         this.authService = authService;
+        this.turnstileVerificationService = turnstileVerificationService;
     }
 
     @Override
@@ -40,6 +43,11 @@ public class ApiLoginBypassFilter extends OncePerRequestFilter {
             LoginRequest req = objectMapper.readValue(request.getInputStream(), LoginRequest.class);
             if (req == null || req.getUsername() == null || req.getPassword() == null) {
                 writeJson(response, ApiResponse.fail("아이디와 비밀번호를 입력하세요.", "INVALID_INPUT"));
+                return;
+            }
+            var turnstileReject = turnstileVerificationService.rejectIfNeeded(req.getTurnstileToken(), request);
+            if (turnstileReject.isPresent()) {
+                writeJson(response, turnstileReject.get());
                 return;
             }
             String ch = req.getClientHost() != null ? req.getClientHost().trim() : null;

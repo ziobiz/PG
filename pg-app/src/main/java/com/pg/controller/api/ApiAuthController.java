@@ -11,6 +11,7 @@ import com.pg.service.MerchantChatbotProductService;
 import com.pg.service.OrgPagePermissionService;
 import com.pg.service.OrgTabletMenuService;
 import com.pg.service.PayFollowPolicyService;
+import com.pg.service.TurnstileVerificationService;
 import com.pg.service.UserOtpEnrollmentService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
@@ -33,13 +34,15 @@ public class ApiAuthController {
     private final UserOtpEnrollmentService userOtpEnrollmentService;
     private final OrgTabletMenuService orgTabletMenuService;
     private final MerchantChatbotProductService merchantChatbotProductService;
+    private final TurnstileVerificationService turnstileVerificationService;
 
     public ApiAuthController(AuthService authService, OrgPagePermissionService orgPagePermissionService,
                              PayFollowPolicyService payFollowPolicyService,
                              UserRepository userRepository,
                              UserOtpEnrollmentService userOtpEnrollmentService,
                              OrgTabletMenuService orgTabletMenuService,
-                             MerchantChatbotProductService merchantChatbotProductService) {
+                             MerchantChatbotProductService merchantChatbotProductService,
+                             TurnstileVerificationService turnstileVerificationService) {
         this.authService = authService;
         this.orgPagePermissionService = orgPagePermissionService;
         this.payFollowPolicyService = payFollowPolicyService;
@@ -47,12 +50,19 @@ public class ApiAuthController {
         this.userOtpEnrollmentService = userOtpEnrollmentService;
         this.orgTabletMenuService = orgTabletMenuService;
         this.merchantChatbotProductService = merchantChatbotProductService;
+        this.turnstileVerificationService = turnstileVerificationService;
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<LoginResponse>> login(@RequestBody LoginRequest req) {
+    public ResponseEntity<ApiResponse<LoginResponse>> login(@RequestBody LoginRequest req, HttpServletRequest request) {
         if (req == null || req.getUsername() == null || req.getPassword() == null) {
             return ResponseEntity.ok(ApiResponse.fail("아이디와 비밀번호를 입력하세요.", "INVALID_INPUT"));
+        }
+        var turnstileReject = turnstileVerificationService.rejectIfNeeded(req.getTurnstileToken(), request);
+        if (turnstileReject.isPresent()) {
+            @SuppressWarnings("unchecked")
+            ApiResponse<LoginResponse> fail = (ApiResponse<LoginResponse>) turnstileReject.get();
+            return ResponseEntity.ok(fail);
         }
         String ch = req.getClientHost() != null ? req.getClientHost().trim() : null;
         String totp = req.getTotpCode() != null ? String.valueOf(req.getTotpCode()).trim() : "";

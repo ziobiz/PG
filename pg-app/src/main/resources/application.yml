@@ -78,6 +78,12 @@ app:
     autoRunSubDailyMissedGraceMinutes: ${APP_SETTLEMENT_SUB_DAILY_MISSED_GRACE_MINUTES:30}
   # 관리자 SPA 도메인이 카페24·별도 도메인 등 제각각일 수 있어 기본은 전 Origin 허용(*). API는 Bearer만 사용(쿠키 없음).
   # 보수적으로 쓰려면 allow-all-origins: false 후 allowed-origin-patterns 만 나열.
+  # Cloudflare Turnstile — 관리자 로그인 봇 방지. 시크릿은 서버 전용(환경변수 TURNSTILE_SECRET 우선).
+  turnstile:
+    enabled: ${TURNSTILE_ENABLED:true}
+    site-key: ${TURNSTILE_SITE_KEY:0x4AAAAAAE1pxXBOGzlF1ppP}
+    secret: ${TURNSTILE_SECRET:0x4AAAAAAE1pxbz7b2qQPDRMiZ19SwvHV20}
+    verify-url: ${TURNSTILE_VERIFY_URL:https://challenges.cloudflare.com/turnstile/v0/siteverify}
   cors:
     allow-all-origins: true
     # *.icopay.co.kr 에 더해 본사·총판 서브(예: jp) 명시 — allow-all-origins: false 운영 시에도 매칭 보장
