@@ -50,6 +50,22 @@ public class OrgBranding {
     @Column(name = "site_name", length = 100)
     private String siteName;
 
+    /** FOLLOW_HQ=상위·총본사 그대로, CUSTOM=직접 입력. 총본사는 CUSTOM */
+    @Column(name = "og_mode", length = 20)
+    private String ogMode = "FOLLOW_HQ";
+
+    /** og:title 언어별 JSON {KO,EN,JP,CH,TH} */
+    @Column(name = "og_title_json", length = 2000)
+    private String ogTitleJson;
+
+    /** og:description 언어별 JSON {KO,EN,JP,CH,TH} */
+    @Column(name = "og_desc_json", length = 4000)
+    private String ogDescJson;
+
+    /** og:image URL (미입력 시 로고·메인 폴백) */
+    @Column(name = "og_image_url", length = 500)
+    private String ogImageUrl;
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
@@ -79,6 +95,14 @@ public class OrgBranding {
     public void setBrandHost(String brandHost) { this.brandHost = brandHost; }
     public String getSiteName() { return siteName; }
     public void setSiteName(String siteName) { this.siteName = siteName; }
+    public String getOgMode() { return ogMode; }
+    public void setOgMode(String ogMode) { this.ogMode = ogMode; }
+    public String getOgTitleJson() { return ogTitleJson; }
+    public void setOgTitleJson(String ogTitleJson) { this.ogTitleJson = ogTitleJson; }
+    public String getOgDescJson() { return ogDescJson; }
+    public void setOgDescJson(String ogDescJson) { this.ogDescJson = ogDescJson; }
+    public String getOgImageUrl() { return ogImageUrl; }
+    public void setOgImageUrl(String ogImageUrl) { this.ogImageUrl = ogImageUrl; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

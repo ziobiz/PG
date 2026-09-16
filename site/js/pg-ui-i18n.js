@@ -357,11 +357,23 @@
       CH: '谨防冒充诈骗',
       TH: 'คำเตือนการแอบอ้างตัวตน'
     },
+    '최근 본사나 PG사를 사칭해 금전적 요구를 하는 사례가 발생하고 있습니다.': {
+      EN: 'There have been cases of people impersonating our headquarters or a payment provider to request money.',
+      JP: '最近、本社や決済代行を装って金銭を要求する事例が発生しています。',
+      CH: '近期出现冒充总部或支付机构要求汇款的情况。',
+      TH: 'มีกรณีแอบอ้างเป็นสำนักงานใหญ่หรือผู้ให้บริการชำระเงินเพื่อเรียกรับเงิน'
+    },
     '최근 본사나 결제대행를 사칭해 금전적 요구를 하는 사례가 발생하고 있습니다.': {
-      EN: 'There have been cases of people impersonating our company or a PG provider to request money.',
-      JP: '最近、当社やPG会社を装って金銭を要求する事例が発生しています。',
-      CH: '近期出现冒充本公司或PG公司要求汇款的情况。',
-      TH: 'มีกรณีแอบอ้างเป็นบริษัทหรือ PG เพื่อเรียกรับเงิน'
+      EN: 'There have been cases of people impersonating our headquarters or a payment provider to request money.',
+      JP: '最近、本社や決済代行を装って金銭を要求する事例が発生しています。',
+      CH: '近期出现冒充总部或支付机构要求汇款的情况。',
+      TH: 'มีกรณีแอบอ้างเป็นสำนักงานใหญ่หรือผู้ให้บริการชำระเงินเพื่อเรียกรับเงิน'
+    },
+    '최근 본사나 결제대행사를 사칭해 금전적 요구를 하는 사례가 발생하고 있습니다.': {
+      EN: 'There have been cases of people impersonating our headquarters or a payment provider to request money.',
+      JP: '最近、本社や決済代行を装って金銭を要求する事例が発生しています。',
+      CH: '近期出现冒充总部或支付机构要求汇款的情况。',
+      TH: 'มีกรณีแอบอ้างเป็นสำนักงานใหญ่หรือผู้ให้บริการชำระเงินเพื่อเรียกรับเงิน'
     },
     '저희는 결제와 관련한 금전을 별도로 요청하지 않습니다. 의심스러운 연락을 받으셨다면 고객센터 또는 계약된 영업지사로 사실 여부를 반드시 확인해 주시기 바랍니다.': {
       KO: '저희는 결제와 관련한 금전을 별도로 요청하지 않습니다. 의심스러운 연락을 받으셨다면 <strong>고객센터</strong> 또는 <strong>계약된 영업지사</strong>로 사실 여부를 반드시 확인해 주시기 바랍니다.',
@@ -393,6 +405,24 @@
       JP: 'セキュリティ確認を完了してください。',
       CH: '请完成安全验证。',
       TH: 'กรุณายืนยันความปลอดภัยให้เสร็จ'
+    },
+    '로봇 접근을 확인 중입니다. 잠시 대기해 주세요.': {
+      EN: 'Checking that you are not a robot. Please wait a moment.',
+      JP: 'ロボットによるアクセスでないことを確認しています。しばらくお待ちください。',
+      CH: '正在确认您不是机器人，请稍候。',
+      TH: 'กำลังตรวจสอบว่าไม่ใช่หุ่นยนต์ โปรดรอสักครู่'
+    },
+    '로봇 확인이 끝날 때까지 잠시 기다려 주세요.': {
+      EN: 'Please wait until the security check finishes.',
+      JP: 'ロボット確認が終わるまでしばらくお待ちください。',
+      CH: '请稍候，直至安全验证完成。',
+      TH: 'กรุณารอจนกว่าการตรวจสอบจะเสร็จ'
+    },
+    '확인에 실패했습니다. 화면을 새로고침한 뒤 다시 시도해 주세요.': {
+      EN: 'Verification failed. Refresh the page and try again.',
+      JP: '確認に失敗しました。画面を更新してから再試行してください。',
+      CH: '验证失败。请刷新页面后重试。',
+      TH: 'การยืนยันล้มเหลว รีเฟรชหน้าแล้วลองอีกครั้ง'
     },
     '보안 확인에 실패했습니다. 다시 시도해 주세요.': {
       EN: 'Security check failed. Please try again.',
@@ -3945,6 +3975,64 @@
       CH: '例如 api.example.com（可选）',
       TH: 'เช่น api.example.com (ไม่บังคับ)'
     },
+    '링크 미리보기 (메신저)': {
+      EN: 'Link preview (messenger)',
+      JP: 'リンクプレビュー（メッセンジャー）',
+      CH: '链接预览（即时通讯）',
+      TH: 'ตัวอย่างลิงก์ (แอปแชท)'
+    },
+    'LINE·WhatsApp 등에 관리자 주소를 공유할 때 보이는 제목·설명·이미지입니다. 메신저는 화면 스크립트를 실행하지 않으므로 여기에 저장한 값이 첫 HTML에 들어갑니다.': {
+      EN: 'Title, description, and image shown when the admin URL is shared on LINE, WhatsApp, and similar apps. Messengers do not run page scripts, so the values saved here go into the first HTML.',
+      JP: 'LINE・WhatsAppなどに管理者URLを共有したときに見えるタイトル・説明・画像です。メッセンジャーは画面スクリプトを実行しないため、ここに保存した値が最初のHTMLに入ります。',
+      CH: '在 LINE、WhatsApp 等分享管理员地址时显示的标题、说明和图片。即时通讯不会执行页面脚本，因此此处保存的值会写入首份 HTML。',
+      TH: 'ชื่อ คำอธิบาย และรูปที่เห็นเมื่อแชร์ที่อยู่ผู้ดูแลบน LINE, WhatsApp แอปแชทไม่รันสคริปต์ จึงบันทึกค่านี้ลง HTML แรก'
+    },
+    '미리보기 적용': {
+      EN: 'Preview source',
+      JP: 'プレビュー適用',
+      CH: '预览应用方式',
+      TH: 'แหล่งตัวอย่าง'
+    },
+    '본사설정 따름': {
+      EN: 'Follow headquarters',
+      JP: '本社設定に従う',
+      CH: '遵循总部设置',
+      TH: 'ตามการตั้งค่าสำนักงานใหญ่'
+    },
+    '직접 입력': {
+      EN: 'Custom',
+      JP: '直接入力',
+      CH: '自行输入',
+      TH: 'กรอกเอง'
+    },
+    '본사설정 따름이면 총본사 미리보기를 씁니다. 본사가 직접 입력이면 총판은 그 본사를 쓰고, 아니면 총본사입니다. 총본사는 항상 직접 입력입니다.': {
+      EN: 'Follow headquarters uses HQ preview. If a regional office is custom, a distributor uses that regional preview; otherwise HQ. Headquarters is always custom.',
+      JP: '本社設定に従う場合は総本部のプレビューを使います。本社が直接入力なら総代理はその本社を使い、そうでなければ総本部です。総本部は常に直接入力です。',
+      CH: '遵循总部时使用总部预览。若区域总部为自行输入，总代理使用该区域预览，否则用总部。总部始终为自行输入。',
+      TH: 'ตามสำนักงานใหญ่จะใช้ตัวอย่าง HQ หากสำนักงานภูมิภาคกรอกเอง ตัวแทนใหญ่ใช้ค่านั้น ไม่เช่นนั้นใช้ HQ สำนักงานใหญ่กรอกเองเสมอ'
+    },
+    '미리보기 이미지': {
+      EN: 'Preview image',
+      JP: 'プレビュー画像',
+      CH: '预览图片',
+      TH: 'รูปตัวอย่าง'
+    },
+    '비우면 첫화면 로고·로그인 후 로고·메인이미지 순으로 사용합니다. PNG/JPG 1MB까지.': {
+      EN: 'If empty, first-screen logo, post-login logo, then main image are used. PNG/JPG up to 1MB.',
+      JP: '空欄なら初画面ロゴ→ログイン後ロゴ→メイン画像の順です。PNG/JPG 1MBまで。',
+      CH: '留空则按首屏 Logo、登录后 Logo、主图顺序使用。PNG/JPG 最大 1MB。',
+      TH: 'ถ้าว่าง ใช้โลโก้หน้าแรก โลโก้หลังเข้าสู่ระบบ แล้วรูปหลัก PNG/JPG ไม่เกิน 1MB'
+    },
+    '미리보기 제목 (한국어)': { EN: 'Preview title (Korean)', JP: 'プレビュータイトル（韓国語）', CH: '预览标题（韩语）', TH: 'ชื่อตัวอย่าง (เกาหลี)' },
+    '미리보기 제목 (영어)': { EN: 'Preview title (English)', JP: 'プレビュータイトル（英語）', CH: '预览标题（英语）', TH: 'ชื่อตัวอย่าง (อังกฤษ)' },
+    '미리보기 제목 (일본어)': { EN: 'Preview title (Japanese)', JP: 'プレビュータイトル（日本語）', CH: '预览标题（日语）', TH: 'ชื่อตัวอย่าง (ญี่ปุ่น)' },
+    '미리보기 제목 (중국어)': { EN: 'Preview title (Chinese)', JP: 'プレビュータイトル（中国語）', CH: '预览标题（中文）', TH: 'ชื่อตัวอย่าง (จีน)' },
+    '미리보기 제목 (태국어)': { EN: 'Preview title (Thai)', JP: 'プレビュータイトル（タイ語）', CH: '预览标题（泰语）', TH: 'ชื่อตัวอย่าง (ไทย)' },
+    '미리보기 설명 (한국어)': { EN: 'Preview description (Korean)', JP: 'プレビュー説明（韓国語）', CH: '预览说明（韩语）', TH: 'คำอธิบายตัวอย่าง (เกาหลี)' },
+    '미리보기 설명 (영어)': { EN: 'Preview description (English)', JP: 'プレビュー説明（英語）', CH: '预览说明（英语）', TH: 'คำอธิบายตัวอย่าง (อังกฤษ)' },
+    '미리보기 설명 (일본어)': { EN: 'Preview description (Japanese)', JP: 'プレビュー説明（日本語）', CH: '预览说明（日语）', TH: 'คำอธิบายตัวอย่าง (ญี่ปุ่น)' },
+    '미리보기 설명 (중국어)': { EN: 'Preview description (Chinese)', JP: 'プレビュー説明（中国語）', CH: '预览说明（中文）', TH: 'คำอธิบายตัวอย่าง (จีน)' },
+    '미리보기 설명 (태국어)': { EN: 'Preview description (Thai)', JP: 'プレビュー説明（タイ語）', CH: '预览说明（泰语）', TH: 'คำอธิบายตัวอย่าง (ไทย)' },
     '업체코드는 등록 저장 시에만 자동 부여되며(업체구분별 접두 2자리+순번 8자리), 부여 후에는 변경할 수 없습니다. 업체관리 목록에 동일 코드로 표시됩니다. 업체구분을 선택하면 해당 입력 항목이 표시됩니다. 조직 이동은 상위로만 가능하며(하위로 이동 불가), 이동 시 하위 전체가 함께 이동합니다. 사용여부 미사용 시 하위 전체 미사용, 가맹점은 상위 변경으로 개별 활성화할 수 있습니다. 비밀번호는 입력 후 옆 [저장]으로 확정한 뒤 하단 [저장]으로 등록하세요. 등록 후 비밀번호를 잊었거나 초기화가 필요하면 [업체정보조회] 또는 [업체정보] 상세에서 [비밀번호 초기화] 후 로그인ID+1! 로 로그인해 변경하면 됩니다.': {
       EN: 'Company codes are auto-assigned only on first save (2-letter org prefix + 8-digit sequence) and cannot be changed afterward; the same code appears in company management. Picking an org type shows the matching fields. Moves are upward only (not down); moving a node moves its subtree. Disabling a parent disables descendants; merchants can be re-enabled under another active parent. Confirm the password with [Save] beside the field, then register with [Save] at the bottom. If you forget it after registration, use [Merchant lookup] or [Company info] detail → [Reset password], then log in with loginId+1! and change it.',
       JP: '取引先コードは初回保存時のみ自動付与（区分別2文字接頭+8桁連番）し、付与後は変更不可です。一覧にも同じコードで表示されます。区分を選ぶと該当項目が表示されます。組織移動は上位のみ（下位へは不可）、移動時は配下すべてが一緒に移動します。未使用にすると配下も未使用、加盟店は上位変更で個別に有効化できます。パスワードは入力後横の[保存]で確定し、下部[保存]で登録してください。登録後に忘れた場合は[加盟店照会]または[取引先情報]詳細の[パスワード初期化]後、ログインID+1!でログインして変更してください。',
@@ -20691,7 +20779,7 @@
     },
     '수동·자동 등록 구분': { EN: 'Manual vs auto registration', JP: '手動・自動登録区分', CH: '手动/自动登记区分', TH: 'แยกลงทะเบียนด้วยตนเอง/อัตโนมัติ' },
     '마스킹 카드번호(앞6+***+뒤4)·이름(구분용)·사유를 입력하고 [등록]을 누르세요. 동일 패턴 카드는 JPAY 결제 전에 차단됩니다.': {
-      EN: 'Enter masked card (first 6 + *** + last 4), display name, and reason, then click Register. Matching cards are blocked before JPAY payment.',
+      EN: 'Enter masked card (first 6 + *** + last 4), display name, and reason, then click Register. Matching cards are blocked before payment.',
       JP: 'マスクカード番号(先頭6+***+末尾4)·表示名·理由を入力し[登録]を押してください。同一パターンのカードはJPAY決済前にブロックされます。',
       CH: '输入掩码卡号(前6+***+后4)、区分用姓名和原因后点击登记。匹配卡号在 JPAY 支付前会被拦截。',
       TH: 'กรอกเลขบัตรแบบมาสก์ (6 หลักแรก + *** + 4 หลักท้าย) ชื่อแยกประเภท และเหตุผล แล้วกดลงทะเบียน บัตรที่ตรงรูปแบบจะถูกบล็อกก่อนชำระ JPAY'
@@ -20707,24 +20795,25 @@
     '예: 531289***8601': { EN: 'e.g. 531289***8601', JP: '例: 531289***8601', CH: '例: 531289***8601', TH: 'เช่น 531289***8601' },
     '앞 6자리 + *** + 뒤 4자리': { EN: 'First 6 + *** + last 4', JP: '先頭6桁 + *** + 末尾4桁', CH: '前6位 + *** + 后4位', TH: '6 หลักแรก + *** + 4 หลักท้าย' },
     '카드 구분용 표시명(매칭 제외)': { EN: 'Display name for card (not used for matching)', JP: 'カード区分用表示名(照合対象外)', CH: '卡区分显示名(不参与匹配)', TH: 'ชื่อแสดงแยกบัตร (ไม่ใช้จับคู่)' },
-    '결제 실패 카드 쿨다운 (JPAY)': { EN: 'Card fail cooldown (JPAY)', JP: '決済失敗カードクールダウン (JPAY)', CH: '支付失败卡冷却 (JPAY)', TH: 'คูลดาวน์บัตรชำระล้มเหลว (JPAY)' },
-    '동일 카드로 FAIL·UNPAID가 누적되면 JPAY 호출 전에 일시 차단합니다. CVV·카드번호 형식 오류는 집계하지 않습니다. 성공 결제 시 횟수가 초기화됩니다. 4회차는 자동으로 운영관리 비활성카드(마스킹) 등록이며 시간 설정은 없습니다.': {
-      EN: 'Repeated FAIL/UNPAID on the same card triggers temporary blocks before JPAY. CVV and card format errors are excluded. Success resets the count. The 4th failure auto-registers an inactive masked card with no wait time.',
-      JP: '同一カードでFAIL・UNPAIDが累積するとJPAY呼び出し前に一時ブロックします。CVV・カード番号形式エラーは集計しません。成功決済で回数はリセットされます。4回目は運営管理の非活性カード(マスク)に自動登録され待機時間はありません。',
-      CH: '同一卡累计 FAIL/UNPAID 时在调用 JPAY 前临时拦截。CVV 与卡号格式错误不计入。支付成功会重置次数。第4次自动登记运营非活跃卡(掩码)，无等待时间。',
-      TH: 'FAIL/UNPAID สะสมบัตรเดียวกันจะถูกบล็อกชั่วคราวก่อน JPAY ไม่นับ CVV/รูปแบบเลขบัตร สำเร็จจะรีเซ็ต ครั้งที่ 4 ลงทะเบียนบัตรปิดใช้แบบมาสก์อัตโนมัติ ไม่มีเวลารอ'
+    '결제 실패 카드 쿨다운': { EN: 'Card fail cooldown', JP: '決済失敗カードクールダウン', CH: '支付失败卡冷却', TH: 'คูลดาวน์บัตรชำระล้มเหลว' },
+    '결제 실패 카드 쿨다운 (JPAY)': { EN: 'Card fail cooldown', JP: '決済失敗カードクールダウン', CH: '支付失败卡冷却', TH: 'คูลดาวน์บัตรชำระล้มเหลว' },
+    '동일 카드로 FAIL·UNPAID가 누적되면 결제대행사 호출 전에 일시 차단합니다. CVV·카드번호 형식 오류는 집계하지 않습니다. 성공 결제 시 횟수가 초기화됩니다. 4회차는 자동으로 운영관리 비활성카드(마스킹) 등록이며 시간 설정은 없습니다.': {
+      EN: 'Repeated FAIL/UNPAID on the same card triggers temporary blocks before the payment processor. CVV and card format errors are excluded. Success resets the count. The 4th failure auto-registers an inactive masked card with no wait time.',
+      JP: '同一カードでFAIL・UNPAIDが累積すると決済代行呼び出し前に一時ブロックします。CVV・カード番号形式エラーは集計しません。成功決済で回数はリセットされます。4回目は運営管理の非活性カード(マスク)に自動登録され待機時間はありません。',
+      CH: '同一卡累计 FAIL/UNPAID 时在调用支付机构前临时拦截。CVV 与卡号格式错误不计入。支付成功会重置次数。第4次自动登记运营非活跃卡(掩码)，无等待时间。',
+      TH: 'FAIL/UNPAID สะสมบัตรเดียวกันจะถูกบล็อกชั่วคราวก่อนเรียกผู้ให้บริการชำระ ไม่นับ CVV/รูปแบบเลขบัตร สำเร็จจะรีเซ็ต ครั้งที่ 4 ลงทะเบียนบัตรปิดใช้แบบมาสก์อัตโนมัติ ไม่มีเวลารอ'
     },
-    '동일 카드 FAIL·UNPAID 누적 시 JPAY 호출 전 일시 차단합니다. CVV·카드번호 형식 오류는 집계하지 않습니다. 본사정책 따름 시 [본사설정 → 리스크설정]을 사용하며, 별도정책은 본사보다 우선합니다. 미사용 시 해당 가맹의 위험관리를 끕니다.': {
-      EN: 'Repeated FAIL/UNPAID on the same card is temporarily blocked before JPAY. CVV and invalid card format are not counted. When following HQ policy, use [HQ settings → Risk settings]; custom policy overrides HQ. Disabled turns off risk management for this merchant.',
-      JP: '同一カードのFAIL・UNPAID累積時、JPAY呼び出し前に一時ブロックします。CVV・カード番号形式エラーは集計しません。本社ポリシーに従う場合は[本社設定 → リスク設定]を使用し、個別ポリシーは本社より優先します。未使用の場合は当該加盟店のリスク管理をオフにします。',
-      CH: '同一卡累计 FAIL/UNPAID 时在调用 JPAY 前临时拦截。CVV 与卡号格式错误不计入。遵循总部政策时使用[总部设置 → 风险设置]；单独政策优先于总部。未使用时关闭该商户风险管理。',
-      TH: 'FAIL/UNPAID สะสมบัตรเดียวกันจะถูกบล็อกชั่วคราวก่อน JPAY ไม่นับ CVV/รูปแบบเลขบัตร หากตามนโยบาย HQ ใช้ [ตั้งค่า HQ → ความเสี่ยง] นโยบายแยกมีลำดับเหนือ HQ ไม่ใช้จะปิดการจัดการความเสี่ยงของร้านนี้'
+    '동일 카드 FAIL·UNPAID 누적 시 결제대행사 호출 전 일시 차단합니다. CVV·카드번호 형식 오류는 집계하지 않습니다. 본사정책 따름 시 [본사설정 → 리스크설정]을 사용하며, 별도정책은 본사보다 우선합니다. 미사용 시 해당 가맹의 위험관리를 끕니다.': {
+      EN: 'Repeated FAIL/UNPAID on the same card is temporarily blocked before the payment processor. CVV and invalid card format are not counted. When following HQ policy, use [HQ settings → Risk settings]; custom policy overrides HQ. Disabled turns off risk management for this merchant.',
+      JP: '同一カードのFAIL・UNPAID累積時、決済代行呼び出し前に一時ブロックします。CVV・カード番号形式エラーは集計しません。本社ポリシーに従う場合は[本社設定 → リスク設定]を使用し、個別ポリシーは本社より優先します。未使用の場合は当該加盟店のリスク管理をオフにします。',
+      CH: '同一卡累计 FAIL/UNPAID 时在调用支付机构前临时拦截。CVV 与卡号格式错误不计入。遵循总部政策时使用[总部设置 → 风险设置]；单独政策优先于总部。未使用时关闭该商户风险管理。',
+      TH: 'FAIL/UNPAID สะสมบัตรเดียวกันจะถูกบล็อกชั่วคราวก่อนเรียกผู้ให้บริการชำระ ไม่นับ CVV/รูปแบบเลขบัตร หากตามนโยบาย HQ ใช้ [ตั้งค่า HQ → ความเสี่ยง] นโยบายแยกมีลำดับเหนือ HQ ไม่ใช้จะปิดการจัดการความเสี่ยงของร้านนี้'
     },
-    '동일 카드 FAIL·UNPAID 누적 시 JPAY 호출 전 일시 차단합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 아래에서 선택한 차수에서 자동으로 비활성카드(마스킹)에 등록됩니다.': {
-      EN: 'Repeated FAIL/UNPAID on the same card is temporarily blocked before JPAY. CVV and invalid card format are not counted; success resets the count. At the selected tier below, the card is auto-registered as an inactive masked card.',
-      JP: '同一カードのFAIL・UNPAID累積時、JPAY呼び出し前に一時ブロックします。CVV・カード番号形式エラーは集計せず、成功決済で回数はリセットされます。下で選択した回数で非活性カード(マスク)に自動登録されます。',
-      CH: '同一卡累计 FAIL/UNPAID 时在调用 JPAY 前临时拦截。CVV 与卡号格式错误不计入，支付成功会重置次数。在下方所选次数自动登记为非活跃卡(掩码)。',
-      TH: 'FAIL/UNPAID สะสมบัตรเดียวกันจะถูกบล็อกชั่วคราวก่อน JPAY ไม่นับ CVV/รูปแบบเลขบัตร สำเร็จจะรีเซ็ต ระดับที่เลือกด้านล่างจะลงทะเบียนบัตรปิดใช้แบบมาสก์อัตโนมัติ'
+    '동일 카드 FAIL·UNPAID 누적 시 결제대행사 호출 전 일시 차단합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 아래에서 선택한 차수에서 자동으로 비활성카드(마스킹)에 등록됩니다.': {
+      EN: 'Repeated FAIL/UNPAID on the same card is temporarily blocked before the payment processor. CVV and invalid card format are not counted; success resets the count. At the selected tier below, the card is auto-registered as an inactive masked card.',
+      JP: '同一カードのFAIL・UNPAID累積時、決済代行呼び出し前に一時ブロックします。CVV・カード番号形式エラーは集計せず、成功決済で回数はリセットされます。下で選択した回数で非活性カード(マスク)に自動登録されます。',
+      CH: '同一卡累计 FAIL/UNPAID 时在调用支付机构前临时拦截。CVV 与卡号格式错误不计入，支付成功会重置次数。在下方所选次数自动登记为非活跃卡(掩码)。',
+      TH: 'FAIL/UNPAID สะสมบัตรเดียวกันจะถูกบล็อกชั่วคราวก่อนเรียกผู้ให้บริการชำระ ไม่นับ CVV/รูปแบบเลขบัตร สำเร็จจะรีเซ็ต ระดับที่เลือกด้านล่างจะลงทะเบียนบัตรปิดใช้แบบมาสก์อัตโนมัติ'
     },
     '등록된 모든 가맹점의 리스크 방식·적용 값을 표시합니다. 별도설정 가맹은 본사 설정보다 우선 적용됩니다. 미사용 가맹은 방식 열에 회색으로 표시됩니다.': {
       EN: 'Shows risk mode and applied values for all merchants. Custom policy merchants override HQ. Disabled merchants appear in gray in the Mode column.',
@@ -20778,11 +20867,11 @@
       CH: '送往PG前的预拦截。遵循总部时使用[总部设置 → 手续费·风险 → 风险 → 风险过滤]。单独政策则以下方条件商户优先(本页或总部「商户风险过滤」保存值同一优先)。未使用则仅关闭该商户。与上方「风险危险管理触发」分开。总部预过滤总开关关闭时单独政策也不生效。',
       TH: 'บล็อกล่วงหน้าก่อนส่ง PG ตาม HQ ใช้ [HQ → ค่าธรรมเนียม·ความเสี่ยง → ความเสี่ยง → การกรองความเสี่ยง] โหมดแยกใช้เงื่อนไขด้านล่างเหนือกว่า HQ (ค่าที่บันทึกที่นี่หรือตารางกรองร้านของ HQ เป็นค่าเดียวกัน) ไม่ใช้ปิดเฉพาะร้านนี้ แยกจากทริกเกอร์บริหารความเสี่ยงอันตรายด้านบน ถ้ามาสเตอร์ตัวกรองล่วงหน้า HQ ปิด โหมดแยกก็ไม่ทำงาน'
     },
-    '동일 카드 FAIL·취소·무효·미결제 등 비성공이 누적되면 JPAY 호출 전 일시 차단(1~4차 대기)합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 성공은 자동등록 트리거 원인이 되지 않습니다. 자동 등록 트리거 N차: 추적기간 안에서 비성공 N회가 완료되는 즉시 비활성카드(마스킹)에 등록되며 (N+1)번째 결제 시도부터 차단됩니다. 기간정책 — 미사용: 기간 제한 없이 서비스 기간 내내 누적(성공 시 초기화), 본사정책 따름: 본사 추적기간을 사용, 별도정책: 가맹점 추적기간(일·월·년)·설정기간을 본사보다 우선 적용. 위험 정책 본사정책 따름 시 [본사설정 → 리스크설정]을 사용하며, 별도정책은 본사보다 우선합니다(본 화면 또는 본사 「가맹점 리스크 현황」에서 저장한 값이 동일하게 우선). 미사용 시 해당 가맹의 위험관리를 끕니다. 사전 리스크 필터링은 아래 「리스크 사전필터트리거」에서 별도 설정합니다.': {
-      EN: 'When non-successful results (FAIL, cancel, void, unpaid, etc.) on the same card accumulate, it is temporarily blocked before the JPAY call (1st–4th wait). CVV and invalid card-number format are not counted, and the count resets on a successful payment. A success is never a cause for the auto-register trigger. Auto-register trigger tier N: as soon as N non-success events complete within the tracking period, the card is registered (masked) as inactive and blocking starts from the (N+1)th payment attempt. Period policy — Disabled: accumulate with no time limit throughout the service period (reset on success); Follow HQ policy: use the HQ tracking period; Custom policy: apply the merchant tracking period (day/month/year) and period value with priority over HQ. When the risk policy follows HQ, [HQ settings → Risk settings] is used; custom policy overrides HQ (values saved here or in HQ Merchant risk status share the same override). Disabled turns off risk management for this merchant. Presale risk filtering is configured separately below under Risk presale-filter trigger.',
-      JP: '同一カードのFAIL・取消・無効・未決済などの非成功が累積すると、JPAY呼び出し前に一時ブロック(1〜4次待機)します。CVV・カード番号形式エラーは集計せず、成功決済時にカウントが初期化されます。成功は自動登録トリガーの原因になりません。自動登録トリガーN次: 追跡期間内に非成功N回が完了した時点で無効カード(マスキング)に登録され、(N+1)回目の決済試行からブロックされます。期間ポリシー — 未使用: 期間制限なくサービス期間中ずっと累積(成功時に初期化)、本社ポリシーに従う: 本社の追跡期間を使用、個別ポリシー: 加盟店の追跡期間(日・月・年)・設定期間を本社より優先適用。リスクポリシーが本社に従う場合は[本社設定 → リスク設定]を使用し、個別ポリシーは本社より優先します(本画面または本社「加盟店リスク状況」で保存した値が同一に優先)。未使用の場合は当該加盟店のリスク管理をオフにします。事前リスクフィルタは下の「リスク事前フィルタトリガー」で別設定します。',
-      CH: '同一张卡的 FAIL、取消、无效、未支付等非成功累计后，将在调用 JPAY 之前临时拦截(第1~4次等待)。不统计 CVV 与卡号格式错误，支付成功时计数清零。成功不会成为自动登记触发的原因。自动登记触发第N次: 在追踪周期内完成N次非成功后立即将该卡(掩码)登记为停用卡，并从第(N+1)次支付尝试起拦截。周期政策 — 未使用: 在服务期间内不限期累计(成功时清零);遵循总部政策: 使用总部追踪周期;单独政策: 商户追踪周期(日·月·年)与设定周期优先于总部。风险政策遵循总部时使用[总部设置 → 风险设置];单独政策优先于总部(本页或总部「商户风险现状」保存值同一优先)。未使用时关闭该商户的风险管理。预售风险过滤在下方「风险预过滤触发」单独设置。',
-      TH: 'เมื่อผลลัพธ์ที่ไม่สำเร็จ (FAIL, ยกเลิก, โมฆะ, ยังไม่ชำระ ฯลฯ) ของบัตรใบเดียวกันสะสม จะถูกบล็อกชั่วคราวก่อนเรียก JPAY (รอครั้งที่ 1–4) ข้อผิดพลาด CVV และรูปแบบหมายเลขบัตรจะไม่ถูกนับ และจะรีเซ็ตจำนวนเมื่อชำระสำเร็จ ความสำเร็จไม่เป็นสาเหตุของทริกเกอร์ลงทะเบียนอัตโนมัติ ทริกเกอร์ลงทะเบียนอัตโนมัติครั้งที่ N: เมื่อเหตุการณ์ไม่สำเร็จครบ N ครั้งภายในช่วงติดตาม บัตรจะถูกลงทะเบียนเป็นบัตรปิดใช้งาน (ปกปิด) ทันที และเริ่มบล็อกตั้งแต่การชำระครั้งที่ (N+1) นโยบายช่วงเวลา — ไม่ใช้งาน: สะสมตลอดช่วงให้บริการโดยไม่จำกัดเวลา (รีเซ็ตเมื่อสำเร็จ), ตามนโยบาย HQ: ใช้ช่วงติดตามของ HQ, นโยบายแยก: ใช้ช่วงติดตามของร้าน (วัน·เดือน·ปี) และค่าช่วงเวลาเหนือกว่า HQ เมื่อนโยบายความเสี่ยงตาม HQ จะใช้ [ตั้งค่า HQ → ตั้งค่าความเสี่ยง]; นโยบายแยกมีลำดับเหนือ HQ (ค่าที่บันทึกที่นี่หรือสถานะความเสี่ยงร้านของ HQ เป็นค่าเดียวกัน) เมื่อไม่ใช้งานจะปิดการจัดการความเสี่ยงของร้านนี้ การกรองความเสี่ยงล่วงหน้าตั้งแยกด้านล่างที่ทริกเกอร์ตัวกรองล่วงหน้า'
+    '동일 카드 FAIL·취소·무효·미결제 등 비성공이 누적되면 결제대행사 호출 전 일시 차단(1~4차 대기)합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 성공은 자동등록 트리거 원인이 되지 않습니다. 자동 등록 트리거 N차: 추적기간 안에서 비성공 N회가 완료되는 즉시 비활성카드(마스킹)에 등록되며 (N+1)번째 결제 시도부터 차단됩니다. 기간정책 — 미사용: 기간 제한 없이 서비스 기간 내내 누적(성공 시 초기화), 본사정책 따름: 본사 추적기간을 사용, 별도정책: 가맹점 추적기간(일·월·년)·설정기간을 본사보다 우선 적용. 위험 정책 본사정책 따름 시 [본사설정 → 리스크설정]을 사용하며, 별도정책은 본사보다 우선합니다(본 화면 또는 본사 「가맹점 리스크 현황」에서 저장한 값이 동일하게 우선). 미사용 시 해당 가맹의 위험관리를 끕니다. 사전 리스크 필터링은 아래 「리스크 사전필터트리거」에서 별도 설정합니다.': {
+      EN: 'When non-successful results (FAIL, cancel, void, unpaid, etc.) on the same card accumulate, it is temporarily blocked before calling the payment processor (1st–4th wait). CVV and invalid card-number format are not counted, and the count resets on a successful payment. A success is never a cause for the auto-register trigger. Auto-register trigger tier N: as soon as N non-success events complete within the tracking period, the card is registered (masked) as inactive and blocking starts from the (N+1)th payment attempt. Period policy — Disabled: accumulate with no time limit throughout the service period (reset on success); Follow HQ policy: use the HQ tracking period; Custom policy: apply the merchant tracking period (day/month/year) and period value with priority over HQ. When the risk policy follows HQ, [HQ settings → Risk settings] is used; custom policy overrides HQ (values saved here or in HQ Merchant risk status share the same override). Disabled turns off risk management for this merchant. Presale risk filtering is configured separately below under Risk presale-filter trigger.',
+      JP: '同一カードのFAIL・取消・無効・未決済などの非成功が累積すると、決済代行呼び出し前に一時ブロック(1〜4次待機)します。CVV・カード番号形式エラーは集計せず、成功決済時にカウントが初期化されます。成功は自動登録トリガーの原因になりません。自動登録トリガーN次: 追跡期間内に非成功N回が完了した時点で無効カード(マスキング)に登録され、(N+1)回目の決済試行からブロックされます。期間ポリシー — 未使用: 期間制限なくサービス期間中ずっと累積(成功時に初期化)、本社ポリシーに従う: 本社の追跡期間を使用、個別ポリシー: 加盟店の追跡期間(日・月・年)・設定期間を本社より優先適用。リスクポリシーが本社に従う場合は[本社設定 → リスク設定]を使用し、個別ポリシーは本社より優先します(本画面または本社「加盟店リスク状況」で保存した値が同一に優先)。未使用の場合は当該加盟店のリスク管理をオフにします。事前リスクフィルタは下の「リスク事前フィルタトリガー」で別設定します。',
+      CH: '同一张卡的 FAIL、取消、无效、未支付等非成功累计后，将在调用支付机构之前临时拦截(第1~4次等待)。不统计 CVV 与卡号格式错误，支付成功时计数清零。成功不会成为自动登记触发的原因。自动登记触发第N次: 在追踪周期内完成N次非成功后立即将该卡(掩码)登记为停用卡，并从第(N+1)次支付尝试起拦截。周期政策 — 未使用: 在服务期间内不限期累计(成功时清零);遵循总部政策: 使用总部追踪周期;单独政策: 商户追踪周期(日·月·年)与设定周期优先于总部。风险政策遵循总部时使用[总部设置 → 风险设置];单独政策优先于总部(本页或总部「商户风险现状」保存值同一优先)。未使用时关闭该商户的风险管理。预售风险过滤在下方「风险预过滤触发」单独设置。',
+      TH: 'เมื่อผลลัพธ์ที่ไม่สำเร็จ (FAIL, ยกเลิก, โมฆะ, ยังไม่ชำระ ฯลฯ) ของบัตรใบเดียวกันสะสม จะถูกบล็อกชั่วคราวก่อนเรียกผู้ให้บริการชำระ (รอครั้งที่ 1–4) ข้อผิดพลาด CVV และรูปแบบหมายเลขบัตรจะไม่ถูกนับ และจะรีเซ็ตจำนวนเมื่อชำระสำเร็จ ความสำเร็จไม่เป็นสาเหตุของทริกเกอร์ลงทะเบียนอัตโนมัติ ทริกเกอร์ลงทะเบียนอัตโนมัติครั้งที่ N: เมื่อเหตุการณ์ไม่สำเร็จครบ N ครั้งภายในช่วงติดตาม บัตรจะถูกลงทะเบียนเป็นบัตรปิดใช้งาน (ปกปิด) ทันที และเริ่มบล็อกตั้งแต่การชำระครั้งที่ (N+1) นโยบายช่วงเวลา — ไม่ใช้งาน: สะสมตลอดช่วงให้บริการโดยไม่จำกัดเวลา (รีเซ็ตเมื่อสำเร็จ), ตามนโยบาย HQ: ใช้ช่วงติดตามของ HQ, นโยบายแยก: ใช้ช่วงติดตามของร้าน (วัน·เดือน·ปี) และค่าช่วงเวลาเหนือกว่า HQ เมื่อนโยบายความเสี่ยงตาม HQ จะใช้ [ตั้งค่า HQ → ตั้งค่าความเสี่ยง]; นโยบายแยกมีลำดับเหนือ HQ (ค่าที่บันทึกที่นี่หรือสถานะความเสี่ยงร้านของ HQ เป็นค่าเดียวกัน) เมื่อไม่ใช้งานจะปิดการจัดการความเสี่ยงของร้านนี้ การกรองความเสี่ยงล่วงหน้าตั้งแยกด้านล่างที่ทริกเกอร์ตัวกรองล่วงหน้า'
     },
     '리스크설정(트리거)만 표시·편집합니다. 「미사용」은 실패 쿨다운·자동 비활성 트리거만 끄며, 사전 리스크 필터링은 아래 「가맹점 리스크 필터링」에서 별도입니다. 방식에서 본사설정·미사용·별도설정을 바꾸고 저장하세요. 별도설정이면 1~4차·자동등록·추적기간을 행에서 수정합니다.': {
       EN: 'Shows/edits risk settings (trigger) only. Disabled turns off fail cooldown and auto-inactive triggers only; presale risk filtering is below under Merchant risk filtering. Change Method to HQ / Disabled / Custom and save. In Custom mode edit tiers, auto-register, and tracking period in the row.',
@@ -20813,11 +20902,11 @@
     '추적기간': { EN: 'Tracking period', JP: '追跡期間', CH: '追踪周期', TH: 'ช่วงติดตาม' },
     '설정기간': { EN: 'Period value', JP: '設定期間', CH: '设定周期', TH: 'ค่าช่วงเวลา' },
     '년': { EN: 'Year', JP: '年', CH: '年', TH: 'ปี' },
-    '동일 카드 FAIL·취소·무효·미결제 등 비성공이 누적되면 JPAY 호출 전 일시 차단(1~4차 대기)합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 성공은 자동등록 트리거 원인이 되지 않습니다. 자동 등록 트리거 N차: 추적기간 안에서 비성공 N회가 완료되는 즉시 비활성카드(마스킹)에 등록되며 (N+1)번째 결제 시도부터 차단됩니다. 기간정책 — 미사용: 기간 제한 없이 서비스 기간 내내 누적(성공 시 초기화), 본사정책 따름: 본사 추적기간을 사용, 별도정책: 가맹점 추적기간(일·월·년)·설정기간을 본사보다 우선 적용. 위험 정책 본사정책 따름 시 [본사설정 → 리스크설정]을 사용하며, 별도정책은 본사보다 우선합니다. 미사용 시 해당 가맹의 위험관리를 끕니다.': {
-      EN: 'When non-successful results (FAIL, cancel, void, unpaid, etc.) on the same card accumulate, it is temporarily blocked before the JPAY call (1st–4th wait). CVV and invalid card-number format are not counted, and the count resets on a successful payment. A success is never a cause for the auto-register trigger. Auto-register trigger tier N: as soon as N non-success events complete within the tracking period, the card is registered (masked) as inactive and blocking starts from the (N+1)th payment attempt. Period policy — Disabled: accumulate with no time limit throughout the service period (reset on success); Follow HQ policy: use the HQ tracking period; Custom policy: apply the merchant tracking period (day/month/year) and period value with priority over HQ. When the risk policy follows HQ, [HQ settings → Risk settings] is used; custom policy overrides HQ. Disabled turns off risk management for this merchant.',
-      JP: '同一カードのFAIL・取消・無効・未決済などの非成功が累積すると、JPAY呼び出し前に一時ブロック(1〜4次待機)します。CVV・カード番号形式エラーは集計せず、成功決済時にカウントが初期化されます。成功は自動登録トリガーの原因になりません。自動登録トリガーN次: 追跡期間内に非成功N回が完了した時点で無効カード(マスキング)に登録され、(N+1)回目の決済試行からブロックされます。期間ポリシー — 未使用: 期間制限なくサービス期間中ずっと累積(成功時に初期化)、本社ポリシーに従う: 本社の追跡期間を使用、個別ポリシー: 加盟店の追跡期間(日・月・年)・設定期間を本社より優先適用。リスクポリシーが本社に従う場合は[本社設定 → リスク設定]を使用し、個別ポリシーは本社より優先します。未使用の場合は当該加盟店のリスク管理をオフにします。',
-      CH: '同一张卡的 FAIL、取消、无效、未支付等非成功累计后，将在调用 JPAY 之前临时拦截(第1~4次等待)。不统计 CVV 与卡号格式错误，支付成功时计数清零。成功不会成为自动登记触发的原因。自动登记触发第N次: 在追踪周期内完成N次非成功后立即将该卡(掩码)登记为停用卡，并从第(N+1)次支付尝试起拦截。周期政策 — 未使用: 在服务期间内不限期累计(成功时清零);遵循总部政策: 使用总部追踪周期;单独政策: 商户追踪周期(日·月·年)与设定周期优先于总部。风险政策遵循总部时使用[总部设置 → 风险设置];单独政策优先于总部。未使用时关闭该商户的风险管理。',
-      TH: 'เมื่อผลลัพธ์ที่ไม่สำเร็จ (FAIL, ยกเลิก, โมฆะ, ยังไม่ชำระ ฯลฯ) ของบัตรใบเดียวกันสะสม จะถูกบล็อกชั่วคราวก่อนเรียก JPAY (รอครั้งที่ 1–4) ข้อผิดพลาด CVV และรูปแบบหมายเลขบัตรจะไม่ถูกนับ และจะรีเซ็ตจำนวนเมื่อชำระสำเร็จ ความสำเร็จไม่เป็นสาเหตุของทริกเกอร์ลงทะเบียนอัตโนมัติ ทริกเกอร์ลงทะเบียนอัตโนมัติครั้งที่ N: เมื่อเหตุการณ์ไม่สำเร็จครบ N ครั้งภายในช่วงติดตาม บัตรจะถูกลงทะเบียนเป็นบัตรปิดใช้งาน (ปกปิด) ทันที และเริ่มบล็อกตั้งแต่การชำระครั้งที่ (N+1) นโยบายช่วงเวลา — ไม่ใช้งาน: สะสมตลอดช่วงให้บริการโดยไม่จำกัดเวลา (รีเซ็ตเมื่อสำเร็จ), ตามนโยบาย HQ: ใช้ช่วงติดตามของ HQ, นโยบายแยก: ใช้ช่วงติดตามของร้าน (วัน·เดือน·ปี) และค่าช่วงเวลาเหนือกว่า HQ เมื่อนโยบายความเสี่ยงตาม HQ จะใช้ [ตั้งค่า HQ → ตั้งค่าความเสี่ยง]; นโยบายแยกมีลำดับเหนือ HQ เมื่อไม่ใช้งานจะปิดการจัดการความเสี่ยงของร้านนี้'
+    '동일 카드 FAIL·취소·무효·미결제 등 비성공이 누적되면 결제대행사 호출 전 일시 차단(1~4차 대기)합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 성공은 자동등록 트리거 원인이 되지 않습니다. 자동 등록 트리거 N차: 추적기간 안에서 비성공 N회가 완료되는 즉시 비활성카드(마스킹)에 등록되며 (N+1)번째 결제 시도부터 차단됩니다. 기간정책 — 미사용: 기간 제한 없이 서비스 기간 내내 누적(성공 시 초기화), 본사정책 따름: 본사 추적기간을 사용, 별도정책: 가맹점 추적기간(일·월·년)·설정기간을 본사보다 우선 적용. 위험 정책 본사정책 따름 시 [본사설정 → 리스크설정]을 사용하며, 별도정책은 본사보다 우선합니다. 미사용 시 해당 가맹의 위험관리를 끕니다.': {
+      EN: 'When non-successful results (FAIL, cancel, void, unpaid, etc.) on the same card accumulate, it is temporarily blocked before calling the payment processor (1st–4th wait). CVV and invalid card-number format are not counted, and the count resets on a successful payment. A success is never a cause for the auto-register trigger. Auto-register trigger tier N: as soon as N non-success events complete within the tracking period, the card is registered (masked) as inactive and blocking starts from the (N+1)th payment attempt. Period policy — Disabled: accumulate with no time limit throughout the service period (reset on success); Follow HQ policy: use the HQ tracking period; Custom policy: apply the merchant tracking period (day/month/year) and period value with priority over HQ. When the risk policy follows HQ, [HQ settings → Risk settings] is used; custom policy overrides HQ. Disabled turns off risk management for this merchant.',
+      JP: '同一カードのFAIL・取消・無効・未決済などの非成功が累積すると、決済代行呼び出し前に一時ブロック(1〜4次待機)します。CVV・カード番号形式エラーは集計せず、成功決済時にカウントが初期化されます。成功は自動登録トリガーの原因になりません。自動登録トリガーN次: 追跡期間内に非成功N回が完了した時点で無効カード(マスキング)に登録され、(N+1)回目の決済試行からブロックされます。期間ポリシー — 未使用: 期間制限なくサービス期間中ずっと累積(成功時に初期化)、本社ポリシーに従う: 本社の追跡期間を使用、個別ポリシー: 加盟店の追跡期間(日・月・年)・設定期間を本社より優先適用。リスクポリシーが本社に従う場合は[本社設定 → リスク設定]を使用し、個別ポリシーは本社より優先します。未使用の場合は当該加盟店のリスク管理をオフにします。',
+      CH: '同一张卡的 FAIL、取消、无效、未支付等非成功累计后，将在调用支付机构之前临时拦截(第1~4次等待)。不统计 CVV 与卡号格式错误，支付成功时计数清零。成功不会成为自动登记触发的原因。自动登记触发第N次: 在追踪周期内完成N次非成功后立即将该卡(掩码)登记为停用卡，并从第(N+1)次支付尝试起拦截。周期政策 — 未使用: 在服务期间内不限期累计(成功时清零);遵循总部政策: 使用总部追踪周期;单独政策: 商户追踪周期(日·月·年)与设定周期优先于总部。风险政策遵循总部时使用[总部设置 → 风险设置];单独政策优先于总部。未使用时关闭该商户的风险管理。',
+      TH: 'เมื่อผลลัพธ์ที่ไม่สำเร็จ (FAIL, ยกเลิก, โมฆะ, ยังไม่ชำระ ฯลฯ) ของบัตรใบเดียวกันสะสม จะถูกบล็อกชั่วคราวก่อนเรียกผู้ให้บริการชำระ (รอครั้งที่ 1–4) ข้อผิดพลาด CVV และรูปแบบหมายเลขบัตรจะไม่ถูกนับ และจะรีเซ็ตจำนวนเมื่อชำระสำเร็จ ความสำเร็จไม่เป็นสาเหตุของทริกเกอร์ลงทะเบียนอัตโนมัติ ทริกเกอร์ลงทะเบียนอัตโนมัติครั้งที่ N: เมื่อเหตุการณ์ไม่สำเร็จครบ N ครั้งภายในช่วงติดตาม บัตรจะถูกลงทะเบียนเป็นบัตรปิดใช้งาน (ปกปิด) ทันที และเริ่มบล็อกตั้งแต่การชำระครั้งที่ (N+1) นโยบายช่วงเวลา — ไม่ใช้งาน: สะสมตลอดช่วงให้บริการโดยไม่จำกัดเวลา (รีเซ็ตเมื่อสำเร็จ), ตามนโยบาย HQ: ใช้ช่วงติดตามของ HQ, นโยบายแยก: ใช้ช่วงติดตามของร้าน (วัน·เดือน·ปี) และค่าช่วงเวลาเหนือกว่า HQ เมื่อนโยบายความเสี่ยงตาม HQ จะใช้ [ตั้งค่า HQ → ตั้งค่าความเสี่ยง]; นโยบายแยกมีลำดับเหนือ HQ เมื่อไม่ใช้งานจะปิดการจัดการความเสี่ยงของร้านนี้'
     },
     '동일 카드 FAIL·취소·무효·미결제 등 비성공이 누적되면 결제 시도 전 일시 차단(1~4차 대기)합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 성공은 자동등록 트리거 원인이 되지 않습니다. 자동 등록 트리거 N차: 추적기간 안에서 비성공 N회가 완료되는 즉시 비활성카드(마스킹)에 등록되며 (N+1)번째 결제 시도부터 차단됩니다. 추적기간 미사용 시 성공 전까지 기간 제한 없이 누적합니다. 동기 응답·노티 확정 모두 반영하며 3DS 대기(08)는 제외합니다. 운영 매뉴얼(HTML/PDF): docs/icopay-hq-risk-manual.html': {
       EN: 'When non-successful results (FAIL, cancel, void, unpaid, etc.) on the same card accumulate, attempts are temporarily blocked before payment (1st–4th wait). CVV and invalid card-number format are not counted, and the count resets on a successful payment. A success is never a cause for the auto-register trigger. Auto-register trigger tier N: as soon as N non-success events complete within the tracking period, the card is registered (masked) as inactive and blocking starts from the (N+1)th payment attempt. When the tracking period is Disabled, it accumulates with no time limit until a success. Both synchronous responses and confirmed notifications are reflected; 3DS pending (08) is excluded. Operations manual (HTML/PDF): docs/icopay-hq-risk-manual.html',
@@ -20825,11 +20914,11 @@
       CH: '同一张卡的 FAIL、取消、无效、未支付等非成功累计后，将在支付尝试前临时拦截(第1~4次等待)。不统计 CVV 与卡号格式错误，支付成功时计数清零。成功不会成为自动登记触发的原因。自动登记触发第N次: 在追踪周期内完成N次非成功后立即将该卡(掩码)登记为停用卡，并从第(N+1)次支付尝试起拦截。追踪周期未使用时，在成功之前不限期累计。同步响应与通知确认均会反映;3DS 等待(08)除外。运营手册(HTML/PDF): docs/icopay-hq-risk-manual.html',
       TH: 'เมื่อผลลัพธ์ที่ไม่สำเร็จ (FAIL, ยกเลิก, โมฆะ, ยังไม่ชำระ ฯลฯ) ของบัตรใบเดียวกันสะสม จะถูกบล็อกชั่วคราวก่อนลองชำระ (รอครั้งที่ 1–4) ข้อผิดพลาด CVV และรูปแบบหมายเลขบัตรจะไม่ถูกนับ และจะรีเซ็ตจำนวนเมื่อชำระสำเร็จ ความสำเร็จไม่เป็นสาเหตุของทริกเกอร์ลงทะเบียนอัตโนมัติ ทริกเกอร์ลงทะเบียนอัตโนมัติครั้งที่ N: เมื่อเหตุการณ์ไม่สำเร็จครบ N ครั้งภายในช่วงติดตาม บัตรจะถูกลงทะเบียนเป็นบัตรปิดใช้งาน (ปกปิด) ทันที และเริ่มบล็อกตั้งแต่การชำระครั้งที่ (N+1) เมื่อไม่ใช้ช่วงติดตาม จะสะสมโดยไม่จำกัดเวลาจนกว่าจะสำเร็จ สะท้อนทั้งการตอบสนองแบบซิงค์และการยืนยันการแจ้งเตือน ยกเว้น 3DS รอ (08) คู่มือปฏิบัติการ (HTML/PDF): docs/icopay-hq-risk-manual.html'
     },
-    '동일 카드 FAIL·취소·무효·미결제 등 비성공이 누적되면 JPAY 호출 전 일시 차단(1~4차 대기)합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 성공은 자동등록 트리거 원인이 되지 않습니다. 자동 등록 트리거 N차: 추적기간 안에서 비성공 N회가 완료되는 즉시 비활성카드(마스킹)에 등록되며 (N+1)번째 결제 시도부터 차단됩니다. 추적기간 미사용 시 성공 전까지 기간 제한 없이 누적합니다. 동기 응답·노티 확정 모두 반영하며 3DS 대기(08)는 제외합니다.': {
-      EN: 'When non-successful results (FAIL, cancel, void, unpaid, etc.) on the same card accumulate, it is temporarily blocked before the JPAY call (1st–4th wait). CVV and invalid card-number format are not counted, and the count resets on a successful payment. A success is never a cause for the auto-register trigger. Auto-register trigger tier N: as soon as N non-success events complete within the tracking period, the card is registered (masked) as inactive and blocking starts from the (N+1)th payment attempt. When the tracking period is Disabled, it accumulates with no time limit until a success. Both synchronous responses and confirmed notifications are reflected; 3DS pending (08) is excluded.',
-      JP: '同一カードのFAIL・取消・無効・未決済などの非成功が累積すると、JPAY呼び出し前に一時ブロック(1〜4次待機)します。CVV・カード番号形式エラーは集計せず、成功決済時にカウントが初期化されます。成功は自動登録トリガーの原因になりません。自動登録トリガーN次: 追跡期間内に非成功N回が完了した時点で無効カード(マスキング)に登録され、(N+1)回目の決済試行からブロックされます。追跡期間が未使用の場合、成功までは期間制限なく累積します。同期応答・通知確定の両方を反映し、3DS待機(08)は除外します。',
-      CH: '同一张卡的 FAIL、取消、无效、未支付等非成功累计后，将在调用 JPAY 之前临时拦截(第1~4次等待)。不统计 CVV 与卡号格式错误，支付成功时计数清零。成功不会成为自动登记触发的原因。自动登记触发第N次: 在追踪周期内完成N次非成功后立即将该卡(掩码)登记为停用卡，并从第(N+1)次支付尝试起拦截。追踪周期未使用时，在成功之前不限期累计。同步响应与通知确认均会反映;3DS 等待(08)除外。',
-      TH: 'เมื่อผลลัพธ์ที่ไม่สำเร็จ (FAIL, ยกเลิก, โมฆะ, ยังไม่ชำระ ฯลฯ) ของบัตรใบเดียวกันสะสม จะถูกบล็อกชั่วคราวก่อนเรียก JPAY (รอครั้งที่ 1–4) ข้อผิดพลาด CVV และรูปแบบหมายเลขบัตรจะไม่ถูกนับ และจะรีเซ็ตจำนวนเมื่อชำระสำเร็จ ความสำเร็จไม่เป็นสาเหตุของทริกเกอร์ลงทะเบียนอัตโนมัติ ทริกเกอร์ลงทะเบียนอัตโนมัติครั้งที่ N: เมื่อเหตุการณ์ไม่สำเร็จครบ N ครั้งภายในช่วงติดตาม บัตรจะถูกลงทะเบียนเป็นบัตรปิดใช้งาน (ปกปิด) ทันที และเริ่มบล็อกตั้งแต่การชำระครั้งที่ (N+1) เมื่อไม่ใช้ช่วงติดตาม จะสะสมโดยไม่จำกัดเวลาจนกว่าจะสำเร็จ สะท้อนทั้งการตอบสนองแบบซิงค์และการยืนยันการแจ้งเตือน ยกเว้น 3DS รอ (08)'
+    '동일 카드 FAIL·취소·무효·미결제 등 비성공이 누적되면 결제대행사 호출 전 일시 차단(1~4차 대기)합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 성공은 자동등록 트리거 원인이 되지 않습니다. 자동 등록 트리거 N차: 추적기간 안에서 비성공 N회가 완료되는 즉시 비활성카드(마스킹)에 등록되며 (N+1)번째 결제 시도부터 차단됩니다. 추적기간 미사용 시 성공 전까지 기간 제한 없이 누적합니다. 동기 응답·노티 확정 모두 반영하며 3DS 대기(08)는 제외합니다.': {
+      EN: 'When non-successful results (FAIL, cancel, void, unpaid, etc.) on the same card accumulate, it is temporarily blocked before calling the payment processor (1st–4th wait). CVV and invalid card-number format are not counted, and the count resets on a successful payment. A success is never a cause for the auto-register trigger. Auto-register trigger tier N: as soon as N non-success events complete within the tracking period, the card is registered (masked) as inactive and blocking starts from the (N+1)th payment attempt. When the tracking period is Disabled, it accumulates with no time limit until a success. Both synchronous responses and confirmed notifications are reflected; 3DS pending (08) is excluded.',
+      JP: '同一カードのFAIL・取消・無効・未決済などの非成功が累積すると、決済代行呼び出し前に一時ブロック(1〜4次待機)します。CVV・カード番号形式エラーは集計せず、成功決済時にカウントが初期化されます。成功は自動登録トリガーの原因になりません。自動登録トリガーN次: 追跡期間内に非成功N回が完了した時点で無効カード(マスキング)に登録され、(N+1)回目の決済試行からブロックされます。追跡期間が未使用の場合、成功までは期間制限なく累積します。同期応答・通知確定の両方を反映し、3DS待機(08)は除外します。',
+      CH: '同一张卡的 FAIL、取消、无效、未支付等非成功累计后，将在调用支付机构之前临时拦截(第1~4次等待)。不统计 CVV 与卡号格式错误，支付成功时计数清零。成功不会成为自动登记触发的原因。自动登记触发第N次: 在追踪周期内完成N次非成功后立即将该卡(掩码)登记为停用卡，并从第(N+1)次支付尝试起拦截。追踪周期未使用时，在成功之前不限期累计。同步响应与通知确认均会反映;3DS 等待(08)除外。',
+      TH: 'เมื่อผลลัพธ์ที่ไม่สำเร็จ (FAIL, ยกเลิก, โมฆะ, ยังไม่ชำระ ฯลฯ) ของบัตรใบเดียวกันสะสม จะถูกบล็อกชั่วคราวก่อนเรียกผู้ให้บริการชำระ (รอครั้งที่ 1–4) ข้อผิดพลาด CVV และรูปแบบหมายเลขบัตรจะไม่ถูกนับ และจะรีเซ็ตจำนวนเมื่อชำระสำเร็จ ความสำเร็จไม่เป็นสาเหตุของทริกเกอร์ลงทะเบียนอัตโนมัติ ทริกเกอร์ลงทะเบียนอัตโนมัติครั้งที่ N: เมื่อเหตุการณ์ไม่สำเร็จครบ N ครั้งภายในช่วงติดตาม บัตรจะถูกลงทะเบียนเป็นบัตรปิดใช้งาน (ปกปิด) ทันที และเริ่มบล็อกตั้งแต่การชำระครั้งที่ (N+1) เมื่อไม่ใช้ช่วงติดตาม จะสะสมโดยไม่จำกัดเวลาจนกว่าจะสำเร็จ สะท้อนทั้งการตอบสนองแบบซิงค์และการยืนยันการแจ้งเตือน ยกเว้น 3DS รอ (08)'
     },
     '현등록카드수': { EN: 'Registered cards', JP: '登録カード数', CH: '已登记卡数', TH: 'จำนวนบัตรที่ลงทะเบียน' },
     '등록구분': { EN: 'Registration', JP: '登録', CH: '登记', TH: 'การลงทะเบียน' },
@@ -21391,6 +21480,37 @@
       TH: 'ครบกำหนด T/H/D นโยบายตัวแทน Y/N'
     },
     '거래번호(우리)': { EN: 'Txn ID (ours)', JP: '取引番号（自社）', CH: '交易号（我方）', TH: 'รหัสธุรกรรม (ภายใน)' },
+    /* 결제내역 VIEW SETTING·그리드 — data-pg-ui-t 한국어 키 (COL 맵과 동일 의미) */
+    '입력통화': { EN: 'Input currency', JP: '入力通貨', CH: '输入币种', TH: 'สกุลที่ป้อน' },
+    '통화ㅣ금액': { EN: 'Ccy | amount', JP: '通貨｜金額', CH: '币种｜金额', TH: 'สกุล｜ยอด' },
+    '통화 | 금액': { EN: 'Ccy | amount', JP: '通貨｜金額', CH: '币种｜金额', TH: 'สกุล｜ยอด' },
+    '통화ㅣ 금액': { EN: 'Ccy | amount', JP: '通貨｜金額', CH: '币种｜金额', TH: 'สกุล｜ยอด' },
+    '통화｜금액': { EN: 'Ccy | amount', JP: '通貨｜金額', CH: '币种｜金额', TH: 'สกุล｜ยอด' },
+    '위치': { EN: 'Location', JP: '位置', CH: '位置', TH: 'ตำแหน่ง' },
+    '단말기': { EN: 'Device', JP: '端末', CH: '终端', TH: 'อุปกรณ์' },
+    '원인': { EN: 'Cause', JP: '原因', CH: '原因', TH: 'สาเหตุ' },
+    '고객표시': { EN: 'Shopper label', JP: '顧客表示', CH: '客户显示', TH: 'ป้ายลูกค้า' },
+    '고객통화': { EN: 'Shopper ccy', JP: '顧客通貨', CH: '客户币种', TH: 'สกุลลูกค้า' },
+    '고객금액': { EN: 'Shopper amt', JP: '顧客金額', CH: '客户金额', TH: 'ยอดลูกค้า' },
+    '본사기준통화': { EN: 'HQ base ccy', JP: '本社基準通貨', CH: '总部基准货币', TH: 'สกุลฐานสำนักงานใหญ่' },
+    '총판기준통화': { EN: 'Dist. base ccy', JP: '総販基準通貨', CH: '总代基准货币', TH: 'สกุลฐานตัวแทนหลัก' },
+    '가맹기준통화': { EN: 'Merchant base ccy', JP: '加盟店基準通貨', CH: '商户基准货币', TH: 'สกุลฐานร้านค้า' },
+    '가맹점기준통화': { EN: 'Merchant base ccy', JP: '加盟店基準通貨', CH: '商户基准货币', TH: 'สกุลฐานร้านค้า' },
+    '결제대행': { EN: 'PG', JP: '決済代行', CH: '支付代理', TH: 'ตัวแทนรับชำระ' },
+    '결제카드': { EN: 'Card', JP: '決済カード', CH: '支付卡', TH: 'บัตร' },
+    '할부개월': { EN: 'Installments', JP: '分割回数', CH: '分期月数', TH: 'งวดผ่อน' },
+    '구매상품': { EN: 'Product', JP: '購入商品', CH: '商品', TH: 'สินค้า' },
+    '고객명(결제자)': { EN: 'Payer name', JP: '顧客名', CH: '付款人姓名', TH: 'ชื่อผู้ชำระ' },
+    '이메일(결제자)': { EN: 'Payer email', JP: 'メール', CH: '付款人邮箱', TH: 'อีเมลผู้ชำระ' },
+    '휴대폰(결제자)': { EN: 'Payer mobile', JP: '携帯', CH: '付款人手机', TH: 'มือถือผู้ชำระ' },
+    'PG승인번호': { EN: 'PG approval no.', JP: 'PG承認番号', CH: 'PG授权号', TH: 'เลขอนุมัติ PG' },
+    '거래번호(자사)': { EN: 'Our txn no.', JP: '自社取引番号', CH: '内部交易号', TH: 'เลขธุรกรรมภายใน' },
+    '처리사유': { EN: 'Outcome reason', JP: '処理理由', CH: '处理原因', TH: 'เหตุผลการดำเนินการ' },
+    '결제시각': { EN: 'Paid at', JP: '決済日時', CH: '支付完成时间', TH: 'เวลาชำระเงิน' },
+    '후속조치': { EN: 'Follow-up', JP: '後続措置', CH: '后续处理', TH: 'ดำเนินการต่อ' },
+    'PG승인': { EN: 'PG approval', JP: 'PG承認', CH: 'PG授权', TH: 'อนุมัติ PG' },
+    '법인명': { EN: 'Corporate name', JP: '法人名', CH: '法人名称', TH: 'ชื่อนิติบุคคล' },
+    '지급일시': { EN: 'Payout at', JP: '支払日時', CH: '拨付时间', TH: 'เวลาจ่าย' },
     '결제통화': { EN: 'Pay currency', JP: '決済通貨', CH: '支付币种', TH: 'สกุลชำระ' },
     '정책통화': { EN: 'Policy currency', JP: '政策通貨', CH: '政策币种', TH: 'สกุลนโยบาย' },
     '결제(%)': { EN: 'Pay (%)', JP: '決済(%)', CH: '支付(%)', TH: 'ชำระ (%)' },
@@ -24692,6 +24812,11 @@
     var sKo = String(ko);
     if (sKo === '이메일무효') sKo = '이메일 무효';
     else if (sKo === '이메일무효(거래)') sKo = '이메일 무효(거래)';
+    else if (sKo === '통화 | 금액' || sKo === '통화ㅣ 금액' || sKo === '통화 |금액' || sKo === '통화｜금액' || sKo === '통화 ｜ 금액') sKo = '통화ㅣ금액';
+    else if (sKo === '최근 본사나 결제대행를 사칭해 금전적 요구를 하는 사례가 발생하고 있습니다.'
+        || sKo === '최근 본사나 결제대행사를 사칭해 금전적 요구를 하는 사례가 발생하고 있습니다.') {
+      sKo = '최근 본사나 PG사를 사칭해 금전적 요구를 하는 사례가 발생하고 있습니다.';
+    }
     var sk0 = STATIC[sKo];
     /* 폼 라벨: pgUiFormLabelSpan이 필수 * 표시용으로 끝의 *를 떼어 data-pg-ui-t에 넣는 경우가 많아, STATIC/맵은 * 포함 키만 있는 경우가 있다. */
     if (!sk0 && sKo.indexOf('*') === -1) {

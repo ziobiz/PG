@@ -4,6 +4,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!--PG_OG_START-->
+  <meta name="description" content="ICOPAY payment and settlement platform.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="ICOPAY">
+  <meta property="og:description" content="ICOPAY payment and settlement platform.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="ICOPAY">
+  <meta name="twitter:description" content="ICOPAY payment and settlement platform.">
+  <!--PG_OG_END-->
   <title data-pg-ui-t="PG 통합관리자">PG 통합관리자</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
@@ -18,9 +27,9 @@
     .login-main-area .main-logo { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); max-height: 60px; max-width: 80%; object-fit: contain; z-index: 2; }
     .login-main-area .main-text {
       position: absolute;
-      left: 18%;
-      top: 38%;
-      transform: translateY(-50%);
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
       color: #0f172a;
       font-size: 42px;
       line-height: 1.25;
@@ -28,7 +37,9 @@
       letter-spacing: 0.5px;
       z-index: 2;
       text-shadow: 0 1px 1px rgba(255,255,255,0.35);
-      max-width: 48%;
+      max-width: 72%;
+      width: max-content;
+      text-align: center;
       white-space: pre-line;
     }
     .login-panel-wrap {
@@ -40,15 +51,34 @@
     .login-panel-wrap::-webkit-scrollbar-thumb { background: #adb5bd; border-radius: 4px; }
     .login-panel-wrap.login-otp-flow { width: 100%; max-width: 440px; min-width: 320px; }
     .login-panel { padding: 18px 16px; flex: 1; }
-    .login-panel .logo-top { max-height: 42px; max-width: 170px; margin: 0 0 18px; object-fit: contain; display: block; }
+    .login-panel .logo-top { max-height: 42px; max-width: 170px; margin: 0 auto 18px; object-fit: contain; display: block; }
+    .login-panel #loginPanelTitle { text-align: center; }
     .login-panel .form-control { background: #e8f4fd; }
     .notice-section { font-size: 12px; color: #495057; background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%); border: 1px solid #dee2e6; padding: 12px 14px; margin: 0 0 16px; border-radius: 8px; line-height: 1.55; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06); }
     .notice-title { font-size: 13px; font-weight: 700; margin: 0 0 8px; letter-spacing: -0.02em; color: #343a40; }
     .notice-section p { margin: 0 0 8px; }
     .notice-section p:last-child { margin-bottom: 0; }
     .login-host-note { font-size: 11px; color: #334155; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 4px; padding: 6px 8px; margin-top: 0; }
-    #loginTurnstileWrap { min-height: 70px; }
-    #loginTurnstile { display: flex; justify-content: center; }
+    #loginTurnstileWrap { margin: 4px 0 12px; min-height: 0; width: 100%; position: relative; }
+    .login-turnstile-banner {
+      margin: 0; padding: 11px 14px; border-radius: 8px;
+      font-size: 13px; line-height: 1.45; text-align: center;
+      background: #fff7ea; border: 1px solid #eadfce; color: #5a5146;
+    }
+    .login-turnstile-banner.is-err { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+    #loginTurnstileWrap.is-ok .login-turnstile-banner-wait,
+    #loginTurnstileWrap.is-err .login-turnstile-banner-wait { display: none; }
+    #loginTurnstileWrap:not(.is-err) .login-turnstile-banner-err { display: none; }
+    /* height:0 / display:none 은 Turnstile 토큰이 서버 siteverify 에서 거절되는 경우가 있어 화면 밖 배치만 사용 */
+    #loginTurnstile {
+      position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+      overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; white-space: nowrap;
+    }
+    #loginTurnstileWrap.is-challenge #loginTurnstile {
+      position: static; width: auto; height: auto; min-height: 65px; margin: 8px 0 0;
+      clip: auto; overflow: visible; white-space: normal;
+      display: flex; justify-content: center;
+    }
     .login-popcon { position: fixed; right: 14px; bottom: 14px; z-index: 1200; max-width: 220px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.18); overflow: hidden; }
     .login-popcon img { display: block; width: 100%; height: auto; }
     .login-popcon .btn-close-wrap { position: absolute; top: 6px; right: 6px; }
@@ -58,8 +88,9 @@
       .login-main-area { min-height: 96px; max-height: 26vh; flex: 0 0 auto; }
       .login-panel-wrap { width: 100%; min-width: 0; flex: 1 1 auto; min-height: 0; max-height: none; }
       .login-main-area .main-text {
-        left: 8%;
-        top: 62%;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
         font-size: 28px;
         max-width: 84%;
       }
@@ -160,10 +191,12 @@
             <label for="otpNo" class="form-label" data-pg-ui-t="OTP번호">OTP번호</label>
             <input type="text" class="form-control" id="otpNo" name="otpNo">
           </div>
-          <div class="mb-3" id="loginTurnstileWrap">
-            <div id="loginTurnstile" class="cf-turnstile" aria-label="보안 확인"></div>
+          <div class="mb-3 is-wait" id="loginTurnstileWrap">
+            <p class="login-turnstile-banner login-turnstile-banner-wait" id="loginTurnstileWait" data-pg-ui-t="로봇 접근을 확인 중입니다. 잠시 대기해 주세요.">로봇 접근을 확인 중입니다. 잠시 대기해 주세요.</p>
+            <p class="login-turnstile-banner is-err login-turnstile-banner-err" id="loginTurnstileErr" data-pg-ui-t="확인에 실패했습니다. 화면을 새로고침한 뒤 다시 시도해 주세요.">확인에 실패했습니다. 화면을 새로고침한 뒤 다시 시도해 주세요.</p>
+            <div id="loginTurnstile" class="cf-turnstile" aria-hidden="true"></div>
           </div>
-          <button type="submit" class="btn btn-primary w-100" id="loginBtn" data-pg-ui-t="로그인">로그인</button>
+          <button type="submit" class="btn btn-primary w-100" id="loginBtn" data-pg-ui-t="로그인" disabled>로그인</button>
         </form>
         </div>
         <div id="loginOtpBlock" class="d-none border rounded p-3 mb-2" style="background:#fafbfc;border-color:#dee2e6!important;">
@@ -248,9 +281,9 @@
       }
     })();
   </script>
-  <script src="js/api.js?v=15"></script>
-  <script src="js/pg-ui-string-map.js?v=16"></script>
-  <script src="js/pg-ui-i18n.js?v=99"></script>
+  <script src="js/api.js?v=18"></script>
+  <script src="js/pg-ui-string-map.js?v=49"></script>
+  <script src="js/pg-ui-i18n.js?v=103"></script>
   <script src="js/pg-login-tablet-shell.js?v=5"></script>
   <script>
     (function () {
@@ -281,6 +314,18 @@
         } catch (eTabPan) { /* ignore */ }
       }
 
+      function locNoticeText(s) {
+        var raw = s == null ? '' : String(s);
+        if (!raw) return '';
+        var tfn = window.PG_UI_I18N && typeof window.PG_UI_I18N.t === 'function' ? window.PG_UI_I18N.t : null;
+        if (!tfn) return raw;
+        return raw.split(/\n/).map(function (line) {
+          var t = line.trim();
+          if (!t) return line;
+          return tfn(t);
+        }).join('\n');
+      }
+
       function applyLoginNoticeBlock(notice, titleElId, defWrapId, bodyElId) {
         if (!notice || !notice.hasNotice || !notice.title) return;
         var h3 = document.getElementById(titleElId);
@@ -289,9 +334,13 @@
         if (defWrap) defWrap.classList.add('d-none');
         if (apiBody) {
           apiBody.classList.remove('d-none');
-          apiBody.textContent = notice.body != null ? String(notice.body) : '';
+          apiBody.textContent = locNoticeText(notice.body != null ? String(notice.body) : '');
         }
-        if (h3) h3.textContent = String(notice.title);
+        if (h3) {
+          var titleKo = String(notice.title);
+          h3.setAttribute('data-pg-ui-t', titleKo);
+          h3.textContent = locNoticeText(titleKo);
+        }
       }
 
       function showLoginNoticePopup(notice) {
@@ -300,8 +349,8 @@
         if (!modalEl) return;
         var tEl = document.getElementById('loginNoticePopupTitle');
         var bEl = document.getElementById('loginNoticePopupBody');
-        if (tEl) tEl.textContent = String(notice.title);
-        if (bEl) bEl.textContent = notice.body != null ? String(notice.body) : '';
+        if (tEl) tEl.textContent = locNoticeText(String(notice.title));
+        if (bEl) bEl.textContent = locNoticeText(notice.body != null ? String(notice.body) : '');
         try {
           var M = window.bootstrap && window.bootstrap.Modal;
           if (!M) return;
@@ -549,6 +598,7 @@
       var loginPending = null;
       var LOGIN_TURNSTILE_SITE_KEY = '0x4AAAAAAE1pxXBOGzlF1ppP';
       var loginTurnstileWidgetId = null;
+      var loginTurnstileState = 'wait';
 
       function loginTurnstileLang() {
         try {
@@ -565,6 +615,19 @@
         return 'auto';
       }
 
+      function setLoginTurnstileState(state) {
+        loginTurnstileState = state || 'wait';
+        var wrap = document.getElementById('loginTurnstileWrap');
+        var btn = document.getElementById('loginBtn');
+        if (wrap) {
+          wrap.classList.remove('is-wait', 'is-ok', 'is-challenge', 'is-err');
+          wrap.classList.add('is-' + loginTurnstileState);
+        }
+        if (btn && !btn.classList.contains('d-none')) {
+          btn.disabled = loginTurnstileState !== 'ok';
+        }
+      }
+
       function getLoginTurnstileToken() {
         try {
           if (window.turnstile && loginTurnstileWidgetId != null) {
@@ -576,6 +639,7 @@
       }
 
       function resetLoginTurnstile() {
+        setLoginTurnstileState('wait');
         try {
           if (window.turnstile && loginTurnstileWidgetId != null) {
             window.turnstile.reset(loginTurnstileWidgetId);
@@ -602,17 +666,31 @@
         var el = document.getElementById('loginTurnstile');
         if (!el || !window.turnstile) return;
         if (loginTurnstileWidgetId != null) return;
+        setLoginTurnstileState('wait');
         try {
           loginTurnstileWidgetId = window.turnstile.render(el, {
             sitekey: LOGIN_TURNSTILE_SITE_KEY,
             theme: 'light',
-            appearance: 'always',
+            appearance: 'interaction-only',
+            size: 'flexible',
+            retry: 'auto',
+            action: 'admin-login',
             language: loginTurnstileLang(),
-            callback: function () { tryAutoSubmitTotpIfReady(); },
-            'expired-callback': function () { /* token expired — user must wait for a new challenge */ },
-            'error-callback': function () { /* widget error — submit will prompt again */ }
+            callback: function () {
+              setLoginTurnstileState('ok');
+              tryAutoSubmitTotpIfReady();
+            },
+            'expired-callback': function () { setLoginTurnstileState('wait'); },
+            'error-callback': function () { setLoginTurnstileState('err'); },
+            'timeout-callback': function () { setLoginTurnstileState('err'); },
+            'before-interactive-callback': function () { setLoginTurnstileState('challenge'); },
+            'after-interactive-callback': function () {
+              if (getLoginTurnstileToken()) setLoginTurnstileState('ok');
+            }
           });
-        } catch (eRender) { /* ignore */ }
+        } catch (eRender) {
+          setLoginTurnstileState('err');
+        }
       }
       window.pgOnTurnstileLoad = renderLoginTurnstile;
       if (window.turnstile) renderLoginTurnstile();
@@ -625,6 +703,7 @@
             renderLoginTurnstile();
           } else if (tsWait > 80) {
             clearInterval(tsTimer);
+            if (loginTurnstileWidgetId == null) setLoginTurnstileState('err');
           }
         }, 100);
       }
@@ -676,7 +755,7 @@
         var userPwd = document.getElementById('userPwd').value;
         if (!userId || !userPwd) { alert(trKo('아이디와 비밀번호를 입력하세요.', 'Enter user ID and password.')); return; }
         if (!getLoginTurnstileToken()) {
-          alert(trKo('보안 확인을 완료해 주세요.', 'Please complete the security check.'));
+          alert(trKo('로봇 확인이 끝날 때까지 잠시 기다려 주세요.', 'Please wait until the security check finishes.'));
           return;
         }
         doLogin(userId, userPwd);
@@ -772,7 +851,7 @@
               return;
             }
             if (ec === 'TURNSTILE_REQUIRED' || ec === 'TURNSTILE_FAIL' || ec === 'TURNSTILE_ERROR') {
-              alert(err && err.message ? err.message : trKo('보안 확인을 완료해 주세요.', 'Please complete the security check.'));
+              alert(err && err.message ? err.message : trKo('로봇 확인이 끝날 때까지 잠시 기다려 주세요.', 'Please wait until the security check finishes.'));
               return;
             }
             if (mfaBlock) mfaBlock.classList.add('d-none');

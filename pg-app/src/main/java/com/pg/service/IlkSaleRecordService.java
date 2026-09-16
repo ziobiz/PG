@@ -7,6 +7,7 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.util.PgTrnsctnOrderLookup;
 import com.pg.util.RouteNoDisplayUtil;
+import com.pg.util.UrlPaySaleTxnFieldApplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -34,13 +36,16 @@ public class IlkSaleRecordService {
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final OrgUnitRepository orgUnitRepository;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
+    private final PayCardFailCooldownService payCardFailCooldownService;
 
     public IlkSaleRecordService(PgTrnsctnRepository pgTrnsctnRepository,
                                 OrgUnitRepository orgUnitRepository,
-                                HqLedgerSysSettingsService hqLedgerSysSettingsService) {
+                                HqLedgerSysSettingsService hqLedgerSysSettingsService,
+                                PayCardFailCooldownService payCardFailCooldownService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
+        this.payCardFailCooldownService = payCardFailCooldownService;
     }
 
     @Transactional
@@ -57,10 +62,30 @@ public class IlkSaleRecordService {
                                      String shopperDisplayCurrency,
                                      boolean subscription,
                                      String ilkAuthOrPaymentId) {
+        recordOrTouchPending(orgUnitId, orderNo, amount, currency, routeNo, productName, txnOrigin,
+                buyerName, buyerEmail, shopperDisplayAmount, shopperDisplayCurrency,
+                subscription, ilkAuthOrPaymentId, null);
+    }
+
+    @Transactional
+    public void recordOrTouchPending(Long orgUnitId,
+                                     String orderNo,
+                                     BigDecimal amount,
+                                     String currency,
+                                     Integer routeNo,
+                                     String productName,
+                                     String txnOrigin,
+                                     String buyerName,
+                                     String buyerEmail,
+                                     BigDecimal shopperDisplayAmount,
+                                     String shopperDisplayCurrency,
+                                     boolean subscription,
+                                     String ilkAuthOrPaymentId,
+                                     Map<String, Object> saleBody) {
         try {
             doRecord(orgUnitId, orderNo, amount, currency, routeNo, productName, txnOrigin,
                     buyerName, buyerEmail, shopperDisplayAmount, shopperDisplayCurrency,
-                    subscription, ilkAuthOrPaymentId);
+                    subscription, ilkAuthOrPaymentId, saleBody);
         } catch (Exception e) {
             log.warn("ILK 대기 거래 적재 실패: {}", e.getMessage());
         }
@@ -78,7 +103,8 @@ public class IlkSaleRecordService {
                           BigDecimal shopperDisplayAmount,
                           String shopperDisplayCurrency,
                           boolean subscription,
-                          String ilkAuthOrPaymentId) {
+                          String ilkAuthOrPaymentId,
+                          Map<String, Object> saleBody) {
         if (orgUnitId == null || orderNo == null || orderNo.isBlank()) {
             return;
         }
@@ -119,6 +145,8 @@ public class IlkSaleRecordService {
         if (routeStored != null) {
             t.setRouteNo(routeStored);
         }
+        UrlPaySaleTxnFieldApplier.apply(t, saleBody);
+        UrlPaySaleTxnFieldApplier.ensureUrlWebDevice(t, origin);
         if (buyerName != null && !buyerName.isBlank()) {
             t.setCustomerNm(truncate(buyerName.trim(), 200));
         }
@@ -161,6 +189,8 @@ public class IlkSaleRecordService {
                 return Optional.empty();
             }
             PgTrnsctn t = ex.get();
+            String prevStatus = t.getStatus();
+            String prevReason = t.getOutcomeReasonCode();
             if (paymentId != null && !paymentId.isBlank()) {
                 t.setChillTransactionId(truncate(paymentId.trim(), 64));
                 t.setApprovalNo(truncate(paymentId.trim(), 20));
@@ -184,6 +214,7 @@ public class IlkSaleRecordService {
                 }
             }
             pgTrnsctnRepository.save(t);
+            payCardFailCooldownService.applyFromTxn(PgVendor.ILK, t, prevStatus, prevReason);
             return Optional.of(t);
         } catch (Exception e) {
             log.warn("ILK 결과 반영 실패: {}", e.getMessage());
@@ -198,6 +229,8 @@ public class IlkSaleRecordService {
             return Optional.empty();
         }
         PgTrnsctn t = ex.get();
+        String prevStatus = t.getStatus();
+        String prevReason = t.getOutcomeReasonCode();
         t.setStatus(ST_CANCEL);
         if (cancelId != null && !cancelId.isBlank()) {
             t.setChillTransactionId(truncate(cancelId.trim(), 64));
@@ -206,7 +239,37 @@ public class IlkSaleRecordService {
             t.setChillPaymentStatus(truncate(msg.trim(), 50));
         }
         pgTrnsctnRepository.save(t);
+        payCardFailCooldownService.applyFromTxn(PgVendor.ILK, t, prevStatus, prevReason);
         return Optional.of(t);
+    }
+
+    @Transactional
+    public String applyIcopayPresaleRiskCancel(String merchantId, String orderNo, String txnOrigin,
+                                               String reasonMessage) {
+        if (merchantId == null || merchantId.isBlank() || orderNo == null || orderNo.isBlank()) {
+            return null;
+        }
+        try {
+            Optional<PgTrnsctn> ex = findTxnForOrder(merchantId.trim(), orderNo.trim());
+            if (ex.isEmpty()) {
+                return null;
+            }
+            PgTrnsctn t = ex.get();
+            t.setStatus(ST_CANCEL);
+            t.setPaidAt(null);
+            String reason = reasonMessage != null ? reasonMessage.trim() : "";
+            if (!reason.isEmpty()) {
+                t.setChillPaymentStatus(truncate(reason, 50));
+                t.setOutcomeReason(reason);
+                t.setOutcomeReasonSource("ICOPAY");
+                t.setOutcomeReasonAt(LocalDateTime.now());
+            }
+            pgTrnsctnRepository.save(t);
+            return t.getTrnId();
+        } catch (Exception e) {
+            log.warn("ILK 사전 리스크 취소 반영 오류: {}", e.getMessage());
+            return null;
+        }
     }
 
     public Optional<PgTrnsctn> findAnyByOrder(String orderNo) {

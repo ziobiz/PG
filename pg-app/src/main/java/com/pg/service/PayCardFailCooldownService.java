@@ -1,5 +1,6 @@
 package com.pg.service;
 
+import com.pg.entity.OrgUnit;
 import com.pg.entity.PayCardFailCooldown;
 import com.pg.entity.PayCardFailRiskEvent;
 import com.pg.entity.PgTrnsctn;
@@ -9,11 +10,12 @@ import com.pg.repository.PayCardFailCooldownRepository;
 import com.pg.repository.PayCardFailRiskEventRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.util.CardRiskTrackPeriod;
-import com.pg.util.NotifyToTxnStatusMerge;
 import com.pg.util.PayCardBrandDetector;
 import com.pg.util.PayCardFailOutcomeRules;
 import com.pg.util.PayCardMaskKeyUtil;
 import com.pg.util.PayCardPanHashUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -29,6 +31,8 @@ import java.util.Optional;
 
 @Service
 public class PayCardFailCooldownService {
+
+    private static final Logger log = LoggerFactory.getLogger(PayCardFailCooldownService.class);
 
     public static final String ERROR_CODE = "CARD_COOLDOWN";
 
@@ -216,6 +220,61 @@ public class PayCardFailCooldownService {
         applyFailure(pg, cardPanHash.trim(), panMaskKey, orgUnitId, policy, outcomeCode, holderName);
     }
 
+    /**
+     * 전 PG 공통 — 거래 승인(10) 시 실패 누적 RESET, 비성공 확정 시 1회 집계.
+     * 환불·차지백(30/31/42)은 집계하지 않는다. JPAY 사후 고위험/PY0124 는 호출 측에서 별도 처리.
+     */
+    @Transactional
+    public void applyFromTxn(String pgVendorRaw, PgTrnsctn t, String prevStatus, String prevOutcomeReasonCode) {
+        if (t == null) {
+            return;
+        }
+        try {
+            String hash = t.getCardPanHash();
+            if (hash == null || hash.isBlank()) {
+                return;
+            }
+            String merged = t.getStatus();
+            if (isRefundOrChargebackStatus(merged)) {
+                return;
+            }
+            Long orgUnitId = resolveOrgUnitId(t);
+            if (merged != null && "10".equals(merged.trim())) {
+                clearOnSuccessByHash(pgVendorRaw, hash, orgUnitId);
+                return;
+            }
+            if (!PayCardFailOutcomeRules.shouldRecordNewRiskFailure(
+                    prevStatus, prevOutcomeReasonCode, merged, t.getOutcomeReasonCode())) {
+                return;
+            }
+            Optional<String> riskCode = PayCardFailOutcomeRules.outcomeCodeForTxnRiskCount(
+                    merged, t.getOutcomeReasonCode());
+            if (riskCode.isEmpty()) {
+                return;
+            }
+            recordFromTxnHash(pgVendorRaw, hash.trim(), t.getCardPanDisplay(), riskCode.get(),
+                    t.getOutcomeReason(), orgUnitId, t.getCustomerNm());
+        } catch (Exception e) {
+            log.warn("카드 실패 쿨다운 반영 실패 pg={} orderNo={}: {}",
+                    pgVendorRaw, t.getOrderNo(), e.getMessage());
+        }
+    }
+
+    private static boolean isRefundOrChargebackStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return false;
+        }
+        String s = status.trim();
+        return "42".equals(s) || "31".equals(s) || "30".equals(s);
+    }
+
+    private Long resolveOrgUnitId(PgTrnsctn t) {
+        if (t == null || t.getMerchantId() == null || t.getMerchantId().isBlank()) {
+            return null;
+        }
+        return orgUnitRepository.findByCode(t.getMerchantId().trim()).map(OrgUnit::getId).orElse(null);
+    }
+
     private void applyFailure(String pg, String hash, String panMaskKey, Long orgUnitId,
                               CardRiskPolicyEffective policy, String outcomeCode, String holderName) {
         LocalDateTime now = LocalDateTime.now();
@@ -224,7 +283,8 @@ public class PayCardFailCooldownService {
         row.setPanHash(hash);
         row.setOrgUnitId(orgUnitId);
         if (panMaskKey != null && !panMaskKey.isBlank()) {
-            row.setPanMaskKey(panMaskKey.trim());
+            String normalized = PayCardMaskKeyUtil.normalizeMaskInput(panMaskKey);
+            row.setPanMaskKey(!normalized.isEmpty() ? normalized : panMaskKey.trim());
         }
 
         appendRiskEvent(pg, hash, orgUnitId, outcomeCode, now);

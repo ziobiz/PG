@@ -45,15 +45,18 @@ public class ElementPaySaleRecordService {
     private final OrgUnitRepository orgUnitRepository;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
     private final PayerLocationEnrichmentService payerLocationEnrichmentService;
+    private final PayCardFailCooldownService payCardFailCooldownService;
 
     public ElementPaySaleRecordService(PgTrnsctnRepository pgTrnsctnRepository,
                                        OrgUnitRepository orgUnitRepository,
                                        HqLedgerSysSettingsService hqLedgerSysSettingsService,
-                                       PayerLocationEnrichmentService payerLocationEnrichmentService) {
+                                       PayerLocationEnrichmentService payerLocationEnrichmentService,
+                                       PayCardFailCooldownService payCardFailCooldownService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
         this.payerLocationEnrichmentService = payerLocationEnrichmentService;
+        this.payCardFailCooldownService = payCardFailCooldownService;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -236,6 +239,8 @@ public class ElementPaySaleRecordService {
                 return Optional.empty();
             }
             PgTrnsctn t = ex.get();
+            String prevStatus = t.getStatus();
+            String prevReason = t.getOutcomeReasonCode();
             if (paymentId != null && !paymentId.isBlank()) {
                 t.setChillTransactionId(truncate(paymentId.trim(), 64));
                 t.setApprovalNo(truncate(paymentId.trim(), 20));
@@ -275,6 +280,7 @@ public class ElementPaySaleRecordService {
                 }
             }
             pgTrnsctnRepository.save(t);
+            payCardFailCooldownService.applyFromTxn(PgVendor.ELEMENTPAY, t, prevStatus, prevReason);
             return Optional.of(t);
         } catch (Exception e) {
             log.warn("ElementPay 결과 반영 실패: {}", e.getMessage());
@@ -384,6 +390,8 @@ public class ElementPaySaleRecordService {
             return Optional.empty();
         }
         PgTrnsctn t = found.get();
+        String prevStatus = t.getStatus();
+        String prevReason = t.getOutcomeReasonCode();
         String cur = t.getStatus() != null ? t.getStatus().trim() : "";
         String msg = ElementPayCallbackEventUtil.defaultMessage(spec, rawMethod);
         rememberPaymentIdIfBlank(t, paymentId);
@@ -435,7 +443,40 @@ public class ElementPaySaleRecordService {
             }
         }
         pgTrnsctnRepository.save(t);
+        payCardFailCooldownService.applyFromTxn(PgVendor.ELEMENTPAY, t, prevStatus, prevReason);
         return Optional.of(t);
+    }
+
+    /**
+     * ICOPAY 사전 리스크 필터 차단 — 대기 거래를 취소(20)로 전환하고 결제목록에 남긴다.
+     */
+    @Transactional
+    public String applyIcopayPresaleRiskCancel(String merchantId, String orderNo, String txnOrigin,
+                                               String reasonMessage) {
+        if (merchantId == null || merchantId.isBlank() || orderNo == null || orderNo.isBlank()) {
+            return null;
+        }
+        try {
+            Optional<PgTrnsctn> ex = findTxnForOrder(merchantId.trim(), orderNo.trim());
+            if (ex.isEmpty()) {
+                return null;
+            }
+            PgTrnsctn t = ex.get();
+            t.setStatus(ST_CANCEL);
+            t.setPaidAt(null);
+            String reason = reasonMessage != null ? reasonMessage.trim() : "";
+            if (!reason.isEmpty()) {
+                t.setChillPaymentStatus(truncate(reason, 50));
+                t.setOutcomeReason(reason);
+                t.setOutcomeReasonSource("ICOPAY");
+                t.setOutcomeReasonAt(LocalDateTime.now());
+            }
+            pgTrnsctnRepository.save(t);
+            return t.getTrnId();
+        } catch (Exception e) {
+            log.warn("ElementPay 사전 리스크 취소 반영 오류: {}", e.getMessage());
+            return null;
+        }
     }
 
     private static void applyFailFields(PgTrnsctn t, String msg) {

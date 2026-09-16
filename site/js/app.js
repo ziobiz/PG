@@ -1953,7 +1953,8 @@
       : (imageType === 'first'
         ? 'brandingFirstLogoImageUrl'
         : (imageType === 'popcon' ? 'brandingPopconImageUrl'
-          : (imageType === 'urlPay' ? 'brandingUrlPayImageUrl' : 'brandingMainImageUrl')));
+          : (imageType === 'urlPay' ? 'brandingUrlPayImageUrl'
+            : (imageType === 'og' ? 'brandingOgImageUrl' : 'brandingMainImageUrl'))));
     var el = rootEl.querySelector('#' + id);
     if (!el) return;
     var label = pgBrandingDisplayNameAfterUpload(data, fallbackFile);
@@ -2120,6 +2121,95 @@
     if (logoEl) logoEl.value = b.logoImageUrl ? pgBrandingBasenameFromStoredUrl(b.logoImageUrl) : '';
     if (urlPayEl) urlPayEl.value = b.urlPayImageUrl ? pgBrandingBasenameFromStoredUrl(b.urlPayImageUrl) : '';
     if (popconEl) popconEl.value = b.popconImageUrl ? pgBrandingBasenameFromStoredUrl(b.popconImageUrl) : '';
+    var ogEl = rootEl.querySelector('#brandingOgImageUrl');
+    if (ogEl) ogEl.value = b.ogImageUrl ? pgBrandingBasenameFromStoredUrl(b.ogImageUrl) : '';
+    pgBrandingFillOgTextFromFetch(rootEl, b);
+  }
+  function pgBrandingFillOgTextFromFetch(rootEl, b) {
+    if (!rootEl || !b) return;
+    function setv(id, val) {
+      var el = rootEl.querySelector('#' + id);
+      if (el) el.value = val != null ? String(val) : '';
+    }
+    var modeEl = rootEl.querySelector('#brandingOgMode');
+    if (modeEl && b.ogMode) modeEl.value = b.ogMode;
+    setv('brandingOgTitleKo', b.ogTitleKo);
+    setv('brandingOgTitleEn', b.ogTitleEn);
+    setv('brandingOgTitleJp', b.ogTitleJp);
+    setv('brandingOgTitleCh', b.ogTitleCh);
+    setv('brandingOgTitleTh', b.ogTitleTh);
+    setv('brandingOgDescKo', b.ogDescKo);
+    setv('brandingOgDescEn', b.ogDescEn);
+    setv('brandingOgDescJp', b.ogDescJp);
+    setv('brandingOgDescCh', b.ogDescCh);
+    setv('brandingOgDescTh', b.ogDescTh);
+    pgBrandingSyncOgFields(rootEl);
+  }
+  function pgBrandingOgExtra(rootEl) {
+    if (!rootEl) return undefined;
+    var modeEl = rootEl.querySelector('#brandingOgMode');
+    if (!modeEl) return undefined;
+    function v(id) {
+      var el = rootEl.querySelector('#' + id);
+      return el ? String(el.value || '') : '';
+    }
+    return {
+      ogMode: modeEl.value || 'FOLLOW_HQ',
+      ogTitleKo: v('brandingOgTitleKo'),
+      ogTitleEn: v('brandingOgTitleEn'),
+      ogTitleJp: v('brandingOgTitleJp'),
+      ogTitleCh: v('brandingOgTitleCh'),
+      ogTitleTh: v('brandingOgTitleTh'),
+      ogDescKo: v('brandingOgDescKo'),
+      ogDescEn: v('brandingOgDescEn'),
+      ogDescJp: v('brandingOgDescJp'),
+      ogDescCh: v('brandingOgDescCh'),
+      ogDescTh: v('brandingOgDescTh')
+    };
+  }
+  function pgBrandingSyncOgFields(rootEl) {
+    if (!rootEl) return;
+    var form = rootEl.querySelector('form') || rootEl.closest('form') || rootEl;
+    var divEl = form.querySelector('[name="compDiv"]');
+    var lvl = divEl && divEl.value ? String(divEl.value).toUpperCase() : '';
+    var wrap = rootEl.querySelector('#brandingOgWrap');
+    var show = lvl === 'HEADQUARTERS' || lvl === 'REGIONAL' || lvl === 'MASTER_DIST' || !lvl;
+    if (wrap) {
+      if (lvl === 'MERCHANT' || lvl === 'BRANCH' || lvl === 'AGENCY' || lvl === 'SALES_OFFICE' || lvl === 'DISTRIBUTOR') {
+        wrap.style.display = 'none';
+      } else {
+        wrap.style.display = show ? '' : '';
+      }
+    }
+    var modeEl = rootEl.querySelector('#brandingOgMode');
+    var followOpt = rootEl.querySelector('#brandingOgMode option[value="FOLLOW_HQ"]');
+    if (lvl === 'HEADQUARTERS') {
+      if (modeEl) {
+        modeEl.value = 'CUSTOM';
+        modeEl.disabled = true;
+      }
+      if (followOpt) followOpt.disabled = true;
+    } else {
+      if (modeEl) modeEl.disabled = false;
+      if (followOpt) followOpt.disabled = false;
+    }
+    var custom = lvl === 'HEADQUARTERS' || !modeEl || modeEl.value === 'CUSTOM';
+    rootEl.querySelectorAll('[data-og-custom-field]').forEach(function (el) {
+      el.disabled = !custom;
+    });
+  }
+  function pgBrandingChainOgUpload(form, compId, chain) {
+    var ogFile = form.querySelector('#brandingOgImageFile');
+    if (ogFile && ogFile.files && ogFile.files[0]) {
+      var f = ogFile.files[0];
+      chain = chain.then(function () {
+        return window.PG_API.orgBrandingUpload(compId, 'og', f).then(function (data) {
+          pgBrandingSetImageDisplayInput(form, 'og', data, f);
+          return data;
+        });
+      });
+    }
+    return chain;
   }
   function pgBindBrandingBrowse(rootEl) {
     if (!rootEl) return;
@@ -2128,7 +2218,8 @@
       { imageType: 'first', browse: '#brandingFirstLogoImageBrowse', del: '#brandingFirstLogoImageDelete', file: '#brandingFirstLogoImageFile', text: '#brandingFirstLogoImageUrl' },
       { imageType: 'logo', browse: '#brandingLogoImageBrowse', del: '#brandingLogoImageDelete', file: '#brandingLogoImageFile', text: '#brandingLogoImageUrl' },
       { imageType: 'urlPay', browse: '#brandingUrlPayImageBrowse', del: '#brandingUrlPayImageDelete', file: '#brandingUrlPayImageFile', text: '#brandingUrlPayImageUrl' },
-      { imageType: 'popcon', browse: '#brandingPopconImageBrowse', del: '#brandingPopconImageDelete', file: '#brandingPopconImageFile', text: '#brandingPopconImageUrl' }
+      { imageType: 'popcon', browse: '#brandingPopconImageBrowse', del: '#brandingPopconImageDelete', file: '#brandingPopconImageFile', text: '#brandingPopconImageUrl' },
+      { imageType: 'og', browse: '#brandingOgImageBrowse', del: '#brandingOgImageDelete', file: '#brandingOgImageFile', text: '#brandingOgImageUrl' }
     ];
     pairs.forEach(function (p) {
       var b = rootEl.querySelector(p.browse);
@@ -2174,6 +2265,18 @@
     pgMaybeBindUrlPayProductNameUi(rootEl);
     pgMaybeBindUrlPayInputModeUi(rootEl);
     pgMaybeBindSplitPayCardUi(rootEl);
+    var ogModeEl = rootEl.querySelector('#brandingOgMode');
+    if (ogModeEl && !ogModeEl._ogModeBound) {
+      ogModeEl._ogModeBound = true;
+      ogModeEl.addEventListener('change', function () { pgBrandingSyncOgFields(rootEl); });
+    }
+    var formForDiv = rootEl.querySelector('form') || rootEl.closest('form') || rootEl;
+    var divEl = formForDiv.querySelector('[name="compDiv"]');
+    if (divEl && !divEl._ogModeBound) {
+      divEl._ogModeBound = true;
+      divEl.addEventListener('change', function () { pgBrandingSyncOgFields(rootEl); });
+    }
+    pgBrandingSyncOgFields(rootEl);
   }
   /** 입력방식 변경 시에만 프리set 반영 — 조회·저장 후에는 DB 값 유지, 필드는 수동 수정 가능 */
   function pgWebPaymentCardScope(el) {
@@ -20760,8 +20863,9 @@
                 });
               });
             }
+            chain = pgBrandingChainOgUpload(form, compId, chain);
             if (themeEl) {
-              chain = chain.then(function () { return window.PG_API.orgBrandingSave(compId, themeEl.value || 'DEFAULT', hostEl ? hostEl.value : undefined, siteNameEl ? siteNameEl.value : undefined); });
+              chain = chain.then(function () { return window.PG_API.orgBrandingSave(compId, themeEl.value || 'DEFAULT', hostEl ? hostEl.value : undefined, siteNameEl ? siteNameEl.value : undefined, pgBrandingOgExtra(form)); });
             }
             return chain.then(function () { return res; });
           }
@@ -21872,26 +21976,30 @@
       var logoBrowse = pane.querySelector('#brandingLogoImageBrowse');
       var urlPayBrowse = pane.querySelector('#brandingUrlPayImageBrowse');
       var popconBrowse = pane.querySelector('#brandingPopconImageBrowse');
+      var ogBrowse = pane.querySelector('#brandingOgImageBrowse');
       var mainDelete = pane.querySelector('#brandingMainImageDelete');
       var firstDelete = pane.querySelector('#brandingFirstLogoImageDelete');
       var logoDelete = pane.querySelector('#brandingLogoImageDelete');
       var urlPayDelete = pane.querySelector('#brandingUrlPayImageDelete');
       var popconDelete = pane.querySelector('#brandingPopconImageDelete');
+      var ogDelete = pane.querySelector('#brandingOgImageDelete');
       var mainFile = pane.querySelector('#brandingMainImageFile');
       var firstFile = pane.querySelector('#brandingFirstLogoImageFile');
       var logoFile = pane.querySelector('#brandingLogoImageFile');
       var urlPayFile = pane.querySelector('#brandingUrlPayImageFile');
       var popconFile = pane.querySelector('#brandingPopconImageFile');
+      var ogFile = pane.querySelector('#brandingOgImageFile');
       var themeSel = pane.querySelector('#brandingTheme');
-      [mainBrowse, firstBrowse, logoBrowse, urlPayBrowse, popconBrowse, mainDelete, firstDelete, logoDelete, urlPayDelete, popconDelete].forEach(function (btn) {
+      [mainBrowse, firstBrowse, logoBrowse, urlPayBrowse, popconBrowse, ogBrowse, mainDelete, firstDelete, logoDelete, urlPayDelete, popconDelete, ogDelete].forEach(function (btn) {
         if (!btn) return;
         btn.style.display = allowed ? '' : 'none';
         btn.disabled = !allowed;
       });
-      [mainFile, firstFile, logoFile, urlPayFile, popconFile, themeSel].forEach(function (el) {
+      [mainFile, firstFile, logoFile, urlPayFile, popconFile, ogFile, themeSel].forEach(function (el) {
         if (!el) return;
         el.disabled = !allowed;
       });
+      pgBrandingSyncOgFields(pane);
     }
     function resetPgBindingPaneForReload(pane) {
       if (!pane) return;
@@ -22770,8 +22878,9 @@
                 });
               });
             }
+            chain = pgBrandingChainOgUpload(form, compId, chain);
             if (themeEl || hostEl) {
-              chain = chain.then(function () { return window.PG_API.orgBrandingSave(compId, (themeEl && themeEl.value) ? themeEl.value : 'DEFAULT', hostEl ? hostEl.value : undefined, siteNameEl ? siteNameEl.value : undefined); });
+              chain = chain.then(function () { return window.PG_API.orgBrandingSave(compId, (themeEl && themeEl.value) ? themeEl.value : 'DEFAULT', hostEl ? hostEl.value : undefined, siteNameEl ? siteNameEl.value : undefined, pgBrandingOgExtra(form)); });
             }
             return chain.catch(function (eBrand) {
               try { console.warn('branding save failed:', eBrand); } catch (e0) {}
@@ -23709,8 +23818,9 @@
                   });
                 });
               }
+              chain = pgBrandingChainOgUpload(form, compId, chain);
               if (themeEl || hostEl) {
-                chain = chain.then(function () { return window.PG_API.orgBrandingSave(compId, (themeEl && themeEl.value) ? themeEl.value : 'DEFAULT', hostEl ? hostEl.value : undefined, siteNameEl ? siteNameEl.value : undefined); });
+                chain = chain.then(function () { return window.PG_API.orgBrandingSave(compId, (themeEl && themeEl.value) ? themeEl.value : 'DEFAULT', hostEl ? hostEl.value : undefined, siteNameEl ? siteNameEl.value : undefined, pgBrandingOgExtra(form)); });
               }
               return chain.catch(function (eBrand2) {
                 try { console.warn('branding save failed:', eBrand2); } catch (e0) {}

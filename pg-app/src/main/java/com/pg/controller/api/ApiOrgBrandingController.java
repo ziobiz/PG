@@ -9,6 +9,7 @@ import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgBrandingRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.util.FaviconImageUtil;
+import com.pg.util.LinkPreviewOgSupport;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -41,6 +42,7 @@ public class ApiOrgBrandingController {
     private static final long LOGO_IMAGE_MAX_BYTES = 1 * 1024 * 1024;  // 1MB
     private static final long POPCON_IMAGE_MAX_BYTES = 1 * 1024 * 1024;  // 1MB (UI 표기는 파비콘)
     private static final long FIRST_LOGO_IMAGE_MAX_BYTES = 1 * 1024 * 1024;  // 1MB
+    private static final long OG_IMAGE_MAX_BYTES = 1 * 1024 * 1024;
 
     private final OrgBrandingRepository brandingRepository;
     private final OrgUnitRepository orgUnitRepository;
@@ -63,49 +65,19 @@ public class ApiOrgBrandingController {
 
     private ResponseEntity<ApiResponse<Map<String, Object>>> getBranding(String compId) {
         if (compId == null || compId.trim().isEmpty()) {
-            Map<String, Object> empty = new LinkedHashMap<>();
-            empty.put("mainImageUrl", "");
-            empty.put("logoImageUrl", "");
-            empty.put("firstLogoImageUrl", "");
-            empty.put("popconImageUrl", "");
-            empty.put("urlPayImageUrl", "");
-            empty.put("theme", "DEFAULT");
-            empty.put("brandHost", "");
-            empty.put("siteName", "");
-            return ResponseEntity.ok(ApiResponse.ok(empty));
+            return ResponseEntity.ok(ApiResponse.ok(emptyBranding(null)));
         }
         return orgUnitRepository.findByCode(compId.trim())
                 .filter(ou -> ou.getOrgLevel() == OrgLevel.HEADQUARTERS
                         || ou.getOrgLevel() == OrgLevel.REGIONAL
                         || ou.getOrgLevel() == OrgLevel.MASTER_DIST)
-                .flatMap(ou -> brandingRepository.findByOrgUnitId(ou.getId())
-                        .map(b -> {
-                            Map<String, Object> m = new LinkedHashMap<>();
-                            m.put("compId", compId);
-                            m.put("mainImageUrl", b.getMainImageUrl() != null ? b.getMainImageUrl() : "");
-                            m.put("logoImageUrl", b.getLogoImageUrl() != null ? b.getLogoImageUrl() : "");
-                            m.put("firstLogoImageUrl", b.getFirstLogoImageUrl() != null ? b.getFirstLogoImageUrl() : "");
-                            m.put("popconImageUrl", b.getPopconImageUrl() != null ? b.getPopconImageUrl() : "");
-                            m.put("urlPayImageUrl", b.getUrlPayImageUrl() != null ? b.getUrlPayImageUrl() : "");
-                            m.put("theme", b.getTheme() != null ? b.getTheme() : "DEFAULT");
-                            m.put("brandHost", b.getBrandHost() != null ? b.getBrandHost() : "");
-                            m.put("siteName", b.getSiteName() != null ? b.getSiteName() : "");
-                            return m;
-                        }))
+                .map(ou -> {
+                    OrgBranding b = brandingRepository.findByOrgUnitId(ou.getId()).orElse(null);
+                    return toBrandingMap(compId, ou, b);
+                })
                 .map(ApiResponse::ok)
                 .map(ResponseEntity::ok)
-                .orElseGet(() -> {
-                    Map<String, Object> empty = new LinkedHashMap<>();
-                    empty.put("mainImageUrl", "");
-                    empty.put("logoImageUrl", "");
-                    empty.put("firstLogoImageUrl", "");
-                    empty.put("popconImageUrl", "");
-                    empty.put("urlPayImageUrl", "");
-                    empty.put("theme", "DEFAULT");
-                    empty.put("brandHost", "");
-                    empty.put("siteName", "");
-                    return ResponseEntity.ok(ApiResponse.ok(empty));
-                });
+                .orElseGet(() -> ResponseEntity.ok(ApiResponse.ok(emptyBranding(null))));
     }
 
     @PostMapping("/upload")
@@ -128,20 +100,22 @@ public class ApiOrgBrandingController {
             return ResponseEntity.ok(ApiResponse.fail("브랜딩(배경/로고) 변경권한이 없습니다.", "FORBIDDEN"));
         }
         if (!"main".equals(imageType) && !"logo".equals(imageType) && !"first".equals(imageType) && !"popcon".equals(imageType)
-                && !"urlPay".equals(imageType)) {
-            return ResponseEntity.ok(ApiResponse.fail("imageType은 main, logo, first, popcon 또는 urlPay이어야 합니다.", "INVALID"));
+                && !"urlPay".equals(imageType) && !"og".equals(imageType)) {
+            return ResponseEntity.ok(ApiResponse.fail("imageType은 main, logo, first, popcon, urlPay 또는 og이어야 합니다.", "INVALID"));
         }
         long maxBytes = "main".equals(imageType)
                 ? MAIN_IMAGE_MAX_BYTES
                 : ("popcon".equals(imageType)
                     ? POPCON_IMAGE_MAX_BYTES
-                    : ("first".equals(imageType) ? FIRST_LOGO_IMAGE_MAX_BYTES : LOGO_IMAGE_MAX_BYTES));
+                    : ("first".equals(imageType) ? FIRST_LOGO_IMAGE_MAX_BYTES
+                        : ("og".equals(imageType) ? OG_IMAGE_MAX_BYTES : LOGO_IMAGE_MAX_BYTES)));
         if (file.getSize() > maxBytes) {
             String sizeMsg = "메인이미지는 5MB 이하여야 합니다.";
             if ("logo".equals(imageType)) sizeMsg = "로고이미지는 1MB 이하여야 합니다.";
             if ("first".equals(imageType)) sizeMsg = "첫화면 로고이미지는 1MB 이하여야 합니다.";
             if ("popcon".equals(imageType)) sizeMsg = "파비콘 이미지는 1MB 이하여야 합니다.";
             if ("urlPay".equals(imageType)) sizeMsg = "URL결제 이미지는 1MB 이하여야 합니다.";
+            if ("og".equals(imageType)) sizeMsg = "링크 미리보기 이미지는 1MB 이하여야 합니다.";
             return ResponseEntity.ok(ApiResponse.fail(
                     sizeMsg,
                     "SIZE_EXCEEDED"));
@@ -177,6 +151,8 @@ public class ApiOrgBrandingController {
                 b.setFirstLogoImageUrl(url);
             } else if ("urlPay".equals(imageType)) {
                 b.setUrlPayImageUrl(url);
+            } else if ("og".equals(imageType)) {
+                b.setOgImageUrl(url);
             } else {
                 b.setPopconImageUrl(url);
             }
@@ -198,7 +174,18 @@ public class ApiOrgBrandingController {
             @RequestParam String compId,
             @RequestParam(required = false) String theme,
             @RequestParam(required = false) String brandHost,
-            @RequestParam(required = false) String siteName) {
+            @RequestParam(required = false) String siteName,
+            @RequestParam(required = false) String ogMode,
+            @RequestParam(required = false) String ogTitleKo,
+            @RequestParam(required = false) String ogTitleEn,
+            @RequestParam(required = false) String ogTitleJp,
+            @RequestParam(required = false) String ogTitleCh,
+            @RequestParam(required = false) String ogTitleTh,
+            @RequestParam(required = false) String ogDescKo,
+            @RequestParam(required = false) String ogDescEn,
+            @RequestParam(required = false) String ogDescJp,
+            @RequestParam(required = false) String ogDescCh,
+            @RequestParam(required = false) String ogDescTh) {
         Optional<OrgUnit> ouOpt = orgUnitRepository.findByCode(compId.trim());
         if (ouOpt.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
@@ -229,12 +216,11 @@ public class ApiOrgBrandingController {
             if (s.length() > 100) s = s.substring(0, 100);
             b.setSiteName(s.isBlank() ? null : s);
         }
+        applyOgSave(b, ou.getOrgLevel(), ogMode, ogTitleKo, ogTitleEn, ogTitleJp, ogTitleCh, ogTitleTh,
+                ogDescKo, ogDescEn, ogDescJp, ogDescCh, ogDescTh);
         brandingRepository.save(b);
-        Map<String, Object> out = new LinkedHashMap<>();
+        Map<String, Object> out = toBrandingMap(compId, ou, b);
         out.put("success", true);
-        out.put("theme", themeVal);
-        out.put("brandHost", b.getBrandHost() != null ? b.getBrandHost() : "");
-        out.put("siteName", b.getSiteName() != null ? b.getSiteName() : "");
         return ResponseEntity.ok(ApiResponse.ok(out));
     }
 
@@ -254,8 +240,8 @@ public class ApiOrgBrandingController {
             return ResponseEntity.ok(ApiResponse.fail("브랜딩(배경/로고) 변경권한이 없습니다.", "FORBIDDEN"));
         }
         if (!"main".equals(imageType) && !"logo".equals(imageType) && !"first".equals(imageType) && !"popcon".equals(imageType)
-                && !"urlPay".equals(imageType)) {
-            return ResponseEntity.ok(ApiResponse.fail("imageType은 main, logo, first, popcon 또는 urlPay이어야 합니다.", "INVALID"));
+                && !"urlPay".equals(imageType) && !"og".equals(imageType)) {
+            return ResponseEntity.ok(ApiResponse.fail("imageType은 main, logo, first, popcon, urlPay 또는 og이어야 합니다.", "INVALID"));
         }
         OrgBranding b = brandingRepository.findByOrgUnitId(ou.getId())
                 .orElseGet(() -> {
@@ -276,6 +262,9 @@ public class ApiOrgBrandingController {
         } else if ("urlPay".equals(imageType)) {
             oldUrl = b.getUrlPayImageUrl();
             b.setUrlPayImageUrl(null);
+        } else if ("og".equals(imageType)) {
+            oldUrl = b.getOgImageUrl();
+            b.setOgImageUrl(null);
         } else {
             oldUrl = b.getPopconImageUrl();
             b.setPopconImageUrl(null);
@@ -345,5 +334,76 @@ public class ApiOrgBrandingController {
                 return false;
             }
         }).orElse(false);
+    }
+
+    private static Map<String, Object> emptyBranding(OrgLevel level) {
+        Map<String, Object> empty = new LinkedHashMap<>();
+        empty.put("mainImageUrl", "");
+        empty.put("logoImageUrl", "");
+        empty.put("firstLogoImageUrl", "");
+        empty.put("popconImageUrl", "");
+        empty.put("urlPayImageUrl", "");
+        empty.put("theme", "DEFAULT");
+        empty.put("brandHost", "");
+        empty.put("siteName", "");
+        putOgOnMap(empty, null, level);
+        return empty;
+    }
+
+    private static Map<String, Object> toBrandingMap(String compId, OrgUnit ou, OrgBranding b) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("compId", compId);
+        m.put("mainImageUrl", b != null && b.getMainImageUrl() != null ? b.getMainImageUrl() : "");
+        m.put("logoImageUrl", b != null && b.getLogoImageUrl() != null ? b.getLogoImageUrl() : "");
+        m.put("firstLogoImageUrl", b != null && b.getFirstLogoImageUrl() != null ? b.getFirstLogoImageUrl() : "");
+        m.put("popconImageUrl", b != null && b.getPopconImageUrl() != null ? b.getPopconImageUrl() : "");
+        m.put("urlPayImageUrl", b != null && b.getUrlPayImageUrl() != null ? b.getUrlPayImageUrl() : "");
+        m.put("theme", b != null && b.getTheme() != null ? b.getTheme() : "DEFAULT");
+        m.put("brandHost", b != null && b.getBrandHost() != null ? b.getBrandHost() : "");
+        m.put("siteName", b != null && b.getSiteName() != null ? b.getSiteName() : "");
+        putOgOnMap(m, b, ou != null ? ou.getOrgLevel() : null);
+        return m;
+    }
+
+    private static void putOgOnMap(Map<String, Object> m, OrgBranding b, OrgLevel level) {
+        m.put("ogMode", LinkPreviewOgSupport.normalizeMode(b != null ? b.getOgMode() : null, level));
+        Map<String, String> titles = LinkPreviewOgSupport.parseLangMap(b != null ? b.getOgTitleJson() : null);
+        Map<String, String> descs = LinkPreviewOgSupport.parseLangMap(b != null ? b.getOgDescJson() : null);
+        m.put("ogTitleKo", titles.getOrDefault("KO", ""));
+        m.put("ogTitleEn", titles.getOrDefault("EN", ""));
+        m.put("ogTitleJp", titles.getOrDefault("JP", ""));
+        m.put("ogTitleCh", titles.getOrDefault("CH", ""));
+        m.put("ogTitleTh", titles.getOrDefault("TH", ""));
+        m.put("ogDescKo", descs.getOrDefault("KO", ""));
+        m.put("ogDescEn", descs.getOrDefault("EN", ""));
+        m.put("ogDescJp", descs.getOrDefault("JP", ""));
+        m.put("ogDescCh", descs.getOrDefault("CH", ""));
+        m.put("ogDescTh", descs.getOrDefault("TH", ""));
+        m.put("ogImageUrl", b != null && b.getOgImageUrl() != null ? b.getOgImageUrl() : "");
+    }
+
+    private static void applyOgSave(OrgBranding b, OrgLevel level, String ogMode,
+                                   String ogTitleKo, String ogTitleEn, String ogTitleJp, String ogTitleCh, String ogTitleTh,
+                                   String ogDescKo, String ogDescEn, String ogDescJp, String ogDescCh, String ogDescTh) {
+        if (ogMode != null || ogTitleKo != null || ogTitleEn != null || ogTitleJp != null || ogTitleCh != null || ogTitleTh != null
+                || ogDescKo != null || ogDescEn != null || ogDescJp != null || ogDescCh != null || ogDescTh != null) {
+            b.setOgMode(LinkPreviewOgSupport.normalizeMode(ogMode, level));
+            Map<String, String> titles = LinkPreviewOgSupport.emptyLangMap();
+            titles.put("KO", LinkPreviewOgSupport.clip(ogTitleKo, 200));
+            titles.put("EN", LinkPreviewOgSupport.clip(ogTitleEn, 200));
+            titles.put("JP", LinkPreviewOgSupport.clip(ogTitleJp, 200));
+            titles.put("CH", LinkPreviewOgSupport.clip(ogTitleCh, 200));
+            titles.put("TH", LinkPreviewOgSupport.clip(ogTitleTh, 200));
+            Map<String, String> descs = LinkPreviewOgSupport.emptyLangMap();
+            descs.put("KO", LinkPreviewOgSupport.clip(ogDescKo, 500));
+            descs.put("EN", LinkPreviewOgSupport.clip(ogDescEn, 500));
+            descs.put("JP", LinkPreviewOgSupport.clip(ogDescJp, 500));
+            descs.put("CH", LinkPreviewOgSupport.clip(ogDescCh, 500));
+            descs.put("TH", LinkPreviewOgSupport.clip(ogDescTh, 500));
+            b.setOgTitleJson(LinkPreviewOgSupport.toJson(titles));
+            b.setOgDescJson(LinkPreviewOgSupport.toJson(descs));
+        } else if (level == OrgLevel.HEADQUARTERS && (b.getOgMode() == null || b.getOgMode().isBlank())) {
+            b.setOgMode(LinkPreviewOgSupport.MODE_CUSTOM);
+        }
     }
 }

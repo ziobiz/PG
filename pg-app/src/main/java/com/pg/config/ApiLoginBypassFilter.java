@@ -11,6 +11,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -22,6 +24,8 @@ import java.io.IOException;
  */
 @Order(-1)
 public class ApiLoginBypassFilter extends OncePerRequestFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(ApiLoginBypassFilter.class);
 
     private final AuthService authService;
     private final TurnstileVerificationService turnstileVerificationService;
@@ -63,6 +67,7 @@ public class ApiLoginBypassFilter extends OncePerRequestFilter {
                 case OTP_INVALID -> writeJson(response, ApiResponse.fail("OTP 코드가 올바르지 않습니다.", "OTP_INVALID"));
             }
         } catch (Exception e) {
+            log.warn("로그인 처리 오류: {}", e.toString());
             writeJson(response, ApiResponse.fail("로그인 처리 중 오류가 발생했습니다.", "ERROR"));
         }
     }

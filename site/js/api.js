@@ -46,20 +46,14 @@
         var pageH = window.location && window.location.hostname;
         var bu = new URL(b);
         var bh = String(bu.hostname || '').toLowerCase();
-        var ph = String(pageH || '').toLowerCase();
         if (isIcopayAdminPageHost(pageH) && bh === 'api.icopay.co.kr') {
           var og = (window.location.origin || '').replace(/\/$/, '').trim();
           if (og) return og;
         }
         /**
-         * www·대표 도메인은 통합 배포(동일 origin /api 프록시)일 수 있어 그대로 둔다.
-         * 그 외 *.icopay.co.kr 에서 PG_API_BASE 가 페이지와 같은 호스트면 정적 전용일 가능성이 높다.
+         * hqth·jpjp·jp 등 포털도 본사와 같이 동일 호스트 /api 프록시.
+         * api.icopay.co.kr 로 바꾸면 로그인 Turnstile 토큰이 두 번 검증되어 timeout-or-duplicate 가 난다.
          */
-        if (isIcopayAdminPageHost(pageH) && ph === bh
-            && ph !== 'icopay.co.kr' && ph !== 'www.icopay.co.kr'
-            && /\.icopay\.co\.kr$/i.test(ph)) {
-          return publicApiRoot();
-        }
       } catch (eBaseNorm) { /* ignore */ }
       return b;
     }
@@ -235,7 +229,9 @@
           /^<html[\s>]/i.test(trimmed)
         );
         if (res.ok && looksHtml) {
-          var canRetryPublicApi = !options._retriedPublicApi
+          var isLoginApi = path.indexOf('/api/auth/login') === 0;
+          var canRetryPublicApi = !isLoginApi
+            && !options._retriedPublicApi
             && path.indexOf('/api/') === 0
             && base !== publicApiRoot();
           if (canRetryPublicApi) {
@@ -273,7 +269,9 @@
       var isNetworkFail = (msg === 'Failed to fetch' || msg.indexOf('NetworkError') !== -1 || msg.indexOf('Load failed') !== -1 || msg === 'Network request failed');
       if (isNetworkFail) {
         // 정적 호스팅/리버스프록시 환경에서 공용 API 도메인 실패 시 현재 도메인 /api 로 1회 폴백
-        var canRetrySameOrigin = !options._retriedSameOrigin
+        var isLoginApiNet = path.indexOf('/api/auth/login') === 0;
+        var canRetrySameOrigin = !isLoginApiNet
+          && !options._retriedSameOrigin
           && path.indexOf('/api/') === 0
           && typeof window !== 'undefined'
           && window.location
@@ -843,11 +841,17 @@
     /** 로그인 첫 화면·접속팝업 공지(비로그인). Accept-Language 는 단말 기본 언어(navigator) 기준으로 전달합니다. */
     loginNoticePublic: function () {
       var hdr = {};
+      var loc = '';
       try {
-        hdr['Accept-Language'] = (navigator.languages && navigator.languages.length)
-          ? navigator.languages.join(',')
-          : (navigator.language || 'ko');
-      } catch (eAl) { hdr['Accept-Language'] = 'ko'; }
+        if (window.PG_UI_I18N && typeof window.PG_UI_I18N.getLocale === 'function') {
+          loc = String(window.PG_UI_I18N.getLocale() || '').toUpperCase();
+        }
+      } catch (eLoc) { loc = ''; }
+      var alByUi = { KO: 'ko', EN: 'en', JP: 'ja', CH: 'zh-CN', TH: 'th' };
+      try {
+        hdr['Accept-Language'] = alByUi[loc]
+          || ((navigator.languages && navigator.languages.length) ? navigator.languages.join(',') : (navigator.language || 'ko'));
+      } catch (eAl) { hdr['Accept-Language'] = alByUi[loc] || 'ko'; }
       return get('/api/pub/login-notice', {}, { anonymous: true, headers: hdr }).then(function (r) { return r.data; });
     },
 
@@ -2592,7 +2596,8 @@
           ? '메인이미지'
           : (imageType === 'popcon' ? '팝콘이미지'
             : (imageType === 'first' ? '첫화면 로고이미지'
-              : (imageType === 'urlPay' ? 'URL결제이미지' : '로고이미지')));
+              : (imageType === 'urlPay' ? 'URL결제이미지'
+                : (imageType === 'og' ? '링크 미리보기 이미지' : '로고이미지'))));
         var maxMb = imageType === 'main' ? '5MB' : '1MB';
         return Promise.reject(new Error(typeNm + '는 ' + maxMb + ' 이하만 업로드할 수 있습니다.'));
       }
@@ -2630,7 +2635,7 @@
       });
     },
     /** 브랜딩 테마 저장 */
-    orgBrandingSave: function (compId, theme, brandHost, siteName) {
+    orgBrandingSave: function (compId, theme, brandHost, siteName, extra) {
       var base = getBaseUrl();
       var token = getToken();
       var headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' };
@@ -2640,6 +2645,11 @@
       params.set('theme', theme || 'DEFAULT');
       if (typeof brandHost === 'string') params.set('brandHost', brandHost);
       if (typeof siteName === 'string') params.set('siteName', siteName);
+      if (extra && typeof extra === 'object') {
+        Object.keys(extra).forEach(function (k) {
+          if (extra[k] != null) params.set(k, String(extra[k]));
+        });
+      }
       return fetchTextThenJson(base + '/api/org/branding/save', {
         method: 'POST',
         headers: headers,

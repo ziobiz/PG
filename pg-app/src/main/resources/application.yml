@@ -47,6 +47,8 @@ spring:
 
 # SPA( site ) 연동 시 CORS 허용 오리진 (쉼표 구분)
 app:
+  # Open Graph 이미지 절대 URL (업로드는 API 호스트)
+  public-base-url: ${APP_PUBLIC_BASE_URL:https://api.icopay.co.kr}
   # TEMP_REMOVE_AFTER_DEV — 아래 두 플래그·대응 API·업체관리 버튼(삭제개발/업체전체초기화)·OrgHierarchyResetService 는 개발 임시. 정식 완료 후 일괄 삭제.
   features:
     # TEMP_REMOVE_AFTER_DEV — true: [삭제(개발)] POST /api/comp/dev-tree-remove (use_yn=N 만, 물리삭제 없음). ADMIN.
@@ -79,6 +81,7 @@ app:
   # 관리자 SPA 도메인이 카페24·별도 도메인 등 제각각일 수 있어 기본은 전 Origin 허용(*). API는 Bearer만 사용(쿠키 없음).
   # 보수적으로 쓰려면 allow-all-origins: false 후 allowed-origin-patterns 만 나열.
   # Cloudflare Turnstile — 관리자 로그인 봇 방지. 시크릿은 서버 전용(환경변수 TURNSTILE_SECRET 우선).
+  # 위젯 Hostname Management 는 루트 icopay.co.kr 을 넣으면 hqth·jpjp·jp 등 모든 서브도메인 포함. www.icopay.co.kr 만 있으면 형제 서브는 실패.
   turnstile:
     enabled: ${TURNSTILE_ENABLED:true}
     site-key: ${TURNSTILE_SITE_KEY:0x4AAAAAAE1pxXBOGzlF1ppP}
@@ -86,8 +89,8 @@ app:
     verify-url: ${TURNSTILE_VERIFY_URL:https://challenges.cloudflare.com/turnstile/v0/siteverify}
   cors:
     allow-all-origins: true
-    # *.icopay.co.kr 에 더해 본사·총판 서브(예: jp) 명시 — allow-all-origins: false 운영 시에도 매칭 보장
-    allowed-origin-patterns: https://*.icopay.co.kr,https://jp.icopay.co.kr,https://icopay.co.kr,https://www.icopay.co.kr,http://localhost:*,http://127.0.0.1:*,https://*.cafe24.com,http://*.cafe24.com,https://otlpay.cafe24.com,http://otlpay.cafe24.com,https://www.otlpay.cafe24.com,http://www.otlpay.cafe24.com
+    # 본사·모든 포털 서브(hqth·jpjp·jp 등) 공통. allow-all-origins: false 일 때도 와일드카드+대표 호스트 매칭
+    allowed-origin-patterns: https://*.icopay.co.kr,https://jpjp.icopay.co.kr,https://hqth.icopay.co.kr,https://jp.icopay.co.kr,https://icopay.co.kr,https://www.icopay.co.kr,http://localhost:*,http://127.0.0.1:*,https://*.cafe24.com,http://*.cafe24.com,https://otlpay.cafe24.com,http://otlpay.cafe24.com,https://www.otlpay.cafe24.com,http://www.otlpay.cafe24.com
   # ChillPay (칠리페이) DirectCredit API 연동
   # 노티매핑 자동 제안: OpenAI 호환 Chat API (환경변수 OPENAI_API_KEY 등). 미설정 시 규칙 기반만 사용.
   notify-mapping-ai:

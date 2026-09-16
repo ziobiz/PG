@@ -186,14 +186,9 @@ public class IlkPaymentService {
         Optional<PayPresaleRiskFilterService.PresaleRiskBlock> presaleRisk =
                 payPresaleRiskFilterService.evaluate(orgUnitId, compCode, PgVendor.ILK, body);
         if (presaleRisk.isPresent()) {
-            PayPresaleRiskFilterService.PresaleRiskBlock block = presaleRisk.get();
-            Map<String, Object> out = new LinkedHashMap<>();
-            out.put("success", false);
-            out.put("message", block.message());
-            out.put("errorCode", PayPresaleRiskFilterCodes.ERROR_CODE);
-            out.put("messageKey", block.filterCode());
-            out.put("messages", block.messages());
-            return out;
+            return presaleRiskBlockOut(presaleRisk.get(), orgUnitId, compCode, orderNo,
+                    originForPresale(body, subscription), amount, currency, agency.getRouteNo(),
+                    subscription, body);
         }
 
         String cardNo = digitsOnly(str(body.get("cardNo"), body.get("payCardno"), body.get("cardNumber")));
@@ -262,7 +257,7 @@ public class IlkPaymentService {
         }
 
         ilkSaleRecordService.recordOrTouchPending(orgUnitId, orderNo, amount, currency, routeNo,
-                productName, origin, buyerName, buyerEmail, shopperAmt, shopperCur, subscription, null);
+                productName, origin, buyerName, buyerEmail, shopperAmt, shopperCur, subscription, null, body);
 
         if (subscription && !mit) {
             persistSubscriptionCardSeed(compCode, orderNo, cred, cardNo, expMonth, expYear, brand, amount, currency);
@@ -684,6 +679,49 @@ public class IlkPaymentService {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    private Map<String, Object> presaleRiskBlockOut(PayPresaleRiskFilterService.PresaleRiskBlock block,
+                                                    Long orgUnitId, String merchantCode, String orderNo,
+                                                    String txnOrigin, BigDecimal amountBd, String currency,
+                                                    Integer routeNo, boolean subscription,
+                                                    Map<String, Object> body) {
+        if (body == null) {
+            body = Map.of();
+        }
+        String productName = str(body.get("productName"), body.get("item"));
+        if (productName.isBlank()) {
+            productName = "Payment";
+        }
+        String buyerName = str(body.get("buyerName"), body.get("customerName"), body.get("name"));
+        if (buyerName.isBlank()) {
+            buyerName = "GUEST";
+        }
+        String buyerEmail = str(body.get("buyerEmail"), body.get("email"), body.get("payEmailAddress"));
+        BigDecimal shopperAmt = parseAmount(body.get("shopperDisplayAmount"));
+        String shopperCur = str(body.get("shopperDisplayCurrency"));
+        ilkSaleRecordService.recordOrTouchPending(orgUnitId, orderNo, amountBd, currency, routeNo,
+                productName, txnOrigin, buyerName, buyerEmail, shopperAmt, shopperCur, subscription, null, body);
+        String trnId = ilkSaleRecordService.applyIcopayPresaleRiskCancel(
+                merchantCode, orderNo, txnOrigin, block.message());
+        payPresaleRiskFilterService.recordEvent(orgUnitId, merchantCode, orderNo, trnId, PgVendor.ILK, block);
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("success", false);
+        out.put("errorCode", PayPresaleRiskFilterCodes.ERROR_CODE);
+        out.put("filterCode", block.filterCode());
+        out.put("message", block.message());
+        out.put("messages", block.messages());
+        out.put("icopayPresaleBlock", true);
+        out.put("txnStatus", "20");
+        return out;
+    }
+
+    private static String originForPresale(Map<String, Object> body, boolean subscription) {
+        String origin = str(body != null ? body.get("txnOrigin") : null);
+        if (origin.isBlank()) {
+            return subscription ? "SUB" : "URL";
+        }
+        return origin;
     }
 
     private static String str(Object... vals) {

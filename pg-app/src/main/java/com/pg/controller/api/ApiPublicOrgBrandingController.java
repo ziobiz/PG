@@ -107,8 +107,7 @@ public class ApiPublicOrgBrandingController {
     }
 
     private boolean isDefaultHqLoginHost(String host) {
-        if (host == null || host.isBlank()) return false;
-        return "api.icopay.co.kr".equals(host) || "www.api.icopay.co.kr".equals(host);
+        return com.pg.util.LinkPreviewOgSupport.isHqLoginHost(host);
     }
 
     private Map<String, Object> emptyBranding() {

@@ -1422,7 +1422,7 @@
     totalAmt: { EN: 'Total', JP: '合計', CH: '合计', TH: 'รวม' },
     currency: { EN: 'Currency', JP: '通貨', CH: '币种', TH: 'สกุลเงิน' },
     payCustomerIndicator: { EN: 'Shopper label', JP: '顧客表示', CH: '客户显示', TH: 'ป้ายลูกค้า' },
-    displayPaySummary: { EN: 'Ccy | amount', JP: '通貨｜金額', CH: '币种｜金额', TH: 'สกุล｜ยอด' },
+    displayPaySummary: { KO: '통화ㅣ금액', EN: 'Ccy | amount', JP: '通貨｜金額', CH: '币种｜金额', TH: 'สกุล｜ยอด' },
     displayPayCur: { EN: 'Shopper ccy', JP: '顧客通貨', CH: '客户币种', TH: 'สกุลลูกค้า' },
     displayPayAmt: { EN: 'Shopper amt', JP: '顧客金額', CH: '客户金额', TH: 'ยอดลูกค้า' },
     regionalBaseCur: { EN: 'HQ base ccy', JP: '本社基準通貨', CH: '总部基准货币', TH: 'สกุลฐานสำนักงานใหญ่' },
@@ -1640,7 +1640,9 @@
     if (!P || !P.columns) return;
     if (P._i18nKoSnap) return;
     P._i18nKoSnap = {
-      cols: P.columns.map(function (c) { return { key: c.key, label: c.label }; }),
+      cols: P.columns.map(function (c) {
+        return { key: c.key, label: c.label, columnGuideLabel: c.columnGuideLabel || null };
+      }),
       hg: JSON.parse(JSON.stringify(P.headerGroups || []))
     };
   }
@@ -1673,7 +1675,9 @@
       }
     } else if (!P._i18nKoSnap) {
       P._i18nKoSnap = {
-        cols: P.columns.map(function (c) { return { key: c.key, label: c.label }; }),
+        cols: P.columns.map(function (c) {
+          return { key: c.key, label: c.label, columnGuideLabel: c.columnGuideLabel || null };
+        }),
         hg: JSON.parse(JSON.stringify(P.headerGroups || []))
       };
     }
@@ -1706,7 +1710,9 @@
   function ensureChillColSnap(scr) {
     if (!scr || !scr.columns || scr._i18nColSnap) return;
     scr._i18nColSnap = {
-      cols: scr.columns.map(function (c) { return { key: c.key, label: c.label }; }),
+      cols: scr.columns.map(function (c) {
+        return { key: c.key, label: c.label, columnGuideLabel: c.columnGuideLabel || null };
+      }),
       hg: JSON.parse(JSON.stringify(scr.headerGroups || []))
     };
   }
@@ -3016,19 +3022,26 @@
           if (!k || !sp) return;
           var col = cfg.columns.filter(function (cc) { return cc && cc.key === k; })[0];
           if (!col) return;
-          var labKo = col.columnGuideLabel || col.label;
+          var snapLab = '';
+          var snapGuide = '';
           if (snapCgCols && snapCgCols.length) {
             for (var sci = 0; sci < snapCgCols.length; sci++) {
               var sc = snapCgCols[sci];
-              if (sc && sc.key === k && sc.label != null) {
-                labKo = sc.label;
+              if (sc && sc.key === k) {
+                if (sc.label != null) snapLab = String(sc.label);
+                if (sc.columnGuideLabel) snapGuide = String(sc.columnGuideLabel);
                 break;
               }
             }
           }
+          var labKo = snapGuide || col.columnGuideLabel || snapLab || col.label;
           if (!labKo) return;
           sp.setAttribute('data-pg-ui-t', String(labKo));
-          sp.textContent = w.PG_UI_I18N && typeof w.PG_UI_I18N.t === 'function' ? w.PG_UI_I18N.t(String(labKo)) : String(labKo);
+          var shown = w.PG_UI_I18N && typeof w.PG_UI_I18N.t === 'function' ? w.PG_UI_I18N.t(String(labKo)) : String(labKo);
+          if (loc !== 'KO' && shown === String(labKo) && COL[k] && !col.columnGuideLabel && !snapGuide) {
+            shown = tRow(COL[k], loc, String(labKo));
+          }
+          sp.textContent = shown;
         });
       }
       if (w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {

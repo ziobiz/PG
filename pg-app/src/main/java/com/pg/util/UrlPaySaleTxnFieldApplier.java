@@ -47,6 +47,15 @@ public final class UrlPaySaleTxnFieldApplier {
             raw = body.get("pay_cardno");
         }
         if (raw == null) {
+            raw = body.get("cardNo");
+        }
+        if (raw == null) {
+            raw = body.get("cardNumber");
+        }
+        if (raw == null) {
+            raw = body.get("card_number");
+        }
+        if (raw == null) {
             return;
         }
         String pan = PayCardBrandDetector.normalizePan(raw.toString());

@@ -256,7 +256,7 @@ public class ApiPayController {
     }
 
     /**
-     * 결제창 카드번호 사전 검증 — 비활성카드(마스킹)·실패 쿨다운·BIN 등 JPAY 호출 전 차단.
+     * 결제창 카드번호 사전 검증 — 비활성카드(마스킹)·실패 쿨다운·BIN 등 결제대행사 호출 전 차단.
      */
     @PostMapping("/url/card-policy-check")
     public ResponseEntity<ApiResponse<Map<String, Object>>> urlPayCardPolicyCheck(

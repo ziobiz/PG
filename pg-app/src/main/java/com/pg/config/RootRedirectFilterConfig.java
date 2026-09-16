@@ -13,7 +13,7 @@ public class RootRedirectFilterConfig {
         FilterRegistrationBean<RootRedirectFilter> bean = new FilterRegistrationBean<>();
         bean.setFilter(new RootRedirectFilter());
         bean.addUrlPatterns("/*");
-        bean.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        bean.setOrder(Ordered.HIGHEST_PRECEDENCE + 10);
         return bean;
     }
 }

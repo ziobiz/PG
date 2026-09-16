@@ -639,7 +639,7 @@
       id: 'cardRiskTriggerCard',
       merchantOnly: true,
       cardExtraClass: 'card-risk-trigger-card',
-      notice: '동일 카드 FAIL·취소·무효·미결제 등 비성공이 누적되면 JPAY 호출 전 일시 차단(1~4차 대기)합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 성공은 자동등록 트리거 원인이 되지 않습니다. 자동 등록 트리거 N차: 추적기간 안에서 비성공 N회가 완료되는 즉시 비활성카드(마스킹)에 등록되며 (N+1)번째 결제 시도부터 차단됩니다. 기간정책 — 미사용: 기간 제한 없이 서비스 기간 내내 누적(성공 시 초기화), 본사정책 따름: 본사 추적기간을 사용, 별도정책: 가맹점 추적기간(일·월·년)·설정기간을 본사보다 우선 적용. 위험 정책 본사정책 따름 시 [본사설정 → 리스크설정]을 사용하며, 별도정책은 본사보다 우선합니다(본 화면 또는 본사 「가맹점 리스크 현황」에서 저장한 값이 동일하게 우선). 미사용 시 해당 가맹의 위험관리를 끕니다. 사전 리스크 필터링은 아래 「리스크 사전필터트리거」에서 별도 설정합니다.',
+      notice: '동일 카드 FAIL·취소·무효·미결제 등 비성공이 누적되면 결제대행사 호출 전 일시 차단(1~4차 대기)합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 성공은 자동등록 트리거 원인이 되지 않습니다. 자동 등록 트리거 N차: 추적기간 안에서 비성공 N회가 완료되는 즉시 비활성카드(마스킹)에 등록되며 (N+1)번째 결제 시도부터 차단됩니다. 기간정책 — 미사용: 기간 제한 없이 서비스 기간 내내 누적(성공 시 초기화), 본사정책 따름: 본사 추적기간을 사용, 별도정책: 가맹점 추적기간(일·월·년)·설정기간을 본사보다 우선 적용. 위험 정책 본사정책 따름 시 [본사설정 → 리스크설정]을 사용하며, 별도정책은 본사보다 우선합니다(본 화면 또는 본사 「가맹점 리스크 현황」에서 저장한 값이 동일하게 우선). 미사용 시 해당 가맹의 위험관리를 끕니다. 사전 리스크 필터링은 아래 「리스크 사전필터트리거」에서 별도 설정합니다.',
       rows: [
         [{ label: '위험 정책', type: 'select', name: 'cardRiskPolicyMode', col: 3,
           options: [
@@ -9227,7 +9227,31 @@
           '<option value="PASTEL_1" data-pg-ui-t="파스텔1">파스텔1</option><option value="PASTEL_2" data-pg-ui-t="파스텔2">파스텔2</option><option value="PASTEL_3" data-pg-ui-t="파스텔3">파스텔3</option><option value="PASTEL_4" data-pg-ui-t="파스텔4">파스텔4</option><option value="PASTEL_5" data-pg-ui-t="파스텔5">파스텔5</option>' +
           '</select></div></div>' +
           '<div class="row mb-2"><div class="col-sm-8"><label class="form-label" data-pg-ui-t="사이트 이름(브라우저 탭)">사이트 이름(브라우저 탭)</label><input type="text" class="form-control form-control-sm" name="siteName" id="brandingSiteName" maxlength="100" data-pg-ui-placeholder="예: OTL PAY 관리자" placeholder="예: OTL PAY 관리자"></div></div>' +
-          '<div class="row mb-2"><div class="col-sm-8"><label class="form-label" data-pg-ui-t="로그인 안내 호스트">로그인 안내 호스트</label><input type="text" class="form-control form-control-sm" name="brandHost" id="brandingBrandHost" data-pg-ui-placeholder="예: api.example.com (선택)" placeholder="예: api.example.com (선택)"></div></div>';
+          '<div class="row mb-2"><div class="col-sm-8"><label class="form-label" data-pg-ui-t="로그인 안내 호스트">로그인 안내 호스트</label><input type="text" class="form-control form-control-sm" name="brandHost" id="brandingBrandHost" data-pg-ui-placeholder="예: api.example.com (선택)" placeholder="예: api.example.com (선택)"></div></div>' +
+          '<div id="brandingOgWrap">' +
+          '<hr class="my-3">' +
+          '<div class="fw-semibold mb-1" data-pg-ui-t="링크 미리보기 (메신저)">링크 미리보기 (메신저)</div>' +
+          '<p class="text-muted small mb-2" data-pg-ui-t="LINE·WhatsApp 등에 관리자 주소를 공유할 때 보이는 제목·설명·이미지입니다. 메신저는 화면 스크립트를 실행하지 않으므로 여기에 저장한 값이 첫 HTML에 들어갑니다.">LINE·WhatsApp 등에 관리자 주소를 공유할 때 보이는 제목·설명·이미지입니다. 메신저는 화면 스크립트를 실행하지 않으므로 여기에 저장한 값이 첫 HTML에 들어갑니다.</p>' +
+          '<div class="row mb-2"><div class="col-sm-4"><label class="form-label" data-pg-ui-t="미리보기 적용">미리보기 적용</label><select class="form-control form-control-sm" name="ogMode" id="brandingOgMode">' +
+          '<option value="FOLLOW_HQ" data-pg-ui-t="본사설정 따름">본사설정 따름</option>' +
+          '<option value="CUSTOM" data-pg-ui-t="직접 입력">직접 입력</option></select></div></div>' +
+          '<p class="text-muted small mb-2" data-pg-ui-t="본사설정 따름이면 총본사 미리보기를 씁니다. 본사가 직접 입력이면 총판은 그 본사를 쓰고, 아니면 총본사입니다. 총본사는 항상 직접 입력입니다.">본사설정 따름이면 총본사 미리보기를 씁니다. 본사가 직접 입력이면 총판은 그 본사를 쓰고, 아니면 총본사입니다. 총본사는 항상 직접 입력입니다.</p>' +
+          '<div class="row mb-2"><div class="col-sm-6"><label class="form-label" data-pg-ui-t="미리보기 이미지">미리보기 이미지</label><div class="input-group input-group-sm">' +
+          '<input type="text" class="form-control form-control-sm" name="ogImageUrl" id="brandingOgImageUrl" readonly data-pg-ui-placeholder="업로드 파일명" placeholder="업로드 파일명">' +
+          '<input type="file" class="d-none" id="brandingOgImageFile" accept="image/png,image/jpeg,image/jpg" data-og-custom-field="1">' +
+          '<button type="button" class="btn btn-outline-secondary" id="brandingOgImageBrowse" data-og-custom-field="1">Browse</button><button type="button" class="btn btn-outline-danger" id="brandingOgImageDelete" data-pg-ui-t="삭제" data-og-custom-field="1">삭제</button></div>' +
+          '<div class="form-text text-muted small" data-pg-ui-t="비우면 첫화면 로고·로그인 후 로고·메인이미지 순으로 사용합니다. PNG/JPG 1MB까지.">비우면 첫화면 로고·로그인 후 로고·메인이미지 순으로 사용합니다. PNG/JPG 1MB까지.</div></div></div>' +
+          '<div class="row mb-1"><div class="col-sm-6"><label class="form-label" data-pg-ui-t="미리보기 제목 (한국어)">미리보기 제목 (한국어)</label><input type="text" class="form-control form-control-sm" id="brandingOgTitleKo" maxlength="200" data-og-custom-field="1"></div>' +
+          '<div class="col-sm-6"><label class="form-label" data-pg-ui-t="미리보기 제목 (영어)">미리보기 제목 (영어)</label><input type="text" class="form-control form-control-sm" id="brandingOgTitleEn" maxlength="200" data-og-custom-field="1"></div></div>' +
+          '<div class="row mb-1"><div class="col-sm-6"><label class="form-label" data-pg-ui-t="미리보기 제목 (일본어)">미리보기 제목 (일본어)</label><input type="text" class="form-control form-control-sm" id="brandingOgTitleJp" maxlength="200" data-og-custom-field="1"></div>' +
+          '<div class="col-sm-6"><label class="form-label" data-pg-ui-t="미리보기 제목 (중국어)">미리보기 제목 (중국어)</label><input type="text" class="form-control form-control-sm" id="brandingOgTitleCh" maxlength="200" data-og-custom-field="1"></div></div>' +
+          '<div class="row mb-2"><div class="col-sm-6"><label class="form-label" data-pg-ui-t="미리보기 제목 (태국어)">미리보기 제목 (태국어)</label><input type="text" class="form-control form-control-sm" id="brandingOgTitleTh" maxlength="200" data-og-custom-field="1"></div></div>' +
+          '<div class="row mb-1"><div class="col-sm-6"><label class="form-label" data-pg-ui-t="미리보기 설명 (한국어)">미리보기 설명 (한국어)</label><textarea class="form-control form-control-sm" id="brandingOgDescKo" rows="2" maxlength="500" data-og-custom-field="1"></textarea></div>' +
+          '<div class="col-sm-6"><label class="form-label" data-pg-ui-t="미리보기 설명 (영어)">미리보기 설명 (영어)</label><textarea class="form-control form-control-sm" id="brandingOgDescEn" rows="2" maxlength="500" data-og-custom-field="1"></textarea></div></div>' +
+          '<div class="row mb-1"><div class="col-sm-6"><label class="form-label" data-pg-ui-t="미리보기 설명 (일본어)">미리보기 설명 (일본어)</label><textarea class="form-control form-control-sm" id="brandingOgDescJp" rows="2" maxlength="500" data-og-custom-field="1"></textarea></div>' +
+          '<div class="col-sm-6"><label class="form-label" data-pg-ui-t="미리보기 설명 (중국어)">미리보기 설명 (중국어)</label><textarea class="form-control form-control-sm" id="brandingOgDescCh" rows="2" maxlength="500" data-og-custom-field="1"></textarea></div></div>' +
+          '<div class="row mb-2"><div class="col-sm-6"><label class="form-label" data-pg-ui-t="미리보기 설명 (태국어)">미리보기 설명 (태국어)</label><textarea class="form-control form-control-sm" id="brandingOgDescTh" rows="2" maxlength="500" data-og-custom-field="1"></textarea></div></div>' +
+          '</div>';
       } else if (sec.type === 'pgBindingList') {
         var omitExtSettleCols = !!sec.omitExtSettleColumns;
         html += '<div class="pg-binding-list-wrap"' + (omitExtSettleCols ? ' data-pg-omit-ext-settle-cols="1"' : '') + '><table class="table table-sm table-bordered pg-binding-table"><thead><tr>' +

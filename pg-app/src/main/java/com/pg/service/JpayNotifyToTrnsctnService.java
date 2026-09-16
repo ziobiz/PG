@@ -28,7 +28,6 @@ import com.pg.util.PaidApprovalEvidenceGuard;
 import com.pg.util.PayerContactDisplayUtil;
 import com.pg.util.PgTrnsctnOrderLookup;
 import com.pg.util.JpayPostSaleRiskOutcomeUtil;
-import com.pg.util.PayCardFailOutcomeRules;
 import com.pg.util.TxnOutcomeReasonApplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -633,33 +632,19 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
     }
 
     private void applyCardFailCooldownFromTxn(PgTrnsctn t, String merged, String prevStatus, String prevOutcomeReasonCode) {
-        if (t == null || t.getCardPanHash() == null || t.getCardPanHash().isBlank()) {
+        if (t == null) {
             return;
         }
-        String hash = t.getCardPanHash().trim();
-        String mask = t.getCardPanDisplay();
-        Long orgUnitId = resolveOrgUnitId(t);
-        if (ST_PAID.equals(merged)) {
-            payCardFailCooldownService.clearOnSuccessByHash(PgVendor.JPAY, hash, orgUnitId);
-            return;
+        if (!ST_PAID.equals(merged)) {
+            String outcomeMsg = t.getOutcomeReason();
+            String postSaleCode = JpayPostSaleRiskOutcomeUtil.classify(outcomeMsg);
+            if (postSaleCode != null
+                    && jpayPostSaleRiskCooldownService.shouldRecordPostSaleEvent(postSaleCode)) {
+                /* JPAY 전용: 사후 고위험·PY0124 리스크 현황. 실패 쿨다운은 전 PG 공통 applyFromTxn */
+                jpayPostSaleRiskCooldownService.recordPostSaleEvent(t, postSaleCode, outcomeMsg);
+            }
         }
-        if (!PayCardFailOutcomeRules.shouldRecordNewRiskFailure(
-                prevStatus, prevOutcomeReasonCode, merged, t.getOutcomeReasonCode())) {
-            return;
-        }
-        String outcomeMsg = t.getOutcomeReason();
-        String postSaleCode = JpayPostSaleRiskOutcomeUtil.classify(outcomeMsg);
-        if (postSaleCode != null
-                && jpayPostSaleRiskCooldownService.shouldRecordPostSaleEvent(postSaleCode)) {
-            /* 리스크 현황만 옵션 — 위험관리 FAIL 집계는 아래에서 항상 수행 */
-            jpayPostSaleRiskCooldownService.recordPostSaleEvent(t, postSaleCode, outcomeMsg);
-        }
-        Optional<String> riskCode = PayCardFailOutcomeRules.outcomeCodeForTxnRiskCount(merged, t.getOutcomeReasonCode());
-        if (riskCode.isEmpty()) {
-            return;
-        }
-        payCardFailCooldownService.recordFromTxnHash(PgVendor.JPAY, hash, mask, riskCode.get(),
-                outcomeMsg, orgUnitId, t.getCustomerNm());
+        payCardFailCooldownService.applyFromTxn(PgVendor.JPAY, t, prevStatus, prevOutcomeReasonCode);
     }
 
     private Long resolveOrgUnitId(PgTrnsctn t) {

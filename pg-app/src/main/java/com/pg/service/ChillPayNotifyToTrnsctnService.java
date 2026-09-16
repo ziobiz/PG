@@ -85,6 +85,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
     private final TransactionReceiptEmailService transactionReceiptEmailService;
     private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
     private final PgTrnsctnOrderDedupeService pgTrnsctnOrderDedupeService;
+    private final PayCardFailCooldownService payCardFailCooldownService;
 
     public ChillPayNotifyToTrnsctnService(PgTrnsctnRepository pgTrnsctnRepository,
                                          MerchantPgBindingRepository merchantPgBindingRepository,
@@ -99,7 +100,8 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
                                          SplitPayPaymentHookService splitPayPaymentHookService,
                                          TransactionReceiptEmailService transactionReceiptEmailService,
                                          OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator,
-                                         PgTrnsctnOrderDedupeService pgTrnsctnOrderDedupeService) {
+                                         PgTrnsctnOrderDedupeService pgTrnsctnOrderDedupeService,
+                                         PayCardFailCooldownService payCardFailCooldownService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
         this.orgUnitRepository = orgUnitRepository;
@@ -114,6 +116,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         this.transactionReceiptEmailService = transactionReceiptEmailService;
         this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
         this.pgTrnsctnOrderDedupeService = pgTrnsctnOrderDedupeService;
+        this.payCardFailCooldownService = payCardFailCooldownService;
     }
 
     @Override
@@ -260,6 +263,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         });
         String prevStatusSnap = t.getStatus();
         String prevSettledYnSnap = t.getSettledYn();
+        String prevOutcomeReasonCode = t.getOutcomeReasonCode();
 
         String mergedStatus = NotifyToTxnStatusMerge.merge(t.getStatus(), computed, notifyCh);
         if (mergedStatus == null || mergedStatus.isBlank()) {
@@ -397,6 +401,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
                 : TxnOutcomeReasonApplier.applyFromChillPayJson(t, prevStatusSnap, mergedStatus, root);
 
         pgTrnsctnRepository.save(t);
+        payCardFailCooldownService.applyFromTxn(PgVendor.CHILLPAY, t, prevStatusSnap, prevOutcomeReasonCode);
         purgeOrderDuplicates(t);
         outcomeReasonWarmCoordinator.onRecorded(recordedReason);
         try {

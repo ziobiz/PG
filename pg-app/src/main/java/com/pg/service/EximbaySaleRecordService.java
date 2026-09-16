@@ -42,13 +42,16 @@ public class EximbaySaleRecordService {
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final OrgUnitRepository orgUnitRepository;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
+    private final PayCardFailCooldownService payCardFailCooldownService;
 
     public EximbaySaleRecordService(PgTrnsctnRepository pgTrnsctnRepository,
                                     OrgUnitRepository orgUnitRepository,
-                                    HqLedgerSysSettingsService hqLedgerSysSettingsService) {
+                                    HqLedgerSysSettingsService hqLedgerSysSettingsService,
+                                    PayCardFailCooldownService payCardFailCooldownService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
+        this.payCardFailCooldownService = payCardFailCooldownService;
     }
 
     @Transactional
@@ -171,6 +174,8 @@ public class EximbaySaleRecordService {
                 return Optional.empty();
             }
             PgTrnsctn t = ex.get();
+            String prevStatus = t.getStatus();
+            String prevReason = t.getOutcomeReasonCode();
             if (transactionId != null && !transactionId.isBlank()) {
                 t.setChillTransactionId(truncate(transactionId.trim(), 64));
                 t.setApprovalNo(truncate(transactionId.trim(), 20));
@@ -194,6 +199,7 @@ public class EximbaySaleRecordService {
                 }
             }
             pgTrnsctnRepository.save(t);
+            payCardFailCooldownService.applyFromTxn(PgVendor.EXIMBAY, t, prevStatus, prevReason);
             return Optional.of(t);
         } catch (Exception e) {
             log.warn("Eximbay 결과 반영 실패: {}", e.getMessage());

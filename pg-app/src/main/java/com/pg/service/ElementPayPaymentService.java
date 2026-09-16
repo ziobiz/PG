@@ -206,14 +206,8 @@ public class ElementPayPaymentService {
         Optional<PayPresaleRiskFilterService.PresaleRiskBlock> presaleRisk =
                 payPresaleRiskFilterService.evaluate(orgUnitId, compCode, PgVendor.ELEMENTPAY, body);
         if (presaleRisk.isPresent()) {
-            PayPresaleRiskFilterService.PresaleRiskBlock block = presaleRisk.get();
-            Map<String, Object> out = new LinkedHashMap<>();
-            out.put("success", false);
-            out.put("message", block.message());
-            out.put("errorCode", PayPresaleRiskFilterCodes.ERROR_CODE);
-            out.put("messageKey", block.filterCode());
-            out.put("messages", block.messages());
-            return out;
+            return presaleRiskBlockOut(presaleRisk.get(), orgUnitId, compCode, orderNo,
+                    resolveTxnOrigin(body), amount, currency, binding.getSortOrder(), body);
         }
 
         String publicBase = trimSlash(productService.resolvePublicCustomerSiteBase(req));
@@ -1979,6 +1973,38 @@ public class ElementPayPaymentService {
             }
         }
         return null;
+    }
+
+    private Map<String, Object> presaleRiskBlockOut(PayPresaleRiskFilterService.PresaleRiskBlock block,
+                                                    Long orgUnitId, String merchantCode, String orderNo,
+                                                    String txnOrigin, BigDecimal amountBd, String currency,
+                                                    Integer routeNo, Map<String, Object> body) {
+        BigDecimal shopperDispAmt = parseAmount(body.get("shopperDisplayAmount"));
+        if (shopperDispAmt == null) {
+            shopperDispAmt = parseAmount(body.get("displayAmount"));
+        }
+        String shopperDispCur = str(body.get("shopperDisplayCurrency"));
+        if (shopperDispCur.isBlank()) {
+            shopperDispCur = str(body.get("displayCurrency"));
+        }
+        elementPaySaleRecordService.recordOrTouchPending(
+                orgUnitId, orderNo, amountBd, currency, routeNo,
+                str(body.get("item")), txnOrigin,
+                str(body.get("customerNm")), str(body.get("payEmailAddress")),
+                "CARD", shopperDispAmt, shopperDispCur.isBlank() ? null : shopperDispCur,
+                false, null, body);
+        String trnId = elementPaySaleRecordService.applyIcopayPresaleRiskCancel(
+                merchantCode, orderNo, txnOrigin, block.message());
+        payPresaleRiskFilterService.recordEvent(orgUnitId, merchantCode, orderNo, trnId, PgVendor.ELEMENTPAY, block);
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("success", false);
+        out.put("errorCode", PayPresaleRiskFilterCodes.ERROR_CODE);
+        out.put("filterCode", block.filterCode());
+        out.put("message", block.message());
+        out.put("messages", block.messages());
+        out.put("icopayPresaleBlock", true);
+        out.put("txnStatus", "20");
+        return out;
     }
 
     private static String resolveTxnOrigin(Map<String, Object> body) {

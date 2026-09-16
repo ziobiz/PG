@@ -6,13 +6,211 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '4.13';
+  var CURRENT_LIVE = '4.22';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '4.22',
+      kind: 'minor',
+      date: '2026-09-16',
+      items: {
+        KO: [
+          '총본사 https://icopay.co.kr 링크 미리보기: 정적 HTML 기본값(ICOPAY…)이 나가던 문제를 수정. jpjp·hqth와 같이 브랜드에 저장한 제목·설명이 첫 HTML에 반영'
+        ],
+        EN: [
+          'HQ https://icopay.co.kr link preview: fixed static HTML defaults (ICOPAY…) so saved branding title and description are in the first HTML, same as jpjp and hqth'
+        ],
+        JP: [
+          '総本部 https://icopay.co.kr のリンクプレビュー: 静的HTMLの既定値(ICOPAY…)が出ていた問題を修正。jpjp・hqthと同様、ブランドに保存したタイトル・説明が最初のHTMLに入る'
+        ],
+        CH: [
+          '总部 https://icopay.co.kr 链接预览：修复仍输出静态 HTML 默认值（ICOPAY…）的问题。与 jpjp、hqth 一样，品牌中保存的标题和说明写入首份 HTML'
+        ],
+        TH: [
+          'ตัวอย่างลิงก์ HQ https://icopay.co.kr: แก้ที่ส่งค่าเริ่มต้น HTML คงที่ (ICOPAY…) ให้ชื่อและคำอธิบายที่บันทึกในแบรนด์อยู่ใน HTML แรก เหมือน jpjp และ hqth'
+        ]
+      }
+    },
+    {
+      version: '4.21',
+      kind: 'minor',
+      date: '2026-09-16',
+      items: {
+        KO: [
+          '관리자 링크 미리보기(Open Graph): LINE·WhatsApp 공유 시 첫 HTML에 제목·설명·이미지. 총본사·본사·총판 브랜드에서 본사설정 따름/직접 입력(5개국어)'
+        ],
+        EN: [
+          'Admin link preview (Open Graph): title, description, and image in the first HTML for LINE/WhatsApp. Headquarters, regional, and distributor branding with Follow HQ or Custom (KOR·ENG·JPN·CHN·THA)'
+        ],
+        JP: [
+          '管理者リンクプレビュー(Open Graph): LINE・WhatsApp共有時に最初のHTMLへタイトル・説明・画像。総本部・本社・総代理ブランドで本社設定に従う/直接入力（5言語）'
+        ],
+        CH: [
+          '管理员链接预览（Open Graph）：LINE/WhatsApp 分享时首份 HTML 含标题、说明、图片。总部、区域、总代理品牌支持遵循总部或自行输入（五语）'
+        ],
+        TH: [
+          'ตัวอย่างลิงก์ผู้ดูแล (Open Graph): แชร์ LINE/WhatsApp แล้ว HTML แรกมีชื่อ คำอธิบาย รูป แบรนด์ HQ/ภูมิภาค/ตัวแทนใหญ่ ตาม HQ หรือกรอกเอง (5 ภาษา)'
+        ]
+      }
+    },
+    {
+      version: '4.20',
+      kind: 'minor',
+      date: '2026-09-16',
+      items: {
+        KO: [
+          '관리자 로그인 사칭 주의 안내: 영어 등 다른 언어에서도 한글로 남던 본문(최근 본사나 PG사 사칭…)을 5개국어로 표시. 본사 공지도 화면 언어에 맞춤'
+        ],
+        EN: [
+          'Admin login impersonation notice: the Korean leftover paragraph now follows KOR·ENG·JPN·CHN·THA. Headquarters login notices use the on-screen language'
+        ],
+        JP: [
+          '管理者ログインのなりすまし注意: 英語表示でも韓国語のままだった本文を5言語化。本社告知も画面言語に合わせる'
+        ],
+        CH: [
+          '管理员登录防冒充提示：英语等界面中仍显示韩文的正文现支持五语。总部公告随界面语言'
+        ],
+        TH: [
+          'ประกาศแอบอ้างหน้าล็อกอินผู้ดูแล: ย่อหน้าที่ค้างภาษาเกาหลีเมื่อเป็นภาษาอังกฤษ แสดง 5 ภาษาแล้ว ประกาศ HQ ตามภาษาหน้าจอ'
+        ]
+      }
+    },
+    {
+      version: '4.19',
+      kind: 'minor',
+      date: '2026-09-16',
+      items: {
+        KO: [
+          '결제내역 VIEW SETTING·그리드: 입력통화, 통화｜금액, 위치, 단말기 등 언어 전환 시 한글로 남던 열 이름을 5개국어로 표시'
+        ],
+        EN: [
+          'Payment history VIEW SETTING and grid: column names that stayed in Korean after a language switch (Input currency, Ccy | amount, Location, Device, and related) now follow KOR·ENG·JPN·CHN·THA'
+        ],
+        JP: [
+          '決済履歴 VIEW SETTING・グリッド: 言語切替後も韓国語のままだった列名（入力通貨、通貨｜金額、位置、端末など）を5言語で表示'
+        ],
+        CH: [
+          '支付明细 VIEW SETTING 与表格：语言切换后仍显示韩文的列名（输入币种、币种｜金额、位置、终端等）现支持五语'
+        ],
+        TH: [
+          'ประวัติชำระ VIEW SETTING และตาราง: ชื่อคอลัมน์ที่ค้างภาษาเกาหลีหลังเปลี่ยนภาษา (สกุลที่ป้อน, สกุล｜ยอด, ตำแหน่ง, อุปกรณ์ ฯลฯ) แสดง 5 ภาษาแล้ว'
+        ]
+      }
+    },
+    {
+      version: '4.18',
+      kind: 'minor',
+      date: '2026-09-16',
+      items: {
+        KO: [
+          '관리자 로그인(본사·hqth·jpjp 등 포털 공통): 왼쪽 메인 문구·로그인 패널 로고를 가운데 정렬'
+        ],
+        EN: [
+          'Admin login (HQ and portals such as hqth, jpjp): centered the left-pane wordmark and the login-panel logo'
+        ],
+        JP: [
+          '管理者ログイン(本社・hqth・jpjp等ポータル共通): 左メイン文言・ログインパネルロゴを中央揃え'
+        ],
+        CH: [
+          '管理员登录（本部及 hqth、jpjp 等门户共用）：左侧主文案与登录面板 Logo 改为居中'
+        ],
+        TH: [
+          'หน้าเข้าสู่ระบบผู้ดูแล (HQ และพอร์ทัล hqth, jpjp): จัดกึ่งกลางข้อความฝั่งซ้ายและโลโก้แผงเข้าสู่ระบบ'
+        ]
+      }
+    },
+    {
+      version: '4.17',
+      kind: 'minor',
+      date: '2026-09-16',
+      items: {
+        KO: [
+          '포털 서브(hqth·jpjp 등) 관리자 로그인: 같은 보안 토큰이 API 도메인과 포털 호스트로 두 번 전송되어 「보안 확인에 실패」하던 문제를 수정. 본사와 같이 해당 호스트 /api 만 사용'
+        ],
+        EN: [
+          'Portal subdomain admin login (hqth, jpjp, …): fixed security check failing because the same Turnstile token was posted twice (API host and portal host). Login now uses same-origin /api like HQ'
+        ],
+        JP: [
+          'ポータルサブ(hqth・jpjp等)管理者ログイン: 同一セキュリティトークンがAPIドメインとポータルホストへ二重送信され「セキュリティ確認に失敗」していた問題を修正。本社と同様に当該ホストの /api のみ使用'
+        ],
+        CH: [
+          '门户子域（hqth、jpjp 等）管理员登录：修复同一安全令牌被发往 API 域名和门户主机各一次导致「安全验证失败」。现与本部一样只使用该主机 /api'
+        ],
+        TH: [
+          'เข้าสู่ระบบผู้ดูแลบนโดเมนย่อยพอร์ทัล (hqth, jpjp ฯลฯ): แก้กรณีโทเคนความปลอดภัยถูกส่งซ้ำไปทั้งโดเมน API และโฮสต์พอร์ทัลจนยืนยันล้มเหลว ตอนนี้ใช้ /api บนโฮสต์เดียวกันเหมือน HQ'
+        ]
+      }
+    },
+    {
+      version: '4.16',
+      kind: 'minor',
+      date: '2026-09-16',
+      items: {
+        KO: [
+          '관리자 로그인 Turnstile은 본사·모든 포털 서브(hqth·jpjp·jp 등 *.icopay.co.kr) 공통. 위젯 성공 후 서버가 「보안 확인에 실패」하던 문제를 수정(방문자 IP·호스트 검증)'
+        ],
+        EN: [
+          'Admin login Turnstile is shared across HQ and all portal subdomains (hqth, jpjp, jp, and any *.icopay.co.kr). Fixed server rejecting tokens after the widget already succeeded (visitor IP and hostname checks)'
+        ],
+        JP: [
+          '管理者ログイン Turnstile は本社・全ポータルサブ(hqth・jpjp・jp 等 *.icopay.co.kr)共通。ウィジェット成功後にサーバが「セキュリティ確認に失敗」していた問題を修正(訪問者IP・ホスト検証)'
+        ],
+        CH: [
+          '管理员登录 Turnstile 为本部及所有门户子域（hqth、jpjp、jp 等 *.icopay.co.kr）共用。修复小组件已成功但服务器仍提示「安全验证失败」(访客 IP 与主机名校验)'
+        ],
+        TH: [
+          'Turnstile เข้าสู่ระบบผู้ดูแลใช้ร่วมกันทั้ง HQ และโดเมนย่อยพอร์ทัลทั้งหมด (hqth, jpjp, jp และ *.icopay.co.kr) แก้กรณีวิดเจ็ตสำเร็จแล้วแต่เซิร์ฟเวอร์แจ้งยืนยันความปลอดภัยล้มเหลว (IP ผู้เข้าชมและโฮสต์)'
+        ]
+      }
+    },
+    {
+      version: '4.15',
+      kind: 'minor',
+      date: '2026-09-16',
+      items: {
+        KO: [
+          '리스크설정(실패 쿨다운·자동 비활성카드)을 JPAY뿐 아니라 ElementPay·ChillPay·Eximbay·ILK 등 모든 결제대행사에 동일 적용. JPAY 사후 고위험·PY0124 리스크현황만 JPAY 전용'
+        ],
+        EN: [
+          'Risk settings (fail cooldown and auto-inactive cards) now apply the same way to all processors (ElementPay, ChillPay, Eximbay, ILK), not only JPAY. JPAY post-sale high-risk and PY0124 status remain JPAY-only'
+        ],
+        JP: [
+          'リスク設定(失敗クールダウン・自動非活性カード)をJPAYだけでなくElementPay・ChillPay・Eximbay・ILKなど全決済代行に同一適用。JPAY事後高リスク・PY0124リスク状況のみJPAY専用'
+        ],
+        CH: [
+          '风险设置（失败冷却、自动停用卡）现对所有支付机构（ElementPay、ChillPay、Eximbay、ILK）与 JPAY 同样生效。仅 JPAY 事后高风险与 PY0124 风险现状仍为 JPAY 专用'
+        ],
+        TH: [
+          'ตั้งค่าความเสี่ยง (คูลดาวน์ความล้มเหลวและบัตรปิดใช้อัตโนมัติ) ใช้เหมือนกันกับผู้ให้บริการชำระทุกแห่ง ไม่เฉพาะ JPAY สถานะความเสี่ยงสูงหลังขายและ PY0124 ของ JPAY ยังเป็นเฉพาะ JPAY'
+        ]
+      }
+    },
+    {
+      version: '4.14',
+      kind: 'minor',
+      date: '2026-09-16',
+      items: {
+        KO: [
+          '관리자 로그인 Turnstile: Cloudflare 배너 대신 「로봇 접근을 확인 중입니다. 잠시 대기해 주세요.」만 표시'
+        ],
+        EN: [
+          'Admin login Turnstile: replaced the Cloudflare banner with a wait message (“Checking that you are not a robot…”)'
+        ],
+        JP: [
+          '管理者ログイン Turnstile: Cloudflareバナーの代わりに「ロボットによるアクセスでないことを確認しています…」のみ表示'
+        ],
+        CH: [
+          '管理员登录 Turnstile：不再显示 Cloudflare 横幅，仅提示「正在确认您不是机器人，请稍候」'
+        ],
+        TH: [
+          'หน้าเข้าสู่ระบบผู้ดูแล Turnstile: แทนแบนเนอร์ Cloudflare ด้วยข้อความรอ 「กำลังตรวจสอบว่าไม่ใช่หุ่นยนต์…」'
+        ]
+      }
+    },
     {
       version: '4.13',
       kind: 'minor',
