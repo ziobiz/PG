@@ -1,4 +1,9 @@
-# 본사설정 — 계정·OTP·사용자관리 (ziobiz/NOTI 대응)
+# 본사설정 — 계정·OTP·사용자관리
+
+> 라이브 반영: 플랫폼 **V4.25** 기준 (사용자관리 조직·설정권한 · 메뉴얼 반영)  
+> 관리자: https://icopay.co.kr/ → **사용자관리 → 사용자관리** (`/user/userMng`)
+
+---
 
 ## 총본사 업체정보조회 폼
 
@@ -7,22 +12,64 @@
 
 ## 본사설정 — 사용자설정 — 로그인·OTP 정책
 
-- 메뉴: **본사설정 → 사용자설정** (`/hq/userSettings`).
-- **OTP 사용 필수** (`otpRequiredYn` Y/N) 등: `tb_hq_notify_env_config` (동일 테이블). UI는 노티구성설정에서 분리되어 이 화면에서만 편집하며, 저장 API는 `POST /api/hq/notifyEnv/save`에 해당 필드만 전달합니다.
-- 로그인/등록 단계의 실제 OTP 검증(TOTP/SMS 등)은 이후 연동 예정이며, 정책 값은 API·DB에 먼저 반영됩니다.
+- 메뉴: **본사정책 → 접근·권한 → 사용자설정** (`/hq/userSettings`).
+- **OTP 사용 필수** (`otpRequiredYn` Y/N) 등: `tb_hq_notify_env_config`. UI는 이 화면에서 편집하며, 저장 API는 `POST /api/hq/notifyEnv/save`에 해당 필드만 전달합니다.
+- **SUPERVISOR** 부여·해제는 이 화면에서만 가능합니다(사용자관리 목록에서는 변경 불가).
 
 ## 계정·업체접근
 
-- 메뉴: **본사설정 → 계정·업체접근** (`/hq/accountMng`).
+- 메뉴: **본사정책 → 접근·권한 → 계정·업체접근** (`/hq/accountMng`).
 - 사용자(로그인 ID)별로 허용할 **업체코드**를 지정합니다 (`tb_user_comp_access`).
 - API: `GET/POST /api/hq/accountAccess`, `POST .../add`, `DELETE .../{id}`.
 
-## 사용자관리 그리드
+---
 
-- 컬럼: 번호, 사용자ID, 사용자명, 소속업체코드, **권한그룹**, 역할, **OTP**, 사용여부.
-- **권한그룹** 정렬 후 같은 그룹의 첫 행에 왼쪽 강조선(`tr-user-group-start`) — 참고 UI(거래 목록의 고객별 그룹)와 유사.
-- `tb_user`: `org_unit_code`, `permission_group_nm`, `otp_registered_yn` (신규 사용자 생성 시 업체코드·기본 권한그룹 반영).
+## 사용자관리 그리드 (`/user/userMng`)
 
-## DB 마이그레이션 (PostgreSQL)
+### 열 구성 (기본)
 
-- `pg-app/src/main/resources/db/V12_user_hq_otp_account_access.sql` 참고. H2 dev는 `ddl-auto`로 엔티티 반영.
+| 열 | 설명 |
+|----|------|
+| No. | 번호 (고정) |
+| 업체코드 · 업체명 | 소속 조직 (고정) |
+| 사용자ID* · 사용자명* · 연락처* | 계정 기본 정보 |
+| **조직** | 조직도 단계: 총본사·본사·총판·지사·대리점·영업점·가맹점 |
+| **권한그룹*** | **수정용**. 담당자(ASSISTANT)는 셀렉트로 변경. 대표(REPRESENTATIVE)·SUPERVISOR는 조회 전용 |
+| **설정권한** | **현재 적용 표시**(수정 아님). 권한그룹과 동일 의미의 단축 표기 |
+| 비밀번호 · OTP | 등록/미등록 · 초기화(권한 시) |
+| 사용여부* · 전환사유 · 삭제 | 상태·임시행 삭제 |
+
+- **VIEW SETTING**으로 열 표시·순서를 조정할 수 있습니다. 고정열: No. · 업체코드 · 업체명 · 사용자ID.
+- 시스템 계정 구분(`AppUser.role`의 USER/ADMIN)은 목록에 쓰지 않습니다. 예전에 「역할」이 모두 USER로 보이던 표기는 제거되었습니다.
+
+### 권한그룹(수정) ↔ 설정권한(표시)
+
+| 권한그룹* (저장·코드) | 설정권한 (화면 단축) |
+|----------------------|---------------------|
+| 감독담당 (SUPERVISOR) | 감독 |
+| 관리담당 (MANAGER) | 관리 |
+| 운영담당 (OPERATOR) | 운영 |
+| 정산담당 (SETTLEMENT) | 정산 |
+| 기술담당 (TECH) | 기술 |
+| 대표 | 대표 |
+| 업체사용자 | 일반 |
+| CHATBOT / 챗봇관리자 | 챗봇 |
+
+- DB `permission_group_nm`·`assistant_role_type`은 기존 긴 이름·코드를 유지하고, **목록 표시만** 단축합니다.
+- 권한그룹을 바꾸면 같은 행의 **설정권한**이 즉시 맞춰집니다(저장 전 미리보기).
+
+### 운영 팁
+
+1. 총판과 총본사 사용자를 구분할 때는 **조직** 열을 확인합니다(업체코드만으로는 단계가 안 보입니다).
+2. 메뉴 접근 범위는 본사정책 **접근·권한**·담당자 권한그룹별 메뉴와 함께 적용됩니다.
+3. 비밀번호·OTP 초기화는 **관리(MANAGER)** 등 허용된 계정만 가능합니다.
+
+### 데이터
+
+- `tb_user`: `org_unit_code`, `permission_group_nm`, `assistant_role_type`, `otp_registered_yn`, `user_type` 등.
+- 목록 API: `UserListService` — `orgLevel` / `orgLevelNm` / `roleNm`(단축 설정권한).
+
+## DB 마이그레이션
+
+- 계정·OTP·업체접근 초기: `pg-app/src/main/resources/db/V12_user_hq_otp_account_access.sql` 참고.
+- 사용자관리 조직·설정권한 표시는 **스키마 변경 없음**(표시·API 필드만).

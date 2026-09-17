@@ -39,9 +39,10 @@
    * 플랫폼 라이브 버전과 다를 수 있음 — 문서가 갱신되면 함께 올린다.
    */
   var ITEMS = [
-    { id: 'super-ops', audience: 'super', title: '총본사 운영 메뉴얼', docVersion: '2.76' },
+    { id: 'super-ops', audience: 'super', title: '총본사 운영 메뉴얼', docVersion: '2.81' },
     { id: 'hq-ops', audience: 'hqdist', title: '본사 운영 메뉴얼', docVersion: '2.76' },
     { id: 'dist-ops', audience: 'hqdist', title: '총판 운영 메뉴얼', docVersion: '2.76' },
+    { id: 'user-access-ops', audience: 'hqdist', title: '사용자관리 · 링크 미리보기 안내', docVersion: '2.81' },
     { id: 'hqdist-risk-intro', audience: 'hqdist', title: '리스크 트리거 발동 소개 안내', docVersion: '2.43' },
     { id: 'merchant-ops', audience: 'merchant', title: '가맹점 운영 메뉴얼', docVersion: '2.74' },
     { id: 'merchant-chatbot', audience: 'merchant', title: '챗봇결제 가맹점 사용 메뉴얼', docVersion: '2.46' },

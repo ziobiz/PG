@@ -52,6 +52,7 @@ public class ApiHqPlatformManualsController {
             Map.entry("hq-ops", "hqdist"),
             Map.entry("dist-ops", "hqdist"),
             Map.entry("hqdist-risk-intro", "hqdist"),
+            Map.entry("user-access-ops", "hqdist"),
             Map.entry("merchant-chatbot", "merchant"),
             Map.entry("merchant-ops", "merchant"),
             Map.entry("merchant-url-user", "merchant"),

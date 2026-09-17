@@ -6,13 +6,79 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '4.22';
+  var CURRENT_LIVE = '4.25';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '4.25',
+      kind: 'minor',
+      date: '2026-09-17',
+      items: {
+        KO: [
+          '운영 메뉴얼·가이드 반영: 사용자관리(조직·설정권한·VIEW SETTING), 관리자 링크 미리보기(OG). 운영매뉴얼 PDF 「사용자관리 · 링크 미리보기 안내」V2.81 추가 · 관리자 메뉴 운영 가이드 V4.25'
+        ],
+        EN: [
+          'Ops manuals/guides updated: User management (org level, applied grant, VIEW SETTING) and admin link preview (OG). New ops PDF “User Management · Link Preview” V2.81 · admin menu ops guide V4.25'
+        ],
+        JP: [
+          '運営マニュアル・ガイド反映: ユーザー管理（組織・設定権限・VIEW SETTING）、管理者リンクプレビュー(OG)。運営マニュアルPDF「ユーザー管理・リンクプレビュー案内」V2.81追加 · 管理者メニュー運用ガイド V4.25'
+        ],
+        CH: [
+          '运营手册/指南更新：用户管理（组织、已设权限、VIEW SETTING）与管理员链接预览(OG)。新增运营手册 PDF「用户管理·链接预览」V2.81 · 管理员菜单运营指南 V4.25'
+        ],
+        TH: [
+          'อัปเดตคู่มือ: จัดการผู้ใช้ และตัวอย่างลิงก์ผู้ดูแล (OG) เพิ่ม PDF คู่มือ V2.81 · คู่มือเมนูผู้ดูแล V4.25'
+        ]
+      }
+    },
+    {
+      version: '4.24',
+      kind: 'minor',
+      date: '2026-09-17',
+      items: {
+        KO: [
+          '사용자관리: 설정권한 표기를 단축(감독·관리·운영·정산·기술·대표·일반·챗봇). 열 이름 「설정된 권한그룹」→「설정권한」'
+        ],
+        EN: [
+          'User management: shorter applied-grant labels (Supervisor, Admin, Ops, Settlement, Tech, Primary, General, Chatbot). Column renamed to Applied grant'
+        ],
+        JP: [
+          'ユーザー管理: 設定権限表示を短縮（監督・管理・運用・精算・技術・代表・一般・チャットボット）。列名を「設定権限」に変更'
+        ],
+        CH: [
+          '用户管理：已设权限简称（督导、管理、运营、结算、技术、主账号、普通、机器人）。列名改为「已设权限」'
+        ],
+        TH: [
+          'จัดการผู้ใช้: ย่อป้ายสิทธิ์ที่ตั้ง (ผู้กำกับ บริหาร ปฏิบัติการ ชำระบัญชี เทคนิค บัญชีหลัก ทั่วไป แชทบอท) เปลี่ยนชื่อคอลัมน์เป็น สิทธิ์ที่ตั้ง'
+        ]
+      }
+    },
+    {
+      version: '4.23',
+      kind: 'minor',
+      date: '2026-09-17',
+      items: {
+        KO: [
+          '사용자관리: 연락처와 권한그룹 사이에 「조직」(총본사·본사·총판 등) 열 추가. 「역할」을 「설정된 권한그룹」으로 바꿔 시스템 USER가 아닌 현재 권한그룹명(관리담당·운영담당 등)을 표시. VIEW SETTING·5개국어'
+        ],
+        EN: [
+          'User management: Org level column between Contact and Permission group. Role column renamed to Applied permission group (shows current group, not system USER). VIEW SETTING and 5 languages'
+        ],
+        JP: [
+          'ユーザー管理: 連絡先と権限グループの間に「組織」列を追加。「ロール」を「設定済み権限グループ」にし、システムUSERではなく現在の権限グループ名を表示。VIEW SETTING・5言語'
+        ],
+        CH: [
+          '用户管理：在联系方式与权限组之间增加「组织」列。将「角色」改为「已应用权限组」，显示当前权限组名而非系统 USER。含 VIEW SETTING 与五语'
+        ],
+        TH: [
+          'จัดการผู้ใช้: เพิ่มคอลัมน์องค์กรระหว่างติดต่อกับกลุ่มสิทธิ์ เปลี่ยนบทบาทเป็นกลุ่มสิทธิ์ที่ตั้งไว้ แสดงชื่อกลุ่มปัจจุบัน ไม่ใช่ USER ของระบบ พร้อม VIEW SETTING และ 5 ภาษา'
+        ]
+      }
+    },
     {
       version: '4.22',
       kind: 'minor',

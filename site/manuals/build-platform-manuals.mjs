@@ -9,8 +9,8 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(__dirname, 'generated');
-const VERSION = '2.76';
-const DATE = '2026-07-24';
+const VERSION = '2.81';
+const DATE = '2026-09-17';
 const LANGS = ['ko', 'en', 'ja', 'zh', 'th'];
 
 const UI = {
@@ -45,32 +45,42 @@ const MANUALS = [
     sections: {
       ko: [
         { h: '역할', html: '<p>총본사(HEADQUARTERS)는 <strong>본사정책</strong>·<strong>연동·배포</strong> 허브와 전 조직 권한을 관리합니다. 본사·총판·가맹 운영 매뉴얼과 함께 사용하십시오.</p>' },
-        { h: '주요 메뉴', html: '<ul><li>본사정책 → 플랫폼(전산·도메인·서버·업데이트 내용)</li><li>운영관리 → <strong>운영매뉴얼</strong>(통합리포트 아래)</li><li>접근·권한 · 수수료·리스크 · AI·챗봇</li><li>연동·배포 → 결제대행사 설정 · 가맹 API 출시</li><li>업체관리 · 결제·정산</li></ul>' },
-        { h: '권장 운영 순서', html: '<ol><li>총본사 기본정보·브랜딩(로고·사이트명) 확인</li><li>본사 권한·조직 단계 메뉴 권한</li><li>PG·노티·리스크 기본값</li><li>하위 본사/총판 등록 후 가맹 온보딩</li></ol>' },
+        { h: '주요 메뉴', html: '<ul><li>본사정책 → 플랫폼(전산·도메인·서버·업데이트 내용)</li><li>운영관리 → <strong>운영매뉴얼</strong>(통합리포트 아래)</li><li>접근·권한 · 수수료·리스크 · AI·챗봇</li><li>연동·배포 → 결제대행사 설정 · 가맹 API 출시</li><li>업체관리 · 결제·정산 · <strong>사용자관리</strong></li></ul>' },
+        { h: '사용자관리', html: '<p class="menu-path">사용자관리 → 사용자관리</p><ul><li><strong>조직</strong> 열: 총본사·본사·총판 등 조직도 단계(연락처와 권한그룹 사이)</li><li><strong>권한그룹*</strong>: 수정용(관리·운영·정산·기술·챗봇 등)</li><li><strong>설정권한</strong>: 현재 적용 표시만(감독·관리·운영·정산·기술·대표·일반·챗봇). 시스템 USER 표기 없음</li><li>VIEW SETTING으로 열 표시·순서 조정(고정: No./업체코드/업체명/사용자ID)</li></ul>' },
+        { h: '링크 미리보기(OG)', html: '<p>관리자 URL을 LINE·WhatsApp 등에 공유할 때 카드에 나오는 제목·설명·이미지입니다.</p><ul><li>설정: 조직 <strong>브랜드 → 링크 미리보기 (메신저)</strong> (5개국어)</li><li>총본사: 직접 입력 · 본사/총판: 본사설정 따름 또는 직접 입력</li><li>메신저 캐시가 남으면 서버가 맞아도 예전 카드가 보일 수 있음</li></ul>' },
+        { h: '권장 운영 순서', html: '<ol><li>총본사 기본정보·브랜딩(로고·사이트명·링크 미리보기) 확인</li><li>본사 권한·조직 단계 메뉴 권한</li><li>PG·노티·리스크 기본값</li><li>하위 본사/총판 등록 후 가맹 온보딩 · 사용자관리로 담당 계정 부여</li></ol>' },
         { h: '버전', html: '<p>본 문서는 플랫폼 라이브 버전과 동일하게 관리됩니다. <strong>본사정책 → 플랫폼 → 업데이트 내용</strong>과 맞춰 확인하십시오.</p>' }
       ],
       en: [
         { h: 'Role', html: '<p>Super HQ manages <strong>HQ Policy</strong> and <strong>Integration &amp; Deploy</strong> hubs and org-wide permissions.</p>' },
-        { h: 'Key menus', html: '<ul><li>HQ Policy → Platform (ledger, domain, server, releases)</li><li>Operations → <strong>Ops manuals</strong> (below Integrated report)</li><li>Access · Fees &amp; Risk · AI/Chatbot</li><li>Integration &amp; Deploy → Payment agency settings · Merchant API launch</li></ul>' },
-        { h: 'Suggested flow', html: '<ol><li>HQ basic info &amp; branding</li><li>Permissions</li><li>PG / NOTI / risk defaults</li><li>Register HQ/distributor then merchants</li></ol>' },
+        { h: 'Key menus', html: '<ul><li>HQ Policy → Platform (ledger, domain, server, releases)</li><li>Operations → <strong>Ops manuals</strong> (below Integrated report)</li><li>Access · Fees &amp; Risk · AI/Chatbot</li><li>Integration &amp; Deploy → Payment agency settings · Merchant API launch</li><li>Companies · Pay/Settlement · <strong>User management</strong></li></ul>' },
+        { h: 'User management', html: '<p class="menu-path">Users → User management</p><ul><li><strong>Org level</strong> column (HQ · regional · master distributor, etc.)</li><li><strong>Permission group*</strong>: editable</li><li><strong>Applied grant</strong>: display only (Supervisor, Admin, Ops, Settlement, Tech, Primary, General, Chatbot) — not system USER</li><li>VIEW SETTING for column visibility</li></ul>' },
+        { h: 'Link preview (OG)', html: '<p>Title, description, and image when sharing admin URLs in messengers.</p><ul><li>Brand → <strong>Link preview (messenger)</strong> (5 languages)</li><li>Super HQ: custom · Regional/Distributor: Follow HQ or custom</li><li>Messenger cache may keep old cards</li></ul>' },
+        { h: 'Suggested flow', html: '<ol><li>HQ basic info, branding &amp; link preview</li><li>Permissions</li><li>PG / NOTI / risk defaults</li><li>Register HQ/distributor then merchants · assign users</li></ol>' },
         { h: 'Version', html: '<p>Kept in sync with the live platform version under Platform → Release notes.</p>' }
       ],
       ja: [
         { h: '役割', html: '<p>総本部は<strong>本社政策</strong>・<strong>連携・配信</strong>と全組織権限を管理します。</p>' },
-        { h: '主要メニュー', html: '<ul><li>本社政策 → プラットフォーム（電算・ドメイン・サーバー・更新内容）</li><li>運用管理 → <strong>運営マニュアル</strong>（統合レポート下）</li><li>権限・手数料リスク・AI</li><li>連携・配信</li></ul>' },
-        { h: '推奨手順', html: '<ol><li>基本情報・ブランディング</li><li>権限</li><li>PG・NOTI・リスク既定</li><li>下位組織→加盟店</li></ol>' },
+        { h: '主要メニュー', html: '<ul><li>本社政策 → プラットフォーム（電算・ドメイン・サーバー・更新内容）</li><li>運用管理 → <strong>運営マニュアル</strong>（統合レポート下）</li><li>権限・手数料リスク・AI</li><li>連携・配信</li><li>業者・決済・<strong>ユーザー管理</strong></li></ul>' },
+        { h: 'ユーザー管理', html: '<p class="menu-path">ユーザー管理</p><ul><li><strong>組織</strong>列（総本社・本社・総販など）</li><li><strong>権限グループ*</strong>: 編集</li><li><strong>設定権限</strong>: 表示のみ（監督・管理・運用・精算・技術・代表・一般・チャットボット）</li><li>VIEW SETTING</li></ul>' },
+        { h: 'リンクプレビュー(OG)', html: '<p>管理URL共有時のカード（タイトル・説明・画像）。ブランドの<strong>リンクプレビュー</strong>（5言語）。総本部は直接入力、本社/総販は本社設定に従う/直接入力。</p>' },
+        { h: '推奨手順', html: '<ol><li>基本情報・ブランディング・プレビュー</li><li>権限</li><li>PG・NOTI・リスク既定</li><li>下位組織→加盟店・ユーザー付与</li></ol>' },
         { h: 'バージョン', html: '<p>ライブ版と同期管理します。</p>' }
       ],
       zh: [
         { h: '角色', html: '<p>总本部管理<strong>总部策略</strong>与<strong>对接·部署</strong>及全组织权限。</p>' },
-        { h: '主要菜单', html: '<ul><li>总部策略 → 平台（账务·域名·服务器·更新内容）</li><li>运营管理 → <strong>运营手册</strong>（综合报表下方）</li><li>权限 · 手续费风险 · AI</li><li>对接·部署</li></ul>' },
-        { h: '建议流程', html: '<ol><li>基本信息与品牌</li><li>权限</li><li>PG/通知/风险默认</li><li>下级组织→商户</li></ol>' },
+        { h: '主要菜单', html: '<ul><li>总部策略 → 平台（账务·域名·服务器·更新内容）</li><li>运营管理 → <strong>运营手册</strong>（综合报表下方）</li><li>权限 · 手续费风险 · AI</li><li>对接·部署</li><li>企业 · 支付 · <strong>用户管理</strong></li></ul>' },
+        { h: '用户管理', html: '<p class="menu-path">用户管理</p><ul><li><strong>组织</strong>列（总总部·区域·总代等）</li><li><strong>权限组*</strong>：可编辑</li><li><strong>已设权限</strong>：仅显示（督导、管理、运营、结算、技术、主账号、普通、机器人）</li><li>VIEW SETTING</li></ul>' },
+        { h: '链接预览(OG)', html: '<p>分享管理端 URL 时的卡片。品牌中<strong>链接预览</strong>（五语）。总部自行输入；区域/总代可遵循总部或自行输入。</p>' },
+        { h: '建议流程', html: '<ol><li>基本信息、品牌与预览</li><li>权限</li><li>PG/通知/风险默认</li><li>下级组织→商户·分配用户</li></ol>' },
         { h: '版本', html: '<p>与平台线上版本同步管理。</p>' }
       ],
       th: [
         { h: 'บทบาท', html: '<p>สำนักงานใหญ่สูงสุดจัดการ<strong>นโยบาย HQ</strong> และ<strong>เชื่อมต่อ·ดีพลอย</strong> รวมสิทธิ์ทั้งองค์กร</p>' },
-        { h: 'เมนูหลัก', html: '<ul><li>นโยบาย HQ → แพลตฟอร์ม (บัญชี·โดเมน·เซิร์ฟเวอร์·ประวัติอัปเดต)</li><li>การปฏิบัติการ → <strong>คู่มือปฏิบัติการ</strong> (ใต้รายงานรวม)</li><li>สิทธิ์ · ค่าธรรมเนียม/ความเสี่ยง · AI</li><li>เชื่อมต่อ·ดีพลอย</li></ul>' },
-        { h: 'ลำดับแนะนำ', html: '<ol><li>ข้อมูลพื้นฐานและแบรนด์</li><li>สิทธิ์</li><li>ค่าเริ่มต้น PG/NOTI/ความเสี่ยง</li><li>องค์กรย่อย→ร้านค้า</li></ol>' },
+        { h: 'เมนูหลัก', html: '<ul><li>นโยบาย HQ → แพลตฟอร์ม</li><li>การปฏิบัติการ → <strong>คู่มือปฏิบัติการ</strong></li><li>สิทธิ์ · ความเสี่ยง · AI</li><li>เชื่อมต่อ·ดีพลอย</li><li>บริษัท · ชำระ · <strong>จัดการผู้ใช้</strong></li></ul>' },
+        { h: 'จัดการผู้ใช้', html: '<p class="menu-path">จัดการผู้ใช้</p><ul><li>คอลัมน์<strong>องค์กร</strong></li><li><strong>กลุ่มสิทธิ์*</strong>: แก้ไขได้</li><li><strong>สิทธิ์ที่ตั้ง</strong>: แสดงอย่างเดียว (ผู้กำกับ บริหาร ปฏิบัติการ ชำระบัญชี เทคนิค บัญชีหลัก ทั่วไป แชทบอท)</li><li>VIEW SETTING</li></ul>' },
+        { h: 'ตัวอย่างลิงก์(OG)', html: '<p>การ์ดเมื่อแชร์ URL ผู้ดูแล ในแบรนด์มี<strong>ตัวอย่างลิงก์</strong> (5 ภาษา) HQ กรอกเอง · ภูมิภาค/ตัวแทน ตาม HQ หรือกรอกเอง</p>' },
+        { h: 'ลำดับแนะนำ', html: '<ol><li>ข้อมูลพื้นฐาน แบรนด์ และตัวอย่างลิงก์</li><li>สิทธิ์</li><li>ค่าเริ่มต้น PG/NOTI/ความเสี่ยง</li><li>องค์กรย่อย→ร้าน · มอบผู้ใช้</li></ol>' },
         { h: 'เวอร์ชัน', html: '<p>จัดการให้ตรงกับเวอร์ชันสดของแพลตฟอร์ม</p>' }
       ]
     }
@@ -199,32 +209,37 @@ const MANUALS = [
     },
     sections: {
       ko: [
-        { h: '범위', html: '<p>본사(REGIONAL)·총판(MASTER_DIST) 운영자용. 총본사 전용(본사정책·연동배포 허브)은 제외하고, 업체·결제·정산·운영·챗봇·분할을 다룹니다.</p>' },
-        { h: '업체·가맹', html: '<ul><li>업체관리: 하위 조직·가맹 조회/수정</li><li>수수료관리 · 리스크관리 트리거(본사 따름/별도/미사용)</li><li>웹결제·URL·API 인라인 · 구독·재구매·분할·챗봇 사용여부</li></ul>' },
+        { h: '범위', html: '<p>본사(REGIONAL)·총판(MASTER_DIST) 운영자용. 총본사 전용(본사정책·연동배포 허브)은 제외하고, 업체·결제·정산·운영·챗봇·분할·<strong>사용자관리</strong>를 다룹니다.</p>' },
+        { h: '업체·가맹', html: '<ul><li>업체관리: 하위 조직·가맹 조회/수정</li><li>수수료관리 · 리스크관리 트리거(본사 따름/별도/미사용)</li><li>웹결제·URL·API 인라인 · 구독·재구매·분할·챗봇 사용여부</li><li>브랜드 <strong>링크 미리보기</strong>: 본사설정 따름 또는 직접 입력(5개국어) — 관리 URL 공유 카드</li></ul>' },
+        { h: '사용자관리', html: '<p class="menu-path">사용자관리 → 사용자관리</p><ul><li><strong>조직</strong>: 총본사·본사·총판 등 단계 구분</li><li><strong>권한그룹*</strong> 수정 / <strong>설정권한</strong> 표시(관리·운영·정산·기술·대표·일반·챗봇·감독)</li><li>VIEW SETTING으로 열 조정</li></ul>' },
         { h: '결제·정산', html: '<ul><li>결제관리: 결제내역·성공/실패/환불/무효 등</li><li>정산관리: 가맹·유통망 정산·정산실행</li><li>운영관리: 리스크 현황·비활성카드·노티관리(권한 시)</li></ul>' },
         { h: '상세 매뉴얼', html: '<p>신규가맹점 · 챗봇결제 · 정기(구독)결제 · 분할결제 · 리스크 트리거 소개는 「운영관리 → 운영매뉴얼」의 각 문서를 사용하십시오.</p>' }
       ],
       en: [
-        { h: 'Scope', html: '<p>For REGIONAL &amp; MASTER_DIST. Excludes Super-HQ-only hubs; covers companies, pay, settlement, ops, chatbot, split.</p>' },
-        { h: 'Merchants', html: '<ul><li>Company manage</li><li>Fees · risk trigger mode</li><li>Web/URL/API · subscribe · repay · split · chatbot flags</li></ul>' },
+        { h: 'Scope', html: '<p>For REGIONAL &amp; MASTER_DIST. Excludes Super-HQ-only hubs; covers companies, pay, settlement, ops, chatbot, split, <strong>user management</strong>.</p>' },
+        { h: 'Merchants', html: '<ul><li>Company manage</li><li>Fees · risk trigger mode</li><li>Web/URL/API · subscribe · repay · split · chatbot flags</li><li>Brand <strong>link preview</strong>: Follow HQ or custom (5 languages)</li></ul>' },
+        { h: 'User management', html: '<p class="menu-path">Users → User management</p><ul><li><strong>Org level</strong> column</li><li><strong>Permission group*</strong> edit / <strong>Applied grant</strong> display</li><li>VIEW SETTING</li></ul>' },
         { h: 'Pay &amp; settle', html: '<ul><li>Payment lists</li><li>Settlement</li><li>Risk dashboard / inactive cards / NOTI (if allowed)</li></ul>' },
         { h: 'Detail manuals', html: '<p>Use the sibling manuals in the Ops manuals tab.</p>' }
       ],
       ja: [
-        { h: '範囲', html: '<p>本社・総代理向け。総本部専用ハブは除外。</p>' },
-        { h: '加盟', html: '<ul><li>業者管理</li><li>手数料・リスクモード</li><li>各種決済フラグ</li></ul>' },
+        { h: '範囲', html: '<p>本社・総代理向け。総本部専用ハブは除外。<strong>ユーザー管理</strong>を含む。</p>' },
+        { h: '加盟', html: '<ul><li>業者管理</li><li>手数料・リスクモード</li><li>各種決済フラグ</li><li>ブランド<strong>リンクプレビュー</strong></li></ul>' },
+        { h: 'ユーザー管理', html: '<p class="menu-path">ユーザー管理</p><ul><li><strong>組織</strong>列</li><li>権限グループ* / 設定権限</li><li>VIEW SETTING</li></ul>' },
         { h: '決済・精算', html: '<ul><li>決済一覧</li><li>精算</li><li>リスク状況等</li></ul>' },
         { h: '詳細', html: '<p>同一タブの各マニュアルを参照。</p>' }
       ],
       zh: [
-        { h: '范围', html: '<p>面向总部与总代理；不含总本部专用枢纽。</p>' },
-        { h: '商户', html: '<ul><li>企业管理</li><li>手续费与风险模式</li><li>各类支付开关</li></ul>' },
+        { h: '范围', html: '<p>面向总部与总代理；不含总本部专用枢纽。含<strong>用户管理</strong>。</p>' },
+        { h: '商户', html: '<ul><li>企业管理</li><li>手续费与风险模式</li><li>各类支付开关</li><li>品牌<strong>链接预览</strong></li></ul>' },
+        { h: '用户管理', html: '<p class="menu-path">用户管理</p><ul><li><strong>组织</strong>列</li><li>权限组* / 已设权限</li><li>VIEW SETTING</li></ul>' },
         { h: '支付与结算', html: '<ul><li>支付列表</li><li>结算</li><li>风险看板等</li></ul>' },
         { h: '详细', html: '<p>见同一「运营手册」页其他文档。</p>' }
       ],
       th: [
-        { h: 'ขอบเขต', html: '<p>สำหรับ HQ และตัวแทน ไม่รวมฮับเฉพาะสำนักงานใหญ่สูงสุด</p>' },
-        { h: 'ร้านค้า', html: '<ul><li>จัดการบริษัท</li><li>ค่าธรรมเนียม/โหมดความเสี่ยง</li><li>สวิตช์ชำระต่างๆ</li></ul>' },
+        { h: 'ขอบเขต', html: '<p>สำหรับ HQ และตัวแทน ไม่รวมฮับเฉพาะสำนักงานใหญ่สูงสุด รวม<strong>จัดการผู้ใช้</strong></p>' },
+        { h: 'ร้านค้า', html: '<ul><li>จัดการบริษัท</li><li>ค่าธรรมเนียม/โหมดความเสี่ยง</li><li>สวิตช์ชำระต่างๆ</li><li><strong>ตัวอย่างลิงก์</strong>ในแบรนด์</li></ul>' },
+        { h: 'จัดการผู้ใช้', html: '<p class="menu-path">จัดการผู้ใช้</p><ul><li>คอลัมน์<strong>องค์กร</strong></li><li>กลุ่มสิทธิ์* / สิทธิ์ที่ตั้ง</li><li>VIEW SETTING</li></ul>' },
         { h: 'ชำระและชำระเงิน', html: '<ul><li>รายการชำระ</li><li>ชำระเงิน</li><li>ภาพรวมความเสี่ยง</li></ul>' },
         { h: 'รายละเอียด', html: '<p>ดูคู่มืออื่นในแท็บเดียวกัน</p>' }
       ]

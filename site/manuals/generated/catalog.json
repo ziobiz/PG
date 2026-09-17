@@ -1,6 +1,6 @@
 {
-  "version": "2.76",
-  "date": "2026-07-24",
+  "version": "2.81",
+  "date": "2026-09-17",
   "format": "pdf",
   "note": "List V badges use each item.docVersion matching PDF. Risk-intro has distinct KO/EN/JA/ZH/TH PDFs.",
   "audiences": [
@@ -77,6 +77,20 @@
       },
       "pdfDir": "manuals/pdf/dist-ops",
       "docVersion": "2.76"
+    },
+    {
+      "id": "user-access-ops",
+      "audience": "hqdist",
+      "format": "pdf",
+      "titles": {
+        "ko": "사용자관리 · 링크 미리보기 안내",
+        "en": "User Management · Link Preview Guide",
+        "ja": "ユーザー管理 · リンクプレビュー案内",
+        "zh": "用户管理 · 链接预览说明",
+        "th": "จัดการผู้ใช้ · ตัวอย่างลิงก์"
+      },
+      "pdfDir": "manuals/pdf/user-access-ops",
+      "docVersion": "2.81"
     },
     {
       "id": "hqdist-risk-intro",

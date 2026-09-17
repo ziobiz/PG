@@ -580,25 +580,30 @@
     <h3 class="sub-title">10-1. 가맹점 내부 사용자 추가</h3>
     <p>가맹점 운영자는 내부 직원에게 ICOPAY 포털 접근 계정을 부여할 수 있습니다.</p>
     <div class="flow">
-      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">사용자관리 메뉴 진입 → <strong>사용자 추가</strong> 클릭</span></div>
-      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">이름, 이메일(로그인 ID), 연락처 입력</span></div>
-      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc">권한 설정 — 조회 전용 / 결제 관리 / 정산 조회 / 전체 관리</span></div>
-      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc">임시 비밀번호 자동 생성 또는 직접 입력</span></div>
-      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc"><strong>저장</strong> → 해당 사용자에게 이메일로 계정 정보 발송</span></div>
+      <div class="flow-row"><span class="flow-num">①</span><span class="flow-desc">사용자관리 메뉴 진입 → <strong>추가</strong> 클릭</span></div>
+      <div class="flow-row"><span class="flow-num">②</span><span class="flow-desc">사용자ID·사용자명·연락처 입력</span></div>
+      <div class="flow-row"><span class="flow-num">③</span><span class="flow-desc"><strong>권한그룹</strong> 선택(관리·운영·정산·기술·챗봇 등) — 목록 <strong>설정권한</strong> 열에 동일 내용이 단축 표기됨</span></div>
+      <div class="flow-row"><span class="flow-num">④</span><span class="flow-desc"><strong>조직</strong> 열에서 소속 단계(가맹점 등) 확인</span></div>
+      <div class="flow-row"><span class="flow-num">⑤</span><span class="flow-desc"><strong>저장</strong> — 비밀번호는 초기화 후 최초 로그인 시 변경</span></div>
     </div>
 
-    <h3 class="sub-title">10-2. 권한 설정</h3>
+    <h3 class="sub-title">10-2. 권한·설정권한 표기</h3>
     <table>
-      <thead><tr><th>권한 레벨</th><th>접근 가능 기능</th></tr></thead>
+      <thead><tr><th>설정권한(표시)</th><th>의미(요약)</th></tr></thead>
       <tbody>
-        <tr><td>조회 전용</td><td>결제내역, 정산내역 조회만 가능 (환불·수정 불가)</td></tr>
-        <tr><td>결제 관리</td><td>결제내역 조회 + 환불 신청 가능</td></tr>
-        <tr><td>정산 조회</td><td>정산 관련 메뉴 조회 가능</td></tr>
-        <tr><td>전체 관리</td><td>가맹점 포털 내 모든 기능 (사용자 추가 포함)</td></tr>
+        <tr><td>대표</td><td>조직 대표 계정</td></tr>
+        <tr><td>관리</td><td>관리담당 — 사용자·OTP 초기화 등(정책에 따름)</td></tr>
+        <tr><td>운영</td><td>운영담당</td></tr>
+        <tr><td>정산</td><td>정산담당</td></tr>
+        <tr><td>기술</td><td>기술담당</td></tr>
+        <tr><td>일반</td><td>업체사용자</td></tr>
+        <tr><td>챗봇</td><td>챗봇 관리 권한그룹</td></tr>
+        <tr><td>감독</td><td>SUPERVISOR(본사설정에서만 부여)</td></tr>
       </tbody>
     </table>
+    <div class="info-box">권한그룹*은 수정용, 설정권한은 현재 적용 표시입니다. VIEW SETTING으로 열을 켜고 끌 수 있습니다. 시스템 USER 표기는 사용하지 않습니다.</div>
     <div class="warn-box">
-      가맹점 사용자는 ICOPAY 시스템 설정, 다른 가맹점 정보, 본사/총판 설정에 접근할 수 없습니다. 자신의 가맹점 데이터만 조회·관리할 수 있습니다.
+      가맹점 사용자는 ICOPAY 시스템 설정, 다른 가맹점 정보, 본사/총판 전용 설정에 접근할 수 없습니다. 자신의 가맹점 데이터만 조회·관리할 수 있습니다(메뉴 권한 범위 내).
     </div>
 
     <hr class="rule">

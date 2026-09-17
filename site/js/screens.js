@@ -7287,6 +7287,8 @@
         ]
       ],
       summary: ['건수'],
+      tableColumnGuide: true,
+      columnGuideFixedKeys: ['rowNo', 'compId', 'compNm', 'userId'],
       buttons: [
         { id: 'addBtn', label: '추가', cls: 'btn-outline-secondary' },
         { id: 'saveBtn', label: '저장', cls: 'btn-primary' }
@@ -7298,8 +7300,9 @@
         { key: 'userId', label: '사용자ID*', type: 'userMngUserId' },
         { key: 'userNm', label: '사용자명*', type: 'userMngUserNm' },
         { key: 'mobile', label: '연락처*', type: 'userMngMobile' },
-        { key: 'permissionGroupNm', label: '권한그룹*', type: 'userMngAssistantRole' },
-        { key: 'roleNm', label: '역할', type: 'userMngRoleNm' },
+        { key: 'orgLevelNm', label: '조직', type: 'userMngOrgLevel', columnGuideLabel: '조직 (총본사·본사·총판 등)' },
+        { key: 'permissionGroupNm', label: '권한그룹*', type: 'userMngAssistantRole', columnGuideLabel: '권한그룹 (수정)' },
+        { key: 'roleNm', label: '설정권한', type: 'userMngRoleNm', columnGuideLabel: '설정권한 (현재 적용)' },
         { key: '_pwd', label: '비밀번호', type: 'userMngPassword' },
         { key: '_otpAct', label: 'OTP', type: 'userMngOtp' },
         { key: 'userStatus', label: '사용여부*', type: 'userMngStatus' },

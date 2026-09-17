@@ -365,6 +365,69 @@
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
+  /** 사용자관리 설정권한 단축 표시 (DB 권한그룹명 → 화면 표기) */
+  var PG_USER_MNG_PERM_SHORT = {
+    '감독담당': '감독',
+    '관리담당': '관리',
+    '운영담당': '운영',
+    '정산담당': '정산',
+    '기술담당': '기술',
+    '대표': '대표',
+    '업체사용자': '일반',
+    'CHATBOT': '챗봇',
+    '챗봇관리자': '챗봇'
+  };
+  var PG_USER_MNG_PERM_SHORT_I18N = {
+    '감독': { EN: 'Supervisor', JP: '監督', CH: '督导', TH: 'ผู้กำกับ' },
+    '관리': { EN: 'Admin', JP: '管理', CH: '管理', TH: 'บริหาร' },
+    '운영': { EN: 'Ops', JP: '運用', CH: '运营', TH: 'ปฏิบัติการ' },
+    '정산': { EN: 'Settlement', JP: '精算', CH: '结算', TH: 'ชำระบัญชี' },
+    '기술': { EN: 'Tech', JP: '技術', CH: '技术', TH: 'เทคนิค' },
+    '대표': { EN: 'Primary', JP: '代表', CH: '主账号', TH: 'บัญชีหลัก' },
+    '일반': { EN: 'General', JP: '一般', CH: '普通', TH: 'ทั่วไป' },
+    '챗봇': { EN: 'Chatbot', JP: 'チャットボット', CH: '聊天机器人', TH: 'แชทบอท' }
+  };
+  function userMngPermToShort(nm) {
+    var t = String(nm == null ? '' : nm).trim();
+    if (!t || t === '-') return t || '-';
+    if (PG_USER_MNG_PERM_SHORT[t]) return PG_USER_MNG_PERM_SHORT[t];
+    var up = t.toUpperCase();
+    if (PG_USER_MNG_PERM_SHORT[up]) return PG_USER_MNG_PERM_SHORT[up];
+    return t;
+  }
+  function userMngPermShortT(shortNm) {
+    var short = userMngPermToShort(shortNm);
+    if (!short || short === '-') return short || '-';
+    var loc = 'KO';
+    try {
+      if (window.PG_PAY_LIST_I18N && typeof window.PG_PAY_LIST_I18N.getLocale === 'function') {
+        loc = String(window.PG_PAY_LIST_I18N.getLocale() || 'KO').toUpperCase();
+      }
+    } catch (eLoc) { loc = 'KO'; }
+    if (loc === 'KO' || loc === 'KOR') return short;
+    var row = PG_USER_MNG_PERM_SHORT_I18N[short];
+    if (!row) return short;
+    var key = loc === 'JP' || loc === 'JPN' ? 'JP'
+      : (loc === 'CH' || loc === 'ZH' || loc === 'CHN' ? 'CH'
+        : (loc === 'TH' || loc === 'THA' ? 'TH' : 'EN'));
+    return row[key] || row.EN || short;
+  }
+  function userMngPermShortFromAssistantRole(assistantRoleType) {
+    var ar = String(assistantRoleType || 'MANAGER').trim().toUpperCase();
+    if (ar === 'SUPERVISOR') return '감독';
+    if (ar === 'CHATBOT_ADMIN') return '챗봇';
+    if (ar === 'OPERATOR') return '운영';
+    if (ar === 'SETTLEMENT') return '정산';
+    if (ar === 'TECH') return '기술';
+    if (ar === 'MANAGER') return '관리';
+    return '관리';
+  }
+  window.PG_USER_MNG_PERM = {
+    toShort: userMngPermToShort,
+    shortT: userMngPermShortT,
+    fromAssistantRole: userMngPermShortFromAssistantRole
+  };
+
   (function initPgUiGlobalModals() {
     if (window._pgUiGlobalModalsInited) return;
     window._pgUiGlobalModalsInited = true;
@@ -9594,6 +9657,18 @@
           return k && ctFixed.indexOf(k) === -1 && k !== '_chk' && !ctOff[k];
         });
       }
+    } else if (pageUrl === '/user/userMng') {
+      var screensUserMng = window.PG_SCREENS && typeof window.PG_SCREENS.getMenuScreens === 'function' ? window.PG_SCREENS.getMenuScreens() : null;
+      var userMngCfg = screensUserMng && screensUserMng['/user/userMng'];
+      if (!userMngCfg || !userMngCfg.columns) return null;
+      var umFixed = userMngCfg.columnGuideFixedKeys || ['rowNo', 'compId', 'compNm', 'userId'];
+      if (userMngCfg.viewSettingDefaultSelectedKeys && userMngCfg.viewSettingDefaultSelectedKeys.length) {
+        def = userMngCfg.viewSettingDefaultSelectedKeys.slice();
+      } else {
+        def = userMngCfg.columns.map(function (cc) { return cc.key; }).filter(function (k) {
+          return k && umFixed.indexOf(k) === -1;
+        });
+      }
     } else {
       return null;
     }
@@ -16519,6 +16594,10 @@
           fixedKeys = ['_chk', 'rowNo', 'compNm', 'compId', 'curType', '_payoutHoldRelease'];
         } else if (url === '/ops/inactiveCard') {
           fixedKeys = ['_chk', 'rowNo', 'registeredAt', 'compNm', 'compId', '_inactiveCardEdit', '_inactiveCardRelease'];
+        } else if (url === '/user/userMng') {
+          fixedKeys = (cfg && cfg.columnGuideFixedKeys && cfg.columnGuideFixedKeys.length)
+            ? cfg.columnGuideFixedKeys.slice()
+            : ['rowNo', 'compId', 'compNm', 'userId'];
         } else if (url === '/calc/exCalcList' || url === '/settlement/execute'
             || url === '/settlement/settlementResultDistribute' || url === '/settlement/settlementResultHold'
             || url === '/calc/unpaidMng' || url === '/settlement/unpaidMng'
@@ -16909,36 +16988,48 @@
                   }
                 } else if (c.type === 'userMngMobile') {
                   html += '<td><input type="text" class="form-control form-control-sm user-mng-inp" data-field="mobile" value="' + escAttr(row.mobile || '') + '" /></td>';
+                } else if (c.type === 'userMngOrgLevel') {
+                  var olNm = row.orgLevelNm != null && String(row.orgLevelNm).trim() !== ''
+                    ? String(row.orgLevelNm).trim() : '-';
+                  html += '<td class="text-nowrap user-mng-org-level"><span data-pg-ui-t="' + escAttr(olNm) + '">' +
+                    pgAdminEscHtml(pgAdminUiT(olNm)) + '</span></td>';
                 } else if (c.type === 'userMngAssistantRole') {
                   var utMng = String(row.userType || 'ASSISTANT').toUpperCase();
                   if (utMng === 'REPRESENTATIVE') {
-                    var pgNmRep = row.permissionGroupNm != null && String(row.permissionGroupNm).trim() !== ''
-                      ? String(row.permissionGroupNm).trim() : '-';
-                    html += '<td><span class="text-muted small" data-pg-ui-t="' + escAttr(pgNmRep) + '">' +
-                      pgAdminEscHtml(pgAdminUiT(pgNmRep)) + '</span></td>';
+                    var pgNmRepRaw = row.permissionGroupNm != null && String(row.permissionGroupNm).trim() !== ''
+                      ? String(row.permissionGroupNm).trim() : '대표';
+                    var pgNmRep = userMngPermToShort(pgNmRepRaw);
+                    html += '<td><span class="text-muted small" data-um-perm-short="' + escAttr(pgNmRep) + '">' +
+                      pgAdminEscHtml(userMngPermShortT(pgNmRep)) + '</span></td>';
                   } else {
                     var ar = row.assistantRoleType != null && String(row.assistantRoleType).trim() !== ''
                       ? String(row.assistantRoleType).trim().toUpperCase() : 'MANAGER';
                     if (ar === 'SUPERVISOR') {
-                      html += '<td><span class="text-muted small" data-pg-ui-t="SUPERVISOR">SUPERVISOR</span>' +
+                      html += '<td><span class="text-muted small" data-um-perm-short="감독">' +
+                        pgAdminEscHtml(userMngPermShortT('감독')) + '</span>' +
                         '<div class="text-muted smaller" data-pg-ui-t="본사설정에서만 변경">본사설정에서만 변경</div></td>';
                     } else {
                     var arOpts = [
-                      { v: 'MANAGER', l: 'MANAGER' },
-                      { v: 'OPERATOR', l: 'OPERATOR' },
-                      { v: 'SETTLEMENT', l: 'SETTLEMENT' },
-                      { v: 'TECH', l: 'TECH' },
-                      { v: 'CHATBOT_ADMIN', l: 'CHATBOT' }
+                      { v: 'MANAGER', l: '관리' },
+                      { v: 'OPERATOR', l: '운영' },
+                      { v: 'SETTLEMENT', l: '정산' },
+                      { v: 'TECH', l: '기술' },
+                      { v: 'CHATBOT_ADMIN', l: '챗봇' }
                     ];
                     html += '<td><select class="form-select form-select-sm user-mng-sel" data-field="assistantRoleType">';
                     arOpts.forEach(function (o) {
-                      html += '<option value="' + o.v + '"' + (ar === o.v ? ' selected' : '') + '>' + pgAdminEscHtml(o.l) + '</option>';
+                      html += '<option value="' + o.v + '"' + (ar === o.v ? ' selected' : '') + ' data-um-perm-short="' + escAttr(o.l) + '">' +
+                        pgAdminEscHtml(userMngPermShortT(o.l)) + '</option>';
                     });
                     html += '</select></td>';
                     }
                   }
                 } else if (c.type === 'userMngRoleNm') {
-                  html += '<td>' + escAttr(row.roleNm || '') + '</td>';
+                  var rnRaw = row.roleNm != null && String(row.roleNm).trim() !== ''
+                    ? String(row.roleNm).trim() : '-';
+                  var rnDisp = rnRaw === '-' ? '-' : userMngPermToShort(rnRaw);
+                  html += '<td class="text-nowrap user-mng-role-nm"><span data-um-perm-short="' + escAttr(rnDisp) + '">' +
+                    pgAdminEscHtml(userMngPermShortT(rnDisp)) + '</span></td>';
                 } else if (c.type === 'userMngPassword') {
                   var pwdRid = row.id != null ? String(row.id) : '';
                   var canResetPwd = String(row.canResetPassword || 'N') === 'Y';
@@ -33232,6 +33323,36 @@
       function userMngTbody() {
         return pane.querySelector('#grid_' + gridTid + ' tbody');
       }
+      function userMngOrgLevelLabel(code) {
+        var m = {
+          HEADQUARTERS: '총본사',
+          REGIONAL: '본사',
+          MASTER_DIST: '총판',
+          BRANCH: '지사',
+          AGENCY: '대리점',
+          SALES_OFFICE: '영업점',
+          MERCHANT: '가맹점'
+        };
+        var k = String(code || '').trim().toUpperCase();
+        return m[k] || '';
+      }
+      function userMngPermissionGroupLabel(assistantRoleType) {
+        return userMngPermShortFromAssistantRole(assistantRoleType);
+      }
+      function userMngSyncRoleNmCell(tr, roleLabel) {
+        if (!tr) return;
+        var cell = tr.querySelector('td.user-mng-role-nm');
+        if (!cell) return;
+        var lab = roleLabel != null && String(roleLabel).trim() !== '' ? userMngPermToShort(roleLabel) : '-';
+        var esc = function (s) {
+          return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+        };
+        cell.innerHTML = '<span data-um-perm-short="' + esc(lab) + '">' + pgAdminEscHtml(userMngPermShortT(lab)) + '</span>';
+      }
       var addUserBtn = pane.querySelector('#addBtn');
       if (addUserBtn && !addUserBtn._bound) {
         addUserBtn._bound = true;
@@ -33242,6 +33363,8 @@
             var d = resp && resp.data !== undefined && resp.data !== null ? resp.data : resp;
             var compId = String((d && d.compId) || '').trim();
             var compNm = String((d && d.compNm) || '').trim() || '-';
+            var orgLevel = String((d && d.orgLevel) || '').trim();
+            var orgLevelNm = userMngOrgLevelLabel(orgLevel);
             if (!compId) {
               alert(pgAdminUiT('소속 업체코드를 확인할 수 없습니다.'));
               return;
@@ -33256,11 +33379,15 @@
               _tempId: 'd' + Date.now(),
               compId: compId,
               compNm: compNm,
+              orgLevel: orgLevel,
+              orgLevelNm: orgLevelNm,
               userId: '',
               userNm: '',
               mobile: '',
+              userType: 'ASSISTANT',
               assistantRoleType: 'MANAGER',
-              roleNm: 'USER',
+              permissionGroupNm: '관리담당',
+              roleNm: '관리',
               otpRegisteredYn: 'N',
               userStatus: 'ACTIVE',
               inactiveReason: '',
@@ -33274,6 +33401,24 @@
           }).finally(function () { if (dimmA) dimmA.style.display = 'none'; });
         });
       }
+      pane.addEventListener('change', function (e) {
+        var sel = e.target && e.target.closest ? e.target.closest('select.user-mng-sel[data-field="assistantRoleType"]') : null;
+        if (!sel || !pane.contains(sel)) return;
+        var tr = sel.closest('tr');
+        if (!tr) return;
+        var lab = userMngPermissionGroupLabel(sel.value);
+        userMngSyncRoleNmCell(tr, lab);
+        var tid = tr.getAttribute('data-temp-id') || '';
+        if (tid && pane._userMngDraftRows) {
+          pane._userMngDraftRows.forEach(function (r) {
+            if (String(r._tempId) === tid) {
+              r.assistantRoleType = String(sel.value || 'MANAGER').trim().toUpperCase();
+              r.permissionGroupNm = lab;
+              r.roleNm = lab;
+            }
+          });
+        }
+      });
       var saveUserBtn = pane.querySelector('#saveBtn');
       if (saveUserBtn && !saveUserBtn._bound) {
         saveUserBtn._bound = true;

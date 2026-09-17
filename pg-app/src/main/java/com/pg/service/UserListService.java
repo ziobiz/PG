@@ -660,6 +660,23 @@ public class UserListService {
         };
     }
 
+    /** 사용자관리 목록「설정권한」표시용 단축명 (DB permission_group_nm 은 그대로 유지) */
+    private String toPermissionGroupDisplayShort(String permissionGroupNm) {
+        if (permissionGroupNm == null || permissionGroupNm.isBlank()) return "";
+        String t = permissionGroupNm.trim();
+        if (ChatbotMerchantAdminConstants.isChatbotPermissionGroupNm(t)) return "챗봇";
+        return switch (t) {
+            case "감독담당" -> "감독";
+            case "관리담당" -> "관리";
+            case "운영담당" -> "운영";
+            case "정산담당" -> "정산";
+            case "기술담당" -> "기술";
+            case "대표" -> "대표";
+            case "업체사용자" -> "일반";
+            default -> t;
+        };
+    }
+
     private String safeTrim(String s) {
         return s == null ? "" : s.trim();
     }
@@ -672,16 +689,28 @@ public class UserListService {
         String ouCode = u.getOrgUnitCode() != null && !u.getOrgUnitCode().isBlank() ? u.getOrgUnitCode().trim() : "";
         row.put("compId", ouCode.isEmpty() ? "-" : ouCode);
         String compNm = "-";
+        String orgLevel = "";
+        String orgLevelNm = "";
         if (!ouCode.isEmpty()) {
-            compNm = orgUnitRepository.findByCode(ouCode).map(OrgUnit::getName).orElse(ouCode);
+            OrgUnit ou = orgUnitRepository.findByCode(ouCode).orElse(null);
+            if (ou != null) {
+                compNm = ou.getName() != null && !ou.getName().isBlank() ? ou.getName() : ouCode;
+                if (ou.getOrgLevel() != null) {
+                    orgLevel = ou.getOrgLevel().name();
+                    orgLevelNm = ou.getOrgLevel().getNameKo();
+                }
+            } else {
+                compNm = ouCode;
+            }
         }
+        row.put("orgLevel", orgLevel);
+        row.put("orgLevelNm", orgLevelNm);
         row.put("compNm", compNm);
         row.put("mobile", u.getMobile() != null ? u.getMobile() : "");
         String ust = u.getUserStatus() != null && !u.getUserStatus().isBlank() ? u.getUserStatus().trim().toUpperCase(Locale.ROOT) : "ACTIVE";
         if (!"ACTIVE".equals(ust) && !"INACTIVE".equals(ust) && !"SUSPENDED".equals(ust)) ust = u.isEnabled() ? "ACTIVE" : "INACTIVE";
         row.put("userStatus", ust);
         row.put("inactiveReason", u.getInactiveReason() != null ? u.getInactiveReason() : "");
-        row.put("roleNm", u.getRole() != null ? u.getRole() : "USER");
         String ut = u.getUserType() != null && !u.getUserType().isBlank() ? u.getUserType().trim() : "REPRESENTATIVE";
         row.put("userType", ut);
         row.put("permissionGroupNm", u.getPermissionGroupNm() != null ? u.getPermissionGroupNm() : "");
@@ -690,6 +719,16 @@ public class UserListService {
             art = "REPRESENTATIVE".equalsIgnoreCase(ut) ? "" : "MANAGER";
         }
         row.put("assistantRoleType", art);
+        /* 목록「설정권한」= 현재 권한그룹 단축 표시(시스템 role USER/ADMIN 아님) */
+        String roleDisplay = u.getPermissionGroupNm() != null ? u.getPermissionGroupNm().trim() : "";
+        if (roleDisplay.isEmpty()) {
+            if ("REPRESENTATIVE".equalsIgnoreCase(ut)) {
+                roleDisplay = "대표";
+            } else {
+                roleDisplay = permissionGroupByAssistantRole(art);
+            }
+        }
+        row.put("roleNm", toPermissionGroupDisplayShort(roleDisplay));
         row.put("otpRegisteredYn", "Y".equalsIgnoreCase(u.getOtpRegisteredYn()) ? "Y" : "N");
         row.put("passwordMustChangeYn", "Y".equalsIgnoreCase(u.getPasswordMustChangeYn()) ? "Y" : "N");
         row.put("useYn", u.isEnabled() ? "Y" : "N");

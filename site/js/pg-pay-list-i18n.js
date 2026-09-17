@@ -2905,6 +2905,12 @@
     document.querySelectorAll('.tab-pane.tabConDiv[formurl]').forEach(function (pane) {
       var url = pane.getAttribute('formurl');
       if (!url) return;
+      if (url === '/user/userMng' && w.PG_USER_MNG_PERM && typeof w.PG_USER_MNG_PERM.shortT === 'function') {
+        pane.querySelectorAll('[data-um-perm-short]').forEach(function (el) {
+          var sk = el.getAttribute('data-um-perm-short') || '';
+          el.textContent = w.PG_USER_MNG_PERM.shortT(sk);
+        });
+      }
       var cfg = screens[url];
       var tid = pane.id || '';
       pane.querySelectorAll('[data-pg-i18n-lbl]').forEach(function (el) {
