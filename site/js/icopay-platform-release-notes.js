@@ -6,13 +6,168 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '4.25';
+  var CURRENT_LIVE = '4.29';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '4.29',
+      kind: 'minor',
+      date: '2026-09-23',
+      items: {
+        KO: [
+          '결제관리 → 샌드박스내역, 통보관리 → 샌드박스통보를 본사권한 메뉴 카탈로그에 등록 — 관리자 로그인 시 사이드바에 표시'
+        ],
+        EN: [
+          'Payments → Sandbox history and Notify → Sandbox notify registered in HQ menu catalog — visible in admin sidebar'
+        ],
+        JP: [
+          '決済管理→サンドボックス履歴、通報管理→サンドボックス通報を本社権限カタログに登録 — 管理者サイドバーに表示'
+        ],
+        CH: [
+          '支付管理→沙箱明细、通知管理→沙箱通知已加入总部菜单目录 — 管理员侧栏可见'
+        ],
+        TH: [
+          'จัดการชำระ→ประวัติ sandbox และ จัดการแจ้ง→แจ้ง sandbox ลงแคตตาล็อกเมนู HQ — แสดงในแถบข้างผู้ดูแล'
+        ]
+      }
+    },
+    {
+      version: '4.28',
+      kind: 'minor',
+      date: '2026-09-23',
+      items: {
+        KO: [
+          '연동·배포 → 가맹 API 출시 → 키·문서: 샌드박스 시크릿 발급 버튼을 파스텔 빨강으로 표시',
+          '가맹점 목록에 샌드박스 시크릿·발행일자·발행자(발행/미발행/재발행) 열 추가 — 라이브 브로커 시크릿과 동일 형식'
+        ],
+        EN: [
+          'Integration & deploy → Merchant API launch → Keys & docs: pastel-red Issue sandbox secret button',
+          'Merchant list shows Sandbox secret / issued date / issuer (issued / not issued / reissued) like live broker secret'
+        ],
+        JP: [
+          '連携・デプロイ→加盟API出市→キー・文書: サンドボックス秘密鍵発行ボタンをパステル赤に',
+          '加盟店一覧にサンドボックスシークレット・発行日・発行者(発行/未発行/再発行)列を追加'
+        ],
+        CH: [
+          '联动与部署→商户API上线→密钥与文档：沙箱密钥签发按钮改为粉红（pastel red）',
+          '商户列表增加沙箱密钥·发行日·发行者（已发行/未发行/重新发行）列，与线上 Broker 密钥相同'
+        ],
+        TH: [
+          'เชื่อมต่อและใช้งานจริง→เปิดใช้ API ร้าน→คีย์·เอกสาร: ปุ่มออกคีย์ sandbox เป็นสีแดงพาสเทล',
+          'รายการร้านแสดงคีย์ sandbox / วันออก / ผู้ออก (ออกแล้ว/ยังไม่ออก/ออกใหม่) แบบเดียวกับ Broker secret'
+        ]
+      }
+    },
+    {
+      version: '4.27',
+      kind: 'minor',
+      date: '2026-09-23',
+      items: {
+        KO: [
+          '샌드박스 안내·메뉴얼을 왼쪽 메뉴 현재 이름으로 통일: 배포설정→가맹점 API 생성(샌드박스 시크릿), 업체관리→업체관리(결제통보 URL SANDBOX), 결제관리→샌드박스내역, 통보관리→샌드박스통보, 배포설정→API배포설정(보관일)'
+        ],
+        EN: [
+          'Sandbox guides use current left-menu names: Deploy settings→Merchant API generate (sandbox secret), Company→Company admin (SANDBOX notify URLs), Payments→Sandbox history, Notify→Sandbox notify, Deploy→API deploy settings (retain days)'
+        ],
+        JP: [
+          'サンドボックス案内を左メニュー現行名に統一: デプロイ設定→加盟店API生成、業者管理→業者管理(SANDBOX通報URL)、決済管理→サンドボックス履歴、通報管理→サンドボックス通報、API配信設定(保管日)'
+        ],
+        CH: [
+          '沙箱说明统一为当前左侧菜单名：部署设置→商户 API 生成、企业管理→企业管理(SANDBOX 通知 URL)、支付管理→沙箱明细、通知管理→沙箱通知、API 部署设置(保留天数)'
+        ],
+        TH: [
+          'คู่มือ sandbox ใช้ชื่อเมนูซ้ายปัจจุบัน: การตั้งค่าปรับใช้→สร้าง API ร้าน, จัดการร้าน→จัดการร้าน (URL SANDBOX), จัดการชำระ→ประวัติ sandbox, จัดการแจ้ง→แจ้ง sandbox, ตั้งค่า API (วันเก็บ)'
+        ]
+      },
+      howTo: {
+        KO: [
+          {
+            title: '샌드박스 사용 (현재 메뉴명)',
+            steps: [
+              '배포설정 → 가맹점 API 생성 → 가맹 선택 → 샌드박스 시크릿 발급',
+              '업체관리 → 업체관리 → 가맹 상세 → 결제통보 URL (SANDBOX): 활성 + Background/Result URL 저장',
+              '가맹은 샌드박스 시크릿으로 prepare → complete → status 호출',
+              '결제관리 → 샌드박스내역 / 통보관리 → 샌드박스통보(재송부)에서 확인',
+              '보관일: 배포설정 → API배포설정 → 샌드박스 이력 보관'
+            ]
+          }
+        ],
+        EN: [
+          {
+            title: 'Sandbox (current menu names)',
+            steps: [
+              'Deploy settings → Merchant API generate → select merchant → Issue sandbox secret',
+              'Company mgmt → Company admin → merchant detail → Payment notify URL (SANDBOX): enable + save URLs',
+              'Merchant calls prepare → complete → status with sandbox secret',
+              'Payments → Sandbox history / Notify → Sandbox notify (resend)',
+              'Retain days: Deploy settings → API deploy settings → Sandbox history retention'
+            ]
+          }
+        ],
+        JP: [
+          {
+            title: 'サンドボックス（現行メニュー名）',
+            steps: [
+              'デプロイ設定 → 加盟店 API 生成 → 加盟選択 → サンドボックス秘密鍵発行',
+              '業者管理 → 業者管理 → 加盟詳細 → 決済通報 URL (SANDBOX) を有効化・保存',
+              '加盟はサンドボックス鍵で prepare → complete → status',
+              '決済管理 → サンドボックス履歴 / 通報管理 → サンドボックス通報（再送）',
+              '保管日: デプロイ設定 → API配信設定 → サンドボックス履歴保管'
+            ]
+          }
+        ],
+        CH: [
+          {
+            title: '沙箱（当前菜单名）',
+            steps: [
+              '部署设置 → 商户 API 生成 → 选择商户 → 签发沙箱密钥',
+              '企业管理 → 企业管理 → 商户详情 → 支付通知 URL (SANDBOX) 启用并保存',
+              '商户用沙箱密钥调用 prepare → complete → status',
+              '支付管理 → 沙箱明细 / 通知管理 → 沙箱通知（重发）',
+              '保留天数：部署设置 → API 部署设置 → 沙箱历史保留'
+            ]
+          }
+        ],
+        TH: [
+          {
+            title: 'Sandbox (ชื่อเมนูปัจจุบัน)',
+            steps: [
+              'การตั้งค่าปรับใช้ → สร้าง API ร้าน → เลือกร้าน → ออกคีย์ sandbox',
+              'จัดการร้าน → จัดการร้าน → รายละเอียด → URL แจ้งชำระ (SANDBOX) เปิดใช้และบันทึก',
+              'ร้านเรียก prepare → complete → status ด้วยคีย์ sandbox',
+              'จัดการชำระ → ประวัติ sandbox / จัดการแจ้ง → แจ้ง sandbox (ส่งซ้ำ)',
+              'วันเก็บ: การตั้งค่าปรับใช้ → ตั้งค่า API → เก็บประวัติ sandbox'
+            ]
+          }
+        ]
+      }
+    },
+    {
+      version: '4.26',
+      kind: 'minor',
+      date: '2026-09-23',
+      items: {
+        KO: [
+          '가맹 ICOPAY 샌드박스: Live/Sandbox 브로커 키 분리, 결제통보 URL(SANDBOX) 카드(관리자만), prepare/complete/status 시뮬, 샌드박스내역·샌드박스통보(재송부), N일 자동삭제(기본 3일)'
+        ],
+        EN: [
+          'Merchant ICOPAY sandbox: separate Live/Sandbox broker keys, SANDBOX payment-notify URL card (admin-only), prepare/complete/status simulation, Sandbox history & notify (resend), auto-purge after N days (default 3)'
+        ],
+        JP: [
+          '加盟ICOPAYサンドボックス: Live/Sandbox鍵分離、決済通報URL(SANDBOX)カード(管理者のみ)、prepare/complete/statusシミュ、サンドボックス履歴・通報(再送)、N日自動削除(既定3日)'
+        ],
+        CH: [
+          '商户 ICOPAY 沙箱：Live/Sandbox 密钥分离、支付通知 URL(SANDBOX) 卡片（仅管理员）、prepare/complete/status 模拟、沙箱明细与通知（重发）、N 天后自动删除（默认 3 天）'
+        ],
+        TH: [
+          'Sandbox ของ ICOPAY สำหรับร้าน: แยกคีย์ Live/Sandbox การ์ด URL แจ้งชำระ (SANDBOX) เฉพาะผู้ดูแล จำลอง prepare/complete/status ประวัติ/แจ้ง sandbox (ส่งซ้ำ) ลบอัตโนมัติหลัง N วัน (ค่าเริ่ม 3)'
+        ]
+      }
+    },
     {
       version: '4.25',
       kind: 'minor',

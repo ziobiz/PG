@@ -1,0 +1,27 @@
+---
+description: ox 결제대행사 병칭·카드 인라인 UX (OxPay Financial)
+alwaysApply: true
+---
+
+# ox 결제대행사 명칭 (필수 · 변경 불가)
+
+## 병칭
+
+- **ox** = OxPay Financial([oxpayfinancial.com](https://www.oxpayfinancial.com/apis/#)) 결제대행사.
+- 대문자·소문자·혼합(**ox / OX / Ox / oX**)은 **동일 벤더**를 가리킨다.
+- 코드·문서·채팅·커밋·릴리스 노트·본사 UI 내부 표기에서 이 회사는 **ox** 로 병칭한다.
+  (공개 마케팅·계약서에 OxPay 정식명이 있어도, **ICOPAY 개발·운영 규칙상 병칭은 ox**.)
+
+## 코드 상수
+
+- `PgVendor`·`pg_cd`·바인딩·노티 ingress 접두는 **`OX`** (예: `OX`, `OX_…`).
+- 가맹·구매자 노출 문자열에는 **ox / OxPay / OX 등 PG명 미노출** — 통합 원칙상 항상 `ICOPAY` 중립
+  (`pg-unified-payment-integration.mdc`).
+
+## 연동 목표 UX (카드)
+
+- 가맹 ↔ ICOPAY: **기존 인라인**(prepare / session / embed / 중립 `/checkout`).
+- 카드 입력창은 **ICOPAY 인라인 1회**만. ox 호스티드 결제 페이지로 카드 재입력(결제창 2번) 금지.
+- ICOPAY ↔ ox: 카드는 **서버 API(Merchant Hosted / Create Payment 계열)** 로 전달.
+  브라우저 **3DS ACS 한 번**은 허용(JPAY·ElementPay와 동일). ox **Gateway Hosted HPP** 를
+  카드 입력 UI로 쓰지 않는다(카드 전용 정책).

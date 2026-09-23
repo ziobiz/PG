@@ -5,6 +5,7 @@ import com.pg.entity.OrgUnit;
 import com.pg.merchantdeploy.MerchantApiResponseMapper;
 import com.pg.merchantdeploy.MerchantBrokerAccessVerifier;
 import com.pg.merchantdeploy.MerchantPgBrokerVendor;
+import com.pg.merchantdeploy.MerchantSandboxCheckoutService;
 import com.pg.merchantdeploy.MerchantUnifiedInlineCheckoutService;
 import com.pg.repository.OrgUnitRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,20 +24,23 @@ import java.util.Optional;
 
 /**
  * ICOPAY 통합 가맹 인라인 checkout API.
- * buyer(email·phone·countryIso2) 필수 — 결제망은 ICOPAY가 자동 선택·처리(가맹점에는 ICOPAY만 노출).
+ * Sandbox 브로커 시크릿이면 시뮬 승인(실PG·NOTI 미호출).
  */
 @RestController
 @RequestMapping("/api/middleware/v1/merchant/checkout")
 public class IcipayMerchantUnifiedCheckoutController {
 
     private final MerchantUnifiedInlineCheckoutService unifiedCheckoutService;
+    private final MerchantSandboxCheckoutService sandboxCheckoutService;
     private final MerchantBrokerAccessVerifier brokerAccessVerifier;
     private final OrgUnitRepository orgUnitRepository;
 
     public IcipayMerchantUnifiedCheckoutController(MerchantUnifiedInlineCheckoutService unifiedCheckoutService,
+                                                   MerchantSandboxCheckoutService sandboxCheckoutService,
                                                    MerchantBrokerAccessVerifier brokerAccessVerifier,
                                                    OrgUnitRepository orgUnitRepository) {
         this.unifiedCheckoutService = unifiedCheckoutService;
+        this.sandboxCheckoutService = sandboxCheckoutService;
         this.brokerAccessVerifier = brokerAccessVerifier;
         this.orgUnitRepository = orgUnitRepository;
     }
@@ -56,7 +60,36 @@ public class IcipayMerchantUnifiedCheckoutController {
         if (orgUnitId == null) {
             return ResponseEntity.ok(ApiResponse.fail("compId 또는 merchantId가 필요합니다.", "NOT_FOUND"));
         }
-        Map<String, Object> result = unifiedCheckoutService.prepare(orgUnitId, body != null ? body : Map.of(), request);
+        Map<String, Object> result;
+        if (MerchantBrokerAccessVerifier.isSandboxRequest(request)) {
+            result = sandboxCheckoutService.prepare(orgUnitId, body != null ? body : Map.of());
+        } else {
+            result = unifiedCheckoutService.prepare(orgUnitId, body != null ? body : Map.of(), request);
+        }
+        return MerchantApiResponseMapper.mapServiceResult(result);
+    }
+
+    /** 샌드박스 전용: prepare 후 시뮬 승인(또는 forceFail). Live 시크릿으로는 거부. */
+    @PostMapping({"/complete", "/sandbox/complete"})
+    public ResponseEntity<ApiResponse<Map<String, Object>>> complete(
+            @RequestBody Map<String, Object> body,
+            HttpServletRequest request) {
+        try {
+            brokerAccessVerifier.verifyMerchantApi(request, body != null ? body : Map.of(),
+                    MerchantPgBrokerVendor.ALL);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.fail(e.getMessage(), "BROKER_AUTH"));
+        }
+        if (!MerchantBrokerAccessVerifier.isSandboxRequest(request)) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "샌드박스 시크릿으로만 complete 할 수 있습니다.", "SANDBOX_ONLY"));
+        }
+        Long orgUnitId = resolveOrgUnitId(body);
+        if (orgUnitId == null) {
+            return ResponseEntity.ok(ApiResponse.fail("compId 또는 merchantId가 필요합니다.", "NOT_FOUND"));
+        }
+        Map<String, Object> result = sandboxCheckoutService.complete(orgUnitId, body != null ? body : Map.of());
         return MerchantApiResponseMapper.mapServiceResult(result);
     }
 
@@ -88,7 +121,12 @@ public class IcipayMerchantUnifiedCheckoutController {
         if (orgUnitId == null) {
             return ResponseEntity.ok(ApiResponse.fail("compId 또는 merchantId가 필요합니다.", "NOT_FOUND"));
         }
-        Map<String, Object> result = unifiedCheckoutService.orderStatus(orgUnitId, orderNo);
+        Map<String, Object> result;
+        if (MerchantBrokerAccessVerifier.isSandboxRequest(request)) {
+            result = sandboxCheckoutService.orderStatus(orgUnitId, orderNo);
+        } else {
+            result = unifiedCheckoutService.orderStatus(orgUnitId, orderNo);
+        }
         return MerchantApiResponseMapper.mapServiceResult(result);
     }
 
@@ -103,11 +141,11 @@ public class IcipayMerchantUnifiedCheckoutController {
             } catch (NumberFormatException ignored) {
             }
         }
-        String compId = body.get("compId") != null ? body.get("compId").toString().trim() : "";
-        if (compId.isEmpty()) {
+        String c = body.get("compId") != null ? body.get("compId").toString().trim() : "";
+        if (c.isEmpty()) {
             return null;
         }
-        Optional<OrgUnit> ou = orgUnitRepository.findByCode(compId);
+        Optional<OrgUnit> ou = orgUnitRepository.findByCode(c);
         return ou.map(OrgUnit::getId).orElse(null);
     }
 }

@@ -422,7 +422,7 @@ public class ElementPayPaymentService {
             out.put("needs3ds", true);
             out.put("inlineAcs", true);
             out.put("cardFormSource", "EXTERNAL_ACS");
-            return out;
+        return out;
         }
 
         log.warn("INLINE card path missing (hosted re-entry blocked) order={} paymentId={} attrKeys={} payUrl={}",

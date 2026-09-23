@@ -10,8 +10,11 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "tb_merchant_icopay_broker_credential",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"org_unit_id", "vendor_scope"}))
+        uniqueConstraints = @UniqueConstraint(columnNames = {"org_unit_id", "vendor_scope", "env_mode"}))
 public class MerchantIcopayBrokerCredential {
+
+    public static final String ENV_LIVE = "LIVE";
+    public static final String ENV_SANDBOX = "SANDBOX";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,6 +25,10 @@ public class MerchantIcopayBrokerCredential {
 
     @Column(name = "vendor_scope", nullable = false, length = 20)
     private String vendorScope = "ALL";
+
+    /** {@link #ENV_LIVE} 또는 {@link #ENV_SANDBOX} */
+    @Column(name = "env_mode", nullable = false, length = 10)
+    private String envMode = ENV_LIVE;
 
     @Column(name = "broker_secret", nullable = false, length = 128)
     private String brokerSecret;
@@ -58,6 +65,9 @@ public class MerchantIcopayBrokerCredential {
         if (enforceYn == null || enforceYn.isBlank()) {
             enforceYn = "Y";
         }
+        if (envMode == null || envMode.isBlank()) {
+            envMode = ENV_LIVE;
+        }
     }
 
     public Long getId() { return id; }
@@ -66,6 +76,11 @@ public class MerchantIcopayBrokerCredential {
     public void setOrgUnitId(Long orgUnitId) { this.orgUnitId = orgUnitId; }
     public String getVendorScope() { return vendorScope; }
     public void setVendorScope(String vendorScope) { this.vendorScope = vendorScope; }
+    public String getEnvMode() { return envMode; }
+    public void setEnvMode(String envMode) {
+        this.envMode = envMode != null && ENV_SANDBOX.equalsIgnoreCase(envMode.trim()) ? ENV_SANDBOX : ENV_LIVE;
+    }
+    public boolean isSandbox() { return ENV_SANDBOX.equalsIgnoreCase(envMode != null ? envMode : ENV_LIVE); }
     public String getBrokerSecret() { return brokerSecret; }
     public void setBrokerSecret(String brokerSecret) { this.brokerSecret = brokerSecret; }
     public String getSecretPrefix() { return secretPrefix; }

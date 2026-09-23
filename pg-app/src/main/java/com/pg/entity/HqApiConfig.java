@@ -199,6 +199,10 @@ public class HqApiConfig {
     @Column(name = "jpay_subscription_enabled_yn", length = 1)
     private String jpaySubscriptionEnabledYn = "N";
 
+    /** 샌드박스 결제·통보 이력 보관 일수 (기본 3) */
+    @Column(name = "sandbox_retain_days", nullable = false)
+    private Integer sandboxRetainDays = 3;
+
     /**
      * 멀티 결제대행사 라우팅 — Y: 가맹 {@code card_brand_scope}·통화 힌트로 운영 PG 선택.
      * N: 단일 운영 PG(정렬 우선 1건, 기존 동작).
@@ -532,6 +536,10 @@ public class HqApiConfig {
     }
     public String getJpaySubscriptionEnabledYn() { return jpaySubscriptionEnabledYn; }
     public void setJpaySubscriptionEnabledYn(String jpaySubscriptionEnabledYn) { this.jpaySubscriptionEnabledYn = jpaySubscriptionEnabledYn; }
+    public Integer getSandboxRetainDays() { return sandboxRetainDays != null && sandboxRetainDays > 0 ? sandboxRetainDays : 3; }
+    public void setSandboxRetainDays(Integer sandboxRetainDays) {
+        this.sandboxRetainDays = sandboxRetainDays != null && sandboxRetainDays > 0 ? sandboxRetainDays : 3;
+    }
     public String getJpaySubscriptionInlineEnabledYn() { return jpaySubscriptionInlineEnabledYn; }
     public void setJpaySubscriptionInlineEnabledYn(String jpaySubscriptionInlineEnabledYn) { this.jpaySubscriptionInlineEnabledYn = jpaySubscriptionInlineEnabledYn; }
     public String getJpaySubscriptionPathTemplate() { return jpaySubscriptionPathTemplate; }

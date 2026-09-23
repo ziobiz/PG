@@ -1360,7 +1360,7 @@
   M['브라우저 탭 이름 (한국어)']={EN:'브라우저 탭 이름 (한국어)',JP:'브라우저 탭 이름 (한국어)',CH:'브라우저 탭 이름 (한국어)',TH:'브라우저 탭 이름 (한국어)'};
   M['브라우저 호스트명 (SAN dNSName)']={EN:'브라우저 호스트명 (SAN dNSName)',JP:'브라우저 호스트명 (SAN dNSName)',CH:'브라우저 호스트명 (SAN dNSName)',TH:'브라우저 호스트명 (SAN dNSName)'};
   M['브랜딩 설정']={EN:'브랜딩 설정',JP:'브랜딩 설정',CH:'브랜딩 설정',TH:'브랜딩 설정'};
-  M['브로커 시크릿']={EN:'브로커 시크릿',JP:'브로커 시크릿',CH:'브로커 시크릿',TH:'브로커 시크릿'};
+  M['브로커 시크릿']={EN:'Broker secret',JP:'ブローカーシークレット',CH:'Broker 密钥',TH:'Broker secret'};
   M['브로커 시크릿 재발급']={EN:'브로커 시크릿 재발급',JP:'브로커 시크릿 재발급',CH:'브로커 시크릿 재발급',TH:'브로커 시크릿 재발급'};
   M['브로커 시크릿 재발급 — 누르는 순간 예전 비밀번호는 쓸 수 없게 됩니다. 유출·도용이 의심될 때나, 담당자가 교체하라고 했을 때만 누르세요. 브로커 서버 설정도 같은 날 맞춰 바꿔야 결제가 끊기지 않습니다.']={EN:'브로커 시크릿 재발급 — 누르는 순간 예전 Password는 쓸 수 없게 됩니다. 유출·도용이 의심될 때나, 담당자가 교체하라고 했을 때만 누르세요. 브로커 서버 설정도 같은 날 맞춰 바꿔야 결제가 끊기지 않습니다.',JP:'브로커 시크릿 재발급 — 누르는 순간 예전 パスワード는 쓸 수 없게 됩니다. 유출·도용이 의심될 때나, 담당자가 교체하라고 했을 때만 누르세요. 브로커 서버 설정도 같은 날 맞춰 바꿔야 결제가 끊기지 않습니다.',CH:'브로커 시크릿 재발급 — 누르는 순간 예전 密码는 쓸 수 없게 됩니다. 유출·도용이 의심될 때나, 담당자가 교체하라고 했을 때만 누르세요. 브로커 서버 설정도 같은 날 맞춰 바꿔야 결제가 끊기지 않습니다.',TH:'브로커 시크릿 재발급 — 누르는 순간 예전 รหัสผ่าน는 쓸 수 없게 됩니다. 유출·도용이 의심될 때나, 담당자가 교체하라고 했을 때만 누르세요. 브로커 서버 설정도 같은 날 맞춰 바꿔야 결제가 끊기지 않습니다.'};
   M['비거래기준월']={EN:'비거래기준월',JP:'비거래기준월',CH:'비거래기준월',TH:'비거래기준월'};
@@ -4129,3 +4129,51 @@
   M['필수: 가맹 「API 인라인 연동」·「웹결제」사용, 운영 URL PG 바인딩, 본사 결제로직 URL INLINE 제공(Y). 일반 결제 → ICOPAY 중립 checkout(/checkout/{업체코드}). 재구매 결제 → 일부 PG만 지원(pay-repay, PG별 상이). JPAY API 인라인은 재구매 미지원. 분할 결제 → 1회 prepare 불가, API 분할 계약(POST /api/pay/split/contracts) 이용. 공개 URL 분할결제는 「URL 분할결제」사용 ON으로 별도 운영합니다.']={EN:'Required: merchant 「API inline integration」 and 「WEB payment」 ON, operational URL PG binding, HQ payment orchestration URL INLINE=Y. Standard pay → ICOPAY neutral checkout (/checkout/{merchant code}). Re-purchase → some PGs only (pay-repay, varies). JPAY API inline: no re-purchase. Split pay → no single prepare; use API split contracts (POST /api/pay/split/contracts). Public URL split-pay needs merchant 「URL split-pay」 ON.',JP:'必須: 加盟店「APIインライン連携」・「WEB決済」使用、運用URL PGバインディング、本社決済ロジック URL INLINE提供(Y)。通常決済→ICOPAY中立 checkout(/checkout/{加盟店コード})。再購入→一部PGのみ(pay-repay、PG別)。JPAY APIインラインは再購入非対応。分割決済→1回prepare不可、API分割契約(POST /api/pay/split/contracts)。公開URL分割は「URL分割決済」使用ONで別運用。',CH:'必填：商户「API 内联对接」与「WEB 支付」开启、运营 URL PG 绑定、总部支付逻辑 URL INLINE=Y。普通支付 → ICOPAY 中性 checkout(/checkout/{商户代码})。再购 → 部分 PG（pay-repay，因 PG 而异）。JPAY API 内联不支持再购。分期 → 不可单次 prepare，用 API 分期合同。公开 URL 分期需「URL 分期」开启。',TH:'จำเป็น: เปิด「เชื่อมต่อ API inline」และ「ชำระ WEB」 ผูก PG URL ใช้งาน HQ URL INLINE=Y ชำระปกติ→checkout กลาง ICOPAY ซื้อซ้ำ→บาง PG เท่านั้น JPAY inline ไม่รองรับซื้อซ้ำ แบ่งงวด→ใช้สัญญา API split'};
   g.PG_UI_STRING_MAP = M;
 })(typeof window !== "undefined" ? window : globalThis);
+
+  M['샌드박스내역']={EN:'Sandbox history',JP:'サンドボックス履歴',CH:'沙箱明细',TH:'ประวัติ sandbox'};
+
+  M['샌드박스통보']={EN:'Sandbox notify',JP:'サンドボックス通報',CH:'沙箱通知',TH:'แจ้ง sandbox'};
+
+  M['결제통보 URL (SANDBOX)']={EN:'Payment notify URL (SANDBOX)',JP:'決済通報 URL (SANDBOX)',CH:'支付通知 URL (SANDBOX)',TH:'URL แจ้งชำระ (SANDBOX)'};
+
+  M['샌드박스 사용']={EN:'Sandbox use',JP:'サンドボックス使用',CH:'沙箱启用',TH:'ใช้ sandbox'};
+
+  M['URL Background (SANDBOX)']={EN:'URL Background (SANDBOX)',JP:'URL Background (SANDBOX)',CH:'URL Background (SANDBOX)',TH:'URL Background (SANDBOX)'};
+
+  M['URL Result (SANDBOX)']={EN:'URL Result (SANDBOX)',JP:'URL Result (SANDBOX)',CH:'URL Result (SANDBOX)',TH:'URL Result (SANDBOX)'};
+
+  M['샌드박스 시크릿 발급']={EN:'Issue sandbox secret',JP:'サンドボックス秘密鍵発行',CH:'签发沙箱密钥',TH:'ออกคีย์ sandbox'};
+
+  M['샌드박스 시크릿']={EN:'Sandbox secret',JP:'サンドボックスシークレット',CH:'沙箱密钥',TH:'คีย์ sandbox'};
+
+  M['샌드박스 발행일자']={EN:'Sandbox issued date',JP:'サンドボックス発行日',CH:'沙箱发行日',TH:'วันออก sandbox'};
+
+  M['샌드박스 발행자']={EN:'Sandbox issuer',JP:'サンドボックス発行者',CH:'沙箱发行者',TH:'ผู้ออก sandbox'};
+
+  M['샌드박스 보관(일)']={EN:'Sandbox retain (days)',JP:'サンドボックス保管(日)',CH:'沙箱保留(天)',TH:'เก็บ sandbox (วัน)'};
+
+  M['샌드박스 이력 보관']={EN:'Sandbox history retention',JP:'サンドボックス履歴保管',CH:'沙箱历史保留',TH:'เก็บประวัติ sandbox'};
+
+  M['재송부']={EN:'Resend',JP:'再送',CH:'重发',TH:'ส่งซ้ำ'};
+
+  M['재송부할 행을 선택하세요.']={EN:'Select a row to resend.',JP:'再送する行を選択してください。',CH:'请选择要重发的行。',TH:'เลือกแถวที่จะส่งซ้ำ'};
+
+  M['선택한 샌드박스 통보를 재송부할까요?']={EN:'Resend the selected sandbox notify?',JP:'選択したサンドボックス通報を再送しますか？',CH:'要重发所选沙箱通知吗？',TH:'ส่งซ้ำการแจ้ง sandbox ที่เลือกหรือไม่?'};
+
+  M['재송부를 요청했습니다.']={EN:'Resend requested.',JP:'再送を要求しました。',CH:'已请求重发。',TH:'ขอส่งซ้ำแล้ว'};
+
+  M['가맹↔ICOPAY 통신 테스트 전용. 샌드박스 키 발급·활성화 후에만 사용합니다. 라이브 결제통보·수신통보와 섞이지 않으며 NOTI를 경유하지 않습니다. 활성/URL 수정은 총본사·본사 관리자만 가능합니다.']={EN:'Merchant↔ICOPAY communication test only. Use after sandbox key issue/enable. Not mixed with live notify URLs; does not use NOTI. Only HQ/regional admins can edit.',JP:'加盟↔ICOPAY通信テスト専用。サンドボックス鍵発行・有効化後のみ。ライブ通報と混在せずNOTI非経由。編集は本社管理者のみ。',CH:'仅用于商户↔ICOPAY通信测试。签发并启用沙箱密钥后使用。不与线上通知混用，不经NOTI。仅总/区域总部可改。',TH:'ทดสอบการสื่อสารร้าน↔ICOPAY เท่านั้น ใช้หลังออกคีย์/เปิด sandbox ไม่ปนกับแจ้งจริง ไม่ผ่าน NOTI แก้ได้เฉพาะผู้ดูแล HQ'};
+
+  M['가맹↔ICOPAY 샌드박스 결제·통보 이력을 N일 후 자동 삭제합니다. 기본 3일.']={EN:'Sandbox payment/notify history is auto-deleted after N days (default 3).',JP:'サンドボックス決済・通報履歴はN日後に自動削除（既定3日）。',CH:'沙箱支付/通知历史在N天后自动删除（默认3天）。',TH:'ลบประวัติ sandbox อัตโนมัติหลัง N วัน (ค่าเริ่ม 3)'};
+
+  M['샌드박스 브로커 시크릿을 발급(또는 재발급)합니다. 계속할까요?']={EN:'Issue (or rotate) the sandbox broker secret. Continue?',JP:'サンドボックス・ブローカー秘密鍵を発行(または再発行)します。続けますか？',CH:'签发（或轮换）沙箱经纪密钥。继续？',TH:'ออก (หรือหมุน) คีย์ broker ของ sandbox ต่อหรือไม่?'};
+
+  M['샌드박스 키는 실결제·NOTI에 사용하지 마세요. 정말 진행할까요?']={EN:'Do not use the sandbox key for live payments or NOTI. Proceed?',JP:'サンドボックス鍵を実決済・NOTIに使わないでください。本当に進めますか？',CH:'请勿将沙箱密钥用于线上支付或NOTI。确定继续？',TH:'อย่าใช้คีย์ sandbox กับชำระจริงหรือ NOTI ดำเนินการต่อหรือไม่?'};
+
+  M['가맹↔ICOPAY 통신 테스트 전용. 키는 배포설정 → 가맹점 API 생성 → 샌드박스 시크릿 발급. 라이브 결제통보·수신통보와 섞지 않으며 NOTI를 경유하지 않습니다. 활성/URL 수정은 총본사·본사 관리자만 가능합니다. 확인: 결제관리 → 샌드박스내역, 통보관리 → 샌드박스통보.']={EN:'Merchant↔ICOPAY communication test only. Key: Deploy settings → Merchant API generate → Issue sandbox secret. Not mixed with live notify; no NOTI. HQ/regional admins only. Check: Payments → Sandbox history, Notify → Sandbox notify.',JP:'加盟↔ICOPAY通信テスト専用。鍵はデプロイ設定→加盟店API生成→サンドボックス秘密鍵発行。ライブ通報と混在せずNOTI非経由。確認:決済管理→サンドボックス履歴、通報管理→サンドボックス通報。',CH:'仅用于商户↔ICOPAY通信测试。密钥：部署设置→商户API生成→签发沙箱密钥。不与线上通知混用。确认：支付管理→沙箱明细、通知管理→沙箱通知。',TH:'ทดสอบร้าน↔ICOPAY เท่านั้น คีย์: การตั้งค่าปรับใช้→สร้าง API ร้าน→ออกคีย์ sandbox ไม่ปนแจ้งจริง ตรวจ: จัดการชำระ→ประวัติ sandbox, จัดการแจ้ง→แจ้ง sandbox'};
+
+  M['가맹↔ICOPAY 샌드박스 결제·통보 이력을 N일 후 자동 삭제합니다. 기본 3일. (확인 메뉴: 결제관리 → 샌드박스내역, 통보관리 → 샌드박스통보)']={EN:'Sandbox payment/notify history auto-deletes after N days (default 3). Check: Payments → Sandbox history, Notify → Sandbox notify.',JP:'サンドボックス履歴はN日後自動削除(既定3日)。確認:決済管理→サンドボックス履歴、通報管理→サンドボックス通報。',CH:'沙箱历史N天后自动删除（默认3天）。确认：支付管理→沙箱明细、通知管理→沙箱通知。',TH:'ลบประวัติ sandbox หลัง N วัน (ค่าเริ่ม 3) ตรวจ: จัดการชำระ→ประวัติ sandbox, จัดการแจ้ง→แจ้ง sandbox'};
+
+  M['가맹↔ICOPAY 통신 테스트 전용. 키는 연동·배포 → 가맹 API 출시 → 키·문서 → 샌드박스 시크릿 발급. 라이브 결제통보·수신통보와 섞지 않으며 NOTI를 경유하지 않습니다. 활성/URL 수정은 총본사·본사 관리자만 가능합니다. 확인: 결제관리 → 샌드박스내역, 통보관리 → 샌드박스통보.']={EN:'Merchant↔ICOPAY communication test only. Key: Integration & deploy → Merchant API launch → Keys & docs → Issue sandbox secret. Not mixed with live notify; no NOTI. Check: Payments → Sandbox history, Notify → Sandbox notify.',JP:'加盟↔ICOPAY通信テスト専用。鍵は連携・デプロイ→加盟API出市→キー・文書→サンドボックス秘密鍵発行。確認:決済管理→サンドボックス履歴、通報管理→サンドボックス通報。',CH:'仅用于商户↔ICOPAY通信测试。密钥：联动与部署→商户API上线→密钥与文档→签发沙箱密钥。确认：支付管理→沙箱明细、通知管理→沙箱通知。',TH:'ทดสอบร้าน↔ICOPAY เท่านั้น คีย์: เชื่อมต่อและใช้งานจริง→เปิดใช้ API ร้าน→คีย์·เอกสาร→ออกคีย์ sandbox ตรวจ: จัดการชำระ→ประวัติ sandbox, จัดการแจ้ง→แจ้ง sandbox'};
+
+  M['가맹↔ICOPAY 샌드박스 결제·통보 이력을 N일 후 자동 삭제합니다. 기본 3일. (메뉴: 연동·배포 → 가맹 API 출시 → 공통설정. 확인: 결제관리 → 샌드박스내역, 통보관리 → 샌드박스통보)']={EN:'Sandbox history auto-deletes after N days (default 3). Menu: Integration & deploy → Merchant API launch → Common settings. Check: Payments → Sandbox history, Notify → Sandbox notify.',JP:'サンドボックス履歴はN日後自動削除。メニュー:連携・デプロイ→加盟API出市→共通設定。',CH:'沙箱历史N天后自动删除。菜单：联动与部署→商户API上线→通用设置。',TH:'ลบประวัติ sandbox หลัง N วัน เมนู: เชื่อมต่อและใช้งานจริง→เปิดใช้ API ร้าน→ตั้งค่าร่วม'};

@@ -2568,7 +2568,23 @@
       CH: '选择停用时将停止 WEB 支付系统。下方默认商品信息用作在线 URL 支付默认值。',
       TH: 'เลือกไม่ใช้จะหยุดระบบชำระ WEB สินค้าเริ่มต้นด้านล่างใช้เป็นค่าเริ่มต้น URL'
     },
-    '결제통보 URL': { EN: 'Payment notify URLs', JP: '決済通知URL', CH: '支付通知 URL', TH: 'URL แจ้งชำระ' },
+    
+    
+    '연동·배포 → 가맹 API 출시 → 키·문서': { EN: 'Integration & deploy → Merchant API launch → Keys & docs', JP: '連携・デプロイ → 加盟API出市 → キー・文書', CH: '联动与部署 → 商户 API 上线 → 密钥与文档', TH: 'เชื่อมต่อและใช้งานจริง → เปิดใช้ API ร้าน → คีย์·เอกสาร' },
+    '가맹 API 출시': { EN: 'Merchant API launch', JP: '加盟API出市', CH: '商户 API 上线', TH: 'เปิดใช้ API ร้าน' },
+    '키·문서': { EN: 'Keys & docs', JP: 'キー・文書', CH: '密钥与文档', TH: 'คีย์·เอกสาร' },
+    '공통설정': { EN: 'Common settings', JP: '共通設定', CH: '通用设置', TH: 'ตั้งค่าร่วม' },
+'샌드박스내역': { EN: 'Sandbox history', JP: 'サンドボックス履歴', CH: '沙箱明细', TH: 'ประวัติ sandbox' },
+    '샌드박스통보': { EN: 'Sandbox notify', JP: 'サンドボックス通報', CH: '沙箱通知', TH: 'แจ้ง sandbox' },
+    '결제통보 URL (SANDBOX)': { EN: 'Payment notify URL (SANDBOX)', JP: '決済通報 URL (SANDBOX)', CH: '支付通知 URL (SANDBOX)', TH: 'URL แจ้งชำระ (SANDBOX)' },
+    '샌드박스 사용': { EN: 'Sandbox use', JP: 'サンドボックス使用', CH: '沙箱启用', TH: 'ใช้ sandbox' },
+    '샌드박스 시크릿 발급': { EN: 'Issue sandbox secret', JP: 'サンドボックス秘密鍵発行', CH: '签发沙箱密钥', TH: 'ออกคีย์ sandbox' },
+    '샌드박스 시크릿': { EN: 'Sandbox secret', JP: 'サンドボックスシークレット', CH: '沙箱密钥', TH: 'คีย์ sandbox' },
+    '샌드박스 발행일자': { EN: 'Sandbox issued date', JP: 'サンドボックス発行日', CH: '沙箱发行日', TH: 'วันออก sandbox' },
+    '샌드박스 발행자': { EN: 'Sandbox issuer', JP: 'サンドボックス発行者', CH: '沙箱发行者', TH: 'ผู้ออก sandbox' },
+    '샌드박스 보관(일)': { EN: 'Sandbox retain (days)', JP: 'サンドボックス保管(日)', CH: '沙箱保留(天)', TH: 'เก็บ sandbox (วัน)' },
+    '샌드박스 이력 보관': { EN: 'Sandbox history retention', JP: 'サンドボックス履歴保管', CH: '沙箱历史保留', TH: 'เก็บประวัติ sandbox' },
+'결제통보 URL': { EN: 'Payment notify URLs', JP: '決済通知URL', CH: '支付通知 URL', TH: 'URL แจ้งชำระ' },
     '결제 응답을 가맹점에게 송부할 노티 주소. 등록 시 결제통보 URL관리에 자동 반영됩니다.': {
       EN: 'Notify endpoints for payment callbacks to the merchant. Saving also syncs to payment-notify URL management.',
       JP: '決済結果を加盟店へ送る通知先です。保存時に決済通知URL管理へ自動反映されます。',

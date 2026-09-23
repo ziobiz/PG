@@ -1824,6 +1824,7 @@ public class ApiHqController {
         data.put("chillpaySandbox", "Y");
         data.put("recallIncludeFeeYn", "N");
         data.put("settlementVatApplyYn", "Y");
+        data.put("sandboxRetainDays", 3);
         data.put("apiBrokerDefaultFlowType", "INLINE");
         data.put("urlPayDefaultFlowType", "REDIRECT");
         data.put("urlPayPathTemplate", "/pay/{compCode}");
@@ -1889,6 +1890,7 @@ public class ApiHqController {
             if (c.getChillpaySandbox() != null) data.put("chillpaySandbox", c.getChillpaySandbox());
             if (c.getRecallIncludeFeeYn() != null) data.put("recallIncludeFeeYn", c.getRecallIncludeFeeYn());
             if (c.getSettlementVatApplyYn() != null) data.put("settlementVatApplyYn", c.getSettlementVatApplyYn());
+            data.put("sandboxRetainDays", c.getSandboxRetainDays());
             if (c.getApiBrokerDefaultFlowType() != null) data.put("apiBrokerDefaultFlowType", c.getApiBrokerDefaultFlowType());
             if (c.getUrlPayDefaultFlowType() != null) data.put("urlPayDefaultFlowType", c.getUrlPayDefaultFlowType());
             if (c.getUrlPayPathTemplate() != null) data.put("urlPayPathTemplate", c.getUrlPayPathTemplate());
@@ -2079,6 +2081,9 @@ public class ApiHqController {
         c.setChillpaySandbox(body.get("chillpaySandbox") != null ? body.get("chillpaySandbox").toString().trim() : "Y");
         c.setRecallIncludeFeeYn("Y".equalsIgnoreCase(String.valueOf(body.getOrDefault("recallIncludeFeeYn", "N"))) ? "Y" : "N");
         c.setSettlementVatApplyYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("settlementVatApplyYn", "Y"))) ? "N" : "Y");
+        if (body.get("sandboxRetainDays") != null && !body.get("sandboxRetainDays").toString().isBlank()) {
+            try { c.setSandboxRetainDays(Integer.parseInt(body.get("sandboxRetainDays").toString().trim())); } catch (NumberFormatException ignored) {}
+        }
         c.setApiBrokerDefaultFlowType("REDIRECT".equalsIgnoreCase(String.valueOf(body.getOrDefault("apiBrokerDefaultFlowType", "INLINE"))) ? "REDIRECT" : "INLINE");
         c.setUrlPayDefaultFlowType("INLINE".equalsIgnoreCase(String.valueOf(body.getOrDefault("urlPayDefaultFlowType", "REDIRECT"))) ? "INLINE" : "REDIRECT");
         String pathTpl = body.get("urlPayPathTemplate") != null ? body.get("urlPayPathTemplate").toString().trim() : "";

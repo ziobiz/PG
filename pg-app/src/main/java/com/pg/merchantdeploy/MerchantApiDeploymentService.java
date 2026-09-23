@@ -145,7 +145,9 @@ public class MerchantApiDeploymentService {
         Map<Long, OrgUnit> orgById = orgUnitRepository.findAll().stream()
                 .collect(Collectors.toMap(OrgUnit::getId, o -> o, (a, b) -> a));
         Map<Long, MerchantIcopayBrokerCredential> brokerCredByOrg = pickLatestBrokerCredentialByOrg(
-                credentialRepository.findByOrgUnitIdInAndUseYn(orgUnitIds, "Y"));
+                credentialRepository.findByOrgUnitIdInAndUseYn(orgUnitIds, "Y"), false);
+        Map<Long, MerchantIcopayBrokerCredential> sandboxCredByOrg = pickLatestBrokerCredentialByOrg(
+                credentialRepository.findByOrgUnitIdInAndUseYn(orgUnitIds, "Y"), true);
         for (Map<String, Object> row : list) {
             Object id = row.get("id");
             Long ouId = id instanceof Number n ? n.longValue() : null;
@@ -156,6 +158,10 @@ public class MerchantApiDeploymentService {
             row.put("brokerSecretStatus", brokerSecretStatusCode(brokerCred));
             row.put("brokerIssuedDate", formatBrokerIssuedDate(brokerCred));
             row.put("brokerIssuedBy", brokerIssuedByDisplay(brokerCred));
+            MerchantIcopayBrokerCredential sandboxCred = ouId != null ? sandboxCredByOrg.get(ouId) : null;
+            row.put("sandboxBrokerSecretStatus", brokerSecretStatusCode(sandboxCred));
+            row.put("sandboxBrokerIssuedDate", formatBrokerIssuedDate(sandboxCred));
+            row.put("sandboxBrokerIssuedBy", brokerIssuedByDisplay(sandboxCred));
             if (ouId != null) {
                 row.put("apiIntegrationChannel", integrationChannelService.buildEffectiveChannelDisplayCode(ouId));
             } else {
@@ -164,15 +170,21 @@ public class MerchantApiDeploymentService {
         }
     }
 
-    /** org별 활성 브로커 시크릿 중 최신 발행(또는 재발행) 행 — 동률 시 ALL 범위 우선 */
+    /**
+     * org별 활성 브로커 시크릿 중 최신 발행(또는 재발행) 행 — 동률 시 ALL 범위 우선.
+     * {@code sandboxOnly=true} 이면 SANDBOX 만, false 이면 LIVE(비샌드박스) 만.
+     */
     private static Map<Long, MerchantIcopayBrokerCredential> pickLatestBrokerCredentialByOrg(
-            List<MerchantIcopayBrokerCredential> creds) {
+            List<MerchantIcopayBrokerCredential> creds, boolean sandboxOnly) {
         Map<Long, MerchantIcopayBrokerCredential> best = new HashMap<>();
         if (creds == null || creds.isEmpty()) {
             return best;
         }
         for (MerchantIcopayBrokerCredential c : creds) {
             if (c == null || c.getOrgUnitId() == null || !"Y".equalsIgnoreCase(c.getUseYn())) {
+                continue;
+            }
+            if (sandboxOnly != c.isSandbox()) {
                 continue;
             }
             Long ouId = c.getOrgUnitId();
@@ -1639,6 +1651,7 @@ public class MerchantApiDeploymentService {
         for (MerchantIcopayBrokerCredential c : credentialRepository.findByOrgUnitIdAndUseYnOrderByIdDesc(orgUnitId, "Y")) {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("vendorScope", c.getVendorScope());
+            m.put("envMode", c.getEnvMode() != null ? c.getEnvMode() : MerchantIcopayBrokerCredential.ENV_LIVE);
             m.put("secretPrefix", c.getSecretPrefix());
             m.put("enforceYn", c.getEnforceYn());
             m.put("createdAt", c.getCreatedAt() != null ? c.getCreatedAt().toString() : "");
@@ -1649,6 +1662,20 @@ public class MerchantApiDeploymentService {
 
     @Transactional
     public Map<String, Object> rotateBrokerSecret(String compId, String vendorScope, String issuedBy) {
+        return rotateBrokerSecret(compId, vendorScope, issuedBy, MerchantIcopayBrokerCredential.ENV_LIVE);
+    }
+
+    @Transactional
+    public Map<String, Object> rotateSandboxBrokerSecret(String compId, String issuedBy) {
+        Map<String, Object> out = rotateBrokerSecret(compId, MerchantPgBrokerVendor.ALL, issuedBy,
+                MerchantIcopayBrokerCredential.ENV_SANDBOX);
+        out.put("envMode", MerchantIcopayBrokerCredential.ENV_SANDBOX);
+        out.put("message", "샌드박스 시크릿입니다. brokerSecretPlain 은 이번 한 번만 표시됩니다. 실결제·NOTI에 사용하지 마세요.");
+        return out;
+    }
+
+    @Transactional
+    public Map<String, Object> rotateBrokerSecret(String compId, String vendorScope, String issuedBy, String envMode) {
         String cid = compId != null ? compId.trim() : "";
         OrgUnit ou = orgUnitRepository.findByCode(cid)
                 .orElseThrow(() -> new IllegalArgumentException("업체코드를 찾을 수 없습니다."));
@@ -1659,26 +1686,34 @@ public class MerchantApiDeploymentService {
         if (!MerchantPgBrokerVendor.isKnownVendorScope(scope)) {
             throw new IllegalArgumentException("vendorScope 가 올바르지 않습니다.");
         }
+        String env = MerchantIcopayBrokerCredential.ENV_SANDBOX.equalsIgnoreCase(
+                envMode != null ? envMode.trim() : "")
+                ? MerchantIcopayBrokerCredential.ENV_SANDBOX
+                : MerchantIcopayBrokerCredential.ENV_LIVE;
         String secret = MerchantBrokerSecretGenerator.newSecret(40);
         LocalDateTime now = LocalDateTime.now();
-        /* uq_merchant_icopay_broker_vendor = UNIQUE(org_unit_id, vendor_scope) — use_yn 무관.
-         * 재발급 시 행을 추가(insert)하면 기존 행(폐기 N 포함)과 충돌하므로, 동일 키가 있으면 UPDATE로 회전한다. */
+        /* uq = UNIQUE(org_unit_id, vendor_scope, env_mode) — 재발급은 UPDATE */
         MerchantIcopayBrokerCredential cred = credentialRepository
-                .findByOrgUnitIdAndVendorScope(ou.getId(), scope)
+                .findByOrgUnitIdAndVendorScopeAndEnvMode(ou.getId(), scope, env)
+                .or(() -> env.equals(MerchantIcopayBrokerCredential.ENV_LIVE)
+                        ? credentialRepository.findByOrgUnitIdAndVendorScope(ou.getId(), scope)
+                        .filter(c -> !c.isSandbox())
+                        : java.util.Optional.empty())
                 .orElseGet(MerchantIcopayBrokerCredential::new);
         boolean isNew = cred.getId() == null;
         cred.setOrgUnitId(ou.getId());
         cred.setVendorScope(scope);
+        cred.setEnvMode(env);
         cred.setBrokerSecret(secret);
         cred.setSecretPrefix(MerchantBrokerSecretGenerator.prefixOf(secret));
         cred.setUseYn("Y");
         if (isNew) {
             cred.setRotatedAt(null);
-            cred.setEnforceYn("Y");
+            cred.setEnforceYn(env.equals(MerchantIcopayBrokerCredential.ENV_SANDBOX) ? "N" : "Y");
         } else {
             cred.setRotatedAt(now);
             if (cred.getEnforceYn() == null || cred.getEnforceYn().isBlank()) {
-                cred.setEnforceYn("Y");
+                cred.setEnforceYn(env.equals(MerchantIcopayBrokerCredential.ENV_SANDBOX) ? "N" : "Y");
             }
         }
         if (issuedBy != null && !issuedBy.isBlank()) {
@@ -1688,6 +1723,7 @@ public class MerchantApiDeploymentService {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("compId", ou.getCode());
         out.put("vendorScope", scope);
+        out.put("envMode", env);
         out.put("brokerSecretPlain", secret);
         out.put("message", "이 응답의 brokerSecretPlain 은 이번 한 번만 표시됩니다. 가맹점에 안전한 채널로 전달하세요.");
         return out;
@@ -1700,7 +1736,10 @@ public class MerchantApiDeploymentService {
                 .orElseThrow(() -> new IllegalArgumentException("업체코드를 찾을 수 없습니다."));
         String scope = MerchantPgBrokerVendor.normalizeScope(vendorScope);
         MerchantIcopayBrokerCredential c = credentialRepository
-                .findByOrgUnitIdAndVendorScopeAndUseYn(ou.getId(), scope, "Y")
+                .findByOrgUnitIdAndVendorScopeAndEnvModeAndUseYn(
+                        ou.getId(), scope, MerchantIcopayBrokerCredential.ENV_LIVE, "Y")
+                .or(() -> credentialRepository.findByOrgUnitIdAndVendorScopeAndUseYn(ou.getId(), scope, "Y")
+                        .filter(x -> !x.isSandbox()))
                 .orElseThrow(() -> new IllegalStateException("활성 시크릿이 없습니다. 먼저 발급하세요."));
         c.setEnforceYn(enforce ? "Y" : "N");
         credentialRepository.save(c);

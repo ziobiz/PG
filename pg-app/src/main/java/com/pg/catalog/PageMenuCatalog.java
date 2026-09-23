@@ -71,6 +71,7 @@ public final class PageMenuCatalog {
         add(list, "/pay/splitPay", "M0330", "분할결제내역", "결제관리");
         add(list, "/pay/jpaySubscription", "M0312", "구독결제내역", "결제관리");
         add(list, "/calc/offsetCancList", "M0309", "상계취소내역", "결제관리");
+        add(list, "/calc/sandboxPayList", "M0334", "샌드박스내역", "결제관리");
         /* 정산관리 */
         add(list, "/calc/chillPaySettlementList", "M0421", "통합정산", "정산관리");
         add(list, "/calc/feeList", "M0406", "수수료내역", "정산관리");
@@ -97,6 +98,7 @@ public final class PageMenuCatalog {
         /* 통보관리 */
         add(list, "/noti/notiUrlMng", "M0801", "결제통보 URL관리", "통보관리");
         add(list, "/noti/notiSendMngList", "M0802", "결제통보 전송관리", "통보관리");
+        add(list, "/noti/sandboxNotifyList", "M0807", "샌드박스통보", "통보관리");
         add(list, "/noti/notiCashReceiptUrlMng", "M0805", "현금영수증통보 URL관리", "통보관리");
         add(list, "/noti/notiCashReceiptSendMngList", "M0806", "현금영수증통보 전송관리", "통보관리");
         /* 사용자관리 */

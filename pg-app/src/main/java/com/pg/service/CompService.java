@@ -3634,6 +3634,21 @@ public class CompService {
         m.put("notifyUrlResult", MerchantPayNotifyUrlRules.sanitizeResultForMerchant(rs));
         m.put("jpayNotifyUrl", jn);
         m.put("jpayCallbackUrl", jc);
+        String bgSb = "";
+        String rsSb = "";
+        for (MerchantNotifyUrl n : merchantNotifyUrlRepository.findByOrgUnitIdOrderByUrlTypeAsc(orgUnitId)) {
+            if (n.getUrlType() == null || n.getNotiUrl() == null) {
+                continue;
+            }
+            if (MerchantNotifyUrl.URL_TYPE_BACKGROUND_SANDBOX.equals(n.getUrlType())) {
+                bgSb = n.getNotiUrl().trim();
+            } else if (MerchantNotifyUrl.URL_TYPE_RESULT_SANDBOX.equals(n.getUrlType())) {
+                rsSb = n.getNotiUrl().trim();
+            }
+        }
+        m.put("notifyUrlBackgroundSandbox", bgSb);
+        m.put("notifyUrlResultSandbox", rsSb);
+        m.put("sandboxUseYn", mp.getSandboxUseYn() != null ? mp.getSandboxUseYn() : "N");
     }
 
     private void saveMerchantPayNotifyUrls(Long orgUnitId, String background, String result,

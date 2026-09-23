@@ -14,6 +14,10 @@ public class MerchantNotifyUrl {
     public static final String URL_TYPE_JPAY_NOTIFY = "JPAY_NOTIFY";
     /** J-Pay {@code pay_callbackurl} — 3DS·브라우저 복귀(RESULT) */
     public static final String URL_TYPE_JPAY_CALLBACK = "JPAY_CALLBACK";
+    /** 샌드박스 전용 결제통보 Background — 라이브 BACKGROUND 와 분리 */
+    public static final String URL_TYPE_BACKGROUND_SANDBOX = "BACKGROUND_SANDBOX";
+    /** 샌드박스 전용 결제통보 Result */
+    public static final String URL_TYPE_RESULT_SANDBOX = "RESULT_SANDBOX";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,7 +27,7 @@ public class MerchantNotifyUrl {
     private Long orgUnitId;
 
     /** URL구분: BACKGROUND, RESULT, MIDDLEWARE, JPAY_NOTIFY, JPAY_CALLBACK */
-    @Column(name = "url_type", nullable = false, length = 20)
+    @Column(name = "url_type", nullable = false, length = 32)
     private String urlType;
 
     /** 전산노티·칠페이 등 전체 URL(쿼리 포함 가능). DB는 V48 마이그레이션으로 2048 정렬. */

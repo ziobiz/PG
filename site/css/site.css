@@ -4841,6 +4841,29 @@ button.pay-follow-pill:focus-visible {
   border-color: #ffeeba;
 }
 
+/* 샌드박스 시크릿 발급 — 파스텔 빨강 */
+.merchant-deploy-kit .btn-sandbox-secret-issue,
+.btn-sandbox-secret-issue {
+  color: #9b2c2c;
+  background-color: #fde2e2;
+  border: 1px solid #f5c2c2;
+  font-weight: 600;
+}
+.merchant-deploy-kit .btn-sandbox-secret-issue:hover,
+.merchant-deploy-kit .btn-sandbox-secret-issue:focus,
+.btn-sandbox-secret-issue:hover,
+.btn-sandbox-secret-issue:focus {
+  color: #742a2a;
+  background-color: #f8d0d0;
+  border-color: #f0a8a8;
+}
+.merchant-deploy-kit .btn-sandbox-secret-issue:active,
+.btn-sandbox-secret-issue:active {
+  color: #742a2a;
+  background-color: #f5c2c2;
+  border-color: #e89a9a;
+}
+
 /* 가맹 등록 — 리스크관리 트리거 카드 (파스텔 보라) */
 .card-risk-trigger-card {
   border-color: #ddd6fe;

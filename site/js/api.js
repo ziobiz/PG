@@ -1665,6 +1665,25 @@
     hqMerchantApiDeploymentRotate: function (body) {
       return post('/api/hq/merchant-api-deployment/credential/rotate', body || {}).then(function (r) { return r.data; });
     },
+    hqMerchantApiDeploymentRotateSandbox: function (body) {
+      return post('/api/hq/merchant-api-deployment/credential/rotate-sandbox', body || {}).then(function (r) { return r.data; });
+    },
+    merchantSandboxTxns: function (params) {
+      return get('/api/hq/merchant-sandbox/txns', params).then(function (r) { return r.data; });
+    },
+    merchantSandboxNotifies: function (params) {
+      return get('/api/hq/merchant-sandbox/notifies', params).then(function (r) { return r.data; });
+    },
+    merchantSandboxNotifyResend: function (body) {
+      return post('/api/hq/merchant-sandbox/notify/resend', body || {}).then(function (r) { return r.data; });
+    },
+    merchantSandboxSettings: function (compId) {
+      return get('/api/hq/merchant-sandbox/settings', { compId: compId }).then(function (r) { return r.data; });
+    },
+    merchantSandboxSettingsSave: function (body) {
+      return post('/api/hq/merchant-sandbox/settings', body || {}).then(function (r) { return r.data; });
+    },
+
     hqMerchantApiDeploymentEnforce: function (body) {
       return post('/api/hq/merchant-api-deployment/credential/enforce', body || {}).then(function (r) { return r.data; });
     },

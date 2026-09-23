@@ -14,8 +14,14 @@ public interface MerchantIcopayBrokerCredentialRepository extends JpaRepository<
     Optional<MerchantIcopayBrokerCredential> findByOrgUnitIdAndVendorScope(
             Long orgUnitId, String vendorScope);
 
+    Optional<MerchantIcopayBrokerCredential> findByOrgUnitIdAndVendorScopeAndEnvMode(
+            Long orgUnitId, String vendorScope, String envMode);
+
     Optional<MerchantIcopayBrokerCredential> findByOrgUnitIdAndVendorScopeAndUseYn(
             Long orgUnitId, String vendorScope, String useYn);
+
+    Optional<MerchantIcopayBrokerCredential> findByOrgUnitIdAndVendorScopeAndEnvModeAndUseYn(
+            Long orgUnitId, String vendorScope, String envMode, String useYn);
 
     Optional<MerchantIcopayBrokerCredential> findByBrokerSecretAndUseYn(String brokerSecret, String useYn);
 

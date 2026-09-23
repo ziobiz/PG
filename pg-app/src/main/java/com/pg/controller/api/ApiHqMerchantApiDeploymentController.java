@@ -120,6 +120,22 @@ public class ApiHqMerchantApiDeploymentController {
         }
     }
 
+    @PostMapping("/credential/rotate-sandbox")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> rotateSandbox(@RequestBody Map<String, Object> body) {
+        try {
+            String compId = str(body.get("compId"));
+            assertCanViewComp(compId);
+            String issuedBy = null;
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getPrincipal() instanceof AppUser au) {
+                issuedBy = au.getUsername();
+            }
+            return ResponseEntity.ok(ApiResponse.ok(deploymentService.rotateSandboxBrokerSecret(compId, issuedBy)));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
+
     @PostMapping("/credential/enforce")
     public ResponseEntity<ApiResponse<Map<String, Object>>> enforce(@RequestBody Map<String, Object> body) {
         try {

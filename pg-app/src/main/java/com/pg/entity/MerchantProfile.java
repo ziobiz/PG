@@ -321,6 +321,10 @@ public class MerchantProfile {
     @Column(name = "api_wordpress_use_yn", nullable = false, length = 1)
     private String apiWordpressUseYn = "N";
 
+    /** 가맹 ICOPAY 샌드박스 활성 — 관리자만. Y일 때 샌드박스 키·SANDBOX 결제통보 사용 */
+    @Column(name = "sandbox_use_yn", nullable = false, length = 1)
+    private String sandboxUseYn = "N";
+
     /** 모바일·embed 결제창 오버라이드 — NULL=본사 mobileCheckoutModeDefault */
     @Column(name = "mobile_checkout_mode", length = 32)
     private String mobileCheckoutMode;
@@ -902,6 +906,11 @@ public class MerchantProfile {
     public String getApiWordpressUseYn() { return apiWordpressUseYn; }
     public void setApiWordpressUseYn(String apiWordpressUseYn) {
         this.apiWordpressUseYn = apiWordpressUseYn != null && "Y".equalsIgnoreCase(apiWordpressUseYn.trim()) ? "Y" : "N";
+    }
+
+    public String getSandboxUseYn() { return sandboxUseYn; }
+    public void setSandboxUseYn(String sandboxUseYn) {
+        this.sandboxUseYn = sandboxUseYn != null && "Y".equalsIgnoreCase(sandboxUseYn.trim()) ? "Y" : "N";
     }
 
     public String getMobileCheckoutMode() { return mobileCheckoutMode; }

@@ -72,7 +72,8 @@
         { "label": "URL결제내역", "url": "/pay/easyPay", "menuId": "M0310" },
         { "label": "챗봇결제내역", "url": "/pay/chatbotPay", "menuId": "M0311" },
         { "label": "구독결제내역", "url": "/pay/jpaySubscription", "menuId": "M0312" },
-        { "label": "상계취소내역", "url": "/calc/offsetCancList", "menuId": "M0309" }
+        { "label": "상계취소내역", "url": "/calc/offsetCancList", "menuId": "M0309" },
+        { "label": "샌드박스내역", "url": "/calc/sandboxPayList", "menuId": "M0334" }
       ]
     },
     {
@@ -109,6 +110,7 @@
       "children": [
         { "label": "결제통보 URL관리", "url": "/noti/notiUrlMng", "menuId": "M0801" },
         { "label": "결제통보 전송관리", "url": "/noti/notiSendMngList", "menuId": "M0802" },
+        { "label": "샌드박스통보", "url": "/noti/sandboxNotifyList", "menuId": "M0807" },
         { "label": "현금영수증통보 URL관리", "url": "/noti/notiCashReceiptUrlMng", "menuId": "M0805" },
         { "label": "현금영수증통보 전송관리", "url": "/noti/notiCashReceiptSendMngList", "menuId": "M0806" }
       ]

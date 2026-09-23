@@ -391,7 +391,7 @@
           { v: 'ALWAYS_REDIRECT', t: '항상 전체 페이지' }
         ], col: 3 },
          { label: '', type: 'note', col: 9, text: 'embed·API 인라인·URL·챗봇 결제창 동작. 기본(EMBED)은 iframe 유지 + 3DS 시 최상위 창 이동. MOBILE_REDIRECT/ALWAYS_REDIRECT 는 payUrl 전체 페이지(모바일 3DS 권장).' }],
-        [{ label: '', type: 'note', col: 12, text: '가맹점 API 생성·배포문서·가맹점API 화면에는 여기서 켠 채널만 노출됩니다. prepare API도 비활성 채널은 INTEGRATION_CHANNEL_DISABLED 로 거부됩니다.' }]
+        [{ label: '', type: 'note', col: 12, text: '연동·배포 → 가맹 API 출시(키·문서·API 문서)와 업체관리 → 가맹점API 화면에는 여기서 켠 채널만 노출됩니다. prepare API도 비활성 채널은 INTEGRATION_CHANNEL_DISABLED 로 거부됩니다.' }]
       ]
     };
   }
@@ -2259,7 +2259,7 @@
       '<li class="mb-1"><strong class="text-body">콜백</strong> · 가맹점 HTTPS URL 등록, 우리→가맹점 노티 서명·재시도 정책</li>' +
       '<li class="mb-1"><strong class="text-body">문서</strong> · OpenAPI·샘플·오류 코드 — 배포 시 브로커 베이스(<code>/api/middleware/v1/pg/{pg}</code>) 고정</li>' +
       '</ul>' +
-      '<p class="mb-0 small text-secondary">실제 키 발급·엔드포인트·시크릿 강제는 배포설정 <strong class="text-body">「가맹점 API 생성」</strong>(<code>/hq/merchantApiGenerate</code>) 화면에서 수행합니다.</p></div>',
+      '<p class="mb-0 small text-secondary">실제 키 발급·엔드포인트·시크릿 강제는 <strong class="text-body">연동·배포 → 가맹 API 출시 → 키·문서</strong>에서 수행합니다.</p></div>',
     launchChecklist: '<div class="deploy-static-doc text-muted small">' +
       '<h5 class="text-dark fw-semibold mb-3">배포·운영 체크리스트</h5>' +
       '<ul class="list-unstyled mb-0">' +
@@ -2531,13 +2531,13 @@
     '<li class="mb-1"><span data-pg-ui-t="업체등록·업체관리에서 조직을 가맹점으로 등록하고, 「가맹 API 연동 채널」에서 인라인·리다이렉트·WordPress 중 해당 가맹에 맞는 방식만 켭니다.">업체등록·업체관리에서 조직을 가맹점으로 등록하고, 「가맹 API 연동 채널」에서 인라인·리다이렉트·WordPress 중 해당 가맹에 맞는 방식만 켭니다.</span></li>' +
     '<li class="mb-1"><span data-pg-ui-t="결제대행사(PG) 바인딩은 업체정보 결제대행사에서 저장합니다. PG와 연동 채널은 별개입니다.">결제대행사(PG) 바인딩은 업체정보 결제대행사에서 저장합니다. PG와 연동 채널은 별개입니다.</span></li>' +
     '<li class="mb-1"><span data-pg-ui-t="콜백·결과 URL은 업체정보 또는 통보관리 메뉴에서 등록합니다.">콜백·결과 URL은 업체정보 또는 통보관리 메뉴에서 등록합니다.</span></li>' +
-    '<li class="mb-0"><span data-pg-ui-t="등록이 끝나면 2. 가맹점 API 생성에서 MID·엔드포인트·연동 JSON을 발급합니다.">등록이 끝나면 2. 가맹점 API 생성에서 MID·엔드포인트·연동 JSON을 발급합니다.</span></li></ol>' +
+    '<li class="mb-0"><span data-pg-ui-t="등록이 끝나면 키·문서에서 MID·엔드포인트·연동 JSON을 발급합니다.">등록이 끝나면 키·문서에서 MID·엔드포인트·연동 JSON을 발급합니다.</span></li></ol>' +
     '<p class="small text-muted mb-0" data-pg-ui-t="이 표는 API연동설정 DB를 읽어, 연동용도에 API가 포함된 행만 보여 줍니다.">이 표는 API연동설정 DB를 읽어, 연동용도에 API가 포함된 행만 보여 줍니다.</p></div>' +
     '<div class="d-flex flex-wrap gap-2 mb-3">' +
     '<button type="button" class="btn btn-primary btn-sm" id="apiMerchRegBtnPgApi" data-pg-ui-t="API연동설정">API연동설정</button>' +
     '<button type="button" class="btn btn-outline-primary btn-sm" id="apiMerchRegBtnCompReg" data-pg-ui-t="업체등록">업체등록</button>' +
     '<button type="button" class="btn btn-outline-secondary btn-sm" id="apiMerchRegBtnCompTree" data-pg-ui-t="업체관리">업체관리</button>' +
-    '<button type="button" class="btn btn-success btn-sm" id="apiMerchRegBtnNextGen" data-pg-ui-t="2. 가맹점 API 생성">2. 가맹점 API 생성</button></div>' +
+    '<button type="button" class="btn btn-success btn-sm" id="apiMerchRegBtnNextGen" data-pg-ui-t="키·문서로 이동">키·문서로 이동</button></div>' +
     '<label class="form-label small fw-semibold mb-1" data-pg-ui-t="연동용도에 API가 켜진 결제대행사">연동용도에 API가 켜진 결제대행사</label>' +
     '<div class="table-no-col-resize-wrap border rounded mb-2">' +
     '<table class="table table-sm table-bordered align-middle mb-0 w-100 table-no-col-resize">' +
@@ -2546,7 +2546,7 @@
     '<p class="small text-muted mb-0" data-pg-ui-t="가맹 전용 MID·키는 업체 저장 시 가맹 바인딩에 들어갑니다. 본사 행과 다를 수 있습니다.">가맹 전용 MID·키는 업체 저장 시 가맹 바인딩에 들어갑니다. 본사 행과 다를 수 있습니다.</p></div>';
 
   var MERCHANT_API_GENERATE_HTML = '<div class="merchant-deploy-kit text-body">' +
-    '<h5 class="fw-semibold mb-2" data-pg-ui-t="2. 가맹점 API 생성">2. 가맹점 API 생성</h5>' +
+    '<h5 class="fw-semibold mb-2" data-pg-ui-t="키·문서">키·문서</h5>' +
     '<div class="alert alert-info small mb-3 py-3 merchant-deploy-plain-help" role="region" data-pg-ui-aria-label="화면 안내">' +
     '<p class="fw-semibold text-dark mb-2" data-pg-ui-t="이 화면은 뭘 하나요?">이 화면은 뭘 하나요?</p>' +
     '<p class="mb-3 mb-md-2"><span data-pg-ui-t="결제를 여기서 승인하는 곳이 아닙니다. 다른 서버(가맹·브로커)에 넣을 연동 설정 글자 묶음(JSON)을 받아 가거나, 그 서버들이 쓰는 비밀번호(브로커 시크릿)를 새로 뽑거나, 보안을 더 켜 두는 곳입니다.">결제를 여기서 승인하는 곳이 아닙니다. 다른 서버(가맹·브로커)에 넣을 연동 설정 글자 묶음(JSON)을 받아 가거나, 그 서버들이 쓰는 비밀번호(브로커 시크릿)를 새로 뽑거나, 보안을 더 켜 두는 곳입니다.</span></p>' +
@@ -2592,15 +2592,16 @@
     '<button type="button" class="btn btn-outline-primary btn-sm" id="merchantDeployLoadKitJsonBtn" data-pg-ui-t="JSON 연동 패키지">JSON 연동 패키지</button>' +
     '<button type="button" class="btn btn-outline-primary btn-sm" id="merchantDeployLoadKitPhpBtn" data-pg-ui-t="PHP 연동 패키지">PHP 연동 패키지</button>' +
     '<button type="button" class="btn btn-warning btn-sm" id="merchantDeployRotateSecretBtn" data-pg-ui-t="브로커 시크릿 재발급">브로커 시크릿 재발급</button>' +
+    '<button type="button" class="btn btn-sm btn-sandbox-secret-issue" id="merchantDeployRotateSandboxSecretBtn" data-pg-ui-t="샌드박스 시크릿 발급">샌드박스 시크릿 발급</button>' +
     '<label class="small mb-0 ms-1 d-flex align-items-center gap-1"><input type="checkbox" id="merchantDeployEnforceYn" checked> ' +
     '<span data-pg-ui-t="강제(시크릿 헤더 필수)">강제(시크릿 헤더 필수)</span></label>' +
     '<button type="button" class="btn btn-outline-secondary btn-sm" id="merchantDeployEnforceBtn" data-pg-ui-t="강제여부 저장">강제여부 저장</button>' +
     '<button type="button" class="btn btn-outline-dark btn-sm" id="merchantDeployIssueResetBtn" data-pg-ui-t="발급초기화" title="선택·발급 결과·키트를 지우고 가맹점 목록 초기 화면으로 돌아갑니다.">발급초기화</button></div>' +
     '<div class="merchant-deploy-table-wrap table-no-col-resize-wrap border rounded mb-2">' +
     '<table class="table table-sm table-bordered align-middle merchant-deploy-merchant-table table-no-col-resize w-100 mb-0" id="merchantDeployMerchantGrid">' +
-    '<colgroup><col class="merchant-deploy-col-act" /><col class="merchant-deploy-col-code" /><col class="merchant-deploy-col-master" /><col class="merchant-deploy-col-name" /><col class="merchant-deploy-col-pg" /><col class="merchant-deploy-col-channel" /><col class="merchant-deploy-col-cur" /><col class="merchant-deploy-col-broker" /><col class="merchant-deploy-col-issued-date" /><col class="merchant-deploy-col-issued-by" /></colgroup>' +
-    '<thead class="table-light"><tr><th class="text-center text-nowrap" data-pg-ui-t="선택">선택</th><th class="text-nowrap" data-pg-ui-t="업체코드">업체코드</th><th class="text-nowrap" data-pg-ui-t="상위 총판">상위 총판</th><th class="text-nowrap" data-pg-ui-t="업체명">업체명</th><th class="text-nowrap" data-pg-ui-t="PG대행사">PG대행사</th><th class="text-nowrap" data-pg-ui-t="채널" data-pg-ui-title="가맹 API 연동 채널: IN=INLINE, RE=REDIRECT, WO=WordPress/WooCommerce. 복수 사용 시 IN/RE 형식.">채널</th><th class="text-nowrap" data-pg-ui-t="기준통화">기준통화</th><th class="text-nowrap" data-pg-ui-t="브로커 시크릿">브로커 시크릿</th><th class="text-nowrap" data-pg-ui-t="발행일자">발행일자</th><th class="text-nowrap" data-pg-ui-t="발행자">발행자</th></tr></thead>' +
-    '<tbody><tr><td colspan="10" class="text-center text-muted py-3" data-pg-ui-t="로딩 중…">로딩 중…</td></tr></tbody></table></div>' +
+    '<colgroup><col class="merchant-deploy-col-act" /><col class="merchant-deploy-col-code" /><col class="merchant-deploy-col-master" /><col class="merchant-deploy-col-name" /><col class="merchant-deploy-col-pg" /><col class="merchant-deploy-col-channel" /><col class="merchant-deploy-col-cur" /><col class="merchant-deploy-col-broker" /><col class="merchant-deploy-col-issued-date" /><col class="merchant-deploy-col-issued-by" /><col class="merchant-deploy-col-broker" /><col class="merchant-deploy-col-issued-date" /><col class="merchant-deploy-col-issued-by" /></colgroup>' +
+    '<thead class="table-light"><tr><th class="text-center text-nowrap" data-pg-ui-t="선택">선택</th><th class="text-nowrap" data-pg-ui-t="업체코드">업체코드</th><th class="text-nowrap" data-pg-ui-t="상위 총판">상위 총판</th><th class="text-nowrap" data-pg-ui-t="업체명">업체명</th><th class="text-nowrap" data-pg-ui-t="PG대행사">PG대행사</th><th class="text-nowrap" data-pg-ui-t="채널" data-pg-ui-title="가맹 API 연동 채널: IN=INLINE, RE=REDIRECT, WO=WordPress/WooCommerce. 복수 사용 시 IN/RE 형식.">채널</th><th class="text-nowrap" data-pg-ui-t="기준통화">기준통화</th><th class="text-nowrap" data-pg-ui-t="브로커 시크릿">브로커 시크릿</th><th class="text-nowrap" data-pg-ui-t="발행일자">발행일자</th><th class="text-nowrap" data-pg-ui-t="발행자">발행자</th><th class="text-nowrap" data-pg-ui-t="샌드박스 시크릿">샌드박스 시크릿</th><th class="text-nowrap" data-pg-ui-t="샌드박스 발행일자">샌드박스 발행일자</th><th class="text-nowrap" data-pg-ui-t="샌드박스 발행자">샌드박스 발행자</th></tr></thead>' +
+    '<tbody><tr><td colspan="13" class="text-center text-muted py-3" data-pg-ui-t="로딩 중…">로딩 중…</td></tr></tbody></table></div>' +
     '<p class="small text-muted mb-2" id="merchantDeployPageInfo"></p>' +
     '<label class="form-label small mb-0" id="merchantDeployKitLabel" data-pg-ui-t="연동 패키지 (JSON / PHP)">연동 패키지 (JSON / PHP)</label>' +
     '<pre id="merchantDeployKitJson" class="bg-light p-3 small mb-0" style="max-height:520px;overflow:auto;border:1px solid #dee2e6;white-space:pre-wrap;">' +
@@ -2624,7 +2625,7 @@
     '<h5 class="fw-semibold mb-2" data-pg-ui-t="API 배포 문서">API 배포 문서</h5>' +
     '<div class="alert alert-info small mb-3 py-3" role="region" data-pg-ui-aria-label="화면 안내">' +
     '<p class="fw-semibold text-dark mb-2" data-pg-ui-t="가맹점 연동용 자료">가맹점 연동용 자료</p>' +
-    '<p class="mb-2" data-pg-ui-t="API배포문서 안내 본문">본사 미리보기입니다. 가맹점은 로그인 후 <strong>업체관리 → 가맹점API</strong>에서 동일 내용(키·엔드포인트·파라미터·샘플)을 확인합니다. 별도 메일·파일 배포는 필요하지 않습니다. 브로커 시크릿 재발급은 「가맹점 API 생성」에서만 가능합니다.</p>' +
+    '<p class="mb-2" data-pg-ui-t="API배포문서 안내 본문">본사 미리보기입니다. 가맹점은 로그인 후 <strong>업체관리 → 가맹점API</strong>에서 동일 내용(키·엔드포인트·파라미터·샘플)을 확인합니다. 별도 메일·파일 배포는 필요하지 않습니다. 브로커 시크릿 재발급은 <strong>연동·배포 → 가맹 API 출시 → 키·문서</strong>에서만 가능합니다.</p>' +
     '<p class="mb-0 text-muted small" data-pg-ui-t="API배포문서 안내 보안">브로커 시크릿은 가맹 서버에만 두고 브라우저·앱에 노출하지 마세요.</p></div>' +
     '<div class="row g-2 mb-3">' +
     '<div class="col-md-4"><label class="form-label small mb-0" data-pg-ui-t="업체코드 (직접 입력)">업체코드 (직접 입력)</label>' +
@@ -2634,9 +2635,9 @@
     '<div class="col-md-4 d-flex align-items-end"><button type="button" class="btn btn-primary btn-sm w-100" id="merchantApiDocsSearchBtn" data-pg-ui-t="가맹점 검색">가맹점 검색</button></div></div>' +
     '<div class="merchant-deploy-table-wrap table-no-col-resize-wrap border rounded mb-2">' +
     '<table class="table table-sm table-bordered align-middle merchant-deploy-merchant-table table-no-col-resize w-100 mb-0" id="merchantApiDocsMerchantGrid">' +
-    '<colgroup><col class="merchant-deploy-col-act" /><col class="merchant-deploy-col-code" /><col class="merchant-deploy-col-master" /><col class="merchant-deploy-col-name" /><col class="merchant-deploy-col-pg" /><col class="merchant-deploy-col-channel" /><col class="merchant-deploy-col-cur" /><col class="merchant-deploy-col-broker" /><col class="merchant-deploy-col-issued-date" /><col class="merchant-deploy-col-issued-by" /></colgroup>' +
-    '<thead class="table-light"><tr><th class="text-center text-nowrap" data-pg-ui-t="선택">선택</th><th class="text-nowrap" data-pg-ui-t="업체코드">업체코드</th><th class="text-nowrap" data-pg-ui-t="상위 총판">상위 총판</th><th class="text-nowrap" data-pg-ui-t="업체명">업체명</th><th class="text-nowrap" data-pg-ui-t="PG대행사">PG대행사</th><th class="text-nowrap" data-pg-ui-t="채널" data-pg-ui-title="가맹 API 연동 채널: IN=INLINE, RE=REDIRECT, WO=WordPress/WooCommerce. 복수 사용 시 IN/RE 형식.">채널</th><th class="text-nowrap" data-pg-ui-t="기준통화">기준통화</th><th class="text-nowrap" data-pg-ui-t="브로커 시크릿">브로커 시크릿</th><th class="text-nowrap" data-pg-ui-t="발행일자">발행일자</th><th class="text-nowrap" data-pg-ui-t="발행자">발행자</th></tr></thead>' +
-    '<tbody><tr><td colspan="10" class="text-center text-muted py-3" data-pg-ui-t="로딩 중…">로딩 중…</td></tr></tbody></table></div>' +
+    '<colgroup><col class="merchant-deploy-col-act" /><col class="merchant-deploy-col-code" /><col class="merchant-deploy-col-master" /><col class="merchant-deploy-col-name" /><col class="merchant-deploy-col-pg" /><col class="merchant-deploy-col-channel" /><col class="merchant-deploy-col-cur" /><col class="merchant-deploy-col-broker" /><col class="merchant-deploy-col-issued-date" /><col class="merchant-deploy-col-issued-by" /><col class="merchant-deploy-col-broker" /><col class="merchant-deploy-col-issued-date" /><col class="merchant-deploy-col-issued-by" /></colgroup>' +
+    '<thead class="table-light"><tr><th class="text-center text-nowrap" data-pg-ui-t="선택">선택</th><th class="text-nowrap" data-pg-ui-t="업체코드">업체코드</th><th class="text-nowrap" data-pg-ui-t="상위 총판">상위 총판</th><th class="text-nowrap" data-pg-ui-t="업체명">업체명</th><th class="text-nowrap" data-pg-ui-t="PG대행사">PG대행사</th><th class="text-nowrap" data-pg-ui-t="채널" data-pg-ui-title="가맹 API 연동 채널: IN=INLINE, RE=REDIRECT, WO=WordPress/WooCommerce. 복수 사용 시 IN/RE 형식.">채널</th><th class="text-nowrap" data-pg-ui-t="기준통화">기준통화</th><th class="text-nowrap" data-pg-ui-t="브로커 시크릿">브로커 시크릿</th><th class="text-nowrap" data-pg-ui-t="발행일자">발행일자</th><th class="text-nowrap" data-pg-ui-t="발행자">발행자</th><th class="text-nowrap" data-pg-ui-t="샌드박스 시크릿">샌드박스 시크릿</th><th class="text-nowrap" data-pg-ui-t="샌드박스 발행일자">샌드박스 발행일자</th><th class="text-nowrap" data-pg-ui-t="샌드박스 발행자">샌드박스 발행자</th></tr></thead>' +
+    '<tbody><tr><td colspan="13" class="text-center text-muted py-3" data-pg-ui-t="로딩 중…">로딩 중…</td></tr></tbody></table></div>' +
     '<p class="small text-muted mb-3" id="merchantApiDocsPageInfo"></p>' +
     '<div id="merchantApiDocsSummary" class="alert alert-secondary small mb-3 py-2 d-none" role="status" aria-live="polite"></div>' +
     '<div id="merchantApiDocsContent" class="d-none">' +
@@ -3832,6 +3833,13 @@
               { label: '정산 VAT 부과', type: 'select', name: 'settlementVatApplyYn', options: [{ v: 'Y', t: '부과' }, { v: 'N', t: '미부과' }], col: 2 }
             ]
           ]
+        },
+        {
+          title: '샌드박스 이력 보관',
+          notice: '가맹↔ICOPAY 샌드박스 결제·통보 이력을 N일 후 자동 삭제합니다. 기본 3일. (메뉴: 연동·배포 → 가맹 API 출시 → 공통설정. 확인: 결제관리 → 샌드박스내역, 통보관리 → 샌드박스통보)',
+          rows: [
+            [{ label: '샌드박스 보관(일)', type: 'number', name: 'sandboxRetainDays', col: 2, placeholder: '3' }]
+          ]
         }
       ],
       buttons: [{ id: 'hqApiConfigSaveBtn', label: '저장', cls: 'btn-primary' }]
@@ -4687,7 +4695,18 @@
             [{ label: 'URL Background', type: 'text', name: 'notifyUrlBackground', col: 5, placeholder: 'https://' }, { label: 'URL Result', type: 'text', name: 'notifyUrlResult', col: 5, placeholder: 'https://' }]
           ]
         },
+        
         {
+          title: '결제통보 URL (SANDBOX)',
+          id: 'sandboxNotifyUrlCard',
+          merchantOnly: true,
+          notice: '가맹↔ICOPAY 통신 테스트 전용. 키는 연동·배포 → 가맹 API 출시 → 키·문서 → 샌드박스 시크릿 발급. 라이브 결제통보·수신통보와 섞지 않으며 NOTI를 경유하지 않습니다. 활성/URL 수정은 총본사·본사 관리자만 가능합니다. 확인: 결제관리 → 샌드박스내역, 통보관리 → 샌드박스통보.',
+          rows: [
+            [{ label: '샌드박스 사용', type: 'select', name: 'sandboxUseYn', options: [{ v: 'N', t: '비활성' }, { v: 'Y', t: '활성' }], col: 2 }],
+            [{ label: 'URL Background (SANDBOX)', type: 'text', name: 'notifyUrlBackgroundSandbox', col: 5, placeholder: 'https://' }, { label: 'URL Result (SANDBOX)', type: 'text', name: 'notifyUrlResultSandbox', col: 5, placeholder: 'https://' }]
+          ]
+        },
+{
           title: '수신통보 URL',
           id: 'jpayNotifyUrlCard',
           merchantOnly: true,
@@ -5120,7 +5139,18 @@
             [{ label: 'URL Background', type: 'text', name: 'notifyUrlBackground', col: 5, placeholder: 'https://' }, { label: 'URL Result', type: 'text', name: 'notifyUrlResult', col: 5, placeholder: 'https://' }]
           ]
         },
+        
         {
+          title: '결제통보 URL (SANDBOX)',
+          id: 'sandboxNotifyUrlCard',
+          merchantOnly: true,
+          notice: '가맹↔ICOPAY 통신 테스트 전용. 키는 연동·배포 → 가맹 API 출시 → 키·문서 → 샌드박스 시크릿 발급. 라이브 결제통보·수신통보와 섞지 않으며 NOTI를 경유하지 않습니다. 활성/URL 수정은 총본사·본사 관리자만 가능합니다. 확인: 결제관리 → 샌드박스내역, 통보관리 → 샌드박스통보.',
+          rows: [
+            [{ label: '샌드박스 사용', type: 'select', name: 'sandboxUseYn', options: [{ v: 'N', t: '비활성' }, { v: 'Y', t: '활성' }], col: 2 }],
+            [{ label: 'URL Background (SANDBOX)', type: 'text', name: 'notifyUrlBackgroundSandbox', col: 5, placeholder: 'https://' }, { label: 'URL Result (SANDBOX)', type: 'text', name: 'notifyUrlResultSandbox', col: 5, placeholder: 'https://' }]
+          ]
+        },
+{
           title: '수신통보 URL',
           id: 'jpayNotifyUrlCard',
           merchantOnly: true,
@@ -5489,7 +5519,18 @@
             [{ label: 'URL Background', type: 'text', name: 'notifyUrlBackground', col: 5, placeholder: 'https://' }, { label: 'URL Result', type: 'text', name: 'notifyUrlResult', col: 5, placeholder: 'https://' }]
           ]
         },
+        
         {
+          title: '결제통보 URL (SANDBOX)',
+          id: 'sandboxNotifyUrlCard',
+          merchantOnly: true,
+          notice: '가맹↔ICOPAY 통신 테스트 전용. 키는 연동·배포 → 가맹 API 출시 → 키·문서 → 샌드박스 시크릿 발급. 라이브 결제통보·수신통보와 섞지 않으며 NOTI를 경유하지 않습니다. 활성/URL 수정은 총본사·본사 관리자만 가능합니다. 확인: 결제관리 → 샌드박스내역, 통보관리 → 샌드박스통보.',
+          rows: [
+            [{ label: '샌드박스 사용', type: 'select', name: 'sandboxUseYn', options: [{ v: 'N', t: '비활성' }, { v: 'Y', t: '활성' }], col: 2 }],
+            [{ label: 'URL Background (SANDBOX)', type: 'text', name: 'notifyUrlBackgroundSandbox', col: 5, placeholder: 'https://' }, { label: 'URL Result (SANDBOX)', type: 'text', name: 'notifyUrlResultSandbox', col: 5, placeholder: 'https://' }]
+          ]
+        },
+{
           title: '수신통보 URL',
           id: 'jpayNotifyUrlCard',
           merchantOnly: true,
@@ -7239,6 +7280,55 @@
       summary: ['건수', '성공', '실패'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
       columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'urlType', label: 'URL구분' }, { key: 'targetUrl', label: '통보URL' }, { key: 'sendDt', label: '전송일시' }, { key: 'result', label: '결과' }, { key: 'retryCnt', label: '재전송횟수' }, { key: 'webhookPayloadPreview', label: '웹훅 본문' }, { key: 'orderNo', label: '주문번호' }, { key: 'trnId', label: '거래번호' }]
+    },
+    '/calc/sandboxPayList': {
+      searchRows: [
+        [
+          { label: '업체코드', type: 'text', name: 'searchCompId' },
+          { label: '상태', type: 'select', name: 'searchStatus', options: [{ v: '', t: '전체' }, { v: 'PENDING', t: '대기' }, { v: 'APPROVED', t: '승인' }, { v: 'FAILED', t: '실패' }], size: 8 },
+          { type: 'searchBtn' }
+        ]
+      ],
+      summary: ['건수'],
+      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }],
+      columns: [
+        { key: '_chk', type: 'checkbox' },
+        { key: 'rowNo', label: '번호' },
+        { key: 'compId', label: '업체코드' },
+        { key: 'orderNo', label: '주문번호' },
+        { key: 'amount', label: '금액' },
+        { key: 'currency', label: '통화' },
+        { key: 'productName', label: '상품명' },
+        { key: 'statusNm', label: '상태' },
+        { key: 'createdAt', label: '생성일시' },
+        { key: 'completedAt', label: '완료일시' }
+      ]
+    },
+    '/noti/sandboxNotifyList': {
+      searchRows: [
+        [
+          { label: '업체코드', type: 'text', name: 'searchCompId' },
+          { type: 'searchBtn' }
+        ]
+      ],
+      summary: ['건수'],
+      buttons: [
+        { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
+        { id: 'sandboxNotifyResendBtn', label: '재송부', cls: 'btn-warning' }
+      ],
+      columns: [
+        { key: '_chk', type: 'checkbox' },
+        { key: 'rowNo', label: '번호' },
+        { key: 'compId', label: '업체코드' },
+        { key: 'orderNo', label: '주문번호' },
+        { key: 'urlType', label: 'URL구분' },
+        { key: 'targetUrl', label: '통보URL' },
+        { key: 'sendDt', label: '전송일시' },
+        { key: 'result', label: '결과' },
+        { key: 'httpStatus', label: 'HTTP' },
+        { key: 'retryCnt', label: '재전송횟수' },
+        { key: 'webhookPayloadPreview', label: '웹훅 본문' }
+      ]
     },
     '/noti/notiCashReceiptUrlMng': {
       searchRows: [

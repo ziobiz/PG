@@ -790,6 +790,10 @@ public class OrgPagePermissionService {
                     && "/comp/merchantApiPortal".equals(url)) {
                 p = P_NONE;
             }
+            if (p == null && OrgLevel.MERCHANT.name().equals(orgLevel)
+                    && ("/calc/sandboxPayList".equals(url) || "/noti/sandboxNotifyList".equals(url))) {
+                p = P_NONE;
+            }
             out.put(url, p != null ? p : P_DELETE);
         }
         return out;
