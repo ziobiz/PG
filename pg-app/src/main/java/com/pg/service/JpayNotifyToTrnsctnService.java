@@ -199,6 +199,8 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         }
         final String orderKey = on;
         Optional<PgTrnsctn> ex = findJpayTxn(merchantId.trim(), orderKey);
+        /* ElementPay URL 건이 JPAY RESULT 슬롯으로 들어오면 van 을 JPAY 로 덮지 않는다. */
+        boolean elementPayExisting = ex.isPresent() && PgVendor.isElementPayFamily(ex.get().getVan());
         PgTrnsctn t = ex.orElseGet(() -> {
             PgTrnsctn x = new PgTrnsctn();
             x.setTrnId(newTrnId());
@@ -207,7 +209,9 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
             x.setOrigin(resolveOriginForNewNotifyTxn(merchantId.trim(), orderKey));
             return x;
         });
-        t.setVan(PgVendor.JPAY.length() > 10 ? PgVendor.JPAY.substring(0, 10) : PgVendor.JPAY);
+        if (!elementPayExisting) {
+            t.setVan(PgVendor.JPAY.length() > 10 ? PgVendor.JPAY.substring(0, 10) : PgVendor.JPAY);
+        }
         t.setOrderNo(orderKey);
         t.setPayNo(orderKey.length() > 50 ? orderKey.substring(0, 50) : orderKey);
         JpayTransactionIdApplier.apply(t, txnId);
@@ -241,17 +245,19 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         if (next == null || next.isBlank()) {
             next = ST_FAIL;
         }
+        next = blockElementPayPaidFromJpayResult(elementPayExisting, next, prevStatus, t.getTrnId(), orderKey, "RESULT");
         String merged = NotifyToTxnStatusMerge.merge(t.getStatus(), next, ch, t.getOutcomeReasonCode());
         if (merged == null || merged.isBlank()) {
             merged = next;
         }
+        merged = blockElementPayPaidMerge(elementPayExisting, merged, prevStatus, t.getTrnId(), orderKey);
         Map<String, String> evidenceKeys = new LinkedHashMap<>();
         if (!txnId.isBlank()) {
             evidenceKeys.put("chillTransactionId", txnId.trim());
         }
         String statusBeforeGuard = merged;
         merged = PaidApprovalEvidenceGuard.adjustIfPaidWithoutEvidence(
-                merged, t, null, evidenceKeys, PgVendor.JPAY, ret);
+                merged, t, null, evidenceKeys, elementPayExisting ? PgVendor.ELEMENTPAY : PgVendor.JPAY, ret);
         boolean voidFromIncompleteParams = PaidApprovalEvidenceGuard.wasDowngradedFromPaid(statusBeforeGuard, merged);
         if (voidFromIncompleteParams) {
             log.warn("JPAY 노티 승인 근거 없음 → 무효(21) trnId={} orderNo={} returncode={}",
@@ -296,8 +302,8 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
                 log.warn("실시간 자동정산 트리거 실패 merchantId={}: {}", t.getMerchantId(), rtEx.getMessage());
             }
         }
-        log.info("JPAY 노티 반영 trnId={} merchantId={} orderNo={} returncode={} manualEcho={}",
-                t.getTrnId(), merchantId, orderKey, ret, icopayManualEcho);
+        log.info("JPAY 노티 반영 trnId={} merchantId={} orderNo={} returncode={} manualEcho={} elementPay={}",
+                t.getTrnId(), merchantId, orderKey, ret, icopayManualEcho, elementPayExisting);
         merchantOutboundNotifyService.scheduleAfterTxnCommit(t, in, ch);
         scheduleElementPayNotiMirrorIfDue(t, merged);
         return true;
@@ -333,6 +339,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
             return false;
         }
         PgTrnsctn t = ex.get();
+        boolean elementPayTxn = PgVendor.isElementPayFamily(t.getVan());
         String prevStatus = t.getStatus();
         String prevOutcomeReasonCode = t.getOutcomeReasonCode();
         JpayTransactionIdApplier.apply(t, first(form, "transaction_id"));
@@ -341,10 +348,12 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         if (next == null || next.isBlank()) {
             next = ST_FAIL;
         }
+        next = blockElementPayPaidFromJpayResult(elementPayTxn, next, prevStatus, t.getTrnId(), on, "3DS");
         String merged = NotifyToTxnStatusMerge.merge(t.getStatus(), next, ch, t.getOutcomeReasonCode());
         if (merged == null || merged.isBlank()) {
             merged = next;
         }
+        merged = blockElementPayPaidMerge(elementPayTxn, merged, prevStatus, t.getTrnId(), on);
         String syncTxnId = first(form, "transaction_id");
         Map<String, String> evidenceKeys = new LinkedHashMap<>();
         if (!syncTxnId.isBlank()) {
@@ -352,7 +361,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         }
         String statusBeforeGuard = merged;
         merged = PaidApprovalEvidenceGuard.adjustIfPaidWithoutEvidence(
-                merged, t, null, evidenceKeys, PgVendor.JPAY, ret);
+                merged, t, null, evidenceKeys, elementPayTxn ? PgVendor.ELEMENTPAY : PgVendor.JPAY, ret);
         boolean voidFromIncompleteParams = PaidApprovalEvidenceGuard.wasDowngradedFromPaid(statusBeforeGuard, merged);
         if (voidFromIncompleteParams) {
             log.warn("JPAY 3DS 동기 복귀 승인 근거 없음 → 무효(21) trnId={} orderNo={}", t.getTrnId(), on);
@@ -381,6 +390,38 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         merchantOutboundNotifyService.scheduleAfterTxnCommit(t, in, ch);
         scheduleElementPayNotiMirrorIfDue(t, merged);
         return true;
+    }
+
+    /**
+     * ElementPay 건에 JPAY RESULT/3DS 성공 코드를 승인(10)으로 쓰지 않는다.
+     * EP pay 웹훅·getStatus 203/205 만 승인 권한.
+     */
+    private static String blockElementPayPaidFromJpayResult(boolean elementPay, String next,
+                                                            String prevStatus, String trnId, String orderNo,
+                                                            String via) {
+        if (!elementPay || next == null || !ST_PAID.equals(next.trim())) {
+            return next;
+        }
+        String prev = prevStatus != null ? prevStatus.trim() : "";
+        log.warn("ElementPay: JPAY {} paid ignored (await EP pay/getStatus) trnId={} order={}",
+                via, trnId, orderNo);
+        if (ST_PAID.equals(prev)) {
+            return prev;
+        }
+        return prev.isBlank() ? "08" : prev;
+    }
+
+    private static String blockElementPayPaidMerge(boolean elementPay, String merged,
+                                                   String prevStatus, String trnId, String orderNo) {
+        if (!elementPay || merged == null || !ST_PAID.equals(merged.trim())) {
+            return merged;
+        }
+        String prev = prevStatus != null ? prevStatus.trim() : "";
+        if (ST_PAID.equals(prev)) {
+            return merged;
+        }
+        log.warn("ElementPay: block RESULT→paid merge trnId={} order={} → keep {}", trnId, orderNo, prev);
+        return prev.isBlank() ? "08" : prev;
     }
 
     /**

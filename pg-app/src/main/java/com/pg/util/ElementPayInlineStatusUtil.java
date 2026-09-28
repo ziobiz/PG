@@ -62,9 +62,13 @@ public final class ElementPayInlineStatusUtil {
         return isLocalPaid(st) || isLocalHardFail(st) || isLocalRefundOrChargeback(st);
     }
 
-    /** getStatus 거절 확정 시 건너뛸 로컬 상태. 이미 실패(99)·승인·환불은 유지. */
+    /**
+     * getStatus 거절 확정 시 건너뛸 로컬 상태.
+     * 이미 실패(99)·취소·환불은 유지. <b>승인(10)은 건너뛰지 않음</b> —
+     * EP Cabinet {@code rejected}/getStatus 204 가 최종이면 오승인(RESULT 선반영)을 뒤집는다.
+     */
     public static boolean skipSyncWhenUnpaid(String st) {
-        return isLocalPaid(st) || isLocalProvisionalFail(st)
+        return isLocalProvisionalFail(st)
                 || isLocalHardFail(st) || isLocalRefundOrChargeback(st);
     }
 

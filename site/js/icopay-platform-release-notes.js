@@ -6,13 +6,40 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '4.29';
+  var CURRENT_LIVE = '4.30';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '4.30',
+      kind: 'minor',
+      date: '2026-09-28',
+      items: {
+        KO: [
+          'ElementPay: 브라우저 RESULT로 선승인된 뒤 EP Cabinet rejected/getStatus 204 가 오면 로컬 성공(10)을 실패로 정정',
+          'ElementPay URL 건은 JPAY RESULT·3DS 복귀의 returncode=00 만으로 승인하지 않음 — EP pay/getStatus 만 승인 권한'
+        ],
+        EN: [
+          'ElementPay: if RESULT marked paid early but EP Cabinet rejected / getStatus 204, correct local success (10) to failed',
+          'ElementPay URL payments are not approved by JPAY RESULT/3DS returncode=00 alone — only EP pay/getStatus may approve'
+        ],
+        JP: [
+          'ElementPay: RESULTで先行承認後にEP Cabinet rejected/getStatus 204ならローカル成功(10)を失敗へ訂正',
+          'ElementPay URL決済はJPAY RESULT・3DSのreturncode=00だけでは承認しない — EP pay/getStatusのみ承認'
+        ],
+        CH: [
+          'ElementPay：若 RESULT 提前标为成功但 EP Cabinet 为 rejected/getStatus 204，将本地成功(10)纠正为失败',
+          'ElementPay URL 支付不因 JPAY RESULT/3DS 的 returncode=00 单独批准 — 仅 EP pay/getStatus 可批准'
+        ],
+        TH: [
+          'ElementPay: หาก RESULT อนุมัติก่อนแต่ EP Cabinet เป็น rejected/getStatus 204 จะแก้สถานะสำเร็จ(10) เป็นล้มเหลว',
+          'การชำระ ElementPay URL ไม่ถือว่าอนุมัติจาก returncode=00 ของ JPAY RESULT/3DS อย่างเดียว — อนุมัติได้เฉพาะ EP pay/getStatus'
+        ]
+      }
+    },
     {
       version: '4.29',
       kind: 'minor',

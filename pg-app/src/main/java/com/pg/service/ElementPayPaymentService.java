@@ -989,12 +989,14 @@ public class ElementPayPaymentService {
 
     public Map<String, Object> queryInlineStatus(Long orgUnitId, String paymentId, String orderNo,
                                                  boolean finalizeReject) {
-        /* 로컬 승인은 웹훅(pay) 반영분 — getStatus 보다 우선. 99(선제 실패)는 회복 가능하므로 단축하지 않음. */
+        /* 로컬 승인만으로 단축하지 않음 — RESULT 오승인 후 EP rejected/204 가 올 수 있어
+         * paymentId 가 있으면 getStatus 로 재확인한다. 99(선제 실패)는 회복 가능하므로 단축하지 않음. */
         if (orderNo != null && !orderNo.isBlank()) {
             Optional<com.pg.entity.PgTrnsctn> local = elementPaySaleRecordService.findAnyByOrder(orderNo.trim());
             if (local.isPresent()) {
                 String stLocal = local.get().getStatus() != null ? local.get().getStatus().trim() : "";
-                if (ElementPayInlineStatusUtil.isLocalPaid(stLocal)) {
+                boolean havePaymentId = paymentId != null && !paymentId.isBlank();
+                if (ElementPayInlineStatusUtil.isLocalPaid(stLocal) && !havePaymentId) {
                     Map<String, Object> out = new LinkedHashMap<>();
                     out.put("success", true);
                     out.put("paymentStatus", "PAID");
@@ -1078,8 +1080,18 @@ public class ElementPayPaymentService {
         if (!statusMessage.isBlank()) {
             out.put("statusMessage", statusMessage);
         }
+        /*
+         * 이미 로컬 승인(10)인데 EP getStatus 가 204/209 이면 RESULT 오승인으로 보고
+         * finalizeReject 여부와 관계없이 실패 확정(프로비저널 대기 금지).
+         */
+        boolean forceFailOverPaid = false;
+        if ((st == 204 || st == 209) && orderNo != null && !orderNo.isBlank()) {
+            forceFailOverPaid = elementPaySaleRecordService.findAnyByOrder(orderNo.trim())
+                    .map(t -> ElementPayInlineStatusUtil.isLocalPaid(t.getStatus()))
+                    .orElse(false);
+        }
         ElementPayInlineStatusUtil.Mapped mapped =
-                ElementPayInlineStatusUtil.fromGetStatus(st, finalizeReject);
+                ElementPayInlineStatusUtil.fromGetStatus(st, finalizeReject || forceFailOverPaid);
         out.put("paymentStatus", mapped.paymentStatus());
         out.put("paid", mapped.paid());
         if (mapped.kind() == ElementPayInlineStatusUtil.Kind.REFUNDED) {

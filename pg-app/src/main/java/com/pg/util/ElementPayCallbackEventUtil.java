@@ -11,7 +11,7 @@ public final class ElementPayCallbackEventUtil {
     public enum Kind {
         /** Cabinet Events {@code payment.paid}/{@code payment.charged} — 승인(10). */
         PAY_PAID,
-        /** TTL 만료 등 — 미승인이면 실패(99). 이미 승인이면 유지. */
+        /** TTL 만료·은행 거절 등 — 실패(99). 오승인(RESULT 선반영)이어도 EP 최종 거절이면 실패로 뒤집음. */
         PAY_REJECT,
         /** 기승인 취소(은행) — 강제환불(31). */
         PAY_REVERSED,

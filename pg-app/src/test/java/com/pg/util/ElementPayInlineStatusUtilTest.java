@@ -41,7 +41,9 @@ class ElementPayInlineStatusUtilTest {
     }
 
     @Test
-    void localPaidAndVoidAreTerminal() {
+    void localPaidDoesNotBlockEpRejectSync() {
+        /* RESULT 오승인(10) 뒤 EP rejected/204 가 오면 실패로 뒤집어야 함 */
+        assertFalse(ElementPayInlineStatusUtil.skipSyncWhenUnpaid("10"));
         assertTrue(ElementPayInlineStatusUtil.skipSyncWhenPaid("10"));
         assertTrue(ElementPayInlineStatusUtil.isLocalHardFail("20"));
         assertTrue(ElementPayInlineStatusUtil.skipSyncWhenPaid("21"));

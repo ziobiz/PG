@@ -267,8 +267,13 @@ public class ElementPaySaleRecordService {
                 }
             } else {
                 String cur = t.getStatus() != null ? t.getStatus().trim() : "";
-                if (ST_PAID.equals(cur) || isRefundOrChargebackStatus(cur)) {
+                /* 환불·차지백만 유지. 승인(10)은 EP getStatus 204/rejected 로 실패(99) 확정 가능. */
+                if (isRefundOrChargebackStatus(cur)) {
                     return Optional.of(t);
+                }
+                if (ST_PAID.equals(cur)) {
+                    log.warn("ElementPay getStatus/reject: paid→fail order={} paymentId={} msg={}",
+                            orderNo, paymentId, msg);
                 }
                 t.setStatus(ST_FAIL);
                 t.setPaidAt(null);
@@ -408,9 +413,13 @@ public class ElementPaySaleRecordService {
                         msg != null && !msg.isBlank() ? msg.trim() : "Success", 50));
             }
             case PAY_REJECT -> {
-                if (ST_PAID.equals(cur) || isRefundOrChargebackStatus(cur)) {
+                if (isRefundOrChargebackStatus(cur)) {
                     pgTrnsctnRepository.save(t);
                     return Optional.of(t);
+                }
+                if (ST_PAID.equals(cur)) {
+                    log.warn("ElementPay payment.rejected: paid→fail order={} paymentId={}",
+                            t.getOrderNo(), paymentId);
                 }
                 applyFailFields(t, msg);
             }
