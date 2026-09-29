@@ -215,10 +215,10 @@ public class NotiInternalTargetCatalogService {
                 if (!want.isEmpty() && !pg.isEmpty() && !want.equals(pg)) {
                     continue;
                 }
-                // When filtering ElementPay, skip chillpay/jpay rows; when rows lack pgProvider keep them.
-                if (!want.isEmpty() && pg.isEmpty() && ("elementpay".equals(want) || "jpay".equals(want))) {
-                    // keep untagged only for non-strict catalogs — for EP prefer tagged only
-                    if ("elementpay".equals(want)) {
+                // When filtering ElementPay/ox, skip chillpay/jpay rows; when rows lack pgProvider keep them.
+                if (!want.isEmpty() && pg.isEmpty() && ("elementpay".equals(want) || "ox".equals(want) || "jpay".equals(want))) {
+                    // keep untagged only for non-strict catalogs — for EP/ox prefer tagged only
+                    if ("elementpay".equals(want) || "ox".equals(want)) {
                         continue;
                     }
                 }
@@ -270,6 +270,9 @@ public class NotiInternalTargetCatalogService {
         if ("elementpay".equals(k) || "ep".equals(k) || "element".equals(k)) {
             return "elementpay";
         }
+        if ("ox".equals(k) || "oxpay".equals(k)) {
+            return "ox";
+        }
         if ("jpay".equals(k)) {
             return "jpay";
         }
@@ -282,6 +285,9 @@ public class NotiInternalTargetCatalogService {
     private static String pgLabelPrefix(String pg) {
         if ("elementpay".equals(pg)) {
             return "ElementPay · ";
+        }
+        if ("ox".equals(pg)) {
+            return "ox · ";
         }
         if ("jpay".equals(pg)) {
             return "JPAY · ";

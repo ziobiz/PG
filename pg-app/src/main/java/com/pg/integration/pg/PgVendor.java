@@ -25,6 +25,9 @@ public final class PgVendor {
     /** ILK(아이엘케이). {@code ILK} 또는 {@code ILK_…} 접두. */
     public static final String ILK = "ILK";
 
+    /** ox(OxPay Financial). {@code OX} 또는 {@code OX_…} 접두. 병칭 ox — 가맹 노출은 ICOPAY 중립. */
+    public static final String OX = "OX";
+
     private PgVendor() {
     }
 
@@ -124,5 +127,22 @@ public final class PgVendor {
         }
         String u = vendorCode.trim().toUpperCase(Locale.ROOT);
         return ILK.equals(u) || u.startsWith(ILK + "_") || u.startsWith("ILKPAY");
+    }
+
+    /** {@code pg_cd}·노티 벤더 코드가 ox(OxPay) 계열인지 — {@code OX} 또는 {@code OX_…} 접두. */
+    public static boolean isOxFamily(String pgCd) {
+        if (pgCd == null) {
+            return false;
+        }
+        String u = normalizePgCdKey(pgCd);
+        return OX.equals(u) || u.startsWith(OX + "_") || u.startsWith("OXPAY");
+    }
+
+    public static boolean isOxVendorCode(String vendorCode) {
+        if (vendorCode == null || vendorCode.isBlank()) {
+            return false;
+        }
+        String u = vendorCode.trim().toUpperCase(Locale.ROOT);
+        return OX.equals(u) || u.startsWith(OX + "_") || u.startsWith("OXPAY");
     }
 }

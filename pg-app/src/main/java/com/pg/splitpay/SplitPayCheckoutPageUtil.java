@@ -13,6 +13,7 @@ public final class SplitPayCheckoutPageUtil {
     public static final String PAGE_ELEMENTPAY = "elementpay-pay.html";
     public static final String PAGE_EXIMBAY = "eximbay-pay.html";
     public static final String PAGE_ILK = "ilk-pay.html";
+    public static final String PAGE_OX = "ox-pay.html";
 
     private SplitPayCheckoutPageUtil() {
     }
@@ -33,6 +34,9 @@ public final class SplitPayCheckoutPageUtil {
         if (PgVendor.isIlkFamily(operationalPgCd)) {
             return PAGE_ILK;
         }
+        if (PgVendor.isOxFamily(operationalPgCd)) {
+            return PAGE_OX;
+        }
         return PAGE_CHILLPAY;
     }
 
@@ -44,6 +48,7 @@ public final class SplitPayCheckoutPageUtil {
                 || PgVendor.isChillPayFamily(operationalPgCd)
                 || PgVendor.isElementPayFamily(operationalPgCd)
                 || PgVendor.isEximbayFamily(operationalPgCd)
-                || PgVendor.isIlkFamily(operationalPgCd);
+                || PgVendor.isIlkFamily(operationalPgCd)
+                || PgVendor.isOxFamily(operationalPgCd);
     }
 }

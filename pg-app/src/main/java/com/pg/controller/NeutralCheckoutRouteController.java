@@ -74,6 +74,9 @@ public class NeutralCheckoutRouteController {
                     if (PgVendor.isIlkFamily(opPg)) {
                         return "/ilk-pay.html" + q;
                     }
+                    if (PgVendor.isOxFamily(opPg)) {
+                        return "/ox-pay.html" + q;
+                    }
                 }
             }
         } catch (RuntimeException ignore) {

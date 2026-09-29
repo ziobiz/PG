@@ -26,6 +26,7 @@ public class MerchantUnifiedRedirectCheckoutService {
     private final MerchantEximbayInlineCheckoutService eximbayInlineCheckoutService;
     private final MerchantElementPayInlineCheckoutService elementPayInlineCheckoutService;
     private final MerchantIlkInlineCheckoutService ilkInlineCheckoutService;
+    private final MerchantOxInlineCheckoutService oxInlineCheckoutService;
     private final MerchantInlineCheckoutTokenService tokenService;
     private final MerchantChatbotProductService productService;
     private final MerchantApiIntegrationChannelService integrationChannelService;
@@ -36,6 +37,7 @@ public class MerchantUnifiedRedirectCheckoutService {
                                                   MerchantEximbayInlineCheckoutService eximbayInlineCheckoutService,
                                                   MerchantElementPayInlineCheckoutService elementPayInlineCheckoutService,
                                                   MerchantIlkInlineCheckoutService ilkInlineCheckoutService,
+                                                  MerchantOxInlineCheckoutService oxInlineCheckoutService,
                                                   MerchantInlineCheckoutTokenService tokenService,
                                                   MerchantChatbotProductService productService,
                                                   MerchantApiIntegrationChannelService integrationChannelService) {
@@ -45,6 +47,7 @@ public class MerchantUnifiedRedirectCheckoutService {
         this.eximbayInlineCheckoutService = eximbayInlineCheckoutService;
         this.elementPayInlineCheckoutService = elementPayInlineCheckoutService;
         this.ilkInlineCheckoutService = ilkInlineCheckoutService;
+        this.oxInlineCheckoutService = oxInlineCheckoutService;
         this.tokenService = tokenService;
         this.productService = productService;
         this.integrationChannelService = integrationChannelService;
@@ -87,6 +90,8 @@ public class MerchantUnifiedRedirectCheckoutService {
             result = elementPayInlineCheckoutService.prepare(orgUnitId, enriched, request);
         } else if (PgVendor.isIlkFamily(opPg)) {
             result = ilkInlineCheckoutService.prepare(orgUnitId, enriched, request);
+        } else if (PgVendor.isOxFamily(opPg)) {
+            result = oxInlineCheckoutService.prepare(orgUnitId, enriched, request);
         } else if (PgVendor.isChillPayFamily(opPg)) {
             result = chillpayRedirectCheckoutService.prepare(orgUnitId, enriched, request);
         } else {
@@ -124,6 +129,9 @@ public class MerchantUnifiedRedirectCheckoutService {
         }
         if (PgVendor.isIlkFamily(opPg)) {
             return ilkInlineCheckoutService.orderStatus(orgUnitId, orderNo);
+        }
+        if (PgVendor.isOxFamily(opPg)) {
+            return oxInlineCheckoutService.orderStatus(orgUnitId, orderNo);
         }
         if (PgVendor.isChillPayFamily(opPg)) {
             return chillpayRedirectCheckoutService.orderStatus(orgUnitId, orderNo);

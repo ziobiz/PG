@@ -105,11 +105,24 @@ public class NotiProvisionClient {
         if ("elementpay".equals(k) || "ep".equals(k) || "element".equals(k)) {
             return "elementpay";
         }
+        if ("ox".equals(k) || "oxpay".equals(k)) {
+            return "ox";
+        }
         return "jpay";
     }
 
     public static boolean isElementPay(String pgKind) {
         return "elementpay".equals(normalizePgKind(pgKind));
+    }
+
+    public static boolean isOx(String pgKind) {
+        return "ox".equals(normalizePgKind(pgKind));
+    }
+
+    /** ElementPay·ox 처럼 PG 슬롯 없이 고정 NOTI 입구를 쓰는 계열. */
+    public static boolean isFixedIngressPg(String pgKind) {
+        String k = normalizePgKind(pgKind);
+        return "elementpay".equals(k) || "ox".equals(k);
     }
 
     /** NOTI internal-targets 목록. 실패 시 예외 대신 상세 결과 Map 반환. */

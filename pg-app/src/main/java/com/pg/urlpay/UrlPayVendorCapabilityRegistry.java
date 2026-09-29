@@ -41,6 +41,9 @@ public class UrlPayVendorCapabilityRegistry {
         if (PgVendor.isIlkFamily(pg)) {
             return ilkCapability(pg, urlPay, urlRepayAgency);
         }
+        if (PgVendor.isOxFamily(pg)) {
+            return oxCapability(pg, urlPay, urlRepayAgency);
+        }
         if (PgVendor.isChillPayFamily(pg) || ChillPayService.isChillPayFamilyPgCd(pg)) {
             return chillPayCapability(pg, urlPay, urlRepayAgency);
         }
@@ -64,6 +67,9 @@ public class UrlPayVendorCapabilityRegistry {
         }
         if (PgVendor.isIlkFamily(pg)) {
             return UrlPayInlineWidgetKind.ILK_INLINE;
+        }
+        if (PgVendor.isOxFamily(pg)) {
+            return UrlPayInlineWidgetKind.OX_INLINE;
         }
         if (PgVendor.isChillPayFamily(pg) || ChillPayService.isChillPayFamilyPgCd(pg)) {
             return UrlPayInlineWidgetKind.CHILLPAY_CCD;
@@ -126,6 +132,20 @@ public class UrlPayVendorCapabilityRegistry {
                 "/checkout/",
                 NeutralCheckoutRoute.EMBED_SCRIPT_PATH,
                 UrlPaySaleChannel.ILK_INLINE_SALE,
+                urlPay,
+                urlRepayAgency,
+                false);
+    }
+
+    /** ox — 웹·인라인·리다이렉트·챗봇·분할·Woo 공통 결제창. 승인 API는 스펙 확정 전. */
+    private UrlPayVendorCapability oxCapability(String pg, boolean urlPay, boolean urlRepayAgency) {
+        return new UrlPayVendorCapability(
+                PgVendor.OX,
+                pg,
+                UrlPayInlineWidgetKind.OX_INLINE,
+                "/checkout/",
+                NeutralCheckoutRoute.EMBED_SCRIPT_PATH,
+                UrlPaySaleChannel.OX_APPROVAL_PENDING,
                 urlPay,
                 urlRepayAgency,
                 false);

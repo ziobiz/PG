@@ -4813,7 +4813,7 @@
     }
     var opsNpInternalTargetOptsCache = [];
     function opsNpFilterInternalTargetOpts(list, pgKind) {
-      var pg = pgKind === 'elementpay' ? 'elementpay' : 'jpay';
+      var pg = pgKind === 'elementpay' ? 'elementpay' : (pgKind === 'ox' ? 'ox' : 'jpay');
       var src = Array.isArray(list) ? list : [];
       var out = [];
       src.forEach(function (it) {
@@ -4827,8 +4827,12 @@
           if (p === 'elementpay' || p === 'ep') out.push(it);
           return;
         }
-        // JPAY 노티생성: JPAY·ChillPay·미지정 대상 (ElementPay 전용 제외)
-        if (p === 'elementpay' || p === 'ep') return;
+        if (pg === 'ox') {
+          if (p === 'ox' || p === 'oxpay') out.push(it);
+          return;
+        }
+        // JPAY 노티생성: JPAY·ChillPay·미지정 대상 (ElementPay·ox 전용 제외)
+        if (p === 'elementpay' || p === 'ep' || p === 'ox' || p === 'oxpay') return;
         out.push(it);
       });
       return out;
@@ -5113,16 +5117,21 @@
     function opsNpSelectedPgKind() {
       var el = pane.querySelector('#opsNpPgKind');
       var v = el ? String(el.value || '').toLowerCase().trim() : 'jpay';
-      return v === 'elementpay' ? 'elementpay' : 'jpay';
+      if (v === 'elementpay') return 'elementpay';
+      if (v === 'ox' || v === 'oxpay') return 'ox';
+      return 'jpay';
     }
     function updateOpsNpPgKindUi() {
-      var ep = opsNpSelectedPgKind() === 'elementpay';
+      var kind = opsNpSelectedPgKind();
+      var fixed = kind === 'elementpay' || kind === 'ox';
       ['#opsNpPgSlotWrap', '#opsNpAutoSlotBtnWrap', '#opsNpCheckSlotBtnWrap', '#opsNpSlotHintWrap'].forEach(function (sel) {
         var el = pane.querySelector(sel);
-        if (el) el.classList.toggle('d-none', ep);
+        if (el) el.classList.toggle('d-none', fixed);
       });
       var epHint = pane.querySelector('#opsNpEpHintWrap');
-      if (epHint) epHint.classList.toggle('d-none', !ep);
+      if (epHint) epHint.classList.toggle('d-none', kind !== 'elementpay');
+      var oxHint = pane.querySelector('#opsNpOxHintWrap');
+      if (oxHint) oxHint.classList.toggle('d-none', kind !== 'ox');
       var btn = pane.querySelector('#opsNpProvisionBtn');
       if (btn) {
         var label = '노티 생성';
@@ -5140,15 +5149,15 @@
       var internalEl = pane.querySelector('#opsNpEnableInternal');
       var devEl = pane.querySelector('#opsNpEnableDevInternal');
       var pgKind = opsNpSelectedPgKind();
-      var ep = pgKind === 'elementpay';
+      var fixed = pgKind === 'elementpay' || pgKind === 'ox';
       return {
         compId: cid,
         pgKind: pgKind,
         merchantId: (pane.querySelector('#opsNpMerchantId') || {}).value || '',
         integrationMode: mode,
         internalTargetId: (pane.querySelector('#opsNpInternalTargetId') || {}).value || '',
-        jpaySlotNo: ep ? '' : ((pane.querySelector('#opsNpPgSlotNo') || {}).value || ''),
-        slotAutoYn: ep ? 'N' : (opsNpSlotAutoMode ? 'Y' : 'N'),
+        jpaySlotNo: fixed ? '' : ((pane.querySelector('#opsNpPgSlotNo') || {}).value || ''),
+        slotAutoYn: fixed ? 'N' : (opsNpSlotAutoMode ? 'Y' : 'N'),
         enableRelayYn: urlMode ? 'N' : (urlHybrid ? 'Y' : (relayEl && relayEl.checked ? 'Y' : 'N')),
         enableInternalYn: urlFamily ? 'N' : (internalEl && internalEl.checked ? 'Y' : 'N'),
         enableDevInternalYn: urlFamily ? 'Y' : (devEl && devEl.checked ? 'Y' : 'N'),
@@ -5205,8 +5214,13 @@
       }
       row('업체코드', data.compId);
       row('업체명', data.compNm);
-      row('PG', data.pgKind === 'elementpay' ? 'ElementPay' : 'JPAY');
-      if (data.pgKind === 'elementpay') {
+      row('PG', data.pgKind === 'ox' ? 'ox' : (data.pgKind === 'elementpay' ? 'ElementPay' : 'JPAY'));
+      if (data.pgKind === 'ox') {
+        row('ox Webhook', data.oxWebhookUrl || data.jpayNotifyUrl || '');
+        row('ox Result', data.oxResultUrl || data.jpayCallbackUrl || '');
+        row('가맹 Callback', prov.callbackUrl);
+        row('가맹 Result', prov.resultUrl);
+      } else if (data.pgKind === 'elementpay') {
         row('ElementPay Webhook', data.elementpayWebhookUrl || data.jpayNotifyUrl || '');
         row('ElementPay Result', data.elementpayResultUrl || data.jpayCallbackUrl || '');
         row('가맹 Callback', prov.callbackUrl);
@@ -5476,15 +5490,17 @@
           return;
         }
         var pgKind = opsNpSelectedPgKind();
-        var ep = pgKind === 'elementpay';
+        var fixed = pgKind === 'elementpay' || pgKind === 'ox';
         var slotVal = (pane.querySelector('#opsNpPgSlotNo') || {}).value || '';
-        if (!ep && String(slotVal).trim() && !opsNpSlotAutoMode && !opsNpSlotReviewed) {
+        if (!fixed && String(slotVal).trim() && !opsNpSlotAutoMode && !opsNpSlotReviewed) {
           alert(pgAdminUiT('수동 슬롯 번호는 [슬롯검토]를 실행하거나 [자동]을 사용하세요.'));
           return;
         }
-        var confirmMsg = ep
-          ? 'NOTI에 ElementPay 가맹을 생성(또는 조회)합니다. Webhook·Result 고정 URL을 수신통보에 반영합니다. 계속하시겠습니까?'
-          : 'NOTI에 JPAY 가맹을 생성(또는 조회)하고 ICOPAY 업체 URL을 반영합니다. 계속하시겠습니까?';
+        var confirmMsg = pgKind === 'ox'
+          ? 'NOTI에 ox 가맹을 생성(또는 조회)합니다. Webhook·Result 고정 URL을 수신통보에 반영합니다. 계속하시겠습니까?'
+          : (pgKind === 'elementpay'
+            ? 'NOTI에 ElementPay 가맹을 생성(또는 조회)합니다. Webhook·Result 고정 URL을 수신통보에 반영합니다. 계속하시겠습니까?'
+            : 'NOTI에 JPAY 가맹을 생성(또는 조회)하고 ICOPAY 업체 URL을 반영합니다. 계속하시겠습니까?');
         if (!confirm(pgAdminUiT(confirmMsg))) return;
         var dimm = document.getElementById('dimm');
         if (dimm) dimm.style.display = 'flex';

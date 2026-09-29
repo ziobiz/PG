@@ -114,6 +114,9 @@ public class UrlPaySaleDispatcher {
             case EXIMBAY_READY_SALE -> eximbayPaymentService.executeReady(orgUnitId, body, request, clientIp);
             case ELEMENTPAY_INIT_PAYMENT -> elementPayPaymentService.executeInitPayment(orgUnitId, body, request, clientIp);
             case ILK_INLINE_SALE -> ilkPaymentService.executeSale(orgUnitId, body, request, clientIp);
+            case OX_APPROVAL_PENDING -> fail(
+                    "카드 승인을 준비 중입니다. 잠시 후 다시 시도해 주세요.",
+                    "APPROVAL_NOT_READY");
             case CHILLPAY_DIRECT_CREDIT -> fail(
                     "ChillPay URL 결제는 POST /api/pay/chillpay/direct-credit 를 사용하세요(CCD 토큰 필요).",
                     "USE_CHILLPAY_DIRECT_CREDIT");

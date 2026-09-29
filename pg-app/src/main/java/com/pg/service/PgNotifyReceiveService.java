@@ -519,7 +519,7 @@ public class PgNotifyReceiveService {
             return false;
         }
         String c = notifyTargetCode.trim();
-        return PgVendor.isElementPayVendorCode(c) || PgVendor.isIlkVendorCode(c);
+        return PgVendor.isElementPayVendorCode(c) || PgVendor.isIlkVendorCode(c) || PgVendor.isOxVendorCode(c);
     }
 
     /**

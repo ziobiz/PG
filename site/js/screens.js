@@ -2294,7 +2294,8 @@
     '<div class="col-12 col-md-3"><label class="form-label mb-1" for="opsNpPgKind" data-pg-ui-t="PG">PG</label>' +
     '<select class="form-select form-select-sm" id="opsNpPgKind">' +
     '<option value="jpay" selected>JPAY</option>' +
-    '<option value="elementpay">ElementPay</option></select></div>' +
+    '<option value="elementpay">ElementPay</option>' +
+    '<option value="ox">ox</option></select></div>' +
     '<div class="col-12 col-md-3"><label class="form-label mb-1" for="opsNpCompId" data-pg-ui-t="가맹 업체코드">가맹 업체코드</label>' +
     '<input type="text" class="form-control form-control-sm" id="opsNpCompId" autocomplete="off"></div>' +
     '<div class="col-12 col-md-3"><label class="form-label mb-1" for="opsNpCompNm" data-pg-ui-t="업체명">업체명</label>' +
@@ -2316,6 +2317,7 @@
     '<div class="mb-3" id="opsNpSlotHintWrap"><div class="small text-muted" id="opsNpSlotAutoHint" data-pg-ui-t="슬롯을 사용하는 PG만 해당. 자동: JPY는 j200부터, USD는 j55부터 순번 할당(슬롯검토 생략). 수동 입력 시 슬롯검토를 실행하세요.">슬롯을 사용하는 PG만 해당. 자동: JPY는 j200부터, USD는 j55부터 순번 할당(슬롯검토 생략). 수동 입력 시 슬롯검토를 실행하세요.</div>' +
     '<div class="small text-muted" id="opsNpSlotPreview"></div></div>' +
     '<div class="mb-3 d-none" id="opsNpEpHintWrap"><div class="small text-muted" data-pg-ui-t="ElementPay는 PG 슬롯이 없습니다. Cabinet Webhook=/noti/elementpay, 브라우저 Result=/noti/result/elementpay(가맹 resultUrl로 릴레이).">ElementPay는 PG 슬롯이 없습니다. Cabinet Webhook=/noti/elementpay, 브라우저 Result=/noti/result/elementpay(가맹 resultUrl로 릴레이).</div></div>' +
+    '<div class="mb-3 d-none" id="opsNpOxHintWrap"><div class="small text-muted" data-pg-ui-t="ox는 PG 슬롯이 없습니다. Portal Webhook=/noti/ox, 브라우저 Result=/noti/result/ox(가맹 resultUrl로 릴레이).">ox는 PG 슬롯이 없습니다. Portal Webhook=/noti/ox, 브라우저 Result=/noti/result/ox(가맹 resultUrl로 릴레이).</div></div>' +
     '<div class="mb-2">' +
     '<label class="form-label mb-1" for="opsNpIntegrationMode" data-pg-ui-t="연동방식">연동방식</label>' +
     '<select class="form-select form-select-sm" id="opsNpIntegrationMode" style="max-width:18rem">' +

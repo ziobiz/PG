@@ -6,13 +6,67 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '4.30';
+  var CURRENT_LIVE = '4.32';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '4.32',
+      kind: 'minor',
+      date: '2026-09-29',
+      items: {
+        KO: [
+          '추가 결제대행사 채널을 웹 결제·API 인라인·API 리다이렉트·챗봇·분할·WooCommerce에 연결. 가맹 응답은 ICOPAY만',
+          'NOTI 고정 입구 통보를 기존 성공/실패 스키마로 거래에 반영. 카드 실승인·구독은 대행사 상세 스펙 이후'
+        ],
+        EN: [
+          'New acquirer channels wired for web pay, API inline, API redirect, chatbot, split pay, and WooCommerce. Merchant responses stay ICOPAY',
+          'Fixed NOTI ingress updates transactions with the existing success/fail schema. Live card approval and subscriptions wait for the acquirer spec'
+        ],
+        JP: [
+          '追加決済代行のチャネルをウェブ決済・APIインライン・APIリダイレクト・チャットボット・分割・WooCommerceに接続。加盟応答はICOPAYのみ',
+          'NOTI固定入口の通知を既存の成功/失敗スキーマで取引に反映。カード本承認・定期は代行詳細仕様の後'
+        ],
+        CH: [
+          '新支付通道已接入网页支付、API 内联、API 重定向、聊天机器人、分期与 WooCommerce。商户响应仅 ICOPAY',
+          '固定 NOTI 入口按现有成功/失败格式写入交易。银行卡实扣与订阅待通道详细规格'
+        ],
+        TH: [
+          'เชื่อมช่องทางผู้ให้บริการใหม่กับจ่ายเว็บ, API อินไลน์, API รีไดเรกต์, แชทบอท, แบ่งจ่าย และ WooCommerce คำตอบร้านเป็น ICOPAY',
+          'ทางเข้า NOTI คงที่อัปเดตธุรกรรมด้วยรูปแบบสำเร็จ/ล้มเหลวเดิม การอนุมัติบัตรจริงและสมาชิกจะทำหลังได้สเปก'
+        ]
+      }
+    },
+    {
+      version: '4.31',
+      kind: 'minor',
+      date: '2026-09-29',
+      items: {
+        KO: [
+          'ox(OxPay Financial) 결제대행사 추가 착수: NOTI 고정 입구 /noti/ox · /noti/result/ox · pgKind=ox 노티생성',
+          'ICOPAY: PgVendor OX · 통합 인라인 분기 · Merchant Hosted 골격(Create Payment는 OxPay API 문서 확정 후 완성). 가맹 노출 ICOPAY 중립'
+        ],
+        EN: [
+          'ox (OxPay Financial) PG kickoff: NOTI fixed ingress /noti/ox · /noti/result/ox · pgKind=ox provision',
+          'ICOPAY: PgVendor OX · unified inline branch · Merchant Hosted scaffold (Create Payment after OxPay API pack). Merchant-facing brand stays ICOPAY'
+        ],
+        JP: [
+          'ox(OxPay Financial)決済代行追加着手: NOTI固定 /noti/ox · /noti/result/ox · pgKind=ox ノティ作成',
+          'ICOPAY: PgVendor OX · 統合インライン分岐 · Merchant Hosted骨格(Create PaymentはOxPay API文書確定後)。加盟表示はICOPAY中立'
+        ],
+        CH: [
+          'ox(OxPay Financial) 支付通道开工：NOTI 固定入口 /noti/ox · /noti/result/ox · pgKind=ox 通知创建',
+          'ICOPAY：PgVendor OX · 统一内联分支 · Merchant Hosted 骨架（Create Payment 待 OxPay API 文档）。商户侧仍为 ICOPAY'
+        ],
+        TH: [
+          'เริ่ม ox(OxPay Financial): NOTI /noti/ox · /noti/result/ox · สร้างแจ้ง pgKind=ox',
+          'ICOPAY: PgVendor OX · สาขา inline รวม · โครง Merchant Hosted (Create Payment หลังได้เอกสาร API). ร้านเห็น ICOPAY'
+        ]
+      }
+    },
     {
       version: '4.30',
       kind: 'minor',

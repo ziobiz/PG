@@ -17,6 +17,8 @@ public final class UrlPayInlineWidgetKind {
     public static final String ELEMENTPAY_INLINE = "ELEMENTPAY_INLINE";
     /** ILK 카드 인라인({@code ilk-pay.html}) — 3DS/NONE3D */
     public static final String ILK_INLINE = "ILK_INLINE";
+    /** ox 카드 인라인({@code ox-pay.html}) — 승인 API 연결 전 결제창 */
+    public static final String OX_INLINE = "OX_INLINE";
     /** 본사 REDIRECT 플로우 — 카드 인라인 없음 */
     public static final String REDIRECT_ONLY = "REDIRECT_ONLY";
     /** 인라인 미구현 — 안내 배너만 */

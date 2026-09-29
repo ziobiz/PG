@@ -125,7 +125,7 @@ def ops_doc(lang: str) -> dict:
     <h2 class="section-title" id="s7">7. 가맹점 API·챗봇(해당 시)</h2>
     <div class="menu-path">업체관리 &gt; 가맹점API · 챗봇관리</div>
     <ul>
-      <li><strong>가맹점API</strong>: 연동 키·문서(권한 시). ICOPAY 통합 checkout을 사용합니다.</li>
+      <li><strong>가맹점API</strong>: 연동 키·문서(권한 시). 웹 결제·API 인라인·API 리다이렉트·챗봇·분할·WooCommerce는 모두 ICOPAY 통합 checkout(prepare/session/status)과 같은 결제통보를 사용합니다.</li>
       <li><strong>챗봇관리</strong>: 상품·주문 관리 후 챗봇결제 URL을 공유합니다. 상세는 「챗봇결제 가맹점 사용 메뉴얼」을 참고하십시오.</li>
     </ul>
     <hr class="section-rule">
@@ -203,7 +203,7 @@ def ops_doc(lang: str) -> dict:
     <p>Cross-check unexpected figures against Payment list; include settlement date and amount when asking HQ.</p>
     <hr class="section-rule">
     <h2 class="section-title" id="s7">7. Merchant API &amp; Chatbot</h2>
-    <p>Merchant API portal (if permitted) uses ICOPAY unified checkout. Chatbot merchants: see Chatbot Merchant Manual.</p>
+    <p>Merchant API (if permitted) uses ICOPAY unified checkout for web pay, API inline, API redirect, chatbot, split pay, and WooCommerce, with the same payment notice. Chatbot merchants: see Chatbot Merchant Manual.</p>
     <hr class="section-rule">
     <h2 class="section-title" id="s8">8. Daily checklist</h2>
     <div class="check-box"><ol><li>Notices</li><li>Payment URL test</li><li>Today/yesterday approvals &amp; failures</li><li>Escalate spikes</li><li>Fee/settlement anomalies</li><li>Chatbot orders if used</li></ol></div>
@@ -253,6 +253,17 @@ def _ops_loc(lang: str) -> dict:
             ("ลงทะเบียนร้าน", "none", "เฉพาะ HQ"),
         ],
     }
+    s7 = {
+        "ja": "加盟店API（権限がある場合）は、ウェブ決済・APIインライン・APIリダイレクト・チャットボット・分割・WooCommerce のいずれも ICOPAY 統合 checkout（prepare/session/status）と同じ決済通知を使います。チャットボットはチャットボット加盟店マニュアルを参照してください。",
+        "zh": "商户 API（有权限时）的网页支付、API 内联、API 重定向、聊天机器人、分期与 WooCommerce 均使用 ICOPAY 统一 checkout（prepare/session/status）及相同的支付通知。聊天机器人请参阅聊天机器人商户手册。",
+        "th": "API ร้าน (เมื่อได้รับสิทธิ์) ใช้ checkout รวมของ ICOPAY สำหรับจ่ายเว็บ, API อินไลน์, API รีไดเรกต์, แชทบอท, แบ่งจ่าย และ WooCommerce พร้อมการแจ้งชำระแบบเดียวกัน ร้านที่ใช้แชทบอทดูคู่มือแชทบอท",
+    }
+    en_s7 = (
+        "Merchant API (if permitted) uses ICOPAY unified checkout for web pay, API inline, "
+        "API redirect, chatbot, split pay, and WooCommerce, with the same payment notice. "
+        "Chatbot merchants: see Chatbot Merchant Manual."
+    )
+    body = en["body"].replace(en_s7, s7[lang])
     return {
         "page_title": f"{page} V{VERSION}",
         "title_html": title,
@@ -261,5 +272,5 @@ def _ops_loc(lang: str) -> dict:
         "footer_extra": f"ICOPAY Merchant Ops · V{VERSION}",
         "perm_rows": perm[lang],
         "toc": toc[lang],
-        "body": en["body"],
+        "body": body,
     }

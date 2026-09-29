@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-store" />
+  <title>ICOPAY</title>
+  <style>
+    body{font-family:system-ui,sans-serif;margin:0;background:#f4f6f5;color:#15201c}
+    main{max-width:420px;margin:32px auto;background:#fff;border:1px solid #dce3df;border-radius:12px;padding:20px}
+    h1{font-size:1.15rem;margin:0 0 8px}
+    p{color:#56635d;font-size:14px;line-height:1.5;margin:6px 0}
+    .amt{font-size:1.35rem;color:#15201c;font-weight:650}
+    button{width:100%;margin-top:16px;background:#0a6b5c;color:#fff;border:0;border-radius:8px;padding:12px;font-size:15px}
+    .err{color:#a3263a;font-size:14px}
+  </style>
+</head>
+<body>
+<main>
+  <h1>ICOPAY</h1>
+  <p id="lead"></p>
+  <p id="product"></p>
+  <p class="amt" id="amount"></p>
+  <p id="order"></p>
+  <button type="button" id="pay"></button>
+  <p class="err" id="msg" hidden></p>
+</main>
+<script>
+(function () {
+  var T = {
+    KO: { lead: '주문 내용을 확인한 뒤 결제를 진행합니다.', pay: '결제하기', wait: '카드 승인을 준비 중입니다. 잠시 후 다시 시도해 주세요.', order: '주문번호', product: '상품' },
+    EN: { lead: 'Review the order, then continue.', pay: 'Pay', wait: 'Card approval is being prepared. Please try again shortly.', order: 'Order', product: 'Item' },
+    JP: { lead: '注文内容を確認してからお支払いください。', pay: '支払う', wait: 'カード承認を準備しています。しばらくしてから再度お試しください。', order: '注文番号', product: '商品' },
+    CH: { lead: '请确认订单后继续付款。', pay: '付款', wait: '正在准备银行卡核准，请稍后再试。', order: '订单号', product: '商品' },
+    TH: { lead: 'ตรวจคำสั่งซื้อแล้วดำเนินการชำระ', pay: 'ชำระเงิน', wait: 'กำลังเตรียมอนุมัติบัตร โปรดลองอีกครั้งในอีกสักครู่', order: 'เลขคำสั่งซื้อ', product: 'สินค้า' }
+  };
+  var q = new URLSearchParams(location.search);
+  var lang = String(q.get('lang') || q.get('langCode') || 'KO').toUpperCase();
+  if (lang === 'ENG') lang = 'EN';
+  if (lang === 'JPN') lang = 'JP';
+  if (lang === 'CHN') lang = 'CH';
+  if (lang === 'THA') lang = 'TH';
+  var pack = T[lang] || T.KO;
+  document.getElementById('lead').textContent = pack.lead;
+  document.getElementById('pay').textContent = pack.pay;
+
+  function showOrder(data) {
+    if (!data) return;
+    var name = data.productName || data.item || '';
+    if (name) document.getElementById('product').textContent = pack.product + ' ' + name;
+    var amt = data.amount != null ? String(data.amount) : '';
+    var cur = data.displayCurrency || data.currency || '';
+    if (amt) document.getElementById('amount').textContent = (cur ? cur + ' ' : '') + amt;
+    var order = data.orderNo || q.get('orderNo') || '';
+    if (order) document.getElementById('order').textContent = pack.order + ' ' + order;
+  }
+
+  var session = (q.get('session') || '').trim();
+  var comp = (q.get('m') || q.get('compId') || '').trim();
+  var url = '';
+  if (session) {
+    url = '/api/middleware/v1/merchant/checkout/session?token=' + encodeURIComponent(session);
+  } else if (comp) {
+    url = '/api/pay/url/checkout-context?compId=' + encodeURIComponent(comp);
+  }
+  if (url) {
+    fetch(url, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (body) {
+        if (body && body.success && body.data) showOrder(body.data);
+      })
+      .catch(function () {});
+  } else {
+    showOrder({ orderNo: q.get('orderNo') || '' });
+  }
+
+  document.getElementById('pay').addEventListener('click', function () {
+    var el = document.getElementById('msg');
+    el.hidden = false;
+    el.textContent = pack.wait;
+  });
+})();
+</script>
+</body>
+</html>

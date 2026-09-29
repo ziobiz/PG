@@ -15,6 +15,10 @@ public enum UrlPaySaleChannel {
     ELEMENTPAY_INIT_PAYMENT,
     /** ILK 카드 인라인 — RequestAuth/Payment ({@code /api/pay/url/sale} 또는 {@code /api/pay/ilk/sale}) */
     ILK_INLINE_SALE,
+    /**
+     * ox Merchant Hosted — 채널·결제창은 연결. Create Payment 실호출은 상세 스펙 전 보류.
+     */
+    OX_APPROVAL_PENDING,
     /** 아직 ICOPAY URL 승인 어댑터 미등록 */
     NOT_REGISTERED
 }
