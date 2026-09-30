@@ -344,7 +344,7 @@ public class SettlementSetting {
     private String payLmtYearCorpMode;
     @Column(name = "pay_lmt_year_ind_mode", length = 8)
     private String payLmtYearIndMode;
-    /** WARN_ONLY / ALWAYS. 가맹은 FOLLOW(총판설정따름) 가능. */
+    /** WARN_ONLY / ALWAYS / DISABLED. 가맹은 FOLLOW(총판설정따름) 가능. */
     @Column(name = "pay_lmt_ui_mode", length = 16)
     private String payLmtUiMode;
 

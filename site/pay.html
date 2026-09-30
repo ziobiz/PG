@@ -430,6 +430,7 @@
       window.__pgPayPendingRememberCard = 'N';
 
       var LANG = resolveInitialUrlPayLang();
+      try { window.__pgPayCheckoutLangCode = LANG; } catch (eInitLc) { /* ignore */ }
 
       /** 챗봇·링크 진입 시 ?item=&amount=&currency= 미리 채움 */
       function applyQueryPrefillsFromUrl() {
@@ -1265,6 +1266,7 @@
 
       function setLang(code) {
         LANG = code;
+        try { window.__pgPayCheckoutLangCode = LANG; } catch (eLc) { /* ignore */ }
         document.querySelectorAll('.pay-lang button').forEach(function (b) {
           b.classList.toggle('active', b.getAttribute('data-lang') === code);
         });
@@ -1275,11 +1277,20 @@
         applyI18n();
         applyCheckoutHeaderSubtitleBranding();
         if (bootCompId && checkoutCtx) {
-          applyCheckoutFormDefaults(bootCompId, checkoutCtx);
+          applyCheckoutFormDefaults(bootCompId, checkoutCtx, { skipAmountReset: true });
+        }
+        if (checkoutCtx && window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.bindPayLimitUi) {
+          try {
+            PG_URL_PAY_SHELL.bindPayLimitUi(checkoutCtx, {
+              getLang: function () { return LANG; },
+              lang: LANG
+            });
+          } catch (eBind) { /* ignore */ }
         }
         if (typeof window.__pgPayLimitRefresh === 'function') {
           try { window.__pgPayLimitRefresh(); } catch (eLim) { /* ignore */ }
         }
+        refreshDisplayedPayFailMessage();
         if (PAY_ENTRY_CHATBOT) {
           initPayChatbotEntryNavBar();
         }
@@ -1724,7 +1735,24 @@
         return res.message || '';
       }
 
-      function applyCheckoutFormDefaults(compId, ctx) {
+      /** 언어 전환 시 Pay 실패 문구(messages 맵)를 현재 LANG으로 다시 표시 */
+      function refreshDisplayedPayFailMessage() {
+        var last = window.__pgPayLastFailRes;
+        if (!last || !last.messages) return;
+        var el = document.getElementById('payResult');
+        if (!el || el.style.display === 'none') return;
+        if (!el.classList.contains('pay-result-final') && el.className.indexOf('err') < 0) return;
+        var msg = resolvePayPresaleMessage(last);
+        if (!msg) return;
+        if (el.classList.contains('pay-result-final')) {
+          showPayFinished(true, msg, last.orderNo || '', last.errorCode === 'PRESALE_RISK_FILTER');
+        } else {
+          showResult(msg, true);
+        }
+      }
+
+      function applyCheckoutFormDefaults(compId, ctx, opts) {
+        opts = opts || {};
         if (!ctx) return;
         var mn = document.getElementById('merchantNameDisplay');
         if (mn) {
@@ -1735,13 +1763,15 @@
         if (itemEl && ctx.defaultProductName != null && String(ctx.defaultProductName).trim() !== '') {
           itemEl.value = String(ctx.defaultProductName).trim();
         }
-        var amtEl = document.getElementById('amount');
-        if (amtEl) {
-          var defAmt = ctx.defaultCheckoutAmount != null && ctx.defaultCheckoutAmount !== ''
-            ? ctx.defaultCheckoutAmount
-            : ctx.defaultAmountYen;
-          if (defAmt != null && defAmt !== '') {
-            amtEl.value = String(defAmt);
+        if (!opts.skipAmountReset) {
+          var amtEl = document.getElementById('amount');
+          if (amtEl) {
+            var defAmt = ctx.defaultCheckoutAmount != null && ctx.defaultCheckoutAmount !== ''
+              ? ctx.defaultCheckoutAmount
+              : ctx.defaultAmountYen;
+            if (defAmt != null && defAmt !== '') {
+              amtEl.value = String(defAmt);
+            }
           }
         }
         var curHint = document.getElementById('payAmountCurrencyHint');
@@ -1763,6 +1793,8 @@
         }
         wirePayContactRemember(ctx, compId);
       }
+
+      function updatePayFxCurrencyHint() {
         var curHint = document.getElementById('payAmountCurrencyHint');
         if (!curHint) return;
         curHint.textContent = '(' + payFxResolvedDisplayCurrency() + ')';
@@ -2143,6 +2175,14 @@
             return;
           }
           var presaleMsg = resolvePayPresaleMessage(res);
+          try {
+            window.__pgPayLastFailRes = {
+              messages: res.messages || null,
+              message: res.message || '',
+              errorCode: res.errorCode || '',
+              orderNo: fd.orderNo || ''
+            };
+          } catch (eStore) { /* ignore */ }
           showPayFinished(true, presaleMsg || res.message || t('payFail'), fd.orderNo || '', res.errorCode === 'PRESALE_RISK_FILTER');
           payGuardFail(btn);
         }).catch(function (err) {

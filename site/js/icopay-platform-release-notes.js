@@ -6,13 +6,67 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '4.37';
+  var CURRENT_LIVE = '4.39';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '4.39',
+      kind: 'minor',
+      date: '2026-09-30',
+      items: {
+        KO: [
+          'URL 결제창 한도 경고·Pay 실패 문구가 언어 메뉴 전환 시 즉시 해당 언어로 바뀌도록 수정',
+          'pay.html 스크립트 문법 오류 복구(언어 전환·한도 표시 로직이 동작하지 않던 문제)'
+        ],
+        EN: [
+          'URL checkout limit warnings and Pay failure text now switch language immediately with the language menu',
+          'Fixed a pay.html script syntax error that broke language switch and limit display logic'
+        ],
+        JP: [
+          'URL決済の限度警告・Pay失敗文が言語メニュー切替で即時に切り替わるよう修正',
+          'pay.html のスクリプト構文エラーを修復(言語切替・限度表示が動かない問題)'
+        ],
+        CH: [
+          'URL 支付限额警告与 Pay 失败文案随语言菜单立即切换',
+          '修复 pay.html 脚本语法错误（导致语言切换与限额显示失效）'
+        ],
+        TH: [
+          'ข้อความเตือนวงเงินและข้อความ Pay ล้มเหลวในหน้า URL เปลี่ยนภาษาทันทีตามเมนูภาษา',
+          'แก้ syntax error ใน pay.html ที่ทำให้สลับภาษาและแสดงวงเงินไม่ทำงาน'
+        ]
+      }
+    },
+    {
+      version: '4.38',
+      kind: 'minor',
+      date: '2026-09-30',
+      items: {
+        KO: [
+          '결제창 한도 표시에 「비활성」 추가 — 앞단 안내 없이 Pay 시에만 서버 경고. 가맹 설정이 총판보다 우선',
+          'URL 결제창 한도 경고 문구가 언어 메뉴 전환에 맞춰 즉시 다국어로 바뀌도록 수정'
+        ],
+        EN: [
+          'Checkout limit display adds Disabled — no front-end hint; server warns only on Pay. Merchant setting overrides distributor',
+          'URL checkout limit warning text now switches language immediately with the language menu'
+        ],
+        JP: [
+          '決済画面の限度表示に「無効」を追加 — 画面では案内せず Pay 時のみサーバ警告。加盟設定が総販より優先',
+          'URL決済の限度警告文が言語メニュー切替に合わせて即時に多言語化されるよう修正'
+        ],
+        CH: [
+          '支付窗口限额显示增加“停用”——前端不提示，仅在 Pay 时服务器警告。商户设置优先于总代理',
+          'URL 支付限额警告文案随语言菜单立即切换多语言'
+        ],
+        TH: [
+          'เพิ่ม “ปิดใช้งาน” ในแสดงวงเงินหน้าชำระ — ไม่เตือนหน้าจอ เตือนตอนกด Pay จากเซิร์ฟเวอร์ การตั้งร้านมาก่อนตัวแทนหลัก',
+          'ข้อความเตือนวงเงินหน้า URL เปลี่ยนภาษาทันทีตามเมนูภาษา'
+        ]
+      }
+    },
     {
       version: '4.37',
       kind: 'minor',

@@ -416,6 +416,10 @@
         var code = btn.getAttribute('data-lang');
         if (!code) return;
         setLang(code);
+        try { g.__pgPayCheckoutLangCode = getLang(); } catch (eLc) { /* ignore */ }
+        if (typeof g.__pgPayLimitRefresh === 'function') {
+          try { g.__pgPayLimitRefresh(); } catch (eLim) { /* ignore */ }
+        }
         g.document.querySelectorAll('.pay-lang button[data-lang]').forEach(function (b) {
           b.classList.toggle('active', b.getAttribute('data-lang') === getLang());
         });
@@ -565,10 +569,13 @@
     return ccy ? (s + ' ' + ccy) : s;
   }
 
-  /** 결제창 1회 최소·최대 — WARN_ONLY 또는 ALWAYS. checkout-context 의 payLimit* 사용. */
+  /** 결제창 1회 최소·최대 — WARN_ONLY / ALWAYS / DISABLED. checkout-context 의 payLimit* 사용. */
   function bindPayLimitUi(ctx, opts) {
     opts = opts || {};
     ctx = ctx || {};
+    if (typeof opts.getLang === 'function') {
+      g.__pgPayLimitGetLang = opts.getLang;
+    }
     var amtEl = g.document.getElementById('amount');
     if (!amtEl) return;
     var wrap = amtEl.closest('.pay-row') || amtEl.parentElement;
@@ -587,15 +594,30 @@
     var maxN = parseFloat(String(ctx.payLimitTxMax != null ? ctx.payLimitTxMax : '').replace(/,/g, ''));
     var hasMin = isFinite(minN) && minN > 0;
     var hasMax = isFinite(maxN) && maxN > 0;
-    var always = ctx.payLimitUiAlways === true || String(ctx.payLimitUiMode || '').toUpperCase() === 'ALWAYS';
-    if (!hasMin && !hasMax) {
+    var mode = String(ctx.payLimitUiMode || '').toUpperCase();
+    var disabled = ctx.payLimitUiDisabled === true || mode === 'DISABLED';
+    var always = !disabled && (ctx.payLimitUiAlways === true || mode === 'ALWAYS');
+    if (disabled || (!hasMin && !hasMax)) {
       hint.style.display = 'none';
       hint.textContent = '';
       amtEl.classList.remove('is-invalid');
+      g.__pgPayLimitRefresh = function () { /* disabled or no limits */ };
       return;
     }
     function currentLang() {
-      if (typeof opts.getLang === 'function') return opts.getLang();
+      try {
+        if (typeof g.__pgPayLimitGetLang === 'function') {
+          var a = g.__pgPayLimitGetLang();
+          if (a) return a;
+        }
+      } catch (eA) { /* ignore */ }
+      try {
+        if (typeof opts.getLang === 'function') {
+          var b = opts.getLang();
+          if (b) return b;
+        }
+      } catch (eB) { /* ignore */ }
+      if (g.__pgPayCheckoutLangCode) return g.__pgPayCheckoutLangCode;
       return opts.lang || 'KOR';
     }
     function resolveCompareAmount() {
@@ -644,9 +666,14 @@
     }
     if (!amtEl._pgPayLimitBound) {
       amtEl._pgPayLimitBound = true;
-      amtEl.addEventListener('input', refresh);
-      amtEl.addEventListener('change', refresh);
+      amtEl.addEventListener('input', function () {
+        if (typeof g.__pgPayLimitRefresh === 'function') g.__pgPayLimitRefresh();
+      });
+      amtEl.addEventListener('change', function () {
+        if (typeof g.__pgPayLimitRefresh === 'function') g.__pgPayLimitRefresh();
+      });
     }
+    g.__pgPayLimitCtx = ctx;
     g.__pgPayLimitRefresh = refresh;
     refresh();
   }

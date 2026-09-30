@@ -153,6 +153,7 @@ public class MerchantPayLimitService {
         data.put("payLimitTxMin", txMin != null ? txMin.stripTrailingZeros().toPlainString() : "");
         data.put("payLimitUiMode", uiMode);
         data.put("payLimitUiAlways", "ALWAYS".equals(uiMode));
+        data.put("payLimitUiDisabled", "DISABLED".equals(uiMode));
     }
 
     /**
@@ -358,6 +359,9 @@ public class MerchantPayLimitService {
         }
         if ("WARN_ONLY".equals(u) || "WARN".equals(u)) {
             return "WARN_ONLY";
+        }
+        if ("DISABLED".equals(u) || "OFF".equals(u) || "N".equals(u) || "NONE".equals(u)) {
+            return "DISABLED";
         }
         if (allowFollow && "FOLLOW".equals(u)) {
             return "FOLLOW";

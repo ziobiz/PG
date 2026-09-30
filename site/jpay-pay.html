@@ -194,6 +194,7 @@
         return 'ENG';
       }
       var LANG = resolveInitialUrlPayLang();
+      try { window.__pgPayCheckoutLangCode = LANG; } catch (eInitLc) { /* ignore */ }
       var I18N = {
         KOR: {
           title: 'ICOPAY 간편결제', brandSub3ds: '3DS 안전 결제', merchant: '가맹점', item: '상품명', amount: '금액',           card: '카드',
@@ -449,6 +450,16 @@
         if (code.indexOf('CARD_COOLDOWN') === 0) return t('errCardCooldown');
         return localizeJpayMsg(res.message || '') || t('payFailed');
       }
+      function refreshDisplayedPayFailMessage() {
+        var last = window.__pgPayLastFailRes;
+        if (!last || !last.messages) return;
+        var el = document.getElementById('payResult');
+        if (!el || el.style.display === 'none' || !el.classList.contains('pay-result-final')) return;
+        if (el.className.indexOf('err') < 0) return;
+        var msg = resolveApiErrorMessage(last);
+        if (!msg) return;
+        showFinished(false, msg, last.orderNo || '', last.extra || { messages: last.messages, errorCode: last.errorCode });
+      }
       function isIcopayPresaleCardBlock(code) {
         var c = String(code || '').trim();
         return c === 'INACTIVE_CARD' || c === 'BLACKLIST' || c === 'PRESALE_RISK_FILTER'
@@ -506,6 +517,7 @@
         if (c === 'EN') c = 'ENG';
         if (c !== 'KOR' && c !== 'ENG' && c !== 'CHN' && c !== 'JPN' && c !== 'THA') return;
         LANG = c;
+        try { window.__pgPayCheckoutLangCode = LANG; } catch (eLc) { /* ignore */ }
         applyI18n();
         if (window.PG_URL_PAY_SHELL) {
           PG_URL_PAY_SHELL.applyCardCopyPresentation({
@@ -513,10 +525,18 @@
             onApply: function () { PG_URL_PAY_SHELL.applyAmountScaleNotice({ lang: LANG, cardCopy: window.__payUrlCardCopy, scaleMode: urlPayAmountScaleMode }); }
           });
           PG_URL_PAY_SHELL.applyCheckoutHeaderSubtitle(checkoutCtx, { t: t, getLang: function () { return LANG; } });
+          if (checkoutCtx && PG_URL_PAY_SHELL.bindPayLimitUi) {
+            try {
+              PG_URL_PAY_SHELL.bindPayLimitUi(checkoutCtx, {
+                getLang: function () { return LANG; }
+              });
+            } catch (eBind) { /* ignore */ }
+          }
         }
         if (typeof window.__pgPayLimitRefresh === 'function') {
           try { window.__pgPayLimitRefresh(); } catch (eLim) { /* ignore */ }
         }
+        refreshDisplayedPayFailMessage();
       }
       function applyI18n() {
         document.querySelectorAll('[data-i18n]').forEach(function (el) {
@@ -1270,6 +1290,15 @@
             };
             if (res.messages) extra.messages = res.messages;
             if (res.remainingMinutes != null) extra.remainingMinutes = res.remainingMinutes;
+            try {
+              window.__pgPayLastFailRes = {
+                messages: res.messages || null,
+                message: res.message || '',
+                errorCode: errCode,
+                orderNo: body.orderNo || '',
+                extra: extra
+              };
+            } catch (eStore) { /* ignore */ }
             showFinished(false, errMsg, body.orderNo, extra);
             if (!isNonRetryableOrderError(errCode) && !extra.icopayPresaleBlock) payGuardFail(btn);
             return;

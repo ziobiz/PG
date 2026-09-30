@@ -194,6 +194,7 @@
       }
 
       var LANG = resolveInitialUrlPayLang();
+      try { window.__pgPayCheckoutLangCode = LANG; } catch (eInitLc) { /* ignore */ }
       var checkoutCtx = null;
       var cardPolicyCtrl = null;
       var cardExpiryCtrl = null;
@@ -556,6 +557,7 @@
         if (c === 'EN') c = 'ENG';
         if (['KOR', 'ENG', 'CHN', 'JPN', 'THA'].indexOf(c) < 0) return;
         LANG = c;
+        try { window.__pgPayCheckoutLangCode = LANG; } catch (eLc) { /* ignore */ }
         applyI18n();
         if (window.PG_URL_PAY_SHELL) {
           if (checkoutCtx && PG_URL_PAY_SHELL.applyCheckoutHeaderSubtitle) {
@@ -574,6 +576,16 @@
           if (PG_URL_PAY_SHELL.applyUrlPayBrowserTabTitle) {
             PG_URL_PAY_SHELL.applyUrlPayBrowserTabTitle(LANG, window.__payUrlCardCopy, t);
           }
+          if (checkoutCtx && typeof PG_URL_PAY_SHELL.bindPayLimitUi === 'function') {
+            try {
+              PG_URL_PAY_SHELL.bindPayLimitUi(checkoutCtx, {
+                getLang: function () { return LANG; }
+              });
+            } catch (eBind) { /* ignore */ }
+          }
+        }
+        if (typeof window.__pgPayLimitRefresh === 'function') {
+          try { window.__pgPayLimitRefresh(); } catch (eLim) { /* ignore */ }
         }
       }
 
