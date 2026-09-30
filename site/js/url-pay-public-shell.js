@@ -304,10 +304,14 @@
       return fetchJsonWithRetry(apiUrl('/api/pay/url/display-fx-quote', q), 4, 700).then(function (res) {
         if (res.success !== true || !res.data) throw new Error(res.message || t('configErr'));
         st.urlPayFxQuote = res.data;
+        g.__urlPayFxQuote = res.data;
         if (res.data.urlPayOperationalPgCd) {
           st.operationalPgCd = String(res.data.urlPayOperationalPgCd).trim();
         }
         updateFxSettlementEstimateText();
+        if (typeof g.__pgPayLimitRefresh === 'function') {
+          try { g.__pgPayLimitRefresh(); } catch (eLim) { /* ignore */ }
+        }
         if (typeof st.onFxQuoteUpdated === 'function') {
           try { st.onFxQuoteUpdated(res.data); } catch (eQ) { /* ignore */ }
         }
@@ -522,6 +526,129 @@
     }
     var langForCard = (typeof opts.getLang === 'function' ? opts.getLang() : null) || opts.lang || 'KOR';
     applyUrlPayCardInputMode(ctx, langForCard);
+    bindPayLimitUi(ctx, opts);
+  }
+
+  function payLimitMsg(code, lim, lang) {
+    var lk = normalizeCheckoutLang(lang);
+    var messages = {
+      RANGE: {
+        KOR: '1회 한도: ' + lim,
+        ENG: 'Per-transaction limit: ' + lim,
+        JPN: '1回の限度: ' + lim,
+        CHN: '单笔限额: ' + lim,
+        THA: 'วงเงินต่อครั้ง: ' + lim
+      },
+      BELOW: {
+        KOR: '1회 최소 한도(' + lim + ')보다 작습니다.',
+        ENG: 'Below the per-transaction minimum (' + lim + ').',
+        JPN: '1回の下限(' + lim + ')を下回っています。',
+        CHN: '低于单笔最低限额(' + lim + ')。',
+        THA: 'ต่ำกว่าวงเงินขั้นต่ำต่อครั้ง (' + lim + ')'
+      },
+      ABOVE: {
+        KOR: '1회 최대 한도(' + lim + ')를 초과했습니다.',
+        ENG: 'Exceeds the per-transaction maximum (' + lim + ').',
+        JPN: '1回の上限(' + lim + ')を超えています。',
+        CHN: '超过单笔最高限额(' + lim + ')。',
+        THA: 'เกินวงเงินสูงสุดต่อครั้ง (' + lim + ')'
+      }
+    };
+    var pack = messages[code] || messages.RANGE;
+    return pack[lk] || pack.KOR || pack.ENG;
+  }
+
+  function formatPayLimitPlain(v, ccy) {
+    if (v == null || v === '' || !isFinite(Number(v))) return '';
+    var n = Number(v);
+    var s = (Math.abs(n - Math.round(n)) < 1e-9) ? String(Math.round(n)) : String(n);
+    return ccy ? (s + ' ' + ccy) : s;
+  }
+
+  /** 결제창 1회 최소·최대 — WARN_ONLY 또는 ALWAYS. checkout-context 의 payLimit* 사용. */
+  function bindPayLimitUi(ctx, opts) {
+    opts = opts || {};
+    ctx = ctx || {};
+    var amtEl = g.document.getElementById('amount');
+    if (!amtEl) return;
+    var wrap = amtEl.closest('.pay-row') || amtEl.parentElement;
+    if (!wrap) return;
+    var hintId = 'payLimitHint';
+    var hint = g.document.getElementById(hintId);
+    if (!hint) {
+      hint = g.document.createElement('div');
+      hint.id = hintId;
+      hint.className = 'small mt-1 mb-0';
+      hint.style.display = 'none';
+      wrap.appendChild(hint);
+    }
+    var ccy = String(ctx.payLimitCurrency || '').trim().toUpperCase();
+    var minN = parseFloat(String(ctx.payLimitTxMin != null ? ctx.payLimitTxMin : '').replace(/,/g, ''));
+    var maxN = parseFloat(String(ctx.payLimitTxMax != null ? ctx.payLimitTxMax : '').replace(/,/g, ''));
+    var hasMin = isFinite(minN) && minN > 0;
+    var hasMax = isFinite(maxN) && maxN > 0;
+    var always = ctx.payLimitUiAlways === true || String(ctx.payLimitUiMode || '').toUpperCase() === 'ALWAYS';
+    if (!hasMin && !hasMax) {
+      hint.style.display = 'none';
+      hint.textContent = '';
+      amtEl.classList.remove('is-invalid');
+      return;
+    }
+    function currentLang() {
+      if (typeof opts.getLang === 'function') return opts.getLang();
+      return opts.lang || 'KOR';
+    }
+    function resolveCompareAmount() {
+      var raw = parseFloat(String(amtEl.value || '').replace(/,/g, ''));
+      if (!(raw > 0)) return NaN;
+      var checkoutCur = String(ctx.checkoutCurrencyCode || ctx.defaultCurrency || '').trim().toUpperCase();
+      if (ctx.urlPayDisplayFxActive === true && g.__urlPayFxQuote) {
+        var q = g.__urlPayFxQuote;
+        var spu = parseFloat(String(q.settlementPerUnit != null ? q.settlementPerUnit : q.thbPerUnit));
+        var mgn = parseFloat(String(q.marginRate != null ? q.marginRate : '0'));
+        if (isFinite(spu) && isFinite(mgn)) {
+          return raw * spu * (1 + mgn);
+        }
+      }
+      if (!ccy || !checkoutCur || ccy === checkoutCur) return raw;
+      return raw;
+    }
+    function refresh() {
+      var lang = currentLang();
+      var rangeParts = [];
+      if (hasMin) rangeParts.push(formatPayLimitPlain(minN, ccy) + '~');
+      if (hasMax) rangeParts.push(formatPayLimitPlain(maxN, ccy));
+      else if (hasMin) rangeParts = [formatPayLimitPlain(minN, ccy) + '+'];
+      var rangeText = payLimitMsg('RANGE', rangeParts.join(' ').replace('~ ', '~'), lang);
+      var amt = resolveCompareAmount();
+      var warn = '';
+      if (isFinite(amt)) {
+        if (hasMin && amt < minN) warn = payLimitMsg('BELOW', formatPayLimitPlain(minN, ccy), lang);
+        else if (hasMax && amt > maxN) warn = payLimitMsg('ABOVE', formatPayLimitPlain(maxN, ccy), lang);
+      }
+      if (warn) {
+        hint.textContent = warn;
+        hint.style.display = '';
+        hint.className = 'small mt-1 mb-0 text-danger';
+        amtEl.classList.add('is-invalid');
+      } else if (always) {
+        hint.textContent = rangeText;
+        hint.style.display = '';
+        hint.className = 'small mt-1 mb-0 text-muted';
+        amtEl.classList.remove('is-invalid');
+      } else {
+        hint.style.display = 'none';
+        hint.textContent = '';
+        amtEl.classList.remove('is-invalid');
+      }
+    }
+    if (!amtEl._pgPayLimitBound) {
+      amtEl._pgPayLimitBound = true;
+      amtEl.addEventListener('input', refresh);
+      amtEl.addEventListener('change', refresh);
+    }
+    g.__pgPayLimitRefresh = refresh;
+    refresh();
   }
 
   function resolveUrlPayItemValue(ctx) {
@@ -885,6 +1012,7 @@
     linkifySafeHtml: linkifySafeHtml,
     setLinkedText: setLinkedText,
     applyAmountScaleNotice: applyAmountScaleNotice,
+    bindPayLimitUi: bindPayLimitUi,
     initDisplayFx: initDisplayFx,
     wireLanguageButtons: wireLanguageButtons,
     applyUrlPayPresentationOptions: applyUrlPayPresentationOptions,

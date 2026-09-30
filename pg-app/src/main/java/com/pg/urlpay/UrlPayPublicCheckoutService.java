@@ -9,6 +9,7 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.service.ChillPayService;
 import com.pg.service.MerchantPgBindingRouterService;
 import com.pg.service.PayContactRememberPolicyService;
+import com.pg.service.MerchantPayLimitService;
 import com.pg.service.PaymentCurrencyScaleService;
 import com.pg.service.UrlPayCardCopyService;
 import com.pg.service.UrlPayCheckoutCurrencyService;
@@ -48,6 +49,7 @@ public class UrlPayPublicCheckoutService {
     private final UrlPayCheckoutDisplayPolicyService urlPayCheckoutDisplayPolicyService;
     private final MerchantPgBindingRouterService pgBindingRouter;
     private final CardAuthModeService cardAuthModeService;
+    private final MerchantPayLimitService merchantPayLimitService;
 
     public UrlPayPublicCheckoutService(ChillPayService chillPayService,
                                        OrgUnitRepository orgUnitRepository,
@@ -66,7 +68,8 @@ public class UrlPayPublicCheckoutService {
                                        PayContactRememberPolicyService payContactRememberPolicyService,
                                        UrlPayCheckoutDisplayPolicyService urlPayCheckoutDisplayPolicyService,
                                        MerchantPgBindingRouterService pgBindingRouter,
-                                       CardAuthModeService cardAuthModeService) {
+                                       CardAuthModeService cardAuthModeService,
+                                       MerchantPayLimitService merchantPayLimitService) {
         this.chillPayService = chillPayService;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
@@ -85,6 +88,7 @@ public class UrlPayPublicCheckoutService {
         this.urlPayCheckoutDisplayPolicyService = urlPayCheckoutDisplayPolicyService;
         this.pgBindingRouter = pgBindingRouter;
         this.cardAuthModeService = cardAuthModeService;
+        this.merchantPayLimitService = merchantPayLimitService;
     }
 
     /**
@@ -159,6 +163,7 @@ public class UrlPayPublicCheckoutService {
         if (pgBindingRouter.isMultiPgRoutingEnabled()) {
             data.put("urlPayOperationalRoutes", pgBindingRouter.listOperationalRouteSummaries(orgUnitId, repay));
         }
+        merchantPayLimitService.putPublicCheckoutFields(data, orgUnitId);
         return data;
     }
 

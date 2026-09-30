@@ -4,6 +4,8 @@ import com.pg.integration.pg.PgVendor;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.service.ChillPayService;
 import com.pg.service.MerchantChatbotProductService;
+import com.pg.service.MerchantPayLimitService;
+import com.pg.service.UrlPayChargeResolutionService;
 import com.pg.splitpay.SplitPayCheckoutModeGuard;
 import com.pg.urlpay.MobileCheckoutModeService;
 import com.pg.urlpay.CheckoutFailI18n;
@@ -37,6 +39,8 @@ public class MerchantUnifiedInlineCheckoutService {
     private final SplitPayCheckoutModeGuard splitPayCheckoutModeGuard;
     private final MobileCheckoutModeService mobileCheckoutModeService;
     private final OrgUnitRepository orgUnitRepository;
+    private final MerchantPayLimitService merchantPayLimitService;
+    private final UrlPayChargeResolutionService urlPayChargeResolutionService;
 
     public MerchantUnifiedInlineCheckoutService(ChillPayService chillPayService,
                                                 MerchantInlineCheckoutService chillpayInlineCheckoutService,
@@ -50,7 +54,9 @@ public class MerchantUnifiedInlineCheckoutService {
                                                 MerchantApiIntegrationChannelService integrationChannelService,
                                                 SplitPayCheckoutModeGuard splitPayCheckoutModeGuard,
                                                 MobileCheckoutModeService mobileCheckoutModeService,
-                                                OrgUnitRepository orgUnitRepository) {
+                                                OrgUnitRepository orgUnitRepository,
+                                                MerchantPayLimitService merchantPayLimitService,
+                                                UrlPayChargeResolutionService urlPayChargeResolutionService) {
         this.chillPayService = chillPayService;
         this.chillpayInlineCheckoutService = chillpayInlineCheckoutService;
         this.jpayInlineCheckoutService = jpayInlineCheckoutService;
@@ -64,6 +70,8 @@ public class MerchantUnifiedInlineCheckoutService {
         this.splitPayCheckoutModeGuard = splitPayCheckoutModeGuard;
         this.mobileCheckoutModeService = mobileCheckoutModeService;
         this.orgUnitRepository = orgUnitRepository;
+        this.merchantPayLimitService = merchantPayLimitService;
+        this.urlPayChargeResolutionService = urlPayChargeResolutionService;
     }
 
     public Map<String, Object> prepare(Long orgUnitId, Map<String, Object> body, HttpServletRequest request) {
@@ -92,6 +100,19 @@ public class MerchantUnifiedInlineCheckoutService {
 
         Map<String, Object> enriched = new LinkedHashMap<>(body != null ? body : Map.of());
         enriched.put("buyerPrefill", IcipayBuyerContactUtil.toPublicMap(buyer));
+
+        try {
+            UrlPayChargeResolutionService.ResolvedCharge charge =
+                    urlPayChargeResolutionService.resolve(orgUnitId, enriched, opPg);
+            String lang = firstStr(enriched, "lang", "langCode", "language");
+            Optional<Map<String, Object>> limitBlock =
+                    merchantPayLimitService.check(orgUnitId, charge.pgAmount(), charge.settlementCurrency(), lang);
+            if (limitBlock.isPresent()) {
+                return limitBlock.get();
+            }
+        } catch (IllegalArgumentException ignored) {
+            /* 금액 오류는 각 PG prepare 에서 처리 */
+        }
 
         Map<String, Object> result;
         if (PgVendor.isJpayFamily(opPg)) {
@@ -199,6 +220,22 @@ public class MerchantUnifiedInlineCheckoutService {
 
     private static String str(Object o) {
         return o == null ? "" : o.toString().trim();
+    }
+
+    private static String firstStr(Map<String, Object> body, String... keys) {
+        if (body == null || keys == null) {
+            return "";
+        }
+        for (String k : keys) {
+            Object v = body.get(k);
+            if (v != null) {
+                String s = v.toString().trim();
+                if (!s.isEmpty()) {
+                    return s;
+                }
+            }
+        }
+        return "";
     }
 
     private static String trimSlash(String s) {

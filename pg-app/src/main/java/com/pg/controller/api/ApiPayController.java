@@ -22,6 +22,7 @@ import com.pg.service.EximbayPaymentService;
 import com.pg.service.ElementPayPaymentService;
 import com.pg.service.JpayPaymentService;
 import com.pg.service.MerchantCreditTokenService;
+import com.pg.service.MerchantPayLimitService;
 import com.pg.service.MerchantPgBindingRouterService;
 import com.pg.service.OrgServiceUseService;
 import com.pg.service.PayCardPolicyService;
@@ -92,6 +93,7 @@ public class ApiPayController {
     private final PayContactRememberPolicyService payContactRememberPolicyService;
     private final MerchantPgBindingRouterService pgBindingRouter;
     private final com.pg.urlpay.UrlPayCheckoutMoveService urlPayCheckoutMoveService;
+    private final MerchantPayLimitService merchantPayLimitService;
 
     public ApiPayController(ChillPayService chillPayService,
                             JpayPaymentService jpayPaymentService,
@@ -119,7 +121,8 @@ public class ApiPayController {
                             UrlPayCardExpiryModeService urlPayCardExpiryModeService,
                             PayContactRememberPolicyService payContactRememberPolicyService,
                             MerchantPgBindingRouterService pgBindingRouter,
-                            com.pg.urlpay.UrlPayCheckoutMoveService urlPayCheckoutMoveService) {
+                            com.pg.urlpay.UrlPayCheckoutMoveService urlPayCheckoutMoveService,
+                            MerchantPayLimitService merchantPayLimitService) {
         this.chillPayService = chillPayService;
         this.jpayPaymentService = jpayPaymentService;
         this.eximbayPaymentService = eximbayPaymentService;
@@ -147,6 +150,7 @@ public class ApiPayController {
         this.payContactRememberPolicyService = payContactRememberPolicyService;
         this.pgBindingRouter = pgBindingRouter;
         this.urlPayCheckoutMoveService = urlPayCheckoutMoveService;
+        this.merchantPayLimitService = merchantPayLimitService;
     }
 
     private <T> ResponseEntity<ApiResponse<T>> vendorMismatchIfAny(Long orgUnitId,
@@ -1055,6 +1059,17 @@ public class ApiPayController {
         }
         if (pgAmount == null || pgAmount.compareTo(BigDecimal.ZERO) <= 0) {
             return ResponseEntity.ok(ApiResponse.fail("유효한 결제 금액을 입력하세요.", "INVALID_AMOUNT"));
+        }
+        var payLimitBlock = merchantPayLimitService.check(merchantOrgUnitId, pgAmount, checkoutCurrencyCode, langCode);
+        if (payLimitBlock.isPresent()) {
+            Map<String, Object> block = payLimitBlock.get();
+            @SuppressWarnings("unchecked")
+            Map<String, String> limitMessages = (Map<String, String>) block.get("messages");
+            return ResponseEntity.ok(ApiResponse.failI18n(
+                    String.valueOf(block.get("message")),
+                    String.valueOf(block.get("errorCode")),
+                    String.valueOf(block.get("errorCode")),
+                    limitMessages));
         }
 
         Optional<OrgUnit> ouPresale = orgUnitRepository.findById(merchantOrgUnitId);

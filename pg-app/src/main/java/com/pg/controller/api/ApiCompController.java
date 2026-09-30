@@ -12,9 +12,11 @@ import com.pg.repository.MerchantReceivableRepository;
 import com.pg.service.AuthService;
 import com.pg.service.CompDataIntegrityMessages;
 import com.pg.service.CompService;
+import com.pg.service.MerchantPayLimitService;
 import com.pg.service.ExcelStyledExportService;
 import com.pg.util.ChatbotProductPricingUtil;
 import com.pg.util.MerchantNotifyUrlVisibility;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -57,17 +59,20 @@ public class ApiCompController {
     private final ExcelStyledExportService excelStyledExportService;
     private final ChatbotHeaderLogoUploadService chatbotHeaderLogoUploadService;
     private final MerchantReceivableRepository merchantReceivableRepository;
+    private final MerchantPayLimitService merchantPayLimitService;
 
     public ApiCompController(CompService compService, OrgUnitRepository orgUnitRepository, AuthService authService,
                              ExcelStyledExportService excelStyledExportService,
                              ChatbotHeaderLogoUploadService chatbotHeaderLogoUploadService,
-                             MerchantReceivableRepository merchantReceivableRepository) {
+                             MerchantReceivableRepository merchantReceivableRepository,
+                             MerchantPayLimitService merchantPayLimitService) {
         this.compService = compService;
         this.orgUnitRepository = orgUnitRepository;
         this.authService = authService;
         this.excelStyledExportService = excelStyledExportService;
         this.chatbotHeaderLogoUploadService = chatbotHeaderLogoUploadService;
         this.merchantReceivableRepository = merchantReceivableRepository;
+        this.merchantPayLimitService = merchantPayLimitService;
     }
 
     @GetMapping("/changeHistory")
@@ -158,7 +163,10 @@ public class ApiCompController {
             }
         }
         return compService.getDetail(compId)
-                .map(m -> applyRegisteredNotifyUrlVisibility(m, auth))
+                .map(m -> {
+                    merchantPayLimitService.attachDetail(m);
+                    return applyRegisteredNotifyUrlVisibility(m, auth);
+                })
                 .map(ApiResponse::ok)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.ok(ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND")));
@@ -379,7 +387,8 @@ public class ApiCompController {
             @RequestParam(required = false) String cardRiskPresaleVelEmailWinMin,
             @RequestParam(required = false) String cardRiskPresaleVelEmailMax,
             @RequestParam(required = false) String cardRiskPresaleVelIpWinMin,
-            @RequestParam(required = false) String cardRiskPresaleVelIpMax) {
+            @RequestParam(required = false) String cardRiskPresaleVelIpMax,
+            HttpServletRequest request) {
         Long parentIdVal = parentId;
         if (parentIdVal == null && parentComp != null && !parentComp.isEmpty()) {
             String trimmed = parentComp.trim();
@@ -479,6 +488,7 @@ public class ApiCompController {
                 urlPayCheckoutMoveTargetType, urlPayCheckoutMoveTarget, urlPayCheckoutMoveMessage);
         compService.applyMerchantOperationRecord(saved.getCode(), operationRecord);
         compService.saveTradeNmForOrg(saved.getId(), tradeNm, compDiv);
+        merchantPayLimitService.saveFromRequest(saved.getId(), compDiv, request);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("compId", saved.getCode(), "compNm", saved.getName())));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
@@ -707,7 +717,8 @@ public class ApiCompController {
             @RequestParam(required = false) String cardRiskPresaleVelEmailWinMin,
             @RequestParam(required = false) String cardRiskPresaleVelEmailMax,
             @RequestParam(required = false) String cardRiskPresaleVelIpWinMin,
-            @RequestParam(required = false) String cardRiskPresaleVelIpMax) {
+            @RequestParam(required = false) String cardRiskPresaleVelIpMax,
+            HttpServletRequest request) {
         var targetOpt = compService.getDetail(compId);
         if (targetOpt.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
@@ -815,6 +826,7 @@ public class ApiCompController {
                         urlPayCheckoutMoveTargetType, urlPayCheckoutMoveTarget, urlPayCheckoutMoveMessage);
                 compService.applyMerchantOperationRecord(compId, operationRecord);
                 compService.saveTradeNmByCompCode(compId, tradeNm, compDiv);
+                merchantPayLimitService.saveFromRequestByCode(compId, compDiv, request);
             }
             return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다."))
                     : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));

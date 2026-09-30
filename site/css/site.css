@@ -502,6 +502,24 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   border-color: #f0c99d;
   box-shadow: 0 0 0 0.18rem rgba(240, 201, 157, 0.28);
 }
+/* 결제한도 기준통화 등 — 수정 불가 필수값도 동일 파스텔 */
+.comp-reg-form .form-control.required-input[readonly],
+.comp-reg-form .form-control.required-input:disabled,
+.comp-reg-form .form-select.required-input:disabled {
+  background-color: #fff4e8 !important;
+  border-color: #f2d4b6;
+  color: #495057;
+  opacity: 1;
+}
+/* 결제 URL·챗봇결제 URL 등 시스템 고정 주소 — 동일 파스텔(수정 불가) */
+.comp-reg-form .form-control.pg-fixed-value-input,
+.comp-reg-form .form-control.pg-fixed-value-input[readonly],
+.comp-reg-form .form-control.pg-fixed-value-input:disabled {
+  background-color: #fff4e8 !important;
+  border-color: #f2d4b6;
+  color: #495057;
+  opacity: 1;
+}
 /* 정산방법 시간 입력(정산마감/정산자동개시/이체시간): 기존 대비 50% 확대 */
 .comp-reg-form input[type="time"].settle-time-wide {
   width: 100%;

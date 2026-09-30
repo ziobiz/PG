@@ -126,7 +126,7 @@
   /** 동일 id(paymentUrlDisplay) — 화면별 placeholder 키만 다름 */
   function merchantPaymentUrlRowHtml(placeholderKo) {
     var ph = placeholderKo || '가맹점 저장 후 조회';
-    return '<div class="row mb-2"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="결제 URL">' + escUi(L('결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '" data-pg-ui-placeholder="' + escUi(String(ph)) + '"><button type="button" class="btn btn-outline-primary" id="paymentUrlCopyBtn" data-pg-ui-t="복사">' + escUi(L('복사')) + '</button></div></div></div>';
+    return '<div class="row mb-2"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="결제 URL">' + escUi(L('결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control pg-fixed-value-input" id="paymentUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '" data-pg-ui-placeholder="' + escUi(String(ph)) + '"><button type="button" class="btn btn-outline-primary" id="paymentUrlCopyBtn" data-pg-ui-t="복사">' + escUi(L('복사')) + '</button></div></div></div>';
   }
 
   function merchantPaymentRepayUrlRowHtml(placeholderKo) {
@@ -825,7 +825,7 @@
   /** read-only 챗봇결제 URL (컨테이너마다 고유 id가 필요하면 별도 템플릿으로 분리) */
   function merchantChatbotPaymentUrlRowHtml(placeholderKo) {
     var ph = placeholderKo || '가맹점 저장 후 조회';
-    return '<div class="row mb-2"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="챗봇결제 URL">' + escUi(L('챗봇결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="chatbotPaymentUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '" data-pg-ui-placeholder="' + escUi(String(ph)) + '"><button type="button" class="btn btn-outline-primary" id="chatbotPaymentUrlCopyBtn" data-pg-ui-t="복사">' + escUi(L('복사')) + '</button></div></div></div>';
+    return '<div class="row mb-2"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="챗봇결제 URL">' + escUi(L('챗봇결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control pg-fixed-value-input" id="chatbotPaymentUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '" data-pg-ui-placeholder="' + escUi(String(ph)) + '"><button type="button" class="btn btn-outline-primary" id="chatbotPaymentUrlCopyBtn" data-pg-ui-t="복사">' + escUi(L('복사')) + '</button></div></div></div>';
   }
 
   /** 가맹점 홈페이지·쇼핑몰: 플로팅 챗봇 삽입용 &lt;script&gt; 한 줄 (복사) */
@@ -2743,6 +2743,64 @@
     '</ul></section></div>' +
     '<div id="merchantApiPortalLoading" class="text-center text-muted py-5 small" data-pg-ui-t="로딩 중…">로딩 중…</div></div>';
 
+  function payLimitAmountField(label, name, merchant) {
+    if (merchant) {
+      return { label: label, type: 'payLimitSlot', name: name, col: 3, placeholder: '직접설정 시 입력' };
+    }
+    return { label: label, type: 'text', name: name, col: 2, placeholder: '비우면 제한 없음' };
+  }
+  function payLimitUiModeField(merchant) {
+    if (merchant) {
+      return {
+        label: '결제창 한도 표시',
+        type: 'select',
+        name: 'payLmtUiMode',
+        col: 3,
+        options: [
+          { v: 'FOLLOW', t: '총판설정따름' },
+          { v: 'WARN_ONLY', t: '경고만 (한도 밖일 때)' },
+          { v: 'ALWAYS', t: '항상 표시' }
+        ]
+      };
+    }
+    return {
+      label: '결제창 한도 표시',
+      type: 'select',
+      name: 'payLmtUiMode',
+      col: 2,
+      options: [
+        { v: 'WARN_ONLY', t: '경고만 (한도 밖일 때)' },
+        { v: 'ALWAYS', t: '항상 표시' }
+      ]
+    };
+  }
+  function payLimitCard(merchant) {
+    var notice = merchant
+      ? '기본값은 총판설정따름입니다. 직접설정을 고르면 이 가맹점 금액이 총판 값보다 우선합니다. 금액 단위는 소속 총판의 기준 통화입니다. 실결제 통화가 다르면 결제 시 그 통화를 총판 기준 통화로 환산해 비교합니다. 「결제창 한도 표시」는 URL·챗봇 결제창에 1회 최소·최대를 항상 보일지, 한도 밖일 때만 경고할지를 정합니다.'
+      : '금액 단위는 이 총판의 기준 통화입니다. 소속 가맹의 실결제 통화가 다르면 결제 시 총판 기준 통화로 환산해 비교합니다. 칸을 비우면 그 항목은 제한하지 않습니다. 「결제창 한도 표시」는 URL·챗봇 결제창에서 1회 최소·최대를 항상 보일지, 한도 밖일 때만 경고할지를 정합니다.';
+    return {
+      title: '기본 결제한도 설정',
+      id: merchant ? 'merchantPayLimitCard' : 'masterDistPayLimitCard',
+      merchantOnly: !!merchant,
+      masterDistOnly: !merchant,
+      notice: notice,
+      rows: [
+        [
+          { label: '기준 통화*', type: 'text', name: 'payLmtCurrency', col: merchant ? 3 : 2, readonly: true, placeholder: '총판 기준 통화' },
+          payLimitAmountField('1회 최대 한도', 'payLmtTxMax', merchant),
+          payLimitAmountField('1회 최소 한도', 'payLmtTxMin', merchant)
+        ],
+        [
+          payLimitAmountField('일 한도', 'payLmtDay', merchant),
+          payLimitAmountField('월 한도', 'payLmtMonth', merchant),
+          payLimitAmountField('연 한도(법인)', 'payLmtYearCorp', merchant),
+          payLimitAmountField('연 한도(개인)', 'payLmtYearInd', merchant)
+        ],
+        [payLimitUiModeField(merchant)]
+      ]
+    };
+  }
+
   var MENU_SCREENS = {
     '/hq/apiMerchantDeployReg': {
       hideListGrid: true,
@@ -4494,6 +4552,8 @@
             [{ label: '코인 지갑 주소', type: 'text', name: 'walletAddress', col: 4, placeholder: '코인 수취 지갑 주소' }, { label: '네트워크', type: 'text', name: 'networkName', col: 2, placeholder: '네트워크 이름' }]
           ]
         },
+        payLimitCard(false),
+        payLimitCard(true),
         {
           title: '출금 제한 설정',
           id: 'withdrawLimitCard',
@@ -4905,14 +4965,6 @@
           ]
         },
         {
-          title: '기본 결제한도 설정',
-          id: 'regionalPayLimitDefaultCard',
-          regionalOnly: true,
-          rows: [
-            [{ label: '1회 한도*', type: 'text', name: 'defaultPayLimitPerTx', col: 2, placeholder: '0' }, { label: '일 한도*', type: 'text', name: 'defaultPayLimitDay', col: 2, placeholder: '0' }, { label: '월 한도*', type: 'text', name: 'defaultPayLimitMonth', col: 2, placeholder: '0' }, { label: '연 한도(법인)*', type: 'text', name: 'defaultPayLimitYearCorp', col: 2, placeholder: '0' }, { label: '연 한도(개인)*', type: 'text', name: 'defaultPayLimitYearInd', col: 2, placeholder: '0' }]
-          ]
-        },
-        {
           type: 'regionalTerminalTable',
           title: '기본 터미널 정보',
           id: 'regionalTerminalCard',
@@ -4931,6 +4983,7 @@
             [{ label: '고객 거래명세서', type: 'select', name: 'receiptEmailEnabledYn', options: [{ v: '', t: '본사 기본 따름' }, { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2, title: '소속 가맹 기본 — 결제 완료 시 구매자 이메일로 HTML 거래명세서 발송' }]
           ]
         },
+        payLimitCard(false),
         {
           title: '가맹점 상세 정보',
           id: 'merchantExtraCard',
@@ -4950,6 +5003,7 @@
             [{ label: '코인 지갑 주소', type: 'text', name: 'walletAddress', col: 4, placeholder: '코인 수취 지갑 주소' }, { label: '네트워크', type: 'text', name: 'networkName', col: 2, placeholder: '네트워크 이름' }]
           ]
         },
+        payLimitCard(true),
         {
           title: '출금 제한 설정',
           id: 'withdrawLimitCard',
@@ -5286,14 +5340,6 @@
           ]
         },
         {
-          title: '기본 결제한도 설정',
-          id: 'regionalPayLimitDefaultCard',
-          regionalOnly: true,
-          rows: [
-            [{ label: '1회 한도*', type: 'text', name: 'defaultPayLimitPerTx', col: 2, placeholder: '0' }, { label: '일 한도*', type: 'text', name: 'defaultPayLimitDay', col: 2, placeholder: '0' }, { label: '월 한도*', type: 'text', name: 'defaultPayLimitMonth', col: 2, placeholder: '0' }, { label: '연 한도(법인)*', type: 'text', name: 'defaultPayLimitYearCorp', col: 2, placeholder: '0' }, { label: '연 한도(개인)*', type: 'text', name: 'defaultPayLimitYearInd', col: 2, placeholder: '0' }]
-          ]
-        },
-        {
           type: 'regionalTerminalTable',
           title: '기본 터미널 정보',
           id: 'regionalTerminalCard',
@@ -5312,6 +5358,7 @@
             [{ label: '고객 거래명세서', type: 'select', name: 'receiptEmailEnabledYn', options: [{ v: '', t: '본사 기본 따름' }, { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2, title: '소속 가맹 기본 — 결제 완료 시 구매자 이메일로 HTML 거래명세서 발송' }]
           ]
         },
+        payLimitCard(false),
         {
           title: '가맹점 상세 정보',
           id: 'merchantExtraCard',
@@ -5331,6 +5378,7 @@
             [{ label: '코인 지갑 주소', type: 'text', name: 'walletAddress', col: 4, placeholder: '코인 수취 지갑 주소' }, { label: '네트워크', type: 'text', name: 'networkName', col: 2, placeholder: '네트워크 이름' }]
           ]
         },
+        payLimitCard(true),
         {
           title: '출금 제한 설정',
           id: 'withdrawLimitCard',
@@ -9135,6 +9183,18 @@
     }
     var isRequired = !!(f.required || (f.label && f.label.indexOf('*') !== -1));
     var reqClass = isRequired ? ' required-input' : '';
+    if (f.type === 'payLimitSlot') {
+      var colSlot = f.col || 3;
+      var slotLabel = String(f.label || '');
+      var slotPh = String(f.placeholder || '직접설정 시 입력');
+      var slotName = String(f.name || '');
+      return '<div class="col-sm-' + colSlot + ' form-field-block' + hqC + hqPolicyC + '">' + pgUiFormLabelSpan(slotLabel, false) +
+        '<select class="form-control form-control-sm mb-1" name="' + slotName + 'Mode">' +
+        '<option value="FOLLOW" data-pg-ui-t="총판설정따름">' + escUi(L('총판설정따름')) + '</option>' +
+        '<option value="DIRECT" data-pg-ui-t="직접설정">' + escUi(L('직접설정')) + '</option></select>' +
+        '<input type="text" class="form-control form-control-sm" name="' + slotName + '" placeholder="' + escUi(L(slotPh)) + '" data-pg-ui-placeholder="' + escUi(slotPh) + '">' +
+        '</div>';
+    }
     if (f.type === 'regNoWithType') {
       var col = f.col || 2;
       var labelCoreR = (f.label || '사업자번호').replace(/\*$/, '');
@@ -9358,13 +9418,13 @@
       } else if (sec.type === 'pgInfoDisplay') {
         html += '<div id="pgInfoDisplayWrap" class="pg-info-display">' +
           '<div class="row mb-2"><div class="col-sm-3"><label class="form-label" data-pg-ui-t="웹결제">웹결제</label><select class="form-control form-control-sm" name="webPaymentUseYn"><option value="Y" data-pg-ui-t="사용">사용</option><option value="N" data-pg-ui-t="미사용">미사용</option></select></div>' +
-          '<div class="col-sm-5"><label class="form-label" data-pg-ui-t="결제 URL">결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUrlDisplay" readonly data-pg-ui-placeholder="가맹점 선택 후 조회" placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentUrlCopyBtn" data-pg-ui-t="복사">복사</button></div></div></div>' +
+          '<div class="col-sm-5"><label class="form-label" data-pg-ui-t="결제 URL">결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control pg-fixed-value-input" id="paymentUrlDisplay" readonly data-pg-ui-placeholder="가맹점 선택 후 조회" placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentUrlCopyBtn" data-pg-ui-t="복사">복사</button></div></div></div>' +
           '<div class="row mb-2">' +
           '<div class="col-sm-5"><label class="form-label" data-pg-ui-t="URL 재결제 URL">URL 재결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentRepayUrlDisplay" readonly data-pg-ui-placeholder="가맹점 선택 후 조회" placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentRepayUrlCopyBtn" data-pg-ui-t="복사">복사</button></div></div></div>' +
           '<div class="row mb-2"><div class="col-sm-3"><label class="form-label" data-pg-ui-t="챗봇결제 사용여부">챗봇결제 사용여부</label><select class="form-control form-control-sm" name="chatbotPaymentUseYn"><option value="N" data-pg-ui-t="미사용">미사용</option><option value="Y" data-pg-ui-t="사용">사용</option></select></div>' +
           '<div class="col-sm-3"><label class="form-label" data-pg-ui-t="챗봇 상품등록 한도(건)">챗봇 상품등록 한도(건)</label><select class="form-control form-control-sm" name="chatbotProductSlotLimit"><option value="">—</option>' +
           '<option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="80">80</option><option value="100">100</option><option value="150">150</option><option value="200">200</option></select></div>' +
-          '<div class="col-sm-5"><label class="form-label" data-pg-ui-t="챗봇결제 URL">챗봇결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="chatbotPaymentUrlDisplay" readonly data-pg-ui-placeholder="가맹점 선택 후 조회" placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="chatbotPaymentUrlCopyBtn" data-pg-ui-t="복사">복사</button></div></div></div>' +
+          '<div class="col-sm-5"><label class="form-label" data-pg-ui-t="챗봇결제 URL">챗봇결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control pg-fixed-value-input" id="chatbotPaymentUrlDisplay" readonly data-pg-ui-placeholder="가맹점 선택 후 조회" placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="chatbotPaymentUrlCopyBtn" data-pg-ui-t="복사">복사</button></div></div></div>' +
           merchantChatbotEmbedScriptRowHtml('가맹점 선택 후 조회') +
           merchantChatbotQrRowHtml() +
           '</div>';

@@ -6,6 +6,7 @@ import com.pg.service.ElementPayPaymentService;
 import com.pg.service.EximbayPaymentService;
 import com.pg.service.IlkPaymentService;
 import com.pg.service.JpayPaymentService;
+import com.pg.service.MerchantPayLimitService;
 import com.pg.service.MerchantPgBindingRouterService;
 import com.pg.service.PayCardPolicyService;
 import com.pg.service.UrlPayChargeResolutionService;
@@ -32,6 +33,7 @@ public class UrlPaySaleDispatcher {
     private final UrlPayChargeResolutionService urlPayChargeResolutionService;
     private final MerchantPgBindingRouterService pgBindingRouter;
     private final PayCardPolicyService payCardPolicyService;
+    private final MerchantPayLimitService merchantPayLimitService;
 
     public UrlPaySaleDispatcher(ChillPayService chillPayService,
                                 JpayPaymentService jpayPaymentService,
@@ -41,7 +43,8 @@ public class UrlPaySaleDispatcher {
                                 UrlPayVendorCapabilityRegistry capabilityRegistry,
                                 UrlPayChargeResolutionService urlPayChargeResolutionService,
                                 MerchantPgBindingRouterService pgBindingRouter,
-                                PayCardPolicyService payCardPolicyService) {
+                                PayCardPolicyService payCardPolicyService,
+                                MerchantPayLimitService merchantPayLimitService) {
         this.chillPayService = chillPayService;
         this.jpayPaymentService = jpayPaymentService;
         this.eximbayPaymentService = eximbayPaymentService;
@@ -51,6 +54,7 @@ public class UrlPaySaleDispatcher {
         this.urlPayChargeResolutionService = urlPayChargeResolutionService;
         this.pgBindingRouter = pgBindingRouter;
         this.payCardPolicyService = payCardPolicyService;
+        this.merchantPayLimitService = merchantPayLimitService;
     }
 
     /**
@@ -105,6 +109,11 @@ public class UrlPaySaleDispatcher {
             }
             if (charge.shopperDisplayCurrency() != null && !charge.shopperDisplayCurrency().isBlank()) {
                 body.put("shopperDisplayCurrency", charge.shopperDisplayCurrency());
+            }
+            String lang = firstNonBlank(body, "lang", "langCode", "language");
+            var limitBlock = merchantPayLimitService.check(orgUnitId, charge.pgAmount(), charge.settlementCurrency(), lang);
+            if (limitBlock.isPresent()) {
+                return limitBlock.get();
             }
         } catch (IllegalArgumentException ex) {
             return fail(UrlPayChargeResolutionService.failMessageForCode(ex.getMessage()), ex.getMessage());

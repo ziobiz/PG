@@ -6,13 +6,103 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '4.32';
+  var CURRENT_LIVE = '4.37';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '4.37',
+      kind: 'minor',
+      date: '2026-09-30',
+      items: {
+        KO: [
+          '기본 결제한도에 「결제창 한도 표시」(경고만/항상 표시) 추가. 웹결제·대표상품이 아니라 한도 카드에서 설정',
+          'URL·챗봇 결제창은 1회 최소·최대를 즉시 안내하고, API prepare에서도 한도를 미리 거절'
+        ],
+        EN: [
+          'Payment limits add “Checkout limit display” (warn-only / always). Set on the limit card, not web pay or default product',
+          'URL/chatbot checkout warns on per-transaction min/max immediately; API prepare rejects over-limit amounts early'
+        ],
+        JP: [
+          '基本決済限度に「決済画面の限度表示」(警告のみ/常時)を追加。ウェブ決済・代表商品ではなく限度カードで設定',
+          'URL・チャットボット決済は1回上下限を即時案内し、API prepareでも限度外を先に拒否'
+        ],
+        CH: [
+          '默认支付限额增加“支付窗口限额显示”(仅警告/始终)。在限额卡片设置，不在网页支付或默认商品',
+          'URL/聊天机器人支付立即提示单笔上下限；API prepare 也会提前拒绝超限金额'
+        ],
+        TH: [
+          'เพิ่ม “การแสดงวงเงินในหน้าชำระ” (เตือนเมื่อเกิน/แสดงเสมอ) ในการ์ดวงเงิน ไม่ใช่การ์ดเว็บชำระหรือสินค้าเริ่มต้น',
+          'หน้า URL/แชทบอทเตือนขั้นต่ำ-สูงสุดต่อครั้งทันที และ API prepare ปฏิเสธวงเงินเกินล่วงหน้า'
+        ]
+      }
+    },
+    {
+      version: '4.36',
+      kind: 'minor',
+      date: '2026-09-30',
+      items: {
+        KO: ['결제 URL·챗봇결제 URL 고정 주소 칸에 기준 화폐와 같은 파스텔 배경 적용'],
+        EN: ['Payment URL and chatbot payment URL fields use the same pastel read-only background as base currency'],
+        JP: ['決済URL・チャットボット決済URLの固定欄に基準貨幣と同じパステル背景を適用'],
+        CH: ['支付 URL、聊天机器人支付 URL 固定栏使用与基准货币相同的粉色只读背景'],
+        TH: ['ช่องที่อยู่ URL ชำระเงินและแชทบอทใช้พื้นหลังพาสเทลแบบอ่านอย่างเดียวเดียวกับสกุลฐาน']
+      }
+    },
+    {
+      version: '4.35',
+      kind: 'minor',
+      date: '2026-09-30',
+      items: {
+        KO: ['기본 결제한도 기준 통화 칸을 총판 기준 화폐와 같은 필수·파스텔 읽기 전용 스타일로 맞춤'],
+        EN: ['Payment-limit base currency uses the same required pastel read-only style as distributor base currency'],
+        JP: ['基本決済限度の基準通貨を総販の基準貨幣と同じ必須・パステルの読取専用表示に統一'],
+        CH: ['支付限额基准货币与总代理基准货币使用相同的必填粉色只读样式'],
+        TH: ['ช่องสกุลฐานของวงเงินชำระใช้สไตล์บังคับสีพาสเทลแบบอ่านอย่างเดียวเดียวกับสกุลฐานของตัวแทนหลัก']
+      }
+    },
+    {
+      version: '4.34',
+      kind: 'minor',
+      date: '2026-09-30',
+      items: {
+        KO: ['기본 결제한도 입력을 한 줄에 모아 첫 줄은 기준 통화·1회 최대·1회 최소, 다음 줄은 일·월·연(법인)·연(개인)로 배치'],
+        EN: ['Payment limit fields sit on two rows: base currency, per-transaction max and min, then daily, monthly, and both yearly limits'],
+        JP: ['基本決済限度の入力を2行に整理。1行目は基準通貨・1回上限・1回下限、2行目は日・月・年(法人)・年(個人)'],
+        CH: ['默认支付限额改为两行：基准货币、单笔最高、单笔最低，以及日、月、年(企业)、年(个人)'],
+        TH: ['จัดช่องวงเงินชำระเป็นสองแถว: สกุลฐาน วงเงินสูงสุดและต่ำสุดต่อครั้ง แล้วตามด้วยรายวัน รายเดือน และรายปีสองแบบ']
+      }
+    },
+    {
+      version: '4.33',
+      kind: 'minor',
+      date: '2026-09-30',
+      items: {
+        KO: [
+          '기본 결제한도(1회 최대·최소, 일·월·연)를 본사에서 빼고 총판으로 옮김. 금액 단위는 총판 기준 통화',
+          '가맹 등록에 같은 카드 추가. 기본은 총판설정따름, 직접설정이면 그 가맹 금액이 우선. 실결제 통화가 다르면 결제 시 기준 통화로 환산해 차단'
+        ],
+        EN: [
+          'Default payment limits (per-transaction max and min, daily, monthly, yearly) moved from HQ to the distributor. Amounts use the distributor base currency',
+          'The same card is on merchant registration. Default follows the distributor; a direct amount overrides it. A different charge currency is converted at payment time'
+        ],
+        JP: [
+          '基本決済限度(1回の上限・下限、日・月・年)を本社から外し総販へ移動。単位は総販の基準通貨',
+          '加盟登録に同じカードを追加。初期値は総販設定に従い、直接設定はその加盟店が優先。実決済通貨が違う場合は決済時に換算して遮断'
+        ],
+        CH: [
+          '默认支付限额(单笔最高/最低、日、月、年)从总部移到总代理。金额使用总代理基准货币',
+          '商户注册增加同一卡片。默认跟随总代理，单独设置则本商户优先。实扣货币不同时在支付时换算后拦截'
+        ],
+        TH: [
+          'ย้ายวงเงินชำระเริ่มต้น (สูงสุด/ต่ำสุดต่อครั้ง, วัน, เดือน, ปี) จากสำนักงานใหญ่ไปตัวแทนหลัก หน่วยเป็นสกุลฐานของตัวแทนหลัก',
+          'เพิ่มการ์ดเดียวกันตอนลงทะเบียนร้าน ค่าเริ่มต้นใช้ค่าตัวแทนหลัก ถ้ากำหนดเองยอดร้านมาก่อน สกุลที่ตัดจริงต่างกันจะแปลงตอนชำระแล้วบล็อก'
+        ]
+      }
+    },
     {
       version: '4.32',
       kind: 'minor',

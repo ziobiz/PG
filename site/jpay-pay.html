@@ -514,6 +514,9 @@
           });
           PG_URL_PAY_SHELL.applyCheckoutHeaderSubtitle(checkoutCtx, { t: t, getLang: function () { return LANG; } });
         }
+        if (typeof window.__pgPayLimitRefresh === 'function') {
+          try { window.__pgPayLimitRefresh(); } catch (eLim) { /* ignore */ }
+        }
       }
       function applyI18n() {
         document.querySelectorAll('[data-i18n]').forEach(function (el) {

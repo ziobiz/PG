@@ -317,4 +317,61 @@ public class SettlementSetting {
     public void setSameCardLimitAmtTerminal(BigDecimal sameCardLimitAmtTerminal) { this.sameCardLimitAmtTerminal = sameCardLimitAmtTerminal; }
     public BigDecimal getPayLimitDaily() { return payLimitDaily; }
     public void setPayLimitDaily(BigDecimal payLimitDaily) { this.payLimitDaily = payLimitDaily; }
+
+    /** 총판 기준통화 기준 1회 최대 결제 한도. 비우면 제한 없음. */
+    @Column(name = "pay_lmt_tx_max", precision = 18, scale = 2)
+    private BigDecimal payLmtTxMax;
+    @Column(name = "pay_lmt_tx_min", precision = 18, scale = 2)
+    private BigDecimal payLmtTxMin;
+    @Column(name = "pay_lmt_day", precision = 18, scale = 2)
+    private BigDecimal payLmtDay;
+    @Column(name = "pay_lmt_month", precision = 18, scale = 2)
+    private BigDecimal payLmtMonth;
+    @Column(name = "pay_lmt_year_corp", precision = 18, scale = 2)
+    private BigDecimal payLmtYearCorp;
+    @Column(name = "pay_lmt_year_ind", precision = 18, scale = 2)
+    private BigDecimal payLmtYearInd;
+    /** 가맹: FOLLOW(총판설정따름) / DIRECT(직접설정). 총판 행은 사용하지 않음. */
+    @Column(name = "pay_lmt_tx_max_mode", length = 8)
+    private String payLmtTxMaxMode;
+    @Column(name = "pay_lmt_tx_min_mode", length = 8)
+    private String payLmtTxMinMode;
+    @Column(name = "pay_lmt_day_mode", length = 8)
+    private String payLmtDayMode;
+    @Column(name = "pay_lmt_month_mode", length = 8)
+    private String payLmtMonthMode;
+    @Column(name = "pay_lmt_year_corp_mode", length = 8)
+    private String payLmtYearCorpMode;
+    @Column(name = "pay_lmt_year_ind_mode", length = 8)
+    private String payLmtYearIndMode;
+    /** WARN_ONLY / ALWAYS. 가맹은 FOLLOW(총판설정따름) 가능. */
+    @Column(name = "pay_lmt_ui_mode", length = 16)
+    private String payLmtUiMode;
+
+    public BigDecimal getPayLmtTxMax() { return payLmtTxMax; }
+    public void setPayLmtTxMax(BigDecimal payLmtTxMax) { this.payLmtTxMax = payLmtTxMax; }
+    public BigDecimal getPayLmtTxMin() { return payLmtTxMin; }
+    public void setPayLmtTxMin(BigDecimal payLmtTxMin) { this.payLmtTxMin = payLmtTxMin; }
+    public BigDecimal getPayLmtDay() { return payLmtDay; }
+    public void setPayLmtDay(BigDecimal payLmtDay) { this.payLmtDay = payLmtDay; }
+    public BigDecimal getPayLmtMonth() { return payLmtMonth; }
+    public void setPayLmtMonth(BigDecimal payLmtMonth) { this.payLmtMonth = payLmtMonth; }
+    public BigDecimal getPayLmtYearCorp() { return payLmtYearCorp; }
+    public void setPayLmtYearCorp(BigDecimal payLmtYearCorp) { this.payLmtYearCorp = payLmtYearCorp; }
+    public BigDecimal getPayLmtYearInd() { return payLmtYearInd; }
+    public void setPayLmtYearInd(BigDecimal payLmtYearInd) { this.payLmtYearInd = payLmtYearInd; }
+    public String getPayLmtTxMaxMode() { return payLmtTxMaxMode; }
+    public void setPayLmtTxMaxMode(String payLmtTxMaxMode) { this.payLmtTxMaxMode = payLmtTxMaxMode; }
+    public String getPayLmtTxMinMode() { return payLmtTxMinMode; }
+    public void setPayLmtTxMinMode(String payLmtTxMinMode) { this.payLmtTxMinMode = payLmtTxMinMode; }
+    public String getPayLmtDayMode() { return payLmtDayMode; }
+    public void setPayLmtDayMode(String payLmtDayMode) { this.payLmtDayMode = payLmtDayMode; }
+    public String getPayLmtMonthMode() { return payLmtMonthMode; }
+    public void setPayLmtMonthMode(String payLmtMonthMode) { this.payLmtMonthMode = payLmtMonthMode; }
+    public String getPayLmtYearCorpMode() { return payLmtYearCorpMode; }
+    public void setPayLmtYearCorpMode(String payLmtYearCorpMode) { this.payLmtYearCorpMode = payLmtYearCorpMode; }
+    public String getPayLmtYearIndMode() { return payLmtYearIndMode; }
+    public void setPayLmtYearIndMode(String payLmtYearIndMode) { this.payLmtYearIndMode = payLmtYearIndMode; }
+    public String getPayLmtUiMode() { return payLmtUiMode; }
+    public void setPayLmtUiMode(String payLmtUiMode) { this.payLmtUiMode = payLmtUiMode; }
 }

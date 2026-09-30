@@ -1277,6 +1277,9 @@
         if (bootCompId && checkoutCtx) {
           applyCheckoutFormDefaults(bootCompId, checkoutCtx);
         }
+        if (typeof window.__pgPayLimitRefresh === 'function') {
+          try { window.__pgPayLimitRefresh(); } catch (eLim) { /* ignore */ }
+        }
         if (PAY_ENTRY_CHATBOT) {
           initPayChatbotEntryNavBar();
         }

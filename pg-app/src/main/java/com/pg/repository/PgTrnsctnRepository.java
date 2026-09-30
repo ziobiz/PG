@@ -24,6 +24,14 @@ public interface PgTrnsctnRepository extends JpaRepository<PgTrnsctn, String>, J
 
     Optional<PgTrnsctn> findFirstByMerchantIdAndOrderNoAndOrigin(String merchantId, String orderNo, String origin);
 
+    @Query("""
+            select t.amtKrw, t.curType from PgTrnsctn t
+            where t.merchantId = :merchantId and t.status = '10'
+              and coalesce(t.paidAt, t.createdAt) >= :fromTs
+            """)
+    List<Object[]> findApprovedAmountsSince(@Param("merchantId") String merchantId,
+                                             @Param("fromTs") LocalDateTime fromTs);
+
     /** 동일 가맹·주문번호 복수 행 — URL·API 우선 병합·중복 NOTI guest 정리용 */
     List<PgTrnsctn> findByMerchantIdAndOrderNoOrderByCreatedAtAsc(String merchantId, String orderNo);
 

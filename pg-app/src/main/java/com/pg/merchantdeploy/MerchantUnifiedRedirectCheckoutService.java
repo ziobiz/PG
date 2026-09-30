@@ -3,6 +3,8 @@ package com.pg.merchantdeploy;
 import com.pg.integration.pg.PgVendor;
 import com.pg.service.ChillPayService;
 import com.pg.service.MerchantChatbotProductService;
+import com.pg.service.MerchantPayLimitService;
+import com.pg.service.UrlPayChargeResolutionService;
 import com.pg.urlpay.CheckoutFailI18n;
 import com.pg.urlpay.IcipayBuyerContactUtil;
 import com.pg.urlpay.NeutralCheckoutRoute;
@@ -30,6 +32,8 @@ public class MerchantUnifiedRedirectCheckoutService {
     private final MerchantInlineCheckoutTokenService tokenService;
     private final MerchantChatbotProductService productService;
     private final MerchantApiIntegrationChannelService integrationChannelService;
+    private final MerchantPayLimitService merchantPayLimitService;
+    private final UrlPayChargeResolutionService urlPayChargeResolutionService;
 
     public MerchantUnifiedRedirectCheckoutService(ChillPayService chillPayService,
                                                   MerchantChillpayRedirectCheckoutService chillpayRedirectCheckoutService,
@@ -40,7 +44,9 @@ public class MerchantUnifiedRedirectCheckoutService {
                                                   MerchantOxInlineCheckoutService oxInlineCheckoutService,
                                                   MerchantInlineCheckoutTokenService tokenService,
                                                   MerchantChatbotProductService productService,
-                                                  MerchantApiIntegrationChannelService integrationChannelService) {
+                                                  MerchantApiIntegrationChannelService integrationChannelService,
+                                                  MerchantPayLimitService merchantPayLimitService,
+                                                  UrlPayChargeResolutionService urlPayChargeResolutionService) {
         this.chillPayService = chillPayService;
         this.chillpayRedirectCheckoutService = chillpayRedirectCheckoutService;
         this.jpayRedirectCheckoutService = jpayRedirectCheckoutService;
@@ -51,6 +57,8 @@ public class MerchantUnifiedRedirectCheckoutService {
         this.tokenService = tokenService;
         this.productService = productService;
         this.integrationChannelService = integrationChannelService;
+        this.merchantPayLimitService = merchantPayLimitService;
+        this.urlPayChargeResolutionService = urlPayChargeResolutionService;
     }
 
     public Map<String, Object> prepare(Long orgUnitId, Map<String, Object> body, HttpServletRequest request) {
@@ -80,6 +88,22 @@ public class MerchantUnifiedRedirectCheckoutService {
 
         Map<String, Object> enriched = new LinkedHashMap<>(body != null ? body : Map.of());
         enriched.put("buyerPrefill", IcipayBuyerContactUtil.toPublicMap(buyer));
+
+        try {
+            UrlPayChargeResolutionService.ResolvedCharge charge =
+                    urlPayChargeResolutionService.resolve(orgUnitId, enriched, opPg);
+            Object langObj = enriched.get("lang");
+            if (langObj == null) langObj = enriched.get("langCode");
+            if (langObj == null) langObj = enriched.get("language");
+            String lang = langObj != null ? langObj.toString() : "";
+            Optional<Map<String, Object>> limitBlock =
+                    merchantPayLimitService.check(orgUnitId, charge.pgAmount(), charge.settlementCurrency(), lang);
+            if (limitBlock.isPresent()) {
+                return limitBlock.get();
+            }
+        } catch (IllegalArgumentException ignored) {
+            /* 금액 오류는 각 PG prepare 에서 처리 */
+        }
 
         Map<String, Object> result;
         if (PgVendor.isJpayFamily(opPg)) {

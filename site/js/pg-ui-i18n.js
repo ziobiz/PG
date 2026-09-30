@@ -3540,6 +3540,132 @@
       CH: '默认支付限额设置',
       TH: 'ตั้งค่าวงเงินชำระเริ่มต้น'
     },
+    '기준 통화': {
+      EN: 'Limit currency',
+      JP: '基準通貨',
+      CH: '基准货币',
+      TH: 'สกุลเงินอ้างอิง'
+    },
+    '총판 기준 통화': {
+      EN: 'Distributor base currency',
+      JP: '総販の基準通貨',
+      CH: '总代理基准货币',
+      TH: 'สกุลฐานของตัวแทนหลัก'
+    },
+    '1회 최대 한도': {
+      EN: 'Per-transaction maximum',
+      JP: '1回の上限',
+      CH: '单笔最高限额',
+      TH: 'วงเงินสูงสุดต่อครั้ง'
+    },
+    '1회 최소 한도': {
+      EN: 'Per-transaction minimum',
+      JP: '1回の下限',
+      CH: '单笔最低限额',
+      TH: 'วงเงินขั้นต่ำต่อครั้ง'
+    },
+    '일 한도': {
+      EN: 'Daily limit',
+      JP: '1日の上限',
+      CH: '每日限额',
+      TH: 'วงเงินรายวัน'
+    },
+    '월 한도': {
+      EN: 'Monthly limit',
+      JP: '月間上限',
+      CH: '每月限额',
+      TH: 'วงเงินรายเดือน'
+    },
+    '연 한도(법인)': {
+      EN: 'Yearly limit (company)',
+      JP: '年間上限(法人)',
+      CH: '每年限额(企业)',
+      TH: 'วงเงินรายปี (นิติบุคคล)'
+    },
+    '연 한도(개인)': {
+      EN: 'Yearly limit (individual)',
+      JP: '年間上限(個人)',
+      CH: '每年限额(个人)',
+      TH: 'วงเงินรายปี (บุคคล)'
+    },
+    '총판설정따름': {
+      EN: 'Use distributor setting',
+      JP: '総販設定に従う',
+      CH: '跟随总代理设置',
+      TH: 'ใช้ค่าของตัวแทนหลัก'
+    },
+    '직접설정': {
+      EN: 'Set directly',
+      JP: '直接設定',
+      CH: '单独设置',
+      TH: 'กำหนดเอง'
+    },
+    '금액': {
+      EN: 'Amount',
+      JP: '金額',
+      CH: '金额',
+      TH: 'จำนวนเงิน'
+    },
+    '비우면 제한 없음': {
+      EN: 'Blank means no limit',
+      JP: '空欄は制限なし',
+      CH: '留空表示不限制',
+      TH: 'เว้นว่างคือไม่จำกัด'
+    },
+    '직접설정 시 입력': {
+      EN: 'Enter when set directly',
+      JP: '直接設定のとき入力',
+      CH: '单独设置时填写',
+      TH: 'กรอกเมื่อกำหนดเอง'
+    },
+    '기본값은 총판설정따름입니다. 직접설정을 고르면 이 가맹점 금액이 총판 값보다 우선합니다. 금액 단위는 소속 총판의 기준 통화입니다. 실결제 통화가 다르면 결제 시 그 통화를 총판 기준 통화로 환산해 비교합니다.': {
+      EN: 'The default follows the distributor. A direct amount overrides the distributor for this merchant. Amounts use the distributor base currency. If the charge currency differs, it is converted into that currency at payment time.',
+      JP: '初期値は総販設定に従います。直接設定にすると、この加盟店の金額が総販より優先されます。単位は所属総販の基準通貨です。実決済通貨が違う場合は決済時に基準通貨へ換算して比較します。',
+      CH: '默认跟随总代理。选择单独设置后，本商户金额优先于总代理。金额单位为所属总代理的基准货币。实扣货币不同时，支付时换算成该基准货币再比较。',
+      TH: 'ค่าเริ่มต้นใช้ค่าของตัวแทนหลัก ถ้ากำหนดเอง ยอดของร้านนี้มาก่อนตัวแทนหลัก หน่วยเป็นสกุลฐานของตัวแทนหลัก ถ้าสกุลที่ตัดจริงต่างกัน ระบบแปลงเป็นสกุลฐานตอนชำระแล้วเทียบ'
+    },
+    '금액 단위는 이 총판의 기준 통화입니다. 소속 가맹의 실결제 통화가 다르면 결제 시 총판 기준 통화로 환산해 비교합니다. 칸을 비우면 그 항목은 제한하지 않습니다.': {
+      EN: 'Amounts use this distributor base currency. If a merchant charge currency differs, it is converted into that currency at payment time. A blank field means that limit is not applied.',
+      JP: '単位はこの総販の基準通貨です。所属加盟の実決済通貨が違う場合は、決済時に総販の基準通貨へ換算して比較します。空欄の項目は制限しません。',
+      CH: '金额单位为本总代理的基准货币。所属商户实扣货币不同时，支付时换算成总代理基准货币再比较。留空的项目不限制。',
+      TH: 'หน่วยเป็นสกุลฐานของตัวแทนหลักนี้ ถ้าร้านในสังกัดตัดคนละสกุล ระบบแปลงเป็นสกุลฐานตอนชำระแล้วเทียบ ช่องว่างคือไม่จำกัดรายการนั้น'
+    },
+    '금액 단위는 이 총판의 기준 통화입니다. 소속 가맹의 실결제 통화가 다르면 결제 시 총판 기준 통화로 환산해 비교합니다. 칸을 비우면 그 항목은 제한하지 않습니다. 「결제창 한도 표시」는 URL·챗봇 결제창에서 1회 최소·최대를 항상 보일지, 한도 밖일 때만 경고할지를 정합니다.': {
+      EN: 'Amounts use this distributor base currency. If a merchant charge currency differs, it is converted at payment time. Blank means no limit for that row. “Checkout limit display” chooses whether URL/chatbot checkout always shows per-transaction min/max, or only warns when out of range.',
+      JP: '単位はこの総販の基準通貨です。実決済通貨が違う場合は決済時に換算します。空欄はその項目を制限しません。「決済画面の限度表示」は、URL・チャットボット決済で1回の上下限を常に出すか、範囲外のときだけ警告するかを決めます。',
+      CH: '金额单位为本总代理基准货币。实扣货币不同时在支付时换算。留空表示该项不限制。“支付窗口限额显示”决定 URL/聊天机器人支付是始终显示单笔上下限，还是仅在超限时警告。',
+      TH: 'หน่วยเป็นสกุลฐานของตัวแทนหลัก ถ้าร้านตัดคนละสกุลจะแปลงตอนชำระ ช่องว่างคือไม่จำกัด “การแสดงวงเงินในหน้าชำระ” เลือกว่าจะโชว์ขั้นต่ำ/สูงสุดต่อครั้งเสมอ หรือเตือนเมื่อเกินเท่านั้น'
+    },
+    '기본값은 총판설정따름입니다. 직접설정을 고르면 이 가맹점 금액이 총판 값보다 우선합니다. 금액 단위는 소속 총판의 기준 통화입니다. 실결제 통화가 다르면 결제 시 그 통화를 총판 기준 통화로 환산해 비교합니다.': {
+      EN: 'The default follows the distributor. A direct amount overrides the distributor for this merchant. Amounts use the distributor base currency. If the charge currency differs, it is converted into that currency at payment time.',
+      JP: '初期値は総販設定に従います。直接設定にすると、この加盟店の金額が総販より優先されます。単位は所属総販の基準通貨です。実決済通貨が違う場合は決済時に基準通貨へ換算して比較します。',
+      CH: '默认跟随总代理。选择单独设置后，本商户金额优先于总代理。金额单位为所属总代理的基准货币。实扣货币不同时，支付时换算成该基准货币再比较。',
+      TH: 'ค่าเริ่มต้นใช้ค่าของตัวแทนหลัก ถ้ากำหนดเอง ยอดของร้านนี้มาก่อนตัวแทนหลัก หน่วยเป็นสกุลฐานของตัวแทนหลัก ถ้าสกุลที่ตัดจริงต่างกัน ระบบแปลงเป็นสกุลฐานตอนชำระแล้วเทียบ'
+    },
+    '기본값은 총판설정따름입니다. 직접설정을 고르면 이 가맹점 금액이 총판 값보다 우선합니다. 금액 단위는 소속 총판의 기준 통화입니다. 실결제 통화가 다르면 결제 시 그 통화를 총판 기준 통화로 환산해 비교합니다. 「결제창 한도 표시」는 URL·챗봇 결제창에 1회 최소·최대를 항상 보일지, 한도 밖일 때만 경고할지를 정합니다.': {
+      EN: 'Default follows the distributor; direct amounts override it. Amounts use the distributor base currency and convert at payment time if needed. “Checkout limit display” chooses always-on min/max text or warn-only on URL/chatbot checkout.',
+      JP: '初期値は総販設定に従い、直接設定はその加盟店が優先。単位は総販基準通貨で、必要なら決済時に換算します。「決済画面の限度表示」は常時表示か範囲外警告かを決めます。',
+      CH: '默认跟随总代理，单独设置则本商户优先。金额为总代理基准货币，必要时支付时换算。“支付窗口限额显示”决定始终显示或仅超限警告。',
+      TH: 'ค่าเริ่มต้นตามตัวแทนหลัก กำหนดเองแล้วยอดร้านมาก่อน หน่วยเป็นสกุลฐาน และแปลงตอนชำระถ้าจำเป็น “การแสดงวงเงินในหน้าชำระ” เลือกว่าโชว์เสมอหรือเตือนเมื่อเกิน'
+    },
+    '결제창 한도 표시': {
+      EN: 'Checkout limit display',
+      JP: '決済画面の限度表示',
+      CH: '支付窗口限额显示',
+      TH: 'การแสดงวงเงินในหน้าชำระ'
+    },
+    '경고만 (한도 밖일 때)': {
+      EN: 'Warn only (when out of range)',
+      JP: '警告のみ (範囲外のとき)',
+      CH: '仅警告（超出范围时）',
+      TH: 'เตือนเมื่อเกินเท่านั้น'
+    },
+    '항상 표시': {
+      EN: 'Always show',
+      JP: '常に表示',
+      CH: '始终显示',
+      TH: 'แสดงเสมอ'
+    },
     '기본 터미널 정보': {
       EN: 'Default terminal info',
       JP: '基本端末情報',

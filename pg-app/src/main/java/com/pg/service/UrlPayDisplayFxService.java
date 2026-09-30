@@ -716,6 +716,34 @@ public class UrlPayDisplayFxService {
         return Optional.of(thbPerDisp.divide(thbPerSet, 12, RoundingMode.HALF_UP));
     }
 
+    /**
+     * 결제 한도 비교용. 마진 없이 BOT 환율로 {@code amount}를 {@code fromCcy}에서 {@code toCcy}로 환산합니다.
+     * 같은 통화면 그대로 반환합니다.
+     */
+    public Optional<BigDecimal> convertAmount(BigDecimal amount, String fromCcy, String toCcy) {
+        if (amount == null) {
+            return Optional.empty();
+        }
+        String from = fromCcy != null ? fromCcy.trim().toUpperCase(Locale.ROOT) : "";
+        String to = toCcy != null ? toCcy.trim().toUpperCase(Locale.ROOT) : "";
+        if (from.isEmpty() || to.isEmpty()) {
+            return Optional.empty();
+        }
+        if (from.equals(to)) {
+            return Optional.of(amount);
+        }
+        BotThailandExchangeRateService.BotDailyRates rates =
+                botThailandExchangeRateService.fetchThbPerUnitRates(resolveBotRateMode()).orElse(null);
+        BigDecimal thbFrom = thbPerOneUnit(from, rates);
+        BigDecimal thbTo = thbPerOneUnit(to, rates);
+        if (thbFrom == null || thbTo == null
+                || thbFrom.compareTo(BigDecimal.ZERO) <= 0
+                || thbTo.compareTo(BigDecimal.ZERO) <= 0) {
+            return Optional.empty();
+        }
+        return Optional.of(amount.multiply(thbFrom).divide(thbTo, 8, RoundingMode.HALF_UP));
+    }
+
     private static BigDecimal thbPerOneUnit(String currency, BotThailandExchangeRateService.BotDailyRates rates) {
         if ("THB".equals(currency)) {
             return BigDecimal.ONE;
