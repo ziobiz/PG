@@ -1,11 +1,12 @@
 package com.pg.receipt;
 
+import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.MerchantProfile;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgAgency;
 import com.pg.entity.PgTrnsctn;
-import com.pg.integration.pg.PgVendor;
 import com.pg.merchantdeploy.MerchantCheckoutLangUtil;
+import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgAgencyRepository;
@@ -27,6 +28,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -44,6 +46,7 @@ public class TransactionReceiptEmailService {
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final OrgUnitRepository orgUnitRepository;
     private final MerchantProfileRepository merchantProfileRepository;
+    private final MerchantPgBindingRepository merchantPgBindingRepository;
     private final PgAgencyRepository pgAgencyRepository;
     private final TransactionReceiptEmailPolicyService policyService;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
@@ -53,6 +56,7 @@ public class TransactionReceiptEmailService {
     public TransactionReceiptEmailService(PgTrnsctnRepository pgTrnsctnRepository,
                                             OrgUnitRepository orgUnitRepository,
                                             MerchantProfileRepository merchantProfileRepository,
+                                            MerchantPgBindingRepository merchantPgBindingRepository,
                                             PgAgencyRepository pgAgencyRepository,
                                             TransactionReceiptEmailPolicyService policyService,
                                             HqLedgerSysSettingsService hqLedgerSysSettingsService,
@@ -61,6 +65,7 @@ public class TransactionReceiptEmailService {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
+        this.merchantPgBindingRepository = merchantPgBindingRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.policyService = policyService;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
@@ -128,11 +133,11 @@ public class TransactionReceiptEmailService {
         try {
             ledgerSmtpMailService.sendHtml(smtp, to, subject, html, plain);
             mailSendLogService.append(MailSendLogService.KIND_RECEIPT_TEST, MailSendLogService.STATUS_SUCCESS,
-                    to, subject, plain, null, null, null);
+                    to, subject, plain, html, null, null, null);
         } catch (Exception ex) {
             String msg = ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName();
             mailSendLogService.append(MailSendLogService.KIND_RECEIPT_TEST, MailSendLogService.STATUS_FAIL,
-                    to, subject, plain, msg, null, null);
+                    to, subject, plain, html, msg, null, null);
             throw new IllegalStateException("테스트 메일 발송 실패: " + msg, ex);
         }
     }
@@ -284,11 +289,11 @@ public class TransactionReceiptEmailService {
                 } else {
                     markFollowupSent(trnId);
                 }
-                mailSendLogService.append(mailKind, MailSendLogService.STATUS_SUCCESS, to, subject, plain,
+                mailSendLogService.append(mailKind, MailSendLogService.STATUS_SUCCESS, to, subject, plain, html,
                         null, trnId, null);
             } catch (Exception ex) {
                 String msg = ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName();
-                mailSendLogService.append(mailKind, MailSendLogService.STATUS_FAIL, to, subject, plain,
+                mailSendLogService.append(mailKind, MailSendLogService.STATUS_FAIL, to, subject, plain, html,
                         msg, trnId, null);
                 log.warn("거래명세서 메일 실패 trnId={} kind={}: {}", trnId, actual, msg);
             }
@@ -305,6 +310,66 @@ public class TransactionReceiptEmailService {
             return MailSendLogService.KIND_RECEIPT_VOID;
         }
         return MAIL_KIND;
+    }
+
+    /** 메일로그 미리보기·PDF용 — 거래번호로 고객에게 보낸 영수증 HTML을 재생성합니다. */
+    @Transactional(readOnly = true)
+    public Optional<String> renderHtmlForMailLog(String trnId, String mailKind) {
+        if (trnId == null || trnId.isBlank()) {
+            return Optional.empty();
+        }
+        Optional<PgTrnsctn> opt = pgTrnsctnRepository.findById(trnId.trim());
+        if (opt.isEmpty()) {
+            return Optional.empty();
+        }
+        PgTrnsctn t = opt.get();
+        TransactionReceiptOutcome outcome = outcomeFromMailKind(mailKind);
+        if (outcome == null) {
+            outcome = TransactionReceiptOutcome.fromTxnStatus(t.getStatus());
+        }
+        if (outcome == null) {
+            outcome = TransactionReceiptOutcome.PAID;
+        }
+        String merchantCode = t.getMerchantId();
+        if (merchantCode == null || merchantCode.isBlank()) {
+            return Optional.empty();
+        }
+        Optional<OrgUnit> merchantOu = orgUnitRepository.findByCode(merchantCode.trim());
+        if (merchantOu.isEmpty()) {
+            merchantOu = orgUnitRepository.findByCodeIgnoreCase(merchantCode.trim());
+        }
+        if (merchantOu.isEmpty()) {
+            return Optional.empty();
+        }
+        try {
+            TransactionReceiptHtmlRenderer.TransactionReceiptViewModel vm =
+                    buildViewModel(t, merchantOu.get(), outcome);
+            String html = TransactionReceiptHtmlRenderer.render(vm);
+            if (html == null || html.isBlank()) {
+                return Optional.empty();
+            }
+            return Optional.of(html);
+        } catch (Exception e) {
+            log.warn("영수증 HTML 재생성 실패 trnId={}: {}", trnId, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private static TransactionReceiptOutcome outcomeFromMailKind(String mailKind) {
+        if (mailKind == null || mailKind.isBlank()) {
+            return null;
+        }
+        String k = mailKind.trim().toUpperCase(Locale.ROOT);
+        if ("RECEIPT_REFUND".equals(k)) {
+            return TransactionReceiptOutcome.REFUNDED;
+        }
+        if ("RECEIPT_VOID".equals(k)) {
+            return TransactionReceiptOutcome.VOIDED;
+        }
+        if ("RECEIPT_TXN".equals(k) || "RECEIPT_TEST".equals(k) || MAIL_KIND.equals(k)) {
+            return TransactionReceiptOutcome.PAID;
+        }
+        return null;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -331,18 +396,23 @@ public class TransactionReceiptEmailService {
             PgTrnsctn t, OrgUnit merchantOu, TransactionReceiptOutcome outcome) {
         TransactionReceiptOutcome kind = outcome != null ? outcome : TransactionReceiptOutcome.PAID;
         String lang = resolveLang(t);
-        PgAgency agency = resolvePgAgency(t.getVan());
+        PgAgency agency = resolvePgAgencyForReceipt(t, merchantOu);
         MerchantProfile mp = merchantProfileRepository.findByOrgUnitId(merchantOu.getId()).orElse(null);
         OrgUnit providerOu = policyService.findPaymentProviderOrgForMerchantOrgUnitId(merchantOu.getId()).orElse(null);
         MerchantProfile providerProfile = providerOu != null
                 ? merchantProfileRepository.findByOrgUnitId(providerOu.getId()).orElse(null) : null;
 
-        String acquirer = agency != null
-                ? TransactionReceiptContactBlock.of(agency.getAcquirerNm(), agency.getAcquirerTel(), agency.getAcquirerEmail()).displayLine()
-                : "";
-        String switcher = agency != null
-                ? TransactionReceiptContactBlock.of(agency.getPaymentSwitcherNm(), agency.getPaymentSwitcherTel(),
-                agency.getPaymentSwitcherEmail()).displayLine() : "";
+        String acquirer = "";
+        if (agency != null && isYn(agency.getAcquirerUseYn())) {
+            acquirer = TransactionReceiptContactBlock.of(
+                    agency.getAcquirerNm(), agency.getAcquirerTel(), agency.getAcquirerEmail()).displayLine();
+        }
+        String switcher = "";
+        if (agency != null && isYn(agency.getPaymentSwitcherUseYn())) {
+            switcher = TransactionReceiptContactBlock.of(
+                    agency.getPaymentSwitcherNm(), agency.getPaymentSwitcherTel(),
+                    agency.getPaymentSwitcherEmail()).displayLine();
+        }
         /* 결제대행사: 총판 상호명 우선, 총판 없으면 본사(또는 총본사) 상호명. 전화·이메일은 해당 조직 업체정보 유지 */
         String provider = "";
         if (providerOu != null) {
@@ -445,6 +515,63 @@ public class TransactionReceiptEmailService {
         return TransactionReceiptEmailI18n.resolveLangFromCurrency(cur);
     }
 
+    /**
+     * 거래명세서 Acquirer/Switcher용 결제대행사 행 (전 PG 공통).
+     * <ol>
+     *   <li>가맹점 운영(operational) PG 바인딩의 pg_cd → tb_pg_agency</li>
+     *   <li>동일 가맹의 다른 바인딩(거래 van 과 같은 패밀리)</li>
+     *   <li>거래 van 직접 매칭</li>
+     * </ol>
+     * 활성/비활성({@code acquirer_use_yn}·{@code payment_switcher_use_yn})은
+     * 선택된 agency 행 기준으로 모든 결제대행사에 동일 적용한다.
+     */
+    private PgAgency resolvePgAgencyForReceipt(PgTrnsctn t, OrgUnit merchantOu) {
+        String van = t != null ? t.getVan() : null;
+        if (merchantOu != null && merchantOu.getId() != null) {
+            List<MerchantPgBinding> bindings =
+                    merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(merchantOu.getId());
+            PgAgency fromOp = firstAgencyFromBindings(bindings, van, true);
+            if (fromOp != null) {
+                return fromOp;
+            }
+            PgAgency fromAny = firstAgencyFromBindings(bindings, van, false);
+            if (fromAny != null) {
+                return fromAny;
+            }
+        }
+        return resolvePgAgency(van);
+    }
+
+    private PgAgency firstAgencyFromBindings(List<MerchantPgBinding> bindings, String van, boolean operationalOnly) {
+        if (bindings == null || bindings.isEmpty()) {
+            return null;
+        }
+        for (MerchantPgBinding b : bindings) {
+            if (b == null || b.getPgCd() == null || b.getPgCd().isBlank()) {
+                continue;
+            }
+            if (operationalOnly && !isYn(b.getOperationalYn())) {
+                continue;
+            }
+            String pgCd = b.getPgCd().trim();
+            if (van != null && !van.isBlank() && !ReceiptPgAgencyMatch.sameVanFamily(van, pgCd)) {
+                continue;
+            }
+            Optional<PgAgency> a = pgAgencyRepository.findByPgCd(pgCd);
+            if (a.isPresent()) {
+                return a.get();
+            }
+            a = pgAgencyRepository.findAllByOrderByPgCdAsc().stream()
+                    .filter(x -> x.getPgCd() != null
+                            && x.getPgCd().trim().equalsIgnoreCase(pgCd))
+                    .findFirst();
+            if (a.isPresent()) {
+                return a.get();
+            }
+        }
+        return null;
+    }
+
     private PgAgency resolvePgAgency(String van) {
         if (van == null || van.isBlank()) {
             return null;
@@ -454,30 +581,17 @@ public class TransactionReceiptEmailService {
         if (direct.isPresent()) {
             return direct.get();
         }
+        Optional<PgAgency> ci = pgAgencyRepository.findAllByOrderByPgCdAsc().stream()
+                .filter(a -> a.getPgCd() != null && a.getPgCd().trim().equalsIgnoreCase(v))
+                .findFirst();
+        if (ci.isPresent()) {
+            return ci.get();
+        }
         return pgAgencyRepository.findAllByOrderByPgCdAsc().stream()
-                .filter(a -> a.getPgCd() != null && v.startsWith(a.getPgCd().trim().toUpperCase(Locale.ROOT)))
+                .filter(a -> a.getPgCd() != null
+                        && ReceiptPgAgencyMatch.sameVanFamily(v, a.getPgCd()))
                 .findFirst()
-                .orElseGet(() -> pgAgencyRepository.findAllByOrderByPgCdAsc().stream()
-                        .filter(a -> matchesVanFamily(v, a.getPgCd()))
-                        .findFirst()
-                        .orElse(null));
-    }
-
-    private static boolean matchesVanFamily(String van, String pgCd) {
-        if (pgCd == null || pgCd.isBlank()) {
-            return false;
-        }
-        String p = pgCd.trim().toUpperCase(Locale.ROOT);
-        if (PgVendor.isJpayFamily(p) && PgVendor.isJpayFamily(van)) {
-            return true;
-        }
-        if (PgVendor.isChillPayVendorCode(p) && PgVendor.isChillPayVendorCode(van)) {
-            return true;
-        }
-        if (PgVendor.isEximbayFamily(p) && PgVendor.isEximbayFamily(van)) {
-            return true;
-        }
-        return PgVendor.isElementPayFamily(p) && PgVendor.isElementPayFamily(van);
+                .orElse(null);
     }
 
     private static String resolveCustomerEmail(PgTrnsctn t) {
@@ -499,6 +613,10 @@ public class TransactionReceiptEmailService {
             return false;
         }
         return EMAIL.matcher(s.trim()).matches();
+    }
+
+    private static boolean isYn(String yn) {
+        return yn != null && "Y".equalsIgnoreCase(yn.trim());
     }
 
     private static String resolvePaymentMethod(PgTrnsctn t) {

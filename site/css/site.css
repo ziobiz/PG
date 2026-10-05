@@ -6111,3 +6111,20 @@ html.pg-admin--tablet .pg-tablet-launch-tile {
   -webkit-text-fill-color: #212529 !important;
   opacity: 1 !important;
 }
+
+/* 운영관리 · 메일관리: 본문 요약은 작게, 비고 버튼 줄바꿈 */
+#contentsMain .ops-mail-body-preview {
+  font-size: 0.72rem;
+  line-height: 1.25;
+  color: #6c757d;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 22rem;
+  word-break: break-word;
+}
+#contentsMain .ops-mail-remark-cell .btn {
+  font-size: 0.72rem;
+  padding: 0.12rem 0.35rem;
+}

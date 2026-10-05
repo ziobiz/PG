@@ -8254,6 +8254,28 @@
     });
   }
 
+  function syncPgAgencyReceiptContactFieldsEnabled() {
+    function apply(group) {
+      var useEl = document.getElementById('pgAgencyEdit' + group + 'UseYn');
+      var active = !!(useEl && String(useEl.value || '').toUpperCase() === 'Y');
+      ['Nm', 'Tel', 'Email'].forEach(function (suf) {
+        var el = document.getElementById('pgAgencyEdit' + group + suf);
+        if (!el) return;
+        el.disabled = !active;
+        el.readOnly = !active;
+        if (active) {
+          el.classList.remove('bg-light', 'text-muted');
+          el.style.backgroundColor = '';
+        } else {
+          el.classList.add('bg-light', 'text-muted');
+          el.style.backgroundColor = '#e9ecef';
+        }
+      });
+    }
+    apply('Acquirer');
+    apply('PaymentSwitcher');
+  }
+
   window.openPgAgencyModal = function (preset) {
     preset = preset || {};
     function resolvePresetIntegKinds(p) {
@@ -8509,18 +8531,31 @@
     if (el && window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
       try { window.PG_UI_I18N.applyDom(el); } catch (ePgAgDom) {}
     }
+    var acqUse = document.getElementById('pgAgencyEditAcquirerUseYn');
     var acqNm = document.getElementById('pgAgencyEditAcquirerNm');
     var acqTel = document.getElementById('pgAgencyEditAcquirerTel');
     var acqEm = document.getElementById('pgAgencyEditAcquirerEmail');
+    var swUse = document.getElementById('pgAgencyEditPaymentSwitcherUseYn');
     var swNm = document.getElementById('pgAgencyEditPaymentSwitcherNm');
     var swTel = document.getElementById('pgAgencyEditPaymentSwitcherTel');
     var swEm = document.getElementById('pgAgencyEditPaymentSwitcherEmail');
+    if (acqUse) acqUse.value = (String(preset.acquirerUseYn || 'N').toUpperCase() === 'Y') ? 'Y' : 'N';
     if (acqNm) acqNm.value = preset.acquirerNm != null ? String(preset.acquirerNm) : '';
     if (acqTel) acqTel.value = preset.acquirerTel != null ? String(preset.acquirerTel) : '';
     if (acqEm) acqEm.value = preset.acquirerEmail != null ? String(preset.acquirerEmail) : '';
+    if (swUse) swUse.value = (String(preset.paymentSwitcherUseYn || 'N').toUpperCase() === 'Y') ? 'Y' : 'N';
     if (swNm) swNm.value = preset.paymentSwitcherNm != null ? String(preset.paymentSwitcherNm) : '';
     if (swTel) swTel.value = preset.paymentSwitcherTel != null ? String(preset.paymentSwitcherTel) : '';
     if (swEm) swEm.value = preset.paymentSwitcherEmail != null ? String(preset.paymentSwitcherEmail) : '';
+    syncPgAgencyReceiptContactFieldsEnabled();
+    if (acqUse && !acqUse._pgReceiptToggleBound) {
+      acqUse._pgReceiptToggleBound = true;
+      acqUse.addEventListener('change', syncPgAgencyReceiptContactFieldsEnabled);
+    }
+    if (swUse && !swUse._pgReceiptToggleBound) {
+      swUse._pgReceiptToggleBound = true;
+      swUse.addEventListener('change', syncPgAgencyReceiptContactFieldsEnabled);
+    }
     /* API Key·MD5: 원문 미노출. 등록 시 앞3자+***** 표시(text). 저장 시 마스킹값·공백이면 기존 유지 */
     if (akEl) {
       var akMask = (preset.apiKeyMasked != null && String(preset.apiKeyMasked).trim())
@@ -16348,6 +16383,85 @@
             p._defaultTodayMailLogApplied = true;
           }
         } catch (eMailDt) {}
+        if (!p._opsMailLogBodyActionsBound) {
+          p._opsMailLogBodyActionsBound = true;
+          p.addEventListener('click', function (ev) {
+            var t = ev.target;
+            if (!t || !t.closest) return;
+            var prevBtn = t.closest('.ops-mail-log-preview');
+            var pdfBtn = t.closest('.ops-mail-log-pdf');
+            var resendBtn = t.closest('.ops-mail-log-resend');
+            var delBtn = t.closest('.ops-mail-log-delete');
+            if (!prevBtn && !pdfBtn && !resendBtn && !delBtn) return;
+            if (!api) return;
+            var id = (prevBtn || pdfBtn || resendBtn || delBtn).getAttribute('data-id');
+            if (!id) return;
+            ev.preventDefault();
+            if (prevBtn) {
+              if (prevBtn.disabled) return;
+              if (!api.opsMailLogPreviewHtml) return;
+              api.opsMailLogPreviewHtml(id).then(function (html) {
+                var blob = new Blob([html || ''], { type: 'text/html;charset=utf-8' });
+                var u = URL.createObjectURL(blob);
+                var w = window.open(u, '_blank');
+                if (!w) {
+                  alert(pgAdminUiT('팝업이 차단되었습니다. 브라우저에서 팝업을 허용해 주세요.'));
+                }
+                setTimeout(function () { try { URL.revokeObjectURL(u); } catch (eR) {} }, 60000);
+              }).catch(function (err) {
+                alert((err && err.message) ? err.message : pgAdminUiT('미리보기 실패'));
+              });
+              return;
+            }
+            if (pdfBtn) {
+              if (pdfBtn.disabled) return;
+              if (!api.opsMailLogPdf) return;
+              api.opsMailLogPdf(id).then(function (ret) {
+                var blob = ret && ret.blob ? ret.blob : ret;
+                var fname = (ret && ret.filename) ? String(ret.filename) : ('receipt_' + id + '.pdf');
+                var u = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = u;
+                a.download = fname;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(function () { try { URL.revokeObjectURL(u); } catch (eR2) {} }, 2000);
+              }).catch(function (err) {
+                alert((err && err.message) ? err.message : pgAdminUiT('PDF 다운로드 실패'));
+              });
+              return;
+            }
+            if (resendBtn) {
+              if (resendBtn.disabled) return;
+              if (!api.opsMailLogResend) return;
+              if (!confirm(pgAdminUiT('고객에게 동일 내용의 메일을 다시 보내겠습니까?'))) return;
+              resendBtn.disabled = true;
+              api.opsMailLogResend(id).then(function () {
+                alert(pgAdminUiT('재전송했습니다.'));
+                var searchBtn = p.querySelector('#searchBtn');
+                if (searchBtn) searchBtn.click();
+              }).catch(function (err) {
+                alert((err && err.message) ? err.message : pgAdminUiT('재전송 실패'));
+              }).finally(function () {
+                try { resendBtn.disabled = false; } catch (eD) {}
+              });
+              return;
+            }
+            if (delBtn) {
+              if (!api.opsMailLogDelete) return;
+              if (!confirm(pgAdminUiT('이 메일 로그를 삭제하시겠습니까?'))) return;
+              delBtn.disabled = true;
+              api.opsMailLogDelete(id).then(function () {
+                var searchBtn2 = p.querySelector('#searchBtn');
+                if (searchBtn2) searchBtn2.click();
+              }).catch(function (err) {
+                alert((err && err.message) ? err.message : pgAdminUiT('삭제 실패'));
+                try { delBtn.disabled = false; } catch (eD2) {}
+              });
+            }
+          });
+        }
       }
       /* 조직별 권한 세팅: 그리드 조건/캐시와 무관하게 URL로만 매트릭스 로드 */
       if (url === '/hq/permissionMng') {
@@ -17044,6 +17158,24 @@
                 } else if (String(row.activeYn || '').toUpperCase() === 'N') {
                   html += '<td class="text-center"><span class="ops-inactive-card-edit-na" data-pg-ui-t="불가">' +
                     pgAdminEscHtml(pgAdminUiT('불가')) + '</span></td>';
+                } else {
+                  html += '<td class="text-center text-muted small">—</td>';
+                }
+              } else if ((c.type === 'mailLogRemarkActions' || c.key === '_mailRemarkActions'
+                  || c.type === 'mailLogBodyActions' || c.key === '_mailBodyActions') && url === '/ops/mailLog') {
+                var mlId = row.id != null ? String(row.id) : '';
+                var mlHas = row.hasBody === true || row.hasBodyHtml === true
+                  || (row.bodyPreview != null && String(row.bodyPreview).trim() !== '');
+                if (mlId) {
+                  html += '<td class="text-center text-nowrap ops-mail-remark-cell">' +
+                    '<button type="button" class="btn btn-outline-secondary btn-sm me-1 mb-1 ops-mail-log-preview" data-id="' + escAttr(mlId) + '" data-pg-ui-t="미리보기"' +
+                    (mlHas ? '' : ' disabled') + '>' + pgAdminEscHtml(pgAdminUiT('미리보기')) + '</button>' +
+                    '<button type="button" class="btn btn-outline-primary btn-sm me-1 mb-1 ops-mail-log-pdf" data-id="' + escAttr(mlId) + '" data-pg-ui-t="PDF"' +
+                    (mlHas ? '' : ' disabled') + '>' + pgAdminEscHtml(pgAdminUiT('PDF')) + '</button>' +
+                    '<button type="button" class="btn btn-outline-success btn-sm me-1 mb-1 ops-mail-log-resend" data-id="' + escAttr(mlId) + '" data-pg-ui-t="재전송"' +
+                    (mlHas ? '' : ' disabled') + '>' + pgAdminEscHtml(pgAdminUiT('재전송')) + '</button>' +
+                    '<button type="button" class="btn btn-outline-danger btn-sm mb-1 ops-mail-log-delete" data-id="' + escAttr(mlId) + '" data-pg-ui-t="삭제">' +
+                    pgAdminEscHtml(pgAdminUiT('삭제')) + '</button></td>';
                 } else {
                   html += '<td class="text-center text-muted small">—</td>';
                 }
@@ -18145,12 +18277,28 @@
                       var mlKind = String(val == null ? '' : val).trim();
                       if (mlKind === 'VOID_TEST') cellInner = escHtmlBody(pgAdminUiT('VOID 테스트'));
                       else if (mlKind === 'VOID_TXN') cellInner = escHtmlBody(pgAdminUiT('이메일 무효(거래)'));
+                      else if (mlKind === 'RECEIPT_TXN') cellInner = escHtmlBody(pgAdminUiT('거래명세서(승인)'));
+                      else if (mlKind === 'RECEIPT_REFUND') cellInner = escHtmlBody(pgAdminUiT('거래명세서(환불)'));
+                      else if (mlKind === 'RECEIPT_VOID') cellInner = escHtmlBody(pgAdminUiT('거래명세서(무효)'));
+                      else if (mlKind === 'RECEIPT_TEST') cellInner = escHtmlBody(pgAdminUiT('거래명세서(테스트)'));
                       else cellInner = escHtmlBody(mlKind);
+                    } else if (c.key === 'mailNature') {
+                      var mlNat = String(val == null ? '' : val).trim().toUpperCase();
+                      if (mlNat === 'RECEIPT') cellInner = escHtmlBody(pgAdminUiT('영수증'));
+                      else if (mlNat === 'VOID') cellInner = escHtmlBody(pgAdminUiT('메일취소'));
+                      else if (mlNat === 'SPLIT_PAY') cellInner = escHtmlBody(pgAdminUiT('분할결제'));
+                      else cellInner = escHtmlBody(pgAdminUiT('기타'));
+                    } else if (c.key === 'bodyPreview') {
+                      var bp = String(val == null ? '' : val);
+                      cellInner = '<span class="ops-mail-body-preview">' + escHtmlBody(bp) + '</span>';
                     } else if (c.key === 'status') {
                       var mlSt = String(val == null ? '' : val).trim().toUpperCase();
                       if (mlSt === 'SUCCESS') cellInner = escHtmlBody(pgAdminUiT('성공'));
                       else if (mlSt === 'FAIL') cellInner = escHtmlBody(pgAdminUiT('실패'));
                       else cellInner = escHtmlBody(String(val == null ? '' : val));
+                    } else if (c.key === 'actorUsername') {
+                      var act = String(val == null ? '' : val).trim();
+                      cellInner = escHtmlBody(act || '—');
                     } else if (cellInner == null || (typeof cellInner === 'string' && cellInner.indexOf('<') === -1)) {
                       cellInner = escHtmlBody(String(cellInner == null ? '' : cellInner));
                     }
@@ -37363,9 +37511,11 @@
           extSettleMode: row.extSettleMode,
           extSettleLag: row.extSettleLag,
           extSettleBatchTime: row.extSettleBatchTime,
+          acquirerUseYn: row.acquirerUseYn || 'N',
           acquirerNm: row.acquirerNm || '',
           acquirerTel: row.acquirerTel || '',
           acquirerEmail: row.acquirerEmail || '',
+          paymentSwitcherUseYn: row.paymentSwitcherUseYn || 'N',
           paymentSwitcherNm: row.paymentSwitcherNm || '',
           paymentSwitcherTel: row.paymentSwitcherTel || '',
           paymentSwitcherEmail: row.paymentSwitcherEmail || '',
@@ -42041,7 +42191,11 @@
         }
         if (pgAgencySecretShouldSend(ak)) body.apiKey = ak.value.trim();
         if (pgAgencySecretShouldSend(mk)) body.md5Key = mk.value.trim();
-        /* Acquirer·Switcher: 항상 전송(빈 값이면 DB에서 지움) — 저장 후 재진입 시 표시 */
+        /* Acquirer·Switcher: 활성여부 + 연락처 항상 전송(비활성이어도 값 유지) */
+        var acqUseEl = document.getElementById('pgAgencyEditAcquirerUseYn');
+        var swUseEl = document.getElementById('pgAgencyEditPaymentSwitcherUseYn');
+        body.acquirerUseYn = (acqUseEl && String(acqUseEl.value || '').toUpperCase() === 'Y') ? 'Y' : 'N';
+        body.paymentSwitcherUseYn = (swUseEl && String(swUseEl.value || '').toUpperCase() === 'Y') ? 'Y' : 'N';
         body.acquirerNm = (document.getElementById('pgAgencyEditAcquirerNm') || {}).value
           ? String(document.getElementById('pgAgencyEditAcquirerNm').value).trim() : '';
         body.acquirerTel = (document.getElementById('pgAgencyEditAcquirerTel') || {}).value

@@ -26,6 +26,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-mail'
+    implementation 'com.openhtmltopdf:openhtmltopdf-pdfbox:1.0.10'
     runtimeOnly 'org.postgresql:postgresql'
     runtimeOnly 'com.h2database:h2'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
@@ -37,8 +38,7 @@ tasks.named('test') {
     useJUnitPlatform()
 }
 
-// 관리자 SPA(site/)를 classpath 정적 리소스에 포함 → /login.html, /index.html 등이 JAR에서 직접 서빙됨
-// (api.icopay.co.kr 이 Nginx로 8080 전체 프록시될 때 Apache 403 없이 동작)
+// Admin SPA (site/) into classpath static -> /login.html, /index.html served from JAR
 processResources {
     from("${rootDir}/../site") {
         into 'static'

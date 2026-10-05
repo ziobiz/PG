@@ -2353,6 +2353,75 @@
       if (p.searchToDate) q.toDate = p.searchToDate;
       return get('/api/ops/mailLog', q).then(function (r) { return r.data; });
     },
+    opsMailLogPreviewHtml: function (id) {
+      var base = getBaseUrl();
+      var url = base + '/api/ops/mailLog/' + encodeURIComponent(String(id)) + '/preview';
+      var headers = { Accept: 'text/html' };
+      var token = getToken();
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      return fetch(url, { method: 'GET', headers: headers, credentials: 'same-origin' }).then(function (res) {
+        if (res.status === 401) {
+          clearAuth();
+          if (typeof window.location !== 'undefined') window.location.replace((window.location.origin || '') + '/login.html');
+          return Promise.reject(new Error(apiT('인증이 만료되었습니다. 다시 로그인하세요.', 'Your session has expired. Please sign in again.')));
+        }
+        if (!res.ok) {
+          return res.text().then(function (t) {
+            throw new Error(t || (apiT('미리보기 실패', 'Preview failed') + ' (HTTP ' + res.status + ')'));
+          });
+        }
+        return res.text();
+      });
+    },
+    opsMailLogPdf: function (id) {
+      var base = getBaseUrl();
+      var url = base + '/api/ops/mailLog/' + encodeURIComponent(String(id)) + '/pdf';
+      var headers = { Accept: 'application/pdf' };
+      var token = getToken();
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      return fetch(url, { method: 'GET', headers: headers, credentials: 'same-origin' }).then(function (res) {
+        if (res.status === 401) {
+          clearAuth();
+          if (typeof window.location !== 'undefined') window.location.replace((window.location.origin || '') + '/login.html');
+          return Promise.reject(new Error(apiT('인증이 만료되었습니다. 다시 로그인하세요.', 'Your session has expired. Please sign in again.')));
+        }
+        if (!res.ok) {
+          return res.text().then(function (t) {
+            throw new Error(t || (apiT('PDF 다운로드 실패', 'PDF download failed') + ' (HTTP ' + res.status + ')'));
+          });
+        }
+        var cd = res.headers.get('Content-Disposition') || '';
+        var filename = '';
+        var mStar = /filename\*\s*=\s*UTF-8''([^;]+)/i.exec(cd);
+        if (mStar && mStar[1]) {
+          try { filename = decodeURIComponent(mStar[1].trim().replace(/["']/g, '')); } catch (e1) { filename = mStar[1].trim(); }
+        }
+        if (!filename) {
+          var m = /filename\s*=\s*"([^"]+)"/i.exec(cd) || /filename\s*=\s*([^;]+)/i.exec(cd);
+          if (m && m[1]) filename = m[1].trim().replace(/["']/g, '');
+        }
+        if (!filename) filename = 'receipt.pdf';
+        return res.blob().then(function (blob) {
+          return { blob: blob, filename: filename };
+        });
+      });
+    },
+    opsMailLogResend: function (id) {
+      return post('/api/ops/mailLog/' + encodeURIComponent(String(id)) + '/resend', {}).then(function (r) {
+        if (r && r.success === false) {
+          return Promise.reject(new Error(r.message || apiT('재전송 실패', 'Resend failed')));
+        }
+        return r && r.data != null ? r.data : r;
+      });
+    },
+    opsMailLogDelete: function (id) {
+      return del('/api/ops/mailLog/' + encodeURIComponent(String(id))).then(function (r) {
+        if (r && r.success === false) {
+          return Promise.reject(new Error(r.message || apiT('삭제 실패', 'Delete failed')));
+        }
+        return r && r.data != null ? r.data : r;
+      });
+    },
     opsTaxReportAccess: function () {
       return get('/api/ops/taxReport/access').then(function (r) { return r.data; });
     },

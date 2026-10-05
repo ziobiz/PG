@@ -27,6 +27,10 @@ public class MailSendLog {
     @Column(name = "body_preview", columnDefinition = "TEXT")
     private String bodyPreview;
 
+    /** 고객에게 보낸 HTML 본문(미리보기·PDF). 없으면 bodyPreview 평문으로 대체. */
+    @Column(name = "body_html", columnDefinition = "TEXT")
+    private String bodyHtml;
+
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
 
@@ -58,6 +62,8 @@ public class MailSendLog {
     public void setSubject(String subject) { this.subject = subject; }
     public String getBodyPreview() { return bodyPreview; }
     public void setBodyPreview(String bodyPreview) { this.bodyPreview = bodyPreview; }
+    public String getBodyHtml() { return bodyHtml; }
+    public void setBodyHtml(String bodyHtml) { this.bodyHtml = bodyHtml; }
     public String getErrorMessage() { return errorMessage; }
     public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
     public String getPgTrnId() { return pgTrnId; }

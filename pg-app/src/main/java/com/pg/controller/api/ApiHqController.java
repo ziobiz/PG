@@ -468,9 +468,11 @@ public class ApiHqController {
                     m.put("extSettleMode", p.getExtSettleMode() != null ? p.getExtSettleMode() : "OFF");
                     m.put("extSettleLag", p.getExtSettleLag() != null ? p.getExtSettleLag() : "");
                     m.put("extSettleBatchTime", p.getExtSettleBatchTime() != null ? p.getExtSettleBatchTime().toString() : "");
+                    m.put("acquirerUseYn", p.getAcquirerUseYn() != null ? p.getAcquirerUseYn() : "N");
                     m.put("acquirerNm", p.getAcquirerNm() != null ? p.getAcquirerNm() : "");
                     m.put("acquirerTel", p.getAcquirerTel() != null ? p.getAcquirerTel() : "");
                     m.put("acquirerEmail", p.getAcquirerEmail() != null ? p.getAcquirerEmail() : "");
+                    m.put("paymentSwitcherUseYn", p.getPaymentSwitcherUseYn() != null ? p.getPaymentSwitcherUseYn() : "N");
                     m.put("paymentSwitcherNm", p.getPaymentSwitcherNm() != null ? p.getPaymentSwitcherNm() : "");
                     m.put("paymentSwitcherTel", p.getPaymentSwitcherTel() != null ? p.getPaymentSwitcherTel() : "");
                     m.put("paymentSwitcherEmail", p.getPaymentSwitcherEmail() != null ? p.getPaymentSwitcherEmail() : "");
@@ -651,9 +653,11 @@ public class ApiHqController {
             data.put("message", "저장되었습니다.");
             data.put("id", entity.getId());
             data.put("pgCd", entity.getPgCd());
+            data.put("acquirerUseYn", entity.getAcquirerUseYn() != null ? entity.getAcquirerUseYn() : "N");
             data.put("acquirerNm", entity.getAcquirerNm() != null ? entity.getAcquirerNm() : "");
             data.put("acquirerTel", entity.getAcquirerTel() != null ? entity.getAcquirerTel() : "");
             data.put("acquirerEmail", entity.getAcquirerEmail() != null ? entity.getAcquirerEmail() : "");
+            data.put("paymentSwitcherUseYn", entity.getPaymentSwitcherUseYn() != null ? entity.getPaymentSwitcherUseYn() : "N");
             data.put("paymentSwitcherNm", entity.getPaymentSwitcherNm() != null ? entity.getPaymentSwitcherNm() : "");
             data.put("paymentSwitcherTel", entity.getPaymentSwitcherTel() != null ? entity.getPaymentSwitcherTel() : "");
             data.put("paymentSwitcherEmail", entity.getPaymentSwitcherEmail() != null ? entity.getPaymentSwitcherEmail() : "");
@@ -864,12 +868,29 @@ public class ApiHqController {
     }
 
     private static void applyPgAgencyReceiptContactFields(PgAgency entity, Map<String, Object> body, boolean isUpdate) {
+        applyYnField(entity::setAcquirerUseYn, body, "acquirerUseYn", isUpdate, "N");
         applyOptionalTrimmedField(entity::setAcquirerNm, body, "acquirerNm", isUpdate);
         applyOptionalTrimmedField(entity::setAcquirerTel, body, "acquirerTel", isUpdate);
         applyOptionalTrimmedField(entity::setAcquirerEmail, body, "acquirerEmail", isUpdate);
+        applyYnField(entity::setPaymentSwitcherUseYn, body, "paymentSwitcherUseYn", isUpdate, "N");
         applyOptionalTrimmedField(entity::setPaymentSwitcherNm, body, "paymentSwitcherNm", isUpdate);
         applyOptionalTrimmedField(entity::setPaymentSwitcherTel, body, "paymentSwitcherTel", isUpdate);
         applyOptionalTrimmedField(entity::setPaymentSwitcherEmail, body, "paymentSwitcherEmail", isUpdate);
+    }
+
+    private static void applyYnField(java.util.function.Consumer<String> setter,
+                                     Map<String, Object> body,
+                                     String key,
+                                     boolean isUpdate,
+                                     String defaultYn) {
+        if (!body.containsKey(key)) {
+            if (!isUpdate) {
+                setter.accept(defaultYn);
+            }
+            return;
+        }
+        String v = hqStr(body, key);
+        setter.accept(v != null && "Y".equalsIgnoreCase(v.trim()) ? "Y" : "N");
     }
 
     private static void applyOptionalTrimmedField(java.util.function.Consumer<String> setter,

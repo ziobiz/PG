@@ -47,29 +47,31 @@ public final class TransactionReceiptHtmlRenderer {
                 <html lang="en">
                 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
                 <body style="margin:0;padding:0;background:#f0f4f8;font-family:Segoe UI,Helvetica,Arial,sans-serif;">
-                <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="background:#f0f4f8;padding:24px 12px;">
-                <tr><td align="center">
-                <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border:1px solid #2563eb;border-radius:12px;overflow:hidden;">
-                <tr><td style="padding:20px 24px 8px 24px;">
-                  <table role="presentation" width="100%%"><tr>
-                    <td style="font-size:13px;font-weight:700;color:#1e3a5f;">ICOPAY</td>
-                    <td align="right"><span style="display:inline-block;background:%s;color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:4px;">%s</span></td>
-                  </tr></table>
+                <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" class="pg-receipt-outer" style="background:#f0f4f8;padding:24px 12px;">
+                <tr><td class="pg-receipt-outer-cell" align="center" style="text-align:center;">
+                <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" class="pg-receipt-card" style="width:100%%;max-width:520px;margin:0 auto;background:#ffffff;border:1px solid #2563eb;border-radius:12px;overflow:hidden;text-align:left;">
+                <tr><td class="pg-receipt-pad pg-receipt-header-pad" style="padding:20px 24px 8px 24px;text-align:left;">
+                  <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" class="pg-receipt-header-row" style="width:100%%;">
+                    <tr>
+                      <td class="pg-receipt-brand" width="50%%" align="left" style="width:50%%;font-size:13px;font-weight:700;color:#1e3a5f;text-align:left;vertical-align:middle;">ICOPAY</td>
+                      <td class="pg-receipt-badge" width="50%%" align="right" style="width:50%%;text-align:right;vertical-align:middle;"><span class="pg-receipt-badge-pill" style="display:inline-block;background:%s;color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:4px;">%s</span></td>
+                    </tr>
+                  </table>
                 </td></tr>
-                <tr><td style="padding:8px 24px 20px 24px;border-bottom:2px solid %s;text-align:center;">
-                  <div style="font-size:32px;font-weight:700;color:%s;letter-spacing:0.02em;">%s</div>
+                <tr><td class="pg-receipt-amount" align="center" style="padding:8px 24px 20px 24px;border-bottom:2px solid %s;text-align:center;">
+                  <div class="pg-receipt-amount-value" align="center" style="font-size:32px;font-weight:700;color:%s;letter-spacing:0.02em;text-align:center;">%s</div>
                 </td></tr>
-                <tr><td style="padding:20px 24px 8px 24px;">
-                  <div style="font-size:11px;font-weight:700;color:#6b7280;margin-bottom:12px;letter-spacing:0.08em;text-transform:uppercase;">%s</div>
+                <tr><td class="pg-receipt-pad" style="padding:20px 24px 8px 24px;text-align:left;">
+                  <div class="pg-receipt-section-title" style="font-size:11px;font-weight:700;color:#6b7280;margin-bottom:12px;letter-spacing:0.08em;text-transform:uppercase;text-align:left;">%s</div>
                   %s
                 </td></tr>
-                <tr><td style="padding:8px 24px 24px 24px;">
-                  <div style="font-size:11px;font-weight:700;color:#6b7280;margin-bottom:10px;letter-spacing:0.08em;text-transform:uppercase;">%s</div>
+                <tr><td class="pg-receipt-pad" style="padding:8px 24px 24px 24px;text-align:left;">
+                  <div class="pg-receipt-section-title" style="font-size:11px;font-weight:700;color:#6b7280;margin-bottom:10px;letter-spacing:0.08em;text-transform:uppercase;text-align:left;">%s</div>
                   <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border-radius:8px;border:1px solid #e5e7eb;">
                     %s
                   </table>
                 </td></tr>
-                <tr><td style="padding:12px 24px 20px 24px;background:#1f2937;color:#9ca3af;font-size:11px;text-align:center;">
+                <tr><td class="pg-receipt-footer" style="padding:12px 24px 20px 24px;background:#1f2937;color:#9ca3af;font-size:11px;text-align:center;">
                   ICOPAY Payment Services
                 </td></tr>
                 </table>
@@ -149,9 +151,9 @@ public final class TransactionReceiptHtmlRenderer {
         }
         String valueHtml = boldValue ? formatMultilineContactHtml(value, true) : formatMultilineContactHtml(value, false);
         rows.append("""
-                <tr><td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;">
-                  <div style="font-size:10px;font-weight:700;color:#6b7280;margin-bottom:3px;letter-spacing:0.06em;text-transform:uppercase;">%s</div>
-                  <div style="font-size:13px;color:#111827;line-height:1.45;word-break:break-word;">%s</div>
+                <tr><td class="pg-receipt-cell" style="padding:10px 14px;border-bottom:1px solid #e5e7eb;text-align:left;">
+                  <div class="pg-receipt-row-label" style="font-size:10px;font-weight:700;color:#6b7280;margin-bottom:3px;letter-spacing:0.06em;text-transform:uppercase;text-align:left;">%s</div>
+                  <div class="pg-receipt-row-value" style="font-size:13px;color:#111827;line-height:1.45;word-break:break-word;text-align:left;">%s</div>
                 </td></tr>
                 """.formatted(escape(label), valueHtml));
     }
@@ -162,9 +164,9 @@ public final class TransactionReceiptHtmlRenderer {
         }
         String valueHtml = boldValue ? formatMultilineContactHtml(value, true) : formatMultilineContactHtml(value, false);
         rows.append("""
-                <tr><td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;">
-                  <div style="font-size:10px;font-weight:600;color:#6b7280;margin-bottom:3px;letter-spacing:0.04em;text-transform:uppercase;">%s</div>
-                  <div style="font-size:13px;color:#111827;word-break:break-word;">%s</div>
+                <tr><td class="pg-receipt-cell" style="padding:10px 14px;border-bottom:1px solid #e5e7eb;text-align:left;">
+                  <div class="pg-receipt-row-label" style="font-size:10px;font-weight:600;color:#6b7280;margin-bottom:3px;letter-spacing:0.04em;text-transform:uppercase;text-align:left;">%s</div>
+                  <div class="pg-receipt-row-value" style="font-size:13px;color:#111827;word-break:break-word;text-align:left;">%s</div>
                 </td></tr>
                 """.formatted(escape(label), valueHtml));
     }

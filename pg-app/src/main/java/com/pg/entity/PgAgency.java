@@ -133,6 +133,9 @@ public class PgAgency {
     private LocalTime extSettleBatchTime;
 
     /** 거래명세서 — 카드매입사(Acquirer) */
+    @Column(name = "acquirer_use_yn", length = 1)
+    private String acquirerUseYn;
+
     @Column(name = "acquirer_nm", length = 200)
     private String acquirerNm;
 
@@ -143,6 +146,9 @@ public class PgAgency {
     private String acquirerEmail;
 
     /** 거래명세서 — 결제중계사(Payment Switcher) */
+    @Column(name = "payment_switcher_use_yn", length = 1)
+    private String paymentSwitcherUseYn;
+
     @Column(name = "payment_switcher_nm", length = 200)
     private String paymentSwitcherNm;
 
@@ -253,12 +259,16 @@ public class PgAgency {
     public void setExtSettleLag(Integer extSettleLag) { this.extSettleLag = extSettleLag; }
     public LocalTime getExtSettleBatchTime() { return extSettleBatchTime; }
     public void setExtSettleBatchTime(LocalTime extSettleBatchTime) { this.extSettleBatchTime = extSettleBatchTime; }
+    public String getAcquirerUseYn() { return acquirerUseYn; }
+    public void setAcquirerUseYn(String acquirerUseYn) { this.acquirerUseYn = acquirerUseYn; }
     public String getAcquirerNm() { return acquirerNm; }
     public void setAcquirerNm(String acquirerNm) { this.acquirerNm = acquirerNm; }
     public String getAcquirerTel() { return acquirerTel; }
     public void setAcquirerTel(String acquirerTel) { this.acquirerTel = acquirerTel; }
     public String getAcquirerEmail() { return acquirerEmail; }
     public void setAcquirerEmail(String acquirerEmail) { this.acquirerEmail = acquirerEmail; }
+    public String getPaymentSwitcherUseYn() { return paymentSwitcherUseYn; }
+    public void setPaymentSwitcherUseYn(String paymentSwitcherUseYn) { this.paymentSwitcherUseYn = paymentSwitcherUseYn; }
     public String getPaymentSwitcherNm() { return paymentSwitcherNm; }
     public void setPaymentSwitcherNm(String paymentSwitcherNm) { this.paymentSwitcherNm = paymentSwitcherNm; }
     public String getPaymentSwitcherTel() { return paymentSwitcherTel; }

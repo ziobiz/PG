@@ -6,13 +6,280 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '4.39';
+  var CURRENT_LIVE = '4.50';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '4.50',
+      kind: 'minor',
+      date: '2026-10-01',
+      items: {
+        KO: [
+          '거래명세서 PDF 상단: ICOPAY 왼쪽·상태배지 오른쪽·금액 가운데 — 미리보기와 동일 정렬로 수정'
+        ],
+        EN: [
+          'Receipt PDF header: ICOPAY left, status badge right, amount centered — same as Preview'
+        ],
+        JP: [
+          '取引明細PDF上部: ICOPAY左・状態バッジ右・金額中央 — プレビューと同じ配置'
+        ],
+        CH: [
+          '交易明细 PDF 顶部：ICOPAY 居左、状态徽章居右、金额居中 — 与预览一致'
+        ],
+        TH: [
+          'หัว PDF ใบเสร็จ: ICOPAY ซ้าย ป้ายสถานะขวา จำนวนเงินกลาง — เหมือนตัวอย่าง'
+        ]
+      }
+    },
+    {
+      version: '4.49',
+      kind: 'minor',
+      date: '2026-10-01',
+      items: {
+        KO: [
+          '거래명세서 미리보기: 카드 폭을 수정 전(max 520px)으로 복원. PDF 다운로드 폭은 현행(약 70%) 유지'
+        ],
+        EN: [
+          'Receipt Preview: restore card width (max 520px). PDF download width stays as-is (~70%)'
+        ],
+        JP: [
+          '取引明細プレビュー: カード幅を変更前(max 520px)に復元。PDFダウンロード幅は現状維持'
+        ],
+        CH: [
+          '交易明细预览：卡片宽度恢复为修改前(max 520px)。PDF 下载宽度保持现状'
+        ],
+        TH: [
+          'ตัวอย่างใบเสร็จ: คืนความกว้างการ์ดเท่าเดิม (max 520px) ความกว้าง PDF ดาวน์โหลดคงเดิม'
+        ]
+      }
+    },
+    {
+      version: '4.48',
+      kind: 'minor',
+      date: '2026-10-01',
+      items: {
+        KO: [
+          '거래명세서 Acquirer·Switcher 활성/비활성·가맹 운영 PG 매칭: ElementPay 전용이 아니라 JPAY·ChillPay·Eximbay·ILK·ox·향후 추가 PG 전부 동일 규칙'
+        ],
+        EN: [
+          'Receipt Acquirer/Switcher Active/Inactive and merchant PG binding match: same for all PGs (not ElementPay-only)'
+        ],
+        JP: [
+          '取引明細 Acquirer・Switcher 有効/無効・加盟運用PG照合: ElementPay専用ではなく全PG同一'
+        ],
+        CH: [
+          '交易明细 Acquirer/Switcher 启用/停用与商户运营 PG 匹配：全支付机构同一规则（非 ElementPay 专用）'
+        ],
+        TH: [
+          'ใบเสร็จ Acquirer/Switcher เปิด/ปิด และการจับคู่ PG ของร้าน: ใช้กฎเดียวกันทุก PG ไม่เฉพาะ ElementPay'
+        ]
+      }
+    },
+    {
+      version: '4.47',
+      kind: 'minor',
+      date: '2026-10-01',
+      items: {
+        KO: [
+          '거래명세서 미리보기·PDF: 표 폭 30% 축소·페이지 가운데 배치, 금액은 표 안 가운데 정렬'
+        ],
+        EN: [
+          'Receipt Preview/PDF: card width −30%, centered on page; amount centered in the card'
+        ],
+        JP: [
+          '取引明細プレビュー・PDF: 表幅30%縮小・ページ中央配置、金額は表内中央'
+        ],
+        CH: [
+          '交易明细预览/PDF：表格宽度缩小30%、页面居中，金额在表内居中'
+        ],
+        TH: [
+          'ตัวอย่าง/PDF ใบเสร็จ: ลดความกว้างตาราง 30% จัดกลางหน้า จำนวนเงินอยู่กลางในตาราง'
+        ]
+      }
+    },
+    {
+      version: '4.46',
+      kind: 'minor',
+      date: '2026-10-01',
+      items: {
+        KO: [
+          '거래명세서 Acquirer·Switcher: 거래 van(ELEMENTPAY) 대신 가맹 운영 PG(ELEMENTPAY DPL 등) 설정을 우선 적용 — 활성인데 안 보이던 문제 수정'
+        ],
+        EN: [
+          'Receipt Acquirer/Switcher: prefer merchant operational PG row (e.g. ELEMENTPAY DPL) over generic van ELEMENTPAY'
+        ],
+        JP: [
+          '取引明細 Acquirer・Switcher: 取引vanではなく加盟店の運用PG設定（ELEMENTPAY DPL等）を優先'
+        ],
+        CH: [
+          '交易明细 Acquirer/Switcher：优先使用商户运营 PG（如 ELEMENTPAY DPL）而非通用 van'
+        ],
+        TH: [
+          'ใบเสร็จ Acquirer/Switcher: ใช้ PG ที่ร้านตั้งค่า (เช่น ELEMENTPAY DPL) ก่อน van ทั่วไป'
+        ]
+      }
+    },
+    {
+      version: '4.45',
+      kind: 'minor',
+      date: '2026-10-01',
+      items: {
+        KO: [
+          '결제대행사 설정: 거래명세서 Acquirer·Payment Switcher에 활성/비활성 드롭다운 추가',
+          '활성만 메일·PDF·미리보기에 표시. 비활성 시 명칭·전화·이메일 입력칸 회색 비활성(값은 유지)'
+        ],
+        EN: [
+          'PG agency: Active/Inactive dropdown for receipt Acquirer and Payment Switcher',
+          'Only Active rows appear on email/PDF/preview. Inactive grays out name/phone/email (values kept)'
+        ],
+        JP: [
+          '決済代行設定: 取引明細 Acquirer・Payment Switcher に有効/無効ドロップダウン',
+          '有効のみメール・PDF・プレビュー表示。無効時は名称・電話・メールを灰色で無効化（値は保持）'
+        ],
+        CH: [
+          '支付机构设置：交易明细 Acquirer/Payment Switcher 增加启用/停用下拉',
+          '仅启用显示于邮件/PDF/预览；停用时名称/电话/邮箱灰显（保留值）'
+        ],
+        TH: [
+          'ตั้งค่า PG: เพิ่มเมนูเปิด/ปิด สำหรับ Acquirer และ Payment Switcher ในใบเสร็จ',
+          'เฉพาะเปิดใช้จึงแสดงในอีเมล/PDF/ตัวอย่าง ปิดใช้จะทำช่องชื่อ/โทร/อีเมลเป็นสีเทา (เก็บค่าไว้)'
+        ]
+      }
+    },
+    {
+      version: '4.44',
+      kind: 'minor',
+      date: '2026-10-01',
+      items: {
+        KO: [
+          '메일 PDF: 미리보기와 동일하게 왼쪽 정렬·글자 축소·A4 한 장 맞춤',
+          'PDF 생성 속도 개선(폰트 캐시·subset 임베드)'
+        ],
+        EN: [
+          'Mail PDF: left-align like Preview, smaller type, fit one A4 page',
+          'Faster PDF generation (font cache + subset embed)'
+        ],
+        JP: [
+          'メールPDF: プレビューと同じ左寄せ・文字縮小・A41ページ',
+          'PDF生成高速化（フォントキャッシュ・subset）'
+        ],
+        CH: [
+          '邮件 PDF：与预览相同左对齐、缩小字号、尽量一页 A4',
+          '加快 PDF 生成（字体缓存与 subset）'
+        ],
+        TH: [
+          'PDF อีเมล: ชิดซ้ายเหมือนตัวอย่าง ตัวอักษรเล็กลง พอดี A4 หน้าเดียว',
+          'สร้าง PDF เร็วขึ้น (แคชฟอนต์ + subset)'
+        ]
+      }
+    },
+    {
+      version: '4.43',
+      kind: 'minor',
+      date: '2026-10-01',
+      items: {
+        KO: [
+          '메일관리 미리보기·PDF: 영수증은 저장된 HTML 대신 현재 결제대행사(Acquirer 등)·총판·가맹 설정으로 재생성 — 설정 변경 후 바로 반영(쿠키 문제 아님)',
+          '미리보기와 PDF는 동일 HTML 경로 사용. PDF 다국어 폰트 임베드(subset 해제)로 글자 깨짐 보강'
+        ],
+        EN: [
+          'Mail Preview/PDF: receipt HTML is rebuilt from current Acquirer/PG/distributor/merchant settings (not a stale snapshot; not a cookie issue)',
+          'Preview and PDF share the same HTML. Stronger Unicode font embed for PDF'
+        ],
+        JP: [
+          'メール管理プレビュー・PDF: 領収書は保存HTMLではなく現行のAcquirer等設定から再生成（クッキー問題ではない）',
+          'プレビューとPDFは同一HTML。PDF多言語フォント埋め込みを強化'
+        ],
+        CH: [
+          '邮件预览/PDF：收据按当前收单行等设置重新生成（非缓存快照，非 Cookie）',
+          '预览与 PDF 同一 HTML；加强 PDF 多语言字体嵌入'
+        ],
+        TH: [
+          'ตัวอย่าง/PDF อีเมล: สร้างใบเสร็จใหม่จากตั้งค่า Acquirer ปัจจุบัน (ไม่ใช่คุกกี้)',
+          'ตัวอย่างกับ PDF ใช้ HTML เดียวกัน และฝังฟอนต์หลายภาษาใน PDF'
+        ]
+      }
+    },
+    {
+      version: '4.42',
+      kind: 'minor',
+      date: '2026-10-01',
+      items: {
+        KO: [
+          '메일관리 PDF: 한글·일어·중국어·태국어 폰트 임베드로 영수증 글자 깨짐(#) 수정',
+          'PDF 파일명: 일자_구분(거래번호) 형식 (예: 20261001_RECEIPT_25621335.pdf)'
+        ],
+        EN: [
+          'Mail PDF: embed Unicode fonts so KOR/JPN/CHN/THA receipt text no longer shows as #',
+          'PDF filename: date_kind(_txnId) e.g. 20261001_RECEIPT_25621335.pdf'
+        ],
+        JP: [
+          'メール管理PDF: 多言語フォント埋め込みで領収書の文字化け(#)を修正',
+          'PDFファイル名: 日付_区分(取引番号)形式（例: 20261001_RECEIPT_25621335.pdf）'
+        ],
+        CH: [
+          '邮件管理 PDF：嵌入多语言字体，修复收据文字显示为 #',
+          'PDF 文件名：日期_类型(交易号)，如 20261001_RECEIPT_25621335.pdf'
+        ],
+        TH: [
+          'PDF บันทึกอีเมล: ฝังฟอนต์หลายภาษา แก้ตัวอักษรใบเสร็จเป็น #',
+          'ชื่อไฟล์ PDF: วันที่_ประเภท(_เลขอ้างอิง) เช่น 20261001_RECEIPT_25621335.pdf'
+        ]
+      }
+    },
+    {
+      version: '4.41',
+      kind: 'minor',
+      date: '2026-10-01',
+      items: {
+        KO: [
+          '메일관리 미리보기·PDF: HTML이 없는 과거 영수증 로그도 거래번호로 디자인 영수증 HTML을 재생성해 표시'
+        ],
+        EN: [
+          'Mail Preview/PDF: rebuild designed receipt HTML from transaction ID when older logs lack stored HTML'
+        ],
+        JP: [
+          'メール管理プレビュー・PDF: HTML未保存の過去領収書ログも取引番号からデザインHTMLを再生成して表示'
+        ],
+        CH: [
+          '邮件管理预览/PDF：无 HTML 的旧收据日志也按交易号重新生成设计版收据 HTML'
+        ],
+        TH: [
+          'ดูตัวอย่าง/PDF เมล: บันทึกใบเสร็จเก่าที่ไม่มี HTML สร้าง HTML ใบเสร็จดีไซน์ใหม่จากเลขธุรกรรม'
+        ]
+      }
+    },
+    {
+      version: '4.40',
+      kind: 'minor',
+      date: '2026-10-01',
+      items: {
+        KO: [
+          '운영관리 → 메일관리: 「본문」열 글자 축소, 오류·본문 사이「성격」(영수증/메일취소), 실행자 옆「비고」에 미리보기·PDF·재전송·삭제',
+          '영수증 자동발송 실행자는 AUTO. 신규 발송부터 HTML 본문 보관(미리보기·PDF)'
+        ],
+        EN: [
+          'Ops → Mail: smaller Body column; Nature (receipt/cancel) between Error and Body; Remarks with Preview/PDF/Resend/Delete beside Actor',
+          'Auto receipt sends show actor AUTO. New sends store HTML for preview/PDF'
+        ],
+        JP: [
+          '運営管理→メール管理:「本文」文字縮小、誤りと本文の間に「性質」(領収書/メール取消)、実行者横「備考」にプレビュー・PDF・再送・削除',
+          '領収書自動送信の実行者は AUTO。新規送信から HTML 本文を保管(プレビュー・PDF)'
+        ],
+        CH: [
+          '运营管理→邮件管理：“正文”字号缩小；错误与正文之间“性质”(收据/邮件取消)；执行者旁“备注”含预览·PDF·重发·删除',
+          '收据自动发送执行者显示 AUTO。新发送起保存 HTML（预览·PDF）'
+        ],
+        TH: [
+          'จัดการปฏิบัติการ→เมล: คอลัมน์เนื้อหาตัวอักษรเล็กลง เพิ่ม “ประเภท”(ใบเสร็จ/ยกเลิกเมล) ระหว่างข้อผิดพลาดกับเนื้อหา และ “หมายเหตุ” ข้างผู้ดำเนินการ มีดูตัวอย่าง·PDF·ส่งอีก·ลบ',
+          'ส่งใบเสร็จอัตโนมัติแสดงผู้ดำเนินการ AUTO เก็บ HTML ตั้งแต่ส่งใหม่ (ดูตัวอย่าง·PDF)'
+        ]
+      }
+    },
     {
       version: '4.39',
       kind: 'minor',

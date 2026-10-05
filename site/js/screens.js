@@ -7834,7 +7834,15 @@
       paginationSizeOptions: [20, 50, 100, 200],
       searchRows: [[
         { label: '구분', type: 'select', name: 'searchMailKind', col: 2,
-          options: [{ v: '', t: '전체' }, { v: 'VOID_TEST', t: 'VOID 테스트' }, { v: 'VOID_TXN', t: '이메일 무효(거래)' }] },
+          options: [
+            { v: '', t: '전체' },
+            { v: 'RECEIPT_TXN', t: '거래명세서(승인)' },
+            { v: 'RECEIPT_REFUND', t: '거래명세서(환불)' },
+            { v: 'RECEIPT_VOID', t: '거래명세서(무효)' },
+            { v: 'RECEIPT_TEST', t: '거래명세서(테스트)' },
+            { v: 'VOID_TEST', t: 'VOID 테스트' },
+            { v: 'VOID_TXN', t: '이메일 무효(거래)' }
+          ] },
         { label: '상태', type: 'select', name: 'searchMailStatus', col: 2,
           options: [{ v: '', t: '전체' }, { v: 'SUCCESS', t: '성공' }, { v: 'FAIL', t: '실패' }] },
         { label: '등록일', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
@@ -7851,9 +7859,11 @@
         { key: 'toAddress', label: '수신' },
         { key: 'subject', label: '제목' },
         { key: 'errorMessage', label: '오류' },
-        { key: 'bodyPreview', label: '본문 미리보기' },
+        { key: 'mailNature', label: '성격', thClass: 'text-center text-nowrap' },
+        { key: 'bodyPreview', label: '본문', tdClass: 'small text-muted ops-mail-body-cell', columnGuideLabel: '발송 본문 요약' },
         { key: 'pgTrnId', label: '거래번호' },
-        { key: 'actorUsername', label: '실행자' }
+        { key: 'actorUsername', label: '실행자', thClass: 'text-center text-nowrap' },
+        { key: '_mailRemarkActions', type: 'mailLogRemarkActions', label: '비고', thClass: 'text-center text-nowrap', columnGuideLabel: '미리보기·PDF·재전송·삭제' }
       ]
     },
     '/ops/taxReport': {
