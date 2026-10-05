@@ -1,5 +1,7 @@
 package com.pg.controller;
 
+import com.pg.crypto.CryptoCheckoutService;
+import com.pg.entity.MerchantCryptoConfig;
 import com.pg.entity.OrgUnit;
 import com.pg.integration.pg.PgVendor;
 import com.pg.repository.OrgUnitRepository;
@@ -12,6 +14,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * PG 무관 중립 결제창 라우트 — {@code /checkout/{compId}}.
@@ -25,13 +30,16 @@ public class NeutralCheckoutRouteController {
     private final OrgUnitRepository orgUnitRepository;
     private final ChillPayService chillPayService;
     private final UrlPayCheckoutMoveService urlPayCheckoutMoveService;
+    private final CryptoCheckoutService cryptoCheckoutService;
 
     public NeutralCheckoutRouteController(OrgUnitRepository orgUnitRepository,
                                           ChillPayService chillPayService,
-                                          UrlPayCheckoutMoveService urlPayCheckoutMoveService) {
+                                          UrlPayCheckoutMoveService urlPayCheckoutMoveService,
+                                          CryptoCheckoutService cryptoCheckoutService) {
         this.orgUnitRepository = orgUnitRepository;
         this.chillPayService = chillPayService;
         this.urlPayCheckoutMoveService = urlPayCheckoutMoveService;
+        this.cryptoCheckoutService = cryptoCheckoutService;
     }
 
     @GetMapping("/checkout/{compId}")
@@ -48,18 +56,28 @@ public class NeutralCheckoutRouteController {
                 }
             }
         }
-        return "forward:" + resolvePagePath(compId);
+        return "forward:" + resolvePagePath(compId, request);
     }
 
     /** 운영 WEB PG → 실제 결제 페이지(static). 미확인/기본은 통합 결제창(pay.html). */
-    private String resolvePagePath(String compId) {
+    private String resolvePagePath(String compId, HttpServletRequest request) {
         String mid = compId != null ? compId.trim() : "";
         String q = mid.isEmpty() ? "" : ("?m=" + URLEncoder.encode(mid, StandardCharsets.UTF_8));
+        String session = request != null ? nz(request.getParameter("session")) : "";
+        if (!session.isEmpty()) {
+            q = q + (q.contains("?") ? "&" : "?") + "session=" + URLEncoder.encode(session, StandardCharsets.UTF_8);
+        }
         try {
             Long orgUnitId = orgUnitRepository.findByCode(mid)
                     .map(OrgUnit::getId)
                     .orElse(null);
             if (orgUnitId != null) {
+                if (session.startsWith("cr_")
+                        || wantsCryptoMeans(request)
+                        || isCryptoOnlyMerchant(orgUnitId)
+                        || isCryptoSession(session)) {
+                    return "/crypto-pay.html" + q;
+                }
                 String opPg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
                 if (opPg != null && !opPg.isBlank()) {
                     if (PgVendor.isJpayFamily(opPg)) {
@@ -77,6 +95,9 @@ public class NeutralCheckoutRouteController {
                     if (PgVendor.isOxFamily(opPg)) {
                         return "/ox-pay.html" + q;
                     }
+                    if (PgVendor.isCryptoFamily(opPg)) {
+                        return "/crypto-pay.html" + q;
+                    }
                 }
             }
         } catch (RuntimeException ignore) {
@@ -84,5 +105,35 @@ public class NeutralCheckoutRouteController {
         }
         /* ChillPay 등: pay.html 은 m 있으면 /checkout 로 리다이렉트하므로, forward 시 루프 방지 플래그 */
         return "/pay.html" + (q.isEmpty() ? "?pgCheckoutFwd=1" : (q + "&pgCheckoutFwd=1"));
+    }
+
+    private boolean wantsCryptoMeans(HttpServletRequest request) {
+        if (request == null) {
+            return false;
+        }
+        String means = nz(request.getParameter("payMeans"));
+        if (means.isEmpty()) {
+            means = nz(request.getParameter("means"));
+        }
+        return "CRYPTO".equalsIgnoreCase(means);
+    }
+
+    private boolean isCryptoOnlyMerchant(Long orgUnitId) {
+        Optional<MerchantCryptoConfig> cfg = cryptoCheckoutService.activeConfig(orgUnitId);
+        return cfg.isPresent()
+                && MerchantCryptoConfig.MEANS_CRYPTO.equalsIgnoreCase(cfg.get().getCheckoutMeans());
+    }
+
+    private boolean isCryptoSession(String session) {
+        if (session == null || session.isBlank()) {
+            return false;
+        }
+        Map<String, Object> r = cryptoCheckoutService.session(session);
+        Object ok = r.get("success");
+        return ok instanceof Boolean && (Boolean) ok;
+    }
+
+    private static String nz(String s) {
+        return s == null ? "" : s.trim();
     }
 }

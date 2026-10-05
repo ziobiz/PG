@@ -66,6 +66,9 @@ public class SecurityConfig {
                 AntPathRequestMatcher.antMatcher("/ox-pay"),
                 AntPathRequestMatcher.antMatcher("/ox-pay/**"),
                 AntPathRequestMatcher.antMatcher("/ox-pay.html"),
+                AntPathRequestMatcher.antMatcher("/crypto-pay"),
+                AntPathRequestMatcher.antMatcher("/crypto-pay/**"),
+                AntPathRequestMatcher.antMatcher("/crypto-pay.html"),
                 /* PG 무관 중립 결제창 — 서버 forward 로 실제 PG 페이지를 노출 없이 제공 */
                 AntPathRequestMatcher.antMatcher("/checkout"),
                 AntPathRequestMatcher.antMatcher("/checkout/**"),
@@ -110,6 +113,7 @@ public class SecurityConfig {
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/elementpay/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/ilk/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/url/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/crypto/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/split/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/open/pg-notify/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/middleware/notify/**")).permitAll()

@@ -23,6 +23,7 @@ public final class PageMenuCatalog {
         add(list, "/hq/paymentOrchestration", "M0118", "결제 라우팅", "본사정책");
         add(list, "/hq/urlPayDeploy", "M0122", "URL결제", "본사정책");
         add(list, "/hq/opsModeMng", "M0127", "태블릿 UX", "본사정책");
+        add(list, "/hq/cryptoSettings", "M0131", "크립토설정", "본사정책");
         add(list, "/hq/notifyEnv", "M0105", "노티 구성", "본사정책");
         add(list, "/hq/notifyMapping", "M0107", "필드 매핑", "본사정책");
         add(list, "/hq/notifyInbound", "M0121", "수령 로그", "본사정책");
@@ -58,6 +59,7 @@ public final class PageMenuCatalog {
         add(list, "/calc/chillPayTrList", "M0319", "통합내역", "결제관리");
         add(list, "/calc/dailyIntegrated", "M0326", "일별통합", "결제관리");
         add(list, "/calc/payList", "M0301", "결제내역", "결제관리");
+        add(list, "/calc/cryptoPayList", "M0335", "크립토내역", "결제관리");
         add(list, "/calc/dailyPay", "M0327", "일별결제", "결제관리");
         add(list, "/calc/paySuccessList", "M0315", "성공내역", "결제관리");
         add(list, "/calc/payFailList", "M0303", "실패내역", "결제관리");
@@ -75,6 +77,7 @@ public final class PageMenuCatalog {
         /* 정산관리 */
         add(list, "/calc/chillPaySettlementList", "M0421", "통합정산", "정산관리");
         add(list, "/calc/feeList", "M0406", "수수료내역", "정산관리");
+        add(list, "/settlement/cryptoPayoutQueue", "M0426", "크립토정산", "정산관리");
         add(list, "/calc/dailyFee", "M0425", "일별수수료", "정산관리");
         add(list, "/calc/exCalcList", "M0418", "정산실행", "정산관리");
         add(list, "/settlement/settlementResultDistribute", "M0423", "정산배포", "정산관리");

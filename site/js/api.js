@@ -1684,6 +1684,34 @@
       return post('/api/hq/merchant-sandbox/settings', body || {}).then(function (r) { return r.data; });
     },
 
+    hqCryptoSettings: function () {
+      return get('/api/hq/crypto/settings').then(function (r) { return r.data; });
+    },
+    hqCryptoCustodySave: function (body) {
+      return post('/api/hq/crypto/custody/save', body || {}).then(function (r) { return r.data; });
+    },
+    hqCryptoMerchantConfig: function (compId) {
+      return get('/api/hq/crypto/merchant-config', { compId: compId }).then(function (r) { return r.data; });
+    },
+    hqCryptoMerchantConfigSave: function (body) {
+      return post('/api/hq/crypto/merchant-config', body || {}).then(function (r) { return r.data; });
+    },
+    hqCryptoDeposits: function (params) {
+      return get('/api/hq/crypto/deposits', params).then(function (r) { return r.data; });
+    },
+    hqCryptoDepositConfirm: function (body) {
+      return post('/api/hq/crypto/deposits/confirm', body || {}).then(function (r) { return r.data; });
+    },
+    hqCryptoPayouts: function (params) {
+      return get('/api/hq/crypto/payouts', params).then(function (r) { return r.data; });
+    },
+    hqCryptoPayoutManualSent: function (body) {
+      return post('/api/hq/crypto/payouts/manual-sent', body || {}).then(function (r) { return r.data; });
+    },
+    hqCryptoPayoutAutoRun: function (body) {
+      return post('/api/hq/crypto/payouts/auto-run', body || {}).then(function (r) { return r.data; });
+    },
+
     hqMerchantApiDeploymentEnforce: function (body) {
       return post('/api/hq/merchant-api-deployment/credential/enforce', body || {}).then(function (r) { return r.data; });
     },

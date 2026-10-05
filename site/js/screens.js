@@ -7356,6 +7356,141 @@
         { key: 'completedAt', label: '완료일시' }
       ]
     },
+    '/hq/cryptoSettings': {
+      isForm: true,
+      formSections: [
+        {
+          title: '크립토설정',
+          notice: 'ICOPAY 수탁 주소·자산(USDT/USDC/EURC)·네트워크를 관리합니다. 가맹별 결제수단(카드/크립토/둘다)·정산모드(즉시/지연)·출금모드(반자동/자동)는 업체코드로 조회·저장합니다. 구매자·가맹 노출은 ICOPAY 중립입니다.',
+          rows: [
+            [{
+              type: 'customHtml',
+              col: 12,
+              html: function () {
+                return (
+                  '<div class="mb-3">' +
+                  '<label class="form-label" data-pg-ui-t="업체코드(가맹 설정)">업체코드(가맹 설정)</label>' +
+                  '<div class="input-group input-group-sm mb-2" style="max-width:28rem">' +
+                  '<input type="text" class="form-control" id="cryptoMerchCompId" placeholder="가맹 업체코드">' +
+                  '<button type="button" class="btn btn-outline-secondary" id="cryptoMerchLoadBtn" data-pg-ui-t="조회">조회</button>' +
+                  '<button type="button" class="btn btn-primary" id="cryptoMerchSaveBtn" data-pg-ui-t="저장">저장</button>' +
+                  '</div>' +
+                  '<div class="row g-2 mb-2">' +
+                  '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="사용">사용</label><select class="form-select form-select-sm" id="cryptoMerchUseYn"><option value="N">N</option><option value="Y">Y</option></select></div>' +
+                  '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="결제수단">결제수단</label><select class="form-select form-select-sm" id="cryptoMerchMeans"><option value="CARD">CARD</option><option value="CRYPTO">CRYPTO</option><option value="BOTH">BOTH</option></select></div>' +
+                  '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="정산모드">정산모드</label><select class="form-select form-select-sm" id="cryptoMerchSettle"><option value="SCHEDULED">SCHEDULED</option><option value="IMMEDIATE">IMMEDIATE</option></select></div>' +
+                  '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="출금모드">출금모드</label><select class="form-select form-select-sm" id="cryptoMerchPayout"><option value="MANUAL">MANUAL</option><option value="AUTO">AUTO</option></select></div>' +
+                  '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="홀드일수">홀드일수</label><input type="number" class="form-control form-control-sm" id="cryptoMerchHold" value="3"></div>' +
+                  '</div>' +
+                  '<div class="row g-2 mb-2">' +
+                  '<div class="col-md-4"><label class="form-label small" data-pg-ui-t="허용자산">허용자산</label><input type="text" class="form-control form-control-sm" id="cryptoMerchAssets" value="USDT,USDC,EURC"></div>' +
+                  '<div class="col-md-4"><label class="form-label small" data-pg-ui-t="허용네트워크">허용네트워크</label><input type="text" class="form-control form-control-sm" id="cryptoMerchNets" value="TRC20,ERC20"></div>' +
+                  '</div>' +
+                  '<label class="form-label small" data-pg-ui-t="판매자 지갑 JSON">판매자 지갑 JSON</label>' +
+                  '<textarea class="form-control form-control-sm font-monospace mb-3" id="cryptoMerchSellerJson" rows="3" placeholder=\'{"USDT_TRC20":"T...","ERC20":"0x..."}\'></textarea>' +
+                  '</div>' +
+                  '<hr>' +
+                  '<h6 class="mb-2" data-pg-ui-t="수탁 주소">수탁 주소</h6>' +
+                  '<div class="table-responsive mb-2"><table class="table table-sm table-bordered" id="grid_cryptoCustody">' +
+                  '<thead class="table-light"><tr>' +
+                  '<th data-pg-ui-t="ID">ID</th><th data-pg-ui-t="네트워크">네트워크</th><th data-pg-ui-t="자산">자산</th><th data-pg-ui-t="주소">주소</th><th data-pg-ui-t="라벨">라벨</th><th data-pg-ui-t="사용">사용</th>' +
+                  '</tr></thead><tbody id="cryptoCustodyTbody"></tbody></table></div>' +
+                  '<div class="row g-2 align-items-end">' +
+                  '<div class="col-md-2"><label class="form-label small">ID</label><input class="form-control form-control-sm" id="cryptoCustodyId" placeholder="신규 공란"></div>' +
+                  '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="네트워크">네트워크</label><input class="form-control form-control-sm" id="cryptoCustodyNet" value="TRC20"></div>' +
+                  '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="자산">자산</label><input class="form-control form-control-sm" id="cryptoCustodyAsset" value="USDT"></div>' +
+                  '<div class="col-md-3"><label class="form-label small" data-pg-ui-t="주소">주소</label><input class="form-control form-control-sm" id="cryptoCustodyAddr"></div>' +
+                  '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="라벨">라벨</label><input class="form-control form-control-sm" id="cryptoCustodyLabel"></div>' +
+                  '<div class="col-md-1"><button type="button" class="btn btn-sm btn-primary w-100" id="cryptoCustodySaveBtn" data-pg-ui-t="저장">저장</button></div>' +
+                  '</div>' +
+                  '<p class="small text-muted mt-3 mb-0" id="cryptoCatalogHint" data-pg-ui-t="자산·지갑 카탈로그는 서버 시드(USDT/USDC/EURC, 10개 지갑 파스텔)를 사용합니다.">자산·지갑 카탈로그는 서버 시드(USDT/USDC/EURC, 10개 지갑 파스텔)를 사용합니다.</p>'
+                );
+              }
+            }]
+          ]
+        }
+      ]
+    },
+    '/calc/cryptoPayList': {
+      searchRows: [
+        [
+          { label: '업체코드', type: 'text', name: 'searchCompId' },
+          { label: '상태', type: 'select', name: 'searchStatus', options: [
+            { v: '', t: '전체' },
+            { v: 'AWAITING_DEPOSIT', t: '입금대기' },
+            { v: 'CONFIRMED', t: '입금확정' },
+            { v: 'EXPIRED', t: '만료' },
+            { v: 'FAILED', t: '실패' }
+          ], size: 8 },
+          { type: 'searchBtn' }
+        ]
+      ],
+      summary: ['건수'],
+      buttons: [
+        { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
+        { id: 'cryptoDepositConfirmBtn', label: '입금확정(Tx)', cls: 'btn-warning' }
+      ],
+      columns: [
+        { key: '_chk', type: 'checkbox' },
+        { key: 'rowNo', label: '번호' },
+        { key: 'compId', label: '업체코드' },
+        { key: 'orderNo', label: '주문번호' },
+        { key: 'amount', label: '금액' },
+        { key: 'assetCode', label: '자산' },
+        { key: 'networkCode', label: '네트워크' },
+        { key: 'statusNm', label: '상태' },
+        { key: 'settleMode', label: '정산' },
+        { key: 'payoutMode', label: '출금' },
+        { key: 'depositTxHash', label: '입금Tx' },
+        { key: 'createdAt', label: '생성일시' },
+        { key: 'confirmedAt', label: '확정일시' }
+      ]
+    },
+    '/settlement/cryptoPayoutQueue': {
+      searchRows: [
+        [
+          { label: '업체코드', type: 'text', name: 'searchCompId' },
+          { label: '상태', type: 'select', name: 'searchStatus', options: [
+            { v: '', t: '전체' },
+            { v: 'HOLD', t: '홀드' },
+            { v: 'READY', t: '지급준비' },
+            { v: 'PROCESSING', t: '처리중' },
+            { v: 'SENT', t: '송금완료' },
+            { v: 'FAILED', t: '실패' }
+          ], size: 6 },
+          { label: '출금모드', type: 'select', name: 'searchPayoutMode', options: [
+            { v: '', t: '전체' },
+            { v: 'MANUAL', t: '반자동(MANUAL)' },
+            { v: 'AUTO', t: '자동(AUTO)' }
+          ], size: 6 },
+          { type: 'searchBtn' }
+        ]
+      ],
+      summary: ['건수'],
+      buttons: [
+        { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
+        { id: 'cryptoPayoutManualBtn', label: '반자동 Tx등록', cls: 'btn-warning' },
+        { id: 'cryptoPayoutAutoRunBtn', label: 'AUTO 실행', cls: 'btn-success' }
+      ],
+      columns: [
+        { key: '_chk', type: 'checkbox' },
+        { key: 'rowNo', label: '번호' },
+        { key: 'compId', label: '업체코드' },
+        { key: 'orderNo', label: '주문번호' },
+        { key: 'assetCode', label: '자산' },
+        { key: 'networkCode', label: '네트워크' },
+        { key: 'amountGross', label: '총액' },
+        { key: 'amountFee', label: '수수료' },
+        { key: 'amountNet', label: '지급액' },
+        { key: 'settleMode', label: '정산' },
+        { key: 'payoutMode', label: '출금' },
+        { key: 'statusNm', label: '상태' },
+        { key: 'sellerAddress', label: '판매자주소' },
+        { key: 'payoutTxHash', label: '출금Tx' },
+        { key: 'scheduledAt', label: '예정일시' },
+        { key: 'processedAt', label: '처리일시' }
+      ]
+    },
     '/noti/sandboxNotifyList': {
       searchRows: [
         [

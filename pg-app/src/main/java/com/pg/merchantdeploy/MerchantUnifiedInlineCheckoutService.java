@@ -1,5 +1,6 @@
 package com.pg.merchantdeploy;
 
+import com.pg.crypto.CryptoCheckoutService;
 import com.pg.integration.pg.PgVendor;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.service.ChillPayService;
@@ -32,6 +33,7 @@ public class MerchantUnifiedInlineCheckoutService {
     private final MerchantElementPayInlineCheckoutService elementPayInlineCheckoutService;
     private final MerchantIlkInlineCheckoutService ilkInlineCheckoutService;
     private final MerchantOxInlineCheckoutService oxInlineCheckoutService;
+    private final CryptoCheckoutService cryptoCheckoutService;
     private final MerchantInlineCheckoutTokenService tokenService;
     private final MerchantChatbotProductService productService;
     private final MerchantApiIntegrationChannelService integrationChannelService;
@@ -49,6 +51,7 @@ public class MerchantUnifiedInlineCheckoutService {
                                                 MerchantElementPayInlineCheckoutService elementPayInlineCheckoutService,
                                                 MerchantIlkInlineCheckoutService ilkInlineCheckoutService,
                                                 MerchantOxInlineCheckoutService oxInlineCheckoutService,
+                                                CryptoCheckoutService cryptoCheckoutService,
                                                 MerchantInlineCheckoutTokenService tokenService,
                                                 MerchantChatbotProductService productService,
                                                 MerchantApiIntegrationChannelService integrationChannelService,
@@ -64,6 +67,7 @@ public class MerchantUnifiedInlineCheckoutService {
         this.elementPayInlineCheckoutService = elementPayInlineCheckoutService;
         this.ilkInlineCheckoutService = ilkInlineCheckoutService;
         this.oxInlineCheckoutService = oxInlineCheckoutService;
+        this.cryptoCheckoutService = cryptoCheckoutService;
         this.tokenService = tokenService;
         this.productService = productService;
         this.integrationChannelService = integrationChannelService;
@@ -94,12 +98,20 @@ public class MerchantUnifiedInlineCheckoutService {
         }
 
         String opPg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
+        Map<String, Object> enriched = new LinkedHashMap<>(body != null ? body : Map.of());
+        enriched.put("buyerPrefill", IcipayBuyerContactUtil.toPublicMap(buyer));
+
+        String payMeans = firstStr(enriched, "payMeans", "checkoutMeans", "paymentMeans").toUpperCase();
+        boolean wantCrypto = "CRYPTO".equals(payMeans) || PgVendor.isCryptoFamily(opPg);
+        if (wantCrypto && cryptoCheckoutService.cryptoMeansAllowed(orgUnitId)) {
+            Map<String, Object> cryptoResult = cryptoCheckoutService.prepare(orgUnitId, enriched, request);
+            patchUnifiedPrepareResponse(cryptoResult, request, PgVendor.CRYPTO, orgUnitId);
+            return cryptoResult;
+        }
+
         if (opPg == null || opPg.isBlank()) {
             return fail("URL 결제 운영 PG가 설정되지 않았습니다.", "URL_PAYMENT_PG_MISSING");
         }
-
-        Map<String, Object> enriched = new LinkedHashMap<>(body != null ? body : Map.of());
-        enriched.put("buyerPrefill", IcipayBuyerContactUtil.toPublicMap(buyer));
 
         try {
             UrlPayChargeResolutionService.ResolvedCharge charge =
@@ -125,6 +137,8 @@ public class MerchantUnifiedInlineCheckoutService {
             result = ilkInlineCheckoutService.prepare(orgUnitId, enriched, request);
         } else if (PgVendor.isOxFamily(opPg)) {
             result = oxInlineCheckoutService.prepare(orgUnitId, enriched, request);
+        } else if (PgVendor.isCryptoFamily(opPg)) {
+            result = cryptoCheckoutService.prepare(orgUnitId, enriched, request);
         } else if (PgVendor.isChillPayFamily(opPg)) {
             result = chillpayInlineCheckoutService.prepare(orgUnitId, enriched, request);
         } else {
@@ -136,6 +150,9 @@ public class MerchantUnifiedInlineCheckoutService {
     }
 
     public Map<String, Object> readSession(String token, HttpServletRequest request) {
+        if (token != null && token.startsWith("cr_")) {
+            return cryptoCheckoutService.session(token);
+        }
         return tokenService.parseValid(token)
                 .map(session -> {
                     Map<String, Object> data = new LinkedHashMap<>(session.toPublicMap());
@@ -169,6 +186,16 @@ public class MerchantUnifiedInlineCheckoutService {
         }
         if (PgVendor.isOxFamily(opPg)) {
             return oxInlineCheckoutService.orderStatus(orgUnitId, orderNo);
+        }
+        if (PgVendor.isCryptoFamily(opPg)) {
+            return cryptoCheckoutService.status(null, orderNo, orgUnitId);
+        }
+        if (cryptoCheckoutService.cryptoMeansAllowed(orgUnitId)) {
+            Map<String, Object> cryptoSt = cryptoCheckoutService.status(null, orderNo, orgUnitId);
+            Object ok = cryptoSt.get("success");
+            if (ok instanceof Boolean && (Boolean) ok) {
+                return cryptoSt;
+            }
         }
         if (PgVendor.isChillPayFamily(opPg)) {
             return chillpayInlineCheckoutService.orderStatus(orgUnitId, orderNo);

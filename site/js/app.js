@@ -3511,6 +3511,9 @@
     '/calc/collateralList': { label: '담보금내역', parent: '정산관리' },
     '/settlement/collateralList': { label: '담보금내역', parent: '정산관리' },
     '/calc/sandboxPayList': { label: '샌드박스내역', parent: '결제관리' },
+    '/calc/cryptoPayList': { label: '크립토내역', parent: '결제관리 > 결제내역' },
+    '/settlement/cryptoPayoutQueue': { label: '크립토정산', parent: '정산관리 > 수수료내역' },
+    '/hq/cryptoSettings': { label: '크립토설정', parent: '본사설정' },
     '/noti/sandboxNotifyList': { label: '샌드박스통보', parent: '통보관리' },
     '/noti/notiUrlMng': { label: '결제통보 URL관리', parent: '통보관리' },
     '/noti/notiSendMngList': { label: '결제통보 전송관리', parent: '통보관리' },
@@ -16141,6 +16144,8 @@
       if (url === '/noti/notiUrlMng' || url === '/notify/payUrlMng') return api.notifyPayUrlMng(params);
       if (url === '/noti/notiSendMngList' || url === '/notify/paySendMng') return api.notifyPaySendMng(params);
       if (url === '/calc/sandboxPayList') return api.merchantSandboxTxns(params);
+      if (url === '/calc/cryptoPayList') return api.hqCryptoDeposits(params);
+      if (url === '/settlement/cryptoPayoutQueue') return api.hqCryptoPayouts(params);
       if (url === '/noti/sandboxNotifyList') return api.merchantSandboxNotifies(params);
       if (url === '/noti/notiCashReceiptUrlMng' || url === '/notify/cashReceiptUrlMng') return api.notifyCashReceiptUrlMng(params);
       if (url === '/noti/notiCashReceiptSendMngList' || url === '/notify/cashReceiptSendMng') return api.notifyCashReceiptSendMng(params);
@@ -19563,7 +19568,7 @@
       '/comp/compMngTree', '/comp/compInfoHistList', '/commission/commisionList',
       '/user/userMng', '/set/gridSetMng',
       '/calc/calcList', '/calc/calcGmList', '/calc/paySettlementHoldList', '/settlement/paySettlementHoldList', '/settlement/franchiseList', '/calc/feeList', '/settlement/feeList', '/calc/compPointMngList', '/settlement/recallMng', '/calc/balanceList', '/calc/unpaidMng', '/calc/exCalcList', '/settlement/execute', '/settlement/settlementResultDistribute', '/settlement/settlementResultHold', '/calc/collateralList', '/settlement/collateralList',
-      '/noti/notiUrlMng', '/noti/notiSendMngList', '/noti/sandboxNotifyList', '/calc/sandboxPayList', '/noti/notiCashReceiptUrlMng', '/noti/notiCashReceiptSendMngList',
+      '/noti/notiUrlMng', '/noti/notiSendMngList', '/noti/sandboxNotifyList', '/calc/sandboxPayList', '/calc/cryptoPayList', '/settlement/cryptoPayoutQueue', '/noti/notiCashReceiptUrlMng', '/noti/notiCashReceiptSendMngList',
       '/hq/pgApiMng', '/hq/permissionMng', '/hq/opsModeMng', '/hq/accountMng', '/risk/list', '/ops/integratedReport', '/ops/verifyReport', '/ops/inactiveCard', '/ops/agencyTxnList', '/ops/distributionTxnList', '/ops/distributionSettlement',
       '/calc/dailyIntegrated', '/calc/queryIntegrated', '/calc/integratedCheck', '/calc/dailyPay', '/calc/dailyFee'];
     function applySettlementReportAccessThenSearch() {
@@ -22921,6 +22926,151 @@
             var searchBtn = pane.querySelector('#searchBtn');
             if (searchBtn) searchBtn.click();
           }).catch(function (e) { alert(pgErrMsg(e, '재송부 실패')); });
+        });
+      }
+    }
+    if (url === '/calc/cryptoPayList' && !pane._cryptoDepositBound) {
+      pane._cryptoDepositBound = true;
+      var cryptoConfirmBtn = pane.querySelector('#cryptoDepositConfirmBtn');
+      if (cryptoConfirmBtn) {
+        cryptoConfirmBtn.addEventListener('click', function () {
+          var checked = pane.querySelectorAll('#grid_' + tabId + ' .grid-row-check:checked');
+          if (!checked.length) { alert(pgAdminUiT('입금확정할 행을 선택하세요.')); return; }
+          var idx = parseInt(checked[0].closest('tr').getAttribute('data-row-idx') || '-1', 10);
+          var list = pane._lastGridList || [];
+          var row = (idx >= 0 && idx < list.length) ? list[idx] : null;
+          if (!row || !row.id) { alert(pgAdminUiT('선택한 행을 찾을 수 없습니다.')); return; }
+          var tx = prompt(pgAdminUiT('입금 Tx 해시를 입력하세요.'), row.depositTxHash || '');
+          if (tx == null || !String(tx).trim()) return;
+          window.PG_API.hqCryptoDepositConfirm({ id: row.id, depositTxHash: String(tx).trim() }).then(function () {
+            alert(pgAdminUiT('입금이 확정되었습니다.'));
+            var searchBtn = pane.querySelector('#searchBtn');
+            if (searchBtn) searchBtn.click();
+          }).catch(function (e) { alert(pgErrMsg(e, '입금확정 실패')); });
+        });
+      }
+    }
+    if (url === '/settlement/cryptoPayoutQueue' && !pane._cryptoPayoutBound) {
+      pane._cryptoPayoutBound = true;
+      var manualBtn = pane.querySelector('#cryptoPayoutManualBtn');
+      if (manualBtn) {
+        manualBtn.addEventListener('click', function () {
+          var checked = pane.querySelectorAll('#grid_' + tabId + ' .grid-row-check:checked');
+          if (!checked.length) { alert(pgAdminUiT('반자동 처리할 행을 선택하세요.')); return; }
+          var idx = parseInt(checked[0].closest('tr').getAttribute('data-row-idx') || '-1', 10);
+          var list = pane._lastGridList || [];
+          var row = (idx >= 0 && idx < list.length) ? list[idx] : null;
+          if (!row || !row.id) { alert(pgAdminUiT('선택한 행을 찾을 수 없습니다.')); return; }
+          var tx = prompt(pgAdminUiT('출금 Tx 해시를 입력하세요.'), row.payoutTxHash || '');
+          if (tx == null || !String(tx).trim()) return;
+          window.PG_API.hqCryptoPayoutManualSent({ id: row.id, payoutTxHash: String(tx).trim() }).then(function () {
+            alert(pgAdminUiT('반자동 출금을 등록했습니다.'));
+            var searchBtn = pane.querySelector('#searchBtn');
+            if (searchBtn) searchBtn.click();
+          }).catch(function (e) { alert(pgErrMsg(e, '반자동 등록 실패')); });
+        });
+      }
+      var autoBtn = pane.querySelector('#cryptoPayoutAutoRunBtn');
+      if (autoBtn) {
+        autoBtn.addEventListener('click', function () {
+          if (!confirm(pgAdminUiT('AUTO 출금 큐를 실행할까요?'))) return;
+          window.PG_API.hqCryptoPayoutAutoRun({ limit: 50 }).then(function (data) {
+            alert(pgAdminUiT('AUTO 처리 건수') + ': ' + ((data && data.processed) || 0));
+            var searchBtn = pane.querySelector('#searchBtn');
+            if (searchBtn) searchBtn.click();
+          }).catch(function (e) { alert(pgErrMsg(e, 'AUTO 실행 실패')); });
+        });
+      }
+    }
+    if (url === '/hq/cryptoSettings' && !pane._cryptoSettingsBound) {
+      pane._cryptoSettingsBound = true;
+      function fillCustodyTable(list) {
+        var tb = pane.querySelector('#cryptoCustodyTbody');
+        if (!tb) return;
+        var rows = Array.isArray(list) ? list : [];
+        if (!rows.length) {
+          tb.innerHTML = '<tr><td colspan="6" class="text-muted text-center small py-3" data-pg-ui-t="수탁 주소 없음">수탁 주소 없음</td></tr>';
+          return;
+        }
+        tb.innerHTML = rows.map(function (a) {
+          return '<tr data-id="' + (a.id || '') + '"><td>' + (a.id || '') + '</td><td>' + (a.networkCode || '') +
+            '</td><td>' + (a.assetCode || '') + '</td><td class="font-monospace small">' + (a.address || '') +
+            '</td><td>' + (a.label || '') + '</td><td>' + (a.useYn || '') + '</td></tr>';
+        }).join('');
+        tb.querySelectorAll('tr[data-id]').forEach(function (tr) {
+          tr.addEventListener('click', function () {
+            var id = tr.getAttribute('data-id');
+            var row = rows.find(function (x) { return String(x.id) === String(id); });
+            if (!row) return;
+            var set = function (sel, v) { var el = pane.querySelector(sel); if (el) el.value = v == null ? '' : v; };
+            set('#cryptoCustodyId', row.id);
+            set('#cryptoCustodyNet', row.networkCode);
+            set('#cryptoCustodyAsset', row.assetCode || '');
+            set('#cryptoCustodyAddr', row.address);
+            set('#cryptoCustodyLabel', row.label || '');
+          });
+        });
+      }
+      function reloadHqCrypto() {
+        window.PG_API.hqCryptoSettings().then(function (data) {
+          fillCustodyTable(data && data.custodyAddresses);
+        }).catch(function () {});
+      }
+      reloadHqCrypto();
+      var loadBtn = pane.querySelector('#cryptoMerchLoadBtn');
+      if (loadBtn) {
+        loadBtn.addEventListener('click', function () {
+          var compId = (pane.querySelector('#cryptoMerchCompId') || {}).value || '';
+          if (!String(compId).trim()) { alert(pgAdminUiT('업체코드를 입력하세요.')); return; }
+          window.PG_API.hqCryptoMerchantConfig(String(compId).trim()).then(function (d) {
+            var set = function (sel, v) { var el = pane.querySelector(sel); if (el) el.value = v == null ? '' : v; };
+            set('#cryptoMerchUseYn', d.useYn || 'N');
+            set('#cryptoMerchMeans', d.checkoutMeans || 'CARD');
+            set('#cryptoMerchSettle', d.settleMode || 'SCHEDULED');
+            set('#cryptoMerchPayout', d.payoutMode || 'MANUAL');
+            set('#cryptoMerchHold', d.holdDays != null ? d.holdDays : 3);
+            set('#cryptoMerchAssets', d.assetsCsv || 'USDT');
+            set('#cryptoMerchNets', d.networksCsv || 'TRC20,ERC20');
+            set('#cryptoMerchSellerJson', d.sellerWalletJson || '');
+            alert(pgAdminUiT('가맹 크립토 설정을 불러왔습니다.'));
+          }).catch(function (e) { alert(pgErrMsg(e, '조회 실패')); });
+        });
+      }
+      var saveMerch = pane.querySelector('#cryptoMerchSaveBtn');
+      if (saveMerch) {
+        saveMerch.addEventListener('click', function () {
+          var g = function (sel) { var el = pane.querySelector(sel); return el ? el.value : ''; };
+          window.PG_API.hqCryptoMerchantConfigSave({
+            compId: g('#cryptoMerchCompId'),
+            useYn: g('#cryptoMerchUseYn'),
+            checkoutMeans: g('#cryptoMerchMeans'),
+            settleMode: g('#cryptoMerchSettle'),
+            payoutMode: g('#cryptoMerchPayout'),
+            holdDays: g('#cryptoMerchHold'),
+            assetsCsv: g('#cryptoMerchAssets'),
+            networksCsv: g('#cryptoMerchNets'),
+            sellerWalletJson: g('#cryptoMerchSellerJson')
+          }).then(function () {
+            alert(pgAdminUiT('가맹 크립토 설정을 저장했습니다.'));
+          }).catch(function (e) { alert(pgErrMsg(e, '저장 실패')); });
+        });
+      }
+      var saveCustody = pane.querySelector('#cryptoCustodySaveBtn');
+      if (saveCustody) {
+        saveCustody.addEventListener('click', function () {
+          var g = function (sel) { var el = pane.querySelector(sel); return el ? el.value : ''; };
+          var idVal = g('#cryptoCustodyId');
+          window.PG_API.hqCryptoCustodySave({
+            id: idVal ? idVal : null,
+            networkCode: g('#cryptoCustodyNet'),
+            assetCode: g('#cryptoCustodyAsset'),
+            address: g('#cryptoCustodyAddr'),
+            label: g('#cryptoCustodyLabel'),
+            useYn: 'Y'
+          }).then(function (data) {
+            fillCustodyTable(data && data.custodyAddresses);
+            alert(pgAdminUiT('수탁 주소를 저장했습니다.'));
+          }).catch(function (e) { alert(pgErrMsg(e, '수탁 저장 실패')); });
         });
       }
     }

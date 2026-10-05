@@ -6,13 +6,185 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '4.50';
+  var CURRENT_LIVE = '4.52';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '4.52',
+      kind: 'minor',
+      date: '2026-10-05',
+      items: {
+        KO: [
+          '크립토내역: 결제관리에서 결제내역 바로 아래 배치',
+          '크립토정산: 정산관리에서 수수료내역 바로 아래 배치'
+        ],
+        EN: [
+          'Crypto deposits menu placed directly under Payment list',
+          'Crypto settlement menu placed directly under Fee history'
+        ],
+        JP: [
+          'クリプト入金履歴を決済一覧の直下に配置',
+          'クリプト精算を手数料一覧の直下に配置'
+        ],
+        CH: [
+          '加密入金明细移至支付列表正下方',
+          '加密结算移至手续费明细正下方'
+        ],
+        TH: [
+          'เมนูประวัติฝากคริปโตอยู่ถัดจากรายการชำระเงิน',
+          'เมนูเคลียร์คริปโตอยู่ถัดจากประวัติค่าธรรมเนียม'
+        ]
+      },
+      howTo: {
+        KO: [
+          {
+            title: '크립토 메뉴 위치',
+            steps: [
+              '결제관리 → 결제내역 아래 「크립토내역」',
+              '정산관리 → 수수료내역 아래 「크립토정산」',
+              '본사설정 → 크립토설정 (수탁·가맹)'
+            ]
+          }
+        ],
+        EN: [
+          {
+            title: 'Crypto menu order',
+            steps: [
+              'Payments → Crypto deposits (under Payment list)',
+              'Settlement → Crypto settlement (under Fee history)',
+              'HQ settings → Crypto settings'
+            ]
+          }
+        ],
+        JP: [
+          {
+            title: 'クリプトメニュー位置',
+            steps: [
+              '決済管理→決済一覧の下「クリプト入金履歴」',
+              '精算管理→手数料一覧の下「クリプト精算」',
+              '本社設定→クリプト設定'
+            ]
+          }
+        ],
+        CH: [
+          {
+            title: '加密菜单位置',
+            steps: [
+              '支付管理→支付列表下方「加密入金明细」',
+              '结算管理→手续费明细下方「加密结算」',
+              '总部设置→加密设置'
+            ]
+          }
+        ],
+        TH: [
+          {
+            title: 'ตำแหน่งเมนูคริปโต',
+            steps: [
+              'การชำระเงิน → ประวัติฝากคริปโต (ใต้รายการชำระเงิน)',
+              'การเคลียร์ → เคลียร์คริปโต (ใต้ประวัติค่าธรรมเนียม)',
+              'ตั้งค่า HQ → ตั้งค่าคริปโต'
+            ]
+          }
+        ]
+      }
+    },
+    {
+      version: '4.51',
+      kind: 'minor',
+      date: '2026-10-05',
+      items: {
+        KO: [
+          '크립토 결제 PG(CRYPTO) 연동: USDT·USDC·EURC 동시 모델, 지갑 10종 파스텔 타일',
+          '가맹 결제수단 CARD/CRYPTO/BOTH, 정산 IMMEDIATE/SCHEDULED, 출금 MANUAL(반자동)·AUTO',
+          '본사 크립토설정·크립토내역·크립토정산 메뉴, ICOPAY 수탁 입금 후 출금 큐',
+          '복원 태그 pre-crypto-dev (크립토 개발 직전)'
+        ],
+        EN: [
+          'Crypto PG (CRYPTO): USDT/USDC/EURC shared model, 10 pastel wallet tiles',
+          'Merchant means CARD/CRYPTO/BOTH; settle IMMEDIATE/SCHEDULED; payout MANUAL/AUTO',
+          'HQ Crypto settings, deposit list, payout queue; ICOPAY custody then settle',
+          'Restore tag pre-crypto-dev (before crypto work)'
+        ],
+        JP: [
+          'クリプトPG(CRYPTO): USDT/USDC/EURC共通モデル、ウォレット10種パステル',
+          '加盟手段CARD/CRYPTO/BOTH、精算IMMEDIATE/SCHEDULED、出金MANUAL/AUTO',
+          '本社クリプト設定・入金・精算キュー、ICOPAYカストディ後に出金',
+          '復元タグ pre-crypto-dev'
+        ],
+        CH: [
+          '加密货币 PG(CRYPTO)：USDT/USDC/EURC 统一模型，10 种粉彩钱包',
+          '商户手段 CARD/CRYPTO/BOTH；结算 IMMEDIATE/SCHEDULED；出金 MANUAL/AUTO',
+          '总部加密设置、入金明细、出金队列；ICOPAY 托管后结算',
+          '还原标签 pre-crypto-dev'
+        ],
+        TH: [
+          'PG คริปโต (CRYPTO): โมเดลร่วม USDT/USDC/EURC กระเป๋าพาสเทล 10 แบบ',
+          'วิธีชำระ CARD/CRYPTO/BOTH เคลียร์ IMMEDIATE/SCHEDULED จ่าย MANUAL/AUTO',
+          'เมนูตั้งค่า/ฝาก/เคลียร์คริปโต HQ ฝากเข้า ICOPAY แล้วคิวจ่าย',
+          'แท็กคืนค่า pre-crypto-dev'
+        ]
+      },
+      howTo: {
+        KO: [
+          {
+            title: '크립토 사용 순서',
+            steps: [
+              '본사설정 → 크립토설정: 수탁 주소·가맹 사용/수단/정산·출금 모드',
+              '결제관리 → 결제내역 아래 크립토내역: 입금 Tx로 확정',
+              '정산관리 → 수수료내역 아래 크립토정산: 반자동 Tx등록 또는 AUTO 실행'
+            ]
+          }
+        ],
+        EN: [
+          {
+            title: 'Crypto setup',
+            steps: [
+              'HQ Policy → Crypto settings (dedicated menu)',
+              'Tab Custody & merchant: custody address + merchant means/settle/payout',
+              'Tab Deposits: confirm with deposit Tx',
+              'Tab Payouts: manual Tx or Run AUTO'
+            ]
+          }
+        ],
+        JP: [
+          {
+            title: 'クリプト設定手順',
+            steps: [
+              '本社設定→クリプト設定でカストディ住所登録',
+              '加盟店コードで有効化・手段・資産/ネットワーク・精算/出金モード',
+              '決済管理→クリプト入金でTx確定',
+              '精算管理→クリプト精算で半自動TxまたはAUTO'
+            ]
+          }
+        ],
+        CH: [
+          {
+            title: '加密货币使用步骤',
+            steps: [
+              '总部设置→加密货币设置：登记托管地址',
+              '按商户代码启用，选择 CARD/CRYPTO/BOTH、资产/网络、结算/出金模式',
+              '支付管理→加密入金：用入金 Tx 确认',
+              '结算管理→加密结算：半自动登记 Tx 或执行 AUTO'
+            ]
+          }
+        ],
+        TH: [
+          {
+            title: 'ขั้นตอนคริปโต',
+            steps: [
+              'ตั้งค่า HQ → คริปโต: ลงทะเบียนที่อยู่ดูแล',
+              'โหลดร้านด้วยรหัส: เปิดใช้ เลือก CARD/CRYPTO/BOTH สินทรัพย์/เครือข่าย โหมดเคลียร์/จ่าย',
+              'การชำระ → ประวัติฝากคริปโต: ยืนยันด้วย Tx',
+              'เคลียร์ → เคลียร์คริปโต: ลง Tx กึ่งอัตโนมัติ หรือรัน AUTO'
+            ]
+          }
+        ]
+      }
+    },
     {
       version: '4.50',
       kind: 'minor',

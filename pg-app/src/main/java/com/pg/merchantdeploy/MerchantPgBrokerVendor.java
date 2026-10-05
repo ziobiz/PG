@@ -17,6 +17,7 @@ public final class MerchantPgBrokerVendor {
     public static final String ELEMENTPAY = PgVendor.ELEMENTPAY;
     public static final String ILK = PgVendor.ILK;
     public static final String OX = PgVendor.OX;
+    public static final String CRYPTO = PgVendor.CRYPTO;
 
     private MerchantPgBrokerVendor() {
     }
@@ -32,7 +33,8 @@ public final class MerchantPgBrokerVendor {
         String s = normalizeScope(scope);
         return ALL.equals(s) || PgVendor.isChillPayFamily(s) || PgVendor.isJpayFamily(s)
                 || PgVendor.isEximbayFamily(s) || PgVendor.isElementPayFamily(s)
-                || PgVendor.isIlkFamily(s) || PgVendor.isOxFamily(s);
+                || PgVendor.isIlkFamily(s) || PgVendor.isOxFamily(s)
+                || PgVendor.isCryptoFamily(s);
     }
 
     /** HTTP 경로 세그먼트(소문자) → 벤더 스코프 */
@@ -58,6 +60,9 @@ public final class MerchantPgBrokerVendor {
         }
         if ("ox".equals(u) || "oxpay".equals(u)) {
             return OX;
+        }
+        if ("crypto".equals(u) || "usdt".equals(u)) {
+            return CRYPTO;
         }
         return ALL;
     }

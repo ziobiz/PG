@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-store" />
+  <title>ICOPAY</title>
+  <link rel="stylesheet" href="/css/icopay-crypto.css" />
+</head>
+<body>
+  <div class="ic-crypto-wrap">
+    <div class="ic-crypto-card">
+      <h1 class="ic-crypto-brand">ICOPAY</h1>
+      <p class="ic-crypto-lead" id="lead"></p>
+      <p class="ic-crypto-amt" id="amount"></p>
+      <p class="ic-crypto-meta" id="order"></p>
+      <p class="ic-crypto-meta" id="product"></p>
+
+      <div class="ic-crypto-section" id="meansSection" hidden>
+        <h2 id="meansTitle"></h2>
+        <div class="ic-crypto-grid ic-crypto-means" id="meansGrid"></div>
+      </div>
+
+      <div class="ic-crypto-section" id="assetSection" hidden>
+        <h2 id="assetTitle"></h2>
+        <div class="ic-crypto-grid" id="assetGrid"></div>
+      </div>
+
+      <div class="ic-crypto-section" id="networkSection" hidden>
+        <h2 id="networkTitle"></h2>
+        <div class="ic-crypto-grid" id="networkGrid"></div>
+      </div>
+
+      <div class="ic-crypto-section" id="walletSection" hidden>
+        <h2 id="walletTitle"></h2>
+        <div class="ic-crypto-grid" id="walletGrid"></div>
+      </div>
+
+      <div class="ic-crypto-section" id="depositSection" hidden>
+        <h2 id="depositTitle"></h2>
+        <div class="ic-crypto-addr" id="custodyAddr"></div>
+        <div class="ic-crypto-actions">
+          <button type="button" class="ic-crypto-btn ic-crypto-btn-ghost" id="copyBtn"></button>
+          <button type="button" class="ic-crypto-btn ic-crypto-btn-primary" id="refreshBtn"></button>
+        </div>
+        <div class="ic-crypto-status" id="statusBox"></div>
+      </div>
+
+      <p class="ic-crypto-err" id="err" hidden></p>
+    </div>
+  </div>
+  <script src="/js/icopay-crypto-wallets.js"></script>
+  <script>
+(function () {
+  var T = {
+    KO: {
+      lead: '암호화폐로 안전하게 결제합니다. 자산·네트워크·지갑을 선택한 뒤 안내 주소로 입금해 주세요.',
+      means: '결제 수단', card: '카드', crypto: '암호화폐',
+      asset: '자산 선택', network: '네트워크', wallet: '지갑 (전부 표시)',
+      deposit: 'ICOPAY 입금 주소', copy: '주소 복사', refresh: '입금 확인',
+      order: '주문번호', product: '상품', waiting: '입금 대기 중… 입금 후 자동으로 확인됩니다.',
+      confirmed: '입금이 확정되었습니다.', expired: '입금 시간이 만료되었습니다.',
+      copied: '주소를 복사했습니다.', errSession: '결제 세션을 불러오지 못했습니다.',
+      pickAsset: '자산을 선택하세요.', pickNet: '네트워크를 선택하세요.'
+    },
+    EN: {
+      lead: 'Pay securely with crypto. Choose asset, network and wallet, then send to the address shown.',
+      means: 'Payment method', card: 'Card', crypto: 'Crypto',
+      asset: 'Select asset', network: 'Network', wallet: 'Wallets (all)',
+      deposit: 'ICOPAY deposit address', copy: 'Copy address', refresh: 'Check deposit',
+      order: 'Order', product: 'Item', waiting: 'Waiting for deposit… confirmation is automatic.',
+      confirmed: 'Deposit confirmed.', expired: 'Deposit window expired.',
+      copied: 'Address copied.', errSession: 'Could not load payment session.',
+      pickAsset: 'Select an asset.', pickNet: 'Select a network.'
+    },
+    JP: {
+      lead: '暗号資産で安全にお支払いください。資産・ネットワーク・ウォレットを選び、表示の住所へ送金します。',
+      means: 'お支払い方法', card: 'カード', crypto: '暗号資産',
+      asset: '資産を選択', network: 'ネットワーク', wallet: 'ウォレット（すべて）',
+      deposit: 'ICOPAY入金アドレス', copy: 'アドレスをコピー', refresh: '入金確認',
+      order: '注文番号', product: '商品', waiting: '入金待ち… 確認は自動です。',
+      confirmed: '入金が確定しました。', expired: '入金期限が切れました。',
+      copied: 'コピーしました。', errSession: 'セッションを読み込めません。',
+      pickAsset: '資産を選んでください。', pickNet: 'ネットワークを選んでください。'
+    },
+    CH: {
+      lead: '使用加密货币安全付款。选择资产、网络与钱包后，转账至所示地址。',
+      means: '支付方式', card: '银行卡', crypto: '加密货币',
+      asset: '选择资产', network: '网络', wallet: '钱包（全部）',
+      deposit: 'ICOPAY 充值地址', copy: '复制地址', refresh: '检查入金',
+      order: '订单号', product: '商品', waiting: '等待入金… 将自动确认。',
+      confirmed: '入金已确认。', expired: '入金时限已过。',
+      copied: '已复制地址。', errSession: '无法加载支付会话。',
+      pickAsset: '请选择资产。', pickNet: '请选择网络。'
+    },
+    TH: {
+      lead: 'ชำระด้วยคริปโตอย่างปลอดภัย เลือกสินทรัพย์ เครือข่าย และกระเป๋า แล้วโอนไปยังที่อยู่ที่แสดง',
+      means: 'วิธีชำระ', card: 'บัตร', crypto: 'คริปโต',
+      asset: 'เลือกสินทรัพย์', network: 'เครือข่าย', wallet: 'กระเป๋า (ทั้งหมด)',
+      deposit: 'ที่อยู่ฝาก ICOPAY', copy: 'คัดลอกที่อยู่', refresh: 'ตรวจยอดฝาก',
+      order: 'เลขคำสั่งซื้อ', product: 'สินค้า', waiting: 'รอฝากเงิน… ยืนยันอัตโนมัติ',
+      confirmed: 'ยืนยันการฝากแล้ว', expired: 'หมดเวลารับฝาก',
+      copied: 'คัดลอกแล้ว', errSession: 'โหลดเซสชันไม่สำเร็จ',
+      pickAsset: 'เลือกสินทรัพย์', pickNet: 'เลือกเครือข่าย'
+    }
+  };
+
+  var q = new URLSearchParams(location.search);
+  var lang = String(q.get('lang') || q.get('langCode') || 'KO').toUpperCase();
+  if (lang === 'ENG' || lang === 'ENGLISH') lang = 'EN';
+  if (lang === 'JPN' || lang === 'JA') lang = 'JP';
+  if (lang === 'CHN' || lang === 'ZH') lang = 'CH';
+  if (lang === 'THA') lang = 'TH';
+  if (lang === 'KOR' || lang === 'KR') lang = 'KO';
+  var pack = T[lang] || T.KO;
+
+  document.getElementById('lead').textContent = pack.lead;
+  document.getElementById('meansTitle').textContent = pack.means;
+  document.getElementById('assetTitle').textContent = pack.asset;
+  document.getElementById('networkTitle').textContent = pack.network;
+  document.getElementById('walletTitle').textContent = pack.wallet;
+  document.getElementById('depositTitle').textContent = pack.deposit;
+  document.getElementById('copyBtn').textContent = pack.copy;
+  document.getElementById('refreshBtn').textContent = pack.refresh;
+
+  var state = {
+    session: (q.get('session') || '').trim(),
+    compId: (q.get('m') || q.get('compId') || '').trim(),
+    data: null,
+    asset: '',
+    network: '',
+    wallet: ''
+  };
+
+  function showErr(msg) {
+    var el = document.getElementById('err');
+    el.hidden = !msg;
+    el.textContent = msg || '';
+  }
+
+  function applySession(data) {
+    state.data = data || {};
+    var amt = data.amount != null ? String(data.amount) : '';
+    var cur = data.assetCode || data.currency || '';
+    if (amt) document.getElementById('amount').textContent = (cur ? cur + ' ' : '') + amt;
+    if (data.orderNo) document.getElementById('order').textContent = pack.order + ' ' + data.orderNo;
+    if (data.productName) document.getElementById('product').textContent = pack.product + ' ' + data.productName;
+
+    state.asset = data.assetCode || '';
+    state.network = data.networkCode || '';
+
+    var means = String(data.checkoutMeans || 'CRYPTO').toUpperCase();
+    if (means === 'BOTH') {
+      document.getElementById('meansSection').hidden = false;
+      ICOPAY_CRYPTO_UI.renderGrid(document.getElementById('meansGrid'), [
+        { code: 'CARD', name: pack.card, iconKey: 'card', pastelBg: '#E2E8F0', pastelFg: '#334155', accent: '#64748B' },
+        { code: 'CRYPTO', name: pack.crypto, iconKey: 'crypto', pastelBg: '#D4F5E9', pastelFg: '#0F766E', accent: '#0F766E' }
+      ], function (code) {
+        if (code === 'CARD' && state.compId) {
+          location.href = '/checkout/' + encodeURIComponent(state.compId) + '?pgCheckoutFwd=1&m=' + encodeURIComponent(state.compId);
+        }
+      });
+    }
+
+    var catalog = data.catalog || {};
+    var assets = catalog.assets || [];
+    var networks = catalog.networks || [];
+    var pairs = catalog.pairs || [];
+    var wallets = data.wallets || catalog.wallets || [];
+
+    document.getElementById('assetSection').hidden = false;
+    ICOPAY_CRYPTO_UI.renderGrid(document.getElementById('assetGrid'), assets, function (code) {
+      state.asset = code;
+      filterNetworks(networks, pairs, code);
+      showErr('');
+    });
+    if (state.asset) {
+      filterNetworks(networks, pairs, state.asset);
+    }
+
+    document.getElementById('walletSection').hidden = false;
+    renderWallets(wallets, state.network);
+
+    if (data.custodyAddress) {
+      document.getElementById('depositSection').hidden = false;
+      document.getElementById('custodyAddr').textContent = data.custodyAddress;
+      updateStatus(data.status);
+    }
+  }
+
+  function filterNetworks(networks, pairs, assetCode) {
+    var allowed = {};
+    (pairs || []).forEach(function (p) {
+      if (String(p.assetCode).toUpperCase() === String(assetCode).toUpperCase()) {
+        allowed[String(p.networkCode).toUpperCase()] = true;
+      }
+    });
+    var list = (networks || []).filter(function (n) {
+      return !Object.keys(allowed).length || allowed[String(n.code).toUpperCase()];
+    });
+    document.getElementById('networkSection').hidden = false;
+    ICOPAY_CRYPTO_UI.renderGrid(document.getElementById('networkGrid'), list, function (code) {
+      state.network = code;
+      var wallets = (state.data && state.data.catalog && state.data.catalog.wallets) || [];
+      renderWallets(wallets, code);
+      showErr('');
+    });
+  }
+
+  function renderWallets(wallets, network) {
+    var net = String(network || '').toUpperCase();
+    var list = (wallets || []).filter(function (w) {
+      if (!net) return true;
+      var nets = w.networks || [];
+      return nets.map(function (x) { return String(x).toUpperCase(); }).indexOf(net) >= 0;
+    });
+    ICOPAY_CRYPTO_UI.renderGrid(document.getElementById('walletGrid'), list, function (code) {
+      state.wallet = code;
+    });
+  }
+
+  function updateStatus(st) {
+    var box = document.getElementById('statusBox');
+    if (st === 'CONFIRMED') box.textContent = pack.confirmed;
+    else if (st === 'EXPIRED') box.textContent = pack.expired;
+    else box.textContent = pack.waiting;
+  }
+
+  function loadSession() {
+    if (!state.session) {
+      showErr(pack.errSession);
+      return;
+    }
+    fetch('/api/pay/crypto/session?session=' + encodeURIComponent(state.session), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (body) {
+        if (body && body.success && body.data) applySession(body.data);
+        else showErr((body && body.message) || pack.errSession);
+      })
+      .catch(function () { showErr(pack.errSession); });
+  }
+
+  document.getElementById('copyBtn').addEventListener('click', function () {
+    var addr = document.getElementById('custodyAddr').textContent || '';
+    if (!addr) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(addr).then(function () {
+        document.getElementById('statusBox').textContent = pack.copied;
+      });
+    }
+  });
+
+  document.getElementById('refreshBtn').addEventListener('click', function () {
+    if (!state.session) return;
+    fetch('/api/pay/crypto/status?session=' + encodeURIComponent(state.session), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (body) {
+        if (body && body.success && body.data) updateStatus(body.data.status);
+      });
+  });
+
+  setInterval(function () {
+    if (!state.session) return;
+    fetch('/api/pay/crypto/status?session=' + encodeURIComponent(state.session), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (body) {
+        if (body && body.success && body.data) updateStatus(body.data.status);
+      }).catch(function () {});
+  }, 8000);
+
+  loadSession();
+})();
+  </script>
+</body>
+</html>

@@ -48,6 +48,7 @@
       tabs: [
         { tab: 'routing', url: '/hq/paymentOrchestration', menuId: 'M0118', label: '결제 라우팅' },
         { tab: 'urlpay', url: '/hq/urlPayDeploy', menuId: 'M0122', label: 'URL결제' },
+        { tab: 'crypto', url: '/hq/cryptoSettings', menuId: 'M0131', label: '크립토설정' },
         { tab: 'tablet-ux', url: '/hq/opsModeMng', menuId: 'M0127', label: '태블릿 UX' }
       ]
     },

@@ -1,0 +1,19 @@
+# 크립토 결제·정산 (ICOPAY)
+
+## 복원
+- 태그 `pre-crypto-dev` = 크립토 개발 직전 스냅샷.
+- 사용자가 「복원」을 요청하면 이 태그로 되돌린다.
+
+## 원칙
+- 입금은 항상 ICOPAY 수탁. 판매자 직접 스플릿 금지.
+- 가맹·구매자 노출은 ICOPAY 중립 (`pgVendor` 항상 ICOPAY).
+- 자산 USDT·USDC·EURC 동일 모델. 네트워크·지갑은 카탈로그 시드.
+- 정산: IMMEDIATE / SCHEDULED. 출금: MANUAL(반자동) / AUTO(자동 큐).
+- 결제수단: CARD / CRYPTO / BOTH.
+- UI·오류·릴리스: 5개국어(KOR·ENG·JPN·CHN·THA).
+- 메뉴명: 본사설정→크립토설정, 결제관리→크립토내역, 정산관리→크립토정산.
+
+## 코드 앵커
+- `PgVendor.CRYPTO`, `com.pg.crypto.*`
+- SQL `V265_crypto_payment.sql`
+- 정적 `crypto-pay.html`, `icopay-crypto-wallets.js`
