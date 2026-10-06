@@ -42,18 +42,25 @@ public final class MerchantApiDeployChecklistI18n {
                 "Prepare: บนเซิร์ฟเวอร์ร้าน POST " + base + "/api/middleware/v1/merchant/checkout/prepare → sessionToken"
         )));
         steps.add(textMap(new Bundle(
-                "결제창: 브라우저에 /v1/embed-checkout/" + cid + " 또는 응답 payUrl(/checkout/" + cid + ")만 전달",
-                "Checkout UI: pass only /v1/embed-checkout/" + cid + " or response payUrl (/checkout/" + cid + ") to the browser",
-                "決済画面: ブラウザには /v1/embed-checkout/" + cid + " または payUrl(/checkout/" + cid + ") のみ",
-                "支付窗：浏览器仅传 /v1/embed-checkout/" + cid + " 或 payUrl(/checkout/" + cid + ")",
-                "หน้าชำระ: ส่งแค่ /v1/embed-checkout/" + cid + " หรือ payUrl (/checkout/" + cid + ") ไปเบราว์เซอร์"
+                "결제창: data.sandbox===true 이면 payUrl/embed를 열지 않음. 아니면 브라우저에 /v1/embed-checkout/"
+                        + cid + " 또는 응답 payUrl(/checkout/" + cid + ")만 전달",
+                "Checkout UI: if data.sandbox===true do not open payUrl/embed. Else pass only /v1/embed-checkout/"
+                        + cid + " or payUrl (/checkout/" + cid + ") to the browser",
+                "決済画面: data.sandbox===true なら payUrl/embed を開かない。それ以外は /v1/embed-checkout/"
+                        + cid + " または payUrl のみ",
+                "支付窗：若 data.sandbox===true 不要打开 payUrl/embed。否则浏览器仅传 /v1/embed-checkout/"
+                        + cid + " 或 payUrl",
+                "หน้าชำระ: ถ้า data.sandbox===true ห้ามเปิด payUrl/embed นอกนั้นส่งแค่ /v1/embed-checkout/"
+                        + cid + " หรือ payUrl"
         )));
         steps.add(textMap(new Bundle(
-                "확정: 서버에서 Status API 또는 등록 Webhook으로 PAID 확인 (브라우저 결과만으로 확정 금지)",
-                "Confirm: on the server use Status API or registered Webhook for PAID (do not rely on browser alone)",
-                "確定: サーバーで Status API または Webhook で PAID 確認（ブラウザのみで確定しない）",
-                "确认：在服务器用 Status API 或已登记 Webhook 确认 PAID（勿仅凭浏览器）",
-                "ยืนยัน: ที่เซิร์ฟเวอร์ใช้ Status API หรือ Webhook สำหรับ PAID"
+                "확정: 서버에서 Status API 또는 등록 Webhook으로 PAID 확인 (브라우저 결과만으로 확정 금지). "
+                        + "샌드박스 시크릿이면 prepare 후 complete로 시뮬 승인(payUrl 없음).",
+                "Confirm: on the server use Status API or registered Webhook for PAID (do not rely on browser alone). "
+                        + "With the sandbox secret, call complete after prepare (no payUrl).",
+                "確定: サーバーで Status/Webhook。サンドボックス鍵なら prepare 後 complete（payUrl なし）。",
+                "确认：服务器用 Status/Webhook。沙箱密钥则 prepare 后 complete（无 payUrl）。",
+                "ยืนยันที่เซิร์ฟเวอร์ด้วย Status/Webhook หากคีย์ sandbox ให้ complete หลัง prepare (ไม่มี payUrl)"
         )));
         qs.put("steps", List.copyOf(steps));
         return qs;
@@ -158,6 +165,38 @@ public final class MerchantApiDeployChecklistI18n {
                 "ブローカーシークレット「強制」時、Checkout prepare/status に " + hdr + " ヘッダ必須",
                 "broker 密钥「强制」时，Checkout prepare/status 必须带 " + hdr + " 头",
                 "เมื่อบังคับ broker secret ต้องมี header " + hdr + " สำหรับ Checkout prepare/status"
+        )));
+
+        list.add(textMap(new Bundle(
+                "ICOPAY 샌드박스(통신 테스트): 라이브 브로커 시크릿과 샌드박스 시크릿은 다름. "
+                        + "헤더에 샌드박스 시크릿 → prepare 응답 sandbox=true → POST "
+                        + base + "/api/middleware/v1/merchant/checkout/complete (카드창·payUrl 금지). "
+                        + "확인은 결제관리→샌드박스내역. 라이브 시크릿이면 payUrl 결제창·결제내역(실PG).",
+                "ICOPAY sandbox (API test): live broker secret ≠ sandbox secret. "
+                        + "Sandbox header → prepare sandbox=true → POST "
+                        + base + "/api/middleware/v1/merchant/checkout/complete (no card window/payUrl). "
+                        + "Check Payments→Sandbox history. Live secret → payUrl window and live payment list.",
+                "ICOPAYサンドボックス: ライブ鍵≠サンドボックス鍵。サンドボックスヘッダ→prepare sandbox=true→POST "
+                        + base + "/api/middleware/v1/merchant/checkout/complete（カード画面禁止）。確認は決済管理→サンドボックス履歴。",
+                "ICOPAY 沙箱：线上密钥≠沙箱密钥。沙箱头→prepare sandbox=true→POST "
+                        + base + "/api/middleware/v1/merchant/checkout/complete（禁止卡窗/payUrl）。核对：支付管理→沙箱明细。",
+                "ICOPAY sandbox: คีย์ไลฟ์≠คีย์ sandbox. ใส่คีย์ sandbox → prepare sandbox=true → POST "
+                        + base + "/api/middleware/v1/merchant/checkout/complete (ห้ามหน้าต่างบัตร). ตรวจที่ประวัติ sandbox"
+        )));
+
+        list.add(textMap(new Bundle(
+                "샌드박스 배포 주의: ①본사 업체관리 결제통보 URL(SANDBOX) 활성 ②샌드박스 시크릿만 가맹 서버에 넣기 "
+                        + "③SANDBOX Callback/Result는 가맹 테스트 수신 URL만(라이브 통보 URL 금지) "
+                        + "④테스트 카드·관리자 URL결제로 검증하지 말 것(실PG로 감) ⑤errorCode SANDBOX_DISABLED 이면 활성 확인",
+                "Sandbox rollout: (1) HQ Payment notify URL (SANDBOX)=Active (2) put only sandbox secret on merchant server "
+                        + "(3) SANDBOX Callback/Result = merchant test URLs only (never live notify URLs) "
+                        + "(4) do not test with admin URL-pay or live test cards (hits live PG) (5) SANDBOX_DISABLED → enable first",
+                "サンドボックス配布: ①本社 SANDBOX カード有効 ②加盟サーバーにはサンドボックス鍵のみ "
+                        + "③SANDBOX URLはテスト受信用のみ ④管理画面URL決済・実カードで検証しない ⑤SANDBOX_DISABLEDなら有効化",
+                "沙箱上线：①总部 SANDBOX 卡片启用 ②商户服务器只放沙箱密钥 "
+                        + "③SANDBOX URL 仅测试接收地址 ④勿用管理后台 URL 支付/真卡验证 ⑤SANDBOX_DISABLED 先启用",
+                "배포 sandbox: (1) HQ เปิด SANDBOX (2) ใส่เฉพาะคีย์ sandbox ที่เซิร์ฟเวอร์ร้าน "
+                        + "(3) URL SANDBOX เป็นที่รับทดสอบเท่านั้น (4) ห้ามทดสอบด้วย URL จ่ายของแอดมิน (5) SANDBOX_DISABLED ให้เปิดใช้ก่อน"
         )));
 
         list.add(textMap(new Bundle(

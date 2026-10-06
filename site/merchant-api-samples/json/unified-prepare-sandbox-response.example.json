@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "data": {
+    "sandbox": true,
+    "pgVendor": "ICOPAY",
+    "compId": "M000123",
+    "orderNo": "ORD-001",
+    "amount": "10000",
+    "currency": "USD",
+    "productName": "Sample product",
+    "sessionToken": "sb_0123456789abcdef",
+    "status": "PENDING",
+    "paymentStatus": "PENDING",
+    "integrationMode": "SANDBOX",
+    "message": "Sandbox prepare OK. POST /api/middleware/v1/merchant/checkout/complete. No live acquirer."
+  }
+}

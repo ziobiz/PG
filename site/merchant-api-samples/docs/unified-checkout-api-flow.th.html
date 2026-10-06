@@ -164,6 +164,9 @@
   <p><strong>Do I call Session from my server?</strong> No — the embed widget calls it in the browser.</p>
   <p><strong>Will I see a payment-agency brand?</strong> No. Merchant APIs, checkout UI, and docs expose <strong>ICOPAY only</strong>.</p>
   <p><strong>Is postMessage enough?</strong> Use it for UX; confirm payment on the server via webhook and/or status.</p>
+  <p><strong>Sandbox แล้วยังเปิดหน้าต่างบัตร?</strong> Header เป็นคีย์ไลฟ์ คีย์ sandbox จะได้ <code>data.sandbox===true</code> และไม่มี payUrl
+    POST <code>…/merchant/checkout/complete</code> แล้วตรวจที่ <strong>จัดการชำระ→ประวัติ sandbox</strong> URL จ่ายของแอดมินเป็นไลฟ์</p>
+  <p><strong>SANDBOX_DISABLED / SANDBOX_ONLY?</strong> อันแรก HQ ต้องเปิดใช้ sandbox ของร้าน อันหลังคือเรียก complete ด้วยคีย์ไลฟ์</p>
 
   <p class="meta">Plain text: <a href="unified-checkout-api-flow.txt">unified-checkout-api-flow.txt</a> ·
     Parameters: <a href="unified-checkout-api-parameters.html">unified-checkout-api-parameters.html</a></p>

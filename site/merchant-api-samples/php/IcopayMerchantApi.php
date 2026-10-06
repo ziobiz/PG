@@ -171,6 +171,34 @@ final class IcopayMerchantApi
         return $this->getJson('/api/middleware/v1/merchant/checkout/status?' . $qs);
     }
 
+    /**
+     * ICOPAY merchant sandbox simulate-approve. Use only with the sandbox broker secret.
+     * Live secret returns SANDBOX_ONLY.
+     *
+     * @return array{success:bool,data?:array,message?:string,errorCode?:string}
+     */
+    public function completeSandboxCheckout(string $orderNo, string $sessionToken = ''): array
+    {
+        $body = [
+            'compId' => $this->compId,
+            'orderNo' => $orderNo,
+        ];
+        if (trim($sessionToken) !== '') {
+            $body['sessionToken'] = trim($sessionToken);
+        }
+        return $this->postJson('/api/middleware/v1/merchant/checkout/complete', $body);
+    }
+
+    /** True when prepare used the ICOPAY merchant sandbox secret (no live acquirer). */
+    public static function isSandboxPrepare(array $prep): bool
+    {
+        $data = is_array($prep['data'] ?? null) ? $prep['data'] : [];
+        if (!empty($data['sandbox'])) {
+            return true;
+        }
+        return strtoupper((string)($data['integrationMode'] ?? '')) === 'SANDBOX';
+    }
+
     public function buildUnifiedEmbedHtml(string $sessionToken, string $targetId = '', string $lang = ''): string
     {
         $target = $targetId !== '' ? $targetId : 'icopay-checkout';

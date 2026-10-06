@@ -86,4 +86,12 @@ Completion event: postMessage type ICOPAY_INLINE_CHECKOUT
 
 PHP sample: merchant-api-samples/php/checkout_unified.php
 
+9. SANDBOX
+----------
+Header = sandbox secret → prepare data.sandbox=true, no payUrl
+POST .../merchant/checkout/complete  body: compId, orderNo, sessionToken
+Check: Payments → Sandbox history (not live payment list)
+SANDBOX_DISABLED = HQ must enable sandbox use
+SANDBOX_ONLY = complete was called with the live secret
+
 

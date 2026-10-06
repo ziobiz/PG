@@ -164,6 +164,9 @@
   <p><strong>Do I call Session from my server?</strong> No — the embed widget calls it in the browser.</p>
   <p><strong>Will I see a payment-agency brand?</strong> No. Merchant APIs, checkout UI, and docs expose <strong>ICOPAY only</strong>.</p>
   <p><strong>Is postMessage enough?</strong> Use it for UX; confirm payment on the server via webhook and/or status.</p>
+  <p><strong>沙箱仍打开卡窗？</strong> 请求头是线上密钥。沙箱密钥下 prepare 返回 <code>data.sandbox===true</code> 且无 payUrl。
+    POST <code>…/merchant/checkout/complete</code>，再在<strong>支付管理→沙箱明细</strong>核对。后台 URL 支付是线上路径。</p>
+  <p><strong>SANDBOX_DISABLED / SANDBOX_ONLY?</strong> 前者需总部为该商户启用沙箱。后者表示用线上密钥调用了 complete。</p>
 
   <p class="meta">Plain text: <a href="unified-checkout-api-flow.txt">unified-checkout-api-flow.txt</a> ·
     Parameters: <a href="unified-checkout-api-parameters.html">unified-checkout-api-parameters.html</a></p>

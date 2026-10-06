@@ -33,9 +33,10 @@
       <a href="docs/unified-checkout-api-parameters.th.html">TH</a></li>
     <li><a href="json/README.txt">json/README.txt</a></li>
     <li><a href="json/unified-prepare-request.json">unified-prepare-request.json</a> — prepare request body</li>
-    <li><a href="json/unified-prepare-response.example.json">unified-prepare-response.example.json</a> — response example</li>
+    <li><a href="json/unified-prepare-response.example.json">unified-prepare-response.example.json</a> — live response example</li>
+    <li><a href="json/unified-prepare-sandbox-response.example.json">unified-prepare-sandbox-response.example.json</a> — sandbox prepare (no payUrl; call complete)</li>
   </ol>
-  <p>On the merchant server: <code>POST .../merchant/checkout/prepare</code> → <code>sessionToken</code> → <code>/v1/embed-checkout/{compId}</code></p>
+  <p>Live: <code>POST .../prepare</code> → embed. Sandbox secret: <code>data.sandbox===true</code> → <code>POST .../checkout/complete</code> → Payments → Sandbox history (never open payUrl).</p>
 
   <h2>② PHP</h2>
   <ol>
@@ -56,7 +57,8 @@
   <p class="meta" style="color:#666;font-size:0.9rem;">Prefer PHP <code>checkout_unified.php</code> or JSON REST for new merchants.</p>
 
   <h2>Integration flow</h2>
-  <p>Create order → server prepare (JSON REST or PHP) → sessionToken → <code>/v1/embed-checkout/{compId}</code> → Status/webhook</p>
+  <p>Live: Create order → server prepare → sessionToken → <code>/v1/embed-checkout/{compId}</code> → Status/webhook</p>
+  <p>Sandbox: same prepare URL with the <strong>sandbox</strong> secret → <code>sandbox=true</code> → complete (no card window) → sandbox history</p>
   <p>See kit keys <code>merchantUnifiedCheckout</code> and <code>integrationModes</code>. Quick start: repo <code>docs/가맹점_ICOPAY_간단연동_빠른시작.md</code>.</p>
   <p><a href="README.txt">README.txt</a> (plain text)</p>
 </body>

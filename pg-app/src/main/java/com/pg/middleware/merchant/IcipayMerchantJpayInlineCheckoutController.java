@@ -6,6 +6,7 @@ import com.pg.merchantdeploy.MerchantApiResponseMapper;
 import com.pg.merchantdeploy.MerchantBrokerAccessVerifier;
 import com.pg.merchantdeploy.MerchantJpayInlineCheckoutService;
 import com.pg.merchantdeploy.MerchantPgBrokerVendor;
+import com.pg.merchantdeploy.MerchantSandboxCheckoutFacade;
 import com.pg.repository.OrgUnitRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -29,13 +30,16 @@ import java.util.Optional;
 public class IcipayMerchantJpayInlineCheckoutController {
 
     private final MerchantJpayInlineCheckoutService inlineCheckoutService;
+    private final MerchantSandboxCheckoutFacade sandboxCheckoutFacade;
     private final MerchantBrokerAccessVerifier brokerAccessVerifier;
     private final OrgUnitRepository orgUnitRepository;
 
     public IcipayMerchantJpayInlineCheckoutController(MerchantJpayInlineCheckoutService inlineCheckoutService,
+                                                       MerchantSandboxCheckoutFacade sandboxCheckoutFacade,
                                                        MerchantBrokerAccessVerifier brokerAccessVerifier,
                                                        OrgUnitRepository orgUnitRepository) {
         this.inlineCheckoutService = inlineCheckoutService;
+        this.sandboxCheckoutFacade = sandboxCheckoutFacade;
         this.brokerAccessVerifier = brokerAccessVerifier;
         this.orgUnitRepository = orgUnitRepository;
     }
@@ -55,13 +59,17 @@ public class IcipayMerchantJpayInlineCheckoutController {
         if (orgUnitId == null) {
             return ResponseEntity.ok(ApiResponse.fail("compId 또는 merchantId가 필요합니다.", "NOT_FOUND"));
         }
-        Map<String, Object> result = inlineCheckoutService.prepare(orgUnitId, body != null ? body : Map.of(), request);
+        Map<String, Object> result = sandboxCheckoutFacade.isSandbox(request)
+                ? sandboxCheckoutFacade.prepare(orgUnitId, body != null ? body : Map.of())
+                : inlineCheckoutService.prepare(orgUnitId, body != null ? body : Map.of(), request);
         return MerchantApiResponseMapper.mapServiceResult(result);
     }
 
     @GetMapping("/session")
     public ResponseEntity<ApiResponse<Map<String, Object>>> session(@RequestParam("token") String token) {
-        Map<String, Object> result = inlineCheckoutService.readSession(token);
+        Map<String, Object> result = sandboxCheckoutFacade.isSandboxSessionToken(token)
+                ? sandboxCheckoutFacade.session(token)
+                : inlineCheckoutService.readSession(token);
         return MerchantApiResponseMapper.mapServiceResult(result);
     }
 
@@ -85,7 +93,9 @@ public class IcipayMerchantJpayInlineCheckoutController {
         if (orgUnitId == null) {
             return ResponseEntity.ok(ApiResponse.fail("compId 또는 merchantId가 필요합니다.", "NOT_FOUND"));
         }
-        Map<String, Object> result = inlineCheckoutService.orderStatus(orgUnitId, orderNo);
+        Map<String, Object> result = sandboxCheckoutFacade.isSandbox(request)
+                ? sandboxCheckoutFacade.status(orgUnitId, orderNo)
+                : inlineCheckoutService.orderStatus(orgUnitId, orderNo);
         return MerchantApiResponseMapper.mapServiceResult(result);
     }
 

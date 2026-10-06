@@ -6,13 +6,255 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '4.52';
+  var CURRENT_LIVE = '4.55';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '4.55',
+      kind: 'minor',
+      date: '2026-10-06',
+      items: {
+        KO: [
+          '가맹 연동 매뉴얼·키트: 샌드박스 시크릿은 prepare 후 complete(payUrl 금지), 확인은 샌드박스내역',
+          '다른 가맹 배포 체크: 샌드박스 사용 활성·테스트 통보 URL 전용·라이브 키 혼용 금지'
+        ],
+        EN: [
+          'Merchant kit/manuals: sandbox secret → prepare then complete (no payUrl); check Sandbox history',
+          'Rollout: enable sandbox use, test-only notify URLs, never mix the live secret'
+        ],
+        JP: [
+          '加盟マニュアル: サンドボックス鍵は prepare 後 complete（payUrl禁止）、確認はサンドボックス履歴',
+          '他加盟配布: 使用有効化・テスト通報URLのみ・ライブ鍵混用禁止'
+        ],
+        CH: [
+          '商户手册：沙箱密钥 prepare 后 complete（禁止 payUrl），核对沙箱明细',
+          '向其他商户发放：启用沙箱、仅测试通知 URL、勿混用线上密钥'
+        ],
+        TH: [
+          'คู่มือร้าน: คีย์ sandbox ให้ prepare แล้ว complete (ห้าม payUrl) ตรวจประวัติ sandbox',
+          'ปล่อยร้านอื่น: เปิดใช้ sandbox, URL แจ้งทดสอบเท่านั้น, ห้ามปนคีย์ไลฟ์'
+        ]
+      },
+      howTo: {
+        KO: [
+          {
+            title: '다른 가맹에 샌드박스 배포',
+            steps: [
+              '연동·배포 → 가맹 API 출시 → 키·문서 → 샌드박스 시크릿 발급',
+              '업체관리 → 결제통보 URL(SANDBOX) 활성, URL은 테스트 수신만',
+              '가맹 서버 헤더=샌드박스 키, data.sandbox=true 이면 complete',
+              '결제관리 → 샌드박스내역에서 확인 (결제내역이면 라이브 키)'
+            ]
+          }
+        ],
+        EN: [
+          {
+            title: 'Sandbox rollout to another merchant',
+            steps: [
+              'Integration & deploy → Merchant API launch → Keys & docs → Issue sandbox secret',
+              'Company admin → Payment notify URL (SANDBOX) = Active; test receive URLs only',
+              'Merchant header = sandbox key; if data.sandbox=true call complete',
+              'Payments → Sandbox history (live list means the live key was used)'
+            ]
+          }
+        ],
+        JP: [
+          {
+            title: '他加盟へのサンドボックス配布',
+            steps: [
+              '連携・デプロイ→加盟API出市→キー・文書→サンドボックス鍵発行',
+              '業者管理→決済通報URL(SANDBOX)有効、URLはテスト受信用のみ',
+              '加盟ヘッダ=サンドボックス鍵、sandbox=true なら complete',
+              '決済管理→サンドボックス履歴（決済一覧ならライブ鍵）'
+            ]
+          }
+        ],
+        CH: [
+          {
+            title: '向其他商户发放沙箱',
+            steps: [
+              '联动与部署→商户API上线→密钥与文档→签发沙箱密钥',
+              '企业管理→支付通知 URL(SANDBOX) 启用，仅测试接收地址',
+              '商户头=沙箱密钥，sandbox=true 则 complete',
+              '支付管理→沙箱明细（出现在支付列表=用了线上密钥）'
+            ]
+          }
+        ],
+        TH: [
+          {
+            title: 'ปล่อย sandbox ให้ร้านอื่น',
+            steps: [
+              'เชื่อมต่อและใช้งานจริง→เปิดใช้ API ร้าน→คีย์·เอกสาร→ออกคีย์ sandbox',
+              'จัดการร้าน→URL แจ้งชำระ (SANDBOX) เปิดใช้ ใช้ URL รับทดสอบเท่านั้น',
+              'header ของร้าน=คีย์ sandbox ถ้า sandbox=true ให้ complete',
+              'จัดการชำระ→ประวัติ sandbox (รายการไลฟ์แปลว่าใช้คีย์ไลฟ์)'
+            ]
+          }
+        ]
+      }
+    },
+    {
+      version: '4.54',
+      kind: 'minor',
+      date: '2026-10-06',
+      items: {
+        KO: [
+          '가맹 샌드박스 시크릿: 모든 checkout API에서 실PG(EP 등) 미호출, complete로 시뮬 승인',
+          '샌드박스 세션(/checkout?session=sb_…)은 EP 결제창으로 가지 않음'
+        ],
+        EN: [
+          'Merchant sandbox secret: no live acquirer on any checkout API; simulate with complete',
+          'Sandbox session tokens never open the live ElementPay window'
+        ],
+        JP: [
+          '加盟サンドボックス鍵: 全checkout APIで実PG非呼出、completeで模擬承認',
+          'サンドボックスセッションはEP決済画面へ進まない'
+        ],
+        CH: [
+          '商户沙箱密钥：所有 checkout 不调用真实 PG，用 complete 模拟批准',
+          '沙箱会话不会打开 ElementPay 支付窗'
+        ],
+        TH: [
+          'คีย์ sandbox ของร้าน: API checkout ทั้งหมดไม่เรียก PG จริง อนุมัติจำลองด้วย complete',
+          'เซสชัน sandbox ไม่เปิดหน้าต่าง ElementPay'
+        ]
+      },
+      howTo: {
+        KO: [
+          {
+            title: '샌드박스 vs 라이브 키',
+            steps: [
+              '샌드박스 시크릿 + prepare + complete → 샌드박스내역, EP 없음',
+              '라이브 시크릿 + prepare → payUrl 카드창 → 결제내역·EP',
+              'TINPASS는 넣은 키에 따라 자동 분기'
+            ]
+          }
+        ],
+        EN: [
+          {
+            title: 'Sandbox vs live key',
+            steps: [
+              'Sandbox secret + prepare + complete → sandbox history, no EP',
+              'Live secret + prepare → payUrl card window → payment list and EP',
+              'TINPASS follows whichever key is stored'
+            ]
+          }
+        ],
+        JP: [
+          {
+            title: 'サンドボックス鍵とライブ鍵',
+            steps: [
+              'サンドボックス鍵+prepare+complete→サンドボックス履歴、EPなし',
+              'ライブ鍵+prepare→payUrlカード画面→決済一覧・EP',
+              'TINPASSは保存した鍵に従う'
+            ]
+          }
+        ],
+        CH: [
+          {
+            title: '沙箱密钥与线上密钥',
+            steps: [
+              '沙箱密钥 + prepare + complete → 沙箱明细，无 EP',
+              '线上密钥 + prepare → payUrl 卡窗 → 支付列表与 EP',
+              'TINPASS 随所存密钥分支'
+            ]
+          }
+        ],
+        TH: [
+          {
+            title: 'คีย์ sandbox กับไลฟ์',
+            steps: [
+              'คีย์ sandbox + prepare + complete → ประวัติ sandbox ไม่มี EP',
+              'คีย์ไลฟ์ + prepare → หน้าต่างบัตร payUrl → รายการชำระและ EP',
+              'TINPASS ตามคีย์ที่บันทึก'
+            ]
+          }
+        ]
+      }
+    },
+    {
+      version: '4.53',
+      kind: 'minor',
+      date: '2026-10-06',
+      items: {
+        KO: [
+          '결제통보 URL(SANDBOX): 총본사·본사 세션으로 수정 가능하도록 권한 판정 수정',
+          '가맹 6000000064 샌드박스 사용 활성'
+        ],
+        EN: [
+          'Payment notify URL (SANDBOX): fix HQ/regional session so the card is editable',
+          'Enable sandbox use for merchant 6000000064'
+        ],
+        JP: [
+          '決済通報URL(SANDBOX): 本社セッションで編集できるよう権限判定を修正',
+          '加盟6000000064のサンドボックス使用を有効化'
+        ],
+        CH: [
+          '支付通知 URL(SANDBOX)：修正总部会话权限判定，卡片可编辑',
+          '商户 6000000064 启用沙箱'
+        ],
+        TH: [
+          'URL แจ้งชำระ (SANDBOX): แก้การตรวจสิทธิ์เซสชัน HQ ให้แก้ไขการ์ดได้',
+          'เปิดใช้ sandbox สำหรับร้าน 6000000064'
+        ]
+      },
+      howTo: {
+        KO: [
+          {
+            title: 'SANDBOX 카드 수정',
+            steps: [
+              '총본사·본사로 로그인 → 업체관리 → 가맹 상세 → 결제통보 URL (SANDBOX)',
+              '샌드박스 사용 = 활성 후 저장',
+              '연동·배포 → 가맹 API 출시 → 키·문서 → 샌드박스 시크릿 발급'
+            ]
+          }
+        ],
+        EN: [
+          {
+            title: 'Edit SANDBOX card',
+            steps: [
+              'Log in as HQ/regional → Company admin → merchant detail → Payment notify URL (SANDBOX)',
+              'Set Sandbox use = Active and save',
+              'Integration & deploy → Merchant API launch → Keys & docs → Issue sandbox secret'
+            ]
+          }
+        ],
+        JP: [
+          {
+            title: 'SANDBOXカード編集',
+            steps: [
+              '本社でログイン → 業者管理 → 加盟詳細 → 決済通報 URL (SANDBOX)',
+              'サンドボックス使用=有効にして保存',
+              '連携・デプロイ → 加盟API出市 → キー・文書 → サンドボックス秘密鍵発行'
+            ]
+          }
+        ],
+        CH: [
+          {
+            title: '编辑 SANDBOX 卡片',
+            steps: [
+              '以总部登录 → 企业管理 → 商户详情 → 支付通知 URL (SANDBOX)',
+              '沙箱启用=启用并保存',
+              '联动与部署 → 商户API上线 → 密钥与文档 → 签发沙箱密钥'
+            ]
+          }
+        ],
+        TH: [
+          {
+            title: 'แก้ไขการ์ด SANDBOX',
+            steps: [
+              'ล็อกอิน HQ → จัดการร้าน → รายละเอียด → URL แจ้งชำระ (SANDBOX)',
+              'ตั้งใช้ sandbox = เปิดใช้ แล้วบันทึก',
+              'เชื่อมต่อและใช้งานจริง → เปิดใช้ API ร้าน → คีย์·เอกสาร → ออกคีย์ sandbox'
+            ]
+          }
+        ]
+      }
+    },
     {
       version: '4.52',
       kind: 'minor',

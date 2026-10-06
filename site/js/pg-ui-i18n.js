@@ -16262,6 +16262,12 @@
       CH: 'Broker 密钥重发 — 点击后旧密码立即失效。仅在怀疑泄露或负责人要求时操作；broker 服务器须同日更新配置以免中断支付。',
       TH: 'ออก secret ใหม่ — รหัสเก่าใช้ไม่ได้ทันที ใช้เมื่อสงสัยรั่วหรือตามคำสั่ง ต้องปรับเซิร์ฟเวอร์โบรกเกอร์ในวันเดียวกัน'
     },
+    '샌드박스 시크릿 발급 — 통신 테스트 전용 키입니다. 가맹 서버에 이 키만 넣으면 prepare 후 complete 로 시뮬됩니다. 라이브 키와 섞거나 관리자 URL결제로 테스트하면 실PG(결제내역)로 갑니다.': {
+      EN: 'Issue sandbox secret — API test key only. On the merchant server this key makes prepare then complete (no card window). Mixing the live key or testing with admin URL-pay hits the live acquirer (live payment list).',
+      JP: 'サンドボックス鍵発行 — 通信テスト専用。加盟サーバーにこの鍵だけ入れると prepare 後 complete で模擬承認。ライブ鍵と混ぜたり管理画面URL決済で試すと実PG（決済一覧）になります。',
+      CH: '签发沙箱密钥 — 仅通信测试。商户服务器只放此密钥则 prepare 后 complete 模拟。与线上密钥混用或用后台 URL 支付测试会走真实通道（支付列表）。',
+      TH: 'ออกคีย์ sandbox — สำหรับทดสอบสื่อสารเท่านั้น ใส่คีย์นี้ที่เซิร์ฟเวอร์ร้านแล้ว prepare ตามด้วย complete ห้ามปนคีย์ไลฟ์หรือทดสอบด้วย URL จ่ายของแอดมิน เพราะจะเป็นช่องทางจริง'
+    },
     '입력 칸은 이렇게 읽으면 됩니다': {
       EN: 'How to read the input fields',
       JP: '入力欄の読み方',

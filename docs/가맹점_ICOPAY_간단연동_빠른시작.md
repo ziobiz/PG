@@ -49,9 +49,18 @@ X-Icopay-Merchant-Broker-Secret: {브로커시크릿}
 **응답에서 쓸 값:** `data.sessionToken`, `data.payUrl`, `data.embedScriptUrl`  
 **응답 `pgVendor`:** 항상 `ICOPAY` (그 외 벤더명·운영 PG 코드는 오지 않음)
 
+**샌드박스 시크릿**이면 `data.sandbox=true`, **payUrl 없음**. 카드창을 열지 말고:
+
+```http
+POST {BASE}/api/middleware/v1/merchant/checkout/complete
+X-Icopay-Merchant-Broker-Secret: {샌드박스시크릿}
+```
+
+body: `compId`, `orderNo`, `sessionToken`. 확인: **결제관리 → 샌드박스내역**.
+
 ---
 
-## 2. 결제창 표시 (브라우저)
+## 2. 결제창 표시 (브라우저) — 라이브만
 
 ### 권장 A — Embed 스크립트 (iframe)
 
@@ -118,8 +127,11 @@ X-Icopay-Merchant-Broker-Secret: {브로커시크릿}
 
 ```php
 $prep = $api->prepareUnifiedCheckout($orderNo, $amount, $buyer, $currency, $productName, $lang);
-$token = $prep['data']['sessionToken'];
-echo $api->buildUnifiedEmbedHtml($token, 'icopay-checkout', $lang);
+if (IcopayMerchantApi::isSandboxPrepare($prep)) {
+    $done = $api->completeSandboxCheckout($orderNo, (string)$prep['data']['sessionToken']);
+} else {
+    echo $api->buildUnifiedEmbedHtml((string)$prep['data']['sessionToken'], 'icopay-checkout', $lang);
+}
 ```
 
 ---
@@ -132,6 +144,8 @@ echo $api->buildUnifiedEmbedHtml($token, 'icopay-checkout', $lang);
 | `/jpay-pay.html`, `/pay/` 등 비중립 URL을 직접 호출 | 설정·문구가 누락될 수 있음. `payUrl`·embed만 사용 |
 | prepare body에 가맹 사이트 return URL을 넣음 | 브라우저 복귀는 ICOPAY NOTI → 가맹 Result |
 | 브로커 시크릿을 브라우저에 노출 | 시크릿은 **가맹 서버만** |
+| 샌드박스인데 payUrl/카드창을 염 | 실결제·결제내역로 새어 나감. complete만 |
+| 라이브 키로 샌드박스를 기대함 | 카드창이 열리면 라이브입니다 |
 
 ---
 

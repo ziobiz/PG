@@ -1743,11 +1743,15 @@
 
   function pgViewerCanEditSandbox() {
     try {
-      var u = window.PG_LOGIN_USER || window.__PG_LOGIN_USER || {};
+      /* getSessionUser()와 동일 세션 사용 — PG_LOGIN_USER만 보면 총본사도 카드가 잠김 */
+      var u = (typeof getSessionUser === 'function' ? getSessionUser() : null)
+        || window.PG_LOGIN_USER || window.__PG_LOGIN_USER || {};
+      if (!u || typeof u !== 'object') return false;
       var role = String(u.role || u.userRole || '').toUpperCase();
       if (role === 'ADMIN') return true;
       var lv = String(u.orgLevel || u.orgLevelNm || u.compDiv || '').toUpperCase();
-      return lv === 'HEADQUARTERS' || lv === 'REGIONAL' || lv.indexOf('총본사') >= 0 || lv.indexOf('본사') >= 0;
+      return lv === 'HEADQUARTERS' || lv === 'REGIONAL'
+        || lv.indexOf('총본사') >= 0 || lv.indexOf('본사') >= 0;
     } catch (e) { return false; }
   }
   function pgApplySandboxCardEditability(form) {

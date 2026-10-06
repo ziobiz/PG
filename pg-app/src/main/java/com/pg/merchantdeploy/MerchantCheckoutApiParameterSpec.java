@@ -24,7 +24,7 @@ public final class MerchantCheckoutApiParameterSpec {
         String base = publicApiBase != null ? publicApiBase.trim() : "";
         String cid = compId != null ? compId.trim() : "";
         Map<String, Object> spec = new LinkedHashMap<>();
-        spec.put("specVersion", "1.3");
+        spec.put("specVersion", "1.4");
         spec.put("specId", "ICOPAY-CHECKOUT-PREPARE-001");
         putTextFields(spec, "title", new Bundle(
                 "표 1.1: ICOPAY 통합 Checkout Prepare API 요청 파라미터",
@@ -66,6 +66,7 @@ public final class MerchantCheckoutApiParameterSpec {
         spec.put("documentMarkdown", "docs/가맹점_통합Checkout_API_연동파라미터_규격.md");
         spec.put("sampleRequestJsonUrl", base + "/merchant-api-samples/json/unified-prepare-request.json");
         spec.put("sampleResponseJsonUrl", base + "/merchant-api-samples/json/unified-prepare-response.example.json");
+        spec.put("sampleSandboxResponseJsonUrl", base + "/merchant-api-samples/json/unified-prepare-sandbox-response.example.json");
         spec.put("compIdExample", cid);
         spec.put("httpHeaders", httpHeaders());
         spec.put("prepareBodyParameters", prepareBodyParameters(cid));
@@ -146,6 +147,22 @@ public final class MerchantCheckoutApiParameterSpec {
                 "決済画面 lang: KOR|ENG|JPN|CHN|THA。省略時は embed・ページ言語を自動検出。",
                 "支付页 lang：KOR|ENG|JPN|CHN|THA。省略则按 embed/页面语言自动检测。",
                 "ภาษา lang: KOR|ENG|JPN|CHN|THA ไม่ระบุจะตรวจจาก embed/หน้าเว็บ"
+        )));
+        rows.add(textMap(new Bundle(
+                "ICOPAY 가맹 샌드박스: 헤더에 샌드박스 시크릿. prepare 응답 sandbox=true·integrationMode=SANDBOX·payUrl 없음. "
+                        + "즉시 POST /api/middleware/v1/merchant/checkout/complete (body: compId, orderNo, sessionToken). "
+                        + "라이브 시크릿으로 complete 하면 SANDBOX_ONLY. 확인은 결제관리→샌드박스내역(결제내역 아님). "
+                        + "관리자 URL결제·테스트카드로 검증하면 실PG로 갑니다.",
+                "ICOPAY merchant sandbox: send the sandbox secret. prepare returns sandbox=true, integrationMode=SANDBOX, no payUrl. "
+                        + "Then POST /api/middleware/v1/merchant/checkout/complete (compId, orderNo, sessionToken). "
+                        + "complete with a live secret returns SANDBOX_ONLY. Check Payments→Sandbox history (not the live list). "
+                        + "Admin URL-pay or live test cards hit the live acquirer.",
+                "加盟サンドボックス: サンドボックス鍵。prepare は sandbox=true・payUrlなし。続けて POST .../checkout/complete。"
+                        + "ライブ鍵の complete は SANDBOX_ONLY。確認は決済管理→サンドボックス履歴。管理画面URL決済は実PG。",
+                "商户沙箱：使用沙箱密钥。prepare 返回 sandbox=true、无 payUrl。接着 POST .../checkout/complete。"
+                        + "线上密钥调用 complete 返回 SANDBOX_ONLY。核对支付管理→沙箱明细。后台 URL 支付会走真实通道。",
+                "sandbox ของร้าน: ใส่คีย์ sandbox prepare ได้ sandbox=true ไม่มี payUrl แล้ว POST .../checkout/complete "
+                        + "คีย์ไลฟ์เรียก complete ได้ SANDBOX_ONLY ตรวจที่ประวัติ sandbox ห้ามทดสอบด้วย URL จ่ายของแอดมิน"
         )));
         rows.add(textMap(new Bundle(
                 "모든 연동은 ICOPAY 통합 checkout 경로만 사용. 결제 대행사·MID 변경은 ICOPAY가 처리하며 가맹점 추가 개발은 불필요.",
@@ -375,9 +392,24 @@ public final class MerchantCheckoutApiParameterSpec {
         rows.add(responseField(5, "buyerPrefill", "Object", "O", new Bundle(
                 "세션에 저장된 buyer 정규화 결과", "Normalized buyer stored in session",
                 "セッションに保存された buyer", "会话中规范化的 buyer", "buyer ที่ normalize ใน session")));
-        rows.add(responseField(6, "expiresAt", "String", "M", new Bundle(
-                "세션 만료 시각(ISO-8601)", "Session expiry (ISO-8601)",
-                "セッション有効期限(ISO-8601)", "会话过期时间（ISO-8601）", "หมดอายุ session (ISO-8601)")));
+        rows.add(responseField(6, "expiresAt", "String", "O", new Bundle(
+                "세션 만료 시각(ISO-8601). 샌드박스 prepare에는 없을 수 있음",
+                "Session expiry (ISO-8601). May be omitted on sandbox prepare",
+                "セッション有効期限(ISO-8601)。サンドボックス prepare では省略可",
+                "会话过期时间（ISO-8601）。沙箱 prepare 可能省略",
+                "หมดอายุ session (ISO-8601) sandbox prepare อาจไม่มี")));
+        rows.add(responseField(7, "sandbox", "Boolean", "O", new Bundle(
+                "true이면 ICOPAY 가맹 샌드박스. payUrl/embed를 열지 말고 POST .../checkout/complete 로 시뮬 승인",
+                "If true, ICOPAY merchant sandbox. Do not open payUrl/embed; POST .../checkout/complete to simulate approval",
+                "true なら加盟サンドボックス。payUrl/embed を開かず POST .../checkout/complete で模擬承認",
+                "true 表示商户沙箱。不要打开 payUrl/embed，POST .../checkout/complete 模拟批准",
+                "ถ้า true คือ sandbox ของร้าน ห้ามเปิด payUrl/embed ให้ POST .../checkout/complete")));
+        rows.add(responseField(8, "integrationMode", "String", "O", new Bundle(
+                "SANDBOX 이면 실결제대행사 미호출. 그 외는 라이브 결제창 경로",
+                "SANDBOX means no live acquirer. Otherwise live checkout window",
+                "SANDBOX なら実決済代行非呼出。それ以外はライブ決済画面",
+                "SANDBOX 表示不调用真实收单。否则为线上支付窗",
+                "SANDBOX หมายถึงไม่เรียกผู้รับชำระจริง นอกนั้นเป็นหน้าต่างไลฟ์")));
         return rows;
     }
 
@@ -424,6 +456,18 @@ public final class MerchantCheckoutApiParameterSpec {
         rows.add(errorCode("URL_PAYMENT_PG_MISSING", new Bundle(
                 "운영 WEB PG 바인딩 없음", "No operational WEB PG binding",
                 "運用 WEB PG バインディングなし", "无运营 WEB PG 绑定", "ไม่มี binding WEB PG")));
+        rows.add(errorCode("SANDBOX_DISABLED", new Bundle(
+                "가맹 샌드박스 사용이 비활성. 본사 업체관리 → 결제통보 URL(SANDBOX)에서 활성",
+                "Merchant sandbox is off. HQ company admin → Payment notify URL (SANDBOX) = Active",
+                "加盟サンドボックス無効。本社 業者管理→決済通報URL(SANDBOX)で有効化",
+                "商户沙箱未启用。总部企业管理→支付通知 URL(SANDBOX) 设为启用",
+                "sandbox ของร้านปิดอยู่ HQ จัดการร้าน→URL แจ้งชำระ (SANDBOX) เปิดใช้")));
+        rows.add(errorCode("SANDBOX_ONLY", new Bundle(
+                "complete 는 샌드박스 시크릿으로만 호출 가능. 라이브 시크릿이면 payUrl 결제창을 사용",
+                "complete is allowed only with the sandbox secret. Live secret uses the payUrl checkout window",
+                "complete はサンドボックス鍵のみ。ライブ鍵は payUrl 決済画面",
+                "complete 仅可用沙箱密钥。线上密钥请走 payUrl 支付窗",
+                "complete ใช้ได้เฉพาะคีย์ sandbox คีย์ไลฟ์ใช้หน้าต่าง payUrl")));
         return rows;
     }
 

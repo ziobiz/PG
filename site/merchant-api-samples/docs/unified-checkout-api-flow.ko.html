@@ -164,6 +164,9 @@
   <p><strong>Session을 서버에서 호출해야 하나요?</strong> 아니요. embed 위젯이 브라우저에서 호출합니다.</p>
   <p><strong>결제대행사 이름이 보일 수 있나요?</strong> 아니요. 가맹 API·결제창·문서는 ICOPAY만 노출합니다.</p>
   <p><strong>postMessage만으로 충분한가요?</strong> UX에는 충분할 수 있으나, 서버 확정은 웹훅 또는 status 조회를 권장합니다.</p>
+  <p><strong>샌드박스인데 카드창이 열립니다.</strong> 헤더가 라이브 시크릿입니다. 샌드박스 시크릿으로 prepare 하면 <code>data.sandbox===true</code> 이고 payUrl이 없습니다.
+    <code>POST …/merchant/checkout/complete</code> 후 <strong>결제관리 → 샌드박스내역</strong>에서 확인합니다. 관리자 URL결제는 라이브입니다.</p>
+  <p><strong>SANDBOX_DISABLED / SANDBOX_ONLY?</strong> 전자는 본사가 해당 가맹 샌드박스 사용을 켜야 합니다. 후자는 라이브 키로 complete를 호출한 경우입니다.</p>
 
   <p class="meta">텍스트: <a href="unified-checkout-api-flow.ko.txt">unified-checkout-api-flow.ko.txt</a> ·
     파라미터: <a href="unified-checkout-api-parameters.html">unified-checkout-api-parameters.html</a></p>

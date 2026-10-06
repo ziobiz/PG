@@ -38,12 +38,24 @@ X-Icopay-Merchant-Broker-Secret: {브로커시크릿}
 
 **필수:** `compId`(또는 merchantId), `orderNo`, `amount`, `buyer.email`, `buyer.phone`, `buyer.countryIso2`
 
-**응답에서 쓸 값:** `data.sessionToken`, `data.payUrl`, `data.embedScriptUrl`  
 **응답 `pgVendor`:** 항상 `ICOPAY`
+
+**라이브 응답에서 쓸 값:** `data.sessionToken`, `data.payUrl`, `data.embedScriptUrl`
+
+**샌드박스(헤더가 샌드박스 시크릿):** `data.sandbox` 가 `true`, `integrationMode` 가 `SANDBOX`, **payUrl 없음**.  
+카드창을 열지 말고 아래 complete 를 호출합니다. 확인은 **결제관리 → 샌드박스내역** (결제내역이 아님).
+
+```http
+POST {BASE}/api/middleware/v1/merchant/checkout/complete
+Content-Type: application/json
+X-Icopay-Merchant-Broker-Secret: {샌드박스시크릿}
+
+{ "compId": "M000123", "orderNo": "ORD-20260715001", "sessionToken": "{sessionToken}" }
+```
 
 ---
 
-## 2. 결제창 표시 (브라우저)
+## 2. 결제창 표시 (브라우저) — 라이브만
 
 ### 권장 A — Embed 스크립트 (iframe)
 
@@ -99,6 +111,9 @@ X-Icopay-Merchant-Broker-Secret: {브로커시크릿}
 | `/jpay-pay.html`, `/pay/` 등 비중립 URL을 직접 호출 | `payUrl`·embed만 사용 |
 | prepare body에 가맹 사이트 return URL을 넣음 | 브라우저 복귀는 ICOPAY NOTI → 가맹 Result |
 | 브로커 시크릿을 브라우저에 노출 | 시크릿은 **가맹 서버만** |
+| 샌드박스인데 payUrl/카드창을 염 | 실PG·결제내역로 새어 나감. complete 만 |
+| 라이브 키로 샌드박스 테스트 | 카드창·결제내역이 정상. 키가 라이브임 |
+| 관리자 URL결제로 통신 테스트 | URL결제는 라이브 경로 |
 
 ---
 

@@ -8,8 +8,10 @@ Brand: ICOPAY only. Payment-agency / operational PG names are never shown to mer
 Recommended path (3 steps)
 --------------------------
 1) Merchant server: POST /api/middleware/v1/merchant/checkout/prepare
-2) Browser: /v1/embed-checkout/{compId} with data-session-token (or iframe data.payUrl → /checkout/{compId})
+2) Live: browser /v1/embed-checkout/{compId} (or iframe data.payUrl)
+   Sandbox secret: data.sandbox=true → POST .../checkout/complete (no payUrl/card UI)
 3) Merchant server: GET .../checkout/status and/or merchant webhook
+   Sandbox rows: Payments → Sandbox history (not the live payment list)
 
 Quick start (Korean): docs/../../docs/가맹점_ICOPAY_간단연동_빠른시작.md
   (repo path) also mirrored in merchant kit docs portal.
@@ -19,7 +21,8 @@ Quick start (Korean): docs/../../docs/가맹점_ICOPAY_간단연동_빠른시작
    docs/unified-checkout-api-flow.html (+ .ko .ja .ch .th)
    docs/unified-checkout-api-parameters.html (+ langs)
    json/unified-prepare-request.json
-   json/unified-prepare-response.example.json   ← pgVendor=ICOPAY, payUrl=/checkout/...
+   json/unified-prepare-response.example.json   ← live: pgVendor=ICOPAY, payUrl=/checkout/...
+   json/unified-prepare-sandbox-response.example.json  ← sandbox=true, call complete
 
 ② PHP — recommended
 -------------------

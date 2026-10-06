@@ -167,6 +167,9 @@
   <p><strong>Session をサーバーから呼ぶ必要はありますか？</strong> いいえ。embed ウィジェットがブラウザで呼び出します。</p>
   <p><strong>決済代行ブランドは見えますか？</strong> いいえ。加盟店向け API・決済画面・文書は ICOPAY のみです。</p>
   <p><strong>postMessage だけで十分ですか？</strong> UX には足りる場合がありますが、サーバー確定は Webhook または status 照会を推奨します。</p>
+  <p><strong>サンドボックスなのにカード画面が開きます。</strong> ヘッダがライブ鍵です。サンドボックス鍵なら <code>data.sandbox===true</code>・payUrl なし。
+    <code>POST …/merchant/checkout/complete</code> の後、<strong>決済管理→サンドボックス履歴</strong>。管理画面の URL 決済はライブです。</p>
+  <p><strong>SANDBOX_DISABLED / SANDBOX_ONLY?</strong> 前者は本社が当該加盟のサンドボックス使用を有効化。後者はライブ鍵で complete を呼んだ場合です。</p>
 
   <p class="meta">テキスト: <a href="unified-checkout-api-flow.ja.txt">unified-checkout-api-flow.ja.txt</a> ·
     パラメータ: <a href="unified-checkout-api-parameters.html">unified-checkout-api-parameters.html</a></p>

@@ -5,6 +5,7 @@ import com.pg.entity.OrgUnit;
 import com.pg.merchantdeploy.MerchantApiResponseMapper;
 import com.pg.merchantdeploy.MerchantBrokerAccessVerifier;
 import com.pg.merchantdeploy.MerchantPgBrokerVendor;
+import com.pg.merchantdeploy.MerchantSandboxCheckoutFacade;
 import com.pg.merchantdeploy.MerchantUnifiedSubscriptionCheckoutService;
 import com.pg.repository.OrgUnitRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,14 +30,17 @@ import java.util.Optional;
 public class IcipayMerchantUnifiedSubscriptionCheckoutController {
 
     private final MerchantUnifiedSubscriptionCheckoutService unifiedSubscriptionService;
+    private final MerchantSandboxCheckoutFacade sandboxCheckoutFacade;
     private final MerchantBrokerAccessVerifier brokerAccessVerifier;
     private final OrgUnitRepository orgUnitRepository;
 
     public IcipayMerchantUnifiedSubscriptionCheckoutController(
             MerchantUnifiedSubscriptionCheckoutService unifiedSubscriptionService,
+            MerchantSandboxCheckoutFacade sandboxCheckoutFacade,
             MerchantBrokerAccessVerifier brokerAccessVerifier,
             OrgUnitRepository orgUnitRepository) {
         this.unifiedSubscriptionService = unifiedSubscriptionService;
+        this.sandboxCheckoutFacade = sandboxCheckoutFacade;
         this.brokerAccessVerifier = brokerAccessVerifier;
         this.orgUnitRepository = orgUnitRepository;
     }
@@ -56,7 +60,9 @@ public class IcipayMerchantUnifiedSubscriptionCheckoutController {
         if (orgUnitId == null) {
             return ResponseEntity.ok(ApiResponse.fail("compId 또는 merchantId가 필요합니다.", "NOT_FOUND"));
         }
-        Map<String, Object> result = unifiedSubscriptionService.prepare(orgUnitId, body != null ? body : Map.of(), request);
+        Map<String, Object> result = sandboxCheckoutFacade.isSandbox(request)
+                ? sandboxCheckoutFacade.prepare(orgUnitId, body != null ? body : Map.of())
+                : unifiedSubscriptionService.prepare(orgUnitId, body != null ? body : Map.of(), request);
         return MerchantApiResponseMapper.mapServiceResult(result);
     }
 
@@ -64,7 +70,9 @@ public class IcipayMerchantUnifiedSubscriptionCheckoutController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> session(
             @RequestParam("token") String token,
             HttpServletRequest request) {
-        Map<String, Object> result = unifiedSubscriptionService.readSession(token, request);
+        Map<String, Object> result = sandboxCheckoutFacade.isSandboxSessionToken(token)
+                ? sandboxCheckoutFacade.session(token)
+                : unifiedSubscriptionService.readSession(token, request);
         return MerchantApiResponseMapper.mapServiceResult(result);
     }
 
@@ -88,7 +96,9 @@ public class IcipayMerchantUnifiedSubscriptionCheckoutController {
         if (orgUnitId == null) {
             return ResponseEntity.ok(ApiResponse.fail("compId 또는 merchantId가 필요합니다.", "NOT_FOUND"));
         }
-        Map<String, Object> result = unifiedSubscriptionService.subscriptionStatus(orgUnitId, orderNo);
+        Map<String, Object> result = sandboxCheckoutFacade.isSandbox(request)
+                ? sandboxCheckoutFacade.status(orgUnitId, orderNo)
+                : unifiedSubscriptionService.subscriptionStatus(orgUnitId, orderNo);
         return MerchantApiResponseMapper.mapServiceResult(result);
     }
 
@@ -107,7 +117,9 @@ public class IcipayMerchantUnifiedSubscriptionCheckoutController {
         if (orgUnitId == null) {
             return ResponseEntity.ok(ApiResponse.fail("compId 또는 merchantId가 필요합니다.", "NOT_FOUND"));
         }
-        Map<String, Object> result = unifiedSubscriptionService.cancel(orgUnitId, body != null ? body : Map.of(), request);
+        Map<String, Object> result = sandboxCheckoutFacade.isSandbox(request)
+                ? sandboxCheckoutFacade.refuseNonSandbox("샌드박스 시크릿으로는 실PG 구독을 취소하지 않습니다.")
+                : unifiedSubscriptionService.cancel(orgUnitId, body != null ? body : Map.of(), request);
         return MerchantApiResponseMapper.mapServiceResult(result);
     }
 

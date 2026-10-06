@@ -60,4 +60,12 @@ data-session-token="{sessionToken}" 必須
 
 PHP サンプル: merchant-api-samples/php/checkout_unified.php
 
+8. SANDBOX
+----------
+サンドボックス鍵 → prepare sandbox=true、payUrl なし
+POST .../merchant/checkout/complete
+確認: 決済管理→サンドボックス履歴
+SANDBOX_DISABLED = 本社が使用を有効化
+SANDBOX_ONLY = ライブ鍵で complete
+
 

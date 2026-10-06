@@ -5,7 +5,7 @@ import com.pg.entity.OrgUnit;
 import com.pg.merchantdeploy.MerchantApiResponseMapper;
 import com.pg.merchantdeploy.MerchantBrokerAccessVerifier;
 import com.pg.merchantdeploy.MerchantPgBrokerVendor;
-import com.pg.merchantdeploy.MerchantSandboxCheckoutService;
+import com.pg.merchantdeploy.MerchantSandboxCheckoutFacade;
 import com.pg.merchantdeploy.MerchantUnifiedInlineCheckoutService;
 import com.pg.repository.OrgUnitRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,16 +31,16 @@ import java.util.Optional;
 public class IcipayMerchantUnifiedCheckoutController {
 
     private final MerchantUnifiedInlineCheckoutService unifiedCheckoutService;
-    private final MerchantSandboxCheckoutService sandboxCheckoutService;
+    private final MerchantSandboxCheckoutFacade sandboxCheckoutFacade;
     private final MerchantBrokerAccessVerifier brokerAccessVerifier;
     private final OrgUnitRepository orgUnitRepository;
 
     public IcipayMerchantUnifiedCheckoutController(MerchantUnifiedInlineCheckoutService unifiedCheckoutService,
-                                                   MerchantSandboxCheckoutService sandboxCheckoutService,
+                                                   MerchantSandboxCheckoutFacade sandboxCheckoutFacade,
                                                    MerchantBrokerAccessVerifier brokerAccessVerifier,
                                                    OrgUnitRepository orgUnitRepository) {
         this.unifiedCheckoutService = unifiedCheckoutService;
-        this.sandboxCheckoutService = sandboxCheckoutService;
+        this.sandboxCheckoutFacade = sandboxCheckoutFacade;
         this.brokerAccessVerifier = brokerAccessVerifier;
         this.orgUnitRepository = orgUnitRepository;
     }
@@ -61,8 +61,8 @@ public class IcipayMerchantUnifiedCheckoutController {
             return ResponseEntity.ok(ApiResponse.fail("compId 또는 merchantId가 필요합니다.", "NOT_FOUND"));
         }
         Map<String, Object> result;
-        if (MerchantBrokerAccessVerifier.isSandboxRequest(request)) {
-            result = sandboxCheckoutService.prepare(orgUnitId, body != null ? body : Map.of());
+        if (sandboxCheckoutFacade.isSandbox(request)) {
+            result = sandboxCheckoutFacade.prepare(orgUnitId, body != null ? body : Map.of());
         } else {
             result = unifiedCheckoutService.prepare(orgUnitId, body != null ? body : Map.of(), request);
         }
@@ -81,7 +81,7 @@ public class IcipayMerchantUnifiedCheckoutController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(ApiResponse.fail(e.getMessage(), "BROKER_AUTH"));
         }
-        if (!MerchantBrokerAccessVerifier.isSandboxRequest(request)) {
+        if (!sandboxCheckoutFacade.isSandbox(request)) {
             return ResponseEntity.ok(ApiResponse.fail(
                     "샌드박스 시크릿으로만 complete 할 수 있습니다.", "SANDBOX_ONLY"));
         }
@@ -89,7 +89,7 @@ public class IcipayMerchantUnifiedCheckoutController {
         if (orgUnitId == null) {
             return ResponseEntity.ok(ApiResponse.fail("compId 또는 merchantId가 필요합니다.", "NOT_FOUND"));
         }
-        Map<String, Object> result = sandboxCheckoutService.complete(orgUnitId, body != null ? body : Map.of());
+        Map<String, Object> result = sandboxCheckoutFacade.complete(orgUnitId, body != null ? body : Map.of());
         return MerchantApiResponseMapper.mapServiceResult(result);
     }
 
@@ -97,7 +97,9 @@ public class IcipayMerchantUnifiedCheckoutController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> session(
             @RequestParam("token") String token,
             HttpServletRequest request) {
-        Map<String, Object> result = unifiedCheckoutService.readSession(token, request);
+        Map<String, Object> result = sandboxCheckoutFacade.isSandboxSessionToken(token)
+                ? sandboxCheckoutFacade.session(token)
+                : unifiedCheckoutService.readSession(token, request);
         return MerchantApiResponseMapper.mapServiceResult(result);
     }
 
@@ -122,8 +124,8 @@ public class IcipayMerchantUnifiedCheckoutController {
             return ResponseEntity.ok(ApiResponse.fail("compId 또는 merchantId가 필요합니다.", "NOT_FOUND"));
         }
         Map<String, Object> result;
-        if (MerchantBrokerAccessVerifier.isSandboxRequest(request)) {
-            result = sandboxCheckoutService.orderStatus(orgUnitId, orderNo);
+        if (sandboxCheckoutFacade.isSandbox(request)) {
+            result = sandboxCheckoutFacade.status(orgUnitId, orderNo);
         } else {
             result = unifiedCheckoutService.orderStatus(orgUnitId, orderNo);
         }

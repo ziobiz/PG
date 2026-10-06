@@ -38,12 +38,24 @@ X-Icopay-Merchant-Broker-Secret: {brokerSecret}
 
 **Required:** `compId` (or merchantId), `orderNo`, `amount`, `buyer.email`, `buyer.phone`, `buyer.countryIso2`
 
-**Use from response:** `data.sessionToken`, `data.payUrl`, `data.embedScriptUrl`  
 **Response `pgVendor`:** always `ICOPAY`
+
+**Live:** use `data.sessionToken`, `data.payUrl`, `data.embedScriptUrl`.
+
+**Sandbox (header = sandbox secret):** `data.sandbox === true`, `integrationMode === SANDBOX`, **no payUrl**.  
+Do not open a card window. POST complete. Confirm under **Payments → Sandbox history** (not the live payment list).
+
+```http
+POST {BASE}/api/middleware/v1/merchant/checkout/complete
+Content-Type: application/json
+X-Icopay-Merchant-Broker-Secret: {sandboxSecret}
+
+{ "compId": "M000123", "orderNo": "ORD-20260715001", "sessionToken": "{sessionToken}" }
+```
 
 ---
 
-## 2. Show checkout (browser)
+## 2. Show checkout (browser) — live only
 
 ### A — Embed script (recommended)
 
@@ -102,6 +114,9 @@ Final confirmation must be **Status API or Webhook** on the server.
 | Call `/jpay-pay.html`, `/pay/`, etc. directly | Use `payUrl` / embed only |
 | Put browser return URL in prepare body | Browser return is ICOPAY NOTI → merchant Result |
 | Expose broker secret in the browser | Secret stays on merchant server only |
+| Open payUrl/card UI on sandbox | Hits live acquirer. Call complete instead |
+| Test sandbox with the live secret | Card window and live list are expected |
+| Use admin URL-pay as a sandbox test | URL-pay is the live path |
 
 ---
 

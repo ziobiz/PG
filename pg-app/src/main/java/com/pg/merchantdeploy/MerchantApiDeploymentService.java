@@ -1356,6 +1356,9 @@ public class MerchantApiDeploymentService {
         block.put("prepareUrl", base + "/api/middleware/v1/merchant/checkout/prepare");
         block.put("sessionUrl", base + "/api/middleware/v1/merchant/checkout/session?token={sessionToken}");
         block.put("statusUrl", base + "/api/middleware/v1/merchant/checkout/status?compId=" + compId + "&orderNo={orderNo}");
+        block.put("sandboxCompleteUrl", base + "/api/middleware/v1/merchant/checkout/complete");
+        block.put("sandboxNoteKr",
+                "샌드박스 시크릿으로 prepare 하면 data.sandbox=true. payUrl/embed를 열지 말고 sandboxCompleteUrl 을 POST. 확인: 결제관리→샌드박스내역.");
         block.put("embedScriptUrl", base + "/v1/embed-checkout/" + compId);
         block.put("flowDocHtml", base + "/merchant-api-samples/docs/unified-checkout-api-flow.html");
         block.put("flowDocHtmlKo", base + "/merchant-api-samples/docs/unified-checkout-api-flow.ko.html");
@@ -1387,10 +1390,11 @@ public class MerchantApiDeploymentService {
                         + "  data-target=\"icopay-checkout\"\n"
                         + "  data-lang=\"{langCode}\" async defer charset=\"utf-8\"></script>");
         block.put("postMessageEvent", "ICOPAY_INLINE_CHECKOUT");
-        block.put("phpClientMethod", "prepareUnifiedCheckout / buildUnifiedEmbedHtml");
+        block.put("phpClientMethod", "prepareUnifiedCheckout / isSandboxPrepare / completeSandboxCheckout / buildUnifiedEmbedHtml");
         block.put("jsonSampleFiles", List.of(
                 "merchant-api-samples/json/unified-prepare-request.json",
                 "merchant-api-samples/json/unified-prepare-response.example.json",
+                "merchant-api-samples/json/unified-prepare-sandbox-response.example.json",
                 "merchant-api-samples/json/README.txt"
         ));
         block.put("phpSampleFiles", List.of(
@@ -1420,8 +1424,9 @@ public class MerchantApiDeploymentService {
         jsonMode.put("authHeaderNoteKr", "브로커 시크릿 강제 시 필수. 레거시 /api/pay/... 는 예외.");
         jsonMode.put("recommendedFlowKr", List.of(
                 "1) 가맹 서버: POST /api/middleware/v1/merchant/checkout/prepare (buyer 필수)",
-                "2) 응답 data.sessionToken → 브라우저에 /v1/embed-checkout/{compId} 스크립트만 전달",
-                "3) GET .../checkout/status 또는 merchantNotifyUrls 웹훅으로 PAID 확인"
+                "2-라이브) 응답 data.sessionToken → 브라우저에 /v1/embed-checkout/{compId} 스크립트만 전달",
+                "2-샌드박스) data.sandbox=true 이면 POST .../checkout/complete (payUrl 금지) → 결제관리→샌드박스내역",
+                "3) GET .../checkout/status 또는 등록 Webhook으로 PAID 확인"
         ));
         jsonMode.put("unifiedCheckout", unifiedBlock);
         jsonMode.put("unifiedRedirectCheckout", unifiedRedirectBlock);

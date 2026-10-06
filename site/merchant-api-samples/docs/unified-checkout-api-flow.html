@@ -164,6 +164,9 @@
   <p><strong>Do I call Session from my server?</strong> No — the embed widget calls it in the browser.</p>
   <p><strong>Will I see a payment-agency brand?</strong> No. Merchant APIs, checkout UI, and docs expose <strong>ICOPAY only</strong>.</p>
   <p><strong>Is postMessage enough?</strong> Use it for UX; confirm payment on the server via webhook and/or status.</p>
+  <p><strong>Sandbox still opens a card window?</strong> The header is the live secret. With the sandbox secret, prepare returns <code>data.sandbox===true</code> and no payUrl.
+    POST <code>…/merchant/checkout/complete</code>, then check <strong>Payments → Sandbox history</strong>. Admin URL-pay is live.</p>
+  <p><strong>SANDBOX_DISABLED / SANDBOX_ONLY?</strong> The first means HQ must enable sandbox use for that merchant. The second means complete was called with the live secret.</p>
 
   <p class="meta">Plain text: <a href="unified-checkout-api-flow.txt">unified-checkout-api-flow.txt</a> ·
     Parameters: <a href="unified-checkout-api-parameters.html">unified-checkout-api-parameters.html</a></p>

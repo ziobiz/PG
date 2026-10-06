@@ -97,7 +97,9 @@ public class MerchantSandboxCheckoutService {
         data.put("productName", txn.getProductName());
         data.put("sessionToken", txn.getSessionToken());
         data.put("status", txn.getStatus());
-        data.put("message", "샌드박스 prepare 성공. complete API로 승인을 완료하세요.");
+        data.put("paymentStatus", txn.getStatus());
+        data.put("integrationMode", "SANDBOX");
+        data.put("message", "샌드박스 prepare 성공. complete API로 승인을 완료하세요. 실PG는 호출하지 않습니다.");
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("success", true);
         out.put("data", data);
@@ -158,6 +160,18 @@ public class MerchantSandboxCheckoutService {
         return okStatus(opt.get());
     }
 
+    @Transactional(readOnly = true)
+    public Map<String, Object> readSession(String token) {
+        if (token == null || token.isBlank()) {
+            return fail("세션 토큰이 필요합니다.", "NOT_FOUND");
+        }
+        Optional<MerchantSandboxTxn> opt = sandboxTxnRepository.findBySessionToken(token.trim());
+        if (opt.isEmpty()) {
+            return fail("샌드박스 세션을 찾을 수 없습니다.", "NOT_FOUND");
+        }
+        return okStatus(opt.get());
+    }
+
     private Map<String, Object> gate(Long orgUnitId) {
         if (orgUnitId == null) {
             return fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND");
@@ -181,6 +195,8 @@ public class MerchantSandboxCheckoutService {
         data.put("amount", txn.getAmount());
         data.put("currency", txn.getCurrency());
         data.put("status", txn.getStatus());
+        data.put("paymentStatus", txn.getStatus());
+        data.put("integrationMode", "SANDBOX");
         data.put("sessionToken", txn.getSessionToken());
         data.put("completedAt", txn.getCompletedAt() != null ? txn.getCompletedAt().toString() : null);
         Map<String, Object> out = new LinkedHashMap<>();

@@ -42,7 +42,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = (string)($prep['message'] ?? 'prepare failed');
         } else {
             $pgVendor = (string)($prep['data']['pgVendor'] ?? '');
-            $embedHtml = $api->buildUnifiedEmbedHtml((string)$prep['data']['sessionToken']);
+            if (IcopayMerchantApi::isSandboxPrepare($prep)) {
+                $done = $api->completeSandboxCheckout($orderNo, (string)($prep['data']['sessionToken'] ?? ''));
+                if (empty($done['success'])) {
+                    $error = (string)($done['message'] ?? 'sandbox complete failed');
+                } else {
+                    $embedHtml = '<p>ICOPAY sandbox simulated (no live acquirer). Status: <code>'
+                        . htmlspecialchars((string)($done['data']['status'] ?? 'APPROVED'), ENT_QUOTES, 'UTF-8')
+                        . '</code></p>';
+                }
+            } else {
+                $embedHtml = $api->buildUnifiedEmbedHtml((string)$prep['data']['sessionToken']);
+            }
         }
     }
 }
@@ -57,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
   <h1>Unified checkout (PHP sample)</h1>
-  <p class="small text-muted">ChillPay or JPAY checkout opens automatically based on the operational PG.</p>
+  <p class="small text-muted">ICOPAY unified checkout. With the sandbox secret, this sample calls complete instead of opening a card window.</p>
   <?php if ($error !== ''): ?><p class="err"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p><?php endif; ?>
 
   <?php if ($embedHtml === ''): ?>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ICOPAY</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; color: #223; }
+    .card { max-width: 32rem; margin: 2rem auto; padding: 1.5rem; border-radius: 12px; background: #f3f7fb; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <p data-ko="ICOPAY 샌드박스 시뮬 결제입니다. 실 결제대행사는 호출되지 않습니다."
+       data-en="ICOPAY sandbox simulated payment. The live acquirer is not called."
+       data-jp="ICOPAYサンドボックスの模擬決済です。実決済代行は呼び出されません。"
+       data-ch="这是 ICOPAY 沙箱模拟支付。不会调用真实支付机构。"
+       data-th="เป็นการชำระจำลองของ ICOPAY sandbox ไม่เรียกผู้รับชำระจริง">
+      ICOPAY 샌드박스 시뮬 결제입니다. 실 결제대행사는 호출되지 않습니다.
+    </p>
+  </div>
+  <script>
+    (function () {
+      var lang = (navigator.language || 'ko').toLowerCase();
+      var key = 'ko';
+      if (lang.indexOf('ja') === 0) key = 'jp';
+      else if (lang.indexOf('zh') === 0) key = 'ch';
+      else if (lang.indexOf('th') === 0) key = 'th';
+      else if (lang.indexOf('en') === 0) key = 'en';
+      document.querySelectorAll('[data-' + key + ']').forEach(function (el) {
+        el.textContent = el.getAttribute('data-' + key);
+      });
+    })();
+  </script>
+</body>
+</html>

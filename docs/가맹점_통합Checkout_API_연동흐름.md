@@ -3,7 +3,7 @@
 | 항목 | 내용 |
 |------|------|
 | **문서 ID** | ICOPAY-CHECKOUT-FLOW-001 |
-| **버전** | 2.1 |
+| **버전** | 2.2 |
 | **연동 방식** | ICOPAY 통합 인라인 — 가맹에는 **ICOPAY만** 노출 |
 | **관련** | [간단 연동 빠른 시작](./가맹점_ICOPAY_간단연동_빠른시작.md) · [파라미터 규격](./가맹점_통합Checkout_API_연동파라미터_규격.md) |
 
@@ -26,6 +26,7 @@
 | `…/merchant/checkout/prepare` | POST | 가맹 서버 | 필요 | 세션·sessionToken |
 | `…/merchant/checkout/session?token=` | GET | 브라우저(embed) | 불필요 | 토큰 검증 |
 | `…/merchant/checkout/status?compId=&orderNo=` | GET | 가맹 서버 | 필요 | 결제 결과 |
+| `…/merchant/checkout/complete` | POST | 가맹 서버 | **샌드박스 시크릿만** | 시뮬 승인 (`SANDBOX_ONLY` if live) |
 | `/v1/embed-checkout/{compId}` | GET(JS) | 브라우저 | 불필요 | iframe 부트 |
 
 ## 3. 권장 흐름
@@ -38,6 +39,8 @@
      → postMessage ICOPAY_INLINE_CHECKOUT (참고)
 [가맹 서버]  webhook 및/또는 GET …/status → PAID 확정 (멱등)
 ```
+
+샌드박스 시크릿: prepare 응답 `sandbox=true` → embed/payUrl **생략** → POST `…/checkout/complete` → **결제관리 → 샌드박스내역**.
 
 ## 4. 보안
 
@@ -59,6 +62,9 @@
 **postMessage만으로 확정해도 되나요?**  
 UX 참고용. **최종 확정은 Status API 또는 Webhook.**
 
+**샌드박스인데 카드창이 열립니다.**  
+헤더가 라이브 시크릿입니다. 샌드박스 시크릿 + complete. 확인은 **결제관리 → 샌드박스내역**.
+
 ## 6. 취소·환불
 
 가맹 Checkout prepare/session/status 에는 **취소·환불 요청 API가 없습니다.** 승인(PAID) 후 환불은 ICOPAY가 담당합니다.
@@ -72,4 +78,4 @@ UX 참고용. **최종 확정은 Status API 또는 Webhook.**
 [가맹 서버] GET …/checkout/status 로 paymentStatus 재확인 (멱등)
 ```
 
-당일 무효(void) API는 이 통합 결제 방식에 없습니다. 승인 후 환불만 사용합니다. JPAY 연동 파라미터는 변경하지 않습니다.
+당일 무효(void) API는 이 통합 결제 방식에 없습니다. 승인 후 환불만 사용합니다.

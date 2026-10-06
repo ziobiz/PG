@@ -3,7 +3,7 @@
 | 항목 | 내용 |
 |------|------|
 | **문서 ID** | ICOPAY-CHECKOUT-PREPARE-001 |
-| **버전** | 1.3 |
+| **버전** | 1.4 |
 | **대상** | ICOPAY와 API 연동하는 가맹점(백엔드 개발자) |
 | **API** | `POST /api/middleware/v1/merchant/checkout/prepare` (통합, 권장) |
 | **연동 방식** | JSON(REST) · PHP(`IcopayMerchantApi.php`) |
@@ -115,7 +115,9 @@ ICOPAY는 **email · phone · countryIso2** 를 모든 가맹 prepare(인라인�
 | 3 | embedScriptUrl | String | **M** | `/v1/embed-checkout/{compId}` |
 | 4 | payUrl | String | O | 중립 경로 `/checkout/{compId}?…` (iframe src) |
 | 5 | buyerPrefill | Object | O | 정규화된 buyer |
-| 6 | expiresAt | String | **M** | 세션 만료(ISO-8601) |
+| 6 | expiresAt | String | O | 세션 만료(ISO-8601). 샌드박스 prepare에는 없을 수 있음 |
+| 7 | sandbox | Boolean | O | `true`이면 가맹 샌드박스. payUrl/embed 금지, POST `…/checkout/complete` |
+| 8 | integrationMode | String | O | `SANDBOX` 이면 실결제망 미호출 |
 
 ---
 
@@ -149,6 +151,8 @@ ICOPAY는 **email · phone · countryIso2** 를 모든 가맹 prepare(인라인�
 | INVALID_AMOUNT | amount 누락 또는 ≤ 0 |
 | NOT_FOUND | compId 미등록 |
 | URL_PAYMENT_PG_MISSING | 운영 WEB PG 미설정 |
+| SANDBOX_DISABLED | 가맹 샌드박스 사용 비활성(업체관리 → 결제통보 URL SANDBOX) |
+| SANDBOX_ONLY | complete는 샌드박스 시크릿만. 라이브 시크릿은 payUrl |
 
 실패 응답 예:
 
@@ -199,3 +203,4 @@ HTML 표: `{BASE}/merchant-api-samples/docs/unified-checkout-api-parameters.html
 | 1.1 | 2026-06 | buyer.email·phone·countryIso2 필수 명시 |
 | 1.2 | 2026-08-25 | 필수값 강조·필드별 BUYER_* errorCode·5개국어 messages. JPAY 표기 제거(ICOPAY만) |
 | 1.3 | 2026-08-25 | Status `paymentStatus`·취소/환불은 ICOPAY 후속조치·Webhook (가맹 요청 API 없음) |
+| 1.4 | 2026-10-06 | 샌드박스 prepare 필드 sandbox·integrationMode, complete, SANDBOX_DISABLED/SANDBOX_ONLY |

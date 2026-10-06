@@ -6,6 +6,7 @@
 return [
     'api_base_url'    => 'https://icopay.co.kr',
     'comp_id'         => 'M000123',
+    /* LIVE broker secret for production. For ICOPAY merchant sandbox tests use the SANDBOX secret instead (never mix). */
     'broker_secret'   => 'YOUR_BROKER_SECRET',
     /**
      * unified — PG-agnostic unified prepare (recommended)

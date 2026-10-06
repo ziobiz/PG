@@ -72,6 +72,9 @@ public class NeutralCheckoutRouteController {
                     .map(OrgUnit::getId)
                     .orElse(null);
             if (orgUnitId != null) {
+                if (session.startsWith("sb_")) {
+                    return "/sandbox-pay.html" + q;
+                }
                 if (session.startsWith("cr_")
                         || wantsCryptoMeans(request)
                         || isCryptoOnlyMerchant(orgUnitId)
