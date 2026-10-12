@@ -6,13 +6,121 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '4.72';
+  var CURRENT_LIVE = '4.76';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '4.76',
+      kind: 'minor',
+      date: '2026-10-12',
+      items: {
+        KO: [
+          '결제내역: 새로고침 앞 TH/JP/KR 표시 시간대 선택·거래시간 2줄 표시 복원(pg-view-display-tz.js 정적 누락)',
+          '관리자 정적 site에 빠진 JS 일괄 동기화(표 리사이즈·대시보드·QR 등), hq-holiday-calendar 403 → 파일명 교체',
+          '메뉴 다국어: 크립토내역·크립토정산·크립토설정·샌드박스내역·샌드박스통보 URL 라벨 추가'
+        ],
+        EN: [
+          'Payment list: restore TH/JP/KR display-timezone control before Refresh and dual txn-time lines (missing pg-view-display-tz.js on static)',
+          'Bulk-sync missing admin static JS (column resize, dashboard, QR, …); rename hq-holiday-calendar blocked by HTTP 403',
+          'Menu i18n: Crypto deposits/settlement/settings and Sandbox history/notify URL labels'
+        ],
+        JP: [
+          '決済一覧: 更新前のTH/JP/KR表示タイムゾーン・取引時刻2行表示を復元（静的pg-view-display-tz.js欠落）',
+          '管理静的site欠落JS一括同期、hq-holiday-calendar 403をファイル名変更で回避',
+          'メニュー多言語: クリプト入金/精算/設定・サンドボックス履歴/通報'
+        ],
+        CH: [
+          '支付明细：恢复刷新前的 TH/JP/KR 显示时区与交易时间双行（静态缺少 pg-view-display-tz.js）',
+          '批量同步缺失的管理端静态 JS；hq-holiday-calendar 403 改为新文件名',
+          '菜单多语言：加密货币入金/结算/设置、沙箱明细/通知'
+        ],
+        TH: [
+          'รายการชำระ: คืนตัวเลือกโซนเวลา TH/JP/KR ก่อนรีเฟรช และเวลาธุรกรรม 2 บรรทัด (ไฟล์ pg-view-display-tz.js หายจาก static)',
+          'ซิงค์ JS static ที่ขาดทั้งชุด และเปลี่ยนชื่อ hq-holiday-calendar ที่โดน 403',
+          'เมนูหลายภาษา: คริปโตฝาก/เคลียร์/ตั้งค่า และ sandbox ประวัติ/แจ้ง'
+        ]
+      }
+    },
+    {
+      version: '4.75',
+      kind: 'minor',
+      date: '2026-10-12',
+      items: {
+        KO: [
+          '결제내역: 성공·실패·취소 등 행·상태 뱃지 색상 복원 — 정적 경로에서 pg-ui.js가 HTTP 403으로 차단되어 icopay-pg-ui.js로 교체·배포'
+        ],
+        EN: [
+          'Payment list: restore success/fail/cancel row and status badge colors — pg-ui.js was HTTP 403 on static path; served as icopay-pg-ui.js instead'
+        ],
+        JP: [
+          '決済一覧: 成功・失敗・取消などの行・ステータスバッジ色を復元 — 静的パスで pg-ui.js が403のため icopay-pg-ui.js に差し替え'
+        ],
+        CH: [
+          '支付明细：恢复成功/失败/取消等行与状态徽章颜色 — 静态路径上 pg-ui.js 被 403，改为部署 icopay-pg-ui.js'
+        ],
+        TH: [
+          'รายการชำระ: คืนสีแถว/ป้ายสถานะ — pg-ui.js ถูก 403 บน static จึงเปลี่ยนเป็น icopay-pg-ui.js'
+        ]
+      }
+    },
+    {
+      version: '4.74',
+      kind: 'minor',
+      date: '2026-10-12',
+      items: {
+        KO: [
+          '결제내역·성공·실패·취소: 관리자 정적 경로에 열 카탈로그(JS) 누락으로 그리드가 비고 검색이 동작하지 않던 문제 수정',
+          '배포: 정적 site 업로드 시 nginx 웹루트(/var/www/icopay)에도 동기화해 JAR만 올려도 카탈로그가 빠지지 않도록 함'
+        ],
+        EN: [
+          'Payment / success / fail / cancel lists: fix missing column catalog JS on admin static path that left the grid empty and disabled search',
+          'Deploy: sync SiteFiles to nginx web root (/var/www/icopay) so catalog JS is not missing when only the JAR was updated'
+        ],
+        JP: [
+          '決済・成功・失敗・取消一覧: 管理静的パスの列カタログJS欠落でグリッド空・検索不能だった問題を修正',
+          'デプロイ: 静的siteをnginxウェブルート(/var/www/icopay)にも同期しJARのみ更新時の欠落を防止'
+        ],
+        CH: [
+          '支付/成功/失败/取消明细：修复管理端静态路径缺少列目录 JS 导致表格空白、搜索无效',
+          '部署：SiteFiles 同步到 nginx 网站根目录(/var/www/icopay)，避免只更新 JAR 时目录文件缺失'
+        ],
+        TH: [
+          'รายการชำระ/สำเร็จ/ล้มเหลว/ยกเลิก: แก้ไฟล์แคตตาล็อกคอลัมน์ JS หายจาก static แอดมิน ทำให้ตารางว่างและค้นหาไม่ได้',
+          'Deploy: ซิงค์ SiteFiles ไปยัง nginx web root (/var/www/icopay) เพื่อไม่ให้แคตตาล็อกหายเมื่ออัปเดตแค่ JAR'
+        ]
+      }
+    },
+    {
+      version: '4.73',
+      kind: 'minor',
+      date: '2026-10-12',
+      items: {
+        KO: [
+          '결제내역: 기본 조회기간을 전일~당일로 복구(당일만 조회되던 문제), 노티 레이아웃 로드 누락 보완',
+          '결제내역: 당월·당일 등 빠른기간 클릭 시 즉시 재조회, 거래일자 파라미터가 화면 입력값과 어긋나 0건 나오던 문제 수정'
+        ],
+        EN: [
+          'Payment list: restore default date range to yesterday–today (was today-only); fix missing notify layout load',
+          'Payment list: quick date (month/day) re-searches immediately; fix date params mismatch that returned 0 rows'
+        ],
+        JP: [
+          '決済一覧: 初期期間を前日〜当日に復元(当日のみ問題)、ノティレイアウト読込漏れを修正',
+          '決済一覧: 当月・当日などクイック期間クリックで即再検索、日付パラメータずれによる0件を修正'
+        ],
+        CH: [
+          '支付明细：默认查询恢复为昨日起至今日（此前仅当日）；补上通知布局加载遗漏',
+          '支付明细：点击当月/当日等快捷期间立即重新查询，修复日期参数不一致导致0条'
+        ],
+        TH: [
+          'รายการชำระ: คืนช่วงวันที่เริ่มต้นเป็นเมื่อวาน–วันนี้ (เคยเหลือแค่วันนี้) และแก้โหลด layout แจ้งเตือนที่ขาด',
+          'รายการชำระ: กดช่วงด่วน (เดือนนี้/วันนี้) แล้วค้นหาทันที แก้พารามิเตอร์วันที่ไม่ตรงจนได้ 0 รายการ'
+        ]
+      }
+    },
     {
       version: '4.72',
       kind: 'minor',

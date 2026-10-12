@@ -8725,14 +8725,14 @@
   };
 
   /** 통합 결제내역 `/calc/payList` — VIEW SETTING·그리드 열 단일 정의 (`PG_PAY_LIST_INTEGRATED`, 노티매핑 기본과 동기) */
-  (function applyPayListIntegratedCatalog() {
+  function applyPayListIntegratedCatalogCore() {
     var scr = MENU_SCREENS['/calc/payList'];
     var P = typeof window !== 'undefined' ? window.PG_PAY_LIST_INTEGRATED : null;
     if (!scr || !P || !P.columns || !P.headerGroups) {
       if (typeof console !== 'undefined' && console.warn && scr) {
         console.warn('PG_PAY_LIST_INTEGRATED missing; include pay-list-integrated-catalog.js before screens.js');
       }
-      return;
+      return false;
     }
     scr.headerGroups = JSON.parse(JSON.stringify(P.headerGroups));
     scr.columns = P.columns.map(function (c) {
@@ -8754,10 +8754,24 @@
     if (P.columnGuideHiddenKeys && P.columnGuideHiddenKeys.length) {
       scr.columnGuideHiddenKeys = P.columnGuideHiddenKeys.slice();
     }
-  })();
+    return true;
+  }
+  applyPayListIntegratedCatalogCore();
+  /** 정적 카탈로그가 늦게·재적재된 경우 열 정의·SUCCESS/FAIL 등 복제본을 다시 채움 */
+  function reapplyPayListIntegratedCatalog() {
+    if (!applyPayListIntegratedCatalogCore()) return false;
+    if (typeof window.__pgMergePayListVariants === 'function') {
+      try { window.__pgMergePayListVariants(); } catch (eReMerge) { /* ignore */ }
+    }
+    return true;
+  }
+  if (typeof window !== 'undefined') {
+    window.PG_SCREENS = window.PG_SCREENS || {};
+    window.PG_SCREENS.reapplyPayListIntegratedCatalog = reapplyPayListIntegratedCatalog;
+  }
 
   /** 결제관리: 통합 결제내역과 동일 UI, payListVariant만 다름 (docs/결제관리_기획_NOTI참고.md) */
-  (function mergePayListVariants() {
+  function mergePayListVariants() {
     var base = MENU_SCREENS['/calc/payList'];
     if (!base) return;
     /** @param keepPayActions true면 통합 결제내역과 컬럼 100% 동일(후속조치 포함). 노티내역 전용. */
@@ -8876,7 +8890,11 @@
         { key: 'cancelledAt', label: '해지', thClass: 'text-nowrap' }
       ]
     };
-  })();
+  }
+  mergePayListVariants();
+  if (typeof window !== 'undefined') {
+    window.__pgMergePayListVariants = mergePayListVariants;
+  }
 
   /** 검수관리 결제개요 — PG_PAY_LIST_OVERVIEW 카탈로그 적용 */
   (function applyPayListOverviewCatalog() {
@@ -10760,6 +10778,7 @@
     buildStandardDataGridTheadHtml: buildStandardDataGridTheadHtml,
     buildDailyDetailToolbarHtml: buildDailyDetailToolbarHtml,
     syncPayListIntegratedScreenLabelsFromCatalog: syncPayListIntegratedScreenLabelsFromCatalog,
-    getPayListIntegratedSyncUrls: function () { return PAY_LIST_INTEGRATED_SYNC_URLS.slice(); }
+    getPayListIntegratedSyncUrls: function () { return PAY_LIST_INTEGRATED_SYNC_URLS.slice(); },
+    reapplyPayListIntegratedCatalog: reapplyPayListIntegratedCatalog
   };
 })();

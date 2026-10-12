@@ -274,6 +274,9 @@ try {
         if ($SiteFiles -and $SiteFiles.Count -gt 0) {
             $remoteSite = if ($c["FTP_REMOTE_SITE"]) { [string]$c["FTP_REMOTE_SITE"] } else { "/home/ftpuser/site" }
             $remoteSite = $remoteSite.TrimEnd('/')
+            # icopay.co.kr nginx root (JAR /api 와 별도). FTP 경로와 다르면 동일 파일을 미러한다.
+            $wwwSite = if ($c["WWW_SITE_ROOT"]) { [string]$c["WWW_SITE_ROOT"] } else { "/var/www/icopay" }
+            $wwwSite = $wwwSite.TrimEnd('/')
             Write-Host "정적 site 업로드 → $remoteSite ($($SiteFiles.Count) files)..."
             foreach ($rel in $SiteFiles) {
                 $norm = ($rel -replace '\\', '/').TrimStart('/')
@@ -284,8 +287,19 @@ try {
                 $remoteDir = ($remotePath -replace '/[^/]+$', '')
                 Invoke-RemoteOrThrow $c "mkdir -p '$remoteDir'"
                 Copy-ToRemote $c $local $remotePath
+                if ($wwwSite -and ($wwwSite -ne $remoteSite)) {
+                    $wwwPath = "$wwwSite/$norm"
+                    $wwwDir = ($wwwPath -replace '/[^/]+$', '')
+                    Invoke-RemoteOrThrow $c "mkdir -p '$wwwDir' && cp -f '$remotePath' '$wwwPath' && chmod 644 '$wwwPath' && (chown www-data:www-data '$wwwPath' 2>/dev/null || true)"
+                } else {
+                    Invoke-RemoteOrThrow $c "chmod 644 '$remotePath' 2>/dev/null || true"
+                }
             }
             Invoke-RemoteOrThrow $c "ls -la '$remoteSite/js/api.js' '$remoteSite/js/app.js' '$remoteSite/index.html'"
+            if ($wwwSite -and ($wwwSite -ne $remoteSite)) {
+                Write-Host "nginx 웹루트 미러 → $wwwSite"
+                Invoke-RemoteOrThrow $c "ls -la '$wwwSite/js/pay-list-integrated-catalog.js' '$wwwSite/js/app.js' '$wwwSite/index.html' 2>/dev/null || ls -la '$wwwSite/js' | head -30"
+            }
         }
     } else {
         Write-Host "`n[2/4] 업로드 생략"

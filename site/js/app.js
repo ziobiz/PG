@@ -12974,8 +12974,29 @@
       toEl.value = todayIso;
       pane._jpayTrListDefaultDatesApplied = true;
     }
+    /**
+     * 결제내역 계열: 화면 HTML이 거래일자를 당일~당일로 미리 채우면
+     * ensureStandardSearchDaterangeYesterdayToToday 가 스킵되어 당일만 조회됨.
+     * 탭 최초 진입 시 전일~당일로 강제(의도된 기본 기간).
+     * 플래그 후에도 둘 다 비면 다시 채운다(레이아웃·폼 재구성 대비).
+     */
     function ensurePayListDefaultSearchDates(pane) {
-      ensureStandardSearchDaterangeYesterdayToToday(pane);
+      if (!pane) return;
+      var fromEl = pane.querySelector('#searchFromDate');
+      var toEl = pane.querySelector('#searchToDate');
+      if (!fromEl || !toEl) {
+        ensureStandardSearchDaterangeYesterdayToToday(pane);
+        return;
+      }
+      var fromV = String(fromEl.value || '').trim();
+      var toV = String(toEl.value || '').trim();
+      if (pane._payListDefaultDatesApplied && (fromV || toV)) return;
+      var toD = new Date();
+      var fromD = new Date();
+      fromD.setDate(fromD.getDate() - 1);
+      fromEl.value = fmtYmd(fromD);
+      toEl.value = fmtYmd(toD);
+      pane._payListDefaultDatesApplied = true;
     }
     /** RECENT: 최근 1년(당일까지). PERIOD: 기간이 비어 있을 때만 전일~당일. */
     function applySettlementExecuteListModeDates(pane, mode) {
@@ -13702,6 +13723,17 @@
         if (fromEl) fromEl.value = qdFmt(from);
         if (toEl) toEl.value = qdFmt(to);
         pgSelectQuickDateButton(btn);
+        /* 빠른기간(당월·당일 등)은 날짜만 바꾸고 끝내면 빈 목록이 유지됨 → 즉시 재조회 */
+        try {
+          if (typeof pane._pgTriggerListSearch === 'function') {
+            pane._pgTriggerListSearch(pane, 1);
+          } else if (typeof doSearch === 'function') {
+            var tidQd = pane.id || tabId || '';
+            var pageElQd = pane.querySelector('#pageCnt');
+            if (pageElQd) pageElQd.value = '1';
+            doSearch(pane, tidQd, 1);
+          }
+        } catch (eQdSearch) { /* ignore */ }
       });
       pane.addEventListener('change', function (e) {
         var t = e.target;
@@ -13729,6 +13761,17 @@
       var formUrlCollect = p.getAttribute('formurl') || '';
       if (PG_JPAY_TODAY_DEFAULT_URLS.indexOf(formUrlCollect) !== -1) {
         ensureJpayTrListDefaultSearchDates(p);
+      } else if (PG_PAY_LIST_SEARCH_URLS.indexOf(formUrlCollect) !== -1) {
+        var fe0 = p.querySelector('#searchFromDate');
+        var te0 = p.querySelector('#searchToDate');
+        if (fe0 && te0 && !String(fe0.value || '').trim() && !String(te0.value || '').trim()) {
+          /* 결제내역: 기간이 비면 전일~당일(당일만 조회되던 문제 방지) */
+          var toD0 = new Date();
+          var fromD0 = new Date();
+          fromD0.setDate(fromD0.getDate() - 1);
+          fe0.value = fmtYmd(fromD0);
+          te0.value = fmtYmd(toD0);
+        }
       } else {
         ensureStandardSearchDaterangeYesterdayToToday(p);
       }
@@ -13751,6 +13794,11 @@
         if (name === 'searchDetailOrderDir') return;
         if (name.indexOf('search') === 0) params[name] = v;
       });
+      /* 화면의 #searchFromDate/#searchToDate 를 최종 권위로(동명 빈 필드가 덮어쓰는 경우 방지) */
+      var feAuth = p.querySelector('#searchFromDate');
+      var teAuth = p.querySelector('#searchToDate');
+      if (feAuth && String(feAuth.value || '').trim()) params.searchFromDate = String(feAuth.value).trim();
+      if (teAuth && String(teAuth.value || '').trim()) params.searchToDate = String(teAuth.value).trim();
       var pageEl = p.querySelector('#pageCnt');
       if (pageEl) params.page = parseInt(pageEl.value, 10) || 1;
       if (typeof window.PG_VIEW_DISPLAY_TZ !== 'undefined') {
@@ -17161,14 +17209,14 @@
             var m0 = String(d0.getMonth() + 1).padStart(2, '0');
             var dd0 = String(d0.getDate()).padStart(2, '0');
             var today0 = y0 + '-' + m0 + '-' + dd0;
-            // 표준 목록 검색 daterange
+            // 표준 목록 검색 daterange — 이미 값이 있으면 덮지 않음
             var df = p.querySelector('#searchFromDate');
             var dt = p.querySelector('#searchToDate');
             if (df && !String(df.value || '').trim()) df.value = today0;
             if (dt && !String(dt.value || '').trim()) dt.value = today0;
-            // 기타 search-date-input (커스텀 from/to)도 있으면 채움
-            (p.querySelectorAll('input.search-date-input[type=\"date\"]') || []).forEach(function (el) {
-              if (el) el.value = today0;
+            // 기타 search-date-input 도 비어 있을 때만 채움(당월 등 기존 값 보존)
+            (p.querySelectorAll('input.search-date-input[type="date"]') || []).forEach(function (el) {
+              if (el && !String(el.value || '').trim()) el.value = today0;
             });
           }
           p._defaultTodaySearchDatesApplied = true;
@@ -17369,7 +17417,26 @@
         }
         return;
       }
-      if (!cfg || ((!cfg.columns || cfg.columns.length === 0) && !cfg.columnsBySub && !cfg.columnsRegionalPayout && !cfg.orgPagePermissionMatrix && !cfg.opsIntegratedReportScreen && !cfg.opsVerifyReportScreen)) return;
+      if (!cfg || ((!cfg.columns || cfg.columns.length === 0) && !cfg.columnsBySub && !cfg.columnsRegionalPayout && !cfg.orgPagePermissionMatrix && !cfg.opsIntegratedReportScreen && !cfg.opsVerifyReportScreen)) {
+        /* 결제내역 계열: 카탈로그 JS 미적재 시 columns=[] → 조용히 return 되면 검색이 죽은 것처럼 보임 */
+        try {
+          var isPayCfgEmpty = !!(cfg && cfg.payListVariant);
+          if (isPayCfgEmpty && window.PG_PAY_LIST_INTEGRATED && window.PG_PAY_LIST_INTEGRATED.columns
+              && window.PG_SCREENS && typeof window.PG_SCREENS.reapplyPayListIntegratedCatalog === 'function') {
+            window.PG_SCREENS.reapplyPayListIntegratedCatalog();
+            cfg = window.PG_SCREENS.getMenuScreens && window.PG_SCREENS.getMenuScreens()[url];
+          }
+          if (isPayCfgEmpty && (!cfg || !cfg.columns || !cfg.columns.length)) {
+            var tbMiss = p.querySelector('#grid_' + tid + ' tbody');
+            if (tbMiss) {
+              var missMsg = pgAdminUiT('결제내역 열 정의를 불러오지 못했습니다. 새로고침 후에도 동일하면 관리자에게 문의하세요.');
+              tbMiss.innerHTML = '<tr><td colspan="8" class="empty-state-cell text-center text-danger">' +
+                pgAdminEscHtml(missMsg) + '</td></tr>';
+            }
+          }
+        } catch (ePayColMiss) { /* ignore */ }
+        if (!cfg || ((!cfg.columns || cfg.columns.length === 0) && !cfg.columnsBySub && !cfg.columnsRegionalPayout && !cfg.orgPagePermissionMatrix && !cfg.opsIntegratedReportScreen && !cfg.opsVerifyReportScreen)) return;
+      }
       if (p._payListMergedCfg && cfg.payListVariant) {
         cfg = p._payListMergedCfg;
       }
@@ -20449,6 +20516,14 @@
         if (PG_PAY_LIST_SEARCH_URLS.indexOf(url) !== -1) {
           if (url === '/calc/chillPayTrList') {
             ensureChillPayTrListDefaultSearchDates(pane, runPayListInitialSearch);
+          } else if (PAY_LIST_NOTIFY_LAYOUT_URLS.indexOf(url) !== -1) {
+            /* payList 등이 SEARCH_URLS·NOTIFY_LAYOUT 양쪽에 있어 layout 로드가 빠져 열이 비는 경우 방지 */
+            ensurePayListDefaultSearchDates(pane);
+            loadPayListNotifyLayout(pane, tabId, url, function () {
+              /* layout 콜백 후에도 기간이 비/당일만이면 전일~당일 재적용 */
+              ensurePayListDefaultSearchDates(pane);
+              runPayListInitialSearch();
+            });
           } else {
             ensurePayListDefaultSearchDates(pane);
             runPayListInitialSearch();
