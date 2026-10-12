@@ -26,6 +26,10 @@ public class CryptoCustodyAddress {
     @Column(name = "use_yn", nullable = false, length = 1)
     private String useYn = "Y";
 
+    /** Y = 해당 자산×네트워크 입금에 쓰는 ICOPAY 대표 수탁 주소 */
+    @Column(name = "primary_yn", nullable = false, length = 1)
+    private String primaryYn = "N";
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -48,6 +52,8 @@ public class CryptoCustodyAddress {
     public void setLabel(String label) { this.label = label; }
     public String getUseYn() { return useYn; }
     public void setUseYn(String useYn) { this.useYn = useYn; }
+    public String getPrimaryYn() { return primaryYn; }
+    public void setPrimaryYn(String primaryYn) { this.primaryYn = primaryYn; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

@@ -1093,7 +1093,10 @@
         document.getElementById('compIdHidden').value = compId;
         if (PAY_EMBED_MODE) {
           var brand = document.getElementById('jpayBrandBlock');
-          if (brand && PAY_ENTRY_MERCHANT_API) brand.style.display = 'none';
+          if (brand && PAY_ENTRY_MERCHANT_API) {
+            var apiLogoMode = String((ctx && ctx.checkoutHeaderLogoMode) || 'DISABLED').trim().toUpperCase();
+            brand.style.display = (apiLogoMode === 'DISABLED') ? 'none' : '';
+          }
         }
         applyQueryPrefills();
         var ctxQs = 'compId=' + encodeURIComponent(compId);

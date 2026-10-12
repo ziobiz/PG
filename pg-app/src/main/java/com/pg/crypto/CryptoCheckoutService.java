@@ -5,6 +5,7 @@ import com.pg.integration.pg.PgVendor;
 import com.pg.merchantdeploy.MerchantApiResponseMapper;
 import com.pg.repository.*;
 import com.pg.urlpay.NeutralCheckoutRoute;
+import com.pg.util.OrgUseYnUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,14 +15,18 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.*;
 
-/** 크립토 입금 체크아웃 prepare / session / status / confirm. */
+/** 크립토 입금 체크아웃 prepare / session / status / confirm. 금액·수수료·한도 기준통화는 USD. */
 @Service
 public class CryptoCheckoutService {
+
+    /** 크립토 견적·수수료·한도·정산 기준 통화 (USDT/USDC 액면 = USD). */
+    public static final String QUOTE_CURRENCY = "USD";
 
     private static final SecureRandom RND = new SecureRandom();
     private static final int EXPIRE_MINUTES = 60;
 
     private final OrgUnitRepository orgUnitRepository;
+    private final MerchantProfileRepository merchantProfileRepository;
     private final MerchantCryptoConfigRepository configRepository;
     private final CryptoDepositTxnRepository depositTxnRepository;
     private final CryptoCustodyAddressRepository custodyAddressRepository;
@@ -29,12 +34,14 @@ public class CryptoCheckoutService {
     private final CryptoPayoutService payoutService;
 
     public CryptoCheckoutService(OrgUnitRepository orgUnitRepository,
+                                 MerchantProfileRepository merchantProfileRepository,
                                  MerchantCryptoConfigRepository configRepository,
                                  CryptoDepositTxnRepository depositTxnRepository,
                                  CryptoCustodyAddressRepository custodyAddressRepository,
                                  CryptoCatalogService catalogService,
                                  CryptoPayoutService payoutService) {
         this.orgUnitRepository = orgUnitRepository;
+        this.merchantProfileRepository = merchantProfileRepository;
         this.configRepository = configRepository;
         this.depositTxnRepository = depositTxnRepository;
         this.custodyAddressRepository = custodyAddressRepository;
@@ -42,17 +49,29 @@ public class CryptoCheckoutService {
         this.payoutService = payoutService;
     }
 
+    /**
+     * 크립토 활성: 가맹 크립토 useYn=Y + 업체등록 사용여부 Y.
+     * CARD/CRYPTO/BOTH 는 게이트에 쓰지 않음(카드는 URL·PG 설정 우선).
+     */
     public Optional<MerchantCryptoConfig> activeConfig(Long orgUnitId) {
         if (orgUnitId == null) {
             return Optional.empty();
         }
+        if (!isMerchantServiceOpen(orgUnitId)) {
+            return Optional.empty();
+        }
         return configRepository.findById(orgUnitId)
-                .filter(c -> "Y".equalsIgnoreCase(c.getUseYn()))
-                .filter(c -> {
-                    String m = c.getCheckoutMeans();
-                    return MerchantCryptoConfig.MEANS_CRYPTO.equalsIgnoreCase(m)
-                            || MerchantCryptoConfig.MEANS_BOTH.equalsIgnoreCase(m);
-                });
+                .filter(c -> "Y".equalsIgnoreCase(c.getUseYn()));
+    }
+
+    /** 업체등록 사용(Y)만 결제 가능. 미사용(N)·영구정지(S) 차단. */
+    public boolean isMerchantServiceOpen(Long orgUnitId) {
+        if (orgUnitId == null) {
+            return false;
+        }
+        return merchantProfileRepository.findByOrgUnitId(orgUnitId)
+                .map(mp -> OrgUseYnUtil.isServiceAllowed(mp.getUseYn()))
+                .orElse(false);
     }
 
     public boolean cryptoMeansAllowed(Long orgUnitId) {
@@ -65,6 +84,9 @@ public class CryptoCheckoutService {
         if (ou == null || ou.getOrgLevel() != OrgLevel.MERCHANT) {
             return fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND");
         }
+        if (!isMerchantServiceOpen(orgUnitId)) {
+            return fail("가맹점이 미사용 또는 영구정지 상태입니다.", "MERCHANT_INACTIVE");
+        }
         MerchantCryptoConfig cfg = activeConfig(orgUnitId).orElse(null);
         if (cfg == null) {
             return fail("크립토 결제가 활성화되지 않았습니다.", "CRYPTO_DISABLED");
@@ -76,12 +98,30 @@ public class CryptoCheckoutService {
         }
         BigDecimal amount = parseAmount(body != null ? body.get("amount") : null);
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            return fail("유효한 amount가 필요합니다.", "INVALID_AMOUNT");
+            return fail("유효한 amount(USD)가 필요합니다.", "INVALID_AMOUNT");
+        }
+        String fiatHint = str(body, "fiatCurrency", "quoteCurrency", "settleCurrency").toUpperCase(Locale.ROOT);
+        /* 견적·수수료·한도는 USD. USDT/USDC 액면≈USD 허용. EURC·기타 법정통화 견적 거부. */
+        if (!fiatHint.isBlank() && !QUOTE_CURRENCY.equals(fiatHint)
+                && !Set.of("USDT", "USDC").contains(fiatHint)) {
+            return fail("크립토 결제는 USD 기준입니다.", "USD_REQUIRED");
         }
 
-        String asset = str(body, "assetCode", "asset", "currency").toUpperCase(Locale.ROOT);
+        if (cfg.getAssetsCsv() == null || cfg.getAssetsCsv().isBlank()) {
+            return fail("허용 자산이 없습니다. 자산을 활성으로 설정하세요.", "ASSET_NOT_ALLOWED");
+        }
+        String asset = str(body, "assetCode", "asset").toUpperCase(Locale.ROOT);
         if (asset.isBlank()) {
-            asset = firstCsv(cfg.getAssetsCsv(), "USDT");
+            String cur = str(body, "currency").toUpperCase(Locale.ROOT);
+            if (Set.of("USDT", "USDC", "EURC").contains(cur)) {
+                asset = cur;
+            }
+        }
+        if (asset.isBlank()) {
+            asset = firstCsv(cfg.getAssetsCsv(), "");
+        }
+        if (asset.isBlank()) {
+            return fail("허용 자산이 없습니다. 자산을 활성으로 설정하세요.", "ASSET_NOT_ALLOWED");
         }
         String network = str(body, "networkCode", "network").toUpperCase(Locale.ROOT);
         if (network.isBlank()) {
@@ -135,7 +175,8 @@ public class CryptoCheckoutService {
         data.put("pgVendor", MerchantApiResponseMapper.MERCHANT_FACING_BRAND);
         data.put("payUrl", payUrl);
         data.put("payMeans", "CRYPTO");
-        data.put("checkoutMeans", cfg.getCheckoutMeans());
+        data.put("cryptoEnabled", true);
+        data.put("quoteCurrency", QUOTE_CURRENCY);
         data.put("catalog", catalogService.publicCatalog(
                 Arrays.asList(cfg.getAssetsCsv().split(",")),
                 Arrays.asList(cfg.getNetworksCsv().split(","))));
@@ -152,8 +193,10 @@ public class CryptoCheckoutService {
         MerchantCryptoConfig cfg = configRepository.findById(txn.getOrgUnitId()).orElse(null);
         Map<String, Object> data = publicTxn(txn, cfg);
         data.put("pgVendor", MerchantApiResponseMapper.MERCHANT_FACING_BRAND);
+        data.put("quoteCurrency", QUOTE_CURRENCY);
+        data.put("cryptoEnabled", cfg != null && "Y".equalsIgnoreCase(cfg.getUseYn())
+                && isMerchantServiceOpen(txn.getOrgUnitId()));
         if (cfg != null) {
-            data.put("checkoutMeans", cfg.getCheckoutMeans());
             data.put("catalog", catalogService.publicCatalog(
                     Arrays.asList(cfg.getAssetsCsv().split(",")),
                     Arrays.asList(cfg.getNetworksCsv().split(","))));
@@ -182,6 +225,7 @@ public class CryptoCheckoutService {
         data.put("assetCode", txn.getAssetCode());
         data.put("networkCode", txn.getNetworkCode());
         data.put("amount", txn.getAmount());
+        data.put("quoteCurrency", QUOTE_CURRENCY);
         data.put("depositTxHash", txn.getDepositTxHash());
         data.put("confirmedAt", txn.getConfirmedAt());
         data.put("pgVendor", MerchantApiResponseMapper.MERCHANT_FACING_BRAND);
@@ -212,24 +256,30 @@ public class CryptoCheckoutService {
 
     public Map<String, Object> meansForMerchant(Long orgUnitId) {
         Map<String, Object> m = new LinkedHashMap<>();
+        m.put("quoteCurrency", QUOTE_CURRENCY);
         Optional<MerchantCryptoConfig> cfg = activeConfig(orgUnitId);
         if (cfg.isEmpty()) {
-            m.put("checkoutMeans", MerchantCryptoConfig.MEANS_CARD);
             m.put("cryptoEnabled", false);
             return m;
         }
-        m.put("checkoutMeans", cfg.get().getCheckoutMeans());
         m.put("cryptoEnabled", true);
         m.put("settleMode", cfg.get().getSettleMode());
         m.put("payoutMode", cfg.get().getPayoutMode());
+        m.put("holdDays", cfg.get().getHoldDays());
+        m.put("reservePct", cfg.get().getReservePct());
         m.put("assets", cfg.get().getAssetsCsv());
         m.put("networks", cfg.get().getNetworksCsv());
         return m;
     }
 
     private String resolveCustody(String network, String asset) {
+        /* 입금은 자산×네트워크의 primary_yn=Y 대표 수탁 우선 */
         return custodyAddressRepository
-                .findFirstByNetworkCodeAndAssetCodeAndUseYnOrderByIdAsc(network, asset, "Y")
+                .findFirstByNetworkCodeAndAssetCodeAndUseYnAndPrimaryYnOrderByIdAsc(network, asset, "Y", "Y")
+                .or(() -> custodyAddressRepository
+                        .findFirstByNetworkCodeAndAssetCodeAndUseYnOrderByIdAsc(network, asset, "Y"))
+                .or(() -> custodyAddressRepository
+                        .findFirstByNetworkCodeAndAssetCodeIsNullAndUseYnAndPrimaryYnOrderByIdAsc(network, "Y", "Y"))
                 .or(() -> custodyAddressRepository
                         .findFirstByNetworkCodeAndAssetCodeIsNullAndUseYnOrderByIdAsc(network, "Y"))
                 .map(CryptoCustodyAddress::getAddress)
@@ -261,6 +311,7 @@ public class CryptoCheckoutService {
         data.put("compId", txn.getCompId());
         data.put("orderNo", txn.getOrderNo());
         data.put("amount", txn.getAmount());
+        data.put("quoteCurrency", QUOTE_CURRENCY);
         data.put("currency", txn.getAssetCode());
         data.put("assetCode", txn.getAssetCode());
         data.put("networkCode", txn.getNetworkCode());
@@ -275,6 +326,7 @@ public class CryptoCheckoutService {
         data.put("operationalPgCd", PgVendor.CRYPTO);
         if (cfg != null) {
             data.put("holdDays", cfg.getHoldDays());
+            data.put("reservePct", cfg.getReservePct());
         }
         return data;
     }

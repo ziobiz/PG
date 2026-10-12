@@ -1945,6 +1945,8 @@ public class CompService {
                             m.put("commissionConfigAllowed", mp.getCommissionConfigAllowed());
                             m.put("webPaymentUseYn", mp.getWebPaymentUseYn() != null ? mp.getWebPaymentUseYn() : "Y");
                             m.put("webPaymentHeaderLogoMode", com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalizeMerchantStored(mp.getWebPaymentHeaderLogoMode()));
+                            m.put("apiPaymentHeaderLogoMode", mp.getApiPaymentHeaderLogoMode() != null
+                                    ? mp.getApiPaymentHeaderLogoMode() : "DISABLED");
                             m.put("webPaymentHeaderSubtitleMode", com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.normalizeMerchantStored(mp.getWebPaymentHeaderSubtitleMode()));
                             m.put("urlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getUrlPayCheckoutMode()));
                             m.put("urlPayProductNameUseYn", mp.getUrlPayProductNameUseYn() != null ? mp.getUrlPayProductNameUseYn() : "Y");
@@ -1995,6 +1997,8 @@ public class CompService {
                                 m.put("chatbotHeaderLogoUrl", mp.getChatbotHeaderLogoUrl() != null ? mp.getChatbotHeaderLogoUrl() : "");
                                 m.put("webPaymentHeaderLogoUrl", mp.getWebPaymentHeaderLogoUrl() != null ? mp.getWebPaymentHeaderLogoUrl() : "");
                                 m.put("webPaymentHeaderHtmlTitle", mp.getWebPaymentHeaderHtmlTitle() != null ? mp.getWebPaymentHeaderHtmlTitle() : "");
+                                m.put("apiPaymentHeaderLogoUrl", mp.getApiPaymentHeaderLogoUrl() != null ? mp.getApiPaymentHeaderLogoUrl() : "");
+                                m.put("apiPaymentHeaderHtmlTitle", mp.getApiPaymentHeaderHtmlTitle() != null ? mp.getApiPaymentHeaderHtmlTitle() : "");
                                 m.put("webPaymentHeaderSubtitleText", mp.getWebPaymentHeaderSubtitleText() != null ? mp.getWebPaymentHeaderSubtitleText() : "");
                                 m.put("urlPayCardInputMode", com.pg.urlpay.UrlPayCardInputModeUtil.normalize(mp.getUrlPayCardInputMode()));
                                 m.put("urlPayCardInputDisabledText", mp.getUrlPayCardInputDisabledText() != null ? mp.getUrlPayCardInputDisabledText() : "");
@@ -3456,6 +3460,53 @@ public class CompService {
      * 빈 문자열이면 프리셋 비활성(FK null) — 가맹 개별 활성/비활성(폼 Y/N) 우선.
      * 프리셋 id(기본형·N형)가 있으면 FK 저장하고 Y/N을 프리셋 값으로 동기화.
      */
+    /**
+     * 가맹 API/embed 결제창 로고설정. {@code null} 인자는 미변경.
+     */
+    @Transactional
+    public void applyMerchantApiPaymentHeaderLogo(String compId,
+                                                  String apiPaymentHeaderLogoMode,
+                                                  String apiPaymentHeaderLogoUrl,
+                                                  String apiPaymentHeaderHtmlTitle) {
+        if (compId == null || compId.isBlank()) {
+            return;
+        }
+        if (apiPaymentHeaderLogoMode == null && apiPaymentHeaderLogoUrl == null && apiPaymentHeaderHtmlTitle == null) {
+            return;
+        }
+        orgUnitRepository.findByCode(compId.trim()).flatMap(ou -> {
+            if (ou.getOrgLevel() != OrgLevel.MERCHANT) {
+                return Optional.empty();
+            }
+            return merchantProfileRepository.findByOrgUnitId(ou.getId());
+        }).ifPresent(mp -> {
+            if (apiPaymentHeaderLogoMode != null && !apiPaymentHeaderLogoMode.isBlank()) {
+                mp.setApiPaymentHeaderLogoMode(apiPaymentHeaderLogoMode.trim());
+            }
+            if (apiPaymentHeaderLogoUrl != null) {
+                String u = apiPaymentHeaderLogoUrl.trim();
+                if (u.isEmpty()) {
+                    mp.setApiPaymentHeaderLogoUrl(null);
+                } else if (u.length() > 500) {
+                    throw new IllegalArgumentException("API 로고 URL은 500자 이하여야 합니다.");
+                } else {
+                    mp.setApiPaymentHeaderLogoUrl(u);
+                }
+            }
+            if (apiPaymentHeaderHtmlTitle != null) {
+                String t = apiPaymentHeaderHtmlTitle.trim();
+                if (t.isEmpty()) {
+                    mp.setApiPaymentHeaderHtmlTitle(null);
+                } else if (t.length() > 80) {
+                    throw new IllegalArgumentException("API HTML 표시명은 80자 이하여야 합니다.");
+                } else {
+                    mp.setApiPaymentHeaderHtmlTitle(t);
+                }
+            }
+            merchantProfileRepository.save(mp);
+        });
+    }
+
     @Transactional
     public void applyMerchantUrlPayCheckoutFieldPreset(String compId, String presetIdRaw) {
         if (compId == null || compId.isBlank() || presetIdRaw == null) {

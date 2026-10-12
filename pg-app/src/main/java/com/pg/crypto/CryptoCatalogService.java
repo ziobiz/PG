@@ -126,6 +126,7 @@ public class CryptoCatalogService {
         m.put("confirmations", n.getConfirmations());
         m.put("pastelBg", n.getPastelBg());
         m.put("pastelFg", n.getPastelFg());
+        m.put("iconKey", n.getCode() != null ? n.getCode().toLowerCase(Locale.ROOT) : "");
         return m;
     }
 

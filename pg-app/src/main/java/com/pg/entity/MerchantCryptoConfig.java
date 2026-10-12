@@ -1,6 +1,7 @@
 package com.pg.entity;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -34,11 +35,17 @@ public class MerchantCryptoConfig {
     @Column(name = "hold_days", nullable = false)
     private Integer holdDays = 3;
 
-    @Column(name = "assets_csv", nullable = false, length = 128)
-    private String assetsCsv = "USDT";
+    /** 보증금(담보) 비율 %. USD 입금금액 기준. */
+    @Column(name = "reserve_pct", nullable = false, precision = 10, scale = 4)
+    private BigDecimal reservePct = BigDecimal.ZERO;
 
+    /** 기본 미사용 — 허용자산 비활성(빈 CSV). */
+    @Column(name = "assets_csv", nullable = false, length = 128)
+    private String assetsCsv = "";
+
+    /** 기본 미사용 — 네트워크 미선택. */
     @Column(name = "networks_csv", nullable = false, length = 128)
-    private String networksCsv = "TRC20,ERC20";
+    private String networksCsv = "";
 
     @Column(name = "seller_wallet_json", columnDefinition = "TEXT")
     private String sellerWalletJson;
@@ -64,6 +71,8 @@ public class MerchantCryptoConfig {
     public void setPayoutMode(String payoutMode) { this.payoutMode = payoutMode; }
     public Integer getHoldDays() { return holdDays; }
     public void setHoldDays(Integer holdDays) { this.holdDays = holdDays; }
+    public BigDecimal getReservePct() { return reservePct; }
+    public void setReservePct(BigDecimal reservePct) { this.reservePct = reservePct; }
     public String getAssetsCsv() { return assetsCsv; }
     public void setAssetsCsv(String assetsCsv) { this.assetsCsv = assetsCsv; }
     public String getNetworksCsv() { return networksCsv; }

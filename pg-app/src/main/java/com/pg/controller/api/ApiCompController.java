@@ -280,6 +280,9 @@ public class ApiCompController {
             @RequestParam(required = false) String transferExecTime,
             @RequestParam(required = false) String pgBindings,
             @RequestParam(required = false) String webPaymentUseYn,
+            @RequestParam(required = false) String apiPaymentHeaderLogoMode,
+            @RequestParam(required = false) String apiPaymentHeaderLogoUrl,
+            @RequestParam(required = false) String apiPaymentHeaderHtmlTitle,
             @RequestParam(required = false) String urlPayCardInputMode,
             @RequestParam(required = false) String urlPayCardInputDisabledText,
             @RequestParam(required = false) String urlPayCheckoutMoveMode,
@@ -483,6 +486,8 @@ public class ApiCompController {
                 cardRiskPresaleVelIpMax);
         compService.patchMerchantMobileCheckoutMode(saved.getCode(), mobileCheckoutMode);
         compService.applyMerchantUrlPayCheckoutFieldPreset(saved.getCode(), urlPayCheckoutFieldPresetId);
+        compService.applyMerchantApiPaymentHeaderLogo(saved.getCode(),
+                apiPaymentHeaderLogoMode, apiPaymentHeaderLogoUrl, apiPaymentHeaderHtmlTitle);
         compService.applyMerchantUrlPayCardInput(saved.getCode(), urlPayCardInputMode, urlPayCardInputDisabledText);
         compService.applyMerchantUrlPayCheckoutMove(saved.getCode(), urlPayCheckoutMoveMode,
                 urlPayCheckoutMoveTargetType, urlPayCheckoutMoveTarget, urlPayCheckoutMoveMessage);
@@ -579,6 +584,9 @@ public class ApiCompController {
             @RequestParam(required = false) String webPaymentHeaderLogoMode,
             @RequestParam(required = false) String webPaymentHeaderLogoUrl,
             @RequestParam(required = false) String webPaymentHeaderHtmlTitle,
+            @RequestParam(required = false) String apiPaymentHeaderLogoMode,
+            @RequestParam(required = false) String apiPaymentHeaderLogoUrl,
+            @RequestParam(required = false) String apiPaymentHeaderHtmlTitle,
             @RequestParam(required = false) String webPaymentHeaderSubtitleMode,
             @RequestParam(required = false) String webPaymentHeaderSubtitleText,
             @RequestParam(required = false) String urlPayCardInputMode,
@@ -821,6 +829,8 @@ public class ApiCompController {
             if (ok) {
                 compService.patchMerchantMobileCheckoutMode(compId, mobileCheckoutMode);
                 compService.applyMerchantUrlPayCheckoutFieldPreset(compId, urlPayCheckoutFieldPresetId);
+                compService.applyMerchantApiPaymentHeaderLogo(compId,
+                        apiPaymentHeaderLogoMode, apiPaymentHeaderLogoUrl, apiPaymentHeaderHtmlTitle);
                 compService.applyMerchantUrlPayCardInput(compId, urlPayCardInputMode, urlPayCardInputDisabledText);
                 compService.applyMerchantUrlPayCheckoutMove(compId, urlPayCheckoutMoveMode,
                         urlPayCheckoutMoveTargetType, urlPayCheckoutMoveTarget, urlPayCheckoutMoveMessage);

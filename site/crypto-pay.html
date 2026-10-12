@@ -28,7 +28,7 @@
 
       <div class="ic-crypto-section" id="networkSection" hidden>
         <h2 id="networkTitle"></h2>
-        <div class="ic-crypto-grid" id="networkGrid"></div>
+        <div id="networkGrid" class="ic-crypto-net-host"></div>
       </div>
 
       <div class="ic-crypto-section" id="walletSection" hidden>
@@ -141,26 +141,21 @@
   function applySession(data) {
     state.data = data || {};
     var amt = data.amount != null ? String(data.amount) : '';
-    var cur = data.assetCode || data.currency || '';
-    if (amt) document.getElementById('amount').textContent = (cur ? cur + ' ' : '') + amt;
+    var quote = data.quoteCurrency || 'USD';
+    var asset = data.assetCode || data.currency || '';
+    if (amt) {
+      var label = quote + ' ' + amt;
+      if (asset && asset !== quote) label += ' · ' + asset;
+      document.getElementById('amount').textContent = label;
+    }
     if (data.orderNo) document.getElementById('order').textContent = pack.order + ' ' + data.orderNo;
     if (data.productName) document.getElementById('product').textContent = pack.product + ' ' + data.productName;
 
     state.asset = data.assetCode || '';
     state.network = data.networkCode || '';
 
-    var means = String(data.checkoutMeans || 'CRYPTO').toUpperCase();
-    if (means === 'BOTH') {
-      document.getElementById('meansSection').hidden = false;
-      ICOPAY_CRYPTO_UI.renderGrid(document.getElementById('meansGrid'), [
-        { code: 'CARD', name: pack.card, iconKey: 'card', pastelBg: '#E2E8F0', pastelFg: '#334155', accent: '#64748B' },
-        { code: 'CRYPTO', name: pack.crypto, iconKey: 'crypto', pastelBg: '#D4F5E9', pastelFg: '#0F766E', accent: '#0F766E' }
-      ], function (code) {
-        if (code === 'CARD' && state.compId) {
-          location.href = '/checkout/' + encodeURIComponent(state.compId) + '?pgCheckoutFwd=1&m=' + encodeURIComponent(state.compId);
-        }
-      });
-    }
+    var meansEl = document.getElementById('meansSection');
+    if (meansEl) meansEl.hidden = true;
 
     var catalog = data.catalog || {};
     var assets = catalog.assets || [];
@@ -199,12 +194,22 @@
       return !Object.keys(allowed).length || allowed[String(n.code).toUpperCase()];
     });
     document.getElementById('networkSection').hidden = false;
-    ICOPAY_CRYPTO_UI.renderGrid(document.getElementById('networkGrid'), list, function (code) {
-      state.network = code;
-      var wallets = (state.data && state.data.catalog && state.data.catalog.wallets) || [];
-      renderWallets(wallets, code);
-      showErr('');
-    });
+    var netEl = document.getElementById('networkGrid');
+    if (ICOPAY_CRYPTO_UI.renderNetworkList) {
+      ICOPAY_CRYPTO_UI.renderNetworkList(netEl, list, state.network, function (code) {
+        state.network = code;
+        var wallets = (state.data && state.data.catalog && state.data.catalog.wallets) || [];
+        renderWallets(wallets, code);
+        showErr('');
+      });
+    } else {
+      ICOPAY_CRYPTO_UI.renderGrid(netEl, list, function (code) {
+        state.network = code;
+        var wallets = (state.data && state.data.catalog && state.data.catalog.wallets) || [];
+        renderWallets(wallets, code);
+        showErr('');
+      });
+    }
   }
 
   function renderWallets(wallets, network) {

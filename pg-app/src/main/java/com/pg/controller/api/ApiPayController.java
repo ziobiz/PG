@@ -225,6 +225,14 @@ public class ApiPayController {
             Long orgUnitId,
             boolean repay,
             HttpServletRequest request) {
+        return urlPayCheckoutContextInternal(orgUnitId, repay, request, null);
+    }
+
+    private ResponseEntity<ApiResponse<Map<String, Object>>> urlPayCheckoutContextInternal(
+            Long orgUnitId,
+            boolean repay,
+            HttpServletRequest request,
+            String checkoutEntry) {
         if (orgUnitId == null) {
             return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
         }
@@ -251,7 +259,8 @@ public class ApiPayController {
                     "URL 결제를 처리할 결제대행사(운영·연동용도 URL결제)가 없습니다.", "URL_PAYMENT_PG_MISSING"));
         }
         try {
-            Map<String, Object> data = urlPayPublicCheckoutService.buildCheckoutContext(orgUnitId, request, repay);
+            Map<String, Object> data = urlPayPublicCheckoutService.buildCheckoutContext(
+                    orgUnitId, request, repay, checkoutEntry);
             data.put("clientIp", getClientIp(request));
             return ResponseEntity.ok(ApiResponse.ok(data));
         } catch (IllegalStateException e) {
@@ -319,10 +328,11 @@ public class ApiPayController {
             @RequestParam(required = false) Long merchantId,
             @RequestParam(required = false) String compId,
             @RequestParam(required = false, name = "urlPayVariant") String urlPayVariant,
+            @RequestParam(required = false, name = "entry") String entry,
             HttpServletRequest request) {
         Long orgUnitId = resolveMerchantOrgUnitId(merchantId, compId);
         boolean repay = resolveEffectiveUrlPayRepay(urlPayVariant, orgUnitId);
-        return urlPayCheckoutContextInternal(orgUnitId, repay, request);
+        return urlPayCheckoutContextInternal(orgUnitId, repay, request, entry);
     }
 
     /**
@@ -487,7 +497,7 @@ public class ApiPayController {
             @RequestParam(required = false) Long merchantId,
             @RequestParam(required = false) String compId,
             HttpServletRequest request) {
-        return urlPayCheckoutContext(merchantId, compId, null, request);
+        return urlPayCheckoutContext(merchantId, compId, null, null, request);
     }
 
     /**
@@ -520,7 +530,7 @@ public class ApiPayController {
         data.put("integrationMode", "INLINE");
         data.put("checkoutCurrencyCode", urlPayCheckoutCurrencyService.resolveCheckoutCurrency(orgUnitId, null));
         data.put("clientIp", getClientIp(request));
-        checkoutHeaderLogoResolver.applyToCheckoutMap(data, orgUnitId);
+        checkoutHeaderLogoResolver.applyToCheckoutMap(data, orgUnitId, "merchant_api");
         urlPayCardExpiryModeService.putEffectiveIntoMap(data, orgUnitId);
         data.put("checkoutContactRememberEnabled", payContactRememberPolicyService.isEnabledForOrgUnit(orgUnitId));
         data.put("cardPayPolicy", payCardPolicyService.buildClientPolicy(PgVendor.JPAY, orgUnitId));
@@ -592,7 +602,7 @@ public class ApiPayController {
             @RequestParam(required = false) Long merchantId,
             @RequestParam(required = false) String compId,
             HttpServletRequest request) {
-        return urlPayCheckoutContext(merchantId, compId, null, request);
+        return urlPayCheckoutContext(merchantId, compId, null, null, request);
     }
 
     /** ElementPay 결제 페이지 — {@link #urlPayCheckoutContext} 와 동일. */
@@ -601,7 +611,7 @@ public class ApiPayController {
             @RequestParam(required = false) Long merchantId,
             @RequestParam(required = false) String compId,
             HttpServletRequest request) {
-        return urlPayCheckoutContext(merchantId, compId, null, request);
+        return urlPayCheckoutContext(merchantId, compId, null, null, request);
     }
 
     /**
@@ -808,7 +818,7 @@ public class ApiPayController {
             @RequestParam(required = false) String compId,
             @RequestParam(required = false, name = "urlPayVariant") String urlPayVariant,
             HttpServletRequest request) {
-        return urlPayCheckoutContext(merchantId, compId, urlPayVariant, request);
+        return urlPayCheckoutContext(merchantId, compId, urlPayVariant, null, request);
     }
 
     /**

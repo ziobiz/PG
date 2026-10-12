@@ -530,10 +530,7 @@
         var compId = getCompId();
         if (!compId) { showErr(t('errMerchant')); return; }
         document.getElementById('compIdHidden').value = compId;
-        if (PAY_EMBED_MODE) {
-          var brand = document.getElementById('jpayBrandBlock');
-          if (brand && PAY_ENTRY_MERCHANT_API) brand.style.display = 'none';
-        }
+        /* API 로고설정은 checkout-context 적용 후 표시 여부 결정 */
         applyQueryPrefills();
         fetchJson(apiUrl('/api/pay/jpay/subscribe-checkout-context', 'compId=' + encodeURIComponent(compId)))
           .then(function (ctxRes) {
@@ -579,6 +576,13 @@
                 logoWrapSelector: '.pay-brand-logo',
                 t: typeof t === 'function' ? t : undefined
               });
+            }
+            if (PAY_ENTRY_MERCHANT_API || PAY_EMBED_MODE) {
+              var brandSub = document.getElementById('jpayBrandBlock');
+              if (brandSub) {
+                var apiLogoModeSub = String((ctx && ctx.checkoutHeaderLogoMode) || 'DISABLED').trim().toUpperCase();
+                brandSub.style.display = (apiLogoModeSub === 'DISABLED') ? 'none' : '';
+              }
             }
             applyI18n();
             var itemEl = document.getElementById('item');

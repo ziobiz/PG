@@ -1311,7 +1311,10 @@
         }
         if (PAY_ENTRY_MERCHANT_API) {
           var brand = document.getElementById('epBrandBlock');
-          if (brand) brand.style.display = 'none';
+          if (brand) {
+            var apiLogoMode = String((checkoutCtx && checkoutCtx.checkoutHeaderLogoMode) || 'DISABLED').trim().toUpperCase();
+            brand.style.display = (apiLogoMode === 'DISABLED') ? 'none' : '';
+          }
         }
       }
 
@@ -1533,6 +1536,13 @@
             logoWrapSelector: '.pay-brand-logo',
             t: t
           });
+        }
+        if (PAY_ENTRY_MERCHANT_API) {
+          var brandRet = document.getElementById('epBrandBlock');
+          if (brandRet) {
+            var apiLogoModeRet = String((data && data.checkoutHeaderLogoMode) || 'DISABLED').trim().toUpperCase();
+            brandRet.style.display = (apiLogoModeRet === 'DISABLED') ? 'none' : '';
+          }
         }
         if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyCardCopyPresentation) {
           PG_URL_PAY_SHELL.applyCardCopyPresentation({

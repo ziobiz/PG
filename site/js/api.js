@@ -987,10 +987,31 @@
       var token = getToken();
       var headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' };
       if (token) headers['Authorization'] = 'Bearer ' + token;
+      /* update 와 동일 — 구매자입력·웹결제 스위치를 pgBindings 보다 앞에 */
+      var params = new URLSearchParams();
+      var priority = [
+        'compId', 'compDiv', 'compNm', 'loginId',
+        'webPaymentUseYn', 'chatbotPaymentUseYn', 'apiJpaySubscriptionUseYn',
+        'urlPayCheckoutFieldPresetId',
+        'urlPayBuyerEmailUseYn', 'urlPayBuyerCountryUseYn', 'urlPayBuyerPhoneUseYn', 'urlPayShippingAddressUseYn'
+      ];
+      var seen = {};
+      priority.forEach(function (k) {
+        if (data == null || data[k] == null || data[k] === undefined) return;
+        params.append(k, String(data[k]));
+        seen[k] = true;
+      });
+      if (data && typeof data === 'object') {
+        Object.keys(data).forEach(function (k) {
+          if (seen[k]) return;
+          if (data[k] == null || data[k] === undefined) return;
+          params.append(k, String(data[k]));
+        });
+      }
       return fetch(base + '/api/comp/register', {
         method: 'POST',
         headers: headers,
-        body: new URLSearchParams(data)
+        body: params
       }).then(function (res) {
         if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error(apiT('인증이 만료되었습니다.', 'Your session has expired.'))); }
         return res.text().then(function (text) {
@@ -1108,7 +1129,10 @@
         'splitPayEnabledYn', 'splitPayContractCancelYn',
         'splitPayIntervalMonthYn', 'splitPayIntervalDayYn', 'splitPayIntervalMultiYn',
         'splitPayDayIntervalDays', 'splitPayMonthIntervalMonths', 'splitPayMultiMaxMonths', 'splitPayFirstPayMode',
-        'webPaymentUseYn', 'chatbotPaymentUseYn', 'apiJpaySubscriptionUseYn'
+        'webPaymentUseYn', 'chatbotPaymentUseYn', 'apiJpaySubscriptionUseYn',
+        /* 결제창 구매자입력 — pgBindings 잘림 시 활성→비활성으로 되돌아가는 버그 방지 */
+        'urlPayCheckoutFieldPresetId',
+        'urlPayBuyerEmailUseYn', 'urlPayBuyerCountryUseYn', 'urlPayBuyerPhoneUseYn', 'urlPayShippingAddressUseYn'
       ];
       var seen = {};
       priority.forEach(function (k) {
@@ -1689,6 +1713,12 @@
     },
     hqCryptoCustodySave: function (body) {
       return post('/api/hq/crypto/custody/save', body || {}).then(function (r) { return r.data; });
+    },
+    hqCryptoCustodyDelete: function (body) {
+      return post('/api/hq/crypto/custody/delete', body || {}).then(function (r) { return r.data; });
+    },
+    hqCryptoCustodySetPrimary: function (body) {
+      return post('/api/hq/crypto/custody/set-primary', body || {}).then(function (r) { return r.data; });
     },
     hqCryptoMerchantConfig: function (compId) {
       return get('/api/hq/crypto/merchant-config', { compId: compId }).then(function (r) { return r.data; });

@@ -84,16 +84,43 @@ public class CheckoutHeaderLogoResolver {
     }
 
     public void applyToCheckoutMap(Map<String, Object> data, Long merchantOrgUnitId) {
+        applyToCheckoutMap(data, merchantOrgUnitId, null);
+    }
+
+    /**
+     * @param checkoutEntry {@code merchant_api} 이면 API 로고설정, 그 외·null 이면 웹결제(URL) 로고설정
+     */
+    public void applyToCheckoutMap(Map<String, Object> data, Long merchantOrgUnitId, String checkoutEntry) {
         if (data == null || merchantOrgUnitId == null) {
             return;
         }
         Optional<MerchantProfile> prof = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId);
-        Resolved r = resolve(merchantOrgUnitId);
+        boolean apiEntry = checkoutEntry != null
+                && "merchant_api".equalsIgnoreCase(checkoutEntry.trim());
+        Resolved r = apiEntry ? resolveApi(merchantOrgUnitId) : resolve(merchantOrgUnitId);
         data.put("checkoutHeaderLogoMode", r.mode());
+        data.put("checkoutHeaderLogoChannel", apiEntry ? "API" : "WEB");
         r.url().ifPresent(u -> data.put("checkoutHeaderLogoUrl", u));
-        prof.map(MerchantProfile::getWebPaymentHeaderHtmlTitle)
-                .filter(t -> t != null && !t.isBlank())
-                .ifPresent(t -> data.put("checkoutHeaderHtmlTitle", t.trim()));
+        if (apiEntry) {
+            String apiModeRaw = prof.map(MerchantProfile::getApiPaymentHeaderLogoMode).orElse("DISABLED");
+            data.put("apiPaymentHeaderLogoMode", apiModeRaw != null ? apiModeRaw : "DISABLED");
+            boolean followWeb = apiModeRaw != null
+                    && (WebPaymentHeaderLogoModeUtil.FOLLOW_HQ.equalsIgnoreCase(apiModeRaw.trim())
+                    || "HQ".equalsIgnoreCase(apiModeRaw.trim()));
+            if (followWeb) {
+                prof.map(MerchantProfile::getWebPaymentHeaderHtmlTitle)
+                        .filter(t -> t != null && !t.isBlank())
+                        .ifPresent(t -> data.put("checkoutHeaderHtmlTitle", t.trim()));
+            } else {
+                prof.map(MerchantProfile::getApiPaymentHeaderHtmlTitle)
+                        .filter(t -> t != null && !t.isBlank())
+                        .ifPresent(t -> data.put("checkoutHeaderHtmlTitle", t.trim()));
+            }
+        } else {
+            prof.map(MerchantProfile::getWebPaymentHeaderHtmlTitle)
+                    .filter(t -> t != null && !t.isBlank())
+                    .ifPresent(t -> data.put("checkoutHeaderHtmlTitle", t.trim()));
+        }
         SubtitleResolved st = resolveSubtitle(merchantOrgUnitId);
         data.put("checkoutHeaderSubtitleMode", st.mode());
         st.text().ifPresent(t -> data.put("checkoutHeaderSubtitleText", t));
@@ -101,6 +128,36 @@ public class CheckoutHeaderLogoResolver {
             urlPayCardInputCopyService.putCheckoutFields(data, mp);
             checkoutHeaderSubtitleCopyService.putCheckoutFields(data, mp);
         });
+    }
+
+    /**
+     * API/embed 로고. 기본 DISABLED. FOLLOW_HQ 이면 웹결제 로고({@link #resolve})를 따름.
+     */
+    public Resolved resolveApi(Long merchantOrgUnitId) {
+        Optional<MerchantProfile> prof = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId);
+        String stored = prof.map(MerchantProfile::getApiPaymentHeaderLogoMode).orElse("DISABLED");
+        if (stored == null || stored.isBlank()) {
+            stored = WebPaymentHeaderLogoModeUtil.DISABLED;
+        }
+        String u = stored.trim().toUpperCase(java.util.Locale.ROOT);
+        if (WebPaymentHeaderLogoModeUtil.FOLLOW_HQ.equals(u) || "HQ".equals(u)) {
+            return resolve(merchantOrgUnitId);
+        }
+        String mode = WebPaymentHeaderLogoModeUtil.normalize(u);
+        if (WebPaymentHeaderLogoModeUtil.DISABLED.equals(mode)) {
+            return new Resolved(WebPaymentHeaderLogoModeUtil.DISABLED, Optional.empty());
+        }
+        if (WebPaymentHeaderLogoModeUtil.ACTIVE.equals(mode)) {
+            String custom = prof.map(MerchantProfile::getApiPaymentHeaderLogoUrl).orElse("");
+            if (custom == null || custom.isBlank()) {
+                return new Resolved(WebPaymentHeaderLogoModeUtil.ACTIVE, Optional.empty());
+            }
+            return new Resolved(WebPaymentHeaderLogoModeUtil.ACTIVE, Optional.of(custom.trim()));
+        }
+        if (WebPaymentHeaderLogoModeUtil.HTML.equals(mode)) {
+            return new Resolved(WebPaymentHeaderLogoModeUtil.HTML, Optional.empty());
+        }
+        return new Resolved(WebPaymentHeaderLogoModeUtil.DEFAULT, resolveMasterDistBrandingLogo(merchantOrgUnitId));
     }
 
     public Resolved resolveSplitPay(Long merchantOrgUnitId) {

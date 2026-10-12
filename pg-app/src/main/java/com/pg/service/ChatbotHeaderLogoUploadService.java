@@ -45,6 +45,10 @@ public class ChatbotHeaderLogoUploadService {
     private static final Logger log = LoggerFactory.getLogger(ChatbotHeaderLogoUploadService.class);
 
     private static final long MAX_ORIGINAL_UPLOAD_BYTES = 40L * 1024 * 1024;
+    /** 로고 목표 용량: 기본 2MB. 설정값이 너무 작으면(예: 21KB) 상식적 하한으로 보정. */
+    private static final long LOGO_TARGET_DEFAULT_BYTES = 2L * 1024 * 1024;
+    private static final long LOGO_TARGET_MIN_BYTES = 512L * 1024;
+    private static final long LOGO_TARGET_MAX_BYTES = 5L * 1024 * 1024;
     private static final Pattern INT_PATTERN = Pattern.compile("-?\\d+");
 
     private final OrgUnitRepository orgUnitRepository;
@@ -110,9 +114,13 @@ public class ChatbotHeaderLogoUploadService {
         }
 
         Map<String, Object> cfg = hqChatbotAiSettingsService.rawConfigForServerUse();
-        long targetMax = parsePositiveLong(cfg.get("chatbot_logo_target_max_bytes"), 2097152L); // 2 MiB default
-        int defaultMaxEdge = clamp(parsePositiveInt(cfg.get("chatbot_logo_max_edge_px"), 1024), 320, 2048);
+        long targetMax = clampLogoTargetBytes(
+                parsePositiveLong(cfg.get("chatbot_logo_target_max_bytes"), LOGO_TARGET_DEFAULT_BYTES));
+        int defaultMaxEdge = clamp(parsePositiveInt(cfg.get("chatbot_logo_max_edge_px"), 1600), 640, 2560);
         float startQuality = clamp01(parseQuality(cfg.get("chatbot_logo_jpeg_quality_start")));
+        if (startQuality < 0.85f) {
+            startQuality = 0.92f;
+        }
 
         boolean llmTune = "Y".equalsIgnoreCase(str(cfg.get("chatbot_logo_llm_tune_yn")));
         int maxEdge = defaultMaxEdge;
@@ -124,10 +132,15 @@ public class ChatbotHeaderLogoUploadService {
                 usedLlm = true;
             }
         }
-        maxEdge = clamp(maxEdge, 320, 2048);
+        maxEdge = clamp(maxEdge, 640, 2560);
 
-        byte[] optimized = optimizeLogoBytes(file.getBytes(), targetMax, maxEdge, startQuality);
-        String fileName = filePrefix + UUID.randomUUID().toString().substring(0, 8) + ".jpg";
+        byte[] originalBytes = file.getBytes();
+        byte[] optimized = optimizeLogoBytes(originalBytes, targetMax, maxEdge, startQuality);
+        boolean keptOriginal = optimized == originalBytes;
+        String outExt = keptOriginal
+                ? (looksLikePng(optimized) ? "png" : "jpg")
+                : "jpg";
+        String fileName = filePrefix + UUID.randomUUID().toString().substring(0, 8) + "." + outExt;
         Path basePath = Paths.get(System.getProperty("user.dir"), uploadDir, storageSubdir,
                 sanitizeCompId(compId)).normalize();
         Files.createDirectories(basePath);
@@ -150,10 +163,25 @@ public class ChatbotHeaderLogoUploadService {
                     auditLabel, basenameForAudit(before), basenameForAudit(stored));
         }
 
+        String targetLabel = targetMax >= 1024 * 1024
+                ? String.format(Locale.ROOT, "%.1fMB", targetMax / (1024.0 * 1024.0))
+                : (targetMax / 1024) + "KB";
+        String finalLabel = optimized.length >= 1024 * 1024
+                ? String.format(Locale.ROOT, "%.1fMB", optimized.length / (1024.0 * 1024.0))
+                : (optimized.length / 1024) + "KB";
         String msg = optimized.length <= targetMax
-                ? ("최종 " + optimized.length / 1024 + "KB (설정 목표 이하)") + (usedLlm ? " · LLM 해상도 힌트 사용" : "")
-                : ("최종 " + optimized.length / 1024 + "KB · 목표(" + targetMax / 1024 + "KB)보다 클 수 있어 추가 수동 설정을 검토하세요.");
+                ? ("업로드 완료 · 최종 " + finalLabel + " (허용 최대 " + targetLabel + ")")
+                + (usedLlm ? " · LLM 해상도 힌트 사용" : "")
+                : ("업로드 완료 · 최종 " + finalLabel + " · 허용(" + targetLabel + ")보다 클 수 있어 품질·해상도 설정을 검토하세요.");
         return new UploadResult(relative, usedLlm, msg);
+    }
+
+    /** HQ 설정이 과도하게 작으면(예: 21KB) 512KB~5MB 범위로 보정. 기본 2MB. */
+    private static long clampLogoTargetBytes(long v) {
+        if (v < LOGO_TARGET_MIN_BYTES) {
+            return LOGO_TARGET_DEFAULT_BYTES;
+        }
+        return Math.min(LOGO_TARGET_MAX_BYTES, v);
     }
 
     /** MERCHANT 검증 포함 */
@@ -165,13 +193,13 @@ public class ChatbotHeaderLogoUploadService {
 
     private int llmSuggestMaxEdge(Map<String, Object> rawCfg, long targetMaxKb) {
         try {
-            String sys = "You output exactly one decimal integer only (no words), between 420 and 1200 inclusive: "
-                    + "recommended maximum width-or-height in pixels for a JPEG logo shown in a small circular bubble on mobile.";
+            String sys = "You output exactly one decimal integer only (no words), between 640 and 2048 inclusive: "
+                    + "recommended maximum width-or-height in pixels for a payment/header logo (not tiny bubble only).";
             String user = "Target final file soft limit about " + targetMaxKb + " KB after server-side JPEG optimization.";
             List<Map<String, String>> msgs = List.of(Map.of("role", "user", "content", user));
             String reply = chatbotLlmCompletionService.completeChat(rawCfg, sys, msgs,
                     com.pg.util.ChatbotLlmUsage.GENERAL);
-            return parseFirstIntClamp(reply, 420, 1200);
+            return parseFirstIntClamp(reply, 640, 2048);
         } catch (Exception e) {
             log.warn("chatbot logo LLM tuning skipped: {}", e.getMessage());
             return -1;
@@ -194,6 +222,11 @@ public class ChatbotHeaderLogoUploadService {
     }
 
     private byte[] optimizeLogoBytes(byte[] original, long targetMaxBytes, int maxEdge, float startQ) throws IOException {
+        /* 이미 허용 용량 이하면 원본 유지(품질·투명 PNG 등). JPEG/PNG만. */
+        if (original != null && original.length > 0 && original.length <= targetMaxBytes
+                && looksLikeJpegOrPng(original)) {
+            return original;
+        }
         BufferedImage read = ImageIO.read(new java.io.ByteArrayInputStream(original));
         if (read == null) {
             throw new IllegalArgumentException("이미지를 읽을 수 없습니다.");
@@ -209,19 +242,33 @@ public class ChatbotHeaderLogoUploadService {
         byte[] best = writeJpeg(working, q);
         int guard = 0;
         while (best.length > targetMaxBytes && guard++ < 18) {
-            if (q > 0.52f) {
-                q = Math.max(0.52f, q - 0.065f);
+            if (q > 0.72f) {
+                q = Math.max(0.72f, q - 0.05f);
             } else {
-                extraScale *= 0.87;
-                if (extraScale < 0.28) {
+                extraScale *= 0.9;
+                if (extraScale < 0.4) {
                     break;
                 }
                 working = scale(rgb, edgeScale * extraScale);
-                q = Math.min(0.9f, startQ);
+                q = Math.min(0.92f, startQ);
             }
             best = writeJpeg(working, q);
         }
         return best;
+    }
+
+    private static boolean looksLikeJpegOrPng(byte[] b) {
+        return looksLikePng(b) || looksLikeJpeg(b);
+    }
+
+    private static boolean looksLikePng(byte[] b) {
+        return b != null && b.length >= 8
+                && b[0] == (byte) 0x89 && b[1] == 0x50 && b[2] == 0x4E && b[3] == 0x47;
+    }
+
+    private static boolean looksLikeJpeg(byte[] b) {
+        return b != null && b.length >= 2
+                && (b[0] & 0xFF) == 0xFF && (b[1] & 0xFF) == 0xD8;
     }
 
     private static BufferedImage flattenToRgb(BufferedImage src) {

@@ -197,6 +197,22 @@ public class MerchantProfile {
     private String webPaymentHeaderHtmlTitle;
 
     /**
+     * API/embed({@code entry=merchant_api}) 결제창 상단 로고 —
+     * {@link com.pg.urlpay.WebPaymentHeaderLogoModeUtil}. 기본 {@code DISABLED}.
+     * {@code FOLLOW_HQ} 이면 웹결제 로고설정을 따름.
+     */
+    @Column(name = "api_payment_header_logo_mode", nullable = false, length = 16)
+    private String apiPaymentHeaderLogoMode = "DISABLED";
+
+    /** API 결제창 상단 로고 URL — mode=ACTIVE 일 때 가맹 업로드 */
+    @Column(name = "api_payment_header_logo_url", length = 500)
+    private String apiPaymentHeaderLogoUrl;
+
+    /** API HTML 로고 모드 표시명 */
+    @Column(name = "api_payment_header_html_title", length = 80)
+    private String apiPaymentHeaderHtmlTitle;
+
+    /**
      * 웹결제 결제창 로고 아래 경고/안내 문구 — {@link com.pg.urlpay.CheckoutHeaderSubtitleModeUtil}.
      */
     @Column(name = "web_payment_header_subtitle_mode", nullable = false, length = 16)
@@ -775,6 +791,23 @@ public class MerchantProfile {
     }
     public String getWebPaymentHeaderLogoUrl() { return webPaymentHeaderLogoUrl; }
     public void setWebPaymentHeaderLogoUrl(String webPaymentHeaderLogoUrl) { this.webPaymentHeaderLogoUrl = webPaymentHeaderLogoUrl; }
+    public String getApiPaymentHeaderLogoMode() { return apiPaymentHeaderLogoMode; }
+    public void setApiPaymentHeaderLogoMode(String apiPaymentHeaderLogoMode) {
+        if (apiPaymentHeaderLogoMode == null || apiPaymentHeaderLogoMode.isBlank()) {
+            this.apiPaymentHeaderLogoMode = "DISABLED";
+            return;
+        }
+        String u = apiPaymentHeaderLogoMode.trim().toUpperCase(java.util.Locale.ROOT);
+        if ("FOLLOW_HQ".equals(u) || "HQ".equals(u)) {
+            this.apiPaymentHeaderLogoMode = "FOLLOW_HQ";
+            return;
+        }
+        this.apiPaymentHeaderLogoMode = com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalize(u);
+    }
+    public String getApiPaymentHeaderLogoUrl() { return apiPaymentHeaderLogoUrl; }
+    public void setApiPaymentHeaderLogoUrl(String apiPaymentHeaderLogoUrl) { this.apiPaymentHeaderLogoUrl = apiPaymentHeaderLogoUrl; }
+    public String getApiPaymentHeaderHtmlTitle() { return apiPaymentHeaderHtmlTitle; }
+    public void setApiPaymentHeaderHtmlTitle(String apiPaymentHeaderHtmlTitle) { this.apiPaymentHeaderHtmlTitle = apiPaymentHeaderHtmlTitle; }
     public String getWebPaymentHeaderHtmlTitle() { return webPaymentHeaderHtmlTitle; }
     public void setWebPaymentHeaderHtmlTitle(String webPaymentHeaderHtmlTitle) { this.webPaymentHeaderHtmlTitle = webPaymentHeaderHtmlTitle; }
     public String getWebPaymentHeaderSubtitleMode() { return webPaymentHeaderSubtitleMode; }

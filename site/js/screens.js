@@ -18,6 +18,103 @@
   function escUi(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   }
+  /** 대표수탁지갑 — 자산별(USDC/USDT/EURC) 카드 HTML */
+  function cryptoCustodyAssetCardHtml(assetCode) {
+    var a = String(assetCode || '').toUpperCase();
+    var sid = a.toLowerCase();
+    return (
+      '<p class="small text-muted mb-2" data-pg-ui-t="네트워크는 드롭다운에서 선택합니다. 같은 네트워크에 여러 주소를 둘 수 있고, 「대표」만 입금에 사용됩니다.">네트워크는 드롭다운에서 선택합니다. 같은 네트워크에 여러 주소를 둘 수 있고, 「대표」만 입금에 사용됩니다.</p>' +
+      '<div class="row g-2 align-items-end mb-3 crypto-custody-form" data-custody-asset="' + a + '">' +
+      '<div class="col-md-2"><label class="form-label small">ID</label>' +
+      '<input class="form-control form-control-sm crypto-custody-id" id="cryptoCustodyId_' + sid + '" placeholder="신규 공란" data-custody-asset="' + a + '"></div>' +
+      '<div class="col-md-3"><label class="form-label small" data-pg-ui-t="주소">주소</label>' +
+      '<input class="form-control form-control-sm crypto-custody-addr" id="cryptoCustodyAddr_' + sid + '" data-custody-asset="' + a + '"></div>' +
+      '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="라벨">라벨</label>' +
+      '<input class="form-control form-control-sm crypto-custody-label" id="cryptoCustodyLabel_' + sid + '" data-custody-asset="' + a + '"></div>' +
+      '<div class="col-md-2"><div class="form-check mt-4">' +
+      '<input class="form-check-input crypto-custody-primary" type="checkbox" id="cryptoCustodyPrimary_' + sid + '" data-custody-asset="' + a + '" checked>' +
+      '<label class="form-check-label small" for="cryptoCustodyPrimary_' + sid + '" data-pg-ui-t="대표로 저장">대표로 저장</label></div></div>' +
+      '<div class="col-md-2"><button type="button" class="btn btn-sm btn-primary w-100 crypto-custody-save" data-custody-asset="' + a + '" data-pg-ui-t="저장">저장</button></div>' +
+      '</div>' +
+      '<div class="mb-3 crypto-custody-net-wrap">' +
+      '<label class="form-label small" data-pg-ui-t="네트워크">네트워크</label>' +
+      '<input type="hidden" class="crypto-custody-net" id="cryptoCustodyNet_' + sid + '" data-custody-asset="' + a + '" value="">' +
+      '<div class="ic-crypto-net-host" id="cryptoCustodyNetList_' + sid + '" data-custody-asset="' + a + '"></div>' +
+      '</div>' +
+      '<p class="small text-warning mb-2" data-pg-ui-t="대표수탁지갑 저장·삭제·대표지정은 Google OTP 인증 후 진행됩니다.">대표수탁지갑 저장·삭제·대표지정은 Google OTP 인증 후 진행됩니다.</p>' +
+      '<div class="d-flex align-items-center justify-content-between mb-1">' +
+      '<span class="small fw-semibold"><span data-pg-ui-t="등록된 주소">등록된 주소</span> · ' + a + '</span>' +
+      '<span class="small text-muted" data-pg-ui-t="행 클릭=수정 · 대표지정 · 삭제 · 주소 더블클릭=QR">행 클릭=수정 · 대표지정 · 삭제 · 주소 더블클릭=QR</span>' +
+      '</div>' +
+      '<div class="table-responsive"><table class="table table-sm table-bordered" id="grid_cryptoCustody_' + sid + '">' +
+      '<thead class="table-light"><tr>' +
+      '<th data-pg-ui-t="ID">ID</th><th data-pg-ui-t="네트워크">네트워크</th>' +
+      '<th data-pg-ui-t="주소">주소</th><th data-pg-ui-t="라벨">라벨</th>' +
+      '<th data-pg-ui-t="대표">대표</th><th data-pg-ui-t="작업">작업</th>' +
+      '</tr></thead><tbody class="crypto-custody-tbody" id="cryptoCustodyTbody_' + sid + '" data-custody-asset="' + a + '"></tbody></table></div>'
+    );
+  }
+  window.PG_CRYPTO_CUSTODY_ASSET_CARD_HTML = cryptoCustodyAssetCardHtml;
+
+  /** 가맹 크립토 — USDC/USDT/EURC 활성·비활성 토글 HTML */
+  function cryptoMerchantAssetTogglesHtml(rowId) {
+    var assets = ['USDC', 'USDT', 'EURC'];
+    var cols = assets.map(function (a) {
+      var sid = String(rowId || 'comp') + '_' + a.toLowerCase();
+      return (
+        '<div class="col-md-4"><label class="form-label small">' + a + '</label>' +
+        '<select class="form-select form-select-sm crypto-asset-use" data-asset="' + a + '" id="' + sid + '">' +
+        '<option value="N" data-pg-ui-t="비활성">비활성</option>' +
+        '<option value="Y" data-pg-ui-t="활성">활성</option>' +
+        '</select></div>'
+      );
+    }).join('');
+    return (
+      '<div class="mb-2">' +
+      '<label class="form-label small" data-pg-ui-t="허용자산">허용자산</label>' +
+      '<div class="row g-2 crypto-asset-toggle-row" id="' + String(rowId || 'compCryptoAssetToggles') + '">' + cols + '</div>' +
+      '<div class="form-text small" data-pg-ui-t="활성인 자산만 아래에 네트워크·주소를 입력합니다.">활성인 자산만 아래에 네트워크·주소를 입력합니다.</div>' +
+      '</div>'
+    );
+  }
+  window.PG_CRYPTO_MERCHANT_ASSET_TOGGLES_HTML = cryptoMerchantAssetTogglesHtml;
+
+  /** 가맹 크립토 상단 설정(사용·정산·출금·보증금·USD) */
+  function cryptoMerchantTopFieldsHtml(ids) {
+    var p = ids || {};
+    var useId = p.useYn || 'compCryptoUseYn';
+    var settleId = p.settle || 'compCryptoSettle';
+    var payoutId = p.payout || 'compCryptoPayout';
+    var holdId = p.hold || 'compCryptoHold';
+    var reserveId = p.reserve || 'compCryptoReserve';
+    var nameAttr = function (n) { return p.named ? ' name="' + n + '"' : ''; };
+    return (
+      '<div class="row g-2 mb-2">' +
+      '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="사용">사용</label>' +
+      '<select class="form-select form-select-sm"' + nameAttr('cryptoUseYn') + ' id="' + useId + '">' +
+      '<option value="N" data-pg-ui-t="미사용">미사용</option>' +
+      '<option value="Y" data-pg-ui-t="사용">사용</option></select></div>' +
+      '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="정산모드">정산모드</label>' +
+      '<select class="form-select form-select-sm"' + nameAttr('cryptoSettleMode') + ' id="' + settleId + '">' +
+      '<option value="SCHEDULED" data-pg-ui-t="지연정산">지연정산</option>' +
+      '<option value="IMMEDIATE" data-pg-ui-t="즉시정산">즉시정산</option></select></div>' +
+      '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="출금모드">출금모드</label>' +
+      '<select class="form-select form-select-sm"' + nameAttr('cryptoPayoutMode') + ' id="' + payoutId + '">' +
+      '<option value="MANUAL" data-pg-ui-t="반자동">반자동</option>' +
+      '<option value="AUTO" data-pg-ui-t="자동">자동</option></select></div>' +
+      '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="보증금(%)">보증금(%)</label>' +
+      '<input type="number" step="0.01" min="0" max="100" class="form-control form-control-sm"' +
+      nameAttr('cryptoReservePct') + ' id="' + reserveId + '" value="0">' +
+      '<div class="form-text small" data-pg-ui-t="USD 입금액 기준 담보 비율">USD 입금액 기준 담보 비율</div></div>' +
+      '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="보증금보류일수">보증금보류일수</label>' +
+      '<input type="number" class="form-control form-control-sm"' + nameAttr('cryptoHoldDays') + ' id="' + holdId + '" value="3"></div>' +
+      '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="기준통화">기준통화</label>' +
+      '<input type="text" class="form-control form-control-sm" value="USD" readonly disabled>' +
+      '<div class="form-text small" data-pg-ui-t="크립토 금액·수수료·한도는 USD 기준입니다.">크립토 금액·수수료·한도는 USD 기준입니다.</div></div>' +
+      '</div>'
+    );
+  }
+  window.PG_CRYPTO_MERCHANT_TOP_FIELDS_HTML = cryptoMerchantTopFieldsHtml;
   /** 로컬 달력 오늘(YYYY-MM-DD). 빈 type=date 의 OS 한글 연도-월-일 크롬을 피하기 위해 기본값으로 씁니다. */
   function pgAdminTodayIsoLocal() {
     try {
@@ -136,8 +233,8 @@
 
   /** 웹결제(URL·JPAY) 상단 로고 — 로고설정「활성」일 때만 업로드 (로고설정 옆 배치) */
   function webPaymentHeaderLogoFieldBlock() {
-    var phLogo = '업로드 시 자동 반영 · 또는 HTTPS URL 직접 입력';
-    var logoHint = '「활성」일 때만 업로드 가능합니다. PNG·JPEG, 원본 최대 40MB. 서버에서 목표 2MB 이하로 재압축합니다.';
+    var phLogo = '파일 선택 시 파일명 표시 · 업로드 후 URL 자동 반영 · 또는 HTTPS URL 직접 입력';
+    var logoHint = '「활성」일 때만 파일 선택·업로드·최적화가 가능합니다. 파일을 고르면 입력창에 파일명이 표시되고, 업로드·최적화 후 서버 URL로 바뀝니다. PNG·JPEG, 원본 최대 40MB. 2MB 이하면 원본 유지, 초과 시 약 2MB 이하로 재압축합니다.';
     return '<div class="form-field-block web-payment-header-logo-upload-block" id="webPaymentHeaderLogoBlock">' +
       '<label class="form-label" data-pg-ui-t="웹결제 상단 로고">' + escUi(L('웹결제 상단 로고')) + '</label>' +
       '<div class="input-group input-group-sm mb-1">' +
@@ -146,6 +243,24 @@
       '<input type="file" class="d-none" id="webPaymentHeaderLogoFile" accept="image/png,image/jpeg,image/jpg">' +
       '<button type="button" class="btn btn-outline-secondary btn-sm" id="webPaymentHeaderLogoBrowse"><span data-pg-ui-t="파일 선택">' + escUi(L('파일 선택')) + '</span></button>' +
       '<button type="button" class="btn btn-outline-primary btn-sm" id="webPaymentHeaderLogoUpload"><span data-pg-ui-t="업로드·최적화">' + escUi(L('업로드·최적화')) + '</span></button>' +
+      '</div>' +
+      '<div class="form-text text-muted small" data-pg-ui-t="' + escUi(logoHint) + '">' +
+      escUi(L(logoHint)) +
+      '</div></div>';
+  }
+
+  /** API/embed 결제창 상단 로고 — API 로고설정「활성」일 때만 업로드 */
+  function apiPaymentHeaderLogoFieldBlock() {
+    var phLogo = '파일 선택 시 파일명 표시 · 업로드 후 URL 자동 반영 · 또는 HTTPS URL 직접 입력';
+    var logoHint = 'API 연동(인라인·embed) 결제창에만 적용됩니다. 「활성(가맹점 로고)」일 때만 파일 선택·업로드·최적화가 가능합니다. 파일을 고르면 입력창에 파일명이 표시되고, 업로드·최적화 후 서버 URL로 바뀝니다. PNG·JPEG, 원본 최대 40MB.';
+    return '<div class="form-field-block api-payment-header-logo-upload-block" id="apiPaymentHeaderLogoBlock">' +
+      '<label class="form-label" data-pg-ui-t="API 상단 로고">' + escUi(L('API 상단 로고')) + '</label>' +
+      '<div class="input-group input-group-sm mb-1">' +
+      '<input type="text" class="form-control form-control-sm" name="apiPaymentHeaderLogoUrl" id="apiPaymentHeaderLogoUrl" ' +
+      'placeholder="' + escUi(L(phLogo)) + '" data-pg-ui-placeholder="' + escUi(phLogo) + '">' +
+      '<input type="file" class="d-none" id="apiPaymentHeaderLogoFile" accept="image/png,image/jpeg,image/jpg">' +
+      '<button type="button" class="btn btn-outline-secondary btn-sm" id="apiPaymentHeaderLogoBrowse"><span data-pg-ui-t="파일 선택">' + escUi(L('파일 선택')) + '</span></button>' +
+      '<button type="button" class="btn btn-outline-primary btn-sm" id="apiPaymentHeaderLogoUpload"><span data-pg-ui-t="업로드·최적화">' + escUi(L('업로드·최적화')) + '</span></button>' +
       '</div>' +
       '<div class="form-text text-muted small" data-pg-ui-t="' + escUi(logoHint) + '">' +
       escUi(L(logoHint)) +
@@ -365,7 +480,7 @@
         { v: 'Y', t: '활성' },
         { v: 'N', t: '비활성' }
       ], col: 3 }],
-      [{ label: '', type: 'note', col: 12, text: '구매자입력 프리셋: 기본형·1형·2형…을 고르면 이메일·국가·전화·배송은 프리셋을 따릅니다. 「비활성」으로 두면 가맹이 네 항목을 개별 활성/비활성으로 설정합니다. 전 PG(URL·API 인라인) 공통입니다.' }],
+      [{ label: '', type: 'note', col: 12, text: '구매자입력 프리셋: 기본형·1형·2형…을 고르면 이메일·국가·전화·배송은 프리셋을 따릅니다(개별 항목 잠금). 「비활성」으로 둔 뒤에만 네 항목을 개별 활성/비활성으로 설정합니다. 프리셋이 켜진 채 개별 항목을 바꾸려 하면 「구매자입력 프리셋을 비활성화하세요.」안내가 표시됩니다. 전 PG(URL·API 인라인) 공통입니다.' }],
       [{ type: 'customHtml', col: 12, html: webPaymentHeaderSubtitleFieldBlock }],
       merchantWebPaymentDefaultProductRow(),
       [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml(urlPh); } },
@@ -391,6 +506,16 @@
           { v: 'ALWAYS_REDIRECT', t: '항상 전체 페이지' }
         ], col: 3 },
          { label: '', type: 'note', col: 9, text: 'embed·API 인라인·URL·챗봇 결제창 동작. 기본(EMBED)은 iframe 유지 + 3DS 시 최상위 창 이동. MOBILE_REDIRECT/ALWAYS_REDIRECT 는 payUrl 전체 페이지(모바일 3DS 권장).' }],
+        [{ label: 'API 로고설정', type: 'select', name: 'apiPaymentHeaderLogoMode', options: [
+          { v: 'DISABLED', t: '미활성' },
+          { v: 'FOLLOW_HQ', t: '웹결제 로고 따름' },
+          { v: 'DEFAULT', t: '기본(총판 로고)' },
+          { v: 'HTML', t: '기본(HTML)' },
+          { v: 'ACTIVE', t: '활성(가맹점 로고)' }
+        ], col: 3 },
+         { type: 'customHtml', col: 7, html: apiPaymentHeaderLogoFieldBlock },
+         { label: 'API HTML 표시명', type: 'text', name: 'apiPaymentHeaderHtmlTitle', col: 2, maxlength: 80, placeholder: 'ICOPAY', blockExtraClass: 'api-payment-html-title-field' }],
+        [{ label: '', type: 'note', col: 12, text: 'API 로고설정은 가맹 API·embed 결제창(entry=merchant_api)에만 적용됩니다. URL 공개 결제는 웹결제 카드의「로고설정」을 사용합니다. 「웹결제 로고 따름」이면 웹결제 로고와 동일하게 표시합니다.' }],
         [{ label: '', type: 'note', col: 12, text: '연동·배포 → 가맹 API 출시(키·문서·API 문서)와 업체관리 → 가맹점API 화면에는 여기서 켠 채널만 노출됩니다. prepare API도 비활성 채널은 INTEGRATION_CHANNEL_DISABLED 로 거부됩니다.' }]
       ]
     };
@@ -413,7 +538,7 @@
   /** URL 분할결제 결제창 — 로고설정「활성」일 때만 업로드 */
   function splitPayHeaderLogoFieldBlock() {
     var phLogo = '업로드 시 자동 반영 · 또는 HTTPS URL 직접 입력';
-    var logoHint = '「활성(가맹점 로고)」일 때만 업로드 가능합니다. PNG·JPEG, 원본 최대 40MB. 서버에서 목표 2MB 이하로 재압축합니다.';
+    var logoHint = '「활성(가맹점 로고)」일 때만 업로드 가능합니다. PNG·JPEG, 원본 최대 40MB. 2MB 이하면 원본 유지, 초과 시 약 2MB 이하로 재압축합니다.';
     return '<div class="form-field-block split-pay-header-logo-upload-block w-100" id="splitPayHeaderLogoBlock">' +
       '<label class="form-label" data-pg-ui-t="분할결제 상단 로고">' + escUi(L('분할결제 상단 로고')) + '</label>' +
       '<div class="input-group input-group-sm mb-1">' +
@@ -4752,6 +4877,29 @@
           ]
         },
         {
+          title: '크립토설정',
+          id: 'merchantCryptoCard',
+          merchantOnly: true,
+          notice: '가맹 정산용 수취 지갑·크립토 사용(Y/N)입니다. 카드는 URL·PG 설정이 우선. 사용=Y여도 업체등록 미사용·영구정지면 결제 불가. 금액·수수료·한도는 USD. 가맹점 로그인은 조회·QR만. 변경은 본사·관리자가 업체상세 또는 본사정책 → 결제·URL → 크립토설정에서.',
+          rows: [
+            [{
+              type: 'customHtml',
+              col: 12,
+              html: function () {
+                return (
+                  '<div id="merchantCryptoCardBody" class="merchant-crypto-card-body">' +
+                  cryptoMerchantTopFieldsHtml({ named: true, useYn: 'compCryptoUseYn', settle: 'compCryptoSettle', payout: 'compCryptoPayout', hold: 'compCryptoHold', reserve: 'compCryptoReserve' }) +
+                  cryptoMerchantAssetTogglesHtml('compCryptoAssetToggles') +
+                  '<div id="compCryptoWalletFields" class="mb-2"></div>' +
+                  '<p class="small text-muted mb-2" data-pg-ui-t="활성 자산마다 네트워크(로고)를 고르고 대표 수취 주소 하나만 입력하세요.">활성 자산마다 네트워크(로고)를 고르고 대표 수취 주소 하나만 입력하세요.</p>' +
+                  '<div id="compCryptoWalletQrPreview" class="d-flex flex-wrap gap-3"></div>' +
+                  '</div>'
+                );
+              }
+            }]
+          ]
+        },
+        {
           title: '결제통보 URL',
           id: 'notifyUrlCard',
           merchantOnly: true,
@@ -5190,6 +5338,29 @@
         { title: '기타', id: 'regionalMiscCard', headOfficeTierOnly: true, notice: '총본사/본사/총판 공통 설정입니다. COPYRIGHT에 입력한 문구는 화면 하단에 표시됩니다.', rows: [[{ label: 'COPYRIGHT', type: 'textarea', name: 'copyright', col: 6, placeholder: 'Copyright © 2025 ICOPAY Service by Ontheline Co., Ltd.' }, { label: '비고', type: 'textarea', name: 'remark', col: 6 }]] },
         { title: '기타', id: 'nonRegionalMiscCard', distributorMerchantOnlyNoRegional: true, rows: [[{ label: '비고', type: 'textarea', name: 'remark', col: 6 }]] },
         {
+          title: '크립토설정',
+          id: 'merchantCryptoCard',
+          merchantOnly: true,
+          notice: '가맹 정산용 수취 지갑·크립토 사용(Y/N)입니다. 카드는 URL·PG 설정이 우선. 사용=Y여도 업체등록 미사용·영구정지면 결제 불가. 금액·수수료·한도는 USD. 구매자 입금(대표수탁)과 다름. 관리자만 저장·가맹은 조회·QR. 본사정책 → 결제·URL → 크립토설정과 동일·그쪽 저장 우선.',
+          rows: [
+            [{
+              type: 'customHtml',
+              col: 12,
+              html: function () {
+                return (
+                  '<div id="merchantCryptoCardBody" class="merchant-crypto-card-body">' +
+                  cryptoMerchantTopFieldsHtml({ named: true, useYn: 'compCryptoUseYn', settle: 'compCryptoSettle', payout: 'compCryptoPayout', hold: 'compCryptoHold', reserve: 'compCryptoReserve' }) +
+                  cryptoMerchantAssetTogglesHtml('compCryptoAssetToggles') +
+                  '<div id="compCryptoWalletFields" class="mb-2"></div>' +
+                  '<p class="small text-muted mb-2" data-pg-ui-t="활성 자산마다 네트워크(로고)를 고르고 대표 수취 주소 하나만 입력하세요.">활성 자산마다 네트워크(로고)를 고르고 대표 수취 주소 하나만 입력하세요.</p>' +
+                  '<div id="compCryptoWalletQrPreview" class="d-flex flex-wrap gap-3"></div>' +
+                  '</div>'
+                );
+              }
+            }]
+          ]
+        },
+        {
           title: '결제통보 URL',
           id: 'notifyUrlCard',
           merchantOnly: true,
@@ -5563,6 +5734,29 @@
           notice: '본사·총판만 설정 가능. 메인이미지=로그인 화면 왼쪽 배경, 로고=로그인창 상단·사이드바 상단.'
         },
         { title: '기타', id: 'regionalMiscCard', headOfficeTierOnly: true, notice: '총본사/본사/총판 공통 설정입니다. COPYRIGHT에 입력한 문구는 화면 하단에 표시됩니다.', rows: [[{ label: 'COPYRIGHT', type: 'textarea', name: 'copyright', col: 6, placeholder: 'Copyright © 2025 ICOPAY Service by Ontheline Co., Ltd.' }]] },
+        {
+          title: '크립토설정',
+          id: 'merchantCryptoCard',
+          merchantOnly: true,
+          notice: '가맹 정산용 수취 지갑·크립토 사용(Y/N)입니다. 카드는 URL·PG 설정이 우선. 사용=Y여도 업체등록 미사용·영구정지면 결제 불가. 금액·수수료·한도는 USD. 구매자 입금(대표수탁)과 다름. 관리자만 저장·가맹은 조회·QR. 본사정책 → 결제·URL → 크립토설정과 동일·그쪽 저장 우선.',
+          rows: [
+            [{
+              type: 'customHtml',
+              col: 12,
+              html: function () {
+                return (
+                  '<div id="merchantCryptoCardBody" class="merchant-crypto-card-body">' +
+                  cryptoMerchantTopFieldsHtml({ named: true, useYn: 'compCryptoUseYn', settle: 'compCryptoSettle', payout: 'compCryptoPayout', hold: 'compCryptoHold', reserve: 'compCryptoReserve' }) +
+                  cryptoMerchantAssetTogglesHtml('compCryptoAssetToggles') +
+                  '<div id="compCryptoWalletFields" class="mb-2"></div>' +
+                  '<p class="small text-muted mb-2" data-pg-ui-t="활성 자산마다 네트워크(로고)를 고르고 대표 수취 주소 하나만 입력하세요.">활성 자산마다 네트워크(로고)를 고르고 대표 수취 주소 하나만 입력하세요.</p>' +
+                  '<div id="compCryptoWalletQrPreview" class="d-flex flex-wrap gap-3"></div>' +
+                  '</div>'
+                );
+              }
+            }]
+          ]
+        },
         {
           title: '결제통보 URL',
           id: 'notifyUrlCard',
@@ -7361,50 +7555,76 @@
       isForm: true,
       formSections: [
         {
-          title: '크립토설정',
-          notice: 'ICOPAY 수탁 주소·자산(USDT/USDC/EURC)·네트워크를 관리합니다. 가맹별 결제수단(카드/크립토/둘다)·정산모드(즉시/지연)·출금모드(반자동/자동)는 업체코드로 조회·저장합니다. 구매자·가맹 노출은 ICOPAY 중립입니다.',
+          title: '대표수탁지갑 · USDC',
+          id: 'hqCryptoCustodyCardUsdc',
+          notice: 'ICOPAY 입금용 USDC 수탁 주소입니다. 네트워크별로 여러 주소를 등록할 수 있으며, 그중 「대표」로 지정한 주소만 해당 네트워크 입금에 사용됩니다. 운영할 네트워크만 등록하면 됩니다(전 네트워크 사전 준비 불필요). 저장·삭제·대표지정 시 Google OTP 필요.',
+          rows: [
+            [{
+              type: 'customHtml',
+              col: 12,
+              html: function () { return cryptoCustodyAssetCardHtml('USDC'); }
+            }]
+          ]
+        },
+        {
+          title: '대표수탁지갑 · USDT',
+          id: 'hqCryptoCustodyCardUsdt',
+          notice: 'ICOPAY 입금용 USDT 수탁 주소입니다. 네트워크별로 여러 주소를 등록할 수 있으며, 그중 「대표」로 지정한 주소만 해당 네트워크 입금에 사용됩니다. 운영할 네트워크만 등록하면 됩니다. 저장·삭제·대표지정 시 Google OTP 필요.',
+          rows: [
+            [{
+              type: 'customHtml',
+              col: 12,
+              html: function () { return cryptoCustodyAssetCardHtml('USDT'); }
+            }]
+          ]
+        },
+        {
+          title: '대표수탁지갑 · EURC',
+          id: 'hqCryptoCustodyCardEurc',
+          notice: 'ICOPAY 입금용 EURC 수탁 주소입니다. 네트워크별로 여러 주소를 등록할 수 있으며, 그중 「대표」로 지정한 주소만 해당 네트워크 입금에 사용됩니다. 운영할 네트워크만 등록하면 됩니다. 저장·삭제·대표지정 시 Google OTP 필요.',
+          rows: [
+            [{
+              type: 'customHtml',
+              col: 12,
+              html: function () { return cryptoCustodyAssetCardHtml('EURC'); }
+            }]
+          ]
+        },
+        {
+          title: '가맹점 크립토설정',
+          id: 'hqCryptoMerchantCard',
+          notice: '가맹별 크립토 사용(Y/N)·정산/출금·수취 지갑입니다. 카드 결제는 URL·PG 설정이 우선이며 여기서 켜지지 않습니다. 사용=Y여도 업체등록이 미사용·영구정지면 크립토 결제 불가. 금액·수수료·한도는 USD 기준. 본 화면 저장이 업체상세와 동일 데이터·우선. 가맹점 로그인은 조회·QR만.',
           rows: [
             [{
               type: 'customHtml',
               col: 12,
               html: function () {
                 return (
-                  '<div class="mb-3">' +
-                  '<label class="form-label" data-pg-ui-t="업체코드(가맹 설정)">업체코드(가맹 설정)</label>' +
+                  '<label class="form-label" data-pg-ui-t="업체코드(가맹)">업체코드(가맹)</label>' +
                   '<div class="input-group input-group-sm mb-2" style="max-width:28rem">' +
                   '<input type="text" class="form-control" id="cryptoMerchCompId" placeholder="가맹 업체코드">' +
                   '<button type="button" class="btn btn-outline-secondary" id="cryptoMerchLoadBtn" data-pg-ui-t="조회">조회</button>' +
                   '<button type="button" class="btn btn-primary" id="cryptoMerchSaveBtn" data-pg-ui-t="저장">저장</button>' +
                   '</div>' +
-                  '<div class="row g-2 mb-2">' +
-                  '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="사용">사용</label><select class="form-select form-select-sm" id="cryptoMerchUseYn"><option value="N">N</option><option value="Y">Y</option></select></div>' +
-                  '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="결제수단">결제수단</label><select class="form-select form-select-sm" id="cryptoMerchMeans"><option value="CARD">CARD</option><option value="CRYPTO">CRYPTO</option><option value="BOTH">BOTH</option></select></div>' +
-                  '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="정산모드">정산모드</label><select class="form-select form-select-sm" id="cryptoMerchSettle"><option value="SCHEDULED">SCHEDULED</option><option value="IMMEDIATE">IMMEDIATE</option></select></div>' +
-                  '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="출금모드">출금모드</label><select class="form-select form-select-sm" id="cryptoMerchPayout"><option value="MANUAL">MANUAL</option><option value="AUTO">AUTO</option></select></div>' +
-                  '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="홀드일수">홀드일수</label><input type="number" class="form-control form-control-sm" id="cryptoMerchHold" value="3"></div>' +
+                  cryptoMerchantTopFieldsHtml({ useYn: 'cryptoMerchUseYn', settle: 'cryptoMerchSettle', payout: 'cryptoMerchPayout', hold: 'cryptoMerchHold', reserve: 'cryptoMerchReserve' }) +
+                  cryptoMerchantAssetTogglesHtml('cryptoMerchAssetToggles') +
+                  '<div id="cryptoMerchWalletFields" class="mb-2"></div>' +
+                  '<p class="small text-muted mb-2" data-pg-ui-t="활성 자산마다 네트워크(로고)를 고르고 대표 수취 주소 하나만 입력하세요.">활성 자산마다 네트워크(로고)를 고르고 대표 수취 주소 하나만 입력하세요.</p>' +
+                  '<textarea class="form-control form-control-sm font-monospace d-none" id="cryptoMerchSellerJson" rows="2"></textarea>' +
+                  '<div id="cryptoMerchWalletQrPreview" class="d-flex flex-wrap gap-3 mb-3"></div>' +
+                  '<div class="d-flex align-items-center justify-content-between mb-1">' +
+                  '<span class="small fw-semibold" data-pg-ui-t="등록된 가맹점 크립토설정">등록된 가맹점 크립토설정</span>' +
+                  '<span class="small text-muted" data-pg-ui-t="행 클릭=수정 로드 · 주소 더블클릭=QR">행 클릭=수정 로드 · 주소 더블클릭=QR</span>' +
                   '</div>' +
-                  '<div class="row g-2 mb-2">' +
-                  '<div class="col-md-4"><label class="form-label small" data-pg-ui-t="허용자산">허용자산</label><input type="text" class="form-control form-control-sm" id="cryptoMerchAssets" value="USDT,USDC,EURC"></div>' +
-                  '<div class="col-md-4"><label class="form-label small" data-pg-ui-t="허용네트워크">허용네트워크</label><input type="text" class="form-control form-control-sm" id="cryptoMerchNets" value="TRC20,ERC20"></div>' +
-                  '</div>' +
-                  '<label class="form-label small" data-pg-ui-t="판매자 지갑 JSON">판매자 지갑 JSON</label>' +
-                  '<textarea class="form-control form-control-sm font-monospace mb-3" id="cryptoMerchSellerJson" rows="3" placeholder=\'{"USDT_TRC20":"T...","ERC20":"0x..."}\'></textarea>' +
-                  '</div>' +
-                  '<hr>' +
-                  '<h6 class="mb-2" data-pg-ui-t="수탁 주소">수탁 주소</h6>' +
-                  '<div class="table-responsive mb-2"><table class="table table-sm table-bordered" id="grid_cryptoCustody">' +
+                  '<div class="table-responsive"><table class="table table-sm table-bordered" id="grid_cryptoMerchant">' +
                   '<thead class="table-light"><tr>' +
-                  '<th data-pg-ui-t="ID">ID</th><th data-pg-ui-t="네트워크">네트워크</th><th data-pg-ui-t="자산">자산</th><th data-pg-ui-t="주소">주소</th><th data-pg-ui-t="라벨">라벨</th><th data-pg-ui-t="사용">사용</th>' +
-                  '</tr></thead><tbody id="cryptoCustodyTbody"></tbody></table></div>' +
-                  '<div class="row g-2 align-items-end">' +
-                  '<div class="col-md-2"><label class="form-label small">ID</label><input class="form-control form-control-sm" id="cryptoCustodyId" placeholder="신규 공란"></div>' +
-                  '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="네트워크">네트워크</label><input class="form-control form-control-sm" id="cryptoCustodyNet" value="TRC20"></div>' +
-                  '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="자산">자산</label><input class="form-control form-control-sm" id="cryptoCustodyAsset" value="USDT"></div>' +
-                  '<div class="col-md-3"><label class="form-label small" data-pg-ui-t="주소">주소</label><input class="form-control form-control-sm" id="cryptoCustodyAddr"></div>' +
-                  '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="라벨">라벨</label><input class="form-control form-control-sm" id="cryptoCustodyLabel"></div>' +
-                  '<div class="col-md-1"><button type="button" class="btn btn-sm btn-primary w-100" id="cryptoCustodySaveBtn" data-pg-ui-t="저장">저장</button></div>' +
-                  '</div>' +
-                  '<p class="small text-muted mt-3 mb-0" id="cryptoCatalogHint" data-pg-ui-t="자산·지갑 카탈로그는 서버 시드(USDT/USDC/EURC, 10개 지갑 파스텔)를 사용합니다.">자산·지갑 카탈로그는 서버 시드(USDT/USDC/EURC, 10개 지갑 파스텔)를 사용합니다.</p>'
+                  '<th data-pg-ui-t="업체코드">업체코드</th><th data-pg-ui-t="업체명">업체명</th>' +
+                  '<th data-pg-ui-t="사용">사용</th>' +
+                  '<th data-pg-ui-t="정산모드">정산모드</th><th data-pg-ui-t="출금모드">출금모드</th>' +
+                  '<th data-pg-ui-t="보증금(%)">보증금(%)</th>' +
+                  '<th data-pg-ui-t="허용자산">허용자산</th><th data-pg-ui-t="허용네트워크">허용네트워크</th>' +
+                  '<th data-pg-ui-t="가맹 수취 지갑">가맹 수취 지갑</th>' +
+                  '</tr></thead><tbody id="cryptoMerchTbody"></tbody></table></div>'
                 );
               }
             }]
@@ -7482,6 +7702,7 @@
         { key: 'networkCode', label: '네트워크' },
         { key: 'amountGross', label: '총액' },
         { key: 'amountFee', label: '수수료' },
+        { key: 'amountReserve', label: '보증금' },
         { key: 'amountNet', label: '지급액' },
         { key: 'settleMode', label: '정산' },
         { key: 'payoutMode', label: '출금' },

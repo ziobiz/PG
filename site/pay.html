@@ -1378,11 +1378,14 @@
         });
       }
 
-      function applyMerchantApiEmbedUi() {
+      function applyMerchantApiEmbedUi(checkoutCtx) {
         if (!PAY_EMBED_MODE) return;
         document.querySelectorAll('.pay-lang').forEach(function (el) { el.style.display = 'none'; });
         var brand = document.querySelector('.pay-brand');
-        if (brand && PAY_ENTRY_MERCHANT_API) brand.style.display = 'none';
+        if (brand && PAY_ENTRY_MERCHANT_API) {
+          var apiLogoMode = String((checkoutCtx && checkoutCtx.checkoutHeaderLogoMode) || 'DISABLED').trim().toUpperCase();
+          brand.style.display = (apiLogoMode === 'DISABLED') ? 'none' : '';
+        }
         var shell = document.querySelector('.pay-shell');
         if (shell) {
           shell.style.paddingTop = '0.75rem';
@@ -2053,7 +2056,7 @@
             PG_PAY_FORM_INPUT_GUARD.initUrlPayForm(document.getElementById('payForm'), { t: t });
           }
           applyQueryPrefillsFromUrl();
-          applyMerchantApiEmbedUi();
+          applyMerchantApiEmbedUi(checkoutCtx);
           return validateMerchantApiSession().then(function () {
           if (urlPayDisplayFxActive && urlPayPricingMode === 'DISPLAY_FX_THB') {
             initUrlPayDisplayFx(compId);

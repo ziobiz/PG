@@ -129,13 +129,14 @@ CREATE INDEX IF NOT EXISTS ix_crypto_payout_status
 
 -- 시드: 자산
 INSERT INTO tb_crypto_asset (code, display_name, symbol, pastel_bg, pastel_fg, icon_key, sort_ord, use_yn) VALUES
- ('USDT', 'USDT (Tether)', 'USDT', '#D4F5E9', '#0F766E', 'usdt', 1, 'Y'),
- ('USDC', 'USDC (Circle)', 'USDC', '#DBEAFE', '#1D4ED8', 'usdc', 2, 'Y'),
+ ('USDC', 'USDC (Circle)', 'USDC', '#DBEAFE', '#1D4ED8', 'usdc', 1, 'Y'),
+ ('USDT', 'USDT (Tether)', 'USDT', '#D4F5E9', '#0F766E', 'usdt', 2, 'Y'),
  ('EURC', 'EURC (Euro Coin)', 'EURC', '#EDE9FE', '#6D28D9', 'eurc', 3, 'Y')
 ON CONFLICT (code) DO UPDATE SET
  display_name = EXCLUDED.display_name,
  pastel_bg = EXCLUDED.pastel_bg,
  pastel_fg = EXCLUDED.pastel_fg,
+ sort_ord = EXCLUDED.sort_ord,
  use_yn = EXCLUDED.use_yn;
 
 INSERT INTO tb_crypto_network (code, display_name, chain_hint, confirmations, pastel_bg, pastel_fg, sort_ord, use_yn) VALUES

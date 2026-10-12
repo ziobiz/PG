@@ -3073,6 +3073,24 @@
       CH: '上传后自动填入 · 或直接粘贴 HTTPS URL',
       TH: 'อัปโหลดแล้วเติมอัตโนมัติ · หรือวาง HTTPS URL'
     },
+    '파일 선택 시 파일명 표시 · 업로드 후 URL 자동 반영 · 또는 HTTPS URL 직접 입력': {
+      EN: 'File name after select · URL after upload · or enter HTTPS URL',
+      JP: '選択後にファイル名表示 · アップロード後にURL反映 · またはHTTPS URLを直接入力',
+      CH: '选择后显示文件名 · 上传后自动填入 URL · 或直接输入 HTTPS URL',
+      TH: 'แสดงชื่อไฟล์หลังเลือก · URL หลังอัปโหลด · หรือใส่ HTTPS URL เอง'
+    },
+    'API 연동(인라인·embed) 결제창에만 적용됩니다. 「활성(가맹점 로고)」일 때만 파일 선택·업로드·최적화가 가능합니다. 파일을 고르면 입력창에 파일명이 표시되고, 업로드·최적화 후 서버 URL로 바뀝니다. PNG·JPEG, 원본 최대 40MB.': {
+      EN: 'Applies only to API (inline/embed) checkout. File select/upload/optimize when Active (merchant logo). Choosing a file shows its name in the field; after Upload & optimize it becomes the server URL. PNG/JPEG, max 40MB.',
+      JP: 'API(インライン・embed)決済のみ。「有効(加盟ロゴ)」時のみファイル選択・アップロード・最適化。選択すると入力欄にファイル名が表示され、アップロード・最適化後にサーバーURLへ。PNG/JPEG、原寸最大40MB。',
+      CH: '仅用于 API（内联/embed）结账。「启用（商户 logo）」时可选择文件/上传并优化。选择后输入框显示文件名，上传优化后变为服务器 URL。PNG/JPEG，原图最大 40MB。',
+      TH: 'ใช้เฉพาะหน้าชำระ API (inline/embed) เลือกไฟล์/อัปโหลด/ปรับเมื่อ「เปิด (โลโก้ร้าน)」 เลือกแล้วชื่อไฟล์ขึ้นในช่อง หลังอัปโหลดจะเป็น URL เซิร์ฟเวอร์ PNG/JPEG สูงสุด 40MB'
+    },
+    '「활성」일 때만 파일 선택·업로드·최적화가 가능합니다. 파일을 고르면 입력창에 파일명이 표시되고, 업로드·최적화 후 서버 URL로 바뀝니다. PNG·JPEG, 원본 최대 40MB. 2MB 이하면 원본 유지, 초과 시 약 2MB 이하로 재압축합니다.': {
+      EN: 'File select/upload/optimize only when Active. Choosing a file shows its name; after Upload & optimize it becomes the server URL. PNG/JPEG, max 40MB; keep original if ≤2MB, else recompress to about 2MB.',
+      JP: '「有効」時のみファイル選択・アップロード・最適化。選択するとファイル名表示、アップロード・最適化後にサーバーURL。PNG/JPEG、最大40MB。2MB以下は原寸、超過時は約2MB以下に再圧縮。',
+      CH: '仅在「启用」时可选择文件/上传并优化。选择后显示文件名，上传优化后变为服务器 URL。PNG/JPEG，最大 40MB；≤2MB 保留原图，否则压缩至约 2MB。',
+      TH: 'เลือกไฟล์/อัปโหลด/ปรับได้เมื่อ「เปิด」 เลือกแล้วขึ้นชื่อไฟล์ หลังอัปโหลดเป็น URL เซิร์ฟเวอร์ PNG/JPEG สูงสุด 40MB ≤2MB คงต้นฉบับ เกินแล้วบีบอัดราว 2MB'
+    },
     'PNG·JPEG, 원본 최대 40MB. 서버에서 목표 2MB 이하(본사 AI챗봇설정 변경 가능)로 재압축합니다. chatbot_logo_llm_tune_yn=Y 일 때 AI챗봇설정 순위 LLM으로 권장 픽셀을 잡습니다.': {
       EN: 'PNG/JPEG, up to 40 MB source. Server recompresses toward ≤2 MB (HQ AI chatbot settings). When chatbot_logo_llm_tune_yn=Y, HQ AI chatbot LLM ranking picks suggested pixels.',
       JP: 'PNG/JPEG、原稿最大40MB。サーバで目標2MB以下に再圧縮（本社AIチャットボット設定で変更可）。chatbot_logo_llm_tune_yn=Y のとき本社AIチャットボット設定のLLM順位で推奨ピクセルを決めます。',

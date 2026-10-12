@@ -97,6 +97,16 @@ public class UrlPayPublicCheckoutService {
     public Map<String, Object> buildCheckoutContext(Long orgUnitId,
                                                     HttpServletRequest request,
                                                     boolean repay) throws IllegalStateException {
+        return buildCheckoutContext(orgUnitId, request, repay, null);
+    }
+
+    /**
+     * @param checkoutEntry {@code merchant_api} 이면 API 로고설정 적용
+     */
+    public Map<String, Object> buildCheckoutContext(Long orgUnitId,
+                                                    HttpServletRequest request,
+                                                    boolean repay,
+                                                    String checkoutEntry) throws IllegalStateException {
         Optional<OrgUnit> ou = orgUnitRepository.findById(orgUnitId);
         if (ou.isEmpty()) {
             throw new IllegalStateException("NOT_FOUND");
@@ -148,7 +158,7 @@ public class UrlPayPublicCheckoutService {
         if (!data.containsKey("pgVendor")) {
             data.put("pgVendor", cap.vendorFamily());
         }
-        checkoutHeaderLogoResolver.applyToCheckoutMap(data, orgUnitId);
+        checkoutHeaderLogoResolver.applyToCheckoutMap(data, orgUnitId, checkoutEntry);
         data.put("urlPayResultPageUrl", chillPayService.resolveUrlPayResultAbsolute(request, ou.get().getCode()));
         data.put("urlPayCheckoutMode", merchantUrlPayCheckoutMode(orgUnitId));
         data.put("effectiveUrlPayVariant", repay ? UrlPayCheckoutModeUtil.REPAY : UrlPayCheckoutModeUtil.STANDARD);

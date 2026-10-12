@@ -1,7 +1,6 @@
 package com.pg.controller;
 
 import com.pg.crypto.CryptoCheckoutService;
-import com.pg.entity.MerchantCryptoConfig;
 import com.pg.entity.OrgUnit;
 import com.pg.integration.pg.PgVendor;
 import com.pg.repository.OrgUnitRepository;
@@ -14,9 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * PG 무관 중립 결제창 라우트 — {@code /checkout/{compId}}.
@@ -75,9 +72,9 @@ public class NeutralCheckoutRouteController {
                 if (session.startsWith("sb_")) {
                     return "/sandbox-pay.html" + q;
                 }
+                /* 크립토는 세션·payMeans=CRYPTO·운영PG=CRYPTO 일 때만. useYn만으로 카드창을 가로채지 않음. */
                 if (session.startsWith("cr_")
                         || wantsCryptoMeans(request)
-                        || isCryptoOnlyMerchant(orgUnitId)
                         || isCryptoSession(session)) {
                     return "/crypto-pay.html" + q;
                 }
@@ -119,12 +116,6 @@ public class NeutralCheckoutRouteController {
             means = nz(request.getParameter("means"));
         }
         return "CRYPTO".equalsIgnoreCase(means);
-    }
-
-    private boolean isCryptoOnlyMerchant(Long orgUnitId) {
-        Optional<MerchantCryptoConfig> cfg = cryptoCheckoutService.activeConfig(orgUnitId);
-        return cfg.isPresent()
-                && MerchantCryptoConfig.MEANS_CRYPTO.equalsIgnoreCase(cfg.get().getCheckoutMeans());
     }
 
     private boolean isCryptoSession(String session) {

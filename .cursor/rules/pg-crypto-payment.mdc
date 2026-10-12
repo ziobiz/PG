@@ -8,12 +8,24 @@
 - 입금은 항상 ICOPAY 수탁. 판매자 직접 스플릿 금지.
 - 가맹·구매자 노출은 ICOPAY 중립 (`pgVendor` 항상 ICOPAY).
 - 자산 USDT·USDC·EURC 동일 모델. 네트워크·지갑은 카탈로그 시드.
+- **기준통화 USD (필수·변경 불가).** 금액·수수료·한도·견적·정산 앵커는 USD. USDT/USDC 액면≈USD. `CryptoCheckoutService.QUOTE_CURRENCY=USD`. 카드 DP(THB 등)와 혼용하지 않음.
+- **크립토 게이트:** 가맹 `use_yn=Y` + 업체등록 사용여부 Y만. 미사용(N)·영구정지(S) 차단. **CARD/CRYPTO/BOTH(`checkout_means`)는 UI·게이트 미사용**(레거시 컬럼만 useYn에 동기화). 카드는 URL·PG 설정 우선 — 크립토 카드가 카드를 켜지 않음.
+- **가맹 크립토 기본값(필수):** 사용=**미사용(N)**. 허용자산·네트워크 CSV 기본 **빈값**(전 자산 비활성). 미등록 가맹 조회 시에도 동일. USDT/TRC20 자동 기본 금지.
+- **네트워크·자산은 카탈로그만** (자유 텍스트 금지). 네트워크 UI: **로고+색톤 리스트**(Base·Arbitrum·BNB·Ethereum·OP·Polygon·Kaia·Tron·Solana·Stellar 등).
+- 네트워크 시드: `V268`+`V269`(Kaia·Stellar·표시명). 게이트 동기화: `V270`.
+- 가맹 허용자산: **USDC·USDT·EURC 각각 활성/비활성**. 활성만 네트워크+주소 1세트 입력. 사용=사용/미사용 표시(값은 Y/N).
+- 정산: IMMEDIATE(즉시)/SCHEDULED(지연) + **보증금(%)**·**보증금보류일수**(USD 입금 기준 담보). 출금 큐 `amount_reserve` 차감.
+- 가맹 수취: 활성 자산 1개 → 네트워크+주소 1세트(대표만). 대표수탁 패턴과 동일.
+- 대표수탁: **USDC → USDT → EURC** 자산별 카드. 같은 자산×네트워크에 여러 주소 가능, **`primary_yn=Y` 하나만** 입금에 사용. 운영할 네트워크만 등록(전 네트워크 사전준비 불필요). 저장·삭제·대표지정 OTP.
+- 입금 `resolveCustody`: primary 우선 → 동일 asset+network 폴백.
 - 정산: IMMEDIATE / SCHEDULED. 출금: MANUAL(반자동) / AUTO(자동 큐).
-- 결제수단: CARD / CRYPTO / BOTH.
+- 중립 `/checkout`: `cr_` 세션·`payMeans=CRYPTO`·운영PG=CRYPTO 만 크립토창. useYn만으로 카드창 가로채기 금지.
 - UI·오류·릴리스: 5개국어(KOR·ENG·JPN·CHN·THA).
-- 메뉴명: 본사설정→크립토설정, 결제관리→크립토내역, 정산관리→크립토정산.
+- 메뉴명: 본사정책→결제·URL→크립토설정(대표수탁지갑·가맹점 크립토설정), 업체등록/업체상세→크립토설정(가맹 VIEW·QR), 결제관리→크립토내역, 정산관리→크립토정산.
+- 대표수탁지갑=ICOPAY 입금 주소(상단). 가맹 수취 지갑=정산 출금 주소. HQ 크립토설정 저장이 업체상세와 동일 데이터·우선.
+- 대표수탁지갑 추가·수정·삭제는 Google OTP(totpCode) 필수 — UI 프롬프트 + 서버 `verifyTotpOrThrow`.
 
 ## 코드 앵커
 - `PgVendor.CRYPTO`, `com.pg.crypto.*`
-- SQL `V265_crypto_payment.sql`
+- SQL `V265_crypto_payment.sql` … `V270_crypto_use_yn_gate_usd.sql`
 - 정적 `crypto-pay.html`, `icopay-crypto-wallets.js`

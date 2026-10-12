@@ -6,13 +6,539 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '4.55';
+  var CURRENT_LIVE = '4.72';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '4.72',
+      kind: 'minor',
+      date: '2026-10-12',
+      items: {
+        KO: [
+          'API·웹결제 상단 로고: 파일 선택 시 입력창에 파일명 표시, 업로드·최적화로 서버 URL 반영(선택 파일 유지·이벤트 위임 보강)'
+        ],
+        EN: [
+          'API/web-pay header logo: show file name in the field on select; Upload & optimize fills the server URL (keep selected file; delegated events)'
+        ],
+        JP: [
+          'API・ウェブ決済上部ロゴ: ファイル選択で入力欄にファイル名表示、アップロード・最適化でサーバーURL反映（選択保持・イベント委譲）'
+        ],
+        CH: [
+          'API/网页支付顶部 logo：选择文件后在输入框显示文件名，上传并优化后填入服务器 URL（保留所选文件；事件委托加固）'
+        ],
+        TH: [
+          'โลโก้หัว API/ชำระเว็บ: เลือกไฟล์แล้วขึ้นชื่อในช่อง อัปโหลดและปรับแล้วได้ URL เซิร์ฟเวอร์ (เก็บไฟล์ที่เลือก + event delegation)'
+        ]
+      }
+    },
+    {
+      version: '4.71',
+      kind: 'minor',
+      date: '2026-10-12',
+      items: {
+        KO: [
+          '「API 로고설정」을 웹결제 카드에서 「가맹 API 연동 채널」(모바일 결제창 아래)로 이동 — API/URL 설정 혼동 방지'
+        ],
+        EN: [
+          'Moved “API logo settings” from Web payment card to Merchant API channels (below Mobile checkout) to avoid mixing API/URL settings'
+        ],
+        JP: [
+          '「APIロゴ設定」をウェブ決済から「加盟API連携チャネル」(モバイル決済の下)へ移動 — API/URLの混同防止'
+        ],
+        CH: [
+          '将「API logo 设置」从网页支付移至「商户 API 对接渠道」（移动结账下方），避免 API/URL 混淆'
+        ],
+        TH: [
+          'ย้าย「ตั้งค่าโลโก้ API」จากการ์ดชำระเว็บไป「ช่อง API ร้าน」(ใต้หน้าชำระมือถือ) กันสับสน API/URL'
+        ]
+      }
+    },
+    {
+      version: '4.70',
+      kind: 'minor',
+      date: '2026-10-12',
+      items: {
+        KO: [
+          '가맹 웹결제 카드에 「API 로고설정」추가 — API/embed 결제창 전용(미활성·웹결제 로고 따름·기본·HTML·활성)',
+          'entry=merchant_api 일 때 API 로고설정이 활성(또는 웹결제 따름)이면 URL과 같이 상단 로고 노출'
+        ],
+        EN: [
+          'Merchant web-pay card: new “API logo settings” for API/embed only (Disabled / Follow web-pay / Default / HTML / Active)',
+          'On entry=merchant_api, show header logo like URL when API logo is Active (or follows web-pay)'
+        ],
+        JP: [
+          '加盟ウェブ決済に「APIロゴ設定」追加 — API/embed専用(未活性・ウェブ決済に従う・基本・HTML・有効)',
+          'entry=merchant_api でAPIロゴが有効(またはウェブ決済に従う)ならURL同様に上部ロゴ表示'
+        ],
+        CH: [
+          '商户网页支付新增「API logo 设置」— 仅 API/embed（停用/跟随网页支付/默认/HTML/启用）',
+          'entry=merchant_api 时若 API logo 启用（或跟随网页支付）则与 URL 一样显示顶部 logo'
+        ],
+        TH: [
+          'การ์ดชำระเว็บร้าน: เพิ่ม「ตั้งค่าโลโก้ API」เฉพาะ API/embed (ปิด/ตามเว็บ/ค่าเริ่ม/HTML/เปิด)',
+          'เมื่อ entry=merchant_api และโลโก้ API เปิด (หรือตามเว็บ) แสดงโลโก้หัวเหมือน URL'
+        ]
+      }
+    },
+    {
+      version: '4.69',
+      kind: 'minor',
+      date: '2026-10-12',
+      items: {
+        KO: [
+          '구매자입력 프리셋 동작 유지: 프리셋 ON이면 이메일·국가·전화·배송 잠금(자동 비활성 해제 없음)',
+          '잠긴 항목 클릭 시 「구매자입력 프리셋을 비활성화하세요.」안내 — 저장 파라미터 우선 전송(잘림 방지)은 유지'
+        ],
+        EN: [
+          'Keep buyer-input preset behavior: preset ON locks email·country·phone·shipping (no auto-clear)',
+          'Clicking locked fields shows “Please set Buyer input preset to Inactive.” Priority save params kept'
+        ],
+        JP: [
+          '購入者入力プリセット動作維持: ON時はメール・国・電話・配送をロック(自動非活性なし)',
+          'ロック項目クリックで「プリセットを非活性に」案内。優先送信(欠落防止)は維持'
+        ],
+        CH: [
+          '保留买家输入预设：开启时锁定邮箱·国家·电话·配送（不自动停用）',
+          '点击锁定项提示「请将买家输入预设设为停用」；优先传参防截断仍保留'
+        ],
+        TH: [
+          'คงพรีเซ็ตช่องผู้ซื้อ: เปิดแล้วล็อกอีเมล·ประเทศ·โทร·ที่อยู่ (ไม่ปิดอัตโนมัติ)',
+          'คลิกช่องล็อกแล้วขึ้นข้อความให้ปิดพรีเซ็ต — ส่งพารามิเตอร์สำคัญก่อนยังคงอยู่'
+        ]
+      }
+    },
+    {
+      version: '4.68',
+      kind: 'minor',
+      date: '2026-10-12',
+      items: {
+        KO: [
+          '가맹 결제창 이메일·국가·전화 활성 저장이 pgBindings 잘림으로 되돌아가던 버그 수정(파라미터 우선 전송)',
+          '개별 활성/비활성 변경 시 구매자입력 프리셋 자동 비활성 — 6000000064 이메일·국가·전화 활성 반영',
+          '가맹 크립토 기본값: 사용=미사용, 허용자산·네트워크 비활성'
+        ],
+        EN: [
+          'Fix merchant checkout email/country/phone Active not sticking (priority params before large pgBindings)',
+          'Changing the four fields auto-clears buyer-input preset; merchant 6000000064 contact fields activated',
+          'Merchant crypto default remains Unused with empty assets/networks'
+        ],
+        JP: [
+          '加盟決済のメール・国・電話「活性」が保存後に戻る不具合を修正(pgBindingsより先に送信)',
+          '4項目変更時に購入者入力プリセットを自動非活性。6000000064の連絡先を活性',
+          '加盟クリプト既定は未使用・資産空のまま'
+        ],
+        CH: [
+          '修复商户结账邮箱/国家/电话启用保存后回退（优先于大体积 pgBindings 传参）',
+          '改四项时自动停用买家输入预设；6000000064 联系项已启用',
+          '商户加密货币默认仍为未使用、资产为空'
+        ],
+        TH: [
+          'แก้บั๊กเปิดใช้อีเมล/ประเทศ/โทรร้านแล้วเด้งกลับ (ส่งพารามิเตอร์ก่อน pgBindings ใหญ่)',
+          'แก้ 4 ช่องแล้วพรีเซ็ตผู้ซื้อปิดอัตโนมัติ · เปิดติดต่อ 6000000064',
+          'ค่าเริ่มต้นคริปโตร้านยังเป็นไม่ใช้·สินทรัพย์ว่าง'
+        ]
+      }
+    },
+    {
+      version: '4.67',
+      kind: 'minor',
+      date: '2026-10-12',
+      items: {
+        KO: [
+          '가맹 크립토 기본값: 사용=미사용, 허용자산·네트워크 비활성(빈값) — USDT/TRC20 자동 기본 제거',
+          '미등록 가맹 조회·신규 저장 시에도 동일 기본 적용'
+        ],
+        EN: [
+          'Merchant crypto defaults: Use=Unused; assets/networks empty (inactive) — no auto USDT/TRC20',
+          'Same defaults for merchants with no crypto row yet'
+        ],
+        JP: [
+          '加盟クリプト既定: 使用=未使用、資産・ネットワーク空(非活性) — USDT/TRC20自動既定を削除',
+          '未登録加盟の照会・新規保存でも同既定'
+        ],
+        CH: [
+          '商户加密货币默认：使用=未使用，资产/网络为空（停用）— 取消 USDT/TRC20 自动默认',
+          '未登记商户查询与新建保存同样适用'
+        ],
+        TH: [
+          'ค่าเริ่มต้นคริปโตร้าน: ใช้=ไม่ใช้ สินทรัพย์/เครือข่ายว่าง (ปิด) — ไม่ตั้ง USDT/TRC20 อัตโนมัติ',
+          'ร้านที่ยังไม่มีแถวคริปโตก็ใช้ค่าเดียวกัน'
+        ]
+      }
+    },
+    {
+      version: '4.66',
+      kind: 'minor',
+      date: '2026-10-12',
+      items: {
+        KO: [
+          '가맹 웹결제·챗봇 로고 업로드: 허용 목표 기본 2MB(최소 512KB로 보정) — 과도한 소용량 목표(예: 21KB) 무시',
+          '2MB 이하 원본은 재압축 없이 유지 · 성공 메시지「업로드 완료」로 명확화'
+        ],
+        EN: [
+          'Merchant web-pay/chatbot logo upload: default 2MB target (floor 512KB) — ignores tiny targets (e.g. 21KB)',
+          'Keep original when ≤2MB; clearer “Upload complete” success message'
+        ],
+        JP: [
+          '加盟ウェブ決済・チャットロゴ: 目標既定2MB(下限512KB) — 過小さな目標(例21KB)を補正',
+          '2MB以下は再圧縮せず保持 · 成功メッセージを明確化'
+        ],
+        CH: [
+          '商户网页支付/聊天 logo：默认目标 2MB（下限 512KB）— 忽略过小目标（如 21KB）',
+          '≤2MB 保留原图；成功提示改为「上传完成」'
+        ],
+        TH: [
+          'โลโก้ร้านเว็บชำระ/แชท: เป้าหมายเริ่ม 2MB (ขั้นต่ำ 512KB) — ไม่ใช้เป้าเล็กเกิน (เช่น 21KB)',
+          '≤2MB เก็บต้นฉบับ · ข้อความสำเร็จชัดเจนขึ้น'
+        ]
+      }
+    },
+    {
+      version: '4.65',
+      kind: 'minor',
+      date: '2026-10-12',
+      items: {
+        KO: [
+          '크립토 네트워크: 전체 리스트 → 드롭다운(접힘 시 선택 네트워크만 표시)',
+          '네트워크 아이콘·행·주소 입력 크기 약 50% 축소(가맹 수취·대표수탁)'
+        ],
+        EN: [
+          'Crypto network: full list → dropdown (collapsed shows selected network only)',
+          'Network icons, rows and address fields ~50% smaller (merchant receive & custody)'
+        ],
+        JP: [
+          'クリプトネットワーク: 全リスト→ドロップダウン(折りたたみ時は選択のみ)',
+          'アイコン・行・住所入力を約50%縮小'
+        ],
+        CH: [
+          '加密货币网络：完整列表→下拉（收起仅显示已选网络）',
+          '图标、行高与地址栏约缩小 50%'
+        ],
+        TH: [
+          'เครือข่ายคริปโต: รายการเต็ม→ดรอปดาวน์ (พับแล้วเห็นเฉพาะที่เลือก)',
+          'ไอคอน แถว และช่องที่อยู่เล็กลงประมาณ 50%'
+        ]
+      }
+    },
+    {
+      version: '4.64',
+      kind: 'minor',
+      date: '2026-10-12',
+      items: {
+        KO: [
+          '크립토 허용자산: USDC·USDT·EURC 활성/비활성 — 활성만 네트워크·주소 입력',
+          '크립토 사용: 사용/미사용 표시 · 정산에 보증금(%)·보증금보류일수 추가(USD)',
+          '출금 큐에 보증금 차감액 반영'
+        ],
+        EN: [
+          'Crypto assets: USDC·USDT·EURC enable/disable — address only when enabled',
+          'Crypto use: Use/Unused labels · settle adds reserve(%) and reserve hold days (USD)',
+          'Payout queue stores reserve deduction'
+        ],
+        JP: [
+          'クリプト許可資産: USDC・USDT・EURC 有効/無効 — 有効時のみ住所入力',
+          '使用: 使用/未使用表示 · 精算に保証金(%)・保留日数追加(USD)',
+          '出金キューに保証金控除を反映'
+        ],
+        CH: [
+          '加密货币允许资产：USDC·USDT·EURC 启用/停用 — 仅启用时填地址',
+          '使用：使用/未使用 · 结算增加保证金(%)与保留天数(USD)',
+          '出金队列反映保证金扣减'
+        ],
+        TH: [
+          'สินทรัพย์คริปโต: USDC·USDT·EURC เปิด/ปิด — กรอกที่อยู่เมื่อเปิดเท่านั้น',
+          'การใช้: ใช้/ไม่ใช้ · เพิ่มเงินประกัน(%) และวันพัก (USD)',
+          'คิวจ่ายสะท้อนหักเงินประกัน'
+        ]
+      }
+    },
+    {
+      version: '4.63',
+      kind: 'minor',
+      date: '2026-10-12',
+      items: {
+        KO: [
+          '크립토 게이트: 결제수단(CARD/CRYPTO/BOTH) UI 제거 — 가맹 사용(Y/N)만으로 활성',
+          '업체등록 미사용·영구정지 시 크립토 결제 차단(카드는 URL·PG 설정 우선)',
+          '크립토 금액·수수료·한도·견적 기준통화 USD 고정(표시·prepare 검증)'
+        ],
+        EN: [
+          'Crypto gate: removed CARD/CRYPTO/BOTH UI — enabled by merchant use Y/N only',
+          'Org unused/permanent stop blocks crypto (card stays under URL/PG settings)',
+          'Crypto amounts/fees/limits/quotes fixed to USD (UI + prepare validation)'
+        ],
+        JP: [
+          'クリプトゲート: 決済手段(CARD/CRYPTO/BOTH)UI削除 — 加盟使用(Y/N)のみで有効',
+          '業者未使用・永久停止時はクリプト決済遮断(カードはURL・PG設定優先)',
+          'クリプト金額・手数料・限度・見積はUSD固定'
+        ],
+        CH: [
+          '加密货币门控：移除 CARD/CRYPTO/BOTH UI — 仅按商户启用(Y/N)',
+          '公司未使用/永久停用时阻断加密货币支付（卡片仍走 URL/PG 设置）',
+          '加密货币金额/手续费/限额/报价固定为 USD'
+        ],
+        TH: [
+          'เกตคริปโต: ลบ UI วิธีชำระ CARD/CRYPTO/BOTH — เปิดด้วยใช้ร้าน Y/N เท่านั้น',
+          'ปิดใช้/หยุดถาวรของบริษัทจะบล็อกคริปโต (บัตรยังผ่าน URL/PG)',
+          'จำนวน/ค่าธรรมเนียม/วงเงิน/ใบเสนอราคาคริปโตยึด USD'
+        ]
+      }
+    },
+    {
+      version: '4.62',
+      kind: 'minor',
+      date: '2026-10-12',
+      items: {
+        KO: [
+          '네트워크 선택 UI: Base·Arbitrum·BNB·Ethereum·OP·Polygon·Kaia·Tron·Solana·Stellar 로고·색톤 리스트',
+          '가맹 수취: 허용자산 1개당 네트워크+주소 1세트(대표 주소만) — 대표수탁과 동일 패턴'
+        ],
+        EN: [
+          'Network picker UI: logo+color list (Base·Arbitrum·BNB·Ethereum·OP·Polygon·Kaia·Tron·Solana·Stellar)',
+          'Merchant receive: one network+address set per allowed asset (primary only) — same pattern as custody'
+        ],
+        JP: [
+          'ネットワーク選択UI: ロゴ・色調リスト(Base・Arbitrum・BNB・Ethereum・OP・Polygon・Kaia・Tron・Solana・Stellar)',
+          '加盟受取: 許可資産1つにつきネットワーク+住所1セット(代表のみ)'
+        ],
+        CH: [
+          '网络选择 UI：Logo+色调列表（Base·Arbitrum·BNB·Ethereum·OP·Polygon·Kaia·Tron·Solana·Stellar）',
+          '商户收款：每个允许资产一组网络+地址（仅代表）— 与托管相同'
+        ],
+        TH: [
+          'UI เลือกเครือข่าย: รายการโลโก้+สี (Base·Arbitrum·BNB·Ethereum·OP·Polygon·Kaia·Tron·Solana·Stellar)',
+          'ที่อยู่รับร้าน: สินทรัพย์ที่อนุญาต 1 ตัว = เครือข่าย+ที่อยู่ 1 ชุด (หลักเท่านั้น)'
+        ]
+      }
+    },
+    {
+      version: '4.61',
+      kind: 'minor',
+      date: '2026-10-12',
+      items: {
+        KO: [
+          '크립토: 자산 선택 후 네트워크 선택(선택 자산에 가능한 망만 표시)',
+          '바이낸스 주요 네트워크 확장 — USDT 10·USDC 10·EURC 8 (TRC20/ERC20/BEP20/Polygon/Arbitrum/Optimism/AVAX/SOL/TON/Base 등)'
+        ],
+        EN: [
+          'Crypto: select asset first, then network (only networks valid for selected assets)',
+          'Binance major networks expanded — USDT 10 · USDC 10 · EURC 8 (TRC20/ERC20/BEP20/Polygon/Arbitrum/Optimism/AVAX/SOL/TON/Base, etc.)'
+        ],
+        JP: [
+          'クリプト: 先に資産、次にネットワーク(選択資産で使える網のみ表示)',
+          'バイナンス主要ネット拡張 — USDT10・USDC10・EURC8'
+        ],
+        CH: [
+          '加密货币：先选资产再选网络（仅显示所选资产可用网络）',
+          '扩展币安主要网络 — USDT 10 · USDC 10 · EURC 8'
+        ],
+        TH: [
+          'คริปโต: เลือกสินทรัพย์ก่อน แล้วเลือกเครือข่าย (แสดงเฉพาะที่ใช้ได้)',
+          'ขยายเครือข่ายหลัก Binance — USDT 10 · USDC 10 · EURC 8'
+        ]
+      }
+    },
+    {
+      version: '4.60',
+      kind: 'minor',
+      date: '2026-10-12',
+      items: {
+        KO: [
+          '대표수탁지갑: USDC·USDT·EURC 자산별 카드 분리(표시 순서 USDC→USDT→EURC)',
+          '자산×네트워크별 「대표」수탁 지정 — 같은 네트워크에 여러 주소 등록 가능, 입금은 대표만 사용',
+          '운영할 네트워크만 등록하면 됨(전 네트워크 사전 준비 불필요). 대표지정·삭제 OTP'
+        ],
+        EN: [
+          'Primary custody: separate cards per USDC·USDT·EURC (order USDC→USDT→EURC)',
+          'Set Primary custody per asset×network — multiple addresses allowed; deposits use Primary only',
+          'Register only networks you operate (no need to prepare all). OTP for set-primary/delete'
+        ],
+        JP: [
+          '代表カストディ: USDC・USDT・EURC資産別カード(表示順USDC→USDT→EURC)',
+          '資産×ネットワークごとに「代表」指定—同一ネット複数住所可、入金は代表のみ',
+          '運用ネットワークだけ登録で可。代表指定・削除にOTP'
+        ],
+        CH: [
+          '代表托管：按 USDC·USDT·EURC 分卡片（顺序 USDC→USDT→EURC）',
+          '按资产×网络设「代表」托管—同网络可多地址，入金仅用代表',
+          '只登记运营网络即可。设代表/删除需 OTP'
+        ],
+        TH: [
+          'กระเป๋าดูแลหลัก: แยกการ์ด USDC·USDT·EURC (ลำดับ USDC→USDT→EURC)',
+          'ตั้ง「หลัก」ต่อสินทรัพย์×เครือข่าย — หลายที่อยู่ได้ ใช้หลักรับฝากเท่านั้น',
+          'ลงทะเบียนเฉพาะเครือข่ายที่ใช้งาน ตั้งหลัก/ลบต้อง OTP'
+        ]
+      }
+    },
+    {
+      version: '4.59',
+      kind: 'minor',
+      date: '2026-10-12',
+      items: {
+        KO: [
+          '크립토: 네트워크·자산은 카탈로그 드롭다운 선택(직접 입력 아님)',
+          '가맹 크립토: 허용자산·네트워크 다중 선택 시 조합별 수취 주소 칸 자동 생성·필수 입력'
+        ],
+        EN: [
+          'Crypto: network and asset chosen from catalog dropdowns (not free text)',
+          'Merchant crypto: multi-select assets/networks creates one required receive address per pair'
+        ],
+        JP: [
+          'クリプト: ネットワーク・資産はカタログのドロップダウン選択(直接入力なし)',
+          '加盟クリプト: 許可資産・ネットワーク複数選択で組合せごとの受取住所欄を自動生成・必須'
+        ],
+        CH: [
+          '加密货币：网络与资产从目录下拉选择（非手输）',
+          '商户加密：多选允许资产/网络后按组合自动生成并必填收款地址'
+        ],
+        TH: [
+          'คริปโต: เลือกเครือข่าย·สินทรัพย์จากเมนูแคตตาล็อก (ไม่พิมพ์เอง)',
+          'คริปโตร้าน: เลือกหลายสินทรัพย์/เครือข่ายแล้วสร้างช่องที่อยู่รับต่อคู่ และต้องกรอก'
+        ]
+      }
+    },
+    {
+      version: '4.58',
+      kind: 'minor',
+      date: '2026-10-12',
+      items: {
+        KO: [
+          '대표수탁지갑 추가·수정·삭제 시 Google OTP 6자리 필수(서버 검증)',
+          '크립토설정에 대표수탁지갑 삭제 버튼 추가'
+        ],
+        EN: [
+          'Primary custody wallet add/update/delete requires Google OTP (6 digits, server-verified)',
+          'Delete button added on Crypto settings for custody wallets'
+        ],
+        JP: [
+          '代表カストディの追加・修正・削除にGoogle OTP 6桁必須(サーバー検証)',
+          'クリプト設定に代表カストディ削除ボタンを追加'
+        ],
+        CH: [
+          '代表托管钱包新增/修改/删除须 Google OTP 6 位（服务端校验）',
+          '加密货币设置增加代表托管钱包删除按钮'
+        ],
+        TH: [
+          'เพิ่ม/แก้/ลบกระเป๋าดูแลหลักต้อง Google OTP 6 หลัก (ตรวจที่เซิร์ฟเวอร์)',
+          'เพิ่มปุ่มลบกระเป๋าดูแลหลักในตั้งค่าคริปโต'
+        ]
+      }
+    },
+    {
+      version: '4.57',
+      kind: 'minor',
+      date: '2026-10-12',
+      items: {
+        KO: [
+          '크립토설정: 대표수탁지갑·가맹점 크립토 모두 「등록 폼 위 → 등록 목록 아래」',
+          '가맹점 크립토설정 저장 시 하단 전체 목록에 즉시 표시·행 클릭으로 수정 로드'
+        ],
+        EN: [
+          'Crypto settings: custody and merchant forms on top, registered lists below',
+          'Merchant crypto saves appear in the bottom list; click a row to edit'
+        ],
+        JP: [
+          'クリプト設定: 代表カストディ・加盟とも登録フォーム上・一覧下',
+          '加盟クリプト保存後は下部一覧に表示、行クリックで編集読込'
+        ],
+        CH: [
+          '加密货币设置：代表托管与商户均为「上方登记表单 → 下方已登记列表」',
+          '保存商户加密设置后立即出现在下方列表，单击行加载编辑'
+        ],
+        TH: [
+          'ตั้งค่าคริปโต: ฟอร์มลงทะเบียนด้านบน รายการด้านล่าง (กระเป๋าดูแลหลักและร้าน)',
+          'บันทึกคริปโตร้านแล้วขึ้นรายการด้านล่าง คลิกแถวเพื่อแก้'
+        ]
+      }
+    },
+    {
+      version: '4.56',
+      kind: 'minor',
+      date: '2026-10-12',
+      items: {
+        KO: [
+          '크립토설정: 상단 「대표수탁지갑」(ICOPAY 입금)과 「가맹점 크립토설정」카드 분리',
+          '업체등록·업체상세·내업체에 크립토설정 추가 — 가맹은 조회·QR만, 본사 크립토설정 저장 우선',
+          '지갑 주소 더블클릭·가맹 화면 QR 미리보기로 주소 확인'
+        ],
+        EN: [
+          'Crypto settings: top Primary custody wallet (ICOPAY deposit) vs Merchant crypto card',
+          'Company register/detail/my-company crypto card — merchant view/QR only; HQ page wins on save',
+          'Double-click address / inline QR preview to confirm wallets'
+        ],
+        JP: [
+          'クリプト設定: 上部「代表カストディウォレット」(ICOPAY入金)と加盟クリプト設定を分離',
+          '業者登録/詳細/自社にクリプト設定 — 加盟は照会・QRのみ、本社画面保存が優先',
+          '住所ダブルクリック・QRプレビューで確認'
+        ],
+        CH: [
+          '加密货币设置：顶部「代表托管钱包」(ICOPAY 入金)与商户加密设置卡片分离',
+          '公司注册/详情/本公司增加加密设置 — 商户仅查看/二维码，总部页保存优先',
+          '双击地址与二维码预览确认钱包'
+        ],
+        TH: [
+          'ตั้งค่าคริปโต: แยกกระเป๋าดูแลหลัก (ฝาก ICOPAY) กับการตั้งค่าคริปโตของร้าน',
+          'เพิ่มการ์ดคริปโตในลงทะเบียน/รายละเอียด/บริษัทฉัน — ร้านดู/QR เท่านั้น HQ มาก่อน',
+          'ดับเบิลคลิกที่อยู่และดู QR เพื่อยืนยันกระเป๋า'
+        ]
+      },
+      howTo: {
+        KO: [
+          {
+            title: '대표수탁지갑·가맹 수취 지갑 등록',
+            steps: [
+              '본사정책 → 결제·URL → 크립토설정 → 대표수탁지갑에 ICOPAY 입금 주소 저장',
+              '같은 화면 「가맹점 크립토설정」또는 업체등록/업체상세 「크립토설정」에 가맹 수취 주소 저장',
+              '가맹점 로그인 → 내업체정보에서 주소·QR 조회(수정 불가)'
+            ]
+          }
+        ],
+        EN: [
+          {
+            title: 'Register custody and merchant wallets',
+            steps: [
+              'HQ Policy → Pay·URL → Crypto settings → save Primary custody wallet',
+              'Same page Merchant crypto, or company register/detail Crypto card for merchant receive address',
+              'Merchant login → My company: view address/QR only'
+            ]
+          }
+        ],
+        JP: [
+          {
+            title: '代表カストディ・加盟受取の登録',
+            steps: [
+              '本社政策→決済・URL→クリプト設定→代表カストディウォレットを保存',
+              '同画面の加盟クリプト、または業者登録/詳細のクリプト設定で受取住所を保存',
+              '加盟ログイン→自社情報で住所・QR照会（編集不可）'
+            ]
+          }
+        ],
+        CH: [
+          {
+            title: '登记代表托管与商户收款钱包',
+            steps: [
+              '总部政策→支付·URL→加密货币设置→保存代表托管钱包',
+              '同页商户加密设置，或公司注册/详情加密设置保存收款地址',
+              '商户登录→本公司信息查看地址/二维码（不可改）'
+            ]
+          }
+        ],
+        TH: [
+          {
+            title: 'ลงทะเบียนกระเป๋าดูแลหลักและกระเป๋ารับของร้าน',
+            steps: [
+              'นโยบาย HQ→ชำระ·URL→คริปโต→บันทึกกระเป๋าดูแลหลัก',
+              'หน้าเดียวกันหรือลงทะเบียน/รายละเอียดบริษัท บันทึกที่อยู่รับของร้าน',
+              'ร้านล็อกอิน→ข้อมูลบริษัทฉันดูที่อยู่/QR เท่านั้น'
+            ]
+          }
+        ]
+      }
+    },
     {
       version: '4.55',
       kind: 'minor',
@@ -288,7 +814,7 @@
             steps: [
               '결제관리 → 결제내역 아래 「크립토내역」',
               '정산관리 → 수수료내역 아래 「크립토정산」',
-              '본사설정 → 크립토설정 (수탁·가맹)'
+              '본사정책 → 결제·URL → 「크립토설정」 탭 (수탁·가맹)'
             ]
           }
         ],
@@ -298,7 +824,7 @@
             steps: [
               'Payments → Crypto deposits (under Payment list)',
               'Settlement → Crypto settlement (under Fee history)',
-              'HQ settings → Crypto settings'
+              'HQ Policy → Payment & URL → Crypto settings tab'
             ]
           }
         ],
@@ -308,7 +834,7 @@
             steps: [
               '決済管理→決済一覧の下「クリプト入金履歴」',
               '精算管理→手数料一覧の下「クリプト精算」',
-              '本社設定→クリプト設定'
+              '本社政策→決済・URL→「クリプト設定」タブ'
             ]
           }
         ],
@@ -318,7 +844,7 @@
             steps: [
               '支付管理→支付列表下方「加密入金明细」',
               '结算管理→手续费明细下方「加密结算」',
-              '总部设置→加密设置'
+              '总部政策→支付·URL→「加密设置」标签'
             ]
           }
         ],
@@ -328,7 +854,7 @@
             steps: [
               'การชำระเงิน → ประวัติฝากคริปโต (ใต้รายการชำระเงิน)',
               'การเคลียร์ → เคลียร์คริปโต (ใต้ประวัติค่าธรรมเนียม)',
-              'ตั้งค่า HQ → ตั้งค่าคริปโต'
+              'นโยบาย HQ → การชำระ·URL → แท็บตั้งค่าคริปโต'
             ]
           }
         ]
@@ -375,7 +901,7 @@
           {
             title: '크립토 사용 순서',
             steps: [
-              '본사설정 → 크립토설정: 수탁 주소·가맹 사용/수단/정산·출금 모드',
+              '본사정책 → 결제·URL → 크립토설정: 수탁 주소·가맹 사용/수단/정산·출금 모드',
               '결제관리 → 결제내역 아래 크립토내역: 입금 Tx로 확정',
               '정산관리 → 수수료내역 아래 크립토정산: 반자동 Tx등록 또는 AUTO 실행'
             ]
@@ -385,10 +911,9 @@
           {
             title: 'Crypto setup',
             steps: [
-              'HQ Policy → Crypto settings (dedicated menu)',
-              'Tab Custody & merchant: custody address + merchant means/settle/payout',
-              'Tab Deposits: confirm with deposit Tx',
-              'Tab Payouts: manual Tx or Run AUTO'
+              'HQ Policy → Payment & URL → Crypto settings: custody address + merchant means/settle/payout',
+              'Payments → Crypto deposits: confirm with deposit Tx',
+              'Settlement → Crypto settlement: manual Tx or Run AUTO'
             ]
           }
         ],
@@ -396,8 +921,7 @@
           {
             title: 'クリプト設定手順',
             steps: [
-              '本社設定→クリプト設定でカストディ住所登録',
-              '加盟店コードで有効化・手段・資産/ネットワーク・精算/出金モード',
+              '本社政策→決済・URL→クリプト設定でカストディ住所・加盟手段/精算/出金',
               '決済管理→クリプト入金でTx確定',
               '精算管理→クリプト精算で半自動TxまたはAUTO'
             ]
@@ -407,8 +931,7 @@
           {
             title: '加密货币使用步骤',
             steps: [
-              '总部设置→加密货币设置：登记托管地址',
-              '按商户代码启用，选择 CARD/CRYPTO/BOTH、资产/网络、结算/出金模式',
+              '总部政策→支付·URL→加密设置：登记托管地址与商户手段/结算/出金',
               '支付管理→加密入金：用入金 Tx 确认',
               '结算管理→加密结算：半自动登记 Tx 或执行 AUTO'
             ]
@@ -418,8 +941,7 @@
           {
             title: 'ขั้นตอนคริปโต',
             steps: [
-              'ตั้งค่า HQ → คริปโต: ลงทะเบียนที่อยู่ดูแล',
-              'โหลดร้านด้วยรหัส: เปิดใช้ เลือก CARD/CRYPTO/BOTH สินทรัพย์/เครือข่าย โหมดเคลียร์/จ่าย',
+              'นโยบาย HQ → การชำระ·URL → ตั้งค่าคริปโต: ที่อยู่ดูแล + โหมดร้าน/เคลียร์/จ่าย',
               'การชำระ → ประวัติฝากคริปโต: ยืนยันด้วย Tx',
               'เคลียร์ → เคลียร์คริปโต: ลง Tx กึ่งอัตโนมัติ หรือรัน AUTO'
             ]

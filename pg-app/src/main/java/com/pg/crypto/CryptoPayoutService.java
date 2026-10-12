@@ -33,7 +33,13 @@ public class CryptoPayoutService {
     public CryptoPayoutQueue enqueueAfterConfirm(CryptoDepositTxn deposit, MerchantCryptoConfig cfg, String sellerAddress) {
         BigDecimal gross = deposit.getAmount() != null ? deposit.getAmount() : BigDecimal.ZERO;
         BigDecimal fee = gross.multiply(PLATFORM_FEE_RATE).setScale(8, RoundingMode.HALF_UP);
-        BigDecimal net = gross.subtract(fee).max(BigDecimal.ZERO);
+        BigDecimal reservePct = cfg != null && cfg.getReservePct() != null ? cfg.getReservePct() : BigDecimal.ZERO;
+        BigDecimal reserve = BigDecimal.ZERO;
+        if (reservePct.compareTo(BigDecimal.ZERO) > 0) {
+            reserve = gross.multiply(reservePct)
+                    .divide(new BigDecimal("100"), 8, RoundingMode.HALF_UP);
+        }
+        BigDecimal net = gross.subtract(fee).subtract(reserve).max(BigDecimal.ZERO);
 
         CryptoPayoutQueue q = new CryptoPayoutQueue();
         q.setDepositTxnId(deposit.getId());
@@ -44,6 +50,7 @@ public class CryptoPayoutService {
         q.setNetworkCode(deposit.getNetworkCode());
         q.setAmountGross(gross);
         q.setAmountFee(fee);
+        q.setAmountReserve(reserve);
         q.setAmountNet(net);
         q.setSettleMode(deposit.getSettleMode());
         q.setPayoutMode(deposit.getPayoutMode());
@@ -168,6 +175,7 @@ public class CryptoPayoutService {
         m.put("networkCode", q.getNetworkCode());
         m.put("amountGross", q.getAmountGross());
         m.put("amountFee", q.getAmountFee());
+        m.put("amountReserve", q.getAmountReserve());
         m.put("amountNet", q.getAmountNet());
         m.put("settleMode", q.getSettleMode());
         m.put("payoutMode", q.getPayoutMode());
