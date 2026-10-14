@@ -5,24 +5,55 @@
 (function (global) {
   'use strict';
 
-  var QR_CDN = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js';
+  /** Local first (CDN pinned 1.5.4 path 404). Fallback: unpinned jsDelivr. */
+  function qrScriptCandidates() {
+    var local = 'js/qrcode.min.js';
+    try {
+      var scripts = document.getElementsByTagName('script');
+      for (var i = 0; i < scripts.length; i++) {
+        var src = scripts[i].src || '';
+        if (/icopay-qr-modal\.js/i.test(src)) {
+          local = src.replace(/icopay-qr-modal\.js(\?[^#]*)?(#.*)?$/i, 'qrcode.min.js');
+          break;
+        }
+      }
+    } catch (eLoc) { /* ignore */ }
+    return [
+      local,
+      'js/qrcode.min.js',
+      'https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js'
+    ];
+  }
+
   var loading = null;
+
+  function loadScript(url) {
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = url;
+      s.async = true;
+      s.onload = function () {
+        if (global.QRCode && typeof global.QRCode.toCanvas === 'function') resolve(global.QRCode);
+        else reject(new Error('QRCode API missing after ' + url));
+      };
+      s.onerror = function () { reject(new Error('QRCode load failed: ' + url)); };
+      document.head.appendChild(s);
+    });
+  }
 
   function ensureQrLib() {
     if (global.QRCode && typeof global.QRCode.toCanvas === 'function') {
       return Promise.resolve(global.QRCode);
     }
     if (loading) return loading;
-    loading = new Promise(function (resolve, reject) {
-      var s = document.createElement('script');
-      s.src = QR_CDN;
-      s.async = true;
-      s.onload = function () {
-        if (global.QRCode) resolve(global.QRCode);
-        else reject(new Error('QRCode load failed'));
-      };
-      s.onerror = function () { reject(new Error('QRCode CDN failed')); };
-      document.head.appendChild(s);
+    var urls = qrScriptCandidates();
+    loading = loadScript(urls[0]).catch(function () {
+      return loadScript(urls[1]);
+    }).catch(function () {
+      return loadScript(urls[2]);
+    }).catch(function (err) {
+      loading = null;
+      throw err;
     });
     return loading;
   }
@@ -112,7 +143,17 @@
     ensureQrLib().then(function (QR) {
       var canvas = wrap.querySelector('#icopayQrCanvas');
       return QR.toCanvas(canvas, address, { width: 220, margin: 2 });
-    }).then(openModal).catch(function () {
+    }).then(openModal).catch(function (err) {
+      var canvas = wrap.querySelector('#icopayQrCanvas');
+      if (canvas && canvas.parentNode) {
+        var msg = document.createElement('p');
+        msg.className = 'small text-danger mb-2';
+        msg.setAttribute('data-pg-ui-t', 'QR 생성에 실패했습니다.');
+        msg.textContent = t('QR 생성에 실패했습니다.', 'QR 생성에 실패했습니다.');
+        canvas.parentNode.insertBefore(msg, canvas);
+        canvas.style.display = 'none';
+      }
+      try { if (typeof console !== 'undefined' && console.warn) console.warn(err); } catch (eW) { /* ignore */ }
       openModal();
     });
   }
@@ -189,6 +230,7 @@
 
   global.ICOPAY_QR_MODAL = {
     showAddressQrModal: showAddressQrModal,
+    ensureQrLib: ensureQrLib,
     parseSellerWallets: parseSellerWallets,
     buildSellerJsonFromFields: buildSellerJsonFromFields,
     buildSellerJsonFromContainer: buildSellerJsonFromContainer,

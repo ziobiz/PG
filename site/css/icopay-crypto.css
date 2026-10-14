@@ -23,7 +23,7 @@
 .ic-crypto-err{margin-top:12px;color:#b91c1c;font-size:13.5px}
 .ic-crypto-means .ic-crypto-tile{min-height:96px}
 
-/* 네트워크 선택 — 로고 + 이름 + › (첨부 UI · 레거시 리스트) */
+/* 네트워크 선택 — 구매자 결제창 리스트(로고, crypto-pay) */
 .ic-crypto-net-list{display:flex;flex-direction:column;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;background:#fff;max-height:280px;overflow-y:auto}
 .ic-crypto-net-row{appearance:none;width:100%;border:0;border-bottom:1px solid #f1f5f9;background:#fff;display:flex;align-items:center;gap:14px;padding:12px 14px;cursor:pointer;text-align:left;transition:background .12s ease}
 .ic-crypto-net-row:last-child{border-bottom:0}
@@ -34,24 +34,42 @@
 .ic-crypto-net-name{flex:1;font-size:15px;font-weight:500;color:#111827;line-height:1.2}
 .ic-crypto-net-chev{flex:0 0 auto;color:#9ca3af;font-size:22px;line-height:1;font-weight:300}
 
-/* 네트워크 드롭다운 — 접힘=선택만 · 아이콘·행 높이 약 50% */
-.ic-crypto-net-select{position:relative;max-width:22rem}
-.ic-crypto-net-trigger{appearance:none;width:100%;border:1px solid #e2e8f0;border-radius:8px;background:#fff;display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;text-align:left;min-height:2rem}
-.ic-crypto-net-trigger:hover{border-color:#cbd5e1;background:#f8fafc}
-.ic-crypto-net-select.is-open .ic-crypto-net-trigger{border-color:#94a3b8;box-shadow:0 0 0 2px rgba(148,163,184,.25)}
-.ic-crypto-net-select .ic-crypto-net-logo{width:18px;height:18px;flex:0 0 18px;display:grid;place-items:center}
-.ic-crypto-net-select .ic-crypto-net-logo .ic-crypto-icon{width:16px;height:16px}
-.ic-crypto-net-select .ic-crypto-net-name{flex:1;font-size:12.5px;font-weight:500;color:#111827;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ic-crypto-net-select .ic-crypto-net-chev{flex:0 0 auto;color:#9ca3af;font-size:11px;line-height:1}
-.ic-crypto-net-menu{position:absolute;z-index:40;left:0;right:0;top:calc(100% + 2px);max-height:11rem;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px;background:#fff;box-shadow:0 8px 20px rgba(15,23,42,.12)}
-.ic-crypto-net-opt{appearance:none;width:100%;border:0;border-bottom:1px solid #f1f5f9;background:#fff;display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;text-align:left;min-height:1.85rem}
-.ic-crypto-net-opt:last-child{border-bottom:0}
-.ic-crypto-net-opt:hover{background:#f8fafc}
-.ic-crypto-net-opt.is-selected{background:#f0f7ff}
+/* 관리·수탁·가맹: 텍스트 전용 select (아이콘 없음 · 동일 크기) */
+.ic-crypto-net-select-native{max-width:22rem;width:100%;min-height:2rem}
+.crypto-custody-net-wrap .ic-crypto-net-select-native,
+.crypto-merch-asset-block .ic-crypto-net-select-native{max-width:22rem}
+.crypto-custody-net-wrap .ic-crypto-net-list{max-height:220px}
+
+/* 네트워크별 로고색 파스텔 — 바탕색만 (테두리 색 없음) */
+.crypto-net-pastel{
+  background-color:var(--crypto-net-bg,#f1f5f9)!important;
+  color:var(--crypto-net-fg,#0f172a);
+}
+tr.crypto-custody-row.crypto-net-pastel:hover{
+  filter:brightness(0.98);
+}
+td.crypto-custody-addr-cell.crypto-net-pastel{
+  background-color:var(--crypto-net-bg,#f1f5f9)!important;
+  font-weight:500;
+  letter-spacing:.01em;
+}
+.crypto-net-badge.crypto-net-pastel{
+  color:var(--crypto-net-fg,#0f172a)!important;
+  font-weight:600;
+  font-size:.72rem;
+  border:0!important;
+}
+select.ic-crypto-net-select-native.crypto-net-pastel,
+input.crypto-net-pastel,
+.crypto-seller-addr.crypto-net-pastel,
+#cryptoCustodyAddr_usdt.crypto-net-pastel,
+#cryptoCustodyAddr_usdc.crypto-net-pastel,
+#cryptoCustodyAddr_eurc.crypto-net-pastel{
+  background-color:var(--crypto-net-bg,#f1f5f9)!important;
+  color:var(--crypto-net-fg,#0f172a);
+}
 
 .crypto-merch-asset-block{border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;margin-bottom:8px;background:#fafbfc}
 .crypto-merch-asset-block .crypto-merch-asset-title{font-size:.78rem;font-weight:650;margin:0 0 4px;color:#0f172a}
 .crypto-merch-asset-block .form-label{margin-bottom:.15rem;font-size:.72rem}
 .crypto-merch-asset-block .crypto-seller-addr{font-size:.72rem;padding:.25rem .5rem;min-height:1.85rem}
-.crypto-custody-net-wrap .ic-crypto-net-select{max-width:22rem}
-.crypto-custody-net-wrap .ic-crypto-net-list{max-height:220px}

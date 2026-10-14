@@ -32,7 +32,7 @@
       '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="라벨">라벨</label>' +
       '<input class="form-control form-control-sm crypto-custody-label" id="cryptoCustodyLabel_' + sid + '" data-custody-asset="' + a + '"></div>' +
       '<div class="col-md-2"><div class="form-check mt-4">' +
-      '<input class="form-check-input crypto-custody-primary" type="checkbox" id="cryptoCustodyPrimary_' + sid + '" data-custody-asset="' + a + '" checked>' +
+      '<input class="form-check-input crypto-custody-primary" type="checkbox" id="cryptoCustodyPrimary_' + sid + '" data-custody-asset="' + a + '">' +
       '<label class="form-check-label small" for="cryptoCustodyPrimary_' + sid + '" data-pg-ui-t="대표로 저장">대표로 저장</label></div></div>' +
       '<div class="col-md-2"><button type="button" class="btn btn-sm btn-primary w-100 crypto-custody-save" data-custody-asset="' + a + '" data-pg-ui-t="저장">저장</button></div>' +
       '</div>' +
@@ -4891,7 +4891,7 @@
                   cryptoMerchantTopFieldsHtml({ named: true, useYn: 'compCryptoUseYn', settle: 'compCryptoSettle', payout: 'compCryptoPayout', hold: 'compCryptoHold', reserve: 'compCryptoReserve' }) +
                   cryptoMerchantAssetTogglesHtml('compCryptoAssetToggles') +
                   '<div id="compCryptoWalletFields" class="mb-2"></div>' +
-                  '<p class="small text-muted mb-2" data-pg-ui-t="활성 자산마다 네트워크(로고)를 고르고 대표 수취 주소 하나만 입력하세요.">활성 자산마다 네트워크(로고)를 고르고 대표 수취 주소 하나만 입력하세요.</p>' +
+                  '<p class="small text-muted mb-2" data-pg-ui-t="활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.">활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.</p>' +
                   '<div id="compCryptoWalletQrPreview" class="d-flex flex-wrap gap-3"></div>' +
                   '</div>'
                 );
@@ -5352,7 +5352,7 @@
                   cryptoMerchantTopFieldsHtml({ named: true, useYn: 'compCryptoUseYn', settle: 'compCryptoSettle', payout: 'compCryptoPayout', hold: 'compCryptoHold', reserve: 'compCryptoReserve' }) +
                   cryptoMerchantAssetTogglesHtml('compCryptoAssetToggles') +
                   '<div id="compCryptoWalletFields" class="mb-2"></div>' +
-                  '<p class="small text-muted mb-2" data-pg-ui-t="활성 자산마다 네트워크(로고)를 고르고 대표 수취 주소 하나만 입력하세요.">활성 자산마다 네트워크(로고)를 고르고 대표 수취 주소 하나만 입력하세요.</p>' +
+                  '<p class="small text-muted mb-2" data-pg-ui-t="활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.">활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.</p>' +
                   '<div id="compCryptoWalletQrPreview" class="d-flex flex-wrap gap-3"></div>' +
                   '</div>'
                 );
@@ -5749,7 +5749,7 @@
                   cryptoMerchantTopFieldsHtml({ named: true, useYn: 'compCryptoUseYn', settle: 'compCryptoSettle', payout: 'compCryptoPayout', hold: 'compCryptoHold', reserve: 'compCryptoReserve' }) +
                   cryptoMerchantAssetTogglesHtml('compCryptoAssetToggles') +
                   '<div id="compCryptoWalletFields" class="mb-2"></div>' +
-                  '<p class="small text-muted mb-2" data-pg-ui-t="활성 자산마다 네트워크(로고)를 고르고 대표 수취 주소 하나만 입력하세요.">활성 자산마다 네트워크(로고)를 고르고 대표 수취 주소 하나만 입력하세요.</p>' +
+                  '<p class="small text-muted mb-2" data-pg-ui-t="활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.">활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.</p>' +
                   '<div id="compCryptoWalletQrPreview" class="d-flex flex-wrap gap-3"></div>' +
                   '</div>'
                 );
@@ -7609,7 +7609,7 @@
                   cryptoMerchantTopFieldsHtml({ useYn: 'cryptoMerchUseYn', settle: 'cryptoMerchSettle', payout: 'cryptoMerchPayout', hold: 'cryptoMerchHold', reserve: 'cryptoMerchReserve' }) +
                   cryptoMerchantAssetTogglesHtml('cryptoMerchAssetToggles') +
                   '<div id="cryptoMerchWalletFields" class="mb-2"></div>' +
-                  '<p class="small text-muted mb-2" data-pg-ui-t="활성 자산마다 네트워크(로고)를 고르고 대표 수취 주소 하나만 입력하세요.">활성 자산마다 네트워크(로고)를 고르고 대표 수취 주소 하나만 입력하세요.</p>' +
+                  '<p class="small text-muted mb-2" data-pg-ui-t="활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.">활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.</p>' +
                   '<textarea class="form-control form-control-sm font-monospace d-none" id="cryptoMerchSellerJson" rows="2"></textarea>' +
                   '<div id="cryptoMerchWalletQrPreview" class="d-flex flex-wrap gap-3 mb-3"></div>' +
                   '<div class="d-flex align-items-center justify-content-between mb-1">' +

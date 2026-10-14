@@ -68,11 +68,62 @@
     NEAR: 'near'
   };
 
-  function icon(key) {
+  /** 로고 브랜드색 기반 파스텔 (행·주소 칸 배경) */
+  var NET_PASTEL = {
+    base: { bg: '#E8F0FF', border: '#7AA2FF', fg: '#0039B3', accent: '#0052FF' },
+    arbitrum: { bg: '#E8F4FC', border: '#7EC4F5', fg: '#0B4F7A', accent: '#28A0F0' },
+    bnb: { bg: '#FFF8E1', border: '#F0C94A', fg: '#7A5C00', accent: '#F0B90B' },
+    bep20: { bg: '#FFF8E1', border: '#F0C94A', fg: '#7A5C00', accent: '#F0B90B' },
+    opbnb: { bg: '#FFF8E1', border: '#F0C94A', fg: '#7A5C00', accent: '#F0B90B' },
+    ethereum: { bg: '#EEF0F5', border: '#A8AEB8', fg: '#2A2A2A', accent: '#627EEA' },
+    erc20: { bg: '#EEF0F5', border: '#A8AEB8', fg: '#2A2A2A', accent: '#627EEA' },
+    optimism: { bg: '#FFE8EB', border: '#FF8A96', fg: '#9B0012', accent: '#FF0420' },
+    polygon: { bg: '#F3EBFF', border: '#B794F0', fg: '#4C1D95', accent: '#8247E5' },
+    kaia: { bg: '#F4FFE8', border: '#C8F07A', fg: '#3F5A00', accent: '#B8FF3C' },
+    tron: { bg: '#FFE8EA', border: '#FF808A', fg: '#9B0010', accent: '#FF0013' },
+    trc20: { bg: '#FFE8EA', border: '#FF808A', fg: '#9B0010', accent: '#FF0013' },
+    solana: { bg: '#F0FDF8', border: '#7EE0C0', fg: '#065F46', accent: '#14F195' },
+    sol: { bg: '#F0FDF8', border: '#7EE0C0', fg: '#065F46', accent: '#14F195' },
+    stellar: { bg: '#F1F5F9', border: '#94A3B8', fg: '#0F172A', accent: '#334155' },
+    avaxc: { bg: '#FEECEC', border: '#F08080', fg: '#8B1A1A', accent: '#E84142' },
+    ton: { bg: '#E6F6FD', border: '#6EC8F0', fg: '#005A8C', accent: '#0098EA' },
+    near: { bg: '#F1F5F9', border: '#94A3B8', fg: '#0F172A', accent: '#000000' },
+    crypto: { bg: '#F1F5F9', border: '#94A3B8', fg: '#0F172A', accent: '#0F766E' }
+  };
+
+  function resolveNetKey(key) {
     var raw = String(key || '').toLowerCase();
     var mapped = NET_ALIAS[String(key || '').toUpperCase()];
-    var k = (mapped || raw).toLowerCase();
+    return (mapped || raw).toLowerCase();
+  }
+
+  function icon(key) {
+    var k = resolveNetKey(key);
     return ICONS[k] || ICONS.crypto;
+  }
+
+  function networkPastel(key) {
+    var k = resolveNetKey(key);
+    return NET_PASTEL[k] || NET_PASTEL.crypto;
+  }
+
+  /** 요소에 네트워크 파스텔 CSS 변수·클래스 적용 */
+  function applyNetworkPastel(el, networkCode) {
+    if (!el) return;
+    var p = networkPastel(networkCode);
+    el.classList.add('crypto-net-pastel');
+    el.style.setProperty('--crypto-net-bg', p.bg);
+    el.style.setProperty('--crypto-net-border', p.border);
+    el.style.setProperty('--crypto-net-fg', p.fg);
+    el.style.setProperty('--crypto-net-accent', p.accent);
+    el.setAttribute('data-crypto-net', String(networkCode || '').toUpperCase());
+  }
+
+  function pastelInlineStyle(networkCode) {
+    var p = networkPastel(networkCode);
+    return '--crypto-net-bg:' + p.bg + ';--crypto-net-border:' + p.border +
+      ';--crypto-net-fg:' + p.fg + ';--crypto-net-accent:' + p.accent +
+      ';background-color:' + p.bg;
   }
 
   function esc(s) {
@@ -146,101 +197,44 @@
     return code;
   }
 
-  /** 드롭다운: 접힌 상태에서는 선택 네트워크만 표시(아이콘 50% 축소). */
+  /** 텍스트 전용 표준 드롭다운(아이콘 없음 · 높이·너비 통일). */
   function networkSelectHtml(items, selectedCode) {
     var list = Array.isArray(items) ? items : [];
     var sel = String(selectedCode || '').toUpperCase();
-    var cur = null;
+    var hasSel = false;
     list.forEach(function (it) {
       var c = String((it && (it.code || it.networkCode)) || it || '').toUpperCase();
-      if (c && c === sel) cur = it;
+      if (c && c === sel) hasSel = true;
     });
-    if (!cur && list[0]) cur = list[0];
-    var curCode = cur
-      ? String((cur && (cur.code || cur.networkCode)) || cur || '').toUpperCase()
-      : sel;
-    var curName = cur ? netLabel(cur, curCode) : (sel || '—');
+    if (!hasSel && list[0]) {
+      sel = String((list[0] && (list[0].code || list[0].networkCode)) || list[0] || '').toUpperCase();
+    }
     var opts = list.map(function (it) {
       var code = String((it && (it.code || it.networkCode)) || it || '').toUpperCase();
       if (!code) return '';
       var name = netLabel(it, code);
-      var on = code === curCode ? ' is-selected' : '';
-      return '<button type="button" class="ic-crypto-net-opt' + on + '" role="option" data-code="' + esc(code) + '" aria-selected="' + (on ? 'true' : 'false') + '">' +
-        '<span class="ic-crypto-net-logo">' + icon(code) + '</span>' +
-        '<span class="ic-crypto-net-name">' + esc(name) + '</span>' +
-        '</button>';
+      var on = code === sel ? ' selected' : '';
+      return '<option value="' + esc(code) + '"' + on + '>' + esc(name) + '</option>';
     }).join('');
-    return '<div class="ic-crypto-net-select" data-code="' + esc(curCode) + '">' +
-      '<button type="button" class="ic-crypto-net-trigger" aria-haspopup="listbox" aria-expanded="false">' +
-      '<span class="ic-crypto-net-logo">' + icon(curCode) + '</span>' +
-      '<span class="ic-crypto-net-name">' + esc(curName) + '</span>' +
-      '<span class="ic-crypto-net-chev" aria-hidden="true">▾</span>' +
-      '</button>' +
-      '<div class="ic-crypto-net-menu" role="listbox" hidden>' + opts + '</div>' +
-      '</div>';
+    return '<select class="form-select form-select-sm ic-crypto-net-select-native" data-code="' + esc(sel) + '" aria-label="network">' +
+      opts + '</select>';
   }
 
   function renderNetworkSelect(el, items, selectedCode, onPick) {
     if (!el) return;
     el.innerHTML = networkSelectHtml(items, selectedCode);
-    var root = el.querySelector('.ic-crypto-net-select');
-    if (!root) return;
-    var trigger = root.querySelector('.ic-crypto-net-trigger');
-    var menu = root.querySelector('.ic-crypto-net-menu');
-    if (!trigger || !menu) return;
-
-    function closeMenu() {
-      menu.hidden = true;
-      trigger.setAttribute('aria-expanded', 'false');
-      root.classList.remove('is-open');
+    var selEl = el.querySelector('select.ic-crypto-net-select-native');
+    if (!selEl) return;
+    function tint(code) {
+      applyNetworkPastel(selEl, code);
     }
-    function openMenu() {
-      menu.hidden = false;
-      trigger.setAttribute('aria-expanded', 'true');
-      root.classList.add('is-open');
-    }
-    function applyPick(code) {
-      code = String(code || '').toUpperCase();
-      var list = Array.isArray(items) ? items : [];
-      var it = null;
-      list.forEach(function (x) {
-        var c = String((x && (x.code || x.networkCode)) || x || '').toUpperCase();
-        if (c === code) it = x;
-      });
-      var name = it ? netLabel(it, code) : code;
-      root.setAttribute('data-code', code);
-      var logo = trigger.querySelector('.ic-crypto-net-logo');
-      var nm = trigger.querySelector('.ic-crypto-net-name');
-      if (logo) logo.innerHTML = icon(code);
-      if (nm) nm.textContent = name;
-      menu.querySelectorAll('.ic-crypto-net-opt').forEach(function (b) {
-        var on = String(b.getAttribute('data-code') || '').toUpperCase() === code;
-        b.classList.toggle('is-selected', on);
-        b.setAttribute('aria-selected', on ? 'true' : 'false');
-      });
-      closeMenu();
+    tint(selEl.value || selectedCode);
+    selEl.addEventListener('change', function () {
+      var code = String(selEl.value || '').toUpperCase();
+      selEl.setAttribute('data-code', code);
+      tint(code);
       if (typeof onPick === 'function') onPick(code);
-    }
-
-    trigger.addEventListener('click', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      if (menu.hidden) openMenu();
-      else closeMenu();
     });
-    menu.querySelectorAll('.ic-crypto-net-opt').forEach(function (btn) {
-      btn.addEventListener('click', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        applyPick(btn.getAttribute('data-code'));
-      });
-    });
-    if (!el._cryptoNetSelectDocClose) {
-      el._cryptoNetSelectDocClose = true;
-      document.addEventListener('click', function (ev) {
-        if (!root.contains(ev.target)) closeMenu();
-      });
-    }
   }
 
   global.ICOPAY_CRYPTO_UI = {
@@ -250,6 +244,9 @@
     networkListHtml: networkListHtml,
     renderNetworkList: renderNetworkList,
     networkSelectHtml: networkSelectHtml,
-    renderNetworkSelect: renderNetworkSelect
+    renderNetworkSelect: renderNetworkSelect,
+    networkPastel: networkPastel,
+    applyNetworkPastel: applyNetworkPastel,
+    pastelInlineStyle: pastelInlineStyle
   };
 })(typeof window !== 'undefined' ? window : this);

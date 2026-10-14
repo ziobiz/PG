@@ -6,13 +6,106 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '4.76';
+  var CURRENT_LIVE = '4.80';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '4.80',
+      kind: 'minor',
+      date: '2026-10-13',
+      items: {
+        KO: [
+          'Google OTP: 6자리 입력 후 「확인」으로만 진행(미완성 입력·조기 실행 방지)',
+          '대표수탁지갑 삭제 API 호출 보강·캐시 갱신, 같은 자산·네트워크는 대표 1건만 유지(기존 대표 해제 안내)'
+        ],
+        EN: [
+          'Google OTP: proceed only via Confirm after all 6 digits (blocks premature submit)',
+          'Custody delete API call hardened + cache bump; only one primary per asset·network (with demote notice)'
+        ],
+        JP: [
+          'Google OTP: 6桁入力後「確認」でのみ進行(未完成・早期実行防止)',
+          '代表カストディ削除API強化・キャッシュ更新、同一資産・ネットワークは代表1件のみ'
+        ],
+        CH: [
+          'Google OTP：输满 6 位后须点「确认」才继续（防止未完成即执行）',
+          '代表托管删除 API 加固并刷新缓存；同资产·网络仅保留一个代表'
+        ],
+        TH: [
+          'Google OTP: ดำเนินการต่อเมื่อกรอกครบ 6 หลักแล้วกดยืนยันเท่านั้น',
+          'เสริม API ลบกระเป๋าดูแล + รีเฟรชแคช; ตัวแทนได้เพียง 1 ต่อสินทรัพย์·เครือข่าย'
+        ]
+      }
+    },
+    {
+      version: '4.79',
+      kind: 'minor',
+      date: '2026-10-12',
+      items: {
+        KO: [
+          '대표수탁지갑 QR: CDN(qrcode@1.5.4) 404로 생성이 실패하던 문제 — qrcode.min.js를 정적 site에 포함해 로컬 로드로 복구'
+        ],
+        EN: [
+          'Custody QR: fix generation failure from CDN 404 (qrcode@1.5.4) by shipping qrcode.min.js on admin static and loading locally'
+        ],
+        JP: [
+          '代表カストディQR: CDN(qrcode@1.5.4)404で生成失敗していた問題を、静的siteにqrcode.min.jsを同梱して復旧'
+        ],
+        CH: [
+          '代表托管二维码：CDN(qrcode@1.5.4) 404 导致无法生成 — 将 qrcode.min.js 放入静态站本地加载'
+        ],
+        TH: [
+          'QR กระเป๋าดูแล: แก้ CDN (qrcode@1.5.4) 404 โดยใส่ qrcode.min.js ใน static และโหลดในเครื่อง'
+        ]
+      }
+    },
+    {
+      version: '4.78',
+      kind: 'minor',
+      date: '2026-10-12',
+      items: {
+        KO: [
+          '대표수탁지갑: 등록 주소 행·주소 칸·네트워크 뱃지를 네트워크 로고색 파스텔로 표시(예: BEP20 노랑) — 네트워크별 시각 구분'
+        ],
+        EN: [
+          'Primary custody: registered address rows, address cells, and network badges use logo pastel colors (e.g. BEP20 yellow) for network distinction'
+        ],
+        JP: [
+          '代表カストディ: 登録住所の行・住所欄・ネットワークバッジをロゴ色パステルで表示（例: BEP20黄）'
+        ],
+        CH: [
+          '代表托管：已登记地址行、地址格、网络徽章按 Logo 色柔和显示（如 BEP20 黄）'
+        ],
+        TH: [
+          'กระเป๋าดูแลหลัก: แถวที่อยู่/ช่องที่อยู่/ป้ายเครือข่ายใช้สีพาสเทลตามโลโก้ (เช่น BEP20 เหลือง)'
+        ]
+      }
+    },
+    {
+      version: '4.77',
+      kind: 'minor',
+      date: '2026-10-12',
+      items: {
+        KO: [
+          '대표수탁지갑·가맹 수취: 네트워크를 아이콘 없이 글자만 표시하는 통일 드롭다운(select)으로 변경 — 네트워크별 아이콘 크기 불일치 해소'
+        ],
+        EN: [
+          'Primary custody / merchant receive: network picker is a uniform text-only dropdown (no icons) — fixes uneven icon sizes'
+        ],
+        JP: [
+          '代表カストディ・加盟受取: ネットワークをアイコンなし文字のみの統一ドロップダウンに変更 — アイコンサイズ不一致を解消'
+        ],
+        CH: [
+          '代表托管/商户收款：网络改为统一纯文字下拉（无图标）— 消除图标大小不一'
+        ],
+        TH: [
+          'กระเป๋าดูแลหลัก/รับร้านค้า: เลือกเครือข่ายเป็นดร็อปดาวน์ข้อความอย่างเดียว (ไม่มีไอคอน) — แก้ขนาดไอคอนไม่เท่ากัน'
+        ]
+      }
+    },
     {
       version: '4.76',
       kind: 'minor',

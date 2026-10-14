@@ -2009,10 +2009,12 @@
           addrInp.setAttribute('data-network', code);
           addrInp.setAttribute('data-wallet-key', asset + '_' + code);
           addrInp.setAttribute('placeholder', pgCryptoAddrPlaceholder(code));
+          if (UI && UI.applyNetworkPastel) UI.applyNetworkPastel(addrInp, code);
         }
       }
       if (UI && UI.renderNetworkSelect) {
         UI.renderNetworkSelect(host, nets, selNet, onNetPick);
+        onNetPick(selNet);
       }
     });
   }
@@ -2049,14 +2051,30 @@
       var cur = String(hidden.value || '').toUpperCase();
       if (!cur && nets[0]) cur = String(nets[0].code || nets[0]).toUpperCase();
       hidden.value = cur;
+      function tintCustodyForm(code) {
+        hidden.value = String(code || '').toUpperCase();
+        var addrInp = pane.querySelector('#cryptoCustodyAddr_' + sid);
+        if (UI && UI.applyNetworkPastel && addrInp) UI.applyNetworkPastel(addrInp, code);
+        var chk = pane.querySelector('#cryptoCustodyPrimary_' + sid);
+        var idVal = String(((pane.querySelector('#cryptoCustodyId_' + sid) || {}).value) || '').trim();
+        if (chk && !idVal) {
+          var rows = Array.isArray(pane._cryptoCustodyRows) ? pane._cryptoCustodyRows : [];
+          var netU = String(code || '').toUpperCase();
+          var otherPrimary = rows.some(function (r) {
+            return r
+              && String(r.assetCode || '').toUpperCase() === String(asset || '').toUpperCase()
+              && String(r.networkCode || '').toUpperCase() === netU
+              && String(r.primaryYn || '').toUpperCase() === 'Y';
+          });
+          chk.checked = !otherPrimary;
+        }
+      }
       if (UI && UI.renderNetworkSelect) {
-        UI.renderNetworkSelect(host, nets, cur, function (code) {
-          hidden.value = String(code || '').toUpperCase();
-        });
+        UI.renderNetworkSelect(host, nets, cur, tintCustodyForm);
+        tintCustodyForm(cur);
       } else if (UI && UI.renderNetworkList) {
-        UI.renderNetworkList(host, nets, cur, function (code) {
-          hidden.value = String(code || '').toUpperCase();
-        });
+        UI.renderNetworkList(host, nets, cur, tintCustodyForm);
+        tintCustodyForm(cur);
       }
     });
   }
@@ -2098,13 +2116,8 @@
     }
     if (window.QRCode && typeof window.QRCode.toCanvas === 'function') {
       paintCanvases(window.QRCode);
-    } else if (Q && typeof Q.showAddressQrModal === 'function') {
-      /* load CDN via modal helper path */
-      var s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js';
-      s.async = true;
-      s.onload = function () { paintCanvases(window.QRCode); };
-      document.head.appendChild(s);
+    } else if (Q && typeof Q.ensureQrLib === 'function') {
+      Q.ensureQrLib().then(function (QR) { paintCanvases(QR); }).catch(function () { /* ignore */ });
     }
   }
 
@@ -7125,7 +7138,8 @@
   window.pgConfirmBeforeSave = pgConfirmBeforeSave;
 
   /**
-   * Google OTP 6자리 입력. 6자리 숫자가 채워지면 확인 없이 즉시 resolve.
+   * Google OTP 6자리 입력. 숫자 6자리가 모두 채워진 뒤에만 「확인」으로 resolve.
+   * (6자리 미완성 상태에서 진행·오토필로 조기 실행되지 않음)
    * @param {string} [message]
    * @returns {Promise<string|null>} 코드 또는 취소 시 null
    */
@@ -7140,6 +7154,7 @@
       var modalEl = document.getElementById('pgGoogleOtpSixModal');
       var inputEl = document.getElementById('pgGoogleOtpSixInput');
       var msgEl = document.getElementById('pgGoogleOtpSixMsg');
+      var confirmBtn = document.getElementById('pgGoogleOtpSixConfirmBtn');
       if (!modalEl || !inputEl || !window.bootstrap || !bootstrap.Modal) {
         var legacy = window.prompt(msg);
         if (legacy == null) {
@@ -7147,32 +7162,67 @@
           return;
         }
         legacy = String(legacy).replace(/\D/g, '').slice(0, 6);
-        resolve(legacy.length === 6 ? legacy : null);
+        resolve(/^\d{6}$/.test(legacy) ? legacy : null);
         return;
       }
       if (msgEl) msgEl.textContent = msg;
       inputEl.value = '';
+      inputEl.setAttribute('autocomplete', 'off');
+      if (confirmBtn) {
+        confirmBtn.disabled = true;
+        try {
+          if (typeof window.pgAdminUiT === 'function') {
+            confirmBtn.textContent = window.pgAdminUiT('확인') || '확인';
+          }
+        } catch (eC) { /* ignore */ }
+      }
       var settled = false;
       var bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      function readDigits() {
+        return String(inputEl.value || '').replace(/\D/g, '').slice(0, 6);
+      }
+      function syncConfirmBtn() {
+        var digits = readDigits();
+        if (inputEl.value !== digits) inputEl.value = digits;
+        if (confirmBtn) confirmBtn.disabled = !/^\d{6}$/.test(digits);
+      }
       function finish(code) {
         if (settled) return;
+        if (code != null && !/^\d{6}$/.test(String(code))) {
+          syncConfirmBtn();
+          return;
+        }
         settled = true;
         try { inputEl.removeEventListener('input', onInput); } catch (e0) {}
         try { inputEl.removeEventListener('keydown', onKey); } catch (e1) {}
+        try { if (confirmBtn) confirmBtn.removeEventListener('click', onConfirm); } catch (e1b) {}
         modalEl.removeEventListener('hidden.bs.modal', onHidden);
         try { bsModal.hide(); } catch (e2) {}
         resolve(code);
       }
       function onInput() {
-        var digits = String(inputEl.value || '').replace(/\D/g, '').slice(0, 6);
-        if (inputEl.value !== digits) inputEl.value = digits;
-        if (digits.length === 6) {
-          finish(digits);
+        syncConfirmBtn();
+      }
+      function onConfirm(ev) {
+        if (ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
         }
+        var digits = readDigits();
+        if (!/^\d{6}$/.test(digits)) {
+          syncConfirmBtn();
+          return;
+        }
+        finish(digits);
       }
       function onKey(ev) {
         if (ev.key === 'Escape') {
           finish(null);
+          return;
+        }
+        if (ev.key === 'Enter') {
+          ev.preventDefault();
+          onConfirm(ev);
         }
       }
       function onHidden() {
@@ -7180,9 +7230,11 @@
       }
       inputEl.addEventListener('input', onInput);
       inputEl.addEventListener('keydown', onKey);
+      if (confirmBtn) confirmBtn.addEventListener('click', onConfirm);
       modalEl.addEventListener('hidden.bs.modal', onHidden);
       modalEl.addEventListener('shown.bs.modal', function onShown() {
         modalEl.removeEventListener('shown.bs.modal', onShown);
+        syncConfirmBtn();
         try { inputEl.focus(); inputEl.select(); } catch (eF) {}
       });
       bsModal.show();
@@ -24016,11 +24068,16 @@
             tb.innerHTML = '<tr><td colspan="6" class="text-muted text-center small py-3" data-pg-ui-t="등록된 주소 없음">등록된 주소 없음</td></tr>';
             return;
           }
+          var UI = window.ICOPAY_CRYPTO_UI;
           tb.innerHTML = assetRows.map(function (a) {
             var isPrimary = String(a.primaryYn || '').toUpperCase() === 'Y';
-            return '<tr data-id="' + esc(a.id) + '" data-custody-asset="' + asset + '" class="crypto-custody-row" style="cursor:pointer">' +
-              '<td>' + esc(a.id) + '</td><td>' + esc(a.networkCode) + '</td>' +
-              '<td class="font-monospace small crypto-custody-addr-cell">' + esc(a.address) + '</td>' +
+            var netCode = String(a.networkCode || '').toUpperCase();
+            var pastelStyle = (UI && UI.pastelInlineStyle) ? UI.pastelInlineStyle(netCode) : '';
+            var netBadge = '<span class="badge rounded-pill crypto-net-badge crypto-net-pastel" style="' + pastelStyle + '">' + esc(netCode) + '</span>';
+            return '<tr data-id="' + esc(a.id) + '" data-custody-asset="' + asset + '" data-crypto-net="' + esc(netCode) +
+              '" class="crypto-custody-row crypto-net-pastel" style="cursor:pointer;' + pastelStyle + '">' +
+              '<td>' + esc(a.id) + '</td><td>' + netBadge + '</td>' +
+              '<td class="font-monospace small crypto-custody-addr-cell crypto-net-pastel" style="' + pastelStyle + '">' + esc(a.address) + '</td>' +
               '<td>' + esc(a.label) + '</td>' +
               '<td>' + (isPrimary
                 ? '<span class="badge text-bg-success" data-pg-ui-t="대표">대표</span>'
@@ -24197,13 +24254,47 @@
           ? window.pgPromptGoogleOtpSixDigits
           : null;
         var msg = pgAdminUiT(msgKey || '대표수탁지갑 작업을 위해 Google OTP 6자리를 입력하세요.');
-        if (ask) return ask(msg);
+        if (ask) {
+          return ask(msg).then(function (otp) {
+            if (otp == null) return null;
+            var d = String(otp).replace(/\D/g, '').slice(0, 6);
+            return /^\d{6}$/.test(d) ? d : null;
+          });
+        }
         return Promise.resolve((function () {
           var p = window.prompt(msg);
           if (p == null) return null;
           p = String(p).replace(/\D/g, '').slice(0, 6);
-          return p.length === 6 ? p : null;
+          return /^\d{6}$/.test(p) ? p : null;
         })());
+      }
+      function pgCustodyApiFn(name) {
+        var api = window.PG_API;
+        if (!api || typeof api[name] !== 'function') {
+          return function () {
+            return Promise.reject(new Error(pgAdminUiT('API가 준비되지 않았습니다. 새로고침(Ctrl+F5) 후 다시 시도하세요.')));
+          };
+        }
+        return api[name].bind(api);
+      }
+      /** 같은 자산·네트워크에 이미 대표가 있으면 신규 폼의 「대표로 저장」기본 해제 */
+      function pgSyncCustodyPrimaryCheckbox(asset, networkCode) {
+        var sid = String(asset || '').toLowerCase();
+        var chk = pane.querySelector('#cryptoCustodyPrimary_' + sid);
+        if (!chk) return;
+        var idVal = String(((pane.querySelector('#cryptoCustodyId_' + sid) || {}).value) || '').trim();
+        var net = String(networkCode || ((pane.querySelector('#cryptoCustodyNet_' + sid) || {}).value) || '').toUpperCase();
+        var rows = Array.isArray(pane._cryptoCustodyRows) ? pane._cryptoCustodyRows : [];
+        var otherPrimary = rows.some(function (r) {
+          if (!r) return false;
+          if (String(r.assetCode || '').toUpperCase() !== String(asset || '').toUpperCase()) return false;
+          if (String(r.networkCode || '').toUpperCase() !== net) return false;
+          if (String(r.primaryYn || '').toUpperCase() !== 'Y') return false;
+          if (idVal && String(r.id) === idVal) return false;
+          return true;
+        });
+        if (!idVal && otherPrimary) chk.checked = false;
+        else if (!idVal && !otherPrimary) chk.checked = true;
       }
       pane.addEventListener('click', function (e) {
         var saveBtn = e.target && e.target.closest ? e.target.closest('.crypto-custody-save') : null;
@@ -24218,16 +24309,30 @@
           if (!asset) { alert(pgAdminUiT('자산을 확인하세요.')); return; }
           if (!net) { alert(pgAdminUiT('네트워크를 선택하세요.')); return; }
           if (!addr) { alert(pgAdminUiT('주소를 입력하세요.')); return; }
+          var wantPrimary = !!(primaryChk && primaryChk.checked);
+          if (wantPrimary) {
+            var rowsSave = Array.isArray(pane._cryptoCustodyRows) ? pane._cryptoCustodyRows : [];
+            var hasOtherPri = rowsSave.some(function (r) {
+              return r
+                && String(r.assetCode || '').toUpperCase() === asset
+                && String(r.networkCode || '').toUpperCase() === String(net).toUpperCase()
+                && String(r.primaryYn || '').toUpperCase() === 'Y'
+                && (!idVal || String(r.id) !== idVal);
+            });
+            if (hasOtherPri && !confirm(pgAdminUiT('같은 자산·네트워크의 기존 대표는 해제되고 이 주소만 대표로 남습니다. 계속할까요?'))) {
+              return;
+            }
+          }
           pgAskCustodyOtp('대표수탁지갑 저장을 위해 Google OTP 6자리를 입력하세요.').then(function (otp) {
             if (!otp) return;
-            return window.PG_API.hqCryptoCustodySave({
+            return pgCustodyApiFn('hqCryptoCustodySave')({
               id: idVal ? idVal : null,
               networkCode: net,
               assetCode: asset,
               address: addr,
               label: label,
               useYn: 'Y',
-              primaryYn: primaryChk && primaryChk.checked ? 'Y' : 'N',
+              primaryYn: wantPrimary ? 'Y' : 'N',
               totpCode: otp
             }).then(function (data) {
               applyHqCryptoData(data);
@@ -24240,10 +24345,10 @@
         if (setPri && pane.contains(setPri)) {
           var priId = String(setPri.getAttribute('data-id') || '').trim();
           if (!priId) return;
-          if (!confirm(pgAdminUiT('이 주소를 해당 자산·네트워크의 입금 대표 수탁으로 지정할까요?'))) return;
+          if (!confirm(pgAdminUiT('이 주소를 해당 자산·네트워크의 입금 대표 수탁으로 지정할까요? 기존 대표는 해제됩니다.'))) return;
           pgAskCustodyOtp('대표수탁지갑 대표지정을 위해 Google OTP 6자리를 입력하세요.').then(function (otp) {
             if (!otp) return;
-            return window.PG_API.hqCryptoCustodySetPrimary({ id: priId, totpCode: otp }).then(function (data) {
+            return pgCustodyApiFn('hqCryptoCustodySetPrimary')({ id: priId, totpCode: otp }).then(function (data) {
               applyHqCryptoData(data);
               alert(pgAdminUiT('대표 수탁 주소를 지정했습니다.'));
             });
@@ -24257,11 +24362,26 @@
           if (!confirm(pgAdminUiT('선택한 대표수탁지갑을 삭제할까요?'))) return;
           pgAskCustodyOtp('대표수탁지갑 삭제를 위해 Google OTP 6자리를 입력하세요.').then(function (otp) {
             if (!otp) return;
-            return window.PG_API.hqCryptoCustodyDelete({ id: delId, totpCode: otp }).then(function (data) {
+            return pgCustodyApiFn('hqCryptoCustodyDelete')({ id: delId, totpCode: otp }).then(function (data) {
               applyHqCryptoData(data);
               alert(pgAdminUiT('대표수탁지갑을 삭제했습니다.'));
             });
           }).catch(function (err) { alert(pgErrMsg(err, '대표수탁지갑 삭제 실패')); });
+        }
+      });
+      /* 네트워크 변경 시 대표 체크 기본값 동기화 */
+      pane.addEventListener('change', function (e) {
+        var t = e.target;
+        if (!t || !pane.contains(t)) return;
+        if (t.classList && t.classList.contains('ic-crypto-net-select-native')) {
+          var wrap = t.closest('[data-custody-asset]');
+          var assetCh = wrap ? wrap.getAttribute('data-custody-asset') : '';
+          if (!assetCh) {
+            var hid = t.closest('.crypto-custody-net-wrap');
+            var hidInp = hid && hid.querySelector('.crypto-custody-net');
+            assetCh = hidInp ? hidInp.getAttribute('data-custody-asset') : '';
+          }
+          pgSyncCustodyPrimaryCheckbox(assetCh, t.value);
         }
       });
     }
