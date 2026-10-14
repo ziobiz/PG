@@ -1732,6 +1732,9 @@
     hqCryptoMerchantConfigSave: function (body) {
       return post('/api/hq/crypto/merchant-config', body || {}).then(function (r) { return r.data; });
     },
+    hqCryptoMerchantConfigDelete: function (body) {
+      return post('/api/hq/crypto/merchant-config/delete', body || {}).then(function (r) { return r.data; });
+    },
     hqCryptoDeposits: function (params) {
       return get('/api/hq/crypto/deposits', params).then(function (r) { return r.data; });
     },

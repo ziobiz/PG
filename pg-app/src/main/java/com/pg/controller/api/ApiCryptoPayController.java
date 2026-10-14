@@ -44,6 +44,22 @@ public class ApiCryptoPayController {
         return ResponseEntity.ok(ApiResponse.ok(catalogService.publicCatalog(null, null)));
     }
 
+    /** 수단선택·세션 전 — 상단 로고·안내문구. channel=unified|crypto */
+    @GetMapping("/checkout-context")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> checkoutContext(
+            @RequestParam(value = "m", required = false) String m,
+            @RequestParam(value = "compId", required = false) String compId,
+            @RequestParam(value = "channel", required = false) String channel) {
+        String mid = (m != null && !m.isBlank()) ? m.trim() : (compId != null ? compId.trim() : "");
+        Long orgUnitId = mid.isEmpty()
+                ? null
+                : orgUnitRepository.findByCode(mid).map(OrgUnit::getId).orElse(null);
+        if (orgUnitId == null && !mid.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "INVALID_MERCHANT"));
+        }
+        return MerchantApiResponseMapper.mapServiceResult(checkoutService.checkoutContext(orgUnitId, channel));
+    }
+
     @PostMapping("/prepare")
     public ResponseEntity<ApiResponse<Map<String, Object>>> prepare(
             @RequestBody(required = false) Map<String, Object> body,
@@ -55,10 +71,32 @@ public class ApiCryptoPayController {
         return MerchantApiResponseMapper.mapServiceResult(checkoutService.prepare(orgUnitId, body, request));
     }
 
+    /** 표시금액 → 청구(USD) → 자산 송금액 실시간 견적 */
+    @PostMapping("/estimate")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> estimate(
+            @RequestBody(required = false) Map<String, Object> body) {
+        Long orgUnitId = resolveOrgUnitId(body);
+        return MerchantApiResponseMapper.mapServiceResult(checkoutService.estimateFx(orgUnitId, body != null ? body : Map.of()));
+    }
+
     @GetMapping("/session")
     public ResponseEntity<ApiResponse<Map<String, Object>>> session(
             @RequestParam("session") String session) {
         return MerchantApiResponseMapper.mapServiceResult(checkoutService.session(session));
+    }
+
+    /** 자산·네트워크 선택 확정 → 수탁 주소 갱신 */
+    @PostMapping("/bind")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> bind(
+            @RequestBody(required = false) Map<String, Object> body) {
+        String session = body != null && body.get("session") != null
+                ? body.get("session").toString().trim()
+                : (body != null && body.get("sessionToken") != null
+                ? body.get("sessionToken").toString().trim() : "");
+        if (session.isBlank()) {
+            return ResponseEntity.ok(ApiResponse.fail("session이 필요합니다.", "INVALID_SESSION"));
+        }
+        return MerchantApiResponseMapper.mapServiceResult(checkoutService.bindSelection(session, body));
     }
 
     @GetMapping("/status")

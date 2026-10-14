@@ -10,8 +10,14 @@ import java.nio.charset.StandardCharsets;
  */
 public final class NeutralCheckoutRoute {
 
-    /** 중립 결제창 경로 프리픽스 (뒤에 compId 가 붙는다). */
+    /** 카드(URL) 결제창 경로 프리픽스 (뒤에 compId). */
     public static final String PATH = "/checkout/";
+
+    /** 크립토 전용 결제창 경로 프리픽스. */
+    public static final String PATH_CRYPTO = "/checkout-crypto/";
+
+    /** 카드+크립토 통합(수단 선택) 경로 프리픽스. */
+    public static final String PATH_ALL = "/checkout-all/";
 
     /** 중립 구독(정기결제) 결제창 경로 프리픽스. */
     public static final String PATH_SUBSCRIPTION = "/checkout-subscribe/";
@@ -56,6 +62,16 @@ public final class NeutralCheckoutRoute {
      */
     public static String buildPayUrl(String base, String compId, String sessionToken, String langCode, boolean embed) {
         return buildNeutralUrl(PATH, base, compId, sessionToken, langCode, embed);
+    }
+
+    /** 크립토 전용 공개 URL — {@link #PATH_CRYPTO}. */
+    public static String buildCryptoPayUrl(String base, String compId, String sessionToken, String langCode, boolean embed) {
+        return buildNeutralUrl(PATH_CRYPTO, base, compId, sessionToken, langCode, embed);
+    }
+
+    /** 통합(수단 선택) 공개 URL — {@link #PATH_ALL}. */
+    public static String buildUnifiedPayUrl(String base, String compId, String langCode) {
+        return buildNeutralUrl(PATH_ALL, base, compId, null, langCode, false);
     }
 
     /** 중립 구독(정기결제) 결제창 URL — {@link #PATH_SUBSCRIPTION}. */

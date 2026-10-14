@@ -77,6 +77,107 @@ public class CheckoutHeaderSubtitleCopyService {
         }
     }
 
+    /** 크립토 안내문구 ACTIVE 시 다국어 1회 번역. */
+    public void applyCryptoToMerchantProfile(MerchantProfile mp) {
+        applyChannelActiveI18n(mp,
+                mp != null ? mp.getCryptoPaymentHeaderSubtitleMode() : null,
+                mp != null ? mp.getCryptoPaymentHeaderSubtitleText() : null,
+                mp != null ? mp.getCryptoPaymentHeaderSubtitleTextI18n() : null,
+                (text, i18n) -> {
+                    mp.setCryptoPaymentHeaderSubtitleText(text);
+                    mp.setCryptoPaymentHeaderSubtitleTextI18n(i18n);
+                });
+    }
+
+    /** 통합결제 안내문구 ACTIVE 시 다국어 1회 번역. */
+    public void applyUnifiedToMerchantProfile(MerchantProfile mp) {
+        applyChannelActiveI18n(mp,
+                mp != null ? mp.getUnifiedPaymentHeaderSubtitleMode() : null,
+                mp != null ? mp.getUnifiedPaymentHeaderSubtitleText() : null,
+                mp != null ? mp.getUnifiedPaymentHeaderSubtitleTextI18n() : null,
+                (text, i18n) -> {
+                    mp.setUnifiedPaymentHeaderSubtitleText(text);
+                    mp.setUnifiedPaymentHeaderSubtitleTextI18n(i18n);
+                });
+    }
+
+    public void putCryptoCheckoutFields(Map<String, Object> data, MerchantProfile mp) {
+        putChannelCheckoutFields(data, mp,
+                mp != null ? mp.getCryptoPaymentHeaderSubtitleMode() : null,
+                mp != null ? mp.getCryptoPaymentHeaderSubtitleText() : null,
+                mp != null ? mp.getCryptoPaymentHeaderSubtitleTextI18n() : null);
+    }
+
+    public void putUnifiedCheckoutFields(Map<String, Object> data, MerchantProfile mp) {
+        putChannelCheckoutFields(data, mp,
+                mp != null ? mp.getUnifiedPaymentHeaderSubtitleMode() : null,
+                mp != null ? mp.getUnifiedPaymentHeaderSubtitleText() : null,
+                mp != null ? mp.getUnifiedPaymentHeaderSubtitleTextI18n() : null);
+    }
+
+    @FunctionalInterface
+    private interface ChannelI18nSetter {
+        void accept(String text, String i18nJson);
+    }
+
+    private void applyChannelActiveI18n(MerchantProfile mp, String mode, String textRaw, String prevI18n,
+                                        ChannelI18nSetter setter) {
+        if (mp == null || setter == null) {
+            return;
+        }
+        String m = mode != null ? mode.trim().toUpperCase(Locale.ROOT) : "DEFAULT";
+        if (!"ACTIVE".equals(m)) {
+            return;
+        }
+        String text = textRaw != null ? textRaw.trim() : "";
+        if (text.isEmpty()) {
+            setter.accept(null, null);
+            return;
+        }
+        if (prevI18n != null && !prevI18n.isBlank() && korMatches(prevI18n, text)) {
+            return;
+        }
+        try {
+            Map<String, String> langs = hqPayCopyTranslationService.translateLineFromKo(text);
+            if (langs == null || langs.isEmpty()) {
+                langs = fallbackAll(text);
+            } else if (!langs.containsKey("KOR")) {
+                langs.put("KOR", text);
+            }
+            setter.accept(text, OM.writeValueAsString(langs));
+        } catch (Exception e) {
+            log.warn("Channel subtitle i18n failed: {}", e.getMessage());
+            try {
+                setter.accept(text, OM.writeValueAsString(fallbackAll(text)));
+            } catch (Exception e2) {
+                setter.accept(text, null);
+            }
+        }
+    }
+
+    private void putChannelCheckoutFields(Map<String, Object> data, MerchantProfile mp,
+                                          String mode, String textRaw, String i18nJson) {
+        if (data == null) {
+            return;
+        }
+        String m = mode != null && !mode.isBlank() ? mode.trim().toUpperCase(Locale.ROOT) : "DEFAULT";
+        if (!"ACTIVE".equals(m) && !"DISABLED".equals(m)) {
+            m = "DEFAULT";
+        }
+        data.put("checkoutHeaderSubtitleMode", m);
+        String text = textRaw != null ? textRaw.trim() : "";
+        if (!text.isEmpty()) {
+            data.put("checkoutHeaderSubtitleText", text);
+        }
+        Map<String, String> i18n = parseI18n(i18nJson);
+        if (i18n.isEmpty() && !text.isEmpty() && "ACTIVE".equals(m)) {
+            i18n = fallbackAll(text);
+        }
+        if (!i18n.isEmpty()) {
+            data.put("checkoutHeaderSubtitleTextI18n", i18n);
+        }
+    }
+
     private static boolean korMatches(String i18nJson, String text) {
         Map<String, String> m = parseI18n(i18nJson);
         String kor = m.get("KOR");

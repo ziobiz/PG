@@ -1,20 +1,20 @@
-/* PG 통합관리자 - 참고 이미지 구조 정확 반영 */
+/* PG íµí©ê´ë¦¬ì - ì°¸ê³  ì´ë¯¸ì§ êµ¬ì¡° ì í ë°ì */
 * { box-sizing: border-box; }
 :root {
   --table-row-padding-y: 6px;
   --app-base-font-size: 13px;
-  /* 결제관리 결제내역(.screen-pay-list) 그리드 기준 — 전역 데이터 테이블과 동일 */
+  /* ê²°ì ê´ë¦¬ ê²°ì ë´ì­(.screen-pay-list) ê·¸ë¦¬ë ê¸°ì¤ â ì ì­ ë°ì´í° íì´ë¸ê³¼ ëì¼ */
   --pay-mng-dense-font-size: 11px;
   --app-table-font-size: var(--pay-mng-dense-font-size);
   --app-form-sm-font-size: 12px;
-  /* VIEW SETTING 패널(.table-column-guide) 전용 글자 크기 */
+  /* VIEW SETTING í¨ë(.table-column-guide) ì ì© ê¸ì í¬ê¸° */
   --view-setting-font-size: 10px;
 }
 html { height: 100%; }
-/* 좌측·상단 고정, 본문만 세로 스크롤 — 문서 전체 스크롤 방지 */
+/* ì¢ì¸¡Â·ìë¨ ê³ ì , ë³¸ë¬¸ë§ ì¸ë¡ ì¤í¬ë¡¤ â ë¬¸ì ì ì²´ ì¤í¬ë¡¤ ë°©ì§ */
 body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif; font-size: var(--app-base-font-size); }
 
-/* OBSERVER(조회전용): ziobim/NOTI의 비활성 버튼 톤과 유사하게 회색 고정 */
+/* OBSERVER(ì¡°íì ì©): ziobim/NOTIì ë¹íì± ë²í¼ í¤ê³¼ ì ì¬íê² íì ê³ ì  */
 .pg-perm-observer .btn:disabled,
 .pg-perm-observer .btn.disabled,
 .pg-perm-observer button:disabled,
@@ -41,7 +41,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   max-height: 100%;
   overflow: hidden;
 }
-/* 좌측 메뉴 + 우측 콘텐츠 행: 높이는 뷰포트에 고정, 세로 스크롤은 우측 .content-inner·탭 영역만 */
+/* ì¢ì¸¡ ë©ë´ + ì°ì¸¡ ì½íì¸  í: ëì´ë ë·°í¬í¸ì ê³ ì , ì¸ë¡ ì¤í¬ë¡¤ì ì°ì¸¡ .content-innerÂ·í­ ìì­ë§ */
 .wrapper-body {
   display: flex;
   flex-direction: row;
@@ -52,7 +52,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   align-items: stretch;
 }
 
-/* ========== 좌측 사이드바: layout/left-side-menu.html 구조 (로고 → 접기 → 메뉴) ========== */
+/* ========== ì¢ì¸¡ ì¬ì´ëë°: layout/left-side-menu.html êµ¬ì¡° (ë¡ê³  â ì ê¸° â ë©ë´) ========== */
 .left-side-menu {
   width: 260px;
   min-width: 260px;
@@ -81,7 +81,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 .left-side-menu.collapsed .logo-icopay-sub { display: none !important; }
 .left-side-menu.collapsed .side-nav-link { justify-content: center; padding: 10px; }
 .left-side-menu.collapsed .side-nav-link i { margin-right: 0; }
-/* 접힘: 상단 로고 영역·이미지 축소 (브랜딩 업로드 후에도 동일) */
+/* ì í: ìë¨ ë¡ê³  ìì­Â·ì´ë¯¸ì§ ì¶ì (ë¸ëë© ìë¡ë íìë ëì¼) */
 .left-side-menu.collapsed .logo-icopay-wrap {
   padding: 8px 4px;
 }
@@ -102,7 +102,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   transition: padding 0.2s ease, font-size 0.2s ease, max-height 0.2s ease, max-width 0.2s ease;
 }
 .menuFoldDiv { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.06); flex-shrink: 0; }
-/* 접힌 상태 플라이아웃: 사이드바 오른쪽에 떠 있는 서브메뉴 */
+/* ì í ìí íë¼ì´ìì: ì¬ì´ëë° ì¤ë¥¸ìª½ì ë  ìë ìë¸ë©ë´ */
 .flyout-submenu {
   position: fixed;
   left: 70px;
@@ -147,7 +147,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   display: none;
   object-fit: contain;
 }
-/* 메뉴 목록만 세로 스크롤 — 로고·접기 버튼은 상단 고정, 우측 본문 스크롤과 분리 */
+/* ë©ë´ ëª©ë¡ë§ ì¸ë¡ ì¤í¬ë¡¤ â ë¡ê³ Â·ì ê¸° ë²í¼ì ìë¨ ê³ ì , ì°ì¸¡ ë³¸ë¬¸ ì¤í¬ë¡¤ê³¼ ë¶ë¦¬ */
 #left-side-menu-container {
   flex: 1 1 auto;
   min-height: 0;
@@ -198,14 +198,14 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   font-size: var(--app-base-font-size);
 }
 .side-nav-link:hover { color: #fff; background: rgba(255,255,255,0.08); }
-/* 대메뉴 선택: 연한 그레이, 보라색 포인트는 왼쪽 라인 */
+/* ëë©ë´ ì í: ì°í ê·¸ë ì´, ë³´ë¼ì í¬ì¸í¸ë ì¼ìª½ ë¼ì¸ */
 .side-nav-item.mm-active > .side-nav-link {
   color: #fff;
   border-left-color: #6658dd;
   background: #3a4149;
 }
 .side-nav-link i { margin-right: 10px; width: 20px; text-align: center; font-size: 1.05rem; }
-/* 대메뉴 우측: 접힘 ▶ / 펼침 ▼ (회전으로 전환) */
+/* ëë©ë´ ì°ì¸¡: ì í â¶ / í¼ì¹¨ â¼ (íì ì¼ë¡ ì í) */
 .menu-arrow {
   margin-left: auto;
   flex-shrink: 0;
@@ -242,9 +242,9 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   white-space: nowrap;
 }
 .child-li a:hover { color: #fff; background: #3a4149; }
-/* 실제 선택된 메뉴(클릭된 서브메뉴)는 보라색 */
+/* ì¤ì  ì íë ë©ë´(í´ë¦­ë ìë¸ë©ë´)ë ë³´ë¼ì */
 .child-li.mm-active a { color: #fff; background: #6658dd; font-weight: 500; }
-/* ========== 상단 헤더: 우측만 - 접속IP·접속시간·사용자(아이콘+ID+이름)·전체닫기 ========== */
+/* ========== ìë¨ í¤ë: ì°ì¸¡ë§ - ì ìIPÂ·ì ììê°Â·ì¬ì©ì(ìì´ì½+ID+ì´ë¦)Â·ì ì²´ë«ê¸° ========== */
 .content-page {
   flex: 1 1 auto;
   display: flex;
@@ -277,7 +277,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   gap: 16px 20px;
   min-width: 0;
   max-width: 100%;
-  /* 드롭다운(관리자 메뉴)이 flex 안에서 가로 막대처럼 깨지지 않도록 가로 스크롤·클립 미사용 */
+  /* ëë¡­ë¤ì´(ê´ë¦¬ì ë©ë´)ì´ flex ììì ê°ë¡ ë§ëì²ë¼ ê¹¨ì§ì§ ìëë¡ ê°ë¡ ì¤í¬ë¡¤Â·í´ë¦½ ë¯¸ì¬ì© */
   overflow-x: visible;
   overflow-y: visible;
 }
@@ -287,7 +287,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 }
 .header-top-info { font-size: var(--app-base-font-size); color: var(--theme-topbar-fg, #1f2937); font-weight: 500; white-space: nowrap; flex-shrink: 0; }
 
-/* 상단 헤더: 접속 IP 오른쪽 인라인 언어 (JP KR EN CH TH — KR=한국어 KO) */
+/* ìë¨ í¤ë: ì ì IP ì¤ë¥¸ìª½ ì¸ë¼ì¸ ì¸ì´ (JP KR EN CH TH â KR=íêµ­ì´ KO) */
 .pg-pay-lang-inline {
   display: inline-flex;
   align-items: center;
@@ -338,7 +338,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 .header-user-link:hover { color: var(--theme-topbar-fg, #111); opacity: 0.92; }
 .header-user-icon { font-size: 1.5rem; color: var(--theme-topbar-icon, var(--theme-topbar-fg, #475569)); }
 .header-user-text { font-size: var(--app-base-font-size); line-height: 1.4; text-align: left; color: inherit; }
-/* 상단 헤더 글자색은 배경 테마·JS 대비 보정과 항상 쌍을 이룸 */
+/* ìë¨ í¤ë ê¸ììì ë°°ê²½ íë§Â·JS ëë¹ ë³´ì ê³¼ í­ì ìì ì´ë£¸ */
 .header-top .header-top-info,
 .header-top .header-user-link,
 .header-top .header-user-link:hover,
@@ -360,7 +360,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 }
 .btn-header-close:hover { background: #a00 !important; border-color: #800 !important; color: #fff !important; }
 
-/* ========== 탭 바: 다크 그레이 (참고 이미지) ========== */
+/* ========== í­ ë°: ë¤í¬ ê·¸ë ì´ (ì°¸ê³  ì´ë¯¸ì§) ========== */
 .content-body { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; background: #fff; }
 .content-tab-row {
   display: flex;
@@ -413,8 +413,8 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 }
 .content-tabs .tab-close-button:hover { color: #fff; }
 
-/* ========== 본문 내부 (흰 배경, 너비 자동 조절) ========== */
-/* 우측 본문(3번): 세로 스크롤바는 이 영역 오른쪽에만 — 상단 헤더·탭은 .content-body 안에서 고정 */
+/* ========== ë³¸ë¬¸ ë´ë¶ (í° ë°°ê²½, ëë¹ ìë ì¡°ì ) ========== */
+/* ì°ì¸¡ ë³¸ë¬¸(3ë²): ì¸ë¡ ì¤í¬ë¡¤ë°ë ì´ ìì­ ì¤ë¥¸ìª½ìë§ â ìë¨ í¤ëÂ·í­ì .content-body ììì ê³ ì  */
 .content-inner {
   padding: 16px 20px;
   flex: 1;
@@ -423,7 +423,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   width: 100%;
   max-width: none;
   background: #fff;
-  /* 흰 배경 고정 — DARK 등 테마의 흰글자 상속을 끊음(대시보드·노티관리 라벨 안 보이는 문제 방지) */
+  /* í° ë°°ê²½ ê³ ì  â DARK ë± íë§ì í°ê¸ì ììì ëì(ëìë³´ëÂ·ë¸í°ê´ë¦¬ ë¼ë²¨ ì ë³´ì´ë ë¬¸ì  ë°©ì§) */
   color: #212529;
   display: flex;
   flex-direction: column;
@@ -433,7 +433,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   overscroll-behavior-y: contain;
   font-size: var(--app-base-font-size);
 }
-/* 본문 공통: sm 입력·셀렉트는 사용자관리와 동일 10px */
+/* ë³¸ë¬¸ ê³µíµ: sm ìë ¥Â·ìë í¸ë ì¬ì©ìê´ë¦¬ì ëì¼ 10px */
 .content-inner .form-control-sm,
 .content-inner .form-select-sm,
 .tab-pane.tabConDiv .form-control-sm,
@@ -448,7 +448,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 .tab-pane.tabConDiv .form-control:not(.form-control-sm) {
   font-size: var(--app-base-font-size);
 }
-/* 스크롤바: 얇은 연한 회색 */
+/* ì¤í¬ë¡¤ë°: ìì ì°í íì */
 .content-inner,
 .tab-pane.tabConDiv,
 .content-tabs,
@@ -488,7 +488,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   background: #b0b0b0;
 }
 
-/* 필수 입력값 통일 표현: 파스텔 배경 */
+/* íì ìë ¥ê° íµì¼ íí: íì¤í ë°°ê²½ */
 .comp-reg-form .form-control.required-input:not([readonly]):not(:disabled),
 .comp-reg-form .form-select.required-input:not([readonly]):not(:disabled),
 .comp-reg-form textarea.form-control.required-input:not([readonly]):not(:disabled) {
@@ -502,7 +502,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   border-color: #f0c99d;
   box-shadow: 0 0 0 0.18rem rgba(240, 201, 157, 0.28);
 }
-/* 결제한도 기준통화 등 — 수정 불가 필수값도 동일 파스텔 */
+/* ê²°ì íë ê¸°ì¤íµí ë± â ìì  ë¶ê° íìê°ë ëì¼ íì¤í */
 .comp-reg-form .form-control.required-input[readonly],
 .comp-reg-form .form-control.required-input:disabled,
 .comp-reg-form .form-select.required-input:disabled {
@@ -511,7 +511,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   color: #495057;
   opacity: 1;
 }
-/* 결제 URL·챗봇결제 URL 등 시스템 고정 주소 — 동일 파스텔(수정 불가) */
+/* ê²°ì  URLÂ·ì±ë´ê²°ì  URL ë± ìì¤í ê³ ì  ì£¼ì â ëì¼ íì¤í(ìì  ë¶ê°) */
 .comp-reg-form .form-control.pg-fixed-value-input,
 .comp-reg-form .form-control.pg-fixed-value-input[readonly],
 .comp-reg-form .form-control.pg-fixed-value-input:disabled {
@@ -520,13 +520,13 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   color: #495057;
   opacity: 1;
 }
-/* 정산방법 시간 입력(정산마감/정산자동개시/이체시간): 기존 대비 50% 확대 */
+/* ì ì°ë°©ë² ìê° ìë ¥(ì ì°ë§ê°/ì ì°ìëê°ì/ì´ì²´ìê°): ê¸°ì¡´ ëë¹ 50% íë */
 .comp-reg-form input[type="time"].settle-time-wide {
   width: 100%;
   min-width: 0;
   max-width: none;
 }
-/* 시간 선택 위젯: 네이티브 type=time 대신 시(24h)·분(10분) 드롭다운 2개 */
+/* ìê° ì í ìì ¯: ë¤ì´í°ë¸ type=time ëì  ì(24h)Â·ë¶(10ë¶) ëë¡­ë¤ì´ 2ê° */
 .pg-time-select {
   display: inline-flex;
   align-items: center;
@@ -553,7 +553,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   width: auto;
   min-width: 4.5rem;
 }
-/* 겹침 방지: 시간 필드 블록 자체를 넓혀 간격 유지 */
+/* ê²¹ì¹¨ ë°©ì§: ìê° íë ë¸ë¡ ìì²´ë¥¼ ëí ê°ê²© ì ì§ */
 .comp-reg-form .form-field-block.settle-time-wide-block {
   flex: 0 0 16.6667%;
   max-width: 16.6667%;
@@ -572,7 +572,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   }
 }
 .content-page .container-fluid { max-width: none; width: 100%; overflow: hidden; }
-/* .content-inner 는 container-fluid 와 겹침 — 위 규칙의 overflow:hidden 이 세로 스크롤을 막으므로 본문만 스크롤 재허용 */
+/* .content-inner ë container-fluid ì ê²¹ì¹¨ â ì ê·ì¹ì overflow:hidden ì´ ì¸ë¡ ì¤í¬ë¡¤ì ë§ì¼ë¯ë¡ ë³¸ë¬¸ë§ ì¤í¬ë¡¤ ì¬íì© */
 .content-page .container-fluid.content-inner {
   overflow-x: auto;
   overflow-y: auto;
@@ -583,7 +583,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 .page-title-box .breadcrumb-item.navi { font-weight: 600; color: #333; }
 .page-title-box .page-title.empty-title { display: none; }
 #contentsMain { flex: 1 1 auto; min-height: 0; overflow: visible; display: flex; flex-direction: column; }
-/* 탭 본문은 부모(.content-inner)에서만 세로 스크롤 — 이중 스크롤·가려진 스크롤바 방지 */
+/* í­ ë³¸ë¬¸ì ë¶ëª¨(.content-inner)ììë§ ì¸ë¡ ì¤í¬ë¡¤ â ì´ì¤ ì¤í¬ë¡¤Â·ê°ë ¤ì§ ì¤í¬ë¡¤ë° ë°©ì§ */
 .tab-pane.tabConDiv {
   flex: 1 1 auto;
   min-height: 0;
@@ -596,17 +596,17 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 }
 .tab-pane.tabConDiv.show.active { display: block; }
 
-/* TAX 리포트: content 영역 자체의 가로 스크롤을 차단 */
+/* TAX ë¦¬í¬í¸: content ìì­ ìì²´ì ê°ë¡ ì¤í¬ë¡¤ì ì°¨ë¨ */
 #contentsMain .tab-pane.tabConDiv.screen-tax-report,
 #contentsMain .tab-pane.tabConDiv.screen-tax-report .content-inner {
   overflow-x: hidden !important;
 }
-/* content-inner는 pane 상위이므로, TAX 리포트 탭 활성 시 직접 차단 */
+/* content-innerë pane ììì´ë¯ë¡, TAX ë¦¬í¬í¸ í­ íì± ì ì§ì  ì°¨ë¨ */
 .content-inner.content-inner--tax-report {
   overflow-x: hidden !important;
 }
 
-/* 목록 화면 통일 간격: 검색 줄·알림·요약·테이블 구분 (결제내역·결제실패 등 전체) */
+/* ëª©ë¡ íë©´ íµì¼ ê°ê²©: ê²ì ì¤Â·ìë¦¼Â·ìì½Â·íì´ë¸ êµ¬ë¶ (ê²°ì ë´ì­Â·ê²°ì ì¤í¨ ë± ì ì²´) */
 .screen-search-form {
   display: flex;
   flex-direction: column;
@@ -614,7 +614,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   margin-bottom: 20px;
   font-size: var(--app-base-font-size);
 }
-/* 검색 행: 한 줄 고정, 글자수 연동 자동 너비 → 줄바꿈 없이 가로 스크롤 */
+/* ê²ì í: í ì¤ ê³ ì , ê¸ìì ì°ë ìë ëë¹ â ì¤ë°ê¿ ìì´ ê°ë¡ ì¤í¬ë¡¤ */
 .screen-search-form .search-form-row {
   display: flex;
   flex-wrap: nowrap;
@@ -648,7 +648,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   display: flex;
   justify-content: flex-end;
 }
-/* 입력창: 너비는 글자수 자동(ch), 높이/폰트는 30% 확대 */
+/* ìë ¥ì°½: ëë¹ë ê¸ìì ìë(ch), ëì´/í°í¸ë 30% íë */
 .screen-search-form .search-cell-input .form-control-sm,
 .screen-search-form .search-cell-input select.form-control-sm {
   font-size: var(--app-base-font-size);
@@ -660,9 +660,9 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 .screen-search-form .search-cell-input select.form-control-sm {
   max-width: none;
 }
-/* 조회일자: 달력 40% 확대 */
+/* ì¡°íì¼ì: ë¬ë ¥ 40% íë */
 .screen-search-form .search-cell-input--daterange { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-/* 네이티브 date: YYYY-MM-DD + 달력 아이콘이 잘리지 않도록 전역 최소 너비 (인라인 ch·좁은 미디어쿼리보다 우선) */
+/* ë¤ì´í°ë¸ date: YYYY-MM-DD + ë¬ë ¥ ìì´ì½ì´ ìë¦¬ì§ ìëë¡ ì ì­ ìµì ëë¹ (ì¸ë¼ì¸ chÂ·ì¢ì ë¯¸ëì´ì¿¼ë¦¬ë³´ë¤ ì°ì ) */
 #contentsMain input[type="date"],
 .tab-pane.tabConDiv input[type="date"] {
   min-width: 13.875rem !important;
@@ -677,7 +677,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   min-width: 13.875rem;
   max-width: none;
 }
-/* 결제관리 검색: 라벨 글자길이와 무관하게 입력칸 시작선/폭을 통일 */
+/* ê²°ì ê´ë¦¬ ê²ì: ë¼ë²¨ ê¸ìê¸¸ì´ì ë¬´ê´íê² ìë ¥ì¹¸ ììì /í­ì íµì¼ */
 .screen-search-form.pay-mng-search-form .search-form-row {
   flex-wrap: wrap;
   overflow-x: visible;
@@ -688,7 +688,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 .screen-search-form.pay-mng-search-form .search-cell {
   max-width: 100%;
 }
-/* 퀵날짜·좁은 화면에서 버튼만 다음 줄로 */
+/* íµë ì§Â·ì¢ì íë©´ìì ë²í¼ë§ ë¤ì ì¤ë¡ */
 .screen-search-form.pay-mng-search-form .search-cell-input:has(.quick-date) {
   display: flex;
   flex-wrap: wrap;
@@ -712,14 +712,14 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   min-width: 220px !important;
   max-width: 100%;
 }
-/* 통합리포트 검색: 조직·통화 셀렉트 폭 +20% */
+/* íµí©ë¦¬í¬í¸ ê²ì: ì¡°ì§Â·íµí ìë í¸ í­ +20% */
 .screen-search-form.ops-integrated-report-search-form .search-cell-input input.form-control-sm,
 .screen-search-form.ops-integrated-report-search-form .search-cell-input select.form-control-sm {
   width: 228px !important;
   min-width: 228px !important;
   max-width: 100%;
 }
-/* 퀵 날짜: 미선택 outline, 선택 시 range별 파스텔 */
+/* íµ ë ì§: ë¯¸ì í outline, ì í ì rangeë³ íì¤í */
 .quick-date {
   font-size: var(--app-base-font-size);
   padding: 4px 8px;
@@ -766,7 +766,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   filter: brightness(0.97);
 }
 
-/* 일별·통합리포트 — 선택 일자 행 레드 파스텔(하단 상세와 연결) */
+/* ì¼ë³Â·íµí©ë¦¬í¬í¸ â ì í ì¼ì í ë ë íì¤í(íë¨ ìì¸ì ì°ê²°) */
 .daily-master-row--selected > td,
 .integrated-report-day-row--selected > td {
   background: linear-gradient(180deg, #ffebee 0%, #ffcdd2 100%) !important;
@@ -779,7 +779,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   margin-left: auto;
 }
 
-/* 업체관리: 검색 영역 2~3줄 배치, 스크롤바 없음 */
+/* ìì²´ê´ë¦¬: ê²ì ìì­ 2~3ì¤ ë°°ì¹, ì¤í¬ë¡¤ë° ìì */
 .comp-mng-search-multiline .search-form-row {
   flex-wrap: wrap;
   overflow-x: visible;
@@ -788,7 +788,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   align-items: flex-end;
 }
 .comp-mng-search-multiline .search-cell { margin-bottom: 4px; }
-/* 업체관리: 라벨·입력창 고정 너비로 위아래 정렬 (입력창 30% 확대, 모든 입력 동일 사이즈) */
+/* ìì²´ê´ë¦¬: ë¼ë²¨Â·ìë ¥ì°½ ê³ ì  ëë¹ë¡ ììë ì ë ¬ (ìë ¥ì°½ 30% íë, ëª¨ë  ìë ¥ ëì¼ ì¬ì´ì¦) */
 .comp-mng-search-multiline .search-cell--with-label {
   width: 268px;
   min-width: 268px;
@@ -805,27 +805,27 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 .comp-mng-search-multiline .search-cell-input {
   flex: 0 0 auto;
 }
-/* 업체관리: 검색 입력창 너비 통일 - 130px의 30% 확대(169px), 업체구분/대표자명/업체사용상태/휴대폰 등 모두 동일 */
+/* ìì²´ê´ë¦¬: ê²ì ìë ¥ì°½ ëë¹ íµì¼ - 130pxì 30% íë(169px), ìì²´êµ¬ë¶/ëíìëª/ìì²´ì¬ì©ìí/í´ëí° ë± ëª¨ë ëì¼ */
 .comp-mng-search-multiline .search-cell-input input.form-control-sm,
 .comp-mng-search-multiline .search-cell-input select.form-control-sm {
   width: 169px !important;
   min-width: 169px !important;
   max-width: 169px !important;
 }
-/* 업체관리: 하위업체포함 + 검색 한 셀에 배치 */
+/* ìì²´ê´ë¦¬: íììì²´í¬í¨ + ê²ì í ìì ë°°ì¹ */
 .comp-mng-search-multiline .comp-mng-search-actions-wrap { gap: 8px 12px; }
 
-/* 타블렛/모바일: 한 줄 유지, 가로 스크롤로 전체 표시 */
+/* íë¸ë /ëª¨ë°ì¼: í ì¤ ì ì§, ê°ë¡ ì¤í¬ë¡¤ë¡ ì ì²´ íì */
 @media (max-width: 992px) {
   .screen-search-form:not(.comp-mng-search-multiline) .search-form-row { -webkit-overflow-scrolling: touch; }
 }
 @media (max-width: 768px) {
   .screen-search-form .search-cell--with-label .search-cell-label { min-width: 28px; font-size: var(--app-base-font-size); }
-  /* 세로 줄바꿈 시에도 날짜 전체 표시(#contentsMain 규칙과 동일 계열) */
+  /* ì¸ë¡ ì¤ë°ê¿ ììë ë ì§ ì ì²´ íì(#contentsMain ê·ì¹ê³¼ ëì¼ ê³ì´) */
   .screen-search-form .search-date-input { min-width: 11.5rem !important; }
 }
 
-/* 알림 박스 (파스텔 톤): 오류 이월… ↔ 건수 줄 간격 (위·아래 동일, 전체 페이지 공통) */
+/* ìë¦¼ ë°ì¤ (íì¤í í¤): ì¤ë¥ ì´ìâ¦ â ê±´ì ì¤ ê°ê²© (ìÂ·ìë ëì¼, ì ì²´ íì´ì§ ê³µíµ) */
 .search-notice {
   background: #fff5f5;
   border: 1px solid #f5c6cb;
@@ -848,10 +848,10 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 }
 .search-notice ul { margin: 0; padding-left: 18px; }
 .summary-bar-wrap .summary-item { font-weight: 600; color: #2b5f8d; }
-.summary-bar-wrap .summary-item#summary_건수,
-.summary-bar-wrap .summary-item[data-pg-summary-key="건수"] { color: #4a148c; font-weight: 700; }
+.summary-bar-wrap .summary-item#summary_ê±´ì,
+.summary-bar-wrap .summary-item[data-pg-summary-key="ê±´ì"] { color: #4a148c; font-weight: 700; }
 
-/* 총합(요약) 한 줄: 위·아래 동일 간격 (전체 페이지 공통) */
+/* ì´í©(ìì½) í ì¤: ìÂ·ìë ëì¼ ê°ê²© (ì ì²´ íì´ì§ ê³µíµ) */
 .screen-summary-action-row {
   display: flex;
   align-items: center;
@@ -862,7 +862,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   margin-bottom: 20px;
   min-height: 40px;
 }
-/* 총합 영역 — 연한 파랑 바 + 건수만 보라(가맹점정산내역과 동일). 결제·정산 특화 색은 화면별 오버라이드 */
+/* ì´í© ìì­ â ì°í íë ë° + ê±´ìë§ ë³´ë¼(ê°ë§¹ì ì ì°ë´ì­ê³¼ ëì¼). ê²°ì Â·ì ì° í¹í ìì íë©´ë³ ì¤ë²ë¼ì´ë */
 .summary-total-bar {
   display: flex;
   align-items: center;
@@ -881,20 +881,20 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   color: #2b5f8d;
   font-weight: 600;
 }
-/* 건수만 보라 톤 (예: 건수: 65) */
-.summary-total-bar .summary-total-item#summary_건수,
-.summary-total-bar .summary-total-item[data-pg-summary-key="건수"],
+/* ê±´ìë§ ë³´ë¼ í¤ (ì: ê±´ì: 65) */
+.summary-total-bar .summary-total-item#summary_ê±´ì,
+.summary-total-bar .summary-total-item[data-pg-summary-key="ê±´ì"],
 .summary-total-bar .summary-count-item,
 .summary-total-bar .summary-count,
 .summary-count-item.daily-detail-count,
 .daily-detail-toolbar-start .daily-detail-count.summary-count-item,
-#contentsMain [data-summary="건수"] {
+#contentsMain [data-summary="ê±´ì"] {
   color: #4a148c;
   font-weight: 700;
 }
 .comp-mng-sort-label { display: inline; font-weight: 500; margin: 0; }
 .comp-mng-sort-select { display: inline-block; width: auto; min-width: 90px; }
-/* 액션 버튼은 항상 오른쪽 (요약 있든 없든, 목록/폼/정산실행 동일) */
+/* ì¡ì ë²í¼ì í­ì ì¤ë¥¸ìª½ (ìì½ ìë  ìë , ëª©ë¡/í¼/ì ì°ì¤í ëì¼) */
 .screen-summary-action-row .screen-action-buttons {
   display: flex;
   justify-content: flex-end;
@@ -904,11 +904,11 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   margin-left: auto;
 }
 .screen-summary-action-row .screen-action-buttons .btn { margin: 0; }
-/* 목록 정렬(내림·오름차순): 전역 .btn-sm 과 동일 — 별도 축소 금지(액션줄 높이 통일) */
+/* ëª©ë¡ ì ë ¬(ë´ë¦¼Â·ì¤ë¦ì°¨ì): ì ì­ .btn-sm ê³¼ ëì¼ â ë³ë ì¶ì ê¸ì§(ì¡ìì¤ ëì´ íµì¼) */
 .screen-list-sort-dir-menu .screen-list-sort-dir-btn {
   white-space: nowrap;
 }
-/* 목록 액션줄: 헬로는 VIEW SETTING 영역용 10px가 아니라 동일 행 버튼과 같은 크기 */
+/* ëª©ë¡ ì¡ìì¤: í¬ë¡ë VIEW SETTING ìì­ì© 10pxê° ìëë¼ ëì¼ í ë²í¼ê³¼ ê°ì í¬ê¸° */
 #contentsMain .screen-summary-action-row .screen-action-buttons .btn-view-setting-hello {
   font-size: var(--app-form-sm-font-size) !important;
 }
@@ -919,7 +919,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   font-size: var(--pay-mng-dense-font-size) !important;
 }
 
-/* 예전 구조 호환: .screen-action-row 사용처도 동일하게 오른쪽 정렬 */
+/* ìì  êµ¬ì¡° í¸í: .screen-action-row ì¬ì©ì²ë ëì¼íê² ì¤ë¥¸ìª½ ì ë ¬ */
 .screen-action-row {
   display: flex;
   justify-content: flex-end;
@@ -935,7 +935,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 }
 .screen-action-buttons .btn { margin: 0; }
 
-/* 액션 버튼: 등록(노랑), 엑셀다운로드(연파랑) */
+/* ì¡ì ë²í¼: ë±ë¡(ë¸ë), ììë¤ì´ë¡ë(ì°íë) */
 #contentsMain .btn-warning { background: #f0ad4e; border-color: #eea236; color: #fff; }
 #contentsMain .btn-warning:hover { background: #ec971f; border-color: #d58512; color: #fff; }
 #contentsMain .btn-info { background: #5bc0de; border-color: #46b8da; color: #fff; }
@@ -955,11 +955,11 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   font-size: var(--app-form-sm-font-size);
 }
 
-/* 요약 바 (연파랑) */
+/* ìì½ ë° (ì°íë) */
 .summary-bar { background: #d9edf7; border: 1px solid #bce8f1; padding: 8px 14px; margin-bottom: 10px; font-size: var(--app-base-font-size); border-radius: 2px; }
 .summary-bar label { margin: 0 12px 0 0; font-weight: 500; color: #31708f; }
 
-/* 테이블: 제목·내용 상하좌우 가운데 정렬 (모든 테이블 공통 규칙, Bootstrap text-start/text-end 덮어씀) */
+/* íì´ë¸: ì ëª©Â·ë´ì© ìíì¢ì° ê°ì´ë° ì ë ¬ (ëª¨ë  íì´ë¸ ê³µíµ ê·ì¹, Bootstrap text-start/text-end ë®ì´ì) */
 #contentsMain .table { font-size: var(--app-table-font-size); }
 .tab-pane.tabConDiv .table,
 .modal-body .table {
@@ -970,13 +970,13 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   text-align: center !important;
   vertical-align: middle !important;
 }
-/* 모달 내 목록 테이블(상위업체 검색 등) — #contentsMain 밖 */
+/* ëª¨ë¬ ë´ ëª©ë¡ íì´ë¸(ìììì²´ ê²ì ë±) â #contentsMain ë° */
 .modal-body .table thead th,
 .modal-body .table tbody td {
   text-align: center !important;
   vertical-align: middle !important;
 }
-/* 셀 내부에 text-start/text-end 를 둔 블록(엔드포인트 요약 등)도 값은 가운데 */
+/* ì ë´ë¶ì text-start/text-end ë¥¼ ë ë¸ë¡(ìëí¬ì¸í¸ ìì½ ë±)ë ê°ì ê°ì´ë° */
 #contentsMain .table tbody td .text-start,
 #contentsMain .table tbody td .text-end,
 .tab-pane.tabConDiv .table tbody td .text-start,
@@ -990,14 +990,14 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 #contentsMain .table thead th { background: #d9edf7; border: 1px solid #bce8f1; font-weight: 600; color: #31708f; padding: 8px 10px; }
 #contentsMain .table td { padding: var(--table-row-padding-y) 10px; border-color: #ddd; }
 
-/* 결제로직설정 — 결제구문 블록·표가 카드 본문 너비를 꽉 채움(열 리사이즈 스크립트 미적용 표는 table-no-col-resize) */
+/* ê²°ì ë¡ì§ì¤ì  â ê²°ì êµ¬ë¬¸ ë¸ë¡Â·íê° ì¹´ë ë³¸ë¬¸ ëë¹ë¥¼ ê½ ì±ì(ì´ ë¦¬ì¬ì´ì¦ ì¤í¬ë¦½í¸ ë¯¸ì ì© íë table-no-col-resize) */
 #contentsMain .comp-reg-form .hq-pay-card-copy-mount,
 .tab-pane.tabConDiv .comp-reg-form .hq-pay-card-copy-mount {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
 }
-/* 결제로직설정 — 결제구문 목록: 줄바꿈·단어 줄림, 가로 스크롤 없이 영역 안에 맞춤 */
+/* ê²°ì ë¡ì§ì¤ì  â ê²°ì êµ¬ë¬¸ ëª©ë¡: ì¤ë°ê¿Â·ë¨ì´ ì¤ë¦¼, ê°ë¡ ì¤í¬ë¡¤ ìì´ ìì­ ìì ë§ì¶¤ */
 #contentsMain .hq-pay-card-copy-mount .hq-pay-card-copy-grid-wrap,
 .tab-pane.tabConDiv .hq-pay-card-copy-mount .hq-pay-card-copy-grid-wrap {
   width: 100%;
@@ -1044,14 +1044,14 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   vertical-align: middle !important;
 }
 
-/* 과거 버전에서 삽입된 행 리사이즈 줄(점선) — 더 이상 생성하지 않음; 남아 있으면 숨김 */
+/* ê³¼ê±° ë²ì ìì ì½ìë í ë¦¬ì¬ì´ì¦ ì¤(ì ì ) â ë ì´ì ìì±íì§ ìì; ë¨ì ìì¼ë©´ ì¨ê¹ */
 #contentsMain .table-row-resize-handle { display: none !important; }
 #contentsMain .table-bordered th { border-color: #bce8f1; }
 
 /*
- * 데이터 테이블 공통 UI: 줄무늬(홀·짝 행 배경) + 행 사이 가로 구분선 제거
- * - org-perm-table 제외: 조직 권한 행은 NONE/OBSERVER 등 배경이 이미 있음
- * - 업체관리 트리(grid_comp_compMngTree)·결제내역(screen-pay-list) 등은 아래 더 구체 규칙이 덮어씀
+ * ë°ì´í° íì´ë¸ ê³µíµ UI: ì¤ë¬´ë¬(íÂ·ì§ í ë°°ê²½) + í ì¬ì´ ê°ë¡ êµ¬ë¶ì  ì ê±°
+ * - org-perm-table ì ì¸: ì¡°ì§ ê¶í íì NONE/OBSERVER ë± ë°°ê²½ì´ ì´ë¯¸ ìì
+ * - ìì²´ê´ë¦¬ í¸ë¦¬(grid_comp_compMngTree)Â·ê²°ì ë´ì­(screen-pay-list) ë±ì ìë ë êµ¬ì²´ ê·ì¹ì´ ë®ì´ì
  */
 #contentsMain .table:not(.org-perm-table) > tbody > tr:nth-child(odd),
 .tab-pane.tabConDiv .table:not(.org-perm-table) > tbody > tr:nth-child(odd),
@@ -1093,8 +1093,8 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 }
 
 /*
- * 본사권한설정(org-perm): tbody 첫 행이 colspan 그룹 헤더라 열 리사이즈가 1열로 오인 → 표 붕괴 방지.
- * (table-no-col-resize + table-no-col-resize-wrap 로 스크립트 제외, 과거 세션 잔여 fixed 대비)
+ * ë³¸ì¬ê¶íì¤ì (org-perm): tbody ì²« íì´ colspan ê·¸ë£¹ í¤ëë¼ ì´ ë¦¬ì¬ì´ì¦ê° 1ì´ë¡ ì¤ì¸ â í ë¶ê´´ ë°©ì§.
+ * (table-no-col-resize + table-no-col-resize-wrap ë¡ ì¤í¬ë¦½í¸ ì ì¸, ê³¼ê±° ì¸ì ìì¬ fixed ëë¹)
  */
 #contentsMain .org-perm-table.table-no-col-resize,
 .tab-pane.tabConDiv .org-perm-table.table-no-col-resize {
@@ -1103,7 +1103,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   min-width: 100%;
 }
 
-/* 가맹점정산내역: 결제내역(screen-pay-list)과 동일 글자·한 줄 셀 + 가로 스크롤 */
+/* ê°ë§¹ì ì ì°ë´ì­: ê²°ì ë´ì­(screen-pay-list)ê³¼ ëì¼ ê¸ìÂ·í ì¤ ì + ê°ë¡ ì¤í¬ë¡¤ */
 #contentsMain .screen-calc-gm-list .summary-total-bar {
   background: #f8fbff;
   border: 1px solid #d7e8fb;
@@ -1115,9 +1115,9 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   color: #2b5f8d;
   font-weight: 600;
 }
-#contentsMain .screen-calc-gm-list [data-summary="건수"],
-#contentsMain .screen-calc-gm-list #summary_건수,
-#contentsMain .screen-calc-gm-list [data-pg-summary-key="건수"] {
+#contentsMain .screen-calc-gm-list [data-summary="ê±´ì"],
+#contentsMain .screen-calc-gm-list #summary_ê±´ì,
+#contentsMain .screen-calc-gm-list [data-pg-summary-key="ê±´ì"] {
   color: #4a148c;
   font-weight: 700;
 }
@@ -1191,7 +1191,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   vertical-align: middle !important;
   text-align: center !important;
 }
-/* 가맹점정산내역: 집계구간 거래 보조 분해 열(실행 저장값 amount·feeAmt·feeRate·feeVat·holdAmt·settleAmt 와 구분) */
+/* ê°ë§¹ì ì ì°ë´ì­: ì§ê³êµ¬ê° ê±°ë ë³´ì¡° ë¶í´ ì´(ì¤í ì ì¥ê° amountÂ·feeAmtÂ·feeRateÂ·feeVatÂ·holdAmtÂ·settleAmt ì êµ¬ë¶) */
 #contentsMain .screen-calc-gm-list .table tbody td.pg-franchise-fee-aux {
   color: #6b7785 !important;
   font-weight: 400;
@@ -1220,7 +1220,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 #contentsMain .screen-calc-gm-list .table th[data-key="approveDt"],
 #contentsMain .screen-calc-gm-list .table th[data-key="cancelDt"] { min-width: 138px; }
 
-/* 수수료내역: 가맹정산내역과 유사한 2단 헤더·가로 스크롤·밀도 (tbody는 text-end 등 유틸이 적용되도록 강제 가운데 정렬 제외) */
+/* ììë£ë´ì­: ê°ë§¹ì ì°ë´ì­ê³¼ ì ì¬í 2ë¨ í¤ëÂ·ê°ë¡ ì¤í¬ë¡¤Â·ë°ë (tbodyë text-end ë± ì í¸ì´ ì ì©ëëë¡ ê°ì  ê°ì´ë° ì ë ¬ ì ì¸) */
 #contentsMain .screen-calc-fee-list .summary-total-bar {
   background: #f8fbff;
   border: 1px solid #d7e8fb;
@@ -1232,14 +1232,14 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   color: #2b5f8d;
   font-weight: 600;
 }
-#contentsMain .screen-calc-fee-list [data-summary="건수"],
-#contentsMain .screen-calc-fee-list #summary_건수,
-#contentsMain .screen-calc-fee-list [data-pg-summary-key="건수"] {
+#contentsMain .screen-calc-fee-list [data-summary="ê±´ì"],
+#contentsMain .screen-calc-fee-list #summary_ê±´ì,
+#contentsMain .screen-calc-fee-list [data-pg-summary-key="ê±´ì"] {
   color: #4a148c;
   font-weight: 700;
 }
 
-/* 정산·통보·사용자·운영·API연동 등: 요약 바 톤 = 가맹점정산내역(연한 파랑 + 건수만 보라) */
+/* ì ì°Â·íµë³´Â·ì¬ì©ìÂ·ì´ìÂ·APIì°ë ë±: ìì½ ë° í¤ = ê°ë§¹ì ì ì°ë´ì­(ì°í íë + ê±´ìë§ ë³´ë¼) */
 #contentsMain .screen-settlement-summary-bar .summary-total-bar,
 #contentsMain .screen-distribution-list .summary-total-bar {
   background: #f8fbff;
@@ -1254,11 +1254,11 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   color: #2b5f8d;
   font-weight: 600;
 }
-#contentsMain .screen-settlement-summary-bar .summary-total-item#summary_건수,
-#contentsMain .screen-settlement-summary-bar .summary-total-item[data-pg-summary-key="건수"],
+#contentsMain .screen-settlement-summary-bar .summary-total-item#summary_ê±´ì,
+#contentsMain .screen-settlement-summary-bar .summary-total-item[data-pg-summary-key="ê±´ì"],
 #contentsMain .screen-settlement-summary-bar .summary-count-item,
-#contentsMain .screen-distribution-list .summary-total-item#summary_건수,
-#contentsMain .screen-distribution-list .summary-total-item[data-pg-summary-key="건수"],
+#contentsMain .screen-distribution-list .summary-total-item#summary_ê±´ì,
+#contentsMain .screen-distribution-list .summary-total-item[data-pg-summary-key="ê±´ì"],
 #contentsMain .screen-distribution-list .summary-count-item {
   color: #4a148c;
   font-weight: 700;
@@ -1293,7 +1293,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
-/* 수수료내역: table-scrollable 공통(60vh·세로 overflow)보다 우선 — 한 페이지(25·50 등) 행이 잘리지 않고 내부 세로 스크롤 없음. 가로만 유지 */
+/* ììë£ë´ì­: table-scrollable ê³µíµ(60vhÂ·ì¸ë¡ overflow)ë³´ë¤ ì°ì  â í íì´ì§(25Â·50 ë±) íì´ ìë¦¬ì§ ìê³  ë´ë¶ ì¸ë¡ ì¤í¬ë¡¤ ìì. ê°ë¡ë§ ì ì§ */
 #contentsMain .screen-calc-fee-list .table-responsive.table-scrollable {
   max-height: none;
   overflow-y: visible;
@@ -1353,7 +1353,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 #contentsMain .screen-calc-fee-list .table th[data-key="totalFee"],
 #contentsMain .screen-calc-fee-list .table th[data-key="feeVat"] { min-width: 96px; }
 
-/* 대행수수료: 거래번호·승인번호·결제대행사 등 열 겹침 방지(한 줄·최소 너비) */
+/* ëíììë£: ê±°ëë²í¸Â·ì¹ì¸ë²í¸Â·ê²°ì ëíì¬ ë± ì´ ê²¹ì¹¨ ë°©ì§(í ì¤Â·ìµì ëë¹) */
 #contentsMain .tab-pane[formurl="/ops/agencyTxnList"] .table tbody td {
   overflow: hidden;
 }
@@ -1364,7 +1364,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 #contentsMain .tab-pane[formurl="/ops/agencyTxnList"] .table th[data-key="compNm"] { min-width: 150px; }
 #contentsMain .tab-pane[formurl="/ops/agencyTxnList"] .table th[data-key="compId"] { min-width: 105px; }
 
-/* 결제내역(통합·파생): 테이블 헤더는 연한 블루, 상단 요약 바는 연한 블루 톤 */
+/* ê²°ì ë´ì­(íµí©Â·íì): íì´ë¸ í¤ëë ì°í ë¸ë£¨, ìë¨ ìì½ ë°ë ì°í ë¸ë£¨ í¤ */
 .summary-total-bar--pay-list-aggregate {
   align-items: center;
   flex-wrap: wrap;
@@ -1453,7 +1453,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   align-items: center;
   gap: 4px 0;
 }
-/* 결제관리·통합·일별·ChillPay: 요약 바 연한 블루 (건수 텍스트만 보라) */
+/* ê²°ì ê´ë¦¬Â·íµí©Â·ì¼ë³Â·ChillPay: ìì½ ë° ì°í ë¸ë£¨ (ê±´ì íì¤í¸ë§ ë³´ë¼) */
 .screen-pay-list .summary-total-bar,
 #contentsMain .screen-daily-integrated .summary-total-bar,
 #contentsMain .screen-daily-pay .summary-total-bar,
@@ -1468,37 +1468,37 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   color: #1a3a52;
   font-weight: 600;
 }
-.screen-pay-list .summary-total-item#summary_건수,
-.screen-pay-list .summary-total-item[data-pg-summary-key="건수"],
+.screen-pay-list .summary-total-item#summary_ê±´ì,
+.screen-pay-list .summary-total-item[data-pg-summary-key="ê±´ì"],
 .screen-pay-list .summary-count-item,
-#contentsMain .screen-daily-integrated .summary-total-item#summary_건수,
-#contentsMain .screen-daily-integrated .summary-total-item[data-pg-summary-key="건수"],
-#contentsMain .screen-daily-pay .summary-total-item#summary_건수,
-#contentsMain .screen-daily-pay .summary-total-item[data-pg-summary-key="건수"],
-#contentsMain .screen-daily-fee .summary-total-item#summary_건수,
-#contentsMain .screen-daily-fee .summary-total-item[data-pg-summary-key="건수"],
-#contentsMain .screen-chill-pay-tr-list .summary-total-item#summary_건수,
-#contentsMain .screen-chill-pay-tr-list .summary-total-item[data-pg-summary-key="건수"],
-#contentsMain .screen-chill-pay-settlement-list .summary-total-item#summary_건수,
-#contentsMain .screen-chill-pay-settlement-list .summary-total-item[data-pg-summary-key="건수"],
-#contentsMain .screen-jpay-tr-list .summary-total-item#summary_건수,
-#contentsMain .screen-jpay-tr-list .summary-total-item[data-pg-summary-key="건수"],
-#contentsMain .screen-ops-integrated-report .summary-total-item#summary_건수,
-#contentsMain .screen-ops-integrated-report .summary-total-item[data-pg-summary-key="건수"],
+#contentsMain .screen-daily-integrated .summary-total-item#summary_ê±´ì,
+#contentsMain .screen-daily-integrated .summary-total-item[data-pg-summary-key="ê±´ì"],
+#contentsMain .screen-daily-pay .summary-total-item#summary_ê±´ì,
+#contentsMain .screen-daily-pay .summary-total-item[data-pg-summary-key="ê±´ì"],
+#contentsMain .screen-daily-fee .summary-total-item#summary_ê±´ì,
+#contentsMain .screen-daily-fee .summary-total-item[data-pg-summary-key="ê±´ì"],
+#contentsMain .screen-chill-pay-tr-list .summary-total-item#summary_ê±´ì,
+#contentsMain .screen-chill-pay-tr-list .summary-total-item[data-pg-summary-key="ê±´ì"],
+#contentsMain .screen-chill-pay-settlement-list .summary-total-item#summary_ê±´ì,
+#contentsMain .screen-chill-pay-settlement-list .summary-total-item[data-pg-summary-key="ê±´ì"],
+#contentsMain .screen-jpay-tr-list .summary-total-item#summary_ê±´ì,
+#contentsMain .screen-jpay-tr-list .summary-total-item[data-pg-summary-key="ê±´ì"],
+#contentsMain .screen-ops-integrated-report .summary-total-item#summary_ê±´ì,
+#contentsMain .screen-ops-integrated-report .summary-total-item[data-pg-summary-key="ê±´ì"],
 #contentsMain .screen-ops-integrated-report .summary-count-item,
-#contentsMain .screen-ops-verify-report .summary-total-item#summary_건수,
-#contentsMain .screen-ops-verify-report .summary-total-item[data-pg-summary-key="건수"],
+#contentsMain .screen-ops-verify-report .summary-total-item#summary_ê±´ì,
+#contentsMain .screen-ops-verify-report .summary-total-item[data-pg-summary-key="ê±´ì"],
 #contentsMain .screen-ops-verify-report .summary-count-item {
   color: #4a148c;
   font-weight: 700;
 }
-.screen-pay-list .summary-total-item#summary_승인금액 { color: #198754; }
-.screen-pay-list .summary-total-item#summary_취소금액 { color: #dc3545; }
-.screen-pay-list .summary-total-item#summary_결제금액,
-.screen-pay-list .summary-total-item#summary_총수수료,
-.screen-pay-list .summary-total-item#summary_보류금액,
-.screen-pay-list .summary-total-item#summary_지급액 { color: #0d6efd; }
-/* 건수 ↔ VIEW SETTING 사이: 상태·통화별 집계 — 좌측 정렬·상태별 색 pill (NOTI 참고 UI) */
+.screen-pay-list .summary-total-item#summary_ì¹ì¸ê¸ì¡ { color: #198754; }
+.screen-pay-list .summary-total-item#summary_ì·¨ìê¸ì¡ { color: #dc3545; }
+.screen-pay-list .summary-total-item#summary_ê²°ì ê¸ì¡,
+.screen-pay-list .summary-total-item#summary_ì´ììë£,
+.screen-pay-list .summary-total-item#summary_ë³´ë¥ê¸ì¡,
+.screen-pay-list .summary-total-item#summary_ì§ê¸ì¡ { color: #0d6efd; }
+/* ê±´ì â VIEW SETTING ì¬ì´: ìíÂ·íµíë³ ì§ê³ â ì¢ì¸¡ ì ë ¬Â·ìíë³ ì pill (NOTI ì°¸ê³  UI) */
 .pay-list-status-bar {
   padding: 10px 12px;
   background: #f8fafc;
@@ -1509,7 +1509,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   text-align: left;
 }
 .pay-list-status-bar--empty { display: none; }
-/* 결제관리 상단: summary-total-bar(건수+금액 한 줄) + 아래 상태 pill */
+/* ê²°ì ê´ë¦¬ ìë¨: summary-total-bar(ê±´ì+ê¸ì¡ í ì¤) + ìë ìí pill */
 .pay-list-aggregate-stack {
   display: flex;
   flex-direction: column;
@@ -1546,7 +1546,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   padding: 4px 10px;
   border-radius: 8px;
 }
-/* 통합·결제내역: 검색 전체 집계 한 줄(통화별) — 상태바 위 */
+/* íµí©Â·ê²°ì ë´ì­: ê²ì ì ì²´ ì§ê³ í ì¤(íµíë³) â ìíë° ì */
 .pay-list-financial-summary {
   line-height: 1.5;
   font-size: var(--pay-mng-dense-font-size, 12px);
@@ -1560,7 +1560,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   gap: 4px 0;
   justify-content: flex-start;
 }
-/* 첫 집계 줄 첫 글자 ↔ 아래 행 첫 상태 pill 텍스트 세로 라인 정렬 */
+/* ì²« ì§ê³ ì¤ ì²« ê¸ì â ìë í ì²« ìí pill íì¤í¸ ì¸ë¡ ë¼ì¸ ì ë ¬ */
 .pay-list-aggregate-stack .pay-list-financial-summary__inner {
   padding-left: 10px;
 }
@@ -1585,7 +1585,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   max-width: none;
   white-space: nowrap;
 }
-/* 레거시 2행 그리드(일별 상세 등) — 상단 요약바는 --inline 사용 */
+/* ë ê±°ì 2í ê·¸ë¦¬ë(ì¼ë³ ìì¸ ë±) â ìë¨ ìì½ë°ë --inline ì¬ì© */
 .pay-list-status-bar__inner--grid {
   flex-direction: column;
   align-items: stretch;
@@ -1642,7 +1642,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   color: #9d174d;
   border-color: #fbcfe8;
 }
-/* 환불(블루)·기타(앰버)·취소(그레이) 톤 구분 */
+/* íë¶(ë¸ë£¨)Â·ê¸°í(ì°ë²)Â·ì·¨ì(ê·¸ë ì´) í¤ êµ¬ë¶ */
 .pay-list-status-bar__pill--refund {
   background: #dbeafe;
   color: #1e40af;
@@ -1653,13 +1653,13 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   color: #5b21b6;
   border-color: #c4b5fd;
 }
-/* 취소: 어두운 파스텔 그레이(행 바탕·연한 그레이와 구분) */
+/* ì·¨ì: ì´ëì´ íì¤í ê·¸ë ì´(í ë°íÂ·ì°í ê·¸ë ì´ì êµ¬ë¶) */
 .pay-list-status-bar__pill--cancel {
   background: #d4dce6;
   color: #3d4d5c;
   border: 1px solid #9aa8b8;
 }
-/* 기타: 취소에 쓰이던 앰버 톤(환불·무효·실패와 구분) */
+/* ê¸°í: ì·¨ìì ì°ì´ë ì°ë² í¤(íë¶Â·ë¬´í¨Â·ì¤í¨ì êµ¬ë¶) */
 .pay-list-status-bar__pill--other {
   background: #fef3c7;
   color: #92400e;
@@ -1687,8 +1687,8 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   color: #94a3b8;
   font-weight: 500;
 }
-/* tab-pane.screen-pay-list 는 #contentsMain 내부에 있음(자손 선택자) */
-/* JP/TH 이중 시각(줄바꿈) — nowrap 해제·행 높이 */
+/* tab-pane.screen-pay-list ë #contentsMain ë´ë¶ì ìì(ìì ì íì) */
+/* JP/TH ì´ì¤ ìê°(ì¤ë°ê¿) â nowrap í´ì Â·í ëì´ */
 .pay-grid-time-dual {
   white-space: normal !important;
   line-height: 1.35;
@@ -1711,7 +1711,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   font-weight: 500;
 }
 
-/* 분할 진행관리: 이벤트일시·취소사유·이메일·번호 컬럼 — 겹침/깨짐 방지 */
+/* ë¶í  ì§íê´ë¦¬: ì´ë²¤í¸ì¼ìÂ·ì·¨ìì¬ì Â·ì´ë©ì¼Â·ë²í¸ ì»¬ë¼ â ê²¹ì¹¨/ê¹¨ì§ ë°©ì§ */
 .pg-split-narrow-cell {
   min-width: 2.25rem;
   max-width: 4.25rem;
@@ -1755,7 +1755,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   line-height: 1.35;
 }
 
-/* 결제내역 처리사유 — 출처 배지 없이 본문만, 검은색·UI 언어(locale)별 폰트 */
+/* ê²°ì ë´ì­ ì²ë¦¬ì¬ì  â ì¶ì² ë°°ì§ ìì´ ë³¸ë¬¸ë§, ê²ììÂ·UI ì¸ì´(locale)ë³ í°í¸ */
 .pg-outcome-reason-preview {
   color: #000;
   font-style: normal;
@@ -1808,7 +1808,7 @@ html[lang="th"] .pg-outcome-reason-preview {
 #contentsMain .screen-pay-list .table tbody tr:nth-child(even),
 #contentsMain .screen-calc-fee-list .table tbody tr:nth-child(even) { background: #eef6fc; }
 
-/* 결제내역·통합내역·수수료내역 — NOTI 종합거래와 동일 톤: 행 배경 + Status 뱃지 */
+/* ê²°ì ë´ì­Â·íµí©ë´ì­Â·ììë£ë´ì­ â NOTI ì¢í©ê±°ëì ëì¼ í¤: í ë°°ê²½ + Status ë±ì§ */
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--success,
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--success:nth-child(odd),
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--success:nth-child(even),
@@ -1817,7 +1817,7 @@ html[lang="th"] .pg-outcome-reason-preview {
 #contentsMain .screen-calc-fee-list .table tbody tr.pay-row-tone--success:nth-child(even) {
   background: #e6f7ec !important;
 }
-/* 비활성카드등록 — 해지된 건 파스텔 연두색 행 */
+/* ë¹íì±ì¹´ëë±ë¡ â í´ì§ë ê±´ íì¤í ì°ëì í */
 #contentsMain .table tbody tr.ops-inactive-card-released,
 #contentsMain .table tbody tr.ops-inactive-card-released:nth-child(odd),
 #contentsMain .table tbody tr.ops-inactive-card-released:nth-child(even) {
@@ -1897,7 +1897,7 @@ html[lang="th"] .pg-outcome-reason-preview {
 #contentsMain .screen-calc-fee-list .table tbody tr.pay-row-tone--pending:nth-child(even) {
   background: #f5f7fa !important;
 }
-/* 기타(인증대기 등): 상단 집계 OTHER·pill--other와 동일 앰버 톤 */
+/* ê¸°í(ì¸ì¦ëê¸° ë±): ìë¨ ì§ê³ OTHERÂ·pill--otherì ëì¼ ì°ë² í¤ */
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--other,
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--other:nth-child(odd),
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--other:nth-child(even),
@@ -1907,7 +1907,7 @@ html[lang="th"] .pg-outcome-reason-preview {
   background: linear-gradient(90deg, rgba(251, 191, 36, 0.38) 0, rgba(254, 243, 199, 0.92) 14px, #fffbeb 100%) !important;
 }
 
-/* 일별통합·일별결제·일별수수료·통합 리포트 — 일자 클릭 상세(결제내역과 동일 파스텔 행) */
+/* ì¼ë³íµí©Â·ì¼ë³ê²°ì Â·ì¼ë³ììë£Â·íµí© ë¦¬í¬í¸ â ì¼ì í´ë¦­ ìì¸(ê²°ì ë´ì­ê³¼ ëì¼ íì¤í í) */
 #contentsMain table.pay-grid-detail-pastel tbody tr.pay-row-tone--success,
 #contentsMain table.pay-grid-detail-pastel tbody tr.pay-row-tone--success:nth-child(odd),
 #contentsMain table.pay-grid-detail-pastel tbody tr.pay-row-tone--success:nth-child(even) {
@@ -1975,7 +1975,7 @@ html[lang="th"] .pg-outcome-reason-preview {
   color: #fff;
 }
 
-/* 통합체크 — 번호별 교차 색(홀=주황·짝=연두), 번호·일자는 흰색, 불일치 셀만 강조 */
+/* íµí©ì²´í¬ â ë²í¸ë³ êµì°¨ ì(í=ì£¼í©Â·ì§=ì°ë), ë²í¸Â·ì¼ìë í°ì, ë¶ì¼ì¹ ìë§ ê°ì¡° */
 #contentsMain table.integrated-check-grid tbody tr.integrated-check-row--odd {
   background: #fff4ed !important;
 }
@@ -2028,7 +2028,7 @@ html[lang="th"] .pg-outcome-reason-preview {
   color: #374151;
 }
 
-/* 고밀도 한 줄 셀 + 하단 가로 스크롤(NOTI 종합거래·노티거래내역 유사) */
+/* ê³ ë°ë í ì¤ ì + íë¨ ê°ë¡ ì¤í¬ë¡¤(NOTI ì¢í©ê±°ëÂ·ë¸í°ê±°ëë´ì­ ì ì¬) */
 #contentsMain .screen-pay-list .table-responsive {
   display: block;
   width: 100%;
@@ -2054,7 +2054,7 @@ html[lang="th"] .pg-outcome-reason-preview {
   white-space: normal;
 }
 
-/* TAX 리포트: 페이지 하단 가로 스크롤바 제거 + 날짜 입력 폭 축소 */
+/* TAX ë¦¬í¬í¸: íì´ì§ íë¨ ê°ë¡ ì¤í¬ë¡¤ë° ì ê±° + ë ì§ ìë ¥ í­ ì¶ì */
 #contentsMain .screen-tax-report .table-responsive {
   display: block;
   width: 100%;
@@ -2077,14 +2077,14 @@ html[lang="th"] .pg-outcome-reason-preview {
   min-width: 10.5rem !important;
 }
 
-/* TAX 리포트: 그리드 셀 밀도(폭) 축소 → 가로 스크롤 방지 */
+/* TAX ë¦¬í¬í¸: ê·¸ë¦¬ë ì ë°ë(í­) ì¶ì â ê°ë¡ ì¤í¬ë¡¤ ë°©ì§ */
 #contentsMain .screen-tax-report .table thead th,
 #contentsMain .screen-tax-report .table tbody td {
   font-size: 11px;
   line-height: 1.2;
   padding: 3px 4px;
 }
-/* data-key로 주요 열 너비를 강제(standard grid thead는 th[data-key] 지원) */
+/* data-keyë¡ ì£¼ì ì´ ëë¹ë¥¼ ê°ì (standard grid theadë th[data-key] ì§ì) */
 #contentsMain .screen-tax-report .table thead th[data-key="rowNo"] { width: 44px; }
 #contentsMain .screen-tax-report .table thead th[data-key="settlementRunId"] { width: 76px; }
 #contentsMain .screen-tax-report .table thead th[data-key="calcDt"] { width: 86px; }
@@ -2104,7 +2104,7 @@ html[lang="th"] .pg-outcome-reason-preview {
 #contentsMain .screen-tax-report .table thead th[data-key="finalPayAfterRemittance"] { width: 98px; }
 #contentsMain .screen-tax-report .table thead th[data-key="reportNote"] { width: 110px; }
 
-/* TAX 리포트 상단(정산일) 날짜 입력칸: 폭 40% 축소(= 약 60% 폭) */
+/* TAX ë¦¬í¬í¸ ìë¨(ì ì°ì¼) ë ì§ ìë ¥ì¹¸: í­ 40% ì¶ì(= ì½ 60% í­) */
 #contentsMain .screen-tax-report .screen-search-form .search-cell-input--daterange input[type="date"] {
   min-width: 6.5rem !important;
   width: 6.5rem !important;
@@ -2113,7 +2113,7 @@ html[lang="th"] .pg-outcome-reason-preview {
   padding-right: 6px;
 }
 
-/* 동일 화면: 검색폼·안내·VIEW·요약·버튼·페이지네이션 글자 크기 통일 */
+/* ëì¼ íë©´: ê²ìí¼Â·ìë´Â·VIEWÂ·ìì½Â·ë²í¼Â·íì´ì§ë¤ì´ì ê¸ì í¬ê¸° íµì¼ */
 #contentsMain .screen-pay-list .pay-mng-search-form .form-label,
 #contentsMain .screen-pay-list .pay-mng-search-form .form-control,
 #contentsMain .screen-pay-list .pay-mng-search-form .form-select,
@@ -2149,7 +2149,7 @@ html[lang="th"] .pg-outcome-reason-preview {
   font-size: var(--pay-mng-dense-font-size);
 }
 
-/* 업체관리(트리): 결제내역(screen-pay-list)과 동일 밀도 글자 크기 */
+/* ìì²´ê´ë¦¬(í¸ë¦¬): ê²°ì ë´ì­(screen-pay-list)ê³¼ ëì¼ ë°ë ê¸ì í¬ê¸° */
 #contentsMain .screen-comp-mng-tree .table thead th,
 #contentsMain .screen-comp-mng-tree .table tbody td {
   font-size: var(--pay-mng-dense-font-size);
@@ -2185,7 +2185,7 @@ html[lang="th"] .pg-outcome-reason-preview {
 }
 
 #contentsMain .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-/* 업체관리 등: 가로·세로 스크롤로 모든 자료 한 화면에서 볼 수 있게 */
+/* ìì²´ê´ë¦¬ ë±: ê°ë¡Â·ì¸ë¡ ì¤í¬ë¡¤ë¡ ëª¨ë  ìë£ í íë©´ìì ë³¼ ì ìê² */
 #contentsMain .table-responsive.table-scrollable {
   max-height: 60vh;
   overflow: auto;
@@ -2194,17 +2194,17 @@ html[lang="th"] .pg-outcome-reason-preview {
 }
 #contentsMain .table { width: 100%; }
 
-/* 전역: 데이터 테이블 열 너비 조절 (table-column-resize.js) */
+/* ì ì­: ë°ì´í° íì´ë¸ ì´ ëë¹ ì¡°ì  (table-column-resize.js) */
 table.table.pg-table-col-resize-enabled {
   table-layout: fixed;
 }
-/* 결제관리 통합·분류·통합내역·통합정산: 리사이즈 시 col 너비 적용을 위해 fixed(가로 스크롤은 유지) */
+/* ê²°ì ê´ë¦¬ íµí©Â·ë¶ë¥Â·íµí©ë´ì­Â·íµí©ì ì°: ë¦¬ì¬ì´ì¦ ì col ëë¹ ì ì©ì ìí´ fixed(ê°ë¡ ì¤í¬ë¡¤ì ì ì§) */
 #contentsMain .screen-pay-list .table-responsive > .table.pay-mng-data-grid.pg-table-col-resize-enabled {
   table-layout: fixed;
   width: max-content;
   min-width: 100%;
 }
-/* 통합내역·통합정산: 다른 결제 그리드와 동일하게 가로 스크롤(열 압축 방지) */
+/* íµí©ë´ì­Â·íµí©ì ì°: ë¤ë¥¸ ê²°ì  ê·¸ë¦¬ëì ëì¼íê² ê°ë¡ ì¤í¬ë¡¤(ì´ ìì¶ ë°©ì§) */
 #contentsMain .screen-chill-pay-tr-list .table-responsive,
 #contentsMain .screen-chill-pay-settlement-list .table-responsive {
   display: block;
@@ -2218,7 +2218,7 @@ table.table.pg-table-col-resize-enabled {
   width: max-content;
   min-width: 100%;
 }
-/* 가맹정산·수수료내역 등 동일 pay-mng 그리드: 리사이즈 활성 시 결제 그리드와 동일하게 fixed + 가로 스크롤 폭 유지 */
+/* ê°ë§¹ì ì°Â·ììë£ë´ì­ ë± ëì¼ pay-mng ê·¸ë¦¬ë: ë¦¬ì¬ì´ì¦ íì± ì ê²°ì  ê·¸ë¦¬ëì ëì¼íê² fixed + ê°ë¡ ì¤í¬ë¡¤ í­ ì ì§ */
 #contentsMain .screen-calc-gm-list .table-responsive > .table.pay-mng-data-grid.pg-table-col-resize-enabled,
 #contentsMain .screen-calc-fee-list .table-responsive > .table.pay-mng-data-grid.pg-table-col-resize-enabled {
   table-layout: fixed;
@@ -2257,9 +2257,9 @@ colgroup.pg-col-resize-group col {
   min-width: 40px;
 }
 
-/* 데이터 없음 메시지: 항상 가운데 (공공사항, 업체정보조회, 업체관리 포함) */
+/* ë°ì´í° ìì ë©ìì§: í­ì ê°ì´ë° (ê³µê³µì¬í­, ìì²´ì ë³´ì¡°í, ìì²´ê´ë¦¬ í¬í¨) */
 #contentsMain .table-responsive .table { min-width: 100%; }
-/* 업체관리 상단 그리드(.comp-mng-tree-grid): 리사이즈 적용 전 auto → 적용 후 fixed(table-column-resize.js) */
+/* ìì²´ê´ë¦¬ ìë¨ ê·¸ë¦¬ë(.comp-mng-tree-grid): ë¦¬ì¬ì´ì¦ ì ì© ì  auto â ì ì© í fixed(table-column-resize.js) */
 #contentsMain .table-responsive .table.comp-mng-tree-grid[id^="grid_comp_compMngTree"] {
   table-layout: auto;
   width: auto;
@@ -2289,7 +2289,7 @@ colgroup.pg-col-resize-group col {
   line-height: 1.35;
   max-width: 100%;
 }
-/* 업체코드 조직도 셀: td 는 표 셀로 유지, 내부 래퍼로 아이콘·펼침·코드 한 줄 정렬 */
+/* ìì²´ì½ë ì¡°ì§ë ì: td ë í ìë¡ ì ì§, ë´ë¶ ëí¼ë¡ ìì´ì½Â·í¼ì¹¨Â·ì½ë í ì¤ ì ë ¬ */
 #contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] td.tree-comp-cell {
   text-align: left !important;
   vertical-align: middle;
@@ -2322,12 +2322,12 @@ colgroup.pg-col-resize-group col {
 #contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] td:nth-child(4),
 #contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] th:nth-child(5),
 #contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] td:nth-child(5) { min-width: 0; }
-/* 업체관리: 한 줄 흰색, 한 줄 파스텔 블루 교차 + 칸 구분선 제거 */
+/* ìì²´ê´ë¦¬: í ì¤ í°ì, í ì¤ íì¤í ë¸ë£¨ êµì°¨ + ì¹¸ êµ¬ë¶ì  ì ê±° */
 #contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] tbody tr:nth-child(odd) { background: #fff; }
 #contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] tbody tr:nth-child(even) { background: #E6F7FF; }
 #contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] td,
 #contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] th { border: none !important; }
-/* 유통망정산내역: 3단 헤더(승인/취소·수수료 하위) — 좁은 칸도 한 줄로 보이게 */
+/* ì íµë§ì ì°ë´ì­: 3ë¨ í¤ë(ì¹ì¸/ì·¨ìÂ·ììë£ íì) â ì¢ì ì¹¸ë í ì¤ë¡ ë³´ì´ê² */
 .screen-distribution-list .screen-distribution-grid.table {
   table-layout: auto;
   min-width: 1280px;
@@ -2350,14 +2350,14 @@ colgroup.pg-col-resize-group col {
   padding-right: 4px;
 }
 
-/* 본사설정 — 노티매핑 JSON 편집 */
+/* ë³¸ì¬ì¤ì  â ë¸í°ë§¤í JSON í¸ì§ */
 #hqNotifyMappingForm textarea[name="mappingDefinitionJson"] {
   font-family: ui-monospace, Consolas, "Cascadia Code", monospace;
   font-size: var(--app-base-font-size);
   line-height: 1.35;
 }
 
-/* 노티매핑설정 — GUI 작업 표·단계 안내 */
+/* ë¸í°ë§¤íì¤ì  â GUI ìì íÂ·ë¨ê³ ìë´ */
 .hq-notify-mapping-ui .hq-nm-intro {
   border-radius: 8px;
 }
@@ -2389,7 +2389,7 @@ colgroup.pg-col-resize-group col {
   vertical-align: middle;
 }
 
-/* VIEW SETTING: 본문·제목·체크·버튼 글자 — 전역 10px */
+/* VIEW SETTING: ë³¸ë¬¸Â·ì ëª©Â·ì²´í¬Â·ë²í¼ ê¸ì â ì ì­ 10px */
 #contentsMain .table-column-guide,
 #contentsMain .table-column-guide .column-guide-title,
 #contentsMain .table-column-guide .column-guide-label,
@@ -2398,7 +2398,7 @@ colgroup.pg-col-resize-group col {
   font-size: var(--view-setting-font-size);
 }
 
-/* 업체관리 VIEW SETTING: 1행 제목·액션, 2행 컬럼 체크(줄바꿈) — 결제내역과 동일 레이아웃 */
+/* ìì²´ê´ë¦¬ VIEW SETTING: 1í ì ëª©Â·ì¡ì, 2í ì»¬ë¼ ì²´í¬(ì¤ë°ê¿) â ê²°ì ë´ì­ê³¼ ëì¼ ë ì´ìì */
 .table-column-guide { font-size: var(--view-setting-font-size); display: flex; flex-direction: column; align-items: stretch; justify-content: center; }
 .table-column-guide .column-guide-row { margin-bottom: 4px; }
 .table-column-guide .column-guide-row:last-child { margin-bottom: 0; }
@@ -2416,7 +2416,7 @@ colgroup.pg-col-resize-group col {
   overflow-y: hidden;
   padding-top: 0;
 }
-/* 결제내역 등: VIEW SETTING 2행 — 1행 VIEW SETTING | 기본·해제·선택·저장, 2행 컬럼 체크 */
+/* ê²°ì ë´ì­ ë±: VIEW SETTING 2í â 1í VIEW SETTING | ê¸°ë³¸Â·í´ì Â·ì íÂ·ì ì¥, 2í ì»¬ë¼ ì²´í¬ */
 .table-column-guide.table-column-guide--two-row {
   gap: 8px;
 }
@@ -2469,7 +2469,7 @@ colgroup.pg-col-resize-group col {
   min-height: 20px !important;
   min-width: 2rem !important;
 }
-/* 헬로: 안내(파스텔)·VIEW SETTING 공통 숨김 토글 — 새로고침·엑셀 사이(글자 크기 VIEW SETTING과 동일) */
+/* í¬ë¡: ìë´(íì¤í)Â·VIEW SETTING ê³µíµ ì¨ê¹ í ê¸ â ìë¡ê³ ì¹¨Â·ìì ì¬ì´(ê¸ì í¬ê¸° VIEW SETTINGê³¼ ëì¼) */
 .btn-view-setting-hello {
   background-color: #fecaca !important;
   border-color: #f87171 !important;
@@ -2534,7 +2534,7 @@ colgroup.pg-col-resize-group col {
 .table-column-guide .column-guide-item { margin: 0; font-weight: 500; cursor: pointer; white-space: normal; font-size: var(--view-setting-font-size); display: inline-flex; align-items: flex-start; max-width: 100%; }
 .table-column-guide .column-guide-item input { margin-right: 3px; }
 .table-column-guide .btn.btn-xs { font-size: var(--view-setting-font-size); padding: 2px 6px; width: 100%; min-height: 24px; }
-/* 업체관리 트리: 데이터 셀도 가운데 정렬(통일 정책) */
+/* ìì²´ê´ë¦¬ í¸ë¦¬: ë°ì´í° ìë ê°ì´ë° ì ë ¬(íµì¼ ì ì±) */
 .tree-toggle-cell { white-space: nowrap; }
 .tree-comp-cell { white-space: nowrap; text-align: center !important; }
 .tree-comp-cell .tree-icon {
@@ -2542,7 +2542,7 @@ colgroup.pg-col-resize-group col {
   vertical-align: middle;
   margin-right: 4px;
 }
-/* 업체관리 트리: 업체구분별 폴더·문서 아이콘 색 (HEADQUARTERS~MERCHANT) */
+/* ìì²´ê´ë¦¬ í¸ë¦¬: ìì²´êµ¬ë¶ë³ í´ëÂ·ë¬¸ì ìì´ì½ ì (HEADQUARTERS~MERCHANT) */
 .tree-comp-cell .tree-icon.tree-org-HEADQUARTERS { color: #5e35b1; }
 .tree-comp-cell .tree-icon.tree-org-REGIONAL { color: #1565c0; }
 .tree-comp-cell .tree-icon.tree-org-MASTER_DIST { color: #2e7d32; }
@@ -2550,7 +2550,7 @@ colgroup.pg-col-resize-group col {
 .tree-comp-cell .tree-icon.tree-org-AGENCY { color: #f57f17; }
 .tree-comp-cell .tree-icon.tree-org-SALES_OFFICE { color: #c2185b; }
 .tree-comp-cell .tree-icon.tree-org-MERCHANT { color: #455a64; }
-/* 가맹점: 상위 첫 조직 단계별 폴더·문서 아이콘 파스텔 (서버 merchantTreeFolderTone) */
+/* ê°ë§¹ì : ìì ì²« ì¡°ì§ ë¨ê³ë³ í´ëÂ·ë¬¸ì ìì´ì½ íì¤í (ìë² merchantTreeFolderTone) */
 .tree-comp-cell .tree-icon.tree-org-MERCHANT.tree-merch-folder--direct { color: #81c784; }
 .tree-comp-cell .tree-icon.tree-org-MERCHANT.tree-merch-folder--branch { color: #ffb74d; }
 .tree-comp-cell .tree-icon.tree-org-MERCHANT.tree-merch-folder--agency { color: #ffcc80; }
@@ -2568,12 +2568,12 @@ colgroup.pg-col-resize-group col {
   user-select: none;
   margin-right: 4px;
 }
-/* 트리 펼침(기본): 업체관리 외 등에서만 사용 시 녹색·회색 */
+/* í¸ë¦¬ í¼ì¹¨(ê¸°ë³¸): ìì²´ê´ë¦¬ ì¸ ë±ììë§ ì¬ì© ì ë¹ìÂ·íì */
 .tree-toggle.expanded { color: #198754; }
 .tree-toggle.expanded:hover { color: #157347; }
 .tree-toggle.collapsed { color: #6c757d; }
 .tree-toggle.collapsed:hover { color: #495057; }
-/* 업체관리: 폴더와 동일 톤 — 펼침·접힘(삼각) 모두 해당 구분 색 계열 */
+/* ìì²´ê´ë¦¬: í´ëì ëì¼ í¤ â í¼ì¹¨Â·ì í(ì¼ê°) ëª¨ë í´ë¹ êµ¬ë¶ ì ê³ì´ */
 .tree-comp-cell .tree-toggle.tree-org-HEADQUARTERS.expanded { color: #5e35b1; }
 .tree-comp-cell .tree-toggle.tree-org-HEADQUARTERS.expanded:hover { color: #4527a0; }
 .tree-comp-cell .tree-toggle.tree-org-HEADQUARTERS.collapsed { color: rgba(94, 53, 177, 0.55); }
@@ -2602,7 +2602,7 @@ colgroup.pg-col-resize-group col {
 .tree-comp-cell .tree-toggle.tree-org-MERCHANT.expanded:hover { color: #263238; }
 .tree-comp-cell .tree-toggle.tree-org-MERCHANT.collapsed { color: rgba(69, 90, 100, 0.55); }
 .tree-comp-cell .tree-toggle.tree-org-MERCHANT.collapsed:hover { color: rgba(69, 90, 100, 0.88); }
-/* 가맹점 + 소속 톤: 펼침 삼각색을 아이콘과 동일 계열로 */
+/* ê°ë§¹ì  + ìì í¤: í¼ì¹¨ ì¼ê°ìì ìì´ì½ê³¼ ëì¼ ê³ì´ë¡ */
 .tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--direct.expanded,
 .tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--direct.expanded:hover { color: #66bb6a; }
 .tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--direct.collapsed { color: rgba(102, 187, 106, 0.55); }
@@ -2641,7 +2641,7 @@ colgroup.pg-col-resize-group col {
   margin-right: 4px;
   visibility: hidden;
 }
-/* 업체관리: 미사용 조직·가맹 회색 표시(상위 사용중 조직은 원래 색 유지) */
+/* ìì²´ê´ë¦¬: ë¯¸ì¬ì© ì¡°ì§Â·ê°ë§¹ íì íì(ìì ì¬ì©ì¤ ì¡°ì§ì ìë ì ì ì§) */
 #contentsMain tr.comp-tree-row-muted .tree-icon.tree-row-muted,
 #contentsMain tr.comp-tree-row-muted .tree-toggle.tree-row-muted,
 #contentsMain tr.comp-tree-row-muted .tree-comp-cell.tree-row-muted .pg-comp-grid-clamp,
@@ -2653,7 +2653,7 @@ colgroup.pg-col-resize-group col {
 #contentsMain tr.comp-tree-row-muted .tree-toggle.tree-row-muted.collapsed {
   color: #bdbdbd !important;
 }
-/* 업체관리: 미사용 결제대행사 경고 — 업체코드·아이콘을 주황 경고색으로 */
+/* ìì²´ê´ë¦¬: ë¯¸ì¬ì© ê²°ì ëíì¬ ê²½ê³  â ìì²´ì½ëÂ·ìì´ì½ì ì£¼í© ê²½ê³ ìì¼ë¡ */
 #contentsMain tr.comp-tree-pg-agency-issue .tree-icon.tree-pg-agency-issue,
 #contentsMain tr.comp-tree-pg-agency-issue .tree-toggle.tree-pg-agency-issue,
 #contentsMain tr.comp-tree-pg-agency-issue .tree-comp-cell.tree-pg-agency-issue .pg-comp-grid-clamp,
@@ -2683,7 +2683,7 @@ td.empty-state-cell {
   vertical-align: middle !important;
 }
 
-/* 페이지네이션: 한 번에 보기 + 페이지 번호, 파스텔 스카이블루 톤 */
+/* íì´ì§ë¤ì´ì: í ë²ì ë³´ê¸° + íì´ì§ ë²í¸, íì¤í ì¤ì¹´ì´ë¸ë£¨ í¤ */
 .pagination-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -2734,7 +2734,7 @@ td.empty-state-cell {
 .pagination-size-opt--active:hover { background: #46b8da; color: #fff; }
 .pagination-total { font-size: var(--app-base-font-size); color: #31708f; }
 .pagination-center {
-  /* 전체 바 기준 가로 가운데(왼쪽 "한 번에 보기" 너비와 무관) */
+  /* ì ì²´ ë° ê¸°ì¤ ê°ë¡ ê°ì´ë°(ì¼ìª½ "í ë²ì ë³´ê¸°" ëë¹ì ë¬´ê´) */
   grid-column: 1 / -1;
   grid-row: 1;
   justify-self: center;
@@ -2809,7 +2809,7 @@ td.empty-state-cell {
 #contentsMain .pagination { margin: 0; }
 #contentsMain .pagination .page-link { font-size: var(--app-base-font-size); }
 
-/* 각 페이지 하단 회사명 (목록/폼 공통) */
+/* ê° íì´ì§ íë¨ íì¬ëª (ëª©ë¡/í¼ ê³µíµ) */
 .page-footer {
   margin-top: 16px;
   padding-top: 12px;
@@ -2819,17 +2819,23 @@ td.empty-state-cell {
   text-align: center;
 }
 
-/* 전역 푸터: 회사명은 각 페이지 하단으로 이동 후 유지 또는 제거용 */
+/* ì ì­ í¸í°: íì¬ëªì ê° íì´ì§ íë¨ì¼ë¡ ì´ë í ì ì§ ëë ì ê±°ì© */
 .footer { flex-shrink: 0; background: #fff; padding: 8px 20px; border-top: 1px solid #e8e8e8; font-size: var(--app-base-font-size); color: #999; }
 .dimmed { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-/* 비활성카드·노티관리 수정 — 탭 pane 밖(body)에 두어도 백드롭·dimm 위에 표시 */
+/* Google OTP 모달은 저장 로딩(#dimm z-index 9999)보다 위에 — 입력 가능하도록 */
+#pgGoogleOtpSixModal { z-index: 10050 !important; }
+#pgGoogleOtpSixModal + .modal-backdrop,
+.modal-backdrop.show:has(+ #pgGoogleOtpSixModal) { z-index: 10040 !important; }
+body.modal-open > .modal-backdrop:last-of-type { z-index: 10040 !important; }
+#pgGoogleOtpSixModal.show { z-index: 10050 !important; }
+/* ë¹íì±ì¹´ëÂ·ë¸í°ê´ë¦¬ ìì  â í­ pane ë°(body)ì ëì´ë ë°±ëë¡­Â·dimm ìì íì */
 #opsIcEditModal.modal,
 #opsNpLogEditModal.modal { z-index: 10060 !important; }
 .dimmed-icon { width: 3rem; height: 3rem; }
 .dimmed-text { margin-top: 12px; font-weight: 600; color: #fff !important; }
 #content-frame { display: block; width: 100%; height: 100%; min-height: 500px; border: 0; }
 
-/* ========== 업체등록폼: 레이블 위·입력 아래·입력 간격 ========== */
+/* ========== ìì²´ë±ë¡í¼: ë ì´ë¸ ìÂ·ìë ¥ ìëÂ·ìë ¥ ê°ê²© ========== */
 .comp-reg-form .form-field-block {
   margin-bottom: 2rem;
 }
@@ -2841,7 +2847,7 @@ td.empty-state-cell {
   font-weight: 500;
   color: #333;
 }
-/* 입력창+버튼 같은 줄 (상위 본사, 로그인ID 등): 입력창 우측확장, 버튼 오른쪽 정렬 */
+/* ìë ¥ì°½+ë²í¼ ê°ì ì¤ (ìì ë³¸ì¬, ë¡ê·¸ì¸ID ë±): ìë ¥ì°½ ì°ì¸¡íì¥, ë²í¼ ì¤ë¥¸ìª½ ì ë ¬ */
 .comp-reg-form .form-input-with-btn {
   display: flex;
   align-items: center;
@@ -2861,20 +2867,20 @@ td.empty-state-cell {
   flex-shrink: 0;
   white-space: nowrap;
 }
-/* 보류율 설정, 수수료정책: 파스텔 스카이블루 */
+/* ë³´ë¥ì¨ ì¤ì , ììë£ì ì±: íì¤í ì¤ì¹´ì´ë¸ë£¨ */
 #holdRateCard.card,
 #commissionPolicyCard.card {
   background: linear-gradient(135deg, #e8f4fc 0%, #d4edff 100%);
   border-color: #b3d9f2;
 }
-/* 결제대행사 설정: 복수 추가 테이블 (가로 스크롤바 없음 — 카드 너비 안에 표시) */
+/* ê²°ì ëíì¬ ì¤ì : ë³µì ì¶ê° íì´ë¸ (ê°ë¡ ì¤í¬ë¡¤ë° ìì â ì¹´ë ëë¹ ìì íì) */
 .pg-binding-list-wrap {
   overflow-x: visible;
   max-width: 100%;
 }
 .pg-binding-table { font-size: var(--app-table-font-size); }
 .pg-binding-table th, .pg-binding-table td { vertical-align: middle; }
-/* 텍스트·숫자 입력만 최소 너비 — 체크·라디오는 정사각형 유지 */
+/* íì¤í¸Â·ì«ì ìë ¥ë§ ìµì ëë¹ â ì²´í¬Â·ë¼ëì¤ë ì ì¬ê°í ì ì§ */
 .pg-binding-table input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
 .pg-binding-table select {
   min-width: 80px;
@@ -2898,7 +2904,7 @@ td.empty-state-cell {
   display: block;
 }
 
-/* 결제대행사 설정: 운영(체크) 행만 파스텔 레드, 그 외 행은 그레이 */
+/* ê²°ì ëíì¬ ì¤ì : ì´ì(ì²´í¬) íë§ íì¤í ë ë, ê·¸ ì¸ íì ê·¸ë ì´ */
 .pg-binding-table tbody tr.pg-binding-row--operational > td {
   background: linear-gradient(180deg, #fff5f5 0%, #ffe4e8 100%) !important;
   border-top-color: #fecdd3 !important;
@@ -2912,7 +2918,7 @@ td.empty-state-cell {
 .pg-binding-table tbody tr.pg-binding-row--inactive .form-select {
   background-color: #f8f9fa;
 }
-/* 운영 열 체크(복수 가능): accent만 행별로 구분(크기는 위 공통 정사각형) */
+/* ì´ì ì´ ì²´í¬(ë³µì ê°ë¥): accentë§ íë³ë¡ êµ¬ë¶(í¬ê¸°ë ì ê³µíµ ì ì¬ê°í) */
 .pg-binding-table tbody tr.pg-binding-row--operational input[type="checkbox"][name="pgOperational"] {
   accent-color: #e85d75;
   cursor: pointer;
@@ -2922,7 +2928,7 @@ td.empty-state-cell {
   cursor: pointer;
 }
 
-/* 본사 API연동설정: 운영 체크(사용 Y) 행만 파스텔 레드 */
+/* ë³¸ì¬ APIì°ëì¤ì : ì´ì ì²´í¬(ì¬ì© Y) íë§ íì¤í ë ë */
 .table tbody tr.hq-pg-row-operational > td {
   background: linear-gradient(180deg, #fff5f5 0%, #ffe4e8 100%);
   border-top-color: #fecdd3;
@@ -2932,7 +2938,7 @@ td.empty-state-cell {
   background-color: #eef0f3;
   color: #5c6370;
 }
-/* 본사 API연동설정·기타 표: 운영 체크 정사각형(고정 레이아웃 열에서 늘어남 방지) */
+/* ë³¸ì¬ APIì°ëì¤ì Â·ê¸°í í: ì´ì ì²´í¬ ì ì¬ê°í(ê³ ì  ë ì´ìì ì´ìì ëì´ë¨ ë°©ì§) */
 .hq-pg-api-mng-table .hq-pg-operational-cb,
 .table tbody tr.hq-pg-row-operational .hq-pg-operational-cb,
 .table tbody tr.hq-pg-row-inactive .hq-pg-operational-cb {
@@ -2953,14 +2959,14 @@ td.empty-state-cell {
   accent-color: #94a3b8;
 }
 
-/* ========== 브랜딩 테마 (본사/총판) ========== */
-/* DEFAULT: 현재 색톤 */
+/* ========== ë¸ëë© íë§ (ë³¸ì¬/ì´í) ========== */
+/* DEFAULT: íì¬ ìí¤ */
 body.theme-default { --theme-bg: #f5f6f8; --theme-text: #333; --theme-sidebar-bg: #2c3138; --theme-sidebar-text: #a6b0bf; --theme-topbar-bg: #e8e8e8; --theme-topbar-fg: #1f2937; --theme-topbar-icon: #475569; --theme-topbar-border: #ddd; }
-/* LIGHT: 흰배경/검정글씨 */
+/* LIGHT: í°ë°°ê²½/ê²ì ê¸ì¨ */
 body.theme-light { --theme-bg: #fff; --theme-text: #000; --theme-sidebar-bg: #f8f9fa; --theme-sidebar-text: #212529; --theme-topbar-bg: #ffffff; --theme-topbar-fg: #111111; --theme-topbar-icon: #475569; --theme-topbar-border: #d9dde3; --theme-tab-row-bg: #f4f4f4; --theme-tab-item-bg: #f4f4f4; --theme-tab-active-bg: #e9e9e9; --theme-menu-hover-bg: #eceff3; --theme-menu-active-bg: #e6e6e6; --theme-border-soft: #d9dde3; }
 body.theme-light .left-side-menu { background: var(--theme-sidebar-bg); color: var(--theme-sidebar-text); }
 body.theme-light .content-page { background: var(--theme-bg); color: var(--theme-text); }
-/* GRAY: 라이트·다크 중간의 차분하고 안정적인 톤 */
+/* GRAY: ë¼ì´í¸Â·ë¤í¬ ì¤ê°ì ì°¨ë¶íê³  ìì ì ì¸ í¤ */
 body.theme-gray { --theme-bg: #eef1f4; --theme-text: #1f2933; --theme-sidebar-bg: #5a6470; --theme-sidebar-text: #f3f5f7; --theme-topbar-bg: #dbe1e8; --theme-topbar-fg: #1f2933; --theme-topbar-icon: #475569; --theme-topbar-border: #9aa5b3; --theme-tab-row-bg: #c8d0da; --theme-tab-item-bg: #c8d0da; --theme-tab-active-bg: #b3becb; --theme-menu-hover-bg: #6b7683; --theme-menu-active-bg: #7a8796; --theme-border-soft: #9aa5b3; }
 body.theme-gray .left-side-menu { background: var(--theme-sidebar-bg); color: var(--theme-sidebar-text); }
 body.theme-gray .content-page { background: var(--theme-bg); color: var(--theme-text); }
@@ -3003,7 +3009,7 @@ body.theme-gray .child-li.mm-active a {
   color: #ffffff !important;
   border-left-color: #d8dee6 !important;
 }
-/* BROWN: #4a4a4a 기반의 다크 톤 통일 */
+/* BROWN: #4a4a4a ê¸°ë°ì ë¤í¬ í¤ íµì¼ */
 body.theme-brown { --theme-bg: #f4f4f4; --theme-text: #1f1f1f; --theme-sidebar-bg: #4a4a4a; --theme-sidebar-text: #f3f3f3; --theme-topbar-bg: #4a4a4a; --theme-topbar-fg: #f8f4ef; --theme-topbar-icon: #e8e4df; --theme-topbar-border: #6b6b6b; --theme-tab-row-bg: #4a4a4a; --theme-tab-item-bg: #4a4a4a; --theme-tab-active-bg: #5a5a5a; --theme-menu-hover-bg: #555555; --theme-menu-active-bg: #606060; --theme-border-soft: #6b6b6b; }
 body.theme-brown .left-side-menu { background: var(--theme-sidebar-bg); color: var(--theme-sidebar-text); }
 body.theme-brown .content-page { background: var(--theme-bg); color: var(--theme-text); }
@@ -3053,7 +3059,7 @@ body.theme-brown .left-side-menu .btn-secondary:hover {
   background: var(--theme-menu-hover-bg) !important;
   color: #ffffff !important;
 }
-/* LIGHT 공통: 흰 배경 + 검은 글씨로 고정색 영역까지 통일 */
+/* LIGHT ê³µíµ: í° ë°°ê²½ + ê²ì ê¸ì¨ë¡ ê³ ì ì ìì­ê¹ì§ íµì¼ */
 body.theme-light .header {
   background: #ffffff !important;
 }
@@ -3078,12 +3084,12 @@ body.theme-light .side-nav-item.mm-active > .side-nav-link {
   color: #000 !important;
   border-left-color: #000 !important;
 }
-/* DARK: 어두운배경/흰글씨 */
+/* DARK: ì´ëì´ë°°ê²½/í°ê¸ì¨ */
 body.theme-dark { --theme-bg: #1a1d21; --theme-text: #fff; --theme-sidebar-bg: #0d0f11; --theme-sidebar-text: #e9ecef; --theme-topbar-bg: #252a30; --theme-topbar-fg: #f1f5f9; --theme-topbar-icon: #cbd5e1; --theme-topbar-border: #3d4550; --theme-tab-row-bg: #2c3138; --theme-tab-item-bg: #2c3138; --theme-tab-active-bg: #383e47; --theme-menu-hover-bg: #1a1f26; --theme-menu-active-bg: #2a3038; --theme-border-soft: #4b5563; }
 body.theme-dark .left-side-menu { background: var(--theme-sidebar-bg); color: var(--theme-sidebar-text); }
 body.theme-dark .content-page { background: var(--theme-bg); color: var(--theme-text); }
 body.theme-dark .content-body { background: var(--theme-bg); }
-/* content-inner·탭 본문은 흰 배경이므로 본문 글자는 항상 어두운 색(테마 흰글자 상속 차단) */
+/* content-innerÂ·í­ ë³¸ë¬¸ì í° ë°°ê²½ì´ë¯ë¡ ë³¸ë¬¸ ê¸ìë í­ì ì´ëì´ ì(íë§ í°ê¸ì ìì ì°¨ë¨) */
 body.theme-dark .content-inner,
 body.theme-dark .tab-pane.tabConDiv,
 body.theme-dark #contentsMain .card,
@@ -3099,7 +3105,7 @@ body.theme-dark .header-top {
   background: var(--theme-topbar-bg) !important;
   border-bottom-color: var(--theme-topbar-border) !important;
 }
-/* 파스텔 1~5 */
+/* íì¤í 1~5 */
 body.theme-pastel_1 { --theme-bg: #faf4f6; --theme-text: #20242b; --theme-sidebar-bg: #e7d6dd; --theme-sidebar-text: #1f2933; --theme-topbar-bg: #efe1e6; --theme-topbar-fg: #20242b; --theme-topbar-icon: #475569; --theme-topbar-border: #c3aab5; --theme-tab-row-bg: #e5d5dc; --theme-tab-item-bg: #e5d5dc; --theme-tab-active-bg: #d9c3cc; --theme-menu-hover-bg: #d8c0ca; --theme-menu-active-bg: #ccb2bd; --theme-border-soft: #c3aab5; }
 body.theme-pastel_2 { --theme-bg: #f3f7f4; --theme-text: #1e2a24; --theme-sidebar-bg: #d2dfd6; --theme-sidebar-text: #1e2a24; --theme-topbar-bg: #dfe9e2; --theme-topbar-fg: #1e2a24; --theme-topbar-icon: #475569; --theme-topbar-border: #a3b8ac; --theme-tab-row-bg: #d3e0d8; --theme-tab-item-bg: #d3e0d8; --theme-tab-active-bg: #c5d5cb; --theme-menu-hover-bg: #bfcec4; --theme-menu-active-bg: #b1c3b8; --theme-border-soft: #a3b8ac; }
 body.theme-pastel_3 { --theme-bg: #f3f6fa; --theme-text: #1f2a36; --theme-sidebar-bg: #d2dce9; --theme-sidebar-text: #1f2a36; --theme-topbar-bg: #dfe6ef; --theme-topbar-fg: #1f2a36; --theme-topbar-icon: #475569; --theme-topbar-border: #9eaec2; --theme-tab-row-bg: #d2dce8; --theme-tab-item-bg: #d2dce8; --theme-tab-active-bg: #c2cedd; --theme-menu-hover-bg: #bcc8d8; --theme-menu-active-bg: #adbccf; --theme-border-soft: #9eaec2; }
@@ -3113,7 +3119,7 @@ body.theme-pastel_1 .content-page, body.theme-pastel_2 .content-page, body.theme
 body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
   background: var(--theme-bg); color: var(--theme-text);
 }
-/* 파스텔 공통: 글자 검정 + 상단/탭/메뉴의 고정 어두운 톤 제거 */
+/* íì¤í ê³µíµ: ê¸ì ê²ì  + ìë¨/í­/ë©ë´ì ê³ ì  ì´ëì´ í¤ ì ê±° */
 body.theme-pastel_1 .header, body.theme-pastel_2 .header, body.theme-pastel_3 .header, body.theme-pastel_4 .header, body.theme-pastel_5 .header,
 body.theme-pastel_1 .content-tabs, body.theme-pastel_2 .content-tabs, body.theme-pastel_3 .content-tabs, body.theme-pastel_4 .content-tabs, body.theme-pastel_5 .content-tabs,
 body.theme-pastel_1 .content-body, body.theme-pastel_2 .content-body, body.theme-pastel_3 .content-body, body.theme-pastel_4 .content-body, body.theme-pastel_5 .content-body,
@@ -3150,7 +3156,7 @@ body.theme-pastel_5 .side-nav-item.mm-active > .side-nav-link {
   color: #000 !important;
   border-left-color: #000 !important;
 }
-/* LIGHT + 파스텔: 좌측 메뉴/우측상단/탭바 색톤 통일 */
+/* LIGHT + íì¤í: ì¢ì¸¡ ë©ë´/ì°ì¸¡ìë¨/í­ë° ìí¤ íµì¼ */
 body.theme-light .header-top, body.theme-gray .header-top, body.theme-pastel_1 .header-top, body.theme-pastel_2 .header-top, body.theme-pastel_3 .header-top, body.theme-pastel_4 .header-top, body.theme-pastel_5 .header-top {
   background: var(--theme-topbar-bg) !important;
   border-bottom-color: var(--theme-border-soft) !important;
@@ -3173,7 +3179,7 @@ body.theme-light .child-li.mm-active a, body.theme-gray .child-li.mm-active a, b
   background: var(--theme-menu-active-bg) !important;
   color: #000 !important;
 }
-/* 좌측 접기 영역/버튼도 동일 톤 */
+/* ì¢ì¸¡ ì ê¸° ìì­/ë²í¼ë ëì¼ í¤ */
 body.theme-light .menuFoldDiv, body.theme-gray .menuFoldDiv, body.theme-pastel_1 .menuFoldDiv, body.theme-pastel_2 .menuFoldDiv, body.theme-pastel_3 .menuFoldDiv, body.theme-pastel_4 .menuFoldDiv, body.theme-pastel_5 .menuFoldDiv {
   background: var(--theme-sidebar-bg) !important;
   border-bottom-color: var(--theme-border-soft) !important;
@@ -3215,7 +3221,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   color: #000 !important;
 }
 
-/* ========== 상위업체 검색 모달 ========== */
+/* ========== ìììì²´ ê²ì ëª¨ë¬ ========== */
 #parentCompSearchModal .modal-header {
   position: relative;
   display: flex;
@@ -3281,12 +3287,12 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   margin-bottom: 0;
 }
 
-/* 사용자관리: 권한그룹(본사설정과 동일 정책) 기준 구간 구분 — 참고 UI(거래목록 그룹) 스타일 */
+/* ì¬ì©ìê´ë¦¬: ê¶íê·¸ë£¹(ë³¸ì¬ì¤ì ê³¼ ëì¼ ì ì±) ê¸°ì¤ êµ¬ê° êµ¬ë¶ â ì°¸ê³  UI(ê±°ëëª©ë¡ ê·¸ë£¹) ì¤íì¼ */
 .table tbody tr.tr-user-group-start td:first-child {
   box-shadow: inset 4px 0 0 #fd7e14;
 }
 
-/* 사용자관리: 전역 변수와 동일 스케일, 검색줄 입력·사용여부(select) 너비만 유지 */
+/* ì¬ì©ìê´ë¦¬: ì ì­ ë³ìì ëì¼ ì¤ì¼ì¼, ê²ìì¤ ìë ¥Â·ì¬ì©ì¬ë¶(select) ëë¹ë§ ì ì§ */
 .screen-user-mng .table,
 .screen-user-mng .table thead th,
 .screen-user-mng .table tbody td {
@@ -3368,7 +3374,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   color: #9aa0a6;
 }
 
-/* 본사설정 조직항목설정: VIEW SETTING과 동일 클래스명 — 글자 10px 통일(Bootstrap .small 무력화) */
+/* ë³¸ì¬ì¤ì  ì¡°ì§í­ëª©ì¤ì : VIEW SETTINGê³¼ ëì¼ í´ëì¤ëª â ê¸ì 10px íµì¼(Bootstrap .small ë¬´ë ¥í) */
 #hqOrgAllowColumnChecks .column-guide-item,
 #hqOrgAllowColumnChecks .column-guide-label,
 #hqOrgAllowColumnChecks .column-guide-label.small,
@@ -3378,7 +3384,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   font-size: var(--view-setting-font-size) !important;
 }
 
-/* 조직항목설정: 노출 열 목록 — 테이블(순위·항목·위아래) */
+/* ì¡°ì§í­ëª©ì¤ì : ë¸ì¶ ì´ ëª©ë¡ â íì´ë¸(ììÂ·í­ëª©Â·ììë) */
 .hq-org-allow-col-wrap {
   padding: 0;
   overflow: hidden;
@@ -3408,7 +3414,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   background-color: rgba(var(--bs-primary-rgb), 0.04);
 }
 
-/* 수수료관리 2단 헤더: 기본 그리드. 메인·히스토리 래퍼(.commission-list-table-wrap)는 가로 스크롤 + 한 줄 표시 */
+/* ììë£ê´ë¦¬ 2ë¨ í¤ë: ê¸°ë³¸ ê·¸ë¦¬ë. ë©ì¸Â·íì¤í ë¦¬ ëí¼(.commission-list-table-wrap)ë ê°ë¡ ì¤í¬ë¡¤ + í ì¤ íì */
 .commission-split-grid thead th {
   vertical-align: middle;
 }
@@ -3425,13 +3431,13 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   min-width: 4rem;
 }
 
-/* 수수료관리: 결제내역 그리드와 동일 글자 크기(전역 .table 상속) */
+/* ììë£ê´ë¦¬: ê²°ì ë´ì­ ê·¸ë¦¬ëì ëì¼ ê¸ì í¬ê¸°(ì ì­ .table ìì) */
 .commission-split-grid th,
 .commission-split-grid td {
   font-size: inherit;
 }
 
-/* 수수료 변경 히스토리: 제목(th)·내용(td) 상하좌우 가운데 정렬 (테이블·폼 UI 규칙) */
+/* ììë£ ë³ê²½ íì¤í ë¦¬: ì ëª©(th)Â·ë´ì©(td) ìíì¢ì° ê°ì´ë° ì ë ¬ (íì´ë¸Â·í¼ UI ê·ì¹) */
 .commission-history-card .commission-split-grid th,
 .commission-history-card .commission-split-grid td {
   text-align: center;
@@ -3448,7 +3454,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   overflow: hidden;
 }
 
-/* 수수료관리 합계(요율%·건당료) — 직관적 강조(빨강) */
+/* ììë£ê´ë¦¬ í©ê³(ìì¨%Â·ê±´ë¹ë£) â ì§ê´ì  ê°ì¡°(ë¹¨ê°) */
 .commission-total-cell,
 .commission-total-cell .commission-total-value,
 .commission-total-cell .commission-inline-view {
@@ -3460,7 +3466,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   padding: 0.125rem 0.25rem !important;
 }
 
-/* 인라인 수정 시 열 폭이 커지지 않도록 — 셀 폭 고정 + 입력 min-width 제거 */
+/* ì¸ë¼ì¸ ìì  ì ì´ í­ì´ ì»¤ì§ì§ ìëë¡ â ì í­ ê³ ì  + ìë ¥ min-width ì ê±° */
 .commission-inline-cell .commission-inline-input {
   display: block;
   width: 100% !important;
@@ -3473,7 +3479,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   font-size: inherit !important;
 }
 
-/* 현재 편집 행: 결제내역 상태바 「성공」pill과 동일 파스텔 (#d1fae5) */
+/* íì¬ í¸ì§ í: ê²°ì ë´ì­ ìíë° ãì±ê³µãpillê³¼ ëì¼ íì¤í (#d1fae5) */
 #contentsMain .commission-split-grid tbody tr.commission-row-editing > td,
 #contentsMain .commission-split-grid tbody tr.table-active.commission-row-editing > td,
 .tab-pane .commission-split-grid tbody tr.commission-row-editing > td,
@@ -3481,10 +3487,10 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   background-color: #d1fae5 !important; /* pay-list-status-bar__pill--success */
 }
 #contentsMain .commission-split-grid.table-hover > tbody > tr.commission-row-editing:hover > td {
-  background-color: #a7f3d0 !important; /* success border 톤 */
+  background-color: #a7f3d0 !important; /* success border í¤ */
 }
 
-/* 수수료관리·변경 히스토리: 가로 스크롤 허용, 셀·헤더 한 줄(줄바꿈 없음) */
+/* ììë£ê´ë¦¬Â·ë³ê²½ íì¤í ë¦¬: ê°ë¡ ì¤í¬ë¡¤ íì©, ìÂ·í¤ë í ì¤(ì¤ë°ê¿ ìì) */
 #contentsMain .table-responsive.table-scrollable.commission-list-table-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -3580,7 +3586,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   text-align: center;
 }
 
-/* 수수료관리 적용시작일: 전역 date min-width 해제 — 열 %는 colgroup이 담당 */
+/* ììë£ê´ë¦¬ ì ì©ììì¼: ì ì­ date min-width í´ì  â ì´ %ë colgroupì´ ë´ë¹ */
 #contentsMain .commission-list-table-wrap .commission-split-grid thead th[data-key="applyDt"] {
   width: auto;
   max-width: none;
@@ -3616,7 +3622,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   justify-content: center;
 }
 
-/* 수수료설정 모달: 격자·입력 — 결제내역 테이블과 동일 글자 크기 */
+/* ììë£ì¤ì  ëª¨ë¬: ê²©ìÂ·ìë ¥ â ê²°ì ë´ì­ íì´ë¸ê³¼ ëì¼ ê¸ì í¬ê¸° */
 #commissionSettingModal .modal-body .form-label {
   font-size: var(--app-table-font-size);
   margin-bottom: 0.2rem;
@@ -3627,7 +3633,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   font-size: var(--app-table-font-size);
 }
 
-/* 본사(REGIONAL) 휴일 미니달력 */
+/* ë³¸ì¬(REGIONAL) í´ì¼ ë¯¸ëë¬ë ¥ */
 .hq-holiday-mini-table td {
   padding: 2px !important;
   vertical-align: middle;
@@ -3651,18 +3657,18 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
 .hq-holiday-day--off:hover {
   background: #c2c8cf !important;
 }
-/* 영업일설정: 일자 구분별 색 (휴일 표시) */
-.hq-holiday-day.hq-holiday-day--kind[data-holiday-kind="공휴일"] { background: #fecdd3 !important; color: #7f1d1d !important; font-weight: 600; }
-.hq-holiday-day.hq-holiday-day--kind[data-holiday-kind="국경일"] { background: #fed7aa !important; color: #7c2d12 !important; font-weight: 600; }
-.hq-holiday-day.hq-holiday-day--kind[data-holiday-kind="기념일"] { background: #bfdbfe !important; color: #1e3a5f !important; font-weight: 600; }
-.hq-holiday-day.hq-holiday-day--kind[data-holiday-kind="종교휴일"] { background: #ddd6fe !important; color: #4c1d95 !important; font-weight: 600; }
-.hq-holiday-day.hq-holiday-day--kind[data-holiday-kind="임시공휴일"] { background: #fef08a !important; color: #713f12 !important; font-weight: 600; }
-.hq-holiday-day.hq-holiday-day--kind[data-holiday-kind="대체공휴일"] { background: #99f6e4 !important; color: #115e59 !important; font-weight: 600; }
+/* ììì¼ì¤ì : ì¼ì êµ¬ë¶ë³ ì (í´ì¼ íì) */
+.hq-holiday-day.hq-holiday-day--kind[data-holiday-kind="ê³µí´ì¼"] { background: #fecdd3 !important; color: #7f1d1d !important; font-weight: 600; }
+.hq-holiday-day.hq-holiday-day--kind[data-holiday-kind="êµ­ê²½ì¼"] { background: #fed7aa !important; color: #7c2d12 !important; font-weight: 600; }
+.hq-holiday-day.hq-holiday-day--kind[data-holiday-kind="ê¸°ëì¼"] { background: #bfdbfe !important; color: #1e3a5f !important; font-weight: 600; }
+.hq-holiday-day.hq-holiday-day--kind[data-holiday-kind="ì¢êµí´ì¼"] { background: #ddd6fe !important; color: #4c1d95 !important; font-weight: 600; }
+.hq-holiday-day.hq-holiday-day--kind[data-holiday-kind="ììê³µí´ì¼"] { background: #fef08a !important; color: #713f12 !important; font-weight: 600; }
+.hq-holiday-day.hq-holiday-day--kind[data-holiday-kind="ëì²´ê³µí´ì¼"] { background: #99f6e4 !important; color: #115e59 !important; font-weight: 600; }
 .hq-holiday-ui-wrap .hq-holiday-calendar-grid {
   max-height: none;
 }
 
-/* 전산노티·결제환경 — 총판 노티: 노티 대상명 ↔ 아래 표 간격 축소 */
+/* ì ì°ë¸í°Â·ê²°ì íê²½ â ì´í ë¸í°: ë¸í° ëìëª â ìë í ê°ê²© ì¶ì */
 .comp-reg-form .hq-notify-new-target-name-col.form-field-block {
   margin-bottom: 0.5rem;
 }
@@ -3670,7 +3676,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   margin-top: 0.2rem;
 }
 
-/* 전산노티·결제환경 — 총판 노티: 노티 대상명 입력·표 열 기본(120px) 대비 30% 확대 */
+/* ì ì°ë¸í°Â·ê²°ì íê²½ â ì´í ë¸í°: ë¸í° ëìëª ìë ¥Â·í ì´ ê¸°ë³¸(120px) ëë¹ 30% íë */
 .comp-reg-form .hq-notify-new-target-name-col.col-sm-2 {
   flex: 0 0 calc(100% * 2 / 12 * 1.3);
   max-width: calc(100% * 2 / 12 * 1.3);
@@ -3684,7 +3690,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   white-space: nowrap;
 }
 
-/* 전산노티·결제환경 — 총판 노티 대상 테이블 */
+/* ì ì°ë¸í°Â·ê²°ì íê²½ â ì´í ë¸í° ëì íì´ë¸ */
 #hqNotifyTargetTable .hq-notify-url-cell {
   font-size: var(--app-table-font-size);
   line-height: 1.45;
@@ -3699,7 +3705,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   word-break: break-all;
   background: transparent;
 }
-/* 노티 주소 글자색 — 성격과 동일 계열 */
+/* ë¸í° ì£¼ì ê¸ìì â ì±ê²©ê³¼ ëì¼ ê³ì´ */
 #hqNotifyTargetTable .hq-notify-url-cell--callback .hq-notify-url-code {
   color: #087990;
   font-weight: 600;
@@ -3730,13 +3736,13 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   letter-spacing: 0.02em;
   text-align: center;
 }
-/* CALLBACK: 서버 노티 — 청록 계열 */
+/* CALLBACK: ìë² ë¸í° â ì²­ë¡ ê³ì´ */
 #hqNotifyTargetTable .hq-notify-channel-cell--callback .hq-notify-channel-badge {
   background: #cff4fc;
   color: #055160;
   border: 1px solid #9eeaf9;
 }
-/* RESULT: 브라우저·리다이렉트 — 주황 계열 */
+/* RESULT: ë¸ë¼ì°ì Â·ë¦¬ë¤ì´ë í¸ â ì£¼í© ê³ì´ */
 #hqNotifyTargetTable .hq-notify-channel-cell--result .hq-notify-channel-badge {
   background: #ffe5d0;
   color: #984c0c;
@@ -3748,7 +3754,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   min-width: 132px;
 }
 
-/* 업체등록·업체정보 — 총판: 노티 쌍 버튼을 URL 1·2(및 3·4)와 같은 행에 배치 */
+/* ìì²´ë±ë¡Â·ìì²´ì ë³´ â ì´í: ë¸í° ì ë²í¼ì URL 1Â·2(ë° 3Â·4)ì ê°ì íì ë°°ì¹ */
 .comp-reg-form .comp-notify-pair-url-row {
   margin-top: 0.15rem;
 }
@@ -3769,7 +3775,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   font-size: 0.75rem !important;
 }
 
-/* 노티 대상 선택 모달 — 선택 열 가운데 정렬, CALLBACK/RESULT 색 구분 */
+/* ë¸í° ëì ì í ëª¨ë¬ â ì í ì´ ê°ì´ë° ì ë ¬, CALLBACK/RESULT ì êµ¬ë¶ */
 #notifyTargetPickerModal .notify-picker-select-cell {
   text-align: center;
   vertical-align: middle !important;
@@ -3824,7 +3830,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   word-break: break-all;
 }
 
-/* 조직별 권한 세팅 — 조직 탭 + 매트릭스 */
+/* ì¡°ì§ë³ ê¶í ì¸í â ì¡°ì§ í­ + ë§¤í¸ë¦­ì¤ */
 .org-perm-matrix .org-perm-level-tabs .nav-link {
   border-radius: 999px;
   padding: 0.35rem 0.85rem;
@@ -3892,7 +3898,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
 .org-perm-table .org-perm-select {
   min-width: 220px;
 }
-/* 권한별 행 배경·왼쪽 강조 — NONE / OBSERVER / MODIFY / DELETE */
+/* ê¶íë³ í ë°°ê²½Â·ì¼ìª½ ê°ì¡° â NONE / OBSERVER / MODIFY / DELETE */
 .org-perm-table tbody tr.org-perm-row {
   transition: background-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -3914,7 +3920,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   background: linear-gradient(90deg, rgba(25, 135, 84, 0.18) 0, rgba(25, 135, 84, 0.05) 12px, #f4fbf7 28px);
   box-shadow: inset 4px 0 0 0 #198754;
 }
-/* SUPERVISOR 전용 메뉴(노티관리 등) — 조직 상한이 있어도 실행은 SUPERVISOR만 */
+/* SUPERVISOR ì ì© ë©ë´(ë¸í°ê´ë¦¬ ë±) â ì¡°ì§ ìíì´ ìì´ë ì¤íì SUPERVISORë§ */
 .org-perm-table tbody tr.org-perm-row--supervisor-only:not(.org-perm-row--NONE) {
   background: linear-gradient(90deg, rgba(111, 66, 193, 0.22) 0, rgba(111, 66, 193, 0.07) 12px, #f7f3ff 28px) !important;
   box-shadow: inset 4px 0 0 0 #6f42c1 !important;
@@ -3925,7 +3931,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
 .text-purple {
   color: #6f42c1 !important;
 }
-/* 사용자설정·태블릿 담당자 매트릭스 — 칸별 권한 색(본사권한과 동일 팔레트) */
+/* ì¬ì©ìì¤ì Â·íë¸ë¦¿ ë´ë¹ì ë§¤í¸ë¦­ì¤ â ì¹¸ë³ ê¶í ì(ë³¸ì¬ê¶íê³¼ ëì¼ íë í¸) */
 #contentsMain .hq-user-asst-matrix-root td.hq-asst-perm-cell--NONE,
 #contentsMain .hq-user-tablet-matrix-root td.hq-asst-perm-cell--NONE {
   background: linear-gradient(180deg, rgba(220, 53, 69, 0.2), rgba(220, 53, 69, 0.06)) !important;
@@ -3955,7 +3961,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   background: linear-gradient(180deg, rgba(111, 66, 193, 0.24), rgba(111, 66, 193, 0.08)) !important;
   box-shadow: inset 0 0 0 2px #6f42c1;
 }
-/* 조직별 권한 — 개별 조직 선택 컨트롤 */
+/* ì¡°ì§ë³ ê¶í â ê°ë³ ì¡°ì§ ì í ì»¨í¸ë¡¤ */
 .org-perm-unit-control-row .form-label {
   color: #6c757d;
   font-weight: 600;
@@ -3989,13 +3995,13 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   opacity: 0.65;
 }
 
-/* 도메인구성설정: URL·호스트 링크 — 표 본문과 동일 글자 크기(Bootstrap code/small 보정) */
+/* ëë©ì¸êµ¬ì±ì¤ì : URLÂ·í¸ì¤í¸ ë§í¬ â í ë³¸ë¬¸ê³¼ ëì¼ ê¸ì í¬ê¸°(Bootstrap code/small ë³´ì ) */
 .hq-domain-config-wrap table code.hq-domain-url-cell,
 .hq-domain-config-wrap table .hq-domain-host-link {
   font-size: inherit;
 }
 
-/* 도메인구성설정: URL·호스트 링크 (새 탭) */
+/* ëë©ì¸êµ¬ì±ì¤ì : URLÂ·í¸ì¤í¸ ë§í¬ (ì í­) */
 .hq-domain-url-link {
   cursor: pointer;
 }
@@ -4010,7 +4016,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   text-decoration: underline;
 }
 
-/* 종합거래 환경설정: 결제 후속조치(NOTI) 표 */
+/* ì¢í©ê±°ë íê²½ì¤ì : ê²°ì  íìì¡°ì¹(NOTI) í */
 .hq-pay-follow-wrap {
   max-width: 100%;
   overflow-x: visible;
@@ -4064,7 +4070,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   flex: 0 1 auto;
 }
 
-/* 결제내역 후속조치: 상태(성공·실패) 배지와 유사한 pill — 활성 파랑, 비활성 회색 */
+/* ê²°ì ë´ì­ íìì¡°ì¹: ìí(ì±ê³µÂ·ì¤í¨) ë°°ì§ì ì ì¬í pill â íì± íë, ë¹íì± íì */
 .pay-follow-pill-row {
   max-width: 24rem;
 }
@@ -4103,7 +4109,7 @@ button.pay-follow-pill:focus-visible {
   outline-offset: 1px;
 }
 
-/* 종합거래 환경설정: 데이터 보관 기간 표 — 수수료·정산 통화 표와 동일 래핑(border rounded + table-sm), 열 비율 고정 */
+/* ì¢í©ê±°ë íê²½ì¤ì : ë°ì´í° ë³´ê´ ê¸°ê° í â ììë£Â·ì ì° íµí íì ëì¼ ëí(border rounded + table-sm), ì´ ë¹ì¨ ê³ ì  */
 .hq-data-retention-table {
   width: 100%;
   table-layout: fixed;
@@ -4164,7 +4170,7 @@ button.pay-follow-pill:focus-visible {
 .hq-data-retention-table td.hq-dr-type-cell .badge {
   vertical-align: middle;
 }
-/* 빈 상태·로딩 행은 메시지 줄바꿈 허용 */
+/* ë¹ ìíÂ·ë¡ë© íì ë©ìì§ ì¤ë°ê¿ íì© */
 .hq-data-retention-table tbody tr:not(.hq-dr-data-row) > td {
   white-space: normal;
   overflow: visible;
@@ -4214,7 +4220,7 @@ button.pay-follow-pill:focus-visible {
   margin: 0;
 }
 
-/* 수수료설정: 템플릿 목록 행 */
+/* ììë£ì¤ì : ííë¦¿ ëª©ë¡ í */
 .hq-default-comm-policy-row:hover {
   background-color: rgba(13, 110, 253, 0.07) !important;
 }
@@ -4225,7 +4231,7 @@ button.pay-follow-pill:focus-visible {
   cursor: pointer;
 }
 
-/* 수수료설정: 가맹점 수수료 정책 목록 — 가로·세로 스크롤(행이 많을 때 G 이하 잘림 방지) */
+/* ììë£ì¤ì : ê°ë§¹ì  ììë£ ì ì± ëª©ë¡ â ê°ë¡Â·ì¸ë¡ ì¤í¬ë¡¤(íì´ ë§ì ë G ì´í ìë¦¼ ë°©ì§) */
 .hq-default-comm-policy-scroll.table-responsive {
   overflow-x: auto;
   overflow-y: auto;
@@ -4256,7 +4262,7 @@ button.pay-follow-pill:focus-visible {
   table-layout: auto;
 }
 
-/* colgroup은 자동 배치(고정 % 없음) */
+/* colgroupì ìë ë°°ì¹(ê³ ì  % ìì) */
 .hq-default-comm-policy-table col.hq-def-comm-col {
   width: auto;
 }
@@ -4399,7 +4405,7 @@ button.pay-follow-pill:focus-visible {
   line-height: 1.35;
 }
 
-/* 본사 수수료설정: 조직 단계별 수수료 격자 */
+/* ë³¸ì¬ ììë£ì¤ì : ì¡°ì§ ë¨ê³ë³ ììë£ ê²©ì */
 .hq-comm-tier-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -4414,8 +4420,8 @@ button.pay-follow-pill:focus-visible {
   vertical-align: middle;
 }
 
-/* 가맹점: 차지백 정책 카드 — 빨강 파스텔톤 배경 */
-/* 차지백설정: 저장된 유형 — 비고 전체 노출(줄바꿈 유지) */
+/* ê°ë§¹ì : ì°¨ì§ë°± ì ì± ì¹´ë â ë¹¨ê° íì¤íí¤ ë°°ê²½ */
+/* ì°¨ì§ë°±ì¤ì : ì ì¥ë ì í â ë¹ê³  ì ì²´ ë¸ì¶(ì¤ë°ê¿ ì ì§) */
 .hq-chargeback-policy-saved-table th.hq-cb-list-remark-th {
   min-width: 8rem;
 }
@@ -4458,14 +4464,14 @@ button.pay-follow-pill:focus-visible {
   white-space: nowrap;
 }
 
-/* 첨부파일 카드: 제목·본문 한 줄 우선, 가로 최대 활용 */
+/* ì²¨ë¶íì¼ ì¹´ë: ì ëª©Â·ë³¸ë¬¸ í ì¤ ì°ì , ê°ë¡ ìµë íì© */
 .comp-reg-form .card:has(.attach-section) .card-header {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* 가맹점 등록: 무효·환불 정산(안내) — 파스텔 노랑 톤 */
+/* ê°ë§¹ì  ë±ë¡: ë¬´í¨Â·íë¶ ì ì°(ìë´) â íì¤í ë¸ë í¤ */
 .comp-reg-form .card.pg-comp-reg-void-refund-panel {
   border-color: #f3dfa8;
   background: linear-gradient(180deg, #fffdf7 0%, #fff8e0 100%);
@@ -4480,8 +4486,8 @@ button.pay-follow-pill:focus-visible {
   margin: 0;
 }
 
-/* 첨부파일: 테이블 가로 폭 */
-/* 업체관리 그리드: 정산구분 가독성(수동=기본, 자동·펌뱅킹만 색 구분) */
+/* ì²¨ë¶íì¼: íì´ë¸ ê°ë¡ í­ */
+/* ìì²´ê´ë¦¬ ê·¸ë¦¬ë: ì ì°êµ¬ë¶ ê°ëì±(ìë=ê¸°ë³¸, ìëÂ·íë±í¹ë§ ì êµ¬ë¶) */
 #contentsMain .screen-comp-mng-tree .pg-calc-proc--auto {
   color: #0b5ed7;
 }
@@ -4525,7 +4531,7 @@ button.pay-follow-pill:focus-visible {
   max-width: 100%;
 }
 
-/* 첨부파일: 파일명 · 파일 선택 · 추가 한 줄 */
+/* ì²¨ë¶íì¼: íì¼ëª Â· íì¼ ì í Â· ì¶ê° í ì¤ */
 .attach-section .attach-toolbar {
   display: flex;
   flex-wrap: nowrap;
@@ -4571,7 +4577,7 @@ button.pay-follow-pill:focus-visible {
   }
 }
 
-/* 본사 API연동설정: 미사용 행의 운영 열 비활성 표시 */
+/* ë³¸ì¬ APIì°ëì¤ì : ë¯¸ì¬ì© íì ì´ì ì´ ë¹íì± íì */
 .hq-pg-operational-cell--inactive {
   opacity: 0.45;
   filter: grayscale(0.35);
@@ -4580,7 +4586,7 @@ button.pay-follow-pill:focus-visible {
   cursor: not-allowed;
 }
 
-/* 본사 API연동설정: 가로 스크롤 + 최소 너비로 열 다발·헤더 줄바꿈 방지 */
+/* ë³¸ì¬ APIì°ëì¤ì : ê°ë¡ ì¤í¬ë¡¤ + ìµì ëë¹ë¡ ì´ ë¤ë°Â·í¤ë ì¤ë°ê¿ ë°©ì§ */
 .hq-pg-api-mng-scroll {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -4590,7 +4596,7 @@ button.pay-follow-pill:focus-visible {
   min-width: 1240px;
 }
 
-/* 본사 API연동설정: 테이블 글자 크기 = 결제관리 거래내역(#contentsMain .screen-pay-list .table)과 동일 */
+/* ë³¸ì¬ APIì°ëì¤ì : íì´ë¸ ê¸ì í¬ê¸° = ê²°ì ê´ë¦¬ ê±°ëë´ì­(#contentsMain .screen-pay-list .table)ê³¼ ëì¼ */
 .hq-pg-api-mng-table {
   font-size: var(--pay-mng-dense-font-size);
   table-layout: fixed;
@@ -4616,7 +4622,7 @@ button.pay-follow-pill:focus-visible {
   padding: 0.15rem 0.4rem;
   white-space: nowrap;
 }
-/* 열 너비: 엔드포인트(URL) 상한 · 결제대행사·연동용도·관리 가독성 */
+/* ì´ ëë¹: ìëí¬ì¸í¸(URL) ìí Â· ê²°ì ëíì¬Â·ì°ëì©ëÂ·ê´ë¦¬ ê°ëì± */
 .hq-pg-api-mng-table thead th[data-key="_chk"] {
   width: 2.35rem;
 }
@@ -4694,7 +4700,7 @@ button.pay-follow-pill:focus-visible {
   padding: 0.1em 0.32em;
   line-height: 1.25;
 }
-/* API연동설정 — 연동용도 파스텔 (노티·URL·챗봇·API) */
+/* APIì°ëì¤ì  â ì°ëì©ë íì¤í (ë¸í°Â·URLÂ·ì±ë´Â·API) */
 .pg-scope-pastel-noti {
   background-color: #eadcf5 !important;
   color: #4a2d5c !important;
@@ -4725,7 +4731,7 @@ button.pay-follow-pill:focus-visible {
   font-weight: 600;
   padding: 0.2em 0.45em;
 }
-/* URL 열: 예전 28% 대신 고정 폭 + 말줄임(전체 너비는 나머지 열·여백으로 균형) */
+/* URL ì´: ìì  28% ëì  ê³ ì  í­ + ë§ì¤ì(ì ì²´ ëë¹ë ëë¨¸ì§ ì´Â·ì¬ë°±ì¼ë¡ ê· í) */
 .hq-pg-api-mng-table thead th[data-key="endpointsSummary"],
 .pg-api-mng-endpoints-th {
   width: 19rem;
@@ -4750,7 +4756,7 @@ button.pay-follow-pill:focus-visible {
   max-width: 19rem;
 }
 
-/* 본사설정 > 노티수령정보: 표 셀 가운데 정렬(table-form-ui), 오류열은 폭 제한·말줄임 */
+/* ë³¸ì¬ì¤ì  > ë¸í°ìë ¹ì ë³´: í ì ê°ì´ë° ì ë ¬(table-form-ui), ì¤ë¥ì´ì í­ ì íÂ·ë§ì¤ì */
 #hqNotifyInboundTable > thead > tr > th,
 #hqNotifyInboundTable > tbody > tr > td {
   text-align: center;
@@ -4764,14 +4770,14 @@ button.pay-follow-pill:focus-visible {
   line-height: 1.35;
 }
 
-/* 정산리포트 > 확정정산 상세: 인쇄 시 표만 약간 키움(브라우저 인쇄 대화상자에서 여백·배율 조정) */
+/* ì ì°ë¦¬í¬í¸ > íì ì ì° ìì¸: ì¸ì ì íë§ ì½ê° í¤ì(ë¸ë¼ì°ì  ì¸ì ëíìììì ì¬ë°±Â·ë°°ì¨ ì¡°ì ) */
 @media print {
   .pg-settlement-report-print-root table {
     font-size: 11pt;
   }
 }
 
-/* 배포설정 > 가맹점 API 연동키트·API배포문서: 좁은 허브 패널에서도 업체명 열이 보이도록 최소 너비·가로 스크롤 */
+/* ë°°í¬ì¤ì  > ê°ë§¹ì  API ì°ëí¤í¸Â·APIë°°í¬ë¬¸ì: ì¢ì íë¸ í¨ëììë ìì²´ëª ì´ì´ ë³´ì´ëë¡ ìµì ëë¹Â·ê°ë¡ ì¤í¬ë¡¤ */
 .merchant-deploy-kit .merchant-deploy-table-wrap,
 .merchant-api-deploy-docs .merchant-deploy-table-wrap {
   overflow-x: auto;
@@ -4859,7 +4865,7 @@ button.pay-follow-pill:focus-visible {
   border-color: #ffeeba;
 }
 
-/* 샌드박스 시크릿 발급 — 파스텔 빨강 */
+/* ìëë°ì¤ ìí¬ë¦¿ ë°ê¸ â íì¤í ë¹¨ê° */
 .merchant-deploy-kit .btn-sandbox-secret-issue,
 .btn-sandbox-secret-issue {
   color: #9b2c2c;
@@ -4882,7 +4888,7 @@ button.pay-follow-pill:focus-visible {
   border-color: #e89a9a;
 }
 
-/* 가맹 등록 — 리스크관리 트리거 카드 (파스텔 보라) */
+/* ê°ë§¹ ë±ë¡ â ë¦¬ì¤í¬ê´ë¦¬ í¸ë¦¬ê±° ì¹´ë (íì¤í ë³´ë¼) */
 .card-risk-trigger-card {
   border-color: #ddd6fe;
 }
@@ -4892,7 +4898,7 @@ button.pay-follow-pill:focus-visible {
   border-bottom-color: #ddd6fe;
 }
 
-/* 본사설정 — 가맹점 리스크 현황·필터링 방식(화살표 1개만; form-select 미사용) */
+/* ë³¸ì¬ì¤ì  â ê°ë§¹ì  ë¦¬ì¤í¬ íí©Â·íí°ë§ ë°©ì(íì´í 1ê°ë§; form-select ë¯¸ì¬ì©) */
 .hq-risk-merchant-list-wrap select.merchant-risk-policy-mode,
 .hq-risk-merchant-filter-wrap select.merchant-risk-policy-mode {
   display: inline-block;
@@ -4916,7 +4922,7 @@ button.pay-follow-pill:focus-visible {
   background-repeat: no-repeat !important;
   background-position: right 0.35rem center !important;
   background-size: 0.65rem 0.4rem !important;
-  /* 단일 쉐브론 SVG — Bootstrap form-select 배경과 겹치지 않음 */
+  /* ë¨ì¼ ìë¸ë¡  SVG â Bootstrap form-select ë°°ê²½ê³¼ ê²¹ì¹ì§ ìì */
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 10'%3e%3cpath fill='none' stroke='%234a5568' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 2l6 6 6-6'/%3e%3c/svg%3e") !important;
 }
 .hq-risk-merchant-list-wrap select.merchant-risk-policy-mode::-ms-expand,
@@ -4935,19 +4941,19 @@ button.pay-follow-pill:focus-visible {
   background-color: #fde2e2 !important;
   border-color: #f5c2c2;
 }
-/* 가맹점 리스크 현황 — 본사설정: 파스텔보라(기존 톤 복원) */
+/* ê°ë§¹ì  ë¦¬ì¤í¬ íí© â ë³¸ì¬ì¤ì : íì¤íë³´ë¼(ê¸°ì¡´ í¤ ë³µì) */
 .hq-risk-merchant-list-wrap .merchant-risk-policy-mode--follow-hq {
   color: #553c9a !important;
   background-color: #ede9fe !important;
   border-color: #ddd6fe !important;
 }
-/* 가맹점 리스크 필터링 — 본사설정: 파스텔그린 */
+/* ê°ë§¹ì  ë¦¬ì¤í¬ íí°ë§ â ë³¸ì¬ì¤ì : íì¤íê·¸ë¦° */
 .hq-risk-merchant-filter-wrap .merchant-risk-policy-mode--follow-hq {
   color: #276749 !important;
   background-color: #c6f6d5 !important;
   border-color: #9ae6b4 !important;
 }
-/* 색상 클래스 적용 후에도 화살표 배경이미지는 유지 */
+/* ìì í´ëì¤ ì ì© íìë íì´í ë°°ê²½ì´ë¯¸ì§ë ì ì§ */
 .hq-risk-merchant-list-wrap select.merchant-risk-policy-mode.merchant-risk-policy-mode--disabled,
 .hq-risk-merchant-list-wrap select.merchant-risk-policy-mode.merchant-risk-policy-mode--custom,
 .hq-risk-merchant-list-wrap select.merchant-risk-policy-mode.merchant-risk-policy-mode--follow-hq,
@@ -4960,7 +4966,7 @@ button.pay-follow-pill:focus-visible {
   background-size: 0.65rem 0.4rem !important;
 }
 
-/* 운영관리 — 비활성 카드 등록 입력 폭 */
+/* ì´ìê´ë¦¬ â ë¹íì± ì¹´ë ë±ë¡ ìë ¥ í­ */
 #opsInactiveCardRegCard .ops-ic-reg-pan-field,
 #opsInactiveCardRegCard .ops-ic-reg-reason-field,
 #opsInactiveCardRegCard .ops-ic-reg-comp-nm-field {
@@ -4993,7 +4999,7 @@ button.pay-follow-pill:focus-visible {
   line-height: 1.55;
 }
 
-/* URL 결제 운영 조건 미충족 시 웹결제/대표상품 카드 비활성 표시 */
+/* URL ê²°ì  ì´ì ì¡°ê±´ ë¯¸ì¶©ì¡± ì ì¹ê²°ì /ëíìí ì¹´ë ë¹íì± íì */
 #webPaymentCard.pg-url-pay-card--disabled {
   opacity: 0.55;
 }
@@ -5009,19 +5015,19 @@ button.pay-follow-pill:focus-visible {
   pointer-events: none;
 }
 
-/* ========== 메인(/main) 대시보드 ========== */
+/* ========== ë©ì¸(/main) ëìë³´ë ========== */
 .pg-home-dashboard-mount .pg-dash-user-head {
   font-size: 1.05rem;
   font-weight: 600;
 }
-/* 사용자명: 검정(나의정보 표시명). 업체명: 보조색 — 테마 흰글자 상속 무시 */
+/* ì¬ì©ìëª: ê²ì (ëìì ë³´ íìëª). ìì²´ëª: ë³´ì¡°ì â íë§ í°ê¸ì ìì ë¬´ì */
 #contentsMain .pg-home-dashboard-mount .pg-dash-user-head .pg-dash-user-name {
   color: #111 !important;
 }
 #contentsMain .pg-home-dashboard-mount .pg-dash-user-head .pg-dash-user-org {
   color: #5c6c7c !important;
 }
-/* content-inner=흰 배경 + DARK 등 테마 흰글자 상속 — 총본사 이하 조직 로그인 시에도 동일 */
+/* content-inner=í° ë°°ê²½ + DARK ë± íë§ í°ê¸ì ìì â ì´ë³¸ì¬ ì´í ì¡°ì§ ë¡ê·¸ì¸ ììë ëì¼ */
 body.theme-dark .content-inner .pg-home-dashboard-mount .pg-dash-user-head .pg-dash-user-name,
 body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-user-head .pg-dash-user-name {
   color: #111 !important;
@@ -5034,7 +5040,7 @@ body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-user-head .pg-
   background: #f8f9fa;
   border-radius: 0 0.25rem 0.25rem 0;
 }
-/* 메인공지 — insightHint 와 동일 글자색(다크/브라운 테마 흰글자 상속 방지) */
+/* ë©ì¸ê³µì§ â insightHint ì ëì¼ ê¸ìì(ë¤í¬/ë¸ë¼ì´ íë§ í°ê¸ì ìì ë°©ì§) */
 .pg-home-dashboard-mount .pg-dash-main-notice,
 .pg-home-dashboard-mount .pg-dash-main-notice .pg-dash-main-notice-title,
 .pg-home-dashboard-mount .pg-dash-main-notice .pg-dash-main-notice-body,
@@ -5185,7 +5191,7 @@ body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .p
   border-color: #0d6efd !important;
 }
 
-/* 챗봇 기본설정 — 산하 가맹 현황 표: 가로 스크롤 없음, 긴 본문은 셀 안 줄바꿈 */
+/* ì±ë´ ê¸°ë³¸ì¤ì  â ì°í ê°ë§¹ íí© í: ê°ë¡ ì¤í¬ë¡¤ ìì, ê¸´ ë³¸ë¬¸ì ì ì ì¤ë°ê¿ */
 .chatbot-kb-overview-outer .chatbot-kb-overview-table-wrap {
   overflow-x: visible;
   max-width: 100%;
@@ -5231,7 +5237,7 @@ body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .p
   vertical-align: middle;
 }
 
-/* 챗봇 플랜구매설정 — 파란 헤더·파스텔 카드(가독성) */
+/* ì±ë´ íëêµ¬ë§¤ì¤ì  â íë í¤ëÂ·íì¤í ì¹´ë(ê°ëì±) */
 #contentsMain .chatbot-kb-plan-shell {
   background: linear-gradient(180deg, #eef5ff 0%, #f8fbff 35%, #ffffff 100%);
 }
@@ -5250,7 +5256,7 @@ body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .p
   color: #212529;
 }
 
-/* 챗봇 상품관리 — 가맹 로그인 시 본사 전용 열·등록폼 행 숨김 */
+/* ì±ë´ ìíê´ë¦¬ â ê°ë§¹ ë¡ê·¸ì¸ ì ë³¸ì¬ ì ì© ì´Â·ë±ë¡í¼ í ì¨ê¹ */
 .chatbot-prod-grid--merchant .hq-only-col {
   display: none !important;
 }
@@ -5262,7 +5268,7 @@ body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .p
   max-width: 100%;
   min-width: 0;
 }
-/* 리사이즈 전: auto / 적용 후: fixed(table-column-resize.js) — auto가 fixed를 덮지 않게 분리 */
+/* ë¦¬ì¬ì´ì¦ ì : auto / ì ì© í: fixed(table-column-resize.js) â autoê° fixedë¥¼ ë®ì§ ìê² ë¶ë¦¬ */
 #contentsMain .chatbot-product-mng .chatbot-prod-grid:not(.pg-table-col-resize-enabled) {
   table-layout: auto;
 }
@@ -5271,13 +5277,13 @@ body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .p
   width: 100%;
   max-width: 100%;
 }
-/* 등록된 상품: 좁은 뷰포트에서는 가로 스크롤로 열을 압착하지 않음(리사이즈 핸들은 래퍼 안에서만 약간 잘릴 수 있음) */
+/* ë±ë¡ë ìí: ì¢ì ë·°í¬í¸ììë ê°ë¡ ì¤í¬ë¡¤ë¡ ì´ì ìì°©íì§ ìì(ë¦¬ì¬ì´ì¦ í¸ë¤ì ëí¼ ìììë§ ì½ê° ìë¦´ ì ìì) */
 #contentsMain .chatbot-product-mng .chatbot-prod-table-responsive {
-  /* 스크롤은 유지하되(컬럼 리사이즈/전체 열 확인), 스크롤바만 숨김 */
+  /* ì¤í¬ë¡¤ì ì ì§íë(ì»¬ë¼ ë¦¬ì¬ì´ì¦/ì ì²´ ì´ íì¸), ì¤í¬ë¡¤ë°ë§ ì¨ê¹ */
   overflow-x: auto;
   width: 100%;
   max-width: 100%;
-  /* 헤더 리사이즈 핸들(right:-4px)이 잘리지 않도록 */
+  /* í¤ë ë¦¬ì¬ì´ì¦ í¸ë¤(right:-4px)ì´ ìë¦¬ì§ ìëë¡ */
   padding-right: 10px;
   box-sizing: border-box;
   -webkit-overflow-scrolling: touch;
@@ -5287,7 +5293,7 @@ body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .p
 #contentsMain .chatbot-product-mng .chatbot-prod-table-responsive::-webkit-scrollbar {
   display: none;                  /* Chrome/Safari */
 }
-/* 가맹 화면: 숨긴 본사 열에 대응하는 <col> 이 공간을 잡지 않도록 */
+/* ê°ë§¹ íë©´: ì¨ê¸´ ë³¸ì¬ ì´ì ëìíë <col> ì´ ê³µê°ì ì¡ì§ ìëë¡ */
 #contentsMain .chatbot-product-mng .chatbot-prod-grid--merchant colgroup col:nth-child(2),
 #contentsMain .chatbot-product-mng .chatbot-prod-grid--merchant colgroup col:nth-child(3),
 #contentsMain .chatbot-product-mng .chatbot-prod-grid--merchant colgroup col:nth-child(4) {
@@ -5296,12 +5302,12 @@ body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .p
   max-width: 0 !important;
 }
 #contentsMain .chatbot-product-mng .chatbot-prod-table-responsive > .table.chatbot-prod-grid {
-  /* 리사이즈/컬럼 표시를 위해 최소 폭은 유지(스크롤바는 숨김 처리) */
+  /* ë¦¬ì¬ì´ì¦/ì»¬ë¼ íìë¥¼ ìí´ ìµì í­ì ì ì§(ì¤í¬ë¡¤ë°ë ì¨ê¹ ì²ë¦¬) */
   min-width: 1000px;
   width: 100%;
   max-width: 100%;
 }
-/* 리사이즈 적용 전: 뷰가 넓을 때는 래퍼 100%까지 반드시 확장 */
+/* ë¦¬ì¬ì´ì¦ ì ì© ì : ë·°ê° ëì ëë ëí¼ 100%ê¹ì§ ë°ëì íì¥ */
 #contentsMain .chatbot-product-mng .chatbot-prod-table-responsive > .table.chatbot-prod-grid:not(.pg-table-col-resize-enabled) {
   min-width: max(1000px, 100%);
 }
@@ -5313,18 +5319,18 @@ body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .p
   min-width: 0;
   vertical-align: middle;
 }
-/* 등록된 상품: 짧은 헤더는 세로 한 글자씩 쌓이지 않도록 한 줄 유지 */
+/* ë±ë¡ë ìí: ì§§ì í¤ëë ì¸ë¡ í ê¸ìì© ìì´ì§ ìëë¡ í ì¤ ì ì§ */
 #contentsMain .chatbot-product-mng .chatbot-prod-table-responsive .chatbot-prod-grid thead th {
   white-space: nowrap;
 }
 #contentsMain .chatbot-product-mng .chatbot-prod-table-responsive .chatbot-prod-grid tbody td {
   white-space: normal;
 }
-/* 제목·설명은 너무 좁으면 한 글자씩 세로로 쌓이므로 하한을 둠 */
+/* ì ëª©Â·ì¤ëªì ëë¬´ ì¢ì¼ë©´ í ê¸ìì© ì¸ë¡ë¡ ìì´ë¯ë¡ ííì ë  */
 #contentsMain .chatbot-product-mng .chatbot-prod-grid th.chatbot-prod-col-title,
 #contentsMain .chatbot-product-mng .chatbot-prod-grid td.chatbot-prod-col-title {
   min-width: 10.5rem;
-  /* 극단적으로 좁아지면 한 글자씩 세로로 쌓이므로 한 줄 유지 + 말줄임 */
+  /* ê·¹ë¨ì ì¼ë¡ ì¢ìì§ë©´ í ê¸ìì© ì¸ë¡ë¡ ìì´ë¯ë¡ í ì¤ ì ì§ + ë§ì¤ì */
   white-space: nowrap;
   word-break: normal;
   overflow: hidden;
@@ -5333,11 +5339,11 @@ body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .p
 #contentsMain .chatbot-product-mng .chatbot-prod-grid th.chatbot-prod-col-desc,
 #contentsMain .chatbot-product-mng .chatbot-prod-grid td.chatbot-prod-col-desc {
   min-width: 14rem;
-  /* 테이블이 래퍼 전체 너비를 쓰도록 max-width 제한 제거(남는 폭은 설명 열이 흡수) */
+  /* íì´ë¸ì´ ëí¼ ì ì²´ ëë¹ë¥¼ ì°ëë¡ max-width ì í ì ê±°(ë¨ë í­ì ì¤ëª ì´ì´ í¡ì) */
   max-width: none;
   width: auto;
 }
-/* 순서: 숫자 드롭다운만 — 폼셀렉트가 행 너비를 잡아먹지 않도록 */
+/* ìì: ì«ì ëë¡­ë¤ì´ë§ â í¼ìë í¸ê° í ëë¹ë¥¼ ì¡ìë¨¹ì§ ìëë¡ */
 #contentsMain .chatbot-product-mng .chatbot-prod-grid th.chatbot-prod-col-sort,
 #contentsMain .chatbot-product-mng .chatbot-prod-grid td.chatbot-prod-sort-cell {
   width: 3.25rem;
@@ -5365,7 +5371,7 @@ body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .p
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* 판매·예약 / 예약결제: 짧은 라벨이 글자 단위로 세로 쌓이며 옆 열과 겹쳐 보이지 않도록 */
+/* íë§¤Â·ìì½ / ìì½ê²°ì : ì§§ì ë¼ë²¨ì´ ê¸ì ë¨ìë¡ ì¸ë¡ ìì´ë©° ì ì´ê³¼ ê²¹ì³ ë³´ì´ì§ ìëë¡ */
 #contentsMain .chatbot-product-mng .chatbot-prod-grid th.chatbot-prod-col-listing,
 #contentsMain .chatbot-product-mng .chatbot-prod-grid td.chatbot-prod-col-listing {
   min-width: 9.5rem;
@@ -5420,7 +5426,7 @@ body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .p
   resize: vertical;
 }
 
-/* 챗봇 상품관리: 상한 초과 이미지 슬롯은 비활성 표시(숨기지 않음) */
+/* ì±ë´ ìíê´ë¦¬: ìí ì´ê³¼ ì´ë¯¸ì§ ì¬ë¡¯ì ë¹íì± íì(ì¨ê¸°ì§ ìì) */
 #contentsMain .chatbot-product-mng .chatbot-form-img-slot--disabled {
   opacity: 0.45;
   pointer-events: none;
@@ -5429,7 +5435,7 @@ body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .p
   font-size: 0.75rem;
   word-break: break-all;
 }
-/* 챗봇 상품 — 판매중(useYn=Y 등) 행 스카이블루 (상품등록 목록) */
+/* ì±ë´ ìí â íë§¤ì¤(useYn=Y ë±) í ì¤ì¹´ì´ë¸ë£¨ (ìíë±ë¡ ëª©ë¡) */
 .chatbot-product-mng .chatbot-prod-grid tbody tr.chatbot-prod-row--active td {
   color: #1864ab !important;
   background-color: #e7f5ff !important;
@@ -5446,7 +5452,7 @@ body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .p
   border-color: #ffa8a8;
   color: #c92a2a;
 }
-/* 챗봇 상품 — 판매상태 대기(useYn=N) 행 회색 */
+/* ì±ë´ ìí â íë§¤ìí ëê¸°(useYn=N) í íì */
 .chatbot-product-mng .chatbot-prod-grid tbody tr.chatbot-prod-row--inactive td {
   color: #868e96 !important;
   background-color: #f1f3f5 !important;
@@ -5459,7 +5465,7 @@ body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .p
   opacity: 0.9;
 }
 
-/* 본사 사용자설정 — 담당자(보조) 메뉴 기본 권한: 대메뉴별 톤 */
+/* ë³¸ì¬ ì¬ì©ìì¤ì  â ë´ë¹ì(ë³´ì¡°) ë©ë´ ê¸°ë³¸ ê¶í: ëë©ë´ë³ í¤ */
 #contentsMain .hq-user-asst-matrix-root .hq-asst-grp-0 td {
   background-color: rgba(13, 110, 253, 0.06);
 }
@@ -5507,7 +5513,7 @@ body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .p
   box-shadow: inset 0 3px 0 0 #adb5bd;
 }
 
-/* 본사 사용자설정 — 태블릿모드: 담당자 권한 매트릭스 (데스크톱과 동일 톤) */
+/* ë³¸ì¬ ì¬ì©ìì¤ì  â íë¸ë¦¿ëª¨ë: ë´ë¹ì ê¶í ë§¤í¸ë¦­ì¤ (ë°ì¤í¬í±ê³¼ ëì¼ í¤) */
 #contentsMain .hq-user-tablet-matrix-root .hq-asst-grp-0 td,
 #contentsMain .hq-user-tablet-matrix-root .hq-asst-grp-1 td,
 #contentsMain .hq-user-tablet-matrix-root .hq-asst-grp-2 td,
@@ -5530,7 +5536,7 @@ body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .p
   padding: 0.35rem 0.65rem;
 }
 
-/* ========== 본문 카드 섹션 제목(.card-header): 배경테마와 무관하게 기본(DEFAULT) 화면과 동일 톤·글꼴 크기 고정 ========== */
+/* ========== ë³¸ë¬¸ ì¹´ë ì¹ì ì ëª©(.card-header): ë°°ê²½íë§ì ë¬´ê´íê² ê¸°ë³¸(DEFAULT) íë©´ê³¼ ëì¼ í¤Â·ê¸ê¼´ í¬ê¸° ê³ ì  ========== */
 #contentsMain .card > .card-header,
 .tab-pane.tabConDiv .card > .card-header {
   background-color: rgba(0, 0, 0, 0.03) !important;
@@ -5544,7 +5550,7 @@ body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .p
 .tab-pane.tabConDiv .card > .card-header span {
   color: inherit !important;
 }
-/* 의도적 파스텔/강조 카드 — 위 고정보다 우선 */
+/* ìëì  íì¤í/ê°ì¡° ì¹´ë â ì ê³ ì ë³´ë¤ ì°ì  */
 #contentsMain #holdRateCard.card > .card-header,
 #contentsMain #commissionPolicyCard.card > .card-header {
   background: rgba(179, 217, 242, 0.5) !important;
@@ -5562,7 +5568,7 @@ body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .p
   color: #5c4d1a !important;
 }
 
-/* ========== 운영관리 — 통합 리포트: 통화 줄무늬·가맹 헤더 5색·버킷 통일 톤 ========== */
+/* ========== ì´ìê´ë¦¬ â íµí© ë¦¬í¬í¸: íµí ì¤ë¬´ë¬Â·ê°ë§¹ í¤ë 5ìÂ·ë²í· íµì¼ í¤ ========== */
 .content-inner--ops-integrated-report .integrated-report-wrap {
   overflow-x: auto;
 }
@@ -5582,13 +5588,13 @@ body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .p
   min-width: 9rem;
   white-space: nowrap;
 }
-/* 좌측·버킷 헤더 — 연한 파란 파스텔(VAT·총거래건수 등과 동일) */
+/* ì¢ì¸¡Â·ë²í· í¤ë â ì°í íë íì¤í(VATÂ·ì´ê±°ëê±´ì ë±ê³¼ ëì¼) */
 .content-inner--ops-integrated-report .integrated-report-wrap table.integrated-report-grid th.integrated-report-th--base {
   background: #e7f5ff !important;
   border-color: #d0ebff !important;
   color: #343a40;
 }
-/* 통화 행 — 흰색 / 연회색 교차(가맹 열 본문은 줄무늬만 따름) */
+/* íµí í â í°ì / ì°íì êµì°¨(ê°ë§¹ ì´ ë³¸ë¬¸ì ì¤ë¬´ë¬ë§ ë°ë¦) */
 .content-inner--ops-integrated-report .integrated-report-wrap tr.integrated-report-cur-row--white > td {
   background: #fff !important;
 }
@@ -5598,7 +5604,7 @@ body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .p
 .content-inner--ops-integrated-report .integrated-report-wrap td.integrated-report-merch-td {
   background: inherit !important;
 }
-/* 가맹 헤더(상단 2행) — 5색 순환 */
+/* ê°ë§¹ í¤ë(ìë¨ 2í) â 5ì ìí */
 .content-inner--ops-integrated-report .integrated-report-wrap th.integrated-report-merch--c0 {
   background: #f3f0ff !important;
   border-color: #d0bfff !important;
@@ -5623,10 +5629,10 @@ body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .p
   filter: brightness(0.97);
 }
 
-/* ========== 태블릿 UI 모드 — 협소 디스플레이용 고밀도·소형 타이포 ==========
-   html.pg-admin--tablet 일 때만 적용. 터치는 유지하되 정보 밀도를 우선합니다. */
+/* ========== íë¸ë¦¿ UI ëª¨ë â íì ëì¤íë ì´ì© ê³ ë°ëÂ·ìí íì´í¬ ==========
+   html.pg-admin--tablet ì¼ ëë§ ì ì©. í°ì¹ë ì ì§íë ì ë³´ ë°ëë¥¼ ì°ì í©ëë¤. */
 html.pg-admin--tablet {
-  /* 기본(13px)보다 한 단계 촘촘 — 매우 좁은 폭에서만 살짝 더 줄어듦 */
+  /* ê¸°ë³¸(13px)ë³´ë¤ í ë¨ê³ ì´ì´ â ë§¤ì° ì¢ì í­ììë§ ì´ì§ ë ì¤ì´ë¦ */
   --app-base-font-size: clamp(10.5px, 2.55vw, 11.75px);
   --app-form-sm-font-size: clamp(10px, 2.35vw, 11px);
   --app-table-font-size: clamp(9.5px, 2.25vw, 10.5px);
@@ -5638,7 +5644,7 @@ html.pg-admin--tablet {
   -webkit-font-smoothing: antialiased;
 }
 
-/* 본문 영역: 미세 격자로 스크롤 영역만 구획(눈 피로 최소) */
+/* ë³¸ë¬¸ ìì­: ë¯¸ì¸ ê²©ìë¡ ì¤í¬ë¡¤ ìì­ë§ êµ¬í(ë í¼ë¡ ìµì) */
 html.pg-admin--tablet .content-page {
   background-color: #f3f4f6;
   background-image:
@@ -5647,7 +5653,7 @@ html.pg-admin--tablet .content-page {
   background-size: 20px 20px;
 }
 
-/* 상단 바: 얇은 글래스 느낌 + 높이 절약 */
+/* ìë¨ ë°: ìì ê¸ëì¤ ëë + ëì´ ì ì½ */
 html.pg-admin--tablet .header-top {
   min-height: 42px;
   padding: 0 10px 0 12px;
@@ -5677,11 +5683,11 @@ html.pg-admin--tablet .header-top-right .pg-tablet-shell-inline .form-check-inpu
   height: 1.15rem;
 }
 
-/* 태블릿 모드: 좌측 사이드 메뉴 숨김 — 상단 탭·아이콘 런처만 사용 */
+/* íë¸ë¦¿ ëª¨ë: ì¢ì¸¡ ì¬ì´ë ë©ë´ ì¨ê¹ â ìë¨ í­Â·ìì´ì½ ë°ì²ë§ ì¬ì© */
 html.pg-admin--tablet .left-side-menu {
   display: none !important;
 }
-/* 접힘 플라이아웃 잔상 방지 */
+/* ì í íë¼ì´ìì ìì ë°©ì§ */
 html.pg-admin--tablet #flyout-submenu.flyout-submenu,
 html.pg-admin--tablet .flyout-submenu {
   display: none !important;
@@ -5689,7 +5695,7 @@ html.pg-admin--tablet .flyout-submenu {
   pointer-events: none !important;
 }
 
-/* 탭 행: 한 줄에 더 많이 */
+/* í­ í: í ì¤ì ë ë§ì´ */
 html.pg-admin--tablet .content-tab-row {
   min-height: 32px;
   padding: 0 6px;
@@ -5704,7 +5710,7 @@ html.pg-admin--tablet .content-tabs .tab-close-button {
   font-size: var(--app-form-sm-font-size);
 }
 
-/* 본문 패딩·표·카드·폼 */
+/* ë³¸ë¬¸ í¨ë©Â·íÂ·ì¹´ëÂ·í¼ */
 html.pg-admin--tablet .content-inner {
   padding: 8px 10px;
   font-size: var(--app-base-font-size);
@@ -5764,7 +5770,7 @@ html.pg-admin--tablet .tab-pane.tabConDiv .table thead th {
   white-space: nowrap;
 }
 
-/* 검색·액션 한 줄 밀도 */
+/* ê²ìÂ·ì¡ì í ì¤ ë°ë */
 html.pg-admin--tablet .content-inner .row.g-2,
 html.pg-admin--tablet .tab-pane.tabConDiv .row.g-2 {
   --bs-gutter-y: 0.35rem;
@@ -5775,7 +5781,7 @@ html.pg-admin--tablet .tab-pane.tabConDiv .pagination {
   font-size: var(--app-table-font-size);
 }
 
-/* 모달·알림도 동일 스케일 */
+/* ëª¨ë¬Â·ìë¦¼ë ëì¼ ì¤ì¼ì¼ */
 html.pg-admin--tablet .modal-header,
 html.pg-admin--tablet .modal-body,
 html.pg-admin--tablet .modal-footer {
@@ -5788,7 +5794,7 @@ html.pg-admin--tablet #contentsMain {
   -webkit-overflow-scrolling: touch;
 }
 
-/* 태블릿 모드 메인(/main): 아이콘 런처 — 터치·태블릿 우선(Table Order 스타일) */
+/* íë¸ë¦¿ ëª¨ë ë©ì¸(/main): ìì´ì½ ë°ì² â í°ì¹Â·íë¸ë¦¿ ì°ì (Table Order ì¤íì¼) */
 #contentsMain.pg-tablet-main-active > .row:first-child {
   display: none;
 }
@@ -5986,7 +5992,7 @@ html.pg-admin--tablet .pg-tablet-launch-tile {
   }
 }
 
-/* 태블릿설정 — 조직×메뉴 체크 매트릭스 */
+/* íë¸ë¦¿ì¤ì  â ì¡°ì§Ãë©ë´ ì²´í¬ ë§¤í¸ë¦­ì¤ */
 .hq-ops-mode-matrix-wrap {
   max-height: min(72vh, 42rem);
   overflow: auto;
@@ -6032,14 +6038,14 @@ html.pg-admin--tablet .pg-tablet-launch-tile {
   background-color: rgba(13, 110, 253, 0.06);
 }
 
-/* B안 허브 shell — 본사 정책·연동·배포 통합 탭 */
+/* Bì íë¸ shell â ë³¸ì¬ ì ì±Â·ì°ëÂ·ë°°í¬ íµí© í­ */
 .pg-hub-shell .pg-hub-tabs {
   border-bottom: 1px solid var(--bs-border-color, #dee2e6);
   gap: 0.15rem;
   flex-wrap: wrap;
   overflow: visible;
 }
-/* 버전 배지는 플랫폼「업데이트 내용」탭에만 표시 — 허브 등 다른 화면 잔여 배지 숨김 */
+/* ë²ì  ë°°ì§ë íë«í¼ãìë°ì´í¸ ë´ì©ãí­ìë§ íì â íë¸ ë± ë¤ë¥¸ íë©´ ìì¬ ë°°ì§ ì¨ê¹ */
 .pg-hub-layout-badge,
 .pg-hub-shell .badge.pg-hub-layout-badge {
   display: none !important;
@@ -6089,7 +6095,7 @@ html.pg-admin--tablet .pg-tablet-launch-tile {
 .tab-pane.pg-hub-tab-pane {
   padding-top: 0;
 }
-/* 노티관리 — 생성 이력 관리 열 Callback/Result/수정/삭제 */
+/* ë¸í°ê´ë¦¬ â ìì± ì´ë ¥ ê´ë¦¬ ì´ Callback/Result/ìì /ì­ì  */
 #opsNotiProvisionRoot .ops-np-log-act-btn {
   font-size: 0.68rem;
   line-height: 1.15;
@@ -6098,7 +6104,7 @@ html.pg-admin--tablet .pg-tablet-launch-tile {
   border-radius: 0.2rem;
   vertical-align: middle;
 }
-/* 노티관리: 가맹/전산/개발 노티 사용 체크 라벨 — 테마 흰글자 상속으로 안 보이는 문제 방지 */
+/* ë¸í°ê´ë¦¬: ê°ë§¹/ì ì°/ê°ë° ë¸í° ì¬ì© ì²´í¬ ë¼ë²¨ â íë§ í°ê¸ì ììì¼ë¡ ì ë³´ì´ë ë¬¸ì  ë°©ì§ */
 #opsNotiProvisionRoot #opsNpNotifyUseFlagsWrap .card,
 #opsNotiProvisionRoot #opsNpNotifyUseFlagsWrap .card-body {
   background-color: #fff !important;
@@ -6112,7 +6118,7 @@ html.pg-admin--tablet .pg-tablet-launch-tile {
   opacity: 1 !important;
 }
 
-/* ����� �� ���ϰ���: ���� ����� �۰�, ��� ��ư �ٹٲ� */
+/* ¿î¿µ°ü¸® ¡¤ ¸ÞÀÏ°ü¸®: º»¹® ¿ä¾àÀº ÀÛ°Ô, ºñ°í ¹öÆ° ÁÙ¹Ù²Þ */
 #contentsMain .ops-mail-body-preview {
   font-size: 0.72rem;
   line-height: 1.25;
@@ -6127,4 +6133,17 @@ html.pg-admin--tablet .pg-tablet-launch-tile {
 #contentsMain .ops-mail-remark-cell .btn {
   font-size: 0.72rem;
   padding: 0.12rem 0.35rem;
+}
+
+/* ìì²´ê´ë¦¬ í¬ë¦½í ì¤ì  ì¹´ë â íëì íì¤í êµ¬ë¶ */
+#contentsMain .pg-merchant-crypto-pastel-card {
+  background-color: #e8f4fc !important;
+  border-color: #b8d9ef !important;
+}
+#contentsMain .pg-merchant-crypto-pastel-card > .card-header {
+  background-color: #d6ebf8 !important;
+  border-bottom-color: #b8d9ef !important;
+}
+#contentsMain .pg-merchant-crypto-pastel-card > .card-body {
+  background-color: #e8f4fc !important;
 }

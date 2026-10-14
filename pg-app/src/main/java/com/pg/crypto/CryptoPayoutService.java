@@ -27,13 +27,16 @@ public class CryptoPayoutService {
     private final CryptoPayoutQueueRepository payoutQueueRepository;
     private final CryptoGasFeeService gasFeeService;
     private final CommissionService commissionService;
+    private final CryptoReserveResolver reserveResolver;
 
     public CryptoPayoutService(CryptoPayoutQueueRepository payoutQueueRepository,
                                CryptoGasFeeService gasFeeService,
-                               CommissionService commissionService) {
+                               CommissionService commissionService,
+                               CryptoReserveResolver reserveResolver) {
         this.payoutQueueRepository = payoutQueueRepository;
         this.gasFeeService = gasFeeService;
         this.commissionService = commissionService;
+        this.reserveResolver = reserveResolver;
     }
 
     @Transactional
@@ -57,7 +60,8 @@ public class CryptoPayoutService {
             settlementFee = pol.getFeeSettlementPerTx();
         }
 
-        BigDecimal reservePct = cfg != null && cfg.getReservePct() != null ? cfg.getReservePct() : BigDecimal.ZERO;
+        CryptoReserveResolver.Effective eff = reserveResolver.resolve(cfg, mid);
+        BigDecimal reservePct = eff.effectiveReservePct() != null ? eff.effectiveReservePct() : BigDecimal.ZERO;
         BigDecimal reserve = BigDecimal.ZERO;
         if (reservePct.compareTo(BigDecimal.ZERO) > 0) {
             reserve = gross.multiply(reservePct)
@@ -87,7 +91,7 @@ public class CryptoPayoutService {
             q.setScheduledAt(LocalDateTime.now());
             q.setStatus(CryptoPayoutQueue.ST_READY);
         } else {
-            int hold = cfg != null && cfg.getHoldDays() != null ? Math.max(0, cfg.getHoldDays()) : 3;
+            int hold = Math.max(0, eff.effectiveHoldDays());
             q.setScheduledAt(LocalDateTime.now().plusDays(hold));
             q.setStatus(CryptoPayoutQueue.ST_HOLD);
         }

@@ -160,6 +160,57 @@ public class CheckoutHeaderLogoResolver {
         return new Resolved(WebPaymentHeaderLogoModeUtil.DEFAULT, resolveMasterDistBrandingLogo(merchantOrgUnitId));
     }
 
+    /**
+     * 크립토 결제·수단선택 상단 로고(A형).
+     * {@code DISABLED} → 미노출. {@code FOLLOW_HQ}(기본) → 웹결제 로고({@link #resolve})와 동일.
+     */
+    public Resolved resolveCrypto(Long merchantOrgUnitId) {
+        Optional<MerchantProfile> prof = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId);
+        String stored = prof.map(MerchantProfile::getCryptoPaymentHeaderLogoMode).orElse("FOLLOW_HQ");
+        if (stored == null || stored.isBlank()) {
+            stored = "FOLLOW_HQ";
+        }
+        String u = stored.trim().toUpperCase(java.util.Locale.ROOT);
+        if (WebPaymentHeaderLogoModeUtil.DISABLED.equals(u)
+                || "N".equals(u) || "OFF".equals(u) || "INACTIVE".equals(u)) {
+            return new Resolved(WebPaymentHeaderLogoModeUtil.DISABLED, Optional.empty());
+        }
+        return resolve(merchantOrgUnitId);
+    }
+
+    /** 크립토 prepare/session/checkout-context 용 — 웹결제 HTML 표시명·크립토 안내문구. */
+    public void applyCryptoToCheckoutMap(Map<String, Object> data, Long merchantOrgUnitId) {
+        if (data == null || merchantOrgUnitId == null) {
+            return;
+        }
+        Optional<MerchantProfile> prof = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId);
+        String stored = prof.map(MerchantProfile::getCryptoPaymentHeaderLogoMode).orElse("FOLLOW_HQ");
+        data.put("cryptoPaymentHeaderLogoMode", stored != null && !stored.isBlank() ? stored : "FOLLOW_HQ");
+        Resolved r = resolveCrypto(merchantOrgUnitId);
+        data.put("checkoutHeaderLogoMode", r.mode());
+        data.put("checkoutHeaderLogoChannel", "CRYPTO");
+        r.url().ifPresent(u -> data.put("checkoutHeaderLogoUrl", u));
+        if (!WebPaymentHeaderLogoModeUtil.DISABLED.equals(r.mode())) {
+            prof.map(MerchantProfile::getWebPaymentHeaderHtmlTitle)
+                    .filter(t -> t != null && !t.isBlank())
+                    .ifPresent(t -> data.put("checkoutHeaderHtmlTitle", t.trim()));
+        }
+        prof.ifPresent(mp -> checkoutHeaderSubtitleCopyService.putCryptoCheckoutFields(data, mp));
+    }
+
+    /** 통합(수단선택) checkout-context — 로고는 크립토 A형, 안내문구는 통합 전용. */
+    public void applyUnifiedToCheckoutMap(Map<String, Object> data, Long merchantOrgUnitId) {
+        if (data == null || merchantOrgUnitId == null) {
+            return;
+        }
+        applyCryptoToCheckoutMap(data, merchantOrgUnitId);
+        data.put("checkoutHeaderLogoChannel", "UNIFIED");
+        Optional<MerchantProfile> prof = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId);
+        data.remove("checkoutHeaderSubtitleText");
+        data.remove("checkoutHeaderSubtitleTextI18n");
+        prof.ifPresent(mp -> checkoutHeaderSubtitleCopyService.putUnifiedCheckoutFields(data, mp));
+    }
+
     public Resolved resolveSplitPay(Long merchantOrgUnitId) {
         Optional<MerchantProfile> prof = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId);
         String mode = WebPaymentHeaderLogoModeUtil.normalize(

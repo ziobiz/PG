@@ -8,7 +8,7 @@
 - 입금은 항상 ICOPAY 수탁. 판매자 직접 스플릿 금지.
 - 가맹·구매자 노출은 ICOPAY 중립 (`pgVendor` 항상 ICOPAY).
 - 자산 USDT·USDC·EURC 동일 모델. 네트워크·지갑은 카탈로그 시드.
-- **기준통화 USD (필수·변경 불가).** 금액·수수료·한도·견적·정산 앵커는 USD. USDT/USDC 액면≈USD. `CryptoCheckoutService.QUOTE_CURRENCY=USD`. 카드 DP(THB 등)와 혼용하지 않음.
+- **기준통화(청구) USD.** 수수료·한도·정산 앵커는 USD (`QUOTE_CURRENCY`). **표시통화**는 가맹 크립토설정 `display_currency`(JPY·USD 등). 시작폼은 카드 DP와 동일: 금액(표시)·표시통화·청구예상(USD). 자산 선택 후 **송금금액**=USDC/USDT는 USD 1:1, EURC는 USD→EUR FX(`CryptoFxService`).
 - **크립토 게이트:** 가맹 `use_yn=Y` + 업체등록 사용여부 Y만. 미사용(N)·영구정지(S) 차단. **CARD/CRYPTO/BOTH(`checkout_means`)는 UI·게이트 미사용**(레거시 컬럼만 useYn에 동기화). 카드는 URL·PG 설정 우선 — 크립토 카드가 카드를 켜지 않음.
 - **가맹 크립토 기본값(필수):** 사용=**미사용(N)**. 허용자산·네트워크 CSV 기본 **빈값**(전 자산 비활성). 미등록 가맹 조회 시에도 동일. USDT/TRC20 자동 기본 금지.
 - **네트워크·자산은 카탈로그만** (자유 텍스트 금지). 네트워크 UI: **로고+색톤 리스트**(Base·Arbitrum·BNB·Ethereum·OP·Polygon·Kaia·Tron·Solana·Stellar 등).

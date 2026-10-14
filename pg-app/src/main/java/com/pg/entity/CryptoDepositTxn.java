@@ -28,8 +28,20 @@ public class CryptoDepositTxn {
     @Column(name = "order_no", nullable = false, length = 100)
     private String orderNo;
 
+    /** 청구·수수료 앵커 금액(USD). */
     @Column(name = "amount", nullable = false, precision = 24, scale = 8)
     private BigDecimal amount;
+
+    /** 구매자 표시 금액(표시통화). */
+    @Column(name = "display_amount", precision = 24, scale = 8)
+    private BigDecimal displayAmount;
+
+    @Column(name = "display_currency", length = 8)
+    private String displayCurrency;
+
+    /** 선택 자산 송금 금액(USDC/USDT/EURC). */
+    @Column(name = "asset_amount", precision = 24, scale = 8)
+    private BigDecimal assetAmount;
 
     @Column(name = "asset_code", nullable = false, length = 16)
     private String assetCode;
@@ -45,6 +57,17 @@ public class CryptoDepositTxn {
 
     @Column(name = "buyer_name", length = 100)
     private String buyerName;
+
+    /** 국가번호(ISO2)와 분리된 로컬 전화번호 */
+    @Column(name = "buyer_phone", length = 40)
+    private String buyerPhone;
+
+    @Column(name = "buyer_country_iso2", length = 2)
+    private String buyerCountryIso2;
+
+    /** 배송주소 JSON(선택) — zip/city/address 등 */
+    @Column(name = "buyer_shipping_json", length = 1000)
+    private String buyerShippingJson;
 
     @Column(name = "custody_address", nullable = false, length = 128)
     private String custodyAddress;
@@ -105,6 +128,12 @@ public class CryptoDepositTxn {
     public void setOrderNo(String orderNo) { this.orderNo = orderNo; }
     public BigDecimal getAmount() { return amount; }
     public void setAmount(BigDecimal amount) { this.amount = amount; }
+    public BigDecimal getDisplayAmount() { return displayAmount; }
+    public void setDisplayAmount(BigDecimal displayAmount) { this.displayAmount = displayAmount; }
+    public String getDisplayCurrency() { return displayCurrency; }
+    public void setDisplayCurrency(String displayCurrency) { this.displayCurrency = displayCurrency; }
+    public BigDecimal getAssetAmount() { return assetAmount; }
+    public void setAssetAmount(BigDecimal assetAmount) { this.assetAmount = assetAmount; }
     public String getAssetCode() { return assetCode; }
     public void setAssetCode(String assetCode) { this.assetCode = assetCode; }
     public String getNetworkCode() { return networkCode; }
@@ -115,6 +144,12 @@ public class CryptoDepositTxn {
     public void setBuyerEmail(String buyerEmail) { this.buyerEmail = buyerEmail; }
     public String getBuyerName() { return buyerName; }
     public void setBuyerName(String buyerName) { this.buyerName = buyerName; }
+    public String getBuyerPhone() { return buyerPhone; }
+    public void setBuyerPhone(String buyerPhone) { this.buyerPhone = buyerPhone; }
+    public String getBuyerCountryIso2() { return buyerCountryIso2; }
+    public void setBuyerCountryIso2(String buyerCountryIso2) { this.buyerCountryIso2 = buyerCountryIso2; }
+    public String getBuyerShippingJson() { return buyerShippingJson; }
+    public void setBuyerShippingJson(String buyerShippingJson) { this.buyerShippingJson = buyerShippingJson; }
     public String getCustodyAddress() { return custodyAddress; }
     public void setCustodyAddress(String custodyAddress) { this.custodyAddress = custodyAddress; }
     public String getSessionToken() { return sessionToken; }

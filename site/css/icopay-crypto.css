@@ -1,27 +1,73 @@
-/* ICOPAY crypto checkout — pastel tiles */
-.ic-crypto-wrap{max-width:520px;margin:24px auto;padding:0 14px 40px;font-family:"Segoe UI",system-ui,sans-serif;color:#0f172a}
-.ic-crypto-card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px 18px;box-shadow:0 8px 28px rgba(15,23,42,.06)}
-.ic-crypto-brand{font-size:1.25rem;font-weight:750;letter-spacing:.02em;margin:0 0 4px}
-.ic-crypto-lead{color:#64748b;font-size:14px;margin:0 0 16px;line-height:1.45}
-.ic-crypto-amt{font-size:1.45rem;font-weight:700;margin:8px 0}
-.ic-crypto-meta{font-size:13px;color:#475569;margin:4px 0}
-.ic-crypto-section{margin-top:18px}
-.ic-crypto-section h2{font-size:.92rem;margin:0 0 10px;color:#334155;font-weight:650}
-.ic-crypto-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px}
-.ic-crypto-tile{appearance:none;border:1px solid rgba(15,23,42,.08);background:var(--ic-bg,#f8fafc);color:var(--ic-fg,#0f172a);border-radius:14px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}
-.ic-crypto-tile:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(15,23,42,.08);border-color:var(--ic-accent,#94a3b8)}
-.ic-crypto-tile.is-selected{border-color:var(--ic-accent,#0f766e);box-shadow:0 0 0 2px color-mix(in srgb,var(--ic-accent,#0f766e) 35%,transparent)}
+/* ICOPAY crypto checkout — pay-shell 과 동일 톤 (카드 결제창 통일) */
+.ic-crypto-wrap{max-width:520px;margin:0 auto;padding:1.5rem 1rem 3rem;color:#1a1a2e}
+.ic-crypto-card{background:#fff;border-radius:12px;padding:1.75rem 1.5rem 2rem;box-shadow:0 4px 24px rgba(0,0,0,.06)}
+.ic-crypto-pay-card .ic-crypto-section{margin-top:1.15rem}
+.ic-crypto-brand-wrap{display:flex;justify-content:center;align-items:center;min-height:40px;margin:0 0 8px}
+.ic-crypto-brand-img{max-height:48px;max-width:min(100%,220px);object-fit:contain;display:block}
+.ic-crypto-brand{font-size:1.1rem;font-weight:700;letter-spacing:.02em;margin:0;text-align:center;color:#1a1a2e}
+.ic-crypto-lead{color:#6c757d;font-size:.75rem;margin:0 0 1rem;line-height:1.45}
+.ic-crypto-amt{font-size:1.25rem;font-weight:700;margin:8px 0}
+.ic-crypto-meta{font-size:.8125rem;color:#6c757d;margin:4px 0}
+.ic-crypto-section{margin-top:1.15rem}
+.ic-crypto-section h2{font-size:.8rem;margin:0 0 .5rem;color:#333;font-weight:600}
+/* 자산: 기존 큰 타일(1~3개). 1개면 가로 꽉 참. 지갑만 5열 축소 */
+.ic-crypto-grid{display:grid;gap:10px}
+.ic-crypto-grid-assets{grid-template-columns:repeat(auto-fit,minmax(118px,1fr))}
+.ic-crypto-grid-assets:has(> .ic-crypto-tile:only-child){grid-template-columns:1fr}
+.ic-crypto-grid-wallets{grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.ic-crypto-tile{appearance:none;border:1px solid #dee2e6;background:var(--ic-bg,#f8fafc);color:var(--ic-fg,#212529);border-radius:8px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:box-shadow .15s ease,border-color .15s ease,background .15s ease;min-width:0}
+.ic-crypto-tile:hover{box-shadow:0 2px 10px rgba(13,110,253,.08);border-color:#0d6efd}
+.ic-crypto-tile.is-selected{border-color:#0d6efd;box-shadow:0 0 0 2px rgba(13,110,253,.25);background:#fff}
 .ic-crypto-tile-icon{width:36px;height:36px;display:grid;place-items:center}
 .ic-crypto-tile-icon .ic-crypto-icon{width:32px;height:32px}
-.ic-crypto-tile-name{font-size:12px;font-weight:650;text-align:center;line-height:1.25}
-.ic-crypto-addr{word-break:break-all;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:10px;padding:12px;font-family:ui-monospace,Consolas,monospace;font-size:12.5px}
+.ic-crypto-tile-name{font-size:.75rem;font-weight:600;text-align:center;line-height:1.25}
+.ic-crypto-grid-wallets .ic-crypto-tile{padding:8px 4px;gap:4px}
+.ic-crypto-grid-wallets .ic-crypto-tile-icon{width:22px;height:22px}
+.ic-crypto-grid-wallets .ic-crypto-tile-icon .ic-crypto-icon{width:20px;height:20px}
+.ic-crypto-grid-wallets .ic-crypto-tile-name{font-size:.62rem;line-height:1.2;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ic-crypto-addr{word-break:break-all;background:#f8f9fa;border:1px solid #dee2e6;border-radius:8px;padding:12px;font-family:ui-monospace,Consolas,monospace;font-size:.8125rem;flex:1;min-width:0}
+.ic-crypto-addr-row{display:flex;align-items:stretch;gap:8px}
+.ic-crypto-copy-btn{flex:0 0 auto;align-self:stretch;min-width:4.2rem;font-weight:600;font-size:.75rem;letter-spacing:.04em}
+.ic-crypto-qr-wrap{display:flex;justify-content:center;margin:14px 0 6px}
+.ic-crypto-qr-wrap canvas{border-radius:8px;border:1px solid #dee2e6;background:#fff}
 .ic-crypto-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
-.ic-crypto-btn{border:0;border-radius:10px;padding:11px 14px;font-weight:650;cursor:pointer;font-size:14px}
-.ic-crypto-btn-primary{background:#0f766e;color:#fff}
-.ic-crypto-btn-ghost{background:#e2e8f0;color:#0f172a}
-.ic-crypto-status{margin-top:14px;padding:10px 12px;border-radius:10px;background:#ecfdf5;color:#065f46;font-size:13.5px}
-.ic-crypto-err{margin-top:12px;color:#b91c1c;font-size:13.5px}
-.ic-crypto-means .ic-crypto-tile{min-height:96px}
+.ic-crypto-confirm-wrap{display:flex;justify-content:center;margin-top:18px}
+.ic-crypto-btn{border:0;border-radius:6px;padding:.5rem 1.25rem;font-weight:600;cursor:pointer;font-size:.875rem}
+.ic-crypto-btn-primary{background:#0d6efd;color:#fff}
+.ic-crypto-btn-primary:hover{background:#0b5ed7}
+.ic-crypto-btn-ghost{background:#e9ecef;color:#212529}
+/* 「입금 주소 받기」— 그레이 파스텔 */
+.ic-crypto-btn-pastel-gray{
+  background:#E8EEF2!important;
+  color:#475569!important;
+  border:1px solid #D0D8E0!important;
+  font-weight:600;
+  box-shadow:none;
+}
+.ic-crypto-btn-pastel-gray:hover,
+.ic-crypto-btn-pastel-gray:focus{
+  background:#DDE5EB!important;
+  color:#334155!important;
+  border-color:#C5CED6!important;
+}
+.ic-crypto-btn-confirm{min-width:min(100%,280px);padding:14px 22px;border-radius:6px;font-size:.9375rem;font-weight:600;background:#0d6efd;color:#fff;border:0}
+.ic-crypto-btn-confirm:hover{background:#0b5ed7}
+.ic-crypto-status{margin-top:14px;padding:10px 12px;border-radius:8px;background:#d1e7dd;color:#0f5132;font-size:.875rem}
+.ic-crypto-err{margin-top:12px;color:#842029;font-size:.875rem}
+.ic-crypto-means{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:320px;margin-left:auto;margin-right:auto}
+.ic-crypto-means .ic-crypto-tile{min-height:96px;padding:12px 8px;gap:8px}
+.ic-crypto-means .ic-crypto-tile-icon{width:36px;height:36px}
+.ic-crypto-means .ic-crypto-tile-icon .ic-crypto-icon{width:32px;height:32px}
+.ic-crypto-means .ic-crypto-tile-name{font-size:.75rem;white-space:normal}
+.ic-means-page{text-align:center}
+.ic-means-card{display:flex;flex-direction:column;align-items:center}
+.ic-means-center{text-align:center;width:100%}
+.ic-means-section{width:100%;display:flex;flex-direction:column;align-items:center}
+.ic-means-grid{justify-content:center;max-width:320px;margin:0 auto;width:100%}
+.ic-means-notice{margin:22px 0 0;padding:12px 14px;border-radius:8px;background:#fff3cd;color:#664d03;border:1px solid #ffecb5;font-size:.8125rem;line-height:1.45;max-width:420px;text-align:left}
+.ic-means-page .pay-brand{display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:0.75rem}
+.ic-means-page .pay-brand-sub{text-align:center;max-width:420px;margin-left:auto;margin-right:auto}
+.ic-means-page .pay-lang{width:100%;max-width:360px;margin-left:auto;margin-right:auto}
 
 /* 네트워크 선택 — 구매자 결제창 리스트(로고, crypto-pay) */
 .ic-crypto-net-list{display:flex;flex-direction:column;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;background:#fff;max-height:280px;overflow-y:auto}

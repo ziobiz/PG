@@ -6,13 +6,469 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '4.84';
+  var CURRENT_LIVE = '5.2';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '5.2',
+      kind: 'minor',
+      date: '2026-10-15',
+      items: {
+        KO: [
+          '크립토설정 반영(OTP) 후 전체 저장 시 — 미변경이면 OTP 재요청 안 함(한 번만)'
+        ],
+        EN: [
+          'After crypto apply (OTP), full save skips OTP if crypto unchanged (once only)'
+        ],
+        JP: [
+          'クリプト設定反映(OTP)後の全体保存 — 未変更ならOTP再要求なし(1回のみ)'
+        ],
+        CH: [
+          '加密设置反映(OTP)后整单保存 — 未改则不再要 OTP（仅一次）'
+        ],
+        TH: [
+          'หลังสะท้อนคริปโต (OTP) บันทึกทั้งฟอร์ม — ไม่ถาม OTP ซ้ำถ้าไม่แก้ (ครั้งเดียว)'
+        ]
+      }
+    },
+    {
+      version: '5.1',
+      kind: 'minor',
+      date: '2026-10-15',
+      items: {
+        KO: [
+          '가맹 저장: Google OTP를 로딩(dimm)보다 먼저 표시 — OTP 입력 가능',
+          '크립토카드 「크립토설정 반영」버튼 — 수취지갑만 OTP 후 별도 저장'
+        ],
+        EN: [
+          'Merchant save: Google OTP before loading overlay — OTP input works',
+          'Crypto card「Apply crypto settings」— wallet-only save after OTP'
+        ],
+        JP: [
+          '加盟保存: ローディングより先に Google OTP 表示 — OTP入力可能',
+          'クリプトカード「クリプト設定を反映」— 受取のみ OTP 後に別保存'
+        ],
+        CH: [
+          '商户保存：在加载遮罩前显示 Google OTP — 可输入 OTP',
+          '加密卡片「应用加密设置」— 仅收款钱包 OTP 后单独保存'
+        ],
+        TH: [
+          'บันทึกร้าน: แสดง Google OTP ก่อนโหลด — กรอก OTP ได้',
+          'การ์ดคริปโต「สะท้อนการตั้งค่าคริปโต」— บันทึกกระเป๋ารับแยกหลัง OTP'
+        ]
+      }
+    },
+    {
+      version: '5.0',
+      kind: 'minor',
+      date: '2026-10-15',
+      items: {
+        KO: [
+          '크립토 결제: 표시통화·청구예상(USD)·송금금액(USDC/USDT/EURC FX) — 카드 DP와 동일 UX',
+          '가맹 크립토설정에 표시통화 추가(기준통화 USD 유지)',
+          '구매자 성명·이메일 영문만·이메일 형식·전화번호 숫자만'
+        ],
+        EN: [
+          'Crypto checkout: display currency · expected charge (USD) · remittance (USDC/USDT/EURC FX) — same UX as card DP',
+          'Merchant crypto settings: add display currency (billing stays USD)',
+          'Buyer name/email English-only · email format · phone digits only'
+        ],
+        JP: [
+          'クリプト決済: 表示通貨・請求予定(USD)・送金額(USDC/USDT/EURC FX) — カードDPと同UX',
+          '加盟クリプト設定に表示通貨追加(基準通貨USD維持)',
+          '購入者氏名・メール英字のみ・メール形式・電話は数字のみ'
+        ],
+        CH: [
+          '加密结账：显示货币·预计扣款(USD)·汇款额(USDC/USDT/EURC FX) — 与卡片DP同UX',
+          '商户加密设置新增显示货币（基准货币仍为USD）',
+          '买家姓名·邮箱仅英文·邮箱格式·电话仅数字'
+        ],
+        TH: [
+          'คริปโต: สกุลแสดง · ยอดเรียกเก็บ (USD) · ยอดโอน (USDC/USDT/EURC FX) — UX แบบ DP การ์ด',
+          'ตั้งค่าคริปโตร้าน: เพิ่มสกุลแสดง (ฐานยังเป็น USD)',
+          'ชื่อ/อีเมลภาษาอังกฤษ · รูปแบบอีเมล · โทรศัพท์ตัวเลขเท่านั้น'
+        ]
+      }
+    },
+    {
+      version: '4.99',
+      kind: 'minor',
+      date: '2026-10-15',
+      items: {
+        KO: [
+          '업체관리: 통합결제 URL·크립토 결제 URL 복사 버튼 — 클립보드 복사 및 「복사되었습니다.」안내 (결제 URL과 동일)'
+        ],
+        EN: [
+          'Company admin: Unified payment URL & crypto payment URL copy — clipboard +「Copied.」toast (same as payment URL)'
+        ],
+        JP: [
+          '業者管理: 統合決済URL・クリプト決済URLのコピー — クリップボード＋「コピーしました。」(決済URLと同様)'
+        ],
+        CH: [
+          '企业管理：统一支付URL·加密支付URL复制 — 剪贴板＋「已复制。」（与支付URL相同）'
+        ],
+        TH: [
+          'จัดการร้าน: คัดลอก URL รวม/คริปโต — คลิปบอร์ด＋「คัดลอกแล้ว」(เหมือน URL ชำระเงิน)'
+        ]
+      }
+    },
+    {
+      version: '4.98',
+      kind: 'minor',
+      date: '2026-10-15',
+      items: {
+        KO: [
+          '크립토 「입금 주소 받기」버튼: 그레이 파스텔 톤 배경'
+        ],
+        EN: [
+          'Crypto「Get deposit address」button: gray pastel background'
+        ],
+        JP: [
+          'クリプト「入金アドレスを表示」ボタン: グレーパステル背景'
+        ],
+        CH: [
+          '加密「获取充值地址」按钮：灰色柔和背景'
+        ],
+        TH: [
+          'ปุ่มคริปโต「รับที่อยู่ฝาก」: พื้นหลังเทาพาสเทล'
+        ]
+      }
+    },
+    {
+      version: '4.97',
+      kind: 'minor',
+      date: '2026-10-15',
+      items: {
+        KO: [
+          '크립토 결제: 송금 지갑 선택 UI 제거 — 자산·네트워크 후 입금 주소·QR만 (원클릭/딥링크 보류)'
+        ],
+        EN: [
+          'Crypto checkout: removed sending-wallet picker — asset·network then deposit address·QR only (deep-link deferred)'
+        ],
+        JP: [
+          'クリプト決済: 送金ウォレット選択UIを削除 — 資産・NWの後は入金アドレス・QRのみ'
+        ],
+        CH: [
+          '加密结账：移除汇款钱包选择 — 资产·网络后仅显示充值地址·QR'
+        ],
+        TH: [
+          'คริปโต: ลบตัวเลือกกระเป๋าโอน — เหลือสินทรัพย์·เครือข่ายแล้วที่อยู่ฝาก·QR'
+        ]
+      }
+    },
+    {
+      version: '4.96',
+      kind: 'minor',
+      date: '2026-10-15',
+      items: {
+        KO: [
+          '크립토 결제: 「나의 송금 지갑 선택 (OTHER=기타)」로 표기 명확화(고객 송금용 지갑 · 5개국어)'
+        ],
+        EN: [
+          'Crypto checkout: label clarified to「Select my sending wallet (OTHER=other)」· 5 languages'
+        ],
+        JP: [
+          'クリプト決済: 「送金ウォレットを選択（OTHER=その他）」に表記明確化 · 5言語'
+        ],
+        CH: [
+          '加密结账：标题改为「选择我的汇款钱包（OTHER=其他）」· 5语'
+        ],
+        TH: [
+          'คริปโต: เปลี่ยนชื่อเป็น「เลือกกระเป๋าโอนของฉัน (OTHER=อื่นๆ)」· 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '4.95',
+      kind: 'minor',
+      date: '2026-10-15',
+      items: {
+        KO: [
+          '크립토 자산 선택: 기존 큰 타일 복원(1~3개), 1개면 가로 전체 폭 · 지갑 5열 축소는 유지'
+        ],
+        EN: [
+          'Crypto asset tiles restored to large layout (1–3); single asset fills full width · wallet 5-col kept'
+        ],
+        JP: [
+          'クリプト資産タイルを従来の大サイズに復帰(1〜3)。1個時は全幅 · ウォレット5列は維持'
+        ],
+        CH: [
+          '加密资产瓦片恢复大尺寸(1–3个)；仅1个时铺满宽度 · 钱包5列保持'
+        ],
+        TH: [
+          'ช่องสินทรัพย์คริปโตกลับขนาดใหญ่ (1–3) ถ้ามีอันเดียวเต็มความกว้าง · คงแถวกระเป๋า 5'
+        ]
+      }
+    },
+    {
+      version: '4.94',
+      kind: 'minor',
+      date: '2026-10-15',
+      items: {
+        KO: [
+          '크립토 지갑 타일: 한 줄 5개(5+4 두 줄) 축소 그리드',
+          '통합·크립토 결제창 브라우저 탭 파비콘: 카드와 동일 총본사 브랜드 파비콘 적용'
+        ],
+        EN: [
+          'Crypto wallet tiles: 5 per row (5+4 two-line) compact grid',
+          'Unified/crypto checkout tab favicon: same HQ brand favicon as card pay'
+        ],
+        JP: [
+          'クリプトウォレットタイル: 1行5個(5+4の2行)コンパクト',
+          '統合・クリプト画面のタブfavicon: カードと同じ総本社ブランド'
+        ],
+        CH: [
+          '加密钱包瓦片：每行 5 个（5+4 两行）紧凑网格',
+          '整合/加密结账页签 favicon：与卡页相同总本社品牌'
+        ],
+        TH: [
+          'ช่องกระเป๋าคริปโต: แถวละ 5 (5+4 สองแถว) แบบกระชับ',
+          'favicon แท็บหน้ารวม/คริปโต: ใช้แบรนด์สำนักงานใหญ่เหมือนบัตร'
+        ]
+      }
+    },
+    {
+      version: '4.93',
+      kind: 'minor',
+      date: '2026-10-15',
+      items: {
+        KO: [
+          '크립토 결제창 UI: 카드(URL결제)와 동일 pay-shell·행 레이아웃·이름 분할·연락처·파란 결제 버튼',
+          '이질감 제거 — Bootstrap·pay-inline.css 공용, 선택 타일·입금 단계도 동일 톤'
+        ],
+        EN: [
+          'Crypto checkout UI aligned with card URL pay: same pay-shell, row layout, name split, contact fields, blue pay button',
+          'Shared Bootstrap·pay-inline.css; asset tiles and deposit step match the card tone'
+        ],
+        JP: [
+          'クリプト画面UIをカード(URL決済)と統一: pay-shell・行レイアウト・氏名分割・連絡先・青い決済ボタン',
+          'Bootstrap・pay-inline.css共用。選択タイル・入金段階も同トーン'
+        ],
+        CH: [
+          '加密结账 UI 与卡页(URL支付)统一：同一 pay-shell、行布局、姓名分栏、联系方式、蓝色支付按钮',
+          '共用 Bootstrap·pay-inline.css；资产选择与入金步骤同风格'
+        ],
+        TH: [
+          'UI คริปโตให้เหมือนบัตร (URL): pay-shell แถวฟอร์ม ชื่อแยก ติดต่อ ปุ่มน้ำเงิน',
+          'ใช้ Bootstrap·pay-inline.css ร่วม โทนเลือกสินทรัพย์และฝากเงินเหมือนบัตร'
+        ]
+      }
+    },
+    {
+      version: '4.92',
+      kind: 'minor',
+      date: '2026-10-15',
+      items: {
+        KO: [
+          '크립토 결제: ①구매자·금액 → ②자산·네트워크·지갑 → ③입금주소 (카드와 동일 이메일·성명·국가·전화·배송 Y/N)',
+          '통합수단선택 「결제 수단」제목 제거 · 로고 HTML 폴백 · API prepare buyer 필수와 동일'
+        ],
+        EN: [
+          'Crypto checkout: ①buyer·amount → ②asset·network·wallet → ③deposit (same email/name/country/phone/shipping Y/N as card)',
+          'Removed「Payment method」title on means page · logo HTML fallback · same API buyer required fields'
+        ],
+        JP: [
+          'クリプト決済: ①購入者・金額 → ②資産・NW・ウォレット → ③入金 (カードと同じメール・氏名・国・電話・配送 Y/N)',
+          '統合画面の「お支払い方法」見出し削除 · ロゴHTMLフォールバック · API buyer必須同一'
+        ],
+        CH: [
+          '加密支付：①买家·金额 → ②资产·网络·钱包 → ③充值地址（与卡页相同邮箱·姓名·国家·电话·配送 Y/N）',
+          '整合页去掉「支付方式」标题 · logo HTML 回退 · API buyer 必填一致'
+        ],
+        TH: [
+          'คริปโต: ①ผู้ซื้อ·จำนวน → ②สินทรัพย์·เครือข่าย·กระเป๋า → ③ที่อยู่ฝาก (อีเมล·ชื่อ·ประเทศ·โทร·ที่อยู่ Y/N เหมือนบัตร)',
+          'ลบหัวข้อ「วิธีชำระ」หน้ารวม · โลโก้ HTML สำรอง · buyer API บังคับเหมือนกัน'
+        ]
+      }
+    },
+    {
+      version: '4.91',
+      kind: 'minor',
+      date: '2026-10-15',
+      items: {
+        KO: [
+          '통합·크립토 결제창: 카드와 동일 로고·안내문구·다국어(JPN/KOR/ENG/CHN/THA) UI',
+          '웹결제「통합결제 안내」·크립토설정「크립토 안내」별도 편집(기본/직접입력/비활성)'
+        ],
+        EN: [
+          'Unified/crypto checkout: same logo · notice · lang menu UI as card (JPN/KOR/ENG/CHN/THA)',
+          'Separate editable「Unified notice」and「Crypto notice」(Default / Active / Off)'
+        ],
+        JP: [
+          '統合・クリプト画面: カードと同じロゴ・案内・多言語(JPN/KOR/ENG/CHN/THA) UI',
+          'ウェブ「統合案内」・クリプト「クリプト案内」を別編集(基本/直接入力/非活性)'
+        ],
+        CH: [
+          '整合/加密结账：与卡页相同的 logo·提示·多语言(JPN/KOR/ENG/CHN/THA) UI',
+          '网页「整合提示」与加密「加密提示」可分别编辑（默认/直接输入/关闭）'
+        ],
+        TH: [
+          'หน้ารวม/คริปโต: UI โลโก้·ข้อความ·เมนูภาษาเหมือนบัตร (JPN/KOR/ENG/CHN/THA)',
+          'แก้ไข「ข้อความรวม」กับ「ข้อความคริปโต」แยก (ค่าเริ่ม/พิมพ์เอง/ปิด)'
+        ]
+      }
+    },
+    {
+      version: '4.90',
+      kind: 'minor',
+      date: '2026-10-15',
+      items: {
+        KO: [
+          '결제 URL 분리: /checkout=카드 · /checkout-crypto=크립토 · /checkout-all=통합(수단선택)',
+          '웹결제「통합결제 URL」·크립토설정「크립토 결제 URL」자동표시(활성 시 파스텔) · 통합페이지 가운데정렬·주의문구·다국어'
+        ],
+        EN: [
+          'Payment URLs split: /checkout=card · /checkout-crypto=crypto · /checkout-all=unified means',
+          'Web-pay「Unified URL」· crypto card「Crypto URL」auto (pastel when active) · centered means page + notice + i18n'
+        ],
+        JP: [
+          '決済URL分離: /checkout=カード · /checkout-crypto=クリプト · /checkout-all=統合',
+          'ウェブ「統合決済URL」·クリプト「クリプト決済URL」自動(有効時パステル) · 統合画面中央寄せ·注意·多言語'
+        ],
+        CH: [
+          '支付 URL 分离：/checkout=卡 · /checkout-crypto=加密 · /checkout-all=整合选方式',
+          '网页「整合支付 URL」·加密卡片「加密支付 URL」自动(启用时粉彩) · 整合页居中·注意·多语言'
+        ],
+        TH: [
+          'แยก URL: /checkout=บัตร · /checkout-crypto=คริปโต · /checkout-all=รวมเลือกวิธี',
+          'ชำระเว็บ「URL รวม」·คริปโต「URL คริปโต」อัตโนมัติ(พาสเทลเมื่อเปิด) · หน้ารวมจัดกลาง·คำเตือน·หลายภาษา'
+        ]
+      }
+    },
+    {
+      version: '4.89',
+      kind: 'minor',
+      date: '2026-10-15',
+      items: {
+        KO: [
+          '웹결제 「크립토 로고」: 웹결제 로고 따름(기본)·미활성 — 크립토·수단선택 상단에 동일 로고 적용',
+          '미활성 시 크립토 결제창 상단 로고 미노출(별도 업로드 없음)'
+        ],
+        EN: [
+          'Web-pay “Crypto logo”: Follow web-pay logo (default) or Inactive — same logo on crypto/means pages',
+          'Inactive hides crypto header logo (no separate upload)'
+        ],
+        JP: [
+          'ウェブ決済「クリプトロゴ」: ウェブ決済ロゴに従う(既定)/非活性 — クリプト・手段選択上部に同ロゴ',
+          '非活性時はクリプト画面上部ロゴ非表示（別アップロードなし）'
+        ],
+        CH: [
+          '网页支付「加密货币 Logo」：跟随网页支付 logo（默认）/未启用 — 加密与方式选择页同 logo',
+          '未启用时加密页顶部不显示 logo（无单独上传）'
+        ],
+        TH: [
+          'ชำระเว็บ「โลโก้คริปโต」: ตามโลโก้ชำระเว็บ(ค่าเริ่ม)/ไม่ใช้งาน — ใช้โลโก้เดียวกันที่หน้าคริปโต/เลือกวิธี',
+          'ไม่ใช้งานจะไม่แสดงโลโก้หัวหน้าคริปโต (ไม่อัปโหลดแยก)'
+        ]
+      }
+    },
+    {
+      version: '4.88',
+      kind: 'minor',
+      date: '2026-10-14',
+      items: {
+        KO: [
+          'URL 결제: 카드·크립토 모두 활성이면 수단 선택, 한쪽만이면 해당 창 직행',
+          '크립토창: 지갑 OTHER · 입금주소 QR+COPY · 「송금 완료 · 입금 확인」분홍 CTA'
+        ],
+        EN: [
+          'URL pay: means chooser when card+crypto both on; otherwise open that means directly',
+          'Crypto checkout: wallet OTHER · deposit QR+COPY · pink 「I sent it · Check deposit」 CTA'
+        ],
+        JP: [
+          'URL決済: カード・クリプト両方ONなら手段選択、片方のみなら直進',
+          'クリプト画面: ウォレットOTHER · 入金QR+COPY · ピンク「送金完了 · 入金確認」'
+        ],
+        CH: [
+          'URL 支付：卡与加密均启用时先选方式，仅一种则直进',
+          '加密货币页：钱包 OTHER · 入金二维码+COPY · 粉色「已汇出 · 确认入金」'
+        ],
+        TH: [
+          'URL pay: เลือกวิธีเมื่อเปิดบัตร+คริปโตทั้งคู่ ถ้าเปิดอย่างเดียวเข้าหน้านั้นเลย',
+          'หน้าคริปโต: กระเป๋า OTHER · QR+COPY · ปุ่มชมพู「โอนแล้ว · ตรวจยอดฝาก」'
+        ]
+      }
+    },
+    {
+      version: '4.87',
+      kind: 'minor',
+      date: '2026-10-14',
+      items: {
+        KO: [
+          '결제·URL 크립토: 설정저장·목록 비고(수정/삭제)·더블확인·Google OTP(수취지갑·삭제)',
+          '업체관리 크립토카드: 하늘색 파스텔 구분 + 저장 시 OTP'
+        ],
+        EN: [
+          'Pay·URL crypto: settings save, Notes (edit/delete), double confirm, Google OTP (wallet/delete)',
+          'Company admin crypto card: sky pastel highlight + OTP on save'
+        ],
+        JP: [
+          '決済・URLクリプト: 設定保存・備考(修正/削除)・二重確認・Google OTP(受取/削除)',
+          '業者管理クリプトカード: 水色パステル区分 + 保存時OTP'
+        ],
+        CH: [
+          '支付·URL 加密货币：设置保存、备注(修改/删除)、双重确认、Google OTP（收款钱包/删除）',
+          '公司管理加密货币卡片：天蓝粉彩区分 + 保存时 OTP'
+        ],
+        TH: [
+          'คริปโต Pay·URL: บันทึกตั้งค่า · หมายเหตุ(แก้ไข/ลบ) · ยืนยันสองครั้ง · Google OTP (กระเป๋ารับ/ลบ)',
+          'การ์ดคริปโตจัดการร้าน: สีพาสเทลฟ้า + OTP เมื่อบันทึก'
+        ]
+      }
+    },
+    {
+      version: '4.86',
+      kind: 'minor',
+      date: '2026-10-14',
+      items: {
+        KO: [
+          '가맹 크립토 보증금: 「본사정책 따름」이면 수수료·리스크 CRYPTO 기본 보류율(롤링%·일수) 적용',
+          '업체관리·결제·URL 크립토설정 동일 필드(보증금 정책·%·보류일)·다국어 5개'
+        ],
+        EN: [
+          'Merchant crypto reserve: 「Follow HQ」 uses Fees & risk CRYPTO default hold (rolling % · days)',
+          'Company admin and Pay·URL crypto settings share the same fields; 5-language i18n'
+        ],
+        JP: [
+          '加盟クリプト保証金:「本社ポリシーに従う」で手数料・リスク CRYPTO 基本保留率(ローリング%・日数)を適用',
+          '業者管理・決済・URLクリプト設定で同一項目・5言語'
+        ],
+        CH: [
+          '商户加密货币保证金：「遵循总部」时采用手续费与风险 CRYPTO 默认留存率（滚动%·天数）',
+          '公司管理与支付·URL 加密货币设置共用字段；五语'
+        ],
+        TH: [
+          'เงินประกันคริปโตร้าน:「ตามนโยบาย HQ」ใช้ อัตราพักเริ่มต้น CRYPTO ในค่าธรรมเนียมและความเสี่ยง (% โรล·วัน)',
+          'หน้าจัดการร้านกับคริปโต Pay·URL ใช้ฟิลด์เดียวกัน · 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '4.85',
+      kind: 'minor',
+      date: '2026-10-14',
+      items: {
+        KO: [
+          '수수료·리스크 CRYPTO: 매입/에스크로/인증 수수료를 상단 분리 입력에서 과금 테이블 행으로 이동'
+        ],
+        EN: [
+          'Fees & risk CRYPTO: moved acquisition/escrow/auth fees from top fields into the billing tier table'
+        ],
+        JP: [
+          '手数料・リスク CRYPTO: 買取/エスクロー/認証手数料を上部入力から課金テーブル行へ移動'
+        ],
+        CH: [
+          '手续费与风险 CRYPTO：收购/托管/认证手续费从上部分离输入移入计费表行'
+        ],
+        TH: [
+          'ค่าธรรมเนียมและความเสี่ยง CRYPTO: ย้ายค่า acquisition/escrow/auth จากช่องบนไปแถวตารางคิดค่า'
+        ]
+      }
+    },
     {
       version: '4.84',
       kind: 'minor',

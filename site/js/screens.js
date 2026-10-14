@@ -85,8 +85,10 @@
     var useId = p.useYn || 'compCryptoUseYn';
     var settleId = p.settle || 'compCryptoSettle';
     var payoutId = p.payout || 'compCryptoPayout';
+    var followId = p.follow || 'compCryptoReserveFollow';
     var holdId = p.hold || 'compCryptoHold';
     var reserveId = p.reserve || 'compCryptoReserve';
+    var dispId = p.display || 'compCryptoDisplayCurrency';
     var nameAttr = function (n) { return p.named ? ' name="' + n + '"' : ''; };
     return (
       '<div class="row g-2 mb-2">' +
@@ -102,19 +104,48 @@
       '<select class="form-select form-select-sm"' + nameAttr('cryptoPayoutMode') + ' id="' + payoutId + '">' +
       '<option value="MANUAL" data-pg-ui-t="반자동">반자동</option>' +
       '<option value="AUTO" data-pg-ui-t="자동">자동</option></select></div>' +
+      '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="보증금 정책">보증금 정책</label>' +
+      '<select class="form-select form-select-sm crypto-reserve-follow"' + nameAttr('cryptoReserveFollowHq') + ' id="' + followId + '">' +
+      '<option value="Y" data-pg-ui-t="본사정책 따름">본사정책 따름</option>' +
+      '<option value="N" data-pg-ui-t="직접입력">직접입력</option></select>' +
+      '<div class="form-text small" data-pg-ui-t="본사따름=수수료·리스크 CRYPTO 기본 보류율">본사따름=수수료·리스크 CRYPTO 기본 보류율</div></div>' +
       '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="보증금(%)">보증금(%)</label>' +
-      '<input type="number" step="0.01" min="0" max="100" class="form-control form-control-sm"' +
+      '<input type="number" step="0.01" min="0" max="100" class="form-control form-control-sm crypto-reserve-pct"' +
       nameAttr('cryptoReservePct') + ' id="' + reserveId + '" value="0">' +
       '<div class="form-text small" data-pg-ui-t="USD 입금액 기준 담보 비율">USD 입금액 기준 담보 비율</div></div>' +
       '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="보증금보류일수">보증금보류일수</label>' +
-      '<input type="number" class="form-control form-control-sm"' + nameAttr('cryptoHoldDays') + ' id="' + holdId + '" value="3"></div>' +
+      '<input type="number" class="form-control form-control-sm crypto-hold-days"' + nameAttr('cryptoHoldDays') + ' id="' + holdId + '" value="3"></div>' +
+      '</div>' +
+      '<div class="row g-2 mb-2">' +
       '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="기준통화">기준통화</label>' +
       '<input type="text" class="form-control form-control-sm" value="USD" readonly disabled>' +
-      '<div class="form-text small" data-pg-ui-t="크립토 금액·수수료·한도는 USD 기준입니다.">크립토 금액·수수료·한도는 USD 기준입니다.</div></div>' +
+      '<div class="form-text small" data-pg-ui-t="청구·수수료·한도 앵커(USD). 표시통화와 같아도 청구예상에 동일 표시.">청구·수수료·한도 앵커(USD). 표시통화와 같아도 청구예상에 동일 표시.</div></div>' +
+      '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="표시통화">표시통화</label>' +
+      '<select class="form-select form-select-sm"' + nameAttr('cryptoDisplayCurrency') + ' id="' + dispId + '">' +
+      '<option value="USD">USD</option>' +
+      '<option value="JPY">JPY</option>' +
+      '<option value="KRW">KRW</option>' +
+      '<option value="THB">THB</option>' +
+      '<option value="SGD">SGD</option>' +
+      '<option value="HKD">HKD</option>' +
+      '<option value="CNY">CNY</option></select>' +
+      '<div class="form-text small" data-pg-ui-t="구매자가 입력·보는 통화. 청구예상은 기준통화(USD)로 역산.">구매자가 입력·보는 통화. 청구예상은 기준통화(USD)로 역산.</div></div>' +
       '</div>'
     );
   }
   window.PG_CRYPTO_MERCHANT_TOP_FIELDS_HTML = cryptoMerchantTopFieldsHtml;
+
+  /** 크립토카드만 OTP로 먼저 반영 (전체 저장과 별개) */
+  function cryptoMerchantApplyBtnHtml(btnId) {
+    var id = btnId || 'compCryptoApplyBtn';
+    return (
+      '<div class="d-flex flex-wrap align-items-center gap-2 mt-2 mb-1">' +
+      '<button type="button" class="btn btn-outline-primary btn-sm" id="' + id + '" data-pg-ui-t="크립토설정 반영">크립토설정 반영</button>' +
+      '<span class="small text-muted" data-pg-ui-t="수취지갑·크립토만 Google OTP 후 저장합니다. 아래 전체 저장과 별개입니다.">수취지갑·크립토만 Google OTP 후 저장합니다. 아래 전체 저장과 별개입니다.</span>' +
+      '</div>'
+    );
+  }
+  window.PG_CRYPTO_MERCHANT_APPLY_BTN_HTML = cryptoMerchantApplyBtnHtml;
   /** 로컬 달력 오늘(YYYY-MM-DD). 빈 type=date 의 OS 한글 연도-월-일 크롬을 피하기 위해 기본값으로 씁니다. */
   function pgAdminTodayIsoLocal() {
     try {
@@ -217,7 +248,7 @@
     return '<p class="small text-muted mb-3 mb-md-2"><span data-pg-ui-t="' + escUi(k) + '">' + escUi(L(k)) + '</span></p>';
   }
   function merchantWebPaymentCardNoticeKo() {
-    return '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 「결제 URL」은 ICOPAY 통합 공개 경로로 자동 표시됩니다(예: https://icopay.co.kr/checkout/업체코드). 「URL 재결제 URL」은 해당 PG가 저장 카드 재결제를 지원하고 본사 URL 재결제 기능·URL재결제 PG 바인딩이 있을 때만 표시됩니다. 「URL 결제 방식」은 공개 URL 결제에만 적용됩니다. API·챗봇은 각 설정 카드에서 별도 선택합니다. 엑심베이 결제방식(신용카드·PayPay 등)은 본사정책 → 결제·URL → 결제 라우팅을 따르며(본사설정 따름), 신용카드는 「결제대행사 설정」에 엑심베이 카드 등록이 필요합니다.';
+    return '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 「결제 URL」은 카드(URL) 전용(/checkout/업체코드). 「통합결제 URL」은 웹결제+크립토 모두 사용일 때만 자동 생성(/checkout-all/업체코드). 「URL 재결제 URL」은 해당 PG가 저장 카드 재결제를 지원하고 본사 URL 재결제 기능·URL재결제 PG 바인딩이 있을 때만 표시됩니다. 크립토 전용 URL은 크립토설정 카드에 표시됩니다. API·챗봇은 각 설정 카드에서 별도 선택합니다.';
   }
 
   /** 동일 id(paymentUrlDisplay) — 화면별 placeholder 키만 다름 */
@@ -229,6 +260,17 @@
   function merchantPaymentRepayUrlRowHtml(placeholderKo) {
     var ph = placeholderKo || '가맹점 저장 후 조회';
     return '<div class="row mb-2"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="URL 재결제 URL">' + escUi(L('URL 재결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentRepayUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '" data-pg-ui-placeholder="' + escUi(String(ph)) + '"><button type="button" class="btn btn-outline-primary" id="paymentRepayUrlCopyBtn" data-pg-ui-t="복사">' + escUi(L('복사')) + '</button></div></div></div>';
+  }
+
+  /** 카드+크립토 모두 ON일 때만 파스텔 고정 URL */
+  function merchantPaymentUnifiedUrlRowHtml(placeholderKo) {
+    var ph = placeholderKo || '가맹점 저장 후 조회';
+    return '<div class="row mb-2" id="paymentUnifiedUrlRow"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="통합결제 URL">' + escUi(L('통합결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUnifiedUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '" data-pg-ui-placeholder="' + escUi(String(ph)) + '"><button type="button" class="btn btn-outline-primary" id="paymentUnifiedUrlCopyBtn" data-pg-ui-t="복사">' + escUi(L('복사')) + '</button></div><div class="form-text small text-muted" data-pg-ui-t="웹결제와 크립토 사용이 모두 켜져 있을 때 자동 생성됩니다.">' + escUi(L('웹결제와 크립토 사용이 모두 켜져 있을 때 자동 생성됩니다.')) + '</div></div></div>';
+  }
+
+  function merchantCryptoPaymentUrlRowHtml(placeholderKo) {
+    var ph = placeholderKo || '가맹점 저장 후 조회';
+    return '<div class="row mb-2" id="cryptoPaymentUrlRow"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="크립토 결제 URL">' + escUi(L('크립토 결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="cryptoPaymentUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '" data-pg-ui-placeholder="' + escUi(String(ph)) + '"><button type="button" class="btn btn-outline-primary" id="cryptoPaymentUrlCopyBtn" data-pg-ui-t="복사">' + escUi(L('복사')) + '</button></div></div></div>';
   }
 
   /** 웹결제(URL·JPAY) 상단 로고 — 로고설정「활성」일 때만 업로드 (로고설정 옆 배치) */
@@ -295,6 +337,34 @@
       '<div class="form-text text-muted small" data-pg-ui-t="' + escUi(hint) + '">' +
       escUi(L(hint)) +
       '</div></div>';
+  }
+
+  function channelHeaderSubtitleOpts() {
+    return [
+      { v: 'DEFAULT', t: '기본' },
+      { v: 'ACTIVE', t: '활성(직접입력)' },
+      { v: 'DISABLED', t: '비활성' }
+    ];
+  }
+
+  function unifiedPaymentHeaderSubtitleFieldBlock() {
+    var ph = '통합결제(수단선택) 로고 아래 안내 문구';
+    var hint = '카드 경고메세지와 별도입니다. 「활성(직접입력)」만 수정·저장 시 5개국어 1회 번역. 「기본」은 통합결제 기본 안내 문구입니다.';
+    return '<div class="form-field-block w-100" id="unifiedPaymentHeaderSubtitleBlock">' +
+      '<label class="form-label" data-pg-ui-t="통합결제 안내문구">' + escUi(L('통합결제 안내문구')) + '</label>' +
+      '<input type="text" class="form-control form-control-sm" name="unifiedPaymentHeaderSubtitleText" id="unifiedPaymentHeaderSubtitleText" ' +
+      'maxlength="200" placeholder="' + escUi(L(ph)) + '" data-pg-ui-placeholder="' + escUi(ph) + '">' +
+      '<div class="form-text text-muted small" data-pg-ui-t="' + escUi(hint) + '">' + escUi(L(hint)) + '</div></div>';
+  }
+
+  function cryptoPaymentHeaderSubtitleFieldBlock() {
+    var ph = '크립토 결제창 로고 아래 안내 문구';
+    var hint = '카드·통합 안내와 별도입니다. 「활성(직접입력)」만 수정·저장 시 5개국어 1회 번역. 「기본」은 크립토 기본 안내 문구입니다.';
+    return '<div class="form-field-block w-100" id="cryptoPaymentHeaderSubtitleBlock">' +
+      '<label class="form-label" data-pg-ui-t="크립토 안내문구">' + escUi(L('크립토 안내문구')) + '</label>' +
+      '<input type="text" class="form-control form-control-sm" name="cryptoPaymentHeaderSubtitleText" id="cryptoPaymentHeaderSubtitleText" ' +
+      'maxlength="200" placeholder="' + escUi(L(ph)) + '" data-pg-ui-placeholder="' + escUi(ph) + '">' +
+      '<div class="form-text text-muted small" data-pg-ui-t="' + escUi(hint) + '">' + escUi(L(hint)) + '</div></div>';
   }
 
   /** 결제창이동 대상·안내문구 */
@@ -447,6 +517,12 @@
       [{ label: '로고설정', type: 'select', name: 'webPaymentHeaderLogoMode', options: logoOpts, col: 3 },
       { type: 'customHtml', col: 7, html: webPaymentHeaderLogoFieldBlock },
       { label: 'HTML 표시명', type: 'text', name: 'webPaymentHeaderHtmlTitle', col: 2, maxlength: 80, placeholder: 'ICOPAY', blockExtraClass: 'web-payment-html-title-field' }],
+      /* 크립토 로고(A형): 웹결제 로고 따름 / 미활성 — 별도 업로드 없음 */
+      [{ label: '크립토 로고', type: 'select', name: 'cryptoPaymentHeaderLogoMode', options: [
+        { v: 'FOLLOW_HQ', t: '웹결제 로고 따름' },
+        { v: 'DISABLED', t: '미활성' }
+      ], col: 3 },
+       { label: '', type: 'note', col: 9, text: '크립토 결제·수단선택 상단에만 적용됩니다. 「웹결제 로고 따름」이면 위 로고설정과 동일하게 표시하고, 「미활성」이면 로고를 표시하지 않습니다.' }],
       /* 2행: 카드입력 | 카드입력 비활성 안내 문구 */
       [{ label: '카드입력', type: 'select', name: 'urlPayCardInputMode', options: [
         { v: 'ACTIVE', t: '활성' },
@@ -482,9 +558,12 @@
       ], col: 3 }],
       [{ label: '', type: 'note', col: 12, text: '구매자입력 프리셋: 기본형·1형·2형…을 고르면 이메일·국가·전화·배송은 프리셋을 따릅니다(개별 항목 잠금). 「비활성」으로 둔 뒤에만 네 항목을 개별 활성/비활성으로 설정합니다. 프리셋이 켜진 채 개별 항목을 바꾸려 하면 「구매자입력 프리셋을 비활성화하세요.」안내가 표시됩니다. 전 PG(URL·API 인라인) 공통입니다.' }],
       [{ type: 'customHtml', col: 12, html: webPaymentHeaderSubtitleFieldBlock }],
+      [{ label: '통합결제 안내', type: 'select', name: 'unifiedPaymentHeaderSubtitleMode', options: channelHeaderSubtitleOpts(), col: 3 }],
+      [{ type: 'customHtml', col: 12, html: unifiedPaymentHeaderSubtitleFieldBlock }],
       merchantWebPaymentDefaultProductRow(),
       [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml(urlPh); } },
-       { type: 'customHtml', col: 12, html: function () { return merchantPaymentRepayUrlRowHtml(urlPh); } }]
+       { type: 'customHtml', col: 12, html: function () { return merchantPaymentRepayUrlRowHtml(urlPh); } },
+       { type: 'customHtml', col: 12, html: function () { return merchantPaymentUnifiedUrlRowHtml(urlPh); } }]
     ];
   }
 
@@ -1889,33 +1968,41 @@
       { k: 'refundRate', t: '환불수수료', u: '(건)' },
       { k: 'feeSettlementPerTx', t: '정산수수료', u: '(건)' },
       { k: 'remittanceTransferFee', t: '송금수수료', u: '(건)' },
-      { k: 'usdtTransferFeeUsd', t: 'USDT 송금수수료', u: '(건)' },
-      { k: 'fee3dsRate', t: '3DS 고정', u: '(건)' },
-      { k: 'feeUsdt', t: 'USDT수수료율', u: '%' },
+      { k: 'usdtTransferFeeUsd', t: 'USDT 송금수수료', u: '(건)', fiatOnly: true },
+      { k: 'fee3dsRate', t: '3DS 고정', u: '(건)', fiatOnly: true },
+      { k: 'feeUsdt', t: 'USDT수수료율', u: '%', fiatOnly: true },
       { k: 'feeFx', t: 'FX수수료율', u: '%' },
       { k: 'usageRate', t: '월간이용료', u: '월' },
       { k: 'chargebackFeePerTx', t: '차지백수수료', u: '(건)' },
       { k: 'splitPayFeePct', t: '분할수수료율', u: '%' },
-      { k: 'splitPayFixedFeePerInst', t: '분할고정수수료', u: '(건)' }
+      { k: 'splitPayFixedFeePerInst', t: '분할고정수수료', u: '(건)' },
+      /* CRYPTO 채널 전용 — 확정 입금 과금 (조직 배분 합계 → 가맹 적용) */
+      { k: 'acquisitionOpsFeePct', t: '매입 운영수수료', u: '%', cryptoOnly: true },
+      { k: 'escrowOpsFeePct', t: '에스크로 운영수수료', u: '%', cryptoOnly: true },
+      { k: 'authFeePerTx', t: '인증 수수료', u: '(건)', cryptoOnly: true }
     ];
     var th = tierLevels.map(function (x) {
       var tk = String(x.t);
       return '<th class="text-center align-middle small text-nowrap" data-pg-ui-t="' + escUi(tk) + '">' + escUi(L(tk)) + '</th>';
     }).join('');
     var trb = '';
-    R.forEach(function (r, idx) {
+    var visibleIdx = 0;
+    R.forEach(function (r) {
       var tds = tierLevels.map(function (lv) {
         var ro = lv.k === 'merchant' ? ' readonly tabindex="-1" class="form-control form-control-sm hq-tier-cell text-center bg-light"' : ' class="form-control form-control-sm hq-tier-cell text-center"';
         return '<td class="p-1"><input type="text"' + ro + ' data-fee="' + r.k + '" data-level="' + lv.k + '" autocomplete="off" /></td>';
       }).join('');
       var rtk = String(r.t);
       var ruk = String(r.u);
-      trb += '<tr><td class="text-center small text-muted">' + (idx + 1) + '</td><td class="small text-start ps-2" data-pg-ui-t="' + escUi(rtk) + '">' + escUi(L(rtk)) + '</td><td class="small text-center text-muted" data-pg-ui-t="' + escUi(ruk) + '">' + escUi(L(ruk)) + '</td>' + tds + '</tr>';
+      var rowCls = r.cryptoOnly ? 'hq-def-comm-crypto-row d-none' : (r.fiatOnly ? 'hq-def-comm-fiat-row' : '');
+      visibleIdx += 1;
+      trb += '<tr' + (rowCls ? ' class="' + rowCls + '"' : '') + '><td class="text-center small text-muted">' + visibleIdx + '</td><td class="small text-start ps-2" data-pg-ui-t="' + escUi(rtk) + '">' + escUi(L(rtk)) + '</td><td class="small text-center text-muted" data-pg-ui-t="' + escUi(ruk) + '">' + escUi(L(ruk)) + '</td>' + tds + '</tr>';
     });
     return '<div class="table-responsive border rounded mb-3 hq-comm-tier-wrap">' +
       '<table class="table table-sm table-bordered align-middle mb-0 hq-comm-tier-matrix">' +
       '<thead class="table-light"><tr><th class="text-center align-middle" style="width:2.25rem">#</th>' +
-      '<th class="text-center align-middle small" style="min-width:6.5rem" data-pg-ui-t="내용">' + escUi(L('내용')) + '</th><th class="text-center align-middle small" style="width:2.75rem" data-pg-ui-t="단위">' + escUi(L('단위')) + '</th>' + th + '</tr></thead><tbody>' + trb + '</tbody></table></div>';
+      '<th class="text-center align-middle small" style="min-width:6.5rem" data-pg-ui-t="내용">' + escUi(L('내용')) + '</th><th class="text-center align-middle small" style="width:2.75rem" data-pg-ui-t="단위">' + escUi(L('단위')) + '</th>' + th + '</tr></thead><tbody>' + trb + '</tbody></table></div>' +
+      '<p class="small text-muted mb-3 d-none" id="hqDefCommCryptoHint" data-pg-ui-t="CRYPTO: 확정 입금 시 과금. USDT 송금·USDT%·3DS는 FIAT 전용으로 이 채널에서 숨깁니다.">' + escUi(L('CRYPTO: 확정 입금 시 과금. USDT 송금·USDT%·3DS는 FIAT 전용으로 이 채널에서 숨깁니다.')) + '</p>';
   }
 
   /** 수수료설정: 기타(비고) 수수료 4슬롯 — 가맹 열은 총본사~영업점 합계(읽기 전용) */
@@ -3011,16 +3098,6 @@
               '<option value="" data-pg-ui-t="(신규) 저장 시 자동 부여">' + escUi(L('(신규) 저장 시 자동 부여')) + '</option></select>' +
               '<p class="text-muted small mb-0 mt-1" data-pg-ui-t="고유 코드는 시스템이 부여합니다. 목록에서 정책을 불러와 편집만 할 수 있습니다.">' + escUi(L('고유 코드는 시스템이 부여합니다. 목록에서 정책을 불러와 편집만 할 수 있습니다.')) + '</p></div>';
             } }, { label: '정책명', type: 'text', name: 'policyName', col: 2, placeholder: '예: 기본정책 A' }, { label: '배포', type: 'select', name: 'deployYn', options: [{ v: 'Y', t: '배포' }, { v: 'N', t: '미배포' }], col: 2 }, { label: '통화코드', type: 'select', name: 'currencyCode', col: 2, options: [{ v: 'KRW', t: 'KRW' }, { v: 'USD', t: 'USD' }, { v: 'JPY', t: 'JPY' }, { v: 'EUR', t: 'EUR' }, { v: 'CNY', t: 'CNY' }, { v: 'THB', t: 'THB' }, { v: 'VND', t: 'VND' }, { v: 'GBP', t: 'GBP' }, { v: 'TWD', t: 'TWD' }, { v: 'HKD', t: 'HKD' }, { v: 'USDT', t: 'USDT' }, { v: 'USDC', t: 'USDC' }, { v: 'EURC', t: 'EURC' }] }],
-            [{ type: 'customHtml', col: 12, html: function () {
-              return '<div class="row g-2 hq-def-comm-crypto-fields d-none" id="hqDefCommCryptoFields">' +
-                '<div class="col-6 col-md-3"><label class="form-label" data-pg-ui-t="매입 운영수수료(%)">' + escUi(L('매입 운영수수료(%)')) + '</label>' +
-                '<input type="text" class="form-control form-control-sm" name="acquisitionOpsFeePct" id="hqDefCommAcquisitionOpsFeePct" placeholder="0" /></div>' +
-                '<div class="col-6 col-md-3"><label class="form-label" data-pg-ui-t="에스크로 운영수수료(%)">' + escUi(L('에스크로 운영수수료(%)')) + '</label>' +
-                '<input type="text" class="form-control form-control-sm" name="escrowOpsFeePct" id="hqDefCommEscrowOpsFeePct" placeholder="0" /></div>' +
-                '<div class="col-6 col-md-3"><label class="form-label" data-pg-ui-t="인증 수수료(건)">' + escUi(L('인증 수수료(건)')) + '</label>' +
-                '<input type="text" class="form-control form-control-sm" name="authFeePerTx" id="hqDefCommAuthFeePerTx" placeholder="0.0" /></div>' +
-                '<div class="col-12"><p class="small text-muted mb-0" data-pg-ui-t="CRYPTO: 확정 입금 시 과금. USDT 송금·USDT%·3DS는 FIAT 전용으로 이 채널에서 숨깁니다.">' + escUi(L('CRYPTO: 확정 입금 시 과금. USDT 송금·USDT%·3DS는 FIAT 전용으로 이 채널에서 숨깁니다.')) + '</p></div></div>';
-            } }],
             [{ type: 'customHtml', col: 12, html: hqDefaultCommissionTierMatrixHtml }],
             [{ label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 6, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }],
             [{ type: 'customHtml', col: 12, html: hqDefaultExtraFeesCardHtml }],
@@ -3036,6 +3113,7 @@
           title: '기본 보류율 정책',
           id: 'hqDefaultCommHoldCard',
           notice: '가맹점 등록의 [보류율 설정]과 동일한 개념입니다. 승인(결제) 금액 중 롤링(담보금) 비율(%)만큼 보류하고, 설정한 보류 영업일 수가 지나면 정산 실행 시 지급액에 합산됩니다. 본사정책 따름(Y)이면 가맹점은 아래 본사 템플릿의 롤링 비율·일수를 따릅니다.',
+          noticeElId: 'hqDefCommHoldNotice',
           rows: [
             [{ label: '롤링(담보금)비율(%)', type: 'text', name: 'rollingPct', col: 2, placeholder: '5 또는 10' }, { label: '롤링보류일수', type: 'text', name: 'rollingDays', col: 2, placeholder: '120 또는 180' }],
             [{ type: 'customHtml', col: 12, html: function () {
@@ -4913,7 +4991,8 @@
           title: '크립토설정',
           id: 'merchantCryptoCard',
           merchantOnly: true,
-          notice: '가맹 정산용 수취 지갑·크립토 사용(Y/N)입니다. 카드는 URL·PG 설정이 우선. 사용=Y여도 업체등록 미사용·영구정지면 결제 불가. 금액·수수료·한도는 USD. 가맹점 로그인은 조회·QR만. 변경은 본사·관리자가 업체상세 또는 본사정책 → 결제·URL → 크립토설정에서.',
+          cardExtraClass: 'pg-merchant-crypto-pastel-card',
+          notice: '가맹 정산용 수취 지갑·크립토 사용(Y/N)입니다. 카드는 URL·PG 설정이 우선. 사용=Y여도 업체등록 미사용·영구정지면 결제 불가. 금액·수수료·한도는 USD. 가맹점 로그인은 조회·QR만. 변경은 본사·관리자가 업체상세 또는 본사정책 → 결제·URL → 크립토설정에서. 수취지갑·설정 저장 시 Google OTP·더블확인이 필요합니다.',
           rows: [
             [{
               type: 'customHtml',
@@ -4921,11 +5000,19 @@
               html: function () {
                 return (
                   '<div id="merchantCryptoCardBody" class="merchant-crypto-card-body">' +
-                  cryptoMerchantTopFieldsHtml({ named: true, useYn: 'compCryptoUseYn', settle: 'compCryptoSettle', payout: 'compCryptoPayout', hold: 'compCryptoHold', reserve: 'compCryptoReserve' }) +
+                  cryptoMerchantTopFieldsHtml({ named: true, useYn: 'compCryptoUseYn', settle: 'compCryptoSettle', payout: 'compCryptoPayout', follow: 'compCryptoReserveFollow', hold: 'compCryptoHold', reserve: 'compCryptoReserve' }) +
+                  merchantCryptoPaymentUrlRowHtml('가맹점 저장 후 조회') +
+                  '<div class="row g-2 mb-2"><div class="col-md-3"><label class="form-label small" data-pg-ui-t="크립토 안내">크립토 안내</label>' +
+                  '<select class="form-select form-select-sm" name="cryptoPaymentHeaderSubtitleMode" id="cryptoPaymentHeaderSubtitleMode">' +
+                  '<option value="DEFAULT" data-pg-ui-t="기본">기본</option>' +
+                  '<option value="ACTIVE" data-pg-ui-t="활성(직접입력)">활성(직접입력)</option>' +
+                  '<option value="DISABLED" data-pg-ui-t="비활성">비활성</option></select></div></div>' +
+                  cryptoPaymentHeaderSubtitleFieldBlock() +
                   cryptoMerchantAssetTogglesHtml('compCryptoAssetToggles') +
                   '<div id="compCryptoWalletFields" class="mb-2"></div>' +
                   '<p class="small text-muted mb-2" data-pg-ui-t="활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.">활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.</p>' +
                   '<div id="compCryptoWalletQrPreview" class="d-flex flex-wrap gap-3"></div>' +
+                  cryptoMerchantApplyBtnHtml('compCryptoApplyBtn') +
                   '</div>'
                 );
               }
@@ -5384,7 +5471,8 @@
           title: '크립토설정',
           id: 'merchantCryptoCard',
           merchantOnly: true,
-          notice: '가맹 정산용 수취 지갑·크립토 사용(Y/N)입니다. 카드는 URL·PG 설정이 우선. 사용=Y여도 업체등록 미사용·영구정지면 결제 불가. 금액·수수료·한도는 USD. 구매자 입금(대표수탁)과 다름. 관리자만 저장·가맹은 조회·QR. 본사정책 → 결제·URL → 크립토설정과 동일·그쪽 저장 우선.',
+          cardExtraClass: 'pg-merchant-crypto-pastel-card',
+          notice: '가맹 정산용 수취 지갑·크립토 사용(Y/N)입니다. 카드는 URL·PG 설정이 우선. 사용=Y여도 업체등록 미사용·영구정지면 결제 불가. 금액·수수료·한도는 USD. 구매자 입금(대표수탁)과 다름. 관리자만 저장·가맹은 조회·QR. 본사정책 → 결제·URL → 크립토설정과 동일·그쪽 저장 우선. 수취지갑·설정 저장 시 Google OTP·더블확인이 필요합니다.',
           rows: [
             [{
               type: 'customHtml',
@@ -5392,11 +5480,19 @@
               html: function () {
                 return (
                   '<div id="merchantCryptoCardBody" class="merchant-crypto-card-body">' +
-                  cryptoMerchantTopFieldsHtml({ named: true, useYn: 'compCryptoUseYn', settle: 'compCryptoSettle', payout: 'compCryptoPayout', hold: 'compCryptoHold', reserve: 'compCryptoReserve' }) +
+                  cryptoMerchantTopFieldsHtml({ named: true, useYn: 'compCryptoUseYn', settle: 'compCryptoSettle', payout: 'compCryptoPayout', follow: 'compCryptoReserveFollow', hold: 'compCryptoHold', reserve: 'compCryptoReserve' }) +
+                  merchantCryptoPaymentUrlRowHtml('가맹점 저장 후 조회') +
+                  '<div class="row g-2 mb-2"><div class="col-md-3"><label class="form-label small" data-pg-ui-t="크립토 안내">크립토 안내</label>' +
+                  '<select class="form-select form-select-sm" name="cryptoPaymentHeaderSubtitleMode" id="cryptoPaymentHeaderSubtitleMode">' +
+                  '<option value="DEFAULT" data-pg-ui-t="기본">기본</option>' +
+                  '<option value="ACTIVE" data-pg-ui-t="활성(직접입력)">활성(직접입력)</option>' +
+                  '<option value="DISABLED" data-pg-ui-t="비활성">비활성</option></select></div></div>' +
+                  cryptoPaymentHeaderSubtitleFieldBlock() +
                   cryptoMerchantAssetTogglesHtml('compCryptoAssetToggles') +
                   '<div id="compCryptoWalletFields" class="mb-2"></div>' +
                   '<p class="small text-muted mb-2" data-pg-ui-t="활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.">활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.</p>' +
                   '<div id="compCryptoWalletQrPreview" class="d-flex flex-wrap gap-3"></div>' +
+                  cryptoMerchantApplyBtnHtml('compCryptoApplyBtn') +
                   '</div>'
                 );
               }
@@ -5791,7 +5887,8 @@
           title: '크립토설정',
           id: 'merchantCryptoCard',
           merchantOnly: true,
-          notice: '가맹 정산용 수취 지갑·크립토 사용(Y/N)입니다. 카드는 URL·PG 설정이 우선. 사용=Y여도 업체등록 미사용·영구정지면 결제 불가. 금액·수수료·한도는 USD. 구매자 입금(대표수탁)과 다름. 관리자만 저장·가맹은 조회·QR. 본사정책 → 결제·URL → 크립토설정과 동일·그쪽 저장 우선.',
+          cardExtraClass: 'pg-merchant-crypto-pastel-card',
+          notice: '가맹 정산용 수취 지갑·크립토 사용(Y/N)입니다. 카드는 URL·PG 설정이 우선. 사용=Y여도 업체등록 미사용·영구정지면 결제 불가. 금액·수수료·한도는 USD. 구매자 입금(대표수탁)과 다름. 관리자만 저장·가맹은 조회·QR. 본사정책 → 결제·URL → 크립토설정과 동일·그쪽 저장 우선. 수취지갑·설정 저장 시 Google OTP·더블확인이 필요합니다.',
           rows: [
             [{
               type: 'customHtml',
@@ -5799,11 +5896,19 @@
               html: function () {
                 return (
                   '<div id="merchantCryptoCardBody" class="merchant-crypto-card-body">' +
-                  cryptoMerchantTopFieldsHtml({ named: true, useYn: 'compCryptoUseYn', settle: 'compCryptoSettle', payout: 'compCryptoPayout', hold: 'compCryptoHold', reserve: 'compCryptoReserve' }) +
+                  cryptoMerchantTopFieldsHtml({ named: true, useYn: 'compCryptoUseYn', settle: 'compCryptoSettle', payout: 'compCryptoPayout', follow: 'compCryptoReserveFollow', hold: 'compCryptoHold', reserve: 'compCryptoReserve' }) +
+                  merchantCryptoPaymentUrlRowHtml('가맹점 저장 후 조회') +
+                  '<div class="row g-2 mb-2"><div class="col-md-3"><label class="form-label small" data-pg-ui-t="크립토 안내">크립토 안내</label>' +
+                  '<select class="form-select form-select-sm" name="cryptoPaymentHeaderSubtitleMode" id="cryptoPaymentHeaderSubtitleMode">' +
+                  '<option value="DEFAULT" data-pg-ui-t="기본">기본</option>' +
+                  '<option value="ACTIVE" data-pg-ui-t="활성(직접입력)">활성(직접입력)</option>' +
+                  '<option value="DISABLED" data-pg-ui-t="비활성">비활성</option></select></div></div>' +
+                  cryptoPaymentHeaderSubtitleFieldBlock() +
                   cryptoMerchantAssetTogglesHtml('compCryptoAssetToggles') +
                   '<div id="compCryptoWalletFields" class="mb-2"></div>' +
                   '<p class="small text-muted mb-2" data-pg-ui-t="활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.">활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.</p>' +
                   '<div id="compCryptoWalletQrPreview" class="d-flex flex-wrap gap-3"></div>' +
+                  cryptoMerchantApplyBtnHtml('compCryptoApplyBtn') +
                   '</div>'
                 );
               }
@@ -7710,26 +7815,31 @@
                   '<div class="input-group input-group-sm mb-2" style="max-width:28rem">' +
                   '<input type="text" class="form-control" id="cryptoMerchCompId" placeholder="가맹 업체코드">' +
                   '<button type="button" class="btn btn-outline-secondary" id="cryptoMerchLoadBtn" data-pg-ui-t="조회">조회</button>' +
-                  '<button type="button" class="btn btn-primary" id="cryptoMerchSaveBtn" data-pg-ui-t="저장">저장</button>' +
                   '</div>' +
-                  cryptoMerchantTopFieldsHtml({ useYn: 'cryptoMerchUseYn', settle: 'cryptoMerchSettle', payout: 'cryptoMerchPayout', hold: 'cryptoMerchHold', reserve: 'cryptoMerchReserve' }) +
+                  cryptoMerchantTopFieldsHtml({ useYn: 'cryptoMerchUseYn', settle: 'cryptoMerchSettle', payout: 'cryptoMerchPayout', follow: 'cryptoMerchReserveFollow', hold: 'cryptoMerchHold', reserve: 'cryptoMerchReserve', display: 'cryptoMerchDisplayCurrency' }) +
                   cryptoMerchantAssetTogglesHtml('cryptoMerchAssetToggles') +
                   '<div id="cryptoMerchWalletFields" class="mb-2"></div>' +
                   '<p class="small text-muted mb-2" data-pg-ui-t="활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.">활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.</p>' +
                   '<textarea class="form-control form-control-sm font-monospace d-none" id="cryptoMerchSellerJson" rows="2"></textarea>' +
-                  '<div id="cryptoMerchWalletQrPreview" class="d-flex flex-wrap gap-3 mb-3"></div>' +
+                  '<div id="cryptoMerchWalletQrPreview" class="d-flex flex-wrap gap-3 mb-2"></div>' +
+                  '<div class="d-flex flex-wrap gap-2 mb-3">' +
+                  '<button type="button" class="btn btn-primary btn-sm" id="cryptoMerchSaveBtn" data-pg-ui-t="설정저장">설정저장</button>' +
+                  '<span class="small text-muted align-self-center" data-pg-ui-t="수취지갑·설정 저장 시 Google OTP와 더블확인이 필요합니다.">수취지갑·설정 저장 시 Google OTP와 더블확인이 필요합니다.</span>' +
+                  '</div>' +
                   '<div class="d-flex align-items-center justify-content-between mb-1">' +
                   '<span class="small fw-semibold" data-pg-ui-t="등록된 가맹점 크립토설정">등록된 가맹점 크립토설정</span>' +
-                  '<span class="small text-muted" data-pg-ui-t="행 클릭=수정 로드 · 주소 더블클릭=QR">행 클릭=수정 로드 · 주소 더블클릭=QR</span>' +
+                  '<span class="small text-muted" data-pg-ui-t="행 더블클릭=수정 로드 · 주소 더블클릭=QR · 비고에서 수정/삭제">행 더블클릭=수정 로드 · 주소 더블클릭=QR · 비고에서 수정/삭제</span>' +
                   '</div>' +
                   '<div class="table-responsive"><table class="table table-sm table-bordered" id="grid_cryptoMerchant">' +
                   '<thead class="table-light"><tr>' +
                   '<th data-pg-ui-t="업체코드">업체코드</th><th data-pg-ui-t="업체명">업체명</th>' +
                   '<th data-pg-ui-t="사용">사용</th>' +
                   '<th data-pg-ui-t="정산모드">정산모드</th><th data-pg-ui-t="출금모드">출금모드</th>' +
-                  '<th data-pg-ui-t="보증금(%)">보증금(%)</th>' +
+                  '<th data-pg-ui-t="보증금 정책">보증금 정책</th>' +
+                  '<th data-pg-ui-t="보증금(%)">보증금(%)</th><th data-pg-ui-t="보증금보류일수">보증금보류일수</th>' +
                   '<th data-pg-ui-t="허용자산">허용자산</th><th data-pg-ui-t="허용네트워크">허용네트워크</th>' +
                   '<th data-pg-ui-t="가맹 수취 지갑">가맹 수취 지갑</th>' +
+                  '<th data-pg-ui-t="비고">비고</th>' +
                   '</tr></thead><tbody id="cryptoMerchTbody"></tbody></table></div>'
                 );
               }
@@ -9851,10 +9961,11 @@
       /* notice: <strong>/<code> 등 HTML 포함 시 data-pg-ui-html. 순수 텍스트는 p + data-pg-ui-t */
       if (sec.notice) {
         var n = String(sec.notice);
+        var noticeIdAttr = sec.noticeElId ? ' id="' + escUi(String(sec.noticeElId)) + '"' : '';
         if (pgUiNoticeHasHtml(n)) {
-          html += '<div class="text-muted small mb-2 screen-section-notice" data-pg-ui-html="' + escUi(n) + '">' + L(n) + '</div>';
+          html += '<div class="text-muted small mb-2 screen-section-notice"' + noticeIdAttr + ' data-pg-ui-html="' + escUi(n) + '">' + L(n) + '</div>';
         } else {
-          html += '<p class="text-muted small mb-2" data-pg-ui-t="' + escUi(n) + '">' + escUi(L(n)) + '</p>';
+          html += '<p class="text-muted small mb-2"' + noticeIdAttr + ' data-pg-ui-t="' + escUi(n) + '">' + escUi(L(n)) + '</p>';
         }
       }
       if (sec.type === 'branding') {
@@ -9924,6 +10035,7 @@
           '<div class="col-sm-5"><label class="form-label" data-pg-ui-t="결제 URL">결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control pg-fixed-value-input" id="paymentUrlDisplay" readonly data-pg-ui-placeholder="가맹점 선택 후 조회" placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentUrlCopyBtn" data-pg-ui-t="복사">복사</button></div></div></div>' +
           '<div class="row mb-2">' +
           '<div class="col-sm-5"><label class="form-label" data-pg-ui-t="URL 재결제 URL">URL 재결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentRepayUrlDisplay" readonly data-pg-ui-placeholder="가맹점 선택 후 조회" placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentRepayUrlCopyBtn" data-pg-ui-t="복사">복사</button></div></div></div>' +
+          '<div class="row mb-2" id="paymentUnifiedUrlRow"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="통합결제 URL">통합결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUnifiedUrlDisplay" readonly data-pg-ui-placeholder="가맹점 선택 후 조회" placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentUnifiedUrlCopyBtn" data-pg-ui-t="복사">복사</button></div></div></div>' +
           '<div class="row mb-2"><div class="col-sm-3"><label class="form-label" data-pg-ui-t="챗봇결제 사용여부">챗봇결제 사용여부</label><select class="form-control form-control-sm" name="chatbotPaymentUseYn"><option value="N" data-pg-ui-t="미사용">미사용</option><option value="Y" data-pg-ui-t="사용">사용</option></select></div>' +
           '<div class="col-sm-3"><label class="form-label" data-pg-ui-t="챗봇 상품등록 한도(건)">챗봇 상품등록 한도(건)</label><select class="form-control form-control-sm" name="chatbotProductSlotLimit"><option value="">—</option>' +
           '<option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="80">80</option><option value="100">100</option><option value="150">150</option><option value="200">200</option></select></div>' +

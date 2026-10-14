@@ -25,6 +25,7 @@
     imtoken: svg('<circle cx="16" cy="16" r="14" fill="#11C4A1"/><path d="M10 12h12v2H10v-2zm0 4h12v2H10v-2zm2 4h8v2h-8v-2z" fill="#fff"/>'),
     card: svg('<rect x="4" y="8" width="24" height="16" rx="2" fill="#64748B"/><rect x="4" y="12" width="24" height="4" fill="#94A3B8"/><rect x="8" y="18" width="8" height="2" rx="1" fill="#E2E8F0"/>'),
     crypto: svg('<circle cx="16" cy="16" r="14" fill="#0F766E"/><path d="M16 8v16M11 12h8a3 3 0 010 6h-6a3 3 0 000 6h9" stroke="#fff" stroke-width="2" fill="none"/>'),
+    other: svg('<circle cx="16" cy="16" r="14" fill="#94A3B8"/><text x="16" y="21" text-anchor="middle" font-size="11" font-weight="800" fill="#fff" font-family="Arial,sans-serif">…</text>'),
     /* 네트워크 — 첨부 목록 색톤 */
     base: svg('<circle cx="16" cy="16" r="14" fill="#0052FF"/><rect x="8" y="14.5" width="16" height="3" rx="1.5" fill="#fff"/>'),
     arbitrum: svg('<polygon points="16,3 28,10 28,22 16,29 4,22 4,10" fill="#213147"/><path d="M12 20l4-10 4 10h-2.2l-.6-1.6h-2.4L14.2 20H12zm3.1-3.4h1.8L16 12.8l-.9 3.8z" fill="#28A0F0"/><path d="M18.5 20.5l1.2-3.2 1.3 3.2H18.5z" fill="#fff"/>'),

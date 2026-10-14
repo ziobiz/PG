@@ -34,6 +34,7 @@ public class CryptoAdminService {
     private final OrgUnitRepository orgUnitRepository;
     private final CryptoCheckoutService checkoutService;
     private final CryptoPayoutService payoutService;
+    private final CryptoReserveResolver reserveResolver;
 
     public CryptoAdminService(CryptoCatalogService catalogService,
                               CryptoCustodyAddressRepository custodyAddressRepository,
@@ -42,13 +43,15 @@ public class CryptoAdminService {
                               MerchantProfileRepository merchantProfileRepository,
                               OrgUnitRepository orgUnitRepository,
                               CryptoCheckoutService checkoutService,
-                              CryptoPayoutService payoutService) {
+                              CryptoPayoutService payoutService,
+                              CryptoReserveResolver reserveResolver) {
         this.catalogService = catalogService;
         this.custodyAddressRepository = custodyAddressRepository;
         this.depositTxnRepository = depositTxnRepository;
         this.configRepository = configRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.orgUnitRepository = orgUnitRepository;
+        this.reserveResolver = reserveResolver;
         this.checkoutService = checkoutService;
         this.payoutService = payoutService;
     }
@@ -115,8 +118,7 @@ public class CryptoAdminService {
             m.put("checkoutMeans", cfg.getCheckoutMeans());
             m.put("settleMode", cfg.getSettleMode());
             m.put("payoutMode", cfg.getPayoutMode());
-            m.put("holdDays", cfg.getHoldDays());
-            m.put("reservePct", cfg.getReservePct());
+            putReserveFields(m, cfg, ou.getCode());
             m.put("assetsCsv", cfg.getAssetsCsv());
             m.put("networksCsv", cfg.getNetworksCsv());
             m.put("sellerWalletJson", cfg.getSellerWalletJson());
@@ -269,13 +271,33 @@ public class CryptoAdminService {
         m.put("checkoutMeans", exists ? cfg.getCheckoutMeans() : MerchantCryptoConfig.MEANS_CARD);
         m.put("settleMode", cfg.getSettleMode());
         m.put("payoutMode", cfg.getPayoutMode());
-        m.put("holdDays", cfg.getHoldDays());
-        m.put("reservePct", cfg.getReservePct());
+        putReserveFields(m, cfg, ou.getCode());
         m.put("assetsCsv", exists ? cfg.getAssetsCsv() : "");
         m.put("networksCsv", exists ? cfg.getNetworksCsv() : "");
         m.put("sellerWalletJson", exists ? cfg.getSellerWalletJson() : null);
+        String disp = exists && cfg.getDisplayCurrency() != null && !cfg.getDisplayCurrency().isBlank()
+                ? cfg.getDisplayCurrency().trim().toUpperCase(Locale.ROOT) : "USD";
+        if (!CryptoFxService.DISPLAY_CURRENCIES.contains(disp)) {
+            disp = "USD";
+        }
+        m.put("displayCurrency", disp);
+        m.put("quoteCurrency", CryptoCheckoutService.QUOTE_CURRENCY);
         m.put("catalog", catalogService.publicCatalog(null, null));
         return m;
+    }
+
+    /** 보증금 본사따름/직접입력 + 실효값·CRYPTO 롤링 미리보기. */
+    private void putReserveFields(Map<String, Object> m, MerchantCryptoConfig cfg, String merchantCode) {
+        boolean follow = CryptoReserveResolver.isFollowHq(cfg.getReserveFollowHq());
+        m.put("reserveFollowHq", follow ? "Y" : "N");
+        m.put("customReservePct", cfg.getReservePct() != null ? cfg.getReservePct() : java.math.BigDecimal.ZERO);
+        m.put("customHoldDays", cfg.getHoldDays() != null ? cfg.getHoldDays() : 3);
+        CryptoReserveResolver.Effective eff = reserveResolver.resolve(cfg, merchantCode);
+        CryptoReserveResolver.HqRolling hq = reserveResolver.hqRolling(merchantCode);
+        m.put("hqRollingPct", hq.rollingPct());
+        m.put("hqRollingDays", hq.rollingDays());
+        m.put("reservePct", eff.effectiveReservePct());
+        m.put("holdDays", eff.effectiveHoldDays());
     }
 
     /** 가맹 크립토 미등록 시 기본값 — 사용=미사용, 자산·네트워크 비활성. */
@@ -288,6 +310,8 @@ public class CryptoAdminService {
         c.setPayoutMode(MerchantCryptoConfig.PAYOUT_MANUAL);
         c.setHoldDays(3);
         c.setReservePct(java.math.BigDecimal.ZERO);
+        c.setReserveFollowHq("Y");
+        c.setDisplayCurrency("USD");
         c.setAssetsCsv("");
         c.setNetworksCsv("");
         c.setSellerWalletJson(null);
@@ -312,27 +336,37 @@ public class CryptoAdminService {
         String payout = str(body.get("payoutMode")).toUpperCase(Locale.ROOT);
         cfg.setPayoutMode(MerchantCryptoConfig.PAYOUT_AUTO.equals(payout)
                 ? MerchantCryptoConfig.PAYOUT_AUTO : MerchantCryptoConfig.PAYOUT_MANUAL);
-        try {
-            cfg.setHoldDays(Integer.parseInt(str(body.get("holdDays"))));
-        } catch (Exception e) {
-            cfg.setHoldDays(3);
-        }
-        if (cfg.getHoldDays() < 0) {
-            cfg.setHoldDays(0);
-        }
-        try {
-            java.math.BigDecimal rp = new java.math.BigDecimal(str(body.get("reservePct")).isBlank()
-                    ? "0" : str(body.get("reservePct")));
-            if (rp.compareTo(java.math.BigDecimal.ZERO) < 0) {
-                rp = java.math.BigDecimal.ZERO;
+        boolean followHq = CryptoReserveResolver.isFollowHq(str(body.get("reserveFollowHq")));
+        cfg.setReserveFollowHq(followHq ? "Y" : "N");
+        /* 본사따름이면 저장값(직접입력 백업)은 유지. 직접입력일 때만 본문 수치 반영. */
+        if (!followHq) {
+            try {
+                cfg.setHoldDays(Integer.parseInt(str(body.get("holdDays"))));
+            } catch (Exception e) {
+                cfg.setHoldDays(3);
             }
-            if (rp.compareTo(new java.math.BigDecimal("100")) > 0) {
-                rp = new java.math.BigDecimal("100");
+            if (cfg.getHoldDays() < 0) {
+                cfg.setHoldDays(0);
             }
-            cfg.setReservePct(rp);
-        } catch (Exception e) {
-            cfg.setReservePct(java.math.BigDecimal.ZERO);
+            try {
+                java.math.BigDecimal rp = new java.math.BigDecimal(str(body.get("reservePct")).isBlank()
+                        ? "0" : str(body.get("reservePct")));
+                if (rp.compareTo(java.math.BigDecimal.ZERO) < 0) {
+                    rp = java.math.BigDecimal.ZERO;
+                }
+                if (rp.compareTo(new java.math.BigDecimal("100")) > 0) {
+                    rp = new java.math.BigDecimal("100");
+                }
+                cfg.setReservePct(rp);
+            } catch (Exception e) {
+                cfg.setReservePct(java.math.BigDecimal.ZERO);
+            }
         }
+        String disp = str(body.get("displayCurrency")).toUpperCase(Locale.ROOT);
+        if (!CryptoFxService.DISPLAY_CURRENCIES.contains(disp)) {
+            disp = "USD";
+        }
+        cfg.setDisplayCurrency(disp);
         String assets = str(body.get("assetsCsv"));
         /* 빈값=전 자산 비활성. 활성 자산만 CSV. */
         cfg.setAssetsCsv(assets.isBlank() ? "" : assets.toUpperCase(Locale.ROOT));
@@ -348,6 +382,25 @@ public class CryptoAdminService {
         boolean cryptoOnly = cryptoOn && MerchantCryptoConfig.MEANS_CRYPTO.equalsIgnoreCase(cfg.getCheckoutMeans());
         assignCryptoCommissionSlot(ou.getId(), cryptoOn, cryptoOnly);
         return merchantConfig(ou.getCode());
+    }
+
+    /** 가맹 크립토설정 삭제(행 제거). 수수료 CRYPTO 슬롯은 비활성 쪽으로 정리. */
+    @Transactional
+    public Map<String, Object> deleteMerchantConfig(String compId) {
+        OrgUnit ou = orgUnitRepository.findByCode(str(compId))
+                .orElseThrow(() -> new IllegalArgumentException("업체를 찾을 수 없습니다."));
+        if (ou.getOrgLevel() != OrgLevel.MERCHANT) {
+            throw new IllegalArgumentException("가맹점만 삭제할 수 있습니다.");
+        }
+        if (!configRepository.existsById(ou.getId())) {
+            throw new IllegalArgumentException("등록된 크립토설정이 없습니다.");
+        }
+        configRepository.deleteById(ou.getId());
+        assignCryptoCommissionSlot(ou.getId(), false, false);
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("compId", ou.getCode());
+        out.put("deleted", true);
+        return out;
     }
 
     public Map<String, Object> searchDeposits(String compId, String status, int page, int size) {

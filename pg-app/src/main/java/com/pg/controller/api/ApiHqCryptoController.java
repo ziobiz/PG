@@ -140,9 +140,27 @@ public class ApiHqCryptoController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> saveMerchantConfig(@RequestBody Map<String, Object> body) {
         try {
             denyIfMerchantMutates();
+            /* 가맹 수취지갑·크립토설정 변경은 Google OTP 필수 */
+            requireTotp(body);
             return ResponseEntity.ok(ApiResponse.ok(adminService.saveMerchantConfig(body)));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "INVALID"));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "OTP_REQUIRED"));
+        }
+    }
+
+    @PostMapping("/merchant-config/delete")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> deleteMerchantConfig(@RequestBody Map<String, Object> body) {
+        try {
+            denyIfMerchantMutates();
+            requireTotp(body);
+            String compId = body != null && body.get("compId") != null ? String.valueOf(body.get("compId")) : "";
+            return ResponseEntity.ok(ApiResponse.ok(adminService.deleteMerchantConfig(compId)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "INVALID"));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "OTP_REQUIRED"));
         }
     }
 

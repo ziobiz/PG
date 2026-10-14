@@ -1947,6 +1947,21 @@ public class CompService {
                             m.put("webPaymentHeaderLogoMode", com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalizeMerchantStored(mp.getWebPaymentHeaderLogoMode()));
                             m.put("apiPaymentHeaderLogoMode", mp.getApiPaymentHeaderLogoMode() != null
                                     ? mp.getApiPaymentHeaderLogoMode() : "DISABLED");
+                            m.put("cryptoPaymentHeaderLogoMode", mp.getCryptoPaymentHeaderLogoMode() != null
+                                    && !mp.getCryptoPaymentHeaderLogoMode().isBlank()
+                                    ? mp.getCryptoPaymentHeaderLogoMode() : "FOLLOW_HQ");
+                            m.put("cryptoPaymentHeaderSubtitleMode",
+                                    mp.getCryptoPaymentHeaderSubtitleMode() != null
+                                            && !mp.getCryptoPaymentHeaderSubtitleMode().isBlank()
+                                            ? mp.getCryptoPaymentHeaderSubtitleMode() : "DEFAULT");
+                            m.put("cryptoPaymentHeaderSubtitleText",
+                                    mp.getCryptoPaymentHeaderSubtitleText() != null ? mp.getCryptoPaymentHeaderSubtitleText() : "");
+                            m.put("unifiedPaymentHeaderSubtitleMode",
+                                    mp.getUnifiedPaymentHeaderSubtitleMode() != null
+                                            && !mp.getUnifiedPaymentHeaderSubtitleMode().isBlank()
+                                            ? mp.getUnifiedPaymentHeaderSubtitleMode() : "DEFAULT");
+                            m.put("unifiedPaymentHeaderSubtitleText",
+                                    mp.getUnifiedPaymentHeaderSubtitleText() != null ? mp.getUnifiedPaymentHeaderSubtitleText() : "");
                             m.put("webPaymentHeaderSubtitleMode", com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.normalizeMerchantStored(mp.getWebPaymentHeaderSubtitleMode()));
                             m.put("urlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getUrlPayCheckoutMode()));
                             m.put("urlPayProductNameUseYn", mp.getUrlPayProductNameUseYn() != null ? mp.getUrlPayProductNameUseYn() : "Y");
@@ -3506,6 +3521,85 @@ public class CompService {
                     mp.setApiPaymentHeaderHtmlTitle(t);
                 }
             }
+            merchantProfileRepository.save(mp);
+        });
+    }
+
+    /**
+     * 크립토 결제창 로고(A형). {@code FOLLOW_HQ}=웹결제 따름, {@code DISABLED}=미노출.
+     * {@code null} 이면 미변경.
+     */
+    @Transactional
+    public void applyMerchantCryptoPaymentHeaderLogo(String compId, String cryptoPaymentHeaderLogoMode) {
+        if (compId == null || compId.isBlank() || cryptoPaymentHeaderLogoMode == null) {
+            return;
+        }
+        if (cryptoPaymentHeaderLogoMode.isBlank()) {
+            return;
+        }
+        orgUnitRepository.findByCode(compId.trim()).flatMap(ou -> {
+            if (ou.getOrgLevel() != OrgLevel.MERCHANT) {
+                return Optional.empty();
+            }
+            return merchantProfileRepository.findByOrgUnitId(ou.getId());
+        }).ifPresent(mp -> {
+            mp.setCryptoPaymentHeaderLogoMode(cryptoPaymentHeaderLogoMode.trim());
+            merchantProfileRepository.save(mp);
+        });
+    }
+
+    /** 크립토·통합 안내문구. null 인자는 미변경. */
+    @Transactional
+    public void applyMerchantCryptoUnifiedSubtitles(String compId,
+                                                    String cryptoPaymentHeaderSubtitleMode,
+                                                    String cryptoPaymentHeaderSubtitleText,
+                                                    String unifiedPaymentHeaderSubtitleMode,
+                                                    String unifiedPaymentHeaderSubtitleText) {
+        if (compId == null || compId.isBlank()) {
+            return;
+        }
+        if (cryptoPaymentHeaderSubtitleMode == null && cryptoPaymentHeaderSubtitleText == null
+                && unifiedPaymentHeaderSubtitleMode == null && unifiedPaymentHeaderSubtitleText == null) {
+            return;
+        }
+        orgUnitRepository.findByCode(compId.trim()).flatMap(ou -> {
+            if (ou.getOrgLevel() != OrgLevel.MERCHANT) {
+                return Optional.empty();
+            }
+            return merchantProfileRepository.findByOrgUnitId(ou.getId());
+        }).ifPresent(mp -> {
+            if (cryptoPaymentHeaderSubtitleMode != null && !cryptoPaymentHeaderSubtitleMode.isBlank()) {
+                mp.setCryptoPaymentHeaderSubtitleMode(cryptoPaymentHeaderSubtitleMode.trim());
+            }
+            if (cryptoPaymentHeaderSubtitleText != null
+                    && "ACTIVE".equalsIgnoreCase(String.valueOf(mp.getCryptoPaymentHeaderSubtitleMode()))) {
+                String t = cryptoPaymentHeaderSubtitleText.trim();
+                if (t.isEmpty()) {
+                    mp.setCryptoPaymentHeaderSubtitleText(null);
+                    mp.setCryptoPaymentHeaderSubtitleTextI18n(null);
+                } else if (t.length() > 200) {
+                    throw new IllegalArgumentException("크립토 안내문구는 200자 이하여야 합니다.");
+                } else {
+                    mp.setCryptoPaymentHeaderSubtitleText(t);
+                }
+            }
+            if (unifiedPaymentHeaderSubtitleMode != null && !unifiedPaymentHeaderSubtitleMode.isBlank()) {
+                mp.setUnifiedPaymentHeaderSubtitleMode(unifiedPaymentHeaderSubtitleMode.trim());
+            }
+            if (unifiedPaymentHeaderSubtitleText != null
+                    && "ACTIVE".equalsIgnoreCase(String.valueOf(mp.getUnifiedPaymentHeaderSubtitleMode()))) {
+                String t = unifiedPaymentHeaderSubtitleText.trim();
+                if (t.isEmpty()) {
+                    mp.setUnifiedPaymentHeaderSubtitleText(null);
+                    mp.setUnifiedPaymentHeaderSubtitleTextI18n(null);
+                } else if (t.length() > 200) {
+                    throw new IllegalArgumentException("통합결제 안내문구는 200자 이하여야 합니다.");
+                } else {
+                    mp.setUnifiedPaymentHeaderSubtitleText(t);
+                }
+            }
+            checkoutHeaderSubtitleCopyService.applyCryptoToMerchantProfile(mp);
+            checkoutHeaderSubtitleCopyService.applyUnifiedToMerchantProfile(mp);
             merchantProfileRepository.save(mp);
         });
     }

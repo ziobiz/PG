@@ -213,6 +213,33 @@ public class MerchantProfile {
     private String apiPaymentHeaderHtmlTitle;
 
     /**
+     * 크립토 결제·수단선택 상단 로고 — A형.
+     * {@code FOLLOW_HQ}=웹결제 로고 따름(기본), {@code DISABLED}=미노출. 별도 업로드 없음.
+     */
+    @Column(name = "crypto_payment_header_logo_mode", nullable = false, length = 16)
+    private String cryptoPaymentHeaderLogoMode = "FOLLOW_HQ";
+
+    /** 크립토 결제창 로고 아래 안내 — DEFAULT|ACTIVE|DISABLED */
+    @Column(name = "crypto_payment_header_subtitle_mode", nullable = false, length = 16)
+    private String cryptoPaymentHeaderSubtitleMode = "DEFAULT";
+
+    @Column(name = "crypto_payment_header_subtitle_text", length = 200)
+    private String cryptoPaymentHeaderSubtitleText;
+
+    @Column(name = "crypto_payment_header_subtitle_text_i18n", columnDefinition = "TEXT")
+    private String cryptoPaymentHeaderSubtitleTextI18n;
+
+    /** 통합결제(수단선택) 로고 아래 안내 — DEFAULT|ACTIVE|DISABLED */
+    @Column(name = "unified_payment_header_subtitle_mode", nullable = false, length = 16)
+    private String unifiedPaymentHeaderSubtitleMode = "DEFAULT";
+
+    @Column(name = "unified_payment_header_subtitle_text", length = 200)
+    private String unifiedPaymentHeaderSubtitleText;
+
+    @Column(name = "unified_payment_header_subtitle_text_i18n", columnDefinition = "TEXT")
+    private String unifiedPaymentHeaderSubtitleTextI18n;
+
+    /**
      * 웹결제 결제창 로고 아래 경고/안내 문구 — {@link com.pg.urlpay.CheckoutHeaderSubtitleModeUtil}.
      */
     @Column(name = "web_payment_header_subtitle_mode", nullable = false, length = 16)
@@ -808,6 +835,58 @@ public class MerchantProfile {
     public void setApiPaymentHeaderLogoUrl(String apiPaymentHeaderLogoUrl) { this.apiPaymentHeaderLogoUrl = apiPaymentHeaderLogoUrl; }
     public String getApiPaymentHeaderHtmlTitle() { return apiPaymentHeaderHtmlTitle; }
     public void setApiPaymentHeaderHtmlTitle(String apiPaymentHeaderHtmlTitle) { this.apiPaymentHeaderHtmlTitle = apiPaymentHeaderHtmlTitle; }
+    public String getCryptoPaymentHeaderLogoMode() { return cryptoPaymentHeaderLogoMode; }
+    public void setCryptoPaymentHeaderLogoMode(String cryptoPaymentHeaderLogoMode) {
+        if (cryptoPaymentHeaderLogoMode == null || cryptoPaymentHeaderLogoMode.isBlank()) {
+            this.cryptoPaymentHeaderLogoMode = "FOLLOW_HQ";
+            return;
+        }
+        String u = cryptoPaymentHeaderLogoMode.trim().toUpperCase(java.util.Locale.ROOT);
+        if (com.pg.urlpay.WebPaymentHeaderLogoModeUtil.DISABLED.equals(u)
+                || "N".equals(u) || "OFF".equals(u) || "INACTIVE".equals(u)) {
+            this.cryptoPaymentHeaderLogoMode = com.pg.urlpay.WebPaymentHeaderLogoModeUtil.DISABLED;
+            return;
+        }
+        /* FOLLOW_HQ · HQ · Y · ON · FOLLOW_WEB 등 → 웹결제 로고 따름 */
+        this.cryptoPaymentHeaderLogoMode = "FOLLOW_HQ";
+    }
+    public String getCryptoPaymentHeaderSubtitleMode() { return cryptoPaymentHeaderSubtitleMode; }
+    public void setCryptoPaymentHeaderSubtitleMode(String cryptoPaymentHeaderSubtitleMode) {
+        this.cryptoPaymentHeaderSubtitleMode = normalizeChannelSubtitleMode(cryptoPaymentHeaderSubtitleMode);
+    }
+    public String getCryptoPaymentHeaderSubtitleText() { return cryptoPaymentHeaderSubtitleText; }
+    public void setCryptoPaymentHeaderSubtitleText(String cryptoPaymentHeaderSubtitleText) {
+        this.cryptoPaymentHeaderSubtitleText = cryptoPaymentHeaderSubtitleText;
+    }
+    public String getCryptoPaymentHeaderSubtitleTextI18n() { return cryptoPaymentHeaderSubtitleTextI18n; }
+    public void setCryptoPaymentHeaderSubtitleTextI18n(String cryptoPaymentHeaderSubtitleTextI18n) {
+        this.cryptoPaymentHeaderSubtitleTextI18n = cryptoPaymentHeaderSubtitleTextI18n;
+    }
+    public String getUnifiedPaymentHeaderSubtitleMode() { return unifiedPaymentHeaderSubtitleMode; }
+    public void setUnifiedPaymentHeaderSubtitleMode(String unifiedPaymentHeaderSubtitleMode) {
+        this.unifiedPaymentHeaderSubtitleMode = normalizeChannelSubtitleMode(unifiedPaymentHeaderSubtitleMode);
+    }
+    public String getUnifiedPaymentHeaderSubtitleText() { return unifiedPaymentHeaderSubtitleText; }
+    public void setUnifiedPaymentHeaderSubtitleText(String unifiedPaymentHeaderSubtitleText) {
+        this.unifiedPaymentHeaderSubtitleText = unifiedPaymentHeaderSubtitleText;
+    }
+    public String getUnifiedPaymentHeaderSubtitleTextI18n() { return unifiedPaymentHeaderSubtitleTextI18n; }
+    public void setUnifiedPaymentHeaderSubtitleTextI18n(String unifiedPaymentHeaderSubtitleTextI18n) {
+        this.unifiedPaymentHeaderSubtitleTextI18n = unifiedPaymentHeaderSubtitleTextI18n;
+    }
+    private static String normalizeChannelSubtitleMode(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "DEFAULT";
+        }
+        String u = raw.trim().toUpperCase(java.util.Locale.ROOT);
+        if ("DISABLED".equals(u) || "N".equals(u) || "OFF".equals(u)) {
+            return "DISABLED";
+        }
+        if ("ACTIVE".equals(u) || "Y".equals(u) || "ON".equals(u)) {
+            return "ACTIVE";
+        }
+        return "DEFAULT";
+    }
     public String getWebPaymentHeaderHtmlTitle() { return webPaymentHeaderHtmlTitle; }
     public void setWebPaymentHeaderHtmlTitle(String webPaymentHeaderHtmlTitle) { this.webPaymentHeaderHtmlTitle = webPaymentHeaderHtmlTitle; }
     public String getWebPaymentHeaderSubtitleMode() { return webPaymentHeaderSubtitleMode; }

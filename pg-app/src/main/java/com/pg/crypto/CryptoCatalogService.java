@@ -57,10 +57,21 @@ public class CryptoCatalogService {
 
     public List<Map<String, Object>> wallets(String networkCode) {
         String net = networkCode == null ? "" : networkCode.trim().toUpperCase(Locale.ROOT);
-        return walletBrandRepository.findByUseYnOrderBySortOrdAsc("Y").stream()
+        List<Map<String, Object>> list = walletBrandRepository.findByUseYnOrderBySortOrdAsc("Y").stream()
                 .filter(w -> net.isEmpty() || csvContains(w.getNetworksCsv(), net))
                 .map(this::walletMap)
                 .collect(Collectors.toList());
+        /* 목록에 없는 지갑 — 안내용 OTHER */
+        Map<String, Object> other = new LinkedHashMap<>();
+        other.put("code", "OTHER");
+        other.put("name", "Other");
+        other.put("pastelBg", "#F1F5F9");
+        other.put("pastelFg", "#334155");
+        other.put("accent", "#64748B");
+        other.put("iconKey", "other");
+        other.put("networks", List.of());
+        list.add(other);
+        return list;
     }
 
     public Map<String, Object> publicCatalog(Collection<String> allowAssets, Collection<String> allowNetworks) {
@@ -79,6 +90,9 @@ public class CryptoCatalogService {
                 .collect(Collectors.toList()));
         out.put("wallets", wallets(null).stream()
                 .filter(w -> {
+                    if ("OTHER".equalsIgnoreCase(String.valueOf(w.get("code")))) {
+                        return true;
+                    }
                     if (nets.isEmpty()) {
                         return true;
                     }
