@@ -4956,7 +4956,7 @@
           title: '수신통보 URL',
           id: 'jpayNotifyUrlCard',
           merchantOnly: true,
-          notice: '노티관리에서 생성한 URL이 여기에 표시됩니다. J-Pay: pay_notifyurl·pay_callbackurl. ElementPay: Webhook(/noti/elementpay)·Result(/noti/result/elementpay) — 결제 시 Result에 order·compId를 붙여 _successUrl 등에 사용. 가맹 쇼핑몰 URL은 EP에 넣지 않습니다.',
+          notice: '노티관리에서 생성한 URL이 여기에 표시됩니다(PG→NOTI 수신 입구·가맹 쇼핑몰 URL 아님). J-Pay: pay_notifyurl·pay_callbackurl. ElementPay: Webhook(/noti/elementpay)·Result(/noti/result/elementpay). CRYPTO: 고정 Webhook(/noti/crypto)·Result(/noti/result/crypto) — ICOPAY 입금확정 후 NOTI가 기존 가맹 Callback으로 릴레이(카드와 동일 ICOPAY→NOTI→가맹).',
           rows: [
             [{ label: 'Notify (pay_notifyurl) / Callback URL (NOTI MW)', type: 'text', name: 'jpayNotifyUrl', col: 5, placeholder: 'https://' }, { label: 'Callback (pay_callbackurl) / Result URL (NOTI MW)', type: 'text', name: 'jpayCallbackUrl', col: 5, placeholder: 'https://' }]
           ]
@@ -5427,7 +5427,7 @@
           title: '수신통보 URL',
           id: 'jpayNotifyUrlCard',
           merchantOnly: true,
-          notice: '노티관리에서 생성한 URL이 여기에 표시됩니다. J-Pay: pay_notifyurl·pay_callbackurl. ElementPay: Webhook(/noti/elementpay)·Result(/noti/result/elementpay) — 결제 시 Result에 order·compId를 붙여 _successUrl 등에 사용. 가맹 쇼핑몰 URL은 EP에 넣지 않습니다.',
+          notice: '노티관리에서 생성한 URL이 여기에 표시됩니다(PG→NOTI 수신 입구·가맹 쇼핑몰 URL 아님). J-Pay: pay_notifyurl·pay_callbackurl. ElementPay: Webhook(/noti/elementpay)·Result(/noti/result/elementpay). CRYPTO: 고정 Webhook(/noti/crypto)·Result(/noti/result/crypto) — ICOPAY 입금확정 후 NOTI가 기존 가맹 Callback으로 릴레이(카드와 동일 ICOPAY→NOTI→가맹).',
           rows: [
             [{ label: 'Notify (pay_notifyurl) / Callback URL (NOTI MW)', type: 'text', name: 'jpayNotifyUrl', col: 5, placeholder: 'https://' }, { label: 'Callback (pay_callbackurl) / Result URL (NOTI MW)', type: 'text', name: 'jpayCallbackUrl', col: 5, placeholder: 'https://' }]
           ]
@@ -5834,7 +5834,7 @@
           title: '수신통보 URL',
           id: 'jpayNotifyUrlCard',
           merchantOnly: true,
-          notice: '노티관리에서 생성한 URL이 여기에 표시됩니다. J-Pay: pay_notifyurl·pay_callbackurl. ElementPay: Webhook(/noti/elementpay)·Result(/noti/result/elementpay) — 결제 시 Result에 order·compId를 붙여 _successUrl 등에 사용. 가맹 쇼핑몰 URL은 EP에 넣지 않습니다.',
+          notice: '노티관리에서 생성한 URL이 여기에 표시됩니다(PG→NOTI 수신 입구·가맹 쇼핑몰 URL 아님). J-Pay: pay_notifyurl·pay_callbackurl. ElementPay: Webhook(/noti/elementpay)·Result(/noti/result/elementpay). CRYPTO: 고정 Webhook(/noti/crypto)·Result(/noti/result/crypto) — ICOPAY 입금확정 후 NOTI가 기존 가맹 Callback으로 릴레이(카드와 동일 ICOPAY→NOTI→가맹).',
           rows: [
             [{ label: 'Notify (pay_notifyurl) / Callback URL (NOTI MW)', type: 'text', name: 'jpayNotifyUrl', col: 5, placeholder: 'https://' }, { label: 'Callback (pay_callbackurl) / Result URL (NOTI MW)', type: 'text', name: 'jpayCallbackUrl', col: 5, placeholder: 'https://' }]
           ]

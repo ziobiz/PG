@@ -33,6 +33,7 @@ public class CryptoCheckoutService {
     private final CryptoCatalogService catalogService;
     private final CryptoPayoutService payoutService;
     private final CryptoCommissionChargeService commissionChargeService;
+    private final CryptoNotiMiddlewareMirrorService cryptoNotiMiddlewareMirrorService;
 
     public CryptoCheckoutService(OrgUnitRepository orgUnitRepository,
                                  MerchantProfileRepository merchantProfileRepository,
@@ -41,7 +42,8 @@ public class CryptoCheckoutService {
                                  CryptoCustodyAddressRepository custodyAddressRepository,
                                  CryptoCatalogService catalogService,
                                  CryptoPayoutService payoutService,
-                                 CryptoCommissionChargeService commissionChargeService) {
+                                 CryptoCommissionChargeService commissionChargeService,
+                                 CryptoNotiMiddlewareMirrorService cryptoNotiMiddlewareMirrorService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.configRepository = configRepository;
@@ -50,6 +52,7 @@ public class CryptoCheckoutService {
         this.catalogService = catalogService;
         this.payoutService = payoutService;
         this.commissionChargeService = commissionChargeService;
+        this.cryptoNotiMiddlewareMirrorService = cryptoNotiMiddlewareMirrorService;
     }
 
     /**
@@ -257,6 +260,10 @@ public class CryptoCheckoutService {
         MerchantCryptoConfig cfg = configRepository.findById(txn.getOrgUnitId()).orElse(null);
         String seller = extractSellerAddress(cfg, txn.getNetworkCode(), txn.getAssetCode());
         payoutService.enqueueAfterConfirm(txn, cfg, seller);
+
+        /* ICOPAY → NOTI → 가맹 Callback (카드와 동일 경로; 결제통보 URL 직통 아님) */
+        cryptoNotiMiddlewareMirrorService.scheduleConfirmMirrorAfterCommit(txn);
+
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("success", true);
         out.put("status", txn.getStatus());
@@ -264,6 +271,7 @@ public class CryptoCheckoutService {
         out.put("feeAmt", feeCharged);
         out.put("feeChargedYn", txn.getFeeChargedYn());
         out.put("payTrnId", txn.getPayTrnId());
+        out.put("notiMirrorScheduled", true);
         return out;
     }
 

@@ -6,13 +6,40 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '4.83';
+  var CURRENT_LIVE = '4.84';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '4.84',
+      kind: 'minor',
+      date: '2026-10-14',
+      items: {
+        KO: [
+          '크립토 입금확정 통보: ICOPAY→NOTI(/noti/crypto)→가맹 Callback(기존 Comp-Id·JPAY 스키마)',
+          '수신통보 URL 안내·운영계약 문서(ICOPAY_CRYPTO_NOTI)·NOTI 운영매뉴얼 CRYPTO 추가'
+        ],
+        EN: [
+          'Crypto deposit confirm notify: ICOPAY→NOTI(/noti/crypto)→merchant Callback (existing Comp-Id, JPAY schema)',
+          'Inbound-notify help text · ICOPAY_CRYPTO_NOTI contract · NOTI ops manual CRYPTO section'
+        ],
+        JP: [
+          'クリプト入金確定通知: ICOPAY→NOTI(/noti/crypto)→加盟Callback(既存Comp-Id・JPAYスキーマ)',
+          '受信通知案内・契約文書・NOTI運用マニュアル CRYPTO 追加'
+        ],
+        CH: [
+          '加密入金确认通知：ICOPAY→NOTI(/noti/crypto)→商户 Callback（既有 Comp-Id、JPAY 模式）',
+          '接收通知说明·契约文档·NOTI 运营手册 CRYPTO'
+        ],
+        TH: [
+          'แจ้งยืนยันคริปโต: ICOPAY→NOTI(/noti/crypto)→Callback ร้าน (Comp-Id เดิม·สคีมา JPAY)',
+          'ข้อความ URL รับแจ้ง · สัญญา ICOPAY_CRYPTO_NOTI · คู่มือ NOTI CRYPTO'
+        ]
+      }
+    },
     {
       version: '4.83',
       kind: 'minor',
