@@ -6,13 +6,104 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '4.80';
+  var CURRENT_LIVE = '4.83';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '4.83',
+      kind: 'minor',
+      date: '2026-10-14',
+      items: {
+        KO: [
+          '정산리포트 FIAT|CRYPTO 서버 필터·채널 행 분리(집계/실시/집계표)',
+          '일별결제 전체 조회 시 일자+채널 행 분리(일별수수료와 동일 규칙)'
+        ],
+        EN: [
+          'Settlement report FIAT|CRYPTO server filter and channel row split (AGG/EXE/SUM)',
+          'Daily pay: day+channel row split on “all channels” (same rule as daily fee)'
+        ],
+        JP: [
+          '精算レポート FIAT|CRYPTO サーバフィルタ・チャネル行分割(集計/実施/集計表)',
+          '日別決済: 全チャネル時に日付+チャネル行分割(日別手数料と同一)'
+        ],
+        CH: [
+          '结算报表 FIAT|CRYPTO 服务端筛选与通道分行（汇总/执行/汇总表）',
+          '按日支付：全部通道时按日+通道分行（同按日手续费）'
+        ],
+        TH: [
+          'รายงานเคลียร์ริ่ง กรอง FIAT|CRYPTO ฝั่งเซิร์ฟเวอร์ และแยกแถวช่อง (AGG/EXE/SUM)',
+          'ชำระรายวัน: แยกแถววัน+ช่องเมื่อเลือกทั้งหมด (กฎเดียวกับค่าธรรมเนียมรายวัน)'
+        ]
+      }
+    },
+    {
+      version: '4.82',
+      kind: 'minor',
+      date: '2026-10-14',
+      items: {
+        KO: [
+          'CRYPTO 수수료관리 변경이력(FIAT와 동일·채널 분리), 가맹 크립토 카드 차지백(기존 유형·USDC/EURC 통화)',
+          '일별·수수료·정산 리포트 FIAT|CRYPTO 필터·행 분리',
+          '본사 네트워크별 가스피 마스터·출금 시 가스/정산수수료/reserve 차감(조직%와 별개)'
+        ],
+        EN: [
+          'CRYPTO commission change history (same depth as FIAT, by channel); merchant crypto card chargeback (saved types + USDC/EURC)',
+          'Daily / fee / settlement reports: FIAT|CRYPTO filter and row split',
+          'HQ per-network gas fee master; deduct gas/settlement fee/reserve on payout (separate from org %)'
+        ],
+        JP: [
+          'CRYPTO手数料変更履歴(FIAT同等・チャネル分離)、加盟クリプトカードのチャージバック(保存類型・USDC/EURC)',
+          '日別・手数料・精算レポート FIAT|CRYPTO フィルタ・行分割',
+          '本社ネットワーク別ガス費マスタ・出金時にガス/精算手数料/reserve差引(組織%と別)'
+        ],
+        CH: [
+          'CRYPTO 手续费变更历史（同 FIAT、按通道）；商户加密卡拒付（已存类型 + USDC/EURC）',
+          '按日/手续费/结算报表 FIAT|CRYPTO 筛选与分行',
+          '总部按网络 Gas 费主数据；出款扣 Gas/结算费/reserve（与组织%分开）'
+        ],
+        TH: [
+          'ประวัติค่าธรรมเนียม CRYPTO (ลึกเท่า FIAT แยกช่อง); chargeback บนการ์ดคริปโต (ประเภทที่บันทึก + USDC/EURC)',
+          'รายงานรายวัน/ค่าธรรมเนียม/เคลียร์ริ่ง: กรอง FIAT|CRYPTO และแยกแถว',
+          'มาสเตอร์ค่าแก๊สรายเครือข่าย HQ; หัก gas/ค่าธรรมเนียมเคลียร์/reserve ตอนจ่าย (แยกจาก org %)'
+        ]
+      }
+    },
+    {
+      version: '4.81',
+      kind: 'minor',
+      date: '2026-10-14',
+      items: {
+        KO: [
+          '수수료 채널 FIAT|CRYPTO: 기본수수료·수수료관리 탭, CRYPTO 매입/에스크로/인증 수수료',
+          '가맹 크립토 수수료 슬롯(본사정책 따름) 자동 부여, 크립토전용 시 FIAT 슬롯 비활성',
+          '크립토 확정입금 시 수수료 과금(승인 성공과 동일)·결제내역 연동'
+        ],
+        EN: [
+          'Fee channels FIAT|CRYPTO: HQ policy + commission list tabs; CRYPTO acquisition/escrow/auth fees',
+          'Merchant CRYPTO fee slot auto-assign (follow HQ); disable FIAT slot when crypto-only',
+          'Charge CRYPTO fees on confirmed deposit (same as approve success) + pay-list link'
+        ],
+        JP: [
+          '手数料チャネル FIAT|CRYPTO: 基本手数料・手数料管理タブ、CRYPTO買収/エスクロー/認証手数料',
+          '加盟CRYPTO手数料スロット自動付与、CRYPTO専用時はFIATスロット無効',
+          'CRYPTO入金確定時に手数料課金(承認成功と同等)・決済明細連携'
+        ],
+        CH: [
+          '手续费通道 FIAT|CRYPTO：总部政策与手续费管理选项卡；CRYPTO 收购/托管/认证费',
+          '商户 CRYPTO 手续费槽位自动分配；仅加密时禁用 FIAT 槽位',
+          '确认入金时收取 CRYPTO 手续费（同审批成功）并关联支付明细'
+        ],
+        TH: [
+          'ช่องค่าธรรมเนียม FIAT|CRYPTO: แท็บนโยบาย HQ และรายการค่าธรรมเนียม; ค่า acquisition/escrow/auth ของ CRYPTO',
+          'กำหนดช่องค่าธรรมเนียม CRYPTO ของร้านอัตโนมัติ; ปิดช่อง FIAT เมื่อใช้คริปโตอย่างเดียว',
+          'คิดค่าธรรมเนียม CRYPTO เมื่อยืนยันเงินเข้า (เหมือนอนุมัติสำเร็จ) และเชื่อมรายการชำระ'
+        ]
+      }
+    },
     {
       version: '4.80',
       kind: 'minor',

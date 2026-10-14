@@ -17,6 +17,8 @@ import com.pg.repository.SettlementSettingRepository;
 import com.pg.service.settlement.FeeListTxnBreakdownCalculator;
 import com.pg.service.settlement.SettlementRunDateDisplayService;
 import com.pg.service.settlement.SettlementRunTargetPeriodLabelService;
+import com.pg.util.CommissionFeeChannel;
+import com.pg.util.FeeChannelTxnUtil;
 import com.pg.util.FeeCurrencyRoundResolver;
 import com.pg.util.FeeListRoundingPolicy;
 import com.pg.util.MerchantFeeVatUtil;
@@ -125,10 +127,16 @@ public class SettlementReportService {
      * 수수료내역과 동일한 건별 분해: MDR(결제%·USDT·FX) 합 + 건당(그 외 수수료) 합.
      */
     private MdrPerTxnSplit computeMdrAndPerTxnFeeForRun(SettlementRun r, String compId) {
+        return computeMdrAndPerTxnFeeForRun(r, compId, null);
+    }
+
+    private MdrPerTxnSplit computeMdrAndPerTxnFeeForRun(SettlementRun r, String compId, String feeChannelExact) {
         if (compId == null || compId.isBlank() || r == null) {
             return new MdrPerTxnSplit(0d, 0d);
         }
-        CommissionPolicy pol = commissionService.resolveCommissionPolicyForSettlement(compId.trim());
+        String polCh = CommissionFeeChannel.CRYPTO.equals(feeChannelExact)
+                ? CommissionFeeChannel.CRYPTO : CommissionFeeChannel.FIAT;
+        CommissionPolicy pol = commissionService.resolveCommissionPolicyForSettlement(compId.trim(), polCh);
         if (pol == null) {
             return new MdrPerTxnSplit(0d, 0d);
         }
@@ -144,6 +152,10 @@ public class SettlementReportService {
         double mdrSum = 0d;
         double perSum = 0d;
         for (PgTrnsctn t : txs) {
+            if (feeChannelExact != null && !feeChannelExact.isBlank()
+                    && !feeChannelExact.equals(FeeChannelTxnUtil.resolveChannel(t))) {
+                continue;
+            }
             String rowCur = t.getCurType() != null && !t.getCurType().isBlank() ? t.getCurType().trim() : "KRW";
             FeeListRoundingPolicy feeListRp = feeResolver.forCurrency(rowCur);
             FeeListTxnBreakdownCalculator.FeeListTxnBreakdown br = feeListTxnBreakdownCalculator.computeFeeListTxnBreakdown(
@@ -157,6 +169,123 @@ public class SettlementReportService {
             perSum += nonPct;
         }
         return new MdrPerTxnSplit(mdrSum, perSum);
+    }
+
+    /**
+     * 정산 실행 1건 → FIAT|CRYPTO 행(전체 조회 시 분리, 필터 시 해당 채널만).
+     * 채널별 승인·취소·수수료는 기간 내 거래로 재산정. 정산수수료·송금·담보·지급액은 FIAT 행에만 실행값 부여.
+     */
+    private List<Map<String, Object>> channelRowsForRun(SettlementRun r, String compId, OrgUnit ou,
+                                                        String feeChannelFilter, boolean aggregateShape) {
+        List<PgTrnsctn> txs = pgTrnsctnRepository.findForSettlement(
+                compId.trim(), r.resolvePeriodStartAt(), r.resolvePeriodEndAt());
+        long fiatCnt = txs.stream().filter(t -> !FeeChannelTxnUtil.isCryptoTxn(t)).count();
+        long cryptoCnt = txs.stream().filter(FeeChannelTxnUtil::isCryptoTxn).count();
+        List<String> channels = new ArrayList<>();
+        if (feeChannelFilter == null || feeChannelFilter.isBlank()) {
+            if (fiatCnt > 0 || cryptoCnt == 0) {
+                channels.add(CommissionFeeChannel.FIAT);
+            }
+            if (cryptoCnt > 0) {
+                channels.add(CommissionFeeChannel.CRYPTO);
+            }
+        } else if (CommissionFeeChannel.FIAT.equals(feeChannelFilter)) {
+            if (fiatCnt > 0 || cryptoCnt == 0) {
+                channels.add(CommissionFeeChannel.FIAT);
+            }
+        } else if (CommissionFeeChannel.CRYPTO.equals(feeChannelFilter)) {
+            if (cryptoCnt > 0) {
+                channels.add(CommissionFeeChannel.CRYPTO);
+            }
+        }
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (String ch : channels) {
+            out.add(baseAggregateRowFromRunChannel(r, compId, ou, ch, aggregateShape));
+        }
+        return out;
+    }
+
+    private Map<String, Object> baseAggregateRowFromRunChannel(SettlementRun r, String compId, OrgUnit ou,
+                                                               String feeChannel, boolean aggregateShape) {
+        FeeListRoundingPolicy rp = settlementLedgerRoundPolicy();
+        boolean fiat = CommissionFeeChannel.FIAT.equals(feeChannel);
+        List<PgTrnsctn> txs = pgTrnsctnRepository.findForSettlement(
+                compId.trim(), r.resolvePeriodStartAt(), r.resolvePeriodEndAt());
+        BigDecimal ap = BigDecimal.ZERO;
+        BigDecimal ca = BigDecimal.ZERO;
+        int txnCnt = 0;
+        for (PgTrnsctn t : txs) {
+            if (!feeChannel.equals(FeeChannelTxnUtil.resolveChannel(t))) {
+                continue;
+            }
+            txnCnt++;
+            BigDecimal amt = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
+            String st = t.getStatus() != null ? t.getStatus().trim() : "";
+            if ("10".equals(st)) {
+                ap = ap.add(amt);
+            } else if ("20".equals(st) || "30".equals(st) || "31".equals(st) || "42".equals(st)) {
+                ca = ca.add(amt);
+            }
+        }
+        /* 채널 거래가 없으면(빈 FIAT 폴백) 실행 합계 사용 — 구데이터·담보만 정산 */
+        if (txnCnt == 0 && fiat) {
+            ap = nz(r.getApproveAmt());
+            ca = nz(r.getCancelAmt());
+            txnCnt = r.getIncludedTxnCnt() != null ? r.getIncludedTxnCnt() : 0;
+        }
+        BigDecimal net = ap.subtract(ca);
+        String cycleFb = settlementRunTargetPeriodLabelService.settlementCycleFallbackForMerchant(compId);
+        MdrPerTxnSplit split = txnCnt > 0
+                ? computeMdrAndPerTxnFeeForRun(r, compId, feeChannel)
+                : (fiat ? computeMdrAndPerTxnFeeForRun(r, compId) : new MdrPerTxnSplit(0d, 0d));
+        double mdrRounded = settlementMoneyDouble(BigDecimal.valueOf(split.mdrAmt()), rp);
+        double perRounded = settlementMoneyDouble(BigDecimal.valueOf(split.perTxnAmt()), rp);
+
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("calcDt", r.getCalcDt() != null ? r.getCalcDt().toString() : "");
+        if (r.getId() != null) {
+            m.put("settlementRunId", r.getId());
+        }
+        m.put("feeChannel", feeChannel);
+        m.put("targetPeriodText", settlementRunTargetPeriodLabelService.buildSettlementTargetPeriodLabel(r, cycleFb));
+        m.put("calcCycle", displayCalcCycleForExecuteRow(r, compId));
+        m.put("compId", compId);
+        m.put("compNm", ou != null ? ou.getName() : compId);
+        m.put("curType", displayCurrencyForMerchant(compId));
+        m.put("grossPay", settlementMoneyDouble(ap, rp));
+        m.put("refundAmt", settlementMoneyDouble(ca, rp));
+        m.put("netPay", settlementMoneyDouble(net, rp));
+        m.put("mdrFeeAmt", mdrRounded);
+        m.put("perTxnFeeAmt", perRounded);
+        m.put("txnCnt", txnCnt);
+        m.put("status", r.getStatus());
+        if (fiat) {
+            m.put("rollingReserveAmt", settlementMoneyDouble(r.getRollingReserveAmt(), rp));
+            m.put("settlementBatchFee", r.getSettlementBatchFeeAmt() != null
+                    ? settlementMoneyDouble(r.getSettlementBatchFeeAmt(), rp) : null);
+            m.put("feeVat", feeVatForRun(r, compId));
+            m.putAll(remittanceFieldsForRun(r));
+            m.put("payAmount", settlementMoneyDouble(r.getPayAmt(), rp));
+            m.put("totalFee", settlementMoneyDouble(r.getTotalFee(), rp));
+        } else {
+            m.put("rollingReserveAmt", 0d);
+            m.put("settlementBatchFee", null);
+            m.put("feeVat", 0d);
+            m.put("remittanceFeeBank", null);
+            m.put("remittanceFeeUsdt", null);
+            m.put("finalPayAfterRemittance", null);
+            double chFee = mdrRounded + perRounded;
+            m.put("totalFee", chFee);
+            m.put("payAmount", settlementMoneyDouble(net.subtract(BigDecimal.valueOf(chFee)).max(BigDecimal.ZERO), rp));
+        }
+        String cycleDisp = displayCalcCycleForExecuteRow(r, compId);
+        settlementRunDateDisplayService.enrichCloseAndExecDates(m, r, cycleDisp);
+        m.put("settlementDueDt", String.valueOf(m.getOrDefault("settlementExecDate", "")));
+        m.put("settledYn", "CALCULATED".equalsIgnoreCase(String.valueOf(r.getStatus())) ? "Y" : "N");
+        if (!aggregateShape) {
+            /* execute 행과 동일 키 보강은 호출부에서 */
+        }
+        return m;
     }
 
     private double feeVatForRun(SettlementRun r, String compId) {
@@ -182,48 +311,7 @@ public class SettlementReportService {
     }
 
     private Map<String, Object> baseAggregateRowFromRun(SettlementRun r, String compId, OrgUnit ou) {
-        FeeListRoundingPolicy rp = settlementLedgerRoundPolicy();
-        BigDecimal ap = nz(r.getApproveAmt());
-        BigDecimal ca = nz(r.getCancelAmt());
-        BigDecimal net = ap.subtract(ca);
-        String cycleFb = settlementRunTargetPeriodLabelService.settlementCycleFallbackForMerchant(compId);
-        MdrPerTxnSplit split = computeMdrAndPerTxnFeeForRun(r, compId);
-        double mdrRounded = settlementMoneyDouble(BigDecimal.valueOf(split.mdrAmt()), rp);
-        double perRounded = settlementMoneyDouble(BigDecimal.valueOf(split.perTxnAmt()), rp);
-
-        Map<String, Object> m = new LinkedHashMap<>();
-        if (r.getCalcDt() != null) {
-            m.put("calcDt", r.getCalcDt().toString());
-        } else {
-            m.put("calcDt", "");
-        }
-        if (r.getId() != null) {
-            m.put("settlementRunId", r.getId());
-        }
-        m.put("targetPeriodText", settlementRunTargetPeriodLabelService.buildSettlementTargetPeriodLabel(r, cycleFb));
-        m.put("calcCycle", displayCalcCycleForExecuteRow(r, compId));
-        m.put("compId", compId);
-        m.put("compNm", ou != null ? ou.getName() : compId);
-        m.put("curType", displayCurrencyForMerchant(compId));
-        m.put("grossPay", settlementMoneyDouble(ap, rp));
-        m.put("refundAmt", settlementMoneyDouble(ca, rp));
-        m.put("netPay", settlementMoneyDouble(net, rp));
-        m.put("rollingReserveAmt", settlementMoneyDouble(r.getRollingReserveAmt(), rp));
-        m.put("mdrFeeAmt", mdrRounded);
-        m.put("perTxnFeeAmt", perRounded);
-        m.put("settlementBatchFee", r.getSettlementBatchFeeAmt() != null
-                ? settlementMoneyDouble(r.getSettlementBatchFeeAmt(), rp) : null);
-        m.put("feeVat", feeVatForRun(r, compId));
-        m.putAll(remittanceFieldsForRun(r));
-        m.put("payAmount", settlementMoneyDouble(r.getPayAmt(), rp));
-        m.put("totalFee", settlementMoneyDouble(r.getTotalFee(), rp));
-        String cycleDisp = displayCalcCycleForExecuteRow(r, compId);
-        settlementRunDateDisplayService.enrichCloseAndExecDates(m, r, cycleDisp);
-        m.put("settlementDueDt", String.valueOf(m.getOrDefault("settlementExecDate", "")));
-        m.put("settledYn", "CALCULATED".equalsIgnoreCase(String.valueOf(r.getStatus())) ? "Y" : "N");
-        m.put("status", r.getStatus());
-        m.put("txnCnt", r.getIncludedTxnCnt());
-        return m;
+        return baseAggregateRowFromRunChannel(r, compId, ou, CommissionFeeChannel.FIAT, true);
     }
 
     /**
@@ -393,17 +481,36 @@ public class SettlementReportService {
             String reportKind,
             int page,
             int size) {
+        return aggregate(userOrgOpt, searchFromDate, searchToDate, searchMerchantId, searchMasterId,
+                searchRegionalId, curType, null, reportKind, page, size);
+    }
+
+    public PageResult<Map<String, Object>> aggregate(
+            Optional<OrgUnit> userOrgOpt,
+            LocalDate searchFromDate,
+            LocalDate searchToDate,
+            String searchMerchantId,
+            String searchMasterId,
+            String searchRegionalId,
+            String curType,
+            String searchFeeChannel,
+            String reportKind,
+            int page,
+            int size) {
         String kind = normalizeReportKind(reportKind);
+        String feeCh = FeeChannelTxnUtil.normalizeFilter(searchFeeChannel);
         if (KIND_REGIONAL_PAYOUT.equals(kind)) {
             if (userOrgOpt.isEmpty() || !canAccessRegionalPayout(userOrgOpt.get())) {
                 return emptyPage(page, size);
             }
-            return aggregateRegionalPayout(userOrgOpt.get(), searchFromDate, searchToDate, searchRegionalId, curType, page, size);
+            return aggregateRegionalPayout(userOrgOpt.get(), searchFromDate, searchToDate, searchRegionalId,
+                    curType, feeCh, page, size);
         }
         if (userOrgOpt.isEmpty() || !canAccessMerchantStmt(userOrgOpt.get())) {
             return emptyPage(page, size);
         }
-        return aggregateMerchant(userOrgOpt.get(), searchFromDate, searchToDate, searchMerchantId, searchMasterId, curType, page, size);
+        return aggregateMerchant(userOrgOpt.get(), searchFromDate, searchToDate, searchMerchantId, searchMasterId,
+                curType, feeCh, page, size);
     }
 
     /**
@@ -416,6 +523,7 @@ public class SettlementReportService {
             String searchMerchantId,
             String searchMasterId,
             String curType,
+            String feeChannelFilter,
             int page,
             int size) {
         Set<String> allowed = resolveAllowedMerchantCodes(userOrg, searchMerchantId, searchMasterId);
@@ -446,11 +554,12 @@ public class SettlementReportService {
                 continue;
             }
             OrgUnit ou = orgUnitRepository.findByCode(mid).orElse(null);
-            rows.add(baseAggregateRowFromRun(r, mid, ou));
+            rows.addAll(channelRowsForRun(r, mid, ou, feeChannelFilter, true));
         }
         rows.sort(Comparator
                 .<Map<String, Object>, String>comparing(x -> String.valueOf(x.getOrDefault("calcDt", "")))
                 .reversed()
+                .thenComparing(x -> String.valueOf(x.getOrDefault("feeChannel", "")))
                 .thenComparing(x -> String.valueOf(x.getOrDefault("compId", ""))));
         return pageOf(rows, page, size);
     }
@@ -464,6 +573,7 @@ public class SettlementReportService {
             LocalDate searchToDate,
             String searchRegionalId,
             String curType,
+            String feeChannelFilter,
             int page,
             int size) {
         List<OrgUnit> all = orgUnitRepository.findAll();
@@ -516,15 +626,17 @@ public class SettlementReportService {
                 continue;
             }
             OrgUnit regOu = orgUnitRepository.findByCode(regional.getCode()).orElse(regional);
-            Map<String, Object> m = baseAggregateRowFromRun(r, mid, merchantOu);
-            m.put("regionalCompId", regional.getCode());
-            m.put("regionalNm", regOu.getName() != null ? regOu.getName() : regional.getCode());
-            m.put("merchantCnt", 1);
-            rows.add(m);
+            for (Map<String, Object> m : channelRowsForRun(r, mid, merchantOu, feeChannelFilter, true)) {
+                m.put("regionalCompId", regional.getCode());
+                m.put("regionalNm", regOu.getName() != null ? regOu.getName() : regional.getCode());
+                m.put("merchantCnt", 1);
+                rows.add(m);
+            }
         }
         rows.sort(Comparator
                 .<Map<String, Object>, String>comparing(x -> String.valueOf(x.getOrDefault("calcDt", "")))
                 .reversed()
+                .thenComparing(x -> String.valueOf(x.getOrDefault("feeChannel", "")))
                 .thenComparing(x -> String.valueOf(x.getOrDefault("regionalCompId", "")))
                 .thenComparing(x -> String.valueOf(x.getOrDefault("compId", ""))));
         return pageOf(rows, page, size);
@@ -543,9 +655,29 @@ public class SettlementReportService {
             String reportKind,
             int page,
             int size) {
+        return executeReport(userOrgOpt, searchFromDate, searchToDate, searchMerchantId, searchMasterId,
+                searchRegionalId, null, reportKind, page, size);
+    }
+
+    public PageResult<Map<String, Object>> executeReport(
+            Optional<OrgUnit> userOrgOpt,
+            LocalDate searchFromDate,
+            LocalDate searchToDate,
+            String searchMerchantId,
+            String searchMasterId,
+            String searchRegionalId,
+            String searchFeeChannel,
+            String reportKind,
+            int page,
+            int size) {
         String kind = normalizeReportKind(reportKind);
+        String feeCh = FeeChannelTxnUtil.normalizeFilter(searchFeeChannel);
         if (KIND_REGIONAL_PAYOUT.equals(kind)) {
             if (userOrgOpt.isEmpty() || !canAccessRegionalPayout(userOrgOpt.get())) {
+                return emptyPage(page, size);
+            }
+            /* 본사 합산 실시는 실행 합산 행 — 채널 필터는 가맹 단위 행에 적용 */
+            if (CommissionFeeChannel.CRYPTO.equals(feeCh)) {
                 return emptyPage(page, size);
             }
             return executeReportRegional(userOrgOpt.get(), searchFromDate, searchToDate, searchRegionalId, page, size);
@@ -553,7 +685,8 @@ public class SettlementReportService {
         if (userOrgOpt.isEmpty() || !canAccessMerchantStmt(userOrgOpt.get())) {
             return emptyPage(page, size);
         }
-        return executeReportMerchant(userOrgOpt.get(), searchFromDate, searchToDate, searchMerchantId, searchMasterId, page, size);
+        return executeReportMerchant(userOrgOpt.get(), searchFromDate, searchToDate, searchMerchantId, searchMasterId,
+                feeCh, page, size);
     }
 
     private PageResult<Map<String, Object>> executeReportMerchant(
@@ -562,6 +695,7 @@ public class SettlementReportService {
             LocalDate searchToDate,
             String searchMerchantId,
             String searchMasterId,
+            String feeChannelFilter,
             int page,
             int size) {
         Set<String> allowed = resolveAllowedMerchantCodes(userOrg, searchMerchantId, searchMasterId);
@@ -583,50 +717,24 @@ public class SettlementReportService {
             String mid = r.getMerchantId();
             if (mid == null || !allowed.contains(mid)) continue;
             OrgUnit ou = orgUnitRepository.findByCode(mid).orElse(null);
-            Map<String, Object> m = new LinkedHashMap<>();
-            LocalDate calcDt = r.getCalcDt();
-            String cycleFb = settlementRunTargetPeriodLabelService.settlementCycleFallbackForMerchant(mid);
-            m.put("calcDt", calcDt != null ? calcDt.toString() : "");
-            if (r.getId() != null) {
-                m.put("settlementRunId", r.getId());
+            for (Map<String, Object> base : channelRowsForRun(r, mid, ou, feeChannelFilter, false)) {
+                Map<String, Object> m = new LinkedHashMap<>(base);
+                m.put("approveAmt", m.get("grossPay"));
+                m.put("cancelAmt", m.get("refundAmt"));
+                boolean manualRecv = receivableRecoveryModeService.isManualForMerchantCode(mid);
+                m.put("receivableRecoveryMode", manualRecv ? "MANUAL" : "AUTO");
+                m.put("receivableRecoveryModeKr", manualRecv ? "수동(환수처리 후 차감)" : "자동(차기정산 FIFO)");
+                FeeListRoundingPolicy rp = settlementLedgerRoundPolicy();
+                m.put("receivableAppliedAmt", settlementMoneyDouble(
+                        CommissionFeeChannel.FIAT.equals(String.valueOf(m.get("feeChannel")))
+                                && r.getReceivableAppliedAmt() != null ? r.getReceivableAppliedAmt() : BigDecimal.ZERO, rp));
+                rows.add(m);
             }
-            m.put("compId", mid);
-            m.put("compNm", ou != null ? ou.getName() : mid);
-            m.put("curType", displayCurrencyForMerchant(mid));
-            FeeListRoundingPolicy rp = settlementLedgerRoundPolicy();
-            BigDecimal ap = nz(r.getApproveAmt());
-            BigDecimal ca = nz(r.getCancelAmt());
-            BigDecimal net = ap.subtract(ca);
-            m.put("targetPeriodText", settlementRunTargetPeriodLabelService.buildSettlementTargetPeriodLabel(r, cycleFb));
-            m.put("approveAmt", settlementMoneyDouble(ap, rp));
-            m.put("cancelAmt", settlementMoneyDouble(ca, rp));
-            m.put("netPay", settlementMoneyDouble(net, rp));
-            MdrPerTxnSplit split = computeMdrAndPerTxnFeeForRun(r, mid);
-            m.put("mdrFeeAmt", settlementMoneyDouble(BigDecimal.valueOf(split.mdrAmt()), rp));
-            m.put("perTxnFeeAmt", settlementMoneyDouble(BigDecimal.valueOf(split.perTxnAmt()), rp));
-            m.put("payAmount", settlementMoneyDouble(r.getPayAmt(), rp));
-            m.put("totalFee", settlementMoneyDouble(r.getTotalFee(), rp));
-            m.put("rollingReserveAmt", settlementMoneyDouble(r.getRollingReserveAmt(), rp));
-            m.put("settlementBatchFee", r.getSettlementBatchFeeAmt() != null
-                    ? settlementMoneyDouble(r.getSettlementBatchFeeAmt(), rp) : null);
-            m.put("feeVat", feeVatForRun(r, mid));
-            m.put("calcCycle", displayCalcCycleForExecuteRow(r, mid));
-            m.putAll(remittanceFieldsForRun(r));
-            m.put("txnCnt", r.getIncludedTxnCnt());
-            m.put("status", r.getStatus());
-            settlementRunDateDisplayService.enrichCloseAndExecDates(m, r, String.valueOf(m.getOrDefault("calcCycle", "")));
-            m.put("settlementDueDt", String.valueOf(m.getOrDefault("settlementExecDate", "")));
-            m.put("settledYn", "CALCULATED".equalsIgnoreCase(String.valueOf(r.getStatus())) ? "Y" : "N");
-            boolean manualRecv = receivableRecoveryModeService.isManualForMerchantCode(mid);
-            m.put("receivableRecoveryMode", manualRecv ? "MANUAL" : "AUTO");
-            m.put("receivableRecoveryModeKr", manualRecv ? "수동(환수처리 후 차감)" : "자동(차기정산 FIFO)");
-            m.put("receivableAppliedAmt", settlementMoneyDouble(
-                    r.getReceivableAppliedAmt() != null ? r.getReceivableAppliedAmt() : BigDecimal.ZERO, rp));
-            rows.add(m);
         }
         rows.sort(Comparator
                 .<Map<String, Object>, String>comparing(x -> String.valueOf(x.getOrDefault("calcDt", "")))
                 .reversed()
+                .thenComparing(x -> String.valueOf(x.getOrDefault("feeChannel", "")))
                 .thenComparing(x -> String.valueOf(x.getOrDefault("compId", ""))));
         return pageOf(rows, page, size);
     }
@@ -705,8 +813,23 @@ public class SettlementReportService {
             String searchRegionalId,
             String curType,
             String reportKind) {
+        return summary(userOrgOpt, searchFromDate, searchToDate, searchMerchantId, searchMasterId,
+                searchRegionalId, curType, null, reportKind);
+    }
+
+    public PageResult<Map<String, Object>> summary(
+            Optional<OrgUnit> userOrgOpt,
+            LocalDate searchFromDate,
+            LocalDate searchToDate,
+            String searchMerchantId,
+            String searchMasterId,
+            String searchRegionalId,
+            String curType,
+            String searchFeeChannel,
+            String reportKind) {
         PageResult<Map<String, Object>> agg = aggregate(userOrgOpt, searchFromDate, searchToDate,
-                searchMerchantId, searchMasterId, searchRegionalId, curType, reportKind, 1, Integer.MAX_VALUE);
+                searchMerchantId, searchMasterId, searchRegionalId, curType, searchFeeChannel,
+                reportKind, 1, Integer.MAX_VALUE);
         List<Map<String, Object>> list = agg.getList() != null ? agg.getList() : List.of();
         long sumGross = 0, sumRefund = 0, sumNet = 0, sumRolling = 0, sumMdr = 0, sumPerTxn = 0;
         long sumBatchFee = 0, sumFeeVat = 0, sumRemit = 0, sumPay = 0;

@@ -5,11 +5,14 @@ import com.pg.entity.ChargebackFeeTier;
 import com.pg.entity.CommissionPolicy;
 import com.pg.entity.PgTrnsctn;
 import com.pg.entity.SettlementSetting;
+import com.pg.crypto.CryptoCommissionChargeService;
 import com.pg.repository.ChargebackFeePolicyRepository;
 import com.pg.repository.PgTrnsctnRepository;
+import com.pg.service.CommissionService;
 import com.pg.service.VoidRefundSettlementModeResolutionService;
 import com.pg.util.ChargebackTierResolver;
 import com.pg.util.CommissionExtraFeeUtil;
+import com.pg.util.CommissionFeeChannel;
 import com.pg.util.FeeListRoundingPolicy;
 import com.pg.util.MerchantFeeVatUtil;
 import com.pg.util.PercentDecimalHelper;
@@ -39,15 +42,18 @@ public class FeeListTxnBreakdownCalculator {
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final VoidRefundSettlementModeResolutionService voidRefundSettlementModeResolutionService;
     private final SplitPayTxnFeeResolver splitPayTxnFeeResolver;
+    private final CommissionService commissionService;
 
     public FeeListTxnBreakdownCalculator(ChargebackFeePolicyRepository chargebackFeePolicyRepository,
                                          PgTrnsctnRepository pgTrnsctnRepository,
                                          VoidRefundSettlementModeResolutionService voidRefundSettlementModeResolutionService,
-                                         SplitPayTxnFeeResolver splitPayTxnFeeResolver) {
+                                         SplitPayTxnFeeResolver splitPayTxnFeeResolver,
+                                         CommissionService commissionService) {
         this.chargebackFeePolicyRepository = chargebackFeePolicyRepository;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.voidRefundSettlementModeResolutionService = voidRefundSettlementModeResolutionService;
         this.splitPayTxnFeeResolver = splitPayTxnFeeResolver;
+        this.commissionService = commissionService;
     }
 
     public record FeeListTxnBreakdown(
@@ -141,6 +147,25 @@ public class FeeListTxnBreakdownCalculator {
         int feeScale = rp.decimalPlaces();
         RoundingMode feeRm = rp.roundMode();
         String st = t.getStatus() != null ? t.getStatus().trim() : "";
+        boolean cryptoTxn = isCryptoTxn(t);
+        if (cryptoTxn && commissionService != null) {
+            pol = commissionService.resolveCommissionPolicyForSettlement(compId, CommissionFeeChannel.CRYPTO);
+        }
+        /* CRYPTO 승인: 매입·에스크로·인증·결제%·건당 합산(USDT/3DS 제외) */
+        if (cryptoTxn && "10".equals(st)) {
+            BigDecimal cryptoFee = CryptoCommissionChargeService.computeCryptoFee(amountBd, pol);
+            double total = FeeListRoundingPolicy.round(cryptoFee, rp).doubleValue();
+            BigDecimal feeVatBd = FeeListRoundingPolicy.round(
+                    MerchantFeeVatUtil.vatOnFeeAmount(BigDecimal.valueOf(total), merchantFeeVatSetting, Math.max(0, feeScale)), rp);
+            return new FeeListTxnBreakdown(0d, 0d, nz(pol.getPerTxFee()).doubleValue(), 0d, 0d, 0d, 0d, 0d, 0d,
+                    amountBd.signum() > 0
+                            ? amountBd.multiply(nz(pol.getPayRate())).divide(BigDecimal.valueOf(100), feeScale, feeRm).doubleValue()
+                            : 0d,
+                    0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, "", "",
+                    0d, PercentDecimalHelper.toPlainOneDecimal(nz(pol.getRollingPct())),
+                    pol.getRollingDays() != null ? pol.getRollingDays() : 0,
+                    total, total, feeVatBd);
+        }
         String voidMode = voidRefundSettlementModeResolutionService.resolveVoidSettlementMode(compId);
         String manualVoidMode = voidRefundSettlementModeResolutionService.resolveManualVoidSettlementMode(compId);
         String refundMode = voidRefundSettlementModeResolutionService.resolveRefundSettlementMode(compId);
@@ -270,4 +295,17 @@ public class FeeListTxnBreakdownCalculator {
     private static BigDecimal nz(BigDecimal v) {
         return v != null ? v : BigDecimal.ZERO;
     }
+
+    private static boolean isCryptoTxn(PgTrnsctn t) {
+        if (t == null) {
+            return false;
+        }
+        String origin = t.getOrigin() != null ? t.getOrigin().trim() : "";
+        if (CryptoCommissionChargeService.ORIGIN_CRYPTO.equalsIgnoreCase(origin)) {
+            return true;
+        }
+        String van = t.getVan() != null ? t.getVan().trim() : "";
+        return "CRYPTO".equalsIgnoreCase(van);
+    }
 }
+

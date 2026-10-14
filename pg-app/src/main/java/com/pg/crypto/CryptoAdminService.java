@@ -5,12 +5,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pg.entity.CryptoCustodyAddress;
 import com.pg.entity.CryptoDepositTxn;
 import com.pg.entity.MerchantCryptoConfig;
+import com.pg.entity.MerchantProfile;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
 import com.pg.repository.CryptoCustodyAddressRepository;
 import com.pg.repository.CryptoDepositTxnRepository;
 import com.pg.repository.MerchantCryptoConfigRepository;
+import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
+import com.pg.util.CommissionFeeChannel;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -27,6 +30,7 @@ public class CryptoAdminService {
     private final CryptoCustodyAddressRepository custodyAddressRepository;
     private final CryptoDepositTxnRepository depositTxnRepository;
     private final MerchantCryptoConfigRepository configRepository;
+    private final MerchantProfileRepository merchantProfileRepository;
     private final OrgUnitRepository orgUnitRepository;
     private final CryptoCheckoutService checkoutService;
     private final CryptoPayoutService payoutService;
@@ -35,6 +39,7 @@ public class CryptoAdminService {
                               CryptoCustodyAddressRepository custodyAddressRepository,
                               CryptoDepositTxnRepository depositTxnRepository,
                               MerchantCryptoConfigRepository configRepository,
+                              MerchantProfileRepository merchantProfileRepository,
                               OrgUnitRepository orgUnitRepository,
                               CryptoCheckoutService checkoutService,
                               CryptoPayoutService payoutService) {
@@ -42,6 +47,7 @@ public class CryptoAdminService {
         this.custodyAddressRepository = custodyAddressRepository;
         this.depositTxnRepository = depositTxnRepository;
         this.configRepository = configRepository;
+        this.merchantProfileRepository = merchantProfileRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.checkoutService = checkoutService;
         this.payoutService = payoutService;
@@ -337,6 +343,10 @@ public class CryptoAdminService {
             cfg.setSellerWalletJson(str(body.get("sellerWalletJson")));
         }
         configRepository.save(cfg);
+        /* CRYPTO 수수료 슬롯: 활성 시 DEFAULT_CRYPTO 자동 부여. 크립토전용(checkoutMeans=CRYPTO)이면 FIAT 슬롯 비활성 */
+        boolean cryptoOn = "Y".equalsIgnoreCase(cfg.getUseYn());
+        boolean cryptoOnly = cryptoOn && MerchantCryptoConfig.MEANS_CRYPTO.equalsIgnoreCase(cfg.getCheckoutMeans());
+        assignCryptoCommissionSlot(ou.getId(), cryptoOn, cryptoOnly);
         return merchantConfig(ou.getCode());
     }
 
@@ -392,6 +402,43 @@ public class CryptoAdminService {
             case CryptoDepositTxn.ST_FAILED -> "실패";
             default -> st;
         };
+    }
+
+    private void assignCryptoCommissionSlot(Long orgUnitId, boolean cryptoOn, boolean cryptoOnly) {
+        if (orgUnitId == null) {
+            return;
+        }
+        Optional<MerchantProfile> mpOpt = merchantProfileRepository.findByOrgUnitId(orgUnitId);
+        if (mpOpt.isEmpty()) {
+            return;
+        }
+        MerchantProfile mp = mpOpt.get();
+        Map<String, Object> rs = new LinkedHashMap<>();
+        String raw = mp.getRegionalSettings();
+        if (raw != null && !raw.isBlank()) {
+            try {
+                rs.putAll(JSON.readValue(raw, new TypeReference<Map<String, Object>>() {}));
+            } catch (Exception ignored) {
+            }
+        }
+        if (cryptoOn) {
+            if (!rs.containsKey("commissionCryptoFollowHq")
+                    || String.valueOf(rs.getOrDefault("commissionCryptoFollowHq", "")).isBlank()) {
+                rs.put("commissionCryptoFollowHq", "Y");
+            }
+            String hqCrypto = String.valueOf(rs.getOrDefault("hqCryptoPolicyScope", "")).trim();
+            if (hqCrypto.isEmpty() || "null".equalsIgnoreCase(hqCrypto)) {
+                rs.put("hqCryptoPolicyScope", CommissionFeeChannel.DEFAULT_SCOPE_CRYPTO);
+            }
+            rs.put("fiatCommissionSlotYn", cryptoOnly ? "N" : "Y");
+        } else if (!rs.containsKey("fiatCommissionSlotYn")) {
+            rs.put("fiatCommissionSlotYn", "Y");
+        }
+        try {
+            mp.setRegionalSettings(JSON.writeValueAsString(rs));
+            merchantProfileRepository.save(mp);
+        } catch (Exception ignored) {
+        }
     }
 
     private static String str(Object o) {

@@ -60,6 +60,8 @@ import com.pg.service.settlement.SettlementPublishCadence;
 import com.pg.service.settlement.SettlementCycleTiming;
 import com.pg.service.settlement.SettlementPeriodResolver;
 import com.pg.util.CommissionExtraFeeUtil;
+import com.pg.util.CommissionFeeChannel;
+import com.pg.util.FeeChannelTxnUtil;
 import com.pg.util.FeeCurrencyRoundResolver;
 import com.pg.util.FeeListRoundingPolicy;
 import com.pg.util.MerchantFeeVatUtil;
@@ -327,6 +329,7 @@ public class ApiSettlementController {
             @RequestParam(required = false) String searchRegionalId,
             @RequestParam(required = false) String searchRegionalCompId,
             @RequestParam(required = false) String searchCurType,
+            @RequestParam(required = false) String searchFeeChannel,
             @RequestParam(required = false, defaultValue = "MERCHANT_STMT") String searchReportKind,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "50") int size) {
@@ -336,7 +339,8 @@ public class ApiSettlementController {
                 : (searchRegionalCompId != null ? searchRegionalCompId : null);
         return ResponseEntity.ok(ApiResponse.ok(
                 settlementReportService.aggregate(resolveOrgForReport(authentication),
-                        searchFromDate, searchToDate, mid, searchMasterId, rid, searchCurType, searchReportKind, page, size)));
+                        searchFromDate, searchToDate, mid, searchMasterId, rid, searchCurType, searchFeeChannel,
+                        searchReportKind, page, size)));
     }
 
     /**
@@ -352,6 +356,7 @@ public class ApiSettlementController {
             @RequestParam(required = false) String searchMasterId,
             @RequestParam(required = false) String searchRegionalId,
             @RequestParam(required = false) String searchRegionalCompId,
+            @RequestParam(required = false) String searchFeeChannel,
             @RequestParam(required = false, defaultValue = "MERCHANT_STMT") String searchReportKind,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "50") int size) {
@@ -361,7 +366,8 @@ public class ApiSettlementController {
                 : (searchRegionalCompId != null ? searchRegionalCompId : null);
         return ResponseEntity.ok(ApiResponse.ok(
                 settlementReportService.executeReport(resolveOrgForReport(authentication),
-                        searchFromDate, searchToDate, mid, searchMasterId, rid, searchReportKind, page, size)));
+                        searchFromDate, searchToDate, mid, searchMasterId, rid, searchFeeChannel,
+                        searchReportKind, page, size)));
     }
 
     /**
@@ -378,6 +384,7 @@ public class ApiSettlementController {
             @RequestParam(required = false) String searchRegionalId,
             @RequestParam(required = false) String searchRegionalCompId,
             @RequestParam(required = false) String searchCurType,
+            @RequestParam(required = false) String searchFeeChannel,
             @RequestParam(required = false, defaultValue = "MERCHANT_STMT") String searchReportKind) {
         String mid = (searchMerchantId != null && !searchMerchantId.isBlank()) ? searchMerchantId
                 : (searchCompId != null ? searchCompId : null);
@@ -385,7 +392,8 @@ public class ApiSettlementController {
                 : (searchRegionalCompId != null ? searchRegionalCompId : null);
         return ResponseEntity.ok(ApiResponse.ok(
                 settlementReportService.summary(resolveOrgForReport(authentication),
-                        searchFromDate, searchToDate, mid, searchMasterId, rid, searchCurType, searchReportKind)));
+                        searchFromDate, searchToDate, mid, searchMasterId, rid, searchCurType, searchFeeChannel,
+                        searchReportKind)));
     }
 
     /**
@@ -1407,6 +1415,7 @@ public class ApiSettlementController {
             @RequestParam(required = false) String searchFieldType,
             @RequestParam(required = false) String searchKeyword,
             @RequestParam(required = false) String searchStatusGroup,
+            @RequestParam(required = false) String searchFeeChannel,
             @RequestParam(required = false) String searchOrderDir,
             @RequestParam(defaultValue = "false") boolean skipMeta,
             @RequestParam(defaultValue = "false") boolean listExport,
@@ -1476,6 +1485,7 @@ public class ApiSettlementController {
                 parts.add(root.get("merchantId").in(merchantNameFilter));
             }
             addFeeListStatusGroupPredicate(parts, cb, root, statusGroup);
+            addFeeChannelPredicate(parts, cb, root, searchFeeChannel);
 
             if (!"COMP_NM".equals(effFtFinal)) {
                 Predicate fieldPred = buildFeeListFieldSearchPredicate(root, query, cb, effFtFinal, effKwFinal);
@@ -1822,6 +1832,18 @@ public class ApiSettlementController {
                                                           String effKwFinal,
                                                           Set<String> merchantNameFilter,
                                                           String statusGroup) {
+        return feeListSpecification(allowedMerchants, fromDt, toDt, effFtFinal, effKwFinal,
+                merchantNameFilter, statusGroup, null);
+    }
+
+    private Specification<PgTrnsctn> feeListSpecification(Set<String> allowedMerchants,
+                                                          LocalDateTime fromDt,
+                                                          LocalDateTime toDt,
+                                                          String effFtFinal,
+                                                          String effKwFinal,
+                                                          Set<String> merchantNameFilter,
+                                                          String statusGroup,
+                                                          String searchFeeChannel) {
         return (root, query, cb) -> {
             List<Predicate> parts = new ArrayList<>();
             parts.add(cb.between(root.get("createdAt"), fromDt, toDt));
@@ -1834,6 +1856,7 @@ public class ApiSettlementController {
                 parts.add(root.get("merchantId").in(merchantNameFilter));
             }
             addFeeListStatusGroupPredicate(parts, cb, root, statusGroup);
+            addFeeChannelPredicate(parts, cb, root, searchFeeChannel);
             if (!"COMP_NM".equals(effFtFinal)) {
                 Predicate fieldPred = buildFeeListFieldSearchPredicate(root, query, cb, effFtFinal, effKwFinal);
                 if (fieldPred != null) {
@@ -1849,6 +1872,18 @@ public class ApiSettlementController {
         };
     }
 
+    /** FIAT|CRYPTO 필터. 빈값·ALL = 전체. */
+    private static void addFeeChannelPredicate(List<Predicate> parts,
+                                               jakarta.persistence.criteria.CriteriaBuilder cb,
+                                               jakarta.persistence.criteria.Root<PgTrnsctn> root,
+                                               String searchFeeChannel) {
+        FeeChannelTxnUtil.addJpaPredicate(parts, cb, root, searchFeeChannel);
+    }
+
+    private static String resolveTxnFeeChannel(PgTrnsctn t) {
+        return FeeChannelTxnUtil.resolveChannel(t);
+    }
+
     /**
      * 수수료내역과 동일 필터·산식으로, 적재일(createdAt) 기준 일자별 합계를 반환합니다.
      */
@@ -1862,6 +1897,7 @@ public class ApiSettlementController {
             @RequestParam(required = false) String searchFieldType,
             @RequestParam(required = false) String searchKeyword,
             @RequestParam(required = false) String searchStatusGroup,
+            @RequestParam(required = false) String searchFeeChannel,
             @RequestParam(required = false) String searchOrderDir) {
         Set<String> allowedMerchants = orgAccessService.visibleMerchantCompCodes(authentication);
         if (allowedMerchants != null && allowedMerchants.isEmpty()) {
@@ -1962,14 +1998,18 @@ public class ApiSettlementController {
         Map<Long, Set<LocalDate>> holidayCache = new HashMap<>();
         Map<String, PayListRowContext> ctxByMerchant = new HashMap<>();
 
-        Map<LocalDate, DailyFeeDayAgg> byDay = new LinkedHashMap<>();
+        /* day|FIAT / day|CRYPTO 로 행 분리(전체 조회 시). 단일 채널 필터면 해당 채널만. */
+        Map<String, DailyFeeDayAgg> byDayChannel = new LinkedHashMap<>();
         for (LocalDate d = fromDate; !d.isAfter(effectiveTo); d = d.plusDays(1)) {
-            byDay.put(d, new DailyFeeDayAgg());
+            byDayChannel.put(d + "|FIAT", new DailyFeeDayAgg());
+            byDayChannel.put(d + "|CRYPTO", new DailyFeeDayAgg());
         }
         LocalDateTime rangeFrom = fromDate.atStartOfDay();
         LocalDateTime rangeTo = effectiveTo.atTime(LocalTime.MAX);
         Specification<PgTrnsctn> specFull = feeListSpecification(allowedMerchants, rangeFrom, rangeTo, effFtFinal, effKwFinal,
-                merchantNameFilter, statusGroup);
+                merchantNameFilter, statusGroup, searchFeeChannel);
+        final boolean splitFeeChannelRows = searchFeeChannel == null || searchFeeChannel.isBlank()
+                || "ALL".equalsIgnoreCase(searchFeeChannel.trim());
 
         boolean capped = false;
         /* COUNT·딥 OFFSET 반복 없이 정렬·LIMIT 한 번으로 거래를 읽는다(504 방지). */
@@ -1996,7 +2036,8 @@ public class ApiSettlementController {
                 continue;
             }
             LocalDate day = t.getCreatedAt().toLocalDate();
-            DailyFeeDayAgg agg = byDay.get(day);
+            String chKey = resolveTxnFeeChannel(t);
+            DailyFeeDayAgg agg = byDayChannel.get(day + "|" + chKey);
             if (agg == null) {
                 continue;
             }
@@ -2042,7 +2083,16 @@ public class ApiSettlementController {
 
         List<Map<String, Object>> out = new ArrayList<>();
         for (LocalDate d = effectiveTo; !d.isBefore(fromDate); d = d.minusDays(1)) {
-            DailyFeeDayAgg agg = byDay.getOrDefault(d, new DailyFeeDayAgg());
+            String[] channelsOut = splitFeeChannelRows
+                    ? new String[]{"FIAT", "CRYPTO"}
+                    : new String[]{CommissionFeeChannel.normalize(searchFeeChannel)};
+            boolean anyEmitted = false;
+            for (String chOut : channelsOut) {
+            DailyFeeDayAgg agg = byDayChannel.getOrDefault(d + "|" + chOut, new DailyFeeDayAgg());
+            if (splitFeeChannelRows && agg.txnCount <= 0) {
+                continue;
+            }
+            anyEmitted = true;
             String settlementStateLabel;
             if (agg.txnCount <= 0) {
                 settlementStateLabel = "—";
@@ -2055,6 +2105,7 @@ public class ApiSettlementController {
             }
             Map<String, Object> one = new LinkedHashMap<>();
             one.put("day", d.toString());
+            one.put("feeChannel", chOut);
             one.put("txnCount", agg.txnCount);
             for (Map.Entry<String, Double> e : agg.sums.entrySet()) {
                 one.put(e.getKey(), e.getValue());
@@ -2088,6 +2139,17 @@ public class ApiSettlementController {
             one.put("scannedRows", agg.txnCount);
             one.put("capped", capped && agg.txnCount > 0);
             out.add(one);
+            }
+            if (splitFeeChannelRows && !anyEmitted) {
+                Map<String, Object> empty = new LinkedHashMap<>();
+                empty.put("day", d.toString());
+                empty.put("feeChannel", "");
+                empty.put("txnCount", 0);
+                empty.put("settlementStateLabel", "—");
+                empty.put("scannedRows", 0);
+                empty.put("capped", false);
+                out.add(empty);
+            }
         }
         PayListService.applyDailySummaryDayListOrder(out, searchOrderDir);
         Map<String, Object> payload = new LinkedHashMap<>();
@@ -2836,6 +2898,7 @@ public class ApiSettlementController {
         m.put("settledYn", payRow.get("settledYn"));
         m.put("status", t.getStatus());
         m.put("statusNm", PayListStatusBarBuckets.pgStatusDisplayLabel(t.getStatus()));
+        m.put("feeChannel", resolveTxnFeeChannel(t));
         m.put("payDivNm", payRow.get("payDivNm"));
         m.put("chillPaymentStatus", payRow.get("chillPaymentStatus"));
         m.put("amount", amountBd);

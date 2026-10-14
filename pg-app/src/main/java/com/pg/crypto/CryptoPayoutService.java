@@ -1,9 +1,12 @@
 package com.pg.crypto;
 
+import com.pg.entity.CommissionPolicy;
 import com.pg.entity.CryptoDepositTxn;
 import com.pg.entity.CryptoPayoutQueue;
 import com.pg.entity.MerchantCryptoConfig;
 import com.pg.repository.CryptoPayoutQueueRepository;
+import com.pg.service.CommissionService;
+import com.pg.util.CommissionFeeChannel;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -16,30 +19,52 @@ import java.util.*;
 
 /**
  * 크립토 출금 큐 — MANUAL(반자동 Tx등록) + AUTO(외부 API 자리, 스케줄 READY 처리).
+ * 출금 차감: CRYPTO 수수료(조직%) + 가스피(본사 마스터) + 정산수수료(건) + reserve(%) — 가스·정산·reserve는 조직%와 별개.
  */
 @Service
 public class CryptoPayoutService {
 
-    /** MVP 수수료율(플랫폼) — 추후 본사 수수료설정 연동. */
-    private static final BigDecimal PLATFORM_FEE_RATE = new BigDecimal("0.015");
-
     private final CryptoPayoutQueueRepository payoutQueueRepository;
+    private final CryptoGasFeeService gasFeeService;
+    private final CommissionService commissionService;
 
-    public CryptoPayoutService(CryptoPayoutQueueRepository payoutQueueRepository) {
+    public CryptoPayoutService(CryptoPayoutQueueRepository payoutQueueRepository,
+                               CryptoGasFeeService gasFeeService,
+                               CommissionService commissionService) {
         this.payoutQueueRepository = payoutQueueRepository;
+        this.gasFeeService = gasFeeService;
+        this.commissionService = commissionService;
     }
 
     @Transactional
     public CryptoPayoutQueue enqueueAfterConfirm(CryptoDepositTxn deposit, MerchantCryptoConfig cfg, String sellerAddress) {
         BigDecimal gross = deposit.getAmount() != null ? deposit.getAmount() : BigDecimal.ZERO;
-        BigDecimal fee = gross.multiply(PLATFORM_FEE_RATE).setScale(8, RoundingMode.HALF_UP);
+
+        /* 확정입금 시 산정된 수수료 우선, 없으면 CRYPTO 정책으로 재산정 */
+        BigDecimal fee = deposit.getFeeAmt() != null ? deposit.getFeeAmt() : BigDecimal.ZERO;
+        if (fee.signum() <= 0) {
+            String mid = deposit.getCompId() != null ? deposit.getCompId().trim() : "";
+            CommissionPolicy pol = commissionService.resolveCommissionPolicyForSettlement(mid, CommissionFeeChannel.CRYPTO);
+            fee = CryptoCommissionChargeService.computeCryptoFee(gross, pol);
+        }
+
+        BigDecimal gas = gasFeeService.resolveGasFee(deposit.getAssetCode(), deposit.getNetworkCode());
+
+        BigDecimal settlementFee = BigDecimal.ZERO;
+        String mid = deposit.getCompId() != null ? deposit.getCompId().trim() : "";
+        CommissionPolicy pol = commissionService.resolveCommissionPolicyForSettlement(mid, CommissionFeeChannel.CRYPTO);
+        if (pol != null && pol.getFeeSettlementPerTx() != null) {
+            settlementFee = pol.getFeeSettlementPerTx();
+        }
+
         BigDecimal reservePct = cfg != null && cfg.getReservePct() != null ? cfg.getReservePct() : BigDecimal.ZERO;
         BigDecimal reserve = BigDecimal.ZERO;
         if (reservePct.compareTo(BigDecimal.ZERO) > 0) {
             reserve = gross.multiply(reservePct)
                     .divide(new BigDecimal("100"), 8, RoundingMode.HALF_UP);
         }
-        BigDecimal net = gross.subtract(fee).subtract(reserve).max(BigDecimal.ZERO);
+        BigDecimal net = gross.subtract(fee).subtract(gas).subtract(settlementFee).subtract(reserve)
+                .max(BigDecimal.ZERO);
 
         CryptoPayoutQueue q = new CryptoPayoutQueue();
         q.setDepositTxnId(deposit.getId());
@@ -50,6 +75,8 @@ public class CryptoPayoutService {
         q.setNetworkCode(deposit.getNetworkCode());
         q.setAmountGross(gross);
         q.setAmountFee(fee);
+        q.setAmountGas(gas);
+        q.setAmountSettlementFee(settlementFee);
         q.setAmountReserve(reserve);
         q.setAmountNet(net);
         q.setSettleMode(deposit.getSettleMode());
@@ -58,11 +85,7 @@ public class CryptoPayoutService {
 
         if (MerchantCryptoConfig.SETTLE_IMMEDIATE.equalsIgnoreCase(deposit.getSettleMode())) {
             q.setScheduledAt(LocalDateTime.now());
-            if (MerchantCryptoConfig.PAYOUT_AUTO.equalsIgnoreCase(deposit.getPayoutMode())) {
-                q.setStatus(CryptoPayoutQueue.ST_READY);
-            } else {
-                q.setStatus(CryptoPayoutQueue.ST_READY);
-            }
+            q.setStatus(CryptoPayoutQueue.ST_READY);
         } else {
             int hold = cfg != null && cfg.getHoldDays() != null ? Math.max(0, cfg.getHoldDays()) : 3;
             q.setScheduledAt(LocalDateTime.now().plusDays(hold));
@@ -138,7 +161,6 @@ public class CryptoPayoutService {
                 break;
             }
             q.setStatus(CryptoPayoutQueue.ST_PROCESSING);
-            // 외부 API 연동 지점 — 현재는 요청 큐잉 표식만 남기고 READY 유지용 토큰
             String stub = "AUTO_QUEUED_" + System.currentTimeMillis();
             q.setPayoutTxHash(stub);
             q.setStatus(CryptoPayoutQueue.ST_SENT);
@@ -175,6 +197,8 @@ public class CryptoPayoutService {
         m.put("networkCode", q.getNetworkCode());
         m.put("amountGross", q.getAmountGross());
         m.put("amountFee", q.getAmountFee());
+        m.put("amountGas", q.getAmountGas());
+        m.put("amountSettlementFee", q.getAmountSettlementFee());
         m.put("amountReserve", q.getAmountReserve());
         m.put("amountNet", q.getAmountNet());
         m.put("settleMode", q.getSettleMode());

@@ -32,6 +32,7 @@ public class CryptoCheckoutService {
     private final CryptoCustodyAddressRepository custodyAddressRepository;
     private final CryptoCatalogService catalogService;
     private final CryptoPayoutService payoutService;
+    private final CryptoCommissionChargeService commissionChargeService;
 
     public CryptoCheckoutService(OrgUnitRepository orgUnitRepository,
                                  MerchantProfileRepository merchantProfileRepository,
@@ -39,7 +40,8 @@ public class CryptoCheckoutService {
                                  CryptoDepositTxnRepository depositTxnRepository,
                                  CryptoCustodyAddressRepository custodyAddressRepository,
                                  CryptoCatalogService catalogService,
-                                 CryptoPayoutService payoutService) {
+                                 CryptoPayoutService payoutService,
+                                 CryptoCommissionChargeService commissionChargeService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.configRepository = configRepository;
@@ -47,6 +49,7 @@ public class CryptoCheckoutService {
         this.custodyAddressRepository = custodyAddressRepository;
         this.catalogService = catalogService;
         this.payoutService = payoutService;
+        this.commissionChargeService = commissionChargeService;
     }
 
     /**
@@ -248,10 +251,20 @@ public class CryptoCheckoutService {
         txn.setConfirmedAt(LocalDateTime.now());
         depositTxnRepository.save(txn);
 
+        /* 확정 입금 = 카드 승인 성공과 동일 — CRYPTO 수수료 과금 */
+        BigDecimal feeCharged = commissionChargeService.chargeOnConfirmedDeposit(txn);
+
         MerchantCryptoConfig cfg = configRepository.findById(txn.getOrgUnitId()).orElse(null);
         String seller = extractSellerAddress(cfg, txn.getNetworkCode(), txn.getAssetCode());
         payoutService.enqueueAfterConfirm(txn, cfg, seller);
-        return Map.of("success", true, "status", txn.getStatus(), "id", txn.getId());
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("success", true);
+        out.put("status", txn.getStatus());
+        out.put("id", txn.getId());
+        out.put("feeAmt", feeCharged);
+        out.put("feeChargedYn", txn.getFeeChargedYn());
+        out.put("payTrnId", txn.getPayTrnId());
+        return out;
     }
 
     public Map<String, Object> meansForMerchant(Long orgUnitId) {

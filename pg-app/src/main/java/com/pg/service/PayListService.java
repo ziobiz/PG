@@ -1732,6 +1732,7 @@ public class PayListService {
             addEffectiveTxnDateRange(parts, root, cb, fromDt, toDt);
             parts.add(variantPredicate(root, cb, variant, query));
             addNotifyChannelPredicate(parts, root, cb, variant, req);
+            addFeeChannelPredicate(parts, root, cb, req);
             addPayDivPredicate(parts, root, cb, req.getSearchPayDivCd());
             addPayProcPredicate(parts, root, cb, req.getSearchPayProcCd());
             addTranFactorColumnPredicates(parts, root, cb, req.getSearchTranFactor(), req.getSearchTranValue());
@@ -2063,6 +2064,15 @@ public class PayListService {
      * 파라미터 없음·ALL = 필터 없음(전체). CALLBACK = CALL·CALLBACK·RETURN·공백.
      * CHILL·URL 등 비-NOTI 행은 항상 포함.
      */
+    /** FIAT|CRYPTO 채널 필터(일별결제·통합결제내역 공통). */
+    private void addFeeChannelPredicate(List<Predicate> parts, Root<PgTrnsctn> root, CriteriaBuilder cb,
+                                        PayListSearchRequest req) {
+        if (req == null) {
+            return;
+        }
+        com.pg.util.FeeChannelTxnUtil.addJpaPredicate(parts, cb, root, req.getSearchFeeChannel());
+    }
+
     private void addNotifyChannelPredicate(List<Predicate> parts, Root<PgTrnsctn> root, CriteriaBuilder cb,
                                            String variant, PayListSearchRequest req) {
         if (!"INTEGRATED".equals(variant) && !"NOTI".equals(variant)) {
@@ -2611,9 +2621,14 @@ public class PayListService {
         Map<String, Long> dailyMonthCbCache = new HashMap<>();
         Map<Long, List<ChargebackFeeTier>> dailyTiersByPolicyId = new HashMap<>();
 
-        Map<LocalDate, PayDayFinancialAgg> byDay = new LinkedHashMap<>();
+        String feeChFilter = com.pg.util.FeeChannelTxnUtil.normalizeFilter(
+                template != null ? template.getSearchFeeChannel() : null);
+        final boolean splitFeeChannelRows = feeChFilter.isEmpty();
+
+        Map<String, PayDayFinancialAgg> byDayChannel = new LinkedHashMap<>();
         for (LocalDate d = rangeFrom; !d.isAfter(effectiveTo); d = d.plusDays(1)) {
-            byDay.put(d, new PayDayFinancialAgg());
+            byDayChannel.put(d + "|FIAT", new PayDayFinancialAgg());
+            byDayChannel.put(d + "|CRYPTO", new PayDayFinancialAgg());
         }
 
         CriteriaQuery<Tuple> cqRows = cb.createTupleQuery();
@@ -2624,7 +2639,9 @@ public class PayListService {
                 root.get("merchantId"),
                 root.get("status"),
                 root.get("curType"),
-                root.get("amtKrw"));
+                root.get("amtKrw"),
+                root.get("origin"),
+                root.get("van"));
         cqRows.where(specFull.toPredicate(root, cqRows, cb));
         List<Tuple> rowTuples = entityManager.createQuery(cqRows).getResultList();
         for (Tuple tup : rowTuples) {
@@ -2635,10 +2652,6 @@ public class PayListService {
                 continue;
             }
             LocalDate day = clock.toLocalDate();
-            PayDayFinancialAgg agg = byDay.get(day);
-            if (agg == null) {
-                continue;
-            }
             String mid = tup.get(2, String.class);
             String st = tup.get(3, String.class);
             String curRaw = tup.get(4, String.class);
@@ -2646,16 +2659,28 @@ public class PayListService {
             if (amt == null) {
                 amt = BigDecimal.ZERO;
             }
+            String origin = tup.get(6, String.class);
+            String van = tup.get(7, String.class);
+            PgTrnsctn t = new PgTrnsctn();
+            t.setMerchantId(mid);
+            t.setStatus(st);
+            t.setCurType(curRaw);
+            t.setAmtKrw(amt);
+            t.setOrigin(origin);
+            t.setVan(van);
+            String chKey = com.pg.util.FeeChannelTxnUtil.resolveChannel(t);
+            if (!feeChFilter.isEmpty() && !feeChFilter.equals(chKey)) {
+                continue;
+            }
+            PayDayFinancialAgg agg = byDayChannel.get(day + "|" + chKey);
+            if (agg == null) {
+                continue;
+            }
             agg.txnCount++;
             String bucket = PayListStatusBarBuckets.bucketForPgStatus(st);
             agg.bucketCount.merge(bucket, 1L, Long::sum);
             String compId = mid != null && !mid.isBlank() ? mid.trim() : "";
             PayListRowContext ctx = !compId.isEmpty() ? ctxMap.get(compId) : null;
-            PgTrnsctn t = new PgTrnsctn();
-            t.setMerchantId(compId);
-            t.setStatus(st);
-            t.setCurType(curRaw);
-            t.setAmtKrw(amt);
             String payCurKey = PayListItemDto.payCurKeyForFeeCompute(t, ctx);
             String cur = PayListStatusBarBuckets.normalizeCurrency(payCurKey);
             if (allowedCur != null && !allowedCur.contains(cur)) {
@@ -2679,10 +2704,14 @@ public class PayListService {
             if (compId.isEmpty()) {
                 continue;
             }
-            CommissionPolicy pol = dailyPolCache.get(compId);
+            String polKey = compId + "|" + chKey;
+            CommissionPolicy pol = dailyPolCache.get(polKey);
             if (pol == null) {
-                pol = commissionService.resolveCommissionPolicyForSettlement(compId);
-                dailyPolCache.put(compId, pol);
+                String polCh = com.pg.util.CommissionFeeChannel.CRYPTO.equals(chKey)
+                        ? com.pg.util.CommissionFeeChannel.CRYPTO
+                        : com.pg.util.CommissionFeeChannel.FIAT;
+                pol = commissionService.resolveCommissionPolicyForSettlement(compId, polCh);
+                dailyPolCache.put(polKey, pol);
             }
             FeeListTxnAmountService.FeeListTxnAmounts amts = feeListTxnAmountService.compute(
                     t, ctx, pol, payCurKey, dailyFeeResolver, dailyMonthCbCache, dailyTiersByPolicyId);
@@ -2702,14 +2731,35 @@ public class PayListService {
 
         List<Map<String, Object>> out = new ArrayList<>();
         for (LocalDate d = effectiveTo; !d.isBefore(rangeFrom); d = d.minusDays(1)) {
-            PayDayFinancialAgg agg = byDay.getOrDefault(d, new PayDayFinancialAgg());
-            Map<String, Object> row = new LinkedHashMap<>();
-            row.put("day", d.toString());
-            row.put("txnCount", agg.txnCount);
-            row.put("statusBucketCounts", new LinkedHashMap<>(agg.bucketCount));
-            row.put("payListFinancialSummary", agg.toPayListFinancialSummaryMap(
-                    primaryNorm, allowedCur, effectiveMultiCurrency, baseCurrencyConfigured, currencyOrderTemplate));
-            out.add(row);
+            String[] channelsOut = splitFeeChannelRows
+                    ? new String[]{"FIAT", "CRYPTO"}
+                    : new String[]{feeChFilter};
+            boolean anyEmitted = false;
+            for (String chOut : channelsOut) {
+                PayDayFinancialAgg agg = byDayChannel.getOrDefault(d + "|" + chOut, new PayDayFinancialAgg());
+                if (splitFeeChannelRows && agg.txnCount <= 0) {
+                    continue;
+                }
+                anyEmitted = true;
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("day", d.toString());
+                row.put("feeChannel", chOut);
+                row.put("txnCount", agg.txnCount);
+                row.put("statusBucketCounts", new LinkedHashMap<>(agg.bucketCount));
+                row.put("payListFinancialSummary", agg.toPayListFinancialSummaryMap(
+                        primaryNorm, allowedCur, effectiveMultiCurrency, baseCurrencyConfigured, currencyOrderTemplate));
+                out.add(row);
+            }
+            if (splitFeeChannelRows && !anyEmitted) {
+                Map<String, Object> empty = new LinkedHashMap<>();
+                empty.put("day", d.toString());
+                empty.put("feeChannel", "");
+                empty.put("txnCount", 0);
+                empty.put("statusBucketCounts", new LinkedHashMap<>());
+                empty.put("payListFinancialSummary", new PayDayFinancialAgg().toPayListFinancialSummaryMap(
+                        primaryNorm, allowedCur, effectiveMultiCurrency, baseCurrencyConfigured, currencyOrderTemplate));
+                out.add(empty);
+            }
         }
         applyDailySummaryDayListOrder(out, template != null ? template.getSearchOrderDir() : null);
         return out;

@@ -1453,6 +1453,12 @@
       var q = Object.assign({ compId: compId || '' }, params || {});
       return get('/api/commission/history', q).then(function (r) { return r.data; });
     },
+    hqCryptoGasFees: function () {
+      return get('/api/hq/crypto/gas-fees').then(function (r) { return r.data; });
+    },
+    hqCryptoGasFeeSaveAll: function (body) {
+      return post('/api/hq/crypto/gas-fees/save-all', body || {}).then(function (r) { return r.data; });
+    },
     commissionOtpStatus: function () {
       return get('/api/commission/otpStatus').then(function (r) { return r.data || {}; });
     },
@@ -1745,14 +1751,21 @@
     hqMerchantApiDeploymentEnforce: function (body) {
       return post('/api/hq/merchant-api-deployment/credential/enforce', body || {}).then(function (r) { return r.data; });
     },
-    hqDefaultCommission: function () {
-      return get('/api/hq/defaultCommission').then(function (r) { return r.data; });
+    hqDefaultCommission: function (feeChannel) {
+      var q = {};
+      if (feeChannel) q.feeChannel = feeChannel;
+      return get('/api/hq/defaultCommission', q).then(function (r) { return r.data; });
     },
     hqDefaultCommissionSave: function (body) {
       return post('/api/hq/defaultCommission/save', body).then(function (r) { return r.data; });
     },
     hqDefaultCommissionTemplateAdd: function (body) {
       return post('/api/hq/defaultCommission/template/add', body || {}).then(function (r) { return r.data; });
+    },
+    hqDefaultCommissionTemplateOptions: function (feeChannel) {
+      var q = {};
+      if (feeChannel) q.feeChannel = feeChannel;
+      return get('/api/hq/defaultCommission/templateOptions', q).then(function (r) { return r.data; });
     },
     hqDefaultCommissionTemplateDelete: function (scope) {
       return post('/api/hq/defaultCommission/template/delete', { scope: scope || '' }).then(function (r) { return r.data; });

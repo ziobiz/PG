@@ -167,6 +167,25 @@ public class CommissionPolicy {
     @Column(name = "tier_commission_json", columnDefinition = "TEXT")
     private String tierCommissionJson;
 
+    /**
+     * 수수료 채널: {@code FIAT}(기본·카드) / {@code CRYPTO}(크립토 입금).
+     * scope 는 채널별로 유일(DEFAULT vs DEFAULT_CRYPTO, HQPOL:A vs HQPOL:CRYPTO_A).
+     */
+    @Column(name = "fee_channel", nullable = false, length = 16)
+    private String feeChannel = "FIAT";
+
+    /** CRYPTO: 매입 운영수수료(%) — 확정 입금 금액 기준 */
+    @Column(name = "acquisition_ops_fee_pct", precision = 5, scale = 2)
+    private BigDecimal acquisitionOpsFeePct = BigDecimal.ZERO;
+
+    /** CRYPTO: 에스크로 운영수수료(%) — 확정 입금 금액 기준 */
+    @Column(name = "escrow_ops_fee_pct", precision = 5, scale = 2)
+    private BigDecimal escrowOpsFeePct = BigDecimal.ZERO;
+
+    /** CRYPTO: 인증 수수료(건당 고정, 정책 통화) */
+    @Column(name = "auth_fee_per_tx", precision = 12, scale = 1)
+    private BigDecimal authFeePerTx = BigDecimal.ZERO;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -280,6 +299,23 @@ public class CommissionPolicy {
 
     public String getTierCommissionJson() { return tierCommissionJson; }
     public void setTierCommissionJson(String tierCommissionJson) { this.tierCommissionJson = tierCommissionJson; }
+
+    public String getFeeChannel() { return feeChannel; }
+    public void setFeeChannel(String feeChannel) {
+        this.feeChannel = feeChannel != null && !feeChannel.isBlank() ? feeChannel.trim().toUpperCase() : "FIAT";
+    }
+    public BigDecimal getAcquisitionOpsFeePct() { return acquisitionOpsFeePct; }
+    public void setAcquisitionOpsFeePct(BigDecimal acquisitionOpsFeePct) {
+        this.acquisitionOpsFeePct = acquisitionOpsFeePct != null ? acquisitionOpsFeePct : BigDecimal.ZERO;
+    }
+    public BigDecimal getEscrowOpsFeePct() { return escrowOpsFeePct; }
+    public void setEscrowOpsFeePct(BigDecimal escrowOpsFeePct) {
+        this.escrowOpsFeePct = escrowOpsFeePct != null ? escrowOpsFeePct : BigDecimal.ZERO;
+    }
+    public BigDecimal getAuthFeePerTx() { return authFeePerTx; }
+    public void setAuthFeePerTx(BigDecimal authFeePerTx) {
+        this.authFeePerTx = authFeePerTx != null ? authFeePerTx : BigDecimal.ZERO;
+    }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

@@ -6,7 +6,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "tb_distribution_fee_config", uniqueConstraints = @UniqueConstraint(columnNames = {"comp_id"}))
+@Table(name = "tb_distribution_fee_config", uniqueConstraints = @UniqueConstraint(columnNames = {"comp_id", "fee_channel"}))
 public class DistributionFeeConfig {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -14,6 +14,10 @@ public class DistributionFeeConfig {
 
     @Column(name = "comp_id", nullable = false, length = 32)
     private String compId;
+
+    /** FIAT(기본) / CRYPTO — 수수료관리 채널 탭과 동일 */
+    @Column(name = "fee_channel", nullable = false, length = 16)
+    private String feeChannel = "FIAT";
 
     @Column(name = "hq_rate", precision = 5, scale = 2)
     private BigDecimal hqRate = BigDecimal.ZERO;
@@ -55,6 +59,10 @@ public class DistributionFeeConfig {
     public void setId(Long id) { this.id = id; }
     public String getCompId() { return compId; }
     public void setCompId(String compId) { this.compId = compId; }
+    public String getFeeChannel() { return feeChannel; }
+    public void setFeeChannel(String feeChannel) {
+        this.feeChannel = feeChannel != null && !feeChannel.isBlank() ? feeChannel.trim().toUpperCase() : "FIAT";
+    }
     public BigDecimal getHqRate() { return hqRate; }
     public void setHqRate(BigDecimal hqRate) { this.hqRate = hqRate; }
     public BigDecimal getRegionalRate() { return regionalRate; }

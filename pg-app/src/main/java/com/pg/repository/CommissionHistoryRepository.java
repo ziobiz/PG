@@ -18,4 +18,10 @@ public interface CommissionHistoryRepository extends JpaRepository<CommissionHis
 
     /** 구간(시작·종료일시) 계산용 — 과거 → 최신 순 */
     List<CommissionHistory> findByCompIdIgnoreCaseOrderByCreatedAtAsc(String compId);
+
+    List<CommissionHistory> findByCompIdIgnoreCaseAndFeeChannelOrderByCreatedAtDesc(String compId, String feeChannel);
+
+    List<CommissionHistory> findByCompIdIgnoreCaseAndFeeChannelOrderByCreatedAtAsc(String compId, String feeChannel);
+
+    Page<CommissionHistory> findByCompIdAndFeeChannelOrderByCreatedAtDesc(String compId, String feeChannel, Pageable pageable);
 }

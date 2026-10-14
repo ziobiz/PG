@@ -2899,6 +2899,9 @@ public class CompService {
                             if ("MERCHANT".equalsIgnoreCase(effDivForCommission) && chargebackPolicyId != null) {
                                 applyMerchantIndependentChargebackPolicy(ou.getCode(), chargebackPolicyId);
                             }
+                            if ("MERCHANT".equalsIgnoreCase(effDivForCommission)) {
+                                applyCryptoChargebackFromRequest(ou.getCode());
+                            }
                             boolean pwdChanged = pwd != null && !pwd.trim().isEmpty();
                             if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
                                 saveMerchantDefaultProductOrClear(ou.getId(), defaultProductName, defaultProductCode,
@@ -4577,6 +4580,7 @@ public class CompService {
                     true);
             if ("MERCHANT".equalsIgnoreCase(compDivVal)) {
                 applyMerchantIndependentChargebackPolicy(saved.getCode(), chargebackPolicyId);
+                applyCryptoChargebackFromRequest(saved.getCode());
             }
         }
 
@@ -5153,10 +5157,43 @@ public class CompService {
     }
 
     private void mergeCommissionUiIntoRegionalSettings(MerchantProfile mp, String commissionFollowHq, String hqPolicyScope) {
+        String cryptoFollow = null;
+        String cryptoScope = null;
+        String fiatSlot = null;
+        try {
+            var attrs = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+            if (attrs instanceof org.springframework.web.context.request.ServletRequestAttributes sra) {
+                var req = sra.getRequest();
+                cryptoFollow = req.getParameter("commissionCryptoFollowHq");
+                cryptoScope = req.getParameter("hqCryptoPolicyScope");
+                fiatSlot = req.getParameter("fiatCommissionSlotYn");
+            }
+        } catch (Exception ignored) {
+        }
+        mergeCommissionUiIntoRegionalSettings(mp, commissionFollowHq, hqPolicyScope, cryptoFollow, cryptoScope, fiatSlot);
+    }
+
+    private void mergeCommissionUiIntoRegionalSettings(MerchantProfile mp, String commissionFollowHq, String hqPolicyScope,
+                                                       String commissionCryptoFollowHq, String hqCryptoPolicyScope,
+                                                       String fiatCommissionSlotYn) {
         Map<String, Object> rs = parseRegionalSettings(mp.getRegionalSettings());
         String cf = commissionFollowHq != null && !commissionFollowHq.isBlank() ? commissionFollowHq.trim() : "Y";
         rs.put("commissionFollowHq", "N".equalsIgnoreCase(cf) ? "N" : "Y");
         rs.put("hqPolicyScope", hqPolicyScope != null ? hqPolicyScope.trim() : "");
+        if (commissionCryptoFollowHq != null) {
+            String ccf = commissionCryptoFollowHq.trim();
+            rs.put("commissionCryptoFollowHq", "N".equalsIgnoreCase(ccf) ? "N" : "Y");
+        } else if (!rs.containsKey("commissionCryptoFollowHq")) {
+            rs.put("commissionCryptoFollowHq", "Y");
+        }
+        if (hqCryptoPolicyScope != null) {
+            rs.put("hqCryptoPolicyScope", hqCryptoPolicyScope.trim());
+        } else if (!rs.containsKey("hqCryptoPolicyScope")) {
+            rs.put("hqCryptoPolicyScope", "");
+        }
+        if (fiatCommissionSlotYn != null && !fiatCommissionSlotYn.isBlank()) {
+            rs.put("fiatCommissionSlotYn", "N".equalsIgnoreCase(fiatCommissionSlotYn.trim()) ? "N" : "Y");
+        }
         try {
             com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
             mp.setRegionalSettings(om.writeValueAsString(rs));
@@ -5164,6 +5201,33 @@ public class CompService {
             mp.setRegionalSettings("{\"commissionFollowHq\":\"" + ("N".equalsIgnoreCase(cf) ? "N" : "Y")
                     + "\",\"hqPolicyScope\":\"" + (hqPolicyScope != null ? hqPolicyScope.trim().replace("\"", "\\\"") : "")
                     + "\"}");
+        }
+    }
+
+    /** 크립토 활성 시 DEFAULT_CRYPTO 자동 부여 + 크립토전용이면 FIAT 슬롯 비활성 */
+    public void ensureCryptoCommissionSlot(MerchantProfile mp, boolean cryptoEnabled, boolean cryptoOnly) {
+        if (mp == null) {
+            return;
+        }
+        Map<String, Object> rs = parseRegionalSettings(mp.getRegionalSettings());
+        if (cryptoEnabled) {
+            if (!rs.containsKey("commissionCryptoFollowHq") || String.valueOf(rs.get("commissionCryptoFollowHq")).isBlank()) {
+                rs.put("commissionCryptoFollowHq", "Y");
+            }
+            String hqCrypto = rs.get("hqCryptoPolicyScope") != null ? String.valueOf(rs.get("hqCryptoPolicyScope")).trim() : "";
+            if (hqCrypto.isEmpty()) {
+                rs.put("hqCryptoPolicyScope", com.pg.util.CommissionFeeChannel.DEFAULT_SCOPE_CRYPTO);
+            }
+            if (cryptoOnly) {
+                rs.put("fiatCommissionSlotYn", "N");
+            } else if (!rs.containsKey("fiatCommissionSlotYn")) {
+                rs.put("fiatCommissionSlotYn", "Y");
+            }
+        }
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+            mp.setRegionalSettings(om.writeValueAsString(rs));
+        } catch (Exception ignored) {
         }
     }
 
@@ -5461,12 +5525,125 @@ public class CompService {
         if (!m.containsKey("hqPolicyScope") || m.get("hqPolicyScope") == null) {
             m.put("hqPolicyScope", "");
         }
+        if (!m.containsKey("commissionCryptoFollowHq") || m.get("commissionCryptoFollowHq") == null
+                || String.valueOf(m.get("commissionCryptoFollowHq")).isBlank()) {
+            m.put("commissionCryptoFollowHq", "Y");
+        }
+        if (!m.containsKey("hqCryptoPolicyScope") || m.get("hqCryptoPolicyScope") == null) {
+            m.put("hqCryptoPolicyScope", "");
+        }
+        if (!m.containsKey("fiatCommissionSlotYn") || m.get("fiatCommissionSlotYn") == null
+                || String.valueOf(m.get("fiatCommissionSlotYn")).isBlank()) {
+            m.put("fiatCommissionSlotYn", "Y");
+        }
         String code = ou.getCode();
         if (code == null || code.isBlank()) {
             return;
         }
         commissionPolicyRepository.findByScope(code.trim()).ifPresentOrElse(p -> putCommissionPolicyScalars(m, p),
                 () -> commissionPolicyRepository.findByScope("DEFAULT").ifPresent(def -> putCommissionPolicyScalars(m, def)));
+        putCryptoChargebackScalars(m, code.trim(), m);
+    }
+
+    /** 가맹 CRYPTO 수수료 슬롯의 차지백(건당·구간정책) — FIAT 카드와 동일 UX, 저장은 CRYPTO 정책. */
+    private void putCryptoChargebackScalars(Map<String, Object> m, String merchantCode, Map<String, Object> regionalOrDetail) {
+        String follow = regionalOrDetail.get("commissionCryptoFollowHq") != null
+                ? String.valueOf(regionalOrDetail.get("commissionCryptoFollowHq")).trim() : "Y";
+        String hqScope = regionalOrDetail.get("hqCryptoPolicyScope") != null
+                ? String.valueOf(regionalOrDetail.get("hqCryptoPolicyScope")).trim() : "";
+        if (hqScope.isEmpty()) {
+            hqScope = com.pg.util.CommissionFeeChannel.DEFAULT_SCOPE_CRYPTO;
+        }
+        String scope = "N".equalsIgnoreCase(follow)
+                ? com.pg.util.CommissionFeeChannel.merchantCryptoScope(merchantCode)
+                : hqScope;
+        commissionPolicyRepository.findByScope(scope).ifPresentOrElse(p -> {
+            m.put("cryptoChargebackFeePerTx",
+                    p.getChargebackFeePerTx() != null ? p.getChargebackFeePerTx().toPlainString() : "");
+            m.put("cryptoChargebackPolicyId",
+                    p.getChargebackPolicyId() != null ? String.valueOf(p.getChargebackPolicyId()) : "");
+        }, () -> {
+            m.put("cryptoChargebackFeePerTx", "");
+            m.put("cryptoChargebackPolicyId", "");
+        });
+    }
+
+    /** CRYPTO 채널 차지백만 반영(조직%·가스·reserve와 별개 과금 유형). */
+    private void applyCryptoChargebackFromRequest(String merchantCode) {
+        if (merchantCode == null || merchantCode.isBlank()) {
+            return;
+        }
+        String cryptoFollow = null;
+        String cryptoScope = null;
+        String cbFee = null;
+        String cbPol = null;
+        try {
+            var attrs = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+            if (attrs instanceof org.springframework.web.context.request.ServletRequestAttributes sra) {
+                var req = sra.getRequest();
+                cryptoFollow = req.getParameter("commissionCryptoFollowHq");
+                cryptoScope = req.getParameter("hqCryptoPolicyScope");
+                cbFee = req.getParameter("cryptoChargebackFeePerTx");
+                cbPol = req.getParameter("cryptoChargebackPolicyId");
+            }
+        } catch (Exception ignored) {
+        }
+        if (cbFee == null && cbPol == null) {
+            return;
+        }
+        boolean custom = "N".equalsIgnoreCase(cryptoFollow != null ? cryptoFollow.trim() : "");
+        String scope;
+        if (custom) {
+            scope = com.pg.util.CommissionFeeChannel.merchantCryptoScope(merchantCode);
+        } else {
+            String src = cryptoScope != null && !cryptoScope.isBlank()
+                    ? cryptoScope.trim() : com.pg.util.CommissionFeeChannel.DEFAULT_SCOPE_CRYPTO;
+            /* 본사정책 따름: 템플릿에 차지백이 있으면 가맹 CRYPTO 슬롯에 복사 */
+            CommissionPolicy srcPol = commissionPolicyRepository.findByScope(src).orElse(null);
+            CommissionPolicy policy = commissionPolicyRepository
+                    .findByScope(com.pg.util.CommissionFeeChannel.merchantCryptoScope(merchantCode))
+                    .orElseGet(CommissionPolicy::new);
+            policy.setScope(com.pg.util.CommissionFeeChannel.merchantCryptoScope(merchantCode));
+            policy.setFeeChannel(com.pg.util.CommissionFeeChannel.CRYPTO);
+            if (srcPol != null) {
+                policy.setChargebackFeePerTx(srcPol.getChargebackFeePerTx());
+                policy.setChargebackPolicyId(srcPol.getChargebackPolicyId());
+            }
+            if (cbFee != null && !cbFee.isBlank()) {
+                policy.setChargebackFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(cbFee.trim()));
+            }
+            if (cbPol != null) {
+                String cp = cbPol.trim();
+                if (cp.isEmpty()) {
+                    policy.setChargebackPolicyId(null);
+                } else {
+                    try {
+                        policy.setChargebackPolicyId(Long.parseLong(cp));
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+            commissionPolicyRepository.save(policy);
+            return;
+        }
+        CommissionPolicy policy = commissionPolicyRepository.findByScope(scope).orElseGet(CommissionPolicy::new);
+        policy.setScope(scope);
+        policy.setFeeChannel(com.pg.util.CommissionFeeChannel.CRYPTO);
+        if (cbFee != null && !cbFee.isBlank()) {
+            policy.setChargebackFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(cbFee.trim()));
+        }
+        if (cbPol != null) {
+            String cp = cbPol.trim();
+            if (cp.isEmpty()) {
+                policy.setChargebackPolicyId(null);
+            } else {
+                try {
+                    policy.setChargebackPolicyId(Long.parseLong(cp));
+                } catch (Exception ignored) {
+                }
+            }
+        }
+        commissionPolicyRepository.save(policy);
     }
 
     private static void putCommissionPolicyScalars(Map<String, Object> m, CommissionPolicy p) {

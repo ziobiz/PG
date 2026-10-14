@@ -2987,6 +2987,18 @@
       isForm: true,
       formSections: [
         {
+          title: '수수료 채널',
+          id: 'hqDefaultCommChannelCard',
+          notice: 'FIAT=카드·법정통화 결제 수수료. CRYPTO=크립토 확정입금 수수료. USDT 송금·USDT%·3DS는 FIAT 전용(정산 부가·카드 3DS)이며 CRYPTO 결제통화와 무관합니다.',
+          rows: [[{ type: 'customHtml', col: 12, html: function () {
+            return '<div class="d-flex flex-wrap gap-2 align-items-center" id="hqDefCommChannelTabs" role="tablist">' +
+              '<input type="hidden" name="feeChannel" id="hqDefCommFeeChannel" value="FIAT" />' +
+              '<button type="button" class="btn btn-sm btn-primary" data-fee-channel="FIAT" id="hqDefCommTabFiat" data-pg-ui-t="FIAT(카드)">' + escUi(L('FIAT(카드)')) + '</button>' +
+              '<button type="button" class="btn btn-sm btn-outline-primary" data-fee-channel="CRYPTO" id="hqDefCommTabCrypto" data-pg-ui-t="CRYPTO(크립토)">' + escUi(L('CRYPTO(크립토)')) + '</button>' +
+              '<span class="small text-muted ms-1" data-pg-ui-t="채널별로 정책 목록·필드가 달라집니다.">' + escUi(L('채널별로 정책 목록·필드가 달라집니다.')) + '</span></div>';
+          } }]]
+        },
+        {
           title: '기본 수수료 정책',
           id: 'hqDefaultCommFeeCard',
           notice: '총본사~영업점은 조직 배분(결제율·건당)에 반영됩니다. 가맹 열은 가맹점에 적용되는 합계(기본값)이며, 가맹점이 본사설정을 따를 때 기준이 됩니다. 업체관리 수수료에서 수정하면 그 값이 우선합니다. 결제·USDT·FX는 승인금액 기준 %, 3DS는 정책통화 기준 건당 고정, 나머지 건당·월간은 통화 단위입니다.',
@@ -2998,7 +3010,17 @@
               '<select id="hqDefCommTemplateScopeDisplay" class="form-control form-control-sm" disabled data-pg-ui-title="코드는 저장 시 자동 부여되며, 수정할 수 없습니다." title="' + escUi(L('코드는 저장 시 자동 부여되며, 수정할 수 없습니다.')) + '">' +
               '<option value="" data-pg-ui-t="(신규) 저장 시 자동 부여">' + escUi(L('(신규) 저장 시 자동 부여')) + '</option></select>' +
               '<p class="text-muted small mb-0 mt-1" data-pg-ui-t="고유 코드는 시스템이 부여합니다. 목록에서 정책을 불러와 편집만 할 수 있습니다.">' + escUi(L('고유 코드는 시스템이 부여합니다. 목록에서 정책을 불러와 편집만 할 수 있습니다.')) + '</p></div>';
-            } }, { label: '정책명', type: 'text', name: 'policyName', col: 2, placeholder: '예: 기본정책 A' }, { label: '배포', type: 'select', name: 'deployYn', options: [{ v: 'Y', t: '배포' }, { v: 'N', t: '미배포' }], col: 2 }, { label: '통화코드', type: 'select', name: 'currencyCode', col: 2, options: [{ v: 'KRW', t: 'KRW' }, { v: 'USD', t: 'USD' }, { v: 'JPY', t: 'JPY' }, { v: 'EUR', t: 'EUR' }, { v: 'CNY', t: 'CNY' }, { v: 'THB', t: 'THB' }, { v: 'VND', t: 'VND' }, { v: 'GBP', t: 'GBP' }, { v: 'TWD', t: 'TWD' }, { v: 'HKD', t: 'HKD' }, { v: 'USDT', t: 'USDT' }] }],
+            } }, { label: '정책명', type: 'text', name: 'policyName', col: 2, placeholder: '예: 기본정책 A' }, { label: '배포', type: 'select', name: 'deployYn', options: [{ v: 'Y', t: '배포' }, { v: 'N', t: '미배포' }], col: 2 }, { label: '통화코드', type: 'select', name: 'currencyCode', col: 2, options: [{ v: 'KRW', t: 'KRW' }, { v: 'USD', t: 'USD' }, { v: 'JPY', t: 'JPY' }, { v: 'EUR', t: 'EUR' }, { v: 'CNY', t: 'CNY' }, { v: 'THB', t: 'THB' }, { v: 'VND', t: 'VND' }, { v: 'GBP', t: 'GBP' }, { v: 'TWD', t: 'TWD' }, { v: 'HKD', t: 'HKD' }, { v: 'USDT', t: 'USDT' }, { v: 'USDC', t: 'USDC' }, { v: 'EURC', t: 'EURC' }] }],
+            [{ type: 'customHtml', col: 12, html: function () {
+              return '<div class="row g-2 hq-def-comm-crypto-fields d-none" id="hqDefCommCryptoFields">' +
+                '<div class="col-6 col-md-3"><label class="form-label" data-pg-ui-t="매입 운영수수료(%)">' + escUi(L('매입 운영수수료(%)')) + '</label>' +
+                '<input type="text" class="form-control form-control-sm" name="acquisitionOpsFeePct" id="hqDefCommAcquisitionOpsFeePct" placeholder="0" /></div>' +
+                '<div class="col-6 col-md-3"><label class="form-label" data-pg-ui-t="에스크로 운영수수료(%)">' + escUi(L('에스크로 운영수수료(%)')) + '</label>' +
+                '<input type="text" class="form-control form-control-sm" name="escrowOpsFeePct" id="hqDefCommEscrowOpsFeePct" placeholder="0" /></div>' +
+                '<div class="col-6 col-md-3"><label class="form-label" data-pg-ui-t="인증 수수료(건)">' + escUi(L('인증 수수료(건)')) + '</label>' +
+                '<input type="text" class="form-control form-control-sm" name="authFeePerTx" id="hqDefCommAuthFeePerTx" placeholder="0.0" /></div>' +
+                '<div class="col-12"><p class="small text-muted mb-0" data-pg-ui-t="CRYPTO: 확정 입금 시 과금. USDT 송금·USDT%·3DS는 FIAT 전용으로 이 채널에서 숨깁니다.">' + escUi(L('CRYPTO: 확정 입금 시 과금. USDT 송금·USDT%·3DS는 FIAT 전용으로 이 채널에서 숨깁니다.')) + '</p></div></div>';
+            } }],
             [{ type: 'customHtml', col: 12, html: hqDefaultCommissionTierMatrixHtml }],
             [{ label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 6, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }],
             [{ type: 'customHtml', col: 12, html: hqDefaultExtraFeesCardHtml }],
@@ -3110,7 +3132,8 @@
             '<div class="mb-2"><label class="form-label small mb-0" for="hqCbPolCurrencyCode" data-pg-ui-t="기준통화">' + escUi(L('기준통화')) + '</label><select class="form-select form-select-sm" id="hqCbPolCurrencyCode">' +
             '<option value="KRW">KRW</option><option value="USD">USD</option><option value="JPY">JPY</option><option value="EUR">EUR</option>' +
             '<option value="CNY">CNY</option><option value="THB">THB</option><option value="VND">VND</option><option value="GBP">GBP</option>' +
-            '<option value="TWD">TWD</option><option value="HKD">HKD</option><option value="USDT">USDT</option></select>' +
+            '<option value="TWD">TWD</option><option value="HKD">HKD</option><option value="USDT">USDT</option>' +
+            '<option value="USDC">USDC</option><option value="EURC">EURC</option></select>' +
             '<p class="small text-muted mb-0 mt-1" data-pg-ui-t="구간 건당 금액의 표시·집계 단위 안내용입니다.">' + escUi(L('구간 건당 금액의 표시·집계 단위 안내용입니다.')) + '</p></div>' +
             '<div class="mb-2"><label class="form-label small mb-0" for="hqCbPolRemark" data-pg-ui-t="비고">' + escUi(L('비고')) + '</label><textarea class="form-control form-control-sm" id="hqCbPolRemark" rows="2" data-pg-ui-placeholder="내부 메모" placeholder="' + escUi(L('내부 메모')) + '"></textarea></div>' +
             '<div class="d-flex align-items-center justify-content-between mb-1"><span class="small fw-semibold" data-pg-ui-t="구간 (해당 월 강제환불 31 건수)">' + escUi(L('구간 (해당 월 강제환불 31 건수)')) + '</span><button type="button" class="btn btn-outline-secondary btn-sm" id="hqCbPolAddTierBtn" data-pg-ui-t="행 추가">' + escUi(L('행 추가')) + '</button></div>' +
@@ -4735,6 +4758,16 @@
           ]
         },
         {
+          title: '크립토 수수료정책',
+          id: 'cryptoCommissionPolicyCard',
+          merchantOnly: true,
+          notice: '크립토 확정입금 수수료 슬롯입니다. 본사 CRYPTO 배포 정책을 따르거나 선택합니다. 크립토만 사용 가맹은 FIAT(카드) 수수료 슬롯이 자동 비활성됩니다. 차지백은 예외 과금 시 아래 유형(기존 차지백 설정·USDC/EURC 통화 포함)을 선택합니다.',
+          rows: [
+            [{ label: '본사정책 따름(CRYPTO)', type: 'select', name: 'commissionCryptoFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 CRYPTO 정책', type: 'select', name: 'hqCryptoPolicyScope', options: [{ v: '', t: 'CRYPTO 기본 (DEFAULT_CRYPTO)' }], col: 3, hqCryptoPolicyOnly: true }, { label: 'FIAT 수수료 슬롯', type: 'select', name: 'fiatCommissionSlotYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '비활성(크립토전용)' }], col: 2 }],
+            [{ label: '차지백수수료(건)', type: 'text', name: 'cryptoChargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'cryptoChargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
+          ]
+        },
+        {
           title: '차지백 정책',
           id: 'chargebackPolicyCard',
           merchantOnly: true,
@@ -5208,6 +5241,16 @@
           ]
         },
         {
+          title: '크립토 수수료정책',
+          id: 'cryptoCommissionPolicyCard',
+          merchantOnly: true,
+          notice: '크립토 확정입금 수수료 슬롯입니다. 본사 CRYPTO 배포 정책을 따르거나 선택합니다. 크립토만 사용 가맹은 FIAT(카드) 수수료 슬롯이 자동 비활성됩니다. 차지백은 예외 과금 시 아래 유형(기존 차지백 설정·USDC/EURC 통화 포함)을 선택합니다.',
+          rows: [
+            [{ label: '본사정책 따름(CRYPTO)', type: 'select', name: 'commissionCryptoFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 CRYPTO 정책', type: 'select', name: 'hqCryptoPolicyScope', options: [{ v: '', t: 'CRYPTO 기본 (DEFAULT_CRYPTO)' }], col: 3, hqCryptoPolicyOnly: true }, { label: 'FIAT 수수료 슬롯', type: 'select', name: 'fiatCommissionSlotYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '비활성(크립토전용)' }], col: 2 }],
+            [{ label: '차지백수수료(건)', type: 'text', name: 'cryptoChargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'cryptoChargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
+          ]
+        },
+        {
           title: '차지백 정책',
           id: 'chargebackPolicyCard',
           merchantOnly: true,
@@ -5606,6 +5649,16 @@
           ]
         },
         {
+          title: '크립토 수수료정책',
+          id: 'cryptoCommissionPolicyCard',
+          merchantOnly: true,
+          notice: '크립토 확정입금 수수료 슬롯입니다. 본사 CRYPTO 배포 정책을 따르거나 선택합니다. 크립토만 사용 가맹은 FIAT(카드) 수수료 슬롯이 자동 비활성됩니다. 차지백은 예외 과금 시 아래 유형(기존 차지백 설정·USDC/EURC 통화 포함)을 선택합니다.',
+          rows: [
+            [{ label: '본사정책 따름(CRYPTO)', type: 'select', name: 'commissionCryptoFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 CRYPTO 정책', type: 'select', name: 'hqCryptoPolicyScope', options: [{ v: '', t: 'CRYPTO 기본 (DEFAULT_CRYPTO)' }], col: 3, hqCryptoPolicyOnly: true }, { label: 'FIAT 수수료 슬롯', type: 'select', name: 'fiatCommissionSlotYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '비활성(크립토전용)' }], col: 2 }],
+            [{ label: '차지백수수료(건)', type: 'text', name: 'cryptoChargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'cryptoChargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
+          ]
+        },
+        {
           title: '차지백 정책',
           id: 'chargebackPolicyCard',
           merchantOnly: true,
@@ -5827,6 +5880,15 @@
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId'],
       searchRows: [
         [
+          { type: 'customHtml', col: 12, html: function () {
+            return '<div class="d-flex flex-wrap gap-2 align-items-center mb-1" id="commissionFeeChannelTabs">' +
+              '<input type="hidden" name="feeChannel" id="commissionListFeeChannel" value="FIAT" />' +
+              '<button type="button" class="btn btn-sm btn-primary" data-fee-channel="FIAT" id="commissionTabFiat" data-pg-ui-t="FIAT(카드)">' + escUi(L('FIAT(카드)')) + '</button>' +
+              '<button type="button" class="btn btn-sm btn-outline-primary" data-fee-channel="CRYPTO" id="commissionTabCrypto" data-pg-ui-t="CRYPTO(크립토)">' + escUi(L('CRYPTO(크립토)')) + '</button>' +
+              '<span class="small text-muted" data-pg-ui-t="채널별 배분·요율을 따로 관리합니다.">' + escUi(L('채널별 배분·요율을 따로 관리합니다.')) + '</span></div>';
+          } }
+        ],
+        [
           { label: '업체선택(조직)', type: 'select', name: 'searchCompDiv', i18nLblKey: 'searchCompOrgPick', options: [{ v: '', t: '전체' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }] },
           { label: '업체사용여부', type: 'select', name: 'searchUseYn', i18nLblKey: 'searchCompListUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }, { v: 'S', t: '영구정지' }] },
           { label: '통화', type: 'select', name: 'searchPolicyCur', i18nLblKey: 'searchCurType', options: [
@@ -5835,7 +5897,10 @@
             { v: 'USD', t: 'USD' },
             { v: 'THB', t: 'THB' },
             { v: 'CNY', t: 'CNY' },
-            { v: 'KRW', t: 'KRW' }
+            { v: 'KRW', t: 'KRW' },
+            { v: 'USDT', t: 'USDT' },
+            { v: 'USDC', t: 'USDC' },
+            { v: 'EURC', t: 'EURC' }
           ], size: 8 },
           { label: '업체코드', type: 'text', name: 'searchCompId' },
           { label: '업체명', type: 'text', name: 'searchCompNm' },
@@ -6535,7 +6600,7 @@
       detailPayListVariant: 'INTEGRATED',
       tableColumnGuide: true,
       columnGuideFixedKeys: ['rowNo', 'day'],
-      viewSettingDefaultSelectedKeys: ['txnCount'].concat(DAILY_SUMMARY_VIEW_DEFAULT_MIDDLE_KEYS),
+      viewSettingDefaultSelectedKeys: ['txnCount', 'feeChannel'].concat(DAILY_SUMMARY_VIEW_DEFAULT_MIDDLE_KEYS),
       listSortDirAnchor: 'refresh',
       searchFormClass: 'pay-mng-search-form',
       searchRows: [
@@ -6543,8 +6608,12 @@
           { label: '거래일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
           { type: 'quickdate', quickdateLabels: ['당일', '당월', '전일', '1주', '2주', '전월'], quickdateRanges: ['day', 'month', 'prevDay', 'week', 'week2', 'prevMonth'] },
           { label: '결제대행사', type: 'select', name: 'searchPgCd', options: [{ v: '', t: '전체' }], size: 13 },
-          { label: '정산주기', type: 'select', name: 'searchCycle', options: CALC_CYCLE_SEARCH_OPTIONS, size: 10 }
+          { label: '정산주기', type: 'select', name: 'searchCycle', options: CALC_CYCLE_SEARCH_OPTIONS, size: 10 },
+          { label: '수수료채널', type: 'select', name: 'searchFeeChannel', options: [
+            { v: '', t: '전체' }, { v: 'FIAT', t: 'FIAT(카드)' }, { v: 'CRYPTO', t: 'CRYPTO(크립토)' }
+          ], size: 10 }
         ],
+        /* 전체=일자+채널 행 분리(서버). FIAT|CRYPTO 선택 시 해당 채널만 */
         [
           { label: '검색구분', type: 'select', name: 'searchFieldType', options: [
             { v: 'ALL', t: '전체' },
@@ -6574,7 +6643,7 @@
         ]
       ],
       noticeList: [
-        '결제내역(/calc/payList, INTEGRATED)과 동일 필터·조직 범위로, 적재일(createdAt) 기준 일자별 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 전체 건 기준입니다. 통화 열(JPY 등)은 결제내역 상단 「승인」과 동일한 성공(승인) 금액 합계입니다(추정정산 아님). 일자 행을 더블클릭하면 아래 「선택 일자 상세」에 해당 일 전체 결제내역·총거래~추정결산 요약이 표시됩니다(거래일 열 없음).',
+        '결제내역(/calc/payList, INTEGRATED)과 동일 필터·조직 범위로, 적재일(createdAt) 기준 일자별 집계합니다. 전체 조회 시 FIAT·CRYPTO 채널 행이 분리됩니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일·채널 기준입니다. 통화 열(JPY 등)은 결제내역 상단 「승인」과 동일한 성공(승인) 금액 합계입니다(추정정산 아님). 일자 행을 더블클릭하면 아래 「선택 일자 상세」에 해당 일 전체 결제내역·총거래~추정결산 요약이 표시됩니다(거래일 열 없음).',
         '조회 기간은 최대 93일입니다. 당월 등으로 종료일이 오늘 이후이면 표시는 전산 기준일(오늘)까지만 합니다(미래 일자 미표시).'
       ],
       summary: ['건수'],
@@ -6586,6 +6655,7 @@
       columns: [
         { key: 'rowNo', label: '번호' },
         { key: 'day', label: '일자' },
+        { key: 'feeChannel', label: '채널' },
         { key: 'txnCount', label: '전체건수' }
       ].concat(DAILY_SUMMARY_STATUS_BUCKET_COLS).concat(DAILY_SUMMARY_PAY_CUR_COLS),
       emptyMessage: '조회된 데이터가 없습니다.'
@@ -6900,7 +6970,7 @@
       tableColumnGuide: true,
       columnGuideFixedKeys: ['rowNo', 'day'],
       viewSettingDefaultSelectedKeys: [
-        'txnCount', 'txnFixedFeesSum', 'pctFeesSum', 'usdtFee', 'fxFee', 'fee3dsFee', 'rollingHoldEst',
+        'txnCount', 'feeChannel', 'txnFixedFeesSum', 'pctFeesSum', 'usdtFee', 'fxFee', 'fee3dsFee', 'rollingHoldEst',
         'failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'chargebackFee',
         'totalFee', 'feeVat', 'expectedPayout', 'settlementAmt', 'settlementStateLabel'
       ],
@@ -6910,7 +6980,10 @@
       searchRows: [
         [
           { label: '거래일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
-          { type: 'quickdate', quickdateLabels: ['당일', '당월', '전일', '1주', '2주', '전월'], quickdateRanges: ['day', 'month', 'prevDay', 'week', 'week2', 'prevMonth'] }
+          { type: 'quickdate', quickdateLabels: ['당일', '당월', '전일', '1주', '2주', '전월'], quickdateRanges: ['day', 'month', 'prevDay', 'week', 'week2', 'prevMonth'] },
+          { label: '수수료채널', type: 'select', name: 'searchFeeChannel', options: [
+            { v: '', t: '전체' }, { v: 'FIAT', t: 'FIAT(카드)' }, { v: 'CRYPTO', t: 'CRYPTO(크립토)' }
+          ], size: 10 }
         ],
         [
           { label: '검색구분', type: 'select', name: 'searchFieldType', options: [
@@ -6941,7 +7014,7 @@
         ]
       ],
       noticeList: [
-        '수수료내역과 동일 산식·동일 필터로 일자별 합계를 표시합니다. 정산유무는 해당 일 거래의 settled_yn 이 전부 Y이면 정산완료, 전부 N이면 정산대기, 혼합이면 부분정산입니다.',
+        '수수료내역과 동일 산식·동일 필터로 일자별 합계를 표시합니다. 전체 조회 시 FIAT·CRYPTO 행이 분리됩니다. 정산유무는 해당 일 거래의 settled_yn 이 전부 Y이면 정산완료, 전부 N이면 정산대기, 혼합이면 부분정산입니다.',
         '첫 화면은 집계 부하·게이트웨이 시간 초과(504)를 줄이기 위해 최근 7일(당일 포함)만 자동 조회합니다. 당월·당일 등은 빠른기간 버튼 뒤 [검색]으로 넓히면 됩니다.',
         '일자 행을 더블클릭하면 아래 「선택 일자 상세」에 해당 일 수수료내역 전체가 표시됩니다. 번호·결제시간·승인번호·업체·정산주기·정산예정(업체명 오른쪽)·결제액·수수료·정산액(통화 표기)·상태(한글)·정산유무(거래 settled_yn)를 확인할 수 있으며 거래일 열은 두지 않습니다. 조회 기간은 최대 93일입니다.',
         '미래 일자는 표시되지 않습니다(전산 표시 기준일). 일자 순서는 [내림차순](최신일 위)·[오름차순]으로 바꿀 수 있으며 기본은 내림차순입니다.'
@@ -6956,6 +7029,7 @@
       columns: [
         { key: 'rowNo', label: '번호' },
         { key: 'day', label: '일자' },
+        { key: 'feeChannel', label: '채널' },
         { key: 'txnCount', label: '전체건수' },
         { key: 'txnFixedFeesSum', label: '건당수수료' },
         { key: 'pctFeesSum', label: '결제(%)' },
@@ -6987,19 +7061,22 @@
       /** VIEW SETTING·그리드: 체크·번호·업체명·업체코드·거래일·통화 고정. 정산주기·거래시간·루트·승인번호·거래번호(우리) 등은 토글 */
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'trnDate', 'curType'],
       viewSettingDefaultSelectedKeys: [
-        'trnTime', 'routeNo', 'chillTransactionId', 'trnId', 'statusNm', 'amount', 'payCur', 'curType', 'policyCur', 'calcCycle', 'expectedSettleDate',
+        'trnTime', 'routeNo', 'chillTransactionId', 'trnId', 'statusNm', 'feeChannel', 'amount', 'payCur', 'curType', 'policyCur', 'calcCycle', 'expectedSettleDate',
         'txnFixedFeesSum', 'pctFeesSum', 'usdtFee', 'fxFee', 'fee3dsFee', 'splitPayPctFee', 'splitPayFixedFee',
         'rollingPctPlain', 'rollingDays', 'rollingHoldEst',
         'failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'chargebackFee',
         'totalFee', 'feeVat', 'expectedPayout', 'settlementAmt', 'vatAppliedYn'
       ],
       noticeList: [
-        '검색: 첫 줄에서 거래일·빠른기간을 정한 뒤, 둘째 줄에서 검색구분·검색어·상태그룹을 맞추고 오른쪽 [검색]을 누릅니다. 「전체」는 해당 조건으로 좁히지 않습니다. VIEW SETTING에서 열 표시를 켜고 끌 수 있습니다. 앞쪽 열 순서(업체·거래일·거래시간·루트·승인번호·거래번호)는 통합 결제내역 기본과 같습니다. 건당수수료 열은 거래 성공 시 과금되는 성공(건당) 고정액만 표시합니다. 기타수수료: 「결제(%)」열은 결제수수료(%) 과금액만 표시하고, USDT·FX·3DS는 각각 별도 열에 표시합니다(3DS는 건당 고정). 분할결제 거래는 분할(%)·분할수수료(% 과금액)·분할건당·분할고정(1회차에 분할건×회차수 합산)이 추가되며 총수수료·정산에 포함됩니다. 세 항목은 결제·건당 등과 별도로 동시 과금될 수 있습니다. 금액이 없으면 USDT·FX·3DS·분할 열은 — 입니다. 정산 수수료는 정산 실행 시 1회 과금되며, 송금(이체) 수수료는 그 이후 송금 처리 시 과금되어 정산리포트에 정산 수수료·송금 수수료로 각각 표시됩니다. 이 화면의 총수수료·지급예상에는 정산·송금 건당액이 포함되지 않습니다. 결제(성공): 건당·%(승인 시 부과) 열, 담보(롤링%·추정액), 지급예상액, 정산액(지급예상−담보추정). 실패·취소·무효·환불 등은 상태별 수수료 규칙을 따르며, 무효·환불 계열은 성공 건과 동일한 건당·%가 추가로 과금될 수 있습니다(이중 과금). 차감(취소·환불·무효·실패 등): 지급예상액은 0, 총수수료·부가세는 과금액(양수), 정산액은 −(총수수료+부가세)입니다. 담보 추정은 승인 건에만 표시됩니다. 본사·총판 등은 로그인 조직 하위 가맹점만 조회됩니다.'
+        '검색: 첫 줄에서 거래일·빠른기간·수수료채널(FIAT|CRYPTO)을 정한 뒤, 둘째 줄에서 검색구분·검색어·상태그룹을 맞추고 오른쪽 [검색]을 누릅니다. 「전체」는 해당 조건으로 좁히지 않습니다. VIEW SETTING에서 열 표시를 켜고 끌 수 있습니다. 앞쪽 열 순서(업체·거래일·거래시간·루트·승인번호·거래번호)는 통합 결제내역 기본과 같습니다. 건당수수료 열은 거래 성공 시 과금되는 성공(건당) 고정액만 표시합니다. 기타수수료: 「결제(%)」열은 결제수수료(%) 과금액만 표시하고, USDT·FX·3DS는 각각 별도 열에 표시합니다(3DS는 건당 고정). 분할결제 거래는 분할(%)·분할수수료(% 과금액)·분할건당·분할고정(1회차에 분할건×회차수 합산)이 추가되며 총수수료·정산에 포함됩니다. 세 항목은 결제·건당 등과 별도로 동시 과금될 수 있습니다. 금액이 없으면 USDT·FX·3DS·분할 열은 — 입니다. 정산 수수료는 정산 실행 시 1회 과금되며, 송금(이체) 수수료는 그 이후 송금 처리 시 과금되어 정산리포트에 정산 수수료·송금 수수료로 각각 표시됩니다. 이 화면의 총수수료·지급예상에는 정산·송금 건당액이 포함되지 않습니다. 결제(성공): 건당·%(승인 시 부과) 열, 담보(롤링%·추정액), 지급예상액, 정산액(지급예상−담보추정). 실패·취소·무효·환불 등은 상태별 수수료 규칙을 따르며, 무효·환불 계열은 성공 건과 동일한 건당·%가 추가로 과금될 수 있습니다(이중 과금). 차감(취소·환불·무효·실패 등): 지급예상액은 0, 총수수료·부가세는 과금액(양수), 정산액은 −(총수수료+부가세)입니다. 담보 추정은 승인 건에만 표시됩니다. 본사·총판 등은 로그인 조직 하위 가맹점만 조회됩니다.'
       ],
       searchRows: [
         [
           { label: '거래일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
-          { type: 'quickdate' }
+          { type: 'quickdate' },
+          { label: '수수료채널', type: 'select', name: 'searchFeeChannel', options: [
+            { v: '', t: '전체' }, { v: 'FIAT', t: 'FIAT(카드)' }, { v: 'CRYPTO', t: 'CRYPTO(크립토)' }
+          ], size: 10 }
         ],
         [
           { label: '검색구분', type: 'select', name: 'searchFieldType', options: [
@@ -7057,6 +7134,7 @@
         { key: 'chillTransactionId', label: '승인번호' },
         { key: 'trnId', label: '거래번호(우리)' },
         { key: 'statusNm', label: '상태' },
+        { key: 'feeChannel', label: '채널' },
         { key: 'amount', label: '결제금액' },
         { key: 'payCur', label: '결제통화' },
         { key: 'curType', label: '통화' },
@@ -7307,6 +7385,7 @@
         '[리포트 형식] 가맹점 정산 리포트: 총본사·본사·총판 등이 소속 가맹에 보내는 정산 형식. 본사 지급 리포트: 총본사가 본사(REGIONAL)에 지급할 금액을 본사 단위로 합산(총본사·본사 로그인만 선택 가능).',
         '[하위 구분] 정산집계·정산실시·정산집계표·확정정산(리포트). 정산집계·정산실시·확정정산에서 실행 ID가 있는 행을 클릭하면 하단에 해당 정산 실행에 포함된 거래 목록이 표시됩니다. 집계표(SUM)는 요약 1행만 조회되며, 본사 지급 리포트의 정산실시(EXE)는 합산 행이라 실행 ID가 없을 수 있습니다.',
         '정산집계·정산실시의 비율형 수수료·건당수수료·부가세는 수수료 정책·거래 상태별 수수료내역 계산과 동일 규칙으로 집계합니다. 통화 열은 정책 통화(THB/KRW/USD/JPY 등)입니다.',
+        '수수료채널(FIAT|CRYPTO): 전체 조회 시 동일 정산실행에 카드·크립토가 섞이면 채널별 행으로 분리합니다. CRYPTO 행의 정산수수료·송금·담보·지급액은 크립토 출금 큐에서 별도 처리하므로 집계 행에는 수수료·건수만 표시합니다.',
         '[배포 기준] 집계(AGG)·실시(EXE)·집계표(SUM)에는 정산배포가 완료된 실행(DISTRIBUTED, 레거시 null 허용)만 포함합니다. 가맹점정산내역·유통 집계와 동일합니다. 확정정산(RST)도 배포·확정된 실행만 표시합니다.'
       ],
       searchRows: [
@@ -7320,7 +7399,10 @@
           { label: '가맹점코드', type: 'text', name: 'searchCompId', placeholder: '가맹점 코드', i18nLblKey: 'searchSettlementReportMerchLbl', i18nPhKey: 'searchSettlementReportCompPh' },
           { label: '총판(상위)코드', type: 'text', name: 'searchMasterId', placeholder: '총판 조직 코드' },
           { label: '본사코드', type: 'text', name: 'searchRegionalId', placeholder: '본사 지급 리포트 시 필터' },
-          { label: '통화', type: 'select', name: 'searchCurType', options: [{ v: '', t: '전체' }, { v: 'KRW', t: 'KRW' }, { v: 'USD', t: 'USD' }, { v: 'JPY', t: 'JPY' }, { v: 'THB', t: 'THB' }], size: 8 },
+          { label: '통화', type: 'select', name: 'searchCurType', options: [{ v: '', t: '전체' }, { v: 'KRW', t: 'KRW' }, { v: 'USD', t: 'USD' }, { v: 'JPY', t: 'JPY' }, { v: 'THB', t: 'THB' }, { v: 'USDT', t: 'USDT' }, { v: 'USDC', t: 'USDC' }, { v: 'EURC', t: 'EURC' }], size: 8 },
+          { label: '수수료채널', type: 'select', name: 'searchFeeChannel', options: [
+            { v: '', t: '전체' }, { v: 'FIAT', t: 'FIAT(카드)' }, { v: 'CRYPTO', t: 'CRYPTO(크립토)' }
+          ], size: 10 },
           { type: 'searchBtn' }
         ]
       ],
@@ -7337,8 +7419,8 @@
           { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK. 하단 거래 목록에 사용.' },
           { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' },
           { key: 'settlementCloseDate', label: '정산마감일', thClass: 'text-center text-nowrap' }, { key: 'settlementExecDate', label: '정산일자', thClass: 'text-center text-nowrap' }, { key: 'calcCycle', label: '정산주기', thClass: 'text-center text-nowrap small' },
-          { key: 'compNm', label: '가맹점명' }, { key: 'compId', label: '가맹코드' }, { key: 'curType', label: '통화', columnGuideLabel: '정책 통화(THB/KRW/USD/JPY 등).' },
-          { key: 'txnCnt', label: '거래건수', thClass: 'text-center text-nowrap', columnGuideLabel: '정산 실행에 집계 포함된 거래 건수 합(tb_settlement_run.included_txn_cnt).' },
+          { key: 'compNm', label: '가맹점명' }, { key: 'compId', label: '가맹코드' }, { key: 'feeChannel', label: '채널' }, { key: 'curType', label: '통화', columnGuideLabel: '정책 통화(THB/KRW/USD/JPY 등).' },
+          { key: 'txnCnt', label: '거래건수', thClass: 'text-center text-nowrap', columnGuideLabel: '해당 수수료채널 거래 건수(전체 조회 시 FIAT|CRYPTO 분리).' },
           { key: 'grossPay', label: '결제액' }, { key: 'refundAmt', label: '환불/취소' }, { key: 'netPay', label: '정산액', columnGuideLabel: '결제액 − 환불/취소(실행 저장 순매출).' },
           { key: 'rollingReserveAmt', label: '보증금', columnGuideLabel: '롤링(담보) 보류액(실행 저장값).' },
           { key: 'mdrFeeAmt', label: '수수료', columnGuideLabel: '결제%·USDT·FX 등 비율형 수수료 합(수수료내역과 동일 규칙).' },
@@ -7357,8 +7439,8 @@
           { key: 'settlementRunId', label: '실행ID' },
           { key: 'settlementCloseDate', label: '정산마감일', thClass: 'text-center text-nowrap' }, { key: 'settlementExecDate', label: '정산일자', thClass: 'text-center text-nowrap' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' },
           { key: 'calcCycle', label: '정산주기', thClass: 'text-center text-nowrap small' },
-          { key: 'compNm', label: '가맹점명' }, { key: 'compId', label: '가맹코드' }, { key: 'curType', label: '통화' },
-          { key: 'txnCnt', label: '거래건수', thClass: 'text-center text-nowrap', columnGuideLabel: '정산 실행에 집계 포함된 거래 건수.' },
+          { key: 'compNm', label: '가맹점명' }, { key: 'compId', label: '가맹코드' }, { key: 'feeChannel', label: '채널' }, { key: 'curType', label: '통화' },
+          { key: 'txnCnt', label: '거래건수', thClass: 'text-center text-nowrap', columnGuideLabel: '해당 수수료채널 거래 건수.' },
           { key: 'approveAmt', label: '결제액' }, { key: 'cancelAmt', label: '환불/취소' }, { key: 'netPay', label: '정산액' },
           { key: 'rollingReserveAmt', label: '보증금' },
           { key: 'mdrFeeAmt', label: '수수료' }, { key: 'perTxnFeeAmt', label: '건당수수료' },
@@ -7591,9 +7673,33 @@
           ]
         },
         {
+          title: '네트워크별 가스피',
+          id: 'hqCryptoGasFeeCard',
+          notice: '전 가맹 동일 적용. 출금(송금) 시 조직% 배분·reserve·수탁과 별개로 차감됩니다. 자산×네트워크 고정액. 저장 시 Google OTP 필요.',
+          rows: [
+            [{
+              type: 'customHtml',
+              col: 12,
+              html: function () {
+                return (
+                  '<div class="d-flex align-items-center justify-content-between mb-2">' +
+                  '<span class="small text-muted" data-pg-ui-t="가스피는 송금 자산 단위 고정액입니다.">' + escUi(L('가스피는 송금 자산 단위 고정액입니다.')) + '</span>' +
+                  '<button type="button" class="btn btn-primary btn-sm" id="cryptoGasFeeSaveBtn" data-pg-ui-t="가스피 저장">' + escUi(L('가스피 저장')) + '</button></div>' +
+                  '<div class="table-responsive"><table class="table table-sm table-bordered mb-0" id="grid_cryptoGasFee">' +
+                  '<thead class="table-light"><tr>' +
+                  '<th data-pg-ui-t="자산">자산</th><th data-pg-ui-t="네트워크">네트워크</th>' +
+                  '<th data-pg-ui-t="가스피">가스피</th><th data-pg-ui-t="사용">사용</th><th data-pg-ui-t="비고">비고</th>' +
+                  '</tr></thead><tbody id="cryptoGasFeeTbody"><tr><td colspan="5" class="text-muted text-center small">' +
+                  escUi(L('불러오는 중…')) + '</td></tr></tbody></table></div>'
+                );
+              }
+            }]
+          ]
+        },
+        {
           title: '가맹점 크립토설정',
           id: 'hqCryptoMerchantCard',
-          notice: '가맹별 크립토 사용(Y/N)·정산/출금·수취 지갑입니다. 카드 결제는 URL·PG 설정이 우선이며 여기서 켜지지 않습니다. 사용=Y여도 업체등록이 미사용·영구정지면 크립토 결제 불가. 금액·수수료·한도는 USD 기준. 본 화면 저장이 업체상세와 동일 데이터·우선. 가맹점 로그인은 조회·QR만.',
+          notice: '가맹별 크립토 사용(Y/N)·정산/출금·수취 지갑입니다. 카드 결제는 URL·PG 설정이 우선이며 여기서 켜지지 않습니다. 사용=Y여도 업체등록이 미사용·영구정지면 크립토 결제 불가. 금액·수수료·한도는 USD 기준. 본 화면 저장이 업체상세와 동일 데이터·우선. 가맹점 로그인은 조회·QR만. reserve·수탁은 조직%와 별개입니다.',
           rows: [
             [{
               type: 'customHtml',
@@ -7905,6 +8011,16 @@
             [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '수무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }],
             [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
             [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: '송금수수료', type: 'text', name: 'remittanceTransferFee', col: 2, customOnly: true }, { label: 'USDT 송금수수료(건)', type: 'text', name: 'usdtTransferFeeUsd', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }]
+          ]
+        },
+        {
+          title: '크립토 수수료정책',
+          id: 'cryptoCommissionPolicyCard',
+          merchantOnly: true,
+          notice: '크립토 확정입금 수수료 슬롯입니다. 본사 CRYPTO 배포 정책을 따르거나 선택합니다. 크립토만 사용 가맹은 FIAT(카드) 수수료 슬롯이 자동 비활성됩니다. 차지백은 예외 과금 시 아래 유형(기존 차지백 설정·USDC/EURC 통화 포함)을 선택합니다.',
+          rows: [
+            [{ label: '본사정책 따름(CRYPTO)', type: 'select', name: 'commissionCryptoFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 CRYPTO 정책', type: 'select', name: 'hqCryptoPolicyScope', options: [{ v: '', t: 'CRYPTO 기본 (DEFAULT_CRYPTO)' }], col: 3, hqCryptoPolicyOnly: true }, { label: 'FIAT 수수료 슬롯', type: 'select', name: 'fiatCommissionSlotYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '비활성(크립토전용)' }], col: 2 }],
+            [{ label: '차지백수수료(건)', type: 'text', name: 'cryptoChargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'cryptoChargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
           ]
         },
         {

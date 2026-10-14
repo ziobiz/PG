@@ -29,6 +29,8 @@ public class ApiCommissionController {
             @RequestParam(required = false) String searchCompDiv,
             /** 적용 정책 통화 또는 가맹 기준통화(프로필)로 필터 — JPY·USD·THB·CNY·KRW 등 ISO 알파 */
             @RequestParam(required = false) String searchPolicyCur,
+            /** FIAT(기본) | CRYPTO — 수수료관리 채널 탭 */
+            @RequestParam(required = false) String feeChannel,
             @RequestParam(required = false) String useYn,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
@@ -36,7 +38,7 @@ public class ApiCommissionController {
             @RequestParam(defaultValue = "500") int size) {
         commissionService.touchCommissionOtpActivity(authentication);
         PageResult<Map<String, Object>> pr = commissionService.search(searchCompId, searchCompNm, searchCompDiv,
-                searchPolicyCur, useYn, page, size);
+                searchPolicyCur, useYn, page, size, feeChannel);
         return ResponseEntity.ok(ApiResponse.ok(pr));
     }
 
@@ -56,9 +58,11 @@ public class ApiCommissionController {
             Authentication authentication,
             @RequestParam String compId,
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "100") int size) {
+            @RequestParam(defaultValue = "100") int size,
+            @RequestParam(required = false) String feeChannel) {
         commissionService.touchCommissionOtpActivity(authentication);
-        return ResponseEntity.ok(ApiResponse.ok(commissionService.history(compId, page, size)));
+        return ResponseEntity.ok(ApiResponse.ok(
+                commissionService.history(compId, page, size, feeChannel)));
     }
 
     @GetMapping("/otpStatus")
@@ -111,7 +115,11 @@ public class ApiCommissionController {
             @RequestParam(required = false) String branchPerTxFee,
             @RequestParam(required = false) String agencyPerTxFee,
             @RequestParam(required = false) String salesOfficePerTxFee,
-            @RequestParam(required = false) String applyStartDate) {
+            @RequestParam(required = false) String applyStartDate,
+            @RequestParam(required = false) String feeChannel,
+            @RequestParam(required = false) String acquisitionOpsFeePct,
+            @RequestParam(required = false) String escrowOpsFeePct,
+            @RequestParam(required = false) String authFeePerTx) {
         String totp = totpCode != null ? totpCode.trim() : "";
         if (totp.isEmpty() && otp != null) {
             totp = otp.trim();
@@ -119,6 +127,10 @@ public class ApiCommissionController {
         commissionService.verifyCommissionOtpForSave(authentication, totp);
 
         Map<String, Object> body = new java.util.HashMap<>();
+        body.put("feeChannel", feeChannel != null ? feeChannel : "FIAT");
+        body.put("acquisitionOpsFeePct", acquisitionOpsFeePct != null ? acquisitionOpsFeePct : "");
+        body.put("escrowOpsFeePct", escrowOpsFeePct != null ? escrowOpsFeePct : "");
+        body.put("authFeePerTx", authFeePerTx != null ? authFeePerTx : "");
         body.put("perTxFee", perTxFee != null ? perTxFee : "");
         body.put("cancelRate", cancelRate != null ? cancelRate : "");
         body.put("voidFeePerTx", voidFeePerTx != null ? voidFeePerTx : "");

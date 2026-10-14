@@ -70,6 +70,18 @@ public class CryptoDepositTxn {
     @Column(name = "expire_at")
     private LocalDateTime expireAt;
 
+    /** 확정 입금 시 산정·과금된 CRYPTO 수수료 합계(견적 통화·자산 액면) */
+    @Column(name = "fee_amt", precision = 24, scale = 8)
+    private BigDecimal feeAmt;
+
+    /** Y=확정 입금 시 수수료 과금 완료 */
+    @Column(name = "fee_charged_yn", length = 1)
+    private String feeChargedYn = "N";
+
+    /** 결제내역 연동 pg_trnsctn.trn_id */
+    @Column(name = "pay_trn_id", length = 20)
+    private String payTrnId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -119,6 +131,13 @@ public class CryptoDepositTxn {
     public void setConfirmedAt(LocalDateTime confirmedAt) { this.confirmedAt = confirmedAt; }
     public LocalDateTime getExpireAt() { return expireAt; }
     public void setExpireAt(LocalDateTime expireAt) { this.expireAt = expireAt; }
+    public BigDecimal getFeeAmt() { return feeAmt; }
+    public void setFeeAmt(BigDecimal feeAmt) { this.feeAmt = feeAmt; }
+    public String getFeeChargedYn() { return feeChargedYn; }
+    public void setFeeChargedYn(String feeChargedYn) { this.feeChargedYn = feeChargedYn; }
+    public String getPayTrnId() { return payTrnId; }
+    public void setPayTrnId(String payTrnId) { this.payTrnId = payTrnId; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
+

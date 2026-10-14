@@ -43,6 +43,14 @@ public class CryptoPayoutQueue {
     @Column(name = "amount_fee", nullable = false, precision = 24, scale = 8)
     private BigDecimal amountFee = BigDecimal.ZERO;
 
+    /** 네트워크 가스피(전 가맹 동일 마스터) — 조직% 배분과 별개 */
+    @Column(name = "amount_gas", nullable = false, precision = 24, scale = 8)
+    private BigDecimal amountGas = BigDecimal.ZERO;
+
+    /** 정산(송금) 부가 수수료 — 조직% 배분과 별개 */
+    @Column(name = "amount_settlement_fee", nullable = false, precision = 24, scale = 8)
+    private BigDecimal amountSettlementFee = BigDecimal.ZERO;
+
     @Column(name = "amount_reserve", nullable = false, precision = 24, scale = 8)
     private BigDecimal amountReserve = BigDecimal.ZERO;
 
@@ -87,6 +95,12 @@ public class CryptoPayoutQueue {
         if (amountFee == null) {
             amountFee = BigDecimal.ZERO;
         }
+        if (amountGas == null) {
+            amountGas = BigDecimal.ZERO;
+        }
+        if (amountSettlementFee == null) {
+            amountSettlementFee = BigDecimal.ZERO;
+        }
         if (amountReserve == null) {
             amountReserve = BigDecimal.ZERO;
         }
@@ -110,6 +124,10 @@ public class CryptoPayoutQueue {
     public void setAmountGross(BigDecimal amountGross) { this.amountGross = amountGross; }
     public BigDecimal getAmountFee() { return amountFee; }
     public void setAmountFee(BigDecimal amountFee) { this.amountFee = amountFee; }
+    public BigDecimal getAmountGas() { return amountGas; }
+    public void setAmountGas(BigDecimal amountGas) { this.amountGas = amountGas; }
+    public BigDecimal getAmountSettlementFee() { return amountSettlementFee; }
+    public void setAmountSettlementFee(BigDecimal amountSettlementFee) { this.amountSettlementFee = amountSettlementFee; }
     public BigDecimal getAmountReserve() { return amountReserve; }
     public void setAmountReserve(BigDecimal amountReserve) { this.amountReserve = amountReserve; }
     public BigDecimal getAmountNet() { return amountNet; }

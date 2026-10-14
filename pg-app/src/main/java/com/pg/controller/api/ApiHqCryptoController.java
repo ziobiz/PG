@@ -2,6 +2,7 @@ package com.pg.controller.api;
 
 import com.pg.api.ApiResponse;
 import com.pg.crypto.CryptoAdminService;
+import com.pg.crypto.CryptoGasFeeService;
 import com.pg.crypto.CryptoPayoutService;
 import com.pg.entity.AppUser;
 import com.pg.service.AuthService;
@@ -11,6 +12,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 /** 본사 크립토 설정 · 입금내역 · 출금 큐. */
@@ -20,18 +22,57 @@ public class ApiHqCryptoController {
 
     private final CryptoAdminService adminService;
     private final CryptoPayoutService payoutService;
+    private final CryptoGasFeeService gasFeeService;
     private final AuthService authService;
 
     public ApiHqCryptoController(CryptoAdminService adminService, CryptoPayoutService payoutService,
-                                 AuthService authService) {
+                                 CryptoGasFeeService gasFeeService, AuthService authService) {
         this.adminService = adminService;
         this.payoutService = payoutService;
+        this.gasFeeService = gasFeeService;
         this.authService = authService;
     }
 
     @GetMapping("/settings")
     public ResponseEntity<ApiResponse<Map<String, Object>>> settings() {
-        return ResponseEntity.ok(ApiResponse.ok(adminService.hqSettings()));
+        Map<String, Object> data = new java.util.LinkedHashMap<>(adminService.hqSettings());
+        data.put("gasFees", gasFeeService.listAll());
+        return ResponseEntity.ok(ApiResponse.ok(data));
+    }
+
+    /** 네트워크별 가스피(전 가맹 동일). 조직% 배분과 별개. */
+    @GetMapping("/gas-fees")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> gasFees() {
+        return ResponseEntity.ok(ApiResponse.ok(Map.of("list", gasFeeService.listAll())));
+    }
+
+    @PostMapping("/gas-fees/save")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> saveGasFee(@RequestBody Map<String, Object> body) {
+        try {
+            denyIfMerchantMutates();
+            requireTotp(body);
+            return ResponseEntity.ok(ApiResponse.ok(gasFeeService.saveOne(body)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "INVALID"));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "OTP_REQUIRED"));
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    @PostMapping("/gas-fees/save-all")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> saveGasFeesAll(@RequestBody Map<String, Object> body) {
+        try {
+            denyIfMerchantMutates();
+            requireTotp(body);
+            List<Map<String, Object>> rows = body != null && body.get("list") instanceof List
+                    ? (List<Map<String, Object>>) body.get("list") : List.of();
+            return ResponseEntity.ok(ApiResponse.ok(gasFeeService.saveAll(rows)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "INVALID"));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "OTP_REQUIRED"));
+        }
     }
 
     @PostMapping("/custody/save")

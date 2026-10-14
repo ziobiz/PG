@@ -14,6 +14,10 @@ public interface CommissionPolicyRepository extends JpaRepository<CommissionPoli
 
     Optional<CommissionPolicy> findByScope(String scope);
 
+    Optional<CommissionPolicy> findByScopeAndFeeChannel(String scope, String feeChannel);
+
+    List<CommissionPolicy> findByFeeChannelOrderByScopeAsc(String feeChannel);
+
     List<CommissionPolicy> findByScopeIn(Collection<String> scopes);
     List<CommissionPolicy> findByScopeStartingWithOrderByScopeAsc(String prefix);
     Optional<CommissionPolicy> findFirstByScopeStartingWithAndDeployYnOrderByUpdatedAtDesc(String prefix, String deployYn);

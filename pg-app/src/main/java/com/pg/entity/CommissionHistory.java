@@ -17,6 +17,10 @@ public class CommissionHistory {
     @Column(name = "comp_id", nullable = false, length = 50)
     private String compId;
 
+    /** FIAT | CRYPTO — 수수료관리 채널별 이력 */
+    @Column(name = "fee_channel", nullable = false, length = 16)
+    private String feeChannel = "FIAT";
+
     @Column(name = "chg_type", length = 20)
     private String chgType = "COMMISSION";
 
@@ -42,6 +46,10 @@ public class CommissionHistory {
     public void setId(Long id) { this.id = id; }
     public String getCompId() { return compId; }
     public void setCompId(String compId) { this.compId = compId; }
+    public String getFeeChannel() { return feeChannel; }
+    public void setFeeChannel(String feeChannel) {
+        this.feeChannel = feeChannel != null && !feeChannel.isBlank() ? feeChannel.trim().toUpperCase() : "FIAT";
+    }
     public String getChgType() { return chgType; }
     public void setChgType(String chgType) { this.chgType = chgType; }
     public String getChgDesc() { return chgDesc; }

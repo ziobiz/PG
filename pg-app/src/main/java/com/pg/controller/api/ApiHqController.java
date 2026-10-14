@@ -27,6 +27,7 @@ import com.pg.service.OrgUnitChangeAuditService;
 import com.pg.service.ServerUsageService;
 import com.pg.service.UrlPayCheckoutFieldPresetService;
 import com.pg.service.UrlPayDisplayFxService;
+import com.pg.util.CommissionFeeChannel;
 import com.pg.util.CommissionTierJsonHelper;
 import com.pg.util.PercentDecimalHelper;
 import com.pg.util.PgAgencyPayFollowCapability;
@@ -1066,35 +1067,14 @@ public class ApiHqController {
 
     /** 2. 기본정책 (건당/이용/실패/취소/환불/결제/정산/USDT/FX/롤링%) */
     @GetMapping("/defaultCommission")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> defaultCommission() {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> defaultCommission(
+            @RequestParam(required = false) String feeChannel) {
+        String ch = CommissionFeeChannel.normalize(feeChannel);
+        String defaultScope = CommissionFeeChannel.defaultScope(ch);
         Map<String, Object> data = new HashMap<>();
-        commissionPolicyRepository.findByScope("DEFAULT").ifPresent(p -> {
-            data.put("perTxFee", p.getPerTxFee() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getPerTxFee()) : "0.0");
-            data.put("usageRate", p.getUsageRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getUsageRate()) : "0.0");
-            data.put("failFee", p.getFailFee() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFailFee()) : "0.0");
-            data.put("cancelRate", p.getCancelRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getCancelRate()) : "0.0");
-            data.put("voidFeePerTx", p.getVoidFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getVoidFeePerTx()) : "0.0");
-            data.put("manualVoidFeePerTx", p.getManualVoidFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getManualVoidFeePerTx()) : "0.0");
-            data.put("refundRate", p.getRefundRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getRefundRate()) : "0.0");
-            data.put("payRate", p.getPayRate() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getPayRate()) : "2.5");
-            data.put("feeSettlementPerTx", p.getFeeSettlementPerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFeeSettlementPerTx()) : "0.0");
-            data.put("remittanceTransferFee", p.getRemittanceTransferFee() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getRemittanceTransferFee()) : "0.0");
-            data.put("usdtTransferFeeUsd", p.getUsdtTransferFeeUsd() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getUsdtTransferFeeUsd()) : "0.0");
-            data.put("feeUsdt", p.getFeeUsdt() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeUsdt()) : "0");
-            data.put("feeFx", p.getFeeFx() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeFx()) : "0");
-            data.put("rollingPct", p.getRollingPct() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getRollingPct()) : "5");
-            data.put("rollingDays", p.getRollingDays() != null ? p.getRollingDays() : 180);
-            data.put("currencyCode", p.getCurrencyCode() != null && !p.getCurrencyCode().isBlank() ? p.getCurrencyCode() : "KRW");
-            data.put("policyRemark", p.getPolicyRemark() != null ? p.getPolicyRemark() : "");
-            data.put("fee3dsRate", p.getFee3dsRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFee3dsRate()) : "0.0");
-            data.put("chargebackFeePerTx", p.getChargebackFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getChargebackFeePerTx()) : "0.0");
-            data.put("chargebackPolicyId", p.getChargebackPolicyId() != null ? p.getChargebackPolicyId() : "");
-            data.put("splitPayFeePct", p.getSplitPayFeePct() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getSplitPayFeePct()) : "0");
-            data.put("splitPayFixedFeePerInst", p.getSplitPayFixedFeePerInst() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getSplitPayFixedFeePerInst()) : "0.0");
-            data.put("voidSettlementMode", policySettlementModeForApi(p.getVoidSettlementMode()));
-            data.put("manualVoidSettlementMode", policySettlementModeForApi(p.getManualVoidSettlementMode()));
-            data.put("refundSettlementMode", policySettlementModeForApi(p.getRefundSettlementMode()));
-            data.put("forceRefundSettlementMode", policySettlementModeForApi(p.getForceRefundSettlementMode()));
+        data.put("feeChannel", ch);
+        commissionPolicyRepository.findByScope(defaultScope).ifPresent(p -> {
+            putPolicyScalarsOnMap(data, p);
             putExtraFeeScalarsOnMap(data, p);
             data.put("tierCommission", tierMapForPolicy(p));
             CommissionTierJsonHelper.applyTierJsonSumsToDisplayMap(data, p);
@@ -1102,16 +1082,19 @@ public class ApiHqController {
         if (!data.containsKey("payRate")) {
             data.put("perTxFee", "0.0"); data.put("usageRate", "0.0"); data.put("failFee", "0.0");
             data.put("cancelRate", "0.0"); data.put("voidFeePerTx", "0.0"); data.put("manualVoidFeePerTx", "0.0");
-            data.put("refundRate", "0.0"); data.put("payRate", "2.5");
+            data.put("refundRate", "0.0"); data.put("payRate", CommissionFeeChannel.isCrypto(ch) ? "0" : "2.5");
             data.put("feeSettlementPerTx", "0.0"); data.put("remittanceTransferFee", "0.0"); data.put("usdtTransferFeeUsd", "0.0"); data.put("feeUsdt", "0"); data.put("feeFx", "0");
-            data.put("rollingPct", "5"); data.put("rollingDays", 180);
-            data.put("currencyCode", "KRW");
+            data.put("rollingPct", CommissionFeeChannel.isCrypto(ch) ? "0" : "5"); data.put("rollingDays", CommissionFeeChannel.isCrypto(ch) ? 0 : 180);
+            data.put("currencyCode", CommissionFeeChannel.isCrypto(ch) ? "USDT" : "KRW");
             data.put("policyRemark", "");
             data.put("fee3dsRate", "0.0");
             data.put("chargebackFeePerTx", "0.0");
             data.put("chargebackPolicyId", "");
             data.put("splitPayFeePct", "0");
             data.put("splitPayFixedFeePerInst", "0.0");
+            data.put("acquisitionOpsFeePct", "0");
+            data.put("escrowOpsFeePct", "0");
+            data.put("authFeePerTx", "0.0");
             data.put("voidSettlementMode", VoidRefundSettlementModeUtil.GENERAL);
             data.put("manualVoidSettlementMode", VoidRefundSettlementModeUtil.GENERAL);
             data.put("refundSettlementMode", VoidRefundSettlementModeUtil.GENERAL);
@@ -1142,7 +1125,7 @@ public class ApiHqController {
         } else {
             data.put("chargebackPolicyName", "");
         }
-        List<Map<String, Object>> templates = listAllTemplatePolicies()
+        List<Map<String, Object>> templates = listAllTemplatePolicies(ch)
                 .stream()
                 .map(p -> enrichPolicyMapWithChargebackName(policyToMap(p), p.getChargebackPolicyId(), chargebackNames))
                 .toList();
@@ -1155,20 +1138,30 @@ public class ApiHqController {
         data.put("deployedTemplateScopes", deployedScopes);
         String deployedScope = deployedScopes.isEmpty() ? "" : deployedScopes.get(0);
         data.put("deployedTemplateScope", deployedScope);
-        data.put("memo", "조직별 격자: 총본사~영업점은 배분(결제율·건당)에 반영됩니다. 가맹 열은 위 6단계 합계(가맹점 적용분)로 표시·저장됩니다. 가맹점이 본사설정을 따르면 이 합계가 기준이 되고, 업체관리 수수료에서 수정 시 그 값이 우선합니다. 결제·USDT·FX는 승인금액 기준 %, 3DS는 정책통화 기준 건당 고정(건). 건당·고정액은 통화 단위(소수 첫째 자리). 차지백 구간정책·롤링은 격자 외 필드입니다.");
+        data.put("memo", CommissionFeeChannel.isCrypto(ch)
+                ? "CRYPTO 채널: 매입·에스크로 운영수수료(%)·인증 수수료(건)를 사용합니다. USDT 송금·USDT%·3DS는 FIAT 전용입니다. 확정 입금 시 과금됩니다."
+                : "조직별 격자: 총본사~영업점은 배분(결제율·건당)에 반영됩니다. 가맹 열은 위 6단계 합계(가맹점 적용분)로 표시·저장됩니다. 가맹점이 본사설정을 따르면 이 합계가 기준이 되고, 업체관리 수수료에서 수정 시 그 값이 우선합니다. 결제·USDT·FX는 승인금액 기준 %, 3DS는 정책통화 기준 건당 고정(건). 건당·고정액은 통화 단위(소수 첫째 자리). 차지백 구간정책·롤링은 격자 외 필드입니다.");
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
     @PostMapping("/defaultCommission/save")
     @SuppressWarnings("null")
     public ResponseEntity<ApiResponse<Map<String, Object>>> defaultCommissionSave(@RequestBody Map<String, Object> body) {
+        String ch = CommissionFeeChannel.normalize(hqStr(body, "feeChannel"));
         String templateScope = hqStr(body, "templateScope");
-        String scope = (templateScope != null && !templateScope.trim().isEmpty()) ? templateScope.trim() : "DEFAULT";
+        String scope;
+        if (templateScope != null && !templateScope.trim().isEmpty()) {
+            scope = templateScope.trim();
+        } else {
+            scope = CommissionFeeChannel.defaultScope(ch);
+        }
         CommissionPolicy p = commissionPolicyRepository.findByScope(scope).orElseGet(() -> {
             CommissionPolicy def = new CommissionPolicy();
             def.setScope(scope);
+            def.setFeeChannel(ch);
             return def;
         });
+        p.setFeeChannel(ch);
         if (scope.startsWith(TEMPLATE_SCOPE_PREFIX)) {
             String policyName = hqStr(body, "policyName");
             p.setPolicyName(policyName != null && !policyName.trim().isEmpty() ? policyName.trim() : scope.substring(TEMPLATE_SCOPE_PREFIX.length()));
@@ -1197,21 +1190,43 @@ public class ApiHqController {
             p.setPayRate(PercentDecimalHelper.parsePercentOneDecimal(body.get("payRate")));
             p.setFeeSettlementPerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("feeSettlementPerTx")));
             p.setRemittanceTransferFee(PercentDecimalHelper.parseAmountOneDecimal(body.get("remittanceTransferFee")));
-            p.setUsdtTransferFeeUsd(PercentDecimalHelper.parseAmountOneDecimal(body.get("usdtTransferFeeUsd")));
-            p.setFeeUsdt(PercentDecimalHelper.parsePercentOneDecimal(body.get("feeUsdt")));
+            if (CommissionFeeChannel.isCrypto(ch)) {
+                p.setUsdtTransferFeeUsd(BigDecimal.ZERO);
+                p.setFeeUsdt(BigDecimal.ZERO);
+                p.setFee3dsRate(BigDecimal.ZERO);
+            } else {
+                p.setUsdtTransferFeeUsd(PercentDecimalHelper.parseAmountOneDecimal(body.get("usdtTransferFeeUsd")));
+                p.setFeeUsdt(PercentDecimalHelper.parsePercentOneDecimal(body.get("feeUsdt")));
+                p.setFee3dsRate(PercentDecimalHelper.parseAmountOneDecimal(body.get("fee3dsRate")));
+            }
             p.setFeeFx(PercentDecimalHelper.parsePercentOneDecimal(body.get("feeFx")));
-            p.setFee3dsRate(PercentDecimalHelper.parsePercentOneDecimal(body.get("fee3dsRate")));
             p.setChargebackFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("chargebackFeePerTx")));
             p.setSplitPayFeePct(PercentDecimalHelper.parsePercentOneDecimal(body.get("splitPayFeePct")));
             p.setSplitPayFixedFeePerInst(PercentDecimalHelper.parseAmountOneDecimal(body.get("splitPayFixedFeePerInst")));
+            p.setAcquisitionOpsFeePct(PercentDecimalHelper.parsePercentOneDecimal(body.get("acquisitionOpsFeePct")));
+            p.setEscrowOpsFeePct(PercentDecimalHelper.parsePercentOneDecimal(body.get("escrowOpsFeePct")));
+            p.setAuthFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("authFeePerTx")));
             applyExtraFeesFromBody(p, body);
             p.setTierCommissionJson(CommissionTierJsonHelper.buildTierJsonFromPolicyScalars(p));
+        } else {
+            p.setAcquisitionOpsFeePct(PercentDecimalHelper.parsePercentOneDecimal(body.get("acquisitionOpsFeePct")));
+            p.setEscrowOpsFeePct(PercentDecimalHelper.parsePercentOneDecimal(body.get("escrowOpsFeePct")));
+            p.setAuthFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("authFeePerTx")));
+            if (CommissionFeeChannel.isCrypto(ch)) {
+                p.setUsdtTransferFeeUsd(BigDecimal.ZERO);
+                p.setFeeUsdt(BigDecimal.ZERO);
+                p.setFee3dsRate(BigDecimal.ZERO);
+            }
         }
         p.setRollingPct(PercentDecimalHelper.parsePercentOneDecimal(body.get("rollingPct")));
         Object rd = body.get("rollingDays");
-        p.setRollingDays(rd != null && !rd.toString().isEmpty() ? Integer.parseInt(rd.toString()) : 180);
+        p.setRollingDays(rd != null && !rd.toString().isEmpty() ? Integer.parseInt(rd.toString()) : (CommissionFeeChannel.isCrypto(ch) ? 0 : 180));
         String cc = hqStr(body, "currencyCode");
-        p.setCurrencyCode(cc != null && !cc.isBlank() ? cc.trim().toUpperCase(Locale.ROOT) : "KRW");
+        if (cc != null && !cc.isBlank()) {
+            p.setCurrencyCode(cc.trim().toUpperCase(Locale.ROOT));
+        } else {
+            p.setCurrencyCode(CommissionFeeChannel.isCrypto(ch) ? "USDT" : "KRW");
+        }
         p.setPolicyRemark(hqStr(body, "policyRemark"));
         p.setChargebackPolicyId(parseOptionalPolicyLong(body.get("chargebackPolicyId")));
         if (body.containsKey("voidSettlementMode")) {
@@ -1233,10 +1248,12 @@ public class ApiHqController {
     }
 
     @GetMapping("/defaultCommission/templateOptions")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> defaultCommissionTemplateOptions() {
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> defaultCommissionTemplateOptions(
+            @RequestParam(required = false) String feeChannel) {
+        String ch = CommissionFeeChannel.normalize(feeChannel);
         Map<Long, String> chargebackNames = chargebackFeePolicyRepository.findAllByOrderByNameAsc().stream()
                 .collect(Collectors.toMap(ChargebackFeePolicy::getId, ChargebackFeePolicy::getName, (a, b) -> a));
-        List<Map<String, Object>> list = listAllTemplatePolicies()
+        List<Map<String, Object>> list = listAllTemplatePolicies(ch)
                 .stream()
                 .map(po -> enrichPolicyMapWithChargebackName(policyToMap(po), po.getChargebackPolicyId(), chargebackNames))
                 .toList();
@@ -1244,14 +1261,30 @@ public class ApiHqController {
     }
 
     private List<CommissionPolicy> listAllTemplatePolicies() {
+        return listAllTemplatePolicies(CommissionFeeChannel.FIAT);
+    }
+
+    private List<CommissionPolicy> listAllTemplatePolicies(String feeChannel) {
+        String ch = CommissionFeeChannel.normalize(feeChannel);
         return commissionPolicyRepository.findAll().stream()
                 .filter(p -> {
                     String scope = p.getScope() != null ? p.getScope().trim() : "";
-                    if (scope.isBlank() || "DEFAULT".equalsIgnoreCase(scope)) return false;
+                    if (scope.isBlank()) return false;
+                    if (CommissionFeeChannel.DEFAULT_SCOPE_FIAT.equalsIgnoreCase(scope)
+                            || CommissionFeeChannel.DEFAULT_SCOPE_CRYPTO.equalsIgnoreCase(scope)) {
+                        return false;
+                    }
+                    String pch = CommissionFeeChannel.normalize(p.getFeeChannel());
+                    if (!ch.equals(pch)) {
+                        /* 레거시 템플릿(fee_channel 없음·FIAT 기본)은 FIAT 탭에만 */
+                        if (!(CommissionFeeChannel.FIAT.equals(ch) && CommissionFeeChannel.FIAT.equals(pch))) {
+                            return false;
+                        }
+                    }
                     if (scope.startsWith(TEMPLATE_SCOPE_PREFIX)) return true;
                     String policyName = p.getPolicyName() != null ? p.getPolicyName().trim() : "";
-                    // 레거시 템플릿: 정책명이 있고, scope가 순수 숫자(업체코드) 형식이 아닌 항목
-                    return !policyName.isBlank() && !scope.matches("\\d{6,}");
+                    return !policyName.isBlank() && !scope.matches("\\d{6,}")
+                            && !CommissionFeeChannel.isMerchantCryptoScope(scope);
                 })
                 .sorted(Comparator.comparing(CommissionPolicy::getScope, Comparator.nullsLast(String::compareTo)))
                 .toList();
@@ -1259,16 +1292,20 @@ public class ApiHqController {
 
     @PostMapping("/defaultCommission/template/add")
     public ResponseEntity<ApiResponse<Map<String, Object>>> addDefaultCommissionTemplate(@RequestBody Map<String, Object> body) {
+        String ch = CommissionFeeChannel.normalize(hqStr(body, "feeChannel"));
         String codeRaw = hqStr(body, "templateCode");
         String code = (codeRaw == null || codeRaw.isBlank()) ? null : codeRaw.trim().toUpperCase(Locale.ROOT);
+        String codePrefix = CommissionFeeChannel.isCrypto(ch) ? "CRYPTO_" : "";
         if (code == null) {
             for (char c = 'A'; c <= 'Z'; c++) {
-                String s = String.valueOf(c);
+                String s = codePrefix + c;
                 if (commissionPolicyRepository.findByScope(TEMPLATE_SCOPE_PREFIX + s).isEmpty()) {
                     code = s;
                     break;
                 }
             }
+        } else if (CommissionFeeChannel.isCrypto(ch) && !code.startsWith("CRYPTO_")) {
+            code = "CRYPTO_" + code;
         }
         if (code == null || !code.matches("[A-Z0-9_\\-]{1,20}")) {
             return ResponseEntity.ok(ApiResponse.fail("정책코드는 영문 대문자/숫자(1~20자)로 입력하세요.", "VALIDATION"));
@@ -1277,14 +1314,26 @@ public class ApiHqController {
         if (commissionPolicyRepository.findByScope(scope).isPresent()) {
             return ResponseEntity.ok(ApiResponse.fail("이미 존재하는 정책코드입니다.", "DUPLICATE"));
         }
-        CommissionPolicy src = commissionPolicyRepository.findByScope("DEFAULT").orElseGet(CommissionPolicy::new);
+        CommissionPolicy src = commissionPolicyRepository.findByScope(CommissionFeeChannel.defaultScope(ch))
+                .orElseGet(CommissionPolicy::new);
         CommissionPolicy n = new CommissionPolicy();
         n.setScope(scope);
         n.setPolicyName(code);
         n.setDeployYn("N");
+        n.setFeeChannel(ch);
         copyPolicyValues(src, n);
+        n.setFeeChannel(ch);
+        if (CommissionFeeChannel.isCrypto(ch)) {
+            n.setUsdtTransferFeeUsd(BigDecimal.ZERO);
+            n.setFeeUsdt(BigDecimal.ZERO);
+            n.setFee3dsRate(BigDecimal.ZERO);
+            if (n.getCurrencyCode() == null || n.getCurrencyCode().isBlank()
+                    || Set.of("KRW", "JPY", "THB", "CNY", "VND", "GBP", "TWD", "HKD", "EUR", "USD").contains(n.getCurrencyCode())) {
+                n.setCurrencyCode("USDT");
+            }
+        }
         commissionPolicyRepository.save(n);
-        return ResponseEntity.ok(ApiResponse.ok(Map.of("scope", scope, "policyName", code, "message", "정책 템플릿이 추가되었습니다.")));
+        return ResponseEntity.ok(ApiResponse.ok(Map.of("scope", scope, "policyName", code, "feeChannel", ch, "message", "정책 템플릿이 추가되었습니다.")));
     }
 
     @PostMapping("/defaultCommission/template/delete")
@@ -1302,37 +1351,48 @@ public class ApiHqController {
         return ResponseEntity.ok(ApiResponse.ok(Map.of("message", "정책 템플릿이 삭제되었습니다.")));
     }
 
+    private void putPolicyScalarsOnMap(Map<String, Object> data, CommissionPolicy p) {
+        if (data == null || p == null) {
+            return;
+        }
+        data.put("feeChannel", CommissionFeeChannel.normalize(p.getFeeChannel()));
+        data.put("perTxFee", p.getPerTxFee() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getPerTxFee()) : "0.0");
+        data.put("usageRate", p.getUsageRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getUsageRate()) : "0.0");
+        data.put("failFee", p.getFailFee() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFailFee()) : "0.0");
+        data.put("cancelRate", p.getCancelRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getCancelRate()) : "0.0");
+        data.put("voidFeePerTx", p.getVoidFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getVoidFeePerTx()) : "0.0");
+        data.put("manualVoidFeePerTx", p.getManualVoidFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getManualVoidFeePerTx()) : "0.0");
+        data.put("refundRate", p.getRefundRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getRefundRate()) : "0.0");
+        data.put("payRate", p.getPayRate() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getPayRate()) : "0");
+        data.put("feeSettlementPerTx", p.getFeeSettlementPerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFeeSettlementPerTx()) : "0.0");
+        data.put("remittanceTransferFee", p.getRemittanceTransferFee() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getRemittanceTransferFee()) : "0.0");
+        data.put("usdtTransferFeeUsd", p.getUsdtTransferFeeUsd() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getUsdtTransferFeeUsd()) : "0.0");
+        data.put("feeUsdt", p.getFeeUsdt() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeUsdt()) : "0");
+        data.put("feeFx", p.getFeeFx() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeFx()) : "0");
+        data.put("rollingPct", p.getRollingPct() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getRollingPct()) : "0");
+        data.put("rollingDays", p.getRollingDays() != null ? p.getRollingDays() : 180);
+        data.put("currencyCode", p.getCurrencyCode() != null && !p.getCurrencyCode().isBlank() ? p.getCurrencyCode() : "KRW");
+        data.put("policyRemark", p.getPolicyRemark() != null ? p.getPolicyRemark() : "");
+        data.put("fee3dsRate", p.getFee3dsRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFee3dsRate()) : "0.0");
+        data.put("chargebackFeePerTx", p.getChargebackFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getChargebackFeePerTx()) : "0.0");
+        data.put("chargebackPolicyId", p.getChargebackPolicyId() != null ? p.getChargebackPolicyId() : "");
+        data.put("splitPayFeePct", p.getSplitPayFeePct() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getSplitPayFeePct()) : "0");
+        data.put("splitPayFixedFeePerInst", p.getSplitPayFixedFeePerInst() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getSplitPayFixedFeePerInst()) : "0.0");
+        data.put("acquisitionOpsFeePct", p.getAcquisitionOpsFeePct() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getAcquisitionOpsFeePct()) : "0");
+        data.put("escrowOpsFeePct", p.getEscrowOpsFeePct() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getEscrowOpsFeePct()) : "0");
+        data.put("authFeePerTx", p.getAuthFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getAuthFeePerTx()) : "0.0");
+        data.put("voidSettlementMode", policySettlementModeForApi(p.getVoidSettlementMode()));
+        data.put("manualVoidSettlementMode", policySettlementModeForApi(p.getManualVoidSettlementMode()));
+        data.put("refundSettlementMode", policySettlementModeForApi(p.getRefundSettlementMode()));
+        data.put("forceRefundSettlementMode", policySettlementModeForApi(p.getForceRefundSettlementMode()));
+    }
+
     private Map<String, Object> policyToMap(CommissionPolicy p) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("scope", p.getScope());
         m.put("policyName", p.getPolicyName() != null ? p.getPolicyName() : "");
         m.put("deployYn", p.getDeployYn() != null ? p.getDeployYn() : "N");
-        m.put("perTxFee", p.getPerTxFee() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getPerTxFee()) : "0.0");
-        m.put("usageRate", p.getUsageRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getUsageRate()) : "0.0");
-        m.put("failFee", p.getFailFee() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFailFee()) : "0.0");
-        m.put("cancelRate", p.getCancelRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getCancelRate()) : "0.0");
-        m.put("voidFeePerTx", p.getVoidFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getVoidFeePerTx()) : "0.0");
-        m.put("manualVoidFeePerTx", p.getManualVoidFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getManualVoidFeePerTx()) : "0.0");
-        m.put("refundRate", p.getRefundRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getRefundRate()) : "0.0");
-        m.put("payRate", p.getPayRate() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getPayRate()) : "0");
-        m.put("feeSettlementPerTx", p.getFeeSettlementPerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFeeSettlementPerTx()) : "0.0");
-        m.put("remittanceTransferFee", p.getRemittanceTransferFee() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getRemittanceTransferFee()) : "0.0");
-        m.put("usdtTransferFeeUsd", p.getUsdtTransferFeeUsd() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getUsdtTransferFeeUsd()) : "0.0");
-        m.put("feeUsdt", p.getFeeUsdt() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeUsdt()) : "0");
-        m.put("feeFx", p.getFeeFx() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeFx()) : "0");
-        m.put("rollingPct", p.getRollingPct() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getRollingPct()) : "0");
-        m.put("rollingDays", p.getRollingDays() != null ? p.getRollingDays() : 180);
-        m.put("currencyCode", p.getCurrencyCode() != null && !p.getCurrencyCode().isBlank() ? p.getCurrencyCode() : "KRW");
-        m.put("policyRemark", p.getPolicyRemark() != null ? p.getPolicyRemark() : "");
-        m.put("fee3dsRate", p.getFee3dsRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFee3dsRate()) : "0.0");
-        m.put("chargebackFeePerTx", p.getChargebackFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getChargebackFeePerTx()) : "0.0");
-        m.put("splitPayFeePct", p.getSplitPayFeePct() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getSplitPayFeePct()) : "0");
-        m.put("splitPayFixedFeePerInst", p.getSplitPayFixedFeePerInst() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getSplitPayFixedFeePerInst()) : "0.0");
-        m.put("chargebackPolicyId", p.getChargebackPolicyId() != null ? p.getChargebackPolicyId() : "");
-        m.put("voidSettlementMode", policySettlementModeForApi(p.getVoidSettlementMode()));
-        m.put("manualVoidSettlementMode", policySettlementModeForApi(p.getManualVoidSettlementMode()));
-        m.put("refundSettlementMode", policySettlementModeForApi(p.getRefundSettlementMode()));
-        m.put("forceRefundSettlementMode", policySettlementModeForApi(p.getForceRefundSettlementMode()));
+        putPolicyScalarsOnMap(m, p);
         putExtraFeeScalarsOnMap(m, p);
         m.put("tierCommission", tierMapForPolicy(p));
         CommissionTierJsonHelper.applyTierJsonSumsToDisplayMap(m, p);
@@ -1591,6 +1651,16 @@ public class ApiHqController {
         dst.setExtraFee4Mode(src.getExtraFee4Mode());
         dst.setExtraFee4Value(src.getExtraFee4Value());
         dst.setTierCommissionJson(src.getTierCommissionJson());
+        dst.setFeeChannel(src.getFeeChannel());
+        dst.setAcquisitionOpsFeePct(src.getAcquisitionOpsFeePct());
+        dst.setEscrowOpsFeePct(src.getEscrowOpsFeePct());
+        dst.setAuthFeePerTx(src.getAuthFeePerTx());
+        if (src.getSplitPayFeePct() != null) {
+            dst.setSplitPayFeePct(src.getSplitPayFeePct());
+        }
+        if (src.getSplitPayFixedFeePerInst() != null) {
+            dst.setSplitPayFixedFeePerInst(src.getSplitPayFixedFeePerInst());
+        }
     }
 
     private static BigDecimal toBigDecimal(Object o) {

@@ -50,6 +50,8 @@ public class PayListSearchRequest {
     private String searchOrgUnitCode;
     /** 통합리포트 등: 통화 필터(JPY·USD …). 비우면 거래가 있는 통화만 표시 */
     private String searchCurrencyFilter;
+    /** 수수료 채널 FIAT|CRYPTO|ALL(빈값=전체) */
+    private String searchFeeChannel;
     private int page = 1;
     private int size = 20;
 
@@ -85,6 +87,7 @@ public class PayListSearchRequest {
         r.searchOrgLevel = trimToNull(raw.get("searchOrgLevel"));
         r.searchOrgUnitCode = trimToNull(raw.get("searchOrgUnitCode"));
         r.searchCurrencyFilter = trimToNull(raw.get("searchCurrencyFilter"));
+        r.searchFeeChannel = trimToNull(raw.get("searchFeeChannel"));
         return r;
     }
 
@@ -114,6 +117,7 @@ public class PayListSearchRequest {
         put(m, "searchOrgLevel", searchOrgLevel);
         put(m, "searchOrgUnitCode", searchOrgUnitCode);
         put(m, "searchCurrencyFilter", searchCurrencyFilter);
+        put(m, "searchFeeChannel", searchFeeChannel);
         m.put("page", String.valueOf(page));
         m.put("size", String.valueOf(size));
         return m;
@@ -218,6 +222,8 @@ public class PayListSearchRequest {
     public void setSearchOrgUnitCode(String searchOrgUnitCode) { this.searchOrgUnitCode = searchOrgUnitCode; }
     public String getSearchCurrencyFilter() { return searchCurrencyFilter; }
     public void setSearchCurrencyFilter(String searchCurrencyFilter) { this.searchCurrencyFilter = searchCurrencyFilter; }
+    public String getSearchFeeChannel() { return searchFeeChannel; }
+    public void setSearchFeeChannel(String searchFeeChannel) { this.searchFeeChannel = searchFeeChannel; }
 
     /** 일별 집계 등: 검색 조건만 복제(날짜·페이지는 호출부에서 덮어씀). */
     public static PayListSearchRequest shallowCopy(PayListSearchRequest src) {
@@ -255,6 +261,7 @@ public class PayListSearchRequest {
         r.searchOrgLevel = src.searchOrgLevel;
         r.searchOrgUnitCode = src.searchOrgUnitCode;
         r.searchCurrencyFilter = src.searchCurrencyFilter;
+        r.searchFeeChannel = src.searchFeeChannel;
         return r;
     }
 }
