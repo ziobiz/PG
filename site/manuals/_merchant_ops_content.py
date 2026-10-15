@@ -36,9 +36,9 @@ def ops_doc(lang: str) -> dict:
             "perm_rows": [
                 ("업체관리 &gt; 내 업체정보", "view", "결제·재결제·챗봇·분할 URL 확인·복사 / 설정 변경 불가"),
                 ("업체관리 &gt; 공지사항", "view", "본사·총판 운영 공지 확인"),
-                ("결제관리 &gt; 결제내역 등", "view", "승인·실패·취소·환불 조회 (권한에 따라 채널별 목록)"),
-                ("정산관리 &gt; 수수료·정산내역", "view", "수수료·정산 결과 조회"),
-                ("업체등록·접근권한 등", "none", "본사·총판 전용"),
+                ("결제관리 &gt; 결제내역·크립토내역", "view", "카드·크립토 입금 조회 (권한에 따라)"),
+                ("정산관리 &gt; 수수료·정산·크립토정산", "view", "수수료·정산·크립토 출금 결과 조회"),
+                ("업체등록·접근권한·크립토설정 변경", "none", "본사·총판 전용 (가맹은 크립토 조회·QR만)"),
             ],
             "toc": [
                 ("s1", "이 매뉴얼의 범위"),
@@ -47,7 +47,7 @@ def ops_doc(lang: str) -> dict:
                 ("s4", "STEP 2 — 결제 URL 확인·공유"),
                 ("s5", "STEP 3 — 결제내역 조회"),
                 ("s6", "STEP 4 — 수수료·정산"),
-                ("s7", "가맹점 API·챗봇(해당 시)"),
+                ("s7", "가맹점 API·챗봇·크립토(해당 시)"),
                 ("s8", "일상 체크리스트"),
                 ("s9", "FAQ"),
             ],
@@ -93,40 +93,45 @@ def ops_doc(lang: str) -> dict:
     <pre>https://api.icopay.co.kr/checkout/{{업체코드}}</pre>
     <table>
       <tr><th>항목</th><th>설명</th></tr>
-      <tr><td>결제 URL</td><td>공개 일회 결제 주소. [복사] 후 고객에게 전달</td></tr>
+      <tr><td>결제 URL</td><td>카드(URL) 일회 결제. [복사] 후 고객에게 전달</td></tr>
+      <tr><td>통합결제 URL</td><td>웹결제+크립토 사용이 모두 ON일 때 (<code>/checkout-all/업체코드</code>) — 카드·크립토 선택</td></tr>
+      <tr><td>크립토 결제 URL</td><td>크립토 전용(크립토 사용 ON·상위 설정 시 표시)</td></tr>
       <tr><td>URL 재결제 URL</td><td>저장 카드 재결제(기능 ON일 때만)</td></tr>
       <tr><td>챗봇결제 URL</td><td>챗봇 사용 가맹만</td></tr>
       <tr><td>분할결제 URL</td><td>분할결제 사용 ON일 때만 (상위가 가맹 업체정보 → URL 분할결제에서 사용으로 저장)</td></tr>
     </table>
     <div class="check-box">절차: 업체정보 열기 → 결제 URL 확인 → [복사] → SMS·메신저·쇼핑몰에 붙여넣기 → 본인 브라우저에서 테스트 오픈</div>
-    <div class="warn-box">웹결제 미사용·상위 중지면 URL이 없거나 안내만 표시될 수 있습니다.</div>
+    <div class="warn-box">웹결제 미사용·상위 중지면 URL이 없거나 안내만 표시될 수 있습니다. 크립토 URL은 상위가 크립토 사용·허용자산을 켠 뒤에만 표시됩니다.</div>
     <hr class="section-rule">
 
     <h2 class="section-title" id="s5">5. <span class="step-badge">STEP 3</span> 결제내역 조회 <small style="font-size:10pt;font-weight:400;color:#888;">(조회 전용)</small></h2>
-    <div class="menu-path">결제관리 &gt; 결제내역</div>
+    <div class="menu-path">결제관리 &gt; 결제내역 · 크립토내역</div>
     <ul>
       <li>기간·상태·키워드(주문번호)로 검색합니다.</li>
       <li>승인·실패·취소·환불을 구분합니다.</li>
       <li>권한이 있으면 URL/챗봇/구독/분할 결제내역·상태별 목록도 사용합니다.</li>
-      <li>고객 문의 시 <strong>주문번호·결제시각·금액</strong>을 함께 전달합니다.</li>
+      <li><strong>크립토내역</strong>: 입금 대기·확정(Tx) 조회. 가맹은 조회 중심이며 확정·출금은 상위 운영.</li>
+      <li>고객 문의 시 <strong>주문번호·결제시각·금액</strong>(크립토면 자산·네트워크)을 함께 전달합니다.</li>
     </ul>
     <hr class="section-rule">
 
     <h2 class="section-title" id="s6">6. <span class="step-badge">STEP 4</span> 수수료·정산</h2>
-    <div class="menu-path">정산관리 &gt; 수수료내역 / 일별수수료 / 가맹점정산내역</div>
+    <div class="menu-path">정산관리 &gt; 수수료내역 / 일별수수료 / 가맹점정산내역 / 크립토정산</div>
     <ul>
-      <li><strong>수수료내역·일별수수료</strong>: 거래·일자 단위 수수료를 확인합니다.</li>
+      <li><strong>수수료내역·일별수수료</strong>: 거래·일자 단위 수수료를 확인합니다. 채널(FIAT|CRYPTO)이 있으면 행을 구분합니다.</li>
       <li><strong>가맹점정산내역</strong>: 정산 실행 후 반영된 결과(정산일·지급·보류)를 확인합니다.</li>
+      <li><strong>크립토정산</strong>(권한 시): 크립토 출금 큐·상태 조회. 가맹 수취 지갑 변경은 상위만 가능합니다.</li>
       <li>수수료율·정산주기는 상위 정책과 가맹 설정을 따릅니다.</li>
     </ul>
     <div class="info-box">금액이 예상과 다르면 결제내역 승인액·상태와 대조한 뒤, 정산일·금액을 상위에 전달하십시오.</div>
     <hr class="section-rule">
 
-    <h2 class="section-title" id="s7">7. 가맹점 API·챗봇(해당 시)</h2>
-    <div class="menu-path">업체관리 &gt; 가맹점API · 챗봇관리</div>
+    <h2 class="section-title" id="s7">7. 가맹점 API·챗봇·크립토(해당 시)</h2>
+    <div class="menu-path">업체관리 &gt; 가맹점API · 챗봇관리 · 크립토설정(조회)</div>
     <ul>
-      <li><strong>가맹점API</strong>: 연동 키·문서(권한 시). 웹 결제·API 인라인·API 리다이렉트·챗봇·분할·WooCommerce는 모두 ICOPAY 통합 checkout(prepare/session/status)과 같은 결제통보를 사용합니다.</li>
+      <li><strong>가맹점API</strong>: 연동 키·문서(권한 시). 카드·크립토 모두 ICOPAY 통합 checkout(<code>prepare</code>, 크립토는 <code>payMeans=CRYPTO</code>)을 사용합니다. 크립토 Callback은 카드용 NOTI URL을 재사용합니다.</li>
       <li><strong>챗봇관리</strong>: 상품·주문 관리 후 챗봇결제 URL을 공유합니다. 상세는 「챗봇결제 가맹점 사용 메뉴얼」을 참고하십시오.</li>
+      <li><strong>크립토</strong>: 가맹 로그인은 수취 주소 조회·QR만. 사용·자산·주소 변경은 본사·총판. API 상세는 상위 「가맹 API 출시」·merchant-api-samples 크립토 문서(5개국어).</li>
     </ul>
     <hr class="section-rule">
 
@@ -149,6 +154,8 @@ def ops_doc(lang: str) -> dict:
     <div class="faq-item"><div class="faq-q">수수료·정산 금액이 예상과 다릅니다.</div><div class="faq-a">결제내역 승인액·상태와 대조한 뒤 정산일·금액을 상위에 전달하세요.</div></div>
     <div class="faq-item"><div class="faq-q">업체정보를 직접 수정하고 싶습니다.</div><div class="faq-a">내 업체정보는 조회 전용입니다. 상호·주소 변경은 본사·총판에 요청하세요.</div></div>
     <div class="faq-item"><div class="faq-q">문서 버전이 예전(V2.53 등)으로 보입니다.</div><div class="faq-a">운영 메뉴얼 PDF는 플랫폼 라이브 버전(V{VERSION})과 함께 배포됩니다. 새로고침 후에도 이전이면 캐시를 비우거나 상위에 배포 반영을 확인하세요.</div></div>
+    <div class="faq-item"><div class="faq-q">크립토 결제 URL·통합결제 URL이 없습니다.</div><div class="faq-a">상위가 크립토 사용=Y와 허용자산을 켜고, 웹결제(카드)도 ON이어야 통합결제 URL이 생깁니다. 본사·총판에 요청하세요.</div></div>
+    <div class="faq-item"><div class="faq-q">크립토 API Callback을 새로 등록해야 하나요?</div><div class="faq-a">아니요. 카드용 NOTI Callback을 Comp-Id로 재사용합니다. 연동 문서는 가맹점API·merchant-api-samples 크립토 가이드를 참고하세요.</div></div>
 """,
         }
     if lang == "en":
@@ -172,17 +179,17 @@ def ops_doc(lang: str) -> dict:
                 ("s4", "STEP 2 — Payment URL"),
                 ("s5", "STEP 3 — Payment list"),
                 ("s6", "STEP 4 — Fees & settlement"),
-                ("s7", "Merchant API & Chatbot"),
+                ("s7", "Merchant API · Chatbot · Crypto"),
                 ("s8", "Daily checklist"),
                 ("s9", "FAQ"),
             ],
             "body": f"""
     <h2 class="section-title" id="s1">1. Scope</h2>
     <p>Day-to-day guide for screens a <strong>Merchant (MERCHANT)</strong> login can open. Menus follow HQ Policy → Access. PG names stay neutralized as <strong>ICOPAY</strong>.</p>
-    <div class="info-box">Channel details (URL / Split / Subscription / Chatbot) are covered in the matching merchant user manuals under Ops manuals.</div>
+    <div class="info-box">Channel details (URL / Split / Subscription / Chatbot / Crypto) are covered in the matching merchant user manuals and API samples under Ops manuals.</div>
     <hr class="section-rule">
     <h2 class="section-title" id="s2">2. Before You Start</h2>
-    <div class="hq-box">Request from HQ: menu permissions, web-pay ON, company master data changes, fee/settlement policy.</div>
+    <div class="hq-box">Request from HQ: menu permissions, web-pay ON, crypto use/assets if needed, company master data changes, fee/settlement policy.</div>
     <hr class="section-rule">
     <h2 class="section-title" id="s3">3. <span class="step-badge">STEP 1</span> Sign-in &amp; notices</h2>
     <div class="menu-path">Companies &gt; Notices</div>
@@ -191,26 +198,28 @@ def ops_doc(lang: str) -> dict:
     <h2 class="section-title" id="s4">4. <span class="step-badge">STEP 2</span> Payment URL <small style="font-size:10pt;font-weight:400;color:#888;">(View Only)</small></h2>
     <div class="menu-path">Company Management &gt; My Company Info</div>
     <pre>https://api.icopay.co.kr/checkout/{{merchantCode}}</pre>
-    <div class="check-box">Copy Payment URL → share → self-test in browser. Re-pay / Chatbot / Split URLs appear only when enabled.</div>
-    <div class="warn-box">If web-pay is off or suspended, the URL may be missing or show a notice only.</div>
+    <div class="check-box">Copy Payment URL → share → self-test. Also: Unified URL (<code>/checkout-all/</code>) when web-pay + crypto are ON; Crypto payment URL when crypto is enabled. Re-pay / Chatbot / Split when enabled.</div>
+    <div class="warn-box">If web-pay is off or suspended, the card URL may be missing. Crypto URLs appear only after HQ enables crypto use and assets.</div>
     <hr class="section-rule">
     <h2 class="section-title" id="s5">5. <span class="step-badge">STEP 3</span> Payment list <small style="font-size:10pt;font-weight:400;color:#888;">(View Only)</small></h2>
-    <div class="menu-path">Payments &gt; Payment list</div>
-    <ul><li>Filter by date/status/order id.</li><li>Review approvals, failures, cancels, refunds.</li><li>Escalate with order id · time · amount.</li></ul>
+    <div class="menu-path">Payments &gt; Payment list · Crypto deposits</div>
+    <ul><li>Filter by date/status/order id.</li><li>Review approvals, failures, cancels, refunds.</li><li>Crypto deposits: view pending/confirmed; HQ confirms Tx.</li><li>Escalate with order id · time · amount (plus asset/network for crypto).</li></ul>
     <hr class="section-rule">
     <h2 class="section-title" id="s6">6. <span class="step-badge">STEP 4</span> Fees &amp; settlement</h2>
-    <div class="menu-path">Settlement &gt; Fee list / Daily fees / Merchant settlement</div>
-    <p>Cross-check unexpected figures against Payment list; include settlement date and amount when asking HQ.</p>
+    <div class="menu-path">Settlement &gt; Fee list / Daily fees / Merchant settlement / Crypto settlement</div>
+    <p>FIAT|CRYPTO channel rows may appear. Cross-check unexpected figures against Payment list; include settlement date and amount when asking HQ.</p>
     <hr class="section-rule">
-    <h2 class="section-title" id="s7">7. Merchant API &amp; Chatbot</h2>
-    <p>Merchant API (if permitted) uses ICOPAY unified checkout for web pay, API inline, API redirect, chatbot, split pay, and WooCommerce, with the same payment notice. Chatbot merchants: see Chatbot Merchant Manual.</p>
+    <h2 class="section-title" id="s7">7. Merchant API · Chatbot · Crypto</h2>
+    <p>Merchant API (if permitted) uses ICOPAY unified checkout for web pay, API inline, API redirect, chatbot, split pay, WooCommerce, and crypto (<code>payMeans=CRYPTO</code>). Crypto Callback reuses the card NOTI URL (Comp-Id). Chatbot merchants: see Chatbot Merchant Manual. Crypto API docs (5 languages): merchant-api-samples crypto-checkout-api.</p>
     <hr class="section-rule">
     <h2 class="section-title" id="s8">8. Daily checklist</h2>
-    <div class="check-box"><ol><li>Notices</li><li>Payment URL test</li><li>Today/yesterday approvals &amp; failures</li><li>Escalate spikes</li><li>Fee/settlement anomalies</li><li>Chatbot orders if used</li></ol></div>
+    <div class="check-box"><ol><li>Notices</li><li>Payment / Unified / Crypto URL test</li><li>Today/yesterday approvals &amp; failures</li><li>Escalate spikes</li><li>Fee/settlement anomalies</li><li>Chatbot / crypto deposits if used</li></ol></div>
     <hr class="section-rule">
     <h2 class="section-title" id="s9">9. FAQ</h2>
     <div class="faq-item"><div class="faq-q">Menu missing.</div><div class="faq-a">Ask HQ to open Access permissions for that URL.</div></div>
     <div class="faq-item"><div class="faq-q">Payment URL missing / notice only.</div><div class="faq-a">Usually web-pay off or suspended — check notices and HQ.</div></div>
+    <div class="faq-item"><div class="faq-q">No crypto / unified URL.</div><div class="faq-a">Ask HQ to enable crypto use + assets (and web-pay for unified URL).</div></div>
+    <div class="faq-item"><div class="faq-q">Need a new crypto Callback URL?</div><div class="faq-a">No — reuse the card NOTI Callback by Comp-Id. See crypto API guide in Merchant API samples.</div></div>
     <div class="faq-item"><div class="faq-q">Document still shows V2.53.</div><div class="faq-a">Ops manuals ship with platform live V{VERSION}. Hard-refresh or confirm deployment.</div></div>
 """,
         }
@@ -260,8 +269,9 @@ def _ops_loc(lang: str) -> dict:
     }
     en_s7 = (
         "Merchant API (if permitted) uses ICOPAY unified checkout for web pay, API inline, "
-        "API redirect, chatbot, split pay, and WooCommerce, with the same payment notice. "
-        "Chatbot merchants: see Chatbot Merchant Manual."
+        "API redirect, chatbot, split pay, WooCommerce, and crypto (payMeans=CRYPTO). "
+        "Crypto Callback reuses the card NOTI URL (Comp-Id). Chatbot merchants: see Chatbot Merchant Manual. "
+        "Crypto API docs (5 languages): merchant-api-samples crypto-checkout-api."
     )
     body = en["body"].replace(en_s7, s7[lang])
     return {

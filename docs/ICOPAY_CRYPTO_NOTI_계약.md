@@ -41,6 +41,19 @@
 2. 크립토만 신규면 NOTI에 가맹 등록 후 `callbackUrl`/`resultUrl` 설정 (JPAY/EP와 동일 필드).
 3. 수신통보 URL 카드의 Notify/Result는 **PG→NOTI 입구** 표시용; 크립토 고정 입구는 위 표.
 
+## 가맹 API 연동 문서 (5개국어)
+
+| 언어 | URL ( `{BASE}` = publicApiBaseUrl ) |
+|------|-------------------------------------|
+| KO | `{BASE}/merchant-api-samples/docs/crypto-checkout-api.ko.html` |
+| EN | `{BASE}/merchant-api-samples/docs/crypto-checkout-api.html` |
+| JA | `{BASE}/merchant-api-samples/docs/crypto-checkout-api.ja.html` |
+| CH | `{BASE}/merchant-api-samples/docs/crypto-checkout-api.ch.html` |
+| TH | `{BASE}/merchant-api-samples/docs/crypto-checkout-api.th.html` |
+
+권장 prepare: `POST .../merchant/checkout/prepare` + `payMeans=CRYPTO`.  
+통합 흐름·파라미터 표에도 동일 내용이 반영됨 (`unified-checkout-api-flow` / `parameters`).
+
 ## 검증
 
 1. 테스트 가맹 Comp-Id로 입금 확정.

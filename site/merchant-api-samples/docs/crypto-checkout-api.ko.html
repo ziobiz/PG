@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ICOPAY 크립토 Checkout API — 가맹 연동</title>
+  <style>
+    body { font-family: system-ui, "Malgun Gothic", "Segoe UI", sans-serif; max-width: 960px; margin: 1.5rem auto; padding: 0 1rem; line-height: 1.55; color: #222; }
+    h1 { font-size: 1.35rem; margin-bottom: 0.25rem; }
+    h2 { font-size: 1.05rem; margin-top: 1.75rem; border-bottom: 1px solid #ccc; padding-bottom: 0.25rem; }
+    h3 { font-size: 0.98rem; margin-top: 1.25rem; }
+    p.meta { color: #555; font-size: 0.92rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin: 0.75rem 0 1rem; }
+    th, td { border: 1px solid #ccc; padding: 0.45rem 0.5rem; vertical-align: top; }
+    th { background: #f5f5f5; text-align: left; }
+    code { background: #f4f4f4; padding: 0.05em 0.3em; border-radius: 3px; }
+    pre { background: #f8f8f8; border: 1px solid #ddd; padding: 0.75rem; overflow: auto; font-size: 0.82rem; white-space: pre-wrap; }
+    .flow { background: #fafafa; border: 1px solid #ddd; padding: 0.75rem 1rem; font-size: 0.85rem; font-family: ui-monospace, monospace; }
+    .note { background: #eef6ff; border-left: 4px solid #0d6efd; padding: 0.65rem 0.85rem; margin: 0.75rem 0; font-size: 0.92rem; }
+    .warn { background: #fff8e6; border-left: 4px solid #e6a800; padding: 0.65rem 0.85rem; margin: 0.75rem 0; font-size: 0.92rem; }
+    .lang-nav { font-size: 0.92rem; margin-bottom: 1rem; padding: 0.5rem 0; border-bottom: 1px solid #eee; }
+    a { color: #0d6efd; }
+</style>
+</head>
+<body>
+  <p class="lang-nav"><strong>Lang:</strong> <a href="crypto-checkout-api.html">English</a> · <strong>한국어</strong> · <a href="crypto-checkout-api.ja.html">日本語</a> · <a href="crypto-checkout-api.ch.html">中文</a> · <a href="crypto-checkout-api.th.html">ไทย</a></p>
+  <h1>ICOPAY 크립토 Checkout API — 가맹 연동</h1>
+  <p class="meta">Doc ID: ICOPAY-CRYPTO-CHECKOUT-001 · v1.0 · 2026-10-15 · ICOPAY neutral crypto</p>
+  <p>관련: <a href="unified-checkout-api-flow.ko.html">통합 Checkout 흐름</a> · <a href="unified-checkout-api-parameters.ko.html">Prepare 파라미터</a></p>
+  <h2>1. 범위</h2>
+  
+  <p>이미 <strong>카드</strong>가 연동된 동일 가맹 MID에 <strong>크립토</strong> 결제를 추가합니다.
+    가맹·구매자 화면에는 항상 <strong>ICOPAY</strong>만 표시됩니다(PG명 미노출).</p>
+  <div class="note"><strong>권장:</strong> 카드와 같은 통합 prepare에 <code>payMeans=CRYPTO</code>를 넣습니다.
+    Callback/Result는 카드용 NOTI 등록분을 <strong>재사용</strong>합니다(Comp-Id 매칭).</div>
+
+  <h2>2. 전제 (본사 설정)</h2>
+  
+  <table>
+    <tr><th>항목</th><th>비고</th></tr>
+    <tr><td>크립토 사용 = Y</td><td>업체상세 또는 본사정책 → 결제·URL → 크립토설정</td></tr>
+    <tr><td>허용자산</td><td>1차 오픈은 USDT만 권장</td></tr>
+    <tr><td>가맹 수취 지갑</td><td>활성 자산마다 네트워크+주소 1세트(정산 출금용)</td></tr>
+    <tr><td>대표수탁지갑</td><td>해당 자산×네트워크 ICOPAY 입금 주소</td></tr>
+    <tr><td>업체 사용 = Y</td><td>미사용·영구정지면 크립토 차단</td></tr>
+  </table>
+
+  <h2>3. Prepare (권장)</h2>
+  
+  <p><code>POST {publicApiBaseUrl}/api/middleware/v1/merchant/checkout/prepare</code></p>
+  <p>헤더: <code>Content-Type: application/json</code>, <code>X-Icopay-Merchant-Broker-Secret</code> (카드와 동일 Live 시크릿).</p>
+  <pre>{
+  "compId": "6000000064",
+  "orderNo": "ORD-CRYPTO-001",
+  "amount": "10000",
+  "displayCurrency": "JPY",
+  "payMeans": "CRYPTO",
+  "productName": "샘플 상품",
+  "lang": "KOR",
+  "buyer": {
+    "email": "buyer@example.com",
+    "phone": "1012345678",
+    "countryIso2": "KR",
+    "firstName": "Gildong",
+    "lastName": "Hong"
+  }
+}</pre>
+  <table>
+    <tr><th>필드</th><th>필수</th><th>설명</th></tr>
+    <tr><td>payMeans</td><td>M*</td><td><code>CRYPTO</code> (별칭: checkoutMeans / paymentMeans)</td></tr>
+    <tr><td>amount</td><td>M</td><td>표시금액 → ICOPAY가 USD 청구 후 자산 송금액 안내</td></tr>
+    <tr><td>displayCurrency</td><td>O</td><td>JPY/USD 등. 생략 시 가맹 크립토 표시통화</td></tr>
+    <tr><td>assetCode / networkCode</td><td>O</td><td>생략 가능 — 결제창에서 선택</td></tr>
+    <tr><td>buyer 성명·이메일</td><td>M*</td><td>성명·이메일 영문, 전화 숫자(결제창과 동일)</td></tr>
+  </table>
+  <p><strong>응답:</strong> <code>pgVendor</code>는 항상 <code>ICOPAY</code>. <code>payUrl</code> / <code>sessionToken</code> 사용.
+    크립토 세션은 <code>cr_</code> 접두일 수 있습니다.</p>
+  <p>대체: <code>POST /api/pay/crypto/prepare</code> (<code>compId</code> 포함).</p>
+
+  <h2>4. URL 채널 (비 API)</h2>
+  
+  <table>
+    <tr><th>URL</th><th>언제</th></tr>
+    <tr><td>크립토 결제 URL</td><td>크립토 전용 (업체 크립토설정 카드)</td></tr>
+    <tr><td><code>/checkout-all/{compId}</code></td><td>웹결제+크립토 사용 모두 ON일 때 통합(카드/크립토 선택)</td></tr>
+    <tr><td><code>/checkout/{compId}</code></td><td>기존 카드 URL 결제</td></tr>
+  </table>
+
+  <h2>5. Callback / Result</h2>
+  
+  <div class="warn">ICOPAY 업체상세 「결제통보 URL」에 크립토 전용 Callback을 <strong>새로 등록하지 않습니다</strong>.
+    흐름: 입금 확정 → ICOPAY → <code>POST /noti/crypto</code> → NOTI가 Comp-Id로 <strong>기존 카드 callbackUrl</strong>에 릴레이.</div>
+  <p>기존 웹훅 핸들러를 확장하세요.</p>
+  <ul>
+    <li><code>orderid</code> / <code>orderNo</code>로 주문 매칭</li>
+    <li>멱등 성공 처리 (JPAY 호환 <code>returncode</code> 등)</li>
+    <li>추가 필드: <code>assetCode</code>, <code>networkCode</code>, <code>depositTxHash</code></li>
+    <li><code>pgKind</code>/<code>van</code>이 crypto이면 결제수단=크립토로 저장</li>
+  </ul>
+  <p>상태 조회: <code>GET .../merchant/checkout/status</code> 또는 <code>GET /api/pay/crypto/status</code>.</p>
+
+  <h2>6. 오픈 전 체크리스트</h2>
+  
+  <ul>
+    <li>본사 크립토 사용·자산·수탁·가맹 수취 설정</li>
+    <li>prepare(<code>payMeans=CRYPTO</code>) → payUrl → 소액 입금 → 크립토내역 확정</li>
+    <li>기존 Callback으로 수신·크립토 필드 저장</li>
+    <li>카드 결제 회귀 정상</li>
+  </ul>
+
+  <p class="meta">텍스트: <a href="crypto-checkout-api.ko.txt">crypto-checkout-api.ko.txt</a></p>
+</body>
+</html>

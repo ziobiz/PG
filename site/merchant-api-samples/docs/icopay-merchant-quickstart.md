@@ -38,6 +38,10 @@ X-Icopay-Merchant-Broker-Secret: {brokerSecret}
 
 **Required:** `compId` (or merchantId), `orderNo`, `amount`, `buyer.email`, `buyer.phone`, `buyer.countryIso2`
 
+**Crypto:** same URL with `"payMeans": "CRYPTO"` (optional `displayCurrency`).  
+Guide (5 languages): [crypto-checkout-api.html](crypto-checkout-api.html) · sample [crypto-prepare-request.json](../json/crypto-prepare-request.json)  
+Callback **reuses card NOTI URL** (Comp-Id). Persist `assetCode`·`networkCode`·`depositTxHash`.
+
 **Response `pgVendor`:** always `ICOPAY`
 
 **Live:** use `data.sessionToken`, `data.payUrl`, `data.embedScriptUrl`.

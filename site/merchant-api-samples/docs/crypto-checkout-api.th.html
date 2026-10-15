@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ICOPAY Crypto Checkout API — การเชื่อมต่อร้านค้า</title>
+  <style>
+    body { font-family: system-ui, "Malgun Gothic", "Segoe UI", sans-serif; max-width: 960px; margin: 1.5rem auto; padding: 0 1rem; line-height: 1.55; color: #222; }
+    h1 { font-size: 1.35rem; margin-bottom: 0.25rem; }
+    h2 { font-size: 1.05rem; margin-top: 1.75rem; border-bottom: 1px solid #ccc; padding-bottom: 0.25rem; }
+    h3 { font-size: 0.98rem; margin-top: 1.25rem; }
+    p.meta { color: #555; font-size: 0.92rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin: 0.75rem 0 1rem; }
+    th, td { border: 1px solid #ccc; padding: 0.45rem 0.5rem; vertical-align: top; }
+    th { background: #f5f5f5; text-align: left; }
+    code { background: #f4f4f4; padding: 0.05em 0.3em; border-radius: 3px; }
+    pre { background: #f8f8f8; border: 1px solid #ddd; padding: 0.75rem; overflow: auto; font-size: 0.82rem; white-space: pre-wrap; }
+    .flow { background: #fafafa; border: 1px solid #ddd; padding: 0.75rem 1rem; font-size: 0.85rem; font-family: ui-monospace, monospace; }
+    .note { background: #eef6ff; border-left: 4px solid #0d6efd; padding: 0.65rem 0.85rem; margin: 0.75rem 0; font-size: 0.92rem; }
+    .warn { background: #fff8e6; border-left: 4px solid #e6a800; padding: 0.65rem 0.85rem; margin: 0.75rem 0; font-size: 0.92rem; }
+    .lang-nav { font-size: 0.92rem; margin-bottom: 1rem; padding: 0.5rem 0; border-bottom: 1px solid #eee; }
+    a { color: #0d6efd; }
+</style>
+</head>
+<body>
+  <p class="lang-nav"><strong>Lang:</strong> <a href="crypto-checkout-api.html">English</a> · <a href="crypto-checkout-api.ko.html">한국어</a> · <a href="crypto-checkout-api.ja.html">日本語</a> · <a href="crypto-checkout-api.ch.html">中文</a> · <strong>ไทย</strong></p>
+  <h1>ICOPAY Crypto Checkout API — การเชื่อมต่อร้านค้า</h1>
+  <p class="meta">Doc ID: ICOPAY-CRYPTO-CHECKOUT-001 · v1.0 · 2026-10-15 · ICOPAY neutral crypto</p>
+  <p>ที่เกี่ยวข้อง: <a href="unified-checkout-api-flow.th.html">Unified checkout flow</a> · <a href="unified-checkout-api-parameters.th.html">Prepare parameters</a></p>
+  <h2>1. ขอบเขต</h2>
+  
+  <p>เพิ่มการชำระ<strong>คริปโต</strong>บน MID เดียวกับที่เชื่อมบัตรแล้ว แสดงเฉพาะ <strong>ICOPAY</strong></p>
+  <div class="note"><strong>แนะนำ:</strong> unified prepare พร้อม <code>payMeans=CRYPTO</code> ใช้ Callback/Result ของบัตรซ้ำ (Comp-Id)</div>
+
+  <h2>2. ข้อกำหนดล่วงหน้า (HQ)</h2>
+  
+  <table>
+    <tr><th>Item</th><th>Note</th></tr>
+    <tr><td>Merchant crypto use = Y</td><td>Company detail or HQ Policy → Pay·URL → Crypto settings</td></tr>
+    <tr><td>Allowed assets</td><td>e.g. USDT only for first go-live</td></tr>
+    <tr><td>Merchant receive wallet</td><td>One network + address per enabled asset (settlement payout)</td></tr>
+    <tr><td>HQ custody wallet</td><td>ICOPAY deposit address for that asset×network</td></tr>
+    <tr><td>Company use = Y</td><td>Unused / permanent stop blocks crypto</td></tr>
+  </table>
+
+  <h2>3. Prepare (แนะนำ)</h2>
+  
+  <p><code>POST {publicApiBaseUrl}/api/middleware/v1/merchant/checkout/prepare</code></p>
+  <p>Header: <code>Content-Type: application/json</code>, <code>X-Icopay-Merchant-Broker-Secret</code> (same live secret as cards).</p>
+  <pre>{
+  "compId": "6000000064",
+  "orderNo": "ORD-CRYPTO-001",
+  "amount": "10000",
+  "displayCurrency": "JPY",
+  "payMeans": "CRYPTO",
+  "productName": "Sample product",
+  "lang": "ENG",
+  "buyer": {
+    "email": "buyer@example.com",
+    "phone": "1012345678",
+    "countryIso2": "KR",
+    "firstName": "Gildong",
+    "lastName": "Hong"
+  }
+}</pre>
+  <table>
+    <tr><th>Field</th><th>Required</th><th>Description</th></tr>
+    <tr><td>payMeans</td><td class="m">M*</td><td><code>CRYPTO</code> (aliases: checkoutMeans / paymentMeans)</td></tr>
+    <tr><td>amount</td><td>M</td><td>Display amount; ICOPAY quotes to USD then remittance asset</td></tr>
+    <tr><td>displayCurrency</td><td>O</td><td>JPY/USD/… — merchant crypto display currency if omitted</td></tr>
+    <tr><td>assetCode / networkCode</td><td>O</td><td>Optional; shopper can pick on ICOPAY crypto page</td></tr>
+    <tr><td>buyer name/email</td><td>M*</td><td>Latin letters for name/email; phone digits (same as crypto UI)</td></tr>
+  </table>
+  <p><strong>Response:</strong> <code>pgVendor</code> always <code>ICOPAY</code>. Use <code>payUrl</code> / <code>sessionToken</code>.
+    Crypto session tokens may start with <code>cr_</code>.</p>
+  <p>Alternative: <code>POST /api/pay/crypto/prepare</code> with <code>compId</code> (same product rules).</p>
+
+  <h2>4. URL</h2>
+  
+  <table>
+    <tr><th>URL</th><th>When</th></tr>
+    <tr><td>Crypto payment URL</td><td>Crypto-only link on company crypto card</td></tr>
+    <tr><td><code>/checkout-all/{compId}</code></td><td>Unified (card + crypto) when web pay and crypto use are both ON</td></tr>
+    <tr><td><code>/checkout/{compId}</code></td><td>Card URL pay (existing)</td></tr>
+  </table>
+
+  <h2>5. Callback / Result</h2>
+  
+  <div class="warn">ไม่ต้องลงทะเบียน Callback คริปโตแยกที่ Payment notify URL
+    ยืนยันเงินเข้า → ICOPAY → <code>/noti/crypto</code> → NOTI ส่งต่อไปยัง callbackUrl บัตรเดิม</div>
+  <ul>
+    <li>จับคู่คำสั่งซื้อด้วย <code>orderid</code>/<code>orderNo</code></li>
+    <li>ทำแบบ idempotent</li>
+    <li>ฟิลด์เพิ่ม: <code>assetCode</code>, <code>networkCode</code>, <code>depositTxHash</code></li>
+  </ul>
+
+  <h2>6. เช็คลิสต์ก่อนเปิดใช้</h2>
+  
+  <ul>
+    <li>HQ crypto use + asset + custody + receive wallet for the MID</li>
+    <li>prepare with <code>payMeans=CRYPTO</code> → open payUrl → small deposit → HQ Crypto deposits confirm</li>
+    <li>Callback received on existing card URL; store crypto fields</li>
+    <li>Card regression still OK</li>
+  </ul>
+
+  <p class="meta">ข้อความ: <a href="crypto-checkout-api.th.txt">crypto-checkout-api.th.txt</a></p>
+</body>
+</html>

@@ -1,0 +1,291 @@
+ICOPAY Crypto Checkout API — การเชื่อมต่อร้านค้า
+Doc ID: ICOPAY-CRYPTO-CHECKOUT-001 v1.0 (2026-10-15)
+
+ICOPAY Crypto Checkout API — การเชื่อมต่อร้านค้า
+
+  
+
+  
+
+Lang:
+ 
+English
+ · 
+한국어
+ · 
+日本語
+ · 
+中文
+ · 
+ไทย
+
+  
+ICOPAY Crypto Checkout API — การเชื่อมต่อร้านค้า
+
+  
+Doc ID: ICOPAY-CRYPTO-CHECKOUT-001 · v1.0 · 2026-10-15 · ICOPAY neutral crypto
+
+  
+ที่เกี่ยวข้อง: 
+Unified checkout flow
+ · 
+Prepare parameters
+
+  
+1. ขอบเขต
+
+  
+  
+เพิ่มการชำระ
+คริปโต
+บน MID เดียวกับที่เชื่อมบัตรแล้ว แสดงเฉพาะ 
+ICOPAY
+
+  
+
+แนะนำ:
+ unified prepare พร้อม 
+payMeans=CRYPTO
+ ใช้ Callback/Result ของบัตรซ้ำ (Comp-Id)
+
+  
+2. ข้อกำหนดล่วงหน้า (HQ)
+
+  
+  
+
+    
+
+Item
+
+Note
+
+    
+
+Merchant crypto use = Y
+
+Company detail or HQ Policy → Pay·URL → Crypto settings
+
+    
+
+Allowed assets
+
+e.g. USDT only for first go-live
+
+    
+
+Merchant receive wallet
+
+One network + address per enabled asset (settlement payout)
+
+    
+
+HQ custody wallet
+
+ICOPAY deposit address for that asset×network
+
+    
+
+Company use = Y
+
+Unused / permanent stop blocks crypto
+
+  
+
+  
+3. Prepare (แนะนำ)
+
+  
+  
+
+POST {publicApiBaseUrl}/api/middleware/v1/merchant/checkout/prepare
+
+  
+Header: 
+Content-Type: application/json
+, 
+X-Icopay-Merchant-Broker-Secret
+ (same live secret as cards).
+
+  
+{
+  "compId": "6000000064",
+  "orderNo": "ORD-CRYPTO-001",
+  "amount": "10000",
+  "displayCurrency": "JPY",
+  "payMeans": "CRYPTO",
+  "productName": "Sample product",
+  "lang": "ENG",
+  "buyer": {
+    "email": "buyer@example.com",
+    "phone": "1012345678",
+    "countryIso2": "KR",
+    "firstName": "Gildong",
+    "lastName": "Hong"
+  }
+}
+
+  
+
+    
+
+Field
+
+Required
+
+Description
+
+    
+
+payMeans
+
+M*
+
+CRYPTO
+ (aliases: checkoutMeans / paymentMeans)
+
+    
+
+amount
+
+M
+
+Display amount; ICOPAY quotes to USD then remittance asset
+
+    
+
+displayCurrency
+
+O
+
+JPY/USD/… — merchant crypto display currency if omitted
+
+    
+
+assetCode / networkCode
+
+O
+
+Optional; shopper can pick on ICOPAY crypto page
+
+    
+
+buyer name/email
+
+M*
+
+Latin letters for name/email; phone digits (same as crypto UI)
+
+  
+
+  
+
+Response:
+ 
+pgVendor
+ always 
+ICOPAY
+. Use 
+payUrl
+ / 
+sessionToken
+.
+    Crypto session tokens may start with 
+cr_
+.
+
+  
+Alternative: 
+POST /api/pay/crypto/prepare
+ with 
+compId
+ (same product rules).
+
+  
+4. URL
+
+  
+  
+
+    
+
+URL
+
+When
+
+    
+
+Crypto payment URL
+
+Crypto-only link on company crypto card
+
+    
+
+/checkout-all/{compId}
+
+Unified (card + crypto) when web pay and crypto use are both ON
+
+    
+
+/checkout/{compId}
+
+Card URL pay (existing)
+
+  
+
+  
+5. Callback / Result
+
+  
+  
+ไม่ต้องลงทะเบียน Callback คริปโตแยกที่ Payment notify URL
+    ยืนยันเงินเข้า → ICOPAY → 
+/noti/crypto
+ → NOTI ส่งต่อไปยัง callbackUrl บัตรเดิม
+
+  
+
+    
+จับคู่คำสั่งซื้อด้วย 
+orderid
+/
+orderNo
+
+    
+ทำแบบ idempotent
+
+    
+ฟิลด์เพิ่ม: 
+assetCode
+, 
+networkCode
+, 
+depositTxHash
+
+  
+
+  
+6. เช็คลิสต์ก่อนเปิดใช้
+
+  
+  
+
+    
+HQ crypto use + asset + custody + receive wallet for the MID
+
+    
+prepare with 
+payMeans=CRYPTO
+ → open payUrl → small deposit → HQ Crypto deposits confirm
+
+    
+Callback received on existing card URL; store crypto fields
+
+    
+Card regression still OK
+
+  
+
+  
+ข้อความ: 
+crypto-checkout-api.th.txt

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """Shared CSS / shell for merchant USER manuals — identical to docs/icopay-chatbot-merchant-manual-*.html."""
 
-VERSION = "2.80"
-DATE_KO = "2026년 9월"
-DATE_EN = "September 2026"
-DATE_META = "2026-09-02"
+VERSION = "2.81"
+DATE_KO = "2026년 10월"
+DATE_EN = "October 2026"
+DATE_META = "2026-10-15"
 
 CSS = r"""
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

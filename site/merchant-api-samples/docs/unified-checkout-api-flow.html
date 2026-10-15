@@ -26,8 +26,9 @@
   <p class="lang-nav"><strong>Language:</strong>
     <strong>English</strong> · <a href="unified-checkout-api-flow.ko.html">한국어</a> · <a href="unified-checkout-api-flow.ja.html">日本語</a> · <a href="unified-checkout-api-flow.ch.html">中文</a> · <a href="unified-checkout-api-flow.th.html">ไทย</a></p>
   <h1>ICOPAY Unified Checkout API — Integration Flow &amp; Endpoints</h1>
-  <p class="meta">Spec ID: ICOPAY-CHECKOUT-FLOW-001 · v1.0 · PG-agnostic inline checkout (ICOPAY unified)</p>
+  <p class="meta">Spec ID: ICOPAY-CHECKOUT-FLOW-001 · v1.1 · PG-agnostic inline checkout (ICOPAY unified) · includes crypto</p>
   <p>Related: <a href="unified-checkout-api-parameters.html">Prepare API parameter tables</a> ·
+    <a href="crypto-checkout-api.html">Crypto Checkout API</a> ·
     <a href="../index.html">merchant-api-samples index</a></p>
 
   <h2>1. What is “unified” checkout?</h2>
@@ -160,7 +161,26 @@
     <li>Register HTTPS webhook URLs via HQ (<code>merchantNotifyUrls</code>).</li>
   </ul>
 
-  <h2>9. FAQ</h2>
+  <h2>9. Crypto payments (payMeans=CRYPTO)</h2>
+  <p>Use the <strong>same</strong> unified prepare with <code>payMeans</code> (or <code>checkoutMeans</code>/<code>paymentMeans</code>)=<code>CRYPTO</code>.
+    Full guide: <a href="crypto-checkout-api.html">Crypto Checkout API</a>
+    (<a href="crypto-checkout-api.ko.html">KO</a> · <a href="crypto-checkout-api.ja.html">JA</a> · <a href="crypto-checkout-api.ch.html">CH</a> · <a href="crypto-checkout-api.th.html">TH</a>).</p>
+  <ul>
+    <li>HQ must enable crypto use, allowed assets, custody, and merchant receive wallet for the MID.</li>
+    <li><code>pgVendor</code> is always <code>ICOPAY</code>. Session may start with <code>cr_</code>.</li>
+    <li>Deposit confirm → NOTI <code>/noti/crypto</code> → <strong>reuse existing card Callback</strong> (Comp-Id). Not direct Payment-notify URL.</li>
+    <li>Persist webhook fields <code>assetCode</code>, <code>networkCode</code>, <code>depositTxHash</code>.</li>
+  </ul>
+  <pre>{
+  "compId": "6000000064",
+  "orderNo": "ORD-CRYPTO-001",
+  "amount": "10000",
+  "displayCurrency": "JPY",
+  "payMeans": "CRYPTO",
+  "buyer": { "email": "buyer@example.com", "phone": "1012345678", "countryIso2": "KR" }
+}</pre>
+
+  <h2>10. FAQ</h2>
   <p><strong>Do I call Session from my server?</strong> No — the embed widget calls it in the browser.</p>
   <p><strong>Will I see a payment-agency brand?</strong> No. Merchant APIs, checkout UI, and docs expose <strong>ICOPAY only</strong>.</p>
   <p><strong>Is postMessage enough?</strong> Use it for UX; confirm payment on the server via webhook and/or status.</p>

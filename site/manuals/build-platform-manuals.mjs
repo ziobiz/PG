@@ -210,17 +210,19 @@ const MANUALS = [
     sections: {
       ko: [
         { h: '범위', html: '<p>본사(REGIONAL)·총판(MASTER_DIST) 운영자용. 총본사 전용(본사정책·연동배포 허브)은 제외하고, 업체·결제·정산·운영·챗봇·분할·<strong>사용자관리</strong>를 다룹니다.</p>' },
-        { h: '업체·가맹', html: '<ul><li>업체관리: 하위 조직·가맹 조회/수정</li><li>수수료관리 · 리스크관리 트리거(본사 따름/별도/미사용)</li><li>웹결제·URL·API 인라인 · 구독·재구매·분할·챗봇 사용여부</li><li>브랜드 <strong>링크 미리보기</strong>: 본사설정 따름 또는 직접 입력(5개국어) — 관리 URL 공유 카드</li></ul>' },
+        { h: '업체·가맹', html: '<ul><li>업체관리: 하위 조직·가맹 조회/수정</li><li>수수료관리(FIAT|CRYPTO) · 리스크관리 트리거(본사 따름/별도/미사용)</li><li>웹결제·URL·API 인라인 · 구독·재구매·분할·챗봇·<strong>크립토 사용</strong></li><li>브랜드 <strong>링크 미리보기</strong>: 본사설정 따름 또는 직접 입력(5개국어)</li></ul>' },
+        { h: '크립토', html: '<p class="menu-path">본사정책 → 결제·URL → 크립토설정</p><ul><li>대표수탁지갑(ICOPAY 입금)·가맹 수취·허용자산·가스피(USDC/USDT/EURC 탭)</li><li>결제관리 → 크립토내역 · 정산관리 → 크립토정산</li><li>가맹 API: 통합 prepare + <code>payMeans=CRYPTO</code> · Callback은 카드 NOTI 재사용(5개국어 문서: merchant-api-samples)</li></ul>' },
         { h: '사용자관리', html: '<p class="menu-path">사용자관리 → 사용자관리</p><ul><li><strong>조직</strong>: 총본사·본사·총판 등 단계 구분</li><li><strong>권한그룹*</strong> 수정 / <strong>설정권한</strong> 표시(관리·운영·정산·기술·대표·일반·챗봇·감독)</li><li>VIEW SETTING으로 열 조정</li></ul>' },
-        { h: '결제·정산', html: '<ul><li>결제관리: 결제내역·성공/실패/환불/무효 등</li><li>정산관리: 가맹·유통망 정산·정산실행</li><li>운영관리: 리스크 현황·비활성카드·노티관리(권한 시)</li></ul>' },
-        { h: '상세 매뉴얼', html: '<p>신규가맹점 · 챗봇결제 · 정기(구독)결제 · 분할결제 · 리스크 트리거 소개는 「운영관리 → 운영매뉴얼」의 각 문서를 사용하십시오.</p>' }
+        { h: '결제·정산', html: '<ul><li>결제관리: 결제내역·크립토내역·성공/실패/환불/무효 등</li><li>정산관리: 가맹·유통망 정산·크립토정산·정산실행</li><li>운영관리: 리스크 현황·비활성카드·노티관리(권한 시)</li></ul>' },
+        { h: '상세 매뉴얼', html: '<p>신규가맹점 · 챗봇결제 · 정기(구독)결제 · 분할결제 · 리스크 트리거 · 크립토 API는 「운영관리 → 운영매뉴얼」및 가맹 API 출시 샘플 문서를 사용하십시오.</p>' }
       ],
       en: [
         { h: 'Scope', html: '<p>For REGIONAL &amp; MASTER_DIST. Excludes Super-HQ-only hubs; covers companies, pay, settlement, ops, chatbot, split, <strong>user management</strong>.</p>' },
-        { h: 'Merchants', html: '<ul><li>Company manage</li><li>Fees · risk trigger mode</li><li>Web/URL/API · subscribe · repay · split · chatbot flags</li><li>Brand <strong>link preview</strong>: Follow HQ or custom (5 languages)</li></ul>' },
+        { h: 'Merchants', html: '<ul><li>Company manage</li><li>Fees (FIAT|CRYPTO) · risk trigger mode</li><li>Web/URL/API · subscribe · repay · split · chatbot · <strong>crypto use</strong></li><li>Brand <strong>link preview</strong>: Follow HQ or custom (5 languages)</li></ul>' },
+        { h: 'Crypto', html: '<p class="menu-path">HQ Policy → Pay·URL → Crypto settings</p><ul><li>Custody · merchant receive · assets · gas fees (USDC/USDT/EURC tabs)</li><li>Payments → Crypto deposits · Settlement → Crypto settlement</li><li>Merchant API: prepare + <code>payMeans=CRYPTO</code>; Callback reuses card NOTI (5-lang docs in merchant-api-samples)</li></ul>' },
         { h: 'User management', html: '<p class="menu-path">Users → User management</p><ul><li><strong>Org level</strong> column</li><li><strong>Permission group*</strong> edit / <strong>Applied grant</strong> display</li><li>VIEW SETTING</li></ul>' },
-        { h: 'Pay &amp; settle', html: '<ul><li>Payment lists</li><li>Settlement</li><li>Risk dashboard / inactive cards / NOTI (if allowed)</li></ul>' },
-        { h: 'Detail manuals', html: '<p>Use the sibling manuals in the Ops manuals tab.</p>' }
+        { h: 'Pay &amp; settle', html: '<ul><li>Payment lists · crypto deposits</li><li>Settlement · crypto settlement</li><li>Risk dashboard / inactive cards / NOTI (if allowed)</li></ul>' },
+        { h: 'Detail manuals', html: '<p>Use the sibling manuals in the Ops manuals tab and crypto API samples.</p>' }
       ],
       ja: [
         { h: '範囲', html: '<p>本社・総代理向け。総本部専用ハブは除外。<strong>ユーザー管理</strong>を含む。</p>' },
@@ -266,8 +268,8 @@ const MANUALS = [
       ko: [
         { h: '1. 등록', html: '<p class="menu-path">업체관리 → 업체등록</p><ol><li>상위(총판 등) 선택 · 가맹 구분</li><li>업체코드·명 · 연락처·주소</li><li>로그인 ID · 사용=Y</li><li>저장</li></ol>' },
         { h: '2. 결제·창', html: '<ul><li>웹결제·URL 결제 방식</li><li>결제창 구성(입력방식·로고)</li><li>운영 PG 바인딩(본사/배포 정책에 따름)</li></ul>' },
-        { h: '3. 부가 서비스', html: '<ul><li>구독(정기) · 재구매 · 챗봇 — 필요 시 Y</li><li><strong>URL 분할결제</strong>: 가맹 카드에서 「분할결제 사용여부=사용」저장 시 DB 즉시 반영(재로그인 후에도 유지). 계약취소는 본사설정 따름/사용/미사용</li><li>리스크관리 트리거: 기본 <strong>본사정책 따름</strong></li></ul>' },
-        { h: '4. 오픈 전', html: '<ol><li>테스트 결제 1건</li><li>노티/콜백 URL(해당 시)</li><li>가맹점API 키·문서 안내 위치 확인(연동 메뉴얼은 배포 허브)</li></ol>' }
+        { h: '3. 부가 서비스', html: '<ul><li>구독(정기) · 재구매 · 챗봇 — 필요 시 Y</li><li><strong>크립토</strong>: 사용=Y · 허용자산 · 가맹 수취 · (본사) 대표수탁·가스피. 통합결제 URL은 웹결제+크립토 모두 ON일 때</li><li><strong>URL 분할결제</strong>: 가맹 카드에서 「분할결제 사용여부=사용」저장 시 DB 즉시 반영. 계약취소는 본사설정 따름/사용/미사용</li><li>리스크관리 트리거: 기본 <strong>본사정책 따름</strong></li></ul>' },
+        { h: '4. 오픈 전', html: '<ol><li>테스트 결제 1건(카드)</li><li>크립토 사용 시 prepare(<code>payMeans=CRYPTO</code>)·소액 입금·Callback(카드 NOTI 재사용)</li><li>노티/콜백 URL(해당 시)</li><li>가맹점API 키·문서·크립토 가이드(5개국어) 안내</li></ol>' }
       ],
       en: [
         { h: '1. Register', html: '<p class="menu-path">Companies → Register</p><ol><li>Parent &amp; merchant type</li><li>Code, name, contacts</li><li>Login · Use=Y</li><li>Save</li></ol>' },

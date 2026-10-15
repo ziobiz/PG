@@ -52,17 +52,19 @@
     </div>
   </div>
   <div class="body">
-    <div class="toc"><h2>목차</h2><ol><li><a href="#s1">범위</a></li><li><a href="#s2">업체·가맹</a></li><li><a href="#s3">사용자관리</a></li><li><a href="#s4">결제·정산</a></li><li><a href="#s5">상세 매뉴얼</a></li></ol></div>
+    <div class="toc"><h2>목차</h2><ol><li><a href="#s1">범위</a></li><li><a href="#s2">업체·가맹</a></li><li><a href="#s3">크립토</a></li><li><a href="#s4">사용자관리</a></li><li><a href="#s5">결제·정산</a></li><li><a href="#s6">상세 매뉴얼</a></li></ol></div>
     <h2 class="section-title" id="s1">1. 범위</h2>
 <p>본사(REGIONAL)·총판(MASTER_DIST) 운영자용. 총본사 전용(본사정책·연동배포 허브)은 제외하고, 업체·결제·정산·운영·챗봇·분할·<strong>사용자관리</strong>를 다룹니다.</p>
 <h2 class="section-title" id="s2">2. 업체·가맹</h2>
-<ul><li>업체관리: 하위 조직·가맹 조회/수정</li><li>수수료관리 · 리스크관리 트리거(본사 따름/별도/미사용)</li><li>웹결제·URL·API 인라인 · 구독·재구매·분할·챗봇 사용여부</li><li>브랜드 <strong>링크 미리보기</strong>: 본사설정 따름 또는 직접 입력(5개국어) — 관리 URL 공유 카드</li></ul>
-<h2 class="section-title" id="s3">3. 사용자관리</h2>
+<ul><li>업체관리: 하위 조직·가맹 조회/수정</li><li>수수료관리(FIAT|CRYPTO) · 리스크관리 트리거(본사 따름/별도/미사용)</li><li>웹결제·URL·API 인라인 · 구독·재구매·분할·챗봇·<strong>크립토 사용</strong></li><li>브랜드 <strong>링크 미리보기</strong>: 본사설정 따름 또는 직접 입력(5개국어)</li></ul>
+<h2 class="section-title" id="s3">3. 크립토</h2>
+<p class="menu-path">본사정책 → 결제·URL → 크립토설정</p><ul><li>대표수탁지갑(ICOPAY 입금)·가맹 수취·허용자산·가스피(USDC/USDT/EURC 탭)</li><li>결제관리 → 크립토내역 · 정산관리 → 크립토정산</li><li>가맹 API: 통합 prepare + <code>payMeans=CRYPTO</code> · Callback은 카드 NOTI 재사용(5개국어 문서: merchant-api-samples)</li></ul>
+<h2 class="section-title" id="s4">4. 사용자관리</h2>
 <p class="menu-path">사용자관리 → 사용자관리</p><ul><li><strong>조직</strong>: 총본사·본사·총판 등 단계 구분</li><li><strong>권한그룹*</strong> 수정 / <strong>설정권한</strong> 표시(관리·운영·정산·기술·대표·일반·챗봇·감독)</li><li>VIEW SETTING으로 열 조정</li></ul>
-<h2 class="section-title" id="s4">4. 결제·정산</h2>
-<ul><li>결제관리: 결제내역·성공/실패/환불/무효 등</li><li>정산관리: 가맹·유통망 정산·정산실행</li><li>운영관리: 리스크 현황·비활성카드·노티관리(권한 시)</li></ul>
-<h2 class="section-title" id="s5">5. 상세 매뉴얼</h2>
-<p>신규가맹점 · 챗봇결제 · 정기(구독)결제 · 분할결제 · 리스크 트리거 소개는 「운영관리 → 운영매뉴얼」의 각 문서를 사용하십시오.</p>
+<h2 class="section-title" id="s5">5. 결제·정산</h2>
+<ul><li>결제관리: 결제내역·크립토내역·성공/실패/환불/무효 등</li><li>정산관리: 가맹·유통망 정산·크립토정산·정산실행</li><li>운영관리: 리스크 현황·비활성카드·노티관리(권한 시)</li></ul>
+<h2 class="section-title" id="s6">6. 상세 매뉴얼</h2>
+<p>신규가맹점 · 챗봇결제 · 정기(구독)결제 · 분할결제 · 리스크 트리거 · 크립토 API는 「운영관리 → 운영매뉴얼」및 가맹 API 출시 샘플 문서를 사용하십시오.</p>
   </div>
   <div class="footer">
     __BRAND_SITE_NAME__ · 본사 및 총판 운영 메뉴얼 · V2.81<br>

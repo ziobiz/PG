@@ -160,7 +160,13 @@
     <li>Register HTTPS webhook URLs via HQ (<code>merchantNotifyUrls</code>).</li>
   </ul>
 
-  <h2>9. คำถามที่พบบ่อย</h2>
+  <h2>9. ชำระคริปโต (payMeans=CRYPTO)</h2>
+  <p>ใส่ <code>payMeans=CRYPTO</code> ใน unified prepare รายละเอียด:
+    <a href="crypto-checkout-api.th.html">Crypto Checkout API</a>
+    (<a href="crypto-checkout-api.html">EN</a> · <a href="crypto-checkout-api.ko.html">KO</a> · <a href="crypto-checkout-api.ja.html">JA</a> · <a href="crypto-checkout-api.ch.html">CH</a>)
+    ใช้ Callback บัตรซ้ำผ่าน Comp-Id เก็บ <code>assetCode</code>·<code>networkCode</code>·<code>depositTxHash</code></p>
+
+  <h2>10. คำถามที่พบบ่อย</h2>
   <p><strong>Do I call Session from my server?</strong> No — the embed widget calls it in the browser.</p>
   <p><strong>Will I see a payment-agency brand?</strong> No. Merchant APIs, checkout UI, and docs expose <strong>ICOPAY only</strong>.</p>
   <p><strong>Is postMessage enough?</strong> Use it for UX; confirm payment on the server via webhook and/or status.</p>

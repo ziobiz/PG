@@ -160,7 +160,13 @@
     <li>Register HTTPS webhook URLs via HQ (<code>merchantNotifyUrls</code>).</li>
   </ul>
 
-  <h2>9. 常见问题</h2>
+  <h2>9. 加密货币支付 (payMeans=CRYPTO)</h2>
+  <p>统一 prepare 增加 <code>payMeans=CRYPTO</code>。详见:
+    <a href="crypto-checkout-api.ch.html">加密 Checkout API</a>
+    (<a href="crypto-checkout-api.html">EN</a> · <a href="crypto-checkout-api.ko.html">KO</a> · <a href="crypto-checkout-api.ja.html">JA</a> · <a href="crypto-checkout-api.th.html">TH</a>)。
+    Callback 按 Comp-Id 复用银行卡 NOTI；保存 <code>assetCode</code>·<code>networkCode</code>·<code>depositTxHash</code>。</p>
+
+  <h2>10. 常见问题</h2>
   <p><strong>Do I call Session from my server?</strong> No — the embed widget calls it in the browser.</p>
   <p><strong>Will I see a payment-agency brand?</strong> No. Merchant APIs, checkout UI, and docs expose <strong>ICOPAY only</strong>.</p>
   <p><strong>Is postMessage enough?</strong> Use it for UX; confirm payment on the server via webhook and/or status.</p>

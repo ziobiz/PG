@@ -92,7 +92,9 @@ def url_doc(lang: str) -> dict:
     <div class="menu-path">업체관리 &gt; 내 업체정보</div>
     <div class="info-box">이 화면은 <strong>조회 전용</strong>입니다. URL을 확인하고 <strong>복사</strong>할 수 있지만, 업체 설정을 직접 바꿀 수는 없습니다.</div>
     <h3 class="sub-title">3-1. 결제 URL</h3>
-    <p>웹결제가 활성화되면 아래 형식의 공개 결제 주소가 표시됩니다.</p>
+    <p>웹결제가 활성화되면 아래 형식의 <strong>카드(URL)</strong> 공개 결제 주소가 표시됩니다.
+      크립토만: <strong>크립토 결제 URL</strong> · 카드+크립토: <strong>통합결제 URL</strong>(<code>/checkout-all/업체코드</code>, 웹결제·크립토 사용 모두 ON).
+      API 연동은 상위 「가맹 API 출시」·merchant-api-samples 크립토 문서(5개국어, <code>payMeans=CRYPTO</code>)를 참고하세요.</p>
     <pre>https://api.icopay.co.kr/checkout/{{업체코드}}</pre>
     <table>
       <tr><th>동작</th><th>방법</th></tr>

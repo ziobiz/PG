@@ -163,7 +163,13 @@
     <li>Webhook URL は本社登録時 HTTPS 推奨（<code>merchantNotifyUrls</code>）</li>
   </ul>
 
-  <h2>9. FAQ</h2>
+  <h2>9. クリプト決済 (payMeans=CRYPTO)</h2>
+  <p>統合 prepare に <code>payMeans=CRYPTO</code> を付与。詳細:
+    <a href="crypto-checkout-api.ja.html">クリプト Checkout API</a>
+    (<a href="crypto-checkout-api.html">EN</a> · <a href="crypto-checkout-api.ko.html">KO</a> · <a href="crypto-checkout-api.ch.html">CH</a> · <a href="crypto-checkout-api.th.html">TH</a>)。
+    Callback はカード用 NOTI を Comp-Id で再利用。<code>assetCode</code>·<code>networkCode</code>·<code>depositTxHash</code> を保存。</p>
+
+  <h2>10. FAQ</h2>
   <p><strong>Session をサーバーから呼ぶ必要はありますか？</strong> いいえ。embed ウィジェットがブラウザで呼び出します。</p>
   <p><strong>決済代行ブランドは見えますか？</strong> いいえ。加盟店向け API・決済画面・文書は ICOPAY のみです。</p>
   <p><strong>postMessage だけで十分ですか？</strong> UX には足りる場合がありますが、サーバー確定は Webhook または status 照会を推奨します。</p>

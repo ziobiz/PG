@@ -58,9 +58,9 @@
 <h2 class="section-title" id="s2">2. 2. 결제·창</h2>
 <ul><li>웹결제·URL 결제 방식</li><li>결제창 구성(입력방식·로고)</li><li>운영 PG 바인딩(본사/배포 정책에 따름)</li></ul>
 <h2 class="section-title" id="s3">3. 3. 부가 서비스</h2>
-<ul><li>구독(정기) · 재구매 · 챗봇 — 필요 시 Y</li><li><strong>URL 분할결제</strong>: 가맹 카드에서 「분할결제 사용여부=사용」저장 시 DB 즉시 반영(재로그인 후에도 유지). 계약취소는 본사설정 따름/사용/미사용</li><li>리스크관리 트리거: 기본 <strong>본사정책 따름</strong></li></ul>
+<ul><li>구독(정기) · 재구매 · 챗봇 — 필요 시 Y</li><li><strong>크립토</strong>: 사용=Y · 허용자산 · 가맹 수취 · (본사) 대표수탁·가스피. 통합결제 URL은 웹결제+크립토 모두 ON일 때</li><li><strong>URL 분할결제</strong>: 가맹 카드에서 「분할결제 사용여부=사용」저장 시 DB 즉시 반영. 계약취소는 본사설정 따름/사용/미사용</li><li>리스크관리 트리거: 기본 <strong>본사정책 따름</strong></li></ul>
 <h2 class="section-title" id="s4">4. 4. 오픈 전</h2>
-<ol><li>테스트 결제 1건</li><li>노티/콜백 URL(해당 시)</li><li>가맹점API 키·문서 안내 위치 확인(연동 메뉴얼은 배포 허브)</li></ol>
+<ol><li>테스트 결제 1건(카드)</li><li>크립토 사용 시 prepare(<code>payMeans=CRYPTO</code>)·소액 입금·Callback(카드 NOTI 재사용)</li><li>노티/콜백 URL(해당 시)</li><li>가맹점API 키·문서·크립토 가이드(5개국어) 안내</li></ol>
   </div>
   <div class="footer">
     __BRAND_SITE_NAME__ · 신규가맹점 추가 메뉴얼 · V2.81<br>

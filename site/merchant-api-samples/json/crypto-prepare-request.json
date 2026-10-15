@@ -1,0 +1,16 @@
+{
+  "compId": "6000000064",
+  "orderNo": "ORD-CRYPTO-001",
+  "amount": "10000",
+  "displayCurrency": "JPY",
+  "payMeans": "CRYPTO",
+  "productName": "Sample crypto order",
+  "lang": "ENG",
+  "buyer": {
+    "email": "buyer@example.com",
+    "phone": "1012345678",
+    "countryIso2": "KR",
+    "firstName": "Gildong",
+    "lastName": "Hong"
+  }
+}

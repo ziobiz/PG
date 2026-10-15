@@ -38,6 +38,10 @@ X-Icopay-Merchant-Broker-Secret: {브로커시크릿}
 
 **필수:** `compId`(또는 merchantId), `orderNo`, `amount`, `buyer.email`, `buyer.phone`, `buyer.countryIso2`
 
+**크립토:** 동일 URL에 `"payMeans": "CRYPTO"` 추가 (또는 `displayCurrency`).  
+상세 5개국어: [crypto-checkout-api.ko.html](crypto-checkout-api.ko.html) · 샘플 [crypto-prepare-request.json](../json/crypto-prepare-request.json)  
+Callback은 **카드용 NOTI URL 재사용**(Comp-Id). `assetCode`·`networkCode`·`depositTxHash` 저장.
+
 **응답 `pgVendor`:** 항상 `ICOPAY`
 
 **라이브 응답에서 쓸 값:** `data.sessionToken`, `data.payUrl`, `data.embedScriptUrl`

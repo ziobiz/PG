@@ -7780,22 +7780,39 @@
         {
           title: '네트워크별 가스피',
           id: 'hqCryptoGasFeeCard',
-          notice: '전 가맹 동일 적용. 출금(송금) 시 조직% 배분·reserve·수탁과 별개로 차감됩니다. 자산×네트워크 고정액. 저장 시 Google OTP 필요.',
+          notice: '전 가맹 동일 적용. 출금(송금) 시 조직% 배분·reserve·수탁과 별개로 차감됩니다. USDC·USDT·EURC 탭별로 카탈로그 네트워크를 설정합니다. 자산×네트워크 고정액. 저장 시 Google OTP 필요.',
           rows: [
             [{
               type: 'customHtml',
               col: 12,
               html: function () {
+                function gasTabPane(asset, noteKey, noteDefault) {
+                  return (
+                    '<div class="tab-pane fade' + (asset === 'USDC' ? ' show active' : '') + '" id="cryptoGasFeePane_' + asset + '" role="tabpanel">' +
+                    '<p class="small text-muted mb-2" data-pg-ui-t="' + escUi(noteKey) + '">' + escUi(L(noteDefault)) + '</p>' +
+                    '<div class="table-responsive"><table class="table table-sm table-bordered mb-0" id="grid_cryptoGasFee_' + asset + '">' +
+                    '<thead class="table-light"><tr>' +
+                    '<th data-pg-ui-t="네트워크">네트워크</th>' +
+                    '<th data-pg-ui-t="가스피">가스피</th><th data-pg-ui-t="사용">사용</th><th data-pg-ui-t="비고">비고</th>' +
+                    '</tr></thead><tbody id="cryptoGasFeeTbody_' + asset + '"><tr><td colspan="4" class="text-muted text-center small">' +
+                    escUi(L('불러오는 중…')) + '</td></tr></tbody></table></div></div>'
+                  );
+                }
                 return (
-                  '<div class="d-flex align-items-center justify-content-between mb-2">' +
-                  '<span class="small text-muted" data-pg-ui-t="가스피는 송금 자산 단위 고정액입니다.">' + escUi(L('가스피는 송금 자산 단위 고정액입니다.')) + '</span>' +
+                  '<div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">' +
+                  '<span class="small text-muted" data-pg-ui-t="가스피는 송금 자산 단위 고정액입니다. 탭(USDC/USDT/EURC)별로 네트워크를 설정합니다.">' +
+                  escUi(L('가스피는 송금 자산 단위 고정액입니다. 탭(USDC/USDT/EURC)별로 네트워크를 설정합니다.')) + '</span>' +
                   '<button type="button" class="btn btn-primary btn-sm" id="cryptoGasFeeSaveBtn" data-pg-ui-t="가스피 저장">' + escUi(L('가스피 저장')) + '</button></div>' +
-                  '<div class="table-responsive"><table class="table table-sm table-bordered mb-0" id="grid_cryptoGasFee">' +
-                  '<thead class="table-light"><tr>' +
-                  '<th data-pg-ui-t="자산">자산</th><th data-pg-ui-t="네트워크">네트워크</th>' +
-                  '<th data-pg-ui-t="가스피">가스피</th><th data-pg-ui-t="사용">사용</th><th data-pg-ui-t="비고">비고</th>' +
-                  '</tr></thead><tbody id="cryptoGasFeeTbody"><tr><td colspan="5" class="text-muted text-center small">' +
-                  escUi(L('불러오는 중…')) + '</td></tr></tbody></table></div>'
+                  '<ul class="nav nav-tabs mb-2" id="cryptoGasFeeTabs" role="tablist">' +
+                  '<li class="nav-item" role="presentation"><button type="button" class="nav-link active" id="cryptoGasFeeTab_USDC" data-bs-toggle="tab" data-bs-target="#cryptoGasFeePane_USDC" data-gas-asset="USDC" role="tab">USDC</button></li>' +
+                  '<li class="nav-item" role="presentation"><button type="button" class="nav-link" id="cryptoGasFeeTab_USDT" data-bs-toggle="tab" data-bs-target="#cryptoGasFeePane_USDT" data-gas-asset="USDT" role="tab">USDT</button></li>' +
+                  '<li class="nav-item" role="presentation"><button type="button" class="nav-link" id="cryptoGasFeeTab_EURC" data-bs-toggle="tab" data-bs-target="#cryptoGasFeePane_EURC" data-gas-asset="EURC" role="tab">EURC</button></li>' +
+                  '</ul>' +
+                  '<div class="tab-content" id="cryptoGasFeeTabContent">' +
+                  gasTabPane('USDC', 'USDC 주력: Solana·Base. Native USDC는 TRON이 없습니다 — TRC20으로 USDC를 보내지 마세요.', 'USDC 주력: Solana·Base. Native USDC는 TRON이 없습니다 — TRC20으로 USDC를 보내지 마세요.') +
+                  gasTabPane('USDT', 'USDT 주력: TRC20(Tron). Base는 브릿지 USDT용입니다.', 'USDT 주력: TRC20(Tron). Base는 브릿지 USDT용입니다.') +
+                  gasTabPane('EURC', 'EURC 주력: ERC20·Base·Solana(Circle). 동일 탭에서 주요 네트워크 가스를 설정합니다.', 'EURC 주력: ERC20·Base·Solana(Circle). 동일 탭에서 주요 네트워크 가스를 설정합니다.') +
+                  '</div>'
                 );
               }
             }]

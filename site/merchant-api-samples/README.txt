@@ -20,9 +20,13 @@ Quick start (Korean): docs/../../docs/가맹점_ICOPAY_간단연동_빠른시작
 ---------------------
    docs/unified-checkout-api-flow.html (+ .ko .ja .ch .th)
    docs/unified-checkout-api-parameters.html (+ langs)
+   docs/crypto-checkout-api.html (+ .ko .ja .ch .th)  ← payMeans=CRYPTO, Callback reuse
    json/unified-prepare-request.json
+   json/crypto-prepare-request.json            ← crypto prepare sample
    json/unified-prepare-response.example.json   ← live: pgVendor=ICOPAY, payUrl=/checkout/...
    json/unified-prepare-sandbox-response.example.json  ← sandbox=true, call complete
+
+Crypto: same prepare URL with "payMeans":"CRYPTO". Callback = existing card NOTI callbackUrl (Comp-Id).
 
 ② PHP — recommended
 -------------------

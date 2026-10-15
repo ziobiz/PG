@@ -1,0 +1,297 @@
+ICOPAY クリプト Checkout API — 加盟連携
+Doc ID: ICOPAY-CRYPTO-CHECKOUT-001 v1.0 (2026-10-15)
+
+ICOPAY クリプト Checkout API — 加盟連携
+
+  
+
+  
+
+Lang:
+ 
+English
+ · 
+한국어
+ · 
+日本語
+ · 
+中文
+ · 
+ไทย
+
+  
+ICOPAY クリプト Checkout API — 加盟連携
+
+  
+Doc ID: ICOPAY-CRYPTO-CHECKOUT-001 · v1.0 · 2026-10-15 · ICOPAY neutral crypto
+
+  
+関連: 
+統合 Checkout フロー
+ · 
+Prepare パラメータ
+
+  
+1. 範囲
+
+  
+  
+カード連携済みの同一加盟 MID に
+クリプト
+決済を追加します。表示は常に
+ICOPAY
+のみです。
+
+  
+
+推奨:
+ 統合 prepare に 
+payMeans=CRYPTO
+。Callback/Result はカード用 NOTI 登録を
+再利用
+（Comp-Id）。
+
+  
+2. 前提（本社設定）
+
+  
+  
+
+    
+
+Item
+
+Note
+
+    
+
+Merchant crypto use = Y
+
+Company detail or 本社政策 → Pay·URL → クリプト設定
+
+    
+
+Allowed assets
+
+e.g. USDT only for first go-live
+
+    
+
+Merchant receive wallet
+
+One network + address per enabled asset (settlement payout)
+
+    
+
+HQ custody wallet
+
+ICOPAY deposit address for that asset×network
+
+    
+
+Company use = Y
+
+Unused / permanent stop blocks crypto
+
+  
+
+  
+3. Prepare（推奨）
+
+  
+  
+
+POST {publicApiBaseUrl}/api/middleware/v1/merchant/checkout/prepare
+
+  
+Header: 
+Content-Type: application/json
+, 
+X-Icopay-Merchant-Broker-Secret
+ (same live secret as cards).
+
+  
+{
+  "compId": "6000000064",
+  "orderNo": "ORD-CRYPTO-001",
+  "amount": "10000",
+  "displayCurrency": "JPY",
+  "payMeans": "CRYPTO",
+  "productName": "サンプル商品",
+  "lang": "ENG",
+  "buyer": {
+    "email": "buyer@example.com",
+    "phone": "1012345678",
+    "countryIso2": "KR",
+    "firstName": "Gildong",
+    "lastName": "Hong"
+  }
+}
+
+  
+
+    
+
+Field
+
+Required
+
+Description
+
+    
+
+payMeans
+
+M*
+
+CRYPTO
+ (aliases: checkoutMeans / paymentMeans)
+
+    
+
+amount
+
+M
+
+Display amount; ICOPAY quotes to USD then remittance asset
+
+    
+
+displayCurrency
+
+O
+
+JPY/USD/… — merchant crypto display currency if omitted
+
+    
+
+assetCode / networkCode
+
+O
+
+Optional; shopper can pick on ICOPAY crypto page
+
+    
+
+buyer name/email
+
+M*
+
+Latin letters for name/email; phone digits (same as crypto UI)
+
+  
+
+  
+
+Response:
+ 
+pgVendor
+ always 
+ICOPAY
+. Use 
+payUrl
+ / 
+sessionToken
+.
+    Crypto session tokens may start with 
+cr_
+.
+
+  
+Alternative: 
+POST /api/pay/crypto/prepare
+ with 
+compId
+ (same product rules).
+
+  
+4. URL チャネル
+
+  
+  
+
+    
+
+URL
+
+When
+
+    
+
+Crypto payment URL
+
+Crypto-only link on company crypto card
+
+    
+
+/checkout-all/{compId}
+
+Unified (card + crypto) when web pay and crypto use are both ON
+
+    
+
+/checkout/{compId}
+
+Card URL pay (existing)
+
+  
+
+  
+5. Callback / Result
+
+  
+  
+会社詳細の「決済通知 URL」にクリプト専用 Callback を
+新規登録しません
+。
+    入金確定 → ICOPAY → 
+/noti/crypto
+ → NOTI が既存カード callbackUrl へリレー。
+
+  
+
+    
+
+orderid
+ / 
+orderNo
+ で照合
+
+    
+冪等処理
+
+    
+追加: 
+assetCode
+, 
+networkCode
+, 
+depositTxHash
+
+  
+
+  
+6. 公開前チェック
+
+  
+  
+
+    
+HQ crypto use + asset + custody + receive wallet for the MID
+
+    
+prepare with 
+payMeans=CRYPTO
+ → open payUrl → small deposit → HQ Crypto deposits confirm
+
+    
+Callback received on existing card URL; store crypto fields
+
+    
+Card regression still OK
+
+  
+
+  
+テキスト: 
+crypto-checkout-api.ja.txt

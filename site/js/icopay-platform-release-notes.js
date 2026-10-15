@@ -6,13 +6,121 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '5.2';
+  var CURRENT_LIVE = '5.6';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '5.6',
+      kind: 'minor',
+      date: '2026-10-15',
+      items: {
+        KO: [
+          '크립토 결제창: 본사 수탁이 있는 자산×네트워크만 표시',
+          '자산당 네트워크 1개면 자동 선택(추가 클릭 불필요)'
+        ],
+        EN: [
+          'Crypto checkout: show only asset×network pairs with HQ custody',
+          'Auto-select network when an asset has exactly one network'
+        ],
+        JP: [
+          'クリプト決済画面: 本社カストディがある資産×ネットワークのみ表示',
+          '資産にネットワークが1つなら自動選択(追加クリック不要)'
+        ],
+        CH: [
+          '加密支付页：仅显示有总部托管的资产×网络',
+          '某资产仅一个网络时自动选中（无需再点）'
+        ],
+        TH: [
+          'หน้าชำระคริปโต: แสดงเฉพาะสินทรัพย์×เครือข่ายที่มี custody ของ HQ',
+          'ถ้าสินทรัพย์มีเครือข่ายเดียว เลือกอัตโนมัติ (ไม่ต้องคลิกเพิ่ม)'
+        ]
+      }
+    },
+    {
+      version: '5.5',
+      kind: 'minor',
+      date: '2026-10-15',
+      items: {
+        KO: [
+          '크립토 prepare: 수탁 주소가 있는 네트워크를 자동 선택(CUSTODY_MISSING 방지)',
+          '오류 메시지에 자산×네트워크 표기 · TINPASS 허용망 BEP20 우선'
+        ],
+        EN: [
+          'Crypto prepare: auto-pick a network that has HQ custody (avoids CUSTODY_MISSING)',
+          'Error message shows asset×network · TINPASS allowed nets prefer BEP20'
+        ],
+        JP: [
+          'クリプトprepare: 本社カストディがあるネットワークを自動選択(CUSTODY_MISSING防止)',
+          'エラーに資産×ネットワーク表示 · TINPASS許可網はBEP20優先'
+        ],
+        CH: [
+          '加密 prepare：自动选择有总部托管地址的网络（避免 CUSTODY_MISSING）',
+          '错误信息显示资产×网络 · TINPASS 允许网络优先 BEP20'
+        ],
+        TH: [
+          'คริปโต prepare: เลือกเครือข่ายที่มี custody ของ HQ อัตโนมัติ (กัน CUSTODY_MISSING)',
+          'ข้อความผิดพลาดแสดงสินทรัพย์×เครือข่าย · TINPASS เน้น BEP20'
+        ]
+      }
+    },
+    {
+      version: '5.4',
+      kind: 'minor',
+      date: '2026-10-15',
+      items: {
+        KO: [
+          '가맹 API·샘플: 크립토 Checkout 연동 문서 5개국어(payMeans=CRYPTO·Callback 재사용)',
+          '운영·가맹 메뉴얼: 크립토 URL·내역·정산·API 안내 보강'
+        ],
+        EN: [
+          'Merchant API samples: crypto checkout docs in 5 languages (payMeans=CRYPTO · Callback reuse)',
+          'Ops/merchant manuals: crypto URL · deposits · settlement · API guidance'
+        ],
+        JP: [
+          '加盟APIサンプル: クリプトCheckout連携文書5言語(payMeans=CRYPTO・Callback再利用)',
+          '運営・加盟マニュアル: クリプトURL・入金・精算・API案内を補強'
+        ],
+        CH: [
+          '商户 API 样例：加密 Checkout 对接文档五语（payMeans=CRYPTO·复用 Callback）',
+          '运营/商户手册：加密 URL·入金·结算·API 说明加强'
+        ],
+        TH: [
+          'ตัวอย่าง API ร้าน: เอกสารคริปโต Checkout 5 ภาษา (payMeans=CRYPTO·ใช้ Callback ซ้ำ)',
+          'คู่มือปฏิบัติการ/ร้าน: URL คริปโต·ฝาก·เคลียร์·API'
+        ]
+      }
+    },
+    {
+      version: '5.3',
+      kind: 'minor',
+      date: '2026-10-15',
+      items: {
+        KO: [
+          '크립토 네트워크별 가스피: USDC·USDT·EURC 탭 분리',
+          '카탈로그 네트워크(Solana·Base·TRC20·ERC20·BEP20·Polygon·Arbitrum·Optimism·Avalanche·Kaia·Stellar 등) 가스피 행 확장·적용'
+        ],
+        EN: [
+          'Crypto per-network gas fees: separate USDC·USDT·EURC tabs',
+          'Expand gas rows to catalog networks (Solana·Base·TRC20·ERC20·BEP20·Polygon·Arbitrum·Optimism·Avalanche·Kaia·Stellar, etc.)'
+        ],
+        JP: [
+          'クリプトネットワーク別ガス費: USDC・USDT・EURCタブ分離',
+          'カタログネットワーク(Solana・Base・TRC20・ERC20等)のガス費行を拡張・適用'
+        ],
+        CH: [
+          '加密货币按网络 Gas 费：USDC·USDT·EURC 分标签页',
+          '按目录网络扩展 Gas 行（Solana·Base·TRC20·ERC20 等）并生效'
+        ],
+        TH: [
+          'ค่าแก๊สคริปโตตามเครือข่าย: แยกแท็บ USDC·USDT·EURC',
+          'ขยายแถวค่าแก๊สตามแคตตาล็อกเครือข่าย (Solana·Base·TRC20·ERC20 ฯลฯ)'
+        ]
+      }
+    },
     {
       version: '5.2',
       kind: 'minor',

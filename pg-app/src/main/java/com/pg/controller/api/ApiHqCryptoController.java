@@ -36,14 +36,14 @@ public class ApiHqCryptoController {
     @GetMapping("/settings")
     public ResponseEntity<ApiResponse<Map<String, Object>>> settings() {
         Map<String, Object> data = new java.util.LinkedHashMap<>(adminService.hqSettings());
-        data.put("gasFees", gasFeeService.listAll());
+        data.put("gasFees", gasFeeService.listMergedWithCatalog());
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
-    /** 네트워크별 가스피(전 가맹 동일). 조직% 배분과 별개. */
+    /** 네트워크별 가스피(전 가맹 동일). 조직% 배분과 별개. 카탈로그 페어 기준 병합. */
     @GetMapping("/gas-fees")
     public ResponseEntity<ApiResponse<Map<String, Object>>> gasFees() {
-        return ResponseEntity.ok(ApiResponse.ok(Map.of("list", gasFeeService.listAll())));
+        return ResponseEntity.ok(ApiResponse.ok(Map.of("list", gasFeeService.listMergedWithCatalog())));
     }
 
     @PostMapping("/gas-fees/save")

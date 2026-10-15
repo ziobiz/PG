@@ -5,10 +5,13 @@
 | **문서명** | 가맹점 API 개발 연동 매뉴얼 |
 | **배포** | 플랫폼(본사) → 가맹점(또는 가맹점 용역 개발사) |
 | **대상 독자** | 백엔드·결제 연동 담당 개발자, 기술 PM |
-| **적용 PG** | ChillPay · JPAY (플랫폼이 개방한 공개 API 기준) |
+| **적용 PG** | ChillPay · JPAY · ElementPay · ox 등 카드 + **크립토(CRYPTO)** (플랫폼이 개방한 공개 API 기준) |
 | **문의** | 계약·키·URL·권한 변경은 **플랫폼(본사)** 관리자 채널로 요청 |
 
 **본 문서의 목적:** 가맹점이 **자사 쇼핑몰·앱·POS 백엔드**에서 ICOPAY가 제공하는 **공개 REST API**를 호출해 결제를 연동하고, **통보(웹훅)** 를 수신·처리하기까지의 **개발·검수 기준**을 한곳에 정리합니다.
+
+**권장 통합 경로(신규):** `{BASE}/api/middleware/v1/merchant/checkout/prepare` — 카드는 운영 PG 자동, 크립토는 `payMeans=CRYPTO`.  
+5개국어 상세: `site/merchant-api-samples/docs/unified-checkout-api-flow.*.html` · `crypto-checkout-api.*.html`
 
 ---
 
@@ -16,6 +19,7 @@
 
 | 버전 | 일자 | 요약 |
 |------|------|------|
+| 1.1 | 2026-10-15 | 크립토(`payMeans=CRYPTO`)·Callback 재사용·통합 Checkout 문서 링크 추가 |
 | 1.0 | (배포일 기입) | 최초 배포 — ChillPay·JPAY 브로커 경로 기준 |
 
 ---
@@ -28,6 +32,7 @@
 4. [공통 기술 사양](#4-공통-기술-사양)  
 5. [ChillPay 연동](#5-chillpay-연동)  
 6. [JPAY 연동](#6-jpay-연동)  
+6-1. [크립토 연동](#6-1-크립토-연동paymeanscrypto)  
 7. [가맹점 서버 통보(웹훅)](#7-가맹점-서버-통보웹훅)  
 8. [구현 시 권장 사항](#8-구현-시-권장-사항)  
 9. [검수·오픈 전 체크리스트](#9-검수오픈-전-체크리스트)  
@@ -263,6 +268,36 @@
 
 ---
 
+## 6-1. 크립토 연동(`payMeans=CRYPTO`)
+
+카드와 **동일 MID·동일 브로커 시크릿·동일 통합 prepare**에 수단만 지정합니다.
+
+| 항목 | 내용 |
+|------|------|
+| Prepare | `POST {BASE}/api/middleware/v1/merchant/checkout/prepare` + `"payMeans":"CRYPTO"` |
+| 대체 | `POST {BASE}/api/pay/crypto/prepare` (`compId` 포함) |
+| 응답 | `pgVendor=ICOPAY`, `payUrl` / `sessionToken` (세션 `cr_` 가능) |
+| 표시금액 | `amount` + `displayCurrency`(선택) → USD 청구 환산 → 자산 송금 안내 |
+| Callback | **카드용 NOTI callbackUrl 재사용**(Comp-Id). 업체 「결제통보 URL」 직통 아님 |
+| 추가 필드 | `assetCode`, `networkCode`, `depositTxHash` |
+
+**본사 전제:** 크립토 사용=Y, 허용자산, 대표수탁, 가맹 수취 지갑, 업체 사용=Y.
+
+**다국어 연동 문서 (HTML):**
+
+| 언어 | 경로 |
+|------|------|
+| KO | `{BASE}/merchant-api-samples/docs/crypto-checkout-api.ko.html` |
+| EN | `{BASE}/merchant-api-samples/docs/crypto-checkout-api.html` |
+| JA | `{BASE}/merchant-api-samples/docs/crypto-checkout-api.ja.html` |
+| CH | `{BASE}/merchant-api-samples/docs/crypto-checkout-api.ch.html` |
+| TH | `{BASE}/merchant-api-samples/docs/crypto-checkout-api.th.html` |
+
+샘플 JSON: `{BASE}/merchant-api-samples/json/crypto-prepare-request.json`  
+계약 요약(내부): `docs/ICOPAY_CRYPTO_NOTI_계약.md`
+
+---
+
 ## 7. 가맹점 서버 통보(웹훅)
 
 플랫폼은 거래 상태 변경 시 키트의 **`merchantNotifyUrls`** 에 등록된 URL로 HTTP를 호출할 수 있습니다.
@@ -293,7 +328,8 @@
 - [ ] 브로커 사용 시 강제 여부와 `X-Icopay-Merchant-Broker-Secret` 일치  
 - [ ] ChillPay: `checkout-context` → `request` 흐름 및 토큰·주문번호 검증  
 - [ ] JPAY: `sale` 후 `status` / `redirectUrl` / 고객 복귀 URL 처리  
-- [ ] 통보 URL: HTTPS, 멱등, 로그, 장애 시 알림  
+- [ ] 크립토: `payMeans=CRYPTO` prepare → payUrl → 입금 확정 → 기존 Callback에 `assetCode` 등 수신  
+- [ ] 통보 URL: HTTPS, 멱등, 로그, 장애 시 알림 (크립토도 카드 Callback 재사용)  
 - [ ] 주요 `errorCode` 에 대한 사용자 메시지 매핑  
 - [ ] 본사 요청 시 **샘플 주문 로그·재현 절차** 제공 가능  
 
@@ -325,6 +361,24 @@ POST {BASE}/api/middleware/v1/pg/jpay/sale
 
 ```
 POST {BASE}/api/pay/jpay/sale
+```
+
+**통합 Checkout (권장 · 카드+크립토)**
+
+```
+POST {BASE}/api/middleware/v1/merchant/checkout/prepare   # payMeans=CRYPTO 시 크립토
+GET  {BASE}/api/middleware/v1/merchant/checkout/session?token=...
+GET  {BASE}/api/middleware/v1/merchant/checkout/status?compId=&orderNo=
+```
+
+**크립토 직접**
+
+```
+POST {BASE}/api/pay/crypto/prepare
+POST {BASE}/api/pay/crypto/estimate
+GET  {BASE}/api/pay/crypto/session?session=...
+GET  {BASE}/api/pay/crypto/status?orderNo=...
+POST {BASE}/api/pay/crypto/bind
 ```
 
 ---

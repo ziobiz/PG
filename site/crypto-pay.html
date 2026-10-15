@@ -541,32 +541,61 @@
     state.depositReady = true;
   }
 
+  /**
+   * 자산별 네트워크 — 본사 수탁이 있는 페어만 (catalog.pairs / custodyByAsset).
+   * 해당 자산에 네트워크가 1개면 클릭 없이 자동 선택.
+   */
   function filterNetworks(networks, pairs, assetCode) {
+    var asset = String(assetCode || '').toUpperCase();
+    var catalog = (state.data && state.data.catalog) || {};
+    var byAsset = catalog.custodyByAsset || {};
+    var custodyNets = byAsset[asset];
     var allowed = {};
-    (pairs || []).forEach(function (p) {
-      if (String(p.assetCode).toUpperCase() === String(assetCode).toUpperCase()) {
-        allowed[String(p.networkCode).toUpperCase()] = true;
-      }
-    });
-    var list = (networks || []).filter(function (n) {
-      return !Object.keys(allowed).length || allowed[String(n.code).toUpperCase()];
-    });
-    document.getElementById('networkSection').hidden = false;
-    var netEl = document.getElementById('networkGrid');
-    if (ICOPAY_CRYPTO_UI.renderNetworkList) {
-      ICOPAY_CRYPTO_UI.renderNetworkList(netEl, list, state.network, function (code) {
-        state.network = code;
-        state.depositReady = false;
-        document.getElementById('depositSection').hidden = true;
-        showErr('');
+    if (Array.isArray(custodyNets) && custodyNets.length) {
+      custodyNets.forEach(function (c) {
+        allowed[String(c).toUpperCase()] = true;
       });
     } else {
-      ICOPAY_CRYPTO_UI.renderGrid(netEl, list, function (code) {
-        state.network = code;
-        state.depositReady = false;
-        document.getElementById('depositSection').hidden = true;
-        showErr('');
+      (pairs || []).forEach(function (p) {
+        if (String(p.assetCode).toUpperCase() === asset) {
+          allowed[String(p.networkCode).toUpperCase()] = true;
+        }
       });
+    }
+    var list = (networks || []).filter(function (n) {
+      var code = String(n.code || '').toUpperCase();
+      return !!allowed[code];
+    });
+    /* pairs에만 있고 networks 목록에 없는 경우 보강 */
+    if (!list.length && Object.keys(allowed).length) {
+      Object.keys(allowed).forEach(function (code) {
+        var found = (networks || []).find(function (n) {
+          return String(n.code).toUpperCase() === code;
+        });
+        list.push(found || { code: code, name: code });
+      });
+    }
+    var cur = String(state.network || '').toUpperCase();
+    if (cur && !allowed[cur]) {
+      state.network = '';
+      cur = '';
+    }
+    if (list.length === 1) {
+      state.network = String(list[0].code || '').toUpperCase();
+      cur = state.network;
+    }
+    document.getElementById('networkSection').hidden = list.length === 0;
+    var netEl = document.getElementById('networkGrid');
+    function onNetPick(code) {
+      state.network = code;
+      state.depositReady = false;
+      document.getElementById('depositSection').hidden = true;
+      showErr('');
+    }
+    if (ICOPAY_CRYPTO_UI.renderNetworkList) {
+      ICOPAY_CRYPTO_UI.renderNetworkList(netEl, list, cur, onNetPick);
+    } else {
+      ICOPAY_CRYPTO_UI.renderGrid(netEl, list, onNetPick);
     }
   }
 

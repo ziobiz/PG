@@ -24685,38 +24685,78 @@
         });
       }
       function fillGasFeeTable(list) {
-        var tb = pane.querySelector('#cryptoGasFeeTbody');
-        if (!tb) return;
+        var assets = ['USDC', 'USDT', 'EURC'];
         var rows = Array.isArray(list) ? list : [];
         pane._cryptoGasFeeRows = rows;
-        if (!rows.length) {
-          tb.innerHTML = '<tr><td colspan="5" class="text-muted text-center small">' +
-            pgAdminEscHtml(pgAdminUiT('등록된 가스피가 없습니다.')) + '</td></tr>';
-          return;
-        }
-        tb.innerHTML = rows.map(function (r, i) {
-          var asset = String(r.assetCode || '');
-          var net = String(r.networkCode || '');
-          var amt = r.gasFeeAmt != null ? String(r.gasFeeAmt) : '0';
-          var use = String(r.useYn || 'Y').toUpperCase() === 'N' ? 'N' : 'Y';
-          var remark = r.remark != null ? String(r.remark) : '';
-          return '<tr data-gas-idx="' + i + '">' +
-            '<td class="text-nowrap"><input type="hidden" class="crypto-gas-asset" value="' + asset.replace(/"/g, '&quot;') + '" />' +
-            pgAdminEscHtml(asset) + '</td>' +
-            '<td class="text-nowrap"><input type="hidden" class="crypto-gas-net" value="' + net.replace(/"/g, '&quot;') + '" />' +
-            pgAdminEscHtml(net) + '</td>' +
-            '<td><input type="text" class="form-control form-control-sm crypto-gas-amt" value="' + amt.replace(/"/g, '&quot;') + '" /></td>' +
-            '<td><select class="form-select form-select-sm crypto-gas-use">' +
-            '<option value="Y"' + (use === 'Y' ? ' selected' : '') + '>Y</option>' +
-            '<option value="N"' + (use === 'N' ? ' selected' : '') + '>N</option></select></td>' +
-            '<td><input type="text" class="form-control form-control-sm crypto-gas-remark" value="' + remark.replace(/"/g, '&quot;') + '" maxlength="200" /></td></tr>';
-        }).join('');
+        var byAsset = { USDC: [], USDT: [], EURC: [] };
+        rows.forEach(function (r) {
+          var asset = String(r.assetCode || '').toUpperCase();
+          if (!byAsset[asset]) byAsset[asset] = [];
+          byAsset[asset].push(r);
+        });
+        var globalIdx = 0;
+        assets.forEach(function (asset) {
+          var tb = pane.querySelector('#cryptoGasFeeTbody_' + asset);
+          if (!tb) return;
+          var assetRows = byAsset[asset] || [];
+          if (!assetRows.length) {
+            tb.innerHTML = '<tr><td colspan="4" class="text-muted text-center small">' +
+              pgAdminEscHtml(pgAdminUiT('등록된 가스피가 없습니다.')) + '</td></tr>';
+            return;
+          }
+          tb.innerHTML = assetRows.map(function (r) {
+            var net = String(r.networkCode || '');
+            var netLabel = String(r.networkName || '').trim();
+            if (netLabel && netLabel.toUpperCase() !== net.toUpperCase()) {
+              netLabel = netLabel + ' (' + net + ')';
+            } else {
+              netLabel = net;
+            }
+            var amt = r.gasFeeAmt != null ? String(r.gasFeeAmt) : '0';
+            var use = String(r.useYn || 'Y').toUpperCase() === 'N' ? 'N' : 'Y';
+            var remark = r.remark != null ? String(r.remark) : '';
+            var idx = globalIdx++;
+            return '<tr data-gas-idx="' + idx + '" data-gas-asset="' + asset + '">' +
+              '<td class="text-nowrap"><input type="hidden" class="crypto-gas-asset" value="' + asset.replace(/"/g, '&quot;') + '" />' +
+              '<input type="hidden" class="crypto-gas-net" value="' + net.replace(/"/g, '&quot;') + '" />' +
+              pgAdminEscHtml(netLabel) + '</td>' +
+              '<td><input type="text" class="form-control form-control-sm crypto-gas-amt" value="' + amt.replace(/"/g, '&quot;') + '" /></td>' +
+              '<td><select class="form-select form-select-sm crypto-gas-use">' +
+              '<option value="Y"' + (use === 'Y' ? ' selected' : '') + '>Y</option>' +
+              '<option value="N"' + (use === 'N' ? ' selected' : '') + '>N</option></select></td>' +
+              '<td><input type="text" class="form-control form-control-sm crypto-gas-remark" value="' + remark.replace(/"/g, '&quot;') + '" maxlength="200" /></td></tr>';
+          }).join('');
+        });
+      }
+      function bindCryptoGasFeeTabs() {
+        var tabs = pane.querySelectorAll('#cryptoGasFeeTabs [data-gas-asset]');
+        if (!tabs.length) return;
+        tabs.forEach(function (btn) {
+          if (btn._gasTabBound) return;
+          btn._gasTabBound = true;
+          btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            var asset = btn.getAttribute('data-gas-asset') || 'USDC';
+            tabs.forEach(function (b) {
+              b.classList.toggle('active', b === btn);
+              b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
+            });
+            ['USDC', 'USDT', 'EURC'].forEach(function (a) {
+              var paneEl = pane.querySelector('#cryptoGasFeePane_' + a);
+              if (!paneEl) return;
+              var on = a === asset;
+              paneEl.classList.toggle('show', on);
+              paneEl.classList.toggle('active', on);
+            });
+          });
+        });
       }
       function applyHqCryptoData(data) {
         if (data && data.catalog) pgCryptoApplyHqCatalog(data.catalog);
         fillCustodyTables(data && data.custodyAddresses, data && data.custodyByAsset);
         if (data && data.merchantConfigs) fillMerchantCryptoTable(data.merchantConfigs);
         fillGasFeeTable(data && data.gasFees);
+        bindCryptoGasFeeTabs();
         if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
           try { window.PG_UI_I18N.applyDom(pane); } catch (eI) { /* ignore */ }
         }
@@ -24744,7 +24784,7 @@
       var gasSaveBtn = pane.querySelector('#cryptoGasFeeSaveBtn');
       if (gasSaveBtn) {
         gasSaveBtn.addEventListener('click', function () {
-          var trs = pane.querySelectorAll('#cryptoGasFeeTbody tr[data-gas-idx]');
+          var trs = pane.querySelectorAll('#cryptoGasFeeTabContent tr[data-gas-idx]');
           var list = [];
           trs.forEach(function (tr) {
             list.push({

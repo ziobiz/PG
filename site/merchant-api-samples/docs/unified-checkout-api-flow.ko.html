@@ -26,8 +26,9 @@
   <p class="lang-nav"><strong>언어:</strong>
     <a href="unified-checkout-api-flow.html">English</a> · <strong>한국어</strong> · <a href="unified-checkout-api-flow.ja.html">日本語</a> · <a href="unified-checkout-api-flow.ch.html">中文</a> · <a href="unified-checkout-api-flow.th.html">ไทย</a></p>
   <h1>ICOPAY 통합 Checkout API — 연동 흐름 및 엔드포인트</h1>
-  <p class="meta">문서 ID: ICOPAY-CHECKOUT-FLOW-001 · v1.0 · PG 무관 인라인 결제 (ICOPAY 통합)</p>
-  <p>관련: <a href="unified-checkout-api-parameters.html">Prepare API 파라미터 표</a> ·
+  <p class="meta">문서 ID: ICOPAY-CHECKOUT-FLOW-001 · v1.1 · PG 무관 인라인 결제 (ICOPAY 통합) · 크립토 포함</p>
+  <p>관련: <a href="unified-checkout-api-parameters.ko.html">Prepare API 파라미터 표</a> ·
+    <a href="crypto-checkout-api.ko.html">크립토 Checkout API</a> ·
     <a href="../index.html">merchant-api-samples 목록</a></p>
 
   <h2>1. “통합” checkout이란?</h2>
@@ -160,7 +161,26 @@
     <li>웹훅 URL은 본사 등록 시 HTTPS 권장 (<code>merchantNotifyUrls</code>)</li>
   </ul>
 
-  <h2>9. FAQ</h2>
+  <h2>9. 크립토 결제 (payMeans=CRYPTO)</h2>
+  <p>카드와 <strong>동일</strong>한 통합 prepare에 <code>payMeans</code>(또는 <code>checkoutMeans</code>/<code>paymentMeans</code>)=<code>CRYPTO</code>를 넣으면 크립토 세션·결제창이 열립니다.
+    상세·Callback 재사용·체크리스트: <a href="crypto-checkout-api.ko.html">크립토 Checkout API (KO)</a>
+    (<a href="crypto-checkout-api.html">EN</a> · <a href="crypto-checkout-api.ja.html">JA</a> · <a href="crypto-checkout-api.ch.html">CH</a> · <a href="crypto-checkout-api.th.html">TH</a>).</p>
+  <ul>
+    <li>본사에서 해당 가맹 <strong>크립토 사용=Y</strong>·허용자산·수탁·가맹 수취 지갑이 필요합니다.</li>
+    <li>응답 <code>pgVendor</code>는 항상 <code>ICOPAY</code>. 세션은 <code>cr_</code> 접두일 수 있습니다.</li>
+    <li>입금 확정 통보는 NOTI <code>/noti/crypto</code> → <strong>기존 카드 Callback URL 재사용</strong>(Comp-Id). 결제통보 URL 직통 아님.</li>
+    <li>웹훅에 <code>assetCode</code>·<code>networkCode</code>·<code>depositTxHash</code> 필드를 저장하세요.</li>
+  </ul>
+  <pre>{
+  "compId": "6000000064",
+  "orderNo": "ORD-CRYPTO-001",
+  "amount": "10000",
+  "displayCurrency": "JPY",
+  "payMeans": "CRYPTO",
+  "buyer": { "email": "buyer@example.com", "phone": "1012345678", "countryIso2": "KR" }
+}</pre>
+
+  <h2>10. FAQ</h2>
   <p><strong>Session을 서버에서 호출해야 하나요?</strong> 아니요. embed 위젯이 브라우저에서 호출합니다.</p>
   <p><strong>결제대행사 이름이 보일 수 있나요?</strong> 아니요. 가맹 API·결제창·문서는 ICOPAY만 노출합니다.</p>
   <p><strong>postMessage만으로 충분한가요?</strong> UX에는 충분할 수 있으나, 서버 확정은 웹훅 또는 status 조회를 권장합니다.</p>

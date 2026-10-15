@@ -163,11 +163,15 @@ public class CryptoCheckoutService {
             return fail("허용 자산이 없습니다. 자산을 활성으로 설정하세요.", "ASSET_NOT_ALLOWED");
         }
         String network = str(body, "networkCode", "network").toUpperCase(Locale.ROOT);
-        if (network.isBlank()) {
-            network = defaultNetworkForAsset(asset, cfg);
-        }
         if (!csvContains(cfg.getAssetsCsv(), asset)) {
             return fail("가맹점에서 허용하지 않는 자산입니다.", "ASSET_NOT_ALLOWED");
+        }
+        if (network.isBlank()) {
+            network = resolvePreferredNetwork(asset, cfg);
+        }
+        if (network.isBlank()) {
+            return fail("허용 네트워크가 없거나, 해당 자산의 본사 수탁 주소가 없습니다. 본사 크립토설정을 확인하세요.",
+                    "CUSTODY_MISSING");
         }
         if (!csvContains(cfg.getNetworksCsv(), network)) {
             return fail("가맹점에서 허용하지 않는 네트워크입니다.", "NETWORK_NOT_ALLOWED");
@@ -178,7 +182,20 @@ public class CryptoCheckoutService {
 
         String custody = resolveCustody(network, asset);
         if (custody == null || custody.isBlank()) {
-            return fail("수탁 주소가 설정되지 않았습니다. 본사 크립토설정을 확인하세요.", "CUSTODY_MISSING");
+            /* 요청 네트워크에 수탁이 없으면 허용 목록 중 수탁 있는 네트워크로 자동 전환 */
+            String fallbackNet = resolvePreferredNetwork(asset, cfg);
+            if (fallbackNet != null && !fallbackNet.isBlank() && !fallbackNet.equalsIgnoreCase(network)) {
+                String fbCustody = resolveCustody(fallbackNet, asset);
+                if (fbCustody != null && !fbCustody.isBlank()) {
+                    network = fallbackNet;
+                    custody = fbCustody;
+                }
+            }
+        }
+        if (custody == null || custody.isBlank()) {
+            return fail("수탁 주소가 설정되지 않았습니다. 본사 크립토설정에서 "
+                            + asset + " × " + network + " 대표수탁(사용Y)을 등록하세요.",
+                    "CUSTODY_MISSING");
         }
 
         Optional<CryptoDepositTxn> existing = depositTxnRepository.findByOrgUnitIdAndOrderNo(orgUnitId, orderNo);
@@ -229,9 +246,7 @@ public class CryptoCheckoutService {
         data.put("payMeans", "CRYPTO");
         data.put("cryptoEnabled", true);
         data.put("quoteCurrency", QUOTE_CURRENCY);
-        data.put("catalog", catalogService.publicCatalog(
-                Arrays.asList(cfg.getAssetsCsv().split(",")),
-                Arrays.asList(cfg.getNetworksCsv().split(","))));
+        data.put("catalog", checkoutCatalog(cfg));
         data.put("wallets", catalogService.wallets(network));
         checkoutHeaderLogoResolver.applyCryptoToCheckoutMap(data, orgUnitId);
         displayPolicy.putEffectiveYnIntoMap(data, orgUnitId);
@@ -263,11 +278,22 @@ public class CryptoCheckoutService {
         if (asset.isBlank()) {
             asset = txn.getAssetCode();
         }
-        if (network.isBlank()) {
-            network = txn.getNetworkCode();
-        }
         if (!csvContains(cfg.getAssetsCsv(), asset)) {
             return fail("가맹점에서 허용하지 않는 자산입니다.", "ASSET_NOT_ALLOWED");
+        }
+        if (network.isBlank()) {
+            network = nz(txn.getNetworkCode()).toUpperCase(Locale.ROOT);
+        }
+        String existingCustody = network.isBlank() ? null : resolveCustody(network, asset);
+        if (network.isBlank() || existingCustody == null || existingCustody.isBlank()) {
+            String preferred = resolvePreferredNetwork(asset, cfg);
+            if (preferred != null && !preferred.isBlank()) {
+                network = preferred;
+            }
+        }
+        if (network.isBlank()) {
+            return fail("허용 네트워크가 없거나, 해당 자산의 본사 수탁 주소가 없습니다. 본사 크립토설정을 확인하세요.",
+                    "CUSTODY_MISSING");
         }
         if (!csvContains(cfg.getNetworksCsv(), network)) {
             return fail("가맹점에서 허용하지 않는 네트워크입니다.", "NETWORK_NOT_ALLOWED");
@@ -277,7 +303,9 @@ public class CryptoCheckoutService {
         }
         String custody = resolveCustody(network, asset);
         if (custody == null || custody.isBlank()) {
-            return fail("수탁 주소가 설정되지 않았습니다. 본사 크립토설정을 확인하세요.", "CUSTODY_MISSING");
+            return fail("수탁 주소가 설정되지 않았습니다. 본사 크립토설정에서 "
+                            + asset + " × " + network + " 대표수탁(사용Y)을 등록하세요.",
+                    "CUSTODY_MISSING");
         }
         txn.setAssetCode(asset);
         txn.setNetworkCode(network);
@@ -289,9 +317,7 @@ public class CryptoCheckoutService {
         data.put("pgVendor", MerchantApiResponseMapper.MERCHANT_FACING_BRAND);
         data.put("quoteCurrency", QUOTE_CURRENCY);
         data.put("cryptoEnabled", true);
-        data.put("catalog", catalogService.publicCatalog(
-                Arrays.asList(cfg.getAssetsCsv().split(",")),
-                Arrays.asList(cfg.getNetworksCsv().split(","))));
+        data.put("catalog", checkoutCatalog(cfg));
         data.put("wallets", catalogService.wallets(network));
         checkoutHeaderLogoResolver.applyCryptoToCheckoutMap(data, txn.getOrgUnitId());
         displayPolicy.putEffectiveYnIntoMap(data, txn.getOrgUnitId());
@@ -313,9 +339,7 @@ public class CryptoCheckoutService {
         data.put("cryptoEnabled", cfg != null && "Y".equalsIgnoreCase(cfg.getUseYn())
                 && isMerchantServiceOpen(txn.getOrgUnitId()));
         if (cfg != null) {
-            data.put("catalog", catalogService.publicCatalog(
-                    Arrays.asList(cfg.getAssetsCsv().split(",")),
-                    Arrays.asList(cfg.getNetworksCsv().split(","))));
+            data.put("catalog", checkoutCatalog(cfg));
         } else {
             data.put("catalog", catalogService.publicCatalog(List.of(txn.getAssetCode()), List.of(txn.getNetworkCode())));
         }
@@ -483,14 +507,105 @@ public class CryptoCheckoutService {
                 .orElse(null);
     }
 
-    private String defaultNetworkForAsset(String asset, MerchantCryptoConfig cfg) {
-        if ("USDT".equalsIgnoreCase(asset) && csvContains(cfg.getNetworksCsv(), "TRC20")) {
-            return "TRC20";
+    /**
+     * 구매자 결제창 카탈로그 — 가맹 허용 ∩ 카탈로그 페어 ∩ <b>본사 수탁(사용Y) 있는</b> 자산×네트워크만.
+     * 수탁 없는 BASE 등이 같이 노출되면 안 된다.
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> checkoutCatalog(MerchantCryptoConfig cfg) {
+        Map<String, Object> cat = catalogService.publicCatalog(
+                Arrays.asList(cfg.getAssetsCsv().split(",")),
+                Arrays.asList(cfg.getNetworksCsv().split(",")));
+        List<Map<String, Object>> pairsIn = (List<Map<String, Object>>) cat.getOrDefault("pairs", List.of());
+        List<Map<String, Object>> pairsOut = new ArrayList<>();
+        Map<String, List<String>> custodyByAsset = new LinkedHashMap<>();
+        Set<String> netCodes = new LinkedHashSet<>();
+        Set<String> assetCodes = new LinkedHashSet<>();
+        for (Map<String, Object> p : pairsIn) {
+            if (p == null) {
+                continue;
+            }
+            String a = String.valueOf(p.getOrDefault("assetCode", "")).trim().toUpperCase(Locale.ROOT);
+            String n = String.valueOf(p.getOrDefault("networkCode", "")).trim().toUpperCase(Locale.ROOT);
+            if (a.isEmpty() || n.isEmpty()) {
+                continue;
+            }
+            String c = resolveCustody(n, a);
+            if (c == null || c.isBlank()) {
+                continue;
+            }
+            pairsOut.add(p);
+            assetCodes.add(a);
+            netCodes.add(n);
+            custodyByAsset.computeIfAbsent(a, k -> new ArrayList<>());
+            if (!custodyByAsset.get(a).contains(n)) {
+                custodyByAsset.get(a).add(n);
+            }
         }
-        if (csvContains(cfg.getNetworksCsv(), "ERC20")) {
-            return "ERC20";
+        List<Map<String, Object>> assetsIn = (List<Map<String, Object>>) cat.getOrDefault("assets", List.of());
+        List<Map<String, Object>> assetsOut = assetsIn.stream()
+                .filter(m -> assetCodes.contains(String.valueOf(m.getOrDefault("code", "")).toUpperCase(Locale.ROOT)))
+                .collect(java.util.stream.Collectors.toList());
+        List<Map<String, Object>> netsIn = (List<Map<String, Object>>) cat.getOrDefault("networks", List.of());
+        List<Map<String, Object>> netsOut = netsIn.stream()
+                .filter(m -> netCodes.contains(String.valueOf(m.getOrDefault("code", "")).toUpperCase(Locale.ROOT)))
+                .collect(java.util.stream.Collectors.toList());
+        Map<String, Object> out = new LinkedHashMap<>(cat);
+        out.put("assets", assetsOut);
+        out.put("networks", netsOut);
+        out.put("pairs", pairsOut);
+        out.put("custodyByAsset", custodyByAsset);
+        return out;
+    }
+
+    /**
+     * 가맹 허용 네트워크 중, 해당 자산의 본사 수탁(사용Y)이 있는 네트워크를 고른다.
+     * CSV 순서만 따르면 BASE처럼 수탁 없는 네트워크가 먼저 잡혀 CUSTODY_MISSING 이 난다.
+     */
+    private String resolvePreferredNetwork(String asset, MerchantCryptoConfig cfg) {
+        List<String> nets = splitCsvTokens(cfg.getNetworksCsv());
+        if (nets.isEmpty()) {
+            return "";
         }
-        return firstCsv(cfg.getNetworksCsv(), "TRC20");
+        /* 자산별 관례 우선순위 (허용·수탁 모두 있을 때만) */
+        List<String> preferredOrder = new ArrayList<>();
+        if ("USDT".equalsIgnoreCase(asset)) {
+            preferredOrder.addAll(List.of("TRC20", "BEP20", "ERC20", "BASE", "POLYGON", "SOL", "ARBITRUM"));
+        } else if ("USDC".equalsIgnoreCase(asset)) {
+            preferredOrder.addAll(List.of("BEP20", "BASE", "ERC20", "POLYGON", "SOL", "ARBITRUM", "TRC20"));
+        } else if ("EURC".equalsIgnoreCase(asset)) {
+            preferredOrder.addAll(List.of("BASE", "ERC20", "BEP20", "POLYGON", "SOL"));
+        }
+        for (String cand : preferredOrder) {
+            if (nets.stream().anyMatch(n -> n.equalsIgnoreCase(cand))) {
+                String c = resolveCustody(cand, asset);
+                if (c != null && !c.isBlank()) {
+                    return cand.toUpperCase(Locale.ROOT);
+                }
+            }
+        }
+        for (String n : nets) {
+            String c = resolveCustody(n, asset);
+            if (c != null && !c.isBlank()) {
+                return n.toUpperCase(Locale.ROOT);
+            }
+        }
+        /* 수탁이 전혀 없으면 빈 문자열 → 호출부에서 CUSTODY_MISSING */
+        return "";
+    }
+
+    private static List<String> splitCsvTokens(String csv) {
+        if (csv == null || csv.isBlank()) {
+            return List.of();
+        }
+        List<String> out = new ArrayList<>();
+        for (String p : csv.split(",")) {
+            String t = p == null ? "" : p.trim();
+            if (!t.isEmpty()) {
+                out.add(t);
+            }
+        }
+        return out;
     }
 
     private void expireIfNeeded(CryptoDepositTxn txn) {
