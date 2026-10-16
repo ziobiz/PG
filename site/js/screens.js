@@ -236,6 +236,36 @@
     return '<div class="card-header fw-semibold">' + pgUiSpanText(keyKo) + '</div>';
   }
 
+  /**
+   * FIAT·CRYPTO 공통 카드 → 제목(헤더) 노란색 파스텔.
+   * sec.sharedCard === true|false 로 강제. 미지정이면 title/id 휴리스틱.
+   */
+  function pgIsSharedPolicySection(sec) {
+    if (!sec) return false;
+    if (sec.sharedCard === true) return true;
+    if (sec.sharedCard === false) return false;
+    var s = String(sec.id || '') + ' ' + String(sec.title || '') + ' ' + String(sec.cardExtraClass || '');
+    if (/pg-shared-pastel/i.test(s)) return true;
+    return /수수료 채널|통합결제설정|shared/i.test(s);
+  }
+  window.PG_IS_SHARED_POLICY_SECTION = pgIsSharedPolicySection;
+
+  /**
+   * 크립토 전용 카드 → 제목(헤더) 하늘색 파스텔.
+   * sec.cryptoCard === true|false 로 강제. 공통(shared)이면 false.
+   * 미지정이면 title/id 휴리스틱 (통합결제설정은 공통으로 제외).
+   */
+  function pgIsCryptoPolicySection(sec) {
+    if (!sec) return false;
+    if (pgIsSharedPolicySection(sec)) return false;
+    if (sec.cryptoCard === true) return true;
+    if (sec.cryptoCard === false) return false;
+    var s = String(sec.id || '') + ' ' + String(sec.title || '') + ' ' + String(sec.cardExtraClass || '');
+    if (/pg-merchant-crypto-pastel|pg-crypto-pastel/i.test(s)) return true;
+    return /크립토|CRYPTO|수탁|가스피|USDC|USDT|EURC|crypto/i.test(s);
+  }
+  window.PG_IS_CRYPTO_POLICY_SECTION = pgIsCryptoPolicySection;
+
   /** 본사 AI챗봇설정 — 챗봇 플랜 월요금 통화 열 (서버 ChatbotProductPricingUtil.BILLING_CURRENCIES 와 동일) */
   var PG_CHATBOT_PLAN_CCY = ['JPY', 'KRW', 'USD', 'CNY', 'THB'];
   if (typeof window !== 'undefined') {
@@ -359,7 +389,7 @@
 
   function cryptoPaymentHeaderSubtitleFieldBlock() {
     var ph = '크립토 결제창 로고 아래 안내 문구';
-    var hint = '카드·통합 안내와 별도입니다. 「활성(직접입력)」만 수정·저장 시 5개국어 1회 번역. 「기본」은 크립토 기본 안내 문구입니다.';
+    var hint = '카드·통합 안내와 별도입니다. 「활성(직접입력)」만 수정·저장 시 5개국어 1회 번역. 「본사설정 따름」이면 본사 크립토 안내 기본이 적용됩니다.';
     return '<div class="form-field-block w-100" id="cryptoPaymentHeaderSubtitleBlock">' +
       '<label class="form-label" data-pg-ui-t="크립토 안내문구">' + escUi(L('크립토 안내문구')) + '</label>' +
       '<input type="text" class="form-control form-control-sm" name="cryptoPaymentHeaderSubtitleText" id="cryptoPaymentHeaderSubtitleText" ' +
@@ -558,13 +588,57 @@
       ], col: 3 }],
       [{ label: '', type: 'note', col: 12, text: '구매자입력 프리셋: 기본형·1형·2형…을 고르면 이메일·국가·전화·배송은 프리셋을 따릅니다(개별 항목 잠금). 「비활성」으로 둔 뒤에만 네 항목을 개별 활성/비활성으로 설정합니다. 프리셋이 켜진 채 개별 항목을 바꾸려 하면 「구매자입력 프리셋을 비활성화하세요.」안내가 표시됩니다. 전 PG(URL·API 인라인) 공통입니다.' }],
       [{ type: 'customHtml', col: 12, html: webPaymentHeaderSubtitleFieldBlock }],
-      [{ label: '통합결제 안내', type: 'select', name: 'unifiedPaymentHeaderSubtitleMode', options: channelHeaderSubtitleOpts(), col: 3 }],
-      [{ type: 'customHtml', col: 12, html: unifiedPaymentHeaderSubtitleFieldBlock }],
       merchantWebPaymentDefaultProductRow(),
       [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml(urlPh); } },
-       { type: 'customHtml', col: 12, html: function () { return merchantPaymentRepayUrlRowHtml(urlPh); } },
-       { type: 'customHtml', col: 12, html: function () { return merchantPaymentUnifiedUrlRowHtml(urlPh); } }]
+       { type: 'customHtml', col: 12, html: function () { return merchantPaymentRepayUrlRowHtml(urlPh); } }]
     ];
+  }
+
+  function merchantUnifiedFollowOpts() {
+    return [
+      { v: 'FOLLOW_HQ', t: '본사설정 따름' },
+      { v: 'ACTIVE', t: '활성' },
+      { v: 'DISABLED', t: '비활성' }
+    ];
+  }
+
+  function merchantUnifiedPaymentCopyFieldsHtml() {
+    return (
+      '<div class="border rounded p-2 mb-2 bg-light bg-opacity-25" id="merchantUnifiedPaymentCopyBlock">' +
+      '<div class="fw-semibold small mb-2" data-pg-ui-t="통합결제 안내·푸터">통합결제 안내·푸터</div>' +
+      '<div class="row g-2 mb-2">' +
+      '<div class="col-md-3"><label class="form-label small" data-pg-ui-t="통합결제 안내">통합결제 안내</label>' +
+      '<select class="form-select form-select-sm" name="unifiedPaymentHeaderSubtitleMode" id="unifiedPaymentHeaderSubtitleMode">' +
+      '<option value="FOLLOW_HQ" data-pg-ui-t="본사설정 따름">본사설정 따름</option>' +
+      '<option value="ACTIVE" data-pg-ui-t="활성">활성</option>' +
+      '<option value="DISABLED" data-pg-ui-t="비활성">비활성</option></select></div>' +
+      '<div class="col-md-9" id="unifiedPaymentHeaderSubtitleBlock">' +
+      '<label class="form-label small" data-pg-ui-t="통합결제 안내문구">통합결제 안내문구</label>' +
+      '<input type="text" class="form-control form-control-sm" name="unifiedPaymentHeaderSubtitleText" id="unifiedPaymentHeaderSubtitleText" maxlength="500" ' +
+      'data-pg-ui-placeholder="활성일 때만 입력 · 로고 아래 노출" placeholder="활성일 때만 입력 · 로고 아래 노출"></div></div>' +
+      '<div class="row g-2 mb-2">' +
+      '<div class="col-md-3"><label class="form-label small" data-pg-ui-t="푸터 메시지">푸터 메시지</label>' +
+      '<select class="form-select form-select-sm" name="unifiedPaymentNoticeMode" id="unifiedPaymentNoticeMode">' +
+      '<option value="FOLLOW_HQ" data-pg-ui-t="본사설정 따름">본사설정 따름</option>' +
+      '<option value="ACTIVE" data-pg-ui-t="활성">활성</option>' +
+      '<option value="DISABLED" data-pg-ui-t="비활성">비활성</option></select></div>' +
+      '<div class="col-md-9" id="unifiedPaymentNoticeTextBlock">' +
+      '<label class="form-label small" data-pg-ui-t="푸터 메시지 문구">푸터 메시지 문구</label>' +
+      '<input type="text" class="form-control form-control-sm" name="unifiedPaymentNoticeText" id="unifiedPaymentNoticeText" maxlength="1000" ' +
+      'data-pg-ui-placeholder="활성일 때만 입력 · 노란 주의 박스" placeholder="활성일 때만 입력 · 노란 주의 박스"></div></div>' +
+      '<div class="row g-2">' +
+      '<div class="col-md-3"><label class="form-label small" data-pg-ui-t="추가 푸터">추가 푸터</label>' +
+      '<select class="form-select form-select-sm" name="unifiedPaymentExtraFooterMode" id="unifiedPaymentExtraFooterMode">' +
+      '<option value="FOLLOW_HQ" data-pg-ui-t="본사설정 따름">본사설정 따름</option>' +
+      '<option value="ACTIVE" data-pg-ui-t="활성">활성</option>' +
+      '<option value="DISABLED" data-pg-ui-t="비활성">비활성</option></select></div>' +
+      '<div class="col-md-9" id="unifiedPaymentExtraFooterTextBlock">' +
+      '<label class="form-label small" data-pg-ui-t="추가 푸터 문구">추가 푸터 문구</label>' +
+      '<input type="text" class="form-control form-control-sm" name="unifiedPaymentExtraFooterText" id="unifiedPaymentExtraFooterText" maxlength="1000" ' +
+      'data-pg-ui-placeholder="영어 고정 · 예: ICOPAY, a service operated by ONTHELINE." placeholder="영어 고정 · 예: ICOPAY, a service operated by ONTHELINE."></div></div>' +
+      '<p class="form-text small text-muted mb-0 mt-2" data-pg-ui-t="기본은 본사설정 따름. 상단·푸터메시지는 다국어, 추가 푸터는 영어 고정입니다.">기본은 본사설정 따름. 상단·푸터메시지는 다국어, 추가 푸터는 영어 고정입니다.</p>' +
+      '</div>'
+    );
   }
 
   /** 가맹 등록·정보 — 가맹 API 연동 채널(인라인·리다이렉트·WordPress) */
@@ -3076,6 +3150,7 @@
         {
           title: '수수료 채널',
           id: 'hqDefaultCommChannelCard',
+          sharedCard: true,
           notice: 'FIAT=카드·법정통화 결제 수수료. CRYPTO=크립토 확정입금 수수료. USDT 송금·USDT%·3DS는 FIAT 전용(정산 부가·카드 3DS)이며 CRYPTO 결제통화와 무관합니다.',
           rows: [[{ type: 'customHtml', col: 12, html: function () {
             return '<div class="d-flex flex-wrap gap-2 align-items-center" id="hqDefCommChannelTabs" role="tablist">' +
@@ -3088,6 +3163,7 @@
         {
           title: '기본 수수료 정책',
           id: 'hqDefaultCommFeeCard',
+          cryptoCard: false,
           notice: '총본사~영업점은 조직 배분(결제율·건당)에 반영됩니다. 가맹 열은 가맹점에 적용되는 합계(기본값)이며, 가맹점이 본사설정을 따를 때 기준이 됩니다. 업체관리 수수료에서 수정하면 그 값이 우선합니다. 결제·USDT·FX는 승인금액 기준 %, 3DS는 정책통화 기준 건당 고정, 나머지 건당·월간은 통화 단위입니다.',
           rows: [
             [{ type: 'customHtml', col: 2, html: function () {
@@ -3112,6 +3188,7 @@
         {
           title: '기본 보류율 정책',
           id: 'hqDefaultCommHoldCard',
+          cryptoCard: false,
           notice: '가맹점 등록의 [보류율 설정]과 동일한 개념입니다. 승인(결제) 금액 중 롤링(담보금) 비율(%)만큼 보류하고, 설정한 보류 영업일 수가 지나면 정산 실행 시 지급액에 합산됩니다. 본사정책 따름(Y)이면 가맹점은 아래 본사 템플릿의 롤링 비율·일수를 따릅니다.',
           noticeElId: 'hqDefCommHoldNotice',
           rows: [
@@ -3126,6 +3203,8 @@
         },
         {
           title: '가맹점 수수료 정책',
+          id: 'hqDefaultCommPolicyListCard',
+          cryptoCard: false,
           notice: '위 [저장] 후 목록이 갱신됩니다. 수치 열은 총본사~영업점 합계(가맹 적용분) 기준입니다. 체크 후 [수정] 또는 행 클릭으로 폼에 불러옵니다. [신규정책]으로 초기화한 뒤 입력·저장하면 코드가 자동 부여되어 목록에 나타납니다(예: A 다음 H). 정책이 많으면 아래 표 영역을 <strong>세로·가로 스크롤</strong>하여 확인하세요. 체크한 항목만 [선택 정책 삭제]할 수 있습니다(여러 건 가능). 표 머리의 체크박스로 전체 선택·해제합니다.',
           rows: [[{
             type: 'customHtml',
@@ -4444,6 +4523,29 @@
           ]
         },
         {
+          title: '통합결제설정',
+          sharedCard: true,
+          notice: '카드+크립토 수단선택창(/checkout-all) 문구입니다. 「활성」이면 옆 입력창 문구가 노출되고, 「비활성」이면 숨깁니다. 가맹이 「본사설정 따름」이면 이 값이 적용됩니다.',
+          rows: [
+            [{ label: '상단 안내', type: 'select', name: 'unifiedPaymentHeaderSubtitleModeDefault', options: [
+              { v: 'DISABLED', t: '비활성' }, { v: 'ACTIVE', t: '활성' }
+            ], col: 2 },
+             { label: '상단 안내 문구', type: 'text', name: 'unifiedPaymentHeaderSubtitleTextDefault', col: 10,
+               placeholder: '카드 또는 암호화폐로 결제할 수 있습니다. 원하시는 결제 수단을 선택해 주세요.' }],
+            [{ label: '푸터 메시지', type: 'select', name: 'unifiedPaymentNoticeModeDefault', options: [
+              { v: 'DISABLED', t: '비활성' }, { v: 'ACTIVE', t: '활성' }
+            ], col: 2 },
+             { label: '푸터 메시지 문구', type: 'text', name: 'unifiedPaymentNoticeTextDefault', col: 10,
+               placeholder: '주의: 선택한 수단으로 결제가 진행됩니다. 카드와 암호화폐는 별도 결제창에서 처리되며, 결제 완료 전까지 창을 닫지 마세요.' }],
+            [{ label: '추가 푸터', type: 'select', name: 'unifiedPaymentExtraFooterModeDefault', options: [
+              { v: 'DISABLED', t: '비활성' }, { v: 'ACTIVE', t: '활성' }
+            ], col: 2 },
+             { label: '추가 푸터 문구', type: 'text', name: 'unifiedPaymentExtraFooterTextDefault', col: 10,
+               placeholder: 'ICOPAY, a service operated by ONTHELINE.' }],
+            [{ label: '', type: 'note', col: 12, text: '기본값: 상단안내·푸터메시지는 5개국어, 추가 푸터는 영어 고정(ICOPAY, a service operated by ONTHELINE.). 활성+문구 비움 시 시스템 기본 문구. 상단·푸터메시지 저장 시 5개국어 1회 번역됩니다.' }]
+          ]
+        },
+        {
           title: 'WordPress·URL 재결제',
           notice: 'WordPress/WooCommerce 플러그인 채널과 저장 카드 재결제 URL 전역 제공 여부입니다.',
           rows: [
@@ -4839,6 +4941,7 @@
           title: '크립토 수수료정책',
           id: 'cryptoCommissionPolicyCard',
           merchantOnly: true,
+          cryptoCard: true,
           notice: '크립토 확정입금 수수료 슬롯입니다. 본사 CRYPTO 배포 정책을 따르거나 선택합니다. 크립토만 사용 가맹은 FIAT(카드) 수수료 슬롯이 자동 비활성됩니다. 차지백은 예외 과금 시 아래 유형(기존 차지백 설정·USDC/EURC 통화 포함)을 선택합니다.',
           rows: [
             [{ label: '본사정책 따름(CRYPTO)', type: 'select', name: 'commissionCryptoFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 CRYPTO 정책', type: 'select', name: 'hqCryptoPolicyScope', options: [{ v: '', t: 'CRYPTO 기본 (DEFAULT_CRYPTO)' }], col: 3, hqCryptoPolicyOnly: true }, { label: 'FIAT 수수료 슬롯', type: 'select', name: 'fiatCommissionSlotYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '비활성(크립토전용)' }], col: 2 }],
@@ -5004,10 +5107,12 @@
                   merchantCryptoPaymentUrlRowHtml('가맹점 저장 후 조회') +
                   '<div class="row g-2 mb-2"><div class="col-md-3"><label class="form-label small" data-pg-ui-t="크립토 안내">크립토 안내</label>' +
                   '<select class="form-select form-select-sm" name="cryptoPaymentHeaderSubtitleMode" id="cryptoPaymentHeaderSubtitleMode">' +
-                  '<option value="DEFAULT" data-pg-ui-t="기본">기본</option>' +
+                  '<option value="FOLLOW_HQ" data-pg-ui-t="본사설정 따름">본사설정 따름</option>' +
                   '<option value="ACTIVE" data-pg-ui-t="활성(직접입력)">활성(직접입력)</option>' +
                   '<option value="DISABLED" data-pg-ui-t="비활성">비활성</option></select></div></div>' +
                   cryptoPaymentHeaderSubtitleFieldBlock() +
+                  merchantPaymentUnifiedUrlRowHtml('가맹점 저장 후 조회') +
+                  merchantUnifiedPaymentCopyFieldsHtml() +
                   cryptoMerchantAssetTogglesHtml('compCryptoAssetToggles') +
                   '<div id="compCryptoWalletFields" class="mb-2"></div>' +
                   '<p class="small text-muted mb-2" data-pg-ui-t="활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.">활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.</p>' +
@@ -5331,6 +5436,7 @@
           title: '크립토 수수료정책',
           id: 'cryptoCommissionPolicyCard',
           merchantOnly: true,
+          cryptoCard: true,
           notice: '크립토 확정입금 수수료 슬롯입니다. 본사 CRYPTO 배포 정책을 따르거나 선택합니다. 크립토만 사용 가맹은 FIAT(카드) 수수료 슬롯이 자동 비활성됩니다. 차지백은 예외 과금 시 아래 유형(기존 차지백 설정·USDC/EURC 통화 포함)을 선택합니다.',
           rows: [
             [{ label: '본사정책 따름(CRYPTO)', type: 'select', name: 'commissionCryptoFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 CRYPTO 정책', type: 'select', name: 'hqCryptoPolicyScope', options: [{ v: '', t: 'CRYPTO 기본 (DEFAULT_CRYPTO)' }], col: 3, hqCryptoPolicyOnly: true }, { label: 'FIAT 수수료 슬롯', type: 'select', name: 'fiatCommissionSlotYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '비활성(크립토전용)' }], col: 2 }],
@@ -5484,10 +5590,12 @@
                   merchantCryptoPaymentUrlRowHtml('가맹점 저장 후 조회') +
                   '<div class="row g-2 mb-2"><div class="col-md-3"><label class="form-label small" data-pg-ui-t="크립토 안내">크립토 안내</label>' +
                   '<select class="form-select form-select-sm" name="cryptoPaymentHeaderSubtitleMode" id="cryptoPaymentHeaderSubtitleMode">' +
-                  '<option value="DEFAULT" data-pg-ui-t="기본">기본</option>' +
+                  '<option value="FOLLOW_HQ" data-pg-ui-t="본사설정 따름">본사설정 따름</option>' +
                   '<option value="ACTIVE" data-pg-ui-t="활성(직접입력)">활성(직접입력)</option>' +
                   '<option value="DISABLED" data-pg-ui-t="비활성">비활성</option></select></div></div>' +
                   cryptoPaymentHeaderSubtitleFieldBlock() +
+                  merchantPaymentUnifiedUrlRowHtml('가맹점 저장 후 조회') +
+                  merchantUnifiedPaymentCopyFieldsHtml() +
                   cryptoMerchantAssetTogglesHtml('compCryptoAssetToggles') +
                   '<div id="compCryptoWalletFields" class="mb-2"></div>' +
                   '<p class="small text-muted mb-2" data-pg-ui-t="활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.">활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.</p>' +
@@ -5748,6 +5856,7 @@
           title: '크립토 수수료정책',
           id: 'cryptoCommissionPolicyCard',
           merchantOnly: true,
+          cryptoCard: true,
           notice: '크립토 확정입금 수수료 슬롯입니다. 본사 CRYPTO 배포 정책을 따르거나 선택합니다. 크립토만 사용 가맹은 FIAT(카드) 수수료 슬롯이 자동 비활성됩니다. 차지백은 예외 과금 시 아래 유형(기존 차지백 설정·USDC/EURC 통화 포함)을 선택합니다.',
           rows: [
             [{ label: '본사정책 따름(CRYPTO)', type: 'select', name: 'commissionCryptoFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 CRYPTO 정책', type: 'select', name: 'hqCryptoPolicyScope', options: [{ v: '', t: 'CRYPTO 기본 (DEFAULT_CRYPTO)' }], col: 3, hqCryptoPolicyOnly: true }, { label: 'FIAT 수수료 슬롯', type: 'select', name: 'fiatCommissionSlotYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '비활성(크립토전용)' }], col: 2 }],
@@ -5900,10 +6009,12 @@
                   merchantCryptoPaymentUrlRowHtml('가맹점 저장 후 조회') +
                   '<div class="row g-2 mb-2"><div class="col-md-3"><label class="form-label small" data-pg-ui-t="크립토 안내">크립토 안내</label>' +
                   '<select class="form-select form-select-sm" name="cryptoPaymentHeaderSubtitleMode" id="cryptoPaymentHeaderSubtitleMode">' +
-                  '<option value="DEFAULT" data-pg-ui-t="기본">기본</option>' +
+                  '<option value="FOLLOW_HQ" data-pg-ui-t="본사설정 따름">본사설정 따름</option>' +
                   '<option value="ACTIVE" data-pg-ui-t="활성(직접입력)">활성(직접입력)</option>' +
                   '<option value="DISABLED" data-pg-ui-t="비활성">비활성</option></select></div></div>' +
                   cryptoPaymentHeaderSubtitleFieldBlock() +
+                  merchantPaymentUnifiedUrlRowHtml('가맹점 저장 후 조회') +
+                  merchantUnifiedPaymentCopyFieldsHtml() +
                   cryptoMerchantAssetTogglesHtml('compCryptoAssetToggles') +
                   '<div id="compCryptoWalletFields" class="mb-2"></div>' +
                   '<p class="small text-muted mb-2" data-pg-ui-t="활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.">활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.</p>' +
@@ -5986,11 +6097,14 @@
       searchRows: [
         [
           { type: 'customHtml', col: 12, html: function () {
-            return '<div class="d-flex flex-wrap gap-2 align-items-center mb-1" id="commissionFeeChannelTabs">' +
+            return '<div class="card mb-2 pg-shared-pastel-card" id="commissionFeeChannelCard">' +
+              '<div class="card-header fw-semibold"><span data-pg-ui-t="수수료 채널">' + escUi(L('수수료 채널')) + '</span></div>' +
+              '<div class="card-body py-2">' +
+              '<div class="d-flex flex-wrap gap-2 align-items-center" id="commissionFeeChannelTabs">' +
               '<input type="hidden" name="feeChannel" id="commissionListFeeChannel" value="FIAT" />' +
               '<button type="button" class="btn btn-sm btn-primary" data-fee-channel="FIAT" id="commissionTabFiat" data-pg-ui-t="FIAT(카드)">' + escUi(L('FIAT(카드)')) + '</button>' +
               '<button type="button" class="btn btn-sm btn-outline-primary" data-fee-channel="CRYPTO" id="commissionTabCrypto" data-pg-ui-t="CRYPTO(크립토)">' + escUi(L('CRYPTO(크립토)')) + '</button>' +
-              '<span class="small text-muted" data-pg-ui-t="채널별 배분·요율을 따로 관리합니다.">' + escUi(L('채널별 배분·요율을 따로 관리합니다.')) + '</span></div>';
+              '<span class="small text-muted" data-pg-ui-t="채널별 배분·요율을 따로 관리합니다.">' + escUi(L('채널별 배분·요율을 따로 관리합니다.')) + '</span></div></div></div>';
           } }
         ],
         [
@@ -7742,8 +7856,28 @@
       isForm: true,
       formSections: [
         {
+          title: '크립토 결제 안내 (본사 기본)',
+          id: 'hqCryptoCopyDefaultsCard',
+          cryptoCard: true,
+          notice: '크립토 결제창(/crypto-pay) 로고 아래 안내입니다. 가맹이 「본사설정 따름」이면 이 값이 적용되고, 가맹에서 활성(직접입력)·비활성으로 바꾸면 가맹이 우선합니다. 활성+문구 저장 시 5개국어로 1회 번역됩니다.',
+          rows: [
+            [{ label: '크립토 안내', type: 'select', name: 'cryptoPaymentHeaderSubtitleModeDefault', options: [
+              { v: 'ACTIVE', t: '활성' }, { v: 'DISABLED', t: '비활성' }
+            ], col: 2 },
+             { label: '크립토 안내 문구', type: 'text', name: 'cryptoPaymentHeaderSubtitleTextDefault', col: 8,
+               placeholder: '암호화폐로 결제합니다. 자산·네트워크·지갑을 선택한 뒤 안내 주소로 입금해 주세요.' },
+             { type: 'customHtml', col: 2, html: function () {
+               return '<div class="form-field-block"><label class="form-label">&nbsp;</label>' +
+                 '<button type="button" class="btn btn-primary btn-sm w-100" id="hqCryptoCopyDefaultsSaveBtn" data-pg-ui-t="안내 저장">' +
+                 escUi(L('안내 저장')) + '</button></div>';
+             } }],
+            [{ label: '', type: 'note', col: 12, text: '시스템 기본: 암호화폐로 결제합니다. 자산·네트워크·지갑을 선택한 뒤 안내 주소로 입금해 주세요.' }]
+          ]
+        },
+        {
           title: '대표수탁지갑 · USDC',
           id: 'hqCryptoCustodyCardUsdc',
+          cryptoCard: true,
           notice: 'ICOPAY 입금용 USDC 수탁 주소입니다. 네트워크별로 여러 주소를 등록할 수 있으며, 그중 「대표」로 지정한 주소만 해당 네트워크 입금에 사용됩니다. 운영할 네트워크만 등록하면 됩니다(전 네트워크 사전 준비 불필요). 저장·삭제·대표지정 시 Google OTP 필요.',
           rows: [
             [{
@@ -7756,6 +7890,7 @@
         {
           title: '대표수탁지갑 · USDT',
           id: 'hqCryptoCustodyCardUsdt',
+          cryptoCard: true,
           notice: 'ICOPAY 입금용 USDT 수탁 주소입니다. 네트워크별로 여러 주소를 등록할 수 있으며, 그중 「대표」로 지정한 주소만 해당 네트워크 입금에 사용됩니다. 운영할 네트워크만 등록하면 됩니다. 저장·삭제·대표지정 시 Google OTP 필요.',
           rows: [
             [{
@@ -7768,6 +7903,7 @@
         {
           title: '대표수탁지갑 · EURC',
           id: 'hqCryptoCustodyCardEurc',
+          cryptoCard: true,
           notice: 'ICOPAY 입금용 EURC 수탁 주소입니다. 네트워크별로 여러 주소를 등록할 수 있으며, 그중 「대표」로 지정한 주소만 해당 네트워크 입금에 사용됩니다. 운영할 네트워크만 등록하면 됩니다. 저장·삭제·대표지정 시 Google OTP 필요.',
           rows: [
             [{
@@ -7780,6 +7916,7 @@
         {
           title: '네트워크별 가스피',
           id: 'hqCryptoGasFeeCard',
+          cryptoCard: true,
           notice: '전 가맹 동일 적용. 출금(송금) 시 조직% 배분·reserve·수탁과 별개로 차감됩니다. USDC·USDT·EURC 탭별로 카탈로그 네트워크를 설정합니다. 자산×네트워크 고정액. 저장 시 Google OTP 필요.',
           rows: [
             [{
@@ -7821,6 +7958,7 @@
         {
           title: '가맹점 크립토설정',
           id: 'hqCryptoMerchantCard',
+          cryptoCard: true,
           notice: '가맹별 크립토 사용(Y/N)·정산/출금·수취 지갑입니다. 카드 결제는 URL·PG 설정이 우선이며 여기서 켜지지 않습니다. 사용=Y여도 업체등록이 미사용·영구정지면 크립토 결제 불가. 금액·수수료·한도는 USD 기준. 본 화면 저장이 업체상세와 동일 데이터·우선. 가맹점 로그인은 조회·QR만. reserve·수탁은 조직%와 별개입니다.',
           rows: [
             [{
@@ -8144,6 +8282,7 @@
           title: '크립토 수수료정책',
           id: 'cryptoCommissionPolicyCard',
           merchantOnly: true,
+          cryptoCard: true,
           notice: '크립토 확정입금 수수료 슬롯입니다. 본사 CRYPTO 배포 정책을 따르거나 선택합니다. 크립토만 사용 가맹은 FIAT(카드) 수수료 슬롯이 자동 비활성됩니다. 차지백은 예외 과금 시 아래 유형(기존 차지백 설정·USDC/EURC 통화 포함)을 선택합니다.',
           rows: [
             [{ label: '본사정책 따름(CRYPTO)', type: 'select', name: 'commissionCryptoFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 CRYPTO 정책', type: 'select', name: 'hqCryptoPolicyScope', options: [{ v: '', t: 'CRYPTO 기본 (DEFAULT_CRYPTO)' }], col: 3, hqCryptoPolicyOnly: true }, { label: 'FIAT 수수료 슬롯', type: 'select', name: 'fiatCommissionSlotYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '비활성(크립토전용)' }], col: 2 }],
@@ -9972,6 +10111,13 @@
       else if (sec.distributorOrMerchantOnly) cardClass += ' distributor-or-merchant-section d-none';
       if (sec.branchAgencySalesHide) cardClass += ' branch-agency-sales-hide-section';
       if (sec.cardExtraClass) cardClass += ' ' + String(sec.cardExtraClass);
+      /* 공통(FIAT·CRYPTO)=노란 / 크립토 전용=하늘색 / 일반=그레이 */
+      if (pgIsSharedPolicySection(sec) && cardClass.indexOf('pg-shared-pastel-card') < 0) {
+        cardClass += ' pg-shared-pastel-card';
+      } else if (pgIsCryptoPolicySection(sec) && cardClass.indexOf('pg-crypto-pastel-card') < 0
+          && cardClass.indexOf('pg-merchant-crypto-pastel-card') < 0) {
+        cardClass += ' pg-crypto-pastel-card';
+      }
       var cardId = sec.id ? ' id="' + sec.id + '"' : '';
       var titleKo = String(sec.title || '');
       html += '<div' + cardId + ' class="' + cardClass + '"><div class="card-header"><span data-pg-ui-t="' + escUi(titleKo) + '">' + escUi(L(titleKo)) + '</span></div><div class="card-body">';
@@ -10828,7 +10974,7 @@
         html += renderPagination(tabId, cfg);
         }
         if (cfg.hasCommissionHistoryTable) {
-          html += '<div class="card mt-4 commission-history-card"><div class="card-header py-2 fw-semibold">' + escUi(L('수수료 변경 히스토리')) + '</div><div class="card-body pt-2">' +
+          html += '<div class="card mt-4 commission-history-card pg-fee-channel-content-card" id="commissionHistoryCard"><div class="card-header py-2 fw-semibold"><span data-pg-ui-t="수수료 변경 히스토리">' + escUi(L('수수료 변경 히스토리')) + '</span></div><div class="card-body pt-2">' +
             '<p class="text-muted small mb-2" id="commissionHistSubtitle_' + tabId + '">' + escUi(L('목록에서 가맹점 행을 클릭하면 해당 업체의 변경 이력이 표시됩니다.')) + '</p>' +
             '<div class="table-responsive table-scrollable commission-list-table-wrap"><table class="table table-bordered table-sm table-hover mb-0 commission-split-grid table-no-col-resize" id="grid_commissionHist_' + tabId + '">' +
             '<thead><tr><th class="text-muted">…</th></tr></thead><tbody><tr><td class="text-center text-muted py-3">' + escUi(L('조회 전')) + '</td></tr></tbody></table></div></div></div>';

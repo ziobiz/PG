@@ -1,0 +1,42 @@
+---
+description: 본사정책·관리자 카드 헤더 — 일반 그레이 / 크립토 하늘색 / 공통 노란색 파스텔 (필수)
+alwaysApply: true
+---
+
+# 관리자 카드 제목 파스텔 (일반 · 크립토 · 공통)
+
+본사정책(및 동일 폼 카드 UI)에서 **카드 제목(`.card-header`) 바탕색** 규칙입니다.
+
+## 규칙
+
+| 구분 | 제목(헤더) 바탕 | CSS |
+|---|---|---|
+| **일반** (카드·FIAT 전용·기타) | 그레이 파스텔 (현행 유지) | `#contentsMain .card > .card-header` → `rgba(0,0,0,.03)` |
+| **크립토 전용** | 하늘색 파스텔 | `.pg-crypto-pastel-card` (헤더) 또는 `.pg-merchant-crypto-pastel-card` (가맹: 헤더+본문) |
+| **공통** (FIAT·CRYPTO 공용) | 노란색 파스텔 | `.pg-shared-pastel-card` (헤더) |
+
+## 구현
+
+1. **공통 카드:** `sharedCard: true` 또는 `title`/`id`에 공통 키워드 → `pg-shared-pastel-card`.
+   휴리스틱: `수수료 채널`, `통합결제설정`, `shared`.
+2. **크립토 전용:** `cryptoCard: true` 또는 `title`/`id`에 크립토 키워드 → `pg-crypto-pastel-card`.
+   휴리스틱: `크립토`, `CRYPTO`, `수탁`, `가스피`, `USDC`, `USDT`, `EURC`, `crypto`.
+   (`통합결제설정`은 **공통(노란)** — 크립토 휴리스틱에 넣지 않음.)
+3. `sharedCard` 가 우선. `cryptoCard: false` / `sharedCard: false` 로 강제 제외 가능.
+4. 가맹 **크립토설정** 카드는 `pg-merchant-crypto-pastel-card` (헤더+카드 본문 톤).
+5. **수수료 채널 탭(FIAT|CRYPTO):** 채널 선택 카드는 **항상 노란(공통)**.
+   CRYPTO 선택 시 아래 정책·보류율·목록 카드 등에 `pg-crypto-pastel-card` 를 **동적** 부여
+   (`hqDefCommApplyChannelUi` 등). FIAT 복귀 시 제거(그레이).
+
+## 신규 화면·카드 작성 시
+
+- 크립토 전용 → `cryptoCard: true` 또는 `cardExtraClass: 'pg-crypto-pastel-card'`
+- FIAT+CRYPTO 공용(채널 선택·통합결제 등) → `sharedCard: true` 또는 `cardExtraClass: 'pg-shared-pastel-card'`
+- 일반(카드결제·정산·리스크 FIAT 등) → 그레이 유지. 하늘색·노란색 클래스 넣지 말 것
+- 커스텀 HTML 카드도 동일 클래스 규칙을 따를 것
+
+## 금지
+
+- 크립토 전용 카드를 일반 그레이·노란 헤더로만 두는 것
+- 공통(채널·통합) 카드를 하늘색만으로 두는 것
+- 일반 FIAT 전용 카드에 하늘색·노란색 헤더를 붙이는 것

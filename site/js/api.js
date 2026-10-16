@@ -1717,6 +1717,9 @@
     hqCryptoSettings: function () {
       return get('/api/hq/crypto/settings').then(function (r) { return r.data; });
     },
+    hqCryptoCopyDefaultsSave: function (body) {
+      return post('/api/hq/crypto/copy-defaults/save', body || {}).then(function (r) { return r.data; });
+    },
     hqCryptoCustodySave: function (body) {
       return post('/api/hq/crypto/custody/save', body || {}).then(function (r) { return r.data; });
     },

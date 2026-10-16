@@ -80,6 +80,7 @@ public class ApiHqController {
     private final UrlPayCheckoutFieldPresetService urlPayCheckoutFieldPresetService;
     private final UrlPayDisplayFxService urlPayDisplayFxService;
     private final com.pg.urlpay.UrlPayCheckoutMoveService urlPayCheckoutMoveService;
+    private final com.pg.urlpay.CheckoutHeaderSubtitleCopyService checkoutHeaderSubtitleCopyService;
 
     public ApiHqController(CommissionPolicyRepository commissionPolicyRepository,
                            ChargebackFeePolicyRepository chargebackFeePolicyRepository,
@@ -98,7 +99,8 @@ public class ApiHqController {
                            OrgTabletMenuService orgTabletMenuService,
                            UrlPayCheckoutFieldPresetService urlPayCheckoutFieldPresetService,
                            UrlPayDisplayFxService urlPayDisplayFxService,
-                           com.pg.urlpay.UrlPayCheckoutMoveService urlPayCheckoutMoveService) {
+                           com.pg.urlpay.UrlPayCheckoutMoveService urlPayCheckoutMoveService,
+                           com.pg.urlpay.CheckoutHeaderSubtitleCopyService checkoutHeaderSubtitleCopyService) {
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.chargebackFeePolicyRepository = chargebackFeePolicyRepository;
         this.hqApiConfigRepository = hqApiConfigRepository;
@@ -117,6 +119,7 @@ public class ApiHqController {
         this.urlPayCheckoutFieldPresetService = urlPayCheckoutFieldPresetService;
         this.urlPayDisplayFxService = urlPayDisplayFxService;
         this.urlPayCheckoutMoveService = urlPayCheckoutMoveService;
+        this.checkoutHeaderSubtitleCopyService = checkoutHeaderSubtitleCopyService;
     }
 
     private static PageResult<Map<String, Object>> emptyPage(int page, int size) {
@@ -2026,6 +2029,38 @@ public class ApiHqController {
                 data.put("webPaymentHeaderSubtitleModeDefault",
                         com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.normalize(c.getWebPaymentHeaderSubtitleModeDefault()));
             }
+            data.put("unifiedPaymentHeaderSubtitleModeDefault",
+                    c.getUnifiedPaymentHeaderSubtitleModeDefault() != null
+                            ? c.getUnifiedPaymentHeaderSubtitleModeDefault() : "ACTIVE");
+            data.put("unifiedPaymentHeaderSubtitleTextDefault",
+                    c.getUnifiedPaymentHeaderSubtitleTextDefault() != null
+                            && !c.getUnifiedPaymentHeaderSubtitleTextDefault().isBlank()
+                            ? c.getUnifiedPaymentHeaderSubtitleTextDefault()
+                            : com.pg.urlpay.UnifiedPaymentCopyDefaults.HEADER_KO);
+            data.put("cryptoPaymentHeaderSubtitleModeDefault",
+                    c.getCryptoPaymentHeaderSubtitleModeDefault() != null
+                            ? c.getCryptoPaymentHeaderSubtitleModeDefault() : "ACTIVE");
+            data.put("cryptoPaymentHeaderSubtitleTextDefault",
+                    c.getCryptoPaymentHeaderSubtitleTextDefault() != null
+                            && !c.getCryptoPaymentHeaderSubtitleTextDefault().isBlank()
+                            ? c.getCryptoPaymentHeaderSubtitleTextDefault()
+                            : com.pg.urlpay.CryptoPaymentCopyDefaults.HEADER_KO);
+            data.put("unifiedPaymentNoticeModeDefault",
+                    c.getUnifiedPaymentNoticeModeDefault() != null
+                            ? c.getUnifiedPaymentNoticeModeDefault() : "ACTIVE");
+            data.put("unifiedPaymentNoticeTextDefault",
+                    c.getUnifiedPaymentNoticeTextDefault() != null
+                            && !c.getUnifiedPaymentNoticeTextDefault().isBlank()
+                            ? c.getUnifiedPaymentNoticeTextDefault()
+                            : com.pg.urlpay.UnifiedPaymentCopyDefaults.NOTICE_KO);
+            data.put("unifiedPaymentExtraFooterModeDefault",
+                    c.getUnifiedPaymentExtraFooterModeDefault() != null
+                            ? c.getUnifiedPaymentExtraFooterModeDefault() : "ACTIVE");
+            data.put("unifiedPaymentExtraFooterTextDefault",
+                    c.getUnifiedPaymentExtraFooterTextDefault() != null
+                            && !c.getUnifiedPaymentExtraFooterTextDefault().isBlank()
+                            ? c.getUnifiedPaymentExtraFooterTextDefault()
+                            : com.pg.urlpay.UnifiedPaymentCopyDefaults.EXTRA_FOOTER_EN);
             if (c.getUrlPayCheckoutMoveModeDefault() != null) {
                 data.put("urlPayCheckoutMoveModeDefault",
                         com.pg.urlpay.UrlPayCheckoutMoveModeUtil.normalizeHq(c.getUrlPayCheckoutMoveModeDefault()));
@@ -2197,6 +2232,26 @@ public class ApiHqController {
         c.setCheckoutContactRememberDefaultYn(String.valueOf(body.getOrDefault("checkoutContactRememberDefaultYn", "Y")));
         c.setWebPaymentHeaderLogoModeDefault(String.valueOf(body.getOrDefault("webPaymentHeaderLogoModeDefault", "DEFAULT")));
         c.setWebPaymentHeaderSubtitleModeDefault(String.valueOf(body.getOrDefault("webPaymentHeaderSubtitleModeDefault", "DEFAULT")));
+        c.setUnifiedPaymentHeaderSubtitleModeDefault(String.valueOf(body.getOrDefault("unifiedPaymentHeaderSubtitleModeDefault", "ACTIVE")));
+        Object ups = body.get("unifiedPaymentHeaderSubtitleTextDefault");
+        String upsStr = ups != null ? ups.toString().trim() : "";
+        c.setUnifiedPaymentHeaderSubtitleTextDefault(upsStr.isEmpty()
+                ? com.pg.urlpay.UnifiedPaymentCopyDefaults.HEADER_KO : upsStr);
+        c.setCryptoPaymentHeaderSubtitleModeDefault(String.valueOf(body.getOrDefault("cryptoPaymentHeaderSubtitleModeDefault", "ACTIVE")));
+        Object cps = body.get("cryptoPaymentHeaderSubtitleTextDefault");
+        String cpsStr = cps != null ? cps.toString().trim() : "";
+        c.setCryptoPaymentHeaderSubtitleTextDefault(cpsStr.isEmpty()
+                ? com.pg.urlpay.CryptoPaymentCopyDefaults.HEADER_KO : cpsStr);
+        c.setUnifiedPaymentNoticeModeDefault(String.valueOf(body.getOrDefault("unifiedPaymentNoticeModeDefault", "ACTIVE")));
+        Object upn = body.get("unifiedPaymentNoticeTextDefault");
+        String upnStr = upn != null ? upn.toString().trim() : "";
+        c.setUnifiedPaymentNoticeTextDefault(upnStr.isEmpty()
+                ? com.pg.urlpay.UnifiedPaymentCopyDefaults.NOTICE_KO : upnStr);
+        c.setUnifiedPaymentExtraFooterModeDefault(String.valueOf(body.getOrDefault("unifiedPaymentExtraFooterModeDefault", "ACTIVE")));
+        Object upe = body.get("unifiedPaymentExtraFooterTextDefault");
+        String upeStr = upe != null ? upe.toString().trim() : "";
+        c.setUnifiedPaymentExtraFooterTextDefault(upeStr.isEmpty()
+                ? com.pg.urlpay.UnifiedPaymentCopyDefaults.EXTRA_FOOTER_EN : upeStr);
         urlPayCheckoutMoveService.applyHqMessage(c,
                 String.valueOf(body.getOrDefault("urlPayCheckoutMoveModeDefault", "DISABLED")),
                 body.get("urlPayCheckoutMoveMessageDefault") != null
@@ -2317,6 +2372,8 @@ public class ApiHqController {
         if (body.get("publicApiBaseUrl") != null) {
             c.setPublicApiBaseUrl(hqHttpsUrlForSave(body.get("publicApiBaseUrl")));
         }
+        checkoutHeaderSubtitleCopyService.applyUnifiedDefaultsToHq(c);
+        checkoutHeaderSubtitleCopyService.applyCryptoDefaultsToHq(c);
         hqApiConfigRepository.save(c);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다.")));
     }

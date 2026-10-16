@@ -4,15 +4,19 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pg.entity.CryptoCustodyAddress;
 import com.pg.entity.CryptoDepositTxn;
+import com.pg.entity.HqApiConfig;
 import com.pg.entity.MerchantCryptoConfig;
 import com.pg.entity.MerchantProfile;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
 import com.pg.repository.CryptoCustodyAddressRepository;
 import com.pg.repository.CryptoDepositTxnRepository;
+import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.MerchantCryptoConfigRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
+import com.pg.urlpay.CheckoutHeaderSubtitleCopyService;
+import com.pg.urlpay.CryptoPaymentCopyDefaults;
 import com.pg.util.CommissionFeeChannel;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -35,6 +39,8 @@ public class CryptoAdminService {
     private final CryptoCheckoutService checkoutService;
     private final CryptoPayoutService payoutService;
     private final CryptoReserveResolver reserveResolver;
+    private final HqApiConfigRepository hqApiConfigRepository;
+    private final CheckoutHeaderSubtitleCopyService checkoutHeaderSubtitleCopyService;
 
     public CryptoAdminService(CryptoCatalogService catalogService,
                               CryptoCustodyAddressRepository custodyAddressRepository,
@@ -44,7 +50,9 @@ public class CryptoAdminService {
                               OrgUnitRepository orgUnitRepository,
                               CryptoCheckoutService checkoutService,
                               CryptoPayoutService payoutService,
-                              CryptoReserveResolver reserveResolver) {
+                              CryptoReserveResolver reserveResolver,
+                              HqApiConfigRepository hqApiConfigRepository,
+                              CheckoutHeaderSubtitleCopyService checkoutHeaderSubtitleCopyService) {
         this.catalogService = catalogService;
         this.custodyAddressRepository = custodyAddressRepository;
         this.depositTxnRepository = depositTxnRepository;
@@ -54,6 +62,8 @@ public class CryptoAdminService {
         this.reserveResolver = reserveResolver;
         this.checkoutService = checkoutService;
         this.payoutService = payoutService;
+        this.hqApiConfigRepository = hqApiConfigRepository;
+        this.checkoutHeaderSubtitleCopyService = checkoutHeaderSubtitleCopyService;
     }
 
     /** HQ 화면 자산 카드 순서: USDC → USDT → EURC */
@@ -83,6 +93,39 @@ public class CryptoAdminService {
         }
         out.put("custodyByAsset", byAsset);
         out.put("merchantConfigs", listMerchantConfigs());
+        putCryptoCopyDefaults(out);
+        return out;
+    }
+
+    private void putCryptoCopyDefaults(Map<String, Object> out) {
+        HqApiConfig c = hqApiConfigRepository.findAll().stream().findFirst().orElseGet(HqApiConfig::new);
+        out.put("cryptoPaymentHeaderSubtitleModeDefault",
+                c.getCryptoPaymentHeaderSubtitleModeDefault() != null
+                        ? c.getCryptoPaymentHeaderSubtitleModeDefault() : "ACTIVE");
+        out.put("cryptoPaymentHeaderSubtitleTextDefault",
+                c.getCryptoPaymentHeaderSubtitleTextDefault() != null
+                        && !c.getCryptoPaymentHeaderSubtitleTextDefault().isBlank()
+                        ? c.getCryptoPaymentHeaderSubtitleTextDefault()
+                        : CryptoPaymentCopyDefaults.HEADER_KO);
+    }
+
+    /** 본사 크립토 결제 안내 기본(활성/비활성·문구). OTP 불필요. */
+    @Transactional
+    public Map<String, Object> saveCryptoCopyDefaults(Map<String, Object> body) {
+        HqApiConfig c = hqApiConfigRepository.findAll().stream().findFirst().orElseGet(HqApiConfig::new);
+        if (body != null) {
+            c.setCryptoPaymentHeaderSubtitleModeDefault(String.valueOf(
+                    body.getOrDefault("cryptoPaymentHeaderSubtitleModeDefault", "ACTIVE")));
+            Object t = body.get("cryptoPaymentHeaderSubtitleTextDefault");
+            String ts = t != null ? t.toString().trim() : "";
+            c.setCryptoPaymentHeaderSubtitleTextDefault(ts.isEmpty()
+                    ? CryptoPaymentCopyDefaults.HEADER_KO : ts);
+        }
+        checkoutHeaderSubtitleCopyService.applyCryptoDefaultsToHq(c);
+        hqApiConfigRepository.save(c);
+        Map<String, Object> out = new LinkedHashMap<>();
+        putCryptoCopyDefaults(out);
+        out.put("ok", true);
         return out;
     }
 

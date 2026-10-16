@@ -219,9 +219,9 @@ public class MerchantProfile {
     @Column(name = "crypto_payment_header_logo_mode", nullable = false, length = 16)
     private String cryptoPaymentHeaderLogoMode = "FOLLOW_HQ";
 
-    /** 크립토 결제창 로고 아래 안내 — DEFAULT|ACTIVE|DISABLED */
+    /** 크립토 결제창 로고 아래 안내 — FOLLOW_HQ|ACTIVE|DISABLED */
     @Column(name = "crypto_payment_header_subtitle_mode", nullable = false, length = 16)
-    private String cryptoPaymentHeaderSubtitleMode = "DEFAULT";
+    private String cryptoPaymentHeaderSubtitleMode = "FOLLOW_HQ";
 
     @Column(name = "crypto_payment_header_subtitle_text", length = 200)
     private String cryptoPaymentHeaderSubtitleText;
@@ -229,15 +229,35 @@ public class MerchantProfile {
     @Column(name = "crypto_payment_header_subtitle_text_i18n", columnDefinition = "TEXT")
     private String cryptoPaymentHeaderSubtitleTextI18n;
 
-    /** 통합결제(수단선택) 로고 아래 안내 — DEFAULT|ACTIVE|DISABLED */
+    /** 통합결제(수단선택) 로고 아래 안내 — FOLLOW_HQ|DEFAULT|ACTIVE|DISABLED */
     @Column(name = "unified_payment_header_subtitle_mode", nullable = false, length = 16)
-    private String unifiedPaymentHeaderSubtitleMode = "DEFAULT";
+    private String unifiedPaymentHeaderSubtitleMode = "FOLLOW_HQ";
 
     @Column(name = "unified_payment_header_subtitle_text", length = 200)
     private String unifiedPaymentHeaderSubtitleText;
 
     @Column(name = "unified_payment_header_subtitle_text_i18n", columnDefinition = "TEXT")
     private String unifiedPaymentHeaderSubtitleTextI18n;
+
+    /** 통합결제 노란 주의(푸터메시지) — FOLLOW_HQ|ACTIVE|DISABLED */
+    @Column(name = "unified_payment_notice_mode", nullable = false, length = 16)
+    private String unifiedPaymentNoticeMode = "FOLLOW_HQ";
+
+    @Column(name = "unified_payment_notice_text", length = 1000)
+    private String unifiedPaymentNoticeText;
+
+    @Column(name = "unified_payment_notice_text_i18n", columnDefinition = "TEXT")
+    private String unifiedPaymentNoticeTextI18n;
+
+    /** 통합결제 추가푸터 — FOLLOW_HQ|ACTIVE|DISABLED */
+    @Column(name = "unified_payment_extra_footer_mode", nullable = false, length = 16)
+    private String unifiedPaymentExtraFooterMode = "FOLLOW_HQ";
+
+    @Column(name = "unified_payment_extra_footer_text", length = 1000)
+    private String unifiedPaymentExtraFooterText;
+
+    @Column(name = "unified_payment_extra_footer_text_i18n", columnDefinition = "TEXT")
+    private String unifiedPaymentExtraFooterTextI18n;
 
     /**
      * 웹결제 결제창 로고 아래 경고/안내 문구 — {@link com.pg.urlpay.CheckoutHeaderSubtitleModeUtil}.
@@ -852,7 +872,7 @@ public class MerchantProfile {
     }
     public String getCryptoPaymentHeaderSubtitleMode() { return cryptoPaymentHeaderSubtitleMode; }
     public void setCryptoPaymentHeaderSubtitleMode(String cryptoPaymentHeaderSubtitleMode) {
-        this.cryptoPaymentHeaderSubtitleMode = normalizeChannelSubtitleMode(cryptoPaymentHeaderSubtitleMode);
+        this.cryptoPaymentHeaderSubtitleMode = normalizeCryptoSubtitleMode(cryptoPaymentHeaderSubtitleMode);
     }
     public String getCryptoPaymentHeaderSubtitleText() { return cryptoPaymentHeaderSubtitleText; }
     public void setCryptoPaymentHeaderSubtitleText(String cryptoPaymentHeaderSubtitleText) {
@@ -864,7 +884,7 @@ public class MerchantProfile {
     }
     public String getUnifiedPaymentHeaderSubtitleMode() { return unifiedPaymentHeaderSubtitleMode; }
     public void setUnifiedPaymentHeaderSubtitleMode(String unifiedPaymentHeaderSubtitleMode) {
-        this.unifiedPaymentHeaderSubtitleMode = normalizeChannelSubtitleMode(unifiedPaymentHeaderSubtitleMode);
+        this.unifiedPaymentHeaderSubtitleMode = normalizeUnifiedSubtitleMode(unifiedPaymentHeaderSubtitleMode);
     }
     public String getUnifiedPaymentHeaderSubtitleText() { return unifiedPaymentHeaderSubtitleText; }
     public void setUnifiedPaymentHeaderSubtitleText(String unifiedPaymentHeaderSubtitleText) {
@@ -874,9 +894,72 @@ public class MerchantProfile {
     public void setUnifiedPaymentHeaderSubtitleTextI18n(String unifiedPaymentHeaderSubtitleTextI18n) {
         this.unifiedPaymentHeaderSubtitleTextI18n = unifiedPaymentHeaderSubtitleTextI18n;
     }
-    private static String normalizeChannelSubtitleMode(String raw) {
+    public String getUnifiedPaymentNoticeMode() { return unifiedPaymentNoticeMode; }
+    public void setUnifiedPaymentNoticeMode(String unifiedPaymentNoticeMode) {
+        this.unifiedPaymentNoticeMode = normalizeFollowHqActiveDisabled(unifiedPaymentNoticeMode);
+    }
+    public String getUnifiedPaymentNoticeText() { return unifiedPaymentNoticeText; }
+    public void setUnifiedPaymentNoticeText(String unifiedPaymentNoticeText) {
+        this.unifiedPaymentNoticeText = unifiedPaymentNoticeText;
+    }
+    public String getUnifiedPaymentNoticeTextI18n() { return unifiedPaymentNoticeTextI18n; }
+    public void setUnifiedPaymentNoticeTextI18n(String unifiedPaymentNoticeTextI18n) {
+        this.unifiedPaymentNoticeTextI18n = unifiedPaymentNoticeTextI18n;
+    }
+    public String getUnifiedPaymentExtraFooterMode() { return unifiedPaymentExtraFooterMode; }
+    public void setUnifiedPaymentExtraFooterMode(String unifiedPaymentExtraFooterMode) {
+        this.unifiedPaymentExtraFooterMode = normalizeFollowHqActiveDisabled(unifiedPaymentExtraFooterMode);
+    }
+    public String getUnifiedPaymentExtraFooterText() { return unifiedPaymentExtraFooterText; }
+    public void setUnifiedPaymentExtraFooterText(String unifiedPaymentExtraFooterText) {
+        this.unifiedPaymentExtraFooterText = unifiedPaymentExtraFooterText;
+    }
+    public String getUnifiedPaymentExtraFooterTextI18n() { return unifiedPaymentExtraFooterTextI18n; }
+    public void setUnifiedPaymentExtraFooterTextI18n(String unifiedPaymentExtraFooterTextI18n) {
+        this.unifiedPaymentExtraFooterTextI18n = unifiedPaymentExtraFooterTextI18n;
+    }
+    private static String normalizeCryptoSubtitleMode(String raw) {
         if (raw == null || raw.isBlank()) {
+            return "FOLLOW_HQ";
+        }
+        String u = raw.trim().toUpperCase(java.util.Locale.ROOT);
+        if ("FOLLOW_HQ".equals(u) || "HQ".equals(u)) {
+            return "FOLLOW_HQ";
+        }
+        if ("DISABLED".equals(u) || "N".equals(u) || "OFF".equals(u)) {
+            return "DISABLED";
+        }
+        if ("ACTIVE".equals(u) || "Y".equals(u) || "ON".equals(u)) {
+            return "ACTIVE";
+        }
+        /* 레거시 DEFAULT → 본사 기본 따름 */
+        if ("DEFAULT".equals(u)) {
+            return "FOLLOW_HQ";
+        }
+        return "FOLLOW_HQ";
+    }
+    private static String normalizeUnifiedSubtitleMode(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "FOLLOW_HQ";
+        }
+        String u = raw.trim().toUpperCase(java.util.Locale.ROOT);
+        if ("FOLLOW_HQ".equals(u) || "HQ".equals(u)) {
+            return "FOLLOW_HQ";
+        }
+        if ("DISABLED".equals(u) || "N".equals(u) || "OFF".equals(u)) {
+            return "DISABLED";
+        }
+        if ("ACTIVE".equals(u) || "Y".equals(u) || "ON".equals(u)) {
+            return "ACTIVE";
+        }
+        if ("DEFAULT".equals(u)) {
             return "DEFAULT";
+        }
+        return "FOLLOW_HQ";
+    }
+    private static String normalizeFollowHqActiveDisabled(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "FOLLOW_HQ";
         }
         String u = raw.trim().toUpperCase(java.util.Locale.ROOT);
         if ("DISABLED".equals(u) || "N".equals(u) || "OFF".equals(u)) {
@@ -885,7 +968,7 @@ public class MerchantProfile {
         if ("ACTIVE".equals(u) || "Y".equals(u) || "ON".equals(u)) {
             return "ACTIVE";
         }
-        return "DEFAULT";
+        return "FOLLOW_HQ";
     }
     public String getWebPaymentHeaderHtmlTitle() { return webPaymentHeaderHtmlTitle; }
     public void setWebPaymentHeaderHtmlTitle(String webPaymentHeaderHtmlTitle) { this.webPaymentHeaderHtmlTitle = webPaymentHeaderHtmlTitle; }

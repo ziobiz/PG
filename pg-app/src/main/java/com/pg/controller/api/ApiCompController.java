@@ -287,6 +287,10 @@ public class ApiCompController {
             @RequestParam(required = false) String cryptoPaymentHeaderSubtitleText,
             @RequestParam(required = false) String unifiedPaymentHeaderSubtitleMode,
             @RequestParam(required = false) String unifiedPaymentHeaderSubtitleText,
+            @RequestParam(required = false) String unifiedPaymentNoticeMode,
+            @RequestParam(required = false) String unifiedPaymentNoticeText,
+            @RequestParam(required = false) String unifiedPaymentExtraFooterMode,
+            @RequestParam(required = false) String unifiedPaymentExtraFooterText,
             @RequestParam(required = false) String apiPaymentHeaderHtmlTitle,
             @RequestParam(required = false) String urlPayCardInputMode,
             @RequestParam(required = false) String urlPayCardInputDisabledText,
@@ -496,7 +500,9 @@ public class ApiCompController {
         compService.applyMerchantCryptoPaymentHeaderLogo(saved.getCode(), cryptoPaymentHeaderLogoMode);
         compService.applyMerchantCryptoUnifiedSubtitles(saved.getCode(),
                 cryptoPaymentHeaderSubtitleMode, cryptoPaymentHeaderSubtitleText,
-                unifiedPaymentHeaderSubtitleMode, unifiedPaymentHeaderSubtitleText);
+                unifiedPaymentHeaderSubtitleMode, unifiedPaymentHeaderSubtitleText,
+                unifiedPaymentNoticeMode, unifiedPaymentNoticeText,
+                unifiedPaymentExtraFooterMode, unifiedPaymentExtraFooterText);
         compService.applyMerchantUrlPayCardInput(saved.getCode(), urlPayCardInputMode, urlPayCardInputDisabledText);
         compService.applyMerchantUrlPayCheckoutMove(saved.getCode(), urlPayCheckoutMoveMode,
                 urlPayCheckoutMoveTargetType, urlPayCheckoutMoveTarget, urlPayCheckoutMoveMessage);
@@ -600,6 +606,10 @@ public class ApiCompController {
             @RequestParam(required = false) String cryptoPaymentHeaderSubtitleText,
             @RequestParam(required = false) String unifiedPaymentHeaderSubtitleMode,
             @RequestParam(required = false) String unifiedPaymentHeaderSubtitleText,
+            @RequestParam(required = false) String unifiedPaymentNoticeMode,
+            @RequestParam(required = false) String unifiedPaymentNoticeText,
+            @RequestParam(required = false) String unifiedPaymentExtraFooterMode,
+            @RequestParam(required = false) String unifiedPaymentExtraFooterText,
             @RequestParam(required = false) String apiPaymentHeaderHtmlTitle,
             @RequestParam(required = false) String webPaymentHeaderSubtitleMode,
             @RequestParam(required = false) String webPaymentHeaderSubtitleText,
@@ -848,7 +858,9 @@ public class ApiCompController {
                 compService.applyMerchantCryptoPaymentHeaderLogo(compId, cryptoPaymentHeaderLogoMode);
                 compService.applyMerchantCryptoUnifiedSubtitles(compId,
                         cryptoPaymentHeaderSubtitleMode, cryptoPaymentHeaderSubtitleText,
-                        unifiedPaymentHeaderSubtitleMode, unifiedPaymentHeaderSubtitleText);
+                        unifiedPaymentHeaderSubtitleMode, unifiedPaymentHeaderSubtitleText,
+                        unifiedPaymentNoticeMode, unifiedPaymentNoticeText,
+                        unifiedPaymentExtraFooterMode, unifiedPaymentExtraFooterText);
                 compService.applyMerchantUrlPayCardInput(compId, urlPayCardInputMode, urlPayCardInputDisabledText);
                 compService.applyMerchantUrlPayCheckoutMove(compId, urlPayCheckoutMoveMode,
                         urlPayCheckoutMoveTargetType, urlPayCheckoutMoveTarget, urlPayCheckoutMoveMessage);

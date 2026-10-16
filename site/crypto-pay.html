@@ -62,7 +62,7 @@
               <div class="pay-row-value"><span id="startDisplayCurrencyText" class="fw-medium">USD</span></div>
             </div>
             <div class="pay-row pay-row-static" id="startQuoteRow">
-              <div class="pay-row-label" id="startQuoteLabel">Expected charge</div>
+              <div class="pay-row-label" id="startQuoteLabel">Expected charge (USD equiv.)</div>
               <div class="pay-row-value"><span id="startQuoteText" class="pay-fx-estimate-amount fw-semibold text-primary">—</span></div>
             </div>
           </div>
@@ -144,7 +144,7 @@
       asset: '자산 선택', network: '네트워크',
       deposit: 'ICOPAY 입금 주소', confirm: '송금 완료 · 입금 확인',
       order: '주문번호', product: '상품', amount: '금액', remit: '송금금액',
-      displayCcy: '표시 통화', quoteEst: '청구예상 금액',
+      displayCcy: '표시 통화', quoteEst: '청구예상 금액 (USD 상당)', quoteUsdTag: 'USD 상당',
       waiting: '입금 대기 중… 송금 후 「송금 완료 · 입금 확인」을 눌러 주세요.',
       confirmed: '입금이 확정되었습니다.', expired: '입금 시간이 만료되었습니다.',
       copied: '주소를 복사했습니다.', errSession: '결제 세션을 불러오지 못했습니다.',
@@ -162,7 +162,7 @@
       asset: 'Select asset', network: 'Network',
       deposit: 'ICOPAY deposit address', confirm: 'I sent it · Check deposit',
       order: 'Order', product: 'Item', amount: 'Amount', remit: 'Remittance',
-      displayCcy: 'Display currency', quoteEst: 'Expected charge',
+      displayCcy: 'Display currency', quoteEst: 'Expected charge (USD equiv.)', quoteUsdTag: 'USD equiv.',
       waiting: 'Waiting for deposit… After sending, tap 「I sent it · Check deposit」.',
       confirmed: 'Deposit confirmed.', expired: 'Deposit window expired.',
       copied: 'Address copied.', errSession: 'Could not load payment session.',
@@ -180,7 +180,7 @@
       asset: '資産を選択', network: 'ネットワーク',
       deposit: 'ICOPAY入金アドレス', confirm: '送金完了 · 入金確認',
       order: '注文番号', product: '商品', amount: '金額', remit: '送金額',
-      displayCcy: '表示通貨', quoteEst: '請求予定額',
+      displayCcy: '表示通貨', quoteEst: '請求予定額 (USD相当)', quoteUsdTag: 'USD相当',
       waiting: '入金待ち… 送金後「送金完了 · 入金確認」を押してください。',
       confirmed: '入金が確定しました。', expired: '入金期限が切れました。',
       copied: 'コピーしました。', errSession: 'セッションを読み込めません。',
@@ -198,7 +198,7 @@
       asset: '选择资产', network: '网络',
       deposit: 'ICOPAY 充值地址', confirm: '已汇出 · 确认入金',
       order: '订单号', product: '商品', amount: '金额', remit: '汇款金额',
-      displayCcy: '显示货币', quoteEst: '预计扣款',
+      displayCcy: '显示货币', quoteEst: '预计扣款 (USD 等值)', quoteUsdTag: 'USD 等值',
       waiting: '等待入金… 汇款后请点「已汇出 · 确认入金」。',
       confirmed: '入金已确认。', expired: '入金时限已过。',
       copied: '已复制。', errSession: '无法加载支付会话。',
@@ -216,7 +216,7 @@
       asset: 'เลือกสินทรัพย์', network: 'เครือข่าย',
       deposit: 'ที่อยู่ฝาก ICOPAY', confirm: 'โอนแล้ว · ตรวจยอดฝาก',
       order: 'เลขคำสั่งซื้อ', product: 'สินค้า', amount: 'จำนวน', remit: 'ยอดโอน',
-      displayCcy: 'สกุลแสดง', quoteEst: 'ยอดเรียกเก็บโดยประมาณ',
+      displayCcy: 'สกุลแสดง', quoteEst: 'ยอดเรียกเก็บโดยประมาณ (เทียบเท่า USD)', quoteUsdTag: 'เทียบเท่า USD',
       waiting: 'รอฝาก… หลังโอน กด「โอนแล้ว · ตรวจยอดฝาก」',
       confirmed: 'ยืนยันการฝากแล้ว', expired: 'หมดเวลารับฝาก',
       copied: 'คัดลอกแล้ว', errSession: 'โหลดเซสชันไม่สำเร็จ',
@@ -248,7 +248,9 @@
     depositReady: false,
     displayCurrency: 'USD',
     quoteCurrency: 'USD',
-    estimateTimer: null
+    estimateTimer: null,
+    lastQuoteAmount: null,
+    estimateReqSeq: 0
   };
 
   if (!state.compId) {
@@ -259,6 +261,32 @@
 
   function ynY(v) {
     return String(v != null ? v : 'Y').trim().toUpperCase() === 'Y';
+  }
+
+  /** 청구예상(USD 앵커) 표시 — 「USD 1000」대신 「USD 상당 1000」 */
+  function formatQuoteUsd(amount) {
+    var tag = (pack && pack.quoteUsdTag) ? pack.quoteUsdTag : 'USD equiv.';
+    if (amount == null || amount === '') return '—';
+    return tag + ' ' + amount;
+  }
+
+  /** 언어 전환 시에도 금액 숫자만 유지하고 태그(USD 상당 등)만 다시 입힘 */
+  function paintStartQuoteText() {
+    var quoteEl = document.getElementById('startQuoteText');
+    if (!quoteEl) return;
+    if (state.lastQuoteAmount == null || state.lastQuoteAmount === '') {
+      var amt = String((document.getElementById('startAmount') || {}).value || '').trim();
+      if (!amt || !(Number(amt) > 0)) {
+        quoteEl.textContent = '—';
+        return;
+      }
+      /* 아직 견적 응답 전이면 입력액으로 임시 표시(1:1 USD 표시통화 가정) */
+      if (String(state.displayCurrency || 'USD').toUpperCase() === 'USD') {
+        quoteEl.textContent = formatQuoteUsd(amt);
+      }
+      return;
+    }
+    quoteEl.textContent = formatQuoteUsd(state.lastQuoteAmount);
   }
 
   function applyFieldFlags(ctx) {
@@ -324,6 +352,8 @@
     document.documentElement.lang = lang === 'JP' ? 'ja' : (lang === 'CH' ? 'zh' : (lang === 'TH' ? 'th' : (lang === 'EN' ? 'en' : 'ko')));
     if (H) H.applySubtitle(headerCtx, 'crypto', lang);
     fillCountrySelect(true);
+    paintStartQuoteText();
+    if (state.data) paintSummary(state.data);
   }
 
   function setLang(nextUi) {
@@ -410,8 +440,13 @@
     var asset = data.assetCode || data.currency || '';
     var remit = data.assetAmount != null ? data.assetAmount : data.remittanceAmount;
     var amountLabel = (dispAmt != null && dispAmt !== '') ? (dispCcy + ' ' + dispAmt) : '—';
-    if (dispCcy !== quoteCcy && quoteAmt != null) {
-      amountLabel += ' · ' + quoteCcy + ' ' + quoteAmt;
+    if (quoteAmt != null && String(quoteCcy || '').toUpperCase() === 'USD') {
+      var qLab = formatQuoteUsd(quoteAmt);
+      if (String(dispCcy).toUpperCase() === 'USD') {
+        amountLabel = qLab;
+      } else {
+        amountLabel += ' · ' + qLab;
+      }
     }
     document.getElementById('amount').textContent = amountLabel;
     var remitLabel = '—';
@@ -453,9 +488,11 @@
     var amt = String(document.getElementById('startAmount').value || '').trim();
     var quoteEl = document.getElementById('startQuoteText');
     if (!amt || !(Number(amt) > 0) || !state.compId) {
+      state.lastQuoteAmount = null;
       quoteEl.textContent = '—';
       return;
     }
+    var reqSeq = (state.estimateReqSeq = (state.estimateReqSeq || 0) + 1);
     fetch('/api/pay/crypto/estimate', {
       method: 'POST',
       credentials: 'same-origin',
@@ -467,12 +504,19 @@
         assetCode: state.asset || 'USDC'
       })
     }).then(function (r) { return r.json(); }).then(function (body) {
+      if (reqSeq !== state.estimateReqSeq) return;
       if (body && body.success && body.data && body.data.quoteAmount != null) {
-        quoteEl.textContent = (body.data.quoteCurrency || 'USD') + ' ' + body.data.quoteAmount;
+        state.lastQuoteAmount = body.data.quoteAmount;
+        quoteEl.textContent = formatQuoteUsd(body.data.quoteAmount);
       } else {
+        state.lastQuoteAmount = null;
         quoteEl.textContent = '—';
       }
-    }).catch(function () { quoteEl.textContent = '—'; });
+    }).catch(function () {
+      if (reqSeq !== state.estimateReqSeq) return;
+      state.lastQuoteAmount = null;
+      quoteEl.textContent = '—';
+    });
   }
   function scheduleEstimate() {
     if (state.estimateTimer) clearTimeout(state.estimateTimer);

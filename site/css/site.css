@@ -6135,15 +6135,40 @@ html.pg-admin--tablet .pg-tablet-launch-tile {
   padding: 0.12rem 0.35rem;
 }
 
-/* ìì²´ê´ë¦¬ í¬ë¦½í ì¤ì  ì¹´ë â íëì íì¤í êµ¬ë¶ */
+/*
+ * 카드 제목(헤더) 파스텔 톤 (본사정책·가맹·수수료 공통 규칙)
+ * 일반 = 그레이 rgba(0,0,0,.03) 유지
+ * 크립토 전용 = 하늘색 (.pg-crypto-pastel-card / .pg-merchant-crypto-pastel-card)
+ * FIAT·CRYPTO 공통 = 노란색 (.pg-shared-pastel-card)
+ */
+#contentsMain .pg-crypto-pastel-card > .card-header,
+#contentsMain .pg-merchant-crypto-pastel-card > .card-header,
+.tab-pane.tabConDiv .pg-crypto-pastel-card > .card-header,
+.tab-pane.tabConDiv .pg-merchant-crypto-pastel-card > .card-header {
+  background-color: #d6ebf8 !important;
+  background-image: none !important;
+  border-bottom-color: #b8d9ef !important;
+  color: #1e4a6e !important;
+}
 #contentsMain .pg-merchant-crypto-pastel-card {
   background-color: #e8f4fc !important;
   border-color: #b8d9ef !important;
 }
-#contentsMain .pg-merchant-crypto-pastel-card > .card-header {
-  background-color: #d6ebf8 !important;
-  border-bottom-color: #b8d9ef !important;
-}
 #contentsMain .pg-merchant-crypto-pastel-card > .card-body {
   background-color: #e8f4fc !important;
+}
+#contentsMain .pg-shared-pastel-card > .card-header,
+.tab-pane.tabConDiv .pg-shared-pastel-card > .card-header {
+  background-color: #f7edd0 !important;
+  background-image: none !important;
+  border-bottom-color: #e5d4a0 !important;
+  color: #6b5420 !important;
+}
+/* 수수료관리 목록: CRYPTO 채널일 때 그리드 카드 헤더도 하늘색 */
+#contentsMain .pg-crypto-channel-active .pg-fee-channel-content-card > .card-header,
+.tab-pane.tabConDiv.pg-crypto-channel-active .pg-fee-channel-content-card > .card-header {
+  background-color: #d6ebf8 !important;
+  background-image: none !important;
+  border-bottom-color: #b8d9ef !important;
+  color: #1e4a6e !important;
 }

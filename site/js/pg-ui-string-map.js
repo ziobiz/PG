@@ -1758,6 +1758,7 @@
   M['FIAT(카드)']={EN:'FIAT (Card)',JP:'FIAT(カード)',CH:'FIAT(卡)',TH:'FIAT(บัตร)'};
   M['CRYPTO(크립토)']={EN:'CRYPTO (Crypto)',JP:'CRYPTO(クリプト)',CH:'CRYPTO(加密)',TH:'CRYPTO(คริปโต)'};
   M['수수료채널']={EN:'Fee channel',JP:'手数料チャネル',CH:'手续费通道',TH:'ช่องค่าธรรมเนียม'};
+  M['수수료 채널']={EN:'Fee channel',JP:'手数料チャネル',CH:'手续费通道',TH:'ช่องค่าธรรมเนียม'};
   M['수수료채널(FIAT|CRYPTO): 전체 조회 시 동일 정산실행에 카드·크립토가 섞이면 채널별 행으로 분리합니다. CRYPTO 행의 정산수수료·송금·담보·지급액은 크립토 출금 큐에서 별도 처리하므로 집계 행에는 수수료·건수만 표시합니다.']={EN:'Fee channel (FIAT|CRYPTO): when both card and crypto exist in one settlement run, rows are split by channel. CRYPTO rows show fees/counts only; batch settlement/remittance/reserve/payout stay on the crypto payout queue.',JP:'手数料チャネル(FIAT|CRYPTO): 同一精算実行にカードとクリプトが混在する場合チャネル行に分割。CRYPTO行は手数料・件数のみ。精算手数料・送金・担保・支払はクリプト出金キュー。',CH:'手续费通道(FIAT|CRYPTO)：同一结算执行含卡与加密时按通道分行。CRYPTO 行仅显示手续费与笔数；结算费/汇款/保证金/支付在加密出款队列。',TH:'ช่องค่าธรรมเนียม(FIAT|CRYPTO): หากรอบเคลียร์มีบัตรและคริปโต จะแยกแถวตามช่อง แถว CRYPTO แสดงเฉพาะค่าธรรมเนียม/จำนวน — ค่าเคลียร์/โอน/reserve/จ่ายอยู่ที่คิวคริปโต'};
   M['네트워크별 가스피']={EN:'Gas fee by network',JP:'ネットワーク別ガス費',CH:'按网络 Gas 费',TH:'ค่าแก๊สตามเครือข่าย'};
   M['가스피']={EN:'Gas fee',JP:'ガス費',CH:'Gas 费',TH:'ค่าแก๊ส'};
@@ -4389,5 +4390,30 @@
   M['가맹↔ICOPAY 통신 테스트 전용. 키는 연동·배포 → 가맹 API 출시 → 키·문서 → 샌드박스 시크릿 발급. 라이브 결제통보·수신통보와 섞지 않으며 NOTI를 경유하지 않습니다. 활성/URL 수정은 총본사·본사 관리자만 가능합니다. 확인: 결제관리 → 샌드박스내역, 통보관리 → 샌드박스통보.']={EN:'Merchant↔ICOPAY communication test only. Key: Integration & deploy → Merchant API launch → Keys & docs → Issue sandbox secret. Not mixed with live notify; no NOTI. Check: Payments → Sandbox history, Notify → Sandbox notify.',JP:'加盟↔ICOPAY通信テスト専用。鍵は連携・デプロイ→加盟API出市→キー・文書→サンドボックス秘密鍵発行。確認:決済管理→サンドボックス履歴、通報管理→サンドボックス通報。',CH:'仅用于商户↔ICOPAY通信测试。密钥：联动与部署→商户API上线→密钥与文档→签发沙箱密钥。确认：支付管理→沙箱明细、通知管理→沙箱通知。',TH:'ทดสอบร้าน↔ICOPAY เท่านั้น คีย์: เชื่อมต่อและใช้งานจริง→เปิดใช้ API ร้าน→คีย์·เอกสาร→ออกคีย์ sandbox ตรวจ: จัดการชำระ→ประวัติ sandbox, จัดการแจ้ง→แจ้ง sandbox'};
 
   M['가맹↔ICOPAY 샌드박스 결제·통보 이력을 N일 후 자동 삭제합니다. 기본 3일. (메뉴: 연동·배포 → 가맹 API 출시 → 공통설정. 확인: 결제관리 → 샌드박스내역, 통보관리 → 샌드박스통보)']={EN:'Sandbox history auto-deletes after N days (default 3). Menu: Integration & deploy → Merchant API launch → Common settings. Check: Payments → Sandbox history, Notify → Sandbox notify.',JP:'サンドボックス履歴はN日後自動削除。メニュー:連携・デプロイ→加盟API出市→共通設定。',CH:'沙箱历史N天后自动删除。菜单：联动与部署→商户API上线→通用设置。',TH:'ลบประวัติ sandbox หลัง N วัน เมนู: เชื่อมต่อและใช้งานจริง→เปิดใช้ API ร้าน→ตั้งค่าร่วม'};
+
+  M['통합결제 안내·푸터']={EN:'Unified checkout notice & footer',JP:'統合決済の案内・フッター',CH:'统一支付说明与页脚',TH:'ข้อความ/ฟุตเตอร์ชำระรวม'};
+  M['통합결제 안내']={EN:'Unified checkout notice',JP:'統合決済案内',CH:'统一支付说明',TH:'ข้อความชำระรวม'};
+  M['통합결제 안내문구']={EN:'Unified checkout notice text',JP:'統合決済案内文',CH:'统一支付说明文案',TH:'ข้อความอธิบายชำระรวม'};
+  M['푸터 메시지']={EN:'Footer message',JP:'フッターメッセージ',CH:'页脚消息',TH:'ข้อความฟุตเตอร์'};
+  M['푸터 메시지 문구']={EN:'Footer message text',JP:'フッターメッセージ文',CH:'页脚消息文案',TH:'ข้อความฟุตเตอร์'};
+  M['추가 푸터']={EN:'Extra footer',JP:'追加フッター',CH:'附加页脚',TH:'ฟุตเตอร์เพิ่ม'};
+  M['추가 푸터 문구']={EN:'Extra footer text',JP:'追加フッター文',CH:'附加页脚文案',TH:'ข้อความฟุตเตอร์เพิ่ม'};
+  M['활성일 때만 입력 · 로고 아래 노출']={EN:'Editable when Active · shown under logo',JP:'有効時のみ入力 · ロゴ下に表示',CH:'仅启用时可编辑 · 显示在徽标下方',TH:'แก้ไขได้เมื่อเปิดใช้ · แสดงใต้โลโก้'};
+  M['활성일 때만 입력 · 노란 주의 박스']={EN:'Editable when Active · yellow notice box',JP:'有効時のみ入力 · 黄色注意ボックス',CH:'仅启用时可编辑 · 黄色提示框',TH:'แก้ไขได้เมื่อเปิดใช้ · กล่องเตือนสีเหลือง'};
+  M['활성일 때만 입력 · 노란 박스 아래']={EN:'Editable when Active · under yellow box',JP:'有効時のみ入力 · 黄色ボックス下',CH:'仅启用时可编辑 · 黄色框下方',TH:'แก้ไขได้เมื่อเปิดใช้ · ใต้กล่องเหลือง'};
+  M['기본은 본사설정 따름. 가맹에서 활성/비활성으로 바꾸면 가맹이 우선합니다.']={EN:'Default follows HQ. Merchant Active/Disabled overrides HQ.',JP:'既定は本社設定に従う。加盟で活性/非活性にすると加盟が優先。',CH:'默认跟随总部。商户选启用/停用则商户优先。',TH:'ค่าเริ่มตาม HQ ร้านเลือกเปิด/ปิดจะมาก่อน'};
+  M['통합결제설정']={EN:'Unified checkout settings',JP:'統合決済設定',CH:'统一支付设置',TH:'ตั้งค่าชำระรวม'};
+  M['상단 안내']={EN:'Top notice',JP:'上部案内',CH:'顶部说明',TH:'ข้อความด้านบน'};
+  M['상단 안내 문구']={EN:'Top notice text',JP:'上部案内文',CH:'顶部说明文案',TH:'ข้อความด้านบน'};
+  M['기본은 본사설정 따름. 상단·푸터메시지는 다국어, 추가 푸터는 영어 고정입니다.']={EN:'Default follows HQ. Top/footer message are multilingual; extra footer is English-fixed.',JP:'既定は本社設定に従う。上部・フッターは多言語、追加フッターは英語固定。',CH:'默认跟随总部。顶部/页脚多语言；附加页脚固定英文。',TH:'ค่าเริ่มตาม HQ ข้อความบน/ฟุตเตอร์หลายภาษา ฟุตเตอร์เพิ่มเป็นอังกฤษตายตัว'};
+  M['영어 고정 · 예: ICOPAY, a service operated by ONTHELINE.']={EN:'English-fixed · e.g. ICOPAY, a service operated by ONTHELINE.',JP:'英語固定 · 例: ICOPAY, a service operated by ONTHELINE.',CH:'固定英文 · 例: ICOPAY, a service operated by ONTHELINE.',TH:'อังกฤษตายตัว · เช่น ICOPAY, a service operated by ONTHELINE.'};
+  M['기본값: 상단안내·푸터메시지는 5개국어, 추가 푸터는 영어 고정(ICOPAY, a service operated by ONTHELINE.). 활성+문구 비움 시 시스템 기본 문구. 상단·푸터메시지 저장 시 5개국어 1회 번역됩니다.']={EN:'Defaults: top/footer message in 5 languages; extra footer English-fixed (ICOPAY, a service operated by ONTHELINE.). Empty Active uses system defaults. Saving top/footer translates once to 5 langs.',JP:'既定:上部・フッターは5言語、追加フッターは英語固定。活性で空ならシステム既定。保存時5言語に1回翻訳。',CH:'默认：顶部/页脚5语；附加页脚固定英文。启用且空则用系统默认。保存顶部/页脚时翻译一次为5语。',TH:'ค่าเริ่ม: บน/ฟุตเตอร์ 5 ภาษา ฟุตเตอร์เพิ่มอังกฤษตายตัว ว่างตอนเปิดใช้=ค่าเริ่มระบบ บันทึกบน/ฟุตเตอร์แปลครั้งเดียว'};
+  M['카드·통합 안내와 별도입니다. 「활성(직접입력)」만 수정·저장 시 5개국어 1회 번역. 「본사설정 따름」이면 본사 크립토 안내 기본이 적용됩니다.']={EN:'Separate from card/unified notice. Editable only when Active; translated once into 5 languages on save. Follow HQ uses the HQ crypto notice default.',JP:'カード・統合案内とは別。「有効(直接入力)」のみ編集・保存時5言語1回翻訳。「本社設定に従う」なら本社クリプト案内既定が適用。',CH:'与银行卡/整合提示分开。仅「启用(直接输入)」可编辑，保存时一次译成 5 语。「跟随总部」时用总部加密说明默认。',TH:'แยกจากบัตร/รวม แก้ไขได้เมื่อ「เปิด(พิมพ์เอง)」แปล 5 ภาษาครั้งเดียวเมื่อบันทึก 「ตาม HQ」ใช้ค่าเริ่มข้อความคริปโตของ HQ'};
+  M['크립토 결제 안내 (본사 기본)']={EN:'Crypto checkout notice (HQ default)',JP:'クリプト決済案内(本社既定)',CH:'加密支付说明（总部默认）',TH:'ข้อความคริปโต (ค่าเริ่ม HQ)'};
+  M['크립토 결제창(/crypto-pay) 로고 아래 안내입니다. 가맹이 「본사설정 따름」이면 이 값이 적용되고, 가맹에서 활성(직접입력)·비활성으로 바꾸면 가맹이 우선합니다. 활성+문구 저장 시 5개국어로 1회 번역됩니다.']={EN:'Notice under the crypto checkout (/crypto-pay) logo. Follow HQ uses this value; merchant Active/Disabled overrides. Saving Active text translates once to 5 languages.',JP:'クリプト決済(/crypto-pay)ロゴ下の案内。本社設定に従うとこの値。加盟の活性/非活性が優先。活性文保存時に5言語へ1回翻訳。',CH:'加密支付页(/crypto-pay)徽标下说明。跟随总部用此值；商户启用/停用优先。保存启用文案时翻译一次为5语。',TH:'ข้อความใต้โลโก้หน้าคริปโต (/crypto-pay) ตาม HQ ใช้ค่านี้ ร้านเปิด/ปิดมาก่อน บันทึกข้อความตอนเปิดใช้แปลครั้งเดียวเป็น 5 ภาษา'};
+  M['크립토 안내 문구']={EN:'Crypto notice text',JP:'クリプト案内文',CH:'加密说明文案',TH:'ข้อความนำคริปโต'};
+  M['시스템 기본: 암호화폐로 결제합니다. 자산·네트워크·지갑을 선택한 뒤 안내 주소로 입금해 주세요.']={EN:'System default: Pay with cryptocurrency. Choose asset, network and wallet, then deposit to the address shown.',JP:'システム既定: 暗号資産でお支払いください。資産・ネットワーク・ウォレットを選び、表示の住所へ入金してください。',CH:'系统默认：请使用加密货币支付。选择资产、网络与钱包后，转账至所示地址。',TH:'ค่าเริ่มระบบ: ชำระด้วยคริปโต เลือกสินทรัพย์ เครือข่าย และกระเป๋า แล้วโอนไปยังที่อยู่ที่แสดง'};
+  M['암호화폐로 결제합니다. 자산·네트워크·지갑을 선택한 뒤 안내 주소로 입금해 주세요.']={EN:'Pay with cryptocurrency. Choose asset, network and wallet, then deposit to the address shown.',JP:'暗号資産でお支払いください。資産・ネットワーク・ウォレットを選び、表示の住所へ入金してください。',CH:'请使用加密货币支付。选择资产、网络与钱包后，转账至所示地址。',TH:'ชำระด้วยคริปโต เลือกสินทรัพย์ เครือข่าย และกระเป๋า แล้วโอนไปยังที่อยู่ที่แสดง'};
+
   g.PG_UI_STRING_MAP = M;
 })(typeof window !== "undefined" ? window : globalThis);

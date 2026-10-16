@@ -54,7 +54,8 @@
 .ic-crypto-btn-confirm:hover{background:#0b5ed7}
 .ic-crypto-status{margin-top:14px;padding:10px 12px;border-radius:8px;background:#d1e7dd;color:#0f5132;font-size:.875rem}
 .ic-crypto-err{margin-top:12px;color:#842029;font-size:.875rem}
-.ic-crypto-means{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:320px;margin-left:auto;margin-right:auto}
+/* 수단선택: 높이·아이콘 유지. 다국어·수단2버튼·노란주의 배경 = 동일 가로폭 */
+.ic-crypto-means{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%;max-width:100%;margin-left:0;margin-right:0;box-sizing:border-box}
 .ic-crypto-means .ic-crypto-tile{min-height:96px;padding:12px 8px;gap:8px}
 .ic-crypto-means .ic-crypto-tile-icon{width:36px;height:36px}
 .ic-crypto-means .ic-crypto-tile-icon .ic-crypto-icon{width:32px;height:32px}
@@ -63,11 +64,23 @@
 .ic-means-card{display:flex;flex-direction:column;align-items:center}
 .ic-means-center{text-align:center;width:100%}
 .ic-means-section{width:100%;display:flex;flex-direction:column;align-items:center}
-.ic-means-grid{justify-content:center;max-width:320px;margin:0 auto;width:100%}
-.ic-means-notice{margin:22px 0 0;padding:12px 14px;border-radius:8px;background:#fff3cd;color:#664d03;border:1px solid #ffecb5;font-size:.8125rem;line-height:1.45;max-width:420px;text-align:left}
+.ic-means-grid{justify-content:center;width:100%;max-width:100%;margin:0;box-sizing:border-box}
+/* 글자수와 무관하게 배경 폭 = 다국어 메뉴와 동일(카드 콘텐츠 폭 100%) */
+.ic-means-notice{margin:22px 0 0;padding:12px 14px;border-radius:8px;background:#fff3cd;color:#664d03;border:1px solid #ffecb5;font-size:.8125rem;line-height:1.45;width:100%;max-width:100%;box-sizing:border-box;text-align:left}
+.ic-means-extra-footer{margin:22px 0 0;padding:0;width:100%;max-width:100%;box-sizing:border-box;font-size:.8125rem;line-height:1.45;color:#9ca3af;text-align:center}
 .ic-means-page .pay-brand{display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:0.75rem}
-.ic-means-page .pay-brand-sub{text-align:center;max-width:420px;margin-left:auto;margin-right:auto}
-.ic-means-page .pay-lang{width:100%;max-width:360px;margin-left:auto;margin-right:auto}
+.ic-means-page .pay-brand-sub{text-align:center;width:100%;max-width:100%;margin-left:0;margin-right:0;box-sizing:border-box}
+/* 다국어·수단·노란박스 좌우 끝선 통일 */
+.ic-means-page .pay-lang,
+.ic-means-page .ic-crypto-means,
+.ic-means-page .ic-means-notice,
+.ic-means-page .ic-means-extra-footer{
+  width:100%;
+  max-width:100%;
+  box-sizing:border-box;
+  margin-left:0;
+  margin-right:0;
+}
 
 /* 네트워크 선택 — 구매자 결제창 리스트(로고, crypto-pay) */
 .ic-crypto-net-list{display:flex;flex-direction:column;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;background:#fff;max-height:280px;overflow-y:auto}

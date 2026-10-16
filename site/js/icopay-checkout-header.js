@@ -13,11 +13,11 @@
   ];
 
   var CRYPTO_DEFAULT = {
-    KOR: '암호화폐로 안전하게 결제합니다. 자산·네트워크·지갑을 선택한 뒤 안내 주소로 입금해 주세요.',
-    ENG: 'Pay securely with crypto. Choose asset, network and wallet, then send to the address shown.',
-    JPN: '暗号資産で安全にお支払いください。資産・ネットワーク・ウォレットを選び、表示の住所へ送金します。',
-    CHN: '使用加密货币安全付款。选择资产、网络与钱包后，转账至所示地址。',
-    THA: 'ชำระด้วยคริปโตอย่างปลอดภัย เลือกสินทรัพย์ เครือข่าย และกระเป๋า แล้วโอนไปยังที่อยู่ที่แสดง'
+    KOR: '암호화폐로 결제합니다. 자산·네트워크·지갑을 선택한 뒤 안내 주소로 입금해 주세요.',
+    ENG: 'Pay with cryptocurrency. Choose asset, network and wallet, then deposit to the address shown.',
+    JPN: '暗号資産でお支払いください。資産・ネットワーク・ウォレットを選び、表示の住所へ入金してください。',
+    CHN: '请使用加密货币支付。选择资产、网络与钱包后，转账至所示地址。',
+    THA: 'ชำระด้วยคริปโต เลือกสินทรัพย์ เครือข่าย และกระเป๋า แล้วโอนไปยังที่อยู่ที่แสดง'
   };
 
   var UNIFIED_DEFAULT = {
@@ -60,7 +60,10 @@
         custom = String(i18n[lk] || i18n.KOR || i18n.ENG || '').trim();
       }
       if (!custom) custom = ctx.checkoutHeaderSubtitleText ? String(ctx.checkoutHeaderSubtitleText).trim() : '';
-      return custom ? { show: true, text: custom } : { show: false, text: '' };
+      if (custom) return { show: true, text: custom };
+      /* ACTIVE+빈값 → 시스템 기본(다국어) */
+      var packActive = channel === 'unified' ? UNIFIED_DEFAULT : CRYPTO_DEFAULT;
+      return { show: true, text: packActive[lk] || packActive.KOR };
     }
     var pack = channel === 'unified' ? UNIFIED_DEFAULT : CRYPTO_DEFAULT;
     return { show: true, text: pack[lk] || pack.KOR };

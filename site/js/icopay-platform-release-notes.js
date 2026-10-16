@@ -6,13 +6,204 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '5.6';
+  var CURRENT_LIVE = '5.14';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '5.14',
+      kind: 'minor',
+      date: '2026-10-16',
+      items: {
+        KO: [
+          '크립토 결제 안내: 본사 기본 문구 편집(본사정책→크립토설정), 가맹은 「본사설정 따름」·활성·비활성',
+          '시스템 기본: 「암호화폐로 결제합니다. 자산·네트워크·지갑을 선택한 뒤 안내 주소로 입금해 주세요.」(KOR·ENG·JPN·CHN·THA)'
+        ],
+        EN: [
+          'Crypto checkout subtitle: HQ-editable default (HQ Policy → Crypto settings); merchant Follow HQ / Active / Disabled',
+          'System default: “Pay with cryptocurrency. Choose asset, network and wallet, then deposit to the address shown.” (5 langs)'
+        ],
+        JP: [
+          'クリプト案内: 本社で既定文編集(本社ポリシー→クリプト設定)、加盟は本社設定に従う/活性/非活性',
+          'システム既定: 「暗号資産でお支払いください。…」(5言語)'
+        ],
+        CH: [
+          '加密支付说明：总部可编辑默认文案（总部政策→加密设置）；商户跟随总部/启用/停用',
+          '系统默认：「请使用加密货币支付。…」(5语)'
+        ],
+        TH: [
+          'ข้อความนำหน้าคริปโต: HQ แก้ค่าเริ่มต้นได้ (นโยบาย HQ → ตั้งค่าคริปโต); ร้านตาม HQ / เปิด / ปิด',
+          'ค่าเริ่มระบบ: 「ชำระด้วยคริปโต …」(5 ภาษา)'
+        ]
+      }
+    },
+    {
+      version: '5.13',
+      kind: 'minor',
+      date: '2026-10-16',
+      items: {
+        KO: [
+          '크립토 결제창: 언어 전환 시 「USD 상당」청구예상 문구도 함께 갱신'
+        ],
+        EN: [
+          'Crypto checkout: USD-equivalent expected-charge text updates when language changes'
+        ],
+        JP: [
+          'クリプト決済: 言語切替時に「USD相当」請求予定表示も更新'
+        ],
+        CH: [
+          '加密支付：切换语言时同步更新「USD 等值」预计扣款文案'
+        ],
+        TH: [
+          'หน้าคริปโต: เปลี่ยนภาษาแล้วข้อความ「เทียบเท่า USD」อัปเดตตาม'
+        ]
+      }
+    },
+    {
+      version: '5.12',
+      kind: 'minor',
+      date: '2026-10-16',
+      items: {
+        KO: [
+          '크립토 결제창: 청구예상을 「USD 상당」으로 표기(KO·EN·JP·CH·TH) — 실송금은 자산 선택 후 USDC/USDT/EURC'
+        ],
+        EN: [
+          'Crypto checkout: expected charge labeled as USD equivalent (5 langs) — remittance asset chosen next (USDC/USDT/EURC)'
+        ],
+        JP: [
+          'クリプト決済: 請求予定を「USD相当」表示(5言語) — 実送金は資産選択後(USDC/USDT/EURC)'
+        ],
+        CH: [
+          '加密支付页：预计扣款标为「USD 等值」(5语) — 实际汇出在下一步选择资产(USDC/USDT/EURC)'
+        ],
+        TH: [
+          'หน้าคริปโต: ยอดเรียกเก็บแสดงเป็น「เทียบเท่า USD」(5 ภาษา) — ส่งจริงเลือกสินทรัพย์ทีหลัง (USDC/USDT/EURC)'
+        ]
+      }
+    },
+    {
+      version: '5.11',
+      kind: 'minor',
+      date: '2026-10-16',
+      items: {
+        KO: [
+          '카드 제목 파스텔: 일반=그레이, 크립토 전용=하늘색, FIAT·CRYPTO 공통(수수료 채널·통합결제설정)=노란색',
+          '수수료 채널을 CRYPTO로 바꾸면 기본 수수료·보류율·정책목록 카드 제목이 하늘색으로 전환'
+        ],
+        EN: [
+          'Card header pastels: general=gray, crypto-only=sky blue, shared FIAT/CRYPTO (fee channel · unified checkout)=yellow',
+          'Switching fee channel to CRYPTO turns default fee/hold/policy list card headers sky-blue'
+        ],
+        JP: [
+          'カード見出しパステル: 一般=グレー、クリプト専用=水色、FIAT・CRYPTO共通(手数料チャネル・統合決済)=黄色',
+          '手数料チャネルをCRYPTOにすると基本手数料・保留率・一覧カード見出しが水色に'
+        ],
+        CH: [
+          '卡片标题粉彩：一般=灰、加密专用=天蓝、FIAT/CRYPTO 共用(手续费通道·统一支付)=黄',
+          '手续费通道切到 CRYPTO 时，默认手续费/留存率/政策列表标题变为天蓝'
+        ],
+        TH: [
+          'หัวการ์ดพาสเทล: ทั่วไป=เทา คริปโตเท่านั้น=ฟ้า ร่วม FIAT/CRYPTO (ช่องค่าธรรมเนียม·ชำระรวม)=เหลือง',
+          'เปลี่ยนช่องค่าธรรมเนียมเป็น CRYPTO แล้วหัวการ์ดนโยบาย/อัตราพัก/รายการเป็นฟ้า'
+        ]
+      }
+    },
+    {
+      version: '5.10',
+      kind: 'minor',
+      date: '2026-10-16',
+      items: {
+        KO: [
+          '본사정책 카드 제목: 일반=그레이 파스텔 유지, 크립토 관련=하늘색 파스텔로 구분'
+        ],
+        EN: [
+          'HQ policy card headers: keep gray pastel for general; sky-blue pastel for crypto-related cards'
+        ],
+        JP: [
+          '本社ポリシーカード見出し: 一般はグレー維持、クリプト関連は水色パステル'
+        ],
+        CH: [
+          '总部政策卡片标题：一般保持灰色；加密相关为天蓝色粉彩'
+        ],
+        TH: [
+          'หัวการ์ดนโยบาย HQ: ทั่วไปเทาเหมือนเดิม คริปโตเป็นพาสเทลฟ้า'
+        ]
+      }
+    },
+    {
+      version: '5.9',
+      kind: 'minor',
+      date: '2026-10-16',
+      items: {
+        KO: [
+          '통합결제 기본문구: 상단안내·푸터메시지(5개국어), 추가푸터 영어 고정(ICOPAY, a service operated by ONTHELINE.)'
+        ],
+        EN: [
+          'Unified checkout defaults: top notice & footer message (5 langs); extra footer English-fixed (ICOPAY, a service operated by ONTHELINE.)'
+        ],
+        JP: [
+          '統合決済デフォルト: 上部案内・フッター(5言語)、追加フッターは英語固定(ICOPAY, a service operated by ONTHELINE.)'
+        ],
+        CH: [
+          '统一支付默认文案：顶部说明与页脚消息(5语)；附加页脚固定英文(ICOPAY, a service operated by ONTHELINE.)'
+        ],
+        TH: [
+          'ค่าเริ่มชำระรวม: ข้อความบน+ฟุตเตอร์(5 ภาษา) ฟุตเตอร์เพิ่มเป็นอังกฤษตายตัว (ICOPAY, a service operated by ONTHELINE.)'
+        ]
+      }
+    },
+    {
+      version: '5.8',
+      kind: 'minor',
+      date: '2026-10-16',
+      items: {
+        KO: [
+          '통합결제 수단선택: 다국어 메뉴·카드/암호화폐·노란 주의 배경 가로폭을 동일하게 맞춤(높이는 유지)'
+        ],
+        EN: [
+          'Unified means picker: align language bar, card/crypto buttons, and yellow notice to the same width (height unchanged)'
+        ],
+        JP: [
+          '統合手段選択: 言語メニュー・カード/暗号資産・黄色注意背景の横幅を同一に(高さは維持)'
+        ],
+        CH: [
+          '统一支付方式选择：语言栏、卡/加密按钮、黄色提示背景同宽（高度不变）'
+        ],
+        TH: [
+          'ตัวเลือกช่องทางรวม: แถบภาษา ปุ่มการ์ด/คริปโต และพื้นกล่องเตือนเหลืองให้กว้างเท่ากัน (สูงเท่าเดิม)'
+        ]
+      }
+    },
+    {
+      version: '5.7',
+      kind: 'minor',
+      date: '2026-10-16',
+      items: {
+        KO: [
+          '통합결제 수단선택: 카드·암호화폐 버튼 높이는 유지하고 가로만 노란 주의박스(420px)에 맞춤',
+          '본사·가맹 통합결제설정: 상단안내·푸터메시지·추가푸터 ACTIVE|DISABLED(가맹은 본사따름)'
+        ],
+        EN: [
+          'Unified means picker: keep card/crypto button height; widen grid only to match notice (420px)',
+          'HQ/merchant unified checkout copy: top notice · footer · extra footer ACTIVE|DISABLED (merchant FOLLOW_HQ)'
+        ],
+        JP: [
+          '統合手段選択: カード・暗号資産ボタンの高さは維持し横幅のみ注意ボックス(420px)に合わせる',
+          '本社・加盟 統合決済設定: 上部案内・フッター・追加フッター ACTIVE|DISABLED(加盟は本社準拠)'
+        ],
+        CH: [
+          '统一支付方式选择：卡片/加密按钮高度不变，仅加宽至与黄色提示框同宽(420px)',
+          '总部/商户统一支付文案：顶部说明·页脚·附加页脚 ACTIVE|DISABLED（商户跟随总部）'
+        ],
+        TH: [
+          'ตัวเลือกช่องทางรวม: สูงปุ่มการ์ด/คริปโตเท่าเดิม กว้างเฉพาะให้เท่ากล่องเตือน(420px)',
+          'ตั้งค่าข้อความชำระรวม HQ/ร้าน: บน·ฟุตเตอร์·ฟุตเตอร์เพิ่ม ACTIVE|DISABLED (ร้านตาม HQ)'
+        ]
+      }
+    },
     {
       version: '5.6',
       kind: 'minor',

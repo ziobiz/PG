@@ -127,6 +127,49 @@ public class HqApiConfig {
     @Column(name = "web_payment_header_subtitle_mode_default", nullable = false, length = 16)
     private String webPaymentHeaderSubtitleModeDefault = "DEFAULT";
 
+    /** 통합결제 상단안내 본사 기본 — ACTIVE|DISABLED */
+    @Column(name = "unified_payment_header_subtitle_mode_default", nullable = false, length = 16)
+    private String unifiedPaymentHeaderSubtitleModeDefault = "ACTIVE";
+
+    @Column(name = "unified_payment_header_subtitle_text_default", length = 500)
+    private String unifiedPaymentHeaderSubtitleTextDefault =
+            "카드 또는 암호화폐로 결제할 수 있습니다. 원하시는 결제 수단을 선택해 주세요.";
+
+    @Column(name = "unified_payment_header_subtitle_text_default_i18n", columnDefinition = "TEXT")
+    private String unifiedPaymentHeaderSubtitleTextDefaultI18n;
+
+    /** 크립토 결제창 상단안내 본사 기본 — ACTIVE|DISABLED */
+    @Column(name = "crypto_payment_header_subtitle_mode_default", nullable = false, length = 16)
+    private String cryptoPaymentHeaderSubtitleModeDefault = "ACTIVE";
+
+    @Column(name = "crypto_payment_header_subtitle_text_default", length = 500)
+    private String cryptoPaymentHeaderSubtitleTextDefault =
+            "암호화폐로 결제합니다. 자산·네트워크·지갑을 선택한 뒤 안내 주소로 입금해 주세요.";
+
+    @Column(name = "crypto_payment_header_subtitle_text_default_i18n", columnDefinition = "TEXT")
+    private String cryptoPaymentHeaderSubtitleTextDefaultI18n;
+
+    /** 통합결제 노란 주의(푸터메시지) 본사 기본 — ACTIVE|DISABLED */
+    @Column(name = "unified_payment_notice_mode_default", nullable = false, length = 16)
+    private String unifiedPaymentNoticeModeDefault = "ACTIVE";
+
+    @Column(name = "unified_payment_notice_text_default", length = 1000)
+    private String unifiedPaymentNoticeTextDefault =
+            "주의: 선택한 수단으로 결제가 진행됩니다. 카드와 암호화폐는 별도 결제창에서 처리되며, 결제 완료 전까지 창을 닫지 마세요.";
+
+    @Column(name = "unified_payment_notice_text_default_i18n", columnDefinition = "TEXT")
+    private String unifiedPaymentNoticeTextDefaultI18n;
+
+    /** 통합결제 추가푸터 본사 기본 — ACTIVE|DISABLED (문구는 영어 고정) */
+    @Column(name = "unified_payment_extra_footer_mode_default", nullable = false, length = 16)
+    private String unifiedPaymentExtraFooterModeDefault = "ACTIVE";
+
+    @Column(name = "unified_payment_extra_footer_text_default", length = 1000)
+    private String unifiedPaymentExtraFooterTextDefault = "ICOPAY, a service operated by ONTHELINE.";
+
+    @Column(name = "unified_payment_extra_footer_text_default_i18n", columnDefinition = "TEXT")
+    private String unifiedPaymentExtraFooterTextDefaultI18n;
+
     /** 결제창이동 본사 기본 안내 문구용(가맹 직접입력 비움 시). 모드는 가맹이 설정(기본 비활성). */
     @Column(name = "url_pay_checkout_move_mode_default", nullable = false, length = 16)
     private String urlPayCheckoutMoveModeDefault = "DISABLED";
@@ -468,6 +511,51 @@ public class HqApiConfig {
         this.webPaymentHeaderSubtitleModeDefault = com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.normalize(
                 v != null ? v : com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.DEFAULT);
     }
+    private static String nzActiveDisabled(String v, String def) {
+        if (v == null || v.isBlank()) {
+            return def;
+        }
+        String u = v.trim().toUpperCase(java.util.Locale.ROOT);
+        if ("DISABLED".equals(u) || "N".equals(u) || "OFF".equals(u)) {
+            return "DISABLED";
+        }
+        if ("ACTIVE".equals(u) || "Y".equals(u) || "ON".equals(u)) {
+            return "ACTIVE";
+        }
+        return def;
+    }
+    public String getUnifiedPaymentHeaderSubtitleModeDefault() { return unifiedPaymentHeaderSubtitleModeDefault; }
+    public void setUnifiedPaymentHeaderSubtitleModeDefault(String v) {
+        this.unifiedPaymentHeaderSubtitleModeDefault = nzActiveDisabled(v, "ACTIVE");
+    }
+    public String getUnifiedPaymentHeaderSubtitleTextDefault() { return unifiedPaymentHeaderSubtitleTextDefault; }
+    public void setUnifiedPaymentHeaderSubtitleTextDefault(String v) { this.unifiedPaymentHeaderSubtitleTextDefault = v; }
+    public String getUnifiedPaymentHeaderSubtitleTextDefaultI18n() { return unifiedPaymentHeaderSubtitleTextDefaultI18n; }
+    public void setUnifiedPaymentHeaderSubtitleTextDefaultI18n(String v) { this.unifiedPaymentHeaderSubtitleTextDefaultI18n = v; }
+    public String getCryptoPaymentHeaderSubtitleModeDefault() { return cryptoPaymentHeaderSubtitleModeDefault; }
+    public void setCryptoPaymentHeaderSubtitleModeDefault(String v) {
+        this.cryptoPaymentHeaderSubtitleModeDefault = nzActiveDisabled(v, "ACTIVE");
+    }
+    public String getCryptoPaymentHeaderSubtitleTextDefault() { return cryptoPaymentHeaderSubtitleTextDefault; }
+    public void setCryptoPaymentHeaderSubtitleTextDefault(String v) { this.cryptoPaymentHeaderSubtitleTextDefault = v; }
+    public String getCryptoPaymentHeaderSubtitleTextDefaultI18n() { return cryptoPaymentHeaderSubtitleTextDefaultI18n; }
+    public void setCryptoPaymentHeaderSubtitleTextDefaultI18n(String v) { this.cryptoPaymentHeaderSubtitleTextDefaultI18n = v; }
+    public String getUnifiedPaymentNoticeModeDefault() { return unifiedPaymentNoticeModeDefault; }
+    public void setUnifiedPaymentNoticeModeDefault(String v) {
+        this.unifiedPaymentNoticeModeDefault = nzActiveDisabled(v, "ACTIVE");
+    }
+    public String getUnifiedPaymentNoticeTextDefault() { return unifiedPaymentNoticeTextDefault; }
+    public void setUnifiedPaymentNoticeTextDefault(String v) { this.unifiedPaymentNoticeTextDefault = v; }
+    public String getUnifiedPaymentNoticeTextDefaultI18n() { return unifiedPaymentNoticeTextDefaultI18n; }
+    public void setUnifiedPaymentNoticeTextDefaultI18n(String v) { this.unifiedPaymentNoticeTextDefaultI18n = v; }
+    public String getUnifiedPaymentExtraFooterModeDefault() { return unifiedPaymentExtraFooterModeDefault; }
+    public void setUnifiedPaymentExtraFooterModeDefault(String v) {
+        this.unifiedPaymentExtraFooterModeDefault = nzActiveDisabled(v, "ACTIVE");
+    }
+    public String getUnifiedPaymentExtraFooterTextDefault() { return unifiedPaymentExtraFooterTextDefault; }
+    public void setUnifiedPaymentExtraFooterTextDefault(String v) { this.unifiedPaymentExtraFooterTextDefault = v; }
+    public String getUnifiedPaymentExtraFooterTextDefaultI18n() { return unifiedPaymentExtraFooterTextDefaultI18n; }
+    public void setUnifiedPaymentExtraFooterTextDefaultI18n(String v) { this.unifiedPaymentExtraFooterTextDefaultI18n = v; }
     public String getUrlPayCheckoutMoveModeDefault() { return urlPayCheckoutMoveModeDefault; }
     public void setUrlPayCheckoutMoveModeDefault(String v) {
         this.urlPayCheckoutMoveModeDefault = com.pg.urlpay.UrlPayCheckoutMoveModeUtil.normalizeHq(v);

@@ -40,6 +40,17 @@ public class ApiHqCryptoController {
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
+    /** 크립토 결제창 상단 안내(본사 기본) — 가맹 FOLLOW_HQ 시 적용. */
+    @PostMapping("/copy-defaults/save")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> saveCopyDefaults(@RequestBody Map<String, Object> body) {
+        try {
+            denyIfMerchantMutates();
+            return ResponseEntity.ok(ApiResponse.ok(adminService.saveCryptoCopyDefaults(body)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "FORBIDDEN"));
+        }
+    }
+
     /** 네트워크별 가스피(전 가맹 동일). 조직% 배분과 별개. 카탈로그 페어 기준 병합. */
     @GetMapping("/gas-fees")
     public ResponseEntity<ApiResponse<Map<String, Object>>> gasFees() {
