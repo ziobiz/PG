@@ -5573,7 +5573,10 @@
         if (mode === 'SINGLE') {
           var idEl = modalEl.querySelector('#opsIcReleaseId');
           var id = idEl ? String(idEl.value || '').trim() : '';
-          if (!id) return;
+          if (!id) {
+            if (dimmRel) dimmRel.style.display = 'none';
+            return;
+          }
           window.PG_API.opsInactiveCardRelease({ id: id, releaseReason: reason, totpCode: otp })
             .then(afterOk)
             .catch(function (e) {

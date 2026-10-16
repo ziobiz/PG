@@ -2829,7 +2829,9 @@ td.empty-state-cell {
 body.modal-open > .modal-backdrop:last-of-type { z-index: 10040 !important; }
 #pgGoogleOtpSixModal.show { z-index: 10050 !important; }
 /* ë¹íì±ì¹´ëÂ·ë¸í°ê´ë¦¬ ìì  â í­ pane ë°(body)ì ëì´ë ë°±ëë¡­Â·dimm ìì íì */
+/* 비활성카드 수정·해지·노티관리 수정 — body.modal-open backdrop(10040)보다 위 */
 #opsIcEditModal.modal,
+#opsIcReleaseModal.modal,
 #opsNpLogEditModal.modal { z-index: 10060 !important; }
 .dimmed-icon { width: 3rem; height: 3rem; }
 .dimmed-text { margin-top: 12px; font-weight: 600; color: #fff !important; }
