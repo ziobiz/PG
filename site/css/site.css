@@ -4943,6 +4943,15 @@ button.pay-follow-pill:focus-visible {
   background-color: #fde2e2 !important;
   border-color: #f5c2c2;
 }
+/* 별도설정 행 전체 — 파스텔 빨강 (값은 본사설정과 동일 정적 표시) */
+.hq-risk-merchant-list-wrap tbody tr.merchant-risk-row--custom,
+.hq-risk-merchant-filter-wrap tbody tr.merchant-risk-row--custom {
+  background-color: #fde8e8 !important;
+}
+.hq-risk-merchant-list-wrap tbody tr.merchant-risk-row--custom:hover,
+.hq-risk-merchant-filter-wrap tbody tr.merchant-risk-row--custom:hover {
+  background-color: #fbd5d5 !important;
+}
 /* ê°ë§¹ì  ë¦¬ì¤í¬ íí© â ë³¸ì¬ì¤ì : íì¤íë³´ë¼(ê¸°ì¡´ í¤ ë³µì) */
 .hq-risk-merchant-list-wrap .merchant-risk-policy-mode--follow-hq {
   color: #553c9a !important;

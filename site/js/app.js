@@ -27519,8 +27519,12 @@
         var n = parseInt(v, 10);
         return isNaN(n) ? (def != null ? def : 0) : n;
       }
+      /** 별도설정: 목록은 본사설정과 동일 정적 표시. 방식 변경·포커스 시에만 입력 편집. */
+      function hqRiskIsCustomEditing(r, mode) {
+        return String(mode || '').toUpperCase() === 'CUSTOM' && !!(r && r._hqRiskEditing);
+      }
       function hqRiskTierCell(r, tier, mode) {
-        var custom = String(mode || '').toUpperCase() === 'CUSTOM';
+        var custom = hqRiskIsCustomEditing(r, mode);
         var h = hqRiskNum(r['cardRiskTier' + tier + 'Hours'], tier === 3 ? 1 : 0);
         var m = hqRiskNum(r['cardRiskTier' + tier + 'Min'], tier === 1 ? 5 : tier === 2 ? 10 : 0);
         if (!custom) {
@@ -27532,7 +27536,7 @@
           '</div></td>';
       }
       function hqRiskAutoTierCell(r, mode) {
-        var custom = String(mode || '').toUpperCase() === 'CUSTOM';
+        var custom = hqRiskIsCustomEditing(r, mode);
         var t = hqRiskNum(r.cardRiskAutoBlacklistTier != null ? r.cardRiskAutoBlacklistTier : r.autoBlacklistTier, 4);
         if (!custom) {
           return '<td class="text-nowrap small text-center">' + hqRiskEsc(hqRiskUiT(r.autoBlacklistTierLabel || '—')) + '</td>';
@@ -27543,7 +27547,7 @@
           }).join('') + '</select></td>';
       }
       function hqRiskTrackCell(r, mode) {
-        var custom = String(mode || '').toUpperCase() === 'CUSTOM';
+        var custom = hqRiskIsCustomEditing(r, mode);
         if (!custom) {
           return '<td class="text-nowrap small text-center">' + hqRiskEsc(hqRiskUiT(r.trackPeriodDisplay || '—')) + '</td>';
         }
@@ -27669,9 +27673,10 @@
         }
         rows.forEach(function (r) {
           var mode = String(r.presaleMode || r.cardRiskPresaleMode || 'FOLLOW_HQ').toUpperCase();
-          var editable = mode === 'CUSTOM';
+          var editable = hqRiskIsCustomEditing(r, mode);
           var tr = document.createElement('tr');
           tr.setAttribute('data-org-unit-id', String(r.orgUnitId || ''));
+          if (mode === 'CUSTOM') tr.classList.add('merchant-risk-row--custom');
           tr.innerHTML =
             '<td class="text-nowrap">' + hqRiskEsc(r.compNm || '') + '</td>' +
             '<td class="text-nowrap small">' + hqRiskEsc(r.compId || '') + '</td>' +
@@ -27902,6 +27907,7 @@
           var mode = String(r.policyMode || 'DISABLED').toUpperCase();
           var tr = document.createElement('tr');
           tr.setAttribute('data-org-unit-id', String(r.orgUnitId || ''));
+          if (mode === 'CUSTOM') tr.classList.add('merchant-risk-row--custom');
           tr.innerHTML =
             '<td class="text-nowrap">' + hqRiskEsc(r.compNm || '') + '</td>' +
             '<td class="text-nowrap small">' + hqRiskEsc(r.compId || '') + '</td>' +
@@ -28013,7 +28019,11 @@
             var oid = tr ? tr.getAttribute('data-org-unit-id') : '';
             var found = rows.filter(function (r) { return String(r.orgUnitId) === String(oid); })[0];
             if (found) {
-              var next = Object.assign({}, found, { policyMode: t.value });
+              var modeU = String(t.value || '').toUpperCase();
+              var next = Object.assign({}, found, {
+                policyMode: t.value,
+                _hqRiskEditing: modeU === 'CUSTOM'
+              });
               var idx = rows.findIndex(function (r) { return String(r.orgUnitId) === String(oid); });
               if (idx >= 0) {
                 var copy = rows.slice();
@@ -28030,10 +28040,12 @@
             var oidF = trF ? trF.getAttribute('data-org-unit-id') : '';
             var foundF = rowsF.filter(function (r) { return String(r.orgUnitId) === String(oidF); })[0];
             if (foundF) {
+              var modeFU = String(t.value || '').toUpperCase();
               var nextF = Object.assign({}, foundF, {
                 presaleMode: t.value,
                 cardRiskPresaleMode: t.value,
-                presaleStatusLabel: t.value === 'DISABLED' ? '미사용' : (t.value === 'CUSTOM' ? '별도설정' : '본사설정')
+                presaleStatusLabel: t.value === 'DISABLED' ? '미사용' : (t.value === 'CUSTOM' ? '별도설정' : '본사설정'),
+                _hqRiskEditing: modeFU === 'CUSTOM'
               });
               var idxF = rowsF.findIndex(function (r) { return String(r.orgUnitId) === String(oidF); });
               if (idxF >= 0) {
@@ -28043,6 +28055,35 @@
                 hqRiskRenderMerchantFilterRows(copyF);
               }
             }
+          }
+        });
+        /* 이미 별도설정인 행: 방식 셀 포커스 시 입력 편집(재수정) */
+        pane.addEventListener('focusin', function (ev) {
+          var t = ev.target;
+          if (!t || !t.classList) return;
+          var isTrig = t.classList.contains('hq-risk-m-policy-mode');
+          var isFilt = t.classList.contains('hq-risk-f-presale-mode');
+          if (!isTrig && !isFilt) return;
+          if (String(t.value || '').toUpperCase() !== 'CUSTOM') return;
+          var rowsE = (pane._hqRiskCardPolicyLast && pane._hqRiskCardPolicyLast.merchantRows) || [];
+          var trE = t.closest('tr');
+          var oidE = trE ? trE.getAttribute('data-org-unit-id') : '';
+          var foundE = rowsE.filter(function (r) { return String(r.orgUnitId) === String(oidE); })[0];
+          if (!foundE || foundE._hqRiskEditing) return;
+          var idxE = rowsE.findIndex(function (r) { return String(r.orgUnitId) === String(oidE); });
+          if (idxE < 0) return;
+          var copyE = rowsE.slice();
+          copyE[idxE] = Object.assign({}, foundE, { _hqRiskEditing: true });
+          pane._hqRiskCardPolicyLast.merchantRows = copyE;
+          if (isTrig) hqRiskRenderMerchantRows(copyE);
+          else hqRiskRenderMerchantFilterRows(copyE);
+          var selAgain = pane.querySelector(
+            (isTrig ? '#hqRiskMerchantListTbody' : '#hqRiskMerchantFilterTbody') +
+            ' tr[data-org-unit-id="' + oidE + '"] ' +
+            (isTrig ? '.hq-risk-m-policy-mode' : '.hq-risk-f-presale-mode')
+          );
+          if (selAgain) {
+            try { selAgain.focus(); } catch (eF2) { /* ignore */ }
           }
         });
       }
