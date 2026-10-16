@@ -1,0 +1,37 @@
+---
+description: ICOPAY Git 메이저 백업 태그·브랜치 레지스트리 (복원·비교 시 참조)
+alwaysApply: true
+---
+
+# ICOPAY 백업 체크포인트 (절대 혼동 금지)
+
+복원·비교·「그 백업」언급 시 아래만 쓴다. 임의로 다른 커밋을 백업으로 칭하지 않는다.
+
+| 이름 | 날짜 | 커밋 | Git 참조 | 의미 |
+|---|---|---|---|---|
+| **CARD-MAJOR-BACKUP-2026-10-05** / **CARD-MAJOR-BACKUP-pre-crypto-2026-10-05** | 2026-10-05 | `85f86640` | 태그 `CARD-MAJOR-BACKUP-2026-10-05`, `CARD-MAJOR-BACKUP-pre-crypto-2026-10-05`, `pre-crypto-dev` · 브랜치 `card-major-backup-pre-crypto` | **크립토 개발 전** 순수 카드/PG |
+| **MAJOR-BACKUP-2026-10-13-V4.80** | 2026-10-13 | `9d1581fe` | 태그 `MAJOR-BACKUP-2026-10-13-V4.80` | 크립토 개발 **시작·안정** 구간 (V4.80, 크립토 포함) |
+| **CRYPTO-BACKUP-VER.1.0** | 2026-10-16 | `a97445b5` | 태그 `CRYPTO-BACKUP-VER.1.0`, `CRYPTO-BACKUP-VER.1.0-2026-10-16` · 브랜치 `crypto-backup-ver-1.0` | 크립토 결제 **1차 완성분** (V5.14 + 해지 모달 z-index 수정) |
+
+## 복원 예 (참고만)
+
+```bash
+git fetch origin --tags
+git checkout CRYPTO-BACKUP-VER.1.0
+# 또는
+git checkout crypto-backup-ver-1.0
+```
+
+크립토 이전 순수 PG만:
+
+```bash
+git checkout CARD-MAJOR-BACKUP-pre-crypto-2026-10-05
+# 또는
+git checkout card-major-backup-pre-crypto
+```
+
+## 에이전트 규칙
+
+- 사용자가 「CRYPTO-BACKUP-VER.1.0」「크립토 1차 백업」이라고 하면 **`a97445b5` / 태그 `CRYPTO-BACKUP-VER.1.0`** 을 가리킨다.
+- 「크립토 개발 전」「카드만」「pre-crypto」면 **`85f86640`**.
+- 「V4.80 백업」「크립토 시작 백업」이면 **`9d1581fe`**.
