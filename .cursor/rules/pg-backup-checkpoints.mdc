@@ -11,7 +11,7 @@ alwaysApply: true
 |---|---|---|---|---|
 | **CARD-MAJOR-BACKUP-2026-10-05** / **CARD-MAJOR-BACKUP-pre-crypto-2026-10-05** | 2026-10-05 | `85f86640` | 태그 `CARD-MAJOR-BACKUP-2026-10-05`, `CARD-MAJOR-BACKUP-pre-crypto-2026-10-05`, `pre-crypto-dev` · 브랜치 `card-major-backup-pre-crypto` | **크립토 개발 전** 순수 카드/PG |
 | **MAJOR-BACKUP-2026-10-13-V4.80** | 2026-10-13 | `9d1581fe` | 태그 `MAJOR-BACKUP-2026-10-13-V4.80` | 크립토 개발 **시작·안정** 구간 (V4.80, 크립토 포함) |
-| **CRYPTO-BACKUP-VER.1.0** | 2026-10-16 | `a97445b5` | 태그 `CRYPTO-BACKUP-VER.1.0`, `CRYPTO-BACKUP-VER.1.0-2026-10-16` · 브랜치 `crypto-backup-ver-1.0` | 크립토 결제 **1차 완성분** (V5.14 + 해지 모달 z-index 수정) |
+| **CRYPTO-BACKUP-VER.1.0** | 2026-10-16 | `a5b47624` | 태그 `CRYPTO-BACKUP-VER.1.0`, `CRYPTO-BACKUP-VER.1.0-2026-10-16` · 브랜치 `crypto-backup-ver-1.0` | 크립토 결제 **1차 최종** (V5.14 + 해지 모달 + 리스크 별도설정 행 UX) |
 
 ## 복원 예 (참고만)
 
@@ -32,6 +32,6 @@ git checkout card-major-backup-pre-crypto
 
 ## 에이전트 규칙
 
-- 사용자가 「CRYPTO-BACKUP-VER.1.0」「크립토 1차 백업」이라고 하면 **`a97445b5` / 태그 `CRYPTO-BACKUP-VER.1.0`** 을 가리킨다.
+- 사용자가 「CRYPTO-BACKUP-VER.1.0」「크립토 1차 백업」이라고 하면 **`a5b47624` / 태그 `CRYPTO-BACKUP-VER.1.0`** 을 가리킨다.
 - 「크립토 개발 전」「카드만」「pre-crypto」면 **`85f86640`**.
 - 「V4.80 백업」「크립토 시작 백업」이면 **`9d1581fe`**.
