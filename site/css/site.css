@@ -2823,11 +2823,10 @@ td.empty-state-cell {
 .footer { flex-shrink: 0; background: #fff; padding: 8px 20px; border-top: 1px solid #e8e8e8; font-size: var(--app-base-font-size); color: #999; }
 .dimmed { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 /* Google OTP 모달은 저장 로딩(#dimm z-index 9999)보다 위에 — 입력 가능하도록 */
-#pgGoogleOtpSixModal { z-index: 10050 !important; }
-#pgGoogleOtpSixModal + .modal-backdrop,
-.modal-backdrop.show:has(+ #pgGoogleOtpSixModal) { z-index: 10040 !important; }
-body.modal-open > .modal-backdrop:last-of-type { z-index: 10040 !important; }
+#pgGoogleOtpSixModal,
 #pgGoogleOtpSixModal.show { z-index: 10050 !important; }
+/* OTP가 열려 있을 때만 백드롭을 OTP 바로 아래로. 그 외 모달(결제대행사 설정 등)은 Bootstrap 기본(모달 > 백드롭) */
+body:has(#pgGoogleOtpSixModal.show) > .modal-backdrop.show { z-index: 10040 !important; }
 /* ë¹íì±ì¹´ëÂ·ë¸í°ê´ë¦¬ ìì  â í­ pane ë°(body)ì ëì´ë ë°±ëë¡­Â·dimm ìì íì */
 /* 비활성카드 수정·해지·노티관리 수정 — body.modal-open backdrop(10040)보다 위 */
 #opsIcEditModal.modal,

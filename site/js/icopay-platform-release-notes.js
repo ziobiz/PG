@@ -6,13 +6,35 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '5.14';
+  var CURRENT_LIVE = '5.15';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '5.15',
+      kind: 'minor',
+      date: '2026-10-19',
+      items: {
+        KO: [
+          'URL 결제(카드): 결제 후 구매자는 ICOPAY 결제창 성공·실패 카드로 복귀. 가맹이 API 연동이어도 URL 결제는 가맹 Result 주소로 보내지 않음'
+        ],
+        EN: [
+          'URL card pay: after payment the buyer returns to the ICOPAY checkout result card. API-integrated merchants still stay on that card for URL pay'
+        ],
+        JP: [
+          'URL決済(カード): 決済後はICOPAY決済画面の成功・失敗カードへ戻る。API連携の加盟でもURL決済は加盟Resultへ送らない'
+        ],
+        CH: [
+          'URL 支付（卡）：支付后购买者回到 ICOPAY 结账成功/失败卡片。即使商户已做 API 对接，URL 支付也不跳到商户 Result'
+        ],
+        TH: [
+          'URL ชำระ (บัตร): หลังชำระ ผู้ซื้อกลับการ์ดผลบนหน้า ICOPAY แม้ร้านเชื่อม API แล้ว URL ชำระก็ไม่ส่งไป Result ของร้าน'
+        ]
+      }
+    },
     {
       version: '5.14',
       kind: 'minor',

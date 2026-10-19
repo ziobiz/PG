@@ -215,11 +215,24 @@ public class ElementPayPaymentService {
         String notifyBase = PgNotifyIngressPaths.buildIngressBase(publicBase, ingressToken) + "/ELEMENTPAY";
 
         String amountPlain = formatAmount(amount);
-        /* JPAY callback 슬롯과 동일: 브라우저는 NOTI Result 입구 경유 → 가맹 resultUrl·Dealmai.
-         * success/reject/waiting 은 outcome 쿼리로 구분(동일 호스트라도 결과 화면이 성공·실패를 구분). */
-        String successReturn = resolveElementPayBrowserReturnUrl(orgUnitId, orderNo, compCode, "success");
-        String rejectReturn = resolveElementPayBrowserReturnUrl(orgUnitId, orderNo, compCode, "reject");
-        String waitingReturn = resolveElementPayBrowserReturnUrl(orgUnitId, orderNo, compCode, "waiting");
+        /*
+         * URL·챗봇: 구매자는 ICOPAY 결제창 결과 카드로 복귀.
+         * 가맹이 API 연동이어도 URL 결제 브라우저는 NOTI Result(가맹 resultUrl)로 보내지 않는다.
+         * merchant_api 만 NOTI Result 경유(가맹 Result 페이지).
+         */
+        String origin = resolveTxnOrigin(body);
+        String successReturn;
+        String rejectReturn;
+        String waitingReturn;
+        if ("MERCHANT_API".equals(origin)) {
+            successReturn = resolveElementPayBrowserReturnUrl(orgUnitId, orderNo, compCode, "success");
+            rejectReturn = resolveElementPayBrowserReturnUrl(orgUnitId, orderNo, compCode, "reject");
+            waitingReturn = resolveElementPayBrowserReturnUrl(orgUnitId, orderNo, compCode, "waiting");
+        } else {
+            successReturn = resolveIcopayCheckoutReturnUrl(publicBase, compCode, orderNo, "success");
+            rejectReturn = resolveIcopayCheckoutReturnUrl(publicBase, compCode, orderNo, "reject");
+            waitingReturn = resolveIcopayCheckoutReturnUrl(publicBase, compCode, orderNo, "waiting");
+        }
         if (successReturn == null || successReturn.isBlank()) {
             successReturn = resolveIcopayCheckoutReturnUrl(publicBase, compCode, orderNo, "success");
         }
