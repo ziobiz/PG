@@ -226,7 +226,7 @@ public class EximbayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler 
             }
         }
         try {
-            transactionReceiptEmailService.scheduleAfterPaid(t);
+            transactionReceiptEmailService.scheduleIfDue(t);
         } catch (Exception e) {
             log.warn("Eximbay 거래 영수증 메일 연동 실패 trnId={}: {}", t.getTrnId(), e.getMessage());
         }

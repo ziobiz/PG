@@ -454,11 +454,11 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
     }
 
     private void hookCustomerReceipt(PgTrnsctn t) {
-        if (t == null || !ST_PAID.equals(t.getStatus())) {
+        if (t == null) {
             return;
         }
         try {
-            transactionReceiptEmailService.scheduleAfterPaid(t);
+            transactionReceiptEmailService.scheduleIfDue(t);
         } catch (Exception ex) {
             log.warn("거래명세서 메일 예약 실패 trnId={}: {}", t.getTrnId(), ex.getMessage());
         }

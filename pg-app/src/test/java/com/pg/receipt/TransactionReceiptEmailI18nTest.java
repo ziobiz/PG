@@ -11,12 +11,16 @@ class TransactionReceiptEmailI18nTest {
     void paidRefundVoidSubjectsCoverFiveLocales() {
         for (String lang : new String[]{"KOR", "ENG", "JPN", "CHN", "THA"}) {
             String paid = TransactionReceiptEmailI18n.subject(lang, TransactionReceiptOutcome.PAID);
+            String failed = TransactionReceiptEmailI18n.subject(lang, TransactionReceiptOutcome.FAILED);
             String refunded = TransactionReceiptEmailI18n.subject(lang, TransactionReceiptOutcome.REFUNDED);
             String voided = TransactionReceiptEmailI18n.subject(lang, TransactionReceiptOutcome.VOIDED);
             assertTrue(paid.startsWith("ICOPAY | "));
+            assertTrue(failed.startsWith("ICOPAY | "));
             assertTrue(refunded.startsWith("ICOPAY | "));
             assertTrue(voided.startsWith("ICOPAY | "));
-            assertTrue(!paid.equals(refunded) && !paid.equals(voided) && !refunded.equals(voided));
+            assertTrue(!paid.equals(failed) && !paid.equals(refunded) && !paid.equals(voided) && !refunded.equals(voided));
+            assertTrue(!TransactionReceiptEmailI18n.outcomeBadge(lang, TransactionReceiptOutcome.FAILED)
+                    .equals(TransactionReceiptEmailI18n.outcomeBadge(lang, TransactionReceiptOutcome.PAID)));
         }
     }
 
@@ -30,6 +34,9 @@ class TransactionReceiptEmailI18nTest {
     @Test
     void outcomeFromStatus() {
         assertEquals(TransactionReceiptOutcome.PAID, TransactionReceiptOutcome.fromTxnStatus("10"));
+        assertEquals(TransactionReceiptOutcome.FAILED, TransactionReceiptOutcome.fromTxnStatus("99"));
+        assertEquals(TransactionReceiptOutcome.FAILED, TransactionReceiptOutcome.fromTxnStatus("F0"));
+        assertEquals(TransactionReceiptOutcome.CANCELLED, TransactionReceiptOutcome.fromTxnStatus("20"));
         assertEquals(TransactionReceiptOutcome.REFUNDED, TransactionReceiptOutcome.fromTxnStatus("42"));
         assertEquals(TransactionReceiptOutcome.REFUNDED, TransactionReceiptOutcome.fromTxnStatus("31"));
         assertEquals(TransactionReceiptOutcome.VOIDED, TransactionReceiptOutcome.fromTxnStatus("40"));

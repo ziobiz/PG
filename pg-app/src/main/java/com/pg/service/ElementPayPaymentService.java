@@ -1179,6 +1179,11 @@ public class ElementPayPaymentService {
                     afterStatusSyncPaid(u);
                 } else {
                     try {
+                        transactionReceiptEmailService.scheduleIfDue(u);
+                    } catch (Exception e) {
+                        log.warn("ElementPay status-sync 실패 영수증 메일 실패 trnId={}: {}", u.getTrnId(), e.getMessage());
+                    }
+                    try {
                         merchantOutboundNotifyService.scheduleAfterTxnCommit(u, null, "STATUS_SYNC");
                     } catch (Exception e) {
                         log.warn("ElementPay status-sync outbound 실패: {}", e.getMessage());
@@ -2020,6 +2025,11 @@ public class ElementPayPaymentService {
                 false, null, body);
         String trnId = elementPaySaleRecordService.applyIcopayPresaleRiskCancel(
                 merchantCode, orderNo, txnOrigin, block.message());
+        try {
+            transactionReceiptEmailService.scheduleIfDueByTrnId(trnId);
+        } catch (Exception e) {
+            log.warn("ElementPay 사전리스크 실패 메일 생략 trnId={}: {}", trnId, e.getMessage());
+        }
         payPresaleRiskFilterService.recordEvent(orgUnitId, merchantCode, orderNo, trnId, PgVendor.ELEMENTPAY, block);
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("success", false);

@@ -8576,6 +8576,8 @@
           options: [
             { v: '', t: '전체' },
             { v: 'RECEIPT_TXN', t: '거래명세서(승인)' },
+            { v: 'RECEIPT_FAIL', t: '거래명세서(실패)' },
+            { v: 'RECEIPT_CANCEL', t: '거래명세서(취소)' },
             { v: 'RECEIPT_REFUND', t: '거래명세서(환불)' },
             { v: 'RECEIPT_VOID', t: '거래명세서(무효)' },
             { v: 'RECEIPT_TEST', t: '거래명세서(테스트)' },

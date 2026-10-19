@@ -13,7 +13,7 @@ class TransactionReceiptHtmlRendererTest {
         var vm = sample(TransactionReceiptOutcome.REFUNDED, "KOR");
         String html = TransactionReceiptHtmlRenderer.render(vm);
         assertTrue(html.contains("환불 완료"));
-        assertTrue(html.contains("#ea580c"));
+        assertTrue(html.contains("#dbeafe"));
         assertTrue(html.contains("ICOPAY"));
         assertTrue(!html.toLowerCase().contains("elementpay"));
         assertTrue(!html.toLowerCase().contains("jpay"));
@@ -23,11 +23,24 @@ class TransactionReceiptHtmlRendererTest {
     }
 
     @Test
+    void failedHtmlUsesFailedBadgeNotPaid() {
+        var vm = sample(TransactionReceiptOutcome.FAILED, "KOR");
+        String html = TransactionReceiptHtmlRenderer.render(vm);
+        assertTrue(html.contains("결제실패"));
+        assertTrue(html.contains("#fee2e2"));
+        assertTrue(!html.contains("결제 완료") && !html.contains("결제완료"));
+        assertTrue(html.contains("실패일시"));
+        String plain = TransactionReceiptHtmlRenderer.renderPlainText(vm);
+        assertTrue(plain.contains("결제실패"));
+        assertTrue(!plain.contains("결제 완료") && !plain.contains("결제완료"));
+    }
+
+    @Test
     void voidHtmlUsesVoidBadgeInEnglish() {
         var vm = sample(TransactionReceiptOutcome.VOIDED, "ENG");
         String html = TransactionReceiptHtmlRenderer.render(vm);
         assertTrue(html.contains("VOID COMPLETED"));
-        assertTrue(html.contains("#dc2626"));
+        assertTrue(html.contains("#ffedd5"));
         String plain = TransactionReceiptHtmlRenderer.renderPlainText(vm);
         assertTrue(plain.contains("Voided Date/Time"));
     }

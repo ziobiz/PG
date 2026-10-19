@@ -192,6 +192,14 @@ public class TransactionReceiptEmailService {
         scheduleReceipt(txn, outcome);
     }
 
+    /** 사전 리스크 취소 등 거래번호만 있는 실패 건 */
+    public void scheduleIfDueByTrnId(String trnId) {
+        if (trnId == null || trnId.isBlank()) {
+            return;
+        }
+        pgTrnsctnRepository.findById(trnId.trim()).ifPresent(this::scheduleIfDue);
+    }
+
     private void scheduleReceipt(PgTrnsctn txn, TransactionReceiptOutcome outcome) {
         if (txn == null || txn.getTrnId() == null || txn.getTrnId().isBlank() || outcome == null) {
             return;
@@ -303,6 +311,12 @@ public class TransactionReceiptEmailService {
     }
 
     private static String mailKind(TransactionReceiptOutcome outcome) {
+        if (outcome == TransactionReceiptOutcome.FAILED) {
+            return MailSendLogService.KIND_RECEIPT_FAIL;
+        }
+        if (outcome == TransactionReceiptOutcome.CANCELLED) {
+            return MailSendLogService.KIND_RECEIPT_CANCEL;
+        }
         if (outcome == TransactionReceiptOutcome.REFUNDED) {
             return MailSendLogService.KIND_RECEIPT_REFUND;
         }
@@ -360,6 +374,12 @@ public class TransactionReceiptEmailService {
             return null;
         }
         String k = mailKind.trim().toUpperCase(Locale.ROOT);
+        if ("RECEIPT_FAIL".equals(k)) {
+            return TransactionReceiptOutcome.FAILED;
+        }
+        if ("RECEIPT_CANCEL".equals(k)) {
+            return TransactionReceiptOutcome.CANCELLED;
+        }
         if ("RECEIPT_REFUND".equals(k)) {
             return TransactionReceiptOutcome.REFUNDED;
         }

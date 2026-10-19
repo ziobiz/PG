@@ -19,7 +19,9 @@ public final class TransactionReceiptHtmlRenderer {
         String lang = vm.lang();
         Map<String, String> labels = TransactionReceiptEmailI18n.fieldLabels(lang);
         TransactionReceiptOutcome outcome = TransactionReceiptOutcome.parse(vm.outcomeKind());
-        String badgeColor = TransactionReceiptEmailI18n.outcomeBadgeColor(outcome);
+        String badgeBg = TransactionReceiptEmailI18n.outcomeBadgeBg(outcome);
+        String badgeFg = TransactionReceiptEmailI18n.outcomeBadgeFg(outcome);
+        String badgeBorder = TransactionReceiptEmailI18n.outcomeBadgeBorder(outcome);
         String amountLine = escape(vm.currency()) + " " + escape(formatAmount(vm.amount()));
         String eventDateLabel = eventDateLabel(labels, outcome);
 
@@ -54,7 +56,7 @@ public final class TransactionReceiptHtmlRenderer {
                   <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" class="pg-receipt-header-row" style="width:100%%;">
                     <tr>
                       <td class="pg-receipt-brand" width="50%%" align="left" style="width:50%%;font-size:13px;font-weight:700;color:#1e3a5f;text-align:left;vertical-align:middle;">ICOPAY</td>
-                      <td class="pg-receipt-badge" width="50%%" align="right" style="width:50%%;text-align:right;vertical-align:middle;"><span class="pg-receipt-badge-pill" style="display:inline-block;background:%s;color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:4px;">%s</span></td>
+                      <td class="pg-receipt-badge" width="50%%" align="right" style="width:50%%;text-align:right;vertical-align:middle;"><span class="pg-receipt-badge-pill" style="display:inline-block;background:%s;color:%s;font-size:11px;font-weight:700;padding:4px 10px;border-radius:10px;border:1px solid %s;">%s</span></td>
                     </tr>
                   </table>
                 </td></tr>
@@ -78,9 +80,11 @@ public final class TransactionReceiptHtmlRenderer {
                 </td></tr></table>
                 </body></html>
                 """.formatted(
-                badgeColor,
+                badgeBg,
+                badgeFg,
+                badgeBorder,
                 escape(TransactionReceiptEmailI18n.outcomeBadge(lang, outcome)),
-                badgeColor,
+                badgeFg,
                 AMOUNT_BLUE,
                 amountLine,
                 escape(TransactionReceiptEmailI18n.serviceProvider(lang)),
@@ -121,6 +125,8 @@ public final class TransactionReceiptHtmlRenderer {
     private static String eventDateLabel(Map<String, String> labels, TransactionReceiptOutcome outcome) {
         TransactionReceiptOutcome o = outcome != null ? outcome : TransactionReceiptOutcome.PAID;
         String key = switch (o) {
+            case FAILED -> "failedDateTime";
+            case CANCELLED -> "cancelledDateTime";
             case REFUNDED -> "refundedDateTime";
             case VOIDED -> "voidedDateTime";
             default -> "authorizedDateTime";

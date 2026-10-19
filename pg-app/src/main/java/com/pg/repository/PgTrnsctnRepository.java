@@ -186,7 +186,12 @@ public interface PgTrnsctnRepository extends JpaRepository<PgTrnsctn, String>, J
             + "ORDER BY t.createdAt DESC")
     List<PgTrnsctn> findPayerLocationBackfillCandidates(Pageable pageable);
 
+    /**
+     * 카드의 직전 구매자 연락처. 사전 리스크 차단(상태 20·사유 출처 ICOPAY)은 비교 기준에서 뺀다.
+     * 차단 건에 새 이메일이 남으면 다음 시도가 그 건과 맞아 필터를 통과하는 것을 막는다.
+     */
     @Query("SELECT t FROM PgTrnsctn t WHERE t.cardPanHash = :hash AND t.merchantId = :merchantId "
+            + "AND NOT (t.status = '20' AND t.outcomeReasonSource = 'ICOPAY') "
             + "AND (t.customerId IS NOT NULL OR t.customerTel IS NOT NULL OR t.customerNm IS NOT NULL) "
             + "ORDER BY t.createdAt DESC")
     List<PgTrnsctn> findRecentBuyerContextByCardPanHash(@Param("hash") String hash,

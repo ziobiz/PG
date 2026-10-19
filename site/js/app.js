@@ -19666,6 +19666,8 @@
                       if (mlKind === 'VOID_TEST') cellInner = escHtmlBody(pgAdminUiT('VOID 테스트'));
                       else if (mlKind === 'VOID_TXN') cellInner = escHtmlBody(pgAdminUiT('이메일 무효(거래)'));
                       else if (mlKind === 'RECEIPT_TXN') cellInner = escHtmlBody(pgAdminUiT('거래명세서(승인)'));
+                      else if (mlKind === 'RECEIPT_FAIL') cellInner = escHtmlBody(pgAdminUiT('거래명세서(실패)'));
+                      else if (mlKind === 'RECEIPT_CANCEL') cellInner = escHtmlBody(pgAdminUiT('거래명세서(취소)'));
                       else if (mlKind === 'RECEIPT_REFUND') cellInner = escHtmlBody(pgAdminUiT('거래명세서(환불)'));
                       else if (mlKind === 'RECEIPT_VOID') cellInner = escHtmlBody(pgAdminUiT('거래명세서(무효)'));
                       else if (mlKind === 'RECEIPT_TEST') cellInner = escHtmlBody(pgAdminUiT('거래명세서(테스트)'));

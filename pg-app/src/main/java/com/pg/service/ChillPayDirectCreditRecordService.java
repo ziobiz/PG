@@ -369,7 +369,7 @@ public class ChillPayDirectCreditRecordService {
                 log.warn("분할결제 연동 실패 orderNo={}: {}", orderNo, ex.getMessage());
             }
             try {
-                transactionReceiptEmailService.scheduleAfterPaid(t);
+                transactionReceiptEmailService.scheduleIfDue(t);
             } catch (Exception ex) {
                 log.warn("거래 영수증 메일 연동 실패 trnId={}: {}", t.getTrnId(), ex.getMessage());
             }

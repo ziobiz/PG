@@ -6,13 +6,79 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '5.15';
+  var CURRENT_LIVE = '5.18';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '5.18',
+      kind: 'minor',
+      date: '2026-10-20',
+      items: {
+        KO: [
+          '고객 거래명세서: 배지를 결제성공(연두)·결제실패(빨강)·결제취소(회색)로 표시. 결제 완료 문구는 사용하지 않음. 성공 후 실패로 바뀌면 실패 메일이 한 통 더 감'
+        ],
+        EN: [
+          'Customer receipt badge: Payment successful (green), failed (red), cancelled (gray). “Payment complete” is not used. A later failure sends one more mail'
+        ],
+        JP: [
+          '顧客明細バッジ: 決済成功(緑)・決済失敗(赤)・決済取消(灰)。「お支払い完了」は使わない。成功後に失敗へ変わると失敗メールがもう1通'
+        ],
+        CH: [
+          '客户收据角标：支付成功(绿)、支付失败(红)、支付取消(灰)。不再使用“支付完成”。成功后变为失败会再发一封失败邮件'
+        ],
+        TH: [
+          'ป้ายใบเสร็จ: ชำระสำเร็จ (เขียว) ไม่สำเร็จ (แดง) ยกเลิก (เทา) ไม่ใช้คำว่าชำระเสร็จ ถ้าสำเร็จแล้วเปลี่ยนเป็นไม่สำเร็จจะส่งอีกหนึ่งฉบับ'
+        ]
+      }
+    },
+    {
+      version: '5.17',
+      kind: 'minor',
+      date: '2026-10-20',
+      items: {
+        KO: [
+          '고객 거래명세서 메일: 승인 건은 결제 완료, 실패·취소 건은 결제 실패. 실패 건에 결제 완료 배지가 붙지 않음'
+        ],
+        EN: [
+          'Customer receipt email: paid payments say payment successful, failed or cancelled payments say payment failed'
+        ],
+        JP: [
+          '顧客取引明細メール: 承認はお支払い完了、失敗・取消は決済失敗。失敗に完了バッジは付かない'
+        ],
+        CH: [
+          '客户收据邮件：成功为支付成功，失败或取消为支付失败。失败不再显示支付成功'
+        ],
+        TH: [
+          'อีเมลใบเสร็จลูกค้า: สำเร็จแสดงชำระเงินสำเร็จ ไม่สำเร็จหรือยกเลิกแสดงชำระไม่สำเร็จ'
+        ]
+      }
+    },
+    {
+      version: '5.16',
+      kind: 'minor',
+      date: '2026-10-20',
+      items: {
+        KO: [
+          '카드 구매자 불일치 필터: 직전에 차단된 시도(취소)는 비교 기준이 되지 않음. 다른 이메일로 바로 다시 결제해도 같은 카드는 다시 차단'
+        ],
+        EN: [
+          'Card buyer-mismatch filter: a just-blocked attempt (cancel) is not the comparison baseline. Retrying at once with a different email on the same card is blocked again'
+        ],
+        JP: [
+          'カード購入者不一致フィルタ: 直前に遮断した試行(取消)は比較基準にしない。別メールですぐ再決済しても同じカードは再度遮断'
+        ],
+        CH: [
+          '持卡人信息不一致过滤：刚被拦截的尝试（取消）不再作为比对基准。同一张卡立刻换邮箱重试仍会被拦截'
+        ],
+        TH: [
+          'ตัวกรองผู้ซื้อบัตรไม่ตรง: รายการที่เพิ่งถูกปฏิเสธ (ยกเลิก) ไม่ถูกใช้เป็นฐานเทียบ การลองใหม่ทันทีด้วยอีเมลอื่นบนบัตรเดิมยังถูกปฏิเสธ'
+        ]
+      }
+    },
     {
       version: '5.15',
       kind: 'minor',

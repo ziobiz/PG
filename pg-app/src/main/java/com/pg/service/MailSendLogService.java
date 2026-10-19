@@ -41,6 +41,8 @@ public class MailSendLogService {
     public static final String KIND_SPLIT_PAY_CREATE = "SPLIT_PAY_CREATE";
     public static final String KIND_SPLIT_PAY_TEST = "SPLIT_PAY_TEST";
     public static final String KIND_RECEIPT_TXN = "RECEIPT_TXN";
+    public static final String KIND_RECEIPT_FAIL = "RECEIPT_FAIL";
+    public static final String KIND_RECEIPT_CANCEL = "RECEIPT_CANCEL";
     public static final String KIND_RECEIPT_REFUND = "RECEIPT_REFUND";
     public static final String KIND_RECEIPT_VOID = "RECEIPT_VOID";
     public static final String KIND_RECEIPT_TEST = "RECEIPT_TEST";

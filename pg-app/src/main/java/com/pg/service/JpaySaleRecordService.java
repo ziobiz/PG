@@ -327,7 +327,7 @@ public class JpaySaleRecordService {
             }
         }
         try {
-            transactionReceiptEmailService.scheduleAfterPaid(t);
+            transactionReceiptEmailService.scheduleIfDue(t);
         } catch (Exception ex) {
             log.warn("거래 영수증 메일 연동 실패 trnId={}: {}", t.getTrnId(), ex.getMessage());
         }
@@ -376,6 +376,11 @@ public class JpaySaleRecordService {
                     t, prevStatus, ST_CANCEL, block.message(), code, TxnOutcomeReasonApplier.SOURCE_ICOPAY);
             pgTrnsctnRepository.save(t);
             outcomeReasonWarmCoordinator.onRecorded(recorded);
+            try {
+                transactionReceiptEmailService.scheduleIfDue(t);
+            } catch (Exception mailEx) {
+                log.warn("사전 리스크 실패 메일 생략 trnId={}: {}", t.getTrnId(), mailEx.getMessage());
+            }
             return t.getTrnId();
         } catch (Exception e) {
             log.warn("ICOPAY 사전 리스크 취소 반영 오류: {}", e.getMessage());
@@ -408,6 +413,11 @@ public class JpaySaleRecordService {
                     t, prevStatus, ST_FAIL, msg, code, TxnOutcomeReasonApplier.SOURCE_ICOPAY);
             pgTrnsctnRepository.save(t);
             outcomeReasonWarmCoordinator.onRecorded(recorded);
+            try {
+                transactionReceiptEmailService.scheduleIfDue(t);
+            } catch (Exception mailEx) {
+                log.warn("사전검증 실패 메일 생략 trnId={}: {}", t.getTrnId(), mailEx.getMessage());
+            }
         } catch (Exception e) {
             log.warn("ICOPAY 사전검증 실패 반영 오류: {}", e.getMessage());
         }

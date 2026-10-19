@@ -123,16 +123,19 @@ public class IlkCallbackService {
             } else {
                 Optional<PgTrnsctn> saved = ilkSaleRecordService.applyOutcome(
                         compCode, orderNo, paid, id, status);
+                if (saved.isPresent()) {
+                    PgTrnsctn t = saved.get();
+                    try {
+                        transactionReceiptEmailService.scheduleIfDue(t);
+                    } catch (Exception e) {
+                        log.warn("ILK 영수증: {}", e.getMessage());
+                    }
+                }
                 if (saved.isPresent() && paid) {
                     PgTrnsctn t = saved.get();
                     try {
                         splitPayPaymentHookService.onTxnStatusChange(t.getOrderNo(), t.getStatus(), t.getTrnId());
                     } catch (Exception ignored) {
-                    }
-                    try {
-                        transactionReceiptEmailService.scheduleAfterPaid(t);
-                    } catch (Exception e) {
-                        log.warn("ILK 영수증: {}", e.getMessage());
                     }
                     try {
                         settlementCalcService.triggerRealtimeAutoSettlementIfDue(t.getMerchantId().trim(), t);
