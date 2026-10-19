@@ -337,13 +337,7 @@ public class TransactionReceiptEmailService {
             return Optional.empty();
         }
         PgTrnsctn t = opt.get();
-        TransactionReceiptOutcome outcome = outcomeFromMailKind(mailKind);
-        if (outcome == null) {
-            outcome = TransactionReceiptOutcome.fromTxnStatus(t.getStatus());
-        }
-        if (outcome == null) {
-            outcome = TransactionReceiptOutcome.PAID;
-        }
+        TransactionReceiptOutcome outcome = outcomeForReceiptPreview(t.getStatus(), mailKind);
         String merchantCode = t.getMerchantId();
         if (merchantCode == null || merchantCode.isBlank()) {
             return Optional.empty();
@@ -367,6 +361,25 @@ public class TransactionReceiptEmailService {
             log.warn("영수증 HTML 재생성 실패 trnId={}: {}", trnId, e.getMessage());
             return Optional.empty();
         }
+    }
+
+    /**
+     * 미리보기·재발송 배지는 현재 거래 상태가 우선이다.
+     * 승인 메일 종류(RECEIPT_TXN)여도 거래가 실패·취소면 성공으로 그리지 않는다.
+     */
+    static TransactionReceiptOutcome outcomeForReceiptPreview(String txnStatus, String mailKind) {
+        if (mailKind != null && "RECEIPT_TEST".equalsIgnoreCase(mailKind.trim())) {
+            return TransactionReceiptOutcome.PAID;
+        }
+        TransactionReceiptOutcome fromStatus = TransactionReceiptOutcome.fromTxnStatus(txnStatus);
+        if (fromStatus != null) {
+            return fromStatus;
+        }
+        TransactionReceiptOutcome fromKind = outcomeFromMailKind(mailKind);
+        if (fromKind != null) {
+            return fromKind;
+        }
+        return TransactionReceiptOutcome.PAID;
     }
 
     private static TransactionReceiptOutcome outcomeFromMailKind(String mailKind) {

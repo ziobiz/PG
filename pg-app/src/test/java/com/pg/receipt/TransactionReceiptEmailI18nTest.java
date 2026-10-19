@@ -37,6 +37,12 @@ class TransactionReceiptEmailI18nTest {
         assertEquals(TransactionReceiptOutcome.FAILED, TransactionReceiptOutcome.fromTxnStatus("99"));
         assertEquals(TransactionReceiptOutcome.FAILED, TransactionReceiptOutcome.fromTxnStatus("F0"));
         assertEquals(TransactionReceiptOutcome.CANCELLED, TransactionReceiptOutcome.fromTxnStatus("20"));
+        assertEquals(TransactionReceiptOutcome.FAILED,
+                TransactionReceiptEmailService.outcomeForReceiptPreview("99", "RECEIPT_TXN"));
+        assertEquals(TransactionReceiptOutcome.CANCELLED,
+                TransactionReceiptEmailService.outcomeForReceiptPreview("20", "RECEIPT_TXN"));
+        assertEquals(TransactionReceiptOutcome.PAID,
+                TransactionReceiptEmailService.outcomeForReceiptPreview("10", "RECEIPT_TXN"));
         assertEquals(TransactionReceiptOutcome.REFUNDED, TransactionReceiptOutcome.fromTxnStatus("42"));
         assertEquals(TransactionReceiptOutcome.REFUNDED, TransactionReceiptOutcome.fromTxnStatus("31"));
         assertEquals(TransactionReceiptOutcome.VOIDED, TransactionReceiptOutcome.fromTxnStatus("40"));

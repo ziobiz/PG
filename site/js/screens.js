@@ -8584,8 +8584,8 @@
             { v: 'VOID_TEST', t: 'VOID 테스트' },
             { v: 'VOID_TXN', t: '이메일 무효(거래)' }
           ] },
-        { label: '상태', type: 'select', name: 'searchMailStatus', col: 2,
-          options: [{ v: '', t: '전체' }, { v: 'SUCCESS', t: '성공' }, { v: 'FAIL', t: '실패' }] },
+        { label: '발송', type: 'select', name: 'searchMailStatus', col: 2,
+          options: [{ v: '', t: '전체' }, { v: 'SUCCESS', t: '발송성공' }, { v: 'FAIL', t: '발송실패' }] },
         { label: '등록일', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
         { type: 'quickdate' },
         { type: 'searchBtn' }
@@ -8596,7 +8596,7 @@
         { key: 'rowNo', label: '번호' },
         { key: 'createdAt', label: '등록일' },
         { key: 'mailKind', label: '구분' },
-        { key: 'status', label: '상태' },
+        { key: 'status', label: '발송' },
         { key: 'toAddress', label: '수신' },
         { key: 'subject', label: '제목' },
         { key: 'errorMessage', label: '오류' },

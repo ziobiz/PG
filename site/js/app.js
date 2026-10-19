@@ -19683,8 +19683,8 @@
                       cellInner = '<span class="ops-mail-body-preview">' + escHtmlBody(bp) + '</span>';
                     } else if (c.key === 'status') {
                       var mlSt = String(val == null ? '' : val).trim().toUpperCase();
-                      if (mlSt === 'SUCCESS') cellInner = escHtmlBody(pgAdminUiT('성공'));
-                      else if (mlSt === 'FAIL') cellInner = escHtmlBody(pgAdminUiT('실패'));
+                      if (mlSt === 'SUCCESS') cellInner = escHtmlBody(pgAdminUiT('발송성공'));
+                      else if (mlSt === 'FAIL') cellInner = escHtmlBody(pgAdminUiT('발송실패'));
                       else cellInner = escHtmlBody(String(val == null ? '' : val));
                     } else if (c.key === 'actorUsername') {
                       var act = String(val == null ? '' : val).trim();

@@ -6,13 +6,35 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '5.18';
+  var CURRENT_LIVE = '5.19';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '5.19',
+      kind: 'minor',
+      date: '2026-10-20',
+      items: {
+        KO: [
+          '메일관리 미리보기: 거래가 실패·취소면 결제성공으로 보이지 않음. 목록 상태는 발송성공·발송실패(메일 전달 결과)'
+        ],
+        EN: [
+          'Mail-log preview follows the payment status. A failed or cancelled payment is not shown as successful. The list status is delivery sent or send failed'
+        ],
+        JP: [
+          'メールログのプレビューは取引状態に従う。失敗・取消を決済成功と表示しない。一覧の状態は送信成功・送信失敗'
+        ],
+        CH: [
+          '邮件日志预览跟随交易状态。失败或取消不会显示为支付成功。列表状态是发送成功或发送失败'
+        ],
+        TH: [
+          'ตัวอย่างในบันทึกเมลตามสถานะรายการ ไม่แสดงรายการไม่สำเร็จหรือยกเลิกเป็นชำระสำเร็จ สถานะในรายการคือส่งสำเร็จหรือส่งไม่สำเร็จ'
+        ]
+      }
+    },
     {
       version: '5.18',
       kind: 'minor',
