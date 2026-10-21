@@ -14,6 +14,7 @@ import java.util.Locale;
  *   <li>{@code api_key} — Webhook Signing Secret (check/pay 콜백 HMAC)</li>
  *   <li>{@code credentials_extra_json.cardServiceAlias} — 기본 {@code kCards} (EP THB 카드)</li>
  *   <li>{@code credentials_extra_json.promptPayServiceAlias} — 기본 {@code promptpay}</li>
+ *   <li>{@code credentials_extra_json.clientApiToken} — Cabinet API Keys 의 Client API 토큰(송금·결제검색)</li>
  * </ul>
  */
 public record ElementPayCredentials(
@@ -64,6 +65,27 @@ public record ElementPayCredentials(
 
     public boolean isConfigured() {
         return !merchantKey.isBlank() && !apiSecretKey.isBlank();
+    }
+
+    /** Cabinet → API Keys. 결제 Merchant Key 와 다릅니다. */
+    public static String clientApiToken(PgAgency agency) {
+        if (agency == null) {
+            return "";
+        }
+        String extra = agency.getCredentialsExtraJson();
+        if (extra == null || extra.isBlank()) {
+            return "";
+        }
+        try {
+            JsonNode root = MAPPER.readTree(extra);
+            JsonNode n = root.get("clientApiToken");
+            if (n == null || n.isNull()) {
+                return "";
+            }
+            return n.asText("").trim();
+        } catch (Exception ignored) {
+            return "";
+        }
     }
 
     public String serviceAliasForMethod(String paymentMethod) {

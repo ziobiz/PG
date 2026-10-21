@@ -6,13 +6,373 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '5.19';
+  var CURRENT_LIVE = '5.34';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '5.34',
+      kind: 'minor',
+      date: '2026-10-22',
+      items: {
+        KO: [
+          '송금관리: 송금 잔액 파란 배경을 총액까지 글자 너비로 맞추고, 송금 가능액 글자를 빨강으로 표시'
+        ],
+        EN: [
+          'Remittance: the balance bar background fits the text through Total, and Available to send is shown in red'
+        ],
+        JP: [
+          '送金管理: 残高バーの青背景を合計までの文字幅に合わせ、送金可能額の文字を赤で表示'
+        ],
+        CH: [
+          '汇款管理：余额条蓝色背景收到合计文字的宽度，可汇金额文字显示为红色'
+        ],
+        TH: [
+          'จัดการโอน: พื้นหลังแถบยอดคงเหลือกว้างเท่าข้อความถึงยอดรวม และตัวอักษรยอดที่โอนได้เป็นสีแดง'
+        ]
+      }
+    },
+    {
+      version: '5.33',
+      kind: 'minor',
+      date: '2026-10-22',
+      items: {
+        KO: [
+          '송금관리: 수취계좌 입력란을 두 배, 설명 입력란을 세 배로 넓히고 입력 글자를 가운데 정렬'
+        ],
+        EN: [
+          'Remittance: the account field is twice as wide, the note field is three times as wide, and typed text is centered'
+        ],
+        JP: [
+          '送金管理: 受取口座欄を2倍、説明欄を3倍に広げ、入力文字を中央揃え'
+        ],
+        CH: [
+          '汇款管理：收款账户栏加宽为两倍，说明栏加宽为三倍，输入文字居中'
+        ],
+        TH: [
+          'จัดการโอน: ช่องบัญชีรับกว้างเป็น 2 เท่า ช่องคำอธิบายกว้างเป็น 3 เท่า และตัวอักษรอยู่กึ่งกลาง'
+        ]
+      }
+    },
+    {
+      version: '5.32',
+      kind: 'minor',
+      date: '2026-10-22',
+      items: {
+        KO: [
+          '송금관리: 표시 시간을 목록 조회 앞에 두고, 등록일시는 태국 시간과 선택한 시간을 함께 표시'
+        ],
+        EN: [
+          'Remittance: the time control sits before the list button. Registered time shows Thailand time and the selected time'
+        ],
+        JP: [
+          '送金管理: 表示時刻を一覧照会の前に配置。登録日時はタイ時間と選択した時間を一緒に表示'
+        ],
+        CH: [
+          '汇款管理：时间选择放在列表查询前面。登记时间同时显示泰国时间和所选时间'
+        ],
+        TH: [
+          'จัดการโอน: ตัวเลือกเวลาอยู่หน้าปุ่มดูรายการ เวลาที่ลงทะเบียนแสดงเวลาไทยและเวลาที่เลือก'
+        ]
+      }
+    },
+    {
+      version: '5.31',
+      kind: 'minor',
+      date: '2026-10-22',
+      items: {
+        KO: [
+          '송금관리: 송금 가능액을 빨간색으로 표시. 신청 금액은 가능액에서 수수료 25를 뺀 금액까지이며, 송금 요청은 두 번 확인'
+        ],
+        EN: [
+          'Remittance: the available amount is shown in red. A request cannot exceed the available amount minus a fee of 25, and the request is confirmed twice'
+        ],
+        JP: [
+          '送金管理: 送金可能額を赤で表示。申請は可能額から手数料25を引いた金額までで、送金依頼は2回確認'
+        ],
+        CH: [
+          '汇款管理：可汇款金额显示为红色。申请金额不能超过可汇款金额减去手续费 25，汇款申请需要确认两次'
+        ],
+        TH: [
+          'จัดการโอน: แสดงยอดที่โอนได้เป็นสีแดง ขอได้ไม่เกินยอดที่โอนได้หักค่าธรรมเนียม 25 และยืนยันคำขอสองครั้ง'
+        ]
+      }
+    },
+    {
+      version: '5.30',
+      kind: 'minor',
+      date: '2026-10-21',
+      items: {
+        KO: [
+          '계좌관리: ElementPay 회사 지급계좌를 목록으로 가져오고, 화면을 열면 계좌 추가가 동작'
+        ],
+        EN: [
+          'Accounts: import the ElementPay company payout account, and Add account works when the screen opens'
+        ],
+        JP: [
+          '口座管理: ElementPayの会社支払口座を一覧に取り込み、画面を開くと口座追加が動作'
+        ],
+        CH: [
+          '账户管理：导入 ElementPay 公司付款账户，打开画面后可以添加账户'
+        ],
+        TH: [
+          'จัดการบัญชี: นำบัญชีจ่ายบริษัทจาก ElementPay มาแสดง และปุ่มเพิ่มบัญชีทำงานเมื่อเปิดหน้า'
+        ]
+      }
+    },
+    {
+      version: '5.29',
+      kind: 'minor',
+      date: '2026-10-21',
+      items: {
+        KO: [
+          '본사설정: 정산주기와 환수·미수금 사이에 계좌관리를 추가. ElementPay에 있는 수취계좌를 기본 계좌로 가져오고, 새 계좌는 송금계좌관리에서만 등록',
+          '송금관리: 잔액을 검색창 아래 한 줄로 표시하고, 등록된 수취계좌·금액·설명만으로 송금 요청'
+        ],
+        EN: [
+          'HQ settings: Accounts menu between Settlement cycle and Recovery. Existing ElementPay recipients are imported as default accounts, and new accounts are added only there',
+          'Remittance: balance sits on one line under the search form. A transfer needs a saved account, an amount, and a note'
+        ],
+        JP: [
+          '本社設定: 精算周期と回収・未収の間に口座管理を追加。ElementPayの受取口座を基本口座として取り込み、新しい口座は送金口座管理だけで登録',
+          '送金管理: 残高を検索の下に1行で表示。登録済み受取口座・金額・説明だけで送金依頼'
+        ],
+        CH: [
+          '本社设置：在结算周期与回款应收之间增加账户管理。已有 ElementPay 收款账户导入为默认账户，新账户只在汇款账户管理中登记',
+          '汇款管理：余额显示在搜索框下方一行。汇款只选择已登记账户并填写金额和说明'
+        ],
+        TH: [
+          'ตั้งค่าสำนักงานใหญ่: เพิ่มจัดการบัญชีระหว่างรอบชำระและกู้คืนลูกหนี้ นำบัญชีรับที่มีใน ElementPay มาเป็นบัญชีเริ่มต้น และเพิ่มบัญชีใหม่ได้เฉพาะหน้าจัดการบัญชีโอน',
+          'จัดการโอน: แสดงยอดหนึ่งบรรทัดใต้ช่องค้นหา คำขอโอนใช้บัญชีที่ลงไว้ จำนวนเงิน และคำอธิบาย'
+        ]
+      }
+    },
+    {
+      version: '5.28',
+      kind: 'minor',
+      date: '2026-10-21',
+      items: {
+        KO: [
+          '송금관리: 입금될 금액·송금 중인액·송금 가능액·총액을 송금 요청 위에 표시'
+        ],
+        EN: [
+          'Remittance: show incoming hold, transfer in progress, available amount, and total above the transfer request'
+        ],
+        JP: [
+          '送金管理: 入金予定・送金処理中・送金可能額・総額を送金依頼の上に表示'
+        ],
+        CH: [
+          '汇款管理：在汇款申请上方显示待入账、处理中、可汇款金额与总额'
+        ],
+        TH: [
+          'จัดการโอน: แสดงยอดที่จะเข้า กำลังโอน โอนได้ และยอดรวมเหนือคำขอโอน'
+        ]
+      }
+    },
+    {
+      version: '5.27',
+      kind: 'minor',
+      date: '2026-10-21',
+      items: {
+        KO: [
+          '통합체크: 비교정렬·1줄추가(대행사)·2줄추가(ICOPAY) 시간을 나눠 ElementPay와 ICOPAY를 같은 기준으로 비교'
+        ],
+        EN: [
+          'Integrated check: separate compare, acquirer extra, and ICOPAY extra clocks so ElementPay and ICOPAY share one base time'
+        ],
+        JP: [
+          '統合チェック: 比較基準・1行目追加(代行)・2行目追加(ICOPAY)を分け、ElementPay と ICOPAY を同じ基準で比較'
+        ],
+        CH: [
+          '整合检查：分开比较基准、机构附加时间与 ICOPAY 附加时间，使 ElementPay 与 ICOPAY 按同一基准比较'
+        ],
+        TH: [
+          'ตรวจสอบรวม: แยกเวลาเทียบ เวลาเพิ่มของผู้ให้บริการ และเวลาเพิ่มของ ICOPAY เพื่อเทียบ ElementPay กับ ICOPAY บนฐานเวลาเดียวกัน'
+        ]
+      }
+    },
+    {
+      version: '5.26',
+      kind: 'minor',
+      date: '2026-10-21',
+      items: {
+        KO: [
+          '결제개요: ElementPay를 기본으로 보고, 단말기·위치·IP·실패 원인을 결제내역보다 추가로 표시'
+        ],
+        EN: [
+          'Payment overview: opens on ElementPay and shows device, location, IP, and failure cause beyond payment history'
+        ],
+        JP: [
+          '決済概要: ElementPay を初期表示し、端末・位置・IP・失敗原因を決済履歴より追加表示'
+        ],
+        CH: [
+          '支付概览：默认显示 ElementPay，并在支付历史之外显示终端、位置、IP 与失败原因'
+        ],
+        TH: [
+          'ภาพรวมการชำระ: เปิดที่ ElementPay และแสดงอุปกรณ์ ตำแหน่ง IP และสาเหตุความล้มเหลวเพิ่มจากประวัติ'
+        ]
+      }
+    },
+    {
+      version: '5.25',
+      kind: 'minor',
+      date: '2026-10-21',
+      items: {
+        KO: [
+          '통합체크: 결제대행사(ElementPay·JPAY)를 골라 ICOPAY 같은 대행사 거래와 일자별로 비교'
+        ],
+        EN: [
+          'Integrated check: choose ElementPay or JPAY and compare that acquirer with the same ICOPAY transactions by day'
+        ],
+        JP: [
+          '統合チェック: ElementPay・JPAY を選び、同じ代行の ICOPAY 取引と日別に比較'
+        ],
+        CH: [
+          '整合检查：选择 ElementPay 或 JPAY，按日比较该机构与 ICOPAY 中同一机构的交易'
+        ],
+        TH: [
+          'ตรวจสอบรวม: เลือก ElementPay หรือ JPAY แล้วเทียบรายวันกับธุรกรรม ICOPAY ของผู้ให้บริการเดียวกัน'
+        ]
+      }
+    },
+    {
+      version: '5.24',
+      kind: 'minor',
+      date: '2026-10-21',
+      items: {
+        KO: [
+          '통합내역: 거래시간 첫 줄은 태국시간, 새로고침 옆 시간대는 그 아래에 표시'
+        ],
+        EN: [
+          'Integrated history shows Thailand time on the first line and the timezone next to Refresh on the line below'
+        ],
+        JP: [
+          '統合履歴の取引時刻は1行目がタイ時間、再読込横の時間帯は下の行に表示'
+        ],
+        CH: [
+          '综合明细的交易时间第一行为泰国时间，刷新旁所选时区显示在下一行'
+        ],
+        TH: [
+          'ประวัติรวมแสดงเวลาไทยที่บรรทัดแรก และเขตเวลาข้างรีเฟรชที่บรรทัดถัดไป'
+        ]
+      }
+    },
+    {
+      version: '5.23',
+      kind: 'minor',
+      date: '2026-10-21',
+      items: {
+        KO: [
+          '통합내역: 번호·업체명·업체코드·거래일·거래시간·승인번호·거래번호(우리)·주문번호 순으로 표시',
+          '통합내역: 결제금액·수수료·총금액·통화는 실결제 THB, 입력통화(통화ㅣ금액)는 결제내역과 같은 입력통화'
+        ],
+        EN: [
+          'Integrated history columns start with number, merchant, merchant code, date, time, approval no., our txn no., and order no.',
+          'Integrated history: payment amount, fee, total, and currency are the charge currency (THB). Input currency matches payment history'
+        ],
+        JP: [
+          '統合履歴は番号・加盟店名・コード・取引日・時刻・承認番号・当社取引番号・注文番号の順',
+          '統合履歴の決済金額・手数料・合計・通貨は実決済THB、入力通貨は決済履歴と同じ入力通貨'
+        ],
+        CH: [
+          '综合明细按编号、商户名、商户代码、交易日、时间、批准号、我方交易号、订单号排列',
+          '综合明细的支付金额、手续费、总额、币种为实付 THB，输入币种与支付明细的输入币种相同'
+        ],
+        TH: [
+          'ประวัติรวมเรียง หมายเลข ชื่อร้าน รหัสร้าน วันที่ เวลา เลขอนุมัติ เลขรายการของเรา เลขคำสั่งซื้อ',
+          'ประวัติรวม: ยอดชำระ ค่าธรรมเนียม ยอดรวม สกุลเงินเป็นสกุลที่เรียกเก็บ (THB) สกุลที่ป้อนตรงกับประวัติการชำระ'
+        ]
+      }
+    },
+    {
+      version: '5.22',
+      kind: 'minor',
+      date: '2026-10-21',
+      items: {
+        KO: [
+          '통합내역 ElementPay: 성공·실패·환불 색을 결제내역과 같게 표시',
+          '통합내역 ElementPay: 건수·총거래·승인·실패·수수료·담보·추정정산 요약을 결제내역과 같게 표시'
+        ],
+        EN: [
+          'Integrated history for ElementPay uses the same success, failure, and refund colors as payment history',
+          'Integrated history for ElementPay shows the same count, gross, approval, failure, fee, hold, and estimated settlement summary as payment history'
+        ],
+        JP: [
+          '統合履歴のElementPayは決済履歴と同じ成功・失敗・返金の色で表示',
+          '統合履歴のElementPayは決済履歴と同じ件数・総取引・承認・失敗・手数料・担保・推定精算の要約を表示'
+        ],
+        CH: [
+          '综合明细的 ElementPay 使用与支付明细相同的成功、失败、退款颜色',
+          '综合明细的 ElementPay 显示与支付明细相同的笔数、总交易、批准、失败、手续费、保证金、预计结算汇总'
+        ],
+        TH: [
+          'ประวัติรวมของ ElementPay ใช้สีสำเร็จ ล้มเหลว และคืนเงินแบบเดียวกับประวัติการชำระ',
+          'ประวัติรวมของ ElementPay แสดงสรุปจำนวน ยอดรวม อนุมัติ ล้มเหลว ค่าธรรมเนียม หลักประกัน และยอดชำระโดยประมาณแบบเดียวกับประวัติการชำระ'
+        ]
+      }
+    },
+    {
+      version: '5.21',
+      kind: 'minor',
+      date: '2026-10-21',
+      items: {
+        KO: [
+          '운영관리 송금관리: 송금 요청을 만들고, ElementPay 관리자와 같은 송금 기록을 조회. 은행 이체 서명은 관리자 2차 인증',
+          '결제관리 통합내역: 정렬 옆에서 결제대행사를 고르면 ElementPay 결제 검색 또는 ChillPay 조회',
+          '후속 환불: 환불 접수는 승인 상태를 유지. 결제대행사에서 환불이 끝나면 환불 완료'
+        ],
+        EN: [
+          'Operations remittance: create a transfer request and view the same transfer records as the ElementPay admin. Bank transfer still needs the admin second-factor signature',
+          'Integrated history: choose the processor next to sort to search ElementPay payments or ChillPay',
+          'Follow-up refund: an accepted refund request keeps the paid status. It becomes refund completed when the processor finishes the refund'
+        ],
+        JP: [
+          '運用の送金管理: 送金依頼を作成し、ElementPay管理画面と同じ送金記録を表示。銀行振込の署名は管理画面の二要素認証',
+          '統合履歴: 並べ替えの横で決済代行を選ぶとElementPayの決済検索またはChillPay照会',
+          '後続返金: 返金受付は承認のまま。決済代行で返金が終わると返金完了'
+        ],
+        CH: [
+          '运营汇款管理：创建汇款申请，并查看与 ElementPay 管理后台相同的汇款记录。银行汇款签名仍用管理后台二次认证',
+          '综合明细：在排序旁选择支付机构后，可查询 ElementPay 支付或 ChillPay',
+          '后续退款：退款受理保持支付成功。支付机构完成退款后变为退款完成'
+        ],
+        TH: [
+          'จัดการโอนในปฏิบัติการ: สร้างคำขอโอนและดูบันทึกโอนชุดเดียวกับผู้ดูแล ElementPay ลายเซ็นโอนธนาคารยังเป็นการยืนยันขั้นที่สองของผู้ดูแล',
+          'ประวัติรวม: เลือกผู้ให้บริการข้างการจัดเรียงเพื่อค้นหาการชำระ ElementPay หรือ ChillPay',
+          'คืนเงินภายหลัง: คำขอคืนเงินที่รับแล้วคงสถานะชำระสำเร็จ และเป็นคืนเงินสำเร็จเมื่อผู้ให้บริการทำคืนเงินเสร็จ'
+        ]
+      }
+    },
+    {
+      version: '5.20',
+      kind: 'minor',
+      date: '2026-10-21',
+      items: {
+        KO: [
+          '거래명세서: 표시통화와 실결제통화가 다르면 둘 다 표시. 같으면 금액 한 줄',
+          '환불 요청(대기)에는 결제성공 메일을 다시 보내지 않음. 환불이 완료되면 환불 완료 메일'
+        ],
+        EN: [
+          'Receipts show the display amount and the charged amount when they differ. One line when they match',
+          'A refund request that is still waiting does not send another payment-success email. A refund-completed email goes out when the refund is finished'
+        ],
+        JP: [
+          '取引明細書は表示通貨と請求通貨が異なるとき両方を表示。同じときは1行',
+          '返金依頼（処理中）では決済成功メールを再送しない。返金完了時に返金完了メール'
+        ],
+        CH: [
+          '交易明细在显示币种与实付币种不同时同时显示。相同时只显示一行',
+          '退款申请仍在处理时不再发送支付成功邮件。退款完成后发送退款完成邮件'
+        ],
+        TH: [
+          'ใบเสร็จแสดงสกุลเงินที่แสดงและสกุลเงินที่เรียกเก็บเมื่อไม่เหมือนกัน ถ้าเหมือนกันแสดงบรรทัดเดียว',
+          'คำขอคืนเงินที่ยังรออยู่จะไม่ส่งอีเมลชำระสำเร็จซ้ำ ส่งอีเมลคืนเงินสำเร็จเมื่อคืนเงินเสร็จ'
+        ]
+      }
+    },
     {
       version: '5.19',
       kind: 'minor',

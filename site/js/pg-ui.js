@@ -282,9 +282,12 @@
     var raw = row.status != null ? String(row.status).trim() : '';
     if (!raw) return 'neutral';
     var low = raw.toLowerCase();
-    if (raw === '0') return 'success';
-    if (raw === '2') return 'cancel';
-    if (raw === '1' || raw === '3' || raw === '4') return 'fail';
+    if (raw === '0' || raw === '10' || raw === '00' || raw === '0000') return 'success';
+    if (raw === '2' || raw === '20') return 'cancel';
+    if (raw === '1' || raw === '3' || raw === '4' || raw === '99' || raw === 'F0' || low === 'f0') return 'fail';
+    if (raw === '30' || raw === '31') return 'refund';
+    if (raw === '21' || raw === '22' || raw === '40' || raw === '41' || raw === '42') return 'void';
+    if (raw === '08') return 'pending';
     if (/voided|void|emailvoid|manual void|email void|무효|이메일무효/.test(low)) return 'void';
     if (/refund/.test(low)) return 'refund';
     if (/cancel|cancelled|canceled/.test(low)) return 'cancel';

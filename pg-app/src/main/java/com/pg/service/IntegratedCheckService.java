@@ -2,6 +2,7 @@ package com.pg.service;
 
 import com.pg.api.dto.PayListSearchRequest;
 import com.pg.util.PayListStatusBarBuckets;
+import com.pg.util.ViewDisplayTimezoneResolver;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 통합체크 — 조회통합(JPAY Export 일별) vs 일별결제(ICOPAY 노티 적재 일별) 대조.
+ * 통합체크 — 선택한 결제대행사 일별 집계와 ICOPAY 같은 대행사 거래를 대조합니다.
  */
 @Service
 public class IntegratedCheckService {
@@ -27,13 +28,16 @@ public class IntegratedCheckService {
     private final JpayIntegratedListService jpayIntegratedListService;
     private final PayListService payListService;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
+    private final ElementPayClientApiService elementPayClientApiService;
 
     public IntegratedCheckService(JpayIntegratedListService jpayIntegratedListService,
                                   PayListService payListService,
-                                  HqLedgerSysSettingsService hqLedgerSysSettingsService) {
+                                  HqLedgerSysSettingsService hqLedgerSysSettingsService,
+                                  ElementPayClientApiService elementPayClientApiService) {
         this.jpayIntegratedListService = jpayIntegratedListService;
         this.payListService = payListService;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
+        this.elementPayClientApiService = elementPayClientApiService;
     }
 
     @Transactional(readOnly = true)
@@ -43,19 +47,40 @@ public class IntegratedCheckService {
                                                            String searchOrderNo,
                                                            String searchPayDivCd,
                                                            String searchOrderDir,
+                                                           String searchAcquirer,
                                                            PayListSearchRequest payTemplate,
                                                            Authentication authentication) {
+        String acquirer = normalizeAcquirer(searchAcquirer);
         ZoneId ledgerTz = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
-        LocalDate today = LocalDate.now(ledgerTz);
+        ZoneId compareZone = ViewDisplayTimezoneResolver.currentCompareAlign().orElse(ledgerTz);
+        LocalDate today = LocalDate.now(compareZone);
         LocalDate effectiveTo = tTo.isAfter(today) ? today : tTo;
 
-        Map<String, Object> jpayPayload = jpayIntegratedListService.buildDailyIntegratedSummary(
-                tFrom, tTo, effectiveTo, searchKeyword, searchOrderNo, searchPayDivCd, searchOrderDir, authentication);
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> jpayDays = jpayPayload.get("list") instanceof List<?> jl
-                ? (List<Map<String, Object>>) jl : List.of();
+        List<Map<String, Object>> acquirerDays;
+        boolean acquirerCapped = false;
+        Map<String, Object> jpaySyncMeta = Map.of();
+        if ("ELEMENTPAY".equals(acquirer)) {
+            String epKeyword = searchOrderNo != null && !searchOrderNo.isBlank() ? searchOrderNo : searchKeyword;
+            String epField = searchOrderNo != null && !searchOrderNo.isBlank() ? "ORDER_NO" : "ALL";
+            Map<String, Object> ep = elementPayClientApiService.buildDailyCheckRows(
+                    tFrom, effectiveTo, epField, epKeyword, searchPayDivCd, compareZone);
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> epDays = ep.get("list") instanceof List<?> el
+                    ? (List<Map<String, Object>>) el : List.of();
+            acquirerDays = epDays;
+            acquirerCapped = Boolean.TRUE.equals(ep.get("capped"));
+        } else {
+            Map<String, Object> jpayPayload = jpayIntegratedListService.buildDailyIntegratedSummary(
+                    tFrom, tTo, effectiveTo, searchKeyword, searchOrderNo, searchPayDivCd, searchOrderDir, authentication);
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> jpayDays = jpayPayload.get("list") instanceof List<?> jl
+                    ? (List<Map<String, Object>>) jl : List.of();
+            acquirerDays = jpayDays;
+            jpaySyncMeta = jpayIntegratedListService.jpaySyncMetaMap();
+        }
 
         PayListSearchRequest payReq = PayListSearchRequest.shallowCopy(payTemplate);
+        payReq.setSearchPgCd(acquirer);
         payReq.setSearchFromDate(tFrom);
         payReq.setSearchToDate(effectiveTo);
         if (searchKeyword != null && !searchKeyword.isBlank()) {
@@ -67,7 +92,7 @@ public class IntegratedCheckService {
         List<Map<String, Object>> icopayDays = payListService.buildDailyPayListSummary(
                 tFrom, effectiveTo, payReq, authentication);
 
-        Map<String, Map<String, Object>> jpayByDay = indexByDay(jpayDays);
+        Map<String, Map<String, Object>> jpayByDay = indexByDay(acquirerDays);
         Map<String, Map<String, Object>> icopayByDay = indexByDay(icopayDays);
 
         List<LocalDate> orderedDays = new ArrayList<>();
@@ -86,7 +111,7 @@ public class IntegratedCheckService {
             String day = d.toString();
             Map<String, Object> jRow = jpayByDay.getOrDefault(day, emptyJpayDay(day));
             Map<String, Object> iRow = icopayByDay.getOrDefault(day, emptyIcopayDay(day));
-            Map<String, Object> jSnap = snapshotFromJpayDay(jRow);
+            Map<String, Object> jSnap = snapshotFromExternalDay(jRow, acquirer);
             Map<String, Object> iSnap = snapshotFromIcopayDay(iRow);
             List<String> mismatchKeys = diffKeys(jSnap, iSnap);
             Map<String, Object> one = new LinkedHashMap<>();
@@ -94,6 +119,9 @@ public class IntegratedCheckService {
             one.put("rowNo", rowNo++);
             one.put("match", mismatchKeys.isEmpty());
             one.put("mismatchKeys", mismatchKeys);
+            one.put("acquirerCode", acquirer);
+            one.put("acquirerLabel", acquirerLabel(acquirer));
+            one.put("acquirer", jSnap);
             one.put("jpay", jSnap);
             one.put("icopay", iSnap);
             out.add(one);
@@ -103,17 +131,27 @@ public class IntegratedCheckService {
         payload.put("list", out);
         Map<String, Object> meta = new LinkedHashMap<>();
         meta.put("integratedCheck", true);
-        Map<String, Object> syncMeta = jpayIntegratedListService.jpaySyncMetaMap();
-        meta.putAll(syncMeta);
-        meta.put("jpayIntegrated", true);
-        meta.put("integratedCheckNote",
-                "JPAY(조회통합·DB Export 캐시·거래일)과 ICOPAY(일별결제·노티 적재일)를 일자별로 대조합니다. "
-                        + "JPAY는 전산설정 JPAY 통합개요 스케줄로 자동 동기화·DB 저장되며 로그인 후 [검색]만으로 조회됩니다. "
-                        + "즉시 갱신이 필요할 때만 [JPAY 동기화]를 사용하세요.");
-        Object cached = syncMeta.get("cachedTotal");
-        if (cached instanceof Number n && n.longValue() == 0L) {
-            meta.put("note",
-                    "저장된 JPAY Export 캐시가 없습니다. 전산설정관리에서 JPAY 자동 동기화 주기를 켜거나 [JPAY 동기화]를 실행하세요.");
+        meta.put("acquirer", acquirer);
+        meta.put("acquirerLabel", acquirerLabel(acquirer));
+        meta.putAll(jpaySyncMeta);
+        meta.put("jpayIntegrated", "JPAY".equals(acquirer));
+        if ("ELEMENTPAY".equals(acquirer)) {
+            meta.put("integratedCheckNote",
+                    "ElementPay 결제 조회와 ICOPAY에 적재된 ElementPay 거래를 일자별로 대조합니다. "
+                            + "금액은 실결제 THB 승인금액입니다.");
+            if (acquirerCapped) {
+                meta.put("note", "ElementPay 조회 건수가 많아 최근 5,000건까지만 대조했습니다.");
+            }
+        } else {
+            meta.put("integratedCheckNote",
+                    "JPAY(조회통합·DB Export 캐시·거래일)과 ICOPAY에 적재된 JPAY 거래를 일자별로 대조합니다. "
+                            + "JPAY는 전산설정 JPAY 통합개요 스케줄로 자동 동기화·DB 저장되며 로그인 후 [검색]만으로 조회됩니다. "
+                            + "즉시 갱신이 필요할 때만 [JPAY 동기화]를 사용하세요.");
+            Object cached = jpaySyncMeta.get("cachedTotal");
+            if (cached instanceof Number n && n.longValue() == 0L) {
+                meta.put("note",
+                        "저장된 JPAY Export 캐시가 없습니다. 전산설정관리에서 JPAY 자동 동기화 주기를 켜거나 [JPAY 동기화]를 실행하세요.");
+            }
         }
         if (tTo.isAfter(today)) {
             meta.put("displayToDate", today.toString());
@@ -155,9 +193,21 @@ public class IntegratedCheckService {
         return m;
     }
 
-    private static Map<String, Object> snapshotFromJpayDay(Map<String, Object> row) {
+    private static String normalizeAcquirer(String raw) {
+        String v = raw != null ? raw.trim().toUpperCase(java.util.Locale.ROOT) : "";
+        if ("ELEMENTPAY".equals(v)) {
+            return "ELEMENTPAY";
+        }
+        return "JPAY";
+    }
+
+    private static String acquirerLabel(String acquirer) {
+        return "ELEMENTPAY".equals(acquirer) ? "ElementPay" : "JPAY";
+    }
+
+    private static Map<String, Object> snapshotFromExternalDay(Map<String, Object> row, String source) {
         Map<String, Object> snap = new LinkedHashMap<>();
-        snap.put("source", "JPAY");
+        snap.put("source", source);
         snap.put("totalCount", longVal(row.get("totalElements")));
         snap.put("statusBucketCounts", bucketMap(row.get("statusBucketCounts")));
         Object metaObj = row.get("meta");

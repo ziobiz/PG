@@ -145,25 +145,25 @@
     ]
   };
 
-  /** 통합내역(/calc/chillPayTrList) VIEW SETTING·조직항목설정 기본안 (고정: 번호·TransactionId·업체·거래일·거래시간·Route) */
+  /** 통합내역(/calc/chillPayTrList) VIEW SETTING·조직항목설정 기본안 (고정: 번호·업체·거래일·거래시간·승인번호·거래번호·주문번호) */
   w.PG_CHILL_PAY_TR_VIEW_DEFAULTS = {
     viewSettingDefaultSelectedKeys: [
-      'routeNo', 'merchant', 'customer', 'orderNo', 'paymentChannel',
-      'payCompletedAt', 'amount', 'fee', 'totalAmount', 'currency', 'status', 'settled', 'icopay'
+      'amount', 'icopay', 'fee', 'totalAmount', 'currency', 'displayPaySummary',
+      'customer', 'routeNo', 'merchant', 'paymentChannel', 'payCompletedAt', 'status', 'settled'
     ],
     orgAllowanceDefaultKeysByScope: {
       REGIONAL: null,
       MASTER_DIST: [
         'routeNo', 'merchant', 'customer', 'orderNo', 'paymentChannel', 'payCompletedAt',
-        'amount', 'refundAmount', 'fee', 'discount', 'totalAmount', 'currency', 'status', 'settled', 'icopay', 'description'
+        'amount', 'refundAmount', 'fee', 'discount', 'totalAmount', 'currency', 'displayPaySummary', 'status', 'settled', 'icopay', 'description'
       ],
       BRANCH_GROUP: [
         'routeNo', 'merchant', 'customer', 'orderNo', 'paymentChannel', 'payCompletedAt',
-        'amount', 'fee', 'totalAmount', 'currency', 'status', 'settled', 'icopay', 'refundAmount'
+        'amount', 'fee', 'totalAmount', 'currency', 'displayPaySummary', 'status', 'settled', 'icopay', 'refundAmount'
       ],
       MERCHANT: [
         'merchant', 'customer', 'orderNo', 'paymentChannel', 'payCompletedAt',
-        'amount', 'currency', 'status', 'settled', 'fee', 'totalAmount'
+        'amount', 'currency', 'displayPaySummary', 'status', 'settled', 'fee', 'totalAmount'
       ]
     }
   };

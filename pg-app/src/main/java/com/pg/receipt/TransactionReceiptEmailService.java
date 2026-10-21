@@ -207,6 +207,9 @@ public class TransactionReceiptEmailService {
         if (outcome.isPaid() && !STATUS_PAID.equals(txn.getStatus()) && !"00".equals(trimStatus(txn.getStatus()))) {
             return;
         }
+        if (outcome.isPaid() && suppressPaidReceiptWhileRefundPending(txn.getOutcomeReason())) {
+            return;
+        }
         if (outcome.isFollowUp()) {
             TransactionReceiptOutcome actual = TransactionReceiptOutcome.fromTxnStatus(txn.getStatus());
             if (actual != outcome) {
@@ -251,6 +254,13 @@ public class TransactionReceiptEmailService {
                     return;
                 }
                 if (t.getReceiptMailSentAt() != null) {
+                    return;
+                }
+                if (suppressPaidReceiptWhileRefundPending(t.getOutcomeReason())) {
+                    return;
+                }
+                if (mailSendLogService.hasSuccessfulDelivery(trnId, MAIL_KIND)) {
+                    markSent(trnId);
                     return;
                 }
                 actual = TransactionReceiptOutcome.PAID;
@@ -367,6 +377,35 @@ public class TransactionReceiptEmailService {
      * 미리보기·재발송 배지는 현재 거래 상태가 우선이다.
      * 승인 메일 종류(RECEIPT_TXN)여도 거래가 실패·취소면 성공으로 그리지 않는다.
      */
+    /**
+     * 환불 요청만 접수되고 완료 전(WAITING)이면 결제성공 메일을 다시 보내지 않는다.
+     * 환불 완료 상태의 환불 메일은 이 조건에 걸리지 않는다.
+     */
+    static boolean suppressPaidReceiptWhileRefundPending(String outcomeReason) {
+        if (outcomeReason == null || outcomeReason.isBlank()) {
+            return false;
+        }
+        String u = outcomeReason.trim().toUpperCase(Locale.ROOT);
+        return u.contains("REFUND_CREATED") || u.contains("REFUND IN PROGRESS");
+    }
+
+    /** 관리자 재발송이 고객에게 도달하면, 이후 승인 콜백이 결제성공 메일을 다시 보내지 않게 기록한다. */
+    public void acknowledgeDeliveredReceipt(String trnId, String mailKind) {
+        if (trnId == null || trnId.isBlank() || mailKind == null || mailKind.isBlank()) {
+            return;
+        }
+        String kind = mailKind.trim().toUpperCase(Locale.ROOT);
+        if ("RECEIPT_TEST".equals(kind)) {
+            return;
+        }
+        TransactionReceiptOutcome outcome = outcomeFromMailKind(kind);
+        if (outcome != null && outcome.isFollowUp()) {
+            markFollowupSent(trnId.trim());
+            return;
+        }
+        markSent(trnId.trim());
+    }
+
     static TransactionReceiptOutcome outcomeForReceiptPreview(String txnStatus, String mailKind) {
         if (mailKind != null && "RECEIPT_TEST".equalsIgnoreCase(mailKind.trim())) {
             return TransactionReceiptOutcome.PAID;
@@ -461,15 +500,18 @@ public class TransactionReceiptEmailService {
                 formatProfileTelWithDial(mp),
                 mp != null ? firstNonBlank(mp.getEmail()) : null).displayLine();
 
-        String currency = t.getDisplayCurType() != null && !t.getDisplayCurType().isBlank()
+        String chargeCurrency = t.getCurType() != null ? t.getCurType().trim().toUpperCase(Locale.ROOT) : "";
+        String displayCurrency = t.getDisplayCurType() != null && !t.getDisplayCurType().isBlank()
                 ? t.getDisplayCurType().trim().toUpperCase(Locale.ROOT)
-                : (t.getCurType() != null ? t.getCurType().trim().toUpperCase(Locale.ROOT) : "");
-        var amount = t.getDisplayAmt() != null ? t.getDisplayAmt() : t.getAmtKrw();
+                : chargeCurrency;
+        var displayAmount = t.getDisplayAmt() != null ? t.getDisplayAmt() : t.getAmtKrw();
 
         return TransactionReceiptHtmlRenderer.TransactionReceiptViewModel.builder()
                 .lang(lang)
-                .currency(currency)
-                .amount(amount)
+                .currency(displayCurrency)
+                .amount(displayAmount)
+                .chargeCurrency(chargeCurrency)
+                .chargeAmount(t.getAmtKrw())
                 .acquirer(acquirer)
                 .paymentSwitcher(switcher)
                 .paymentProvider(provider)

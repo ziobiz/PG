@@ -6182,3 +6182,33 @@ html.pg-admin--tablet .pg-tablet-launch-tile {
   border-bottom-color: #b8d9ef !important;
   color: #1e4a6e !important;
 }
+.summary-total-bar.ops-remit-balance-line {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  align-self: flex-start;
+  flex: 0 0 auto;
+  margin: 8px 0 10px;
+}
+.ops-remit-balance-line .ops-remit-balance-pipe { color: #94a3b8; font-weight: 400; }
+.summary-total-bar.ops-remit-balance-line .summary-total-item.ops-remit-balance-available,
+.summary-total-bar.ops-remit-balance-line .summary-total-item.ops-remit-balance-available span {
+  color: #dc2626 !important;
+}
+/* 송금 요청 줄: 수취계좌 2배(17ch→34ch), 설명 3배(12ch→36ch), 입력 글자 가운데 */
+.screen-search-form.ops-remit-search-form select[name="remitRecipientId"],
+.screen-search-form.ops-remit-search-form select[name="remitCurrency"],
+.screen-search-form.ops-remit-search-form input[name="remitAmount"],
+.screen-search-form.ops-remit-search-form input[name="remitDescription"] {
+  text-align: center;
+  text-align-last: center;
+}
+.screen-search-form.ops-remit-search-form select[name="remitRecipientId"] {
+  width: 34ch !important;
+  min-width: 34ch !important;
+}
+.screen-search-form.ops-remit-search-form input[name="remitDescription"] {
+  width: 36ch !important;
+  min-width: 36ch !important;
+}
+.ops-remit-balance-line .ops-remit-balance-asof { color: #64748b; font-weight: 500; }

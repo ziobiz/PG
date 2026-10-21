@@ -5,6 +5,7 @@ import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.PgTrnsctn;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -73,20 +74,30 @@ public class PayListItemDto {
                 dualBase, standard, operational, viewOverride);
         TxnDualLineSpec dual = dualOpt.orElse(null);
         ZoneId interpret = dual != null ? dual.displayZone2() : standard;
-        String payDtStr = txnClock != null
-                ? (dual != null
-                ? TrnTimeDualZoneDisplay.formatWithSpecDateTime(txnClock, dual)
-                : TrnTimeDualZoneDisplay.formatDualLineDateTime(txnClock, interpret))
-                : "";
-        if (txnClock != null) {
-            LocalDate displayDate = ViewDisplayTimezoneResolver.trnDateInZone(txnClock, interpret, viewOverride);
-            row.put("trnDate", ViewDisplayTimezoneResolver.formatIsoDate(displayDate));
-            row.put("trnTime", dual != null
-                    ? TrnTimeDualZoneDisplay.formatWithSpecTimeOnly(txnClock, dual)
-                    : TrnTimeDualZoneDisplay.formatDualLineTimeOnly(txnClock, interpret));
+        String payDtStr;
+        if (txnClock != null && ViewDisplayTimezoneResolver.integratedCheckTimes()) {
+            ZoneId base = ViewDisplayTimezoneResolver.currentCompareAlign().orElse(standard);
+            ZoneId extra = viewOverride.orElse(operational);
+            Instant instant = txnClock.atZone(standard).toInstant();
+            row.put("trnDate", instant.atZone(base).toLocalDate().toString());
+            row.put("trnTime", TrnTimeDualZoneDisplay.formatInstantDualTimeOnly(instant, base, extra));
+            payDtStr = row.get("trnTime").toString();
         } else {
-            row.put("trnDate", "");
-            row.put("trnTime", "");
+            payDtStr = txnClock != null
+                    ? (dual != null
+                    ? TrnTimeDualZoneDisplay.formatWithSpecDateTime(txnClock, dual)
+                    : TrnTimeDualZoneDisplay.formatDualLineDateTime(txnClock, interpret))
+                    : "";
+            if (txnClock != null) {
+                LocalDate displayDate = ViewDisplayTimezoneResolver.trnDateInZone(txnClock, interpret, viewOverride);
+                row.put("trnDate", ViewDisplayTimezoneResolver.formatIsoDate(displayDate));
+                row.put("trnTime", dual != null
+                        ? TrnTimeDualZoneDisplay.formatWithSpecTimeOnly(txnClock, dual)
+                        : TrnTimeDualZoneDisplay.formatDualLineTimeOnly(txnClock, interpret));
+            } else {
+                row.put("trnDate", "");
+                row.put("trnTime", "");
+            }
         }
         /** 우리 시스템 거래 PK (후속조치·내부 조회용) */
         String ourTrn = t.getTrnId() != null ? t.getTrnId() : "";

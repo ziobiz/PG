@@ -21,6 +21,12 @@ public final class ViewDisplayTimezoneResolver {
     private static final DateTimeFormatter DT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private static final ThreadLocal<Optional<ZoneId>> REQUEST_OVERRIDE = new ThreadLocal<>();
+    /** 통합체크 비교정렬 시간. 비어 있으면 전산 표준 시간대. */
+    private static final ThreadLocal<Optional<ZoneId>> COMPARE_ALIGN = new ThreadLocal<>();
+    /** 통합체크 1줄(대행사) 추가 시간. */
+    private static final ThreadLocal<Optional<ZoneId>> LINE1_EXTRA = new ThreadLocal<>();
+    /** 통합체크 상세 거래시간 — 기준 1줄 + 추가 1줄. */
+    private static final ThreadLocal<Boolean> INTEGRATED_CHECK_TIMES = new ThreadLocal<>();
 
     private ViewDisplayTimezoneResolver() {
     }
@@ -29,13 +35,43 @@ public final class ViewDisplayTimezoneResolver {
         REQUEST_OVERRIDE.set(parseParam(rawParam));
     }
 
+    public static void bindCompareAlign(String rawParam) {
+        COMPARE_ALIGN.set(parseParam(rawParam));
+    }
+
+    public static void bindLine1Extra(String rawParam) {
+        LINE1_EXTRA.set(parseParam(rawParam));
+    }
+
+    public static void bindIntegratedCheckTimes(boolean on) {
+        INTEGRATED_CHECK_TIMES.set(on);
+    }
+
     public static void clearRequestOverride() {
         REQUEST_OVERRIDE.remove();
+        COMPARE_ALIGN.remove();
+        LINE1_EXTRA.remove();
+        INTEGRATED_CHECK_TIMES.remove();
     }
 
     public static Optional<ZoneId> currentRequestOverride() {
         Optional<ZoneId> v = REQUEST_OVERRIDE.get();
         return v != null ? v : Optional.empty();
+    }
+
+    public static Optional<ZoneId> currentCompareAlign() {
+        Optional<ZoneId> v = COMPARE_ALIGN.get();
+        return v != null ? v : Optional.empty();
+    }
+
+    public static Optional<ZoneId> currentLine1Extra() {
+        Optional<ZoneId> v = LINE1_EXTRA.get();
+        return v != null ? v : Optional.empty();
+    }
+
+    public static boolean integratedCheckTimes() {
+        Boolean v = INTEGRATED_CHECK_TIMES.get();
+        return v != null && v;
     }
 
     public static Optional<ZoneId> parseParam(String raw) {

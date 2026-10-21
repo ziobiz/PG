@@ -26,6 +26,11 @@ public class ViewDisplayTimezoneRequestFilter extends OncePerRequestFilter {
         }
         try {
             ViewDisplayTimezoneResolver.bindRequestOverride(request.getParameter(PARAM));
+            ViewDisplayTimezoneResolver.bindCompareAlign(request.getParameter("compareAlignTimezone"));
+            ViewDisplayTimezoneResolver.bindLine1Extra(request.getParameter("line1ExtraTimezone"));
+            String checkTimes = request.getParameter("integratedCheckTimes");
+            ViewDisplayTimezoneResolver.bindIntegratedCheckTimes(
+                    "1".equals(checkTimes) || "true".equalsIgnoreCase(checkTimes));
             filterChain.doFilter(request, response);
         } finally {
             ViewDisplayTimezoneResolver.clearRequestOverride();
@@ -36,6 +41,7 @@ public class ViewDisplayTimezoneRequestFilter extends OncePerRequestFilter {
         return uri.startsWith("/api/calc/")
                 || uri.startsWith("/api/settlement/")
                 || uri.startsWith("/api/chatbot/")
-                || uri.startsWith("/api/pay/");
+                || uri.startsWith("/api/pay/")
+                || uri.startsWith("/api/ops/");
     }
 }

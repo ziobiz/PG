@@ -83,12 +83,12 @@ public class PayListActionService {
     }
 
     @Transactional
-    public void apply(Authentication authentication, String trnId, String actionRaw) {
-        apply(authentication, trnId, actionRaw, null);
+    public String apply(Authentication authentication, String trnId, String actionRaw) {
+        return apply(authentication, trnId, actionRaw, null);
     }
 
     @Transactional
-    public void apply(Authentication authentication, String trnId, String actionRaw, String adminReason) {
+    public String apply(Authentication authentication, String trnId, String actionRaw, String adminReason) {
         if (trnId == null || trnId.isBlank()) {
             throw new IllegalArgumentException("거래번호(trnId)가 필요합니다.");
         }
@@ -132,6 +132,7 @@ public class PayListActionService {
         String prevSettledYn = t.getSettledYn();
         String actor = user != null ? user.getUsername() : null;
         String apiDetail = null;
+        boolean elementPayRefundPending = false;
 
         switch (action) {
             case EMAIL_VOID -> payFollowEmailVoidService.sendVoidRequestMail(t, actor);
@@ -148,7 +149,10 @@ public class PayListActionService {
                 if (jpay) {
                     apiDetail = jpayTradeApiService.requestRefund(t, null, refundReason);
                 } else if (elementPay) {
-                    apiDetail = elementPayPaymentService.requestRefund(t, null, refundReason);
+                    ElementPayPaymentService.RefundCallResult rr =
+                            elementPayPaymentService.requestRefundOutcome(t, null, refundReason);
+                    apiDetail = rr.detail();
+                    elementPayRefundPending = !rr.completed();
                 } else if (eximbay) {
                     apiDetail = eximbayPaymentService.requestCancel(t, refundReason);
                 } else {
@@ -159,6 +163,14 @@ public class PayListActionService {
                 }
             }
             case MANUAL_VOID, MANUAL_REFUND -> requireJpayVan(t);
+        }
+
+        if (elementPayRefundPending) {
+            TxnOutcomeReasonApplier.annotateOperationalNote(
+                    t, "ELEMENTPAY_REFUND_CREATED", "REFUND_PENDING", "ELEMENTPAY");
+            t.setChillPaymentStatus("refund waiting");
+            trnsctnRepository.save(t);
+            return "환불 요청이 접수되었습니다. 결제대행사에서 처리가 끝나면 환불 완료로 바뀝니다.";
         }
 
         String nextStatus = switch (action) {
@@ -214,6 +226,7 @@ public class PayListActionService {
                         .warn("후속 거래명세서 메일 예약 실패 trnId={}: {}", t.getTrnId(), e.getMessage());
             }
         }
+        return "처리되었습니다.";
     }
 
     private static void requireChillPayVan(PgTrnsctn t) {

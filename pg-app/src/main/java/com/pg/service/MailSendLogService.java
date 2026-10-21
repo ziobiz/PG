@@ -67,6 +67,14 @@ public class MailSendLogService {
         this.transactionReceiptEmailService = transactionReceiptEmailService;
     }
 
+    public boolean hasSuccessfulDelivery(String trnId, String mailKind) {
+        if (trnId == null || trnId.isBlank() || mailKind == null || mailKind.isBlank()) {
+            return false;
+        }
+        return mailSendLogRepository.existsByPgTrnIdAndMailKindAndStatus(
+                trnId.trim(), mailKind.trim(), STATUS_SUCCESS);
+    }
+
     /** 평문만 있는 발송(무효메일 등). HTML 없음. */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void append(String mailKind, String status, String toAddress, String subject, String body,
@@ -255,6 +263,7 @@ public class MailSendLogService {
                 ledgerSmtpMailService.sendPlainText(smtp, to, subject, plain);
             }
             append(kind, STATUS_SUCCESS, to, subject, plain, html, null, src.getPgTrnId(), actorUsername);
+            transactionReceiptEmailService.acknowledgeDeliveredReceipt(src.getPgTrnId(), kind);
             Map<String, Object> ok = new LinkedHashMap<>();
             ok.put("resent", true);
             ok.put("toAddress", to);

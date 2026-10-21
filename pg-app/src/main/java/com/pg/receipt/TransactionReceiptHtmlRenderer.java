@@ -8,6 +8,8 @@ import java.util.Map;
 public final class TransactionReceiptHtmlRenderer {
 
     private static final String AMOUNT_BLUE = "#2563eb";
+    private static final String CHARGE_LABEL = "#111827";
+    private static final String CHARGE_AMOUNT = "#b91c1c";
 
     private TransactionReceiptHtmlRenderer() {
     }
@@ -22,7 +24,7 @@ public final class TransactionReceiptHtmlRenderer {
         String badgeBg = TransactionReceiptEmailI18n.outcomeBadgeBg(outcome);
         String badgeFg = TransactionReceiptEmailI18n.outcomeBadgeFg(outcome);
         String badgeBorder = TransactionReceiptEmailI18n.outcomeBadgeBorder(outcome);
-        String amountLine = escape(vm.currency()) + " " + escape(formatAmount(vm.amount()));
+        String amountBlock = amountBlockHtml(lang, vm);
         String eventDateLabel = eventDateLabel(labels, outcome);
 
         StringBuilder providerBlock = new StringBuilder();
@@ -61,7 +63,7 @@ public final class TransactionReceiptHtmlRenderer {
                   </table>
                 </td></tr>
                 <tr><td class="pg-receipt-amount" align="center" style="padding:8px 24px 20px 24px;border-bottom:2px solid %s;text-align:center;">
-                  <div class="pg-receipt-amount-value" align="center" style="font-size:32px;font-weight:700;color:%s;letter-spacing:0.02em;text-align:center;">%s</div>
+                  %s
                 </td></tr>
                 <tr><td class="pg-receipt-pad" style="padding:20px 24px 8px 24px;text-align:left;">
                   <div class="pg-receipt-section-title" style="font-size:11px;font-weight:700;color:#6b7280;margin-bottom:12px;letter-spacing:0.08em;text-transform:uppercase;text-align:left;">%s</div>
@@ -85,8 +87,7 @@ public final class TransactionReceiptHtmlRenderer {
                 badgeBorder,
                 escape(TransactionReceiptEmailI18n.outcomeBadge(lang, outcome)),
                 badgeFg,
-                AMOUNT_BLUE,
-                amountLine,
+                amountBlock,
                 escape(TransactionReceiptEmailI18n.serviceProvider(lang)),
                 providerBlock.toString(),
                 escape(TransactionReceiptEmailI18n.paymentDetail(lang)),
@@ -98,7 +99,16 @@ public final class TransactionReceiptHtmlRenderer {
         TransactionReceiptOutcome outcome = TransactionReceiptOutcome.parse(vm.outcomeKind());
         StringBuilder sb = new StringBuilder();
         sb.append(TransactionReceiptEmailI18n.outcomeBadge(vm.lang(), outcome)).append('\n');
-        sb.append(vm.currency()).append(' ').append(formatAmount(vm.amount())).append("\n\n");
+        sb.append(vm.currency()).append(' ').append(formatAmount(vm.amount())).append('\n');
+        if (showsSeparateCharge(vm)) {
+            sb.append(TransactionReceiptEmailI18n.chargeCurrencyLabel(vm.lang()))
+                    .append(' ')
+                    .append(vm.chargeCurrency())
+                    .append(' ')
+                    .append(formatAmount(vm.chargeAmount()))
+                    .append('\n');
+        }
+        sb.append('\n');
         sb.append(TransactionReceiptEmailI18n.serviceProvider(vm.lang())).append("\n");
         line(sb, labels.get("acquirer"), vm.acquirer());
         line(sb, labels.get("paymentSwitcher"), vm.paymentSwitcher());
@@ -120,6 +130,34 @@ public final class TransactionReceiptHtmlRenderer {
             line(sb, labels.get("paymentMethod"), vm.paymentMethod());
         }
         return sb.toString();
+    }
+
+    static boolean showsSeparateCharge(TransactionReceiptViewModel vm) {
+        if (vm == null || vm.chargeCurrency() == null || vm.chargeCurrency().isBlank() || vm.chargeAmount() == null) {
+            return false;
+        }
+        if (vm.currency() == null || vm.currency().isBlank() || vm.amount() == null) {
+            return false;
+        }
+        return !vm.currency().trim().equalsIgnoreCase(vm.chargeCurrency().trim());
+    }
+
+    private static String amountBlockHtml(String lang, TransactionReceiptViewModel vm) {
+        String displayLine = escape(vm.currency()) + " " + escape(formatAmount(vm.amount()));
+        String display = """
+                <div class="pg-receipt-amount-value" align="center" style="font-size:32px;font-weight:700;color:%s;letter-spacing:0.02em;text-align:center;">%s</div>
+                """.formatted(AMOUNT_BLUE, displayLine);
+        if (!showsSeparateCharge(vm)) {
+            return display;
+        }
+        String chargeLine = escape(vm.chargeCurrency()) + " " + escape(formatAmount(vm.chargeAmount()));
+        String chargeLabel = escape(TransactionReceiptEmailI18n.chargeCurrencyLabel(lang));
+        return display + """
+                <div class="pg-receipt-charge-amount" align="center" style="margin-top:8px;font-size:14px;font-weight:700;line-height:1.4;text-align:center;">
+                  <span style="color:%s;">%s</span>
+                  <span style="color:%s;"> %s</span>
+                </div>
+                """.formatted(CHARGE_LABEL, chargeLabel, CHARGE_AMOUNT, chargeLine);
     }
 
     private static String eventDateLabel(Map<String, String> labels, TransactionReceiptOutcome outcome) {
@@ -286,7 +324,9 @@ public final class TransactionReceiptHtmlRenderer {
             String authorizedDateTime,
             String approvalCode,
             String paymentMethod,
-            String outcomeKind
+            String outcomeKind,
+            String chargeCurrency,
+            BigDecimal chargeAmount
     ) {
         public static Builder builder() {
             return new Builder();
@@ -316,12 +356,21 @@ public final class TransactionReceiptHtmlRenderer {
                 data.put("outcomeKind", v != null ? v.name() : TransactionReceiptOutcome.PAID.name());
                 return this;
             }
+            public Builder chargeCurrency(String v) { data.put("chargeCurrency", v); return this; }
+            public Builder chargeAmount(BigDecimal v) {
+                data.put("chargeAmount", v != null ? v.toPlainString() : null);
+                return this;
+            }
 
             public TransactionReceiptViewModel build() {
                 BigDecimal amt = null;
+                BigDecimal chargeAmt = null;
                 try {
                     if (data.get("amount") != null) {
                         amt = new BigDecimal(data.get("amount"));
+                    }
+                    if (data.get("chargeAmount") != null) {
+                        chargeAmt = new BigDecimal(data.get("chargeAmount"));
                     }
                 } catch (Exception ignored) {
                 }
@@ -342,7 +391,9 @@ public final class TransactionReceiptHtmlRenderer {
                         data.get("authorizedDateTime"),
                         data.get("approvalCode"),
                         data.get("paymentMethod"),
-                        data.get("outcomeKind"));
+                        data.get("outcomeKind"),
+                        data.get("chargeCurrency"),
+                        chargeAmt);
             }
         }
     }

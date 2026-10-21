@@ -117,10 +117,12 @@ public class ElementPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandl
             splitPayPaymentHookService.onTxnStatusChange(t.getOrderNo(), t.getStatus(), t.getTrnId());
         } catch (Exception ignored) {
         }
-        try {
-            transactionReceiptEmailService.scheduleIfDue(t);
-        } catch (Exception e) {
-            log.warn("ElementPay 노티 거래명세서 메일 연동 실패 trnId={}: {}", t.getTrnId(), e.getMessage());
+        if (spec.schedulesCustomerReceipt()) {
+            try {
+                transactionReceiptEmailService.scheduleIfDue(t);
+            } catch (Exception e) {
+                log.warn("ElementPay 노티 거래명세서 메일 연동 실패 trnId={}: {}", t.getTrnId(), e.getMessage());
+            }
         }
         try {
             merchantOutboundNotifyService.scheduleAfterTxnCommit(t, in, notifyChannel);

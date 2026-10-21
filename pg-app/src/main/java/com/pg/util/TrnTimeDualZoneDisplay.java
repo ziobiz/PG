@@ -93,6 +93,22 @@ public final class TrnTimeDualZoneDisplay {
                 spec.tag1(), spec.displayZone1(), spec.tag2(), spec.displayZone2());
     }
 
+    /** Instant 를 두 시간대 시각으로. 같은 시간대면 한 줄. */
+    public static String formatInstantDualTimeOnly(Instant instant, ZoneId zone1, ZoneId zone2) {
+        if (instant == null) {
+            return "";
+        }
+        ZoneId z1 = zone1 != null ? zone1 : LEGACY_DEFAULT_STANDARD;
+        ZoneId z2 = zone2 != null ? zone2 : LEGACY_DEFAULT_OPERATIONAL;
+        String t1 = LedgerZoneDisplayTag.zoneIdToShortTag(z1);
+        String t2 = LedgerZoneDisplayTag.zoneIdToShortTag(z2);
+        if (z1.equals(z2)) {
+            return t1 + " " + TIME.format(LocalTime.ofInstant(instant, z1));
+        }
+        return t1 + " " + TIME.format(LocalTime.ofInstant(instant, z1)) + "\n"
+                + t2 + " " + TIME.format(LocalTime.ofInstant(instant, z2));
+    }
+
     /** 총판 설정 2줄(시각만). 동일 {@link ZoneId}·동일 태그면 1줄. */
     public static String formatConfigurableDualLineTimeOnly(LocalDateTime naiveWallClock, ZoneId naiveInterpretZone,
                                                             String tag1, ZoneId display1, String tag2, ZoneId display2) {

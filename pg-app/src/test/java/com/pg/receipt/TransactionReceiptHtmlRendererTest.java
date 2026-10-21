@@ -36,6 +36,45 @@ class TransactionReceiptHtmlRendererTest {
     }
 
     @Test
+    void displayFxShowsChargeCurrencyBesideDisplayAmount() {
+        var vm = TransactionReceiptHtmlRenderer.TransactionReceiptViewModel.builder()
+                .lang("KOR")
+                .currency("JPY")
+                .amount(new BigDecimal("90"))
+                .chargeCurrency("THB")
+                .chargeAmount(new BigDecimal("20.00000000"))
+                .merchant("Sample Merchant")
+                .orderNumber("ORD-1")
+                .outcomeKind(TransactionReceiptOutcome.PAID)
+                .build();
+        String html = TransactionReceiptHtmlRenderer.render(vm);
+        assertTrue(html.contains("JPY 90"));
+        assertTrue(html.contains("#2563eb"));
+        assertTrue(html.contains("결제통화"));
+        assertTrue(html.contains("#111827"));
+        assertTrue(html.contains("THB 20"));
+        assertTrue(html.contains("#b91c1c"));
+        String plain = TransactionReceiptHtmlRenderer.renderPlainText(vm);
+        assertTrue(plain.contains("JPY 90"));
+        assertTrue(plain.contains("결제통화 THB 20"));
+    }
+
+    @Test
+    void sameCurrencyKeepsSingleAmountLine() {
+        var vm = TransactionReceiptHtmlRenderer.TransactionReceiptViewModel.builder()
+                .lang("KOR")
+                .currency("THB")
+                .amount(new BigDecimal("20"))
+                .chargeCurrency("THB")
+                .chargeAmount(new BigDecimal("20"))
+                .outcomeKind(TransactionReceiptOutcome.PAID)
+                .build();
+        String html = TransactionReceiptHtmlRenderer.render(vm);
+        assertTrue(html.contains("THB 20"));
+        assertTrue(!html.contains("결제통화"));
+    }
+
+    @Test
     void voidHtmlUsesVoidBadgeInEnglish() {
         var vm = sample(TransactionReceiptOutcome.VOIDED, "ENG");
         String html = TransactionReceiptHtmlRenderer.render(vm);

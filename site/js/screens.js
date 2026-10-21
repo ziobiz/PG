@@ -2350,6 +2350,29 @@
     + '</div></div>'
     + '</div>';
   }
+  /** 본사설정 — 계좌관리. 송금 수취계좌는 이 화면에서만 추가합니다. */
+  function hqRemitAccountStaticHtml() {
+    return ''
+    + '<div class="p-2"><div class="card mb-3"><div class="card-header fw-semibold" data-pg-ui-t="송금계좌관리">송금계좌관리</div><div class="card-body">'
+    + '<p class="small text-muted mb-2" data-pg-ui-t="ElementPay에 이미 있는 수취계좌는 아래 목록으로 가져옵니다. 회사 지급계좌도 포함되므로 같은 계좌를 다시 넣지 않습니다. 새 계좌만 구분과 은행을 고른 뒤 계좌 추가를 누르세요.">ElementPay에 이미 있는 수취계좌는 아래 목록으로 가져옵니다. 회사 지급계좌도 포함되므로 같은 계좌를 다시 넣지 않습니다. 새 계좌만 구분과 은행을 고른 뒤 계좌 추가를 누르세요.</p>'
+    + '<div class="row g-2 align-items-end mb-3">'
+    + '<div class="col-6 col-md-2"><label class="form-label small mb-0" for="hqRemitType" data-pg-ui-t="구분">구분</label><select id="hqRemitType" class="form-select form-select-sm"><option value="company" data-pg-ui-t="회사">회사</option><option value="personal" data-pg-ui-t="개인">개인</option></select></div>'
+    + '<div class="col-12 col-md-3"><label class="form-label small mb-0" for="hqRemitBank" data-pg-ui-t="은행">은행</label><select id="hqRemitBank" class="form-select form-select-sm"><option value="" data-pg-ui-t="은행 선택">은행 선택</option></select></div>'
+    + '<div class="col-12 col-md-3"><label class="form-label small mb-0" for="hqRemitAccountNo" data-pg-ui-t="계좌번호">계좌번호</label><input id="hqRemitAccountNo" class="form-control form-control-sm" data-pg-ui-placeholder="숫자만" placeholder="숫자만"></div>'
+    + '<div class="col-12 col-md-4"><label class="form-label small mb-0" for="hqRemitName" data-pg-ui-t="예금주">예금주</label><input id="hqRemitName" class="form-control form-control-sm"></div>'
+    + '<div class="col-6 col-md-1"><label class="form-label small mb-0" for="hqRemitCountry" data-pg-ui-t="국가">국가</label><input id="hqRemitCountry" class="form-control form-control-sm" value="TH" maxlength="2"></div>'
+    + '<div class="col-6 col-md-2"><label class="form-label small mb-0" for="hqRemitCitizen" data-pg-ui-t="실명번호">실명번호</label><input id="hqRemitCitizen" class="form-control form-control-sm"></div>'
+    + '<div class="col-12 col-md-3"><label class="form-label small mb-0" for="hqRemitPhone" data-pg-ui-t="연락처">연락처</label><input id="hqRemitPhone" class="form-control form-control-sm"></div>'
+    + '<div class="col-12 col-md-3"><label class="form-label small mb-0" for="hqRemitEmail" data-pg-ui-t="이메일">이메일</label><input id="hqRemitEmail" class="form-control form-control-sm"></div>'
+    + '<div class="col-12 col-md-3"><div class="form-check mt-3"><input class="form-check-input" type="checkbox" id="hqRemitDefault"><label class="form-check-label small" for="hqRemitDefault" data-pg-ui-t="기본 수취계좌로 지정">기본 수취계좌로 지정</label></div></div>'
+    + '<div class="col-12 col-md-2"><button type="button" class="btn btn-primary btn-sm w-100" id="hqRemitAddBtn" data-pg-ui-t="계좌 추가">계좌 추가</button></div>'
+    + '</div>'
+    + '<div id="hqRemitAccountNote" class="small text-danger mb-2"></div>'
+    + '<div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0"><thead class="table-light"><tr>'
+    + '<th data-pg-ui-t="기본">기본</th><th data-pg-ui-t="예금주">예금주</th><th data-pg-ui-t="계좌끝자리">계좌끝자리</th><th data-pg-ui-t="국가">국가</th><th data-pg-ui-t="구분">구분</th><th data-pg-ui-t="작업">작업</th>'
+    + '</tr></thead><tbody id="hqRemitAccountTbody"><tr><td colspan="6" class="text-muted text-center" data-pg-ui-t="조회 중…">조회 중…</td></tr></tbody></table></div>'
+    + '</div></div></div>';
+  }
   /** 본사설정 — 환수/미수금 (본사 기본 무효·환불·미수금 + 총판·가맹) — getScreenHtml 呼び出し時に L 適用 */
   function hqReceivableRecoveryStaticHtml() {
     return ''
@@ -3389,6 +3412,12 @@
       summary: [],
       buttons: [],
       staticHtml: hqSettlementAdminStaticHtml
+    },
+    '/hq/remitAccountMng': {
+      hideListGrid: true,
+      summary: [],
+      buttons: [],
+      staticHtml: hqRemitAccountStaticHtml
     },
     '/hq/receivableRecoverySettings': {
       hideListGrid: true,
@@ -6299,8 +6328,11 @@
       tableColumnGuide: true,
       /** PG 원문 일시는 trnDate·trnTime·payCompletedAt와 중복 — VIEW SETTING 제외 */
       columnGuideHiddenKeys: ['transactionDate', 'paymentDate'],
-      /** VIEW SETTING에서 숨길 수 없는 열: 결제내역 통합과 동일한 앞부분(번호·거래ID·업체·거래일시·Route) */
-      columnGuideFixedKeys: ['rowNo', 'transactionId', 'compNm', 'compId', 'trnDate', 'trnTime'],
+      /** VIEW SETTING에서 숨길 수 없는 열: 번호·업체·거래일시·승인번호·거래번호(우리)·주문번호 */
+      columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'trnDate', 'trnTime', 'transactionId', 'trnId', 'orderNo'],
+      headerGroups: [
+        { label: '입력통화', keys: ['displayPaySummary'] }
+      ],
       searchFormClass: 'screen-search-form pay-mng-search-form',
       searchRows: [
         [
@@ -6315,7 +6347,11 @@
             { v: 'Merchant', t: 'Merchant' },
             { v: 'Customer', t: '고객' },
             { v: 'Status', t: '상태' }
-          ], size: 12 }
+          ], size: 12 },
+          { label: '결제대행사', type: 'select', name: 'searchAcquirer', options: [
+            { v: 'ELEMENTPAY', t: 'ElementPay' },
+            { v: 'CHILLPAY', t: 'ChillPay' }
+          ], size: 14 }
         ],
         [
           { label: '검색구분', type: 'select', name: 'searchFieldType', options: [
@@ -6354,27 +6390,29 @@
         { id: 'excelDownBtn', label: '엑셀다운로드', cls: 'btn-info' }
       ],
       columns: [
-        { key: 'rowNo', label: 'No.' },
-        { key: 'transactionId', label: '승인번호' },
+        { key: 'rowNo', label: '번호' },
         { key: 'compNm', label: '업체명' },
         { key: 'compId', label: '업체코드' },
         { key: 'trnDate', label: '거래일' },
         { key: 'trnTime', label: '거래시간' },
-        { key: 'routeNo', label: '루트' },
-        { key: 'merchant', label: 'Merchant(MID)' },
-        { key: 'customer', label: '고객' },
+        { key: 'transactionId', label: '승인번호' },
+        { key: 'trnId', label: '거래번호(우리)' },
         { key: 'orderNo', label: '주문번호' },
-        { key: 'paymentChannel', label: 'PaymentChannel' },
-        { key: 'payCompletedAt', label: '결제시각' },
         { key: 'amount', label: '결제금액' },
-        { key: 'refundAmount', label: 'RefundAmount' },
+        { key: 'icopay', label: 'ICOPAY' },
         { key: 'fee', label: '수수료' },
-        { key: 'discount', label: 'Discount' },
         { key: 'totalAmount', label: '총금액' },
         { key: 'currency', label: '통화' },
+        { key: 'displayPaySummary', label: '통화ㅣ금액', columnGuideLabel: '입력통화' },
+        { key: 'customer', label: '고객' },
+        { key: 'routeNo', label: '루트' },
+        { key: 'merchant', label: 'Merchant(MID)' },
+        { key: 'paymentChannel', label: 'PaymentChannel' },
+        { key: 'payCompletedAt', label: '결제시각' },
+        { key: 'refundAmount', label: 'RefundAmount' },
+        { key: 'discount', label: 'Discount' },
         { key: 'status', label: '상태' },
         { key: 'settled', label: '정산' },
-        { key: 'icopay', label: 'ICOPAY' },
         { key: 'description', label: 'Description' },
         { key: 'transactionDate', label: '거래일자' },
         { key: 'paymentDate', label: 'PaymentDate(원문)' }
@@ -6410,6 +6448,10 @@
             { v: 'MID', t: 'MID' }
           ], size: 11 },
           { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 22 },
+          { label: '결제대행사', type: 'select', name: 'searchAcquirer', options: [
+            { v: 'ELEMENTPAY', t: 'ElementPay' },
+            { v: 'JPAY', t: 'JPAY' }
+          ], size: 12 },
           { label: '상태구분', type: 'select', name: 'searchPayDivCd', options: [
             { v: '', t: '전체' },
             { v: '10', t: '성공' },
@@ -6422,9 +6464,11 @@
         ]
       ],
       noticeList: [
-        'JPAY(일별조회·DB Export 캐시·거래일)와 ICOPAY(일별결제·노티 적재일)를 같은 거래일자 구간에서 일자별로 나란히 비교합니다. 값이 같으면 Ok, 다르면 불일치 셀만 강조·Check로 표시됩니다.',
-        'JPAY 또는 ICOPAY 행을 더블클릭하면 아래 「선택 일자 상세」에 해당 일·운영사 거래 목록이 표시됩니다(JPAY=통합개요, ICOPAY=일별결제와 동일 API).',
-        'JPAY는 통합개요와 동일하게 DB(tb_jpay_portal_export_cache)에 저장되며, 본사설정 전산설정관리의 JPAY 통합개요 스케줄로 자동 동기화됩니다. 로그인 후 [검색]만으로 조회할 수 있고, 즉시 갱신이 필요할 때만 [JPAY 동기화]를 사용하세요. 조회 기간은 최대 93일입니다.'
+        '결제대행사를 고르면 그 대행사 일별 집계와 ICOPAY에 적재된 같은 대행사 거래를 일자별로 비교합니다. 값이 같으면 Ok, 다르면 불일치 셀만 강조·Check로 표시됩니다. 금액은 실결제 승인금액입니다.',
+        '대행사 행 또는 ICOPAY 행을 더블클릭하면 아래 「선택 일자 상세」에 해당 일 거래 목록이 표시됩니다.',
+        'ElementPay는 검색할 때 결제대행사에서 바로 가져옵니다. JPAY는 저장된 조회 캐시이며, JPAY를 고른 뒤에만 동기화 버튼이 나옵니다. 조회 기간은 최대 93일입니다.',
+        'ElementPay 건수가 아주 많으면 최근 5,000건까지 대조합니다. JPAY를 고르면 상단 최근동기화 시각이 통합개요와 같습니다.',
+        '새로고침 왼쪽 시간 3개: 비교정렬은 ElementPay·ICOPAY 일자와 거래시간 1줄의 기준입니다. 1줄추가는 대행사(ElementPay·JPAY) 상세의 추가 시간, 2줄추가는 ICOPAY 상세의 추가 시간입니다. 본사설정이면 비교정렬은 전산 표준, 추가 시간은 전산 운영 시간대입니다.'
       ],
       summary: ['건수'],
       buttons: [
@@ -6455,7 +6499,7 @@
         { key: 'payCur_CNY', label: 'CNY', currencyCode: 'CNY' },
         { key: 'checkStatus', label: '상태' }
       ],
-      emptyMessage: '거래일자를 지정한 뒤 [검색]을 누르세요. JPAY 캐시가 없으면 전산설정 스케줄 또는 [JPAY 동기화]를 확인하세요.'
+      emptyMessage: '거래일자와 결제대행사를 지정한 뒤 [검색]을 누르세요.'
     },
     '/calc/jpayTrList': {
       listSortDirAnchor: 'refresh',
@@ -8567,6 +8611,40 @@
         { key: 'releasedReason', label: '해지사유', columnGuideLabel: '해지 시 입력한 사유 본문' }
       ]
     },
+    '/ops/remittance': {
+      emptyMessage: '조회된 데이터가 없습니다.',
+      paginationDefaultSize: 20,
+      paginationSizeOptions: [20, 50, 100],
+      searchFormClass: 'ops-remit-search-form',
+      searchRows: [
+        [{ type: 'customHtml', html:
+          '<div class="small text-muted ops-remit-hint" data-pg-ui-t="계좌는 본사설정 계좌관리에서 등록합니다. 여기서는 등록된 수취계좌와 금액, 설명만 입력합니다. 은행 이체는 ElementPay 관리자에서 담당자가 2차 인증으로 서명한 뒤에 진행됩니다.">계좌는 본사설정 계좌관리에서 등록합니다. 여기서는 등록된 수취계좌와 금액, 설명만 입력합니다. 은행 이체는 ElementPay 관리자에서 담당자가 2차 인증으로 서명한 뒤에 진행됩니다.</div>' }],
+        [
+          { label: '수취계좌', type: 'select', name: 'remitRecipientId', options: [{ v: '', t: '수취계좌 선택' }] },
+          { label: '금액', type: 'text', name: 'remitAmount', placeholder: '0.00' },
+          { label: '통화', type: 'select', name: 'remitCurrency', options: [{ v: 'THB', t: 'THB' }, { v: 'USD', t: 'USD' }] },
+          { label: '설명', type: 'text', name: 'remitDescription', placeholder: '송금 설명' },
+          { type: 'button', name: 'remitRequest', label: '송금 요청' },
+          { type: 'searchBtn', label: '목록 조회' }
+        ]
+      ],
+      buttons: [{ id: 'searchBtn', label: '목록 조회', cls: 'btn-primary' }],
+      columns: [
+        { key: 'rowNo', label: '번호' },
+        { key: 'createdAt', label: '등록일시' },
+        { key: 'orderId', label: '주문번호' },
+        { key: 'statusLabel', label: '상태' },
+        { key: 'holder', label: '예금주' },
+        { key: 'bank', label: '은행' },
+        { key: 'accountLast', label: '계좌끝자리' },
+        { key: 'clientAmount', label: '송금금액' },
+        { key: 'clientCurrency', label: '통화' },
+        { key: 'fee', label: '수수료' },
+        { key: 'currency', label: '정산통화' },
+        { key: 'description', label: '설명' },
+        { key: 'id', label: '송금번호' }
+      ]
+    },
     '/ops/mailLog': {
       emptyMessage: '조회된 데이터가 없습니다.',
       paginationDefaultSize: 20,
@@ -9247,9 +9325,9 @@
       'URL결제내역·챗봇결제내역과 동일 API(/api/calc/payList)·그리드를 사용하며 payListVariant=SPLIT_PAY 로 구분합니다.'
     ]);
     MENU_SCREENS['/calc/payOverview'] = cloneWith('PAY_OVERVIEW', [
-      '결제개요: 통합 결제내역과 동일 검색·VIEW SETTING·금액요약을 사용합니다.',
-      '단말기(PC·iPhone·Android 등)·위치(국가 ISO2·도시, 예: KR | Seoul, 영어 고정)·IP·원인(JPAY 응답·ICOPAY 결제창 오류 포함) 열이 추가됩니다.',
-      '신규 JPAY 결제부터 단말기·위치·IP가 적재됩니다. 과거 건은 값이 없을 수 있습니다.'
+      '결제개요: 통합 결제내역과 동일 검색·VIEW SETTING·금액요약을 사용합니다. 열면 결제대행사는 ElementPay입니다. 전체를 고르면 다른 대행사도 함께 봅니다.',
+      '결제내역보다 단말기(PC·iPhone·Android 등)·위치(국가 ISO2·도시, 예: KR | Seoul, 영어 고정)·IP·원인(실패·거절·결제창 오류)이 더 나옵니다. ElementPay·JPAY 모두 같은 열입니다.',
+      'ElementPay·JPAY 신규 결제부터 단말기·위치·IP·실패 원인이 적재됩니다. 과거 건은 값이 없을 수 있습니다.'
     ]);
     MENU_SCREENS['/pay/jpaySubscription'] = {
       emptyMessage: '조회된 구독이 없습니다.',
@@ -9751,6 +9829,11 @@
     }
     if (field.type === 'button' && field.name === 'searchReset') {
       inner = '<div class="search-cell-input"><button type="button" class="btn btn-outline-secondary btn-sm search-reset-btn" data-pg-i18n-reset="1">' + escUi(L(String(field.label || '초기화'))) + '</button></div>';
+      return wrapSearchCell(inner, false);
+    }
+    if (field.type === 'button' && field.name === 'remitRequest') {
+      var remitKey = String(field.label || '송금 요청');
+      inner = '<div class="search-cell-input"><button type="button" class="btn btn-primary btn-sm ops-remit-request-btn"><span data-pg-ui-t="' + escDA(remitKey) + '">' + escUi(L(remitKey)) + '</span></button></div>';
       return wrapSearchCell(inner, false);
     }
     if (field.type === 'checkbox') {
@@ -10382,6 +10465,17 @@
       if (excelIdx < 0 && (id === 'excelBtn' || id === 'excelDownBtn' || lab.indexOf('엑셀') !== -1 || lab.indexOf('Excel') !== -1)) excelIdx = i;
     }
     var hello = { id: 'viewSettingHelloBtn', label: L('헬로'), cls: 'btn-view-setting-hello', _viewSettingHello: true };
+    if (su === '/ops/remittance') {
+      var remitSearchIdx = -1;
+      for (var ri = 0; ri < out.length; ri++) {
+        var rb = out[ri];
+        if (!rb || rb._viewSettingHello) continue;
+        if (String(rb.id || '') === 'searchBtn' || String(rb.label || '') === '목록 조회') remitSearchIdx = ri;
+      }
+      if (remitSearchIdx >= 0) out.splice(remitSearchIdx + 1, 0, hello);
+      else out.push(hello);
+      return out;
+    }
     if (refreshIdx >= 0 && excelIdx >= 0 && excelIdx > refreshIdx) {
       out.splice(excelIdx, 0, hello);
     } else if (excelIdx >= 0) {
@@ -10480,12 +10574,18 @@
       var sortPlaced = false;
       var tzPlaced = false;
       var showViewTz = typeof window.PG_VIEW_DISPLAY_TZ !== 'undefined' && window.PG_VIEW_DISPLAY_TZ.screenHasTxnDatetimeColumns(cfg);
+      function viewTzToolbarHtml() {
+        if (screenUrl === '/calc/integratedCheck' && typeof window.PG_VIEW_DISPLAY_TZ.buildIntegratedCheckToolbarHtml === 'function') {
+          return window.PG_VIEW_DISPLAY_TZ.buildIntegratedCheckToolbarHtml(tabId);
+        }
+        return window.PG_VIEW_DISPLAY_TZ.buildToolbarHtml(tabId);
+      }
       btns.forEach(function (b) {
         if (toolbarSortHtml && !sortPlaced) {
           var bid0 = String(b && b.id || '');
           if (anchorSort === 'refresh' && bid0 === 'payListRefreshBtn') {
             if (showViewTz && !tzPlaced) {
-              buttonsHtml += window.PG_VIEW_DISPLAY_TZ.buildToolbarHtml(tabId);
+              buttonsHtml += viewTzToolbarHtml();
               tzPlaced = true;
             }
             var bidRf = (b && b._viewSettingHello) ? ('viewSettingHelloBtn_' + tid) : (b.id || '');
@@ -10505,7 +10605,7 @@
           }
           if (anchorSort !== 'refresh' && bid0 === 'searchBtn') {
             if (showViewTz && !tzPlaced) {
-              buttonsHtml += window.PG_VIEW_DISPLAY_TZ.buildToolbarHtml(tabId);
+              buttonsHtml += viewTzToolbarHtml();
               tzPlaced = true;
             }
             buttonsHtml += toolbarSortHtml;
@@ -10515,8 +10615,8 @@
         var bid = (b && b._viewSettingHello) ? ('viewSettingHelloBtn_' + tid) : (b.id || '');
         var labB = String(b.label || '');
         var isListSearchBtn = bid === 'searchBtn';
-        if (showViewTz && !tzPlaced && bid === 'payListRefreshBtn') {
-          buttonsHtml += window.PG_VIEW_DISPLAY_TZ.buildToolbarHtml(tabId);
+        if (showViewTz && !tzPlaced && (bid === 'payListRefreshBtn' || (screenUrl === '/ops/remittance' && bid === 'searchBtn'))) {
+          buttonsHtml += viewTzToolbarHtml();
           tzPlaced = true;
         }
         buttonsHtml += '<button type="button" class="btn ' + (b.cls || 'btn-secondary') + ' btn-sm' + (isListSearchBtn ? ' screen-search-btn' : '') + '" id="' + bid + '"' + (isListSearchBtn ? ' data-pg-list-search-btn="1"' : '') + '>' + (labB ? '<span data-pg-ui-t="' + escUi(labB) + '">' + escUi(L(labB)) + '</span>' : '') + '</button>';

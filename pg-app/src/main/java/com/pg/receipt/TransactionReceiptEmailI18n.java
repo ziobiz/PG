@@ -163,6 +163,11 @@ public final class TransactionReceiptEmailI18n {
         return label(lang, "PAYMENT DETAIL", "결제 상세", "お支払い詳細", "付款详情", "รายละเอียดการชำระ");
     }
 
+    /** 표시통화와 다른 실청구 통화 라벨. */
+    public static String chargeCurrencyLabel(String lang) {
+        return label(lang, "Charge currency", "결제통화", "請求通貨", "支付币种", "สกุลเงินที่เรียกเก็บ");
+    }
+
     public static Map<String, String> fieldLabels(String lang) {
         String l = SplitPayMailLocaleUtil.normalize(lang);
         Map<String, String> m = new LinkedHashMap<>();

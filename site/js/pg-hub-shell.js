@@ -168,6 +168,7 @@
       '/ops/opsManuals': ['_icopayPmBound'],
       '/hq/platformOpsManuals': ['_icopayPmBound'],
       '/hq/settlementAdmin': ['_hqSettlementAdminBound'],
+      '/hq/remitAccountMng': ['_hqRemitAccountBound'],
       '/hq/receivableRecoverySettings': ['_hqRecvRecoveryBound'],
       '/hq/domainConfig': ['_hqDomainOrgTableDelBound'],
       '/hq/serverManage': ['_hqSrvPaneChangeBound', '_hqUsageGrainBound'],

@@ -2421,6 +2421,33 @@
         return Promise.reject(err);
       });
     },
+    opsRemittanceBalance: function () {
+      return get('/api/ops/remittance/balance').then(function (r) { return r.data; });
+    },
+    opsRemittanceList: function (params) {
+      var p = params || {};
+      var q = { page: p.page || 1, size: p.size || 20 };
+      if (p.viewDisplayTimezone) q.viewDisplayTimezone = p.viewDisplayTimezone;
+      return get('/api/ops/remittance/transfers', q).then(function (r) { return r.data; });
+    },
+    opsRemittanceRecipients: function () {
+      return get('/api/ops/remittance/recipients').then(function (r) { return r.data; });
+    },
+    opsRemittanceBanks: function () {
+      return get('/api/ops/remittance/banks').then(function (r) { return r.data; });
+    },
+    opsRemittanceCreate: function (body) {
+      return post('/api/ops/remittance/transfers', body || {}).then(function (r) { return r.data; });
+    },
+    opsRemittanceAccounts: function () {
+      return get('/api/ops/remittance/accounts').then(function (r) { return r.data; });
+    },
+    opsRemittanceAccountCreate: function (body) {
+      return post('/api/ops/remittance/accounts', body || {}).then(function (r) { return r.data; });
+    },
+    opsRemittanceAccountDefault: function (id) {
+      return post('/api/ops/remittance/accounts/' + encodeURIComponent(String(id)) + '/default', {}).then(function (r) { return r.data; });
+    },
     opsMailLogList: function (params) {
       var p = params || {};
       var q = { page: p.page || 1, size: p.size || 20 };

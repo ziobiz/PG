@@ -794,6 +794,12 @@ public class OrgPagePermissionService {
                     && ("/calc/sandboxPayList".equals(url) || "/noti/sandboxNotifyList".equals(url))) {
                 p = P_NONE;
             }
+            if (p == null && OrgLevel.MERCHANT.name().equals(orgLevel) && "/ops/remittance".equals(url)) {
+                p = P_NONE;
+            }
+            if (p == null && OrgLevel.MERCHANT.name().equals(orgLevel) && "/hq/remitAccountMng".equals(url)) {
+                p = P_NONE;
+            }
             out.put(url, p != null ? p : P_DELETE);
         }
         return out;

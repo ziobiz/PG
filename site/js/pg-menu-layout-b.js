@@ -75,6 +75,7 @@
       icon: 'bi-calendar-check',
       tabs: [
         { tab: 'cycle', url: '/hq/settlementAdmin', menuId: 'M0123', label: '정산주기' },
+        { tab: 'accounts', url: '/hq/remitAccountMng', menuId: 'M0132', label: '계좌관리' },
         { tab: 'recovery', url: '/hq/receivableRecoverySettings', menuId: 'M0124', label: '환수·미수금' },
         { tab: 'bizday', url: '/hq/businessDaySetting', menuId: 'M0109', label: '영업일' }
       ]

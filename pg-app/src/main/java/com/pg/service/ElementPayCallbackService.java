@@ -464,14 +464,15 @@ public class ElementPayCallbackService {
             return jsonResponse(474, "Payment Not Found", cred, applyMerchant, applyOrder);
         }
         if (updated.isPresent()) {
-            afterAsyncApplied(updated.get(), prevStatus, prevSettled);
+            afterAsyncApplied(updated.get(), prevStatus, prevSettled, spec);
             return jsonResponse(270, "Notification received", cred,
                     updated.get().getMerchantId(), updated.get().getOrderNo());
         }
         return jsonResponse(270, "Notification received", cred, applyMerchant, applyOrder);
     }
 
-    private void afterAsyncApplied(PgTrnsctn t, String prevStatus, String prevSettledYn) {
+    private void afterAsyncApplied(PgTrnsctn t, String prevStatus, String prevSettledYn,
+                                   ElementPayCallbackEventUtil.Spec spec) {
         try {
             splitPayPaymentHookService.onTxnStatusChange(t.getOrderNo(), t.getStatus(), t.getTrnId());
         } catch (Exception ignored) {
@@ -481,10 +482,12 @@ public class ElementPayCallbackService {
         } catch (Exception e) {
             log.warn("ElementPay async 환수금 등록 실패 trnId={}: {}", t.getTrnId(), e.getMessage());
         }
-        try {
-            transactionReceiptEmailService.scheduleIfDue(t);
-        } catch (Exception e) {
-            log.warn("ElementPay async 거래명세서 메일 연동 실패 trnId={}: {}", t.getTrnId(), e.getMessage());
+        if (spec != null && spec.schedulesCustomerReceipt()) {
+            try {
+                transactionReceiptEmailService.scheduleIfDue(t);
+            } catch (Exception e) {
+                log.warn("ElementPay async 거래명세서 메일 연동 실패 trnId={}: {}", t.getTrnId(), e.getMessage());
+            }
         }
         try {
             merchantOutboundNotifyService.scheduleAfterTxnCommit(t, null, "CALLBACK");

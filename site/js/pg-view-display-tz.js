@@ -5,6 +5,8 @@
   'use strict';
 
   var STORAGE_KEY = 'pg_view_display_tz';
+  var COMPARE_KEY = 'pg_ic_compare_tz';
+  var LINE1_KEY = 'pg_ic_line1_tz';
 
   var TXN_DATETIME_COL_KEYS = {
     trnDate: 1, trnTime: 1, payCompletedAt: 1, payDttm: 1, payAprv: 1,
@@ -40,7 +42,10 @@
       JP: 'この一覧の取引日・時刻表示のみ一時変更します。本社設定・DBは変わりません。',
       CH: '仅临时更改本列表的交易日期/时间显示。不改变总部设置或数据库。',
       TH: 'เปลี่ยนการแสดงวันที่/เวลาธุรกรรมของรายการนี้ชั่วคราวเท่านั้น ไม่แก้การตั้งค่าสำนักงานใหญ่หรือ DB'
-    }
+    },
+    compare: { KO: '비교정렬', EN: 'Compare', JP: '比較基準', CH: '比较基准', TH: 'เทียบเวลา' },
+    line1: { KO: '1줄추가', EN: 'Line 1', JP: '1行目追加', CH: '第1行附加', TH: 'บรรทัด 1' },
+    line2: { KO: '2줄추가', EN: 'Line 2', JP: '2行目追加', CH: '第2行附加', TH: 'บรรทัด 2' }
   };
 
   function uiT(ko, i18nKey) {
@@ -99,6 +104,32 @@
     } catch (e) { /* ignore */ }
   }
 
+  function readKey(key) {
+    try { return localStorage.getItem(key) || ''; } catch (e) { return ''; }
+  }
+
+  function writeKey(key, v) {
+    try {
+      if (!v) localStorage.removeItem(key);
+      else localStorage.setItem(key, v);
+    } catch (e) { /* ignore */ }
+  }
+
+  function tzOptionsHtml(stored) {
+    var h = '<option value="">' + esc(uiT('본사설정', 'defaultOpt')) + '</option>';
+    TZ_OPTIONS.forEach(function (o) {
+      var sel = stored === o.v ? ' selected' : '';
+      h += '<option value="' + esc(o.v) + '"' + sel + '>' + esc(o.tag) + '</option>';
+    });
+    return h;
+  }
+
+  function labeledSelect(cls, id, name, labelKey, stored, ariaKo) {
+    return '<span class="small text-muted pg-ic-tz-label" data-pg-ic-tz-label="' + esc(labelKey) + '">' + esc(t(labelKey)) + '</span>' +
+      '<select class="form-select form-select-sm ' + cls + '" id="' + esc(id) + '" name="' + esc(name) + '" style="width:auto;min-width:4.6rem;max-width:6.5rem" aria-label="' + esc(uiT(ariaKo, labelKey)) + '">' +
+      tzOptionsHtml(stored) + '</select>';
+  }
+
   function buildToolbarHtml(tabId) {
     var tid = tabId || '';
     var selId = 'pgViewDisplayTz_' + tid;
@@ -112,6 +143,26 @@
     });
     h += '</select></div>';
     return h;
+  }
+
+  function buildIntegratedCheckToolbarHtml(tabId) {
+    var tid = tabId || '';
+    var h = '<div class="pg-view-display-tz-wrap pg-ic-tz-wrap d-inline-flex align-items-center gap-1 me-1" title="' + esc(uiT('목록 표시 시간대 안내', 'title')) + '">';
+    h += labeledSelect('pg-ic-compare-tz-select', 'pgIcCompareTz_' + tid, 'compareAlignTimezone', 'compare', readKey(COMPARE_KEY), '비교정렬');
+    h += labeledSelect('pg-ic-line1-tz-select', 'pgIcLine1Tz_' + tid, 'line1ExtraTimezone', 'line1', readKey(LINE1_KEY), '1줄추가');
+    h += labeledSelect('pg-view-display-tz-select', 'pgViewDisplayTz_' + tid, 'viewDisplayTimezone', 'line2', readStoredTz(), '2줄추가');
+    h += '</div>';
+    return h;
+  }
+
+  function collectIntegratedCheck(pane) {
+    var out = { compareAlignTimezone: '', line1ExtraTimezone: '' };
+    if (!pane) return out;
+    var c = pane.querySelector('.pg-ic-compare-tz-select');
+    var l = pane.querySelector('.pg-ic-line1-tz-select');
+    if (c && c.value) out.compareAlignTimezone = String(c.value).trim();
+    if (l && l.value) out.line1ExtraTimezone = String(l.value).trim();
+    return out;
   }
 
   function collectParam(pane) {
@@ -131,6 +182,20 @@
       writeStoredTz(sel.value || '');
       if (typeof onChange === 'function') onChange();
     });
+    bindExtra(pane, '.pg-ic-compare-tz-select', COMPARE_KEY, onChange);
+    bindExtra(pane, '.pg-ic-line1-tz-select', LINE1_KEY, onChange);
+  }
+
+  function bindExtra(pane, selector, storageKey, onChange) {
+    var el = pane.querySelector(selector);
+    if (!el || el._pgViewTzBound) return;
+    el._pgViewTzBound = true;
+    var stored = readKey(storageKey);
+    if (stored && !el.value) el.value = stored;
+    el.addEventListener('change', function () {
+      writeKey(storageKey, el.value || '');
+      if (typeof onChange === 'function') onChange();
+    });
   }
 
   function refreshI18n(pane) {
@@ -144,11 +209,23 @@
     sel.setAttribute('aria-label', uiT('본사설정', 'defaultOpt'));
     var wrap = pane.querySelector('.pg-view-display-tz-wrap');
     if (wrap) wrap.setAttribute('title', uiT('목록 표시 시간대 안내', 'title'));
+    pane.querySelectorAll('[data-pg-ic-tz-label]').forEach(function (lab) {
+      var key = lab.getAttribute('data-pg-ic-tz-label');
+      if (key) lab.textContent = t(key);
+    });
+    pane.querySelectorAll('.pg-ic-compare-tz-select, .pg-ic-line1-tz-select').forEach(function (extra) {
+      var curExtra = extra.value;
+      var blank = extra.querySelector('option[value=""]');
+      if (blank) blank.textContent = uiT('본사설정', 'defaultOpt');
+      extra.value = curExtra;
+    });
   }
 
   w.PG_VIEW_DISPLAY_TZ = {
     screenHasTxnDatetimeColumns: screenHasTxnDatetimeColumns,
     buildToolbarHtml: buildToolbarHtml,
+    buildIntegratedCheckToolbarHtml: buildIntegratedCheckToolbarHtml,
+    collectIntegratedCheck: collectIntegratedCheck,
     collectParam: collectParam,
     bindPane: bindPane,
     refreshI18n: refreshI18n,

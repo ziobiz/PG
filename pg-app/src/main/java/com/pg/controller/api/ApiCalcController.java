@@ -9,6 +9,7 @@ import com.pg.entity.OrgUnit;
 import com.pg.repository.CommissionPolicyRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.service.ChillPayService;
+import com.pg.service.ElementPayClientApiService;
 import com.pg.service.HqLedgerSysSettingsService;
 import com.pg.service.HqNotifyMappingService;
 import com.pg.service.IntegratedCheckService;
@@ -22,13 +23,17 @@ import com.pg.service.PayListActionService;
 import com.pg.service.PayListService;
 import com.pg.util.PayDisplayCurrency;
 import com.pg.util.PayListStatusBarBuckets;
+import com.pg.util.TrnTimeDualZoneDisplay;
+import com.pg.util.ViewDisplayTimezoneResolver;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -56,6 +61,7 @@ public class ApiCalcController {
     private final IntegratedCheckService integratedCheckService;
     private final JpayTradeApiService jpayTradeApiService;
     private final OutcomeReasonTranslateService outcomeReasonTranslateService;
+    private final ElementPayClientApiService elementPayClientApiService;
 
     public ApiCalcController(PayListService payListService, PayListActionService payListActionService,
                              ChillPayService chillPayService, HqNotifyMappingService hqNotifyMappingService,
@@ -65,7 +71,8 @@ public class ApiCalcController {
                              JpayIntegratedListService jpayIntegratedListService,
                              IntegratedCheckService integratedCheckService,
                              JpayTradeApiService jpayTradeApiService,
-                             OutcomeReasonTranslateService outcomeReasonTranslateService) {
+                             OutcomeReasonTranslateService outcomeReasonTranslateService,
+                             ElementPayClientApiService elementPayClientApiService) {
         this.payListService = payListService;
         this.payListActionService = payListActionService;
         this.chillPayService = chillPayService;
@@ -78,6 +85,7 @@ public class ApiCalcController {
         this.integratedCheckService = integratedCheckService;
         this.jpayTradeApiService = jpayTradeApiService;
         this.outcomeReasonTranslateService = outcomeReasonTranslateService;
+        this.elementPayClientApiService = elementPayClientApiService;
     }
 
     private static PageResult<Map<String, Object>> emptyChillPayPage(int page, int size) {
@@ -219,10 +227,23 @@ public class ApiCalcController {
             @RequestParam(required = false) String searchFieldType,
             /** 결제내역과 동일: ICOPAY 상태(tb_pg_trnsctn 보강 후) 기준 필터 */
             @RequestParam(required = false) String searchPayDivCd,
+            @RequestParam(required = false) String searchAcquirer,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
             Authentication authentication) {
         try {
+            if (searchAcquirer != null && "ELEMENTPAY".equalsIgnoreCase(searchAcquirer.trim())) {
+                try {
+                    PageResult<Map<String, Object>> ep = elementPayClientApiService.searchPayments(
+                            page, size, searchOrderDir, searchFieldType, searchKeyword, searchPayDivCd,
+                            searchFromDate, searchToDate, authentication);
+                    return ResponseEntity.ok(ApiResponse.ok(ep));
+                } catch (IllegalArgumentException e) {
+                    return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+                } catch (IllegalStateException e) {
+                    return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "ELEMENTPAY"));
+                }
+            }
             AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
             boolean multiCurrency = PayListStatusBarBuckets.isMultiCurrencyViewer(
                     PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository));
@@ -515,7 +536,7 @@ public class ApiCalcController {
         }
     }
 
-    /** 통합체크 — JPAY 일별(조회통합) vs ICOPAY 일별(일별결제) 대조 */
+    /** 통합체크 — 선택한 결제대행사 일별 vs ICOPAY 같은 대행사 거래 대조 */
     @GetMapping("/integratedCheckSummary")
     public ResponseEntity<ApiResponse<Map<String, Object>>> integratedCheckSummary(
             @RequestParam Map<String, String> params,
@@ -555,13 +576,16 @@ public class ApiCalcController {
                 return ResponseEntity.ok(ApiResponse.fail("조회 기간은 " + DAILY_CHILL_SUMMARY_MAX_DAYS + "일 이내로 지정해 주세요.", "VALIDATION"));
             }
             PayListSearchRequest payReq = PayListSearchRequest.fromParams(params);
+            String searchAcquirer = params.get("searchAcquirer");
             Map<String, Object> payload = integratedCheckService.buildIntegratedCheckSummary(
-                    tFrom, tTo, sk, son, searchPayDivCd, searchOrderDir, payReq, authentication);
+                    tFrom, tTo, sk, son, searchPayDivCd, searchOrderDir, searchAcquirer, payReq, authentication);
             return ResponseEntity.ok(ApiResponse.ok(payload));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         } catch (IllegalStateException e) {
-            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "JPAY"));
+            String acquirer = params.get("searchAcquirer");
+            String code = acquirer != null && "ELEMENTPAY".equalsIgnoreCase(acquirer.trim()) ? "ELEMENTPAY" : "JPAY";
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), code));
         }
     }
 
@@ -891,6 +915,7 @@ public class ApiCalcController {
             PageResult<Map<String, Object>> r = jpayIntegratedListService.search(
                     page, size, searchKeyword, searchOrderNo, searchPayDivCd, tFrom, tTo, false, searchFieldType,
                     authentication);
+            applyIntegratedCheckJpayTimes(r);
             return ResponseEntity.ok(ApiResponse.ok(r));
         } catch (IllegalStateException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "JPAY"));
@@ -907,12 +932,43 @@ public class ApiCalcController {
             String trnId = body != null ? body.get("trnId") : null;
             String action = body != null ? body.get("action") : null;
             String reason = body != null ? body.get("reason") : null;
-            payListActionService.apply(SecurityContextHolder.getContext().getAuthentication(), trnId, action, reason);
-            return ResponseEntity.ok(ApiResponse.ok(Map.of("message", "처리되었습니다.")));
+            String message = payListActionService.apply(
+                    SecurityContextHolder.getContext().getAuthentication(), trnId, action, reason);
+            String shown = message != null && !message.isBlank() ? message : "처리되었습니다.";
+            return ResponseEntity.ok(ApiResponse.ok(Map.of("message", shown)));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         } catch (IllegalStateException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "FORBIDDEN"));
+        }
+    }
+
+    /** 통합체크 JPAY 상세. 포털 거래일을 전산 표준 시각으로 보고 비교정렬·1줄 추가 시간으로 나눕니다. */
+    private void applyIntegratedCheckJpayTimes(PageResult<Map<String, Object>> page) {
+        if (page == null || page.getList() == null || !ViewDisplayTimezoneResolver.integratedCheckTimes()) {
+            return;
+        }
+        ZoneId ledger = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+        ZoneId base = ViewDisplayTimezoneResolver.currentCompareAlign().orElse(ledger);
+        ZoneId extra = ViewDisplayTimezoneResolver.currentLine1Extra()
+                .orElse(hqLedgerSysSettingsService.resolveOperationalDisplayZoneId());
+        for (Map<String, Object> row : page.getList()) {
+            if (row == null) {
+                continue;
+            }
+            String date = row.get("trnDate") != null ? String.valueOf(row.get("trnDate")).trim() : "";
+            String time = row.get("trnTime") != null ? String.valueOf(row.get("trnTime")).trim() : "";
+            if (date.length() < 10 || time.length() < 8 || time.indexOf('\n') >= 0) {
+                continue;
+            }
+            try {
+                LocalDateTime wall = LocalDateTime.parse(date.substring(0, 10) + "T" + time.substring(0, 8));
+                Instant instant = wall.atZone(ledger).toInstant();
+                row.put("trnDate", instant.atZone(base).toLocalDate().toString());
+                row.put("trnTime", TrnTimeDualZoneDisplay.formatInstantDualTimeOnly(instant, base, extra));
+            } catch (Exception ignored) {
+                // 포털 일시 형식이 아니면 원문을 유지합니다.
+            }
         }
     }
 

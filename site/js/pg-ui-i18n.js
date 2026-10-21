@@ -6349,6 +6349,95 @@
       CH: '总额',
       TH: 'ยอดรวม'
     },
+    '송금 잔액': {
+      EN: 'Transfer balance',
+      JP: '送金残高',
+      CH: '汇款余额',
+      TH: 'ยอดโอน'
+    },
+    '입금될 금액': {
+      EN: 'Incoming hold',
+      JP: '入金予定',
+      CH: '待入账',
+      TH: 'ยอดที่จะเข้า'
+    },
+    '송금 중인액': {
+      EN: 'Transfer in progress',
+      JP: '送金処理中',
+      CH: '汇款处理中',
+      TH: 'กำลังโอน'
+    },
+    '송금 가능액': {
+      EN: 'Available to transfer',
+      JP: '送金可能額',
+      CH: '可汇款金额',
+      TH: 'โอนได้'
+    },
+    '회사': { EN: 'Company', JP: '会社', CH: '公司', TH: 'บริษัท' },
+    '개인': { EN: 'Personal', JP: '個人', CH: '个人', TH: 'บุคคล' },
+    'ElementPay에 이미 있는 수취계좌는 아래 목록으로 가져옵니다. 회사 지급계좌도 포함되므로 같은 계좌를 다시 넣지 않습니다. 새 계좌만 구분과 은행을 고른 뒤 계좌 추가를 누르세요.': {
+      EN: 'Recipient accounts already on ElementPay are listed below, including the company payout account. Do not add that account again. For a new account, choose the type and bank, then click Add account.',
+      JP: 'ElementPayにある受取口座は下の一覧に取り込みます。会社の支払口座も含まれるので、同じ口座は再登録しません。新しい口座だけ区分と銀行を選んでから口座追加を押してください。',
+      CH: 'ElementPay 上已有的收款账户会列在下面，包含公司付款账户。不要重复添加同一账户。只有新账户才选择类型和银行后点添加账户。',
+      TH: 'บัญชีรับที่มีใน ElementPay จะแสดงด้านล่าง รวมบัญชีจ่ายของบริษัท ไม่ต้องเพิ่มบัญชีเดิมอีก บัญชีใหม่เท่านั้นที่เลือกประเภทและธนาคารแล้วกดเพิ่มบัญชี'
+    },
+    '은행을 고르고 계좌번호, 예금주, 국가, 실명번호, 연락처를 입력하세요. ElementPay에 이미 있는 계좌는 아래 목록에 표시됩니다.': {
+      EN: 'Choose a bank and enter the account number, holder, country, ID number, and phone. Accounts already on ElementPay appear in the list below.',
+      JP: '銀行を選び、口座番号、名義、国、本人番号、連絡先を入力してください。ElementPayにある口座は下の一覧に出ます。',
+      CH: '请选择银行并填写账号、户名、国家、证件号和电话。ElementPay 上已有的账户会显示在下方列表。',
+      TH: 'เลือกธนาคาร แล้วกรอกเลขบัญชี ชื่อบัญชี ประเทศ เลขประจำตัว และเบอร์ติดต่อ บัญชีที่มีใน ElementPay แสดงในรายการด้านล่าง'
+    },
+    '회사 지급계좌로 송금 요청을 등록했습니다. ElementPay 관리자에서 처리됩니다.': {
+      EN: 'The payout to the company account was requested. ElementPay admin completes it.',
+      JP: '会社の支払口座への送金依頼を登録しました。ElementPay管理画面で処理されます。',
+      CH: '已登记向公司付款账户的汇款申请。由 ElementPay 管理后台处理。',
+      TH: 'ลงคำขอโอนไปบัญชีบริษัทแล้ว ผู้ดูแล ElementPay เป็นผู้ดำเนินการ'
+    },
+    '연락처는 숫자 9자리에서 32자리입니다.': {
+      EN: 'Phone must be 9 to 32 digits.',
+      JP: '連絡先は数字9桁から32桁です。',
+      CH: '电话须为 9 到 32 位数字。',
+      TH: 'เบอร์ติดต่อต้องเป็นตัวเลข 9 ถึง 32 หลัก'
+    },
+    '계좌관리': { EN: 'Accounts', JP: '口座管理', CH: '账户管理', TH: 'จัดการบัญชี' },
+    '송금계좌관리': { EN: 'Transfer accounts', JP: '送金口座管理', CH: '汇款账户管理', TH: 'จัดการบัญชีโอน' },
+    '기본 수취계좌로 지정': { EN: 'Set as default account', JP: '基本受取口座にする', CH: '设为默认收款账户', TH: 'ตั้งเป็นบัญชีรับเริ่มต้น' },
+    '계좌 추가': { EN: 'Add account', JP: '口座を追加', CH: '添加账户', TH: 'เพิ่มบัญชี' },
+    '기본으로': { EN: 'Make default', JP: '基本にする', CH: '设为默认', TH: 'ตั้งเป็นค่าเริ่มต้น' },
+    '수취계좌 선택': { EN: 'Select account', JP: '受取口座を選択', CH: '选择收款账户', TH: 'เลือกบัญชีรับ' },
+    '등록된 수취계좌가 없습니다.': { EN: 'No recipient accounts yet.', JP: '登録された受取口座がありません。', CH: '还没有收款账户。', TH: 'ยังไม่มีบัญชีรับ' },
+    'ElementPay에 이미 등록된 개인 수취계좌를 기본 계좌로 가져옵니다. 새 계좌는 이 화면에서만 추가하며, 송금관리에서는 등록된 계좌와 금액·설명만 입력합니다.': {
+      EN: 'Personal recipient accounts already registered at ElementPay are imported as the default accounts. New accounts are added only on this screen. Remittance uses a saved account, an amount, and a note.',
+      JP: 'ElementPayに登録済みの個人受取口座を基本口座として取り込みます。新しい口座はこの画面だけで追加します。送金管理では登録済み口座・金額・説明だけを入力します。',
+      CH: '已在 ElementPay 登记的个人收款账户会导入为默认账户。新账户只在此画面添加。汇款管理只选择已登记账户并填写金额和说明。',
+      TH: 'บัญชีรับบุคคลที่ลงทะเบียนใน ElementPay แล้วจะถูกนำมาเป็นบัญชีเริ่มต้น เพิ่มบัญชีใหม่ได้เฉพาะหน้านี้ หน้าจัดการโอนเลือกบัญชีที่ลงไว้ แล้วใส่จำนวนเงินและคำอธิบาย'
+    },
+    '계좌는 본사설정 계좌관리에서 등록합니다. 여기서는 등록된 수취계좌와 금액, 설명만 입력합니다. 은행 이체는 ElementPay 관리자에서 담당자가 2차 인증으로 서명한 뒤에 진행됩니다.': {
+      EN: 'Register accounts under HQ settings, Accounts. Here you only choose a saved account and enter the amount and note. The bank transfer proceeds after a staff member signs with a second factor in the ElementPay admin.',
+      JP: '口座は本社設定の口座管理で登録します。ここでは登録済みの受取口座と金額、説明だけを入力します。銀行振込はElementPay管理画面で担当者が二要素認証の署名をした後に進みます。',
+      CH: '账户在本社设置的账户管理中登记。此处只选择已登记账户并填写金额和说明。银行汇款要等 ElementPay 管理后台负责人用二次认证签名后才会进行。',
+      TH: 'ลงทะเบียนบัญชีที่การตั้งค่าสำนักงานใหญ่ จัดการบัญชี ที่นี่เลือกบัญชีที่ลงไว้ แล้วใส่จำนวนเงินและคำอธิบาย ธนาคารจะโอนหลังเจ้าหน้าที่ลงนามด้วยการยืนยันขั้นที่สองในผู้ดูแล ElementPay'
+    },
+    '수취계좌를 선택하세요. 계좌는 본사설정 계좌관리에서 등록합니다.': {
+      EN: 'Select a recipient account. Accounts are registered under HQ settings, Accounts.',
+      JP: '受取口座を選択してください。口座は本社設定の口座管理で登録します。',
+      CH: '请选择收款账户。账户在本社设置的账户管理中登记。',
+      TH: 'เลือกบัญชีรับ บัญชีลงทะเบียนที่การตั้งค่าสำนักงานใหญ่ จัดการบัญชี'
+    },
+    '은행, 계좌번호, 예금주, 국가, 실명번호, 연락처를 입력하세요.': {
+      EN: 'Enter the bank, account number, account holder, country, ID number, and phone.',
+      JP: '銀行、口座番号、口座名義、国、本人番号、連絡先を入力してください。',
+      CH: '请填写银行、账号、户名、国家、证件号和联系电话。',
+      TH: 'กรอกธนาคาร เลขบัญชี ชื่อบัญชี ประเทศ เลขประจำตัว และเบอร์ติดต่อ'
+    },
+    '수취계좌를 등록했습니다.': { EN: 'Recipient account saved.', JP: '受取口座を登録しました。', CH: '已登记收款账户。', TH: 'บันทึกบัญชีรับแล้ว' },
+    '수취계좌를 등록하지 못했습니다.': { EN: 'Could not save the recipient account.', JP: '受取口座を登録できませんでした。', CH: '未能登记收款账户。', TH: 'บันทึกบัญชีรับไม่สำเร็จ' },
+    '기본 수취계좌로 지정했습니다.': { EN: 'Default recipient account updated.', JP: '基本受取口座に指定しました。', CH: '已设为默认收款账户。', TH: 'ตั้งเป็นบัญชีรับเริ่มต้นแล้ว' },
+    '기본 계좌를 지정하지 못했습니다.': { EN: 'Could not set the default account.', JP: '基本口座を指定できませんでした。', CH: '未能设为默认账户。', TH: 'ตั้งบัญชีเริ่มต้นไม่สำเร็จ' },
+    '수취계좌를 불러오지 못했습니다.': { EN: 'Could not load recipient accounts.', JP: '受取口座を読み込めませんでした。', CH: '未能读取收款账户。', TH: 'โหลดบัญชีรับไม่สำเร็จ' },
+    '은행 목록을 불러오지 못했습니다.': { EN: 'Could not load the bank list.', JP: '銀行一覧を読み込めませんでした。', CH: '未能读取银行列表。', TH: 'โหลดรายชื่อธนาคารไม่สำเร็จ' },
+    '계좌를 찾을 수 없습니다.': { EN: 'Account was not found.', JP: '口座が見つかりません。', CH: '找不到该账户。', TH: 'ไม่พบบัญชี' },
+    '사용 중지된 계좌는 기본으로 둘 수 없습니다.': { EN: 'An inactive account cannot be the default.', JP: '停止中の口座は基本にできません。', CH: '已停用的账户不能设为默认。', TH: 'บัญชีที่ปิดใช้งานตั้งเป็นค่าเริ่มต้นไม่ได้' },
     '잔액합계': {
       EN: 'Balance total',
       JP: '残高合計',
@@ -8941,6 +9030,119 @@
       CH: '邮件管理',
       TH: 'จัดการอีเมล'
     },
+    송금관리: { EN: 'Remittance', JP: '送金管理', CH: '汇款管理', TH: 'จัดการโอนเงิน' },
+    '목록 조회': { EN: 'Refresh list', JP: '一覧を表示', CH: '刷新列表', TH: 'โหลดรายการ' },
+    '송금 요청': { EN: 'Transfer request', JP: '送金依頼', CH: '汇款申请', TH: 'คำขอโอน' },
+    수취계좌: { EN: 'Recipient account', JP: '受取口座', CH: '收款账户', TH: 'บัญชีผู้รับ' },
+    '선택 또는 아래 새 계좌': { EN: 'Select or enter a new account below', JP: '選択するか下に新しい口座', CH: '选择或在下方填写新账户', TH: 'เลือก หรือกรอกบัญชีใหม่ด้านล่าง' },
+    '영문 숫자 하이픈': { EN: 'Letters, digits, hyphen', JP: '英数字とハイフン', CH: '英文、数字、连字符', TH: 'ตัวอักษร ตัวเลข ขีด' },
+    '송금 설명': { EN: 'Transfer note', JP: '送金メモ', CH: '汇款说明', TH: 'คำอธิบายการโอน' },
+    '은행 선택': { EN: 'Select a bank', JP: '銀行を選択', CH: '选择银行', TH: 'เลือกธนาคาร' },
+    예금주: { EN: 'Account holder', JP: '口座名義', CH: '户名', TH: 'ชื่อบัญชี' },
+    실명번호: { EN: 'ID number', JP: '身分証番号', CH: '证件号', TH: 'เลขประจำตัว' },
+    계좌끝자리: { EN: 'Account last digits', JP: '口座末尾', CH: '账号末位', TH: 'เลขท้ายบัญชี' },
+    송금금액: { EN: 'Transfer amount', JP: '送金額', CH: '汇款金额', TH: 'จำนวนที่โอน' },
+    정산통화: { EN: 'Settlement currency', JP: '精算通貨', CH: '结算币种', TH: 'สกุลเงินชำระ' },
+    송금번호: { EN: 'Transfer id', JP: '送金番号', CH: '汇款编号', TH: 'เลขที่โอน' },
+    서명대기: { EN: 'Waiting for signature', JP: '署名待ち', CH: '待签名', TH: 'รอลงนาม' },
+    송금중: { EN: 'Sending', JP: '送金中', CH: '汇款中', TH: 'กำลังโอน' },
+    송금완료: { EN: 'Paid', JP: '送金完了', CH: '已汇出', TH: 'โอนแล้ว' },
+    분쟁: { EN: 'Disputed', JP: '係争', CH: '争议', TH: 'โต้แย้ง' },
+    'Client API 토큰': { EN: 'Client API token', JP: 'Client APIトークン', CH: 'Client API 令牌', TH: 'โทเคน Client API' },
+    'Cabinet API Keys. 변경 시에만 입력': { EN: 'Cabinet API Keys. Enter only when changing', JP: 'Cabinet API Keys。変更時のみ入力', CH: 'Cabinet API Keys。仅在变更时输入', TH: 'Cabinet API Keys กรอกเมื่อเปลี่ยนเท่านั้น' },
+    '송금관리와 통합내역 ElementPay 조회에 씁니다. 결제 Merchant Key 와 다른 값입니다.': {
+      EN: 'Used for remittance and ElementPay rows in integrated history. This is not the payment Merchant Key.',
+      JP: '送金管理と統合履歴のElementPay照会に使います。決済のMerchant Keyとは別です。',
+      CH: '用于汇款管理和综合明细中的 ElementPay 查询。与支付 Merchant Key 不同。',
+      TH: 'ใช้กับจัดการโอนและรายการ ElementPay ในประวัติรวม ไม่ใช่ Merchant Key ของการชำระ'
+    },
+    '송금관리 안내': { EN: 'Remittance note', JP: '送金の案内', CH: '汇款说明', TH: 'คำอธิบายการโอน' },
+    'ICOPAY가 송금 요청을 만듭니다. 은행 이체는 ElementPay 관리자에서 담당자가 2차 인증으로 서명한 뒤에 진행됩니다. 관리자에서 만든 송금도 이 목록에 함께 나옵니다.': {
+      EN: 'ICOPAY creates the transfer request. The bank transfer proceeds after a staff member signs with a second factor in the ElementPay admin. Transfers created in that admin appear in this list too.',
+      JP: 'ICOPAYが送金依頼を作ります。銀行振込はElementPay管理画面で担当者が二要素認証の署名をした後に進みます。管理画面で作った送金もこの一覧に出ます。',
+      CH: 'ICOPAY 创建汇款申请。银行汇款要等 ElementPay 管理后台的负责人用二次认证签名后才会进行。在管理后台创建的汇款也会出现在此列表。',
+      TH: 'ICOPAY สร้างคำขอโอน ธนาคารจะโอนหลังเจ้าหน้าที่ลงนามด้วยการยืนยันขั้นที่สองในผู้ดูแล ElementPay รายการที่สร้างจากผู้ดูแลก็แสดงในรายการนี้'
+    },
+    '송금 요청을 등록합니다. 은행 이체는 ElementPay 관리자 2차 인증 후에 진행됩니다.': {
+      EN: 'Create this transfer request. The bank transfer proceeds after ElementPay admin second-factor signature.',
+      JP: '送金依頼を登録します。銀行振込はElementPay管理画面の二要素認証の後に進みます。',
+      CH: '将登记汇款申请。银行汇款在 ElementPay 管理后台二次认证签名后进行。',
+      TH: 'จะบันทึกคำขอโอน ธนาคารจะโอนหลังยืนยันขั้นที่สองในผู้ดูแล ElementPay'
+    },
+    '송금 요청을 등록했습니다. ElementPay 관리자에서 2차 인증 서명이 필요합니다.': {
+      EN: 'Transfer request saved. ElementPay admin second-factor signature is still required.',
+      JP: '送金依頼を登録しました。ElementPay管理画面での二要素認証の署名が必要です。',
+      CH: '已登记汇款申请。仍需在 ElementPay 管理后台进行二次认证签名。',
+      TH: 'บันทึกคำขอโอนแล้ว ยังต้องลงนามด้วยการยืนยันขั้นที่สองในผู้ดูแล ElementPay'
+    },
+    '송금 요청에 실패했습니다.': { EN: 'The transfer request failed.', JP: '送金依頼に失敗しました。', CH: '汇款申请失败。', TH: 'คำขอโอนไม่สำเร็จ' },
+    '수취계좌를 불러오지 못했습니다.': { EN: 'Could not load recipient accounts.', JP: '受取口座を読み込めませんでした。', CH: '无法加载收款账户。', TH: 'โหลดบัญชีผู้รับไม่ได้' },
+    '환불 요청이 접수되었습니다. 결제대행사에서 처리가 끝나면 환불 완료로 바뀝니다.': {
+      EN: 'The refund request was accepted. It becomes a completed refund when the processor finishes it.',
+      JP: '返金依頼を受け付けました。決済代行の処理が終わると返金完了になります。',
+      CH: '退款申请已受理。支付机构处理完成后会变为退款完成。',
+      TH: 'รับคำขอคืนเงินแล้ว จะเป็นคืนเงินสำเร็จเมื่อผู้ให้บริการดำเนินการเสร็จ'
+    },
+    'ElementPay Client API 토큰이 없습니다. 결제대행사 설정의 Client API 토큰을 저장하세요.': {
+      EN: 'The ElementPay Client API token is missing. Save it in the payment processor settings.',
+      JP: 'ElementPayのClient APIトークンがありません。決済代行設定に保存してください。',
+      CH: '没有 ElementPay Client API 令牌。请在支付机构设置中保存。',
+      TH: 'ไม่มีโทเคน Client API ของ ElementPay บันทึกในการตั้งค่าผู้ให้บริการชำระเงิน'
+    },
+    'Client API 토큰이 올바르지 않습니다. 결제대행사 설정의 Client API 토큰을 확인하세요.': {
+      EN: 'The Client API token is not valid. Check it in the payment processor settings.',
+      JP: 'Client APIトークンが正しくありません。決済代行設定を確認してください。',
+      CH: 'Client API 令牌不正确。请在支付机构设置中核对。',
+      TH: 'โทเคน Client API ไม่ถูกต้อง ตรวจในการตั้งค่าผู้ให้บริการชำระเงิน'
+    },
+    '송금관리는 운영 계정에서만 사용할 수 있습니다.': {
+      EN: 'Remittance is available to operations accounts.',
+      JP: '送金管理は運用アカウントのみ利用できます。',
+      CH: '汇款管理仅运营账号可以使用。',
+      TH: 'จัดการโอนใช้ได้เฉพาะบัญชีปฏิบัติการ'
+    },
+    '수취계좌를 선택하거나 새 계좌의 은행, 계좌번호, 예금주, 국가, 실명번호, 연락처를 입력하세요.': {
+      EN: 'Select a recipient account, or enter the bank, account number, holder, country, ID number, and phone for a new account.',
+      JP: '受取口座を選ぶか、新しい口座の銀行・口座番号・名義・国・身分証番号・電話を入力してください。',
+      CH: '请选择收款账户，或填写新账户的银行、账号、户名、国家、证件号和电话。',
+      TH: 'เลือกบัญชีผู้รับ หรือกรอกธนาคาร เลขบัญชี ชื่อ ประเทศ เลขประจำตัว และเบอร์ของบัญชีใหม่'
+    },
+    '계좌번호는 숫자 5자리에서 19자리입니다.': { EN: 'The account number must be 5 to 19 digits.', JP: '口座番号は5〜19桁の数字です。', CH: '账号为 5 到 19 位数字。', TH: 'เลขบัญชีต้องเป็นตัวเลข 5 ถึง 19 หลัก' },
+    '국가는 2자리 코드입니다. 예: TH': { EN: 'Country is a 2-letter code, for example TH.', JP: '国は2文字コードです。例: TH', CH: '国家为两位代码，例如 TH。', TH: 'ประเทศเป็นรหัส 2 ตัว เช่น TH' },
+    '주문번호는 영문, 숫자, 하이픈만 36자까지 사용할 수 있습니다.': { EN: 'Order id may use letters, digits, and hyphen, up to 36 characters.', JP: '注文番号は英数字とハイフンで36文字までです。', CH: '订单号只能用英文、数字和连字符，最多 36 位。', TH: 'เลขคำสั่งใช้ตัวอักษร ตัวเลข และขีด ได้ไม่เกิน 36 ตัว' },
+    '주문번호가 필요합니다.': { EN: 'An order id is required.', JP: '注文番号が必要です。', CH: '需要订单号。', TH: 'ต้องมีเลขคำสั่ง' },
+    '송금 금액이 필요합니다.': { EN: 'A transfer amount is required.', JP: '送金額が必要です。', CH: '需要汇款金额。', TH: 'ต้องมีจำนวนที่โอน' },
+    '송금 가능액을 확인한 뒤 다시 신청하세요.': {
+      EN: 'Check the available amount, then request again.',
+      JP: '送金可能額を確認してから、もう一度申請してください。',
+      CH: '请确认可汇款金额后再申请。',
+      TH: 'ตรวจยอดที่โอนได้ แล้วขออีกครั้ง'
+    },
+    '송금 신청 통화는 송금 가능액 통화와 같아야 합니다.': {
+      EN: 'The request currency must match the available amount currency.',
+      JP: '申請通貨は送金可能額の通貨と同じにしてください。',
+      CH: '申请币种必须与可汇款金额的币种相同。',
+      TH: 'สกุลเงินที่ขอต้องตรงกับสกุลเงินของยอดที่โอนได้'
+    },
+    '송금 가능액 {0}에서 수수료 25를 뺀 금액만 신청할 수 있습니다. 최대 가능 금액은 {1}입니다.': {
+      EN: 'You can request only the available amount {0} minus the fee of 25. The maximum is {1}.',
+      JP: '送金可能額 {0} から手数料 25 を引いた金額だけ申請できます。最大金額は {1} です。',
+      CH: '只能申请可汇款金额 {0} 减去手续费 25 之后的金额。最大金额是 {1}。',
+      TH: 'ขอได้เฉพาะยอดที่โอนได้ {0} หักค่าธรรมเนียม 25 ยอดสูงสุดคือ {1}'
+    },
+    '송금 금액 {0}을 신청합니다. 이 금액으로 송금 요청을 진행할까요?': {
+      EN: 'Request {0}. Continue with this amount?',
+      JP: '送金額 {0} を申請します。この金額で送金依頼を進めますか？',
+      CH: '将申请汇款 {0}。要以这个金额继续吗？',
+      TH: 'ขอโอน {0} ดำเนินการด้วยจำนวนนี้หรือไม่?'
+    },
+    '송금 금액이 올바르지 않습니다.': { EN: 'The transfer amount is not valid.', JP: '送金額が正しくありません。', CH: '汇款金额不正确。', TH: 'จำนวนที่โอนไม่ถูกต้อง' },
+    '통화는 3자리 코드입니다.': { EN: 'Currency is a 3-letter code.', JP: '通貨は3文字コードです。', CH: '币种为三位代码。', TH: 'สกุลเงินเป็นรหัส 3 ตัว' },
+    '은행을 선택하세요.': { EN: 'Select a bank.', JP: '銀行を選択してください。', CH: '请选择银行。', TH: 'เลือกธนาคาร' },
+    '사용 중인 ElementPay 결제대행사가 없습니다.': { EN: 'There is no active ElementPay processor.', JP: '利用中のElementPay決済代行がありません。', CH: '没有启用中的 ElementPay 支付机构。', TH: 'ไม่มีผู้ให้บริการ ElementPay ที่ใช้งานอยู่' },
+    '결제대행사 연결에 실패했습니다.': { EN: 'Could not reach the payment processor.', JP: '決済代行に接続できませんでした。', CH: '无法连接支付机构。', TH: 'เชื่อมต่อผู้ให้บริการชำระเงินไม่ได้' },
+    '결제대행사 응답을 읽지 못했습니다.': { EN: 'Could not read the processor response.', JP: '決済代行の応答を読めませんでした。', CH: '无法读取支付机构的响应。', TH: 'อ่านคำตอบจากผู้ให้บริการไม่ได้' },
+    '결제대행사에서 요청을 거절했습니다.': { EN: 'The payment processor rejected the request.', JP: '決済代行が依頼を拒否しました。', CH: '支付机构拒绝了请求。', TH: 'ผู้ให้บริการชำระเงินปฏิเสธคำขอ' },
     이메일설정: {
       EN: 'Email settings',
       JP: 'メール設定',

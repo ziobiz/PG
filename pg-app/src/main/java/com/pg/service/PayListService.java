@@ -865,6 +865,20 @@ public class PayListService {
      * 총수수료는 API {@code fee} 합, 보류는 0, 지급액은 {@code netAmount}·{@code settleAmount} 우선,
      * 그다음 숫자형 {@code settled}·아니면 {@code amount − fee}(음수는 0).
      */
+    /**
+     * 통합내역 ElementPay 검색처럼 이미 고른 {@link PgTrnsctn} 목록으로
+     * 결제내역과 같은 상단 금액 요약·상태바를 만듭니다.
+     */
+    public Map<String, Object> buildIntegratedListSummary(List<PgTrnsctn> rows, Authentication authentication) {
+        List<PgTrnsctn> list = rows != null ? rows : List.of();
+        PayListSearchRequest req = new PayListSearchRequest();
+        req.setPayListVariant("INTEGRATED");
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("payListFinancialSummary", computeFinancialSummaryCore(null, authentication, "DESC", list));
+        out.put("payListStatusBar", computePgTxnStatusBarFromRows(list, req, authentication, false));
+        return out;
+    }
+
     public Map<String, Object> buildChillPayFinancialSummary(List<Map<String, Object>> rows,
                                                              Authentication authentication) {
         List<Map<String, Object>> list = rows != null ? rows : List.of();
@@ -2573,17 +2587,21 @@ public class PayListService {
             throw new IllegalArgumentException("조회 기간은 " + DAILY_PAY_SUMMARY_MAX_DAYS + "일 이내로 지정해 주세요.");
         }
         ZoneId ledgerTz = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
-        LocalDate today = LocalDate.now(ledgerTz);
+        ZoneId bucketZone = com.pg.util.ViewDisplayTimezoneResolver.currentCompareAlign().orElse(ledgerTz);
+        boolean shiftBucket = !bucketZone.equals(ledgerTz);
+        LocalDate today = LocalDate.now(bucketZone);
         LocalDate effectiveTo = rangeTo.isAfter(today) ? today : rangeTo;
         if (rangeFrom.isAfter(effectiveTo)) {
             return List.of();
         }
         PayListSearchRequest base = PayListSearchRequest.shallowCopy(template);
         base.setPayListVariant("INTEGRATED");
-        base.setSearchFromDate(rangeFrom);
-        base.setSearchToDate(effectiveTo);
-        LocalDateTime fullFrom = rangeFrom.atStartOfDay();
-        LocalDateTime fullTo = effectiveTo.atTime(LocalTime.MAX);
+        LocalDate queryFrom = shiftBucket ? rangeFrom.minusDays(1) : rangeFrom;
+        LocalDate queryTo = shiftBucket ? effectiveTo.plusDays(1) : effectiveTo;
+        base.setSearchFromDate(queryFrom);
+        base.setSearchToDate(queryTo);
+        LocalDateTime fullFrom = queryFrom.atStartOfDay();
+        LocalDateTime fullTo = queryTo.atTime(LocalTime.MAX);
         Specification<PgTrnsctn> specFull = buildSpecification(base, fullFrom, fullTo, authentication);
 
         AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
@@ -2651,7 +2669,12 @@ public class PayListService {
             if (clock == null) {
                 continue;
             }
-            LocalDate day = clock.toLocalDate();
+            LocalDate day = shiftBucket
+                    ? clock.atZone(ledgerTz).toInstant().atZone(bucketZone).toLocalDate()
+                    : clock.toLocalDate();
+            if (day.isBefore(rangeFrom) || day.isAfter(effectiveTo)) {
+                continue;
+            }
             String mid = tup.get(2, String.class);
             String st = tup.get(3, String.class);
             String curRaw = tup.get(4, String.class);

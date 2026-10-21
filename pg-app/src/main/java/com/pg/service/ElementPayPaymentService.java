@@ -1242,6 +1242,14 @@ public class ElementPayPaymentService {
                     return;
                 }
                 elementPaySaleRecordService.applyRefundStatus(t, "42", paymentId, msg);
+                String after = t.getStatus() != null ? t.getStatus().trim() : "";
+                if ("42".equals(after) || "30".equals(after) || "31".equals(after)) {
+                    try {
+                        transactionReceiptEmailService.scheduleIfDue(t);
+                    } catch (Exception mailEx) {
+                        log.warn("ElementPay 환불완료 영수증 메일 실패 trnId={}: {}", t.getTrnId(), mailEx.getMessage());
+                    }
+                }
             });
         } catch (Exception e) {
             log.debug("ElementPay 환불 상태 동기화 생략: {}", e.getMessage());
@@ -1480,6 +1488,35 @@ public class ElementPayPaymentService {
             throw new IllegalStateException("결제망 환불 요청에 실패했습니다: " + e.getMessage());
         }
         return interpretInitRefundResponse(resp, t, paymentId);
+    }
+
+    /**
+     * initRefund 접수(status 200·이미 진행 470)는 완료가 아닙니다.
+     * 479·status 207 만 환불 완료로 봅니다.
+     */
+    public RefundCallResult requestRefundOutcome(PgTrnsctn t, String amountOpt, String reason) {
+        String detail = requestRefund(t, amountOpt, reason);
+        String low = detail != null ? detail.toLowerCase(Locale.ROOT) : "";
+        boolean completed = low.contains("already refunded") || low.contains("status=207");
+        return new RefundCallResult(detail != null ? detail : "", completed);
+    }
+
+    public static final class RefundCallResult {
+        private final String detail;
+        private final boolean completed;
+
+        public RefundCallResult(String detail, boolean completed) {
+            this.detail = detail;
+            this.completed = completed;
+        }
+
+        public String detail() {
+            return detail;
+        }
+
+        public boolean completed() {
+            return completed;
+        }
     }
 
     private String interpretInitRefundResponse(JsonNode resp, PgTrnsctn t, String paymentId) {

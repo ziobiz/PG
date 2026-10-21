@@ -43,6 +43,8 @@ class TransactionReceiptEmailI18nTest {
                 TransactionReceiptEmailService.outcomeForReceiptPreview("20", "RECEIPT_TXN"));
         assertEquals(TransactionReceiptOutcome.PAID,
                 TransactionReceiptEmailService.outcomeForReceiptPreview("10", "RECEIPT_TXN"));
+        assertTrue(TransactionReceiptEmailService.suppressPaidReceiptWhileRefundPending("ELEMENTPAY_REFUND_CREATED"));
+        assertTrue(!TransactionReceiptEmailService.suppressPaidReceiptWhileRefundPending("ElementPay paid"));
         assertEquals(TransactionReceiptOutcome.REFUNDED, TransactionReceiptOutcome.fromTxnStatus("42"));
         assertEquals(TransactionReceiptOutcome.REFUNDED, TransactionReceiptOutcome.fromTxnStatus("31"));
         assertEquals(TransactionReceiptOutcome.VOIDED, TransactionReceiptOutcome.fromTxnStatus("40"));

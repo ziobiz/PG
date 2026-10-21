@@ -17,7 +17,7 @@
   <title>PG 통합관리자</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="css/site.css?v=114" rel="stylesheet">
+  <link href="css/site.css?v=119" rel="stylesheet">
   <link href="css/icopay-crypto.css?v=6" rel="stylesheet">
   <link href="css/hq-server-monitor.css?v=5" rel="stylesheet">
   <script src="js/config.js?v=12"></script>
@@ -57,7 +57,7 @@
       }
     })();
   </script>
-  <script src="js/api.js?v=58"></script>
+  <script src="js/api.js?v=62"></script>
   <script src="js/icopay-hq-holiday-calendar.js?v=1"></script>
   <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 </head>
@@ -115,6 +115,7 @@
               <li class="child-li" data-url="/hq/notifyInbound"><a href="#" data-menu_id="M0121" data-pg-ui-t="노티수령정보">노티수령정보</a></li>
               <li class="child-li" data-url="/hq/ledgerSysSettings"><a href="#" data-menu_id="M0119" data-pg-ui-t="전산설정관리">전산설정관리</a></li>
               <li class="child-li" data-url="/hq/settlementAdmin"><a href="#" data-menu_id="M0123" data-pg-ui-t="정산관리설정">정산관리설정</a></li>
+              <li class="child-li" data-url="/hq/remitAccountMng"><a href="#" data-menu_id="M0132" data-pg-ui-t="계좌관리">계좌관리</a></li>
               <li class="child-li" data-url="/hq/cryptoSettings"><a href="#" data-menu_id="M0131" data-pg-ui-t="크립토설정">크립토설정</a></li>
               <li class="child-li" data-url="/hq/receivableRecoverySettings"><a href="#" data-menu_id="M0124" data-pg-ui-t="환수/미수금설정">환수/미수금설정</a></li>
               <li class="child-li" data-url="/hq/domainConfig"><a href="#" data-menu_id="M0115" data-pg-ui-t="도메인구성설정">도메인구성설정</a></li>
@@ -236,6 +237,7 @@
               <li class="child-li" data-url="/risk/list"><a href="#" data-menu_id="M0701" data-pg-ui-t="리스크 현황">리스크 현황</a></li>
               <li class="child-li" data-url="/ops/notiProvision"><a href="#" data-menu_id="M0608" data-pg-ui-t="노티관리">노티관리</a></li>
               <li class="child-li" data-url="/ops/mailLog"><a href="#" data-menu_id="M0602" data-pg-ui-t="메일관리">메일관리</a></li>
+              <li class="child-li" data-url="/ops/remittance"><a href="#" data-menu_id="M0615" data-pg-ui-t="송금관리">송금관리</a></li>
               <li class="child-li" data-url="/ops/opsMng"><a href="#" data-menu_id="M0601" data-pg-ui-t="운영관리">운영관리</a></li>
               <li class="child-li" data-url="/ops/integratedReport"><a href="#" data-menu_id="M0604" data-pg-ui-t="통합리포트">통합리포트</a></li>
               <li class="child-li" data-url="/ops/opsManuals"><a href="#" data-menu_id="M0614" data-pg-ui-t="운영 메뉴얼">운영 메뉴얼</a></li>
@@ -582,6 +584,11 @@
                   <button type="button" class="btn btn-outline-primary btn-sm" id="pgAgencyEditEpFetchMethodsBtn" data-pg-ui-t="샌드박스 결제수단 조회">샌드박스 결제수단 조회</button>
                   <button type="button" class="btn btn-outline-secondary btn-sm" id="pgAgencyEditEpApplySuggestBtn" data-pg-ui-t="추천값 적용">추천값 적용</button>
                 </div>
+                <div class="col-12">
+                  <label class="form-label form-label-sm mb-0" data-pg-ui-t="Client API 토큰">Client API 토큰</label>
+                  <input type="text" class="form-control form-control-sm font-monospace" id="pgAgencyEditEpClientApiToken" maxlength="128" data-pg-ui-placeholder="Cabinet API Keys. 변경 시에만 입력" placeholder="Cabinet API Keys. 변경 시에만 입력" autocomplete="off" spellcheck="false">
+                  <div class="form-text"><span data-pg-ui-t="송금관리와 통합내역 ElementPay 조회에 씁니다. 결제 Merchant Key 와 다른 값입니다.">송금관리와 통합내역 ElementPay 조회에 씁니다. 결제 Merchant Key 와 다른 값입니다.</span></div>
+                </div>
               </div>
               <div class="form-text mb-1"><span data-pg-ui-t="[조회]로 EP getMethods 목록을 확인한 뒤, 카드 줄의 alias(예: kCards)를 넣고 저장하세요. 「Payment method is disabled」는 보통 alias 불일치입니다.">[조회]로 EP getMethods 목록을 확인한 뒤, 카드 줄의 alias(예: kCards)를 넣고 저장하세요. 「Payment method is disabled」는 보통 alias 불일치입니다.</span></div>
               <pre class="small mb-0 bg-white border rounded p-2" id="pgAgencyEditEpMethodsResult" style="max-height:280px;overflow:auto;white-space:pre-wrap;"></pre>
@@ -845,32 +852,32 @@
     </footer>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="js/icopay-pg-ui.js?v=1"></script>
-<script src="js/pay-list-integrated-catalog.js?v=9"></script>
+  <script src="js/icopay-pg-ui.js?v=2"></script>
+<script src="js/pay-list-integrated-catalog.js?v=10"></script>
 <script src="js/pay-list-overview-catalog.js?v=4"></script>
 <script src="js/pay-list-jpay-overview-catalog.js?v=2"></script>
 <script src="js/table-column-resize.js?v=5"></script>
   <script src="js/pg-ui-string-map.js?v=63"></script>
-  <script src="js/pg-ui-i18n.js?v=104"></script>
+  <script src="js/pg-ui-i18n.js?v=109"></script>
   <script src="js/url-pay-copy-phrase-i18n.js?v=1"></script>
   <script src="js/checkout-header-subtitle-presets.js?v=2"></script>
   <script src="js/url-pay-input-mode.js?v=4"></script>
-  <script src="js/pg-view-display-tz.js?v=3"></script>
-  <script src="js/pg-menu-layout-b.js?v=7"></script>
-  <script src="js/pg-hub-shell.js?v=5"></script>
-  <script src="js/icopay-platform-release-notes.js?v=5.19"></script>
+  <script src="js/pg-view-display-tz.js?v=4"></script>
+  <script src="js/pg-menu-layout-b.js?v=8"></script>
+  <script src="js/pg-hub-shell.js?v=6"></script>
+  <script src="js/icopay-platform-release-notes.js?v=5.34"></script>
   <script src="js/icopay-platform-manuals.js?v=2.81"></script>
   <script src="js/icopay-crypto-wallets.js?v=6"></script>
   <script src="js/icopay-qr-modal.js?v=4"></script>
-  <script src="js/screens.js?v=294"></script>
-  <script src="js/pg-pay-list-i18n.js?v=47"></script>
+  <script src="js/screens.js?v=304"></script>
+  <script src="js/pg-pay-list-i18n.js?v=52"></script>
   <script src="js/pg-home-dashboard.js?v=30"></script>
   <script src="js/ops-inactive-card-brand.js?v=2"></script>
-  <script src="js/app.js?v=365"></script>
+  <script src="js/app.js?v=376"></script>
   <script src="js/pg-login-tablet-shell.js?v=6"></script>
   <script src="js/pg-topbar-contrast.js?v=2"></script>
   <script src="js/pg-admin-tablet-shell.js?v=10"></script>
-<script src="js/pg-admin-shell-i18n.js?v=14"></script>
+<script src="js/pg-admin-shell-i18n.js?v=16"></script>
   <script>
     (function () {
       var user = null;

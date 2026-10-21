@@ -31,6 +31,11 @@ public final class ElementPayCallbackEventUtil {
         public boolean changesTxn() {
             return kind != Kind.ACK;
         }
+
+        /** 환불 요청·요청 취소는 승인 유지. 고객 영수증은 환불 완료 때만 보낸다. */
+        public boolean schedulesCustomerReceipt() {
+            return kind != Kind.REFUND_CREATED && kind != Kind.REFUND_CANCELED;
+        }
     }
 
     private ElementPayCallbackEventUtil() {

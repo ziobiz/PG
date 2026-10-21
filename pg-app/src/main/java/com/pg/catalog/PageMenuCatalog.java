@@ -29,6 +29,7 @@ public final class PageMenuCatalog {
         add(list, "/hq/notifyInbound", "M0121", "수령 로그", "본사정책");
         add(list, "/hq/notifyEpMirror", "M0130", "미러 재전송", "본사정책");
         add(list, "/hq/settlementAdmin", "M0123", "정산주기", "본사정책");
+        add(list, "/hq/remitAccountMng", "M0132", "계좌관리", "본사정책");
         add(list, "/hq/receivableRecoverySettings", "M0124", "환수·미수금", "본사정책");
         add(list, "/hq/businessDaySetting", "M0109", "영업일", "본사정책");
         add(list, "/hq/orgViewColumnAllowance", "M0108", "조직항목", "본사정책");
@@ -113,6 +114,7 @@ public final class PageMenuCatalog {
         add(list, "/ops/distributionTxnList", "M0609", "유통망내역", "운영관리");
         add(list, "/ops/distributionSettlement", "M0610", "유통망정산", "운영관리");
         add(list, "/ops/mailLog", "M0602", "메일관리", "운영관리");
+        add(list, "/ops/remittance", "M0615", "송금관리", "운영관리");
         add(list, "/ops/opsMng", "M0601", "운영관리", "운영관리");
         add(list, "/ops/integratedReport", "M0604", "통합리포트", "운영관리");
         add(list, "/ops/opsManuals", "M0614", "운영 메뉴얼", "운영관리");
