@@ -6355,6 +6355,12 @@
       CH: '汇款余额',
       TH: 'ยอดโอน'
     },
+    'ox 결제 목록 API는 아직 연결되지 않았습니다. 적재된 거래는 결제개요에서 ox를 고르세요. ox는 별도 샌드박스 API가 없습니다.': {
+      EN: 'The ox payment list API is not connected yet. Saved transactions are in Payment overview under ox. ox has no separate sandbox API.',
+      JP: 'oxの決済一覧APIはまだ接続されていません。保存済み取引は決済概要でoxを選んで見ます。oxに別サンドボックスAPIはありません。',
+      CH: 'ox 支付列表 API 尚未连接。已保存的交易请在支付概览中选择 ox 查看。ox 没有单独的沙箱 API。',
+      TH: 'API รายการชำระของ ox ยังไม่เชื่อม ธุรกรรมที่บันทึกไว้ดูที่ภาพรวมการชำระโดยเลือก ox ox ไม่มี API sandbox แยก'
+    },
     '입금될 금액': {
       EN: 'Incoming hold',
       JP: '入金予定',

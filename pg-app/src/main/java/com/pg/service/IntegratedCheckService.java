@@ -69,6 +69,8 @@ public class IntegratedCheckService {
                     ? (List<Map<String, Object>>) el : List.of();
             acquirerDays = epDays;
             acquirerCapped = Boolean.TRUE.equals(ep.get("capped"));
+        } else if ("OX".equals(acquirer)) {
+            acquirerDays = List.of();
         } else {
             Map<String, Object> jpayPayload = jpayIntegratedListService.buildDailyIntegratedSummary(
                     tFrom, tTo, effectiveTo, searchKeyword, searchOrderNo, searchPayDivCd, searchOrderDir, authentication);
@@ -113,11 +115,16 @@ public class IntegratedCheckService {
             Map<String, Object> iRow = icopayByDay.getOrDefault(day, emptyIcopayDay(day));
             Map<String, Object> jSnap = snapshotFromExternalDay(jRow, acquirer);
             Map<String, Object> iSnap = snapshotFromIcopayDay(iRow);
-            List<String> mismatchKeys = diffKeys(jSnap, iSnap);
+            boolean queryReady = !"OX".equals(acquirer);
+            if (!queryReady) {
+                jSnap.put("queryPending", Boolean.TRUE);
+            }
+            List<String> mismatchKeys = queryReady ? diffKeys(jSnap, iSnap) : List.of();
             Map<String, Object> one = new LinkedHashMap<>();
             one.put("day", day);
             one.put("rowNo", rowNo++);
-            one.put("match", mismatchKeys.isEmpty());
+            one.put("match", queryReady && mismatchKeys.isEmpty());
+            one.put("acquirerQueryReady", queryReady);
             one.put("mismatchKeys", mismatchKeys);
             one.put("acquirerCode", acquirer);
             one.put("acquirerLabel", acquirerLabel(acquirer));
@@ -142,6 +149,11 @@ public class IntegratedCheckService {
             if (acquirerCapped) {
                 meta.put("note", "ElementPay 조회 건수가 많아 최근 5,000건까지만 대조했습니다.");
             }
+        } else if ("OX".equals(acquirer)) {
+            meta.put("acquirerQueryReady", false);
+            meta.put("integratedCheckNote",
+                    "ox 결제 조회 API는 아직 없습니다. ICOPAY에 저장된 ox 거래만 보여 주며, 대행사 칸은 연결 대기입니다. "
+                            + "ox는 별도 샌드박스 API가 없습니다.");
         } else {
             meta.put("integratedCheckNote",
                     "JPAY(조회통합·DB Export 캐시·거래일)과 ICOPAY에 적재된 JPAY 거래를 일자별로 대조합니다. "
@@ -198,11 +210,20 @@ public class IntegratedCheckService {
         if ("ELEMENTPAY".equals(v)) {
             return "ELEMENTPAY";
         }
+        if ("OX".equals(v) || "OXPAY".equals(v)) {
+            return "OX";
+        }
         return "JPAY";
     }
 
     private static String acquirerLabel(String acquirer) {
-        return "ELEMENTPAY".equals(acquirer) ? "ElementPay" : "JPAY";
+        if ("ELEMENTPAY".equals(acquirer)) {
+            return "ElementPay";
+        }
+        if ("OX".equals(acquirer)) {
+            return "ox";
+        }
+        return "JPAY";
     }
 
     private static Map<String, Object> snapshotFromExternalDay(Map<String, Object> row, String source) {

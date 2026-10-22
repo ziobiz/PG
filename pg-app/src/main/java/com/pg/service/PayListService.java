@@ -14,6 +14,7 @@ import com.pg.entity.MerchantProfile;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgTrnsctn;
+import com.pg.integration.pg.PgVendor;
 import com.pg.entity.SplitPayInstallment;
 import com.pg.entity.SettlementSetting;
 import com.pg.repository.CommissionPolicyRepository;
@@ -2024,6 +2025,9 @@ public class PayListService {
         List<String> byBinding = merchantPgBindingRepository.findMerchantCodesByPgCd(pgCd);
         List<Predicate> ors = new ArrayList<>();
         ors.add(cb.equal(root.get("van"), pgCd));
+        if (PgVendor.OX.equals(PgVendor.normalizePgCdKey(pgCd))) {
+            ors.add(cb.like(cb.upper(root.get("van")), "OX%"));
+        }
         if (!byBinding.isEmpty()) {
             ors.add(root.get("merchantId").in(byBinding));
         }

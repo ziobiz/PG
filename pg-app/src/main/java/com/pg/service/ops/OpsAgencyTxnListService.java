@@ -462,6 +462,9 @@ public class OpsAgencyTxnListService {
         if (PgVendor.isChillPayFamily(vanKey) && PgVendor.isChillPayFamily(cd)) {
             return true;
         }
+        if (PgVendor.isOxFamily(vanKey) && PgVendor.isOxFamily(cd)) {
+            return true;
+        }
         return cdNorm.startsWith(vanNorm + "_") || cdNorm.startsWith(vanNorm);
     }
 

@@ -6,13 +6,35 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '5.34';
+  var CURRENT_LIVE = '5.35';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '5.35',
+      kind: 'minor',
+      date: '2026-10-22',
+      items: {
+        KO: [
+          'ox: 통합내역·통합체크·결제개요·대행수수료에 자리를 추가. 결제 목록 API와 별도 샌드박스는 아직 없고, 저장된 ox 거래만 결제개요·대행수수료·통합체크 ICOPAY 줄에서 봅니다'
+        ],
+        EN: [
+          'ox is added to integrated history, integrated check, payment overview, and agency fees. There is no payment-list API and no separate sandbox yet; saved ox transactions show in overview, agency fees, and the ICOPAY row of integrated check'
+        ],
+        JP: [
+          'oxを統合履歴・統合チェック・決済概要・代行手数料に追加。決済一覧APIと別サンドボックスはまだなく、保存済みox取引は概要・代行手数料・統合チェックのICOPAY行で表示'
+        ],
+        CH: [
+          'ox 已加入综合明细、整合检查、支付概览与代行手续费。尚无支付列表 API，也没有单独沙箱；已保存的 ox 交易在概览、代行手续费和整合检查的 ICOPAY 行查看'
+        ],
+        TH: [
+          'เพิ่ม ox ในประวัติรวม ตรวจสอบรวม ภาพรวมการชำระ และค่าธรรมเนียมตัวแทน ยังไม่มี API รายการชำระและไม่มี sandbox แยก ธุรกรรม ox ที่บันทึกไว้ดูที่ภาพรวม ค่าธรรมเนียม และแถว ICOPAY ของตรวจสอบรวม'
+        ]
+      }
+    },
     {
       version: '5.34',
       kind: 'minor',

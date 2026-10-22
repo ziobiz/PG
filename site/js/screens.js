@@ -6350,7 +6350,8 @@
           ], size: 12 },
           { label: '결제대행사', type: 'select', name: 'searchAcquirer', options: [
             { v: 'ELEMENTPAY', t: 'ElementPay' },
-            { v: 'CHILLPAY', t: 'ChillPay' }
+            { v: 'CHILLPAY', t: 'ChillPay' },
+            { v: 'OX', t: 'ox' }
           ], size: 14 }
         ],
         [
@@ -6382,7 +6383,8 @@
         'ChillPay API Transaction Services — Search Payment Transaction(실시간)입니다. ICOPAY 내부 DB(pg_trnsctn)가 아니라 칠페이 서버에서 직접 목록을 가져옵니다. ziobiz/NOTI 노티미들웨어의 종합거래·피지거래내역과 유사한 용도로 쓸 수 있습니다.',
         '자격: 배포설정 > API배포설정 또는 tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스 여부를 사용합니다.',
         '순서(내림차순·오름차순)는 [새로고침] 왼쪽 메뉴에서 고르며, 누르는 즉시 다시 조회됩니다(기본 내림차순). TransactionDate 범위는 검색 기간(날짜)을 ChillPay 형식(dd/MM/yyyy HH:mm:ss)으로 변환합니다. 문서: ChillPay-API-Transaction-Services-Document-EN_v1.0.6.',
-        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·승인번호·업체명·업체코드·거래일·거래시간(운영·표준 두 줄)은 그리드에 항상 표시되며 VIEW SETTING 목록에는 나오지 않습니다. 루트(Route)는 VIEW SETTING에서 켜고 끌 수 있습니다. 거래일은 YYYY-MM-DD(예: 2026-05-09) 형식으로 표시됩니다. 본사설정 → 조직항목설정에서 화면「통합내역」 허용 열을 제한할 수 있습니다.'
+        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·승인번호·업체명·업체코드·거래일·거래시간(운영·표준 두 줄)은 그리드에 항상 표시되며 VIEW SETTING 목록에는 나오지 않습니다. 루트(Route)는 VIEW SETTING에서 켜고 끌 수 있습니다. 거래일은 YYYY-MM-DD(예: 2026-05-09) 형식으로 표시됩니다. 본사설정 → 조직항목설정에서 화면「통합내역」 허용 열을 제한할 수 있습니다.',
+        'ox를 고르면 결제 목록을 가져오지 않습니다. ox 결제 조회 API와 별도 샌드박스 API는 아직 없고, 저장된 ox 거래는 결제개요에서 봅니다.'
       ],
       summary: ['건수'],
       buttons: [
@@ -6450,7 +6452,8 @@
           { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 22 },
           { label: '결제대행사', type: 'select', name: 'searchAcquirer', options: [
             { v: 'ELEMENTPAY', t: 'ElementPay' },
-            { v: 'JPAY', t: 'JPAY' }
+            { v: 'JPAY', t: 'JPAY' },
+            { v: 'OX', t: 'ox' }
           ], size: 12 },
           { label: '상태구분', type: 'select', name: 'searchPayDivCd', options: [
             { v: '', t: '전체' },
@@ -6468,7 +6471,8 @@
         '대행사 행 또는 ICOPAY 행을 더블클릭하면 아래 「선택 일자 상세」에 해당 일 거래 목록이 표시됩니다.',
         'ElementPay는 검색할 때 결제대행사에서 바로 가져옵니다. JPAY는 저장된 조회 캐시이며, JPAY를 고른 뒤에만 동기화 버튼이 나옵니다. 조회 기간은 최대 93일입니다.',
         'ElementPay 건수가 아주 많으면 최근 5,000건까지 대조합니다. JPAY를 고르면 상단 최근동기화 시각이 통합개요와 같습니다.',
-        '새로고침 왼쪽 시간 3개: 비교정렬은 ElementPay·ICOPAY 일자와 거래시간 1줄의 기준입니다. 1줄추가는 대행사(ElementPay·JPAY) 상세의 추가 시간, 2줄추가는 ICOPAY 상세의 추가 시간입니다. 본사설정이면 비교정렬은 전산 표준, 추가 시간은 전산 운영 시간대입니다.'
+        '새로고침 왼쪽 시간 3개: 비교정렬은 ElementPay·ICOPAY 일자와 거래시간 1줄의 기준입니다. 1줄추가는 대행사(ElementPay·JPAY) 상세의 추가 시간, 2줄추가는 ICOPAY 상세의 추가 시간입니다. 본사설정이면 비교정렬은 전산 표준, 추가 시간은 전산 운영 시간대입니다.',
+        'ox를 고르면 대행사 칸은 연결 대기입니다. ox 결제 조회 API와 별도 샌드박스 API는 아직 없고, 아래 ICOPAY 줄만 저장된 ox 거래입니다.'
       ],
       summary: ['건수'],
       buttons: [
@@ -8761,7 +8765,8 @@
         '결제대행사(PG) 계약 수수료를 건별로 표시합니다. 본사설정 「대행수수료설정」과 가맹 결제대행사 설정 결제코드·거래 통화로 정책을 찾아, <strong>과거 거래도 현재 설정 기준으로 재계산</strong>합니다. 정산관리 수수료내역과 유사한 구조이며 가맹 수수료·가맹 정산(settled_yn)과 별개입니다.',
         '과거 거래도 현재 「대행수수료설정」 기준으로 건별 수수료를 재계산해 표시합니다. 정책이 없거나 결제코드·통화가 일치하지 않으면 수수료 열은 0 또는 빈 칸입니다.',
         'JPAY 포털 Export 캐시(tb_jpay_portal_export_cache)는 통합개요·일별조회와 동일합니다. JPAY 건 검수·대조 전 본 화면 [JPAY 동기화]·[전체 재동기화]로 캐시를 갱신할 수 있습니다. 전산설정 JPAY 통합개요 스케줄로 자동 동기화됩니다.',
-        '상단 「최근동기화」 시각·당일 횟수는 통합개요와 동일합니다. 스케줄 또는 [JPAY 동기화] 완료 후 이 화면이 열려 있으면 자동으로 다시 조회됩니다.'
+        '상단 「최근동기화」 시각·당일 횟수는 통합개요와 동일합니다. 스케줄 또는 [JPAY 동기화] 완료 후 이 화면이 열려 있으면 자동으로 다시 조회됩니다.',
+        'ox 거래도 본사설정 대행수수료설정의 ox 결제코드·통화 정책으로 같은 방식으로 계산합니다. ox 전용 조회 API는 쓰지 않습니다.'
       ],
       searchRows: [
         [
@@ -9327,7 +9332,8 @@
     MENU_SCREENS['/calc/payOverview'] = cloneWith('PAY_OVERVIEW', [
       '결제개요: 통합 결제내역과 동일 검색·VIEW SETTING·금액요약을 사용합니다. 열면 결제대행사는 ElementPay입니다. 전체를 고르면 다른 대행사도 함께 봅니다.',
       '결제내역보다 단말기(PC·iPhone·Android 등)·위치(국가 ISO2·도시, 예: KR | Seoul, 영어 고정)·IP·원인(실패·거절·결제창 오류)이 더 나옵니다. ElementPay·JPAY 모두 같은 열입니다.',
-      'ElementPay·JPAY 신규 결제부터 단말기·위치·IP·실패 원인이 적재됩니다. 과거 건은 값이 없을 수 있습니다.'
+      'ElementPay·JPAY 신규 결제부터 단말기·위치·IP·실패 원인이 적재됩니다. 과거 건은 값이 없을 수 있습니다.',
+      'ox는 결제대행사 설정에 등록되면 이 목록에 나옵니다. 열과 금액 요약은 ElementPay·JPAY와 같습니다. ox 결제 조회 API와 별도 샌드박스 API는 아직 없습니다.'
     ]);
     MENU_SCREENS['/pay/jpaySubscription'] = {
       emptyMessage: '조회된 구독이 없습니다.',

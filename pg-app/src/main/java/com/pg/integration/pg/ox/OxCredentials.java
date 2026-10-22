@@ -5,11 +5,19 @@ import com.pg.entity.PgAgency;
 /**
  * ox(OxPay Financial) 자격증명 — Merchant Portal API Key / Sign Key.
  * Create Payment(Merchant Hosted) 상세 엔드포인트는 OxPay 제공 API 문서로 확정.
+ * <p>OxPay Getting Started: 별도 UAT/샌드박스 API는 없습니다. 테스트도 라이브 주소에서
+ * OxPay가 준 테스트 케이스로 합니다. {@code sandboxYn} 이어도 base URL 은 같습니다.
  */
 public final class OxCredentials {
 
     public static final String DEFAULT_LIVE_BASE = "https://api.oxpayfinancial.com";
-    public static final String DEFAULT_SANDBOX_BASE = "https://api.oxpayfinancial.com";
+    /** ox 공개 문서에 분리된 샌드박스 호스트가 없어 라이브와 같은 주소입니다. */
+    public static final String DEFAULT_SANDBOX_BASE = DEFAULT_LIVE_BASE;
+
+    /** OxPay 는 별도 샌드박스 API 를 제공하지 않습니다. */
+    public static boolean hasDedicatedSandbox() {
+        return false;
+    }
 
     private final String apiKey;
     private final String signKey;

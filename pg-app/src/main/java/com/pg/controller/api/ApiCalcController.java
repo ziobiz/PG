@@ -232,6 +232,11 @@ public class ApiCalcController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
             Authentication authentication) {
         try {
+            if (searchAcquirer != null && isOxAcquirer(searchAcquirer)) {
+                return ResponseEntity.ok(ApiResponse.fail(
+                        "ox 결제 목록 API는 아직 연결되지 않았습니다. 적재된 거래는 결제개요에서 ox를 고르세요. ox는 별도 샌드박스 API가 없습니다.",
+                        "OX_QUERY_UNAVAILABLE"));
+            }
             if (searchAcquirer != null && "ELEMENTPAY".equalsIgnoreCase(searchAcquirer.trim())) {
                 try {
                     PageResult<Map<String, Object>> ep = elementPayClientApiService.searchPayments(
@@ -584,9 +589,19 @@ public class ApiCalcController {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         } catch (IllegalStateException e) {
             String acquirer = params.get("searchAcquirer");
-            String code = acquirer != null && "ELEMENTPAY".equalsIgnoreCase(acquirer.trim()) ? "ELEMENTPAY" : "JPAY";
+            String code = acquirer != null && "ELEMENTPAY".equalsIgnoreCase(acquirer.trim())
+                    ? "ELEMENTPAY"
+                    : (acquirer != null && isOxAcquirer(acquirer) ? "OX" : "JPAY");
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), code));
         }
+    }
+
+    private static boolean isOxAcquirer(String raw) {
+        if (raw == null) {
+            return false;
+        }
+        String v = raw.trim().toUpperCase(java.util.Locale.ROOT);
+        return "OX".equals(v) || "OXPAY".equals(v);
     }
 
     private static Map<String, Long> statusBucketCountsFromPayListStatusBar(Map<String, Object> meta) {

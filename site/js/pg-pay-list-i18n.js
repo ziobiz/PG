@@ -521,7 +521,8 @@
     '/calc/payOverview': [
       packN('결제개요: 통합 결제내역과 동일 검색·VIEW SETTING·금액요약을 사용합니다. 열면 결제대행사는 ElementPay입니다. 전체를 고르면 다른 대행사도 함께 봅니다.', 'Payment overview uses the same search, VIEW SETTING, and amount summary as integrated payment history. It opens on ElementPay. Choose All to include other acquirers.', '決済概要は統合決済履歴と同じ検索・VIEW SETTING・金額サマリーです。開くと ElementPay です。全体で他の代行も見ます。', '支付概览与综合支付历史使用相同搜索、VIEW SETTING 与金额汇总。打开时为 ElementPay。选全部可看其他机构。', 'ภาพรวมการชำระใช้การค้นหา VIEW SETTING และสรุปยอดเดียวกับประวัติรวม เปิดที่ ElementPay เลือกทั้งหมดเพื่อดูผู้ให้บริการอื่น'),
       packN('결제내역보다 단말기(PC·iPhone·Android 등)·위치(국가 ISO2·도시, 예: KR | Seoul, 영어 고정)·IP·원인(실패·거절·결제창 오류)이 더 나옵니다. ElementPay·JPAY 모두 같은 열입니다.', 'Beyond payment history: device (PC/iPhone/Android), location (ISO2 and city, e.g. KR | Seoul, English only), IP, and cause (fail, decline, checkout error). ElementPay and JPAY use the same columns.', '決済履歴より端末・位置(例 KR | Seoul、英語固定)・IP・原因(失敗・拒否・決済画面エラー)が追加されます。ElementPay・JPAY とも同じ列です。', '比支付历史多出终端、位置(如 KR | Seoul，固定英文)、IP、原因(失败·拒绝·结账错误)。ElementPay 与 JPAY 使用相同列。', 'มากกว่าประวัติการชำระ: อุปกรณ์ ตำแหน่ง (เช่น KR | Seoul) IP และสาเหตุ (ล้มเหลว/ปฏิเสธ) ElementPay และ JPAY ใช้คอลัมน์เดียวกัน'),
-      packN('ElementPay·JPAY 신규 결제부터 단말기·위치·IP·실패 원인이 적재됩니다. 과거 건은 값이 없을 수 있습니다.', 'Device, location, IP, and failure cause are stored from new ElementPay and JPAY payments; older rows may be empty.', '新規 ElementPay・JPAY 決済から端末・位置・IP・失敗原因を保存します。過去分は空の場合があります。', '自新 ElementPay·JPAY 支付起保存终端·位置·IP·失败原因；历史记录可能为空。', 'บันทึกอุปกรณ์ ตำแหน่ง IP และสาเหตุความล้มเหลวตั้งแต่ ElementPay·JPAY ใหม่ รายการเก่าอาจว่าง')
+      packN('ElementPay·JPAY 신규 결제부터 단말기·위치·IP·실패 원인이 적재됩니다. 과거 건은 값이 없을 수 있습니다.', 'Device, location, IP, and failure cause are stored from new ElementPay and JPAY payments; older rows may be empty.', '新規 ElementPay・JPAY 決済から端末・位置・IP・失敗原因を保存します。過去分は空の場合があります。', '自新 ElementPay·JPAY 支付起保存终端·位置·IP·失败原因；历史记录可能为空。', 'บันทึกอุปกรณ์ ตำแหน่ง IP และสาเหตุความล้มเหลวตั้งแต่ ElementPay·JPAY ใหม่ รายการเก่าอาจว่าง'),
+      packN('ox는 결제대행사 설정에 등록되면 이 목록에 나옵니다. 열과 금액 요약은 ElementPay·JPAY와 같습니다. ox 결제 조회 API와 별도 샌드박스 API는 아직 없습니다.', 'ox appears in this list after it is registered in acquirer settings. Columns and the amount summary match ElementPay and JPAY. ox has no payment-list API and no separate sandbox API yet.', 'oxは決済代行設定に登録されるとこの一覧に出ます。列と金額サマリーは ElementPay・JPAY と同じです。oxの決済照会APIと別サンドボックスAPIはまだありません。', 'ox 在支付机构设置中登记后会出现在此列表。列与金额汇总与 ElementPay、JPAY 相同。ox 尚无支付查询 API，也没有单独的沙箱 API。', 'ox จะปรากฏในรายการเมื่อลงทะเบียนในการตั้งค่าผู้ให้บริการ คอลัมน์และสรุปยอดเหมือน ElementPay และ JPAY ยังไม่มี API ค้นหารายการและไม่มี API sandbox แยก')
     ],
     '/calc/payNotiList': [
       packN('노티내역: 통합 결제내역과 동일한 그리드입니다(칠페이 시트 컬럼·2단 헤더·요약바·후속조치 포함). 조회만 origin=NOTI(전산 노티 적재)로 제한됩니다.', 'Notify list uses the same grid as integrated payments; data is limited to origin=NOTI.', 'ノティ履歴は統合決済と同一グリッド。origin=NOTI のみ。', '通知列表与综合支付相同表格，仅 origin=NOTI。', 'รายการแจ้งเตือน: กริดเดียวกับรวม จำกัด origin=NOTI'),
@@ -572,7 +573,8 @@
       packN('ChillPay API Transaction Services — Search Payment Transaction(실시간)입니다. ICOPAY 내부 DB(pg_trnsctn)가 아니라 칠페이 서버에서 직접 목록을 가져옵니다. ziobiz/NOTI 노티미들웨어의 종합거래·피지거래내역과 유사한 용도로 쓸 수 있습니다.', 'ChillPay API — live search; data comes from ChillPay, not ICOPAY pg_trnsctn. Similar use case to ziobiz/NOTI consolidated / ChillPay views.', 'ChillPay API からリアルタイム取得。ICOPAY DB ではありません。', 'ChillPay 接口实时查询，数据来自 ChillPay 服务器。', 'ดึงจาก ChillPay แบบเรียลไทม์ ไม่ใช่ DB ICOPAY'),
       packN('자격: 배포설정 > API배포설정 또는 tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스 여부를 사용합니다.', 'Credentials: deploy settings / tb_pg_agency (MerchantCode, ApiKey, MD5 secret, sandbox).', '認証情報は API 配備設定／tb_pg_agency を使用。', '凭据来自部署配置与 tb_pg_agency。', 'ใช้รหัสจากการตั้งค่า API'),
       packN('순서(내림차순·오름차순)는 [새로고침] 왼쪽 메뉴에서 고르며, 누르는 즉시 다시 조회됩니다(기본 내림차순). TransactionDate 범위는 검색 기간(날짜)을 ChillPay 형식(dd/MM/yyyy HH:mm:ss)으로 변환합니다. 문서: ChillPay-API-Transaction-Services-Document-EN_v1.0.6.', 'Sort order is next to [Refresh]. Default DESC. Date range is converted to ChillPay format per API doc v1.0.6.', '並び順は[再読込]左。期間は ChillPay 形式に変換。', '排序在刷新旁，日期按文档转 ChillPay 格式。', 'เรียงลำดับข้างรีเฟรช'),
-      packN('그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·업체명·업체코드·거래일·거래시간·승인번호·거래번호(우리)·주문번호는 항상 표시됩니다. 결제금액·수수료·총금액·통화는 실결제 THB이고, 입력통화(통화ㅣ금액)는 결제내역과 같은 입력통화입니다. 거래일은 YYYY-MM-DD입니다.', 'Columns via VIEW SETTING (per user). Number, merchant, merchant code, date, time, approval no., our txn no., and order no. stay visible. Payment amount, fee, total, and currency are the charge currency (THB). Input currency matches payment history. Date is YYYY-MM-DD.', '列は VIEW SETTING。番号・加盟店・コード・取引日・時刻・承認番号・当社取引番号・注文番号は常時表示。決済金額・手数料・合計・通貨は実決済THB、入力通貨は決済履歴と同じです。日付は YYYY-MM-DD。', '列通过 VIEW SETTING 调整。编号、商户、商户代码、交易日、时间、批准号、我方交易号、订单号始终显示。支付金额、手续费、总额、币种为实付 THB，输入币种与支付明细相同。日期为 YYYY-MM-DD。', 'คอลัมน์ตั้งค่า VIEW หมายเลข ร้าน รหัสร้าน วันที่ เวลา เลขอนุมัติ เลขรายการของเรา เลขคำสั่งซื้อแสดงเสมอ ยอดชำระ ค่าธรรมเนียม ยอดรวม สกุลเงินเป็นสกุลที่เรียกเก็บ (THB) สกุลที่ป้อนตรงกับประวัติการชำระ วันที่เป็น YYYY-MM-DD')
+      packN('그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·업체명·업체코드·거래일·거래시간·승인번호·거래번호(우리)·주문번호는 항상 표시됩니다. 결제금액·수수료·총금액·통화는 실결제 THB이고, 입력통화(통화ㅣ금액)는 결제내역과 같은 입력통화입니다. 거래일은 YYYY-MM-DD입니다.', 'Columns via VIEW SETTING (per user). Number, merchant, merchant code, date, time, approval no., our txn no., and order no. stay visible. Payment amount, fee, total, and currency are the charge currency (THB). Input currency matches payment history. Date is YYYY-MM-DD.', '列は VIEW SETTING。番号・加盟店・コード・取引日・時刻・承認番号・当社取引番号・注文番号は常時表示。決済金額・手数料・合計・通貨は実決済THB、入力通貨は決済履歴と同じです。日付は YYYY-MM-DD。', '列通过 VIEW SETTING 调整。编号、商户、商户代码、交易日、时间、批准号、我方交易号、订单号始终显示。支付金额、手续费、总额、币种为实付 THB，输入币种与支付明细相同。日期为 YYYY-MM-DD。', 'คอลัมน์ตั้งค่า VIEW หมายเลข ร้าน รหัสร้าน วันที่ เวลา เลขอนุมัติ เลขรายการของเรา เลขคำสั่งซื้อแสดงเสมอ ยอดชำระ ค่าธรรมเนียม ยอดรวม สกุลเงินเป็นสกุลที่เรียกเก็บ (THB) สกุลที่ป้อนตรงกับประวัติการชำระ วันที่เป็น YYYY-MM-DD'),
+      packN('ox를 고르면 결제 목록을 가져오지 않습니다. ox 결제 조회 API와 별도 샌드박스 API는 아직 없고, 저장된 ox 거래는 결제개요에서 봅니다.', 'Choosing ox does not load a payment list. ox has no payment-list API and no separate sandbox API yet. Saved ox transactions are in Payment overview.', 'oxを選んでも決済一覧は取得しません。oxの決済照会APIと別サンドボックスAPIはまだなく、保存済みのox取引は決済概要で見ます。', '选择 ox 不会拉取支付列表。ox 尚无支付查询 API，也没有单独的沙箱 API。已保存的 ox 交易在支付概览中查看。', 'เลือก ox แล้วจะไม่ดึงรายการชำระ ยังไม่มี API ค้นหาและไม่มี API sandbox แยก ธุรกรรม ox ที่บันทึกไว้ดูที่ภาพรวมการชำระ')
     ],
     '/calc/jpayTrList': [
       packN(
@@ -863,6 +865,13 @@
         '再読込の左に時刻が3つあります。比較基準は ElementPay・ICOPAY の日付と取引時刻1行目です。1行目追加は代行(ElementPay・JPAY)詳細の追加時刻、2行目追加は ICOPAY 詳細の追加時刻です。本社設定なら比較基準は全算標準、追加は運営時間帯です。',
         '刷新左侧有 3 个时间：比较基准是 ElementPay 与 ICOPAY 的日期和交易时间第 1 行。第 1 行附加是机构(ElementPay/JPAY)详情的附加时间，第 2 行附加是 ICOPAY 详情的附加时间。总部设置时，比较基准为账务标准时区，附加时间为运营时区。',
         'ซ้ายของรีเฟรชมีเวลา 3 ช่อง: เทียบเวลาคือวันที่และบรรทัดแรกของ ElementPay กับ ICOPAY บรรทัด 1 คือเวลาเพิ่มของรายละเอียดผู้ให้บริการ บรรทัด 2 คือเวลาเพิ่มของ ICOPAY ค่า HQ ใช้โซนมาตรฐานสำหรับเทียบ และโซนปฏิบัติการสำหรับเวลาเพิ่ม'
+      ),
+      packN(
+        'ox를 고르면 대행사 칸은 연결 대기입니다. ox 결제 조회 API와 별도 샌드박스 API는 아직 없고, 아래 ICOPAY 줄만 저장된 ox 거래입니다.',
+        'With ox selected, the acquirer row stays pending. ox has no payment-list API and no separate sandbox API yet. Only the ICOPAY row shows saved ox transactions.',
+        'oxを選ぶと代行側は接続待ちです。oxの決済照会APIと別サンドボックスAPIはまだなく、下の ICOPAY 行だけが保存済みox取引です。',
+        '选择 ox 时，机构栏为待连接。ox 尚无支付查询 API，也没有单独的沙箱 API。只有下方 ICOPAY 行显示已保存的 ox 交易。',
+        'เมื่อเลือก ox แถวผู้ให้บริการเป็นรอเชื่อม ยังไม่มี API ค้นหาและไม่มี API sandbox แยก แถว ICOPAY เท่านั้นที่แสดงธุรกรรม ox ที่บันทึกไว้'
       )
     ],
     '/calc/queryIntegrated': [
@@ -1210,6 +1219,13 @@
         '上段の「最終同期」時刻・当日回数は統合概要と同じです。スケジュールまたは[JPAY同期]完了後、この画面を開いたままなら自動再照회します。',
         '上方「最近同步」时间与整合概览相同。本页打开时，计划或 [JPAY 同步] 完成后会自动重新查询。',
         '「ซิงค์ล่าสุด」และจำนวนวันนี้ตรงกับภาพรวมรวม เมื่อเปิดหน้านี้อยู่ หลังซิงค์ตามตารางหรือ [JPAY sync] เสร็จจะรีเฟรชอัตโนมัติ'
+      ),
+      packN(
+        'ox 거래도 본사설정 대행수수료설정의 ox 결제코드·통화 정책으로 같은 방식으로 계산합니다. ox 전용 조회 API는 쓰지 않습니다.',
+        'ox transactions use the same calculation from the ox payment-code and currency policy in Agency fee settings. No ox-only query API is used.',
+        'ox取引も本社設定の代行手数料設定にあるox決済コード・通貨ポリシーで同じ方法で計算します。ox専用の照会APIは使いません。',
+        'ox 交易也按总部代行手续费设置中的 ox 支付代码与币种政策，以同样方式计算。不使用 ox 专用查询 API。',
+        'ธุรกรรม ox คำนวณแบบเดียวกันจากนโยบายรหัสชำระและสกุลเงินของ ox ในการตั้งค่าค่าธรรมเนียมตัวแทน ไม่ใช้ API ค้นหาเฉพาะ ox'
       )
     ],
     '/ops/inactiveCard': [

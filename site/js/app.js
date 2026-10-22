@@ -16487,7 +16487,9 @@
         });
       } else {
         var icopayPg = String((srcParams && srcParams.searchAcquirer) || '').toUpperCase();
-        if (icopayPg === 'ELEMENTPAY' || icopayPg === 'JPAY') dparams.searchPgCd = icopayPg;
+        if (icopayPg === 'ELEMENTPAY' || icopayPg === 'JPAY' || icopayPg === 'OX' || icopayPg === 'OXPAY' || opKind === 'OX') {
+          dparams.searchPgCd = (icopayPg === 'OXPAY' || opKind === 'OX') ? 'OX' : icopayPg;
+        }
         dparams.payListVariant = (cfg && cfg.detailPayListVariant) ? cfg.detailPayListVariant : 'INTEGRATED';
         fetchPagedListAll(function (qp) { return apiRef.payList(qp); }, dparams, DAILY_DETAIL_FETCH_PAGE_SIZE.pay).then(function (res) {
           if (loadSeq != null && p._dailyDetailLoadSeq !== loadSeq) return;
@@ -16574,6 +16576,9 @@
         return bc[bucketKey] != null ? bc[bucketKey] : 0;
       }
       function currencyTd(snap, cur, mismatchKeys, colKey) {
+        if (snap && snap.queryPending) {
+          return '<td class="text-end text-nowrap small"><span class="text-muted">' + esc('—') + '</span></td>';
+        }
         var pbc = snap && snap.paymentByCurrency ? snap.paymentByCurrency : {};
         var raw = pbc[cur];
         var mismatch = mismatchKeys && mismatchKeys.indexOf(colKey) >= 0;
@@ -16588,11 +16593,17 @@
         if (col.key === 'day') return rowspanHtml || '<td class="text-nowrap">' + esc(day) + '</td>';
         if (col.key === 'operator') return '<td class="text-nowrap integrated-check-operator">' + esc(operatorLabel) + '</td>';
         if (col.key === 'totalCount') {
+          if (snap && snap.queryPending) {
+            return '<td class="text-end text-muted">' + esc('—') + '</td>';
+          }
           var tc = snap && snap.totalCount != null ? snap.totalCount : 0;
           var mm = mismatchKeys && mismatchKeys.indexOf('totalCount') >= 0;
           return '<td class="text-end' + (mm ? ' integrated-check-cell--mismatch' : '') + '">' + esc(tc) + '</td>';
         }
         if (col.statusBucketKey) {
+          if (snap && snap.queryPending) {
+            return '<td class="text-end text-muted">' + esc('—') + '</td>';
+          }
           var bk = col.statusBucketKey;
           var mmB = mismatchKeys && mismatchKeys.indexOf(bk) >= 0;
           return '<td class="text-end' + (mmB ? ' integrated-check-cell--mismatch' : '') + '">' + esc(bucketVal(snap, bk)) + '</td>';
@@ -16622,19 +16633,21 @@
         var match = item.match === true;
         var mismatchKeys = Array.isArray(item.mismatchKeys) ? item.mismatchKeys : [];
         var acquirerCode = item.acquirerCode != null ? String(item.acquirerCode) : 'JPAY';
-        var acquirerLabel = item.acquirerLabel != null ? String(item.acquirerLabel) : (acquirerCode === 'ELEMENTPAY' ? 'ElementPay' : 'JPAY');
+        var acquirerLabel = item.acquirerLabel != null ? String(item.acquirerLabel) : (acquirerCode === 'ELEMENTPAY' ? 'ElementPay' : (acquirerCode === 'OX' ? 'ox' : 'JPAY'));
+        var pending = item.acquirerQueryReady === false;
         var jpay = item.acquirer || item.jpay || {};
         var icopay = item.icopay || {};
-        var pairCls = match ? ' integrated-check-pair--match' : ' integrated-check-pair--diff';
+        var pairCls = pending ? '' : (match ? ' integrated-check-pair--match' : ' integrated-check-pair--diff');
         var rowNoNum = parseInt(rowNo, 10);
         if (isNaN(rowNoNum) || rowNoNum < 1) rowNoNum = list.indexOf(item) + 1;
         var toneCls = (rowNoNum % 2 === 1) ? ' integrated-check-row--odd' : ' integrated-check-row--even';
         var toneStatusCls = (rowNoNum % 2 === 1) ? 'integrated-check-tone--odd' : 'integrated-check-tone--even';
         var rowNoTd = '<td rowspan="2" class="text-center text-nowrap integrated-check-meta-cell">' + esc(rowNo) + '</td>';
         var dayTd = '<td rowspan="2" class="text-nowrap integrated-check-meta-cell">' + esc(day) + '</td>';
+        var statusWord = pending ? '대기' : (match ? 'Ok' : 'Check');
         var statusTd = '<td rowspan="2" class="text-center text-nowrap ' +
-          (match ? ('integrated-check-status--ok ' + toneStatusCls) : 'integrated-check-status--check') + '">' +
-          esc(uiT(match ? 'Ok' : 'Check')) + '</td>';
+          (pending ? 'text-muted' : (match ? ('integrated-check-status--ok ' + toneStatusCls) : 'integrated-check-status--check')) + '">' +
+          esc(uiT(statusWord)) + '</td>';
         rowsHtml += '<tr class="integrated-check-row integrated-check-operator-row daily-master-row' + toneCls + pairCls + '" data-day="' + escAttr(day) + '" data-operator="' + escAttr(acquirerCode) + '" style="cursor:pointer">';
         cols.forEach(function (col) {
           if (col.key === 'checkStatus') {
