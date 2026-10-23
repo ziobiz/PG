@@ -465,6 +465,12 @@ html[data-pay-embed="1"] .pay-card {
   color: #842029;
 }
 
+#payResult.wait {
+  display: block;
+  background: #e7f1ff;
+  color: #084298;
+}
+
 /* 인라인 결제 최종 결과: 입력 폼 숨김 후 전체 카드 영역 사용 */
 #payResult.pay-result-final {
   margin-top: 0;

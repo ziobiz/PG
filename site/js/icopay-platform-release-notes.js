@@ -6,13 +6,57 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '5.35';
+  var CURRENT_LIVE = '5.37';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '5.37',
+      kind: 'minor',
+      date: '2026-10-23',
+      items: {
+        KO: [
+          '결제창: 은행 거절 안내가 선택한 언어(한국어·영어·일본어·중국어·태국어)로 표시됩니다'
+        ],
+        EN: [
+          'Checkout: the bank-decline notice follows the selected language (Korean, English, Japanese, Chinese, Thai)'
+        ],
+        JP: [
+          '決済画面: 銀行拒否の案内が選択した言語（韓国語・英語・日本語・中国語・タイ語）で表示されます'
+        ],
+        CH: [
+          '支付页：银行拒绝提示会按所选语言显示（韩语、英语、日语、中文、泰语）'
+        ],
+        TH: [
+          'หน้าชำระ: ข้อความที่ธนาคารปฏิเสธแสดงตามภาษาที่เลือก (เกาหลี อังกฤษ ญี่ปุ่น จีน ไทย)'
+        ]
+      }
+    },
+    {
+      version: '5.36',
+      kind: 'minor',
+      date: '2026-10-23',
+      items: {
+        KO: [
+          '결제창: 승인은 요청됐지만 응답이 아직 없으면 실패 대신 응답 대기로 표시합니다'
+        ],
+        EN: [
+          'Checkout: if approval was requested and no response has arrived yet, the page shows waiting for a response instead of a failure'
+        ],
+        JP: [
+          '決済画面: 承認を依頼済みで応答がまだない場合は、失敗ではなく応答待ちと表示します'
+        ],
+        CH: [
+          '支付页：已请求核准但尚未收到回应时，显示等待回应，而不显示失败'
+        ],
+        TH: [
+          'หน้าชำระ: หากส่งคำขออนุมัติแล้วแต่ยังไม่มีการตอบกลับ จะแสดงว่ารอการตอบกลับ ไม่แสดงว่าล้มเหลว'
+        ]
+      }
+    },
     {
       version: '5.35',
       kind: 'minor',

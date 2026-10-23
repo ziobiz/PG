@@ -235,6 +235,12 @@
       var cm = TABLE.CHECKOUT_CARD_PATH_FAILED;
       if (cm && cm[L]) return cm[L];
     }
+    if (low.indexOf('rejected by bank') >= 0 || low.indexOf('bank reject') >= 0
+        || key === '은행에서 거절됨' || key === 'Rejected by bank' || key === '銀行により拒否'
+        || key === '银行拒绝' || key === 'ธนาคารปฏิเสธ') {
+      var bk = TABLE.ELEMENTPAY_REJECTED_BY_BANK;
+      if (bk && bk[L]) return bk[L];
+    }
     if (low.indexOf('card_path') >= 0 || low.indexOf('카드 승인 경로') >= 0 || (low.indexOf('inline') >= 0 && low.indexOf('card') >= 0)) {
       var cp = TABLE.CHECKOUT_CARD_PATH_FAILED || TABLE.ELEMENTPAY_CARD_PATH_FAILED;
       if (cp && cp[L]) return cp[L];
