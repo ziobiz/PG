@@ -6,13 +6,35 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '5.37';
+  var CURRENT_LIVE = '5.38';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '5.38',
+      kind: 'minor',
+      date: '2026-10-26',
+      items: {
+        KO: [
+          '결제창: 1회 최소 한도는 청구예상 금액과 같은 반올림 금액으로 비교합니다. 최소 20이면 청구예상 20은 통과합니다'
+        ],
+        EN: [
+          'Checkout: the per-transaction minimum is compared with the same rounded charge shown as the estimate. A minimum of 20 allows an estimated charge of 20'
+        ],
+        JP: [
+          '決済画面: 1回下限は請求見込みと同じ丸め金額で比較します。下限20なら請求見込み20は通ります'
+        ],
+        CH: [
+          '支付页：单笔最低限额按与预计扣款相同的舍入金额比较。最低 20 时，预计扣款 20 可以通过'
+        ],
+        TH: [
+          'หน้าชำระ: วงเงินขั้นต่ำต่อครั้งเทียบกับยอดเรียกเก็บที่ปัดแล้วแบบเดียวกับยอดประมาณ ขั้นต่ำ 20 ยอดประมาณ 20 ผ่านได้'
+        ]
+      }
+    },
     {
       version: '5.37',
       kind: 'minor',

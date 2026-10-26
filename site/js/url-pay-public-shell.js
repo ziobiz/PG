@@ -184,6 +184,39 @@
     el.classList.remove('d-none');
   }
 
+  /** 청구예상 금액과 같은 소수·반올림. 한도 비교도 이 금액을 쓴다. */
+  function payFxEffectiveRoundSpec(setCur, roundSpec) {
+    var spec = roundSpec || {};
+    var customOn = spec.enabled === true || String(spec.enabled).toUpperCase() === 'Y' || String(spec.enabled).toUpperCase() === 'TRUE';
+    var facDp = (setCur === 'JPY' || setCur === 'KRW') ? 0 : 2;
+    var dp = parseInt(String(spec.decimalPlaces != null ? spec.decimalPlaces : ''), 10);
+    if (isNaN(dp) || dp < 0) dp = facDp;
+    if (dp > 8) dp = 8;
+    var rm = String(spec.roundMode || 'HALF_UP').trim().toUpperCase();
+    if (rm !== 'CEILING' && rm !== 'HALF_UP' && rm !== 'DOWN') rm = 'HALF_UP';
+    return { enabled: true, decimalPlaces: dp, roundMode: rm, legacyDefault: !customOn };
+  }
+
+  function payFxRoundSettleAmount(n, roundSpec) {
+    if (!isFinite(n)) return n;
+    var spec = roundSpec || {};
+    var dp = parseInt(String(spec.decimalPlaces != null ? spec.decimalPlaces : '2'), 10);
+    if (isNaN(dp) || dp < 0) dp = 2;
+    if (dp > 8) dp = 8;
+    var rm = String(spec.roundMode || 'HALF_UP').trim().toUpperCase();
+    var factor = Math.pow(10, dp);
+    var scaled = n * factor;
+    var rounded;
+    if (rm === 'CEILING') {
+      rounded = n >= 0 ? Math.ceil(scaled - 1e-12) : Math.floor(scaled + 1e-12);
+    } else if (rm === 'DOWN') {
+      rounded = n >= 0 ? Math.floor(scaled + 1e-12) : Math.ceil(scaled - 1e-12);
+    } else {
+      rounded = Math.round(scaled);
+    }
+    return rounded / factor;
+  }
+
   /**
    * 표시통화(FX) UI — ChillPay display-fx-quote API 재사용.
    * @param {object} st mutable state: urlPayFxQuote, urlPayDisplayFxActive, ...
@@ -211,39 +244,6 @@
       if (st.urlPayDisplayFxActive) {
         curHint.textContent = '(' + payFxResolvedDisplayCurrencyLocal() + ')';
       }
-    }
-
-    function payFxEffectiveRoundSpec(setCur, roundSpec) {
-      var spec = roundSpec || {};
-      var customOn = spec.enabled === true || String(spec.enabled).toUpperCase() === 'Y' || String(spec.enabled).toUpperCase() === 'TRUE';
-      var facDp = (setCur === 'JPY' || setCur === 'KRW') ? 0 : 2;
-      var dp = parseInt(String(spec.decimalPlaces != null ? spec.decimalPlaces : ''), 10);
-      if (isNaN(dp) || dp < 0) dp = facDp;
-      if (dp > 8) dp = 8;
-      var rm = String(spec.roundMode || 'HALF_UP').trim().toUpperCase();
-      if (rm !== 'CEILING' && rm !== 'HALF_UP' && rm !== 'DOWN') rm = 'HALF_UP';
-      /* 서버가 비활성 시에도 정책 기본값 decimalPlaces/roundMode를 내려줌 — 클라이언트 하드코딩 대체 */
-      return { enabled: true, decimalPlaces: dp, roundMode: rm, legacyDefault: !customOn };
-    }
-
-    function payFxRoundSettleAmount(n, roundSpec) {
-      if (!isFinite(n)) return n;
-      var spec = roundSpec || {};
-      var dp = parseInt(String(spec.decimalPlaces != null ? spec.decimalPlaces : '2'), 10);
-      if (isNaN(dp) || dp < 0) dp = 2;
-      if (dp > 8) dp = 8;
-      var rm = String(spec.roundMode || 'HALF_UP').trim().toUpperCase();
-      var factor = Math.pow(10, dp);
-      var scaled = n * factor;
-      var rounded;
-      if (rm === 'CEILING') {
-        rounded = n >= 0 ? Math.ceil(scaled - 1e-12) : Math.floor(scaled + 1e-12);
-      } else if (rm === 'DOWN') {
-        rounded = n >= 0 ? Math.floor(scaled + 1e-12) : Math.ceil(scaled - 1e-12);
-      } else {
-        rounded = Math.round(scaled);
-      }
-      return rounded / factor;
     }
 
     function payFxFormatSettleAmount(n, intSet) {
@@ -629,7 +629,11 @@
         var spu = parseFloat(String(q.settlementPerUnit != null ? q.settlementPerUnit : q.thbPerUnit));
         var mgn = parseFloat(String(q.marginRate != null ? q.marginRate : '0'));
         if (isFinite(spu) && isFinite(mgn)) {
-          return raw * spu * (1 + mgn);
+          var gross = raw * spu * (1 + mgn);
+          var setCur = q.settlementCurrency != null && String(q.settlementCurrency).trim() !== ''
+            ? String(q.settlementCurrency).trim().toUpperCase() : 'THB';
+          var rounded = payFxRoundSettleAmount(gross, payFxEffectiveRoundSpec(setCur, q.chargeAmountRound || null));
+          return isFinite(rounded) ? rounded : gross;
         }
       }
       if (!ccy || !checkoutCur || ccy === checkoutCur) return raw;
