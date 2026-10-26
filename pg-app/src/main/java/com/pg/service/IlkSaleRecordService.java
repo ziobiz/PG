@@ -161,7 +161,7 @@ public class IlkSaleRecordService {
             desc = desc + " " + productName.trim();
         }
         t.setChillPaymentStatus(truncate(desc, 50));
-        t.setPaymentChannel("CARD");
+        t.setPaymentChannel(isQrSaleBody(saleBody) ? "QR" : "CARD");
         if (ilkAuthOrPaymentId != null && !ilkAuthOrPaymentId.isBlank()) {
             t.setChillTransactionId(truncate(ilkAuthOrPaymentId.trim(), 64));
         }
@@ -288,6 +288,24 @@ public class IlkSaleRecordService {
             return t;
         }
         return Optional.empty();
+    }
+
+    private static boolean isQrSaleBody(Map<String, Object> body) {
+        if (body == null) {
+            return false;
+        }
+        Object means = body.get("payMeans");
+        if (means == null) {
+            means = body.get("paymentMeans");
+        }
+        if (means != null && "QR".equalsIgnoreCase(means.toString().trim())) {
+            return true;
+        }
+        Object wallet = body.get("qrWallet");
+        if (wallet == null) {
+            wallet = body.get("qrWalletCode");
+        }
+        return wallet != null && !wallet.toString().isBlank();
     }
 
     private static String resolveOrigin(String txnOrigin) {

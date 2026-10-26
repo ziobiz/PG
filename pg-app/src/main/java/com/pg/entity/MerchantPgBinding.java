@@ -78,6 +78,13 @@ public class MerchantPgBinding {
     @Column(name = "currency_scope", nullable = false, length = 8)
     private String currencyScope = "ALL";
 
+    /**
+     * QR 지갑 CSV. 빈 값이면 QR 없음.
+     * 카드 브랜드와 같은 행에 둘 수 있다. 카드만 막으려면 {@code cardBrandScope=NONE}.
+     */
+    @Column(name = "qr_wallet_scope", nullable = false, length = 64)
+    private String qrWalletScope = "";
+
     /** {@code null}: {@code tb_pg_agency} 기본 따름. {@code OFF}/{@code T}/{@code D}: 가맹 MID별 덮어쓰기 */
     @Column(name = "ext_settle_mode", length = 8)
     private String extSettleMode;
@@ -128,6 +135,8 @@ public class MerchantPgBinding {
     public void setCardBrandScope(String cardBrandScope) { this.cardBrandScope = cardBrandScope; }
     public String getCurrencyScope() { return currencyScope; }
     public void setCurrencyScope(String currencyScope) { this.currencyScope = currencyScope; }
+    public String getQrWalletScope() { return qrWalletScope; }
+    public void setQrWalletScope(String qrWalletScope) { this.qrWalletScope = qrWalletScope; }
     public String getExtSettleMode() { return extSettleMode; }
     public void setExtSettleMode(String extSettleMode) { this.extSettleMode = extSettleMode; }
     public Integer getExtSettleLag() { return extSettleLag; }

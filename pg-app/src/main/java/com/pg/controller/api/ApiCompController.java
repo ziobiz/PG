@@ -1023,13 +1023,14 @@ public class ApiCompController {
             String urlPayPricingMode = body.get("urlPayPricingMode") != null ? body.get("urlPayPricingMode").toString() : "";
             String cardBrandScope = body.get("cardBrandScope") != null ? body.get("cardBrandScope").toString() : "";
             String currencyScope = body.get("currencyScope") != null ? body.get("currencyScope").toString() : "";
+            String qrWalletScope = body.get("qrWalletScope") != null ? body.get("qrWalletScope").toString() : "";
             boolean extPresent = body.containsKey("extSettleMode");
             String extMode = body.get("extSettleMode") != null ? body.get("extSettleMode").toString() : "";
             String extLag = body.get("extSettleLag") != null ? body.get("extSettleLag").toString() : "";
             String extBt = body.get("extSettleBatchTime") != null ? body.get("extSettleBatchTime").toString() : "";
             Map<String, Object> saved = compService.saveMerchantPgBinding(compId, bindingId, pgCd, payMethod,
                     mid, rootNo, apiKey, ivKey, activationYn, operationalYn, installmentYn, maxMo, urlPayPricingMode,
-                    cardBrandScope, currencyScope,
+                    cardBrandScope, currencyScope, qrWalletScope,
                     extPresent, extMode, extLag, extBt);
             return ResponseEntity.ok(ApiResponse.ok(saved));
         } catch (NumberFormatException e) {

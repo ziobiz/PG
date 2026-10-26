@@ -32,6 +32,7 @@ import com.pg.repository.UserRepository;
 import com.pg.entity.OrgUnitChangeLog;
 import com.pg.service.settlement.SettlementCycleTiming;
 import com.pg.service.settlement.SettlementPeriodResolver;
+import com.pg.util.CommissionFeeChannel;
 import com.pg.util.CommissionTierJsonHelper;
 import com.pg.util.MerchantPayNotifyUrlRules;
 import com.pg.util.PercentDecimalHelper;
@@ -39,6 +40,7 @@ import com.pg.util.ReceivableRecoveryModeUtil;
 import com.pg.util.RouteNoDisplayUtil;
 import com.pg.util.VoidRefundSettlementModeUtil;
 import com.pg.util.CardBrandScopeUtil;
+import com.pg.util.QrWalletScopeUtil;
 import com.pg.util.CurrencyScopeUtil;
 import com.pg.util.MerchantPgCredentialUtil;
 import com.pg.chatbot.ChatbotCatalogPolicy;
@@ -2075,6 +2077,7 @@ public class CompService {
                                         bm.put("integUrlPayYn", integUrl);
                                         bm.put("cardBrandScope", b.getCardBrandScope() != null ? b.getCardBrandScope() : "ALL");
                                         bm.put("currencyScope", b.getCurrencyScope() != null ? b.getCurrencyScope() : "ALL");
+                                        bm.put("qrWalletScope", b.getQrWalletScope() != null ? b.getQrWalletScope() : "");
                                         bm.put("extSettleMode", b.getExtSettleMode() != null ? b.getExtSettleMode() : "");
                                         bm.put("extSettleLag", b.getExtSettleLag() != null ? String.valueOf(b.getExtSettleLag()) : "");
                                         bm.put("extSettleBatchTime", b.getExtSettleBatchTime() != null ? b.getExtSettleBatchTime().toString() : "");
@@ -2859,6 +2862,7 @@ public class CompService {
                                         applyUrlPayPricingModeFromJsonOrPrevious(binding, pc, pm, optStr(m, "urlPayPricingMode"), prevPgPricingModes);
                                         binding.setCardBrandScope(resolveMerchantPgCardBrandScopeForSave(pc, optStr(m, "cardBrandScope")));
                                         binding.setCurrencyScope(resolveMerchantPgCurrencyScopeForSave(pc, optStr(m, "currencyScope")));
+                                        binding.setQrWalletScope(resolveMerchantPgQrWalletScopeForSave(pc, optStr(m, "qrWalletScope")));
                                         applyExtSettlementFromJsonMap(binding, m);
                                         merchantPgBindingRepository.save(binding);
                                     }
@@ -2927,6 +2931,7 @@ public class CompService {
                             }
                             if ("MERCHANT".equalsIgnoreCase(effDivForCommission)) {
                                 applyCryptoChargebackFromRequest(ou.getCode());
+                                applyQrCommissionFromRequest(ou.getCode());
                             }
                             boolean pwdChanged = pwd != null && !pwd.trim().isEmpty();
                             if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
@@ -4707,6 +4712,7 @@ public class CompService {
                     }
                     binding.setCardBrandScope(resolveMerchantPgCardBrandScopeForSave(pc, optStr(m, "cardBrandScope")));
                     binding.setCurrencyScope(resolveMerchantPgCurrencyScopeForSave(pc, optStr(m, "currencyScope")));
+                    binding.setQrWalletScope(resolveMerchantPgQrWalletScopeForSave(pc, optStr(m, "qrWalletScope")));
                     binding.setSortOrder(++order);
                     applyExtSettlementFromJsonMap(binding, m);
                     merchantPgBindingRepository.save(binding);
@@ -4739,6 +4745,7 @@ public class CompService {
             if ("MERCHANT".equalsIgnoreCase(compDivVal)) {
                 applyMerchantIndependentChargebackPolicy(saved.getCode(), chargebackPolicyId);
                 applyCryptoChargebackFromRequest(saved.getCode());
+                applyQrCommissionFromRequest(saved.getCode());
             }
         }
 
@@ -5318,6 +5325,8 @@ public class CompService {
         String cryptoFollow = null;
         String cryptoScope = null;
         String fiatSlot = null;
+        String qrFollow = null;
+        String qrScope = null;
         try {
             var attrs = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
             if (attrs instanceof org.springframework.web.context.request.ServletRequestAttributes sra) {
@@ -5325,10 +5334,31 @@ public class CompService {
                 cryptoFollow = req.getParameter("commissionCryptoFollowHq");
                 cryptoScope = req.getParameter("hqCryptoPolicyScope");
                 fiatSlot = req.getParameter("fiatCommissionSlotYn");
+                qrFollow = req.getParameter("commissionQrFollowHq");
+                qrScope = req.getParameter("hqQrPolicyScope");
             }
         } catch (Exception ignored) {
         }
         mergeCommissionUiIntoRegionalSettings(mp, commissionFollowHq, hqPolicyScope, cryptoFollow, cryptoScope, fiatSlot);
+        mergeQrCommissionKeys(mp, qrFollow, qrScope);
+    }
+
+    private void mergeQrCommissionKeys(MerchantProfile mp, String commissionQrFollowHq, String hqQrPolicyScope) {
+        if (mp == null || (commissionQrFollowHq == null && hqQrPolicyScope == null)) {
+            return;
+        }
+        Map<String, Object> rs = parseRegionalSettings(mp.getRegionalSettings());
+        if (commissionQrFollowHq != null) {
+            rs.put("commissionQrFollowHq", "N".equalsIgnoreCase(commissionQrFollowHq.trim()) ? "N" : "Y");
+        }
+        if (hqQrPolicyScope != null) {
+            rs.put("hqQrPolicyScope", hqQrPolicyScope.trim());
+        }
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+            mp.setRegionalSettings(om.writeValueAsString(rs));
+        } catch (Exception ignored) {
+        }
     }
 
     private void mergeCommissionUiIntoRegionalSettings(MerchantProfile mp, String commissionFollowHq, String hqPolicyScope,
@@ -5694,13 +5724,127 @@ public class CompService {
                 || String.valueOf(m.get("fiatCommissionSlotYn")).isBlank()) {
             m.put("fiatCommissionSlotYn", "Y");
         }
+        if (!m.containsKey("commissionQrFollowHq") || m.get("commissionQrFollowHq") == null
+                || String.valueOf(m.get("commissionQrFollowHq")).isBlank()) {
+            m.put("commissionQrFollowHq", "Y");
+        }
+        if (!m.containsKey("hqQrPolicyScope") || m.get("hqQrPolicyScope") == null) {
+            m.put("hqQrPolicyScope", "");
+        }
         String code = ou.getCode();
         if (code == null || code.isBlank()) {
             return;
         }
         commissionPolicyRepository.findByScope(code.trim()).ifPresentOrElse(p -> putCommissionPolicyScalars(m, p),
                 () -> commissionPolicyRepository.findByScope("DEFAULT").ifPresent(def -> putCommissionPolicyScalars(m, def)));
+        putQrCommissionScalars(m, code.trim());
         putCryptoChargebackScalars(m, code.trim(), m);
+    }
+
+    /** 가맹 QR 직접입력 슬롯. 없으면 카드 정책 숫자를 보여 직접입력으로 바꿔도 같은 금액에서 시작합니다. */
+    private void putQrCommissionScalars(Map<String, Object> m, String merchantCode) {
+        CommissionPolicy p = commissionPolicyRepository.findByScope(CommissionFeeChannel.merchantQrScope(merchantCode))
+                .or(() -> commissionPolicyRepository.findByScope(merchantCode))
+                .or(() -> commissionPolicyRepository.findByScope(CommissionFeeChannel.DEFAULT_SCOPE_FIAT))
+                .orElse(null);
+        if (p == null) {
+            return;
+        }
+        m.put("qrPayRate", p.getPayRate() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getPayRate()) : "");
+        m.put("qrFailFee", p.getFailFee() != null ? p.getFailFee().toPlainString() : "");
+        m.put("qrCancelRate", p.getCancelRate() != null ? p.getCancelRate().toPlainString() : "");
+        m.put("qrVoidFeePerTx", p.getVoidFeePerTx() != null ? p.getVoidFeePerTx().toPlainString() : "");
+        m.put("qrManualVoidFeePerTx", p.getManualVoidFeePerTx() != null ? p.getManualVoidFeePerTx().toPlainString() : "");
+        m.put("qrRefundRate", p.getRefundRate() != null ? p.getRefundRate().toPlainString() : "");
+        m.put("qrUsageRate", p.getUsageRate() != null ? p.getUsageRate().toPlainString() : "");
+        m.put("qrCommissionMemo", p.getPolicyRemark() != null ? p.getPolicyRemark() : "");
+        m.put("qrFeeSettlementPerTx", p.getFeeSettlementPerTx() != null ? p.getFeeSettlementPerTx().toPlainString() : "");
+        m.put("qrRemittanceTransferFee", p.getRemittanceTransferFee() != null ? p.getRemittanceTransferFee().toPlainString() : "");
+        m.put("qrUsdtTransferFeeUsd", p.getUsdtTransferFeeUsd() != null ? p.getUsdtTransferFeeUsd().toPlainString() : "");
+        m.put("qrFeeUsdt", p.getFeeUsdt() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeUsdt()) : "");
+        m.put("qrFeeFx", p.getFeeFx() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeFx()) : "");
+        m.put("qrFee3dsRate", p.getFee3dsRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFee3dsRate()) : "");
+    }
+
+    /** 직접입력(N)일 때만 가맹 QR 정책 행을 저장합니다. 본사정책 따름은 템플릿 scope 를 사용합니다. */
+    private void applyQrCommissionFromRequest(String merchantCode) {
+        if (merchantCode == null || merchantCode.isBlank()) {
+            return;
+        }
+        String follow = null;
+        try {
+            var attrs = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+            if (attrs instanceof org.springframework.web.context.request.ServletRequestAttributes sra) {
+                follow = sra.getRequest().getParameter("commissionQrFollowHq");
+            }
+        } catch (Exception ignored) {
+        }
+        if (follow == null || !"N".equalsIgnoreCase(follow.trim())) {
+            return;
+        }
+        String scope = CommissionFeeChannel.merchantQrScope(merchantCode);
+        CommissionPolicy policy = commissionPolicyRepository.findByScope(scope).orElseGet(CommissionPolicy::new);
+        boolean fresh = policy.getId() == null;
+        if (fresh) {
+            CommissionPolicy src = commissionPolicyRepository.findByScope(merchantCode.trim())
+                    .or(() -> commissionPolicyRepository.findByScope(CommissionFeeChannel.DEFAULT_SCOPE_FIAT))
+                    .orElse(null);
+            if (src != null) {
+                policy.setPayRate(src.getPayRate());
+                policy.setFailFee(src.getFailFee());
+                policy.setCancelRate(src.getCancelRate());
+                policy.setVoidFeePerTx(src.getVoidFeePerTx());
+                policy.setManualVoidFeePerTx(src.getManualVoidFeePerTx());
+                policy.setRefundRate(src.getRefundRate());
+                policy.setUsageRate(src.getUsageRate());
+                policy.setPolicyRemark(src.getPolicyRemark());
+                policy.setFeeSettlementPerTx(src.getFeeSettlementPerTx());
+                policy.setRemittanceTransferFee(src.getRemittanceTransferFee());
+                policy.setUsdtTransferFeeUsd(src.getUsdtTransferFeeUsd());
+                policy.setFeeUsdt(src.getFeeUsdt());
+                policy.setFeeFx(src.getFeeFx());
+                policy.setFee3dsRate(src.getFee3dsRate());
+                policy.setCurrencyCode(src.getCurrencyCode());
+                policy.setRollingPct(src.getRollingPct());
+                policy.setRollingDays(src.getRollingDays());
+            }
+        }
+        policy.setScope(scope);
+        policy.setFeeChannel(CommissionFeeChannel.QR);
+        try {
+            var attrs = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+            if (attrs instanceof org.springframework.web.context.request.ServletRequestAttributes sra) {
+                var req = sra.getRequest();
+                setQrAmount(req.getParameter("qrPayRate"), policy::setPayRate, true);
+                setQrAmount(req.getParameter("qrFailFee"), policy::setFailFee, false);
+                setQrAmount(req.getParameter("qrCancelRate"), policy::setCancelRate, false);
+                setQrAmount(req.getParameter("qrVoidFeePerTx"), policy::setVoidFeePerTx, false);
+                setQrAmount(req.getParameter("qrManualVoidFeePerTx"), policy::setManualVoidFeePerTx, false);
+                setQrAmount(req.getParameter("qrRefundRate"), policy::setRefundRate, false);
+                setQrAmount(req.getParameter("qrUsageRate"), policy::setUsageRate, false);
+                setQrAmount(req.getParameter("qrFeeSettlementPerTx"), policy::setFeeSettlementPerTx, false);
+                setQrAmount(req.getParameter("qrRemittanceTransferFee"), policy::setRemittanceTransferFee, false);
+                setQrAmount(req.getParameter("qrUsdtTransferFeeUsd"), policy::setUsdtTransferFeeUsd, false);
+                setQrAmount(req.getParameter("qrFeeUsdt"), policy::setFeeUsdt, true);
+                setQrAmount(req.getParameter("qrFeeFx"), policy::setFeeFx, true);
+                setQrAmount(req.getParameter("qrFee3dsRate"), policy::setFee3dsRate, false);
+                String memo = req.getParameter("qrCommissionMemo");
+                if (memo != null) {
+                    policy.setPolicyRemark(memo);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        commissionPolicyRepository.save(policy);
+    }
+
+    private static void setQrAmount(String raw, java.util.function.Consumer<BigDecimal> setter, boolean percent) {
+        if (raw == null || raw.isBlank() || setter == null) {
+            return;
+        }
+        setter.accept(percent
+                ? PercentDecimalHelper.parsePercentOneDecimal(raw.trim())
+                : PercentDecimalHelper.parseAmountOneDecimal(raw.trim()));
     }
 
     /** 가맹 CRYPTO 수수료 슬롯의 차지백(건당·구간정책) — FIAT 카드와 동일 UX, 저장은 CRYPTO 정책. */
@@ -5955,6 +6099,26 @@ public class CompService {
         return CardBrandScopeUtil.displayCodesJoined(operational.isEmpty() ? all : operational);
     }
 
+    /** 업체관리 그리드 「QR」: 운영 행의 QR 지갑. 없으면 {@code -}. */
+    private static String qrWalletScopeFromPgBindings(List<MerchantPgBinding> bindings) {
+        if (bindings == null || bindings.isEmpty()) {
+            return "-";
+        }
+        List<String> operational = new ArrayList<>();
+        List<String> all = new ArrayList<>();
+        for (MerchantPgBinding b : bindings) {
+            if (b == null) {
+                continue;
+            }
+            all.add(b.getQrWalletScope());
+            String op = b.getOperationalYn();
+            if (op != null && "Y".equalsIgnoreCase(op.trim())) {
+                operational.add(b.getQrWalletScope());
+            }
+        }
+        return QrWalletScopeUtil.displayJoined(operational.isEmpty() ? all : operational);
+    }
+
     /**
      * 업체관리 목록 「통화」열: 총판·지사·대리점·영업점·가맹점만 기준통화 표시. 총본사·본사는 비움.
      */
@@ -6023,6 +6187,9 @@ public class CompService {
         putPgAgencyListFields(m, o, pgBinds, agencyByCd);
         m.put("cardBrandScope", o.getOrgLevel() == OrgLevel.MERCHANT
                 ? cardBrandScopeFromPgBindings(pgBinds)
+                : "-");
+        m.put("qrWalletScope", o.getOrgLevel() == OrgLevel.MERCHANT
+                ? qrWalletScopeFromPgBindings(pgBinds)
                 : "-");
         m.put("payIntegrationMode", resolvePayIntegrationModeDisplay(o));
         m.put("apiIntegrationChannel", resolveApiIntegrationChannelDisplay(o));
@@ -6589,6 +6756,7 @@ public class CompService {
                 + " 운영=" + nz(b.getOperationalYn()) + " Route=" + nz(b.getRootNo())
                 + " URL금액=" + nz(b.getUrlPayPricingMode())
                 + " 카드=" + nz(b.getCardBrandScope())
+                + " QR=" + nz(b.getQrWalletScope())
                 + " 할부=" + nz(b.getInstallmentYn())
                 + " extSettle=" + nz(b.getExtSettleMode());
     }
@@ -6647,6 +6815,15 @@ public class CompService {
         return CurrencyScopeUtil.normalize(requestedCurrencyScope);
     }
 
+    /** 노티 전용 PG면 QR 없음. 그 외에는 요청값 검증·정규화. */
+    private String resolveMerchantPgQrWalletScopeForSave(String pgCd, String requestedQrWalletScope) {
+        if (isPgAgencyNotifyOnlyIntegration(pgCd)) {
+            return "";
+        }
+        QrWalletScopeUtil.validateOrThrow(requestedQrWalletScope);
+        return QrWalletScopeUtil.normalize(requestedQrWalletScope);
+    }
+
     private void validateMerchantPgBindingJsonRows(List<Map<String, Object>> list) {
         if (list == null) {
             return;
@@ -6660,6 +6837,7 @@ public class CompService {
             if (!isPgAgencyNotifyOnlyIntegration(pc)) {
                 CardBrandScopeUtil.validateOrThrow(optStr(m, "cardBrandScope"));
                 CurrencyScopeUtil.validateOrThrow(optStr(m, "currencyScope"));
+                QrWalletScopeUtil.validateOrThrow(optStr(m, "qrWalletScope"));
             }
         }
     }
@@ -6823,6 +7001,7 @@ public class CompService {
                                                      String urlPayPricingMode,
                                                      String cardBrandScope,
                                                      String currencyScope,
+                                                     String qrWalletScope,
                                                      boolean extSettlementFieldsPresent,
                                                      String extSettleMode, String extSettleLagStr, String extSettleBatchHm) {
         OrgUnit ou = orgUnitRepository.findByCode(compId != null ? compId.trim() : "")
@@ -6895,6 +7074,7 @@ public class CompService {
         }
         binding.setCardBrandScope(resolveMerchantPgCardBrandScopeForSave(pc, cardBrandScope));
         binding.setCurrencyScope(resolveMerchantPgCurrencyScopeForSave(pc, currencyScope));
+        binding.setQrWalletScope(resolveMerchantPgQrWalletScopeForSave(pc, qrWalletScope));
         if (extSettlementFieldsPresent) {
             applyMerchantPgBindingExtSettlementFields(binding, extSettleMode, extSettleLagStr, extSettleBatchHm);
         }
@@ -6916,6 +7096,7 @@ public class CompService {
         bm.put("urlPayPricingMode", binding.getUrlPayPricingMode() != null ? binding.getUrlPayPricingMode() : "CHECKOUT_CURRENCY");
         bm.put("cardBrandScope", binding.getCardBrandScope() != null ? binding.getCardBrandScope() : "ALL");
         bm.put("currencyScope", binding.getCurrencyScope() != null ? binding.getCurrencyScope() : "ALL");
+        bm.put("qrWalletScope", binding.getQrWalletScope() != null ? binding.getQrWalletScope() : "");
         bm.put("extSettleMode", binding.getExtSettleMode() != null ? binding.getExtSettleMode() : "");
         bm.put("extSettleLag", binding.getExtSettleLag() != null ? String.valueOf(binding.getExtSettleLag()) : "");
         bm.put("extSettleBatchTime", binding.getExtSettleBatchTime() != null ? binding.getExtSettleBatchTime().toString() : "");

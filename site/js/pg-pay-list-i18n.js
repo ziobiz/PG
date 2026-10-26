@@ -1504,6 +1504,7 @@
     payIntegrationMode: { EN: 'Method', JP: '方式', CH: '方式', TH: 'รูปแบบ' },
     apiIntegrationChannel: { EN: 'Channel', JP: 'チャネル', CH: '渠道', TH: 'ช่องทาง' },
     cardBrandScope: { EN: 'Card', JP: 'カード', CH: '卡', TH: 'บัตร' },
+    qrWalletScope: { EN: 'QR', JP: 'QR', CH: 'QR', TH: 'QR' },
     urlPayInputModeLabel: { EN: 'Type', JP: 'タイプ', CH: '类型', TH: 'ชนิด' },
     contact: { EN: 'Contact', JP: '連絡先', CH: '联系方式', TH: 'ติดต่อ' },
     bankNm: { EN: 'Bank', JP: '銀行', CH: '银行', TH: 'ธนาคาร' },

@@ -13,6 +13,7 @@ import com.pg.service.VoidRefundSettlementModeResolutionService;
 import com.pg.util.ChargebackTierResolver;
 import com.pg.util.CommissionExtraFeeUtil;
 import com.pg.util.CommissionFeeChannel;
+import com.pg.util.FeeChannelTxnUtil;
 import com.pg.util.FeeListRoundingPolicy;
 import com.pg.util.MerchantFeeVatUtil;
 import com.pg.util.PercentDecimalHelper;
@@ -150,6 +151,8 @@ public class FeeListTxnBreakdownCalculator {
         boolean cryptoTxn = isCryptoTxn(t);
         if (cryptoTxn && commissionService != null) {
             pol = commissionService.resolveCommissionPolicyForSettlement(compId, CommissionFeeChannel.CRYPTO);
+        } else if (FeeChannelTxnUtil.isQrTxn(t) && commissionService != null) {
+            pol = commissionService.resolveCommissionPolicyForSettlement(compId, CommissionFeeChannel.QR);
         }
         /* CRYPTO 승인: 매입·에스크로·인증·결제%·건당 합산(USDT/3DS 제외) */
         if (cryptoTxn && "10".equals(st)) {

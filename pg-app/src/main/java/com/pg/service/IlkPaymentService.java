@@ -195,7 +195,8 @@ public class IlkPaymentService {
         String expMonth = pad2(digitsOnly(str(body.get("cardMonth"), body.get("payCardmonth"), body.get("expirationMonth"))));
         String expYear = normalizeYear(str(body.get("cardYear"), body.get("payCardyear"), body.get("expirationYear")));
         String cvv = digitsOnly(str(body.get("cardCvv"), body.get("payCardcvv"), body.get("cvv")));
-        if (cardNo.isBlank() || expMonth.isBlank() || expYear.isBlank()) {
+        boolean qrSale = isQrSale(body);
+        if (!qrSale && (cardNo.isBlank() || expMonth.isBlank() || expYear.isBlank())) {
             return CheckoutFailI18n.cardRequired();
         }
 
@@ -246,7 +247,9 @@ public class IlkPaymentService {
 
         String amountPlain = formatAmount(amount, currency);
         String exponent = currencyExponent(currency);
-        String brand = resolveBrand(str(body.get("cardBrand"), body.get("payCardBrand")), cardNo);
+        String brand = qrSale
+                ? "PAYPAY"
+                : resolveBrand(str(body.get("cardBrand"), body.get("payCardBrand")), cardNo);
 
         Integer routeNo = agency.getRouteNo();
         BigDecimal shopperAmt = parseAmount(body.get("shopperDisplayAmount"));
@@ -259,7 +262,7 @@ public class IlkPaymentService {
         ilkSaleRecordService.recordOrTouchPending(orgUnitId, orderNo, amount, currency, routeNo,
                 productName, origin, buyerName, buyerEmail, shopperAmt, shopperCur, subscription, null, body);
 
-        if (subscription && !mit) {
+        if (subscription && !mit && !qrSale) {
             persistSubscriptionCardSeed(compCode, orderNo, cred, cardNo, expMonth, expYear, brand, amount, currency);
         }
 
@@ -285,14 +288,18 @@ public class IlkPaymentService {
         payload.put("merchantInformation.merchantDescriptor.url", clamp(descriptorUrl, 128));
         payload.put("merchantInformation.merchantDescriptor.country", DESC_COUNTRY);
         payload.put("paymentInformation.brand", brand);
-        payload.put("paymentInformation.number", IlkCryptoUtil.encryptAesBase64(cardNo, cred.seedKey(), cred.seedIv()));
-        payload.put("paymentInformation.expirationMonth",
-                IlkCryptoUtil.encryptAesBase64(expMonth, cred.seedKey(), cred.seedIv()));
-        payload.put("paymentInformation.expirationYear",
-                IlkCryptoUtil.encryptAesBase64(expYear, cred.seedKey(), cred.seedIv()));
-        if (!cvv.isBlank()) {
-            payload.put("paymentInformation.cvv",
-                    IlkCryptoUtil.encryptAesBase64(cvv, cred.seedKey(), cred.seedIv()));
+        if (!qrSale) {
+            payload.put("paymentInformation.number", IlkCryptoUtil.encryptAesBase64(cardNo, cred.seedKey(), cred.seedIv()));
+            payload.put("paymentInformation.expirationMonth",
+                    IlkCryptoUtil.encryptAesBase64(expMonth, cred.seedKey(), cred.seedIv()));
+            payload.put("paymentInformation.expirationYear",
+                    IlkCryptoUtil.encryptAesBase64(expYear, cred.seedKey(), cred.seedIv()));
+            if (!cvv.isBlank()) {
+                payload.put("paymentInformation.cvv",
+                        IlkCryptoUtil.encryptAesBase64(cvv, cred.seedKey(), cred.seedIv()));
+            }
+        } else {
+            payload.put("processingInformation.paymentMethod", "QR");
         }
         payload.put("orderInformation.billTo.name", clamp(buyerName, 32));
         payload.put("orderInformation.billTo.homeAddress", clamp(buyerAddr, 128));
@@ -303,6 +310,15 @@ public class IlkPaymentService {
         if (subscription) {
             payload.put("paymentInformation.cof", "08");
             payload.put("processingInformation.cofType", mit ? "MIT" : "CIT");
+        }
+
+        if (qrSale) {
+            payload.put("processingInformation.authType", "16");
+            payload.put("processingInformation.noCertApproval", "0");
+            payload.put("processingInformation.returnUrl", returnUrl);
+            payload.put("processingInformation.notifyUrl", notifyUrl);
+            putBrowserFields(payload, body, req);
+            return postRequestAuth(cred, payload, orgUnitId, orderNo);
         }
 
         if (mit) {
@@ -722,6 +738,18 @@ public class IlkPaymentService {
             return subscription ? "SUB" : "URL";
         }
         return origin;
+    }
+
+    private static boolean isQrSale(Map<String, Object> body) {
+        if (body == null) {
+            return false;
+        }
+        String means = str(body.get("payMeans"), body.get("paymentMeans"), body.get("checkoutMeans"));
+        if ("QR".equalsIgnoreCase(means)) {
+            return true;
+        }
+        String wallet = str(body.get("qrWallet"), body.get("qrWalletCode"));
+        return !wallet.isBlank();
     }
 
     private static String str(Object... vals) {

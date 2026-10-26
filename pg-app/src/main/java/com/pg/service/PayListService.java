@@ -2736,7 +2736,9 @@ public class PayListService {
             if (pol == null) {
                 String polCh = com.pg.util.CommissionFeeChannel.CRYPTO.equals(chKey)
                         ? com.pg.util.CommissionFeeChannel.CRYPTO
-                        : com.pg.util.CommissionFeeChannel.FIAT;
+                        : (com.pg.util.CommissionFeeChannel.QR.equals(chKey)
+                        ? com.pg.util.CommissionFeeChannel.QR
+                        : com.pg.util.CommissionFeeChannel.FIAT);
                 pol = commissionService.resolveCommissionPolicyForSettlement(compId, polCh);
                 dailyPolCache.put(polKey, pol);
             }

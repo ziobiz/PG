@@ -36,32 +36,37 @@
     KO: {
       card: '카드',
       crypto: '암호화폐',
+      qr: 'QR',
       err: '결제 수단을 선택할 수 없습니다.',
-      notice: '주의: 선택한 수단으로 결제가 진행됩니다. 카드와 암호화폐는 별도 결제창에서 처리되며, 결제 완료 전까지 창을 닫지 마세요.'
+      notice: '주의: 선택한 수단으로 결제가 진행됩니다. 카드, QR, 암호화폐는 별도 결제창에서 처리되며, 결제 완료 전까지 창을 닫지 마세요.'
     },
     EN: {
       card: 'Card',
       crypto: 'Crypto',
+      qr: 'QR',
       err: 'Payment method is not available.',
-      notice: 'Note: Payment continues with the method you select. Card and crypto open separate checkout pages. Do not close the window until payment is complete.'
+      notice: 'Note: Payment continues with the method you select. Card, QR, and crypto open separate checkout pages. Do not close the window until payment is complete.'
     },
     JP: {
       card: 'カード',
       crypto: '暗号資産',
+      qr: 'QR',
       err: 'お支払い方法を選べません。',
-      notice: '注意: 選択した方法で決済が続きます。カードと暗号資産は別画面です。完了まで閉じないでください。'
+      notice: '注意: 選択した方法で決済が続きます。カード、QR、暗号資産は別画面です。完了まで閉じないでください。'
     },
     CH: {
       card: '银行卡',
       crypto: '加密货币',
+      qr: 'QR',
       err: '无法选择支付方式。',
-      notice: '注意：将按所选方式继续支付。银行卡与加密货币为不同页面。完成前请勿关闭窗口。'
+      notice: '注意：将按所选方式继续支付。银行卡、QR 与加密货币为不同页面。完成前请勿关闭窗口。'
     },
     TH: {
       card: 'บัตร',
       crypto: 'คริปโต',
+      qr: 'QR',
       err: 'เลือกวิธีชำระไม่ได้',
-      notice: 'หมายเหตุ: จะชำระตามวิธีที่เลือก บัตรและคริปโตเปิดหน้าต่างคนละหน้า อย่าปิดจนกว่าจะชำระเสร็จ'
+      notice: 'หมายเหตุ: จะชำระตามวิธีที่เลือก บัตร QR และคริปโตเปิดหน้าต่างคนละหน้า อย่าปิดจนกว่าจะชำระเสร็จ'
     }
   };
 
@@ -148,6 +153,8 @@
     paintMeans();
   }
 
+  var meansFlags = { card: true, crypto: true, qr: false };
+
   function go(means) {
     if (!compId) {
       var err = document.getElementById('err');
@@ -158,16 +165,30 @@
     var path = means === 'CRYPTO'
       ? '/checkout-crypto/' + encodeURIComponent(compId)
       : '/checkout/' + encodeURIComponent(compId);
-    location.href = path + '?lang=' + encodeURIComponent(lang);
+    var href = path + '?lang=' + encodeURIComponent(lang);
+    if (means === 'QR') href += '&payMeans=QR';
+    location.href = href;
   }
 
   function paintMeans() {
-    var items = [
-      { code: 'CARD', name: pack.card, pastelBg: '#EEF2FF', pastelFg: '#3730A3', accent: '#0d6efd', iconKey: 'card' },
-      { code: 'CRYPTO', name: pack.crypto, pastelBg: '#ECFDF5', pastelFg: '#065F46', accent: '#0d6efd', iconKey: 'crypto' }
-    ];
+    var items = [];
+    if (meansFlags.card) {
+      items.push({ code: 'CARD', name: pack.card, pastelBg: '#EEF2FF', pastelFg: '#3730A3', accent: '#0d6efd', iconKey: 'card' });
+    }
+    if (meansFlags.qr) {
+      items.push({ code: 'QR', name: pack.qr, pastelBg: '#FFF7ED', pastelFg: '#9A3412', accent: '#0d6efd', iconKey: 'card' });
+    }
+    if (meansFlags.crypto) {
+      items.push({ code: 'CRYPTO', name: pack.crypto, pastelBg: '#ECFDF5', pastelFg: '#065F46', accent: '#0d6efd', iconKey: 'crypto' });
+    }
     var grid = document.getElementById('meansGrid');
     grid.innerHTML = '';
+    if (!items.length) {
+      var err0 = document.getElementById('err');
+      err0.hidden = false;
+      err0.textContent = pack.err;
+      return;
+    }
     if (window.ICOPAY_CRYPTO_UI && ICOPAY_CRYPTO_UI.renderGrid) {
       ICOPAY_CRYPTO_UI.renderGrid(grid, items, go);
     } else {
@@ -187,6 +208,10 @@
       .then(function (body) {
         if (!(body && body.success && body.data)) return;
         headerCtx = body.data;
+        meansFlags.crypto = headerCtx.cryptoEnabled !== false;
+        if (headerCtx.cardMeans === false) meansFlags.card = false;
+        meansFlags.qr = Array.isArray(headerCtx.qrWallets) && headerCtx.qrWallets.length > 0;
+        paintMeans();
         if (H) {
           H.applyLogo(headerCtx);
           H.applySubtitle(headerCtx, 'unified', lang);

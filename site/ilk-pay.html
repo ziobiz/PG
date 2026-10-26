@@ -72,8 +72,9 @@
       })();
       var q = new URLSearchParams(location.search || '');
       var sessionToken = q.get('sessionToken') || q.get('token') || '';
-      var compId = q.get('compId') || '';
+      var compId = q.get('compId') || q.get('m') || q.get('merchant') || '';
       var checkoutKind = (q.get('checkoutKind') || '').toUpperCase();
+      var qrMode = String(q.get('payMeans') || '').toUpperCase() === 'QR';
       var ctx = {};
       var authMode = 'THREE_DS';
 
@@ -94,7 +95,7 @@
 
       var I18N = {
         KOR: {
-          title: 'ICOPAY 간편결제', brandSub: '안전 카드결제', brandSub3ds: '3DS 보안 결제', brandSubNone: '카드 결제',
+          title: 'ICOPAY 간편결제', brandSub: '안전 카드결제', brandSub3ds: '3DS 보안 결제', brandSubNone: '카드 결제', brandSubQr: 'QR 결제',
           merchant: '가맹점', item: '상품명', amount: '금액', pay: '결제하기',
           cardNo: '카드번호', mm: 'MM', yyyy: 'YYYY', cvv: 'CVV',
           firstName: '이름', lastName: '성', email: '이메일', phoneOptional: '전화번호(선택)',
@@ -109,7 +110,7 @@
           webPaymentDisabled: '이 가맹점은 결제 서비스가 중지로 설정되어 있습니다.'
         },
         ENG: {
-          title: 'ICOPAY Easy Payment', brandSub: 'Secure Card Payment', brandSub3ds: '3DS Secure Payment', brandSubNone: 'Card Payment',
+          title: 'ICOPAY Easy Payment', brandSub: 'Secure Card Payment', brandSub3ds: '3DS Secure Payment', brandSubNone: 'Card Payment', brandSubQr: 'QR payment',
           merchant: 'Merchant', item: 'Item', amount: 'Amount', pay: 'Pay',
           cardNo: 'Card number', mm: 'MM', yyyy: 'YYYY', cvv: 'CVV',
           firstName: 'First name', lastName: 'Last name', email: 'Email', phoneOptional: 'Phone (optional)',
@@ -124,7 +125,7 @@
           webPaymentDisabled: "This merchant's payment service is set to suspended."
         },
         JPN: {
-          title: 'ICOPAY かんたん決済', brandSub: '安全なカード決済', brandSub3ds: '3DSセキュア決済', brandSubNone: 'カード決済',
+          title: 'ICOPAY かんたん決済', brandSub: '安全なカード決済', brandSub3ds: '3DSセキュア決済', brandSubNone: 'カード決済', brandSubQr: 'QR決済',
           merchant: '加盟店', item: '商品名', amount: '金額', pay: '支払う',
           cardNo: 'カード番号', mm: 'MM', yyyy: 'YYYY', cvv: 'CVV',
           firstName: '名', lastName: '姓', email: 'メール', phoneOptional: '電話番号(任意)',
@@ -139,7 +140,7 @@
           webPaymentDisabled: 'この加盟店の決済サービスは停止に設定されています。'
         },
         CHN: {
-          title: 'ICOPAY 便捷支付', brandSub: '安全银行卡支付', brandSub3ds: '3DS 安全支付', brandSubNone: '银行卡支付',
+          title: 'ICOPAY 便捷支付', brandSub: '安全银行卡支付', brandSub3ds: '3DS 安全支付', brandSubNone: '银行卡支付', brandSubQr: 'QR 支付',
           merchant: '商户', item: '商品', amount: '金额', pay: '支付',
           cardNo: '卡号', mm: 'MM', yyyy: 'YYYY', cvv: 'CVV',
           firstName: '名', lastName: '姓', email: '邮箱', phoneOptional: '电话(可选)',
@@ -154,7 +155,7 @@
           webPaymentDisabled: '该商户的支付服务已设置为停止。'
         },
         THA: {
-          title: 'ICOPAY ชำระเงินง่าย', brandSub: 'ชำระเงินด้วยบัตรอย่างปลอดภัย', brandSub3ds: 'ชำระเงิน 3DS อย่างปลอดภัย', brandSubNone: 'ชำระด้วยบัตร',
+          title: 'ICOPAY ชำระเงินง่าย', brandSub: 'ชำระเงินด้วยบัตรอย่างปลอดภัย', brandSub3ds: 'ชำระเงิน 3DS อย่างปลอดภัย', brandSubNone: 'ชำระด้วยบัตร', brandSubQr: 'ชำระด้วย QR',
           merchant: 'ร้านค้า', item: 'สินค้า', amount: 'จำนวนเงิน', pay: 'ชำระเงิน',
           cardNo: 'หมายเลขบัตร', mm: 'MM', yyyy: 'YYYY', cvv: 'CVV',
           firstName: 'ชื่อ', lastName: 'นามสกุล', email: 'อีเมล', phoneOptional: 'โทรศัพท์ (ไม่บังคับ)',
@@ -202,7 +203,24 @@
       function applyBrandSub() {
         var el = document.getElementById('brandSub');
         if (!el) return;
-        el.textContent = authMode === 'NONE3D' ? t('brandSubNone') : t('brandSub3ds');
+        if (qrMode) el.textContent = t('brandSubQr');
+        else el.textContent = authMode === 'NONE3D' ? t('brandSubNone') : t('brandSub3ds');
+      }
+      function applyQrMode() {
+        if (!qrMode) return;
+        var wrap = document.getElementById('payCardInputFieldsWrap');
+        if (wrap) {
+          wrap.hidden = true;
+          wrap.style.display = 'none';
+          wrap.classList.add('d-none');
+        }
+        ['payCardno', 'payCardmonth', 'payCardyear', 'payCardcvv'].forEach(function (id) {
+          var el = document.getElementById(id);
+          if (!el) return;
+          el.required = false;
+          el.removeAttribute('required');
+          el.value = '';
+        });
       }
       function applyI18n() {
         document.querySelectorAll('[data-i18n]').forEach(function (el) {
@@ -299,6 +317,7 @@
           if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyUrlPayCardInputMode) {
             PG_URL_PAY_SHELL.applyUrlPayCardInputMode(ctx, LANG);
           }
+          applyQrMode();
           if (sessionToken) {
             return fetch(API_BASE + '/api/middleware/v1/merchant/checkout/session?sessionToken=' + encodeURIComponent(sessionToken), { credentials: 'omit' })
               .then(function (r) { return r.json(); })
@@ -335,7 +354,7 @@
           cardNo: document.getElementById('payCardno').value.replace(/\s+/g, ''),
           cardMonth: document.getElementById('payCardmonth').value,
           cardYear: document.getElementById('payCardyear').value,
-          cardCvv: document.getElementById('payCardcvv').value,
+          cardCvv: qrMode ? '' : document.getElementById('payCardcvv').value,
           buyerName: (document.getElementById('payFirstname').value + ' ' + document.getElementById('payLastname').value).trim(),
           buyerEmail: document.getElementById('payEmailAddress').value,
           buyerPhone: document.getElementById('payTelephone').value,
@@ -348,6 +367,13 @@
           browserAcceptHeader: 'text/html',
           langCode: apiLangCode()
         };
+        if (qrMode) {
+          body.payMeans = 'QR';
+          body.qrWallet = 'PAYPAY';
+          body.cardNo = '';
+          body.cardMonth = '';
+          body.cardYear = '';
+        }
         if (checkoutKind === 'SUBSCRIPTION' || checkoutKind.indexOf('SUB') >= 0) {
           body.checkoutKind = 'SUBSCRIPTION';
         }
@@ -391,6 +417,7 @@
       if (!compId && !sessionToken) {
         showErr(t('errMissing'));
       } else {
+        applyQrMode();
         loadContext().catch(function (e) { showErr((e && e.message) || t('errLoad')); });
       }
     })();

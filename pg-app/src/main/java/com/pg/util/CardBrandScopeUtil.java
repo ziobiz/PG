@@ -13,6 +13,7 @@ import java.util.Set;
 public final class CardBrandScopeUtil {
 
     private static final Set<String> ALLOWED = Set.of(
+            "NONE",
             "ALL",
             "VMJUA",
             "VMJU",
@@ -68,7 +69,7 @@ public final class CardBrandScopeUtil {
         String t = raw.trim().toUpperCase(Locale.ROOT);
         if (!ALLOWED.contains(t)) {
             throw new IllegalArgumentException(
-                    "카드브랜드 범위는 ALL, VMJUA, VMJU, VMJ, VM, VJ, MJ, V, M, J, U, A, D 중 하나여야 합니다. 입력값=" + raw);
+                    "카드브랜드 범위는 NONE, ALL, VMJUA, VMJU, VMJ, VM, VJ, MJ, V, M, J, U, A, D 중 하나여야 합니다. 입력값=" + raw);
         }
     }
 
@@ -92,9 +93,17 @@ public final class CardBrandScopeUtil {
         };
     }
 
-    /** {@code scope} 가 {@code brandLetter}(V/M/J/U/A/D)를 포함하는지. ALL 이면 true. */
+    /** 이 행은 카드를 받지 않습니다. QR 전용 행에 씁니다. */
+    public static boolean isNone(String raw) {
+        return "NONE".equals(normalize(raw == null || raw.isBlank() ? "ALL" : raw));
+    }
+
+    /** {@code scope} 가 {@code brandLetter}(V/M/J/U/A/D)를 포함하는지. ALL 이면 true. NONE 이면 false. */
     public static boolean matchesScope(String scopeRaw, String brandLetter) {
         String scope = normalize(scopeRaw);
+        if ("NONE".equals(scope)) {
+            return false;
+        }
         if ("ALL".equals(scope)) {
             return true;
         }

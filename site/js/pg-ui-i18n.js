@@ -3040,6 +3040,112 @@
       CH: '卡品牌',
       TH: 'แบรนด์บัตร'
     },
+    'QR지갑': {
+      EN: 'QR wallet',
+      JP: 'QRウォレット',
+      CH: 'QR 钱包',
+      TH: 'กระเป๋า QR'
+    },
+    'QR': { EN: 'QR', JP: 'QR', CH: 'QR', TH: 'QR' },
+    'QR 수수료정책': {
+      EN: 'QR fee policy',
+      JP: 'QR手数料政策',
+      CH: 'QR 手续费政策',
+      TH: 'นโยบายค่าธรรมเนียม QR'
+    },
+    '본사정책 따름(QR)': {
+      EN: 'Follow HQ policy (QR)',
+      JP: '本社方針に従う(QR)',
+      CH: '遵循总部政策(QR)',
+      TH: 'ตามนโยบายสำนักงานใหญ่ (QR)'
+    },
+    'QR 정책': { EN: 'QR policy', JP: 'QR方針', CH: 'QR 政策', TH: 'นโยบาย QR' },
+    '카드 수수료와 동일': {
+      EN: 'Same as card fees',
+      JP: 'カード手数料と同じ',
+      CH: '与卡手续费相同',
+      TH: 'เท่ากับค่าธรรมเนียมบัตร'
+    },
+    'QR 기본 (DEFAULT_QR)': {
+      EN: 'QR default (DEFAULT_QR)',
+      JP: 'QR 基本 (DEFAULT_QR)',
+      CH: 'QR 默认 (DEFAULT_QR)',
+      TH: 'ค่าเริ่มต้น QR (DEFAULT_QR)'
+    },
+    'QR 승인 수수료입니다. 카드 수수료와 같게 두려면 「카드 수수료와 동일」을 유지합니다. 다른 요율은 QR 기본 또는 QR 정책을 고르거나, 직접입력합니다. 조직 배분은 수수료관리의 QR 채널에서 카드와 따로 저장합니다.': {
+      EN: 'Fees for QR approvals. Keep Same as card fees to match the card policy. Choose the QR default, another QR policy, or enter rates directly when they differ. Organization splits are saved on the QR channel in fee management, separate from card.',
+      JP: 'QR 承認の手数料です。カードと同じにするには「カード手数料と同じ」のままにします。違う場合は QR 基本・QR 方針を選ぶか、直接入力します。組織配分は手数料管理の QR チャネルでカードと別に保存します。',
+      CH: '这是 QR 批准的手续费。与卡相同则保持「与卡手续费相同」。不同时选择 QR 默认、其他 QR 政策，或直接输入。组织分配在手续费管理的 QR 渠道单独保存。',
+      TH: 'ค่าธรรมเนียมการอนุมัติ QR หากต้องการเท่ากับบัตร ให้คงค่าเท่ากับค่าธรรมเนียมบัตร หากต่างกัน เลือกค่าเริ่มต้น QR นโยบาย QR หรือกรอกเอง ส่วนแบ่งองค์กรบันทึกที่ช่อง QR ในจัดการค่าธรรมเนียม แยกจากบัตร'
+    },
+    'ILK는 PG 슬롯이 없습니다. Webhook=/noti/ilk, 브라우저 Result=/noti/result/ilk(가맹 resultUrl로 릴레이). 카드 결제대행사와 같은 노티 구조입니다.': {
+      EN: 'ILK has no PG slot. Webhook=/noti/ilk, browser Result=/noti/result/ilk (relayed to the merchant resultUrl). Same notification structure as card processors.',
+      JP: 'ILK に PG スロットはありません。Webhook=/noti/ilk、ブラウザ Result=/noti/result/ilk（加盟店 resultUrl へ中継）。カード決済代行と同じ通知構造です。',
+      CH: 'ILK 没有 PG 槽位。Webhook=/noti/ilk，浏览器 Result=/noti/result/ilk（中继到商户 resultUrl）。与卡支付服务机构相同的通知结构。',
+      TH: 'ILK ไม่มีช่อง PG. Webhook=/noti/ilk, Result ของเบราว์เซอร์=/noti/result/ilk (ส่งต่อไปยัง resultUrl ของร้าน). โครงสร้างการแจ้งเตือนเดียวกับผู้ให้บริการบัตร'
+    },
+    'NOTI에 ILK 가맹을 생성(또는 조회)합니다. Webhook·Result 고정 URL을 수신통보에 반영합니다. 계속하시겠습니까?': {
+      EN: 'Create (or look up) the ILK merchant on NOTI. Fixed Webhook and Result URLs are saved to inbound notification. Continue?',
+      JP: 'NOTI に ILK 加盟店を作成（または照会）します。固定の Webhook・Result URL を受信通知へ反映します。続けますか？',
+      CH: '在 NOTI 创建（或查询）ILK 商户。固定的 Webhook 与 Result URL 会写入接收通知。要继续吗？',
+      TH: 'สร้าง (หรือค้นหา) ร้าน ILK บน NOTI URL Webhook และ Result คงที่จะถูกบันทึกในการแจ้งเตือนรับเข้า ดำเนินการต่อหรือไม่?'
+    },
+    'NOTI에 ILK 전산 대상이 없습니다. 노티 추가등록에서 PG=ILK로 등록하세요.': {
+      EN: 'NOTI has no ILK internal target. Register it under extra notification setup with PG=ILK.',
+      JP: 'NOTI に ILK の電算対象がありません。通知の追加登録で PG=ILK として登録してください。',
+      CH: 'NOTI 没有 ILK 内部对象。请在通知追加登记中以 PG=ILK 登记。',
+      TH: 'NOTI ไม่มีเป้าหมายภายในของ ILK โปรดลงทะเบียนที่การเพิ่มการแจ้งเตือนโดยตั้ง PG=ILK'
+    },
+    'NOTI에 ox 전산 대상이 없습니다. 노티 추가등록에서 PG=ox로 등록하세요.': {
+      EN: 'NOTI has no ox internal target. Register it under extra notification setup with PG=ox.',
+      JP: 'NOTI に ox の電算対象がありません。通知の追加登録で PG=ox として登録してください。',
+      CH: 'NOTI 没有 ox 内部对象。请在通知追加登记中以 PG=ox 登记。',
+      TH: 'NOTI ไม่มีเป้าหมายภายในของ ox โปรดลงทะเบียนที่การเพิ่มการแจ้งเตือนโดยตั้ง PG=ox'
+    },
+    'NOTI ILK 가맹이 생성되었습니다.': {
+      EN: 'The ILK merchant was created on NOTI.',
+      JP: 'NOTI に ILK 加盟店を作成しました。',
+      CH: '已在 NOTI 创建 ILK 商户。',
+      TH: 'สร้างร้าน ILK บน NOTI แล้ว'
+    },
+    '기존 NOTI ILK 가맹과 동일합니다.': {
+      EN: 'This matches the existing ILK merchant on NOTI.',
+      JP: '既存の NOTI ILK 加盟店と同じです。',
+      CH: '与 NOTI 上已有的 ILK 商户相同。',
+      TH: 'ตรงกับร้าน ILK ที่มีอยู่บน NOTI'
+    },
+    'ILK Webhook': { EN: 'ILK Webhook', JP: 'ILK Webhook', CH: 'ILK Webhook', TH: 'ILK Webhook' },
+    'ILK Result': { EN: 'ILK Result', JP: 'ILK Result', CH: 'ILK Result', TH: 'ILK Result' },
+    '카드 없음': {
+      EN: 'No card',
+      JP: 'カードなし',
+      CH: '无卡',
+      TH: 'ไม่มีบัตร'
+    },
+    '노티 전용 결제대행사에는 QR 지갑을 두지 않습니다.': {
+      EN: 'Notification-only processors do not take a QR wallet.',
+      JP: '通知専用の決済代行には QR ウォレットを置きません。',
+      CH: '仅通知的支付服务机构不设置 QR 钱包。',
+      TH: 'ผู้ให้บริการที่รับเฉพาะการแจ้งเตือนจะไม่ใส่กระเป๋า QR'
+    },
+    '같은 행의 카드브랜드와 함께 둘 수 있습니다. 비우면 QR을 받지 않습니다.': {
+      EN: 'Can sit on the same row as card brands. Leave empty to decline QR.',
+      JP: '同じ行のカードブランドと一緒に置けます。空なら QR は受けません。',
+      CH: '可与同一行的卡品牌一起设置。留空则不接收 QR。',
+      TH: 'ใส่คู่กับแบรนด์บัตรในแถวเดียวกันได้ เว้นว่างคือไม่รับ QR'
+    },
+    '가맹 결제대행사 설정의 QR 지갑. 비어 있으면 QR 없음': {
+      EN: 'QR wallets on the merchant processor row. Empty means no QR.',
+      JP: '加盟店の決済代行設定にある QR ウォレット。空なら QR なし。',
+      CH: '商户支付服务机构设置中的 QR 钱包。空为无 QR。',
+      TH: 'กระเป๋า QR ในการตั้งค่าผู้ให้บริการของร้าน ว่างคือไม่มี QR'
+    },
+    'QR은 크립토와 별도입니다. 같은 가맹·같은 결제대행사 행에 카드브랜드와 QR 지갑을 함께 둘 수 있습니다. QR만 다른 결제대행사라면 행을 추가하고 카드브랜드를 카드 없음으로 둡니다. 그때는 본사 멀티 결제대행사를 사용으로 둡니다. 수수료는 카드와 같은 FIAT입니다. QR 승인 호출은 대행사 규격이 들어온 뒤 연결합니다.': {
+      EN: 'QR is separate from crypto. One merchant processor row can carry both card brands and a QR wallet. For QR on another processor, add a row and set card brand to No card, and turn on multi-processor routing at HQ. Fees stay on the same FIAT channel as cards. The QR charge call is connected after the processor specification arrives.',
+      JP: 'QR はクリプトとは別です。同じ加盟店・同じ決済代行の行にカードブランドと QR ウォレットを一緒に置けます。QR だけ別の決済代行なら行を追加し、カードブランドをカードなしにします。そのときは本社のマルチ決済代行を使用にします。手数料はカードと同じ FIAT です。QR 承認の呼び出しは代行の仕様が届いてから接続します。',
+      CH: 'QR 与加密货币分开。同一商户、同一支付服务机构行可以同时设置卡品牌和 QR 钱包。若 QR 使用另一家机构，请新增一行并把卡品牌设为无卡，同时在总部打开多支付机构路由。手续费与卡相同，走 FIAT。QR 扣款调用会在机构规格到达后连接。',
+      TH: 'QR แยกจากคริปโต แถวผู้ให้บริการของร้านเดียวกันใส่แบรนด์บัตรและกระเป๋า QR พร้อมกันได้ ถ้า QR อยู่ที่ผู้ให้บริการอื่น ให้เพิ่มแถวแล้วตั้งแบรนด์บัตรเป็นไม่มีบัตร และเปิดการกำหนดเส้นทางหลายผู้ให้บริการที่สำนักงานใหญ่ ค่าธรรมเนียมอยู่ช่อง FIAT เดียวกับบัตร การเรียกอนุมัติ QR จะเชื่อมเมื่อได้ข้อกำหนดจากผู้ให้บริการ'
+    },
     '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)': {
       EN: 'WEB checkout / default product (online URL pay)',
       JP: 'WEB決済 / 代表デフォルト商品（オンラインURL決済用）',

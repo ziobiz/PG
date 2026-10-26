@@ -66,26 +66,42 @@ public class UrlPaySaleDispatcher {
                                            Map<String, Object> body,
                                            HttpServletRequest request,
                                            String clientIp) {
-        /* 선택≠PAN 인식 시 인식 브랜드로 맞춘 뒤 멀티 PG 라우팅(AUTO 고정 금지) */
-        String cardBrand = payCardPolicyService.normalizeSaleCardBrand(body);
-        if (cardBrand.isBlank()) {
-            cardBrand = firstNonBlank(body, "cardBrand", "payCardBrand");
+        String cardBrand = "";
+        String qrWallet = firstNonBlank(body, "qrWallet", "qrWalletCode");
+        String payMeans = firstNonBlank(body, "payMeans", "paymentMeans");
+        boolean qrSale = !qrWallet.isBlank() || "QR".equalsIgnoreCase(payMeans);
+        if (!qrSale) {
+            cardBrand = payCardPolicyService.normalizeSaleCardBrand(body);
+            if (cardBrand.isBlank()) {
+                cardBrand = firstNonBlank(body, "cardBrand", "payCardBrand");
+            }
+        } else if (qrWallet.isBlank()) {
+            qrWallet = "PAYPAY";
+            body.put("qrWallet", qrWallet);
+            body.put("payMeans", "QR");
         }
         String currency = firstNonBlank(body, "currency", "displayCurrency");
-        MerchantPgBindingRouterService.RoutingHint hint =
-                MerchantPgBindingRouterService.RoutingHint.standard(cardBrand, currency);
+        MerchantPgBindingRouterService.RoutingHint hint = qrSale
+                ? MerchantPgBindingRouterService.RoutingHint.qr(qrWallet, currency)
+                : MerchantPgBindingRouterService.RoutingHint.standard(cardBrand, currency);
         Optional<MerchantPgBinding> binding = pgBindingRouter.resolveOperationalBinding(orgUnitId, hint);
         String opPg = "";
         if (binding.isPresent() && binding.get().getPgCd() != null) {
             opPg = binding.get().getPgCd().trim();
         }
-        if (opPg.isBlank()) {
+        if (opPg.isBlank() && !qrSale) {
             var routes = pgBindingRouter.listOperationalRouteSummaries(orgUnitId, false);
             if (routes != null && !routes.isEmpty() && routes.get(0).get("pgCd") != null) {
                 opPg = String.valueOf(routes.get(0).get("pgCd")).trim();
             }
         }
-        Map<String, Object> cardBlock = payCardPolicyService.saleFailIfCardRejected(orgUnitId, opPg, body);
+        if (qrSale && binding.isEmpty()) {
+            return fail("QR 결제를 처리할 운영 결제대행사가 없습니다. 가맹 결제대행사 설정의 QR 지갑을 확인하세요.",
+                    "QR_PG_NOT_CONFIGURED");
+        }
+        Map<String, Object> cardBlock = qrSale
+                ? null
+                : payCardPolicyService.saleFailIfCardRejected(orgUnitId, opPg, body);
         if (cardBlock != null) {
             return cardBlock;
         }

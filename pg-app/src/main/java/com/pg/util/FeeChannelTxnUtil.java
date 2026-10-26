@@ -11,8 +11,9 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * 결제·수수료·정산 리포트용 FIAT|CRYPTO 채널 판별.
- * CRYPTO = origin CRYPTO 또는 van CRYPTO (확정입금 과금 적재와 동일).
+ * 결제·수수료·정산 리포트용 FIAT|QR|CRYPTO 채널 판별.
+ * CRYPTO = origin CRYPTO 또는 van CRYPTO.
+ * QR = paymentChannel QR (카드 승인과 수수료 정책을 나눕니다).
  */
 public final class FeeChannelTxnUtil {
 
@@ -31,11 +32,25 @@ public final class FeeChannelTxnUtil {
         return CommissionFeeChannel.CRYPTO.equalsIgnoreCase(van);
     }
 
-    public static String resolveChannel(PgTrnsctn t) {
-        return isCryptoTxn(t) ? CommissionFeeChannel.CRYPTO : CommissionFeeChannel.FIAT;
+    public static boolean isQrTxn(PgTrnsctn t) {
+        if (t == null || isCryptoTxn(t)) {
+            return false;
+        }
+        String channel = t.getPaymentChannel() != null ? t.getPaymentChannel().trim() : "";
+        return CommissionFeeChannel.QR.equalsIgnoreCase(channel);
     }
 
-    /** 빈값·ALL = 전체. FIAT|CRYPTO 만 필터. */
+    public static String resolveChannel(PgTrnsctn t) {
+        if (isCryptoTxn(t)) {
+            return CommissionFeeChannel.CRYPTO;
+        }
+        if (isQrTxn(t)) {
+            return CommissionFeeChannel.QR;
+        }
+        return CommissionFeeChannel.FIAT;
+    }
+
+    /** 빈값·ALL = 전체. FIAT|QR|CRYPTO 만 필터. */
     public static String normalizeFilter(String raw) {
         if (raw == null || raw.isBlank()) {
             return "";
@@ -44,7 +59,7 @@ public final class FeeChannelTxnUtil {
         if ("ALL".equals(u)) {
             return "";
         }
-        if (CommissionFeeChannel.CRYPTO.equals(u) || CommissionFeeChannel.FIAT.equals(u)) {
+        if (CommissionFeeChannel.CRYPTO.equals(u) || CommissionFeeChannel.QR.equals(u) || CommissionFeeChannel.FIAT.equals(u)) {
             return u;
         }
         return "";
@@ -74,13 +89,19 @@ public final class FeeChannelTxnUtil {
         }
         Path<String> origin = root.get("origin");
         Path<String> van = root.get("van");
+        Path<String> payCh = root.get("paymentChannel");
         Predicate crypto = cb.or(
                 cb.equal(cb.upper(cb.trim(cb.coalesce(origin, cb.literal("")))), "CRYPTO"),
                 cb.equal(cb.upper(cb.trim(cb.coalesce(van, cb.literal("")))), "CRYPTO"));
+        Predicate qr = cb.and(
+                cb.not(crypto),
+                cb.equal(cb.upper(cb.trim(cb.coalesce(payCh, cb.literal("")))), "QR"));
         if (CommissionFeeChannel.CRYPTO.equals(ch)) {
             parts.add(crypto);
+        } else if (CommissionFeeChannel.QR.equals(ch)) {
+            parts.add(qr);
         } else {
-            parts.add(cb.not(crypto));
+            parts.add(cb.and(cb.not(crypto), cb.not(qr)));
         }
     }
 }

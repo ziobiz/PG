@@ -7,6 +7,7 @@ import com.pg.integration.pg.PgVendor;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.service.ChillPayService;
+import com.pg.service.MerchantPgBindingRouterService;
 import com.pg.urlpay.UrlPayCheckoutMoveService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Controller;
@@ -33,17 +34,20 @@ public class NeutralCheckoutRouteController {
     private final ChillPayService chillPayService;
     private final UrlPayCheckoutMoveService urlPayCheckoutMoveService;
     private final CryptoCheckoutService cryptoCheckoutService;
+    private final MerchantPgBindingRouterService pgBindingRouter;
 
     public NeutralCheckoutRouteController(OrgUnitRepository orgUnitRepository,
                                           MerchantProfileRepository merchantProfileRepository,
                                           ChillPayService chillPayService,
                                           UrlPayCheckoutMoveService urlPayCheckoutMoveService,
-                                          CryptoCheckoutService cryptoCheckoutService) {
+                                          CryptoCheckoutService cryptoCheckoutService,
+                                          MerchantPgBindingRouterService pgBindingRouter) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.chillPayService = chillPayService;
         this.urlPayCheckoutMoveService = urlPayCheckoutMoveService;
         this.cryptoCheckoutService = cryptoCheckoutService;
+        this.pgBindingRouter = pgBindingRouter;
     }
 
     /** 카드(URL) 결제 — 수단 선택 없음. */
@@ -80,8 +84,13 @@ public class NeutralCheckoutRouteController {
             if (orgUnitId != null) {
                 boolean cryptoOn = cryptoCheckoutService.cryptoMeansAllowed(orgUnitId);
                 boolean cardOn = cardUrlMeansAllowed(orgUnitId);
-                if (cryptoOn && cardOn) {
+                boolean qrOn = !pgBindingRouter.listOperationalQrWallets(orgUnitId).isEmpty();
+                int means = (cryptoOn ? 1 : 0) + (cardOn ? 1 : 0) + (qrOn ? 1 : 0);
+                if (means >= 2) {
                     return "forward:/checkout-means.html" + q;
+                }
+                if (qrOn) {
+                    return "forward:/ilk-pay.html" + withParam(q, "payMeans", "QR");
                 }
                 if (cryptoOn) {
                     return "forward:/crypto-pay.html" + q;
@@ -112,6 +121,9 @@ public class NeutralCheckoutRouteController {
                         || isCryptoSession(session)) {
                     return "/crypto-pay.html" + q;
                 }
+                if (wantsQrMeans(request)) {
+                    return "/ilk-pay.html" + withParam(q, "payMeans", "QR");
+                }
                 return resolveCardPagePath(orgUnitId, q);
             }
         } catch (RuntimeException ignore) {
@@ -126,7 +138,14 @@ public class NeutralCheckoutRouteController {
     }
 
     private String resolveCardPagePath(Long orgUnitId, String q) {
-        String opPg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
+        String opPg = pgBindingRouter.resolveOperationalPgCd(
+                orgUnitId, MerchantPgBindingRouterService.RoutingHint.standard("", ""));
+        if (opPg == null || opPg.isBlank()) {
+            if (!pgBindingRouter.listOperationalQrWallets(orgUnitId).isEmpty()) {
+                return "/ilk-pay.html" + withParam(q, "payMeans", "QR");
+            }
+            opPg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
+        }
         if (opPg != null && !opPg.isBlank()) {
             if (PgVendor.isJpayFamily(opPg)) {
                 return "/jpay-pay.html" + q;
@@ -164,10 +183,21 @@ public class NeutralCheckoutRouteController {
             return false;
         }
         String opPg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
-        if (opPg == null || opPg.isBlank()) {
+        if (opPg == null || opPg.isBlank() || PgVendor.isCryptoFamily(opPg)) {
             return false;
         }
-        return !PgVendor.isCryptoFamily(opPg);
+        return pgBindingRouter.hasOperationalCardMeans(orgUnitId);
+    }
+
+    private boolean wantsQrMeans(HttpServletRequest request) {
+        if (request == null) {
+            return false;
+        }
+        String means = nz(request.getParameter("payMeans"));
+        if (means.isEmpty()) {
+            means = nz(request.getParameter("means"));
+        }
+        return "QR".equalsIgnoreCase(means);
     }
 
     private boolean wantsCryptoMeans(HttpServletRequest request) {
@@ -210,7 +240,19 @@ public class NeutralCheckoutRouteController {
         if (!lang.isEmpty()) {
             q = q + (q.contains("?") ? "&" : "?") + "lang=" + URLEncoder.encode(lang, StandardCharsets.UTF_8);
         }
+        String payMeans = nz(request.getParameter("payMeans"));
+        if (!payMeans.isEmpty()) {
+            q = q + (q.contains("?") ? "&" : "?") + "payMeans=" + URLEncoder.encode(payMeans, StandardCharsets.UTF_8);
+        }
         return q;
+    }
+
+    private static String withParam(String q, String key, String value) {
+        String base = q != null ? q : "";
+        if (base.contains(key + "=")) {
+            return base;
+        }
+        return base + (base.contains("?") ? "&" : "?") + key + "=" + URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     private static String nz(String s) {

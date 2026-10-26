@@ -1143,7 +1143,9 @@ public class ApiHqController {
         data.put("deployedTemplateScope", deployedScope);
         data.put("memo", CommissionFeeChannel.isCrypto(ch)
                 ? "CRYPTO 채널: 매입·에스크로 운영수수료(%)·인증 수수료(건)를 사용합니다. USDT 송금·USDT%·3DS는 FIAT 전용입니다. 확정 입금 시 과금됩니다."
-                : "조직별 격자: 총본사~영업점은 배분(결제율·건당)에 반영됩니다. 가맹 열은 위 6단계 합계(가맹점 적용분)로 표시·저장됩니다. 가맹점이 본사설정을 따르면 이 합계가 기준이 되고, 업체관리 수수료에서 수정 시 그 값이 우선합니다. 결제·USDT·FX는 승인금액 기준 %, 3DS는 정책통화 기준 건당 고정(건). 건당·고정액은 통화 단위(소수 첫째 자리). 차지백 구간정책·롤링은 격자 외 필드입니다.");
+                : (CommissionFeeChannel.isQr(ch)
+                ? "QR 채널: 카드와 같은 수수료 항목입니다. QR 승인에만 적용되고, 카드 승인 수수료와 따로 둡니다. 가맹이 QR 정책을 고르기 전에는 카드 정책을 그대로 사용합니다."
+                : "조직별 격자: 총본사~영업점은 배분(결제율·건당)에 반영됩니다. 가맹 열은 위 6단계 합계(가맹점 적용분)로 표시·저장됩니다. 가맹점이 본사설정을 따르면 이 합계가 기준이 되고, 업체관리 수수료에서 수정 시 그 값이 우선합니다. 결제·USDT·FX는 승인금액 기준 %, 3DS는 정책통화 기준 건당 고정(건). 건당·고정액은 통화 단위(소수 첫째 자리). 차지백 구간정책·롤링은 격자 외 필드입니다."));
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
@@ -1274,6 +1276,7 @@ public class ApiHqController {
                     String scope = p.getScope() != null ? p.getScope().trim() : "";
                     if (scope.isBlank()) return false;
                     if (CommissionFeeChannel.DEFAULT_SCOPE_FIAT.equalsIgnoreCase(scope)
+                            || CommissionFeeChannel.DEFAULT_SCOPE_QR.equalsIgnoreCase(scope)
                             || CommissionFeeChannel.DEFAULT_SCOPE_CRYPTO.equalsIgnoreCase(scope)) {
                         return false;
                     }
@@ -1287,7 +1290,8 @@ public class ApiHqController {
                     if (scope.startsWith(TEMPLATE_SCOPE_PREFIX)) return true;
                     String policyName = p.getPolicyName() != null ? p.getPolicyName().trim() : "";
                     return !policyName.isBlank() && !scope.matches("\\d{6,}")
-                            && !CommissionFeeChannel.isMerchantCryptoScope(scope);
+                            && !CommissionFeeChannel.isMerchantCryptoScope(scope)
+                            && !CommissionFeeChannel.isMerchantQrScope(scope);
                 })
                 .sorted(Comparator.comparing(CommissionPolicy::getScope, Comparator.nullsLast(String::compareTo)))
                 .toList();
@@ -1298,7 +1302,8 @@ public class ApiHqController {
         String ch = CommissionFeeChannel.normalize(hqStr(body, "feeChannel"));
         String codeRaw = hqStr(body, "templateCode");
         String code = (codeRaw == null || codeRaw.isBlank()) ? null : codeRaw.trim().toUpperCase(Locale.ROOT);
-        String codePrefix = CommissionFeeChannel.isCrypto(ch) ? "CRYPTO_" : "";
+        String codePrefix = CommissionFeeChannel.isCrypto(ch) ? "CRYPTO_"
+                : (CommissionFeeChannel.isQr(ch) ? "QR_" : "");
         if (code == null) {
             for (char c = 'A'; c <= 'Z'; c++) {
                 String s = codePrefix + c;
@@ -1309,6 +1314,8 @@ public class ApiHqController {
             }
         } else if (CommissionFeeChannel.isCrypto(ch) && !code.startsWith("CRYPTO_")) {
             code = "CRYPTO_" + code;
+        } else if (CommissionFeeChannel.isQr(ch) && !code.startsWith("QR_")) {
+            code = "QR_" + code;
         }
         if (code == null || !code.matches("[A-Z0-9_\\-]{1,20}")) {
             return ResponseEntity.ok(ApiResponse.fail("정책코드는 영문 대문자/숫자(1~20자)로 입력하세요.", "VALIDATION"));

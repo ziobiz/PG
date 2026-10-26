@@ -410,6 +410,7 @@ public class ApiPayController {
                         : ""));
         out.put("cardBrandScope", binding.get().getCardBrandScope());
         out.put("currencyScope", binding.get().getCurrencyScope());
+        out.put("qrWalletScope", binding.get().getQrWalletScope() != null ? binding.get().getQrWalletScope() : "");
         out.put("urlPayCapabilities", cap.toMap());
         out.put("urlPayCheckoutPagePath", cap.checkoutPagePath());
         out.put("urlPayInlineWidgetKind", cap.inlineWidgetKind());

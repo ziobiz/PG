@@ -201,6 +201,10 @@ public class CommissionService {
         String effectiveScope = CommissionFeeChannel.isCrypto(ch)
                 ? resolveMerchantCryptoHqScopeForDisplay(merchant)
                 : resolveMerchantHqScopeForDisplay(merchant);
+        /* QR 배분 행이 없으면 본사 카드 템플릿 배분을 QR로 만들지 않고, 아래서 카드 배분을 그대로 보여 줍니다. */
+        if (CommissionFeeChannel.isQr(ch)) {
+            effectiveScope = null;
+        }
         CommissionPolicy policy = resolveCommissionPolicyForSettlement(mc, ch);
         if (policy != null) {
             m.put("cmsnRate", policy.getPayRate());
@@ -239,6 +243,12 @@ public class CommissionService {
             });
         }
         Optional<DistributionFeeConfig> odf = resolveDistributionFeeConfig(merchant, mc, effectiveScope, ch);
+        boolean qrInheritsFiatDist = false;
+        if (CommissionFeeChannel.isQr(ch) && (odf.isEmpty() || isDistributionConfigEffectivelyEmpty(odf.orElse(null)))) {
+            String fiatScope = resolveMerchantHqScopeForDisplay(merchant);
+            odf = resolveDistributionFeeConfig(merchant, mc, fiatScope, CommissionFeeChannel.FIAT);
+            qrInheritsFiatDist = true;
+        }
         if (odf.isPresent() && !isDistributionConfigEffectivelyEmpty(odf.get())) {
             applyDistributionToMap(m, odf.get());
         } else {
@@ -248,7 +258,12 @@ public class CommissionService {
             }
         }
         if (preferLatestHistoryDistribution && !CommissionFeeChannel.isCrypto(ch)) {
-            applyLatestCommissionHistoryDistributionForDisplay(mc, m);
+            if (CommissionFeeChannel.isQr(ch)) {
+                applyLatestCommissionHistoryDistributionForDisplay(mc, m,
+                        qrInheritsFiatDist ? CommissionFeeChannel.FIAT : CommissionFeeChannel.QR);
+            } else {
+                applyLatestCommissionHistoryDistributionForDisplay(mc, m);
+            }
         }
 
         m.put("totalNm", resolveMerchantBaseCurrencyDisplay(merchant));
@@ -438,6 +453,11 @@ public class CommissionService {
      * DB/템플릿만 보면 총본사 %만 있고 본사 %가 빠져 합계가 히스토리와 어긋날 수 있다.
      */
     private void applyLatestCommissionHistoryDistributionForDisplay(String merchantCode, Map<String, Object> m) {
+        applyLatestCommissionHistoryDistributionForDisplay(merchantCode, m, null);
+    }
+
+    private void applyLatestCommissionHistoryDistributionForDisplay(String merchantCode, Map<String, Object> m,
+                                                                    String onlyChannel) {
         if (merchantCode == null || merchantCode.isBlank() || m == null) {
             return;
         }
@@ -445,7 +465,20 @@ public class CommissionService {
         if (desc == null || desc.isEmpty()) {
             return;
         }
-        CommissionHistory latest = desc.get(0);
+        CommissionHistory latest = null;
+        for (CommissionHistory row : desc) {
+            if (onlyChannel == null || onlyChannel.isBlank()) {
+                latest = row;
+                break;
+            }
+            if (onlyChannel.equals(CommissionFeeChannel.normalize(row.getFeeChannel()))) {
+                latest = row;
+                break;
+            }
+        }
+        if (latest == null) {
+            return;
+        }
         putLatestCommissionChangeMeta(latest, m);
         Map<String, Object> snap = parseHistorySnapshotMap(latest);
         if (snap == null || snap.isEmpty() || isDistributionMapEffectivelyEmpty(snap)) {
@@ -501,6 +534,47 @@ public class CommissionService {
     }
 
     /**
+     * QR 정책을 가맹이 고른 경우. 비어 있으면 카드(FIAT) 정책을 그대로 씁니다.
+     */
+    private boolean qrUsesOwnTemplate(String merchantCode) {
+        String mc = merchantCode != null ? merchantCode.trim() : "";
+        if (mc.isEmpty()) {
+            return false;
+        }
+        Optional<OrgUnit> ouOpt = resolveOrgByCode(mc);
+        if (ouOpt.isEmpty()) {
+            return false;
+        }
+        Optional<MerchantProfile> mpOpt = merchantProfileRepository.findByOrgUnitId(ouOpt.get().getId());
+        if (mpOpt.isEmpty() || mpOpt.get().getRegionalSettings() == null || mpOpt.get().getRegionalSettings().isBlank()) {
+            return false;
+        }
+        try {
+            Map<String, Object> obj = MAPPER.readValue(mpOpt.get().getRegionalSettings(), new TypeReference<>() {});
+            if (!obj.containsKey("commissionQrFollowHq")) {
+                return false;
+            }
+            String follow = String.valueOf(obj.get("commissionQrFollowHq")).trim();
+            if ("N".equalsIgnoreCase(follow)) {
+                return true;
+            }
+            String scope = obj.get("hqQrPolicyScope") != null ? String.valueOf(obj.get("hqQrPolicyScope")).trim() : "";
+            return !scope.isEmpty();
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private boolean hasOwnQrDistribution(String merchantCode) {
+        String mc = merchantCode != null ? merchantCode.trim() : "";
+        if (mc.isEmpty()) {
+            return false;
+        }
+        Optional<DistributionFeeConfig> row = findDist(mc, CommissionFeeChannel.QR);
+        return row.isPresent() && !isDistributionConfigEffectivelyEmpty(row.get());
+    }
+
+    /**
      * 정산 집계·정산료·수수료내역 건별 합산에 쓰는 수수료정책.
      * <p>본사정책 따름(Y)이면 {@code hqPolicyScope}(비면 DEFAULT)에 해당하는 <b>배포 템플릿</b> 행을 사용합니다.
      * 가맹 스코프({@code tb_commission_policy.scope=가맹코드}) 행이 남아 있어도 본사 목록과 동일한 값이 오도록,
@@ -514,6 +588,25 @@ public class CommissionService {
 
     public CommissionPolicy resolveCommissionPolicyForSettlement(String merchantCode, String feeChannel) {
         String ch = CommissionFeeChannel.normalize(feeChannel);
+        if (CommissionFeeChannel.isQr(ch)) {
+            boolean ownTemplate = qrUsesOwnTemplate(merchantCode);
+            boolean ownDist = hasOwnQrDistribution(merchantCode);
+            if (!ownTemplate && !ownDist) {
+                return resolveCommissionPolicyForSettlement(merchantCode, CommissionFeeChannel.FIAT);
+            }
+            CommissionPolicy base = resolveBaseCommissionPolicyTemplate(merchantCode,
+                    ownTemplate ? CommissionFeeChannel.QR : CommissionFeeChannel.FIAT);
+            String mc = merchantCode != null ? merchantCode.trim() : "";
+            if (mc.isEmpty()) {
+                return base;
+            }
+            Optional<OrgUnit> ouOpt = resolveOrgByCode(mc);
+            if (ouOpt.isEmpty() || ouOpt.get().getOrgLevel() != OrgLevel.MERCHANT) {
+                return base;
+            }
+            return overlayMerchantDistributionRatesOnPolicy(ouOpt.get(), mc, base,
+                    ownDist ? CommissionFeeChannel.QR : CommissionFeeChannel.FIAT);
+        }
         CommissionPolicy base = resolveBaseCommissionPolicyTemplate(merchantCode, ch);
         String mc = merchantCode != null ? merchantCode.trim() : "";
         if (mc.isEmpty()) {
@@ -561,6 +654,12 @@ public class CommissionService {
                         followHq = !"N".equalsIgnoreCase(follow);
                         hqScope = obj.get("hqCryptoPolicyScope") != null
                                 ? String.valueOf(obj.get("hqCryptoPolicyScope")).trim() : "";
+                    } else if (CommissionFeeChannel.isQr(ch)) {
+                        String follow = obj.get("commissionQrFollowHq") != null
+                                ? String.valueOf(obj.get("commissionQrFollowHq")).trim() : "Y";
+                        followHq = !"N".equalsIgnoreCase(follow);
+                        hqScope = obj.get("hqQrPolicyScope") != null
+                                ? String.valueOf(obj.get("hqQrPolicyScope")).trim() : "";
                     } else {
                         String follow = obj.get("commissionFollowHq") != null
                                 ? String.valueOf(obj.get("commissionFollowHq")).trim() : "Y";
@@ -578,6 +677,12 @@ public class CommissionService {
             if (CommissionFeeChannel.isCrypto(ch)) {
                 String cryptoScope = CommissionFeeChannel.merchantCryptoScope(mc);
                 return commissionPolicyRepository.findByScope(cryptoScope)
+                        .or(() -> commissionPolicyRepository.findByScope(defaultScope))
+                        .orElseGet(CommissionPolicy::new);
+            }
+            if (CommissionFeeChannel.isQr(ch)) {
+                String qrScope = CommissionFeeChannel.merchantQrScope(mc);
+                return commissionPolicyRepository.findByScope(qrScope)
                         .or(() -> commissionPolicyRepository.findByScope(defaultScope))
                         .orElseGet(CommissionPolicy::new);
             }
@@ -633,9 +738,11 @@ public class CommissionService {
                 }
             }
         }
-        if (preferLatestHistory && !CommissionFeeChannel.isCrypto(ch)) {
+        if (preferLatestHistory && !CommissionFeeChannel.isCrypto(ch) && !CommissionFeeChannel.isQr(ch)) {
             /* CRYPTO 이력은 1차 미적용 — FIAT 이력만 표시 우선 */
             applyLatestCommissionHistoryDistributionForDisplay(mc, m);
+        } else if (preferLatestHistory && CommissionFeeChannel.isQr(ch)) {
+            applyLatestCommissionHistoryDistributionForDisplay(mc, m, CommissionFeeChannel.QR);
         }
         return m;
     }
@@ -1174,15 +1281,25 @@ public class CommissionService {
     public boolean save(String compId, Map<String, Object> body) {
         return resolveOrgByCode(compId).map(ou -> {
             String merchantCode = normCompCode(ou);
-            CommissionPolicy policy = commissionPolicyRepository.findByScope(merchantCode)
-                    .or(() -> ou.getCode() != null && !merchantCode.equals(ou.getCode())
+            String feeChannelEarly = CommissionFeeChannel.normalize(
+                    body.get("feeChannel") != null ? body.get("feeChannel").toString() : CommissionFeeChannel.FIAT);
+            final String policyScope = CommissionFeeChannel.isCrypto(feeChannelEarly)
+                    ? CommissionFeeChannel.merchantCryptoScope(merchantCode)
+                    : (CommissionFeeChannel.isQr(feeChannelEarly)
+                    ? CommissionFeeChannel.merchantQrScope(merchantCode)
+                    : merchantCode);
+            CommissionPolicy policy = commissionPolicyRepository.findByScope(policyScope)
+                    .or(() -> !CommissionFeeChannel.isCrypto(feeChannelEarly) && !CommissionFeeChannel.isQr(feeChannelEarly)
+                            && ou.getCode() != null && !merchantCode.equals(ou.getCode())
                             ? commissionPolicyRepository.findByScope(ou.getCode()) : Optional.empty())
                     .orElseGet(() -> {
                         CommissionPolicy p = new CommissionPolicy();
-                        p.setScope(merchantCode);
+                        p.setScope(policyScope);
+                        p.setFeeChannel(feeChannelEarly);
                         return p;
                     });
-            if (policy.getScope() != null && !normCompCode(policy.getScope()).equals(merchantCode)) {
+            if (!CommissionFeeChannel.isCrypto(feeChannelEarly) && !CommissionFeeChannel.isQr(feeChannelEarly)
+                    && policy.getScope() != null && !normCompCode(policy.getScope()).equals(merchantCode)) {
                 policy.setScope(merchantCode);
             }
             setAmtOne(policy::setPerTxFee, body.get("perTxFee"));
@@ -1293,7 +1410,8 @@ public class CommissionService {
             hist.setFeeChannel(feeChannel);
             hist.setChgType("COMMISSION");
             hist.setChgDesc(CommissionFeeChannel.isCrypto(feeChannel)
-                    ? "CRYPTO 수수료 설정 변경 저장" : "수수료 설정 변경 저장");
+                    ? "CRYPTO 수수료 설정 변경 저장"
+                    : (CommissionFeeChannel.isQr(feeChannel) ? "QR 수수료 설정 변경 저장" : "수수료 설정 변경 저장"));
             hist.setChangedBy(currentUsername());
             try {
                 snap.put("feeChannel", feeChannel);

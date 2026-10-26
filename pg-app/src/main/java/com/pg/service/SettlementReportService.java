@@ -135,7 +135,10 @@ public class SettlementReportService {
             return new MdrPerTxnSplit(0d, 0d);
         }
         String polCh = CommissionFeeChannel.CRYPTO.equals(feeChannelExact)
-                ? CommissionFeeChannel.CRYPTO : CommissionFeeChannel.FIAT;
+                ? CommissionFeeChannel.CRYPTO
+                : (CommissionFeeChannel.QR.equals(feeChannelExact)
+                ? CommissionFeeChannel.QR
+                : CommissionFeeChannel.FIAT);
         CommissionPolicy pol = commissionService.resolveCommissionPolicyForSettlement(compId.trim(), polCh);
         if (pol == null) {
             return new MdrPerTxnSplit(0d, 0d);

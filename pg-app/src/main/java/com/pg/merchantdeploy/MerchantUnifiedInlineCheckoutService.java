@@ -6,6 +6,7 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.service.ChillPayService;
 import com.pg.service.MerchantChatbotProductService;
 import com.pg.service.MerchantPayLimitService;
+import com.pg.service.MerchantPgBindingRouterService;
 import com.pg.service.UrlPayChargeResolutionService;
 import com.pg.splitpay.SplitPayCheckoutModeGuard;
 import com.pg.urlpay.MobileCheckoutModeService;
@@ -43,6 +44,7 @@ public class MerchantUnifiedInlineCheckoutService {
     private final OrgUnitRepository orgUnitRepository;
     private final MerchantPayLimitService merchantPayLimitService;
     private final UrlPayChargeResolutionService urlPayChargeResolutionService;
+    private final MerchantPgBindingRouterService pgBindingRouter;
 
     public MerchantUnifiedInlineCheckoutService(ChillPayService chillPayService,
                                                 MerchantInlineCheckoutService chillpayInlineCheckoutService,
@@ -59,7 +61,8 @@ public class MerchantUnifiedInlineCheckoutService {
                                                 MobileCheckoutModeService mobileCheckoutModeService,
                                                 OrgUnitRepository orgUnitRepository,
                                                 MerchantPayLimitService merchantPayLimitService,
-                                                UrlPayChargeResolutionService urlPayChargeResolutionService) {
+                                                UrlPayChargeResolutionService urlPayChargeResolutionService,
+                                                MerchantPgBindingRouterService pgBindingRouter) {
         this.chillPayService = chillPayService;
         this.chillpayInlineCheckoutService = chillpayInlineCheckoutService;
         this.jpayInlineCheckoutService = jpayInlineCheckoutService;
@@ -76,6 +79,7 @@ public class MerchantUnifiedInlineCheckoutService {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantPayLimitService = merchantPayLimitService;
         this.urlPayChargeResolutionService = urlPayChargeResolutionService;
+        this.pgBindingRouter = pgBindingRouter;
     }
 
     public Map<String, Object> prepare(Long orgUnitId, Map<String, Object> body, HttpServletRequest request) {
@@ -107,6 +111,37 @@ public class MerchantUnifiedInlineCheckoutService {
             Map<String, Object> cryptoResult = cryptoCheckoutService.prepare(orgUnitId, enriched, request);
             patchUnifiedPrepareResponse(cryptoResult, request, PgVendor.CRYPTO, orgUnitId);
             return cryptoResult;
+        }
+
+        String qrWallet = firstStr(enriched, "qrWallet", "qrWalletCode");
+        boolean wantQr = "QR".equals(payMeans) || !qrWallet.isBlank();
+        if (wantQr && !pgBindingRouter.listOperationalQrWallets(orgUnitId).isEmpty()) {
+            if (qrWallet.isBlank()) {
+                qrWallet = pgBindingRouter.listOperationalQrWallets(orgUnitId).get(0);
+                enriched.put("qrWallet", qrWallet);
+            }
+            enriched.put("payMeans", "QR");
+            String qrPg = pgBindingRouter.resolveOperationalPgCd(
+                    orgUnitId, MerchantPgBindingRouterService.RoutingHint.qr(qrWallet,
+                            firstStr(enriched, "currency", "displayCurrency")));
+            if (qrPg != null && !qrPg.isBlank()) {
+                try {
+                    UrlPayChargeResolutionService.ResolvedCharge charge =
+                            urlPayChargeResolutionService.resolve(orgUnitId, enriched, qrPg);
+                    String lang = firstStr(enriched, "lang", "langCode", "language");
+                    Optional<Map<String, Object>> limitBlock =
+                            merchantPayLimitService.check(orgUnitId, charge.pgAmount(), charge.settlementCurrency(), lang);
+                    if (limitBlock.isPresent()) {
+                        return limitBlock.get();
+                    }
+                } catch (IllegalArgumentException ignored) {
+                    /* 금액 오류는 ILK prepare 에서 처리 */
+                }
+            }
+            Map<String, Object> qrResult = ilkInlineCheckoutService.prepare(orgUnitId, enriched, request);
+            patchUnifiedPrepareResponse(qrResult, request, PgVendor.ILK, orgUnitId);
+            appendPayMeans(qrResult, "QR");
+            return qrResult;
         }
 
         if (opPg == null || opPg.isBlank()) {
@@ -235,6 +270,26 @@ public class MerchantUnifiedInlineCheckoutService {
         data.put("embedUsageHint",
                 "ICOPAY 통합 prepare: buyer(email·phone·countryIso2) 필수. sessionToken → /v1/embed-checkout/{compId}. "
                         + "결제망은 ICOPAY가 자동 선택·처리하며, 가맹점 연동은 결제 대행사 변경과 무관하게 그대로 유지됩니다.");
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void appendPayMeans(Map<String, Object> result, String payMeans) {
+        if (result == null || payMeans == null || payMeans.isBlank()) {
+            return;
+        }
+        Object dataObj = result.get("data");
+        if (!(dataObj instanceof Map<?, ?> raw)) {
+            return;
+        }
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) raw;
+        String payUrl = str(data.get("payUrl"));
+        if (payUrl.isBlank() || payUrl.contains("payMeans=")) {
+            data.put("payMeans", payMeans);
+            return;
+        }
+        data.put("payUrl", payUrl + (payUrl.contains("?") ? "&" : "?") + "payMeans=" + payMeans);
+        data.put("payMeans", payMeans);
     }
 
     private static Map<String, Object> fail(String message, String code) {

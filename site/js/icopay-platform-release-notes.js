@@ -6,13 +6,91 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '5.38';
+  var CURRENT_LIVE = '5.42';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '5.42',
+      kind: 'minor',
+      date: '2026-10-26',
+      items: {
+        KO: ['가맹 결제대행사 설정 표의 QR 열 이름을 QR로 줄이고, 표가 카드 너비 안에 들어가게 맞춥니다'],
+        EN: ['On the merchant payment-agency table, the QR column is labeled QR and the table stays inside the card'],
+        JP: ['加盟店の決済代行設定表で QR 列名を QR にし、表をカード幅の中に収めます'],
+        CH: ['商户支付机构设置表的 QR 列名改为 QR，表格收在卡片宽度内'],
+        TH: ['ตารางตั้งค่าผู้ให้บริการชำระเงินของร้าน เปลี่ยนชื่อคอลัมน์ QR เป็น QR และให้ตารางอยู่ในการ์ด']
+      }
+    },
+    {
+      version: '5.41',
+      kind: 'minor',
+      date: '2026-10-26',
+      items: {
+        KO: [
+          '같은 가맹에서 카드 승인은 FIAT 수수료정책, QR 승인은 QR 수수료정책, 크립토 확정 입금은 CRYPTO 수수료정책을 따릅니다. QR 정책을 고르기 전에는 카드 수수료와 같게 계산됩니다. 수수료관리·기본 수수료·일별/수수료 채널에 QR가 추가됩니다'
+        ],
+        EN: [
+          'On one merchant, card approvals use the FIAT fee policy, QR approvals use the QR fee policy, and confirmed crypto deposits use the CRYPTO fee policy. Until a QR policy is chosen, QR is charged like the card fee. Fee management, default fees, and daily/fee channel filters include QR'
+        ],
+        JP: [
+          '同一加盟店で、カード承認は FIAT 手数料政策、QR 承認は QR 手数料政策、クリプト確定入金は CRYPTO 手数料政策に従います。QR 政策を選ぶまではカード手数料と同じ計算です。手数料管理・基本手数料・日次/手数料チャネルに QR を追加しました'
+        ],
+        CH: [
+          '同一商户中，银行卡批准使用 FIAT 手续费政策，QR 批准使用 QR 手续费政策，加密货币确认入账使用 CRYPTO 手续费政策。选定 QR 政策前，按卡手续费计算。手续费管理、默认手续费和日别/手续费渠道增加了 QR'
+        ],
+        TH: [
+          'ร้านเดียวกัน การอนุมัติบัตรใช้นโยบาย FIAT การอนุมัติ QR ใช้นโยบาย QR และการฝากคริปโตที่ยืนยันแล้วใช้นโยบาย CRYPTO ก่อนเลือกนโยบาย QR จะคิดเท่ากับค่าธรรมเนียมบัตร เพิ่ม QR ในจัดการค่าธรรมเนียม ค่าธรรมเนียมเริ่มต้น และช่องรายวัน/ค่าธรรมเนียม'
+        ]
+      }
+    },
+    {
+      version: '5.40',
+      kind: 'minor',
+      date: '2026-10-26',
+      items: {
+        KO: [
+          'QR 결제(PayPay)는 기존 ILK 주문·승인·노티(/ILK)와 같은 구조로 연결됩니다. 통합 결제에서 카드·QR·크립토를 함께 고를 수 있습니다. 노티 생성의 ILK는 슬롯 없이 Webhook=/noti/ilk, Result=/noti/result/ilk 입니다. 카드 가맹에 QR 행을 추가하면 같은 가맹에서 카드와 QR를 같이 씁니다'
+        ],
+        EN: [
+          'QR payment (PayPay) uses the same ILK order, approval, and notification (/ILK) path. Unified checkout can offer card, QR, and crypto together. NOTI provisioning for ILK has no slot: Webhook=/noti/ilk, Result=/noti/result/ilk. Adding a QR row to a card merchant lets that merchant use card and QR together'
+        ],
+        JP: [
+          'QR 決済(PayPay)は既存 ILK の注文・承認・通知(/ILK)と同じ構造で接続します。統合決済でカード・QR・暗号資産を一緒に選べます。通知作成の ILK はスロットなしで Webhook=/noti/ilk、Result=/noti/result/ilk です。カード加盟店に QR 行を足すと、同じ加盟店でカードと QR を併用できます'
+        ],
+        CH: [
+          'QR 支付（PayPay）沿用现有 ILK 的订单、批准与通知（/ILK）。统一结账可同时提供银行卡、QR 与加密货币。NOTI 创建 ILK 无槽位：Webhook=/noti/ilk，Result=/noti/result/ilk。给已有卡支付的商户增加 QR 行后，同一商户可同时使用卡与 QR'
+        ],
+        TH: [
+          'การชำระ QR (PayPay) ใช้โครงสร้างคำสั่งซื้อ การอนุมัติ และการแจ้งเตือน (/ILK) ของ ILK เดิม หน้าชำระรวมเลือกบัตร QR และคริปโตพร้อมกันได้ การสร้าง NOTI ของ ILK ไม่มีช่อง: Webhook=/noti/ilk, Result=/noti/result/ilk เพิ่มแถว QR ให้ร้านที่ใช้บัตรอยู่แล้ว ร้านนั้นใช้บัตรและ QR พร้อมกันได้'
+        ]
+      }
+    },
+    {
+      version: '5.39',
+      kind: 'minor',
+      date: '2026-10-26',
+      items: {
+        KO: [
+          '가맹 결제대행사 설정: 카드브랜드·라우팅 통화와 같은 행에 QR 지갑(PayPay)을 둘 수 있습니다. QR만 다른 결제대행사라면 카드브랜드를 카드 없음으로 둡니다. 수수료는 카드와 같은 FIAT입니다. QR 승인 호출은 대행사 규격 이후 연결합니다'
+        ],
+        EN: [
+          'Merchant processor settings: a QR wallet (PayPay) can sit on the same row as card brand and routing currency. A QR-only processor row uses card brand No card. Fees stay on the card FIAT channel. The QR charge call connects after the processor specification arrives'
+        ],
+        JP: [
+          '加盟店の決済代行設定: カードブランド・ルーティング通貨と同じ行に QR ウォレット(PayPay)を置けます。QR だけの行はカードブランドをカードなしにします。手数料はカードと同じ FIAT です。QR 承認の呼び出しは代行仕様の後に接続します'
+        ],
+        CH: [
+          '商户支付服务机构设置：QR 钱包（PayPay）可与卡品牌、路由货币放在同一行。仅 QR 的行把卡品牌设为无卡。手续费与卡同属 FIAT。QR 扣款调用在机构规格到达后连接'
+        ],
+        TH: [
+          'ตั้งค่าผู้ให้บริการของร้าน: กระเป๋า QR (PayPay) อยู่แถวเดียวกับแบรนด์บัตรและสกุลเงินเส้นทางได้ แถวที่รับเฉพาะ QR ตั้งแบรนด์บัตรเป็นไม่มีบัตร ค่าธรรมเนียมอยู่ช่อง FIAT เดียวกับบัตร การเรียกอนุมัติ QR จะเชื่อมหลังได้ข้อกำหนด'
+        ]
+      }
+    },
     {
       version: '5.38',
       kind: 'minor',

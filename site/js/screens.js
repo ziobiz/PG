@@ -2604,7 +2604,8 @@
     '<select class="form-select form-select-sm" id="opsNpPgKind">' +
     '<option value="jpay" selected>JPAY</option>' +
     '<option value="elementpay">ElementPay</option>' +
-    '<option value="ox">ox</option></select></div>' +
+    '<option value="ox">ox</option>' +
+    '<option value="ilk">ILK</option></select></div>' +
     '<div class="col-12 col-md-3"><label class="form-label mb-1" for="opsNpCompId" data-pg-ui-t="가맹 업체코드">가맹 업체코드</label>' +
     '<input type="text" class="form-control form-control-sm" id="opsNpCompId" autocomplete="off"></div>' +
     '<div class="col-12 col-md-3"><label class="form-label mb-1" for="opsNpCompNm" data-pg-ui-t="업체명">업체명</label>' +
@@ -2627,6 +2628,7 @@
     '<div class="small text-muted" id="opsNpSlotPreview"></div></div>' +
     '<div class="mb-3 d-none" id="opsNpEpHintWrap"><div class="small text-muted" data-pg-ui-t="ElementPay는 PG 슬롯이 없습니다. Cabinet Webhook=/noti/elementpay, 브라우저 Result=/noti/result/elementpay(가맹 resultUrl로 릴레이).">ElementPay는 PG 슬롯이 없습니다. Cabinet Webhook=/noti/elementpay, 브라우저 Result=/noti/result/elementpay(가맹 resultUrl로 릴레이).</div></div>' +
     '<div class="mb-3 d-none" id="opsNpOxHintWrap"><div class="small text-muted" data-pg-ui-t="ox는 PG 슬롯이 없습니다. Portal Webhook=/noti/ox, 브라우저 Result=/noti/result/ox(가맹 resultUrl로 릴레이).">ox는 PG 슬롯이 없습니다. Portal Webhook=/noti/ox, 브라우저 Result=/noti/result/ox(가맹 resultUrl로 릴레이).</div></div>' +
+    '<div class="mb-3 d-none" id="opsNpIlkHintWrap"><div class="small text-muted" data-pg-ui-t="ILK는 PG 슬롯이 없습니다. Webhook=/noti/ilk, 브라우저 Result=/noti/result/ilk(가맹 resultUrl로 릴레이). 카드 결제대행사와 같은 노티 구조입니다.">ILK는 PG 슬롯이 없습니다. Webhook=/noti/ilk, 브라우저 Result=/noti/result/ilk(가맹 resultUrl로 릴레이). 카드 결제대행사와 같은 노티 구조입니다.</div></div>' +
     '<div class="mb-2">' +
     '<label class="form-label mb-1" for="opsNpIntegrationMode" data-pg-ui-t="연동방식">연동방식</label>' +
     '<select class="form-select form-select-sm" id="opsNpIntegrationMode" style="max-width:18rem">' +
@@ -3179,6 +3181,7 @@
             return '<div class="d-flex flex-wrap gap-2 align-items-center" id="hqDefCommChannelTabs" role="tablist">' +
               '<input type="hidden" name="feeChannel" id="hqDefCommFeeChannel" value="FIAT" />' +
               '<button type="button" class="btn btn-sm btn-primary" data-fee-channel="FIAT" id="hqDefCommTabFiat" data-pg-ui-t="FIAT(카드)">' + escUi(L('FIAT(카드)')) + '</button>' +
+              '<button type="button" class="btn btn-sm btn-outline-primary" data-fee-channel="QR" id="hqDefCommTabQr" data-pg-ui-t="QR">' + escUi(L('QR')) + '</button>' +
               '<button type="button" class="btn btn-sm btn-outline-primary" data-fee-channel="CRYPTO" id="hqDefCommTabCrypto" data-pg-ui-t="CRYPTO(크립토)">' + escUi(L('CRYPTO(크립토)')) + '</button>' +
               '<span class="small text-muted ms-1" data-pg-ui-t="채널별로 정책 목록·필드가 달라집니다.">' + escUi(L('채널별로 정책 목록·필드가 달라집니다.')) + '</span></div>';
           } }]]
@@ -4967,6 +4970,18 @@
           ]
         },
         {
+          title: 'QR 수수료정책',
+          id: 'qrCommissionPolicyCard',
+          merchantOnly: true,
+          notice: 'QR 승인 수수료입니다. 카드 수수료와 같게 두려면 「카드 수수료와 동일」을 유지합니다. 다른 요율은 QR 기본 또는 QR 정책을 고르거나, 직접입력합니다. 조직 배분은 수수료관리의 QR 채널에서 카드와 따로 저장합니다.',
+          rows: [
+            [{ label: '본사정책 따름(QR)', type: 'select', name: 'commissionQrFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: 'QR 정책', type: 'select', name: 'hqQrPolicyScope', options: [{ v: '', t: '카드 수수료와 동일' }, { v: 'DEFAULT_QR', t: 'QR 기본 (DEFAULT_QR)' }], col: 3 }],
+            [{ label: '결제수수료율(%)', type: 'text', name: 'qrPayRate', col: 2, qrCustomOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'qrFailFee', col: 2, qrCustomOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'qrCancelRate', col: 2, qrCustomOnly: true }],
+            [{ label: '무효수수료(건)', type: 'text', name: 'qrVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '수무효수수료(건)', type: 'text', name: 'qrManualVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '환불수수료(건)', type: 'text', name: 'qrRefundRate', col: 2, qrCustomOnly: true }],
+            [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'qrUsageRate', col: 2, qrCustomOnly: true }, { label: '정산수수료(건)', type: 'text', name: 'qrFeeSettlementPerTx', col: 2, qrCustomOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'qrFee3dsRate', col: 2, qrCustomOnly: true }, { label: '비고', type: 'text', name: 'qrCommissionMemo', col: 2, qrCustomOnly: true }]
+          ]
+        },
+        {
           title: '크립토 수수료정책',
           id: 'cryptoCommissionPolicyCard',
           merchantOnly: true,
@@ -5262,6 +5277,7 @@
         { key: 'apiIntegrationChannel', label: '채널', title: '가맹 API 연동 채널: IN=INLINE, RE=REDIRECT, WO=WordPress/WooCommerce. 복수 사용 시 IN/RE 형식.', align: 'center' },
         { key: 'receiptEmailNotify', label: '통보', title: '고객 거래명세서 이메일 발송이 사용이면 ON, 아니면 OFF (가맹점만)', align: 'center' },
         { key: 'cardBrandScope', label: '카드', title: '가맹 결제대행사 설정의 카드브랜드(괄호 설명 제외). 예: VM', align: 'center' },
+        { key: 'qrWalletScope', label: 'QR', title: '가맹 결제대행사 설정의 QR 지갑. 비어 있으면 QR 없음', align: 'center' },
         { key: 'urlPayInputModeLabel', label: '타입', title: '웹결제 입력방식: HQ=본사정책 따름, GN=일반, AA·BA…=타입 코드', align: 'center' },
         { key: 'calcCycle', label: '정산주기' },
         { key: 'calcProcType', label: '정산구분' },
@@ -5459,6 +5475,18 @@
             [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '수무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }],
             [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
             [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: '송금수수료', type: 'text', name: 'remittanceTransferFee', col: 2, customOnly: true }, { label: 'USDT 송금수수료(건)', type: 'text', name: 'usdtTransferFeeUsd', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }]
+          ]
+        },
+        {
+          title: 'QR 수수료정책',
+          id: 'qrCommissionPolicyCard',
+          merchantOnly: true,
+          notice: 'QR 승인 수수료입니다. 카드 수수료와 같게 두려면 「카드 수수료와 동일」을 유지합니다. 다른 요율은 QR 기본 또는 QR 정책을 고르거나, 직접입력합니다. 조직 배분은 수수료관리의 QR 채널에서 카드와 따로 저장합니다.',
+          rows: [
+            [{ label: '본사정책 따름(QR)', type: 'select', name: 'commissionQrFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: 'QR 정책', type: 'select', name: 'hqQrPolicyScope', options: [{ v: '', t: '카드 수수료와 동일' }, { v: 'DEFAULT_QR', t: 'QR 기본 (DEFAULT_QR)' }], col: 3 }],
+            [{ label: '결제수수료율(%)', type: 'text', name: 'qrPayRate', col: 2, qrCustomOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'qrFailFee', col: 2, qrCustomOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'qrCancelRate', col: 2, qrCustomOnly: true }],
+            [{ label: '무효수수료(건)', type: 'text', name: 'qrVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '수무효수수료(건)', type: 'text', name: 'qrManualVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '환불수수료(건)', type: 'text', name: 'qrRefundRate', col: 2, qrCustomOnly: true }],
+            [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'qrUsageRate', col: 2, qrCustomOnly: true }, { label: '정산수수료(건)', type: 'text', name: 'qrFeeSettlementPerTx', col: 2, qrCustomOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'qrFee3dsRate', col: 2, qrCustomOnly: true }, { label: '비고', type: 'text', name: 'qrCommissionMemo', col: 2, qrCustomOnly: true }]
           ]
         },
         {
@@ -5882,6 +5910,18 @@
           ]
         },
         {
+          title: 'QR 수수료정책',
+          id: 'qrCommissionPolicyCard',
+          merchantOnly: true,
+          notice: 'QR 승인 수수료입니다. 카드 수수료와 같게 두려면 「카드 수수료와 동일」을 유지합니다. 다른 요율은 QR 기본 또는 QR 정책을 고르거나, 직접입력합니다. 조직 배분은 수수료관리의 QR 채널에서 카드와 따로 저장합니다.',
+          rows: [
+            [{ label: '본사정책 따름(QR)', type: 'select', name: 'commissionQrFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: 'QR 정책', type: 'select', name: 'hqQrPolicyScope', options: [{ v: '', t: '카드 수수료와 동일' }, { v: 'DEFAULT_QR', t: 'QR 기본 (DEFAULT_QR)' }], col: 3 }],
+            [{ label: '결제수수료율(%)', type: 'text', name: 'qrPayRate', col: 2, qrCustomOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'qrFailFee', col: 2, qrCustomOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'qrCancelRate', col: 2, qrCustomOnly: true }],
+            [{ label: '무효수수료(건)', type: 'text', name: 'qrVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '수무효수수료(건)', type: 'text', name: 'qrManualVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '환불수수료(건)', type: 'text', name: 'qrRefundRate', col: 2, qrCustomOnly: true }],
+            [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'qrUsageRate', col: 2, qrCustomOnly: true }, { label: '정산수수료(건)', type: 'text', name: 'qrFeeSettlementPerTx', col: 2, qrCustomOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'qrFee3dsRate', col: 2, qrCustomOnly: true }, { label: '비고', type: 'text', name: 'qrCommissionMemo', col: 2, qrCustomOnly: true }]
+          ]
+        },
+        {
           title: '크립토 수수료정책',
           id: 'cryptoCommissionPolicyCard',
           merchantOnly: true,
@@ -6132,6 +6172,7 @@
               '<div class="d-flex flex-wrap gap-2 align-items-center" id="commissionFeeChannelTabs">' +
               '<input type="hidden" name="feeChannel" id="commissionListFeeChannel" value="FIAT" />' +
               '<button type="button" class="btn btn-sm btn-primary" data-fee-channel="FIAT" id="commissionTabFiat" data-pg-ui-t="FIAT(카드)">' + escUi(L('FIAT(카드)')) + '</button>' +
+              '<button type="button" class="btn btn-sm btn-outline-primary" data-fee-channel="QR" id="commissionTabQr" data-pg-ui-t="QR">' + escUi(L('QR')) + '</button>' +
               '<button type="button" class="btn btn-sm btn-outline-primary" data-fee-channel="CRYPTO" id="commissionTabCrypto" data-pg-ui-t="CRYPTO(크립토)">' + escUi(L('CRYPTO(크립토)')) + '</button>' +
               '<span class="small text-muted" data-pg-ui-t="채널별 배분·요율을 따로 관리합니다.">' + escUi(L('채널별 배분·요율을 따로 관리합니다.')) + '</span></div></div></div>';
           } }
@@ -6877,7 +6918,7 @@
           { label: '결제대행사', type: 'select', name: 'searchPgCd', options: [{ v: '', t: '전체' }], size: 13 },
           { label: '정산주기', type: 'select', name: 'searchCycle', options: CALC_CYCLE_SEARCH_OPTIONS, size: 10 },
           { label: '수수료채널', type: 'select', name: 'searchFeeChannel', options: [
-            { v: '', t: '전체' }, { v: 'FIAT', t: 'FIAT(카드)' }, { v: 'CRYPTO', t: 'CRYPTO(크립토)' }
+            { v: '', t: '전체' }, { v: 'FIAT', t: 'FIAT(카드)' }, { v: 'QR', t: 'QR' }, { v: 'CRYPTO', t: 'CRYPTO(크립토)' }
           ], size: 10 }
         ],
         /* 전체=일자+채널 행 분리(서버). FIAT|CRYPTO 선택 시 해당 채널만 */
@@ -7249,7 +7290,7 @@
           { label: '거래일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
           { type: 'quickdate', quickdateLabels: ['당일', '당월', '전일', '1주', '2주', '전월'], quickdateRanges: ['day', 'month', 'prevDay', 'week', 'week2', 'prevMonth'] },
           { label: '수수료채널', type: 'select', name: 'searchFeeChannel', options: [
-            { v: '', t: '전체' }, { v: 'FIAT', t: 'FIAT(카드)' }, { v: 'CRYPTO', t: 'CRYPTO(크립토)' }
+            { v: '', t: '전체' }, { v: 'FIAT', t: 'FIAT(카드)' }, { v: 'QR', t: 'QR' }, { v: 'CRYPTO', t: 'CRYPTO(크립토)' }
           ], size: 10 }
         ],
         [
@@ -7342,7 +7383,7 @@
           { label: '거래일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
           { type: 'quickdate' },
           { label: '수수료채널', type: 'select', name: 'searchFeeChannel', options: [
-            { v: '', t: '전체' }, { v: 'FIAT', t: 'FIAT(카드)' }, { v: 'CRYPTO', t: 'CRYPTO(크립토)' }
+            { v: '', t: '전체' }, { v: 'FIAT', t: 'FIAT(카드)' }, { v: 'QR', t: 'QR' }, { v: 'CRYPTO', t: 'CRYPTO(크립토)' }
           ], size: 10 }
         ],
         [
@@ -7668,7 +7709,7 @@
           { label: '본사코드', type: 'text', name: 'searchRegionalId', placeholder: '본사 지급 리포트 시 필터' },
           { label: '통화', type: 'select', name: 'searchCurType', options: [{ v: '', t: '전체' }, { v: 'KRW', t: 'KRW' }, { v: 'USD', t: 'USD' }, { v: 'JPY', t: 'JPY' }, { v: 'THB', t: 'THB' }, { v: 'USDT', t: 'USDT' }, { v: 'USDC', t: 'USDC' }, { v: 'EURC', t: 'EURC' }], size: 8 },
           { label: '수수료채널', type: 'select', name: 'searchFeeChannel', options: [
-            { v: '', t: '전체' }, { v: 'FIAT', t: 'FIAT(카드)' }, { v: 'CRYPTO', t: 'CRYPTO(크립토)' }
+            { v: '', t: '전체' }, { v: 'FIAT', t: 'FIAT(카드)' }, { v: 'QR', t: 'QR' }, { v: 'CRYPTO', t: 'CRYPTO(크립토)' }
           ], size: 10 },
           { type: 'searchBtn' }
         ]
@@ -8324,6 +8365,18 @@
             [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '수무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }],
             [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
             [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: '송금수수료', type: 'text', name: 'remittanceTransferFee', col: 2, customOnly: true }, { label: 'USDT 송금수수료(건)', type: 'text', name: 'usdtTransferFeeUsd', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }]
+          ]
+        },
+        {
+          title: 'QR 수수료정책',
+          id: 'qrCommissionPolicyCard',
+          merchantOnly: true,
+          notice: 'QR 승인 수수료입니다. 카드 수수료와 같게 두려면 「카드 수수료와 동일」을 유지합니다. 다른 요율은 QR 기본 또는 QR 정책을 고르거나, 직접입력합니다. 조직 배분은 수수료관리의 QR 채널에서 카드와 따로 저장합니다.',
+          rows: [
+            [{ label: '본사정책 따름(QR)', type: 'select', name: 'commissionQrFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: 'QR 정책', type: 'select', name: 'hqQrPolicyScope', options: [{ v: '', t: '카드 수수료와 동일' }, { v: 'DEFAULT_QR', t: 'QR 기본 (DEFAULT_QR)' }], col: 3 }],
+            [{ label: '결제수수료율(%)', type: 'text', name: 'qrPayRate', col: 2, qrCustomOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'qrFailFee', col: 2, qrCustomOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'qrCancelRate', col: 2, qrCustomOnly: true }],
+            [{ label: '무효수수료(건)', type: 'text', name: 'qrVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '수무효수수료(건)', type: 'text', name: 'qrManualVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '환불수수료(건)', type: 'text', name: 'qrRefundRate', col: 2, qrCustomOnly: true }],
+            [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'qrUsageRate', col: 2, qrCustomOnly: true }, { label: '정산수수료(건)', type: 'text', name: 'qrFeeSettlementPerTx', col: 2, qrCustomOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'qrFee3dsRate', col: 2, qrCustomOnly: true }, { label: '비고', type: 'text', name: 'qrCommissionMemo', col: 2, qrCustomOnly: true }]
           ]
         },
         {
@@ -10164,6 +10217,7 @@
     var blockClass = 'col-sm-' + col + ' form-field-block';
     if (f.voidRefundSettlementModeField) blockClass += ' commission-void-refund-mode-field';
     if (f.customOnly) blockClass += ' commission-custom-only';
+    if (f.qrCustomOnly) blockClass += ' qr-commission-custom-only';
     if (f.holdRateOnly) blockClass += ' hold-rate-custom-only';
     if (f.cardRiskCustomOnly) blockClass += ' card-risk-custom-only';
     if (f.cardPresaleCustomOnly) blockClass += ' card-presale-custom-only';
@@ -10277,10 +10331,11 @@
           '</div>';
       } else if (sec.type === 'pgBindingList') {
         var omitExtSettleCols = !!sec.omitExtSettleColumns;
-        html += '<div class="pg-binding-list-wrap"' + (omitExtSettleCols ? ' data-pg-omit-ext-settle-cols="1"' : '') + '><table class="table table-sm table-bordered pg-binding-table"><thead><tr>' +
-          '<th data-pg-ui-t="운영">운영</th><th data-pg-ui-t="착신화">착신화</th><th data-pg-ui-t="결제대행사">결제대행사</th><th data-pg-ui-t="결제구분">결제구분</th><th>MID</th><th data-pg-ui-t="루트번호">루트번호</th><th style="min-width:12rem">API KEY</th><th style="min-width:12rem">IV KEY</th><th data-pg-ui-t="할부">할부</th><th data-pg-ui-t="최대할부">최대할부</th><th data-pg-ui-t="카드브랜드">카드브랜드</th><th data-pg-ui-t="라우팅통화">라우팅통화</th>' +
+        html += '<div class="pg-binding-list-wrap table-no-col-resize-wrap"' + (omitExtSettleCols ? ' data-pg-omit-ext-settle-cols="1"' : '') + '><table class="table table-sm table-bordered pg-binding-table table-no-col-resize"><thead><tr>' +
+          '<th data-pg-ui-t="운영">운영</th><th data-pg-ui-t="착신화">착신화</th><th data-pg-ui-t="결제대행사">결제대행사</th><th data-pg-ui-t="결제구분">결제구분</th><th>MID</th><th data-pg-ui-t="루트번호">루트번호</th><th>API KEY</th><th>IV KEY</th><th data-pg-ui-t="할부">할부</th><th data-pg-ui-t="최대할부">최대할부</th><th data-pg-ui-t="카드브랜드">카드브랜드</th><th data-pg-ui-t="라우팅통화">라우팅통화</th><th data-pg-ui-t="QR">QR</th>' +
           (omitExtSettleCols ? '' : '<th data-pg-ui-title="비우면 연동(tb_pg_agency) 기본" title="비우면 연동(tb_pg_agency) 기본" data-pg-ui-t="예정모드">예정모드</th><th>N</th><th data-pg-ui-t="D시각">D시각</th>') +
-          '<th style="min-width:200px" data-pg-ui-t="작업">작업</th></tr></thead><tbody id="pgBindingTbody"></tbody></table>' +
+          '<th data-pg-ui-t="작업">작업</th></tr></thead><tbody id="pgBindingTbody"></tbody></table>' +
+          '<p class="text-muted small mb-2" data-pg-ui-t="QR은 크립토와 별도입니다. 같은 가맹·같은 결제대행사 행에 카드브랜드와 QR 지갑을 함께 둘 수 있습니다. QR만 다른 결제대행사라면 행을 추가하고 카드브랜드를 카드 없음으로 둡니다. 그때는 본사 멀티 결제대행사를 사용으로 둡니다. 수수료는 카드와 같은 FIAT입니다. QR 승인 호출은 대행사 규격이 들어온 뒤 연결합니다.">QR은 크립토와 별도입니다. 같은 가맹·같은 결제대행사 행에 카드브랜드와 QR 지갑을 함께 둘 수 있습니다. QR만 다른 결제대행사라면 행을 추가하고 카드브랜드를 카드 없음으로 둡니다. 그때는 본사 멀티 결제대행사를 사용으로 둡니다. 수수료는 카드와 같은 FIAT입니다. QR 승인 호출은 대행사 규격이 들어온 뒤 연결합니다.</p>' +
           '<button type="button" class="btn btn-outline-primary btn-sm mt-2" id="pgBindingAddBtn" data-pg-ui-t="+ 결제대행사 추가">+ 결제대행사 추가</button>' +
           '<input type="hidden" name="pgBindings" id="pgBindingsHidden" value="[]"></div>';
       } else if (sec.type === 'pgInfoDisplay') {

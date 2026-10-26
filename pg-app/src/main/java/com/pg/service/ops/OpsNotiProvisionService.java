@@ -558,6 +558,7 @@ public class OpsNotiProvisionService {
         String pgKind = NotiProvisionClient.normalizePgKind(str(body, "pgKind"));
         boolean elementPay = NotiProvisionClient.isElementPay(pgKind);
         boolean oxPay = NotiProvisionClient.isOx(pgKind);
+        boolean ilkPay = NotiProvisionClient.isIlk(pgKind);
         boolean fixedIngress = NotiProvisionClient.isFixedIngressPg(pgKind);
         req.put("pgKind", pgKind);
         if (!dealmai.isEmpty()) {
@@ -621,7 +622,16 @@ public class OpsNotiProvisionService {
             }
         } else {
             String notiBase = NotiProvisionClient.defaultBaseUrlIfBlank(cfg.getNotiProvisionBaseUrl());
-            if (oxPay) {
+            if (ilkPay) {
+                jpayNotify = firstNonBlank(data, "ilkWebhookUrl");
+                if (jpayNotify.isEmpty()) {
+                    jpayNotify = notiBase + "/noti/ilk";
+                }
+                jpayCallback = firstNonBlank(data, "ilkResultUrl");
+                if (jpayCallback.isEmpty()) {
+                    jpayCallback = notiBase + "/noti/result/ilk";
+                }
+            } else if (oxPay) {
                 jpayNotify = firstNonBlank(data, "oxWebhookUrl");
                 if (jpayNotify.isEmpty()) {
                     jpayNotify = notiBase + "/noti/ox";
@@ -649,7 +659,10 @@ public class OpsNotiProvisionService {
         Map<String, Object> out = new LinkedHashMap<>();
         String createdMsg;
         String sameMsg;
-        if (oxPay) {
+        if (ilkPay) {
+            createdMsg = "NOTI ILK 가맹이 생성되었습니다.";
+            sameMsg = "기존 NOTI ILK 가맹과 동일합니다.";
+        } else if (oxPay) {
             createdMsg = "NOTI ox 가맹이 생성되었습니다.";
             sameMsg = "기존 NOTI ox 가맹과 동일합니다.";
         } else if (elementPay) {
@@ -671,6 +684,10 @@ public class OpsNotiProvisionService {
         if (oxPay) {
             out.put("oxWebhookUrl", jpayNotify);
             out.put("oxResultUrl", jpayCallback);
+        }
+        if (ilkPay) {
+            out.put("ilkWebhookUrl", jpayNotify);
+            out.put("ilkResultUrl", jpayCallback);
         }
         out.put("compId", merchant.getCode());
         out.put("compNm", merchant.getName());
@@ -852,10 +869,23 @@ public class OpsNotiProvisionService {
                 cfg, merchantId, fallbackReq, acceptLang);
 
         String logPgKind = resolveLogPgKind(log);
-        boolean elementPay = NotiProvisionClient.isElementPay(logPgKind);
+        boolean fixedIngress = NotiProvisionClient.isFixedIngressPg(logPgKind);
         String jpayNotify = "";
         String jpayCallback = "";
-        if (!elementPay) {
+        if (fixedIngress) {
+            String notiBase = NotiProvisionClient.defaultBaseUrlIfBlank(cfg.getNotiProvisionBaseUrl());
+            if (NotiProvisionClient.isIlk(logPgKind)) {
+                jpayNotify = notiBase + "/noti/ilk";
+                jpayCallback = notiBase + "/noti/result/ilk";
+            } else if (NotiProvisionClient.isOx(logPgKind)) {
+                jpayNotify = notiBase + "/noti/ox";
+                jpayCallback = notiBase + "/noti/result/ox";
+            } else {
+                jpayNotify = notiBase + "/noti/elementpay";
+                jpayCallback = notiBase + "/noti/result/elementpay";
+            }
+            merchantJpayNotifyUrlSyncService.persist(merchant.getId(), jpayNotify, jpayCallback);
+        } else {
             Integer updateSlot = extractSlotNo(data);
             if (updateSlot == null) {
                 updateSlot = log.getSlotNo();
@@ -1116,7 +1146,17 @@ public class OpsNotiProvisionService {
                                 String integrationMode) {
         log.setInternalTargetId(internalTargetId);
         log.setDealmaiPartnerCode(dealmai != null ? dealmai : "");
-        if (NotiProvisionClient.isElementPay(resolveLogPgKind(log))) {
+        String kind = resolveLogPgKind(log);
+        if (NotiProvisionClient.isIlk(kind)) {
+            log.setRouteNo("ilk");
+            log.setSlotNo(null);
+            if (jpayNotify != null && !jpayNotify.isBlank()) {
+                log.setJpayNotifyUrl(jpayNotify);
+            }
+            if (jpayCallback != null && !jpayCallback.isBlank()) {
+                log.setJpayCallbackUrl(jpayCallback);
+            }
+        } else if (NotiProvisionClient.isElementPay(kind)) {
             log.setRouteNo("elementpay");
             log.setSlotNo(null);
             log.setJpayNotifyUrl("");
@@ -1169,7 +1209,10 @@ public class OpsNotiProvisionService {
         log.setBaseCurrency(normalizeBaseCurrency(baseCurrency));
         log.setInternalTargetId(internalTargetId);
         log.setDealmaiPartnerCode(dealmaiPartnerCode != null ? dealmaiPartnerCode : "");
-        if (NotiProvisionClient.isOx(pgKind)) {
+        if (NotiProvisionClient.isIlk(pgKind)) {
+            log.setRouteNo("ilk");
+            log.setSlotNo(null);
+        } else if (NotiProvisionClient.isOx(pgKind)) {
             log.setRouteNo("ox");
             log.setSlotNo(null);
         } else if (NotiProvisionClient.isElementPay(pgKind)) {
@@ -1198,9 +1241,11 @@ public class OpsNotiProvisionService {
         m.put("compNm", log.getCompNm() != null ? log.getCompNm() : "");
         String pgKind = resolveLogPgKind(log);
         m.put("pgKind", pgKind);
-        m.put("pgKindLabel", NotiProvisionClient.isOx(pgKind)
+        m.put("pgKindLabel", NotiProvisionClient.isIlk(pgKind)
+                ? "ILK"
+                : (NotiProvisionClient.isOx(pgKind)
                 ? "ox"
-                : (NotiProvisionClient.isElementPay(pgKind) ? "ElementPay" : "JPAY"));
+                : (NotiProvisionClient.isElementPay(pgKind) ? "ElementPay" : "JPAY")));
         m.put("internalTargetId", nz(log.getInternalTargetId()));
         m.put("integrationMode", normalizeIntegrationMode(log.getIntegrationMode()));
         m.put("routeNo", nz(log.getRouteNo()));
@@ -1232,6 +1277,9 @@ public class OpsNotiProvisionService {
             return NotiProvisionClient.normalizePgKind(stored);
         }
         String route = nz(log.getRouteNo()).toLowerCase(Locale.ROOT);
+        if ("ilk".equals(route)) {
+            return "ilk";
+        }
         if ("ox".equals(route) || "oxpay".equals(route)) {
             return "ox";
         }
