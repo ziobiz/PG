@@ -6,13 +6,69 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '5.42';
+  var CURRENT_LIVE = '5.45';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '5.45',
+      kind: 'minor',
+      date: '2026-10-27',
+      items: {
+        KO: [
+          'ILK(PayPay QR 포함) Back Noti를 ChillPay·EP와 같이 NOTI(/noti/ilk) 경유로 맞춥니다. 기존 가맹 Callback은 Comp-Id로 동일 통보'
+        ],
+        EN: [
+          'ILK Back Noti (including PayPay QR) goes through NOTI (/noti/ilk) like ChillPay and EP; merchant Callback stays the same via Comp-Id'
+        ],
+        JP: [
+          'ILK（PayPay QR 含む）Back Noti を ChillPay・EP と同じく NOTI（/noti/ilk）経由に揃え、加盟 Callback は Comp-Id で同一通報'
+        ],
+        CH: [
+          'ILK（含 PayPay QR）Back Noti 与 ChillPay、EP 一样经 NOTI（/noti/ilk）；商户 Callback 仍按 Comp-Id 同一通告'
+        ],
+        TH: [
+          'ILK Back Noti (รวม PayPay QR) ผ่าน NOTI (/noti/ilk) แบบ ChillPay/EP และ Callback ร้านเดิมด้วย Comp-Id'
+        ]
+      }
+    },
+    {
+      version: '5.44',
+      kind: 'minor',
+      date: '2026-10-27',
+      items: {
+        KO: [
+          'ElementPay 웹훅: NOTI가 넘긴 출구 IP(X-ElementPay-Source-Ip)를 ICOPAY에서 감사·기록합니다(1차 거절은 NOTI 화이트리스트)'
+        ],
+        EN: [
+          'ElementPay webhooks: ICOPAY audits and records the egress IP from NOTI (X-ElementPay-Source-Ip); NOTI still does the primary allowlist'
+        ],
+        JP: [
+          'ElementPay Webhook：NOTI が渡す出元 IP（X-ElementPay-Source-Ip）を ICOPAY で監査・記録します（一次拒否は NOTI ホワイトリスト）'
+        ],
+        CH: [
+          'ElementPay Webhook：ICOPAY 审计并记录 NOTI 传来的出口 IP（X-ElementPay-Source-Ip）；第一道白名单仍由 NOTI 负责'
+        ],
+        TH: [
+          'Webhook ElementPay: ICOPAY ตรวจสอบและบันทึก IP ขาออกจาก NOTI (X-ElementPay-Source-Ip) โดย NOTI ยังทำ allowlist ชั้นแรก'
+        ]
+      }
+    },
+    {
+      version: '5.43',
+      kind: 'minor',
+      date: '2026-10-27',
+      items: {
+        KO: ['카드와 크립토를 같이 쓰는 가맹은 FIAT 수수료 슬롯을 다시 켜서, 수수료관리 FIAT 탭에 표시되게 합니다'],
+        EN: ['Merchants that use both card and crypto keep the FIAT fee slot on, so they appear on the FIAT commission tab'],
+        JP: ['カードとクリプトを併用する加盟店は FIAT 手数料スロットを再度有効にし、手数料管理の FIAT タブに表示します'],
+        CH: ['同时使用银行卡与加密货币的商户会重新开启 FIAT 手续费槽，并显示在手续费管理的 FIAT 页签'],
+        TH: ['ร้านที่ใช้ทั้งบัตรและคริปโตจะเปิดช่องค่าธรรมเนียม FIAT อีกครั้ง เพื่อให้แสดงในแท็บ FIAT ของจัดการค่าธรรมเนียม']
+      }
+    },
     {
       version: '5.42',
       kind: 'minor',

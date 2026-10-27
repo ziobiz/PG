@@ -5406,11 +5406,8 @@ public class CompService {
             if (hqCrypto.isEmpty()) {
                 rs.put("hqCryptoPolicyScope", com.pg.util.CommissionFeeChannel.DEFAULT_SCOPE_CRYPTO);
             }
-            if (cryptoOnly) {
-                rs.put("fiatCommissionSlotYn", "N");
-            } else if (!rs.containsKey("fiatCommissionSlotYn")) {
-                rs.put("fiatCommissionSlotYn", "Y");
-            }
+            /* 카드+크립토면 Y, 크립토전용만 N. 이미 N이어도 cryptoOnly=false 이면 Y로 되돌린다. */
+            rs.put("fiatCommissionSlotYn", cryptoOnly ? "N" : "Y");
         }
         try {
             com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();

@@ -13,6 +13,7 @@ import com.pg.util.ElementPayCallbackEventUtil;
 import com.pg.util.ElementPayCallbackOrderUtil;
 import com.pg.util.ElementPayHashUtil;
 import com.pg.util.ElementPayPaymentIdUtil;
+import com.pg.util.ElementPayWebhookIpUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import jakarta.servlet.http.HttpServletRequest;
@@ -112,12 +113,41 @@ public class ElementPayCallbackService {
         if (!ingressTokenMatches(pathToken)) {
             return Optional.empty();
         }
+        String inboundClientIp = auditAndComposeClientIp(request, clientIp, method);
         try {
-            return Optional.of(handle(method.trim().toLowerCase(Locale.ROOT), fields, rawBody, clientIp, notifyTargetCode));
+            return Optional.of(handle(method.trim().toLowerCase(Locale.ROOT), fields, rawBody, inboundClientIp, notifyTargetCode));
         } catch (Exception e) {
             log.warn("ElementPay callback 실패 method={}: {}", method, e.getMessage());
             return Optional.of(jsonResponse(401, "Internal error", null));
         }
+    }
+
+    /**
+     * NOTI가 넘긴 {@code X-ElementPay-Source-Ip} 를 감사 로그하고, inbound client_ip 에 EP 출구 IP를 남긴다.
+     * 1차 거절은 NOTI 화이트리스트 담당 — ICOPAY는 감사만(알 수 없는 IP여도 결제 응답은 계속).
+     */
+    private String auditAndComposeClientIp(HttpServletRequest request, String notiPeerIp, String method) {
+        ElementPayWebhookIpUtil.AuditResult audit = ElementPayWebhookIpUtil.audit(request, notiPeerIp);
+        if (audit.headerMissing()) {
+            log.warn(
+                    "ElementPay source-IP header missing (NOTI should send {}); method={} notiPeer={}",
+                    ElementPayWebhookIpUtil.SOURCE_IP_HEADER,
+                    method != null ? method : "-",
+                    audit.notiPeerIp().isEmpty() ? "-" : audit.notiPeerIp());
+        } else if (audit.knownCabinetIp()) {
+            log.info(
+                    "ElementPay source-IP ok ip={} method={} notiPeer={}",
+                    audit.elementPaySourceIp(),
+                    method != null ? method : "-",
+                    audit.notiPeerIp().isEmpty() ? "-" : audit.notiPeerIp());
+        } else {
+            log.warn(
+                    "ElementPay source-IP unknown (NOTI allowlist may be ahead of ICOPAY known set) ip={} method={} notiPeer={}",
+                    audit.elementPaySourceIp(),
+                    method != null ? method : "-",
+                    audit.notiPeerIp().isEmpty() ? "-" : audit.notiPeerIp());
+        }
+        return ElementPayWebhookIpUtil.composeInboundClientIp(audit.elementPaySourceIp(), audit.notiPeerIp());
     }
 
     private boolean ingressTokenMatches(String pathToken) {

@@ -8,7 +8,7 @@ import com.pg.entity.PgAgency;
 import com.pg.integration.pg.PgVendor;
 import com.pg.integration.pg.ilk.IlkCredentials;
 import com.pg.integration.pg.ilk.IlkCryptoUtil;
-import com.pg.middleware.notify.PgNotifyIngressPaths;
+import com.pg.noti.NotiProvisionClient;
 import com.pg.repository.MerchantIlkSubscriptionRepository;
 import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.entity.MerchantIlkSubscription;
@@ -46,6 +46,9 @@ import java.util.Optional;
  * 회차 {@code Payment}+{@code cofType=MIT}+{@code deviceChannel=03(3RI)} (고객창 없음).
  * {@code RePayment} 는 원거래 취소 후 재승인 전용 — 구독 월청구에 사용하지 않음.
  * 가맹 MID·사이트명은 PG 로 보내지 않으며 ICOPAY 집계 descriptor 만 사용합니다.
+ * <p>Back Noti 는 ChillPay·EP·ox 와 동일하게 <strong>NOTI</strong>
+ * {@code https://noti.icopay.net/noti/ilk} → ICOPAY {@code …/ILK} 경유.
+ * QR(PayPay)도 카드와 같은 노티·가맹 Callback 경로를 씁니다.
  */
 @Service
 public class IlkPaymentService {
@@ -54,6 +57,8 @@ public class IlkPaymentService {
     private static final String DESC_NAME = "ICOPAY";
     private static final String DESC_PHONE = "0000000000";
     private static final String DESC_COUNTRY = "410";
+    /** NOTI 고정 Back Noti 입구 (카드·QR 공통). */
+    public static final String NOTI_WEBHOOK_PATH = "/noti/ilk";
 
     private final PgAgencyRepository pgAgencyRepository;
     private final MerchantPgBindingRepository merchantPgBindingRepository;
@@ -209,10 +214,9 @@ public class IlkPaymentService {
         if (publicBase.isBlank()) {
             publicBase = "https://icopay.co.kr";
         }
-        String ingressToken = hqNotifyEnvService.getOrCreate().getIngressToken();
+        /* Back Noti: NOTI 고정 입구 (EP/ox 와 동일). Front Noti(브라우저)는 ICOPAY 유지. */
         String notifyUrl = PgOutboundUrlPolicy.enforceOwnDomain(
-                PgNotifyIngressPaths.buildIngressBase(publicBase, ingressToken) + "/ILK",
-                publicBase, publicBase);
+                resolveIlkNotiWebhookUrl(), publicBase, publicBase);
         String returnUrl = PgOutboundUrlPolicy.enforceOwnDomain(
                 publicBase + "/api/pay/ilk/front-notify", publicBase, publicBase);
         String descriptorUrl = publicBase.isBlank() ? "https://icopay.co.kr" : publicBase;
@@ -770,6 +774,21 @@ public class IlkPaymentService {
 
     private static String trim(String s) {
         return s != null ? s.trim() : "";
+    }
+
+    /** NOTI 고정 Back Noti URL (본사 NOTI 베이스 + /noti/ilk). */
+    public String resolveIlkNotiWebhookUrl() {
+        String base = NotiProvisionClient.defaultBaseUrlIfBlank(
+                hqNotifyEnvService.getOrCreate().getNotiProvisionBaseUrl());
+        return trimSlash(base) + NOTI_WEBHOOK_PATH;
+    }
+
+    /** 운영 등록용 Webhook URL (문서·점검). */
+    public Map<String, String> publicNotiIngressUrls() {
+        Map<String, String> m = new LinkedHashMap<>();
+        m.put("ilkWebhookUrl", resolveIlkNotiWebhookUrl());
+        m.put("pgVendor", PgVendor.ILK);
+        return m;
     }
 
     private static String trimSlash(String s) {

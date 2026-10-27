@@ -157,8 +157,15 @@ public class IlkCallbackService {
         }
 
         String ackStatus = "SUCCESS".equalsIgnoreCase(status) ? "SUCCESS" : "DECLINED";
+        Map<String, String> headers = new LinkedHashMap<>();
+        if (compCode != null && !compCode.isBlank()) {
+            headers.put("X-Icopay-Comp-Id", compCode.trim());
+        }
+        if (orderNo != null && !orderNo.isBlank()) {
+            headers.put("X-Icopay-Order-No", orderNo.trim());
+        }
         return NotifyReceiveOutcome.json(
-                ackJson(ackStatus, mid, siteId, orderNo, credOpt.orElse(null)), HttpStatus.OK);
+                ackJson(ackStatus, mid, siteId, orderNo, credOpt.orElse(null)), HttpStatus.OK, headers);
     }
 
     private void activateIlkSubscriptionOnPaid(String compCode, String orderNo, String authId) {

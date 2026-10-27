@@ -105,6 +105,9 @@ export SPRING_PROFILES_ACTIVE=prod
 export APP_SETTLEMENT_AUTO_RUN="${APP_SETTLEMENT_AUTO_RUN:-true}"
 # 운영 수동 재시작과 동일 기본값 (환경변수로 덮어쓰기 가능)
 export SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE="${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:-20}"
+# NOTI(pg-noti-relay) → ICOPAY pg-notify 송신원. 비우면 IP 제한 없음. 덮어쓰기: export PG_NOTIFY_ALLOWED_CIDRS=...
+# 기본: NOTI 공인 IP(+로컬). ElementPay Cabinet IP는 NOTI 쪽 webhookIpWhitelist 가 담당.
+export PG_NOTIFY_ALLOWED_CIDRS="${PG_NOTIFY_ALLOWED_CIDRS:-172.235.192.86,127.0.0.1,::1}"
 export PG_SCRIPTS_DIR="${PG_SCRIPTS_DIR:-$PG_APP_DIR/scripts}"
 PLAYWRIGHT_DEPS_MARKER="${PG_SCRIPTS_DIR}/.playwright-deps-ok"
 mkdir -p "$PG_SCRIPTS_DIR"
