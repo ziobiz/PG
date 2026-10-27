@@ -29573,12 +29573,18 @@
         });
         var rootSel = scope === 'tablet' ? '#hqUserTabletMatrixTbody' : '#hqUserAsstMatrixTbody';
         var selCls = scope === 'tablet' ? '.hq-user-tablet-matrix-sel' : '.hq-user-asst-matrix-sel';
+        /* 태블릿 비노출 행은 표시만 NONE·disabled — 공유 byLevel(데스크톱 담당자 권한)을 덮어쓰지 않음.
+         * 예: 검수관리가 태블릿 미노출인데 저장 시 NONE으로 지워져 사이드바에서 검수관리가 사라지던 문제. */
+        var tabletExposed = scope === 'tablet' ? hqTabletExposedSet(pane, lvl) : null;
         pane.querySelectorAll(rootSel + ' ' + selCls).forEach(function (sel) {
+          if (sel.disabled) return;
           var role = sel.getAttribute('data-role');
           var enc = sel.getAttribute('data-url-enc');
           if (!role || enc == null) return;
           try {
-            st.byLevel[lvl][role][decodeURIComponent(enc)] = sel.value;
+            var url = decodeURIComponent(enc);
+            if (tabletExposed && !tabletExposed[url]) return;
+            st.byLevel[lvl][role][url] = sel.value;
           } catch (eS) {}
         });
       }

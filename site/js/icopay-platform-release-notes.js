@@ -6,13 +6,57 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '5.45';
+  var CURRENT_LIVE = '5.47';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '5.47',
+      kind: 'minor',
+      date: '2026-10-27',
+      items: {
+        KO: [
+          '담당자(보조) 메뉴 기본 권한 저장 시, 태블릿 미노출 메뉴의 「접근불가」표시가 데스크톱 권한을 덮어쓰지 않도록 수정합니다. 총본사 Manager 검수관리(통합체크·결제개요·대행수수료)가 다시 보이도록 권한을 복구합니다'
+        ],
+        EN: [
+          'Saving Assistant menu defaults no longer lets tablet-hidden “Access denied” cells overwrite desktop permissions. Headquarters Manager Inspection menus (Integrated check, Payment overview, Agency commission) are restored'
+        ],
+        JP: [
+          '担当者メニュー基本権限の保存時、タブレット非表示メニューの「アクセス不可」表示がデスクトップ権限を上書きしないよう修正。総本社 Manager の検収管理（統合チェック・決済概要・代行手数料）を復元します'
+        ],
+        CH: [
+          '保存担当者菜单默认权限时，平板未露出菜单的「不可访问」显示不再覆盖桌面权限。已恢复总本部 Manager 的检核管理（综合核对、支付概览、代理手续费）'
+        ],
+        TH: [
+          'เมื่อบันทึกสิทธิ์เมนูผู้ช่วย ค่า「เข้าถึงไม่ได้」ของเมนูที่ไม่โชว์ในแท็บเล็ตจะไม่ทับสิทธิ์เดสก์ท็อปอีก และกู้สิทธิ์เมนูตรวจทานของ Manager สำนักงานใหญ่ (ตรวจรวม/ภาพรวมชำระ/ค่าธรรมเนียมตัวแทน)'
+        ]
+      }
+    },
+    {
+      version: '5.46',
+      kind: 'minor',
+      date: '2026-10-27',
+      items: {
+        KO: [
+          '정산실행·정산배포·정산대기 목록의 「결제액」열 이름을 「순매출」(승인−취소)로 바꿉니다'
+        ],
+        EN: [
+          'On Run / Distribute / Hold settlement lists, the “Payment amount” column is renamed to “Net sales” (approved − cancelled)'
+        ],
+        JP: [
+          '精算実行・配布・待機一覧の「決済額」列名を「純売上」（承認−取消）に変更します'
+        ],
+        CH: [
+          '结算执行/发放/等待列表的「支付额」列名改为「净销售额」（授权−取消）'
+        ],
+        TH: [
+          'ในรายการรัน/แจกจ่าย/รอชำระบัญชี เปลี่ยนชื่อคอลัมน์「ยอดชำระ」เป็น「ยอดขายสุทธิ」(อนุมัติ−ยกเลิก)'
+        ]
+      }
+    },
     {
       version: '5.45',
       kind: 'minor',
