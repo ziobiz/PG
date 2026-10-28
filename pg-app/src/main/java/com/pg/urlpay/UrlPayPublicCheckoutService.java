@@ -189,17 +189,26 @@ public class UrlPayPublicCheckoutService {
                 data.put("urlPayOperationalPgCd", opPg);
             }
         }
-        /* 견적·청구예상 UI용 PG — DP 바인딩 우선(혼용 시) */
-        String fxQuotePg = chillPayService.resolveUrlPayDisplayFxQuotePgCd(orgUnitId);
-        if (fxQuotePg != null && !fxQuotePg.isBlank()) {
-            data.put("urlPayDisplayFxQuotePgCd", fxQuotePg.trim());
-        }
-        String pricingMode = chillPayService.resolveUrlPayPricingMode(orgUnitId);
+        /*
+         * 운영 PG 기준 금액 모드 — 가맹에 DP PG가 있어도 현재 운영 PG가 일반형이면 DP UI를 켜지 않음.
+         * (예전: 바인딩 중 하나라도 DISPLAY면 조직 전체 urlPayDisplayFxActive=true)
+         */
+        String pricingMode = !opPg.isEmpty()
+                ? chillPayService.resolveUrlPayPricingModeForPg(orgUnitId, opPg)
+                : chillPayService.resolveUrlPayPricingMode(orgUnitId);
         data.put("urlPayPricingMode", pricingMode);
         boolean fxHq = urlPayDisplayFxService.isHqFeatureEnabled();
         data.put("urlPayDisplayFxHqEnabled", fxHq);
-        String fxPg = fxQuotePg != null && !fxQuotePg.isBlank() ? fxQuotePg.trim() : opPg;
-        if (UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equals(pricingMode) && fxHq) {
+        boolean opIsDp = UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equalsIgnoreCase(pricingMode);
+        String fxPg = opPg;
+        if (opIsDp && !opPg.isBlank()) {
+            data.put("urlPayDisplayFxQuotePgCd", opPg.trim());
+        } else {
+            String quoteHint = chillPayService.resolveUrlPayDisplayFxQuotePgCd(orgUnitId);
+            data.put("urlPayDisplayFxQuotePgCd",
+                    quoteHint != null && !quoteHint.isBlank() ? quoteHint.trim() : opPg);
+        }
+        if (opIsDp && fxHq) {
             data.put("urlPayDisplayFxActive", true);
             data.put("urlPayDisplayFxRefreshSeconds", urlPayDisplayFxService.refreshSeconds());
             String setCur = urlPayDisplayFxService.settlementCurrencyForPg(fxPg);
@@ -212,7 +221,7 @@ public class UrlPayPublicCheckoutService {
         } else {
             data.put("urlPayDisplayFxActive", false);
             data.put("urlPayFxUiBlind", false);
-            data.put("urlPayMixedPricingModes", false);
+            data.put("urlPayMixedPricingModes", hasMixedPricingModes(orgUnitId));
         }
         Object checkoutCurObj = data.get("checkoutCurrencyCode");
         String checkoutCur = checkoutCurObj instanceof String ? (String) checkoutCurObj : null;

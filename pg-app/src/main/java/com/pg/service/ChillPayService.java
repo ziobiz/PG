@@ -557,6 +557,24 @@ public class ChillPayService {
     }
 
     /**
+     * URL 운영 바인딩 중 지정 패밀리(예: OMSPAY)를 우선 선택.
+     * 전용 결제 HTML(/omspay-pay 등)에서 타 PG(DP)가 기본 운영으로 잡히는 것을 막습니다.
+     */
+    public String resolveUrlPayOperationalPgCdPreferringFamily(Long merchantOrgUnitId,
+                                                              java.util.function.Predicate<String> familyMatch) {
+        if (merchantOrgUnitId == null || familyMatch == null) {
+            return "";
+        }
+        for (MerchantPgBinding b : listOperationalWebBindingsForUrlPay(merchantOrgUnitId)) {
+            String cd = b.getPgCd() != null ? b.getPgCd().trim() : "";
+            if (!cd.isEmpty() && familyMatch.test(cd)) {
+                return cd;
+            }
+        }
+        return "";
+    }
+
+    /**
      * URL 재결제(저장 카드)용 운영 WEB 바인딩 — {@code integ_url_pay_repay_yn=Y} PG만 후보.
      */
     public Optional<MerchantPgBinding> findOperationalWebBindingForUrlPayRepay(Long orgUnitId) {
@@ -1239,7 +1257,7 @@ public class ChillPayService {
         String widgetKind = resolveUrlPayInlineWidgetKind(opPgCd);
         m.put("urlPayOperationalPgCd", opPgCd);
         m.put("urlPayInlineWidgetKind", widgetKind);
-        m.put("urlPayPricingMode", resolveUrlPayPricingMode(merchantOrgUnitId));
+        m.put("urlPayPricingMode", resolveUrlPayPricingModeForPg(merchantOrgUnitId, opPgCd));
         if (isChillPayFamilyPgCd(opPgCd)) {
             Config cfg = resolveConfig(merchantOrgUnitId);
             m.put("redirectPaymentPageUrl", cfg.getRedirectPaymentPageUrl());

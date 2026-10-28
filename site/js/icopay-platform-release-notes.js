@@ -6,13 +6,123 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '5.50';
+  var CURRENT_LIVE = '5.55';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '5.55',
+      kind: 'minor',
+      date: '2026-10-29',
+      items: {
+        KO: [
+          'OMSPAY URL 결제는 성명 한 칸을 유지합니다(이름·성 분리 없음). 성명은 결제내역 고객명용이며, 다음 카드 화면에서 카드 명의를 다시 입력한다는 안내를 5개국어로 표시합니다'
+        ],
+        EN: [
+          'OMSPAY URL checkout keeps a single Name field (no first/last split). The name is for payment-history customer display; a 5-language note explains that the name on the card is entered again on the next screen'
+        ],
+        JP: [
+          'OMSPAY URL決済は氏名1欄のまま（名・姓の分割なし）。氏名は決済履歴の顧客表示用で、次のカード画面でカード名義を再入力する旨を5言語で案内します'
+        ],
+        CH: [
+          'OMSPAY URL 支付保持单栏姓名（不拆名/姓）。姓名用于支付明细客户栏，并以五语提示下一屏需再输入卡面姓名'
+        ],
+        TH: [
+          'ชำระ URL ของ OMSPAY คงช่องชื่อเดียว (ไม่แยกชื่อ/นามสกุล) ชื่อสำหรับคอลัมน์ลูกค้าในประวัติ และมีข้อความ 5 ภาษาว่าในหน้าถัดไปต้องกรอกชื่อบนบัตรอีกครั้ง'
+        ]
+      }
+    },
+    {
+      version: '5.54',
+      kind: 'minor',
+      date: '2026-10-29',
+      items: {
+        KO: [
+          'URL 결제창 DP(표시통화·예상청구)는 지금 운영 PG가 DISPLAY/BLIND일 때만 켭니다. 일반형 OMSPAY인데 다른 PG(DP) 때문에 DP UI가 나오던 문제와, OMSPAY 창에서 비활성인데도 표시통화 행이 보이던 문제를 수정했습니다. 성명 라벨을 짧게 통일합니다'
+        ],
+        EN: [
+          'URL checkout DP (display currency / estimated charge) turns on only when the operational PG is DISPLAY/BLIND. Fixes STANDARD OMSPAY still showing DP UI due to another DP PG, and FX rows remaining visible when DP is off. Shortens the name field label'
+        ],
+        JP: [
+          'URL決済のDP（表示通貨・請求見込み）は運用PGがDISPLAY/BLINDのときだけ有効です。一般型OMSPAYなのに他PG(DP)でDP UIが出る問題と、無効なのに表示通貨行が見える問題を修正。氏名ラベルを短く統一しました'
+        ],
+        CH: [
+          'URL 支付的 DP（展示货币/预计扣款）仅在运营 PG 为 DISPLAY/BLIND 时开启。修复标准型 OMSPAY 因其他 DP PG 仍显示 DP UI、以及关闭后仍显示展示货币行的问题；姓名标签改为简短'
+        ],
+        TH: [
+          'DP ในหน้าชำระ URL (สกุลแสดง/ยอดโดยประมาณ) เปิดเฉพาะเมื่อ PG ปฏิบัติการเป็น DISPLAY/BLIND แก้ OMSPAY แบบมาตรฐานแล้วยังโชว์ DP จาก PG อื่น และแถวสกุลแสดงที่ยังโผล่เมื่อปิด พร้อมย่อป้ายชื่อ'
+        ]
+      }
+    },
+    {
+      version: '5.53',
+      kind: 'minor',
+      date: '2026-10-29',
+      items: {
+        KO: [
+          'OMSPAY URL 결제를 기존 URL 인라인과 동일 UI(카드 입력 제외)로 통일합니다. 웹결제 사용·대표 기본상품·헤더/언어/구매자 이메일·전화 등 설정값을 그대로 적용하고, 결제하기 시 OMS 호스티드 창으로 이동합니다'
+        ],
+        EN: [
+          'OMSPAY URL checkout uses the same URL-inline UI (no card fields). Web-payment on/off, default product, header/lang/buyer email·phone settings apply; Pay opens the OMS hosted page'
+        ],
+        JP: [
+          'OMSPAY URL決済を既存URLインラインと同じUI（カード入力なし）に統一。ウェブ決済ON/OFF・代表基本商品・ヘッダー/言語/購入者メール・電話などの設定を適用し、支払うでOMSホスト画面へ進みます'
+        ],
+        CH: [
+          'OMSPAY URL 支付与现有 URL 内联 UI 统一（无卡输入）。沿用网页支付开关、代表默认商品、页眉/语言/购买人邮箱电话等设置；点付款进入 OMS 托管页'
+        ],
+        TH: [
+          'ชำระ URL ของ OMSPAY ใช้ UI แบบอินไลน์ URL เดิม (ไม่มีช่องบัตร) ใช้การตั้งค่าเว็บชำระ/สินค้าเริ่มต้น/หัว/ภาษา/อีเมลโทรผู้ซื้อ และกดชำระเพื่อไปหน้า OMS'
+        ]
+      }
+    },
+    {
+      version: '5.52',
+      kind: 'minor',
+      date: '2026-10-29',
+      items: {
+        KO: [
+          '노티 생성 이력 수정에서 PG(ElementPay→OMSPAY 등)를 변경할 수 있습니다. 저장 시 NOTI 가맹·고정 Callback/Result 입구가 해당 PG로 맞춰지고, ElementPay 수정 시 입구 URL이 비던 문제도 함께 고칩니다'
+        ],
+        EN: [
+          'Notification provision edit can change PG (e.g. ElementPay→OMSPAY). Save re-aligns the NOTI merchant and fixed Callback/Result ingress; also fixes ElementPay edits clearing ingress URLs'
+        ],
+        JP: [
+          'ノティ作成履歴の修正でPG（ElementPay→OMSPAY等）を変更できます。保存時にNOTI加盟・固定Callback/Result入口を合わせ、ElementPay修正で入口URLが空になる問題も修正します'
+        ],
+        CH: [
+          '通知创建履历修改可更改 PG（如 ElementPay→OMSPAY）。保存时对齐 NOTI 商户与固定 Callback/Result 入口，并修复 ElementPay 修改后入口 URL 被清空的问题'
+        ],
+        TH: [
+          'แก้ประวัติสร้างแจ้งแล้วเปลี่ยน PG ได้ (เช่น ElementPay→OMSPAY) บันทึกแล้วจัด NOTI ร้านและ Callback/Result คงที่ให้ตรง PG และแก้กรณีแก้ ElementPay แล้ว URL ว่าง'
+        ]
+      }
+    },
+    {
+      version: '5.51',
+      kind: 'minor',
+      date: '2026-10-29',
+      items: {
+        KO: [
+          '관리자 화면에서 브라우저 뒤로·앞으로 가 메뉴·허브 탭 이동을 따라가도록 History API를 연동합니다. 권한은 기존처럼 세션·메뉴 권한으로 검사하며, 히스토리만으로 권한이 생기지 않습니다'
+        ],
+        EN: [
+          'Admin browser Back/Forward now follows menu and hub-tab navigation via the History API. Access still requires session and menu permissions; history alone does not grant access'
+        ],
+        JP: [
+          '管理画面のブラウザ戻る・進むがメニュー／ハブタブ移動に追従するよう History API を連携しました。権限は従来どおりセッション・メニュー権限で検査し、履歴だけでは権限は付きません'
+        ],
+        CH: [
+          '管理端浏览器后退/前进现随菜单与枢纽页签切换（History API）。权限仍按会话与菜单权限校验，仅历史记录不会赋予权限'
+        ],
+        TH: [
+          'ปุ่มย้อนกลับ/ไปข้างหน้าของเบราว์เซอร์ในหน้าแอดมินติดตามการสลับเมนูและแท็บฮับผ่าน History API สิทธิ์ยังตรวจจากเซสชันและเมนู ประวัติอย่างเดียวไม่ให้สิทธิ์'
+        ]
+      }
+    },
     {
       version: '5.50',
       kind: 'minor',

@@ -5721,6 +5721,7 @@
   function ensureOpsNpLogEditModal() {
     var modalEl = document.getElementById('opsNpLogEditModal');
     var needsRebuild = !modalEl
+      || !modalEl.querySelector('#opsNpLogEditPgKind')
       || !modalEl.querySelector('#opsNpLogEditIntegrationModeHint')
       || !modalEl.querySelector('#opsNpLogEditNotifyFlagsWrap .card')
       || !modalEl.querySelector('#opsNpLogEditOtpWrap label[data-pg-ui-t="OTP"]');
@@ -5786,8 +5787,16 @@
         var urlMode = mode === 'URL';
         var urlHybrid = mode === 'URL_HYBRID';
         var urlFamily = urlMode || urlHybrid;
+        var pgKindEl = modalEl.querySelector('#opsNpLogEditPgKind');
+        var pgKindRaw = pgKindEl ? String(pgKindEl.value || '').toLowerCase().trim() : '';
+        var pgKind = (pgKindRaw === 'elementpay') ? 'elementpay'
+          : ((pgKindRaw === 'ox' || pgKindRaw === 'oxpay') ? 'ox'
+            : ((pgKindRaw === 'ilk' || pgKindRaw === 'ilkpay') ? 'ilk'
+              : ((pgKindRaw === 'qxipay' || pgKindRaw === 'qxpay') ? 'qxipay'
+                : ((pgKindRaw === 'omspay' || pgKindRaw === 'oms' || pgKindRaw === 'waylar') ? 'omspay' : 'jpay'))));
         var body = {
           id: id,
+          pgKind: pgKind,
           integrationMode: mode,
           internalTargetId: (modalEl.querySelector('#opsNpLogEditInternalTarget') || {}).value || '',
           dealmaiPartnerCode: (modalEl.querySelector('#opsNpLogEditDealmai') || {}).value || '__DEFAULT__',
@@ -6857,21 +6866,65 @@
         setTxt('#opsNpLogEditDate', data.provisionedDate || '');
         var kindLow = String(data.pgKind || '').toLowerCase();
         var routeLow = String(data.routeNo || '').toLowerCase();
-        var slotDisp = (kindLow === 'elementpay' || kindLow === 'ox' || kindLow === 'ilk' || kindLow === 'qxipay' || kindLow === 'omspay'
-            || routeLow === 'elementpay' || routeLow === 'ox' || routeLow === 'ilk' || routeLow === 'qxipay' || routeLow === 'omspay')
-          ? (kindLow === 'omspay' || routeLow === 'omspay' ? 'OMSPAY' : (kindLow === 'qxipay' || routeLow === 'qxipay' ? 'QXIPAY' : (kindLow === 'ilk' || routeLow === 'ilk' ? 'ILKPAY' : (kindLow === 'ox' || routeLow === 'ox' ? 'ox' : 'ElementPay'))))
-          : (data.routeNo || (data.slotNo != null ? String(data.slotNo) : ''));
-        setTxt('#opsNpLogEditSlot', slotDisp);
-        var itSel = modalEl.querySelector('#opsNpLogEditInternalTarget');
-        if (itSel) {
+        if (kindLow !== 'elementpay' && kindLow !== 'ox' && kindLow !== 'ilk' && kindLow !== 'qxipay' && kindLow !== 'omspay' && kindLow !== 'jpay') {
+          if (routeLow === 'omspay') kindLow = 'omspay';
+          else if (routeLow === 'qxipay') kindLow = 'qxipay';
+          else if (routeLow === 'ilk') kindLow = 'ilk';
+          else if (routeLow === 'ox' || routeLow === 'oxpay') kindLow = 'ox';
+          else if (routeLow === 'elementpay' || routeLow === 'ep') kindLow = 'elementpay';
+          else kindLow = 'jpay';
+        }
+        var pgSel = modalEl.querySelector('#opsNpLogEditPgKind');
+        if (pgSel) pgSel.value = kindLow;
+        function opsNpLogEditSlotLabel(kind) {
+          var k = String(kind || '').toLowerCase();
+          if (k === 'omspay') return 'OMSPAY';
+          if (k === 'qxipay') return 'QXIPAY';
+          if (k === 'ilk') return 'ILKPAY';
+          if (k === 'ox') return 'ox';
+          if (k === 'elementpay') return 'ElementPay';
+          return data.routeNo || (data.slotNo != null ? String(data.slotNo) : '—');
+        }
+        setTxt('#opsNpLogEditSlot', opsNpLogEditSlotLabel(kindLow));
+        modalEl._opsNpLogEditAllTargets = Array.isArray(data.internalTargetOptions) ? data.internalTargetOptions.slice() : [];
+        modalEl._opsNpLogEditKeepTargetId = data.internalTargetId != null ? String(data.internalTargetId) : '';
+        function fillOpsNpLogEditTargetsForPg(pgKind, keepId) {
+          var itSel = modalEl.querySelector('#opsNpLogEditInternalTarget');
+          if (!itSel) return;
           itSel.innerHTML = '';
-          (data.internalTargetOptions || []).forEach(function (it) {
+          var list = opsNpFilterInternalTargetOpts(modalEl._opsNpLogEditAllTargets || [], pgKind);
+          if (!list.length) {
+            var o0 = document.createElement('option');
+            o0.value = '';
+            o0.textContent = pgAdminUiT('해당 PG의 NOTI 전산 대상이 없습니다.');
+            itSel.appendChild(o0);
+            return;
+          }
+          list.forEach(function (it) {
             var o = document.createElement('option');
             o.value = it.id != null ? String(it.id) : '';
             o.textContent = opsNpInternalTargetOptionLabel(it);
             itSel.appendChild(o);
           });
-          if (data.internalTargetId) itSel.value = data.internalTargetId;
+          var keep = keepId != null ? String(keepId) : '';
+          if (keep) {
+            var found = false;
+            for (var i = 0; i < itSel.options.length; i++) {
+              if (itSel.options[i].value === keep) { itSel.value = keep; found = true; break; }
+            }
+            if (!found && itSel.options.length) itSel.selectedIndex = 0;
+          } else if (itSel.options.length) {
+            itSel.selectedIndex = 0;
+          }
+        }
+        fillOpsNpLogEditTargetsForPg(kindLow, modalEl._opsNpLogEditKeepTargetId);
+        if (pgSel && !pgSel._opsNpLogEditPgBound) {
+          pgSel._opsNpLogEditPgBound = true;
+          pgSel.addEventListener('change', function () {
+            var k = String(pgSel.value || 'jpay').toLowerCase();
+            setTxt('#opsNpLogEditSlot', opsNpLogEditSlotLabel(k));
+            fillOpsNpLogEditTargetsForPg(k, null);
+          });
         }
         fillOpsNpLogEditDealmai(data.dealmaiPartners, data.defaultDealmaiPartner, data.dealmaiPartnerCode);
         var wh = modalEl.querySelector('#opsNpLogEditDealmaiWebhook');
@@ -42774,7 +42827,117 @@
       titleEl.innerHTML = '<i class="bi bi-chevron-right"></i> ' + escT;
       titleEl.classList.toggle('empty-title', url === '/system/noticeList');
     }
+    var navRecUrl = url || '/main';
+    try {
+      var ulNav = document.getElementById(TAB_UL);
+      var aNav = ulNav && ulNav.querySelector('.copyTopTab .tab-a.active');
+      var liNav = aNav && aNav.closest ? aNav.closest('.copyTopTab') : null;
+      var fuNav = liNav && liNav.getAttribute ? liNav.getAttribute('data-pg-full-url') : '';
+      if (fuNav) navRecUrl = fuNav;
+    } catch (eNavFu) { /* ignore */ }
+    try { pgNavRecord(navRecUrl, { replace: false }); } catch (eNavRec) { /* ignore */ }
   }
+
+  /**
+   * 브라우저 뒤로·앞으로: 메뉴/허브 이동을 History API 에 쌓아 앱 안에서 복원한다.
+   * 보안은 세션·isMenuAllowedForCurrentUser 가 담당(히스토리 URL 만으로 권한 부여 안 함).
+   */
+  var PG_NAV_SKIP = false;
+  var PG_NAV_LAST = '';
+
+  function pgNavNormalizeUrl(url) {
+    var u = String(url == null ? '' : url).trim();
+    if (!u || u === '/' || u === '#') return '/main';
+    if (u.charAt(0) !== '/') u = '/' + u;
+    return u;
+  }
+
+  function pgNavHashForUrl(url) {
+    var u = pgNavNormalizeUrl(url);
+    if (u === '/main') return '#pg=/main';
+    return '#pg=' + encodeURIComponent(u);
+  }
+
+  function pgNavUrlFromHash(hash) {
+    var h = String(hash || '');
+    if (!h) return '';
+    if (h.charAt(0) === '#') h = h.slice(1);
+    if (h.indexOf('pg=') !== 0) return '';
+    var raw = h.slice(3);
+    try { raw = decodeURIComponent(raw); } catch (eDec) { /* keep raw */ }
+    return pgNavNormalizeUrl(raw);
+  }
+
+  function pgNavUrlFromLocation() {
+    try {
+      var fromHash = pgNavUrlFromHash(window.location.hash || '');
+      if (fromHash) return fromHash;
+      if (window.history && window.history.state && window.history.state.pg && window.history.state.url) {
+        return pgNavNormalizeUrl(window.history.state.url);
+      }
+    } catch (eLoc) { /* ignore */ }
+    return '';
+  }
+
+  function pgNavRecord(url, opts) {
+    opts = opts || {};
+    if (PG_NAV_SKIP) return;
+    if (!window.history || typeof window.history.pushState !== 'function') return;
+    var u = pgNavNormalizeUrl(url);
+    var hash = pgNavHashForUrl(u);
+    var state = { pg: 1, url: u };
+    if (opts.replace || !PG_NAV_LAST) {
+      try { window.history.replaceState(state, '', hash); } catch (eRep) { return; }
+      PG_NAV_LAST = u;
+      return;
+    }
+    if (PG_NAV_LAST === u) {
+      try {
+        if ((window.location.hash || '') !== hash) window.history.replaceState(state, '', hash);
+      } catch (eSame) { /* ignore */ }
+      return;
+    }
+    try { window.history.pushState(state, '', hash); } catch (ePush) { return; }
+    PG_NAV_LAST = u;
+  }
+
+  function pgNavRestore(url) {
+    var u = pgNavNormalizeUrl(url || '/main');
+    PG_NAV_SKIP = true;
+    try {
+      var pathOnly = String(u).split('?')[0];
+      if (pathOnly !== '/main' && typeof isMenuAllowedForCurrentUser === 'function' && !isMenuAllowedForCurrentUser(pathOnly)) {
+        var noPermNav = (window.PG_ADMIN_SHELL_I18N && typeof window.PG_ADMIN_SHELL_I18N.pickShell === 'function')
+          ? window.PG_ADMIN_SHELL_I18N.pickShell('alertNoMenuPerm')
+          : '이 메뉴에 대한 접근 권한이 없습니다. [본사권한설정]에서 해당 화면 권한을 확인하세요.';
+        try { alert(noPermNav); } catch (eAl) { /* ignore */ }
+        u = '/main';
+      }
+      if (typeof window.fnTopMenuMove === 'function') {
+        var infoNav = MENU_INFO[String(u).split('?')[0]] || MENU_INFO[u] || {};
+        window.fnTopMenuMove(u, null, infoNav.label || null);
+      }
+    } finally {
+      PG_NAV_SKIP = false;
+      PG_NAV_LAST = u;
+      try { pgNavRecord(u, { replace: true }); } catch (eFin) { /* ignore */ }
+    }
+  }
+
+  window.pgNavPushHistory = function (url) {
+    try { pgNavRecord(url, { replace: false }); } catch (eExt) { /* ignore */ }
+  };
+
+  window.addEventListener('popstate', function (ev) {
+    var u = '';
+    try {
+      if (ev && ev.state && ev.state.pg && ev.state.url) u = String(ev.state.url);
+    } catch (eSt) { u = ''; }
+    if (!u) u = pgNavUrlFromLocation() || '/main';
+    try { pgNavRestore(u); } catch (ePop) {
+      try { console.error('[PG] nav popstate', ePop); } catch (eLogPop) { /* ignore */ }
+    }
+  });
 
   var OPS_DEPLOY_DOC_REDIRECT = {
     '/ops/integrationPlan': { url: '/deploy/integrationPlan', menuId: 'M0901' },
@@ -44842,6 +45005,9 @@
   });
 
   document.addEventListener('DOMContentLoaded', function () {
+    var pgNavBootDeep = '';
+    try { pgNavBootDeep = pgNavUrlFromHash(window.location.hash || ''); } catch (eBootHash) { pgNavBootDeep = ''; }
+    try { pgNavRecord(pgNavBootDeep || '/main', { replace: true }); } catch (eBootNav) { /* ignore */ }
     if (window.PG_MENU_LAYOUT_B && typeof window.PG_MENU_LAYOUT_B.applySidebar === 'function') {
       try {
         window.PG_MENU_LAYOUT_B.applySidebar();
@@ -44855,6 +45021,9 @@
       applyAdminOnlyMenuItems();
       applyMenuVisibilityByPagePermissions();
       redirectIfActiveMenuForbidden();
+      if (pgNavBootDeep && pgNavBootDeep !== '/main') {
+        try { pgNavRestore(pgNavBootDeep); } catch (eBootDeep) { /* ignore */ }
+      }
       if (typeof window.maybeShowPgOtpEnrollModal === 'function') {
         window.maybeShowPgOtpEnrollModal();
       }

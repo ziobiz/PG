@@ -2724,7 +2724,16 @@
     '<div class="row g-2 mb-2"><div class="col-6"><span class="text-muted" data-pg-ui-t="업체코드">업체코드</span><div class="fw-semibold" id="opsNpLogEditCompId"></div></div>' +
     '<div class="col-6"><span class="text-muted" data-pg-ui-t="NOTI 가맹점 ID">NOTI 가맹점 ID</span><div class="fw-semibold" id="opsNpLogEditMerchantId"></div></div></div>' +
     '<div class="row g-2 mb-2"><div class="col-6"><span class="text-muted" data-pg-ui-t="생성일자">생성일자</span><div id="opsNpLogEditDate"></div></div>' +
-    '<div class="col-6"><span class="text-muted" data-pg-ui-t="NOTI 슬롯">NOTI 슬롯</span><div id="opsNpLogEditSlot"></div></div></div>' +
+    '<div class="col-6"><label class="form-label mb-0" for="opsNpLogEditPgKind" data-pg-ui-t="PG">PG</label>' +
+    '<select class="form-select form-select-sm" id="opsNpLogEditPgKind">' +
+    '<option value="jpay">JPAY</option>' +
+    '<option value="elementpay">ElementPay</option>' +
+    '<option value="ox">ox</option>' +
+    '<option value="ilk">ILKPAY</option>' +
+    '<option value="qxipay">QXIPAY</option>' +
+    '<option value="omspay">OMSPAY</option></select></div></div>' +
+    '<div class="mb-2"><span class="text-muted" data-pg-ui-t="NOTI 슬롯">NOTI 슬롯</span><div id="opsNpLogEditSlot" class="fw-semibold">—</div>' +
+    '<div class="small text-muted mt-1" data-pg-ui-t="수정 시 PG를 바꾸면 NOTI 가맹·고정 Callback/Result 입구가 해당 PG로 다시 맞춰집니다. JPAY로 바꾸려면 기존 슬롯이 있어야 합니다.">수정 시 PG를 바꾸면 NOTI 가맹·고정 Callback/Result 입구가 해당 PG로 다시 맞춰집니다. JPAY로 바꾸려면 기존 슬롯이 있어야 합니다.</div></div>' +
     '<div class="mb-2"><label class="form-label mb-0" for="opsNpLogEditInternalTarget" data-pg-ui-t="NOTI 전산 대상 ID">NOTI 전산 대상 ID</label>' +
     '<select class="form-select form-select-sm" id="opsNpLogEditInternalTarget"></select></div>' +
     '<div class="row g-2 mb-2"><div class="col-md-6"><label class="form-label mb-0" for="opsNpLogEditDealmai" data-pg-ui-t="DEALMAI Partner 코드">DEALMAI Partner 코드</label>' +

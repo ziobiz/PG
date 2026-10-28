@@ -646,7 +646,10 @@
             return;
           } catch (e1) { /* fall through */ }
         }
-        try { window.location.hash = u; } catch (e2) {}
+        try {
+          if (typeof window.pgNavPushHistory === 'function') window.pgNavPushHistory(u);
+          else window.location.hash = '#pg=' + encodeURIComponent(u);
+        } catch (e2) {}
       });
     });
   }

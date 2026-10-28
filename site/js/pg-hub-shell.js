@@ -238,7 +238,7 @@
     return activeBtn ? (activeBtn.getAttribute('data-pg-hub-tab') || '') : '';
   }
 
-  function switchHubTab(pane, tabId, hub, stepKey, leaf, preferPanel) {
+  function switchHubTab(pane, tabId, hub, stepKey, leaf, preferPanel, pushHist) {
     if (!pane || !hub || !leaf) return;
     if (!isLeafAllowed(leaf)) {
       var denyPanel = pane.querySelector('.pg-hub-panel');
@@ -260,6 +260,9 @@
     rememberHubTab(hub.hubUrl, stepKey);
     syncTopTabFullUrl(hub.hubUrl, stepKey, !!hub.wizard);
     pane.setAttribute('data-pg-hub-active-tab', stepKey);
+    if (pushHist && typeof global.pgNavPushHistory === 'function') {
+      try { global.pgNavPushHistory(hubFullUrl(hub.hubUrl, stepKey, !!hub.wizard)); } catch (eNav) { /* ignore */ }
+    }
   }
 
   /**
@@ -289,7 +292,7 @@
     if (!found) return;
     var leaf = found.url;
     var pref = q.panel || '';
-    switchHubTab(pane, tabId, hub, want, leaf, pref);
+    switchHubTab(pane, tabId, hub, want, leaf, pref, false);
   }
 
   function bindHubShell(pane, tabId, hubUrl) {
@@ -335,7 +338,7 @@
       ev.preventDefault();
       var leaf = tabBtn.getAttribute('data-pg-hub-leaf') || '';
       var stepKey = tabBtn.getAttribute('data-pg-hub-tab') || '';
-      switchHubTab(pane, tabId, hub, stepKey, leaf, '');
+      switchHubTab(pane, tabId, hub, stepKey, leaf, '', true);
     });
   }
 

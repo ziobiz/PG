@@ -1,17 +1,23 @@
 package com.pg.controller.api;
 
 import com.pg.api.ApiResponse;
+import com.pg.entity.MerchantProfile;
+import com.pg.integration.pg.PgVendor;
+import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
+import com.pg.service.ChillPayService;
 import com.pg.service.OmspayPaymentService;
 import com.pg.service.OrgServiceUseService;
 import com.pg.urlpay.UrlPayPublicCheckoutService;
 import com.pg.urlpay.UrlPaySaleDispatcher;
+import com.pg.urlpay.UrlPayVendorCapabilityRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.Optional;
 
 /** OMSPAY 공개 결제 API — start(리다이렉트)·checkout-context·status. */
 @RestController
@@ -21,19 +27,25 @@ public class ApiOmspayPayController {
     private final OmspayPaymentService omspayPaymentService;
     private final UrlPaySaleDispatcher urlPaySaleDispatcher;
     private final UrlPayPublicCheckoutService urlPayPublicCheckoutService;
+    private final ChillPayService chillPayService;
     private final OrgUnitRepository orgUnitRepository;
     private final OrgServiceUseService orgServiceUseService;
+    private final MerchantProfileRepository merchantProfileRepository;
 
     public ApiOmspayPayController(OmspayPaymentService omspayPaymentService,
                                   UrlPaySaleDispatcher urlPaySaleDispatcher,
                                   UrlPayPublicCheckoutService urlPayPublicCheckoutService,
+                                  ChillPayService chillPayService,
                                   OrgUnitRepository orgUnitRepository,
-                                  OrgServiceUseService orgServiceUseService) {
+                                  OrgServiceUseService orgServiceUseService,
+                                  MerchantProfileRepository merchantProfileRepository) {
         this.omspayPaymentService = omspayPaymentService;
         this.urlPaySaleDispatcher = urlPaySaleDispatcher;
         this.urlPayPublicCheckoutService = urlPayPublicCheckoutService;
+        this.chillPayService = chillPayService;
         this.orgUnitRepository = orgUnitRepository;
         this.orgServiceUseService = orgServiceUseService;
+        this.merchantProfileRepository = merchantProfileRepository;
     }
 
     @GetMapping(value = "/checkout-context", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -45,11 +57,27 @@ public class ApiOmspayPayController {
         if (orgUnitId == null) {
             return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
         }
-        if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
-            return ResponseEntity.ok(ApiResponse.fail(OrgServiceUseService.MSG_ORG_SERVICE_DISABLED, "ORG_DISABLED"));
+        ResponseEntity<ApiResponse<Map<String, Object>>> gate = gateOrgAndWebPayment(orgUnitId);
+        if (gate != null) {
+            return gate;
         }
         try {
             Map<String, Object> data = urlPayPublicCheckoutService.buildCheckoutContext(orgUnitId, request, false);
+            /* ElementPay 등 DP PG가 기본 운영이어도 OMSPAY 전용 창은 OMSPAY 바인딩·금액모드를 씀 */
+            String omsPg = chillPayService.resolveUrlPayOperationalPgCdPreferringFamily(
+                    orgUnitId, PgVendor::isOmspayFamily);
+            if (omsPg == null || omsPg.isBlank()) {
+                return ResponseEntity.ok(ApiResponse.fail(
+                        "이 가맹점은 OMSPAY URL 결제 운영 바인딩이 없습니다.",
+                        "OMSPAY_URL_NOT_CONFIGURED"));
+            }
+            String curOp = String.valueOf(data.getOrDefault("urlPayOperationalPgCd", "")).trim();
+            if (!omsPg.equalsIgnoreCase(curOp)) {
+                data.put("urlPayOperationalPgCd", omsPg);
+                data.put("urlPayInlineWidgetKind",
+                        UrlPayVendorCapabilityRegistry.resolveInlineWidgetKindLegacy(omsPg));
+                urlPayPublicCheckoutService.enrichPresentation(data, orgUnitId);
+            }
             return ResponseEntity.ok(ApiResponse.ok(data));
         } catch (IllegalStateException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "URL_PAY_ROUTE_NOT_CONFIGURED"));
@@ -70,6 +98,10 @@ public class ApiOmspayPayController {
         if (orgUnitId == null) {
             return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
         }
+        ResponseEntity<ApiResponse<Map<String, Object>>> gate = gateOrgAndWebPayment(orgUnitId);
+        if (gate != null) {
+            return gate;
+        }
         Map<String, Object> result = urlPaySaleDispatcher.executeSale(orgUnitId, body, request, request.getRemoteAddr());
         boolean ok = Boolean.TRUE.equals(result.get("success"));
         if (ok) {
@@ -87,6 +119,19 @@ public class ApiOmspayPayController {
     @GetMapping(value = "/noti-urls", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<Map<String, String>>> notiUrls() {
         return ResponseEntity.ok(ApiResponse.ok(omspayPaymentService.publicNotiIngressUrls()));
+    }
+
+    private ResponseEntity<ApiResponse<Map<String, Object>>> gateOrgAndWebPayment(Long orgUnitId) {
+        if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    OrgServiceUseService.MSG_ORG_SERVICE_DISABLED, "ORG_DISABLED"));
+        }
+        Optional<MerchantProfile> prof = merchantProfileRepository.findByOrgUnitId(orgUnitId);
+        if (prof.isPresent() && !orgServiceUseService.isWebPaymentActive(orgUnitId)) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    OrgServiceUseService.MSG_WEB_PAYMENT_DISABLED, "WEB_PAYMENT_DISABLED"));
+        }
+        return null;
     }
 
     private Long resolveOrg(Long merchantId, String compId) {

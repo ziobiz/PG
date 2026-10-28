@@ -243,16 +243,21 @@ public class MerchantChatbotProductService {
         String opPg = String.valueOf(data.getOrDefault("urlPayOperationalPgCd", ""));
         urlPayCheckoutCurrencyService.resolveFromOrgChain(merchantOrgUnitId).ifPresent(cur ->
                 data.put("checkoutCurrencyCode", cur.trim().toUpperCase(Locale.ROOT)));
-        String pricingMode = chillPayService.resolveUrlPayPricingMode(merchantOrgUnitId);
+        String pricingMode = !opPg.isBlank()
+                ? chillPayService.resolveUrlPayPricingModeForPg(merchantOrgUnitId, opPg)
+                : chillPayService.resolveUrlPayPricingMode(merchantOrgUnitId);
         data.put("urlPayPricingMode", pricingMode);
         boolean fxHq = urlPayDisplayFxService.isHqFeatureEnabled();
         data.put("urlPayDisplayFxHqEnabled", fxHq);
-        String fxPg = chillPayService.resolveUrlPayDisplayFxQuotePgCd(merchantOrgUnitId);
+        boolean opIsDp = UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equalsIgnoreCase(pricingMode);
+        String fxPg = opIsDp && !opPg.isBlank()
+                ? opPg
+                : chillPayService.resolveUrlPayDisplayFxQuotePgCd(merchantOrgUnitId);
         if (fxPg == null || fxPg.isBlank()) {
             fxPg = opPg;
         }
         data.put("urlPayDisplayFxQuotePgCd", fxPg);
-        if (UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equals(pricingMode) && fxHq) {
+        if (opIsDp && fxHq) {
             data.put("urlPayDisplayFxActive", true);
             data.put("urlPayDisplayFxRefreshSeconds", urlPayDisplayFxService.refreshSeconds());
             String setCur = urlPayDisplayFxService.settlementCurrencyForPg(fxPg);

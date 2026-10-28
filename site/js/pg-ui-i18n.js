@@ -9803,6 +9803,24 @@
       CH: 'NOTI 槽位',
       TH: 'NOTI slot'
     },
+    '수정 시 PG를 바꾸면 NOTI 가맹·고정 Callback/Result 입구가 해당 PG로 다시 맞춰집니다. JPAY로 바꾸려면 기존 슬롯이 있어야 합니다.': {
+      EN: 'Changing PG on edit re-aligns the NOTI merchant and fixed Callback/Result ingress for that PG. Switching to JPAY requires an existing slot.',
+      JP: '修正でPGを変えると、NOTI加盟と固定Callback/Result入口がそのPGに再設定されます。JPAYへ変更するには既存スロットが必要です。',
+      CH: '修改时更改 PG 会将该 NOTI 商户及固定 Callback/Result 入口重新对齐到该 PG。改为 JPAY 需已有槽位。',
+      TH: 'เมื่อแก้แล้วเปลี่ยน PG จะจัด NOTI ร้านและ Callback/Result คงที่ให้ตรง PG นั้น การเปลี่ยนเป็น JPAY ต้องมีสล็อตเดิม'
+    },
+    '해당 PG의 NOTI 전산 대상이 없습니다.': {
+      EN: 'No NOTI internal target for this PG.',
+      JP: 'このPGのNOTI基幹対象がありません。',
+      CH: '没有该 PG 的 NOTI 内部对象。',
+      TH: 'ไม่มีเป้าหมายภายใน NOTI สำหรับ PG นี้'
+    },
+    '노티 생성 이력이 수정되었습니다.': {
+      EN: 'Notification provision history was updated.',
+      JP: 'ノティ作成履歴を修正しました。',
+      CH: '已更新通知创建履历。',
+      TH: 'อัปเดตประวัติสร้างการแจ้งแล้ว'
+    },
     '생성 여부': {
       EN: 'Created',
       JP: '作成有無',

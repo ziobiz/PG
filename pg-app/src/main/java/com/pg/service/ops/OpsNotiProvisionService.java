@@ -623,50 +623,9 @@ public class OpsNotiProvisionService {
                 merchantJpayNotifyUrlSyncService.persist(merchant.getId(), jpayNotify, jpayCallback);
             }
         } else {
-            String notiBase = NotiProvisionClient.defaultBaseUrlIfBlank(cfg.getNotiProvisionBaseUrl());
-            if (omspay) {
-                jpayNotify = firstNonBlank(data, "omspayWebhookUrl");
-                if (jpayNotify.isEmpty()) {
-                    jpayNotify = notiBase + "/noti/omspay";
-                }
-                jpayCallback = "";
-            } else if (qxipay) {
-                jpayNotify = firstNonBlank(data, "qxipayWebhookUrl");
-                if (jpayNotify.isEmpty()) {
-                    jpayNotify = notiBase + "/noti/qxipay";
-                }
-                jpayCallback = firstNonBlank(data, "qxipayResultUrl");
-                if (jpayCallback.isEmpty()) {
-                    jpayCallback = notiBase + "/noti/result/qxipay";
-                }
-            } else if (ilkPay) {
-                jpayNotify = firstNonBlank(data, "ilkWebhookUrl");
-                if (jpayNotify.isEmpty()) {
-                    jpayNotify = notiBase + "/noti/ilk";
-                }
-                jpayCallback = firstNonBlank(data, "ilkResultUrl");
-                if (jpayCallback.isEmpty()) {
-                    jpayCallback = notiBase + "/noti/result/ilk";
-                }
-            } else if (oxPay) {
-                jpayNotify = firstNonBlank(data, "oxWebhookUrl");
-                if (jpayNotify.isEmpty()) {
-                    jpayNotify = notiBase + "/noti/ox";
-                }
-                jpayCallback = firstNonBlank(data, "oxResultUrl");
-                if (jpayCallback.isEmpty()) {
-                    jpayCallback = notiBase + "/noti/result/ox";
-                }
-            } else {
-                jpayNotify = firstNonBlank(data, "elementpayWebhookUrl");
-                if (jpayNotify.isEmpty()) {
-                    jpayNotify = notiBase + "/noti/elementpay";
-                }
-                jpayCallback = firstNonBlank(data, "elementpayResultUrl");
-                if (jpayCallback.isEmpty()) {
-                    jpayCallback = notiBase + "/noti/result/elementpay";
-                }
-            }
+            String[] ingress = resolveFixedIngressUrls(pgKind, cfg, data);
+            jpayNotify = ingress[0];
+            jpayCallback = ingress[1];
             merchantJpayNotifyUrlSyncService.persist(merchant.getId(), jpayNotify, jpayCallback);
         }
         saveProvisionLog(merchant, merchantId, pgKind, baseCurrency, internalTargetId, dealmai, data, jpayNotify, jpayCallback, user,
@@ -788,6 +747,20 @@ public class OpsNotiProvisionService {
         String acceptLang = NotiProvisionClient.acceptLanguageFromAdminLang(str(body, "adminLang"));
         List<Map<String, Object>> notiTargets = notiInternalTargetCatalogService.listFromNoti(cfg, acceptLang);
 
+        String oldPgKind = resolveLogPgKind(log);
+        String newPgKind = str(body, "pgKind");
+        if (newPgKind.isEmpty()) {
+            newPgKind = oldPgKind;
+        } else {
+            newPgKind = NotiProvisionClient.normalizePgKind(newPgKind);
+        }
+        boolean pgKindChanged = !oldPgKind.equals(newPgKind);
+        boolean newFixedIngress = NotiProvisionClient.isFixedIngressPg(newPgKind);
+        if (!newFixedIngress && log.getSlotNo() == null && pgKindChanged) {
+            throw new IllegalArgumentException(
+                    "JPAY로 변경하려면 기존 JPAY 슬롯이 필요합니다. 슬롯이 없으면 노티생성에서 JPAY로 새로 등록하세요.");
+        }
+
         String internalTargetId = str(body, "internalTargetId");
         if (internalTargetId.isEmpty()) {
             internalTargetId = nz(log.getInternalTargetId());
@@ -879,7 +852,7 @@ public class OpsNotiProvisionService {
         }
 
         Map<String, Object> fallbackReq = buildProvisionFallbackReq(
-                merchant, merchantId, log, internalTargetId, callbackUrl, resultUrl, options, dealmai, enableDealmaiWebhook);
+                merchant, merchantId, log, newPgKind, internalTargetId, callbackUrl, resultUrl, options, dealmai, enableDealmaiWebhook);
         if (urlFamilyMode) {
             if (urlIntegrationMode) {
                 fallbackReq.put("callbackUrl", "");
@@ -894,26 +867,36 @@ public class OpsNotiProvisionService {
                 merchant, integrationMode, resolveUsername(authentication)));
 
         // ICOPAY에서 생성한 이력은 ICOPAY에서 수정해야 NOTI와 양방향이 유지된다.
-        // 1) PUT(미들웨어 UI와 동일) → 2) 실패/미지원/설정충돌 시 동일 슬롯 강제 교체 → 3) 잔존 시 PUT 재시도
-        Map<String, Object> data = upsertMerchantKeepingSlot(
-                cfg, merchantId, fallbackReq, acceptLang);
+        // PG 변경 시: 구 pgKind 가맹 삭제 후 신 pgKind 로 재등록. 동일 PG: PUT → 교체 → PUT 재시도.
+        Map<String, Object> data;
+        if (pgKindChanged) {
+            forceDeleteMerchantQuietly(cfg, merchantId, oldPgKind, acceptLang);
+            sleepQuietly(200L);
+            forceDeleteMerchantQuietly(cfg, merchantId, newPgKind, acceptLang);
+            sleepQuietly(200L);
+            try {
+                data = notiProvisionClient.provision(
+                        cfg.getNotiProvisionBaseUrl(),
+                        cfg.getNotiProvisionApiKey(),
+                        fallbackReq,
+                        acceptLang);
+            } catch (NotiProvisionException pe) {
+                if (isMerchantAlreadyExists(pe)) {
+                    data = upsertMerchantKeepingSlot(cfg, merchantId, fallbackReq, acceptLang);
+                } else {
+                    throw pe;
+                }
+            }
+        } else {
+            data = upsertMerchantKeepingSlot(cfg, merchantId, fallbackReq, acceptLang);
+        }
 
-        String logPgKind = resolveLogPgKind(log);
-        boolean fixedIngress = NotiProvisionClient.isFixedIngressPg(logPgKind);
         String jpayNotify = "";
         String jpayCallback = "";
-        if (fixedIngress) {
-            String notiBase = NotiProvisionClient.defaultBaseUrlIfBlank(cfg.getNotiProvisionBaseUrl());
-            if (NotiProvisionClient.isIlk(logPgKind)) {
-                jpayNotify = notiBase + "/noti/ilk";
-                jpayCallback = notiBase + "/noti/result/ilk";
-            } else if (NotiProvisionClient.isOx(logPgKind)) {
-                jpayNotify = notiBase + "/noti/ox";
-                jpayCallback = notiBase + "/noti/result/ox";
-            } else {
-                jpayNotify = notiBase + "/noti/elementpay";
-                jpayCallback = notiBase + "/noti/result/elementpay";
-            }
+        if (newFixedIngress) {
+            String[] ingress = resolveFixedIngressUrls(newPgKind, cfg, data);
+            jpayNotify = ingress[0];
+            jpayCallback = ingress[1];
             merchantJpayNotifyUrlSyncService.persist(merchant.getId(), jpayNotify, jpayCallback);
         } else {
             Integer updateSlot = extractSlotNo(data);
@@ -933,13 +916,18 @@ public class OpsNotiProvisionService {
                 merchantJpayNotifyUrlSyncService.persist(merchant.getId(), jpayNotify, jpayCallback);
             }
         }
-        applyLogUpdate(log, internalTargetId, dealmai, data, jpayNotify, jpayCallback,
+        applyLogUpdate(log, newPgKind, internalTargetId, dealmai, data, jpayNotify, jpayCallback,
                 integrationMode);
         markProvisionOtpPassed(resolveUsername(authentication));
 
         Map<String, Object> out = new LinkedHashMap<>();
-        out.put("message", "노티 생성 이력이 수정되었습니다.");
+        out.put("message", pgKindChanged
+                ? "노티 생성 이력이 수정되었습니다. PG가 " + oldPgKind + " → " + newPgKind + " 로 변경되었습니다."
+                : "노티 생성 이력이 수정되었습니다.");
         out.put("log", toLogRow(log));
+        out.put("pgKind", newPgKind);
+        out.put("jpayNotifyUrl", jpayNotify);
+        out.put("jpayCallbackUrl", jpayCallback);
         return out;
     }
 
@@ -1042,17 +1030,18 @@ public class OpsNotiProvisionService {
     }
 
     private Map<String, Object> buildProvisionFallbackReq(OrgUnit merchant, String merchantId, NotiProvisionLog log,
-                                                          String internalTargetId, String callbackUrl, String resultUrl,
+                                                          String pgKindIn, String internalTargetId, String callbackUrl, String resultUrl,
                                                           Map<String, Object> options, String dealmai,
                                                           boolean enableDealmaiWebhook) {
         Map<String, Object> req = new LinkedHashMap<>();
         req.put("merchantId", merchantId);
-        String pgKind = resolveLogPgKind(log);
+        String pgKind = NotiProvisionClient.normalizePgKind(
+                pgKindIn != null && !pgKindIn.isBlank() ? pgKindIn : resolveLogPgKind(log));
         req.put("pgKind", pgKind);
         if (!internalTargetId.isEmpty()) {
             req.put("internalTargetId", internalTargetId);
         }
-        if (!NotiProvisionClient.isElementPay(pgKind) && log.getSlotNo() != null) {
+        if (!NotiProvisionClient.isFixedIngressPg(pgKind) && log.getSlotNo() != null) {
             req.put("jpaySlotNo", log.getSlotNo());
             String route = nz(log.getRouteNo());
             if (route.isEmpty()) {
@@ -1171,26 +1160,29 @@ public class OpsNotiProvisionService {
         return log.getCompId() != null ? log.getCompId().trim() : "";
     }
 
-    private void applyLogUpdate(NotiProvisionLog log, String internalTargetId, String dealmai,
+    private void applyLogUpdate(NotiProvisionLog log, String pgKindIn, String internalTargetId, String dealmai,
                                 Map<String, Object> data, String jpayNotify, String jpayCallback,
                                 String integrationMode) {
         log.setInternalTargetId(internalTargetId);
         log.setDealmaiPartnerCode(dealmai != null ? dealmai : "");
-        String kind = resolveLogPgKind(log);
-        if (NotiProvisionClient.isIlk(kind)) {
+        String kind = NotiProvisionClient.normalizePgKind(
+                pgKindIn != null && !pgKindIn.isBlank() ? pgKindIn : resolveLogPgKind(log));
+        log.setPgKind(kind);
+        if (NotiProvisionClient.isOmspay(kind)) {
+            log.setRouteNo("omspay");
+            log.setSlotNo(null);
+        } else if (NotiProvisionClient.isQxipay(kind)) {
+            log.setRouteNo("qxipay");
+            log.setSlotNo(null);
+        } else if (NotiProvisionClient.isIlk(kind)) {
             log.setRouteNo("ilk");
             log.setSlotNo(null);
-            if (jpayNotify != null && !jpayNotify.isBlank()) {
-                log.setJpayNotifyUrl(jpayNotify);
-            }
-            if (jpayCallback != null && !jpayCallback.isBlank()) {
-                log.setJpayCallbackUrl(jpayCallback);
-            }
+        } else if (NotiProvisionClient.isOx(kind)) {
+            log.setRouteNo("ox");
+            log.setSlotNo(null);
         } else if (NotiProvisionClient.isElementPay(kind)) {
             log.setRouteNo("elementpay");
             log.setSlotNo(null);
-            log.setJpayNotifyUrl("");
-            log.setJpayCallbackUrl("");
         } else {
             String route = extractRouteNo(data);
             if (!route.isEmpty()) {
@@ -1200,11 +1192,69 @@ public class OpsNotiProvisionService {
             if (slot != null) {
                 log.setSlotNo(slot);
             }
-            log.setJpayNotifyUrl(jpayNotify);
-            log.setJpayCallbackUrl(jpayCallback);
         }
+        log.setJpayNotifyUrl(jpayNotify != null ? jpayNotify : "");
+        log.setJpayCallbackUrl(jpayCallback != null ? jpayCallback : "");
         log.setIntegrationMode(normalizeIntegrationMode(integrationMode));
         notiProvisionLogRepository.save(log);
+    }
+
+    /** 고정 입구 PG(ElementPay·ox·ILK·QXIPAY·OMSPAY)의 NOTI Callback/Result URL. */
+    private String[] resolveFixedIngressUrls(String pgKind, HqNotifyEnvConfig cfg, Map<String, Object> data) {
+        if (data == null) {
+            data = Map.of();
+        }
+        String notiBase = NotiProvisionClient.defaultBaseUrlIfBlank(
+                cfg != null ? cfg.getNotiProvisionBaseUrl() : null);
+        String notify = "";
+        String callback = "";
+        if (NotiProvisionClient.isOmspay(pgKind)) {
+            notify = firstNonBlank(data, "omspayWebhookUrl");
+            if (notify.isEmpty()) {
+                notify = notiBase + "/noti/omspay";
+            }
+            callback = firstNonBlank(data, "omspayResultUrl");
+            if (callback.isEmpty()) {
+                callback = notiBase + "/noti/result/omspay";
+            }
+        } else if (NotiProvisionClient.isQxipay(pgKind)) {
+            notify = firstNonBlank(data, "qxipayWebhookUrl");
+            if (notify.isEmpty()) {
+                notify = notiBase + "/noti/qxipay";
+            }
+            callback = firstNonBlank(data, "qxipayResultUrl");
+            if (callback.isEmpty()) {
+                callback = notiBase + "/noti/result/qxipay";
+            }
+        } else if (NotiProvisionClient.isIlk(pgKind)) {
+            notify = firstNonBlank(data, "ilkWebhookUrl");
+            if (notify.isEmpty()) {
+                notify = notiBase + "/noti/ilk";
+            }
+            callback = firstNonBlank(data, "ilkResultUrl");
+            if (callback.isEmpty()) {
+                callback = notiBase + "/noti/result/ilk";
+            }
+        } else if (NotiProvisionClient.isOx(pgKind)) {
+            notify = firstNonBlank(data, "oxWebhookUrl");
+            if (notify.isEmpty()) {
+                notify = notiBase + "/noti/ox";
+            }
+            callback = firstNonBlank(data, "oxResultUrl");
+            if (callback.isEmpty()) {
+                callback = notiBase + "/noti/result/ox";
+            }
+        } else {
+            notify = firstNonBlank(data, "elementpayWebhookUrl");
+            if (notify.isEmpty()) {
+                notify = notiBase + "/noti/elementpay";
+            }
+            callback = firstNonBlank(data, "elementpayResultUrl");
+            if (callback.isEmpty()) {
+                callback = notiBase + "/noti/result/elementpay";
+            }
+        }
+        return new String[]{notify, callback};
     }
 
     private void clearJpayUrls(long orgUnitId) {
@@ -1317,6 +1367,12 @@ public class OpsNotiProvisionService {
             return NotiProvisionClient.normalizePgKind(stored);
         }
         String route = nz(log.getRouteNo()).toLowerCase(Locale.ROOT);
+        if ("omspay".equals(route) || "oms".equals(route) || "waylar".equals(route)) {
+            return "omspay";
+        }
+        if ("qxipay".equals(route) || "qxpay".equals(route)) {
+            return "qxipay";
+        }
         if ("ilk".equals(route)) {
             return "ilk";
         }
