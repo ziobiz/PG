@@ -42,6 +42,8 @@ alwaysApply: true
 8. 배포 키트·체크리스트·파라미터 규격 — **ICOPAY만** 노출 (PG별 블록 추가 금지)
 9. **플랫폼 버전 마이너 +0.1** (`icopay-platform-version.mdc`) — PG 신규 연동 시
 10. URL sale → `UrlPaySaleDispatcher`/`UrlPayChargeResolutionService` (표시금액 persist)
+11. **NOTI 노티거래내역·pgKind·웹훅 로그** — 사용자 미언급이어도 필수  
+    (`pg-new-vendor-noti-tx-mandatory.mdc`)
 
 ## 5. 레거시
 

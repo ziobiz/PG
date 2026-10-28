@@ -107,6 +107,8 @@ public class PgNotifyReceiveService {
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
     private final ElementPayCallbackService elementPayCallbackService;
     private final IlkCallbackService ilkCallbackService;
+    private final QxipayCallbackService qxipayCallbackService;
+    private final OmspayCallbackService omspayCallbackService;
 
     public PgNotifyReceiveService(HqNotifyEnvService hqNotifyEnvService,
                                 PgNotifyInboundRepository inboundRepository,
@@ -123,7 +125,9 @@ public class PgNotifyReceiveService {
                                 PgNotifyInboundPersistService inboundPersistService,
                                 HqLedgerSysSettingsService hqLedgerSysSettingsService,
                                 ElementPayCallbackService elementPayCallbackService,
-                                IlkCallbackService ilkCallbackService) {
+                                IlkCallbackService ilkCallbackService,
+                                QxipayCallbackService qxipayCallbackService,
+                                OmspayCallbackService omspayCallbackService) {
         this.hqNotifyEnvService = hqNotifyEnvService;
         this.inboundRepository = inboundRepository;
         this.bindingRepository = bindingRepository;
@@ -140,6 +144,8 @@ public class PgNotifyReceiveService {
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
         this.elementPayCallbackService = elementPayCallbackService;
         this.ilkCallbackService = ilkCallbackService;
+        this.qxipayCallbackService = qxipayCallbackService;
+        this.omspayCallbackService = omspayCallbackService;
     }
 
     /**
@@ -156,6 +162,16 @@ public class PgNotifyReceiveService {
                 pathToken, notifyTargetCode, rawBody, clientIp, request);
         if (ilk.isPresent()) {
             return ilk.get();
+        }
+        Optional<NotifyReceiveOutcome> qxipay = qxipayCallbackService.tryHandleSyncCallback(
+                pathToken, notifyTargetCode, rawBody, clientIp, request);
+        if (qxipay.isPresent()) {
+            return qxipay.get();
+        }
+        Optional<NotifyReceiveOutcome> omspay = omspayCallbackService.tryHandleSyncCallback(
+                pathToken, notifyTargetCode, rawBody, clientIp, request);
+        if (omspay.isPresent()) {
+            return omspay.get();
         }
         return receiveAndRespondCore(pathToken, notifyTargetCode, rawBody, contentType, clientIp, request);
     }
@@ -519,7 +535,8 @@ public class PgNotifyReceiveService {
             return false;
         }
         String c = notifyTargetCode.trim();
-        return PgVendor.isElementPayVendorCode(c) || PgVendor.isIlkVendorCode(c) || PgVendor.isOxVendorCode(c);
+        return PgVendor.isElementPayVendorCode(c) || PgVendor.isIlkVendorCode(c)
+                || PgVendor.isOxVendorCode(c) || PgVendor.isQxipayVendorCode(c);
     }
 
     /**

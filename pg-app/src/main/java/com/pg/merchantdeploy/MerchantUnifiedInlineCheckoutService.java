@@ -34,6 +34,8 @@ public class MerchantUnifiedInlineCheckoutService {
     private final MerchantElementPayInlineCheckoutService elementPayInlineCheckoutService;
     private final MerchantIlkInlineCheckoutService ilkInlineCheckoutService;
     private final MerchantOxInlineCheckoutService oxInlineCheckoutService;
+    private final MerchantQxipayInlineCheckoutService qxipayInlineCheckoutService;
+    private final MerchantOmspayInlineCheckoutService omspayInlineCheckoutService;
     private final CryptoCheckoutService cryptoCheckoutService;
     private final MerchantInlineCheckoutTokenService tokenService;
     private final MerchantChatbotProductService productService;
@@ -53,6 +55,8 @@ public class MerchantUnifiedInlineCheckoutService {
                                                 MerchantElementPayInlineCheckoutService elementPayInlineCheckoutService,
                                                 MerchantIlkInlineCheckoutService ilkInlineCheckoutService,
                                                 MerchantOxInlineCheckoutService oxInlineCheckoutService,
+                                                MerchantQxipayInlineCheckoutService qxipayInlineCheckoutService,
+                                                MerchantOmspayInlineCheckoutService omspayInlineCheckoutService,
                                                 CryptoCheckoutService cryptoCheckoutService,
                                                 MerchantInlineCheckoutTokenService tokenService,
                                                 MerchantChatbotProductService productService,
@@ -70,6 +74,8 @@ public class MerchantUnifiedInlineCheckoutService {
         this.elementPayInlineCheckoutService = elementPayInlineCheckoutService;
         this.ilkInlineCheckoutService = ilkInlineCheckoutService;
         this.oxInlineCheckoutService = oxInlineCheckoutService;
+        this.qxipayInlineCheckoutService = qxipayInlineCheckoutService;
+        this.omspayInlineCheckoutService = omspayInlineCheckoutService;
         this.cryptoCheckoutService = cryptoCheckoutService;
         this.tokenService = tokenService;
         this.productService = productService;
@@ -172,6 +178,10 @@ public class MerchantUnifiedInlineCheckoutService {
             result = ilkInlineCheckoutService.prepare(orgUnitId, enriched, request);
         } else if (PgVendor.isOxFamily(opPg)) {
             result = oxInlineCheckoutService.prepare(orgUnitId, enriched, request);
+        } else if (PgVendor.isQxipayFamily(opPg)) {
+            result = qxipayInlineCheckoutService.prepare(orgUnitId, enriched, request);
+        } else if (PgVendor.isOmspayFamily(opPg)) {
+            result = omspayInlineCheckoutService.prepare(orgUnitId, enriched, request);
         } else if (PgVendor.isCryptoFamily(opPg)) {
             result = cryptoCheckoutService.prepare(orgUnitId, enriched, request);
         } else if (PgVendor.isChillPayFamily(opPg)) {
@@ -221,6 +231,12 @@ public class MerchantUnifiedInlineCheckoutService {
         }
         if (PgVendor.isOxFamily(opPg)) {
             return oxInlineCheckoutService.orderStatus(orgUnitId, orderNo);
+        }
+        if (PgVendor.isQxipayFamily(opPg)) {
+            return qxipayInlineCheckoutService.orderStatus(orgUnitId, orderNo);
+        }
+        if (PgVendor.isOmspayFamily(opPg)) {
+            return omspayInlineCheckoutService.orderStatus(orgUnitId, orderNo);
         }
         if (PgVendor.isCryptoFamily(opPg)) {
             return cryptoCheckoutService.status(null, orderNo, orgUnitId);

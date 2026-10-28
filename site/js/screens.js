@@ -2605,7 +2605,9 @@
     '<option value="jpay" selected>JPAY</option>' +
     '<option value="elementpay">ElementPay</option>' +
     '<option value="ox">ox</option>' +
-    '<option value="ilk">ILK</option></select></div>' +
+    '<option value="ilk">ILKPAY</option>' +
+    '<option value="qxipay">QXIPAY</option>' +
+    '<option value="omspay">OMSPAY</option></select></div>' +
     '<div class="col-12 col-md-3"><label class="form-label mb-1" for="opsNpCompId" data-pg-ui-t="가맹 업체코드">가맹 업체코드</label>' +
     '<input type="text" class="form-control form-control-sm" id="opsNpCompId" autocomplete="off"></div>' +
     '<div class="col-12 col-md-3"><label class="form-label mb-1" for="opsNpCompNm" data-pg-ui-t="업체명">업체명</label>' +
@@ -2629,6 +2631,8 @@
     '<div class="mb-3 d-none" id="opsNpEpHintWrap"><div class="small text-muted" data-pg-ui-t="ElementPay는 PG 슬롯이 없습니다. Cabinet Webhook=/noti/elementpay, 브라우저 Result=/noti/result/elementpay(가맹 resultUrl로 릴레이).">ElementPay는 PG 슬롯이 없습니다. Cabinet Webhook=/noti/elementpay, 브라우저 Result=/noti/result/elementpay(가맹 resultUrl로 릴레이).</div></div>' +
     '<div class="mb-3 d-none" id="opsNpOxHintWrap"><div class="small text-muted" data-pg-ui-t="ox는 PG 슬롯이 없습니다. Portal Webhook=/noti/ox, 브라우저 Result=/noti/result/ox(가맹 resultUrl로 릴레이).">ox는 PG 슬롯이 없습니다. Portal Webhook=/noti/ox, 브라우저 Result=/noti/result/ox(가맹 resultUrl로 릴레이).</div></div>' +
     '<div class="mb-3 d-none" id="opsNpIlkHintWrap"><div class="small text-muted" data-pg-ui-t="ILK는 PG 슬롯이 없습니다. Webhook=/noti/ilk, 브라우저 Result=/noti/result/ilk(가맹 resultUrl로 릴레이). 카드 결제대행사와 같은 노티 구조입니다.">ILK는 PG 슬롯이 없습니다. Webhook=/noti/ilk, 브라우저 Result=/noti/result/ilk(가맹 resultUrl로 릴레이). 카드 결제대행사와 같은 노티 구조입니다.</div></div>' +
+    '<div class="mb-3 d-none" id="opsNpQxipayHintWrap"><div class="small text-muted" data-pg-ui-t="QXIPAY는 PG 슬롯이 없습니다. Gateway Webhook=/noti/qxipay (GW-Signature). 가맹 API는 ICOPAY 통합 경로만 사용합니다.">QXIPAY는 PG 슬롯이 없습니다. Gateway Webhook=/noti/qxipay (GW-Signature). 가맹 API는 ICOPAY 통합 경로만 사용합니다.</div></div>' +
+    '<div class="mb-3 d-none" id="opsNpOmspayHintWrap"><div class="small text-muted" data-pg-ui-t="OMSPAY는 PG 슬롯이 없습니다. OMS Webhook=/noti/omspay (x-waylar-signature). 가맹 API는 ICOPAY 통합 경로만 사용합니다.">OMSPAY는 PG 슬롯이 없습니다. OMS Webhook=/noti/omspay (x-waylar-signature). 가맹 API는 ICOPAY 통합 경로만 사용합니다.</div></div>' +
     '<div class="mb-2">' +
     '<label class="form-label mb-1" for="opsNpIntegrationMode" data-pg-ui-t="연동방식">연동방식</label>' +
     '<select class="form-select form-select-sm" id="opsNpIntegrationMode" style="max-width:18rem">' +

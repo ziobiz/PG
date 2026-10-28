@@ -44,6 +44,12 @@ public class UrlPayVendorCapabilityRegistry {
         if (PgVendor.isOxFamily(pg)) {
             return oxCapability(pg, urlPay, urlRepayAgency);
         }
+        if (PgVendor.isQxipayFamily(pg)) {
+            return qxipayCapability(pg, urlPay, urlRepayAgency);
+        }
+        if (PgVendor.isOmspayFamily(pg)) {
+            return omspayCapability(pg, urlPay, urlRepayAgency);
+        }
         if (PgVendor.isChillPayFamily(pg) || ChillPayService.isChillPayFamilyPgCd(pg)) {
             return chillPayCapability(pg, urlPay, urlRepayAgency);
         }
@@ -70,6 +76,12 @@ public class UrlPayVendorCapabilityRegistry {
         }
         if (PgVendor.isOxFamily(pg)) {
             return UrlPayInlineWidgetKind.OX_INLINE;
+        }
+        if (PgVendor.isQxipayFamily(pg)) {
+            return UrlPayInlineWidgetKind.QXIPAY_INLINE;
+        }
+        if (PgVendor.isOmspayFamily(pg)) {
+            return UrlPayInlineWidgetKind.OMSPAY_REDIRECT;
         }
         if (PgVendor.isChillPayFamily(pg) || ChillPayService.isChillPayFamilyPgCd(pg)) {
             return UrlPayInlineWidgetKind.CHILLPAY_CCD;
@@ -146,6 +158,34 @@ public class UrlPayVendorCapabilityRegistry {
                 "/checkout/",
                 NeutralCheckoutRoute.EMBED_SCRIPT_PATH,
                 UrlPaySaleChannel.OX_APPROVAL_PENDING,
+                urlPay,
+                urlRepayAgency,
+                false);
+    }
+
+    /** QXIPAY — 카드 토큰 + charge + 3DS. 재결제 URL 미지원. */
+    private UrlPayVendorCapability qxipayCapability(String pg, boolean urlPay, boolean urlRepayAgency) {
+        return new UrlPayVendorCapability(
+                PgVendor.QXIPAY,
+                pg,
+                UrlPayInlineWidgetKind.QXIPAY_INLINE,
+                "/checkout/",
+                NeutralCheckoutRoute.EMBED_SCRIPT_PATH,
+                UrlPaySaleChannel.QXIPAY_INLINE_SALE,
+                urlPay,
+                urlRepayAgency,
+                false);
+    }
+
+    /** OMSPAY — HPP 리다이렉트(order + card-payment). 재결제·환불 API 미지원. */
+    private UrlPayVendorCapability omspayCapability(String pg, boolean urlPay, boolean urlRepayAgency) {
+        return new UrlPayVendorCapability(
+                PgVendor.OMSPAY,
+                pg,
+                UrlPayInlineWidgetKind.OMSPAY_REDIRECT,
+                "/checkout/",
+                NeutralCheckoutRoute.EMBED_SCRIPT_PATH,
+                UrlPaySaleChannel.OMSPAY_REDIRECT_SALE,
                 urlPay,
                 urlRepayAgency,
                 false);

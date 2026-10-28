@@ -1,0 +1,646 @@
+
+===== Sandbox @ 135 =====
+sandbox
+sandbox.api.gateway.example
+
+    
+
+  
+
+  
+Getting started
+
+  
+Overview
+
+  
+
+===== Authentication @ 218 =====
+Authentication
+
+  
+Conventions
+
+  
+Safe retries
+
+  
+Errors &amp; rate limits
+
+  
+Security &amp; compliance
+
+  
+Charges
+
+  
+How charges work
+
+  
+
+POST
+
+===== Create a charge @ 368 =====
+Create a charge
+
+  
+
+Next actions
+
+  
+
+GET
+Retrieve &amp; list
+
+  
+
+POST
+Expire a charge
+
+  
+
+POST
+
+===== Card tokens @ 467 =====
+Card tokens
+
+  
+Refunds
+
+  
+
+POST
+
+===== Create a refund @ 501 =====
+Create a refund
+
+  
+
+GET
+Retrieve refunds
+
+  
+Webhooks
+
+  
+
+===== Receiving events @ 560 =====
+Receiving events
+
+  
+
+===== Verifying signatures @ 581 =====
+Verifying signatures
+
+  
+
+GET
+Events API
+
+  
+Go live
+
+  
+Sandbox &amp; testing
+
+  
+
+===== Go-live @ 664 =====
+Go-live checklist
+
+  
+
+    
+API Reference · Online payments
+
+    
+Accept payments from your own checkout and confirm every result by webhook
+
+    
+This reference covers the full online payment path: authenticate, create a charge, let your customer pay, receive the result, and refund when needed. Every endpoint is JSON over HTTPS.
+
+  
+
+  
+
+    
+
+===== Base URL @ 1010 =====
+Base URL
+
+https://api.gateway.example/v1
+
+    
+Sandbox
+
+https://sandbox.api.gateway.example/v1
+
+    
+Auth
+
+HTTP Basic · accountId : secretKey
+
+    
+Format
+
+application/json · UTF-8
+
+    
+Amounts
+
+Minor units (satang) · 25000 = ฿250.00
+
+    
+Webhooks
+
+HMAC-SHA256 · GW-Signature
+
+  
+
+  
+
+    
+What this version covers
+
+    
+You build your own checkout and create each payment with the 
+Charges API
+. We process the payment, handle any redirect or QR step, and send you a webhook with the result. Refunds, events and reporting work the same way for every payment method.
+
+    
+
+Hosted payment pages are not part of this release.
+ Every card payment therefore runs through your own checkout, which affects your PCI DSS scope — see 
+Security &amp; compliance
+.
+
+  
+
+  
+
+    
+
+      
+Getting started
+
+      
+Authentication
+
+      
+Authenticate every request with HTTP Basic Auth. Use your 
+accountId
+ as the username and the key for the call as the password. Requests without credentials, or sent over plain HTTP, are rejected.
+
+      
+
+        
+
+Key
+
+Format
+
+Where to use it
+
+        
+
+          
+
+Secret key
+
+sk_live_…
+
+sk_test_…
+
+Your server only. Works with every endpoint under 
+/v1
+.
+
+          
+
+Publishable key
+
+pk_live_…
+
+pk_test_…
+
+Browsers and mobile apps. Works only with 
+/client/v1
+ endpoints (card tokens).
+
+          
+
+Platform key
+
+plk_live_…
+
+plk_test_…
+
+Platforms that manage payments for several sub-merchants. Send with the 
+GW-Platform-Id
+ header.
+
+        
+
+      
+
+      
+Sandbox and live keys are separate and cannot be used across environments. Check the 
+_test_
+ or 
+_live_
+ prefix, or the 
+livemode
+ field on any response.
+
+      
+Acting on behalf of a sub-merchant
+
+      
+Use the sub-merchant's 
+accountId
+ as the username, your platform key as the password, and your platform ID in 
+GW-Platform-Id
+. Everything the request creates belongs to that sub-merchant's account.
+
+      
+
+Keep secret and platform keys out of front-end code, mobile app bundles and source control.
+ If a key is exposed, rotate it immediately under 
+Developers → API keys
+. You choose how long the old key keeps working.
+
+    
+
+    
+
+      
+
+Header
+
+Copy
+
+Authorization: Basic base64(
+accountId
+:
+sk_test_…
+)
+
+      
+
+curl · secret key
+
+Copy
+
+curl https://sandbox.api.gateway.example/v1/charges/chg_7Qm2xR4 \
+  -u 
+"acct_01J8ZK3T:sk_test_5f2c…"
+
+      
+
+curl · platform key
+
+Copy
+
+curl https://api.gateway.example/v1/charges \
+  -u 
+"acct_SUB_4XK1:plk_live_a91e…"
+ \
+  -H 
+"GW-Platform-Id: plat_01HV2A
+===== PromptPay @ 9112 =====
+PromptPay, mobile banking, e-wallets
+
+No card data involved
+
+—
+
+      
+
+    
+
+    
+Your acquirer or a Qualified Security Assessor (QSA) makes the final call on which questionnaire applies to you. Plan for SAQ A-EP if you take cards in this release: it adds requirements for your payment page, including script controls and change detection. A hosted payment page, which keeps card integrations in SAQ A, is planned for a later release.
+
+    
+
+Our compliance status:
+ We are not yet PCI DSS certified as a service provider; certification is in progress. You can request our Attestation of Compliance (AOC), once issued, from compliance@gateway.example.
+
+    
+
+      
+Every API call uses TLS 1.2 or higher.
+
+      
+Payment pages send 
+X-Frame-Options: DENY
+, so they can't be embedded in an iframe.
+
+      
+Never log, store or email full card numbers or security codes.
+
+    
+
+  
+
+  
+Charges
+
+  
+How charges work
+
+  
+
+    
+A charge is one attempt to pay, created by your call to 
+POST /v1/charges
+. Every payment becomes a charge, and the 
+origin
+ field records where it came from — 
+api
+ in this release.
+
+    
+
+pending
+
+→
+
+succeeded
+
+|
+
+failed
+
+|
+
+expired
+
+    
+
+succeeded
+, 
+failed
+ and 
+expired
+ are final. A failed charge can't be retried, so create a new one. Refunds don't change a charge's status; they increase 
+amountRefunded
+.
+
+    
+
+transactionTime
+ is set once, the moment a charge first reaches a final status, and never changes after that — use it to know when the payment was actually settled. 
+updatedAt
+ is different: it also moves whenever you 
+PATCH
+ 
+metadata
+, so it can't tell you when a charge became final.
+
+    
+
+Abandoned payments can stay 
+pending
+ for a long time
+ — for example when a customer closes the QR screen or never opens their banking app. Set 
+expiresAt
+ when you create the charge, or call 
+expire
+ when your order times out. Never wait on a final status without a timeout of your own.
+
+  
+
+sequenceDiagram
+    autonumber
+    actor C as Customer
+    participant F as Your front end
+    participant S as Your server
+    participant G as Gateway API
+    C->>F: Confirms the order
+    F->>S: Sends the order (and card token for cards)
+    S->>G: POST /v1/charges (Idempotency-Key)
+    G-->>S: charge (pending) + 
+===== nextAction @ 11360 =====
+nextAction
+    S-->>F: Redirect URL or QR code
+    alt nextAction = redirect
+        F->>C: Bank, 
+===== 3-D Secure @ 11458 =====
+3-D Secure or wallet page
+    else nextAction = display_qr
+        F->>C: PromptPay QR code
+    end
+    C->>G: Pays
+    G--)S: Webhook charge.succeeded
+    S--)G: 2xx
+    S->>F: Updates the order
+
+  
+Failure codes
+
+  
+
+    
+
+failure.code
+
+Meaning
+
+Suggested message to your customer
+
+    
+
+      
+
+processing_error
+
+The payment couldn't be processed.
+
+"Something went wrong. Please try again."
+
+      
+
+insufficient_funds
+
+Not enough funds.
+
+"Please try another payment method."
+
+      
+
+authentication_failed
+
+3-D Secure or OTP verification failed.
+
+"We couldn't verify this payment. Please try again."
+
+      
+
+card_declined
+
+The card issuer declined the payment.
+
+"Your bank declined this card. Please contact them or use another card."
+
+      
+
+card_expired
+
+The card has expired.
+
+"This card has expired."
+
+      
+
+card_restricted
+
+The card can't be used for this payment.
+
+"Please use another card."
+
+      
+
+invalid_card_details
+
+Wrong card number, expiry date or security code.
+
+"Please check your card details."
+
+      
+
+incorrect_pin
+ / 
+pin_attempts_exceeded
+
+Wrong PIN / too many wrong attempts.
+
+"Please try again." / "Please use another payment method."
+
+      
+
+payment_expired
+
+The customer didn't pay in time (
+status
+ is 
+expired
+).
+
+"This payment has expired. Please start again."
+
+    
+
+  
+
+  
+Card charges also carry 
+failure.networkCode
+, the raw response code from the card network. Use it for analysis, and don't show it to customers.
+
+  
+
+    
+
+      
+Charges
+
+      
+Create a charge
+
+      
+
+POST
+
+/v1/charges
+
+secret key
+
+      
+Use this when you build your own checkout. Call it from your server only. The response is the full charge, including a 
+nextAction
+ that tells you what your customer needs to do next.
+
+      
+
+        
+
+Field
+
+Description
+
+        
+
+          
+
+amount
+required
+
+integer
+
+In satang.
+
+          
+
+currency
+required
+
+string
+
+THB
+
+          
+
+paymentMethod
+required
+
+object
+
+type
+ plus a matching object (see below).
+
+          
+
+reference
+string ≤ 64
+
+Your order number.
+
+          
+
+returnUrl
+url
+
+Where the customer returns after a redirect step (3-D Secure, bank or wallet). Required for methods that redirect.
+
+          
+
+device
+enum
+
+web
+ (default), 
+ios
+ or 
+android
+. Mobile banking needs 
+ios
+ or 
+android
+, otherwise the payment usually can't complete.
+
+          
+
+expiresAt
+datetime
+
+When an unpaid charge (QR or redirect) expires. Defaults to 15 minutes after creation if you leave it out.
+
+          
+
+customer
+object
+
+email
+, 
+phone

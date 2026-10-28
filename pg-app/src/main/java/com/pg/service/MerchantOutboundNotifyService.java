@@ -77,7 +77,11 @@ public class MerchantOutboundNotifyService {
         }
         if (!PgVendor.isChillPayVendorCode(savedTxn.getVan())
                 && !PgVendor.isJpayFamily(savedTxn.getVan())
-                && !PgVendor.isElementPayFamily(savedTxn.getVan())) {
+                && !PgVendor.isElementPayFamily(savedTxn.getVan())
+                && !PgVendor.isIlkFamily(savedTxn.getVan())
+                && !PgVendor.isOxFamily(savedTxn.getVan())
+                && !PgVendor.isQxipayFamily(savedTxn.getVan())
+                && !PgVendor.isOmspayFamily(savedTxn.getVan())) {
             return;
         }
         final String trnId = savedTxn.getTrnId().trim();

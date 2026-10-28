@@ -270,6 +270,12 @@ public class MerchantInlineCheckoutTokenService {
         if (com.pg.integration.pg.PgVendor.isOxFamily(u)) {
             return MerchantPgBrokerVendor.OX;
         }
+        if (com.pg.integration.pg.PgVendor.isQxipayFamily(u)) {
+            return MerchantPgBrokerVendor.QXIPAY;
+        }
+        if (com.pg.integration.pg.PgVendor.isOmspayFamily(u)) {
+            return MerchantPgBrokerVendor.OMSPAY;
+        }
         if (com.pg.integration.pg.PgVendor.isCryptoFamily(u)) {
             return MerchantPgBrokerVendor.CRYPTO;
         }

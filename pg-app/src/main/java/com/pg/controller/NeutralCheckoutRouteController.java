@@ -162,6 +162,12 @@ public class NeutralCheckoutRouteController {
             if (PgVendor.isOxFamily(opPg)) {
                 return "/ox-pay.html" + q;
             }
+            if (PgVendor.isQxipayFamily(opPg)) {
+                return "/qxipay-pay.html" + q;
+            }
+            if (PgVendor.isOmspayFamily(opPg)) {
+                return "/omspay-pay.html" + q;
+            }
             if (PgVendor.isCryptoFamily(opPg)) {
                 /* 운영 PG가 CRYPTO 만이면 카드 URL에서도 크립토창 — 전용은 /checkout-crypto */
                 return "/crypto-pay.html" + q;

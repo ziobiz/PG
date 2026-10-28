@@ -19,6 +19,10 @@ public enum UrlPaySaleChannel {
      * ox Merchant Hosted — 채널·결제창은 연결. Create Payment 실호출은 상세 스펙 전 보류.
      */
     OX_APPROVAL_PENDING,
+    /** QXIPAY 카드 인라인 — token + charge ({@code /api/pay/url/sale} 또는 {@code /api/pay/qxipay/sale}) */
+    QXIPAY_INLINE_SALE,
+    /** OMSPAY HPP 리다이렉트 — order + card-payment → payment_url */
+    OMSPAY_REDIRECT_SALE,
     /** 아직 ICOPAY URL 승인 어댑터 미등록 */
     NOT_REGISTERED
 }

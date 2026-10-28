@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -50,6 +51,7 @@ public class PayListActionService {
     private final JpayTradeApiService jpayTradeApiService;
     private final ElementPayPaymentService elementPayPaymentService;
     private final EximbayPaymentService eximbayPaymentService;
+    private final QxipayPaymentService qxipayPaymentService;
     private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
     private final MerchantOutboundNotifyService merchantOutboundNotifyService;
     private final TransactionReceiptEmailService transactionReceiptEmailService;
@@ -64,6 +66,7 @@ public class PayListActionService {
                                 JpayTradeApiService jpayTradeApiService,
                                 ElementPayPaymentService elementPayPaymentService,
                                 EximbayPaymentService eximbayPaymentService,
+                                QxipayPaymentService qxipayPaymentService,
                                 OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator,
                                 MerchantOutboundNotifyService merchantOutboundNotifyService,
                                 TransactionReceiptEmailService transactionReceiptEmailService) {
@@ -77,6 +80,7 @@ public class PayListActionService {
         this.jpayTradeApiService = jpayTradeApiService;
         this.elementPayPaymentService = elementPayPaymentService;
         this.eximbayPaymentService = eximbayPaymentService;
+        this.qxipayPaymentService = qxipayPaymentService;
         this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
         this.merchantOutboundNotifyService = merchantOutboundNotifyService;
         this.transactionReceiptEmailService = transactionReceiptEmailService;
@@ -109,6 +113,7 @@ public class PayListActionService {
         boolean jpay = PgVendor.isJpayFamily(t.getVan());
         boolean elementPay = PgVendor.isElementPayFamily(t.getVan());
         boolean eximbay = PgVendor.isEximbayFamily(t.getVan());
+        boolean qxipay = PgVendor.isQxipayFamily(t.getVan());
         if (action == PayFollowAction.EMAIL_VOID && !PayFollowPolicyService.isEmailVoidFollowTransaction(t)) {
             throw new IllegalStateException("이메일무효는 ChillPay 거래만 사용할 수 있습니다.");
         }
@@ -117,6 +122,10 @@ public class PayListActionService {
                     "JPAY 거래는 자동무효·이메일무효를 사용할 수 없습니다. 수동무효 또는 JPAY 포털에서 처리하세요.");
         }
         if (elementPay && action == PayFollowAction.AUTO_VOID) {
+            throw new IllegalStateException(
+                    "이 거래는 승인 후 무효(void) API가 없습니다. 결제내역의 자동환불·강제환불로 처리하세요.");
+        }
+        if (qxipay && action == PayFollowAction.AUTO_VOID) {
             throw new IllegalStateException(
                     "이 거래는 승인 후 무효(void) API가 없습니다. 결제내역의 자동환불·강제환불로 처리하세요.");
         }
@@ -155,6 +164,20 @@ public class PayListActionService {
                     elementPayRefundPending = !rr.completed();
                 } else if (eximbay) {
                     apiDetail = eximbayPaymentService.requestCancel(t, refundReason);
+                } else if (qxipay) {
+                    long ouId = resolveMerchantOrgUnitId(t);
+                    String chargeId = t.getChillTransactionId() != null && !t.getChillTransactionId().isBlank()
+                            ? t.getChillTransactionId().trim()
+                            : (t.getPayNo() != null ? t.getPayNo().trim() : "");
+                    if (chargeId.isBlank()) {
+                        throw new IllegalStateException("QXIPAY chargeId가 없어 환불할 수 없습니다.");
+                    }
+                    Map<String, Object> rr = qxipayPaymentService.refund(ouId, chargeId, null, refundReason);
+                    if (!Boolean.TRUE.equals(rr.get("success"))) {
+                        String msg = rr.get("message") != null ? String.valueOf(rr.get("message")) : "QXIPAY 환불 실패";
+                        throw new IllegalStateException(msg);
+                    }
+                    apiDetail = rr.get("data") != null ? String.valueOf(rr.get("data")) : "QXIPAY refund ok";
                 } else {
                     long ouId = resolveMerchantOrgUnitId(t);
                     long chillTxn = parseChillPayTransactionId(t);

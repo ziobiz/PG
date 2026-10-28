@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-store" />
+  <title>ICOPAY</title>
+  <style>
+    body{font-family:system-ui,sans-serif;margin:0;background:#f4f6f5;color:#15201c}
+    main{max-width:420px;margin:32px auto;background:#fff;border:1px solid #dce3df;border-radius:12px;padding:20px}
+    h1{font-size:1.15rem;margin:0 0 8px}
+    p{color:#56635d;font-size:14px;line-height:1.5;margin:6px 0}
+    .amt{font-size:1.35rem;color:#15201c;font-weight:650}
+    label{display:block;font-size:12px;color:#56635d;margin-top:10px}
+    input{width:100%;box-sizing:border-box;margin-top:4px;padding:10px;border:1px solid #cfd8d3;border-radius:8px;font-size:15px}
+    .row{display:flex;gap:10px}
+    .row>div{flex:1}
+    button{width:100%;margin-top:16px;background:#0a6b5c;color:#fff;border:0;border-radius:8px;padding:12px;font-size:15px}
+    button:disabled{opacity:.6}
+    .err{color:#a3263a;font-size:14px}
+  </style>
+</head>
+<body>
+<main>
+  <h1>ICOPAY</h1>
+  <p id="lead"></p>
+  <p id="product"></p>
+  <p class="amt" id="amount"></p>
+  <p id="order"></p>
+  <label data-i="cardName"><input id="cardName" autocomplete="cc-name" /></label>
+  <label data-i="cardNumber"><input id="cardNumber" inputmode="numeric" autocomplete="cc-number" /></label>
+  <div class="row">
+    <div><label data-i="expMonth"><input id="expMonth" inputmode="numeric" placeholder="MM" maxlength="2" /></label></div>
+    <div><label data-i="expYear"><input id="expYear" inputmode="numeric" placeholder="YYYY" maxlength="4" /></label></div>
+    <div><label data-i="cvv"><input id="cvv" inputmode="numeric" autocomplete="cc-csc" maxlength="4" /></label></div>
+  </div>
+  <button type="button" id="pay"></button>
+  <p class="err" id="msg" hidden></p>
+</main>
+<script>
+(function () {
+  var T = {
+    KO: { lead: '주문 내용을 확인한 뒤 결제를 진행합니다.', pay: '결제하기', wait: '결제 처리 중…', order: '주문번호', product: '상품', cardName: '카드 소유자', cardNumber: '카드번호', expMonth: '월', expYear: '년', cvv: 'CVC', err: '결제를 완료하지 못했습니다.' },
+    EN: { lead: 'Review the order, then continue.', pay: 'Pay', wait: 'Processing…', order: 'Order', product: 'Item', cardName: 'Name on card', cardNumber: 'Card number', expMonth: 'MM', expYear: 'YYYY', cvv: 'CVC', err: 'Payment could not be completed.' },
+    JP: { lead: '注文内容を確認してからお支払いください。', pay: '支払う', wait: '処理中…', order: '注文番号', product: '商品', cardName: 'カード名義', cardNumber: 'カード番号', expMonth: '月', expYear: '年', cvv: 'CVC', err: 'お支払いを完了できませんでした。' },
+    CH: { lead: '请确认订单后继续付款。', pay: '付款', wait: '处理中…', order: '订单号', product: '商品', cardName: '持卡人', cardNumber: '卡号', expMonth: '月', expYear: '年', cvv: 'CVC', err: '未能完成付款。' },
+    TH: { lead: 'ตรวจคำสั่งซื้อแล้วดำเนินการชำระ', pay: 'ชำระเงิน', wait: 'กำลังดำเนินการ…', order: 'เลขคำสั่งซื้อ', product: 'สินค้า', cardName: 'ชื่อบนบัตร', cardNumber: 'เลขบัตร', expMonth: 'เดือน', expYear: 'ปี', cvv: 'CVC', err: 'ชำระเงินไม่สำเร็จ' }
+  };
+  var q = new URLSearchParams(location.search);
+  var lang = String(q.get('lang') || q.get('langCode') || 'KO').toUpperCase();
+  if (lang === 'ENG') lang = 'EN';
+  if (lang === 'JPN') lang = 'JP';
+  if (lang === 'CHN') lang = 'CH';
+  if (lang === 'THA') lang = 'TH';
+  var pack = T[lang] || T.KO;
+  document.getElementById('lead').textContent = pack.lead;
+  document.getElementById('pay').textContent = pack.pay;
+  document.querySelectorAll('[data-i]').forEach(function (el) {
+    var k = el.getAttribute('data-i');
+    var inp = el.querySelector('input');
+    if (inp && pack[k]) el.childNodes[0] && el.insertBefore(document.createTextNode(pack[k]), inp);
+    else if (pack[k]) el.prepend(document.createTextNode(pack[k] + ' '));
+  });
+
+  var sessionData = {};
+  function showOrder(data) {
+    if (!data) return;
+    sessionData = data;
+    var name = data.productName || data.item || '';
+    if (name) document.getElementById('product').textContent = pack.product + ' ' + name;
+    var amt = data.amount != null ? String(data.amount) : '';
+    var cur = data.displayCurrency || data.currency || '';
+    if (amt) document.getElementById('amount').textContent = (cur ? cur + ' ' : '') + amt;
+    var order = data.orderNo || q.get('orderNo') || '';
+    if (order) document.getElementById('order').textContent = pack.order + ' ' + order;
+  }
+
+  var session = (q.get('session') || '').trim();
+  var comp = (q.get('m') || q.get('compId') || '').trim();
+  var url = '';
+  if (session) {
+    url = '/api/middleware/v1/merchant/checkout/session?token=' + encodeURIComponent(session);
+  } else if (comp) {
+    url = '/api/pay/qxipay/checkout-context?compId=' + encodeURIComponent(comp);
+  }
+  if (url) {
+    fetch(url, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (body) {
+        if (body && body.success && body.data) showOrder(body.data);
+      })
+      .catch(function () {});
+  } else {
+    showOrder({ orderNo: q.get('orderNo') || '' });
+  }
+
+  document.getElementById('pay').addEventListener('click', function () {
+    var el = document.getElementById('msg');
+    var btn = document.getElementById('pay');
+    el.hidden = true;
+    btn.disabled = true;
+    btn.textContent = pack.wait;
+    var payload = {
+      compId: sessionData.compId || comp,
+      orderNo: sessionData.orderNo || q.get('orderNo') || '',
+      amount: sessionData.amount,
+      currency: sessionData.currency || sessionData.settlementCurrency || 'THB',
+      productName: sessionData.productName || sessionData.item || '',
+      sessionToken: session || sessionData.sessionToken || '',
+      card: {
+        number: document.getElementById('cardNumber').value,
+        name: document.getElementById('cardName').value,
+        expMonth: document.getElementById('expMonth').value,
+        expYear: document.getElementById('expYear').value,
+        cvv: document.getElementById('cvv').value
+      },
+      returnUrl: location.href.split('#')[0]
+    };
+    fetch('/api/pay/qxipay/sale', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function (r) { return r.json(); }).then(function (body) {
+      var data = body && (body.data || body);
+      if (body && body.success && data && data.redirectUrl) {
+        location.href = data.redirectUrl;
+        return;
+      }
+      if (body && body.success && data && (data.paymentStatus === 'PAID' || data.status === 'succeeded')) {
+        el.hidden = false;
+        el.style.color = '#0a6b5c';
+        el.textContent = 'OK';
+        btn.disabled = false;
+        btn.textContent = pack.pay;
+        return;
+      }
+      el.hidden = false;
+      el.style.color = '#a3263a';
+      el.textContent = (body && (body.message || body.error)) || pack.err;
+      btn.disabled = false;
+      btn.textContent = pack.pay;
+    }).catch(function () {
+      el.hidden = false;
+      el.textContent = pack.err;
+      btn.disabled = false;
+      btn.textContent = pack.pay;
+    });
+  });
+})();
+</script>
+</body>
+</html>

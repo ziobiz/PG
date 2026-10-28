@@ -111,6 +111,12 @@ public class NotiProvisionClient {
         if ("ilk".equals(k) || "ilkpay".equals(k) || "ilkkorea".equals(k)) {
             return "ilk";
         }
+        if ("qxipay".equals(k) || "qxpay".equals(k)) {
+            return "qxipay";
+        }
+        if ("omspay".equals(k) || "oms".equals(k) || "waylar".equals(k)) {
+            return "omspay";
+        }
         return "jpay";
     }
 
@@ -126,10 +132,19 @@ public class NotiProvisionClient {
         return "ilk".equals(normalizePgKind(pgKind));
     }
 
-    /** ElementPay·ox·ILK 처럼 PG 슬롯 없이 고정 NOTI 입구를 쓰는 계열. */
+    public static boolean isQxipay(String pgKind) {
+        return "qxipay".equals(normalizePgKind(pgKind));
+    }
+
+    public static boolean isOmspay(String pgKind) {
+        return "omspay".equals(normalizePgKind(pgKind));
+    }
+
+    /** ElementPay·ox·ILK·QXIPAY·OMSPAY 처럼 PG 슬롯 없이 고정 NOTI 입구를 쓰는 계열. */
     public static boolean isFixedIngressPg(String pgKind) {
         String k = normalizePgKind(pgKind);
-        return "elementpay".equals(k) || "ox".equals(k) || "ilk".equals(k);
+        return "elementpay".equals(k) || "ox".equals(k) || "ilk".equals(k)
+                || "qxipay".equals(k) || "omspay".equals(k);
     }
 
     /** NOTI internal-targets 목록. 실패 시 예외 대신 상세 결과 Map 반환. */

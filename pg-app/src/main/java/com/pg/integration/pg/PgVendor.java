@@ -28,6 +28,12 @@ public final class PgVendor {
     /** ox(OxPay Financial). {@code OX} 또는 {@code OX_…} 접두. 병칭 ox — 가맹 노출은 ICOPAY 중립. */
     public static final String OX = "OX";
 
+    /** QXIPAY 게이트웨이. {@code QXIPAY} 또는 {@code QXIPAY_…} 접두. 가맹 노출은 ICOPAY 중립. */
+    public static final String QXIPAY = "QXIPAY";
+
+    /** OMSPAY(Waylar OMS) HPP 리다이렉트. {@code OMSPAY} 또는 {@code OMSPAY_…} 접두. 가맹 노출은 ICOPAY 중립. */
+    public static final String OMSPAY = "OMSPAY";
+
     /** 크립토(USDT/USDC/EURC 수탁 결제). {@code CRYPTO} 또는 {@code CRYPTO_…} 접두. 가맹 노출은 ICOPAY 중립. */
     public static final String CRYPTO = "CRYPTO";
 
@@ -147,6 +153,40 @@ public final class PgVendor {
         }
         String u = vendorCode.trim().toUpperCase(Locale.ROOT);
         return OX.equals(u) || u.startsWith(OX + "_") || u.startsWith("OXPAY");
+    }
+
+    /** {@code pg_cd}·노티 벤더 코드가 QXIPAY 계열인지 — {@code QXIPAY} 또는 {@code QXIPAY_…} 접두. */
+    public static boolean isQxipayFamily(String pgCd) {
+        if (pgCd == null) {
+            return false;
+        }
+        String u = normalizePgCdKey(pgCd);
+        return QXIPAY.equals(u) || u.startsWith(QXIPAY + "_") || u.startsWith("QXPAY");
+    }
+
+    public static boolean isQxipayVendorCode(String vendorCode) {
+        if (vendorCode == null || vendorCode.isBlank()) {
+            return false;
+        }
+        String u = vendorCode.trim().toUpperCase(Locale.ROOT);
+        return QXIPAY.equals(u) || u.startsWith(QXIPAY + "_") || u.startsWith("QXPAY");
+    }
+
+    /** {@code pg_cd}·노티 벤더 코드가 OMSPAY 계열인지 — {@code OMSPAY} 또는 {@code OMSPAY_…} / {@code WAYLAR}. */
+    public static boolean isOmspayFamily(String pgCd) {
+        if (pgCd == null) {
+            return false;
+        }
+        String u = normalizePgCdKey(pgCd);
+        return OMSPAY.equals(u) || u.startsWith(OMSPAY + "_") || u.startsWith("WAYLAR");
+    }
+
+    public static boolean isOmspayVendorCode(String vendorCode) {
+        if (vendorCode == null || vendorCode.isBlank()) {
+            return false;
+        }
+        String u = vendorCode.trim().toUpperCase(Locale.ROOT);
+        return OMSPAY.equals(u) || u.startsWith(OMSPAY + "_") || u.startsWith("WAYLAR");
     }
 
     /** {@code pg_cd}·노티 벤더 코드가 CRYPTO 계열인지 — {@code CRYPTO} 또는 {@code CRYPTO_…} 접두. */

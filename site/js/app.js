@@ -5920,7 +5920,9 @@
             var k = String(r.pgKind || '').toLowerCase();
             if (k === 'elementpay') return 'ElementPay';
             if (k === 'ox') return 'ox';
-            if (k === 'ilk') return 'ILK';
+            if (k === 'ilk') return 'ILKPAY';
+            if (k === 'qxipay' || k === 'qxpay') return 'QXIPAY';
+            if (k === 'omspay' || k === 'oms' || k === 'waylar') return 'OMSPAY';
             return 'JPAY';
           })(), 'text-nowrap small');
           tdText(r.internalTargetId, 'small text-nowrap');
@@ -5932,7 +5934,9 @@
           var kindLow = String(r.pgKind || '').toLowerCase();
           var routeLow = String(r.routeNo || '').toLowerCase();
           var isFixedIngress = kindLow === 'elementpay' || kindLow === 'ox' || kindLow === 'ilk'
-            || routeLow === 'elementpay' || routeLow === 'ox' || routeLow === 'ilk';
+            || kindLow === 'qxipay' || kindLow === 'omspay'
+            || routeLow === 'elementpay' || routeLow === 'ox' || routeLow === 'ilk'
+            || routeLow === 'qxipay' || routeLow === 'omspay';
           var slotDisp = isFixedIngress ? '—' : (r.routeNo || (r.slotNo != null ? String(r.slotNo) : ''));
           tdText(slotDisp, 'text-nowrap small');
           tdUrlOnly(r.jpayNotifyUrl);
@@ -6053,7 +6057,9 @@
     var opsNpInternalTargetOptsCache = [];
     function opsNpFilterInternalTargetOpts(list, pgKind) {
       var pg = pgKind === 'elementpay' ? 'elementpay'
-        : (pgKind === 'ox' ? 'ox' : (pgKind === 'ilk' ? 'ilk' : 'jpay'));
+        : (pgKind === 'ox' ? 'ox' : (pgKind === 'ilk' ? 'ilk'
+          : (pgKind === 'qxipay' || pgKind === 'qxpay' ? 'qxipay'
+            : (pgKind === 'omspay' || pgKind === 'oms' || pgKind === 'waylar' ? 'omspay' : 'jpay'))));
       var src = Array.isArray(list) ? list : [];
       var out = [];
       src.forEach(function (it) {
@@ -6075,8 +6081,16 @@
           if (p === 'ilk' || p === 'ilkkorea' || p === 'ilkpay') out.push(it);
           return;
         }
-        // JPAY 노티생성: JPAY·ChillPay·미지정 대상 (ElementPay·ox·ILK 전용 제외)
-        if (p === 'elementpay' || p === 'ep' || p === 'ox' || p === 'oxpay' || p === 'ilk' || p === 'ilkkorea' || p === 'ilkpay') return;
+        if (pg === 'qxipay') {
+          if (p === 'qxipay' || p === 'qxpay') out.push(it);
+          return;
+        }
+        if (pg === 'omspay') {
+          if (p === 'omspay' || p === 'oms' || p === 'waylar') out.push(it);
+          return;
+        }
+        // JPAY 노티생성: JPAY·ChillPay·미지정 대상 (ElementPay·ox·ILK·QXIPAY·OMSPAY 전용 제외)
+        if (p === 'elementpay' || p === 'ep' || p === 'ox' || p === 'oxpay' || p === 'ilk' || p === 'ilkkorea' || p === 'ilkpay' || p === 'qxipay' || p === 'qxpay' || p === 'omspay' || p === 'oms' || p === 'waylar') return;
         out.push(it);
       });
       return out;
@@ -6368,11 +6382,13 @@
       if (v === 'elementpay') return 'elementpay';
       if (v === 'ox' || v === 'oxpay') return 'ox';
       if (v === 'ilk' || v === 'ilkpay' || v === 'ilkkorea') return 'ilk';
+      if (v === 'qxipay' || v === 'qxpay') return 'qxipay';
+      if (v === 'omspay' || v === 'oms' || v === 'waylar') return 'omspay';
       return 'jpay';
     }
     function updateOpsNpPgKindUi() {
       var kind = opsNpSelectedPgKind();
-      var fixed = kind === 'elementpay' || kind === 'ox' || kind === 'ilk';
+      var fixed = kind === 'elementpay' || kind === 'ox' || kind === 'ilk' || kind === 'qxipay' || kind === 'omspay';
       ['#opsNpPgSlotWrap', '#opsNpAutoSlotBtnWrap', '#opsNpCheckSlotBtnWrap', '#opsNpSlotHintWrap'].forEach(function (sel) {
         var el = pane.querySelector(sel);
         if (el) el.classList.toggle('d-none', fixed);
@@ -6383,6 +6399,10 @@
       if (oxHint) oxHint.classList.toggle('d-none', kind !== 'ox');
       var ilkHint = pane.querySelector('#opsNpIlkHintWrap');
       if (ilkHint) ilkHint.classList.toggle('d-none', kind !== 'ilk');
+      var qxHint = pane.querySelector('#opsNpQxipayHintWrap');
+      if (qxHint) qxHint.classList.toggle('d-none', kind !== 'qxipay');
+      var omsHint = pane.querySelector('#opsNpOmspayHintWrap');
+      if (omsHint) omsHint.classList.toggle('d-none', kind !== 'omspay');
       var btn = pane.querySelector('#opsNpProvisionBtn');
       if (btn) {
         var label = '노티 생성';
@@ -6400,7 +6420,7 @@
       var internalEl = pane.querySelector('#opsNpEnableInternal');
       var devEl = pane.querySelector('#opsNpEnableDevInternal');
       var pgKind = opsNpSelectedPgKind();
-      var fixed = pgKind === 'elementpay' || pgKind === 'ox' || pgKind === 'ilk';
+      var fixed = pgKind === 'elementpay' || pgKind === 'ox' || pgKind === 'ilk' || pgKind === 'qxipay' || pgKind === 'omspay';
       return {
         compId: cid,
         pgKind: pgKind,
@@ -6465,8 +6485,12 @@
       }
       row('업체코드', data.compId);
       row('업체명', data.compNm);
-      row('PG', data.pgKind === 'ox' ? 'ox' : (data.pgKind === 'ilk' ? 'ILK' : (data.pgKind === 'elementpay' ? 'ElementPay' : 'JPAY')));
-      if (data.pgKind === 'ilk') {
+      row('PG', data.pgKind === 'omspay' ? 'OMSPAY' : (data.pgKind === 'qxipay' ? 'QXIPAY' : (data.pgKind === 'ox' ? 'ox' : (data.pgKind === 'ilk' ? 'ILKPAY' : (data.pgKind === 'elementpay' ? 'ElementPay' : 'JPAY')))));
+      if (data.pgKind === 'omspay') {
+        row('OMSPAY Webhook', data.omspayWebhookUrl || 'https://noti.icopay.net/noti/omspay');
+      } else if (data.pgKind === 'qxipay') {
+        row('QXIPAY Webhook', data.qxipayWebhookUrl || 'https://noti.icopay.net/noti/qxipay');
+      } else if (data.pgKind === 'ilk') {
         row('ILK Webhook', data.ilkWebhookUrl || data.jpayNotifyUrl || '');
         row('ILK Result', data.ilkResultUrl || data.jpayCallbackUrl || '');
         row('가맹 Callback', prov.callbackUrl);
@@ -6746,19 +6770,23 @@
           return;
         }
         var pgKind = opsNpSelectedPgKind();
-        var fixed = pgKind === 'elementpay' || pgKind === 'ox' || pgKind === 'ilk';
+        var fixed = pgKind === 'elementpay' || pgKind === 'ox' || pgKind === 'ilk' || pgKind === 'qxipay' || pgKind === 'omspay';
         var slotVal = (pane.querySelector('#opsNpPgSlotNo') || {}).value || '';
         if (!fixed && String(slotVal).trim() && !opsNpSlotAutoMode && !opsNpSlotReviewed) {
           alert(pgAdminUiT('수동 슬롯 번호는 [슬롯검토]를 실행하거나 [자동]을 사용하세요.'));
           return;
         }
-        var confirmMsg = pgKind === 'ilk'
+        var confirmMsg = pgKind === 'omspay'
+          ? 'NOTI에 OMSPAY 가맹을 생성(또는 조회)합니다. Webhook 고정 URL(/noti/omspay)을 수신통보에 반영합니다. 계속하시겠습니까?'
+          : (pgKind === 'qxipay'
+          ? 'NOTI에 QXIPAY 가맹을 생성(또는 조회)합니다. Webhook 고정 URL(/noti/qxipay)을 수신통보에 반영합니다. 계속하시겠습니까?'
+          : (pgKind === 'ilk'
           ? 'NOTI에 ILK 가맹을 생성(또는 조회)합니다. Webhook·Result 고정 URL을 수신통보에 반영합니다. 계속하시겠습니까?'
           : (pgKind === 'ox'
           ? 'NOTI에 ox 가맹을 생성(또는 조회)합니다. Webhook·Result 고정 URL을 수신통보에 반영합니다. 계속하시겠습니까?'
           : (pgKind === 'elementpay'
             ? 'NOTI에 ElementPay 가맹을 생성(또는 조회)합니다. Webhook·Result 고정 URL을 수신통보에 반영합니다. 계속하시겠습니까?'
-            : 'NOTI에 JPAY 가맹을 생성(또는 조회)하고 ICOPAY 업체 URL을 반영합니다. 계속하시겠습니까?'));
+            : 'NOTI에 JPAY 가맹을 생성(또는 조회)하고 ICOPAY 업체 URL을 반영합니다. 계속하시겠습니까?'))));
         if (!confirm(pgAdminUiT(confirmMsg))) return;
         var dimm = document.getElementById('dimm');
         if (dimm) dimm.style.display = 'flex';
@@ -6829,9 +6857,9 @@
         setTxt('#opsNpLogEditDate', data.provisionedDate || '');
         var kindLow = String(data.pgKind || '').toLowerCase();
         var routeLow = String(data.routeNo || '').toLowerCase();
-        var slotDisp = (kindLow === 'elementpay' || kindLow === 'ox' || kindLow === 'ilk'
-            || routeLow === 'elementpay' || routeLow === 'ox' || routeLow === 'ilk')
-          ? (kindLow === 'ilk' || routeLow === 'ilk' ? 'ILK' : (kindLow === 'ox' || routeLow === 'ox' ? 'ox' : 'ElementPay'))
+        var slotDisp = (kindLow === 'elementpay' || kindLow === 'ox' || kindLow === 'ilk' || kindLow === 'qxipay' || kindLow === 'omspay'
+            || routeLow === 'elementpay' || routeLow === 'ox' || routeLow === 'ilk' || routeLow === 'qxipay' || routeLow === 'omspay')
+          ? (kindLow === 'omspay' || routeLow === 'omspay' ? 'OMSPAY' : (kindLow === 'qxipay' || routeLow === 'qxipay' ? 'QXIPAY' : (kindLow === 'ilk' || routeLow === 'ilk' ? 'ILKPAY' : (kindLow === 'ox' || routeLow === 'ox' ? 'ox' : 'ElementPay'))))
           : (data.routeNo || (data.slotNo != null ? String(data.slotNo) : ''));
         setTxt('#opsNpLogEditSlot', slotDisp);
         var itSel = modalEl.querySelector('#opsNpLogEditInternalTarget');
@@ -9917,8 +9945,17 @@
           var c = String(cdEl.value || '').toUpperCase();
           var show = c.indexOf('ELEMENTPAY') >= 0 || c.indexOf('ELEMENT_PAY') >= 0 || c === 'EP';
           if (w) w.classList.toggle('d-none', !show);
+          var qx = document.getElementById('pgAgencyEditQxipayHint');
+          if (qx) qx.classList.toggle('d-none', !(c.indexOf('QXIPAY') === 0 || c.indexOf('QXPAY') === 0));
         });
       }
+    })();
+    (function syncQxipayHintUi() {
+      var qx = document.getElementById('pgAgencyEditQxipayHint');
+      if (!qx) return;
+      var pgCd = (preset.pgCd || (cdEl && cdEl.value) || '').toUpperCase();
+      var show = pgCd.indexOf('QXIPAY') === 0 || pgCd.indexOf('QXPAY') === 0;
+      qx.classList.toggle('d-none', !show);
     })();
     if (modeSel) {
       var um = preset.urlPayAmountMode != null ? String(preset.urlPayAmountMode).trim().toUpperCase() : '';
@@ -16595,8 +16632,8 @@
         });
       } else {
         var icopayPg = String((srcParams && srcParams.searchAcquirer) || '').toUpperCase();
-        if (icopayPg === 'ELEMENTPAY' || icopayPg === 'JPAY' || icopayPg === 'OX' || icopayPg === 'OXPAY' || opKind === 'OX') {
-          dparams.searchPgCd = (icopayPg === 'OXPAY' || opKind === 'OX') ? 'OX' : icopayPg;
+        if (icopayPg === 'ELEMENTPAY' || icopayPg === 'JPAY' || icopayPg === 'OX' || icopayPg === 'OXPAY' || icopayPg === 'QXIPAY' || icopayPg === 'QXPAY' || opKind === 'OX' || opKind === 'QXIPAY') {
+          dparams.searchPgCd = (icopayPg === 'OXPAY' || opKind === 'OX') ? 'OX' : ((icopayPg === 'QXPAY') ? 'QXIPAY' : icopayPg);
         }
         dparams.payListVariant = (cfg && cfg.detailPayListVariant) ? cfg.detailPayListVariant : 'INTEGRATED';
         fetchPagedListAll(function (qp) { return apiRef.payList(qp); }, dparams, DAILY_DETAIL_FETCH_PAGE_SIZE.pay).then(function (res) {

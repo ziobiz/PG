@@ -17,6 +17,8 @@ public final class MerchantPgBrokerVendor {
     public static final String ELEMENTPAY = PgVendor.ELEMENTPAY;
     public static final String ILK = PgVendor.ILK;
     public static final String OX = PgVendor.OX;
+    public static final String QXIPAY = PgVendor.QXIPAY;
+    public static final String OMSPAY = PgVendor.OMSPAY;
     public static final String CRYPTO = PgVendor.CRYPTO;
 
     private MerchantPgBrokerVendor() {
@@ -34,6 +36,7 @@ public final class MerchantPgBrokerVendor {
         return ALL.equals(s) || PgVendor.isChillPayFamily(s) || PgVendor.isJpayFamily(s)
                 || PgVendor.isEximbayFamily(s) || PgVendor.isElementPayFamily(s)
                 || PgVendor.isIlkFamily(s) || PgVendor.isOxFamily(s)
+                || PgVendor.isQxipayFamily(s) || PgVendor.isOmspayFamily(s)
                 || PgVendor.isCryptoFamily(s);
     }
 
@@ -60,6 +63,12 @@ public final class MerchantPgBrokerVendor {
         }
         if ("ox".equals(u) || "oxpay".equals(u)) {
             return OX;
+        }
+        if ("qxipay".equals(u) || "qxpay".equals(u)) {
+            return QXIPAY;
+        }
+        if ("omspay".equals(u) || "oms".equals(u) || "waylar".equals(u)) {
+            return OMSPAY;
         }
         if ("crypto".equals(u) || "usdt".equals(u)) {
             return CRYPTO;

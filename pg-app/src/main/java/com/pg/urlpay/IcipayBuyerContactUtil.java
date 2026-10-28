@@ -173,6 +173,16 @@ public final class IcipayBuyerContactUtil {
         putAlias(out, raw, "countryIso2", "payCountryIsoCode2", "country");
         putAlias(out, raw, "firstName", "payFirstname", "firstname", "givenName");
         putAlias(out, raw, "lastName", "payLastname", "lastname", "surname", "familyName");
+        /* 단일 성명 — first/last 없을 때 결제내역 고객란·세션 prefill 용 */
+        putAlias(out, raw, "name", "customerNm", "buyerName", "fullName");
+        if (!out.containsKey("name") || out.get("name") == null || out.get("name").isBlank()) {
+            String fn = out.getOrDefault("firstName", "");
+            String ln = out.getOrDefault("lastName", "");
+            String combined = (fn + " " + ln).trim();
+            if (!combined.isBlank()) {
+                out.put("name", combined);
+            }
+        }
         putAlias(out, raw, "address", "payStreetAddress1", "streetAddress1", "billingAddress");
         putAlias(out, raw, "address2", "payStreetAddress2", "streetAddress2");
         putAlias(out, raw, "city", "payCity");

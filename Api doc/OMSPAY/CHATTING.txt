@@ -1,0 +1,102 @@
+[2026-10-28 오전 10:52] Marino - W in reply to Rick Yi:
+> ‎⁨Hi team,  Thank you for the clear explanation....
+Hi team,
+
+Thanks for confirming the hosted payment page flow. Answers below, in the same order.
+
+1. API key
+You generate it yourselves in OMS: Settings → API Keys. The key is shown once, so please store it securely. We don’t send keys by email. Send it on every call in the header x-api-key: <key>. Base URL: https://oms.waylar.net/api
+
+2. Variable amounts
+Create one product (SKU) in OMS, for example TOPUP, and send the amount per order with price. It overrides the product price.
+POST /v1/orders
+{
+  "customer_id": 123,
+  "items": [{ "sku": "TOPUP", "qty": 1, "price": 1500 }],
+  "note": "your-reference"
+}
+→ 201
+{ "id": 987654, "code": "SO-12345678", "status": "Pending", "total": 1500,
+  "channel": "...", "paid": 0, "note": "your-reference",
+  "items": [{ "sku": "TOPUP", "qty": 1, "price": 1500 }] }
+POST /v1/orders/SO-12345678/card-payment
+→ 200
+{ "order_code": "SO-12345678",
+  "payment_url": "https://...",
+  "expires_at": "2026-10-28T08:45:00.000Z" }
+Redirect the customer to payment_url. Each call creates a new page and turns off the previous one. Errors:
+- 409: the order is already paid, or a QR for this order is still live
+- 429: rate limit. Retry after the time in the retry-after header
+3. “Order paid” webhook
+We POST to your URL as JSON. Example raw body:
+{"so":"SO-12345678","ref1":"chrg_abc123","amount":1500,"paid_at":"2026-10-28T08:15:30.000Z","payer_name":null}
+Header: x-waylar-signature: 84a8147df89ef087ac115c20d93487da948a1042f42cd163f4cc2ba38df0ff5b
+
+The signature is lowercase hex of HMAC-SHA256(secret, raw body). The example above uses the secret example_secret_123. Compute it over the raw bytes, not over re-serialized JSON.
+
+Delivery is best-effort with 1 retry. Please also poll the status endpoint (point 4) as a fallback.
+
+4. Status of a paid order
+GET /v1/orders/SO-12345678/status
+→ 200
+{ "order_code": "SO-12345678",
+  "payment_status": "paid",
+  "paid": true, "is_paid": true,
+  "paid_amount": 1500,
+  "paid_at": "2026-10-28T08:15:30.000Z",
+  "payment_reference_id": "chrg_abc123",
+  "note": "your-reference",
+  "settlement_status": "pending",
+  "transfer": { "paid_at": "...", "amount": 1500, "reference_id": "chrg_abc123",
+                "payer_name": null, "review_status": "", "payout": { ... } } }
+Treat the order as paid only when is_paid is true. payment_status can also be held (under review) or failed.
+
+5. Webhook registration
+OMS → Settings → API Keys → Webhook section:
+- URL: https://noti.icopay.net/noti/ox (https only)
+- Secret: any value you choose
+- Turn it on, then use the Test button to send a sample delivery
+6. Refunds
+There is no refund API. Contact with the order code, the amount, and whether it is a full or partial refund.
+
+7. After payment
+The customer sees [gateway / Waylar]. Custom return URLs aren’t supported, so please rely on the webhook or the status API, not on the redirect.
+
+Best regards,
+[2026-10-28 오전 10:59] Marino - W in reply to Rick Yi:
+> oms.v1.30.0.pdf, ‎⁨The PDF documentation for orders,...
+Hi team,
+
+Thanks for the review. On each point:
+
+1–2. API key, webhook secret and URL
+Please register your merchant account at https://oms.waylar.net/register. You will need your company registration certificate and the completed KYC form. We review applications within 3 business days and send the result by email.
+
+Once approved, sign in to OMS:
+- Settings → API Keys: generate your production API key. It is shown only once, so please store it securely.
+- On the same page, under Webhook:
+  - URL: https://noti.icopay.net/noti/ox
+  - Secret: set your own value
+  - Turn it on, then press Test to send a signed sample.
+You generate the key and the secret yourselves, so neither is ever sent by email.
+
+3. SKU for variable amounts
+Create one generic SKU with your API key:
+POST /v1/products
+{ "sku": "PAYMENT", "name": "Payment", "price": 1 }
+Then send the real amount on each order as items[].price. It overrides the product price:
+{ "items": [{ "sku": "PAYMENT", "qty": 1, "price": 1500 }] }
+Stock is not checked when an order is created, so this one SKU works for any amount.
+
+4. Refunds
+Please post refund requests in our shared group chat, with the order code, the amount, and whether it is a full or partial refund. We will confirm in the group once the refund is done.
+
+5. After payment: return URL now supported
+Pass return_url when you create the card payment page:
+POST /v1/orders/SO-12345678/card-payment
+{ "return_url": "https://your-site.example/payment/done?order=SO-12345678" }
+- After the card page, the customer’s browser is sent to that URL.
+- The URL must use https and be at most 500 characters. Include whatever you need to identify the order, such as the order code.
+- If you leave it out, the customer sees our default “Payment successful” page.
+- The redirect does not confirm payment. Only the webhook, or GET /v1/orders/{code}/status with is_paid: true, confirms it.
+Best regards,

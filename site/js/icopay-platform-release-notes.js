@@ -6,13 +6,79 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '5.47';
+  var CURRENT_LIVE = '5.50';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '5.50',
+      kind: 'minor',
+      date: '2026-10-28',
+      items: {
+        KO: [
+          '결제대행사 OMSPAY(Waylar OMS)를 통합 리다이렉트(HPP)로 연동합니다. 가맹 API는 ICOPAY 그대로이며, 웹훅은 NOTI /noti/omspay 경유·거래내역 탭 OMSPAY입니다. 환불 API는 없습니다'
+        ],
+        EN: [
+          'Adds OMSPAY (Waylar OMS) as an integrated redirect (HPP) gateway. Merchants keep the ICOPAY API; webhooks go through NOTI /noti/omspay with an OMSPAY transaction tab. No refund API'
+        ],
+        JP: [
+          '決済代行 OMSPAY（Waylar OMS）を統合リダイレクト（HPP）で接続します。加盟 API は ICOPAY のまま、Webhook は NOTI /noti/omspay 経由・取引履歴タブ OMSPAY です。返金 API はありません'
+        ],
+        CH: [
+          '新增支付机构 OMSPAY（Waylar OMS）统一跳转（HPP）对接。商户仍用 ICOPAY API，Webhook 经 NOTI /noti/omspay，交易明细页签为 OMSPAY。无退款 API'
+        ],
+        TH: [
+          'เพิ่ม OMSPAY (Waylar OMS) เป็นเกตเวย์รีไดเรกต์ (HPP) รวม ร้านยังใช้ API ของ ICOPAY เว็บฮุคผ่าน NOTI /noti/omspay และแท็บประวัติ OMSPAY ไม่มี API คืนเงิน'
+        ]
+      }
+    },
+    {
+      version: '5.49',
+      kind: 'minor',
+      date: '2026-10-28',
+      items: {
+        KO: [
+          'NOTI 노티거래내역·로그분석 PG 탭에 QXIPAY(및 ILK)를 추가하고, 웹훅 수신 건이 해당 PG로만 분류·적재되도록 합니다. 신규 결제대행사 연동 시 NOTI 거래내역 반영을 필수 규율로 고정합니다'
+        ],
+        EN: [
+          'Adds QXIPAY (and ILK) to NOTI transaction/log PG tabs and classifies webhook rows under that PG. Making NOTI transaction-history coverage a mandatory checklist item whenever a new acquirer is added'
+        ],
+        JP: [
+          'NOTI の取引履歴・ログ分析 PG タブに QXIPAY（および ILK）を追加し、Webhook 受信を当該 PG のみに分類します。新規決済代行追加時は NOTI 取引履歴反映を必須規律とします'
+        ],
+        CH: [
+          '在 NOTI 交易明细/日志分析的 PG 页签中加入 QXIPAY（及 ILK），并将 Webhook 记录归入对应 PG。新增支付机构时必须同步 NOTI 交易明细列为强制规则'
+        ],
+        TH: [
+          'เพิ่ม QXIPAY (และ ILK) ในแท็บ PG ของประวัติธุรกรรม/บันทึก NOTI และจัดประเภทเว็บฮุคตาม PG นั้น บังคับให้เพิ่มประวัติธุรกรรม NOTI ทุกครั้งที่เพิ่มผู้รับชำระใหม่'
+        ]
+      }
+    },
+    {
+      version: '5.48',
+      kind: 'minor',
+      date: '2026-10-28',
+      items: {
+        KO: [
+          '결제대행사 QXIPAY를 통합 인라인(카드 토큰·차지·3DS)으로 연동합니다. 가맹 API는 ICOPAY 그대로이며, 웹훅은 NOTI /noti/qxipay 경유입니다'
+        ],
+        EN: [
+          'Adds QXIPAY as an integrated inline gateway (card token, charge, 3DS). Merchants keep the ICOPAY API; webhooks go through NOTI /noti/qxipay'
+        ],
+        JP: [
+          '決済代行 QXIPAY を統合インライン（カードトークン・チャージ・3DS）で接続します。加盟 API は ICOPAY のまま、Webhook は NOTI /noti/qxipay 経由です'
+        ],
+        CH: [
+          '新增支付机构 QXIPAY 的统一内联对接（卡令牌、扣款、3DS）。商户仍用 ICOPAY API，Webhook 经 NOTI /noti/qxipay'
+        ],
+        TH: [
+          'เพิ่ม QXIPAY เป็นเกตเวย์แบบอินไลน์รวม (โทเคนบัตร/ชาร์จ/3DS) ร้านยังใช้ API ของ ICOPAY และเว็บฮุคผ่าน NOTI /noti/qxipay'
+        ]
+      }
+    },
     {
       version: '5.47',
       kind: 'minor',

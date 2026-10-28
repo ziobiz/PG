@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-store" />
+  <title>ICOPAY</title>
+  <style>
+    body{font-family:system-ui,sans-serif;margin:0;background:#f4f6f5;color:#15201c}
+    main{max-width:420px;margin:32px auto;background:#fff;border:1px solid #dce3df;border-radius:12px;padding:20px}
+    h1{font-size:1.15rem;margin:0 0 8px}
+    p{color:#56635d;font-size:14px;line-height:1.5;margin:6px 0}
+    .amt{font-size:1.35rem;color:#15201c;font-weight:650}
+    label{display:block;font-size:13px;color:#56635d;margin-top:12px}
+    input{width:100%;box-sizing:border-box;margin-top:4px;padding:10px;border:1px solid #c5d0cb;border-radius:8px;font-size:15px}
+    button{width:100%;margin-top:16px;background:#0a6b5c;color:#fff;border:0;border-radius:8px;padding:12px;font-size:15px}
+    button:disabled{opacity:.6}
+    .err{color:#a3263a;font-size:14px}
+    .hid{display:none}
+    .hint{font-size:12px;color:#7a8781;margin-top:4px}
+  </style>
+</head>
+<body>
+<main>
+  <h1>ICOPAY</h1>
+  <p id="lead"></p>
+  <p id="product"></p>
+  <p class="amt" id="amountText"></p>
+  <p id="order"></p>
+  <div id="manualWrap" class="hid">
+    <label for="amountIn" id="amountLbl"></label>
+    <input type="number" id="amountIn" min="0.01" step="0.01" inputmode="decimal" />
+    <label for="orderIn" id="orderLbl"></label>
+    <input type="text" id="orderIn" maxlength="64" autocomplete="off" />
+  </div>
+  <div id="buyerWrap">
+    <label for="buyerName" id="nameLbl"></label>
+    <input type="text" id="buyerName" maxlength="100" autocomplete="name" />
+    <label for="buyerEmail" id="emailLbl"></label>
+    <input type="email" id="buyerEmail" maxlength="100" autocomplete="email" />
+    <label for="buyerTel" id="telLbl"></label>
+    <input type="tel" id="buyerTel" maxlength="40" autocomplete="tel" />
+    <p class="hint" id="buyerHint"></p>
+  </div>
+  <button type="button" id="pay"></button>
+  <p class="err" id="msg" hidden></p>
+</main>
+<script>
+(function () {
+  var T = {
+    KO: { lead: '주문·구매자 정보를 확인한 뒤 결제 페이지로 이동합니다.', pay: '결제하기', wait: '이동 중…', order: '주문번호', product: '상품', amount: '금액', name: '구매자 성명', email: '이메일', tel: '전화번호', hint: '성명은 결제내역 고객란에 표시됩니다.', err: '결제를 시작하지 못했습니다.', needAmt: '금액을 입력하세요.', needName: '구매자 성명을 입력하세요.', needMerchant: '가맹점을 찾을 수 없습니다.', done: '결제 결과를 확인 중입니다.' },
+    EN: { lead: 'Confirm order and shopper details, then continue to payment.', pay: 'Pay', wait: 'Redirecting…', order: 'Order', product: 'Item', amount: 'Amount', name: 'Shopper name', email: 'Email', tel: 'Phone', hint: 'Name appears in the payment history customer column.', err: 'Could not start payment.', needAmt: 'Enter an amount.', needName: 'Enter the shopper name.', needMerchant: 'Merchant not found.', done: 'Checking payment result…' },
+    JP: { lead: '注文・購入者情報を確認してからお支払い画面へ進みます。', pay: '支払う', wait: '移動中…', order: '注文番号', product: '商品', amount: '金額', name: '購入者氏名', email: 'メール', tel: '電話番号', hint: '氏名は決済履歴の顧客欄に表示されます。', err: 'お支払いを開始できませんでした。', needAmt: '金額を入力してください。', needName: '購入者氏名を入力してください。', needMerchant: '加盟店が見つかりません。', done: 'お支払い結果を確認しています。' },
+    CH: { lead: '请确认订单与购买人信息后进入支付页。', pay: '付款', wait: '跳转中…', order: '订单号', product: '商品', amount: '金额', name: '购买人姓名', email: '邮箱', tel: '电话', hint: '姓名将显示在支付明细的客户栏。', err: '无法开始付款。', needAmt: '请输入金额。', needName: '请输入购买人姓名。', needMerchant: '找不到商户。', done: '正在确认付款结果。' },
+    TH: { lead: 'ตรวจคำสั่งซื้อและข้อมูลผู้ซื้อ แล้วไปหน้าชำระเงิน', pay: 'ชำระเงิน', wait: 'กำลังไป…', order: 'เลขคำสั่งซื้อ', product: 'สินค้า', amount: 'จำนวนเงิน', name: 'ชื่อผู้ซื้อ', email: 'อีเมล', tel: 'โทรศัพท์', hint: 'ชื่อจะแสดงในคอลัมน์ลูกค้าของประวัติชำระเงิน', err: 'เริ่มชำระเงินไม่สำเร็จ', needAmt: 'กรอกจำนวนเงิน', needName: 'กรอกชื่อผู้ซื้อ', needMerchant: 'ไม่พบร้านค้า', done: 'กำลังตรวจผลชำระเงิน' }
+  };
+  var q = new URLSearchParams(location.search);
+  var lang = String(q.get('lang') || q.get('langCode') || 'KO').toUpperCase();
+  if (lang === 'ENG') lang = 'EN';
+  if (lang === 'JPN') lang = 'JP';
+  if (lang === 'CHN') lang = 'CH';
+  if (lang === 'THA') lang = 'TH';
+  var pack = T[lang] || T.KO;
+  document.getElementById('lead').textContent = pack.lead;
+  document.getElementById('pay').textContent = pack.pay;
+  document.getElementById('amountLbl').textContent = pack.amount;
+  document.getElementById('orderLbl').textContent = pack.order;
+  document.getElementById('nameLbl').textContent = pack.name;
+  document.getElementById('emailLbl').textContent = pack.email;
+  document.getElementById('telLbl').textContent = pack.tel;
+  document.getElementById('buyerHint').textContent = pack.hint;
+
+  function getCompId() {
+    var raw = (q.get('m') || q.get('compId') || q.get('merchant') || '').trim();
+    if (raw) return raw;
+    try {
+      var path = (location.pathname || '').replace(/\/+$/, '');
+      var seg = path.split('/').filter(Boolean);
+      var roots = { checkout: 1, 'omspay-pay': 1, pay: 1 };
+      if (seg.length >= 2 && roots[String(seg[0]).toLowerCase()] && String(seg[1]).indexOf('.') < 0) {
+        return String(seg[1]).trim();
+      }
+    } catch (e) { /* ignore */ }
+    return '';
+  }
+
+  function buildOrderNo(compId) {
+    var c = String(compId || 'X').replace(/[^0-9A-Za-z]/g, '').slice(-8) || 'X';
+    return 'OM' + c + Date.now().toString(36).toUpperCase();
+  }
+
+  function pickBuyer(data) {
+    var b = (data && (data.buyer || data.buyerPrefill)) || {};
+    if (typeof b === 'string') {
+      try { b = JSON.parse(b); } catch (e) { b = {}; }
+    }
+    var composed = '';
+    if (b && (b.firstName || b.lastName)) {
+      composed = (String(b.firstName || '') + ' ' + String(b.lastName || '')).trim();
+    }
+    return {
+      name: (data && (data.customerNm || data.buyerName || data.name))
+        || (b && (b.name || b.customerNm || b.fullName))
+        || composed
+        || q.get('buyerName') || q.get('name') || '',
+      email: (data && (data.payEmailAddress || data.buyerEmail || data.email))
+        || (b && (b.email || b.payEmailAddress))
+        || q.get('email') || '',
+      tel: (data && (data.payTelephone || data.customerTel || data.phone || data.tel))
+        || (b && (b.tel || b.phone || b.payTelephone))
+        || q.get('tel') || ''
+    };
+  }
+
+  function fillBuyer(data) {
+    var b = pickBuyer(data || {});
+    if (b.name) document.getElementById('buyerName').value = String(b.name).trim();
+    if (b.email) document.getElementById('buyerEmail').value = String(b.email).trim();
+    if (b.tel) document.getElementById('buyerTel').value = String(b.tel).trim();
+    /* API prepare 로 이미 구매자가 오면 입력란 숨김 — 재입력 없음 */
+    if ((q.get('session') || '').trim() && b.name) {
+      document.getElementById('buyerWrap').classList.add('hid');
+    }
+  }
+
+  var sessionData = {};
+  var session = (q.get('session') || '').trim();
+  var comp = getCompId();
+  var locked = false;
+
+  function showOrder(data) {
+    if (!data) return;
+    sessionData = data;
+    if (data.compId) comp = String(data.compId).trim();
+    var name = data.productName || data.item || '';
+    if (name) document.getElementById('product').textContent = pack.product + ' ' + name;
+    var amt = data.amount != null ? String(data.amount) : '';
+    var cur = data.displayCurrency || data.currency || '';
+    if (amt) {
+      document.getElementById('amountText').textContent = (cur ? cur + ' ' : '') + amt;
+      locked = true;
+    }
+    var order = data.orderNo || q.get('orderNo') || '';
+    if (order) document.getElementById('order').textContent = pack.order + ' ' + order;
+    fillBuyer(data);
+  }
+
+  function showManualIfNeeded() {
+    if (locked || session) return;
+    document.getElementById('manualWrap').classList.remove('hid');
+    if (!document.getElementById('orderIn').value) {
+      document.getElementById('orderIn').value = buildOrderNo(comp);
+    }
+  }
+
+  if (q.get('done') === '1') {
+    document.getElementById('lead').textContent = pack.done;
+    document.getElementById('pay').hidden = true;
+    document.getElementById('buyerWrap').classList.add('hid');
+  }
+
+  var url = '';
+  if (session) {
+    url = '/api/middleware/v1/merchant/checkout/session?token=' + encodeURIComponent(session);
+  } else if (comp) {
+    url = '/api/pay/omspay/checkout-context?compId=' + encodeURIComponent(comp);
+  }
+  if (url) {
+    fetch(url, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (body) {
+        if (body && body.success && body.data) showOrder(body.data);
+        else fillBuyer({});
+        showManualIfNeeded();
+        /* session + buyer already present → auto continue; else wait for name input */
+        if (session && q.get('done') !== '1') {
+          var hasName = !!(sessionData.customerNm || sessionData.buyerName
+            || (sessionData.buyer && sessionData.buyer.name)
+            || document.getElementById('buyerName').value.trim());
+          if (hasName) {
+            setTimeout(function () { document.getElementById('pay').click(); }, 400);
+          }
+        }
+      })
+      .catch(function () { fillBuyer({}); showManualIfNeeded(); });
+  } else {
+    showOrder({ orderNo: q.get('orderNo') || '' });
+    showManualIfNeeded();
+  }
+
+  document.getElementById('pay').addEventListener('click', function () {
+    if (q.get('done') === '1') return;
+    var el = document.getElementById('msg');
+    var btn = document.getElementById('pay');
+    el.hidden = true;
+    var cid = (sessionData.compId || comp || '').trim();
+    if (!cid) {
+      el.hidden = false;
+      el.textContent = pack.needMerchant;
+      return;
+    }
+    var orderNo = (sessionData.orderNo || q.get('orderNo') || document.getElementById('orderIn').value || '').trim();
+    if (!orderNo) orderNo = buildOrderNo(cid);
+    var amount = sessionData.amount;
+    if (amount == null || amount === '') {
+      amount = document.getElementById('amountIn').value;
+    }
+    if (amount == null || String(amount).trim() === '' || Number(amount) <= 0) {
+      el.hidden = false;
+      el.textContent = pack.needAmt;
+      showManualIfNeeded();
+      return;
+    }
+    var buyerName = document.getElementById('buyerName').value.trim();
+    var buyerEmail = document.getElementById('buyerEmail').value.trim();
+    var buyerTel = document.getElementById('buyerTel').value.trim();
+    if (!buyerName) {
+      el.hidden = false;
+      el.textContent = pack.needName;
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = pack.wait;
+    var payload = {
+      compId: cid,
+      orderNo: orderNo,
+      amount: amount,
+      currency: sessionData.currency || sessionData.settlementCurrency || sessionData.checkoutCurrencyCode || 'THB',
+      productName: sessionData.productName || sessionData.item || '',
+      customerNm: buyerName,
+      payEmailAddress: buyerEmail,
+      payTelephone: buyerTel,
+      sessionToken: session || sessionData.sessionToken || '',
+      returnUrl: location.origin + '/checkout/' + encodeURIComponent(cid)
+        + '?orderNo=' + encodeURIComponent(orderNo)
+        + '&omspay=1&done=1'
+    };
+    fetch('/api/pay/omspay/start', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function (r) { return r.json(); }).then(function (body) {
+      var data = body && (body.data || body);
+      if (body && body.success && data && (data.redirectUrl || data.paymentUrl)) {
+        location.href = data.redirectUrl || data.paymentUrl;
+        return;
+      }
+      el.hidden = false;
+      el.textContent = (body && (body.message || body.error)) || pack.err;
+      btn.disabled = false;
+      btn.textContent = pack.pay;
+    }).catch(function () {
+      el.hidden = false;
+      el.textContent = pack.err;
+      btn.disabled = false;
+      btn.textContent = pack.pay;
+    });
+  });
+})();
+</script>
+</body>
+</html>

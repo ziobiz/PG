@@ -75,6 +75,12 @@ public final class ReceiptPgAgencyMatch {
         if (PgVendor.isIlkFamily(pgCd) && PgVendor.isIlkFamily(van)) {
             return true;
         }
-        return PgVendor.isOxFamily(pgCd) && PgVendor.isOxFamily(van);
+        if (PgVendor.isOxFamily(pgCd) && PgVendor.isOxFamily(van)) {
+            return true;
+        }
+        if (PgVendor.isQxipayFamily(pgCd) && PgVendor.isQxipayFamily(van)) {
+            return true;
+        }
+        return PgVendor.isOmspayFamily(pgCd) && PgVendor.isOmspayFamily(van);
     }
 }

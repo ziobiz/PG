@@ -3090,6 +3090,42 @@
       CH: '这是 QR 批准的手续费。与卡相同则保持「与卡手续费相同」。不同时选择 QR 默认、其他 QR 政策，或直接输入。组织分配在手续费管理的 QR 渠道单独保存。',
       TH: 'ค่าธรรมเนียมการอนุมัติ QR หากต้องการเท่ากับบัตร ให้คงค่าเท่ากับค่าธรรมเนียมบัตร หากต่างกัน เลือกค่าเริ่มต้น QR นโยบาย QR หรือกรอกเอง ส่วนแบ่งองค์กรบันทึกที่ช่อง QR ในจัดการค่าธรรมเนียม แยกจากบัตร'
     },
+    'QXIPAY는 PG 슬롯이 없습니다. Gateway Webhook=/noti/qxipay (GW-Signature). 가맹 API는 ICOPAY 통합 경로만 사용합니다.': {
+      EN: 'QXIPAY has no PG slot. Gateway Webhook=/noti/qxipay (GW-Signature). Merchants use the ICOPAY unified API only.',
+      JP: 'QXIPAY に PG スロットはありません。Gateway Webhook=/noti/qxipay（GW-Signature）。加盟店 API は ICOPAY 統合経路のみです。',
+      CH: 'QXIPAY 没有 PG 槽位。Gateway Webhook=/noti/qxipay（GW-Signature）。商户仅使用 ICOPAY 统一 API。',
+      TH: 'QXIPAY ไม่มีช่อง PG. Gateway Webhook=/noti/qxipay (GW-Signature) ร้านใช้เฉพาะ API รวมของ ICOPAY'
+    },
+    'NOTI에 QXIPAY 가맹을 생성(또는 조회)합니다. Webhook 고정 URL(/noti/qxipay)을 수신통보에 반영합니다. 계속하시겠습니까?': {
+      EN: 'Create (or look up) the QXIPAY merchant on NOTI. The fixed Webhook URL (/noti/qxipay) is saved to inbound notification. Continue?',
+      JP: 'NOTI に QXIPAY 加盟店を作成（または照会）します。固定 Webhook URL（/noti/qxipay）を受信通知へ反映します。続けますか？',
+      CH: '在 NOTI 创建（或查询）QXIPAY 商户。固定 Webhook URL（/noti/qxipay）会写入接收通知。要继续吗？',
+      TH: 'สร้าง (หรือค้นหา) ร้าน QXIPAY บน NOTI URL Webhook คงที่ (/noti/qxipay) จะถูกบันทึกในการแจ้งเตือนรับเข้า ดำเนินการต่อหรือไม่?'
+    },
+    'QXIPAY: MID=accountId, API Key=secretKey(sk_…), MD5=publishableKey(pk_…). API·챗봇 엔드포인트=게이트웨이 Base URL(샌드박스 예: http://68.183.182.9/api/sandbox). 추가 JSON에 webhookSecret을 넣으면 GW-Signature를 검증합니다. 웹훅 URL은 https://noti.icopay.net/noti/qxipay 입니다.': {
+      EN: 'QXIPAY: MID=accountId, API Key=secretKey (sk_…), MD5=publishableKey (pk_…). API/chatbot endpoint = gateway Base URL (sandbox e.g. http://68.183.182.9/api/sandbox). Put webhookSecret in extra JSON to verify GW-Signature. Webhook URL: https://noti.icopay.net/noti/qxipay.',
+      JP: 'QXIPAY: MID=accountId、API Key=secretKey(sk_…)、MD5=publishableKey(pk_…)。API・チャットボットのエンドポイント=ゲートウェイ Base URL（サンドボックス例: http://68.183.182.9/api/sandbox）。追加 JSON に webhookSecret を入れると GW-Signature を検証します。Webhook URL は https://noti.icopay.net/noti/qxipay です。',
+      CH: 'QXIPAY：MID=accountId，API Key=secretKey(sk_…)，MD5=publishableKey(pk_…)。API/聊天机器人端点=网关 Base URL（沙箱例：http://68.183.182.9/api/sandbox）。在附加 JSON 中放入 webhookSecret 可校验 GW-Signature。Webhook URL：https://noti.icopay.net/noti/qxipay。',
+      TH: 'QXIPAY: MID=accountId, API Key=secretKey(sk_…), MD5=publishableKey(pk_…). ปลายทาง API/แชตบอท=Base URL ของเกตเวย์ (แซนด์บ็อกซ์เช่น http://68.183.182.9/api/sandbox) ใส่ webhookSecret ใน JSON เพิ่มเพื่อตรวจ GW-Signature URL เว็บฮุค: https://noti.icopay.net/noti/qxipay'
+    },
+    'OMSPAY는 PG 슬롯이 없습니다. OMS Webhook=/noti/omspay (x-waylar-signature). 가맹 API는 ICOPAY 통합 경로만 사용합니다.': {
+      EN: 'OMSPAY has no PG slot. OMS Webhook=/noti/omspay (x-waylar-signature). Merchants use the ICOPAY unified API only.',
+      JP: 'OMSPAY に PG スロットはありません。OMS Webhook=/noti/omspay（x-waylar-signature）。加盟店 API は ICOPAY 統合経路のみです。',
+      CH: 'OMSPAY 没有 PG 槽位。OMS Webhook=/noti/omspay（x-waylar-signature）。商户仅使用 ICOPAY 统一 API。',
+      TH: 'OMSPAY ไม่มีช่อง PG. OMS Webhook=/noti/omspay (x-waylar-signature) ร้านใช้เฉพาะ API รวมของ ICOPAY'
+    },
+    'NOTI에 OMSPAY 가맹을 생성(또는 조회)합니다. Webhook 고정 URL(/noti/omspay)을 수신통보에 반영합니다. 계속하시겠습니까?': {
+      EN: 'Create (or look up) the OMSPAY merchant on NOTI. The fixed Webhook URL (/noti/omspay) is saved to inbound notification. Continue?',
+      JP: 'NOTI に OMSPAY 加盟店を作成（または照会）します。固定 Webhook URL（/noti/omspay）を受信通知へ反映します。続けますか？',
+      CH: '在 NOTI 创建（或查询）OMSPAY 商户。固定 Webhook URL（/noti/omspay）会写入接收通知。要继续吗？',
+      TH: 'สร้าง (หรือค้นหา) ร้าน OMSPAY บน NOTI URL Webhook คงที่ (/noti/omspay) จะถูกบันทึกในการแจ้งเตือนรับเข้า ดำเนินการต่อหรือไม่?'
+    },
+    'OMSPAY: MID=OMS customer_id(공용), API Key=X-API-Key(wlr_…). API 엔드포인트=https://oms.waylar.net/api. 추가 JSON에 webhookSecret·sku(기본 PAYMENT)를 넣습니다. 웹훅 URL은 https://noti.icopay.net/noti/omspay 입니다. 환불 API 없음.': {
+      EN: 'OMSPAY: MID=shared OMS customer_id, API Key=X-API-Key (wlr_…). API endpoint=https://oms.waylar.net/api. Put webhookSecret and sku (default PAYMENT) in extra JSON. Webhook URL: https://noti.icopay.net/noti/omspay. No refund API.',
+      JP: 'OMSPAY: MID=共有 OMS customer_id、API Key=X-API-Key(wlr_…)。API エンドポイント=https://oms.waylar.net/api。追加 JSON に webhookSecret・sku（既定 PAYMENT）を入れます。Webhook URL は https://noti.icopay.net/noti/omspay です。返金 API なし。',
+      CH: 'OMSPAY：MID=共用 OMS customer_id，API Key=X-API-Key(wlr_…)。API 端点=https://oms.waylar.net/api。在附加 JSON 中放入 webhookSecret、sku（默认 PAYMENT）。Webhook URL：https://noti.icopay.net/noti/omspay。无退款 API。',
+      TH: 'OMSPAY: MID=customer_id ร่วมของ OMS, API Key=X-API-Key(wlr_…). ปลายทาง API=https://oms.waylar.net/api ใส่ webhookSecret และ sku (ค่าเริ่ม PAYMENT) ใน JSON เพิ่ม URL เว็บฮุค: https://noti.icopay.net/noti/omspay ไม่มี API คืนเงิน'
+    },
     'ILK는 PG 슬롯이 없습니다. Webhook=/noti/ilk, 브라우저 Result=/noti/result/ilk(가맹 resultUrl로 릴레이). 카드 결제대행사와 같은 노티 구조입니다.': {
       EN: 'ILK has no PG slot. Webhook=/noti/ilk, browser Result=/noti/result/ilk (relayed to the merchant resultUrl). Same notification structure as card processors.',
       JP: 'ILK に PG スロットはありません。Webhook=/noti/ilk、ブラウザ Result=/noti/result/ilk（加盟店 resultUrl へ中継）。カード決済代行と同じ通知構造です。',

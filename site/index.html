@@ -545,6 +545,10 @@
             </div>
             <hr class="my-3">
             <p class="small text-muted mb-2"><span data-pg-ui-t="아래는 결제대행별 연동 자격입니다. ChillPay는 MID·API Key·MD5·Route·Environment (Sandbox / Production)을 입력하세요. 수정 시 API Key·MD5는 바꿀 때만 입력(비우면 기존 유지).">아래는 결제대행별 연동 자격입니다. ChillPay는 MID·API Key·MD5·Route·Environment (Sandbox / Production)을 입력하세요. 수정 시 API Key·MD5는 바꿀 때만 입력(비우면 기존 유지).</span></p>
+            <div class="alert alert-info py-2 small d-none" id="pgAgencyEditQxipayHint" role="status">
+              <span data-pg-ui-t="QXIPAY: MID=accountId, API Key=secretKey(sk_…), MD5=publishableKey(pk_…). API·챗봇 엔드포인트=게이트웨이 Base URL(샌드박스 예: http://68.183.182.9/api/sandbox). 추가 JSON에 webhookSecret을 넣으면 GW-Signature를 검증합니다. 웹훅 URL은 https://noti.icopay.net/noti/qxipay 입니다.">QXIPAY: MID=accountId, API Key=secretKey(sk_…), MD5=publishableKey(pk_…). API·챗봇 엔드포인트=게이트웨이 Base URL(샌드박스 예: http://68.183.182.9/api/sandbox). 추가 JSON에 webhookSecret을 넣으면 GW-Signature를 검증합니다. 웹훅 URL은 https://noti.icopay.net/noti/qxipay 입니다.</span>
+              <span data-pg-ui-t="OMSPAY: MID=OMS customer_id(공용), API Key=X-API-Key(wlr_…). API 엔드포인트=https://oms.waylar.net/api. 추가 JSON에 webhookSecret·sku(기본 PAYMENT)를 넣습니다. 웹훅 URL은 https://noti.icopay.net/noti/omspay 입니다. 환불 API 없음.">OMSPAY: MID=OMS customer_id(공용), API Key=X-API-Key(wlr_…). API 엔드포인트=https://oms.waylar.net/api. 추가 JSON에 webhookSecret·sku(기본 PAYMENT)를 넣습니다. 웹훅 URL은 https://noti.icopay.net/noti/omspay 입니다. 환불 API 없음.</span>
+            </div>
             <div class="row g-2">
               <div class="col-md-6 mb-2">
                 <label class="form-label" data-pg-ui-t="MID / Merchant Code">MID / Merchant Code</label>

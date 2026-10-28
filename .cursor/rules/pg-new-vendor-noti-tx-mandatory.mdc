@@ -1,0 +1,50 @@
+---
+description: 신규 결제대행사(PG) 추가 시 NOTI 거래내역·pgKind·웹훅 로그 필수 (사용자 미언급도 수행)
+alwaysApply: true
+---
+
+# 신규 PG → NOTI 거래내역 필수 (변경 불가)
+
+사용자가 「노티」「거래내역」을 **말하지 않아도**, 결제대행사(PG)를 **신규 추가·연동**하는 턴에는 아래를 **반드시** 같은 작업에 포함한다. 생략·후순위·「나중에」금지.
+
+## 왜
+
+ICOPAY 연동만 하고 NOTI 관리자 **노티거래내역** PG 탭·`pgProvider` 분류를 빼먹으면, 웹훅이 와도 UI에 PG가 안 보이거나 ChillPay로 잘못 분류된다. (QXIPAY 사례)
+
+## 필수 체크리스트 (신규 PG 코드명 = 예: `FOO` / `foo`)
+
+### A. NOTI (`d:\Delopment\NOTI` 및 배포 루트 `Notificaiton`)
+
+1. **웹훅** `POST /noti/{slug}` + ICOPAY ingress 릴레이 (서명·Comp-Id)
+2. **로그 적재** `appendPgNotiLog` — `pgProvider: '{slug}'`, `routeKey: '{slug}/webhook'` (가맹 미매칭 실패 건도 적재)
+3. **분류 함수**에 `{slug}` 등록 (하나라도 빠지면 ChillPay로 떨어짐):
+   - `normalizeAdminPgSource`
+   - `getNotiLogPgAcquirer` / `getInternalLogPgAcquirer`
+   - `acquirerLabelFromLog`
+   - `normalizeInternalTargetPgProvider`
+   - `inferMerchantPgKind` (해당 시)
+   - `icopayAmountPgKeyFromLog` (금액 규칙 키)
+4. **노티거래내역·로그분석 PG 탭** (`buildCrHubToolbarHtml` / `buildLogHubToolbarHtml` / `pgSource.*Url` / `qs`의 `source=`)
+5. **i18n 라벨** `pg_provider_{slug}` (또는 하드코드 폴백 `FOO`)
+6. 배포: `Deploy-Noti.ps1` (또는 동등)로 `server.js` + `lib/*Noti.js` 반영·PM2 재시작
+
+### B. ICOPAY (본사 노티 추가등록 UI)
+
+- `site/js/screens.js` `#opsNpPgKind` 옵션
+- `site/js/app.js` — `opsNpFilterInternalTargetOpts` / provision 확인 문구 / 결과 행 PG 라벨
+- (해당 시) 플랫폼 버전·통합 체크리스트와 함께
+
+### C. 통합 원칙과의 관계
+
+- 가맹·구매자 노출은 **ICOPAY 중립** 유지 (`pg-unified-payment-integration.mdc`).
+- 본 규칙은 **운영자 NOTI·본사 내부 UI**의 PG 식별 노출에 한함.
+
+## 금지
+
+- 「웹훅만 넣고 거래내역 탭은 다음에」
+- `pgProvider` 없이 로그 적재 → ChillPay 탭에만 섞임
+- 다른 PG의 `relay*MerchantNotify`를 그대로 호출해 **잘못된 pgProvider**로 적재
+
+## 완료 기준
+
+관리자 NOTI **노티거래내역** 상단 PG 탭에 신규 PG가 보이고, 해당 웹훅 수신 건이 그 탭에서만 조회된다.

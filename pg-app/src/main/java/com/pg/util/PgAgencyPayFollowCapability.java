@@ -40,9 +40,14 @@ public final class PgAgencyPayFollowCapability {
         if (action == null) {
             return false;
         }
+        /* OMSPAY — 환불·무효 REST 없음 */
+        if (PgVendor.isOmspayFamily(pgCd)) {
+            return false;
+        }
         boolean jpay = PgVendor.isJpayFamily(pgCd);
         boolean chill = PgVendor.isChillPayFamily(pgCd);
-        boolean refundApiOnly = PgVendor.isElementPayFamily(pgCd) || PgVendor.isEximbayFamily(pgCd);
+        boolean refundApiOnly = PgVendor.isElementPayFamily(pgCd) || PgVendor.isEximbayFamily(pgCd)
+                || PgVendor.isQxipayFamily(pgCd);
         return switch (action) {
             case AUTO_VOID -> chill && !jpay && !refundApiOnly;
             case EMAIL_VOID -> chill && !jpay;
@@ -81,14 +86,24 @@ public final class PgAgencyPayFollowCapability {
             a.setPayFollowSameDayRefundYn("N");
             return;
         }
-        if (PgVendor.isElementPayFamily(cd)) {
+        if (PgVendor.isElementPayFamily(cd) || PgVendor.isQxipayFamily(cd)) {
             a.setPayFollowAutoVoidYn("N");
             a.setPayFollowEmailVoidYn("N");
             a.setPayFollowManualVoidYn("N");
             a.setPayFollowAutoRefundYn("Y");
             a.setPayFollowManualRefundYn("N");
             a.setPayFollowForceRefundYn("Y");
-            a.setPayFollowSameDayRefundYn("Y");
+            a.setPayFollowSameDayRefundYn(PgVendor.isElementPayFamily(cd) ? "Y" : "N");
+            return;
+        }
+        if (PgVendor.isOmspayFamily(cd)) {
+            a.setPayFollowAutoVoidYn("N");
+            a.setPayFollowEmailVoidYn("N");
+            a.setPayFollowManualVoidYn("N");
+            a.setPayFollowAutoRefundYn("N");
+            a.setPayFollowManualRefundYn("N");
+            a.setPayFollowForceRefundYn("N");
+            a.setPayFollowSameDayRefundYn("N");
             return;
         }
         a.setPayFollowAutoVoidYn("N");

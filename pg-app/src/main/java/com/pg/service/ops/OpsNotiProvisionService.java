@@ -559,6 +559,8 @@ public class OpsNotiProvisionService {
         boolean elementPay = NotiProvisionClient.isElementPay(pgKind);
         boolean oxPay = NotiProvisionClient.isOx(pgKind);
         boolean ilkPay = NotiProvisionClient.isIlk(pgKind);
+        boolean qxipay = NotiProvisionClient.isQxipay(pgKind);
+        boolean omspay = NotiProvisionClient.isOmspay(pgKind);
         boolean fixedIngress = NotiProvisionClient.isFixedIngressPg(pgKind);
         req.put("pgKind", pgKind);
         if (!dealmai.isEmpty()) {
@@ -622,7 +624,22 @@ public class OpsNotiProvisionService {
             }
         } else {
             String notiBase = NotiProvisionClient.defaultBaseUrlIfBlank(cfg.getNotiProvisionBaseUrl());
-            if (ilkPay) {
+            if (omspay) {
+                jpayNotify = firstNonBlank(data, "omspayWebhookUrl");
+                if (jpayNotify.isEmpty()) {
+                    jpayNotify = notiBase + "/noti/omspay";
+                }
+                jpayCallback = "";
+            } else if (qxipay) {
+                jpayNotify = firstNonBlank(data, "qxipayWebhookUrl");
+                if (jpayNotify.isEmpty()) {
+                    jpayNotify = notiBase + "/noti/qxipay";
+                }
+                jpayCallback = firstNonBlank(data, "qxipayResultUrl");
+                if (jpayCallback.isEmpty()) {
+                    jpayCallback = notiBase + "/noti/result/qxipay";
+                }
+            } else if (ilkPay) {
                 jpayNotify = firstNonBlank(data, "ilkWebhookUrl");
                 if (jpayNotify.isEmpty()) {
                     jpayNotify = notiBase + "/noti/ilk";
@@ -659,7 +676,13 @@ public class OpsNotiProvisionService {
         Map<String, Object> out = new LinkedHashMap<>();
         String createdMsg;
         String sameMsg;
-        if (ilkPay) {
+        if (omspay) {
+            createdMsg = "NOTI OMSPAY 가맹이 생성되었습니다.";
+            sameMsg = "기존 NOTI OMSPAY 가맹과 동일합니다.";
+        } else if (qxipay) {
+            createdMsg = "NOTI QXIPAY 가맹이 생성되었습니다.";
+            sameMsg = "기존 NOTI QXIPAY 가맹과 동일합니다.";
+        } else if (ilkPay) {
             createdMsg = "NOTI ILK 가맹이 생성되었습니다.";
             sameMsg = "기존 NOTI ILK 가맹과 동일합니다.";
         } else if (oxPay) {
@@ -677,6 +700,13 @@ public class OpsNotiProvisionService {
         out.put("pgKind", pgKind);
         out.put("jpayNotifyUrl", jpayNotify);
         out.put("jpayCallbackUrl", jpayCallback);
+        if (omspay) {
+            out.put("omspayWebhookUrl", jpayNotify);
+        }
+        if (qxipay) {
+            out.put("qxipayWebhookUrl", jpayNotify);
+            out.put("qxipayResultUrl", jpayCallback);
+        }
         if (elementPay) {
             out.put("elementpayWebhookUrl", jpayNotify);
             out.put("elementpayResultUrl", jpayCallback);
@@ -1209,7 +1239,13 @@ public class OpsNotiProvisionService {
         log.setBaseCurrency(normalizeBaseCurrency(baseCurrency));
         log.setInternalTargetId(internalTargetId);
         log.setDealmaiPartnerCode(dealmaiPartnerCode != null ? dealmaiPartnerCode : "");
-        if (NotiProvisionClient.isIlk(pgKind)) {
+        if (NotiProvisionClient.isOmspay(pgKind)) {
+            log.setRouteNo("omspay");
+            log.setSlotNo(null);
+        } else if (NotiProvisionClient.isQxipay(pgKind)) {
+            log.setRouteNo("qxipay");
+            log.setSlotNo(null);
+        } else if (NotiProvisionClient.isIlk(pgKind)) {
             log.setRouteNo("ilk");
             log.setSlotNo(null);
         } else if (NotiProvisionClient.isOx(pgKind)) {
@@ -1241,11 +1277,15 @@ public class OpsNotiProvisionService {
         m.put("compNm", log.getCompNm() != null ? log.getCompNm() : "");
         String pgKind = resolveLogPgKind(log);
         m.put("pgKind", pgKind);
-        m.put("pgKindLabel", NotiProvisionClient.isIlk(pgKind)
-                ? "ILK"
+        m.put("pgKindLabel", NotiProvisionClient.isOmspay(pgKind)
+                ? "OMSPAY"
+                : (NotiProvisionClient.isQxipay(pgKind)
+                ? "QXIPAY"
+                : (NotiProvisionClient.isIlk(pgKind)
+                ? "ILKPAY"
                 : (NotiProvisionClient.isOx(pgKind)
                 ? "ox"
-                : (NotiProvisionClient.isElementPay(pgKind) ? "ElementPay" : "JPAY")));
+                : (NotiProvisionClient.isElementPay(pgKind) ? "ElementPay" : "JPAY")))));
         m.put("internalTargetId", nz(log.getInternalTargetId()));
         m.put("integrationMode", normalizeIntegrationMode(log.getIntegrationMode()));
         m.put("routeNo", nz(log.getRouteNo()));

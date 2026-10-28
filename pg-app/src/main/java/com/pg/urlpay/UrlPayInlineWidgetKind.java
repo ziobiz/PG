@@ -19,6 +19,10 @@ public final class UrlPayInlineWidgetKind {
     public static final String ILK_INLINE = "ILK_INLINE";
     /** ox 카드 인라인({@code ox-pay.html}) — 승인 API 연결 전 결제창 */
     public static final String OX_INLINE = "OX_INLINE";
+    /** QXIPAY 카드 인라인({@code qxipay-pay.html}) — token + charge + 3DS */
+    public static final String QXIPAY_INLINE = "QXIPAY_INLINE";
+    /** OMSPAY HPP 리다이렉트({@code omspay-pay.html}) — 호스티드 결제창 */
+    public static final String OMSPAY_REDIRECT = "OMSPAY_REDIRECT";
     /** 본사 REDIRECT 플로우 — 카드 인라인 없음 */
     public static final String REDIRECT_ONLY = "REDIRECT_ONLY";
     /** 인라인 미구현 — 안내 배너만 */

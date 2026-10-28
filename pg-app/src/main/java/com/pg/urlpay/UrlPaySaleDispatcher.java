@@ -6,6 +6,8 @@ import com.pg.service.ElementPayPaymentService;
 import com.pg.service.EximbayPaymentService;
 import com.pg.service.IlkPaymentService;
 import com.pg.service.JpayPaymentService;
+import com.pg.service.QxipayPaymentService;
+import com.pg.service.OmspayPaymentService;
 import com.pg.service.MerchantPayLimitService;
 import com.pg.service.MerchantPgBindingRouterService;
 import com.pg.service.PayCardPolicyService;
@@ -29,6 +31,8 @@ public class UrlPaySaleDispatcher {
     private final EximbayPaymentService eximbayPaymentService;
     private final ElementPayPaymentService elementPayPaymentService;
     private final IlkPaymentService ilkPaymentService;
+    private final QxipayPaymentService qxipayPaymentService;
+    private final OmspayPaymentService omspayPaymentService;
     private final UrlPayVendorCapabilityRegistry capabilityRegistry;
     private final UrlPayChargeResolutionService urlPayChargeResolutionService;
     private final MerchantPgBindingRouterService pgBindingRouter;
@@ -40,6 +44,8 @@ public class UrlPaySaleDispatcher {
                                 EximbayPaymentService eximbayPaymentService,
                                 ElementPayPaymentService elementPayPaymentService,
                                 IlkPaymentService ilkPaymentService,
+                                QxipayPaymentService qxipayPaymentService,
+                                OmspayPaymentService omspayPaymentService,
                                 UrlPayVendorCapabilityRegistry capabilityRegistry,
                                 UrlPayChargeResolutionService urlPayChargeResolutionService,
                                 MerchantPgBindingRouterService pgBindingRouter,
@@ -50,6 +56,8 @@ public class UrlPaySaleDispatcher {
         this.eximbayPaymentService = eximbayPaymentService;
         this.elementPayPaymentService = elementPayPaymentService;
         this.ilkPaymentService = ilkPaymentService;
+        this.qxipayPaymentService = qxipayPaymentService;
+        this.omspayPaymentService = omspayPaymentService;
         this.capabilityRegistry = capabilityRegistry;
         this.urlPayChargeResolutionService = urlPayChargeResolutionService;
         this.pgBindingRouter = pgBindingRouter;
@@ -139,6 +147,8 @@ public class UrlPaySaleDispatcher {
             case EXIMBAY_READY_SALE -> eximbayPaymentService.executeReady(orgUnitId, body, request, clientIp);
             case ELEMENTPAY_INIT_PAYMENT -> elementPayPaymentService.executeInitPayment(orgUnitId, body, request, clientIp);
             case ILK_INLINE_SALE -> ilkPaymentService.executeSale(orgUnitId, body, request, clientIp);
+            case QXIPAY_INLINE_SALE -> qxipayPaymentService.executeSale(orgUnitId, body, request, clientIp);
+            case OMSPAY_REDIRECT_SALE -> omspayPaymentService.startRedirect(orgUnitId, body, request, clientIp);
             case OX_APPROVAL_PENDING -> fail(
                     "카드 승인을 준비 중입니다. 잠시 후 다시 시도해 주세요.",
                     "APPROVAL_NOT_READY");
