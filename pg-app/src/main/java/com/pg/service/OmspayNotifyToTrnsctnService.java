@@ -7,7 +7,6 @@ import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.PgVendor;
 import com.pg.integration.pg.notify.NotifyIdempotencyLock;
 import com.pg.integration.pg.notify.PgNotifyInboundTxnHandler;
-import com.pg.repository.PgTrnsctnRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -27,18 +26,15 @@ public class OmspayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
     private final OmspaySaleRecordService omspaySaleRecordService;
     private final MerchantOutboundNotifyService merchantOutboundNotifyService;
     private final NotifyIdempotencyLock notifyIdempotencyLock;
-    private final PgTrnsctnRepository pgTrnsctnRepository;
     private final ObjectMapper objectMapper;
 
     public OmspayNotifyToTrnsctnService(OmspaySaleRecordService omspaySaleRecordService,
                                         MerchantOutboundNotifyService merchantOutboundNotifyService,
                                         NotifyIdempotencyLock notifyIdempotencyLock,
-                                        PgTrnsctnRepository pgTrnsctnRepository,
                                         ObjectMapper objectMapper) {
         this.omspaySaleRecordService = omspaySaleRecordService;
         this.merchantOutboundNotifyService = merchantOutboundNotifyService;
         this.notifyIdempotencyLock = notifyIdempotencyLock;
-        this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -65,24 +61,25 @@ public class OmspayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         }
         String so = text(root, "so");
         String ref1 = text(root, "ref1");
-        String orderNo = text(root, "note");
+        String note = text(root, "note");
+        String orderHint = text(root, "orderNo");
+        String orderNo = note;
         String comp = in.getMerchantId() != null ? in.getMerchantId().trim() : "";
-        if (orderNo.isBlank() && !so.isBlank()) {
-            Optional<PgTrnsctn> bySo = pgTrnsctnRepository.findFirstByChillTransactionIdOrderByCreatedAtDesc(so);
-            if (bySo.isPresent() && PgVendor.isOmspayFamily(bySo.get().getVan())) {
-                orderNo = bySo.get().getOrderNo() != null ? bySo.get().getOrderNo() : "";
-                if (comp.isBlank()) {
-                    comp = bySo.get().getMerchantId() != null ? bySo.get().getMerchantId() : "";
-                }
+        Optional<PgTrnsctn> matched = omspaySaleRecordService.resolveTxnForWebhook(so, note, orderHint, ref1);
+        if (matched.isPresent()) {
+            PgTrnsctn t = matched.get();
+            if (orderNo.isBlank() && t.getOrderNo() != null) {
+                orderNo = t.getOrderNo().trim();
+            }
+            if (comp.isBlank() && t.getMerchantId() != null) {
+                comp = t.getMerchantId().trim();
             }
         }
-        if (comp.isBlank() && !orderNo.isBlank()) {
-            Optional<PgTrnsctn> t = pgTrnsctnRepository.findFirstByOrderNoOrderByCreatedAtDesc(orderNo);
-            if (t.isPresent() && PgVendor.isOmspayFamily(t.get().getVan())) {
-                comp = t.get().getMerchantId() != null ? t.get().getMerchantId() : "";
-            }
+        if (orderNo.isBlank()) {
+            orderNo = orderHint;
         }
         if (orderNo.isBlank() || comp.isBlank()) {
+            log.warn("OMSPAY async Comp-Id unresolved so={} note={} orderHint={}", so, note, orderHint);
             return true;
         }
         String chargeId = so.isBlank() ? ref1 : so;

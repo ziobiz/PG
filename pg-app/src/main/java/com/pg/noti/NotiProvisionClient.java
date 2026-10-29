@@ -117,6 +117,9 @@ public class NotiProvisionClient {
         if ("omspay".equals(k) || "oms".equals(k) || "waylar".equals(k)) {
             return "omspay";
         }
+        if ("qbang".equals(k) || "qbank".equals(k) || "qrbank".equals(k) || "큐뱅".equals(k)) {
+            return "qbang";
+        }
         return "jpay";
     }
 
@@ -140,11 +143,15 @@ public class NotiProvisionClient {
         return "omspay".equals(normalizePgKind(pgKind));
     }
 
-    /** ElementPay·ox·ILK·QXIPAY·OMSPAY 처럼 PG 슬롯 없이 고정 NOTI 입구를 쓰는 계열. */
+    public static boolean isQbang(String pgKind) {
+        return "qbang".equals(normalizePgKind(pgKind));
+    }
+
+    /** ElementPay·ox·ILK·QXIPAY·OMSPAY·QBANG 처럼 PG 슬롯 없이 고정 NOTI 입구를 쓰는 계열. */
     public static boolean isFixedIngressPg(String pgKind) {
         String k = normalizePgKind(pgKind);
         return "elementpay".equals(k) || "ox".equals(k) || "ilk".equals(k)
-                || "qxipay".equals(k) || "omspay".equals(k);
+                || "qxipay".equals(k) || "omspay".equals(k) || "qbang".equals(k);
     }
 
     /** NOTI internal-targets 목록. 실패 시 예외 대신 상세 결과 Map 반환. */

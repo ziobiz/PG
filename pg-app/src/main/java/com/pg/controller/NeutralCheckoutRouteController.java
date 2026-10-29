@@ -8,7 +8,9 @@ import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.service.ChillPayService;
 import com.pg.service.MerchantPgBindingRouterService;
+import com.pg.urlpay.QrPaymentMeansService;
 import com.pg.urlpay.UrlPayCheckoutMoveService;
+import com.pg.util.QrWalletScopeUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,8 +24,9 @@ import java.util.Map;
  * 중립 결제 라우트.
  * <ul>
  *   <li>{@code /checkout/{compId}} — 카드(URL) 결제 전용</li>
+ *   <li>{@code /checkout-qr/{compId}} — QR 결제 전용 (PayPay·QBANG)</li>
  *   <li>{@code /checkout-crypto/{compId}} — 크립토 결제 전용</li>
- *   <li>{@code /checkout-all/{compId}} — 카드+크립토 수단 선택(통합)</li>
+ *   <li>{@code /checkout-all/{compId}} — 카드·QR·크립토 중 2개 이상이면 수단 선택(통합)</li>
  * </ul>
  */
 @Controller
@@ -35,19 +38,22 @@ public class NeutralCheckoutRouteController {
     private final UrlPayCheckoutMoveService urlPayCheckoutMoveService;
     private final CryptoCheckoutService cryptoCheckoutService;
     private final MerchantPgBindingRouterService pgBindingRouter;
+    private final QrPaymentMeansService qrPaymentMeansService;
 
     public NeutralCheckoutRouteController(OrgUnitRepository orgUnitRepository,
                                           MerchantProfileRepository merchantProfileRepository,
                                           ChillPayService chillPayService,
                                           UrlPayCheckoutMoveService urlPayCheckoutMoveService,
                                           CryptoCheckoutService cryptoCheckoutService,
-                                          MerchantPgBindingRouterService pgBindingRouter) {
+                                          MerchantPgBindingRouterService pgBindingRouter,
+                                          QrPaymentMeansService qrPaymentMeansService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.chillPayService = chillPayService;
         this.urlPayCheckoutMoveService = urlPayCheckoutMoveService;
         this.cryptoCheckoutService = cryptoCheckoutService;
         this.pgBindingRouter = pgBindingRouter;
+        this.qrPaymentMeansService = qrPaymentMeansService;
     }
 
     /** 카드(URL) 결제 — 수단 선택 없음. */
@@ -68,13 +74,29 @@ public class NeutralCheckoutRouteController {
         return "forward:" + resolveCardCheckoutPath(compId, request);
     }
 
+    /** QR 결제 전용 (크립토 /checkout-crypto 와 대칭). */
+    @GetMapping("/checkout-qr/{compId}")
+    public String checkoutQr(@PathVariable("compId") String compId, HttpServletRequest request) {
+        String mid = compId != null ? compId.trim() : "";
+        String q = buildQuery(mid, request);
+        try {
+            Long orgUnitId = orgUnitRepository.findByCode(mid).map(OrgUnit::getId).orElse(null);
+            if (orgUnitId != null && qrPaymentMeansService.qrMeansAllowed(orgUnitId)) {
+                return "forward:" + resolveQrPagePath(orgUnitId, q);
+            }
+        } catch (RuntimeException ignore) {
+            // fall through
+        }
+        return "forward:/checkout-means.html" + q;
+    }
+
     /** 크립토 결제 전용. */
     @GetMapping("/checkout-crypto/{compId}")
     public String checkoutCrypto(@PathVariable("compId") String compId, HttpServletRequest request) {
         return "forward:" + resolveCryptoCheckoutPath(compId, request);
     }
 
-    /** 통합(카드+크립토) 수단 선택. 한쪽만 활성이면 해당 창으로 직행. */
+    /** 통합(카드·QR·크립토) 수단 선택. 한쪽만 활성이면 해당 창으로 직행. */
     @GetMapping("/checkout-all/{compId}")
     public String checkoutAll(@PathVariable("compId") String compId, HttpServletRequest request) {
         String mid = compId != null ? compId.trim() : "";
@@ -84,13 +106,13 @@ public class NeutralCheckoutRouteController {
             if (orgUnitId != null) {
                 boolean cryptoOn = cryptoCheckoutService.cryptoMeansAllowed(orgUnitId);
                 boolean cardOn = cardUrlMeansAllowed(orgUnitId);
-                boolean qrOn = !pgBindingRouter.listOperationalQrWallets(orgUnitId).isEmpty();
+                boolean qrOn = qrPaymentMeansService.qrMeansAllowed(orgUnitId);
                 int means = (cryptoOn ? 1 : 0) + (cardOn ? 1 : 0) + (qrOn ? 1 : 0);
                 if (means >= 2) {
                     return "forward:/checkout-means.html" + q;
                 }
                 if (qrOn) {
-                    return "forward:/ilk-pay.html" + withParam(q, "payMeans", "QR");
+                    return "forward:" + resolveQrPagePath(orgUnitId, q);
                 }
                 if (cryptoOn) {
                     return "forward:/crypto-pay.html" + q;
@@ -122,7 +144,7 @@ public class NeutralCheckoutRouteController {
                     return "/crypto-pay.html" + q;
                 }
                 if (wantsQrMeans(request)) {
-                    return "/ilk-pay.html" + withParam(q, "payMeans", "QR");
+                    return resolveQrPagePath(orgUnitId, q);
                 }
                 return resolveCardPagePath(orgUnitId, q);
             }
@@ -141,8 +163,8 @@ public class NeutralCheckoutRouteController {
         String opPg = pgBindingRouter.resolveOperationalPgCd(
                 orgUnitId, MerchantPgBindingRouterService.RoutingHint.standard("", ""));
         if (opPg == null || opPg.isBlank()) {
-            if (!pgBindingRouter.listOperationalQrWallets(orgUnitId).isEmpty()) {
-                return "/ilk-pay.html" + withParam(q, "payMeans", "QR");
+            if (qrPaymentMeansService.qrMeansAllowed(orgUnitId)) {
+                return resolveQrPagePath(orgUnitId, q);
             }
             opPg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
         }
@@ -167,6 +189,9 @@ public class NeutralCheckoutRouteController {
             }
             if (PgVendor.isOmspayFamily(opPg)) {
                 return "/omspay-pay.html" + q;
+            }
+            if (PgVendor.isQbangFamily(opPg)) {
+                return "/qbang-pay.html" + withParam(q, "payMeans", "QR");
             }
             if (PgVendor.isCryptoFamily(opPg)) {
                 /* 운영 PG가 CRYPTO 만이면 카드 URL에서도 크립토창 — 전용은 /checkout-crypto */
@@ -193,6 +218,19 @@ public class NeutralCheckoutRouteController {
             return false;
         }
         return pgBindingRouter.hasOperationalCardMeans(orgUnitId);
+    }
+
+    /** Prefer QBANG QR page when a QBANG wallet is bound; otherwise ILK PayPay QR. */
+    private String resolveQrPagePath(Long orgUnitId, String q) {
+        String withMeans = withParam(q, "payMeans", "QR");
+        if (orgUnitId != null) {
+            for (String w : qrPaymentMeansService.listOperationalQrWalletsIfAllowed(orgUnitId)) {
+                if (QrWalletScopeUtil.QBANG.equalsIgnoreCase(w)) {
+                    return "/qbang-pay.html" + withMeans;
+                }
+            }
+        }
+        return "/ilk-pay.html" + withMeans;
     }
 
     private boolean wantsQrMeans(HttpServletRequest request) {
@@ -231,24 +269,22 @@ public class NeutralCheckoutRouteController {
         if (request == null) {
             return q;
         }
-        String session = nz(request.getParameter("session"));
-        if (!session.isEmpty()) {
-            q = q + (q.contains("?") ? "&" : "?") + "session=" + URLEncoder.encode(session, StandardCharsets.UTF_8);
-        }
-        String entry = nz(request.getParameter("entry"));
-        if (!entry.isEmpty()) {
-            q = q + (q.contains("?") ? "&" : "?") + "entry=" + URLEncoder.encode(entry, StandardCharsets.UTF_8);
-        }
-        String lang = nz(request.getParameter("lang"));
-        if (lang.isEmpty()) {
-            lang = nz(request.getParameter("langCode"));
-        }
-        if (!lang.isEmpty()) {
-            q = q + (q.contains("?") ? "&" : "?") + "lang=" + URLEncoder.encode(lang, StandardCharsets.UTF_8);
-        }
-        String payMeans = nz(request.getParameter("payMeans"));
-        if (!payMeans.isEmpty()) {
-            q = q + (q.contains("?") ? "&" : "?") + "payMeans=" + URLEncoder.encode(payMeans, StandardCharsets.UTF_8);
+        /* 결제 복귀(OMSPAY return_url 등) 시 done·orderNo 가 빠지면 결제창이 다시 열려 결제완료 UI가 안 보임 */
+        String[] passKeys = {
+                "session", "entry", "lang", "langCode", "payMeans", "means",
+                "orderNo", "OrderNo", "amount", "currency",
+                "done", "omspay", "omspayReturn", "outcome", "status", "icopay_status"
+        };
+        for (String key : passKeys) {
+            String v = nz(request.getParameter(key));
+            if (v.isEmpty()) {
+                continue;
+            }
+            String encKey = "langCode".equals(key) ? "lang" : key;
+            if (q.contains(encKey + "=")) {
+                continue;
+            }
+            q = q + (q.contains("?") ? "&" : "?") + encKey + "=" + URLEncoder.encode(v, StandardCharsets.UTF_8);
         }
         return q;
     }

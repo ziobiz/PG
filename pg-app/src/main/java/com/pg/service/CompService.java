@@ -39,6 +39,7 @@ import com.pg.util.PercentDecimalHelper;
 import com.pg.util.ReceivableRecoveryModeUtil;
 import com.pg.util.RouteNoDisplayUtil;
 import com.pg.util.VoidRefundSettlementModeUtil;
+import com.pg.integration.pg.PgVendor;
 import com.pg.util.CardBrandScopeUtil;
 import com.pg.util.QrWalletScopeUtil;
 import com.pg.util.CurrencyScopeUtil;
@@ -134,6 +135,8 @@ public class CompService {
     private final com.pg.urlpay.UrlPayCardInputCopyService urlPayCardInputCopyService;
     private final com.pg.urlpay.UrlPayCheckoutMoveService urlPayCheckoutMoveService;
     private final com.pg.urlpay.CheckoutHeaderSubtitleCopyService checkoutHeaderSubtitleCopyService;
+    private final com.pg.urlpay.QrPaymentMeansService qrPaymentMeansService;
+    private final MerchantRecvNotiIngressService merchantRecvNotiIngressService;
 
     private static LocalTime parseTime(String s) {
         if (s == null || s.trim().isEmpty()) return null;
@@ -464,7 +467,9 @@ public class CompService {
                        UrlPayCheckoutFieldPresetService urlPayCheckoutFieldPresetService,
                        com.pg.urlpay.UrlPayCardInputCopyService urlPayCardInputCopyService,
                        com.pg.urlpay.UrlPayCheckoutMoveService urlPayCheckoutMoveService,
-                       com.pg.urlpay.CheckoutHeaderSubtitleCopyService checkoutHeaderSubtitleCopyService) {
+                       com.pg.urlpay.CheckoutHeaderSubtitleCopyService checkoutHeaderSubtitleCopyService,
+                       com.pg.urlpay.QrPaymentMeansService qrPaymentMeansService,
+                       MerchantRecvNotiIngressService merchantRecvNotiIngressService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.settlementSettingRepository = settlementSettingRepository;
@@ -502,6 +507,16 @@ public class CompService {
         this.urlPayCardInputCopyService = urlPayCardInputCopyService;
         this.urlPayCheckoutMoveService = urlPayCheckoutMoveService;
         this.checkoutHeaderSubtitleCopyService = checkoutHeaderSubtitleCopyService;
+        this.qrPaymentMeansService = qrPaymentMeansService;
+        this.merchantRecvNotiIngressService = merchantRecvNotiIngressService;
+    }
+
+    private String resolveHqQrPaymentUseDefaultYn() {
+        try {
+            return qrPaymentMeansService.hqQrUseDefaultYn();
+        } catch (RuntimeException e) {
+            return "Y";
+        }
     }
 
     /** 챗봇관리 — 고객 안내 문구(병합 표시값). 가맹만. */
@@ -1957,6 +1972,15 @@ public class CompService {
                                             mp.getCryptoPaymentHeaderSubtitleMode()));
                             m.put("cryptoPaymentHeaderSubtitleText",
                                     mp.getCryptoPaymentHeaderSubtitleText() != null ? mp.getCryptoPaymentHeaderSubtitleText() : "");
+                            m.put("qrPaymentUseYn",
+                                    mp.getQrPaymentUseYn() != null && !mp.getQrPaymentUseYn().isBlank()
+                                            ? mp.getQrPaymentUseYn() : "FOLLOW_HQ");
+                            m.put("qrPaymentHeaderSubtitleMode",
+                                    normalizeCryptoSubtitleModeForAdmin(
+                                            mp.getQrPaymentHeaderSubtitleMode()));
+                            m.put("qrPaymentHeaderSubtitleText",
+                                    mp.getQrPaymentHeaderSubtitleText() != null ? mp.getQrPaymentHeaderSubtitleText() : "");
+                            m.put("hqQrPaymentUseDefaultYn", resolveHqQrPaymentUseDefaultYn());
                             m.put("unifiedPaymentHeaderSubtitleMode",
                                     mp.getUnifiedPaymentHeaderSubtitleMode() != null
                                             && !mp.getUnifiedPaymentHeaderSubtitleMode().isBlank()
@@ -3673,6 +3697,47 @@ public class CompService {
         });
     }
 
+    /** QR 사용·안내. null 인자는 미변경. */
+    @Transactional
+    public void applyMerchantQrPaymentSettings(String compId,
+                                               String qrPaymentUseYn,
+                                               String qrPaymentHeaderSubtitleMode,
+                                               String qrPaymentHeaderSubtitleText) {
+        if (compId == null || compId.isBlank()) {
+            return;
+        }
+        if (qrPaymentUseYn == null && qrPaymentHeaderSubtitleMode == null && qrPaymentHeaderSubtitleText == null) {
+            return;
+        }
+        orgUnitRepository.findByCode(compId.trim()).flatMap(ou -> {
+            if (ou.getOrgLevel() != OrgLevel.MERCHANT) {
+                return Optional.empty();
+            }
+            return merchantProfileRepository.findByOrgUnitId(ou.getId());
+        }).ifPresent(mp -> {
+            if (qrPaymentUseYn != null && !qrPaymentUseYn.isBlank()) {
+                mp.setQrPaymentUseYn(qrPaymentUseYn.trim());
+            }
+            if (qrPaymentHeaderSubtitleMode != null && !qrPaymentHeaderSubtitleMode.isBlank()) {
+                mp.setQrPaymentHeaderSubtitleMode(qrPaymentHeaderSubtitleMode.trim());
+            }
+            if (qrPaymentHeaderSubtitleText != null
+                    && "ACTIVE".equalsIgnoreCase(String.valueOf(mp.getQrPaymentHeaderSubtitleMode()))) {
+                String t = qrPaymentHeaderSubtitleText.trim();
+                if (t.isEmpty()) {
+                    mp.setQrPaymentHeaderSubtitleText(null);
+                    mp.setQrPaymentHeaderSubtitleTextI18n(null);
+                } else if (t.length() > 500) {
+                    throw new IllegalArgumentException("QR 안내문구는 500자 이하여야 합니다.");
+                } else {
+                    mp.setQrPaymentHeaderSubtitleText(t);
+                }
+            }
+            checkoutHeaderSubtitleCopyService.applyQrToMerchantProfile(mp);
+            merchantProfileRepository.save(mp);
+        });
+    }
+
     @Transactional
     public void applyMerchantUrlPayCheckoutFieldPreset(String compId, String presetIdRaw) {
         if (compId == null || compId.isBlank() || presetIdRaw == null) {
@@ -3851,6 +3916,11 @@ public class CompService {
         m.put("notifyUrlResult", MerchantPayNotifyUrlRules.sanitizeResultForMerchant(rs));
         m.put("jpayNotifyUrl", jn);
         m.put("jpayCallbackUrl", jc);
+        try {
+            m.put("recvNotiByPg", merchantRecvNotiIngressService.listForMerchant(orgUnitId, jn, jc));
+        } catch (RuntimeException e) {
+            m.put("recvNotiByPg", java.util.List.of());
+        }
         String bgSb = "";
         String rsSb = "";
         for (MerchantNotifyUrl n : merchantNotifyUrlRepository.findByOrgUnitIdOrderByUrlTypeAsc(orgUnitId)) {
@@ -5408,6 +5478,9 @@ public class CompService {
             }
             /* 카드+크립토면 Y, 크립토전용만 N. 이미 N이어도 cryptoOnly=false 이면 Y로 되돌린다. */
             rs.put("fiatCommissionSlotYn", cryptoOnly ? "N" : "Y");
+        } else {
+            /* 크립토 미사용이면 FIAT 슬롯 항상 Y (과거 크립토전용 N 잔존 → 수수료관리 미노출 방지) */
+            rs.put("fiatCommissionSlotYn", "Y");
         }
         try {
             com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
@@ -6033,7 +6106,9 @@ public class CompService {
 
     /**
      * 업체관리 「대행」열·미사용 결제대행사 경고.
-     * 본사 연동배포에서 미사용(use_yn=N)이거나 카탈로그에 없는 PG가 묶여 있으면 {@code pgAgencyInactiveYn=Y}.
+     * 가맹 결제대행사 바인딩 중 <strong>운영(operational_yn=Y)</strong>인 행만 표시한다.
+     * (등록만 하고 운영 체크가 꺼진 PG는 목록에 나오지 않음.)
+     * 본사 연동배포에서 미사용(use_yn=N)이거나 카탈로그에 없는 PG가 운영 중이면 {@code pgAgencyInactiveYn=Y}.
      */
     private static void putPgAgencyListFields(Map<String, Object> m, OrgUnit o,
                                               List<MerchantPgBinding> bindings,
@@ -6053,6 +6128,10 @@ public class CompService {
         boolean inactive = false;
         for (MerchantPgBinding b : bindings) {
             if (b == null || b.getPgCd() == null || b.getPgCd().isBlank()) {
+                continue;
+            }
+            String op = b.getOperationalYn();
+            if (op == null || !"Y".equalsIgnoreCase(op.trim())) {
                 continue;
             }
             String cd = b.getPgCd().trim();
@@ -6812,10 +6891,14 @@ public class CompService {
         return CurrencyScopeUtil.normalize(requestedCurrencyScope);
     }
 
-    /** 노티 전용 PG면 QR 없음. 그 외에는 요청값 검증·정규화. */
+    /** 노티 전용 PG면 QR 없음. QBANG 계열은 빈값이면 QBANG 기본. 그 외는 요청값 검증·정규화. */
     private String resolveMerchantPgQrWalletScopeForSave(String pgCd, String requestedQrWalletScope) {
         if (isPgAgencyNotifyOnlyIntegration(pgCd)) {
             return "";
+        }
+        String requested = requestedQrWalletScope != null ? requestedQrWalletScope.trim() : "";
+        if (requested.isEmpty() && PgVendor.isQbangFamily(pgCd)) {
+            return QrWalletScopeUtil.QBANG;
         }
         QrWalletScopeUtil.validateOrThrow(requestedQrWalletScope);
         return QrWalletScopeUtil.normalize(requestedQrWalletScope);

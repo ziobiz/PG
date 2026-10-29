@@ -13,6 +13,7 @@ import com.pg.urlpay.MobileCheckoutModeService;
 import com.pg.urlpay.CheckoutFailI18n;
 import com.pg.urlpay.IcipayBuyerContactUtil;
 import com.pg.urlpay.NeutralCheckoutRoute;
+import com.pg.urlpay.QrPaymentMeansService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 
@@ -47,6 +48,7 @@ public class MerchantUnifiedInlineCheckoutService {
     private final MerchantPayLimitService merchantPayLimitService;
     private final UrlPayChargeResolutionService urlPayChargeResolutionService;
     private final MerchantPgBindingRouterService pgBindingRouter;
+    private final QrPaymentMeansService qrPaymentMeansService;
 
     public MerchantUnifiedInlineCheckoutService(ChillPayService chillPayService,
                                                 MerchantInlineCheckoutService chillpayInlineCheckoutService,
@@ -66,7 +68,8 @@ public class MerchantUnifiedInlineCheckoutService {
                                                 OrgUnitRepository orgUnitRepository,
                                                 MerchantPayLimitService merchantPayLimitService,
                                                 UrlPayChargeResolutionService urlPayChargeResolutionService,
-                                                MerchantPgBindingRouterService pgBindingRouter) {
+                                                MerchantPgBindingRouterService pgBindingRouter,
+                                                QrPaymentMeansService qrPaymentMeansService) {
         this.chillPayService = chillPayService;
         this.chillpayInlineCheckoutService = chillpayInlineCheckoutService;
         this.jpayInlineCheckoutService = jpayInlineCheckoutService;
@@ -86,6 +89,7 @@ public class MerchantUnifiedInlineCheckoutService {
         this.merchantPayLimitService = merchantPayLimitService;
         this.urlPayChargeResolutionService = urlPayChargeResolutionService;
         this.pgBindingRouter = pgBindingRouter;
+        this.qrPaymentMeansService = qrPaymentMeansService;
     }
 
     public Map<String, Object> prepare(Long orgUnitId, Map<String, Object> body, HttpServletRequest request) {
@@ -121,9 +125,10 @@ public class MerchantUnifiedInlineCheckoutService {
 
         String qrWallet = firstStr(enriched, "qrWallet", "qrWalletCode");
         boolean wantQr = "QR".equals(payMeans) || !qrWallet.isBlank();
-        if (wantQr && !pgBindingRouter.listOperationalQrWallets(orgUnitId).isEmpty()) {
+        if (wantQr && qrPaymentMeansService.qrMeansAllowed(orgUnitId)) {
             if (qrWallet.isBlank()) {
-                qrWallet = pgBindingRouter.listOperationalQrWallets(orgUnitId).get(0);
+                var wallets = qrPaymentMeansService.listOperationalQrWalletsIfAllowed(orgUnitId);
+                qrWallet = wallets.isEmpty() ? "" : wallets.get(0);
                 enriched.put("qrWallet", qrWallet);
             }
             enriched.put("payMeans", "QR");

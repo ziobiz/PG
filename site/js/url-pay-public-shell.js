@@ -239,11 +239,8 @@
     }
 
     function updatePayFxCurrencyHint() {
-      var curHint = g.document.getElementById('payAmountCurrencyHint');
-      if (!curHint) return;
-      if (st.urlPayDisplayFxActive) {
-        curHint.textContent = '(' + payFxResolvedDisplayCurrencyLocal() + ')';
-      }
+      if (!st.urlPayDisplayFxActive) return;
+      applyPayAmountCurrencyHint(ctx);
     }
 
     function payFxFormatSettleAmount(n, intSet) {
@@ -708,6 +705,28 @@
   }
 
   /**
+   * 금액 입력란 옆 통화 힌트 (#payAmountCurrencyHint).
+   * DP 활성 → 본사 표시통화 설정값(urlPayDisplayFxDefaultDisplayCurrency / 멀티 선택값) 그대로.
+   * STANDARD → 체크아웃·정산 통화.
+   * @returns {string} 적용된 통화 코드(없으면 '')
+   */
+  function applyPayAmountCurrencyHint(checkoutCtx, opts) {
+    opts = opts || {};
+    var hint = g.document.getElementById(opts.hintId || 'payAmountCurrencyHint');
+    if (!hint) return '';
+    var ctx = checkoutCtx || {};
+    var text = '';
+    if (ctx.urlPayDisplayFxActive === true) {
+      text = payFxResolvedDisplayCurrency(ctx);
+    } else {
+      text = String(ctx.checkoutCurrencyCode || ctx.currency || ctx.defaultCurrency || opts.fallback || '')
+        .trim().toUpperCase();
+    }
+    if (text) hint.textContent = '(' + text + ')';
+    return text;
+  }
+
+  /**
    * 결제창 상단 로고 — DEFAULT(총판 이미지·없으면 숨김), HTML(ICOPAY 문구), ACTIVE(가맹 이미지), DISABLED(로고만 숨김).
    * @param {object} ctx checkout-context
    * @param {{ brandEl?: Element, brandBlockId?: string, logoWrapSelector?: string, imgId?: string, textWrapId?: string, t?: function }} [opts]
@@ -1053,6 +1072,7 @@
     isUrlPayInputModeControlled: isUrlPayInputModeControlled,
     resolveUrlPayEffectiveCheckoutCtx: resolveUrlPayEffectiveCheckoutCtx,
     resolveUrlPayItemValue: resolveUrlPayItemValue,
-    payFxResolvedDisplayCurrency: payFxResolvedDisplayCurrency
+    payFxResolvedDisplayCurrency: payFxResolvedDisplayCurrency,
+    applyPayAmountCurrencyHint: applyPayAmountCurrencyHint
   };
 })(window);

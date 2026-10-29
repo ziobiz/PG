@@ -6,13 +6,292 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '5.55';
+  var CURRENT_LIVE = '5.67';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '5.67',
+      kind: 'minor',
+      date: '2026-10-29',
+      items: {
+        KO: [
+          'OMSPAY 「요청」대기 건: 기본 30분 경과 후 OMS 조회·미완료면 실패(99)로 확정하고 가맹 실패 통보(웹훅 없이 고착되던 문제 해소)'
+        ],
+        EN: [
+          'OMSPAY pending (request) rows: after 30 minutes by default, OMS is checked; if still unpaid they become failed (99) and the merchant gets a failure notify'
+        ],
+        JP: [
+          'OMSPAY「リクエスト」待機: 既定30分後にOMS照会し未完了なら失敗(99)確定・加盟店へ失敗通知'
+        ],
+        CH: [
+          'OMSPAY「请求」等待单：默认 30 分钟后查询 OMS，未完成则定为失败(99)并向商户发送失败通知'
+        ],
+        TH: [
+          'รายการ OMSPAY สถานะคำขอ: หลัง 30 นาที (ค่าเริ่มต้น) ตรวจ OMS ถ้ายังไม่สำเร็จเป็นล้มเหลว(99) และแจ้งร้าน'
+        ]
+      }
+    },
+    {
+      version: '5.66',
+      kind: 'minor',
+      date: '2026-10-29',
+      items: {
+        KO: [
+          'OMSPAY 결제내역에 구매자 위치(국가·도시)·단말기(PC/모바일) 적재',
+          'OMSPAY prepare: API 인라인 또는 리다이렉트 연동 중 하나만 사용이면 허용(리다이렉트 전환 시 인라인만 검사하던 오류 수정)'
+        ],
+        EN: [
+          'OMSPAY payment history now stores payer location (country/city) and device (PC/mobile)',
+          'OMSPAY prepare allows either API inline or redirect channel (fixes redirect-only merchants blocked by the inline-only check)'
+        ],
+        JP: [
+          'OMSPAY決済履歴に購入者の位置(国・都市)・端末(PC/モバイル)を記録',
+          'OMSPAY prepare: APIインラインまたはリダイレクトのいずれかが使用なら許可'
+        ],
+        CH: [
+          'OMSPAY 支付明细记录购买人位置（国家/城市）与终端（PC/手机）',
+          'OMSPAY prepare：API 内联或跳转任一开启即可（修复仅检查内联导致跳转商户被拒）'
+        ],
+        TH: [
+          'ประวัติ OMSPAY บันทึกตำแหน่งผู้ซื้อ (ประเทศ/เมือง) และอุปกรณ์ (PC/มือถือ)',
+          'OMSPAY prepare: อนุญาตถ้าเปิดอินไลน์หรือรีไดเรกต์อย่างใดอย่างหนึ่ง'
+        ]
+      }
+    },
+    {
+      version: '5.65',
+      kind: 'minor',
+      date: '2026-10-29',
+      items: {
+        KO: [
+          '크립토 사용 저장 시 결제수단을 CRYPTO 단독으로 강제하던 오류 수정(BOTH) — 카드/OMSPAY 가맹이 수수료관리 FIAT에서 사라지지 않음',
+          '수수료관리 FIAT: 운영 WEB 카드 PG가 있으면 크립토 사용 중이어도 목록에 표시·슬롯 복구'
+        ],
+        EN: [
+          'Saving crypto use no longer forces checkout means to CRYPTO-only (uses BOTH) so card/OMSPAY merchants stay on the FIAT commission list',
+          'Commission FIAT: merchants with an operational WEB card PG stay listed even when crypto is on; FIAT slot is restored'
+        ],
+        JP: [
+          'クリプト使用保存時に決済手段をCRYPTO単独へ強制していた不具合を修正(BOTH) — カード/OMSPAY加盟が手数料管理FIATから消えない',
+          '手数料管理FIAT: 運用WEBカードPGがあればクリプト使用中でも一覧表示・スロット復旧'
+        ],
+        CH: [
+          '保存加密货币使用时不再强制支付手段为仅 CRYPTO（改为 BOTH），卡/OMSPAY 商户不会从手续费管理 FIAT 消失',
+          '手续费管理 FIAT：只要有运营中的 WEB 卡 PG，即使开启加密货币也显示并恢复槽位'
+        ],
+        TH: [
+          'บันทึกการใช้คริปโตจะไม่บังคับเป็น CRYPTO อย่างเดียวแล้ว (ใช้ BOTH) — ร้านบัตร/OMSPAY ไม่หายจากแท็บ FIAT',
+          'จัดการค่าธรรมเนียม FIAT: มี PG บัตร WEB ที่ใช้งานอยู่แล้วยังแสดงแม้เปิดคริปโต และกู้ช่อง FIAT'
+        ]
+      }
+    },
+    {
+      version: '5.64',
+      kind: 'minor',
+      date: '2026-10-29',
+      items: {
+        KO: [
+          '수수료관리 FIAT: 크립토전용이 아닌 가맹(카드/OMSPAY 등)이 fiatCommissionSlotYn=N 잔존으로 목록에서 빠지던 오류 수정·슬롯 자동 복구',
+          '수수료관리: 총판·지사 등 조직 선택 후에도 업체코드·업체명으로 가맹을 검색할 수 있게 수정'
+        ],
+        EN: [
+          'Commission FIAT list: merchants that are not crypto-only (card/OMSPAY etc.) no longer disappear due to a stuck fiatCommissionSlotYn=N; the slot is restored automatically',
+          'Commission search: merchant code/name still match when an ancestor org type (distributor etc.) is selected'
+        ],
+        JP: [
+          '手数料管理FIAT: クリプト専用でない加盟(カード/OMSPAY等)が fiatCommissionSlotYn=N 残留で一覧から消える不具合を修正・スロット自動復旧',
+          '手数料管理: 総販・支社など組織選択後も加盟コード・名称で検索可能'
+        ],
+        CH: [
+          '手续费管理 FIAT：非加密专用商户（卡/OMSPAY 等）不再因残留 fiatCommissionSlotYn=N 从列表消失，并自动恢复槽位',
+          '手续费管理：选择总代/分公司等组织后仍可用商户代码/名称搜索'
+        ],
+        TH: [
+          'จัดการค่าธรรมเนียม FIAT: ร้านที่ไม่ใช่คริปโตอย่างเดียว (บัตร/OMSPAY ฯลฯ) จะไม่หายจากรายการเพราะ fiatCommissionSlotYn=N ค้าง และกู้ช่องอัตโนมัติ',
+          'ค้นหาค่าธรรมเนียม: เลือกองค์กรระดับตัวแทนฯ แล้วยังค้นด้วยรหัส/ชื่อร้านได้'
+        ]
+      }
+    },
+    {
+      version: '5.63',
+      kind: 'minor',
+      date: '2026-10-29',
+      items: {
+        KO: [
+          'OMSPAY URL 리다이렉트 결제: 복귀 시 done·주문번호가 유지되고 「결제 완료」결과 화면이 표시됩니다(/checkout forward 쿼리 유실·입력창 재노출 수정)'
+        ],
+        EN: [
+          'OMSPAY URL redirect: return keeps done/orderNo and shows a Payment complete result (fixes /checkout forward dropping query and reopening the form)'
+        ],
+        JP: [
+          'OMSPAY URLリダイレクト: 復帰時にdone・注文番号を保持し「決済完了」画面を表示(/checkout forwardのクエリ欠落・入力再表示を修正)'
+        ],
+        CH: [
+          'OMSPAY URL 跳转支付：回跳保留 done/订单号并显示「支付完成」结果页（修复 /checkout 转发丢参导致再次出现输入页）'
+        ],
+        TH: [
+          'OMSPAY URL redirect: คืนค่า done/เลขคำสั่งซื้อและแสดงหน้า「ชำระเงินสำเร็จ」(แก้ forward /checkout ที่ตัด query แล้วเปิดฟอร์มใหม่)'
+        ]
+      }
+    },
+    {
+      version: '5.62',
+      kind: 'minor',
+      date: '2026-10-29',
+      items: {
+        KO: [
+          '업체관리 「대행」열: 가맹에 결제대행사를 여러 개 등록해도 운영(사용) 체크된 결제대행사만 표시합니다'
+        ],
+        EN: [
+          'Merchant list 「Agency」 column: only operational (in-use) PG bindings are shown, even if several PGs are registered'
+        ],
+        JP: [
+          '加盟一覧「代行」列: 複数の決済代行を登録していても運用(使用)チェックされたものだけ表示'
+        ],
+        CH: [
+          '商户列表「代行」列：即使登记了多个收单方，也只显示已勾选运营(使用)的收单方'
+        ],
+        TH: [
+          'คอลัมน์「대행」ในรายการร้าน: แม้ผูก PG หลายตัว จะโชว์เฉพาะที่ติ๊กใช้งาน (operational) เท่านั้น'
+        ]
+      }
+    },
+    {
+      version: '5.61',
+      kind: 'minor',
+      date: '2026-10-29',
+      items: {
+        KO: [
+          '노티 생성 시 동일 가맹에 ElementPay(EPS)·OMSPAY 등 고정 입구 PG를 여러 개 등록할 수 있습니다. 「동일 가맹 ID가 다른 설정으로 이미 존재」충돌을 해소합니다'
+        ],
+        EN: [
+          'NOTI provision allows multiple fixed-ingress PGs on one merchant (e.g. ElementPay/EPS + OMSPAY). Removes the “merchant ID already exists with different settings” conflict'
+        ],
+        JP: [
+          '同一加盟に ElementPay(EPS)・OMSPAY など固定入口PGを複数登録可能。「同一加盟IDが別設定で既に存在」衝突を解消'
+        ],
+        CH: [
+          '同一商户可注册多个固定入口 PG（如 ElementPay/EPS + OMSPAY）。消除「同一商户 ID 已以不同设置存在」冲突'
+        ],
+        TH: [
+          'ลงทะเบียน NOTI หลาย PG แบบ ingress คงที่บนร้านเดียวได้ (เช่น ElementPay/EPS + OMSPAY) แก้ข้อความชนกันว่ามี merchant ID อยู่แล้วด้วยการตั้งค่าอื่น'
+        ]
+      }
+    },
+    {
+      version: '5.60',
+      kind: 'minor',
+      date: '2026-10-29',
+      items: {
+        KO: [
+          '가맹 「수신통보 URL」카드를 결제대행사·크립토·QR(QBANG/PayPay)별로 Webhook·Result·연동상태를 표로 표시합니다. 멀티 PG(예: EPS+OMSPay)에서도 입구가 한 칸에 덮이지 않고 각각 보입니다'
+        ],
+        EN: [
+          'Merchant inbound-notify card lists Webhook/Result/status per PG, crypto, and QR (QBANG/PayPay). Multi-PG (e.g. EPS+OMSPay) no longer collapses into one overwritten field'
+        ],
+        JP: [
+          '加盟「受信通知URL」を決済代行・クリプト・QR(QBANG/PayPay)別にWebhook・Result・状態の表で表示。マルチPGでも1欄上書きになりません'
+        ],
+        CH: [
+          '商户「接收通知 URL」按收单方、加密、QR(QBANG/PayPay)分行列出 Webhook/Result/状态。多 PG 不再被单栏覆盖'
+        ],
+        TH: [
+          'การ์ด URL แจ้งรับของร้านแสดง Webhook/Result/สถานะแยกตาม PG คริปโต และ QR (QBANG/PayPay) หลาย PG จะไม่ถูกทับช่องเดียว'
+        ]
+      }
+    },
+    {
+      version: '5.59',
+      kind: 'minor',
+      date: '2026-10-29',
+      items: {
+        KO: [
+          'QR결제설정에 사용유무(본사설정 따름/사용/미사용)·안내문구(본사설정 따름/활성/비활성)를 추가합니다. 실효 QR은 사용=Y(또는 본사 기본 Y)이고 운영 WEB QR 바인딩이 있을 때만 /checkout-qr·통합수단에 노출됩니다'
+        ],
+        EN: [
+          'QR settings add use (Follow HQ / Use / Unused) and notice (Follow HQ / Active / Disabled). Effective QR shows on /checkout-qr and unified means only when Use=Y (or HQ default Y) and an operational WEB QR binding exists'
+        ],
+        JP: [
+          'QR決済設定に利用有無(本社設定に従う/使用/未使用)・案内(本社設定に従う/活性/非活性)を追加。実効QRは使用=Y(または本社既定Y)かつ運用WEB QRがある場合のみ/checkout-qr・統合手段に表示'
+        ],
+        CH: [
+          'QR 支付设置新增使用(跟随总部/使用/未使用)与提示(跟随总部/启用/停用)。实际 QR 仅在使用=Y(或总部默认 Y)且有运营 WEB QR 绑定时出现在 /checkout-qr 与整合手段'
+        ],
+        TH: [
+          'ตั้งค่า QR เพิ่มการใช้ (ตาม HQ/ใช้/ไม่ใช้) และข้อความ (ตาม HQ/เปิด/ปิด) QR จริงโชว์ใน /checkout-qr และช่องทางรวมเมื่อใช้=Y (หรือ HQ=Y) และมีผูก WEB QR'
+        ]
+      }
+    },
+    {
+      version: '5.58',
+      kind: 'minor',
+      date: '2026-10-29',
+      items: {
+        KO: [
+          '가맹 「QR결제설정」카드를 크립토설정 위에 노란색으로 분리하고, 결제 URL(/checkout)·QR(/checkout-qr)·크립토(/checkout-crypto)·통합(/checkout-all) 경로를 서로 다르게 표시합니다'
+        ],
+        EN: [
+          'Merchant QR settings card (yellow) sits above crypto; payment URLs are distinct: /checkout, /checkout-qr, /checkout-crypto, /checkout-all'
+        ],
+        JP: [
+          '加盟店「QR決済設定」カードをクリプトの上に黄色で分離し、/checkout・/checkout-qr・/checkout-crypto・/checkout-all を別URLで表示'
+        ],
+        CH: [
+          '商户「QR支付设置」黄卡置于加密上方；支付 URL 分别为 /checkout、/checkout-qr、/checkout-crypto、/checkout-all'
+        ],
+        TH: [
+          'การ์ดตั้งค่า QR (เหลือง) อยู่เหนือคริปโต และแยก URL เป็น /checkout · /checkout-qr · /checkout-crypto · /checkout-all'
+        ]
+      }
+    },
+    {
+      version: '5.57',
+      kind: 'minor',
+      date: '2026-10-29',
+      items: {
+        KO: [
+          '카드·QR·크립토를 CRYPTO와 같은 방식으로 구성합니다. 가맹 결제대행사 QR에 QBANG 선택, /checkout-qr 전용 URL, 카드·QR·크립토 2개 이상이면 /checkout-all, QR 수수료 채널(FIAT·CRYPTO와 분리)을 안내합니다'
+        ],
+        EN: [
+          'Card/QR/crypto checkout mirrors the CRYPTO pattern: QBANG in merchant PG QR scope, /checkout-qr dedicated URL, /checkout-all when two or more means are on, and QR fee channel separate from FIAT/CRYPTO'
+        ],
+        JP: [
+          'カード・QR・クリプトをCRYPTO同様に構成。加盟店決済代行のQRにQBANG、専用/checkout-qr、手段2つ以上で/checkout-all、QR手数料チャネルをFIAT・CRYPTOと分離'
+        ],
+        CH: [
+          '银行卡/二维码/加密按 CRYPTO 方式配置：商户收单 QR 可选 QBANG、专用 /checkout-qr、两种及以上手段时 /checkout-all，QR 手续费通道与 FIAT/CRYPTO 分离'
+        ],
+        TH: [
+          'จัดบัตร/QR/คริปโตแบบ CRYPTO: เลือก QBANG ใน QR ของร้าน, URL /checkout-qr, /checkout-all เมื่อมีอย่างน้อย 2 ช่องทาง, ค่าธรรมเนียม QR แยกจาก FIAT/CRYPTO'
+        ]
+      }
+    },
+    {
+      version: '5.56',
+      kind: 'minor',
+      date: '2026-10-29',
+      items: {
+        KO: [
+          'QBANG(큐뱅) QR을 ILK와 분리된 결제대행사로 연동합니다. 가맹에 카드+QBANG QR 동시 바인딩 시 /checkout-all 수단 선택에 QR이 보이며, QR 표시·폴링 승인·가맹 통보·NOTI 노티거래내역 QBANG 탭을 지원합니다'
+        ],
+        EN: [
+          'QBANG (Qbank) QR is integrated as a PG separate from ILK. With card+QBANG QR bindings, /checkout-all shows QR; supports QR display, poll approval, merchant notify, and NOTI QBANG tab'
+        ],
+        JP: [
+          'QBANG（キューバン）QRをILKと別の決済代行として連携。カード+QBANG QR同時バインド時、/checkout-allにQRが表示され、表示・ポーリング承認・加盟店通知・NOTIのQBANGタブに対応'
+        ],
+        CH: [
+          'QBANG（Qbank）二维码作为独立于 ILK 的收单方接入。绑定银行卡+QBANG 二维码时，/checkout-all 显示二维码，支持展示、轮询确认、商户通知及 NOTI QBANG 页签'
+        ],
+        TH: [
+          'เชื่อม QBANG (คิวแบงก์) QR เป็น PG แยกจาก ILK เมื่อผูกบัตร+QBANG QR จะเห็น QR ใน /checkout-all รองรับแสดง QR โพลอนุมัติ แจ้งร้านค้า และแท็บ QBANG ใน NOTI'
+        ]
+      }
+    },
     {
       version: '5.55',
       kind: 'minor',

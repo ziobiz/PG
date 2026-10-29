@@ -9,13 +9,18 @@ import com.pg.entity.CommissionHistory;
 import com.pg.entity.CommissionPolicy;
 import com.pg.entity.DistributionFeeConfig;
 import com.pg.entity.MerchantCommissionExtra;
+import com.pg.entity.MerchantCryptoConfig;
+import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.MerchantProfile;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
+import com.pg.integration.pg.PgVendor;
 import com.pg.repository.CommissionHistoryRepository;
 import com.pg.repository.CommissionPolicyRepository;
 import com.pg.repository.DistributionFeeConfigRepository;
 import com.pg.repository.MerchantCommissionExtraRepository;
+import com.pg.repository.MerchantCryptoConfigRepository;
+import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.util.CommissionFeeChannel;
@@ -62,6 +67,8 @@ public class CommissionService {
     private final CommissionPolicyRepository commissionPolicyRepository;
     private final MerchantCommissionExtraRepository merchantCommissionExtraRepository;
     private final MerchantProfileRepository merchantProfileRepository;
+    private final MerchantCryptoConfigRepository merchantCryptoConfigRepository;
+    private final MerchantPgBindingRepository merchantPgBindingRepository;
     private final CommissionHistoryRepository commissionHistoryRepository;
     private final DistributionFeeConfigRepository distributionFeeConfigRepository;
     private final OrgUnitChangeAuditService orgUnitChangeAuditService;
@@ -71,6 +78,8 @@ public class CommissionService {
                              CommissionPolicyRepository commissionPolicyRepository,
                              MerchantCommissionExtraRepository merchantCommissionExtraRepository,
                              MerchantProfileRepository merchantProfileRepository,
+                             MerchantCryptoConfigRepository merchantCryptoConfigRepository,
+                             MerchantPgBindingRepository merchantPgBindingRepository,
                              CommissionHistoryRepository commissionHistoryRepository,
                              DistributionFeeConfigRepository distributionFeeConfigRepository,
                              OrgUnitChangeAuditService orgUnitChangeAuditService,
@@ -79,6 +88,8 @@ public class CommissionService {
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.merchantCommissionExtraRepository = merchantCommissionExtraRepository;
         this.merchantProfileRepository = merchantProfileRepository;
+        this.merchantCryptoConfigRepository = merchantCryptoConfigRepository;
+        this.merchantPgBindingRepository = merchantPgBindingRepository;
         this.commissionHistoryRepository = commissionHistoryRepository;
         this.distributionFeeConfigRepository = distributionFeeConfigRepository;
         this.orgUnitChangeAuditService = orgUnitChangeAuditService;
@@ -149,25 +160,87 @@ public class CommissionService {
         return pr;
     }
 
-    /** 크립토만 가맹 — FIAT 수수료 슬롯 비활성 */
+    /**
+     * FIAT 탭에서 숨길지 여부.
+     * 실제 「크립토전용」(크립토 사용 + checkoutMeans=CRYPTO)일 때만 제외.
+     * regional_settings.fiatCommissionSlotYn=N 잔존만으로 숨기지 않음
+     * (카드/OMSPAY 가맹이 수수료관리에서 사라지던 오류).
+     */
     private boolean isFiatCommissionSlotDisabled(OrgUnit merchant) {
-        if (merchant == null) {
+        if (merchant == null || merchant.getId() == null) {
             return false;
         }
-        return merchantProfileRepository.findByOrgUnitId(merchant.getId()).map(mp -> {
+        if (isCurrentlyCryptoOnlyMerchant(merchant.getId())) {
+            return true;
+        }
+        /* 스틱니 N 복구: 크립토전용이 아니면 FIAT 슬롯 Y로 되돌림 */
+        healFiatCommissionSlotIfStuckOff(merchant.getId());
+        return false;
+    }
+
+    /**
+     * 크립토만 가맹(FIAT 탭 제외): 크립토 사용 중이고 운영 WEB 카드/일반 PG가 없을 때만.
+     * 레거시 checkoutMeans=CRYPTO 라도 OMSPAY 등 카드 PG가 있으면 제외하지 않음.
+     */
+    private boolean isCurrentlyCryptoOnlyMerchant(Long orgUnitId) {
+        if (orgUnitId == null) {
+            return false;
+        }
+        boolean cryptoOn = merchantCryptoConfigRepository.findById(orgUnitId)
+                .map(cfg -> "Y".equalsIgnoreCase(cfg.getUseYn() != null ? cfg.getUseYn().trim() : ""))
+                .orElse(false);
+        if (!cryptoOn) {
+            return false;
+        }
+        return !hasOperationalFiatWebBinding(orgUnitId);
+    }
+
+    private boolean hasOperationalFiatWebBinding(Long orgUnitId) {
+        if (orgUnitId == null) {
+            return false;
+        }
+        List<MerchantPgBinding> list = merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(orgUnitId);
+        for (MerchantPgBinding b : list) {
+            if (b == null) {
+                continue;
+            }
+            if (!"Y".equalsIgnoreCase(b.getOperationalYn() != null ? b.getOperationalYn().trim() : "")) {
+                continue;
+            }
+            String method = b.getPayMethod() != null ? b.getPayMethod().trim() : "";
+            if (!"WEB".equalsIgnoreCase(method) && !"ALL".equalsIgnoreCase(method)) {
+                continue;
+            }
+            if (PgVendor.isCryptoFamily(b.getPgCd())) {
+                continue;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private void healFiatCommissionSlotIfStuckOff(Long orgUnitId) {
+        if (orgUnitId == null) {
+            return;
+        }
+        merchantProfileRepository.findByOrgUnitId(orgUnitId).ifPresent(mp -> {
             String rs = mp.getRegionalSettings();
-            if (rs == null || rs.isBlank()) {
-                return false;
+            if (rs == null || rs.isBlank() || !rs.contains("fiatCommissionSlotYn")) {
+                return;
             }
             try {
                 Map<String, Object> obj = MAPPER.readValue(rs, new TypeReference<>() {});
                 String v = obj.get("fiatCommissionSlotYn") != null
                         ? String.valueOf(obj.get("fiatCommissionSlotYn")).trim() : "Y";
-                return "N".equalsIgnoreCase(v);
-            } catch (Exception e) {
-                return false;
+                if (!"N".equalsIgnoreCase(v)) {
+                    return;
+                }
+                obj.put("fiatCommissionSlotYn", "Y");
+                mp.setRegionalSettings(MAPPER.writeValueAsString(obj));
+                merchantProfileRepository.save(mp);
+            } catch (Exception ignored) {
             }
-        }).orElse(false);
+        });
     }
 
     private Map<String, Object> buildCommissionRow(OrgUnit merchant) {
@@ -1157,10 +1230,11 @@ public class CommissionService {
     }
 
     private boolean matchCommissionSearchTarget(OrgUnit merchant, String searchCompId, String searchCompNm, String searchCompDiv) {
+        boolean merchantMatch = containsIgnoreCase(normCompCode(merchant.getCode()), searchCompId)
+                && containsIgnoreCase(merchant.getName(), searchCompNm);
         String div = searchCompDiv != null ? searchCompDiv.trim().toUpperCase(Locale.ROOT) : "";
         if (div.isEmpty() || "MERCHANT".equals(div)) {
-            return containsIgnoreCase(merchant.getCode(), searchCompId)
-                    && containsIgnoreCase(merchant.getName(), searchCompNm);
+            return merchantMatch;
         }
         Map<String, Object> target = new HashMap<>();
         fillAncestorNames(target, merchant);
@@ -1184,8 +1258,15 @@ public class CommissionService {
         };
         String targetCode = codeKey.isEmpty() ? "" : String.valueOf(target.getOrDefault(codeKey, ""));
         String targetName = nameKey.isEmpty() ? "" : String.valueOf(target.getOrDefault(nameKey, ""));
-        return containsIgnoreCase(targetCode, searchCompId)
+        boolean ancestorMatch = containsIgnoreCase(targetCode, searchCompId)
                 && containsIgnoreCase(targetName, searchCompNm);
+        /* 총판·지사 등 조직 선택 후에도 업체코드/업체명으로 가맹을 직접 검색할 수 있게 함 */
+        boolean hasKeyword = (searchCompId != null && !searchCompId.isBlank())
+                || (searchCompNm != null && !searchCompNm.isBlank());
+        if (hasKeyword) {
+            return ancestorMatch || merchantMatch;
+        }
+        return ancestorMatch;
     }
 
     public Optional<Map<String, Object>> getDetail(String compId) {

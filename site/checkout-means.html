@@ -162,12 +162,11 @@
       err.textContent = pack.err;
       return;
     }
-    var path = means === 'CRYPTO'
-      ? '/checkout-crypto/' + encodeURIComponent(compId)
-      : '/checkout/' + encodeURIComponent(compId);
-    var href = path + '?lang=' + encodeURIComponent(lang);
-    if (means === 'QR') href += '&payMeans=QR';
-    location.href = href;
+    var path;
+    if (means === 'CRYPTO') path = '/checkout-crypto/' + encodeURIComponent(compId);
+    else if (means === 'QR') path = '/checkout-qr/' + encodeURIComponent(compId);
+    else path = '/checkout/' + encodeURIComponent(compId);
+    location.href = path + '?lang=' + encodeURIComponent(lang);
   }
 
   function paintMeans() {
@@ -176,7 +175,7 @@
       items.push({ code: 'CARD', name: pack.card, pastelBg: '#EEF2FF', pastelFg: '#3730A3', accent: '#0d6efd', iconKey: 'card' });
     }
     if (meansFlags.qr) {
-      items.push({ code: 'QR', name: pack.qr, pastelBg: '#FFF7ED', pastelFg: '#9A3412', accent: '#0d6efd', iconKey: 'card' });
+      items.push({ code: 'QR', name: pack.qr, pastelBg: '#FFF7ED', pastelFg: '#9A3412', accent: '#ea580c', iconKey: 'qr' });
     }
     if (meansFlags.crypto) {
       items.push({ code: 'CRYPTO', name: pack.crypto, pastelBg: '#ECFDF5', pastelFg: '#065F46', accent: '#0d6efd', iconKey: 'crypto' });

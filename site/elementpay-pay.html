@@ -1146,9 +1146,17 @@
             lockField('orderNo', res.data.orderNo);
             lockField('amount', res.data.amount);
             lockField('item', res.data.productName);
-            if (res.data.currency) {
-              var h0 = document.getElementById('payAmountCurrencyHint');
-              if (h0) h0.textContent = '(' + String(res.data.currency).toUpperCase() + ')';
+            var h0 = document.getElementById('payAmountCurrencyHint');
+            if (h0) {
+              if (urlPayDisplayFxActive) {
+                var dcur = String(res.data.displayCurrency || res.data.currency || '').trim().toUpperCase();
+                if (dcur) h0.textContent = '(' + dcur + ')';
+                else if (checkoutCtx && window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyPayAmountCurrencyHint) {
+                  PG_URL_PAY_SHELL.applyPayAmountCurrencyHint(checkoutCtx);
+                }
+              } else if (res.data.currency) {
+                h0.textContent = '(' + String(res.data.currency).toUpperCase() + ')';
+              }
             }
             applyBillingPrefill(res.data.buyerPrefill || res.data.prefill);
             applyI18n();
@@ -1277,9 +1285,14 @@
         if (itemEl && !itemEl.readOnly && checkoutCtx.defaultProductName) {
           itemEl.value = String(checkoutCtx.defaultProductName).trim();
         }
-        var curHint = document.getElementById('payAmountCurrencyHint');
-        if (curHint && !urlPayDisplayFxActive && (checkoutCtx.checkoutCurrencyCode || checkoutCtx.defaultCurrency)) {
-          curHint.textContent = '(' + String(checkoutCtx.checkoutCurrencyCode || checkoutCtx.defaultCurrency).trim().toUpperCase() + ')';
+        /* DP: 금액 옆 = 표시통화 설정. STANDARD: 체크아웃/정산 통화 */
+        if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyPayAmountCurrencyHint) {
+          PG_URL_PAY_SHELL.applyPayAmountCurrencyHint(checkoutCtx);
+        } else {
+          var curHint = document.getElementById('payAmountCurrencyHint');
+          if (curHint && !urlPayDisplayFxActive && (checkoutCtx.checkoutCurrencyCode || checkoutCtx.defaultCurrency)) {
+            curHint.textContent = '(' + String(checkoutCtx.checkoutCurrencyCode || checkoutCtx.defaultCurrency).trim().toUpperCase() + ')';
+          }
         }
 
         if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyCheckoutHeaderLogo) {

@@ -246,7 +246,7 @@
     if (sec.sharedCard === false) return false;
     var s = String(sec.id || '') + ' ' + String(sec.title || '') + ' ' + String(sec.cardExtraClass || '');
     if (/pg-shared-pastel/i.test(s)) return true;
-    return /수수료 채널|통합결제설정|shared/i.test(s);
+    return /수수료 채널|통합결제설정|QR결제설정|shared/i.test(s);
   }
   window.PG_IS_SHARED_POLICY_SECTION = pgIsSharedPolicySection;
 
@@ -278,7 +278,7 @@
     return '<p class="small text-muted mb-3 mb-md-2"><span data-pg-ui-t="' + escUi(k) + '">' + escUi(L(k)) + '</span></p>';
   }
   function merchantWebPaymentCardNoticeKo() {
-    return '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 「결제 URL」은 카드(URL) 전용(/checkout/업체코드). 「통합결제 URL」은 웹결제+크립토 모두 사용일 때만 자동 생성(/checkout-all/업체코드). 「URL 재결제 URL」은 해당 PG가 저장 카드 재결제를 지원하고 본사 URL 재결제 기능·URL재결제 PG 바인딩이 있을 때만 표시됩니다. 크립토 전용 URL은 크립토설정 카드에 표시됩니다. API·챗봇은 각 설정 카드에서 별도 선택합니다.';
+    return '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 「결제 URL」은 카드(URL) 전용(/checkout/업체코드). 「URL 재결제 URL」은 해당 PG가 저장 카드 재결제를 지원하고 본사 URL 재결제 기능·URL재결제 PG 바인딩이 있을 때만 표시됩니다. QR 전용 URL은 「QR결제설정」카드, 크립토·통합결제 URL은 「크립토설정」카드에 표시됩니다. API·챗봇은 각 설정 카드에서 별도 선택합니다.';
   }
 
   /** 동일 id(paymentUrlDisplay) — 화면별 placeholder 키만 다름 */
@@ -292,10 +292,15 @@
     return '<div class="row mb-2"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="URL 재결제 URL">' + escUi(L('URL 재결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentRepayUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '" data-pg-ui-placeholder="' + escUi(String(ph)) + '"><button type="button" class="btn btn-outline-primary" id="paymentRepayUrlCopyBtn" data-pg-ui-t="복사">' + escUi(L('복사')) + '</button></div></div></div>';
   }
 
-  /** 카드+크립토 모두 ON일 때만 파스텔 고정 URL */
+  /** 카드·QR·크립토 중 2개 이상일 때 통합 수단선택 URL */
   function merchantPaymentUnifiedUrlRowHtml(placeholderKo) {
     var ph = placeholderKo || '가맹점 저장 후 조회';
-    return '<div class="row mb-2" id="paymentUnifiedUrlRow"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="통합결제 URL">' + escUi(L('통합결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUnifiedUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '" data-pg-ui-placeholder="' + escUi(String(ph)) + '"><button type="button" class="btn btn-outline-primary" id="paymentUnifiedUrlCopyBtn" data-pg-ui-t="복사">' + escUi(L('복사')) + '</button></div><div class="form-text small text-muted" data-pg-ui-t="웹결제와 크립토 사용이 모두 켜져 있을 때 자동 생성됩니다.">' + escUi(L('웹결제와 크립토 사용이 모두 켜져 있을 때 자동 생성됩니다.')) + '</div></div></div>';
+    return '<div class="row mb-2" id="paymentUnifiedUrlRow"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="통합결제 URL">' + escUi(L('통합결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUnifiedUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '" data-pg-ui-placeholder="' + escUi(String(ph)) + '"><button type="button" class="btn btn-outline-primary" id="paymentUnifiedUrlCopyBtn" data-pg-ui-t="복사">' + escUi(L('복사')) + '</button></div><div class="form-text small text-muted" data-pg-ui-t="카드·QR·크립토 중 2개 이상일 때 자동 생성됩니다(/checkout-all).">' + escUi(L('카드·QR·크립토 중 2개 이상일 때 자동 생성됩니다(/checkout-all).')) + '</div></div></div>';
+  }
+
+  function merchantQrPaymentUrlRowHtml(placeholderKo) {
+    var ph = placeholderKo || '가맹점 저장 후 조회';
+    return '<div class="row mb-2" id="qrPaymentUrlRow"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="QR 결제 URL">' + escUi(L('QR 결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="qrPaymentUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '" data-pg-ui-placeholder="' + escUi(String(ph)) + '"><button type="button" class="btn btn-outline-primary" id="qrPaymentUrlCopyBtn" data-pg-ui-t="복사">' + escUi(L('복사')) + '</button></div><div class="form-text small text-muted" data-pg-ui-t="결제대행사 설정의 QR(PayPay·QBANG)이 있을 때 /checkout-qr 로 생성됩니다.">' + escUi(L('결제대행사 설정의 QR(PayPay·QBANG)이 있을 때 /checkout-qr 로 생성됩니다.')) + '</div></div></div>';
   }
 
   function merchantCryptoPaymentUrlRowHtml(placeholderKo) {
@@ -592,6 +597,55 @@
       [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml(urlPh); } },
        { type: 'customHtml', col: 12, html: function () { return merchantPaymentRepayUrlRowHtml(urlPh); } }]
     ];
+  }
+
+  /** 크립토설정 바로 위 — QR 전용(노란색 파스텔). /checkout-qr 표시. */
+  function qrPaymentHeaderSubtitleFieldBlock() {
+    var ph = 'QR 결제창 로고 아래 안내 문구';
+    var hint = '「활성(직접입력)」만 수정·저장 시 5개국어 1회 번역. 「본사설정 따름」이면 본사 QR 안내 기본이 적용됩니다.';
+    return '<div class="form-field-block w-100" id="qrPaymentHeaderSubtitleBlock">' +
+      '<label class="form-label" data-pg-ui-t="QR 안내문구">' + escUi(L('QR 안내문구')) + '</label>' +
+      '<input type="text" class="form-control form-control-sm" name="qrPaymentHeaderSubtitleText" id="qrPaymentHeaderSubtitleText" ' +
+      'maxlength="500" placeholder="' + escUi(L(ph)) + '" data-pg-ui-placeholder="' + escUi(ph) + '">' +
+      '<div class="form-text text-muted small" data-pg-ui-t="' + escUi(hint) + '">' + escUi(L(hint)) + '</div></div>';
+  }
+
+  function merchantQrPaymentCardSection() {
+    var ph = '가맹점 저장 후 조회';
+    return {
+      title: 'QR결제설정',
+      id: 'merchantQrPaymentCard',
+      merchantOnly: true,
+      sharedCard: true,
+      cardExtraClass: 'pg-merchant-qr-pastel-card',
+      notice: 'QR 사용은 본사설정 따름/사용/미사용입니다. 실효 ON은 사용(또는 본사 기본 Y)이고 운영(WEB) 행에 QR(PayPay·QBANG)이 있을 때만입니다. URL은 /checkout-qr/업체코드. 수수료는 「QR 수수료정책」·수수료관리 QR 채널입니다.',
+      rows: [
+        [{
+          type: 'customHtml',
+          col: 12,
+          html: function () {
+            return (
+              '<div id="merchantQrPaymentCardBody" class="merchant-qr-card-body">' +
+              '<input type="hidden" name="hqQrPaymentUseDefaultYn" id="hqQrPaymentUseDefaultYn" value="Y">' +
+              '<div class="row g-2 mb-2"><div class="col-md-3"><label class="form-label small" data-pg-ui-t="QR 사용">QR 사용</label>' +
+              '<select class="form-select form-select-sm" name="qrPaymentUseYn" id="qrPaymentUseYn">' +
+              '<option value="FOLLOW_HQ" data-pg-ui-t="본사설정 따름">본사설정 따름</option>' +
+              '<option value="Y" data-pg-ui-t="사용">사용</option>' +
+              '<option value="N" data-pg-ui-t="미사용">미사용</option></select></div>' +
+              '<div class="col-md-3"><label class="form-label small" data-pg-ui-t="QR 안내">QR 안내</label>' +
+              '<select class="form-select form-select-sm" name="qrPaymentHeaderSubtitleMode" id="qrPaymentHeaderSubtitleMode">' +
+              '<option value="FOLLOW_HQ" data-pg-ui-t="본사설정 따름">본사설정 따름</option>' +
+              '<option value="ACTIVE" data-pg-ui-t="활성(직접입력)">활성(직접입력)</option>' +
+              '<option value="DISABLED" data-pg-ui-t="비활성">비활성</option></select></div></div>' +
+              qrPaymentHeaderSubtitleFieldBlock() +
+              '<div class="mb-2 small" id="merchantQrWalletSummary" data-pg-ui-t="결제대행사 행의 QR 지갑이 여기 요약됩니다.">결제대행사 행의 QR 지갑이 여기 요약됩니다.</div>' +
+              merchantQrPaymentUrlRowHtml(ph) +
+              '</div>'
+            );
+          }
+        }]
+      ]
+    };
   }
 
   function merchantUnifiedFollowOpts() {
@@ -1065,12 +1119,25 @@
   /** 가맹 등록·정보 — 결제창 구성(화면 표시). 구매자 연락처는 웹결제 카드의 공통 토글. */
   function merchantCheckoutCompositionCardSection() {
     var inputOpts = [{ v: 'FOLLOW_HQ', t: '본사정책 따름' }].concat(urlPayInputModeTypeOptions());
+    var meansSummaryHtml = function () {
+      return '<div id="merchantCheckoutMeansSummary" class="border rounded p-2 mb-2 bg-light bg-opacity-25">' +
+        '<div class="fw-semibold small mb-1" data-pg-ui-t="구매자 결제 수단(자동)">' + escUi(L('구매자 결제 수단(자동)')) + '</div>' +
+        '<div class="d-flex flex-wrap gap-2 small" id="merchantCheckoutMeansBadges">' +
+        '<span class="badge text-bg-secondary" data-means="card" data-pg-ui-t="카드">카드</span>' +
+        '<span class="badge text-bg-secondary" data-means="qr" data-pg-ui-t="QR">QR</span>' +
+        '<span class="badge text-bg-secondary" data-means="crypto" data-pg-ui-t="암호화폐">암호화폐</span>' +
+        '</div>' +
+        '<div class="form-text small text-muted mt-1 mb-0" id="merchantCheckoutMeansHint" data-pg-ui-t="결제대행사 설정의 카드브랜드·QR(PayPay·QBANG)·크립토사용에 따라 /checkout · /checkout-qr · /checkout-crypto · /checkout-all 이 달라집니다.">' +
+        escUi(L('결제대행사 설정의 카드브랜드·QR(PayPay·QBANG)·크립토사용에 따라 /checkout · /checkout-qr · /checkout-crypto · /checkout-all 이 달라집니다.')) +
+        '</div></div>';
+    };
     return {
       title: '결제창 구성',
       id: 'merchantCheckoutCompositionCard',
       merchantOnly: true,
-      notice: '화면 표시(입력방식)는 URL·API 채널 공통 프리셋입니다. 본사정책 따름이면 본사의 URL/API 입력방식 기본값을 채널별로 적용합니다. 이메일·국가·전화·배송주소는 「웹결제」카드에서 설정합니다.',
+      notice: '화면 표시(입력방식)는 URL·API 채널 공통 프리셋입니다. 본사정책 따름이면 본사의 URL/API 입력방식 기본값을 채널별로 적용합니다. 이메일·국가·전화·배송주소는 「웹결제」카드에서 설정합니다. 구매자 수단(카드·QR·크립토)은 결제대행사·크립토설정에 따라 자동 구성됩니다.',
       rows: [
+        [{ type: 'customHtml', col: 12, html: meansSummaryHtml }],
         [{ label: '화면 표시 (입력방식)', type: 'select', name: 'urlPayInputMode', options: inputOpts, col: 4 }],
         [{ type: 'customHtml', col: 12, html: urlPayInputModeHintHtml }],
         [{ label: '', type: 'note', col: 12, text: '연락처·배송을 화면에서 끄면 가맹 prepare buyerPrefill(또는 동등 필드)로 값을 전달해야 합니다. 숨김 ≠ 불필요.' }]
@@ -2607,7 +2674,8 @@
     '<option value="ox">ox</option>' +
     '<option value="ilk">ILKPAY</option>' +
     '<option value="qxipay">QXIPAY</option>' +
-    '<option value="omspay">OMSPAY</option></select></div>' +
+    '<option value="omspay">OMSPAY</option>' +
+    '<option value="qbang">QBANG</option></select></div>' +
     '<div class="col-12 col-md-3"><label class="form-label mb-1" for="opsNpCompId" data-pg-ui-t="가맹 업체코드">가맹 업체코드</label>' +
     '<input type="text" class="form-control form-control-sm" id="opsNpCompId" autocomplete="off"></div>' +
     '<div class="col-12 col-md-3"><label class="form-label mb-1" for="opsNpCompNm" data-pg-ui-t="업체명">업체명</label>' +
@@ -2633,6 +2701,7 @@
     '<div class="mb-3 d-none" id="opsNpIlkHintWrap"><div class="small text-muted" data-pg-ui-t="ILK는 PG 슬롯이 없습니다. Webhook=/noti/ilk, 브라우저 Result=/noti/result/ilk(가맹 resultUrl로 릴레이). 카드 결제대행사와 같은 노티 구조입니다.">ILK는 PG 슬롯이 없습니다. Webhook=/noti/ilk, 브라우저 Result=/noti/result/ilk(가맹 resultUrl로 릴레이). 카드 결제대행사와 같은 노티 구조입니다.</div></div>' +
     '<div class="mb-3 d-none" id="opsNpQxipayHintWrap"><div class="small text-muted" data-pg-ui-t="QXIPAY는 PG 슬롯이 없습니다. Gateway Webhook=/noti/qxipay (GW-Signature). 가맹 API는 ICOPAY 통합 경로만 사용합니다.">QXIPAY는 PG 슬롯이 없습니다. Gateway Webhook=/noti/qxipay (GW-Signature). 가맹 API는 ICOPAY 통합 경로만 사용합니다.</div></div>' +
     '<div class="mb-3 d-none" id="opsNpOmspayHintWrap"><div class="small text-muted" data-pg-ui-t="OMSPAY는 PG 슬롯이 없습니다. OMS Webhook=/noti/omspay (x-waylar-signature). 가맹 API는 ICOPAY 통합 경로만 사용합니다.">OMSPAY는 PG 슬롯이 없습니다. OMS Webhook=/noti/omspay (x-waylar-signature). 가맹 API는 ICOPAY 통합 경로만 사용합니다.</div></div>' +
+    '<div class="mb-3 d-none" id="opsNpQbangHintWrap"><div class="small text-muted" data-pg-ui-t="QBANG(큐뱅)은 PG 슬롯이 없습니다. Webhook=/noti/qbang (ICOPAY 폴링 승인 미러). QR 결제대행사와 함께 가맹 바인딩합니다.">QBANG(큐뱅)은 PG 슬롯이 없습니다. Webhook=/noti/qbang (ICOPAY 폴링 승인 미러). QR 결제대행사와 함께 가맹 바인딩합니다.</div></div>' +
     '<div class="mb-2">' +
     '<label class="form-label mb-1" for="opsNpIntegrationMode" data-pg-ui-t="연동방식">연동방식</label>' +
     '<select class="form-select form-select-sm" id="opsNpIntegrationMode" style="max-width:18rem">' +
@@ -2731,7 +2800,8 @@
     '<option value="ox">ox</option>' +
     '<option value="ilk">ILKPAY</option>' +
     '<option value="qxipay">QXIPAY</option>' +
-    '<option value="omspay">OMSPAY</option></select></div></div>' +
+    '<option value="omspay">OMSPAY</option>' +
+    '<option value="qbang">QBANG</option></select></div></div>' +
     '<div class="mb-2"><span class="text-muted" data-pg-ui-t="NOTI 슬롯">NOTI 슬롯</span><div id="opsNpLogEditSlot" class="fw-semibold">—</div>' +
     '<div class="small text-muted mt-1" data-pg-ui-t="수정 시 PG를 바꾸면 NOTI 가맹·고정 Callback/Result 입구가 해당 PG로 다시 맞춰집니다. JPAY로 바꾸려면 기존 슬롯이 있어야 합니다.">수정 시 PG를 바꾸면 NOTI 가맹·고정 Callback/Result 입구가 해당 PG로 다시 맞춰집니다. JPAY로 바꾸려면 기존 슬롯이 있어야 합니다.</div></div>' +
     '<div class="mb-2"><label class="form-label mb-0" for="opsNpLogEditInternalTarget" data-pg-ui-t="NOTI 전산 대상 ID">NOTI 전산 대상 ID</label>' +
@@ -4591,6 +4661,22 @@
           ]
         },
         {
+          title: 'QR결제설정 (본사 기본)',
+          sharedCard: true,
+          notice: '가맹 「QR 사용」이 본사설정 따름일 때 적용됩니다. 실효 QR은 사용=Y(또는 본사 기본 Y)이고 운영 WEB QR 바인딩이 있을 때만입니다. 안내문구는 가맹이 본사설정 따름이면 이 값이 적용됩니다.',
+          rows: [
+            [{ label: 'QR 사용 기본', type: 'select', name: 'qrPaymentUseDefaultYn', options: [
+              { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }
+            ], col: 2 },
+             { label: 'QR 안내', type: 'select', name: 'qrPaymentHeaderSubtitleModeDefault', options: [
+              { v: 'ACTIVE', t: '활성' }, { v: 'DISABLED', t: '비활성' }
+            ], col: 2 },
+             { label: 'QR 안내 문구', type: 'text', name: 'qrPaymentHeaderSubtitleTextDefault', col: 8,
+               placeholder: 'QR로 결제합니다. 앱에서 아래 QR을 스캔한 뒤 결제를 완료해 주세요.' }],
+            [{ label: '', type: 'note', col: 12, text: '활성+문구 저장 시 5개국어로 1회 번역됩니다. 가맹에서 활성(직접입력)·비활성·사용/미사용을 직접 고르면 가맹이 우선합니다.' }]
+          ]
+        },
+        {
           title: 'WordPress·URL 재결제',
           notice: 'WordPress/WooCommerce 플러그인 채널과 저장 카드 재결제 URL 전역 제공 여부입니다.',
           rows: [
@@ -4986,7 +5072,7 @@
           title: 'QR 수수료정책',
           id: 'qrCommissionPolicyCard',
           merchantOnly: true,
-          notice: 'QR 승인 수수료입니다. 카드 수수료와 같게 두려면 「카드 수수료와 동일」을 유지합니다. 다른 요율은 QR 기본 또는 QR 정책을 고르거나, 직접입력합니다. 조직 배분은 수수료관리의 QR 채널에서 카드와 따로 저장합니다.',
+          notice: 'QR(PayPay·QBANG) 승인 수수료입니다. FIAT(카드)·CRYPTO와 채널이 분리됩니다. 카드와 같게 두려면 「카드 수수료와 동일」을 유지하고, 다른 요율은 QR 기본(DEFAULT_QR) 또는 직접입력합니다. 조직 배분은 수수료관리의 QR 채널에서 따로 저장합니다.',
           rows: [
             [{ label: '본사정책 따름(QR)', type: 'select', name: 'commissionQrFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: 'QR 정책', type: 'select', name: 'hqQrPolicyScope', options: [{ v: '', t: '카드 수수료와 동일' }, { v: 'DEFAULT_QR', t: 'QR 기본 (DEFAULT_QR)' }], col: 3 }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'qrPayRate', col: 2, qrCustomOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'qrFailFee', col: 2, qrCustomOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'qrCancelRate', col: 2, qrCustomOnly: true }],
@@ -5147,6 +5233,7 @@
             [{ label: '비고', type: 'textarea', name: 'remark', col: 6 }]
           ]
         },
+        merchantQrPaymentCardSection(),
         {
           title: '크립토설정',
           id: 'merchantCryptoCard',
@@ -5205,9 +5292,34 @@
           title: '수신통보 URL',
           id: 'jpayNotifyUrlCard',
           merchantOnly: true,
-          notice: '노티관리에서 생성한 URL이 여기에 표시됩니다(PG→NOTI 수신 입구·가맹 쇼핑몰 URL 아님). J-Pay: pay_notifyurl·pay_callbackurl. ElementPay: Webhook(/noti/elementpay)·Result(/noti/result/elementpay). CRYPTO: 고정 Webhook(/noti/crypto)·Result(/noti/result/crypto) — ICOPAY 입금확정 후 NOTI가 기존 가맹 Callback으로 릴레이(카드와 동일 ICOPAY→NOTI→가맹).',
+          notice: '운영 결제대행사·크립토·QR별로 NOTI 수신 입구(PG→NOTI)를 표시합니다. 가맹 쇼핑몰 URL이 아닙니다. 고정형(ElementPay·OMSPAY·ILK·QBANG·CRYPTO 등)은 PG별 주소가 다르며, 노티생성이력·바인딩 기준으로 여러 행이 나옵니다. JPAY 슬롯형은 아래 입력칸도 유지됩니다.',
           rows: [
-            [{ label: 'Notify (pay_notifyurl) / Callback URL (NOTI MW)', type: 'text', name: 'jpayNotifyUrl', col: 5, placeholder: 'https://' }, { label: 'Callback (pay_callbackurl) / Result URL (NOTI MW)', type: 'text', name: 'jpayCallbackUrl', col: 5, placeholder: 'https://' }]
+            [{
+              type: 'customHtml',
+              col: 12,
+              html: function () {
+                return (
+                  '<div id="merchantRecvNotiByPgWrap" class="mb-2">' +
+                  '<div class="table-responsive"><table class="table table-sm table-bordered mb-2" id="merchantRecvNotiByPgTable">' +
+                  '<thead><tr>' +
+                  '<th class="text-center" data-pg-ui-t="결제대행사">결제대행사</th>' +
+                  '<th class="text-center" data-pg-ui-t="Webhook">Webhook</th>' +
+                  '<th class="text-center" data-pg-ui-t="Result">Result</th>' +
+                  '<th class="text-center" data-pg-ui-t="상태">상태</th>' +
+                  '</tr></thead><tbody id="merchantRecvNotiByPgTbody">' +
+                  '<tr><td colspan="4" class="text-muted small text-center" data-pg-ui-t="가맹점 저장·조회 후 표시됩니다.">가맹점 저장·조회 후 표시됩니다.</td></tr>' +
+                  '</tbody></table></div>' +
+                  '<p class="form-text small text-muted mb-2" data-pg-ui-t="CRYPTO·QR(QBANG/PayPay·ILK)도 운영·사용 중이면 이 표에 포함됩니다. 상태「노티등록 필요」이면 노티관리에서 해당 PG로 추가등록하세요.">CRYPTO·QR(QBANG/PayPay·ILK)도 운영·사용 중이면 이 표에 포함됩니다. 상태「노티등록 필요」이면 노티관리에서 해당 PG로 추가등록하세요.</p>' +
+                  '</div>' +
+                  '<div class="row g-2 pg-jpay-slot-notify-fields">' +
+                  '<div class="col-md-6"><label class="form-label small" data-pg-ui-t="JPAY Notify (슬롯)">JPAY Notify (슬롯)</label>' +
+                  '<input type="text" class="form-control form-control-sm" name="jpayNotifyUrl" id="jpayNotifyUrl" placeholder="https://" data-pg-ui-placeholder="https://"></div>' +
+                  '<div class="col-md-6"><label class="form-label small" data-pg-ui-t="JPAY Callback / Result (슬롯)">JPAY Callback / Result (슬롯)</label>' +
+                  '<input type="text" class="form-control form-control-sm" name="jpayCallbackUrl" id="jpayCallbackUrl" placeholder="https://" data-pg-ui-placeholder="https://"></div>' +
+                  '</div>'
+                );
+              }
+            }]
           ]
         },
         {
@@ -5494,7 +5606,7 @@
           title: 'QR 수수료정책',
           id: 'qrCommissionPolicyCard',
           merchantOnly: true,
-          notice: 'QR 승인 수수료입니다. 카드 수수료와 같게 두려면 「카드 수수료와 동일」을 유지합니다. 다른 요율은 QR 기본 또는 QR 정책을 고르거나, 직접입력합니다. 조직 배분은 수수료관리의 QR 채널에서 카드와 따로 저장합니다.',
+          notice: 'QR(PayPay·QBANG) 승인 수수료입니다. FIAT(카드)·CRYPTO와 채널이 분리됩니다. 카드와 같게 두려면 「카드 수수료와 동일」을 유지하고, 다른 요율은 QR 기본(DEFAULT_QR) 또는 직접입력합니다. 조직 배분은 수수료관리의 QR 채널에서 따로 저장합니다.',
           rows: [
             [{ label: '본사정책 따름(QR)', type: 'select', name: 'commissionQrFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: 'QR 정책', type: 'select', name: 'hqQrPolicyScope', options: [{ v: '', t: '카드 수수료와 동일' }, { v: 'DEFAULT_QR', t: 'QR 기본 (DEFAULT_QR)' }], col: 3 }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'qrPayRate', col: 2, qrCustomOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'qrFailFee', col: 2, qrCustomOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'qrCancelRate', col: 2, qrCustomOnly: true }],
@@ -5643,6 +5755,7 @@
         },
         { title: '기타', id: 'regionalMiscCard', headOfficeTierOnly: true, notice: '총본사/본사/총판 공통 설정입니다. COPYRIGHT에 입력한 문구는 화면 하단에 표시됩니다.', rows: [[{ label: 'COPYRIGHT', type: 'textarea', name: 'copyright', col: 6, placeholder: 'Copyright © 2025 ICOPAY Service by Ontheline Co., Ltd.' }, { label: '비고', type: 'textarea', name: 'remark', col: 6 }]] },
         { title: '기타', id: 'nonRegionalMiscCard', distributorMerchantOnlyNoRegional: true, rows: [[{ label: '비고', type: 'textarea', name: 'remark', col: 6 }]] },
+        merchantQrPaymentCardSection(),
         {
           title: '크립토설정',
           id: 'merchantCryptoCard',
@@ -5701,9 +5814,34 @@
           title: '수신통보 URL',
           id: 'jpayNotifyUrlCard',
           merchantOnly: true,
-          notice: '노티관리에서 생성한 URL이 여기에 표시됩니다(PG→NOTI 수신 입구·가맹 쇼핑몰 URL 아님). J-Pay: pay_notifyurl·pay_callbackurl. ElementPay: Webhook(/noti/elementpay)·Result(/noti/result/elementpay). CRYPTO: 고정 Webhook(/noti/crypto)·Result(/noti/result/crypto) — ICOPAY 입금확정 후 NOTI가 기존 가맹 Callback으로 릴레이(카드와 동일 ICOPAY→NOTI→가맹).',
+          notice: '운영 결제대행사·크립토·QR별로 NOTI 수신 입구(PG→NOTI)를 표시합니다. 가맹 쇼핑몰 URL이 아닙니다. 고정형(ElementPay·OMSPAY·ILK·QBANG·CRYPTO 등)은 PG별 주소가 다르며, 노티생성이력·바인딩 기준으로 여러 행이 나옵니다. JPAY 슬롯형은 아래 입력칸도 유지됩니다.',
           rows: [
-            [{ label: 'Notify (pay_notifyurl) / Callback URL (NOTI MW)', type: 'text', name: 'jpayNotifyUrl', col: 5, placeholder: 'https://' }, { label: 'Callback (pay_callbackurl) / Result URL (NOTI MW)', type: 'text', name: 'jpayCallbackUrl', col: 5, placeholder: 'https://' }]
+            [{
+              type: 'customHtml',
+              col: 12,
+              html: function () {
+                return (
+                  '<div id="merchantRecvNotiByPgWrap" class="mb-2">' +
+                  '<div class="table-responsive"><table class="table table-sm table-bordered mb-2" id="merchantRecvNotiByPgTable">' +
+                  '<thead><tr>' +
+                  '<th class="text-center" data-pg-ui-t="결제대행사">결제대행사</th>' +
+                  '<th class="text-center" data-pg-ui-t="Webhook">Webhook</th>' +
+                  '<th class="text-center" data-pg-ui-t="Result">Result</th>' +
+                  '<th class="text-center" data-pg-ui-t="상태">상태</th>' +
+                  '</tr></thead><tbody id="merchantRecvNotiByPgTbody">' +
+                  '<tr><td colspan="4" class="text-muted small text-center" data-pg-ui-t="가맹점 저장·조회 후 표시됩니다.">가맹점 저장·조회 후 표시됩니다.</td></tr>' +
+                  '</tbody></table></div>' +
+                  '<p class="form-text small text-muted mb-2" data-pg-ui-t="CRYPTO·QR(QBANG/PayPay·ILK)도 운영·사용 중이면 이 표에 포함됩니다. 상태「노티등록 필요」이면 노티관리에서 해당 PG로 추가등록하세요.">CRYPTO·QR(QBANG/PayPay·ILK)도 운영·사용 중이면 이 표에 포함됩니다. 상태「노티등록 필요」이면 노티관리에서 해당 PG로 추가등록하세요.</p>' +
+                  '</div>' +
+                  '<div class="row g-2 pg-jpay-slot-notify-fields">' +
+                  '<div class="col-md-6"><label class="form-label small" data-pg-ui-t="JPAY Notify (슬롯)">JPAY Notify (슬롯)</label>' +
+                  '<input type="text" class="form-control form-control-sm" name="jpayNotifyUrl" id="jpayNotifyUrl" placeholder="https://" data-pg-ui-placeholder="https://"></div>' +
+                  '<div class="col-md-6"><label class="form-label small" data-pg-ui-t="JPAY Callback / Result (슬롯)">JPAY Callback / Result (슬롯)</label>' +
+                  '<input type="text" class="form-control form-control-sm" name="jpayCallbackUrl" id="jpayCallbackUrl" placeholder="https://" data-pg-ui-placeholder="https://"></div>' +
+                  '</div>'
+                );
+              }
+            }]
           ]
         },
         {
@@ -5926,7 +6064,7 @@
           title: 'QR 수수료정책',
           id: 'qrCommissionPolicyCard',
           merchantOnly: true,
-          notice: 'QR 승인 수수료입니다. 카드 수수료와 같게 두려면 「카드 수수료와 동일」을 유지합니다. 다른 요율은 QR 기본 또는 QR 정책을 고르거나, 직접입력합니다. 조직 배분은 수수료관리의 QR 채널에서 카드와 따로 저장합니다.',
+          notice: 'QR(PayPay·QBANG) 승인 수수료입니다. FIAT(카드)·CRYPTO와 채널이 분리됩니다. 카드와 같게 두려면 「카드 수수료와 동일」을 유지하고, 다른 요율은 QR 기본(DEFAULT_QR) 또는 직접입력합니다. 조직 배분은 수수료관리의 QR 채널에서 따로 저장합니다.',
           rows: [
             [{ label: '본사정책 따름(QR)', type: 'select', name: 'commissionQrFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: 'QR 정책', type: 'select', name: 'hqQrPolicyScope', options: [{ v: '', t: '카드 수수료와 동일' }, { v: 'DEFAULT_QR', t: 'QR 기본 (DEFAULT_QR)' }], col: 3 }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'qrPayRate', col: 2, qrCustomOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'qrFailFee', col: 2, qrCustomOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'qrCancelRate', col: 2, qrCustomOnly: true }],
@@ -6074,6 +6212,7 @@
           notice: '본사·총판만 설정 가능. 메인이미지=로그인 화면 왼쪽 배경, 로고=로그인창 상단·사이드바 상단.'
         },
         { title: '기타', id: 'regionalMiscCard', headOfficeTierOnly: true, notice: '총본사/본사/총판 공통 설정입니다. COPYRIGHT에 입력한 문구는 화면 하단에 표시됩니다.', rows: [[{ label: 'COPYRIGHT', type: 'textarea', name: 'copyright', col: 6, placeholder: 'Copyright © 2025 ICOPAY Service by Ontheline Co., Ltd.' }]] },
+        merchantQrPaymentCardSection(),
         {
           title: '크립토설정',
           id: 'merchantCryptoCard',
@@ -6132,9 +6271,34 @@
           title: '수신통보 URL',
           id: 'jpayNotifyUrlCard',
           merchantOnly: true,
-          notice: '노티관리에서 생성한 URL이 여기에 표시됩니다(PG→NOTI 수신 입구·가맹 쇼핑몰 URL 아님). J-Pay: pay_notifyurl·pay_callbackurl. ElementPay: Webhook(/noti/elementpay)·Result(/noti/result/elementpay). CRYPTO: 고정 Webhook(/noti/crypto)·Result(/noti/result/crypto) — ICOPAY 입금확정 후 NOTI가 기존 가맹 Callback으로 릴레이(카드와 동일 ICOPAY→NOTI→가맹).',
+          notice: '운영 결제대행사·크립토·QR별로 NOTI 수신 입구(PG→NOTI)를 표시합니다. 가맹 쇼핑몰 URL이 아닙니다. 고정형(ElementPay·OMSPAY·ILK·QBANG·CRYPTO 등)은 PG별 주소가 다르며, 노티생성이력·바인딩 기준으로 여러 행이 나옵니다. JPAY 슬롯형은 아래 입력칸도 유지됩니다.',
           rows: [
-            [{ label: 'Notify (pay_notifyurl) / Callback URL (NOTI MW)', type: 'text', name: 'jpayNotifyUrl', col: 5, placeholder: 'https://' }, { label: 'Callback (pay_callbackurl) / Result URL (NOTI MW)', type: 'text', name: 'jpayCallbackUrl', col: 5, placeholder: 'https://' }]
+            [{
+              type: 'customHtml',
+              col: 12,
+              html: function () {
+                return (
+                  '<div id="merchantRecvNotiByPgWrap" class="mb-2">' +
+                  '<div class="table-responsive"><table class="table table-sm table-bordered mb-2" id="merchantRecvNotiByPgTable">' +
+                  '<thead><tr>' +
+                  '<th class="text-center" data-pg-ui-t="결제대행사">결제대행사</th>' +
+                  '<th class="text-center" data-pg-ui-t="Webhook">Webhook</th>' +
+                  '<th class="text-center" data-pg-ui-t="Result">Result</th>' +
+                  '<th class="text-center" data-pg-ui-t="상태">상태</th>' +
+                  '</tr></thead><tbody id="merchantRecvNotiByPgTbody">' +
+                  '<tr><td colspan="4" class="text-muted small text-center" data-pg-ui-t="가맹점 저장·조회 후 표시됩니다.">가맹점 저장·조회 후 표시됩니다.</td></tr>' +
+                  '</tbody></table></div>' +
+                  '<p class="form-text small text-muted mb-2" data-pg-ui-t="CRYPTO·QR(QBANG/PayPay·ILK)도 운영·사용 중이면 이 표에 포함됩니다. 상태「노티등록 필요」이면 노티관리에서 해당 PG로 추가등록하세요.">CRYPTO·QR(QBANG/PayPay·ILK)도 운영·사용 중이면 이 표에 포함됩니다. 상태「노티등록 필요」이면 노티관리에서 해당 PG로 추가등록하세요.</p>' +
+                  '</div>' +
+                  '<div class="row g-2 pg-jpay-slot-notify-fields">' +
+                  '<div class="col-md-6"><label class="form-label small" data-pg-ui-t="JPAY Notify (슬롯)">JPAY Notify (슬롯)</label>' +
+                  '<input type="text" class="form-control form-control-sm" name="jpayNotifyUrl" id="jpayNotifyUrl" placeholder="https://" data-pg-ui-placeholder="https://"></div>' +
+                  '<div class="col-md-6"><label class="form-label small" data-pg-ui-t="JPAY Callback / Result (슬롯)">JPAY Callback / Result (슬롯)</label>' +
+                  '<input type="text" class="form-control form-control-sm" name="jpayCallbackUrl" id="jpayCallbackUrl" placeholder="https://" data-pg-ui-placeholder="https://"></div>' +
+                  '</div>'
+                );
+              }
+            }]
           ]
         },
         {
@@ -8384,7 +8548,7 @@
           title: 'QR 수수료정책',
           id: 'qrCommissionPolicyCard',
           merchantOnly: true,
-          notice: 'QR 승인 수수료입니다. 카드 수수료와 같게 두려면 「카드 수수료와 동일」을 유지합니다. 다른 요율은 QR 기본 또는 QR 정책을 고르거나, 직접입력합니다. 조직 배분은 수수료관리의 QR 채널에서 카드와 따로 저장합니다.',
+          notice: 'QR(PayPay·QBANG) 승인 수수료입니다. FIAT(카드)·CRYPTO와 채널이 분리됩니다. 카드와 같게 두려면 「카드 수수료와 동일」을 유지하고, 다른 요율은 QR 기본(DEFAULT_QR) 또는 직접입력합니다. 조직 배분은 수수료관리의 QR 채널에서 따로 저장합니다.',
           rows: [
             [{ label: '본사정책 따름(QR)', type: 'select', name: 'commissionQrFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: 'QR 정책', type: 'select', name: 'hqQrPolicyScope', options: [{ v: '', t: '카드 수수료와 동일' }, { v: 'DEFAULT_QR', t: 'QR 기본 (DEFAULT_QR)' }], col: 3 }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'qrPayRate', col: 2, qrCustomOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'qrFailFee', col: 2, qrCustomOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'qrCancelRate', col: 2, qrCustomOnly: true }],
@@ -10348,13 +10512,14 @@
           '<th data-pg-ui-t="운영">운영</th><th data-pg-ui-t="착신화">착신화</th><th data-pg-ui-t="결제대행사">결제대행사</th><th data-pg-ui-t="결제구분">결제구분</th><th>MID</th><th data-pg-ui-t="루트번호">루트번호</th><th>API KEY</th><th>IV KEY</th><th data-pg-ui-t="할부">할부</th><th data-pg-ui-t="최대할부">최대할부</th><th data-pg-ui-t="카드브랜드">카드브랜드</th><th data-pg-ui-t="라우팅통화">라우팅통화</th><th data-pg-ui-t="QR">QR</th>' +
           (omitExtSettleCols ? '' : '<th data-pg-ui-title="비우면 연동(tb_pg_agency) 기본" title="비우면 연동(tb_pg_agency) 기본" data-pg-ui-t="예정모드">예정모드</th><th>N</th><th data-pg-ui-t="D시각">D시각</th>') +
           '<th data-pg-ui-t="작업">작업</th></tr></thead><tbody id="pgBindingTbody"></tbody></table>' +
-          '<p class="text-muted small mb-2" data-pg-ui-t="QR은 크립토와 별도입니다. 같은 가맹·같은 결제대행사 행에 카드브랜드와 QR 지갑을 함께 둘 수 있습니다. QR만 다른 결제대행사라면 행을 추가하고 카드브랜드를 카드 없음으로 둡니다. 그때는 본사 멀티 결제대행사를 사용으로 둡니다. 수수료는 카드와 같은 FIAT입니다. QR 승인 호출은 대행사 규격이 들어온 뒤 연결합니다.">QR은 크립토와 별도입니다. 같은 가맹·같은 결제대행사 행에 카드브랜드와 QR 지갑을 함께 둘 수 있습니다. QR만 다른 결제대행사라면 행을 추가하고 카드브랜드를 카드 없음으로 둡니다. 그때는 본사 멀티 결제대행사를 사용으로 둡니다. 수수료는 카드와 같은 FIAT입니다. QR 승인 호출은 대행사 규격이 들어온 뒤 연결합니다.</p>' +
+          '<p class="text-muted small mb-2" data-pg-ui-t="QR은 크립토·카드와 별도입니다. 같은 행에 카드브랜드+QR(PayPay·QBANG)을 함께 둘 수 있고, QR만 쓰려면 카드브랜드=없음 + QR=QBANG(또는 PayPay) 행을 둡니다. 카드+QR·카드+QR+크립토면 /checkout-all, QR만이면 /checkout-qr. 수수료는 「QR 수수료정책」·수수료관리 QR 채널(FIAT·CRYPTO와 분리)입니다.">QR은 크립토·카드와 별도입니다. 같은 행에 카드브랜드+QR(PayPay·QBANG)을 함께 둘 수 있고, QR만 쓰려면 카드브랜드=없음 + QR=QBANG(또는 PayPay) 행을 둡니다. 카드+QR·카드+QR+크립토면 /checkout-all, QR만이면 /checkout-qr. 수수료는 「QR 수수료정책」·수수료관리 QR 채널(FIAT·CRYPTO와 분리)입니다.</p>' +
           '<button type="button" class="btn btn-outline-primary btn-sm mt-2" id="pgBindingAddBtn" data-pg-ui-t="+ 결제대행사 추가">+ 결제대행사 추가</button>' +
           '<input type="hidden" name="pgBindings" id="pgBindingsHidden" value="[]"></div>';
       } else if (sec.type === 'pgInfoDisplay') {
         html += '<div id="pgInfoDisplayWrap" class="pg-info-display">' +
           '<div class="row mb-2"><div class="col-sm-3"><label class="form-label" data-pg-ui-t="웹결제">웹결제</label><select class="form-control form-control-sm" name="webPaymentUseYn"><option value="Y" data-pg-ui-t="사용">사용</option><option value="N" data-pg-ui-t="미사용">미사용</option></select></div>' +
           '<div class="col-sm-5"><label class="form-label" data-pg-ui-t="결제 URL">결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control pg-fixed-value-input" id="paymentUrlDisplay" readonly data-pg-ui-placeholder="가맹점 선택 후 조회" placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentUrlCopyBtn" data-pg-ui-t="복사">복사</button></div></div></div>' +
+          '<div class="row mb-2" id="qrPaymentUrlRow"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="QR 결제 URL">QR 결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="qrPaymentUrlDisplay" readonly data-pg-ui-placeholder="가맹점 선택 후 조회" placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="qrPaymentUrlCopyBtn" data-pg-ui-t="복사">복사</button></div></div></div>' +
           '<div class="row mb-2">' +
           '<div class="col-sm-5"><label class="form-label" data-pg-ui-t="URL 재결제 URL">URL 재결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentRepayUrlDisplay" readonly data-pg-ui-placeholder="가맹점 선택 후 조회" placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentRepayUrlCopyBtn" data-pg-ui-t="복사">복사</button></div></div></div>' +
           '<div class="row mb-2" id="paymentUnifiedUrlRow"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="통합결제 URL">통합결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUnifiedUrlDisplay" readonly data-pg-ui-placeholder="가맹점 선택 후 조회" placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentUnifiedUrlCopyBtn" data-pg-ui-t="복사">복사</button></div></div></div>' +

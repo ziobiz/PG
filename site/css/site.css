@@ -6208,6 +6208,21 @@ html.pg-admin--tablet .pg-tablet-launch-tile {
   border-bottom-color: #e5d4a0 !important;
   color: #6b5420 !important;
 }
+/* 가맹 QR결제설정 — 노란 헤더+본문 (크립토 하늘색과 구분) */
+#contentsMain .pg-merchant-qr-pastel-card > .card-header,
+.tab-pane.tabConDiv .pg-merchant-qr-pastel-card > .card-header {
+  background-color: #f7edd0 !important;
+  background-image: none !important;
+  border-bottom-color: #e5d4a0 !important;
+  color: #6b5420 !important;
+}
+#contentsMain .pg-merchant-qr-pastel-card {
+  background-color: #fbf6e6 !important;
+  border-color: #e5d4a0 !important;
+}
+#contentsMain .pg-merchant-qr-pastel-card > .card-body {
+  background-color: #fbf6e6 !important;
+}
 /* 수수료관리 목록: CRYPTO 채널일 때 그리드 카드 헤더도 하늘색 */
 #contentsMain .pg-crypto-channel-active .pg-fee-channel-content-card > .card-header,
 .tab-pane.tabConDiv.pg-crypto-channel-active .pg-fee-channel-content-card > .card-header {

@@ -1779,10 +1779,11 @@
         }
         var curHint = document.getElementById('payAmountCurrencyHint');
         if (curHint) {
-          if (!urlPayDisplayFxActive && ctx.checkoutCurrencyCode) {
-            curHint.textContent = '(' + String(ctx.checkoutCurrencyCode).trim() + ')';
-          } else if (urlPayDisplayFxActive && String(urlPayPricingMode || '').toUpperCase() === 'DISPLAY_FX_THB') {
+          if (urlPayDisplayFxActive) {
+            /* DP: 금액 옆 = 표시통화 설정값 */
             updatePayFxCurrencyHint();
+          } else if (ctx.checkoutCurrencyCode) {
+            curHint.textContent = '(' + String(ctx.checkoutCurrencyCode).trim() + ')';
           }
         }
         applyPayAmountScaleNotice();

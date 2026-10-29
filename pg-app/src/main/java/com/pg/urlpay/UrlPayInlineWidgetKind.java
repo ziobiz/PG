@@ -23,6 +23,8 @@ public final class UrlPayInlineWidgetKind {
     public static final String QXIPAY_INLINE = "QXIPAY_INLINE";
     /** OMSPAY HPP 리다이렉트({@code omspay-pay.html}) — 호스티드 결제창 */
     public static final String OMSPAY_REDIRECT = "OMSPAY_REDIRECT";
+    /** QBANG QR({@code qbang-pay.html}) — 화면 QR + 폴링 */
+    public static final String QBANG_QR = "QBANG_QR";
     /** 본사 REDIRECT 플로우 — 카드 인라인 없음 */
     public static final String REDIRECT_ONLY = "REDIRECT_ONLY";
     /** 인라인 미구현 — 안내 배너만 */

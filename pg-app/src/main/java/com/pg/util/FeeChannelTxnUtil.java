@@ -37,7 +37,12 @@ public final class FeeChannelTxnUtil {
             return false;
         }
         String channel = t.getPaymentChannel() != null ? t.getPaymentChannel().trim() : "";
-        return CommissionFeeChannel.QR.equalsIgnoreCase(channel);
+        if (CommissionFeeChannel.QR.equalsIgnoreCase(channel)) {
+            return true;
+        }
+        /* paymentChannel 누락 시 van 으로 QR 계열 보정 (QBANG·레거시 PayPay/ILK QR) */
+        String van = t.getVan() != null ? t.getVan().trim().toUpperCase(Locale.ROOT) : "";
+        return van.startsWith("QBANG") || "PAYPAY".equals(van);
     }
 
     public static String resolveChannel(PgTrnsctn t) {

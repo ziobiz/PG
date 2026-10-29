@@ -29,6 +29,14 @@ class QrWalletScopeUtilTest {
     }
 
     @Test
+    void qbangIsStoredAndChargeReady() {
+        assertEquals("QBANG", QrWalletScopeUtil.normalize(" qbang "));
+        assertTrue(QrWalletScopeUtil.matches("QBANG", "QBANG"));
+        assertTrue(QrWalletScopeUtil.isChargeReady("QBANG"));
+        assertEquals("PAYPAY,QBANG", QrWalletScopeUtil.normalize("QBANG,PAYPAY"));
+    }
+
+    @Test
     void unknownWalletIsRejected() {
         assertThrows(IllegalArgumentException.class, () -> QrWalletScopeUtil.validateOrThrow("ALIPAY"));
     }

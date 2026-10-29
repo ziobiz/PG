@@ -369,9 +369,13 @@ public class CryptoAdminService {
         MerchantCryptoConfig cfg = configRepository.findById(ou.getId())
                 .orElseGet(() -> newUnusedMerchantCryptoConfig(ou.getId()));
         cfg.setUseYn("Y".equalsIgnoreCase(str(body.get("useYn"))) ? "Y" : "N");
-        /* 결제수단 CARD/CRYPTO/BOTH 는 UI·게이트에서 제거. 레거시 컬럼은 useYn 에 맞춤(카드는 URL·PG 설정 우선). */
+        /*
+         * 결제수단 CARD/CRYPTO/BOTH UI는 제거됨. 카드는 URL·PG 바인딩이 우선.
+         * 크립토 사용(Y) 시 BOTH — CRYPTO 단독으로 두면 FIAT 수수료슬롯이 꺼져
+         * 수수료관리에서 카드 가맹이 사라지는 오류가 난다.
+         */
         cfg.setCheckoutMeans("Y".equalsIgnoreCase(cfg.getUseYn())
-                ? MerchantCryptoConfig.MEANS_CRYPTO
+                ? MerchantCryptoConfig.MEANS_BOTH
                 : MerchantCryptoConfig.MEANS_CARD);
         String settle = str(body.get("settleMode")).toUpperCase(Locale.ROOT);
         cfg.setSettleMode(MerchantCryptoConfig.SETTLE_IMMEDIATE.equals(settle)
@@ -420,10 +424,9 @@ public class CryptoAdminService {
             cfg.setSellerWalletJson(str(body.get("sellerWalletJson")));
         }
         configRepository.save(cfg);
-        /* CRYPTO 수수료 슬롯: 활성 시 DEFAULT_CRYPTO 자동 부여. 크립토전용(checkoutMeans=CRYPTO)이면 FIAT 슬롯 비활성 */
+        /* CRYPTO 수수료 슬롯 부여. 카드 PG는 별도이므로 이 경로에서는 FIAT 슬롯을 끄지 않음. */
         boolean cryptoOn = "Y".equalsIgnoreCase(cfg.getUseYn());
-        boolean cryptoOnly = cryptoOn && MerchantCryptoConfig.MEANS_CRYPTO.equalsIgnoreCase(cfg.getCheckoutMeans());
-        assignCryptoCommissionSlot(ou.getId(), cryptoOn, cryptoOnly);
+        assignCryptoCommissionSlot(ou.getId(), cryptoOn, false);
         return merchantConfig(ou.getCode());
     }
 
@@ -527,7 +530,8 @@ public class CryptoAdminService {
                 rs.put("hqCryptoPolicyScope", CommissionFeeChannel.DEFAULT_SCOPE_CRYPTO);
             }
             rs.put("fiatCommissionSlotYn", cryptoOnly ? "N" : "Y");
-        } else if (!rs.containsKey("fiatCommissionSlotYn")) {
+        } else {
+            /* 크립토 비활성 시 FIAT 슬롯 복구 — 이전 크립토전용 N이 남아 수수료관리 FIAT에서 사라지는 오류 방지 */
             rs.put("fiatCommissionSlotYn", "Y");
         }
         try {

@@ -8,11 +8,13 @@ import com.pg.service.IlkPaymentService;
 import com.pg.service.JpayPaymentService;
 import com.pg.service.QxipayPaymentService;
 import com.pg.service.OmspayPaymentService;
+import com.pg.service.QbangPaymentService;
 import com.pg.service.MerchantPayLimitService;
 import com.pg.service.MerchantPgBindingRouterService;
 import com.pg.service.PayCardPolicyService;
 import com.pg.service.UrlPayChargeResolutionService;
 import com.pg.util.CardBrandScopeUtil;
+import com.pg.util.QrWalletScopeUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 
@@ -33,11 +35,13 @@ public class UrlPaySaleDispatcher {
     private final IlkPaymentService ilkPaymentService;
     private final QxipayPaymentService qxipayPaymentService;
     private final OmspayPaymentService omspayPaymentService;
+    private final QbangPaymentService qbangPaymentService;
     private final UrlPayVendorCapabilityRegistry capabilityRegistry;
     private final UrlPayChargeResolutionService urlPayChargeResolutionService;
     private final MerchantPgBindingRouterService pgBindingRouter;
     private final PayCardPolicyService payCardPolicyService;
     private final MerchantPayLimitService merchantPayLimitService;
+    private final QrPaymentMeansService qrPaymentMeansService;
 
     public UrlPaySaleDispatcher(ChillPayService chillPayService,
                                 JpayPaymentService jpayPaymentService,
@@ -46,11 +50,13 @@ public class UrlPaySaleDispatcher {
                                 IlkPaymentService ilkPaymentService,
                                 QxipayPaymentService qxipayPaymentService,
                                 OmspayPaymentService omspayPaymentService,
+                                QbangPaymentService qbangPaymentService,
                                 UrlPayVendorCapabilityRegistry capabilityRegistry,
                                 UrlPayChargeResolutionService urlPayChargeResolutionService,
                                 MerchantPgBindingRouterService pgBindingRouter,
                                 PayCardPolicyService payCardPolicyService,
-                                MerchantPayLimitService merchantPayLimitService) {
+                                MerchantPayLimitService merchantPayLimitService,
+                                QrPaymentMeansService qrPaymentMeansService) {
         this.chillPayService = chillPayService;
         this.jpayPaymentService = jpayPaymentService;
         this.eximbayPaymentService = eximbayPaymentService;
@@ -58,11 +64,13 @@ public class UrlPaySaleDispatcher {
         this.ilkPaymentService = ilkPaymentService;
         this.qxipayPaymentService = qxipayPaymentService;
         this.omspayPaymentService = omspayPaymentService;
+        this.qbangPaymentService = qbangPaymentService;
         this.capabilityRegistry = capabilityRegistry;
         this.urlPayChargeResolutionService = urlPayChargeResolutionService;
         this.pgBindingRouter = pgBindingRouter;
         this.payCardPolicyService = payCardPolicyService;
         this.merchantPayLimitService = merchantPayLimitService;
+        this.qrPaymentMeansService = qrPaymentMeansService;
     }
 
     /**
@@ -78,6 +86,9 @@ public class UrlPaySaleDispatcher {
         String qrWallet = firstNonBlank(body, "qrWallet", "qrWalletCode");
         String payMeans = firstNonBlank(body, "payMeans", "paymentMeans");
         boolean qrSale = !qrWallet.isBlank() || "QR".equalsIgnoreCase(payMeans);
+        if (qrSale && !qrPaymentMeansService.qrMeansAllowed(orgUnitId)) {
+            return fail("QR 결제를 사용할 수 없습니다.", "QR_MEANS_DISABLED");
+        }
         if (!qrSale) {
             cardBrand = payCardPolicyService.normalizeSaleCardBrand(body);
             if (cardBrand.isBlank()) {
@@ -85,7 +96,15 @@ public class UrlPaySaleDispatcher {
             }
         } else if (qrWallet.isBlank()) {
             qrWallet = "PAYPAY";
-            body.put("qrWallet", qrWallet);
+            /* 가맹에 등록된 QR 지갑 우선(QBANG → PAYPAY) */
+            var wallets = qrPaymentMeansService.listOperationalQrWalletsIfAllowed(orgUnitId);
+            if (wallets != null && wallets.stream().anyMatch(w -> QrWalletScopeUtil.QBANG.equalsIgnoreCase(w))) {
+                qrWallet = QrWalletScopeUtil.QBANG;
+            } else if (wallets != null && wallets.stream().anyMatch(w -> QrWalletScopeUtil.PAYPAY.equalsIgnoreCase(w))) {
+                qrWallet = QrWalletScopeUtil.PAYPAY;
+            } else {
+                qrWallet = QrWalletScopeUtil.PAYPAY;
+            }
             body.put("payMeans", "QR");
         }
         String currency = firstNonBlank(body, "currency", "displayCurrency");
@@ -149,6 +168,7 @@ public class UrlPaySaleDispatcher {
             case ILK_INLINE_SALE -> ilkPaymentService.executeSale(orgUnitId, body, request, clientIp);
             case QXIPAY_INLINE_SALE -> qxipayPaymentService.executeSale(orgUnitId, body, request, clientIp);
             case OMSPAY_REDIRECT_SALE -> omspayPaymentService.startRedirect(orgUnitId, body, request, clientIp);
+            case QBANG_QR_SALE -> qbangPaymentService.startQr(orgUnitId, body, request, clientIp);
             case OX_APPROVAL_PENDING -> fail(
                     "카드 승인을 준비 중입니다. 잠시 후 다시 시도해 주세요.",
                     "APPROVAL_NOT_READY");

@@ -366,6 +366,40 @@
 
 
 
+  /** 전화번호: 선행 + 허용, 이후 숫자만(- 등 불가). */
+  function phonePlusDigitsFilter(el, maxLen, hintKey) {
+    hintKey = hintKey || 'warnPhonePlusDigits';
+    bindOnce(el, '_payGuardPhonePlus', function (input) {
+      function sanitize(v) {
+        var s = String(v || '');
+        var out = '';
+        for (var i = 0; i < s.length; i++) {
+          var c = s.charAt(i);
+          if (c === '+' && out.length === 0) out += '+';
+          else if (c >= '0' && c <= '9') out += c;
+        }
+        if (maxLen != null && maxLen > 0) out = out.substring(0, maxLen);
+        return out;
+      }
+      input.setAttribute('inputmode', input.getAttribute('inputmode') || 'tel');
+      input.addEventListener('input', function () {
+        applySanitize(input, String(input.value || ''), sanitize(input.value), hintKey);
+      });
+      input.addEventListener('paste', function (e) {
+        e.preventDefault();
+        var clip = '';
+        try { clip = (e.clipboardData || g.clipboardData).getData('text'); } catch (err) { /* ignore */ }
+        var v = sanitize(clip);
+        if (String(clip || '') !== v) showFieldHint(input, hintKey);
+        else hideFieldHint(input);
+        input.value = v;
+      });
+      input.addEventListener('blur', function () {
+        if (sanitize(input.value) === String(input.value || '')) hideFieldHint(input);
+      });
+    });
+  }
+
   function validateEnglishName(val) {
 
     var s = val != null ? String(val).trim() : '';
@@ -398,6 +432,13 @@
 
     return /^\d+$/.test(s);
 
+  }
+
+  /** + 선택 + 숫자만 (하이픈 불가). */
+  function validatePhonePlusDigits(val) {
+    var s = val != null ? String(val).trim() : '';
+    if (!s) return false;
+    return /^\+?\d{6,20}$/.test(s);
   }
 
 
@@ -522,6 +563,21 @@
 
   }
 
+  /** OMSPAY 결제창 (omspay-pay.html) — 상품명 제약 없음, 주문번호는 화면에서 readonly */
+  function initOmspayForm(form, opts) {
+    configureGuard(opts);
+    form = form || g.document.getElementById('omsForm');
+    if (!form) return;
+    var amt = query(form, 'amount');
+    var name = query(form, 'buyerName');
+    var em = query(form, 'buyerEmail');
+    var tel = query(form, 'buyerTel');
+    if (amt) amountFilter(amt);
+    if (name) englishNameFilter(name);
+    if (em) emailSanitizeFilter(em);
+    if (tel) phonePlusDigitsFilter(tel, 20, 'warnPhonePlusDigits');
+  }
+
 
 
   g.PG_PAY_FORM_INPUT_GUARD = {
@@ -532,6 +588,8 @@
 
     initLegacyJpayForm: initLegacyJpayForm,
 
+    initOmspayForm: initOmspayForm,
+
     refreshHints: refreshHints,
 
     validateEnglishName: validateEnglishName,
@@ -540,13 +598,19 @@
 
     validatePhoneDigits: validatePhoneDigits,
 
+    validatePhonePlusDigits: validatePhonePlusDigits,
+
     validateAmount: validateAmount,
 
     digitsFilter: digitsFilter,
 
+    phonePlusDigitsFilter: phonePlusDigitsFilter,
+
     englishNameFilter: englishNameFilter,
 
-    amountFilter: amountFilter
+    amountFilter: amountFilter,
+
+    emailSanitizeFilter: emailSanitizeFilter
 
   };
 

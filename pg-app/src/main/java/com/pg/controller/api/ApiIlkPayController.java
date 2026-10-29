@@ -8,6 +8,8 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.service.IlkPaymentService;
 import com.pg.service.OrgServiceUseService;
 import com.pg.urlpay.CheckoutFailI18n;
+import com.pg.urlpay.CheckoutHeaderLogoResolver;
+import com.pg.urlpay.QrPaymentMeansService;
 import com.pg.urlpay.UrlPayPublicCheckoutService;
 import com.pg.urlpay.UrlPaySaleDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,19 +33,25 @@ public class ApiIlkPayController {
     private final OrgUnitRepository orgUnitRepository;
     private final OrgServiceUseService orgServiceUseService;
     private final MerchantIlkSubscriptionRepository subscriptionRepository;
+    private final QrPaymentMeansService qrPaymentMeansService;
+    private final CheckoutHeaderLogoResolver checkoutHeaderLogoResolver;
 
     public ApiIlkPayController(IlkPaymentService ilkPaymentService,
                                UrlPaySaleDispatcher urlPaySaleDispatcher,
                                UrlPayPublicCheckoutService urlPayPublicCheckoutService,
                                OrgUnitRepository orgUnitRepository,
                                OrgServiceUseService orgServiceUseService,
-                               MerchantIlkSubscriptionRepository subscriptionRepository) {
+                               MerchantIlkSubscriptionRepository subscriptionRepository,
+                               QrPaymentMeansService qrPaymentMeansService,
+                               CheckoutHeaderLogoResolver checkoutHeaderLogoResolver) {
         this.ilkPaymentService = ilkPaymentService;
         this.urlPaySaleDispatcher = urlPaySaleDispatcher;
         this.urlPayPublicCheckoutService = urlPayPublicCheckoutService;
         this.orgUnitRepository = orgUnitRepository;
         this.orgServiceUseService = orgServiceUseService;
         this.subscriptionRepository = subscriptionRepository;
+        this.qrPaymentMeansService = qrPaymentMeansService;
+        this.checkoutHeaderLogoResolver = checkoutHeaderLogoResolver;
     }
 
     @GetMapping(value = "/checkout-context", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -60,6 +68,17 @@ public class ApiIlkPayController {
         }
         try {
             Map<String, Object> data = urlPayPublicCheckoutService.buildCheckoutContext(orgUnitId, request, false);
+            String means = request != null ? request.getParameter("payMeans") : null;
+            if (means == null || means.isBlank()) {
+                means = request != null ? request.getParameter("means") : null;
+            }
+            if ("QR".equalsIgnoreCase(means)) {
+                if (!qrPaymentMeansService.qrMeansAllowed(orgUnitId)) {
+                    return ResponseEntity.ok(ApiResponse.fail("QR 결제를 사용할 수 없습니다.", "QR_MEANS_DISABLED"));
+                }
+                checkoutHeaderLogoResolver.applyQrToCheckoutMap(data, orgUnitId);
+                data.put("payMeans", "QR");
+            }
             return ResponseEntity.ok(ApiResponse.ok(data));
         } catch (IllegalStateException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "URL_PAY_ROUTE_NOT_CONFIGURED"));

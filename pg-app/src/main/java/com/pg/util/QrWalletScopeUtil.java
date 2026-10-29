@@ -15,9 +15,11 @@ import java.util.Set;
 public final class QrWalletScopeUtil {
 
     public static final String PAYPAY = "PAYPAY";
+    /** 큐뱅(QBANG) POS QR — ILK PayPay 와 별도. */
+    public static final String QBANG = "QBANG";
 
     /** 카탈로그 순서. 승인 규격이 들어오면 여기 지갑의 chargeReady 만 켭니다. */
-    private static final List<String> CATALOG = List.of(PAYPAY);
+    private static final List<String> CATALOG = List.of(PAYPAY, QBANG);
 
     private static final Set<String> KNOWN = Set.copyOf(CATALOG);
 
@@ -74,7 +76,7 @@ public final class QrWalletScopeUtil {
             }
             if (canonicalWallet(part).isEmpty()) {
                 throw new IllegalArgumentException(
-                        "QR 지갑은 비우거나 PAYPAY 여야 합니다. 입력값=" + raw);
+                        "QR 지갑은 비우거나 PAYPAY·QBANG 이어야 합니다. 입력값=" + raw);
             }
         }
     }
@@ -96,9 +98,13 @@ public final class QrWalletScopeUtil {
         return false;
     }
 
-    /** 구매자 QR 승인에 연결된 지갑. PayPay 는 기존 ILK 승인·노티 경로를 사용합니다. */
+    /**
+     * 구매자 QR 승인에 연결된 지갑.
+     * PayPay → ILK 승인·노티, QBANG → 큐뱅 TK/QR/PL/OKAY.
+     */
     public static boolean isChargeReady(String walletRaw) {
-        return PAYPAY.equals(canonicalWallet(walletRaw));
+        String w = canonicalWallet(walletRaw);
+        return PAYPAY.equals(w) || QBANG.equals(w);
     }
 
     public static int specificityScore(String scopeRaw) {

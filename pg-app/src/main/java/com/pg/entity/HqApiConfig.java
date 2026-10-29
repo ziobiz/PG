@@ -149,6 +149,21 @@ public class HqApiConfig {
     @Column(name = "crypto_payment_header_subtitle_text_default_i18n", columnDefinition = "TEXT")
     private String cryptoPaymentHeaderSubtitleTextDefaultI18n;
 
+    /** 가맹 QR 사용 FOLLOW_HQ 시 본사 기본 Y|N */
+    @Column(name = "qr_payment_use_default_yn", nullable = false, length = 1)
+    private String qrPaymentUseDefaultYn = "Y";
+
+    /** QR 결제창 상단안내 본사 기본 — ACTIVE|DISABLED */
+    @Column(name = "qr_payment_header_subtitle_mode_default", nullable = false, length = 16)
+    private String qrPaymentHeaderSubtitleModeDefault = "ACTIVE";
+
+    @Column(name = "qr_payment_header_subtitle_text_default", length = 500)
+    private String qrPaymentHeaderSubtitleTextDefault =
+            "QR로 결제합니다. 앱에서 아래 QR을 스캔한 뒤 결제를 완료해 주세요.";
+
+    @Column(name = "qr_payment_header_subtitle_text_default_i18n", columnDefinition = "TEXT")
+    private String qrPaymentHeaderSubtitleTextDefaultI18n;
+
     /** 통합결제 노란 주의(푸터메시지) 본사 기본 — ACTIVE|DISABLED */
     @Column(name = "unified_payment_notice_mode_default", nullable = false, length = 16)
     private String unifiedPaymentNoticeModeDefault = "ACTIVE";
@@ -540,6 +555,18 @@ public class HqApiConfig {
     public void setCryptoPaymentHeaderSubtitleTextDefault(String v) { this.cryptoPaymentHeaderSubtitleTextDefault = v; }
     public String getCryptoPaymentHeaderSubtitleTextDefaultI18n() { return cryptoPaymentHeaderSubtitleTextDefaultI18n; }
     public void setCryptoPaymentHeaderSubtitleTextDefaultI18n(String v) { this.cryptoPaymentHeaderSubtitleTextDefaultI18n = v; }
+    public String getQrPaymentUseDefaultYn() { return qrPaymentUseDefaultYn; }
+    public void setQrPaymentUseDefaultYn(String v) {
+        this.qrPaymentUseDefaultYn = "N".equalsIgnoreCase(v != null ? v.trim() : "") ? "N" : "Y";
+    }
+    public String getQrPaymentHeaderSubtitleModeDefault() { return qrPaymentHeaderSubtitleModeDefault; }
+    public void setQrPaymentHeaderSubtitleModeDefault(String v) {
+        this.qrPaymentHeaderSubtitleModeDefault = nzActiveDisabled(v, "ACTIVE");
+    }
+    public String getQrPaymentHeaderSubtitleTextDefault() { return qrPaymentHeaderSubtitleTextDefault; }
+    public void setQrPaymentHeaderSubtitleTextDefault(String v) { this.qrPaymentHeaderSubtitleTextDefault = v; }
+    public String getQrPaymentHeaderSubtitleTextDefaultI18n() { return qrPaymentHeaderSubtitleTextDefaultI18n; }
+    public void setQrPaymentHeaderSubtitleTextDefaultI18n(String v) { this.qrPaymentHeaderSubtitleTextDefaultI18n = v; }
     public String getUnifiedPaymentNoticeModeDefault() { return unifiedPaymentNoticeModeDefault; }
     public void setUnifiedPaymentNoticeModeDefault(String v) {
         this.unifiedPaymentNoticeModeDefault = nzActiveDisabled(v, "ACTIVE");

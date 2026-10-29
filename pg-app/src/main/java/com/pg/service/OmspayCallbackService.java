@@ -9,7 +9,6 @@ import com.pg.integration.pg.PgVendor;
 import com.pg.integration.pg.omspay.OmspayCredentials;
 import com.pg.integration.pg.omspay.OmspaySignatureUtil;
 import com.pg.repository.PgAgencyRepository;
-import com.pg.repository.PgTrnsctnRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,20 +34,17 @@ public class OmspayCallbackService {
     private final OmspaySaleRecordService omspaySaleRecordService;
     private final MerchantOutboundNotifyService merchantOutboundNotifyService;
     private final PgAgencyRepository pgAgencyRepository;
-    private final PgTrnsctnRepository pgTrnsctnRepository;
     private final ObjectMapper objectMapper;
 
     public OmspayCallbackService(HqNotifyEnvService hqNotifyEnvService,
                                  OmspaySaleRecordService omspaySaleRecordService,
                                  MerchantOutboundNotifyService merchantOutboundNotifyService,
                                  PgAgencyRepository pgAgencyRepository,
-                                 PgTrnsctnRepository pgTrnsctnRepository,
                                  ObjectMapper objectMapper) {
         this.hqNotifyEnvService = hqNotifyEnvService;
         this.omspaySaleRecordService = omspaySaleRecordService;
         this.merchantOutboundNotifyService = merchantOutboundNotifyService;
         this.pgAgencyRepository = pgAgencyRepository;
-        this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -106,33 +102,29 @@ public class OmspayCallbackService {
         String so = text(root, "so");
         String ref1 = text(root, "ref1");
         String note = text(root, "note");
-        /* note may be absent on webhook — resolve orderNo from pending txn by OMS code */
+        String orderHint = text(root, "orderNo");
+        /* note 없을 때 SO-/pay_no/approval_no/orderNo 로 대기건 역추적 → Comp-Id */
+        Optional<PgTrnsctn> matched = omspaySaleRecordService.resolveTxnForWebhook(so, note, orderHint, ref1);
         String orderNo = note;
         String compId = "";
-        if (!so.isBlank()) {
-            Optional<PgTrnsctn> bySo = pgTrnsctnRepository.findFirstByChillTransactionIdOrderByCreatedAtDesc(so);
-            if (bySo.isPresent() && PgVendor.isOmspayFamily(bySo.get().getVan())) {
-                PgTrnsctn t = bySo.get();
-                if (orderNo.isBlank() && t.getOrderNo() != null) {
-                    orderNo = t.getOrderNo();
-                }
-                compId = t.getMerchantId() != null ? t.getMerchantId() : "";
+        if (matched.isPresent()) {
+            PgTrnsctn t = matched.get();
+            if (orderNo.isBlank() && t.getOrderNo() != null) {
+                orderNo = t.getOrderNo().trim();
             }
+            compId = t.getMerchantId() != null ? t.getMerchantId().trim() : "";
         }
         if (orderNo.isBlank()) {
-            orderNo = text(root, "orderNo");
-        }
-        if (compId.isBlank() && !orderNo.isBlank()) {
-            Optional<PgTrnsctn> byOrder = pgTrnsctnRepository.findFirstByOrderNoOrderByCreatedAtDesc(orderNo);
-            if (byOrder.isPresent() && PgVendor.isOmspayFamily(byOrder.get().getVan())) {
-                compId = byOrder.get().getMerchantId() != null ? byOrder.get().getMerchantId() : "";
-            }
+            orderNo = orderHint;
         }
 
         String payerName = text(root, "payer_name");
         Optional<PgTrnsctn> updated = Optional.empty();
         if (!orderNo.isBlank() && !compId.isBlank()) {
             updated = omspaySaleRecordService.applyPaidOutcome(orderNo, compId, so, ref1, payerName);
+        } else {
+            log.warn("OMSPAY webhook Comp-Id unresolved so={} note={} orderHint={} ref1={} ip={}",
+                    so, note, orderHint, ref1, clientIp);
         }
 
         updated.ifPresent(t -> {
@@ -156,6 +148,7 @@ public class OmspayCallbackService {
             body.put("ok", true);
             body.put("so", so);
             body.put("orderNo", orderNo);
+            body.put("compIdResolved", !compId.isBlank());
             bodyJson = objectMapper.writeValueAsString(body);
         } catch (Exception e) {
             bodyJson = "{\"ok\":true}";

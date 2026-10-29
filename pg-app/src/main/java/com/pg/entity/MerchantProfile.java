@@ -229,6 +229,20 @@ public class MerchantProfile {
     @Column(name = "crypto_payment_header_subtitle_text_i18n", columnDefinition = "TEXT")
     private String cryptoPaymentHeaderSubtitleTextI18n;
 
+    /** QR 결제 사용 — FOLLOW_HQ|Y|N (실효는 본사기본 또는 Y + 운영 WEB QR 바인딩) */
+    @Column(name = "qr_payment_use_yn", nullable = false, length = 16)
+    private String qrPaymentUseYn = "FOLLOW_HQ";
+
+    /** QR 결제창 로고 아래 안내 — FOLLOW_HQ|ACTIVE|DISABLED */
+    @Column(name = "qr_payment_header_subtitle_mode", nullable = false, length = 16)
+    private String qrPaymentHeaderSubtitleMode = "FOLLOW_HQ";
+
+    @Column(name = "qr_payment_header_subtitle_text", length = 500)
+    private String qrPaymentHeaderSubtitleText;
+
+    @Column(name = "qr_payment_header_subtitle_text_i18n", columnDefinition = "TEXT")
+    private String qrPaymentHeaderSubtitleTextI18n;
+
     /** 통합결제(수단선택) 로고 아래 안내 — FOLLOW_HQ|DEFAULT|ACTIVE|DISABLED */
     @Column(name = "unified_payment_header_subtitle_mode", nullable = false, length = 16)
     private String unifiedPaymentHeaderSubtitleMode = "FOLLOW_HQ";
@@ -881,6 +895,35 @@ public class MerchantProfile {
     public String getCryptoPaymentHeaderSubtitleTextI18n() { return cryptoPaymentHeaderSubtitleTextI18n; }
     public void setCryptoPaymentHeaderSubtitleTextI18n(String cryptoPaymentHeaderSubtitleTextI18n) {
         this.cryptoPaymentHeaderSubtitleTextI18n = cryptoPaymentHeaderSubtitleTextI18n;
+    }
+    public String getQrPaymentUseYn() { return qrPaymentUseYn; }
+    public void setQrPaymentUseYn(String qrPaymentUseYn) {
+        this.qrPaymentUseYn = normalizeQrPaymentUseYn(qrPaymentUseYn);
+    }
+    public String getQrPaymentHeaderSubtitleMode() { return qrPaymentHeaderSubtitleMode; }
+    public void setQrPaymentHeaderSubtitleMode(String qrPaymentHeaderSubtitleMode) {
+        this.qrPaymentHeaderSubtitleMode = normalizeCryptoSubtitleMode(qrPaymentHeaderSubtitleMode);
+    }
+    public String getQrPaymentHeaderSubtitleText() { return qrPaymentHeaderSubtitleText; }
+    public void setQrPaymentHeaderSubtitleText(String qrPaymentHeaderSubtitleText) {
+        this.qrPaymentHeaderSubtitleText = qrPaymentHeaderSubtitleText;
+    }
+    public String getQrPaymentHeaderSubtitleTextI18n() { return qrPaymentHeaderSubtitleTextI18n; }
+    public void setQrPaymentHeaderSubtitleTextI18n(String qrPaymentHeaderSubtitleTextI18n) {
+        this.qrPaymentHeaderSubtitleTextI18n = qrPaymentHeaderSubtitleTextI18n;
+    }
+    private static String normalizeQrPaymentUseYn(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "FOLLOW_HQ";
+        }
+        String u = raw.trim().toUpperCase(java.util.Locale.ROOT);
+        if ("N".equals(u) || "NO".equals(u) || "OFF".equals(u) || "DISABLED".equals(u)) {
+            return "N";
+        }
+        if ("Y".equals(u) || "YES".equals(u) || "ON".equals(u) || "ACTIVE".equals(u)) {
+            return "Y";
+        }
+        return "FOLLOW_HQ";
     }
     public String getUnifiedPaymentHeaderSubtitleMode() { return unifiedPaymentHeaderSubtitleMode; }
     public void setUnifiedPaymentHeaderSubtitleMode(String unifiedPaymentHeaderSubtitleMode) {

@@ -50,6 +50,9 @@ public class UrlPayVendorCapabilityRegistry {
         if (PgVendor.isOmspayFamily(pg)) {
             return omspayCapability(pg, urlPay, urlRepayAgency);
         }
+        if (PgVendor.isQbangFamily(pg)) {
+            return qbangCapability(pg, urlPay, urlRepayAgency);
+        }
         if (PgVendor.isChillPayFamily(pg) || ChillPayService.isChillPayFamilyPgCd(pg)) {
             return chillPayCapability(pg, urlPay, urlRepayAgency);
         }
@@ -82,6 +85,9 @@ public class UrlPayVendorCapabilityRegistry {
         }
         if (PgVendor.isOmspayFamily(pg)) {
             return UrlPayInlineWidgetKind.OMSPAY_REDIRECT;
+        }
+        if (PgVendor.isQbangFamily(pg)) {
+            return UrlPayInlineWidgetKind.QBANG_QR;
         }
         if (PgVendor.isChillPayFamily(pg) || ChillPayService.isChillPayFamilyPgCd(pg)) {
             return UrlPayInlineWidgetKind.CHILLPAY_CCD;
@@ -186,6 +192,20 @@ public class UrlPayVendorCapabilityRegistry {
                 "/checkout/",
                 NeutralCheckoutRoute.EMBED_SCRIPT_PATH,
                 UrlPaySaleChannel.OMSPAY_REDIRECT_SALE,
+                urlPay,
+                urlRepayAgency,
+                false);
+    }
+
+    /** QBANG — 큐뱅 POS QR (TK/QR/PL/OKAY). */
+    private UrlPayVendorCapability qbangCapability(String pg, boolean urlPay, boolean urlRepayAgency) {
+        return new UrlPayVendorCapability(
+                PgVendor.QBANG,
+                pg,
+                UrlPayInlineWidgetKind.QBANG_QR,
+                "/checkout/",
+                NeutralCheckoutRoute.EMBED_SCRIPT_PATH,
+                UrlPaySaleChannel.QBANG_QR_SALE,
                 urlPay,
                 urlRepayAgency,
                 false);

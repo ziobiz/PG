@@ -2052,6 +2052,17 @@ public class ApiHqController {
                             && !c.getCryptoPaymentHeaderSubtitleTextDefault().isBlank()
                             ? c.getCryptoPaymentHeaderSubtitleTextDefault()
                             : com.pg.urlpay.CryptoPaymentCopyDefaults.HEADER_KO);
+            data.put("qrPaymentUseDefaultYn",
+                    c.getQrPaymentUseDefaultYn() != null && !c.getQrPaymentUseDefaultYn().isBlank()
+                            ? c.getQrPaymentUseDefaultYn() : "Y");
+            data.put("qrPaymentHeaderSubtitleModeDefault",
+                    c.getQrPaymentHeaderSubtitleModeDefault() != null
+                            ? c.getQrPaymentHeaderSubtitleModeDefault() : "ACTIVE");
+            data.put("qrPaymentHeaderSubtitleTextDefault",
+                    c.getQrPaymentHeaderSubtitleTextDefault() != null
+                            && !c.getQrPaymentHeaderSubtitleTextDefault().isBlank()
+                            ? c.getQrPaymentHeaderSubtitleTextDefault()
+                            : com.pg.urlpay.QrPaymentCopyDefaults.HEADER_KO);
             data.put("unifiedPaymentNoticeModeDefault",
                     c.getUnifiedPaymentNoticeModeDefault() != null
                             ? c.getUnifiedPaymentNoticeModeDefault() : "ACTIVE");
@@ -2249,6 +2260,12 @@ public class ApiHqController {
         String cpsStr = cps != null ? cps.toString().trim() : "";
         c.setCryptoPaymentHeaderSubtitleTextDefault(cpsStr.isEmpty()
                 ? com.pg.urlpay.CryptoPaymentCopyDefaults.HEADER_KO : cpsStr);
+        c.setQrPaymentUseDefaultYn(String.valueOf(body.getOrDefault("qrPaymentUseDefaultYn", "Y")));
+        c.setQrPaymentHeaderSubtitleModeDefault(String.valueOf(body.getOrDefault("qrPaymentHeaderSubtitleModeDefault", "ACTIVE")));
+        Object qps = body.get("qrPaymentHeaderSubtitleTextDefault");
+        String qpsStr = qps != null ? qps.toString().trim() : "";
+        c.setQrPaymentHeaderSubtitleTextDefault(qpsStr.isEmpty()
+                ? com.pg.urlpay.QrPaymentCopyDefaults.HEADER_KO : qpsStr);
         c.setUnifiedPaymentNoticeModeDefault(String.valueOf(body.getOrDefault("unifiedPaymentNoticeModeDefault", "ACTIVE")));
         Object upn = body.get("unifiedPaymentNoticeTextDefault");
         String upnStr = upn != null ? upn.toString().trim() : "";
@@ -2381,6 +2398,7 @@ public class ApiHqController {
         }
         checkoutHeaderSubtitleCopyService.applyUnifiedDefaultsToHq(c);
         checkoutHeaderSubtitleCopyService.applyCryptoDefaultsToHq(c);
+        checkoutHeaderSubtitleCopyService.applyQrDefaultsToHq(c);
         hqApiConfigRepository.save(c);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다.")));
     }

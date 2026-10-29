@@ -72,6 +72,9 @@ public class SecurityConfig {
                 AntPathRequestMatcher.antMatcher("/omspay-pay"),
                 AntPathRequestMatcher.antMatcher("/omspay-pay/**"),
                 AntPathRequestMatcher.antMatcher("/omspay-pay.html"),
+                AntPathRequestMatcher.antMatcher("/qbang-pay"),
+                AntPathRequestMatcher.antMatcher("/qbang-pay/**"),
+                AntPathRequestMatcher.antMatcher("/qbang-pay.html"),
                 AntPathRequestMatcher.antMatcher("/crypto-pay"),
                 AntPathRequestMatcher.antMatcher("/crypto-pay/**"),
                 AntPathRequestMatcher.antMatcher("/crypto-pay.html"),
@@ -82,6 +85,8 @@ public class SecurityConfig {
                 AntPathRequestMatcher.antMatcher("/checkout/**"),
                 AntPathRequestMatcher.antMatcher("/checkout-crypto"),
                 AntPathRequestMatcher.antMatcher("/checkout-crypto/**"),
+                AntPathRequestMatcher.antMatcher("/checkout-qr"),
+                AntPathRequestMatcher.antMatcher("/checkout-qr/**"),
                 AntPathRequestMatcher.antMatcher("/checkout-all"),
                 AntPathRequestMatcher.antMatcher("/checkout-all/**"),
                 AntPathRequestMatcher.antMatcher("/checkout-move.html"),
@@ -126,6 +131,7 @@ public class SecurityConfig {
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/ilk/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/qxipay/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/omspay/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/qbang/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/url/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/crypto/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/split/**")).permitAll()

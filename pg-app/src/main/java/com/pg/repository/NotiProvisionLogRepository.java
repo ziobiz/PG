@@ -7,9 +7,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface NotiProvisionLogRepository extends JpaRepository<NotiProvisionLog, Long> {
+
+    List<NotiProvisionLog> findByOrgUnitIdOrderByProvisionedAtDescIdDesc(Long orgUnitId);
 
     @Query("SELECT l FROM NotiProvisionLog l WHERE "
             + "(:compId = '' OR LOWER(l.compId) LIKE LOWER(CONCAT('%', :compId, '%'))) "

@@ -10,6 +10,7 @@ import com.pg.urlpay.CheckoutBuyerContactUtil;
 import com.pg.urlpay.IcipayBuyerContactUtil;
 import com.pg.urlpay.NeutralCheckoutRoute;
 import com.pg.service.MerchantPgBindingRouterService;
+import com.pg.urlpay.QrPaymentMeansService;
 import com.pg.service.UrlPayCardCopyService;
 import com.pg.urlpay.UrlPayCheckoutDisplayPolicyService;
 import com.pg.util.OrgUseYnUtil;
@@ -47,6 +48,7 @@ public class CryptoCheckoutService {
     private final UrlPayCardCopyService urlPayCardCopyService;
     private final CryptoFxService cryptoFxService;
     private final MerchantPgBindingRouterService pgBindingRouter;
+    private final QrPaymentMeansService qrPaymentMeansService;
 
     public CryptoCheckoutService(OrgUnitRepository orgUnitRepository,
                                  MerchantProfileRepository merchantProfileRepository,
@@ -62,7 +64,8 @@ public class CryptoCheckoutService {
                                  UrlPayCheckoutDisplayPolicyService displayPolicy,
                                  UrlPayCardCopyService urlPayCardCopyService,
                                  CryptoFxService cryptoFxService,
-                                 MerchantPgBindingRouterService pgBindingRouter) {
+                                 MerchantPgBindingRouterService pgBindingRouter,
+                                 QrPaymentMeansService qrPaymentMeansService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.configRepository = configRepository;
@@ -78,6 +81,7 @@ public class CryptoCheckoutService {
         this.urlPayCardCopyService = urlPayCardCopyService;
         this.cryptoFxService = cryptoFxService;
         this.pgBindingRouter = pgBindingRouter;
+        this.qrPaymentMeansService = qrPaymentMeansService;
     }
 
     /**
@@ -377,7 +381,7 @@ public class CryptoCheckoutService {
             displayPolicy.putEffectiveYnIntoMap(data, orgUnitId);
             displayPolicy.putEffectiveDefaultProductIntoMap(data, orgUnitId, Optional.empty());
             data.put("cardMeans", pgBindingRouter.hasOperationalCardMeans(orgUnitId));
-            data.put("qrWallets", pgBindingRouter.listOperationalQrWallets(orgUnitId));
+            data.put("qrWallets", qrPaymentMeansService.listOperationalQrWalletsIfAllowed(orgUnitId));
         }
         putHeadquartersFavicon(data);
         return ok(data);

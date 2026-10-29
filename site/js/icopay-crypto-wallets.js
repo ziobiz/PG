@@ -24,6 +24,7 @@
     bitget: svg('<circle cx="16" cy="16" r="14" fill="#00F0FF"/><path d="M10 18l6-8 6 8H10z" fill="#0B3B3E"/>'),
     imtoken: svg('<circle cx="16" cy="16" r="14" fill="#11C4A1"/><path d="M10 12h12v2H10v-2zm0 4h12v2H10v-2zm2 4h8v2h-8v-2z" fill="#fff"/>'),
     card: svg('<rect x="4" y="8" width="24" height="16" rx="2" fill="#64748B"/><rect x="4" y="12" width="24" height="4" fill="#94A3B8"/><rect x="8" y="18" width="8" height="2" rx="1" fill="#E2E8F0"/>'),
+    qr: svg('<rect x="4" y="4" width="10" height="10" rx="1" fill="#EA580C"/><rect x="18" y="4" width="10" height="10" rx="1" fill="#EA580C"/><rect x="4" y="18" width="10" height="10" rx="1" fill="#EA580C"/><rect x="18" y="18" width="4" height="4" fill="#EA580C"/><rect x="24" y="18" width="4" height="4" fill="#EA580C"/><rect x="18" y="24" width="4" height="4" fill="#EA580C"/><rect x="24" y="24" width="4" height="4" fill="#EA580C"/>'),
     crypto: svg('<circle cx="16" cy="16" r="14" fill="#0F766E"/><path d="M16 8v16M11 12h8a3 3 0 010 6h-6a3 3 0 000 6h9" stroke="#fff" stroke-width="2" fill="none"/>'),
     other: svg('<circle cx="16" cy="16" r="14" fill="#94A3B8"/><text x="16" y="21" text-anchor="middle" font-size="11" font-weight="800" fill="#fff" font-family="Arial,sans-serif">…</text>'),
     /* 네트워크 — 첨부 목록 색톤 */

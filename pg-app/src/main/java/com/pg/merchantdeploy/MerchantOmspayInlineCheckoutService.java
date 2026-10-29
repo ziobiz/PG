@@ -83,10 +83,14 @@ public class MerchantOmspayInlineCheckoutService {
         if (opPg == null || !PgVendor.isOmspayFamily(opPg)) {
             return fail("URL 결제(운영) 바인딩이 없습니다.", "URL_PAYMENT_PG_MISSING");
         }
-        Optional<String> inlineDeny = integrationChannelService.denyMessage(orgUnitId,
-                MerchantApiIntegrationChannelService.Channel.API_BROKER_INLINE);
-        if (inlineDeny.isPresent()) {
-            return fail(inlineDeny.get(), MerchantApiIntegrationChannelService.CODE_INTEGRATION_CHANNEL_DISABLED);
+        /* OMSPAY는 HPP 리다이렉트 결제 — 인라인·리다이렉트 채널 중 하나만 사용이면 prepare 허용 */
+        boolean inlineOk = integrationChannelService.isInlineEffective(orgUnitId);
+        boolean redirectOk = integrationChannelService.isRedirectEffective(orgUnitId);
+        if (!inlineOk && !redirectOk) {
+            Optional<String> redirectDeny = integrationChannelService.denyMessage(orgUnitId,
+                    MerchantApiIntegrationChannelService.Channel.API_BROKER_REDIRECT);
+            return fail(redirectDeny.orElse("이 가맹점은 API 인라인·리다이렉트 연동이 모두 미사용입니다."),
+                    MerchantApiIntegrationChannelService.CODE_INTEGRATION_CHANNEL_DISABLED);
         }
 
         String orderNo = str(body.get("orderNo"));

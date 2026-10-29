@@ -11,6 +11,7 @@
   <script src="/js/checkout-header-subtitle-presets.js?v=2"></script>
   <script src="/js/url-pay-copy-phrase-i18n.js?v=1"></script>
   <script src="/js/url-pay-public-shell.js?v=20"></script>
+  <script src="/js/pay-form-input-guard.js?v=3"></script>
 </head>
 <body class="pay-inline-body">
   <div class="pay-shell">
@@ -61,7 +62,7 @@
           </div>
           <div class="pay-row" id="orderRow">
             <label class="pay-row-label mb-0" for="orderNo"><span id="lblOrder"></span></label>
-            <div class="pay-row-value"><input type="text" class="form-control form-control-sm pay-input-round" id="orderNo" maxlength="64" autocomplete="off" /></div>
+            <div class="pay-row-value"><input type="text" class="form-control form-control-sm pay-input-round" id="orderNo" maxlength="64" autocomplete="off" readonly tabindex="-1" /></div>
           </div>
         </div>
         <div id="buyerBlock">
@@ -86,11 +87,11 @@
 <script>
 (function () {
   var T = {
-    KOR: { lead: '주문·구매자 정보를 확인한 뒤 결제 페이지로 이동합니다.', pay: '결제하기', wait: '이동 중…', merchant: '가맹점', item: '상품', amount: '금액', order: '주문번호', name: '성명', email: '이메일', phone: '전화번호', hint: '위 성명은 결제내역 고객란에 사용됩니다. 다음 화면에서 카드 명의를 한 번 더 입력합니다.', brandSub: 'Secure Payment', fxCur: '표시 통화', fxEst: '예상 청구', err: '결제를 시작하지 못했습니다.', needAmt: '금액을 입력하세요.', needName: '성명을 입력하세요.', needMerchant: '가맹점을 찾을 수 없습니다.', done: '결제 결과를 확인 중입니다.', webOff: '이 가맹점은 결제 서비스가 중지로 설정되어 있습니다.', configErr: '결제 설정을 불러오지 못했습니다.' },
-    ENG: { lead: 'Confirm order and shopper details, then continue to payment.', pay: 'Pay', wait: 'Redirecting…', merchant: 'Merchant', item: 'Item', amount: 'Amount', order: 'Order no.', name: 'Name', email: 'Email', phone: 'Phone', hint: 'This name is used in the payment history customer column. On the next screen, enter the name on the card again.', brandSub: 'Secure Payment', fxCur: 'Display currency', fxEst: 'Estimated charge', err: 'Could not start payment.', needAmt: 'Enter an amount.', needName: 'Enter the name.', needMerchant: 'Merchant not found.', done: 'Checking payment result…', webOff: "This merchant's payment service is set to suspended.", configErr: 'Could not load payment settings.' },
-    JPN: { lead: '注文・購入者情報を確認してからお支払い画面へ進みます。', pay: '支払う', wait: '移動中…', merchant: '加盟店', item: '商品', amount: '金額', order: '注文番号', name: '氏名', email: 'メール', phone: '電話番号', hint: '上の氏名は決済履歴の顧客欄に使われます。次の画面でカード名義をもう一度入力します。', brandSub: 'Secure Payment', fxCur: '表示通貨', fxEst: '請求見込み', err: 'お支払いを開始できませんでした。', needAmt: '金額を入力してください。', needName: '氏名を入力してください。', needMerchant: '加盟店が見つかりません。', done: 'お支払い結果を確認しています。', webOff: 'この加盟店の決済サービスは停止に設定されています。', configErr: '決済設定を読み込めませんでした。' },
-    CHN: { lead: '请确认订单与购买人信息后进入支付页。', pay: '付款', wait: '跳转中…', merchant: '商户', item: '商品', amount: '金额', order: '订单号', name: '姓名', email: '邮箱', phone: '电话', hint: '上方姓名用于支付明细客户栏。下一屏请再输入一次卡面姓名。', brandSub: 'Secure Payment', fxCur: '显示货币', fxEst: '预计扣款', err: '无法开始付款。', needAmt: '请输入金额。', needName: '请输入姓名。', needMerchant: '找不到商户。', done: '正在确认付款结果。', webOff: '该商户的支付服务已设置为停止。', configErr: '无法加载支付设置。' },
-    THA: { lead: 'ตรวจคำสั่งซื้อและข้อมูลผู้ซื้อ แล้วไปหน้าชำระเงิน', pay: 'ชำระเงิน', wait: 'กำลังไป…', merchant: 'ร้านค้า', item: 'สินค้า', amount: 'จำนวนเงิน', order: 'เลขคำสั่งซื้อ', name: 'ชื่อ', email: 'อีเมล', phone: 'โทรศัพท์', hint: 'ชื่อด้านบนใช้ในคอลัมน์ลูกค้าของประวัติชำระเงิน ในหน้าถัดไปให้กรอกชื่อบนบัตรอีกครั้ง', brandSub: 'Secure Payment', fxCur: 'สกุลเงินแสดง', fxEst: 'ยอดโดยประมาณ', err: 'เริ่มชำระเงินไม่สำเร็จ', needAmt: 'กรอกจำนวนเงิน', needName: 'กรอกชื่อ', needMerchant: 'ไม่พบร้านค้า', done: 'กำลังตรวจผลชำระเงิน', webOff: 'บริการชำระเงินของร้านค้านี้ถูกตั้งค่าเป็นระงับ', configErr: 'โหลดการตั้งค่าชำระเงินไม่สำเร็จ' }
+    KOR: { lead: '주문·구매자 정보를 확인한 뒤 결제 페이지로 이동합니다.', pay: '결제하기', wait: '이동 중…', merchant: '가맹점', item: '상품', amount: '금액', order: '주문번호', name: '성명', email: '이메일', phone: '전화번호', hint: '위 성명은 결제내역 고객란에 사용됩니다. 다음 화면에서 카드 명의를 한 번 더 입력합니다.', brandSub: 'Secure Payment', fxCur: '표시 통화', fxEst: '예상 청구', err: '결제를 시작하지 못했습니다.', needAmt: '금액을 입력하세요.', needName: '성명을 입력하세요.', needMerchant: '가맹점을 찾을 수 없습니다.', needFxQuote: '환율 견적을 불러오지 못했습니다. 페이지를 새로고침한 뒤 다시 시도하세요.', errNameEn: '성명은 영문만 입력하세요.', errEmailFormat: '올바른 이메일 형식을 입력하세요.', errPhoneFormat: '전화번호는 +와 숫자만 입력하세요(- 불가).', warnEnglishOnly: '영어 알파벳만 입력 가능합니다.', warnAmountOnly: '숫자만 입력 가능합니다.', warnEmailChars: '이메일에 사용할 수 있는 문자만 입력 가능합니다.', warnPhonePlusDigits: '전화번호는 +와 숫자만 입력 가능합니다.', done: '결제 결과를 확인 중입니다.', payComplete: '결제 완료', payFailed: '결제 실패', paid: '결제가 완료되었습니다.', payAwaiting: '결제 확인 중', payAwaitingDetail: '승인을 확인하고 있습니다. 잠시만 기다려 주세요.', resultClose: '닫기', resultRetry: '다시 결제', webOff: '이 가맹점은 결제 서비스가 중지로 설정되어 있습니다.', configErr: '결제 설정을 불러오지 못했습니다.' },
+    ENG: { lead: 'Confirm order and shopper details, then continue to payment.', pay: 'Pay', wait: 'Redirecting…', merchant: 'Merchant', item: 'Item', amount: 'Amount', order: 'Order no.', name: 'Name', email: 'Email', phone: 'Phone', hint: 'This name is used in the payment history customer column. On the next screen, enter the name on the card again.', brandSub: 'Secure Payment', fxCur: 'Display currency', fxEst: 'Estimated charge', err: 'Could not start payment.', needAmt: 'Enter an amount.', needName: 'Enter the name.', needMerchant: 'Merchant not found.', needFxQuote: 'FX quote is missing or expired. Refresh the page and try again.', errNameEn: 'Enter the name in English letters only.', errEmailFormat: 'Enter a valid email address.', errPhoneFormat: 'Phone allows + and digits only (no hyphens).', warnEnglishOnly: 'Only English letters are allowed.', warnAmountOnly: 'Only numbers are allowed.', warnEmailChars: 'Only characters valid for email are allowed.', warnPhonePlusDigits: 'Phone allows + and digits only.', done: 'Checking payment result…', payComplete: 'Payment complete', payFailed: 'Payment failed', paid: 'Payment completed.', payAwaiting: 'Confirming payment', payAwaitingDetail: 'We are confirming the approval. Please wait.', resultClose: 'Close', resultRetry: 'Pay again', webOff: "This merchant's payment service is set to suspended.", configErr: 'Could not load payment settings.' },
+    JPN: { lead: '注文・購入者情報を確認してからお支払い画面へ進みます。', pay: '支払う', wait: '移動中…', merchant: '加盟店', item: '商品', amount: '金額', order: '注文番号', name: '氏名', email: 'メール', phone: '電話番号', hint: '上の氏名は決済履歴の顧客欄に使われます。次の画面でカード名義をもう一度入力します。', brandSub: 'Secure Payment', fxCur: '表示通貨', fxEst: '請求見込み', err: 'お支払いを開始できませんでした。', needAmt: '金額を入力してください。', needName: '氏名を入力してください。', needMerchant: '加盟店が見つかりません。', needFxQuote: '為替見積がありません。ページを再読み込みしてから再度お試しください。', errNameEn: '氏名は英字のみ入力してください。', errEmailFormat: '正しいメール形式で入力してください。', errPhoneFormat: '電話番号は+と数字のみ（ハイフン不可）。', warnEnglishOnly: '英字のみ入力できます。', warnAmountOnly: '数字のみ入力できます。', warnEmailChars: 'メールに使用できる文字のみ入力できます。', warnPhonePlusDigits: '電話番号は+と数字のみ入力できます。', done: 'お支払い結果を確認しています。', payComplete: '決済完了', payFailed: '決済失敗', paid: 'お支払いが完了しました。', payAwaiting: '決済確認中', payAwaitingDetail: '承認を確認しています。しばらくお待ちください。', resultClose: '閉じる', resultRetry: 'もう一度支払う', webOff: 'この加盟店の決済サービスは停止に設定されています。', configErr: '決済設定を読み込めませんでした。' },
+    CHN: { lead: '请确认订单与购买人信息后进入支付页。', pay: '付款', wait: '跳转中…', merchant: '商户', item: '商品', amount: '金额', order: '订单号', name: '姓名', email: '邮箱', phone: '电话', hint: '上方姓名用于支付明细客户栏。下一屏请再输入一次卡面姓名。', brandSub: 'Secure Payment', fxCur: '显示货币', fxEst: '预计扣款', err: '无法开始付款。', needAmt: '请输入金额。', needName: '请输入姓名。', needMerchant: '找不到商户。', needFxQuote: '汇率报价无效或已过期。请刷新页面后重试。', errNameEn: '姓名请仅用英文字母。', errEmailFormat: '请输入有效的邮箱地址。', errPhoneFormat: '电话仅允许 + 与数字（不可用连字符）。', warnEnglishOnly: '只能输入英文字母。', warnAmountOnly: '只能输入数字。', warnEmailChars: '只能输入邮箱允许的字符。', warnPhonePlusDigits: '电话仅允许 + 与数字。', done: '正在确认付款结果。', payComplete: '支付完成', payFailed: '支付失败', paid: '支付已完成。', payAwaiting: '正在确认支付', payAwaitingDetail: '正在确认授权，请稍候。', resultClose: '关闭', resultRetry: '重新支付', webOff: '该商户的支付服务已设置为停止。', configErr: '无法加载支付设置。' },
+    THA: { lead: 'ตรวจคำสั่งซื้อและข้อมูลผู้ซื้อ แล้วไปหน้าชำระเงิน', pay: 'ชำระเงิน', wait: 'กำลังไป…', merchant: 'ร้านค้า', item: 'สินค้า', amount: 'จำนวนเงิน', order: 'เลขคำสั่งซื้อ', name: 'ชื่อ', email: 'อีเมล', phone: 'โทรศัพท์', hint: 'ชื่อด้านบนใช้ในคอลัมน์ลูกค้าของประวัติชำระเงิน ในหน้าถัดไปให้กรอกชื่อบนบัตรอีกครั้ง', brandSub: 'Secure Payment', fxCur: 'สกุลเงินแสดง', fxEst: 'ยอดโดยประมาณ', err: 'เริ่มชำระเงินไม่สำเร็จ', needAmt: 'กรอกจำนวนเงิน', needName: 'กรอกชื่อ', needMerchant: 'ไม่พบร้านค้า', needFxQuote: 'ใบเสนออัตราแลกเปลี่ยนหมดอายุหรือไม่มี กรุณารีเฟรชหน้าแล้วลองใหม่', errNameEn: 'กรอกชื่อเป็นตัวอักษรภาษาอังกฤษเท่านั้น', errEmailFormat: 'กรอกอีเมลให้ถูกต้อง', errPhoneFormat: 'โทรศัพท์ใช้ได้เฉพาะ + และตัวเลข (ห้าม -)', warnEnglishOnly: 'ใช้ได้เฉพาะตัวอักษรอังกฤษ', warnAmountOnly: 'ใช้ได้เฉพาะตัวเลข', warnEmailChars: 'ใช้ได้เฉพาะอักขระที่ใช้อีเมลได้', warnPhonePlusDigits: 'โทรศัพท์ใช้ได้เฉพาะ + และตัวเลข', done: 'กำลังตรวจผลชำระเงิน', payComplete: 'ชำระเงินสำเร็จ', payFailed: 'ชำระเงินล้มเหลว', paid: 'ชำระเงินเสร็จแล้ว', payAwaiting: 'กำลังยืนยันการชำระ', payAwaitingDetail: 'กำลังยืนยันการอนุมัติ กรุณารอสักครู่', resultClose: 'ปิด', resultRetry: 'ชำระอีกครั้ง', webOff: 'บริการชำระเงินของร้านค้านี้ถูกตั้งค่าเป็นระงับ', configErr: 'โหลดการตั้งค่าชำระเงินไม่สำเร็จ' }
   };
 
   var q = new URLSearchParams(location.search);
@@ -120,7 +121,8 @@
   var USE_PHONE = true;
   var USE_PRODUCT = true;
   var urlPayDisplayFxActive = false;
-  var fxShellState = { urlPayFxQuote: null, urlPayFxReloadTimer: null };
+  var urlPayPricingMode = 'CHECKOUT_CURRENCY';
+  var fxShellState = { urlPayFxQuote: null, urlPayFxReloadTimer: null, operationalPgCd: '' };
 
   function t(k) { return (pack && pack[k]) || k; }
   function applyLabels() {
@@ -139,8 +141,14 @@
     document.getElementById('lblFxEst').textContent = t('fxEst');
     var sub = document.getElementById('omsBrandSub');
     if (sub && !sub.getAttribute('data-locked')) sub.textContent = t('brandSub');
+    if (window.PG_PAY_FORM_INPUT_GUARD && PG_PAY_FORM_INPUT_GUARD.refreshHints) {
+      PG_PAY_FORM_INPUT_GUARD.refreshHints(document.getElementById('omsForm'));
+    }
   }
   applyLabels();
+  if (window.PG_PAY_FORM_INPUT_GUARD && PG_PAY_FORM_INPUT_GUARD.initOmspayForm) {
+    PG_PAY_FORM_INPUT_GUARD.initOmspayForm(document.getElementById('omsForm'), { t: t });
+  }
 
   document.querySelectorAll('#omsLangGroup button').forEach(function (btn) {
     btn.addEventListener('click', function () {
@@ -256,16 +264,27 @@
       var defName = ctx.defaultProductName || ctx.productName || '';
       if (defName) itemEl.value = String(defName).trim();
     }
-    var cur = ctx.checkoutCurrencyCode || ctx.currency || '';
-    var hint = document.getElementById('payAmountCurrencyHint');
-    if (hint && cur) hint.textContent = '(' + String(cur).trim().toUpperCase() + ')';
-
     urlPayDisplayFxActive = ctx.urlPayDisplayFxActive === true;
+    urlPayPricingMode = String(ctx.urlPayPricingMode || 'CHECKOUT_CURRENCY').toUpperCase();
+    /* DP: 금액 옆 = 표시통화 설정값. STANDARD: 체크아웃/정산통화 */
+    if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyPayAmountCurrencyHint) {
+      PG_URL_PAY_SHELL.applyPayAmountCurrencyHint(ctx);
+    } else {
+      var cur0 = urlPayDisplayFxActive
+        ? (ctx.urlPayDisplayFxDefaultDisplayCurrency || '')
+        : (ctx.checkoutCurrencyCode || ctx.currency || '');
+      var hint0 = document.getElementById('payAmountCurrencyHint');
+      if (hint0 && cur0) hint0.textContent = '(' + String(cur0).trim().toUpperCase() + ')';
+    }
+
     /* 일반형(STANDARD)이어도 항상 init — 비활성 시 Display currency/Estimated charge 행을 숨김 */
     if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.initDisplayFx) {
       fxShellState.checkoutCtx = ctx;
       fxShellState.compId = document.getElementById('compIdHidden').value || getCompId();
       fxShellState.urlPayDisplayFxActive = urlPayDisplayFxActive;
+      fxShellState.operationalPgCd = String(
+        ctx.urlPayOperationalPgCd || ctx.urlPayDisplayFxQuotePgCd || ''
+      ).trim();
       fxShellState.apiUrl = function (path, qs) {
         var u = path || '';
         if (qs) u += (u.indexOf('?') >= 0 ? '&' : '?') + qs;
@@ -304,12 +323,35 @@
       document.getElementById('orderNo').readOnly = true;
       lockedOrder = true;
     }
-    var cur = data.displayCurrency || data.currency || data.checkoutCurrencyCode || '';
-    if (cur) document.getElementById('payAmountCurrencyHint').textContent = '(' + String(cur).toUpperCase() + ')';
+    /* DP: 표시통화 설정(또는 세션 displayCurrency). 정산통화로 덮어쓰지 않음 */
+    if (urlPayDisplayFxActive) {
+      var dcur = String(data.displayCurrency || '').trim().toUpperCase();
+      if (dcur) {
+        document.getElementById('payAmountCurrencyHint').textContent = '(' + dcur + ')';
+      } else if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyPayAmountCurrencyHint && fxShellState.checkoutCtx) {
+        PG_URL_PAY_SHELL.applyPayAmountCurrencyHint(fxShellState.checkoutCtx);
+      }
+    } else {
+      var cur = data.displayCurrency || data.currency || data.checkoutCurrencyCode || '';
+      if (cur) document.getElementById('payAmountCurrencyHint').textContent = '(' + String(cur).toUpperCase() + ')';
+    }
     var b = pickBuyer(data);
-    if (b.name) document.getElementById('buyerName').value = String(b.name).trim();
-    if (b.email) document.getElementById('buyerEmail').value = String(b.email).trim();
-    if (b.tel) document.getElementById('buyerTel').value = String(b.tel).trim();
+    if (b.name) {
+      document.getElementById('buyerName').value = String(b.name).trim().replace(/[^A-Za-z '\-]/g, '');
+    }
+    if (b.email) {
+      document.getElementById('buyerEmail').value = String(b.email).trim().replace(/[^a-zA-Z0-9._%+\-@]/g, '');
+    }
+    if (b.tel) {
+      var telRaw = String(b.tel).trim();
+      var telOut = '';
+      for (var ti = 0; ti < telRaw.length; ti++) {
+        var tc = telRaw.charAt(ti);
+        if (tc === '+' && telOut.length === 0) telOut += '+';
+        else if (tc >= '0' && tc <= '9') telOut += tc;
+      }
+      document.getElementById('buyerTel').value = telOut;
+    }
     if ((q.get('session') || '').trim() && b.name) {
       document.getElementById('buyerBlock').classList.add('d-none');
     }
@@ -318,20 +360,119 @@
   function ensureOrderNo() {
     var el = document.getElementById('orderNo');
     if (!el.value.trim()) el.value = buildOrderNo(document.getElementById('compIdHidden').value || getCompId());
+    el.readOnly = true;
+    lockedOrder = true;
   }
 
-  if (q.get('done') === '1') {
-    document.getElementById('omsLead').textContent = t('done');
+  var isReturnMode = q.get('done') === '1' || q.get('omspayReturn') === '1'
+    || String(q.get('outcome') || '').toLowerCase() === 'return';
+  var returnOrderNo = (q.get('orderNo') || q.get('OrderNo') || '').trim();
+  try {
+    if (!returnOrderNo) {
+      var pend = sessionStorage.getItem('pg_omspay_pending');
+      if (pend) {
+        var pj = JSON.parse(pend);
+        if (pj && pj.orderNo) returnOrderNo = String(pj.orderNo).trim();
+        if (pj && pj.compId && !getCompId()) {
+          document.getElementById('compIdHidden').value = String(pj.compId).trim();
+        }
+      }
+    }
+  } catch (ePend) { /* ignore */ }
+
+  function renderOmsResult(state) {
+    state = state || {};
     document.getElementById('omsForm').style.display = 'none';
-    document.getElementById('payResult').style.display = '';
-    document.getElementById('payResult').innerHTML = '<div class="pay-result-title">' + t('done') + '</div>';
+    var lead = document.getElementById('omsLead');
+    if (lead) lead.style.display = 'none';
+    var sub = document.getElementById('omsBrandSub');
+    if (sub) {
+      sub.textContent = t('brandSub');
+      sub.setAttribute('data-locked', '1');
+    }
+    var el = document.getElementById('payResult');
+    el.style.display = 'block';
+    var ok = !!state.ok;
+    var awaiting = !!state.awaiting;
+    el.className = awaiting ? 'wait pay-result-final' : (ok ? 'ok pay-result-final' : 'err pay-result-final');
+    var title = awaiting ? t('payAwaiting') : (ok ? t('payComplete') : t('payFailed'));
+    var body = awaiting ? t('payAwaitingDetail') : (ok ? t('paid') : t('err'));
+    var orderLine = state.orderNo
+      ? ('<p class="small text-muted mb-2">' + t('order') + ': <strong>' + String(state.orderNo).replace(/</g, '') + '</strong></p>')
+      : '';
+    var actions = '<div class="pay-result-btn-row mt-3">'
+      + '<button type="button" class="btn btn-primary btn-pay pay-result-confirm-btn" id="omsResultRetryBtn">' + t('resultRetry') + '</button>'
+      + '<button type="button" class="btn btn-outline-secondary btn-pay pay-result-confirm-btn" id="omsResultCloseBtn">' + t('resultClose') + '</button>'
+      + '</div>';
+    el.innerHTML = '<div class="pay-result-title">' + title + '</div>' + orderLine + '<p>' + body + '</p>' + actions;
+    var retry = document.getElementById('omsResultRetryBtn');
+    var closeBtn = document.getElementById('omsResultCloseBtn');
+    if (retry) {
+      retry.addEventListener('click', function () {
+        var cid = (document.getElementById('compIdHidden').value || getCompId() || '').trim();
+        location.href = cid ? ('/checkout/' + encodeURIComponent(cid)) : '/omspay-pay.html';
+      });
+    }
+    if (closeBtn) {
+      closeBtn.addEventListener('click', function () {
+        try { window.close(); } catch (eC) { /* ignore */ }
+        var cid = (document.getElementById('compIdHidden').value || getCompId() || '').trim();
+        if (cid) location.href = '/checkout/' + encodeURIComponent(cid);
+      });
+    }
+  }
+
+  function pollOmsReturnResult() {
+    var cid = (document.getElementById('compIdHidden').value || getCompId() || '').trim();
+    var on = returnOrderNo;
+    if (!cid || !on) {
+      renderOmsResult({ ok: false, awaiting: false, orderNo: on });
+      return;
+    }
+    renderOmsResult({ ok: false, awaiting: true, orderNo: on });
+    var tries = 0;
+    var maxTries = 24;
+    function tick() {
+      tries += 1;
+      var qs = 'compId=' + encodeURIComponent(cid) + '&orderNo=' + encodeURIComponent(on);
+      fetch('/api/pay/omspay/result-status?' + qs, { credentials: 'same-origin', cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (body) {
+          var d = body && body.data ? body.data : null;
+          if (body && body.success && d && d.paid === true) {
+            try { sessionStorage.removeItem('pg_omspay_pending'); } catch (eR) { /* ignore */ }
+            renderOmsResult({ ok: true, awaiting: false, orderNo: d.orderNo || on });
+            return;
+          }
+          if (body && body.success && d && d.paymentStatus === 'FAIL') {
+            renderOmsResult({ ok: false, awaiting: false, orderNo: d.orderNo || on });
+            return;
+          }
+          if (tries < maxTries) {
+            setTimeout(tick, 2500);
+          } else {
+            /* 웹훅 지연 — 복귀 직후이므로 완료로 안내(Beam 성공 후 return) */
+            renderOmsResult({ ok: true, awaiting: false, orderNo: on });
+          }
+        })
+        .catch(function () {
+          if (tries < maxTries) setTimeout(tick, 2500);
+          else renderOmsResult({ ok: true, awaiting: false, orderNo: on });
+        });
+    }
+    tick();
   }
 
   var session = (q.get('session') || '').trim();
   var comp = getCompId();
   if (comp) document.getElementById('compIdHidden').value = comp;
 
+  if (isReturnMode) {
+    pollOmsReturnResult();
+  }
+
   function loadContext() {
+    if (isReturnMode) return Promise.resolve();
     if (session) {
       return fetch('/api/middleware/v1/merchant/checkout/session?token=' + encodeURIComponent(session), { credentials: 'same-origin' })
         .then(function (r) { return r.json(); })
@@ -373,17 +514,20 @@
           compId: body.data.compId || comp,
           productName: body.data.defaultProductName || '',
           currency: body.data.checkoutCurrencyCode || '',
+          displayCurrency: body.data.urlPayDisplayFxActive === true
+            ? String(body.data.urlPayDisplayFxDefaultDisplayCurrency || '').trim()
+            : '',
           orderNo: q.get('orderNo') || '',
           amount: q.get('amount') || '',
           buyer: body.data.buyerPrefill || body.data.buyer || null
         });
-        if (!lockedOrder) ensureOrderNo();
+        ensureOrderNo();
       })
       .catch(function () { showConfigError(t('configErr')); });
   }
 
   loadContext().then(function () {
-    if (session && q.get('done') !== '1') {
+    if (session && !isReturnMode) {
       var hasName = !!(document.getElementById('buyerName').value || '').trim()
         || document.getElementById('buyerBlock').classList.contains('d-none');
       if (hasName && lockedAmount) {
@@ -403,38 +547,83 @@
     if (!cid) { showConfigError(t('needMerchant')); return; }
     ensureOrderNo();
     var amount = document.getElementById('amount').value;
-    if (amount == null || String(amount).trim() === '' || Number(amount) <= 0) {
+    var pfg = window.PG_PAY_FORM_INPUT_GUARD;
+    if (pfg && pfg.validateAmount) {
+      if (!pfg.validateAmount(amount)) { alert(t('needAmt')); return; }
+    } else if (amount == null || String(amount).trim() === '' || Number(amount) <= 0) {
       alert(t('needAmt'));
       return;
     }
+    var buyerHidden = document.getElementById('buyerBlock').classList.contains('d-none');
     var buyerName = document.getElementById('buyerName').value.trim();
-    if (!document.getElementById('buyerBlock').classList.contains('d-none') && !buyerName) {
-      alert(t('needName'));
-      return;
+    if (!buyerHidden) {
+      if (!buyerName) { alert(t('needName')); return; }
+      if (pfg && pfg.validateEnglishName && !pfg.validateEnglishName(buyerName)) {
+        alert(t('errNameEn'));
+        return;
+      }
+      if (USE_EMAIL) {
+        var emVal = document.getElementById('buyerEmail').value.trim();
+        if (emVal && pfg && pfg.validateEmail && !pfg.validateEmail(emVal)) {
+          alert(t('errEmailFormat'));
+          return;
+        }
+      }
+      if (USE_PHONE) {
+        var telVal = document.getElementById('buyerTel').value.trim();
+        if (telVal && pfg && pfg.validatePhonePlusDigits && !pfg.validatePhonePlusDigits(telVal)) {
+          alert(t('errPhoneFormat'));
+          return;
+        }
+      }
     }
     var btn = document.getElementById('submitBtn');
     btn.disabled = true;
     btn.textContent = t('wait');
+    var settleCur = (sessionData.settlementCurrency
+      || (checkoutCtx && (checkoutCtx.urlPaySettlementCurrencyCode || checkoutCtx.checkoutCurrencyCode))
+      || 'THB');
+    settleCur = String(settleCur).trim().toUpperCase() || 'THB';
     var payload = {
       compId: cid,
       orderNo: document.getElementById('orderNo').value.trim(),
       amount: amount,
-      currency: (sessionData.currency || sessionData.settlementCurrency
-        || (checkoutCtx && (checkoutCtx.urlPaySettlementCurrencyCode || checkoutCtx.checkoutCurrencyCode))
-        || 'THB'),
+      currency: settleCur,
       productName: document.getElementById('item').value.trim(),
       customerNm: buyerName || (sessionData.customerNm || ''),
       payEmailAddress: USE_EMAIL ? document.getElementById('buyerEmail').value.trim() : '',
       payTelephone: USE_PHONE ? document.getElementById('buyerTel').value.trim() : '',
       sessionToken: document.getElementById('sessionTokenHidden').value || session || '',
-      returnUrl: location.origin + '/checkout/' + encodeURIComponent(cid)
-        + '?orderNo=' + encodeURIComponent(document.getElementById('orderNo').value.trim())
-        + '&omspay=1&done=1'
+      /* 직접 결제결과 화면 — /checkout forward 시 done·orderNo 유실 방지 */
+      returnUrl: location.origin + '/omspay-pay.html'
+        + '?m=' + encodeURIComponent(cid)
+        + '&orderNo=' + encodeURIComponent(document.getElementById('orderNo').value.trim())
+        + '&omspay=1&omspayReturn=1&done=1'
     };
-    if (urlPayDisplayFxActive && fxShellState.urlPayFxQuote) {
-      payload.displayCurrency = fxShellState.urlPayFxQuote.displayCurrency || '';
-      payload.shopperDisplayAmount = fxShellState.urlPayFxQuote.displayAmount;
-      payload.shopperDisplayCurrency = fxShellState.urlPayFxQuote.displayCurrency;
+    /* DP: 표시금액 + 견적 토큰 필수(미전송 시 INVALID_FX_QUOTE) */
+    if (urlPayDisplayFxActive && urlPayPricingMode === 'DISPLAY_FX_THB') {
+      var fxQ = fxShellState.urlPayFxQuote;
+      if (!fxQ || (!fxQ.fxQuoteToken && fxQ.oneToOneDisplaySettlement !== true)) {
+        alert(t('needFxQuote') || '환율 견적을 불러오지 못했습니다. 페이지를 새로고침한 뒤 다시 시도하세요.');
+        btn.disabled = false;
+        btn.textContent = t('pay');
+        return;
+      }
+      payload.urlPayPricingMode = 'DISPLAY_FX_THB';
+      payload.displayAmount = String(amount).replace(/,/g, '').trim();
+      payload.amount = payload.displayAmount;
+      payload.displayCurrency = (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.payFxResolvedDisplayCurrency && checkoutCtx)
+        ? PG_URL_PAY_SHELL.payFxResolvedDisplayCurrency(checkoutCtx)
+        : String((fxQ && fxQ.displayCurrency) || (checkoutCtx && checkoutCtx.urlPayDisplayFxDefaultDisplayCurrency) || 'USD').trim().toUpperCase();
+      if (fxQ.fxQuoteToken) payload.fxQuoteToken = String(fxQ.fxQuoteToken);
+      if (fxQ.settlementCurrency) {
+        payload.currency = String(fxQ.settlementCurrency).trim().toUpperCase();
+      }
+      if (fxShellState.operationalPgCd) {
+        payload.operationalPgCd = String(fxShellState.operationalPgCd).trim();
+      } else if (checkoutCtx && checkoutCtx.urlPayOperationalPgCd) {
+        payload.operationalPgCd = String(checkoutCtx.urlPayOperationalPgCd).trim();
+      }
     }
     fetch('/api/pay/omspay/start', {
       method: 'POST',
@@ -448,6 +637,13 @@
       }
       var data = body && (body.data || body);
       if (body && body.success && data && (data.redirectUrl || data.paymentUrl)) {
+        try {
+          sessionStorage.setItem('pg_omspay_pending', JSON.stringify({
+            orderNo: document.getElementById('orderNo').value.trim(),
+            compId: cid,
+            omsOrderCode: data.omsOrderCode || ''
+          }));
+        } catch (eSs) { /* ignore */ }
         location.href = data.redirectUrl || data.paymentUrl;
         return;
       }

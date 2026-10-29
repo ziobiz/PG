@@ -6,6 +6,7 @@ import com.pg.integration.pg.PgVendor;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.util.PgTrnsctnOrderLookup;
+import com.pg.util.UrlPaySaleTxnFieldApplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -37,6 +39,16 @@ public class OmspaySaleRecordService {
                                      String productName, String omsOrderCode, String txnOrigin,
                                      BigDecimal shopperDisplayAmount, String shopperDisplayCurrency,
                                      String buyerName, String buyerEmail, String buyerTel) {
+        recordOrTouchPending(orgUnitId, orderNo, amount, currency, productName, omsOrderCode, txnOrigin,
+                shopperDisplayAmount, shopperDisplayCurrency, buyerName, buyerEmail, buyerTel, null);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void recordOrTouchPending(Long orgUnitId, String orderNo, BigDecimal amount, String currency,
+                                     String productName, String omsOrderCode, String txnOrigin,
+                                     BigDecimal shopperDisplayAmount, String shopperDisplayCurrency,
+                                     String buyerName, String buyerEmail, String buyerTel,
+                                     Map<String, Object> saleBody) {
         try {
             Optional<OrgUnit> ouOpt = orgUnitRepository.findById(orgUnitId);
             if (ouOpt.isEmpty() || orderNo == null || orderNo.isBlank()) {
@@ -89,16 +101,104 @@ public class OmspaySaleRecordService {
                 t.setDisplayCurType(shopperDisplayCurrency.trim().toUpperCase());
             }
             t.setPaymentChannel("CARD");
+            if (saleBody != null && !saleBody.isEmpty()) {
+                UrlPaySaleTxnFieldApplier.apply(t, saleBody);
+                UrlPaySaleTxnFieldApplier.ensureUrlWebDevice(t, txnOrigin);
+            } else {
+                UrlPaySaleTxnFieldApplier.ensureUrlWebDevice(t, txnOrigin);
+            }
             pgTrnsctnRepository.save(t);
         } catch (Exception e) {
             log.warn("OMSPAY pending txn 실패: {}", e.getMessage());
         }
     }
 
+    /** 구매자 결과 폴링용 — 가맹 MID + 주문번호로 OMSPAY 거래 조회. */
+    public Optional<PgTrnsctn> findByMerchantAndOrder(String merchantId, String orderNo) {
+        if (merchantId == null || merchantId.isBlank() || orderNo == null || orderNo.isBlank()) {
+            return Optional.empty();
+        }
+        Optional<PgTrnsctn> txn = PgTrnsctnOrderLookup.findPreferredByMerchantAndOrder(
+                pgTrnsctnRepository, merchantId.trim(), orderNo.trim());
+        if (txn.isEmpty()) {
+            return Optional.empty();
+        }
+        if (!PgVendor.isOmspayFamily(txn.get().getVan()) && !acceptOmspayLookup(txn.get())) {
+            return Optional.empty();
+        }
+        return txn;
+    }
+
     @Transactional
     public Optional<PgTrnsctn> applyPaidOutcome(String orderNo, String compId, String omsOrderCode,
                                                 String paymentRef) {
         return applyPaidOutcome(orderNo, compId, omsOrderCode, paymentRef, null);
+    }
+
+    /**
+     * Waylar order-paid 웹훅에서 대기/승인 거래 역추적.
+     * {@code so} → chill_transaction_id / pay_no / approval_no, {@code note}·orderNo → 주문번호.
+     * OMSPAY van 우선, SO 코드로 유일하게 잡히면 van 이 비어 있어도 허용(헤더 Comp-Id 용).
+     */
+    public Optional<PgTrnsctn> resolveTxnForWebhook(String so, String note, String orderNoHint, String ref1) {
+        String oms = so != null ? so.trim() : "";
+        if (!oms.isBlank()) {
+            Optional<PgTrnsctn> byChill = pgTrnsctnRepository.findFirstByChillTransactionIdOrderByCreatedAtDesc(oms);
+            if (byChill.isPresent() && acceptOmspayLookup(byChill.get())) {
+                return byChill;
+            }
+            Optional<PgTrnsctn> byPay = pgTrnsctnRepository.findFirstByPayNoOrderByCreatedAtDesc(oms);
+            if (byPay.isPresent() && acceptOmspayLookup(byPay.get())) {
+                return byPay;
+            }
+            Optional<PgTrnsctn> byAppr = pgTrnsctnRepository.findFirstByApprovalNoOrderByCreatedAtDesc(oms);
+            if (byAppr.isPresent() && acceptOmspayLookup(byAppr.get())) {
+                return byAppr;
+            }
+        }
+        String orderNo = firstNonBlank(note, orderNoHint);
+        if (!orderNo.isBlank()) {
+            Optional<PgTrnsctn> byOrder = pgTrnsctnRepository.findFirstByOrderNoOrderByCreatedAtDesc(orderNo);
+            if (byOrder.isPresent() && acceptOmspayLookup(byOrder.get())) {
+                return byOrder;
+            }
+            /* 동일 주문 다건이면 OMSPAY van 우선 */
+            for (PgTrnsctn t : pgTrnsctnRepository.findByOrderNoOrderByCreatedAtDesc(orderNo)) {
+                if (PgVendor.isOmspayFamily(t.getVan())) {
+                    return Optional.of(t);
+                }
+            }
+        }
+        String ref = ref1 != null ? ref1.trim() : "";
+        if (!ref.isBlank() && ref.length() <= 64) {
+            Optional<PgTrnsctn> byRefPay = pgTrnsctnRepository.findFirstByPayNoOrderByCreatedAtDesc(ref);
+            if (byRefPay.isPresent() && acceptOmspayLookup(byRefPay.get())) {
+                return byRefPay;
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static boolean acceptOmspayLookup(PgTrnsctn t) {
+        if (t == null) {
+            return false;
+        }
+        if (PgVendor.isOmspayFamily(t.getVan())) {
+            return true;
+        }
+        /* SO- 로 직접 매칭된 행: van 미기입·레거시 값도 Comp-Id 반환용으로 허용 */
+        String van = t.getVan() != null ? t.getVan().trim() : "";
+        return van.isBlank() || "ICOPAY".equalsIgnoreCase(van);
+    }
+
+    private static String firstNonBlank(String a, String b) {
+        if (a != null && !a.isBlank()) {
+            return a.trim();
+        }
+        if (b != null && !b.isBlank()) {
+            return b.trim();
+        }
+        return "";
     }
 
     @Transactional
@@ -109,8 +209,15 @@ public class OmspaySaleRecordService {
         }
         Optional<PgTrnsctn> txn = PgTrnsctnOrderLookup.findPreferredByMerchantAndOrder(
                 pgTrnsctnRepository, compId.trim(), orderNo.trim());
-        if (txn.isEmpty() || !PgVendor.isOmspayFamily(txn.get().getVan())) {
+        if (txn.isEmpty()) {
             return Optional.empty();
+        }
+        if (!PgVendor.isOmspayFamily(txn.get().getVan()) && !acceptOmspayLookup(txn.get())) {
+            return Optional.empty();
+        }
+        /* van 비어 있으면 OMSPAY 로 보정 */
+        if (!PgVendor.isOmspayFamily(txn.get().getVan())) {
+            txn.get().setVan(PgVendor.OMSPAY);
         }
         PgTrnsctn t = txn.get();
         t.setStatus("10");
@@ -147,6 +254,13 @@ public class OmspaySaleRecordService {
 
     @Transactional
     public Optional<PgTrnsctn> applyFailedOutcome(String orderNo, String compId, String omsOrderCode) {
+        return applyFailedOutcome(orderNo, compId, omsOrderCode,
+                "OMSPAY_PENDING_EXPIRED", "Payment expired (no completion webhook)");
+    }
+
+    @Transactional
+    public Optional<PgTrnsctn> applyFailedOutcome(String orderNo, String compId, String omsOrderCode,
+                                                  String reasonCode, String reasonText) {
         if (orderNo == null || orderNo.isBlank() || compId == null || compId.isBlank()) {
             return Optional.empty();
         }
@@ -156,10 +270,24 @@ public class OmspaySaleRecordService {
             return Optional.empty();
         }
         PgTrnsctn t = txn.get();
+        if (!"08".equals(t.getStatus() != null ? t.getStatus().trim() : "")) {
+            /* 이미 성공·실패면 덮지 않음 */
+            if ("10".equals(t.getStatus() != null ? t.getStatus().trim() : "")
+                    || "99".equals(t.getStatus() != null ? t.getStatus().trim() : "")) {
+                return Optional.of(t);
+            }
+        }
+        String prev = t.getStatus();
         t.setStatus("99");
         if (omsOrderCode != null && !omsOrderCode.isBlank()) {
             t.setChillTransactionId(omsOrderCode.trim());
         }
+        com.pg.util.TxnOutcomeReasonApplier.apply(t, prev, "99",
+                reasonText != null && !reasonText.isBlank()
+                        ? reasonText
+                        : "Payment expired (no completion webhook)",
+                reasonCode != null && !reasonCode.isBlank() ? reasonCode : "OMSPAY_PENDING_EXPIRED",
+                com.pg.util.TxnOutcomeReasonApplier.SOURCE_ICOPAY);
         pgTrnsctnRepository.save(t);
         return Optional.of(t);
     }

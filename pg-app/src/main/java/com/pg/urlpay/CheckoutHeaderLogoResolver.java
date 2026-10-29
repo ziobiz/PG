@@ -198,6 +198,19 @@ public class CheckoutHeaderLogoResolver {
         prof.ifPresent(mp -> checkoutHeaderSubtitleCopyService.putCryptoCheckoutFields(data, mp));
     }
 
+    /** QR 결제창(qbang-pay / ilk payMeans=QR) — 웹결제 로고 + QR 안내문구. */
+    public void applyQrToCheckoutMap(Map<String, Object> data, Long merchantOrgUnitId) {
+        if (data == null || merchantOrgUnitId == null) {
+            return;
+        }
+        applyToCheckoutMap(data, merchantOrgUnitId, null);
+        data.put("checkoutHeaderLogoChannel", "QR");
+        Optional<MerchantProfile> prof = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId);
+        data.remove("checkoutHeaderSubtitleText");
+        data.remove("checkoutHeaderSubtitleTextI18n");
+        prof.ifPresent(mp -> checkoutHeaderSubtitleCopyService.putQrCheckoutFields(data, mp));
+    }
+
     /** 통합(수단선택) checkout-context — 로고는 크립토 A형, 안내문구는 통합 전용. */
     public void applyUnifiedToCheckoutMap(Map<String, Object> data, Long merchantOrgUnitId) {
         if (data == null || merchantOrgUnitId == null) {

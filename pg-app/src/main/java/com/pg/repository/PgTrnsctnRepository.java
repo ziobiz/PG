@@ -22,6 +22,12 @@ public interface PgTrnsctnRepository extends JpaRepository<PgTrnsctn, String>, J
      */
     Optional<PgTrnsctn> findFirstByChillTransactionIdOrderByCreatedAtDesc(String chillTransactionId);
 
+    /** OMSPAY OMS 주문코드(SO-…)가 pay_no 에만 남은 경우 */
+    Optional<PgTrnsctn> findFirstByPayNoOrderByCreatedAtDesc(String payNo);
+
+    /** OMSPAY 승인번호(approval_no)에 SO- 가 들어간 경우 */
+    Optional<PgTrnsctn> findFirstByApprovalNoOrderByCreatedAtDesc(String approvalNo);
+
     Optional<PgTrnsctn> findFirstByMerchantIdAndOrderNoAndOrigin(String merchantId, String orderNo, String origin);
 
     @Query("""
@@ -178,6 +184,18 @@ public interface PgTrnsctnRepository extends JpaRepository<PgTrnsctn, String>, J
     List<PgTrnsctn> findStaleElementPayPendingForReconcile(@Param("staleBefore") LocalDateTime staleBefore,
                                                            @Param("notOlderThan") LocalDateTime notOlderThan,
                                                            Pageable pageable);
+
+    /**
+     * OMSPAY 요청(08) — 웹훅 없이 장시간 대기 시 만료(실패) 처리 대상.
+     */
+    @Query("SELECT t FROM PgTrnsctn t WHERE t.status = '08' " +
+           "AND (UPPER(t.van) = 'OMSPAY' OR UPPER(t.van) LIKE 'OMSPAY_%') " +
+           "AND t.orderNo IS NOT NULL AND TRIM(t.orderNo) <> '' " +
+           "AND t.createdAt <= :staleBefore AND t.createdAt >= :notOlderThan " +
+           "ORDER BY t.createdAt ASC")
+    List<PgTrnsctn> findStaleOmspayPendingForExpire(@Param("staleBefore") LocalDateTime staleBefore,
+                                                    @Param("notOlderThan") LocalDateTime notOlderThan,
+                                                    Pageable pageable);
 
     /** payer_location_label 미적재·불완전(지역 없음) + IP 보유 — GeoIP 보정 대상 */
     @Query("SELECT t FROM PgTrnsctn t WHERE t.payerClientIp IS NOT NULL AND TRIM(t.payerClientIp) <> '' "

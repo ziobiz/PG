@@ -3,6 +3,7 @@ package com.pg.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgAgency;
+import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.PgVendor;
 import com.pg.integration.pg.omspay.OmspayApiClient;
 import com.pg.integration.pg.omspay.OmspayCredentials;
@@ -67,7 +68,8 @@ public class OmspayPaymentService {
     }
 
     public Optional<OmspayCredentials> resolveCredentials(Long orgUnitId) {
-        String opPg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
+        String opPg = chillPayService.resolveUrlPayOperationalPgCdPreferringFamily(
+                orgUnitId, PgVendor::isOmspayFamily);
         if (opPg == null || !PgVendor.isOmspayFamily(opPg)) {
             return Optional.empty();
         }
@@ -93,13 +95,41 @@ public class OmspayPaymentService {
                     "OMSPAY API 키 또는 customerId가 없습니다. 결제대행사 설정에서 등록하세요.");
         }
         OmspayCredentials creds = credOpt.get();
-        String opPg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
+        /* 혼용 가맹: 기본 운영 PG가 ElementPay 등이어도 OMSPAY 창은 OMSPAY 바인딩·견적 PG 사용 */
+        String opPg = chillPayService.resolveUrlPayOperationalPgCdPreferringFamily(
+                orgUnitId, PgVendor::isOmspayFamily);
+        String bodyPg = str(body, "operationalPgCd");
+        if (!bodyPg.isBlank() && PgVendor.isOmspayFamily(bodyPg)) {
+            opPg = bodyPg.trim();
+        }
+        if (opPg == null || opPg.isBlank()) {
+            opPg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
+        }
 
         UrlPayChargeResolutionService.ResolvedCharge charge;
         try {
-            charge = urlPayChargeResolutionService.resolve(orgUnitId, body != null ? body : Map.of(), opPg);
+            /* UrlPaySaleDispatcher 가 이미 환산해 둔 경우 재해석(견적 PG 불일치)을 피함 */
+            if (body != null && body.get("shopperDisplayAmount") != null && body.get("amount") != null
+                    && body.get("currency") != null) {
+                BigDecimal pgAmt = new BigDecimal(String.valueOf(body.get("amount")).replace(",", "").trim());
+                String settleCur = String.valueOf(body.get("currency")).trim().toUpperCase();
+                BigDecimal shopAmt = new BigDecimal(String.valueOf(body.get("shopperDisplayAmount")).replace(",", "").trim());
+                String shopCur = body.get("shopperDisplayCurrency") != null
+                        ? String.valueOf(body.get("shopperDisplayCurrency")).trim().toUpperCase() : "";
+                charge = new UrlPayChargeResolutionService.ResolvedCharge(pgAmt, settleCur, shopAmt, shopCur);
+            } else {
+                charge = urlPayChargeResolutionService.resolve(orgUnitId, body != null ? body : Map.of(), opPg);
+            }
         } catch (IllegalArgumentException e) {
-            return fail(out, "INVALID_AMOUNT", e.getMessage());
+            /* NumberFormatException ⊂ IllegalArgumentException */
+            String code = (e instanceof NumberFormatException || e.getMessage() == null || e.getMessage().isBlank())
+                    ? "INVALID_AMOUNT"
+                    : e.getMessage();
+            if (!(code.startsWith("INVALID_") || code.startsWith("DISPLAY_") || code.startsWith("FX_")
+                    || "NOT_FOUND".equals(code))) {
+                code = "INVALID_AMOUNT";
+            }
+            return fail(out, code, UrlPayChargeResolutionService.failMessageForCode(code));
         }
         String orderNo = str(body, "orderNo", "order_no", "reference");
         if (orderNo.isBlank()) {
@@ -125,20 +155,32 @@ public class OmspayPaymentService {
 
         String returnUrl = str(body, "returnUrl", "return_url");
         if (returnUrl.isBlank()) {
+            /* 직접 omspay-pay.html — /checkout forward 시 쿼리 유실·이동설정 우회 */
             String base = publicBaseUrl != null ? publicBaseUrl.trim().replaceAll("/+$", "") : "https://api.icopay.co.kr";
-            returnUrl = base + "/checkout/" + ouOpt.get().getCode()
-                    + "?orderNo=" + java.net.URLEncoder.encode(orderNo, java.nio.charset.StandardCharsets.UTF_8)
-                    + "&omspay=1&done=1";
+            returnUrl = base + "/omspay-pay.html"
+                    + "?m=" + java.net.URLEncoder.encode(ouOpt.get().getCode(), java.nio.charset.StandardCharsets.UTF_8)
+                    + "&orderNo=" + java.net.URLEncoder.encode(orderNo, java.nio.charset.StandardCharsets.UTF_8)
+                    + "&omspay=1&omspayReturn=1&done=1";
         }
 
+        if (body != null) {
+            com.pg.urlpay.PayerContextCapture.enrichSaleBody(body, request, clientIp);
+            if (str(body, "txnOrigin", "origin").isBlank()) {
+                body.put("txnOrigin", "URL");
+            }
+        }
         String buyerName = str(body, "customerNm", "buyerName", "buyer", "payerName", "name");
         String buyerEmail = str(body, "payEmailAddress", "buyerEmail", "email", "customerEmail");
         String buyerTel = str(body, "payTelephone", "customerTel", "buyerTel", "phone", "tel");
+        String origin = str(body, "txnOrigin", "origin");
+        if (origin.isBlank()) {
+            origin = "URL";
+        }
         omspaySaleRecordService.recordOrTouchPending(
                 orgUnitId, orderNo, charge.pgAmount(), charge.settlementCurrency(),
-                str(body, "productName", "item"), omsCode, str(body, "txnOrigin", "origin"),
+                str(body, "productName", "item"), omsCode, origin,
                 charge.shopperDisplayAmount(), charge.shopperDisplayCurrency(),
-                buyerName, buyerEmail, buyerTel);
+                buyerName, buyerEmail, buyerTel, body);
 
         Map<String, Object> pay = apiClient.createCardPayment(creds, omsCode, returnUrl);
         if (!Boolean.TRUE.equals(pay.get("ok"))) {
@@ -184,6 +226,55 @@ public class OmspayPaymentService {
         }
         out.put("success", true);
         out.put("data", st);
+        return out;
+    }
+
+    /**
+     * 구매자 return 화면용 — 로컬 {@code pg_trnsctn} 상태(웹훅 반영 후 PAID).
+     * {@code paymentStatus}: PAID | PENDING | FAIL | NOT_FOUND
+     */
+    public Map<String, Object> buyerResultStatus(Long orgUnitId, String orderNo) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        if (orgUnitId == null || orderNo == null || orderNo.isBlank()) {
+            return fail(out, "INVALID_ORDER_NO", "orderNo가 필요합니다.");
+        }
+        Optional<OrgUnit> ouOpt = orgUnitRepository.findById(orgUnitId);
+        if (ouOpt.isEmpty()) {
+            return fail(out, "NOT_FOUND", "가맹점을 찾을 수 없습니다.");
+        }
+        String mid = ouOpt.get().getCode();
+        Optional<PgTrnsctn> txn = omspaySaleRecordService.findByMerchantAndOrder(mid, orderNo.trim());
+        if (txn.isEmpty()) {
+            out.put("success", true);
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("orderNo", orderNo.trim());
+            data.put("paymentStatus", "NOT_FOUND");
+            data.put("paid", false);
+            data.put("pending", true);
+            out.put("data", data);
+            return out;
+        }
+        PgTrnsctn t = txn.get();
+        String st = t.getStatus() != null ? t.getStatus().trim() : "";
+        boolean paid = "10".equals(st) || "00".equals(st) || "01".equals(st) || "PAID".equalsIgnoreCase(st);
+        boolean fail = "20".equals(st) || "30".equals(st) || "90".equals(st) || "99".equals(st)
+                || "FAIL".equalsIgnoreCase(st);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("orderNo", t.getOrderNo());
+        data.put("status", st);
+        data.put("paymentStatus", paid ? "PAID" : (fail ? "FAIL" : "PENDING"));
+        data.put("paid", paid);
+        data.put("pending", !paid && !fail);
+        data.put("amount", t.getAmtKrw() != null ? t.getAmtKrw() : t.getTotalAmt());
+        data.put("currency", t.getCurType());
+        if (t.getDisplayAmt() != null) {
+            data.put("shopperDisplayAmount", t.getDisplayAmt());
+        }
+        if (t.getDisplayCurType() != null && !t.getDisplayCurType().isBlank()) {
+            data.put("shopperDisplayCurrency", t.getDisplayCurType());
+        }
+        out.put("success", true);
+        out.put("data", data);
         return out;
     }
 

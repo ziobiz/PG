@@ -561,6 +561,7 @@ public class OpsNotiProvisionService {
         boolean ilkPay = NotiProvisionClient.isIlk(pgKind);
         boolean qxipay = NotiProvisionClient.isQxipay(pgKind);
         boolean omspay = NotiProvisionClient.isOmspay(pgKind);
+        boolean qbang = NotiProvisionClient.isQbang(pgKind);
         boolean fixedIngress = NotiProvisionClient.isFixedIngressPg(pgKind);
         req.put("pgKind", pgKind);
         if (!dealmai.isEmpty()) {
@@ -635,7 +636,10 @@ public class OpsNotiProvisionService {
         Map<String, Object> out = new LinkedHashMap<>();
         String createdMsg;
         String sameMsg;
-        if (omspay) {
+        if (qbang) {
+            createdMsg = "NOTI QBANG 가맹이 생성되었습니다.";
+            sameMsg = "기존 NOTI QBANG 가맹과 동일합니다.";
+        } else if (omspay) {
             createdMsg = "NOTI OMSPAY 가맹이 생성되었습니다.";
             sameMsg = "기존 NOTI OMSPAY 가맹과 동일합니다.";
         } else if (qxipay) {
@@ -659,6 +663,10 @@ public class OpsNotiProvisionService {
         out.put("pgKind", pgKind);
         out.put("jpayNotifyUrl", jpayNotify);
         out.put("jpayCallbackUrl", jpayCallback);
+        if (qbang) {
+            out.put("qbangWebhookUrl", jpayNotify);
+            out.put("qbangResultUrl", jpayCallback);
+        }
         if (omspay) {
             out.put("omspayWebhookUrl", jpayNotify);
         }
@@ -1168,7 +1176,10 @@ public class OpsNotiProvisionService {
         String kind = NotiProvisionClient.normalizePgKind(
                 pgKindIn != null && !pgKindIn.isBlank() ? pgKindIn : resolveLogPgKind(log));
         log.setPgKind(kind);
-        if (NotiProvisionClient.isOmspay(kind)) {
+        if (NotiProvisionClient.isQbang(kind)) {
+            log.setRouteNo("qbang");
+            log.setSlotNo(null);
+        } else if (NotiProvisionClient.isOmspay(kind)) {
             log.setRouteNo("omspay");
             log.setSlotNo(null);
         } else if (NotiProvisionClient.isQxipay(kind)) {
@@ -1199,7 +1210,7 @@ public class OpsNotiProvisionService {
         notiProvisionLogRepository.save(log);
     }
 
-    /** 고정 입구 PG(ElementPay·ox·ILK·QXIPAY·OMSPAY)의 NOTI Callback/Result URL. */
+    /** 고정 입구 PG(ElementPay·ox·ILK·QXIPAY·OMSPAY·QBANG)의 NOTI Callback/Result URL. */
     private String[] resolveFixedIngressUrls(String pgKind, HqNotifyEnvConfig cfg, Map<String, Object> data) {
         if (data == null) {
             data = Map.of();
@@ -1208,7 +1219,16 @@ public class OpsNotiProvisionService {
                 cfg != null ? cfg.getNotiProvisionBaseUrl() : null);
         String notify = "";
         String callback = "";
-        if (NotiProvisionClient.isOmspay(pgKind)) {
+        if (NotiProvisionClient.isQbang(pgKind)) {
+            notify = firstNonBlank(data, "qbangWebhookUrl");
+            if (notify.isEmpty()) {
+                notify = notiBase + "/noti/qbang";
+            }
+            callback = firstNonBlank(data, "qbangResultUrl");
+            if (callback.isEmpty()) {
+                callback = notiBase + "/noti/result/qbang";
+            }
+        } else if (NotiProvisionClient.isOmspay(pgKind)) {
             notify = firstNonBlank(data, "omspayWebhookUrl");
             if (notify.isEmpty()) {
                 notify = notiBase + "/noti/omspay";
@@ -1289,7 +1309,10 @@ public class OpsNotiProvisionService {
         log.setBaseCurrency(normalizeBaseCurrency(baseCurrency));
         log.setInternalTargetId(internalTargetId);
         log.setDealmaiPartnerCode(dealmaiPartnerCode != null ? dealmaiPartnerCode : "");
-        if (NotiProvisionClient.isOmspay(pgKind)) {
+        if (NotiProvisionClient.isQbang(pgKind)) {
+            log.setRouteNo("qbang");
+            log.setSlotNo(null);
+        } else if (NotiProvisionClient.isOmspay(pgKind)) {
             log.setRouteNo("omspay");
             log.setSlotNo(null);
         } else if (NotiProvisionClient.isQxipay(pgKind)) {
@@ -1327,7 +1350,9 @@ public class OpsNotiProvisionService {
         m.put("compNm", log.getCompNm() != null ? log.getCompNm() : "");
         String pgKind = resolveLogPgKind(log);
         m.put("pgKind", pgKind);
-        m.put("pgKindLabel", NotiProvisionClient.isOmspay(pgKind)
+        m.put("pgKindLabel", NotiProvisionClient.isQbang(pgKind)
+                ? "QBANG"
+                : (NotiProvisionClient.isOmspay(pgKind)
                 ? "OMSPAY"
                 : (NotiProvisionClient.isQxipay(pgKind)
                 ? "QXIPAY"
@@ -1335,7 +1360,7 @@ public class OpsNotiProvisionService {
                 ? "ILKPAY"
                 : (NotiProvisionClient.isOx(pgKind)
                 ? "ox"
-                : (NotiProvisionClient.isElementPay(pgKind) ? "ElementPay" : "JPAY")))));
+                : (NotiProvisionClient.isElementPay(pgKind) ? "ElementPay" : "JPAY"))))));
         m.put("internalTargetId", nz(log.getInternalTargetId()));
         m.put("integrationMode", normalizeIntegrationMode(log.getIntegrationMode()));
         m.put("routeNo", nz(log.getRouteNo()));
@@ -1367,6 +1392,9 @@ public class OpsNotiProvisionService {
             return NotiProvisionClient.normalizePgKind(stored);
         }
         String route = nz(log.getRouteNo()).toLowerCase(Locale.ROOT);
+        if ("qbang".equals(route) || "qbank".equals(route) || "qrbank".equals(route)) {
+            return "qbang";
+        }
         if ("omspay".equals(route) || "oms".equals(route) || "waylar".equals(route)) {
             return "omspay";
         }

@@ -164,6 +164,95 @@ public class CheckoutHeaderSubtitleCopyService {
         putChannelCheckoutFields(data, mp, subMode, subText, writeI18n(subI18nMap));
     }
 
+    /** QR 안내문구 ACTIVE 시 다국어 1회 번역(시스템 기본 KO면 검수 팩). */
+    public void applyQrToMerchantProfile(MerchantProfile mp) {
+        if (mp == null) {
+            return;
+        }
+        String mode = mp.getQrPaymentHeaderSubtitleMode();
+        String textRaw = mp.getQrPaymentHeaderSubtitleText();
+        String prevI18n = mp.getQrPaymentHeaderSubtitleTextI18n();
+        String m = mode != null ? mode.trim().toUpperCase(Locale.ROOT) : "";
+        if (!"ACTIVE".equals(m)) {
+            return;
+        }
+        String text = textRaw != null ? textRaw.trim() : "";
+        if (text.isEmpty()) {
+            mp.setQrPaymentHeaderSubtitleText(null);
+            mp.setQrPaymentHeaderSubtitleTextI18n(null);
+            return;
+        }
+        if (prevI18n != null && !prevI18n.isBlank() && korMatches(prevI18n, text)) {
+            return;
+        }
+        if (text.equals(QrPaymentCopyDefaults.HEADER_KO)) {
+            try {
+                mp.setQrPaymentHeaderSubtitleText(text);
+                mp.setQrPaymentHeaderSubtitleTextI18n(
+                        OM.writeValueAsString(QrPaymentCopyDefaults.headerI18n()));
+                return;
+            } catch (Exception ignored) {
+                /* fall through */
+            }
+        }
+        applyChannelActiveI18n(mp, mode, textRaw, prevI18n,
+                (t, i18n) -> {
+                    mp.setQrPaymentHeaderSubtitleText(t);
+                    mp.setQrPaymentHeaderSubtitleTextI18n(i18n);
+                });
+    }
+
+    public void putQrCheckoutFields(Map<String, Object> data, MerchantProfile mp) {
+        HqApiConfig hq = hq();
+        String subMode = resolveUnifiedMode(
+                mp != null ? mp.getQrPaymentHeaderSubtitleMode() : null,
+                hq.getQrPaymentHeaderSubtitleModeDefault(),
+                "ACTIVE");
+        String subText = coalesceBlank(
+                resolveUnifiedText(
+                        mp != null ? mp.getQrPaymentHeaderSubtitleMode() : null,
+                        mp != null ? mp.getQrPaymentHeaderSubtitleText() : null,
+                        hq.getQrPaymentHeaderSubtitleTextDefault()),
+                QrPaymentCopyDefaults.HEADER_KO);
+        String subI18n = coalesceBlank(
+                resolveUnifiedI18n(
+                        mp != null ? mp.getQrPaymentHeaderSubtitleMode() : null,
+                        mp != null ? mp.getQrPaymentHeaderSubtitleTextI18n() : null,
+                        hq.getQrPaymentHeaderSubtitleTextDefaultI18n()),
+                null);
+        Map<String, String> subI18nMap = parseI18n(subI18n);
+        if (subI18nMap.isEmpty() && ("ACTIVE".equals(subMode) || "DEFAULT".equals(subMode))) {
+            subI18nMap = QrPaymentCopyDefaults.headerI18n();
+            if ("DEFAULT".equals(subMode)) {
+                subMode = "ACTIVE";
+            }
+        }
+        putChannelCheckoutFields(data, mp, subMode, subText, writeI18n(subI18nMap));
+    }
+
+    /** 본사 QR 결제 안내 기본 문구 — ACTIVE 시 5개국어. */
+    public void applyQrDefaultsToHq(HqApiConfig c) {
+        if (c == null) {
+            return;
+        }
+        if (c.getQrPaymentHeaderSubtitleModeDefault() == null
+                || c.getQrPaymentHeaderSubtitleModeDefault().isBlank()) {
+            c.setQrPaymentHeaderSubtitleModeDefault("ACTIVE");
+        }
+        if (c.getQrPaymentHeaderSubtitleTextDefault() == null
+                || c.getQrPaymentHeaderSubtitleTextDefault().isBlank()) {
+            c.setQrPaymentHeaderSubtitleTextDefault(QrPaymentCopyDefaults.HEADER_KO);
+        }
+        applyHqActiveI18n(c.getQrPaymentHeaderSubtitleModeDefault(),
+                c.getQrPaymentHeaderSubtitleTextDefault(),
+                c.getQrPaymentHeaderSubtitleTextDefaultI18n(),
+                (text, i18n) -> {
+                    c.setQrPaymentHeaderSubtitleTextDefault(text);
+                    c.setQrPaymentHeaderSubtitleTextDefaultI18n(i18n);
+                },
+                QrPaymentCopyDefaults.headerI18n());
+    }
+
     public void putUnifiedCheckoutFields(Map<String, Object> data, MerchantProfile mp) {
         HqApiConfig hq = hq();
         String subMode = resolveUnifiedMode(

@@ -34,6 +34,9 @@ public final class PgVendor {
     /** OMSPAY(Waylar OMS) HPP 리다이렉트. {@code OMSPAY} 또는 {@code OMSPAY_…} 접두. 가맹 노출은 ICOPAY 중립. */
     public static final String OMSPAY = "OMSPAY";
 
+    /** QBANG(㈜큐뱅 QR 중계). {@code QBANG} 또는 {@code QBANG_…} 접두. 가맹 노출은 ICOPAY 중립. */
+    public static final String QBANG = "QBANG";
+
     /** 크립토(USDT/USDC/EURC 수탁 결제). {@code CRYPTO} 또는 {@code CRYPTO_…} 접두. 가맹 노출은 ICOPAY 중립. */
     public static final String CRYPTO = "CRYPTO";
 
@@ -187,6 +190,23 @@ public final class PgVendor {
         }
         String u = vendorCode.trim().toUpperCase(Locale.ROOT);
         return OMSPAY.equals(u) || u.startsWith(OMSPAY + "_") || u.startsWith("WAYLAR");
+    }
+
+    /** {@code pg_cd}·노티 벤더 코드가 QBANG(큐뱅) 계열인지 — {@code QBANG} 또는 {@code QBANG_…} / {@code QBANK}. */
+    public static boolean isQbangFamily(String pgCd) {
+        if (pgCd == null) {
+            return false;
+        }
+        String u = normalizePgCdKey(pgCd);
+        return QBANG.equals(u) || u.startsWith(QBANG + "_") || u.startsWith("QBANK") || u.startsWith("QRBANK");
+    }
+
+    public static boolean isQbangVendorCode(String vendorCode) {
+        if (vendorCode == null || vendorCode.isBlank()) {
+            return false;
+        }
+        String u = vendorCode.trim().toUpperCase(Locale.ROOT).replaceAll("\\s+", "_");
+        return QBANG.equals(u) || u.startsWith(QBANG + "_") || u.startsWith("QBANK") || u.startsWith("QRBANK");
     }
 
     /** {@code pg_cd}·노티 벤더 코드가 CRYPTO 계열인지 — {@code CRYPTO} 또는 {@code CRYPTO_…} 접두. */

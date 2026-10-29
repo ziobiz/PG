@@ -121,6 +121,30 @@ public class ApiOmspayPayController {
         return ResponseEntity.ok(ApiResponse.ok(omspayPaymentService.publicNotiIngressUrls()));
     }
 
+    /** 구매자 return 화면 폴링 — 웹훅 반영 후 PAID/PENDING/FAIL */
+    @GetMapping(value = "/result-status", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> resultStatus(
+            @RequestParam(required = false) String compId,
+            @RequestParam(required = false) String orderNo,
+            @RequestParam(required = false) Long merchantId) {
+        Long orgUnitId = resolveOrg(merchantId, compId);
+        if (orgUnitId == null) {
+            return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        Map<String, Object> result = omspayPaymentService.buyerResultStatus(orgUnitId, orderNo);
+        boolean ok = Boolean.TRUE.equals(result.get("success"));
+        if (ok) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> data = result.get("data") instanceof Map<?, ?> m
+                    ? (Map<String, Object>) m
+                    : result;
+            return ResponseEntity.ok(ApiResponse.ok(data));
+        }
+        return ResponseEntity.ok(ApiResponse.fail(
+                String.valueOf(result.getOrDefault("message", "상태 조회 실패")),
+                String.valueOf(result.getOrDefault("errorCode", "STATUS_FAILED"))));
+    }
+
     private ResponseEntity<ApiResponse<Map<String, Object>>> gateOrgAndWebPayment(Long orgUnitId) {
         if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
             return ResponseEntity.ok(ApiResponse.fail(

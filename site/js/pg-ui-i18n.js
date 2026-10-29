@@ -3372,6 +3372,138 @@
       CH: '加密提示',
       TH: 'ข้อความคริปโต'
     },
+    '결제대행사': {
+      EN: 'Payment provider',
+      JP: '決済代行',
+      CH: '收单方',
+      TH: 'ผู้ให้บริการชำระ'
+    },
+    '연동됨': {
+      EN: 'Linked',
+      JP: '連携済み',
+      CH: '已对接',
+      TH: 'เชื่อมแล้ว'
+    },
+    '노티등록 필요': {
+      EN: 'NOTI registration needed',
+      JP: 'ノティ登録が必要',
+      CH: '需注册通知',
+      TH: 'ต้องลงทะเบียน NOTI'
+    },
+    '고정(미러)': {
+      EN: 'Fixed (mirror)',
+      JP: '固定(ミラー)',
+      CH: '固定(镜像)',
+      TH: 'คงที่ (มิเรอร์)'
+    },
+    'JPAY Notify (슬롯)': {
+      EN: 'JPAY Notify (slot)',
+      JP: 'JPAY Notify (スロット)',
+      CH: 'JPAY Notify (槽位)',
+      TH: 'JPAY Notify (สล็อต)'
+    },
+    'JPAY Callback / Result (슬롯)': {
+      EN: 'JPAY Callback / Result (slot)',
+      JP: 'JPAY Callback / Result (スロット)',
+      CH: 'JPAY Callback / Result (槽位)',
+      TH: 'JPAY Callback / Result (สล็อต)'
+    },
+    '가맹점 저장·조회 후 표시됩니다.': {
+      EN: 'Shown after the merchant is saved and loaded.',
+      JP: '加盟店の保存・照会後に表示されます。',
+      CH: '商户保存并查询后显示。',
+      TH: 'แสดงหลังบันทึกและโหลดร้าน'
+    },
+    'CRYPTO·QR(QBANG/PayPay·ILK)도 운영·사용 중이면 이 표에 포함됩니다. 상태「노티등록 필요」이면 노티관리에서 해당 PG로 추가등록하세요.': {
+      EN: 'CRYPTO and QR (QBANG/PayPay·ILK) appear when in use. If status is NOTI registration needed, add that PG under Notification management.',
+      JP: 'CRYPTO・QR(QBANG/PayPay・ILK)も運用中なら表に含まれます。「ノティ登録が必要」ならノティ管理で該当PGを追加登録してください。',
+      CH: '若已启用，CRYPTO 与 QR(QBANG/PayPay·ILK)也会列入。状态为需注册通知时，请在通知管理中按该 PG 追加注册。',
+      TH: 'CRYPTO และ QR (QBANG/PayPay·ILK) จะโชว์เมื่อใช้งาน หากสถานะต้องลงทะเบียน NOTI ให้เพิ่ม PG นั้นในจัดการแจ้งเตือน'
+    },
+    '운영 결제대행사·크립토·QR이 있으면 여기에 PG별 수신 입구가 표시됩니다.': {
+      EN: 'When operational PGs, crypto, or QR exist, per-PG inbound URLs appear here.',
+      JP: '運用決済代行・クリプト・QRがあると、ここにPG別受信入口が表示されます。',
+      CH: '若有运营收单方、加密或 QR，将在此显示各 PG 接收入口。',
+      TH: 'เมื่อมี PG ปฏิบัติการ คริปโต หรือ QR จะแสดง URL รับเข้าแยก PG ที่นี่'
+    },
+    '운영 결제대행사·크립토·QR별로 NOTI 수신 입구(PG→NOTI)를 표시합니다. 가맹 쇼핑몰 URL이 아닙니다. 고정형(ElementPay·OMSPAY·ILK·QBANG·CRYPTO 등)은 PG별 주소가 다르며, 노티생성이력·바인딩 기준으로 여러 행이 나옵니다. JPAY 슬롯형은 아래 입력칸도 유지됩니다.': {
+      EN: 'Shows NOTI inbound URLs (PG→NOTI) per operational PG, crypto, and QR—not the merchant shop URL. Fixed-ingress PGs (ElementPay, OMSPAY, ILK, QBANG, CRYPTO, …) have distinct addresses; multiple rows come from provision history and bindings. JPAY slot fields remain below.',
+      JP: '運用決済代行・クリプト・QR別にNOTI受信入口(PG→NOTI)を表示します。加盟店ECのURLではありません。固定型はPG別に異なり、履歴・バインドで複数行。JPAYスロット入力は下に残します。',
+      CH: '按运营收单方、加密、QR 显示 NOTI 接收入口(PG→NOTI)，非商户商城 URL。固定入口各 PG 地址不同；多行来自创建履历与绑定。JPAY 槽位输入仍保留在下方。',
+      TH: 'แสดง URL รับ NOTI (PG→NOTI) แยกตาม PG คริปโต QR ไม่ใช่ URL ร้านค้า แบบคงที่มีที่อยู่ต่างกันหลายแถวจากประวัติ/การผูก ช่อง JPAY สล็อตยังอยู่ด้านล่าง'
+    },
+    'QR 사용': {
+      EN: 'QR use',
+      JP: 'QR利用',
+      CH: 'QR 使用',
+      TH: 'การใช้ QR'
+    },
+    'QR 안내': {
+      EN: 'QR notice',
+      JP: 'QR案内',
+      CH: 'QR 提示',
+      TH: 'ข้อความ QR'
+    },
+    'QR 안내문구': {
+      EN: 'QR notice text',
+      JP: 'QR案内文',
+      CH: 'QR 说明文案',
+      TH: 'ข้อความนำ QR'
+    },
+    'QR 사용 기본': {
+      EN: 'QR use default',
+      JP: 'QR利用デフォルト',
+      CH: 'QR 使用默认',
+      TH: 'ค่าเริ่มใช้ QR'
+    },
+    'QR결제설정 (본사 기본)': {
+      EN: 'QR payment settings (HQ default)',
+      JP: 'QR決済設定(本社デフォルト)',
+      CH: 'QR 支付设置(总部默认)',
+      TH: 'ตั้งค่าชำระ QR (ค่าเริ่ม HQ)'
+    },
+    'QR 안내 문구': {
+      EN: 'QR notice text',
+      JP: 'QR案内文',
+      CH: 'QR 说明文案',
+      TH: 'ข้อความนำ QR'
+    },
+    'QR로 결제합니다. 앱에서 아래 QR을 스캔한 뒤 결제를 완료해 주세요.': {
+      EN: 'Pay with QR. Scan the QR below in your app and complete payment.',
+      JP: 'QRでお支払いください。アプリで下のQRをスキャンし、決済を完了してください。',
+      CH: '请使用二维码支付。在应用中扫描下方二维码并完成支付。',
+      TH: 'ชำระด้วย QR สแกน QR ด้านล่างในแอปแล้วชำระให้เสร็จ'
+    },
+    'QR 사용을 켜 주세요 (본사설정 따름/사용)': {
+      EN: 'Turn on QR use (Follow HQ / Use)',
+      JP: 'QR利用をONにしてください(本社設定に従う/使用)',
+      CH: '请开启 QR 使用（跟随总部/使用）',
+      TH: 'เปิดใช้ QR (ตาม HQ / ใช้)'
+    },
+    '「활성(직접입력)」만 수정·저장 시 5개국어 1회 번역. 「본사설정 따름」이면 본사 QR 안내 기본이 적용됩니다.': {
+      EN: 'Editable only when Active; translated once into 5 languages on save. Follow HQ uses the HQ QR notice default.',
+      JP: '「有効(直接入力)」のみ編集・保存時5言語1回翻訳。「本社設定に従う」なら本社QR案内既定が適用。',
+      CH: '仅「启用(直接输入)」可编辑，保存时一次译成 5 语。「跟随总部」时用总部 QR 说明默认。',
+      TH: 'แก้ไขได้เมื่อ「เปิด(พิมพ์เอง)」แปล 5 ภาษาครั้งเดียวเมื่อบันทึก 「ตาม HQ」ใช้ค่าเริ่มข้อความ QR ของ HQ'
+    },
+    'QR 사용은 본사설정 따름/사용/미사용입니다. 실효 ON은 사용(또는 본사 기본 Y)이고 운영(WEB) 행에 QR(PayPay·QBANG)이 있을 때만입니다. URL은 /checkout-qr/업체코드. 수수료는 「QR 수수료정책」·수수료관리 QR 채널입니다.': {
+      EN: 'QR use is Follow HQ / Use / Unused. Effective ON requires Use (or HQ default Y) and an operational WEB QR (PayPay·QBANG) row. URL: /checkout-qr/{compCode}. Fees: QR commission policy / QR fee channel.',
+      JP: 'QR利用は本社設定に従う/使用/未使用。実効ONは使用(または本社既定Y)かつ運用WEB行にQR(PayPay·QBANG)がある場合のみ。URLは/checkout-qr/業者コード。手数料はQR手数料ポリシー・QRチャネル。',
+      CH: 'QR 使用为跟随总部/使用/未使用。实际开启需使用(或总部默认 Y)且运营 WEB 行有 QR(PayPay·QBANG)。URL 为 /checkout-qr/商户代码。手续费见 QR 手续费政策·QR 通道。',
+      TH: 'การใช้ QR คือตาม HQ/ใช้/ไม่ใช้ เปิดจริงเมื่อใช้ (หรือ HQ=Y) และมีแถว WEB QR (PayPay·QBANG) URL คือ /checkout-qr/รหัสร้าน ค่าธรรมเนียมช่อง QR'
+    },
+    '가맹 「QR 사용」이 본사설정 따름일 때 적용됩니다. 실효 QR은 사용=Y(또는 본사 기본 Y)이고 운영 WEB QR 바인딩이 있을 때만입니다. 안내문구는 가맹이 본사설정 따름이면 이 값이 적용됩니다.': {
+      EN: 'Applies when merchant QR use is Follow HQ. Effective QR needs Use=Y (or HQ default Y) and an operational WEB QR binding. Follow HQ for notice uses this text.',
+      JP: '加盟「QR利用」が本社設定に従う時に適用。実効QRは使用=Y(または本社既定Y)かつ運用WEB QRバインドがある場合のみ。案内は本社設定に従うとこの値。',
+      CH: '商户「QR 使用」为跟随总部时生效。实际 QR 需使用=Y(或总部默认 Y)且有运营 WEB QR 绑定。提示跟随总部时用此文案。',
+      TH: 'ใช้เมื่อร้านตั้ง QR ตาม HQ QR จริงเมื่อใช้=Y (หรือ HQ=Y) และมีผูก WEB QR ตาม HQ สำหรับข้อความจะใช้ค่านี้'
+    },
+    '활성+문구 저장 시 5개국어로 1회 번역됩니다. 가맹에서 활성(직접입력)·비활성·사용/미사용을 직접 고르면 가맹이 우선합니다.': {
+      EN: 'Saving Active text translates once to 5 languages. Merchant Active/Disabled/Use/Unused overrides HQ.',
+      JP: '活性+文保存時に5言語へ1回翻訳。加盟の活性/非活性・使用/未使用が優先。',
+      CH: '保存启用文案时翻译一次为5语。商户启用/停用/使用/未使用优先。',
+      TH: 'บันทึกข้อความตอนเปิดใช้แปลครั้งเดียวเป็น 5 ภาษา ร้านเปิด/ปิด/ใช้/ไม่ใช้มาก่อน'
+    },
     '크립토 안내문구': {
       EN: 'Crypto notice text',
       JP: 'クリプト案内文',

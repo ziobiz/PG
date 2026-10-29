@@ -940,9 +940,18 @@
             lockField('orderNo', d.orderNo);
             lockField('amount', d.amount);
             lockField('item', d.productName);
-            if (d.currency) {
-              var h0 = document.getElementById('payAmountCurrencyHint');
-              if (h0) h0.textContent = '(' + String(d.currency).toUpperCase() + ')';
+            /* DP: 금액 옆 = 표시통화(세션 displayCurrency 또는 prepare currency). 정산통화로 덮지 않음 */
+            var h0 = document.getElementById('payAmountCurrencyHint');
+            if (h0) {
+              if (urlPayDisplayFxActive) {
+                var dcur = String(d.displayCurrency || d.currency || '').trim().toUpperCase();
+                if (dcur) h0.textContent = '(' + dcur + ')';
+                else if (checkoutCtx && window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyPayAmountCurrencyHint) {
+                  PG_URL_PAY_SHELL.applyPayAmountCurrencyHint(checkoutCtx);
+                }
+              } else if (d.currency) {
+                h0.textContent = '(' + String(d.currency).toUpperCase() + ')';
+              }
             }
             applyBillingPrefill(d.buyerPrefill || d.prefill);
             applyI18n();
@@ -1045,11 +1054,19 @@
         if (amtEl && !amtEl.readOnly) {
           amtEl.value = '';
         }
-        var curHint = document.getElementById('payAmountCurrencyHint');
-        if (curHint && !urlPayDisplayFxActive && ctx.checkoutCurrencyCode) {
-          var q = new URLSearchParams(location.search);
-          if (!(q.get('currency') || q.get('cur'))) {
-            curHint.textContent = '(' + String(ctx.checkoutCurrencyCode).trim().toUpperCase() + ')';
+        /* DP: 금액 옆 = 표시통화 설정. STANDARD: 체크아웃 통화 */
+        if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyPayAmountCurrencyHint) {
+          var qCur = new URLSearchParams(location.search);
+          if (!(qCur.get('currency') || qCur.get('cur'))) {
+            PG_URL_PAY_SHELL.applyPayAmountCurrencyHint(ctx);
+          }
+        } else {
+          var curHint = document.getElementById('payAmountCurrencyHint');
+          if (curHint && !urlPayDisplayFxActive && ctx.checkoutCurrencyCode) {
+            var q = new URLSearchParams(location.search);
+            if (!(q.get('currency') || q.get('cur'))) {
+              curHint.textContent = '(' + String(ctx.checkoutCurrencyCode).trim().toUpperCase() + ')';
+            }
           }
         }
         applyI18n();
