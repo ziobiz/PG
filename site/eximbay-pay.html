@@ -10,7 +10,7 @@
   <script src="/js/pg-pay-submit-guard.js?v=1"></script>
   <script src="/js/checkout-header-subtitle-presets.js?v=2"></script>
   <script src="/js/url-pay-copy-phrase-i18n.js?v=1"></script>
-  <script src="/js/url-pay-public-shell.js?v=19"></script>
+  <script src="/js/url-pay-public-shell.js?v=20"></script>
   <script src="/js/eximbay-pay-msg-i18n.js?v=5"></script>
   <script src="/js/icopay-pay-method-logos.js?v=1"></script>
   <script src="/js/jpay-card-expiry.js?v=1"></script>
@@ -461,10 +461,20 @@
       var sessionPayload = null;
 
       function lockField(id, val) {
+        if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.lockSessionField) {
+          if (id === 'amount') {
+            PG_URL_PAY_SHELL.lockSessionField(id, val, { asAmount: true, requireValue: false });
+            return;
+          }
+          if (PG_URL_PAY_SHELL.lockSessionField(id, val, { requireValue: false })) return;
+        }
         var el = document.getElementById(id);
         if (!el) return;
         if (val != null && String(val).trim() !== '') { el.value = String(val).trim(); }
         el.readOnly = true;
+        el.setAttribute('readonly', 'readonly');
+        el.setAttribute('aria-readonly', 'true');
+        el.tabIndex = -1;
       }
 
       function applyBillingPrefill(prefill) {

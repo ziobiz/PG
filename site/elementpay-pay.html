@@ -6,16 +6,16 @@
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
   <title>ICOPAY Easy Payment</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="/css/pay-inline.css?v=39" rel="stylesheet">
+  <link href="/css/pay-inline.css?v=40" rel="stylesheet">
   <script src="/js/pg-pay-submit-guard.js?v=1"></script>
   <script src="/js/url-pay-input-mode.js?v=4"></script>
   <script src="/js/checkout-header-subtitle-presets.js?v=2"></script>
   <script src="/js/url-pay-copy-phrase-i18n.js?v=1"></script>
-  <script src="/js/url-pay-public-shell.js?v=19"></script>
+  <script src="/js/url-pay-public-shell.js?v=20"></script>
   <script src="/js/jpay-contact-fields.js?v=3"></script>
   <script src="/js/jpay-contact-remember.js?v=1"></script>
   <script src="/js/jpay-card-expiry.js?v=1"></script>
-  <script src="/js/pay-form-input-guard.js?v=2"></script>
+  <script src="/js/pay-form-input-guard.js?v=3"></script>
   <script src="/js/icopay-card-pay-policy.js?v=7"></script>
   <script src="/js/icopay-checkout-3ds.js?v=3"></script>
   <script src="/js/elementpay-pay-msg-i18n.js?v=7"></script>
@@ -698,10 +698,20 @@
       }
 
       function lockField(id, val) {
+        if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.lockSessionField) {
+          if (id === 'amount') {
+            PG_URL_PAY_SHELL.lockSessionField(id, val, { asAmount: true, requireValue: false });
+            return;
+          }
+          if (PG_URL_PAY_SHELL.lockSessionField(id, val, { requireValue: false })) return;
+        }
         var el = document.getElementById(id);
         if (!el) return;
         if (val != null && String(val).trim() !== '') el.value = String(val).trim();
         el.readOnly = true;
+        el.setAttribute('readonly', 'readonly');
+        el.setAttribute('aria-readonly', 'true');
+        el.tabIndex = -1;
       }
 
       function setFieldsRequired(ids, required) {

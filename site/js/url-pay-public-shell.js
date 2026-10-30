@@ -1049,6 +1049,48 @@
     return logoMode === 'DISABLED';
   }
 
+  /**
+   * merchant_api 세션 금액·주문번호·상품명 잠금.
+   * type=number + readonly 만으로는 스피너/일부 브라우저에서 값이 바뀔 수 있어
+   * text + readonly + 입력 차단 + 시각적 locked 클래스로 고정합니다.
+   */
+  function lockSessionField(idOrEl, value, opts) {
+    opts = opts || {};
+    var el = typeof idOrEl === 'string' ? g.document.getElementById(idOrEl) : idOrEl;
+    if (!el) return false;
+    var raw = value != null ? String(value).trim() : '';
+    if (!raw && opts.requireValue !== false) return false;
+    if (raw) el.value = raw;
+    if (el.id === 'amount' || opts.asAmount === true) {
+      try {
+        if (String(el.type || '').toLowerCase() === 'number') {
+          el.setAttribute('data-pg-lock-was-type', 'number');
+          el.type = 'text';
+        }
+      } catch (eType) { /* ignore */ }
+      el.setAttribute('inputmode', 'decimal');
+      el.classList.add('pay-amount-locked');
+      el.setAttribute('data-pg-amount-locked', '1');
+      if (!el._pgAmountLockBound) {
+        el._pgAmountLockBound = true;
+        var block = function (ev) {
+          if (el.getAttribute('data-pg-amount-locked') !== '1') return;
+          if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+          if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+          return false;
+        };
+        ['keydown', 'keypress', 'keyup', 'beforeinput', 'input', 'paste', 'cut', 'drop', 'wheel'].forEach(function (evt) {
+          el.addEventListener(evt, block, true);
+        });
+      }
+    }
+    el.readOnly = true;
+    el.setAttribute('readonly', 'readonly');
+    el.setAttribute('aria-readonly', 'true');
+    el.tabIndex = -1;
+    return true;
+  }
+
   g.PG_URL_PAY_SHELL = {
     applyUrlPayBrowserTabTitle: applyUrlPayBrowserTabTitle,
     resolveUrlPayBrowserTabTitle: resolveUrlPayBrowserTabTitle,
@@ -1073,6 +1115,7 @@
     resolveUrlPayEffectiveCheckoutCtx: resolveUrlPayEffectiveCheckoutCtx,
     resolveUrlPayItemValue: resolveUrlPayItemValue,
     payFxResolvedDisplayCurrency: payFxResolvedDisplayCurrency,
-    applyPayAmountCurrencyHint: applyPayAmountCurrencyHint
+    applyPayAmountCurrencyHint: applyPayAmountCurrencyHint,
+    lockSessionField: lockSessionField
   };
 })(window);

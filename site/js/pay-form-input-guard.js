@@ -256,6 +256,12 @@
 
     bindOnce(el, '_payGuardAmount', function (input) {
 
+      function isAmountLocked() {
+        return !!(input.readOnly || input.disabled
+          || input.getAttribute('data-pg-amount-locked') === '1'
+          || input.classList.contains('pay-amount-locked'));
+      }
+
       function sanitize(raw) {
 
         var v = String(raw || '').replace(/[^\d.]/g, '');
@@ -274,6 +280,11 @@
 
       input.addEventListener('keydown', function (e) {
 
+        if (isAmountLocked()) {
+          e.preventDefault();
+          return;
+        }
+
         if (e.key === 'e' || e.key === 'E' || e.key === '+' || e.key === '-') {
 
           e.preventDefault();
@@ -286,6 +297,8 @@
 
       input.addEventListener('input', function () {
 
+        if (isAmountLocked()) return;
+
         applySanitize(input, String(input.value || ''), sanitize(input.value), 'warnAmountOnly');
 
       });
@@ -293,6 +306,8 @@
       input.addEventListener('paste', function (e) {
 
         e.preventDefault();
+
+        if (isAmountLocked()) return;
 
         var clip = '';
 

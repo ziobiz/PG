@@ -507,6 +507,30 @@ html[data-pay-embed="1"] .pay-card {
   letter-spacing: 0.02em;
 }
 
+/* merchant_api 세션 금액: 수정 불가(표시만) */
+#amount.pay-amount-locked,
+input.pay-amount-locked {
+  background-color: #f1f3f7 !important;
+  color: #1a1a2e !important;
+  cursor: default !important;
+  caret-color: transparent;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+#amount.pay-amount-locked::-webkit-outer-spin-button,
+#amount.pay-amount-locked::-webkit-inner-spin-button,
+input.pay-amount-locked::-webkit-outer-spin-button,
+input.pay-amount-locked::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+#amount.pay-amount-locked:focus,
+input.pay-amount-locked:focus {
+  box-shadow: none !important;
+  border-color: var(--pay-border, #ced4da) !important;
+  outline: none;
+}
+
 /* 표시 통화가 JPY일 때: 고객 입력 금액(엔) · 통화 힌트 — 은은한 붉은 톤 */
 #amount.pay-amount-jpy-accent {
   color: #b83232;
