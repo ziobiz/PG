@@ -23,7 +23,8 @@ import java.util.Optional;
 
 /**
  * OMSPAY order-paid 웹훅 — NOTI → {@code …/pg-notify/{token}/OMSPAY}.
- * {@code x-waylar-signature} 검증 후 승인 반영, {@code X-Icopay-Comp-Id} 반환.
+ * 서명 검증 후 승인 반영. 가맹 매칭용 {@code X-Icopay-Comp-Id} 는 서명 실패 시에도
+ * 주문 역추적이 되면 헤더·본문에 내려 NOTI 노티전송 이력에 가맹명이 찍히게 한다.
  */
 @Service
 public class OmspayCallbackService {
@@ -77,6 +78,13 @@ public class OmspayCallbackService {
     @Transactional
     protected NotifyReceiveOutcome handleEvent(JsonNode root, String rawBody, String clientIp,
                                                HttpServletRequest request) {
+        String so = text(root, "so");
+        String ref1 = text(root, "ref1");
+        String note = text(root, "note");
+        String orderHint = text(root, "orderNo");
+        /* note 없을 때 SO-/pay_no/approval_no/orderNo 로 대기건 역추적 → Comp-Id */
+        ResolvedIds ids = resolveIds(so, note, orderHint, ref1);
+
         String sig = header(request, "x-waylar-signature", "X-Waylar-Signature");
         if (!sig.isBlank()) {
             boolean verified = false;
@@ -94,34 +102,17 @@ public class OmspayCallbackService {
                 }
             }
             if (!verified) {
-                log.warn("OMSPAY webhook signature mismatch ip={}", clientIp);
-                return NotifyReceiveOutcome.json("{\"ok\":false,\"error\":\"bad_signature\"}", HttpStatus.UNAUTHORIZED);
+                log.warn("OMSPAY webhook signature mismatch ip={} so={} compId={}",
+                        clientIp, so, ids.compId.isBlank() ? "-" : ids.compId);
+                /* 승인 반영은 거부하되 Comp-Id 는 NOTI 가맹명 표시용으로 반환 */
+                return outcomeJson(false, "bad_signature", so, ids, HttpStatus.UNAUTHORIZED);
             }
-        }
-
-        String so = text(root, "so");
-        String ref1 = text(root, "ref1");
-        String note = text(root, "note");
-        String orderHint = text(root, "orderNo");
-        /* note 없을 때 SO-/pay_no/approval_no/orderNo 로 대기건 역추적 → Comp-Id */
-        Optional<PgTrnsctn> matched = omspaySaleRecordService.resolveTxnForWebhook(so, note, orderHint, ref1);
-        String orderNo = note;
-        String compId = "";
-        if (matched.isPresent()) {
-            PgTrnsctn t = matched.get();
-            if (orderNo.isBlank() && t.getOrderNo() != null) {
-                orderNo = t.getOrderNo().trim();
-            }
-            compId = t.getMerchantId() != null ? t.getMerchantId().trim() : "";
-        }
-        if (orderNo.isBlank()) {
-            orderNo = orderHint;
         }
 
         String payerName = text(root, "payer_name");
         Optional<PgTrnsctn> updated = Optional.empty();
-        if (!orderNo.isBlank() && !compId.isBlank()) {
-            updated = omspaySaleRecordService.applyPaidOutcome(orderNo, compId, so, ref1, payerName);
+        if (!ids.orderNo.isBlank() && !ids.compId.isBlank()) {
+            updated = omspaySaleRecordService.applyPaidOutcome(ids.orderNo, ids.compId, so, ref1, payerName);
         } else {
             log.warn("OMSPAY webhook Comp-Id unresolved so={} note={} orderHint={} ref1={} ip={}",
                     so, note, orderHint, ref1, clientIp);
@@ -135,25 +126,61 @@ public class OmspayCallbackService {
             }
         });
 
-        Map<String, String> headers = new LinkedHashMap<>();
-        if (compId != null && !compId.isBlank()) {
-            headers.put("X-Icopay-Comp-Id", compId.trim());
+        return outcomeJson(true, null, so, ids, HttpStatus.OK);
+    }
+
+    private ResolvedIds resolveIds(String so, String note, String orderHint, String ref1) {
+        Optional<PgTrnsctn> matched = omspaySaleRecordService.resolveTxnForWebhook(so, note, orderHint, ref1);
+        String orderNo = note != null ? note.trim() : "";
+        String compId = "";
+        if (matched.isPresent()) {
+            PgTrnsctn t = matched.get();
+            if (orderNo.isBlank() && t.getOrderNo() != null) {
+                orderNo = t.getOrderNo().trim();
+            }
+            compId = t.getMerchantId() != null ? t.getMerchantId().trim() : "";
         }
-        if (!orderNo.isBlank()) {
-            headers.put("X-Icopay-Order-No", orderNo.trim());
+        if (orderNo.isBlank() && orderHint != null) {
+            orderNo = orderHint.trim();
+        }
+        return new ResolvedIds(compId, orderNo);
+    }
+
+    private NotifyReceiveOutcome outcomeJson(boolean ok, String error, String so, ResolvedIds ids, HttpStatus status) {
+        Map<String, String> headers = new LinkedHashMap<>();
+        if (ids != null && ids.compId != null && !ids.compId.isBlank()) {
+            headers.put("X-Icopay-Comp-Id", ids.compId.trim());
+        }
+        if (ids != null && ids.orderNo != null && !ids.orderNo.isBlank()) {
+            headers.put("X-Icopay-Order-No", ids.orderNo.trim());
         }
         String bodyJson;
         try {
             Map<String, Object> body = new LinkedHashMap<>();
-            body.put("ok", true);
-            body.put("so", so);
-            body.put("orderNo", orderNo);
-            body.put("compIdResolved", !compId.isBlank());
+            body.put("ok", ok);
+            if (error != null && !error.isBlank()) {
+                body.put("error", error);
+            }
+            body.put("so", so != null ? so : "");
+            body.put("orderNo", ids != null ? ids.orderNo : "");
+            body.put("compId", ids != null ? ids.compId : "");
+            body.put("CompId", ids != null ? ids.compId : "");
+            body.put("compIdResolved", ids != null && !ids.compId.isBlank());
             bodyJson = objectMapper.writeValueAsString(body);
         } catch (Exception e) {
-            bodyJson = "{\"ok\":true}";
+            bodyJson = ok ? "{\"ok\":true}" : "{\"ok\":false}";
         }
-        return NotifyReceiveOutcome.json(bodyJson, HttpStatus.OK, headers);
+        return NotifyReceiveOutcome.json(bodyJson, status, headers);
+    }
+
+    private static final class ResolvedIds {
+        final String compId;
+        final String orderNo;
+
+        ResolvedIds(String compId, String orderNo) {
+            this.compId = compId != null ? compId : "";
+            this.orderNo = orderNo != null ? orderNo : "";
+        }
     }
 
     private static boolean looksLikeOmspayPayload(JsonNode root) {

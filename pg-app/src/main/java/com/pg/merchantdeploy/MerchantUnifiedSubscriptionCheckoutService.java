@@ -74,7 +74,7 @@ public class MerchantUnifiedSubscriptionCheckoutService {
     public Map<String, Object> readSession(String token, HttpServletRequest request) {
         return tokenService.parseValid(token, null, MerchantInlineCheckoutTokenService.CHECKOUT_SUBSCRIPTION)
                 .map(session -> {
-                    Map<String, Object> data = new LinkedHashMap<>(session.toPublicMap());
+                    Map<String, Object> data = new LinkedHashMap<>(tokenService.toClientPublicMap(session));
                     data.put("sessionToken", token);
                     data.put("pgVendor", MerchantApiResponseMapper.MERCHANT_FACING_BRAND);
                     orgUnitRepository.findByCode(session.compId()).ifPresent(ou ->

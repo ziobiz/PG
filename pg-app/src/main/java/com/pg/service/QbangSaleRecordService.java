@@ -3,11 +3,13 @@ package com.pg.service;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.PgVendor;
+import com.pg.receipt.TransactionReceiptEmailService;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.util.PgTrnsctnOrderLookup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,11 +27,14 @@ public class QbangSaleRecordService {
 
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final OrgUnitRepository orgUnitRepository;
+    private final TransactionReceiptEmailService transactionReceiptEmailService;
 
     public QbangSaleRecordService(PgTrnsctnRepository pgTrnsctnRepository,
-                                  OrgUnitRepository orgUnitRepository) {
+                                  OrgUnitRepository orgUnitRepository,
+                                  @Lazy TransactionReceiptEmailService transactionReceiptEmailService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
+        this.transactionReceiptEmailService = transactionReceiptEmailService;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -110,6 +115,9 @@ public class QbangSaleRecordService {
         }
         PgTrnsctn t = txn.get();
         t.setStatus("10");
+        if (t.getPaidAt() == null) {
+            t.setPaidAt(LocalDateTime.now());
+        }
         t.setPaymentChannel("QR");
         if (qbangTxnNo != null && !qbangTxnNo.isBlank()) {
             t.setChillTransactionId(qbangTxnNo.trim());
@@ -127,6 +135,7 @@ public class QbangSaleRecordService {
             /* brand 는 고객명이 아님 — skip */
         }
         pgTrnsctnRepository.save(t);
+        hookReceiptEmail(t);
         return Optional.of(t);
     }
 
@@ -146,7 +155,19 @@ public class QbangSaleRecordService {
             t.setChillTransactionId(qbangTxnNo.trim());
         }
         pgTrnsctnRepository.save(t);
+        hookReceiptEmail(t);
         return Optional.of(t);
+    }
+
+    private void hookReceiptEmail(PgTrnsctn t) {
+        if (t == null) {
+            return;
+        }
+        try {
+            transactionReceiptEmailService.scheduleIfDue(t);
+        } catch (Exception ex) {
+            log.warn("QBANG 거래 영수증 메일 연동 실패 trnId={}: {}", t.getTrnId(), ex.getMessage());
+        }
     }
 
     private static String trimTo(String s, int max) {

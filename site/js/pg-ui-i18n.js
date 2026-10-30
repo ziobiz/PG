@@ -11154,6 +11154,30 @@
       CH: '提供 API 中继 INLINE',
       TH: 'เปิดใช้ INLINE แบบ API broker'
     },
+    'API 결제 금액 고정': {
+      EN: 'Lock API payment amount',
+      JP: 'API決済金額の固定',
+      CH: '锁定 API 支付金额',
+      TH: 'ล็อกยอดชำระ API'
+    },
+    '사용(수정 불가)': {
+      EN: 'On (not editable)',
+      JP: '使用(変更不可)',
+      CH: '启用(不可改)',
+      TH: 'ใช้ (แก้ไม่ได้)'
+    },
+    '미사용(수정 가능)': {
+      EN: 'Off (editable)',
+      JP: '未使用(変更可)',
+      CH: '关闭(可改)',
+      TH: 'ไม่ใช้ (แก้ได้)'
+    },
+    '가맹 API(entry=merchant_api·인라인·리다이렉트) 결제창에서 prepare 세션 금액을 고정할지입니다. 사용(기본)=회색 잠금·수정 불가, 미사용=구매자가 금액 변경 가능. 일반 URL결제에는 적용되지 않습니다. 전 PG 공통.': {
+      EN: 'Whether to lock the prepare-session amount on merchant API checkout (entry=merchant_api, inline/redirect). On(default)=gray locked field; Off=buyer may edit. Does not apply to public URL pay. Same for all PGs.',
+      JP: '加盟店API(entry=merchant_api・インライン/リダイレクト)決済画面でprepareセッション金額を固定するか。使用(既定)=グレーロック・変更不可、未使用=購入者が変更可。一般URL決済には適用しません。全PG共通。',
+      CH: '是否在商户 API（entry=merchant_api、内联/跳转）支付窗锁定 prepare 会话金额。启用(默认)=灰底锁定不可改；关闭=购买人可改。不作用于普通 URL 支付。全 PG 相同。',
+      TH: 'จะล็อกยอดจากเซสชัน prepare ในหน้าชำระ Merchant API (entry=merchant_api อินไลน์/รีไดเรกต์) หรือไม่ ใช้(ค่าเริ่มต้น)=ล็อกสีเทาแก้ไม่ได้ ไม่ใช้=ผู้ซื้อแก้ได้ ไม่ใช้กับ URL จ่ายทั่วไป ใช้ร่วมทุก PG'
+    },
     'API 중계형 REDIRECT 제공': {
       EN: 'Offer API broker REDIRECT',
       JP: 'API中継型 REDIRECT の提供',
@@ -17589,6 +17613,18 @@
       CH: 'API 重定向对接',
       TH: 'API redirect'
     },
+    'API 인라인 prepare 허용': {
+      EN: 'API inline prepare allow',
+      JP: 'API インライン prepare 許可',
+      CH: 'API 内联 prepare 允许',
+      TH: 'อนุญาต API inline prepare'
+    },
+    'API 리다이렉트 prepare 허용': {
+      EN: 'API redirect prepare allow',
+      JP: 'API リダイレクト prepare 許可',
+      CH: 'API 重定向 prepare 允许',
+      TH: 'อนุญาต API redirect prepare'
+    },
     'WordPress/WooCommerce': {
       EN: 'WordPress/WooCommerce',
       JP: 'WordPress/WooCommerce',
@@ -17667,6 +17703,18 @@
       JP: '加盟店API(prepare・embed・redirect・WordPress)連携方式を加盟店別に開きます。本社全体上限はデプロイ設定 → 決済ロジック設定です。WordPress使用時はAPIインラインまたはリダイレクトのいずれか以上をONにしてください。',
       CH: '按商户开启 API 对接方式 (prepare·embed·redirect·WordPress)。总部全局上限：部署设置 → 支付逻辑设置。使用 WordPress 时须至少开启 API 内联或重定向之一。',
       TH: 'เปิดช่อง Merchant API (prepare·embed·redirect·WordPress) ต่อร้าน ขีดจำกัด HQ: Deployment → Payment orchestration ใช้ WordPress ต้องเปิด API inline หรือ redirect อย่างน้อยหนึ่งช่อง'
+    },
+    '가맹별 prepare 경로(인라인·리다이렉트) 허용 여부입니다. 인라인·리다이렉트 중 하나 이상 켜면 prepare가 허용됩니다. 본사 전역 상한은 연동·배포 → 결제로직설정입니다. WordPress 사용 시 인라인 또는 리다이렉트 중 하나 이상을 켜야 합니다. 신규 가맹 기본값은 인라인·리다이렉트 모두 사용입니다.': {
+      EN: 'Per-merchant prepare path allow (inline·redirect). prepare is allowed if either is ON. HQ caps: Integration & Deploy → Payment orchestration. WordPress needs at least one of inline or redirect. New merchants default both ON.',
+      JP: '加盟店別の prepare 経路(インライン・リダイレクト)許可です。いずれかONで prepare 許可。本社上限は連携・デプロイ → 決済ロジック設定。WordPressはインラインまたはリダイレクトのいずれか必要。新規加盟店の既定は両方ONです。',
+      CH: '按商户允许 prepare 路径（内联·重定向）。任一开启即可 prepare。总部上限：对接与部署 → 支付逻辑。WordPress 须至少开启其一。新商户默认两者均开启。',
+      TH: 'อนุญาตเส้นทาง prepare ต่อร้าน (inline·redirect) เปิดอย่างน้อยหนึ่งช่องจึง prepare ได้ ขีดจำกัด HQ: เชื่อมต่อ·ปรับใช้ → Payment orchestration WordPress ต้องเปิดอย่างน้อยหนึ่งช่อง ค่าร้านใหม่ค่าเริ่มต้นเปิดทั้งสอง'
+    },
+    '업체등록·업체관리에서 조직을 가맹점으로 등록합니다. 「가맹 API 연동 채널」에서 인라인·리다이렉트 prepare 허용(신규 기본 모두 사용)과 WordPress를 설정합니다.': {
+      EN: 'Register the org as a merchant in Company register/management. In 「Merchant API integration channels」, set inline·redirect prepare allow (new default: both ON) and WordPress.',
+      JP: '業者登録・業者管理で組織を加盟店登録。「加盟店 API 連携チャネル」でインライン・リダイレクト prepare 許可(新規既定は両方ON)と WordPress を設定。',
+      CH: '在商户注册/管理中将组织注册为商户。在「商户 API 对接渠道」中设置内联·重定向 prepare 允许（新商户默认均开）和 WordPress。',
+      TH: 'ลงทะเบียนองค์กรเป็นร้านในลงทะเบียน/จัดการร้าน ตั้งอนุญาต inline·redirect prepare (ค่าเริ่มร้านใหม่เปิดทั้งคู่) และ WordPress ใน「ช่อง Merchant API」'
     },
     '가맹점 API 생성·배포문서·가맹점API 화면에는 여기서 켠 채널만 노출됩니다. prepare API도 비활성 채널은 INTEGRATION_CHANNEL_DISABLED 로 거부됩니다.': {
       EN: 'Merchant API generate, deployment docs, and merchant API portal show only channels enabled here. prepare API rejects disabled channels with INTEGRATION_CHANNEL_DISABLED.',

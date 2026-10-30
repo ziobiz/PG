@@ -948,7 +948,11 @@
             sessionPayload = res.data;
             var d = res.data;
             lockField('orderNo', d.orderNo);
-            lockField('amount', d.amount);
+            if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyApiPaymentAmountField) {
+              PG_URL_PAY_SHELL.applyApiPaymentAmountField('amount', d.amount, [d, typeof checkoutCtx !== 'undefined' ? checkoutCtx : null]);
+            } else {
+              lockField('amount', d.amount);
+            }
             lockField('item', d.productName);
             /* DP: 금액 옆 = 표시통화(세션 displayCurrency 또는 prepare currency). 정산통화로 덮지 않음 */
             var h0 = document.getElementById('payAmountCurrencyHint');
@@ -989,7 +993,9 @@
         var spOn = sessionPayload.orderNo != null ? String(sessionPayload.orderNo).trim() : '';
         var spAmt = sessionPayload.amount != null ? String(sessionPayload.amount).trim() : '';
         if (spOn && on && spOn !== on) return false;
-        if (spAmt && amt && spAmt !== amt) return false;
+        var amountLocked = !(window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.isApiPaymentAmountLockEnabled)
+          || PG_URL_PAY_SHELL.isApiPaymentAmountLockEnabled([sessionPayload, typeof checkoutCtx !== 'undefined' ? checkoutCtx : null]);
+        if (amountLocked && spAmt && amt && spAmt !== amt) return false;
         return true;
       }
 
@@ -1144,7 +1150,13 @@
             fxShellState.urlPayDisplayFxActive = urlPayDisplayFxActive;
             var fxP = window.PG_URL_PAY_SHELL
               ? PG_URL_PAY_SHELL.initDisplayFx(fxShellState) : Promise.resolve();
-            return fxP.then(function () { return validateSession(); });
+            return fxP.then(function () { return validateSession(); }).then(function () {
+              if (PAY_ENTRY_MERCHANT_API && window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyApiPaymentAmountField) {
+                PG_URL_PAY_SHELL.applyApiPaymentAmountField('amount',
+                  document.getElementById('amount') && document.getElementById('amount').value,
+                  [sessionPayload, checkoutCtx]);
+              }
+            });
           })
           .then(function () {
             var ordEl = document.getElementById('orderNo');

@@ -701,10 +701,10 @@
       title: '가맹 API 연동 채널',
       id: 'merchantApiIntegrationChannelsCard',
       merchantOnly: true,
-      notice: '가맹점 API(prepare·embed·redirect·WordPress) 연동 방식을 가맹별로 오픈합니다. 본사 전역 상한은 배포설정 → 결제로직설정입니다. WordPress 사용 시 API 인라인 또는 리다이렉트 중 하나 이상을 켜야 합니다.',
+      notice: '가맹별 prepare 경로(인라인·리다이렉트) 허용 여부입니다. 인라인·리다이렉트 중 하나 이상 켜면 prepare가 허용됩니다. 본사 전역 상한은 연동·배포 → 결제로직설정입니다. WordPress 사용 시 인라인 또는 리다이렉트 중 하나 이상을 켜야 합니다. 신규 가맹 기본값은 인라인·리다이렉트 모두 사용입니다.',
       rows: [
-        [{ label: 'API 인라인 연동', type: 'select', name: 'apiBrokerInlineUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 3 },
-         { label: 'API 리다이렉트 연동', type: 'select', name: 'apiBrokerRedirectUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 3 },
+        [{ label: 'API 인라인 prepare 허용', type: 'select', name: 'apiBrokerInlineUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 3 },
+         { label: 'API 리다이렉트 prepare 허용', type: 'select', name: 'apiBrokerRedirectUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 3 },
          { label: 'WordPress/WooCommerce', type: 'select', name: 'apiWordpressUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 3 }],
         [{ label: '모바일 결제창', type: 'select', name: 'mobileCheckoutMode', options: [
           { v: '', t: '본사 기본' },
@@ -2924,7 +2924,7 @@
     '<p class="fw-semibold text-dark mb-2" data-pg-ui-t="순서">순서</p>' +
     '<ol class="mb-2 ps-3">' +
     '<li class="mb-1"><span data-pg-ui-t="API연동설정에서 결제대행사 설정 추가 후, 연동용도에 API를 켭니다.">API연동설정에서 결제대행사 설정 추가 후, 연동용도에 API를 켭니다.</span></li>' +
-    '<li class="mb-1"><span data-pg-ui-t="업체등록·업체관리에서 조직을 가맹점으로 등록하고, 「가맹 API 연동 채널」에서 인라인·리다이렉트·WordPress 중 해당 가맹에 맞는 방식만 켭니다.">업체등록·업체관리에서 조직을 가맹점으로 등록하고, 「가맹 API 연동 채널」에서 인라인·리다이렉트·WordPress 중 해당 가맹에 맞는 방식만 켭니다.</span></li>' +
+    '<li class="mb-1"><span data-pg-ui-t="업체등록·업체관리에서 조직을 가맹점으로 등록합니다. 「가맹 API 연동 채널」에서 인라인·리다이렉트 prepare 허용(신규 기본 모두 사용)과 WordPress를 설정합니다.">업체등록·업체관리에서 조직을 가맹점으로 등록합니다. 「가맹 API 연동 채널」에서 인라인·리다이렉트 prepare 허용(신규 기본 모두 사용)과 WordPress를 설정합니다.</span></li>' +
     '<li class="mb-1"><span data-pg-ui-t="결제대행사(PG) 바인딩은 업체정보 결제대행사에서 저장합니다. PG와 연동 채널은 별개입니다.">결제대행사(PG) 바인딩은 업체정보 결제대행사에서 저장합니다. PG와 연동 채널은 별개입니다.</span></li>' +
     '<li class="mb-1"><span data-pg-ui-t="콜백·결과 URL은 업체정보 또는 통보관리 메뉴에서 등록합니다.">콜백·결과 URL은 업체정보 또는 통보관리 메뉴에서 등록합니다.</span></li>' +
     '<li class="mb-0"><span data-pg-ui-t="등록이 끝나면 키·문서에서 MID·엔드포인트·연동 JSON을 발급합니다.">등록이 끝나면 키·문서에서 MID·엔드포인트·연동 JSON을 발급합니다.</span></li></ol>' +
@@ -4530,7 +4530,9 @@
             [{ label: 'API 중계형 INLINE 제공', type: 'select', name: 'apiBrokerInlineEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'API 중계형 REDIRECT 제공', type: 'select', name: 'apiBrokerRedirectEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'URL 결제형 INLINE 제공', type: 'select', name: 'urlPayInlineEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
-             { label: 'URL 결제형 REDIRECT 제공', type: 'select', name: 'urlPayRedirectEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }]
+             { label: 'URL 결제형 REDIRECT 제공', type: 'select', name: 'urlPayRedirectEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
+            [{ label: 'API 결제 금액 고정', type: 'select', name: 'apiPaymentAmountLockYn', options: [{ v: 'Y', t: '사용(수정 불가)' }, { v: 'N', t: '미사용(수정 가능)' }], col: 3 },
+             { label: '', type: 'note', col: 9, text: '가맹 API(entry=merchant_api·인라인·리다이렉트) 결제창에서 prepare 세션 금액을 고정할지입니다. 사용(기본)=회색 잠금·수정 불가, 미사용=구매자가 금액 변경 가능. 일반 URL결제에는 적용되지 않습니다. 전 PG 공통.' }]
           ]
         },
         {

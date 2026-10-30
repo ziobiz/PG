@@ -125,10 +125,9 @@ public class MerchantJpayInlineCheckoutService {
         if (vendorDeny.isPresent()) {
             return vendorDeny.get();
         }
-        Optional<String> inlineDeny = integrationChannelService.denyMessage(orgUnitId,
-                MerchantApiIntegrationChannelService.Channel.API_BROKER_INLINE);
-        if (inlineDeny.isPresent()) {
-            return fail(inlineDeny.get(), MerchantApiIntegrationChannelService.CODE_INTEGRATION_CHANNEL_DISABLED);
+        Optional<String> channelDeny = integrationChannelService.denyIfNoBrokerChannel(orgUnitId);
+        if (channelDeny.isPresent()) {
+            return fail(channelDeny.get(), MerchantApiIntegrationChannelService.CODE_INTEGRATION_CHANNEL_DISABLED);
         }
         HqApiConfig hq = hqApiConfigRepository.findAll().stream().findFirst().orElse(null);
 
@@ -188,7 +187,7 @@ public class MerchantJpayInlineCheckoutService {
         String embedScriptUrl = NeutralCheckoutRoute.buildEmbedScriptUrl(base, ou.getCode());
 
         Map<String, Object> data = new LinkedHashMap<>();
-        data.putAll(session.toPublicMap());
+        data.putAll(tokenService.toClientPublicMap(session));
         data.put("sessionToken", sessionToken);
         data.put("payUrl", payUrl);
         data.put("embedScriptUrl", embedScriptUrl);
@@ -219,7 +218,7 @@ public class MerchantJpayInlineCheckoutService {
         }
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("success", true);
-        out.put("data", parsed.get().toPublicMap());
+        out.put("data", tokenService.toClientPublicMap(parsed.get()));
         return out;
     }
 

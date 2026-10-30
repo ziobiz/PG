@@ -33,6 +33,21 @@ public class MerchantInlineCheckoutTokenService {
         this.hqApiConfigRepository = hqApiConfigRepository;
     }
 
+    /** 본사 결제로직 — API 결제 금액 고정(Y 기본). */
+    public String resolveApiPaymentAmountLockYn() {
+        return hqApiConfigRepository.findAll().stream().findFirst()
+                .map(HqApiConfig::getApiPaymentAmountLockYn)
+                .map(v -> v != null && "N".equalsIgnoreCase(v.trim()) ? "N" : "Y")
+                .orElse("Y");
+    }
+
+    /** 세션 공개 맵 + {@code apiPaymentAmountLockYn} (전 PG prepare/session 공통). */
+    public Map<String, Object> toClientPublicMap(SessionPayload session) {
+        Map<String, Object> m = session != null ? session.toPublicMap() : new LinkedHashMap<>();
+        m.put("apiPaymentAmountLockYn", resolveApiPaymentAmountLockYn());
+        return m;
+    }
+
     public record SessionPayload(
             String sessionId,
             String compId,

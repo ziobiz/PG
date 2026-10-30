@@ -1091,6 +1091,51 @@
     return true;
   }
 
+  /** 본사「API 결제 금액 고정」— 기본 Y(고정). sources에서 첫 유효값 사용. */
+  function isApiPaymentAmountLockEnabled(sources) {
+    var list = Array.isArray(sources) ? sources : [sources];
+    for (var i = 0; i < list.length; i++) {
+      var s = list[i];
+      if (!s || typeof s !== 'object') continue;
+      if (s.apiPaymentAmountLockYn == null || String(s.apiPaymentAmountLockYn).trim() === '') continue;
+      return String(s.apiPaymentAmountLockYn).trim().toUpperCase() !== 'N';
+    }
+    return true;
+  }
+
+  function unlockSessionAmountField(idOrEl) {
+    var el = typeof idOrEl === 'string' ? g.document.getElementById(idOrEl) : idOrEl;
+    if (!el) return false;
+    el.classList.remove('pay-amount-locked');
+    el.removeAttribute('data-pg-amount-locked');
+    el.readOnly = false;
+    el.removeAttribute('readonly');
+    el.removeAttribute('aria-readonly');
+    if (el.tabIndex < 0) el.tabIndex = 0;
+    try {
+      if (el.getAttribute('data-pg-lock-was-type') === 'number') {
+        el.type = 'number';
+        el.removeAttribute('data-pg-lock-was-type');
+      }
+    } catch (eUnlock) { /* ignore */ }
+    return true;
+  }
+
+  /**
+   * merchant_api 금액 필드: 본사 정책에 따라 잠금 또는 수정 가능.
+   * value가 있으면 채우고, 잠금(Y/기본)이면 lock, 미사용(N)이면 unlock.
+   */
+  function applyApiPaymentAmountField(idOrEl, value, sources) {
+    var el = typeof idOrEl === 'string' ? g.document.getElementById(idOrEl) : idOrEl;
+    if (!el) return false;
+    var raw = value != null ? String(value).trim() : '';
+    if (raw) el.value = raw;
+    if (isApiPaymentAmountLockEnabled(sources)) {
+      return lockSessionField(el, raw || el.value, { asAmount: true, requireValue: false });
+    }
+    return unlockSessionAmountField(el);
+  }
+
   g.PG_URL_PAY_SHELL = {
     applyUrlPayBrowserTabTitle: applyUrlPayBrowserTabTitle,
     resolveUrlPayBrowserTabTitle: resolveUrlPayBrowserTabTitle,
@@ -1116,6 +1161,9 @@
     resolveUrlPayItemValue: resolveUrlPayItemValue,
     payFxResolvedDisplayCurrency: payFxResolvedDisplayCurrency,
     applyPayAmountCurrencyHint: applyPayAmountCurrencyHint,
-    lockSessionField: lockSessionField
+    lockSessionField: lockSessionField,
+    unlockSessionAmountField: unlockSessionAmountField,
+    isApiPaymentAmountLockEnabled: isApiPaymentAmountLockEnabled,
+    applyApiPaymentAmountField: applyApiPaymentAmountField
   };
 })(window);

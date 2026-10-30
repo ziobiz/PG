@@ -59,7 +59,7 @@ public class MerchantApiIntegrationChannelService {
         MerchantProfile mp = resolveProfile(orgUnitId).orElse(null);
         return isYes(hq != null ? hq.getApiBrokerRedirectEnabledYn() : "Y")
                 && isYes(hq != null ? hq.getUrlPayRedirectEnabledYn() : "Y")
-                && isYes(mp != null ? mp.getApiBrokerRedirectUseYn() : "N");
+                && isYes(mp != null ? mp.getApiBrokerRedirectUseYn() : "Y");
     }
 
     public boolean isWordpressEffective(Long orgUnitId) {
@@ -67,6 +67,23 @@ public class MerchantApiIntegrationChannelService {
         MerchantProfile mp = resolveProfile(orgUnitId).orElse(null);
         return isYes(hq != null ? hq.getApiWordpressPluginEnabledYn() : "Y")
                 && isYes(mp != null ? mp.getApiWordpressUseYn() : "N");
+    }
+
+    /**
+     * 가맹 API prepare(세션·payUrl 발급) 허용 — 인라인·리다이렉트 중 하나라도 사용이면 true.
+     * <p>운영 PG를 바꿔도 기존 RE(또는 사실상 payUrl 오픈) 가맹이 재연동 없이 같은 prepare 를
+     * 쓰도록, 채널을 인라인만으로 가두지 않습니다. IN↔RE UX 전환(iframe↔창이동)은 별개입니다.
+     */
+    public boolean isAnyBrokerChannelEffective(Long orgUnitId) {
+        return isInlineEffective(orgUnitId) || isRedirectEffective(orgUnitId);
+    }
+
+    /** {@link #isAnyBrokerChannelEffective} 가 false 일 때만 거부 메시지. */
+    public Optional<String> denyIfNoBrokerChannel(Long orgUnitId) {
+        if (isAnyBrokerChannelEffective(orgUnitId)) {
+            return Optional.empty();
+        }
+        return Optional.of("이 가맹점은 API 인라인·리다이렉트 prepare 허용이 모두 미사용입니다.");
     }
 
     /** 업체관리 그리드 — IN(INLINE)·RE(REDIRECT)·WO(WordPress), 복수 시 {@code IN/RE} 형식. */
@@ -99,7 +116,7 @@ public class MerchantApiIntegrationChannelService {
                     yield Optional.of("본사 설정에서 URL 결제형 INLINE 제공이 꺼져 있습니다.");
                 }
                 if (mp != null && !isYes(mp.getApiBrokerInlineUseYn())) {
-                    yield Optional.of("이 가맹점은 API 인라인 연동이 미사용으로 설정되어 있습니다.");
+                    yield Optional.of("이 가맹점은 API 인라인 prepare 허용이 미사용으로 설정되어 있습니다.");
                 }
                 yield Optional.empty();
             }
@@ -111,7 +128,7 @@ public class MerchantApiIntegrationChannelService {
                     yield Optional.of("본사 설정에서 URL 결제형 REDIRECT 제공이 꺼져 있습니다.");
                 }
                 if (mp != null && !isYes(mp.getApiBrokerRedirectUseYn())) {
-                    yield Optional.of("이 가맹점은 API 리다이렉트 연동이 미사용으로 설정되어 있습니다.");
+                    yield Optional.of("이 가맹점은 API 리다이렉트 prepare 허용이 미사용으로 설정되어 있습니다.");
                 }
                 yield Optional.empty();
             }
@@ -132,7 +149,7 @@ public class MerchantApiIntegrationChannelService {
         MerchantProfile mp = resolveProfile(orgUnitId).orElse(null);
         Map<String, Object> block = new LinkedHashMap<>();
         block.put("apiBrokerInlineUseYn", yn(mp != null ? mp.getApiBrokerInlineUseYn() : "Y"));
-        block.put("apiBrokerRedirectUseYn", yn(mp != null ? mp.getApiBrokerRedirectUseYn() : "N"));
+        block.put("apiBrokerRedirectUseYn", yn(mp != null ? mp.getApiBrokerRedirectUseYn() : "Y"));
         block.put("apiWordpressUseYn", yn(mp != null ? mp.getApiWordpressUseYn() : "N"));
         block.put("hqApiBrokerInlineEnabledYn", yn(hq != null ? hq.getApiBrokerInlineEnabledYn() : "Y"));
         block.put("hqApiBrokerRedirectEnabledYn", yn(hq != null ? hq.getApiBrokerRedirectEnabledYn() : "Y"));
@@ -172,7 +189,7 @@ public class MerchantApiIntegrationChannelService {
         }
         if (!isYes(inlineYn) && !isYes(redirectYn)) {
             throw new IllegalArgumentException(
-                    "WordPress/WooCommerce 연동을 사용하려면 API 인라인 또는 API 리다이렉트 중 하나 이상을 켜야 합니다.");
+                    "WordPress/WooCommerce를 사용하려면 API 인라인 또는 리다이렉트 prepare 허용 중 하나 이상을 켜야 합니다.");
         }
     }
 

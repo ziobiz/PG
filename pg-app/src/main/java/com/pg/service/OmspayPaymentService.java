@@ -7,16 +7,21 @@ import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.PgVendor;
 import com.pg.integration.pg.omspay.OmspayApiClient;
 import com.pg.integration.pg.omspay.OmspayCredentials;
+import com.pg.receipt.TransactionReceiptEmailService;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgAgencyRepository;
 import com.pg.middleware.notify.PgNotifyIngressPaths;
+import com.pg.noti.NotiProvisionClient;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -30,6 +35,9 @@ public class OmspayPaymentService {
 
     private static final Logger log = LoggerFactory.getLogger(OmspayPaymentService.class);
 
+    /** 브라우저 사이트백 — NOTI Result → 가맹 resultUrl (ElementPay와 동일 역할). */
+    public static final String NOTI_RESULT_PATH = "/noti/result/omspay";
+
     private final OrgUnitRepository orgUnitRepository;
     private final PgAgencyRepository pgAgencyRepository;
     private final ChillPayService chillPayService;
@@ -37,6 +45,7 @@ public class OmspayPaymentService {
     private final OmspayApiClient apiClient;
     private final OmspaySaleRecordService omspaySaleRecordService;
     private final HqNotifyEnvService hqNotifyEnvService;
+    private final TransactionReceiptEmailService transactionReceiptEmailService;
 
     @Value("${pg.public-base-url:https://api.icopay.co.kr}")
     private String publicBaseUrl;
@@ -47,12 +56,14 @@ public class OmspayPaymentService {
                                 UrlPayChargeResolutionService urlPayChargeResolutionService,
                                 OmspayApiClient apiClient,
                                 OmspaySaleRecordService omspaySaleRecordService,
-                                HqNotifyEnvService hqNotifyEnvService) {
+                                HqNotifyEnvService hqNotifyEnvService,
+                                @Lazy TransactionReceiptEmailService transactionReceiptEmailService) {
         this.orgUnitRepository = orgUnitRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.chillPayService = chillPayService;
         this.urlPayChargeResolutionService = urlPayChargeResolutionService;
         this.apiClient = apiClient;
+        this.transactionReceiptEmailService = transactionReceiptEmailService;
         this.omspaySaleRecordService = omspaySaleRecordService;
         this.hqNotifyEnvService = hqNotifyEnvService;
     }
@@ -61,10 +72,44 @@ public class OmspayPaymentService {
         Map<String, String> m = new LinkedHashMap<>();
         m.put("pgVendor", PgVendor.OMSPAY);
         m.put("notiWebhookPath", "/noti/omspay");
+        String notiBase = NotiProvisionClient.defaultBaseUrlIfBlank(
+                hqNotifyEnvService.getOrCreate().getNotiProvisionBaseUrl());
+        m.put("omspayResultUrl", notiBase + NOTI_RESULT_PATH);
         String ingressToken = hqNotifyEnvService.getOrCreate().getIngressToken();
+        String base = publicBaseUrl != null ? publicBaseUrl.trim().replaceAll("/+$", "") : "https://api.icopay.co.kr";
         m.put("icopayIngressBase",
                 PgNotifyIngressPaths.buildIngressBase(publicBaseUrl, ingressToken) + "/" + PgVendor.OMSPAY);
+        /* NOTI 전 PG 공통 Comp-Id 조회 (OMSPAY 전용 URL도 호환 유지) */
+        m.put("icopayOrderLookupUrl", base + "/api/middleware/notify/v1/order-lookup?order={order}");
         return m;
+    }
+
+    /**
+     * 가맹 API REDIRECT 사이트백 — NOTI {@code /noti/result/omspay} (가맹 resultUrl 릴레이).
+     * OMS return 은 ICOPAY 도메인(omspay-pay)으로 두고, 결제창이 이 URL로 넘긴다.
+     */
+    public String buildNotiBrowserResultUrl(String compId, String orderNo) {
+        String notiBase = NotiProvisionClient.defaultBaseUrlIfBlank(
+                hqNotifyEnvService.getOrCreate().getNotiProvisionBaseUrl());
+        String cid = compId != null ? compId.trim() : "";
+        String on = orderNo != null ? orderNo.trim() : "";
+        StringBuilder u = new StringBuilder(notiBase).append(NOTI_RESULT_PATH);
+        StringBuilder q = new StringBuilder();
+        if (!on.isEmpty()) {
+            q.append("order=").append(URLEncoder.encode(on, StandardCharsets.UTF_8));
+            q.append("&orderNo=").append(URLEncoder.encode(on, StandardCharsets.UTF_8));
+        }
+        if (!cid.isEmpty()) {
+            if (q.length() > 0) {
+                q.append('&');
+            }
+            q.append("compId=").append(URLEncoder.encode(cid, StandardCharsets.UTF_8));
+            q.append("&merchantId=").append(URLEncoder.encode(cid, StandardCharsets.UTF_8));
+        }
+        if (q.length() > 0) {
+            u.append('?').append(q);
+        }
+        return u.toString();
     }
 
     public Optional<OmspayCredentials> resolveCredentials(Long orgUnitId) {
@@ -155,12 +200,17 @@ public class OmspayPaymentService {
 
         String returnUrl = str(body, "returnUrl", "return_url");
         if (returnUrl.isBlank()) {
-            /* 직접 omspay-pay.html — /checkout forward 시 쿼리 유실·이동설정 우회 */
+            /* 직접 omspay-pay.html + 해시 백업 — OMS가 쿼리를 잘라도 결과 UI 진입 */
             String base = publicBaseUrl != null ? publicBaseUrl.trim().replaceAll("/+$", "") : "https://api.icopay.co.kr";
+            String mid = java.net.URLEncoder.encode(ouOpt.get().getCode(), java.nio.charset.StandardCharsets.UTF_8);
+            String onEnc = java.net.URLEncoder.encode(orderNo, java.nio.charset.StandardCharsets.UTF_8);
             returnUrl = base + "/omspay-pay.html"
-                    + "?m=" + java.net.URLEncoder.encode(ouOpt.get().getCode(), java.nio.charset.StandardCharsets.UTF_8)
-                    + "&orderNo=" + java.net.URLEncoder.encode(orderNo, java.nio.charset.StandardCharsets.UTF_8)
-                    + "&omspay=1&omspayReturn=1&done=1";
+                    + "?m=" + mid
+                    + "&orderNo=" + onEnc
+                    + "&omspay=1&omspayReturn=1&done=1"
+                    + "#m=" + mid
+                    + "&orderNo=" + onEnc
+                    + "&omspayReturn=1&done=1";
         }
 
         if (body != null) {
@@ -259,12 +309,21 @@ public class OmspayPaymentService {
         boolean paid = "10".equals(st) || "00".equals(st) || "01".equals(st) || "PAID".equalsIgnoreCase(st);
         boolean fail = "20".equals(st) || "30".equals(st) || "90".equals(st) || "99".equals(st)
                 || "FAIL".equalsIgnoreCase(st);
+        String origin = t.getOrigin() != null ? t.getOrigin().trim() : "";
+        boolean merchantApi = "MERCHANT_API".equalsIgnoreCase(origin);
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("orderNo", t.getOrderNo());
         data.put("status", st);
         data.put("paymentStatus", paid ? "PAID" : (fail ? "FAIL" : "PENDING"));
         data.put("paid", paid);
         data.put("pending", !paid && !fail);
+        data.put("txnOrigin", origin.isBlank() ? "URL" : origin);
+        data.put("merchantApi", merchantApi);
+        /* 가맹 API REDIRECT: ICOPAY 완료화면 대신 NOTI Result → 가맹 resultUrl 사이트백 */
+        if (merchantApi) {
+            data.put("siteBackUrl", buildNotiBrowserResultUrl(mid,
+                    t.getOrderNo() != null ? t.getOrderNo() : orderNo.trim()));
+        }
         data.put("amount", t.getAmtKrw() != null ? t.getAmtKrw() : t.getTotalAmt());
         data.put("currency", t.getCurType());
         if (t.getDisplayAmt() != null) {
@@ -272,6 +331,14 @@ public class OmspayPaymentService {
         }
         if (t.getDisplayCurType() != null && !t.getDisplayCurType().isBlank()) {
             data.put("shopperDisplayCurrency", t.getDisplayCurType());
+        }
+        /* 웹훅 경로에서 영수증이 누락된 건 — 결과 폴링 시 1회 보완 발송 */
+        if (paid || fail) {
+            try {
+                transactionReceiptEmailService.scheduleIfDue(t);
+            } catch (Exception e) {
+                log.warn("OMSPAY result-status receipt hook failed trnId={}: {}", t.getTrnId(), e.getMessage());
+            }
         }
         out.put("success", true);
         out.put("data", data);

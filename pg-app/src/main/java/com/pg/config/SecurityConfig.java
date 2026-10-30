@@ -135,6 +135,8 @@ public class SecurityConfig {
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/url/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/crypto/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/split/**")).permitAll()
+                /* NOTI 전 PG Comp-Id 조회 */
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/order-lookup")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/open/pg-notify/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/middleware/notify/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/middleware/v1/pg/**")).permitAll()

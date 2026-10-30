@@ -6,13 +6,209 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '5.67';
+  var CURRENT_LIVE = '5.75';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '5.75',
+      kind: 'minor',
+      date: '2026-10-30',
+      items: {
+        KO: [
+          'OMSPAY 가맹 API REDIRECT: 결제 후 ICOPAY 완료화면에 머물지 않고 NOTI Result(/noti/result/omspay) → 가맹 resultUrl 사이트백',
+          'URL 공개 결제는 기존처럼 ICOPAY 완료화면(다시 결제·닫기) 유지'
+        ],
+        EN: [
+          'OMSPAY merchant API REDIRECT: after pay, site-back via NOTI Result(/noti/result/omspay) → merchant resultUrl (no stuck ICOPAY done page)',
+          'Public URL pay still uses ICOPAY done screen (Pay again / Close)'
+        ],
+        JP: [
+          'OMSPAY加盟API REDIRECT: 決済後ICOPAY完了画面に止まらず NOTI Result(/noti/result/omspay)→加盟resultUrlへサイトバック',
+          '公開URL決済は従来どおりICOPAY完了画面(もう一度支払う・閉じる)'
+        ],
+        CH: [
+          'OMSPAY 商户 API REDIRECT：支付后不停留 ICOPAY 完成页，经 NOTI Result(/noti/result/omspay)→商户 resultUrl 回跳',
+          '公开 URL 支付仍用 ICOPAY 完成页（再支付/关闭）'
+        ],
+        TH: [
+          'OMSPAY Merchant API REDIRECT: หลังชำระไม่ค้างหน้าเสร็จ ICOPAY กลับร้านผ่าน NOTI Result(/noti/result/omspay)→resultUrl',
+          'ชำระ URL สาธารณะยังใช้หน้าเสร็จ ICOPAY (จ่ายอีก/ปิด)'
+        ]
+      }
+    },
+    {
+      version: '5.74',
+      kind: 'minor',
+      date: '2026-10-30',
+      items: {
+        KO: [
+          '가맹 API 연동 채널: 안내를「prepare 경로 허용」으로 정리(인라인·리다이렉트 라벨·카드 안내)',
+          '신규 가맹 기본값: API 인라인·리다이렉트 prepare 허용 모두 사용(ON). 기존 가맹 설정값 유지'
+        ],
+        EN: [
+          'Merchant API channels: copy clarified as「prepare path allow」(inline·redirect labels & card notice)',
+          'New merchants: both API inline and redirect prepare allow default ON (existing merchants unchanged)'
+        ],
+        JP: [
+          '加盟店API連携チャネル: 案内を「prepare経路許可」に整理(インライン・リダイレクト)',
+          '新規加盟店の既定: APIインライン・リダイレクト prepare許可ともON(既存設定は維持)'
+        ],
+        CH: [
+          '商户 API 渠道：文案改为「prepare 路径允许」（内联·重定向标签与卡片说明）',
+          '新商户默认：API 内联与重定向 prepare 允许均开启（已有商户不变）'
+        ],
+        TH: [
+          'ช่อง Merchant API: ปรับข้อความเป็น「อนุญาตเส้นทาง prepare」(ป้าย inline·redirect และคำอธิบายการ์ด)',
+          'ร้านใหม่ค่าเริ่มต้น: เปิดอนุญาต prepare ทั้ง inline และ redirect (ร้านเดิมไม่เปลี่ยน)'
+        ]
+      }
+    },
+    {
+      version: '5.73',
+      kind: 'minor',
+      date: '2026-10-30',
+      items: {
+        KO: [
+          '거래 영수증 메일: OMSPAY·QXIPAY·ox·QBANG(QR) 승인/실패 시에도 ElementPay·JPAY 등과 동일하게 고객 결과 메일 발송',
+          'NOTI 전 PG 공통 Comp-Id 조회 API: /api/middleware/notify/v1/order-lookup?order={order} (카드·QR·전 결제대행사)'
+        ],
+        EN: [
+          'Receipt email: OMSPAY·QXIPAY·ox·QBANG(QR) now send the same customer result mail on paid/fail as ElementPay·JPAY',
+          'NOTI all-PG Comp-Id lookup: /api/middleware/notify/v1/order-lookup?order={order} (card, QR, every acquirer)'
+        ],
+        JP: [
+          '取引明細メール: OMSPAY・QXIPAY・ox・QBANG(QR)も承認/失敗時にElementPay・JPAYと同じ顧客結果メールを送信',
+          'NOTI全PG共通Comp-Id照会: /api/middleware/notify/v1/order-lookup?order={order}'
+        ],
+        CH: [
+          '交易收据邮件：OMSPAY·QXIPAY·ox·QBANG(QR) 成功/失败时与 ElementPay·JPAY 同样发送客户结果邮件',
+          'NOTI 全 PG 共用 Comp-Id 查询：/api/middleware/notify/v1/order-lookup?order={order}'
+        ],
+        TH: [
+          'อีเมลใบเสร็จ: OMSPAY·QXIPAY·ox·QBANG(QR) ส่งเมลผลให้ลูกค้าเมื่อสำเร็จ/ล้มเหลวเหมือน ElementPay·JPAY',
+          'NOTI ค้น Comp-Id ร่วมทุก PG: /api/middleware/notify/v1/order-lookup?order={order}'
+        ]
+      }
+    },
+    {
+      version: '5.72',
+      kind: 'minor',
+      date: '2026-10-30',
+      items: {
+        KO: [
+          'OMSPAY→NOTI: 웹훅 응답에 X-Icopay-Comp-Id 강화(서명 실패 시에도 주문 역추적으로 Comp-Id 반환). 주문→Comp-Id 조회 API /api/pay/omspay/order-lookup?order={order} 추가 — NOTI 노티전송 이력 가맹명 자동 표시용'
+        ],
+        EN: [
+          'OMSPAY→NOTI: stronger X-Icopay-Comp-Id on webhook response (still returned when signature fails if order matches). Added order→Comp-Id lookup GET /api/pay/omspay/order-lookup?order={order} for NOTI merchant name on notify logs'
+        ],
+        JP: [
+          'OMSPAY→NOTI: ウェブフック応答のX-Icopay-Comp-Id強化(署名失敗時も注文照合でComp-Id返却)。注文→Comp-Id照会API追加 — NOTI通知履歴の加盟店名自動表示'
+        ],
+        CH: [
+          'OMSPAY→NOTI：加强 webhook 响应 X-Icopay-Comp-Id（签名失败时若能匹配订单仍返回）。新增订单→Comp-Id 查询 API，供 NOTI 通知履历自动显示商户名'
+        ],
+        TH: [
+          'OMSPAY→NOTI: เสริม X-Icopay-Comp-Id ในตอบ webhook (แม้ลายเซ็นผิดก็คืน Comp-Id ถ้าจับออเดอร์ได้) เพิ่ม API แปลงออเดอร์→Comp-Id ให้ NOTI โชว์ชื่อร้านในประวัติแจ้ง'
+        ]
+      }
+    },
+    {
+      version: '5.71',
+      kind: 'minor',
+      date: '2026-10-30',
+      items: {
+        KO: [
+          '결제통보: BACKGROUND/RESULT/MIDDLEWARE URL이 없으면 전송 생략 시 경고 로그(가맹 미등록으로 알림 누락 원인 추적)'
+        ],
+        EN: [
+          'Payment notify: warn in logs when BACKGROUND/RESULT/MIDDLEWARE URLs are missing (helps trace skipped merchant alerts)'
+        ],
+        JP: [
+          '決済通知: BACKGROUND/RESULT/MIDDLEWARE URL未登録で送信省略時に警告ログ'
+        ],
+        CH: [
+          '支付通知：未配置 BACKGROUND/RESULT/MIDDLEWARE URL 而跳过发送时写警告日志'
+        ],
+        TH: [
+          'แจ้งชำระ: บันทึกเตือนเมื่อไม่มี URL BACKGROUND/RESULT/MIDDLEWARE จึงข้ามส่ง'
+        ]
+      }
+    },
+    {
+      version: '5.70',
+      kind: 'minor',
+      date: '2026-10-30',
+      items: {
+        KO: [
+          'OMSPAY 결제 복귀: OMS가 return_url 쿼리를 잘라도 결과 화면으로 진입(해시·sessionStorage). 결제 후 입력 폼이 다시 열리던 오류 수정'
+        ],
+        EN: [
+          'OMSPAY return: still shows the result screen if OMS strips return_url query (hash + sessionStorage). Fixes reopening the payment form after pay'
+        ],
+        JP: [
+          'OMSPAY復帰: OMSがreturn_urlクエリを落としても結果画面へ(ハッシュ・sessionStorage)。決済後に入力フォームが再表示される不具合を修正'
+        ],
+        CH: [
+          'OMSPAY 回跳：即使 OMS 去掉 return_url 查询参数也进入结果页（哈希 + sessionStorage）。修复支付后又打开输入表单'
+        ],
+        TH: [
+          'OMSPAY กลับหลังชำระ: แม้ OMS ตัด query ของ return_url ก็เข้าหน้าผล (hash + sessionStorage) แก้บั๊กเปิดฟอร์มชำระซ้ำ'
+        ]
+      }
+    },
+    {
+      version: '5.69',
+      kind: 'minor',
+      date: '2026-10-30',
+      items: {
+        KO: [
+          '가맹 API RE(payUrl) 연속성: 인라인·리다이렉트 중 하나만 켜도 prepare 허용 — 운영 PG 교체 시 가맹 재연동 불필요',
+          'OMSPAY: 가맹 API 세션(payUrl) 진입 시 확인 화면에 멈추지 않고 OMS 카드 결제창으로 자동 이동'
+        ],
+        EN: [
+          'Merchant API RE continuity: prepare allowed if either inline or redirect is on — no merchant re-integration when switching operational PG',
+          'OMSPAY: merchant API payUrl sessions auto-continue to the OMS card page (no stuck confirm screen)'
+        ],
+        JP: [
+          '加盟店API RE継続性: インライン/リダイレクトのどちらかONならprepare可 — 運用PG変更時の再連携不要',
+          'OMSPAY: 加盟店APIのpayUrl入場時、確認画面で止まらずOMSカード画面へ自動遷移'
+        ],
+        CH: [
+          '商户 API RE 连续性：内联或跳转任一开启即可 prepare — 更换运营 PG 无需商户重对接',
+          'OMSPAY：商户 API payUrl 进入后自动进入 OMS 卡页，不再停在确认页'
+        ],
+        TH: [
+          'ต่อเนื่อง Merchant API แบบ RE: เปิดอินไลน์หรือรีไดเรกต์อย่างใดอย่างหนึ่งก็ prepare ได้ — เปลี่ยน PG ไม่ต้องเชื่อมร้านใหม่',
+          'OMSPAY: เข้า payUrl จาก Merchant API แล้วไปหน้าบัตร OMS อัตโนมัติ ไม่ค้างหน้ายืนยัน'
+        ]
+      }
+    },
+    {
+      version: '5.68',
+      kind: 'minor',
+      date: '2026-10-30',
+      items: {
+        KO: [
+          '본사정책 결제라우팅「결제 실행방식·경로」에 「API 결제 금액 고정」추가(기본 사용=수정 불가). 미사용 시 가맹 API 결제창에서 금액 변경 가능. 전 PG 공통·일반 URL결제 미적용'
+        ],
+        EN: [
+          'HQ payment routing: added 「Lock API payment amount」(default On=not editable). When Off, buyers can edit amount on merchant API checkout. Applies to all PGs; not to public URL pay'
+        ],
+        JP: [
+          '本社決済ルーティング「決済実行方式・経路」に「API決済金額の固定」を追加(既定=変更不可)。未使用なら加盟店API決済画面で金額変更可。全PG共通・一般URL決済は対象外'
+        ],
+        CH: [
+          '总部支付路由「支付执行方式与路径」新增「锁定 API 支付金额」(默认启用=不可改)。关闭后商户 API 支付窗可改金额。全 PG 通用，普通 URL 支付不适用'
+        ],
+        TH: [
+          'เส้นทางชำระ HQ เพิ่ม「ล็อกยอดชำระ API」(ค่าเริ่มต้น=แก้ไม่ได้) ถ้าปิด ผู้ซื้อแก้ยอดในหน้า Merchant API ได้ ใช้ร่วมทุก PG ไม่กระทบ URL จ่ายทั่วไป'
+        ]
+      }
+    },
     {
       version: '5.67',
       kind: 'minor',

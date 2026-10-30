@@ -79,6 +79,13 @@ public class HqApiConfig {
     private String urlPayRedirectEnabledYn = "Y";
 
     /**
+     * 가맹 API(entry=merchant_api) 결제창 금액 고정.
+     * Y(기본)=세션 금액 수정 불가, N=구매자가 금액 수정 가능.
+     */
+    @Column(name = "api_payment_amount_lock_yn", nullable = false, length = 1)
+    private String apiPaymentAmountLockYn = "Y";
+
+    /**
      * 모바일·embed 결제창 기본 — {@link com.pg.urlpay.MobileCheckoutModeUtil}.
      * EMBED(기본) | MOBILE_REDIRECT | ALWAYS_REDIRECT
      */
@@ -468,6 +475,11 @@ public class HqApiConfig {
     public void setUrlPayInlineEnabledYn(String urlPayInlineEnabledYn) { this.urlPayInlineEnabledYn = urlPayInlineEnabledYn; }
     public String getUrlPayRedirectEnabledYn() { return urlPayRedirectEnabledYn; }
     public void setUrlPayRedirectEnabledYn(String urlPayRedirectEnabledYn) { this.urlPayRedirectEnabledYn = urlPayRedirectEnabledYn; }
+    public String getApiPaymentAmountLockYn() { return apiPaymentAmountLockYn; }
+    public void setApiPaymentAmountLockYn(String apiPaymentAmountLockYn) {
+        this.apiPaymentAmountLockYn = apiPaymentAmountLockYn != null
+                && "N".equalsIgnoreCase(apiPaymentAmountLockYn.trim()) ? "N" : "Y";
+    }
     public String getMobileCheckoutModeDefault() { return mobileCheckoutModeDefault; }
     public void setMobileCheckoutModeDefault(String mobileCheckoutModeDefault) {
         this.mobileCheckoutModeDefault = mobileCheckoutModeDefault != null && !mobileCheckoutModeDefault.isBlank()

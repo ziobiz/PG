@@ -3,6 +3,7 @@ package com.pg.urlpay;
 import com.pg.entity.MerchantDefaultProduct;
 import com.pg.entity.MerchantProfile;
 import com.pg.entity.OrgUnit;
+import com.pg.merchantdeploy.MerchantInlineCheckoutTokenService;
 import com.pg.repository.MerchantDefaultProductRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
@@ -50,6 +51,7 @@ public class UrlPayPublicCheckoutService {
     private final MerchantPgBindingRouterService pgBindingRouter;
     private final CardAuthModeService cardAuthModeService;
     private final MerchantPayLimitService merchantPayLimitService;
+    private final MerchantInlineCheckoutTokenService merchantInlineCheckoutTokenService;
 
     public UrlPayPublicCheckoutService(ChillPayService chillPayService,
                                        OrgUnitRepository orgUnitRepository,
@@ -69,7 +71,8 @@ public class UrlPayPublicCheckoutService {
                                        UrlPayCheckoutDisplayPolicyService urlPayCheckoutDisplayPolicyService,
                                        MerchantPgBindingRouterService pgBindingRouter,
                                        CardAuthModeService cardAuthModeService,
-                                       MerchantPayLimitService merchantPayLimitService) {
+                                       MerchantPayLimitService merchantPayLimitService,
+                                       MerchantInlineCheckoutTokenService merchantInlineCheckoutTokenService) {
         this.chillPayService = chillPayService;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
@@ -89,6 +92,7 @@ public class UrlPayPublicCheckoutService {
         this.pgBindingRouter = pgBindingRouter;
         this.cardAuthModeService = cardAuthModeService;
         this.merchantPayLimitService = merchantPayLimitService;
+        this.merchantInlineCheckoutTokenService = merchantInlineCheckoutTokenService;
     }
 
     /**
@@ -174,6 +178,7 @@ public class UrlPayPublicCheckoutService {
             data.put("urlPayOperationalRoutes", pgBindingRouter.listOperationalRouteSummaries(orgUnitId, repay));
         }
         merchantPayLimitService.putPublicCheckoutFields(data, orgUnitId);
+        data.put("apiPaymentAmountLockYn", merchantInlineCheckoutTokenService.resolveApiPaymentAmountLockYn());
         return data;
     }
 

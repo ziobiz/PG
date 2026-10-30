@@ -3,11 +3,13 @@ package com.pg.service;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.PgVendor;
+import com.pg.receipt.TransactionReceiptEmailService;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.util.PgTrnsctnOrderLookup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,11 +27,14 @@ public class QxipaySaleRecordService {
 
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final OrgUnitRepository orgUnitRepository;
+    private final TransactionReceiptEmailService transactionReceiptEmailService;
 
     public QxipaySaleRecordService(PgTrnsctnRepository pgTrnsctnRepository,
-                                   OrgUnitRepository orgUnitRepository) {
+                                   OrgUnitRepository orgUnitRepository,
+                                   @Lazy TransactionReceiptEmailService transactionReceiptEmailService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
+        this.transactionReceiptEmailService = transactionReceiptEmailService;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -114,6 +119,12 @@ public class QxipaySaleRecordService {
             t.setApprovalNo(approvalNo.trim());
         }
         t.setVan(PgVendor.QXIPAY);
-        return Optional.of(pgTrnsctnRepository.save(t));
+        PgTrnsctn saved = pgTrnsctnRepository.save(t);
+        try {
+            transactionReceiptEmailService.scheduleIfDue(saved);
+        } catch (Exception ex) {
+            log.warn("QXIPAY 거래 영수증 메일 연동 실패 trnId={}: {}", saved.getTrnId(), ex.getMessage());
+        }
+        return Optional.of(saved);
     }
 }

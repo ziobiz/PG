@@ -1934,6 +1934,7 @@ public class ApiHqController {
         data.put("apiWordpressPluginEnabledYn", "Y");
         data.put("urlPayInlineEnabledYn", "Y");
         data.put("urlPayRedirectEnabledYn", "Y");
+        data.put("apiPaymentAmountLockYn", "Y");
         data.put("mobileCheckoutModeDefault", "EMBED");
         data.put("urlPayInputModeDefault", "GENERAL");
         data.put("urlPayCardExpiryModeDefault", "DROPDOWN");
@@ -2000,6 +2001,7 @@ public class ApiHqController {
             if (c.getApiWordpressPluginEnabledYn() != null) data.put("apiWordpressPluginEnabledYn", c.getApiWordpressPluginEnabledYn());
             if (c.getUrlPayInlineEnabledYn() != null) data.put("urlPayInlineEnabledYn", c.getUrlPayInlineEnabledYn());
             if (c.getUrlPayRedirectEnabledYn() != null) data.put("urlPayRedirectEnabledYn", c.getUrlPayRedirectEnabledYn());
+            if (c.getApiPaymentAmountLockYn() != null) data.put("apiPaymentAmountLockYn", c.getApiPaymentAmountLockYn());
             if (c.getMobileCheckoutModeDefault() != null) {
                 data.put("mobileCheckoutModeDefault",
                         com.pg.urlpay.MobileCheckoutModeUtil.normalize(c.getMobileCheckoutModeDefault()));
@@ -2237,6 +2239,7 @@ public class ApiHqController {
         c.setApiWordpressPluginEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("apiWordpressPluginEnabledYn", "Y"))) ? "N" : "Y");
         c.setUrlPayInlineEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("urlPayInlineEnabledYn", "Y"))) ? "N" : "Y");
         c.setUrlPayRedirectEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("urlPayRedirectEnabledYn", "Y"))) ? "N" : "Y");
+        c.setApiPaymentAmountLockYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("apiPaymentAmountLockYn", "Y"))) ? "N" : "Y");
         c.setMobileCheckoutModeDefault(com.pg.urlpay.MobileCheckoutModeUtil.normalize(
                 String.valueOf(body.getOrDefault("mobileCheckoutModeDefault", "EMBED"))));
         c.setUrlPayInputModeDefault(com.pg.urlpay.UrlPayInputModeUtil.normalize(

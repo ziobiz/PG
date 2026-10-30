@@ -2020,7 +2020,7 @@ public class CompService {
                             m.put("jpayPhoneDialCodeYn", com.pg.urlpay.JpayPhoneDialCodeUtil.formatMerchantUiValue(mp.getJpayPhoneDialCodeYn()));
                             m.put("apiJpaySubscriptionUseYn", mp.getApiJpaySubscriptionUseYn() != null ? mp.getApiJpaySubscriptionUseYn() : "N");
                             m.put("apiBrokerInlineUseYn", mp.getApiBrokerInlineUseYn() != null ? mp.getApiBrokerInlineUseYn() : "Y");
-                            m.put("apiBrokerRedirectUseYn", mp.getApiBrokerRedirectUseYn() != null ? mp.getApiBrokerRedirectUseYn() : "N");
+                            m.put("apiBrokerRedirectUseYn", mp.getApiBrokerRedirectUseYn() != null ? mp.getApiBrokerRedirectUseYn() : "Y");
                             m.put("apiWordpressUseYn", mp.getApiWordpressUseYn() != null ? mp.getApiWordpressUseYn() : "N");
                             m.put("mobileCheckoutMode", mp.getMobileCheckoutMode() != null ? mp.getMobileCheckoutMode() : "");
                             m.put("chatbotPaymentUseYn", mp.getChatbotPaymentUseYn() != null ? mp.getChatbotPaymentUseYn() : "N");
@@ -2134,7 +2134,7 @@ public class CompService {
                                 m.put("jpayPhoneDialCodeYn", com.pg.urlpay.JpayPhoneDialCodeUtil.formatMerchantUiValue(mp.getJpayPhoneDialCodeYn()));
                             m.put("apiJpaySubscriptionUseYn", mp.getApiJpaySubscriptionUseYn() != null ? mp.getApiJpaySubscriptionUseYn() : "N");
                             m.put("apiBrokerInlineUseYn", mp.getApiBrokerInlineUseYn() != null ? mp.getApiBrokerInlineUseYn() : "Y");
-                            m.put("apiBrokerRedirectUseYn", mp.getApiBrokerRedirectUseYn() != null ? mp.getApiBrokerRedirectUseYn() : "N");
+                            m.put("apiBrokerRedirectUseYn", mp.getApiBrokerRedirectUseYn() != null ? mp.getApiBrokerRedirectUseYn() : "Y");
                             m.put("apiWordpressUseYn", mp.getApiWordpressUseYn() != null ? mp.getApiWordpressUseYn() : "N");
                             m.put("mobileCheckoutMode", mp.getMobileCheckoutMode() != null ? mp.getMobileCheckoutMode() : "");
                                 m.put("urlPayWebSettingsAllowed",

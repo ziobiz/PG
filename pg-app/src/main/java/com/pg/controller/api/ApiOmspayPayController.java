@@ -7,11 +7,13 @@ import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.service.ChillPayService;
 import com.pg.service.OmspayPaymentService;
+import com.pg.service.OmspaySaleRecordService;
 import com.pg.service.OrgServiceUseService;
 import com.pg.urlpay.UrlPayPublicCheckoutService;
 import com.pg.urlpay.UrlPaySaleDispatcher;
 import com.pg.urlpay.UrlPayVendorCapabilityRegistry;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +27,7 @@ import java.util.Optional;
 public class ApiOmspayPayController {
 
     private final OmspayPaymentService omspayPaymentService;
+    private final OmspaySaleRecordService omspaySaleRecordService;
     private final UrlPaySaleDispatcher urlPaySaleDispatcher;
     private final UrlPayPublicCheckoutService urlPayPublicCheckoutService;
     private final ChillPayService chillPayService;
@@ -33,6 +36,7 @@ public class ApiOmspayPayController {
     private final MerchantProfileRepository merchantProfileRepository;
 
     public ApiOmspayPayController(OmspayPaymentService omspayPaymentService,
+                                  OmspaySaleRecordService omspaySaleRecordService,
                                   UrlPaySaleDispatcher urlPaySaleDispatcher,
                                   UrlPayPublicCheckoutService urlPayPublicCheckoutService,
                                   ChillPayService chillPayService,
@@ -40,6 +44,7 @@ public class ApiOmspayPayController {
                                   OrgServiceUseService orgServiceUseService,
                                   MerchantProfileRepository merchantProfileRepository) {
         this.omspayPaymentService = omspayPaymentService;
+        this.omspaySaleRecordService = omspaySaleRecordService;
         this.urlPaySaleDispatcher = urlPaySaleDispatcher;
         this.urlPayPublicCheckoutService = urlPayPublicCheckoutService;
         this.chillPayService = chillPayService;
@@ -143,6 +148,35 @@ public class ApiOmspayPayController {
         return ResponseEntity.ok(ApiResponse.fail(
                 String.valueOf(result.getOrDefault("message", "상태 조회 실패")),
                 String.valueOf(result.getOrDefault("errorCode", "STATUS_FAILED"))));
+    }
+
+    /**
+     * NOTI OMSPAY ingress {@code icopayOrderLookupUrl} —
+     * {@code GET .../order-lookup?order={order}} (SO-… 또는 가맹 orderNo).
+     * 응답 헤더 {@code X-Icopay-Comp-Id} + JSON {@code compId}.
+     */
+    @GetMapping(value = "/order-lookup", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> orderLookup(
+            @RequestParam(required = false) String order,
+            @RequestParam(required = false) String orderNo) {
+        String q = order != null && !order.isBlank() ? order.trim()
+                : (orderNo != null ? orderNo.trim() : "");
+        Map<String, Object> m = omspaySaleRecordService.lookupCompIdForNoti(q);
+        HttpHeaders headers = new HttpHeaders();
+        String compId = m.get("compId") != null ? String.valueOf(m.get("compId")).trim() : "";
+        String on = m.get("orderNo") != null ? String.valueOf(m.get("orderNo")).trim() : "";
+        if (!compId.isBlank()) {
+            headers.add("X-Icopay-Comp-Id", compId);
+        }
+        if (!on.isBlank()) {
+            headers.add("X-Icopay-Order-No", on);
+        }
+        if (!Boolean.TRUE.equals(m.get("success"))) {
+            String code = m.get("errorCode") != null ? String.valueOf(m.get("errorCode")) : "NOT_FOUND";
+            String msg = m.get("message") != null ? String.valueOf(m.get("message")) : "not found";
+            return ResponseEntity.ok().headers(headers).body(ApiResponse.fail(msg, code));
+        }
+        return ResponseEntity.ok().headers(headers).body(ApiResponse.ok(m));
     }
 
     private ResponseEntity<ApiResponse<Map<String, Object>>> gateOrgAndWebPayment(Long orgUnitId) {

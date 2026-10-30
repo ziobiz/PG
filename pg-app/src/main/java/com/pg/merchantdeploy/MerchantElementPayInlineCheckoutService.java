@@ -86,10 +86,9 @@ public class MerchantElementPayInlineCheckoutService {
         if (!elementPayPaymentService.hasOperationalWebBinding(orgUnitId)) {
             return fail("URL 결제(운영) 바인딩이 없습니다.", "URL_PAYMENT_PG_MISSING");
         }
-        Optional<String> inlineDeny = integrationChannelService.denyMessage(orgUnitId,
-                MerchantApiIntegrationChannelService.Channel.API_BROKER_INLINE);
-        if (inlineDeny.isPresent()) {
-            return fail(inlineDeny.get(), MerchantApiIntegrationChannelService.CODE_INTEGRATION_CHANNEL_DISABLED);
+        Optional<String> channelDeny = integrationChannelService.denyIfNoBrokerChannel(orgUnitId);
+        if (channelDeny.isPresent()) {
+            return fail(channelDeny.get(), MerchantApiIntegrationChannelService.CODE_INTEGRATION_CHANNEL_DISABLED);
         }
 
         String orderNo = normalizeOrderNo(str(body.get("orderNo")));
@@ -139,7 +138,7 @@ public class MerchantElementPayInlineCheckoutService {
         String embedScriptUrl = (base.isEmpty() ? "" : base) + "/v1/embed-checkout/" + urlEnc(ou.getCode());
 
         Map<String, Object> data = new LinkedHashMap<>();
-        data.putAll(session.toPublicMap());
+        data.putAll(tokenService.toClientPublicMap(session));
         data.put("sessionToken", sessionToken);
         data.put("payUrl", payUrl);
         data.put("embedScriptUrl", embedScriptUrl);

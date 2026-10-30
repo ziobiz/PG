@@ -136,7 +136,7 @@ public class MerchantChillpayRedirectCheckoutService {
         String payUrl = NeutralCheckoutRoute.buildPayUrl(base, ou.getCode(), sessionToken, langCode, false);
 
         Map<String, Object> data = new LinkedHashMap<>();
-        data.putAll(session.toPublicMap());
+        data.putAll(tokenService.toClientPublicMap(session));
         data.put("sessionToken", sessionToken);
         data.put("payUrl", payUrl);
         data.put("redirectCheckoutPrepareUrl",
@@ -166,7 +166,7 @@ public class MerchantChillpayRedirectCheckoutService {
         }
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("success", true);
-        out.put("data", parsed.get().toPublicMap());
+        out.put("data", tokenService.toClientPublicMap(parsed.get()));
         return out;
     }
 

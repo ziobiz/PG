@@ -97,10 +97,10 @@ public class MerchantUnifiedInlineCheckoutService {
         if (splitDeny.isPresent()) {
             return splitDeny.get();
         }
-        Optional<String> inlineDeny = integrationChannelService.denyMessage(orgUnitId,
-                MerchantApiIntegrationChannelService.Channel.API_BROKER_INLINE);
-        if (inlineDeny.isPresent()) {
-            return fail(inlineDeny.get(), MerchantApiIntegrationChannelService.CODE_INTEGRATION_CHANNEL_DISABLED);
+        /* RE-only 가맹이 레거시 /checkout/prepare 를 호출해도 PG 교체 후 재연동 없이 통과 */
+        Optional<String> channelDeny = integrationChannelService.denyIfNoBrokerChannel(orgUnitId);
+        if (channelDeny.isPresent()) {
+            return fail(channelDeny.get(), MerchantApiIntegrationChannelService.CODE_INTEGRATION_CHANNEL_DISABLED);
         }
         Map<String, String> buyer;
         try {
@@ -205,7 +205,7 @@ public class MerchantUnifiedInlineCheckoutService {
         }
         return tokenService.parseValid(token)
                 .map(session -> {
-                    Map<String, Object> data = new LinkedHashMap<>(session.toPublicMap());
+                    Map<String, Object> data = new LinkedHashMap<>(tokenService.toClientPublicMap(session));
                     data.put("sessionToken", token);
                     orgUnitRepository.findByCode(session.compId()).ifPresent(ou ->
                             mobileCheckoutModeService.enrichInlineSession(data, ou.getId(), request));

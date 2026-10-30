@@ -75,10 +75,9 @@ public class MerchantIlkInlineCheckoutService {
         if (!ilkPaymentService.hasOperationalWebBinding(orgUnitId)) {
             return CheckoutFailI18n.urlPayPgMissing();
         }
-        Optional<String> inlineDeny = integrationChannelService.denyMessage(orgUnitId,
-                MerchantApiIntegrationChannelService.Channel.API_BROKER_INLINE);
-        if (inlineDeny.isPresent()) {
-            return fail(inlineDeny.get(), MerchantApiIntegrationChannelService.CODE_INTEGRATION_CHANNEL_DISABLED);
+        Optional<String> channelDeny = integrationChannelService.denyIfNoBrokerChannel(orgUnitId);
+        if (channelDeny.isPresent()) {
+            return fail(channelDeny.get(), MerchantApiIntegrationChannelService.CODE_INTEGRATION_CHANNEL_DISABLED);
         }
 
         String orderNo = normalizeOrderNo(str(body.get("orderNo")));
@@ -129,7 +128,7 @@ public class MerchantIlkInlineCheckoutService {
         String embedScriptUrl = (base.isEmpty() ? "" : base) + "/v1/embed-checkout/" + urlEnc(ou.getCode());
 
         Map<String, Object> data = new LinkedHashMap<>();
-        data.putAll(session.toPublicMap());
+        data.putAll(tokenService.toClientPublicMap(session));
         data.put("sessionToken", sessionToken);
         data.put("payUrl", payUrl);
         data.put("embedScriptUrl", embedScriptUrl);

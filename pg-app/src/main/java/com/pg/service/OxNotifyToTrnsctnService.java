@@ -7,10 +7,12 @@ import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.PgVendor;
 import com.pg.integration.pg.notify.NotifyIdempotencyLock;
 import com.pg.integration.pg.notify.PgNotifyInboundTxnHandler;
+import com.pg.receipt.TransactionReceiptEmailService;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.util.PgTrnsctnOrderLookup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,15 +36,18 @@ public class OxNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final NotifyIdempotencyLock notifyIdempotencyLock;
     private final MerchantOutboundNotifyService merchantOutboundNotifyService;
+    private final TransactionReceiptEmailService transactionReceiptEmailService;
     private final ObjectMapper objectMapper;
 
     public OxNotifyToTrnsctnService(PgTrnsctnRepository pgTrnsctnRepository,
                                     NotifyIdempotencyLock notifyIdempotencyLock,
                                     MerchantOutboundNotifyService merchantOutboundNotifyService,
+                                    @Lazy TransactionReceiptEmailService transactionReceiptEmailService,
                                     ObjectMapper objectMapper) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.notifyIdempotencyLock = notifyIdempotencyLock;
         this.merchantOutboundNotifyService = merchantOutboundNotifyService;
+        this.transactionReceiptEmailService = transactionReceiptEmailService;
         this.objectMapper = objectMapper;
     }
 
@@ -80,8 +85,16 @@ public class OxNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         boolean paid = "00".equals(code) || "0".equals(code) || "succeeded".equalsIgnoreCase(code)
                 || "success".equalsIgnoreCase(code) || "paid".equalsIgnoreCase(code);
         t.setStatus(paid ? "10" : "99");
+        if (paid && t.getPaidAt() == null) {
+            t.setPaidAt(java.time.LocalDateTime.now());
+        }
         t.setVan(PgVendor.OX);
         pgTrnsctnRepository.save(t);
+        try {
+            transactionReceiptEmailService.scheduleIfDue(t);
+        } catch (Exception e) {
+            log.warn("ox 거래 영수증 메일 연동 실패 trnId={}: {}", t.getTrnId(), e.getMessage());
+        }
         try {
             merchantOutboundNotifyService.scheduleAfterTxnCommit(t, in, notifyChannel);
         } catch (Exception e) {

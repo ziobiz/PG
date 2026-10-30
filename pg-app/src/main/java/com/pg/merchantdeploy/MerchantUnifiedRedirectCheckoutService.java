@@ -141,7 +141,7 @@ public class MerchantUnifiedRedirectCheckoutService {
                 .map(session -> {
                     Map<String, Object> out = new LinkedHashMap<>();
                     out.put("success", true);
-                    out.put("data", session.toPublicMap());
+                    out.put("data", tokenService.toClientPublicMap(session));
                     return out;
                 })
                 .orElseGet(() -> fail("세션이 유효하지 않거나 만료되었습니다.", "INVALID_SESSION"));

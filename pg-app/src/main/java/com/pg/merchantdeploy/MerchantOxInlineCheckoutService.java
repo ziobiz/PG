@@ -83,10 +83,9 @@ public class MerchantOxInlineCheckoutService {
         if (opPg == null || !PgVendor.isOxFamily(opPg)) {
             return fail("URL 결제(운영) 바인딩이 없습니다.", "URL_PAYMENT_PG_MISSING");
         }
-        Optional<String> inlineDeny = integrationChannelService.denyMessage(orgUnitId,
-                MerchantApiIntegrationChannelService.Channel.API_BROKER_INLINE);
-        if (inlineDeny.isPresent()) {
-            return fail(inlineDeny.get(), MerchantApiIntegrationChannelService.CODE_INTEGRATION_CHANNEL_DISABLED);
+        Optional<String> channelDeny = integrationChannelService.denyIfNoBrokerChannel(orgUnitId);
+        if (channelDeny.isPresent()) {
+            return fail(channelDeny.get(), MerchantApiIntegrationChannelService.CODE_INTEGRATION_CHANNEL_DISABLED);
         }
 
         String orderNo = str(body.get("orderNo"));
@@ -127,7 +126,7 @@ public class MerchantOxInlineCheckoutService {
         String base = trimSlash(productService.resolvePublicCustomerSiteBase(request));
         Map<String, Object> data = new LinkedHashMap<>();
         tokenService.parseValid(sessionToken, MerchantPgBrokerVendor.OX)
-                .ifPresent(s -> data.putAll(s.toPublicMap()));
+                .ifPresent(s -> data.putAll(tokenService.toClientPublicMap(s)));
         data.put("sessionToken", sessionToken);
         data.put("payUrl", NeutralCheckoutRoute.buildPayUrl(base, ou.getCode(), sessionToken, langCode, true));
         data.put("embedScriptUrl", (base.isEmpty() ? "" : base) + "/v1/embed-checkout/" + ou.getCode());

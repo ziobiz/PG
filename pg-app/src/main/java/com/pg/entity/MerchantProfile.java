@@ -392,7 +392,7 @@ public class MerchantProfile {
 
     /** 가맹 API 리다이렉트 연동 — 본사 apiBrokerRedirectEnabledYn·urlPayRedirectEnabledYn 과 함께 */
     @Column(name = "api_broker_redirect_use_yn", nullable = false, length = 1)
-    private String apiBrokerRedirectUseYn = "N";
+    private String apiBrokerRedirectUseYn = "Y";
 
     /** WordPress/WooCommerce 플러그인 연동 — 본사 apiWordpressPluginEnabledYn 과 함께 */
     @Column(name = "api_wordpress_use_yn", nullable = false, length = 1)

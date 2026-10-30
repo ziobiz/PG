@@ -1373,15 +1373,21 @@
           if (res.success !== true || !res.data) throw new Error(res.message || t('configErr'));
           var d = res.data;
           lockPayInputField('orderNo', d.orderNo);
-          lockPayInputField('amount', d.amount);
+          if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyApiPaymentAmountField) {
+            PG_URL_PAY_SHELL.applyApiPaymentAmountField('amount', d.amount, [d, checkoutCtx]);
+          } else {
+            lockPayInputField('amount', d.amount);
+          }
           lockPayInputField('item', d.productName);
           var ordEl = document.getElementById('orderNo');
           var amtEl = document.getElementById('amount');
-          var itEl = document.getElementById('item');
           if (d.orderNo && ordEl && String(ordEl.value).trim() !== String(d.orderNo).trim()) {
             throw new Error('orderNo mismatch');
           }
-          if (d.amount && amtEl && String(amtEl.value).replace(/,/g, '').trim() !== String(d.amount).replace(/,/g, '').trim()) {
+          var amountLocked = !(window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.isApiPaymentAmountLockEnabled)
+            || PG_URL_PAY_SHELL.isApiPaymentAmountLockEnabled([d, checkoutCtx]);
+          if (amountLocked && d.amount && amtEl
+              && String(amtEl.value).replace(/,/g, '').trim() !== String(d.amount).replace(/,/g, '').trim()) {
             throw new Error('amount mismatch');
           }
         });

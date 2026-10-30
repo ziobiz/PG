@@ -497,7 +497,11 @@
             sessionPayload = res.data;
             var d = res.data;
             lockField('orderNo', d.orderNo);
-            lockField('amount', d.amount);
+            if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyApiPaymentAmountField) {
+              PG_URL_PAY_SHELL.applyApiPaymentAmountField('amount', d.amount, [d, typeof checkoutCtx !== 'undefined' ? checkoutCtx : null]);
+            } else {
+              lockField('amount', d.amount);
+            }
             lockField('item', d.productName);
             if (d.currency) {
               var h0 = document.getElementById('payAmountCurrencyHint');
@@ -515,7 +519,9 @@
         var spOn = sessionPayload.orderNo != null ? String(sessionPayload.orderNo).trim() : '';
         var spAmt = sessionPayload.amount != null ? String(sessionPayload.amount).replace(/,/g, '').trim() : '';
         if (spOn && on && spOn !== on) return false;
-        if (spAmt && amt && parseFloat(spAmt) !== parseFloat(amt)) return false;
+        var amountLocked = !(window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.isApiPaymentAmountLockEnabled)
+          || PG_URL_PAY_SHELL.isApiPaymentAmountLockEnabled([sessionPayload, typeof checkoutCtx !== 'undefined' ? checkoutCtx : null]);
+        if (amountLocked && spAmt && amt && parseFloat(spAmt) !== parseFloat(amt)) return false;
         return true;
       }
 
@@ -692,6 +698,11 @@
               throw new Error(localizeEximbayMsg(ctxRes.message || '') || t('configErr'));
             }
             applyCheckoutContext(ctxRes.data);
+            if (PAY_ENTRY_MERCHANT_API && window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyApiPaymentAmountField) {
+              PG_URL_PAY_SHELL.applyApiPaymentAmountField('amount',
+                document.getElementById('amount') && document.getElementById('amount').value,
+                [sessionPayload, checkoutCtx]);
+            }
           })
           .catch(function (e) { showErr(e.message || t('errLoad')); });
       }

@@ -182,6 +182,8 @@ public class MerchantOutboundNotifyService {
         }
 
         if (!mw.isPresent() && !bg.isPresent() && !rs.isPresent()) {
+            log.warn("결제통보 대상 URL 없음(BACKGROUND/RESULT/MIDDLEWARE) mid={} trnId={} orderNo={} channel={} — 업체관리 결제통보 URL 등록 필요",
+                    merchantCodeTrim, trnId, t.getOrderNo(), notifyCh);
             return;
         }
         if (anySuccess) {

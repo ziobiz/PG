@@ -162,7 +162,9 @@
   });
 
   function getCompId() {
-    var raw = (q.get('m') || q.get('compId') || q.get('merchant') || '').trim();
+    var hq0 = new URLSearchParams(String(location.hash || '').replace(/^#/, ''));
+    var raw = (q.get('m') || q.get('compId') || q.get('merchant')
+      || hq0.get('m') || hq0.get('compId') || '').trim();
     if (raw) return raw;
     try {
       var path = (location.pathname || '').replace(/\/+$/, '');
@@ -313,9 +315,16 @@
       }
     }
     if (data.amount != null && String(data.amount).trim() !== '') {
-      document.getElementById('amount').value = String(data.amount);
-      document.getElementById('amount').readOnly = true;
-      lockedAmount = true;
+      var amountSources = [data, fxShellState && fxShellState.checkoutCtx ? fxShellState.checkoutCtx : null];
+      if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyApiPaymentAmountField && (q.get('session') || '').trim()) {
+        PG_URL_PAY_SHELL.applyApiPaymentAmountField('amount', data.amount, amountSources);
+        lockedAmount = !(PG_URL_PAY_SHELL.isApiPaymentAmountLockEnabled)
+          || PG_URL_PAY_SHELL.isApiPaymentAmountLockEnabled(amountSources);
+      } else {
+        document.getElementById('amount').value = String(data.amount);
+        document.getElementById('amount').readOnly = true;
+        lockedAmount = true;
+      }
     }
     var order = data.orderNo || q.get('orderNo') || '';
     if (order) {
@@ -364,21 +373,75 @@
     lockedOrder = true;
   }
 
-  var isReturnMode = q.get('done') === '1' || q.get('omspayReturn') === '1'
-    || String(q.get('outcome') || '').toLowerCase() === 'return';
-  var returnOrderNo = (q.get('orderNo') || q.get('OrderNo') || '').trim();
+  /* OMS 복귀 시 쿼리(done 등)가 잘려도 동일 탭 sessionStorage·해시로 결과 모드 진입 */
+  var hq = new URLSearchParams(String(location.hash || '').replace(/^#/, ''));
+  function flag1(key) {
+    return q.get(key) === '1' || hq.get(key) === '1';
+  }
+  function qp(key) {
+    return (q.get(key) || hq.get(key) || '').trim();
+  }
+  var session = (q.get('session') || hq.get('session') || '').trim();
+  var pendingMeta = null;
   try {
-    if (!returnOrderNo) {
-      var pend = sessionStorage.getItem('pg_omspay_pending');
-      if (pend) {
-        var pj = JSON.parse(pend);
-        if (pj && pj.orderNo) returnOrderNo = String(pj.orderNo).trim();
-        if (pj && pj.compId && !getCompId()) {
-          document.getElementById('compIdHidden').value = String(pj.compId).trim();
+    var pendRaw = sessionStorage.getItem('pg_omspay_pending');
+    if (pendRaw) {
+      pendingMeta = JSON.parse(pendRaw);
+      if (!pendingMeta || typeof pendingMeta !== 'object') pendingMeta = null;
+      /* 2시간 초과 대기는 폐기(북마크·재방문 오탐 방지) */
+      if (pendingMeta && pendingMeta.ts != null) {
+        var age = Date.now() - Number(pendingMeta.ts);
+        if (!(age >= 0 && age < 2 * 60 * 60 * 1000)) {
+          try { sessionStorage.removeItem('pg_omspay_pending'); } catch (eExp) { /* ignore */ }
+          pendingMeta = null;
         }
       }
     }
-  } catch (ePend) { /* ignore */ }
+  } catch (ePend0) { pendingMeta = null; }
+  /* 새 prepare 세션이면 이전 대기 마커 제거(오탐 방지) */
+  if (session && pendingMeta) {
+    try { sessionStorage.removeItem('pg_omspay_pending'); } catch (eClr) { /* ignore */ }
+    pendingMeta = null;
+  }
+  var returnOrderNo = (qp('orderNo') || qp('OrderNo') || '').trim();
+  if (!returnOrderNo && pendingMeta && pendingMeta.orderNo) {
+    returnOrderNo = String(pendingMeta.orderNo).trim();
+  }
+  if (pendingMeta && pendingMeta.compId && !getCompId()) {
+    document.getElementById('compIdHidden').value = String(pendingMeta.compId).trim();
+  }
+  var omsStatusHint = String(
+    qp('status') || qp('payment_status') || qp('paymentStatus') || qp('icopay_status') || ''
+  ).toLowerCase();
+  var isReturnMode = flag1('done') || flag1('omspayReturn')
+    || String(qp('outcome') || '').toLowerCase() === 'return'
+    || (!session && !!pendingMeta && !!returnOrderNo)
+    || (!session && !!returnOrderNo && (
+      /^(success|ok|paid|complete|completed|1|00|0000)$/i.test(omsStatusHint)
+      || /^(fail|failed|cancel|cancelled|error)$/i.test(omsStatusHint)
+    ));
+  if (isReturnMode) {
+    try {
+      document.getElementById('omsForm').style.display = 'none';
+      var lead0 = document.getElementById('omsLead');
+      if (lead0) lead0.textContent = t('wait');
+    } catch (eHide) { /* ignore */ }
+  }
+
+  function isMerchantApiReturn() {
+    if (String(qp('entry') || '').toLowerCase() === 'merchant_api') return true;
+    if (pendingMeta && String(pendingMeta.txnOrigin || '').toUpperCase() === 'MERCHANT_API') return true;
+    return false;
+  }
+
+  /** 가맹 API REDIRECT: NOTI Result → 가맹 resultUrl 사이트백 (ICOPAY 완료화면 대신) */
+  function goSiteBack(url) {
+    var u = (url || '').trim();
+    if (!u) return false;
+    try { sessionStorage.removeItem('pg_omspay_pending'); } catch (eR) { /* ignore */ }
+    location.replace(u);
+    return true;
+  }
 
   function renderOmsResult(state) {
     state = state || {};
@@ -394,17 +457,28 @@
     el.style.display = 'block';
     var ok = !!state.ok;
     var awaiting = !!state.awaiting;
+    var merchantApi = !!state.merchantApi || isMerchantApiReturn();
     el.className = awaiting ? 'wait pay-result-final' : (ok ? 'ok pay-result-final' : 'err pay-result-final');
     var title = awaiting ? t('payAwaiting') : (ok ? t('payComplete') : t('payFailed'));
     var body = awaiting ? t('payAwaitingDetail') : (ok ? t('paid') : t('err'));
     var orderLine = state.orderNo
       ? ('<p class="small text-muted mb-2">' + t('order') + ': <strong>' + String(state.orderNo).replace(/</g, '') + '</strong></p>')
       : '';
-    var actions = '<div class="pay-result-btn-row mt-3">'
-      + '<button type="button" class="btn btn-primary btn-pay pay-result-confirm-btn" id="omsResultRetryBtn">' + t('resultRetry') + '</button>'
-      + '<button type="button" class="btn btn-outline-secondary btn-pay pay-result-confirm-btn" id="omsResultCloseBtn">' + t('resultClose') + '</button>'
-      + '</div>';
+    /* 가맹 API: 다시결제/닫기 숨김 — 사이트백 대기 또는 이동 */
+    var actions = '';
+    if (!merchantApi) {
+      actions = '<div class="pay-result-btn-row mt-3">'
+        + '<button type="button" class="btn btn-primary btn-pay pay-result-confirm-btn" id="omsResultRetryBtn">' + t('resultRetry') + '</button>'
+        + '<button type="button" class="btn btn-outline-secondary btn-pay pay-result-confirm-btn" id="omsResultCloseBtn">' + t('resultClose') + '</button>'
+        + '</div>';
+    } else if (!awaiting && state.siteBackUrl) {
+      body = t('wait');
+    }
     el.innerHTML = '<div class="pay-result-title">' + title + '</div>' + orderLine + '<p>' + body + '</p>' + actions;
+    if (merchantApi && !awaiting && state.siteBackUrl) {
+      goSiteBack(state.siteBackUrl);
+      return;
+    }
     var retry = document.getElementById('omsResultRetryBtn');
     var closeBtn = document.getElementById('omsResultCloseBtn');
     if (retry) {
@@ -439,31 +513,64 @@
         .then(function (r) { return r.json(); })
         .then(function (body) {
           var d = body && body.data ? body.data : null;
+          var api = !!(d && (d.merchantApi === true || String(d.txnOrigin || '').toUpperCase() === 'MERCHANT_API'))
+            || isMerchantApiReturn();
+          var siteBack = d && d.siteBackUrl ? String(d.siteBackUrl).trim() : '';
+          if (api && !siteBack) {
+            var cidSb = (document.getElementById('compIdHidden').value || getCompId() || '').trim();
+            siteBack = 'https://noti.icopay.net/noti/result/omspay'
+              + '?order=' + encodeURIComponent(on)
+              + '&orderNo=' + encodeURIComponent(on)
+              + '&compId=' + encodeURIComponent(cidSb)
+              + '&merchantId=' + encodeURIComponent(cidSb);
+          }
           if (body && body.success && d && d.paid === true) {
+            if (api && siteBack && goSiteBack(siteBack)) return;
             try { sessionStorage.removeItem('pg_omspay_pending'); } catch (eR) { /* ignore */ }
-            renderOmsResult({ ok: true, awaiting: false, orderNo: d.orderNo || on });
+            renderOmsResult({ ok: true, awaiting: false, orderNo: d.orderNo || on, merchantApi: api, siteBackUrl: siteBack });
             return;
           }
           if (body && body.success && d && d.paymentStatus === 'FAIL') {
-            renderOmsResult({ ok: false, awaiting: false, orderNo: d.orderNo || on });
+            if (api && siteBack && goSiteBack(siteBack)) return;
+            renderOmsResult({ ok: false, awaiting: false, orderNo: d.orderNo || on, merchantApi: api, siteBackUrl: siteBack });
             return;
           }
           if (tries < maxTries) {
             setTimeout(tick, 2500);
           } else {
-            /* 웹훅 지연 — 복귀 직후이므로 완료로 안내(Beam 성공 후 return) */
-            renderOmsResult({ ok: true, awaiting: false, orderNo: on });
+            /* 웹훅 지연 — API면 사이트백, URL이면 완료 안내 */
+            if (api && siteBack && goSiteBack(siteBack)) return;
+            if (api) {
+              var cid2 = (document.getElementById('compIdHidden').value || getCompId() || '').trim();
+              var fallback = 'https://noti.icopay.net/noti/result/omspay'
+                + '?order=' + encodeURIComponent(on)
+                + '&orderNo=' + encodeURIComponent(on)
+                + '&compId=' + encodeURIComponent(cid2)
+                + '&merchantId=' + encodeURIComponent(cid2);
+              if (goSiteBack(fallback)) return;
+            }
+            renderOmsResult({ ok: true, awaiting: false, orderNo: on, merchantApi: api });
           }
         })
         .catch(function () {
           if (tries < maxTries) setTimeout(tick, 2500);
-          else renderOmsResult({ ok: true, awaiting: false, orderNo: on });
+          else {
+            if (isMerchantApiReturn()) {
+              var cid3 = (document.getElementById('compIdHidden').value || getCompId() || '').trim();
+              var fb = 'https://noti.icopay.net/noti/result/omspay'
+                + '?order=' + encodeURIComponent(on)
+                + '&orderNo=' + encodeURIComponent(on)
+                + '&compId=' + encodeURIComponent(cid3)
+                + '&merchantId=' + encodeURIComponent(cid3);
+              if (goSiteBack(fb)) return;
+            }
+            renderOmsResult({ ok: true, awaiting: false, orderNo: on, merchantApi: isMerchantApiReturn() });
+          }
         });
     }
     tick();
   }
 
-  var session = (q.get('session') || '').trim();
   var comp = getCompId();
   if (comp) document.getElementById('compIdHidden').value = comp;
 
@@ -488,7 +595,15 @@
                     showConfigError(ctxBody.message || t('webOff'));
                     return;
                   }
-                  if (ctxBody && ctxBody.success && ctxBody.data) applyCheckoutContext(ctxBody.data);
+                  if (ctxBody && ctxBody.success && ctxBody.data) {
+                    applyCheckoutContext(ctxBody.data);
+                    if (session && sessionData && window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyApiPaymentAmountField) {
+                      PG_URL_PAY_SHELL.applyApiPaymentAmountField('amount',
+                        document.getElementById('amount').value || sessionData.amount,
+                        [sessionData, ctxBody.data]);
+                      lockedAmount = PG_URL_PAY_SHELL.isApiPaymentAmountLockEnabled([sessionData, ctxBody.data]);
+                    }
+                  }
                 });
             }
           }
@@ -526,23 +641,54 @@
       .catch(function () { showConfigError(t('configErr')); });
   }
 
-  loadContext().then(function () {
-    if (session && !isReturnMode) {
-      var hasName = !!(document.getElementById('buyerName').value || '').trim()
-        || document.getElementById('buyerBlock').classList.contains('d-none');
-      if (hasName && lockedAmount) {
-        setTimeout(function () {
-          document.getElementById('omsForm').requestSubmit
-            ? document.getElementById('omsForm').requestSubmit()
-            : document.getElementById('submitBtn').click();
-        }, 400);
-      }
+  /**
+   * 가맹 API(RE·payUrl) 진입: 확인 화면에 멈추지 않고 OMS 카드 HPP로 바로 이동.
+   * PG 교체 후에도 샵은 prepare→payUrl 오픈만 유지하면 됨.
+   */
+  var autoStartAttempted = false;
+  function tryAutoStartToOms() {
+    if (autoStartAttempted || isReturnMode || !session) return false;
+    var entryApi = String(q.get('entry') || '').toLowerCase() === 'merchant_api'
+      || !!(q.get('session') || '').trim();
+    if (!entryApi) return false;
+    var amtEl = document.getElementById('amount');
+    var amt = amtEl ? String(amtEl.value || '').replace(/,/g, '').trim() : '';
+    if (!amt || !(Number(amt) > 0)) return false;
+    var nameEl = document.getElementById('buyerName');
+    var buyerName = nameEl ? String(nameEl.value || '').trim() : '';
+    if (!buyerName) {
+      var b = pickBuyer(sessionData || {});
+      buyerName = (b && b.name) ? String(b.name).trim() : '';
+      if (buyerName && nameEl) nameEl.value = buyerName.replace(/[^A-Za-z '\-]/g, '');
     }
+    if (!buyerName) {
+      buyerName = 'Customer';
+      if (nameEl) nameEl.value = buyerName;
+    }
+    var buyerBlock = document.getElementById('buyerBlock');
+    if (buyerBlock) buyerBlock.classList.add('d-none');
+    var lead = document.getElementById('omsLead');
+    if (lead) lead.textContent = t('wait');
+    var grid = document.querySelector('#omsForm .pay-form-grid');
+    if (grid) grid.classList.add('d-none');
+    if (buyerBlock) buyerBlock.classList.add('d-none');
+    autoStartAttempted = true;
+    setTimeout(function () {
+      var form = document.getElementById('omsForm');
+      var btn = document.getElementById('submitBtn');
+      if (form && form.requestSubmit) form.requestSubmit();
+      else if (btn) btn.click();
+    }, 200);
+    return true;
+  }
+
+  loadContext().then(function () {
+    tryAutoStartToOms();
   });
 
   document.getElementById('omsForm').addEventListener('submit', function (ev) {
     ev.preventDefault();
-    if (q.get('done') === '1') return;
+    if (isReturnMode || flag1('done')) return;
     var cid = (document.getElementById('compIdHidden').value || getCompId() || '').trim();
     if (!cid) { showConfigError(t('needMerchant')); return; }
     ensureOrderNo();
@@ -577,6 +723,7 @@
         }
       }
     }
+    if (!buyerName) buyerName = 'Customer';
     var btn = document.getElementById('submitBtn');
     btn.disabled = true;
     btn.textContent = t('wait');
@@ -584,6 +731,7 @@
       || (checkoutCtx && (checkoutCtx.urlPaySettlementCurrencyCode || checkoutCtx.checkoutCurrencyCode))
       || 'THB');
     settleCur = String(settleCur).trim().toUpperCase() || 'THB';
+    var fromMerchantApi = !!(session || String(q.get('entry') || '').toLowerCase() === 'merchant_api');
     var payload = {
       compId: cid,
       orderNo: document.getElementById('orderNo').value.trim(),
@@ -594,11 +742,19 @@
       payEmailAddress: USE_EMAIL ? document.getElementById('buyerEmail').value.trim() : '',
       payTelephone: USE_PHONE ? document.getElementById('buyerTel').value.trim() : '',
       sessionToken: document.getElementById('sessionTokenHidden').value || session || '',
-      /* 직접 결제결과 화면 — /checkout forward 시 done·orderNo 유실 방지 */
-      returnUrl: location.origin + '/omspay-pay.html'
-        + '?m=' + encodeURIComponent(cid)
-        + '&orderNo=' + encodeURIComponent(document.getElementById('orderNo').value.trim())
-        + '&omspay=1&omspayReturn=1&done=1'
+      txnOrigin: fromMerchantApi ? 'MERCHANT_API' : 'URL',
+      /* OMS 복귀는 ICOPAY(omspay-pay). API면 entry=merchant_api 로 사이트백(NOTI Result) 분기 */
+      returnUrl: (function () {
+        var on = document.getElementById('orderNo').value.trim();
+        var entryQ = fromMerchantApi ? '&entry=merchant_api' : '';
+        var qs = '?m=' + encodeURIComponent(cid)
+          + '&orderNo=' + encodeURIComponent(on)
+          + '&omspay=1&omspayReturn=1&done=1' + entryQ;
+        var hs = '#m=' + encodeURIComponent(cid)
+          + '&orderNo=' + encodeURIComponent(on)
+          + '&omspayReturn=1&done=1' + entryQ;
+        return location.origin + '/omspay-pay.html' + qs + hs;
+      })()
     };
     /* DP: 표시금액 + 견적 토큰 필수(미전송 시 INVALID_FX_QUOTE) */
     if (urlPayDisplayFxActive && urlPayPricingMode === 'DISPLAY_FX_THB') {
@@ -641,7 +797,9 @@
           sessionStorage.setItem('pg_omspay_pending', JSON.stringify({
             orderNo: document.getElementById('orderNo').value.trim(),
             compId: cid,
-            omsOrderCode: data.omsOrderCode || ''
+            omsOrderCode: data.omsOrderCode || '',
+            txnOrigin: fromMerchantApi ? 'MERCHANT_API' : 'URL',
+            ts: Date.now()
           }));
         } catch (eSs) { /* ignore */ }
         location.href = data.redirectUrl || data.paymentUrl;

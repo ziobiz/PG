@@ -92,10 +92,9 @@ public class MerchantInlineCheckoutService {
         if (profOpt.isPresent() && !orgServiceUseService.isWebPaymentActive(orgUnitId)) {
             return fail(OrgServiceUseService.MSG_WEB_PAYMENT_DISABLED, "WEB_PAYMENT_DISABLED");
         }
-        Optional<String> inlineDeny = integrationChannelService.denyMessage(orgUnitId,
-                MerchantApiIntegrationChannelService.Channel.API_BROKER_INLINE);
-        if (inlineDeny.isPresent()) {
-            return fail(inlineDeny.get(), MerchantApiIntegrationChannelService.CODE_INTEGRATION_CHANNEL_DISABLED);
+        Optional<String> channelDeny = integrationChannelService.denyIfNoBrokerChannel(orgUnitId);
+        if (channelDeny.isPresent()) {
+            return fail(channelDeny.get(), MerchantApiIntegrationChannelService.CODE_INTEGRATION_CHANNEL_DISABLED);
         }
         String checkoutMode = profOpt
                 .map(mp -> UrlPayCheckoutModeUtil.normalize(mp.getApiUrlPayCheckoutMode()))
@@ -167,7 +166,7 @@ public class MerchantInlineCheckoutService {
         String embedScriptUrl = NeutralCheckoutRoute.buildEmbedScriptUrl(base, ou.getCode());
 
         Map<String, Object> data = new LinkedHashMap<>();
-        data.putAll(session.toPublicMap());
+        data.putAll(tokenService.toClientPublicMap(session));
         data.put("sessionToken", sessionToken);
         data.put("payUrl", payUrl);
         data.put("embedScriptUrl", embedScriptUrl);
@@ -200,7 +199,7 @@ public class MerchantInlineCheckoutService {
         }
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("success", true);
-        out.put("data", parsed.get().toPublicMap());
+        out.put("data", tokenService.toClientPublicMap(parsed.get()));
         return out;
     }
 

@@ -3,18 +3,21 @@ package com.pg.service;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.PgVendor;
+import com.pg.receipt.TransactionReceiptEmailService;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.util.PgTrnsctnOrderLookup;
 import com.pg.util.UrlPaySaleTxnFieldApplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,11 +30,14 @@ public class OmspaySaleRecordService {
 
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final OrgUnitRepository orgUnitRepository;
+    private final TransactionReceiptEmailService transactionReceiptEmailService;
 
     public OmspaySaleRecordService(PgTrnsctnRepository pgTrnsctnRepository,
-                                   OrgUnitRepository orgUnitRepository) {
+                                   OrgUnitRepository orgUnitRepository,
+                                   @Lazy TransactionReceiptEmailService transactionReceiptEmailService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
+        this.transactionReceiptEmailService = transactionReceiptEmailService;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -221,6 +227,9 @@ public class OmspaySaleRecordService {
         }
         PgTrnsctn t = txn.get();
         t.setStatus("10");
+        if (t.getPaidAt() == null) {
+            t.setPaidAt(LocalDateTime.now());
+        }
         if (omsOrderCode != null && !omsOrderCode.isBlank()) {
             t.setChillTransactionId(omsOrderCode.trim());
             t.setPayNo(omsOrderCode.trim());
@@ -238,6 +247,7 @@ public class OmspaySaleRecordService {
             }
         }
         pgTrnsctnRepository.save(t);
+        hookReceiptEmail(t);
         return Optional.of(t);
     }
 
@@ -271,9 +281,10 @@ public class OmspaySaleRecordService {
         }
         PgTrnsctn t = txn.get();
         if (!"08".equals(t.getStatus() != null ? t.getStatus().trim() : "")) {
-            /* 이미 성공·실패면 덮지 않음 */
+            /* 이미 성공·실패면 덮지 않음 — 실패 건은 영수증 미발송분 보완 */
             if ("10".equals(t.getStatus() != null ? t.getStatus().trim() : "")
                     || "99".equals(t.getStatus() != null ? t.getStatus().trim() : "")) {
+                hookReceiptEmail(t);
                 return Optional.of(t);
             }
         }
@@ -289,7 +300,70 @@ public class OmspaySaleRecordService {
                 reasonCode != null && !reasonCode.isBlank() ? reasonCode : "OMSPAY_PENDING_EXPIRED",
                 com.pg.util.TxnOutcomeReasonApplier.SOURCE_ICOPAY);
         pgTrnsctnRepository.save(t);
+        hookReceiptEmail(t);
         return Optional.of(t);
+    }
+
+    private void hookReceiptEmail(PgTrnsctn t) {
+        if (t == null) {
+            return;
+        }
+        try {
+            transactionReceiptEmailService.scheduleIfDue(t);
+        } catch (Exception ex) {
+            log.warn("OMSPAY 거래 영수증 메일 연동 실패 trnId={}: {}", t.getTrnId(), ex.getMessage());
+        }
+    }
+
+    /**
+     * NOTI 레거시 OMSPAY lookup — 전 PG 공통 {@link PgNotiOrderLookupService} 와 동일 키로 해석.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> lookupCompIdForNoti(String orderHint) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        String q = orderHint != null ? orderHint.trim() : "";
+        if (q.isBlank()) {
+            out.put("success", false);
+            out.put("errorCode", "INVALID_ORDER");
+            out.put("message", "order가 필요합니다.");
+            return out;
+        }
+        String so = q.toUpperCase().startsWith("SO-") ? q : "";
+        Optional<PgTrnsctn> matched = resolveTxnForWebhook(so, q, q, q);
+        if (matched.isEmpty() && so.isBlank()) {
+            matched = resolveTxnForWebhook(q, q, q, q);
+        }
+        if (matched.isEmpty()) {
+            out.put("success", false);
+            out.put("errorCode", "NOT_FOUND");
+            out.put("message", "주문을 찾을 수 없습니다.");
+            out.put("order", q);
+            return out;
+        }
+        PgTrnsctn t = matched.get();
+        String compId = t.getMerchantId() != null ? t.getMerchantId().trim() : "";
+        String orderNo = t.getOrderNo() != null ? t.getOrderNo().trim() : "";
+        String omsSo = firstNonBlank(t.getChillTransactionId(),
+                firstNonBlank(t.getPayNo(), t.getApprovalNo()));
+        String merchantName = "";
+        if (!compId.isBlank()) {
+            merchantName = orgUnitRepository.findByCode(compId)
+                    .or(() -> orgUnitRepository.findByCodeIgnoreCase(compId))
+                    .map(OrgUnit::getName)
+                    .orElse("");
+        }
+        out.put("success", true);
+        out.put("compId", compId);
+        out.put("CompId", compId);
+        out.put("merchantId", compId);
+        out.put("merchantName", merchantName != null ? merchantName : "");
+        out.put("orderNo", orderNo);
+        out.put("omsSo", omsSo);
+        out.put("order", q);
+        out.put("trnId", t.getTrnId());
+        out.put("status", t.getStatus());
+        out.put("van", t.getVan());
+        return out;
     }
 
     /** {@code pg_trnsctn.approval_no} 길이 20에 맞는 승인 참조. */
