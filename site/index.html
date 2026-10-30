@@ -291,6 +291,7 @@
             </a>
             <div class="dropdown-menu dropdown-menu-end">
               <a class="dropdown-item" href="#" id="myInfoBtn" data-pg-ui-t="나의정보"><i class="bi bi-person-circle me-1"></i>나의정보</a>
+              <a class="dropdown-item d-none" href="#" id="merchantPayQrMenuBtn" data-pg-ui-t="결제QR"><i class="bi bi-qr-code me-1"></i>결제QR</a>
               <a class="dropdown-item" href="#" id="logOutBtn" data-pg-ui-t="로그아웃"><i class="bi bi-box-arrow-right me-1"></i>로그아웃</a>
             </div>
           </div>
@@ -731,6 +732,31 @@
           <div class="modal-footer">
             <button type="button" class="btn btn-primary btn-sm" id="myInfoSaveBtn">저장</button>
             <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">취소</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- 가맹점 웹용 결제 QR (실효 ON일 때만 헤더 메뉴 노출) -->
+    <div class="modal fade" id="merchantPayQrModal" tabindex="-1" aria-labelledby="merchantPayQrModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+          <div class="modal-header py-2">
+            <h5 class="modal-title" id="merchantPayQrModalLabel" data-pg-ui-t="결제QR">결제QR</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+          </div>
+          <div class="modal-body text-center">
+            <p class="small text-muted mb-2" data-pg-ui-t="카메라로 스캔하면 공개 URL 결제 페이지(/checkout)로 이동합니다.">카메라로 스캔하면 공개 URL 결제 페이지(/checkout)로 이동합니다.</p>
+            <div class="d-flex align-items-center justify-content-center border rounded bg-light mx-auto mb-2" style="width:200px;height:200px">
+              <img id="merchantPayQrModalImg" alt="" width="184" height="184" class="d-none" decoding="async" />
+              <span id="merchantPayQrModalPh" class="text-muted small">—</span>
+            </div>
+            <div class="d-flex flex-column gap-2">
+              <a class="btn btn-outline-primary btn-sm" id="merchantPayQrModalOpen" href="#" target="_blank" rel="noopener" data-pg-ui-t="QR 열기">QR 열기</a>
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="merchantPayQrModalDownload" data-pg-ui-t="PNG 저장">PNG 저장</button>
+            </div>
+          </div>
+          <div class="modal-footer py-2">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" data-pg-ui-t="닫기">닫기</button>
           </div>
         </div>
       </div>

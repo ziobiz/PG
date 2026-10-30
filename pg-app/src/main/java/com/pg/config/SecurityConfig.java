@@ -83,6 +83,8 @@ public class SecurityConfig {
                 /* PG 무관 중립 결제창 — 서버 forward 로 실제 PG 페이지를 노출 없이 제공 */
                 AntPathRequestMatcher.antMatcher("/checkout"),
                 AntPathRequestMatcher.antMatcher("/checkout/**"),
+                AntPathRequestMatcher.antMatcher("/url-pay-qr"),
+                AntPathRequestMatcher.antMatcher("/url-pay-qr/**"),
                 AntPathRequestMatcher.antMatcher("/checkout-crypto"),
                 AntPathRequestMatcher.antMatcher("/checkout-crypto/**"),
                 AntPathRequestMatcher.antMatcher("/checkout-qr"),
@@ -123,6 +125,7 @@ public class SecurityConfig {
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/public/org/branding")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/public/org/portalByHost")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pub/chatbot/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pub/url-pay/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pub/login-notice")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/chillpay/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/jpay/**")).permitAll()

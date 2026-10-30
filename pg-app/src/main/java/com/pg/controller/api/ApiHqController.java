@@ -1944,6 +1944,10 @@ public class ApiHqController {
         data.put("checkoutContactRememberDefaultYn", "Y");
         data.put("webPaymentHeaderLogoModeDefault", "DEFAULT");
         data.put("webPaymentHeaderSubtitleModeDefault", "DEFAULT");
+        data.put("webPayQrTitleModeDefault", "ACTIVE");
+        data.put("webPayQrTitleTextDefault", "");
+        data.put("webPayQrFooterModeDefault", "ACTIVE");
+        data.put("webPayQrFooterTextDefault", "Provided by ICOPAY");
         data.put("urlPayCheckoutMoveModeDefault", "DISABLED");
         data.put("urlPayCheckoutMoveMessageDefault", com.pg.urlpay.UrlPayCheckoutMoveService.DEFAULT_MESSAGE_KO);
         data.put("urlPayShippingAddressUseDefaultYn", "N");
@@ -2038,6 +2042,16 @@ public class ApiHqController {
                 data.put("webPaymentHeaderSubtitleModeDefault",
                         com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.normalize(c.getWebPaymentHeaderSubtitleModeDefault()));
             }
+            data.put("webPayQrTitleModeDefault",
+                    com.pg.urlpay.WebPayQrBrandLabelModeUtil.normalizeHq(c.getWebPayQrTitleModeDefault()));
+            data.put("webPayQrTitleTextDefault",
+                    c.getWebPayQrTitleTextDefault() != null ? c.getWebPayQrTitleTextDefault() : "");
+            data.put("webPayQrFooterModeDefault",
+                    com.pg.urlpay.WebPayQrBrandLabelModeUtil.normalizeHq(c.getWebPayQrFooterModeDefault()));
+            data.put("webPayQrFooterTextDefault",
+                    c.getWebPayQrFooterTextDefault() != null && !c.getWebPayQrFooterTextDefault().isBlank()
+                            ? c.getWebPayQrFooterTextDefault()
+                            : com.pg.urlpay.WebPayQrBrandLabelModeUtil.DEFAULT_FOOTER);
             data.put("unifiedPaymentHeaderSubtitleModeDefault",
                     c.getUnifiedPaymentHeaderSubtitleModeDefault() != null
                             ? c.getUnifiedPaymentHeaderSubtitleModeDefault() : "ACTIVE");
@@ -2253,6 +2267,12 @@ public class ApiHqController {
         c.setCheckoutContactRememberDefaultYn(String.valueOf(body.getOrDefault("checkoutContactRememberDefaultYn", "Y")));
         c.setWebPaymentHeaderLogoModeDefault(String.valueOf(body.getOrDefault("webPaymentHeaderLogoModeDefault", "DEFAULT")));
         c.setWebPaymentHeaderSubtitleModeDefault(String.valueOf(body.getOrDefault("webPaymentHeaderSubtitleModeDefault", "DEFAULT")));
+        c.setWebPayQrTitleModeDefault(String.valueOf(body.getOrDefault("webPayQrTitleModeDefault", "ACTIVE")));
+        Object wqt = body.get("webPayQrTitleTextDefault");
+        c.setWebPayQrTitleTextDefault(wqt != null ? wqt.toString() : "");
+        c.setWebPayQrFooterModeDefault(String.valueOf(body.getOrDefault("webPayQrFooterModeDefault", "ACTIVE")));
+        Object wqf = body.get("webPayQrFooterTextDefault");
+        c.setWebPayQrFooterTextDefault(wqf != null ? wqf.toString() : com.pg.urlpay.WebPayQrBrandLabelModeUtil.DEFAULT_FOOTER);
         c.setUnifiedPaymentHeaderSubtitleModeDefault(String.valueOf(body.getOrDefault("unifiedPaymentHeaderSubtitleModeDefault", "ACTIVE")));
         Object ups = body.get("unifiedPaymentHeaderSubtitleTextDefault");
         String upsStr = ups != null ? ups.toString().trim() : "";

@@ -132,6 +132,7 @@ public class AuthService {
         if (res.getOrgLevel() != null && "MERCHANT".equalsIgnoreCase(res.getOrgLevel())) {
             res.setChatbotPaymentUseYn(resolveChatbotPaymentUseYnForMerchant(res.getOrgUnitId()));
             res.setWebPaymentUseYn(resolveWebPaymentUseYnForMerchant(res.getOrgUnitId()));
+            res.setWebPaymentQrEffectiveYn(resolveWebPaymentQrEffectiveYnForMerchant(res.getOrgUnitId()));
             res.setSplitPayEnabledYn(resolveSplitPayEnabledYnForMerchant(res.getOrgUnitId()));
             res.setApiJpaySubscriptionUseYn(resolveApiJpaySubscriptionUseYnForMerchant(res.getOrgUnitId()));
             res.setMerchantApiDeployedYn(resolveMerchantApiDeployedYnForMerchant(res.getOrgUnitId()));
@@ -171,6 +172,16 @@ public class AuthService {
         }
         return merchantProfileRepository.findByOrgUnitId(orgUnitId)
                 .map(mp -> yn(mp.getWebPaymentUseYn()))
+                .orElse("N");
+    }
+
+    /** 가맹점 웹용 QR(공개 /checkout) 실효 — 상단 결제QR·업체정보 다운로드 */
+    public String resolveWebPaymentQrEffectiveYnForMerchant(Long orgUnitId) {
+        if (orgUnitId == null) {
+            return "N";
+        }
+        return merchantProfileRepository.findByOrgUnitId(orgUnitId)
+                .map(mp -> com.pg.urlpay.WebPaymentQrModeUtil.isEffective(mp) ? "Y" : "N")
                 .orElse("N");
     }
 

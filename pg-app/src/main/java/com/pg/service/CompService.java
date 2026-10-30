@@ -1961,6 +1961,7 @@ public class CompService {
                             }
                             m.put("commissionConfigAllowed", mp.getCommissionConfigAllowed());
                             m.put("webPaymentUseYn", mp.getWebPaymentUseYn() != null ? mp.getWebPaymentUseYn() : "Y");
+                            putMerchantWebPaymentQrFields(m, mp);
                             m.put("webPaymentHeaderLogoMode", com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalizeMerchantStored(mp.getWebPaymentHeaderLogoMode()));
                             m.put("apiPaymentHeaderLogoMode", mp.getApiPaymentHeaderLogoMode() != null
                                     ? mp.getApiPaymentHeaderLogoMode() : "DISABLED");
@@ -2114,6 +2115,7 @@ public class CompService {
                                     merchantProfileRepository.save(mp);
                                 }
                                 m.put("webPaymentUseYn", mp.getWebPaymentUseYn() != null ? mp.getWebPaymentUseYn() : "Y");
+                                putMerchantWebPaymentQrFields(m, mp);
                                 m.put("urlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getUrlPayCheckoutMode()));
                                 m.put("urlPayProductNameUseYn", mp.getUrlPayProductNameUseYn() != null ? mp.getUrlPayProductNameUseYn() : "Y");
                                 m.put("urlPayCompanyNameShowYn", mp.getUrlPayCompanyNameShowYn() != null ? mp.getUrlPayCompanyNameShowYn() : "Y");
@@ -3456,6 +3458,108 @@ public class CompService {
         }
         com.pg.merchantdeploy.MerchantApiIntegrationChannelService.validateMerchantChannelCombination(
                 mp.getApiBrokerInlineUseYn(), mp.getApiBrokerRedirectUseYn(), mp.getApiWordpressUseYn());
+    }
+
+    private static void putMerchantWebPaymentQrFields(Map<String, Object> m, MerchantProfile mp) {
+        if (m == null || mp == null) {
+            return;
+        }
+        String mode = com.pg.urlpay.WebPaymentQrModeUtil.normalize(mp.getWebPaymentQrMode());
+        m.put("webPaymentQrMode", mode);
+        m.put("webPaymentQrUrlOnly", com.pg.urlpay.WebPaymentQrModeUtil.isUrlOnlyMerchant(mp));
+        m.put("webPaymentQrEffective", com.pg.urlpay.WebPaymentQrModeUtil.isEffective(mp));
+        m.put("webPayQrTitleMode", com.pg.urlpay.WebPayQrBrandLabelModeUtil.normalizeMerchantStored(mp.getWebPayQrTitleMode()));
+        m.put("webPayQrTitleText", mp.getWebPayQrTitleText() != null ? mp.getWebPayQrTitleText() : "");
+        m.put("webPayQrFooterMode", com.pg.urlpay.WebPayQrBrandLabelModeUtil.normalizeMerchantStored(mp.getWebPayQrFooterMode()));
+        m.put("webPayQrFooterText", mp.getWebPayQrFooterText() != null ? mp.getWebPayQrFooterText() : "");
+    }
+
+    /**
+     * 웹용 QR 모드 — 총본사·ADMIN만 변경. 그 외 조직은 요청값을 무시.
+     */
+    private void applyMerchantWebPaymentQrMode(MerchantProfile mp, OrgLevel level, String modeRaw) {
+        if (mp == null || level != OrgLevel.MERCHANT) {
+            return;
+        }
+        if (modeRaw == null || modeRaw.isBlank()) {
+            return;
+        }
+        OrgLevel actor = resolveCurrentActorOrgLevel().orElse(null);
+        if (actor != OrgLevel.HEADQUARTERS) {
+            return;
+        }
+        mp.setWebPaymentQrMode(modeRaw);
+    }
+
+    /** 공개 API·내부: 웹용 QR 실효 여부 */
+    @Transactional(readOnly = true)
+    public boolean isWebPaymentQrEffective(Long orgUnitId) {
+        if (orgUnitId == null) {
+            return false;
+        }
+        return merchantProfileRepository.findByOrgUnitId(orgUnitId)
+                .map(com.pg.urlpay.WebPaymentQrModeUtil::isEffective)
+                .orElse(false);
+    }
+
+    /** 총본사·ADMIN — 가맹 웹용 QR 모드 저장. */
+    @Transactional
+    public void patchMerchantWebPaymentQrMode(String compId, String modeRaw) {
+        if (compId == null || compId.isBlank() || modeRaw == null || modeRaw.isBlank()) {
+            return;
+        }
+        OrgLevel actor = resolveCurrentActorOrgLevel().orElse(null);
+        if (actor != OrgLevel.HEADQUARTERS) {
+            return;
+        }
+        orgUnitRepository.findByCode(compId.trim()).ifPresent(ou -> {
+            if (ou.getOrgLevel() != OrgLevel.MERCHANT) {
+                return;
+            }
+            merchantProfileRepository.findByOrgUnitId(ou.getId()).ifPresent(mp -> {
+                applyMerchantWebPaymentQrMode(mp, OrgLevel.MERCHANT, modeRaw);
+                merchantProfileRepository.save(mp);
+            });
+        });
+    }
+
+    /** 가맹 웹용 QR 열기 상단·하단 문구 (본사따름/직접입력/미활성). 가맹 본인 수정 불가. */
+    @Transactional
+    public void patchMerchantWebPayQrBrandLabels(String compId,
+                                                String titleMode,
+                                                String titleText,
+                                                String footerMode,
+                                                String footerText) {
+        if (compId == null || compId.isBlank()) {
+            return;
+        }
+        OrgLevel actor = resolveCurrentActorOrgLevel().orElse(null);
+        if (actor == OrgLevel.MERCHANT) {
+            return;
+        }
+        if (titleMode == null && titleText == null && footerMode == null && footerText == null) {
+            return;
+        }
+        orgUnitRepository.findByCode(compId.trim()).ifPresent(ou -> {
+            if (ou.getOrgLevel() != OrgLevel.MERCHANT) {
+                return;
+            }
+            merchantProfileRepository.findByOrgUnitId(ou.getId()).ifPresent(mp -> {
+                if (titleMode != null && !titleMode.isBlank()) {
+                    mp.setWebPayQrTitleMode(titleMode);
+                }
+                if (titleText != null) {
+                    mp.setWebPayQrTitleText(titleText);
+                }
+                if (footerMode != null && !footerMode.isBlank()) {
+                    mp.setWebPayQrFooterMode(footerMode);
+                }
+                if (footerText != null) {
+                    mp.setWebPayQrFooterText(footerText);
+                }
+                merchantProfileRepository.save(mp);
+            });
+        });
     }
 
     /** 가맹 모바일·embed 결제창 — 빈값이면 본사 기본(null). */

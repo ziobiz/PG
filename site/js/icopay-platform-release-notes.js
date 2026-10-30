@@ -6,13 +6,116 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '5.75';
+  var CURRENT_LIVE = '5.79';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '5.79',
+      kind: 'minor',
+      date: '2026-10-30',
+      items: {
+        KO: [
+          '웹용 QR 열기: 상단 가맹명·하단 Provided by ICOPAY HTML(/url-pay-qr). 본사 URL결제설정·가맹 웹결제에서 본사따름/직접입력/미활성',
+          '직접입력 시 옆 입력창. 상단 비우면 가맹점명, 하단 비우면 Provided by ICOPAY'
+        ],
+        EN: [
+          'Web payment QR open: title (merchant name) + footer Provided by ICOPAY HTML (/url-pay-qr). HQ URL settings & merchant: Follow HQ / Direct / Off',
+          'Direct input shows side field. Empty title→merchant name; empty footer→Provided by ICOPAY'
+        ],
+        JP: [
+          'ウェブ用QR開く: 上に加盟店名・下にProvided by ICOPAYのHTML(/url-pay-qr)。本社URL設定・加盟で本社従う/直接入力/非活性',
+          '直接入力は横に入力欄。上空白=加盟店名、下空白=Provided by ICOPAY'
+        ],
+        CH: [
+          '网页支付 QR 打开：上方商户名、下方 Provided by ICOPAY 的 HTML(/url-pay-qr)。总部 URL 设置与商户：跟随总部/直接输入/停用',
+          '直接输入旁有输入框。上留空=商户名；下留空=Provided by ICOPAY'
+        ],
+        TH: [
+          'เปิด QR ชำระเว็บ: ชื่อร้านด้านบน + Provided by ICOPAY ด้านล่าง (/url-pay-qr) HQ/ร้าน: ตาม HQ/กรอกเอง/ปิด',
+          'กรอกเองมีช่องข้าง ว่างบน=ชื่อร้าน ว่างล่าง=Provided by ICOPAY'
+        ]
+      }
+    },
+    {
+      version: '5.78',
+      kind: 'minor',
+      date: '2026-10-30',
+      items: {
+        KO: [
+          '가맹점: 웹용 QR 실효 ON이면 업체정보에서 PNG 다운로드·열기 가능(모드 생성/변경은 총본사만)',
+          '가맹점 상단 메뉴: 나의정보와 로그아웃 사이 「결제QR」 — 클릭 시 QR 팝업(미리보기·열기·PNG 저장)'
+        ],
+        EN: [
+          'Merchant: when Web payment QR is effective, download/open PNG from company info (mode change HQ-only)',
+          'Merchant header: 「Payment QR」 between My profile and Log out — popup with preview·open·save PNG'
+        ],
+        JP: [
+          '加盟店: ウェブ用QR実効ONなら加盟店情報でPNGダウンロード・開く可(モード変更は総本部のみ)',
+          '加盟店上部メニュー: マイ情報とログアウトの間「決済QR」— クリックでQRポップアップ'
+        ],
+        CH: [
+          '商户：网页支付 QR 生效时可在商户信息下载/打开 PNG（模式仅总总部可改）',
+          '商户顶部菜单：我的信息与退出之间「支付 QR」— 点击弹出预览·打开·保存'
+        ],
+        TH: [
+          'ร้าน: เมื่อ QR ชำระเว็บมีผล ดาวน์โหลด/เปิด PNG จากข้อมูลร้านได้ (เปลี่ยนโหมดได้เฉพาะ HQ)',
+          'เมนูบนร้าน: 「QR ชำระเงิน」ระหว่างข้อมูลของฉันกับออกจากระบบ — คลิกแล้วป๊อปอัป QR'
+        ]
+      }
+    },
+    {
+      version: '5.77',
+      kind: 'minor',
+      date: '2026-10-30',
+      items: {
+        KO: [
+          '웹용 QR 안내: 「활성」=API 인라인·리다이렉트·WordPress와 무관, 웹결제 ON이면 어느 조건에서든 표시. 「자동」만 URL 전용 조건 적용'
+        ],
+        EN: [
+          'Web payment QR help: Active=show whenever WEB checkout is ON, regardless of API inline·redirect·WordPress. Auto alone uses the URL-only rule'
+        ],
+        JP: [
+          'ウェブ用QR案内: 「活性」=APIインライン・リダイレクト・WordPressに関係なくWEB決済ONなら表示。「自動」のみURL専用条件'
+        ],
+        CH: [
+          '网页支付 QR 说明：「启用」=与 API 内联·重定向·WordPress 无关，网页支付开启即可显示；仅「自动」适用仅 URL 条件'
+        ],
+        TH: [
+          'คำอธิบาย QR ชำระเว็บ: 「ใช้งาน」=แสดงเมื่อเปิดชำระ WEB โดยไม่สน API inline·redirect·WordPress 「อัตโนมัติ」เท่านั้นที่ใช้เงื่อนไข URL อย่างเดียว'
+        ]
+      }
+    },
+    {
+      version: '5.76',
+      kind: 'minor',
+      date: '2026-10-30',
+      items: {
+        KO: [
+          '가맹 웹결제: 「웹용 QR」(공개 /checkout) — 모드 자동/활성/비활성(총본사만 변경). 자동=URL 전용(API IN·RE·WO 미사용)일 때 표시',
+          '웹용 QR PNG 미리보기·열기·저장 — 챗봇 결제 QR과 동일 UX. 공개 API GET /api/pub/url-pay/pay-qr'
+        ],
+        EN: [
+          'Merchant WEB checkout: 「Web payment QR」(/checkout) — Auto/Active/Disabled (HQ only). Auto=show for URL-only merchants (API IN·RE·WO off)',
+          'Web payment QR PNG preview·open·save — same UX as chatbot QR. Public API GET /api/pub/url-pay/pay-qr'
+        ],
+        JP: [
+          '加盟WEB決済: 「ウェブ用QR」(/checkout) — 自動/活性/非活性(総本部のみ)。自動=URL専用(API IN・RE・WO未使用)のとき表示',
+          'ウェブ用QR PNGプレビュー・開く・保存 — チャットボット決済QRと同じUX。公開API GET /api/pub/url-pay/pay-qr'
+        ],
+        CH: [
+          '商户网页支付：「网页支付 QR」(/checkout) — 自动/启用/停用(仅总总部)。自动=仅 URL 商户(API IN·RE·WO 关闭)时显示',
+          '网页支付 QR PNG 预览·打开·保存 — 与聊天机器人支付 QR 相同。公开 API GET /api/pub/url-pay/pay-qr'
+        ],
+        TH: [
+          'ชำระ WEB ร้าน: 「QR ชำระเว็บ」(/checkout) — อัตโนมัติ/ใช้งาน/ปิด (เฉพาะ HQ) อัตโนมัติ=ร้าน URL อย่างเดียว (ปิด API IN·RE·WO)',
+          'PNG QR ชำระเว็บ ดูตัวอย่าง·เปิด·บันทึก — UX เดียวกับ QR chatbot API สาธารณะ GET /api/pub/url-pay/pay-qr'
+        ]
+      }
+    },
     {
       version: '5.75',
       kind: 'minor',

@@ -29,6 +29,8 @@ public class LoginResponse {
     private String chatbotPaymentUseYn;
     /** 가맹점(MERCHANT) 로그인 시 URL(웹)결제 사용 Y/N — 그 외 조직·역할은 null */
     private String webPaymentUseYn;
+    /** 가맹점(MERCHANT) 로그인 시 웹용 QR(공개 /checkout) 실효 Y/N — 상단 결제QR·다운로드용 */
+    private String webPaymentQrEffectiveYn;
     /** 가맹점(MERCHANT) 로그인 시 분할결제 사용 Y/N — 분할관리 메뉴 노출용 */
     private String splitPayEnabledYn;
     /** 가맹점(MERCHANT) 로그인 시 JPAY API 구독결제 사용 Y/N — 구독결제내역 메뉴 노출용 */
@@ -74,6 +76,8 @@ public class LoginResponse {
     public void setChatbotPaymentUseYn(String chatbotPaymentUseYn) { this.chatbotPaymentUseYn = chatbotPaymentUseYn; }
     public String getWebPaymentUseYn() { return webPaymentUseYn; }
     public void setWebPaymentUseYn(String webPaymentUseYn) { this.webPaymentUseYn = webPaymentUseYn; }
+    public String getWebPaymentQrEffectiveYn() { return webPaymentQrEffectiveYn; }
+    public void setWebPaymentQrEffectiveYn(String webPaymentQrEffectiveYn) { this.webPaymentQrEffectiveYn = webPaymentQrEffectiveYn; }
     public String getSplitPayEnabledYn() { return splitPayEnabledYn; }
     public void setSplitPayEnabledYn(String splitPayEnabledYn) { this.splitPayEnabledYn = splitPayEnabledYn; }
     public String getApiJpaySubscriptionUseYn() { return apiJpaySubscriptionUseYn; }

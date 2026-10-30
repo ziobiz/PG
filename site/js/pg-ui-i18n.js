@@ -997,6 +997,13 @@
     '접속 IP:': { EN: 'IP:', JP: 'IP:', CH: 'IP：', TH: 'IP:' },
     '접속시간:': { EN: 'Time:', JP: '時刻:', CH: '时间：', TH: 'เวลา:' },
     '나의정보': { EN: 'My profile', JP: 'マイ情報', CH: '我的信息', TH: 'ข้อมูลของฉัน' },
+    '결제QR': { EN: 'Payment QR', JP: '決済QR', CH: '支付 QR', TH: 'QR ชำระเงิน' },
+    '카메라로 스캔하면 공개 URL 결제 페이지(/checkout)로 이동합니다.': {
+      EN: 'Scan with a camera to open the public URL checkout (/checkout).',
+      JP: 'カメラでスキャンすると公開URL決済ページ(/checkout)へ移動します。',
+      CH: '用相机扫描即可进入公开 URL 结账页(/checkout)。',
+      TH: 'สแกนด้วยกล้องเพื่อเปิดหน้าชำระ URL สาธารณะ (/checkout)'
+    },
     '로그아웃': { EN: 'Log out', JP: 'ログアウト', CH: '退出登录', TH: 'ออกจากระบบ' },
     '전체닫기': { EN: 'Close all', JP: 'すべて閉じる', CH: '关闭全部', TH: 'ปิดทั้งหมด' },
     '메인': { EN: 'Home', JP: 'メイン', CH: '主页', TH: 'หน้าแรก' },
@@ -17751,6 +17758,72 @@
       JP: 'チャットボットQRを読み込めません。チャットボット決済がONか確認してください。',
       CH: '无法加载聊天机器人 QR。请确认已开启聊天机器人支付。',
       TH: 'โหลด QR chatbot ไม่ได้ ตรวจสอบว่าเปิดชำระ chatbot แล้ว'
+    },
+    '웹용 QR': {
+      EN: 'Web payment QR',
+      JP: 'ウェブ用 QR',
+      CH: '网页支付 QR',
+      TH: 'QR ชำระเว็บ'
+    },
+    'QR 상단이름': {
+      EN: 'QR top name',
+      JP: 'QR上部名称',
+      CH: 'QR 顶部名称',
+      TH: 'ชื่อด้านบน QR'
+    },
+    'QR 하단문구': {
+      EN: 'QR footer text',
+      JP: 'QR下部文言',
+      CH: 'QR 底部文案',
+      TH: 'ข้อความด้านล่าง QR'
+    },
+    '웹용 QR 상단이름': {
+      EN: 'Web QR top name',
+      JP: 'ウェブQR上部名称',
+      CH: '网页 QR 顶部名称',
+      TH: 'ชื่อบน QR เว็บ'
+    },
+    '웹용 QR 하단문구': {
+      EN: 'Web QR footer',
+      JP: 'ウェブQR下部文言',
+      CH: '网页 QR 底部文案',
+      TH: 'ข้อความล่าง QR เว็บ'
+    },
+    '상단 문구': {
+      EN: 'Top text',
+      JP: '上部テキスト',
+      CH: '顶部文案',
+      TH: 'ข้อความด้านบน'
+    },
+    '하단 문구': {
+      EN: 'Footer text',
+      JP: '下部テキスト',
+      CH: '底部文案',
+      TH: 'ข้อความด้านล่าง'
+    },
+    '카메라로 스캔하면 공개 URL 결제 페이지(/checkout)로 이동합니다. 전단·POP·매장 안내에 사용할 수 있습니다.': {
+      EN: 'Scan with a camera to open the public URL checkout (/checkout). Use on flyers, POP, or in-store signage.',
+      JP: 'カメラでスキャンすると公開URL決済ページ(/checkout)へ移動します。チラシ・POP・店頭案内に使えます。',
+      CH: '用相机扫描即可进入公开 URL 结账页(/checkout)。可用于传单、POP、店内指引。',
+      TH: 'สแกนด้วยกล้องเพื่อเปิดหน้าชำระ URL สาธารณะ (/checkout) ใช้กับใบปลิว POP หรือป้ายในร้านได้'
+    },
+    '웹용 QR를 불러올 수 없습니다. 웹결제·웹용 QR 설정을 확인하세요.': {
+      EN: 'Cannot load web payment QR. Check WEB checkout and Web payment QR settings.',
+      JP: 'ウェブ用QRを読み込めません。WEB決済・ウェブ用QR設定を確認してください。',
+      CH: '无法加载网页支付 QR。请确认网页支付与网页用 QR 设置。',
+      TH: 'โหลด QR ชำระเว็บไม่ได้ ตรวจสอบการตั้งค่าชำระ WEB และ QR ชำระเว็บ'
+    },
+    '웹용 QR 모드는 총본사만 변경할 수 있습니다.': {
+      EN: 'Only Headquarters can change the Web payment QR mode.',
+      JP: 'ウェブ用QRモードは総本部のみ変更できます。',
+      CH: '仅总总部可更改网页支付 QR 模式。',
+      TH: 'เฉพาะสำนักงานใหญ่เท่านั้นที่เปลี่ยนโหมด QR ชำระเว็บได้'
+    },
+    '웹용 QR: 카메라 스캔 시 /checkout 결제 URL. 「자동」(기본)=웹결제 사용이고 API 인라인·리다이렉트·WordPress가 모두 미사용(URL 전용)일 때만 표시. 「활성」=API 인라인·리다이렉트·WordPress 사용 여부와 관계없이, 웹결제 사용이면 어느 조건에서든 표시(강제 ON). 「비활성」=숨김. 모드 변경은 총본사만 가능하며, 가맹점은 실효 ON일 때 PNG 다운로드만 가능합니다.': {
+      EN: 'Web payment QR: camera scan opens /checkout. Auto (default)=shown only when WEB checkout is ON and API inline·redirect·WordPress are all off (URL-only). Active=shown whenever WEB checkout is ON, regardless of API inline·redirect·WordPress (force ON in any channel mix). Disabled=hide. Mode change: Headquarters only; merchants can download PNG when effective ON.',
+      JP: 'ウェブ用QR: カメラスキャンで/checkout。自動(既定)=WEB決済ONかつAPIインライン・リダイレクト・WordPressがすべて未使用(URL専用)のときのみ表示。活性=APIインライン・リダイレクト・WordPressの使用有無に関係なく、WEB決済ONならどの条件でも表示(強制ON)。非活性=非表示。モード変更は総本部のみ。加盟店は実効ON時にPNGダウンロードのみ可。',
+      CH: '网页支付 QR：扫码打开 /checkout。「自动」(默认)=仅在网页支付开启且 API 内联·重定向·WordPress 均未用(仅 URL)时显示。「启用」=不论 API 内联·重定向·WordPress 是否使用，只要网页支付开启即可在任何条件下显示(强制 ON)。「停用」=隐藏。仅总总部可改模式；商户仅在生效 ON 时可下载 PNG。',
+      TH: 'QR ชำระเว็บ: สแกนเปิด /checkout 「อัตโนมัติ」(ค่าเริ่ม)=แสดงเมื่อเปิดชำระ WEB และปิด API inline·redirect·WordPress ทั้งหมด (URL อย่างเดียว) 「ใช้งาน」=แสดงได้ทุกเงื่อนไขเมื่อเปิดชำระ WEB โดยไม่สนว่าเปิด API inline·redirect·WordPress หรือไม่ (บังคับ ON) 「ปิด」=ซ่อน เปลี่ยนโหมดได้เฉพาะ HQ ร้านดาวน์โหลด PNG ได้เมื่อมีผล ON'
     },
     'QR 열기': {
       EN: 'Open QR',

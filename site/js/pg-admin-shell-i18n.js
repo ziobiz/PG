@@ -52,6 +52,7 @@
     },
     closeAllTabs: { KO: '전체닫기', EN: 'Close all', JP: 'すべて閉じる', CH: '关闭全部', TH: 'ปิดทั้งหมด' },
     myInfo: { KO: '나의정보', EN: 'My profile', JP: 'マイ情報', CH: '我的信息', TH: 'ข้อมูลของฉัน' },
+    payQr: { KO: '결제QR', EN: 'Payment QR', JP: '決済QR', CH: '支付 QR', TH: 'QR ชำระเงิน' },
     logOut: { KO: '로그아웃', EN: 'Log out', JP: 'ログアウト', CH: '退出登录', TH: 'ออกจากระบบ' },
     mainTab: { KO: '메인', EN: 'Home', JP: 'ホーム', CH: '主页', TH: 'หลัก' },
     mainHint1: {

@@ -280,6 +280,11 @@ public class ApiCompController {
             @RequestParam(required = false) String transferExecTime,
             @RequestParam(required = false) String pgBindings,
             @RequestParam(required = false) String webPaymentUseYn,
+            @RequestParam(required = false) String webPaymentQrMode,
+            @RequestParam(required = false) String webPayQrTitleMode,
+            @RequestParam(required = false) String webPayQrTitleText,
+            @RequestParam(required = false) String webPayQrFooterMode,
+            @RequestParam(required = false) String webPayQrFooterText,
             @RequestParam(required = false) String apiPaymentHeaderLogoMode,
             @RequestParam(required = false) String apiPaymentHeaderLogoUrl,
             @RequestParam(required = false) String cryptoPaymentHeaderLogoMode,
@@ -497,6 +502,9 @@ public class ApiCompController {
                 cardRiskPresaleVelIpWinMin,
                 cardRiskPresaleVelIpMax);
         compService.patchMerchantMobileCheckoutMode(saved.getCode(), mobileCheckoutMode);
+        compService.patchMerchantWebPaymentQrMode(saved.getCode(), webPaymentQrMode);
+        compService.patchMerchantWebPayQrBrandLabels(saved.getCode(),
+                webPayQrTitleMode, webPayQrTitleText, webPayQrFooterMode, webPayQrFooterText);
         compService.applyMerchantUrlPayCheckoutFieldPreset(saved.getCode(), urlPayCheckoutFieldPresetId);
         compService.applyMerchantApiPaymentHeaderLogo(saved.getCode(),
                 apiPaymentHeaderLogoMode, apiPaymentHeaderLogoUrl, apiPaymentHeaderHtmlTitle);
@@ -601,6 +609,11 @@ public class ApiCompController {
             @RequestParam(required = false) String operationRecord,
             @RequestParam(required = false) String commissionConfigAllowed,
             @RequestParam(required = false) String webPaymentUseYn,
+            @RequestParam(required = false) String webPaymentQrMode,
+            @RequestParam(required = false) String webPayQrTitleMode,
+            @RequestParam(required = false) String webPayQrTitleText,
+            @RequestParam(required = false) String webPayQrFooterMode,
+            @RequestParam(required = false) String webPayQrFooterText,
             @RequestParam(required = false) String webPaymentHeaderLogoMode,
             @RequestParam(required = false) String webPaymentHeaderLogoUrl,
             @RequestParam(required = false) String webPaymentHeaderHtmlTitle,
@@ -860,6 +873,9 @@ public class ApiCompController {
                     cardRiskPresaleVelIpMax);
             if (ok) {
                 compService.patchMerchantMobileCheckoutMode(compId, mobileCheckoutMode);
+                compService.patchMerchantWebPaymentQrMode(compId, webPaymentQrMode);
+                compService.patchMerchantWebPayQrBrandLabels(compId,
+                        webPayQrTitleMode, webPayQrTitleText, webPayQrFooterMode, webPayQrFooterText);
                 compService.applyMerchantUrlPayCheckoutFieldPreset(compId, urlPayCheckoutFieldPresetId);
                 compService.applyMerchantApiPaymentHeaderLogo(compId,
                         apiPaymentHeaderLogoMode, apiPaymentHeaderLogoUrl, apiPaymentHeaderHtmlTitle);

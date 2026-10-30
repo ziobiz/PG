@@ -134,6 +134,22 @@ public class HqApiConfig {
     @Column(name = "web_payment_header_subtitle_mode_default", nullable = false, length = 16)
     private String webPaymentHeaderSubtitleModeDefault = "DEFAULT";
 
+    /** 웹용 QR 열기 상단 이름 본사 기본 — ACTIVE|DISABLED ({@link com.pg.urlpay.WebPayQrBrandLabelModeUtil}) */
+    @Column(name = "web_pay_qr_title_mode_default", nullable = false, length = 16)
+    private String webPayQrTitleModeDefault = "ACTIVE";
+
+    /** 웹용 QR 상단 직접입력 문구(비면 가맹점명) */
+    @Column(name = "web_pay_qr_title_text_default", length = 120)
+    private String webPayQrTitleTextDefault;
+
+    /** 웹용 QR 열기 하단 문구 본사 기본 — ACTIVE|DISABLED */
+    @Column(name = "web_pay_qr_footer_mode_default", nullable = false, length = 16)
+    private String webPayQrFooterModeDefault = "ACTIVE";
+
+    /** 웹용 QR 하단 직접입력 문구(비면 Provided by ICOPAY) */
+    @Column(name = "web_pay_qr_footer_text_default", length = 120)
+    private String webPayQrFooterTextDefault = "Provided by ICOPAY";
+
     /** 통합결제 상단안내 본사 기본 — ACTIVE|DISABLED */
     @Column(name = "unified_payment_header_subtitle_mode_default", nullable = false, length = 16)
     private String unifiedPaymentHeaderSubtitleModeDefault = "ACTIVE";
@@ -537,6 +553,27 @@ public class HqApiConfig {
     public void setWebPaymentHeaderSubtitleModeDefault(String v) {
         this.webPaymentHeaderSubtitleModeDefault = com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.normalize(
                 v != null ? v : com.pg.urlpay.CheckoutHeaderSubtitleModeUtil.DEFAULT);
+    }
+    public String getWebPayQrTitleModeDefault() { return webPayQrTitleModeDefault; }
+    public void setWebPayQrTitleModeDefault(String v) {
+        this.webPayQrTitleModeDefault = com.pg.urlpay.WebPayQrBrandLabelModeUtil.normalizeHq(v);
+    }
+    public String getWebPayQrTitleTextDefault() { return webPayQrTitleTextDefault; }
+    public void setWebPayQrTitleTextDefault(String v) {
+        this.webPayQrTitleTextDefault = com.pg.urlpay.WebPayQrBrandLabelModeUtil.trimText(v, 120);
+        if (this.webPayQrTitleTextDefault.isEmpty()) {
+            this.webPayQrTitleTextDefault = null;
+        }
+    }
+    public String getWebPayQrFooterModeDefault() { return webPayQrFooterModeDefault; }
+    public void setWebPayQrFooterModeDefault(String v) {
+        this.webPayQrFooterModeDefault = com.pg.urlpay.WebPayQrBrandLabelModeUtil.normalizeHq(v);
+    }
+    public String getWebPayQrFooterTextDefault() { return webPayQrFooterTextDefault; }
+    public void setWebPayQrFooterTextDefault(String v) {
+        String t = com.pg.urlpay.WebPayQrBrandLabelModeUtil.trimText(v, 120);
+        this.webPayQrFooterTextDefault = t.isEmpty()
+                ? com.pg.urlpay.WebPayQrBrandLabelModeUtil.DEFAULT_FOOTER : t;
     }
     private static String nzActiveDisabled(String v, String def) {
         if (v == null || v.isBlank()) {

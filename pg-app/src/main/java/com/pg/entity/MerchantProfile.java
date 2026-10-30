@@ -183,6 +183,27 @@ public class MerchantProfile {
     private String webPaymentUseYn = "Y";
 
     /**
+     * 웹용 QR(공개 URL /checkout) — {@link com.pg.urlpay.WebPaymentQrModeUtil}.
+     * AUTO(기본)|ACTIVE|DISABLED
+     */
+    @Column(name = "web_payment_qr_mode", nullable = false, length = 16)
+    private String webPaymentQrMode = "AUTO";
+
+    /** 웹용 QR 열기 상단 이름 — FOLLOW_HQ|ACTIVE|DISABLED */
+    @Column(name = "web_pay_qr_title_mode", nullable = false, length = 16)
+    private String webPayQrTitleMode = "FOLLOW_HQ";
+
+    @Column(name = "web_pay_qr_title_text", length = 120)
+    private String webPayQrTitleText;
+
+    /** 웹용 QR 열기 하단 문구 — FOLLOW_HQ|ACTIVE|DISABLED */
+    @Column(name = "web_pay_qr_footer_mode", nullable = false, length = 16)
+    private String webPayQrFooterMode = "FOLLOW_HQ";
+
+    @Column(name = "web_pay_qr_footer_text", length = 120)
+    private String webPayQrFooterText;
+
+    /**
      * 웹결제(URL·JPAY) 결제창 상단 로고 — {@link com.pg.urlpay.WebPaymentHeaderLogoModeUtil}.
      */
     @Column(name = "web_payment_header_logo_mode", nullable = false, length = 16)
@@ -846,6 +867,28 @@ public class MerchantProfile {
     public void setCommissionConfigAllowed(String commissionConfigAllowed) { this.commissionConfigAllowed = commissionConfigAllowed; }
     public String getWebPaymentUseYn() { return webPaymentUseYn; }
     public void setWebPaymentUseYn(String webPaymentUseYn) { this.webPaymentUseYn = webPaymentUseYn; }
+    public String getWebPaymentQrMode() { return webPaymentQrMode; }
+    public void setWebPaymentQrMode(String webPaymentQrMode) {
+        this.webPaymentQrMode = com.pg.urlpay.WebPaymentQrModeUtil.normalize(webPaymentQrMode);
+    }
+    public String getWebPayQrTitleMode() { return webPayQrTitleMode; }
+    public void setWebPayQrTitleMode(String webPayQrTitleMode) {
+        this.webPayQrTitleMode = com.pg.urlpay.WebPayQrBrandLabelModeUtil.normalizeMerchantStored(webPayQrTitleMode);
+    }
+    public String getWebPayQrTitleText() { return webPayQrTitleText; }
+    public void setWebPayQrTitleText(String webPayQrTitleText) {
+        String t = com.pg.urlpay.WebPayQrBrandLabelModeUtil.trimText(webPayQrTitleText, 120);
+        this.webPayQrTitleText = t.isEmpty() ? null : t;
+    }
+    public String getWebPayQrFooterMode() { return webPayQrFooterMode; }
+    public void setWebPayQrFooterMode(String webPayQrFooterMode) {
+        this.webPayQrFooterMode = com.pg.urlpay.WebPayQrBrandLabelModeUtil.normalizeMerchantStored(webPayQrFooterMode);
+    }
+    public String getWebPayQrFooterText() { return webPayQrFooterText; }
+    public void setWebPayQrFooterText(String webPayQrFooterText) {
+        String t = com.pg.urlpay.WebPayQrBrandLabelModeUtil.trimText(webPayQrFooterText, 120);
+        this.webPayQrFooterText = t.isEmpty() ? null : t;
+    }
     public String getWebPaymentHeaderLogoMode() { return webPaymentHeaderLogoMode; }
     public void setWebPaymentHeaderLogoMode(String webPaymentHeaderLogoMode) {
         this.webPaymentHeaderLogoMode = com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalizeMerchantStored(webPaymentHeaderLogoMode);

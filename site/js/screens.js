@@ -595,7 +595,28 @@
       [{ type: 'customHtml', col: 12, html: webPaymentHeaderSubtitleFieldBlock }],
       merchantWebPaymentDefaultProductRow(),
       [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml(urlPh); } },
-       { type: 'customHtml', col: 12, html: function () { return merchantPaymentRepayUrlRowHtml(urlPh); } }]
+       { type: 'customHtml', col: 12, html: function () { return merchantPaymentRepayUrlRowHtml(urlPh); } }],
+      [{ label: '웹용 QR', type: 'select', name: 'webPaymentQrMode', options: [
+        { v: 'AUTO', t: '자동' },
+        { v: 'ACTIVE', t: '활성' },
+        { v: 'DISABLED', t: '비활성' }
+      ], col: 3 },
+       { label: '', type: 'note', col: 9, text: '웹용 QR: 카메라 스캔 시 /checkout 결제 URL. 「자동」(기본)=웹결제 사용이고 API 인라인·리다이렉트·WordPress가 모두 미사용(URL 전용)일 때만 표시. 「활성」=API 인라인·리다이렉트·WordPress 사용 여부와 관계없이, 웹결제 사용이면 어느 조건에서든 표시(강제 ON). 「비활성」=숨김. 모드 변경은 총본사만 가능하며, 가맹점은 실효 ON일 때 PNG 다운로드만 가능합니다.' }],
+      [{ label: 'QR 상단이름', type: 'select', name: 'webPayQrTitleMode', options: [
+        { v: 'FOLLOW_HQ', t: '본사설정 따름' },
+        { v: 'ACTIVE', t: '직접입력' },
+        { v: 'DISABLED', t: '미활성' }
+      ], col: 3 },
+       { label: '상단 문구', type: 'text', name: 'webPayQrTitleText', col: 5, maxlength: 120, placeholder: '비우면 가맹점명', blockExtraClass: 'web-pay-qr-title-text-field' },
+       { label: '', type: 'note', col: 4, text: 'QR 열기 화면 위. 직접입력·비우면 가맹점명.' }],
+      [{ label: 'QR 하단문구', type: 'select', name: 'webPayQrFooterMode', options: [
+        { v: 'FOLLOW_HQ', t: '본사설정 따름' },
+        { v: 'ACTIVE', t: '직접입력' },
+        { v: 'DISABLED', t: '미활성' }
+      ], col: 3 },
+       { label: '하단 문구', type: 'text', name: 'webPayQrFooterText', col: 5, maxlength: 120, placeholder: 'Provided by ICOPAY', blockExtraClass: 'web-pay-qr-footer-text-field' },
+       { label: '', type: 'note', col: 4, text: 'QR 열기 화면 아래. 직접입력·비우면 Provided by ICOPAY.' }],
+      [{ type: 'customHtml', col: 12, html: function () { return merchantWebPayQrRowHtml(); } }]
     ];
   }
 
@@ -1198,6 +1219,22 @@
       '<div class="d-flex flex-column gap-2 align-items-stretch">' +
       '<a class="btn btn-outline-primary btn-sm" id="chatbotQrOpenPng" href="#" target="_blank" rel="noopener" data-pg-ui-t="QR 열기">' + escUi(L('QR 열기')) + '</a>' +
       '<button type="button" class="btn btn-outline-secondary btn-sm" id="chatbotQrDownloadBtn" data-pg-ui-t="PNG 저장">' + escUi(L('PNG 저장')) + '</button></div></div></div></div>';
+  }
+
+  /** 가맹점 배포용: 웹(URL) 결제 /checkout QR */
+  function merchantWebPayQrRowHtml() {
+    return '<div class="row mb-2" id="webPayQrRow" style="display:none">' +
+      '<div class="col-12">' +
+      '<label class="form-label" data-pg-ui-t="웹용 QR">' + escUi(L('웹용 QR')) + '</label>' +
+      '<div class="form-text text-muted small mb-1" data-pg-ui-t="카메라로 스캔하면 공개 URL 결제 페이지(/checkout)로 이동합니다. 전단·POP·매장 안내에 사용할 수 있습니다.">' +
+      escUi(L('카메라로 스캔하면 공개 URL 결제 페이지(/checkout)로 이동합니다. 전단·POP·매장 안내에 사용할 수 있습니다.')) + '</div>' +
+      '<div class="d-flex flex-wrap align-items-start gap-3">' +
+      '<div class="d-flex align-items-center justify-content-center border rounded bg-light" style="width:188px;height:188px">' +
+      '<img id="webPayQrImg" alt="" width="176" height="176" class="d-none" decoding="async" />' +
+      '<span id="webPayQrPlaceholder" class="text-muted small">—</span></div>' +
+      '<div class="d-flex flex-column gap-2 align-items-stretch">' +
+      '<a class="btn btn-outline-primary btn-sm" id="webPayQrOpenPng" href="#" target="_blank" rel="noopener" data-pg-ui-t="QR 열기">' + escUi(L('QR 열기')) + '</a>' +
+      '<button type="button" class="btn btn-outline-secondary btn-sm" id="webPayQrDownloadBtn" data-pg-ui-t="PNG 저장">' + escUi(L('PNG 저장')) + '</button></div></div></div></div>';
   }
 
   /** 상품관리 — 플랜·프로모션 안내(alert, i18n) */
@@ -4450,6 +4487,22 @@
                 );
               }
             }]
+          ]
+        },
+        {
+          title: '웹용 QR 표시 기본값',
+          notice: '가맹이 「본사설정 따름」일 때 QR 열기(/url-pay-qr) 상단·하단에 적용됩니다. 직접입력·비우면 상단=가맹점명, 하단=Provided by ICOPAY. 미활성이면 숨깁니다.',
+          rows: [
+            [{ label: '웹용 QR 상단이름', type: 'select', name: 'webPayQrTitleModeDefault', options: [
+              { v: 'ACTIVE', t: '직접입력' },
+              { v: 'DISABLED', t: '미활성' }
+            ], col: 3 },
+             { label: '상단 문구', type: 'text', name: 'webPayQrTitleTextDefault', col: 5, maxlength: 120, placeholder: '비우면 가맹점명', blockExtraClass: 'hq-web-pay-qr-title-text-field' }],
+            [{ label: '웹용 QR 하단문구', type: 'select', name: 'webPayQrFooterModeDefault', options: [
+              { v: 'ACTIVE', t: '직접입력' },
+              { v: 'DISABLED', t: '미활성' }
+            ], col: 3 },
+             { label: '하단 문구', type: 'text', name: 'webPayQrFooterTextDefault', col: 5, maxlength: 120, placeholder: 'Provided by ICOPAY', blockExtraClass: 'hq-web-pay-qr-footer-text-field' }]
           ]
         }
       ],

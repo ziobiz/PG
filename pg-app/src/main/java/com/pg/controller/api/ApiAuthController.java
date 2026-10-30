@@ -117,6 +117,7 @@ public class ApiAuthController {
                     }
                     user.put("chatbotPaymentUseYn", authService.resolveChatbotPaymentUseYnForMerchant(ouid));
                     user.put("webPaymentUseYn", authService.resolveWebPaymentUseYnForMerchant(ouid));
+                    user.put("webPaymentQrEffectiveYn", authService.resolveWebPaymentQrEffectiveYnForMerchant(ouid));
                     user.put("splitPayEnabledYn", authService.resolveSplitPayEnabledYnForMerchant(ouid));
                     user.put("apiJpaySubscriptionUseYn", authService.resolveApiJpaySubscriptionUseYnForMerchant(ouid));
                     user.put("merchantApiDeployedYn", authService.resolveMerchantApiDeployedYnForMerchant(ouid));
