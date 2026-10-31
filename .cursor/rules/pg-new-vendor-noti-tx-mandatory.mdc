@@ -26,7 +26,8 @@ ICOPAY 연동만 하고 NOTI 관리자 **노티거래내역** PG 탭·`pgProvide
    - `icopayAmountPgKeyFromLog` (금액 규칙 키)
 4. **노티거래내역·로그분석 PG 탭** (`buildCrHubToolbarHtml` / `buildLogHubToolbarHtml` / `pgSource.*Url` / `qs`의 `source=`)
 5. **i18n 라벨** `pg_provider_{slug}` (또는 하드코드 폴백 `FOO`)
-6. 배포: `Deploy-Noti.ps1` (또는 동등)로 `server.js` + `lib/*Noti.js` 반영·PM2 재시작
+6. 배포: `Deploy-Noti.ps1` (또는 동등)로 **통합본** `server.js` + `locales.js` + `lib/*Noti.js` 반영·PM2 재시작  
+   — **기존 PG(OMSPAY 등) 탭·필터를 지운 옛 `server.js`로 덮지 말 것** (`pg-noti-deploy-no-overwrite.mdc`)
 
 ### B. ICOPAY (본사 노티 추가등록 UI)
 

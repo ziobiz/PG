@@ -176,7 +176,8 @@ public class OmspaySaleRecordService {
             }
         }
         String ref = ref1 != null ? ref1.trim() : "";
-        if (!ref.isBlank() && ref.length() <= 64) {
+        /* Beam charge id(ch_…)는 역추적 키에서 제외 — SO-/note/orderNo 우선 (V5.92) */
+        if (!ref.isBlank() && ref.length() <= 64 && !ref.regionMatches(true, 0, "ch_", 0, 3)) {
             Optional<PgTrnsctn> byRefPay = pgTrnsctnRepository.findFirstByPayNoOrderByCreatedAtDesc(ref);
             if (byRefPay.isPresent() && acceptOmspayLookup(byRefPay.get())) {
                 return byRefPay;

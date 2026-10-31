@@ -109,6 +109,7 @@ public class PgNotifyReceiveService {
     private final IlkCallbackService ilkCallbackService;
     private final QxipayCallbackService qxipayCallbackService;
     private final OmspayCallbackService omspayCallbackService;
+    private final PaysoCallbackService paysoCallbackService;
 
     public PgNotifyReceiveService(HqNotifyEnvService hqNotifyEnvService,
                                 PgNotifyInboundRepository inboundRepository,
@@ -127,7 +128,8 @@ public class PgNotifyReceiveService {
                                 ElementPayCallbackService elementPayCallbackService,
                                 IlkCallbackService ilkCallbackService,
                                 QxipayCallbackService qxipayCallbackService,
-                                OmspayCallbackService omspayCallbackService) {
+                                OmspayCallbackService omspayCallbackService,
+                                PaysoCallbackService paysoCallbackService) {
         this.hqNotifyEnvService = hqNotifyEnvService;
         this.inboundRepository = inboundRepository;
         this.bindingRepository = bindingRepository;
@@ -146,6 +148,7 @@ public class PgNotifyReceiveService {
         this.ilkCallbackService = ilkCallbackService;
         this.qxipayCallbackService = qxipayCallbackService;
         this.omspayCallbackService = omspayCallbackService;
+        this.paysoCallbackService = paysoCallbackService;
     }
 
     /**
@@ -172,6 +175,11 @@ public class PgNotifyReceiveService {
                 pathToken, notifyTargetCode, rawBody, clientIp, request);
         if (omspay.isPresent()) {
             return omspay.get();
+        }
+        Optional<NotifyReceiveOutcome> payso = paysoCallbackService.tryHandleSyncCallback(
+                pathToken, notifyTargetCode, rawBody, clientIp, request);
+        if (payso.isPresent()) {
+            return payso.get();
         }
         return receiveAndRespondCore(pathToken, notifyTargetCode, rawBody, contentType, clientIp, request);
     }

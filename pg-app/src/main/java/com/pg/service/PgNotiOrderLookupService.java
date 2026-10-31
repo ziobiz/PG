@@ -76,6 +76,10 @@ public class PgNotiOrderLookupService {
     }
 
     private Optional<PgTrnsctn> findTxn(String q) {
+        /* Beam charge id(ch_…) 단독 조회 금지 — NOT_FOUND·오매칭 방지 (V5.92). SO-/가맹 orderNo 우선. */
+        if (looksLikeBeamChargeId(q)) {
+            return Optional.empty();
+        }
         /* 1) OMSPAY SO-/note 전용 역추적(기존 로직 재사용) */
         String so = q.toUpperCase().startsWith("SO-") ? q : "";
         Optional<PgTrnsctn> oms = omspaySaleRecordService.resolveTxnForWebhook(so, q, q, q);
@@ -102,6 +106,14 @@ public class PgNotiOrderLookupService {
             return byChill;
         }
         return pgTrnsctnRepository.findFirstByApprovalNoOrderByCreatedAtDesc(q);
+    }
+
+    /** Waylar/Beam {@code ch_…} charge id — Comp-Id order-lookup 키로 쓰지 않음. */
+    private static boolean looksLikeBeamChargeId(String q) {
+        if (q == null || q.length() < 3) {
+            return false;
+        }
+        return q.regionMatches(true, 0, "ch_", 0, 3);
     }
 
     private static String firstNonBlank(String a, String b) {

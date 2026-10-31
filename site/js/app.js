@@ -5892,7 +5892,8 @@
           : ((pgKindRaw === 'ox' || pgKindRaw === 'oxpay') ? 'ox'
             : ((pgKindRaw === 'ilk' || pgKindRaw === 'ilkpay') ? 'ilk'
               : ((pgKindRaw === 'qxipay' || pgKindRaw === 'qxpay') ? 'qxipay'
-                : ((pgKindRaw === 'omspay' || pgKindRaw === 'oms' || pgKindRaw === 'waylar') ? 'omspay' : 'jpay'))));
+                : ((pgKindRaw === 'omspay' || pgKindRaw === 'oms' || pgKindRaw === 'waylar') ? 'omspay'
+                  : ((pgKindRaw === 'payso' || pgKindRaw === 'paysolutions') ? 'payso' : 'jpay')))));
         var body = {
           id: id,
           pgKind: pgKind,
@@ -6031,6 +6032,7 @@
             if (k === 'ilk') return 'ILKPAY';
             if (k === 'qxipay' || k === 'qxpay') return 'QXIPAY';
             if (k === 'omspay' || k === 'oms' || k === 'waylar') return 'OMSPAY';
+            if (k === 'payso' || k === 'paysolutions') return 'PAYSO';
             if (k === 'qbang' || k === 'qbank' || k === 'qrbank') return 'QBANG';
             return 'JPAY';
           })(), 'text-nowrap small');
@@ -6043,9 +6045,9 @@
           var kindLow = String(r.pgKind || '').toLowerCase();
           var routeLow = String(r.routeNo || '').toLowerCase();
           var isFixedIngress = kindLow === 'elementpay' || kindLow === 'ox' || kindLow === 'ilk'
-            || kindLow === 'qxipay' || kindLow === 'omspay'
+            || kindLow === 'qxipay' || kindLow === 'omspay' || kindLow === 'payso'
             || routeLow === 'elementpay' || routeLow === 'ox' || routeLow === 'ilk'
-            || routeLow === 'qxipay' || routeLow === 'omspay';
+            || routeLow === 'qxipay' || routeLow === 'omspay' || routeLow === 'payso';
           var slotDisp = isFixedIngress ? '—' : (r.routeNo || (r.slotNo != null ? String(r.slotNo) : ''));
           tdText(slotDisp, 'text-nowrap small');
           tdUrlOnly(r.jpayNotifyUrl);
@@ -6169,7 +6171,8 @@
         : (pgKind === 'ox' ? 'ox' : (pgKind === 'ilk' ? 'ilk'
           : (pgKind === 'qxipay' || pgKind === 'qxpay' ? 'qxipay'
             : (pgKind === 'omspay' || pgKind === 'oms' || pgKind === 'waylar' ? 'omspay'
-              : (pgKind === 'qbang' || pgKind === 'qbank' || pgKind === 'qrbank' ? 'qbang' : 'jpay')))));
+              : (pgKind === 'payso' || pgKind === 'paysolutions' ? 'payso'
+                : (pgKind === 'qbang' || pgKind === 'qbank' || pgKind === 'qrbank' ? 'qbang' : 'jpay'))))));
       var src = Array.isArray(list) ? list : [];
       var out = [];
       src.forEach(function (it) {
@@ -6889,7 +6892,7 @@
           return;
         }
         var pgKind = opsNpSelectedPgKind();
-        var fixed = pgKind === 'elementpay' || pgKind === 'ox' || pgKind === 'ilk' || pgKind === 'qxipay' || pgKind === 'omspay' || pgKind === 'qbang';
+        var fixed = pgKind === 'elementpay' || pgKind === 'ox' || pgKind === 'ilk' || pgKind === 'qxipay' || pgKind === 'omspay' || pgKind === 'payso' || pgKind === 'qbang';
         var slotVal = (pane.querySelector('#opsNpPgSlotNo') || {}).value || '';
         if (!fixed && String(slotVal).trim() && !opsNpSlotAutoMode && !opsNpSlotReviewed) {
           alert(pgAdminUiT('수동 슬롯 번호는 [슬롯검토]를 실행하거나 [자동]을 사용하세요.'));
@@ -6897,6 +6900,8 @@
         }
         var confirmMsg = pgKind === 'qbang'
           ? 'NOTI에 QBANG 가맹을 생성(또는 조회)합니다. Webhook 고정 URL(/noti/qbang)을 수신통보에 반영합니다. 계속하시겠습니까?'
+          : (pgKind === 'payso'
+          ? 'NOTI에 PAYSO 가맹을 생성(또는 조회)합니다. Webhook 고정 URL(/noti/payso)을 수신통보에 반영합니다. 계속하시겠습니까?'
           : (pgKind === 'omspay'
           ? 'NOTI에 OMSPAY 가맹을 생성(또는 조회)합니다. Webhook 고정 URL(/noti/omspay)을 수신통보에 반영합니다. 계속하시겠습니까?'
           : (pgKind === 'qxipay'
@@ -6907,7 +6912,7 @@
           ? 'NOTI에 ox 가맹을 생성(또는 조회)합니다. Webhook·Result 고정 URL을 수신통보에 반영합니다. 계속하시겠습니까?'
           : (pgKind === 'elementpay'
             ? 'NOTI에 ElementPay 가맹을 생성(또는 조회)합니다. Webhook·Result 고정 URL을 수신통보에 반영합니다. 계속하시겠습니까?'
-            : 'NOTI에 JPAY 가맹을 생성(또는 조회)하고 ICOPAY 업체 URL을 반영합니다. 계속하시겠습니까?')))));
+            : 'NOTI에 JPAY 가맹을 생성(또는 조회)하고 ICOPAY 업체 URL을 반영합니다. 계속하시겠습니까?'))))));
         if (!confirm(pgAdminUiT(confirmMsg))) return;
         var dimm = document.getElementById('dimm');
         if (dimm) dimm.style.display = 'flex';
@@ -6978,8 +6983,9 @@
         setTxt('#opsNpLogEditDate', data.provisionedDate || '');
         var kindLow = String(data.pgKind || '').toLowerCase();
         var routeLow = String(data.routeNo || '').toLowerCase();
-        if (kindLow !== 'elementpay' && kindLow !== 'ox' && kindLow !== 'ilk' && kindLow !== 'qxipay' && kindLow !== 'omspay' && kindLow !== 'qbang' && kindLow !== 'jpay') {
+        if (kindLow !== 'elementpay' && kindLow !== 'ox' && kindLow !== 'ilk' && kindLow !== 'qxipay' && kindLow !== 'omspay' && kindLow !== 'payso' && kindLow !== 'qbang' && kindLow !== 'jpay') {
           if (routeLow === 'qbang' || routeLow === 'qbank') kindLow = 'qbang';
+          else if (routeLow === 'payso' || routeLow === 'paysolutions') kindLow = 'payso';
           else if (routeLow === 'omspay') kindLow = 'omspay';
           else if (routeLow === 'qxipay') kindLow = 'qxipay';
           else if (routeLow === 'ilk') kindLow = 'ilk';
@@ -6992,6 +6998,7 @@
         function opsNpLogEditSlotLabel(kind) {
           var k = String(kind || '').toLowerCase();
           if (k === 'qbang') return 'QBANG';
+          if (k === 'payso') return 'PAYSO';
           if (k === 'omspay') return 'OMSPAY';
           if (k === 'qxipay') return 'QXIPAY';
           if (k === 'ilk') return 'ILKPAY';

@@ -8,6 +8,7 @@ import com.pg.service.IlkPaymentService;
 import com.pg.service.JpayPaymentService;
 import com.pg.service.QxipayPaymentService;
 import com.pg.service.OmspayPaymentService;
+import com.pg.service.PaysoPaymentService;
 import com.pg.service.QbangPaymentService;
 import com.pg.service.MerchantPayLimitService;
 import com.pg.service.MerchantPgBindingRouterService;
@@ -35,6 +36,7 @@ public class UrlPaySaleDispatcher {
     private final IlkPaymentService ilkPaymentService;
     private final QxipayPaymentService qxipayPaymentService;
     private final OmspayPaymentService omspayPaymentService;
+    private final PaysoPaymentService paysoPaymentService;
     private final QbangPaymentService qbangPaymentService;
     private final UrlPayVendorCapabilityRegistry capabilityRegistry;
     private final UrlPayChargeResolutionService urlPayChargeResolutionService;
@@ -50,6 +52,7 @@ public class UrlPaySaleDispatcher {
                                 IlkPaymentService ilkPaymentService,
                                 QxipayPaymentService qxipayPaymentService,
                                 OmspayPaymentService omspayPaymentService,
+                                PaysoPaymentService paysoPaymentService,
                                 QbangPaymentService qbangPaymentService,
                                 UrlPayVendorCapabilityRegistry capabilityRegistry,
                                 UrlPayChargeResolutionService urlPayChargeResolutionService,
@@ -64,6 +67,7 @@ public class UrlPaySaleDispatcher {
         this.ilkPaymentService = ilkPaymentService;
         this.qxipayPaymentService = qxipayPaymentService;
         this.omspayPaymentService = omspayPaymentService;
+        this.paysoPaymentService = paysoPaymentService;
         this.qbangPaymentService = qbangPaymentService;
         this.capabilityRegistry = capabilityRegistry;
         this.urlPayChargeResolutionService = urlPayChargeResolutionService;
@@ -174,6 +178,7 @@ public class UrlPaySaleDispatcher {
             case QXIPAY_INLINE_SALE -> qxipayPaymentService.executeSale(orgUnitId, body, request, clientIp);
             case OMSPAY_REDIRECT_SALE -> omspayPaymentService.startRedirect(orgUnitId, body, request, clientIp);
             case QBANG_QR_SALE -> qbangPaymentService.startQr(orgUnitId, body, request, clientIp);
+            case PAYSO_REDIRECT_SALE -> paysoPaymentService.startRedirect(orgUnitId, body, request, clientIp);
             case OX_APPROVAL_PENDING -> fail(
                     "카드 승인을 준비 중입니다. 잠시 후 다시 시도해 주세요.",
                     "APPROVAL_NOT_READY");

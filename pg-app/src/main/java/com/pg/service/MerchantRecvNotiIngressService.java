@@ -186,6 +186,9 @@ public class MerchantRecvNotiIngressService {
         if (PgVendor.isOmspayFamily(pgCd)) {
             return "omspay";
         }
+        if (PgVendor.isPaysoFamily(pgCd)) {
+            return "payso";
+        }
         if (PgVendor.isQxipayFamily(pgCd)) {
             return "qxipay";
         }
@@ -215,6 +218,7 @@ public class MerchantRecvNotiIngressService {
             case "ilk" -> "ILK";
             case "qxipay" -> "QXIPAY";
             case "omspay" -> "OMSPAY";
+            case "payso" -> "PAYSO";
             case "qbang" -> "QBANG";
             case "crypto" -> "CRYPTO";
             case "jpay" -> "JPAY";

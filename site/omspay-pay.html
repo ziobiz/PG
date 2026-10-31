@@ -14,6 +14,7 @@
   <script src="/js/url-pay-public-shell.js?v=22"></script>
   <script src="/js/jpay-contact-fields.js?v=8"></script>
   <script src="/js/pay-form-input-guard.js?v=4"></script>
+  <script src="/js/icopay-checkout-3ds.js?v=4"></script>
 </head>
 <body class="pay-inline-body">
   <div class="pay-shell">
@@ -923,7 +924,21 @@
             ts: Date.now()
           }));
         } catch (eSs) { /* ignore */ }
-        location.href = data.redirectUrl || data.paymentUrl;
+        /* Beam HPP는 iframe 내 표시 거부 — embed면 top으로 이탈(EMP iframe 가맹→OMSPAY 교체 대응) */
+        var hop = data.redirectUrl || data.paymentUrl;
+        if (window.IcopayCheckout3ds && IcopayCheckout3ds.navigateToPaymentUrl) {
+          IcopayCheckout3ds.navigateToPaymentUrl(hop, { showWait: true });
+        } else {
+          try {
+            if (window.self !== window.top) {
+              (window.top || window.parent).location.href = hop;
+            } else {
+              location.href = hop;
+            }
+          } catch (eTop) {
+            location.href = hop;
+          }
+        }
         return;
       }
       alert((body && (body.message || body.error)) || t('err'));

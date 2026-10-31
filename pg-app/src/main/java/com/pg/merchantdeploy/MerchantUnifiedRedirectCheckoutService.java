@@ -31,6 +31,7 @@ public class MerchantUnifiedRedirectCheckoutService {
     private final MerchantOxInlineCheckoutService oxInlineCheckoutService;
     private final MerchantQxipayInlineCheckoutService qxipayInlineCheckoutService;
     private final MerchantOmspayInlineCheckoutService omspayInlineCheckoutService;
+    private final MerchantPaysoInlineCheckoutService paysoInlineCheckoutService;
     private final MerchantInlineCheckoutTokenService tokenService;
     private final MerchantChatbotProductService productService;
     private final MerchantApiIntegrationChannelService integrationChannelService;
@@ -46,6 +47,7 @@ public class MerchantUnifiedRedirectCheckoutService {
                                                   MerchantOxInlineCheckoutService oxInlineCheckoutService,
                                                   MerchantQxipayInlineCheckoutService qxipayInlineCheckoutService,
                                                   MerchantOmspayInlineCheckoutService omspayInlineCheckoutService,
+                                                  MerchantPaysoInlineCheckoutService paysoInlineCheckoutService,
                                                   MerchantInlineCheckoutTokenService tokenService,
                                                   MerchantChatbotProductService productService,
                                                   MerchantApiIntegrationChannelService integrationChannelService,
@@ -60,6 +62,7 @@ public class MerchantUnifiedRedirectCheckoutService {
         this.oxInlineCheckoutService = oxInlineCheckoutService;
         this.qxipayInlineCheckoutService = qxipayInlineCheckoutService;
         this.omspayInlineCheckoutService = omspayInlineCheckoutService;
+        this.paysoInlineCheckoutService = paysoInlineCheckoutService;
         this.tokenService = tokenService;
         this.productService = productService;
         this.integrationChannelService = integrationChannelService;
@@ -126,6 +129,8 @@ public class MerchantUnifiedRedirectCheckoutService {
             result = qxipayInlineCheckoutService.prepare(orgUnitId, enriched, request);
         } else if (PgVendor.isOmspayFamily(opPg)) {
             result = omspayInlineCheckoutService.prepare(orgUnitId, enriched, request);
+        } else if (PgVendor.isPaysoFamily(opPg)) {
+            result = paysoInlineCheckoutService.prepare(orgUnitId, enriched, request);
         } else if (PgVendor.isChillPayFamily(opPg)) {
             result = chillpayRedirectCheckoutService.prepare(orgUnitId, enriched, request);
         } else {
@@ -172,6 +177,9 @@ public class MerchantUnifiedRedirectCheckoutService {
         }
         if (PgVendor.isOmspayFamily(opPg)) {
             return omspayInlineCheckoutService.orderStatus(orgUnitId, orderNo);
+        }
+        if (PgVendor.isPaysoFamily(opPg)) {
+            return paysoInlineCheckoutService.orderStatus(orgUnitId, orderNo);
         }
         if (PgVendor.isChillPayFamily(opPg)) {
             return chillpayRedirectCheckoutService.orderStatus(orgUnitId, orderNo);

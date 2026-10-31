@@ -81,7 +81,8 @@ public class MerchantOutboundNotifyService {
                 && !PgVendor.isIlkFamily(savedTxn.getVan())
                 && !PgVendor.isOxFamily(savedTxn.getVan())
                 && !PgVendor.isQxipayFamily(savedTxn.getVan())
-                && !PgVendor.isOmspayFamily(savedTxn.getVan())) {
+                && !PgVendor.isOmspayFamily(savedTxn.getVan())
+                && !PgVendor.isPaysoFamily(savedTxn.getVan())) {
             return;
         }
         final String trnId = savedTxn.getTrnId().trim();
@@ -255,24 +256,34 @@ public class MerchantOutboundNotifyService {
 
     private static Map<String, Object> buildPayload(PgTrnsctn t, PgNotifyInbound inbound, String notifyChannel) {
         Map<String, Object> m = new LinkedHashMap<>();
+        /* 통합 API 가맹 통보 — PG명·레거시 별칭 미포함 */
         m.put("event", "pg.payment.status");
         m.put("compId", t.getMerchantId());
         m.put("trnId", t.getTrnId());
         m.put("orderNo", t.getOrderNo());
         m.put("status", t.getStatus());
-        m.put("pgTxnId", t.getChillTransactionId());
+        m.put("paymentStatus", mapUnifiedPaymentStatus(t.getStatus()));
+        if (t.getChillTransactionId() != null && !t.getChillTransactionId().isBlank()) {
+            m.put("pgTxnId", t.getChillTransactionId().trim());
+        }
         m.put("amount", t.getAmtKrw() != null ? t.getAmtKrw().stripTrailingZeros().toPlainString() : null);
         m.put("currency", t.getCurType());
-        m.put("van", t.getVan());
-        m.put("origin", t.getOrigin());
-        m.put("notifyChannel", notifyChannel);
-        m.put("chillPaymentStatus", t.getChillPaymentStatus());
         m.put("paidAt", t.getPaidAt() != null ? t.getPaidAt().toString() : null);
         m.put("ts", System.currentTimeMillis());
-        if (inbound != null && inbound.getId() != null) {
-            m.put("inboundId", inbound.getId());
-        }
         return m;
+    }
+
+    private static String mapUnifiedPaymentStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return "UNKNOWN";
+        }
+        return switch (status.trim()) {
+            case "10", "00" -> "PAID";
+            case "08" -> "PENDING";
+            case "99", "F0" -> "FAILED";
+            case "30", "42" -> "REFUNDED";
+            default -> status.trim();
+        };
     }
 
     private PostOutcome postWithRetries(String url, String bodyJson, String secret) {

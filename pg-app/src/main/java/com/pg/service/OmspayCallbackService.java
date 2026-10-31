@@ -135,15 +135,27 @@ public class OmspayCallbackService {
         String compId = "";
         if (matched.isPresent()) {
             PgTrnsctn t = matched.get();
-            if (orderNo.isBlank() && t.getOrderNo() != null) {
+            /* 매칭된 대기건의 가맹 orderNo 우선 — OMS note/SO 가 orderNo 자리에 와도 덮지 않음 */
+            if (t.getOrderNo() != null && !t.getOrderNo().isBlank()) {
                 orderNo = t.getOrderNo().trim();
             }
             compId = t.getMerchantId() != null ? t.getMerchantId().trim() : "";
         }
-        if (orderNo.isBlank() && orderHint != null) {
+        if (orderNo.isBlank() && orderHint != null && !looksLikeOmspaySo(orderHint)) {
             orderNo = orderHint.trim();
         }
+        if (looksLikeOmspaySo(orderNo)) {
+            orderNo = "";
+        }
         return new ResolvedIds(compId, orderNo);
+    }
+
+    private static boolean looksLikeOmspaySo(String v) {
+        if (v == null || v.isBlank()) {
+            return false;
+        }
+        String s = v.trim();
+        return s.length() >= 3 && s.regionMatches(true, 0, "SO-", 0, 3);
     }
 
     private NotifyReceiveOutcome outcomeJson(boolean ok, String error, String so, ResolvedIds ids, HttpStatus status) {

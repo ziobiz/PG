@@ -1,0 +1,32 @@
+---
+description: NOTI 미들웨어 배포 시 기존 PG(OMSPAY 등) 탭·필터 덮어쓰기 금지 — 부분 배포·옛 server.js 금지
+alwaysApply: true
+---
+
+# NOTI 배포 — 기존 PG 기능 덮어쓰기 금지 (변경 불가)
+
+ICOPAY(PG)에서 NOTI를 함께 개발·배포할 때 **운영 `server.js`를 옛 버전·부분 패치로 덮어 OMSPAY 등 기존 탭·필터가 사라지는 사고**를 막는다. (PAYSO만 올리고 OMSPAY 목록 필터가 빠진 사례)
+
+## 필수
+
+1. **배포 전** 로컬 `d:\Delopment\NOTI\server.js`에서 **기존 전 PG**가 모두 살아 있는지 확인한다.  
+   최소: ChillPay·JPAY·ElementPay·ox·ILK·QXIPAY·QBANG·**OMSPAY**·신규 PG(예: PAYSO)  
+   - `buildCrHubToolbarHtml` / `pgSource.*Url` / `normalizeAdminPgSource` / `pg_provider_*`  
+   - `require('./lib/*Noti.js')` 와 웹훅 `POST /noti/{slug}`  
+2. **절대 금지**  
+   - 옛 `server.js` 백업·다른 브랜치·부분 스니펫만 SCP로 운영 덮어쓰기  
+   - 신규 PG 파일만 올리고 **동일 시점의 로컬 통합본 `server.js`를 안 올리는 것**  
+   - 「PAYSO만 배포」처럼 **기존 OMSPAY 블록을 제거한 사본** 배포  
+3. **배포 단위** (`Deploy-Noti.ps1`)는 신규 PG 추가 시 최소:  
+   `server.js` + `locales.js` + `lib/{slug}Noti.js` (+ 해당 시 `lib/omspayNoti.js` 등 기존 lib) + `config/{slug}-ingress*`  
+4. **배포 직후** 운영에서 OMSPAY·신규 PG 문자열이 **둘 다** 있는지 확인 (예: `grep -c omspay` / `grep -c payso`, 툴바 `omspayUrl`·`paysoUrl`).  
+5. 로컬과 운영 `server.js` **MD5(또는 크기·mtime)가 어긋나면** 부분 수정 금지 → **로컬 정상 통합본으로 전량 재배포**.
+
+## 개발 시
+
+- NOTI 변경은 **`d:\Delopment\NOTI` 한 저장소**의 현재 `server.js`에 **추가(additive)** 만 한다. 다른 복사본·구버전에서 잘라 붙이지 않는다.
+- PG 쪽 에이전트가 NOTI를 손댈 때도 본 규칙 + `pg-new-vendor-noti-tx-mandatory.mdc`를 함께 지킨다.
+
+## 완료 기준
+
+관리자 **노티거래내역** 상단에 **기존 PG 탭(OMSPAY 포함)과 신규 PG 탭이 동시에** 보이고, 각 탭 필터·로그 `pgProvider`가 맞다.

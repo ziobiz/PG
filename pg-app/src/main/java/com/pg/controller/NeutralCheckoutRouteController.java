@@ -190,6 +190,9 @@ public class NeutralCheckoutRouteController {
             if (PgVendor.isOmspayFamily(opPg)) {
                 return "/omspay-pay.html" + q;
             }
+            if (PgVendor.isPaysoFamily(opPg)) {
+                return "/payso-pay.html" + q;
+            }
             if (PgVendor.isQbangFamily(opPg)) {
                 return "/qbang-pay.html" + withParam(q, "payMeans", "QR");
             }
@@ -273,7 +276,7 @@ public class NeutralCheckoutRouteController {
         String[] passKeys = {
                 "session", "entry", "lang", "langCode", "payMeans", "means",
                 "orderNo", "OrderNo", "amount", "currency",
-                "done", "omspay", "omspayReturn", "outcome", "status", "icopay_status"
+                "done", "omspay", "omspayReturn", "payso", "paysoReturn", "outcome", "status", "icopay_status"
         };
         for (String key : passKeys) {
             String v = nz(request.getParameter(key));

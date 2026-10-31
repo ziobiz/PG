@@ -34,6 +34,9 @@ public final class PgVendor {
     /** OMSPAY(Waylar OMS) HPP 리다이렉트. {@code OMSPAY} 또는 {@code OMSPAY_…} 접두. 가맹 노출은 ICOPAY 중립. */
     public static final String OMSPAY = "OMSPAY";
 
+    /** Payso(Pay Solutions) HPP 리다이렉트. {@code PAYSO} 또는 {@code PAYSO_…} 접두. 가맹 노출은 ICOPAY 중립. */
+    public static final String PAYSO = "PAYSO";
+
     /** QBANG(㈜큐뱅 QR 중계). {@code QBANG} 또는 {@code QBANG_…} 접두. 가맹 노출은 ICOPAY 중립. */
     public static final String QBANG = "QBANG";
 
@@ -190,6 +193,23 @@ public final class PgVendor {
         }
         String u = vendorCode.trim().toUpperCase(Locale.ROOT);
         return OMSPAY.equals(u) || u.startsWith(OMSPAY + "_") || u.startsWith("WAYLAR");
+    }
+
+    /** {@code pg_cd}·노티 벤더 코드가 Payso 계열인지 — {@code PAYSO} 또는 {@code PAYSO_…} / {@code PAYSOLUTIONS}. */
+    public static boolean isPaysoFamily(String pgCd) {
+        if (pgCd == null) {
+            return false;
+        }
+        String u = normalizePgCdKey(pgCd);
+        return PAYSO.equals(u) || u.startsWith(PAYSO + "_") || u.startsWith("PAYSOLUTIONS");
+    }
+
+    public static boolean isPaysoVendorCode(String vendorCode) {
+        if (vendorCode == null || vendorCode.isBlank()) {
+            return false;
+        }
+        String u = vendorCode.trim().toUpperCase(Locale.ROOT);
+        return PAYSO.equals(u) || u.startsWith(PAYSO + "_") || u.startsWith("PAYSOLUTIONS");
     }
 
     /** {@code pg_cd}·노티 벤더 코드가 QBANG(큐뱅) 계열인지 — {@code QBANG} 또는 {@code QBANG_…} / {@code QBANK}. */

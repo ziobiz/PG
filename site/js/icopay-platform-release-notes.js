@@ -6,13 +6,150 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '5.88';
+  var CURRENT_LIVE = '5.94';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '5.94',
+      kind: 'minor',
+      date: '2026-10-31',
+      items: {
+        KO: [
+          '검증: V5.92 Comp-Id Bypass·order-lookup(ch_ 제외·SO 우선) 유지, OMSPAY+PAYSO 공존·app.js 문법 복구',
+          'PAYSO 역추적도 ch_ 제외(OMSPAY와 동일). 노티추가등록·카드입력 비활성(RE) 안내 5개국어 보강'
+        ],
+        EN: [
+          'Verified: V5.92 Comp-Id Bypass and order-lookup (exclude ch_, prefer SO) intact; OMSPAY+PAYSO coexist; app.js syntax restored',
+          'PAYSO lookup also excludes ch_ (same as OMSPAY). Noti-provision and card-input-off (RE) strings in 5 languages'
+        ],
+        JP: [
+          '検証: V5.92 Comp-Id Bypass・order-lookup(ch_除外・SO優先)維持、OMSPAY+PAYSO共存、app.js構文復旧',
+          'PAYSO照会もch_除外(OMSPAY同等)。ノティ追加登録・カード入力オフ(RE)案内を5言語補強'
+        ],
+        CH: [
+          '核验：V5.92 Comp-Id Bypass、order-lookup（排除 ch_、优先 SO）保持；OMSPAY+PAYSO 并存；app.js 语法已恢复',
+          'PAYSO 逆查同样排除 ch_（与 OMSPAY 一致）。通知追加登记与关闭卡片输入(RE)说明 5 语补齐'
+        ],
+        TH: [
+          'ตรวจแล้ว: คง V5.92 Comp-Id Bypass และ order-lookup (ตัด ch_ ใช้ SO ก่อน) OMSPAY+PAYSO อยู่ด้วยกัน กู้ไวยากรณ์ app.js',
+          'PAYSO ตัด ch_ เหมือน OMSPAY และเติมข้อความลงทะเบียน NOTI / ปิดป้อนบัตร (RE) ครบ 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '5.93',
+      kind: 'minor',
+      date: '2026-10-31',
+      items: {
+        KO: [
+          'PAYSO(Pay Solutions) RE 결제 연동: 통합 prepare·중립 /checkout·HPP 리다이렉트·NOTI 웹훅/Result·노티거래내역 PAYSO 탭'
+        ],
+        EN: [
+          'PAYSO (Pay Solutions) RE checkout: unified prepare, neutral /checkout, HPP redirect, NOTI webhook/Result, Payso tab in notify history'
+        ],
+        JP: [
+          'PAYSO(Pay Solutions) RE決済連携: 統合prepare・中立/checkout・HPPリダイレクト・NOTI Webhook/Result・通知履歴PAYSOタブ'
+        ],
+        CH: [
+          'PAYSO（Pay Solutions）RE 支付对接：统一 prepare、中立 /checkout、HPP 跳转、NOTI Webhook/Result、通知记录 PAYSO 页签'
+        ],
+        TH: [
+          'PAYSO (Pay Solutions) RE: prepare รวม, /checkout เป็นกลาง, HPP redirect, NOTI webhook/Result, แท็บ PAYSO ในประวัติแจ้งเตือน'
+        ]
+      }
+    },
+    {
+      version: '5.92',
+      kind: 'minor',
+      date: '2026-10-31',
+      items: {
+        KO: [
+          'OMSPAY NOTI: pg-notify Bypass가 X-Icopay-Comp-Id 헤더를 누락하던 오류 수정 — Comp-Id 미확인·가맹 릴레이 스킵 방지'
+        ],
+        EN: [
+          'OMSPAY NOTI: fixed pg-notify Bypass dropping X-Icopay-Comp-Id — prevents unknown merchant and skipped relay'
+        ],
+        JP: [
+          'OMSPAY NOTI: pg-notify BypassがX-Icopay-Comp-Idを落とす不具合を修正 — Comp-Id未確認・加盟リレー欠落を防止'
+        ],
+        CH: [
+          'OMSPAY NOTI：修复 pg-notify Bypass 丢失 X-Icopay-Comp-Id — 避免 Comp-Id 未确认与商户转发跳过'
+        ],
+        TH: [
+          'OMSPAY NOTI: แก้ Bypass ของ pg-notify ที่ตัด X-Icopay-Comp-Id — ป้องกัน Comp-Id ว่างและข้าม relay'
+        ]
+      }
+    },
+    {
+      version: '5.91',
+      kind: 'minor',
+      date: '2026-10-31',
+      items: {
+        KO: [
+          '가맹 결제통보를 통합 API 필드로 정리(orderNo·compId·trnId·paymentStatus·pgTxnId 등). PG명·레거시 별칭(orderid/OrderNo/van/so 등) 제거'
+        ],
+        EN: [
+          'Merchant payment notify aligned to unified API fields only (orderNo, compId, trnId, paymentStatus, pgTxnId). Removed PG names and legacy aliases'
+        ],
+        JP: [
+          '加盟店決済通知を統合APIフィールドのみに整理(orderNo・compId・trnId・paymentStatus・pgTxnId等)。PG名・レガシー別名を削除'
+        ],
+        CH: [
+          '商户支付通知仅保留统一 API 字段（orderNo、compId、trnId、paymentStatus、pgTxnId 等）。移除 PG 名与旧别名'
+        ],
+        TH: [
+          'ปรับแจ้งเตือนร้านให้เหลือฟิลด์ Unified API เท่านั้น (orderNo, compId, trnId, paymentStatus, pgTxnId) ลบชื่อ PG และนามแฝงเก่า'
+        ]
+      }
+    },
+    {
+      version: '5.90',
+      kind: 'minor',
+      date: '2026-10-31',
+      items: {
+        KO: [
+          'OMSPAY 결제통보: orderNo/orderid에 prepare 가맹 주문번호 전달(SO는 so/pgTxnId). status에 omsOrderCode 추가'
+        ],
+        EN: [
+          'OMSPAY notify: orderNo/orderid carry merchant prepare order id (SO in so/pgTxnId); status adds omsOrderCode'
+        ],
+        JP: [
+          'OMSPAY通知: orderNo/orderidにprepare加盟店注文番号を送付(SOはso/pgTxnId)。statusにomsOrderCode追加'
+        ],
+        CH: [
+          'OMSPAY通知：orderNo/orderid 传 prepare 商户订单号（SO 在 so/pgTxnId）；status 增加 omsOrderCode'
+        ],
+        TH: [
+          'OMSPAY แจ้งเตือน: orderNo/orderid เป็นเลขคำสั่งร้านจาก prepare (SO อยู่ so/pgTxnId); status เพิ่ม omsOrderCode'
+        ]
+      }
+    },
+    {
+      version: '5.89',
+      kind: 'minor',
+      date: '2026-10-31',
+      items: {
+        KO: [
+          'OMSPAY: 가맹 iframe(EMP 인라인 embed) 안에서 Beam 결제창이 거부되던 오류 수정 — HPP는 최상위 창으로 이동'
+        ],
+        EN: [
+          'OMSPAY: fixed Beam HPP refused inside merchant iframe (EMP inline embed) — navigate top window for hosted pay'
+        ],
+        JP: [
+          'OMSPAY: 加盟iframe(EMPインラインembed)内でBeam決済が拒否される不具合を修正 — HPPは最上位ウィンドウへ'
+        ],
+        CH: [
+          'OMSPAY：修复商户 iframe（EMP 内联 embed）内 Beam 支付被拒绝 — 托管页跳转至顶层窗口'
+        ],
+        TH: [
+          'OMSPAY: แก้ Beam ถูกปฏิเสธใน iframe ร้าน (EMP inline embed) — เปิด HPP ที่หน้าต่างบนสุด'
+        ]
+      }
+    },
     {
       version: '5.88',
       kind: 'minor',

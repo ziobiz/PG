@@ -617,6 +617,25 @@
     if (tel) phonePlusDigitsFilter(tel, 20, 'warnPhonePlusDigits');
   }
 
+  /** Payso 결제창 (payso-pay.html) — OMSPAY와 동일 RE 확인창 가드 */
+  function initPaysoForm(form, opts) {
+    configureGuard(opts);
+    form = form || g.document.getElementById('omsForm');
+    if (!form) return;
+    var amt = query(form, 'amount');
+    var fn = query(form, 'payFirstname');
+    var ln = query(form, 'payLastname');
+    var name = query(form, 'buyerName');
+    var em = query(form, 'buyerEmail');
+    var tel = query(form, 'payTelephone') || query(form, 'buyerTel');
+    if (amt) amountFilter(amt);
+    if (fn) englishNameFilter(fn);
+    if (ln) englishNameFilter(ln);
+    if (name) englishNameFilter(name);
+    if (em) emailSanitizeFilter(em);
+    if (tel) phonePlusDigitsFilter(tel, 20, 'warnPhonePlusDigits');
+  }
+
 
 
   g.PG_PAY_FORM_INPUT_GUARD = {
@@ -628,6 +647,8 @@
     initLegacyJpayForm: initLegacyJpayForm,
 
     initOmspayForm: initOmspayForm,
+
+    initPaysoForm: initPaysoForm,
 
     refreshHints: refreshHints,
 

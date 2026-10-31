@@ -19,6 +19,7 @@ public final class MerchantPgBrokerVendor {
     public static final String OX = PgVendor.OX;
     public static final String QXIPAY = PgVendor.QXIPAY;
     public static final String OMSPAY = PgVendor.OMSPAY;
+    public static final String PAYSO = PgVendor.PAYSO;
     public static final String QBANG = PgVendor.QBANG;
     public static final String CRYPTO = PgVendor.CRYPTO;
 
@@ -73,6 +74,9 @@ public final class MerchantPgBrokerVendor {
             return OMSPAY;
         }
         if ("qbang".equals(u) || "qbank".equals(u) || "qrbank".equals(u)) {
+        if ("payso".equals(u) || "paysolutions".equals(u)) {
+            return PAYSO;
+        }
             return QBANG;
         }
         if ("crypto".equals(u) || "usdt".equals(u)) {

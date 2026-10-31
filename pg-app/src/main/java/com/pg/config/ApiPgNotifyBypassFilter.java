@@ -107,10 +107,13 @@ public class ApiPgNotifyBypassFilter extends OncePerRequestFilter {
         }
         if (entity.getHeaders().getLocation() != null) {
             response.setStatus(entity.getStatusCode().value());
+            /* Comp-Id 등 커스텀 헤더도 리다이렉트 전에 복사 */
+            copyResponseHeaders(response, entity);
             response.sendRedirect(entity.getHeaders().getLocation().toString());
             return;
         }
         response.setStatus(entity.getStatusCode().value());
+        copyResponseHeaders(response, entity);
         Object body = entity.getBody();
         MediaType mt = entity.getHeaders().getContentType();
         if (mt != null) {
@@ -123,6 +126,33 @@ public class ApiPgNotifyBypassFilter extends OncePerRequestFilter {
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         if (body != null) {
             response.getWriter().write(body.toString());
+        }
+    }
+
+    /**
+     * NOTI 가맹 매칭용 {@code X-Icopay-Comp-Id} / {@code X-Icopay-Order-No} 등이
+     * Bypass 경로에서 누락되지 않도록 ResponseEntity 헤더를 그대로 복사한다.
+     */
+    private static void copyResponseHeaders(HttpServletResponse response, ResponseEntity<?> entity) {
+        if (entity == null || entity.getHeaders() == null || entity.getHeaders().isEmpty()) {
+            return;
+        }
+        for (java.util.Map.Entry<String, java.util.List<String>> e : entity.getHeaders().entrySet()) {
+            String name = e.getKey();
+            if (name == null || name.isBlank() || e.getValue() == null) {
+                continue;
+            }
+            String lower = name.toLowerCase(java.util.Locale.ROOT);
+            /* 컨테이너가 관리하는 hop-by-hop / 본문 메타는 제외 — Content-Type 은 아래에서 설정 */
+            if ("transfer-encoding".equals(lower) || "content-length".equals(lower)
+                    || "connection".equals(lower) || "content-type".equals(lower)) {
+                continue;
+            }
+            for (String v : e.getValue()) {
+                if (v != null && !v.isBlank()) {
+                    response.addHeader(name, v);
+                }
+            }
         }
     }
 

@@ -561,6 +561,7 @@ public class OpsNotiProvisionService {
         boolean ilkPay = NotiProvisionClient.isIlk(pgKind);
         boolean qxipay = NotiProvisionClient.isQxipay(pgKind);
         boolean omspay = NotiProvisionClient.isOmspay(pgKind);
+        boolean payso = NotiProvisionClient.isPayso(pgKind);
         boolean qbang = NotiProvisionClient.isQbang(pgKind);
         boolean fixedIngress = NotiProvisionClient.isFixedIngressPg(pgKind);
         req.put("pgKind", pgKind);
@@ -639,6 +640,9 @@ public class OpsNotiProvisionService {
         if (qbang) {
             createdMsg = "NOTI QBANG 가맹이 생성되었습니다.";
             sameMsg = "기존 NOTI QBANG 가맹과 동일합니다.";
+        } else if (payso) {
+            createdMsg = "NOTI PAYSO 가맹이 생성되었습니다.";
+            sameMsg = "기존 NOTI PAYSO 가맹과 동일합니다.";
         } else if (omspay) {
             createdMsg = "NOTI OMSPAY 가맹이 생성되었습니다.";
             sameMsg = "기존 NOTI OMSPAY 가맹과 동일합니다.";
@@ -666,6 +670,10 @@ public class OpsNotiProvisionService {
         if (qbang) {
             out.put("qbangWebhookUrl", jpayNotify);
             out.put("qbangResultUrl", jpayCallback);
+        }
+        if (payso) {
+            out.put("paysoWebhookUrl", jpayNotify);
+            out.put("paysoResultUrl", jpayCallback);
         }
         if (omspay) {
             out.put("omspayWebhookUrl", jpayNotify);
@@ -1179,6 +1187,9 @@ public class OpsNotiProvisionService {
         if (NotiProvisionClient.isQbang(kind)) {
             log.setRouteNo("qbang");
             log.setSlotNo(null);
+        } else if (NotiProvisionClient.isPayso(kind)) {
+            log.setRouteNo("payso");
+            log.setSlotNo(null);
         } else if (NotiProvisionClient.isOmspay(kind)) {
             log.setRouteNo("omspay");
             log.setSlotNo(null);
@@ -1210,7 +1221,7 @@ public class OpsNotiProvisionService {
         notiProvisionLogRepository.save(log);
     }
 
-    /** 고정 입구 PG(ElementPay·ox·ILK·QXIPAY·OMSPAY·QBANG)의 NOTI Callback/Result URL. */
+    /** 고정 입구 PG(ElementPay·ox·ILK·QXIPAY·OMSPAY·PAYSO·QBANG)의 NOTI Callback/Result URL. */
     private String[] resolveFixedIngressUrls(String pgKind, HqNotifyEnvConfig cfg, Map<String, Object> data) {
         if (data == null) {
             data = Map.of();
@@ -1227,6 +1238,15 @@ public class OpsNotiProvisionService {
             callback = firstNonBlank(data, "qbangResultUrl");
             if (callback.isEmpty()) {
                 callback = notiBase + "/noti/result/qbang";
+            }
+        } else if (NotiProvisionClient.isPayso(pgKind)) {
+            notify = firstNonBlank(data, "paysoWebhookUrl");
+            if (notify.isEmpty()) {
+                notify = notiBase + "/noti/payso";
+            }
+            callback = firstNonBlank(data, "paysoResultUrl");
+            if (callback.isEmpty()) {
+                callback = notiBase + "/noti/result/payso";
             }
         } else if (NotiProvisionClient.isOmspay(pgKind)) {
             notify = firstNonBlank(data, "omspayWebhookUrl");
@@ -1312,6 +1332,9 @@ public class OpsNotiProvisionService {
         if (NotiProvisionClient.isQbang(pgKind)) {
             log.setRouteNo("qbang");
             log.setSlotNo(null);
+        } else if (NotiProvisionClient.isPayso(pgKind)) {
+            log.setRouteNo("payso");
+            log.setSlotNo(null);
         } else if (NotiProvisionClient.isOmspay(pgKind)) {
             log.setRouteNo("omspay");
             log.setSlotNo(null);
@@ -1352,6 +1375,8 @@ public class OpsNotiProvisionService {
         m.put("pgKind", pgKind);
         m.put("pgKindLabel", NotiProvisionClient.isQbang(pgKind)
                 ? "QBANG"
+                : (NotiProvisionClient.isPayso(pgKind)
+                ? "PAYSO"
                 : (NotiProvisionClient.isOmspay(pgKind)
                 ? "OMSPAY"
                 : (NotiProvisionClient.isQxipay(pgKind)
@@ -1360,7 +1385,7 @@ public class OpsNotiProvisionService {
                 ? "ILKPAY"
                 : (NotiProvisionClient.isOx(pgKind)
                 ? "ox"
-                : (NotiProvisionClient.isElementPay(pgKind) ? "ElementPay" : "JPAY"))))));
+                : (NotiProvisionClient.isElementPay(pgKind) ? "ElementPay" : "JPAY")))))));
         m.put("internalTargetId", nz(log.getInternalTargetId()));
         m.put("integrationMode", normalizeIntegrationMode(log.getIntegrationMode()));
         m.put("routeNo", nz(log.getRouteNo()));
@@ -1397,6 +1422,9 @@ public class OpsNotiProvisionService {
         }
         if ("omspay".equals(route) || "oms".equals(route) || "waylar".equals(route)) {
             return "omspay";
+        }
+        if ("payso".equals(route) || "paysolutions".equals(route)) {
+            return "payso";
         }
         if ("qxipay".equals(route) || "qxpay".equals(route)) {
             return "qxipay";

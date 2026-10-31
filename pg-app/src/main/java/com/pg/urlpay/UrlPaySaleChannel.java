@@ -23,6 +23,8 @@ public enum UrlPaySaleChannel {
     QXIPAY_INLINE_SALE,
     /** OMSPAY HPP 리다이렉트 — order + card-payment → payment_url */
     OMSPAY_REDIRECT_SALE,
+    /** Payso HPP 리다이렉트 — ui-payments → redirectUrl */
+    PAYSO_REDIRECT_SALE,
     /** QBANG(큐뱅) QR — TK/QR/PL/OKAY */
     QBANG_QR_SALE,
     /** 아직 ICOPAY URL 승인 어댑터 미등록 */

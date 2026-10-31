@@ -40,8 +40,8 @@ public final class PgAgencyPayFollowCapability {
         if (action == null) {
             return false;
         }
-        /* OMSPAY — 환불·무효 REST 없음 */
-        if (PgVendor.isOmspayFamily(pgCd)) {
+        /* OMSPAY·Payso — 환불·무효 REST 없음 */
+        if (PgVendor.isOmspayFamily(pgCd) || PgVendor.isPaysoFamily(pgCd)) {
             return false;
         }
         boolean jpay = PgVendor.isJpayFamily(pgCd);
@@ -96,7 +96,7 @@ public final class PgAgencyPayFollowCapability {
             a.setPayFollowSameDayRefundYn(PgVendor.isElementPayFamily(cd) ? "Y" : "N");
             return;
         }
-        if (PgVendor.isOmspayFamily(cd)) {
+        if (PgVendor.isOmspayFamily(cd) || PgVendor.isPaysoFamily(cd)) {
             a.setPayFollowAutoVoidYn("N");
             a.setPayFollowEmailVoidYn("N");
             a.setPayFollowManualVoidYn("N");

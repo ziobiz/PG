@@ -291,6 +291,9 @@ public class MerchantInlineCheckoutTokenService {
         if (com.pg.integration.pg.PgVendor.isOmspayFamily(u)) {
             return MerchantPgBrokerVendor.OMSPAY;
         }
+        if (com.pg.integration.pg.PgVendor.isPaysoFamily(u)) {
+            return MerchantPgBrokerVendor.PAYSO;
+        }
         if (com.pg.integration.pg.PgVendor.isQbangFamily(u)) {
             return MerchantPgBrokerVendor.QBANG;
         }

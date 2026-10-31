@@ -2717,6 +2717,7 @@
     '<option value="ilk">ILKPAY</option>' +
     '<option value="qxipay">QXIPAY</option>' +
     '<option value="omspay">OMSPAY</option>' +
+    '<option value="payso">PAYSO</option>' +
     '<option value="qbang">QBANG</option></select></div>' +
     '<div class="col-12 col-md-3"><label class="form-label mb-1" for="opsNpCompId" data-pg-ui-t="가맹 업체코드">가맹 업체코드</label>' +
     '<input type="text" class="form-control form-control-sm" id="opsNpCompId" autocomplete="off"></div>' +
@@ -2743,6 +2744,7 @@
     '<div class="mb-3 d-none" id="opsNpIlkHintWrap"><div class="small text-muted" data-pg-ui-t="ILK는 PG 슬롯이 없습니다. Webhook=/noti/ilk, 브라우저 Result=/noti/result/ilk(가맹 resultUrl로 릴레이). 카드 결제대행사와 같은 노티 구조입니다.">ILK는 PG 슬롯이 없습니다. Webhook=/noti/ilk, 브라우저 Result=/noti/result/ilk(가맹 resultUrl로 릴레이). 카드 결제대행사와 같은 노티 구조입니다.</div></div>' +
     '<div class="mb-3 d-none" id="opsNpQxipayHintWrap"><div class="small text-muted" data-pg-ui-t="QXIPAY는 PG 슬롯이 없습니다. Gateway Webhook=/noti/qxipay (GW-Signature). 가맹 API는 ICOPAY 통합 경로만 사용합니다.">QXIPAY는 PG 슬롯이 없습니다. Gateway Webhook=/noti/qxipay (GW-Signature). 가맹 API는 ICOPAY 통합 경로만 사용합니다.</div></div>' +
     '<div class="mb-3 d-none" id="opsNpOmspayHintWrap"><div class="small text-muted" data-pg-ui-t="OMSPAY는 PG 슬롯이 없습니다. OMS Webhook=/noti/omspay (x-waylar-signature). 가맹 API는 ICOPAY 통합 경로만 사용합니다.">OMSPAY는 PG 슬롯이 없습니다. OMS Webhook=/noti/omspay (x-waylar-signature). 가맹 API는 ICOPAY 통합 경로만 사용합니다.</div></div>' +
+    '<div class="mb-3 d-none" id="opsNpPaysoHintWrap"><div class="small text-muted" data-pg-ui-t="PAYSO는 PG 슬롯이 없습니다. Postback Webhook=/noti/payso. 가맹 API는 ICOPAY 통합 경로만 사용합니다.">PAYSO는 PG 슬롯이 없습니다. Postback Webhook=/noti/payso. 가맹 API는 ICOPAY 통합 경로만 사용합니다.</div></div>' +
     '<div class="mb-3 d-none" id="opsNpQbangHintWrap"><div class="small text-muted" data-pg-ui-t="QBANG(큐뱅)은 PG 슬롯이 없습니다. Webhook=/noti/qbang (ICOPAY 폴링 승인 미러). QR 결제대행사와 함께 가맹 바인딩합니다.">QBANG(큐뱅)은 PG 슬롯이 없습니다. Webhook=/noti/qbang (ICOPAY 폴링 승인 미러). QR 결제대행사와 함께 가맹 바인딩합니다.</div></div>' +
     '<div class="mb-2">' +
     '<label class="form-label mb-1" for="opsNpIntegrationMode" data-pg-ui-t="연동방식">연동방식</label>' +
@@ -2843,6 +2845,7 @@
     '<option value="ilk">ILKPAY</option>' +
     '<option value="qxipay">QXIPAY</option>' +
     '<option value="omspay">OMSPAY</option>' +
+    '<option value="payso">PAYSO</option>' +
     '<option value="qbang">QBANG</option></select></div></div>' +
     '<div class="mb-2"><span class="text-muted" data-pg-ui-t="NOTI 슬롯">NOTI 슬롯</span><div id="opsNpLogEditSlot" class="fw-semibold">—</div>' +
     '<div class="small text-muted mt-1" data-pg-ui-t="수정 시 PG를 바꾸면 NOTI 가맹·고정 Callback/Result 입구가 해당 PG로 다시 맞춰집니다. JPAY로 바꾸려면 기존 슬롯이 있어야 합니다.">수정 시 PG를 바꾸면 NOTI 가맹·고정 Callback/Result 입구가 해당 PG로 다시 맞춰집니다. JPAY로 바꾸려면 기존 슬롯이 있어야 합니다.</div></div>' +
@@ -5363,7 +5366,7 @@
           title: '수신통보 URL',
           id: 'jpayNotifyUrlCard',
           merchantOnly: true,
-          notice: '운영 결제대행사·크립토·QR별로 NOTI 수신 입구(PG→NOTI)를 표시합니다. 가맹 쇼핑몰 URL이 아닙니다. 고정형(ElementPay·OMSPAY·ILK·QBANG·CRYPTO 등)은 PG별 주소가 다르며, 노티생성이력·바인딩 기준으로 여러 행이 나옵니다. JPAY 슬롯형은 아래 입력칸도 유지됩니다.',
+          notice: '운영 결제대행사·크립토·QR별로 NOTI 수신 입구(PG→NOTI)를 표시합니다. 가맹 쇼핑몰 URL이 아닙니다. 고정형(ElementPay·OMSPAY·PAYSO·ILK·QBANG·CRYPTO 등)은 PG별 주소가 다르며, 노티생성이력·바인딩 기준으로 여러 행이 나옵니다. JPAY 슬롯형은 아래 입력칸도 유지됩니다.',
           rows: [
             [{
               type: 'customHtml',
@@ -5885,7 +5888,7 @@
           title: '수신통보 URL',
           id: 'jpayNotifyUrlCard',
           merchantOnly: true,
-          notice: '운영 결제대행사·크립토·QR별로 NOTI 수신 입구(PG→NOTI)를 표시합니다. 가맹 쇼핑몰 URL이 아닙니다. 고정형(ElementPay·OMSPAY·ILK·QBANG·CRYPTO 등)은 PG별 주소가 다르며, 노티생성이력·바인딩 기준으로 여러 행이 나옵니다. JPAY 슬롯형은 아래 입력칸도 유지됩니다.',
+          notice: '운영 결제대행사·크립토·QR별로 NOTI 수신 입구(PG→NOTI)를 표시합니다. 가맹 쇼핑몰 URL이 아닙니다. 고정형(ElementPay·OMSPAY·PAYSO·ILK·QBANG·CRYPTO 등)은 PG별 주소가 다르며, 노티생성이력·바인딩 기준으로 여러 행이 나옵니다. JPAY 슬롯형은 아래 입력칸도 유지됩니다.',
           rows: [
             [{
               type: 'customHtml',
@@ -6342,7 +6345,7 @@
           title: '수신통보 URL',
           id: 'jpayNotifyUrlCard',
           merchantOnly: true,
-          notice: '운영 결제대행사·크립토·QR별로 NOTI 수신 입구(PG→NOTI)를 표시합니다. 가맹 쇼핑몰 URL이 아닙니다. 고정형(ElementPay·OMSPAY·ILK·QBANG·CRYPTO 등)은 PG별 주소가 다르며, 노티생성이력·바인딩 기준으로 여러 행이 나옵니다. JPAY 슬롯형은 아래 입력칸도 유지됩니다.',
+          notice: '운영 결제대행사·크립토·QR별로 NOTI 수신 입구(PG→NOTI)를 표시합니다. 가맹 쇼핑몰 URL이 아닙니다. 고정형(ElementPay·OMSPAY·PAYSO·ILK·QBANG·CRYPTO 등)은 PG별 주소가 다르며, 노티생성이력·바인딩 기준으로 여러 행이 나옵니다. JPAY 슬롯형은 아래 입력칸도 유지됩니다.',
           rows: [
             [{
               type: 'customHtml',

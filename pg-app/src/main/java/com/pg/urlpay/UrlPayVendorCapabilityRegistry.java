@@ -50,6 +50,9 @@ public class UrlPayVendorCapabilityRegistry {
         if (PgVendor.isOmspayFamily(pg)) {
             return omspayCapability(pg, urlPay, urlRepayAgency);
         }
+        if (PgVendor.isPaysoFamily(pg)) {
+            return paysoCapability(pg, urlPay, urlRepayAgency);
+        }
         if (PgVendor.isQbangFamily(pg)) {
             return qbangCapability(pg, urlPay, urlRepayAgency);
         }
@@ -85,6 +88,9 @@ public class UrlPayVendorCapabilityRegistry {
         }
         if (PgVendor.isOmspayFamily(pg)) {
             return UrlPayInlineWidgetKind.OMSPAY_REDIRECT;
+        }
+        if (PgVendor.isPaysoFamily(pg)) {
+            return UrlPayInlineWidgetKind.PAYSO_REDIRECT;
         }
         if (PgVendor.isQbangFamily(pg)) {
             return UrlPayInlineWidgetKind.QBANG_QR;
@@ -192,6 +198,20 @@ public class UrlPayVendorCapabilityRegistry {
                 "/checkout/",
                 NeutralCheckoutRoute.EMBED_SCRIPT_PATH,
                 UrlPaySaleChannel.OMSPAY_REDIRECT_SALE,
+                urlPay,
+                urlRepayAgency,
+                false);
+    }
+
+    /** Payso — HPP 리다이렉트(ui-payments). 재결제·환불 API 미지원. */
+    private UrlPayVendorCapability paysoCapability(String pg, boolean urlPay, boolean urlRepayAgency) {
+        return new UrlPayVendorCapability(
+                PgVendor.PAYSO,
+                pg,
+                UrlPayInlineWidgetKind.PAYSO_REDIRECT,
+                "/checkout/",
+                NeutralCheckoutRoute.EMBED_SCRIPT_PATH,
+                UrlPaySaleChannel.PAYSO_REDIRECT_SALE,
                 urlPay,
                 urlRepayAgency,
                 false);

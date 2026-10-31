@@ -175,6 +175,13 @@ public class MerchantOmspayInlineCheckoutService {
             data.put("transactionId", t.getTrnId());
             data.put("amount", t.getAmtKrw());
             data.put("currency", t.getCurType());
+            /* PG 채번 참조는 중립 필드 pgTxnId 만 (가맹에 PG명·SO 표기 미노출) */
+            String pgRef = t.getChillTransactionId() != null && !t.getChillTransactionId().isBlank()
+                    ? t.getChillTransactionId().trim()
+                    : (t.getPayNo() != null ? t.getPayNo().trim() : "");
+            if (!pgRef.isBlank()) {
+                data.put("pgTxnId", pgRef);
+            }
         }
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("success", true);
