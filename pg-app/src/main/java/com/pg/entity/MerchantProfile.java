@@ -309,7 +309,8 @@ public class MerchantProfile {
     private String webPaymentHeaderSubtitleTextI18n;
 
     /**
-     * 웹결제 카드입력 — ACTIVE=기존 입력 / DISABLED=금액·카드번호·유효·CVV·성·이름 숨김.
+     * 웹결제 카드입력 — ACTIVE=기존 입력 / DISABLED=인라인 카드란이 있을 때 금액·카드번호·유효·CVV·성·이름 숨김.
+     * RE 확인창(인라인 카드란 없음)은 금액·성명(리다이렉트용)·결제하기를 유지.
      */
     @Column(name = "url_pay_card_input_mode", nullable = false, length = 16)
     private String urlPayCardInputMode = "ACTIVE";
@@ -376,6 +377,10 @@ public class MerchantProfile {
     /** 결제창 전화번호 입력 — FOLLOW_HQ | Y | N (전 PG 공통) */
     @Column(name = "url_pay_buyer_phone_use_yn", nullable = false, length = 16)
     private String urlPayBuyerPhoneUseYn = "FOLLOW_HQ";
+
+    /** 결제창 성명(리다이렉트·URL) — FOLLOW_HQ | Y | N (프리셋 잠금 제외·개별 제어). 기본 활성(Y). */
+    @Column(name = "url_pay_buyer_name_use_yn", nullable = false, length = 16)
+    private String urlPayBuyerNameUseYn = "Y";
 
     /**
      * 결제창 구매자 입력 필드 프리셋 FK.
@@ -1144,6 +1149,10 @@ public class MerchantProfile {
     public String getUrlPayBuyerPhoneUseYn() { return urlPayBuyerPhoneUseYn; }
     public void setUrlPayBuyerPhoneUseYn(String v) {
         this.urlPayBuyerPhoneUseYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(v);
+    }
+    public String getUrlPayBuyerNameUseYn() { return urlPayBuyerNameUseYn; }
+    public void setUrlPayBuyerNameUseYn(String v) {
+        this.urlPayBuyerNameUseYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(v);
     }
 
     public Long getUrlPayCheckoutFieldPresetId() { return urlPayCheckoutFieldPresetId; }

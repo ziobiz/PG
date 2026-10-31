@@ -134,11 +134,11 @@ public final class CheckoutFailI18n {
     /** prepare·sale: buyer 객체 자체 누락 */
     public static Map<String, Object> buyerObjectRequired() {
         return fail("BUYER_REQUIRED",
-                "buyer 객체(email·phone·countryIso2)가 필요합니다. 누락 시 prepare가 실패합니다.",
-                "The buyer object (email, phone, countryIso2) is required. Prepare fails if it is omitted.",
-                "buyer オブジェクト（email・phone・countryIso2）が必要です。欠けると prepare は失敗します。",
-                "需要 buyer 对象（email、phone、countryIso2）。缺省则 prepare 失败。",
-                "ต้องมีออบเจ็กต์ buyer (email, phone, countryIso2) หากขาด prepare จะล้มเหลว");
+                "buyer 객체(email·phone·countryIso2·name)가 필요합니다. 누락 시 prepare가 실패합니다.",
+                "The buyer object (email, phone, countryIso2, name) is required. Prepare fails if it is omitted.",
+                "buyer オブジェクト（email・phone・countryIso2・name）が必要です。欠けると prepare は失敗します。",
+                "需要 buyer 对象（email、phone、countryIso2、name）。缺省则 prepare 失败。",
+                "ต้องมีออบเจ็กต์ buyer (email, phone, countryIso2, name) หากขาด prepare จะล้มเหลว");
     }
 
     public static Map<String, Object> buyerJsonInvalid() {
@@ -175,6 +175,25 @@ public final class CheckoutFailI18n {
                 "国コード（ISO2、大文字2文字）は必須です。例: KR, US, TH, JP。",
                 "国家代码（ISO2，两位大写）为必填。例：KR、US、TH、JP。",
                 "ต้องระบุรหัสประเทศ (ISO2 ตัวพิมพ์ใหญ่ 2 ตัว) เช่น KR US TH JP");
+    }
+
+    public static Map<String, Object> buyerNameRequired() {
+        return fail("BUYER_NAME_REQUIRED",
+                "구매자 성명(buyer.name 또는 firstName+lastName)이 필수입니다. 쇼핑몰 회원명을 그대로 전달하세요.",
+                "Buyer name (buyer.name or firstName+lastName) is required. Pass the shop member name as-is.",
+                "購入者氏名（buyer.name または firstName+lastName）は必須です。ショップ会員名をそのまま渡してください。",
+                "买家姓名（buyer.name 或 firstName+lastName）为必填。请原样传递商城会员姓名。",
+                "ต้องระบุชื่อผู้ซื้อ (buyer.name หรือ firstName+lastName) ส่งชื่อสมาชิกร้านตามเดิม");
+    }
+
+    /** 성명·카드명의 — 영문(라틴) 알파벳·공백·하이픈·아포스트로피만 */
+    public static Map<String, Object> buyerNameLatinOnly() {
+        return fail("BUYER_NAME_LATIN_ONLY",
+                "성명은 영문만 입력할 수 있습니다.",
+                "Name must be English letters only.",
+                "氏名は英字のみ入力できます。",
+                "姓名请仅用英文字母。",
+                "ชื่อต้องเป็นตัวอักษรภาษาอังกฤษเท่านั้น");
     }
 
     /**

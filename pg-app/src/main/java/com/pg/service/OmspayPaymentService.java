@@ -220,6 +220,11 @@ public class OmspayPaymentService {
             }
         }
         String buyerName = str(body, "customerNm", "buyerName", "buyer", "payerName", "name");
+        if (buyerName.isBlank()) {
+            String fn = str(body, "payFirstname", "firstName");
+            String ln = str(body, "payLastname", "lastName");
+            buyerName = (fn + " " + ln).trim();
+        }
         String buyerEmail = str(body, "payEmailAddress", "buyerEmail", "email", "customerEmail");
         String buyerTel = str(body, "payTelephone", "customerTel", "buyerTel", "phone", "tel");
         String origin = str(body, "txnOrigin", "origin");

@@ -1352,7 +1352,7 @@ public class MerchantApiDeploymentService {
         String base = publicApiBase != null ? publicApiBase.trim() : "";
         Map<String, Object> block = new LinkedHashMap<>();
         block.put("integrationMode", "INLINE_UNIFIED");
-        block.put("descriptionKr", "ICOPAY 통합 인라인 — buyer(email·phone·countryIso2) 필수, 결제망은 ICOPAY가 자동 선택·처리");
+        block.put("descriptionKr", "ICOPAY 통합 인라인 — buyer(email·phone·countryIso2·name) 필수, 결제망은 ICOPAY가 자동 선택·처리");
         block.put("prepareUrl", base + "/api/middleware/v1/merchant/checkout/prepare");
         block.put("sessionUrl", base + "/api/middleware/v1/merchant/checkout/session?token={sessionToken}");
         block.put("statusUrl", base + "/api/middleware/v1/merchant/checkout/status?compId=" + compId + "&orderNo={orderNo}");

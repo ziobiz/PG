@@ -1,7 +1,7 @@
 <?php
 /**
  * ICOPAY unified inline checkout — PHP integration sample (auto PG routing).
- * buyer.email, buyer.phone, buyer.countryIso2 are required (empty string = missing).
+ * buyer.email, buyer.phone, buyer.countryIso2, buyer.name are required (empty string = missing).
  */
 declare(strict_types=1);
 
@@ -28,14 +28,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim((string)($_POST['email'] ?? ''));
     $phone = trim((string)($_POST['phone'] ?? ''));
     $countryIso2 = strtoupper(trim((string)($_POST['countryIso2'] ?? '')));
+    $buyerName = trim((string)($_POST['name'] ?? ''));
 
-    if ($orderNo === '' || $amount === '' || $email === '' || $phone === '' || strlen($countryIso2) !== 2) {
-        $error = 'orderNo, amount, email, phone, and countryIso2 (2 letters) are required.';
+    if ($orderNo === '' || $amount === '' || $email === '' || $phone === '' || strlen($countryIso2) !== 2 || $buyerName === '') {
+        $error = 'orderNo, amount, email, phone, countryIso2 (2 letters), and name are required.';
     } else {
         $buyer = [
             'email' => $email,
             'phone' => $phone,
             'countryIso2' => $countryIso2,
+            'name' => $buyerName,
         ];
         $prep = $api->prepareUnifiedCheckout($orderNo, $amount, $buyer, $currency, $productName);
         if (empty($prep['success']) || empty($prep['data']['sessionToken'])) {
@@ -79,6 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <p><label>Product name <input name="productName" value="Test product"></label></p>
     <fieldset>
       <legend>buyer (required)</legend>
+      <p><label>Name <input name="name" required value="Taro Yamada"></label></p>
       <p><label>Email <input name="email" type="email" required value="buyer@example.com"></label></p>
       <p><label>Phone <input name="phone" required value="1012345678"></label></p>
       <p><label>Country ISO2 <input name="countryIso2" required maxlength="2" value="KR"></label></p>

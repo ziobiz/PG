@@ -15,8 +15,12 @@ public final class IcipayBuyerContactUtil {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public enum BuyerFailKind {
-        OBJECT, JSON, EMAIL, PHONE, COUNTRY
+        OBJECT, JSON, EMAIL, PHONE, COUNTRY, NAME, NAME_LATIN
     }
+
+    /** 성명 영문(라틴) — 결제창·prepare·sale 공통 */
+    private static final java.util.regex.Pattern LATIN_NAME =
+            java.util.regex.Pattern.compile("^[A-Za-z]+(?:[ '\\-][A-Za-z]+)*$");
 
     public static final class BuyerRequiredException extends IllegalArgumentException {
         private final BuyerFailKind kind;
@@ -36,6 +40,8 @@ public final class IcipayBuyerContactUtil {
                 case EMAIL -> CheckoutFailI18n.buyerEmailRequired();
                 case PHONE -> CheckoutFailI18n.buyerPhoneRequired();
                 case COUNTRY -> CheckoutFailI18n.buyerCountryRequired();
+                case NAME -> CheckoutFailI18n.buyerNameRequired();
+                case NAME_LATIN -> CheckoutFailI18n.buyerNameLatinOnly();
                 default -> CheckoutFailI18n.buyerObjectRequired();
             };
         }
@@ -45,7 +51,8 @@ public final class IcipayBuyerContactUtil {
     }
 
     /**
-     * 통합 prepare 필수: {@code buyer.email}, {@code buyer.phone}, {@code buyer.countryIso2}.
+     * 통합 prepare 필수: {@code buyer.email}, {@code buyer.phone}, {@code buyer.countryIso2},
+     * {@code buyer.name}(또는 {@code firstName}+{@code lastName}).
      *
      * @throws BuyerRequiredException 검증 실패(5개국어 fail map: {@link BuyerRequiredException#toFailMap()})
      */
@@ -53,7 +60,7 @@ public final class IcipayBuyerContactUtil {
         Map<String, Object> raw = extractRawMap(body);
         if (raw.isEmpty()) {
             throw new BuyerRequiredException(BuyerFailKind.OBJECT,
-                    "buyer 객체(email·phone·countryIso2)가 필요합니다.");
+                    "buyer 객체(email·phone·countryIso2·name)가 필요합니다.");
         }
         Map<String, String> normalized = normalize(raw);
         validateRequired(normalized);
@@ -73,11 +80,38 @@ public final class IcipayBuyerContactUtil {
         }
     }
 
+    /**
+     * URL·API sale 본문 성명이 있으면 영문만 허용. 비어 있으면 null(필수 검사는 별도).
+     */
+    public static Map<String, Object> failMapIfBuyerNameNotLatin(Map<String, Object> saleBody) {
+        try {
+            Map<String, String> n = normalize(extractRawMap(wrapSaleFieldsAsBuyerBody(saleBody)));
+            validateLatinNamesIfPresent(n);
+            return null;
+        } catch (BuyerRequiredException ex) {
+            return ex.toFailMap();
+        }
+    }
+
+    public static boolean isLatinName(String s) {
+        if (s == null) {
+            return false;
+        }
+        String t = s.trim();
+        if (t.isEmpty()) {
+            return false;
+        }
+        return LATIN_NAME.matcher(t).matches();
+    }
+
     static Map<String, Object> wrapSaleFieldsAsBuyerBody(Map<String, Object> saleBody) {
         Map<String, Object> raw = new LinkedHashMap<>(extractRawMap(saleBody));
         putIfBlank(raw, "email", saleBody, "payEmailAddress", "email");
         putIfBlank(raw, "phone", saleBody, "payTelephone", "phone", "telephone");
         putIfBlank(raw, "countryIso2", saleBody, "payCountryIsoCode2", "countryIso2", "country");
+        putIfBlank(raw, "name", saleBody, "customerNm", "buyerName", "name", "fullName");
+        putIfBlank(raw, "firstName", saleBody, "payFirstname", "firstName");
+        putIfBlank(raw, "lastName", saleBody, "payLastname", "lastName");
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("buyer", raw);
         return body;
@@ -112,6 +146,7 @@ public final class IcipayBuyerContactUtil {
             return null;
         }
         Map<String, String> normalized = normalize(raw);
+        validateLatinNamesIfPresent(normalized);
         return toPrefillJson(normalized);
     }
 
@@ -215,6 +250,25 @@ public final class IcipayBuyerContactUtil {
         if (country == null || country.length() != 2) {
             throw new BuyerRequiredException(BuyerFailKind.COUNTRY,
                     "buyer.countryIso2(ISO2 국가코드)가 필요합니다.");
+        }
+        String name = n.get("name");
+        if (name == null || name.isBlank()) {
+            throw new BuyerRequiredException(BuyerFailKind.NAME,
+                    "buyer.name(또는 firstName+lastName)이 필요합니다.");
+        }
+        validateLatinNamesIfPresent(n);
+    }
+
+    private static void validateLatinNamesIfPresent(Map<String, String> n) {
+        if (n == null || n.isEmpty()) {
+            return;
+        }
+        for (String key : new String[] { "name", "firstName", "lastName" }) {
+            String v = n.get(key);
+            if (v != null && !v.isBlank() && !isLatinName(v)) {
+                throw new BuyerRequiredException(BuyerFailKind.NAME_LATIN,
+                        "성명은 영문만 입력할 수 있습니다.");
+            }
         }
     }
 

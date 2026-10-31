@@ -52,6 +52,7 @@ public class UrlPayPublicCheckoutService {
     private final CardAuthModeService cardAuthModeService;
     private final MerchantPayLimitService merchantPayLimitService;
     private final MerchantInlineCheckoutTokenService merchantInlineCheckoutTokenService;
+    private final DynamicCheckoutFormService dynamicCheckoutFormService;
 
     public UrlPayPublicCheckoutService(ChillPayService chillPayService,
                                        OrgUnitRepository orgUnitRepository,
@@ -72,7 +73,8 @@ public class UrlPayPublicCheckoutService {
                                        MerchantPgBindingRouterService pgBindingRouter,
                                        CardAuthModeService cardAuthModeService,
                                        MerchantPayLimitService merchantPayLimitService,
-                                       MerchantInlineCheckoutTokenService merchantInlineCheckoutTokenService) {
+                                       MerchantInlineCheckoutTokenService merchantInlineCheckoutTokenService,
+                                       DynamicCheckoutFormService dynamicCheckoutFormService) {
         this.chillPayService = chillPayService;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
@@ -93,6 +95,7 @@ public class UrlPayPublicCheckoutService {
         this.cardAuthModeService = cardAuthModeService;
         this.merchantPayLimitService = merchantPayLimitService;
         this.merchantInlineCheckoutTokenService = merchantInlineCheckoutTokenService;
+        this.dynamicCheckoutFormService = dynamicCheckoutFormService;
     }
 
     /**
@@ -167,6 +170,7 @@ public class UrlPayPublicCheckoutService {
         data.put("urlPayCheckoutMode", merchantUrlPayCheckoutMode(orgUnitId));
         data.put("effectiveUrlPayVariant", repay ? UrlPayCheckoutModeUtil.REPAY : UrlPayCheckoutModeUtil.STANDARD);
         mobileCheckoutModeService.putEffectiveIntoMap(data, orgUnitId);
+        dynamicCheckoutFormService.putIntoMap(data);
         for (UrlPayCheckoutContextEnricher enricher : contextEnrichers) {
             if (enricher.supports(cap)) {
                 enricher.enrich(data, orgUnitId, prof, request);

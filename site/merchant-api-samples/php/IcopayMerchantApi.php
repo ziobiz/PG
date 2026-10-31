@@ -107,10 +107,10 @@ final class IcopayMerchantApi
     }
 
     /**
-     * PG-agnostic unified prepare — buyer.email, buyer.phone, buyer.countryIso2 are required (M).
-     * Empty strings fail. Server returns BUYER_EMAIL_REQUIRED / BUYER_PHONE_REQUIRED / BUYER_COUNTRY_REQUIRED.
+     * PG-agnostic unified prepare — buyer.email, buyer.phone, buyer.countryIso2, buyer.name (or firstName+lastName) are required (M).
+     * Empty strings fail. Server returns BUYER_*_REQUIRED codes.
      *
-     * @param array{email:string,phone:string,countryIso2:string,...} $buyer
+     * @param array{email:string,phone:string,countryIso2:string,name?:string,firstName?:string,lastName?:string,...} $buyer
      * @return array{success:bool,data?:array,message?:string,errorCode?:string}
      */
     public function prepareUnifiedCheckout(
@@ -124,24 +124,32 @@ final class IcopayMerchantApi
         $email = trim((string)($buyer['email'] ?? ''));
         $phone = trim((string)($buyer['phone'] ?? ''));
         $country = strtoupper(trim((string)($buyer['countryIso2'] ?? '')));
-        if ($email === '' || $phone === '' || strlen($country) !== 2) {
+        $name = trim((string)($buyer['name'] ?? $buyer['customerNm'] ?? $buyer['fullName'] ?? ''));
+        if ($name === '') {
+            $name = trim((string)($buyer['firstName'] ?? '') . ' ' . (string)($buyer['lastName'] ?? ''));
+        }
+        if ($email === '' || $phone === '' || strlen($country) !== 2 || $name === '') {
+            $code = $email === '' ? 'BUYER_EMAIL_REQUIRED'
+                : ($phone === '' ? 'BUYER_PHONE_REQUIRED'
+                : (strlen($country) !== 2 ? 'BUYER_COUNTRY_REQUIRED' : 'BUYER_NAME_REQUIRED'));
             return [
                 'success' => false,
-                'errorCode' => $email === '' ? 'BUYER_EMAIL_REQUIRED' : ($phone === '' ? 'BUYER_PHONE_REQUIRED' : 'BUYER_COUNTRY_REQUIRED'),
-                'messageKey' => $email === '' ? 'BUYER_EMAIL_REQUIRED' : ($phone === '' ? 'BUYER_PHONE_REQUIRED' : 'BUYER_COUNTRY_REQUIRED'),
-                'message' => 'buyer.email, buyer.phone, and buyer.countryIso2 (2-letter ISO2) are required. Empty values are not allowed.',
+                'errorCode' => $code,
+                'messageKey' => $code,
+                'message' => 'buyer.email, buyer.phone, buyer.countryIso2, and buyer.name (or firstName+lastName) are required. Empty values are not allowed.',
                 'messages' => [
-                    'KOR' => 'buyer.email·phone·countryIso2(대문자 2자)가 필수입니다. 빈 값은 허용되지 않습니다.',
-                    'ENG' => 'buyer.email, buyer.phone, and buyer.countryIso2 (2-letter ISO2) are required. Empty values are not allowed.',
-                    'JPN' => 'buyer.email・phone・countryIso2（大文字2文字）は必須です。空文字は不可です。',
-                    'CHN' => 'buyer.email、phone、countryIso2（两位大写）为必填，不允许空值。',
-                    'THA' => 'buyer.email phone countryIso2 (ISO2 2 ตัว) จำเป็น ค่าว่างใช้ไม่ได้',
+                    'KOR' => 'buyer.email·phone·countryIso2·name(또는 firstName+lastName)이 필수입니다. 빈 값은 허용되지 않습니다.',
+                    'ENG' => 'buyer.email, buyer.phone, buyer.countryIso2, and buyer.name (or firstName+lastName) are required. Empty values are not allowed.',
+                    'JPN' => 'buyer.email・phone・countryIso2・name（または firstName+lastName）は必須です。空文字は不可です。',
+                    'CHN' => 'buyer.email、phone、countryIso2、name（或 firstName+lastName）为必填，不允许空值。',
+                    'THA' => 'buyer.email phone countryIso2 name (หรือ firstName+lastName) จำเป็น ค่าว่างใช้ไม่ได้',
                 ],
             ];
         }
         $buyer['email'] = $email;
         $buyer['phone'] = $phone;
         $buyer['countryIso2'] = $country;
+        $buyer['name'] = $name;
         $body = [
             'compId' => $this->compId,
             'orderNo' => $orderNo,

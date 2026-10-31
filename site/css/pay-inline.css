@@ -656,3 +656,58 @@ input.pay-amount-locked:focus {
   max-width: 78px;
 }
 .pm-logo-unionpay { height: 22px; max-width: 52px; }
+
+/* RE·URL Order no. 수정 불가 */
+.pay-order-locked,
+input.pay-order-locked {
+  background-color: #eef1f5 !important;
+  color: #495057 !important;
+  cursor: default !important;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  caret-color: transparent;
+}
+
+/* —— 다이나믹 결제방식 (모바일·태블릿) —— */
+body.pay-dyn-on {
+  --pay-dyn-accent: #0d6efd;
+}
+body.pay-dyn-on .pay-dyn-step {
+  transition: opacity .22s ease, transform .22s ease, box-shadow .22s ease, filter .22s ease;
+  transform-origin: center top;
+}
+body.pay-dyn-on .pay-dyn-step.pay-dyn-hidden {
+  display: none !important;
+}
+body.pay-dyn-on.pay-dyn-focus .pay-dyn-step:not(.is-focused) {
+  opacity: 0.42;
+  filter: saturate(0.75);
+}
+body.pay-dyn-on .pay-dyn-step.is-focused,
+body.pay-dyn-on .pay-dyn-step.is-active.is-focused {
+  opacity: 1;
+  filter: none;
+  transform: scale(1.03);
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.28), 0 8px 24px rgba(15, 23, 42, 0.08);
+  border-radius: 10px;
+  background: #fff;
+  padding: 0.35rem 0.4rem;
+  margin-left: -0.4rem;
+  margin-right: -0.4rem;
+}
+body.pay-dyn-on .pay-dyn-step.is-focused input,
+body.pay-dyn-on .pay-dyn-step.is-focused select,
+body.pay-dyn-on .pay-dyn-step.is-focused textarea {
+  font-size: 1.05rem;
+  min-height: 2.6rem;
+}
+@media (min-width: 1025px) {
+  /* PC 안전망: 클래스 남아도 줌 억제 */
+  body.pay-dyn-on .pay-dyn-step.is-focused {
+    transform: none;
+    box-shadow: none;
+  }
+}

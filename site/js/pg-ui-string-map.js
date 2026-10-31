@@ -4061,6 +4061,9 @@
   M['결제 실행방식·경로']={EN:'Checkout flow & paths',JP:'決済実行方式・経路',CH:'支付执行方式与路径',TH:'โหมดชำระและเส้นทาง'};
   M['멀티 결제대행사 라우팅']={EN:'Multi-PG routing',JP:'マルチ決済代行ルーティング',CH:'多支付机构路由',TH:'เส้นทาง PG หลายราย'};
   M['결제창·카드인증 기본값']={EN:'Checkout & card-auth defaults',JP:'決済画面・カード認証既定',CH:'支付窗与卡认证默认',TH:'ค่าเริ่มต้นหน้าต่างชำระ/ยืนยันบัตร'};
+  M['다이나믹 결제방식']={EN:'Dynamic checkout form',JP:'ダイナミック決済方式',CH:'动态支付表单',TH:'ฟอร์มชำระแบบไดนามิก'};
+  M['활성 시 PC는 일반, 모바일·태블릿만 다이나믹. 비활성 시 모든 기기 일반 폼.']={EN:'When ON: PC=standard, mobile/tablet=dynamic. When OFF: all devices use the standard form.',JP:'有効時: PC=通常、モバイル・タブレットのみダイナミック。無効時: 全端末で通常フォーム。',CH:'启用时：PC=普通，仅手机/平板动态。关闭时：全设备普通表单。',TH:'เมื่อเปิด: PC=ปกติ มือถือ/แท็บเล็ต=ไดนามิก เมื่อปิด: ทุกเครื่องใช้ฟอร์มปกติ'};
+  M['ICOPAY <strong>카드 입력창</strong>만 해당합니다(크립토·QR·PG 호스티드 카드창 제외). <strong>활성</strong>: 모바일·태블릿=다이나믹(포커스 줌·자동 스크롤·단계 입력), PC=일반. <strong>비활성</strong>: 전 기기 일반. iframe embed는 항상 일반.']={EN:'Applies to ICOPAY <strong>card entry</strong> only (not crypto/QR/PG hosted). <strong>ON</strong>: mobile/tablet=dynamic (focus zoom, auto-scroll, stepped fields), PC=standard. <strong>OFF</strong>: all devices standard. iframe embed always standard.',JP:'ICOPAYの<strong>カード入力</strong>のみ（クリプト・QR・PGホスト除外）。<strong>有効</strong>: モバイル/タブレット=ダイナミック、PC=通常。<strong>無効</strong>: 全端末通常。iframe embedは常に通常。',CH:'仅适用于 ICOPAY<strong>卡输入</strong>（不含加密/QR/PG托管）。<strong>开</strong>：手机/平板=动态，PC=普通。<strong>关</strong>：全设备普通。iframe embed 始终普通。',TH:'ใช้กับ<strong>ช่องกรอกบัตร</strong> ICOPAY เท่านั้น (ไม่รวมคริปโต/QR/หน้า PG)<strong>เปิด</strong>: มือถือ/แท็บเล็ต=ไดนามิก PC=ปกติ <strong>ปิด</strong>: ทุกเครื่องปกติ iframe embed เป็นปกติเสมอ'};
   M['WordPress·URL 재결제']={EN:'WordPress & URL repay',JP:'WordPress・URL再決済',CH:'WordPress 与 URL 再支付',TH:'WordPress และ URL ชำระซ้ำ'};
   M['통합유형(API 중계 / URL 결제)별 기본 실행방식(INLINE·REDIRECT)과 URL 경로 템플릿·채널 제공 여부입니다.']={EN:'Default INLINE/REDIRECT and URL path templates per API broker / URL-pay channel.',JP:'API中継/URL決済ごとのINLINE・REDIRECT既定と経路テンプレート・提供可否です。',CH:'按 API 中继 / URL 支付设置 INLINE·REDIRECT 默认值与路径模板、渠道开关。',TH:'ค่าเริ่มต้น INLINE/REDIRECT และเทมเพลตเส้นทางตามช่อง API/URL'};
   M['여러 결제대행사를 브랜드·통화 기준으로 나눠 쓸지 설정합니다. 가맹 「결제대행사 설정」행과 함께 동작합니다.']={EN:'Whether to split traffic across PGs by brand/currency. Works with merchant PG binding rows.',JP:'ブランド・通貨で複数決済代行を分けるか設定します。加盟店の決済代行設定行と連動します。',CH:'是否按卡品牌/货币分流至多个支付机构。与商户支付机构绑定行联动。',TH:'แบ่งเส้นทาง PG ตามแบรนด์/สกุลเงิน ร่วมกับแถวผูก PG ของร้าน'};
@@ -4395,6 +4398,7 @@
 
   M['URL Result (SANDBOX)']={EN:'URL Result (SANDBOX)',JP:'URL Result (SANDBOX)',CH:'URL Result (SANDBOX)',TH:'URL Result (SANDBOX)'};
 
+  M['성명(리다이렉트용)']={EN:'Name (redirect)',JP:'氏名(リダイレクト用)',CH:'姓名（跳转用）',TH:'ชื่อ (redirect)'};
   M['샌드박스 시크릿 발급']={EN:'Issue sandbox secret',JP:'サンドボックス秘密鍵発行',CH:'签发沙箱密钥',TH:'ออกคีย์ sandbox'};
 
   M['샌드박스 시크릿']={EN:'Sandbox secret',JP:'サンドボックスシークレット',CH:'沙箱密钥',TH:'คีย์ sandbox'};

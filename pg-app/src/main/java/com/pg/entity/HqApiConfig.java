@@ -86,6 +86,13 @@ public class HqApiConfig {
     private String apiPaymentAmountLockYn = "Y";
 
     /**
+     * 다이나믹 결제방식 — Y=활성(모바일·태블릿 다이나믹, PC 일반) / N=전 기기 일반.
+     * ICOPAY 카드 입력창만. 기기 판정은 결제창 클라이언트.
+     */
+    @Column(name = "dynamic_checkout_form_yn", nullable = false, length = 1)
+    private String dynamicCheckoutFormYn = "Y";
+
+    /**
      * 모바일·embed 결제창 기본 — {@link com.pg.urlpay.MobileCheckoutModeUtil}.
      * EMBED(기본) | MOBILE_REDIRECT | ALWAYS_REDIRECT
      */
@@ -233,6 +240,10 @@ public class HqApiConfig {
     /** 결제창 전화번호 입력 본사 기본 — Y/N (전 PG 공통) */
     @Column(name = "url_pay_buyer_phone_use_default_yn", nullable = false, length = 1)
     private String urlPayBuyerPhoneUseDefaultYn = "Y";
+
+    /** 결제창 성명(리다이렉트·URL) 본사 기본 — Y/N */
+    @Column(name = "url_pay_buyer_name_use_default_yn", nullable = false, length = 1)
+    private String urlPayBuyerNameUseDefaultYn = "Y";
 
     /** 결제창 상품명 사용 본사 기본 — Y/N */
     @Column(name = "url_pay_product_name_use_default_yn", nullable = false, length = 1)
@@ -496,6 +507,11 @@ public class HqApiConfig {
         this.apiPaymentAmountLockYn = apiPaymentAmountLockYn != null
                 && "N".equalsIgnoreCase(apiPaymentAmountLockYn.trim()) ? "N" : "Y";
     }
+    public String getDynamicCheckoutFormYn() { return dynamicCheckoutFormYn; }
+    public void setDynamicCheckoutFormYn(String dynamicCheckoutFormYn) {
+        this.dynamicCheckoutFormYn = dynamicCheckoutFormYn != null
+                && "N".equalsIgnoreCase(dynamicCheckoutFormYn.trim()) ? "N" : "Y";
+    }
     public String getMobileCheckoutModeDefault() { return mobileCheckoutModeDefault; }
     public void setMobileCheckoutModeDefault(String mobileCheckoutModeDefault) {
         this.mobileCheckoutModeDefault = mobileCheckoutModeDefault != null && !mobileCheckoutModeDefault.isBlank()
@@ -659,6 +675,10 @@ public class HqApiConfig {
     public String getUrlPayBuyerPhoneUseDefaultYn() { return urlPayBuyerPhoneUseDefaultYn; }
     public void setUrlPayBuyerPhoneUseDefaultYn(String v) {
         this.urlPayBuyerPhoneUseDefaultYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(v, "Y");
+    }
+    public String getUrlPayBuyerNameUseDefaultYn() { return urlPayBuyerNameUseDefaultYn; }
+    public void setUrlPayBuyerNameUseDefaultYn(String v) {
+        this.urlPayBuyerNameUseDefaultYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(v, "Y");
     }
     public String getUrlPayProductNameUseDefaultYn() { return urlPayProductNameUseDefaultYn; }
     public void setUrlPayProductNameUseDefaultYn(String v) {

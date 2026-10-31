@@ -87,6 +87,14 @@ public class UrlPayCheckoutDisplayPolicyService {
                 "Y");
     }
 
+    /** 성명(리다이렉트·URL) — 프리셋 잠금 없이 가맹 FOLLOW_HQ|Y|N → 본사 기본 */
+    public String effectiveBuyerNameUseYn(Long orgUnitId) {
+        return UrlPayFollowHqYnUtil.resolveEffective(
+                merchantField(orgUnitId, MerchantProfile::getUrlPayBuyerNameUseYn),
+                hqOrEmpty().getUrlPayBuyerNameUseDefaultYn(),
+                "Y");
+    }
+
     public String effectiveRememberMode(Long orgUnitId) {
         return UrlPayFollowHqYnUtil.normalizeStored(
                 merchantField(orgUnitId, MerchantProfile::getCheckoutContactRememberMode));

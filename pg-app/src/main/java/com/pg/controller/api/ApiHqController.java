@@ -1935,6 +1935,7 @@ public class ApiHqController {
         data.put("urlPayInlineEnabledYn", "Y");
         data.put("urlPayRedirectEnabledYn", "Y");
         data.put("apiPaymentAmountLockYn", "Y");
+        data.put("dynamicCheckoutFormYn", "Y");
         data.put("mobileCheckoutModeDefault", "EMBED");
         data.put("urlPayInputModeDefault", "GENERAL");
         data.put("urlPayCardExpiryModeDefault", "DROPDOWN");
@@ -1954,6 +1955,7 @@ public class ApiHqController {
         data.put("urlPayBuyerEmailUseDefaultYn", "Y");
         data.put("urlPayBuyerCountryUseDefaultYn", "Y");
         data.put("urlPayBuyerPhoneUseDefaultYn", "Y");
+        data.put("urlPayBuyerNameUseDefaultYn", "Y");
         data.put("urlPayProductNameUseDefaultYn", "Y");
         data.put("urlPayDefaultProductName", "");
         data.put("urlPayDefaultProductCode", "");
@@ -2006,6 +2008,10 @@ public class ApiHqController {
             if (c.getUrlPayInlineEnabledYn() != null) data.put("urlPayInlineEnabledYn", c.getUrlPayInlineEnabledYn());
             if (c.getUrlPayRedirectEnabledYn() != null) data.put("urlPayRedirectEnabledYn", c.getUrlPayRedirectEnabledYn());
             if (c.getApiPaymentAmountLockYn() != null) data.put("apiPaymentAmountLockYn", c.getApiPaymentAmountLockYn());
+            if (c.getDynamicCheckoutFormYn() != null) {
+                data.put("dynamicCheckoutFormYn",
+                        "N".equalsIgnoreCase(c.getDynamicCheckoutFormYn().trim()) ? "N" : "Y");
+            }
             if (c.getMobileCheckoutModeDefault() != null) {
                 data.put("mobileCheckoutModeDefault",
                         com.pg.urlpay.MobileCheckoutModeUtil.normalize(c.getMobileCheckoutModeDefault()));
@@ -2118,6 +2124,10 @@ public class ApiHqController {
             if (c.getUrlPayBuyerPhoneUseDefaultYn() != null) {
                 data.put("urlPayBuyerPhoneUseDefaultYn",
                         com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(c.getUrlPayBuyerPhoneUseDefaultYn(), "Y"));
+            }
+            if (c.getUrlPayBuyerNameUseDefaultYn() != null) {
+                data.put("urlPayBuyerNameUseDefaultYn",
+                        com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(c.getUrlPayBuyerNameUseDefaultYn(), "Y"));
             }
             try {
                 var defPreset = urlPayCheckoutFieldPresetService.getDefault();
@@ -2307,6 +2317,7 @@ public class ApiHqController {
         c.setUrlPayBuyerEmailUseDefaultYn(String.valueOf(body.getOrDefault("urlPayBuyerEmailUseDefaultYn", "Y")));
         c.setUrlPayBuyerCountryUseDefaultYn(String.valueOf(body.getOrDefault("urlPayBuyerCountryUseDefaultYn", "Y")));
         c.setUrlPayBuyerPhoneUseDefaultYn(String.valueOf(body.getOrDefault("urlPayBuyerPhoneUseDefaultYn", "Y")));
+        c.setUrlPayBuyerNameUseDefaultYn(String.valueOf(body.getOrDefault("urlPayBuyerNameUseDefaultYn", "Y")));
         urlPayCheckoutFieldPresetService.syncDefaultFromHqYn(
                 c.getUrlPayBuyerEmailUseDefaultYn(),
                 c.getUrlPayBuyerCountryUseDefaultYn(),

@@ -528,6 +528,19 @@
     var langForCard = (typeof opts.getLang === 'function' ? opts.getLang() : null) || opts.lang || 'KOR';
     applyUrlPayCardInputMode(ctx, langForCard);
     bindPayLimitUi(ctx, opts);
+    applyDynamicCheckoutForm(ctx, opts);
+  }
+
+  /** HQ 다이나믹 결제방식 — 모바일·태블릿 카드 폼만 (pay-dynamic-form.js) */
+  function applyDynamicCheckoutForm(ctx, opts) {
+    opts = opts || {};
+    if (!g.PG_PAY_DYNAMIC || typeof g.PG_PAY_DYNAMIC.apply !== 'function') return;
+    try {
+      g.PG_PAY_DYNAMIC.apply({
+        ctx: ctx || {},
+        form: opts.form || null
+      });
+    } catch (eDyn) { /* ignore */ }
   }
 
   function payLimitMsg(code, lim, lang) {
@@ -891,6 +904,7 @@
     ctx = ctx || {};
     var langEarly = opts.lang;
     if (langEarly == null && typeof opts.getLang === 'function') langEarly = opts.getLang();
+    applyDynamicCheckoutForm(ctx, opts);
     var sub = g.document.querySelector('#jpayBrandBlock .pay-brand-sub, #payBrandTextWrap .pay-brand-sub, .pay-brand-sub');
     if (!sub) {
       applyUrlPayCardInputMode(ctx, langEarly || 'KOR');
@@ -983,7 +997,10 @@
   }
 
   /**
-   * 카드입력 ACTIVE=기존 입력 / DISABLED=금액·카드번호·유효·CVV·성·이름 숨김 + 저장된 다국어 안내.
+   * 카드입력 ACTIVE=기존 입력 / DISABLED=인라인 카드란이 있을 때만
+   * 금액·카드번호·유효·CVV·성·이름·결제버튼 숨김 + 저장된 다국어 안내.
+   * OMSPAY 등 RE 확인창(payCardInputFieldsWrap 없음)은 카드입력 비활성이어도
+   * 금액·DP 표시통화·성명(urlPayBuyerNameUseYn)·결제하기를 유지한다.
    * 표시 시 재번역하지 않음(checkoutCardInputDisabledTextI18n 사용).
    */
   function applyUrlPayCardInputMode(ctx, lang) {
@@ -991,31 +1008,40 @@
     var mode = String(ctx.checkoutCardInputMode || 'ACTIVE').trim().toUpperCase();
     var disabled = mode === 'DISABLED';
     var wrap = g.document.getElementById('payCardInputFieldsWrap');
+    var hasInlineCard = !!wrap;
     var msg = g.document.getElementById('payCardInputDisabledMsg');
     var submit = g.document.getElementById('submitBtn');
+    /* 인라인 카드 UI가 없으면(RE·URL 확인→HPP) 카드입력 옵션으로 금액/성명/제출을 가리지 않음 */
+    var hideCheckoutFields = disabled && hasInlineCard;
     var seen = [];
     function hideGroup(el) {
       var box = resolveCardInputHideWrap(el);
       if (!box || seen.indexOf(box) >= 0) return;
       seen.push(box);
-      box.classList.toggle('d-none', disabled);
-      if (disabled) box.setAttribute('data-pg-card-input-hidden', '1');
+      box.classList.toggle('d-none', hideCheckoutFields);
+      if (hideCheckoutFields) box.setAttribute('data-pg-card-input-hidden', '1');
       else box.removeAttribute('data-pg-card-input-hidden');
-      setCheckoutInputsDisabled(box, disabled);
+      setCheckoutInputsDisabled(box, hideCheckoutFields);
     }
-    hideGroup(wrap);
-    hideGroup(g.document.getElementById('amount'));
-    hideGroup(g.document.getElementById('payFxDisplayCurrencyRow'));
-    hideGroup(g.document.getElementById('payFxQuoteRow'));
-    hideGroup(g.document.getElementById('nameRow'));
-    hideGroup(g.document.getElementById('payFirstname'));
-    hideGroup(g.document.getElementById('payLastname'));
-    ['payCardSectionLabel', 'payCardNoteText', 'payCardCcdHintText'].forEach(function (id) {
-      var el = g.document.getElementById(id);
-      if (!el) return;
-      var box = el.closest('.pay-label') || el;
-      box.classList.toggle('d-none', disabled);
-    });
+    if (hasInlineCard) {
+      hideGroup(wrap);
+      hideGroup(g.document.getElementById('amount'));
+      hideGroup(g.document.getElementById('payFxDisplayCurrencyRow'));
+      hideGroup(g.document.getElementById('payFxQuoteRow'));
+      hideGroup(g.document.getElementById('nameRow'));
+      hideGroup(g.document.getElementById('payFirstname'));
+      hideGroup(g.document.getElementById('payLastname'));
+      ['payCardSectionLabel', 'payCardNoteText', 'payCardCcdHintText'].forEach(function (id) {
+        var el = g.document.getElementById(id);
+        if (!el) return;
+        var box = el.closest('.pay-label') || el;
+        box.classList.toggle('d-none', hideCheckoutFields);
+      });
+      if (submit) {
+        submit.classList.toggle('d-none', hideCheckoutFields);
+        submit.disabled = hideCheckoutFields;
+      }
+    }
     if (msg) {
       if (disabled) {
         var text = resolveCardInputDisabledText(ctx, lang);
@@ -1028,11 +1054,7 @@
         msg.style.display = 'none';
       }
     }
-    if (submit) {
-      submit.classList.toggle('d-none', disabled);
-      submit.disabled = disabled;
-    }
-    g.__urlPayCardInputDisabled = disabled;
+    g.__urlPayCardInputDisabled = hideCheckoutFields;
   }
 
   function isCheckoutHeaderBrandEmpty(ctx, brand) {
@@ -1047,6 +1069,20 @@
     var img = brand.querySelector('img.pay-brand-logo-img');
     if (img && !img.classList.contains('d-none') && img.getAttribute('src')) return false;
     return logoMode === 'DISABLED';
+  }
+
+  function bindHardLockEvents(el, attrFlag) {
+    if (!el || el._pgHardLockBound) return;
+    el._pgHardLockBound = true;
+    var block = function (ev) {
+      if (el.getAttribute(attrFlag) !== '1') return;
+      if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+      if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+      return false;
+    };
+    ['keydown', 'keypress', 'keyup', 'beforeinput', 'input', 'paste', 'cut', 'drop', 'wheel', 'compositionstart'].forEach(function (evt) {
+      el.addEventListener(evt, block, true);
+    });
   }
 
   /**
@@ -1071,24 +1107,28 @@
       el.setAttribute('inputmode', 'decimal');
       el.classList.add('pay-amount-locked');
       el.setAttribute('data-pg-amount-locked', '1');
-      if (!el._pgAmountLockBound) {
-        el._pgAmountLockBound = true;
-        var block = function (ev) {
-          if (el.getAttribute('data-pg-amount-locked') !== '1') return;
-          if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
-          if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
-          return false;
-        };
-        ['keydown', 'keypress', 'keyup', 'beforeinput', 'input', 'paste', 'cut', 'drop', 'wheel'].forEach(function (evt) {
-          el.addEventListener(evt, block, true);
-        });
-      }
+      bindHardLockEvents(el, 'data-pg-amount-locked');
+    }
+    if (el.id === 'orderNo' || opts.asOrderNo === true) {
+      el.classList.add('pay-order-locked');
+      el.setAttribute('data-pg-order-locked', '1');
+      bindHardLockEvents(el, 'data-pg-order-locked');
     }
     el.readOnly = true;
     el.setAttribute('readonly', 'readonly');
     el.setAttribute('aria-readonly', 'true');
     el.tabIndex = -1;
     return true;
+  }
+
+  /**
+   * RE·URL 결제 Order no. 고정 — PC/모바일 공통. 값 있으면 채우고 항상 수정 불가.
+   */
+  function lockOrderNoField(idOrEl, value) {
+    var el = typeof idOrEl === 'string' ? g.document.getElementById(idOrEl) : idOrEl;
+    if (!el) return false;
+    var raw = value != null ? String(value).trim() : String(el.value || '').trim();
+    return lockSessionField(el, raw, { asOrderNo: true, requireValue: false });
   }
 
   /** 본사「API 결제 금액 고정」— 기본 Y(고정). sources에서 첫 유효값 사용. */
@@ -1162,6 +1202,7 @@
     payFxResolvedDisplayCurrency: payFxResolvedDisplayCurrency,
     applyPayAmountCurrencyHint: applyPayAmountCurrencyHint,
     lockSessionField: lockSessionField,
+    lockOrderNoField: lockOrderNoField,
     unlockSessionAmountField: unlockSessionAmountField,
     isApiPaymentAmountLockEnabled: isApiPaymentAmountLockEnabled,
     applyApiPaymentAmountField: applyApiPaymentAmountField

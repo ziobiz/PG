@@ -1609,6 +1609,7 @@ public class CompService {
         addDiffYn(rows, oid, compId, compNm, by, p + "URL구매자이메일", snap.urlPayBuyerEmailUseYn(), mp.getUrlPayBuyerEmailUseYn());
         addDiffYn(rows, oid, compId, compNm, by, p + "URL구매자국가", snap.urlPayBuyerCountryUseYn(), mp.getUrlPayBuyerCountryUseYn());
         addDiffYn(rows, oid, compId, compNm, by, p + "URL구매자전화", snap.urlPayBuyerPhoneUseYn(), mp.getUrlPayBuyerPhoneUseYn());
+        addDiffYn(rows, oid, compId, compNm, by, p + "URL구매자성명", snap.urlPayBuyerNameUseYn(), mp.getUrlPayBuyerNameUseYn());
         addDiff(rows, oid, compId, compNm, by, p + "URL입력방식",
                 com.pg.urlpay.UrlPayInputModeUtil.formatAuditLabel(snap.urlPayInputMode()),
                 com.pg.urlpay.UrlPayInputModeUtil.formatAuditLabel(mp.getUrlPayInputMode()));
@@ -1713,6 +1714,7 @@ public class CompService {
             String urlPayBuyerEmailUseYn,
             String urlPayBuyerCountryUseYn,
             String urlPayBuyerPhoneUseYn,
+            String urlPayBuyerNameUseYn,
             String urlPayInputMode,
             String apiUrlPayCheckoutMode,
             String chatbotUrlPayCheckoutMode,
@@ -1781,6 +1783,7 @@ public class CompService {
                     nz(mp.getUrlPayBuyerEmailUseYn()),
                     nz(mp.getUrlPayBuyerCountryUseYn()),
                     nz(mp.getUrlPayBuyerPhoneUseYn()),
+                    nz(mp.getUrlPayBuyerNameUseYn()),
                     nz(mp.getUrlPayInputMode()),
                     nz(mp.getApiUrlPayCheckoutMode()),
                     nz(mp.getChatbotUrlPayCheckoutMode()),
@@ -2011,6 +2014,7 @@ public class CompService {
                             m.put("urlPayBuyerEmailUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerEmailUseYn()));
                             m.put("urlPayBuyerCountryUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerCountryUseYn()));
                             m.put("urlPayBuyerPhoneUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerPhoneUseYn()));
+                            m.put("urlPayBuyerNameUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerNameUseYn()));
                             m.put("urlPayCheckoutFieldPresetId", mp.getUrlPayCheckoutFieldPresetId() != null ? mp.getUrlPayCheckoutFieldPresetId() : "");
                             m.put("urlPayInputMode", com.pg.urlpay.UrlPayInputModeUtil.formatMerchantUiValue(mp.getUrlPayInputMode()));
                             m.put("urlPayCardExpiryMode", com.pg.urlpay.UrlPayCardExpiryModeUtil.formatMerchantUiValue(mp.getUrlPayCardExpiryMode()));
@@ -2126,6 +2130,7 @@ public class CompService {
                             m.put("urlPayBuyerEmailUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerEmailUseYn()));
                             m.put("urlPayBuyerCountryUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerCountryUseYn()));
                             m.put("urlPayBuyerPhoneUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerPhoneUseYn()));
+                            m.put("urlPayBuyerNameUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerNameUseYn()));
                             m.put("urlPayCheckoutFieldPresetId", mp.getUrlPayCheckoutFieldPresetId() != null ? mp.getUrlPayCheckoutFieldPresetId() : "");
                             m.put("urlPayInputMode", com.pg.urlpay.UrlPayInputModeUtil.formatMerchantUiValue(mp.getUrlPayInputMode()));
                             m.put("urlPayCardExpiryMode", com.pg.urlpay.UrlPayCardExpiryModeUtil.formatMerchantUiValue(mp.getUrlPayCardExpiryMode()));
@@ -2381,6 +2386,7 @@ public class CompService {
                           String urlPayBuyerEmailUseYn,
                           String urlPayBuyerCountryUseYn,
                           String urlPayBuyerPhoneUseYn,
+                          String urlPayBuyerNameUseYn,
                           String urlPayInputMode,
                           String urlPayCardExpiryMode,
                           String cardAuthMode,
@@ -2562,7 +2568,7 @@ public class CompService {
                                 applyMerchantUrlPayPresentationOptions(mp,
                                         urlPayProductNameUseYn, urlPayCompanyNameShowYn, urlPayLangMenuUseYn,
                                         urlPayShippingAddressUseYn, urlPayBuyerEmailUseYn, urlPayBuyerCountryUseYn,
-                                        urlPayBuyerPhoneUseYn, checkoutContactRememberMode);
+                                        urlPayBuyerPhoneUseYn, urlPayBuyerNameUseYn, checkoutContactRememberMode);
                                 applyMerchantUrlPayInputMode(mp, urlPayInputMode);
                                 applyMerchantUrlPayCardExpiryMode(mp, urlPayCardExpiryMode);
                                 applyMerchantCardAuthMode(mp, cardAuthMode);
@@ -3345,6 +3351,7 @@ public class CompService {
                                                       String buyerEmailUseYn,
                                                       String buyerCountryUseYn,
                                                       String buyerPhoneUseYn,
+                                                      String buyerNameUseYn,
                                                       String checkoutContactRememberMode) {
         if (mp == null) {
             return;
@@ -3369,6 +3376,9 @@ public class CompService {
         }
         if (buyerPhoneUseYn != null && !buyerPhoneUseYn.isBlank()) {
             mp.setUrlPayBuyerPhoneUseYn(buyerPhoneUseYn.trim());
+        }
+        if (buyerNameUseYn != null && !buyerNameUseYn.isBlank()) {
+            mp.setUrlPayBuyerNameUseYn(buyerNameUseYn.trim());
         }
         if (checkoutContactRememberMode != null && !checkoutContactRememberMode.isBlank()) {
             mp.setCheckoutContactRememberMode(checkoutContactRememberMode.trim());
@@ -4368,7 +4378,7 @@ public class CompService {
                 null, null, null,
                 null, null,
                 null,
-                null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null, null);
@@ -4416,6 +4426,7 @@ public class CompService {
                                      String urlPayBuyerEmailUseYn,
                                      String urlPayBuyerCountryUseYn,
                                      String urlPayBuyerPhoneUseYn,
+                                     String urlPayBuyerNameUseYn,
                                      String urlPayInputMode,
                                      String urlPayCardExpiryMode,
                                      String cardAuthMode,
@@ -4493,6 +4504,7 @@ public class CompService {
                 urlPayBuyerEmailUseYn,
                 urlPayBuyerCountryUseYn,
                 urlPayBuyerPhoneUseYn,
+                urlPayBuyerNameUseYn,
                 urlPayInputMode,
                 urlPayCardExpiryMode,
                 cardAuthMode,
@@ -4574,6 +4586,7 @@ public class CompService {
                                      String urlPayBuyerEmailUseYn,
                                      String urlPayBuyerCountryUseYn,
                                      String urlPayBuyerPhoneUseYn,
+                                     String urlPayBuyerNameUseYn,
                                      String urlPayInputMode,
                                      String urlPayCardExpiryMode,
                                      String cardAuthMode,
@@ -4683,7 +4696,7 @@ public class CompService {
             applyMerchantUrlPayPresentationOptions(mp,
                     urlPayProductNameUseYn, urlPayCompanyNameShowYn, urlPayLangMenuUseYn,
                     urlPayShippingAddressUseYn, urlPayBuyerEmailUseYn, urlPayBuyerCountryUseYn,
-                    urlPayBuyerPhoneUseYn, checkoutContactRememberMode);
+                    urlPayBuyerPhoneUseYn, urlPayBuyerNameUseYn, checkoutContactRememberMode);
             applyMerchantUrlPayInputMode(mp, urlPayInputMode);
             applyMerchantUrlPayCardExpiryMode(mp, urlPayCardExpiryMode);
             applyMerchantCardAuthMode(mp, cardAuthMode);
@@ -6893,7 +6906,7 @@ public class CompService {
                             null, null,
                             null, null, null,
                             null, null,
-                            null,
+                            null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
                             null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
                             null, null, null, null, null, null, null, null,
                             null, null, null, null, null, null, null, null,

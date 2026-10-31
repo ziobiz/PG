@@ -10,8 +10,10 @@
   <script src="/js/url-pay-input-mode.js?v=4"></script>
   <script src="/js/checkout-header-subtitle-presets.js?v=2"></script>
   <script src="/js/url-pay-copy-phrase-i18n.js?v=1"></script>
-  <script src="/js/url-pay-public-shell.js?v=20"></script>
-  <script src="/js/pay-form-input-guard.js?v=3"></script>
+  <script src="/js/pay-dynamic-form.js?v=2"></script>
+  <script src="/js/url-pay-public-shell.js?v=22"></script>
+  <script src="/js/jpay-contact-fields.js?v=8"></script>
+  <script src="/js/pay-form-input-guard.js?v=4"></script>
 </head>
 <body class="pay-inline-body">
   <div class="pay-shell">
@@ -67,16 +69,39 @@
         </div>
         <div id="buyerBlock">
           <div class="pay-row mb-2" id="nameRow">
-            <label class="pay-row-label mb-0" for="buyerName"><span id="lblName"></span></label>
-            <div class="pay-row-value"><input type="text" class="form-control form-control-sm pay-input-round" id="buyerName" maxlength="100" autocomplete="name" required /></div>
+            <div class="pay-row-label"><span id="lblName"></span></div>
+            <div class="pay-row-value">
+              <div class="row g-2">
+                <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payFirstname" maxlength="80" lang="en" inputmode="text" autocapitalize="words" autocorrect="off" spellcheck="false" autocomplete="given-name" pattern="[A-Za-z '\-]+" /></div>
+                <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payLastname" maxlength="80" lang="en" inputmode="text" autocapitalize="words" autocorrect="off" spellcheck="false" autocomplete="family-name" pattern="[A-Za-z '\-]+" /></div>
+              </div>
+              <input type="hidden" id="buyerName" />
+            </div>
           </div>
           <div class="pay-row mb-2" id="emailRow">
             <label class="pay-row-label mb-0" for="buyerEmail"><span id="lblEmail"></span></label>
             <div class="pay-row-value"><input type="email" class="form-control form-control-sm pay-input-round" id="buyerEmail" maxlength="100" autocomplete="email" /></div>
           </div>
+          <div class="pay-row mb-2" id="countryRow">
+            <label class="pay-row-label mb-0" for="payContactCountryCode"><span id="lblCountry"></span></label>
+            <div class="pay-row-value">
+              <select class="form-select form-select-sm pay-input-round" id="payContactCountryCode" aria-label="Country code"></select>
+              <input type="hidden" id="payCountryIsoCode2" />
+            </div>
+          </div>
           <div class="pay-row mb-2" id="phoneRow">
-            <label class="pay-row-label mb-0" for="buyerTel"><span id="lblPhone"></span></label>
-            <div class="pay-row-value"><input type="tel" class="form-control form-control-sm pay-input-round" id="buyerTel" maxlength="40" autocomplete="tel" /></div>
+            <label class="pay-row-label mb-0" for="payTelephone"><span id="lblPhone"></span></label>
+            <div class="pay-row-value"><input type="tel" class="form-control form-control-sm pay-input-round" id="payTelephone" maxlength="40" autocomplete="tel-national" /></div>
+          </div>
+          <div class="pay-row mb-2 d-none" id="shippingRow">
+            <label class="pay-row-label mb-0" for="payStreetAddress1"><span id="lblShipping"></span></label>
+            <div class="pay-row-value">
+              <input type="text" class="form-control form-control-sm pay-input-round mb-1" id="payStreetAddress1" maxlength="200" autocomplete="street-address" />
+              <div class="row g-2">
+                <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payCity" maxlength="100" autocomplete="address-level2" /></div>
+                <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payPostcode" maxlength="20" autocomplete="postal-code" /></div>
+              </div>
+            </div>
           </div>
           <p class="small text-muted mb-3" id="buyerHint"></p>
         </div>
@@ -87,11 +112,11 @@
 <script>
 (function () {
   var T = {
-    KOR: { lead: '주문·구매자 정보를 확인한 뒤 결제 페이지로 이동합니다.', pay: '결제하기', wait: '이동 중…', merchant: '가맹점', item: '상품', amount: '금액', order: '주문번호', name: '성명', email: '이메일', phone: '전화번호', hint: '위 성명은 결제내역 고객란에 사용됩니다. 다음 화면에서 카드 명의를 한 번 더 입력합니다.', brandSub: 'Secure Payment', fxCur: '표시 통화', fxEst: '예상 청구', err: '결제를 시작하지 못했습니다.', needAmt: '금액을 입력하세요.', needName: '성명을 입력하세요.', needMerchant: '가맹점을 찾을 수 없습니다.', needFxQuote: '환율 견적을 불러오지 못했습니다. 페이지를 새로고침한 뒤 다시 시도하세요.', errNameEn: '성명은 영문만 입력하세요.', errEmailFormat: '올바른 이메일 형식을 입력하세요.', errPhoneFormat: '전화번호는 +와 숫자만 입력하세요(- 불가).', warnEnglishOnly: '영어 알파벳만 입력 가능합니다.', warnAmountOnly: '숫자만 입력 가능합니다.', warnEmailChars: '이메일에 사용할 수 있는 문자만 입력 가능합니다.', warnPhonePlusDigits: '전화번호는 +와 숫자만 입력 가능합니다.', done: '결제 결과를 확인 중입니다.', payComplete: '결제 완료', payFailed: '결제 실패', paid: '결제가 완료되었습니다.', payAwaiting: '결제 확인 중', payAwaitingDetail: '승인을 확인하고 있습니다. 잠시만 기다려 주세요.', resultClose: '닫기', resultRetry: '다시 결제', webOff: '이 가맹점은 결제 서비스가 중지로 설정되어 있습니다.', configErr: '결제 설정을 불러오지 못했습니다.' },
-    ENG: { lead: 'Confirm order and shopper details, then continue to payment.', pay: 'Pay', wait: 'Redirecting…', merchant: 'Merchant', item: 'Item', amount: 'Amount', order: 'Order no.', name: 'Name', email: 'Email', phone: 'Phone', hint: 'This name is used in the payment history customer column. On the next screen, enter the name on the card again.', brandSub: 'Secure Payment', fxCur: 'Display currency', fxEst: 'Estimated charge', err: 'Could not start payment.', needAmt: 'Enter an amount.', needName: 'Enter the name.', needMerchant: 'Merchant not found.', needFxQuote: 'FX quote is missing or expired. Refresh the page and try again.', errNameEn: 'Enter the name in English letters only.', errEmailFormat: 'Enter a valid email address.', errPhoneFormat: 'Phone allows + and digits only (no hyphens).', warnEnglishOnly: 'Only English letters are allowed.', warnAmountOnly: 'Only numbers are allowed.', warnEmailChars: 'Only characters valid for email are allowed.', warnPhonePlusDigits: 'Phone allows + and digits only.', done: 'Checking payment result…', payComplete: 'Payment complete', payFailed: 'Payment failed', paid: 'Payment completed.', payAwaiting: 'Confirming payment', payAwaitingDetail: 'We are confirming the approval. Please wait.', resultClose: 'Close', resultRetry: 'Pay again', webOff: "This merchant's payment service is set to suspended.", configErr: 'Could not load payment settings.' },
-    JPN: { lead: '注文・購入者情報を確認してからお支払い画面へ進みます。', pay: '支払う', wait: '移動中…', merchant: '加盟店', item: '商品', amount: '金額', order: '注文番号', name: '氏名', email: 'メール', phone: '電話番号', hint: '上の氏名は決済履歴の顧客欄に使われます。次の画面でカード名義をもう一度入力します。', brandSub: 'Secure Payment', fxCur: '表示通貨', fxEst: '請求見込み', err: 'お支払いを開始できませんでした。', needAmt: '金額を入力してください。', needName: '氏名を入力してください。', needMerchant: '加盟店が見つかりません。', needFxQuote: '為替見積がありません。ページを再読み込みしてから再度お試しください。', errNameEn: '氏名は英字のみ入力してください。', errEmailFormat: '正しいメール形式で入力してください。', errPhoneFormat: '電話番号は+と数字のみ（ハイフン不可）。', warnEnglishOnly: '英字のみ入力できます。', warnAmountOnly: '数字のみ入力できます。', warnEmailChars: 'メールに使用できる文字のみ入力できます。', warnPhonePlusDigits: '電話番号は+と数字のみ入力できます。', done: 'お支払い結果を確認しています。', payComplete: '決済完了', payFailed: '決済失敗', paid: 'お支払いが完了しました。', payAwaiting: '決済確認中', payAwaitingDetail: '承認を確認しています。しばらくお待ちください。', resultClose: '閉じる', resultRetry: 'もう一度支払う', webOff: 'この加盟店の決済サービスは停止に設定されています。', configErr: '決済設定を読み込めませんでした。' },
-    CHN: { lead: '请确认订单与购买人信息后进入支付页。', pay: '付款', wait: '跳转中…', merchant: '商户', item: '商品', amount: '金额', order: '订单号', name: '姓名', email: '邮箱', phone: '电话', hint: '上方姓名用于支付明细客户栏。下一屏请再输入一次卡面姓名。', brandSub: 'Secure Payment', fxCur: '显示货币', fxEst: '预计扣款', err: '无法开始付款。', needAmt: '请输入金额。', needName: '请输入姓名。', needMerchant: '找不到商户。', needFxQuote: '汇率报价无效或已过期。请刷新页面后重试。', errNameEn: '姓名请仅用英文字母。', errEmailFormat: '请输入有效的邮箱地址。', errPhoneFormat: '电话仅允许 + 与数字（不可用连字符）。', warnEnglishOnly: '只能输入英文字母。', warnAmountOnly: '只能输入数字。', warnEmailChars: '只能输入邮箱允许的字符。', warnPhonePlusDigits: '电话仅允许 + 与数字。', done: '正在确认付款结果。', payComplete: '支付完成', payFailed: '支付失败', paid: '支付已完成。', payAwaiting: '正在确认支付', payAwaitingDetail: '正在确认授权，请稍候。', resultClose: '关闭', resultRetry: '重新支付', webOff: '该商户的支付服务已设置为停止。', configErr: '无法加载支付设置。' },
-    THA: { lead: 'ตรวจคำสั่งซื้อและข้อมูลผู้ซื้อ แล้วไปหน้าชำระเงิน', pay: 'ชำระเงิน', wait: 'กำลังไป…', merchant: 'ร้านค้า', item: 'สินค้า', amount: 'จำนวนเงิน', order: 'เลขคำสั่งซื้อ', name: 'ชื่อ', email: 'อีเมล', phone: 'โทรศัพท์', hint: 'ชื่อด้านบนใช้ในคอลัมน์ลูกค้าของประวัติชำระเงิน ในหน้าถัดไปให้กรอกชื่อบนบัตรอีกครั้ง', brandSub: 'Secure Payment', fxCur: 'สกุลเงินแสดง', fxEst: 'ยอดโดยประมาณ', err: 'เริ่มชำระเงินไม่สำเร็จ', needAmt: 'กรอกจำนวนเงิน', needName: 'กรอกชื่อ', needMerchant: 'ไม่พบร้านค้า', needFxQuote: 'ใบเสนออัตราแลกเปลี่ยนหมดอายุหรือไม่มี กรุณารีเฟรชหน้าแล้วลองใหม่', errNameEn: 'กรอกชื่อเป็นตัวอักษรภาษาอังกฤษเท่านั้น', errEmailFormat: 'กรอกอีเมลให้ถูกต้อง', errPhoneFormat: 'โทรศัพท์ใช้ได้เฉพาะ + และตัวเลข (ห้าม -)', warnEnglishOnly: 'ใช้ได้เฉพาะตัวอักษรอังกฤษ', warnAmountOnly: 'ใช้ได้เฉพาะตัวเลข', warnEmailChars: 'ใช้ได้เฉพาะอักขระที่ใช้อีเมลได้', warnPhonePlusDigits: 'โทรศัพท์ใช้ได้เฉพาะ + และตัวเลข', done: 'กำลังตรวจผลชำระเงิน', payComplete: 'ชำระเงินสำเร็จ', payFailed: 'ชำระเงินล้มเหลว', paid: 'ชำระเงินเสร็จแล้ว', payAwaiting: 'กำลังยืนยันการชำระ', payAwaitingDetail: 'กำลังยืนยันการอนุมัติ กรุณารอสักครู่', resultClose: 'ปิด', resultRetry: 'ชำระอีกครั้ง', webOff: 'บริการชำระเงินของร้านค้านี้ถูกตั้งค่าเป็นระงับ', configErr: 'โหลดการตั้งค่าชำระเงินไม่สำเร็จ' }
+    KOR: { lead: '주문·구매자 정보를 확인한 뒤 결제 페이지로 이동합니다.', pay: '결제하기', wait: '이동 중…', merchant: '가맹점', item: '상품', amount: '금액', order: '주문번호', name: '성명', email: '이메일', phone: '전화번호', firstName: '이름', lastName: '성', country: '국가코드', shipping: '배송주소', hint: '위 성명은 결제내역 고객란에 사용됩니다. 다음 화면에서 카드 명의를 한 번 더 입력합니다.', brandSub: 'Secure Payment', fxCur: '표시 통화', fxEst: '예상 청구', err: '결제를 시작하지 못했습니다.', needAmt: '금액을 입력하세요.', needName: '성명을 입력하세요.', needNameApi: '가맹 prepare buyer.name(또는 firstName+lastName)이 필요합니다. 쇼핑몰 회원명을 전달하세요.', needMerchant: '가맹점을 찾을 수 없습니다.', needFxQuote: '환율 견적을 불러오지 못했습니다. 페이지를 새로고침한 뒤 다시 시도하세요.', errNameEn: '성명은 영문만 입력하세요.', errEmailFormat: '올바른 이메일 형식을 입력하세요.', errPhoneFormat: '전화번호는 +와 숫자만 입력하세요(- 불가).', warnEnglishOnly: '영어 알파벳만 입력 가능합니다.', warnAmountOnly: '숫자만 입력 가능합니다.', warnEmailChars: '이메일에 사용할 수 있는 문자만 입력 가능합니다.', warnPhonePlusDigits: '전화번호는 +와 숫자만 입력 가능합니다.', done: '결제 결과를 확인 중입니다.', payComplete: '결제 완료', payFailed: '결제 실패', paid: '결제가 완료되었습니다.', payAwaiting: '결제 확인 중', payAwaitingDetail: '승인을 확인하고 있습니다. 잠시만 기다려 주세요.', resultClose: '닫기', resultRetry: '다시 결제', webOff: '이 가맹점은 결제 서비스가 중지로 설정되어 있습니다.', configErr: '결제 설정을 불러오지 못했습니다.' },
+    ENG: { lead: 'Confirm order and shopper details, then continue to payment.', pay: 'Pay', wait: 'Redirecting…', merchant: 'Merchant', item: 'Item', amount: 'Amount', order: 'Order no.', name: 'Name', email: 'Email', phone: 'Phone', firstName: 'First name', lastName: 'Last name', country: 'Country code', shipping: 'Shipping address', hint: 'This name is used in the payment history customer column. On the next screen, enter the name on the card again.', brandSub: 'Secure Payment', fxCur: 'Display currency', fxEst: 'Estimated charge', err: 'Could not start payment.', needAmt: 'Enter an amount.', needName: 'Enter the name.', needNameApi: 'Merchant prepare requires buyer.name (or firstName+lastName). Pass the shop member name.', needMerchant: 'Merchant not found.', needFxQuote: 'FX quote is missing or expired. Refresh the page and try again.', errNameEn: 'Enter the name in English letters only.', errEmailFormat: 'Enter a valid email address.', errPhoneFormat: 'Phone allows + and digits only (no hyphens).', warnEnglishOnly: 'Only English letters are allowed.', warnAmountOnly: 'Only numbers are allowed.', warnEmailChars: 'Only characters valid for email are allowed.', warnPhonePlusDigits: 'Phone allows + and digits only.', done: 'Checking payment result…', payComplete: 'Payment complete', payFailed: 'Payment failed', paid: 'Payment completed.', payAwaiting: 'Confirming payment', payAwaitingDetail: 'We are confirming the approval. Please wait.', resultClose: 'Close', resultRetry: 'Pay again', webOff: "This merchant's payment service is set to suspended.", configErr: 'Could not load payment settings.' },
+    JPN: { lead: '注文・購入者情報を確認してからお支払い画面へ進みます。', pay: '支払う', wait: '移動中…', merchant: '加盟店', item: '商品', amount: '金額', order: '注文番号', name: '氏名', email: 'メール', phone: '電話番号', firstName: '名', lastName: '姓', country: '国コード', shipping: '配送住所', hint: '上の氏名は決済履歴の顧客欄に使われます。次の画面でカード名義をもう一度入力します。', brandSub: 'Secure Payment', fxCur: '表示通貨', fxEst: '請求見込み', err: 'お支払いを開始できませんでした。', needAmt: '金額を入力してください。', needName: '氏名を入力してください。', needNameApi: '加盟店 prepare の buyer.name（または firstName+lastName）が必要です。ショップ会員名を渡してください。', needMerchant: '加盟店が見つかりません。', needFxQuote: '為替見積がありません。ページを再読み込みしてから再度お試しください。', errNameEn: '氏名は英字のみ入力してください。', errEmailFormat: '正しいメール形式で入力してください。', errPhoneFormat: '電話番号は+と数字のみ（ハイフン不可）。', warnEnglishOnly: '英字のみ入力できます。', warnAmountOnly: '数字のみ入力できます。', warnEmailChars: 'メールに使用できる文字のみ入力できます。', warnPhonePlusDigits: '電話番号は+と数字のみ入力できます。', done: 'お支払い結果を確認しています。', payComplete: '決済完了', payFailed: '決済失敗', paid: 'お支払いが完了しました。', payAwaiting: '決済確認中', payAwaitingDetail: '承認を確認しています。しばらくお待ちください。', resultClose: '閉じる', resultRetry: 'もう一度支払う', webOff: 'この加盟店の決済サービスは停止に設定されています。', configErr: '決済設定を読み込めませんでした。' },
+    CHN: { lead: '请确认订单与购买人信息后进入支付页。', pay: '付款', wait: '跳转中…', merchant: '商户', item: '商品', amount: '金额', order: '订单号', name: '姓名', email: '邮箱', phone: '电话', firstName: '名', lastName: '姓', country: '国家代码', shipping: '配送地址', hint: '上方姓名用于支付明细客户栏。下一屏请再输入一次卡面姓名。', brandSub: 'Secure Payment', fxCur: '显示货币', fxEst: '预计扣款', err: '无法开始付款。', needAmt: '请输入金额。', needName: '请输入姓名。', needNameApi: '商户 prepare 需要 buyer.name（或 firstName+lastName）。请传递商城会员姓名。', needMerchant: '找不到商户。', needFxQuote: '汇率报价无效或已过期。请刷新页面后重试。', errNameEn: '姓名请仅用英文字母。', errEmailFormat: '请输入有效的邮箱地址。', errPhoneFormat: '电话仅允许 + 与数字（不可用连字符）。', warnEnglishOnly: '只能输入英文字母。', warnAmountOnly: '只能输入数字。', warnEmailChars: '只能输入邮箱允许的字符。', warnPhonePlusDigits: '电话仅允许 + 与数字。', done: '正在确认付款结果。', payComplete: '支付完成', payFailed: '支付失败', paid: '支付已完成。', payAwaiting: '正在确认支付', payAwaitingDetail: '正在确认授权，请稍候。', resultClose: '关闭', resultRetry: '重新支付', webOff: '该商户的支付服务已设置为停止。', configErr: '无法加载支付设置。' },
+    THA: { lead: 'ตรวจคำสั่งซื้อและข้อมูลผู้ซื้อ แล้วไปหน้าชำระเงิน', pay: 'ชำระเงิน', wait: 'กำลังไป…', merchant: 'ร้านค้า', item: 'สินค้า', amount: 'จำนวนเงิน', order: 'เลขคำสั่งซื้อ', name: 'ชื่อ', email: 'อีเมล', phone: 'โทรศัพท์', firstName: 'ชื่อ', lastName: 'นามสกุล', country: 'รหัสประเทศ', shipping: 'ที่อยู่จัดส่ง', hint: 'ชื่อด้านบนใช้ในคอลัมน์ลูกค้าของประวัติชำระเงิน ในหน้าถัดไปให้กรอกชื่อบนบัตรอีกครั้ง', brandSub: 'Secure Payment', fxCur: 'สกุลเงินแสดง', fxEst: 'ยอดโดยประมาณ', err: 'เริ่มชำระเงินไม่สำเร็จ', needAmt: 'กรอกจำนวนเงิน', needName: 'กรอกชื่อ', needNameApi: 'prepare ของร้านต้องมี buyer.name (หรือ firstName+lastName) ส่งชื่อสมาชิกร้าน', needMerchant: 'ไม่พบร้านค้า', needFxQuote: 'ใบเสนออัตราแลกเปลี่ยนหมดอายุหรือไม่มี กรุณารีเฟรชหน้าแล้วลองใหม่', errNameEn: 'กรอกชื่อเป็นตัวอักษรภาษาอังกฤษเท่านั้น', errEmailFormat: 'กรอกอีเมลให้ถูกต้อง', errPhoneFormat: 'โทรศัพท์ใช้ได้เฉพาะ + และตัวเลข (ห้าม -)', warnEnglishOnly: 'ใช้ได้เฉพาะตัวอักษรอังกฤษ', warnAmountOnly: 'ใช้ได้เฉพาะตัวเลข', warnEmailChars: 'ใช้ได้เฉพาะอักขระที่ใช้อีเมลได้', warnPhonePlusDigits: 'โทรศัพท์ใช้ได้เฉพาะ + และตัวเลข', done: 'กำลังตรวจผลชำระเงิน', payComplete: 'ชำระเงินสำเร็จ', payFailed: 'ชำระเงินล้มเหลว', paid: 'ชำระเงินเสร็จแล้ว', payAwaiting: 'กำลังยืนยันการชำระ', payAwaitingDetail: 'กำลังยืนยันการอนุมัติ กรุณารอสักครู่', resultClose: 'ปิด', resultRetry: 'ชำระอีกครั้ง', webOff: 'บริการชำระเงินของร้านค้านี้ถูกตั้งค่าเป็นระงับ', configErr: 'โหลดการตั้งค่าชำระเงินไม่สำเร็จ' }
   };
 
   var q = new URLSearchParams(location.search);
@@ -119,6 +144,9 @@
   var lockedOrder = false;
   var USE_EMAIL = true;
   var USE_PHONE = true;
+  var USE_COUNTRY = true;
+  var USE_NAME = true;
+  var USE_SHIPPING = false;
   var USE_PRODUCT = true;
   var urlPayDisplayFxActive = false;
   var urlPayPricingMode = 'CHECKOUT_CURRENCY';
@@ -136,6 +164,13 @@
     document.getElementById('lblName').textContent = t('name');
     document.getElementById('lblEmail').textContent = t('email');
     document.getElementById('lblPhone').textContent = t('phone');
+    var lc = document.getElementById('lblCountry'); if (lc) lc.textContent = t('country');
+    var ls = document.getElementById('lblShipping'); if (ls) ls.textContent = t('shipping');
+    var fn = document.getElementById('payFirstname'); if (fn) fn.placeholder = t('firstName');
+    var ln = document.getElementById('payLastname'); if (ln) ln.placeholder = t('lastName');
+    if (window.PG_JPAY_CONTACT && PG_JPAY_CONTACT.refreshCountryLabels) {
+      PG_JPAY_CONTACT.refreshCountryLabels(document.getElementById('omsForm'), LANG, t('country'));
+    }
     document.getElementById('buyerHint').textContent = t('hint');
     document.getElementById('lblFxCur').textContent = t('fxCur');
     document.getElementById('lblFxEst').textContent = t('fxEst');
@@ -194,33 +229,65 @@
     if (typeof b === 'string') {
       try { b = JSON.parse(b); } catch (e) { b = {}; }
     }
-    var composed = '';
-    if (b && (b.firstName || b.lastName)) {
-      composed = (String(b.firstName || '') + ' ' + String(b.lastName || '')).trim();
+    var fn = (b && (b.firstName || b.payFirstname || b.givenName)) || q.get('firstName') || '';
+    var ln = (b && (b.lastName || b.payLastname || b.familyName || b.surname)) || q.get('lastName') || '';
+    var composed = (String(fn || '') + ' ' + String(ln || '')).trim();
+    var name = (data && (data.customerNm || data.buyerName || data.name))
+        || (b && (b.name || b.customerNm || b.fullName)) || composed
+        || q.get('buyerName') || q.get('name') || '';
+    if ((!fn || !ln) && name) {
+      var parts = String(name).trim().split(/\s+/);
+      if (!fn && parts.length) fn = parts[0];
+      if (!ln && parts.length > 1) ln = parts.slice(1).join(' ');
     }
     return {
-      name: (data && (data.customerNm || data.buyerName || data.name))
-        || (b && (b.name || b.customerNm || b.fullName)) || composed
-        || q.get('buyerName') || q.get('name') || '',
+      firstName: String(fn || '').trim(),
+      lastName: String(ln || '').trim(),
+      name: String(name || '').trim(),
       email: (data && (data.payEmailAddress || data.buyerEmail || data.email))
         || (b && (b.email || b.payEmailAddress)) || q.get('email') || '',
       tel: (data && (data.payTelephone || data.customerTel || data.phone || data.tel))
-        || (b && (b.tel || b.phone || b.payTelephone)) || q.get('tel') || ''
+        || (b && (b.tel || b.phone || b.payTelephone)) || q.get('tel') || '',
+      countryIso2: (data && (data.payCountryIsoCode2 || data.countryIso2 || data.country))
+        || (b && (b.countryIso2 || b.payCountryIsoCode2 || b.country)) || q.get('countryIso2') || '',
+      address: (b && (b.address || b.payStreetAddress1)) || '',
+      city: (b && (b.city || b.payCity)) || '',
+      postcode: (b && (b.postcode || b.payPostcode || b.zip)) || ''
     };
   }
 
+  function composedBuyerName() {
+    var fn = (document.getElementById('payFirstname') || {}).value || '';
+    var ln = (document.getElementById('payLastname') || {}).value || '';
+    var composed = (String(fn).trim() + ' ' + String(ln).trim()).trim();
+    var hidden = document.getElementById('buyerName');
+    if (hidden) hidden.value = composed;
+    return composed;
+  }
+
   function applyBuyerVisibility() {
+    document.getElementById('nameRow').classList.toggle('d-none', !USE_NAME);
     document.getElementById('emailRow').classList.toggle('d-none', !USE_EMAIL);
+    document.getElementById('countryRow').classList.toggle('d-none', !USE_COUNTRY);
     document.getElementById('phoneRow').classList.toggle('d-none', !USE_PHONE);
+    document.getElementById('shippingRow').classList.toggle('d-none', !USE_SHIPPING);
     document.getElementById('itemRow').classList.toggle('d-none', !USE_PRODUCT);
+    var any = USE_NAME || USE_EMAIL || USE_COUNTRY || USE_PHONE || USE_SHIPPING;
+    document.getElementById('buyerBlock').classList.toggle('d-none', !any);
   }
 
   function applyCheckoutContext(ctx) {
     checkoutCtx = ctx || {};
     USE_EMAIL = String(ctx.urlPayBuyerEmailUseYn != null ? ctx.urlPayBuyerEmailUseYn : 'Y').toUpperCase() === 'Y';
     USE_PHONE = String(ctx.urlPayBuyerPhoneUseYn != null ? ctx.urlPayBuyerPhoneUseYn : 'Y').toUpperCase() === 'Y';
+    USE_COUNTRY = String(ctx.urlPayBuyerCountryUseYn != null ? ctx.urlPayBuyerCountryUseYn : 'Y').toUpperCase() === 'Y';
+    USE_NAME = String(ctx.urlPayBuyerNameUseYn != null ? ctx.urlPayBuyerNameUseYn : 'Y').toUpperCase() === 'Y';
+    USE_SHIPPING = String(ctx.urlPayShippingAddressUseYn != null ? ctx.urlPayShippingAddressUseYn : 'N').toUpperCase() === 'Y';
     USE_PRODUCT = String(ctx.urlPayProductNameUseYn != null ? ctx.urlPayProductNameUseYn : 'Y').toUpperCase() === 'Y';
     applyBuyerVisibility();
+    if (window.PG_JPAY_CONTACT && PG_JPAY_CONTACT.init) {
+      PG_JPAY_CONTACT.init(document.getElementById('omsForm'), ctx, LANG, t('country'));
+    }
 
     if (ctx.compId) document.getElementById('compIdHidden').value = String(ctx.compId).trim();
     if (ctx.merchantName) {
@@ -241,7 +308,10 @@
         PG_URL_PAY_SHELL.applyCardCopyPresentation({ lang: LANG, cardCopy: window.__payUrlCardCopy, t: t, skipBrandSub: false });
       }
       if (PG_URL_PAY_SHELL.applyCheckoutHeaderSubtitle) {
-        PG_URL_PAY_SHELL.applyCheckoutHeaderSubtitle(ctx, { t: t, getLang: function () { return LANG; } });
+        PG_URL_PAY_SHELL.applyCheckoutHeaderSubtitle(ctx, { t: t, getLang: function () { return LANG; }, form: document.getElementById('omsForm') });
+      }
+      if (PG_URL_PAY_SHELL.applyDynamicCheckoutForm) {
+        PG_URL_PAY_SHELL.applyDynamicCheckoutForm(ctx, { form: document.getElementById('omsForm') });
       }
       if (PG_URL_PAY_SHELL.applyAmountScaleNotice) {
         PG_URL_PAY_SHELL.applyAmountScaleNotice({
@@ -328,9 +398,15 @@
     }
     var order = data.orderNo || q.get('orderNo') || '';
     if (order) {
-      document.getElementById('orderNo').value = String(order);
-      document.getElementById('orderNo').readOnly = true;
+      if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.lockOrderNoField) {
+        PG_URL_PAY_SHELL.lockOrderNoField('orderNo', order);
+      } else {
+        document.getElementById('orderNo').value = String(order);
+        document.getElementById('orderNo').readOnly = true;
+      }
       lockedOrder = true;
+    } else {
+      ensureOrderNo();
     }
     /* DP: 표시통화 설정(또는 세션 displayCurrency). 정산통화로 덮어쓰지 않음 */
     if (urlPayDisplayFxActive) {
@@ -345,31 +421,50 @@
       if (cur) document.getElementById('payAmountCurrencyHint').textContent = '(' + String(cur).toUpperCase() + ')';
     }
     var b = pickBuyer(data);
-    if (b.name) {
-      document.getElementById('buyerName').value = String(b.name).trim().replace(/[^A-Za-z '\-]/g, '');
-    }
-    if (b.email) {
-      document.getElementById('buyerEmail').value = String(b.email).trim().replace(/[^a-zA-Z0-9._%+\-@]/g, '');
-    }
+    if (b.firstName) document.getElementById('payFirstname').value = String(b.firstName).trim();
+    if (b.lastName) document.getElementById('payLastname').value = String(b.lastName).trim();
+    composedBuyerName();
+    if (b.email) document.getElementById('buyerEmail').value = String(b.email).trim();
     if (b.tel) {
       var telRaw = String(b.tel).trim();
-      var telOut = '';
-      for (var ti = 0; ti < telRaw.length; ti++) {
-        var tc = telRaw.charAt(ti);
-        if (tc === '+' && telOut.length === 0) telOut += '+';
-        else if (tc >= '0' && tc <= '9') telOut += tc;
+      if (window.PG_JPAY_CONTACT && PG_JPAY_CONTACT.stripDialPrefix) {
+        telRaw = PG_JPAY_CONTACT.stripDialPrefix(telRaw);
       }
-      document.getElementById('buyerTel').value = telOut;
+      document.getElementById('payTelephone').value = telRaw;
     }
-    if ((q.get('session') || '').trim() && b.name) {
-      document.getElementById('buyerBlock').classList.add('d-none');
+    if (window.PG_JPAY_CONTACT && PG_JPAY_CONTACT.applyPrefill) {
+      PG_JPAY_CONTACT.applyPrefill(document.getElementById('omsForm'), checkoutCtx || {}, {
+        countryIso2: b.countryIso2,
+        phone: b.tel,
+        email: b.email,
+        payEmailAddress: b.email
+      }, LANG, t('country'));
+    } else if (b.countryIso2) {
+      var cc = document.getElementById('payContactCountryCode');
+      var hid = document.getElementById('payCountryIsoCode2');
+      if (cc) cc.value = String(b.countryIso2).trim().toUpperCase();
+      if (hid) hid.value = String(b.countryIso2).trim().toUpperCase();
+    }
+    if (b.address) document.getElementById('payStreetAddress1').value = String(b.address).trim();
+    if (b.city) document.getElementById('payCity').value = String(b.city).trim();
+    if (b.postcode) document.getElementById('payPostcode').value = String(b.postcode).trim();
+    /* API 세션: 구매자 정보는 prepare prefill 그대로 — 폼은 설정 YN에 따라 표시 */
+    if ((q.get('session') || '').trim() && b.name && USE_NAME) {
+      /* 성명 활성인데 값이 있으면 숨기지 않고 확인 가능. merchant_api 자동이동은 tryAutoStart 에서 처리 */
     }
   }
 
   function ensureOrderNo() {
     var el = document.getElementById('orderNo');
+    if (!el) return;
     if (!el.value.trim()) el.value = buildOrderNo(document.getElementById('compIdHidden').value || getCompId());
-    el.readOnly = true;
+    if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.lockOrderNoField) {
+      PG_URL_PAY_SHELL.lockOrderNoField(el, el.value);
+    } else {
+      el.readOnly = true;
+      el.setAttribute('readonly', 'readonly');
+      el.tabIndex = -1;
+    }
     lockedOrder = true;
   }
 
@@ -654,16 +749,17 @@
     var amtEl = document.getElementById('amount');
     var amt = amtEl ? String(amtEl.value || '').replace(/,/g, '').trim() : '';
     if (!amt || !(Number(amt) > 0)) return false;
-    var nameEl = document.getElementById('buyerName');
-    var buyerName = nameEl ? String(nameEl.value || '').trim() : '';
+    var buyerName = composedBuyerName();
     if (!buyerName) {
       var b = pickBuyer(sessionData || {});
       buyerName = (b && b.name) ? String(b.name).trim() : '';
-      if (buyerName && nameEl) nameEl.value = buyerName.replace(/[^A-Za-z '\-]/g, '');
+      if (b && b.firstName) document.getElementById('payFirstname').value = b.firstName;
+      if (b && b.lastName) document.getElementById('payLastname').value = b.lastName;
+      buyerName = composedBuyerName() || buyerName;
     }
     if (!buyerName) {
-      buyerName = 'Customer';
-      if (nameEl) nameEl.value = buyerName;
+      showConfigError(t('needNameApi'));
+      return false;
     }
     var buyerBlock = document.getElementById('buyerBlock');
     if (buyerBlock) buyerBlock.classList.add('d-none');
@@ -701,29 +797,48 @@
       return;
     }
     var buyerHidden = document.getElementById('buyerBlock').classList.contains('d-none');
-    var buyerName = document.getElementById('buyerName').value.trim();
+    var buyerName = composedBuyerName();
     if (!buyerHidden) {
-      if (!buyerName) { alert(t('needName')); return; }
-      if (pfg && pfg.validateEnglishName && !pfg.validateEnglishName(buyerName)) {
-        alert(t('errNameEn'));
-        return;
-      }
+      if (USE_NAME && !buyerName) { alert(t('needName')); return; }
       if (USE_EMAIL) {
         var emVal = document.getElementById('buyerEmail').value.trim();
-        if (emVal && pfg && pfg.validateEmail && !pfg.validateEmail(emVal)) {
+        if (!emVal) { alert(t('needEmail') || t('errEmailFormat')); return; }
+        if (pfg && pfg.validateEmail && !pfg.validateEmail(emVal)) {
           alert(t('errEmailFormat'));
           return;
         }
       }
+      if (USE_COUNTRY) {
+        var ccVal = window.PG_JPAY_CONTACT
+          ? PG_JPAY_CONTACT.readCountryIso2(document.getElementById('omsForm'))
+          : (document.getElementById('payCountryIsoCode2').value || '').trim();
+        if (!ccVal || String(ccVal).length !== 2) { alert(t('needCountry') || t('country')); return; }
+      }
       if (USE_PHONE) {
-        var telVal = document.getElementById('buyerTel').value.trim();
-        if (telVal && pfg && pfg.validatePhonePlusDigits && !pfg.validatePhonePlusDigits(telVal)) {
-          alert(t('errPhoneFormat'));
-          return;
-        }
+        var telVal = document.getElementById('payTelephone').value.trim();
+        if (!telVal) { alert(t('needPhone') || t('errPhoneFormat')); return; }
+      }
+      if (USE_SHIPPING) {
+        var addr = (document.getElementById('payStreetAddress1').value || '').trim();
+        if (!addr) { alert(t('needShipping') || t('shipping')); return; }
       }
     }
-    if (!buyerName) buyerName = 'Customer';
+    if (USE_NAME && !buyerName && !buyerHidden) { alert(t('needName')); return; }
+    if (!buyerName) {
+      var b2 = pickBuyer(sessionData || {});
+      buyerName = (b2 && b2.name) ? String(b2.name).trim() : '';
+    }
+    if (!buyerName) { alert(t('needName')); return; }
+    if (pfg && pfg.validateEnglishName && !pfg.validateEnglishName(buyerName)) {
+      alert(t('errNameEn'));
+      return;
+    }
+    var payCountryIso = '';
+    if (window.PG_JPAY_CONTACT) {
+      payCountryIso = PG_JPAY_CONTACT.readCountryIso2(document.getElementById('omsForm')) || '';
+    } else {
+      payCountryIso = (document.getElementById('payCountryIsoCode2').value || '').trim().toUpperCase();
+    }
     var btn = document.getElementById('submitBtn');
     btn.disabled = true;
     btn.textContent = t('wait');
@@ -739,8 +854,14 @@
       currency: settleCur,
       productName: document.getElementById('item').value.trim(),
       customerNm: buyerName || (sessionData.customerNm || ''),
-      payEmailAddress: USE_EMAIL ? document.getElementById('buyerEmail').value.trim() : '',
-      payTelephone: USE_PHONE ? document.getElementById('buyerTel').value.trim() : '',
+      payFirstname: (document.getElementById('payFirstname').value || '').trim(),
+      payLastname: (document.getElementById('payLastname').value || '').trim(),
+      payEmailAddress: USE_EMAIL ? document.getElementById('buyerEmail').value.trim() : (pickBuyer(sessionData).email || ''),
+      payTelephone: USE_PHONE ? document.getElementById('payTelephone').value.trim() : (pickBuyer(sessionData).tel || ''),
+      payCountryIsoCode2: USE_COUNTRY ? payCountryIso : (pickBuyer(sessionData).countryIso2 || ''),
+      payStreetAddress1: USE_SHIPPING ? (document.getElementById('payStreetAddress1').value || '').trim() : '',
+      payCity: USE_SHIPPING ? (document.getElementById('payCity').value || '').trim() : '',
+      payPostcode: USE_SHIPPING ? (document.getElementById('payPostcode').value || '').trim() : '',
       sessionToken: document.getElementById('sessionTokenHidden').value || session || '',
       txnOrigin: fromMerchantApi ? 'MERCHANT_API' : 'URL',
       /* OMS 복귀는 ICOPAY(omspay-pay). API면 entry=merchant_api 로 사이트백(NOTI Result) 분기 */

@@ -2726,6 +2726,12 @@
     '샌드박스통보': { EN: 'Sandbox notify', JP: 'サンドボックス通報', CH: '沙箱通知', TH: 'แจ้ง sandbox' },
     '결제통보 URL (SANDBOX)': { EN: 'Payment notify URL (SANDBOX)', JP: '決済通報 URL (SANDBOX)', CH: '支付通知 URL (SANDBOX)', TH: 'URL แจ้งชำระ (SANDBOX)' },
     '샌드박스 사용': { EN: 'Sandbox use', JP: 'サンドボックス使用', CH: '沙箱启用', TH: 'ใช้ sandbox' },
+    '성명(리다이렉트용)': {
+      EN: 'Name (redirect)',
+      JP: '氏名(リダイレクト用)',
+      CH: '姓名（跳转用）',
+      TH: 'ชื่อ (redirect)'
+    },
     '샌드박스 시크릿 발급': { EN: 'Issue sandbox secret', JP: 'サンドボックス秘密鍵発行', CH: '签发沙箱密钥', TH: 'ออกคีย์ sandbox' },
     '샌드박스 시크릿': { EN: 'Sandbox secret', JP: 'サンドボックスシークレット', CH: '沙箱密钥', TH: 'คีย์ sandbox' },
     '샌드박스 발행일자': { EN: 'Sandbox issued date', JP: 'サンドボックス発行日', CH: '沙箱发行日', TH: 'วันออก sandbox' },
@@ -3673,11 +3679,17 @@
       CH: '关闭卡号输入后在结账页显示的提示',
       TH: 'ข้อความบนหน้าชำระเมื่อซ่อนช่องบัตร'
     },
-    '「비활성」이면 결제창에서 금액·카드번호·유효기간·CVV·성·이름 입력란을 숨깁니다. 저장 시 5개국어로 1회 번역·저장되며, 결제창에서는 저장된 문구만 표시합니다(표시마다 재번역하지 않음). URL이 있으면 자동 하이퍼링크됩니다.': {
-      EN: 'Inactive hides amount, card number, expiry, CVV, first and last name on checkout. On save, text is translated once into 5 languages; checkout shows stored text only. URLs become auto hyperlinks.',
-      JP: '「非活性」では決済画面の金額・カード番号・有効期限・CVV・姓・名を非表示。保存時に5言語へ1回翻訳し、決済画面は保存文のみ。URLは自動ハイパーリンク。',
-      CH: '「停用」时结账页隐藏金额、卡号、有效期、CVV、姓与名。保存时一次译成五语；结账页只显示已存文案。含 URL 时自动超链接。',
-      TH: '「ปิด」จะซ่อนจำนวนเงิน เลขบัตร วันหมดอายุ CVV ชื่อและนามสกุลในหน้าชำระ ตอนบันทึกแปลครั้งเดียวเป็น 5 ภาษา หน้าชำระใช้ข้อความที่เก็บไว้ หากมี URL จะลิงก์อัตโนมัติ'
+    '「비활성」이면 인라인 카드결제창에서 금액·카드번호·유효기간·CVV·성·이름·결제버튼을 숨깁니다. OMSPAY 등 리다이렉트(RE) 확인창(인라인 카드란 없음)은 금액·DP 표시통화·성명(리다이렉트용)·결제하기를 유지합니다. 저장 시 5개국어로 1회 번역·저장되며, 결제창에서는 저장된 문구만 표시합니다(표시마다 재번역하지 않음). URL이 있으면 자동 하이퍼링크됩니다.': {
+      EN: 'Inactive hides amount, card number, expiry, CVV, name, and Pay on inline card checkout. RE confirm pages without inline card fields (e.g. OMSPAY) keep amount, DP display currency, redirect name, and Pay. On save, text is translated once into 5 languages; checkout shows stored text only. URLs become auto hyperlinks.',
+      JP: '「非活性」ではインラインカード決済の金額・カード番号・有効期限・CVV・氏名・支払うを非表示。インラインカード欄のないRE確認画面(OMSPAY等)は金額・DP表示通貨・氏名(リダイレクト用)・支払うを維持。保存時に5言語へ1回翻訳し、決済画面は保存文のみ。URLは自動ハイパーリンク。',
+      CH: '「停用」时在内联卡结账页隐藏金额、卡号、有效期、CVV、姓名与付款按钮。无内联卡栏的 RE 确认页（如 OMSPAY）仍显示金额、DP 显示币、跳转用姓名与付款。保存时一次译成五语；结账页只显示已存文案。含 URL 时自动超链接。',
+      TH: '「ปิด」จะซ่อนยอด เลขบัตร วันหมดอายุ CVV ชื่อ และปุ่มชำระในหน้าบัตรอินไลน์ หน้า RE ที่ไม่มีช่องบัตร (เช่น OMSPAY) คงยอด สกุล DP ชื่อ(redirect) และปุ่มชำระ ตอนบันทึกแปลครั้งเดียวเป็น 5 ภาษา หน้าชำระใช้ข้อความที่เก็บไว้ หากมี URL จะลิงก์อัตโนมัติ'
+    },
+    '카드입력 비활성: 인라인 카드결제창에서 금액·카드번호·유효·CVV·성명·결제버튼을 숨기고 안내 문구만 표시합니다. OMSPAY 등 리다이렉트(RE) 확인창에는 인라인 카드란이 없어 금액·DP 표시통화·성명(리다이렉트용)·결제하기는 그대로 표시됩니다.': {
+      EN: 'Card input Off: on inline card checkout hides amount, card number, expiry, CVV, name, and Pay (message only). RE confirm pages without inline card fields (e.g. OMSPAY) still show amount, DP display currency, redirect name, and Pay.',
+      JP: 'カード入力オフ: インラインカード決済では金額・カード番号・有効・CVV・氏名・支払うを隠し案内のみ。インラインカード欄のないRE確認画面(OMSPAY等)は金額・DP表示通貨・氏名(リダイレクト用)・支払うを表示。',
+      CH: '关闭卡片输入：内联卡结账页隐藏金额、卡号、有效期、CVV、姓名与付款（仅提示）。无内联卡栏的 RE 确认页（如 OMSPAY）仍显示金额、DP 显示币、跳转用姓名与付款。',
+      TH: 'ปิดป้อนบัตร: หน้าบัตรอินไลน์จะซ่อนยอด เลขบัตร วันหมดอายุ CVV ชื่อ และปุ่มชำระ (เหลือข้อความ) หน้า RE ที่ไม่มีช่องบัตร (เช่น OMSPAY) ยังแสดงยอด สกุล DP ชื่อ(redirect) และปุ่มชำระ'
     },
     '「비활성」일 때만 입력합니다. 저장 시 5개국어로 1회 번역·저장되며, 결제창에서는 저장된 문구만 표시합니다(표시마다 재번역하지 않음). URL이 있으면 자동 하이퍼링크됩니다.': {
       EN: 'Editable only when Inactive. On save, text is translated once into 5 languages and stored; checkout shows the stored text only (no re-translate on each view). URLs become auto hyperlinks.',

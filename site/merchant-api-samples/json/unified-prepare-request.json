@@ -6,6 +6,7 @@
   "productName": "Sample product",
   "lang": "ENG",
   "buyer": {
+    "name": "Taro Yamada",
     "email": "buyer@example.com",
     "phone": "1012345678",
     "countryIso2": "KR"

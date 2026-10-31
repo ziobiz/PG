@@ -29,6 +29,7 @@ X-Icopay-Merchant-Broker-Secret: {brokerSecret}
   "productName": "Sample product",
   "lang": "ENG",
   "buyer": {
+    "name": "Taro Yamada",
     "email": "buyer@example.com",
     "phone": "1012345678",
     "countryIso2": "KR"
@@ -36,7 +37,7 @@ X-Icopay-Merchant-Broker-Secret: {brokerSecret}
 }
 ```
 
-**Required:** `compId` (or merchantId), `orderNo`, `amount`, `buyer.email`, `buyer.phone`, `buyer.countryIso2`
+**Required:** `compId` (or merchantId), `orderNo`, `amount`, `buyer.name` (or firstName+lastName), `buyer.email`, `buyer.phone`, `buyer.countryIso2`
 
 **Crypto:** same URL with `"payMeans": "CRYPTO"` (optional `displayCurrency`).  
 Guide (5 languages): [crypto-checkout-api.html](crypto-checkout-api.html) · sample [crypto-prepare-request.json](../json/crypto-prepare-request.json)  

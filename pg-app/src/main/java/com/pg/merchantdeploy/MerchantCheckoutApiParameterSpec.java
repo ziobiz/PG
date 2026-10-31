@@ -276,11 +276,11 @@ public final class MerchantCheckoutApiParameterSpec {
         rows.add(param(9, "buyer", "buyer", "Object", null, "M",
                 new Bundle("구매자 연락처·배송 prefill", "Buyer contact & optional shipping prefill",
                         "購入者連絡先・配送 prefill", "买家联系信息与配送预填", "ข้อมูลผู้ซื้อและ prefill จัดส่ง"),
-                new Bundle("표 1.2 필수 하위: email·phone·countryIso2 (ICOPAY, 빈 값 불가). buyerPrefill 동일 구조",
-                        "Table 1.2 required: email, phone, countryIso2 (ICOPAY; empty not allowed). buyerPrefill same shape",
-                        "表 1.2 必須: email・phone・countryIso2 (ICOPAY、空不可)。buyerPrefill も同構造",
-                        "表 1.2 必填子字段：email、phone、countryIso2（ICOPAY，不允许空值）。buyerPrefill 结构相同",
-                        "ตาราง 1.2 บังคับ: email phone countryIso2 (ICOPAY ค่าว่างใช้ไม่ได้) buyerPrefill เหมือนกัน")));
+                new Bundle("표 1.2 필수 하위: email·phone·countryIso2·name (ICOPAY, 빈 값 불가). buyerPrefill 동일 구조",
+                        "Table 1.2 required: email, phone, countryIso2, name (ICOPAY; empty not allowed). buyerPrefill same shape",
+                        "表 1.2 必須: email・phone・countryIso2・name (ICOPAY、空不可)。buyerPrefill も同構造",
+                        "表 1.2 必填子字段：email、phone、countryIso2、name（ICOPAY，不允许空值）。buyerPrefill 结构相同",
+                        "ตาราง 1.2 บังคับ: email phone countryIso2 name (ICOPAY ค่าว่างใช้ไม่ได้) buyerPrefill เหมือนกัน")));
         return rows;
     }
 
@@ -309,45 +309,53 @@ public final class MerchantCheckoutApiParameterSpec {
                         "例: KR, US, TH。大文字2文字。ICOPAY 必須(M)。欠落・形式エラー時 BUYER_COUNTRY_REQUIRED。sale: payCountryIsoCode2",
                         "例：KR、US、TH。两位大写。ICOPAY 必填(M)。缺省/格式错误 → BUYER_COUNTRY_REQUIRED。sale: payCountryIsoCode2",
                         "เช่น KR US TH ตัวพิมพ์ใหญ่ จำเป็น(M) ICOPAY หากขาด/รูปแบบผิด BUYER_COUNTRY_REQUIRED sale: payCountryIsoCode2")));
-        rows.add(param(4, "address", "buyer.address", "String", 200, "O",
+        rows.add(param(4, "name", "buyer.name", "String", 200, "M",
+                new Bundle("구매자 성명(쇼핑몰 회원명)", "Buyer full name (shop member name)",
+                        "購入者氏名（ショップ会員名）", "买家姓名（商城会员名）", "ชื่อผู้ซื้อ (ชื่อสมาชิกร้าน)"),
+                new Bundle("ICOPAY 필수(M). 누락 시 BUYER_NAME_REQUIRED. firstName+lastName 로 대체 가능. sale: customerNm",
+                        "Required (M). Missing → BUYER_NAME_REQUIRED. Or pass firstName+lastName. sale: customerNm",
+                        "ICOPAY 必須(M)。欠落時 BUYER_NAME_REQUIRED。firstName+lastName でも可。sale: customerNm",
+                        "ICOPAY 必填(M)。缺省 → BUYER_NAME_REQUIRED。也可用 firstName+lastName。sale: customerNm",
+                        "จำเป็น(M) หากขาด BUYER_NAME_REQUIRED หรือส่ง firstName+lastName ได้ sale: customerNm")));
+        rows.add(param(5, "address", "buyer.address", "String", 200, "O",
                 new Bundle("배송 주소 1행(선택 prefill)", "Shipping address line 1 (optional)",
                         "配送住所1行（任意 prefill）", "配送地址第 1 行（可选）", "ที่อยู่จัดส่งบรรทัด 1 (ไม่บังคับ)"),
                 emptyRemark()));
-        rows.add(param(5, "address2", "buyer.address2", "String", 200, "O",
+        rows.add(param(6, "address2", "buyer.address2", "String", 200, "O",
                 new Bundle("배송 주소 2행", "Shipping address line 2",
                         "配送住所2行目", "配送地址第 2 行", "ที่อยู่บรรทัด 2"),
                 emptyRemark()));
-        rows.add(param(6, "city", "buyer.city", "String", 100, "O",
+        rows.add(param(7, "city", "buyer.city", "String", 100, "O",
                 new Bundle("도시", "City", "市区町村", "城市", "เมือง"),
                 emptyRemark()));
-        rows.add(param(7, "state", "buyer.state", "String", 100, "O",
+        rows.add(param(8, "state", "buyer.state", "String", 100, "O",
                 new Bundle("주·도", "State / province", "都道府県", "省/州", "จังหวัด"),
                 emptyRemark()));
-        rows.add(param(8, "postcode", "buyer.postcode", "String", 20, "O",
+        rows.add(param(9, "postcode", "buyer.postcode", "String", 20, "O",
                 new Bundle("우편번호", "Postal / ZIP code", "郵便番号", "邮编", "รหัสไปรษณีย์"),
                 new Bundle("zip 별칭", "zip alias", "zip 別名", "zip 别名", "ชื่อ zip")));
-        rows.add(param(9, "firstName", "buyer.firstName", "String", 80, "O",
-                new Bundle("구매자 이름(결제창 카드 명의 미리채움)", "Buyer given name (checkout cardholder prefill)",
-                        "購入者の名（決済画面カード名義 prefill）", "买家名（支付页持卡人预填）", "ชื่อผู้ซื้อ (prefill ชื่อผู้ถือบัตร)"),
-                new Bundle("권장. 결제창에서 카드 명의자 이름은 구매자 입력 필수",
-                        "Recommended. Cardholder first name is required on the ICOPAY checkout page",
-                        "推奨。カード名義の名は ICOPAY 決済画面で購入者入力必須",
-                        "建议填写。持卡人名在 ICOPAY 支付页由买家必填",
-                        "แนะนำ ชื่อผู้ถือบัตรกรอกที่หน้าชำระ ICOPAY (จำเป็น)")));
-        rows.add(param(10, "lastName", "buyer.lastName", "String", 80, "O",
-                new Bundle("구매자 성(결제창 카드 명의 미리채움)", "Buyer family name (checkout cardholder prefill)",
-                        "購入者の姓（決済画面カード名義 prefill）", "买家姓（支付页持卡人预填）", "นามสกุลผู้ซื้อ (prefill ชื่อผู้ถือบัตร)"),
-                new Bundle("권장. 결제창에서 카드 명의자 성은 구매자 입력 필수",
-                        "Recommended. Cardholder last name is required on the ICOPAY checkout page",
-                        "推奨。カード名義の姓は ICOPAY 決済画面で購入者入力必須",
-                        "建议填写。持卡人姓在 ICOPAY 支付页由买家必填",
-                        "แนะนำ นามสกุลผู้ถือบัตรกรอกที่หน้าชำระ ICOPAY (จำเป็น)")));
-        rows.add(param(11, "shippingAddress", "buyer.shippingAddress", "String", 200, "O",
+        rows.add(param(10, "firstName", "buyer.firstName", "String", 80, "O",
+                new Bundle("구매자 이름(name 대체·카드 명의 prefill)", "Given name (satisfies name; card prefill)",
+                        "名（name 代替・カード名義 prefill）", "名（可代替 name；持卡人预填）", "ชื่อ (แทน name ได้; prefill บัตร)"),
+                new Bundle("name 없을 때 lastName 과 함께 필수 충족. ElementPay 카드 명의 prefill",
+                        "With lastName satisfies required name when name omitted. ElementPay cardholder prefill",
+                        "name 欠落時は lastName と合わせて必須充足。ElementPay カード名義 prefill",
+                        "无 name 时与 lastName 一起满足必填。ElementPay 持卡人预填",
+                        "ถ้าไม่มี name ใช้คู่กับ lastName ให้ครบ ElementPay prefill ชื่อบัตร")));
+        rows.add(param(11, "lastName", "buyer.lastName", "String", 80, "O",
+                new Bundle("구매자 성(name 대체·카드 명의 prefill)", "Family name (satisfies name; card prefill)",
+                        "姓（name 代替・カード名義 prefill）", "姓（可代替 name；持卡人预填）", "นามสกุล (แทน name ได้; prefill บัตร)"),
+                new Bundle("name 없을 때 firstName 과 함께 필수 충족",
+                        "With firstName satisfies required name when name omitted",
+                        "name 欠落時は firstName と合わせて必須充足",
+                        "无 name 时与 firstName 一起满足必填",
+                        "ถ้าไม่มี name ใช้คู่กับ firstName ให้ครบ")));
+        rows.add(param(12, "shippingAddress", "buyer.shippingAddress", "String", 200, "O",
                 new Bundle("별도 배송지 주소(선택)", "Separate shipping street (optional)",
                         "別配送先住所（任意）", "单独配送地址（可选）", "ที่อยู่จัดส่งแยก (ไม่บังคับ)"),
                 new Bundle("address 와 다를 때", "When different from address",
                         "address と異なる場合", "与 address 不同时", "เมื่อต่างจาก address")));
-        rows.add(param(12, "shippingPhone", "buyer.shippingPhone", "String", 32, "O",
+        rows.add(param(13, "shippingPhone", "buyer.shippingPhone", "String", 32, "O",
                 new Bundle("별도 배송지 전화(선택)", "Separate shipping phone (optional)",
                         "別配送先電話（任意）", "单独配送电话（可选）", "โทรจัดส่งแยก (ไม่บังคับ)"),
                 emptyRemark()));

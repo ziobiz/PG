@@ -436,7 +436,7 @@
   /** 카드입력 비활성 시 결제창 안내문구(저장 시 다국어 1회 번역) — 카드입력 셀렉트 옆 */
   function urlPayCardInputDisabledTextFieldBlock() {
     var ph = '카드입력을 끈 결제창에 표시할 안내 문구';
-    var hint = '「비활성」이면 결제창에서 금액·카드번호·유효기간·CVV·성·이름 입력란을 숨깁니다. 저장 시 5개국어로 1회 번역·저장되며, 결제창에서는 저장된 문구만 표시합니다(표시마다 재번역하지 않음). URL이 있으면 자동 하이퍼링크됩니다.';
+    var hint = '「비활성」이면 인라인 카드결제창에서 금액·카드번호·유효기간·CVV·성·이름·결제버튼을 숨깁니다. OMSPAY 등 리다이렉트(RE) 확인창(인라인 카드란 없음)은 금액·DP 표시통화·성명(리다이렉트용)·결제하기를 유지합니다. 저장 시 5개국어로 1회 번역·저장되며, 결제창에서는 저장된 문구만 표시합니다(표시마다 재번역하지 않음). URL이 있으면 자동 하이퍼링크됩니다.';
     return '<div class="form-field-block url-pay-card-input-disabled-text-block" id="urlPayCardInputDisabledTextBlock">' +
       '<label class="form-label" data-pg-ui-t="카드입력 비활성 안내 문구">' + escUi(L('카드입력 비활성 안내 문구')) + '</label>' +
       '<input type="text" class="form-control form-control-sm" name="urlPayCardInputDisabledText" id="urlPayCardInputDisabledText" ' +
@@ -564,6 +564,7 @@
         { v: 'DISABLED', t: '비활성' }
       ], col: 2 },
       { type: 'customHtml', col: 10, html: urlPayCardInputDisabledTextFieldBlock }],
+      [{ label: '', type: 'note', col: 12, text: '카드입력 비활성: 인라인 카드결제창에서 금액·카드번호·유효·CVV·성명·결제버튼을 숨기고 안내 문구만 표시합니다. OMSPAY 등 리다이렉트(RE) 확인창에는 인라인 카드란이 없어 금액·DP 표시통화·성명(리다이렉트용)·결제하기는 그대로 표시됩니다.' }],
       [{ label: '결제창이동', type: 'select', name: 'urlPayCheckoutMoveMode', options: [
         { v: 'DISABLED', t: '비활성' },
         { v: 'DIRECT', t: '직접입력' },
@@ -578,20 +579,24 @@
       [{ label: '배송주소', type: 'select', name: 'urlPayShippingAddressUseYn', options: [
         { v: 'Y', t: '활성' },
         { v: 'N', t: '비활성' }
-      ], col: 3 },
+      ], col: 2 },
        { label: '이메일', type: 'select', name: 'urlPayBuyerEmailUseYn', options: [
         { v: 'Y', t: '활성' },
         { v: 'N', t: '비활성' }
-      ], col: 3 },
+      ], col: 2 },
        { label: '국가코드', type: 'select', name: 'urlPayBuyerCountryUseYn', options: [
         { v: 'Y', t: '활성' },
         { v: 'N', t: '비활성' }
-      ], col: 3 },
+      ], col: 2 },
        { label: '전화번호', type: 'select', name: 'urlPayBuyerPhoneUseYn', options: [
         { v: 'Y', t: '활성' },
         { v: 'N', t: '비활성' }
-      ], col: 3 }],
-      [{ label: '', type: 'note', col: 12, text: '구매자입력 프리셋: 기본형·1형·2형…을 고르면 이메일·국가·전화·배송은 프리셋을 따릅니다(개별 항목 잠금). 「비활성」으로 둔 뒤에만 네 항목을 개별 활성/비활성으로 설정합니다. 프리셋이 켜진 채 개별 항목을 바꾸려 하면 「구매자입력 프리셋을 비활성화하세요.」안내가 표시됩니다. 전 PG(URL·API 인라인) 공통입니다.' }],
+      ], col: 2 },
+       { label: '성명(리다이렉트용)', type: 'select', name: 'urlPayBuyerNameUseYn', options: [
+        { v: 'Y', t: '활성' },
+        { v: 'N', t: '비활성' }
+      ], col: 2 }],
+      [{ label: '', type: 'note', col: 12, text: '구매자입력 프리셋: 기본형·1형·2형…을 고르면 이메일·국가·전화·배송은 프리셋을 따릅니다(개별 항목 잠금). 「비활성」으로 둔 뒤에만 네 항목을 개별 활성/비활성으로 설정합니다. 성명(리다이렉트용)은 프리셋과 별도이며 기본값은 활성입니다. URL·리다이렉트 결제창 이름/성 표시를 제어합니다(비활성 시 성명 미표시). 프리셋이 켜진 채 개별 항목을 바꾸려 하면 「구매자입력 프리셋을 비활성화하세요.」안내가 표시됩니다.' }],
       [{ type: 'customHtml', col: 12, html: webPaymentHeaderSubtitleFieldBlock }],
       merchantWebPaymentDefaultProductRow(),
       [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml(urlPh); } },
@@ -4651,10 +4656,10 @@
             [{ label: '', type: 'note', col: 12, text: '결제창이동은 가맹 업체등록에서만 설정하며 기본은 비활성입니다. 공개 URL 결제에만 적용되고 가맹 API(인라인·리다이렉트·WooCommerce)에는 적용되지 않습니다. 위 문구는 가맹이 직접입력 안내를 비웠을 때 사용합니다.' }],
             [{ label: '이메일', type: 'select', name: 'urlPayBuyerEmailUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
              { label: '국가코드', type: 'select', name: 'urlPayBuyerCountryUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
-             { label: '전화번호', type: 'select', name: 'urlPayBuyerPhoneUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 }],
-            [{ label: '', type: 'note', col: 12, text: '이메일·국가코드·전화번호·배송주소는 JPAY·ElementPay 등 전 PG 결제창에 동일 적용됩니다. 비활성 시 화면 숨김 — 가맹 prepare buyerPrefill 등으로 전달 필요. 아래 프리셋 표의 「기본형」과 동기화됩니다.' }],
-            [{
-              type: 'customHtml',
+             { label: '전화번호', type: 'select', name: 'urlPayBuyerPhoneUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
+             { label: '성명(리다이렉트용)', type: 'select', name: 'urlPayBuyerNameUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 }],
+            [{ label: '', type: 'note', col: 12, text: '이메일·국가코드·전화번호·배송주소는 JPAY·ElementPay 등 전 PG 결제창에 동일 적용됩니다. 성명(리다이렉트용) 본사 기본값은 활성입니다. 비활성 시 화면 숨김 — 가맹 prepare buyerPrefill 등으로 전달 필요. 이메일·국가·전화·배송은 아래 프리셋 「기본형」과 동기화됩니다(성명은 프리셋 제외).' }],
+            [{ type: 'customHtml',
               col: 12,
               html: '<div class="border rounded p-2 mb-2" id="hqCheckoutFieldPresetWrap">'
                 + '<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">'
@@ -4694,6 +4699,17 @@
         },
         {
           title: '통합결제설정',
+          title: '다이나믹 결제방식',
+          notice: 'ICOPAY <strong>카드 입력창</strong>만 해당합니다(크립토·QR·PG 호스티드 카드창 제외). <strong>활성</strong>: 모바일·태블릿=다이나믹(포커스 줌·자동 스크롤·단계 입력), PC=일반. <strong>비활성</strong>: 전 기기 일반. iframe embed는 항상 일반.',
+          rows: [
+            [{ label: '다이나믹 결제방식', type: 'select', name: 'dynamicCheckoutFormYn', options: [
+              { v: 'Y', t: '활성' },
+              { v: 'N', t: '비활성' }
+            ], col: 3 },
+             { label: '', type: 'note', col: 9, text: '활성 시 PC는 일반, 모바일·태블릿만 다이나믹. 비활성 시 모든 기기 일반 폼.' }]
+          ]
+        },
+        {
           sharedCard: true,
           notice: '카드+크립토 수단선택창(/checkout-all) 문구입니다. 「활성」이면 옆 입력창 문구가 노출되고, 「비활성」이면 숨깁니다. 가맹이 「본사설정 따름」이면 이 값이 적용됩니다.',
           rows: [

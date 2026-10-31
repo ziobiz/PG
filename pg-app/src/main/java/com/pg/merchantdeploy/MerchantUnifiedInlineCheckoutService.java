@@ -9,6 +9,7 @@ import com.pg.service.MerchantPayLimitService;
 import com.pg.service.MerchantPgBindingRouterService;
 import com.pg.service.UrlPayChargeResolutionService;
 import com.pg.splitpay.SplitPayCheckoutModeGuard;
+import com.pg.urlpay.DynamicCheckoutFormService;
 import com.pg.urlpay.MobileCheckoutModeService;
 import com.pg.urlpay.CheckoutFailI18n;
 import com.pg.urlpay.IcipayBuyerContactUtil;
@@ -44,6 +45,7 @@ public class MerchantUnifiedInlineCheckoutService {
 
     private final SplitPayCheckoutModeGuard splitPayCheckoutModeGuard;
     private final MobileCheckoutModeService mobileCheckoutModeService;
+    private final DynamicCheckoutFormService dynamicCheckoutFormService;
     private final OrgUnitRepository orgUnitRepository;
     private final MerchantPayLimitService merchantPayLimitService;
     private final UrlPayChargeResolutionService urlPayChargeResolutionService;
@@ -65,6 +67,7 @@ public class MerchantUnifiedInlineCheckoutService {
                                                 MerchantApiIntegrationChannelService integrationChannelService,
                                                 SplitPayCheckoutModeGuard splitPayCheckoutModeGuard,
                                                 MobileCheckoutModeService mobileCheckoutModeService,
+                                                DynamicCheckoutFormService dynamicCheckoutFormService,
                                                 OrgUnitRepository orgUnitRepository,
                                                 MerchantPayLimitService merchantPayLimitService,
                                                 UrlPayChargeResolutionService urlPayChargeResolutionService,
@@ -85,6 +88,7 @@ public class MerchantUnifiedInlineCheckoutService {
         this.integrationChannelService = integrationChannelService;
         this.splitPayCheckoutModeGuard = splitPayCheckoutModeGuard;
         this.mobileCheckoutModeService = mobileCheckoutModeService;
+        this.dynamicCheckoutFormService = dynamicCheckoutFormService;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantPayLimitService = merchantPayLimitService;
         this.urlPayChargeResolutionService = urlPayChargeResolutionService;
@@ -209,6 +213,7 @@ public class MerchantUnifiedInlineCheckoutService {
                     data.put("sessionToken", token);
                     orgUnitRepository.findByCode(session.compId()).ifPresent(ou ->
                             mobileCheckoutModeService.enrichInlineSession(data, ou.getId(), request));
+                    dynamicCheckoutFormService.putIntoMap(data);
                     Map<String, Object> out = new LinkedHashMap<>();
                     out.put("success", true);
                     out.put("data", data);
@@ -285,11 +290,12 @@ public class MerchantUnifiedInlineCheckoutService {
         // 실제 PG 는 응답에 노출하지 않는다 — 항상 ICOPAY (operationalPgCd 미노출)
         data.put("pgVendor", MerchantApiResponseMapper.MERCHANT_FACING_BRAND);
         data.put("integrationMode", "INLINE_UNIFIED");
+        dynamicCheckoutFormService.putIntoMap(data);
         if (orgUnitId != null) {
             mobileCheckoutModeService.putEffectiveIntoMap(data, orgUnitId);
         }
         data.put("embedUsageHint",
-                "ICOPAY 통합 prepare: buyer(email·phone·countryIso2) 필수. sessionToken → /v1/embed-checkout/{compId}. "
+                "ICOPAY 통합 prepare: buyer(email·phone·countryIso2·name) 필수. sessionToken → /v1/embed-checkout/{compId}. "
                         + "결제망은 ICOPAY가 자동 선택·처리하며, 가맹점 연동은 결제 대행사 변경과 무관하게 그대로 유지됩니다.");
     }
 

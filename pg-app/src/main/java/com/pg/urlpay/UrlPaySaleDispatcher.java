@@ -82,6 +82,11 @@ public class UrlPaySaleDispatcher {
                                            Map<String, Object> body,
                                            HttpServletRequest request,
                                            String clientIp) {
+        /* 성명·카드명의 — 전 PG 공통 영문만 (한글·가나 등 차단) */
+        Map<String, Object> latinFail = IcipayBuyerContactUtil.failMapIfBuyerNameNotLatin(body);
+        if (latinFail != null) {
+            return latinFail;
+        }
         String cardBrand = "";
         String qrWallet = firstNonBlank(body, "qrWallet", "qrWalletCode");
         String payMeans = firstNonBlank(body, "payMeans", "paymentMeans");

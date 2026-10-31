@@ -214,7 +214,27 @@
 
       }
 
-      input.setAttribute('autocomplete', input.getAttribute('autocomplete') || 'given-name');
+      /* mobile: prefer English keyboard + Latin-only */
+
+      input.setAttribute('lang', 'en');
+
+      input.setAttribute('inputmode', 'text');
+
+      input.setAttribute('autocapitalize', 'words');
+
+      input.setAttribute('autocorrect', 'off');
+
+      input.setAttribute('spellcheck', 'false');
+
+      input.setAttribute('pattern', "[A-Za-z '\-]+");
+
+      if (!input.getAttribute('autocomplete')) {
+
+        var id = String(input.id || '').toLowerCase();
+
+        input.setAttribute('autocomplete', /last|family|surname/.test(id) ? 'family-name' : 'given-name');
+
+      }
 
       input.addEventListener('input', function () {
 
@@ -584,10 +604,14 @@
     form = form || g.document.getElementById('omsForm');
     if (!form) return;
     var amt = query(form, 'amount');
+    var fn = query(form, 'payFirstname');
+    var ln = query(form, 'payLastname');
     var name = query(form, 'buyerName');
     var em = query(form, 'buyerEmail');
-    var tel = query(form, 'buyerTel');
+    var tel = query(form, 'payTelephone') || query(form, 'buyerTel');
     if (amt) amountFilter(amt);
+    if (fn) englishNameFilter(fn);
+    if (ln) englishNameFilter(ln);
     if (name) englishNameFilter(name);
     if (em) emailSanitizeFilter(em);
     if (tel) phonePlusDigitsFilter(tel, 20, 'warnPhonePlusDigits');

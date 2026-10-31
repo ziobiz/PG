@@ -29,6 +29,7 @@ X-Icopay-Merchant-Broker-Secret: {브로커시크릿}
   "productName": "Sample product",
   "lang": "ENG",
   "buyer": {
+    "name": "Taro Yamada",
     "email": "buyer@example.com",
     "phone": "1012345678",
     "countryIso2": "KR"
@@ -36,7 +37,7 @@ X-Icopay-Merchant-Broker-Secret: {브로커시크릿}
 }
 ```
 
-**필수:** `compId`(또는 merchantId), `orderNo`, `amount`, `buyer.email`, `buyer.phone`, `buyer.countryIso2`
+**필수:** `compId`(또는 merchantId), `orderNo`, `amount`, `buyer.name`(또는 firstName+lastName), `buyer.email`, `buyer.phone`, `buyer.countryIso2`
 
 **크립토:** 동일 URL에 `"payMeans": "CRYPTO"` 추가 (또는 `displayCurrency`).  
 상세 5개국어: [crypto-checkout-api.ko.html](crypto-checkout-api.ko.html) · 샘플 [crypto-prepare-request.json](../json/crypto-prepare-request.json)  

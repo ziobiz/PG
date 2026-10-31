@@ -6,13 +6,221 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '5.79';
+  var CURRENT_LIVE = '5.88';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '5.88',
+      kind: 'minor',
+      date: '2026-10-31',
+      items: {
+        KO: [
+          '본사정책 화면 미표시 오류 수정(screens.js 문법 오류 — 결제URL 등 메뉴 클릭 시 내용이 비던 문제)'
+        ],
+        EN: [
+          'Fixed blank HQ Policy screens (screens.js syntax error — Payment URL and other menus showed empty content)'
+        ],
+        JP: [
+          '本社政策画面が空白になる不具合を修正(screens.js構文エラー — URL決済などメニュー内容が表示されない)'
+        ],
+        CH: [
+          '修复总部政策页面空白（screens.js 语法错误 — 点击支付URL等菜单无内容）'
+        ],
+        TH: [
+          'แก้หน้านโยบายสำนักงานใหญ่ว่าง (syntax error ใน screens.js — เมนูเช่น URLชำระไม่แสดงเนื้อหา)'
+        ]
+      }
+    },
+    {
+      version: '5.87',
+      kind: 'minor',
+      date: '2026-10-31',
+      items: {
+        KO: [
+          '성명·카드명의: 모바일 영문 키보드 유도(lang=en)·영문만 입력·붙여넣기 차단, 서버(URL sale·prepare)에서도 영문만 허용(BUYER_NAME_LATIN_ONLY)'
+        ],
+        EN: [
+          'Name fields: prefer English mobile keyboard (lang=en), Latin-only input/paste, server rejects non-English names on URL sale/prepare (BUYER_NAME_LATIN_ONLY)'
+        ],
+        JP: [
+          '氏名: モバイルで英字キーボード誘導(lang=en)・英字のみ入力、サーバー(URL sale・prepare)でも英字のみ(BUYER_NAME_LATIN_ONLY)'
+        ],
+        CH: [
+          '姓名：移动端优先英文键盘(lang=en)、仅英文字母；服务端 URL sale/prepare 亦仅允许英文（BUYER_NAME_LATIN_ONLY）'
+        ],
+        TH: [
+          'ชื่อ: คีย์บอร์ดอังกฤษบนมือถือ (lang=en) รับเฉพาะอังกฤษ และเซิร์ฟเวอร์ URL sale/prepare ปฏิเสธชื่อที่ไม่ใช่อังกฤษ (BUYER_NAME_LATIN_ONLY)'
+        ]
+      }
+    },
+    {
+      version: '5.86',
+      kind: 'minor',
+      date: '2026-10-31',
+      items: {
+        KO: [
+          'OMSPAY 등 RE·URL 확인창: 카드입력 비활성이어도 성명(리다이렉트용)·금액·DP 표시통화·결제하기가 숨겨지던 오류 수정(인라인 카드란이 있을 때만 카드입력 비활성 적용)'
+        ],
+        EN: [
+          'RE/URL confirm (e.g. OMSPAY): fixed name/amount/DP currency/Pay hidden when Card input is Off (Card-input Off applies only when inline card fields exist)'
+        ],
+        JP: [
+          'OMSPAY等のRE・URL確認画面: カード入力オフでも氏名・金額・DP表示通貨・支払うボタンが隠れる不具合を修正(インラインカード欄がある場合のみ適用)'
+        ],
+        CH: [
+          'OMSPAY 等 RE/URL 确认页：修复「卡片输入」关闭时姓名/金额/DP 显示币/付款按钮被隐藏（仅在有内联卡片栏时生效）'
+        ],
+        TH: [
+          'หน้า RE/URL (เช่น OMSPAY): แก้กรณีปิดป้อนบัตรแล้วซ่อนชื่อ/ยอด/สกุล DP/ปุ่มชำระ (ใช้เฉพาะเมื่อมีช่องบัตรอินไลน์)'
+        ]
+      }
+    },
+    {
+      version: '5.85',
+      kind: 'minor',
+      date: '2026-10-31',
+      items: {
+        KO: [
+          'RE·URL 결제 Order no. 수정 불가 고정(PC·모바일 공통, 입력·붙여넣기 차단·잠금 표시)'
+        ],
+        EN: [
+          'RE/URL checkout: Order no. locked (PC & mobile; block typing/paste; locked styling)'
+        ],
+        JP: [
+          'RE・URL決済の Order no. を編集不可に固定(PC・モバイル共通、入力・貼り付け遮断・ロック表示)'
+        ],
+        CH: [
+          'RE/URL 支付：Order no. 固定不可改（PC/手机通用，禁止输入/粘贴并显示锁定样式）'
+        ],
+        TH: [
+          'RE/URL: ล็อก Order no. แก้ไขไม่ได้ (PC และมือถือ กันพิมพ์/วาง และแสดงสถานะล็อก)'
+        ]
+      }
+    },
+    {
+      version: '5.84',
+      kind: 'minor',
+      date: '2026-10-31',
+      items: {
+        KO: [
+          '다이나믹 결제: 모바일에서 성명·이메일·국가·전화 등이 숨겨지던 오류 수정(필드는 항상 표시, 포커스 줌·자동스크롤·자동이동만 유지)'
+        ],
+        EN: [
+          'Dynamic checkout: fixed mobile hiding name/email/country/phone (fields always visible; keep focus zoom, auto-scroll, auto-advance only)'
+        ],
+        JP: [
+          'ダイナミック決済: モバイルで氏名・メール・国・電話が隠れる不具合を修正(項目は常時表示、フォーカス拡大・自動スクロール・自動移動のみ)'
+        ],
+        CH: [
+          '动态支付：修复手机端隐藏姓名/邮箱/国家/电话（字段始终显示，仅保留聚焦放大、自动滚动、自动跳转）'
+        ],
+        TH: [
+          'ฟอร์มไดนามิก: แก้มือถือที่ซ่อนชื่อ/อีเมล/ประเทศ/โทร (ช่องแสดงเสมอ คงซูมโฟกัส เลื่อนอัตโนมัติ และข้ามช่องอัตโนมัติ)'
+        ]
+      }
+    },
+    {
+      version: '5.83',
+      kind: 'minor',
+      date: '2026-10-31',
+      items: {
+        KO: [
+          '본사정책 결제라우팅「다이나믹 결제방식」: 활성 시 모바일·태블릿 ICOPAY 카드 입력창에 단계형 포커스·자동스크롤(PC·embed·크립토·QR·PG호스티드는 일반)'
+        ],
+        EN: [
+          'HQ payment routing “Dynamic checkout form”: when ON, mobile/tablet ICOPAY card forms use stepped focus & auto-scroll (PC, embed, crypto, QR, PG-hosted stay standard)'
+        ],
+        JP: [
+          '本社決済ルーティング「ダイナミック決済方式」: 有効時、モバイル/タブレットのICOPAYカード入力で段階フォーカス・自動スクロール(PC・embed・クリプト・QR・PGホストは通常)'
+        ],
+        CH: [
+          '总部支付路由「动态支付表单」：开启后，手机/平板 ICOPAY 卡输入为分步聚焦与自动滚动（PC、embed、加密、QR、PG托管仍为普通）'
+        ],
+        TH: [
+          'เส้นทางชำระ HQ「ฟอร์มไดนามิก」: เมื่อเปิด มือถือ/แท็บเล็ตใช้โฟกัสทีละขั้นและเลื่อนอัตโนมัติที่ฟอร์มบัตร ICOPAY (PC/embed/คริปโต/QR/หน้า PG คงแบบปกติ)'
+        ]
+      }
+    },
+    {
+      version: '5.82',
+      kind: 'minor',
+      date: '2026-10-31',
+      items: {
+        KO: [
+          '성명(리다이렉트용) 기본값=활성. 본사·가맹 미설정·FOLLOW_HQ도 활성으로 맞춤(명시 비활성만 N 유지). 프리셋 잠금 제외'
+        ],
+        EN: [
+          'Name (redirect) default=ON. HQ/merchant unset or FOLLOW_HQ treated as ON (only explicit N stays off). Outside preset lock'
+        ],
+        JP: [
+          '氏名(リダイレクト用) 既定=有効。本社・加盟の未設定/FOLLOW_HQも有効(明示Nのみ無効)。プリセットロック外'
+        ],
+        CH: [
+          '姓名（跳转）默认=启用。总部/商户未设或 FOLLOW_HQ 视为启用（仅显式 N 关闭）。不在预设锁定内'
+        ],
+        TH: [
+          'ชื่อ(redirect) ค่าเริ่มต้น=เปิด ไม่ตั้งค่า/FOLLOW_HQ ถือว่าเปิด (N ที่ตั้งเองเท่านั้นที่ปิด) นอก preset'
+        ]
+      }
+    },
+    {
+      version: '5.81',
+      kind: 'minor',
+      date: '2026-10-31',
+      items: {
+        KO: [
+          '웹결제 카드: 배송·이메일·국가·전화·성명(리다이렉트용) 한 줄 활성/비활성. 성명은 프리셋과 별도',
+          'OMSPAY RE 결제창: 국가코드·이름/성 분리·배송 표시. 설정 YN·가맹 prepare 구매자정보 그대로 반영'
+        ],
+        EN: [
+          'Web pay card: shipping, email, country, phone, name(redirect) toggles in one row. Name is outside presets',
+          'OMSPAY RE checkout: country code, first/last name, shipping. Apply HQ/merchant YN and prepare buyer as-is'
+        ],
+        JP: [
+          'WEB決済カード: 配送・メール・国・電話・氏名(リダイレクト用)を1行でON/OFF。氏名はプリセット外',
+          'OMSPAY RE決済画面: 国コード・名・姓・配送。設定YNとprepare購入者情報をそのまま反映'
+        ],
+        CH: [
+          '网页支付卡片：配送/邮箱/国家/电话/姓名（跳转）同一行开关。姓名不在预设锁定内',
+          'OMSPAY 跳转支付页：国家代码、名/姓、配送。按设置 YN 与 prepare 买家信息原样回填'
+        ],
+        TH: [
+          'การ์ดชำระเว็บ: ที่อยู่ อีเมล ประเทศ โทร ชื่อ(redirect) สวิตช์แถวเดียว ชื่ออยู่นอก preset',
+          'หน้า OMSPAY RE: รหัสประเทศ ชื่อ/นามสกุล ที่อยู่ สะท้อน YN และ buyer จาก prepare ตามเดิม'
+        ]
+      }
+    },
+    {
+      version: '5.80',
+      kind: 'minor',
+      date: '2026-10-31',
+      items: {
+        KO: [
+          '가맹 API prepare: buyer.name(또는 firstName+lastName) 필수 — 쇼핑몰 회원명 전달. 누락 시 BUYER_NAME_REQUIRED',
+          'OMSPAY 결제창: 이름 없을 때 Customer 자동 채움 제거(가짜 성명으로 결제 진행 금지)'
+        ],
+        EN: [
+          'Merchant API prepare: buyer.name (or firstName+lastName) required — pass shop member name. Missing → BUYER_NAME_REQUIRED',
+          'OMSPAY checkout: removed Customer auto-fill when name is missing (no fake name payment)'
+        ],
+        JP: [
+          '加盟店API prepare: buyer.name（または firstName+lastName）必須 — ショップ会員名を渡す。欠落時 BUYER_NAME_REQUIRED',
+          'OMSPAY決済画面: 氏名欠落時の Customer 自動入力を削除（偽氏名での決済不可）'
+        ],
+        CH: [
+          '商户 API prepare：buyer.name（或 firstName+lastName）必填 — 传递商城会员姓名。缺省 → BUYER_NAME_REQUIRED',
+          'OMSPAY 支付页：取消姓名缺失时自动填 Customer（禁止用假名支付）'
+        ],
+        TH: [
+          'prepare API ร้าน: ต้องมี buyer.name (หรือ firstName+lastName) — ส่งชื่อสมาชิกร้าน หากขาด BUYER_NAME_REQUIRED',
+          'หน้า OMSPAY: เลิกเติม Customer อัตโนมัติเมื่อไม่มีชื่อ (ห้ามชำระด้วยชื่อปลอม)'
+        ]
+      }
+    },
     {
       version: '5.79',
       kind: 'minor',

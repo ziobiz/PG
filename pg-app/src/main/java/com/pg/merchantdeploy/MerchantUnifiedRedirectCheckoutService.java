@@ -202,7 +202,7 @@ public class MerchantUnifiedRedirectCheckoutService {
         data.put("pgVendor", MerchantApiResponseMapper.MERCHANT_FACING_BRAND);
         data.put("integrationMode", "REDIRECT_UNIFIED");
         data.put("redirectUsageHint",
-                "ICOPAY 통합 REDIRECT prepare: buyer(email·phone·countryIso2) 필수. "
+                "ICOPAY 통합 REDIRECT prepare: buyer(email·phone·countryIso2·name) 필수. "
                         + "returnUrl/cancelUrl은 body에 넣지 않음 — 브라우저 복귀는 NOTI Result 경유. "
                         + "결제망은 ICOPAY가 자동 선택·처리합니다.");
     }
