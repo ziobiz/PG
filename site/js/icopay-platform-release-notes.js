@@ -6,13 +6,40 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '5.94';
+  var CURRENT_LIVE = '5.95';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '5.95',
+      kind: 'minor',
+      date: '2026-11-02',
+      items: {
+        KO: [
+          'OMSPAY HPP(Beam) 502/503/504 시 결제창으로 보내지 않고 안내 후 1회 재발급 — Angel 등 RE 가맹 502 완화',
+          'omspay-pay 결제 페이지 불가 안내 5개국어'
+        ],
+        EN: [
+          'OMSPAY HPP (Beam): on 502/503/504 do not send shoppers to a broken page — retry once and show a clear message (helps RE merchants such as Angel)',
+          'omspay-pay unavailable notice in 5 languages'
+        ],
+        JP: [
+          'OMSPAY HPP(Beam) が502/503/504のとき壊れたページへ送らず、1回再発行と案内（Angel等RE加盟の502緩和）',
+          'omspay-pay 決済ページ不可案内を5言語'
+        ],
+        CH: [
+          'OMSPAY HPP（Beam）出现 502/503/504 时不跳转坏页，重试一次并提示（缓解 Angel 等 RE 商户 502）',
+          'omspay-pay 支付页不可用提示 5 语'
+        ],
+        TH: [
+          'OMSPAY HPP (Beam) เมื่อได้ 502/503/504 จะไม่พาไปหน้าเสีย — ออกลิงก์ใหม่ครั้งหนึ่งและแจ้งชัด (ช่วยร้าน RE เช่น Angel)',
+          'ข้อความหน้าชำระ omspay-pay ใช้ไม่ได้ครบ 5 ภาษา'
+        ]
+      }
+    },
     {
       version: '5.94',
       kind: 'minor',

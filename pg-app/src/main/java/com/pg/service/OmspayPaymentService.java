@@ -20,6 +20,8 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
@@ -242,13 +244,27 @@ public class OmspayPaymentService {
             return fail(out, str(pay.get("errorCode"), "OMSPAY_CARD_PAYMENT"),
                     str(pay.get("message"), "결제 페이지 생성에 실패했습니다."));
         }
-        String paymentUrl = str(pay.get("paymentUrl"), "");
-        JsonNode payJson = (JsonNode) pay.get("json");
-        if (paymentUrl.isBlank() && payJson != null && payJson.has("payment_url")) {
-            paymentUrl = payJson.get("payment_url").asText("");
-        }
+        String paymentUrl = extractPaymentUrl(pay);
         if (paymentUrl.isBlank()) {
             return fail(out, "OMSPAY_CARD_PAYMENT", "payment_url이 없습니다.");
+        }
+        /* Beam HPP 가 502/503 을 주는 구간이 있음 — 구매자를 깨진 페이지로 보내지 않음 */
+        if (isHostedPaymentPageGatewayError(paymentUrl)) {
+            log.warn("OMSPAY payment_url gateway error on first hop mid={} order={} oms={} url={}",
+                    ouOpt.get().getCode(), orderNo, omsCode, paymentUrl);
+            Map<String, Object> payRetry = apiClient.createCardPayment(creds, omsCode, returnUrl);
+            if (Boolean.TRUE.equals(payRetry.get("ok"))) {
+                String retryUrl = extractPaymentUrl(payRetry);
+                if (!retryUrl.isBlank() && !isHostedPaymentPageGatewayError(retryUrl)) {
+                    paymentUrl = retryUrl;
+                } else {
+                    return fail(out, "OMSPAY_PAYMENT_PAGE_UNAVAILABLE",
+                            "결제 페이지(HPP)에 일시적으로 연결할 수 없습니다. 잠시 후 다시 시도하세요.");
+                }
+            } else {
+                return fail(out, "OMSPAY_PAYMENT_PAGE_UNAVAILABLE",
+                        "결제 페이지(HPP)에 일시적으로 연결할 수 없습니다. 잠시 후 다시 시도하세요.");
+            }
         }
 
         out.put("success", true);
@@ -348,6 +364,48 @@ public class OmspayPaymentService {
         out.put("success", true);
         out.put("data", data);
         return out;
+    }
+
+    private static String extractPaymentUrl(Map<String, Object> pay) {
+        String paymentUrl = str(pay != null ? pay.get("paymentUrl") : null, "");
+        JsonNode payJson = pay != null ? (JsonNode) pay.get("json") : null;
+        if (paymentUrl.isBlank() && payJson != null && payJson.has("payment_url")) {
+            paymentUrl = payJson.get("payment_url").asText("");
+        }
+        return paymentUrl != null ? paymentUrl.trim() : "";
+    }
+
+    /**
+     * OMSPAY(Beam) HPP 가 일시 502/503/504 인 경우 true.
+     * 프로브 자체가 실패(네트워크 등)하면 false — 구매자 브라우저 경로를 막지 않음.
+     */
+    private boolean isHostedPaymentPageGatewayError(String paymentUrl) {
+        if (paymentUrl == null || paymentUrl.isBlank()) {
+            return false;
+        }
+        HttpURLConnection conn = null;
+        try {
+            conn = (HttpURLConnection) URI.create(paymentUrl.trim()).toURL().openConnection();
+            conn.setInstanceFollowRedirects(true);
+            conn.setConnectTimeout(4000);
+            conn.setReadTimeout(6000);
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Accept", "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8");
+            conn.setRequestProperty("User-Agent", "ICOPAY-OMSPAY-HPP-Probe/1.0");
+            int code = conn.getResponseCode();
+            if (code == 502 || code == 503 || code == 504) {
+                log.warn("OMSPAY HPP probe HTTP {}", code);
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            log.warn("OMSPAY HPP probe skipped: {}", e.toString());
+            return false;
+        } finally {
+            if (conn != null) {
+                conn.disconnect();
+            }
+        }
     }
 
     private static Map<String, Object> fail(Map<String, Object> out, String code, String message) {
