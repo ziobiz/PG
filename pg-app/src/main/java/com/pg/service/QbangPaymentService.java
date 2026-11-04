@@ -26,7 +26,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
-/** QBANG(큐뱅) QR — TK→QR→PL→OKAY. */
+/** QBANG(큐뱅) POS QR = PayPay 전용 — TK→QR→PL→OKAY. 타 지갑 연동 없음. */
 @Service
 public class QbangPaymentService {
 
@@ -37,6 +37,7 @@ public class QbangPaymentService {
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final MerchantPgBindingRouterService pgBindingRouter;
     private final UrlPayChargeResolutionService urlPayChargeResolutionService;
+    private final UrlPayDisplayFxService urlPayDisplayFxService;
     private final QbangApiClient apiClient;
     private final QbangSaleRecordService qbangSaleRecordService;
     private final MerchantOutboundNotifyService merchantOutboundNotifyService;
@@ -51,6 +52,7 @@ public class QbangPaymentService {
                                PgTrnsctnRepository pgTrnsctnRepository,
                                MerchantPgBindingRouterService pgBindingRouter,
                                UrlPayChargeResolutionService urlPayChargeResolutionService,
+                               UrlPayDisplayFxService urlPayDisplayFxService,
                                QbangApiClient apiClient,
                                QbangSaleRecordService qbangSaleRecordService,
                                MerchantOutboundNotifyService merchantOutboundNotifyService,
@@ -61,6 +63,7 @@ public class QbangPaymentService {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.pgBindingRouter = pgBindingRouter;
         this.urlPayChargeResolutionService = urlPayChargeResolutionService;
+        this.urlPayDisplayFxService = urlPayDisplayFxService;
         this.apiClient = apiClient;
         this.qbangSaleRecordService = qbangSaleRecordService;
         this.merchantOutboundNotifyService = merchantOutboundNotifyService;
@@ -124,6 +127,59 @@ public class QbangPaymentService {
         } catch (IllegalArgumentException e) {
             return fail(out, "INVALID_AMOUNT", e.getMessage());
         }
+        /* 본사 URL결제설정 settlementCurrency(QBANG 예외·DEV는 보통 KRW)로 맞춘다 */
+        String settleCur = charge.settlementCurrency();
+        BigDecimal pgAmt = charge.pgAmount();
+        BigDecimal shopperAmt = charge.shopperDisplayAmount();
+        String shopperCur = charge.shopperDisplayCurrency();
+        String targetCur = urlPayDisplayFxService.settlementCurrencyForPg(opPg);
+        if (targetCur == null || targetCur.isBlank()) {
+            targetCur = "KRW";
+        }
+        if (settleCur == null || settleCur.isBlank()) {
+            settleCur = targetCur;
+        }
+        /* body 가 이미 KRW 면 BOT 환전 없이 그대로 청구(DEV 테스트·가맹 기준통화와 무관) */
+        String bodyCur = str(body, "currency", "displayCurrency");
+        BigDecimal bodyAmt = null;
+        try {
+            String rawAmt = str(body, "amount", "displayAmount");
+            if (!rawAmt.isBlank()) {
+                bodyAmt = new BigDecimal(rawAmt.trim());
+            }
+        } catch (Exception ignored) {
+            bodyAmt = null;
+        }
+        if ("KRW".equalsIgnoreCase(bodyCur) && bodyAmt != null && bodyAmt.compareTo(BigDecimal.ZERO) > 0) {
+            if (shopperAmt == null) {
+                shopperAmt = pgAmt;
+                shopperCur = settleCur;
+            }
+            pgAmt = urlPayDisplayFxService.applyChargeAmountRound("KRW", bodyAmt);
+            settleCur = "KRW";
+        } else if (!targetCur.equalsIgnoreCase(settleCur)) {
+            Optional<BigDecimal> conv = urlPayDisplayFxService.convertAmount(pgAmt, settleCur, targetCur);
+            if (conv.isEmpty() && creds.sandbox()) {
+                /* BOT 불가 환경(DEV) — agency extra sandboxThbToKrw 또는 기본 40 */
+                BigDecimal rate = sandboxThbToKrwRate(opPg);
+                if ("THB".equalsIgnoreCase(settleCur) && "KRW".equalsIgnoreCase(targetCur)
+                        && rate != null && rate.compareTo(BigDecimal.ZERO) > 0) {
+                    conv = Optional.of(pgAmt.multiply(rate));
+                    log.warn("QBANG sandbox FX fallback THB→KRW rate={} orderHint={}",
+                            rate, str(body, "orderNo"));
+                }
+            }
+            if (conv.isEmpty()) {
+                return fail(out, "QBANG_FX",
+                        "QBANG 실결제 통화(" + targetCur + ") 환전에 실패했습니다. 본사 환율·표시통화 설정을 확인하세요.");
+            }
+            if (shopperAmt == null) {
+                shopperAmt = pgAmt;
+                shopperCur = settleCur;
+            }
+            pgAmt = urlPayDisplayFxService.applyChargeAmountRound(targetCur, conv.get());
+            settleCur = targetCur;
+        }
         String orderNo = str(body, "orderNo", "order_no", "reference");
         if (orderNo.isBlank()) {
             return fail(out, "INVALID_ORDER_NO", "orderNo가 필요합니다.");
@@ -149,14 +205,14 @@ public class QbangPaymentService {
             } catch (Exception ignored) {
                 vat = BigDecimal.ZERO;
             }
-        } else if ("KRW".equalsIgnoreCase(charge.settlementCurrency())) {
-            vat = charge.pgAmount().multiply(new BigDecimal("10"))
+        } else if ("KRW".equalsIgnoreCase(settleCur)) {
+            vat = pgAmt.multiply(new BigDecimal("10"))
                     .divide(new BigDecimal("110"), 0, RoundingMode.HALF_UP);
         }
 
         String productName = str(body, "productName", "item");
         Map<String, Object> qr = apiClient.requestQr(creds, key, iv, txnNo,
-                charge.settlementCurrency(), charge.pgAmount(), vat, productName);
+                settleCur, pgAmt, vat, productName);
         if (!Boolean.TRUE.equals(qr.get("ok"))) {
             return fail(out, strDef(qr.get("errorCode"), "QBANG_QR"),
                     strDef(qr.get("message"), "QBANG QR 요청에 실패했습니다."));
@@ -170,9 +226,9 @@ public class QbangPaymentService {
         String buyerEmail = str(body, "payEmailAddress", "buyerEmail", "email");
         String buyerTel = str(body, "payTelephone", "customerTel", "buyerTel", "phone");
         qbangSaleRecordService.recordOrTouchPending(
-                orgUnitId, orderNo, charge.pgAmount(), charge.settlementCurrency(),
+                orgUnitId, orderNo, pgAmt, settleCur,
                 productName, txnNo, str(body, "txnOrigin", "origin"),
-                charge.shopperDisplayAmount(), charge.shopperDisplayCurrency(),
+                shopperAmt, shopperCur,
                 buyerName, buyerEmail, buyerTel);
 
         out.put("success", true);
@@ -180,8 +236,12 @@ public class QbangPaymentService {
         data.put("orderNo", orderNo);
         data.put("transactionNo", txnNo);
         data.put("qrCode", qrCode);
-        data.put("amount", charge.pgAmount());
-        data.put("currency", charge.settlementCurrency());
+        data.put("amount", pgAmt);
+        data.put("currency", settleCur);
+        if (shopperAmt != null && shopperCur != null && !shopperCur.isBlank()) {
+            data.put("shopperDisplayAmount", shopperAmt);
+            data.put("shopperDisplayCurrency", shopperCur);
+        }
         data.put("paymentStatus", "PENDING_QR");
         data.put("remainingTimeHint", 66);
         data.put("pgVendor", "ICOPAY");
@@ -291,6 +351,32 @@ public class QbangPaymentService {
     }
 
     public record ResolvedQbang(String pgCd, MerchantPgBinding binding, QbangCredentials creds) {
+    }
+
+    /**
+     * BOT 환율이 서버에서 불가할 때 DEV 샌드박스 전용 THB→KRW 폴백.
+     * agency credentials_extra_json.sandboxThbToKrw 우선, 없으면 40.
+     */
+    private BigDecimal sandboxThbToKrwRate(String pgCd) {
+        try {
+            Optional<PgAgency> ag = pgAgencyRepository.findByPgCd(pgCd != null ? pgCd.trim() : "");
+            if (ag.isPresent() && ag.get().getCredentialsExtraJson() != null) {
+                String extra = ag.get().getCredentialsExtraJson().trim();
+                if (extra.startsWith("{")) {
+                    com.fasterxml.jackson.databind.JsonNode n =
+                            new com.fasterxml.jackson.databind.ObjectMapper().readTree(extra);
+                    if (n.has("sandboxThbToKrw") && !n.get("sandboxThbToKrw").isNull()) {
+                        BigDecimal r = new BigDecimal(n.get("sandboxThbToKrw").asText().trim());
+                        if (r.compareTo(BigDecimal.ZERO) > 0) {
+                            return r;
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            /* default below */
+        }
+        return new BigDecimal("40");
     }
 
     private static Map<String, Object> fail(Map<String, Object> out, String code, String message) {

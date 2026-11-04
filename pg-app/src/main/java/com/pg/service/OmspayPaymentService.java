@@ -45,6 +45,7 @@ public class OmspayPaymentService {
     private final OmspayApiClient apiClient;
     private final OmspaySaleRecordService omspaySaleRecordService;
     private final HqNotifyEnvService hqNotifyEnvService;
+    private final HostedPayReturnTokenService hostedPayReturnTokenService;
     private final TransactionReceiptEmailService transactionReceiptEmailService;
 
     @Value("${pg.public-base-url:https://api.icopay.co.kr}")
@@ -57,6 +58,7 @@ public class OmspayPaymentService {
                                 OmspayApiClient apiClient,
                                 OmspaySaleRecordService omspaySaleRecordService,
                                 HqNotifyEnvService hqNotifyEnvService,
+                                HostedPayReturnTokenService hostedPayReturnTokenService,
                                 @Lazy TransactionReceiptEmailService transactionReceiptEmailService) {
         this.orgUnitRepository = orgUnitRepository;
         this.pgAgencyRepository = pgAgencyRepository;
@@ -66,6 +68,7 @@ public class OmspayPaymentService {
         this.transactionReceiptEmailService = transactionReceiptEmailService;
         this.omspaySaleRecordService = omspaySaleRecordService;
         this.hqNotifyEnvService = hqNotifyEnvService;
+        this.hostedPayReturnTokenService = hostedPayReturnTokenService;
     }
 
     public Map<String, String> publicNotiIngressUrls() {
@@ -181,38 +184,6 @@ public class OmspayPaymentService {
             return fail(out, "INVALID_ORDER_NO", "orderNo가 필요합니다.");
         }
 
-        apiClient.ensureProduct(creds);
-
-        /* note = ICOPAY order only — never merchant MID */
-        Map<String, Object> ord = apiClient.createOrder(creds, charge.pgAmount(), orderNo);
-        if (!Boolean.TRUE.equals(ord.get("ok"))) {
-            return fail(out, str(ord.get("errorCode"), "OMSPAY_ORDER"),
-                    str(ord.get("message"), "OMS 주문 생성에 실패했습니다."));
-        }
-        String omsCode = str(ord.get("code"), "");
-        JsonNode ordJson = (JsonNode) ord.get("json");
-        if (omsCode.isBlank() && ordJson != null && ordJson.has("code")) {
-            omsCode = ordJson.get("code").asText("");
-        }
-        if (omsCode.isBlank()) {
-            return fail(out, "OMSPAY_ORDER", "OMS 주문코드가 없습니다.");
-        }
-
-        String returnUrl = str(body, "returnUrl", "return_url");
-        if (returnUrl.isBlank()) {
-            /* 직접 omspay-pay.html + 해시 백업 — OMS가 쿼리를 잘라도 결과 UI 진입 */
-            String base = publicBaseUrl != null ? publicBaseUrl.trim().replaceAll("/+$", "") : "https://api.icopay.co.kr";
-            String mid = java.net.URLEncoder.encode(ouOpt.get().getCode(), java.nio.charset.StandardCharsets.UTF_8);
-            String onEnc = java.net.URLEncoder.encode(orderNo, java.nio.charset.StandardCharsets.UTF_8);
-            returnUrl = base + "/omspay-pay.html"
-                    + "?m=" + mid
-                    + "&orderNo=" + onEnc
-                    + "&omspay=1&omspayReturn=1&done=1"
-                    + "#m=" + mid
-                    + "&orderNo=" + onEnc
-                    + "&omspayReturn=1&done=1";
-        }
-
         if (body != null) {
             com.pg.urlpay.PayerContextCapture.enrichSaleBody(body, request, clientIp);
             if (str(body, "txnOrigin", "origin").isBlank()) {
@@ -231,6 +202,93 @@ public class OmspayPaymentService {
         if (origin.isBlank()) {
             origin = "URL";
         }
+        String originHint = str(body, "txnOrigin", "origin");
+        boolean merchantApiReturn = "MERCHANT_API".equalsIgnoreCase(originHint)
+                || "1".equals(str(body, "merchantApiEntry"))
+                || str(body, "returnUrl", "return_url").contains("entry=merchant_api");
+        String mid = ouOpt.get().getCode();
+        String returnUrl = hostedPayReturnTokenService.buildOpaqueReturnUrl(
+                publicBaseUrl,
+                "/omspay-pay.html",
+                PgVendor.OMSPAY,
+                mid,
+                orderNo,
+                merchantApiReturn,
+                "omspay=1&omspayReturn=1&done=1");
+
+        /* 동일 주문 08 대기: 새 SO 금지 — 기존 OMS 주문으로 card-payment만 재발급 (연타·재시도 SO 덮어쓰기 방지) */
+        Optional<PgTrnsctn> existingOpt = omspaySaleRecordService.findByMerchantAndOrder(mid, orderNo);
+        if (existingOpt.isPresent()) {
+            PgTrnsctn existing = existingOpt.get();
+            String st = existing.getStatus() != null ? existing.getStatus().trim() : "";
+            String existingOms = firstNonBlank(
+                    existing.getChillTransactionId(), existing.getPayNo(), existing.getApprovalNo());
+            if ("10".equals(st) || "00".equals(st) || "01".equals(st)) {
+                out.put("success", true);
+                Map<String, Object> data = redirectData(orderNo, existingOms, null, charge);
+                data.put("paymentStatus", "PAID");
+                data.put("paid", true);
+                data.put("reusedPending", false);
+                out.put("data", data);
+                log.info("OMSPAY start already paid mid={} order={} oms={} ip={}",
+                        mid, orderNo, existingOms, clientIp);
+                return out;
+            }
+            if ("08".equals(st) && !existingOms.isBlank()) {
+                Map<String, Object> omsSt = apiClient.getOrderStatus(creds, existingOms);
+                if (Boolean.TRUE.equals(omsSt.get("ok")) && isOmsPaid(omsSt)) {
+                    omspaySaleRecordService.applyPaidOutcome(orderNo, mid, existingOms, null, buyerName);
+                    out.put("success", true);
+                    Map<String, Object> data = redirectData(orderNo, existingOms, null, charge);
+                    data.put("paymentStatus", "PAID");
+                    data.put("paid", true);
+                    data.put("reusedPending", true);
+                    out.put("data", data);
+                    log.info("OMSPAY start reconciled paid mid={} order={} oms={} ip={}",
+                            mid, orderNo, existingOms, clientIp);
+                    return out;
+                }
+                Map<String, Object> payReuse = apiClient.createCardPayment(creds, existingOms, returnUrl);
+                String paymentUrlReuse = extractPaymentUrl(payReuse);
+                if (Boolean.TRUE.equals(payReuse.get("ok")) && !paymentUrlReuse.isBlank()) {
+                    /* SO 유지 — recordOrTouchPending 에 동일 omsCode 전달 */
+                    omspaySaleRecordService.recordOrTouchPending(
+                            orgUnitId, orderNo, charge.pgAmount(), charge.settlementCurrency(),
+                            str(body, "productName", "item"), existingOms, origin,
+                            charge.shopperDisplayAmount(), charge.shopperDisplayCurrency(),
+                            buyerName, buyerEmail, buyerTel, body);
+                    out.put("success", true);
+                    Map<String, Object> data = redirectData(orderNo, existingOms, paymentUrlReuse, charge);
+                    data.put("reusedPending", true);
+                    out.put("data", data);
+                    log.info("OMSPAY redirect reused mid={} order={} oms={} ip={}",
+                            mid, orderNo, existingOms, clientIp);
+                    return out;
+                }
+                log.warn("OMSPAY reuse card-payment failed mid={} order={} oms={} msg={} — keep SO, no new order",
+                        mid, orderNo, existingOms, str(payReuse.get("message"), ""));
+                return fail(out, "OMSPAY_PENDING_IN_PROGRESS",
+                        "이미 진행 중인 결제가 있습니다. 잠시 후 다시 시도하거나 이전 결제 창에서 완료해 주세요.");
+            }
+        }
+
+        apiClient.ensureProduct(creds);
+
+        /* note = ICOPAY order only — never merchant MID */
+        Map<String, Object> ord = apiClient.createOrder(creds, charge.pgAmount(), orderNo);
+        if (!Boolean.TRUE.equals(ord.get("ok"))) {
+            return fail(out, str(ord.get("errorCode"), "OMSPAY_ORDER"),
+                    str(ord.get("message"), "OMS 주문 생성에 실패했습니다."));
+        }
+        String omsCode = str(ord.get("code"), "");
+        JsonNode ordJson = (JsonNode) ord.get("json");
+        if (omsCode.isBlank() && ordJson != null && ordJson.has("code")) {
+            omsCode = ordJson.get("code").asText("");
+        }
+        if (omsCode.isBlank()) {
+            return fail(out, "OMSPAY_ORDER", "OMS 주문코드가 없습니다.");
+        }
+
         omspaySaleRecordService.recordOrTouchPending(
                 orgUnitId, orderNo, charge.pgAmount(), charge.settlementCurrency(),
                 str(body, "productName", "item"), omsCode, origin,
@@ -242,30 +300,81 @@ public class OmspayPaymentService {
             return fail(out, str(pay.get("errorCode"), "OMSPAY_CARD_PAYMENT"),
                     str(pay.get("message"), "결제 페이지 생성에 실패했습니다."));
         }
-        String paymentUrl = str(pay.get("paymentUrl"), "");
-        JsonNode payJson = (JsonNode) pay.get("json");
-        if (paymentUrl.isBlank() && payJson != null && payJson.has("payment_url")) {
-            paymentUrl = payJson.get("payment_url").asText("");
-        }
+        String paymentUrl = extractPaymentUrl(pay);
         if (paymentUrl.isBlank()) {
             return fail(out, "OMSPAY_CARD_PAYMENT", "payment_url이 없습니다.");
         }
 
         out.put("success", true);
+        Map<String, Object> data = redirectData(orderNo, omsCode, paymentUrl, charge);
+        data.put("reusedPending", false);
+        out.put("data", data);
+        log.info("OMSPAY redirect started mid={} order={} oms={} ip={}",
+                mid, orderNo, omsCode, clientIp);
+        return out;
+    }
+
+    private Map<String, Object> redirectData(String orderNo, String omsCode, String paymentUrl,
+                                            UrlPayChargeResolutionService.ResolvedCharge charge) {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("orderNo", orderNo);
-        data.put("omsOrderCode", omsCode);
-        data.put("paymentUrl", paymentUrl);
-        data.put("redirectUrl", paymentUrl);
+        data.put("omsOrderCode", omsCode != null ? omsCode : "");
+        if (paymentUrl != null && !paymentUrl.isBlank()) {
+            data.put("paymentUrl", paymentUrl);
+            data.put("redirectUrl", paymentUrl);
+        }
         data.put("paymentStatus", "PENDING_REDIRECT");
         data.put("amount", charge.pgAmount());
         data.put("currency", charge.settlementCurrency());
         data.put("pgVendor", "ICOPAY");
         data.put("noti", publicNotiIngressUrls());
-        out.put("data", data);
-        log.info("OMSPAY redirect started mid={} order={} oms={} ip={}",
-                ouOpt.get().getCode(), orderNo, omsCode, clientIp);
-        return out;
+        return data;
+    }
+
+    private static String extractPaymentUrl(Map<String, Object> pay) {
+        if (pay == null) {
+            return "";
+        }
+        String paymentUrl = str(pay.get("paymentUrl"), "");
+        if (!paymentUrl.isBlank()) {
+            return paymentUrl;
+        }
+        Object json = pay.get("json");
+        if (json instanceof JsonNode payJson && payJson.has("payment_url")) {
+            return payJson.get("payment_url").asText("");
+        }
+        return "";
+    }
+
+    private static boolean isOmsPaid(Map<String, Object> st) {
+        if (Boolean.TRUE.equals(st.get("isPaid")) || Boolean.TRUE.equals(st.get("paid"))) {
+            return true;
+        }
+        Object json = st.get("json");
+        if (json instanceof JsonNode n) {
+            if (n.has("is_paid") && n.get("is_paid").asBoolean(false)) {
+                return true;
+            }
+            if (n.has("paid") && n.get("paid").asBoolean(false)) {
+                return true;
+            }
+            String status = n.has("status") ? n.get("status").asText("") : "";
+            return "paid".equalsIgnoreCase(status) || "success".equalsIgnoreCase(status)
+                    || "completed".equalsIgnoreCase(status);
+        }
+        return false;
+    }
+
+    private static String firstNonBlank(String... vals) {
+        if (vals == null) {
+            return "";
+        }
+        for (String v : vals) {
+            if (v != null && !v.isBlank()) {
+                return v.trim();
+            }
+        }
+        return "";
     }
 
     public Map<String, Object> pollStatus(Long orgUnitId, String omsOrderCode) {
@@ -282,6 +391,22 @@ public class OmspayPaymentService {
         out.put("success", true);
         out.put("data", st);
         return out;
+    }
+
+    /** OMS return_url {@code rt} → 가맹코드·주문번호 (성공 시 ApiResponse.ok 형태와 맞춤). */
+    public com.pg.api.ApiResponse<Map<String, Object>> resolveHostedReturn(String rt) {
+        Optional<HostedPayReturnTokenService.ReturnPayload> p =
+                hostedPayReturnTokenService.parseValid(rt, PgVendor.OMSPAY);
+        if (p.isEmpty()) {
+            return com.pg.api.ApiResponse.fail("복귀 토큰이 유효하지 않거나 만료되었습니다.", "INVALID_RETURN_TOKEN");
+        }
+        HostedPayReturnTokenService.ReturnPayload rp = p.get();
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("compId", rp.compId());
+        data.put("orderNo", rp.orderNo());
+        data.put("merchantApi", rp.merchantApi());
+        data.put("entry", rp.merchantApi() ? "merchant_api" : "");
+        return com.pg.api.ApiResponse.ok(data);
     }
 
     /**

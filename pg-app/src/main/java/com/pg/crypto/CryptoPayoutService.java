@@ -99,9 +99,11 @@ public class CryptoPayoutService {
     }
 
     public Map<String, Object> search(String compId, String status, String payoutMode, int page, int size) {
+        /* UI page는 1부터. Spring PageRequest는 0부터. */
+        int pageIdx = page <= 1 ? 0 : page - 1;
         Page<CryptoPayoutQueue> p = payoutQueueRepository.search(
                 nz(compId), nz(status), nz(payoutMode),
-                PageRequest.of(Math.max(0, page), Math.min(200, Math.max(1, size))));
+                PageRequest.of(pageIdx, Math.min(200, Math.max(1, size))));
         List<Map<String, Object>> rows = new ArrayList<>();
         int base = (int) p.getPageable().getOffset();
         int i = 0;
@@ -112,9 +114,14 @@ public class CryptoPayoutService {
         }
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("list", rows);
-        out.put("total", p.getTotalElements());
-        out.put("page", page);
-        out.put("size", size);
+        long total = p.getTotalElements();
+        int uiPage = page <= 1 ? 1 : page;
+        int pageSize = Math.min(200, Math.max(1, size));
+        out.put("total", total);
+        out.put("totalElements", total);
+        out.put("page", uiPage);
+        out.put("size", pageSize);
+        out.put("totalPages", Math.max(1, (int) Math.ceil(total / (double) pageSize)));
         return out;
     }
 

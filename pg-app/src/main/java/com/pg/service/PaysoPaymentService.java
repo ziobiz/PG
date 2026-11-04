@@ -41,6 +41,7 @@ public class PaysoPaymentService {
     private final PaysoApiClient apiClient;
     private final PaysoSaleRecordService paysoSaleRecordService;
     private final HqNotifyEnvService hqNotifyEnvService;
+    private final HostedPayReturnTokenService hostedPayReturnTokenService;
 
     @Value("${pg.public-base-url:https://api.icopay.co.kr}")
     private String publicBaseUrl;
@@ -51,7 +52,8 @@ public class PaysoPaymentService {
                                UrlPayChargeResolutionService urlPayChargeResolutionService,
                                PaysoApiClient apiClient,
                                PaysoSaleRecordService paysoSaleRecordService,
-                               HqNotifyEnvService hqNotifyEnvService) {
+                               HqNotifyEnvService hqNotifyEnvService,
+                               HostedPayReturnTokenService hostedPayReturnTokenService) {
         this.orgUnitRepository = orgUnitRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.chillPayService = chillPayService;
@@ -59,6 +61,7 @@ public class PaysoPaymentService {
         this.apiClient = apiClient;
         this.paysoSaleRecordService = paysoSaleRecordService;
         this.hqNotifyEnvService = hqNotifyEnvService;
+        this.hostedPayReturnTokenService = hostedPayReturnTokenService;
     }
 
     public Map<String, String> publicNotiIngressUrls() {
@@ -278,6 +281,21 @@ public class PaysoPaymentService {
         out.put("success", true);
         out.put("data", data);
         return out;
+    }
+
+    public com.pg.api.ApiResponse<Map<String, Object>> resolveHostedReturn(String rt) {
+        Optional<HostedPayReturnTokenService.ReturnPayload> p =
+                hostedPayReturnTokenService.parseValid(rt, PgVendor.PAYSO);
+        if (p.isEmpty()) {
+            return com.pg.api.ApiResponse.fail("복귀 토큰이 유효하지 않거나 만료되었습니다.", "INVALID_RETURN_TOKEN");
+        }
+        HostedPayReturnTokenService.ReturnPayload rp = p.get();
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("compId", rp.compId());
+        data.put("orderNo", rp.orderNo());
+        data.put("merchantApi", rp.merchantApi());
+        data.put("entry", rp.merchantApi() ? "merchant_api" : "");
+        return com.pg.api.ApiResponse.ok(data);
     }
 
     /** Payso referenceNo ≤12 — 가맹 orderNo 해시 단축(매핑은 DB order_no 유지). */

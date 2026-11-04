@@ -225,7 +225,7 @@ public class ApiHqCryptoController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> deposits(
             @RequestParam(value = "searchCompId", required = false) String searchCompId,
             @RequestParam(value = "searchStatus", required = false) String searchStatus,
-            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "50") int size) {
         return ResponseEntity.ok(ApiResponse.ok(
                 adminService.searchDeposits(searchCompId, searchStatus, page, size)));
@@ -247,7 +247,7 @@ public class ApiHqCryptoController {
             @RequestParam(value = "searchCompId", required = false) String searchCompId,
             @RequestParam(value = "searchStatus", required = false) String searchStatus,
             @RequestParam(value = "searchPayoutMode", required = false) String searchPayoutMode,
-            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "50") int size) {
         return ResponseEntity.ok(ApiResponse.ok(
                 payoutService.search(searchCompId, searchStatus, searchPayoutMode, page, size)));

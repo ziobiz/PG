@@ -8,6 +8,7 @@ import com.pg.repository.MerchantDefaultProductRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.service.ChillPayService;
+import com.pg.service.IcopayPublicIdentityService;
 import com.pg.service.MerchantPgBindingRouterService;
 import com.pg.service.PayContactRememberPolicyService;
 import com.pg.service.MerchantPayLimitService;
@@ -53,6 +54,7 @@ public class UrlPayPublicCheckoutService {
     private final MerchantPayLimitService merchantPayLimitService;
     private final MerchantInlineCheckoutTokenService merchantInlineCheckoutTokenService;
     private final DynamicCheckoutFormService dynamicCheckoutFormService;
+    private final IcopayPublicIdentityService icopayPublicIdentityService;
 
     public UrlPayPublicCheckoutService(ChillPayService chillPayService,
                                        OrgUnitRepository orgUnitRepository,
@@ -74,7 +76,8 @@ public class UrlPayPublicCheckoutService {
                                        CardAuthModeService cardAuthModeService,
                                        MerchantPayLimitService merchantPayLimitService,
                                        MerchantInlineCheckoutTokenService merchantInlineCheckoutTokenService,
-                                       DynamicCheckoutFormService dynamicCheckoutFormService) {
+                                       DynamicCheckoutFormService dynamicCheckoutFormService,
+                                       IcopayPublicIdentityService icopayPublicIdentityService) {
         this.chillPayService = chillPayService;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
@@ -96,6 +99,7 @@ public class UrlPayPublicCheckoutService {
         this.merchantPayLimitService = merchantPayLimitService;
         this.merchantInlineCheckoutTokenService = merchantInlineCheckoutTokenService;
         this.dynamicCheckoutFormService = dynamicCheckoutFormService;
+        this.icopayPublicIdentityService = icopayPublicIdentityService;
     }
 
     /**
@@ -176,6 +180,8 @@ public class UrlPayPublicCheckoutService {
                 enricher.enrich(data, orgUnitId, prof, request);
             }
         }
+        /* 가맹 사업장 주소 비노출 — 공개 표면 주소는 ICOPAY만 */
+        icopayPublicIdentityService.putPlatformBrandInto(data);
         data.put("multiPgRoutingEnabled", pgBindingRouter.isMultiPgRoutingEnabled());
         data.put("multiPgRoutingMode", pgBindingRouter.resolveMultiPgRoutingMode());
         if (pgBindingRouter.isMultiPgRoutingEnabled()) {

@@ -196,8 +196,9 @@ public final class ElementPayAdditionalParameters {
         };
     }
 
+    /** 구매자 주소 미입력 시 PG 자리값 — 가맹 주소 금지, ICOPAY 공개 주소만. */
     public static String defaultStreet(String iso2) {
-        return "123 " + defaultCity(iso2) + " Road";
+        return IcopayPublicIdentity.FALLBACK_ADDRESS;
     }
 
     private static void put(Map<String, String> map, String key, String value) {

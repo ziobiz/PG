@@ -126,6 +126,15 @@ public class ApiOmspayPayController {
         return ResponseEntity.ok(ApiResponse.ok(omspayPaymentService.publicNotiIngressUrls()));
     }
 
+    /**
+     * OMS return_url 의 암호화 {@code rt} 해석 — 가맹코드·주문번호를 PG URL 평문에 넣지 않음.
+     */
+    @GetMapping(value = "/resolve-return", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> resolveReturn(
+            @RequestParam(required = false) String rt) {
+        return ResponseEntity.ok(omspayPaymentService.resolveHostedReturn(rt));
+    }
+
     /** 구매자 return 화면 폴링 — 웹훅 반영 후 PAID/PENDING/FAIL */
     @GetMapping(value = "/result-status", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<Map<String, Object>>> resultStatus(

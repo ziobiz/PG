@@ -107,6 +107,30 @@ public class ApiCryptoPayController {
         return MerchantApiResponseMapper.mapServiceResult(checkoutService.status(session, orderNo, orgUnitId));
     }
 
+    /** 구매자: 송금 후 「송금 완료 · 입금 확인」— 세션 건 입금확정. */
+    @PostMapping("/confirm-sent")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> confirmSent(
+            @RequestBody(required = false) Map<String, Object> body) {
+        String session = "";
+        String tx = "";
+        if (body != null) {
+            if (body.get("session") != null) {
+                session = body.get("session").toString().trim();
+            } else if (body.get("sessionToken") != null) {
+                session = body.get("sessionToken").toString().trim();
+            }
+            if (body.get("depositTxHash") != null) {
+                tx = body.get("depositTxHash").toString().trim();
+            } else if (body.get("txHash") != null) {
+                tx = body.get("txHash").toString().trim();
+            }
+        }
+        if (session.isBlank()) {
+            return ResponseEntity.ok(ApiResponse.fail("session이 필요합니다.", "INVALID_SESSION"));
+        }
+        return MerchantApiResponseMapper.mapServiceResult(checkoutService.buyerConfirmSent(session, tx));
+    }
+
     private Long resolveOrgUnitId(Map<String, Object> body) {
         if (body == null) {
             return null;

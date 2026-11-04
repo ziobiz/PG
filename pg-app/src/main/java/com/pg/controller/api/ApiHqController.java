@@ -396,7 +396,11 @@ public class ApiHqController {
         pgRow.put("amountMode", am);
         if ("STANDARD".equals(am)) {
             pgRow.remove("displayCurrency");
-            pgRow.remove("settlementCurrency");
+            /* QBANG 일반형: URL결제설정에서 지정한 실결제 통화(예: DEV KRW)는 유지 */
+            boolean qbangKeepSettle = pgU.startsWith("QBANG") || pgU.startsWith("QBANK") || pgU.startsWith("QRBANK");
+            if (!qbangKeepSettle) {
+                pgRow.remove("settlementCurrency");
+            }
             pgRow.remove("fxMode");
             pgRow.remove("manualThbPerUnit");
             pgRow.remove("manualSettlementPerUnit");

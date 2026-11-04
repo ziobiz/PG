@@ -57,6 +57,11 @@ public class QbangApiClient {
         plain.put("gratuity", 0);
         plain.put("tax", 0);
         plain.put("installmentPeriod", 0);
+        /* 제품: Alipay 전용 — 미지정 시 WeChat 등 기본 QR이 나와 PayPay/Alipay 앱이 거절함 */
+        String paymentCompanyId = creds != null ? creds.paymentCompanyId() : QbangCredentials.DEFAULT_PAYMENT_COMPANY_ID;
+        if (paymentCompanyId != null && !paymentCompanyId.isBlank()) {
+            plain.put("paymentCompanyId", paymentCompanyId.trim());
+        }
         ArrayNode items = plain.putArray("items");
         ObjectNode item = items.addObject();
         String name = productName != null && !productName.isBlank() ? productName.trim() : "Payment";

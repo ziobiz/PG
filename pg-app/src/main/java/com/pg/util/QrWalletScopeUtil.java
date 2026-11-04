@@ -15,7 +15,10 @@ import java.util.Set;
 public final class QrWalletScopeUtil {
 
     public static final String PAYPAY = "PAYPAY";
-    /** 큐뱅(QBANG) POS QR — ILK PayPay 와 별도. */
+    /**
+     * 큐뱅(QBANG) POS QR = 제품상 PayPay 전용 (위챗·알리 등 타 지갑 없음).
+     * ILK {@link #PAYPAY} API 경로와 별도 어댑터 — 섞지 말 것.
+     */
     public static final String QBANG = "QBANG";
 
     /** 카탈로그 순서. 승인 규격이 들어오면 여기 지갑의 chargeReady 만 켭니다. */

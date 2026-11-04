@@ -54,7 +54,8 @@ import java.util.Optional;
 public class IlkPaymentService {
 
     private static final Logger log = LoggerFactory.getLogger(IlkPaymentService.class);
-    private static final String DESC_NAME = "ICOPAY";
+    /** 가맹 상호 대신 ICOPAY 집계 descriptor 만 (주소·사이트도 가맹값 금지). */
+    private static final String DESC_NAME = com.pg.util.IcopayPublicIdentity.DISPLAY_NAME;
     private static final String DESC_PHONE = "0000000000";
     private static final String DESC_COUNTRY = "410";
     /** NOTI 고정 Back Noti 입구 (카드·QR 공통). */

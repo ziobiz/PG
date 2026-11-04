@@ -2441,7 +2441,9 @@
   M['일반판매']={EN:'일반판매',JP:'일반판매',CH:'일반판매',TH:'일반판매'};
   M['일반형']={EN:'일반형',JP:'일반형',CH:'일반형',TH:'일반형'};
   M['일반형 (순매출 차감·무효·환불 시 성공 수수료 미추가)']={EN:'일반형 (순매출 차감·무효·환불 시 성공 수수료 미추가)',JP:'일반형 (순매출 차감·무효·환불 시 성공 수수료 미추가)',CH:'일반형 (순매출 차감·무효·환불 시 성공 수수료 미추가)',TH:'일반형 (순매출 차감·무효·환불 시 성공 수수료 미추가)'};
-  M['일반형: 총판(조직) 설정 통화로 결제되며 이 항목은 적용되지 않습니다.']={EN:'일반형: 총판(조직) 설정 통화로 결제되며 이 항목은 적용되지 않습니다.',JP:'일반형: 총판(조직) 설정 통화로 결제되며 이 항목은 적용되지 않습니다.',CH:'일반형: 총판(조직) 설정 통화로 결제되며 이 항목은 적용되지 않습니다.',TH:'일반형: 총판(조직) 설정 통화로 결제되며 이 항목은 적용되지 않습니다.'};
+  M['일반형: 총판(조직) 설정 통화로 결제되며 이 항목은 적용되지 않습니다.']={EN:'Standard mode: charged in the org/distributor currency; this field does not apply.',JP:'一般型: 総販(組織)設定通貨で決済され、この項目は適用されません。',CH:'一般型：按总代/组织设定货币收款，本项不适用。',TH:'โหมดทั่วไป: ชำระตามสกุลองค์กร/ตัวแทน ช่องนี้ไม่ใช้'};
+  M['QBANG(큐뱅) 일반형 예외: 실결제 통화만 지정 가능(DEV·샌드박스 KRW 등). 표시통화·FX는 DISPLAY/BLIND에서 설정합니다.']={EN:'QBANG exception in Standard mode: settlement currency only (e.g. DEV/sandbox KRW). Set display FX under DISPLAY/BLIND.',JP:'QBANG一般型の例外: 実決済通貨のみ指定可(DEV・サンドボックスKRW等)。表示通貨・FXはDISPLAY/BLINDで設定。',CH:'QBANG 一般型例外：仅可指定实结算货币（如 DEV/沙箱 KRW）。展示币与 FX 在 DISPLAY/BLIND 设置。',TH:'ข้อยกเว้น QBANG โหมดทั่วไป: ระบุได้เฉพาะสกุลชำระจริง (เช่น DEV/sandbox KRW) สกุลแสดง/FX ตั้งที่ DISPLAY/BLIND'};
+  M['예외: QBANG(큐뱅)']={EN:'Exception: QBANG',JP:'例外: QBANG',CH:'例外：QBANG',TH:'ข้อยกเว้น: QBANG'};
   M['일별결제']={EN:'일별결제',JP:'일별결제',CH:'일별결제',TH:'일별결제'};
   M['일별수수료']={EN:'일별수수료',JP:'일별수수료',CH:'일별수수료',TH:'일별수수료'};
   M['일별통합']={EN:'Daily integrated',JP:'日別統合',CH:'按日整合',TH:'รวมรายวัน'};
@@ -4335,6 +4337,7 @@
   M['대표수탁지갑']={EN:'Primary custody wallet',JP:'代表カストディウォレット',CH:'代表托管钱包',TH:'กระเป๋าดูแลหลัก'};
   M['대표수탁지갑 없음']={EN:'No primary custody wallet',JP:'代表カストディウォレットなし',CH:'无代表托管钱包',TH:'ไม่มีกระเป๋าดูแลหลัก'};
   M['등록된 대표수탁지갑']={EN:'Registered primary custody wallets',JP:'登録済み代表カストディウォレット',CH:'已登记代表托管钱包',TH:'กระเป๋าดูแลหลักที่ลงทะเบียน'};
+  M['임시(ReplaceMe) 주소는 저장할 수 없습니다. 실제 수탁 지갑 주소를 입력하세요.']={EN:'Placeholder (ReplaceMe) addresses cannot be saved. Enter a real custody wallet address.',JP:'仮(ReplaceMe)住所は保存できません。実際のカストディウォレット住所を入力してください。',CH:'不能保存临时(ReplaceMe)地址。请输入真实托管钱包地址。',TH:'ไม่สามารถบันทึกที่อยู่ชั่วคราว (ReplaceMe) ได้ กรอกที่อยู่กระเป๋าดูแลจริง'};
   M['대표수탁지갑을 저장했습니다.']={EN:'Primary custody wallet saved.',JP:'代表カストディウォレットを保存しました。',CH:'已保存代表托管钱包。',TH:'บันทึกกระเป๋าดูแลหลักแล้ว'};
   M['대표수탁지갑을 삭제했습니다.']={EN:'Primary custody wallet deleted.',JP:'代表カストディウォレットを削除しました。',CH:'已删除代表托管钱包。',TH:'ลบกระเป๋าดูแลหลักแล้ว'};
   M['대표수탁지갑 저장을 위해 Google OTP 6자리를 입력하세요.']={EN:'Enter Google OTP (6 digits) to save the primary custody wallet.',JP:'代表カストディウォレット保存のためGoogle OTP 6桁を入力してください。',CH:'请输入 Google OTP 6 位以保存代表托管钱包。',TH:'ใส่ Google OTP 6 หลักเพื่อบันทึกกระเป๋าดูแลหลัก'};

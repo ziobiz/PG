@@ -124,6 +124,10 @@
           <button type="button" class="btn btn-outline-secondary btn-sm ic-crypto-copy-btn" id="copyBtn">COPY</button>
         </div>
         <div class="ic-crypto-qr-wrap"><canvas id="custodyQr" width="180" height="180" aria-label="QR"></canvas></div>
+        <div class="mt-2 mb-2">
+          <label class="pay-label mb-1 d-block" for="depositTxHash" id="txHashLabel"></label>
+          <input type="text" class="form-control form-control-sm pay-input-round" id="depositTxHash" autocomplete="off" spellcheck="false" />
+        </div>
         <div class="mt-3">
           <button type="button" class="btn btn-primary btn-pay w-100" id="refreshBtn"></button>
         </div>
@@ -143,10 +147,12 @@
     KO: {
       asset: '자산 선택', network: '네트워크',
       deposit: 'ICOPAY 입금 주소', confirm: '송금 완료 · 입금 확인',
+      txHash: 'Tx 해시 (선택)', confirming: '입금 확인 중…',
       order: '주문번호', product: '상품', amount: '금액', remit: '송금금액',
       displayCcy: '표시 통화', quoteEst: '청구예상 금액 (USD 상당)', quoteUsdTag: 'USD 상당',
-      waiting: '입금 대기 중… 송금 후 「송금 완료 · 입금 확인」을 눌러 주세요.',
+      waiting: '입금 대기 중… 송금 후 「송금 완료 · 입금 확인」을 눌러 주세요. Tx 해시가 있으면 입력해 주세요.',
       confirmed: '입금이 확정되었습니다.', expired: '입금 시간이 만료되었습니다.',
+      errConfirm: '입금 확인에 실패했습니다.',
       copied: '주소를 복사했습니다.', errSession: '결제 세션을 불러오지 못했습니다.',
       pickAsset: '자산을 선택하세요.', pickNet: '네트워크를 선택하세요.',
       startProduct: '상품명', startAmount: '금액', startGo: '계속',
@@ -161,10 +167,12 @@
     EN: {
       asset: 'Select asset', network: 'Network',
       deposit: 'ICOPAY deposit address', confirm: 'I sent it · Check deposit',
+      txHash: 'Tx hash (optional)', confirming: 'Confirming deposit…',
       order: 'Order', product: 'Item', amount: 'Amount', remit: 'Remittance',
       displayCcy: 'Display currency', quoteEst: 'Expected charge (USD equiv.)', quoteUsdTag: 'USD equiv.',
-      waiting: 'Waiting for deposit… After sending, tap 「I sent it · Check deposit」.',
+      waiting: 'Waiting for deposit… After sending, tap 「I sent it · Check deposit」. Enter Tx hash if available.',
       confirmed: 'Deposit confirmed.', expired: 'Deposit window expired.',
+      errConfirm: 'Could not confirm deposit.',
       copied: 'Address copied.', errSession: 'Could not load payment session.',
       pickAsset: 'Select an asset.', pickNet: 'Select a network.',
       startProduct: 'Item', startAmount: 'Amount', startGo: 'Continue',
@@ -179,10 +187,12 @@
     JP: {
       asset: '資産を選択', network: 'ネットワーク',
       deposit: 'ICOPAY入金アドレス', confirm: '送金完了 · 入金確認',
+      txHash: 'Txハッシュ（任意）', confirming: '入金確認中…',
       order: '注文番号', product: '商品', amount: '金額', remit: '送金額',
       displayCcy: '表示通貨', quoteEst: '請求予定額 (USD相当)', quoteUsdTag: 'USD相当',
-      waiting: '入金待ち… 送金後「送金完了 · 入金確認」を押してください。',
+      waiting: '入金待ち… 送金後「送金完了 · 入金確認」を押してください。Txがあれば入力。',
       confirmed: '入金が確定しました。', expired: '入金期限が切れました。',
+      errConfirm: '入金確認に失敗しました。',
       copied: 'コピーしました。', errSession: 'セッションを読み込めません。',
       pickAsset: '資産を選んでください。', pickNet: 'ネットワークを選んでください。',
       startProduct: '商品名', startAmount: '金額', startGo: '続ける',
@@ -197,10 +207,12 @@
     CH: {
       asset: '选择资产', network: '网络',
       deposit: 'ICOPAY 充值地址', confirm: '已汇出 · 确认入金',
+      txHash: 'Tx 哈希（可选）', confirming: '正在确认入金…',
       order: '订单号', product: '商品', amount: '金额', remit: '汇款金额',
       displayCcy: '显示货币', quoteEst: '预计扣款 (USD 等值)', quoteUsdTag: 'USD 等值',
-      waiting: '等待入金… 汇款后请点「已汇出 · 确认入金」。',
+      waiting: '等待入金… 汇款后请点「已汇出 · 确认入金」。有 Tx 哈希可填写。',
       confirmed: '入金已确认。', expired: '入金时限已过。',
+      errConfirm: '入金确认失败。',
       copied: '已复制。', errSession: '无法加载支付会话。',
       pickAsset: '请选择资产。', pickNet: '请选择网络。',
       startProduct: '商品名', startAmount: '金额', startGo: '继续',
@@ -215,10 +227,12 @@
     TH: {
       asset: 'เลือกสินทรัพย์', network: 'เครือข่าย',
       deposit: 'ที่อยู่ฝาก ICOPAY', confirm: 'โอนแล้ว · ตรวจยอดฝาก',
+      txHash: 'Tx hash (ไม่บังคับ)', confirming: 'กำลังยืนยันการฝาก…',
       order: 'เลขคำสั่งซื้อ', product: 'สินค้า', amount: 'จำนวน', remit: 'ยอดโอน',
       displayCcy: 'สกุลแสดง', quoteEst: 'ยอดเรียกเก็บโดยประมาณ (เทียบเท่า USD)', quoteUsdTag: 'เทียบเท่า USD',
-      waiting: 'รอฝาก… หลังโอน กด「โอนแล้ว · ตรวจยอดฝาก」',
+      waiting: 'รอฝาก… หลังโอน กด「โอนแล้ว · ตรวจยอดฝาก」 มี Tx ก็กรอกได้',
       confirmed: 'ยืนยันการฝากแล้ว', expired: 'หมดเวลารับฝาก',
+      errConfirm: 'ยืนยันการฝากไม่สำเร็จ',
       copied: 'คัดลอกแล้ว', errSession: 'โหลดเซสชันไม่สำเร็จ',
       pickAsset: 'เลือกสินทรัพย์', pickNet: 'เลือกเครือข่าย',
       startProduct: 'สินค้า', startAmount: 'จำนวน', startGo: 'ต่อไป',
@@ -327,6 +341,10 @@
     document.getElementById('assetTitle').textContent = pack.asset;
     document.getElementById('networkTitle').textContent = pack.network;
     document.getElementById('depositTitle').textContent = pack.deposit;
+    var txLbl = document.getElementById('txHashLabel');
+    if (txLbl) txLbl.textContent = pack.txHash || '';
+    var txIn = document.getElementById('depositTxHash');
+    if (txIn) txIn.placeholder = pack.txHash || '';
     document.getElementById('copyBtn').textContent = 'COPY';
     document.getElementById('refreshBtn').textContent = pack.confirm;
     document.getElementById('startProductLabel').textContent = pack.startProduct;
@@ -818,7 +836,52 @@
       }).catch(function () {});
   }
 
-  document.getElementById('refreshBtn').addEventListener('click', function () { pollStatus(); });
+  function confirmSent() {
+    if (!state.session) {
+      showErr(pack.errSession);
+      return;
+    }
+    var btn = document.getElementById('refreshBtn');
+    var tx = String((document.getElementById('depositTxHash') || {}).value || '').trim();
+    showErr('');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = pack.confirming || pack.confirm;
+    }
+    document.getElementById('statusBox').textContent = pack.confirming || pack.waiting;
+    fetch('/api/pay/crypto/confirm-sent', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session: state.session, depositTxHash: tx })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (body) {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = pack.confirm;
+        }
+        if (!(body && body.success && body.data)) {
+          showErr((body && body.message) || pack.errConfirm || pack.errSession);
+          pollStatus();
+          return;
+        }
+        state.data = body.data;
+        updateStatus(body.data.status || 'CONFIRMED');
+        if (String(body.data.status || '').toUpperCase() === 'CONFIRMED' && btn) {
+          btn.disabled = true;
+        }
+      })
+      .catch(function () {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = pack.confirm;
+        }
+        showErr(pack.errConfirm || pack.errSession);
+      });
+  }
+
+  document.getElementById('refreshBtn').addEventListener('click', function () { confirmSent(); });
 
   setInterval(pollStatus, 8000);
   loadCheckoutLogo();

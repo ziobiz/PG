@@ -216,13 +216,25 @@ public class UrlPayDisplayFxService {
         return AMOUNT_MODE_BLIND.equalsIgnoreCase(pgNode.path("amountMode").asText(""));
     }
 
-    /** PG별 설정된 실결제 통화(레거시·미설정 시 THB). */
+    /**
+     * PG별 설정된 실결제 통화.
+     * 본사 URL결제설정({@code pgSettings.settlementCurrency}) 우선.
+     * QBANG 계열만 미설정 시 KRW(DEV·샌드박스 예외 기본) — 페이지에서 바꾸면 그 값을 따름.
+     */
     public String settlementCurrencyForPg(String operationalPgCd) {
         JsonNode pgNode = pgSettingsNode(normalizePgCd(operationalPgCd));
-        if (pgNode == null || pgNode.isMissingNode() || pgNode.size() == 0) {
-            return "THB";
+        String pg = normalizePgCd(operationalPgCd);
+        boolean qbang = pg.startsWith("QBANG") || pg.startsWith("QBANK") || pg.startsWith("QRBANK");
+        if (pgNode != null && !pgNode.isMissingNode() && pgNode.isObject()
+                && pgNode.has("settlementCurrency")
+                && !pgNode.path("settlementCurrency").asText("").isBlank()) {
+            return defaultSettlementForBuild(pgNode);
         }
-        return defaultSettlementForBuild(pgNode);
+        if (pgNode == null || pgNode.isMissingNode() || pgNode.size() == 0) {
+            return qbang ? "KRW" : "THB";
+        }
+        /* amountMode만 있고 settlementCurrency 없음 */
+        return qbang ? "KRW" : defaultSettlementForBuild(pgNode);
     }
 
     /** 결제 페이지 기본 표시 통화 (PG별 설정, 없으면 JPY). */

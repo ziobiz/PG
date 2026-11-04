@@ -153,7 +153,9 @@
     paintMeans();
   }
 
-  var meansFlags = { card: true, crypto: true, qr: false };
+  /* 서버 context 로드 전엔 빈 그리드 — 카드/QR/크립토를 임의로 켜지 않음 */
+  var meansFlags = { card: false, crypto: false, qr: false };
+  var meansReady = false;
 
   function go(means) {
     if (!compId) {
@@ -182,34 +184,51 @@
     }
     var grid = document.getElementById('meansGrid');
     grid.innerHTML = '';
+    var err0 = document.getElementById('err');
     if (!items.length) {
-      var err0 = document.getElementById('err');
-      err0.hidden = false;
-      err0.textContent = pack.err;
+      if (meansReady && err0) {
+        err0.hidden = false;
+        err0.textContent = pack.err;
+      }
       return;
+    }
+    if (err0) {
+      err0.hidden = true;
+      err0.textContent = '';
     }
     if (window.ICOPAY_CRYPTO_UI && ICOPAY_CRYPTO_UI.renderGrid) {
       ICOPAY_CRYPTO_UI.renderGrid(grid, items, go);
-    } else {
-      var err = document.getElementById('err');
-      err.hidden = false;
-      err.textContent = pack.err;
+    } else if (meansReady && err0) {
+      err0.hidden = false;
+      err0.textContent = pack.err;
     }
   }
 
   applyTexts();
   if (H) H.paintLangBar(null, lang, setLang);
-  paintMeans();
 
-  if (compId) {
+  if (!compId) {
+    meansReady = true;
+    var errMissing = document.getElementById('err');
+    if (errMissing) {
+      errMissing.hidden = false;
+      errMissing.textContent = pack.err;
+    }
+  } else {
     fetch('/api/pay/crypto/checkout-context?m=' + encodeURIComponent(compId) + '&channel=unified', { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (body) {
-        if (!(body && body.success && body.data)) return;
+        meansReady = true;
+        if (!(body && body.success && body.data)) {
+          paintMeans();
+          return;
+        }
         headerCtx = body.data;
-        meansFlags.crypto = headerCtx.cryptoEnabled !== false;
-        if (headerCtx.cardMeans === false) meansFlags.card = false;
-        meansFlags.qr = Array.isArray(headerCtx.qrWallets) && headerCtx.qrWallets.length > 0;
+        meansFlags.card = headerCtx.cardMeans === true;
+        meansFlags.crypto = headerCtx.cryptoEnabled === true;
+        meansFlags.qr = headerCtx.qrMeans === true
+          || (Array.isArray(headerCtx.qrWallets) && headerCtx.qrWallets.length > 0);
+        applyMeansCopy();
         paintMeans();
         if (H) {
           H.applyLogo(headerCtx);
@@ -220,7 +239,10 @@
             langBar.hidden = true;
           }
         }
-      }).catch(function () {});
+      }).catch(function () {
+        meansReady = true;
+        paintMeans();
+      });
   }
 })();
   </script>

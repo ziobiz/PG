@@ -73,44 +73,44 @@
 (function () {
   var T = {
     KOR: {
-      brandSub: 'QR 결제', merchant: '가맹점', item: '상품', amount: '금액', order: '주문번호',
+      brandSub: 'Alipay QR', merchant: '가맹점', item: '상품', amount: '금액', order: '주문번호',
       name: '성명', email: '이메일', phone: '전화(선택)', pay: 'QR 생성',
-      scan: '스마트폰으로 QR을 스캔해 결제해 주세요.', remain: '남은 시간', status: '상태',
-      pending: '결제 대기 중…', paid: '결제가 완료되었습니다.', failed: '결제가 실패·만료되었습니다.',
+      scan: 'Alipay 앱으로 QR을 스캔해 결제해 주세요.', remain: '남은 시간', status: '상태',
+      pending: 'Alipay 결제 대기 중…', paid: '결제가 완료되었습니다.', failed: '결제가 실패·만료되었습니다.',
       cancel: '닫기', errCfg: '결제 설정을 불러올 수 없습니다.', errStart: 'QR을 시작할 수 없습니다.',
-      notConfigured: 'QR 결제가 설정되지 않았습니다.'
+      notConfigured: 'Alipay QR 결제가 설정되지 않았습니다.'
     },
     ENG: {
-      brandSub: 'QR Payment', merchant: 'Merchant', item: 'Item', amount: 'Amount', order: 'Order No.',
+      brandSub: 'Alipay QR', merchant: 'Merchant', item: 'Item', amount: 'Amount', order: 'Order No.',
       name: 'Name', email: 'Email', phone: 'Phone (optional)', pay: 'Show QR',
-      scan: 'Scan the QR code with your phone to pay.', remain: 'Time left', status: 'Status',
-      pending: 'Waiting for payment…', paid: 'Payment completed.', failed: 'Payment failed or expired.',
+      scan: 'Scan this QR with the Alipay app to pay.', remain: 'Time left', status: 'Status',
+      pending: 'Waiting for Alipay…', paid: 'Payment completed.', failed: 'Payment failed or expired.',
       cancel: 'Close', errCfg: 'Unable to load checkout settings.', errStart: 'Unable to start QR.',
-      notConfigured: 'QR payment is not configured.'
+      notConfigured: 'Alipay QR is not configured.'
     },
     JPN: {
-      brandSub: 'QR決済', merchant: '加盟店', item: '商品', amount: '金額', order: '注文番号',
+      brandSub: 'Alipay QR', merchant: '加盟店', item: '商品', amount: '金額', order: '注文番号',
       name: '氏名', email: 'メール', phone: '電話（任意）', pay: 'QR表示',
-      scan: 'スマホでQRを読み取り、お支払いください。', remain: '残り時間', status: '状態',
-      pending: 'お支払い待ち…', paid: 'お支払いが完了しました。', failed: '失敗または期限切れです。',
+      scan: 'AlipayアプリでQRを読み取り、お支払いください。', remain: '残り時間', status: '状態',
+      pending: 'Alipayお支払い待ち…', paid: 'お支払いが完了しました。', failed: '失敗または期限切れです。',
       cancel: '閉じる', errCfg: '設定を読み込めません。', errStart: 'QRを開始できません。',
-      notConfigured: 'QR決済が設定されていません。'
+      notConfigured: 'Alipay QRが設定されていません。'
     },
     CHN: {
-      brandSub: 'QR 支付', merchant: '商户', item: '商品', amount: '金额', order: '订单号',
+      brandSub: 'Alipay QR', merchant: '商户', item: '商品', amount: '金额', order: '订单号',
       name: '姓名', email: '邮箱', phone: '电话（可选）', pay: '显示二维码',
-      scan: '请用手机扫描二维码完成支付。', remain: '剩余时间', status: '状态',
-      pending: '等待支付…', paid: '支付已完成。', failed: '支付失败或已过期。',
+      scan: '请用 Alipay 应用扫描二维码完成支付。', remain: '剩余时间', status: '状态',
+      pending: '等待 Alipay 支付…', paid: '支付已完成。', failed: '支付失败或已过期。',
       cancel: '关闭', errCfg: '无法加载支付设置。', errStart: '无法开始二维码支付。',
-      notConfigured: '未配置二维码支付。'
+      notConfigured: '未配置 Alipay QR。'
     },
     THA: {
-      brandSub: 'ชำระด้วย QR', merchant: 'ร้านค้า', item: 'สินค้า', amount: 'จำนวนเงิน', order: 'เลขคำสั่ง',
+      brandSub: 'Alipay QR', merchant: 'ร้านค้า', item: 'สินค้า', amount: 'จำนวนเงิน', order: 'เลขคำสั่ง',
       name: 'ชื่อ', email: 'อีเมล', phone: 'โทร (ไม่บังคับ)', pay: 'แสดง QR',
-      scan: 'สแกน QR ด้วยมือถือเพื่อชำระ', remain: 'เวลาที่เหลือ', status: 'สถานะ',
-      pending: 'รอการชำระ…', paid: 'ชำระเงินสำเร็จ', failed: 'ล้มเหลวหรือหมดเวลา',
+      scan: 'สแกน QR ด้วยแอป Alipay เพื่อชำระ', remain: 'เวลาที่เหลือ', status: 'สถานะ',
+      pending: 'รอชำระ Alipay…', paid: 'ชำระเงินสำเร็จ', failed: 'ล้มเหลวหรือหมดเวลา',
       cancel: 'ปิด', errCfg: 'โหลดการตั้งค่าไม่ได้', errStart: 'เริ่ม QR ไม่ได้',
-      notConfigured: 'ยังไม่ได้ตั้งค่าชำระ QR'
+      notConfigured: 'ยังไม่ได้ตั้งค่า Alipay QR'
     }
   };
 
@@ -124,6 +124,13 @@
   if (!T[lang]) lang = 'KOR';
   var pack = T[lang];
   var compId = (q.get('m') || q.get('compId') || q.get('merchant') || '').trim();
+  /* /checkout-qr/{compId} forward 시 브라우저 URL에 m= 이 없을 수 있음 → path에서 복원 */
+  if (!compId) {
+    var pathComp = (location.pathname || '').match(/\/(?:checkout-qr|qbang-pay)(?:\.html)?\/([^/?#]+)/i);
+    if (pathComp && pathComp[1]) {
+      compId = decodeURIComponent(pathComp[1]).trim();
+    }
+  }
   var ctx = {};
   var pollTimer = null;
   var txnNo = '';

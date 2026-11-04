@@ -2028,6 +2028,11 @@ public class PayListService {
         if (PgVendor.OX.equals(PgVendor.normalizePgCdKey(pgCd))) {
             ors.add(cb.like(cb.upper(root.get("van")), "OX%"));
         }
+        /* 크립토 결제내역: van=CRYPTO 또는 origin=CRYPTO */
+        if (PgVendor.isCryptoFamily(pgCd) || "CRYPTO".equalsIgnoreCase(pgCd)) {
+            ors.add(cb.like(cb.upper(cb.trim(cb.coalesce(root.get("van"), cb.literal("")))), "CRYPTO%"));
+            ors.add(cb.equal(cb.upper(cb.trim(cb.coalesce(root.get("origin"), cb.literal("")))), "CRYPTO"));
+        }
         if (!byBinding.isEmpty()) {
             ors.add(root.get("merchantId").in(byBinding));
         }

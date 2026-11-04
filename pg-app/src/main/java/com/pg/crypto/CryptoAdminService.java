@@ -206,6 +206,10 @@ public class CryptoAdminService {
         if (a.getNetworkCode().isBlank() || a.getAddress().isBlank()) {
             throw new IllegalArgumentException("networkCode와 address가 필요합니다.");
         }
+        if (CryptoCustodyAddressUtil.isPlaceholder(a.getAddress())) {
+            throw new IllegalArgumentException(
+                    "임시(ReplaceMe) 주소는 저장할 수 없습니다. 실제 수탁 지갑 주소를 입력하세요.");
+        }
         if (a.getAssetCode() == null || a.getAssetCode().isBlank()) {
             throw new IllegalArgumentException("assetCode(자산)가 필요합니다.");
         }
@@ -450,9 +454,11 @@ public class CryptoAdminService {
     }
 
     public Map<String, Object> searchDeposits(String compId, String status, int page, int size) {
+        /* UI page는 1부터. Spring PageRequest는 0부터. */
+        int pageIdx = page <= 1 ? 0 : page - 1;
         Page<CryptoDepositTxn> p = depositTxnRepository.search(
                 nz(compId), nz(status),
-                PageRequest.of(Math.max(0, page), Math.min(200, Math.max(1, size))));
+                PageRequest.of(pageIdx, Math.min(200, Math.max(1, size))));
         List<Map<String, Object>> rows = new ArrayList<>();
         int base = (int) p.getPageable().getOffset();
         int i = 0;
@@ -479,7 +485,14 @@ public class CryptoAdminService {
         }
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("list", rows);
-        out.put("total", p.getTotalElements());
+        long total = p.getTotalElements();
+        int uiPage = page <= 1 ? 1 : page;
+        int pageSize = Math.min(200, Math.max(1, size));
+        out.put("total", total);
+        out.put("totalElements", total);
+        out.put("page", uiPage);
+        out.put("size", pageSize);
+        out.put("totalPages", Math.max(1, (int) Math.ceil(total / (double) pageSize)));
         return out;
     }
 

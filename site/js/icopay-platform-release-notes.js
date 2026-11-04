@@ -6,13 +6,326 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '5.94';
+  var CURRENT_LIVE = '6.08';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '6.08',
+      kind: 'minor',
+      date: '2026-11-04',
+      items: {
+        KO: [
+          'OMSPAY: 동일 주문 요청(08) 재시작 시 새 SO 생성 금지 — 기존 OMS 주문으로 결제 URL만 재발급(연타·재시도 SO 덮어쓰기 방지)'
+        ],
+        EN: [
+          'OMSPAY: pending (08) restart reuses existing OMS SO — re-issues payment URL only (no SO overwrite on double start)'
+        ],
+        JP: [
+          'OMSPAY: 同一注文の依頼(08)再開始時は新規SOを作らず既存OMS注文で決済URLのみ再発行'
+        ],
+        CH: [
+          'OMSPAY：同一订单请求(08)再次开始时不新建 SO，仅对已有 OMS 订单重发支付 URL'
+        ],
+        TH: [
+          'OMSPAY: คำสั่งซื้อสถานะรอ(08) เริ่มซ้ำแล้วไม่สร้าง SO ใหม่ — ออก URL ชำระใหม่จาก OMS เดิม'
+        ]
+      }
+    },
+    {
+      version: '6.07',
+      kind: 'minor',
+      date: '2026-11-03',
+      items: {
+        KO: [
+          '크립토내역·출금큐: UI 페이지(1부터)→서버 0-based 보정 — 목록 공백 수정',
+          'QBANG QR=Alipay 전용: paymentCompanyId=Alipay 로 QR 요청(위챗 기본 방지), 결제창 안내 Alipay'
+        ],
+        EN: [
+          'Crypto deposit/payout lists: fix 1-based UI page → 0-based server index (empty list bug)',
+          'QBANG QR=Alipay only: paymentCompanyId=Alipay on QR request; checkout copy Alipay'
+        ],
+        JP: [
+          'クリプト入金・出金一覧: UIページ(1起算)を0起算に補正',
+          'QBANG QR=Alipay専用: paymentCompanyId=Alipay、画面案内もAlipay'
+        ],
+        CH: [
+          '加密入金/出金列表：修正 UI 页码(从1)与服务器 0 基索引',
+          'QBANG QR=仅 Alipay：请求带 paymentCompanyId=Alipay，页面文案 Alipay'
+        ],
+        TH: [
+          'รายการฝาก/จ่ายคริปโต: แก้ page UI (เริ่ม1) ให้ตรง 0-based',
+          'QBANG QR=Alipay เท่านั้น: ส่ง paymentCompanyId=Alipay และข้อความหน้าจอ Alipay'
+        ]
+      }
+    },
+    {
+      version: '6.06',
+      kind: 'minor',
+      date: '2026-11-03',
+      items: {
+        KO: [
+          '크립토 결제창 「송금 완료 · 입금 확인」이 실제 입금확정 API 호출 — Tx해시(선택) 입력, 확정·수수료·출금큐·NOTI 미러'
+        ],
+        EN: [
+          'Crypto checkout 「I sent it · Check deposit」 now calls deposit-confirm API — optional Tx hash; confirm, fee, payout queue, NOTI mirror'
+        ],
+        JP: [
+          'クリプト決済「送金完了 · 入金確認」が実入金確定APIを呼出 — Tx任意、確定・手数料・出金キュー・NOTIミラー'
+        ],
+        CH: [
+          '加密支付「已汇出 · 确认入金」改为调用入金确认 API — 可选 Tx；确认、手续费、出金队列、NOTI 镜像'
+        ],
+        TH: [
+          'หน้าคริปโต「โอนแล้ว · ตรวจยอดฝาก」เรียก API ยืนยันฝากจริง — Tx ไม่บังคับ ยืนยัน/ค่าธรรมเนียม/คิวจ่าย/NOTI'
+        ]
+      }
+    },
+    {
+      version: '6.05',
+      kind: 'minor',
+      date: '2026-11-03',
+      items: {
+        KO: [
+          '본사 대표수탁: Ethereum(ERC20) USDT·USDC 실주소 등록 — DEALMAI DEMO 허용망 ERC20·BEP20, /checkout-crypto 입금 가능'
+        ],
+        EN: [
+          'HQ custody: register real Ethereum(ERC20) USDT·USDC addresses — DEALMAI DEMO allows ERC20·BEP20; /checkout-crypto deposits work'
+        ],
+        JP: [
+          '本社代表カストディ: Ethereum(ERC20) USDT・USDC実住所登録 — DEALMAI DEMOはERC20・BEP20許可、入金可'
+        ],
+        CH: [
+          '总部代表托管：登记 Ethereum(ERC20) USDT·USDC 真实地址 — DEALMAI DEMO 允许 ERC20·BEP20，可入金'
+        ],
+        TH: [
+          'custody HQ: ลงทะเบียนที่อยู่จริง ERC20 USDT·USDC — DEALMAI DEMO อนุญาต ERC20·BEP20 ฝากได้'
+        ]
+      }
+    },
+    {
+      version: '6.04',
+      kind: 'minor',
+      date: '2026-11-03',
+      items: {
+        KO: [
+          'DEALMAI DEMO 크립토: 허용 네트워크에 BEP20 추가 — 본사 실수탁(BEP20)과 매칭, /checkout-crypto CUSTODY_MISSING 해소'
+        ],
+        EN: [
+          'DEALMAI DEMO crypto: add BEP20 to allowed networks — match HQ real custody; fix /checkout-crypto CUSTODY_MISSING'
+        ],
+        JP: [
+          'DEALMAI DEMOクリプト: 許可ネットワークにBEP20追加 — 本社実カストディと一致、CUSTODY_MISSING解消'
+        ],
+        CH: [
+          'DEALMAI DEMO 加密：允许网络加入 BEP20 — 匹配总部真实托管，消除 CUSTODY_MISSING'
+        ],
+        TH: [
+          'DEALMAI DEMO คริปโต: เพิ่ม BEP20 ในเครือข่ายที่อนุญาต — จับคู่ custody จริงของ HQ แก้ CUSTODY_MISSING'
+        ]
+      }
+    },
+    {
+      version: '6.03',
+      kind: 'minor',
+      date: '2026-11-03',
+      items: {
+        KO: [
+          '크립토 입금: ReplaceMe 임시 수탁주소 구매자 노출 차단·DB 비활성. 실주소만 입금 QR(ERC20는 본사 대표수탁 재등록 필요, BEP20 실주소는 유지)'
+        ],
+        EN: [
+          'Crypto deposit: block ReplaceMe placeholder custody from buyers; disable in DB. Only real addresses for deposit QR (re-register ERC20 at HQ custody; BEP20 real address kept)'
+        ],
+        JP: [
+          'クリプト入金: ReplaceMe仮住所の購入者露出を遮断・DB無効。実住所のみ(ERC20は本社代表カストディ再登録、BEP20実住所は維持)'
+        ],
+        CH: [
+          '加密入金：禁止 ReplaceMe 临时托管地址对买家展示并在库中停用。仅真实地址(ERC20 须在总部重登；BEP20 真址保留)'
+        ],
+        TH: [
+          'ฝากคริปโต: บล็อกที่อยู่ชั่วคราว ReplaceMe ไม่ให้ผู้ซื้อเห็น และปิดใน DB ใช้ที่อยู่จริงเท่านั้น (ERC20 ลงทะเบียนใหม่ที่ HQ; BEP20 จริงคงไว้)'
+        ]
+      }
+    },
+    {
+      version: '6.02',
+      kind: 'minor',
+      date: '2026-11-03',
+      items: {
+        KO: [
+          'QR 결제=PayPay 전용: /checkout-qr 안내를 PayPay 앱 스캔으로 명시(위챗·알리 등 타 지갑 미연동). 큐뱅 POS는 PayPay 중계만'
+        ],
+        EN: [
+          'QR checkout = PayPay only: /checkout-qr prompts PayPay app scan (no WeChat/Alipay). Qbang POS relays PayPay only'
+        ],
+        JP: [
+          'QR決済=PayPay専用: /checkout-qrはPayPayアプリ読取を明示(WeChat・Alipay等なし)。キューバンPOSはPayPay中継のみ'
+        ],
+        CH: [
+          'QR 支付=仅 PayPay：/checkout-qr 明确用 PayPay 扫码（不接微信/支付宝）。QBANG POS 仅中继 PayPay'
+        ],
+        TH: [
+          'ชำระ QR=PayPay เท่านั้น: /checkout-qr ระบุสแกนด้วยแอป PayPay (ไม่ต่อ WeChat/Alipay) QBANG POS ส่งต่อ PayPay อย่างเดียว'
+        ]
+      }
+    },
+    {
+      version: '6.01',
+      kind: 'minor',
+      date: '2026-11-03',
+      items: {
+        KO: [
+          'QR 결제(/checkout-qr/{compId}): 브라우저 URL에 m= 없어도 path에서 가맹코드 인식 — DEALMAI DEMO 등 중립 QR URL 테스트 가능'
+        ],
+        EN: [
+          'QR checkout (/checkout-qr/{compId}): resolve merchant code from path when m= is missing — DEALMAI DEMO neutral QR URL works'
+        ],
+        JP: [
+          'QR決済(/checkout-qr/{compId}): URLにm=がなくてもpathから加盟コード認識 — DEALMAI DEMO中立QRテスト可'
+        ],
+        CH: [
+          'QR 支付(/checkout-qr/{compId})：无 m= 时从 path 识别商户代码 — DEALMAI DEMO 中立 QR 可测'
+        ],
+        TH: [
+          'ชำระ QR (/checkout-qr/{compId}): อ่านรหัสร้านจาก path เมื่อไม่มี m= — ทดสอบ URL กลาง DEALMAI DEMO ได้'
+        ]
+      }
+    },
+    {
+      version: '6.00',
+      kind: 'minor',
+      date: '2026-11-03',
+      items: {
+        KO: [
+          '본사 URL결제설정: QBANG 일반형에서도 실결제 통화(KRW 등) 예외 지정·저장 가능 — DEV 샌드박스 테스트용'
+        ],
+        EN: [
+          'HQ URL-pay settings: QBANG Standard mode can exceptionally set settlement currency (e.g. KRW) for DEV sandbox'
+        ],
+        JP: [
+          '本社URL決済設定: QBANG一般型でも実決済通貨(KRW等)を例外指定・保存可能 — DEVサンドボックステスト用'
+        ],
+        CH: [
+          '总部 URL 支付设置：QBANG 一般型也可例外指定并保存实结算货币（如 KRW）— 供 DEV 沙箱测试'
+        ],
+        TH: [
+          'ตั้งค่า URL pay ของ HQ: โหมดทั่วไป QBANG ระบุสกุลชำระจริง (เช่น KRW) เป็นข้อยกเว้นได้ — สำหรับทดสอบ DEV'
+        ]
+      }
+    },
+    {
+      version: '5.99',
+      kind: 'minor',
+      date: '2026-11-03',
+      items: {
+        KO: [
+          'QBANG(큐뱅) QR DEV 샌드박스 실연동: 온더라인 POS-ID·agencyCode(OTL)·api-test.qr-road.com, 실결제 KRW 환전 — DEALMAI DEMO /checkout-qr 테스트'
+        ],
+        EN: [
+          'QBANG QR DEV sandbox: On The Line POS-ID + agencyCode(OTL) + api-test.qr-road.com, settle in KRW (FX) — DEALMAI DEMO /checkout-qr'
+        ],
+        JP: [
+          'QBANG QR DEVサンドボックス: On The Line POS-ID・agencyCode(OTL)・api-test.qr-road.com、実決済KRW換算 — DEALMAI DEMO /checkout-qr'
+        ],
+        CH: [
+          'QBANG QR DEV 沙箱：On The Line POS-ID、agencyCode(OTL)、api-test.qr-road.com，实付 KRW 换汇 — DEALMAI DEMO /checkout-qr'
+        ],
+        TH: [
+          'QBANG QR DEV: POS-ID On The Line + agencyCode(OTL) + api-test.qr-road.com ชำระจริง KRW (FX) — /checkout-qr DEALMAI DEMO'
+        ]
+      }
+    },
+    {
+      version: '5.98',
+      kind: 'minor',
+      date: '2026-11-03',
+      items: {
+        KO: [
+          'DEALMAI DEMO 통합결제: 크립토 수단 ON(카드·QR·크립토 동시 선택) — /checkout-all 에서 3수단 UX 확인'
+        ],
+        EN: [
+          'DEALMAI DEMO unified checkout: crypto means ON (card+QR+crypto together) — verify 3-means UX on /checkout-all'
+        ],
+        JP: [
+          'DEALMAI DEMO統合決済: クリプト手段ON(カード・QR・クリプト同時選択) — /checkout-allで3手段UX確認'
+        ],
+        CH: [
+          'DEALMAI DEMO 统一支付：开启加密手段（银行卡+QR+加密同屏）— 在 /checkout-all 确认三手段 UX'
+        ],
+        TH: [
+          'DEALMAI DEMO ชำระรวม: เปิดคริปโต (บัตร+QR+คริปโตพร้อมกัน) — ตรวจ UX 3 ช่องทางที่ /checkout-all'
+        ]
+      }
+    },
+    {
+      version: '5.97',
+      kind: 'minor',
+      date: '2026-11-03',
+      items: {
+        KO: [
+          '통합결제(/checkout-all·수단선택)에 QR 선택 노출: context qrMeans, 서버 활성 수단만 표시, DEALMAI DEMO QBANG QR 구성·payMeans=QR 샘플'
+        ],
+        EN: [
+          'Unified checkout (/checkout-all) shows QR when enabled: context qrMeans, only server-active means, DEALMAI DEMO QBANG QR setup, payMeans=QR sample'
+        ],
+        JP: [
+          '統合決済(/checkout-all)にQR選択を表示: context qrMeans、サーバー有効手段のみ、DEALMAI DEMO QBANG QR構成、payMeans=QRサンプル'
+        ],
+        CH: [
+          '统一支付(/checkout-all)展示 QR：context qrMeans、仅显示服务端启用手段、DEALMAI DEMO QBANG QR 配置、payMeans=QR 示例'
+        ],
+        TH: [
+          'หน้าชำระรวม(/checkout-all) แสดง QR เมื่อเปิด: context qrMeans แสดงเฉพาะช่องทางที่เซิร์ฟเวอร์เปิด ตั้ง QBANG QR ให้ DEALMAI DEMO และตัวอย่าง payMeans=QR'
+        ]
+      }
+    },
+    {
+      version: '5.96',
+      kind: 'minor',
+      date: '2026-11-03',
+      items: {
+        KO: [
+          '가맹 사업장 주소는 PG·공개 결제에 ICOPAY 주소만 사용(본사 프로필/설정). 가맹 addr·쇼핑몰 도메인 차단 정책·자리값 주소 강제'
+        ],
+        EN: [
+          'Merchant business address: only ICOPAY address on PG/public checkout (HQ profile/config). Block merchant addr/shop domain; force placeholder address to ICOPAY'
+        ],
+        JP: [
+          '加盟事業所住所はPG・公開決済でICOPAY住所のみ(本社プロフィール/設定)。加盟addr・店舗ドメイン遮断、プレースホルダ住所をICOPAYに強制'
+        ],
+        CH: [
+          '商户经营地址在 PG/公开支付仅使用 ICOPAY 地址（总部资料/配置）。拦截商户 addr/店铺域名，占位地址强制为 ICOPAY'
+        ],
+        TH: [
+          'ที่อยู่ร้านค้า: ใช้เฉพาะที่อยู่ ICOPAY บน PG/หน้าชำระสาธารณะ (โปรไฟล์ HQ/ตั้งค่า) บล็อก addr ร้าน/โดเมน และบังคับที่อยู่ตัวแทนเป็น ICOPAY'
+        ]
+      }
+    },
+    {
+      version: '5.95',
+      kind: 'minor',
+      date: '2026-11-03',
+      items: {
+        KO: [
+          'OMSPAY·PAYSO HPP: return_url 가맹코드/주문번호 평문 제거(암호화 rt), Beam 이동 시 Referer 차단 — 가맹 상호·주소·쇼핑몰 도메인 비노출 강화'
+        ],
+        EN: [
+          'OMSPAY/PAYSO HPP: opaque encrypted return_url (no plain merchant code/order); no-referrer to Beam — strengthen hiding merchant name/address/shop domain'
+        ],
+        JP: [
+          'OMSPAY・PAYSO HPP: return_urlから加盟コード/注文番号の平文を排除(暗号化rt)、Beam遷移時Referer遮断 — 加盟名・住所・店舗ドメイン非露出を強化'
+        ],
+        CH: [
+          'OMSPAY·PAYSO HPP：return_url 去除商户代码/订单号明文（加密 rt），跳转 Beam 时屏蔽 Referer — 加强隐藏商户名称/地址/店铺域名'
+        ],
+        TH: [
+          'OMSPAY·PAYSO HPP: ตัดรหัสร้าน/เลขออเดอร์ใน return_url (ใช้ rt เข้ารหัส) ตัด Referer ตอนไป Beam — ซ่อนชื่อ/ที่อยู่/โดเมนร้านเข้มขึ้น'
+        ]
+      }
+    },
     {
       version: '5.94',
       kind: 'minor',

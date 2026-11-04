@@ -55,7 +55,7 @@
       <tr><td>7</td><td>item</td><td>String</td><td>500</td><td>O</td><td>productName 별칭</td><td>productName 없을 때 사용</td></tr>
       <tr><td>8</td><td>lang</td><td>String</td><td>5</td><td>O</td><td>결제창 UI 언어</td><td><strong>KOR · ENG · JPN · CHN · THA</strong> (또는 ko/en/ja/zh/th)</td></tr>
       <tr><td>9</td><td>buyer</td><td>Object</td><td>—</td><td class="m">M</td><td>구매자 연락처·배송 prefill</td><td>표 1.2 필수 하위: <strong>email·phone·countryIso2</strong> (ICOPAY). <code>buyerPrefill</code> 동일.</td></tr>
-      <tr><td>10</td><td>payMeans</td><td>String</td><td>16</td><td>O*</td><td>결제 수단</td><td><code>CRYPTO</code>면 크립토 세션. 별칭: <code>checkoutMeans</code>·<code>paymentMeans</code>. 생략 시 카드(운영 PG). 상세: <a href="crypto-checkout-api.ko.html">크립토 API</a></td></tr>
+      <tr><td>10</td><td>payMeans</td><td>String</td><td>16</td><td>O*</td><td>결제 수단</td><td><code>CRYPTO</code>=크립토, <code>QR</code>=QR(PayPay·QBANG). 별칭: <code>checkoutMeans</code>·<code>paymentMeans</code>. 생략 시 카드(운영 PG). QR 선택 시 선택 <code>qrWallet</code>. 상세: <a href="crypto-checkout-api.ko.html">크립토 API</a> · <a href="../json/qr-prepare-request.json">QR 샘플</a></td></tr>
       <tr><td>11</td><td>displayCurrency</td><td>String</td><td>3</td><td>O</td><td>표시통화(크립토/DP)</td><td>JPY·USD 등. 크립토 시 청구는 USD 환산 후 자산 송금.</td></tr>
       <tr><td>12</td><td>assetCode</td><td>String</td><td>8</td><td>O</td><td>크립토 자산</td><td>USDT·USDC·EURC. 생략 시 결제창 선택.</td></tr>
       <tr><td>13</td><td>networkCode</td><td>String</td><td>16</td><td>O</td><td>크립토 네트워크</td><td>TRC20·ERC20·SOL 등. 가맹 허용·카탈로그 페어만.</td></tr>

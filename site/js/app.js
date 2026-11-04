@@ -14456,12 +14456,18 @@
           var allPg = (window.PG_PAY_LIST_I18N && typeof window.PG_PAY_LIST_I18N.optionAllText === 'function')
             ? window.PG_PAY_LIST_I18N.optionAllText() : '전체';
           var optH = '<option value="" data-pg-i18n-opt="searchPgCd|">' + escPgList(allPg) + '</option>';
+          var seenPg = {};
           (list || []).forEach(function (ag) {
             var cd = String(ag.pgCd || '').trim();
             if (!cd) return;
+            seenPg[cd.toUpperCase()] = true;
             var nm = String(ag.pgNm || cd).trim();
             optH += '<option value="' + escPgList(cd) + '">' + escPgList(nm + ' (' + cd + ')') + '</option>';
           });
+          /* 크립토는 결제대행사 마스터에 없을 수 있음 — 결제내역 필터용 옵션 보강 */
+          if (!seenPg.CRYPTO) {
+            optH += '<option value="CRYPTO">' + escPgList('CRYPTO (CRYPTO)') + '</option>';
+          }
           pgCdSel.innerHTML = optH;
           var keepOk = false;
           for (var pi = 0; pi < pgCdSel.options.length; pi++) {
@@ -38741,23 +38747,35 @@
         }
         return false;
       }
+      function isQbangUrlPayDepPg(cd) {
+        var u = String(cd || '').trim().toUpperCase();
+        return u === 'QBANG' || u.indexOf('QBANG') === 0 || u.indexOf('QBANK') === 0 || u.indexOf('QRBANK') === 0;
+      }
       function setUrlPayDeployRowFxControlsEnabled(tr) {
         var am = tr.querySelector('.hq-upd-amode');
         var amv = am && String(am.value || '').toUpperCase();
         var disp = amv === 'DISPLAY' || amv === 'BLIND';
+        var pgCdRow = tr.getAttribute('data-pg-cd') || '';
+        var qbangStdSettle = !disp && isQbangUrlPayDepPg(pgCdRow);
         var fxEl = tr.querySelector('.hq-upd-fx');
         var fxManual = fxEl && String(fxEl.value || '').toUpperCase() === 'MANUAL';
         var tip = disp ? '' : pgAdminUiT('일반형: 총판(조직) 설정 통화로 결제되며 이 항목은 적용되지 않습니다.');
+        var tipQbangSettle = pgAdminUiT('QBANG(큐뱅) 일반형 예외: 실결제 통화만 지정 가능(DEV·샌드박스 KRW 등). 표시통화·FX는 DISPLAY/BLIND에서 설정합니다.');
         var tipManualOff = pgAdminUiT('자동(BOT)이면 BOT·표시/실결제 통화로 실결제/1표시가 정해지므로 이 칸은 사용하지 않습니다. 수동 환율·행 마진을 쓰려면 FX에서 「수동」을 선택하세요.');
         var tipMarginAutoOff = pgAdminUiT('자동(BOT)이면 위 표시통화별 마진(JPY·USD·… 7종)만 적용됩니다. PG별 마진율은 FX 「수동」일 때만 입력합니다.');
         var tipDcurMulti = pgAdminUiT('결제 방식이 멀티일 때는 공개 결제 페이지에서 고객이 표시 통화를 고릅니다. 이 표의 표시 통화 칸은 사용하지 않습니다.');
-        ['hq-upd-dcmod', 'hq-upd-scur', 'hq-upd-fx'].forEach(function (cls) {
+        ['hq-upd-dcmod', 'hq-upd-fx'].forEach(function (cls) {
           var el = tr.querySelector('.' + cls);
           if (el) {
             el.disabled = !disp;
             el.title = tip;
           }
         });
+        var scurEx = tr.querySelector('.hq-upd-scur');
+        if (scurEx) {
+          scurEx.disabled = !(disp || qbangStdSettle);
+          scurEx.title = disp ? '' : (qbangStdSettle ? tipQbangSettle : tip);
+        }
         var dcmEl = tr.querySelector('.hq-upd-dcmod');
         var dcur = tr.querySelector('.hq-upd-dcur');
         var multi = dcmEl && String(dcmEl.value || '').trim().toUpperCase() === 'MULTI';
@@ -38934,7 +38952,12 @@
             marginRate: mr ? String(mr.value || '').trim() : ''
           };
           if (st.amountMode === 'STANDARD') {
-            nextPg[cdU] = { amountMode: 'STANDARD' };
+            /* QBANG 일반형: 실결제 통화만 예외 저장(DEV·샌드박스 KRW 등) */
+            if (isQbangUrlPayDepPg(cdU) && st.settlementCurrency) {
+              nextPg[cdU] = { amountMode: 'STANDARD', settlementCurrency: st.settlementCurrency };
+            } else {
+              nextPg[cdU] = { amountMode: 'STANDARD' };
+            }
           } else {
             var amSaved = (st.amountMode === 'BLIND') ? 'BLIND' : 'DISPLAY';
             var rowObj = {

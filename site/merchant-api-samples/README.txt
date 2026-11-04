@@ -23,6 +23,7 @@ Quick start (Korean): docs/../../docs/가맹점_ICOPAY_간단연동_빠른시작
    docs/crypto-checkout-api.html (+ .ko .ja .ch .th)  ← payMeans=CRYPTO, Callback reuse
    json/unified-prepare-request.json
    json/crypto-prepare-request.json            ← crypto prepare sample
+   json/qr-prepare-request.json                ← QR prepare (payMeans=QR)
    json/unified-prepare-response.example.json   ← live: pgVendor=ICOPAY, payUrl=/checkout/...
    json/unified-prepare-sandbox-response.example.json  ← sandbox=true, call complete
 

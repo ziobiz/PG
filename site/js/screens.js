@@ -4377,7 +4377,7 @@
       formSections: [
         {
           title: 'URL결제설정',
-          notice: '<strong>일반형</strong>은 표시·실결제 통화·FX·수동 환산·행 마진을 쓰지 않으며, 결제는 해당 <strong>총판(조직)에 설정된 통화</strong>로 진행됩니다(이 화면에서 선택 불가). <strong>DISPLAY</strong>·<strong>BLIND</strong>일 때 금액 모드·<strong>결제 방식(고정/멀티)</strong>·표시 통화·실결제 통화·FX를 PG별로 설정합니다. <strong>멀티</strong>이면 표의 <strong>표시 통화</strong> 칸은 비활성화되며, 공개 결제 페이지에서 고객이 통화를 고릅니다. <strong>BLIND+고정</strong>이면 공개 결제창에서 표시 통화 행·청구예상(환산) 행을 숨기고, <strong>BLIND+멀티</strong>이면 고객이 표시 통화·금액을 고른 뒤에도 <strong>청구예상(실결제 통화 환산)</strong>만 숨기며 견적·결제는 DISPLAY와 동일합니다. <strong>FX 자동(BOT)</strong>이면 아래 <strong>표시통화별 마진(7종)</strong>만 마진으로 쓰이고, 행의 <strong>수동 실결제/1표시</strong>·<strong>PG별 마진율</strong>은 비활성입니다. <strong>FX 수동</strong>이면 해당 행에서 실결제/1표시와 마진율을 직접 입력합니다. <strong>고정</strong>이면 공개 결제 페이지에는 <strong>표시 통화</strong>만 노출되고(셀렉트 없음), <strong>멀티</strong>이면 고객이 표시 통화를 고를 수 있는 셀렉트가 나옵니다(멀티 시 선택지는 본사 전역 순서이며, JSON에서 <code>displayCurrencies</code> 배열로 줄일 수 있음). 아래 <strong>표시→실결제(FX) 기능</strong>·견적 주기·<strong>BOT 환율 기준일</strong>·<strong>마진(표시통화별)</strong>은 DISPLAY·BLIND 모드를 쓰는 PG가 <strong>하나라도 있을 때만</strong> 활성화됩니다. BOT는 방콕 달력일당·모드당 <strong>서버에서 1회만</strong> 조회합니다. 실결제 통화가 표시와 다를 때는 BOT 일평균(THB 경유)으로 환산하고, <strong>표시=실결제</strong>이면 1:1입니다.',
+          notice: '<strong>일반형</strong>은 표시·실결제 통화·FX·수동 환산·행 마진을 쓰지 않으며, 결제는 해당 <strong>총판(조직)에 설정된 통화</strong>로 진행됩니다(이 화면에서 선택 불가). <strong>예외: QBANG(큐뱅)</strong> 일반형에서는 <strong>실결제 통화</strong>만 지정 가능합니다(DEV·샌드박스 테스트용 KRW 등). <strong>DISPLAY</strong>·<strong>BLIND</strong>일 때 금액 모드·<strong>결제 방식(고정/멀티)</strong>·표시 통화·실결제 통화·FX를 PG별로 설정합니다. <strong>멀티</strong>이면 표의 <strong>표시 통화</strong> 칸은 비활성화되며, 공개 결제 페이지에서 고객이 통화를 고릅니다. <strong>BLIND+고정</strong>이면 공개 결제창에서 표시 통화 행·청구예상(환산) 행을 숨기고, <strong>BLIND+멀티</strong>이면 고객이 표시 통화·금액을 고른 뒤에도 <strong>청구예상(실결제 통화 환산)</strong>만 숨기며 견적·결제는 DISPLAY와 동일합니다. <strong>FX 자동(BOT)</strong>이면 아래 <strong>표시통화별 마진(7종)</strong>만 마진으로 쓰이고, 행의 <strong>수동 실결제/1표시</strong>·<strong>PG별 마진율</strong>은 비활성입니다. <strong>FX 수동</strong>이면 해당 행에서 실결제/1표시와 마진율을 직접 입력합니다. <strong>고정</strong>이면 공개 결제 페이지에는 <strong>표시 통화</strong>만 노출되고(셀렉트 없음), <strong>멀티</strong>이면 고객이 표시 통화를 고를 수 있는 셀렉트가 나옵니다(멀티 시 선택지는 본사 전역 순서이며, JSON에서 <code>displayCurrencies</code> 배열로 줄일 수 있음). 아래 <strong>표시→실결제(FX) 기능</strong>·견적 주기·<strong>BOT 환율 기준일</strong>·<strong>마진(표시통화별)</strong>은 DISPLAY·BLIND 모드를 쓰는 PG가 <strong>하나라도 있을 때만</strong> 활성화됩니다. BOT는 방콕 달력일당·모드당 <strong>서버에서 1회만</strong> 조회합니다. 실결제 통화가 표시와 다를 때는 BOT 일평균(THB 경유)으로 환산하고, <strong>표시=실결제</strong>이면 1:1입니다.',
           rows: [
             [{ label: '표시→실결제(FX) 기능', type: 'select', name: '_urlPayFxUiEnabled', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: '견적 갱신(초)', type: 'text', name: '_urlPayFxUiRefresh', col: 2, placeholder: '600' },
@@ -4720,12 +4720,12 @@
               { v: 'DISABLED', t: '비활성' }, { v: 'ACTIVE', t: '활성' }
             ], col: 2 },
              { label: '상단 안내 문구', type: 'text', name: 'unifiedPaymentHeaderSubtitleTextDefault', col: 10,
-               placeholder: '카드 또는 암호화폐로 결제할 수 있습니다. 원하시는 결제 수단을 선택해 주세요.' }],
+               placeholder: '카드, QR 또는 암호화폐로 결제할 수 있습니다. 원하시는 결제 수단을 선택해 주세요.' }],
             [{ label: '푸터 메시지', type: 'select', name: 'unifiedPaymentNoticeModeDefault', options: [
               { v: 'DISABLED', t: '비활성' }, { v: 'ACTIVE', t: '활성' }
             ], col: 2 },
              { label: '푸터 메시지 문구', type: 'text', name: 'unifiedPaymentNoticeTextDefault', col: 10,
-               placeholder: '주의: 선택한 수단으로 결제가 진행됩니다. 카드와 암호화폐는 별도 결제창에서 처리되며, 결제 완료 전까지 창을 닫지 마세요.' }],
+               placeholder: '주의: 선택한 수단으로 결제가 진행됩니다. 카드, QR, 암호화폐는 별도 결제창에서 처리되며, 결제 완료 전까지 창을 닫지 마세요.' }],
             [{ label: '추가 푸터', type: 'select', name: 'unifiedPaymentExtraFooterModeDefault', options: [
               { v: 'DISABLED', t: '비활성' }, { v: 'ACTIVE', t: '활성' }
             ], col: 2 },

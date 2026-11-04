@@ -45,6 +45,13 @@ spring:
 # 로컬에서 서버 DB 접속 시 아래처럼 주소만 바꿔서 사용 (application-local.yml 또는 환경변수)
 # spring.datasource.url: jdbc:postgresql://서버IP:5432/pgdev
 
+# PG·공개 표면 사업자 정체성 — 가맹 주소 대신 ICOPAY만 (비우면 본사 MerchantProfile 주소)
+pg:
+  icopay:
+    public-name: ${ICOPAY_PUBLIC_NAME:ICOPAY}
+    public-site-url: ${ICOPAY_PUBLIC_SITE_URL:https://icopay.co.kr}
+    public-address: ${ICOPAY_PUBLIC_ADDRESS:}
+
 # SPA( site ) 연동 시 CORS 허용 오리진 (쉼표 구분)
 app:
   # Open Graph 이미지 절대 URL (업로드는 API 호스트)

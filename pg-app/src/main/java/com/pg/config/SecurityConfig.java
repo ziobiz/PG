@@ -137,6 +137,7 @@ public class SecurityConfig {
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/ilk/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/qxipay/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/omspay/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/payso/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/qbang/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/url/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/crypto/**")).permitAll()

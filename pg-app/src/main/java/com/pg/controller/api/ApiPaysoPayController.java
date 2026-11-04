@@ -126,6 +126,12 @@ public class ApiPaysoPayController {
         return ResponseEntity.ok(ApiResponse.ok(PaysoPaymentService.publicNotiIngressUrls()));
     }
 
+    @GetMapping(value = "/resolve-return", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> resolveReturn(
+            @RequestParam(required = false) String rt) {
+        return ResponseEntity.ok(PaysoPaymentService.resolveHostedReturn(rt));
+    }
+
     /** 구매자 return 화면 폴링 — 웹훅 반영 후 PAID/PENDING/FAIL */
     @GetMapping(value = "/result-status", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<Map<String, Object>>> resultStatus(

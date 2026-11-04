@@ -381,6 +381,8 @@ public class CryptoCheckoutService {
             displayPolicy.putEffectiveYnIntoMap(data, orgUnitId);
             displayPolicy.putEffectiveDefaultProductIntoMap(data, orgUnitId, Optional.empty());
             data.put("cardMeans", pgBindingRouter.hasOperationalCardMeans(orgUnitId));
+            boolean qrOn = qrPaymentMeansService.qrMeansAllowed(orgUnitId);
+            data.put("qrMeans", qrOn);
             data.put("qrWallets", qrPaymentMeansService.listOperationalQrWalletsIfAllowed(orgUnitId));
         }
         putHeadquartersFavicon(data);
@@ -445,7 +447,40 @@ public class CryptoCheckoutService {
         return ok(data);
     }
 
-    /** 관리자·감지 워커: 입금 확정 후 출금 큐 생성. */
+    /**
+     * 구매자 「송금 완료 · 입금 확인」— 세션 건을 입금확정.
+     * 체인 워처 전까지 Tx해시 없으면 BUYER_ACK 토큰으로 확정(관리자 입금확정과 동일 후속).
+     */
+    @Transactional
+    public Map<String, Object> buyerConfirmSent(String sessionToken, String depositTxHash) {
+        CryptoDepositTxn txn = depositTxnRepository.findBySessionToken(nz(sessionToken)).orElse(null);
+        if (txn == null) {
+            return fail("거래를 찾을 수 없습니다.", "NOT_FOUND");
+        }
+        expireIfNeeded(txn);
+        if (CryptoDepositTxn.ST_CONFIRMED.equals(txn.getStatus())) {
+            MerchantCryptoConfig cfg0 = configRepository.findById(txn.getOrgUnitId()).orElse(null);
+            return ok(publicTxn(txn, cfg0));
+        }
+        if (CryptoDepositTxn.ST_EXPIRED.equals(txn.getStatus())
+                || CryptoDepositTxn.ST_FAILED.equals(txn.getStatus())) {
+            return fail("만료·실패된 건은 입금 확인할 수 없습니다. 새 결제를 시작해 주세요.", "NOT_CONFIRMABLE");
+        }
+        String hash = depositTxHash != null ? depositTxHash.trim() : "";
+        if (hash.isBlank()) {
+            hash = "BUYER_ACK:" + txn.getId() + ":" + System.currentTimeMillis();
+        }
+        try {
+            confirmDeposit(txn.getId(), hash);
+        } catch (IllegalArgumentException e) {
+            return fail(e.getMessage() != null ? e.getMessage() : "입금 확정에 실패했습니다.", "CONFIRM_FAILED");
+        }
+        CryptoDepositTxn fresh = depositTxnRepository.findById(txn.getId()).orElse(txn);
+        MerchantCryptoConfig cfg = configRepository.findById(fresh.getOrgUnitId()).orElse(null);
+        return ok(publicTxn(fresh, cfg));
+    }
+
+    /** 관리자·감지 워커·구매자 확인: 입금 확정 후 출금 큐 생성. */
     @Transactional
     public Map<String, Object> confirmDeposit(Long depositId, String depositTxHash) {
         CryptoDepositTxn txn = depositTxnRepository.findById(depositId)
@@ -504,7 +539,7 @@ public class CryptoCheckoutService {
     }
 
     private String resolveCustody(String network, String asset) {
-        /* 입금은 자산×네트워크의 primary_yn=Y 대표 수탁 우선 */
+        /* 입금은 자산×네트워크의 primary_yn=Y 대표 수탁 우선 — ReplaceMe 시드는 미설정과 동일 */
         return custodyAddressRepository
                 .findFirstByNetworkCodeAndAssetCodeAndUseYnAndPrimaryYnOrderByIdAsc(network, asset, "Y", "Y")
                 .or(() -> custodyAddressRepository
@@ -514,6 +549,7 @@ public class CryptoCheckoutService {
                 .or(() -> custodyAddressRepository
                         .findFirstByNetworkCodeAndAssetCodeIsNullAndUseYnOrderByIdAsc(network, "Y"))
                 .map(CryptoCustodyAddress::getAddress)
+                .filter(CryptoCustodyAddressUtil::isUsableDepositAddress)
                 .orElse(null);
     }
 

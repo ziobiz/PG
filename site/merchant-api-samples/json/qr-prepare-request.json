@@ -1,0 +1,16 @@
+{
+  "compId": "6000000067",
+  "orderNo": "ORD-QR-001",
+  "amount": "100.00",
+  "currency": "THB",
+  "payMeans": "QR",
+  "qrWallet": "QBANG",
+  "productName": "Sample QR order",
+  "lang": "ENG",
+  "buyer": {
+    "name": "Taro Yamada",
+    "email": "buyer@example.com",
+    "phone": "1012345678",
+    "countryIso2": "TH"
+  }
+}

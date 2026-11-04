@@ -6,12 +6,14 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * PG(JPAY·ChillPay·ElementPay 및 추가 PG) 로 나가는 결제 전문에는 <b>가맹점의 도메인·주소가 절대 포함되지 않도록</b>
+ * PG(JPAY·ChillPay·ElementPay·OMSPAY·PAYSO 및 추가 PG) 로 나가는 결제 전문에는
+ * <b>가맹점의 도메인·사업장 주소가 절대 포함되지 않도록</b>
  * 우리(운영사)·노티미들웨어 도메인만 허용하는 아웃바운드 URL 정책.
  *
  * <p>notifyUrl·callbackUrl·returnUrl·pay_url 등 PG 로 전송되는 모든 URL 은 이 정책을 거쳐,
  * 호스트가 우리 허용 도메인이 아니면 안전한 기본값(우리 ingress/NOTI 결과 URL)으로 대체한다.
  * ICOPAY·NOTI({@code noti.icopay.net}) 노출은 허용하고, 가맹 쇼핑몰 도메인만 차단한다.
+ * 사업장 주소가 필요할 때는 {@link IcopayPublicIdentity} / {@code IcopayPublicIdentityService} 만 사용한다.
  * 업체코드({@code compId})는 이 정책 대상이 아니다(노티 라우팅용으로 유지).
  */
 public final class PgOutboundUrlPolicy {

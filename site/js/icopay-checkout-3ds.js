@@ -135,6 +135,43 @@
   /**
    * 3DS·OTP — embed iframe 이면 top(또는 parent) 전체 이동, 단독 탭이면 same-tab.
    */
+  /**
+   * PG HPP 이동 — Referer 로 가맹 쇼핑몰 도메인이 새지 않도록 noreferrer.
+   */
+  function navigateNoReferrer(url, embed) {
+    var u = String(url).trim();
+    if (!u) return;
+    try {
+      var meta = document.querySelector('meta[name="referrer"]');
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.setAttribute('name', 'referrer');
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', 'no-referrer');
+    } catch (eMeta) { /* ignore */ }
+    try {
+      var a = document.createElement('a');
+      a.href = u;
+      a.rel = 'noreferrer noopener';
+      if ('referrerPolicy' in a) a.referrerPolicy = 'no-referrer';
+      a.target = embed ? '_top' : '_self';
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      try { document.body.removeChild(a); } catch (eRm) { /* ignore */ }
+      return;
+    } catch (eA) { /* fallback */ }
+    try {
+      if (embed) {
+        var target = global.top || global.parent || global;
+        target.location.replace(u);
+        return;
+      }
+    } catch (eNav) { /* fallback */ }
+    try { global.location.replace(u); } catch (eLoc) { global.location.href = u; }
+  }
+
   function navigateToPaymentUrl(url, opts) {
     if (!url) return;
     var u = String(url).trim();
@@ -143,15 +180,7 @@
     if (opts.showWait !== false) {
       showWaitOverlay(opts.waitMessage, opts.waitHint);
     }
-    var embed = isEmbedContext(opts);
-    try {
-      if (embed) {
-        var target = global.top || global.parent || global;
-        target.location.href = u;
-        return;
-      }
-    } catch (eNav) { /* fallback */ }
-    global.location.href = u;
+    navigateNoReferrer(u, isEmbedContext(opts));
   }
 
   function pollStatus(statusUrl, opts, done) {
