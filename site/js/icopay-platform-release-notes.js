@@ -6,13 +6,57 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '6.08';
+  var CURRENT_LIVE = '6.10';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '6.10',
+      kind: 'minor',
+      date: '2026-11-05',
+      items: {
+        KO: [
+          'QBANG: 여러 가맹 → ICOPAY 집계 posId 1개만 사용(가맹 binding mid로 posId 덮지 않음). 가맹 구분은 orderNo·transactionNo'
+        ],
+        EN: [
+          'QBANG: all merchants share one ICOPAY aggregate posId (binding mid no longer overrides). Merchant split via orderNo/transactionNo'
+        ],
+        JP: [
+          'QBANG: 複数加盟はICOPAY集計posId1つのみ(binding midで上書きしない)。加盟区分はorderNo・transactionNo'
+        ],
+        CH: [
+          'QBANG：多商户共用 ICOPAY 汇总 posId（不再用 binding mid 覆盖）。商户区分靠 orderNo/transactionNo'
+        ],
+        TH: [
+          'QBANG: หลายร้านใช้ posId รวมของ ICOPAY เพียงตัวเดียว (ไม่ให้ binding mid ทับ) แยกร้านด้วย orderNo/transactionNo'
+        ]
+      }
+    },
+    {
+      version: '6.09',
+      kind: 'minor',
+      date: '2026-11-05',
+      items: {
+        KO: [
+          'QBANG QR=PayPay(Alipay+): paymentCompanyId 미전송, 실결제 KRW·원미만 절사, OKAY completedTime(KST), PL 1초·서버 폴링·승인 즉시 OKAY, 결제창 PayPay 안내'
+        ],
+        EN: [
+          'QBANG QR=PayPay (Alipay+): omit paymentCompanyId; settle KRW floor; OKAY completedTime(KST); 1s PL + server poll; checkout copy PayPay'
+        ],
+        JP: [
+          'QBANG QR=PayPay(Alipay+): paymentCompanyId未送信、実決済KRW切捨て、OKAY completedTime(KST)、PL1秒+サーバポーリング、画面はPayPay'
+        ],
+        CH: [
+          'QBANG QR=PayPay(Alipay+)：不传 paymentCompanyId；实付 KRW 向下取整；OKAY completedTime(KST)；PL 1秒+服务端轮询；页面引导 PayPay'
+        ],
+        TH: [
+          'QBANG QR=PayPay(Alipay+): ไม่ส่ง paymentCompanyId, ชำระ KRW ปัดลง, OKAY completedTime(KST), PL 1วิ+โพลเซิร์ฟเวอร์, หน้าจอ PayPay'
+        ]
+      }
+    },
     {
       version: '6.08',
       kind: 'minor',

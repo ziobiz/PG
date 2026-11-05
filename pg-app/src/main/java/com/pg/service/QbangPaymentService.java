@@ -22,15 +22,26 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
-/** QBANG(큐뱅) POS QR = PayPay 전용 — TK→QR→PL→OKAY. 타 지갑 연동 없음. */
+/**
+ * QBANG(큐뱅) POS QR — PayPay(Alipay+ 중계). TK→QR→PL→OKAY.
+ * 실결제 KRW만. paymentCompanyId 미전송. OKAY에 completedTime(KST).
+ */
 @Service
 public class QbangPaymentService {
 
     private static final Logger log = LoggerFactory.getLogger(QbangPaymentService.class);
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+    private static final DateTimeFormatter OKAY_COMPLETED_FMT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+    /** 큐뱅: 기본 66초, 최대 120초 연장 가능 — 서버 폴링 상한 */
+    public static final int QR_TTL_SECONDS = 66;
+    public static final int QR_TTL_MAX_SECONDS = 120;
 
     private final OrgUnitRepository orgUnitRepository;
     private final PgAgencyRepository pgAgencyRepository;
@@ -116,7 +127,7 @@ public class QbangPaymentService {
         Optional<ResolvedQbang> resolved = resolveBinding(orgUnitId, currencyHint);
         if (resolved.isEmpty()) {
             return fail(out, "QBANG_NOT_CONFIGURED",
-                    "QBANG QR 운영 바인딩(posId)이 없습니다. 가맹 결제대행사에 QBANG·QR을 등록하세요.");
+                    "QBANG QR이 설정되지 않았습니다. 본사 결제대행사(QBANG)에 ICOPAY 집계 posId를 넣고, 가맹에 QBANG·QR 바인딩을 등록하세요.");
         }
         String opPg = resolved.get().pgCd();
         QbangCredentials creds = resolved.get().creds();
@@ -179,6 +190,18 @@ public class QbangPaymentService {
             }
             pgAmt = urlPayDisplayFxService.applyChargeAmountRound(targetCur, conv.get());
             settleCur = targetCur;
+        }
+        /* 큐뱅: 거래 통화 KRW만 · 원미만 절사 */
+        if (!"KRW".equalsIgnoreCase(settleCur)) {
+            return fail(out, "QBANG_CURRENCY",
+                    "QBANG QR 실결제는 KRW만 가능합니다. 본사 URL결제 실결제 통화를 KRW로 설정하세요.");
+        }
+        settleCur = "KRW";
+        if (pgAmt != null) {
+            pgAmt = pgAmt.setScale(0, RoundingMode.DOWN);
+        }
+        if (pgAmt == null || pgAmt.compareTo(BigDecimal.ZERO) <= 0) {
+            return fail(out, "INVALID_AMOUNT", "결제 금액이 올바르지 않습니다.");
         }
         String orderNo = str(body, "orderNo", "order_no", "reference");
         if (orderNo.isBlank()) {
@@ -243,7 +266,9 @@ public class QbangPaymentService {
             data.put("shopperDisplayCurrency", shopperCur);
         }
         data.put("paymentStatus", "PENDING_QR");
-        data.put("remainingTimeHint", 66);
+        data.put("remainingTimeHint", QR_TTL_SECONDS);
+        data.put("remainingTimeMaxHint", QR_TTL_MAX_SECONDS);
+        data.put("pollIntervalMs", 1000);
         data.put("pgVendor", "ICOPAY");
         data.put("noti", publicNotiIngressUrls());
         out.put("data", data);
@@ -287,11 +312,13 @@ public class QbangPaymentService {
         data.put("actionFlag", actionFlag);
         data.put("remainingTime", remaining);
         data.put("paymentBrand", str(pl.get("paymentBrand")));
+        data.put("paymentBrandName", str(pl.get("paymentBrandName")));
+        data.put("subWalletName", str(pl.get("subWalletName")));
         data.put("approvalNo", str(pl.get("approvalNo")));
 
-        /* 만료·실패 */
+        /* 만료·실패 — remainingTime=0 이고 C/F/E·승인 아님 → AT */
         if ("F".equalsIgnoreCase(state) || "E".equalsIgnoreCase(state)
-                || (remaining <= 0 && actionFlag != 3)) {
+                || (remaining <= 0 && actionFlag != 3 && !"C".equalsIgnoreCase(state))) {
             if (orderNo != null && !orderNo.isBlank()) {
                 qbangSaleRecordService.applyFailedOutcome(orderNo, ouOpt.get().getCode(), transactionNo);
             }
@@ -307,12 +334,24 @@ public class QbangPaymentService {
         }
 
         if (actionFlag == 3 || "C".equalsIgnoreCase(state)) {
-            Map<String, Object> okay = apiClient.confirmOkay(creds, transactionNo.trim());
+            String completedTime = OKAY_COMPLETED_FMT.format(LocalDateTime.now(KST));
+            Map<String, Object> okay = apiClient.confirmOkay(creds, transactionNo.trim(), completedTime);
             if (!Boolean.TRUE.equals(okay.get("ok"))) {
-                log.warn("QBANG OKAY soft-fail txn={} msg={}", transactionNo, okay.get("message"));
+                /* OKAY 실패 시 로컬 승인 확정 보류 — 서버 폴러가 재시도(미호출 시 망취소 위험) */
+                log.warn("QBANG OKAY pending retry txn={} completedTime={} msg={}",
+                        transactionNo, completedTime, okay.get("message"));
+                data.put("paymentStatus", "PENDING");
+                data.put("okayPending", true);
+                out.put("success", true);
+                out.put("data", data);
+                return out;
             }
             String appr = str(pl.get("approvalNo"));
             String brand = str(pl.get("paymentBrand"));
+            String subWallet = str(pl.get("subWalletName"));
+            if (!subWallet.isBlank()) {
+                brand = brand.isBlank() ? subWallet : (brand + "/" + subWallet);
+            }
             String on = orderNo;
             if ((on == null || on.isBlank()) && transactionNo != null) {
                 Optional<PgTrnsctn> byTxn = pgTrnsctnRepository

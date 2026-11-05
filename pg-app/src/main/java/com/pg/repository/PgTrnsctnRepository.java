@@ -197,6 +197,19 @@ public interface PgTrnsctnRepository extends JpaRepository<PgTrnsctn, String>, J
                                                     @Param("notOlderThan") LocalDateTime notOlderThan,
                                                     Pageable pageable);
 
+    /**
+     * QBANG QR 요청(08) — 브라우저와 별도 서버 PL 폴링(승인 즉시 OKAY).
+     * createdAt 이 최근(유효시간 상한 내)인 건만.
+     */
+    @Query("SELECT t FROM PgTrnsctn t WHERE t.status = '08' " +
+           "AND (UPPER(t.van) = 'QBANG' OR UPPER(t.van) LIKE 'QBANG_%') " +
+           "AND t.chillTransactionId IS NOT NULL AND TRIM(t.chillTransactionId) <> '' " +
+           "AND t.orderNo IS NOT NULL AND TRIM(t.orderNo) <> '' " +
+           "AND t.createdAt >= :notOlderThan " +
+           "ORDER BY t.createdAt ASC")
+    List<PgTrnsctn> findRecentQbangPendingForPoll(@Param("notOlderThan") LocalDateTime notOlderThan,
+                                                  Pageable pageable);
+
     /** payer_location_label 미적재·불완전(지역 없음) + IP 보유 — GeoIP 보정 대상 */
     @Query("SELECT t FROM PgTrnsctn t WHERE t.payerClientIp IS NOT NULL AND TRIM(t.payerClientIp) <> '' "
             + "AND (t.payerLocationLabel IS NULL OR TRIM(t.payerLocationLabel) = '' "

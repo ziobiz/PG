@@ -16,7 +16,7 @@ public final class QrWalletScopeUtil {
 
     public static final String PAYPAY = "PAYPAY";
     /**
-     * 큐뱅(QBANG) POS QR = 제품상 PayPay 전용 (위챗·알리 등 타 지갑 없음).
+     * 큐뱅(QBANG) POS QR — 제품 안내는 PayPay(Alipay+ 중계).
      * ILK {@link #PAYPAY} API 경로와 별도 어댑터 — 섞지 말 것.
      */
     public static final String QBANG = "QBANG";

@@ -71,6 +71,13 @@ app:
   serverManage:
     uiAutoRefreshSeconds: 120
     nginxStubStatusUrl: ${NGINX_STUB_STATUS_URL:}
+  # QBANG QR — 서버 PL 폴링(승인 즉시 OKAY). 큐뱅 권장 1초.
+  qbang:
+    pendingPoll:
+      fixedDelayMs: 1000
+      initialDelayMs: 5000
+      batchSize: 40
+      maxAgeSeconds: 180
   # 일별 트래픽·메모리 피크 수집 (OSHI). NOTI 시스템 모니터 유사 차트용.
   serverUsage:
     enabled: true

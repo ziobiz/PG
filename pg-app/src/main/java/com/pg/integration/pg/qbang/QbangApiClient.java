@@ -57,8 +57,8 @@ public class QbangApiClient {
         plain.put("gratuity", 0);
         plain.put("tax", 0);
         plain.put("installmentPeriod", 0);
-        /* 제품: Alipay 전용 — 미지정 시 WeChat 등 기본 QR이 나와 PayPay/Alipay 앱이 거절함 */
-        String paymentCompanyId = creds != null ? creds.paymentCompanyId() : QbangCredentials.DEFAULT_PAYMENT_COMPANY_ID;
+        /* 큐뱅 회신: paymentCompanyId 세팅 불필요(지갑 선택 필드 아님). 명시값만 선택 전송 */
+        String paymentCompanyId = creds != null ? creds.paymentCompanyId() : "";
         if (paymentCompanyId != null && !paymentCompanyId.isBlank()) {
             plain.put("paymentCompanyId", paymentCompanyId.trim());
         }
@@ -101,15 +101,26 @@ public class QbangApiClient {
         return post(creds, body);
     }
 
-    public Map<String, Object> confirmOkay(QbangCredentials creds, String transactionNo) {
+    /**
+     * 승인 최종 확인. {@code completedTime} = PL로 승인 확인한 시각(YYYYMMDDHHMMSS, KST).
+     * 큐뱅 회신: OKAY 명세에 agencyCode 없음 — 전송하지 않음.
+     */
+    public Map<String, Object> confirmOkay(QbangCredentials creds, String transactionNo, String completedTimeKst) {
         ObjectNode body = objectMapper.createObjectNode();
         body.put("command", "OKAY");
         body.put("posId", creds.posId());
-        if (!creds.agencyCode().isBlank()) {
-            body.put("agencyCode", creds.agencyCode());
-        }
         body.put("transactionNo", transactionNo);
+        String ct = completedTimeKst != null ? completedTimeKst.trim() : "";
+        if (!ct.isBlank()) {
+            body.put("completedTime", ct);
+        }
         return post(creds, body);
+    }
+
+    /** @deprecated use {@link #confirmOkay(QbangCredentials, String, String)} with KST completedTime */
+    @Deprecated
+    public Map<String, Object> confirmOkay(QbangCredentials creds, String transactionNo) {
+        return confirmOkay(creds, transactionNo, null);
     }
 
     public Map<String, Object> abortNetwork(QbangCredentials creds, String transactionNo) {
@@ -120,6 +131,32 @@ public class QbangApiClient {
             body.put("agencyCode", creds.agencyCode());
         }
         body.put("transactionNo", transactionNo);
+        return post(creds, body);
+    }
+
+    /**
+     * 환불(RF). 새 TK의 key/iv·transactionNo + payload.originalTransactionNo.
+     * 부분환불은 큐뱅 개발 중 — 전액만.
+     */
+    public Map<String, Object> requestRefund(QbangCredentials creds, String keyB64, String ivB64,
+                                              String newTransactionNo, String originalTransactionNo) {
+        ObjectNode plain = objectMapper.createObjectNode();
+        plain.put("originalTransactionNo",
+                originalTransactionNo != null ? originalTransactionNo.trim() : "");
+        String cipher;
+        try {
+            cipher = QbangCryptoUtil.encryptAes256CbcBase64(objectMapper.writeValueAsString(plain), keyB64, ivB64);
+        } catch (Exception e) {
+            return err("QBANG_ENCRYPT", e.getMessage());
+        }
+        ObjectNode body = objectMapper.createObjectNode();
+        body.put("command", "RF");
+        body.put("posId", creds.posId());
+        if (!creds.agencyCode().isBlank()) {
+            body.put("agencyCode", creds.agencyCode());
+        }
+        body.put("transactionNo", newTransactionNo != null ? newTransactionNo.trim() : "");
+        body.put("payload", cipher);
         return post(creds, body);
     }
 

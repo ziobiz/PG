@@ -1,21 +1,36 @@
-# QBANG QR = Alipay 전용 (필수 · 변경 불가)
+# QBANG QR = PayPay (Alipay+ 중계 · 필수)
 
-## 제품 합의
+## 제품 합의 (큐뱅 기술 회신 반영)
 
-- ICOPAY **QR 결제**(큐뱅/QBANG POS) 연동 대상은 **Alipay만** 이다.
-- 운영 경로: 가맹 QR(`/checkout-qr`) → **큐뱅(QBANG) POS** TK/QR/PL/OKAY.
-- 큐뱅은 **Alipay QR 중계**로 쓴다. PayPay·위챗·유니온페이·라인페이 등 **다른 지갑을 추가·안내·연동하지 않는다.**
+- ICOPAY **QR 결제** 계약·구매자 안내는 **PayPay** 이다.
+- 운영 경로: 가맹 QR(`/checkout-qr`) → **큐뱅(QBANG) POS** `TK → QR → PL → OKAY`.
+- 큐뱅 측: PayPay는 **Alipay+** 군. 승인 시 `paymentBrand=Alipay+`, `subWalletName=PayPay`.
+- 큐뱅 QR은 중계망상 여러 앱이 스캔 가능하나, **ICOPAY 제품·화면은 PayPay만** 안내한다
+  (위챗·유니온페이·라인 등 병행 안내·연동 금지).
+- **ILK PayPay API** 경로와 섞지 않는다.
 
 ## 코드
 
-- 바인딩 `qr_wallet_scope` / 내부 코드는 **`QBANG`** (큐뱅 POS 어댑터).
-- QR payload `paymentCompanyId` = **`Alipay`** (`credentials_extra_json.paymentCompanyId`, 기본 Alipay).
-- 구매자·가맹 노출 문구는 **Alipay / QR(Alipay)** — PG명·큐뱅명 미노출(`pg-unified-payment-integration.mdc`).
-- **ILK PayPay API** 경로와 섞지 않는다.
-- DEV=`api-test.qr-road.com` 이어도 제품 수단은 Alipay.
+- 바인딩 `qr_wallet_scope` / 내부 코드는 **`QBANG`**.
+- QR payload에 **`paymentCompanyId` 를 넣지 않는다** (큐뱅: 세팅 불필요·지갑 선택 필드 아님).
+- 실결제 통화는 **KRW만**. 원미만은 **절사(DOWN)**.
+- OKAY: `completedTime`(YYYYMMDDHHMMSS, **KST**), **`agencyCode` 미전송**.
+- PL 권장 주기 **1초**. 브라우저와 별도 **서버 폴링**으로 승인 후 즉시 OKAY
+  (미호출·지연 시 큐뱅 내부 망취소 가능, 승인 건 AT는 약 5분 이내).
+- 구매자 노출: **PayPay / QR** — PG명·큐뱅명 미노출.
+
+## ICOPAY 집계 posId (내부 · 큐뱅 문의 대상 아님)
+
+- 큐뱅에 등록하는 **posId 1개 = ICOPAY 집계 POS**. 여러 가맹이 동일 posId 를 쓴다.
+- 가맹 MID·상호·쇼핑몰 URL은 큐뱅 API로 **절대 전달하지 않는다**
+  (`pg-unified-payment-integration.mdc`).
+- 가맹 구분·정산·통보는 ICOPAY `orderNo`·`transactionNo`·`pg_trnsctn.merchant_id` 로 한다.
+- `QbangCredentials` 는 **agency(본사 PG) posId만** 사용. binding `mid` 로 posId 를 덮지 않는다.
+- 「단일 posId 가능 여부」를 큐뱅에 묻지 않는다 — ICOPAY 측 설계·구현 의무.
 
 ## 금지
 
-- QBANG QR에 PayPay·WeChat·UnionPay·LINE Pay 병행 연동
-- Alipay를 빼 두고 다른 QR만 넣는 것
+- `paymentCompanyId=Alipay` 강제 또는 지갑 전환용으로 `paymentCompanyId` 사용
+- OKAY 누락 상태로 장시간 방치
 - 구매자 화면에 큐뱅/멀티월렛 안내
+- KRW 외 통화로 큐뱅 QR 청구
