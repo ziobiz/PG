@@ -41,10 +41,13 @@ SSH는 가능하면 **키 인증** (`SSH_KEY_PATH`)을 권장합니다. 비밀�
 |------|--------|
 | 원격 앱 루트 | `/home/ftpuser/pg-app` |
 | JAR | `.../build/libs/pg-app-0.0.1-SNAPSHOT.jar` |
-| 재시작 | `./restart-pg-app.sh` |
+| 재시작 | `./restart-pg-app.sh` (systemd `pg-app` enable 시 `systemctl`) |
 | DB | `localhost` / `pgdev` / `pgadmin` (원격에서 `psql`) |
+| 부팅 자동 기동 | `pg-app.service` + 5분 워치독 (`install-pg-app-systemd.sh`) |
 
 `site/` 는 JAR에 포함되므로 **일반 배포는 JAR + 재시작**이면 충분합니다.
+
+**필수(재발 방지):** 서버에 `server-scripts/install-pg-app-systemd.sh` 를 1회 적용해 두어야 호스팅 재부팅 후에도 502가 나지 않습니다. 사고 기록: `docs/incident-2026-11-06-pg-app-502-after-reboot.md`.
 
 ## 다운타임 최소화
 

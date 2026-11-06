@@ -140,8 +140,18 @@ if [[ -d "$PG_SCRIPTS_DIR/node_modules/playwright" ]] && command -v npx >/dev/nu
   fi
 fi
 
+# systemd 유닛이 enable 되어 있으면 부팅 자동 기동·배포 재시작을 systemctl 로 통일
+# (2026-11-06: 재부팅 후 nohup 미기동 → 11h+ 502 사고 방지)
+USE_SYSTEMD=0
+if command -v systemctl >/dev/null 2>&1 && systemctl is-enabled pg-app.service >/dev/null 2>&1; then
+  USE_SYSTEMD=1
+fi
+
 # ─── 1) 서비스 중단 → 포트 해제 (다운타임 시작) ───
 echo "1) 기존 pg-app 프로세스 종료..."
+if [[ "$USE_SYSTEMD" -eq 1 ]]; then
+  systemctl stop pg-app.service 2>/dev/null || true
+fi
 pkill -f "pg-app-0.0.1-SNAPSHOT.jar" 2>/dev/null || true
 sleep 1
 if command -v ss >/dev/null 2>&1; then
@@ -176,10 +186,30 @@ fi
 # ─── 2) 새 JAR 기동 ───
 echo "2) pg-app 기동 (prod)..."
 echo "   DB·JPA validate 때문에 약 1분 걸릴 수 있습니다. 완료 전 재실행 금지."
-# SecureRandom 초기화 지연 완화(Linux). 추가 JVM 옵션은 JAVA_OPTS 로.
-JAVA_OPTS_DEFAULT="-Djava.security.egd=file:/dev/./urandom"
-# flock FD(200)를 java 에 넘기지 않음 — 상속되면 다음 재시작이 잠금에 걸린다.
-nohup java $JAVA_OPTS_DEFAULT ${JAVA_OPTS:-} -jar "$JAR" --spring.profiles.active=prod --server.port=8080 >>"$LOG_FILE" 2>&1 200>&- &
+if [[ "$USE_SYSTEMD" -eq 1 ]]; then
+  # env 파일에 DB_* 반영(서버 restart 스크립트 ★ 블록과 동기화)
+  ENV_FILE="$PG_APP_DIR/pg-app.env"
+  umask 077
+  cat >"$ENV_FILE" <<EOF
+DB_HOST=${DB_HOST}
+DB_USER=${DB_USER}
+DB_PASSWORD=${DB_PASSWORD}
+SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:-20}
+PG_SCRIPTS_DIR=${PG_SCRIPTS_DIR:-$PG_APP_DIR/scripts}
+PG_NOTIFY_ALLOWED_CIDRS=${PG_NOTIFY_ALLOWED_CIDRS:-172.235.192.86,127.0.0.1,::1}
+APP_SETTLEMENT_AUTO_RUN=${APP_SETTLEMENT_AUTO_RUN:-true}
+EOF
+  chmod 600 "$ENV_FILE" 2>/dev/null || true
+  systemctl start pg-app.service
+  echo "   systemd: systemctl start pg-app.service"
+  echo "   상태: systemctl status pg-app --no-pager | head"
+else
+  # SecureRandom 초기화 지연 완화(Linux). 추가 JVM 옵션은 JAVA_OPTS 로.
+  JAVA_OPTS_DEFAULT="-Djava.security.egd=file:/dev/./urandom"
+  # flock FD(200)를 java 에 넘기지 않음 — 상속되면 다음 재시작이 잠금에 걸린다.
+  nohup java $JAVA_OPTS_DEFAULT ${JAVA_OPTS:-} -jar "$JAR" --spring.profiles.active=prod --server.port=8080 >>"$LOG_FILE" 2>&1 200>&- &
+  echo "   (레거시 nohup) systemd 미설치 — install-pg-app-systemd.sh 권장"
+fi
 echo "   로그: tail -f $LOG_FILE"
 echo "   성공 한 줄: grep 'Started PgAppApplication' $LOG_FILE | tail -1"
 echo "   (프롬프트가 바로 돌아오는 것은 정상입니다. java 는 백그라운드에서 기동 중입니다.)"

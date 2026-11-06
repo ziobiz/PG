@@ -6,13 +6,35 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '6.10';
+  var CURRENT_LIVE = '6.11';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '6.11',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          '운영: 서버 재부팅 후 pg-app 미기동(502) 방지 — systemd 자동 기동·5분 워치독. 사고(2026-11-06 Power key) 기록·재발 방지'
+        ],
+        EN: [
+          'Ops: prevent 502 after reboot (pg-app not started) — systemd auto-start + 5‑min watchdog. Incident 2026-11-06 (Power key) documented'
+        ],
+        JP: [
+          '運用: 再起動後pg-app未起動(502)防止 — systemd自動起動・5分ウォッチドッグ。事故(2026-11-06 Power key)記録'
+        ],
+        CH: [
+          '运维：防止重启后 pg-app 未启动(502) — systemd 开机自启 + 5分钟看门狗。事故(2026-11-06 Power key)已记录'
+        ],
+        TH: [
+          'Ops: ป้องกัน 502 หลังรีบูต (pg-app ไม่ขึ้น) — systemd เปิดอัตโนมัติ + watchdog 5 นาที บันทึกเหตุการณ์ 2026-11-06'
+        ]
+      }
+    },
     {
       version: '6.10',
       kind: 'minor',

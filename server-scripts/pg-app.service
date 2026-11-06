@@ -1,0 +1,25 @@
+[Unit]
+Description=ICOPAY pg-app (Spring Boot)
+Documentation=file:///home/ftpuser/pg-app/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/ftpuser/pg-app
+EnvironmentFile=-/home/ftpuser/pg-app/pg-app.env
+Environment=SPRING_PROFILES_ACTIVE=prod
+Environment=APP_SETTLEMENT_AUTO_RUN=true
+Environment=PG_NOTIFY_ALLOWED_CIDRS=172.235.192.86,127.0.0.1,::1
+ExecStart=/usr/bin/java -Djava.security.egd=file:/dev/./urandom -jar /home/ftpuser/pg-app/build/libs/pg-app-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod --server.port=8080
+# deploy 의 restart-pg-app.sh(systemctl stop) 와 공존: 정상 종료(143=SIGTERM)는 실패로 보지 않음
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=15
+TimeoutStopSec=60
+KillMode=mixed
+StandardOutput=append:/home/ftpuser/pg-app/pg-app.log
+StandardError=append:/home/ftpuser/pg-app/pg-app.log
+
+[Install]
+WantedBy=multi-user.target

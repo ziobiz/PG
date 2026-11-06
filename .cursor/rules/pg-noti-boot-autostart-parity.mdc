@@ -1,0 +1,17 @@
+# NOTI ↔ pg-app 부팅 자동 기동 동등 (필수)
+
+ICOPAY `pg-app` 과 NOTI(`d:\Delopment\NOTI` / `pg-noti-relay`) 는 연동 쌍이다.  
+한쪽만 재부팅 후 미기동되면 결제·웹훅·가맹 통보가 끊긴다.
+
+## 동등 요건
+
+| 쪽 | 부팅 자동 기동 | 헬스 워치독 | 배포 시 |
+|----|----------------|-------------|---------|
+| pg-app | `pg-app.service` | `pg-app-watchdog` (5분) | `restart-pg-app.sh` / systemd |
+| NOTI | `pm2-root.service` + `pm2 save` | `pg-noti-watchdog` (`/health`, 5분) | `Deploy-Noti.ps1` → restart **+ save** |
+
+## 규칙
+
+- pg-app 쪽에 재부팅·자동 기동·워치독을 손보면 **NOTI에도 동등 조치**한다 (그 역도 동일).
+- NOTI 배포는 `pm2 save` 생략 금지.
+- 사용자가 「노티」를 말하지 않아도, pg-app 가용성 방어를 넣을 때 NOTI 패리티를 검토한다.
