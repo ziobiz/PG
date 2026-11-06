@@ -2,13 +2,16 @@ package com.pg.controller.api;
 
 import com.pg.api.ApiResponse;
 import com.pg.entity.MerchantProfile;
+import com.pg.integration.pg.PgVendor;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
+import com.pg.service.ChillPayService;
 import com.pg.service.OrgServiceUseService;
 import com.pg.service.QbangPaymentService;
 import com.pg.urlpay.CheckoutHeaderLogoResolver;
 import com.pg.urlpay.QrPaymentMeansService;
 import com.pg.urlpay.UrlPayPublicCheckoutService;
+import com.pg.urlpay.UrlPayVendorCapabilityRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +27,7 @@ public class ApiQbangPayController {
 
     private final QbangPaymentService qbangPaymentService;
     private final UrlPayPublicCheckoutService urlPayPublicCheckoutService;
+    private final ChillPayService chillPayService;
     private final OrgUnitRepository orgUnitRepository;
     private final OrgServiceUseService orgServiceUseService;
     private final MerchantProfileRepository merchantProfileRepository;
@@ -32,6 +36,7 @@ public class ApiQbangPayController {
 
     public ApiQbangPayController(QbangPaymentService qbangPaymentService,
                                  UrlPayPublicCheckoutService urlPayPublicCheckoutService,
+                                 ChillPayService chillPayService,
                                  OrgUnitRepository orgUnitRepository,
                                  OrgServiceUseService orgServiceUseService,
                                  MerchantProfileRepository merchantProfileRepository,
@@ -39,6 +44,7 @@ public class ApiQbangPayController {
                                  CheckoutHeaderLogoResolver checkoutHeaderLogoResolver) {
         this.qbangPaymentService = qbangPaymentService;
         this.urlPayPublicCheckoutService = urlPayPublicCheckoutService;
+        this.chillPayService = chillPayService;
         this.orgUnitRepository = orgUnitRepository;
         this.orgServiceUseService = orgServiceUseService;
         this.merchantProfileRepository = merchantProfileRepository;
@@ -65,6 +71,27 @@ public class ApiQbangPayController {
         }
         try {
             Map<String, Object> data = urlPayPublicCheckoutService.buildCheckoutContext(orgUnitId, request, false);
+            /*
+             * 카드·OMSPAY 등이 기본 URL 운영 PG여도 QBANG QR 창은 QBANG 바인딩의
+             * amountMode·표시통화·실결제(KRW)·FX(BOT/ECOS)만 쓴다.
+             * URL결제 용도 행 우선, 없으면 QR 바인딩 pg_cd 로 HQ 설정을 적용.
+             */
+            String qbangPg = chillPayService.resolveUrlPayOperationalPgCdPreferringFamily(
+                    orgUnitId, PgVendor::isQbangFamily);
+            if (qbangPg == null || qbangPg.isBlank()) {
+                qbangPg = qbangPaymentService.resolveBinding(orgUnitId, "")
+                        .map(QbangPaymentService.ResolvedQbang::pgCd)
+                        .orElse("");
+            }
+            if (qbangPg != null && !qbangPg.isBlank()) {
+                String curOp = String.valueOf(data.getOrDefault("urlPayOperationalPgCd", "")).trim();
+                if (!qbangPg.equalsIgnoreCase(curOp)) {
+                    data.put("urlPayOperationalPgCd", qbangPg);
+                    data.put("urlPayInlineWidgetKind",
+                            UrlPayVendorCapabilityRegistry.resolveInlineWidgetKindLegacy(qbangPg));
+                    urlPayPublicCheckoutService.enrichPresentation(data, orgUnitId);
+                }
+            }
             checkoutHeaderLogoResolver.applyQrToCheckoutMap(data, orgUnitId);
             data.put("payMeans", "QR");
             data.put("qrWallet", "QBANG");

@@ -214,7 +214,10 @@ public class QbangApiClient {
                     out.put("transactionNo", data.path("transactionNo").asText(""));
                 }
                 if (data.has("qrCode")) {
-                    out.put("qrCode", data.path("qrCode").asText(""));
+                    out.put("qrCode", data.path("qrCode").asText("").replaceAll("\\s+", ""));
+                }
+                if (data.has("paymentCompanyCode")) {
+                    out.put("paymentCompanyCode", data.path("paymentCompanyCode").asText("").trim());
                 }
                 if (data.has("remainingTime")) {
                     out.put("remainingTime", data.path("remainingTime").asInt(0));
@@ -227,6 +230,16 @@ public class QbangApiClient {
                 }
                 if (data.has("actionFlag")) {
                     out.put("actionFlag", data.path("actionFlag").asInt(0));
+                }
+                /* 2차 QR (actionFlag 1·2). PayPay는 보통 1차만 — 다른 지갑 대비 전달 */
+                if (data.has("step2QR") && data.get("step2QR").isObject()) {
+                    JsonNode s2 = data.get("step2QR");
+                    String s2qr = s2.path("qrCode").asText("").replaceAll("\\s+", "");
+                    if (!s2qr.isBlank()) {
+                        out.put("step2QrCode", s2qr);
+                    }
+                    out.put("step2CompanyCode", s2.path("companyCode").asText(""));
+                    out.put("step2CompanyName", s2.path("companyName").asText(""));
                 }
                 if (data.has("approval") && data.get("approval").isObject()) {
                     JsonNode a = data.get("approval");

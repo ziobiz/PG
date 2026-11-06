@@ -92,16 +92,31 @@ public class UrlPayDisplayFxService {
 
     private final HqApiConfigRepository hqApiConfigRepository;
     private final BotThailandExchangeRateService botThailandExchangeRateService;
+    private final BokEcosExchangeRateService bokEcosExchangeRateService;
 
     private final String configuredHmacSecret;
 
     public UrlPayDisplayFxService(
             HqApiConfigRepository hqApiConfigRepository,
             BotThailandExchangeRateService botThailandExchangeRateService,
+            BokEcosExchangeRateService bokEcosExchangeRateService,
             @Value("${pg.url-pay-fx.quote-hmac-secret:}") String configuredHmacSecret) {
         this.hqApiConfigRepository = hqApiConfigRepository;
         this.botThailandExchangeRateService = botThailandExchangeRateService;
+        this.bokEcosExchangeRateService = bokEcosExchangeRateService;
         this.configuredHmacSecret = configuredHmacSecret != null ? configuredHmacSecret.trim() : "";
+    }
+
+    /** PG {@code fxMode}: MANUAL / ECOS / AUTO|BOT(레거시 AUTO=BOT). */
+    public static String normalizeFxMode(String raw) {
+        String u = raw != null ? raw.trim().toUpperCase(Locale.ROOT) : "";
+        if ("MANUAL".equals(u)) {
+            return "MANUAL";
+        }
+        if ("ECOS".equals(u) || "BOK".equals(u) || "BOK_ECOS".equals(u)) {
+            return "ECOS";
+        }
+        return "AUTO";
     }
 
     public boolean isHqFeatureEnabled() {
@@ -310,10 +325,14 @@ public class UrlPayDisplayFxService {
         if (cur == null) {
             return Optional.empty();
         }
-        String settlement = defaultSettlementForBuild(pgNode);
-        String fxMode = pgNode != null && pgNode.size() > 0
-                ? pgNode.path("fxMode").asText("AUTO").trim().toUpperCase(Locale.ROOT)
-                : "AUTO";
+        /* PG별 실결제(QBANG=KRW 등). defaultSettlementForBuild 만 쓰면 미설정 시 THB로 떨어져 견적 실패 */
+        String settlement = settlementCurrencyForPg(pgU);
+        if (settlement == null || settlement.isBlank()) {
+            settlement = defaultSettlementForBuild(pgNode);
+        }
+        String fxMode = normalizeFxMode(pgNode != null && pgNode.size() > 0
+                ? pgNode.path("fxMode").asText("AUTO")
+                : "AUTO");
         BigDecimal settlementPerUnit;
         String period;
         String rateDesc;
@@ -324,6 +343,16 @@ public class UrlPayDisplayFxService {
             }
             period = "MANUAL";
             rateDesc = "MANUAL fixed " + settlement + " per 1 " + cur;
+        } else if ("ECOS".equals(fxMode)) {
+            Optional<BigDecimal> ecos = bokEcosExchangeRateService.settlementPerUnit(cur, settlement);
+            if (ecos.isEmpty()) {
+                return Optional.empty();
+            }
+            settlementPerUnit = ecos.get();
+            period = bokEcosExchangeRateService.latestRatePeriod().orElse("ECOS");
+            rateDesc = cur.equals(settlement)
+                    ? ("1:1, " + settlement + " per 1 " + cur)
+                    : ("ECOS BOK 731Y001 (KRW bridge), " + settlement + " per 1 " + cur);
         } else {
             BotRateAsOfMode botMode = resolveBotRateMode();
             BotThailandExchangeRateService.BotDailyRates rates = null;
@@ -331,14 +360,37 @@ public class UrlPayDisplayFxService {
                 rates = botThailandExchangeRateService.fetchThbPerUnitRates(botMode).orElse(null);
             }
             Optional<BigDecimal> auto = computeAutoSettlementPerUnit(cur, settlement, rates);
-            if (auto.isEmpty()) {
-                return Optional.empty();
+            if (auto.isPresent()) {
+                settlementPerUnit = auto.get();
+                period = rates != null && rates.period() != null ? rates.period() : "";
+                rateDesc = cur.equals(settlement)
+                        ? ("1:1, " + settlement + " per 1 " + cur)
+                        : ("BOT DAILY_AVG (bridge THB, " + botMode + "), " + settlement + " per 1 " + cur);
+            } else {
+                /* BOT 실패: ECOS 폴백 → MANUAL → THB다리+KRW 폴백 */
+                Optional<BigDecimal> ecosFb = bokEcosExchangeRateService.settlementPerUnit(cur, settlement);
+                if (ecosFb.isPresent()) {
+                    settlementPerUnit = ecosFb.get();
+                    period = bokEcosExchangeRateService.latestRatePeriod().orElse("ECOS_FB");
+                    rateDesc = "ECOS fallback (BOT unavailable), " + settlement + " per 1 " + cur;
+                } else {
+                    BigDecimal manualFb = resolveManualSettlementPerUnit(pgNode, settlement, cur);
+                    if (manualFb != null && manualFb.compareTo(BigDecimal.ZERO) > 0) {
+                        settlementPerUnit = manualFb;
+                        period = "MANUAL_FALLBACK";
+                        rateDesc = "MANUAL fallback " + settlement + " per 1 " + cur;
+                    } else {
+                        Optional<BigDecimal> bridged = computeAutoSettlementPerUnitWithKrwFallback(
+                                cur, settlement, rates, pgNode);
+                        if (bridged.isEmpty()) {
+                            return Optional.empty();
+                        }
+                        settlementPerUnit = bridged.get();
+                        period = rates != null && rates.period() != null ? rates.period() + "+KRW_FB" : "KRW_FB";
+                        rateDesc = "BOT+KRW fallback (bridge THB), " + settlement + " per 1 " + cur;
+                    }
+                }
             }
-            settlementPerUnit = auto.get();
-            period = rates != null && rates.period() != null ? rates.period() : "";
-            rateDesc = cur.equals(settlement)
-                    ? ("1:1, " + settlement + " per 1 " + cur)
-                    : ("BOT DAILY_AVG (bridge THB, " + botMode + "), " + settlement + " per 1 " + cur);
         }
         BigDecimal margin = marginFor(pgU.isEmpty() ? null : pgU, cur);
         long exp = System.currentTimeMillis() / 1000L + quoteTtlSeconds();
@@ -711,14 +763,39 @@ public class UrlPayDisplayFxService {
 
     private Optional<BigDecimal> computeAutoSettlementPerUnit(
             String display, String settlement, BotThailandExchangeRateService.BotDailyRates rates) {
+        return computeAutoSettlementPerUnitWithKrwFallback(display, settlement, rates, null);
+    }
+
+    /**
+     * BOT 환산. 실결제 KRW인데 BOT에 KRW 행이 없으면 THB→KRW 폴백(본사/PG JSON 또는 40)으로 다리를 잇는다.
+     * QBANG DP(JPY→KRW) 견적이 BOT KRW 누락으로 빈칸(—) 되는 것을 막는다.
+     */
+    private Optional<BigDecimal> computeAutoSettlementPerUnitWithKrwFallback(
+            String display,
+            String settlement,
+            BotThailandExchangeRateService.BotDailyRates rates,
+            JsonNode pgNodeOrNull) {
         if (display.equals(settlement)) {
             return Optional.of(BigDecimal.ONE);
         }
+        /* BOT 전체 실패여도 THB→KRW 는 폴백 환율로 견적 가능 */
         if (rates == null) {
+            if ("THB".equals(display) && "KRW".equals(settlement)) {
+                BigDecimal krwPerThb = resolveThbToKrwFallbackRate(pgNodeOrNull);
+                if (krwPerThb != null && krwPerThb.compareTo(BigDecimal.ZERO) > 0) {
+                    return Optional.of(krwPerThb);
+                }
+            }
             return Optional.empty();
         }
         BigDecimal thbPerDisp = thbPerOneUnit(display, rates);
         BigDecimal thbPerSet = thbPerOneUnit(settlement, rates);
+        if (thbPerSet == null && "KRW".equals(settlement)) {
+            BigDecimal krwPerThb = resolveThbToKrwFallbackRate(pgNodeOrNull);
+            if (krwPerThb != null && krwPerThb.compareTo(BigDecimal.ZERO) > 0) {
+                thbPerSet = BigDecimal.ONE.divide(krwPerThb, 12, RoundingMode.HALF_UP);
+            }
+        }
         if (thbPerDisp == null
                 || thbPerSet == null
                 || thbPerDisp.compareTo(BigDecimal.ZERO) <= 0
@@ -729,8 +806,28 @@ public class UrlPayDisplayFxService {
     }
 
     /**
+     * 1 THB = N KRW. 본사 {@code thbToKrwFallback} · PG {@code thbToKrw}/{@code sandboxThbToKrw} · 기본 40.
+     */
+    private BigDecimal resolveThbToKrwFallbackRate(JsonNode pgNodeOrNull) {
+        BigDecimal fromPg = parsePositiveDecimal(
+                pgNodeOrNull != null ? pgNodeOrNull.path("thbToKrw").asText("") : "");
+        if (fromPg == null) {
+            fromPg = parsePositiveDecimal(
+                    pgNodeOrNull != null ? pgNodeOrNull.path("sandboxThbToKrw").asText("") : "");
+        }
+        if (fromPg != null) {
+            return fromPg;
+        }
+        BigDecimal fromHq = parsePositiveDecimal(readHqFxJson().path("thbToKrwFallback").asText(""));
+        if (fromHq != null) {
+            return fromHq;
+        }
+        return new BigDecimal("40");
+    }
+
+    /**
      * 결제 한도 비교용. 마진 없이 BOT 환율로 {@code amount}를 {@code fromCcy}에서 {@code toCcy}로 환산합니다.
-     * 같은 통화면 그대로 반환합니다.
+     * 같은 통화면 그대로 반환합니다. BOT 불가 시 empty (NPE 없음).
      */
     public Optional<BigDecimal> convertAmount(BigDecimal amount, String fromCcy, String toCcy) {
         if (amount == null) {
@@ -746,19 +843,84 @@ public class UrlPayDisplayFxService {
         }
         BotThailandExchangeRateService.BotDailyRates rates =
                 botThailandExchangeRateService.fetchThbPerUnitRates(resolveBotRateMode()).orElse(null);
-        BigDecimal thbFrom = thbPerOneUnit(from, rates);
-        BigDecimal thbTo = thbPerOneUnit(to, rates);
-        if (thbFrom == null || thbTo == null
-                || thbFrom.compareTo(BigDecimal.ZERO) <= 0
-                || thbTo.compareTo(BigDecimal.ZERO) <= 0) {
+        Optional<BigDecimal> perUnit = computeAutoSettlementPerUnit(from, to, rates);
+        if (perUnit.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(amount.multiply(thbFrom).divide(thbTo, 8, RoundingMode.HALF_UP));
+        return Optional.of(amount.multiply(perUnit.get()).setScale(8, RoundingMode.HALF_UP));
+    }
+
+    /**
+     * 운영 PG 본사 URL결제설정까지 포함한 환전.
+     * <ol>
+     *   <li>BOT 자동 ({@link #convertAmount})</li>
+     *   <li>BOT 실패 시 PG {@code fxMode=MANUAL} 또는 수동 환산값({@code manualSettlementPerUnit} /
+     *       {@code manualThbPerByDisplayCurrency}) 폴백</li>
+     * </ol>
+     * QBANG 등 실결제 통화가 가맹 체크아웃 통화와 다를 때 사용.
+     */
+    public Optional<BigDecimal> convertAmountForOperationalPg(
+            BigDecimal amount, String fromCcy, String toCcy, String operationalPgCd) {
+        if (amount == null) {
+            return Optional.empty();
+        }
+        String from = fromCcy != null ? fromCcy.trim().toUpperCase(Locale.ROOT) : "";
+        String to = toCcy != null ? toCcy.trim().toUpperCase(Locale.ROOT) : "";
+        if (from.isEmpty() || to.isEmpty()) {
+            return Optional.empty();
+        }
+        if (from.equals(to)) {
+            return Optional.of(amount);
+        }
+        JsonNode pgNode = pgSettingsNode(normalizePgCd(operationalPgCd));
+        String fxMode = normalizeFxMode(pgNode != null && pgNode.isObject()
+                ? pgNode.path("fxMode").asText("AUTO") : "AUTO");
+        if ("ECOS".equals(fxMode)) {
+            Optional<BigDecimal> ecos = bokEcosExchangeRateService.settlementPerUnit(from, to);
+            if (ecos.isPresent()) {
+                return Optional.of(amount.multiply(ecos.get()).setScale(8, RoundingMode.HALF_UP));
+            }
+        }
+        Optional<BigDecimal> bot = convertAmount(amount, fromCcy, toCcy);
+        if (bot.isPresent()) {
+            return bot;
+        }
+        if (!"ECOS".equals(fxMode)) {
+            Optional<BigDecimal> ecosFb = bokEcosExchangeRateService.settlementPerUnit(from, to);
+            if (ecosFb.isPresent()) {
+                return Optional.of(amount.multiply(ecosFb.get()).setScale(8, RoundingMode.HALF_UP));
+            }
+        }
+        if (pgNode == null || pgNode.isMissingNode() || !pgNode.isObject()) {
+            return Optional.empty();
+        }
+        BigDecimal perUnit = resolveManualSettlementPerUnit(pgNode, to, from);
+        if (perUnit == null || perUnit.compareTo(BigDecimal.ZERO) <= 0) {
+            /* 실결제 THB 전용 키만 있을 때: from→THB→to (to≠THB) 수동 불가하면 포기 */
+            if ("THB".equals(to)) {
+                return Optional.empty();
+            }
+            BigDecimal toThb = resolveManualSettlementPerUnit(pgNode, "THB", from);
+            BigDecimal thbToTarget = resolveManualSettlementPerUnit(pgNode, "THB", to);
+            if (toThb != null && thbToTarget != null
+                    && toThb.compareTo(BigDecimal.ZERO) > 0
+                    && thbToTarget.compareTo(BigDecimal.ZERO) > 0) {
+                /* 1 from = toThb THB, 1 to = thbToTarget THB → to per 1 from = toThb/thbToTarget */
+                perUnit = toThb.divide(thbToTarget, 12, RoundingMode.HALF_UP);
+            }
+        }
+        if (perUnit == null || perUnit.compareTo(BigDecimal.ZERO) <= 0) {
+            return Optional.empty();
+        }
+        return Optional.of(amount.multiply(perUnit).setScale(8, RoundingMode.HALF_UP));
     }
 
     private static BigDecimal thbPerOneUnit(String currency, BotThailandExchangeRateService.BotDailyRates rates) {
         if ("THB".equals(currency)) {
             return BigDecimal.ONE;
+        }
+        if (rates == null) {
+            return null;
         }
         if ("JPY".equals(currency)) {
             return rates.thbPerJpy();

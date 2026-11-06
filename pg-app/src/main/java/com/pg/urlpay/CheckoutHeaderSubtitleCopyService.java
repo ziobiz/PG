@@ -37,6 +37,14 @@ public class CheckoutHeaderSubtitleCopyService {
         return hqApiConfigRepository.findAll().stream().findFirst().orElseGet(HqApiConfig::new);
     }
 
+    /** 가맹 QR 로고 실효 DISABLED 여부 (FOLLOW_HQ→본사기본, FOLLOW_WEB은 웹결제 경로라 false). */
+    public boolean resolveQrLogoDisabled(MerchantProfile mp) {
+        String key = WebPaymentHeaderLogoModeUtil.resolveChannelEffectiveKey(
+                mp != null ? mp.getQrPaymentHeaderLogoMode() : "FOLLOW_HQ",
+                hq().getQrPaymentHeaderLogoModeDefault());
+        return WebPaymentHeaderLogoModeUtil.DISABLED.equals(key);
+    }
+
     public void applyToMerchantProfile(MerchantProfile mp) {
         if (mp == null) {
             return;
@@ -164,11 +172,17 @@ public class CheckoutHeaderSubtitleCopyService {
         putChannelCheckoutFields(data, mp, subMode, subText, writeI18n(subI18nMap));
     }
 
-    /** QR 안내문구 ACTIVE 시 다국어 1회 번역(시스템 기본 KO면 검수 팩). */
+    /** QR 안내·브랜드제목·푸터 ACTIVE 시 다국어 1회 번역. */
     public void applyQrToMerchantProfile(MerchantProfile mp) {
         if (mp == null) {
             return;
         }
+        applyQrSubtitleI18n(mp);
+        applyQrBrandTitleI18n(mp);
+        applyQrFooterI18n(mp);
+    }
+
+    private void applyQrSubtitleI18n(MerchantProfile mp) {
         String mode = mp.getQrPaymentHeaderSubtitleMode();
         String textRaw = mp.getQrPaymentHeaderSubtitleText();
         String prevI18n = mp.getQrPaymentHeaderSubtitleTextI18n();
@@ -202,6 +216,74 @@ public class CheckoutHeaderSubtitleCopyService {
                 });
     }
 
+    private void applyQrBrandTitleI18n(MerchantProfile mp) {
+        String mode = mp.getQrPaymentBrandTitleMode();
+        String textRaw = mp.getQrPaymentBrandTitleText();
+        String prevI18n = mp.getQrPaymentBrandTitleTextI18n();
+        String m = mode != null ? mode.trim().toUpperCase(Locale.ROOT) : "";
+        if (!"ACTIVE".equals(m)) {
+            return;
+        }
+        String text = textRaw != null ? textRaw.trim() : "";
+        if (text.isEmpty()) {
+            mp.setQrPaymentBrandTitleText(null);
+            mp.setQrPaymentBrandTitleTextI18n(null);
+            return;
+        }
+        if (prevI18n != null && !prevI18n.isBlank() && korMatches(prevI18n, text)) {
+            return;
+        }
+        if (text.equals(QrPaymentCopyDefaults.BRAND_TITLE_KO)) {
+            try {
+                mp.setQrPaymentBrandTitleText(text);
+                mp.setQrPaymentBrandTitleTextI18n(
+                        OM.writeValueAsString(QrPaymentCopyDefaults.brandTitleI18n()));
+                return;
+            } catch (Exception ignored) {
+                /* fall through */
+            }
+        }
+        applyChannelActiveI18n(mp, mode, textRaw, prevI18n,
+                (t, i18n) -> {
+                    mp.setQrPaymentBrandTitleText(t);
+                    mp.setQrPaymentBrandTitleTextI18n(i18n);
+                });
+    }
+
+    private void applyQrFooterI18n(MerchantProfile mp) {
+        String mode = mp.getQrPaymentFooterMode();
+        String textRaw = mp.getQrPaymentFooterText();
+        String prevI18n = mp.getQrPaymentFooterTextI18n();
+        String m = mode != null ? mode.trim().toUpperCase(Locale.ROOT) : "";
+        if (!"ACTIVE".equals(m)) {
+            return;
+        }
+        String text = textRaw != null ? textRaw.trim() : "";
+        if (text.isEmpty()) {
+            mp.setQrPaymentFooterText(null);
+            mp.setQrPaymentFooterTextI18n(null);
+            return;
+        }
+        if (prevI18n != null && !prevI18n.isBlank() && korMatches(prevI18n, text)) {
+            return;
+        }
+        if (text.equals(QrPaymentCopyDefaults.FOOTER_KO)) {
+            try {
+                mp.setQrPaymentFooterText(text);
+                mp.setQrPaymentFooterTextI18n(
+                        OM.writeValueAsString(QrPaymentCopyDefaults.footerI18n()));
+                return;
+            } catch (Exception ignored) {
+                /* fall through */
+            }
+        }
+        applyChannelActiveI18n(mp, mode, textRaw, prevI18n,
+                (t, i18n) -> {
+                    mp.setQrPaymentFooterText(t);
+                    mp.setQrPaymentFooterTextI18n(i18n);
+                });
+    }
+
     public void putQrCheckoutFields(Map<String, Object> data, MerchantProfile mp) {
         HqApiConfig hq = hq();
         String subMode = resolveUnifiedMode(
@@ -228,9 +310,30 @@ public class CheckoutHeaderSubtitleCopyService {
             }
         }
         putChannelCheckoutFields(data, mp, subMode, subText, writeI18n(subI18nMap));
+
+        putUnifiedSlot(data, "qrPaymentBrandTitle",
+                mp != null ? mp.getQrPaymentBrandTitleMode() : null,
+                mp != null ? mp.getQrPaymentBrandTitleText() : null,
+                mp != null ? mp.getQrPaymentBrandTitleTextI18n() : null,
+                hq.getQrPaymentBrandTitleModeDefault(),
+                coalesceBlank(hq.getQrPaymentBrandTitleTextDefault(), QrPaymentCopyDefaults.BRAND_TITLE_KO),
+                hq.getQrPaymentBrandTitleTextDefaultI18n(),
+                "ACTIVE",
+                QrPaymentCopyDefaults.brandTitleI18n(),
+                false);
+        putUnifiedSlot(data, "qrPaymentFooter",
+                mp != null ? mp.getQrPaymentFooterMode() : null,
+                mp != null ? mp.getQrPaymentFooterText() : null,
+                mp != null ? mp.getQrPaymentFooterTextI18n() : null,
+                hq.getQrPaymentFooterModeDefault(),
+                coalesceBlank(hq.getQrPaymentFooterTextDefault(), QrPaymentCopyDefaults.FOOTER_KO),
+                hq.getQrPaymentFooterTextDefaultI18n(),
+                "DISABLED",
+                QrPaymentCopyDefaults.footerI18n(),
+                false);
     }
 
-    /** 본사 QR 결제 안내 기본 문구 — ACTIVE 시 5개국어. */
+    /** 본사 QR 결제 안내·브랜드제목·푸터 기본 — ACTIVE 시 5개국어. */
     public void applyQrDefaultsToHq(HqApiConfig c) {
         if (c == null) {
             return;
@@ -243,6 +346,22 @@ public class CheckoutHeaderSubtitleCopyService {
                 || c.getQrPaymentHeaderSubtitleTextDefault().isBlank()) {
             c.setQrPaymentHeaderSubtitleTextDefault(QrPaymentCopyDefaults.HEADER_KO);
         }
+        if (c.getQrPaymentHeaderLogoModeDefault() == null
+                || c.getQrPaymentHeaderLogoModeDefault().isBlank()) {
+            c.setQrPaymentHeaderLogoModeDefault("FOLLOW_WEB");
+        }
+        if (c.getQrPaymentBrandTitleModeDefault() == null
+                || c.getQrPaymentBrandTitleModeDefault().isBlank()) {
+            c.setQrPaymentBrandTitleModeDefault("ACTIVE");
+        }
+        if (c.getQrPaymentBrandTitleTextDefault() == null
+                || c.getQrPaymentBrandTitleTextDefault().isBlank()) {
+            c.setQrPaymentBrandTitleTextDefault(QrPaymentCopyDefaults.BRAND_TITLE_KO);
+        }
+        if (c.getQrPaymentFooterModeDefault() == null
+                || c.getQrPaymentFooterModeDefault().isBlank()) {
+            c.setQrPaymentFooterModeDefault("DISABLED");
+        }
         applyHqActiveI18n(c.getQrPaymentHeaderSubtitleModeDefault(),
                 c.getQrPaymentHeaderSubtitleTextDefault(),
                 c.getQrPaymentHeaderSubtitleTextDefaultI18n(),
@@ -251,6 +370,22 @@ public class CheckoutHeaderSubtitleCopyService {
                     c.setQrPaymentHeaderSubtitleTextDefaultI18n(i18n);
                 },
                 QrPaymentCopyDefaults.headerI18n());
+        applyHqActiveI18n(c.getQrPaymentBrandTitleModeDefault(),
+                c.getQrPaymentBrandTitleTextDefault(),
+                c.getQrPaymentBrandTitleTextDefaultI18n(),
+                (text, i18n) -> {
+                    c.setQrPaymentBrandTitleTextDefault(text);
+                    c.setQrPaymentBrandTitleTextDefaultI18n(i18n);
+                },
+                QrPaymentCopyDefaults.brandTitleI18n());
+        applyHqActiveI18n(c.getQrPaymentFooterModeDefault(),
+                c.getQrPaymentFooterTextDefault(),
+                c.getQrPaymentFooterTextDefaultI18n(),
+                (text, i18n) -> {
+                    c.setQrPaymentFooterTextDefault(text);
+                    c.setQrPaymentFooterTextDefaultI18n(i18n);
+                },
+                QrPaymentCopyDefaults.footerI18n());
     }
 
     public void putUnifiedCheckoutFields(Map<String, Object> data, MerchantProfile mp) {
@@ -415,6 +550,10 @@ public class CheckoutHeaderSubtitleCopyService {
     public void applyCryptoDefaultsToHq(HqApiConfig c) {
         if (c == null) {
             return;
+        }
+        if (c.getCryptoPaymentHeaderLogoModeDefault() == null
+                || c.getCryptoPaymentHeaderLogoModeDefault().isBlank()) {
+            c.setCryptoPaymentHeaderLogoModeDefault("FOLLOW_WEB");
         }
         if (c.getCryptoPaymentHeaderSubtitleModeDefault() == null
                 || c.getCryptoPaymentHeaderSubtitleModeDefault().isBlank()) {

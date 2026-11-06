@@ -169,6 +169,10 @@ public class HqApiConfig {
     private String unifiedPaymentHeaderSubtitleTextDefaultI18n;
 
     /** 크립토 결제창 상단안내 본사 기본 — ACTIVE|DISABLED */
+    /** 크립토 로고 본사 기본 FOLLOW_WEB|DEFAULT|HTML|ACTIVE|DISABLED */
+    @Column(name = "crypto_payment_header_logo_mode_default", nullable = false, length = 16)
+    private String cryptoPaymentHeaderLogoModeDefault = "FOLLOW_WEB";
+
     @Column(name = "crypto_payment_header_subtitle_mode_default", nullable = false, length = 16)
     private String cryptoPaymentHeaderSubtitleModeDefault = "ACTIVE";
 
@@ -189,10 +193,34 @@ public class HqApiConfig {
 
     @Column(name = "qr_payment_header_subtitle_text_default", length = 500)
     private String qrPaymentHeaderSubtitleTextDefault =
-            "QR로 결제합니다. 앱에서 아래 QR을 스캔한 뒤 결제를 완료해 주세요.";
+            "PayPay 앱으로 QR을 스캔해 결제해 주세요.";
 
     @Column(name = "qr_payment_header_subtitle_text_default_i18n", columnDefinition = "TEXT")
     private String qrPaymentHeaderSubtitleTextDefaultI18n;
+
+    /** QR 상단 로고 본사 기본 FOLLOW_WEB|DEFAULT|HTML|ACTIVE|DISABLED */
+    @Column(name = "qr_payment_header_logo_mode_default", nullable = false, length = 16)
+    private String qrPaymentHeaderLogoModeDefault = "FOLLOW_WEB";
+
+    /** QR 브랜드제목(PayPay QR) 본사 기본 ACTIVE|DISABLED */
+    @Column(name = "qr_payment_brand_title_mode_default", nullable = false, length = 16)
+    private String qrPaymentBrandTitleModeDefault = "ACTIVE";
+
+    @Column(name = "qr_payment_brand_title_text_default", length = 120)
+    private String qrPaymentBrandTitleTextDefault = "PayPay QR";
+
+    @Column(name = "qr_payment_brand_title_text_default_i18n", columnDefinition = "TEXT")
+    private String qrPaymentBrandTitleTextDefaultI18n;
+
+    /** QR 푸터 본사 기본 ACTIVE|DISABLED */
+    @Column(name = "qr_payment_footer_mode_default", nullable = false, length = 16)
+    private String qrPaymentFooterModeDefault = "DISABLED";
+
+    @Column(name = "qr_payment_footer_text_default", length = 500)
+    private String qrPaymentFooterTextDefault;
+
+    @Column(name = "qr_payment_footer_text_default_i18n", columnDefinition = "TEXT")
+    private String qrPaymentFooterTextDefaultI18n;
 
     /** 통합결제 노란 주의(푸터메시지) 본사 기본 — ACTIVE|DISABLED */
     @Column(name = "unified_payment_notice_mode_default", nullable = false, length = 16)
@@ -404,6 +432,10 @@ public class HqApiConfig {
     @Column(name = "bot_thailand_api_key_header", length = 64)
     private String botThailandApiKeyHeader;
 
+    /** 한국은행 ECOS Open API 인증키(StatisticSearch 731Y001). 비우면 BOK_ECOS_API_KEY */
+    @Column(name = "bok_ecos_api_key", length = 512)
+    private String bokEcosApiKey;
+
     /** 환수금에서 수수료 포함 여부 (Y/N) */
     @Column(name = "recall_include_fee_yn", length = 1)
     private String recallIncludeFeeYn = "N";
@@ -612,6 +644,11 @@ public class HqApiConfig {
     public void setUnifiedPaymentHeaderSubtitleTextDefault(String v) { this.unifiedPaymentHeaderSubtitleTextDefault = v; }
     public String getUnifiedPaymentHeaderSubtitleTextDefaultI18n() { return unifiedPaymentHeaderSubtitleTextDefaultI18n; }
     public void setUnifiedPaymentHeaderSubtitleTextDefaultI18n(String v) { this.unifiedPaymentHeaderSubtitleTextDefaultI18n = v; }
+    public String getCryptoPaymentHeaderLogoModeDefault() { return cryptoPaymentHeaderLogoModeDefault; }
+    public void setCryptoPaymentHeaderLogoModeDefault(String v) {
+        this.cryptoPaymentHeaderLogoModeDefault =
+                com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalizeChannelHqDefault(v);
+    }
     public String getCryptoPaymentHeaderSubtitleModeDefault() { return cryptoPaymentHeaderSubtitleModeDefault; }
     public void setCryptoPaymentHeaderSubtitleModeDefault(String v) {
         this.cryptoPaymentHeaderSubtitleModeDefault = nzActiveDisabled(v, "ACTIVE");
@@ -632,6 +669,27 @@ public class HqApiConfig {
     public void setQrPaymentHeaderSubtitleTextDefault(String v) { this.qrPaymentHeaderSubtitleTextDefault = v; }
     public String getQrPaymentHeaderSubtitleTextDefaultI18n() { return qrPaymentHeaderSubtitleTextDefaultI18n; }
     public void setQrPaymentHeaderSubtitleTextDefaultI18n(String v) { this.qrPaymentHeaderSubtitleTextDefaultI18n = v; }
+    public String getQrPaymentHeaderLogoModeDefault() { return qrPaymentHeaderLogoModeDefault; }
+    public void setQrPaymentHeaderLogoModeDefault(String v) {
+        this.qrPaymentHeaderLogoModeDefault =
+                com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalizeChannelHqDefault(v);
+    }
+    public String getQrPaymentBrandTitleModeDefault() { return qrPaymentBrandTitleModeDefault; }
+    public void setQrPaymentBrandTitleModeDefault(String v) {
+        this.qrPaymentBrandTitleModeDefault = nzActiveDisabled(v, "ACTIVE");
+    }
+    public String getQrPaymentBrandTitleTextDefault() { return qrPaymentBrandTitleTextDefault; }
+    public void setQrPaymentBrandTitleTextDefault(String v) { this.qrPaymentBrandTitleTextDefault = v; }
+    public String getQrPaymentBrandTitleTextDefaultI18n() { return qrPaymentBrandTitleTextDefaultI18n; }
+    public void setQrPaymentBrandTitleTextDefaultI18n(String v) { this.qrPaymentBrandTitleTextDefaultI18n = v; }
+    public String getQrPaymentFooterModeDefault() { return qrPaymentFooterModeDefault; }
+    public void setQrPaymentFooterModeDefault(String v) {
+        this.qrPaymentFooterModeDefault = nzActiveDisabled(v, "DISABLED");
+    }
+    public String getQrPaymentFooterTextDefault() { return qrPaymentFooterTextDefault; }
+    public void setQrPaymentFooterTextDefault(String v) { this.qrPaymentFooterTextDefault = v; }
+    public String getQrPaymentFooterTextDefaultI18n() { return qrPaymentFooterTextDefaultI18n; }
+    public void setQrPaymentFooterTextDefaultI18n(String v) { this.qrPaymentFooterTextDefaultI18n = v; }
     public String getUnifiedPaymentNoticeModeDefault() { return unifiedPaymentNoticeModeDefault; }
     public void setUnifiedPaymentNoticeModeDefault(String v) {
         this.unifiedPaymentNoticeModeDefault = nzActiveDisabled(v, "ACTIVE");
@@ -756,6 +814,8 @@ public class HqApiConfig {
     public void setBotThailandDailyAvgPath(String botThailandDailyAvgPath) { this.botThailandDailyAvgPath = botThailandDailyAvgPath; }
     public String getBotThailandApiKeyHeader() { return botThailandApiKeyHeader; }
     public void setBotThailandApiKeyHeader(String botThailandApiKeyHeader) { this.botThailandApiKeyHeader = botThailandApiKeyHeader; }
+    public String getBokEcosApiKey() { return bokEcosApiKey; }
+    public void setBokEcosApiKey(String bokEcosApiKey) { this.bokEcosApiKey = bokEcosApiKey; }
     public String getRecallIncludeFeeYn() { return recallIncludeFeeYn; }
     public void setRecallIncludeFeeYn(String recallIncludeFeeYn) { this.recallIncludeFeeYn = recallIncludeFeeYn; }
     public String getSettlementVatApplyYn() { return settlementVatApplyYn; }

@@ -2,9 +2,11 @@ package com.pg.controller.api;
 
 import com.pg.api.ApiResponse;
 import com.pg.entity.MerchantIlkSubscription;
+import com.pg.integration.pg.PgVendor;
 import com.pg.merchantdeploy.MerchantApiResponseMapper;
 import com.pg.repository.MerchantIlkSubscriptionRepository;
 import com.pg.repository.OrgUnitRepository;
+import com.pg.service.ChillPayService;
 import com.pg.service.IlkPaymentService;
 import com.pg.service.OrgServiceUseService;
 import com.pg.urlpay.CheckoutFailI18n;
@@ -12,6 +14,7 @@ import com.pg.urlpay.CheckoutHeaderLogoResolver;
 import com.pg.urlpay.QrPaymentMeansService;
 import com.pg.urlpay.UrlPayPublicCheckoutService;
 import com.pg.urlpay.UrlPaySaleDispatcher;
+import com.pg.urlpay.UrlPayVendorCapabilityRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +33,7 @@ public class ApiIlkPayController {
     private final IlkPaymentService ilkPaymentService;
     private final UrlPaySaleDispatcher urlPaySaleDispatcher;
     private final UrlPayPublicCheckoutService urlPayPublicCheckoutService;
+    private final ChillPayService chillPayService;
     private final OrgUnitRepository orgUnitRepository;
     private final OrgServiceUseService orgServiceUseService;
     private final MerchantIlkSubscriptionRepository subscriptionRepository;
@@ -39,6 +43,7 @@ public class ApiIlkPayController {
     public ApiIlkPayController(IlkPaymentService ilkPaymentService,
                                UrlPaySaleDispatcher urlPaySaleDispatcher,
                                UrlPayPublicCheckoutService urlPayPublicCheckoutService,
+                               ChillPayService chillPayService,
                                OrgUnitRepository orgUnitRepository,
                                OrgServiceUseService orgServiceUseService,
                                MerchantIlkSubscriptionRepository subscriptionRepository,
@@ -47,6 +52,7 @@ public class ApiIlkPayController {
         this.ilkPaymentService = ilkPaymentService;
         this.urlPaySaleDispatcher = urlPaySaleDispatcher;
         this.urlPayPublicCheckoutService = urlPayPublicCheckoutService;
+        this.chillPayService = chillPayService;
         this.orgUnitRepository = orgUnitRepository;
         this.orgServiceUseService = orgServiceUseService;
         this.subscriptionRepository = subscriptionRepository;
@@ -75,6 +81,17 @@ public class ApiIlkPayController {
             if ("QR".equalsIgnoreCase(means)) {
                 if (!qrPaymentMeansService.qrMeansAllowed(orgUnitId)) {
                     return ResponseEntity.ok(ApiResponse.fail("QR 결제를 사용할 수 없습니다.", "QR_MEANS_DISABLED"));
+                }
+                String ilkPg = chillPayService.resolveUrlPayOperationalPgCdPreferringFamily(
+                        orgUnitId, PgVendor::isIlkFamily);
+                if (ilkPg != null && !ilkPg.isBlank()) {
+                    String curOp = String.valueOf(data.getOrDefault("urlPayOperationalPgCd", "")).trim();
+                    if (!ilkPg.equalsIgnoreCase(curOp)) {
+                        data.put("urlPayOperationalPgCd", ilkPg);
+                        data.put("urlPayInlineWidgetKind",
+                                UrlPayVendorCapabilityRegistry.resolveInlineWidgetKindLegacy(ilkPg));
+                        urlPayPublicCheckoutService.enrichPresentation(data, orgUnitId);
+                    }
                 }
                 checkoutHeaderLogoResolver.applyQrToCheckoutMap(data, orgUnitId);
                 data.put("payMeans", "QR");

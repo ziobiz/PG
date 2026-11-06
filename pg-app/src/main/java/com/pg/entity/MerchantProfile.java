@@ -234,11 +234,17 @@ public class MerchantProfile {
     private String apiPaymentHeaderHtmlTitle;
 
     /**
-     * 크립토 결제·수단선택 상단 로고 — A형.
-     * {@code FOLLOW_HQ}=웹결제 로고 따름(기본), {@code DISABLED}=미노출. 별도 업로드 없음.
+     * 크립토 결제·수단선택 상단 로고.
+     * FOLLOW_HQ|FOLLOW_WEB|DEFAULT|HTML|ACTIVE|DISABLED
      */
     @Column(name = "crypto_payment_header_logo_mode", nullable = false, length = 16)
     private String cryptoPaymentHeaderLogoMode = "FOLLOW_HQ";
+
+    @Column(name = "crypto_payment_header_logo_url", length = 500)
+    private String cryptoPaymentHeaderLogoUrl;
+
+    @Column(name = "crypto_payment_header_html_title", length = 80)
+    private String cryptoPaymentHeaderHtmlTitle;
 
     /** 크립토 결제창 로고 아래 안내 — FOLLOW_HQ|ACTIVE|DISABLED */
     @Column(name = "crypto_payment_header_subtitle_mode", nullable = false, length = 16)
@@ -263,6 +269,36 @@ public class MerchantProfile {
 
     @Column(name = "qr_payment_header_subtitle_text_i18n", columnDefinition = "TEXT")
     private String qrPaymentHeaderSubtitleTextI18n;
+
+    /** QR 상단 로고 FOLLOW_HQ|FOLLOW_WEB|DEFAULT|HTML|ACTIVE|DISABLED */
+    @Column(name = "qr_payment_header_logo_mode", nullable = false, length = 16)
+    private String qrPaymentHeaderLogoMode = "FOLLOW_HQ";
+
+    @Column(name = "qr_payment_header_logo_url", length = 500)
+    private String qrPaymentHeaderLogoUrl;
+
+    @Column(name = "qr_payment_header_html_title", length = 80)
+    private String qrPaymentHeaderHtmlTitle;
+
+    /** 로고 아래 브랜드제목(PayPay QR) FOLLOW_HQ|ACTIVE|DISABLED */
+    @Column(name = "qr_payment_brand_title_mode", nullable = false, length = 16)
+    private String qrPaymentBrandTitleMode = "FOLLOW_HQ";
+
+    @Column(name = "qr_payment_brand_title_text", length = 120)
+    private String qrPaymentBrandTitleText;
+
+    @Column(name = "qr_payment_brand_title_text_i18n", columnDefinition = "TEXT")
+    private String qrPaymentBrandTitleTextI18n;
+
+    /** QR 하단 푸터 FOLLOW_HQ|ACTIVE|DISABLED */
+    @Column(name = "qr_payment_footer_mode", nullable = false, length = 16)
+    private String qrPaymentFooterMode = "FOLLOW_HQ";
+
+    @Column(name = "qr_payment_footer_text", length = 500)
+    private String qrPaymentFooterText;
+
+    @Column(name = "qr_payment_footer_text_i18n", columnDefinition = "TEXT")
+    private String qrPaymentFooterTextI18n;
 
     /** 통합결제(수단선택) 로고 아래 안내 — FOLLOW_HQ|DEFAULT|ACTIVE|DISABLED */
     @Column(name = "unified_payment_header_subtitle_mode", nullable = false, length = 16)
@@ -919,18 +955,16 @@ public class MerchantProfile {
     public void setApiPaymentHeaderHtmlTitle(String apiPaymentHeaderHtmlTitle) { this.apiPaymentHeaderHtmlTitle = apiPaymentHeaderHtmlTitle; }
     public String getCryptoPaymentHeaderLogoMode() { return cryptoPaymentHeaderLogoMode; }
     public void setCryptoPaymentHeaderLogoMode(String cryptoPaymentHeaderLogoMode) {
-        if (cryptoPaymentHeaderLogoMode == null || cryptoPaymentHeaderLogoMode.isBlank()) {
-            this.cryptoPaymentHeaderLogoMode = "FOLLOW_HQ";
-            return;
-        }
-        String u = cryptoPaymentHeaderLogoMode.trim().toUpperCase(java.util.Locale.ROOT);
-        if (com.pg.urlpay.WebPaymentHeaderLogoModeUtil.DISABLED.equals(u)
-                || "N".equals(u) || "OFF".equals(u) || "INACTIVE".equals(u)) {
-            this.cryptoPaymentHeaderLogoMode = com.pg.urlpay.WebPaymentHeaderLogoModeUtil.DISABLED;
-            return;
-        }
-        /* FOLLOW_HQ · HQ · Y · ON · FOLLOW_WEB 등 → 웹결제 로고 따름 */
-        this.cryptoPaymentHeaderLogoMode = "FOLLOW_HQ";
+        this.cryptoPaymentHeaderLogoMode =
+                com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalizeChannelMerchantStored(cryptoPaymentHeaderLogoMode);
+    }
+    public String getCryptoPaymentHeaderLogoUrl() { return cryptoPaymentHeaderLogoUrl; }
+    public void setCryptoPaymentHeaderLogoUrl(String cryptoPaymentHeaderLogoUrl) {
+        this.cryptoPaymentHeaderLogoUrl = cryptoPaymentHeaderLogoUrl;
+    }
+    public String getCryptoPaymentHeaderHtmlTitle() { return cryptoPaymentHeaderHtmlTitle; }
+    public void setCryptoPaymentHeaderHtmlTitle(String cryptoPaymentHeaderHtmlTitle) {
+        this.cryptoPaymentHeaderHtmlTitle = cryptoPaymentHeaderHtmlTitle;
     }
     public String getCryptoPaymentHeaderSubtitleMode() { return cryptoPaymentHeaderSubtitleMode; }
     public void setCryptoPaymentHeaderSubtitleMode(String cryptoPaymentHeaderSubtitleMode) {
@@ -959,6 +993,43 @@ public class MerchantProfile {
     public String getQrPaymentHeaderSubtitleTextI18n() { return qrPaymentHeaderSubtitleTextI18n; }
     public void setQrPaymentHeaderSubtitleTextI18n(String qrPaymentHeaderSubtitleTextI18n) {
         this.qrPaymentHeaderSubtitleTextI18n = qrPaymentHeaderSubtitleTextI18n;
+    }
+    public String getQrPaymentHeaderLogoMode() { return qrPaymentHeaderLogoMode; }
+    public void setQrPaymentHeaderLogoMode(String qrPaymentHeaderLogoMode) {
+        this.qrPaymentHeaderLogoMode =
+                com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalizeChannelMerchantStored(qrPaymentHeaderLogoMode);
+    }
+    public String getQrPaymentHeaderLogoUrl() { return qrPaymentHeaderLogoUrl; }
+    public void setQrPaymentHeaderLogoUrl(String qrPaymentHeaderLogoUrl) {
+        this.qrPaymentHeaderLogoUrl = qrPaymentHeaderLogoUrl;
+    }
+    public String getQrPaymentHeaderHtmlTitle() { return qrPaymentHeaderHtmlTitle; }
+    public void setQrPaymentHeaderHtmlTitle(String qrPaymentHeaderHtmlTitle) {
+        this.qrPaymentHeaderHtmlTitle = qrPaymentHeaderHtmlTitle;
+    }
+    public String getQrPaymentBrandTitleMode() { return qrPaymentBrandTitleMode; }
+    public void setQrPaymentBrandTitleMode(String qrPaymentBrandTitleMode) {
+        this.qrPaymentBrandTitleMode = normalizeCryptoSubtitleMode(qrPaymentBrandTitleMode);
+    }
+    public String getQrPaymentBrandTitleText() { return qrPaymentBrandTitleText; }
+    public void setQrPaymentBrandTitleText(String qrPaymentBrandTitleText) {
+        this.qrPaymentBrandTitleText = qrPaymentBrandTitleText;
+    }
+    public String getQrPaymentBrandTitleTextI18n() { return qrPaymentBrandTitleTextI18n; }
+    public void setQrPaymentBrandTitleTextI18n(String qrPaymentBrandTitleTextI18n) {
+        this.qrPaymentBrandTitleTextI18n = qrPaymentBrandTitleTextI18n;
+    }
+    public String getQrPaymentFooterMode() { return qrPaymentFooterMode; }
+    public void setQrPaymentFooterMode(String qrPaymentFooterMode) {
+        this.qrPaymentFooterMode = normalizeCryptoSubtitleMode(qrPaymentFooterMode);
+    }
+    public String getQrPaymentFooterText() { return qrPaymentFooterText; }
+    public void setQrPaymentFooterText(String qrPaymentFooterText) {
+        this.qrPaymentFooterText = qrPaymentFooterText;
+    }
+    public String getQrPaymentFooterTextI18n() { return qrPaymentFooterTextI18n; }
+    public void setQrPaymentFooterTextI18n(String qrPaymentFooterTextI18n) {
+        this.qrPaymentFooterTextI18n = qrPaymentFooterTextI18n;
     }
     private static String normalizeQrPaymentUseYn(String raw) {
         if (raw == null || raw.isBlank()) {

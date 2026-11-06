@@ -58,3 +58,5 @@ PG CD/
 pg-app/BOOT-INF/
 pg-app/src/main/resources/db/*.txt
 tools/
+
+scripts/deploy/_local_*.sql

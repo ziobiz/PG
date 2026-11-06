@@ -69,24 +69,24 @@
 
           <div class="row g-2 mb-2" id="startNameRow">
             <div class="col-6">
-              <input type="text" class="form-control form-control-sm pay-input-round" id="startFirstName" autocomplete="given-name" lang="en" spellcheck="false" inputmode="latin" />
+              <input type="text" class="form-control form-control-sm pay-input-round" id="startFirstName" autocomplete="given-name" lang="en" spellcheck="false" inputmode="latin" required />
             </div>
             <div class="col-6">
-              <input type="text" class="form-control form-control-sm pay-input-round" id="startLastName" autocomplete="family-name" lang="en" spellcheck="false" inputmode="latin" />
+              <input type="text" class="form-control form-control-sm pay-input-round" id="startLastName" autocomplete="family-name" lang="en" spellcheck="false" inputmode="latin" required />
             </div>
           </div>
 
           <div class="row g-2 mb-2" id="startContactBlock">
-            <div class="col-12" id="startEmailRow" hidden>
-              <input type="email" class="form-control form-control-sm pay-input-round" id="startEmail" autocomplete="email" lang="en" spellcheck="false" inputmode="email" />
+            <div class="col-12" id="startEmailRow">
+              <input type="email" class="form-control form-control-sm pay-input-round" id="startEmail" autocomplete="email" lang="en" spellcheck="false" inputmode="email" required />
             </div>
-            <div class="col-12" id="startCountryRow" hidden>
+            <div class="col-12" id="startCountryRow">
               <label class="pay-label mb-1 d-block" for="startCountry" id="startCountryLabel">Country code</label>
-              <select class="form-select form-select-sm pay-input-round" id="startCountry"></select>
+              <select class="form-select form-select-sm pay-input-round" id="startCountry" required></select>
             </div>
-            <div class="col-12" id="startPhoneRow" hidden>
+            <div class="col-12" id="startPhoneRow">
               <label class="pay-label mb-1 d-block" for="startPhone" id="startPhoneLabel">Phone</label>
-              <input type="tel" class="form-control form-control-sm pay-input-round" id="startPhone" autocomplete="tel-national" inputmode="numeric" pattern="[0-9]*" />
+              <input type="tel" class="form-control form-control-sm pay-input-round" id="startPhone" autocomplete="tel-national" inputmode="numeric" pattern="[0-9]*" required />
             </div>
           </div>
 
@@ -147,18 +147,18 @@
     KO: {
       asset: '자산 선택', network: '네트워크',
       deposit: 'ICOPAY 입금 주소', confirm: '송금 완료 · 입금 확인',
-      txHash: 'Tx 해시 (선택)', confirming: '입금 확인 중…',
+      txHash: 'Tx 해시 (선택·권장)', confirming: '체인에서 입금 확인 중…',
       order: '주문번호', product: '상품', amount: '금액', remit: '송금금액',
       displayCcy: '표시 통화', quoteEst: '청구예상 금액 (USD 상당)', quoteUsdTag: 'USD 상당',
-      waiting: '입금 대기 중… 송금 후 「송금 완료 · 입금 확인」을 눌러 주세요. Tx 해시가 있으면 입력해 주세요.',
+      waiting: '입금 대기 중… 표시된 금액·네트워크로 송금해 주세요. 버튼은 수탁 주소 온체인 입금만 확인하며, 미입금이면 완료되지 않습니다. Tx 해시가 있으면 입력해 주세요.',
       confirmed: '입금이 확정되었습니다.', expired: '입금 시간이 만료되었습니다.',
-      errConfirm: '입금 확인에 실패했습니다.',
+      errConfirm: '온체인 입금이 아직 확인되지 않았습니다. 송금 후 잠시 뒤 다시 시도해 주세요.',
       copied: '주소를 복사했습니다.', errSession: '결제 세션을 불러오지 못했습니다.',
       pickAsset: '자산을 선택하세요.', pickNet: '네트워크를 선택하세요.',
       startProduct: '상품명', startAmount: '금액', startGo: '계속',
       firstName: '이름', lastName: '성', email: '이메일', country: '국가코드', phone: '전화번호',
       ship: '배송주소', shipOpt: '(선택)', selectGo: '입금 주소 받기',
-      needAmount: '금액을 입력하세요.', needName: '성명을 영문으로 입력하세요.',
+      needAmount: '금액을 입력하세요.', needName: '이름·성을 영문으로 입력하세요.',
       needEmail: '이메일을 입력하세요.', needPhone: '전화번호를 입력하세요.', needCountry: '국가코드를 선택하세요.',
       nameLatin: '성명은 영문만 입력할 수 있습니다.', emailLatin: '이메일은 영문만 입력할 수 있습니다.',
       emailInvalid: '이메일 형식이 올바르지 않습니다.', phoneDigits: '전화번호는 숫자만 입력할 수 있습니다.',
@@ -167,18 +167,18 @@
     EN: {
       asset: 'Select asset', network: 'Network',
       deposit: 'ICOPAY deposit address', confirm: 'I sent it · Check deposit',
-      txHash: 'Tx hash (optional)', confirming: 'Confirming deposit…',
+      txHash: 'Tx hash (optional·recommended)', confirming: 'Checking on-chain deposit…',
       order: 'Order', product: 'Item', amount: 'Amount', remit: 'Remittance',
       displayCcy: 'Display currency', quoteEst: 'Expected charge (USD equiv.)', quoteUsdTag: 'USD equiv.',
-      waiting: 'Waiting for deposit… After sending, tap 「I sent it · Check deposit」. Enter Tx hash if available.',
+      waiting: 'Waiting for deposit… Send the exact amount on the shown network. The button only verifies on-chain credit to our custody address — without a deposit it will not complete. Enter Tx hash if you have it.',
       confirmed: 'Deposit confirmed.', expired: 'Deposit window expired.',
-      errConfirm: 'Could not confirm deposit.',
+      errConfirm: 'On-chain deposit not seen yet. Send funds, then try again shortly.',
       copied: 'Address copied.', errSession: 'Could not load payment session.',
       pickAsset: 'Select an asset.', pickNet: 'Select a network.',
       startProduct: 'Item', startAmount: 'Amount', startGo: 'Continue',
       firstName: 'First name', lastName: 'Last name', email: 'Email', country: 'Country code', phone: 'Phone',
       ship: 'Shipping address', shipOpt: '(optional)', selectGo: 'Get deposit address',
-      needAmount: 'Enter an amount.', needName: 'Enter your name in English.',
+      needAmount: 'Enter an amount.', needName: 'Enter first and last name in English.',
       needEmail: 'Enter your email.', needPhone: 'Enter your phone.', needCountry: 'Select country code.',
       nameLatin: 'Name must be English letters only.', emailLatin: 'Email must be ASCII/English only.',
       emailInvalid: 'Invalid email format.', phoneDigits: 'Phone must be digits only.',
@@ -187,18 +187,18 @@
     JP: {
       asset: '資産を選択', network: 'ネットワーク',
       deposit: 'ICOPAY入金アドレス', confirm: '送金完了 · 入金確認',
-      txHash: 'Txハッシュ（任意）', confirming: '入金確認中…',
+      txHash: 'Txハッシュ（任意・推奨）', confirming: 'チェーンで入金確認中…',
       order: '注文番号', product: '商品', amount: '金額', remit: '送金額',
       displayCcy: '表示通貨', quoteEst: '請求予定額 (USD相当)', quoteUsdTag: 'USD相当',
-      waiting: '入金待ち… 送金後「送金完了 · 入金確認」を押してください。Txがあれば入力。',
+      waiting: '入金待ち… 表示金額・ネットワークで送金してください。ボタンはカストディ宛のオンチェーン入金のみ確認し、未入金では完了しません。Txがあれば入力。',
       confirmed: '入金が確定しました。', expired: '入金期限が切れました。',
-      errConfirm: '入金確認に失敗しました。',
+      errConfirm: 'オンチェーン入金が未確認です。送金後、しばらくして再試行してください。',
       copied: 'コピーしました。', errSession: 'セッションを読み込めません。',
       pickAsset: '資産を選んでください。', pickNet: 'ネットワークを選んでください。',
       startProduct: '商品名', startAmount: '金額', startGo: '続ける',
       firstName: '名', lastName: '姓', email: 'メール', country: '国コード', phone: '電話番号',
       ship: '配送先住所', shipOpt: '（任意）', selectGo: '入金アドレスを表示',
-      needAmount: '金額を入力してください。', needName: '氏名を英字で入力してください。',
+      needAmount: '金額を入力してください。', needName: '名・姓を英字で入力してください。',
       needEmail: 'メールを入力してください。', needPhone: '電話番号を入力してください。', needCountry: '国コードを選択してください。',
       nameLatin: '氏名は英字のみ入力できます。', emailLatin: 'メールは英字のみ入力できます。',
       emailInvalid: 'メール形式が正しくありません。', phoneDigits: '電話番号は数字のみ入力できます。',
@@ -207,18 +207,18 @@
     CH: {
       asset: '选择资产', network: '网络',
       deposit: 'ICOPAY 充值地址', confirm: '已汇出 · 确认入金',
-      txHash: 'Tx 哈希（可选）', confirming: '正在确认入金…',
+      txHash: 'Tx 哈希（可选·建议）', confirming: '正在链上确认入金…',
       order: '订单号', product: '商品', amount: '金额', remit: '汇款金额',
       displayCcy: '显示货币', quoteEst: '预计扣款 (USD 等值)', quoteUsdTag: 'USD 等值',
-      waiting: '等待入金… 汇款后请点「已汇出 · 确认入金」。有 Tx 哈希可填写。',
+      waiting: '等待入金… 请按显示金额与网络汇款。按钮仅核验托管地址的链上入账，未入账不会完成。有 Tx 哈希请填写。',
       confirmed: '入金已确认。', expired: '入金时限已过。',
-      errConfirm: '入金确认失败。',
+      errConfirm: '尚未在链上看到入金。汇款后请稍后再试。',
       copied: '已复制。', errSession: '无法加载支付会话。',
       pickAsset: '请选择资产。', pickNet: '请选择网络。',
       startProduct: '商品名', startAmount: '金额', startGo: '继续',
       firstName: '名', lastName: '姓', email: '邮箱', country: '国家代码', phone: '电话',
       ship: '收货地址', shipOpt: '（选填）', selectGo: '获取充值地址',
-      needAmount: '请输入金额。', needName: '请用英文输入姓名。',
+      needAmount: '请输入金额。', needName: '请用英文输入名和姓。',
       needEmail: '请输入邮箱。', needPhone: '请输入电话。', needCountry: '请选择国家代码。',
       nameLatin: '姓名仅可输入英文。', emailLatin: '邮箱仅可输入英文/ASCII。',
       emailInvalid: '邮箱格式不正确。', phoneDigits: '电话仅可输入数字。',
@@ -227,18 +227,18 @@
     TH: {
       asset: 'เลือกสินทรัพย์', network: 'เครือข่าย',
       deposit: 'ที่อยู่ฝาก ICOPAY', confirm: 'โอนแล้ว · ตรวจยอดฝาก',
-      txHash: 'Tx hash (ไม่บังคับ)', confirming: 'กำลังยืนยันการฝาก…',
+      txHash: 'Tx hash (ไม่บังคับ·แนะนำ)', confirming: 'กำลังตรวจฝากบนเชน…',
       order: 'เลขคำสั่งซื้อ', product: 'สินค้า', amount: 'จำนวน', remit: 'ยอดโอน',
       displayCcy: 'สกุลแสดง', quoteEst: 'ยอดเรียกเก็บโดยประมาณ (เทียบเท่า USD)', quoteUsdTag: 'เทียบเท่า USD',
-      waiting: 'รอฝาก… หลังโอน กด「โอนแล้ว · ตรวจยอดฝาก」 มี Tx ก็กรอกได้',
+      waiting: 'รอฝาก… โอนตามจำนวนและเครือข่ายที่แสดง ปุ่มตรวจเฉพาะยอดเข้า custody บนเชน — ไม่โอนจะไม่สำเร็จ มี Tx ให้กรอก',
       confirmed: 'ยืนยันการฝากแล้ว', expired: 'หมดเวลารับฝาก',
-      errConfirm: 'ยืนยันการฝากไม่สำเร็จ',
+      errConfirm: 'ยังไม่เห็นยอดฝากบนเชน โอนแล้วลองใหม่ภายหลัง',
       copied: 'คัดลอกแล้ว', errSession: 'โหลดเซสชันไม่สำเร็จ',
       pickAsset: 'เลือกสินทรัพย์', pickNet: 'เลือกเครือข่าย',
       startProduct: 'สินค้า', startAmount: 'จำนวน', startGo: 'ต่อไป',
       firstName: 'ชื่อ', lastName: 'นามสกุล', email: 'อีเมล', country: 'รหัสประเทศ', phone: 'โทรศัพท์',
       ship: 'ที่อยู่จัดส่ง', shipOpt: '(ไม่บังคับ)', selectGo: 'รับที่อยู่ฝาก',
-      needAmount: 'กรอกจำนวน', needName: 'กรอกชื่อเป็นภาษาอังกฤษ',
+      needAmount: 'กรอกจำนวน', needName: 'กรอกชื่อและนามสกุลเป็นภาษาอังกฤษ',
       needEmail: 'กรอกอีเมล', needPhone: 'กรอกโทรศัพท์', needCountry: 'เลือกรหัสประเทศ',
       nameLatin: 'ชื่อต้องเป็นภาษาอังกฤษเท่านั้น', emailLatin: 'อีเมลต้องเป็น ASCII/อังกฤษเท่านั้น',
       emailInvalid: 'รูปแบบอีเมลไม่ถูกต้อง', phoneDigits: 'โทรศัพท์ต้องเป็นตัวเลขเท่านั้น',
@@ -306,14 +306,15 @@
   function applyFieldFlags(ctx) {
     ctx = ctx || {};
     fieldFlags.product = ynY(ctx.urlPayProductNameUseYn != null ? ctx.urlPayProductNameUseYn : 'Y');
-    fieldFlags.email = ynY(ctx.urlPayBuyerEmailUseYn != null ? ctx.urlPayBuyerEmailUseYn : 'Y');
-    fieldFlags.country = ynY(ctx.urlPayBuyerCountryUseYn != null ? ctx.urlPayBuyerCountryUseYn : 'Y');
-    fieldFlags.phone = ynY(ctx.urlPayBuyerPhoneUseYn != null ? ctx.urlPayBuyerPhoneUseYn : 'Y');
+    /* URL 크립토: 카드/JPAY와 동일 — 이메일·국가코드·전화 필수(숨김 정책 무시) */
+    fieldFlags.email = true;
+    fieldFlags.country = true;
+    fieldFlags.phone = true;
     fieldFlags.ship = ynY(ctx.urlPayShippingAddressUseYn != null ? ctx.urlPayShippingAddressUseYn : 'N');
     document.getElementById('startProductRow').hidden = !fieldFlags.product;
-    document.getElementById('startEmailRow').hidden = !fieldFlags.email;
-    document.getElementById('startCountryRow').hidden = !fieldFlags.country;
-    document.getElementById('startPhoneRow').hidden = !fieldFlags.phone;
+    document.getElementById('startEmailRow').hidden = false;
+    document.getElementById('startCountryRow').hidden = false;
+    document.getElementById('startPhoneRow').hidden = false;
     document.getElementById('startShipBlock').hidden = !fieldFlags.ship;
   }
 
@@ -716,40 +717,38 @@
     var fn = String(document.getElementById('startFirstName').value || '').trim();
     var ln = String(document.getElementById('startLastName').value || '').trim();
     var name = (fn + ' ' + ln).trim();
-    if (!name) {
+    if (!fn || !ln) {
       showErr(pack.needName);
       return;
     }
-    if (!isLatinName(fn) || (ln && !isLatinName(ln)) || !isLatinName(name)) {
+    if (!isLatinName(fn) || !isLatinName(ln)) {
       showErr(pack.nameLatin);
       return;
     }
     var email = String(document.getElementById('startEmail').value || '').trim();
-    if (fieldFlags.email && !email) {
+    if (!email) {
       showErr(pack.needEmail);
       return;
     }
-    if (email) {
-      if (!isLatinAscii(email)) {
-        showErr(pack.emailLatin);
-        return;
-      }
-      if (!isValidEmail(email)) {
-        showErr(pack.emailInvalid);
-        return;
-      }
+    if (!isLatinAscii(email)) {
+      showErr(pack.emailLatin);
+      return;
+    }
+    if (!isValidEmail(email)) {
+      showErr(pack.emailInvalid);
+      return;
     }
     var country = String(document.getElementById('startCountry').value || '').trim().toUpperCase();
-    if (fieldFlags.country && country.length !== 2) {
+    if (country.length !== 2) {
       showErr(pack.needCountry);
       return;
     }
-    var phone = String(document.getElementById('startPhone').value || '').trim();
-    if (fieldFlags.phone && !phone) {
+    var phone = String(document.getElementById('startPhone').value || '').trim().replace(/\D+/g, '');
+    if (!phone) {
       showErr(pack.needPhone);
       return;
     }
-    if (phone && !/^[0-9]+$/.test(phone)) {
+    if (!/^[0-9]+$/.test(phone)) {
       showErr(pack.phoneDigits);
       return;
     }
@@ -767,8 +766,10 @@
         amount: amt,
         displayCurrency: state.displayCurrency || 'USD',
         productName: product,
-        orderNo: 'URL' + Date.now(),
+        orderNo: 'cr' + Date.now(),
         lang: lang,
+        firstName: fn,
+        lastName: ln,
         buyerName: name,
         buyerEmail: email,
         buyerPhone: phone,

@@ -439,6 +439,33 @@ public class OmspayPaymentService {
         boolean paid = "10".equals(st) || "00".equals(st) || "01".equals(st) || "PAID".equalsIgnoreCase(st);
         boolean fail = "20".equals(st) || "30".equals(st) || "90".equals(st) || "99".equals(st)
                 || "FAIL".equalsIgnoreCase(st);
+        /* 웹훅 지연·유실 시 구매자 폴링에서 OMS 상태 조회해 PAID 반영 (재시작 직후 등) */
+        if (!paid && !fail) {
+            String omsCode = firstNonBlank(t.getChillTransactionId(), t.getPayNo(), t.getApprovalNo());
+            if (!omsCode.isBlank()) {
+                try {
+                    Optional<OmspayCredentials> credOpt = resolveCredentials(orgUnitId);
+                    if (credOpt.isPresent() && credOpt.get().isUsable()) {
+                        Map<String, Object> omsSt = apiClient.getOrderStatus(credOpt.get(), omsCode);
+                        if (Boolean.TRUE.equals(omsSt.get("ok")) && isOmsPaid(omsSt)) {
+                            Optional<PgTrnsctn> paidTxn = omspaySaleRecordService.applyPaidOutcome(
+                                    orderNo.trim(), mid, omsCode, null, null);
+                            if (paidTxn.isPresent()) {
+                                t = paidTxn.get();
+                                st = t.getStatus() != null ? t.getStatus().trim() : "10";
+                                paid = true;
+                                fail = false;
+                                log.info("OMSPAY result-status reconciled paid mid={} order={} oms={}",
+                                        mid, orderNo.trim(), omsCode);
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("OMSPAY result-status OMS probe failed mid={} order={}: {}",
+                            mid, orderNo.trim(), e.getMessage());
+                }
+            }
+        }
         String origin = t.getOrigin() != null ? t.getOrigin().trim() : "";
         boolean merchantApi = "MERCHANT_API".equalsIgnoreCase(origin);
         Map<String, Object> data = new LinkedHashMap<>();

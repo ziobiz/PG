@@ -82,7 +82,8 @@ public class MerchantOutboundNotifyService {
                 && !PgVendor.isOxFamily(savedTxn.getVan())
                 && !PgVendor.isQxipayFamily(savedTxn.getVan())
                 && !PgVendor.isOmspayFamily(savedTxn.getVan())
-                && !PgVendor.isPaysoFamily(savedTxn.getVan())) {
+                && !PgVendor.isPaysoFamily(savedTxn.getVan())
+                && !PgVendor.isQbangFamily(savedTxn.getVan())) {
             return;
         }
         final String trnId = savedTxn.getTrnId().trim();

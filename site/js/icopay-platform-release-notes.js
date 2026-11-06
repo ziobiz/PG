@@ -6,13 +6,563 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '6.11';
+  var CURRENT_LIVE = '6.36';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '6.36',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          'QBANG 실운영 posId 반영(api.qr-road.com): 00000000-2026-1103-0004-300781505930 — 실 PayPay 앱 테스트용 LIVE'
+        ],
+        EN: [
+          'QBANG live posId on api.qr-road.com: 00000000-2026-1103-0004-300781505930 — for real PayPay app tests'
+        ],
+        JP: [
+          'QBANG本番posId反映(api.qr-road.com): 00000000-2026-1103-0004-300781505930 — 実PayPayアプリ試験用'
+        ],
+        CH: [
+          'QBANG 正式 posId 已接 api.qr-road.com：00000000-2026-1103-0004-300781505930 — 供真实 PayPay 应用测试'
+        ],
+        TH: [
+          'ตั้ง posId QBANG ไลฟ์ (api.qr-road.com): 00000000-2026-1103-0004-300781505930 — ทดสอบแอป PayPay จริง'
+        ]
+      }
+    },
+    {
+      version: '6.35',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          'QBANG·PayPay(Alipay+) 큐뱅 회신 보강: KRW 원단위 절사, F/E에 AT 생략, PL remainingTime(최대120초) UI 동기, OKAY·TTL·규칙 문서 정합'
+        ],
+        EN: [
+          'QBANG·PayPay(Alipay+) align with vendor reply: KRW integer truncate, skip AT on F/E, sync PL remainingTime (max 120s), OKAY/TTL rules'
+        ],
+        JP: [
+          'QBANG・PayPay(Alipay+)ベンダー回答反映: KRW整数切捨て、F/EでAT省略、PL remainingTime(最大120秒)同期、OKAY・TTL整合'
+        ],
+        CH: [
+          'QBANG·PayPay(Alipay+)按厂商回函加强：KRW 去小数、F/E 不调 AT、同步 PL remainingTime（最长120秒）、OKAY/TTL 规则'
+        ],
+        TH: [
+          'ปรับ QBANG·PayPay(Alipay+) ตามอีเมลคิวแบง: ตัดทศนิยม KRW ไม่เรียก AT เมื่อ F/E ซิงก์ remainingTime (สูงสุด 120วินาที)'
+        ]
+      }
+    },
+    {
+      version: '6.34',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          'URL QR 주문번호 접두 QR 대문자(신규만). QBANG PayPay QR 렌더 보강(공백 제거·ECC·크기)·스캔 안내'
+        ],
+        EN: [
+          'URL QR order prefix QR uppercase (new only). Harden QBANG PayPay QR render (strip spaces, ECC, size) and scan hint'
+        ],
+        JP: [
+          'URL QR注文番号接頭辞をQR大文字(新規のみ)。QBANG PayPay QR描画強化(空白除去・ECC・サイズ)と案内'
+        ],
+        CH: [
+          'URL QR 订单号前缀改为大写 QR（仅新单）。强化 QBANG PayPay QR 渲染（去空白·纠错·尺寸）与扫码提示'
+        ],
+        TH: [
+          'คำสั่ง URL QR ขึ้นต้น QR ตัวพิมพ์ใหญ่ (เฉพาะใหม่) ปรับเรนเดอร์ QR PayPay/QBANG และข้อความสแกน'
+        ]
+      }
+    },
+    {
+      version: '6.33',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          '결제내역: QBANG QR 실결제 KRW를 가맹 기준화폐(THB)로 덮어쓰던 표시 수정, 결제대행=거래 van. 기존 테스트 display_cur 오표기(THB=금액동일) 정정'
+        ],
+        EN: [
+          'Pay list: keep QBANG QR settle KRW (do not overwrite with merchant base THB); PG column=txn van. Fix legacy test rows with mislabeled display THB'
+        ],
+        JP: [
+          '決済履歴: QBANG QR実決済KRWを加盟基準通貨(THB)で上書きしない。決済代行=取引van。旧テストのdisplay THB誤表示を修正'
+        ],
+        CH: [
+          '支付列表：QBANG QR 实付 KRW 不再被商户基准货币(THB)覆盖；收单列=交易 van。修正测试单 display THB 误标'
+        ],
+        TH: [
+          'รายการชำระ: คง KRW ของ QBANG QR ไม่ทับด้วยสกุลฐานร้าน (THB) คอลัมน์ PG=van แก้ display THB ผิดในรายการทดสอบ'
+        ]
+      }
+    },
+    {
+      version: '6.32',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          'QR 결제 통화: /checkout-qr(QBANG)가 카드 PG가 아닌 QBANG URL결제 표시·실결제·FX를 사용. 결제내역 통화=실결제(KRW), 입력통화 분리. QR 수수료 통화는 수수료 장부용(결제 통화 아님)'
+        ],
+        EN: [
+          'QR pay currency: /checkout-qr (QBANG) uses QBANG URL-pay display/settle/FX (not card PG). List currency=settle (KRW); input currency separate. QR fee currency is fee-ledger only'
+        ],
+        JP: [
+          'QR決済通貨:/checkout-qr(QBANG)はカードPGではなくQBANGのURL決済表示・実決済・FXを使用。一覧通貨=実決済(KRW)、入力通貨は分離。QR手数料通貨は手数料台帳用'
+        ],
+        CH: [
+          'QR 支付币种：/checkout-qr(QBANG) 使用 QBANG 的 URL 支付显示/实付/FX（非卡 PG）。列表币种=实付(KRW)，输入币种分离。QR 手续费币种仅用于手续费台账'
+        ],
+        TH: [
+          'สกุล QR: /checkout-qr (QBANG) ใช้แสดง/ชำระจริง/FX ของ URL QBANG ไม่ใช่ PG บัตร รายการ=KRW แยกสกุลป้อน ค่าธรรมเนียม QR เป็นบัญชีค่าธรรมเนียมเท่านั้น'
+        ]
+      }
+    },
+    {
+      version: '6.31',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          'URL결제 DP FX 소스 추가: 자동(BOT) / 자동(ECOS·한국은행 731Y001) / 수동 — PG별 선택. 본사에 ECOS 인증키 등록'
+        ],
+        EN: [
+          'URL-pay DP FX sources: Auto(BOT) / Auto(ECOS·BOK 731Y001) / Manual — per PG. Register ECOS API key at HQ'
+        ],
+        JP: [
+          'URL決済DPのFXソース追加:自動(BOT)/自動(ECOS・韓国銀行731Y001)/手動 — PG別選択。本社にECOSキー登録'
+        ],
+        CH: [
+          'URL 支付 DP 汇率源：自动(BOT)/自动(ECOS·韩国银行731Y001)/手动 — 按 PG 选择。总部登记 ECOS 密钥'
+        ],
+        TH: [
+          'แหล่ง FX ของ URL DP: อัตโนมัติ(BOT)/อัตโนมัติ(ECOS·BOK 731Y001)/มือ — เลือกราย PG ลงทะเบียนคีย์ ECOS ที่ HQ'
+        ]
+      }
+    },
+    {
+      version: '6.30',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          'QBANG DP 예상 청구(—) 수정: JPY→KRW 견적 시 BOT KRW 누락이면 MANUAL·THB다리+KRW 폴백으로 견적 표시'
+        ],
+        EN: [
+          'QBANG DP estimated charge (—) fix: JPY→KRW quote falls back to MANUAL or THB bridge + KRW rate when BOT KRW missing'
+        ],
+        JP: [
+          'QBANG DP請求見込み(—)修正: JPY→KRW見積でBOTのKRW欠落時はMANUALまたはTHB経由+KRWフォールバック'
+        ],
+        CH: [
+          'QBANG DP 预计扣款(—)修复：JPY→KRW 报价在 BOT 缺 KRW 时回退 MANUAL 或经 THB+KRW 回退'
+        ],
+        TH: [
+          'แก้ QBANG DP ยอดประมาณ (—): JPY→KRW เมื่อ BOT ไม่มี KRW ใช้ MANUAL หรือสะพาน THB+KRW'
+        ]
+      }
+    },
+    {
+      version: '6.29',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          'QBANG QR: 원미만 절사 고정 제거 → 본사 URL결제 「통화별 커스텀」청구 반올림(권장 KRW 활성·절상)과 동일 적용'
+        ],
+        EN: [
+          'QBANG QR: removed hardcoded KRW floor; uses HQ URL-pay per-currency charge rounding (recommend KRW active + ceiling)'
+        ],
+        JP: [
+          'QBANG QR:KRW切捨て固定を削除 → 本社URL決済の通貨別カスタム請求丸め(推奨KRW活性・切上げ)を適用'
+        ],
+        CH: [
+          'QBANG QR：去掉硬编码 KRW 舍去 → 与总部 URL 支付「按币种自定义」扣款进位一致（建议 KRW 启用·进位）'
+        ],
+        TH: [
+          'QBANG QR: เลิกปัดลง KRW ตายตัว → ใช้การปัดเงินเรียกเก็บตามสกุลใน HQ (แนะนำ KRW เปิด + ปัดขึ้น)'
+        ]
+      }
+    },
+    {
+      version: '6.28',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          'QBANG QR DP: 표시통화(JPY 등)·예상 청구(KRW) UI·견적 토큰 연동. 본사 URL결제설정 DISPLAY+실결제 KRW 시 카드와 동일 경로'
+        ],
+        EN: [
+          'QBANG QR DP: display currency (e.g. JPY) + estimated KRW charge + FX quote token (same path as card when HQ DISPLAY + settle KRW)'
+        ],
+        JP: [
+          'QBANG QR DP:表示通貨(JPY等)・請求見込み(KRW)UI・見積トークン連携。本社DISPLAY+実決済KRWでカードと同経路'
+        ],
+        CH: [
+          'QBANG QR DP：显示货币（如 JPY）+ 预计 KRW 扣款 + 汇率报价令牌（总部 DISPLAY+实付 KRW 时与卡相同）'
+        ],
+        TH: [
+          'QBANG QR DP: สกุลแสดง (เช่น JPY) + ประมาณการ KRW + โทเคน FX (เหมือนบัตรเมื่อ HQ DISPLAY + settle KRW)'
+        ]
+      }
+    },
+    {
+      version: '6.27',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          'QBANG QR: 실결제 KRW 환전 실패 보완 — BOT 장애 시 본사 MANUAL·THB 다리·agency 폴백(LIVE 포함)으로 QR 생성 가능'
+        ],
+        EN: [
+          'QBANG QR: KRW FX fail recovery — on BOT outage use HQ MANUAL, THB bridge, agency fallback (incl. LIVE)'
+        ],
+        JP: [
+          'QBANG QR:実決済KRW換算失敗を補完 — BOT障害時は本社MANUAL・THB経由・agencyフォールバック(LIVE含む)'
+        ],
+        CH: [
+          'QBANG QR：实付 KRW 兑换失败补强 — BOT 不可用时用总部 MANUAL、经 THB、agency 回退（含 LIVE）'
+        ],
+        TH: [
+          'QBANG QR: แก้แปลงเป็น KRW ล้มเหลว — BOT ล่มใช้ MANUAL ของ HQ / สะพาน THB / agency (รวม LIVE)'
+        ]
+      }
+    },
+    {
+      version: '6.26',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          '가맹 QR·크립토: 본사 차지백설정에 저장한 유형을 수수료정책 카드에서 선택·저장(수수료 본사따름과 별도, 카드 FIAT와 동일)'
+        ],
+        EN: [
+          'Merchant QR/crypto: pick HQ chargeback types on the fee card (independent of Follow HQ; same as FIAT card)'
+        ],
+        JP: [
+          '加盟QR・クリプト:本社CB設定の類型を手数料カードで選択保存(本社準拠と別、カードFIATと同)'
+        ],
+        CH: [
+          '商户 QR/加密：在手续费卡选择总部拒付类型并保存（与跟随总部手续费独立，同卡 FIAT）'
+        ],
+        TH: [
+          'ร้าน QR/คริปโต: เลือกประเภท chargeback จาก HQ บนการ์ดค่าธรรมเนียม (แยกจากตาม HQ เหมือนบัตร FIAT)'
+        ]
+      }
+    },
+    {
+      version: '6.25',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          '가맹 QR/크립토 수수료정책: 차지백 선택 라벨을 「QR 차지백 정책」「CRYPTO 차지백 정책」으로 표기(본사따름 시에도 정책명 표시)'
+        ],
+        EN: [
+          'Merchant QR/crypto fee cards: chargeback select labels are “QR chargeback policy” / “CRYPTO chargeback policy” (name shown when Follow HQ)'
+        ],
+        JP: [
+          '加盟QR/クリプト手数料:チャージバック選択を「QR CB政策」「CRYPTO CB政策」表示(本社準拠時も名称表示)'
+        ],
+        CH: [
+          '商户 QR/加密手续费：拒付下拉标为「QR 拒付政策」「CRYPTO 拒付政策」（跟随总部时仍显示名称）'
+        ],
+        TH: [
+          'การ์ดค่าธรรมเนียม QR/คริปโต: ป้าย chargeback เป็น「QR 차지백 정책」「CRYPTO 차지백 정책」(ตาม HQ ก็เห็นชื่อ)'
+        ]
+      }
+    },
+    {
+      version: '6.24',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          '가맹: QR 수수료·보류·차지백을 「QR 수수료정책」한 카드(노란 파스텔), 크립토는 「크립토 수수료정책」한 카드(하늘 파스텔)로 묶음'
+        ],
+        EN: [
+          'Merchant: QR fee/hold/chargeback in one QR fee card (yellow pastel); crypto bundled in one crypto fee card (sky pastel)'
+        ],
+        JP: [
+          '加盟: QR手数料・保留・CBを「QR手数料」1カード(黄パステル)、クリプトは「クリプト手数料」1カード(空色)'
+        ],
+        CH: [
+          '商户：QR 手续费/留存/拒付合并为「QR 手续费」黄粉卡片；加密合并为「加密手续费」天蓝卡片'
+        ],
+        TH: [
+          'ร้าน: รวมค่าธรรมเนียม/กัก/chargeback QR ในบัตร QR สีเหลือง และคริปโตในบัตรคริปโตสีฟ้า'
+        ]
+      }
+    },
+    {
+      version: '6.23',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          '가맹 수수료: 카드·QR·크립토를 동일 구성(수수료정책·보류율 정책·차지백 정책). QR/크립토 차지백·보류율 카드 분리, 본사 채널 기본 보류율·차지백설정 연동'
+        ],
+        EN: [
+          'Merchant fees: FIAT/QR/CRYPTO same layout (fee · hold · chargeback). Separate QR/crypto hold & chargeback cards; HQ channel defaults'
+        ],
+        JP: [
+          '加盟手数料:カード・QR・クリプト同一構成(手数料・保留率・チャージバック)。QR/クリプトカード分離、本社チャネル準拠'
+        ],
+        CH: [
+          '商户手续费：卡/QR/加密同结构（手续费·留存·拒付）。QR/加密留存与拒付分卡，跟随总部渠道默认'
+        ],
+        TH: [
+          'ค่าธรรมเนียมร้าน: บัตร/QR/คริปโตโครงเดียวกัน (ค่าธรรมเนียม·อัตรากัก·chargeback) แยกการ์ด QR/คริปโต ผูก HQ'
+        ]
+      }
+    },
+    {
+      version: '6.22',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          'URL QR·크립토: 주문번호 자동채번(qr…/cr…), 이름·성 분리, 국가코드+전화 필수 — 카드 URL/API와 동일 구매자 필수값'
+        ],
+        EN: [
+          'URL QR & crypto: auto orderNo (qr…/cr…), first/last name, country+phone required — same buyer fields as card URL/API'
+        ],
+        JP: [
+          'URL QR・クリプト:注文番号自動採番(qr…/cr…)、名・姓分離、国コード+電話必須 — カードURL/APIと同'
+        ],
+        CH: [
+          'URL QR与加密：订单号自动生成(qr…/cr…)、名/姓分离、国家代码+电话必填 — 与卡 URL/API 相同'
+        ],
+        TH: [
+          'URL QR และคริปโต: เลขคำสั่งอัตโนมัติ(qr…/cr…) แยกชื่อ-นามสกุล รหัสประเทศ+โทรบังคับ — เหมือนบัตร URL/API'
+        ]
+      }
+    },
+    {
+      version: '6.21',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          'QBANG QR: 승인 후 가맹 결제통보(Background/Result) 송출 누락 수정(카드와 동일). URL QR 결제 완료 시 /pay-result.html 결과 페이지 이동'
+        ],
+        EN: [
+          'QBANG QR: fix missing merchant Background/Result notify after approval (same as card). URL QR success/fail redirects to /pay-result.html'
+        ],
+        JP: [
+          'QBANG QR:承認後の加盟決済通知(Background/Result)欠落を修正(カードと同). URL QR完了時/pay-result.htmlへ遷移'
+        ],
+        CH: [
+          'QBANG QR：修复批准后未向商户发送 Background/Result 通知（与卡相同）。URL QR 完成跳转 /pay-result.html'
+        ],
+        TH: [
+          'QBANG QR: แก้ไม่ส่งแจ้งร้าน Background/Result หลังอนุมัติ (เหมือนบัตร) URL QR สำเร็จ/ล้มเหลวไป /pay-result.html'
+        ]
+      }
+    },
+    {
+      version: '6.20',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          '크립토·QR 로고설정을 각 카드로 이동: 본사설정 따름 ≠ 웹결제 로고 따름. 총판/HTML/가맹점 로고·미활성 지원. 웹결제 카드의 크립토 로고 항목 제거'
+        ],
+        EN: [
+          'Crypto/QR logo settings moved to each card: Follow HQ ≠ Follow web payment logo. Supports distributor/HTML/merchant logo/Inactive. Removed crypto logo from web payment card'
+        ],
+        JP: [
+          'クリプト・QRロゴ設定を各カードへ:本社準拠≠Web決済ロゴ準拠。総販/HTML/加盟ロゴ・非活性対応。Web決済カードのクリプトロゴ削除'
+        ],
+        CH: [
+          '加密/QR 标志设置移至各卡片：跟随总部 ≠ 跟随网页支付标志。支持总经销/HTML/商户标志/停用。网页支付卡移除加密标志项'
+        ],
+        TH: [
+          'ย้ายตั้งค่าโลโก้คริปโต/QR ไปการ์ดแต่ละใบ: ตาม HQ ≠ ตามโลโก้ชำระเว็บ รองรับตัวแทน/HTML/โลโก้ร้าน/ไม่ใช้ ลบโลโก้คริปโตจากการ์ดชำระเว็บ'
+        ]
+      }
+    },
+    {
+      version: '6.19',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          'QR결제(PayPay) 브랜드: 가맹점 로고·PayPay QR 제목·스캔안내·푸터 — 본사설정 따름/활성/비활성 (기본 본사따름). 본사정책·가맹 QR결제설정 카드·/checkout-qr'
+        ],
+        EN: [
+          'QR (PayPay) branding: merchant logo, PayPay QR title, scan notice, footer — Follow HQ / Active / Inactive (default Follow HQ). HQ policy, merchant QR card, /checkout-qr'
+        ],
+        JP: [
+          'QR(PayPay)ブランド:加盟ロゴ・PayPay QRタイトル・スキャン案内・フッター — 本社準拠/有効/無効(既定は本社準拠)。本社政策・加盟QRカード・/checkout-qr'
+        ],
+        CH: [
+          'QR(PayPay) 品牌：商户标志、PayPay QR 标题、扫描提示、页脚 — 跟随总部/启用/停用（默认跟随总部）。总部政策、商户 QR 卡、/checkout-qr'
+        ],
+        TH: [
+          'แบรนด์ QR(PayPay): โลโก้ร้าน ชื่อ PayPay QR ข้อความสแกน ฟุตเตอร์ — ตาม HQ/เปิด/ปิด (ค่าเริ่มตาม HQ) นโยบาย HQ การ์ด QR ร้าน /checkout-qr'
+        ]
+      }
+    },
+    {
+      version: '6.18',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          '가맹 크립토 미사용 시 수취지갑·USDC 등 상세·검증·OTP 문의 숨김 — 사용=Y 일 때만 크립토설정 상세 노출'
+        ],
+        EN: [
+          'Merchant crypto Unused: hide receive wallet/USDC details and validation prompts — show only when Use=Y'
+        ],
+        JP: [
+          '加盟クリプト未使用時は受取・USDC等の詳細・検証・OTPを非表示 — 使用=Yのときのみ表示'
+        ],
+        CH: [
+          '商户加密为未使用时隐藏收款钱包/USDC 等详情与校验提示 — 仅使用=Y 时显示'
+        ],
+        TH: [
+          'คริปโตร้านเป็นไม่ใช้: ซ่อนรายละเอียดกระเป๋ารับ/USDC และการถามตรวจ — แสดงเมื่อใช้=Y เท่านั้น'
+        ]
+      }
+    },
+    {
+      version: '6.17',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          'QBANG LIVE·SANDBOX 분리: LIVE=8601191/api.qr-road.com, SANDBOX=DEV posId/api-test. 가맹 운영 바인딩은 LIVE만'
+        ],
+        EN: [
+          'QBANG LIVE vs SANDBOX split: LIVE=8601191/api.qr-road.com; SANDBOX=DEV posId/api-test. Merchant ops bindings LIVE only'
+        ],
+        JP: [
+          'QBANG LIVEとSANDBOX分離: LIVE=8601191/api.qr-road.com、SANDBOX=DEV posId/api-test。加盟運用はLIVEのみ'
+        ],
+        CH: [
+          'QBANG LIVE 与 SANDBOX 分离：LIVE=8601191/api.qr-road.com；SANDBOX=DEV posId/api-test。商户运营绑定仅 LIVE'
+        ],
+        TH: [
+          'แยก QBANG LIVE/SANDBOX: LIVE=8601191/api.qr-road.com, SANDBOX=DEV posId/api-test ผูกปฏิบัติการร้านเฉพาะ LIVE'
+        ]
+      }
+    },
+    {
+      version: '6.16',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          'QBANG 라이브 전환: 집계 posId(MID) 8601191, api.qr-road.com, sandbox 해제(agencyCode=OTL). 가맹 바인딩 QBANG LIVE·실결제 KRW 유지'
+        ],
+        EN: [
+          'QBANG live: aggregate posId/MID 8601191, api.qr-road.com, sandbox off (agencyCode=OTL). Merchant bindings on QBANG LIVE; settle KRW'
+        ],
+        JP: [
+          'QBANGライブ: 集計posId(MID)8601191、api.qr-road.com、sandbox解除(agencyCode=OTL)。加盟バインドQBANG LIVE・実決済KRW'
+        ],
+        CH: [
+          'QBANG 正式环境：汇总 posId(MID) 8601191、api.qr-road.com、关闭 sandbox（agencyCode=OTL）。商户绑定 QBANG LIVE，实付 KRW'
+        ],
+        TH: [
+          'QBANG ไลฟ์: posId/MID รวม 8601191, api.qr-road.com, ปิด sandbox (agencyCode=OTL) ผูก QBANG LIVE ชำระ KRW'
+        ]
+      }
+    },
+    {
+      version: '6.15',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          'QBANG QR 유효시간: 큐뱅 서버 기본(~66초)에 맞춤(120초 연장은 큐뱅 API/POS 설정 확인 후). QR 보증금(보류율)을 카드와 분리 — 본사 QR 정책 기본 10%·180일, 가맹 QR 카드에서 본사따름/직접입력'
+        ],
+        EN: [
+          'QBANG QR TTL matched to ~66s (120s needs QBANG API/POS). QR deposit/hold separated from card — HQ QR default 10%/180d; merchant QR card Follow HQ / custom'
+        ],
+        JP: [
+          'QBANG QR有効を約66秒に合わせる(120秒はキューバンAPI/POS要確認)。QR保証金をカードと分離 — 本社QR既定10%・180日、加盟QRカードで本社準拠/直接入力'
+        ],
+        CH: [
+          'QBANG QR 有效时间对齐约 66 秒（120 秒需确认 QBANG API/POS）。QR 保证金与卡分离 — 总部 QR 默认 10%/180 天；商户 QR 卡跟随总部/直接输入'
+        ],
+        TH: [
+          'อายุ QR QBANG ปรับ ~66 วิ (120 วิ ต้องยืนยัน API/POS) แยกมัดจำ QR จากบัตร — HQ QR ค่าเริ่ม 10%/180 วัน ร้านเลือกตาม HQ/กรอกเอง'
+        ]
+      }
+    },
+    {
+      version: '6.14',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          'QBANG/PayPay QR 유효·화면 카운트다운을 120초로 통일(큐뱅 최대 연장 기준). 결제창 남은 시간 표시·폴링 상한 반영'
+        ],
+        EN: [
+          'QBANG/PayPay QR validity & on-screen countdown set to 120s (QBANG max). Checkout timer and poll window updated'
+        ],
+        JP: [
+          'QBANG/PayPay QR有効・画面カウントダウンを120秒に統一。決済画面の残り時間・ポーリング上限を反映'
+        ],
+        CH: [
+          'QBANG/PayPay QR 有效与画面倒计时统一为 120 秒。支付页剩余时间与轮询上限已更新'
+        ],
+        TH: [
+          'ตั้งอายุ QR QBANG/PayPay และนาฬิกานับถอยหลังเป็น 120 วินาที อัปเดตหน้าชำระและช่วงโพล'
+        ]
+      }
+    },
+    {
+      version: '6.13',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          'QR 수수료 통화: 가맹점등록 QR 카드에서 KRW·JPY·THB·USD·CNY·SGD 선택(KRW 고정 해제). Alipay/WeChat 등 추가 시에도 동일 설정 사용'
+        ],
+        EN: [
+          'QR fee currency: selectable on merchant QR card (KRW·JPY·THB·USD·CNY·SGD; no longer hard-fixed KRW). Same setting for future Alipay/WeChat'
+        ],
+        JP: [
+          'QR手数料通貨: 加盟登録QRカードでKRW·JPY·THB·USD·CNY·SGD選択(KRW固定解除)。Alipay/WeChat追加時も同設定'
+        ],
+        CH: [
+          'QR 手续费币种：商户注册 QR 卡可选 KRW·JPY·THB·USD·CNY·SGD（不再固定 KRW）。今后 Alipay/WeChat 共用'
+        ],
+        TH: [
+          'สกุลเงินค่าธรรมเนียม QR: เลือกร้านได้ KRW·JPY·THB·USD·CNY·SGD (ไม่ล็อก KRW) ใช้ร่วมเมื่อเพิ่ม Alipay/WeChat'
+        ]
+      }
+    },
+    {
+      version: '6.12',
+      kind: 'minor',
+      date: '2026-11-06',
+      items: {
+        KO: [
+          'OMSPAY/PAYSO: 「결제 확인 중」에서 다시결제·닫기가 안 되던 루프 수정(session pending 제거). 폴링 타임아웃은 가짜 성공 대신 안내. result-status 시 OMS 승인 재조회'
+        ],
+        EN: [
+          'OMSPAY/PAYSO: fix Pay again/Close loop on confirming screen (clear session pending); poll timeout no longer fake-success; result-status reconciles OMS paid'
+        ],
+        JP: [
+          'OMSPAY/PAYSO: 確認中画面の再決済・閉じるループ修正(pendingクリア)。タイムアウトは偽成功にしない。result-statusでOMS承認再照会'
+        ],
+        CH: [
+          'OMSPAY/PAYSO：修复确认中「重新支付/关闭」无效循环(清除 pending)；超时不再伪成功；result-status 向 OMS 对账'
+        ],
+        TH: [
+          'OMSPAY/PAYSO: แก้ปุ่มชำระอีกครั้ง/ปิดวนลูปตอนยืนยัน (ล้าง pending) หมดเวลาไม่ขึ้นสำเร็จปลอม และ result-status เช็ค OMS'
+        ]
+      }
+    },
     {
       version: '6.11',
       kind: 'minor',

@@ -288,11 +288,20 @@ public class ApiCompController {
             @RequestParam(required = false) String apiPaymentHeaderLogoMode,
             @RequestParam(required = false) String apiPaymentHeaderLogoUrl,
             @RequestParam(required = false) String cryptoPaymentHeaderLogoMode,
+            @RequestParam(required = false) String cryptoPaymentHeaderLogoUrl,
+            @RequestParam(required = false) String cryptoPaymentHeaderHtmlTitle,
             @RequestParam(required = false) String cryptoPaymentHeaderSubtitleMode,
             @RequestParam(required = false) String cryptoPaymentHeaderSubtitleText,
             @RequestParam(required = false) String qrPaymentUseYn,
             @RequestParam(required = false) String qrPaymentHeaderSubtitleMode,
             @RequestParam(required = false) String qrPaymentHeaderSubtitleText,
+            @RequestParam(required = false) String qrPaymentHeaderLogoMode,
+            @RequestParam(required = false) String qrPaymentHeaderLogoUrl,
+            @RequestParam(required = false) String qrPaymentHeaderHtmlTitle,
+            @RequestParam(required = false) String qrPaymentBrandTitleMode,
+            @RequestParam(required = false) String qrPaymentBrandTitleText,
+            @RequestParam(required = false) String qrPaymentFooterMode,
+            @RequestParam(required = false) String qrPaymentFooterText,
             @RequestParam(required = false) String unifiedPaymentHeaderSubtitleMode,
             @RequestParam(required = false) String unifiedPaymentHeaderSubtitleText,
             @RequestParam(required = false) String unifiedPaymentNoticeMode,
@@ -510,14 +519,18 @@ public class ApiCompController {
         compService.applyMerchantUrlPayCheckoutFieldPreset(saved.getCode(), urlPayCheckoutFieldPresetId);
         compService.applyMerchantApiPaymentHeaderLogo(saved.getCode(),
                 apiPaymentHeaderLogoMode, apiPaymentHeaderLogoUrl, apiPaymentHeaderHtmlTitle);
-        compService.applyMerchantCryptoPaymentHeaderLogo(saved.getCode(), cryptoPaymentHeaderLogoMode);
+        compService.applyMerchantCryptoPaymentHeaderLogo(saved.getCode(),
+                cryptoPaymentHeaderLogoMode, cryptoPaymentHeaderLogoUrl, cryptoPaymentHeaderHtmlTitle);
         compService.applyMerchantCryptoUnifiedSubtitles(saved.getCode(),
                 cryptoPaymentHeaderSubtitleMode, cryptoPaymentHeaderSubtitleText,
                 unifiedPaymentHeaderSubtitleMode, unifiedPaymentHeaderSubtitleText,
                 unifiedPaymentNoticeMode, unifiedPaymentNoticeText,
                 unifiedPaymentExtraFooterMode, unifiedPaymentExtraFooterText);
         compService.applyMerchantQrPaymentSettings(saved.getCode(),
-                qrPaymentUseYn, qrPaymentHeaderSubtitleMode, qrPaymentHeaderSubtitleText);
+                qrPaymentUseYn, qrPaymentHeaderSubtitleMode, qrPaymentHeaderSubtitleText,
+                qrPaymentHeaderLogoMode, qrPaymentHeaderLogoUrl, qrPaymentHeaderHtmlTitle,
+                qrPaymentBrandTitleMode, qrPaymentBrandTitleText,
+                qrPaymentFooterMode, qrPaymentFooterText);
         compService.applyMerchantUrlPayCardInput(saved.getCode(), urlPayCardInputMode, urlPayCardInputDisabledText);
         compService.applyMerchantUrlPayCheckoutMove(saved.getCode(), urlPayCheckoutMoveMode,
                 urlPayCheckoutMoveTargetType, urlPayCheckoutMoveTarget, urlPayCheckoutMoveMessage);
@@ -622,11 +635,20 @@ public class ApiCompController {
             @RequestParam(required = false) String apiPaymentHeaderLogoMode,
             @RequestParam(required = false) String apiPaymentHeaderLogoUrl,
             @RequestParam(required = false) String cryptoPaymentHeaderLogoMode,
+            @RequestParam(required = false) String cryptoPaymentHeaderLogoUrl,
+            @RequestParam(required = false) String cryptoPaymentHeaderHtmlTitle,
             @RequestParam(required = false) String cryptoPaymentHeaderSubtitleMode,
             @RequestParam(required = false) String cryptoPaymentHeaderSubtitleText,
             @RequestParam(required = false) String qrPaymentUseYn,
             @RequestParam(required = false) String qrPaymentHeaderSubtitleMode,
             @RequestParam(required = false) String qrPaymentHeaderSubtitleText,
+            @RequestParam(required = false) String qrPaymentHeaderLogoMode,
+            @RequestParam(required = false) String qrPaymentHeaderLogoUrl,
+            @RequestParam(required = false) String qrPaymentHeaderHtmlTitle,
+            @RequestParam(required = false) String qrPaymentBrandTitleMode,
+            @RequestParam(required = false) String qrPaymentBrandTitleText,
+            @RequestParam(required = false) String qrPaymentFooterMode,
+            @RequestParam(required = false) String qrPaymentFooterText,
             @RequestParam(required = false) String unifiedPaymentHeaderSubtitleMode,
             @RequestParam(required = false) String unifiedPaymentHeaderSubtitleText,
             @RequestParam(required = false) String unifiedPaymentNoticeMode,
@@ -883,14 +905,18 @@ public class ApiCompController {
                 compService.applyMerchantUrlPayCheckoutFieldPreset(compId, urlPayCheckoutFieldPresetId);
                 compService.applyMerchantApiPaymentHeaderLogo(compId,
                         apiPaymentHeaderLogoMode, apiPaymentHeaderLogoUrl, apiPaymentHeaderHtmlTitle);
-                compService.applyMerchantCryptoPaymentHeaderLogo(compId, cryptoPaymentHeaderLogoMode);
+                compService.applyMerchantCryptoPaymentHeaderLogo(compId,
+                        cryptoPaymentHeaderLogoMode, cryptoPaymentHeaderLogoUrl, cryptoPaymentHeaderHtmlTitle);
                 compService.applyMerchantCryptoUnifiedSubtitles(compId,
                         cryptoPaymentHeaderSubtitleMode, cryptoPaymentHeaderSubtitleText,
                         unifiedPaymentHeaderSubtitleMode, unifiedPaymentHeaderSubtitleText,
                         unifiedPaymentNoticeMode, unifiedPaymentNoticeText,
                         unifiedPaymentExtraFooterMode, unifiedPaymentExtraFooterText);
                 compService.applyMerchantQrPaymentSettings(compId,
-                        qrPaymentUseYn, qrPaymentHeaderSubtitleMode, qrPaymentHeaderSubtitleText);
+                        qrPaymentUseYn, qrPaymentHeaderSubtitleMode, qrPaymentHeaderSubtitleText,
+                        qrPaymentHeaderLogoMode, qrPaymentHeaderLogoUrl, qrPaymentHeaderHtmlTitle,
+                        qrPaymentBrandTitleMode, qrPaymentBrandTitleText,
+                        qrPaymentFooterMode, qrPaymentFooterText);
                 compService.applyMerchantUrlPayCardInput(compId, urlPayCardInputMode, urlPayCardInputDisabledText);
                 compService.applyMerchantUrlPayCheckoutMove(compId, urlPayCheckoutMoveMode,
                         urlPayCheckoutMoveTargetType, urlPayCheckoutMoveTarget, urlPayCheckoutMoveMessage);
@@ -1461,6 +1487,86 @@ public class ApiCompController {
         try {
             ChatbotHeaderLogoUploadService.UploadResult ur =
                     chatbotHeaderLogoUploadService.processAndPersistWebPaymentHeader(ou.get().getId(), compId.trim(), file);
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("url", ur.publicUrlRelative());
+            payload.put("usedLlmTuningHint", ur.usedLlmTuningHint());
+            payload.put("message", ur.detailMessage());
+            return ResponseEntity.ok(ApiResponse.ok(payload));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "INVALID"));
+        } catch (IOException e) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "파일 처리 오류: " + (e.getMessage() != null ? e.getMessage() : "IO"), "IO_ERROR"));
+        }
+    }
+
+    /** 가맹 크립토 결제창 상단 로고 업로드 — 로고설정「활성(가맹점 로고)」 시 사용 */
+    @PostMapping(value = "/cryptoPaymentHeaderLogo/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> cryptoPaymentHeaderLogoUpload(@RequestParam String compId,
+                                                                                        @RequestParam("file") MultipartFile file) {
+        Authentication auth0 = SecurityContextHolder.getContext().getAuthentication();
+        if (!(auth0 != null && auth0.getPrincipal() instanceof AppUser u0)) {
+            return ResponseEntity.ok(ApiResponse.fail("로그인이 필요합니다.", "UNAUTHORIZED"));
+        }
+        if (!canAccessCompAsViewer(u0, compId)) {
+            return ResponseEntity.ok(ApiResponse.fail("업로드 권한이 없습니다.", "FORBIDDEN"));
+        }
+        if (!"ADMIN".equalsIgnoreCase(u0.getRole())) {
+            Map<String, Object> org = authService.getOrgInfo(u0.getUsername());
+            String mine = org != null && org.get("compId") != null ? org.get("compId").toString().trim() : "";
+            if (!mine.isEmpty() && compId.trim().equalsIgnoreCase(mine)) {
+                return ResponseEntity.ok(ApiResponse.fail(
+                        "본인 소속 업체는 조회만 가능합니다. 변경·업로드는 상위 조직 또는 관리자에서 진행하세요.",
+                        "READ_ONLY_SELF_COMP"));
+            }
+        }
+        Optional<OrgUnit> ou = chatbotHeaderLogoUploadService.requireMerchantOrg(compId);
+        if (ou.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.fail("가맹점 코드만 업로드 가능합니다.", "INVALID"));
+        }
+        try {
+            ChatbotHeaderLogoUploadService.UploadResult ur =
+                    chatbotHeaderLogoUploadService.processAndPersistCryptoHeader(ou.get().getId(), compId.trim(), file);
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("url", ur.publicUrlRelative());
+            payload.put("usedLlmTuningHint", ur.usedLlmTuningHint());
+            payload.put("message", ur.detailMessage());
+            return ResponseEntity.ok(ApiResponse.ok(payload));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "INVALID"));
+        } catch (IOException e) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "파일 처리 오류: " + (e.getMessage() != null ? e.getMessage() : "IO"), "IO_ERROR"));
+        }
+    }
+
+    /** 가맹 QR 결제창 상단 로고 업로드 — 로고설정「활성(가맹점 로고)」 시 사용 */
+    @PostMapping(value = "/qrPaymentHeaderLogo/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> qrPaymentHeaderLogoUpload(@RequestParam String compId,
+                                                                                    @RequestParam("file") MultipartFile file) {
+        Authentication auth0 = SecurityContextHolder.getContext().getAuthentication();
+        if (!(auth0 != null && auth0.getPrincipal() instanceof AppUser u0)) {
+            return ResponseEntity.ok(ApiResponse.fail("로그인이 필요합니다.", "UNAUTHORIZED"));
+        }
+        if (!canAccessCompAsViewer(u0, compId)) {
+            return ResponseEntity.ok(ApiResponse.fail("업로드 권한이 없습니다.", "FORBIDDEN"));
+        }
+        if (!"ADMIN".equalsIgnoreCase(u0.getRole())) {
+            Map<String, Object> org = authService.getOrgInfo(u0.getUsername());
+            String mine = org != null && org.get("compId") != null ? org.get("compId").toString().trim() : "";
+            if (!mine.isEmpty() && compId.trim().equalsIgnoreCase(mine)) {
+                return ResponseEntity.ok(ApiResponse.fail(
+                        "본인 소속 업체는 조회만 가능합니다. 변경·업로드는 상위 조직 또는 관리자에서 진행하세요.",
+                        "READ_ONLY_SELF_COMP"));
+            }
+        }
+        Optional<OrgUnit> ou = chatbotHeaderLogoUploadService.requireMerchantOrg(compId);
+        if (ou.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.fail("가맹점 코드만 업로드 가능합니다.", "INVALID"));
+        }
+        try {
+            ChatbotHeaderLogoUploadService.UploadResult ur =
+                    chatbotHeaderLogoUploadService.processAndPersistQrHeader(ou.get().getId(), compId.trim(), file);
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("url", ur.publicUrlRelative());
             payload.put("usedLlmTuningHint", ur.usedLlmTuningHint());

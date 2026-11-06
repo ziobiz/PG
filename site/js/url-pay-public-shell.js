@@ -266,9 +266,13 @@
       var q = st.urlPayFxQuote;
       var spuRaw = q && (q.settlementPerUnit != null ? q.settlementPerUnit : q.thbPerUnit);
       if (!q || spuRaw == null) {
-        el.textContent = '—';
+        /* 견적 실패 메시지(dataset)가 있으면 — 로 덮지 않음 */
+        if (!el.getAttribute('data-fx-err')) {
+          el.textContent = '—';
+        }
         return;
       }
+      el.removeAttribute('data-fx-err');
       var amtEl = g.document.getElementById('amount');
       var amt = amtEl ? parseFloat(String(amtEl.value).replace(/,/g, '')) : NaN;
       if (!(amt > 0)) {
@@ -327,7 +331,10 @@
       }).catch(function (err) {
         st.urlPayFxQuote = null;
         var fel = g.document.getElementById('payFxThbEstimateText');
-        if (fel) fel.textContent = (err && err.message) ? String(err.message) : t('configErr');
+        if (fel) {
+          fel.setAttribute('data-fx-err', '1');
+          fel.textContent = (err && err.message) ? String(err.message) : t('configErr');
+        }
       });
     }
 

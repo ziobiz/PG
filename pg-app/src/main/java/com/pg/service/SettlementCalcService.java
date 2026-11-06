@@ -22,10 +22,12 @@ import com.pg.service.settlement.SettlementBusinessHolidayService;
 import com.pg.service.settlement.SettlementPeriodResolver;
 import com.pg.util.BusinessDayCalendar;
 import com.pg.util.CommissionExtraFeeUtil;
+import com.pg.util.FeeChannelTxnUtil;
 import com.pg.util.FeeCurrencyRoundResolver;
 import com.pg.util.FeeListRoundingPolicy;
 import com.pg.util.MerchantFeeVatUtil;
 import com.pg.util.PayDisplayCurrency;
+import com.pg.util.QrHoldResolver;
 import com.pg.util.VoidRefundSettlementModeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,6 +86,7 @@ public class SettlementCalcService {
     private final CommissionService commissionService;
     private final FeeListTxnBreakdownCalculator feeListTxnBreakdownCalculator;
     private final SplitPayTxnFeeResolver splitPayTxnFeeResolver;
+    private final QrHoldResolver qrHoldResolver;
 
     public SettlementCalcService(PgTrnsctnRepository trnsctnRepository,
                                  CommissionPolicyRepository commissionPolicyRepository,
@@ -101,7 +104,8 @@ public class SettlementCalcService {
                                  VoidRefundSettlementModeResolutionService voidRefundSettlementModeResolutionService,
                                  CommissionService commissionService,
                                  FeeListTxnBreakdownCalculator feeListTxnBreakdownCalculator,
-                                 SplitPayTxnFeeResolver splitPayTxnFeeResolver) {
+                                 SplitPayTxnFeeResolver splitPayTxnFeeResolver,
+                                 QrHoldResolver qrHoldResolver) {
         this.trnsctnRepository = trnsctnRepository;
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.settlementRunRepository = settlementRunRepository;
@@ -119,6 +123,7 @@ public class SettlementCalcService {
         this.commissionService = commissionService;
         this.feeListTxnBreakdownCalculator = feeListTxnBreakdownCalculator;
         this.splitPayTxnFeeResolver = splitPayTxnFeeResolver;
+        this.qrHoldResolver = qrHoldResolver;
     }
 
     public List<SettlementRun> listRuns(LocalDate fromDate, LocalDate toDate) {
@@ -996,40 +1001,58 @@ public class SettlementCalcService {
         BigDecimal feeVatAmt = MerchantFeeVatUtil.vatOnFeeAmount(feeBaseForVat, feeVatSs, lr.decimalPlaces());
 
         BigDecimal rollingReserveAmt = BigDecimal.ZERO;
-        if (rollingDays > 0 && rollingPct.compareTo(BigDecimal.ZERO) > 0) {
-            for (PgTrnsctn t : txList) {
-                String stRolling = t.getStatus() != null ? t.getStatus().trim() : "";
-                if (!"10".equals(stRolling)) {
-                    continue;
-                }
-                BigDecimal amt = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
-                BigDecimal reserve = lrPctOf(amt, rollingPct, lr);
-                if (reserve.compareTo(BigDecimal.ZERO) <= 0) {
-                    continue;
-                }
-                String tid = t.getTrnId();
-                if (tid != null && !tid.isBlank()) {
-                    String tidTrim = tid.trim();
-                    if (rollingReserveRepository.existsByTrnIdAndStatus(tidTrim, "HOLD")) {
-                        continue;
-                    }
-                }
-                rollingReserveAmt = rollingReserveAmt.add(reserve);
-                RollingReserve rr = new RollingReserve();
-                String tidSave = tid != null ? tid.trim() : null;
-                if (tidSave != null && tidSave.length() > 20) {
-                    tidSave = tidSave.substring(0, 20);
-                }
-                rr.setTrnId(tidSave);
-                rr.setMerchantId(merchantId);
-                rr.setReserveAmt(reserve);
-                rr.setRollingPct(rollingPct);
-                rr.setHoldStartDate(calcDt);
-                rr.setHoldBusinessDays(rollingDays);
-                rr.setReleaseDate(BusinessDayCalendar.addBusinessDays(calcDt, rollingDays, Collections.emptySet()));
-                rr.setStatus("HOLD");
-                rollingReserveRepository.save(rr);
+        QrHoldResolver.Effective qrHoldEff = null;
+        for (PgTrnsctn t : txList) {
+            String stRolling = t.getStatus() != null ? t.getStatus().trim() : "";
+            if (!"10".equals(stRolling)) {
+                continue;
             }
+            /* CRYPTO 보증금은 출금 큐 amount_reserve — 카드/QR 롤링 테이블에 넣지 않음 */
+            if (FeeChannelTxnUtil.isCryptoTxn(t)) {
+                continue;
+            }
+            BigDecimal txnPct;
+            int txnDays;
+            if (FeeChannelTxnUtil.isQrTxn(t)) {
+                if (qrHoldEff == null) {
+                    qrHoldEff = qrHoldResolver.resolve(merchantId);
+                }
+                txnPct = qrHoldEff.rollingPct() != null ? qrHoldEff.rollingPct() : BigDecimal.ZERO;
+                txnDays = qrHoldEff.rollingDays();
+            } else {
+                txnPct = rollingPct;
+                txnDays = rollingDays;
+            }
+            if (txnDays <= 0 || txnPct.compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
+            BigDecimal amt = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
+            BigDecimal reserve = lrPctOf(amt, txnPct, lr);
+            if (reserve.compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
+            String tid = t.getTrnId();
+            if (tid != null && !tid.isBlank()) {
+                String tidTrim = tid.trim();
+                if (rollingReserveRepository.existsByTrnIdAndStatus(tidTrim, "HOLD")) {
+                    continue;
+                }
+            }
+            rollingReserveAmt = rollingReserveAmt.add(reserve);
+            RollingReserve rr = new RollingReserve();
+            String tidSave = tid != null ? tid.trim() : null;
+            if (tidSave != null && tidSave.length() > 20) {
+                tidSave = tidSave.substring(0, 20);
+            }
+            rr.setTrnId(tidSave);
+            rr.setMerchantId(merchantId);
+            rr.setReserveAmt(reserve);
+            rr.setRollingPct(txnPct);
+            rr.setHoldStartDate(calcDt);
+            rr.setHoldBusinessDays(txnDays);
+            rr.setReleaseDate(BusinessDayCalendar.addBusinessDays(calcDt, txnDays, Collections.emptySet()));
+            rr.setStatus("HOLD");
+            rollingReserveRepository.save(rr);
         }
         rollingReserveAmt = FeeListRoundingPolicy.round(rollingReserveAmt, lr);
 

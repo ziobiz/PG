@@ -51,6 +51,20 @@ pg:
     public-name: ${ICOPAY_PUBLIC_NAME:ICOPAY}
     public-site-url: ${ICOPAY_PUBLIC_SITE_URL:https://icopay.co.kr}
     public-address: ${ICOPAY_PUBLIC_ADDRESS:}
+  # 크립토 입금 — 수탁 주소 온체인 감시(구매자 지갑 종류 무관). Tx해시 검증 또는 주소 스캔 후 confirmDeposit.
+  crypto:
+    payout-scan-ms: ${PG_CRYPTO_PAYOUT_SCAN_MS:60000}
+    chain:
+      enabled: ${PG_CRYPTO_CHAIN_WATCH_ENABLED:true}
+      watch-scan-ms: ${PG_CRYPTO_CHAIN_WATCH_SCAN_MS:30000}
+      watch-batch-size: ${PG_CRYPTO_CHAIN_WATCH_BATCH:40}
+      amount-tolerance-abs: ${PG_CRYPTO_CHAIN_TOLERANCE_ABS:0.05}
+      amount-tolerance-pct: ${PG_CRYPTO_CHAIN_TOLERANCE_PCT:0.002}
+      min-confirmations: ${PG_CRYPTO_CHAIN_MIN_CONF:1}
+      evm-lookback-blocks: ${PG_CRYPTO_CHAIN_EVM_LOOKBACK:5000}
+      alchemy-api-key: ${ALCHEMY_API_KEY:}
+      trongrid-base-url: ${TRONGRID_BASE_URL:https://api.trongrid.io}
+      trongrid-api-key: ${TRONGRID_API_KEY:}
 
 # SPA( site ) 연동 시 CORS 허용 오리진 (쉼표 구분)
 app:

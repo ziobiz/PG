@@ -17,6 +17,7 @@ import com.pg.util.FeeChannelTxnUtil;
 import com.pg.util.FeeListRoundingPolicy;
 import com.pg.util.MerchantFeeVatUtil;
 import com.pg.util.PercentDecimalHelper;
+import com.pg.util.QrHoldResolver;
 import com.pg.util.VoidRefundSettlementModeUtil;
 import org.springframework.stereotype.Component;
 
@@ -44,17 +45,20 @@ public class FeeListTxnBreakdownCalculator {
     private final VoidRefundSettlementModeResolutionService voidRefundSettlementModeResolutionService;
     private final SplitPayTxnFeeResolver splitPayTxnFeeResolver;
     private final CommissionService commissionService;
+    private final QrHoldResolver qrHoldResolver;
 
     public FeeListTxnBreakdownCalculator(ChargebackFeePolicyRepository chargebackFeePolicyRepository,
                                          PgTrnsctnRepository pgTrnsctnRepository,
                                          VoidRefundSettlementModeResolutionService voidRefundSettlementModeResolutionService,
                                          SplitPayTxnFeeResolver splitPayTxnFeeResolver,
-                                         CommissionService commissionService) {
+                                         CommissionService commissionService,
+                                         QrHoldResolver qrHoldResolver) {
         this.chargebackFeePolicyRepository = chargebackFeePolicyRepository;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.voidRefundSettlementModeResolutionService = voidRefundSettlementModeResolutionService;
         this.splitPayTxnFeeResolver = splitPayTxnFeeResolver;
         this.commissionService = commissionService;
+        this.qrHoldResolver = qrHoldResolver;
     }
 
     public record FeeListTxnBreakdown(
@@ -195,6 +199,11 @@ public class FeeListTxnBreakdownCalculator {
         double successFeesSeparate = 0d;
         String rollingPctPlain = PercentDecimalHelper.toPlainOneDecimal(nz(pol.getRollingPct()));
         int rollingDays = pol.getRollingDays() != null ? pol.getRollingDays() : 0;
+        if (FeeChannelTxnUtil.isQrTxn(t) && qrHoldResolver != null) {
+            QrHoldResolver.Effective qrHold = qrHoldResolver.resolve(compId);
+            rollingPctPlain = qrHold.pctPlain();
+            rollingDays = qrHold.rollingDays();
+        }
         double rollingHoldEst = 0d;
         double splitPayPctFee = 0d;
         double splitPayFixedFee = 0d;

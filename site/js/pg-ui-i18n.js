@@ -3097,6 +3097,30 @@
       CH: 'QR 默认 (DEFAULT_QR)',
       TH: 'ค่าเริ่มต้น QR (DEFAULT_QR)'
     },
+    'QR 보류율 본사정책 따름': {
+      EN: 'QR hold — Follow HQ',
+      JP: 'QR保留率 本社準拠',
+      CH: 'QR 保留率跟随总部',
+      TH: 'อัตรากัก QR ตาม HQ'
+    },
+    'QR 보류율(%)': {
+      EN: 'QR hold rate (%)',
+      JP: 'QR保留率(%)',
+      CH: 'QR 保留率(%)',
+      TH: 'อัตรากัก QR (%)'
+    },
+    'QR 보류기간(일)': {
+      EN: 'QR hold days',
+      JP: 'QR保留日数',
+      CH: 'QR 保留天数',
+      TH: 'วันกัก QR'
+    },
+    'QR: 아래 롤링(담보)%·보류일수는 가맹 QR 수수료정책 카드의 「QR 보류율 본사정책 따름」일 때 적용됩니다. 기본값 10%·180일. FIAT 카드 보류율·CRYPTO 보증금과 분리됩니다.': {
+      EN: 'QR: rolling % / hold days apply when merchant QR card uses Follow HQ. Default 10% / 180 days. Separate from FIAT hold and CRYPTO reserve.',
+      JP: 'QR: 加盟QRカード「本社準拠」時に適用。既定10%・180日。FIAT・CRYPTOと分離。',
+      CH: 'QR：商户 QR 卡「跟随总部」时适用。默认 10%/180 天。与 FIAT/CRYPTO 分离。',
+      TH: 'QR: ใช้เมื่อร้านเลือกตาม HQ ค่าเริ่ม 10%/180 วัน แยกจาก FIAT/CRYPTO'
+    },
     'QR 승인 수수료입니다. 카드 수수료와 같게 두려면 「카드 수수료와 동일」을 유지합니다. 다른 요율은 QR 기본 또는 QR 정책을 고르거나, 직접입력합니다. 조직 배분은 수수료관리의 QR 채널에서 카드와 따로 저장합니다.': {
       EN: 'Fees for QR approvals. Keep Same as card fees to match the card policy. Choose the QR default, another QR policy, or enter rates directly when they differ. Organization splits are saved on the QR channel in fee management, separate from card.',
       JP: 'QR 承認の手数料です。カードと同じにするには「カード手数料と同じ」のままにします。違う場合は QR 基本・QR 方針を選ぶか、直接入力します。組織配分は手数料管理の QR チャネルでカードと別に保存します。',
@@ -3475,12 +3499,128 @@
       CH: 'QR 支付设置(总部默认)',
       TH: 'ตั้งค่าชำระ QR (ค่าเริ่ม HQ)'
     },
+    'QR 로고': {
+      EN: 'QR logo',
+      JP: 'QRロゴ',
+      CH: 'QR 标志',
+      TH: 'โลโก้ QR'
+    },
+    '크립토 로고': {
+      EN: 'Crypto logo',
+      JP: 'クリプトロゴ',
+      CH: '加密标志',
+      TH: 'โลโก้คริปโต'
+    },
+    '웹결제 로고 따름': {
+      EN: 'Follow web payment logo',
+      JP: 'Web決済ロゴに従う',
+      CH: '跟随网页支付标志',
+      TH: 'ตามโลโก้ชำระเว็บ'
+    },
+    '기본(총판 로고)': {
+      EN: 'Default (distributor logo)',
+      JP: '基本(総販ロゴ)',
+      CH: '默认(总经销标志)',
+      TH: 'ค่าเริ่ม (โลโก้ตัวแทน)'
+    },
+    '기본(HTML)': {
+      EN: 'Default (HTML)',
+      JP: '基本(HTML)',
+      CH: '默认(HTML)',
+      TH: 'ค่าเริ่ม (HTML)'
+    },
+    '활성(가맹점 로고)': {
+      EN: 'Active (merchant logo)',
+      JP: '有効(加盟店ロゴ)',
+      CH: '启用(商户标志)',
+      TH: 'เปิด (โลโก้ร้าน)'
+    },
+    '미활성': {
+      EN: 'Inactive',
+      JP: '非活性',
+      CH: '停用',
+      TH: 'ไม่ใช้งาน'
+    },
+    '크립토 상단 로고': {
+      EN: 'Crypto header logo',
+      JP: 'クリプト上部ロゴ',
+      CH: '加密顶部标志',
+      TH: 'โลโก้หัวคริปโต'
+    },
+    'QR 상단 로고': {
+      EN: 'QR header logo',
+      JP: 'QR上部ロゴ',
+      CH: 'QR 顶部标志',
+      TH: 'โลโก้หัว QR'
+    },
+
+    'PayPay QR 제목': {
+      EN: 'PayPay QR title',
+      JP: 'PayPay QRタイトル',
+      CH: 'PayPay QR 标题',
+      TH: 'ชื่อ PayPay QR'
+    },
+    '제목 문구': {
+      EN: 'Title text',
+      JP: 'タイトル文',
+      CH: '标题文案',
+      TH: 'ข้อความชื่อ'
+    },
+    'QR 푸터': {
+      EN: 'QR footer',
+      JP: 'QRフッター',
+      CH: 'QR 页脚',
+      TH: 'ฟุตเตอร์ QR'
+    },
+    '푸터 문구': {
+      EN: 'Footer text',
+      JP: 'フッター文',
+      CH: '页脚文案',
+      TH: 'ข้อความฟุตเตอร์'
+    },
+    '활성(웹결제 로고)': {
+      EN: 'Active (web-payment logo)',
+      JP: '有効(Web決済ロゴ)',
+      CH: '启用(网页支付标志)',
+      TH: 'เปิด (โลโก้ชำระเว็บ)'
+    },
     'QR 안내 문구': {
       EN: 'QR notice text',
       JP: 'QR案内文',
       CH: 'QR 说明文案',
       TH: 'ข้อความนำ QR'
     },
+    'PayPay 앱으로 QR을 스캔해 결제해 주세요.': {
+      EN: 'Scan this QR with the PayPay app to pay.',
+      JP: 'PayPayアプリでQRを読み取り、お支払いください。',
+      CH: '请用 PayPay 应用扫描二维码完成支付。',
+      TH: 'สแกน QR ด้วยแอป PayPay เพื่อชำระ'
+    },
+    '가맹 「QR 사용·로고·PayPay QR 제목·안내·푸터」가 본사설정 따름일 때 적용됩니다. 로고 ACTIVE=웹결제 로고 노출. 실효 QR은 사용=Y(또는 본사 기본 Y)+운영 WEB QR 바인딩.': {
+      EN: 'Applies when merchant QR use/logo/title/notice/footer is Follow HQ. Logo ACTIVE shows web-payment logo. Effective QR needs Use=Y (or HQ default Y) + operational WEB QR binding.',
+      JP: '加盟「QR利用・ロゴ・タイトル・案内・フッター」が本社設定に従う時に適用。ロゴACTIVE＝Web決済ロゴ表示。',
+      CH: '商户 QR 使用/标志/标题/提示/页脚为跟随总部时生效。标志启用=显示网页支付标志。',
+      TH: 'ใช้เมื่อร้านตั้ง QR ตาม HQ โลโก้ ACTIVE = แสดงโลโก้ชำระเว็บ'
+    },
+    '제목·안내·푸터 활성+문구 저장 시 5개국어 1회 번역. 가맹에서 직접 고르면 가맹이 우선합니다. 기본은 가맹 「본사설정 따름」.': {
+      EN: 'Title/notice/footer Active+text: translated once into 5 languages on save. Merchant direct choice overrides. Default merchant Follow HQ.',
+      JP: 'タイトル・案内・フッター活性+文保存時5言語1回翻訳。加盟直接指定が優先。既定は本社設定に従う。',
+      CH: '标题/提示/页脚启用+文案保存时译成 5 语一次。商户直选优先。默认跟随总部。',
+      TH: 'ชื่อ/ข้อความ/ฟุตเตอร์เปิด+ข้อความ แปล 5 ภาษาครั้งเดียวเมื่อบันทึก ร้านเลือกเองมีผลก่อน ค่าเริ่มตาม HQ'
+    },
+    'QR 사용·로고·PayPay QR 제목·스캔안내·푸터는 기본 「본사설정 따름」입니다. 실효 ON은 사용(또는 본사 기본 Y)이고 운영(WEB) 행에 QR(PayPay·QBANG)이 있을 때만입니다. URL은 /checkout-qr/업체코드. 로고는 웹결제 로고 노출 방식을 따릅니다.': {
+      EN: 'QR use/logo/PayPay QR title/scan notice/footer default to Follow HQ. Effective ON needs Use (or HQ default Y) and an operational WEB QR (PayPay·QBANG) row. URL: /checkout-qr/{compCode}. Logo follows web-payment logo visibility.',
+      JP: 'QR利用・ロゴ・PayPay QRタイトル・スキャン案内・フッターは既定「本社設定に従う」。実効ONは使用(または本社既定Y)かつ運用WEB行にQRがある場合のみ。ロゴはWeb決済ロゴ表示に従う。',
+      CH: 'QR 使用/标志/PayPay QR 标题/扫描提示/页脚默认「跟随总部」。实际开启需使用(或总部默认 Y)且运营 WEB 行有 QR。标志跟随网页支付标志显示。',
+      TH: 'ใช้ QR/โลโก้/ชื่อ PayPay QR/ข้อความสแกน/ฟุตเตอร์ค่าเริ่มตาม HQ เปิดจริงเมื่อใช้ (หรือ HQ=Y) และมีแถว WEB QR โลโก้ตามการแสดงโลโก้ชำระเว็บ'
+    },
+    '본사따름=웹결제 로고 노출. 비활성=숨김.': {
+      EN: 'Follow HQ = show web-payment logo. Inactive = hide.',
+      JP: '本社準拠＝Web決済ロゴ表示。非活性＝非表示。',
+      CH: '跟随总部=显示网页支付标志。停用=隐藏。',
+      TH: 'ตาม HQ = แสดงโลโก้ชำระเว็บ ปิดใช้ = ซ่อน'
+    },
+
     'QR로 결제합니다. 앱에서 아래 QR을 스캔한 뒤 결제를 완료해 주세요.': {
       EN: 'Pay with QR. Scan the QR below in your app and complete payment.',
       JP: 'QRでお支払いください。アプリで下のQRをスキャンし、決済を完了してください。',

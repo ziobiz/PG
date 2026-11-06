@@ -6,17 +6,22 @@
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
   <title>ICOPAY</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link href="/css/pay-inline.css?v=40" rel="stylesheet" />
+  <link href="/css/pay-inline.css?v=41" rel="stylesheet" />
   <script src="/js/url-pay-copy-phrase-i18n.js?v=1"></script>
-  <script src="/js/url-pay-public-shell.js?v=20"></script>
+  <script src="/js/url-pay-public-shell.js?v=23"></script>
+  <script src="/js/icopay-checkout-header.js?v=8"></script>
+  <script src="/js/jpay-contact-fields.js?v=4"></script>
   <script src="/js/qrcode.min.js"></script>
 </head>
 <body class="pay-inline-body">
   <div class="pay-shell">
     <div class="pay-card">
       <div class="pay-brand" id="qbBrand">
-        <div class="pay-brand-logo">ICOPAY</div>
-        <div class="pay-brand-sub" id="qbBrandSub"></div>
+        <img id="qbBrandLogoImg" class="pay-brand-logo-img" alt="" hidden />
+        <div id="qbBrandTextWrap">
+          <div class="pay-brand-logo" id="qbBrandText">ICOPAY</div>
+          <div class="pay-brand-sub" id="qbBrandSub"></div>
+        </div>
       </div>
       <div class="pay-lang" role="group" aria-label="Language" id="qbLangGroup">
         <button type="button" data-lang="KOR">KOR</button>
@@ -30,6 +35,8 @@
 
       <form id="qbForm" autocomplete="on">
         <input type="hidden" id="compIdHidden" />
+        <!-- URL QR: 주문번호는 서버/클라이언트 자동 채번(QR…). API 세션 시에만 잠금 -->
+        <input type="hidden" id="orderNo" maxlength="64" autocomplete="off" />
         <div class="pay-form-grid mb-3">
           <div class="pay-row pay-row-static">
             <div class="pay-row-label"><span id="lblMerchant"></span></div>
@@ -43,30 +50,45 @@
             <label class="pay-row-label mb-0" for="amount"><span id="lblAmount"></span> <span class="pay-currency-hint text-muted" id="payAmountCurrencyHint"></span></label>
             <div class="pay-row-value"><input type="number" class="form-control form-control-sm pay-input-round" id="amount" min="0.01" step="0.01" inputmode="decimal" required /></div>
           </div>
-          <div class="pay-row">
-            <label class="pay-row-label mb-0" for="orderNo"><span id="lblOrder"></span></label>
-            <div class="pay-row-value"><input type="text" class="form-control form-control-sm pay-input-round" id="orderNo" maxlength="64" autocomplete="off" required /></div>
+          <div class="pay-row d-none" id="payFxDisplayCurrencyRow">
+            <label class="pay-row-label mb-0" for="payDisplayCurrencySelect"><span id="lblFxCur"></span></label>
+            <div class="pay-row-value d-flex align-items-center gap-2 flex-wrap">
+              <select class="form-select form-select-sm pay-input-round" id="payDisplayCurrencySelect" style="max-width:8rem"></select>
+              <span class="small text-muted" id="payFxDisplayCurrencyStatic"></span>
+            </div>
+          </div>
+          <div class="pay-row d-none" id="payFxQuoteRow">
+            <div class="pay-row-label"><span id="lblFxEst"></span></div>
+            <div class="pay-row-value"><span id="payFxThbEstimateText" class="small fw-semibold">—</span></div>
           </div>
         </div>
-        <div class="mb-2">
-          <input type="text" class="form-control form-control-sm pay-input-round" id="buyerName" maxlength="100" autocomplete="name" />
+        <div class="row g-2 mb-2" id="nameRow">
+          <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payFirstname" maxlength="50" data-i18n-placeholder="firstName" lang="en" inputmode="text" autocapitalize="words" autocorrect="off" spellcheck="false" autocomplete="given-name" pattern="[A-Za-z '\-]+" required /></div>
+          <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payLastname" maxlength="50" data-i18n-placeholder="lastName" lang="en" inputmode="text" autocapitalize="words" autocorrect="off" spellcheck="false" autocomplete="family-name" pattern="[A-Za-z '\-]+" required /></div>
         </div>
-        <div class="mb-2">
-          <input type="email" class="form-control form-control-sm pay-input-round" id="buyerEmail" maxlength="100" autocomplete="email" />
-        </div>
-        <div class="mb-3">
-          <input type="tel" class="form-control form-control-sm pay-input-round" id="buyerTel" maxlength="40" autocomplete="tel" />
+        <div class="row g-2 mb-3" id="contactRow">
+          <div class="col-12"><input type="email" class="form-control form-control-sm pay-input-round" id="payEmailAddress" maxlength="100" required autocomplete="email" /></div>
+          <div class="col-12">
+            <label class="pay-label mb-1 d-block" for="payContactCountryCode" id="lblCountry"></label>
+            <select class="form-select form-select-sm pay-input-round" id="payContactCountryCode" required aria-label="Country code"></select>
+          </div>
+          <div class="col-12">
+            <label class="pay-label mb-1 d-block" for="payTelephone" id="lblPhone"></label>
+            <input type="tel" class="form-control form-control-sm pay-input-round" id="payTelephone" maxlength="40" required inputmode="tel" autocomplete="tel-national" />
+          </div>
+          <input type="hidden" id="payCountryIsoCode2" />
         </div>
         <button type="submit" class="btn btn-primary w-100" id="submitBtn"></button>
       </form>
 
       <div id="qrSection" class="text-center mt-3" style="display:none;">
-        <p class="mb-2 fw-semibold" id="qrHint"></p>
+        <p class="mb-2 fw-semibold pay-qr-scan-hint" id="qrHint"></p>
         <div id="qrCanvasWrap" class="d-inline-block p-2 bg-white border rounded mb-2"></div>
         <p class="small text-muted mb-1" id="qrRemain"></p>
         <p class="small text-muted mb-0" id="qrStatus"></p>
         <button type="button" class="btn btn-outline-secondary btn-sm mt-3" id="cancelQrBtn" style="display:none;"></button>
       </div>
+      <div class="pay-qr-footer text-center small text-muted mt-3" id="qbFooter" hidden></div>
     </div>
   </div>
   <script>
@@ -74,43 +96,58 @@
   var T = {
     KOR: {
       brandSub: 'PayPay QR', merchant: '가맹점', item: '상품', amount: '금액', order: '주문번호',
-      name: '성명', email: '이메일', phone: '전화(선택)', pay: 'QR 생성',
-      scan: 'PayPay 앱으로 QR을 스캔해 결제해 주세요.', remain: '남은 시간', status: '상태',
+      firstName: '이름', lastName: '성', email: '이메일', country: '국가코드', phone: '전화번호', phoneHint: '숫자만',
+      needName: '이름·성을 영문으로 입력하세요.', needEmail: '이메일을 입력하세요.', needCountry: '국가코드를 선택하세요.', needPhone: '전화번호를 입력하세요.',
+      nameLatin: '이름·성은 영문만 가능합니다.', emailInvalid: '이메일 형식이 올바르지 않습니다.',
+      pay: 'QR 생성', fxCur: '표시 통화', fxEst: '예상 청구', needFxQuote: '환율 견적을 불러오지 못했습니다. 페이지를 새로고침한 뒤 다시 시도하세요.',
+      scan: 'PayPay 앱 안의 스캔으로 아래 QR을 읽어 주세요(Alipay+ 중계. 일반 카메라만으로는 안 될 수 있습니다).', remain: '남은 시간', status: '상태',
       pending: 'PayPay 결제 대기 중…', paid: '결제가 완료되었습니다.', failed: '결제가 실패·만료되었습니다.',
       cancel: '닫기', errCfg: '결제 설정을 불러올 수 없습니다.', errStart: 'QR을 시작할 수 없습니다.',
-      notConfigured: 'PayPay QR 결제가 설정되지 않았습니다.'
+      notConfigured: 'PayPay QR 결제가 설정되지 않았습니다.', footer: 'Provided by ICOPAY'
     },
     ENG: {
       brandSub: 'PayPay QR', merchant: 'Merchant', item: 'Item', amount: 'Amount', order: 'Order No.',
-      name: 'Name', email: 'Email', phone: 'Phone (optional)', pay: 'Show QR',
-      scan: 'Scan this QR with the PayPay app to pay.', remain: 'Time left', status: 'Status',
+      firstName: 'First name', lastName: 'Last name', email: 'Email', country: 'Country code', phone: 'Phone', phoneHint: 'Digits only',
+      needName: 'Enter first and last name in English.', needEmail: 'Enter your email.', needCountry: 'Select a country code.', needPhone: 'Enter your phone number.',
+      nameLatin: 'Names must be Latin letters only.', emailInvalid: 'Invalid email format.',
+      pay: 'Show QR', fxCur: 'Display currency', fxEst: 'Estimated charge', needFxQuote: 'FX quote is missing or expired. Refresh the page and try again.',
+      scan: 'Scan the QR below with PayPay’s in-app scanner (the phone camera alone may not work).', remain: 'Time left', status: 'Status',
       pending: 'Waiting for PayPay…', paid: 'Payment completed.', failed: 'Payment failed or expired.',
       cancel: 'Close', errCfg: 'Unable to load checkout settings.', errStart: 'Unable to start QR.',
-      notConfigured: 'PayPay QR is not configured.'
+      notConfigured: 'PayPay QR is not configured.', footer: 'Provided by ICOPAY'
     },
     JPN: {
       brandSub: 'PayPay QR', merchant: '加盟店', item: '商品', amount: '金額', order: '注文番号',
-      name: '氏名', email: 'メール', phone: '電話（任意）', pay: 'QR表示',
-      scan: 'PayPayアプリでQRを読み取り、お支払いください。', remain: '残り時間', status: '状態',
+      firstName: '名', lastName: '姓', email: 'メール', country: '国コード', phone: '電話番号', phoneHint: '数字のみ',
+      needName: '名・姓を英字で入力してください。', needEmail: 'メールを入力してください。', needCountry: '国コードを選択してください。', needPhone: '電話番号を入力してください。',
+      nameLatin: '氏名は英字のみです。', emailInvalid: 'メール形式が正しくありません。',
+      pay: 'QR表示', fxCur: '表示通貨', fxEst: '請求見込み', needFxQuote: '為替見積がありません。ページを再読み込みしてから再度お試しください。',
+      scan: 'PayPayアプリ内のスキャンで下のQRを読み取ってください（Alipay+経由。カメラ単体では使えない場合があります）。', remain: '残り時間', status: '状態',
       pending: 'PayPayお支払い待ち…', paid: 'お支払いが完了しました。', failed: '失敗または期限切れです。',
       cancel: '閉じる', errCfg: '設定を読み込めません。', errStart: 'QRを開始できません。',
-      notConfigured: 'PayPay QRが設定されていません。'
+      notConfigured: 'PayPay QRが設定されていません。', footer: 'Provided by ICOPAY'
     },
     CHN: {
       brandSub: 'PayPay QR', merchant: '商户', item: '商品', amount: '金额', order: '订单号',
-      name: '姓名', email: '邮箱', phone: '电话（可选）', pay: '显示二维码',
+      firstName: '名', lastName: '姓', email: '邮箱', country: '国家代码', phone: '电话', phoneHint: '仅数字',
+      needName: '请用英文输入名和姓。', needEmail: '请输入邮箱。', needCountry: '请选择国家代码。', needPhone: '请输入电话号码。',
+      nameLatin: '姓名仅限英文字母。', emailInvalid: '邮箱格式不正确。',
+      pay: '显示二维码', fxCur: '显示货币', fxEst: '预计扣款', needFxQuote: '汇率报价无效或已过期。请刷新页面后重试。',
       scan: '请用 PayPay 应用扫描二维码完成支付。', remain: '剩余时间', status: '状态',
       pending: '等待 PayPay 支付…', paid: '支付已完成。', failed: '支付失败或已过期。',
       cancel: '关闭', errCfg: '无法加载支付设置。', errStart: '无法开始二维码支付。',
-      notConfigured: '未配置 PayPay QR。'
+      notConfigured: '未配置 PayPay QR。', footer: 'Provided by ICOPAY'
     },
     THA: {
       brandSub: 'PayPay QR', merchant: 'ร้านค้า', item: 'สินค้า', amount: 'จำนวนเงิน', order: 'เลขคำสั่ง',
-      name: 'ชื่อ', email: 'อีเมล', phone: 'โทร (ไม่บังคับ)', pay: 'แสดง QR',
+      firstName: 'ชื่อ', lastName: 'นามสกุล', email: 'อีเมล', country: 'รหัสประเทศ', phone: 'โทรศัพท์', phoneHint: 'ตัวเลขเท่านั้น',
+      needName: 'กรอกชื่อและนามสกุลเป็นภาษาอังกฤษ', needEmail: 'กรอกอีเมล', needCountry: 'เลือกรหัสประเทศ', needPhone: 'กรอกเบอร์โทร',
+      nameLatin: 'ชื่อต้องเป็นตัวอักษรละติน', emailInvalid: 'รูปแบบอีเมลไม่ถูกต้อง',
+      pay: 'แสดง QR', fxCur: 'สกุลเงินแสดง', fxEst: 'ยอดโดยประมาณ', needFxQuote: 'ใบเสนออัตราแลกเปลี่ยนหมดอายุหรือไม่มี กรุณารีเฟรชหน้าแล้วลองใหม่',
       scan: 'สแกน QR ด้วยแอป PayPay เพื่อชำระ', remain: 'เวลาที่เหลือ', status: 'สถานะ',
       pending: 'รอชำระ PayPay…', paid: 'ชำระเงินสำเร็จ', failed: 'ล้มเหลวหรือหมดเวลา',
       cancel: 'ปิด', errCfg: 'โหลดการตั้งค่าไม่ได้', errStart: 'เริ่ม QR ไม่ได้',
-      notConfigured: 'ยังไม่ได้ตั้งค่า PayPay QR'
+      notConfigured: 'ยังไม่ได้ตั้งค่า PayPay QR', footer: 'Provided by ICOPAY'
     }
   };
 
@@ -132,27 +169,166 @@
     }
   }
   var ctx = {};
+  var urlPayDisplayFxActive = false;
+  var urlPayPricingMode = 'CHECKOUT_CURRENCY';
+  var fxShellState = {};
   var pollTimer = null;
   var txnNo = '';
   var orderNoLive = '';
 
   function $(id) { return document.getElementById(id); }
+
+  function pickSlot(mode, text, i18n, fallback) {
+    var m = String(mode || 'ACTIVE').trim().toUpperCase();
+    if (m === 'DISABLED' || m === 'N' || m === 'OFF') {
+      return { show: false, text: '' };
+    }
+    var custom = '';
+    if (i18n && typeof i18n === 'object') {
+      custom = String(i18n[lang] || i18n.KOR || i18n.ENG || '').trim();
+    }
+    if (!custom) custom = text ? String(text).trim() : '';
+    return { show: true, text: custom || fallback || '' };
+  }
+
+  function applyBranding() {
+    var brand = $('qbBrand');
+    var img = $('qbBrandLogoImg');
+    var textEl = $('qbBrandText');
+    var subEl = $('qbBrandSub');
+    var hintEl = $('qrHint');
+    var footerEl = $('qbFooter');
+    var H = window.ICOPAY_CHECKOUT_HEADER;
+
+    if (H && H.applyLogo) {
+      H.applyLogo(ctx, { brand: brand, img: img, text: textEl });
+    } else if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyCheckoutHeaderLogo) {
+      PG_URL_PAY_SHELL.applyCheckoutHeaderLogo(ctx, {
+        brandBlockId: 'qbBrand',
+        imgId: 'qbBrandLogoImg',
+        textWrapId: 'qbBrandTextWrap',
+        t: function () { return 'ICOPAY'; }
+      });
+    }
+
+    var title = pickSlot(
+      ctx.qrPaymentBrandTitleMode,
+      ctx.qrPaymentBrandTitleText,
+      ctx.qrPaymentBrandTitleTextI18n,
+      pack.brandSub
+    );
+    if (subEl) {
+      if (!title.show) {
+        subEl.hidden = true;
+        subEl.textContent = '';
+        subEl.style.display = 'none';
+      } else {
+        subEl.hidden = false;
+        subEl.style.display = '';
+        subEl.textContent = title.text;
+        if (brand) brand.hidden = false;
+      }
+    }
+
+    var scan = pickSlot(
+      ctx.checkoutHeaderSubtitleMode,
+      ctx.checkoutHeaderSubtitleText,
+      ctx.checkoutHeaderSubtitleTextI18n,
+      pack.scan
+    );
+    if (hintEl) {
+      if (!scan.show) {
+        hintEl.hidden = true;
+        hintEl.textContent = '';
+        hintEl.style.display = 'none';
+      } else {
+        hintEl.hidden = false;
+        hintEl.style.display = '';
+        hintEl.textContent = scan.text;
+      }
+    }
+
+    var foot = pickSlot(
+      ctx.qrPaymentFooterMode,
+      ctx.qrPaymentFooterText,
+      ctx.qrPaymentFooterTextI18n,
+      pack.footer
+    );
+    if (footerEl) {
+      if (!foot.show || !foot.text) {
+        footerEl.hidden = true;
+        footerEl.textContent = '';
+      } else {
+        footerEl.hidden = false;
+        if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.setLinkedText) {
+          PG_URL_PAY_SHELL.setLinkedText(footerEl, foot.text);
+        } else {
+          footerEl.textContent = foot.text;
+        }
+      }
+    }
+  }
+
+  function isLatinName(s) {
+    return /^[A-Za-z '\-]+$/.test(String(s || '').trim());
+  }
+
+  function isValidEmail(s) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || '').trim());
+  }
+
+  function stripNonLatinName(el) {
+    if (!el) return;
+    el.value = String(el.value || '').replace(/[^A-Za-z '\-]/g, '');
+  }
+
+  /** URL QR 주문번호: QR + epoch (API 세션 orderNo가 있으면 그대로 사용). 과거 qr… 건은 유지 */
+  function buildQrOrderNo() {
+    return 'QR' + Date.now();
+  }
+
+  function ensureOrderNo() {
+    var el = $('orderNo');
+    if (!el) return '';
+    if (el.readOnly || el.disabled) return String(el.value || '').trim();
+    var v = String(el.value || '').trim();
+    if (!v) {
+      v = buildQrOrderNo();
+      el.value = v;
+    }
+    return v;
+  }
+
+  function initContactFields() {
+    var form = $('qbForm');
+    if (window.PG_JPAY_CONTACT && form) {
+      PG_JPAY_CONTACT.init(form, ctx || {}, lang, pack.country);
+    }
+  }
+
   function applyTexts() {
     pack = T[lang] || T.KOR;
-    $('qbBrandSub').textContent = pack.brandSub;
     $('lblMerchant').textContent = pack.merchant;
     $('lblItem').textContent = pack.item;
     $('lblAmount').textContent = pack.amount;
-    $('lblOrder').textContent = pack.order;
-    $('buyerName').placeholder = pack.name;
-    $('buyerEmail').placeholder = pack.email;
-    $('buyerTel').placeholder = pack.phone;
+    if ($('lblFxCur')) $('lblFxCur').textContent = pack.fxCur || '';
+    if ($('lblFxEst')) $('lblFxEst').textContent = pack.fxEst || '';
+    $('payFirstname').placeholder = pack.firstName;
+    $('payLastname').placeholder = pack.lastName;
+    $('payEmailAddress').placeholder = pack.email;
+    $('lblCountry').textContent = pack.country;
+    $('lblPhone').textContent = pack.phone;
+    $('payTelephone').placeholder = pack.phoneHint;
     $('submitBtn').textContent = pack.pay;
-    $('qrHint').textContent = pack.scan;
     $('cancelQrBtn').textContent = pack.cancel;
     document.querySelectorAll('#qbLangGroup [data-lang]').forEach(function (btn) {
       btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
     });
+    if (window.PG_JPAY_CONTACT) {
+      PG_JPAY_CONTACT.refreshCountryLabels($('qbForm'), lang, pack.country);
+      PG_JPAY_CONTACT.syncCountryToPayLang($('qbForm'), lang, pack.country, { onlyIfNotUserPicked: true });
+    }
+    applyBranding();
   }
 
   document.querySelectorAll('#qbLangGroup [data-lang]').forEach(function (btn) {
@@ -163,6 +339,12 @@
       history.replaceState(null, '', u.toString());
       applyTexts();
     });
+  });
+
+  $('payFirstname').addEventListener('input', function () { stripNonLatinName(this); });
+  $('payLastname').addEventListener('input', function () { stripNonLatinName(this); });
+  $('payTelephone').addEventListener('input', function () {
+    this.value = String(this.value || '').replace(/\D+/g, '');
   });
 
   function showErr(msg) {
@@ -190,18 +372,57 @@
         }
         $('merchantNameDisplay').textContent = ctx.merchantName || ctx.compNm || ctx.compId || compId || '—';
         if (ctx.defaultProductName) $('item').value = ctx.defaultProductName;
-        if (ctx.currency) $('payAmountCurrencyHint').textContent = '(' + ctx.currency + ')';
+        urlPayDisplayFxActive = ctx.urlPayDisplayFxActive === true;
+        urlPayPricingMode = String(ctx.urlPayPricingMode || 'CHECKOUT_CURRENCY').toUpperCase();
+        if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyPayAmountCurrencyHint) {
+          PG_URL_PAY_SHELL.applyPayAmountCurrencyHint(ctx);
+        } else if (ctx.currency) {
+          $('payAmountCurrencyHint').textContent = '(' + ctx.currency + ')';
+        }
         if (ctx.amount != null && ctx.amount !== '') $('amount').value = ctx.amount;
-        if (ctx.orderNo) $('orderNo').value = ctx.orderNo;
-        if (ctx.buyerPrefill) {
+        var ordEl = $('orderNo');
+        if (ctx.orderNo) {
+          /* API/세션 prepare 주문번호 — 잠금 */
+          ordEl.value = String(ctx.orderNo);
+          ordEl.readOnly = true;
+        } else {
+          ordEl.value = buildQrOrderNo();
+          ordEl.readOnly = false;
+        }
+        if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.initDisplayFx) {
+          fxShellState.checkoutCtx = ctx;
+          fxShellState.compId = compId;
+          fxShellState.urlPayDisplayFxActive = urlPayDisplayFxActive;
+          fxShellState.operationalPgCd = String(
+            ctx.urlPayOperationalPgCd || ctx.urlPayDisplayFxQuotePgCd || ''
+          ).trim();
+          fxShellState.apiUrl = function (path, qs) {
+            var u = path || '';
+            if (qs) u += (u.indexOf('?') >= 0 ? '&' : '?') + qs;
+            return u;
+          };
+          fxShellState.t = function (k) { return (pack && pack[k]) || k; };
+          try { PG_URL_PAY_SHELL.initDisplayFx(fxShellState); } catch (eFx) { /* ignore */ }
+        }
+        initContactFields();
+        if (ctx.buyerPrefill && window.PG_JPAY_CONTACT) {
           var bp = ctx.buyerPrefill;
-          if (bp.name) $('buyerName').value = bp.name;
-          if (bp.email) $('buyerEmail').value = bp.email;
-          if (bp.phone) $('buyerTel').value = bp.phone;
+          var fn = bp.firstName || bp.givenName || '';
+          var ln = bp.lastName || bp.familyName || '';
+          if (!fn && bp.name) {
+            var parts = String(bp.name).trim().split(/\s+/);
+            fn = parts[0] || '';
+            ln = parts.slice(1).join(' ') || '';
+          }
+          if (fn) $('payFirstname').value = fn;
+          if (ln) $('payLastname').value = ln;
+          PG_JPAY_CONTACT.applyPrefill($('qbForm'), ctx, {
+            email: bp.email || bp.payEmailAddress,
+            phone: bp.phone || bp.payTelephone || bp.tel,
+            countryIso2: bp.countryIso2 || bp.country || bp.payCountryIsoCode2
+          }, lang, pack.country);
         }
-        if (window.UrlPayPublicShell && UrlPayPublicShell.applyCheckoutContext) {
-          try { UrlPayPublicShell.applyCheckoutContext(ctx, { lang: lang }); } catch (e0) {}
-        }
+        applyBranding();
       })
       .catch(function () { showErr(pack.errCfg); });
   }
@@ -210,25 +431,107 @@
     if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
   }
 
+  /** URL QR 결제 — 카드 URL결제와 동일하게 공개 결과 페이지로 이동 */
+  function goPayResult(kind, order) {
+    try {
+      var u = new URL('/pay-result.html', location.origin);
+      u.searchParams.set('lang', lang || 'KOR');
+      u.searchParams.set('van', 'QBANG');
+      u.searchParams.set('pgKind', 'qbang');
+      if (compId) {
+        u.searchParams.set('m', compId);
+        u.searchParams.set('compId', compId);
+      }
+      if (order) u.searchParams.set('orderNo', String(order));
+      if (txnNo) {
+        u.searchParams.set('transactionNo', txnNo);
+        u.searchParams.set('transaction_id', txnNo);
+      }
+      if (kind === 'ok') {
+        u.searchParams.set('PaymentStatus', 'Paid');
+        u.searchParams.set('paymentStatus', 'Succeeded');
+        u.searchParams.set('returncode', '00');
+        u.searchParams.set('outcome', 'success');
+      } else {
+        u.searchParams.set('PaymentStatus', 'Failed');
+        u.searchParams.set('paymentStatus', 'Failed');
+        u.searchParams.set('returncode', '01');
+        u.searchParams.set('outcome', 'reject');
+      }
+      setTimeout(function () {
+        location.href = u.toString();
+      }, 600);
+    } catch (eGo) { /* keep inline result */ }
+  }
+
   function paintQr(text) {
     var wrap = $('qrCanvasWrap');
     wrap.innerHTML = '';
+    /* 큐뱅 EMV qrCode — PDF 줄바꿈·공백이 섞이면 PayPay「使えないQR」발생. 공백 제거 */
+    var raw = String(text == null ? '' : text).trim().replace(/\s+/g, '');
+    if (!raw) {
+      wrap.textContent = '—';
+      return;
+    }
+    if (/^data:image\//i.test(raw)) {
+      var img0 = document.createElement('img');
+      img0.alt = 'QR';
+      img0.style.maxWidth = '280px';
+      img0.src = raw;
+      wrap.appendChild(img0);
+      return;
+    }
     var QR = window.QRCode;
     if (QR && typeof QR.toCanvas === 'function') {
       var canvas = document.createElement('canvas');
       wrap.appendChild(canvas);
-      QR.toCanvas(canvas, text, { width: 220, margin: 1 }, function () {});
+      QR.toCanvas(canvas, raw, {
+        width: 280,
+        margin: 2,
+        errorCorrectionLevel: 'M'
+      }, function (err) {
+        if (err) {
+          wrap.innerHTML = '';
+          wrap.textContent = pack.errStart || 'QR';
+          try { console.warn('QBANG QR render', err); } catch (e0) {}
+        }
+      });
     } else if (QR && QR.CorrectLevel) {
-      new QR(wrap, { text: text, width: 220, height: 220 });
+      new QR(wrap, {
+        text: raw,
+        width: 280,
+        height: 280,
+        correctLevel: QR.CorrectLevel.M
+      });
     } else {
-      wrap.textContent = text;
+      wrap.textContent = raw.slice(0, 64) + '…';
     }
+  }
+
+  var qrDeadlineMs = 0;
+  var QR_TTL_DEFAULT = 66;
+
+  function remainSecondsNow() {
+    if (!qrDeadlineMs) return QR_TTL_DEFAULT;
+    return Math.max(0, Math.ceil((qrDeadlineMs - Date.now()) / 1000));
   }
 
   function startPoll() {
     stopPoll();
     pollTimer = setInterval(function () {
       if (!txnNo || !compId) return;
+      var remLocal = remainSecondsNow();
+      $('qrRemain').textContent = pack.remain + ': ' + remLocal + 's';
+      if (remLocal <= 0) {
+        stopPoll();
+        $('qrStatus').textContent = pack.failed;
+        $('payResult').style.display = '';
+        $('payResult').className = 'pay-result alert alert-danger';
+        $('payResult').textContent = pack.failed;
+        $('cancelQrBtn').style.display = '';
+        goPayResult('fail', orderNoLive);
+        return;
+      }
       var url = '/api/pay/qbang/status?compId=' + encodeURIComponent(compId)
         + '&transactionNo=' + encodeURIComponent(txnNo)
         + '&orderNo=' + encodeURIComponent(orderNoLive || '');
@@ -237,8 +540,18 @@
         .then(function (body) {
           if (!(body && body.success && body.data)) return;
           var d = body.data;
-          var rem = d.remainingTime != null ? d.remainingTime : '';
-          $('qrRemain').textContent = pack.remain + ': ' + rem + 's';
+          $('qrRemain').textContent = pack.remain + ': ' + remainSecondsNow() + 's';
+          /* 가이드 actionFlag 1·2 — 2차 QR(PayPay는 보통 불필요, 수신 시 교체) */
+          if (d.step2QrCode && String(d.step2QrCode).trim()) {
+            paintQr(String(d.step2QrCode).trim());
+          }
+          /* 큐뱅 PL remainingTime(최대 120초 연장 가능) — 브라우저 타이머와 서버 동기 */
+          if (d.remainingTime != null && d.remainingTime !== '') {
+            var remApi = parseInt(d.remainingTime, 10);
+            if (!isNaN(remApi) && remApi >= 0) {
+              qrDeadlineMs = Date.now() + Math.min(120, remApi) * 1000;
+            }
+          }
           var st = String(d.paymentStatus || '').toUpperCase();
           if (st === 'PAID') {
             stopPoll();
@@ -247,6 +560,7 @@
             $('payResult').className = 'pay-result alert alert-success';
             $('payResult').textContent = pack.paid;
             $('cancelQrBtn').style.display = '';
+            goPayResult('ok', d.orderNo || orderNoLive);
           } else if (st === 'FAILED') {
             stopPoll();
             $('qrStatus').textContent = pack.failed;
@@ -254,6 +568,7 @@
             $('payResult').className = 'pay-result alert alert-danger';
             $('payResult').textContent = pack.failed;
             $('cancelQrBtn').style.display = '';
+            goPayResult('fail', d.orderNo || orderNoLive);
           } else {
             $('qrStatus').textContent = pack.pending;
           }
@@ -265,20 +580,91 @@
   $('qbForm').addEventListener('submit', function (ev) {
     ev.preventDefault();
     $('configError').style.display = 'none';
+    var form = $('qbForm');
+    if (window.PG_JPAY_CONTACT) PG_JPAY_CONTACT.syncBeforeSubmit(form);
+
+    var fn = ($('payFirstname').value || '').trim();
+    var ln = ($('payLastname').value || '').trim();
+    if (!fn || !ln) {
+      showErr(pack.needName);
+      return;
+    }
+    if (!isLatinName(fn) || !isLatinName(ln)) {
+      showErr(pack.nameLatin);
+      return;
+    }
+    var email = ($('payEmailAddress').value || '').trim();
+    if (!email) {
+      showErr(pack.needEmail);
+      return;
+    }
+    if (!isValidEmail(email)) {
+      showErr(pack.emailInvalid);
+      return;
+    }
+    var countryIso2 = window.PG_JPAY_CONTACT
+      ? PG_JPAY_CONTACT.readCountryIso2(form)
+      : (($('payCountryIsoCode2').value || '').trim().toUpperCase());
+    if (!countryIso2 || countryIso2.length !== 2) {
+      showErr(pack.needCountry);
+      return;
+    }
+    var phone = ($('payTelephone').value || '').trim().replace(/\D+/g, '');
+    if (!phone) {
+      showErr(pack.needPhone);
+      return;
+    }
+
+    var orderNo = ensureOrderNo();
+    var amountRaw = ($('amount').value || '').trim().replace(/,/g, '');
+    var settleCur = String(
+      (ctx && (ctx.urlPaySettlementCurrencyCode || ctx.checkoutCurrencyCode || ctx.currency)) || ''
+    ).trim().toUpperCase();
     var body = {
       compId: compId,
-      orderNo: ($('orderNo').value || '').trim(),
+      orderNo: orderNo,
       productName: ($('item').value || '').trim(),
       item: ($('item').value || '').trim(),
-      amount: ($('amount').value || '').trim(),
-      currency: (ctx && ctx.currency) || '',
-      buyerName: ($('buyerName').value || '').trim(),
-      buyerEmail: ($('buyerEmail').value || '').trim(),
-      buyerTel: ($('buyerTel').value || '').trim(),
+      amount: amountRaw,
+      currency: settleCur,
+      firstName: fn,
+      lastName: ln,
+      buyerName: (fn + ' ' + ln).trim(),
+      buyerEmail: email,
+      payEmailAddress: email,
+      buyerTel: phone,
+      payTelephone: phone,
+      buyerCountryIso2: countryIso2,
+      payCountryIsoCode2: countryIso2,
       payMeans: 'QR',
       qrWallet: 'QBANG'
     };
     if (ctx && ctx.sessionToken) body.sessionToken = ctx.sessionToken;
+    /* DP: 표시금액(JPY 등) + 견적 토큰 → 서버가 실결제 KRW 확정 */
+    if (urlPayDisplayFxActive && urlPayPricingMode === 'DISPLAY_FX_THB') {
+      var fxQ = fxShellState.urlPayFxQuote;
+      if (!fxQ || (!fxQ.fxQuoteToken && fxQ.oneToOneDisplaySettlement !== true)) {
+        showErr(pack.needFxQuote);
+        return;
+      }
+      body.urlPayPricingMode = 'DISPLAY_FX_THB';
+      body.displayAmount = amountRaw;
+      body.amount = amountRaw;
+      body.displayCurrency = (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.payFxResolvedDisplayCurrency && ctx)
+        ? PG_URL_PAY_SHELL.payFxResolvedDisplayCurrency(ctx)
+        : String((fxQ && fxQ.displayCurrency) || (ctx && ctx.urlPayDisplayFxDefaultDisplayCurrency) || 'JPY').trim().toUpperCase();
+      if (fxQ.fxQuoteToken) body.fxQuoteToken = String(fxQ.fxQuoteToken);
+      if (fxQ.settlementCurrency) {
+        body.currency = String(fxQ.settlementCurrency).trim().toUpperCase();
+      } else {
+        body.currency = 'KRW';
+      }
+      if (fxShellState.operationalPgCd) {
+        body.operationalPgCd = String(fxShellState.operationalPgCd).trim();
+      } else if (ctx && ctx.urlPayOperationalPgCd) {
+        body.operationalPgCd = String(ctx.urlPayOperationalPgCd).trim();
+      }
+    }
     $('submitBtn').disabled = true;
     fetch('/api/pay/qbang/start', {
       method: 'POST',
@@ -296,10 +682,17 @@
         var d = res.data;
         txnNo = d.transactionNo || '';
         orderNoLive = d.orderNo || body.orderNo;
+        var ttlSec = parseInt(d.remainingTimeHint != null ? d.remainingTimeHint : QR_TTL_DEFAULT, 10);
+        if (!(ttlSec > 0)) ttlSec = QR_TTL_DEFAULT;
+        /* 큐뱅 회신: 기본 66초, 최대 120초(연장 시 PL remainingTime) */
+        if (ttlSec > 120) ttlSec = 120;
+        qrDeadlineMs = Date.now() + ttlSec * 1000;
         $('qbForm').style.display = 'none';
         $('qrSection').style.display = '';
-        paintQr(d.qrCode || '');
-        $('qrRemain').textContent = pack.remain + ': ' + (d.remainingTimeHint != null ? d.remainingTimeHint : '66') + 's';
+        applyBranding();
+        /* 초기 응답에 2차 QR이 있으면 PayPay 등 지갑용으로 우선 표시 */
+        paintQr((d.step2QrCode && String(d.step2QrCode).trim()) ? d.step2QrCode : (d.qrCode || ''));
+        $('qrRemain').textContent = pack.remain + ': ' + ttlSec + 's';
         $('qrStatus').textContent = pack.pending;
         startPoll();
       })
@@ -315,6 +708,7 @@
   });
 
   applyTexts();
+  initContactFields();
   loadContext();
 })();
   </script>

@@ -157,7 +157,13 @@ public class PayListItemDto {
         row.put("instalMonth", b != null && b.getMaxInstallmentMonths() != null ? String.valueOf(b.getMaxInstallmentMonths()) : "0");
         row.put("payMethod", b != null && b.getPayMethod() != null ? b.getPayMethod() : "카드");
         row.put("corpNm", compNm);
-        row.put("pgNm", b != null && b.getPgCd() != null ? b.getPgCd() : (t.getVan() != null ? t.getVan() : "-"));
+        /* 결제대행 = 해당 거래 van(승인 PG). 가맹 첫 운영 바인딩(OMSPAY 등)으로 덮지 않음 */
+        String vanCd = t.getVan() != null ? t.getVan().trim() : "";
+        if (!vanCd.isEmpty()) {
+            row.put("pgNm", vanCd);
+        } else {
+            row.put("pgNm", b != null && b.getPgCd() != null ? b.getPgCd() : "-");
+        }
         row.put("terminalId", b != null && b.getMid() != null ? b.getMid() : "-");
 
         BigDecimal amtBd = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;

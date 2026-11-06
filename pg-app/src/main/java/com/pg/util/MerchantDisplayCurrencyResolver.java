@@ -2,6 +2,7 @@ package com.pg.util;
 
 import com.pg.entity.MerchantProfile;
 import com.pg.entity.PgTrnsctn;
+import com.pg.integration.pg.PgVendor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.Map;
 /**
  * 결제내역·통합조회 그리드 통화 표시 — 가맹 {@link MerchantProfile#getBaseCurrency()} 와
  * {@link PgTrnsctn#getCurType()} 보강 규칙(약한 KRW/410 기본값 치환).
+ * <p>QBANG QR 등 실결제 KRW·입력통화(display)가 있는 건은 가맹 기준화폐(THB)로 덮지 않는다.
  */
 public final class MerchantDisplayCurrencyResolver {
 
@@ -21,11 +23,35 @@ public final class MerchantDisplayCurrencyResolver {
         return c == null || c.isEmpty() || "KRW".equals(c) || "410".equals(c);
     }
 
+    /**
+     * 거래에 기록된 cur_type 을 실결제 통화로 신뢰할지.
+     * (노티 기본 KRW 오표기와 QBANG 실결제 KRW를 구분)
+     */
+    public static boolean trustTxnCurTypeAsSettlement(PgTrnsctn t, String curTypeNorm) {
+        if (t == null || curTypeNorm == null || curTypeNorm.isBlank()) {
+            return false;
+        }
+        String van = t.getVan() != null ? t.getVan().trim() : "";
+        if (PgVendor.isQbangFamily(van) || PgVendor.isCryptoFamily(van)) {
+            return true;
+        }
+        String ch = t.getPaymentChannel() != null ? t.getPaymentChannel().trim() : "";
+        if ("QR".equalsIgnoreCase(ch) || "CRYPTO".equalsIgnoreCase(ch)) {
+            return true;
+        }
+        String disp = t.getDisplayCurType() != null ? t.getDisplayCurType().trim() : "";
+        /* DISPLAY_FX: 입력통화와 실결제가 다르면 cur_type 이 실결제 */
+        return !disp.isBlank() && !disp.equalsIgnoreCase(curTypeNorm);
+    }
+
     public static String resolveCurrencyCodeForDisplay(PgTrnsctn t, MerchantProfile mp) {
         if (t == null) {
             return primaryFromMerchantProfile(mp);
         }
         String db = t.getCurType() != null ? t.getCurType().trim().toUpperCase(Locale.ROOT) : "";
+        if (trustTxnCurTypeAsSettlement(t, db)) {
+            return normalizeDisplayCurrency(db);
+        }
         String assembled;
         if (!looksLikeWeakDefaultKrw(db)) {
             assembled = db.isEmpty() ? "" : db;

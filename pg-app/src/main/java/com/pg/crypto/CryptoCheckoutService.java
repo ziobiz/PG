@@ -1,5 +1,7 @@
 package com.pg.crypto;
 
+import com.pg.crypto.chain.CryptoChainVerifyOutcome;
+import com.pg.crypto.chain.CryptoChainVerifyService;
 import com.pg.entity.*;
 import com.pg.integration.pg.PgVendor;
 import com.pg.merchantdeploy.MerchantApiResponseMapper;
@@ -49,6 +51,7 @@ public class CryptoCheckoutService {
     private final CryptoFxService cryptoFxService;
     private final MerchantPgBindingRouterService pgBindingRouter;
     private final QrPaymentMeansService qrPaymentMeansService;
+    private final CryptoChainVerifyService chainVerifyService;
 
     public CryptoCheckoutService(OrgUnitRepository orgUnitRepository,
                                  MerchantProfileRepository merchantProfileRepository,
@@ -65,7 +68,8 @@ public class CryptoCheckoutService {
                                  UrlPayCardCopyService urlPayCardCopyService,
                                  CryptoFxService cryptoFxService,
                                  MerchantPgBindingRouterService pgBindingRouter,
-                                 QrPaymentMeansService qrPaymentMeansService) {
+                                 QrPaymentMeansService qrPaymentMeansService,
+                                 CryptoChainVerifyService chainVerifyService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.configRepository = configRepository;
@@ -82,6 +86,7 @@ public class CryptoCheckoutService {
         this.cryptoFxService = cryptoFxService;
         this.pgBindingRouter = pgBindingRouter;
         this.qrPaymentMeansService = qrPaymentMeansService;
+        this.chainVerifyService = chainVerifyService;
     }
 
     /**
@@ -448,8 +453,9 @@ public class CryptoCheckoutService {
     }
 
     /**
-     * 구매자 「송금 완료 · 입금 확인」— 세션 건을 입금확정.
-     * 체인 워처 전까지 Tx해시 없으면 BUYER_ACK 토큰으로 확정(관리자 입금확정과 동일 후속).
+     * 구매자 「송금 완료 · 입금 확인」— 온체인 입금이 확인될 때만 확정.
+     * Tx 해시가 있으면 해당 Tx 검증, 없으면 수탁 주소 최근 입금을 스캔해 금액·자산 매칭.
+     * 버튼만으로는 CONFIRMED·가맹 통보를 하지 않는다(BUYER_ACK 폐지).
      */
     @Transactional
     public Map<String, Object> buyerConfirmSent(String sessionToken, String depositTxHash) {
@@ -466,18 +472,51 @@ public class CryptoCheckoutService {
                 || CryptoDepositTxn.ST_FAILED.equals(txn.getStatus())) {
             return fail("만료·실패된 건은 입금 확인할 수 없습니다. 새 결제를 시작해 주세요.", "NOT_CONFIRMABLE");
         }
+
         String hash = depositTxHash != null ? depositTxHash.trim() : "";
-        if (hash.isBlank()) {
-            hash = "BUYER_ACK:" + txn.getId() + ":" + System.currentTimeMillis();
+        CryptoChainVerifyOutcome outcome = hash.isBlank()
+                ? chainVerifyService.scanCustodyForMatch(txn)
+                : chainVerifyService.verifyByTxHash(txn, hash);
+        if (!outcome.matched() || outcome.transfer() == null) {
+            Map<String, Object> waiting = new LinkedHashMap<>();
+            MerchantCryptoConfig cfgW = configRepository.findById(txn.getOrgUnitId()).orElse(null);
+            waiting.putAll(publicTxn(txn, cfgW));
+            waiting.put("chainCheck", Map.of(
+                    "matched", false,
+                    "code", outcome.code() != null ? outcome.code() : "DEPOSIT_NOT_SEEN",
+                    "message", outcome.message() != null ? outcome.message() : "입금 미확인"));
+            /* success=false → 가맹/UI는 미확정. 폴링으로 재시도. */
+            Map<String, Object> r = new LinkedHashMap<>();
+            r.put("success", false);
+            r.put("message", outcome.message() != null ? outcome.message()
+                    : "수탁 주소 입금이 아직 확인되지 않았습니다.");
+            r.put("errorCode", outcome.code() != null ? outcome.code() : "DEPOSIT_NOT_SEEN");
+            r.put("data", waiting);
+            return r;
+        }
+
+        String confirmedHash = outcome.transfer().txHash();
+        if (confirmedHash == null || confirmedHash.isBlank()) {
+            return fail("온체인 Tx 해시를 확보하지 못했습니다.", "TX_HASH_MISSING");
+        }
+        Optional<CryptoDepositTxn> reused = depositTxnRepository.findFirstByDepositTxHashIgnoreCase(confirmedHash);
+        if (reused.isPresent() && !reused.get().getId().equals(txn.getId())) {
+            return fail("이미 다른 주문에 사용된 Tx 해시입니다.", "TX_HASH_REUSED");
         }
         try {
-            confirmDeposit(txn.getId(), hash);
+            confirmDeposit(txn.getId(), confirmedHash);
         } catch (IllegalArgumentException e) {
             return fail(e.getMessage() != null ? e.getMessage() : "입금 확정에 실패했습니다.", "CONFIRM_FAILED");
         }
         CryptoDepositTxn fresh = depositTxnRepository.findById(txn.getId()).orElse(txn);
         MerchantCryptoConfig cfg = configRepository.findById(fresh.getOrgUnitId()).orElse(null);
-        return ok(publicTxn(fresh, cfg));
+        Map<String, Object> data = publicTxn(fresh, cfg);
+        data.put("chainCheck", Map.of(
+                "matched", true,
+                "code", "MATCHED",
+                "txHash", confirmedHash,
+                "amount", outcome.transfer().amount()));
+        return ok(data);
     }
 
     /** 관리자·감지 워커·구매자 확인: 입금 확정 후 출금 큐 생성. */
@@ -491,7 +530,11 @@ public class CryptoCheckoutService {
         if (depositTxHash == null || depositTxHash.isBlank()) {
             throw new IllegalArgumentException("depositTxHash가 필요합니다.");
         }
-        txn.setDepositTxHash(depositTxHash.trim());
+        String hashNorm = depositTxHash.trim();
+        if (hashNorm.toUpperCase(Locale.ROOT).startsWith("BUYER_ACK")) {
+            throw new IllegalArgumentException("구매자 확인만으로는 입금 확정할 수 없습니다. 온체인 입금이 필요합니다.");
+        }
+        txn.setDepositTxHash(hashNorm);
         txn.setStatus(CryptoDepositTxn.ST_CONFIRMED);
         txn.setConfirmedAt(LocalDateTime.now());
         depositTxnRepository.save(txn);

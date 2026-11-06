@@ -30,6 +30,7 @@ import com.pg.service.UrlPayDisplayFxService;
 import com.pg.util.CommissionFeeChannel;
 import com.pg.util.CommissionTierJsonHelper;
 import com.pg.util.PercentDecimalHelper;
+import com.pg.util.QrCommissionCurrency;
 import com.pg.util.PgAgencyPayFollowCapability;
 import com.pg.util.RouteNoDisplayUtil;
 import com.pg.util.VoidRefundSettlementModeUtil;
@@ -1091,8 +1092,18 @@ public class ApiHqController {
             data.put("cancelRate", "0.0"); data.put("voidFeePerTx", "0.0"); data.put("manualVoidFeePerTx", "0.0");
             data.put("refundRate", "0.0"); data.put("payRate", CommissionFeeChannel.isCrypto(ch) ? "0" : "2.5");
             data.put("feeSettlementPerTx", "0.0"); data.put("remittanceTransferFee", "0.0"); data.put("usdtTransferFeeUsd", "0.0"); data.put("feeUsdt", "0"); data.put("feeFx", "0");
-            data.put("rollingPct", CommissionFeeChannel.isCrypto(ch) ? "0" : "5"); data.put("rollingDays", CommissionFeeChannel.isCrypto(ch) ? 0 : 180);
-            data.put("currencyCode", CommissionFeeChannel.isCrypto(ch) ? "USDT" : "KRW");
+            if (CommissionFeeChannel.isCrypto(ch)) {
+                data.put("rollingPct", "0");
+                data.put("rollingDays", 0);
+            } else if (CommissionFeeChannel.isQr(ch)) {
+                data.put("rollingPct", "10");
+                data.put("rollingDays", 180);
+            } else {
+                data.put("rollingPct", "5");
+                data.put("rollingDays", 180);
+            }
+            data.put("currencyCode", CommissionFeeChannel.isCrypto(ch) ? "USDT"
+                    : (CommissionFeeChannel.isQr(ch) ? QrCommissionCurrency.DEFAULT : "KRW"));
             data.put("policyRemark", "");
             data.put("fee3dsRate", "0.0");
             data.put("chargebackFeePerTx", "0.0");
@@ -1232,9 +1243,14 @@ public class ApiHqController {
         p.setRollingDays(rd != null && !rd.toString().isEmpty() ? Integer.parseInt(rd.toString()) : (CommissionFeeChannel.isCrypto(ch) ? 0 : 180));
         String cc = hqStr(body, "currencyCode");
         if (cc != null && !cc.isBlank()) {
-            p.setCurrencyCode(cc.trim().toUpperCase(Locale.ROOT));
+            if (CommissionFeeChannel.isQr(ch)) {
+                p.setCurrencyCode(QrCommissionCurrency.normalize(cc));
+            } else {
+                p.setCurrencyCode(cc.trim().toUpperCase(Locale.ROOT));
+            }
         } else {
-            p.setCurrencyCode(CommissionFeeChannel.isCrypto(ch) ? "USDT" : "KRW");
+            p.setCurrencyCode(CommissionFeeChannel.isCrypto(ch) ? "USDT"
+                    : (CommissionFeeChannel.isQr(ch) ? QrCommissionCurrency.DEFAULT : "KRW"));
         }
         p.setPolicyRemark(hqStr(body, "policyRemark"));
         p.setChargebackPolicyId(parseOptionalPolicyLong(body.get("chargebackPolicyId")));
@@ -1990,6 +2006,7 @@ public class ApiHqController {
         data.put("botThailandBaseUrl", "");
         data.put("botThailandDailyAvgPath", "");
         data.put("botThailandApiKeyHeader", "");
+        data.put("bokEcosApiKey", "");
         hqApiConfigRepository.findAll().stream().findFirst().ifPresent(c -> {
             if (c.getBaseUrl() != null) data.put("baseUrl", c.getBaseUrl());
             if (c.getAuthType() != null) data.put("authType", c.getAuthType());
@@ -2070,6 +2087,9 @@ public class ApiHqController {
                             && !c.getUnifiedPaymentHeaderSubtitleTextDefault().isBlank()
                             ? c.getUnifiedPaymentHeaderSubtitleTextDefault()
                             : com.pg.urlpay.UnifiedPaymentCopyDefaults.HEADER_KO);
+            data.put("cryptoPaymentHeaderLogoModeDefault",
+                    c.getCryptoPaymentHeaderLogoModeDefault() != null
+                            ? c.getCryptoPaymentHeaderLogoModeDefault() : "FOLLOW_WEB");
             data.put("cryptoPaymentHeaderSubtitleModeDefault",
                     c.getCryptoPaymentHeaderSubtitleModeDefault() != null
                             ? c.getCryptoPaymentHeaderSubtitleModeDefault() : "ACTIVE");
@@ -2089,6 +2109,23 @@ public class ApiHqController {
                             && !c.getQrPaymentHeaderSubtitleTextDefault().isBlank()
                             ? c.getQrPaymentHeaderSubtitleTextDefault()
                             : com.pg.urlpay.QrPaymentCopyDefaults.HEADER_KO);
+            data.put("qrPaymentHeaderLogoModeDefault",
+                    c.getQrPaymentHeaderLogoModeDefault() != null
+                            ? c.getQrPaymentHeaderLogoModeDefault() : "FOLLOW_WEB");
+            data.put("qrPaymentBrandTitleModeDefault",
+                    c.getQrPaymentBrandTitleModeDefault() != null
+                            ? c.getQrPaymentBrandTitleModeDefault() : "ACTIVE");
+            data.put("qrPaymentBrandTitleTextDefault",
+                    c.getQrPaymentBrandTitleTextDefault() != null
+                            && !c.getQrPaymentBrandTitleTextDefault().isBlank()
+                            ? c.getQrPaymentBrandTitleTextDefault()
+                            : com.pg.urlpay.QrPaymentCopyDefaults.BRAND_TITLE_KO);
+            data.put("qrPaymentFooterModeDefault",
+                    c.getQrPaymentFooterModeDefault() != null
+                            ? c.getQrPaymentFooterModeDefault() : "DISABLED");
+            data.put("qrPaymentFooterTextDefault",
+                    c.getQrPaymentFooterTextDefault() != null
+                            ? c.getQrPaymentFooterTextDefault() : "");
             data.put("unifiedPaymentNoticeModeDefault",
                     c.getUnifiedPaymentNoticeModeDefault() != null
                             ? c.getUnifiedPaymentNoticeModeDefault() : "ACTIVE");
@@ -2225,6 +2262,9 @@ public class ApiHqController {
             if (c.getBotThailandApiKeyHeader() != null && !c.getBotThailandApiKeyHeader().isBlank()) {
                 data.put("botThailandApiKeyHeader", c.getBotThailandApiKeyHeader());
             }
+            if (c.getBokEcosApiKey() != null) {
+                data.put("bokEcosApiKey", c.getBokEcosApiKey());
+            }
             if (c.getPublicAdminSiteUrl() != null) {
                 data.put("publicAdminSiteUrl", hqHttpsUrlForDisplay(c.getPublicAdminSiteUrl()));
             }
@@ -2292,6 +2332,7 @@ public class ApiHqController {
         String upsStr = ups != null ? ups.toString().trim() : "";
         c.setUnifiedPaymentHeaderSubtitleTextDefault(upsStr.isEmpty()
                 ? com.pg.urlpay.UnifiedPaymentCopyDefaults.HEADER_KO : upsStr);
+        c.setCryptoPaymentHeaderLogoModeDefault(String.valueOf(body.getOrDefault("cryptoPaymentHeaderLogoModeDefault", "FOLLOW_WEB")));
         c.setCryptoPaymentHeaderSubtitleModeDefault(String.valueOf(body.getOrDefault("cryptoPaymentHeaderSubtitleModeDefault", "ACTIVE")));
         Object cps = body.get("cryptoPaymentHeaderSubtitleTextDefault");
         String cpsStr = cps != null ? cps.toString().trim() : "";
@@ -2303,6 +2344,15 @@ public class ApiHqController {
         String qpsStr = qps != null ? qps.toString().trim() : "";
         c.setQrPaymentHeaderSubtitleTextDefault(qpsStr.isEmpty()
                 ? com.pg.urlpay.QrPaymentCopyDefaults.HEADER_KO : qpsStr);
+        c.setQrPaymentHeaderLogoModeDefault(String.valueOf(body.getOrDefault("qrPaymentHeaderLogoModeDefault", "FOLLOW_WEB")));
+        c.setQrPaymentBrandTitleModeDefault(String.valueOf(body.getOrDefault("qrPaymentBrandTitleModeDefault", "ACTIVE")));
+        Object qbt = body.get("qrPaymentBrandTitleTextDefault");
+        String qbtStr = qbt != null ? qbt.toString().trim() : "";
+        c.setQrPaymentBrandTitleTextDefault(qbtStr.isEmpty()
+                ? com.pg.urlpay.QrPaymentCopyDefaults.BRAND_TITLE_KO : qbtStr);
+        c.setQrPaymentFooterModeDefault(String.valueOf(body.getOrDefault("qrPaymentFooterModeDefault", "DISABLED")));
+        Object qft = body.get("qrPaymentFooterTextDefault");
+        c.setQrPaymentFooterTextDefault(qft != null ? qft.toString().trim() : "");
         c.setUnifiedPaymentNoticeModeDefault(String.valueOf(body.getOrDefault("unifiedPaymentNoticeModeDefault", "ACTIVE")));
         Object upn = body.get("unifiedPaymentNoticeTextDefault");
         String upnStr = upn != null ? upn.toString().trim() : "";
@@ -2427,6 +2477,11 @@ public class ApiHqController {
             Object v = body.get("botThailandApiKeyHeader");
             String s = v == null ? "" : v.toString().trim();
             c.setBotThailandApiKeyHeader(s.isEmpty() ? null : s);
+        }
+        if (body.containsKey("bokEcosApiKey")) {
+            Object v = body.get("bokEcosApiKey");
+            String s = v == null ? "" : v.toString().trim();
+            c.setBokEcosApiKey(s.isEmpty() ? null : s);
         }
         if (body.get("publicAdminSiteUrl") != null) {
             c.setPublicAdminSiteUrl(hqHttpsUrlForSave(body.get("publicAdminSiteUrl")));

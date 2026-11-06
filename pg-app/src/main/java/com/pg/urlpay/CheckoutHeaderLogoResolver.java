@@ -161,51 +161,118 @@ public class CheckoutHeaderLogoResolver {
     }
 
     /**
-     * 크립토 결제·수단선택 상단 로고(A형).
-     * {@code DISABLED} → 미노출. {@code FOLLOW_HQ}(기본) → 웹결제 로고({@link #resolve})와 동일.
+     * 크립토 결제·수단선택 상단 로고.
+     * FOLLOW_HQ → 본사 크립토 로고 기본 / FOLLOW_WEB → 웹결제 로고 /
+     * DEFAULT·HTML·ACTIVE·DISABLED → 채널 자체 설정.
      */
     public Resolved resolveCrypto(Long merchantOrgUnitId) {
-        Optional<MerchantProfile> prof = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId);
-        String stored = prof.map(MerchantProfile::getCryptoPaymentHeaderLogoMode).orElse("FOLLOW_HQ");
-        if (stored == null || stored.isBlank()) {
-            stored = "FOLLOW_HQ";
-        }
-        String u = stored.trim().toUpperCase(java.util.Locale.ROOT);
-        if (WebPaymentHeaderLogoModeUtil.DISABLED.equals(u)
-                || "N".equals(u) || "OFF".equals(u) || "INACTIVE".equals(u)) {
-            return new Resolved(WebPaymentHeaderLogoModeUtil.DISABLED, Optional.empty());
-        }
-        return resolve(merchantOrgUnitId);
+        return resolveChannelLogo(merchantOrgUnitId, ChannelLogo.CRYPTO);
     }
 
-    /** 크립토 prepare/session/checkout-context 용 — 웹결제 HTML 표시명·크립토 안내문구. */
+    /** QR 결제창 상단 로고 — 크립토와 동일 규칙. */
+    public Resolved resolveQr(Long merchantOrgUnitId) {
+        return resolveChannelLogo(merchantOrgUnitId, ChannelLogo.QR);
+    }
+
+    private enum ChannelLogo { CRYPTO, QR }
+
+    private Resolved resolveChannelLogo(Long merchantOrgUnitId, ChannelLogo channel) {
+        Optional<MerchantProfile> prof = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId);
+        var hq = checkoutDisplayPolicyService.hqOrEmpty();
+        String stored = channel == ChannelLogo.CRYPTO
+                ? prof.map(MerchantProfile::getCryptoPaymentHeaderLogoMode).orElse("FOLLOW_HQ")
+                : prof.map(MerchantProfile::getQrPaymentHeaderLogoMode).orElse("FOLLOW_HQ");
+        String hqDef = channel == ChannelLogo.CRYPTO
+                ? hq.getCryptoPaymentHeaderLogoModeDefault()
+                : hq.getQrPaymentHeaderLogoModeDefault();
+        String key = WebPaymentHeaderLogoModeUtil.resolveChannelEffectiveKey(stored, hqDef);
+        if (WebPaymentHeaderLogoModeUtil.FOLLOW_WEB.equals(key)) {
+            return resolve(merchantOrgUnitId);
+        }
+        if (WebPaymentHeaderLogoModeUtil.DISABLED.equals(key)) {
+            return new Resolved(WebPaymentHeaderLogoModeUtil.DISABLED, Optional.empty());
+        }
+        if (WebPaymentHeaderLogoModeUtil.ACTIVE.equals(key)) {
+            String custom = channel == ChannelLogo.CRYPTO
+                    ? prof.map(MerchantProfile::getCryptoPaymentHeaderLogoUrl).orElse("")
+                    : prof.map(MerchantProfile::getQrPaymentHeaderLogoUrl).orElse("");
+            if (custom == null || custom.isBlank()) {
+                return new Resolved(WebPaymentHeaderLogoModeUtil.ACTIVE, Optional.empty());
+            }
+            return new Resolved(WebPaymentHeaderLogoModeUtil.ACTIVE, Optional.of(custom.trim()));
+        }
+        if (WebPaymentHeaderLogoModeUtil.HTML.equals(key)) {
+            return new Resolved(WebPaymentHeaderLogoModeUtil.HTML, Optional.empty());
+        }
+        return new Resolved(WebPaymentHeaderLogoModeUtil.DEFAULT, resolveMasterDistBrandingLogo(merchantOrgUnitId));
+    }
+
+    private void putChannelHtmlTitle(Map<String, Object> data, Optional<MerchantProfile> prof,
+                                     ChannelLogo channel, String effectiveKey) {
+        if (WebPaymentHeaderLogoModeUtil.DISABLED.equals(effectiveKey)) {
+            return;
+        }
+        boolean followWeb = WebPaymentHeaderLogoModeUtil.FOLLOW_WEB.equals(effectiveKey);
+        Optional<String> title;
+        if (followWeb) {
+            title = prof.map(MerchantProfile::getWebPaymentHeaderHtmlTitle);
+        } else if (channel == ChannelLogo.CRYPTO) {
+            title = prof.map(MerchantProfile::getCryptoPaymentHeaderHtmlTitle);
+            if (title.isEmpty() || title.get() == null || title.get().isBlank()) {
+                title = prof.map(MerchantProfile::getWebPaymentHeaderHtmlTitle);
+            }
+        } else {
+            title = prof.map(MerchantProfile::getQrPaymentHeaderHtmlTitle);
+            if (title.isEmpty() || title.get() == null || title.get().isBlank()) {
+                title = prof.map(MerchantProfile::getWebPaymentHeaderHtmlTitle);
+            }
+        }
+        title.filter(t -> t != null && !t.isBlank()).ifPresent(t -> data.put("checkoutHeaderHtmlTitle", t.trim()));
+    }
+
+    /** 크립토 prepare/session/checkout-context 용 — 로고·HTML 표시명·크립토 안내문구. */
     public void applyCryptoToCheckoutMap(Map<String, Object> data, Long merchantOrgUnitId) {
         if (data == null || merchantOrgUnitId == null) {
             return;
         }
         Optional<MerchantProfile> prof = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId);
         String stored = prof.map(MerchantProfile::getCryptoPaymentHeaderLogoMode).orElse("FOLLOW_HQ");
-        data.put("cryptoPaymentHeaderLogoMode", stored != null && !stored.isBlank() ? stored : "FOLLOW_HQ");
+        data.put("cryptoPaymentHeaderLogoMode",
+                stored != null && !stored.isBlank()
+                        ? WebPaymentHeaderLogoModeUtil.normalizeChannelMerchantStored(stored)
+                        : "FOLLOW_HQ");
+        var hq = checkoutDisplayPolicyService.hqOrEmpty();
+        String key = WebPaymentHeaderLogoModeUtil.resolveChannelEffectiveKey(
+                stored, hq.getCryptoPaymentHeaderLogoModeDefault());
         Resolved r = resolveCrypto(merchantOrgUnitId);
         data.put("checkoutHeaderLogoMode", r.mode());
         data.put("checkoutHeaderLogoChannel", "CRYPTO");
+        data.remove("checkoutHeaderLogoUrl");
         r.url().ifPresent(u -> data.put("checkoutHeaderLogoUrl", u));
-        if (!WebPaymentHeaderLogoModeUtil.DISABLED.equals(r.mode())) {
-            prof.map(MerchantProfile::getWebPaymentHeaderHtmlTitle)
-                    .filter(t -> t != null && !t.isBlank())
-                    .ifPresent(t -> data.put("checkoutHeaderHtmlTitle", t.trim()));
-        }
+        putChannelHtmlTitle(data, prof, ChannelLogo.CRYPTO, key);
         prof.ifPresent(mp -> checkoutHeaderSubtitleCopyService.putCryptoCheckoutFields(data, mp));
     }
 
-    /** QR 결제창(qbang-pay / ilk payMeans=QR) — 웹결제 로고 + QR 안내문구. */
+    /** QR 결제창(qbang-pay) — 로고·QR 안내·브랜드제목·푸터. */
     public void applyQrToCheckoutMap(Map<String, Object> data, Long merchantOrgUnitId) {
         if (data == null || merchantOrgUnitId == null) {
             return;
         }
-        applyToCheckoutMap(data, merchantOrgUnitId, null);
-        data.put("checkoutHeaderLogoChannel", "QR");
         Optional<MerchantProfile> prof = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId);
+        String logoStored = prof.map(MerchantProfile::getQrPaymentHeaderLogoMode).orElse("FOLLOW_HQ");
+        data.put("qrPaymentHeaderLogoMode",
+                logoStored != null && !logoStored.isBlank()
+                        ? WebPaymentHeaderLogoModeUtil.normalizeChannelMerchantStored(logoStored)
+                        : "FOLLOW_HQ");
+        var hq = checkoutDisplayPolicyService.hqOrEmpty();
+        String key = WebPaymentHeaderLogoModeUtil.resolveChannelEffectiveKey(
+                logoStored, hq.getQrPaymentHeaderLogoModeDefault());
+        Resolved r = resolveQr(merchantOrgUnitId);
+        data.put("checkoutHeaderLogoMode", r.mode());
+        data.put("checkoutHeaderLogoChannel", "QR");
+        data.remove("checkoutHeaderLogoUrl");
+        r.url().ifPresent(u -> data.put("checkoutHeaderLogoUrl", u));
+        putChannelHtmlTitle(data, prof, ChannelLogo.QR, key);
         data.remove("checkoutHeaderSubtitleText");
         data.remove("checkoutHeaderSubtitleTextI18n");
         prof.ifPresent(mp -> checkoutHeaderSubtitleCopyService.putQrCheckoutFields(data, mp));

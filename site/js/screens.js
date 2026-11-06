@@ -79,15 +79,37 @@
   }
   window.PG_CRYPTO_MERCHANT_ASSET_TOGGLES_HTML = cryptoMerchantAssetTogglesHtml;
 
-  /** 가맹 크립토 상단 설정(사용·정산·출금·보증금·USD) */
+  /** 크립토 보류율(보증금) — 카드·QR 보류율 카드와 동일 UX (본사따름/직접입력). */
+  function cryptoMerchantHoldFieldsHtml(ids) {
+    var p = ids || {};
+    var followId = p.follow || 'compCryptoReserveFollow';
+    var holdId = p.hold || 'compCryptoHold';
+    var reserveId = p.reserve || 'compCryptoReserve';
+    var nameAttr = function (n) { return p.named !== false ? ' name="' + n + '"' : ''; };
+    return (
+      '<div class="row g-2 mb-0">' +
+      '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="본사정책 따름">본사정책 따름</label>' +
+      '<select class="form-select form-select-sm crypto-reserve-follow"' + nameAttr('cryptoReserveFollowHq') + ' id="' + followId + '">' +
+      '<option value="Y" data-pg-ui-t="본사정책 따름">본사정책 따름</option>' +
+      '<option value="N" data-pg-ui-t="직접입력">직접입력</option></select>' +
+      '<div class="form-text small" data-pg-ui-t="본사따름=수수료·리스크 CRYPTO 기본 보류율">본사따름=수수료·리스크 CRYPTO 기본 보류율</div></div>' +
+      '<div class="col-md-2 crypto-hold-custom-only"><label class="form-label small" data-pg-ui-t="보류율(%)">보류율(%)</label>' +
+      '<input type="number" step="0.01" min="0" max="100" class="form-control form-control-sm crypto-reserve-pct"' +
+      nameAttr('cryptoReservePct') + ' id="' + reserveId + '" value="0">' +
+      '<div class="form-text small" data-pg-ui-t="USD 입금액 기준 담보 비율">USD 입금액 기준 담보 비율</div></div>' +
+      '<div class="col-md-2 crypto-hold-custom-only"><label class="form-label small" data-pg-ui-t="보류기간(일)">보류기간(일)</label>' +
+      '<input type="number" class="form-control form-control-sm crypto-hold-days"' + nameAttr('cryptoHoldDays') + ' id="' + holdId + '" value="3"></div>' +
+      '</div>'
+    );
+  }
+  window.PG_CRYPTO_MERCHANT_HOLD_FIELDS_HTML = cryptoMerchantHoldFieldsHtml;
+
+  /** 가맹 크립토 상단 설정(사용·정산·출금·표시통화). 보증금은 크립토 보류율 정책 카드. */
   function cryptoMerchantTopFieldsHtml(ids) {
     var p = ids || {};
     var useId = p.useYn || 'compCryptoUseYn';
     var settleId = p.settle || 'compCryptoSettle';
     var payoutId = p.payout || 'compCryptoPayout';
-    var followId = p.follow || 'compCryptoReserveFollow';
-    var holdId = p.hold || 'compCryptoHold';
-    var reserveId = p.reserve || 'compCryptoReserve';
     var dispId = p.display || 'compCryptoDisplayCurrency';
     var nameAttr = function (n) { return p.named ? ' name="' + n + '"' : ''; };
     return (
@@ -95,7 +117,11 @@
       '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="사용">사용</label>' +
       '<select class="form-select form-select-sm"' + nameAttr('cryptoUseYn') + ' id="' + useId + '">' +
       '<option value="N" data-pg-ui-t="미사용">미사용</option>' +
-      '<option value="Y" data-pg-ui-t="사용">사용</option></select></div>' +
+      '<option value="Y" data-pg-ui-t="사용">사용</option></select>' +
+      '<div class="form-text small" data-pg-ui-t="미사용이면 수취지갑·USDC 등 설정을 묻지 않습니다.">미사용이면 수취지갑·USDC 등 설정을 묻지 않습니다.</div></div>' +
+      '</div>' +
+      '<div class="crypto-use-detail-only">' +
+      '<div class="row g-2 mb-2">' +
       '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="정산모드">정산모드</label>' +
       '<select class="form-select form-select-sm"' + nameAttr('cryptoSettleMode') + ' id="' + settleId + '">' +
       '<option value="SCHEDULED" data-pg-ui-t="지연정산">지연정산</option>' +
@@ -104,17 +130,6 @@
       '<select class="form-select form-select-sm"' + nameAttr('cryptoPayoutMode') + ' id="' + payoutId + '">' +
       '<option value="MANUAL" data-pg-ui-t="반자동">반자동</option>' +
       '<option value="AUTO" data-pg-ui-t="자동">자동</option></select></div>' +
-      '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="보증금 정책">보증금 정책</label>' +
-      '<select class="form-select form-select-sm crypto-reserve-follow"' + nameAttr('cryptoReserveFollowHq') + ' id="' + followId + '">' +
-      '<option value="Y" data-pg-ui-t="본사정책 따름">본사정책 따름</option>' +
-      '<option value="N" data-pg-ui-t="직접입력">직접입력</option></select>' +
-      '<div class="form-text small" data-pg-ui-t="본사따름=수수료·리스크 CRYPTO 기본 보류율">본사따름=수수료·리스크 CRYPTO 기본 보류율</div></div>' +
-      '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="보증금(%)">보증금(%)</label>' +
-      '<input type="number" step="0.01" min="0" max="100" class="form-control form-control-sm crypto-reserve-pct"' +
-      nameAttr('cryptoReservePct') + ' id="' + reserveId + '" value="0">' +
-      '<div class="form-text small" data-pg-ui-t="USD 입금액 기준 담보 비율">USD 입금액 기준 담보 비율</div></div>' +
-      '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="보증금보류일수">보증금보류일수</label>' +
-      '<input type="number" class="form-control form-control-sm crypto-hold-days"' + nameAttr('cryptoHoldDays') + ' id="' + holdId + '" value="3"></div>' +
       '</div>' +
       '<div class="row g-2 mb-2">' +
       '<div class="col-md-2"><label class="form-label small" data-pg-ui-t="기준통화">기준통화</label>' +
@@ -130,6 +145,7 @@
       '<option value="HKD">HKD</option>' +
       '<option value="CNY">CNY</option></select>' +
       '<div class="form-text small" data-pg-ui-t="구매자가 입력·보는 통화. 청구예상은 기준통화(USD)로 역산.">구매자가 입력·보는 통화. 청구예상은 기준통화(USD)로 역산.</div></div>' +
+      '</div>' +
       '</div>'
     );
   }
@@ -306,6 +322,79 @@
   function merchantCryptoPaymentUrlRowHtml(placeholderKo) {
     var ph = placeholderKo || '가맹점 저장 후 조회';
     return '<div class="row mb-2" id="cryptoPaymentUrlRow"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="크립토 결제 URL">' + escUi(L('크립토 결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="cryptoPaymentUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '" data-pg-ui-placeholder="' + escUi(String(ph)) + '"><button type="button" class="btn btn-outline-primary" id="cryptoPaymentUrlCopyBtn" data-pg-ui-t="복사">' + escUi(L('복사')) + '</button></div></div></div>';
+  }
+
+  /** 크립토·QR 로고설정 옵션 — 본사설정 따름 / 웹결제 로고 따름 / 웹결제와 동일 모드 */
+  function channelPaymentHeaderLogoModeOptions(includeFollowHq) {
+    var opts = [];
+    if (includeFollowHq !== false) {
+      opts.push({ v: 'FOLLOW_HQ', t: '본사설정 따름' });
+    }
+    opts.push(
+      { v: 'FOLLOW_WEB', t: '웹결제 로고 따름' },
+      { v: 'DEFAULT', t: '기본(총판 로고)' },
+      { v: 'HTML', t: '기본(HTML)' },
+      { v: 'ACTIVE', t: '활성(가맹점 로고)' },
+      { v: 'DISABLED', t: '미활성' }
+    );
+    return opts;
+  }
+
+  function channelPaymentHeaderLogoFieldBlock(prefix, labelKo) {
+    var idBase = prefix + 'PaymentHeaderLogo';
+    var phLogo = '파일 선택 시 파일명 표시 · 업로드 후 URL 자동 반영 · 또는 HTTPS URL 직접 입력';
+    var logoHint = '「활성(가맹점 로고)」일 때만 파일 선택·업로드·최적화가 가능합니다. PNG·JPEG, 원본 최대 40MB.';
+    var label = labelKo || (prefix === 'crypto' ? '크립토 상단 로고' : 'QR 상단 로고');
+    return '<div class="form-field-block ' + prefix + '-payment-header-logo-upload-block" id="' + idBase + 'Block">' +
+      '<label class="form-label" data-pg-ui-t="' + escUi(label) + '">' + escUi(L(label)) + '</label>' +
+      '<div class="input-group input-group-sm mb-1">' +
+      '<input type="text" class="form-control form-control-sm" name="' + prefix + 'PaymentHeaderLogoUrl" id="' + idBase + 'Url" ' +
+      'placeholder="' + escUi(L(phLogo)) + '" data-pg-ui-placeholder="' + escUi(phLogo) + '">' +
+      '<input type="file" class="d-none" id="' + idBase + 'File" accept="image/png,image/jpeg,image/jpg">' +
+      '<button type="button" class="btn btn-outline-secondary btn-sm" id="' + idBase + 'Browse"><span data-pg-ui-t="파일 선택">' + escUi(L('파일 선택')) + '</span></button>' +
+      '<button type="button" class="btn btn-outline-primary btn-sm" id="' + idBase + 'Upload"><span data-pg-ui-t="업로드·최적화">' + escUi(L('업로드·최적화')) + '</span></button>' +
+      '</div>' +
+      '<div class="form-text text-muted small" data-pg-ui-t="' + escUi(logoHint) + '">' + escUi(L(logoHint)) + '</div></div>';
+  }
+
+  function merchantCryptoLogoFieldsHtml() {
+    return (
+      '<div class="row g-2 mb-2 align-items-end" id="cryptoPaymentHeaderLogoRow">' +
+      '<div class="col-md-3"><label class="form-label small" data-pg-ui-t="로고설정">로고설정</label>' +
+      '<select class="form-select form-select-sm" name="cryptoPaymentHeaderLogoMode" id="cryptoPaymentHeaderLogoMode">' +
+      channelPaymentHeaderLogoModeOptions(true).map(function (o) {
+        return '<option value="' + o.v + '" data-pg-ui-t="' + escUi(o.t) + '">' + escUi(L(o.t)) + '</option>';
+      }).join('') +
+      '</select></div>' +
+      '<div class="col-md-7">' + channelPaymentHeaderLogoFieldBlock('crypto') + '</div>' +
+      '<div class="col-md-2 crypto-payment-html-title-field">' +
+      '<label class="form-label small" data-pg-ui-t="HTML 표시명">HTML 표시명</label>' +
+      '<input type="text" class="form-control form-control-sm" name="cryptoPaymentHeaderHtmlTitle" id="cryptoPaymentHeaderHtmlTitle" maxlength="80" placeholder="ICOPAY" data-pg-ui-placeholder="ICOPAY">' +
+      '</div></div>' +
+      '<div class="form-text small text-muted mb-2" data-pg-ui-t="본사설정 따름=본사 크립토 로고 기본. 웹결제 로고 따름=위 웹결제 로고설정과 동일. 활성=가맹점 로고 업로드.">' +
+      escUi(L('본사설정 따름=본사 크립토 로고 기본. 웹결제 로고 따름=위 웹결제 로고설정과 동일. 활성=가맹점 로고 업로드.')) +
+      '</div>'
+    );
+  }
+
+  function merchantQrLogoFieldsHtml() {
+    return (
+      '<div class="row g-2 mb-2 align-items-end" id="qrPaymentHeaderLogoRow">' +
+      '<div class="col-md-3"><label class="form-label small" data-pg-ui-t="로고설정">로고설정</label>' +
+      '<select class="form-select form-select-sm" name="qrPaymentHeaderLogoMode" id="qrPaymentHeaderLogoMode">' +
+      channelPaymentHeaderLogoModeOptions(true).map(function (o) {
+        return '<option value="' + o.v + '" data-pg-ui-t="' + escUi(o.t) + '">' + escUi(L(o.t)) + '</option>';
+      }).join('') +
+      '</select></div>' +
+      '<div class="col-md-7">' + channelPaymentHeaderLogoFieldBlock('qr', 'QR 상단 로고') + '</div>' +
+      '<div class="col-md-2 qr-payment-html-title-field">' +
+      '<label class="form-label small" data-pg-ui-t="HTML 표시명">HTML 표시명</label>' +
+      '<input type="text" class="form-control form-control-sm" name="qrPaymentHeaderHtmlTitle" id="qrPaymentHeaderHtmlTitle" maxlength="80" placeholder="ICOPAY" data-pg-ui-placeholder="ICOPAY">' +
+      '</div></div>' +
+      '<div class="form-text small text-muted mb-2" data-pg-ui-t="본사설정 따름=본사 QR 로고 기본. 웹결제 로고 따름=웹결제 로고설정과 동일. 활성=가맹점 로고 업로드.">' +
+      escUi(L('본사설정 따름=본사 QR 로고 기본. 웹결제 로고 따름=웹결제 로고설정과 동일. 활성=가맹점 로고 업로드.')) +
+      '</div>'
+    );
   }
 
   /** 웹결제(URL·JPAY) 상단 로고 — 로고설정「활성」일 때만 업로드 (로고설정 옆 배치) */
@@ -552,12 +641,6 @@
       [{ label: '로고설정', type: 'select', name: 'webPaymentHeaderLogoMode', options: logoOpts, col: 3 },
       { type: 'customHtml', col: 7, html: webPaymentHeaderLogoFieldBlock },
       { label: 'HTML 표시명', type: 'text', name: 'webPaymentHeaderHtmlTitle', col: 2, maxlength: 80, placeholder: 'ICOPAY', blockExtraClass: 'web-payment-html-title-field' }],
-      /* 크립토 로고(A형): 웹결제 로고 따름 / 미활성 — 별도 업로드 없음 */
-      [{ label: '크립토 로고', type: 'select', name: 'cryptoPaymentHeaderLogoMode', options: [
-        { v: 'FOLLOW_HQ', t: '웹결제 로고 따름' },
-        { v: 'DISABLED', t: '미활성' }
-      ], col: 3 },
-       { label: '', type: 'note', col: 9, text: '크립토 결제·수단선택 상단에만 적용됩니다. 「웹결제 로고 따름」이면 위 로고설정과 동일하게 표시하고, 「미활성」이면 로고를 표시하지 않습니다.' }],
       /* 2행: 카드입력 | 카드입력 비활성 안내 문구 */
       [{ label: '카드입력', type: 'select', name: 'urlPayCardInputMode', options: [
         { v: 'ACTIVE', t: '활성' },
@@ -644,7 +727,7 @@
       merchantOnly: true,
       sharedCard: true,
       cardExtraClass: 'pg-merchant-qr-pastel-card',
-      notice: 'QR 사용은 본사설정 따름/사용/미사용입니다. 실효 ON은 사용(또는 본사 기본 Y)이고 운영(WEB) 행에 QR(PayPay·QBANG)이 있을 때만입니다. URL은 /checkout-qr/업체코드. 수수료는 「QR 수수료정책」·수수료관리 QR 채널입니다.',
+      notice: 'QR 사용·로고·PayPay QR 제목·스캔안내·푸터는 기본 「본사설정 따름」입니다. 로고는 본사설정 따름·웹결제 로고 따름·총판/HTML/가맹점 로고·미활성을 지원합니다. 실효 ON은 사용(또는 본사 기본 Y)+운영 WEB QR 바인딩. URL=/checkout-qr/업체코드.',
       rows: [
         [{
           type: 'customHtml',
@@ -653,17 +736,40 @@
             return (
               '<div id="merchantQrPaymentCardBody" class="merchant-qr-card-body">' +
               '<input type="hidden" name="hqQrPaymentUseDefaultYn" id="hqQrPaymentUseDefaultYn" value="Y">' +
-              '<div class="row g-2 mb-2"><div class="col-md-3"><label class="form-label small" data-pg-ui-t="QR 사용">QR 사용</label>' +
+              '<div class="row g-2 mb-2">' +
+              '<div class="col-md-3"><label class="form-label small" data-pg-ui-t="QR 사용">QR 사용</label>' +
               '<select class="form-select form-select-sm" name="qrPaymentUseYn" id="qrPaymentUseYn">' +
               '<option value="FOLLOW_HQ" data-pg-ui-t="본사설정 따름">본사설정 따름</option>' +
               '<option value="Y" data-pg-ui-t="사용">사용</option>' +
-              '<option value="N" data-pg-ui-t="미사용">미사용</option></select></div>' +
+              '<option value="N" data-pg-ui-t="미사용">미사용</option></select></div></div>' +
+              merchantQrLogoFieldsHtml() +
+              '<div class="row g-2 mb-2">' +
+              '<div class="col-md-3"><label class="form-label small" data-pg-ui-t="PayPay QR 제목">PayPay QR 제목</label>' +
+              '<select class="form-select form-select-sm" name="qrPaymentBrandTitleMode" id="qrPaymentBrandTitleMode">' +
+              '<option value="FOLLOW_HQ" data-pg-ui-t="본사설정 따름">본사설정 따름</option>' +
+              '<option value="ACTIVE" data-pg-ui-t="활성(직접입력)">활성(직접입력)</option>' +
+              '<option value="DISABLED" data-pg-ui-t="비활성">비활성</option></select></div>' +
+              '<div class="col-md-9" id="qrPaymentBrandTitleBlock">' +
+              '<label class="form-label small" data-pg-ui-t="제목 문구">제목 문구</label>' +
+              '<input type="text" class="form-control form-control-sm" name="qrPaymentBrandTitleText" id="qrPaymentBrandTitleText" maxlength="120" ' +
+              'placeholder="PayPay QR" data-pg-ui-placeholder="PayPay QR"></div></div>' +
+              '<div class="row g-2 mb-2">' +
               '<div class="col-md-3"><label class="form-label small" data-pg-ui-t="QR 안내">QR 안내</label>' +
               '<select class="form-select form-select-sm" name="qrPaymentHeaderSubtitleMode" id="qrPaymentHeaderSubtitleMode">' +
               '<option value="FOLLOW_HQ" data-pg-ui-t="본사설정 따름">본사설정 따름</option>' +
               '<option value="ACTIVE" data-pg-ui-t="활성(직접입력)">활성(직접입력)</option>' +
               '<option value="DISABLED" data-pg-ui-t="비활성">비활성</option></select></div></div>' +
               qrPaymentHeaderSubtitleFieldBlock() +
+              '<div class="row g-2 mb-2">' +
+              '<div class="col-md-3"><label class="form-label small" data-pg-ui-t="QR 푸터">QR 푸터</label>' +
+              '<select class="form-select form-select-sm" name="qrPaymentFooterMode" id="qrPaymentFooterMode">' +
+              '<option value="FOLLOW_HQ" data-pg-ui-t="본사설정 따름">본사설정 따름</option>' +
+              '<option value="ACTIVE" data-pg-ui-t="활성(직접입력)">활성(직접입력)</option>' +
+              '<option value="DISABLED" data-pg-ui-t="비활성">비활성</option></select></div>' +
+              '<div class="col-md-9" id="qrPaymentFooterTextBlock">' +
+              '<label class="form-label small" data-pg-ui-t="푸터 문구">푸터 문구</label>' +
+              '<input type="text" class="form-control form-control-sm" name="qrPaymentFooterText" id="qrPaymentFooterText" maxlength="500" ' +
+              'placeholder="Provided by ICOPAY" data-pg-ui-placeholder="Provided by ICOPAY"></div></div>' +
               '<div class="mb-2 small" id="merchantQrWalletSummary" data-pg-ui-t="결제대행사 행의 QR 지갑이 여기 요약됩니다.">결제대행사 행의 QR 지갑이 여기 요약됩니다.</div>' +
               merchantQrPaymentUrlRowHtml(ph) +
               '</div>'
@@ -3327,7 +3433,7 @@
               '<select id="hqDefCommTemplateScopeDisplay" class="form-control form-control-sm" disabled data-pg-ui-title="코드는 저장 시 자동 부여되며, 수정할 수 없습니다." title="' + escUi(L('코드는 저장 시 자동 부여되며, 수정할 수 없습니다.')) + '">' +
               '<option value="" data-pg-ui-t="(신규) 저장 시 자동 부여">' + escUi(L('(신규) 저장 시 자동 부여')) + '</option></select>' +
               '<p class="text-muted small mb-0 mt-1" data-pg-ui-t="고유 코드는 시스템이 부여합니다. 목록에서 정책을 불러와 편집만 할 수 있습니다.">' + escUi(L('고유 코드는 시스템이 부여합니다. 목록에서 정책을 불러와 편집만 할 수 있습니다.')) + '</p></div>';
-            } }, { label: '정책명', type: 'text', name: 'policyName', col: 2, placeholder: '예: 기본정책 A' }, { label: '배포', type: 'select', name: 'deployYn', options: [{ v: 'Y', t: '배포' }, { v: 'N', t: '미배포' }], col: 2 }, { label: '통화코드', type: 'select', name: 'currencyCode', col: 2, options: [{ v: 'KRW', t: 'KRW' }, { v: 'USD', t: 'USD' }, { v: 'JPY', t: 'JPY' }, { v: 'EUR', t: 'EUR' }, { v: 'CNY', t: 'CNY' }, { v: 'THB', t: 'THB' }, { v: 'VND', t: 'VND' }, { v: 'GBP', t: 'GBP' }, { v: 'TWD', t: 'TWD' }, { v: 'HKD', t: 'HKD' }, { v: 'USDT', t: 'USDT' }, { v: 'USDC', t: 'USDC' }, { v: 'EURC', t: 'EURC' }] }],
+            } }, { label: '정책명', type: 'text', name: 'policyName', col: 2, placeholder: '예: 기본정책 A' }, { label: '배포', type: 'select', name: 'deployYn', options: [{ v: 'Y', t: '배포' }, { v: 'N', t: '미배포' }], col: 2 }, { label: '통화코드', type: 'select', name: 'currencyCode', col: 2, options: [{ v: 'KRW', t: 'KRW' }, { v: 'USD', t: 'USD' }, { v: 'JPY', t: 'JPY' }, { v: 'EUR', t: 'EUR' }, { v: 'CNY', t: 'CNY' }, { v: 'THB', t: 'THB' }, { v: 'SGD', t: 'SGD' }, { v: 'VND', t: 'VND' }, { v: 'GBP', t: 'GBP' }, { v: 'TWD', t: 'TWD' }, { v: 'HKD', t: 'HKD' }, { v: 'USDT', t: 'USDT' }, { v: 'USDC', t: 'USDC' }, { v: 'EURC', t: 'EURC' }] }],
             [{ type: 'customHtml', col: 12, html: hqDefaultCommissionTierMatrixHtml }],
             [{ label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 6, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }],
             [{ type: 'customHtml', col: 12, html: hqDefaultExtraFeesCardHtml }],
@@ -3343,10 +3449,10 @@
           title: '기본 보류율 정책',
           id: 'hqDefaultCommHoldCard',
           cryptoCard: false,
-          notice: '가맹점 등록의 [보류율 설정]과 동일한 개념입니다. 승인(결제) 금액 중 롤링(담보금) 비율(%)만큼 보류하고, 설정한 보류 영업일 수가 지나면 정산 실행 시 지급액에 합산됩니다. 본사정책 따름(Y)이면 가맹점은 아래 본사 템플릿의 롤링 비율·일수를 따릅니다.',
+          notice: '가맹점 등록의 [보류율 설정]과 동일한 개념입니다. 승인(결제) 금액 중 롤링(담보금) 비율(%)만큼 보류하고, 설정한 보류 영업일 수가 지나면 정산 실행 시 지급액에 합산됩니다. 본사정책 따름(Y)이면 가맹점은 아래 본사 템플릿의 롤링 비율·일수를 따릅니다. QR 채널 기본값은 10%·180일입니다.',
           noticeElId: 'hqDefCommHoldNotice',
           rows: [
-            [{ label: '롤링(담보금)비율(%)', type: 'text', name: 'rollingPct', col: 2, placeholder: '5 또는 10' }, { label: '롤링보류일수', type: 'text', name: 'rollingDays', col: 2, placeholder: '120 또는 180' }],
+            [{ label: '롤링(담보금)비율(%)', type: 'text', name: 'rollingPct', col: 2, placeholder: 'FIAT 5 / QR 10' }, { label: '롤링보류일수', type: 'text', name: 'rollingDays', col: 2, placeholder: '180' }],
             [{ type: 'customHtml', col: 12, html: function () {
               return '<div class="d-flex justify-content-end flex-wrap gap-2 mt-2 pt-3 border-top">' +
               '<button type="button" class="btn btn-outline-secondary btn-sm" id="hqDefCommNewPolicyBtn" data-pg-ui-t="신규정책">' + escUi(L('신규정책')) + '</button>' +
@@ -4737,17 +4843,28 @@
         {
           title: 'QR결제설정 (본사 기본)',
           sharedCard: true,
-          notice: '가맹 「QR 사용」이 본사설정 따름일 때 적용됩니다. 실효 QR은 사용=Y(또는 본사 기본 Y)이고 운영 WEB QR 바인딩이 있을 때만입니다. 안내문구는 가맹이 본사설정 따름이면 이 값이 적용됩니다.',
+          notice: '가맹 「QR 사용·로고·PayPay QR 제목·안내·푸터」가 본사설정 따름일 때 적용됩니다. 로고: 웹결제 로고 따름·총판/HTML/가맹점 로고·미활성. 실효 QR은 사용=Y(또는 본사 기본 Y)+운영 WEB QR 바인딩.',
           rows: [
             [{ label: 'QR 사용 기본', type: 'select', name: 'qrPaymentUseDefaultYn', options: [
               { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }
             ], col: 2 },
-             { label: 'QR 안내', type: 'select', name: 'qrPaymentHeaderSubtitleModeDefault', options: [
+             { label: 'QR 로고', type: 'select', name: 'qrPaymentHeaderLogoModeDefault', options: channelPaymentHeaderLogoModeOptions(false), col: 4 }],
+            [{ label: 'PayPay QR 제목', type: 'select', name: 'qrPaymentBrandTitleModeDefault', options: [
               { v: 'ACTIVE', t: '활성' }, { v: 'DISABLED', t: '비활성' }
             ], col: 2 },
-             { label: 'QR 안내 문구', type: 'text', name: 'qrPaymentHeaderSubtitleTextDefault', col: 8,
-               placeholder: 'QR로 결제합니다. 앱에서 아래 QR을 스캔한 뒤 결제를 완료해 주세요.' }],
-            [{ label: '', type: 'note', col: 12, text: '활성+문구 저장 시 5개국어로 1회 번역됩니다. 가맹에서 활성(직접입력)·비활성·사용/미사용을 직접 고르면 가맹이 우선합니다.' }]
+             { label: '제목 문구', type: 'text', name: 'qrPaymentBrandTitleTextDefault', col: 10,
+               placeholder: 'PayPay QR' }],
+            [{ label: 'QR 안내', type: 'select', name: 'qrPaymentHeaderSubtitleModeDefault', options: [
+              { v: 'ACTIVE', t: '활성' }, { v: 'DISABLED', t: '비활성' }
+            ], col: 2 },
+             { label: 'QR 안내 문구', type: 'text', name: 'qrPaymentHeaderSubtitleTextDefault', col: 10,
+               placeholder: 'PayPay 앱으로 QR을 스캔해 결제해 주세요.' }],
+            [{ label: 'QR 푸터', type: 'select', name: 'qrPaymentFooterModeDefault', options: [
+              { v: 'ACTIVE', t: '활성' }, { v: 'DISABLED', t: '비활성' }
+            ], col: 2 },
+             { label: '푸터 문구', type: 'text', name: 'qrPaymentFooterTextDefault', col: 10,
+               placeholder: 'Provided by ICOPAY' }],
+            [{ label: '', type: 'note', col: 12, text: '제목·안내·푸터 활성+문구 저장 시 5개국어 1회 번역. 가맹에서 직접 고르면 가맹이 우선합니다. 기본은 가맹 「본사설정 따름」.' }]
           ]
         },
         {
@@ -4891,6 +5008,14 @@
              { label: '인증 헤더 이름', type: 'text', name: 'botThailandApiKeyHeader', col: 3, placeholder: 'api-key 또는 Authorization' }],
             [{ label: 'Base URL', type: 'text', name: 'botThailandBaseUrl', col: 6, placeholder: 'https://iapi.bot.or.th' },
              { label: '일평균 경로', type: 'text', name: 'botThailandDailyAvgPath', col: 6, placeholder: '/Stat/Stat-ExchangeRate/DAILY_AVG_EXG_RATE_V1/' }]
+          ]
+        },
+        {
+          title: 'ECOS(한국은행) 대원화 환율 API',
+          notice: '',
+          rows: [
+            [{ type: 'customHtml', col: 12, html: pgUiParagraphHtml('URL결제 DP에서 FX를 「자동(ECOS·한국은행)」으로 두면 통계표 731Y001(주요국 통화의 대원화환율) 일별 매매기준율을 사용합니다. JPY는 원/100엔 고시를 1엔당으로 환산합니다. 칸을 비우면 환경변수 BOK_ECOS_API_KEY를 따릅니다. (참고: 통계용어사전 OA-1010이 아니라 StatisticSearch 환율 조회)', 'text-muted small mb-2 screen-section-notice') }],
+            [{ label: 'ECOS 인증키', type: 'text', name: 'bokEcosApiKey', col: 8, placeholder: '비우면 BOK_ECOS_API_KEY' }]
           ]
         },
         {
@@ -5108,10 +5233,10 @@
           ]
         },
         {
-          title: '보류율 설정',
+          title: '카드 보류율 정책',
           id: 'holdRateCard',
           merchantOnly: true,
-          notice: '결제 정산금 중 보류율(%)만큼 보류기간(일) 동안 지급하지 않으며, 정산일자+보류기간 경과 후 정산금으로 전환됩니다. 보류 해지일이 공휴일이면 익영업일에 전환됩니다. 본사정책 따름 시 본사 수수료 정책(롤링 비율/일수)에 연동됩니다.',
+          notice: 'FIAT(카드) 전용입니다. 결제 정산금 중 보류율(%)만큼 보류기간(일) 동안 지급하지 않으며, 정산일자+보류기간 경과 후 정산금으로 전환됩니다. 본사정책 따름 시 본사정책→기본 수수료 정책→채널 FIAT→기본 보류율 정책에 연동됩니다. QR·크립토 보류율은 각 전용 카드에서 설정합니다.',
           rows: [
             [{ label: '본사정책 따름', type: 'select', name: 'holdRateFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }],
             [{ label: '보류율(%)', type: 'text', name: 'holdRate', col: 1, placeholder: '5', holdRateOnly: true }, { label: '보류기간(일)', type: 'text', name: 'holdDays', col: 1, placeholder: '120', holdRateOnly: true }]
@@ -5146,12 +5271,16 @@
           title: 'QR 수수료정책',
           id: 'qrCommissionPolicyCard',
           merchantOnly: true,
-          notice: 'QR(PayPay·QBANG) 승인 수수료입니다. FIAT(카드)·CRYPTO와 채널이 분리됩니다. 카드와 같게 두려면 「카드 수수료와 동일」을 유지하고, 다른 요율은 QR 기본(DEFAULT_QR) 또는 직접입력합니다. 조직 배분은 수수료관리의 QR 채널에서 따로 저장합니다.',
+          sharedCard: true,
+          cardExtraClass: 'pg-merchant-qr-pastel-card',
+          notice: 'QR(PayPay·QBANG 등) 수수료·보류율·차지백을 이 카드에서 함께 설정합니다. FIAT·CRYPTO와 채널 분리. 「QR 수수료 통화」는 고정수수료 장부용이며 결제창·승인 통화가 아닙니다. 결제 표시·실결제·FX(BOT/ECOS)는 본사 URL결제설정에서 바꿉니다. 차지백은 수수료 본사따름과 별도로 본사정책→차지백설정에 저장된 유형을 선택합니다.',
           rows: [
-            [{ label: '본사정책 따름(QR)', type: 'select', name: 'commissionQrFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: 'QR 정책', type: 'select', name: 'hqQrPolicyScope', options: [{ v: '', t: '카드 수수료와 동일' }, { v: 'DEFAULT_QR', t: 'QR 기본 (DEFAULT_QR)' }], col: 3 }],
+            [{ label: '본사정책 따름(QR)', type: 'select', name: 'commissionQrFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: 'QR 정책', type: 'select', name: 'hqQrPolicyScope', options: [{ v: '', t: '카드 수수료와 동일' }, { v: 'DEFAULT_QR', t: 'QR 기본 (DEFAULT_QR)' }], col: 3 }, { label: 'QR 수수료 통화', type: 'select', name: 'qrCurrencyCode', options: [{ v: 'KRW', t: 'KRW' }, { v: 'JPY', t: 'JPY' }, { v: 'THB', t: 'THB' }, { v: 'USD', t: 'USD' }, { v: 'CNY', t: 'CNY' }, { v: 'SGD', t: 'SGD' }], col: 2 }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'qrPayRate', col: 2, qrCustomOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'qrFailFee', col: 2, qrCustomOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'qrCancelRate', col: 2, qrCustomOnly: true }],
             [{ label: '무효수수료(건)', type: 'text', name: 'qrVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '수무효수수료(건)', type: 'text', name: 'qrManualVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '환불수수료(건)', type: 'text', name: 'qrRefundRate', col: 2, qrCustomOnly: true }],
-            [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'qrUsageRate', col: 2, qrCustomOnly: true }, { label: '정산수수료(건)', type: 'text', name: 'qrFeeSettlementPerTx', col: 2, qrCustomOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'qrFee3dsRate', col: 2, qrCustomOnly: true }, { label: '비고', type: 'text', name: 'qrCommissionMemo', col: 2, qrCustomOnly: true }]
+            [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'qrUsageRate', col: 2, qrCustomOnly: true }, { label: '정산수수료(건)', type: 'text', name: 'qrFeeSettlementPerTx', col: 2, qrCustomOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'qrFee3dsRate', col: 2, qrCustomOnly: true }, { label: '비고', type: 'text', name: 'qrCommissionMemo', col: 2, qrCustomOnly: true }],
+            [{ label: '보류율 본사정책 따름', type: 'select', name: 'commissionQrHoldFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '보류율(%)', type: 'text', name: 'qrHoldRate', col: 2, placeholder: '10', qrHoldCustomOnly: true }, { label: '보류기간(일)', type: 'text', name: 'qrHoldDays', col: 2, placeholder: '180', qrHoldCustomOnly: true }],
+            [{ label: '차지백수수료(건)', type: 'text', name: 'qrChargebackFeePerTx', col: 2 }, { label: 'QR 차지백 정책', type: 'select', name: 'qrChargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
           ]
         },
         {
@@ -5159,17 +5288,19 @@
           id: 'cryptoCommissionPolicyCard',
           merchantOnly: true,
           cryptoCard: true,
-          notice: '크립토 확정입금 수수료 슬롯입니다. 본사 CRYPTO 배포 정책을 따르거나 선택합니다. 크립토만 사용 가맹은 FIAT(카드) 수수료 슬롯이 자동 비활성됩니다. 차지백은 예외 과금 시 아래 유형(기존 차지백 설정·USDC/EURC 통화 포함)을 선택합니다.',
+          cardExtraClass: 'pg-merchant-crypto-pastel-card',
+          notice: '크립토 확정입금 수수료·보류율(보증금)·차지백을 이 카드에서 함께 설정합니다. 차지백은 수수료 본사따름과 별도로 본사정책→차지백설정에 저장된 유형을 선택합니다. 크립토전용이면 FIAT 슬롯 비활성.',
           rows: [
             [{ label: '본사정책 따름(CRYPTO)', type: 'select', name: 'commissionCryptoFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 CRYPTO 정책', type: 'select', name: 'hqCryptoPolicyScope', options: [{ v: '', t: 'CRYPTO 기본 (DEFAULT_CRYPTO)' }], col: 3, hqCryptoPolicyOnly: true }, { label: 'FIAT 수수료 슬롯', type: 'select', name: 'fiatCommissionSlotYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '비활성(크립토전용)' }], col: 2 }],
-            [{ label: '차지백수수료(건)', type: 'text', name: 'cryptoChargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'cryptoChargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
+            [{ type: 'customHtml', col: 12, html: function () { return cryptoMerchantHoldFieldsHtml({ named: true }); } }],
+            [{ label: '차지백수수료(건)', type: 'text', name: 'cryptoChargebackFeePerTx', col: 2 }, { label: 'CRYPTO 차지백 정책', type: 'select', name: 'cryptoChargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
           ]
         },
         {
-          title: '차지백 정책',
+          title: '카드 차지백 정책',
           id: 'chargebackPolicyCard',
           merchantOnly: true,
-          notice: '본사정책 따름이면 위에서 고른 본사 정책 템플릿의 3DS·차지백 설정이 적용됩니다. 직접입력일 때만 아래를 저장할 수 있습니다.',
+          notice: 'FIAT(카드) 전용입니다. 본사정책 따름이면 카드 수수료 템플릿의 차지백이 적용됩니다. 직접입력일 때만 아래를 저장합니다. 구간표는 본사정책→차지백설정.',
           rows: [
             [{ label: '차지백수수료(건)', type: 'text', name: 'chargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
           ]
@@ -5322,7 +5453,9 @@
                 return (
                   '<div id="merchantCryptoCardBody" class="merchant-crypto-card-body">' +
                   cryptoMerchantTopFieldsHtml({ named: true, useYn: 'compCryptoUseYn', settle: 'compCryptoSettle', payout: 'compCryptoPayout', follow: 'compCryptoReserveFollow', hold: 'compCryptoHold', reserve: 'compCryptoReserve' }) +
+                  '<div class="crypto-use-detail-only">' +
                   merchantCryptoPaymentUrlRowHtml('가맹점 저장 후 조회') +
+                  merchantCryptoLogoFieldsHtml() +
                   '<div class="row g-2 mb-2"><div class="col-md-3"><label class="form-label small" data-pg-ui-t="크립토 안내">크립토 안내</label>' +
                   '<select class="form-select form-select-sm" name="cryptoPaymentHeaderSubtitleMode" id="cryptoPaymentHeaderSubtitleMode">' +
                   '<option value="FOLLOW_HQ" data-pg-ui-t="본사설정 따름">본사설정 따름</option>' +
@@ -5335,6 +5468,7 @@
                   '<div id="compCryptoWalletFields" class="mb-2"></div>' +
                   '<p class="small text-muted mb-2" data-pg-ui-t="활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.">활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.</p>' +
                   '<div id="compCryptoWalletQrPreview" class="d-flex flex-wrap gap-3"></div>' +
+                  '</div>' +
                   cryptoMerchantApplyBtnHtml('compCryptoApplyBtn') +
                   '</div>'
                 );
@@ -5642,10 +5776,10 @@
           ]
         },
         {
-          title: '보류율 설정',
+          title: '카드 보류율 정책',
           id: 'holdRateCard',
           merchantOnly: true,
-          notice: '결제 정산금 중 보류율(%)만큼 보류기간(일) 동안 지급하지 않으며, 정산일자+보류기간 경과 후 정산금으로 전환됩니다. 보류 해지일이 공휴일이면 익영업일에 전환됩니다. 본사정책 따름 시 본사 수수료 정책(롤링 비율/일수)에 연동됩니다.',
+          notice: 'FIAT(카드) 전용입니다. 결제 정산금 중 보류율(%)만큼 보류기간(일) 동안 지급하지 않으며, 정산일자+보류기간 경과 후 정산금으로 전환됩니다. 본사정책 따름 시 본사정책→기본 수수료 정책→채널 FIAT→기본 보류율 정책에 연동됩니다. QR·크립토 보류율은 각 전용 카드에서 설정합니다.',
           rows: [
             [{ label: '본사정책 따름', type: 'select', name: 'holdRateFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }],
             [{ label: '보류율(%)', type: 'text', name: 'holdRate', col: 1, placeholder: '5', holdRateOnly: true }, { label: '보류기간(일)', type: 'text', name: 'holdDays', col: 1, placeholder: '120', holdRateOnly: true }]
@@ -5680,12 +5814,16 @@
           title: 'QR 수수료정책',
           id: 'qrCommissionPolicyCard',
           merchantOnly: true,
-          notice: 'QR(PayPay·QBANG) 승인 수수료입니다. FIAT(카드)·CRYPTO와 채널이 분리됩니다. 카드와 같게 두려면 「카드 수수료와 동일」을 유지하고, 다른 요율은 QR 기본(DEFAULT_QR) 또는 직접입력합니다. 조직 배분은 수수료관리의 QR 채널에서 따로 저장합니다.',
+          sharedCard: true,
+          cardExtraClass: 'pg-merchant-qr-pastel-card',
+          notice: 'QR(PayPay·QBANG 등) 수수료·보류율·차지백을 이 카드에서 함께 설정합니다. FIAT·CRYPTO와 채널 분리. 「QR 수수료 통화」는 고정수수료 장부용이며 결제창·승인 통화가 아닙니다. 결제 표시·실결제·FX(BOT/ECOS)는 본사 URL결제설정에서 바꿉니다. 차지백은 수수료 본사따름과 별도로 본사정책→차지백설정에 저장된 유형을 선택합니다.',
           rows: [
-            [{ label: '본사정책 따름(QR)', type: 'select', name: 'commissionQrFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: 'QR 정책', type: 'select', name: 'hqQrPolicyScope', options: [{ v: '', t: '카드 수수료와 동일' }, { v: 'DEFAULT_QR', t: 'QR 기본 (DEFAULT_QR)' }], col: 3 }],
+            [{ label: '본사정책 따름(QR)', type: 'select', name: 'commissionQrFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: 'QR 정책', type: 'select', name: 'hqQrPolicyScope', options: [{ v: '', t: '카드 수수료와 동일' }, { v: 'DEFAULT_QR', t: 'QR 기본 (DEFAULT_QR)' }], col: 3 }, { label: 'QR 수수료 통화', type: 'select', name: 'qrCurrencyCode', options: [{ v: 'KRW', t: 'KRW' }, { v: 'JPY', t: 'JPY' }, { v: 'THB', t: 'THB' }, { v: 'USD', t: 'USD' }, { v: 'CNY', t: 'CNY' }, { v: 'SGD', t: 'SGD' }], col: 2 }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'qrPayRate', col: 2, qrCustomOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'qrFailFee', col: 2, qrCustomOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'qrCancelRate', col: 2, qrCustomOnly: true }],
             [{ label: '무효수수료(건)', type: 'text', name: 'qrVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '수무효수수료(건)', type: 'text', name: 'qrManualVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '환불수수료(건)', type: 'text', name: 'qrRefundRate', col: 2, qrCustomOnly: true }],
-            [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'qrUsageRate', col: 2, qrCustomOnly: true }, { label: '정산수수료(건)', type: 'text', name: 'qrFeeSettlementPerTx', col: 2, qrCustomOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'qrFee3dsRate', col: 2, qrCustomOnly: true }, { label: '비고', type: 'text', name: 'qrCommissionMemo', col: 2, qrCustomOnly: true }]
+            [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'qrUsageRate', col: 2, qrCustomOnly: true }, { label: '정산수수료(건)', type: 'text', name: 'qrFeeSettlementPerTx', col: 2, qrCustomOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'qrFee3dsRate', col: 2, qrCustomOnly: true }, { label: '비고', type: 'text', name: 'qrCommissionMemo', col: 2, qrCustomOnly: true }],
+            [{ label: '보류율 본사정책 따름', type: 'select', name: 'commissionQrHoldFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '보류율(%)', type: 'text', name: 'qrHoldRate', col: 2, placeholder: '10', qrHoldCustomOnly: true }, { label: '보류기간(일)', type: 'text', name: 'qrHoldDays', col: 2, placeholder: '180', qrHoldCustomOnly: true }],
+            [{ label: '차지백수수료(건)', type: 'text', name: 'qrChargebackFeePerTx', col: 2 }, { label: 'QR 차지백 정책', type: 'select', name: 'qrChargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
           ]
         },
         {
@@ -5693,17 +5831,19 @@
           id: 'cryptoCommissionPolicyCard',
           merchantOnly: true,
           cryptoCard: true,
-          notice: '크립토 확정입금 수수료 슬롯입니다. 본사 CRYPTO 배포 정책을 따르거나 선택합니다. 크립토만 사용 가맹은 FIAT(카드) 수수료 슬롯이 자동 비활성됩니다. 차지백은 예외 과금 시 아래 유형(기존 차지백 설정·USDC/EURC 통화 포함)을 선택합니다.',
+          cardExtraClass: 'pg-merchant-crypto-pastel-card',
+          notice: '크립토 확정입금 수수료·보류율(보증금)·차지백을 이 카드에서 함께 설정합니다. 차지백은 수수료 본사따름과 별도로 본사정책→차지백설정에 저장된 유형을 선택합니다. 크립토전용이면 FIAT 슬롯 비활성.',
           rows: [
             [{ label: '본사정책 따름(CRYPTO)', type: 'select', name: 'commissionCryptoFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 CRYPTO 정책', type: 'select', name: 'hqCryptoPolicyScope', options: [{ v: '', t: 'CRYPTO 기본 (DEFAULT_CRYPTO)' }], col: 3, hqCryptoPolicyOnly: true }, { label: 'FIAT 수수료 슬롯', type: 'select', name: 'fiatCommissionSlotYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '비활성(크립토전용)' }], col: 2 }],
-            [{ label: '차지백수수료(건)', type: 'text', name: 'cryptoChargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'cryptoChargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
+            [{ type: 'customHtml', col: 12, html: function () { return cryptoMerchantHoldFieldsHtml({ named: true }); } }],
+            [{ label: '차지백수수료(건)', type: 'text', name: 'cryptoChargebackFeePerTx', col: 2 }, { label: 'CRYPTO 차지백 정책', type: 'select', name: 'cryptoChargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
           ]
         },
         {
-          title: '차지백 정책',
+          title: '카드 차지백 정책',
           id: 'chargebackPolicyCard',
           merchantOnly: true,
-          notice: '본사정책 따름이면 위에서 고른 본사 정책 템플릿의 3DS·차지백 설정이 적용됩니다. 직접입력일 때만 아래를 저장할 수 있습니다.',
+          notice: 'FIAT(카드) 전용입니다. 본사정책 따름이면 카드 수수료 템플릿의 차지백이 적용됩니다. 직접입력일 때만 아래를 저장합니다. 구간표는 본사정책→차지백설정.',
           rows: [
             [{ label: '차지백수수료(건)', type: 'text', name: 'chargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
           ]
@@ -5844,7 +5984,9 @@
                 return (
                   '<div id="merchantCryptoCardBody" class="merchant-crypto-card-body">' +
                   cryptoMerchantTopFieldsHtml({ named: true, useYn: 'compCryptoUseYn', settle: 'compCryptoSettle', payout: 'compCryptoPayout', follow: 'compCryptoReserveFollow', hold: 'compCryptoHold', reserve: 'compCryptoReserve' }) +
+                  '<div class="crypto-use-detail-only">' +
                   merchantCryptoPaymentUrlRowHtml('가맹점 저장 후 조회') +
+                  merchantCryptoLogoFieldsHtml() +
                   '<div class="row g-2 mb-2"><div class="col-md-3"><label class="form-label small" data-pg-ui-t="크립토 안내">크립토 안내</label>' +
                   '<select class="form-select form-select-sm" name="cryptoPaymentHeaderSubtitleMode" id="cryptoPaymentHeaderSubtitleMode">' +
                   '<option value="FOLLOW_HQ" data-pg-ui-t="본사설정 따름">본사설정 따름</option>' +
@@ -5857,6 +5999,7 @@
                   '<div id="compCryptoWalletFields" class="mb-2"></div>' +
                   '<p class="small text-muted mb-2" data-pg-ui-t="활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.">활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.</p>' +
                   '<div id="compCryptoWalletQrPreview" class="d-flex flex-wrap gap-3"></div>' +
+                  '</div>' +
                   cryptoMerchantApplyBtnHtml('compCryptoApplyBtn') +
                   '</div>'
                 );
@@ -6100,10 +6243,10 @@
           ]
         },
         {
-          title: '보류율 설정',
+          title: '카드 보류율 정책',
           id: 'holdRateCard',
           merchantOnly: true,
-          notice: '결제 정산금 중 보류율(%)만큼 보류기간(일) 동안 지급하지 않으며, 정산일자+보류기간 경과 후 정산금으로 전환됩니다. 보류 해지일이 공휴일이면 익영업일에 전환됩니다. 본사정책 따름 시 본사 수수료 정책(롤링 비율/일수)에 연동됩니다.',
+          notice: 'FIAT(카드) 전용입니다. 결제 정산금 중 보류율(%)만큼 보류기간(일) 동안 지급하지 않으며, 정산일자+보류기간 경과 후 정산금으로 전환됩니다. 본사정책 따름 시 본사정책→기본 수수료 정책→채널 FIAT→기본 보류율 정책에 연동됩니다. QR·크립토 보류율은 각 전용 카드에서 설정합니다.',
           rows: [
             [{ label: '본사정책 따름', type: 'select', name: 'holdRateFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }],
             [{ label: '보류율(%)', type: 'text', name: 'holdRate', col: 1, placeholder: '5', holdRateOnly: true }, { label: '보류기간(일)', type: 'text', name: 'holdDays', col: 1, placeholder: '120', holdRateOnly: true }]
@@ -6138,12 +6281,16 @@
           title: 'QR 수수료정책',
           id: 'qrCommissionPolicyCard',
           merchantOnly: true,
-          notice: 'QR(PayPay·QBANG) 승인 수수료입니다. FIAT(카드)·CRYPTO와 채널이 분리됩니다. 카드와 같게 두려면 「카드 수수료와 동일」을 유지하고, 다른 요율은 QR 기본(DEFAULT_QR) 또는 직접입력합니다. 조직 배분은 수수료관리의 QR 채널에서 따로 저장합니다.',
+          sharedCard: true,
+          cardExtraClass: 'pg-merchant-qr-pastel-card',
+          notice: 'QR(PayPay·QBANG 등) 수수료·보류율·차지백을 이 카드에서 함께 설정합니다. FIAT·CRYPTO와 채널 분리. 「QR 수수료 통화」는 고정수수료 장부용이며 결제창·승인 통화가 아닙니다. 결제 표시·실결제·FX(BOT/ECOS)는 본사 URL결제설정에서 바꿉니다. 차지백은 수수료 본사따름과 별도로 본사정책→차지백설정에 저장된 유형을 선택합니다.',
           rows: [
-            [{ label: '본사정책 따름(QR)', type: 'select', name: 'commissionQrFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: 'QR 정책', type: 'select', name: 'hqQrPolicyScope', options: [{ v: '', t: '카드 수수료와 동일' }, { v: 'DEFAULT_QR', t: 'QR 기본 (DEFAULT_QR)' }], col: 3 }],
+            [{ label: '본사정책 따름(QR)', type: 'select', name: 'commissionQrFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: 'QR 정책', type: 'select', name: 'hqQrPolicyScope', options: [{ v: '', t: '카드 수수료와 동일' }, { v: 'DEFAULT_QR', t: 'QR 기본 (DEFAULT_QR)' }], col: 3 }, { label: 'QR 수수료 통화', type: 'select', name: 'qrCurrencyCode', options: [{ v: 'KRW', t: 'KRW' }, { v: 'JPY', t: 'JPY' }, { v: 'THB', t: 'THB' }, { v: 'USD', t: 'USD' }, { v: 'CNY', t: 'CNY' }, { v: 'SGD', t: 'SGD' }], col: 2 }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'qrPayRate', col: 2, qrCustomOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'qrFailFee', col: 2, qrCustomOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'qrCancelRate', col: 2, qrCustomOnly: true }],
             [{ label: '무효수수료(건)', type: 'text', name: 'qrVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '수무효수수료(건)', type: 'text', name: 'qrManualVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '환불수수료(건)', type: 'text', name: 'qrRefundRate', col: 2, qrCustomOnly: true }],
-            [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'qrUsageRate', col: 2, qrCustomOnly: true }, { label: '정산수수료(건)', type: 'text', name: 'qrFeeSettlementPerTx', col: 2, qrCustomOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'qrFee3dsRate', col: 2, qrCustomOnly: true }, { label: '비고', type: 'text', name: 'qrCommissionMemo', col: 2, qrCustomOnly: true }]
+            [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'qrUsageRate', col: 2, qrCustomOnly: true }, { label: '정산수수료(건)', type: 'text', name: 'qrFeeSettlementPerTx', col: 2, qrCustomOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'qrFee3dsRate', col: 2, qrCustomOnly: true }, { label: '비고', type: 'text', name: 'qrCommissionMemo', col: 2, qrCustomOnly: true }],
+            [{ label: '보류율 본사정책 따름', type: 'select', name: 'commissionQrHoldFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '보류율(%)', type: 'text', name: 'qrHoldRate', col: 2, placeholder: '10', qrHoldCustomOnly: true }, { label: '보류기간(일)', type: 'text', name: 'qrHoldDays', col: 2, placeholder: '180', qrHoldCustomOnly: true }],
+            [{ label: '차지백수수료(건)', type: 'text', name: 'qrChargebackFeePerTx', col: 2 }, { label: 'QR 차지백 정책', type: 'select', name: 'qrChargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
           ]
         },
         {
@@ -6151,17 +6298,19 @@
           id: 'cryptoCommissionPolicyCard',
           merchantOnly: true,
           cryptoCard: true,
-          notice: '크립토 확정입금 수수료 슬롯입니다. 본사 CRYPTO 배포 정책을 따르거나 선택합니다. 크립토만 사용 가맹은 FIAT(카드) 수수료 슬롯이 자동 비활성됩니다. 차지백은 예외 과금 시 아래 유형(기존 차지백 설정·USDC/EURC 통화 포함)을 선택합니다.',
+          cardExtraClass: 'pg-merchant-crypto-pastel-card',
+          notice: '크립토 확정입금 수수료·보류율(보증금)·차지백을 이 카드에서 함께 설정합니다. 차지백은 수수료 본사따름과 별도로 본사정책→차지백설정에 저장된 유형을 선택합니다. 크립토전용이면 FIAT 슬롯 비활성.',
           rows: [
             [{ label: '본사정책 따름(CRYPTO)', type: 'select', name: 'commissionCryptoFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 CRYPTO 정책', type: 'select', name: 'hqCryptoPolicyScope', options: [{ v: '', t: 'CRYPTO 기본 (DEFAULT_CRYPTO)' }], col: 3, hqCryptoPolicyOnly: true }, { label: 'FIAT 수수료 슬롯', type: 'select', name: 'fiatCommissionSlotYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '비활성(크립토전용)' }], col: 2 }],
-            [{ label: '차지백수수료(건)', type: 'text', name: 'cryptoChargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'cryptoChargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
+            [{ type: 'customHtml', col: 12, html: function () { return cryptoMerchantHoldFieldsHtml({ named: true }); } }],
+            [{ label: '차지백수수료(건)', type: 'text', name: 'cryptoChargebackFeePerTx', col: 2 }, { label: 'CRYPTO 차지백 정책', type: 'select', name: 'cryptoChargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
           ]
         },
         {
-          title: '차지백 정책',
+          title: '카드 차지백 정책',
           id: 'chargebackPolicyCard',
           merchantOnly: true,
-          notice: '본사정책 따름이면 위에서 고른 본사 정책 템플릿의 3DS·차지백 설정이 적용됩니다. 직접입력일 때만 아래를 저장할 수 있습니다.',
+          notice: 'FIAT(카드) 전용입니다. 본사정책 따름이면 카드 수수료 템플릿의 차지백이 적용됩니다. 직접입력일 때만 아래를 저장합니다. 구간표는 본사정책→차지백설정.',
           rows: [
             [{ label: '차지백수수료(건)', type: 'text', name: 'chargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
           ]
@@ -6301,7 +6450,9 @@
                 return (
                   '<div id="merchantCryptoCardBody" class="merchant-crypto-card-body">' +
                   cryptoMerchantTopFieldsHtml({ named: true, useYn: 'compCryptoUseYn', settle: 'compCryptoSettle', payout: 'compCryptoPayout', follow: 'compCryptoReserveFollow', hold: 'compCryptoHold', reserve: 'compCryptoReserve' }) +
+                  '<div class="crypto-use-detail-only">' +
                   merchantCryptoPaymentUrlRowHtml('가맹점 저장 후 조회') +
+                  merchantCryptoLogoFieldsHtml() +
                   '<div class="row g-2 mb-2"><div class="col-md-3"><label class="form-label small" data-pg-ui-t="크립토 안내">크립토 안내</label>' +
                   '<select class="form-select form-select-sm" name="cryptoPaymentHeaderSubtitleMode" id="cryptoPaymentHeaderSubtitleMode">' +
                   '<option value="FOLLOW_HQ" data-pg-ui-t="본사설정 따름">본사설정 따름</option>' +
@@ -6314,6 +6465,7 @@
                   '<div id="compCryptoWalletFields" class="mb-2"></div>' +
                   '<p class="small text-muted mb-2" data-pg-ui-t="활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.">활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.</p>' +
                   '<div id="compCryptoWalletQrPreview" class="d-flex flex-wrap gap-3"></div>' +
+                  '</div>' +
                   cryptoMerchantApplyBtnHtml('compCryptoApplyBtn') +
                   '</div>'
                 );
@@ -8199,8 +8351,10 @@
           title: '크립토 결제 안내 (본사 기본)',
           id: 'hqCryptoCopyDefaultsCard',
           cryptoCard: true,
-          notice: '크립토 결제창(/crypto-pay) 로고 아래 안내입니다. 가맹이 「본사설정 따름」이면 이 값이 적용되고, 가맹에서 활성(직접입력)·비활성으로 바꾸면 가맹이 우선합니다. 활성+문구 저장 시 5개국어로 1회 번역됩니다.',
+          notice: '크립토 결제창 로고·안내 본사 기본입니다. 가맹이 「본사설정 따름」이면 로고·안내가 이 값을 따릅니다. 로고 「웹결제 로고 따름」이면 가맹 웹결제 로고설정을 사용합니다.',
           rows: [
+            [{ label: '크립토 로고', type: 'select', name: 'cryptoPaymentHeaderLogoModeDefault', options: channelPaymentHeaderLogoModeOptions(false), col: 4 },
+             { label: '', type: 'note', col: 8, text: '가맹 「본사설정 따름」일 때 적용. 웹결제 로고 따름 / 총판·HTML·가맹점 로고 / 미활성.' }],
             [{ label: '크립토 안내', type: 'select', name: 'cryptoPaymentHeaderSubtitleModeDefault', options: [
               { v: 'ACTIVE', t: '활성' }, { v: 'DISABLED', t: '비활성' }
             ], col: 2 },
@@ -8312,11 +8466,13 @@
                   '<button type="button" class="btn btn-outline-secondary" id="cryptoMerchLoadBtn" data-pg-ui-t="조회">조회</button>' +
                   '</div>' +
                   cryptoMerchantTopFieldsHtml({ useYn: 'cryptoMerchUseYn', settle: 'cryptoMerchSettle', payout: 'cryptoMerchPayout', follow: 'cryptoMerchReserveFollow', hold: 'cryptoMerchHold', reserve: 'cryptoMerchReserve', display: 'cryptoMerchDisplayCurrency' }) +
+                  '<div class="crypto-use-detail-only">' +
                   cryptoMerchantAssetTogglesHtml('cryptoMerchAssetToggles') +
                   '<div id="cryptoMerchWalletFields" class="mb-2"></div>' +
                   '<p class="small text-muted mb-2" data-pg-ui-t="활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.">활성 자산마다 네트워크를 고르고 대표 수취 주소 하나만 입력하세요.</p>' +
                   '<textarea class="form-control form-control-sm font-monospace d-none" id="cryptoMerchSellerJson" rows="2"></textarea>' +
                   '<div id="cryptoMerchWalletQrPreview" class="d-flex flex-wrap gap-3 mb-2"></div>' +
+                  '</div>' +
                   '<div class="d-flex flex-wrap gap-2 mb-3">' +
                   '<button type="button" class="btn btn-primary btn-sm" id="cryptoMerchSaveBtn" data-pg-ui-t="설정저장">설정저장</button>' +
                   '<span class="small text-muted align-self-center" data-pg-ui-t="수취지갑·설정 저장 시 Google OTP와 더블확인이 필요합니다.">수취지갑·설정 저장 시 Google OTP와 더블확인이 필요합니다.</span>' +
@@ -8622,12 +8778,16 @@
           title: 'QR 수수료정책',
           id: 'qrCommissionPolicyCard',
           merchantOnly: true,
-          notice: 'QR(PayPay·QBANG) 승인 수수료입니다. FIAT(카드)·CRYPTO와 채널이 분리됩니다. 카드와 같게 두려면 「카드 수수료와 동일」을 유지하고, 다른 요율은 QR 기본(DEFAULT_QR) 또는 직접입력합니다. 조직 배분은 수수료관리의 QR 채널에서 따로 저장합니다.',
+          sharedCard: true,
+          cardExtraClass: 'pg-merchant-qr-pastel-card',
+          notice: 'QR(PayPay·QBANG 등) 수수료·보류율·차지백을 이 카드에서 함께 설정합니다. FIAT·CRYPTO와 채널 분리. 「QR 수수료 통화」는 고정수수료 장부용이며 결제창·승인 통화가 아닙니다. 결제 표시·실결제·FX(BOT/ECOS)는 본사 URL결제설정에서 바꿉니다. 차지백은 수수료 본사따름과 별도로 본사정책→차지백설정에 저장된 유형을 선택합니다.',
           rows: [
-            [{ label: '본사정책 따름(QR)', type: 'select', name: 'commissionQrFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: 'QR 정책', type: 'select', name: 'hqQrPolicyScope', options: [{ v: '', t: '카드 수수료와 동일' }, { v: 'DEFAULT_QR', t: 'QR 기본 (DEFAULT_QR)' }], col: 3 }],
+            [{ label: '본사정책 따름(QR)', type: 'select', name: 'commissionQrFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: 'QR 정책', type: 'select', name: 'hqQrPolicyScope', options: [{ v: '', t: '카드 수수료와 동일' }, { v: 'DEFAULT_QR', t: 'QR 기본 (DEFAULT_QR)' }], col: 3 }, { label: 'QR 수수료 통화', type: 'select', name: 'qrCurrencyCode', options: [{ v: 'KRW', t: 'KRW' }, { v: 'JPY', t: 'JPY' }, { v: 'THB', t: 'THB' }, { v: 'USD', t: 'USD' }, { v: 'CNY', t: 'CNY' }, { v: 'SGD', t: 'SGD' }], col: 2 }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'qrPayRate', col: 2, qrCustomOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'qrFailFee', col: 2, qrCustomOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'qrCancelRate', col: 2, qrCustomOnly: true }],
             [{ label: '무효수수료(건)', type: 'text', name: 'qrVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '수무효수수료(건)', type: 'text', name: 'qrManualVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '환불수수료(건)', type: 'text', name: 'qrRefundRate', col: 2, qrCustomOnly: true }],
-            [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'qrUsageRate', col: 2, qrCustomOnly: true }, { label: '정산수수료(건)', type: 'text', name: 'qrFeeSettlementPerTx', col: 2, qrCustomOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'qrFee3dsRate', col: 2, qrCustomOnly: true }, { label: '비고', type: 'text', name: 'qrCommissionMemo', col: 2, qrCustomOnly: true }]
+            [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'qrUsageRate', col: 2, qrCustomOnly: true }, { label: '정산수수료(건)', type: 'text', name: 'qrFeeSettlementPerTx', col: 2, qrCustomOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'qrFee3dsRate', col: 2, qrCustomOnly: true }, { label: '비고', type: 'text', name: 'qrCommissionMemo', col: 2, qrCustomOnly: true }],
+            [{ label: '보류율 본사정책 따름', type: 'select', name: 'commissionQrHoldFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '보류율(%)', type: 'text', name: 'qrHoldRate', col: 2, placeholder: '10', qrHoldCustomOnly: true }, { label: '보류기간(일)', type: 'text', name: 'qrHoldDays', col: 2, placeholder: '180', qrHoldCustomOnly: true }],
+            [{ label: '차지백수수료(건)', type: 'text', name: 'qrChargebackFeePerTx', col: 2 }, { label: 'QR 차지백 정책', type: 'select', name: 'qrChargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
           ]
         },
         {
@@ -8635,17 +8795,19 @@
           id: 'cryptoCommissionPolicyCard',
           merchantOnly: true,
           cryptoCard: true,
-          notice: '크립토 확정입금 수수료 슬롯입니다. 본사 CRYPTO 배포 정책을 따르거나 선택합니다. 크립토만 사용 가맹은 FIAT(카드) 수수료 슬롯이 자동 비활성됩니다. 차지백은 예외 과금 시 아래 유형(기존 차지백 설정·USDC/EURC 통화 포함)을 선택합니다.',
+          cardExtraClass: 'pg-merchant-crypto-pastel-card',
+          notice: '크립토 확정입금 수수료·보류율(보증금)·차지백을 이 카드에서 함께 설정합니다. 차지백은 수수료 본사따름과 별도로 본사정책→차지백설정에 저장된 유형을 선택합니다. 크립토전용이면 FIAT 슬롯 비활성.',
           rows: [
             [{ label: '본사정책 따름(CRYPTO)', type: 'select', name: 'commissionCryptoFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 CRYPTO 정책', type: 'select', name: 'hqCryptoPolicyScope', options: [{ v: '', t: 'CRYPTO 기본 (DEFAULT_CRYPTO)' }], col: 3, hqCryptoPolicyOnly: true }, { label: 'FIAT 수수료 슬롯', type: 'select', name: 'fiatCommissionSlotYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '비활성(크립토전용)' }], col: 2 }],
-            [{ label: '차지백수수료(건)', type: 'text', name: 'cryptoChargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'cryptoChargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
+            [{ type: 'customHtml', col: 12, html: function () { return cryptoMerchantHoldFieldsHtml({ named: true }); } }],
+            [{ label: '차지백수수료(건)', type: 'text', name: 'cryptoChargebackFeePerTx', col: 2 }, { label: 'CRYPTO 차지백 정책', type: 'select', name: 'cryptoChargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
           ]
         },
         {
-          title: '차지백 정책',
+          title: '카드 차지백 정책',
           id: 'chargebackPolicyCard',
           merchantOnly: true,
-          notice: '본사정책 따름이면 위에서 고른 본사 정책 템플릿의 3DS·차지백 설정이 적용됩니다. 직접입력일 때만 아래를 저장할 수 있습니다.',
+          notice: 'FIAT(카드) 전용입니다. 본사정책 따름이면 카드 수수료 템플릿의 차지백이 적용됩니다. 직접입력일 때만 아래를 저장합니다. 구간표는 본사정책→차지백설정.',
           rows: [
             [{ label: '차지백수수료(건)', type: 'text', name: 'chargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
           ]
@@ -10469,6 +10631,8 @@
     if (f.voidRefundSettlementModeField) blockClass += ' commission-void-refund-mode-field';
     if (f.customOnly) blockClass += ' commission-custom-only';
     if (f.qrCustomOnly) blockClass += ' qr-commission-custom-only';
+    if (f.qrHoldCustomOnly) blockClass += ' qr-hold-custom-only';
+    if (f.cryptoCustomOnly) blockClass += ' crypto-commission-custom-only';
     if (f.holdRateOnly) blockClass += ' hold-rate-custom-only';
     if (f.cardRiskCustomOnly) blockClass += ' card-risk-custom-only';
     if (f.cardPresaleCustomOnly) blockClass += ' card-presale-custom-only';
@@ -10507,8 +10671,9 @@
       else if (sec.distributorOrMerchantOnly) cardClass += ' distributor-or-merchant-section d-none';
       if (sec.branchAgencySalesHide) cardClass += ' branch-agency-sales-hide-section';
       if (sec.cardExtraClass) cardClass += ' ' + String(sec.cardExtraClass);
-      /* 공통(FIAT·CRYPTO)=노란 / 크립토 전용=하늘색 / 일반=그레이 */
-      if (pgIsSharedPolicySection(sec) && cardClass.indexOf('pg-shared-pastel-card') < 0) {
+      /* QR=노란(pg-merchant-qr) / 크립토=하늘색 / 공통=노란 헤더 / 일반=그레이 */
+      if (cardClass.indexOf('pg-merchant-qr-pastel-card') < 0
+          && pgIsSharedPolicySection(sec) && cardClass.indexOf('pg-shared-pastel-card') < 0) {
         cardClass += ' pg-shared-pastel-card';
       } else if (pgIsCryptoPolicySection(sec) && cardClass.indexOf('pg-crypto-pastel-card') < 0
           && cardClass.indexOf('pg-merchant-crypto-pastel-card') < 0) {

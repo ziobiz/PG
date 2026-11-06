@@ -27,6 +27,7 @@ import com.pg.util.CommissionFeeChannel;
 import com.pg.util.CommissionTierJsonHelper;
 import com.pg.util.PayListStatusBarBuckets;
 import com.pg.util.PercentDecimalHelper;
+import com.pg.util.QrCommissionCurrency;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -715,6 +716,7 @@ public class CommissionService {
         OrgUnit merchant = ouOpt.get();
         boolean followHq = true;
         String hqScope = "";
+        String qrCurrencyOverride = null;
         Optional<MerchantProfile> mpOpt = merchantProfileRepository.findByOrgUnitId(merchant.getId());
         if (mpOpt.isPresent()) {
             String rs = mpOpt.get().getRegionalSettings();
@@ -733,6 +735,9 @@ public class CommissionService {
                         followHq = !"N".equalsIgnoreCase(follow);
                         hqScope = obj.get("hqQrPolicyScope") != null
                                 ? String.valueOf(obj.get("hqQrPolicyScope")).trim() : "";
+                        if (obj.get("qrCurrencyCode") != null) {
+                            qrCurrencyOverride = String.valueOf(obj.get("qrCurrencyCode")).trim();
+                        }
                     } else {
                         String follow = obj.get("commissionFollowHq") != null
                                 ? String.valueOf(obj.get("commissionFollowHq")).trim() : "Y";
@@ -746,28 +751,82 @@ public class CommissionService {
                 }
             }
         }
+        CommissionPolicy resolved;
         if (!followHq) {
             if (CommissionFeeChannel.isCrypto(ch)) {
                 String cryptoScope = CommissionFeeChannel.merchantCryptoScope(mc);
-                return commissionPolicyRepository.findByScope(cryptoScope)
+                resolved = commissionPolicyRepository.findByScope(cryptoScope)
                         .or(() -> commissionPolicyRepository.findByScope(defaultScope))
                         .orElseGet(CommissionPolicy::new);
-            }
-            if (CommissionFeeChannel.isQr(ch)) {
+            } else if (CommissionFeeChannel.isQr(ch)) {
                 String qrScope = CommissionFeeChannel.merchantQrScope(mc);
-                return commissionPolicyRepository.findByScope(qrScope)
+                resolved = commissionPolicyRepository.findByScope(qrScope)
+                        .or(() -> commissionPolicyRepository.findByScope(defaultScope))
+                        .orElseGet(CommissionPolicy::new);
+            } else {
+                resolved = commissionPolicyRepository.findByScope(normCompCode(merchant))
+                        .or(() -> commissionPolicyRepository.findByScope(mc))
                         .or(() -> commissionPolicyRepository.findByScope(defaultScope))
                         .orElseGet(CommissionPolicy::new);
             }
-            return commissionPolicyRepository.findByScope(normCompCode(merchant))
-                    .or(() -> commissionPolicyRepository.findByScope(mc))
+        } else {
+            String templateScope = hqScope.isEmpty() ? defaultScope : hqScope;
+            resolved = commissionPolicyRepository.findByScope(templateScope)
                     .or(() -> commissionPolicyRepository.findByScope(defaultScope))
                     .orElseGet(CommissionPolicy::new);
         }
-        String templateScope = hqScope.isEmpty() ? defaultScope : hqScope;
-        return commissionPolicyRepository.findByScope(templateScope)
-                .or(() -> commissionPolicyRepository.findByScope(defaultScope))
-                .orElseGet(CommissionPolicy::new);
+        if (CommissionFeeChannel.isQr(ch)) {
+            resolved = applyMerchantQrCurrencyOverride(resolved, qrCurrencyOverride);
+            return overlayMerchantChannelChargeback(resolved, mc, CommissionFeeChannel.QR);
+        }
+        if (CommissionFeeChannel.isCrypto(ch)) {
+            return overlayMerchantChannelChargeback(resolved, mc, CommissionFeeChannel.CRYPTO);
+        }
+        return resolved;
+    }
+
+    /**
+     * 가맹이 채널 슬롯({@code mid:QR}/{@code mid:CRYPTO})에 고른 차지백을
+     * 수수료 본사따름(템플릿)과 별도로 정산에 반영한다.
+     */
+    private CommissionPolicy overlayMerchantChannelChargeback(CommissionPolicy base, String merchantCode, String channel) {
+        if (base == null || merchantCode == null || merchantCode.isBlank()) {
+            return base;
+        }
+        String scope = CommissionFeeChannel.isCrypto(channel)
+                ? CommissionFeeChannel.merchantCryptoScope(merchantCode)
+                : CommissionFeeChannel.merchantQrScope(merchantCode);
+        Optional<CommissionPolicy> ownOpt = commissionPolicyRepository.findByScope(scope);
+        if (ownOpt.isEmpty()) {
+            return base;
+        }
+        CommissionPolicy own = ownOpt.get();
+        boolean hasCb = own.getChargebackPolicyId() != null
+                || (own.getChargebackFeePerTx() != null
+                && own.getChargebackFeePerTx().compareTo(java.math.BigDecimal.ZERO) != 0);
+        if (!hasCb) {
+            return base;
+        }
+        CommissionPolicy c = cloneCommissionPolicyForSettlement(base);
+        c.setChargebackPolicyId(own.getChargebackPolicyId());
+        c.setChargebackFeePerTx(own.getChargebackFeePerTx());
+        return c;
+    }
+
+    /** 가맹 QR 카드에서 고른 통화로 고정수수료 통화만 덮어쓴다(요율·금액 숫자는 유지). */
+    private static CommissionPolicy applyMerchantQrCurrencyOverride(CommissionPolicy base, String qrCurrencyOverride) {
+        if (qrCurrencyOverride == null || qrCurrencyOverride.isBlank()) {
+            return base;
+        }
+        String cur = QrCommissionCurrency.normalize(qrCurrencyOverride);
+        String baseCur = base != null && base.getCurrencyCode() != null
+                ? base.getCurrencyCode().trim().toUpperCase(Locale.ROOT) : "";
+        if (cur.equals(baseCur)) {
+            return base;
+        }
+        CommissionPolicy c = cloneCommissionPolicyForSettlement(base);
+        c.setCurrencyCode(cur);
+        return c;
     }
 
     /** 가맹 단계별 배분(최신 변경 이력 우선) 합계 → 결제 수수료율·건당 수수료. */

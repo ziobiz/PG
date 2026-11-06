@@ -1657,14 +1657,15 @@ public class PayListService {
     }
 
     private static String resolvePgCdForPayListRow(PayListRowContext ctx, PgTrnsctn t) {
+        /* 행별 실처리 PG(van) 우선 — 가맹 첫 운영 바인딩(OMSPAY 등)으로 QR/QBANG 건을 덮지 않음 */
+        if (t != null && t.getVan() != null && !t.getVan().isBlank()) {
+            return t.getVan().trim();
+        }
         if (ctx != null && ctx.getBinding() != null) {
             String p = ctx.getBinding().getPgCd();
             if (p != null && !p.isBlank()) {
                 return p.trim();
             }
-        }
-        if (t != null && t.getVan() != null && !t.getVan().isBlank()) {
-            return t.getVan().trim();
         }
         return "";
     }

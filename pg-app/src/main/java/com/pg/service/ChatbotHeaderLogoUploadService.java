@@ -97,6 +97,22 @@ public class ChatbotHeaderLogoUploadService {
                 "[업체정보] 분할결제 상단 로고 URL");
     }
 
+    @Transactional
+    public UploadResult processAndPersistCryptoHeader(Long merchantOrgUnitId, String compId, MultipartFile file)
+            throws IOException {
+        return processAndPersistInternal(merchantOrgUnitId, compId, file, "crypto-payment-header", "clogo_",
+                MerchantProfile::getCryptoPaymentHeaderLogoUrl, MerchantProfile::setCryptoPaymentHeaderLogoUrl,
+                "[업체정보] 크립토 상단 로고 URL");
+    }
+
+    @Transactional
+    public UploadResult processAndPersistQrHeader(Long merchantOrgUnitId, String compId, MultipartFile file)
+            throws IOException {
+        return processAndPersistInternal(merchantOrgUnitId, compId, file, "qr-payment-header", "qlogo_",
+                MerchantProfile::getQrPaymentHeaderLogoUrl, MerchantProfile::setQrPaymentHeaderLogoUrl,
+                "[업체정보] QR 상단 로고 URL");
+    }
+
     private UploadResult processAndPersistInternal(Long merchantOrgUnitId, String compId, MultipartFile file,
                                                    String storageSubdir, String filePrefix,
                                                    java.util.function.Function<MerchantProfile, String> urlGetter,

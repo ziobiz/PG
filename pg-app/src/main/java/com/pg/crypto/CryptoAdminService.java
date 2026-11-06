@@ -99,6 +99,9 @@ public class CryptoAdminService {
 
     private void putCryptoCopyDefaults(Map<String, Object> out) {
         HqApiConfig c = hqApiConfigRepository.findAll().stream().findFirst().orElseGet(HqApiConfig::new);
+        out.put("cryptoPaymentHeaderLogoModeDefault",
+                c.getCryptoPaymentHeaderLogoModeDefault() != null
+                        ? c.getCryptoPaymentHeaderLogoModeDefault() : "FOLLOW_WEB");
         out.put("cryptoPaymentHeaderSubtitleModeDefault",
                 c.getCryptoPaymentHeaderSubtitleModeDefault() != null
                         ? c.getCryptoPaymentHeaderSubtitleModeDefault() : "ACTIVE");
@@ -109,11 +112,15 @@ public class CryptoAdminService {
                         : CryptoPaymentCopyDefaults.HEADER_KO);
     }
 
-    /** 본사 크립토 결제 안내 기본(활성/비활성·문구). OTP 불필요. */
+    /** 본사 크립토 로고·안내 기본. OTP 불필요. */
     @Transactional
     public Map<String, Object> saveCryptoCopyDefaults(Map<String, Object> body) {
         HqApiConfig c = hqApiConfigRepository.findAll().stream().findFirst().orElseGet(HqApiConfig::new);
         if (body != null) {
+            if (body.containsKey("cryptoPaymentHeaderLogoModeDefault")) {
+                c.setCryptoPaymentHeaderLogoModeDefault(String.valueOf(
+                        body.getOrDefault("cryptoPaymentHeaderLogoModeDefault", "FOLLOW_WEB")));
+            }
             c.setCryptoPaymentHeaderSubtitleModeDefault(String.valueOf(
                     body.getOrDefault("cryptoPaymentHeaderSubtitleModeDefault", "ACTIVE")));
             Object t = body.get("cryptoPaymentHeaderSubtitleTextDefault");

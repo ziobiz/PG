@@ -1971,6 +1971,10 @@ public class CompService {
                             m.put("cryptoPaymentHeaderLogoMode", mp.getCryptoPaymentHeaderLogoMode() != null
                                     && !mp.getCryptoPaymentHeaderLogoMode().isBlank()
                                     ? mp.getCryptoPaymentHeaderLogoMode() : "FOLLOW_HQ");
+                            m.put("cryptoPaymentHeaderLogoUrl",
+                                    mp.getCryptoPaymentHeaderLogoUrl() != null ? mp.getCryptoPaymentHeaderLogoUrl() : "");
+                            m.put("cryptoPaymentHeaderHtmlTitle",
+                                    mp.getCryptoPaymentHeaderHtmlTitle() != null ? mp.getCryptoPaymentHeaderHtmlTitle() : "");
                             m.put("cryptoPaymentHeaderSubtitleMode",
                                     normalizeCryptoSubtitleModeForAdmin(
                                             mp.getCryptoPaymentHeaderSubtitleMode()));
@@ -1984,6 +1988,21 @@ public class CompService {
                                             mp.getQrPaymentHeaderSubtitleMode()));
                             m.put("qrPaymentHeaderSubtitleText",
                                     mp.getQrPaymentHeaderSubtitleText() != null ? mp.getQrPaymentHeaderSubtitleText() : "");
+                            m.put("qrPaymentHeaderLogoMode",
+                                    mp.getQrPaymentHeaderLogoMode() != null && !mp.getQrPaymentHeaderLogoMode().isBlank()
+                                            ? mp.getQrPaymentHeaderLogoMode() : "FOLLOW_HQ");
+                            m.put("qrPaymentHeaderLogoUrl",
+                                    mp.getQrPaymentHeaderLogoUrl() != null ? mp.getQrPaymentHeaderLogoUrl() : "");
+                            m.put("qrPaymentHeaderHtmlTitle",
+                                    mp.getQrPaymentHeaderHtmlTitle() != null ? mp.getQrPaymentHeaderHtmlTitle() : "");
+                            m.put("qrPaymentBrandTitleMode",
+                                    normalizeCryptoSubtitleModeForAdmin(mp.getQrPaymentBrandTitleMode()));
+                            m.put("qrPaymentBrandTitleText",
+                                    mp.getQrPaymentBrandTitleText() != null ? mp.getQrPaymentBrandTitleText() : "");
+                            m.put("qrPaymentFooterMode",
+                                    normalizeCryptoSubtitleModeForAdmin(mp.getQrPaymentFooterMode()));
+                            m.put("qrPaymentFooterText",
+                                    mp.getQrPaymentFooterText() != null ? mp.getQrPaymentFooterText() : "");
                             m.put("hqQrPaymentUseDefaultYn", resolveHqQrPaymentUseDefaultYn());
                             m.put("unifiedPaymentHeaderSubtitleMode",
                                     mp.getUnifiedPaymentHeaderSubtitleMode() != null
@@ -2964,6 +2983,7 @@ public class CompService {
                             if ("MERCHANT".equalsIgnoreCase(effDivForCommission)) {
                                 applyCryptoChargebackFromRequest(ou.getCode());
                                 applyQrCommissionFromRequest(ou.getCode());
+                                applyQrChargebackFromRequest(ou.getCode());
                             }
                             boolean pwdChanged = pwd != null && !pwd.trim().isEmpty();
                             if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
@@ -3695,15 +3715,19 @@ public class CompService {
     }
 
     /**
-     * 크립토 결제창 로고(A형). {@code FOLLOW_HQ}=웹결제 따름, {@code DISABLED}=미노출.
-     * {@code null} 이면 미변경.
+     * 크립토 결제창 로고. FOLLOW_HQ|FOLLOW_WEB|DEFAULT|HTML|ACTIVE|DISABLED.
+     * null 인자는 미변경.
      */
     @Transactional
-    public void applyMerchantCryptoPaymentHeaderLogo(String compId, String cryptoPaymentHeaderLogoMode) {
-        if (compId == null || compId.isBlank() || cryptoPaymentHeaderLogoMode == null) {
+    public void applyMerchantCryptoPaymentHeaderLogo(String compId,
+                                                     String cryptoPaymentHeaderLogoMode,
+                                                     String cryptoPaymentHeaderLogoUrl,
+                                                     String cryptoPaymentHeaderHtmlTitle) {
+        if (compId == null || compId.isBlank()) {
             return;
         }
-        if (cryptoPaymentHeaderLogoMode.isBlank()) {
+        if (cryptoPaymentHeaderLogoMode == null && cryptoPaymentHeaderLogoUrl == null
+                && cryptoPaymentHeaderHtmlTitle == null) {
             return;
         }
         orgUnitRepository.findByCode(compId.trim()).flatMap(ou -> {
@@ -3712,7 +3736,17 @@ public class CompService {
             }
             return merchantProfileRepository.findByOrgUnitId(ou.getId());
         }).ifPresent(mp -> {
-            mp.setCryptoPaymentHeaderLogoMode(cryptoPaymentHeaderLogoMode.trim());
+            if (cryptoPaymentHeaderLogoMode != null && !cryptoPaymentHeaderLogoMode.isBlank()) {
+                mp.setCryptoPaymentHeaderLogoMode(cryptoPaymentHeaderLogoMode.trim());
+            }
+            if (cryptoPaymentHeaderLogoUrl != null) {
+                String u = cryptoPaymentHeaderLogoUrl.trim();
+                mp.setCryptoPaymentHeaderLogoUrl(u.isEmpty() ? null : u);
+            }
+            if (cryptoPaymentHeaderHtmlTitle != null) {
+                String t = cryptoPaymentHeaderHtmlTitle.trim();
+                mp.setCryptoPaymentHeaderHtmlTitle(t.isEmpty() ? null : (t.length() > 80 ? t.substring(0, 80) : t));
+            }
             merchantProfileRepository.save(mp);
         });
     }
@@ -3811,16 +3845,51 @@ public class CompService {
         });
     }
 
-    /** QR 사용·안내. null 인자는 미변경. */
+    /** QR 사용·로고·브랜드제목·안내·푸터. null 인자는 미변경. */
     @Transactional
     public void applyMerchantQrPaymentSettings(String compId,
                                                String qrPaymentUseYn,
                                                String qrPaymentHeaderSubtitleMode,
                                                String qrPaymentHeaderSubtitleText) {
+        applyMerchantQrPaymentSettings(compId, qrPaymentUseYn, qrPaymentHeaderSubtitleMode, qrPaymentHeaderSubtitleText,
+                null, null, null, null, null, null, null);
+    }
+
+    @Transactional
+    public void applyMerchantQrPaymentSettings(String compId,
+                                               String qrPaymentUseYn,
+                                               String qrPaymentHeaderSubtitleMode,
+                                               String qrPaymentHeaderSubtitleText,
+                                               String qrPaymentHeaderLogoMode,
+                                               String qrPaymentBrandTitleMode,
+                                               String qrPaymentBrandTitleText,
+                                               String qrPaymentFooterMode,
+                                               String qrPaymentFooterText) {
+        applyMerchantQrPaymentSettings(compId, qrPaymentUseYn, qrPaymentHeaderSubtitleMode, qrPaymentHeaderSubtitleText,
+                qrPaymentHeaderLogoMode, null, null,
+                qrPaymentBrandTitleMode, qrPaymentBrandTitleText,
+                qrPaymentFooterMode, qrPaymentFooterText);
+    }
+
+    @Transactional
+    public void applyMerchantQrPaymentSettings(String compId,
+                                               String qrPaymentUseYn,
+                                               String qrPaymentHeaderSubtitleMode,
+                                               String qrPaymentHeaderSubtitleText,
+                                               String qrPaymentHeaderLogoMode,
+                                               String qrPaymentHeaderLogoUrl,
+                                               String qrPaymentHeaderHtmlTitle,
+                                               String qrPaymentBrandTitleMode,
+                                               String qrPaymentBrandTitleText,
+                                               String qrPaymentFooterMode,
+                                               String qrPaymentFooterText) {
         if (compId == null || compId.isBlank()) {
             return;
         }
-        if (qrPaymentUseYn == null && qrPaymentHeaderSubtitleMode == null && qrPaymentHeaderSubtitleText == null) {
+        if (qrPaymentUseYn == null && qrPaymentHeaderSubtitleMode == null && qrPaymentHeaderSubtitleText == null
+                && qrPaymentHeaderLogoMode == null && qrPaymentHeaderLogoUrl == null && qrPaymentHeaderHtmlTitle == null
+                && qrPaymentBrandTitleMode == null && qrPaymentBrandTitleText == null
+                && qrPaymentFooterMode == null && qrPaymentFooterText == null) {
             return;
         }
         orgUnitRepository.findByCode(compId.trim()).flatMap(ou -> {
@@ -3831,6 +3900,17 @@ public class CompService {
         }).ifPresent(mp -> {
             if (qrPaymentUseYn != null && !qrPaymentUseYn.isBlank()) {
                 mp.setQrPaymentUseYn(qrPaymentUseYn.trim());
+            }
+            if (qrPaymentHeaderLogoMode != null && !qrPaymentHeaderLogoMode.isBlank()) {
+                mp.setQrPaymentHeaderLogoMode(qrPaymentHeaderLogoMode.trim());
+            }
+            if (qrPaymentHeaderLogoUrl != null) {
+                String u = qrPaymentHeaderLogoUrl.trim();
+                mp.setQrPaymentHeaderLogoUrl(u.isEmpty() ? null : u);
+            }
+            if (qrPaymentHeaderHtmlTitle != null) {
+                String t = qrPaymentHeaderHtmlTitle.trim();
+                mp.setQrPaymentHeaderHtmlTitle(t.isEmpty() ? null : (t.length() > 80 ? t.substring(0, 80) : t));
             }
             if (qrPaymentHeaderSubtitleMode != null && !qrPaymentHeaderSubtitleMode.isBlank()) {
                 mp.setQrPaymentHeaderSubtitleMode(qrPaymentHeaderSubtitleMode.trim());
@@ -3845,6 +3925,36 @@ public class CompService {
                     throw new IllegalArgumentException("QR 안내문구는 500자 이하여야 합니다.");
                 } else {
                     mp.setQrPaymentHeaderSubtitleText(t);
+                }
+            }
+            if (qrPaymentBrandTitleMode != null && !qrPaymentBrandTitleMode.isBlank()) {
+                mp.setQrPaymentBrandTitleMode(qrPaymentBrandTitleMode.trim());
+            }
+            if (qrPaymentBrandTitleText != null
+                    && "ACTIVE".equalsIgnoreCase(String.valueOf(mp.getQrPaymentBrandTitleMode()))) {
+                String t = qrPaymentBrandTitleText.trim();
+                if (t.isEmpty()) {
+                    mp.setQrPaymentBrandTitleText(null);
+                    mp.setQrPaymentBrandTitleTextI18n(null);
+                } else if (t.length() > 120) {
+                    throw new IllegalArgumentException("QR 브랜드제목은 120자 이하여야 합니다.");
+                } else {
+                    mp.setQrPaymentBrandTitleText(t);
+                }
+            }
+            if (qrPaymentFooterMode != null && !qrPaymentFooterMode.isBlank()) {
+                mp.setQrPaymentFooterMode(qrPaymentFooterMode.trim());
+            }
+            if (qrPaymentFooterText != null
+                    && "ACTIVE".equalsIgnoreCase(String.valueOf(mp.getQrPaymentFooterMode()))) {
+                String t = qrPaymentFooterText.trim();
+                if (t.isEmpty()) {
+                    mp.setQrPaymentFooterText(null);
+                    mp.setQrPaymentFooterTextI18n(null);
+                } else if (t.length() > 500) {
+                    throw new IllegalArgumentException("QR 푸터 문구는 500자 이하여야 합니다.");
+                } else {
+                    mp.setQrPaymentFooterText(t);
                 }
             }
             checkoutHeaderSubtitleCopyService.applyQrToMerchantProfile(mp);
@@ -4933,6 +5043,7 @@ public class CompService {
                 applyMerchantIndependentChargebackPolicy(saved.getCode(), chargebackPolicyId);
                 applyCryptoChargebackFromRequest(saved.getCode());
                 applyQrCommissionFromRequest(saved.getCode());
+                applyQrChargebackFromRequest(saved.getCode());
             }
         }
 
@@ -5514,6 +5625,10 @@ public class CompService {
         String fiatSlot = null;
         String qrFollow = null;
         String qrScope = null;
+        String qrCurrency = null;
+        String qrHoldFollow = null;
+        String qrHoldRate = null;
+        String qrHoldDays = null;
         try {
             var attrs = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
             if (attrs instanceof org.springframework.web.context.request.ServletRequestAttributes sra) {
@@ -5523,15 +5638,22 @@ public class CompService {
                 fiatSlot = req.getParameter("fiatCommissionSlotYn");
                 qrFollow = req.getParameter("commissionQrFollowHq");
                 qrScope = req.getParameter("hqQrPolicyScope");
+                qrCurrency = req.getParameter("qrCurrencyCode");
+                qrHoldFollow = req.getParameter("commissionQrHoldFollowHq");
+                qrHoldRate = req.getParameter("qrHoldRate");
+                qrHoldDays = req.getParameter("qrHoldDays");
             }
         } catch (Exception ignored) {
         }
         mergeCommissionUiIntoRegionalSettings(mp, commissionFollowHq, hqPolicyScope, cryptoFollow, cryptoScope, fiatSlot);
-        mergeQrCommissionKeys(mp, qrFollow, qrScope);
+        mergeQrCommissionKeys(mp, qrFollow, qrScope, qrCurrency, qrHoldFollow, qrHoldRate, qrHoldDays);
     }
 
-    private void mergeQrCommissionKeys(MerchantProfile mp, String commissionQrFollowHq, String hqQrPolicyScope) {
-        if (mp == null || (commissionQrFollowHq == null && hqQrPolicyScope == null)) {
+    private void mergeQrCommissionKeys(MerchantProfile mp, String commissionQrFollowHq, String hqQrPolicyScope,
+                                       String qrCurrencyCode, String commissionQrHoldFollowHq,
+                                       String qrHoldRate, String qrHoldDays) {
+        if (mp == null || (commissionQrFollowHq == null && hqQrPolicyScope == null && qrCurrencyCode == null
+                && commissionQrHoldFollowHq == null && qrHoldRate == null && qrHoldDays == null)) {
             return;
         }
         Map<String, Object> rs = parseRegionalSettings(mp.getRegionalSettings());
@@ -5540,6 +5662,29 @@ public class CompService {
         }
         if (hqQrPolicyScope != null) {
             rs.put("hqQrPolicyScope", hqQrPolicyScope.trim());
+        }
+        if (qrCurrencyCode != null) {
+            rs.put("qrCurrencyCode", com.pg.util.QrCommissionCurrency.normalize(qrCurrencyCode));
+        }
+        if (commissionQrHoldFollowHq != null) {
+            rs.put("commissionQrHoldFollowHq",
+                    "N".equalsIgnoreCase(commissionQrHoldFollowHq.trim()) ? "N" : "Y");
+        }
+        if (qrHoldRate != null) {
+            try {
+                rs.put("qrHoldRate",
+                        PercentDecimalHelper.toPlainOneDecimal(PercentDecimalHelper.parsePercentOneDecimal(qrHoldRate.trim())));
+            } catch (Exception e) {
+                if (!qrHoldRate.isBlank()) {
+                    rs.put("qrHoldRate", qrHoldRate.trim());
+                }
+            }
+        }
+        if (qrHoldDays != null && !qrHoldDays.isBlank()) {
+            try {
+                rs.put("qrHoldDays", Math.max(0, Integer.parseInt(qrHoldDays.trim())));
+            } catch (Exception ignored) {
+            }
         }
         try {
             com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
@@ -5918,19 +6063,45 @@ public class CompService {
         if (!m.containsKey("hqQrPolicyScope") || m.get("hqQrPolicyScope") == null) {
             m.put("hqQrPolicyScope", "");
         }
+        if (!m.containsKey("commissionQrHoldFollowHq") || m.get("commissionQrHoldFollowHq") == null
+                || String.valueOf(m.get("commissionQrHoldFollowHq")).isBlank()) {
+            m.put("commissionQrHoldFollowHq", "Y");
+        }
         String code = ou.getCode();
         if (code == null || code.isBlank()) {
+            ensureQrCurrencyOnDetailMap(m);
+            ensureQrHoldDefaultsOnDetailMap(m);
             return;
         }
         commissionPolicyRepository.findByScope(code.trim()).ifPresentOrElse(p -> putCommissionPolicyScalars(m, p),
                 () -> commissionPolicyRepository.findByScope("DEFAULT").ifPresent(def -> putCommissionPolicyScalars(m, def)));
         putQrCommissionScalars(m, code.trim());
+        ensureQrCurrencyOnDetailMap(m);
+        ensureQrHoldDefaultsOnDetailMap(m);
         putCryptoChargebackScalars(m, code.trim(), m);
+    }
+
+    private void ensureQrHoldDefaultsOnDetailMap(Map<String, Object> m) {
+        if (!m.containsKey("commissionQrHoldFollowHq") || m.get("commissionQrHoldFollowHq") == null
+                || String.valueOf(m.get("commissionQrHoldFollowHq")).isBlank()) {
+            m.put("commissionQrHoldFollowHq", "Y");
+        }
+        Object rate = m.get("qrHoldRate");
+        if (rate == null || String.valueOf(rate).isBlank()) {
+            m.put("qrHoldRate", com.pg.util.QrHoldResolver.DEFAULT_PCT.toPlainString());
+        }
+        Object days = m.get("qrHoldDays");
+        if (days == null || String.valueOf(days).isBlank()) {
+            m.put("qrHoldDays", String.valueOf(com.pg.util.QrHoldResolver.DEFAULT_DAYS));
+        }
     }
 
     /** 가맹 QR 직접입력 슬롯. 없으면 카드 정책 숫자를 보여 직접입력으로 바꿔도 같은 금액에서 시작합니다. */
     private void putQrCommissionScalars(Map<String, Object> m, String merchantCode) {
-        CommissionPolicy p = commissionPolicyRepository.findByScope(CommissionFeeChannel.merchantQrScope(merchantCode))
+        CommissionPolicy ownQr = commissionPolicyRepository.findByScope(CommissionFeeChannel.merchantQrScope(merchantCode))
+                .orElse(null);
+        CommissionPolicy p = ownQr != null ? ownQr
+                : commissionPolicyRepository.findByScope(CommissionFeeChannel.DEFAULT_SCOPE_QR)
                 .or(() -> commissionPolicyRepository.findByScope(merchantCode))
                 .or(() -> commissionPolicyRepository.findByScope(CommissionFeeChannel.DEFAULT_SCOPE_FIAT))
                 .orElse(null);
@@ -5951,6 +6122,70 @@ public class CompService {
         m.put("qrFeeUsdt", p.getFeeUsdt() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeUsdt()) : "");
         m.put("qrFeeFx", p.getFeeFx() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeFx()) : "");
         m.put("qrFee3dsRate", p.getFee3dsRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFee3dsRate()) : "");
+        /* 차지백은 수수료 본사따름과 별도 — 가맹 QR 슬롯 우선 */
+        CommissionPolicy cbSrc = ownQr != null ? ownQr : p;
+        m.put("qrChargebackFeePerTx",
+                cbSrc.getChargebackFeePerTx() != null ? cbSrc.getChargebackFeePerTx().toPlainString() : "");
+        m.put("qrChargebackPolicyId",
+                cbSrc.getChargebackPolicyId() != null ? String.valueOf(cbSrc.getChargebackPolicyId()) : "");
+        /* 직접입력 가맹 QR 정책 통화가 있으면 카드 선택값보다 우선(저장 직후 표시 일치). */
+        if (ownQr != null && ownQr.getCurrencyCode() != null && !ownQr.getCurrencyCode().isBlank()) {
+            m.put("qrCurrencyCode", com.pg.util.QrCommissionCurrency.normalize(ownQr.getCurrencyCode()));
+        }
+    }
+
+    /** 가맹 QR 차지백 — 수수료 본사따름과 무관하게 가맹 :QR 슬롯에 저장(카드 FIAT 독립 차지백과 동일). */
+    private void applyQrChargebackFromRequest(String merchantCode) {
+        if (merchantCode == null || merchantCode.isBlank()) {
+            return;
+        }
+        String cbFee = null;
+        String cbPol = null;
+        try {
+            var attrs = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+            if (attrs instanceof org.springframework.web.context.request.ServletRequestAttributes sra) {
+                var req = sra.getRequest();
+                cbFee = req.getParameter("qrChargebackFeePerTx");
+                cbPol = req.getParameter("qrChargebackPolicyId");
+            }
+        } catch (Exception ignored) {
+        }
+        if (cbFee == null && cbPol == null) {
+            return;
+        }
+        String scope = CommissionFeeChannel.merchantQrScope(merchantCode);
+        CommissionPolicy policy = commissionPolicyRepository.findByScope(scope).orElseGet(CommissionPolicy::new);
+        policy.setScope(scope);
+        policy.setFeeChannel(CommissionFeeChannel.QR);
+        if (policy.getCurrencyCode() == null || policy.getCurrencyCode().isBlank()) {
+            policy.setCurrencyCode(com.pg.util.QrCommissionCurrency.DEFAULT);
+        }
+        if (cbFee != null && !cbFee.isBlank()) {
+            policy.setChargebackFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(cbFee.trim()));
+        }
+        if (cbPol != null) {
+            String cp = cbPol.trim();
+            if (cp.isEmpty()) {
+                policy.setChargebackPolicyId(null);
+            } else {
+                try {
+                    policy.setChargebackPolicyId(Long.parseLong(cp));
+                } catch (Exception ignored) {
+                }
+            }
+        }
+        commissionPolicyRepository.save(policy);
+    }
+
+    private void ensureQrCurrencyOnDetailMap(Map<String, Object> m) {
+        Object cur = m.get("qrCurrencyCode");
+        if (cur != null && !String.valueOf(cur).isBlank()) {
+            m.put("qrCurrencyCode", com.pg.util.QrCommissionCurrency.normalize(String.valueOf(cur)));
+            return;
+        }
+        commissionPolicyRepository.findByScope(CommissionFeeChannel.DEFAULT_SCOPE_QR).ifPresentOrElse(def ->
+                        m.put("qrCurrencyCode", com.pg.util.QrCommissionCurrency.normalize(def.getCurrencyCode())),
+                () -> m.put("qrCurrencyCode", com.pg.util.QrCommissionCurrency.DEFAULT));
     }
 
     /** 직접입력(N)일 때만 가맹 QR 정책 행을 저장합니다. 본사정책 따름은 템플릿 scope 를 사용합니다. */
@@ -5994,6 +6229,8 @@ public class CompService {
                 policy.setCurrencyCode(src.getCurrencyCode());
                 policy.setRollingPct(src.getRollingPct());
                 policy.setRollingDays(src.getRollingDays());
+                policy.setChargebackFeePerTx(src.getChargebackFeePerTx());
+                policy.setChargebackPolicyId(src.getChargebackPolicyId());
             }
         }
         policy.setScope(scope);
@@ -6019,6 +6256,30 @@ public class CompService {
                 if (memo != null) {
                     policy.setPolicyRemark(memo);
                 }
+                String qrCur = req.getParameter("qrCurrencyCode");
+                if (qrCur != null && !qrCur.isBlank()) {
+                    policy.setCurrencyCode(com.pg.util.QrCommissionCurrency.normalize(qrCur));
+                } else if (policy.getCurrencyCode() == null || policy.getCurrencyCode().isBlank()) {
+                    policy.setCurrencyCode(com.pg.util.QrCommissionCurrency.DEFAULT);
+                } else {
+                    policy.setCurrencyCode(com.pg.util.QrCommissionCurrency.normalize(policy.getCurrencyCode()));
+                }
+                String qrCbFee = req.getParameter("qrChargebackFeePerTx");
+                if (qrCbFee != null && !qrCbFee.isBlank()) {
+                    policy.setChargebackFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(qrCbFee.trim()));
+                }
+                String qrCbPol = req.getParameter("qrChargebackPolicyId");
+                if (qrCbPol != null) {
+                    String cp = qrCbPol.trim();
+                    if (cp.isEmpty()) {
+                        policy.setChargebackPolicyId(null);
+                    } else {
+                        try {
+                            policy.setChargebackPolicyId(Long.parseLong(cp));
+                        } catch (Exception ignored) {
+                        }
+                    }
+                }
             }
         } catch (Exception ignored) {
         }
@@ -6034,8 +6295,17 @@ public class CompService {
                 : PercentDecimalHelper.parseAmountOneDecimal(raw.trim()));
     }
 
-    /** 가맹 CRYPTO 수수료 슬롯의 차지백(건당·구간정책) — FIAT 카드와 동일 UX, 저장은 CRYPTO 정책. */
+    /** 가맹 CRYPTO 차지백 — 가맹 :CRYPTO 슬롯 우선(수수료 본사따름과 별도 선택). */
     private void putCryptoChargebackScalars(Map<String, Object> m, String merchantCode, Map<String, Object> regionalOrDetail) {
+        String merchantScope = com.pg.util.CommissionFeeChannel.merchantCryptoScope(merchantCode);
+        CommissionPolicy own = commissionPolicyRepository.findByScope(merchantScope).orElse(null);
+        if (own != null && (own.getChargebackPolicyId() != null || own.getChargebackFeePerTx() != null)) {
+            m.put("cryptoChargebackFeePerTx",
+                    own.getChargebackFeePerTx() != null ? own.getChargebackFeePerTx().toPlainString() : "");
+            m.put("cryptoChargebackPolicyId",
+                    own.getChargebackPolicyId() != null ? String.valueOf(own.getChargebackPolicyId()) : "");
+            return;
+        }
         String follow = regionalOrDetail.get("commissionCryptoFollowHq") != null
                 ? String.valueOf(regionalOrDetail.get("commissionCryptoFollowHq")).trim() : "Y";
         String hqScope = regionalOrDetail.get("hqCryptoPolicyScope") != null
@@ -6043,9 +6313,7 @@ public class CompService {
         if (hqScope.isEmpty()) {
             hqScope = com.pg.util.CommissionFeeChannel.DEFAULT_SCOPE_CRYPTO;
         }
-        String scope = "N".equalsIgnoreCase(follow)
-                ? com.pg.util.CommissionFeeChannel.merchantCryptoScope(merchantCode)
-                : hqScope;
+        String scope = "N".equalsIgnoreCase(follow) ? merchantScope : hqScope;
         commissionPolicyRepository.findByScope(scope).ifPresentOrElse(p -> {
             m.put("cryptoChargebackFeePerTx",
                     p.getChargebackFeePerTx() != null ? p.getChargebackFeePerTx().toPlainString() : "");
@@ -6057,21 +6325,20 @@ public class CompService {
         });
     }
 
-    /** CRYPTO 채널 차지백만 반영(조직%·가스·reserve와 별개 과금 유형). */
+    /**
+     * CRYPTO 차지백 — 수수료 본사따름과 무관하게 가맹 :CRYPTO 슬롯에 저장
+     * (카드 FIAT·QR 독립 차지백과 동일. 본사 차지백설정 목록에서 고른 유형).
+     */
     private void applyCryptoChargebackFromRequest(String merchantCode) {
         if (merchantCode == null || merchantCode.isBlank()) {
             return;
         }
-        String cryptoFollow = null;
-        String cryptoScope = null;
         String cbFee = null;
         String cbPol = null;
         try {
             var attrs = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
             if (attrs instanceof org.springframework.web.context.request.ServletRequestAttributes sra) {
                 var req = sra.getRequest();
-                cryptoFollow = req.getParameter("commissionCryptoFollowHq");
-                cryptoScope = req.getParameter("hqCryptoPolicyScope");
                 cbFee = req.getParameter("cryptoChargebackFeePerTx");
                 cbPol = req.getParameter("cryptoChargebackPolicyId");
             }
@@ -6080,41 +6347,7 @@ public class CompService {
         if (cbFee == null && cbPol == null) {
             return;
         }
-        boolean custom = "N".equalsIgnoreCase(cryptoFollow != null ? cryptoFollow.trim() : "");
-        String scope;
-        if (custom) {
-            scope = com.pg.util.CommissionFeeChannel.merchantCryptoScope(merchantCode);
-        } else {
-            String src = cryptoScope != null && !cryptoScope.isBlank()
-                    ? cryptoScope.trim() : com.pg.util.CommissionFeeChannel.DEFAULT_SCOPE_CRYPTO;
-            /* 본사정책 따름: 템플릿에 차지백이 있으면 가맹 CRYPTO 슬롯에 복사 */
-            CommissionPolicy srcPol = commissionPolicyRepository.findByScope(src).orElse(null);
-            CommissionPolicy policy = commissionPolicyRepository
-                    .findByScope(com.pg.util.CommissionFeeChannel.merchantCryptoScope(merchantCode))
-                    .orElseGet(CommissionPolicy::new);
-            policy.setScope(com.pg.util.CommissionFeeChannel.merchantCryptoScope(merchantCode));
-            policy.setFeeChannel(com.pg.util.CommissionFeeChannel.CRYPTO);
-            if (srcPol != null) {
-                policy.setChargebackFeePerTx(srcPol.getChargebackFeePerTx());
-                policy.setChargebackPolicyId(srcPol.getChargebackPolicyId());
-            }
-            if (cbFee != null && !cbFee.isBlank()) {
-                policy.setChargebackFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(cbFee.trim()));
-            }
-            if (cbPol != null) {
-                String cp = cbPol.trim();
-                if (cp.isEmpty()) {
-                    policy.setChargebackPolicyId(null);
-                } else {
-                    try {
-                        policy.setChargebackPolicyId(Long.parseLong(cp));
-                    } catch (Exception ignored) {
-                    }
-                }
-            }
-            commissionPolicyRepository.save(policy);
-            return;
-        }
+        String scope = com.pg.util.CommissionFeeChannel.merchantCryptoScope(merchantCode);
         CommissionPolicy policy = commissionPolicyRepository.findByScope(scope).orElseGet(CommissionPolicy::new);
         policy.setScope(scope);
         policy.setFeeChannel(com.pg.util.CommissionFeeChannel.CRYPTO);
