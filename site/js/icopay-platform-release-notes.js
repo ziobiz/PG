@@ -6,13 +6,35 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '6.36';
+  var CURRENT_LIVE = '6.37';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '6.37',
+      kind: 'minor',
+      date: '2026-11-09',
+      items: {
+        KO: [
+          'QR 결제(/checkout-qr)·통합결제(/checkout-all) 고정 URL PNG QR 생성·열기·저장 — 웹용 QR과 동일 UX (테이블·POP용)'
+        ],
+        EN: [
+          'QR checkout (/checkout-qr) and unified (/checkout-all) fixed-URL PNG QR generate/open/save — same UX as web pay QR (tables/POP)'
+        ],
+        JP: [
+          'QR決済(/checkout-qr)・統合(/checkout-all)固定URL PNG QRの生成・開く・保存 — ウェブ用QRと同じUX（テーブル・POP）'
+        ],
+        CH: [
+          'QR 支付(/checkout-qr)与整合支付(/checkout-all)固定 URL PNG QR 生成/打开/保存 — 与网页支付 QR 相同 UX（桌台·POP）'
+        ],
+        TH: [
+          'สร้าง/เปิด/บันทึก PNG QR URL คงที่ สำหรับชำระ QR (/checkout-qr) และรวม (/checkout-all) — UX เดียวกับ QR ชำระเว็บ (โต๊ะ/POP)'
+        ]
+      }
+    },
     {
       version: '6.36',
       kind: 'minor',

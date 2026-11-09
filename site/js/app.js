@@ -8934,6 +8934,12 @@
       var divW = divElW && divElW.value ? divElW.value : 'MERCHANT';
       window.pgRefreshWebPayQrUiInPane(pane, cid, divW, pane._pgLastCompDetail || null);
     }
+    if (typeof window.pgRefreshCheckoutQrPayQrUiInPane === 'function') {
+      window.pgRefreshCheckoutQrPayQrUiInPane(pane, cid, !!(webUseOn && qrUseOn));
+    }
+    if (typeof window.pgRefreshUnifiedPayQrUiInPane === 'function') {
+      window.pgRefreshUnifiedPayQrUiInPane(pane, cid, !!unifiedOn);
+    }
     if (typeof window.pgRefreshMerchantCheckoutCompositionState === 'function') {
       window.pgRefreshMerchantCheckoutCompositionState(pane);
     }
@@ -9097,7 +9103,7 @@
           if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.readOnly = true;
           return;
         }
-        if (id === 'paymentUrlCopyBtn' || id === 'paymentRepayUrlCopyBtn' || id === 'paymentUnifiedUrlCopyBtn' || id === 'qrPaymentUrlCopyBtn' || id === 'cryptoPaymentUrlCopyBtn' || id === 'chatbotPaymentUrlCopyBtn' || id === 'chatbotEmbedScriptCopyBtn' || id === 'chatbotQrDownloadBtn' || id === 'webPayQrDownloadBtn' || id === 'splitPayUrlCopyBtn') {
+        if (id === 'paymentUrlCopyBtn' || id === 'paymentRepayUrlCopyBtn' || id === 'paymentUnifiedUrlCopyBtn' || id === 'qrPaymentUrlCopyBtn' || id === 'cryptoPaymentUrlCopyBtn' || id === 'chatbotPaymentUrlCopyBtn' || id === 'chatbotEmbedScriptCopyBtn' || id === 'chatbotQrDownloadBtn' || id === 'webPayQrDownloadBtn' || id === 'checkoutQrPayQrDownloadBtn' || id === 'unifiedPayQrDownloadBtn' || id === 'splitPayUrlCopyBtn') {
           if (compUrlCopyLocked(id)) {
             el.disabled = true;
             el.setAttribute('aria-disabled', 'true');
@@ -9117,7 +9123,9 @@
     lockCard('#chatbotPaymentCard');
     lockCard('#splitPayCard');
     lockCard('#pgInfoCard');
-    ['#webPaymentCard', '#chatbotPaymentCard', '#pgInfoCard'].forEach(function (sel) {
+    lockCard('#merchantQrPaymentCard');
+    lockCard('#merchantCryptoCard');
+    ['#webPaymentCard', '#chatbotPaymentCard', '#pgInfoCard', '#merchantQrPaymentCard', '#merchantCryptoCard'].forEach(function (sel) {
       var c = pane.querySelector(sel);
       if (!c) return;
       var aChat = c.querySelector('#chatbotQrOpenPng');
@@ -9140,6 +9148,28 @@
           aWeb.removeAttribute('aria-disabled');
           aWeb.classList.remove('disabled');
           aWeb.style.pointerEvents = '';
+        }
+      }
+      var aQr = c.querySelector('#checkoutQrPayQrOpenPng');
+      if (aQr) {
+        if (!(pane && pane._pgCheckoutQrPayQrCompIdForDownload)) {
+          aQr.setAttribute('aria-disabled', 'true');
+          aQr.classList.add('disabled');
+        } else {
+          aQr.removeAttribute('aria-disabled');
+          aQr.classList.remove('disabled');
+          aQr.style.pointerEvents = '';
+        }
+      }
+      var aUn = c.querySelector('#unifiedPayQrOpenPng');
+      if (aUn) {
+        if (!(pane && pane._pgUnifiedPayQrCompIdForDownload)) {
+          aUn.setAttribute('aria-disabled', 'true');
+          aUn.classList.add('disabled');
+        } else {
+          aUn.removeAttribute('aria-disabled');
+          aUn.classList.remove('disabled');
+          aUn.style.pointerEvents = '';
         }
       }
     });
@@ -9489,6 +9519,163 @@
     return root + '/api/pub/url-pay/pay-qr?m=' + encodeURIComponent(id) + '&size=' + sz;
   }
   window.pgUrlPayQrPngUrl = pgUrlPayQrPngUrl;
+
+  /** 공개 API: QR 결제 /checkout-qr PNG */
+  function pgCheckoutQrPayQrPngUrl(compId, sizePx) {
+    var id = String(compId || '').trim();
+    if (!id) return '';
+    var api = (typeof window.PG_API_BASE === 'string' ? window.PG_API_BASE : '').replace(/\/$/, '').trim();
+    var root = api || (window.location.origin || '');
+    var sz = parseInt(sizePx, 10);
+    if (!sz || sz !== sz) sz = 280;
+    if (sz < 128) sz = 128;
+    if (sz > 512) sz = 512;
+    return root + '/api/pub/url-pay/qr-pay-qr?m=' + encodeURIComponent(id) + '&size=' + sz;
+  }
+  window.pgCheckoutQrPayQrPngUrl = pgCheckoutQrPayQrPngUrl;
+
+  /** 공개 API: 통합결제 /checkout-all PNG */
+  function pgUnifiedPayQrPngUrl(compId, sizePx) {
+    var id = String(compId || '').trim();
+    if (!id) return '';
+    var api = (typeof window.PG_API_BASE === 'string' ? window.PG_API_BASE : '').replace(/\/$/, '').trim();
+    var root = api || (window.location.origin || '');
+    var sz = parseInt(sizePx, 10);
+    if (!sz || sz !== sz) sz = 280;
+    if (sz < 128) sz = 128;
+    if (sz > 512) sz = 512;
+    return root + '/api/pub/url-pay/unified-pay-qr?m=' + encodeURIComponent(id) + '&size=' + sz;
+  }
+  window.pgUnifiedPayQrPngUrl = pgUnifiedPayQrPngUrl;
+
+  function pgBindCheckoutEntryQrDownloadOnce(pane, flagKey, btnId, cidKey, urlFn, filePrefix, errMsg) {
+    if (!pane || pane[flagKey]) return;
+    var dlBtn = pane.querySelector(btnId);
+    if (!dlBtn) return;
+    pane[flagKey] = true;
+    dlBtn.addEventListener('click', function () {
+      var cid = pane[cidKey];
+      if (!cid || typeof window[urlFn] !== 'function') return;
+      var qrUrl = window[urlFn](cid, 280);
+      if (!qrUrl) return;
+      fetch(qrUrl, { credentials: 'same-origin' }).then(function (r) {
+        if (!r.ok) throw new Error('bad');
+        return r.blob();
+      }).then(function (blob) {
+        var u = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = u;
+        a.download = filePrefix + String(cid).replace(/[^A-Za-z0-9_-]/g, '_') + '.png';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { try { URL.revokeObjectURL(u); } catch (eR) { /* ignore */ } }, 2000);
+      }).catch(function () {
+        alert(pgAdminUiT(errMsg));
+      });
+    });
+  }
+
+  function pgRefreshCheckoutEntryQrUi(pane, opts) {
+    if (!pane || !pane.querySelector || !opts) return;
+    pgBindCheckoutEntryQrDownloadOnce(pane, opts.flagKey, opts.btnId, opts.cidKey, opts.urlFn, opts.filePrefix, opts.errMsg);
+    var row = pane.querySelector(opts.rowId);
+    var img = pane.querySelector(opts.imgId);
+    var ph = pane.querySelector(opts.phId);
+    var openA = pane.querySelector(opts.openId);
+    var dlBtn = pane.querySelector(opts.btnId);
+    if (!row) return;
+    var cid = String(opts.compId || '').trim();
+    var show = !!opts.show && !!cid;
+    pane[opts.cidKey] = show ? cid : '';
+    if (!show) {
+      row.style.display = 'none';
+      if (img) {
+        img.removeAttribute('src');
+        img.classList.add('d-none');
+        img.onerror = null;
+        img.onload = null;
+      }
+      if (ph) {
+        ph.textContent = '—';
+        ph.classList.remove('d-none');
+      }
+      if (openA) {
+        openA.href = '#';
+        openA.setAttribute('aria-disabled', 'true');
+        openA.classList.add('disabled');
+      }
+      if (dlBtn) dlBtn.disabled = true;
+      return;
+    }
+    row.style.display = '';
+    var qrUrl = typeof window[opts.urlFn] === 'function' ? window[opts.urlFn](cid, 280) : '';
+    if (openA) {
+      openA.href = qrUrl || '#';
+      openA.removeAttribute('aria-disabled');
+      openA.classList.remove('disabled');
+    }
+    if (dlBtn) dlBtn.disabled = false;
+    if (img && ph) {
+      ph.classList.remove('d-none');
+      ph.textContent = '…';
+      img.classList.add('d-none');
+      img.onerror = function () {
+        img.classList.add('d-none');
+        ph.classList.remove('d-none');
+        ph.textContent = pgAdminUiT(opts.errMsg);
+        if (openA) {
+          openA.href = '#';
+          openA.setAttribute('aria-disabled', 'true');
+          openA.classList.add('disabled');
+        }
+        if (dlBtn) dlBtn.disabled = true;
+      };
+      img.onload = function () {
+        img.classList.remove('d-none');
+        ph.classList.add('d-none');
+        if (openA) {
+          openA.href = qrUrl || '#';
+          openA.removeAttribute('aria-disabled');
+          openA.classList.remove('disabled');
+        }
+        if (dlBtn) dlBtn.disabled = false;
+      };
+      img.src = qrUrl + (qrUrl.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now();
+    }
+  }
+  window.pgRefreshCheckoutQrPayQrUiInPane = function (pane, compId, show) {
+    pgRefreshCheckoutEntryQrUi(pane, {
+      show: show,
+      compId: compId,
+      flagKey: '_pgCheckoutQrPayQrDlBound',
+      cidKey: '_pgCheckoutQrPayQrCompIdForDownload',
+      urlFn: 'pgCheckoutQrPayQrPngUrl',
+      filePrefix: 'checkout-qr-pay-qr-',
+      errMsg: 'QR 결제 QR를 불러올 수 없습니다. QR 사용·결제대행사 QR 설정을 확인하세요.',
+      rowId: '#checkoutQrPayQrRow',
+      imgId: '#checkoutQrPayQrImg',
+      phId: '#checkoutQrPayQrPlaceholder',
+      openId: '#checkoutQrPayQrOpenPng',
+      btnId: '#checkoutQrPayQrDownloadBtn'
+    });
+  };
+  window.pgRefreshUnifiedPayQrUiInPane = function (pane, compId, show) {
+    pgRefreshCheckoutEntryQrUi(pane, {
+      show: show,
+      compId: compId,
+      flagKey: '_pgUnifiedPayQrDlBound',
+      cidKey: '_pgUnifiedPayQrCompIdForDownload',
+      urlFn: 'pgUnifiedPayQrPngUrl',
+      filePrefix: 'unified-pay-qr-',
+      errMsg: '통합결제 QR를 불러올 수 없습니다. 카드·QR·크립토 중 2개 이상인지 확인하세요.',
+      rowId: '#unifiedPayQrRow',
+      imgId: '#unifiedPayQrImg',
+      phId: '#unifiedPayQrPlaceholder',
+      openId: '#unifiedPayQrOpenPng',
+      btnId: '#unifiedPayQrDownloadBtn'
+    });
+  };
 
   /** 웹용 QR 열기 HTML (상단명·하단 Provided by ICOPAY) — 공개 고객 사이트 베이스 */
   function pgUrlPayQrViewUrl(compId) {
@@ -45038,7 +45225,7 @@
           }
         }
         if (pane.classList && pane.classList.contains('pg-merchant-own-comp-viewer')
-          && ((btn.id || '') === 'paymentUrlCopyBtn' || (btn.id || '') === 'paymentRepayUrlCopyBtn' || (btn.id || '') === 'paymentUnifiedUrlCopyBtn' || (btn.id || '') === 'qrPaymentUrlCopyBtn' || (btn.id || '') === 'cryptoPaymentUrlCopyBtn' || (btn.id || '') === 'chatbotPaymentUrlCopyBtn' || (btn.id || '') === 'chatbotEmbedScriptCopyBtn' || (btn.id || '') === 'chatbotQrDownloadBtn' || (btn.id || '') === 'webPayQrDownloadBtn' || (btn.id || '') === 'splitPayUrlCopyBtn')) {
+          && ((btn.id || '') === 'paymentUrlCopyBtn' || (btn.id || '') === 'paymentRepayUrlCopyBtn' || (btn.id || '') === 'paymentUnifiedUrlCopyBtn' || (btn.id || '') === 'qrPaymentUrlCopyBtn' || (btn.id || '') === 'cryptoPaymentUrlCopyBtn' || (btn.id || '') === 'chatbotPaymentUrlCopyBtn' || (btn.id || '') === 'chatbotEmbedScriptCopyBtn' || (btn.id || '') === 'chatbotQrDownloadBtn' || (btn.id || '') === 'webPayQrDownloadBtn' || (btn.id || '') === 'checkoutQrPayQrDownloadBtn' || (btn.id || '') === 'unifiedPayQrDownloadBtn' || (btn.id || '') === 'splitPayUrlCopyBtn')) {
           if ((btn.id || '') === 'paymentUrlCopyBtn' && pgIsPaymentUrlLocked(pane)) {
             btn.disabled = true;
             btn.setAttribute('aria-disabled', 'true');
@@ -45084,6 +45271,18 @@
             btn.classList.add('disabled');
             return;
           }
+          if ((btn.id || '') === 'checkoutQrPayQrDownloadBtn' && !(pane && pane._pgCheckoutQrPayQrCompIdForDownload)) {
+            btn.disabled = true;
+            btn.setAttribute('aria-disabled', 'true');
+            btn.classList.add('disabled');
+            return;
+          }
+          if ((btn.id || '') === 'unifiedPayQrDownloadBtn' && !(pane && pane._pgUnifiedPayQrCompIdForDownload)) {
+            btn.disabled = true;
+            btn.setAttribute('aria-disabled', 'true');
+            btn.classList.add('disabled');
+            return;
+          }
           if ((btn.id || '') === 'splitPayUrlCopyBtn' && pgIsSplitPayUrlLocked(pane)) {
             btn.disabled = true;
             btn.setAttribute('aria-disabled', 'true');
@@ -45113,6 +45312,26 @@
         }
         if (pane.classList && pane.classList.contains('pg-merchant-own-comp-viewer') && (a.id || '') === 'webPayQrOpenPng') {
           if (!(pane && pane._pgWebPayQrCompIdForDownload)) {
+            a.setAttribute('aria-disabled', 'true');
+            a.classList.add('disabled');
+            return;
+          }
+          a.removeAttribute('aria-disabled');
+          a.classList.remove('disabled');
+          return;
+        }
+        if (pane.classList && pane.classList.contains('pg-merchant-own-comp-viewer') && (a.id || '') === 'checkoutQrPayQrOpenPng') {
+          if (!(pane && pane._pgCheckoutQrPayQrCompIdForDownload)) {
+            a.setAttribute('aria-disabled', 'true');
+            a.classList.add('disabled');
+            return;
+          }
+          a.removeAttribute('aria-disabled');
+          a.classList.remove('disabled');
+          return;
+        }
+        if (pane.classList && pane.classList.contains('pg-merchant-own-comp-viewer') && (a.id || '') === 'unifiedPayQrOpenPng') {
+          if (!(pane && pane._pgUnifiedPayQrCompIdForDownload)) {
             a.setAttribute('aria-disabled', 'true');
             a.classList.add('disabled');
             return;
@@ -45151,7 +45370,7 @@
           if (observerAllowTarget(t)) return;
           if (t.closest('[data-pg-list-search-btn], #searchBtn, .screen-search-btn, #excelBtn, #excelDownBtn, #listExcelDownBtn, #excelAllDownBtn, #payListRefreshBtn, #printBtn, .quick-date, .pagination-size-opt, .pagination-num, .daily-detail-sort-dir-btn, [data-notice-write-btn], #compDevTreeRemoveBtn, #compAdminResetOrgBtn, .screen-list-sort-dir-menu, .settlement-execute-recent-mode-btn, .pg-view-display-tz-select, .pg-ic-compare-tz-select, .pg-ic-line1-tz-select')) return;
           if (pane.classList && pane.classList.contains('pg-merchant-own-comp-viewer')
-            && (t.closest('#paymentUrlCopyBtn') || t.closest('#paymentRepayUrlCopyBtn') || t.closest('#paymentUnifiedUrlCopyBtn') || t.closest('#qrPaymentUrlCopyBtn') || t.closest('#cryptoPaymentUrlCopyBtn') || t.closest('#chatbotPaymentUrlCopyBtn') || t.closest('#chatbotEmbedScriptCopyBtn') || t.closest('#chatbotQrOpenPng') || t.closest('#chatbotQrDownloadBtn') || t.closest('#webPayQrOpenPng') || t.closest('#webPayQrDownloadBtn') || t.closest('#splitPayUrlCopyBtn'))) {
+            && (t.closest('#paymentUrlCopyBtn') || t.closest('#paymentRepayUrlCopyBtn') || t.closest('#paymentUnifiedUrlCopyBtn') || t.closest('#qrPaymentUrlCopyBtn') || t.closest('#cryptoPaymentUrlCopyBtn') || t.closest('#chatbotPaymentUrlCopyBtn') || t.closest('#chatbotEmbedScriptCopyBtn') || t.closest('#chatbotQrOpenPng') || t.closest('#chatbotQrDownloadBtn') || t.closest('#webPayQrOpenPng') || t.closest('#webPayQrDownloadBtn') || t.closest('#checkoutQrPayQrOpenPng') || t.closest('#checkoutQrPayQrDownloadBtn') || t.closest('#unifiedPayQrOpenPng') || t.closest('#unifiedPayQrDownloadBtn') || t.closest('#splitPayUrlCopyBtn'))) {
             if (t.closest('#paymentUrlCopyBtn') && pgIsPaymentUrlLocked(pane)) {
               e.preventDefault();
               e.stopPropagation();
@@ -45165,6 +45384,18 @@
               return;
             }
             if ((t.closest('#webPayQrOpenPng') || t.closest('#webPayQrDownloadBtn')) && !(pane && pane._pgWebPayQrCompIdForDownload)) {
+              e.preventDefault();
+              e.stopPropagation();
+              e.stopImmediatePropagation();
+              return;
+            }
+            if ((t.closest('#checkoutQrPayQrOpenPng') || t.closest('#checkoutQrPayQrDownloadBtn')) && !(pane && pane._pgCheckoutQrPayQrCompIdForDownload)) {
+              e.preventDefault();
+              e.stopPropagation();
+              e.stopImmediatePropagation();
+              return;
+            }
+            if ((t.closest('#unifiedPayQrOpenPng') || t.closest('#unifiedPayQrDownloadBtn')) && !(pane && pane._pgUnifiedPayQrCompIdForDownload)) {
               e.preventDefault();
               e.stopPropagation();
               e.stopImmediatePropagation();

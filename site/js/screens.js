@@ -311,12 +311,14 @@
   /** 카드·QR·크립토 중 2개 이상일 때 통합 수단선택 URL */
   function merchantPaymentUnifiedUrlRowHtml(placeholderKo) {
     var ph = placeholderKo || '가맹점 저장 후 조회';
-    return '<div class="row mb-2" id="paymentUnifiedUrlRow"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="통합결제 URL">' + escUi(L('통합결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUnifiedUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '" data-pg-ui-placeholder="' + escUi(String(ph)) + '"><button type="button" class="btn btn-outline-primary" id="paymentUnifiedUrlCopyBtn" data-pg-ui-t="복사">' + escUi(L('복사')) + '</button></div><div class="form-text small text-muted" data-pg-ui-t="카드·QR·크립토 중 2개 이상일 때 자동 생성됩니다(/checkout-all).">' + escUi(L('카드·QR·크립토 중 2개 이상일 때 자동 생성됩니다(/checkout-all).')) + '</div></div></div>';
+    return '<div class="row mb-2" id="paymentUnifiedUrlRow"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="통합결제 URL">' + escUi(L('통합결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUnifiedUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '" data-pg-ui-placeholder="' + escUi(String(ph)) + '"><button type="button" class="btn btn-outline-primary" id="paymentUnifiedUrlCopyBtn" data-pg-ui-t="복사">' + escUi(L('복사')) + '</button></div><div class="form-text small text-muted" data-pg-ui-t="카드·QR·크립토 중 2개 이상일 때 자동 생성됩니다(/checkout-all).">' + escUi(L('카드·QR·크립토 중 2개 이상일 때 자동 생성됩니다(/checkout-all).')) + '</div></div></div>' +
+      merchantUnifiedPayQrRowHtml();
   }
 
   function merchantQrPaymentUrlRowHtml(placeholderKo) {
     var ph = placeholderKo || '가맹점 저장 후 조회';
-    return '<div class="row mb-2" id="qrPaymentUrlRow"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="QR 결제 URL">' + escUi(L('QR 결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="qrPaymentUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '" data-pg-ui-placeholder="' + escUi(String(ph)) + '"><button type="button" class="btn btn-outline-primary" id="qrPaymentUrlCopyBtn" data-pg-ui-t="복사">' + escUi(L('복사')) + '</button></div><div class="form-text small text-muted" data-pg-ui-t="결제대행사 설정의 QR(PayPay·QBANG)이 있을 때 /checkout-qr 로 생성됩니다.">' + escUi(L('결제대행사 설정의 QR(PayPay·QBANG)이 있을 때 /checkout-qr 로 생성됩니다.')) + '</div></div></div>';
+    return '<div class="row mb-2" id="qrPaymentUrlRow"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="QR 결제 URL">' + escUi(L('QR 결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="qrPaymentUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '" data-pg-ui-placeholder="' + escUi(String(ph)) + '"><button type="button" class="btn btn-outline-primary" id="qrPaymentUrlCopyBtn" data-pg-ui-t="복사">' + escUi(L('복사')) + '</button></div><div class="form-text small text-muted" data-pg-ui-t="결제대행사 설정의 QR(PayPay·QBANG)이 있을 때 /checkout-qr 로 생성됩니다.">' + escUi(L('결제대행사 설정의 QR(PayPay·QBANG)이 있을 때 /checkout-qr 로 생성됩니다.')) + '</div></div></div>' +
+      merchantCheckoutQrPayQrRowHtml();
   }
 
   function merchantCryptoPaymentUrlRowHtml(placeholderKo) {
@@ -1346,6 +1348,38 @@
       '<div class="d-flex flex-column gap-2 align-items-stretch">' +
       '<a class="btn btn-outline-primary btn-sm" id="webPayQrOpenPng" href="#" target="_blank" rel="noopener" data-pg-ui-t="QR 열기">' + escUi(L('QR 열기')) + '</a>' +
       '<button type="button" class="btn btn-outline-secondary btn-sm" id="webPayQrDownloadBtn" data-pg-ui-t="PNG 저장">' + escUi(L('PNG 저장')) + '</button></div></div></div></div>';
+  }
+
+  /** 가맹점 배포용: QR 결제 /checkout-qr 고정 URL PNG */
+  function merchantCheckoutQrPayQrRowHtml() {
+    return '<div class="row mb-2" id="checkoutQrPayQrRow" style="display:none">' +
+      '<div class="col-12">' +
+      '<label class="form-label" data-pg-ui-t="QR 결제 QR">' + escUi(L('QR 결제 QR')) + '</label>' +
+      '<div class="form-text text-muted small mb-1" data-pg-ui-t="카메라로 스캔하면 QR 결제 페이지(/checkout-qr)로 이동합니다. 테이블·POP·매장 안내용 고정 URL QR입니다.">' +
+      escUi(L('카메라로 스캔하면 QR 결제 페이지(/checkout-qr)로 이동합니다. 테이블·POP·매장 안내용 고정 URL QR입니다.')) + '</div>' +
+      '<div class="d-flex flex-wrap align-items-start gap-3">' +
+      '<div class="d-flex align-items-center justify-content-center border rounded bg-light" style="width:188px;height:188px">' +
+      '<img id="checkoutQrPayQrImg" alt="" width="176" height="176" class="d-none" decoding="async" />' +
+      '<span id="checkoutQrPayQrPlaceholder" class="text-muted small">—</span></div>' +
+      '<div class="d-flex flex-column gap-2 align-items-stretch">' +
+      '<a class="btn btn-outline-primary btn-sm" id="checkoutQrPayQrOpenPng" href="#" target="_blank" rel="noopener" data-pg-ui-t="QR 열기">' + escUi(L('QR 열기')) + '</a>' +
+      '<button type="button" class="btn btn-outline-secondary btn-sm" id="checkoutQrPayQrDownloadBtn" data-pg-ui-t="PNG 저장">' + escUi(L('PNG 저장')) + '</button></div></div></div></div>';
+  }
+
+  /** 가맹점 배포용: 통합결제 /checkout-all 고정 URL PNG */
+  function merchantUnifiedPayQrRowHtml() {
+    return '<div class="row mb-2" id="unifiedPayQrRow" style="display:none">' +
+      '<div class="col-12">' +
+      '<label class="form-label" data-pg-ui-t="통합결제 QR">' + escUi(L('통합결제 QR')) + '</label>' +
+      '<div class="form-text text-muted small mb-1" data-pg-ui-t="카메라로 스캔하면 통합결제 페이지(/checkout-all)로 이동합니다. 카드·QR·크립토 중 2개 이상일 때 표시됩니다.">' +
+      escUi(L('카메라로 스캔하면 통합결제 페이지(/checkout-all)로 이동합니다. 카드·QR·크립토 중 2개 이상일 때 표시됩니다.')) + '</div>' +
+      '<div class="d-flex flex-wrap align-items-start gap-3">' +
+      '<div class="d-flex align-items-center justify-content-center border rounded bg-light" style="width:188px;height:188px">' +
+      '<img id="unifiedPayQrImg" alt="" width="176" height="176" class="d-none" decoding="async" />' +
+      '<span id="unifiedPayQrPlaceholder" class="text-muted small">—</span></div>' +
+      '<div class="d-flex flex-column gap-2 align-items-stretch">' +
+      '<a class="btn btn-outline-primary btn-sm" id="unifiedPayQrOpenPng" href="#" target="_blank" rel="noopener" data-pg-ui-t="QR 열기">' + escUi(L('QR 열기')) + '</a>' +
+      '<button type="button" class="btn btn-outline-secondary btn-sm" id="unifiedPayQrDownloadBtn" data-pg-ui-t="PNG 저장">' + escUi(L('PNG 저장')) + '</button></div></div></div></div>';
   }
 
   /** 상품관리 — 플랜·프로모션 안내(alert, i18n) */

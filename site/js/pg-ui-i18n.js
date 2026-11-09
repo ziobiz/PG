@@ -17917,6 +17917,42 @@
       CH: '网页支付 QR',
       TH: 'QR ชำระเว็บ'
     },
+    'QR 결제 QR': {
+      EN: 'QR payment QR',
+      JP: 'QR決済 QR',
+      CH: 'QR 支付 QR',
+      TH: 'QR ชำระ QR'
+    },
+    '통합결제 QR': {
+      EN: 'Unified payment QR',
+      JP: '統合決済 QR',
+      CH: '整合支付 QR',
+      TH: 'QR ชำระรวม'
+    },
+    '카메라로 스캔하면 QR 결제 페이지(/checkout-qr)로 이동합니다. 테이블·POP·매장 안내용 고정 URL QR입니다.': {
+      EN: 'Scan with a camera to open the QR checkout page (/checkout-qr). Fixed URL QR for tables, POP, or in-store signage.',
+      JP: 'カメラでスキャンするとQR決済ページ(/checkout-qr)へ移動します。テーブル・POP・店頭案内用の固定URL QRです。',
+      CH: '用相机扫描即可进入 QR 结账页(/checkout-qr)。用于桌台、POP、店内指引的固定 URL QR。',
+      TH: 'สแกนด้วยกล้องเพื่อเปิดหน้าชำระ QR (/checkout-qr) เป็น QR URL คงที่สำหรับโต๊ะ POP หรือป้ายในร้าน'
+    },
+    '카메라로 스캔하면 통합결제 페이지(/checkout-all)로 이동합니다. 카드·QR·크립토 중 2개 이상일 때 표시됩니다.': {
+      EN: 'Scan with a camera to open unified checkout (/checkout-all). Shown when two or more of card, QR, and crypto are on.',
+      JP: 'カメラでスキャンすると統合決済ページ(/checkout-all)へ移動します。カード・QR・クリプトのうち2つ以上のとき表示されます。',
+      CH: '用相机扫描即可进入整合结账页(/checkout-all)。在银行卡、QR、加密中启用两种及以上时显示。',
+      TH: 'สแกนด้วยกล้องเพื่อเปิดหน้าชำระรวม (/checkout-all) แสดงเมื่อเปิดอย่างน้อย 2 จากบัตร QR คริปโต'
+    },
+    'QR 결제 QR를 불러올 수 없습니다. QR 사용·결제대행사 QR 설정을 확인하세요.': {
+      EN: 'Cannot load QR payment QR. Check QR use and acquirer QR settings.',
+      JP: 'QR決済QRを読み込めません。QR利用・決済代行QR設定を確認してください。',
+      CH: '无法加载 QR 支付 QR。请确认 QR 使用与收单 QR 设置。',
+      TH: 'โหลด QR ชำระ QR ไม่ได้ ตรวจสอบการใช้ QR และการตั้งค่า QR ของผู้รับชำระ'
+    },
+    '통합결제 QR를 불러올 수 없습니다. 카드·QR·크립토 중 2개 이상인지 확인하세요.': {
+      EN: 'Cannot load unified payment QR. Confirm two or more of card, QR, and crypto are enabled.',
+      JP: '統合決済QRを読み込めません。カード・QR・クリプトが2つ以上か確認してください。',
+      CH: '无法加载整合支付 QR。请确认银行卡、QR、加密中已启用两种及以上。',
+      TH: 'โหลด QR ชำระรวมไม่ได้ ตรวจว่าเปิดอย่างน้อย 2 จากบัตร QR คริปโต'
+    },
     'QR 상단이름': {
       EN: 'QR top name',
       JP: 'QR上部名称',
