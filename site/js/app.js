@@ -6198,7 +6198,8 @@
             : ((pgKindRaw === 'ilk' || pgKindRaw === 'ilkpay') ? 'ilk'
               : ((pgKindRaw === 'qxipay' || pgKindRaw === 'qxpay') ? 'qxipay'
                 : ((pgKindRaw === 'omspay' || pgKindRaw === 'oms' || pgKindRaw === 'waylar') ? 'omspay'
-                  : ((pgKindRaw === 'payso' || pgKindRaw === 'paysolutions') ? 'payso' : 'jpay')))));
+                  : ((pgKindRaw === 'payso' || pgKindRaw === 'paysolutions') ? 'payso'
+                    : ((pgKindRaw === 'ksnet' || pgKindRaw === 'kspay') ? 'ksnet' : 'jpay'))))));
         var body = {
           id: id,
           pgKind: pgKind,
@@ -6338,6 +6339,7 @@
             if (k === 'qxipay' || k === 'qxpay') return 'QXIPAY';
             if (k === 'omspay' || k === 'oms' || k === 'waylar') return 'OMSPAY';
             if (k === 'payso' || k === 'paysolutions') return 'PAYSO';
+            if (k === 'ksnet' || k === 'kspay') return 'KSNET';
             if (k === 'qbang' || k === 'qbank' || k === 'qrbank') return 'QBANG';
             return 'JPAY';
           })(), 'text-nowrap small');
@@ -6350,9 +6352,9 @@
           var kindLow = String(r.pgKind || '').toLowerCase();
           var routeLow = String(r.routeNo || '').toLowerCase();
           var isFixedIngress = kindLow === 'elementpay' || kindLow === 'ox' || kindLow === 'ilk'
-            || kindLow === 'qxipay' || kindLow === 'omspay' || kindLow === 'payso'
+            || kindLow === 'qxipay' || kindLow === 'omspay' || kindLow === 'payso' || kindLow === 'ksnet'
             || routeLow === 'elementpay' || routeLow === 'ox' || routeLow === 'ilk'
-            || routeLow === 'qxipay' || routeLow === 'omspay' || routeLow === 'payso';
+            || routeLow === 'qxipay' || routeLow === 'omspay' || routeLow === 'payso' || routeLow === 'ksnet';
           var slotDisp = isFixedIngress ? '—' : (r.routeNo || (r.slotNo != null ? String(r.slotNo) : ''));
           tdText(slotDisp, 'text-nowrap small');
           tdUrlOnly(r.jpayNotifyUrl);
@@ -6477,7 +6479,8 @@
           : (pgKind === 'qxipay' || pgKind === 'qxpay' ? 'qxipay'
             : (pgKind === 'omspay' || pgKind === 'oms' || pgKind === 'waylar' ? 'omspay'
               : (pgKind === 'payso' || pgKind === 'paysolutions' ? 'payso'
-                : (pgKind === 'qbang' || pgKind === 'qbank' || pgKind === 'qrbank' ? 'qbang' : 'jpay'))))));
+                : (pgKind === 'ksnet' || pgKind === 'kspay' ? 'ksnet'
+                  : (pgKind === 'qbang' || pgKind === 'qbank' || pgKind === 'qrbank' ? 'qbang' : 'jpay')))))));
       var src = Array.isArray(list) ? list : [];
       var out = [];
       src.forEach(function (it) {
@@ -6507,11 +6510,16 @@
           if (p === 'omspay' || p === 'oms' || p === 'waylar') out.push(it);
           return;
         }
+        if (pg === 'ksnet') {
+          if (p === 'ksnet' || p === 'kspay') out.push(it);
+          return;
+        }
         if (pg === 'qbang') {
           if (p === 'qbang' || p === 'qbank' || p === 'qrbank') out.push(it);
           return;
         }
-        // JPAY 노티생성: JPAY·ChillPay·미지정 대상 (ElementPay·ox·ILK·QXIPAY·OMSPAY·QBANG 전용 제외)
+        // JPAY 노티생성: JPAY·ChillPay·미지정 대상 (ElementPay·ox·ILK·QXIPAY·OMSPAY·QBANG·KSNET 전용 제외)
+        if (p === 'ksnet' || p === 'kspay') return;
         if (p === 'elementpay' || p === 'ep' || p === 'ox' || p === 'oxpay' || p === 'ilk' || p === 'ilkkorea' || p === 'ilkpay' || p === 'qxipay' || p === 'qxpay' || p === 'omspay' || p === 'oms' || p === 'waylar' || p === 'qbang' || p === 'qbank' || p === 'qrbank') return;
         out.push(it);
       });
@@ -7197,7 +7205,7 @@
           return;
         }
         var pgKind = opsNpSelectedPgKind();
-        var fixed = pgKind === 'elementpay' || pgKind === 'ox' || pgKind === 'ilk' || pgKind === 'qxipay' || pgKind === 'omspay' || pgKind === 'payso' || pgKind === 'qbang';
+        var fixed = pgKind === 'elementpay' || pgKind === 'ox' || pgKind === 'ilk' || pgKind === 'qxipay' || pgKind === 'omspay' || pgKind === 'payso' || pgKind === 'ksnet' || pgKind === 'qbang';
         var slotVal = (pane.querySelector('#opsNpPgSlotNo') || {}).value || '';
         if (!fixed && String(slotVal).trim() && !opsNpSlotAutoMode && !opsNpSlotReviewed) {
           alert(pgAdminUiT('수동 슬롯 번호는 [슬롯검토]를 실행하거나 [자동]을 사용하세요.'));
@@ -7205,6 +7213,8 @@
         }
         var confirmMsg = pgKind === 'qbang'
           ? 'NOTI에 QBANG 가맹을 생성(또는 조회)합니다. Webhook 고정 URL(/noti/qbang)을 수신통보에 반영합니다. 계속하시겠습니까?'
+          : (pgKind === 'ksnet'
+          ? 'NOTI에 KSNET 가맹을 생성(또는 조회)합니다. Webhook 고정 URL(/noti/ksnet)을 수신통보에 반영합니다. 계속하시겠습니까?'
           : (pgKind === 'payso'
           ? 'NOTI에 PAYSO 가맹을 생성(또는 조회)합니다. Webhook 고정 URL(/noti/payso)을 수신통보에 반영합니다. 계속하시겠습니까?'
           : (pgKind === 'omspay'
@@ -7217,7 +7227,7 @@
           ? 'NOTI에 ox 가맹을 생성(또는 조회)합니다. Webhook·Result 고정 URL을 수신통보에 반영합니다. 계속하시겠습니까?'
           : (pgKind === 'elementpay'
             ? 'NOTI에 ElementPay 가맹을 생성(또는 조회)합니다. Webhook·Result 고정 URL을 수신통보에 반영합니다. 계속하시겠습니까?'
-            : 'NOTI에 JPAY 가맹을 생성(또는 조회)하고 ICOPAY 업체 URL을 반영합니다. 계속하시겠습니까?'))))));
+            : 'NOTI에 JPAY 가맹을 생성(또는 조회)하고 ICOPAY 업체 URL을 반영합니다. 계속하시겠습니까?')))))));
         if (!confirm(pgAdminUiT(confirmMsg))) return;
         var dimm = document.getElementById('dimm');
         if (dimm) dimm.style.display = 'flex';
@@ -7288,8 +7298,9 @@
         setTxt('#opsNpLogEditDate', data.provisionedDate || '');
         var kindLow = String(data.pgKind || '').toLowerCase();
         var routeLow = String(data.routeNo || '').toLowerCase();
-        if (kindLow !== 'elementpay' && kindLow !== 'ox' && kindLow !== 'ilk' && kindLow !== 'qxipay' && kindLow !== 'omspay' && kindLow !== 'payso' && kindLow !== 'qbang' && kindLow !== 'jpay') {
+        if (kindLow !== 'elementpay' && kindLow !== 'ox' && kindLow !== 'ilk' && kindLow !== 'qxipay' && kindLow !== 'omspay' && kindLow !== 'payso' && kindLow !== 'ksnet' && kindLow !== 'qbang' && kindLow !== 'jpay') {
           if (routeLow === 'qbang' || routeLow === 'qbank') kindLow = 'qbang';
+          else if (routeLow === 'ksnet' || routeLow === 'kspay') kindLow = 'ksnet';
           else if (routeLow === 'payso' || routeLow === 'paysolutions') kindLow = 'payso';
           else if (routeLow === 'omspay') kindLow = 'omspay';
           else if (routeLow === 'qxipay') kindLow = 'qxipay';
@@ -7304,6 +7315,7 @@
           var k = String(kind || '').toLowerCase();
           if (k === 'qbang') return 'QBANG';
           if (k === 'payso') return 'PAYSO';
+          if (k === 'ksnet') return 'KSNET';
           if (k === 'omspay') return 'OMSPAY';
           if (k === 'qxipay') return 'QXIPAY';
           if (k === 'ilk') return 'ILKPAY';
@@ -8560,6 +8572,7 @@
     if (pgIsEximbayFamilyPgCd(pgCd)) return '/checkout/';
     if (pgIsElementPayFamilyPgCd(pgCd)) return '/checkout/';
     if (pgIsIlkFamilyPgCd(pgCd)) return '/checkout/';
+    if (pgIsKsnetFamilyPgCd(pgCd)) return '/checkout/';
     /* ChillPay 등 레거시도 중립 경로(서버가 운영 PG로 forward) */
     return '/checkout/';
   }
@@ -8574,6 +8587,13 @@
     if (!pgCd) return false;
     var u = pgNormalizePgCdKey(pgCd);
     return u === 'ILK' || u.indexOf('ILK_') === 0;
+  }
+
+  /** KSNET(KSPAY 해외 USD 결제창) 계열 — 서버 {@code PgVendor.isKsnetFamily} 와 동일. */
+  function pgIsKsnetFamilyPgCd(pgCd) {
+    if (!pgCd) return false;
+    var u = pgNormalizePgCdKey(pgCd);
+    return u === 'KSNET' || u.indexOf('KSNET_') === 0 || u.indexOf('KSPAY') === 0;
   }
 
   /**
@@ -26017,11 +26037,29 @@
           if (!row || !row.id) { alert(pgAdminUiT('선택한 행을 찾을 수 없습니다.')); return; }
           var tx = prompt(pgAdminUiT('입금 Tx 해시를 입력하세요.'), row.depositTxHash || '');
           if (tx == null || !String(tx).trim()) return;
-          window.PG_API.hqCryptoDepositConfirm({ id: row.id, depositTxHash: String(tx).trim() }).then(function () {
-            alert(pgAdminUiT('입금이 확정되었습니다.'));
+          var txTrim = String(tx).trim();
+          function reloadCryptoDeposits() {
             var searchBtn = pane.querySelector('#searchBtn');
             if (searchBtn) searchBtn.click();
-          }).catch(function (e) { alert(pgErrMsg(e, '입금확정 실패')); });
+          }
+          window.PG_API.hqCryptoDepositConfirm({ id: row.id, depositTxHash: txTrim }).then(function () {
+            alert(pgAdminUiT('입금이 확정되었습니다.'));
+            reloadCryptoDeposits();
+          }).catch(function (e) {
+            var msg = pgErrMsg(e, '입금확정 실패');
+            if (!confirm(msg + '\n\n' + pgAdminUiT('온체인 검증에 실패했습니다. OTP로 강제 확정할까요?'))) return;
+            var otp = prompt(pgAdminUiT('Google OTP 코드를 입력하세요.'), '');
+            if (otp == null || !String(otp).trim()) return;
+            window.PG_API.hqCryptoDepositConfirm({
+              id: row.id,
+              depositTxHash: txTrim,
+              forceYn: 'Y',
+              totpCode: String(otp).trim()
+            }).then(function () {
+              alert(pgAdminUiT('입금이 확정되었습니다.'));
+              reloadCryptoDeposits();
+            }).catch(function (e2) { alert(pgErrMsg(e2, '입금확정 실패')); });
+          });
         });
       }
     }
@@ -26038,7 +26076,13 @@
           if (!row || !row.id) { alert(pgAdminUiT('선택한 행을 찾을 수 없습니다.')); return; }
           var tx = prompt(pgAdminUiT('출금 Tx 해시를 입력하세요.'), row.payoutTxHash || '');
           if (tx == null || !String(tx).trim()) return;
-          window.PG_API.hqCryptoPayoutManualSent({ id: row.id, payoutTxHash: String(tx).trim() }).then(function () {
+          var otp = prompt(pgAdminUiT('Google OTP 코드를 입력하세요.'), '');
+          if (otp == null || !String(otp).trim()) return;
+          window.PG_API.hqCryptoPayoutManualSent({
+            id: row.id,
+            payoutTxHash: String(tx).trim(),
+            totpCode: String(otp).trim()
+          }).then(function () {
             alert(pgAdminUiT('반자동 출금을 등록했습니다.'));
             var searchBtn = pane.querySelector('#searchBtn');
             if (searchBtn) searchBtn.click();
@@ -26048,9 +26092,19 @@
       var autoBtn = pane.querySelector('#cryptoPayoutAutoRunBtn');
       if (autoBtn) {
         autoBtn.addEventListener('click', function () {
-          if (!confirm(pgAdminUiT('AUTO 출금 큐를 실행할까요?'))) return;
+          if (!confirm(pgAdminUiT('AUTO 출금 큐를 실행할까요? (지갑 API 미연동 시 SENT 하지 않고 READY 유지)'))) return;
           window.PG_API.hqCryptoPayoutAutoRun({ limit: 50 }).then(function (data) {
-            alert(pgAdminUiT('AUTO 처리 건수') + ': ' + ((data && data.processed) || 0));
+            var sent = (data && data.sent != null) ? data.sent : ((data && data.processed) || 0);
+            var skipped = (data && data.skipped != null) ? data.skipped : 0;
+            var failed = (data && data.failed != null) ? data.failed : 0;
+            var note = '';
+            if (data && data.autoEnabled === false && data.disabledReason) {
+              note = '\n' + String(data.disabledReason);
+            }
+            alert(pgAdminUiT('AUTO 송금완료') + ': ' + sent
+              + ' / ' + pgAdminUiT('건너뜀') + ': ' + skipped
+              + ' / ' + pgAdminUiT('실패') + ': ' + failed
+              + note);
             var searchBtn = pane.querySelector('#searchBtn');
             if (searchBtn) searchBtn.click();
           }).catch(function (e) { alert(pgErrMsg(e, 'AUTO 실행 실패')); });
@@ -26452,6 +26506,35 @@
             ? String(td)
             : '암호화폐로 결제합니다. 자산·네트워크·지갑을 선택한 뒤 안내 주소로 입금해 주세요.';
         }
+        var watchEl = pane.querySelector('[name="cryptoChainWatchEnabledYn"]');
+        if (watchEl && data) {
+          watchEl.value = String(data.cryptoChainWatchEnabledYn || 'Y').toUpperCase() === 'N' ? 'N' : 'Y';
+        }
+        var alk = pane.querySelector('[name="alchemyApiKey"]');
+        if (alk && data) {
+          alk.value = data.alchemyApiKey != null ? String(data.alchemyApiKey) : '';
+        }
+        var trk = pane.querySelector('[name="trongridApiKey"]');
+        if (trk && data) {
+          trk.value = data.trongridApiKey != null ? String(data.trongridApiKey) : '';
+        }
+        function chainKeyStatusHtml(configured, source, masked) {
+          if (!configured) {
+            return pgAdminUiT('미설정') + ' (' + pgAdminUiT('공개 RPC 폴백') + ')';
+          }
+          var src = String(source || '').toUpperCase() === 'HQ'
+            ? pgAdminUiT('본사 저장')
+            : (String(source || '').toUpperCase() === 'ENV' ? pgAdminUiT('서버 환경변수') : source);
+          return pgAdminUiT('설정됨') + ' · ' + src + (masked ? ' · ' + masked : '');
+        }
+        var alkSt = pane.querySelector('#hqCryptoAlchemyKeyStatus');
+        if (alkSt && data) {
+          alkSt.textContent = chainKeyStatusHtml(data.alchemyApiKeyConfigured, data.alchemyKeySource, data.alchemyApiKeyMasked);
+        }
+        var trkSt = pane.querySelector('#hqCryptoTrongridKeyStatus');
+        if (trkSt && data) {
+          trkSt.textContent = chainKeyStatusHtml(data.trongridApiKeyConfigured, data.trongridKeySource, data.trongridApiKeyMasked);
+        }
         if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
           try { window.PG_UI_I18N.applyDom(pane); } catch (eI) { /* ignore */ }
         }
@@ -26487,6 +26570,63 @@
           }).finally(function () {
             if (dimmCopy) dimmCopy.style.display = 'none';
           });
+        });
+      }
+      function runChainApiTest(vendor) {
+        var dimm = document.getElementById('dimm');
+        if (dimm) dimm.style.display = 'flex';
+        window.PG_API.hqCryptoChainApiTest({ vendor: vendor }).then(function (data) {
+          var ok = data && data.success;
+          var msg = (data && data.message) || (ok ? pgAdminUiT('연결 정상') : pgAdminUiT('연결 실패'));
+          alert((ok ? 'OK' : 'FAIL') + ' [' + vendor + ']\n' + msg);
+        }).catch(function (e) {
+          alert(pgErrMsg(e, '연결 테스트 실패'));
+        }).finally(function () {
+          if (dimm) dimm.style.display = 'none';
+        });
+      }
+      var alkTestBtn = pane.querySelector('#hqCryptoAlchemyTestBtn');
+      if (alkTestBtn && !alkTestBtn._bound) {
+        alkTestBtn._bound = true;
+        alkTestBtn.addEventListener('click', function () { runChainApiTest('ALCHEMY'); });
+      }
+      var tronTestBtn = pane.querySelector('#hqCryptoTrongridTestBtn');
+      if (tronTestBtn && !tronTestBtn._bound) {
+        tronTestBtn._bound = true;
+        tronTestBtn.addEventListener('click', function () { runChainApiTest('TRONGRID'); });
+      }
+      var chainApiSaveBtn = pane.querySelector('#hqCryptoChainApiSaveBtn');
+      if (chainApiSaveBtn && !chainApiSaveBtn._hqCryptoChainApiSaveBound) {
+        chainApiSaveBtn._hqCryptoChainApiSaveBound = true;
+        chainApiSaveBtn.addEventListener('click', function () {
+          var watchEl = pane.querySelector('[name="cryptoChainWatchEnabledYn"]');
+          var alkEl = pane.querySelector('[name="alchemyApiKey"]');
+          var trkEl = pane.querySelector('[name="trongridApiKey"]');
+          var askOtp = typeof window.pgPromptGoogleOtpSixDigits === 'function'
+            ? window.pgPromptGoogleOtpSixDigits
+            : null;
+          var otpP = askOtp
+            ? askOtp(pgAdminUiT('온체인 감시 API 저장을 위해 Google OTP 6자리를 입력하세요.'))
+            : Promise.resolve(prompt(pgAdminUiT('Google OTP 코드를 입력하세요.'), '') || '');
+          otpP.then(function (otp) {
+            if (otp == null || !String(otp).trim()) return;
+            var body = {
+              cryptoChainWatchEnabledYn: watchEl ? watchEl.value : 'Y',
+              alchemyApiKey: alkEl ? String(alkEl.value || '').trim() : '',
+              trongridApiKey: trkEl ? String(trkEl.value || '').trim() : '',
+              totpCode: String(otp).trim()
+            };
+            var dimm = document.getElementById('dimm');
+            if (dimm) dimm.style.display = 'flex';
+            window.PG_API.hqCryptoChainApiSave(body).then(function () {
+              alert(pgAdminUiT('온체인 감시 API를 저장했습니다.'));
+              reloadHqCrypto();
+            }).catch(function (e) {
+              alert(pgErrMsg(e, '저장 실패'));
+            }).finally(function () {
+              if (dimm) dimm.style.display = 'none';
+            });
+          }).catch(function () { /* OTP cancel */ });
         });
       }
       pane.addEventListener('dblclick', function (e) {

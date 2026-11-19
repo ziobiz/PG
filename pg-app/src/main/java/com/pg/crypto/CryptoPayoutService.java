@@ -18,7 +18,8 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 /**
- * 크립토 출금 큐 — MANUAL(반자동 Tx등록) + AUTO(외부 API 자리, 스케줄 READY 처리).
+ * 크립토 출금 큐 — MANUAL(반자동 Tx등록) + AUTO(지갑 API, 스케줄 READY 처리).
+ * AUTO 는 실제 Tx 해시 없이 SENT 하지 않는다(스텁 금지).
  * 출금 차감: CRYPTO 수수료(조직%) + 가스피(본사 마스터) + 정산수수료(건) + reserve(%) — 가스·정산·reserve는 조직%와 별개.
  */
 @Service
@@ -28,15 +29,18 @@ public class CryptoPayoutService {
     private final CryptoGasFeeService gasFeeService;
     private final CommissionService commissionService;
     private final CryptoReserveResolver reserveResolver;
+    private final CryptoPayoutWalletGateway walletGateway;
 
     public CryptoPayoutService(CryptoPayoutQueueRepository payoutQueueRepository,
                                CryptoGasFeeService gasFeeService,
                                CommissionService commissionService,
-                               CryptoReserveResolver reserveResolver) {
+                               CryptoReserveResolver reserveResolver,
+                               CryptoPayoutWalletGateway walletGateway) {
         this.payoutQueueRepository = payoutQueueRepository;
         this.gasFeeService = gasFeeService;
         this.commissionService = commissionService;
         this.reserveResolver = reserveResolver;
+        this.walletGateway = walletGateway;
     }
 
     @Transactional
@@ -133,7 +137,11 @@ public class CryptoPayoutService {
         if (txHash == null || txHash.isBlank()) {
             throw new IllegalArgumentException("payoutTxHash가 필요합니다.");
         }
-        q.setPayoutTxHash(txHash.trim());
+        String hash = txHash.trim();
+        if (CryptoHttpPayoutWalletGateway.isStubHash(hash)) {
+            throw new IllegalArgumentException("스텁·가짜 Tx 해시는 등록할 수 없습니다. 실제 온체인 Tx 해시를 입력하세요.");
+        }
+        q.setPayoutTxHash(hash);
         q.setStatus(CryptoPayoutQueue.ST_SENT);
         q.setProcessedAt(LocalDateTime.now());
         q.setErrorMessage(null);
@@ -158,29 +166,73 @@ public class CryptoPayoutService {
 
     /**
      * AUTO 모드 READY 건 처리.
-     * 외부 출금 API가 아직 없으면 PROCESSING 표시 후 안내 메시지로 FAILED 방지 — stub success 토큰 기록.
+     * 지갑 API 미연동·비활성이면 READY 유지(SENT/스텁 금지). 연동 시 실제 Tx 해시로만 SENT.
      */
     @Transactional
-    public int processAutoReady(int limit) {
+    public Map<String, Object> processAutoReady(int limit) {
         releaseDueHolds();
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("autoEnabled", walletGateway.isExecuteEnabled());
+        summary.put("walletConfigured", walletGateway.isConfigured());
+        summary.put("disabledReason", walletGateway.isExecuteEnabled() ? "" : walletGateway.disabledReason());
+
         List<CryptoPayoutQueue> ready = payoutQueueRepository
                 .findByPayoutModeAndStatusAndScheduledAtLessThanEqual(
                         MerchantCryptoConfig.PAYOUT_AUTO, CryptoPayoutQueue.ST_READY, LocalDateTime.now());
-        int n = 0;
+        int sent = 0;
+        int skipped = 0;
+        int failed = 0;
+        int examined = 0;
         for (CryptoPayoutQueue q : ready) {
-            if (n >= Math.max(1, limit)) {
+            if (examined >= Math.max(1, limit)) {
                 break;
             }
+            examined++;
+            if (!walletGateway.isExecuteEnabled()) {
+                String reason = walletGateway.disabledReason();
+                if (q.getErrorMessage() == null || !reason.equals(q.getErrorMessage())) {
+                    q.setErrorMessage(reason);
+                    payoutQueueRepository.save(q);
+                }
+                skipped++;
+                continue;
+            }
             q.setStatus(CryptoPayoutQueue.ST_PROCESSING);
-            String stub = "AUTO_QUEUED_" + System.currentTimeMillis();
-            q.setPayoutTxHash(stub);
-            q.setStatus(CryptoPayoutQueue.ST_SENT);
-            q.setProcessedAt(LocalDateTime.now());
-            q.setErrorMessage("AUTO stub queued — wire external wallet API");
             payoutQueueRepository.save(q);
-            n++;
+
+            CryptoPayoutWalletGateway.Result result = walletGateway.send(q);
+            if (result.success() && result.txHash() != null && !result.txHash().isBlank()
+                    && !CryptoHttpPayoutWalletGateway.isStubHash(result.txHash())) {
+                q.setPayoutTxHash(result.txHash().trim());
+                q.setStatus(CryptoPayoutQueue.ST_SENT);
+                q.setProcessedAt(LocalDateTime.now());
+                q.setErrorMessage(null);
+                payoutQueueRepository.save(q);
+                sent++;
+                continue;
+            }
+            String msg = result.message() != null ? result.message() : "AUTO 출금 실패";
+            if (result.retryable()) {
+                q.setStatus(CryptoPayoutQueue.ST_READY);
+                q.setErrorMessage(msg);
+                q.setPayoutTxHash(null);
+                payoutQueueRepository.save(q);
+                skipped++;
+            } else {
+                q.setStatus(CryptoPayoutQueue.ST_FAILED);
+                q.setErrorMessage(msg);
+                q.setProcessedAt(LocalDateTime.now());
+                q.setPayoutTxHash(null);
+                payoutQueueRepository.save(q);
+                failed++;
+            }
         }
-        return n;
+        summary.put("examined", examined);
+        summary.put("sent", sent);
+        summary.put("skipped", skipped);
+        summary.put("failed", failed);
+        summary.put("processed", sent);
+        return summary;
     }
 
     @Transactional
@@ -193,9 +245,15 @@ public class CryptoPayoutService {
         q.setStatus(CryptoPayoutQueue.ST_READY);
         q.setScheduledAt(LocalDateTime.now());
         q.setErrorMessage(null);
+        q.setPayoutTxHash(null);
+        q.setProcessedAt(null);
         payoutQueueRepository.save(q);
-        processAutoReady(1);
-        return Map.of("success", true, "id", id);
+        Map<String, Object> run = processAutoReady(1);
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("success", true);
+        out.put("id", id);
+        out.putAll(run);
+        return out;
     }
 
     private Map<String, Object> toRow(CryptoPayoutQueue q) {

@@ -94,8 +94,22 @@ public class PaysoSaleRecordService {
                 t.setCustomerTel(tel);
             }
             if (paysoTxnId != null && !paysoTxnId.isBlank()) {
-                t.setChillTransactionId(paysoTxnId.trim());
-                t.setPayNo(paysoTxnId.trim());
+                String id = paysoTxnId.trim();
+                /*
+                 * Payso postback refno = 우리가 보낸 referenceNo(≤12 숫자).
+                 * transactionId(긴 hex)와 분리 저장해야 웹훅 역추적이 된다.
+                 */
+                if (id.matches("^[0-9]{1,12}$")) {
+                    t.setPayNo(id);
+                    if (t.getApprovalNo() == null || t.getApprovalNo().isBlank()) {
+                        t.setApprovalNo(id);
+                    }
+                } else {
+                    t.setChillTransactionId(id);
+                    if (t.getPayNo() == null || t.getPayNo().isBlank()) {
+                        t.setPayNo(id);
+                    }
+                }
             }
             if (txnOrigin != null && !txnOrigin.isBlank()) {
                 t.setOrigin(txnOrigin);

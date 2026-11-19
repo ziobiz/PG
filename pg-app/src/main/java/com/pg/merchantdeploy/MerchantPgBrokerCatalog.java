@@ -57,6 +57,10 @@ public class MerchantPgBrokerCatalog {
                         "/api/pay/eximbay/verify"
                 )
         ));
+        /*
+         * KSNET·PAYSO·OMSPAY 등 통합(ICOPAY) 전용 PG는 가맹 배포 키트에 PG별 블록을 추가하지 않는다
+         * (pg-unified-payment-integration #8). 벤더 상수는 MerchantPgBrokerVendor.KSNET 로 등록.
+         */
         this.definitions = Collections.unmodifiableList(list);
     }
 

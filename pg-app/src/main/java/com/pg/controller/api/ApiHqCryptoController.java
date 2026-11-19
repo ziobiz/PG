@@ -51,6 +51,34 @@ public class ApiHqCryptoController {
         }
     }
 
+    /** 온체인 입금 감시 API(Alchemy·TronGrid). Google OTP 필수. */
+    @PostMapping("/chain-api/save")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> saveChainApi(@RequestBody Map<String, Object> body) {
+        try {
+            denyIfMerchantMutates();
+            requireTotp(body);
+            return ResponseEntity.ok(ApiResponse.ok(adminService.saveChainApiSettings(body)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "INVALID"));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "OTP_REQUIRED"));
+        }
+    }
+
+    /** Alchemy / TronGrid 연결 테스트 (저장 전·후 확인). */
+    @PostMapping("/chain-api/test")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> testChainApi(
+            @RequestBody(required = false) Map<String, Object> body) {
+        try {
+            denyIfMerchantMutates();
+            String vendor = body != null && body.get("vendor") != null
+                    ? String.valueOf(body.get("vendor")) : "TRONGRID";
+            return ResponseEntity.ok(ApiResponse.ok(adminService.testChainApi(vendor)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "FORBIDDEN"));
+        }
+    }
+
     /** 네트워크별 가스피(전 가맹 동일). 조직% 배분과 별개. 카탈로그 페어 기준 병합. */
     @GetMapping("/gas-fees")
     public ResponseEntity<ApiResponse<Map<String, Object>>> gasFees() {
@@ -236,7 +264,15 @@ public class ApiHqCryptoController {
         try {
             Long id = Long.valueOf(body.get("id").toString());
             String tx = body.get("depositTxHash") != null ? body.get("depositTxHash").toString() : "";
-            return ResponseEntity.ok(ApiResponse.ok(adminService.confirmDeposit(id, tx)));
+            boolean force = body.get("forceYn") != null
+                    && "Y".equalsIgnoreCase(String.valueOf(body.get("forceYn")).trim());
+            /* 체인 검증 우회(강제 확정)만 Google OTP 필수 */
+            if (force) {
+                requireTotp(body);
+            }
+            return ResponseEntity.ok(ApiResponse.ok(adminService.confirmDeposit(id, tx, force)));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "OTP_REQUIRED"));
         } catch (Exception e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "CONFIRM_FAILED"));
         }
@@ -256,9 +292,12 @@ public class ApiHqCryptoController {
     @PostMapping("/payouts/manual-sent")
     public ResponseEntity<ApiResponse<Map<String, Object>>> manualSent(@RequestBody Map<String, Object> body) {
         try {
+            requireTotp(body);
             Long id = Long.valueOf(body.get("id").toString());
             String tx = body.get("payoutTxHash") != null ? body.get("payoutTxHash").toString() : "";
             return ResponseEntity.ok(ApiResponse.ok(payoutService.markManualSent(id, tx)));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "OTP_REQUIRED"));
         } catch (Exception e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "MANUAL_FAILED"));
         }
@@ -274,8 +313,7 @@ public class ApiHqCryptoController {
             } catch (NumberFormatException ignored) {
             }
         }
-        int n = payoutService.processAutoReady(limit);
-        return ResponseEntity.ok(ApiResponse.ok(Map.of("processed", n)));
+        return ResponseEntity.ok(ApiResponse.ok(payoutService.processAutoReady(limit)));
     }
 
     @PostMapping("/payouts/retry-auto")

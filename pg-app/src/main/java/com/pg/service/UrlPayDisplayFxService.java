@@ -240,16 +240,18 @@ public class UrlPayDisplayFxService {
         JsonNode pgNode = pgSettingsNode(normalizePgCd(operationalPgCd));
         String pg = normalizePgCd(operationalPgCd);
         boolean qbang = pg.startsWith("QBANG") || pg.startsWith("QBANK") || pg.startsWith("QRBANK");
+        /* KSNET(해외 USD 결제창) — 미설정 시 USD 기본 */
+        boolean ksnet = pg.startsWith("KSNET") || pg.startsWith("KSPAY");
         if (pgNode != null && !pgNode.isMissingNode() && pgNode.isObject()
                 && pgNode.has("settlementCurrency")
                 && !pgNode.path("settlementCurrency").asText("").isBlank()) {
             return defaultSettlementForBuild(pgNode);
         }
         if (pgNode == null || pgNode.isMissingNode() || pgNode.size() == 0) {
-            return qbang ? "KRW" : "THB";
+            return qbang ? "KRW" : (ksnet ? "USD" : "THB");
         }
         /* amountMode만 있고 settlementCurrency 없음 */
-        return qbang ? "KRW" : defaultSettlementForBuild(pgNode);
+        return qbang ? "KRW" : (ksnet ? "USD" : defaultSettlementForBuild(pgNode));
     }
 
     /** 결제 페이지 기본 표시 통화 (PG별 설정, 없으면 JPY). */

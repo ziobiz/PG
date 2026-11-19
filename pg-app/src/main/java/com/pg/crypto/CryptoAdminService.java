@@ -2,6 +2,10 @@ package com.pg.crypto;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pg.crypto.chain.CryptoChainCredentialsService;
+import com.pg.crypto.chain.CryptoChainVerifyOutcome;
+import com.pg.crypto.chain.CryptoChainVerifyService;
+import com.pg.crypto.chain.CryptoTronGridClient;
 import com.pg.entity.CryptoCustodyAddress;
 import com.pg.entity.CryptoDepositTxn;
 import com.pg.entity.HqApiConfig;
@@ -38,6 +42,9 @@ public class CryptoAdminService {
     private final OrgUnitRepository orgUnitRepository;
     private final CryptoCheckoutService checkoutService;
     private final CryptoPayoutService payoutService;
+    private final CryptoChainVerifyService chainVerifyService;
+    private final CryptoChainCredentialsService chainCredentialsService;
+    private final CryptoTronGridClient tronGridClient;
     private final CryptoReserveResolver reserveResolver;
     private final HqApiConfigRepository hqApiConfigRepository;
     private final CheckoutHeaderSubtitleCopyService checkoutHeaderSubtitleCopyService;
@@ -50,6 +57,9 @@ public class CryptoAdminService {
                               OrgUnitRepository orgUnitRepository,
                               CryptoCheckoutService checkoutService,
                               CryptoPayoutService payoutService,
+                              CryptoChainVerifyService chainVerifyService,
+                              CryptoChainCredentialsService chainCredentialsService,
+                              CryptoTronGridClient tronGridClient,
                               CryptoReserveResolver reserveResolver,
                               HqApiConfigRepository hqApiConfigRepository,
                               CheckoutHeaderSubtitleCopyService checkoutHeaderSubtitleCopyService) {
@@ -62,6 +72,9 @@ public class CryptoAdminService {
         this.reserveResolver = reserveResolver;
         this.checkoutService = checkoutService;
         this.payoutService = payoutService;
+        this.chainVerifyService = chainVerifyService;
+        this.chainCredentialsService = chainCredentialsService;
+        this.tronGridClient = tronGridClient;
         this.hqApiConfigRepository = hqApiConfigRepository;
         this.checkoutHeaderSubtitleCopyService = checkoutHeaderSubtitleCopyService;
     }
@@ -94,6 +107,7 @@ public class CryptoAdminService {
         out.put("custodyByAsset", byAsset);
         out.put("merchantConfigs", listMerchantConfigs());
         putCryptoCopyDefaults(out);
+        putChainApiSettings(out);
         return out;
     }
 
@@ -110,6 +124,112 @@ public class CryptoAdminService {
                         && !c.getCryptoPaymentHeaderSubtitleTextDefault().isBlank()
                         ? c.getCryptoPaymentHeaderSubtitleTextDefault()
                         : CryptoPaymentCopyDefaults.HEADER_KO);
+    }
+
+    private void putChainApiSettings(Map<String, Object> out) {
+        String alchemyHq = chainCredentialsService.hqAlchemyApiKeyRaw();
+        String tronHq = chainCredentialsService.hqTrongridApiKeyRaw();
+        out.put("cryptoChainWatchEnabledYn", chainCredentialsService.hqWatchEnabledYn());
+        out.put("alchemyApiKey", alchemyHq);
+        out.put("trongridApiKey", tronHq);
+        out.put("alchemyApiKeyConfigured", chainCredentialsService.hasAlchemyKey());
+        out.put("trongridApiKeyConfigured", chainCredentialsService.hasTrongridKey());
+        out.put("alchemyApiKeyMasked", CryptoChainCredentialsService.maskKey(
+                alchemyHq.isBlank() ? chainCredentialsService.alchemyApiKey() : alchemyHq));
+        out.put("trongridApiKeyMasked", CryptoChainCredentialsService.maskKey(
+                tronHq.isBlank() ? chainCredentialsService.trongridApiKey() : tronHq));
+        out.put("alchemyKeySource", alchemyHq.isBlank()
+                ? (chainCredentialsService.hasAlchemyKey() ? "ENV" : "NONE")
+                : "HQ");
+        out.put("trongridKeySource", tronHq.isBlank()
+                ? (chainCredentialsService.hasTrongridKey() ? "ENV" : "NONE")
+                : "HQ");
+    }
+
+    /** Alchemy·TronGrid 연결 테스트 (키는 저장값·env 사용). */
+    public Map<String, Object> testChainApi(String vendor) {
+        String v = vendor != null ? vendor.trim().toUpperCase(Locale.ROOT) : "TRONGRID";
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("vendor", v);
+        if ("ALCHEMY".equals(v) || "EVM".equals(v)) {
+            out.putAll(testAlchemy());
+            return out;
+        }
+        out.putAll(tronGridClient.ping());
+        return out;
+    }
+
+    private Map<String, Object> testAlchemy() {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("apiKeyConfigured", chainCredentialsService.hasAlchemyKey());
+        out.put("apiKeySource", chainCredentialsService.hqAlchemyApiKeyRaw().isBlank()
+                ? (chainCredentialsService.hasAlchemyKey() ? "ENV" : "NONE")
+                : "HQ");
+        String key = chainCredentialsService.alchemyApiKey();
+        if (key == null || key.isBlank()) {
+            out.put("success", false);
+            out.put("message", "Alchemy API Key가 없습니다.");
+            return out;
+        }
+        try {
+            String url = "https://eth-mainnet.g.alchemy.com/v2/" + key.trim();
+            java.net.http.HttpClient http = java.net.http.HttpClient.newBuilder()
+                    .connectTimeout(java.time.Duration.ofSeconds(10)).build();
+            String body = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"eth_blockNumber\",\"params\":[]}";
+            java.net.http.HttpRequest req = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(url))
+                    .timeout(java.time.Duration.ofSeconds(20))
+                    .header("Content-Type", "application/json")
+                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(body))
+                    .build();
+            java.net.http.HttpResponse<String> resp = http.send(req, java.net.http.HttpResponse.BodyHandlers.ofString());
+            boolean ok = resp.statusCode() >= 200 && resp.statusCode() < 300
+                    && resp.body() != null && resp.body().contains("result");
+            out.put("success", ok);
+            out.put("httpStatus", resp.statusCode());
+            out.put("message", ok ? "Alchemy Ethereum Mainnet 연결 정상 (Base도 동일 키)" : "Alchemy 응답 실패");
+        } catch (Exception e) {
+            out.put("success", false);
+            out.put("message", "Alchemy 호출 실패: " + e.getMessage());
+        }
+        return out;
+    }
+
+    /** 본사 온체인 감시 API 키·활성. OTP는 컨트롤러. */
+    @Transactional
+    public Map<String, Object> saveChainApiSettings(Map<String, Object> body) {
+        HqApiConfig c = hqApiConfigRepository.findAll().stream().findFirst().orElseGet(HqApiConfig::new);
+        if (body != null) {
+            if (body.containsKey("cryptoChainWatchEnabledYn")) {
+                String yn = String.valueOf(body.get("cryptoChainWatchEnabledYn")).trim();
+                c.setCryptoChainWatchEnabledYn("N".equalsIgnoreCase(yn) ? "N" : "Y");
+            }
+            if (body.containsKey("alchemyApiKey")) {
+                String k = body.get("alchemyApiKey") != null ? String.valueOf(body.get("alchemyApiKey")).trim() : "";
+                if (!CryptoChainCredentialsService.looksLikeMaskedPlaceholder(k)) {
+                    c.setCryptoAlchemyApiKey(k.isBlank() ? null : k);
+                }
+            }
+            if (body.containsKey("trongridApiKey")) {
+                String k = body.get("trongridApiKey") != null ? String.valueOf(body.get("trongridApiKey")).trim() : "";
+                if (!CryptoChainCredentialsService.looksLikeMaskedPlaceholder(k)) {
+                    c.setCryptoTrongridApiKey(k.isBlank() ? null : k);
+                }
+            }
+            if (body.containsKey("clearAlchemyApiKey")
+                    && "Y".equalsIgnoreCase(String.valueOf(body.get("clearAlchemyApiKey")))) {
+                c.setCryptoAlchemyApiKey(null);
+            }
+            if (body.containsKey("clearTrongridApiKey")
+                    && "Y".equalsIgnoreCase(String.valueOf(body.get("clearTrongridApiKey")))) {
+                c.setCryptoTrongridApiKey(null);
+            }
+        }
+        hqApiConfigRepository.save(c);
+        Map<String, Object> out = new LinkedHashMap<>();
+        putChainApiSettings(out);
+        out.put("success", true);
+        return out;
     }
 
     /** 본사 크립토 로고·안내 기본. OTP 불필요. */
@@ -503,8 +623,51 @@ public class CryptoAdminService {
         return out;
     }
 
+    /**
+     * 관리자 입금확정 — 기본은 온체인 검증 후 확정.
+     * {@code force=true} 는 체인 조회 실패·미지원 네트워크 등 운영 예외용(OTP는 컨트롤러에서 검증).
+     */
+    public Map<String, Object> confirmDeposit(Long id, String txHash, boolean force) {
+        CryptoDepositTxn txn = depositTxnRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("입금 건을 찾을 수 없습니다."));
+        if (CryptoDepositTxn.ST_CONFIRMED.equals(txn.getStatus())) {
+            Map<String, Object> already = new LinkedHashMap<>();
+            already.put("success", true);
+            already.put("status", txn.getStatus());
+            already.put("id", txn.getId());
+            already.put("depositTxHash", txn.getDepositTxHash());
+            return already;
+        }
+        String hash = txHash != null ? txHash.trim() : "";
+        if (hash.isBlank()) {
+            throw new IllegalArgumentException("depositTxHash가 필요합니다.");
+        }
+        if (hash.toUpperCase(Locale.ROOT).startsWith("BUYER_ACK")
+                || CryptoHttpPayoutWalletGateway.isStubHash(hash)) {
+            throw new IllegalArgumentException("유효한 온체인 Tx 해시가 필요합니다.");
+        }
+        if (!force) {
+            CryptoChainVerifyOutcome outcome = chainVerifyService.verifyByTxHash(txn, hash);
+            if (!outcome.matched() || outcome.transfer() == null) {
+                throw new IllegalArgumentException(outcome.message() != null ? outcome.message()
+                        : "온체인 입금이 확인되지 않았습니다. 강제 확정은 OTP와 함께 forceYn=Y 를 사용하세요.");
+            }
+            String confirmed = outcome.transfer().txHash();
+            if (confirmed == null || confirmed.isBlank()) {
+                confirmed = hash;
+            }
+            Optional<CryptoDepositTxn> reused = depositTxnRepository.findFirstByDepositTxHashIgnoreCase(confirmed);
+            if (reused.isPresent() && !reused.get().getId().equals(txn.getId())) {
+                throw new IllegalArgumentException("이미 다른 주문에 사용된 Tx 해시입니다.");
+            }
+            return checkoutService.confirmDeposit(id, confirmed);
+        }
+        return checkoutService.confirmDeposit(id, hash);
+    }
+
+    /** 호환: 체인 검증 필수. */
     public Map<String, Object> confirmDeposit(Long id, String txHash) {
-        return checkoutService.confirmDeposit(id, txHash);
+        return confirmDeposit(id, txHash, false);
     }
 
     public CryptoPayoutService payouts() {

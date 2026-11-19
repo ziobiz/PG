@@ -34,24 +34,25 @@ public class CryptoChainVerifyService {
     @Value("${pg.crypto.chain.min-confirmations:1}")
     private long minConfirmations;
 
-    @Value("${pg.crypto.chain.enabled:true}")
-    private boolean enabled;
+    private final CryptoChainCredentialsService credentials;
 
     public CryptoChainVerifyService(CryptoTokenMetaService tokenMetaService,
                                     CryptoEvmJsonRpcClient evmClient,
-                                    CryptoTronGridClient tronClient) {
+                                    CryptoTronGridClient tronClient,
+                                    CryptoChainCredentialsService credentials) {
         this.tokenMetaService = tokenMetaService;
         this.evmClient = evmClient;
         this.tronClient = tronClient;
+        this.credentials = credentials;
     }
 
     public boolean isEnabled() {
-        return enabled;
+        return credentials.isWatchEnabled();
     }
 
     /** Tx 해시로 검증. */
     public CryptoChainVerifyOutcome verifyByTxHash(CryptoDepositTxn txn, String txHash) {
-        if (!enabled) {
+        if (!isEnabled()) {
             return CryptoChainVerifyOutcome.fail("CHAIN_WATCH_DISABLED", "온체인 입금 감시가 비활성입니다.");
         }
         if (txHash == null || txHash.isBlank()) {
@@ -83,7 +84,7 @@ public class CryptoChainVerifyService {
 
     /** Tx 없이 수탁 주소 최근 입금 스캔 후 금액 매칭. */
     public CryptoChainVerifyOutcome scanCustodyForMatch(CryptoDepositTxn txn) {
-        if (!enabled) {
+        if (!isEnabled()) {
             return CryptoChainVerifyOutcome.fail("CHAIN_WATCH_DISABLED", "온체인 입금 감시가 비활성입니다.");
         }
         Optional<CryptoTokenMeta> metaOpt = tokenMetaService.resolve(txn.getAssetCode(), txn.getNetworkCode());

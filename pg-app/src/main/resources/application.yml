@@ -54,6 +54,12 @@ pg:
   # 크립토 입금 — 수탁 주소 온체인 감시(구매자 지갑 종류 무관). Tx해시 검증 또는 주소 스캔 후 confirmDeposit.
   crypto:
     payout-scan-ms: ${PG_CRYPTO_PAYOUT_SCAN_MS:60000}
+    # AUTO 출금: 기본 비활성(스텁 SENT 금지). URL+키 준비 후 auto-execute-enabled=true
+    payout:
+      auto-execute-enabled: ${PG_CRYPTO_PAYOUT_AUTO_EXECUTE:false}
+      wallet-api-url: ${PG_CRYPTO_WALLET_API_URL:}
+      wallet-api-key: ${PG_CRYPTO_WALLET_API_KEY:}
+      wallet-api-timeout-ms: ${PG_CRYPTO_WALLET_API_TIMEOUT_MS:45000}
     chain:
       enabled: ${PG_CRYPTO_CHAIN_WATCH_ENABLED:true}
       watch-scan-ms: ${PG_CRYPTO_CHAIN_WATCH_SCAN_MS:30000}

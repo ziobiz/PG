@@ -252,7 +252,8 @@ public class PayFollowPolicyService {
 
     /** ElementPay·Eximbay — 환불 API만(자동무효·이메일무효 없음). 캐비닛 환불은 웹훅으로 반영. */
     public static boolean isRefundApiFollowTransaction(PgTrnsctn t) {
-        return t != null && (PgVendor.isElementPayFamily(t.getVan()) || PgVendor.isEximbayFamily(t.getVan()));
+        return t != null && (PgVendor.isElementPayFamily(t.getVan()) || PgVendor.isEximbayFamily(t.getVan())
+                || PgVendor.isKsnetFamily(t.getVan()));
     }
 
     /**
@@ -292,7 +293,8 @@ public class PayFollowPolicyService {
             return out;
         }
         /* ElementPay·Eximbay: 환불 API만 — 자동무효·이메일무효 비활성 */
-        if (PgVendor.isElementPayFamily(t.getVan()) || PgVendor.isEximbayFamily(t.getVan())) {
+        if (PgVendor.isElementPayFamily(t.getVan()) || PgVendor.isEximbayFamily(t.getVan())
+                || PgVendor.isKsnetFamily(t.getVan())) {
             HqNotifyEnvConfig env = hqNotifyEnvService.getOrCreate();
             boolean refundWin = withinAutoRefundDays(t, env, REFUND_DAY_ZONE)
                     || sameDayRefundOpen(viewer, t, env);

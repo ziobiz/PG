@@ -163,6 +163,8 @@ public class UrlPayCheckoutDisplayPolicyService {
         data.put("urlPayCompanyNameShowYn", effectiveCompanyNameShowYn(orgUnitId));
         data.put("urlPayLangMenuUseYn", effectiveLangMenuUseYn(orgUnitId));
         data.put("urlPayShippingAddressUseYn", effectiveShippingAddressUseYn(orgUnitId));
+        /* 성명(리다이렉트용) — 가맹 Y/N/FOLLOW_HQ → 본사 기본. 누락 시 결제창이 Y로 폴백해 항상 표시됨 */
+        data.put("urlPayBuyerNameUseYn", effectiveBuyerNameUseYn(orgUnitId));
         String emailYn = effectiveBuyerEmailUseYn(orgUnitId);
         String countryYn = effectiveBuyerCountryUseYn(orgUnitId);
         String phoneYn = effectiveBuyerPhoneUseYn(orgUnitId);

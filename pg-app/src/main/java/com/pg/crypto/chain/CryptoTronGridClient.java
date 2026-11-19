@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -16,7 +15,11 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.*;
 
-/** TronGrid — TRC20 Tx 검증·주소 입금 스캔. */
+/**
+ * TronGrid V1 — TRC20 Tx 검증·수탁 주소 입금 스캔.
+ * @see <a href="https://developers.tron.network/reference/trongrid-v1-api-overview">TronGrid V1 overview</a>
+ * Header: {@code TRON-PRO-API-KEY}. Mainnet base: {@code https://api.trongrid.io}
+ */
 @Component
 public class CryptoTronGridClient {
 
@@ -24,12 +27,11 @@ public class CryptoTronGridClient {
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final CryptoChainCredentialsService credentials;
 
-    @Value("${pg.crypto.chain.trongrid-base-url:https://api.trongrid.io}")
-    private String baseUrl;
-
-    @Value("${pg.crypto.chain.trongrid-api-key:}")
-    private String apiKey;
+    public CryptoTronGridClient(CryptoChainCredentialsService credentials) {
+        this.credentials = credentials;
+    }
 
     public Optional<CryptoOnChainTransfer> findTransferByTxHash(String txHash,
                                                                 String expectedTo,
@@ -39,59 +41,12 @@ public class CryptoTronGridClient {
         if (hash.isEmpty()) {
             return Optional.empty();
         }
-        try {
-            /* events API: contract Transfer */
-            String url = UriComponentsBuilder
-                    .fromUriString(trimSlash(baseUrl) + "/v1/transactions/" + hash + "/events")
-                    .queryParam("only_confirmed", "true")
-                    .toUriString();
-            JsonNode root = getJson(url);
-            if (root == null) {
-                return Optional.empty();
-            }
-            JsonNode data = root.get("data");
-            if (data == null || !data.isArray()) {
-                return Optional.empty();
-            }
-            String wantTo = normalizeTron(expectedTo);
-            String wantContract = normalizeTron(expectedContract);
-            for (JsonNode ev : data) {
-                String event = text(ev, "event_name");
-                if (!"Transfer".equalsIgnoreCase(event)) {
-                    continue;
-                }
-                String contract = normalizeTron(text(ev, "contract_address"));
-                if (!wantContract.isEmpty() && !wantContract.equalsIgnoreCase(contract)) {
-                    /* hex contract vs base58 — 느슨 비교 */
-                    if (!contractEquals(wantContract, contract)) {
-                        continue;
-                    }
-                }
-                JsonNode result = ev.get("result");
-                if (result == null) {
-                    continue;
-                }
-                String to = normalizeTron(first(result, "to", "1"));
-                if (!wantTo.equalsIgnoreCase(to) && !contractEquals(wantTo, to)) {
-                    continue;
-                }
-                String valueRaw = first(result, "value", "2");
-                BigDecimal amt = decodeTrc20Amount(valueRaw, decimals);
-                if (amt == null) {
-                    continue;
-                }
-                String from = normalizeTron(first(result, "from", "0"));
-                Instant at = Instant.now();
-                long ms = ev.has("block_timestamp") ? ev.get("block_timestamp").asLong(0) : 0;
-                if (ms > 0) {
-                    at = Instant.ofEpochMilli(ms);
-                }
-                return Optional.of(new CryptoOnChainTransfer(hash, to, from, contract, amt, at, 1));
-            }
-        } catch (Exception e) {
-            log.warn("Tron tx lookup failed hash={}: {}", hash, e.getMessage());
+        Optional<CryptoOnChainTransfer> fromEvents = findByEventsApi(hash, expectedTo, expectedContract, decimals);
+        if (fromEvents.isPresent()) {
+            return fromEvents;
         }
-        return Optional.empty();
+        /* 폴백: 수탁 주소 TRC20 이력에서 동일 Tx 검색 (이벤트 hex/Base58 불일치 보완) */
+        return findByAccountTrc20Fingerprint(hash, expectedTo, expectedContract, decimals);
     }
 
     public List<CryptoOnChainTransfer> findIncomingTransfers(String toAddress,
@@ -100,12 +55,16 @@ public class CryptoTronGridClient {
                                                              Instant notBefore) {
         try {
             UriComponentsBuilder b = UriComponentsBuilder
-                    .fromUriString(trimSlash(baseUrl) + "/v1/accounts/" + toAddress.trim() + "/transactions/trc20")
+                    .fromUriString(trimSlash(credentials.trongridBaseUrl())
+                            + "/v1/accounts/" + toAddress.trim() + "/transactions/trc20")
                     .queryParam("only_to", "true")
                     .queryParam("limit", "50")
                     .queryParam("only_confirmed", "true");
             if (contractAddress != null && !contractAddress.isBlank()) {
                 b.queryParam("contract_address", contractAddress.trim());
+            }
+            if (notBefore != null) {
+                b.queryParam("min_timestamp", notBefore.toEpochMilli());
             }
             JsonNode root = getJson(b.toUriString());
             if (root == null) {
@@ -117,29 +76,17 @@ public class CryptoTronGridClient {
             }
             List<CryptoOnChainTransfer> out = new ArrayList<>();
             for (JsonNode t : data) {
-                String hash = normalizeHash(text(t, "transaction_id"));
-                BigDecimal amt = decodeTrc20Amount(text(t, "value"), decimals);
-                if (amt == null) {
+                CryptoOnChainTransfer row = parseTrc20Row(t, contractAddress, decimals);
+                if (row == null) {
                     continue;
                 }
-                Instant at = Instant.now();
-                long ms = t.has("block_timestamp") ? t.get("block_timestamp").asLong(0) : 0;
-                if (ms > 0) {
-                    at = Instant.ofEpochMilli(ms);
-                }
-                if (notBefore != null && at.isBefore(notBefore)) {
+                if (notBefore != null && row.observedAt().isBefore(notBefore)) {
                     continue;
                 }
-                out.add(new CryptoOnChainTransfer(
-                        hash,
-                        normalizeTron(text(t, "to")),
-                        normalizeTron(text(t, "from")),
-                        normalizeTron(text(t, "token_info") != null && t.get("token_info").has("address")
-                                ? t.get("token_info").get("address").asText()
-                                : contractAddress),
-                        amt,
-                        at,
-                        1));
+                if (!CryptoTronAddressUtil.sameAddress(row.toAddress(), toAddress)) {
+                    continue;
+                }
+                out.add(row);
             }
             return out;
         } catch (Exception e) {
@@ -148,18 +95,204 @@ public class CryptoTronGridClient {
         }
     }
 
+    /** 키·엔드포인트 연결 확인 (본사 UI 테스트). */
+    public Map<String, Object> ping() {
+        Map<String, Object> out = new LinkedHashMap<>();
+        String base = trimSlash(credentials.trongridBaseUrl());
+        out.put("baseUrl", base);
+        out.put("apiKeyConfigured", credentials.hasTrongridKey());
+        out.put("apiKeySource", credentials.hqTrongridApiKeyRaw().isBlank()
+                ? (credentials.hasTrongridKey() ? "ENV" : "NONE")
+                : "HQ");
+        try {
+            /* 공개 헬스: USDT TRC20 컨트랙트 메타 (키가 있으면 헤더 포함) */
+            String url = base + "/v1/contracts/TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+            JsonNode root = getJson(url);
+            boolean ok = root != null && (root.has("data") || root.has("name") || root.has("address"));
+            out.put("success", ok);
+            out.put("httpOk", ok);
+            if (!ok) {
+                out.put("message", "TronGrid 응답이 비어 있거나 거부되었습니다. API Key·쿼터를 확인하세요.");
+            } else {
+                out.put("message", "TronGrid Mainnet 연결 정상");
+            }
+        } catch (Exception e) {
+            out.put("success", false);
+            out.put("message", "TronGrid 호출 실패: " + e.getMessage());
+        }
+        return out;
+    }
+
+    private Optional<CryptoOnChainTransfer> findByEventsApi(String hash,
+                                                            String expectedTo,
+                                                            String expectedContract,
+                                                            int decimals) {
+        try {
+            String url = UriComponentsBuilder
+                    .fromUriString(trimSlash(credentials.trongridBaseUrl()) + "/v1/transactions/" + hash + "/events")
+                    .queryParam("only_confirmed", "true")
+                    .toUriString();
+            JsonNode root = getJson(url);
+            if (root == null) {
+                return Optional.empty();
+            }
+            JsonNode data = root.get("data");
+            if (data == null || !data.isArray()) {
+                return Optional.empty();
+            }
+            for (JsonNode ev : data) {
+                String event = text(ev, "event_name");
+                if (!"Transfer".equalsIgnoreCase(event)) {
+                    continue;
+                }
+                String contract = text(ev, "contract_address");
+                if (!contractMatches(expectedContract, contract)) {
+                    continue;
+                }
+                JsonNode result = ev.get("result");
+                if (result == null) {
+                    continue;
+                }
+                String to = first(result, "to", "1", "_to");
+                if (!CryptoTronAddressUtil.sameAddress(expectedTo, to)) {
+                    continue;
+                }
+                String valueRaw = first(result, "value", "2", "_value");
+                BigDecimal amt = decodeTrc20Amount(valueRaw, decimals);
+                if (amt == null) {
+                    continue;
+                }
+                String from = first(result, "from", "0", "_from");
+                Instant at = Instant.now();
+                long ms = ev.has("block_timestamp") ? ev.get("block_timestamp").asLong(0) : 0;
+                if (ms > 0) {
+                    at = Instant.ofEpochMilli(ms);
+                }
+                return Optional.of(new CryptoOnChainTransfer(
+                        hash, to, from, contract, amt, at, 1));
+            }
+        } catch (Exception e) {
+            log.warn("Tron events lookup failed hash={}: {}", hash, e.getMessage());
+        }
+        return Optional.empty();
+    }
+
+    private Optional<CryptoOnChainTransfer> findByAccountTrc20Fingerprint(String hash,
+                                                                          String expectedTo,
+                                                                          String expectedContract,
+                                                                          int decimals) {
+        if (expectedTo == null || expectedTo.isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            UriComponentsBuilder b = UriComponentsBuilder
+                    .fromUriString(trimSlash(credentials.trongridBaseUrl())
+                            + "/v1/accounts/" + expectedTo.trim() + "/transactions/trc20")
+                    .queryParam("only_to", "true")
+                    .queryParam("limit", "50")
+                    .queryParam("only_confirmed", "true")
+                    .queryParam("fingerprint", hash);
+            if (expectedContract != null && !expectedContract.isBlank()) {
+                b.queryParam("contract_address", expectedContract.trim());
+            }
+            JsonNode root = getJson(b.toUriString());
+            /* fingerprint 미지원 환경 대비: 파라미터 없이 재조회 후 hash 필터 */
+            if (root == null || root.get("data") == null || !root.get("data").isArray()
+                    || root.get("data").isEmpty()) {
+                b = UriComponentsBuilder
+                        .fromUriString(trimSlash(credentials.trongridBaseUrl())
+                                + "/v1/accounts/" + expectedTo.trim() + "/transactions/trc20")
+                        .queryParam("only_to", "true")
+                        .queryParam("limit", "50")
+                        .queryParam("only_confirmed", "true");
+                if (expectedContract != null && !expectedContract.isBlank()) {
+                    b.queryParam("contract_address", expectedContract.trim());
+                }
+                root = getJson(b.toUriString());
+            }
+            if (root == null) {
+                return Optional.empty();
+            }
+            JsonNode data = root.get("data");
+            if (data == null || !data.isArray()) {
+                return Optional.empty();
+            }
+            for (JsonNode t : data) {
+                String tid = normalizeHash(text(t, "transaction_id"));
+                if (!hash.equalsIgnoreCase(tid)) {
+                    continue;
+                }
+                CryptoOnChainTransfer row = parseTrc20Row(t, expectedContract, decimals);
+                if (row == null) {
+                    continue;
+                }
+                if (!CryptoTronAddressUtil.sameAddress(expectedTo, row.toAddress())) {
+                    continue;
+                }
+                if (!contractMatches(expectedContract, row.contractAddress())) {
+                    continue;
+                }
+                return Optional.of(row);
+            }
+        } catch (Exception e) {
+            log.warn("Tron account trc20 fingerprint failed hash={}: {}", hash, e.getMessage());
+        }
+        return Optional.empty();
+    }
+
+    private CryptoOnChainTransfer parseTrc20Row(JsonNode t, String fallbackContract, int decimals) {
+        String hash = normalizeHash(text(t, "transaction_id"));
+        BigDecimal amt = decodeTrc20Amount(text(t, "value"), decimals);
+        if (amt == null || hash.isEmpty()) {
+            return null;
+        }
+        Instant at = Instant.now();
+        long ms = t.has("block_timestamp") ? t.get("block_timestamp").asLong(0) : 0;
+        if (ms > 0) {
+            at = Instant.ofEpochMilli(ms);
+        }
+        String contract = fallbackContract;
+        if (t.has("token_info") && t.get("token_info").has("address")) {
+            contract = t.get("token_info").get("address").asText(fallbackContract);
+        }
+        return new CryptoOnChainTransfer(
+                hash,
+                text(t, "to"),
+                text(t, "from"),
+                contract,
+                amt,
+                at,
+                1);
+    }
+
     private JsonNode getJson(String url) throws Exception {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        String apiKey = credentials.trongridApiKey();
         if (apiKey != null && !apiKey.isBlank()) {
+            /* TronGrid 공식: TRON-PRO-API-KEY */
             headers.set("TRON-PRO-API-KEY", apiKey.trim());
         }
         ResponseEntity<String> resp = restTemplate.exchange(
                 url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+        if (resp.getStatusCode().value() == 429 || resp.getStatusCode().value() == 403) {
+            log.warn("TronGrid rate/auth HTTP {} url={}", resp.getStatusCode().value(), url);
+            return null;
+        }
         if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
             return null;
         }
         return objectMapper.readTree(resp.getBody());
+    }
+
+    private static boolean contractMatches(String expected, String actual) {
+        if (expected == null || expected.isBlank()) {
+            return true;
+        }
+        if (actual == null || actual.isBlank()) {
+            return false;
+        }
+        return CryptoTronAddressUtil.sameAddress(expected, actual);
     }
 
     private static BigDecimal decodeTrc20Amount(String raw, int decimals) {
@@ -187,17 +320,6 @@ public class CryptoTronGridClient {
             h = h.substring(2);
         }
         return h;
-    }
-
-    private static String normalizeTron(String addr) {
-        return addr == null ? "" : addr.trim();
-    }
-
-    private static boolean contractEquals(String a, String b) {
-        if (a == null || b == null) {
-            return false;
-        }
-        return a.equalsIgnoreCase(b);
     }
 
     private static String first(JsonNode n, String... keys) {

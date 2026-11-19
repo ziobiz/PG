@@ -20,6 +20,7 @@ public final class MerchantPgBrokerVendor {
     public static final String QXIPAY = PgVendor.QXIPAY;
     public static final String OMSPAY = PgVendor.OMSPAY;
     public static final String PAYSO = PgVendor.PAYSO;
+    public static final String KSNET = PgVendor.KSNET;
     public static final String QBANG = PgVendor.QBANG;
     public static final String CRYPTO = PgVendor.CRYPTO;
 
@@ -39,6 +40,7 @@ public final class MerchantPgBrokerVendor {
                 || PgVendor.isEximbayFamily(s) || PgVendor.isElementPayFamily(s)
                 || PgVendor.isIlkFamily(s) || PgVendor.isOxFamily(s)
                 || PgVendor.isQxipayFamily(s) || PgVendor.isOmspayFamily(s)
+                || PgVendor.isPaysoFamily(s) || PgVendor.isKsnetFamily(s)
                 || PgVendor.isQbangFamily(s)
                 || PgVendor.isCryptoFamily(s);
     }
@@ -73,10 +75,13 @@ public final class MerchantPgBrokerVendor {
         if ("omspay".equals(u) || "oms".equals(u) || "waylar".equals(u)) {
             return OMSPAY;
         }
-        if ("qbang".equals(u) || "qbank".equals(u) || "qrbank".equals(u)) {
         if ("payso".equals(u) || "paysolutions".equals(u)) {
             return PAYSO;
         }
+        if ("ksnet".equals(u) || "kspay".equals(u)) {
+            return KSNET;
+        }
+        if ("qbang".equals(u) || "qbank".equals(u) || "qrbank".equals(u)) {
             return QBANG;
         }
         if ("crypto".equals(u) || "usdt".equals(u)) {

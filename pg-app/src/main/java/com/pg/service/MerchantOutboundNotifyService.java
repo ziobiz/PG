@@ -83,6 +83,7 @@ public class MerchantOutboundNotifyService {
                 && !PgVendor.isQxipayFamily(savedTxn.getVan())
                 && !PgVendor.isOmspayFamily(savedTxn.getVan())
                 && !PgVendor.isPaysoFamily(savedTxn.getVan())
+                && !PgVendor.isKsnetFamily(savedTxn.getVan())
                 && !PgVendor.isQbangFamily(savedTxn.getVan())) {
             return;
         }

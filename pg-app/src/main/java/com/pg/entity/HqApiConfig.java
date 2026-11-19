@@ -436,6 +436,18 @@ public class HqApiConfig {
     @Column(name = "bok_ecos_api_key", length = 512)
     private String bokEcosApiKey;
 
+    /** Alchemy API Key (EVM: Ethereum/Base 등). 비우면 ALCHEMY_API_KEY */
+    @Column(name = "crypto_alchemy_api_key", length = 512)
+    private String cryptoAlchemyApiKey;
+
+    /** TronGrid API Key (TRC20). 비우면 TRONGRID_API_KEY */
+    @Column(name = "crypto_trongrid_api_key", length = 512)
+    private String cryptoTrongridApiKey;
+
+    /** 온체인 입금 감시 Y/N. 비우면 yml pg.crypto.chain.enabled */
+    @Column(name = "crypto_chain_watch_enabled_yn", length = 1)
+    private String cryptoChainWatchEnabledYn = "Y";
+
     /** 환수금에서 수수료 포함 여부 (Y/N) */
     @Column(name = "recall_include_fee_yn", length = 1)
     private String recallIncludeFeeYn = "N";
@@ -816,6 +828,14 @@ public class HqApiConfig {
     public void setBotThailandApiKeyHeader(String botThailandApiKeyHeader) { this.botThailandApiKeyHeader = botThailandApiKeyHeader; }
     public String getBokEcosApiKey() { return bokEcosApiKey; }
     public void setBokEcosApiKey(String bokEcosApiKey) { this.bokEcosApiKey = bokEcosApiKey; }
+    public String getCryptoAlchemyApiKey() { return cryptoAlchemyApiKey; }
+    public void setCryptoAlchemyApiKey(String cryptoAlchemyApiKey) { this.cryptoAlchemyApiKey = cryptoAlchemyApiKey; }
+    public String getCryptoTrongridApiKey() { return cryptoTrongridApiKey; }
+    public void setCryptoTrongridApiKey(String cryptoTrongridApiKey) { this.cryptoTrongridApiKey = cryptoTrongridApiKey; }
+    public String getCryptoChainWatchEnabledYn() { return cryptoChainWatchEnabledYn; }
+    public void setCryptoChainWatchEnabledYn(String cryptoChainWatchEnabledYn) {
+        this.cryptoChainWatchEnabledYn = cryptoChainWatchEnabledYn;
+    }
     public String getRecallIncludeFeeYn() { return recallIncludeFeeYn; }
     public void setRecallIncludeFeeYn(String recallIncludeFeeYn) { this.recallIncludeFeeYn = recallIncludeFeeYn; }
     public String getSettlementVatApplyYn() { return settlementVatApplyYn; }

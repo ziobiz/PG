@@ -6,13 +6,128 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '6.37';
+  var CURRENT_LIVE = '6.60';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '6.60',
+      kind: 'minor',
+      date: '2026-11-20',
+      items: {
+        KO: [
+          '결제대행사 「PAYSO JPDP」 추가: URL결제 표시통화 DP(표시 JPY · 실결제 THB)·기존 Payso 리다이렉트 연동 공유. 본사에서 API Key/Secret·가맹 바인딩 후 사용'
+        ],
+        EN: [
+          'Added payment agency PAYSO JPDP: URL-pay display FX (display JPY, settle THB) sharing existing Payso redirect. Enter API Key/Secret and bind merchants in HQ'
+        ],
+        JP: [
+          '決済代行「PAYSO JPDP」追加: URL決済の表示通貨DP(表示JPY・実決済THB)、既存Paysoリダイレクト共用。本社でAPI Key/Secretと加盟店バインド後に利用'
+        ],
+        CH: [
+          '新增支付机构「PAYSO JPDP」：URL 支付显示货币 DP（显示 JPY、实付 THB），共用既有 Payso 跳转。请在总部填写 API Key/Secret 并绑定商户后使用'
+        ],
+        TH: [
+          'เพิ่มตัวกลางชำระเงิน PAYSO JPDP: URL จ่ายแบบ DP (แสดง JPY ชำระจริง THB) ใช้รีไดเร็กต์ Payso เดิม กรอก API Key/Secret และผูกร้านที่ HQ'
+        ]
+      }
+    },
+    {
+      version: '6.50',
+      kind: 'minor',
+      date: '2026-11-19',
+      items: {
+        KO: [
+          '해외 USD 결제창 연동: 통합 prepare·중립 /checkout·팝업(PC)/모바일 결제창 → 서버 승인(auth≠paid), 승인 성공 시에만 결제 완료. 환불은 결제내역 후속조치'
+        ],
+        EN: [
+          'Overseas USD payment window: unified prepare, neutral /checkout, popup (PC) / mobile window → server approval (auth ≠ paid); paid only after approval. Refund via payment-list follow-up'
+        ],
+        JP: [
+          '海外USD決済画面連携: 統合prepare・中立/checkout・ポップアップ(PC)/モバイル決済画面→サーバー承認(認証≠決済完了)、承認成功時のみ完了。返金は決済履歴の後続処理'
+        ],
+        CH: [
+          '海外美元支付窗口对接：统一 prepare、中立 /checkout、PC 弹窗/移动端支付窗口 → 服务器授权（认证≠已支付），仅授权成功才完成。退款通过支付记录后续操作'
+        ],
+        TH: [
+          'เชื่อมหน้าต่างชำระเงิน USD ต่างประเทศ: prepare รวม, /checkout เป็นกลาง, ป๊อปอัป (PC)/หน้าต่างมือถือ → อนุมัติที่เซิร์ฟเวอร์ (auth ≠ paid) สำเร็จเมื่ออนุมัติเท่านั้น คืนเงินผ่านการดำเนินการต่อในรายการชำระเงิน'
+        ]
+      }
+    },
+    {
+      version: '6.40',
+      kind: 'minor',
+      date: '2026-11-13',
+      items: {
+        KO: [
+          'TronGrid V1(TRC20) 입금감시 강화: Base58↔hex 주소 매칭, 이벤트·계정 TRC20 폴백, 본사 「Alchemy/TronGrid 연결 테스트」·문서 링크'
+        ],
+        EN: [
+          'TronGrid V1 (TRC20) watch hardened: Base58↔hex address match, events+account TRC20 fallback, HQ Alchemy/TronGrid connection test + docs links'
+        ],
+        JP: [
+          'TronGrid V1(TRC20)監視強化: Base58↔hex照合、イベント・口座TRC20フォールバック、本社接続テスト・ドキュメントリンク'
+        ],
+        CH: [
+          'TronGrid V1（TRC20）监视加强：Base58↔hex 地址匹配、事件+账户 TRC20 回退、总部 Alchemy/TronGrid 连接测试与文档链接'
+        ],
+        TH: [
+          'เสริม TronGrid V1 (TRC20): จับคู่ที่อยู่ Base58↔hex, fallback เหตุการณ์+บัญชี, ทดสอบเชื่อมต่อ Alchemy/TronGrid ที่ HQ + ลิงก์เอกสาร'
+        ]
+      }
+    },
+    {
+      version: '6.39',
+      kind: 'minor',
+      date: '2026-11-13',
+      items: {
+        KO: [
+          '본사정책 → 크립토설정: 「온체인 입금 감시 API」카드 — Alchemy·TronGrid 키·감시 ON/OFF를 UI에서 저장(OTP). DB 우선, 없으면 서버 env'
+        ],
+        EN: [
+          'HQ Crypto settings: On-chain deposit watch API card — Alchemy/TronGrid keys & watch ON/OFF (OTP). DB first, else server env'
+        ],
+        JP: [
+          '本社クリプト設定:「オンチェーン入金監視API」カード — Alchemy・TronGridキー・監視ON/OFF(OTP)。DB優先、なければenv'
+        ],
+        CH: [
+          '总部加密货币设置：「链上入金监视 API」卡片 — Alchemy·TronGrid 密钥与监视开关（OTP）。优先 DB，否则服务器环境变量'
+        ],
+        TH: [
+          'ตั้งค่าคริปโต HQ: การ์ด API เฝ้าฝากบนเชน — คีย์ Alchemy/TronGrid และเปิด/ปิด (OTP) ใช้ DB ก่อน แล้วค่อย env'
+        ]
+      }
+    },
+    {
+      version: '6.38',
+      kind: 'minor',
+      date: '2026-11-13',
+      items: {
+        KO: [
+          '크립토 온체인 입금확정 운영 완성: 관리자 확정 시 체인 검증(강제=OTP), 구매자 미매칭→입금대기·워처 연동',
+          '크립토 AUTO 출금: 스텁 SENT 제거 — 지갑 API(HTTP) 연동 시에만 실 Tx로 SENT, 미연동 시 READY 유지·반자동 Tx+OTP'
+        ],
+        EN: [
+          'Crypto on-chain deposit ops: admin confirm verifies chain (force=OTP); buyer mismatch → AWAITING + watcher',
+          'Crypto AUTO payout: no stub SENT — real Tx only via wallet HTTP API; otherwise READY + manual Tx+OTP'
+        ],
+        JP: [
+          'クリプトオンチェーン入金確定: 管理者確定はチェーン検証(強制=OTP)、未マッチは入金待ち+ウォッチャー',
+          'クリプトAUTO出金: スタブSENT廃止 — ウォレットHTTP API時のみ実Tx、未接続はREADY・半自動Tx+OTP'
+        ],
+        CH: [
+          '加密货币链上入金确认：管理员确认校验链上（强制=OTP），未匹配→等待入金+监视',
+          '加密货币 AUTO 出金：取消伪 SENT — 仅钱包 HTTP API 实 Tx；未接入保持 READY + 半自动 Tx+OTP'
+        ],
+        TH: [
+          'ยืนยันฝากคริปโตบนเชน: แอดมินตรวจเชน (บังคับ=OTP) ไม่ตรง→รอฝาก+วอตเชอร์',
+          'จ่าย AUTO คริปโต: เลิก SENT ปลอม — ส่งจริงเมื่อมี wallet HTTP API; ไม่ต่อคง READY + Tx กึ่งอัตโนมัติ+OTP'
+        ]
+      }
+    },
     {
       version: '6.37',
       kind: 'minor',

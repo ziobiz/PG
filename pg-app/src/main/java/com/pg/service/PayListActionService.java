@@ -52,6 +52,7 @@ public class PayListActionService {
     private final ElementPayPaymentService elementPayPaymentService;
     private final EximbayPaymentService eximbayPaymentService;
     private final QxipayPaymentService qxipayPaymentService;
+    private final KsnetPaymentService ksnetPaymentService;
     private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
     private final MerchantOutboundNotifyService merchantOutboundNotifyService;
     private final TransactionReceiptEmailService transactionReceiptEmailService;
@@ -67,6 +68,7 @@ public class PayListActionService {
                                 ElementPayPaymentService elementPayPaymentService,
                                 EximbayPaymentService eximbayPaymentService,
                                 QxipayPaymentService qxipayPaymentService,
+                                KsnetPaymentService ksnetPaymentService,
                                 OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator,
                                 MerchantOutboundNotifyService merchantOutboundNotifyService,
                                 TransactionReceiptEmailService transactionReceiptEmailService) {
@@ -81,6 +83,7 @@ public class PayListActionService {
         this.elementPayPaymentService = elementPayPaymentService;
         this.eximbayPaymentService = eximbayPaymentService;
         this.qxipayPaymentService = qxipayPaymentService;
+        this.ksnetPaymentService = ksnetPaymentService;
         this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
         this.merchantOutboundNotifyService = merchantOutboundNotifyService;
         this.transactionReceiptEmailService = transactionReceiptEmailService;
@@ -114,6 +117,7 @@ public class PayListActionService {
         boolean elementPay = PgVendor.isElementPayFamily(t.getVan());
         boolean eximbay = PgVendor.isEximbayFamily(t.getVan());
         boolean qxipay = PgVendor.isQxipayFamily(t.getVan());
+        boolean ksnet = PgVendor.isKsnetFamily(t.getVan());
         if (action == PayFollowAction.EMAIL_VOID && !PayFollowPolicyService.isEmailVoidFollowTransaction(t)) {
             throw new IllegalStateException("이메일무효는 ChillPay 거래만 사용할 수 있습니다.");
         }
@@ -126,6 +130,10 @@ public class PayListActionService {
                     "이 거래는 승인 후 무효(void) API가 없습니다. 결제내역의 자동환불·강제환불로 처리하세요.");
         }
         if (qxipay && action == PayFollowAction.AUTO_VOID) {
+            throw new IllegalStateException(
+                    "이 거래는 승인 후 무효(void) API가 없습니다. 결제내역의 자동환불·강제환불로 처리하세요.");
+        }
+        if (ksnet && action == PayFollowAction.AUTO_VOID) {
             throw new IllegalStateException(
                     "이 거래는 승인 후 무효(void) API가 없습니다. 결제내역의 자동환불·강제환불로 처리하세요.");
         }
@@ -164,6 +172,8 @@ public class PayListActionService {
                     elementPayRefundPending = !rr.completed();
                 } else if (eximbay) {
                     apiDetail = eximbayPaymentService.requestCancel(t, refundReason);
+                } else if (ksnet) {
+                    apiDetail = ksnetPaymentService.requestCancel(t, refundReason);
                 } else if (qxipay) {
                     long ouId = resolveMerchantOrgUnitId(t);
                     String chargeId = t.getChillTransactionId() != null && !t.getChillTransactionId().isBlank()
@@ -213,7 +223,7 @@ public class PayListActionService {
             };
             t.setChillPaymentStatus(JpayNotifyStatusResolver.chillPaymentStatusLabel(nextStatus, rc));
             t.setPaidAt(null);
-        } else if ((elementPay || eximbay) && (action == PayFollowAction.AUTO_REFUND || action == PayFollowAction.FORCE_REFUND)) {
+        } else if ((elementPay || eximbay || ksnet) && (action == PayFollowAction.AUTO_REFUND || action == PayFollowAction.FORCE_REFUND)) {
             t.setPaidAt(null);
             if (apiDetail != null && !apiDetail.isBlank()) {
                 String label = apiDetail.length() > 50 ? apiDetail.substring(0, 50) : apiDetail;

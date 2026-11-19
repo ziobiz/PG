@@ -640,6 +640,9 @@ public class OpsNotiProvisionService {
         if (qbang) {
             createdMsg = "NOTI QBANG 가맹이 생성되었습니다.";
             sameMsg = "기존 NOTI QBANG 가맹과 동일합니다.";
+        } else if (NotiProvisionClient.isKsnet(pgKind)) {
+            createdMsg = "NOTI KSNET 가맹이 생성되었습니다.";
+            sameMsg = "기존 NOTI KSNET 가맹과 동일합니다.";
         } else if (payso) {
             createdMsg = "NOTI PAYSO 가맹이 생성되었습니다.";
             sameMsg = "기존 NOTI PAYSO 가맹과 동일합니다.";
@@ -1187,6 +1190,9 @@ public class OpsNotiProvisionService {
         if (NotiProvisionClient.isQbang(kind)) {
             log.setRouteNo("qbang");
             log.setSlotNo(null);
+        } else if (NotiProvisionClient.isKsnet(kind)) {
+            log.setRouteNo("ksnet");
+            log.setSlotNo(null);
         } else if (NotiProvisionClient.isPayso(kind)) {
             log.setRouteNo("payso");
             log.setSlotNo(null);
@@ -1238,6 +1244,15 @@ public class OpsNotiProvisionService {
             callback = firstNonBlank(data, "qbangResultUrl");
             if (callback.isEmpty()) {
                 callback = notiBase + "/noti/result/qbang";
+            }
+        } else if (NotiProvisionClient.isKsnet(pgKind)) {
+            notify = firstNonBlank(data, "ksnetWebhookUrl");
+            if (notify.isEmpty()) {
+                notify = notiBase + "/noti/ksnet";
+            }
+            callback = firstNonBlank(data, "ksnetResultUrl");
+            if (callback.isEmpty()) {
+                callback = notiBase + "/noti/result/ksnet";
             }
         } else if (NotiProvisionClient.isPayso(pgKind)) {
             notify = firstNonBlank(data, "paysoWebhookUrl");
@@ -1332,6 +1347,9 @@ public class OpsNotiProvisionService {
         if (NotiProvisionClient.isQbang(pgKind)) {
             log.setRouteNo("qbang");
             log.setSlotNo(null);
+        } else if (NotiProvisionClient.isKsnet(pgKind)) {
+            log.setRouteNo("ksnet");
+            log.setSlotNo(null);
         } else if (NotiProvisionClient.isPayso(pgKind)) {
             log.setRouteNo("payso");
             log.setSlotNo(null);
@@ -1375,6 +1393,8 @@ public class OpsNotiProvisionService {
         m.put("pgKind", pgKind);
         m.put("pgKindLabel", NotiProvisionClient.isQbang(pgKind)
                 ? "QBANG"
+                : (NotiProvisionClient.isKsnet(pgKind)
+                ? "KSNET"
                 : (NotiProvisionClient.isPayso(pgKind)
                 ? "PAYSO"
                 : (NotiProvisionClient.isOmspay(pgKind)
@@ -1385,7 +1405,7 @@ public class OpsNotiProvisionService {
                 ? "ILKPAY"
                 : (NotiProvisionClient.isOx(pgKind)
                 ? "ox"
-                : (NotiProvisionClient.isElementPay(pgKind) ? "ElementPay" : "JPAY")))))));
+                : (NotiProvisionClient.isElementPay(pgKind) ? "ElementPay" : "JPAY"))))))));
         m.put("internalTargetId", nz(log.getInternalTargetId()));
         m.put("integrationMode", normalizeIntegrationMode(log.getIntegrationMode()));
         m.put("routeNo", nz(log.getRouteNo()));
@@ -1425,6 +1445,9 @@ public class OpsNotiProvisionService {
         }
         if ("payso".equals(route) || "paysolutions".equals(route)) {
             return "payso";
+        }
+        if ("ksnet".equals(route) || "kspay".equals(route)) {
+            return "ksnet";
         }
         if ("qxipay".equals(route) || "qxpay".equals(route)) {
             return "qxipay";

@@ -40,6 +40,9 @@ public final class PgVendor {
     /** QBANG(㈜큐뱅 QR 중계). {@code QBANG} 또는 {@code QBANG_…} 접두. 가맹 노출은 ICOPAY 중립. */
     public static final String QBANG = "QBANG";
 
+    /** KSNET(KSPAY 해외 USD 결제창). {@code KSNET} 또는 {@code KSNET_…} 접두. 가맹 노출은 ICOPAY 중립. */
+    public static final String KSNET = "KSNET";
+
     /** 크립토(USDT/USDC/EURC 수탁 결제). {@code CRYPTO} 또는 {@code CRYPTO_…} 접두. 가맹 노출은 ICOPAY 중립. */
     public static final String CRYPTO = "CRYPTO";
 
@@ -227,6 +230,23 @@ public final class PgVendor {
         }
         String u = vendorCode.trim().toUpperCase(Locale.ROOT).replaceAll("\\s+", "_");
         return QBANG.equals(u) || u.startsWith(QBANG + "_") || u.startsWith("QBANK") || u.startsWith("QRBANK");
+    }
+
+    /** {@code pg_cd}·노티 벤더 코드가 KSNET 계열인지 — {@code KSNET} 또는 {@code KSNET_…} / {@code KSPAY}. */
+    public static boolean isKsnetFamily(String pgCd) {
+        if (pgCd == null) {
+            return false;
+        }
+        String u = normalizePgCdKey(pgCd);
+        return KSNET.equals(u) || u.startsWith(KSNET + "_") || u.startsWith("KSPAY");
+    }
+
+    public static boolean isKsnetVendorCode(String vendorCode) {
+        if (vendorCode == null || vendorCode.isBlank()) {
+            return false;
+        }
+        String u = vendorCode.trim().toUpperCase(Locale.ROOT);
+        return KSNET.equals(u) || u.startsWith(KSNET + "_") || u.startsWith("KSPAY");
     }
 
     /** {@code pg_cd}·노티 벤더 코드가 CRYPTO 계열인지 — {@code CRYPTO} 또는 {@code CRYPTO_…} 접두. */

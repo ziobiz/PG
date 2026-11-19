@@ -174,9 +174,12 @@ public class PaysoPaymentService {
             returnUrl = base + "/payso-pay.html?m=" + mid + "&orderNo=" + onEnc + "&payso=1&paysoReturn=1&done=1"
                     + "#m=" + mid + "&orderNo=" + onEnc + "&paysoReturn=1&done=1";
         }
-        String notiBase = NotiProvisionClient.defaultBaseUrlIfBlank(
-                hqNotifyEnvService.getOrCreate().getNotiProvisionBaseUrl());
-        String postbackUrl = notiBase + NOTI_WEBHOOK_PATH;
+        /*
+         * Payso Mode 1: postbackUrl="-" → Control Panel 의 Post Back URL(POST form) 사용.
+         * 커스텀 URL을 넣으면 Mode 2(GET·쿼리 고정)로 바뀌어 승인 통보가 빠져
+         * 결과 화면이「확인 시간 초과」가 난다. Return URL 만 ICOPAY 동적 URL 유지.
+         */
+        String postbackUrl = "-";
 
         if (body != null) {
             com.pg.urlpay.PayerContextCapture.enrichSaleBody(body, request, clientIp);
@@ -202,6 +205,8 @@ public class PaysoPaymentService {
                 charge.shopperDisplayAmount(), charge.shopperDisplayCurrency(),
                 buyerName, buyerEmail, buyerTel, body);
 
+        String firstName = str(body, "payFirstname", "firstName", "firstname");
+        String lastName = str(body, "payLastname", "lastName", "lastname");
         Map<String, Object> pay = apiClient.createUiPayment(
                 creds,
                 referenceNo,
@@ -212,7 +217,11 @@ public class PaysoPaymentService {
                 str(body, "lang", "langCode"),
                 returnUrl,
                 postbackUrl,
-                "ALL");
+                /* Appendix A: CreditCard = 카드만 (ALL 이면 QR·Wallet·Banking 등 전부) */
+                "CreditCard",
+                buyerName,
+                firstName,
+                lastName);
         if (!Boolean.TRUE.equals(pay.get("ok"))) {
             return fail(out, str(pay.get("errorCode"), "PAYSO_CREATE"),
                     str(pay.get("message"), "Payso 결제 페이지 생성에 실패했습니다."));
@@ -242,8 +251,9 @@ public class PaysoPaymentService {
         data.put("pgVendor", "ICOPAY");
         data.put("noti", publicNotiIngressUrls());
         out.put("data", data);
-        log.info("PAYSO redirect started mid={} order={} ref={} txn={} ip={}",
-                ouOpt.get().getCode(), orderNo, referenceNo, txnId, clientIp);
+        log.info("PAYSO redirect started mid={} order={} ref={} txn={} amt={} cur={} ip={}",
+                ouOpt.get().getCode(), orderNo, referenceNo, txnId,
+                charge.pgAmount(), charge.settlementCurrency(), clientIp);
         return out;
     }
 
@@ -269,12 +279,14 @@ public class PaysoPaymentService {
             data.put("trnId", t.getTrnId());
             data.put("pgTxnId", t.getChillTransactionId());
             String st = t.getStatus() != null ? t.getStatus().trim() : "";
-            data.put("paymentStatus", switch (st) {
+            String paymentStatus = switch (st) {
                 case "10", "00" -> "PAID";
                 case "08" -> "PENDING";
                 case "99", "F0" -> "FAIL";
                 default -> st;
-            });
+            };
+            data.put("paymentStatus", paymentStatus);
+            data.put("paid", "PAID".equals(paymentStatus));
             data.put("amount", t.getAmtKrw());
             data.put("currency", t.getCurType());
         }
@@ -298,22 +310,42 @@ public class PaysoPaymentService {
         return com.pg.api.ApiResponse.ok(data);
     }
 
-    /** Payso referenceNo ≤12 — 가맹 orderNo 해시 단축(매핑은 DB order_no 유지). */
+    /**
+     * Payso referenceNo ≤12.
+     * HPP는 문서 샘플처럼 <strong>숫자만</strong> 허용하는 경우가 있어(hex 거부 → Invalid referenceNo),
+     * 가맹 orderNo는 DB에 유지하고 Payso에는 12자리 숫자 ref만 보낸다.
+     */
     public static String toPaysoReferenceNo(String orderNo) {
         String on = orderNo != null ? orderNo.trim() : "";
-        if (on.length() <= 12 && on.matches("^[A-Za-z0-9_-]+$")) {
-            return on;
+        if (on.matches("^[0-9]{1,12}$")) {
+            try {
+                long n = Long.parseLong(on);
+                if (n < 0) {
+                    n = Math.abs(n);
+                }
+                return String.format(Locale.ROOT, "%012d", n % 1_000_000_000_000L);
+            } catch (NumberFormatException ignored) {
+                /* fall through */
+            }
         }
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] dig = md.digest(on.getBytes(StandardCharsets.UTF_8));
-            StringBuilder sb = new StringBuilder(12);
-            for (int i = 0; i < dig.length && sb.length() < 12; i++) {
-                sb.append(Integer.toHexString((dig[i] & 0xff) | 0x100), 1, 3);
+            long v = 0L;
+            for (int i = 0; i < 8 && i < dig.length; i++) {
+                v = (v << 8) | (dig[i] & 0xffL);
             }
-            return sb.substring(0, Math.min(12, sb.length()));
+            v = Math.floorMod(v, 1_000_000_000_000L);
+            if (v == 0L) {
+                v = 1L;
+            }
+            return String.format(Locale.ROOT, "%012d", v);
         } catch (Exception e) {
-            return ("P" + Math.abs(on.hashCode())).replace('-', '0');
+            long h = Math.floorMod((long) on.hashCode(), 1_000_000_000_000L);
+            if (h == 0L) {
+                h = 1L;
+            }
+            return String.format(Locale.ROOT, "%012d", h);
         }
     }
 

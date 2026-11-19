@@ -25,6 +25,8 @@ public enum UrlPaySaleChannel {
     OMSPAY_REDIRECT_SALE,
     /** Payso HPP 리다이렉트 — ui-payments → redirectUrl */
     PAYSO_REDIRECT_SALE,
+    /** KSNET 해외 USD KSPAY.requestPay → payKey → recv_post.jsp 승인 ({@code /api/pay/url/sale} → requestPay 파라미터 반환) */
+    KSNET_SDK_SALE,
     /** QBANG(큐뱅) QR — TK/QR/PL/OKAY */
     QBANG_QR_SALE,
     /** 아직 ICOPAY URL 승인 어댑터 미등록 */

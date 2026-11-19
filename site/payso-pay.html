@@ -500,6 +500,8 @@
     try { sessionStorage.removeItem('pg_payso_pending'); } catch (eClr) { /* ignore */ }
     pendingMeta = null;
   }
+  var returnToken = (qp('rt') || '').trim();
+  var returnResolved = null; /* { compId, orderNo, merchantApi } from opaque rt */
   var returnOrderNo = (qp('orderNo') || qp('OrderNo') || '').trim();
   if (!returnOrderNo && pendingMeta && pendingMeta.orderNo) {
     returnOrderNo = String(pendingMeta.orderNo).trim();
@@ -510,7 +512,7 @@
   var omsStatusHint = String(
     qp('status') || qp('payment_status') || qp('paymentStatus') || qp('icopay_status') || ''
   ).toLowerCase();
-  var isReturnMode = flag1('done') || flag1('paysoReturn')
+  var isReturnMode = flag1('done') || flag1('paysoReturn') || !!returnToken
     || String(qp('outcome') || '').toLowerCase() === 'return'
     || (!session && !!pendingMeta && !!returnOrderNo)
     || (!session && !!returnOrderNo && (
@@ -526,9 +528,44 @@
   }
 
   function isMerchantApiReturn() {
+    if (returnResolved && returnResolved.merchantApi) return true;
     if (String(qp('entry') || '').toLowerCase() === 'merchant_api') return true;
     if (pendingMeta && String(pendingMeta.txnOrigin || '').toUpperCase() === 'MERCHANT_API') return true;
     return false;
+  }
+
+  function applyReturnResolved(data) {
+    if (!data) return;
+    returnResolved = {
+      compId: String(data.compId || '').trim(),
+      orderNo: String(data.orderNo || '').trim(),
+      merchantApi: !!data.merchantApi || String(data.entry || '').toLowerCase() === 'merchant_api'
+    };
+    if (returnResolved.compId) {
+      try { document.getElementById('compIdHidden').value = returnResolved.compId; } catch (eC) { /* ignore */ }
+    }
+    if (returnResolved.orderNo) {
+      returnOrderNo = returnResolved.orderNo;
+    }
+  }
+
+  function resolveReturnTokenThen(done) {
+    if (!returnToken) {
+      if (done) done();
+      return;
+    }
+    fetch('/api/pay/payso/resolve-return?rt=' + encodeURIComponent(returnToken), {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' }
+    }).then(function (r) { return r.json(); }).then(function (body) {
+      var data = body && (body.data || body);
+      if (body && body.success && data && data.compId && data.orderNo) {
+        applyReturnResolved(data);
+      }
+      if (done) done();
+    }).catch(function () {
+      if (done) done();
+    });
   }
 
   /** 가맹 API REDIRECT: NOTI Result → 가맹 resultUrl 사이트백 (ICOPAY 완료화면 대신) */
@@ -634,13 +671,13 @@
               + '&compId=' + encodeURIComponent(cidSb)
               + '&merchantId=' + encodeURIComponent(cidSb);
           }
-          if (body && body.success && d && d.paid === true) {
+          if (body && body.success && d && (d.paid === true || d.paymentStatus === 'PAID' || d.paymentStatus === '10' || d.paymentStatus === '00')) {
             if (api && siteBack && goSiteBack(siteBack)) return;
             clearPaysoPendingMarker();
             renderOmsResult({ ok: true, awaiting: false, orderNo: d.orderNo || on, merchantApi: api, siteBackUrl: siteBack });
             return;
           }
-          if (body && body.success && d && d.paymentStatus === 'FAIL') {
+          if (body && body.success && d && (d.paymentStatus === 'FAIL' || d.paymentStatus === 'FAILED' || d.paymentStatus === '99')) {
             if (api && siteBack && goSiteBack(siteBack)) return;
             clearPaysoPendingMarker();
             renderOmsResult({ ok: false, awaiting: false, orderNo: d.orderNo || on, merchantApi: api, siteBackUrl: siteBack });
@@ -688,43 +725,6 @@
   if (comp) document.getElementById('compIdHidden').value = comp;
 
   if (isReturnMode) {
-    pollOmsReturnResult();
-  }
-
-  function loadContext() {
-    if (isReturnMode) return Promise.resolve();
-    if (session) {
-      return fetch('/api/middleware/v1/merchant/checkout/session?token=' + encodeURIComponent(session), { credentials: 'same-origin' })
-        .then(function (r) { return r.json(); })
-        .then(function (body) {
-          if (body && body.success && body.data) {
-            applySessionOrQuery(body.data);
-            var cid = body.data.compId || getCompId();
-            if (cid) {
-              return fetch('/api/pay/payso/checkout-context?compId=' + encodeURIComponent(cid), { credentials: 'same-origin' })
-                .then(function (r2) { return r2.json(); })
-                .then(function (ctxBody) {
-                  if (ctxBody && (ctxBody.errorCode === 'ORG_DISABLED' || ctxBody.errorCode === 'WEB_PAYMENT_DISABLED')) {
-                    showConfigError(ctxBody.message || t('webOff'));
-                    return;
-                  }
-                  if (ctxBody && ctxBody.success && ctxBody.data) {
-                    applyCheckoutContext(ctxBody.data);
-                    if (session && sessionData && window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyApiPaymentAmountField) {
-                      PG_URL_PAY_SHELL.applyApiPaymentAmountField('amount',
-                        document.getElementById('amount').value || sessionData.amount,
-                        [sessionData, ctxBody.data]);
-                      lockedAmount = PG_URL_PAY_SHELL.isApiPaymentAmountLockEnabled([sessionData, ctxBody.data]);
-                    }
-                  }
-                });
-            }
-          }
-        });
-    }
-    if (!comp) {
-      showConfigError(t('needMerchant'));
-      return Promise.resolve();
     resolveReturnTokenThen(function () {
       pollOmsReturnResult();
     });
@@ -839,9 +839,11 @@
     tryAutoStartToOms();
   });
 
+  var startInFlight = false;
   document.getElementById('omsForm').addEventListener('submit', function (ev) {
     ev.preventDefault();
     if (isReturnMode || flag1('done')) return;
+    if (startInFlight) return;
     var cid = (document.getElementById('compIdHidden').value || getCompId() || '').trim();
     if (!cid) { showConfigError(t('needMerchant')); return; }
     ensureOrderNo();
@@ -897,8 +899,14 @@
       payCountryIso = (document.getElementById('payCountryIsoCode2').value || '').trim().toUpperCase();
     }
     var btn = document.getElementById('submitBtn');
+    startInFlight = true;
     btn.disabled = true;
     btn.textContent = t('wait');
+    function unlockStart() {
+      startInFlight = false;
+      btn.disabled = false;
+      btn.textContent = t('pay');
+    }
     var settleCur = (sessionData.settlementCurrency
       || (checkoutCtx && (checkoutCtx.urlPaySettlementCurrencyCode || checkoutCtx.checkoutCurrencyCode))
       || 'THB');
@@ -923,6 +931,60 @@
       txnOrigin: fromMerchantApi ? 'MERCHANT_API' : 'URL',
       /* return_url 은 서버가 암호화 rt 로만 생성(가맹코드·주문번호 평문 금지) */
       merchantApiEntry: fromMerchantApi ? '1' : '0'
+    };
+    /* DP: 표시금액 + 견적 토큰 필수(미전송 시 INVALID_FX_QUOTE) */
+    if (urlPayDisplayFxActive && urlPayPricingMode === 'DISPLAY_FX_THB') {
+      var fxQ = fxShellState.urlPayFxQuote;
+      if (!fxQ || (!fxQ.fxQuoteToken && fxQ.oneToOneDisplaySettlement !== true)) {
+        alert(t('needFxQuote') || '환율 견적을 불러오지 못했습니다. 페이지를 새로고침한 뒤 다시 시도하세요.');
+        unlockStart();
+        return;
+      }
+      payload.urlPayPricingMode = 'DISPLAY_FX_THB';
+      payload.displayAmount = String(amount).replace(/,/g, '').trim();
+      payload.amount = payload.displayAmount;
+      payload.displayCurrency = (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.payFxResolvedDisplayCurrency && checkoutCtx)
+        ? PG_URL_PAY_SHELL.payFxResolvedDisplayCurrency(checkoutCtx)
+        : String((fxQ && fxQ.displayCurrency) || (checkoutCtx && checkoutCtx.urlPayDisplayFxDefaultDisplayCurrency) || 'USD').trim().toUpperCase();
+      if (fxQ.fxQuoteToken) payload.fxQuoteToken = String(fxQ.fxQuoteToken);
+      if (fxQ.settlementCurrency) {
+        payload.currency = String(fxQ.settlementCurrency).trim().toUpperCase();
+      }
+      if (fxShellState.operationalPgCd) {
+        payload.operationalPgCd = String(fxShellState.operationalPgCd).trim();
+      } else if (checkoutCtx && checkoutCtx.urlPayOperationalPgCd) {
+        payload.operationalPgCd = String(checkoutCtx.urlPayOperationalPgCd).trim();
+      }
+    }
+    fetch('/api/pay/payso/start', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function (r) { return r.json(); }).then(function (body) {
+      if (body && (body.errorCode === 'ORG_DISABLED' || body.errorCode === 'WEB_PAYMENT_DISABLED')) {
+        showConfigError(body.message || t('webOff'));
+        unlockStart();
+        return;
+      }
+      var data = body && (body.data || body);
+      if (body && body.success && data && (data.paymentStatus === 'PAID' || data.paid === true)) {
+        try {
+          sessionStorage.setItem('pg_payso_pending', JSON.stringify({
+            orderNo: document.getElementById('orderNo').value.trim(),
+            compId: cid,
+            omsOrderCode: data.omsOrderCode || '',
+            txnOrigin: fromMerchantApi ? 'MERCHANT_API' : 'URL',
+            ts: Date.now()
+          }));
+        } catch (ePaidSs) { /* ignore */ }
+        returnOrderNo = document.getElementById('orderNo').value.trim();
+        isReturnMode = true;
+        try { document.getElementById('omsForm').style.display = 'none'; } catch (eHidePaid) { /* ignore */ }
+        startInFlight = false;
+        pollOmsReturnResult();
+        return;
+      }
       if (body && body.success && data && (data.redirectUrl || data.paymentUrl)) {
         try {
           sessionStorage.setItem('pg_payso_pending', JSON.stringify({
@@ -933,7 +995,7 @@
             ts: Date.now()
           }));
         } catch (eSs) { /* ignore */ }
-        /* Beam HPP는 iframe 내 표시 거부 — embed면 top으로 이탈(EMP iframe 가맹→OMSPAY 교체 대응) */
+        /* Beam HPP는 iframe 내 표시 거부 — embed면 top으로 이탈 */
         var hop = data.redirectUrl || data.paymentUrl;
         if (window.IcopayCheckout3ds && IcopayCheckout3ds.navigateToPaymentUrl) {
           IcopayCheckout3ds.navigateToPaymentUrl(hop, { showWait: true });
@@ -951,12 +1013,10 @@
         return;
       }
       alert((body && (body.message || body.error)) || t('err'));
-      btn.disabled = false;
-      btn.textContent = t('pay');
+      unlockStart();
     }).catch(function () {
       alert(t('err'));
-      btn.disabled = false;
-      btn.textContent = t('pay');
+      unlockStart();
     });
   });
 })();

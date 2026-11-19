@@ -120,10 +120,17 @@ public class NotiProvisionClient {
         if ("payso".equals(k) || "paysolutions".equals(k)) {
             return "payso";
         }
+        if ("ksnet".equals(k) || "kspay".equals(k)) {
+            return "ksnet";
+        }
         if ("qbang".equals(k) || "qbank".equals(k) || "qrbank".equals(k) || "큐뱅".equals(k)) {
             return "qbang";
         }
         return "jpay";
+    }
+
+    public static boolean isKsnet(String pgKind) {
+        return "ksnet".equals(normalizePgKind(pgKind));
     }
 
     public static boolean isElementPay(String pgKind) {
@@ -158,7 +165,8 @@ public class NotiProvisionClient {
     public static boolean isFixedIngressPg(String pgKind) {
         String k = normalizePgKind(pgKind);
         return "elementpay".equals(k) || "ox".equals(k) || "ilk".equals(k)
-                || "qxipay".equals(k) || "omspay".equals(k) || "payso".equals(k) || "qbang".equals(k);
+                || "qxipay".equals(k) || "omspay".equals(k) || "payso".equals(k) || "qbang".equals(k)
+                || "ksnet".equals(k);
     }
 
     /** NOTI internal-targets 목록. 실패 시 예외 대신 상세 결과 Map 반환. */

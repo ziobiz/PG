@@ -28,12 +28,14 @@ public class CryptoEvmJsonRpcClient {
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
-
-    @Value("${pg.crypto.chain.alchemy-api-key:}")
-    private String alchemyApiKey;
+    private final CryptoChainCredentialsService credentials;
 
     @Value("${pg.crypto.chain.evm-lookback-blocks:5000}")
     private long lookbackBlocks;
+
+    public CryptoEvmJsonRpcClient(CryptoChainCredentialsService credentials) {
+        this.credentials = credentials;
+    }
 
     public Optional<CryptoOnChainTransfer> findTransferByTxHash(String networkCode,
                                                                 String txHash,
@@ -103,7 +105,7 @@ public class CryptoEvmJsonRpcClient {
             return List.of();
         }
         /* Alchemy 키가 있으면 getAssetTransfers 가 안정적. 없으면 eth_getLogs 룩백. */
-        if (alchemyApiKey != null && !alchemyApiKey.isBlank() && alchemyNetwork(networkCode) != null) {
+        if (credentials.hasAlchemyKey() && alchemyNetwork(networkCode) != null) {
             return alchemyTransfers(networkCode, toAddress, contractAddress, decimals, notBefore);
         }
         return ethGetLogs(rpc, toAddress, contractAddress, decimals, notBefore);
@@ -259,6 +261,7 @@ public class CryptoEvmJsonRpcClient {
     }
 
     private String alchemyRpc(String networkCode) {
+        String alchemyApiKey = credentials.alchemyApiKey();
         if (alchemyApiKey == null || alchemyApiKey.isBlank()) {
             return null;
         }

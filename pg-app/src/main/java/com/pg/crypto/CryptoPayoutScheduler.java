@@ -21,12 +21,20 @@ public class CryptoPayoutScheduler {
     public void scan() {
         try {
             int released = payoutService.releaseDueHolds();
-            int auto = payoutService.processAutoReady(50);
-            if (released > 0 || auto > 0) {
-                log.info("crypto payout scan: releasedHold={}, autoProcessed={}", released, auto);
+            java.util.Map<String, Object> auto = payoutService.processAutoReady(50);
+            int sent = num(auto.get("sent"));
+            int skipped = num(auto.get("skipped"));
+            int failed = num(auto.get("failed"));
+            if (released > 0 || sent > 0 || failed > 0) {
+                log.info("crypto payout scan: releasedHold={}, sent={}, skipped={}, failed={}, autoEnabled={}",
+                        released, sent, skipped, failed, auto.get("autoEnabled"));
             }
         } catch (Exception e) {
             log.warn("crypto payout scan failed: {}", e.getMessage());
         }
+    }
+
+    private static int num(Object v) {
+        return v instanceof Number n ? n.intValue() : 0;
     }
 }

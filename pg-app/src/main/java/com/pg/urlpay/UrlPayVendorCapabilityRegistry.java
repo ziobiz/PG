@@ -53,6 +53,9 @@ public class UrlPayVendorCapabilityRegistry {
         if (PgVendor.isPaysoFamily(pg)) {
             return paysoCapability(pg, urlPay, urlRepayAgency);
         }
+        if (PgVendor.isKsnetFamily(pg)) {
+            return ksnetCapability(pg, urlPay, urlRepayAgency);
+        }
         if (PgVendor.isQbangFamily(pg)) {
             return qbangCapability(pg, urlPay, urlRepayAgency);
         }
@@ -91,6 +94,9 @@ public class UrlPayVendorCapabilityRegistry {
         }
         if (PgVendor.isPaysoFamily(pg)) {
             return UrlPayInlineWidgetKind.PAYSO_REDIRECT;
+        }
+        if (PgVendor.isKsnetFamily(pg)) {
+            return UrlPayInlineWidgetKind.KSNET_SDK;
         }
         if (PgVendor.isQbangFamily(pg)) {
             return UrlPayInlineWidgetKind.QBANG_QR;
@@ -212,6 +218,20 @@ public class UrlPayVendorCapabilityRegistry {
                 "/checkout/",
                 NeutralCheckoutRoute.EMBED_SCRIPT_PATH,
                 UrlPaySaleChannel.PAYSO_REDIRECT_SALE,
+                urlPay,
+                urlRepayAgency,
+                false);
+    }
+
+    /** KSNET — 해외 USD KSPAY.requestPay 결제창(카드 C). 재결제 URL 미지원. */
+    private UrlPayVendorCapability ksnetCapability(String pg, boolean urlPay, boolean urlRepayAgency) {
+        return new UrlPayVendorCapability(
+                PgVendor.KSNET,
+                pg,
+                UrlPayInlineWidgetKind.KSNET_SDK,
+                "/checkout/",
+                NeutralCheckoutRoute.EMBED_SCRIPT_PATH,
+                UrlPaySaleChannel.KSNET_SDK_SALE,
                 urlPay,
                 urlRepayAgency,
                 false);

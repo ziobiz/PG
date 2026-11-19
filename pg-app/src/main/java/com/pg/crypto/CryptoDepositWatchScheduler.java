@@ -26,9 +26,6 @@ public class CryptoDepositWatchScheduler {
     private final CryptoChainVerifyService chainVerifyService;
     private final CryptoCheckoutService checkoutService;
 
-    @Value("${pg.crypto.chain.enabled:true}")
-    private boolean enabled;
-
     @Value("${pg.crypto.chain.watch-batch-size:40}")
     private int batchSize;
 
@@ -42,7 +39,7 @@ public class CryptoDepositWatchScheduler {
 
     @Scheduled(fixedDelayString = "${pg.crypto.chain.watch-scan-ms:30000}", initialDelayString = "20000")
     public void scan() {
-        if (!enabled || !chainVerifyService.isEnabled()) {
+        if (!chainVerifyService.isEnabled()) {
             return;
         }
         List<CryptoDepositTxn> candidates = depositTxnRepository.findWatchCandidates(

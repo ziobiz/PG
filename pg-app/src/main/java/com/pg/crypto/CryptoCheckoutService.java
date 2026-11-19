@@ -478,6 +478,15 @@ public class CryptoCheckoutService {
                 ? chainVerifyService.scanCustodyForMatch(txn)
                 : chainVerifyService.verifyByTxHash(txn, hash);
         if (!outcome.matched() || outcome.transfer() == null) {
+            /* 구매자가 확인을 눌렀으나 체인 미매칭 → 입금대기로 올려 워처·관리자 UI에 노출 */
+            if (CryptoDepositTxn.ST_PENDING.equals(txn.getStatus())) {
+                txn.setStatus(CryptoDepositTxn.ST_AWAITING);
+            }
+            if (!hash.isBlank()
+                    && (txn.getDepositTxHash() == null || txn.getDepositTxHash().isBlank())) {
+                txn.setDepositTxHash(hash);
+            }
+            depositTxnRepository.save(txn);
             Map<String, Object> waiting = new LinkedHashMap<>();
             MerchantCryptoConfig cfgW = configRepository.findById(txn.getOrgUnitId()).orElse(null);
             waiting.putAll(publicTxn(txn, cfgW));

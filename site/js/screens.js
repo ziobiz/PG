@@ -2858,6 +2858,7 @@
     '<option value="qxipay">QXIPAY</option>' +
     '<option value="omspay">OMSPAY</option>' +
     '<option value="payso">PAYSO</option>' +
+    '<option value="ksnet">KSNET</option>' +
     '<option value="qbang">QBANG</option></select></div>' +
     '<div class="col-12 col-md-3"><label class="form-label mb-1" for="opsNpCompId" data-pg-ui-t="가맹 업체코드">가맹 업체코드</label>' +
     '<input type="text" class="form-control form-control-sm" id="opsNpCompId" autocomplete="off"></div>' +
@@ -2986,6 +2987,7 @@
     '<option value="qxipay">QXIPAY</option>' +
     '<option value="omspay">OMSPAY</option>' +
     '<option value="payso">PAYSO</option>' +
+    '<option value="ksnet">KSNET</option>' +
     '<option value="qbang">QBANG</option></select></div></div>' +
     '<div class="mb-2"><span class="text-muted" data-pg-ui-t="NOTI 슬롯">NOTI 슬롯</span><div id="opsNpLogEditSlot" class="fw-semibold">—</div>' +
     '<div class="small text-muted mt-1" data-pg-ui-t="수정 시 PG를 바꾸면 NOTI 가맹·고정 Callback/Result 입구가 해당 PG로 다시 맞춰집니다. JPAY로 바꾸려면 기존 슬롯이 있어야 합니다.">수정 시 PG를 바꾸면 NOTI 가맹·고정 Callback/Result 입구가 해당 PG로 다시 맞춰집니다. JPAY로 바꾸려면 기존 슬롯이 있어야 합니다.</div></div>' +
@@ -8400,6 +8402,48 @@
                  escUi(L('안내 저장')) + '</button></div>';
              } }],
             [{ label: '', type: 'note', col: 12, text: '시스템 기본: 암호화폐로 결제합니다. 자산·네트워크·지갑을 선택한 뒤 안내 주소로 입금해 주세요.' }]
+          ]
+        },
+        {
+          title: '온체인 입금 감시 API',
+          id: 'hqCryptoChainApiCard',
+          cryptoCard: true,
+          notice: '자동 입금확정용 체인 조회 키입니다. Alchemy(Ethereum·Base 등 EVM)와 TronGrid(TRC20)를 본사에서 등록합니다. 한 Alchemy 키로 Ethereum·Base를 함께 사용합니다. 저장 시 Google OTP 필요. 비우면 서버 환경변수(ALCHEMY_API_KEY·TRONGRID_API_KEY)를 사용합니다.',
+          rows: [
+            [{ label: '입금 감시', type: 'select', name: 'cryptoChainWatchEnabledYn', options: [
+              { v: 'Y', t: '사용(Y)' }, { v: 'N', t: '중지(N)' }
+            ], col: 3 },
+             { label: '', type: 'note', col: 9, text: '중지 시 자동 온체인 확정이 멈춥니다. 관리자 수동 확정(OTP 강제)만 가능합니다.' }],
+            [{ label: 'Alchemy API Key', type: 'text', name: 'alchemyApiKey', col: 8,
+               placeholder: 'Alchemy Dashboard API Key (Ethereum·Base 공통)' },
+             { type: 'customHtml', col: 4, html: function () {
+               return '<div class="form-field-block"><label class="form-label" data-pg-ui-t="상태">상태</label>' +
+                 '<div class="small text-muted pt-1" id="hqCryptoAlchemyKeyStatus">—</div>' +
+                 '<button type="button" class="btn btn-outline-secondary btn-sm mt-1" id="hqCryptoAlchemyTestBtn" data-pg-ui-t="Alchemy 연결 테스트">' +
+                 escUi(L('Alchemy 연결 테스트')) + '</button></div>';
+             } }],
+            [{ label: 'TronGrid API Key', type: 'text', name: 'trongridApiKey', col: 8,
+               placeholder: 'TronGrid API Key (TRC20 Mainnet)' },
+             { type: 'customHtml', col: 4, html: function () {
+               return '<div class="form-field-block"><label class="form-label" data-pg-ui-t="상태">상태</label>' +
+                 '<div class="small text-muted pt-1" id="hqCryptoTrongridKeyStatus">—</div>' +
+                 '<button type="button" class="btn btn-outline-secondary btn-sm mt-1" id="hqCryptoTrongridTestBtn" data-pg-ui-t="TronGrid 연결 테스트">' +
+                 escUi(L('TronGrid 연결 테스트')) + '</button></div>';
+             } }],
+            [{ type: 'customHtml', col: 10, html: function () {
+               return '<p class="small text-muted mb-0">' +
+                 escUi(L('발급·문서')) + ': ' +
+                 '<a href="https://www.alchemy.com/" target="_blank" rel="noopener">alchemy.com</a> · ' +
+                 '<a href="https://www.trongrid.io/" target="_blank" rel="noopener">trongrid.io</a> · ' +
+                 '<a href="https://developers.tron.network/reference/trongrid-v1-api-overview" target="_blank" rel="noopener">TronGrid V1 API</a>' +
+                 '<br>' + escUi(L('키를 비우고 저장하면 본사 저장값을 지우고 환경변수로 돌아갑니다.')) +
+                 '</p>';
+             } },
+             { type: 'customHtml', col: 2, html: function () {
+               return '<div class="form-field-block"><label class="form-label">&nbsp;</label>' +
+                 '<button type="button" class="btn btn-primary btn-sm w-100" id="hqCryptoChainApiSaveBtn" data-pg-ui-t="감시 API 저장">' +
+                 escUi(L('감시 API 저장')) + '</button></div>';
+             } }]
           ]
         },
         {

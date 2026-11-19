@@ -294,6 +294,9 @@ public class MerchantInlineCheckoutTokenService {
         if (com.pg.integration.pg.PgVendor.isPaysoFamily(u)) {
             return MerchantPgBrokerVendor.PAYSO;
         }
+        if (com.pg.integration.pg.PgVendor.isKsnetFamily(u)) {
+            return MerchantPgBrokerVendor.KSNET;
+        }
         if (com.pg.integration.pg.PgVendor.isQbangFamily(u)) {
             return MerchantPgBrokerVendor.QBANG;
         }

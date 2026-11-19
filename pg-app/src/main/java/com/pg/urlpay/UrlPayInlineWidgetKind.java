@@ -25,6 +25,8 @@ public final class UrlPayInlineWidgetKind {
     public static final String OMSPAY_REDIRECT = "OMSPAY_REDIRECT";
     /** Payso HPP 리다이렉트({@code payso-pay.html}) — ui-payments */
     public static final String PAYSO_REDIRECT = "PAYSO_REDIRECT";
+    /** KSNET KSPAY JS SDK 결제창({@code ksnet-pay.html}) — 해외 USD 전용, 카드정보 미보유(호스티드) */
+    public static final String KSNET_SDK = "KSNET_SDK";
     /** QBANG QR({@code qbang-pay.html}) — 화면 QR + 폴링 */
     public static final String QBANG_QR = "QBANG_QR";
     /** 본사 REDIRECT 플로우 — 카드 인라인 없음 */

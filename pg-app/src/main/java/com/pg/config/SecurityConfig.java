@@ -75,6 +75,9 @@ public class SecurityConfig {
                 AntPathRequestMatcher.antMatcher("/payso-pay"),
                 AntPathRequestMatcher.antMatcher("/payso-pay/**"),
                 AntPathRequestMatcher.antMatcher("/payso-pay.html"),
+                AntPathRequestMatcher.antMatcher("/ksnet-pay"),
+                AntPathRequestMatcher.antMatcher("/ksnet-pay/**"),
+                AntPathRequestMatcher.antMatcher("/ksnet-pay.html"),
                 AntPathRequestMatcher.antMatcher("/qbang-pay"),
                 AntPathRequestMatcher.antMatcher("/qbang-pay/**"),
                 AntPathRequestMatcher.antMatcher("/qbang-pay.html"),
@@ -138,6 +141,7 @@ public class SecurityConfig {
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/qxipay/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/omspay/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/payso/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/ksnet/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/qbang/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/url/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/crypto/**")).permitAll()

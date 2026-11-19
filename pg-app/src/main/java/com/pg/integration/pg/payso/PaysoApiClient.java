@@ -55,6 +55,28 @@ public class PaysoApiClient {
                                                String returnUrl,
                                                String postbackUrl,
                                                String paymentChannel) {
+        return createUiPayment(creds, referenceNo, customerEmail, description, amount, currencyCode,
+                lang, returnUrl, postbackUrl, paymentChannel, null, null, null);
+    }
+
+    /**
+     * @param customerName 전체 성명(카드 명의 프리필 시도 — 문서 미기재 필드, Payso가 무시할 수 있음)
+     * @param firstName    이름
+     * @param lastName     성
+     */
+    public Map<String, Object> createUiPayment(PaysoCredentials creds,
+                                               String referenceNo,
+                                               String customerEmail,
+                                               String description,
+                                               BigDecimal amount,
+                                               String currencyCode,
+                                               String lang,
+                                               String returnUrl,
+                                               String postbackUrl,
+                                               String paymentChannel,
+                                               String customerName,
+                                               String firstName,
+                                               String lastName) {
         if (creds == null || !creds.isUsable()) {
             return err("PAYSO_CREDENTIALS", "Payso API 키가 없습니다.");
         }
@@ -69,14 +91,39 @@ public class PaysoApiClient {
         body.put("merchantId", creds.merchantId());
         body.put("customerEmail", customerEmail != null && !customerEmail.isBlank()
                 ? customerEmail.trim() : "noreply@icopay.co.kr");
+        String fullName = customerName != null ? customerName.trim() : "";
+        String fn = firstName != null ? firstName.trim() : "";
+        String ln = lastName != null ? lastName.trim() : "";
+        if (fullName.isBlank() && (!fn.isBlank() || !ln.isBlank())) {
+            fullName = (fn + " " + ln).trim();
+        }
+        if (!fullName.isBlank()) {
+            /* 문서 미기재 — HPP Name on the card 프리필 후보 필드 동시 전달 */
+            String name = clamp(fullName, 80);
+            body.put("customerName", name);
+            body.put("cardHolder", name);
+            body.put("cardholder", name);
+            body.put("cardHolderName", name);
+            body.put("payerName", name);
+            body.put("name", name);
+        }
+        if (!fn.isBlank()) {
+            body.put("firstName", clamp(fn, 40));
+        }
+        if (!ln.isBlank()) {
+            body.put("lastName", clamp(ln, 40));
+        }
         body.put("referenceNo", ref);
         body.put("description", clamp(description != null ? description : "Payment", 100));
-        BigDecimal amt = amount != null ? amount.setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
+        String cur = currencyCode != null && !currencyCode.isBlank() ? currencyCode.trim() : "00";
+        /* JPY(02) 등 소수 없는 통화는 정수 금액 — HPP Invalid data 예방 */
+        int scale = "02".equals(cur) ? 0 : 2;
+        BigDecimal amt = amount != null ? amount.setScale(scale, RoundingMode.HALF_UP) : BigDecimal.ZERO;
         body.put("amount", amt);
         body.put("paymentChannel", paymentChannel != null && !paymentChannel.isBlank() ? paymentChannel : "ALL");
         body.put("paymentGateway", "");
         body.put("installmentTerm", "");
-        body.put("currencyCode", currencyCode != null && !currencyCode.isBlank() ? currencyCode : "00");
+        body.put("currencyCode", cur);
         body.put("lang", "JA".equalsIgnoreCase(lang) || "JP".equalsIgnoreCase(lang) || "JPN".equalsIgnoreCase(lang)
                 ? "EN" : ("TH".equalsIgnoreCase(lang) || "THA".equalsIgnoreCase(lang) ? "TH" : "EN"));
         body.put("returnUrl", returnUrl != null && !returnUrl.isBlank() ? returnUrl.trim() : "-");

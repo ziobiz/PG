@@ -47,7 +47,7 @@ public final class PgAgencyPayFollowCapability {
         boolean jpay = PgVendor.isJpayFamily(pgCd);
         boolean chill = PgVendor.isChillPayFamily(pgCd);
         boolean refundApiOnly = PgVendor.isElementPayFamily(pgCd) || PgVendor.isEximbayFamily(pgCd)
-                || PgVendor.isQxipayFamily(pgCd);
+                || PgVendor.isQxipayFamily(pgCd) || PgVendor.isKsnetFamily(pgCd);
         return switch (action) {
             case AUTO_VOID -> chill && !jpay && !refundApiOnly;
             case EMAIL_VOID -> chill && !jpay;
@@ -86,7 +86,7 @@ public final class PgAgencyPayFollowCapability {
             a.setPayFollowSameDayRefundYn("N");
             return;
         }
-        if (PgVendor.isElementPayFamily(cd) || PgVendor.isQxipayFamily(cd)) {
+        if (PgVendor.isElementPayFamily(cd) || PgVendor.isQxipayFamily(cd) || PgVendor.isKsnetFamily(cd)) {
             a.setPayFollowAutoVoidYn("N");
             a.setPayFollowEmailVoidYn("N");
             a.setPayFollowManualVoidYn("N");

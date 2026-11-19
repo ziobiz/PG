@@ -863,7 +863,15 @@
           btn.textContent = pack.confirm;
         }
         if (!(body && body.success && body.data)) {
-          showErr((body && body.message) || pack.errConfirm || pack.errSession);
+          var waitMsg = (body && body.message) || pack.errConfirm || pack.errSession;
+          if (body && body.data) {
+            state.data = body.data;
+            updateStatus(body.data.status || 'AWAITING_DEPOSIT');
+            if (body.data.chainCheck && body.data.chainCheck.message) {
+              waitMsg = body.data.chainCheck.message;
+            }
+          }
+          showErr(waitMsg);
           pollStatus();
           return;
         }
@@ -884,7 +892,7 @@
 
   document.getElementById('refreshBtn').addEventListener('click', function () { confirmSent(); });
 
-  setInterval(pollStatus, 8000);
+  setInterval(pollStatus, 5000);
   loadCheckoutLogo();
   loadSession();
 })();

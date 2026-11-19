@@ -84,6 +84,9 @@ public final class ReceiptPgAgencyMatch {
         if (PgVendor.isOmspayFamily(pgCd) && PgVendor.isOmspayFamily(van)) {
             return true;
         }
+        if (PgVendor.isKsnetFamily(pgCd) && PgVendor.isKsnetFamily(van)) {
+            return true;
+        }
         return PgVendor.isPaysoFamily(pgCd) && PgVendor.isPaysoFamily(van);
     }
 }

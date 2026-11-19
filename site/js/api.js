@@ -1758,6 +1758,12 @@
     hqCryptoCopyDefaultsSave: function (body) {
       return post('/api/hq/crypto/copy-defaults/save', body || {}).then(function (r) { return r.data; });
     },
+    hqCryptoChainApiSave: function (body) {
+      return post('/api/hq/crypto/chain-api/save', body || {}).then(function (r) { return r.data; });
+    },
+    hqCryptoChainApiTest: function (body) {
+      return post('/api/hq/crypto/chain-api/test', body || {}).then(function (r) { return r.data; });
+    },
     hqCryptoCustodySave: function (body) {
       return post('/api/hq/crypto/custody/save', body || {}).then(function (r) { return r.data; });
     },
