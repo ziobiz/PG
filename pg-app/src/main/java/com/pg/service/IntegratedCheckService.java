@@ -29,15 +29,18 @@ public class IntegratedCheckService {
     private final PayListService payListService;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
     private final ElementPayClientApiService elementPayClientApiService;
+    private final PaysoIntegratedListService paysoIntegratedListService;
 
     public IntegratedCheckService(JpayIntegratedListService jpayIntegratedListService,
                                   PayListService payListService,
                                   HqLedgerSysSettingsService hqLedgerSysSettingsService,
-                                  ElementPayClientApiService elementPayClientApiService) {
+                                  ElementPayClientApiService elementPayClientApiService,
+                                  PaysoIntegratedListService paysoIntegratedListService) {
         this.jpayIntegratedListService = jpayIntegratedListService;
         this.payListService = payListService;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
         this.elementPayClientApiService = elementPayClientApiService;
+        this.paysoIntegratedListService = paysoIntegratedListService;
     }
 
     @Transactional(readOnly = true)
@@ -69,6 +72,16 @@ public class IntegratedCheckService {
                     ? (List<Map<String, Object>>) el : List.of();
             acquirerDays = epDays;
             acquirerCapped = Boolean.TRUE.equals(ep.get("capped"));
+        } else if ("PAYSO".equals(acquirer)) {
+            String psKeyword = searchOrderNo != null && !searchOrderNo.isBlank() ? searchOrderNo : searchKeyword;
+            String psField = searchOrderNo != null && !searchOrderNo.isBlank() ? "ORDER_NO" : "ALL";
+            Map<String, Object> ps = paysoIntegratedListService.buildDailyCheckRows(
+                    tFrom, effectiveTo, psField, psKeyword, searchPayDivCd, compareZone);
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> psDays = ps.get("list") instanceof List<?> el
+                    ? (List<Map<String, Object>>) el : List.of();
+            acquirerDays = psDays;
+            acquirerCapped = Boolean.TRUE.equals(ps.get("capped"));
         } else if ("OX".equals(acquirer)) {
             acquirerDays = List.of();
         } else {
@@ -149,6 +162,13 @@ public class IntegratedCheckService {
             if (acquirerCapped) {
                 meta.put("note", "ElementPay 조회 건수가 많아 최근 5,000건까지만 대조했습니다.");
             }
+        } else if ("PAYSO".equals(acquirer)) {
+            meta.put("integratedCheckNote",
+                    "PAYSO Inquiry 조회와 ICOPAY에 적재된 PAYSO(·PAYSO JPDP) 거래를 일자별로 대조합니다. "
+                            + "금액은 실결제 승인금액(통화별)입니다.");
+            if (acquirerCapped) {
+                meta.put("note", "PAYSO 조회 건수가 많아 최근 5,000건까지만 대조했습니다.");
+            }
         } else if ("OX".equals(acquirer)) {
             meta.put("acquirerQueryReady", false);
             meta.put("integratedCheckNote",
@@ -210,6 +230,9 @@ public class IntegratedCheckService {
         if ("ELEMENTPAY".equals(v)) {
             return "ELEMENTPAY";
         }
+        if ("PAYSO".equals(v) || v.startsWith("PAYSO_") || "PAYSOLUTIONS".equals(v)) {
+            return "PAYSO";
+        }
         if ("OX".equals(v) || "OXPAY".equals(v)) {
             return "OX";
         }
@@ -219,6 +242,9 @@ public class IntegratedCheckService {
     private static String acquirerLabel(String acquirer) {
         if ("ELEMENTPAY".equals(acquirer)) {
             return "ElementPay";
+        }
+        if ("PAYSO".equals(acquirer)) {
+            return "PAYSO";
         }
         if ("OX".equals(acquirer)) {
             return "ox";

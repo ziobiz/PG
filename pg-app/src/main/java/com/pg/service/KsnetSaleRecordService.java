@@ -89,7 +89,10 @@ public class KsnetSaleRecordService {
             t.setVan(PgVendor.KSNET);
             t.setStatus(ST_PENDING);
             t.setOrderNo(on);
-            t.setPayNo(on.length() > 50 ? on.substring(0, 50) : on);
+            if (t.getPayNo() == null || t.getPayNo().isBlank()
+                    || !com.pg.util.IcopayPgOrderRef.looksLikeIcopayRef(t.getPayNo(), com.pg.util.IcopayPgOrderRef.Profile.ALNUM_50)) {
+                t.setPayNo(on.length() > 50 ? on.substring(0, 50) : on);
+            }
             if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
                 t.setAmtKrw(amount);
                 t.setTotalAmt(amount);
@@ -147,7 +150,8 @@ public class KsnetSaleRecordService {
         if (merchantId == null || merchantId.isBlank() || orderNo == null || orderNo.isBlank()) {
             return Optional.empty();
         }
-        return PgTrnsctnOrderLookup.findPreferredByMerchantAndOrder(
+        /* orderNo = 가맹 order_no 또는 KSNET orderNumb(ICOPAY ref = pay_no) */
+        return PgTrnsctnOrderLookup.findByMerchantOrderOrPayNo(
                         pgTrnsctnRepository, merchantId.trim(), orderNo.trim())
                 .filter(x -> PgVendor.isKsnetFamily(x.getVan()));
     }
@@ -164,7 +168,9 @@ public class KsnetSaleRecordService {
                 return Optional.of(t);
             }
         }
-        return Optional.empty();
+        /* KSNET orderNumb = ICOPAY ref → pay_no */
+        return PgTrnsctnOrderLookup.findByOrderNoOrPayNo(pgTrnsctnRepository, on)
+                .filter(t -> PgVendor.isKsnetFamily(t.getVan()));
     }
 
     /**
@@ -190,7 +196,6 @@ public class KsnetSaleRecordService {
             }
             if (tid != null && !tid.isBlank()) {
                 t.setChillTransactionId(truncate(tid.trim(), 64));
-                t.setPayNo(truncate(tid.trim(), 50));
             }
             String approval = authNo != null && !authNo.isBlank() ? authNo.trim()
                     : (tid != null ? tid.trim() : "");
@@ -223,6 +228,14 @@ public class KsnetSaleRecordService {
             log.warn("KSNET 승인 결과 반영 실패: {}", e.getMessage());
             return Optional.empty();
         }
+    }
+
+    /** 대기(08) 장기 미완료 만료 → 실패(99). */
+    @Transactional
+    public Optional<PgTrnsctn> applyPendingExpired(String merchantId, String orderNo, int staleMinutes) {
+        return applyAuthFailed(merchantId, orderNo,
+                PendingTxnExpireService.expireReasonMessage(staleMinutes),
+                "KSNET_PENDING_EXPIRED");
     }
 
     /** 사용자 결제창 취소·인증 실패 — 대기(08)만 실패(99)로 전환. */

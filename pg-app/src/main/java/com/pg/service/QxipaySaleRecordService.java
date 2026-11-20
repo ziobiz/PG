@@ -41,6 +41,18 @@ public class QxipaySaleRecordService {
     public void recordOrTouchPending(Long orgUnitId, String orderNo, BigDecimal amount, String currency,
                                      String productName, String chargeId, String txnOrigin,
                                      BigDecimal shopperDisplayAmount, String shopperDisplayCurrency) {
+        recordOrTouchPending(orgUnitId, orderNo, amount, currency, productName, chargeId, txnOrigin,
+                shopperDisplayAmount, shopperDisplayCurrency, null);
+    }
+
+    /**
+     * @param pgOrderRef ICOPAY→QXIPAY {@code reference}(불투명). {@code pay_no} 에 보관, charge id 는 {@code chill_transaction_id}.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void recordOrTouchPending(Long orgUnitId, String orderNo, BigDecimal amount, String currency,
+                                     String productName, String chargeId, String txnOrigin,
+                                     BigDecimal shopperDisplayAmount, String shopperDisplayCurrency,
+                                     String pgOrderRef) {
         try {
             Optional<OrgUnit> ouOpt = orgUnitRepository.findById(orgUnitId);
             if (ouOpt.isEmpty() || orderNo == null || orderNo.isBlank()) {
@@ -70,9 +82,14 @@ public class QxipaySaleRecordService {
                 String pn = productName.length() > 100 ? productName.substring(0, 100) : productName;
                 t.setCustomerNm(pn);
             }
+            if (pgOrderRef != null && !pgOrderRef.isBlank()) {
+                String pr = pgOrderRef.trim();
+                t.setPayNo(pr.length() > 50 ? pr.substring(0, 50) : pr);
+            } else if (t.getPayNo() == null || t.getPayNo().isBlank()) {
+                t.setPayNo(orderNo.trim().length() > 50 ? orderNo.trim().substring(0, 50) : orderNo.trim());
+            }
             if (chargeId != null && !chargeId.isBlank()) {
                 t.setChillTransactionId(chargeId.trim());
-                t.setPayNo(chargeId.trim());
             }
             if (txnOrigin != null && !txnOrigin.isBlank()) {
                 t.setOrigin(txnOrigin);
@@ -96,7 +113,8 @@ public class QxipaySaleRecordService {
         if (orderNo == null || orderNo.isBlank() || compId == null || compId.isBlank()) {
             return Optional.empty();
         }
-        Optional<PgTrnsctn> txn = PgTrnsctnOrderLookup.findPreferredByMerchantAndOrder(
+        /* orderNo = 가맹 order_no 또는 QXIPAY reference(ICOPAY ref = pay_no) */
+        Optional<PgTrnsctn> txn = PgTrnsctnOrderLookup.findByMerchantOrderOrPayNo(
                 pgTrnsctnRepository, compId.trim(), orderNo.trim());
         if (txn.isEmpty() || !PgVendor.isQxipayFamily(txn.get().getVan())) {
             return Optional.empty();
@@ -113,7 +131,6 @@ public class QxipaySaleRecordService {
         }
         if (chargeId != null && !chargeId.isBlank()) {
             t.setChillTransactionId(chargeId.trim());
-            t.setPayNo(chargeId.trim());
         }
         if (approvalNo != null && !approvalNo.isBlank()) {
             t.setApprovalNo(approvalNo.trim());

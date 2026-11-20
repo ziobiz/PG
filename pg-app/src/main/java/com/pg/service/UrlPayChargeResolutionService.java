@@ -98,10 +98,22 @@ public class UrlPayChargeResolutionService {
                 }
                 String compId = str(body, "compId");
                 String fxTok = str(body, "fxQuoteToken");
+                String quoteCur = !dispCur.isBlank() ? dispCur : shopperCur;
+                String settleCurExpected = urlPayDisplayFxService.settlementCurrencyForPg(opPg);
+                /* 표시통화 = 실결제 통화(예: KSNET USD→USD) · 토큰 없음 → 1:1 (마진 0).
+                 * 결제창이 견적을 못 보낸 경우·oneToOneDisplaySettlement 폴백과 동일. */
                 if (fxTok.isBlank()) {
+                    if (quoteCur != null && settleCurExpected != null
+                            && quoteCur.trim().equalsIgnoreCase(settleCurExpected.trim())) {
+                        BigDecimal pgAmount = paymentCurrencyScaleService.toPgAmount(
+                                dispAmt, opPg, settleCurExpected);
+                        if (pgAmount == null || pgAmount.compareTo(BigDecimal.ZERO) <= 0) {
+                            throw new IllegalArgumentException("INVALID_AMOUNT");
+                        }
+                        return new ResolvedCharge(pgAmount, settleCurExpected, dispAmt, shopperCur);
+                    }
                     throw new IllegalArgumentException("INVALID_FX_QUOTE");
                 }
-                String quoteCur = !dispCur.isBlank() ? dispCur : shopperCur;
                 UrlPayDisplayFxService.FxComputedSettlement fx = urlPayDisplayFxService.computeSettlementFromQuote(
                         compId, quoteCur, dispAmt, fxTok, opPg);
                 return new ResolvedCharge(fx.amount(), fx.settlementCurrency(), dispAmt, shopperCur);

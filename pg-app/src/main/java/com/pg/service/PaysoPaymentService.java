@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -25,7 +24,8 @@ import java.util.Optional;
 
 /**
  * Payso — ui-payments HPP 리다이렉트.
- * 가맹 MID는 Payso로 보내지 않음(ICOPAY 집계 MID만). referenceNo ≤12.
+ * 가맹 MID·compId는 Payso로 보내지 않음(ICOPAY 집계 MID만). referenceNo ≤12.
+ * Return URL 도 {@link HostedPayReturnTokenService} 불투명 {@code rt} 만 사용(평문 m·orderNo 금지).
  */
 @Service
 public class PaysoPaymentService {
@@ -42,6 +42,7 @@ public class PaysoPaymentService {
     private final PaysoSaleRecordService paysoSaleRecordService;
     private final HqNotifyEnvService hqNotifyEnvService;
     private final HostedPayReturnTokenService hostedPayReturnTokenService;
+    private final MerchantOutboundNotifyService merchantOutboundNotifyService;
 
     @Value("${pg.public-base-url:https://api.icopay.co.kr}")
     private String publicBaseUrl;
@@ -53,7 +54,8 @@ public class PaysoPaymentService {
                                PaysoApiClient apiClient,
                                PaysoSaleRecordService paysoSaleRecordService,
                                HqNotifyEnvService hqNotifyEnvService,
-                               HostedPayReturnTokenService hostedPayReturnTokenService) {
+                               HostedPayReturnTokenService hostedPayReturnTokenService,
+                               MerchantOutboundNotifyService merchantOutboundNotifyService) {
         this.orgUnitRepository = orgUnitRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.chillPayService = chillPayService;
@@ -62,6 +64,7 @@ public class PaysoPaymentService {
         this.paysoSaleRecordService = paysoSaleRecordService;
         this.hqNotifyEnvService = hqNotifyEnvService;
         this.hostedPayReturnTokenService = hostedPayReturnTokenService;
+        this.merchantOutboundNotifyService = merchantOutboundNotifyService;
     }
 
     public Map<String, String> publicNotiIngressUrls() {
@@ -164,22 +167,8 @@ public class PaysoPaymentService {
         if (orderNo.isBlank()) {
             return fail(out, "INVALID_ORDER_NO", "orderNo가 필요합니다.");
         }
+        /* 가맹 orderNo ≠ Payso referenceNo — 거래마다 고유 12자리 숫자 */
         String referenceNo = toPaysoReferenceNo(orderNo);
-
-        String returnUrl = str(body, "returnUrl", "return_url");
-        if (returnUrl.isBlank()) {
-            String base = publicBaseUrl != null ? publicBaseUrl.trim().replaceAll("/+$", "") : "https://api.icopay.co.kr";
-            String mid = URLEncoder.encode(ouOpt.get().getCode(), StandardCharsets.UTF_8);
-            String onEnc = URLEncoder.encode(orderNo, StandardCharsets.UTF_8);
-            returnUrl = base + "/payso-pay.html?m=" + mid + "&orderNo=" + onEnc + "&payso=1&paysoReturn=1&done=1"
-                    + "#m=" + mid + "&orderNo=" + onEnc + "&paysoReturn=1&done=1";
-        }
-        /*
-         * Payso Mode 1: postbackUrl="-" → Control Panel 의 Post Back URL(POST form) 사용.
-         * 커스텀 URL을 넣으면 Mode 2(GET·쿼리 고정)로 바뀌어 승인 통보가 빠져
-         * 결과 화면이「확인 시간 초과」가 난다. Return URL 만 ICOPAY 동적 URL 유지.
-         */
-        String postbackUrl = "-";
 
         if (body != null) {
             com.pg.urlpay.PayerContextCapture.enrichSaleBody(body, request, clientIp);
@@ -197,6 +186,27 @@ public class PaysoPaymentService {
         if (origin.isBlank()) {
             origin = "URL";
         }
+        /*
+         * Return URL — OMSPAY 와 동일하게 rt 암호화 토큰만 (가맹코드·주문번호 평문 금지).
+         * Payso에 m=/orderNo= 를 넘기면 PG가 ICOPAY 가맹을 식별할 수 있어 수익권 침해 위험.
+         */
+        boolean merchantApiReturn = "MERCHANT_API".equalsIgnoreCase(origin)
+                || "1".equals(str(body, "merchantApiEntry"))
+                || str(body, "returnUrl", "return_url").contains("entry=merchant_api");
+        String returnUrl = hostedPayReturnTokenService.buildOpaqueReturnUrl(
+                publicBaseUrl,
+                "/payso-pay.html",
+                PgVendor.PAYSO,
+                ouOpt.get().getCode(),
+                orderNo,
+                merchantApiReturn,
+                "payso=1&paysoReturn=1&done=1");
+        /*
+         * Payso Mode 1: postbackUrl="-" → Control Panel 의 Post Back URL(POST form) 사용.
+         * 커스텀 URL을 넣으면 Mode 2(GET·쿼리 고정)로 바뀌어 승인 통보가 빠져
+         * 결과 화면이「확인 시간 초과」가 난다. Return URL 만 ICOPAY 동적 URL 유지.
+         */
+        String postbackUrl = "-";
 
         /* pending with short reference in pay_no until Payso transactionId returns */
         paysoSaleRecordService.recordOrTouchPending(
@@ -207,11 +217,16 @@ public class PaysoPaymentService {
 
         String firstName = str(body, "payFirstname", "firstName", "firstname");
         String lastName = str(body, "payLastname", "lastName", "lastname");
+        /*
+         * Payso 로는 가맹 상품명·가맹 orderNo 를 보내지 않음.
+         * description = 중립 "Payment", referenceNo = ICOPAY 12자리 숫자 해시만.
+         * 가맹 orderNo·상품명은 DB(pending)에만 보관 → 통보·조회 시 가맹 쪽 키로 사용.
+         */
         Map<String, Object> pay = apiClient.createUiPayment(
                 creds,
                 referenceNo,
                 buyerEmail,
-                str(body, "productName", "item"),
+                "Payment",
                 charge.pgAmount(),
                 toPaysoCurrencyCode(charge.settlementCurrency()),
                 str(body, "lang", "langCode"),
@@ -295,6 +310,46 @@ public class PaysoPaymentService {
         return out;
     }
 
+    /**
+     * 구매자 복귀·폴링 타임아웃 — 웹훅 없이 Wrong payment 등으로 요청(08)이 남을 때 실패(99) 반영.
+     * 이미 승인·실패면 덮지 않음. 수신통보 우선 outbound.
+     */
+    public Map<String, Object> markBuyerFailed(String compIdHint, String orderNo, String reason) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        String on = orderNo != null ? orderNo.trim() : "";
+        if (on.isBlank()) {
+            return fail(out, "INVALID_ORDER_NO", "orderNo가 필요합니다.");
+        }
+        String comp = compIdHint != null ? compIdHint.trim() : "";
+        if (comp.isBlank()) {
+            return fail(out, "NOT_FOUND", "compId가 필요합니다.");
+        }
+        String reasonText = reason != null && !reason.isBlank()
+                ? reason.trim()
+                : "Buyer return: payment failed or abandoned";
+        Optional<com.pg.entity.PgTrnsctn> updated = paysoSaleRecordService.applyFailedOutcome(
+                on, comp, null, "PAYSO_BUYER_RETURN_FAIL", reasonText);
+        if (updated.isEmpty()) {
+            return fail(out, "NOT_FOUND", "주문을 찾을 수 없습니다.");
+        }
+        com.pg.entity.PgTrnsctn t = updated.get();
+        try {
+            if ("99".equals(t.getStatus() != null ? t.getStatus().trim() : "")) {
+                merchantOutboundNotifyService.scheduleAfterTxnCommit(t, null, "PAYSO_BUYER_RETURN_FAIL");
+            }
+        } catch (Exception e) {
+            log.warn("PAYSO buyer mark-failed notify: {}", e.getMessage());
+        }
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("orderNo", on);
+        data.put("compId", comp);
+        data.put("paymentStatus", "99".equals(t.getStatus() != null ? t.getStatus().trim() : "") ? "FAIL" : t.getStatus());
+        data.put("pgVendor", "ICOPAY");
+        out.put("success", true);
+        out.put("data", data);
+        return out;
+    }
+
     public com.pg.api.ApiResponse<Map<String, Object>> resolveHostedReturn(String rt) {
         Optional<HostedPayReturnTokenService.ReturnPayload> p =
                 hostedPayReturnTokenService.parseValid(rt, PgVendor.PAYSO);
@@ -311,42 +366,11 @@ public class PaysoPaymentService {
     }
 
     /**
-     * Payso referenceNo ≤12.
-     * HPP는 문서 샘플처럼 <strong>숫자만</strong> 허용하는 경우가 있어(hex 거부 → Invalid referenceNo),
-     * 가맹 orderNo는 DB에 유지하고 Payso에는 12자리 숫자 ref만 보낸다.
+     * Payso referenceNo ≤12, digits only — {@link com.pg.util.IcopayPgOrderRef}.
+     * 가맹 orderNo는 인자로 받아도 PG ref 생성에 쓰지 않는다(호환 시그니처).
      */
     public static String toPaysoReferenceNo(String orderNo) {
-        String on = orderNo != null ? orderNo.trim() : "";
-        if (on.matches("^[0-9]{1,12}$")) {
-            try {
-                long n = Long.parseLong(on);
-                if (n < 0) {
-                    n = Math.abs(n);
-                }
-                return String.format(Locale.ROOT, "%012d", n % 1_000_000_000_000L);
-            } catch (NumberFormatException ignored) {
-                /* fall through */
-            }
-        }
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] dig = md.digest(on.getBytes(StandardCharsets.UTF_8));
-            long v = 0L;
-            for (int i = 0; i < 8 && i < dig.length; i++) {
-                v = (v << 8) | (dig[i] & 0xffL);
-            }
-            v = Math.floorMod(v, 1_000_000_000_000L);
-            if (v == 0L) {
-                v = 1L;
-            }
-            return String.format(Locale.ROOT, "%012d", v);
-        } catch (Exception e) {
-            long h = Math.floorMod((long) on.hashCode(), 1_000_000_000_000L);
-            if (h == 0L) {
-                h = 1L;
-            }
-            return String.format(Locale.ROOT, "%012d", h);
-        }
+        return com.pg.util.IcopayPgOrderRef.paysoDigits12();
     }
 
     public static String toPaysoCurrencyCode(String currency) {

@@ -125,7 +125,7 @@ public class QxipayCallbackService {
 
         String compId = "";
         if (!orderNo.isBlank()) {
-            Optional<PgTrnsctn> byOrder = pgTrnsctnRepository.findFirstByOrderNoOrderByCreatedAtDesc(orderNo);
+            Optional<PgTrnsctn> byOrder = com.pg.util.PgTrnsctnOrderLookup.findByOrderNoOrPayNo(pgTrnsctnRepository, orderNo);
             if (byOrder.isPresent() && PgVendor.isQxipayFamily(byOrder.get().getVan())) {
                 compId = byOrder.get().getMerchantId() != null ? byOrder.get().getMerchantId() : "";
             }

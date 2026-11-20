@@ -676,12 +676,22 @@
        { label: '전화번호', type: 'select', name: 'urlPayBuyerPhoneUseYn', options: [
         { v: 'Y', t: '활성' },
         { v: 'N', t: '비활성' }
+      ], col: 2 }],
+      [{ label: '성명(URL결제)', type: 'select', name: 'urlPayBuyerNameUseYn', options: [
+        { v: 'Y', t: '활성' },
+        { v: 'N', t: '비활성' }
       ], col: 2 },
-       { label: '성명(리다이렉트용)', type: 'select', name: 'urlPayBuyerNameUseYn', options: [
+       { label: '성명(API결제)', type: 'select', name: 'apiBuyerNameUseYn', options: [
+        { v: 'FOLLOW_HQ', t: '본사설정 따름' },
+        { v: 'Y', t: '활성' },
+        { v: 'N', t: '비활성' }
+      ], col: 2 },
+       { label: '전화 국가번호', type: 'select', name: 'jpayPhoneDialCodeYn', options: [
+        { v: 'FOLLOW_HQ', t: '본사설정 따름' },
         { v: 'Y', t: '활성' },
         { v: 'N', t: '비활성' }
       ], col: 2 }],
-      [{ label: '', type: 'note', col: 12, text: '구매자입력 프리셋: 기본형·1형·2형…을 고르면 이메일·국가·전화·배송은 프리셋을 따릅니다(개별 항목 잠금). 「비활성」으로 둔 뒤에만 네 항목을 개별 활성/비활성으로 설정합니다. 성명(리다이렉트용)은 프리셋과 별도이며 기본값은 활성입니다. URL·리다이렉트 결제창 이름/성 표시를 제어합니다(비활성 시 성명 미표시). 프리셋이 켜진 채 개별 항목을 바꾸려 하면 「구매자입력 프리셋을 비활성화하세요.」안내가 표시됩니다.' }],
+      [{ label: '', type: 'note', col: 12, text: '구매자입력 프리셋: 기본형·1형·2형…을 고르면 이메일·국가·전화·배송은 프리셋을 따릅니다(개별 항목 잠금). 「비활성」으로 둔 뒤에만 네 항목을 개별 활성/비활성으로 설정합니다. 성명(URL결제)·성명(API결제)은 프리셋과 별도이며 기본값은 활성입니다. URL 공개 결제·리다이렉트(RE·KSNET 등)는 「성명(URL결제)」, 가맹 API(entry=merchant_api)는 「성명(API결제)」로 이름/성 표시를 각각 제어합니다(비활성 시 성명 미표시). 「전화 국가번호」는 결제창 전화번호 옆 +82 등 국가번호 드롭다운 노출입니다. 프리셋이 켜진 채 개별 항목을 바꾸려 하면 「구매자입력 프리셋을 비활성화하세요.」안내가 표시됩니다.' }],
       [{ type: 'customHtml', col: 12, html: webPaymentHeaderSubtitleFieldBlock }],
       merchantWebPaymentDefaultProductRow(),
       [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml(urlPh); } },
@@ -4802,8 +4812,10 @@
             [{ label: '이메일', type: 'select', name: 'urlPayBuyerEmailUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
              { label: '국가코드', type: 'select', name: 'urlPayBuyerCountryUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
              { label: '전화번호', type: 'select', name: 'urlPayBuyerPhoneUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
-             { label: '성명(리다이렉트용)', type: 'select', name: 'urlPayBuyerNameUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 }],
-            [{ label: '', type: 'note', col: 12, text: '이메일·국가코드·전화번호·배송주소는 JPAY·ElementPay 등 전 PG 결제창에 동일 적용됩니다. 성명(리다이렉트용) 본사 기본값은 활성입니다. 비활성 시 화면 숨김 — 가맹 prepare buyerPrefill 등으로 전달 필요. 이메일·국가·전화·배송은 아래 프리셋 「기본형」과 동기화됩니다(성명은 프리셋 제외).' }],
+             { label: '성명(URL결제)', type: 'select', name: 'urlPayBuyerNameUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
+             { label: '성명(API결제)', type: 'select', name: 'apiBuyerNameUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
+             { label: '전화 국가번호', type: 'select', name: 'jpayPhoneDialCodeYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 }],
+            [{ label: '', type: 'note', col: 12, text: '이메일·국가코드·전화번호·배송주소는 JPAY·ElementPay·KSNET 등 전 PG 결제창에 동일 적용됩니다. 성명(URL결제)=공개 URL·리다이렉트(RE), 성명(API결제)=가맹 API 결제창 — 각각 본사 기본 활성. 비활성 시 화면 숨김 — 가맹 prepare buyerPrefill 등으로 전달 필요. 「전화 국가번호」는 전화번호 옆 +82 등 드롭다운(기본 비활성). 이메일·국가·전화·배송은 아래 프리셋 「기본형」과 동기화됩니다(성명·국가번호는 프리셋 제외).' }],
             [{ type: 'customHtml',
               col: 12,
               html: '<div class="border rounded p-2 mb-2" id="hqCheckoutFieldPresetWrap">'
@@ -6831,6 +6843,7 @@
           { label: '결제대행사', type: 'select', name: 'searchAcquirer', options: [
             { v: 'ELEMENTPAY', t: 'ElementPay' },
             { v: 'CHILLPAY', t: 'ChillPay' },
+            { v: 'PAYSO', t: 'PAYSO' },
             { v: 'OX', t: 'ox' }
           ], size: 14 }
         ],
@@ -6864,6 +6877,7 @@
         '자격: 배포설정 > API배포설정 또는 tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스 여부를 사용합니다.',
         '순서(내림차순·오름차순)는 [새로고침] 왼쪽 메뉴에서 고르며, 누르는 즉시 다시 조회됩니다(기본 내림차순). TransactionDate 범위는 검색 기간(날짜)을 ChillPay 형식(dd/MM/yyyy HH:mm:ss)으로 변환합니다. 문서: ChillPay-API-Transaction-Services-Document-EN_v1.0.6.',
         '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·승인번호·업체명·업체코드·거래일·거래시간(운영·표준 두 줄)은 그리드에 항상 표시되며 VIEW SETTING 목록에는 나오지 않습니다. 루트(Route)는 VIEW SETTING에서 켜고 끌 수 있습니다. 거래일은 YYYY-MM-DD(예: 2026-05-09) 형식으로 표시됩니다. 본사설정 → 조직항목설정에서 화면「통합내역」 허용 열을 제한할 수 있습니다.',
+        'PAYSO를 고르면 Inquiry API로 기간 거래 목록을 가져오며, 주문번호·referenceNo로 ICOPAY 매칭(icopay Y/N)합니다. 자격은 결제대행사 설정의 PAYSO(·PAYSO JPDP) apiKey·secretKey·merchantId입니다.',
         'ox를 고르면 결제 목록을 가져오지 않습니다. ox 결제 조회 API와 별도 샌드박스 API는 아직 없고, 저장된 ox 거래는 결제개요에서 봅니다.'
       ],
       summary: ['건수'],
@@ -6933,6 +6947,7 @@
           { label: '결제대행사', type: 'select', name: 'searchAcquirer', options: [
             { v: 'ELEMENTPAY', t: 'ElementPay' },
             { v: 'JPAY', t: 'JPAY' },
+            { v: 'PAYSO', t: 'PAYSO' },
             { v: 'OX', t: 'ox' }
           ], size: 12 },
           { label: '상태구분', type: 'select', name: 'searchPayDivCd', options: [
@@ -6949,9 +6964,9 @@
       noticeList: [
         '결제대행사를 고르면 그 대행사 일별 집계와 ICOPAY에 적재된 같은 대행사 거래를 일자별로 비교합니다. 값이 같으면 Ok, 다르면 불일치 셀만 강조·Check로 표시됩니다. 금액은 실결제 승인금액입니다.',
         '대행사 행 또는 ICOPAY 행을 더블클릭하면 아래 「선택 일자 상세」에 해당 일 거래 목록이 표시됩니다.',
-        'ElementPay는 검색할 때 결제대행사에서 바로 가져옵니다. JPAY는 저장된 조회 캐시이며, JPAY를 고른 뒤에만 동기화 버튼이 나옵니다. 조회 기간은 최대 93일입니다.',
-        'ElementPay 건수가 아주 많으면 최근 5,000건까지 대조합니다. JPAY를 고르면 상단 최근동기화 시각이 통합개요와 같습니다.',
-        '새로고침 왼쪽 시간 3개: 비교정렬은 ElementPay·ICOPAY 일자와 거래시간 1줄의 기준입니다. 1줄추가는 대행사(ElementPay·JPAY) 상세의 추가 시간, 2줄추가는 ICOPAY 상세의 추가 시간입니다. 본사설정이면 비교정렬은 전산 표준, 추가 시간은 전산 운영 시간대입니다.',
+        'ElementPay·PAYSO는 검색할 때 결제대행사에서 바로 가져옵니다. JPAY는 저장된 조회 캐시이며, JPAY를 고른 뒤에만 동기화 버튼이 나옵니다. 조회 기간은 최대 93일입니다.',
+        'ElementPay·PAYSO 건수가 아주 많으면 최근 5,000건까지 대조합니다. JPAY를 고르면 상단 최근동기화 시각이 통합개요와 같습니다.',
+        '새로고침 왼쪽 시간 3개: 비교정렬은 ElementPay·PAYSO·ICOPAY 일자와 거래시간 1줄의 기준입니다. 1줄추가는 대행사(ElementPay·PAYSO·JPAY) 상세의 추가 시간, 2줄추가는 ICOPAY 상세의 추가 시간입니다. 본사설정이면 비교정렬은 전산 표준, 추가 시간은 전산 운영 시간대입니다.',
         'ox를 고르면 대행사 칸은 연결 대기입니다. ox 결제 조회 API와 별도 샌드박스 API는 아직 없고, 아래 ICOPAY 줄만 저장된 ox 거래입니다.'
       ],
       summary: ['건수'],

@@ -240,10 +240,33 @@ public class ChillPayDirectCreditRecordService {
                                                 String shopperDisplayCurrency,
                                                 String txnOrigin,
                                                 String checkoutLang) {
+        recordAfterDirectCreditResponse(merchantOrgUnitId, res, requestAmount, requestOrderNo, requestCustomerId,
+                routeNo, urlPayIntegrationMode, payerDisplayName, checkoutCurrencyAlpha,
+                shopperDisplayAmount, shopperDisplayCurrency, txnOrigin, checkoutLang, null);
+    }
+
+    /**
+     * @param pgOrderRef ICOPAY→ChillPay OrderNo(불투명). {@code pay_no} 에 저장, {@code order_no} 는 가맹 주문번호 유지.
+     */
+    @Transactional
+    public void recordAfterDirectCreditResponse(Long merchantOrgUnitId,
+                                                ChillPayDirectCreditResponse res,
+                                                long requestAmount,
+                                                String requestOrderNo,
+                                                String requestCustomerId,
+                                                int routeNo,
+                                                String urlPayIntegrationMode,
+                                                String payerDisplayName,
+                                                String checkoutCurrencyAlpha,
+                                                BigDecimal shopperDisplayAmount,
+                                                String shopperDisplayCurrency,
+                                                String txnOrigin,
+                                                String checkoutLang,
+                                                String pgOrderRef) {
         try {
             doRecord(merchantOrgUnitId, res, requestAmount, requestOrderNo, requestCustomerId, routeNo,
                     urlPayIntegrationMode, payerDisplayName, checkoutCurrencyAlpha,
-                    shopperDisplayAmount, shopperDisplayCurrency, txnOrigin, checkoutLang);
+                    shopperDisplayAmount, shopperDisplayCurrency, txnOrigin, checkoutLang, pgOrderRef);
         } catch (Exception e) {
             log.warn("DirectCredit 거래 적재 실패 (결제 API 응답은 유지): {}", e.getMessage());
         }
@@ -261,7 +284,8 @@ public class ChillPayDirectCreditRecordService {
                           BigDecimal shopperDisplayAmount,
                           String shopperDisplayCurrency,
                           String txnOrigin,
-                          String checkoutLang) {
+                          String checkoutLang,
+                          String pgOrderRef) {
         if (res == null || res.getStatus() != 200 || res.getData() == null) {
             return;
         }
@@ -278,7 +302,16 @@ public class ChillPayDirectCreditRecordService {
         }
 
         String merchantId = resolveMerchantId(merchantOrgUnitId);
-        String orderNo = firstNonBlank(d.getOrderNo(), requestOrderNo);
+        /*
+         * order_no = 가맹 주문번호(requestOrderNo).
+         * ChillPay 응답 OrderNo 는 ICOPAY 불투명 ref → pay_no 전용(가맹 키로 쓰지 않음).
+         */
+        String orderNo = firstNonBlank(requestOrderNo, null);
+        if (orderNo == null || orderNo.isBlank()) {
+            if (pgOrderRef == null || pgOrderRef.isBlank()) {
+                orderNo = firstNonBlank(d.getOrderNo(), null);
+            }
+        }
         if (orderNo == null || orderNo.isBlank()) {
             if (d.getTransactionId() != null && !d.getTransactionId().isBlank()) {
                 orderNo = "CP" + d.getTransactionId().trim();
@@ -289,7 +322,13 @@ public class ChillPayDirectCreditRecordService {
         if (orderNo.length() > 64) {
             orderNo = orderNo.substring(0, 64);
         }
-        String payNo = orderNo.length() > 50 ? orderNo.substring(0, 50) : orderNo;
+        String payNo;
+        if (pgOrderRef != null && !pgOrderRef.isBlank()) {
+            String pr = pgOrderRef.trim();
+            payNo = pr.length() > 50 ? pr.substring(0, 50) : pr;
+        } else {
+            payNo = orderNo.length() > 50 ? orderNo.substring(0, 50) : orderNo;
+        }
         String customerId = firstNonBlank(d.getCustomerId(), requestCustomerId);
         if (customerId == null) {
             customerId = "guest";

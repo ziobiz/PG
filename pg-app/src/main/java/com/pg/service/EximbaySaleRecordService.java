@@ -68,9 +68,31 @@ public class EximbaySaleRecordService {
                                      BigDecimal shopperDisplayAmount,
                                      String shopperDisplayCurrency,
                                      boolean subscription) {
+        recordOrTouchPending(orgUnitId, orderNo, amount, currency, routeNo, productName, txnOrigin,
+                buyerName, buyerEmail, paymentMethodChannel, shopperDisplayAmount, shopperDisplayCurrency,
+                subscription, null);
+    }
+
+    /** @param saleBody {@code icopayPgOrderRef} 가 있으면 pay_no = ICOPAY→Eximbay order_id */
+    @Transactional
+    public void recordOrTouchPending(Long orgUnitId,
+                                     String orderNo,
+                                     BigDecimal amount,
+                                     String currency,
+                                     Integer routeNo,
+                                     String productName,
+                                     String txnOrigin,
+                                     String buyerName,
+                                     String buyerEmail,
+                                     String paymentMethodChannel,
+                                     BigDecimal shopperDisplayAmount,
+                                     String shopperDisplayCurrency,
+                                     boolean subscription,
+                                     java.util.Map<String, Object> saleBody) {
         try {
             doRecord(orgUnitId, orderNo, amount, currency, routeNo, productName, txnOrigin,
-                    buyerName, buyerEmail, paymentMethodChannel, shopperDisplayAmount, shopperDisplayCurrency, subscription);
+                    buyerName, buyerEmail, paymentMethodChannel, shopperDisplayAmount, shopperDisplayCurrency,
+                    subscription, saleBody);
         } catch (Exception e) {
             log.warn("Eximbay ready 거래 적재(대기) 실패: {}", e.getMessage());
         }
@@ -88,7 +110,8 @@ public class EximbaySaleRecordService {
                           String paymentMethodChannel,
                           BigDecimal shopperDisplayAmount,
                           String shopperDisplayCurrency,
-                          boolean subscription) {
+                          boolean subscription,
+                          java.util.Map<String, Object> saleBody) {
         if (orgUnitId == null || orderNo == null || orderNo.isBlank()) {
             return;
         }
@@ -119,7 +142,11 @@ public class EximbaySaleRecordService {
         t.setStatus(ST_PENDING);
         t.setVan(PgVendor.EXIMBAY);
         t.setOrderNo(on);
-        t.setPayNo(on.length() > 50 ? on.substring(0, 50) : on);
+        if (t.getPayNo() == null || t.getPayNo().isBlank()
+                || !com.pg.util.IcopayPgOrderRef.looksLikeIcopayRef(t.getPayNo(), com.pg.util.IcopayPgOrderRef.Profile.ALNUM_50)) {
+            t.setPayNo(on.length() > 50 ? on.substring(0, 50) : on);
+        }
+        com.pg.util.IcopayPgOrderRef.applyPayNoToTxn(t, saleBody);
         if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
             t.setAmtKrw(amount);
         }
@@ -259,7 +286,12 @@ public class EximbaySaleRecordService {
         if (api.isPresent()) {
             return api;
         }
-        return pgTrnsctnRepository.findFirstByOrderNoOrderByCreatedAtDesc(on);
+        Optional<PgTrnsctn> byOrder = pgTrnsctnRepository.findFirstByOrderNoOrderByCreatedAtDesc(on);
+        if (byOrder.isPresent()) {
+            return byOrder;
+        }
+        /* Eximbay order_id = ICOPAY ref → pay_no */
+        return PgTrnsctnOrderLookup.findByOrderNoOrPayNo(pgTrnsctnRepository, on);
     }
 
     private Optional<PgTrnsctn> findTxnForOrder(String merchantId, String orderNo, String txnOrigin) {
@@ -270,7 +302,7 @@ public class EximbaySaleRecordService {
                 return sub;
             }
         }
-        return PgTrnsctnOrderLookup.findPreferredByMerchantAndOrder(pgTrnsctnRepository, merchantId, orderNo);
+        return PgTrnsctnOrderLookup.findByMerchantOrderOrPayNo(pgTrnsctnRepository, merchantId, orderNo);
     }
 
     private static String resolveOrigin(String txnOrigin) {

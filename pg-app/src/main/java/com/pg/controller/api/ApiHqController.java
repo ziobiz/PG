@@ -1976,6 +1976,7 @@ public class ApiHqController {
         data.put("urlPayBuyerCountryUseDefaultYn", "Y");
         data.put("urlPayBuyerPhoneUseDefaultYn", "Y");
         data.put("urlPayBuyerNameUseDefaultYn", "Y");
+        data.put("apiBuyerNameUseDefaultYn", "Y");
         data.put("urlPayProductNameUseDefaultYn", "Y");
         data.put("urlPayDefaultProductName", "");
         data.put("urlPayDefaultProductCode", "");
@@ -2169,6 +2170,10 @@ public class ApiHqController {
             if (c.getUrlPayBuyerNameUseDefaultYn() != null) {
                 data.put("urlPayBuyerNameUseDefaultYn",
                         com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(c.getUrlPayBuyerNameUseDefaultYn(), "Y"));
+            }
+            if (c.getApiBuyerNameUseDefaultYn() != null) {
+                data.put("apiBuyerNameUseDefaultYn",
+                        com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(c.getApiBuyerNameUseDefaultYn(), "Y"));
             }
             try {
                 var defPreset = urlPayCheckoutFieldPresetService.getDefault();
@@ -2372,6 +2377,7 @@ public class ApiHqController {
         c.setUrlPayBuyerCountryUseDefaultYn(String.valueOf(body.getOrDefault("urlPayBuyerCountryUseDefaultYn", "Y")));
         c.setUrlPayBuyerPhoneUseDefaultYn(String.valueOf(body.getOrDefault("urlPayBuyerPhoneUseDefaultYn", "Y")));
         c.setUrlPayBuyerNameUseDefaultYn(String.valueOf(body.getOrDefault("urlPayBuyerNameUseDefaultYn", "Y")));
+        c.setApiBuyerNameUseDefaultYn(String.valueOf(body.getOrDefault("apiBuyerNameUseDefaultYn", "Y")));
         urlPayCheckoutFieldPresetService.syncDefaultFromHqYn(
                 c.getUrlPayBuyerEmailUseDefaultYn(),
                 c.getUrlPayBuyerCountryUseDefaultYn(),

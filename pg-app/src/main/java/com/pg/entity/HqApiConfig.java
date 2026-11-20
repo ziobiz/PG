@@ -273,6 +273,10 @@ public class HqApiConfig {
     @Column(name = "url_pay_buyer_name_use_default_yn", nullable = false, length = 1)
     private String urlPayBuyerNameUseDefaultYn = "Y";
 
+    /** 가맹 API 결제창 성명 노출 본사 기본 — Y/N */
+    @Column(name = "api_buyer_name_use_default_yn", nullable = false, length = 1)
+    private String apiBuyerNameUseDefaultYn = "Y";
+
     /** 결제창 상품명 사용 본사 기본 — Y/N */
     @Column(name = "url_pay_product_name_use_default_yn", nullable = false, length = 1)
     private String urlPayProductNameUseDefaultYn = "Y";
@@ -749,6 +753,10 @@ public class HqApiConfig {
     public String getUrlPayBuyerNameUseDefaultYn() { return urlPayBuyerNameUseDefaultYn; }
     public void setUrlPayBuyerNameUseDefaultYn(String v) {
         this.urlPayBuyerNameUseDefaultYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(v, "Y");
+    }
+    public String getApiBuyerNameUseDefaultYn() { return apiBuyerNameUseDefaultYn; }
+    public void setApiBuyerNameUseDefaultYn(String v) {
+        this.apiBuyerNameUseDefaultYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(v, "Y");
     }
     public String getUrlPayProductNameUseDefaultYn() { return urlPayProductNameUseDefaultYn; }
     public void setUrlPayProductNameUseDefaultYn(String v) {

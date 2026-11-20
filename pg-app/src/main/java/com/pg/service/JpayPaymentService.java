@@ -18,6 +18,7 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgAgencyRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.entity.PgTrnsctn;
+import com.pg.util.IcopayPgOrderRef;
 import com.pg.util.JpayCheckoutMinAmountUtil;
 import com.pg.util.JpayOrderDuplicateUtil;
 import com.pg.util.JpayPayIndexResponseParser;
@@ -207,6 +208,9 @@ public class JpayPaymentService {
             return preSaleGuard.get();
         }
 
+        /* PG pay_orderid = ICOPAY 불투명 ref. DB order_no = 가맹 orderNo, pay_no = ref */
+        final String pgOrderRef = IcopayPgOrderRef.standard();
+        IcopayPgOrderRef.putInSaleBody(body, pgOrderRef);
         jpaySaleRecordService.recordOrTouchPending(orgUnitId, orderNo, amountBd, currency, routeNo,
                 str(body.get("payEmailAddress")),
                 str(body.get("item")),
@@ -242,7 +246,7 @@ public class JpayPaymentService {
 
         TreeMap<String, String> signParams = new TreeMap<>();
         signParams.put("pay_memberid", mid);
-        signParams.put("pay_orderid", orderNo);
+        signParams.put("pay_orderid", pgOrderRef);
         signParams.put("pay_applydate", applyDate);
         signParams.put("pay_bankcode", bankCode);
         signParams.put("pay_notifyurl", notifyUrl);
@@ -295,7 +299,7 @@ public class JpayPaymentService {
         if (productJson.isBlank()) {
             String item = str(body.get("item"));
             if (item.isBlank()) {
-                item = "Order " + orderNo;
+                item = "Order " + pgOrderRef;
             }
             productJson = defaultProductJson(item, amountBd.stripTrailingZeros().toPlainString());
         }
@@ -459,10 +463,11 @@ public class JpayPaymentService {
         String compCode = str(body.get("compId"));
         String attach = compCode.isBlank() ? "" : "icopayCompId=" + compCode.trim();
 
+        final String pgOrderRef = IcopayPgOrderRef.standard();
         String applyDate = LocalDateTime.now().format(APPLY_FMT);
         TreeMap<String, String> signParams = new TreeMap<>();
         signParams.put("pay_memberid", mid);
-        signParams.put("pay_orderid", orderNo);
+        signParams.put("pay_orderid", pgOrderRef);
         signParams.put("pay_applydate", applyDate);
         signParams.put("pay_bankcode", bankCode);
         signParams.put("pay_notifyurl", notifyUrl);
@@ -505,7 +510,7 @@ public class JpayPaymentService {
         if (productJson.isBlank()) {
             String item = str(body.get("item"));
             if (item.isBlank()) {
-                item = "Subscription " + orderNo;
+                item = "Subscription " + pgOrderRef;
             }
             productJson = defaultProductJson(item, amountBd.stripTrailingZeros().toPlainString());
         }
@@ -526,6 +531,7 @@ public class JpayPaymentService {
             return presaleRiskBlockOut(presaleRiskSub.get(), orgUnitId, merchantCodeSub, orderNo, "SUBSCRIPTION",
                     amountBd, currency, routeNo, body, null, null);
         }
+        IcopayPgOrderRef.putInSaleBody(body, pgOrderRef);
         jpaySaleRecordService.recordOrTouchPending(orgUnitId, orderNo, amountBd, currency, routeNo,
                 str(body.get("payEmailAddress")),
                 str(body.get("item")),
@@ -614,14 +620,31 @@ public class JpayPaymentService {
         if (on.length() > 64) {
             on = on.substring(0, 64);
         }
+        /* 최초 pay_orderid = 구독 sale 시 저장한 ICOPAY ref(pay_no). 레거시 행은 order_no */
+        String pgCancelKey = on;
+        try {
+            String mc = resolveMerchantCode(orgUnitId);
+            if (mc != null && !mc.isBlank()) {
+                Optional<PgTrnsctn> subRow = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(
+                        mc.trim(), on, "SUBSCRIPTION");
+                if (subRow.isPresent()) {
+                    String k = PgTrnsctnOrderLookup.pgOrderKey(subRow.get());
+                    if (!k.isBlank()) {
+                        pgCancelKey = k;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("JPAY subscription cancel pg order key 조회 실패 orderNo={}: {}", on, e.getMessage());
+        }
         TreeMap<String, String> signParams = new TreeMap<>();
         signParams.put("pay_memberid", mid);
-        signParams.put("pay_orderid", on);
+        signParams.put("pay_orderid", pgCancelKey);
         String md5sign = JpaySignatureUtil.signRequestParams(signParams, apiKey);
 
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("pay_memberid", mid);
-        form.add("pay_orderid", on);
+        form.add("pay_orderid", pgCancelKey);
         form.add("pay_md5sign", md5sign);
 
         String cancelUrl = resolveSubscriptionCancelUrl(agency);

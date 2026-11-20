@@ -6,13 +6,368 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '6.60';
+  var CURRENT_LIVE = '6.84';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '6.84',
+      kind: 'minor',
+      date: '2026-11-20',
+      items: {
+        KO: [
+          'PAYSO Wrong payment·실패 웹훅·복귀/폴링 타임아웃 시 요청중(08)→실패(99) 반영(요청중 노랑 잔류 해소)',
+          '만료·실패·성공 가맹 통보: 수신통보(JPAY_NOTIFY/CALLBACK) 우선. 결제통보 URL이 없어도 수신통보만으로 통보·경고 억제',
+          'QR: 금액·이메일이 잠긴 ICOPAY 결제 URL을 QR에 넣는 방식은 가능(세션 prepare→payUrl). 별도 QR UI는 후속'
+        ],
+        EN: [
+          'PAYSO: Wrong payment / fail webhook / return·poll timeout clears pending(08)→failed(99)',
+          'Merchant notify: prefer recv-notify (JPAY_NOTIFY/CALLBACK); no “missing pay-notify URL” warn when recv-notify exists',
+          'QR: feasible via ICOPAY checkout URL with locked amount/email session (prepare→payUrl); dedicated QR UI later'
+        ],
+        JP: [
+          'PAYSO: Wrong payment・失敗Webhook・復帰/ポーリングタイムアウトで依頼中(08)→失敗(99)',
+          '加盟通知は受信通知(JPAY_NOTIFY/CALLBACK)優先。決済通知URLがなくても受信通知のみで通知・警告抑制',
+          'QR: 金額・メール固定のICOPAY決済URLをQR化可能（prepare→payUrl）。専用QR UIは後日'
+        ],
+        CH: [
+          'PAYSO：Wrong payment / 失败 Webhook / 返回·轮询超时将请求中(08)→失败(99)',
+          '商户通知优先接收通知(JPAY_NOTIFY/CALLBACK)；仅有接收通知时不再警告缺少付款通知 URL',
+          'QR：可将含金额·邮箱会话的 ICOPAY 支付 URL 做成二维码（prepare→payUrl）；专用 QR UI 后续'
+        ],
+        TH: [
+          'PAYSO: Wrong payment / webhook ล้มเหลว / กลับ·หมดเวลาโพล → รอ(08) เป็นล้มเหลว(99)',
+          'แจ้งร้าน: ใช้รับแจ้ง (JPAY_NOTIFY/CALLBACK) ก่อน ไม่เตือนขาด URL แจ้งชำระถ้ามีรับแจ้ง',
+          'QR: ทำได้ด้วย URL ชำระ ICOPAY ที่ล็อกยอด·อีเมล (prepare→payUrl) UI QR แยกตามมา'
+        ]
+      }
+    },
+    {
+      version: '6.83',
+      kind: 'minor',
+      date: '2026-11-20',
+      items: {
+        KO: [
+          '전 PG: 가맹 주문번호는 가맹↔ICOPAY만 사용. 결제대행사에는 ICOPAY 불투명 주문번호(동일 자리수 패턴)만 전달',
+          '웹훅·취소·환불은 PG ref(pay_no)로 역추적 후 가맹에는 기존 orderNo로 통보'
+        ],
+        EN: [
+          'All PGs: merchant orderNo stays merchant↔ICOPAY only; acquirers receive ICOPAY opaque order refs (fixed-length pattern)',
+          'Webhooks/cancel/refund resolve via PG ref (pay_no), then notify merchants with their original orderNo'
+        ],
+        JP: [
+          '全PG: 加盟店注文番号は加盟↔ICOPAYのみ。決済代行にはICOPAY不透明注文番号（同一桁パターン）のみ送信',
+          'Webhook・取消・返金はPG ref(pay_no)で逆引きし、加盟店へは従来のorderNoで通知'
+        ],
+        CH: [
+          '全 PG：商户订单号仅用于商户↔ICOPAY；收单机构只收到 ICOPAY 不透明订单号（固定位数）',
+          'Webhook/取消/退款经 PG ref(pay_no) 反查后，仍以商户原 orderNo 通知'
+        ],
+        TH: [
+          'ทุก PG: เลขคำสั่งร้านใช้แค่ร้าน↔ICOPAY ส่งให้ตัวแทนรับชำระเฉพาะเลขออเปค ICOPAY (ความยาวคงที่)',
+          'Webhook/ยกเลิก/คืนเงินแมปด้วย PG ref (pay_no) แล้วแจ้งร้านด้วย orderNo เดิม'
+        ]
+      }
+    },
+    {
+      version: '6.82',
+      kind: 'minor',
+      date: '2026-11-20',
+      items: {
+        KO: [
+          'PAYSO: customerName 하이픈·기호로 HPP「Invalid data」나던 오류 수정(영문·공백만 전달)',
+          'PAYSO↔ICOPAY: 가맹 주문번호·상품명을 PG에 보내지 않음 — 12자리 해시 referenceNo·중립 description만 공유, 통보는 ICOPAY 주문으로 역추적'
+        ],
+        EN: [
+          'PAYSO: fixed HPP “Invalid data, check customerName” when names had hyphens/symbols (Latin letters+spaces only)',
+          'PAYSO↔ICOPAY: merchant orderNo/product not sent to PG — 12-digit hashed referenceNo + neutral description; callbacks mapped via ICOPAY order'
+        ],
+        JP: [
+          'PAYSO: 氏名のハイフン等でHPP「Invalid data, customerName」になる不具合を修正（英字・空白のみ）',
+          'PAYSO↔ICOPAY: 加盟店注文番号・商品名をPGへ送らない — 12桁ハッシュreferenceNoと中立descriptionのみ。通知はICOPAY注文で逆引き'
+        ],
+        CH: [
+          'PAYSO：修复姓名含连字符等导致 HPP「Invalid data, customerName」— 仅传英文字母与空格',
+          'PAYSO↔ICOPAY：不向 PG 发送商户订单号/商品名 — 仅 12 位哈希 referenceNo 与中立 description，回调用 ICOPAY 订单反查'
+        ],
+        TH: [
+          'PAYSO: แก้ HPP “Invalid data, customerName” เมื่อชื่อมีขีด/สัญลักษณ์ (ส่งเฉพาะอักษรอังกฤษ+ช่องว่าง)',
+          'PAYSO↔ICOPAY: ไม่ส่งเลขคำสั่ง/ชื่อสินค้าของร้านไป PG — ใช้ referenceNo แฮช 12 หลักกับ description กลาง และแมป callback ด้วยออเดอร์ ICOPAY'
+        ]
+      }
+    },
+    {
+      version: '6.81',
+      kind: 'minor',
+      date: '2026-11-20',
+      items: {
+        KO: [
+          'PAYSO·OMSPAY 가맹 API(DP) 결제: 환율 견적 완료 전 자동시작으로 「환율 견적 없음」에 막히던 오류 수정 — 견적 대기 후 HPP 이동'
+        ],
+        EN: [
+          'PAYSO/OMSPAY merchant API (DP): fixed auto-start blocking with missing FX quote — wait for quote before HPP redirect'
+        ],
+        JP: [
+          'PAYSO・OMSPAY加盟API(DP): 為替見積完了前の自動開始で「見積なし」停止していた不具合を修正 — 見積待ち後にHPPへ'
+        ],
+        CH: [
+          'PAYSO·OMSPAY 商户 API(DP)：修复汇率报价完成前自动跳转导致「无报价」卡住 — 等待报价后再进入 HPP'
+        ],
+        TH: [
+          'PAYSO·OMSPAY API ร้าน (DP): แก้ auto-start ก่อนได้ FX quote แล้วค้างข้อความไม่มีใบเสนอ — รอ quote แล้วค่อยไป HPP'
+        ]
+      }
+    },
+    {
+      version: '6.80',
+      kind: 'minor',
+      date: '2026-11-20',
+      items: {
+        KO: [
+          'KSNET URL 확인창 안내: 「다음결제 창에서 카드정보를 입력 후 완료 합니다.」로 문구 변경·결제하기 버튼 위에 표시(통화 동적)'
+        ],
+        EN: [
+          'KSNET URL confirm note: reworded to enter card details in the next window; shown above Pay (currency dynamic)'
+        ],
+        JP: [
+          'KSNET URL確認画面案内: 「次の決済画面でカード情報を入力して完了」に変更・支払うボタンの上に表示(通貨は動的)'
+        ],
+        CH: [
+          'KSNET URL确认页提示：改为「在下一个支付窗口填写卡信息后完成」，显示在支付按钮上方（币种动态）'
+        ],
+        TH: [
+          'ข้อความยืนยัน KSNET URL: เปลี่ยนเป็นกรอกบัตรในหน้าต่างถัดไป และแสดงเหนือปุ่มชำระ (สกุลเงินไดนามิก)'
+        ]
+      }
+    },
+    {
+      version: '6.79',
+      kind: 'minor',
+      date: '2026-11-20',
+      items: {
+        KO: [
+          '결제창 성명 노출: URL결제·API결제 분리 설정. KSNET 등 RE/URL에서도 성명·이메일·전화 비활성 시 미표시. 전화 국가번호(+82 등) 드롭다운 노출 설정 본사·가맹·전 입력방식 적용'
+        ],
+        EN: [
+          'Checkout name visibility: separate URL vs API settings. RE/URL (e.g. KSNET) hides name/email/phone when off. Phone dial-code (+82) toggle applies HQ/merchant across all input modes'
+        ],
+        JP: [
+          '決済画面の氏名表示: URL決済とAPI決済を分離。KSNET等のRE/URLでも氏名・メール・電話を非表示可能。電話国番号(+82等)ドロップダウン設定を本社・加盟・全入力方式に適用'
+        ],
+        CH: [
+          '支付页姓名显示：URL与API分开设置。KSNET等RE/URL在关闭时隐藏姓名/邮箱/电话。电话国家区号(+82)开关适用于总部/商户及全部输入方式'
+        ],
+        TH: [
+          'การแสดงชื่อหน้าชำระ: แยก URL กับ API. RE/URL เช่น KSNET ซ่อนชื่อ/อีเมล/โทรเมื่อปิด. สวิตช์รหัสประเทศโทร (+82) ใช้ได้ทั้ง HQ/ร้านและทุกโหมดป้อน'
+        ]
+      }
+    },
+    {
+      version: '6.78',
+      kind: 'minor',
+      date: '2026-11-20',
+      items: {
+        KO: [
+          '가맹 「수신통보 URL」: PAYSO·KSNET 고정 Webhook/Result 입구 표시 보강 — 운영 결제대행사 변경 시 해당 PG 입구가 보이도록'
+        ],
+        EN: [
+          'Merchant receive-notify card: added PAYSO/KSNET fixed Webhook/Result URLs so the row matches the operational PG after a PG change'
+        ],
+        JP: [
+          '加盟「受信通知URL」: PAYSO・KSNET固定Webhook/Result入口表示を補強 — 運用決済代行変更時に該当PG入口が表示されるよう'
+        ],
+        CH: [
+          '商户「接收通知 URL」：补强 PAYSO·KSNET 固定 Webhook/Result，更换运营支付机构后显示对应入口'
+        ],
+        TH: [
+          'การ์ด URL รับแจ้งร้าน: เสริม Webhook/Result คงที่ของ PAYSO·KSNET ให้ตรง PG ปฏิบัติการหลังเปลี่ยนเกตเวย์'
+        ]
+      }
+    },
+    {
+      version: '6.77',
+      kind: 'minor',
+      date: '2026-11-20',
+      items: {
+        KO: [
+          '노티생성·이력 수정: PG 선택 시 「NOTI 전산 대상 ID」를 해당 PG 연동 대상만 표시 (PAYSO 등 전용 PG 필터 누락 수정)'
+        ],
+        EN: [
+          'NOTI create/edit history: internal target ID list filtered by selected PG (fixed missing PAYSO and other dedicated PG filters)'
+        ],
+        JP: [
+          'ノティ作成・履歴修正: PG選択時「NOTI全算対象ID」を該当PG連動分のみ表示（PAYSO等専用フィルタ欠落を修正）'
+        ],
+        CH: [
+          '通知创建/履历修改：按所选 PG 仅显示对应「NOTI 账务目标 ID」（修复 PAYSO 等专用过滤缺失）'
+        ],
+        TH: [
+          'สร้าง/แก้ประวัติ NOTI: แสดงเฉพาะ internal target ที่ผูกกับ PG ที่เลือก (แก้ตัวกรอง PAYSO และ PG เฉพาะที่ขาด)'
+        ]
+      }
+    },
+    {
+      version: '6.76',
+      kind: 'minor',
+      date: '2026-11-20',
+      items: {
+        KO: [
+          '노티 생성 이력 수정: OMSPAY→PAYSO 등 PG 변경·저장 시 NOTI 동기화 실패 수정 (PAYSO provision·고정입구 PUT/DELETE 보강)'
+        ],
+        EN: [
+          'NOTI provision history edit: fixed sync failure when changing PG (e.g. OMSPAY→PAYSO) — PAYSO provision and fixed-ingress PUT/DELETE'
+        ],
+        JP: [
+          'ノティ作成履歴の修正: OMSPAY→PAYSO等のPG変更保存時のNOTI同期失敗を修正（PAYSO provision・固定入口PUT/DELETE補強）'
+        ],
+        CH: [
+          '通知创建履历修改：修复 OMSPAY→PAYSO 等更换 PG 保存时 NOTI 同步失败（补强 PAYSO provision 与固定入口 PUT/DELETE）'
+        ],
+        TH: [
+          'แก้ซิงก์ NOTI ล้มเหลวตอนแก้ประวัติสร้างโนติเปลี่ยน PG (เช่น OMSPAY→PAYSO) — เสริม provision PAYSO และ PUT/DELETE ทางเข้าคงที่'
+        ]
+      }
+    },
+    {
+      version: '6.75',
+      kind: 'minor',
+      date: '2026-11-20',
+      items: {
+        KO: [
+          '결제내역 「요청」(노랑) 장기 미완료: 기본 30분 후 자동 실패(99) 처리·처리사유 명시·가맹 통보 — KSNET·PAYSO·OMSPAY 등 전 PG 공통'
+        ],
+        EN: [
+          'Payment history long-pending Request (yellow): after ~30 minutes auto-fail (99) with reason and merchant notify — all PGs (KSNET, PAYSO, OMSPAY, etc.)'
+        ],
+        JP: [
+          '決済履歴の長期「リクエスト」(黄): 約30分後に自動失敗(99)・処理事由明示・加盟店通知 — KSNET・PAYSO・OMSPAYなど全PG共通'
+        ],
+        CH: [
+          '支付明细长期「请求」(黄)：约30分钟后自动失败(99)并写明原因、通知商户 — KSNET·PAYSO·OMSPAY 等全 PG 通用'
+        ],
+        TH: [
+          'ประวัติชำระที่ค้างสถานะขอ (เหลือง) นาน: หลัง ~30 นาที เปลี่ยนเป็นล้มเหลว(99) พร้อมเหตุผลและแจ้งร้าน — ใช้ร่วมทุก PG (KSNET, PAYSO, OMSPAY ฯลฯ)'
+        ]
+      }
+    },
+    {
+      version: '6.74',
+      kind: 'minor',
+      date: '2026-11-20',
+      items: {
+        KO: [
+          'PAYSO Return URL: 가맹코드(m)·주문번호 평문 제거 → 암호화 rt 토큰만 전달(OMSPAY와 동일). PG가 ICOPAY 가맹을 식별하지 못하도록 보강'
+        ],
+        EN: [
+          'PAYSO return URL: stop sending plaintext merchant code (m) and orderNo — opaque rt token only (same as OMSPAY), so the PG cannot identify ICOPAY merchants'
+        ],
+        JP: [
+          'PAYSO Return URL: 加盟店コード(m)・注文番号の平文を廃止し暗号化rtトークンのみ(OMSPAYと同じ)。PGがICOPAY加盟店を識別できないよう強化'
+        ],
+        CH: [
+          'PAYSO 返回 URL：不再明文传递商户代码(m)与订单号，仅用加密 rt 令牌（与 OMSPAY 相同），防止 PG 识别 ICOPAY 商户'
+        ],
+        TH: [
+          'PAYSO Return URL: เลิกส่งรหัสร้าน(m)/เลขคำสั่งซื้อแบบข้อความชัด — ใช้โทเคน rt เข้ารหัสเท่านั้น (เหมือน OMSPAY) เพื่อไม่ให้ PG ระบุร้าน ICOPAY ได้'
+        ]
+      }
+    },
+    {
+      version: '6.73',
+      kind: 'minor',
+      date: '2026-11-20',
+      items: {
+        KO: [
+          'KSNET URL결제(DP): 표시통화 환율 견적·예상 청구 UI 및 sale 시 fxQuoteToken 전송 보강 — 「환율 견적이 유효하지 않거나 만료」오류 수정',
+          '표시통화=실결제 통화(예: USD→USD)일 때 견적 토큰 없이도 1:1 청구 허용'
+        ],
+        EN: [
+          'KSNET URL pay (DP): added display-FX quote UI and fxQuoteToken on sale — fixed invalid/expired FX quote error',
+          'When display currency equals settlement (e.g. USD→USD), allow 1:1 charge without a quote token'
+        ],
+        JP: [
+          'KSNET URL決済(DP): 表示通貨の為替見積・請求見込みUIとsale時のfxQuoteToken送信を補強 — 無効/期限切れ為替見積エラーを修正',
+          '表示通貨=実決済通貨(例:USD→USD)の場合は見積トークンなしでも1:1請求を許可'
+        ],
+        CH: [
+          'KSNET URL支付(DP)：补充显示货币汇率报价与预计扣款UI，sale时发送fxQuoteToken — 修复汇率报价无效/过期错误',
+          '显示货币=实结算货币（如USD→USD）时允许无报价令牌按1:1计费'
+        ],
+        TH: [
+          'KSNET URLชำระ(DP): เสริม UI อัตราแลกเปลี่ยน/ยอดโดยประมาณ และส่ง fxQuoteToken ตอน sale — แก้ข้อผิดพลาดใบเสนอราคาหมดอายุ',
+          'เมื่อสกุลแสดง=สกุลชำระจริง (เช่น USD→USD) อนุญาตคิด 1:1 โดยไม่ต้องมีโทเคนใบเสนอราคา'
+        ]
+      }
+    },
+    {
+      version: '6.72',
+      kind: 'minor',
+      date: '2026-11-20',
+      items: {
+        KO: [
+          'PAYSO·OMSPAY 등 URL 확인창: 성명(리다이렉트용) 비활성인데 숨겨진 이름란 required가 남아 「결제하기」가 무반응이던 오류 수정'
+        ],
+        EN: [
+          'Fixed Pay/OMSPAY URL confirm: with Name (redirect) Off, hidden name fields kept required so Pay did nothing'
+        ],
+        JP: [
+          'PAYSO・OMSPAY等のURL確認画面: 氏名(リダイレクト用)オフなのに隠し氏名欄のrequiredが残り「支払う」無反応だった不具合を修正'
+        ],
+        CH: [
+          '修复 PAYSO·OMSPAY 等 URL 确认页：关闭「姓名（跳转用）」后隐藏姓名栏仍带 required，导致点「付款」无反应'
+        ],
+        TH: [
+          'แก้หน้ายืนยัน URL ของ PAYSO·OMSPAY: ปิดชื่อ (redirect) แล้วช่องชื่อที่ซ่อนยัง required ทำให้กดชำระแล้วไม่มีปฏิกิริยา'
+        ]
+      }
+    },
+    {
+      version: '6.71',
+      kind: 'minor',
+      date: '2026-11-20',
+      items: {
+        KO: [
+          '가맹 크립토 「미사용」저장이 재진입 후 「사용」으로 되돌아가던 오류 수정: 하단 저장 시 서버에 미사용이 유지되고 수취지갑 입력을 다시 요구하지 않음'
+        ],
+        EN: [
+          'Fixed merchant crypto Unused reverting to Used after reopen: bottom save now persists Unused on the server and no longer re-asks for wallets'
+        ],
+        JP: [
+          '加盟店クリプト「未使用」保存後に再入場で「使用」に戻る不具合を修正: 下部保存で未使用がサーバーに維持され、受取ウォレット再入力を求めない'
+        ],
+        CH: [
+          '修复商户加密「未使用」保存后再次进入又变回「使用」的问题：底部保存会在服务器保持未使用，且不再要求重新填写收款钱包'
+        ],
+        TH: [
+          'แก้บั๊กคริปโตร้านที่บันทึกเป็นไม่ใช้แล้วเปิดใหม่กลับเป็นใช้: บันทึกด้านล่างคงสถานะไม่ใช้บนเซิร์ฟเวอร์และไม่ขอที่อยู่กระเป๋าซ้ำ'
+        ]
+      }
+    },
+    {
+      version: '6.70',
+      kind: 'minor',
+      date: '2026-11-20',
+      items: {
+        KO: [
+          '통합내역·통합체크에 PAYSO Inquiry 연동: 기간 목록·icopay 매칭·일자별 건수·상태·금액 대조(PAYSO JPDP 포함)'
+        ],
+        EN: [
+          'PAYSO Inquiry on Integrated history & Integrated check: period list, icopay match, daily count/status/amount compare (incl. PAYSO JPDP)'
+        ],
+        JP: [
+          '統合履歴・統合チェックにPAYSO Inquiry連携: 期間一覧・icopay照合・日別件数・状態・金額対照(PAYSO JPDP含む)'
+        ],
+        CH: [
+          '整合明细与整合核对接入 PAYSO Inquiry：期间列表、icopay 匹配、按日笔数/状态/金额对照（含 PAYSO JPDP）'
+        ],
+        TH: [
+          'เชื่อม Inquiry ของ PAYSO ในประวัติรวมและตรวจรวม: รายการช่วงเวลา จับคู่ icopay เทียบจำนวน/สถานะ/ยอดรายวัน (รวม PAYSO JPDP)'
+        ]
+      }
+    },
     {
       version: '6.60',
       kind: 'minor',

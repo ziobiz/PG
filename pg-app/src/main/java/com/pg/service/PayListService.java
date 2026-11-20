@@ -2029,6 +2029,11 @@ public class PayListService {
         if (PgVendor.OX.equals(PgVendor.normalizePgCdKey(pgCd))) {
             ors.add(cb.like(cb.upper(root.get("van")), "OX%"));
         }
+        /* PAYSO 패밀리: PAYSO · PAYSO JPDP · PAYSO_% · PAYSOLUTIONS% */
+        if (PgVendor.isPaysoFamily(pgCd) || "PAYSO".equalsIgnoreCase(pgCd)) {
+            ors.add(cb.like(cb.upper(cb.trim(cb.coalesce(root.get("van"), cb.literal("")))), "PAYSO%"));
+            ors.add(cb.like(cb.upper(cb.trim(cb.coalesce(root.get("van"), cb.literal("")))), "PAYSOLUTIONS%"));
+        }
         /* 크립토 결제내역: van=CRYPTO 또는 origin=CRYPTO */
         if (PgVendor.isCryptoFamily(pgCd) || "CRYPTO".equalsIgnoreCase(pgCd)) {
             ors.add(cb.like(cb.upper(cb.trim(cb.coalesce(root.get("van"), cb.literal("")))), "CRYPTO%"));

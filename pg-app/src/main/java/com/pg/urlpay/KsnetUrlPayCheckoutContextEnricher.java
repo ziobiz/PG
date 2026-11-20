@@ -39,11 +39,14 @@ public class KsnetUrlPayCheckoutContextEnricher implements UrlPayCheckoutContext
         data.put("pgVendor", "ICOPAY");
         data.put("integrationMode", "INLINE");
         data.put("urlPayFormMode", "FULL");
-        /* 해외 USD 전용 — 실결제 통화·결제수단 고정(카드) */
+        /* 해외 USD 전용 — 실결제 통화·결제수단 고정(카드). DP면 enrichPresentation 값이 우선. */
         data.put("overseasUsdOnly", true);
         data.put("hostedPayWindow", true);
         data.put("inlineCardUi", false);
-        data.put("urlPaySettlementCurrencyCode", "USD");
+        Object existingSettle = data.get("urlPaySettlementCurrencyCode");
+        if (existingSettle == null || String.valueOf(existingSettle).isBlank()) {
+            data.put("urlPaySettlementCurrencyCode", "USD");
+        }
         String opPg = String.valueOf(data.getOrDefault("urlPayOperationalPgCd", "")).trim();
         Optional<PgAgency> agency = opPg.isEmpty() ? Optional.empty() : pgAgencyRepository.findByPgCd(opPg);
         boolean sandbox = agency.map(a -> KsnetCredentials.fromAgency(a).sandbox()).orElse(true);

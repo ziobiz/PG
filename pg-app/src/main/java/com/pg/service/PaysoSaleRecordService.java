@@ -280,7 +280,8 @@ public class PaysoSaleRecordService {
     @Transactional
     public Optional<PgTrnsctn> applyFailedOutcome(String orderNo, String compId, String paysoTxnId) {
         return applyFailedOutcome(orderNo, compId, paysoTxnId,
-                "PAYSO_PENDING_EXPIRED", "Payment expired (no completion webhook)");
+                "PAYSO_PENDING_EXPIRED",
+                PendingTxnExpireService.expireReasonMessage(30));
     }
 
     @Transactional
@@ -289,12 +290,19 @@ public class PaysoSaleRecordService {
         if (orderNo == null || orderNo.isBlank() || compId == null || compId.isBlank()) {
             return Optional.empty();
         }
-        Optional<PgTrnsctn> txn = PgTrnsctnOrderLookup.findPreferredByMerchantAndOrder(
+        Optional<PgTrnsctn> txn = PgTrnsctnOrderLookup.findByMerchantOrderOrPayNo(
                 pgTrnsctnRepository, compId.trim(), orderNo.trim());
-        if (txn.isEmpty() || !PgVendor.isPaysoFamily(txn.get().getVan())) {
+        if (txn.isEmpty()) {
+            txn = PgTrnsctnOrderLookup.findPreferredByMerchantAndOrder(
+                    pgTrnsctnRepository, compId.trim(), orderNo.trim());
+        }
+        if (txn.isEmpty() || !acceptPaysoLookup(txn.get())) {
             return Optional.empty();
         }
         PgTrnsctn t = txn.get();
+        if (!PgVendor.isPaysoFamily(t.getVan())) {
+            t.setVan(PgVendor.PAYSO);
+        }
         if (!"08".equals(t.getStatus() != null ? t.getStatus().trim() : "")) {
             /* 이미 성공·실패면 덮지 않음 — 실패 건은 영수증 미발송분 보완 */
             if ("10".equals(t.getStatus() != null ? t.getStatus().trim() : "")

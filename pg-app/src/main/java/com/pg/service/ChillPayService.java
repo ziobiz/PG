@@ -1012,7 +1012,11 @@ public class ChillPayService {
     /**
      * DirectCredit 호출 결과와, 실제 요청에 사용한 ChillPay Route(전산 적재·표시용 — {@link #resolveEffectiveRouteNo}와 동일 스냅샷).
      */
-    public record ChillPayDirectPaymentResult(ChillPayDirectCreditResponse response, int routeUsed) {}
+    public record ChillPayDirectPaymentResult(ChillPayDirectCreditResponse response, int routeUsed, String pgOrderRef) {
+        public ChillPayDirectPaymentResult(ChillPayDirectCreditResponse response, int routeUsed) {
+            this(response, routeUsed, null);
+        }
+    }
 
     /**
      * ChillPay DirectCredit 결제 API 호출.
@@ -1058,8 +1062,9 @@ public class ChillPayService {
         }
 
         ChillPayDirectCreditRequest req = new ChillPayDirectCreditRequest();
-        req.setOrderNo(ChillPayDirectCreditUtil.normalizeOrderNo(
-                orderNo != null ? orderNo : "ORD" + System.currentTimeMillis()));
+        /* ChillPay OrderNo = ICOPAY 불투명 ref(ALNUM_20). 가맹 orderNo는 DB order_no·가맹 통보 전용 */
+        final String pgOrderRef = com.pg.util.IcopayPgOrderRef.chillPayOrderNo();
+        req.setOrderNo(ChillPayDirectCreditUtil.normalizeOrderNo(pgOrderRef));
         req.setCustomerId(customerId != null ? customerId : "guest");
         req.setAmount(normalizeChillPayRequestAmount(amount, checkoutCurrencyCode));
         req.setDirectCreditToken(directCreditToken);
@@ -1121,7 +1126,7 @@ public class ChillPayService {
             if (body != null && body.getData() != null) {
                 log.info("ChillPay 응답: status={} paymentStatus={}", body.getStatus(), body.getData().getPaymentStatus());
             }
-            return new ChillPayDirectPaymentResult(body, cfg.routeNo());
+            return new ChillPayDirectPaymentResult(body, cfg.routeNo(), req.getOrderNo());
         } catch (Exception e) {
             log.error("ChillPay API 호출 실패: {}", e.getMessage());
             throw new RuntimeException("ChillPay 결제 요청 실패: " + e.getMessage(), e);
@@ -2992,6 +2997,11 @@ public class ChillPayService {
                     if (tOpt.isPresent()) {
                         break;
                     }
+                }
+                /* ChillPay OrderNo = ICOPAY ref → pay_no */
+                if (tOpt.isEmpty()) {
+                    tOpt = com.pg.util.PgTrnsctnOrderLookup.findByMerchantOrderOrPayNo(
+                            pgTrnsctnRepository, mer, orderNo);
                 }
             }
         }

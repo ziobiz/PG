@@ -12,7 +12,7 @@
   <script src="/js/checkout-header-subtitle-presets.js?v=2"></script>
   <script src="/js/url-pay-copy-phrase-i18n.js?v=1"></script>
   <script src="/js/pay-dynamic-form.js?v=2"></script>
-  <script src="/js/url-pay-public-shell.js?v=22"></script>
+  <script src="/js/url-pay-public-shell.js?v=24"></script>
   <script src="/js/ksnet-pay-msg-i18n.js?v=1"></script>
 </head>
 <body class="pay-inline-body">
@@ -49,6 +49,17 @@
               <input type="number" class="form-control form-control-sm pay-input-round" id="amount" required min="0.01" step="0.01">
             </div>
           </div>
+          <div class="pay-row d-none" id="payFxDisplayCurrencyRow">
+            <label class="pay-row-label mb-0" for="payDisplayCurrencySelect"><span data-i18n="fxCur">Display currency</span></label>
+            <div class="pay-row-value d-flex align-items-center gap-2 flex-wrap">
+              <select class="form-select form-select-sm pay-input-round" id="payDisplayCurrencySelect" style="max-width:8rem"></select>
+              <span class="small text-muted" id="payFxDisplayCurrencyStatic"></span>
+            </div>
+          </div>
+          <div class="pay-row d-none" id="payFxQuoteRow">
+            <div class="pay-row-label"><span data-i18n="fxEst">Estimated charge</span></div>
+            <div class="pay-row-value"><span id="payFxThbEstimateText" class="small fw-semibold">—</span></div>
+          </div>
         </div>
         <div class="row g-2 mb-2" id="nameRow">
           <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payFirstname" data-i18n-placeholder="firstName" required></div>
@@ -58,9 +69,9 @@
           <div class="col-12"><input type="email" class="form-control form-control-sm pay-input-round" id="payEmailAddress" data-i18n-placeholder="email" required></div>
           <div class="col-12"><input type="tel" class="form-control form-control-sm pay-input-round" id="payTelephone" data-i18n-placeholder="phoneOptional" inputmode="tel" autocomplete="tel"></div>
         </div>
+        <p class="small text-muted mb-2 text-center" id="ksnetHostedNote"></p>
         <button type="submit" class="btn btn-primary btn-pay w-100" id="submitBtn" data-i18n="pay">Pay</button>
-        <p class="small text-muted mt-2 mb-0 text-center" id="ksnetHostedNote" data-i18n="hostedNote"></p>
-        <p class="small text-primary mt-1 mb-0 text-center" id="ksnetSandboxHint" style="display:none;"></p>
+        <p class="small text-primary mt-2 mb-0 text-center" id="ksnetSandboxHint" style="display:none;"></p>
       </form>
     </div>
   </div>
@@ -112,7 +123,7 @@
         KOR: {
           title: 'ICOPAY 간편결제', brandSub: '해외·간편결제', merchant: '가맹점', item: '상품명', amount: '금액',
           firstName: '이름', lastName: '성', email: '이메일', phoneOptional: '전화번호(선택)', pay: '결제하기',
-          hostedNote: '안전한 결제창이 열리면 카드 정보를 입력해 결제를 진행합니다. (USD)',
+          hostedNote: '다음결제 창에서 카드정보를 입력 후 완료 합니다. ({cur})',
           sandboxHint: '샌드박스(테스트) 결제창입니다. 실제 청구되지 않습니다.',
           errMerchant: '가맹점 코드(m)가 필요합니다.', errLoad: '결제 화면을 불러오지 못했습니다.',
           needAmount: '유효한 금액을 입력하세요.', langGroup: '언어', configErr: '설정을 불러오지 못했습니다.',
@@ -125,12 +136,14 @@
           errEmailFormat: '올바른 이메일 형식을 입력하세요.', errName: '이름·성을 입력하세요.',
           resultProcessing: '결제 결과를 확인하고 있습니다…',
           authCancelled: '결제가 취소되었거나 인증에 실패했습니다.',
-          errInvalidSession: '결제 세션이 유효하지 않거나 만료되었습니다. 가맹점에서 다시 시도해 주세요.'
+          errInvalidSession: '결제 세션이 유효하지 않거나 만료되었습니다. 가맹점에서 다시 시도해 주세요.',
+          fxCur: '표시 통화', fxEst: '예상 청구',
+          needFxQuote: '환율 견적을 불러오지 못했습니다. 페이지를 새로고침한 뒤 다시 시도하세요.'
         },
         ENG: {
           title: 'ICOPAY Easy Payment', brandSub: 'Global Payment', merchant: 'Merchant', item: 'Item', amount: 'Amount',
           firstName: 'First name', lastName: 'Last name', email: 'Email', phoneOptional: 'Phone (optional)', pay: 'Pay',
-          hostedNote: 'A secure payment window will open. Enter your card details there to pay (USD).',
+          hostedNote: 'Enter your card details in the next payment window to complete. ({cur})',
           sandboxHint: 'Sandbox (test) payment window. You will not be charged.',
           errMerchant: 'Merchant code (m) is required.', errLoad: 'Failed to load checkout.',
           needAmount: 'Enter a valid amount.', langGroup: 'Language', configErr: 'Failed to load settings.',
@@ -143,12 +156,14 @@
           errEmailFormat: 'Enter a valid email address.', errName: 'Enter first and last name.',
           resultProcessing: 'Checking the payment result…',
           authCancelled: 'The payment was cancelled or authentication failed.',
-          errInvalidSession: 'The payment session is invalid or has expired. Please try again from the merchant.'
+          errInvalidSession: 'The payment session is invalid or has expired. Please try again from the merchant.',
+          fxCur: 'Display currency', fxEst: 'Estimated charge',
+          needFxQuote: 'FX quote is missing or expired. Refresh the page and try again.'
         },
         JPN: {
           title: 'ICOPAY かんたん決済', brandSub: '海外・かんたん決済', merchant: '加盟店', item: '商品名', amount: '金額',
           firstName: '名', lastName: '姓', email: 'メール', phoneOptional: '電話番号(任意)', pay: '支払う',
-          hostedNote: '安全な決済画面が開きます。カード情報を入力して決済します。(USD)',
+          hostedNote: '次の決済画面でカード情報を入力して完了してください。({cur})',
           sandboxHint: 'サンドボックス(テスト)決済画面です。実際には請求されません。',
           errMerchant: '加盟店コード(m)が必要です。', errLoad: '決済画面の読み込みに失敗しました。',
           needAmount: '有効な金額を入力してください。', langGroup: '言語', configErr: '設定の読み込みに失敗しました。',
@@ -161,12 +176,14 @@
           errEmailFormat: '正しいメール形式で入力してください。', errName: '名・姓を入力してください。',
           resultProcessing: '決済結果を確認しています…',
           authCancelled: '決済がキャンセルされたか、認証に失敗しました。',
-          errInvalidSession: '決済セッションが無効か期限切れです。加盟店から再度お試しください。'
+          errInvalidSession: '決済セッションが無効か期限切れです。加盟店から再度お試しください。',
+          fxCur: '表示通貨', fxEst: '請求見込み',
+          needFxQuote: '為替見積がありません。ページを再読み込みしてから再度お試しください。'
         },
         CHN: {
           title: 'ICOPAY 便捷支付', brandSub: '海外·便捷支付', merchant: '商户', item: '商品', amount: '金额',
           firstName: '名', lastName: '姓', email: '邮箱', phoneOptional: '电话(可选)', pay: '支付',
-          hostedNote: '将打开安全支付窗口，请在窗口中填写银行卡信息完成支付。(USD)',
+          hostedNote: '请在下一个支付窗口填写卡信息后完成。({cur})',
           sandboxHint: '沙箱(测试)支付窗口，不会实际扣款。',
           errMerchant: '需要商户代码(m)。', errLoad: '无法加载支付页面。',
           needAmount: '请输入有效金额。', langGroup: '语言', configErr: '无法加载设置。',
@@ -179,12 +196,14 @@
           errEmailFormat: '请输入有效的邮箱地址。', errName: '请输入名和姓。',
           resultProcessing: '正在确认支付结果…',
           authCancelled: '支付已取消或认证失败。',
-          errInvalidSession: '支付会话无效或已过期。请从商户重新发起。'
+          errInvalidSession: '支付会话无效或已过期。请从商户重新发起。',
+          fxCur: '显示货币', fxEst: '预计扣款',
+          needFxQuote: '汇率报价无效或已过期。请刷新页面后重试。'
         },
         THA: {
           title: 'ICOPAY ชำระเงินง่าย', brandSub: 'ชำระเงินระหว่างประเทศ', merchant: 'ร้านค้า', item: 'สินค้า', amount: 'จำนวนเงิน',
           firstName: 'ชื่อ', lastName: 'นามสกุล', email: 'อีเมล', phoneOptional: 'โทรศัพท์ (ไม่บังคับ)', pay: 'ชำระเงิน',
-          hostedNote: 'หน้าต่างชำระเงินที่ปลอดภัยจะเปิดขึ้น กรอกข้อมูลบัตรเพื่อชำระเงิน (USD)',
+          hostedNote: 'กรอกข้อมูลบัตรในหน้าต่างชำระถัดไปเพื่อให้เสร็จสิ้น ({cur})',
           sandboxHint: 'หน้าต่างชำระเงินแซนด์บ็อกซ์ (ทดสอบ) จะไม่มีการเรียกเก็บเงินจริง',
           errMerchant: 'ต้องระบุรหัสร้านค้า (m)', errLoad: 'โหลดหน้าชำระเงินไม่สำเร็จ',
           needAmount: 'กรุณากรอกจำนวนเงินที่ถูกต้อง', langGroup: 'ภาษา', configErr: 'โหลดการตั้งค่าไม่สำเร็จ',
@@ -197,7 +216,9 @@
           errEmailFormat: 'กรุณากรอกอีเมลให้ถูกต้อง', errName: 'กรุณากรอกชื่อและนามสกุล',
           resultProcessing: 'กำลังตรวจสอบผลการชำระเงิน…',
           authCancelled: 'การชำระเงินถูกยกเลิกหรือการยืนยันตัวตนล้มเหลว',
-          errInvalidSession: 'เซสชันการชำระเงินไม่ถูกต้องหรือหมดอายุ กรุณาลองใหม่จากร้านค้า'
+          errInvalidSession: 'เซสชันการชำระเงินไม่ถูกต้องหรือหมดอายุ กรุณาลองใหม่จากร้านค้า',
+          fxCur: 'สกุลเงินแสดง', fxEst: 'ยอดโดยประมาณ',
+          needFxQuote: 'ใบเสนออัตราแลกเปลี่ยนหมดอายุหรือไม่มี กรุณารีเฟรชหน้าแล้วลองใหม่'
         }
       };
 
@@ -233,6 +254,9 @@
 
       var checkoutCtx = null;
       var sessionPayload = null;
+      var urlPayDisplayFxActive = false;
+      var urlPayPricingMode = 'CHECKOUT_CURRENCY';
+      var fxShellState = { urlPayFxQuote: null, urlPayFxReloadTimer: null, operationalPgCd: '' };
 
       function applySandboxHint() {
         var el = document.getElementById('ksnetSandboxHint');
@@ -253,6 +277,26 @@
         LANG = c;
         applyI18n();
       }
+      function resolveHostedNoteCurrency() {
+        try {
+          var hint = document.getElementById('payAmountCurrencyHint');
+          var m = hint && String(hint.textContent || '').match(/\(([A-Za-z]{3})\)/);
+          if (m) return String(m[1]).toUpperCase();
+        } catch (e0) { /* ignore */ }
+        try {
+          if (checkoutCtx) {
+            if (checkoutCtx.checkoutCurrencyCode) return String(checkoutCtx.checkoutCurrencyCode).trim().toUpperCase();
+            if (checkoutCtx.defaultCurrency) return String(checkoutCtx.defaultCurrency).trim().toUpperCase();
+          }
+        } catch (e1) { /* ignore */ }
+        return 'USD';
+      }
+      function applyHostedNote() {
+        var el = document.getElementById('ksnetHostedNote');
+        if (!el) return;
+        var cur = resolveHostedNoteCurrency();
+        el.textContent = String(t('hostedNote') || '').replace(/\{cur\}/g, cur);
+      }
       function applyI18n() {
         document.querySelectorAll('[data-i18n]').forEach(function (el) {
           var k = el.getAttribute('data-i18n'); if (k) el.textContent = t(k);
@@ -263,6 +307,7 @@
         document.querySelectorAll('[data-i18n-aria]').forEach(function (el) {
           var k = el.getAttribute('data-i18n-aria'); if (k) el.setAttribute('aria-label', t(k));
         });
+        applyHostedNote();
         applySandboxHint();
         document.querySelectorAll('.pay-lang button[data-lang]').forEach(function (b) {
           b.classList.toggle('active', b.getAttribute('data-lang') === LANG);
@@ -434,6 +479,15 @@
           if (cur) { var h = document.getElementById('payAmountCurrencyHint'); if (h) h.textContent = '(' + cur.trim().toUpperCase() + ')'; }
         } catch (e) {}
       }
+      function applyBuyerVisibility(ctx) {
+        var c = ctx || checkoutCtx || {};
+        if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyBuyerContactVisibility) {
+          PG_URL_PAY_SHELL.applyBuyerContactVisibility(c);
+        }
+        if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyPhoneDialCodeVisibility) {
+          PG_URL_PAY_SHELL.applyPhoneDialCodeVisibility(c);
+        }
+      }
       function applyCheckoutContext(ctx) {
         checkoutCtx = ctx;
         window.__payUrlCardCopy = ctx.urlPayCardCopy || null;
@@ -443,15 +497,50 @@
         }
         var itemEl = document.getElementById('item');
         if (itemEl && !itemEl.readOnly && ctx.defaultProductName) itemEl.value = String(ctx.defaultProductName).trim();
-        var curHint = document.getElementById('payAmountCurrencyHint');
-        if (curHint && ctx.checkoutCurrencyCode) {
-          var q = new URLSearchParams(location.search);
-          if (!(q.get('currency') || q.get('cur'))) curHint.textContent = '(' + String(ctx.checkoutCurrencyCode).trim().toUpperCase() + ')';
+        urlPayDisplayFxActive = ctx.urlPayDisplayFxActive === true;
+        urlPayPricingMode = String(ctx.urlPayPricingMode || 'CHECKOUT_CURRENCY').toUpperCase();
+        if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyPayAmountCurrencyHint) {
+          PG_URL_PAY_SHELL.applyPayAmountCurrencyHint(ctx);
+        } else {
+          var curHint = document.getElementById('payAmountCurrencyHint');
+          if (curHint) {
+            var q = new URLSearchParams(location.search);
+            if (!(q.get('currency') || q.get('cur'))) {
+              var cur0 = urlPayDisplayFxActive
+                ? (ctx.urlPayDisplayFxDefaultDisplayCurrency || ctx.checkoutCurrencyCode || 'USD')
+                : (ctx.checkoutCurrencyCode || 'USD');
+              curHint.textContent = '(' + String(cur0).trim().toUpperCase() + ')';
+            }
+          }
+        }
+        if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.initDisplayFx) {
+          fxShellState.checkoutCtx = ctx;
+          fxShellState.compId = document.getElementById('compIdHidden').value || getCompId();
+          fxShellState.urlPayDisplayFxActive = urlPayDisplayFxActive;
+          fxShellState.operationalPgCd = String(
+            ctx.urlPayOperationalPgCd || ctx.urlPayDisplayFxQuotePgCd || ''
+          ).trim();
+          fxShellState.apiUrl = function (path, qs) {
+            return apiUrl(path, qs);
+          };
+          fxShellState.t = t;
+          try { PG_URL_PAY_SHELL.initDisplayFx(fxShellState); } catch (eFx) { /* ignore */ }
+        } else {
+          var rowC = document.getElementById('payFxDisplayCurrencyRow');
+          var rowQ = document.getElementById('payFxQuoteRow');
+          if (rowC) rowC.classList.toggle('d-none', !urlPayDisplayFxActive);
+          if (rowQ) rowQ.classList.toggle('d-none', !urlPayDisplayFxActive);
         }
         applyI18n();
         if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyUrlPayInputMode) {
-          PG_URL_PAY_SHELL.applyUrlPayInputMode(ctx, { getLang: function () { return LANG; }, setLang: setLang, detectBrowserLang: detectBrowserUrlPayLang });
+          PG_URL_PAY_SHELL.applyUrlPayInputMode(ctx, {
+            getLang: function () { return LANG; },
+            setLang: setLang,
+            detectBrowserLang: detectBrowserUrlPayLang,
+            applyBuyerContact: true
+          });
         }
+        applyBuyerVisibility(ctx);
         if (window.PG_URL_PAY_SHELL) {
           PG_URL_PAY_SHELL.applyCardCopyPresentation({ lang: LANG, cardCopy: window.__payUrlCardCopy, t: t, skipBrandSub: true });
           PG_URL_PAY_SHELL.applyCheckoutHeaderSubtitle(checkoutCtx, { t: t, getLang: function () { return LANG; } });
@@ -628,7 +717,9 @@
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { showErr(t('errEmailFormat')); payGuardUnlock(btn); return; }
         var amtStr = String(document.getElementById('amount').value || '').replace(/,/g, '').trim();
         if (!(parseFloat(amtStr) > 0)) { showErr(t('needAmount')); payGuardUnlock(btn); return; }
-        var cur = (checkoutCtx && checkoutCtx.checkoutCurrencyCode) ? String(checkoutCtx.checkoutCurrencyCode).trim().toUpperCase() : 'USD';
+        var settleCur = (checkoutCtx && (checkoutCtx.urlPaySettlementCurrencyCode || checkoutCtx.checkoutCurrencyCode))
+          ? String(checkoutCtx.urlPaySettlementCurrencyCode || checkoutCtx.checkoutCurrencyCode).trim().toUpperCase()
+          : 'USD';
         if (!assertSessionMatchesForm()) { showErr(t('errInvalidSession')); payGuardUnlock(btn); return; }
 
         var ordEl = document.getElementById('orderNo');
@@ -638,18 +729,44 @@
           compId: compId,
           orderNo: ordEl.value.trim(),
           amount: amtStr,
-          currency: cur,
+          currency: settleCur,
           item: document.getElementById('item').value.trim(),
           paymentMethod: 'CARD',
           buyerName: (fn + ' ' + ln).trim(),
           payFirstname: fn,
           payLastname: ln,
           payEmailAddress: email,
-          payTelephone: document.getElementById('payTelephone').value.trim(),
+          payTelephone: (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.readPhoneWithDial)
+            ? PG_URL_PAY_SHELL.readPhoneWithDial()
+            : document.getElementById('payTelephone').value.trim(),
           langCode: LANG,
           system: 'icopay',
           txnOrigin: PAY_ENTRY_CHATBOT ? 'CHATBOT' : (PAY_ENTRY_MERCHANT_API ? 'MERCHANT_API' : 'URL')
         };
+        /* DP: 표시금액 + 견적 토큰(미전송 시 INVALID_FX_QUOTE) — PAYSO/ElementPay 와 동일 */
+        if (urlPayDisplayFxActive && urlPayPricingMode === 'DISPLAY_FX_THB') {
+          var fxQ = fxShellState.urlPayFxQuote;
+          if (!fxQ || (!fxQ.fxQuoteToken && fxQ.oneToOneDisplaySettlement !== true)) {
+            showErr(t('needFxQuote'));
+            payGuardUnlock(btn);
+            return;
+          }
+          body.urlPayPricingMode = 'DISPLAY_FX_THB';
+          body.displayAmount = amtStr;
+          body.amount = amtStr;
+          body.displayCurrency = (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.payFxResolvedDisplayCurrency && checkoutCtx)
+            ? PG_URL_PAY_SHELL.payFxResolvedDisplayCurrency(checkoutCtx)
+            : String((fxQ && fxQ.displayCurrency) || (checkoutCtx && checkoutCtx.urlPayDisplayFxDefaultDisplayCurrency) || settleCur).trim().toUpperCase();
+          if (fxQ.fxQuoteToken) body.fxQuoteToken = String(fxQ.fxQuoteToken);
+          if (fxQ.settlementCurrency) {
+            body.currency = String(fxQ.settlementCurrency).trim().toUpperCase();
+          }
+          if (fxShellState.operationalPgCd) {
+            body.operationalPgCd = String(fxShellState.operationalPgCd).trim();
+          } else if (checkoutCtx && checkoutCtx.urlPayOperationalPgCd) {
+            body.operationalPgCd = String(checkoutCtx.urlPayOperationalPgCd).trim();
+          }
+        }
         hideErr();
         postJson('/api/pay/url/sale', body).then(function (res) {
           if (!res || !res.success) {

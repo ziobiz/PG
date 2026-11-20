@@ -12,7 +12,7 @@
   <script src="/js/checkout-header-subtitle-presets.js?v=2"></script>
   <script src="/js/url-pay-copy-phrase-i18n.js?v=1"></script>
   <script src="/js/pay-dynamic-form.js?v=2"></script>
-  <script src="/js/url-pay-public-shell.js?v=22"></script>
+  <script src="/js/url-pay-public-shell.js?v=24"></script>
   <script src="/js/jpay-contact-fields.js?v=8"></script>
   <script src="/js/pay-form-input-guard.js?v=4"></script>
   <script src="/js/icopay-checkout-3ds.js?v=4"></script>
@@ -274,6 +274,15 @@
     document.getElementById('phoneRow').classList.toggle('d-none', !USE_PHONE);
     document.getElementById('shippingRow').classList.toggle('d-none', !USE_SHIPPING);
     document.getElementById('itemRow').classList.toggle('d-none', !USE_PRODUCT);
+    /* 숨김 성명란 required 잔존 → 결제하기 클릭 무반응(HTML5) 방지 */
+    ['payFirstname', 'payLastname'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      if (USE_NAME) el.setAttribute('required', 'required');
+      else el.removeAttribute('required');
+    });
+    var hint = document.getElementById('buyerHint');
+    if (hint) hint.classList.toggle('d-none', !USE_NAME);
     var any = USE_NAME || USE_EMAIL || USE_COUNTRY || USE_PHONE || USE_SHIPPING;
     document.getElementById('buyerBlock').classList.toggle('d-none', !any);
   }
@@ -287,6 +296,9 @@
     USE_SHIPPING = String(ctx.urlPayShippingAddressUseYn != null ? ctx.urlPayShippingAddressUseYn : 'N').toUpperCase() === 'Y';
     USE_PRODUCT = String(ctx.urlPayProductNameUseYn != null ? ctx.urlPayProductNameUseYn : 'Y').toUpperCase() === 'Y';
     applyBuyerVisibility();
+    if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyPhoneDialCodeVisibility) {
+      PG_URL_PAY_SHELL.applyPhoneDialCodeVisibility(ctx);
+    }
     if (window.PG_JPAY_CONTACT && PG_JPAY_CONTACT.init) {
       PG_JPAY_CONTACT.init(document.getElementById('omsForm'), ctx, LANG, t('country'));
     }
@@ -351,7 +363,9 @@
       if (hint0 && cur0) hint0.textContent = '(' + String(cur0).trim().toUpperCase() + ')';
     }
 
-    /* 일반형(STANDARD)이어도 항상 init — 비활성 시 Display currency/Estimated charge 행을 숨김 */
+    /* 일반형(STANDARD)이어도 항상 init — 비활성 시 Display currency/Estimated charge 행을 숨김.
+     * DP(DISPLAY_FX)면 견적 Promise를 반환 — 가맹 API 자동시작 전에 반드시 대기. */
+    var fxInitP = Promise.resolve();
     if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.initDisplayFx) {
       fxShellState.checkoutCtx = ctx;
       fxShellState.compId = document.getElementById('compIdHidden').value || getCompId();
@@ -365,13 +379,51 @@
         return u;
       };
       fxShellState.t = t;
-      try { PG_URL_PAY_SHELL.initDisplayFx(fxShellState); } catch (eFx) { /* ignore */ }
+      try {
+        fxInitP = Promise.resolve(PG_URL_PAY_SHELL.initDisplayFx(fxShellState)).catch(function () {
+          return null;
+        });
+      } catch (eFx) {
+        fxInitP = Promise.resolve();
+      }
     } else {
       var rowC = document.getElementById('payFxDisplayCurrencyRow');
       var rowQ = document.getElementById('payFxQuoteRow');
       if (rowC) rowC.classList.toggle('d-none', !urlPayDisplayFxActive);
       if (rowQ) rowQ.classList.toggle('d-none', !urlPayDisplayFxActive);
     }
+    fxShellState._fxReady = fxInitP;
+    return fxInitP;
+  }
+
+  function hasUsableFxQuote() {
+    var fxQ = fxShellState.urlPayFxQuote;
+    return !!(fxQ && (fxQ.fxQuoteToken || fxQ.oneToOneDisplaySettlement === true));
+  }
+
+  function waitDisplayFxQuoteReady() {
+    if (!urlPayDisplayFxActive || urlPayPricingMode !== 'DISPLAY_FX_THB') {
+      return Promise.resolve(true);
+    }
+    var base = Promise.resolve(fxShellState._fxReady);
+    return base.then(function () {
+      if (hasUsableFxQuote()) return true;
+      if (typeof fxShellState.fetchFxQuote === 'function') {
+        return Promise.resolve(fxShellState.fetchFxQuote()).then(function () {
+          return hasUsableFxQuote();
+        }).catch(function () { return false; });
+      }
+      return false;
+    });
+  }
+
+  function restoreConfirmUiAfterAutoStartFail() {
+    var grid = document.querySelector('#omsForm .pay-form-grid');
+    if (grid) grid.classList.remove('d-none');
+    try { applyBuyerVisibility(); } catch (eAv) { /* ignore */ }
+    var lead = document.getElementById('omsLead');
+    if (lead) lead.textContent = t('lead');
+    autoStartAttempted = false;
   }
 
   function applySessionOrQuery(data) {
@@ -753,13 +805,14 @@
                     return;
                   }
                   if (ctxBody && ctxBody.success && ctxBody.data) {
-                    applyCheckoutContext(ctxBody.data);
+                    var fxP = applyCheckoutContext(ctxBody.data);
                     if (session && sessionData && window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyApiPaymentAmountField) {
                       PG_URL_PAY_SHELL.applyApiPaymentAmountField('amount',
                         document.getElementById('amount').value || sessionData.amount,
                         [sessionData, ctxBody.data]);
                       lockedAmount = PG_URL_PAY_SHELL.isApiPaymentAmountLockEnabled([sessionData, ctxBody.data]);
                     }
+                    return Promise.resolve(fxP);
                   }
                 });
             }
@@ -781,7 +834,7 @@
           showConfigError((body && body.message) || t('configErr'));
           return;
         }
-        applyCheckoutContext(body.data);
+        var fxP = applyCheckoutContext(body.data);
         applySessionOrQuery({
           compId: body.data.compId || comp,
           productName: body.data.defaultProductName || '',
@@ -794,6 +847,7 @@
           buyer: body.data.buyerPrefill || body.data.buyer || null
         });
         ensureOrderNo();
+        return Promise.resolve(fxP);
       })
       .catch(function () { showConfigError(t('configErr')); });
   }
@@ -841,7 +895,13 @@
   }
 
   loadContext().then(function () {
-    tryAutoStartToOms();
+    return waitDisplayFxQuoteReady().then(function (ok) {
+      if (urlPayDisplayFxActive && urlPayPricingMode === 'DISPLAY_FX_THB' && !ok) {
+        showConfigError(t('needFxQuote'));
+        return;
+      }
+      tryAutoStartToOms();
+    });
   });
 
   var startInFlight = false;
@@ -892,8 +952,9 @@
       var b2 = pickBuyer(sessionData || {});
       buyerName = (b2 && b2.name) ? String(b2.name).trim() : '';
     }
-    if (!buyerName) { alert(t('needName')); return; }
-    if (pfg && pfg.validateEnglishName && !pfg.validateEnglishName(buyerName)) {
+    /* 성명 UI 활성일 때만 필수. 비활성(N)이면 prepare/prefill 없으면 빈값 허용 */
+    if (USE_NAME && !buyerName) { alert(t('needName')); return; }
+    if (buyerName && pfg && pfg.validateEnglishName && !pfg.validateEnglishName(buyerName)) {
       alert(t('errNameEn'));
       return;
     }
@@ -943,6 +1004,7 @@
       if (!fxQ || (!fxQ.fxQuoteToken && fxQ.oneToOneDisplaySettlement !== true)) {
         alert(t('needFxQuote') || '환율 견적을 불러오지 못했습니다. 페이지를 새로고침한 뒤 다시 시도하세요.');
         unlockStart();
+        restoreConfirmUiAfterAutoStartFail();
         return;
       }
       payload.urlPayPricingMode = 'DISPLAY_FX_THB';

@@ -74,22 +74,60 @@ public class PaysoCallbackService {
         String txnId = text(root, "transactionId", "transactionid", "transaction_id");
         String paysoKey = !txnId.isBlank() ? txnId : refno;
         ResolvedIds ids = resolveIds(paysoKey, refno);
+        boolean failed = looksLikePaysoFailure(root);
 
         Optional<PgTrnsctn> updated = Optional.empty();
         if (!ids.orderNo.isBlank() && !ids.compId.isBlank()) {
-            updated = paysoSaleRecordService.applyPaidOutcome(
-                    ids.orderNo, ids.compId, paysoKey, refno, text(root, "customeremail", "customerEmail", "payer_name"));
+            if (failed) {
+                String reason = text(root, "statusDesc", "message", "status", "paymentStatus");
+                if (reason.isBlank()) {
+                    reason = "PAYSO payment failed";
+                }
+                updated = paysoSaleRecordService.applyFailedOutcome(
+                        ids.orderNo, ids.compId, paysoKey, "PAYSO_WEBHOOK_FAIL", reason);
+                log.info("PAYSO webhook FAIL mid={} order={} ref={} txn={} ip={}",
+                        ids.compId, ids.orderNo, refno, txnId, clientIp);
+            } else {
+                updated = paysoSaleRecordService.applyPaidOutcome(
+                        ids.orderNo, ids.compId, paysoKey, refno,
+                        text(root, "customeremail", "customerEmail", "payer_name"));
+            }
         } else {
-            log.warn("PAYSO webhook Comp-Id unresolved refno={} txn={} ip={}", refno, txnId, clientIp);
+            log.warn("PAYSO webhook Comp-Id unresolved refno={} txn={} fail={} ip={}",
+                    refno, txnId, failed, clientIp);
         }
         updated.ifPresent(t -> {
             try {
-                merchantOutboundNotifyService.scheduleAfterTxnCommit(t, null, "PAYSO_WEBHOOK");
+                String ch = "99".equals(t.getStatus() != null ? t.getStatus().trim() : "")
+                        ? "PAYSO_WEBHOOK_FAIL" : "PAYSO_WEBHOOK";
+                merchantOutboundNotifyService.scheduleAfterTxnCommit(t, null, ch);
             } catch (Exception e) {
                 log.warn("PAYSO merchant notify: {}", e.getMessage());
             }
         });
         return outcomeJson(true, null, paysoKey, ids, HttpStatus.OK);
+    }
+
+    /** Payso / NOTI form·JSON — 실패·취소·거절 힌트. */
+    static boolean looksLikePaysoFailure(JsonNode root) {
+        if (root == null) {
+            return false;
+        }
+        String st = text(root, "status", "Status", "paymentStatus", "PaymentStatus", "result", "Result")
+                .trim().toLowerCase(Locale.ROOT);
+        if (st.equals("fail") || st.equals("failed") || st.equals("cancel") || st.equals("cancelled")
+                || st.equals("canceled") || st.equals("void") || st.equals("decline") || st.equals("declined")
+                || st.equals("reject") || st.equals("rejected") || st.equals("error")
+                || st.contains("wrong") || st.contains("fail")) {
+            return true;
+        }
+        String rc = text(root, "returncode", "returnCode", "PaymentStatus", "paymentstatus");
+        if ("99".equals(rc) || "1".equals(rc) || "FL".equalsIgnoreCase(rc)) {
+            return true;
+        }
+        String desc = text(root, "statusDesc", "message", "Message").toLowerCase(Locale.ROOT);
+        return desc.contains("wrong payment") || desc.contains("fail") || desc.contains("declin")
+                || desc.contains("reject") || desc.contains("cancel");
     }
 
     private ResolvedIds resolveIds(String paysoKey, String refno) {

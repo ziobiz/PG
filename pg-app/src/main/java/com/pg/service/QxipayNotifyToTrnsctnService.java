@@ -79,7 +79,7 @@ public class QxipayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         }
         String comp = in.getMerchantId() != null ? in.getMerchantId().trim() : "";
         if (comp.isBlank() && !orderNo.isBlank()) {
-            Optional<PgTrnsctn> t = pgTrnsctnRepository.findFirstByOrderNoOrderByCreatedAtDesc(orderNo);
+            Optional<PgTrnsctn> t = com.pg.util.PgTrnsctnOrderLookup.findByOrderNoOrPayNo(pgTrnsctnRepository, orderNo);
             if (t.isPresent()) {
                 comp = t.get().getMerchantId() != null ? t.get().getMerchantId() : "";
             }

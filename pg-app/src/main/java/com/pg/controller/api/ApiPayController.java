@@ -843,9 +843,6 @@ public class ApiPayController {
         if (vendorBlock != null) {
             return vendorBlock;
         }
-        if (!UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equals(chillPayService.resolveUrlPayPricingMode(orgUnitId))) {
-            return ResponseEntity.ok(ApiResponse.fail("이 가맹점 URL 결제는 표시통화(DP) 모드가 아닙니다.", "DISPLAY_FX_NOT_CONFIGURED"));
-        }
         if (!urlPayDisplayFxService.isHqFeatureEnabled()) {
             return ResponseEntity.ok(ApiResponse.fail("본사 「URL 표시통화(THB정산)」 설정이 꺼져 있거나 비어 있습니다.", "DISPLAY_FX_HQ_DISABLED"));
         }
@@ -856,8 +853,14 @@ public class ApiPayController {
         if (opPgQ == null || opPgQ.isBlank()) {
             opPgQ = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
         }
-        /* 라우팅 PG가 일반형이면 1:1 견적 대신 표시통화 정산 힌트만 */
+        /* 운영 PG 기준(전 PG 공통). 조직 전체 모드만 보면 KSNET 등 단일 DP PG가 막힐 수 있음 */
         String modeForPg = chillPayService.resolveUrlPayPricingModeForPg(orgUnitId, opPgQ);
+        if (!UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equalsIgnoreCase(modeForPg)
+                && !UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equalsIgnoreCase(
+                chillPayService.resolveUrlPayPricingMode(orgUnitId))) {
+            return ResponseEntity.ok(ApiResponse.fail("이 가맹점 URL 결제는 표시통화(DP) 모드가 아닙니다.", "DISPLAY_FX_NOT_CONFIGURED"));
+        }
+        /* 라우팅 PG가 일반형이면 1:1 견적 대신 표시통화 정산 힌트만 */
         if (!UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equalsIgnoreCase(modeForPg)) {
             Map<String, Object> oneToOne = new LinkedHashMap<>();
             oneToOne.put("displayCurrency", cur.toUpperCase(Locale.ROOT));
@@ -1150,7 +1153,8 @@ public class ApiPayController {
             chillPayDirectCreditRecordService.recordAfterDirectCreditResponse(
                     merchantOrgUnitId, res, recordAmt, orderNo, customerId, payResult.routeUsed(),
                     urlPayMode, payerName.isEmpty() ? null : payerName, checkoutCurrencyCode,
-                    shopperDisplayAmountOut, shopperDisplayCurrencyOut, txnOrigin, langCode);
+                    shopperDisplayAmountOut, shopperDisplayCurrencyOut, txnOrigin, langCode,
+                    payResult.pgOrderRef());
             return ResponseEntity.ok(ApiResponse.ok(res));
         } catch (IllegalStateException e) {
             String msg = e.getMessage() != null ? e.getMessage() : "결제 요청 처리 중 오류가 발생했습니다.";

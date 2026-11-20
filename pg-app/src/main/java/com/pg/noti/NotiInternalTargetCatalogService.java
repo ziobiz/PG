@@ -295,6 +295,24 @@ public class NotiInternalTargetCatalogService {
         if ("chillpay".equals(pg)) {
             return "ChillPay · ";
         }
+        if ("omspay".equals(pg)) {
+            return "OMSPAY · ";
+        }
+        if ("payso".equals(pg)) {
+            return "PAYSO · ";
+        }
+        if ("ksnet".equals(pg)) {
+            return "KSNET · ";
+        }
+        if ("ilk".equals(pg)) {
+            return "ILKPAY · ";
+        }
+        if ("qxipay".equals(pg)) {
+            return "QXIPAY · ";
+        }
+        if ("qbang".equals(pg)) {
+            return "QBANG · ";
+        }
         return "";
     }
 

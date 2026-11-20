@@ -198,6 +198,17 @@ public interface PgTrnsctnRepository extends JpaRepository<PgTrnsctn, String>, J
                                                     Pageable pageable);
 
     /**
+     * 전 PG 요청(08) — 결제창 이탈·웹훅 미수신 등으로 장시간 「요청」 고착 시 만료(실패) 대상.
+     */
+    @Query("SELECT t FROM PgTrnsctn t WHERE t.status = '08' " +
+           "AND t.orderNo IS NOT NULL AND TRIM(t.orderNo) <> '' " +
+           "AND t.createdAt <= :staleBefore AND t.createdAt >= :notOlderThan " +
+           "ORDER BY t.createdAt ASC")
+    List<PgTrnsctn> findStalePendingForExpire(@Param("staleBefore") LocalDateTime staleBefore,
+                                              @Param("notOlderThan") LocalDateTime notOlderThan,
+                                              Pageable pageable);
+
+    /**
      * QBANG QR 요청(08) — 브라우저와 별도 서버 PL 폴링(승인 즉시 OKAY).
      * createdAt 이 최근(유효시간 상한 내)인 건만.
      */

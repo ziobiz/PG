@@ -148,7 +148,9 @@ public class IlkCallbackService {
                         log.warn("ILK 아웃바운드: {}", e.getMessage());
                     }
                     try {
-                        activateIlkSubscriptionOnPaid(compCode, orderNo, id);
+                        /* ILK code=ICOPAY ref → 구독번호는 가맹 order_no */
+                        activateIlkSubscriptionOnPaid(compCode,
+                                t.getOrderNo() != null && !t.getOrderNo().isBlank() ? t.getOrderNo() : orderNo, id);
                     } catch (Exception e) {
                         log.debug("ILK 구독 활성화: {}", e.getMessage());
                     }

@@ -95,6 +95,29 @@ public class UrlPayCheckoutDisplayPolicyService {
                 "Y");
     }
 
+    /** 가맹 API 결제창 성명 — URL 성명과 분리 */
+    public String effectiveApiBuyerNameUseYn(Long orgUnitId) {
+        return UrlPayFollowHqYnUtil.resolveEffective(
+                merchantField(orgUnitId, MerchantProfile::getApiBuyerNameUseYn),
+                hqOrEmpty().getApiBuyerNameUseDefaultYn(),
+                "Y");
+    }
+
+    /** 채널별 실효 성명 노출 (URL·챗봇 vs merchant_api) */
+    public String effectiveBuyerNameUseYnForChannel(Long orgUnitId, UrlPayInputModeUtil.Channel channel) {
+        if (channel == UrlPayInputModeUtil.Channel.API) {
+            return effectiveApiBuyerNameUseYn(orgUnitId);
+        }
+        return effectiveBuyerNameUseYn(orgUnitId);
+    }
+
+    /** 전화 국가번호(+82 등) 드롭다운 — 가맹 오버라이드 → 본사 */
+    public String effectivePhoneDialCodeYn(Long orgUnitId, String urlPhoneDialParam) {
+        String merchantOv = merchantField(orgUnitId, MerchantProfile::getJpayPhoneDialCodeYn);
+        String hq = hqOrEmpty().getJpayPhoneDialCodeYn();
+        return JpayPhoneDialCodeUtil.resolveEnabled(merchantOv, hq, urlPhoneDialParam) ? "Y" : "N";
+    }
+
     public String effectiveRememberMode(Long orgUnitId) {
         return UrlPayFollowHqYnUtil.normalizeStored(
                 merchantField(orgUnitId, MerchantProfile::getCheckoutContactRememberMode));
@@ -156,15 +179,27 @@ public class UrlPayCheckoutDisplayPolicyService {
     }
 
     public void putEffectiveYnIntoMap(Map<String, Object> data, Long orgUnitId) {
+        putEffectiveYnIntoMap(data, orgUnitId, UrlPayInputModeUtil.Channel.URL, null);
+    }
+
+    public void putEffectiveYnIntoMap(Map<String, Object> data, Long orgUnitId,
+                                      UrlPayInputModeUtil.Channel channel, String urlPhoneDialParam) {
         if (data == null || orgUnitId == null) {
             return;
         }
+        UrlPayInputModeUtil.Channel ch = channel != null ? channel : UrlPayInputModeUtil.Channel.URL;
         data.put("urlPayProductNameUseYn", effectiveProductNameUseYn(orgUnitId));
         data.put("urlPayCompanyNameShowYn", effectiveCompanyNameShowYn(orgUnitId));
         data.put("urlPayLangMenuUseYn", effectiveLangMenuUseYn(orgUnitId));
         data.put("urlPayShippingAddressUseYn", effectiveShippingAddressUseYn(orgUnitId));
-        /* 성명(리다이렉트용) — 가맹 Y/N/FOLLOW_HQ → 본사 기본. 누락 시 결제창이 Y로 폴백해 항상 표시됨 */
-        data.put("urlPayBuyerNameUseYn", effectiveBuyerNameUseYn(orgUnitId));
+        String urlNameYn = effectiveBuyerNameUseYn(orgUnitId);
+        String apiNameYn = effectiveApiBuyerNameUseYn(orgUnitId);
+        String effectiveNameYn = effectiveBuyerNameUseYnForChannel(orgUnitId, ch);
+        /* 채널 실효값 — 결제창은 이 키로 성명 표시. URL/API 저장값은 별도 보관 */
+        data.put("urlPayBuyerNameUseYn", effectiveNameYn);
+        data.put("urlPayBuyerNameUseYnUrl", urlNameYn);
+        data.put("apiBuyerNameUseYn", apiNameYn);
+        data.put("urlPayBuyerNameUseYnChannel", ch.name());
         String emailYn = effectiveBuyerEmailUseYn(orgUnitId);
         String countryYn = effectiveBuyerCountryUseYn(orgUnitId);
         String phoneYn = effectiveBuyerPhoneUseYn(orgUnitId);
@@ -172,6 +207,9 @@ public class UrlPayCheckoutDisplayPolicyService {
         data.put("urlPayBuyerEmailUseYn", emailYn);
         data.put("urlPayBuyerCountryUseYn", countryYn);
         data.put("urlPayBuyerPhoneUseYn", phoneYn);
+        String dialYn = effectivePhoneDialCodeYn(orgUnitId, urlPhoneDialParam);
+        data.put("phoneDialCodeYn", dialYn);
+        data.put("jpayPhoneDialCodeYn", dialYn);
         /* 전 PG 공통 — 레거시 JPAY checkoutFieldMode 호환(개별 토글 우선) */
         if (!data.containsKey("checkoutFieldMode")) {
             data.put("checkoutFieldMode",

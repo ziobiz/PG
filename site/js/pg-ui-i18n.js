@@ -2732,6 +2732,27 @@
       CH: '姓名（跳转用）',
       TH: 'ชื่อ (redirect)'
     },
+    '성명(URL결제)': {
+      KO: '성명(URL결제)',
+      EN: 'Name (URL pay)',
+      JP: '氏名(URL決済)',
+      CH: '姓名（URL支付）',
+      TH: 'ชื่อ (ชำระ URL)'
+    },
+    '성명(API결제)': {
+      KO: '성명(API결제)',
+      EN: 'Name (API pay)',
+      JP: '氏名(API決済)',
+      CH: '姓名（API支付）',
+      TH: 'ชื่อ (ชำระ API)'
+    },
+    '전화 국가번호': {
+      KO: '전화 국가번호',
+      EN: 'Phone dial code',
+      JP: '電話国番号',
+      CH: '电话国家区号',
+      TH: 'รหัสประเทศโทร'
+    },
     '샌드박스 시크릿 발급': { EN: 'Issue sandbox secret', JP: 'サンドボックス秘密鍵発行', CH: '签发沙箱密钥', TH: 'ออกคีย์ sandbox' },
     '샌드박스 시크릿': { EN: 'Sandbox secret', JP: 'サンドボックスシークレット', CH: '沙箱密钥', TH: 'คีย์ sandbox' },
     '샌드박스 발행일자': { EN: 'Sandbox issued date', JP: 'サンドボックス発行日', CH: '沙箱发行日', TH: 'วันออก sandbox' },

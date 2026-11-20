@@ -215,6 +215,9 @@ public class ElementPayPaymentService {
         String notifyBase = PgNotifyIngressPaths.buildIngressBase(publicBase, ingressToken) + "/ELEMENTPAY";
 
         String amountPlain = formatAmount(amount);
+        /* EP order = ICOPAY 불투명 ref. DB order_no = 가맹 orderNo, pay_no = ref (saleBody.icopayPgOrderRef) */
+        final String pgOrderRef = com.pg.util.IcopayPgOrderRef.standard();
+        com.pg.util.IcopayPgOrderRef.putInSaleBody(body, pgOrderRef);
         /*
          * URL·챗봇: 구매자는 ICOPAY 결제창 결과 카드로 복귀.
          * 가맹이 API 연동이어도 URL 결제 브라우저는 NOTI Result(가맹 resultUrl)로 보내지 않는다.
@@ -248,7 +251,7 @@ public class ElementPayPaymentService {
         log.info("ElementPay init attrs service={} methodKeys={} extraKeys={} ipHint={}",
                 serviceAlias, methodKeys, extra.keySet(), extra.get("ip"));
 
-        JsonNode resp = initPaymentTryingModes(agency, cred, serviceAlias, amountPlain, orderNo, currency,
+        JsonNode resp = initPaymentTryingModes(agency, cred, serviceAlias, amountPlain, pgOrderRef, currency,
                 successReturn, rejectReturn, waitingReturn, extra);
         if (resp == null) {
             return fail("ElementPay 결제 초기화에 실패했습니다.", "ELEMENTPAY_INIT_FAILED");
@@ -274,7 +277,7 @@ public class ElementPayPaymentService {
                     String retryAlias = "kCards";
                     extra = extrasForInit(canonical, fetchMethodAttributeKeys(agency, cred, retryAlias));
                     log.info("ElementPay retry init with catalog card alias={}", retryAlias);
-                    resp = initPaymentTryingModes(agency, cred, retryAlias, amountPlain, orderNo, currency,
+                    resp = initPaymentTryingModes(agency, cred, retryAlias, amountPlain, pgOrderRef, currency,
                             successReturn, rejectReturn, waitingReturn, extra);
                     if (resp != null && !resp.has("error")) {
                         serviceAlias = retryAlias;
@@ -295,7 +298,7 @@ public class ElementPayPaymentService {
                     log.info("ElementPay service_id={} disabled → retry with suggested={}", serviceAlias, suggested);
                     serviceAlias = suggested;
                     extra = extrasForInit(canonical, fetchMethodAttributeKeys(agency, cred, serviceAlias));
-                    resp = initPaymentTryingModes(agency, cred, serviceAlias, amountPlain, orderNo, currency,
+                    resp = initPaymentTryingModes(agency, cred, serviceAlias, amountPlain, pgOrderRef, currency,
                             successReturn, rejectReturn, waitingReturn, extra);
                     if (resp == null) {
                         return fail("ElementPay 결제 초기화에 실패했습니다.", "ELEMENTPAY_INIT_FAILED");
@@ -1389,7 +1392,20 @@ public class ElementPayPaymentService {
         if (paymentId != null && !paymentId.isBlank()) {
             signParams.put("payment_id", paymentId.trim());
         } else if (orderNo != null && !orderNo.isBlank()) {
-            signParams.put("order", orderNo.trim());
+            /* 가맹 orderNo 로 호출돼도 EP 에는 ICOPAY ref(pay_no) 로 조회 */
+            String epOrderKey = orderNo.trim();
+            try {
+                Optional<PgTrnsctn> local = elementPaySaleRecordService.findAnyByOrder(epOrderKey);
+                if (local.isPresent()) {
+                    String k = com.pg.util.PgTrnsctnOrderLookup.pgOrderKey(local.get());
+                    if (!k.isBlank()) {
+                        epOrderKey = k;
+                    }
+                }
+            } catch (Exception ignored) {
+                /* fall back to raw orderNo */
+            }
+            signParams.put("order", epOrderKey);
         } else {
             return fail("paymentId 또는 orderNo가 필요합니다.", "INVALID_QUERY");
         }
@@ -1446,8 +1462,9 @@ public class ElementPayPaymentService {
         long ts = Instant.now().getEpochSecond();
         Map<String, String> signParams = new LinkedHashMap<>();
         signParams.put("payment_id", paymentId.trim());
-        if (t.getOrderNo() != null && !t.getOrderNo().isBlank()) {
-            signParams.put("order", t.getOrderNo().trim());
+        String refundOrderKey = com.pg.util.PgTrnsctnOrderLookup.pgOrderKey(t);
+        if (!refundOrderKey.isBlank()) {
+            signParams.put("order", refundOrderKey);
         }
         if (reason != null && !reason.isBlank()) {
             String r = reason.trim();

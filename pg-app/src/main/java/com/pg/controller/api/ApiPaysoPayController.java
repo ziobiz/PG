@@ -157,6 +157,29 @@ public class ApiPaysoPayController {
     }
 
     /**
+     * 구매자 복귀·폴링 타임아웃 — Wrong payment 등으로 웹훅이 없어도 요청(08)→실패(99).
+     * 금전 이동 없음(대기 건만). 수신통보 우선.
+     */
+    @PostMapping(value = "/mark-failed", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> markFailed(@RequestBody Map<String, Object> body) {
+        Map<String, Object> result = PaysoPaymentService.markBuyerFailed(
+                str(body != null ? body.get("compId") : null),
+                str(body != null ? body.get("orderNo") : null),
+                str(body != null ? body.get("reason") : null));
+        boolean ok = Boolean.TRUE.equals(result.get("success"));
+        if (ok) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> data = result.get("data") instanceof Map<?, ?> m
+                    ? (Map<String, Object>) m
+                    : result;
+            return ResponseEntity.ok(ApiResponse.ok(data));
+        }
+        return ResponseEntity.ok(ApiResponse.fail(
+                String.valueOf(result.getOrDefault("message", "실패 반영 실패")),
+                String.valueOf(result.getOrDefault("errorCode", "MARK_FAILED"))));
+    }
+
+    /**
      * NOTI PAYSO ingress {@code icopayOrderLookupUrl} —
      * {@code GET .../order-lookup?order={order}} (SO-… 또는 가맹 orderNo).
      * 응답 헤더 {@code X-Icopay-Comp-Id} + JSON {@code compId}.

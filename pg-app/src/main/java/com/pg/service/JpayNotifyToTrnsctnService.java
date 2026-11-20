@@ -26,6 +26,7 @@ import com.pg.util.NotifyTxnPaidAtUtil;
 import com.pg.util.NotifyToTxnStatusMerge;
 import com.pg.util.PaidApprovalEvidenceGuard;
 import com.pg.util.PayerContactDisplayUtil;
+import com.pg.util.IcopayPgOrderRef;
 import com.pg.util.PgTrnsctnOrderLookup;
 import com.pg.util.JpayPostSaleRiskOutcomeUtil;
 import com.pg.util.TxnOutcomeReasonApplier;
@@ -212,8 +213,20 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         if (!elementPayExisting) {
             t.setVan(PgVendor.JPAY.length() > 10 ? PgVendor.JPAY.substring(0, 10) : PgVendor.JPAY);
         }
-        t.setOrderNo(orderKey);
-        t.setPayNo(orderKey.length() > 50 ? orderKey.substring(0, 50) : orderKey);
+        /*
+         * orderKey = JPAY pay_orderid = ICOPAY opaque ref(또는 레거시 가맹 order).
+         * 기존 행이면 가맹 order_no 유지, pay_no 에 ref 보관. 신규·레거시만 order_no 세팅.
+         */
+        if (ex.isPresent()) {
+            String pay = orderKey.length() > 50 ? orderKey.substring(0, 50) : orderKey;
+            if (t.getPayNo() == null || t.getPayNo().isBlank()
+                    || pay.equals(orderKey) || IcopayPgOrderRef.looksLikeIcopayRef(pay, IcopayPgOrderRef.Profile.ALNUM_50)) {
+                t.setPayNo(pay);
+            }
+        } else {
+            t.setOrderNo(orderKey);
+            t.setPayNo(orderKey.length() > 50 ? orderKey.substring(0, 50) : orderKey);
+        }
         JpayTransactionIdApplier.apply(t, txnId);
         String amtStr = first(form, "true_amount");
         if (amtStr.isBlank()) {
@@ -512,6 +525,11 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
             return "";
         }
         String on = orderid.trim();
+        /* PG orderid = ICOPAY opaque pay_no 우선, 레거시는 order_no */
+        Optional<PgTrnsctn> byRef = PgTrnsctnOrderLookup.findByOrderNoOrPayNo(pgTrnsctnRepository, on);
+        if (byRef.isPresent() && byRef.get().getMerchantId() != null && !byRef.get().getMerchantId().isBlank()) {
+            return byRef.get().getMerchantId().trim();
+        }
         Optional<PgTrnsctn> url = pgTrnsctnRepository.findFirstByOrderNoAndOriginOrderByCreatedAtDesc(on, ORIGIN_URL);
         if (url.isPresent() && url.get().getMerchantId() != null && !url.get().getMerchantId().isBlank()) {
             return url.get().getMerchantId().trim();
@@ -524,7 +542,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
     }
 
     private Optional<PgTrnsctn> findJpayTxn(String merchantId, String orderNo) {
-        return PgTrnsctnOrderLookup.findPreferredByMerchantAndOrder(pgTrnsctnRepository, merchantId, orderNo);
+        return PgTrnsctnOrderLookup.findByMerchantOrderOrPayNo(pgTrnsctnRepository, merchantId, orderNo);
     }
 
     private void purgeOrderDuplicates(PgTrnsctn t) {
@@ -603,7 +621,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
     }
 
     private String resolveOriginForNewNotifyTxn(String merchantId, String orderNo) {
-        Optional<PgTrnsctn> preferred = PgTrnsctnOrderLookup.findPreferredByMerchantAndOrder(
+        Optional<PgTrnsctn> preferred = PgTrnsctnOrderLookup.findByMerchantOrderOrPayNo(
                 pgTrnsctnRepository, merchantId, orderNo);
         if (preferred.isPresent()) {
             String origin = preferred.get().getOrigin();

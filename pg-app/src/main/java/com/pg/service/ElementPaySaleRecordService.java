@@ -551,9 +551,15 @@ public class ElementPaySaleRecordService {
         if (orderNo == null || orderNo.isBlank()) {
             return Optional.empty();
         }
-        return pgTrnsctnRepository.findByOrderNoOrderByCreatedAtDesc(orderNo.trim()).stream()
+        Optional<PgTrnsctn> byOrder = pgTrnsctnRepository.findByOrderNoOrderByCreatedAtDesc(orderNo.trim()).stream()
                 .filter(t -> PgVendor.isElementPayFamily(t.getVan()))
                 .findFirst();
+        if (byOrder.isPresent()) {
+            return byOrder;
+        }
+        /* EP callback/status 의 order = ICOPAY ref → pay_no */
+        return PgTrnsctnOrderLookup.findByOrderNoOrPayNo(pgTrnsctnRepository, orderNo.trim())
+                .filter(t -> PgVendor.isElementPayFamily(t.getVan()));
     }
 
     public Optional<PgTrnsctn> findAnyByPaymentId(String paymentId) {
@@ -569,7 +575,7 @@ public class ElementPaySaleRecordService {
     }
 
     private Optional<PgTrnsctn> findTxnForOrder(String merchantId, String orderNo) {
-        Optional<PgTrnsctn> t = PgTrnsctnOrderLookup.findPreferredByMerchantAndOrder(
+        Optional<PgTrnsctn> t = PgTrnsctnOrderLookup.findByMerchantOrderOrPayNo(
                 pgTrnsctnRepository, merchantId, orderNo);
         if (t.isPresent() && PgVendor.isElementPayFamily(t.get().getVan())) {
             return t;

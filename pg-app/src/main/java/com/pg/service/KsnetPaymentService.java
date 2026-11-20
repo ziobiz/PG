@@ -12,7 +12,6 @@ import com.pg.repository.PgAgencyRepository;
 import com.pg.urlpay.CheckoutFailI18n;
 import com.pg.urlpay.PayerContextCapture;
 import com.pg.urlpay.UrlPayPublicCheckoutService;
-import com.pg.urlpay.UrlPayVendorCapabilityRegistry;
 import com.pg.util.PayPresaleRiskFilterCodes;
 import com.pg.util.PgOutboundUrlPolicy;
 import jakarta.servlet.http.HttpServletRequest;
@@ -110,12 +109,9 @@ public class KsnetPaymentService {
         if (opPg == null || opPg.isBlank()) {
             throw new IllegalStateException("KSNET_URL_NOT_CONFIGURED");
         }
-        String curOp = String.valueOf(data.getOrDefault("urlPayOperationalPgCd", "")).trim();
-        if (!opPg.equalsIgnoreCase(curOp)) {
-            data.put("urlPayOperationalPgCd", opPg);
-            data.put("urlPayInlineWidgetKind", UrlPayVendorCapabilityRegistry.resolveInlineWidgetKindLegacy(opPg));
-            urlPayPublicCheckoutService.enrichPresentation(data, orgUnitId);
-        }
+        /* 기본 운영이 PAYSO 등 DP/THB 이어도 KSNET 전용 창은 본사 pgSettings(KSNET=USD)로 재바인딩.
+         * 통화 하드코딩 금지 — settlementCurrency 는 URL결제설정·enricher 경로. */
+        urlPayPublicCheckoutService.rebindOperationalPg(data, orgUnitId, opPg, request);
         return data;
     }
 
@@ -190,10 +186,13 @@ public class KsnetPaymentService {
         String callbackUrl = PgOutboundUrlPolicy.enforceOwnDomain(
                 publicBase + "/ksnet-pay.html?ksnetReturn=1&orderNo=" + enc(orderNo), publicBase, publicBase);
 
+        /* KSNET orderNumb = ICOPAY 불투명 ref(ALNUM_50). DB order_no = 가맹 orderNo, pay_no = ref, tid = chill_transaction_id */
+        final String pgOrderRef = com.pg.util.IcopayPgOrderRef.ksnetOrderNumb();
+        com.pg.util.IcopayPgOrderRef.putInSaleBody(body, pgOrderRef);
         ksnetSaleRecordService.recordOrTouchPending(orgUnitId, orderNo, amountUsd, CURRENCY_USD, routeNo,
                 productName, txnOrigin, shopAmt, shopCur, buyerName, buyerEmail, buyerTel, body);
 
-        Map<String, Object> params = buildRequestPayParams(creds, orderNo, productName, amountUsd,
+        Map<String, Object> params = buildRequestPayParams(creds, pgOrderRef, productName, amountUsd,
                 buyerName, buyerEmail, buyerTel, mobile, callbackUrl);
 
         Map<String, Object> out = new LinkedHashMap<>();
@@ -334,7 +333,8 @@ public class KsnetPaymentService {
             log.warn("KSNET 승인 금액 불일치 comp={} order={} sent={} got={} → 승인 취소 시도",
                     comp, orderNo, amountKsnet, res.get("amount"));
             try {
-                apiClient.cancel(credOpt.get(), tid, orderNo, amountKsnet, "amount mismatch");
+                apiClient.cancel(credOpt.get(), tid, com.pg.util.PgTrnsctnOrderLookup.pgOrderKey(txn),
+                        amountKsnet, "amount mismatch");
             } catch (Exception e) {
                 log.warn("KSNET 금액불일치 취소 실패 order={}: {}", orderNo, e.getMessage());
             }
@@ -408,7 +408,7 @@ public class KsnetPaymentService {
         if (credOpt.isEmpty() || !credOpt.get().isUsable()) {
             throw new IllegalStateException("결제대행사 storeid 가 설정되지 않았습니다.");
         }
-        Map<String, Object> res = apiClient.cancel(credOpt.get(), tid, t.getOrderNo(),
+        Map<String, Object> res = apiClient.cancel(credOpt.get(), tid, com.pg.util.PgTrnsctnOrderLookup.pgOrderKey(t),
                 KsnetApiClient.toKsnetUsdAmount(t.getAmtKrw()), reason);
         if (!Boolean.TRUE.equals(res.get("ok"))) {
             throw new IllegalStateException("결제 취소 요청에 실패했습니다: " + str(res.get("message")));

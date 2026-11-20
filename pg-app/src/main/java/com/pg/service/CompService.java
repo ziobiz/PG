@@ -1610,6 +1610,7 @@ public class CompService {
         addDiffYn(rows, oid, compId, compNm, by, p + "URL구매자국가", snap.urlPayBuyerCountryUseYn(), mp.getUrlPayBuyerCountryUseYn());
         addDiffYn(rows, oid, compId, compNm, by, p + "URL구매자전화", snap.urlPayBuyerPhoneUseYn(), mp.getUrlPayBuyerPhoneUseYn());
         addDiffYn(rows, oid, compId, compNm, by, p + "URL구매자성명", snap.urlPayBuyerNameUseYn(), mp.getUrlPayBuyerNameUseYn());
+        addDiffYn(rows, oid, compId, compNm, by, p + "API구매자성명", snap.apiBuyerNameUseYn(), mp.getApiBuyerNameUseYn());
         addDiff(rows, oid, compId, compNm, by, p + "URL입력방식",
                 com.pg.urlpay.UrlPayInputModeUtil.formatAuditLabel(snap.urlPayInputMode()),
                 com.pg.urlpay.UrlPayInputModeUtil.formatAuditLabel(mp.getUrlPayInputMode()));
@@ -1715,6 +1716,7 @@ public class CompService {
             String urlPayBuyerCountryUseYn,
             String urlPayBuyerPhoneUseYn,
             String urlPayBuyerNameUseYn,
+            String apiBuyerNameUseYn,
             String urlPayInputMode,
             String apiUrlPayCheckoutMode,
             String chatbotUrlPayCheckoutMode,
@@ -1784,6 +1786,7 @@ public class CompService {
                     nz(mp.getUrlPayBuyerCountryUseYn()),
                     nz(mp.getUrlPayBuyerPhoneUseYn()),
                     nz(mp.getUrlPayBuyerNameUseYn()),
+                    nz(mp.getApiBuyerNameUseYn()),
                     nz(mp.getUrlPayInputMode()),
                     nz(mp.getApiUrlPayCheckoutMode()),
                     nz(mp.getChatbotUrlPayCheckoutMode()),
@@ -2034,6 +2037,7 @@ public class CompService {
                             m.put("urlPayBuyerCountryUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerCountryUseYn()));
                             m.put("urlPayBuyerPhoneUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerPhoneUseYn()));
                             m.put("urlPayBuyerNameUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerNameUseYn()));
+                            m.put("apiBuyerNameUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getApiBuyerNameUseYn()));
                             m.put("urlPayCheckoutFieldPresetId", mp.getUrlPayCheckoutFieldPresetId() != null ? mp.getUrlPayCheckoutFieldPresetId() : "");
                             m.put("urlPayInputMode", com.pg.urlpay.UrlPayInputModeUtil.formatMerchantUiValue(mp.getUrlPayInputMode()));
                             m.put("urlPayCardExpiryMode", com.pg.urlpay.UrlPayCardExpiryModeUtil.formatMerchantUiValue(mp.getUrlPayCardExpiryMode()));
@@ -2150,6 +2154,7 @@ public class CompService {
                             m.put("urlPayBuyerCountryUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerCountryUseYn()));
                             m.put("urlPayBuyerPhoneUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerPhoneUseYn()));
                             m.put("urlPayBuyerNameUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerNameUseYn()));
+                            m.put("apiBuyerNameUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getApiBuyerNameUseYn()));
                             m.put("urlPayCheckoutFieldPresetId", mp.getUrlPayCheckoutFieldPresetId() != null ? mp.getUrlPayCheckoutFieldPresetId() : "");
                             m.put("urlPayInputMode", com.pg.urlpay.UrlPayInputModeUtil.formatMerchantUiValue(mp.getUrlPayInputMode()));
                             m.put("urlPayCardExpiryMode", com.pg.urlpay.UrlPayCardExpiryModeUtil.formatMerchantUiValue(mp.getUrlPayCardExpiryMode()));
@@ -2406,6 +2411,7 @@ public class CompService {
                           String urlPayBuyerCountryUseYn,
                           String urlPayBuyerPhoneUseYn,
                           String urlPayBuyerNameUseYn,
+                          String apiBuyerNameUseYn,
                           String urlPayInputMode,
                           String urlPayCardExpiryMode,
                           String cardAuthMode,
@@ -2596,6 +2602,7 @@ public class CompService {
                                 applyMerchantJpayCheckoutFieldMode(mp, jpayCheckoutFieldMode);
                                 syncMerchantLegacyJpayCheckoutFieldModeFromBuyerContact(mp);
                                 applyMerchantJpayPhoneDialCodeYn(mp, jpayPhoneDialCodeYn);
+                                applyMerchantApiBuyerNameUseYn(mp, apiBuyerNameUseYn);
                             }
                             if (childLevel == OrgLevel.MERCHANT && apiJpaySubscriptionUseYn != null && !apiJpaySubscriptionUseYn.trim().isEmpty()) {
                                 mp.setApiJpaySubscriptionUseYn(apiJpaySubscriptionUseYn.trim());
@@ -3403,6 +3410,13 @@ public class CompService {
         if (checkoutContactRememberMode != null && !checkoutContactRememberMode.isBlank()) {
             mp.setCheckoutContactRememberMode(checkoutContactRememberMode.trim());
         }
+    }
+
+    private void applyMerchantApiBuyerNameUseYn(MerchantProfile mp, String apiBuyerNameUseYn) {
+        if (mp == null || apiBuyerNameUseYn == null || apiBuyerNameUseYn.isBlank()) {
+            return;
+        }
+        mp.setApiBuyerNameUseYn(apiBuyerNameUseYn.trim());
     }
 
     /** 구매자 연락처·배송 YN 실효값으로 레거시 JPAY checkoutFieldMode 동기화 */
@@ -4491,7 +4505,7 @@ public class CompService {
                 null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     @Transactional
@@ -4537,6 +4551,7 @@ public class CompService {
                                      String urlPayBuyerCountryUseYn,
                                      String urlPayBuyerPhoneUseYn,
                                      String urlPayBuyerNameUseYn,
+                                     String apiBuyerNameUseYn,
                                      String urlPayInputMode,
                                      String urlPayCardExpiryMode,
                                      String cardAuthMode,
@@ -4615,6 +4630,7 @@ public class CompService {
                 urlPayBuyerCountryUseYn,
                 urlPayBuyerPhoneUseYn,
                 urlPayBuyerNameUseYn,
+                apiBuyerNameUseYn,
                 urlPayInputMode,
                 urlPayCardExpiryMode,
                 cardAuthMode,
@@ -4697,6 +4713,7 @@ public class CompService {
                                      String urlPayBuyerCountryUseYn,
                                      String urlPayBuyerPhoneUseYn,
                                      String urlPayBuyerNameUseYn,
+                                     String apiBuyerNameUseYn,
                                      String urlPayInputMode,
                                      String urlPayCardExpiryMode,
                                      String cardAuthMode,
@@ -4815,6 +4832,7 @@ public class CompService {
             applyMerchantJpayCheckoutFieldMode(mp, jpayCheckoutFieldMode);
             syncMerchantLegacyJpayCheckoutFieldModeFromBuyerContact(mp);
             applyMerchantJpayPhoneDialCodeYn(mp, jpayPhoneDialCodeYn);
+                                applyMerchantApiBuyerNameUseYn(mp, apiBuyerNameUseYn);
             if (apiJpaySubscriptionUseYn != null && !apiJpaySubscriptionUseYn.trim().isEmpty()) {
                 mp.setApiJpaySubscriptionUseYn(apiJpaySubscriptionUseYn.trim());
             }
@@ -7143,7 +7161,7 @@ public class CompService {
                             null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
                             null, null, null, null, null, null, null, null,
                             null, null, null, null, null, null, null, null,
-                            null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+                            null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
                     if (loginIdVal != null && !loginIdVal.isEmpty() && userRepository.findByUsername(loginIdVal).isEmpty()) {
                         AppUser appUser = new AppUser();
                         appUser.setUsername(loginIdVal);

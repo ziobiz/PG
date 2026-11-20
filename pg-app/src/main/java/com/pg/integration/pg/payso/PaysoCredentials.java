@@ -84,6 +84,11 @@ public final class PaysoCredentials {
         return !apiKey.isBlank() && !secretKey.isBlank() && !merchantId.isBlank() && !terminalId.isBlank();
     }
 
+    /** Inquiry(통합내역) — terminalId 불필요 */
+    public boolean isInquiryUsable() {
+        return !apiKey.isBlank() && !secretKey.isBlank() && !merchantId.isBlank();
+    }
+
     public String apiKey() {
         return apiKey;
     }

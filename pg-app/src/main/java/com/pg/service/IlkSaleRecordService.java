@@ -276,13 +276,19 @@ public class IlkSaleRecordService {
         if (orderNo == null || orderNo.isBlank()) {
             return Optional.empty();
         }
-        return pgTrnsctnRepository.findByOrderNoOrderByCreatedAtDesc(orderNo.trim()).stream()
+        Optional<PgTrnsctn> byOrder = pgTrnsctnRepository.findByOrderNoOrderByCreatedAtDesc(orderNo.trim()).stream()
                 .filter(t -> PgVendor.isIlkFamily(t.getVan()))
                 .findFirst();
+        if (byOrder.isPresent()) {
+            return byOrder;
+        }
+        /* ILK clientReferenceInformation.code = ICOPAY ref → pay_no */
+        return PgTrnsctnOrderLookup.findByOrderNoOrPayNo(pgTrnsctnRepository, orderNo.trim())
+                .filter(t -> PgVendor.isIlkFamily(t.getVan()));
     }
 
     public Optional<PgTrnsctn> findTxnForOrder(String merchantId, String orderNo) {
-        Optional<PgTrnsctn> t = PgTrnsctnOrderLookup.findPreferredByMerchantAndOrder(
+        Optional<PgTrnsctn> t = PgTrnsctnOrderLookup.findByMerchantOrderOrPayNo(
                 pgTrnsctnRepository, merchantId, orderNo);
         if (t.isPresent() && PgVendor.isIlkFamily(t.get().getVan())) {
             return t;

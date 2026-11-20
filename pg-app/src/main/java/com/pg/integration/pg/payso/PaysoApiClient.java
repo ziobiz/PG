@@ -17,12 +17,15 @@ import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
- * Payso Web API v2 — hosted ui-payments (RE).
+ * Payso Web API v2 — hosted ui-payments (RE) · Inquiry(기간 목록).
  * {@code POST /payment/gateway/v2/ui-payments}
+ * {@code POST /payment/gateway/v2/inquiry/transaction}
  */
 @Component
 public class PaysoApiClient {
@@ -91,30 +94,41 @@ public class PaysoApiClient {
         body.put("merchantId", creds.merchantId());
         body.put("customerEmail", customerEmail != null && !customerEmail.isBlank()
                 ? customerEmail.trim() : "noreply@icopay.co.kr");
-        String fullName = customerName != null ? customerName.trim() : "";
-        String fn = firstName != null ? firstName.trim() : "";
-        String ln = lastName != null ? lastName.trim() : "";
+        /*
+         * Payso HPP: customerName 에 하이픈·숫자·기호가 있으면
+         * 「Invalid data, please check the customerName」로 거절(500 UI).
+         * 영문 알파벳·공백만 전달. 비우면 필드 생략(카드 명의는 HPP에서 입력).
+         */
+        String fn = sanitizePaysoPersonName(firstName, 40);
+        String ln = sanitizePaysoPersonName(lastName, 40);
+        String fullName = sanitizePaysoPersonName(customerName, 80);
         if (fullName.isBlank() && (!fn.isBlank() || !ln.isBlank())) {
-            fullName = (fn + " " + ln).trim();
+            fullName = clamp((fn + " " + ln).trim(), 80);
         }
         if (!fullName.isBlank()) {
-            /* 문서 미기재 — HPP Name on the card 프리필 후보 필드 동시 전달 */
-            String name = clamp(fullName, 80);
-            body.put("customerName", name);
-            body.put("cardHolder", name);
-            body.put("cardholder", name);
-            body.put("cardHolderName", name);
-            body.put("payerName", name);
-            body.put("name", name);
+            body.put("customerName", fullName);
+            body.put("cardHolder", fullName);
+            body.put("cardholder", fullName);
+            body.put("cardHolderName", fullName);
+            body.put("payerName", fullName);
+            body.put("name", fullName);
         }
         if (!fn.isBlank()) {
-            body.put("firstName", clamp(fn, 40));
+            body.put("firstName", fn);
         }
         if (!ln.isBlank()) {
-            body.put("lastName", clamp(ln, 40));
+            body.put("lastName", ln);
         }
         body.put("referenceNo", ref);
-        body.put("description", clamp(description != null ? description : "Payment", 100));
+        /*
+         * description 에 가맹 상품명·주문번호를 넣지 않음(가맹 식별·패턴 노출 방지).
+         * 호출부에서 중립 문구를 넘기며, 비어 있으면 Payment.
+         */
+        String desc = description != null ? description.trim() : "";
+        if (desc.isBlank() || looksLikeMerchantOrderLeak(desc)) {
+            desc = "Payment";
+        }
+        body.put("description", clamp(sanitizePaysoDescription(desc), 100));
         String cur = currencyCode != null && !currencyCode.isBlank() ? currencyCode.trim() : "00";
         /* JPY(02) 등 소수 없는 통화는 정수 금액 — HPP Invalid data 예방 */
         int scale = "02".equals(cur) ? 0 : 2;
@@ -159,14 +173,133 @@ public class PaysoApiClient {
         return out;
     }
 
+    /**
+     * Inquiry API — 기간·상태·페이징 거래 목록 (통합내역·통합체크).
+     *
+     * @param status          예: {@code ALL}
+     * @param transactionId   선택(단건 필터). 비우면 기간 전체
+     * @param startDateIso    {@code yyyy-MM-dd'T'HH:mm:ss}
+     * @param endDateIso      {@code yyyy-MM-dd'T'HH:mm:ss}
+     */
+    public Map<String, Object> inquiryTransaction(PaysoCredentials creds,
+                                                   String status,
+                                                   String transactionId,
+                                                   String startDateIso,
+                                                   String endDateIso,
+                                                   int currentPage,
+                                                   int recordsPerPage) {
+        if (creds == null || !creds.isInquiryUsable()) {
+            return err("PAYSO_CREDENTIALS", "Payso Inquiry API 키가 없습니다.");
+        }
+        int page = Math.max(currentPage, 1);
+        int size = Math.min(Math.max(recordsPerPage, 1), 100);
+        ObjectNode body = objectMapper.createObjectNode();
+        body.put("status", status != null && !status.isBlank() ? status.trim() : "ALL");
+        body.put("transactionId", transactionId != null ? transactionId.trim() : "");
+        body.put("startDate", startDateIso != null ? startDateIso.trim() : "");
+        body.put("endDate", endDateIso != null ? endDateIso.trim() : "");
+        body.put("currentPage", page);
+        body.put("recordsPerPage", size);
+
+        Map<String, Object> raw = exchangeInquiry(creds, "/payment/gateway/v2/inquiry/transaction", body);
+        if (!Boolean.TRUE.equals(raw.get("ok"))) {
+            return raw;
+        }
+        JsonNode json = raw.get("json") instanceof JsonNode jn ? jn : null;
+        String code = "";
+        if (json != null && json.has("status") && json.get("status").has("statusCode")) {
+            code = json.get("status").get("statusCode").asText("");
+        }
+        if (!SUCCESS_CODE.equals(code) && json != null) {
+            /* 일부 환경은 2A002 외 성공 코드 — data 배열이 있으면 성공으로 간주 */
+            if (!json.has("data") || !json.get("data").isArray()) {
+                String msg = json.has("status") && json.get("status").has("message")
+                        ? json.get("status").get("message").asText("Payso Inquiry 실패")
+                        : "Payso Inquiry 실패";
+                return err("PAYSO_INQUIRY", msg);
+            }
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("ok", true);
+        out.put("json", json);
+        out.put("currentPage", json != null ? json.path("currentPage").asInt(page) : page);
+        out.put("recordsPerPage", json != null ? json.path("recordsPerPage").asInt(size) : size);
+        out.put("totalRecords", json != null ? json.path("totalRecords").asLong(0L) : 0L);
+        List<Map<String, Object>> rows = new ArrayList<>();
+        if (json != null && json.path("data").isArray()) {
+            for (JsonNode n : json.path("data")) {
+                rows.add(parseInquiryRow(n));
+            }
+        }
+        out.put("data", rows);
+        return out;
+    }
+
+    private static Map<String, Object> parseInquiryRow(JsonNode n) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        if (n == null || n.isNull()) {
+            return m;
+        }
+        m.put("merchantId", text(n, "merchantId", "merchant_id"));
+        m.put("transactionId", text(n, "transactionId", "transaction_id"));
+        m.put("orderNo", text(n, "orderNo", "order_no", "order"));
+        m.put("referenceNo", text(n, "referenceNo", "reference_no", "refno"));
+        m.put("amount", n.path("amount").isNumber()
+                ? n.path("amount").decimalValue().toPlainString()
+                : text(n, "amount"));
+        m.put("currencyCode", text(n, "currencyCode", "currency_code", "currency"));
+        m.put("channelCode", text(n, "channelCode", "channel_code"));
+        m.put("cardType", text(n, "cardType", "card_type"));
+        m.put("statusCode", text(n, "statusCode", "status_code"));
+        m.put("statusDesc", text(n, "statusDesc", "status_desc", "status"));
+        m.put("orderDateTime", text(n, "orderDateTime", "order_date_time", "orderDate"));
+        return m;
+    }
+
+    private static String text(JsonNode n, String... keys) {
+        if (n == null || keys == null) {
+            return "";
+        }
+        for (String k : keys) {
+            if (k == null) {
+                continue;
+            }
+            JsonNode v = n.get(k);
+            if (v != null && !v.isNull() && v.isValueNode()) {
+                String s = v.asText("");
+                if (s != null && !s.isBlank() && !"-".equals(s.trim())) {
+                    return s.trim();
+                }
+            }
+        }
+        return "";
+    }
+
     private Map<String, Object> exchange(PaysoCredentials creds, HttpMethod method, String path, ObjectNode body) {
-        String url = join(creds.apiBase(), path);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setAccept(java.util.List.of(MediaType.APPLICATION_JSON));
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
         /* Payso docs: exact header casing apiKey / secretKey */
         headers.set("apiKey", creds.apiKey());
         headers.set("secretKey", creds.secretKey());
+        return exchangeWithHeaders(creds.apiBase(), method, path, body, headers);
+    }
+
+    /** Inquiry 문서: apiKey + X-Secret-Key + X-Merchant-Id (secretKey 병행) */
+    private Map<String, Object> exchangeInquiry(PaysoCredentials creds, String path, ObjectNode body) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        headers.set("apiKey", creds.apiKey());
+        headers.set("secretKey", creds.secretKey());
+        headers.set("X-Secret-Key", creds.secretKey());
+        headers.set("X-Merchant-Id", creds.merchantId());
+        return exchangeWithHeaders(creds.apiBase(), HttpMethod.POST, path, body, headers);
+    }
+
+    private Map<String, Object> exchangeWithHeaders(String apiBase, HttpMethod method, String path,
+                                                    ObjectNode body, HttpHeaders headers) {
+        String url = join(apiBase, path);
         try {
             HttpEntity<String> entity = new HttpEntity<>(
                     body != null ? objectMapper.writeValueAsString(body) : null, headers);
@@ -215,6 +348,47 @@ public class PaysoApiClient {
         }
         String t = s.trim();
         return t.length() > max ? t.substring(0, max) : t;
+    }
+
+    /**
+     * Payso person name: A–Z / a–z / space only.
+     * Hyphen·underscore·digits·CJK → space then collapse (HPP customerName 거부 예방).
+     */
+    static String sanitizePaysoPersonName(String raw, int maxLen) {
+        if (raw == null || raw.isBlank()) {
+            return "";
+        }
+        String s = raw.trim()
+                .replace('\u00A0', ' ')
+                .replaceAll("[‐‑‒–—―−_./\\\\]+", " ")
+                .replace('-', ' ');
+        s = s.replaceAll("[^A-Za-z ]+", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+        return clamp(s, maxLen);
+    }
+
+    /** description: printable ASCII, no control chars; keep letters/digits/space briefly. */
+    static String sanitizePaysoDescription(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "Payment";
+        }
+        String s = raw.trim().replaceAll("[^A-Za-z0-9 ]+", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+        return s.isBlank() ? "Payment" : s;
+    }
+
+    /** 가맹 orderNo·긴 숫자 패턴을 description 으로 넘기지 않기 위한 휴리스틱. */
+    static boolean looksLikeMerchantOrderLeak(String desc) {
+        if (desc == null) {
+            return false;
+        }
+        String t = desc.trim();
+        if (t.matches("(?i)^order[#:\\s-]*[A-Za-z0-9_-]+$")) {
+            return true;
+        }
+        return t.matches("^[0-9]{6,}$");
     }
 
     private static String truncate(String s, int max) {

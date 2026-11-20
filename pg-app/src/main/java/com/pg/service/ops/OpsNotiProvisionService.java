@@ -886,12 +886,15 @@ public class OpsNotiProvisionService {
                 merchant, integrationMode, resolveUsername(authentication)));
 
         // ICOPAY에서 생성한 이력은 ICOPAY에서 수정해야 NOTI와 양방향이 유지된다.
-        // PG 변경 시: 구 pgKind 가맹 삭제 후 신 pgKind 로 재등록. 동일 PG: PUT → 교체 → PUT 재시도.
+        // PG 변경 시: 구/신 pgKind(+고정입구 잔여) 삭제 후 재등록. 동일 PG: PUT → 교체 → PUT 재시도.
         Map<String, Object> data;
         if (pgKindChanged) {
             forceDeleteMerchantQuietly(cfg, merchantId, oldPgKind, acceptLang);
             sleepQuietly(200L);
             forceDeleteMerchantQuietly(cfg, merchantId, newPgKind, acceptLang);
+            sleepQuietly(200L);
+            // OMSPAY↔PAYSO 등: DELETE가 잘못 JPAY로 가던 잔여·불일치 대비
+            forceDeleteFixedIngressResidualsQuietly(cfg, merchantId, acceptLang, oldPgKind, newPgKind);
             sleepQuietly(200L);
             try {
                 data = notiProvisionClient.provision(
@@ -900,7 +903,7 @@ public class OpsNotiProvisionService {
                         fallbackReq,
                         acceptLang);
             } catch (NotiProvisionException pe) {
-                if (isMerchantAlreadyExists(pe)) {
+                if (isMerchantAlreadyExists(pe) || isUpdateEndpointUnavailable(pe) || isMerchantNotFound(pe)) {
                     data = upsertMerchantKeepingSlot(cfg, merchantId, fallbackReq, acceptLang);
                 } else {
                     throw pe;
@@ -2029,10 +2032,15 @@ public class OpsNotiProvisionService {
                         updateBody,
                         acceptLang);
             } catch (NotiProvisionException pe) {
+                String detail = pe.getErrorCode() != null && !pe.getErrorCode().isBlank()
+                        ? pe.getErrorCode()
+                        : (pe.getMessage() != null ? pe.getMessage() : "UNKNOWN");
                 throw new NotiProvisionException(
-                        "NOTI 가맹 설정을 갱신하지 못했습니다. ICOPAY에서 생성한 노티는 ICOPAY 이력 수정으로 바꿔야 양방향이 유지됩니다. "
-                                + "잠시 후 다시 저장하거나 NOTI 미들웨어에서 해당 가맹 상태를 확인하세요.",
-                        "MERCHANT_ALREADY_EXISTS",
+                        "NOTI 가맹 설정 동기화에 실패했습니다. 잠시 후 다시 저장하거나 NOTI 미들웨어에서 가맹 "
+                                + merchantId + " 상태를 확인하세요. (" + detail + ")",
+                        pe.getErrorCode() != null && !pe.getErrorCode().isBlank()
+                                ? pe.getErrorCode()
+                                : "MERCHANT_SYNC_FAILED",
                         pe.getHttpStatus() > 0 ? pe.getHttpStatus() : re.getHttpStatus());
             }
         }
@@ -2163,6 +2171,31 @@ public class OpsNotiProvisionService {
                 throw de;
             }
             // 409 등: URL이 ICOPAY/PG에 묶여 삭제가 거절될 수 있음 → 상위에서 PUT 폴백
+        }
+    }
+
+    /** PG 재바인딩 시 고정입구(OMSPAY·PAYSO·KSNET 등) 잔여 가맹을 추가 삭제. */
+    private void forceDeleteFixedIngressResidualsQuietly(HqNotifyEnvConfig cfg, String merchantId,
+                                                        String acceptLang, String... preferKinds)
+            throws NotiProvisionException {
+        java.util.LinkedHashSet<String> kinds = new java.util.LinkedHashSet<>();
+        if (preferKinds != null) {
+            for (String k : preferKinds) {
+                if (k != null && !k.isBlank()) {
+                    kinds.add(NotiProvisionClient.normalizePgKind(k));
+                }
+            }
+        }
+        kinds.add("omspay");
+        kinds.add("payso");
+        kinds.add("ksnet");
+        kinds.add("ilk");
+        kinds.add("qxipay");
+        kinds.add("qbang");
+        kinds.add("elementpay");
+        kinds.add("ox");
+        for (String k : kinds) {
+            forceDeleteMerchantQuietly(cfg, merchantId, k, acceptLang);
         }
     }
 

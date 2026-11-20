@@ -21,6 +21,7 @@ import com.pg.service.LoginNoticePublicService;
 import com.pg.service.OutcomeReasonTranslateService;
 import com.pg.service.PayListActionService;
 import com.pg.service.PayListService;
+import com.pg.service.PaysoIntegratedListService;
 import com.pg.util.PayDisplayCurrency;
 import com.pg.util.PayListStatusBarBuckets;
 import com.pg.util.TrnTimeDualZoneDisplay;
@@ -62,6 +63,7 @@ public class ApiCalcController {
     private final JpayTradeApiService jpayTradeApiService;
     private final OutcomeReasonTranslateService outcomeReasonTranslateService;
     private final ElementPayClientApiService elementPayClientApiService;
+    private final PaysoIntegratedListService paysoIntegratedListService;
 
     public ApiCalcController(PayListService payListService, PayListActionService payListActionService,
                              ChillPayService chillPayService, HqNotifyMappingService hqNotifyMappingService,
@@ -72,7 +74,8 @@ public class ApiCalcController {
                              IntegratedCheckService integratedCheckService,
                              JpayTradeApiService jpayTradeApiService,
                              OutcomeReasonTranslateService outcomeReasonTranslateService,
-                             ElementPayClientApiService elementPayClientApiService) {
+                             ElementPayClientApiService elementPayClientApiService,
+                             PaysoIntegratedListService paysoIntegratedListService) {
         this.payListService = payListService;
         this.payListActionService = payListActionService;
         this.chillPayService = chillPayService;
@@ -86,6 +89,7 @@ public class ApiCalcController {
         this.jpayTradeApiService = jpayTradeApiService;
         this.outcomeReasonTranslateService = outcomeReasonTranslateService;
         this.elementPayClientApiService = elementPayClientApiService;
+        this.paysoIntegratedListService = paysoIntegratedListService;
     }
 
     private static PageResult<Map<String, Object>> emptyChillPayPage(int page, int size) {
@@ -247,6 +251,18 @@ public class ApiCalcController {
                     return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
                 } catch (IllegalStateException e) {
                     return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "ELEMENTPAY"));
+                }
+            }
+            if (searchAcquirer != null && "PAYSO".equalsIgnoreCase(searchAcquirer.trim())) {
+                try {
+                    PageResult<Map<String, Object>> payso = paysoIntegratedListService.searchPayments(
+                            page, size, searchOrderDir, searchFieldType, searchKeyword, searchPayDivCd,
+                            searchFromDate, searchToDate, authentication);
+                    return ResponseEntity.ok(ApiResponse.ok(payso));
+                } catch (IllegalArgumentException e) {
+                    return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+                } catch (IllegalStateException e) {
+                    return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "PAYSO"));
                 }
             }
             AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
@@ -589,9 +605,11 @@ public class ApiCalcController {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         } catch (IllegalStateException e) {
             String acquirer = params.get("searchAcquirer");
-            String code = acquirer != null && "ELEMENTPAY".equalsIgnoreCase(acquirer.trim())
+            String code = acquirer != null && "PAYSO".equalsIgnoreCase(acquirer.trim())
+                    ? "PAYSO"
+                    : (acquirer != null && "ELEMENTPAY".equalsIgnoreCase(acquirer.trim())
                     ? "ELEMENTPAY"
-                    : (acquirer != null && isOxAcquirer(acquirer) ? "OX" : "JPAY");
+                    : (acquirer != null && isOxAcquirer(acquirer) ? "OX" : "JPAY"));
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), code));
         }
     }

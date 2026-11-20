@@ -104,6 +104,11 @@ public class OmspayPendingExpireService {
         return out;
     }
 
+    /** 통합 만료 스케줄러에서 OMSPAY 건만 위임할 때 사용. */
+    public String expireOne(PgTrnsctn t) {
+        return processOne(t);
+    }
+
     private String processOne(PgTrnsctn t) {
         if (t == null || !"08".equals(t.getStatus() != null ? t.getStatus().trim() : "")) {
             return "SKIP";
@@ -145,7 +150,7 @@ public class OmspayPendingExpireService {
         Optional<PgTrnsctn> failed = omspaySaleRecordService.applyFailedOutcome(
                 orderNo, mid, omsCode,
                 "OMSPAY_PENDING_EXPIRED",
-                "Payment expired — no completion within " + Math.max(5, staleMinutes) + " minutes");
+                PendingTxnExpireService.expireReasonMessage(staleMinutes));
         if (failed.isEmpty()) {
             return "SKIP";
         }

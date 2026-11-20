@@ -3,6 +3,7 @@ package com.pg.service;
 import com.pg.integration.pg.PgVendor;
 import com.pg.integration.pg.ox.OxCredentials;
 import com.pg.middleware.notify.PgNotifyIngressPaths;
+import com.pg.util.IcopayPgOrderRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -57,6 +58,23 @@ public class OxPaymentService {
             out.put("message", "ox API Key가 없습니다. 결제대행사 설정에서 등록하세요.");
             return out;
         }
+        /*
+         * ox 로 보낼 order/reference = ICOPAY 불투명 ref(가맹 orderNo 미전송). request 에 이미 있으면 재사용.
+         * API 문서 확정 후 Create Payment 본문의 order 필드에 pgOrderRef 를 넣고, 적재 시
+         * IcopayPgOrderRef.putInSaleBody + 판매 기록(pay_no = ref)을 연결한다.
+         */
+        String pgOrderRef = request != null ? IcopayPgOrderRef.fromSaleBody(request) : "";
+        if (pgOrderRef.isBlank()) {
+            pgOrderRef = IcopayPgOrderRef.standard();
+            if (request != null) {
+                try {
+                    IcopayPgOrderRef.putInSaleBody(request, pgOrderRef);
+                } catch (UnsupportedOperationException ignored) {
+                    /* immutable request map — ref 는 응답으로만 전달 */
+                }
+            }
+        }
+        out.put("pgOrderRef", pgOrderRef);
         log.warn("ox Create Payment not fully implemented — need OxPay API pack. mid={} base={}",
                 creds.mid(), creds.apiBase());
         out.put("ok", false);

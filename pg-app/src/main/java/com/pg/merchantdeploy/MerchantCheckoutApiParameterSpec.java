@@ -142,6 +142,13 @@ public final class MerchantCheckoutApiParameterSpec {
                 "orderNo: ตัวอักษร ตัวเลข - _ เท่านั้น แนะนำสูงสุด 20 ตัว (รองรับทุกเครือข่าย)"
         )));
         rows.add(textMap(new Bundle(
+                "가맹 orderNo는 가맹↔ICOPAY 통보·조회에만 사용됩니다. 결제망으로는 ICOPAY가 발급한 동일 자리수 주문번호를 전달합니다.",
+                "Merchant orderNo is used only between merchant and ICOPAY (status/notify). Acquirers receive an ICOPAY-issued fixed-length order reference.",
+                "加盟店 orderNo は加盟↔ICOPAYの通知・照会のみ。決済網にはICOPAY発行の同一桁注文番号を渡します。",
+                "商户 orderNo 仅用于商户↔ICOPAY 通知/查询。收单通道收到的是 ICOPAY 签发的固定位数订单号。",
+                "orderNo ของร้านใช้แค่แจ้ง/ตรวจระหว่างร้าน↔ICOPAY เครือข่ายรับชำระได้เลขอ้างอิงความยาวคงที่จาก ICOPAY"
+        )));
+        rows.add(textMap(new Bundle(
                 "결제창 언어 lang: KOR|ENG|JPN|CHN|THA. 생략 시 embed·페이지 언어 자동 감지.",
                 "Checkout UI lang: KOR|ENG|JPN|CHN|THA. Omit to auto-detect from embed/page language.",
                 "決済画面 lang: KOR|ENG|JPN|CHN|THA。省略時は embed・ページ言語を自動検出。",

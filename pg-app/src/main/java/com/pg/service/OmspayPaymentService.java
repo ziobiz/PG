@@ -274,8 +274,9 @@ public class OmspayPaymentService {
 
         apiClient.ensureProduct(creds);
 
-        /* note = ICOPAY order only — never merchant MID */
-        Map<String, Object> ord = apiClient.createOrder(creds, charge.pgAmount(), orderNo);
+        /* note = ICOPAY 불투명 12자리 ref (가맹 MID·orderNo 미전송). DB: order_no=가맹, pay_no=SO, approval_no=ref */
+        final String pgOrderRef = com.pg.util.IcopayPgOrderRef.paysoDigits12();
+        Map<String, Object> ord = apiClient.createOrder(creds, charge.pgAmount(), pgOrderRef);
         if (!Boolean.TRUE.equals(ord.get("ok"))) {
             return fail(out, str(ord.get("errorCode"), "OMSPAY_ORDER"),
                     str(ord.get("message"), "OMS 주문 생성에 실패했습니다."));
@@ -293,7 +294,7 @@ public class OmspayPaymentService {
                 orgUnitId, orderNo, charge.pgAmount(), charge.settlementCurrency(),
                 str(body, "productName", "item"), omsCode, origin,
                 charge.shopperDisplayAmount(), charge.shopperDisplayCurrency(),
-                buyerName, buyerEmail, buyerTel, body);
+                buyerName, buyerEmail, buyerTel, body, pgOrderRef);
 
         Map<String, Object> pay = apiClient.createCardPayment(creds, omsCode, returnUrl);
         if (!Boolean.TRUE.equals(pay.get("ok"))) {

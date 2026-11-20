@@ -18,7 +18,9 @@ import com.pg.urlpay.CardAuthModeService;
 import com.pg.urlpay.CardAuthModeUtil;
 import com.pg.urlpay.CheckoutFailI18n;
 import com.pg.urlpay.PayerContextCapture;
+import com.pg.util.IcopayPgOrderRef;
 import com.pg.util.PayPresaleRiskFilterCodes;
+import com.pg.util.PgTrnsctnOrderLookup;
 import com.pg.util.PgOutboundUrlPolicy;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -264,6 +266,9 @@ public class IlkPaymentService {
             origin = subscription ? "SUB" : "URL";
         }
 
+        /* ILK clientReferenceInformation.code = ICOPAY 불투명 ref(ALNUM_32). DB order_no = 가맹 orderNo, pay_no = ref */
+        final String pgOrderRef = IcopayPgOrderRef.newRef(IcopayPgOrderRef.Profile.ALNUM_32);
+        IcopayPgOrderRef.putInSaleBody(body, pgOrderRef);
         ilkSaleRecordService.recordOrTouchPending(orgUnitId, orderNo, amount, currency, routeNo,
                 productName, origin, buyerName, buyerEmail, shopperAmt, shopperCur, subscription, null, body);
 
@@ -277,7 +282,7 @@ public class IlkPaymentService {
 
         Map<String, Object> payload = new LinkedHashMap<>();
         putCommonMerchant(payload, cred);
-        payload.put("clientReferenceInformation.code", clamp(orderNo, 32));
+        payload.put("clientReferenceInformation.code", clamp(pgOrderRef, 32));
         payload.put("orderInformation.amountDetails.currency", currency);
         payload.put("orderInformation.amountDetails.exponent", exponent);
         payload.put("orderInformation.amountDetails.totalAmount", amountPlain);
@@ -358,6 +363,28 @@ public class IlkPaymentService {
         return postRequestAuth(cred, payload, orgUnitId, orderNo);
     }
 
+    /** 가맹 orderNo → ILK 에 보낸 ICOPAY ref(pay_no). 레거시 행은 order_no 그대로. */
+    private String resolvePgRef(Long orgUnitId, String orderNo) {
+        if (orderNo == null || orderNo.isBlank()) {
+            return orderNo;
+        }
+        try {
+            Optional<OrgUnit> ou = orgUnitId != null ? orgUnitRepository.findById(orgUnitId) : Optional.empty();
+            if (ou.isPresent() && ou.get().getCode() != null) {
+                Optional<com.pg.entity.PgTrnsctn> t = ilkSaleRecordService.findTxnForOrder(ou.get().getCode(), orderNo.trim());
+                if (t.isPresent()) {
+                    String k = PgTrnsctnOrderLookup.pgOrderKey(t.get());
+                    if (!k.isBlank()) {
+                        return k;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("ILK pg ref 조회 실패 orderNo={}: {}", orderNo, e.getMessage());
+        }
+        return orderNo.trim();
+    }
+
     public Map<String, Object> queryStatus(Long orgUnitId, String orderNo) {
         Optional<AgencyCred> ac = resolveAgencyCred(orgUnitId);
         if (ac.isEmpty()) {
@@ -365,7 +392,7 @@ public class IlkPaymentService {
         }
         Map<String, Object> payload = new LinkedHashMap<>();
         putCommonMerchant(payload, ac.get().cred());
-        payload.put("clientReferenceInformation.code", clamp(orderNo, 32));
+        payload.put("clientReferenceInformation.code", clamp(resolvePgRef(orgUnitId, orderNo), 32));
         return postJson(ac.get().cred(), "/api/Status.json", payload);
     }
 
@@ -376,7 +403,7 @@ public class IlkPaymentService {
         }
         Map<String, Object> payload = new LinkedHashMap<>();
         putCommonMerchant(payload, ac.get().cred());
-        payload.put("clientReferenceInformation.code", clamp(orderNo, 32));
+        payload.put("clientReferenceInformation.code", clamp(resolvePgRef(orgUnitId, orderNo), 32));
         if (amount != null && !amount.isBlank()) {
             payload.put("orderInformation.amountDetails.cancelAmount", amount.trim());
         }
@@ -399,7 +426,7 @@ public class IlkPaymentService {
         }
         Map<String, Object> payload = new LinkedHashMap<>();
         putCommonMerchant(payload, ac.get().cred());
-        payload.put("clientReferenceInformation.code", clamp(orderNo, 32));
+        payload.put("clientReferenceInformation.code", clamp(resolvePgRef(orgUnitId, orderNo), 32));
         if (amount != null && !amount.isBlank()) {
             payload.put("orderInformation.amountDetails.refundAmount", amount.trim());
         }

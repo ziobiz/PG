@@ -21,6 +21,8 @@ public final class UrlPaySaleTxnFieldApplier {
         JpayBuyerContactApplier.applyFromSaleBody(t, saleBody);
         applyCardPanHash(t, saleBody);
         applyPayerContext(t, saleBody);
+        /* pay_no = ICOPAY→PG 불투명 ref (saleBody.icopayPgOrderRef). order_no 는 가맹 주문번호 유지 */
+        IcopayPgOrderRef.applyPayNoToTxn(t, saleBody);
     }
 
     /** URL 웹 결제인데 UA가 없으면 PC 로 둔다(그리드 단말기가 '-' 가 되지 않게). */

@@ -55,6 +55,20 @@ public class OmspaySaleRecordService {
                                      BigDecimal shopperDisplayAmount, String shopperDisplayCurrency,
                                      String buyerName, String buyerEmail, String buyerTel,
                                      Map<String, Object> saleBody) {
+        recordOrTouchPending(orgUnitId, orderNo, amount, currency, productName, omsOrderCode, txnOrigin,
+                shopperDisplayAmount, shopperDisplayCurrency, buyerName, buyerEmail, buyerTel, saleBody, null);
+    }
+
+    /**
+     * @param pgOrderRef OMS order {@code note} 로 보낸 ICOPAY 12자리 ref. {@code pay_no} 는 OMS SO 코드 유지,
+     *                   ref 는 {@code approval_no}(≤20)에 보관 → 웹훅 note 로 역추적.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void recordOrTouchPending(Long orgUnitId, String orderNo, BigDecimal amount, String currency,
+                                     String productName, String omsOrderCode, String txnOrigin,
+                                     BigDecimal shopperDisplayAmount, String shopperDisplayCurrency,
+                                     String buyerName, String buyerEmail, String buyerTel,
+                                     Map<String, Object> saleBody, String pgOrderRef) {
         try {
             Optional<OrgUnit> ouOpt = orgUnitRepository.findById(orgUnitId);
             if (ouOpt.isEmpty() || orderNo == null || orderNo.isBlank()) {
@@ -113,6 +127,14 @@ public class OmspaySaleRecordService {
             } else {
                 UrlPaySaleTxnFieldApplier.ensureUrlWebDevice(t, txnOrigin);
             }
+            /* pay_no 는 OMS SO 유지(웹훅 so 매칭). saleBody 의 PG ref 가 덮어쓴 경우 복원 */
+            if (omsOrderCode != null && !omsOrderCode.isBlank()) {
+                t.setPayNo(omsOrderCode.trim());
+            }
+            if (pgOrderRef != null && !pgOrderRef.isBlank()) {
+                String pr = pgOrderRef.trim();
+                t.setApprovalNo(pr.length() > 20 ? pr.substring(0, 20) : pr);
+            }
             pgTrnsctnRepository.save(t);
         } catch (Exception e) {
             log.warn("OMSPAY pending txn 실패: {}", e.getMessage());
@@ -163,6 +185,14 @@ public class OmspaySaleRecordService {
             }
         }
         String orderNo = firstNonBlank(note, orderNoHint);
+        /* OMS note = ICOPAY 12자리 ref → approval_no (SO 미확정·late webhook) */
+        if (note != null && com.pg.util.IcopayPgOrderRef.looksLikeIcopayRef(
+                note.trim(), com.pg.util.IcopayPgOrderRef.Profile.DIGITS_12)) {
+            Optional<PgTrnsctn> byNoteRef = pgTrnsctnRepository.findFirstByApprovalNoOrderByCreatedAtDesc(note.trim());
+            if (byNoteRef.isPresent() && acceptOmspayLookup(byNoteRef.get())) {
+                return byNoteRef;
+            }
+        }
         if (!orderNo.isBlank()) {
             Optional<PgTrnsctn> byOrder = pgTrnsctnRepository.findFirstByOrderNoOrderByCreatedAtDesc(orderNo);
             if (byOrder.isPresent() && acceptOmspayLookup(byOrder.get())) {

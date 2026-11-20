@@ -34,12 +34,11 @@ import java.util.Optional;
 /**
  * PG 노티 또는 DirectCredit 승인 적재 후(커밋 이후) 가맹점 {@code tb_merchant_notify_url} 로 JSON POST.
  * <ul>
- *   <li>{@link #URL_TYPE_MIDDLEWARE} — PG중계 동일 페이로드(+선택 HMAC).</li>
- *   <li>{@link #URL_TYPE_BACKGROUND},{@link #URL_TYPE_RESULT} — 업체등록 「결제통보 URL」(URL·챗봇·노티·인라인 DirectCredit 공통 ChillPay 플로우).</li>
+ *   <li>{@link MerchantNotifyUrl#URL_TYPE_JPAY_NOTIFY}/{@link MerchantNotifyUrl#URL_TYPE_JPAY_CALLBACK}
+ *       — 업체 「수신통보」(기본·우선). 만료·실패·성공 공통.</li>
+ *   <li>{@link #URL_TYPE_MIDDLEWARE} · {@link #URL_TYPE_BACKGROUND}/{@link #URL_TYPE_RESULT}
+ *       — 「결제통보」. URL결제 예외·기존 등록 시 병행.</li>
  * </ul>
- * ChillPay·JPAY·ElementPay 결제 확정 후 가맹점 URL Background/Result/MIDDLEWARE 로 JSON POST.
- * ElementPay는 Cabinet Webhook이 NOTI 고정 1개이므로, ICOPAY가 승인 적재(노티 수신 또는 status 동기) 후
- * 가맹 통보(Dealmai 등)를 JPAY와 동일 파이프로 보냅니다.
  */
 @Service
 public class MerchantOutboundNotifyService {
@@ -128,6 +127,10 @@ public class MerchantOutboundNotifyService {
         Long orgUnitId = ou.get().getId();
         String merchantCodeTrim = merchantCode.trim();
         String notifyCh = notifyChannel;
+        Optional<MerchantNotifyUrl> recvNotifyOpt = merchantNotifyUrlRepository.findByOrgUnitIdAndUrlType(
+                orgUnitId, MerchantNotifyUrl.URL_TYPE_JPAY_NOTIFY);
+        Optional<MerchantNotifyUrl> recvCallbackOpt = merchantNotifyUrlRepository.findByOrgUnitIdAndUrlType(
+                orgUnitId, MerchantNotifyUrl.URL_TYPE_JPAY_CALLBACK);
         Optional<MerchantNotifyUrl> mwOpt = merchantNotifyUrlRepository.findByOrgUnitIdAndUrlType(orgUnitId, URL_TYPE_MIDDLEWARE);
         Optional<MerchantNotifyUrl> bgOpt = merchantNotifyUrlRepository.findByOrgUnitIdAndUrlType(orgUnitId, URL_TYPE_BACKGROUND);
         Optional<MerchantNotifyUrl> rsOpt = merchantNotifyUrlRepository.findByOrgUnitIdAndUrlType(orgUnitId, URL_TYPE_RESULT);
@@ -135,62 +138,67 @@ public class MerchantOutboundNotifyService {
         Map<String, Object> basePayload = buildPayload(t, inbound, notifyChannel);
 
         boolean anySuccess = false;
+        boolean anyRecvConfigured = false;
 
-        Optional<MerchantNotifyUrl> mw = mwOpt.filter(r -> yn(r.getUseYn()) && r.getNotiUrl() != null && !r.getNotiUrl().isBlank());
+        /* 1) 수신통보 우선 (Notify / Callback) */
+        Optional<MerchantNotifyUrl> recvN = usable(recvNotifyOpt);
+        if (recvN.isPresent()) {
+            anyRecvConfigured = true;
+            anySuccess |= postOne(merchantCodeTrim, orgUnitId, t, notifyCh,
+                    MerchantNotifyUrl.URL_TYPE_JPAY_NOTIFY, recvN.get(), basePayload, true);
+        }
+        Optional<MerchantNotifyUrl> recvC = usable(recvCallbackOpt);
+        if (recvC.isPresent()) {
+            anyRecvConfigured = true;
+            anySuccess |= postOne(merchantCodeTrim, orgUnitId, t, notifyCh,
+                    MerchantNotifyUrl.URL_TYPE_JPAY_CALLBACK, recvC.get(), basePayload, true);
+        }
+
+        /* 2) 결제통보 — 등록된 경우만 병행 (URL결제 예외·레거시) */
+        Optional<MerchantNotifyUrl> mw = usable(mwOpt);
         if (mw.isPresent()) {
-            try {
-                String bodyMw = OM.writeValueAsString(basePayload);
-                PostOutcome outMw = postWithRetries(mw.get().getNotiUrl().trim(), bodyMw, mw.get().getSignSecret());
-                recordOutboundLog(merchantCodeTrim, orgUnitId, t, notifyCh, URL_TYPE_MIDDLEWARE, mw.get().getNotiUrl().trim(), bodyMw, outMw);
-                if (outMw.success) {
-                    anySuccess = true;
-                } else {
-                    log.warn("MIDDLEWARE 결제통보 전송 실패 (재시도 소진): {}", mw.get().getNotiUrl());
-                }
-            } catch (Exception e) {
-                log.warn("MIDDLEWARE 결제통보 직렬화 실패 trnId={}: {}", trnId, e.getMessage());
-            }
+            anySuccess |= postOne(merchantCodeTrim, orgUnitId, t, notifyCh, URL_TYPE_MIDDLEWARE, mw.get(), basePayload, false);
         }
-
-        Optional<MerchantNotifyUrl> bg = bgOpt.filter(r -> yn(r.getUseYn()) && r.getNotiUrl() != null && !r.getNotiUrl().isBlank());
+        Optional<MerchantNotifyUrl> bg = usable(bgOpt);
         if (bg.isPresent()) {
-            try {
-                String bodyBg = OM.writeValueAsString(withMerchantNotifyTarget(basePayload, URL_TYPE_BACKGROUND));
-                PostOutcome outBg = postPlainPayNotify(bg.get(), bodyBg);
-                recordOutboundLog(merchantCodeTrim, orgUnitId, t, notifyCh, URL_TYPE_BACKGROUND, bg.get().getNotiUrl().trim(), bodyBg, outBg);
-                if (outBg.success) {
-                    anySuccess = true;
-                } else {
-                    log.warn("BACKGROUND 결제통보 전송 실패 (재시도 소진): {}", bg.get().getNotiUrl());
-                }
-            } catch (Exception e) {
-                log.warn("BACKGROUND 결제통보 직렬화 실패 trnId={}: {}", trnId, e.getMessage());
-            }
+            anySuccess |= postOne(merchantCodeTrim, orgUnitId, t, notifyCh, URL_TYPE_BACKGROUND, bg.get(),
+                    withMerchantNotifyTarget(basePayload, URL_TYPE_BACKGROUND), true);
         }
-
-        Optional<MerchantNotifyUrl> rs = rsOpt.filter(r -> yn(r.getUseYn()) && r.getNotiUrl() != null && !r.getNotiUrl().isBlank());
+        Optional<MerchantNotifyUrl> rs = usable(rsOpt);
         if (rs.isPresent()) {
-            try {
-                String bodyRs = OM.writeValueAsString(withMerchantNotifyTarget(basePayload, URL_TYPE_RESULT));
-                PostOutcome outRs = postPlainPayNotify(rs.get(), bodyRs);
-                recordOutboundLog(merchantCodeTrim, orgUnitId, t, notifyCh, URL_TYPE_RESULT, rs.get().getNotiUrl().trim(), bodyRs, outRs);
-                if (outRs.success) {
-                    anySuccess = true;
-                } else {
-                    log.warn("RESULT 결제통보 전송 실패 (재시도 소진): {}", rs.get().getNotiUrl());
-                }
-            } catch (Exception e) {
-                log.warn("RESULT 결제통보 직렬화 실패 trnId={}: {}", trnId, e.getMessage());
-            }
+            anySuccess |= postOne(merchantCodeTrim, orgUnitId, t, notifyCh, URL_TYPE_RESULT, rs.get(),
+                    withMerchantNotifyTarget(basePayload, URL_TYPE_RESULT), true);
         }
 
-        if (!mw.isPresent() && !bg.isPresent() && !rs.isPresent()) {
-            log.warn("결제통보 대상 URL 없음(BACKGROUND/RESULT/MIDDLEWARE) mid={} trnId={} orderNo={} channel={} — 업체관리 결제통보 URL 등록 필요",
+        if (!anyRecvConfigured && mw.isEmpty() && bg.isEmpty() && rs.isEmpty()) {
+            log.warn("가맹 통보 URL 없음(수신통보·결제통보) mid={} trnId={} orderNo={} channel={} — 업체관리 수신통보 URL 등록 필요",
                     merchantCodeTrim, trnId, t.getOrderNo(), notifyCh);
             return;
         }
         if (anySuccess) {
             markMwOutboundSent(trnId, st);
+        }
+    }
+
+    private static Optional<MerchantNotifyUrl> usable(Optional<MerchantNotifyUrl> opt) {
+        return opt.filter(r -> yn(r.getUseYn()) && r.getNotiUrl() != null && !r.getNotiUrl().isBlank());
+    }
+
+    private boolean postOne(String merchantCodeTrim, Long orgUnitId, PgTrnsctn t, String notifyCh,
+                            String urlType, MerchantNotifyUrl row, Map<String, Object> payload, boolean plainOrSigned) {
+        try {
+            String body = OM.writeValueAsString(payload);
+            PostOutcome out = plainOrSigned
+                    ? postPlainPayNotify(row, body)
+                    : postWithRetries(row.getNotiUrl().trim(), body, row.getSignSecret());
+            recordOutboundLog(merchantCodeTrim, orgUnitId, t, notifyCh, urlType, row.getNotiUrl().trim(), body, out);
+            if (!out.success) {
+                log.warn("{} 가맹 통보 전송 실패 (재시도 소진): {}", urlType, row.getNotiUrl());
+            }
+            return out.success;
+        } catch (Exception e) {
+            log.warn("{} 가맹 통보 직렬화 실패 trnId={}: {}", urlType, t.getTrnId(), e.getMessage());
+            return false;
         }
     }
 

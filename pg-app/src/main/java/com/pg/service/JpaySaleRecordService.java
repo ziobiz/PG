@@ -5,6 +5,7 @@ import com.pg.entity.OrgUnit;
 import com.pg.entity.PgTrnsctn;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
+import com.pg.util.IcopayPgOrderRef;
 import com.pg.util.JpayBuyerContactApplier;
 import com.pg.util.JpayPostSaleRiskOutcomeUtil;
 import com.pg.util.JpayTransactionIdApplier;
@@ -170,7 +171,12 @@ public class JpaySaleRecordService {
         t.setVan(PgVendor.JPAY.length() > 10 ? PgVendor.JPAY.substring(0, 10) : PgVendor.JPAY);
         t.setOrderNo(on);
         String payNo = on.length() > 50 ? on.substring(0, 50) : on;
-        t.setPayNo(payNo);
+        if (t.getPayNo() == null || t.getPayNo().isBlank()
+                || !IcopayPgOrderRef.looksLikeIcopayRef(t.getPayNo(), IcopayPgOrderRef.Profile.ALNUM_50)) {
+            t.setPayNo(payNo);
+        }
+        /* pay_no = ICOPAY→JPAY pay_orderid(불투명). saleBody 에 ref 가 없으면(프리세일) 기존 값 유지 */
+        IcopayPgOrderRef.applyPayNoToTxn(t, saleBody);
         if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
             t.setAmtKrw(amount);
         }

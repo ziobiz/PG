@@ -309,12 +309,18 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         }
         t.setPayNo(payNo);
 
-        if (orderNo != null && !orderNo.isBlank()) {
-            String on = orderNo.trim();
-            t.setOrderNo(on.length() > 64 ? on.substring(0, 64) : on);
-        } else if (chillTxnId != null) {
-            String synthetic = "CP" + chillTxnId.trim();
-            t.setOrderNo(synthetic.length() > 64 ? synthetic.substring(0, 64) : synthetic);
+        /*
+         * ChillPay OrderNo = ICOPAY opaque ref(또는 레거시 가맹 order).
+         * 기존 행이면 가맹 order_no 유지. 신규만 order_no 세팅(레거시·노티 단독 건).
+         */
+        if (existingOpt.isEmpty()) {
+            if (orderNo != null && !orderNo.isBlank()) {
+                String on = orderNo.trim();
+                t.setOrderNo(on.length() > 64 ? on.substring(0, 64) : on);
+            } else if (chillTxnId != null) {
+                String synthetic = "CP" + chillTxnId.trim();
+                t.setOrderNo(synthetic.length() > 64 ? synthetic.substring(0, 64) : synthetic);
+            }
         }
 
         String customerId = textDeep(root, "CustomerId", "customerId", "Customer", "customer");

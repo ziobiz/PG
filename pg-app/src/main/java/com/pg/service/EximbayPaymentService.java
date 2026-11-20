@@ -247,7 +247,11 @@ public class EximbayPaymentService {
         Map<String, Object> payment = new LinkedHashMap<>();
         // tokenbilling(구독)·일반 결제 모두 PAYMENT 로 승인+매입까지 자동 처리. AUTHORIZE 는 수동 매입 계약이 필요.
         payment.put("transaction_type", "PAYMENT");
-        payment.put("order_id", orderNo);
+        /* Eximbay order_id = ICOPAY 불투명 ref. DB order_no = 가맹 orderNo, pay_no = ref */
+        final String pgOrderRef = com.pg.util.IcopayPgOrderRef.standard();
+        Map<String, Object> refHolder = new LinkedHashMap<>();
+        com.pg.util.IcopayPgOrderRef.putInSaleBody(refHolder, pgOrderRef);
+        payment.put("order_id", pgOrderRef);
         payment.put("currency", currency);
         payment.put("amount", amountBd.stripTrailingZeros().toPlainString());
         payment.put("lang", lang);
@@ -302,7 +306,8 @@ public class EximbayPaymentService {
         // 대기 거래 적재
         eximbaySaleRecordService.recordOrTouchPending(orgUnitId, orderNo, amountBd, currency,
                 binding.getSortOrder(), productName, txnOrigin,
-                buyerName, buyerEmail, methodKey.isBlank() ? "EXIMBAY" : methodKey, null, null, subscription);
+                buyerName, buyerEmail, methodKey.isBlank() ? "EXIMBAY" : methodKey, null, null, subscription,
+                refHolder);
 
         String base = resolveBase(agency);
         JsonNode resp;
@@ -445,7 +450,7 @@ public class EximbayPaymentService {
         }
         String currency = t.getCurType() != null && !t.getCurType().isBlank()
                 ? t.getCurType().trim().toUpperCase(Locale.ROOT) : "USD";
-        String orderId = t.getOrderNo() != null ? t.getOrderNo().trim() : "";
+        String orderId = com.pg.util.PgTrnsctnOrderLookup.pgOrderKey(t);
         if (orderId.isBlank()) {
             throw new IllegalStateException("주문번호가 없어 취소 API를 호출할 수 없습니다.");
         }
@@ -558,7 +563,10 @@ public class EximbayPaymentService {
         try {
             Map<String, Object> payment = new LinkedHashMap<>();
             payment.put("transaction_type", "REBILL");
-            payment.put("order_id", orderNo);
+            final String rebillRef = com.pg.util.IcopayPgOrderRef.standard();
+            Map<String, Object> rebillRefHolder = new LinkedHashMap<>();
+            com.pg.util.IcopayPgOrderRef.putInSaleBody(rebillRefHolder, rebillRef);
+            payment.put("order_id", rebillRef);
             payment.put("currency", cur);
             payment.put("amount", amount.stripTrailingZeros().toPlainString());
             Map<String, Object> merchant = new LinkedHashMap<>();
@@ -573,7 +581,8 @@ public class EximbayPaymentService {
             String txnId = text(resp, "transaction_id");
             if (ou(orgUnitId).isPresent()) {
                 eximbaySaleRecordService.recordOrTouchPending(orgUnitId, orderNo, amount, cur,
-                        bindOpt.get().getSortOrder(), "REBILL", "SUBSCRIPTION", null, null, "EXIMBAY", null, null, true);
+                        bindOpt.get().getSortOrder(), "REBILL", "SUBSCRIPTION", null, null, "EXIMBAY", null, null, true,
+                        rebillRefHolder);
                 eximbaySaleRecordService.applyOutcome(ou(orgUnitId).get().getCode(), orderNo, ok, txnId,
                         text(resp, "resmsg"), "SUBSCRIPTION", null);
             }

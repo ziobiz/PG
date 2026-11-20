@@ -493,13 +493,157 @@
       brandRow.style.display = hideBrand ? 'none' : '';
     }
 
-    /* A/AG/B/BG/C·일반 — JPAY 필수: 카드 + 이름·성 */
+    /*
+     * 성명 required:
+     * - urlPayBuyerNameUseYn=N 이면 required 제거. 숨긴 칸에 required가 남으면
+     *   HTML5 검증이 submit 이벤트를 막아서 「결제하기」가 무반응이 된다.
+     * - RE·URL 확인창(인라인 카드란 없음)은 페이지 applyBuyerVisibility(d-none)를
+     *   존중하고 style.display 강제 표시하지 않는다.
+     */
+    var useBuyerName = urlPayYnIsYes(ctx.urlPayBuyerNameUseYn, true);
+    var hasInlineCard = !!g.document.getElementById('payCardInputFieldsWrap');
     var nameRow = g.document.getElementById('nameRow');
-    if (nameRow) nameRow.style.display = '';
+    if (hasInlineCard) {
+      if (nameRow) {
+        nameRow.style.display = useBuyerName ? '' : 'none';
+        nameRow.classList.toggle('d-none', !useBuyerName);
+      }
+    }
     ['payFirstname', 'payLastname'].forEach(function (id) {
       var el = g.document.getElementById(id);
-      if (el) el.setAttribute('required', 'required');
+      if (!el) return;
+      if (useBuyerName) el.setAttribute('required', 'required');
+      else el.removeAttribute('required');
     });
+    /* RE·비인라인: 성명/연락처 노출은 페이지 또는 applyBuyerContactVisibility */
+    if (opts.applyBuyerContact) {
+      applyBuyerContactVisibility(ctx);
+    }
+    applyPhoneDialCodeVisibility(ctx);
+  }
+
+  /**
+   * 이메일·국가(ISO2)·전화·성명 공통 노출 (페이지별 applyBuyerVisibility 보조).
+   * RE 확인창(KSNET·OMSPAY 등)도 ctx.urlPayBuyer*UseYn 을 따름.
+   */
+  function applyBuyerContactVisibility(ctx) {
+    if (!ctx) return;
+    var useName = urlPayYnIsYes(ctx.urlPayBuyerNameUseYn, true);
+    var useEmail = urlPayYnIsYes(ctx.urlPayBuyerEmailUseYn, true);
+    var useCountry = urlPayYnIsYes(ctx.urlPayBuyerCountryUseYn, true);
+    var usePhone = urlPayYnIsYes(ctx.urlPayBuyerPhoneUseYn, true);
+    var hasInlineCard = !!g.document.getElementById('payCardInputFieldsWrap');
+    var nameRow = g.document.getElementById('nameRow');
+    /* 인라인 카드는 위 applyUrlPayInputMode에서 처리. RE·비인라인은 여기서 성명 숨김 */
+    if (!hasInlineCard && nameRow) {
+      nameRow.classList.toggle('d-none', !useName);
+      nameRow.style.display = useName ? '' : 'none';
+    }
+    ['payFirstname', 'payLastname'].forEach(function (id) {
+      var el = g.document.getElementById(id);
+      if (!el) return;
+      if (useName) el.setAttribute('required', 'required');
+      else el.removeAttribute('required');
+    });
+    var emailEl = g.document.getElementById('payEmailAddress');
+    if (emailEl) {
+      var emailWrap = emailEl.closest('.col-12, .pay-row, .mb-2, .form-group') || emailEl.parentElement;
+      if (emailWrap && emailWrap !== g.document.body) {
+        emailWrap.classList.toggle('d-none', !useEmail);
+      }
+      if (useEmail) emailEl.setAttribute('required', 'required');
+      else emailEl.removeAttribute('required');
+    }
+    var ccEl = g.document.getElementById('payContactCountryCode');
+    if (ccEl) {
+      var ccWrap = ccEl.closest('.col-12, .pay-row, .mb-2, .form-group') || ccEl.parentElement;
+      if (ccWrap && ccWrap !== g.document.body) {
+        ccWrap.classList.toggle('d-none', !useCountry);
+      }
+      if (useCountry) ccEl.setAttribute('required', 'required');
+      else ccEl.removeAttribute('required');
+    }
+    var telEl = g.document.getElementById('payTelephone');
+    if (telEl) {
+      var telWrap = telEl.closest('.col-12, .pay-row, .mb-2, .form-group') || telEl.parentElement;
+      if (telWrap && telWrap !== g.document.body) {
+        telWrap.classList.toggle('d-none', !usePhone);
+      }
+      if (usePhone) {
+        /* KSNET 등 optional phone은 페이지가 required를 안 줄 수 있음 — 기존 required만 유지 */
+      } else {
+        telEl.removeAttribute('required');
+      }
+    }
+  }
+
+  var PHONE_DIAL_OPTS = [
+    { v: '+82', t: '+82 KR' }, { v: '+81', t: '+81 JP' }, { v: '+66', t: '+66 TH' },
+    { v: '+1', t: '+1 US/CA' }, { v: '+86', t: '+86 CN' }, { v: '+852', t: '+852 HK' },
+    { v: '+65', t: '+65 SG' }, { v: '+44', t: '+44 GB' }, { v: '+61', t: '+61 AU' },
+    { v: '+49', t: '+49 DE' }, { v: '+33', t: '+33 FR' }, { v: '+84', t: '+84 VN' }
+  ];
+
+  /** 전화 국가번호(+82 등) 드롭다운 — phoneDialCodeYn / jpayPhoneDialCodeYn */
+  function applyPhoneDialCodeVisibility(ctx) {
+    if (!ctx) return;
+    var usePhone = urlPayYnIsYes(ctx.urlPayBuyerPhoneUseYn, true);
+    var dialYn = ctx.phoneDialCodeYn != null ? ctx.phoneDialCodeYn : ctx.jpayPhoneDialCodeYn;
+    var useDial = usePhone && urlPayYnIsYes(dialYn, false);
+    var tel = g.document.getElementById('payTelephone');
+    if (!tel) return;
+    var wrap = g.document.getElementById('payPhoneDialWrap');
+    var sel = g.document.getElementById('payPhoneDialCode');
+    if (!wrap || !sel) {
+      var parent = tel.parentElement;
+      if (!parent) return;
+      if (!wrap) {
+        wrap = g.document.createElement('div');
+        wrap.id = 'payPhoneDialWrap';
+        wrap.className = 'd-flex align-items-center gap-2 w-100';
+        parent.insertBefore(wrap, tel);
+        wrap.appendChild(tel);
+        tel.classList.add('flex-grow-1');
+      }
+      if (!sel) {
+        sel = g.document.createElement('select');
+        sel.id = 'payPhoneDialCode';
+        sel.className = 'form-select form-select-sm pay-input-round';
+        sel.style.maxWidth = '7.5rem';
+        sel.setAttribute('aria-label', 'Phone country code');
+        PHONE_DIAL_OPTS.forEach(function (o) {
+          var opt = g.document.createElement('option');
+          opt.value = o.v;
+          opt.textContent = o.t;
+          sel.appendChild(opt);
+        });
+        wrap.insertBefore(sel, tel);
+      }
+    }
+    wrap.classList.toggle('d-none', !usePhone);
+    sel.classList.toggle('d-none', !useDial);
+    sel.style.display = useDial ? '' : 'none';
+    if (!useDial) {
+      sel.value = PHONE_DIAL_OPTS[0].v;
+      return;
+    }
+    if (!sel.value) {
+      var defIso = String(ctx.defaultCountryIso2 || ctx.visitorCountryIso2 || '').toUpperCase();
+      var map = { KR: '+82', JP: '+81', TH: '+66', US: '+1', CA: '+1', CN: '+86', HK: '+852', SG: '+65', GB: '+44', AU: '+61', DE: '+49', FR: '+33', VN: '+84' };
+      sel.value = map[defIso] || '+82';
+    }
+  }
+
+  function readPhoneWithDial() {
+    var tel = g.document.getElementById('payTelephone');
+    var local = tel ? String(tel.value || '').trim() : '';
+    var sel = g.document.getElementById('payPhoneDialCode');
+    var dialVisible = sel && sel.style.display !== 'none' && !sel.classList.contains('d-none');
+    if (!dialVisible || !sel) return local;
+    var dial = String(sel.value || '').trim();
+    if (!dial || !local) return local;
+    if (local.charAt(0) === '+') return local;
+    return dial + local.replace(/^0+/, '');
   }
 
   /** checkout-context — 상품명·가맹점명·다국어 메뉴 표시 옵션(결제 전문과 별개, 화면 노출만) */
@@ -1201,6 +1345,9 @@
     wireLanguageButtons: wireLanguageButtons,
     applyUrlPayPresentationOptions: applyUrlPayPresentationOptions,
     applyUrlPayInputMode: applyUrlPayInputMode,
+    applyBuyerContactVisibility: applyBuyerContactVisibility,
+    applyPhoneDialCodeVisibility: applyPhoneDialCodeVisibility,
+    readPhoneWithDial: readPhoneWithDial,
     normalizeUrlPayInputMode: normalizeUrlPayInputMode,
     getUrlPayInputModePreset: getUrlPayInputModePreset,
     isUrlPayInputModeControlled: isUrlPayInputModeControlled,

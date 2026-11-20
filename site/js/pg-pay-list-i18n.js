@@ -574,6 +574,13 @@
       packN('자격: 배포설정 > API배포설정 또는 tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스 여부를 사용합니다.', 'Credentials: deploy settings / tb_pg_agency (MerchantCode, ApiKey, MD5 secret, sandbox).', '認証情報は API 配備設定／tb_pg_agency を使用。', '凭据来自部署配置与 tb_pg_agency。', 'ใช้รหัสจากการตั้งค่า API'),
       packN('순서(내림차순·오름차순)는 [새로고침] 왼쪽 메뉴에서 고르며, 누르는 즉시 다시 조회됩니다(기본 내림차순). TransactionDate 범위는 검색 기간(날짜)을 ChillPay 형식(dd/MM/yyyy HH:mm:ss)으로 변환합니다. 문서: ChillPay-API-Transaction-Services-Document-EN_v1.0.6.', 'Sort order is next to [Refresh]. Default DESC. Date range is converted to ChillPay format per API doc v1.0.6.', '並び順は[再読込]左。期間は ChillPay 形式に変換。', '排序在刷新旁，日期按文档转 ChillPay 格式。', 'เรียงลำดับข้างรีเฟรช'),
       packN('그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·업체명·업체코드·거래일·거래시간·승인번호·거래번호(우리)·주문번호는 항상 표시됩니다. 결제금액·수수료·총금액·통화는 실결제 THB이고, 입력통화(통화ㅣ금액)는 결제내역과 같은 입력통화입니다. 거래일은 YYYY-MM-DD입니다.', 'Columns via VIEW SETTING (per user). Number, merchant, merchant code, date, time, approval no., our txn no., and order no. stay visible. Payment amount, fee, total, and currency are the charge currency (THB). Input currency matches payment history. Date is YYYY-MM-DD.', '列は VIEW SETTING。番号・加盟店・コード・取引日・時刻・承認番号・当社取引番号・注文番号は常時表示。決済金額・手数料・合計・通貨は実決済THB、入力通貨は決済履歴と同じです。日付は YYYY-MM-DD。', '列通过 VIEW SETTING 调整。编号、商户、商户代码、交易日、时间、批准号、我方交易号、订单号始终显示。支付金额、手续费、总额、币种为实付 THB，输入币种与支付明细相同。日期为 YYYY-MM-DD。', 'คอลัมน์ตั้งค่า VIEW หมายเลข ร้าน รหัสร้าน วันที่ เวลา เลขอนุมัติ เลขรายการของเรา เลขคำสั่งซื้อแสดงเสมอ ยอดชำระ ค่าธรรมเนียม ยอดรวม สกุลเงินเป็นสกุลที่เรียกเก็บ (THB) สกุลที่ป้อนตรงกับประวัติการชำระ วันที่เป็น YYYY-MM-DD'),
+      packN(
+        'PAYSO를 고르면 Inquiry API로 기간 거래 목록을 가져오며, 주문번호·referenceNo로 ICOPAY 매칭(icopay Y/N)합니다. 자격은 결제대행사 설정의 PAYSO(·PAYSO JPDP) apiKey·secretKey·merchantId입니다.',
+        'Choosing PAYSO loads period transactions via Inquiry API and matches ICOPAY by orderNo/referenceNo (icopay Y/N). Credentials: PAYSO (or PAYSO JPDP) apiKey, secretKey, merchantId in payment agency settings.',
+        'PAYSOを選ぶとInquiry APIで期間取引を取得し、注文番号・referenceNoでICOPAY照合(icopay Y/N)します。資格は決済代行設定のPAYSO(・PAYSO JPDP) apiKey・secretKey・merchantIdです。',
+        '选择 PAYSO 时通过 Inquiry API 拉取期间交易，并用订单号·referenceNo 匹配 ICOPAY（icopay Y/N）。凭据为支付机构设置中的 PAYSO（或 PAYSO JPDP）apiKey、secretKey、merchantId。',
+        'เลือก PAYSO จะดึงรายการช่วงเวลาผ่าน Inquiry API และจับคู่ ICOPAY ด้วย orderNo/referenceNo (icopay Y/N) ใช้ apiKey·secretKey·merchantId ของ PAYSO (หรือ PAYSO JPDP) ในการตั้งค่าตัวกลาง'
+      ),
       packN('ox를 고르면 결제 목록을 가져오지 않습니다. ox 결제 조회 API와 별도 샌드박스 API는 아직 없고, 저장된 ox 거래는 결제개요에서 봅니다.', 'Choosing ox does not load a payment list. ox has no payment-list API and no separate sandbox API yet. Saved ox transactions are in Payment overview.', 'oxを選んでも決済一覧は取得しません。oxの決済照会APIと別サンドボックスAPIはまだなく、保存済みのox取引は決済概要で見ます。', '选择 ox 不会拉取支付列表。ox 尚无支付查询 API，也没有单独的沙箱 API。已保存的 ox 交易在支付概览中查看。', 'เลือก ox แล้วจะไม่ดึงรายการชำระ ยังไม่มี API ค้นหาและไม่มี API sandbox แยก ธุรกรรม ox ที่บันทึกไว้ดูที่ภาพรวมการชำระ')
     ],
     '/calc/jpayTrList': [
@@ -846,25 +853,25 @@
         'ดับเบิลคลิกแถวผู้ให้บริการหรือ ICOPAY เพื่อแสดงธุรกรรมของวันนั้นในรายละเอียดวันที่เลือก'
       ),
       packN(
-        'ElementPay는 검색할 때 결제대행사에서 바로 가져옵니다. JPAY는 저장된 조회 캐시이며, JPAY를 고른 뒤에만 동기화 버튼이 나옵니다. 조회 기간은 최대 93일입니다.',
-        'ElementPay is loaded from the acquirer when you search. JPAY uses the saved query cache, and sync buttons appear only when JPAY is selected. The range is up to 93 days.',
-        'ElementPayは検索時に決済代行から直接取得します。JPAYは保存済みキャッシュで、JPAYを選んだときだけ同期ボタンが出ます。照会期間は最大93日です。',
-        'ElementPay 在搜索时直接从支付机构获取。JPAY 使用已保存的查询缓存，仅选择 JPAY 时显示同步按钮。查询最长 93 天。',
-        'ElementPay ดึงจากผู้ให้บริการตอนค้นหา JPAY ใช้แคชที่บันทึกไว้ และปุ่มซิงค์ขึ้นเมื่อเลือก JPAY เท่านั้น ช่วงสูงสุด 93 วัน'
+        'ElementPay·PAYSO는 검색할 때 결제대행사에서 바로 가져옵니다. JPAY는 저장된 조회 캐시이며, JPAY를 고른 뒤에만 동기화 버튼이 나옵니다. 조회 기간은 최대 93일입니다.',
+        'ElementPay and PAYSO are loaded from the acquirer when you search. JPAY uses the saved query cache, and sync buttons appear only when JPAY is selected. The range is up to 93 days.',
+        'ElementPay・PAYSOは検索時に決済代行から直接取得します。JPAYは保存済みキャッシュで、JPAYを選んだときだけ同期ボタンが出ます。照会期間は最大93日です。',
+        'ElementPay、PAYSO 在搜索时直接从支付机构获取。JPAY 使用已保存的查询缓存，仅选择 JPAY 时显示同步按钮。查询最长 93 天。',
+        'ElementPay และ PAYSO ดึงจากผู้ให้บริการตอนค้นหา JPAY ใช้แคชที่บันทึกไว้ และปุ่มซิงค์ขึ้นเมื่อเลือก JPAY เท่านั้น ช่วงสูงสุด 93 วัน'
       ),
       packN(
-        'ElementPay 건수가 아주 많으면 최근 5,000건까지 대조합니다. JPAY를 고르면 상단 최근동기화 시각이 통합개요와 같습니다.',
-        'Very large ElementPay volumes are compared up to the latest 5,000 payments. With JPAY selected, the last-sync time matches Integrated overview.',
-        'ElementPay の件数が多い場合は最新 5,000 件まで照合します。JPAY を選ぶと上段の最終同期時刻は統合概要と同じです。',
-        'ElementPay 笔数很多时，最多对照最近 5,000 笔。选择 JPAY 时，上方最近同步时间与整合概览相同。',
-        'ถ้า ElementPay มีจำนวนมาก จะเทียบได้ถึง 5,000 รายการล่าสุด เมื่อเลือก JPAY เวลาซิงค์ล่าสุดตรงกับภาพรวมรวม'
+        'ElementPay·PAYSO 건수가 아주 많으면 최근 5,000건까지 대조합니다. JPAY를 고르면 상단 최근동기화 시각이 통합개요와 같습니다.',
+        'Very large ElementPay or PAYSO volumes are compared up to the latest 5,000 payments. With JPAY selected, the last-sync time matches Integrated overview.',
+        'ElementPay・PAYSO の件数が多い場合は最新 5,000 件まで照合します。JPAY を選ぶと上段の最終同期時刻は統合概要と同じです。',
+        'ElementPay、PAYSO 笔数很多时，最多对照最近 5,000 笔。选择 JPAY 时，上方最近同步时间与整合概览相同。',
+        'ถ้า ElementPay หรือ PAYSO มีจำนวนมาก จะเทียบได้ถึง 5,000 รายการล่าสุด เมื่อเลือก JPAY เวลาซิงค์ล่าสุดตรงกับภาพรวมรวม'
       ),
       packN(
-        '새로고침 왼쪽 시간 3개: 비교정렬은 ElementPay·ICOPAY 일자와 거래시간 1줄의 기준입니다. 1줄추가는 대행사(ElementPay·JPAY) 상세의 추가 시간, 2줄추가는 ICOPAY 상세의 추가 시간입니다. 본사설정이면 비교정렬은 전산 표준, 추가 시간은 전산 운영 시간대입니다.',
-        'Three clocks left of Refresh: Compare sets the day and the first time line for ElementPay and ICOPAY. Line 1 is the extra time on the acquirer detail (ElementPay/JPAY). Line 2 is the extra time on the ICOPAY detail. HQ settings uses the ledger zone for Compare and the operational zone for the extra lines.',
-        '再読込の左に時刻が3つあります。比較基準は ElementPay・ICOPAY の日付と取引時刻1行目です。1行目追加は代行(ElementPay・JPAY)詳細の追加時刻、2行目追加は ICOPAY 詳細の追加時刻です。本社設定なら比較基準は全算標準、追加は運営時間帯です。',
-        '刷新左侧有 3 个时间：比较基准是 ElementPay 与 ICOPAY 的日期和交易时间第 1 行。第 1 行附加是机构(ElementPay/JPAY)详情的附加时间，第 2 行附加是 ICOPAY 详情的附加时间。总部设置时，比较基准为账务标准时区，附加时间为运营时区。',
-        'ซ้ายของรีเฟรชมีเวลา 3 ช่อง: เทียบเวลาคือวันที่และบรรทัดแรกของ ElementPay กับ ICOPAY บรรทัด 1 คือเวลาเพิ่มของรายละเอียดผู้ให้บริการ บรรทัด 2 คือเวลาเพิ่มของ ICOPAY ค่า HQ ใช้โซนมาตรฐานสำหรับเทียบ และโซนปฏิบัติการสำหรับเวลาเพิ่ม'
+        '새로고침 왼쪽 시간 3개: 비교정렬은 ElementPay·PAYSO·ICOPAY 일자와 거래시간 1줄의 기준입니다. 1줄추가는 대행사(ElementPay·PAYSO·JPAY) 상세의 추가 시간, 2줄추가는 ICOPAY 상세의 추가 시간입니다. 본사설정이면 비교정렬은 전산 표준, 추가 시간은 전산 운영 시간대입니다.',
+        'Three clocks left of Refresh: Compare sets the day and the first time line for ElementPay, PAYSO, and ICOPAY. Line 1 is the extra time on the acquirer detail (ElementPay/PAYSO/JPAY). Line 2 is the extra time on the ICOPAY detail. HQ settings uses the ledger zone for Compare and the operational zone for the extra lines.',
+        '再読込の左に時刻が3つあります。比較基準は ElementPay・PAYSO・ICOPAY の日付と取引時刻1行目です。1行目追加は代行(ElementPay・PAYSO・JPAY)詳細の追加時刻、2行目追加は ICOPAY 詳細の追加時刻です。本社設定なら比較基準は全算標準、追加は運営時間帯です。',
+        '刷新左侧有 3 个时间：比较基准是 ElementPay、PAYSO 与 ICOPAY 的日期和交易时间第 1 行。第 1 行附加是机构(ElementPay/PAYSO/JPAY)详情的附加时间，第 2 行附加是 ICOPAY 详情的附加时间。总部设置时，比较基准为账务标准时区，附加时间为运营时区。',
+        'ซ้ายของรีเฟรชมีเวลา 3 ช่อง: เทียบเวลาคือวันที่และบรรทัดแรกของ ElementPay PAYSO และ ICOPAY บรรทัด 1 คือเวลาเพิ่มของรายละเอียดผู้ให้บริการ บรรทัด 2 คือเวลาเพิ่มของ ICOPAY ค่า HQ ใช้โซนมาตรฐานสำหรับเทียบ และโซนปฏิบัติการสำหรับเวลาเพิ่ม'
       ),
       packN(
         'ox를 고르면 대행사 칸은 연결 대기입니다. ox 결제 조회 API와 별도 샌드박스 API는 아직 없고, 아래 ICOPAY 줄만 저장된 ox 거래입니다.',

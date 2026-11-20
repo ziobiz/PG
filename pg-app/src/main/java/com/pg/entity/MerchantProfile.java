@@ -418,6 +418,10 @@ public class MerchantProfile {
     @Column(name = "url_pay_buyer_name_use_yn", nullable = false, length = 16)
     private String urlPayBuyerNameUseYn = "Y";
 
+    /** 가맹 API 결제창 성명 — FOLLOW_HQ | Y | N (URL 성명과 분리). */
+    @Column(name = "api_buyer_name_use_yn", nullable = false, length = 16)
+    private String apiBuyerNameUseYn = "FOLLOW_HQ";
+
     /**
      * 결제창 구매자 입력 필드 프리셋 FK.
      * NULL = 프리셋 비활성(가맹이 이메일·국가·전화·배송을 개별 활성/비활성).
@@ -1224,6 +1228,11 @@ public class MerchantProfile {
     public String getUrlPayBuyerNameUseYn() { return urlPayBuyerNameUseYn; }
     public void setUrlPayBuyerNameUseYn(String v) {
         this.urlPayBuyerNameUseYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(v);
+    }
+
+    public String getApiBuyerNameUseYn() { return apiBuyerNameUseYn; }
+    public void setApiBuyerNameUseYn(String v) {
+        this.apiBuyerNameUseYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(v);
     }
 
     public Long getUrlPayCheckoutFieldPresetId() { return urlPayCheckoutFieldPresetId; }

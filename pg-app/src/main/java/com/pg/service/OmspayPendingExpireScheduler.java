@@ -18,7 +18,11 @@ public class OmspayPendingExpireScheduler {
 
     private final OmspayPendingExpireService expireService;
 
-    @Value("${app.omspay.pendingExpire.enabled:true}")
+    /**
+     * 기본 false — 전 PG 공통 {@link PendingTxnExpireScheduler}({@code app.pendingExpire})가
+     * OMSPAY 포함 처리. 레거시 단독 실행이 필요할 때만 true.
+     */
+    @Value("${app.omspay.pendingExpire.enabled:false}")
     private boolean enabled;
 
     public OmspayPendingExpireScheduler(OmspayPendingExpireService expireService) {

@@ -16,6 +16,7 @@ import com.pg.service.PaymentCurrencyScaleService;
 import com.pg.service.UrlPayCardCopyService;
 import com.pg.service.UrlPayCheckoutCurrencyService;
 import com.pg.service.UrlPayDisplayFxService;
+import com.pg.urlpay.UrlPayInputModeUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 
@@ -138,9 +139,11 @@ public class UrlPayPublicCheckoutService {
                     urlPayCheckoutCurrencyService.resolveCheckoutCurrency(orgUnitId, null));
         }
         Optional<MerchantDefaultProduct> dp = merchantDefaultProductRepository.findByOrgUnitId(orgUnitId);
+        UrlPayInputModeUtil.Channel inputChannel = urlPayInputModeService.resolveChannel(request);
+        String phoneDialParam = request != null ? request.getParameter("phoneDial") : null;
         if (prof.isPresent()) {
             MerchantProfile p = prof.get();
-            urlPayCheckoutDisplayPolicyService.putEffectiveYnIntoMap(data, orgUnitId);
+            urlPayCheckoutDisplayPolicyService.putEffectiveYnIntoMap(data, orgUnitId, inputChannel, phoneDialParam);
             data.put("checkoutContactRememberEnabled", payContactRememberPolicyService.isEnabledForOrgUnit(orgUnitId));
             if (p.getBaseCurrency() != null && !p.getBaseCurrency().isBlank()) {
                 data.put("defaultCurrency", p.getBaseCurrency().trim().toUpperCase(Locale.ROOT));
@@ -151,7 +154,7 @@ public class UrlPayPublicCheckoutService {
                 data.put("defaultCountryIso2", p.getAddrCountryCd().trim().toUpperCase(Locale.ROOT));
             }
         } else {
-            urlPayCheckoutDisplayPolicyService.putEffectiveYnIntoMap(data, orgUnitId);
+            urlPayCheckoutDisplayPolicyService.putEffectiveYnIntoMap(data, orgUnitId, inputChannel, phoneDialParam);
             data.put("checkoutContactRememberEnabled", payContactRememberPolicyService.isEnabledForOrgUnit(orgUnitId));
         }
         urlPayInputModeService.putEffectiveIntoMap(data, orgUnitId, request);
@@ -190,6 +193,32 @@ public class UrlPayPublicCheckoutService {
         merchantPayLimitService.putPublicCheckoutFields(data, orgUnitId);
         data.put("apiPaymentAmountLockYn", merchantInlineCheckoutTokenService.resolveApiPaymentAmountLockYn());
         return data;
+    }
+
+    /**
+     * 전용 결제창(OMSPAY/KSNET 등)에서 패밀리 우선 운영 PG로 바꾼 뒤
+     * 표시·capability·PG enricher 를 다시 적용한다. (기본 운영이 다른 PG여도 잔존 통화/모드 방지)
+     */
+    public void rebindOperationalPg(Map<String, Object> data, Long orgUnitId, String operationalPgCd,
+                                    HttpServletRequest request) {
+        if (data == null || orgUnitId == null || operationalPgCd == null || operationalPgCd.isBlank()) {
+            return;
+        }
+        String opPg = operationalPgCd.trim();
+        data.put("urlPayOperationalPgCd", opPg);
+        UrlPayVendorCapability cap = capabilityRegistry.resolve(opPg);
+        data.put("urlPayCapabilities", cap.toMap());
+        data.put("urlPayCheckoutPagePath", cap.checkoutPagePath());
+        data.put("urlPayEmbedPagePath", cap.embedPagePath());
+        data.put("urlPayInlineWidgetKind", cap.inlineWidgetKind());
+        data.put("urlPayRepayUrlEnabled", cap.repayUrlEnabled());
+        enrichPresentation(data, orgUnitId);
+        Optional<MerchantProfile> prof = merchantProfileRepository.findByOrgUnitId(orgUnitId);
+        for (UrlPayCheckoutContextEnricher enricher : contextEnrichers) {
+            if (enricher.supports(cap)) {
+                enricher.enrich(data, orgUnitId, prof, request);
+            }
+        }
     }
 
     /** 표시통화·결제문구·금액 스케일 — 모든 PG 공통 */
@@ -237,6 +266,11 @@ public class UrlPayPublicCheckoutService {
             data.put("urlPayDisplayFxActive", false);
             data.put("urlPayFxUiBlind", false);
             data.put("urlPayMixedPricingModes", hasMixedPricingModes(orgUnitId));
+            /* STANDARD 등 비-DP도 본사 pgSettings.settlementCurrency 반영.
+             * 동일 가맹에 DP(THB) PG와 일반(USD) PG가 공존할 때 이전 운영 PG 잔존값을 덮어쓴다. */
+            if (!opPg.isBlank()) {
+                data.put("urlPaySettlementCurrencyCode", urlPayDisplayFxService.settlementCurrencyForPg(opPg));
+            }
         }
         Object checkoutCurObj = data.get("checkoutCurrencyCode");
         String checkoutCur = checkoutCurObj instanceof String ? (String) checkoutCurObj : null;

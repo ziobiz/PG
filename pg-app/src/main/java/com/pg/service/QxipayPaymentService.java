@@ -152,19 +152,21 @@ public class QxipayPaymentService {
         Map<String, Object> chargeReq = new LinkedHashMap<>();
         chargeReq.put("amount", minor);
         chargeReq.put("currency", settleCcy);
-        chargeReq.put("reference", orderNo.length() > 64 ? orderNo.substring(0, 64) : orderNo);
+        /* QXIPAY reference = ICOPAY 불투명 ref. DB order_no = 가맹 orderNo, pay_no = ref, charge id = chill_transaction_id */
+        final String pgOrderRef = com.pg.util.IcopayPgOrderRef.standard();
+        chargeReq.put("reference", pgOrderRef);
         chargeReq.put("paymentMethod", payMethod);
         chargeReq.put("returnUrl", returnUrl);
         chargeReq.put("device", "web");
         chargeReq.put("threeDS", Map.of("mode", "required"));
 
-        String idem = "qx-" + ouOpt.get().getCode() + "-" + orderNo + "-" + UUID.randomUUID();
+        String idem = "qx-" + pgOrderRef + "-" + UUID.randomUUID();
         String sandboxOutcome = str(body, "sandboxOutcome", "GW-Sandbox-Outcome");
 
         qxipaySaleRecordService.recordOrTouchPending(
                 orgUnitId, orderNo, charge.pgAmount(), charge.settlementCurrency(),
                 str(body, "productName", "item"), null, str(body, "txnOrigin", "origin"),
-                charge.shopperDisplayAmount(), charge.shopperDisplayCurrency());
+                charge.shopperDisplayAmount(), charge.shopperDisplayCurrency(), pgOrderRef);
 
         Map<String, Object> chg = apiClient.createCharge(creds, chargeReq, idem,
                 sandboxOutcome.isBlank() ? null : sandboxOutcome);
@@ -187,7 +189,7 @@ public class QxipayPaymentService {
         qxipaySaleRecordService.recordOrTouchPending(
                 orgUnitId, orderNo, charge.pgAmount(), charge.settlementCurrency(),
                 str(body, "productName", "item"), chargeId, str(body, "txnOrigin", "origin"),
-                charge.shopperDisplayAmount(), charge.shopperDisplayCurrency());
+                charge.shopperDisplayAmount(), charge.shopperDisplayCurrency(), pgOrderRef);
 
         if ("succeeded".equalsIgnoreCase(status)) {
             qxipaySaleRecordService.applyChargeOutcome(orderNo, ouOpt.get().getCode(), chargeId, "succeeded", chargeId);

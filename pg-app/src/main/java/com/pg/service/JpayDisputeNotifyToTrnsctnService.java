@@ -278,7 +278,7 @@ public class JpayDisputeNotifyToTrnsctnService implements PgNotifyInboundTxnHand
             return "";
         }
         String on = orderid.trim();
-        Optional<PgTrnsctn> any = pgTrnsctnRepository.findFirstByOrderNoOrderByCreatedAtDesc(on);
+        Optional<PgTrnsctn> any = com.pg.util.PgTrnsctnOrderLookup.findByOrderNoOrPayNo(pgTrnsctnRepository, on);
         if (any.isPresent() && any.get().getMerchantId() != null && !any.get().getMerchantId().isBlank()) {
             return any.get().getMerchantId().trim();
         }
