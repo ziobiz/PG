@@ -290,6 +290,7 @@ public class NeutralCheckoutRouteController {
         String[] passKeys = {
                 "session", "entry", "lang", "langCode", "payMeans", "means",
                 "orderNo", "OrderNo", "amount", "currency",
+                "preview", "uiPreview",
                 "done", "omspay", "omspayReturn", "payso", "paysoReturn", "ksnetReturn", "outcome", "status", "icopay_status"
         };
         for (String key : passKeys) {

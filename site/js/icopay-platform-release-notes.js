@@ -6,13 +6,35 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '8.4';
+  var CURRENT_LIVE = '8.5';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '8.5',
+      kind: 'minor',
+      date: '2026-11-23',
+      items: {
+        KO: [
+          '간편결제 UI URL: 부제 아래에 미리보기 주소·복사 — /pay-simple/{업체}?preview=1 로 저장된 로고·노출·안내·모형 QR 확인(금액 0)'
+        ],
+        EN: [
+          'Simple pay UI URL under subtitle with copy — /pay-simple/{mid}?preview=1 shows saved logo, visibility, copy, mock QR (zeros)'
+        ],
+        JP: [
+          'かんたん決済UI URLを副題下に表示・コピー — /pay-simple/{MID}?preview=1 で保存設定・模型QR確認(金額0)'
+        ],
+        CH: [
+          '简易支付 UI URL（副标题下，可复制）— /pay-simple/{商户}?preview=1 查看已存标志/显隐/文案与示意二维码（金额0）'
+        ],
+        TH: [
+          'URL UI ชำระง่ายใต้หัวข้อรอง + คัดลอก — /pay-simple/{ร้าน}?preview=1 ดูโลโก้ การแสดง ข้อความ และ QR จำลอง (ยอด 0)'
+        ]
+      }
+    },
     {
       version: '8.4',
       kind: 'minor',

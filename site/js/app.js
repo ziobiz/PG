@@ -8899,6 +8899,52 @@
   }
   window.pgRefreshChatbotPaymentUrl = pgRefreshChatbotPaymentUrl;
 
+  /** 간편결제 UI 미리보기 URL — /pay-simple/{compId}?preview=1 */
+  function pgRefreshSimplePayUiUrl(pane, compId) {
+    if (!pane) return;
+    var el = pane.querySelector('#simplePayUiUrlDisplay');
+    var copy = pane.querySelector('#simplePayUiUrlCopyBtn');
+    var row = pane.querySelector('#simplePayUiUrlRow');
+    if (!el) return;
+    var cid = (compId != null ? String(compId) : '').trim();
+    if (!cid) {
+      var cidEl = pane.querySelector('[name="compId"]');
+      cid = cidEl && cidEl.value ? String(cidEl.value).trim() : '';
+    }
+    var simpleOn = pgCompFormYnIsY(pane, 'simpleQrCheckoutUseYn');
+    var base = pgResolvePaymentBaseUrl();
+    if (simpleOn && cid) {
+      var url = base + '/pay-simple/' + encodeURIComponent(cid) + '?preview=1';
+      el.value = url;
+      el.disabled = false;
+      el.readOnly = true;
+      el.classList.add('pg-fixed-value-input');
+      el.removeAttribute('data-pg-simple-ui-url-locked');
+      if (copy) {
+        copy.disabled = false;
+        copy.removeAttribute('aria-disabled');
+        copy.classList.remove('disabled');
+      }
+      if (row) row.classList.remove('d-none');
+    } else {
+      el.value = '';
+      el.disabled = true;
+      el.readOnly = true;
+      el.classList.remove('pg-fixed-value-input');
+      el.setAttribute('data-pg-simple-ui-url-locked', 'Y');
+      el.setAttribute('data-pg-ui-placeholder', '간편결제 사용 후 조회');
+      if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
+        try { window.PG_UI_I18N.applyDom(el); } catch (eSp) { /* ignore */ }
+      }
+      if (copy) {
+        copy.disabled = true;
+        copy.setAttribute('aria-disabled', 'true');
+        copy.classList.add('disabled');
+      }
+    }
+  }
+  window.pgRefreshSimplePayUiUrl = pgRefreshSimplePayUiUrl;
+
   /** 가맹 결제 URL·URL 재결제·통합결제·크립토 URL (PG 공통 플랫폼). */
   function pgRefreshCompDetailPaymentUrls(pane, compId) {
     if (!pane || !compId) return;
@@ -8921,6 +8967,7 @@
     var copyUnifiedBtn = pane.querySelector('#paymentUnifiedUrlCopyBtn');
     var copyQrBtn = pane.querySelector('#qrPaymentUrlCopyBtn');
     var copyCryptoBtn = pane.querySelector('#cryptoPaymentUrlCopyBtn');
+    pgRefreshSimplePayUiUrl(pane, cid);
     var merchantOwn = pgIsMerchantOwnCompViewer(pane);
     var webUseOn = !merchantOwn || pgCompFormYnIsY(pane, 'webPaymentUseYn');
     var means = typeof pgMerchantMeansFlagsFromPane === 'function'
@@ -9086,6 +9133,7 @@
     pane._pgPaymentUrlCopyBound = true;
     var map = {
       paymentUrlCopyBtn: '#paymentUrlDisplay',
+      simplePayUiUrlCopyBtn: '#simplePayUiUrlDisplay',
       paymentRepayUrlCopyBtn: '#paymentRepayUrlDisplay',
       paymentUnifiedUrlCopyBtn: '#paymentUnifiedUrlDisplay',
       qrPaymentUrlCopyBtn: '#qrPaymentUrlDisplay',
@@ -9190,6 +9238,10 @@
         return !!(c && c.getAttribute('data-pg-crypto-url-locked') === 'Y');
       }
       if (id === 'chatbotPaymentUrlCopyBtn' || id === 'chatbotEmbedScriptCopyBtn') return pgIsChatbotPaymentUrlLocked(pane);
+      if (id === 'simplePayUiUrlCopyBtn') {
+        var sp = pane.querySelector('#simplePayUiUrlDisplay');
+        return !!(sp && sp.getAttribute('data-pg-simple-ui-url-locked') === 'Y');
+      }
       if (id === 'splitPayUrlCopyBtn') return pgIsSplitPayUrlLocked(pane);
         if (id === 'chatbotQrDownloadBtn' || id === 'chatbotQrOpenPng') return pgIsChatbotPaymentUrlLocked(pane);
         if (id === 'webPayQrDownloadBtn' || id === 'webPayQrOpenPng') {
@@ -9229,12 +9281,17 @@
           el.readOnly = true;
           return;
         }
-        if (id === 'paymentUrlDisplay' || id === 'paymentRepayUrlDisplay' || id === 'paymentUnifiedUrlDisplay' || id === 'qrPaymentUrlDisplay' || id === 'cryptoPaymentUrlDisplay' || id === 'chatbotPaymentUrlDisplay' || id === 'chatbotEmbedScriptDisplay' || id === 'splitPayUrlDisplay') {
+        if (id === 'paymentUrlDisplay' || id === 'paymentRepayUrlDisplay' || id === 'paymentUnifiedUrlDisplay' || id === 'qrPaymentUrlDisplay' || id === 'cryptoPaymentUrlDisplay' || id === 'chatbotPaymentUrlDisplay' || id === 'chatbotEmbedScriptDisplay' || id === 'splitPayUrlDisplay' || id === 'simplePayUiUrlDisplay') {
+          if (id === 'simplePayUiUrlDisplay' && el.getAttribute('data-pg-simple-ui-url-locked') === 'Y') {
+            el.disabled = true;
+            el.readOnly = true;
+            return;
+          }
           el.disabled = false;
           if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.readOnly = true;
           return;
         }
-        if (id === 'paymentUrlCopyBtn' || id === 'paymentRepayUrlCopyBtn' || id === 'paymentUnifiedUrlCopyBtn' || id === 'qrPaymentUrlCopyBtn' || id === 'cryptoPaymentUrlCopyBtn' || id === 'chatbotPaymentUrlCopyBtn' || id === 'chatbotEmbedScriptCopyBtn' || id === 'chatbotQrDownloadBtn' || id === 'webPayQrDownloadBtn' || id === 'checkoutQrPayQrDownloadBtn' || id === 'unifiedPayQrDownloadBtn' || id === 'splitPayUrlCopyBtn') {
+        if (id === 'paymentUrlCopyBtn' || id === 'paymentRepayUrlCopyBtn' || id === 'paymentUnifiedUrlCopyBtn' || id === 'qrPaymentUrlCopyBtn' || id === 'cryptoPaymentUrlCopyBtn' || id === 'chatbotPaymentUrlCopyBtn' || id === 'chatbotEmbedScriptCopyBtn' || id === 'chatbotQrDownloadBtn' || id === 'webPayQrDownloadBtn' || id === 'checkoutQrPayQrDownloadBtn' || id === 'unifiedPayQrDownloadBtn' || id === 'splitPayUrlCopyBtn' || id === 'simplePayUiUrlCopyBtn') {
           if (compUrlCopyLocked(id)) {
             el.disabled = true;
             el.setAttribute('aria-disabled', 'true');
@@ -26071,7 +26128,8 @@
             if (t.id === 'compCryptoUseYn' || t.name === 'cryptoUseYn' || t.name === 'webPaymentUseYn'
                 || t.name === 'webPaymentQrMode' || t.name === 'webPayQrTitleMode' || t.name === 'webPayQrFooterMode'
                 || t.name === 'apiBrokerInlineUseYn'
-                || t.name === 'apiBrokerRedirectUseYn' || t.name === 'apiWordpressUseYn') {
+                || t.name === 'apiBrokerRedirectUseYn' || t.name === 'apiWordpressUseYn'
+                || t.name === 'simpleQrCheckoutUseYn') {
               if ((t.name === 'webPayQrTitleMode' || t.name === 'webPayQrFooterMode')
                   && typeof window.pgSyncWebPayQrBrandLabelUi === 'function') {
                 window.pgSyncWebPayQrBrandLabelUi(pane);
@@ -27943,6 +28001,7 @@
                 || t.name === 'webPaymentQrMode' || t.name === 'webPayQrTitleMode' || t.name === 'webPayQrFooterMode'
                 || t.name === 'apiBrokerInlineUseYn'
                 || t.name === 'apiBrokerRedirectUseYn' || t.name === 'apiWordpressUseYn'
+                || t.name === 'simpleQrCheckoutUseYn'
                 || t.id === 'compCryptoUseYn') {
               if ((t.name === 'webPayQrTitleMode' || t.name === 'webPayQrFooterMode')
                   && typeof window.pgSyncWebPayQrBrandLabelUi === 'function') {
@@ -45514,7 +45573,7 @@
           }
         }
         if (pane.classList && pane.classList.contains('pg-merchant-own-comp-viewer')
-          && ((btn.id || '') === 'paymentUrlCopyBtn' || (btn.id || '') === 'paymentRepayUrlCopyBtn' || (btn.id || '') === 'paymentUnifiedUrlCopyBtn' || (btn.id || '') === 'qrPaymentUrlCopyBtn' || (btn.id || '') === 'cryptoPaymentUrlCopyBtn' || (btn.id || '') === 'chatbotPaymentUrlCopyBtn' || (btn.id || '') === 'chatbotEmbedScriptCopyBtn' || (btn.id || '') === 'chatbotQrDownloadBtn' || (btn.id || '') === 'webPayQrDownloadBtn' || (btn.id || '') === 'checkoutQrPayQrDownloadBtn' || (btn.id || '') === 'unifiedPayQrDownloadBtn' || (btn.id || '') === 'splitPayUrlCopyBtn')) {
+          && ((btn.id || '') === 'paymentUrlCopyBtn' || (btn.id || '') === 'paymentRepayUrlCopyBtn' || (btn.id || '') === 'paymentUnifiedUrlCopyBtn' || (btn.id || '') === 'qrPaymentUrlCopyBtn' || (btn.id || '') === 'cryptoPaymentUrlCopyBtn' || (btn.id || '') === 'chatbotPaymentUrlCopyBtn' || (btn.id || '') === 'chatbotEmbedScriptCopyBtn' || (btn.id || '') === 'chatbotQrDownloadBtn' || (btn.id || '') === 'webPayQrDownloadBtn' || (btn.id || '') === 'checkoutQrPayQrDownloadBtn' || (btn.id || '') === 'unifiedPayQrDownloadBtn' || (btn.id || '') === 'splitPayUrlCopyBtn' || (btn.id || '') === 'simplePayUiUrlCopyBtn')) {
           if ((btn.id || '') === 'paymentUrlCopyBtn' && pgIsPaymentUrlLocked(pane)) {
             btn.disabled = true;
             btn.setAttribute('aria-disabled', 'true');
@@ -45659,7 +45718,7 @@
           if (observerAllowTarget(t)) return;
           if (t.closest('[data-pg-list-search-btn], #searchBtn, .screen-search-btn, #excelBtn, #excelDownBtn, #listExcelDownBtn, #excelAllDownBtn, #payListRefreshBtn, #printBtn, .quick-date, .pagination-size-opt, .pagination-num, .daily-detail-sort-dir-btn, [data-notice-write-btn], #compDevTreeRemoveBtn, #compAdminResetOrgBtn, .screen-list-sort-dir-menu, .settlement-execute-recent-mode-btn, .pg-view-display-tz-select, .pg-ic-compare-tz-select, .pg-ic-line1-tz-select')) return;
           if (pane.classList && pane.classList.contains('pg-merchant-own-comp-viewer')
-            && (t.closest('#paymentUrlCopyBtn') || t.closest('#paymentRepayUrlCopyBtn') || t.closest('#paymentUnifiedUrlCopyBtn') || t.closest('#qrPaymentUrlCopyBtn') || t.closest('#cryptoPaymentUrlCopyBtn') || t.closest('#chatbotPaymentUrlCopyBtn') || t.closest('#chatbotEmbedScriptCopyBtn') || t.closest('#chatbotQrOpenPng') || t.closest('#chatbotQrDownloadBtn') || t.closest('#webPayQrOpenPng') || t.closest('#webPayQrDownloadBtn') || t.closest('#checkoutQrPayQrOpenPng') || t.closest('#checkoutQrPayQrDownloadBtn') || t.closest('#unifiedPayQrOpenPng') || t.closest('#unifiedPayQrDownloadBtn') || t.closest('#splitPayUrlCopyBtn'))) {
+            && (t.closest('#paymentUrlCopyBtn') || t.closest('#paymentRepayUrlCopyBtn') || t.closest('#paymentUnifiedUrlCopyBtn') || t.closest('#qrPaymentUrlCopyBtn') || t.closest('#cryptoPaymentUrlCopyBtn') || t.closest('#chatbotPaymentUrlCopyBtn') || t.closest('#chatbotEmbedScriptCopyBtn') || t.closest('#chatbotQrOpenPng') || t.closest('#chatbotQrDownloadBtn') || t.closest('#webPayQrOpenPng') || t.closest('#webPayQrDownloadBtn') || t.closest('#checkoutQrPayQrOpenPng') || t.closest('#checkoutQrPayQrDownloadBtn') || t.closest('#unifiedPayQrOpenPng') || t.closest('#unifiedPayQrDownloadBtn') || t.closest('#splitPayUrlCopyBtn') || t.closest('#simplePayUiUrlCopyBtn'))) {
             if (t.closest('#paymentUrlCopyBtn') && pgIsPaymentUrlLocked(pane)) {
               e.preventDefault();
               e.stopPropagation();

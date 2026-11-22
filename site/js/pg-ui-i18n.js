@@ -18370,6 +18370,24 @@
       CH: '简易支付 HTML 显示名',
       TH: 'ชื่อ HTML ชำระง่าย'
     },
+    '간편결제 UI URL': {
+      EN: 'Simple pay UI URL',
+      JP: 'かんたん決済 UI URL',
+      CH: '简易支付 UI URL',
+      TH: 'URL UI ชำระง่าย'
+    },
+    '간편결제 사용 후 조회': {
+      EN: 'Available after Simple pay is enabled',
+      JP: 'かんたん決済を有効にすると表示',
+      CH: '启用简易支付后可查看',
+      TH: 'ดูได้เมื่อเปิดชำระง่าย'
+    },
+    '간편결제 UI URL 안내': {
+      EN: 'Preview URL when Simple pay (QR URL) is on. Open in a browser to see saved logo, subtitle, field visibility, copy, and a mock QR (amounts/orders show 0). Refresh after save to apply.',
+      JP: 'かんたん決済(QR URL)有効時のプレビューURL。ブラウザで開くと保存済みロゴ・副題・表示・案内・模型QRを確認できます(金額・注文は0)。保存後に再読込で反映。',
+      CH: '开启简易支付(QR URL)时的预览地址。浏览器打开可查看已保存的标志、副标题、显隐、文案与示意二维码（金额/订单为0）。保存后刷新生效。',
+      TH: 'URL ตัวอย่างเมื่อเปิดชำระง่าย (QR URL) เปิดในเบราว์เซอร์เพื่อดูโลโก้ หัวข้อรอง การแสดง ข้อความ และ QR จำลอง (ยอด/ออเดอร์เป็น 0) บันทึกแล้วรีเฟรชเพื่อสะท้อน'
+    },
     '간편결제 부제': {
       EN: 'Simple pay subtitle',
       JP: 'かんたん決済サブタイトル',

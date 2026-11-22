@@ -83,6 +83,47 @@ public class MerchantUnifiedSimpleCheckoutService {
         return result;
     }
 
+    /**
+     * 관리자·가맹용 UI 미리보기 — 실결제 세션 없이 로고·부제·노출 플래그·안내 문구만.
+     * 금액·주문·구매자 필드는 0/빈 자리로 구성만 확인.
+     */
+    public Map<String, Object> buildUiPreview(String compId) {
+        String mid = str(compId);
+        if (mid.isBlank()) {
+            return fail("compId가 필요합니다.", "NOT_FOUND");
+        }
+        Optional<OrgUnit> ouOpt = orgUnitRepository.findByCode(mid);
+        if (ouOpt.isEmpty()) {
+            ouOpt = orgUnitRepository.findByCodeIgnoreCase(mid);
+        }
+        if (ouOpt.isEmpty()) {
+            return fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND");
+        }
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("compId", ouOpt.get().getCode());
+        data.put("uiPreview", true);
+        data.put("amount", "0");
+        data.put("currency", "JPY");
+        data.put("displayCurrency", "JPY");
+        data.put("orderNo", "0");
+        data.put("productName", "0");
+        data.put("item", "0");
+        data.put("urlPayPricingMode", "CHECKOUT_CURRENCY");
+        Map<String, Object> buyer = new LinkedHashMap<>();
+        buyer.put("name", "0");
+        buyer.put("firstName", "0");
+        buyer.put("lastName", "");
+        buyer.put("email", "0");
+        buyer.put("phone", "0");
+        data.put("buyerPrefill", buyer);
+        data.put("buyer", buyer);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("success", true);
+        result.put("data", data);
+        enrichConfirmUi(result);
+        return result;
+    }
+
     public Map<String, Object> orderStatus(Long orgUnitId, String orderNo) {
         return redirectCheckoutService.orderStatus(orgUnitId, orderNo);
     }

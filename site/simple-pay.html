@@ -418,9 +418,64 @@
     toggleRow('rowName', isYes(data.simpleQrShowNameYn));
     toggleRow('rowEmail', isYes(data.simpleQrShowEmailYn));
     toggleRow('rowPhone', isYes(data.simpleQrShowPhoneYn));
+    if (data && data.uiPreview) {
+      /* UI 미리보기 — 기기경고·실결제 QR 폴링 생략 */
+      return;
+    }
     maybeDeviceWarn(buyer);
     if (pcClient) {
       showQr();
+    }
+  }
+
+  function isUiPreview() {
+    var p = (qs('preview') || qs('uiPreview') || '').toLowerCase();
+    return p === '1' || p === 'y' || p === 'true' || p === 'yes';
+  }
+
+  function loadUiPreview() {
+    compId = qs('m') || qs('compId') || '';
+    if (!compId) {
+      showErr(t().needSession);
+      return;
+    }
+    fetch('/api/middleware/v1/merchant/checkout/simple/ui-preview?compId=' + encodeURIComponent(compId), {
+      credentials: 'omit'
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j || j.success === false) {
+        showErr((j && (j.message || (j.error && j.error.message))) || t().err);
+        return;
+      }
+      var payload = j.data || {};
+      payload.uiPreview = true;
+      if (!payload.compId) payload.compId = compId;
+      fill(payload);
+      /* 미리보기: 결제·폴링 없음, 모형 QR만 */
+      document.getElementById('payBtn').classList.add('d-none');
+      document.getElementById('qrBtn').classList.add('d-none');
+      document.getElementById('checkBtn').classList.add('d-none');
+      document.getElementById('pollStatus').classList.add('d-none');
+      showMockQr();
+    }).catch(function () { showErr(t().err); });
+  }
+
+  function showMockQr() {
+    var box = document.getElementById('qrBox');
+    box.classList.remove('d-none');
+    var payload = 'ICOPAY-SIMPLE-UI-PREVIEW:' + (compId || '');
+    var draw = function (QR) {
+      var canvas = document.getElementById('qrCanvas');
+      QR.toCanvas(canvas, payload, { width: 220, margin: 1 }, function () {});
+    };
+    if (window.ICOPAY_QR_MODAL && typeof window.ICOPAY_QR_MODAL.ensureQrLib === 'function') {
+      window.ICOPAY_QR_MODAL.ensureQrLib().then(draw).catch(function () {});
+    } else if (window.QRCode) {
+      draw(window.QRCode);
+    } else {
+      var s = document.createElement('script');
+      s.src = '/js/qrcode.min.js';
+      s.onload = function () { if (window.QRCode) draw(window.QRCode); };
+      document.head.appendChild(s);
     }
   }
 
@@ -430,6 +485,10 @@
     var ql = (qs('lang') || qs('langCode') || '').toUpperCase();
     if (T[ql]) lang = ql;
     applyLang();
+    if (isUiPreview()) {
+      loadUiPreview();
+      return;
+    }
     if (!sessionToken) {
       showErr(t().needSession);
       return;

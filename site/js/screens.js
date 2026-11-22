@@ -901,6 +901,19 @@
           { v: 'DISABLED', t: '미활성' }
         ], col: 3 },
          { label: '부제 문구', type: 'text', name: 'simplePayBrandSubText', col: 9, maxlength: 200, placeholder: '직접입력 시 한국어(저장 시 5개국어)' }],
+        [{ type: 'customHtml', col: 12, html: function () {
+          return '<div class="row mb-2" id="simplePayUiUrlRow">' +
+            '<div class="col-sm-8 col-lg-6">' +
+            '<label class="form-label" data-pg-ui-t="간편결제 UI URL">간편결제 UI URL</label>' +
+            '<div class="input-group input-group-sm">' +
+            '<input type="text" class="form-control pg-fixed-value-input" id="simplePayUiUrlDisplay" readonly ' +
+            'data-pg-ui-placeholder="간편결제 사용 후 조회" placeholder="간편결제 사용 후 조회">' +
+            '<button type="button" class="btn btn-outline-primary" id="simplePayUiUrlCopyBtn" data-pg-ui-t="복사">복사</button>' +
+            '</div>' +
+            '<div class="form-text small text-muted" data-pg-ui-t="간편결제 UI URL 안내">' +
+            '간편결제(QR URL) 사용 시 미리보기 주소입니다. 복사 후 브라우저에서 열면 저장된 로고·부제·노출·안내·모형 QR 구성을 확인할 수 있습니다(금액·주문은 0). 설정 저장 후 새로고침하면 반영됩니다.' +
+            '</div></div></div>';
+        } }],
         [{ label: '', type: 'note', col: 12, text: '【우선】가맹이 「본사설정 따름」이 아니면 가맹 로고·부제가 본사보다 우선합니다. 「본사설정 따름」일 때만 본사정책 → 결제 라우팅 기본을 씁니다. 웹결제 따름=URL 웹결제 로고/경고메세지, API 따름=API 로고(부제는 Secure Payment). 웹용 QR(웹결제 카드)과 무관합니다.' }],
         [{ type: 'customHtml', col: 12, html: function () {
           return '<div class="border rounded p-2 mb-1"><div class="fw-semibold small mb-2" data-pg-ui-t="간편결제 QR URL 결제 안내">간편결제 QR URL 결제 안내</div>' +

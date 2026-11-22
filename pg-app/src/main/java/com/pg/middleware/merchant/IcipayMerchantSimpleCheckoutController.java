@@ -78,6 +78,18 @@ public class IcipayMerchantSimpleCheckoutController {
         return MerchantApiResponseMapper.mapServiceResult(result);
     }
 
+    /**
+     * 간편결제 UI 미리보기(공개) — 세션 없이 저장된 로고·부제·노출 설정만 반환.
+     * 실결제·prepare 아님. 관리자 「간편결제 UI URL」용.
+     */
+    @GetMapping("/ui-preview")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> uiPreview(
+            @RequestParam(required = false) String compId,
+            @RequestParam(required = false) String m) {
+        String mid = (compId != null && !compId.isBlank()) ? compId : m;
+        return MerchantApiResponseMapper.mapServiceResult(simpleCheckoutService.buildUiPreview(mid));
+    }
+
     /** PC QR 대기 — 세션 토큰만으로 승인 여부(공개). */
     @GetMapping("/public-status")
     public ResponseEntity<ApiResponse<Map<String, Object>>> publicStatus(@RequestParam("token") String token) {
