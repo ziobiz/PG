@@ -109,6 +109,7 @@ public class PayListItemDto {
         row.put("approvalNo", resolveApprovalNoForDisplay(t));
         row.put("chillCustomer", chillCustomerLabel(t));
         row.put("orderNo", orderNoLabel(t));
+        row.put("pgOrderNo", pgOrderNoLabel(t));
         row.put("paymentChannel", blank(t.getPaymentChannel()));
         /* 성공(승인)=paidAt, 실패·취소 등=paidAt 없으면 createdAt — trnTime(시각만)과 동일 이중 일시 표기 */
         row.put("payCompletedAt", payDtStr);
@@ -622,11 +623,86 @@ public class PayListItemDto {
         return blank(t.getPayNo());
     }
 
+    /**
+     * 총본사 VIEW「주문번호(PG)」— PG가 발번한 Order/Txn id.
+     * PAYSO: chill_transaction_id(hex Order No 등). 승인번호(12자리 Reference)·가맹 orderNo 와 중복이면 숨김.
+     */
+    private static String pgOrderNoLabel(PgTrnsctn t) {
+        if (t == null) {
+            return "-";
+        }
+        String order = t.getOrderNo() != null ? t.getOrderNo().trim() : "";
+        String pay = t.getPayNo() != null ? t.getPayNo().trim() : "";
+        String appr = t.getApprovalNo() != null ? t.getApprovalNo().trim() : "";
+        String chill = t.getChillTransactionId() != null ? t.getChillTransactionId().trim() : "";
+        if (chill.isBlank()) {
+            return "-";
+        }
+        if (!order.isBlank() && chill.equalsIgnoreCase(order)) {
+            return "-";
+        }
+        if (!pay.isBlank() && chill.equalsIgnoreCase(pay)) {
+            return "-";
+        }
+        if (!appr.isBlank() && chill.equalsIgnoreCase(appr)) {
+            return "-";
+        }
+        /* PAYSO 승인번호(12자리)와 동일하면 주문번호(PG) 칸에 두지 않음 */
+        if (com.pg.integration.pg.PgVendor.isPaysoFamily(t.getVan()) && chill.matches("^[0-9]{12}$")) {
+            return "-";
+        }
+        return chill;
+    }
+
+    /**
+     * 결제내역「승인번호」— ICOPAY→PG 조인 키만.
+     * PAYSO: 숫자 12자리(Reference)만. 가맹 order({@code FS…})·PG hex txn 은 표시하지 않음.
+     */
     private static String chillTxnIdLabel(PgTrnsctn t) {
+        if (t == null) {
+            return "-";
+        }
+        String order = t.getOrderNo() != null ? t.getOrderNo().trim() : "";
+        if (com.pg.integration.pg.PgVendor.isPaysoFamily(t.getVan())) {
+            String join = firstPaysoDigits12(t.getPayNo(), t.getApprovalNo(), t.getChillTransactionId());
+            if (!join.isBlank() && !join.equalsIgnoreCase(order)) {
+                return join;
+            }
+            return "-";
+        }
+        if (t.getPayNo() != null && !t.getPayNo().isBlank()) {
+            String pay = t.getPayNo().trim();
+            if (order.isBlank() || !pay.equalsIgnoreCase(order)) {
+                return pay;
+            }
+        }
         if (t.getChillTransactionId() != null && !t.getChillTransactionId().isBlank()) {
-            return t.getChillTransactionId().trim();
+            String chill = t.getChillTransactionId().trim();
+            if (order.isBlank() || !chill.equalsIgnoreCase(order)) {
+                return chill;
+            }
+        }
+        if (t.getApprovalNo() != null && !t.getApprovalNo().isBlank()) {
+            return t.getApprovalNo().trim();
         }
         return "-";
+    }
+
+    /** PAYSO Reference = 숫자 정확히 12자리. */
+    private static String firstPaysoDigits12(String... cands) {
+        if (cands == null) {
+            return "";
+        }
+        for (String c : cands) {
+            if (c == null) {
+                continue;
+            }
+            String s = c.trim();
+            if (s.matches("^[0-9]{12}$")) {
+                return s;
+            }
+        }
+        return "";
     }
 
     private static String routeNoLabel(PgTrnsctn t, MerchantPgBinding b) {

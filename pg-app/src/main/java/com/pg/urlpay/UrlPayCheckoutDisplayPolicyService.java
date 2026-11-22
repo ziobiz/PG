@@ -24,13 +24,16 @@ public class UrlPayCheckoutDisplayPolicyService {
     private final HqApiConfigRepository hqApiConfigRepository;
     private final MerchantProfileRepository merchantProfileRepository;
     private final UrlPayCheckoutFieldPresetService checkoutFieldPresetService;
+    private final RedirectCheckoutCopyService redirectCheckoutCopyService;
 
     public UrlPayCheckoutDisplayPolicyService(HqApiConfigRepository hqApiConfigRepository,
                                               MerchantProfileRepository merchantProfileRepository,
-                                              UrlPayCheckoutFieldPresetService checkoutFieldPresetService) {
+                                              UrlPayCheckoutFieldPresetService checkoutFieldPresetService,
+                                              RedirectCheckoutCopyService redirectCheckoutCopyService) {
         this.hqApiConfigRepository = hqApiConfigRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.checkoutFieldPresetService = checkoutFieldPresetService;
+        this.redirectCheckoutCopyService = redirectCheckoutCopyService;
     }
 
     public HqApiConfig hqOrEmpty() {
@@ -207,6 +210,7 @@ public class UrlPayCheckoutDisplayPolicyService {
         data.put("urlPayBuyerEmailUseYn", emailYn);
         data.put("urlPayBuyerCountryUseYn", countryYn);
         data.put("urlPayBuyerPhoneUseYn", phoneYn);
+        data.put("urlPayOrderNoShowYn", effectiveOrderNoShowYn(orgUnitId));
         String dialYn = effectivePhoneDialCodeYn(orgUnitId, urlPhoneDialParam);
         data.put("phoneDialCodeYn", dialYn);
         data.put("jpayPhoneDialCodeYn", dialYn);
@@ -216,6 +220,16 @@ public class UrlPayCheckoutDisplayPolicyService {
                     CheckoutBuyerContactUtil.toLegacyCheckoutFieldMode(emailYn, countryYn, phoneYn, shipYn));
         }
         data.put("checkoutContactRememberMode", effectiveRememberMode(orgUnitId));
+        redirectCheckoutCopyService.putIntoCheckoutMap(data, orgUnitId);
+    }
+
+    /** 결제창 주문번호 행 — 가맹 Y/N만(기본 N). 백단 orderNo 는 유지. */
+    public String effectiveOrderNoShowYn(Long orgUnitId) {
+        String raw = merchantField(orgUnitId, MerchantProfile::getUrlPayOrderNoShowYn);
+        if (raw != null && "Y".equalsIgnoreCase(raw.trim())) {
+            return "Y";
+        }
+        return "N";
     }
 
     private String resolveBuyerContactYn(Long orgUnitId,

@@ -526,8 +526,48 @@
    * 이메일·국가(ISO2)·전화·성명 공통 노출 (페이지별 applyBuyerVisibility 보조).
    * RE 확인창(KSNET·OMSPAY 등)도 ctx.urlPayBuyer*UseYn 을 따름.
    */
+  /**
+   * RE 확인창 상단(lead)·하단(hint) — 본사/가맹 redirectCheckout* 실효값.
+   * 인라인 카드창은 호출하지 않음(RE HTML만).
+   */
+  function applyRedirectCheckoutCopy(ctx, opts) {
+    opts = opts || {};
+    var lang = typeof opts.getLang === 'function' ? opts.getLang() : (opts.lang || 'KOR');
+    var tFn = typeof opts.t === 'function' ? opts.t : function (k) { return k; };
+    var leadEl = g.document.getElementById('omsLead')
+      || g.document.getElementById('ksnetLead');
+    var hintEl = g.document.getElementById('buyerHint')
+      || g.document.getElementById('ksnetHostedNote');
+    function applyOne(el, showKey, i18nKey, fallbackKey) {
+      if (!el) return;
+      var show = true;
+      if (ctx && ctx[showKey] === false) show = false;
+      if (ctx && String(ctx[showKey.replace('Show', 'Mode')] || '').toUpperCase() === 'DISABLED') show = false;
+      el.classList.toggle('d-none', !show);
+      if (!show) return;
+      el.classList.add('text-center');
+      var i18n = ctx && ctx[i18nKey];
+      var text = pickLangMap(i18n, lang);
+      if (!text) text = tFn(fallbackKey) || '';
+      if (text) el.textContent = text;
+    }
+    applyOne(leadEl, 'redirectCheckoutLeadShow', 'redirectCheckoutLeadI18n', 'lead');
+    applyOne(hintEl, 'redirectCheckoutHintShow', 'redirectCheckoutHintI18n',
+      hintEl && hintEl.id === 'ksnetHostedNote' ? 'hostedNote' : 'hint');
+  }
+
+  /** 주문번호 행 — 가맹 urlPayOrderNoShowYn (기본 N). 백단 orderNo 필드는 유지. */
+  function applyOrderNoVisibility(ctx) {
+    var useOrder = urlPayYnIsYes(ctx && ctx.urlPayOrderNoShowYn, false);
+    var orderRow = g.document.getElementById('orderRow');
+    if (orderRow) {
+      orderRow.classList.toggle('d-none', !useOrder);
+    }
+  }
+
   function applyBuyerContactVisibility(ctx) {
     if (!ctx) return;
+    applyOrderNoVisibility(ctx);
     var useName = urlPayYnIsYes(ctx.urlPayBuyerNameUseYn, true);
     var useEmail = urlPayYnIsYes(ctx.urlPayBuyerEmailUseYn, true);
     var useCountry = urlPayYnIsYes(ctx.urlPayBuyerCountryUseYn, true);
@@ -1346,6 +1386,8 @@
     applyUrlPayPresentationOptions: applyUrlPayPresentationOptions,
     applyUrlPayInputMode: applyUrlPayInputMode,
     applyBuyerContactVisibility: applyBuyerContactVisibility,
+    applyOrderNoVisibility: applyOrderNoVisibility,
+    applyRedirectCheckoutCopy: applyRedirectCheckoutCopy,
     applyPhoneDialCodeVisibility: applyPhoneDialCodeVisibility,
     readPhoneWithDial: readPhoneWithDial,
     normalizeUrlPayInputMode: normalizeUrlPayInputMode,

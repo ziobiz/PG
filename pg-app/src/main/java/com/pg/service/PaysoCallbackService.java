@@ -32,15 +32,18 @@ public class PaysoCallbackService {
     private final HqNotifyEnvService hqNotifyEnvService;
     private final PaysoSaleRecordService paysoSaleRecordService;
     private final MerchantOutboundNotifyService merchantOutboundNotifyService;
+    private final PaysoCardEnrichService paysoCardEnrichService;
     private final ObjectMapper objectMapper;
 
     public PaysoCallbackService(HqNotifyEnvService hqNotifyEnvService,
                                 PaysoSaleRecordService paysoSaleRecordService,
                                 MerchantOutboundNotifyService merchantOutboundNotifyService,
+                                PaysoCardEnrichService paysoCardEnrichService,
                                 ObjectMapper objectMapper) {
         this.hqNotifyEnvService = hqNotifyEnvService;
         this.paysoSaleRecordService = paysoSaleRecordService;
         this.merchantOutboundNotifyService = merchantOutboundNotifyService;
+        this.paysoCardEnrichService = paysoCardEnrichService;
         this.objectMapper = objectMapper;
     }
 
@@ -91,6 +94,15 @@ public class PaysoCallbackService {
                 updated = paysoSaleRecordService.applyPaidOutcome(
                         ids.orderNo, ids.compId, paysoKey, refno,
                         text(root, "customeremail", "customerEmail", "payer_name"));
+                if (updated.isPresent()) {
+                    String cardRaw = text(root, "cardNo", "card_no", "CardNo", "maskedCard",
+                            "cardMask", "CardMask", "panMask", "CardNumber");
+                    String pgOrd = text(root, "orderNo", "OrderNo", "pgOrderNo");
+                    if (!cardRaw.isBlank() || !pgOrd.isBlank()) {
+                        paysoSaleRecordService.applyInquiryEnrichment(
+                                updated.get(), refno, pgOrd, txnId, cardRaw, null);
+                    }
+                }
             }
         } else {
             log.warn("PAYSO webhook Comp-Id unresolved refno={} txn={} fail={} ip={}",
@@ -103,6 +115,13 @@ public class PaysoCallbackService {
                 merchantOutboundNotifyService.scheduleAfterTxnCommit(t, null, ch);
             } catch (Exception e) {
                 log.warn("PAYSO merchant notify: {}", e.getMessage());
+            }
+            if ("10".equals(t.getStatus() != null ? t.getStatus().trim() : "")) {
+                try {
+                    paysoCardEnrichService.scheduleAfterCommit(t);
+                } catch (Exception e) {
+                    log.debug("PAYSO card enrich schedule: {}", e.getMessage());
+                }
             }
         });
         return outcomeJson(true, null, paysoKey, ids, HttpStatus.OK);

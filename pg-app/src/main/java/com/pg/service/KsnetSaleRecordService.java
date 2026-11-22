@@ -192,6 +192,16 @@ public class KsnetSaleRecordService {
             PgTrnsctn t = ex.get();
             String prev = trim(t.getStatus());
             if (ST_PAID.equals(prev)) {
+                /* 이미 승인이어도 마스킹 카드가 비어 있으면 노티·재승인 값으로 보강 */
+                boolean cardFilled = fillMaskedCardIfEmpty(t, maskedCard);
+                if (tid != null && !tid.isBlank()
+                        && (t.getChillTransactionId() == null || t.getChillTransactionId().isBlank())) {
+                    t.setChillTransactionId(truncate(tid.trim(), 64));
+                    cardFilled = true;
+                }
+                if (cardFilled) {
+                    pgTrnsctnRepository.save(t);
+                }
                 return Optional.of(t);
             }
             if (tid != null && !tid.isBlank()) {
@@ -202,9 +212,7 @@ public class KsnetSaleRecordService {
             if (!approval.isBlank()) {
                 t.setApprovalNo(truncate(approval, 20));
             }
-            if (maskedCard != null && !maskedCard.isBlank()) {
-                t.setCardPanDisplay(truncate(maskedCard.trim(), 32));
-            }
+            fillMaskedCardIfEmpty(t, maskedCard);
             if (paid) {
                 t.setStatus(ST_PAID);
                 ZoneId wall = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
@@ -329,6 +337,28 @@ public class KsnetSaleRecordService {
         out.put("status", t.getStatus());
         out.put("van", t.getVan());
         return out;
+    }
+
+    /** 마스킹 카드가 비어 있을 때만 채움. true = 값이 반영됨. */
+    private static boolean fillMaskedCardIfEmpty(PgTrnsctn t, String maskedCard) {
+        if (t == null || maskedCard == null || maskedCard.isBlank()) {
+            return false;
+        }
+        if (t.getCardPanDisplay() != null && !t.getCardPanDisplay().isBlank()) {
+            return false;
+        }
+        String raw = maskedCard.trim().replaceAll("\\s+", "");
+        if (raw.length() < 4) {
+            return false;
+        }
+        String display = raw;
+        if (!raw.contains("*") && raw.replaceAll("[^0-9]", "").length() >= 8) {
+            String d = raw.replaceAll("[^0-9]", "");
+            display = d.substring(0, Math.min(6, d.length())) + "***"
+                    + d.substring(Math.max(0, d.length() - 4));
+        }
+        t.setCardPanDisplay(truncate(display, 32));
+        return true;
     }
 
     private void hookReceiptEmail(PgTrnsctn t) {

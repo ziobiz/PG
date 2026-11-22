@@ -82,6 +82,7 @@ public class ApiHqController {
     private final UrlPayDisplayFxService urlPayDisplayFxService;
     private final com.pg.urlpay.UrlPayCheckoutMoveService urlPayCheckoutMoveService;
     private final com.pg.urlpay.CheckoutHeaderSubtitleCopyService checkoutHeaderSubtitleCopyService;
+    private final com.pg.urlpay.RedirectCheckoutCopyService redirectCheckoutCopyService;
 
     public ApiHqController(CommissionPolicyRepository commissionPolicyRepository,
                            ChargebackFeePolicyRepository chargebackFeePolicyRepository,
@@ -101,7 +102,8 @@ public class ApiHqController {
                            UrlPayCheckoutFieldPresetService urlPayCheckoutFieldPresetService,
                            UrlPayDisplayFxService urlPayDisplayFxService,
                            com.pg.urlpay.UrlPayCheckoutMoveService urlPayCheckoutMoveService,
-                           com.pg.urlpay.CheckoutHeaderSubtitleCopyService checkoutHeaderSubtitleCopyService) {
+                           com.pg.urlpay.CheckoutHeaderSubtitleCopyService checkoutHeaderSubtitleCopyService,
+                           com.pg.urlpay.RedirectCheckoutCopyService redirectCheckoutCopyService) {
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.chargebackFeePolicyRepository = chargebackFeePolicyRepository;
         this.hqApiConfigRepository = hqApiConfigRepository;
@@ -121,6 +123,7 @@ public class ApiHqController {
         this.urlPayDisplayFxService = urlPayDisplayFxService;
         this.urlPayCheckoutMoveService = urlPayCheckoutMoveService;
         this.checkoutHeaderSubtitleCopyService = checkoutHeaderSubtitleCopyService;
+        this.redirectCheckoutCopyService = redirectCheckoutCopyService;
     }
 
     private static PageResult<Map<String, Object>> emptyPage(int page, int size) {
@@ -1971,6 +1974,10 @@ public class ApiHqController {
         data.put("webPayQrFooterTextDefault", "Provided by ICOPAY");
         data.put("urlPayCheckoutMoveModeDefault", "DISABLED");
         data.put("urlPayCheckoutMoveMessageDefault", com.pg.urlpay.UrlPayCheckoutMoveService.DEFAULT_MESSAGE_KO);
+        data.put("redirectCheckoutLeadModeDefault", "ACTIVE");
+        data.put("redirectCheckoutLeadTextDefault", com.pg.urlpay.RedirectCheckoutCopyModeUtil.DEFAULT_LEAD_KO);
+        data.put("redirectCheckoutHintModeDefault", "ACTIVE");
+        data.put("redirectCheckoutHintTextDefault", com.pg.urlpay.RedirectCheckoutCopyModeUtil.DEFAULT_HINT_KO);
         data.put("urlPayShippingAddressUseDefaultYn", "N");
         data.put("urlPayBuyerEmailUseDefaultYn", "Y");
         data.put("urlPayBuyerCountryUseDefaultYn", "Y");
@@ -2143,6 +2150,22 @@ public class ApiHqController {
                             && !c.getUnifiedPaymentExtraFooterTextDefault().isBlank()
                             ? c.getUnifiedPaymentExtraFooterTextDefault()
                             : com.pg.urlpay.UnifiedPaymentCopyDefaults.EXTRA_FOOTER_EN);
+            data.put("redirectCheckoutLeadModeDefault",
+                    c.getRedirectCheckoutLeadModeDefault() != null
+                            ? c.getRedirectCheckoutLeadModeDefault() : "ACTIVE");
+            data.put("redirectCheckoutLeadTextDefault",
+                    c.getRedirectCheckoutLeadTextDefault() != null
+                            && !c.getRedirectCheckoutLeadTextDefault().isBlank()
+                            ? c.getRedirectCheckoutLeadTextDefault()
+                            : com.pg.urlpay.RedirectCheckoutCopyModeUtil.DEFAULT_LEAD_KO);
+            data.put("redirectCheckoutHintModeDefault",
+                    c.getRedirectCheckoutHintModeDefault() != null
+                            ? c.getRedirectCheckoutHintModeDefault() : "ACTIVE");
+            data.put("redirectCheckoutHintTextDefault",
+                    c.getRedirectCheckoutHintTextDefault() != null
+                            && !c.getRedirectCheckoutHintTextDefault().isBlank()
+                            ? c.getRedirectCheckoutHintTextDefault()
+                            : com.pg.urlpay.RedirectCheckoutCopyModeUtil.DEFAULT_HINT_KO);
             if (c.getUrlPayCheckoutMoveModeDefault() != null) {
                 data.put("urlPayCheckoutMoveModeDefault",
                         com.pg.urlpay.UrlPayCheckoutMoveModeUtil.normalizeHq(c.getUrlPayCheckoutMoveModeDefault()));
@@ -2368,6 +2391,16 @@ public class ApiHqController {
         String upeStr = upe != null ? upe.toString().trim() : "";
         c.setUnifiedPaymentExtraFooterTextDefault(upeStr.isEmpty()
                 ? com.pg.urlpay.UnifiedPaymentCopyDefaults.EXTRA_FOOTER_EN : upeStr);
+        c.setRedirectCheckoutLeadModeDefault(String.valueOf(body.getOrDefault("redirectCheckoutLeadModeDefault", "ACTIVE")));
+        Object rcl = body.get("redirectCheckoutLeadTextDefault");
+        String rclStr = rcl != null ? rcl.toString().trim() : "";
+        c.setRedirectCheckoutLeadTextDefault(rclStr.isEmpty()
+                ? com.pg.urlpay.RedirectCheckoutCopyModeUtil.DEFAULT_LEAD_KO : rclStr);
+        c.setRedirectCheckoutHintModeDefault(String.valueOf(body.getOrDefault("redirectCheckoutHintModeDefault", "ACTIVE")));
+        Object rch = body.get("redirectCheckoutHintTextDefault");
+        String rchStr = rch != null ? rch.toString().trim() : "";
+        c.setRedirectCheckoutHintTextDefault(rchStr.isEmpty()
+                ? com.pg.urlpay.RedirectCheckoutCopyModeUtil.DEFAULT_HINT_KO : rchStr);
         urlPayCheckoutMoveService.applyHqMessage(c,
                 String.valueOf(body.getOrDefault("urlPayCheckoutMoveModeDefault", "DISABLED")),
                 body.get("urlPayCheckoutMoveMessageDefault") != null
@@ -2498,6 +2531,7 @@ public class ApiHqController {
         checkoutHeaderSubtitleCopyService.applyUnifiedDefaultsToHq(c);
         checkoutHeaderSubtitleCopyService.applyCryptoDefaultsToHq(c);
         checkoutHeaderSubtitleCopyService.applyQrDefaultsToHq(c);
+        redirectCheckoutCopyService.applyToHqConfig(c);
         hqApiConfigRepository.save(c);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다.")));
     }

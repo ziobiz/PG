@@ -381,6 +381,7 @@ public class ApiCompController {
             @RequestParam(required = false) String urlPayBuyerPhoneUseYn,
             @RequestParam(required = false) String urlPayBuyerNameUseYn,
             @RequestParam(required = false) String apiBuyerNameUseYn,
+            @RequestParam(required = false) String urlPayOrderNoShowYn,
             @RequestParam(required = false) String urlPayCheckoutFieldPresetId,
             @RequestParam(required = false) String urlPayInputMode,
             @RequestParam(required = false) String urlPayCardExpiryMode,
@@ -390,6 +391,10 @@ public class ApiCompController {
             @RequestParam(required = false) String apiJpaySubscriptionUseYn,
             @RequestParam(required = false) String apiBrokerInlineUseYn,
             @RequestParam(required = false) String apiBrokerRedirectUseYn,
+            @RequestParam(required = false) String redirectCheckoutLeadMode,
+            @RequestParam(required = false) String redirectCheckoutLeadText,
+            @RequestParam(required = false) String redirectCheckoutHintMode,
+            @RequestParam(required = false) String redirectCheckoutHintText,
             @RequestParam(required = false) String apiWordpressUseYn,
             @RequestParam(required = false) String mobileCheckoutMode,
             @RequestParam(required = false) String jpayCheckoutFieldMode,
@@ -482,6 +487,7 @@ public class ApiCompController {
                 urlPayBuyerPhoneUseYn,
                 urlPayBuyerNameUseYn,
                 apiBuyerNameUseYn,
+                urlPayOrderNoShowYn,
                 urlPayInputMode,
                 urlPayCardExpiryMode,
                 cardAuthMode,
@@ -536,6 +542,9 @@ public class ApiCompController {
         compService.applyMerchantUrlPayCardInput(saved.getCode(), urlPayCardInputMode, urlPayCardInputDisabledText);
         compService.applyMerchantUrlPayCheckoutMove(saved.getCode(), urlPayCheckoutMoveMode,
                 urlPayCheckoutMoveTargetType, urlPayCheckoutMoveTarget, urlPayCheckoutMoveMessage);
+        compService.applyMerchantRedirectCheckoutCopy(saved.getCode(),
+                redirectCheckoutLeadMode, redirectCheckoutLeadText,
+                redirectCheckoutHintMode, redirectCheckoutHintText);
         compService.applyMerchantOperationRecord(saved.getCode(), operationRecord);
         compService.saveTradeNmForOrg(saved.getId(), tradeNm, compDiv);
         merchantPayLimitService.saveFromRequest(saved.getId(), compDiv, request);
@@ -745,6 +754,7 @@ public class ApiCompController {
             @RequestParam(required = false) String urlPayBuyerPhoneUseYn,
             @RequestParam(required = false) String urlPayBuyerNameUseYn,
             @RequestParam(required = false) String apiBuyerNameUseYn,
+            @RequestParam(required = false) String urlPayOrderNoShowYn,
             @RequestParam(required = false) String urlPayCheckoutFieldPresetId,
             @RequestParam(required = false) String urlPayInputMode,
             @RequestParam(required = false) String urlPayCardExpiryMode,
@@ -754,6 +764,10 @@ public class ApiCompController {
             @RequestParam(required = false) String apiJpaySubscriptionUseYn,
             @RequestParam(required = false) String apiBrokerInlineUseYn,
             @RequestParam(required = false) String apiBrokerRedirectUseYn,
+            @RequestParam(required = false) String redirectCheckoutLeadMode,
+            @RequestParam(required = false) String redirectCheckoutLeadText,
+            @RequestParam(required = false) String redirectCheckoutHintMode,
+            @RequestParam(required = false) String redirectCheckoutHintText,
             @RequestParam(required = false) String apiWordpressUseYn,
             @RequestParam(required = false) String mobileCheckoutMode,
             @RequestParam(required = false) String jpayCheckoutFieldMode,
@@ -853,6 +867,7 @@ public class ApiCompController {
                     urlPayBuyerPhoneUseYn,
                     urlPayBuyerNameUseYn,
                     apiBuyerNameUseYn,
+                    urlPayOrderNoShowYn,
                     urlPayInputMode,
                     urlPayCardExpiryMode,
                     cardAuthMode,
@@ -924,6 +939,9 @@ public class ApiCompController {
                 compService.applyMerchantUrlPayCardInput(compId, urlPayCardInputMode, urlPayCardInputDisabledText);
                 compService.applyMerchantUrlPayCheckoutMove(compId, urlPayCheckoutMoveMode,
                         urlPayCheckoutMoveTargetType, urlPayCheckoutMoveTarget, urlPayCheckoutMoveMessage);
+                compService.applyMerchantRedirectCheckoutCopy(compId,
+                        redirectCheckoutLeadMode, redirectCheckoutLeadText,
+                        redirectCheckoutHintMode, redirectCheckoutHintText);
                 compService.applyMerchantOperationRecord(compId, operationRecord);
                 compService.saveTradeNmByCompCode(compId, tradeNm, compDiv);
                 merchantPayLimitService.saveFromRequestByCode(compId, compDiv, request);

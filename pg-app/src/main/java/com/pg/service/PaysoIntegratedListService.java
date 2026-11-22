@@ -45,25 +45,31 @@ public class PaysoIntegratedListService {
     private static final int MAX_SEARCH_ROWS = 1000;
     private static final int MAX_DAILY_ROWS = 5000;
 
+    /** PAYSO 포털 MDR 기본(Inquiry에 fee 없을 때 통합내역 표시용). */
+    private static final BigDecimal PAYSO_DEFAULT_FEE_RATE = new BigDecimal("0.028");
+
     private final PaysoApiClient paysoApiClient;
     private final PgAgencyRepository pgAgencyRepository;
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final OrgUnitRepository orgUnitRepository;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
     private final PayListService payListService;
+    private final PaysoSaleRecordService paysoSaleRecordService;
 
     public PaysoIntegratedListService(PaysoApiClient paysoApiClient,
                                       PgAgencyRepository pgAgencyRepository,
                                       PgTrnsctnRepository pgTrnsctnRepository,
                                       OrgUnitRepository orgUnitRepository,
                                       HqLedgerSysSettingsService hqLedgerSysSettingsService,
-                                      PayListService payListService) {
+                                      PayListService payListService,
+                                      PaysoSaleRecordService paysoSaleRecordService) {
         this.paysoApiClient = paysoApiClient;
         this.pgAgencyRepository = pgAgencyRepository;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
         this.payListService = payListService;
+        this.paysoSaleRecordService = paysoSaleRecordService;
     }
 
     public PageResult<Map<String, Object>> searchPayments(int page, int size, String orderDir,
@@ -83,8 +89,9 @@ public class PaysoIntegratedListService {
         FetchResult fetched = fetchInquiryRows(creds, tFrom, tTo, MAX_SEARCH_ROWS);
         List<Map<String, Object>> all = new ArrayList<>();
         List<PgTrnsctn> matched = new ArrayList<>();
+        int[] cardDetailBudget = {30};
         for (Map<String, Object> raw : fetched.rows) {
-            Map<String, Object> row = toPaymentRow(raw, all.size() + 1);
+            Map<String, Object> row = toPaymentRow(raw, all.size() + 1, creds, cardDetailBudget);
             if (!matchesKeyword(row, fieldType, keyword)) {
                 continue;
             }
@@ -277,6 +284,11 @@ public class PaysoIntegratedListService {
     }
 
     private Map<String, Object> toPaymentRow(Map<String, Object> raw, int rowNo) {
+        return toPaymentRow(raw, rowNo, null, null);
+    }
+
+    private Map<String, Object> toPaymentRow(Map<String, Object> raw, int rowNo,
+                                            PaysoCredentials creds, int[] cardDetailBudget) {
         String statusCode = str(raw.get("statusCode"));
         String statusDesc = str(raw.get("statusDesc"));
         String mapped = mapPaysoStatus(statusCode, statusDesc);
@@ -284,8 +296,14 @@ public class PaysoIntegratedListService {
         String orderNo = str(raw.get("orderNo"));
         String referenceNo = str(raw.get("referenceNo"));
         String transactionId = str(raw.get("transactionId"));
-        String displayTxn = !referenceNo.isEmpty() ? referenceNo
-                : (!transactionId.isEmpty() ? transactionId : orderNo);
+        /* 승인번호 표시 = Reference(숫자 12자리)만. hex·PG Order No 혼용 금지 */
+        String displayTxn = PaysoSaleRecordService.isPaysoReferenceNo(referenceNo) ? referenceNo.trim()
+                : (PaysoSaleRecordService.isPaysoReferenceNo(transactionId) ? transactionId.trim()
+                : (PaysoSaleRecordService.isPaysoReferenceNo(orderNo) ? orderNo.trim() : referenceNo));
+        if (displayTxn.isEmpty()) {
+            displayTxn = !referenceNo.isEmpty() ? referenceNo
+                    : (!transactionId.isEmpty() ? transactionId : orderNo);
+        }
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("rowNo", rowNo);
         m.put("transactionId", displayTxn);
@@ -293,10 +311,13 @@ public class PaysoIntegratedListService {
         m.put("referenceNo", referenceNo);
         m.put("paymentChannel", str(raw.get("channelCode")));
         m.put("amount", str(raw.get("amount")));
-        m.put("fee", "");
+        String feeDisp = resolvePaysoFeeDisplay(raw, str(raw.get("amount")), mapped);
+        m.put("fee", feeDisp);
         m.put("totalAmount", str(raw.get("amount")));
         m.put("refundAmount", "");
         m.put("discount", "");
+        m.put("cardType", str(raw.get("cardType")));
+        m.put("payCardNo", PaysoSaleRecordService.normalizePaysoCardMask(str(raw.get("cardNo"))));
         boolean icopayCode = "10".equals(mapped) || "99".equals(mapped) || "42".equals(mapped) || "20".equals(mapped);
         m.put("status", icopayCode ? mapped : statusText);
         m.put("description", statusText);
@@ -309,10 +330,129 @@ public class PaysoIntegratedListService {
         m.put("compId", "");
         m.put("settled", "");
         m.put("icopay", "N");
+        /* 통합내역 승인번호 = Reference(ICOPAY→PAYSO 조인 키) */
+        m.put("chillTransactionId", displayTxn);
+        m.put("approvalNo", displayTxn);
         String when = str(raw.get("orderDateTime"));
         applyPaymentTimes(m, when, when);
-        findLocalTxn(referenceNo, orderNo, transactionId).ifPresent(txn -> enrichFromLocal(m, txn));
+        findLocalTxn(referenceNo, orderNo, transactionId).ifPresent(txn -> {
+            enrichFromLocal(m, txn);
+            maybeFillCardFromOrderDetail(raw, m, creds, cardDetailBudget, referenceNo, orderNo);
+            if (str(m.get("fee")).isEmpty() && !feeDisp.isEmpty()) {
+                m.put("fee", feeDisp);
+            }
+            String feeForPersist = !str(m.get("fee")).isEmpty() ? str(m.get("fee")) : feeDisp;
+            persistInquiryEnrichment(txn, raw, feeForPersist);
+        });
         return m;
+    }
+
+    private void maybeFillCardFromOrderDetail(Map<String, Object> raw, Map<String, Object> m,
+                                              PaysoCredentials creds, int[] cardDetailBudget,
+                                              String referenceNo, String orderNo) {
+        if (creds == null || cardDetailBudget == null || cardDetailBudget.length == 0 || cardDetailBudget[0] <= 0) {
+            return;
+        }
+        boolean needCard = str(m.get("payCardNo")).isEmpty() && str(raw.get("cardNo")).isEmpty();
+        boolean needFee = str(m.get("fee")).isEmpty() && str(raw.get("fee")).isEmpty()
+                && str(raw.get("feePercent")).isEmpty();
+        if (!needCard && !needFee) {
+            return;
+        }
+        try {
+            cardDetailBudget[0]--;
+            Map<String, Object> detail = paysoApiClient.orderDetail(creds, referenceNo, orderNo);
+            if (!Boolean.TRUE.equals(detail.get("ok"))) {
+                return;
+            }
+            String card = PaysoSaleRecordService.normalizePaysoCardMask(str(detail.get("cardNo")));
+            if (!card.isEmpty()) {
+                m.put("payCardNo", card);
+                raw.put("cardNo", card);
+            }
+            String feePct = str(detail.get("feePercent"));
+            if (!feePct.isEmpty()) {
+                raw.put("feePercent", feePct);
+                String amt = str(m.get("amount"));
+                if (str(m.get("fee")).isEmpty()) {
+                    String computed = resolvePaysoFeeDisplay(raw, amt, str(m.get("status")));
+                    if (!computed.isEmpty()) {
+                        m.put("fee", computed);
+                        raw.put("fee", computed);
+                    }
+                }
+            }
+            String fee = str(detail.get("fee"));
+            if (!fee.isEmpty() && str(m.get("fee")).isEmpty()) {
+                m.put("fee", fee);
+                raw.put("fee", fee);
+            }
+            String ref = str(detail.get("referenceNo"));
+            if (!ref.isEmpty() && str(raw.get("referenceNo")).isEmpty()) {
+                raw.put("referenceNo", ref);
+            }
+            String pgOrder = str(detail.get("orderNo"));
+            if (!pgOrder.isEmpty() && str(raw.get("orderNo")).isEmpty()) {
+                raw.put("orderNo", pgOrder);
+            }
+        } catch (Exception ignored) {
+            /* 목록 유지 */
+        }
+    }
+
+    private static String resolvePaysoFeeDisplay(Map<String, Object> raw, String amountStr, String mappedStatus) {
+        String fee = str(raw.get("fee"));
+        if (!fee.isEmpty()) {
+            return fee;
+        }
+        String pct = str(raw.get("feePercent"));
+        BigDecimal amt = parseDecimal(amountStr);
+        if (amt != null && !pct.isEmpty()) {
+            BigDecimal rate = parseDecimal(pct);
+            if (rate != null) {
+                if (rate.compareTo(BigDecimal.ONE) > 0) {
+                    rate = rate.movePointLeft(2);
+                }
+                return amt.multiply(rate).setScale(2, java.math.RoundingMode.HALF_UP).toPlainString();
+            }
+        }
+        /* Inquiry에 fee 없으면 포털과 동일 MDR 2.8%로 표시(성공·완료 건) */
+        if (amt != null && ("10".equals(mappedStatus) || "CP".equalsIgnoreCase(str(raw.get("statusCode")))
+                || str(raw.get("statusDesc")).toUpperCase(Locale.ROOT).contains("COMPLETE")
+                || str(raw.get("statusDesc")).toUpperCase(Locale.ROOT).contains("SUCCESS")
+                || str(raw.get("statusDesc")).toUpperCase(Locale.ROOT).contains("PAID"))) {
+            return amt.multiply(PAYSO_DEFAULT_FEE_RATE).setScale(2, java.math.RoundingMode.HALF_UP).toPlainString();
+        }
+        return "";
+    }
+
+    private static BigDecimal parseDecimal(String s) {
+        if (s == null || s.isBlank()) {
+            return null;
+        }
+        try {
+            return new BigDecimal(s.trim().replace(",", ""));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private void persistInquiryEnrichment(PgTrnsctn txn, Map<String, Object> raw, String feeDisp) {
+        try {
+            BigDecimal feeBd = parseDecimal(feeDisp);
+            if (feeBd == null) {
+                feeBd = parseDecimal(str(raw.get("fee")));
+            }
+            paysoSaleRecordService.applyInquiryEnrichment(
+                    txn,
+                    str(raw.get("referenceNo")),
+                    str(raw.get("orderNo")),
+                    str(raw.get("transactionId")),
+                    str(raw.get("cardNo")),
+                    feeBd);
+        } catch (Exception ignored) {
+            /* 목록 조회는 유지 */
+        }
     }
 
     private Optional<PgTrnsctn> findLocalTxn(String referenceNo, String orderNo, String transactionId) {
@@ -348,11 +488,32 @@ public class PaysoIntegratedListService {
         if (txn.getTrnId() != null) {
             m.put("trnId", txn.getTrnId());
         }
+        /* 승인번호 = pay_no(Reference) 우선 — 결제내역 1안과 동일 */
+        String pay = txn.getPayNo() != null ? txn.getPayNo().trim() : "";
+        String order = txn.getOrderNo() != null ? txn.getOrderNo().trim() : "";
+        if (!pay.isBlank() && !pay.equalsIgnoreCase(order)) {
+            m.put("chillTransactionId", pay);
+            m.put("approvalNo", pay);
+            m.put("transactionId", pay);
+        }
+        if (txn.getOrderNo() != null && !txn.getOrderNo().isBlank()) {
+            /* 가맹 주문 — PG Order No 와 혼동 금지: 로컬 매칭 시 가맹 order 로 표시 */
+            m.put("merchantOrderNo", txn.getOrderNo().trim());
+        }
         if (txn.getStatus() != null && !txn.getStatus().isBlank()) {
             m.put("status", txn.getStatus().trim());
         }
         if (txn.getCustomerNm() != null) {
             m.put("customer", txn.getCustomerNm());
+        }
+        if (txn.getCardPanDisplay() != null && !txn.getCardPanDisplay().isBlank()) {
+            String localCard = txn.getCardPanDisplay().trim();
+            if (str(m.get("payCardNo")).isEmpty()) {
+                m.put("payCardNo", localCard);
+            }
+        }
+        if (txn.getChillFeeAmt() != null && str(m.get("fee")).isEmpty()) {
+            m.put("fee", txn.getChillFeeAmt().stripTrailingZeros().toPlainString());
         }
         if (txn.getMerchantId() != null) {
             m.put("merchant", txn.getMerchantId());

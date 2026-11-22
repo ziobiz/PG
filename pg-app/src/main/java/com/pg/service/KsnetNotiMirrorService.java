@@ -61,6 +61,12 @@ public class KsnetNotiMirrorService {
         body.put("currency", nz(txn.getCurType(), "USD"));
         body.put("resultcd", paid ? "0000" : "9999");
         body.put("Comp-Id", nz(txn.getMerchantId(), ""));
+        String card = nz(txn.getCardPanDisplay(), "");
+        if (!card.isBlank()) {
+            body.put("cardno", card);
+            body.put("cardNo", card);
+            body.put("cardMasked", card);
+        }
         body.put("pgKind", "ksnet");
         body.put("icopay_source", "ksnet_approve_mirror");
         return body;

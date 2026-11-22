@@ -6,13 +6,295 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '6.84';
+  var CURRENT_LIVE = '6.94';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '6.94',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          'RE 결제창 상·하단 안내 가운데 정렬·문구 정리. 본사정책·가맹「API URL REDIRECT 중계 결제」에서 본사따름/활성/직접입력/비활성 설정(가맹 우선, REDIRECT·RE URL만)'
+        ],
+        EN: [
+          'RE checkout top/bottom messages centered; HQ + merchant API URL REDIRECT card: Follow HQ/Active/Custom/Off (merchant wins; RE only)'
+        ],
+        JP: [
+          'RE決済の上下案内を中央寄せ・文言整理。本社・加盟「API URL REDIRECT中継」で本社設定/活性/直接入力/非活性(加盟優先、REのみ)'
+        ],
+        CH: [
+          'RE 支付页上下提示居中并改文案；总部与商户「API URL REDIRECT 中继」支持跟随总部/启用/手输/关闭(商户优先，仅 RE)'
+        ],
+        TH: [
+          'จัดกลางข้อความบน/ล่างหน้า RE และตั้งค่า HQ+ร้าน「API URL REDIRECT」: ตาม HQ/เปิด/กรอกเอง/ปิด (ร้านมาก่อน, เฉพาะ RE)'
+        ]
+      }
+    },
+    {
+      version: '6.93',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          '리다이렉트 결제창 하단 안내: 「다음 화면에서 카드정보를 입력하고 결제 합니다.」(PAYSO·OMSPAY·KSNET, 5개국어)'
+        ],
+        EN: [
+          'Redirect checkout footer hint: enter card details on the next screen to pay (PAYSO·OMSPAY·KSNET, 5 languages)'
+        ],
+        JP: [
+          'リダイレクト決済の下部案内を「次の画面でカード情報を入力してお支払い」に簡略化(PAYSO・OMSPAY・KSNET、5言語)'
+        ],
+        CH: [
+          '跳转支付页底部提示改为「请在下一屏输入卡信息并完成支付」(PAYSO·OMSPAY·KSNET，五语)'
+        ],
+        TH: [
+          'ข้อความท้ายหน้าระบบ redirect: กรอกข้อมูลบัตรในหน้าถัดไปแล้วชำระ (PAYSO·OMSPAY·KSNET, 5 ภาษา)'
+        ]
+      }
+    },
+    {
+      version: '6.92',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          'KSNET 리다이렉트 결제창 UI를 PAYSO·OMSPAY와 동일 pay-row 구조로 통일. 주문번호 행은 가맹「주문번호」설정(기본 비활성)일 때만 표시(서버 orderNo는 유지)'
+        ],
+        EN: [
+          'Unify KSNET redirect checkout UI to PAYSO/OMSPAY pay-row layout. Order-no row shows only when merchant Order no. setting is ON (default OFF; server orderNo kept)'
+        ],
+        JP: [
+          'KSNETリダイレクト決済UIをPAYSO・OMSPAYと同じpay-row構成に統一。注文番号行は加盟「注文番号」設定ON時のみ表示(既定OFF、サーバorderNoは維持)'
+        ],
+        CH: [
+          'KSNET 跳转支付页 UI 与 PAYSO/OMSPAY 的 pay-row 结构统一。订单号行仅在商户「订单号」开启时显示(默认关，服务端 orderNo 仍保留)'
+        ],
+        TH: [
+          'รวม UI หน้า redirect ของ KSNET ให้โครง pay-row เหมือน PAYSO/OMSPAY — แสดงแถวเลขคำสั่งเมื่อร้านเปิด「เลขคำสั่ง」(ปิดเป็นค่าเริ่ม, เก็บ orderNo ฝั่งเซิร์ฟเวอร์)'
+        ]
+      }
+    },
+    {
+      version: '6.91',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          '결제내역 VIEW SETTING(총본사): 「주문번호(PG)」열·헬로 추가(기본 OFF). PAYSO 승인 후 Order Detail로 마스킹 카드 적재, KSNET 노티·미러에 카드번호 보강'
+        ],
+        EN: [
+          'Pay history VIEW SETTING (root HQ): add Order no. (PG) column/hello (default OFF); PAYSO fills masked card via Order Detail after pay; KSNET notify/mirror stores card'
+        ],
+        JP: [
+          '決済履歴 VIEW SETTING(総本部):「注文番号(PG)」列・Hello追加(既定OFF)。PAYSO承認後Order Detailでマスクカード格納、KSNETノティ・ミラーにカード番号補強'
+        ],
+        CH: [
+          '支付明细 VIEW SETTING(总总部)：新增「订单号(PG)」列/Hello(默认关)；PAYSO 支付后经 Order Detail 写入掩码卡号；KSNET 通知/镜像补全卡号'
+        ],
+        TH: [
+          'ประวัติชำระ VIEW SETTING (HQ ราก): เพิ่มคอลัมน์/Hello「เลขคำสั่ง(PG)」(ปิดเป็นค่าเริ่ม); PAYSO เติมบัตรหลังชำระผ่าน Order Detail; KSNET เก็บเลขบัตรใน notify/mirror'
+        ]
+      }
+    },
+    {
+      version: '6.90',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          'KSNET 결제창: 가맹 URL결제「구매자 국가」활성 시 국가코드 노출·필수, 안내문구에서 통화(JPY 등) 표기 제거'
+        ],
+        EN: [
+          'KSNET checkout: show required country code when merchant URL-pay buyer-country is ON; remove currency (e.g. JPY) from hosted note'
+        ],
+        JP: [
+          'KSNET決済画面: 加盟URL決済「購入者国」ON時に国コード表示・必須、案内文から通貨(JPY等)表記を削除'
+        ],
+        CH: [
+          'KSNET 支付页：商户 URL 支付「购买者国家」开启时显示并必填国家代码；托管提示去掉币种(JPY等)'
+        ],
+        TH: [
+          'หน้าชำระ KSNET: แสดงรหัสประเทศเมื่อร้านเปิดใช้ประเทศผู้ซื้อ และลบสกุลเงิน (เช่น JPY) จากข้อความแนะนำ'
+        ]
+      }
+    },
+    {
+      version: '6.89',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          'PAYSO 통합내역: 기간 무거래(4A008/404)는 빈 목록으로 처리(오류 아님). Order Detail FeeRate로 수수료 보강'
+        ],
+        EN: [
+          'PAYSO integrated list: empty period (4A008/404) returns empty list (not an error); fee enriched from Order Detail FeeRate'
+        ],
+        JP: [
+          'PAYSO統合履歴: 期間内無取引(4A008/404)は空一覧(エラーではない)。Order Detail FeeRateで手数料補強'
+        ],
+        CH: [
+          'PAYSO 综合明细：无交易期间(4A008/404)返回空列表(非错误)；用 Order Detail FeeRate 补全手续费'
+        ],
+        TH: [
+          'รายการรวม PAYSO: ช่วงไม่มีรายการ (4A008/404) แสดงว่าง (ไม่ใช่ error) และเติมค่าธรรมเนียมจาก FeeRate'
+        ]
+      }
+    },
+    {
+      version: '6.88',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          'PAYSO 승인번호(ICOPAY→PG Reference): 전 가맹 동일 형식 숫자 12자리만 표시·저장. 가맹 주문(FS…)·PG hex txn 은 승인번호에 넣지 않음'
+        ],
+        EN: [
+          'PAYSO approval no. (ICOPAY→PG Reference): always 12-digit numeric for every merchant; never show merchant order (FS…) or PG hex txn as approval no.'
+        ],
+        JP: [
+          'PAYSO承認番号(ICOPAY→PG Reference): 全加盟同一の数字12桁のみ表示・保存。加盟注文(FS…)・PG hex txnは承認番号に入れない'
+        ],
+        CH: [
+          'PAYSO 批准号(ICOPAY→PG Reference)：全商户统一 12 位数字显示/存储；不把商户订单(FS…)或 PG hex txn 当作批准号'
+        ],
+        TH: [
+          'เลขอนุมัติ PAYSO (ICOPAY→PG Reference): ทุกร้านรูปแบบเดียวกัน ตัวเลข 12 หลักเท่านั้น — ไม่ใส่เลขคำสั่งร้าน (FS…) หรือ hex ของ PG'
+        ]
+      }
+    },
+    {
+      version: '6.87',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          '결제내역 승인번호: ICOPAY→PG 조인 키(pay_no/Reference) 우선 표시·검색(전 PG 공통 1안)',
+          'PAYSO 통합내역: Inquiry·Order Detail 대사로 수수료 표시, 마스킹 카드를 결제내역(card_pan_display)에 반영'
+        ],
+        EN: [
+          'Payment list approval no.: prefer ICOPAY→PG join key (pay_no/Reference) for display and search (all-PG option 1)',
+          'PAYSO integrated list: show fee via Inquiry/Order Detail reconcile; persist masked card to payment history'
+        ],
+        JP: [
+          '決済履歴の承認番号: ICOPAY→PG結合キー(pay_no/Reference)を優先表示・検索(全PG共通案1)',
+          'PAYSO統合履歴: Inquiry・Order Detail突合で手数料表示、マスクカードを決済履歴へ反映'
+        ],
+        CH: [
+          '支付明细批准号：优先显示/搜索 ICOPAY→PG 关联键(pay_no/Reference)（全 PG 方案1）',
+          'PAYSO 综合明细：Inquiry/Order Detail 对账显示手续费，并将掩码卡号写入支付明细'
+        ],
+        TH: [
+          'เลขอนุมัติในประวัติชำระ: แสดง/ค้นด้วยคีย์เชื่อม ICOPAY→PG (pay_no/Reference) เป็นหลัก (แผน 1 ทุก PG)',
+          'รายการรวม PAYSO: แสดงค่าธรรมเนียมจาก Inquiry/Order Detail และบันทึกบัตรแบบมาสก์ลงประวัติชำระ'
+        ]
+      },
+      howTo: {
+        KO: [
+          {
+            title: '승인번호·카드·수수료 확인',
+            steps: [
+              '결제내역「승인번호」= 우리가 PG에 보낸 참조(PAYSO면 Reference 12자리). 「거래번호(우리)」= PS… 「주문번호」= 가맹 주문',
+              'PAYSO 통합내역을 기간 조회하면 수수료가 채워지고, 매칭된 건의 마스킹 카드가 결제내역 카드번호에 반영됩니다',
+              '가맹·구매자 통보에는 PG Order No·카드 원문을 넣지 않습니다'
+            ]
+          }
+        ],
+        EN: [
+          {
+            title: 'Check approval no., card, fee',
+            steps: [
+              'Payment list “Approval no.” = ICOPAY→PG ref (PAYSO: 12-digit Reference). “Txn (ours)” = PS…. “Order no.” = merchant order',
+              'Open PAYSO integrated list for a date range to fill fees and persist masked cards onto payment history',
+              'Merchant/buyer notifies do not include PG Order No or full PAN'
+            ]
+          }
+        ],
+        JP: [
+          {
+            title: '承認番号・カード・手数料の確認',
+            steps: [
+              '決済履歴「承認番号」= PGへ送った参照(PAYSOはReference 12桁)。「取引番号(自社)」= PS… 「注文番号」= 加盟注文',
+              'PAYSO統合履歴を期間照会すると手数料が入り、突合済み件のマスクカードが決済履歴へ反映されます',
+              '加盟・購入者通知にPG Order NoやPAN原文は含めません'
+            ]
+          }
+        ],
+        CH: [
+          {
+            title: '核对批准号、卡号、手续费',
+            steps: [
+              '支付明细「批准号」= 发给 PG 的关联键（PAYSO 为 12 位 Reference）。「交易号(我方)」= PS… 「订单号」= 商户订单',
+              '按日期打开 PAYSO 综合明细可填充手续费，并将掩码卡号写入支付明细',
+              '商户/买家通知不含 PG Order No 或完整卡号'
+            ]
+          }
+        ],
+        TH: [
+          {
+            title: 'ตรวจเลขอนุมัติ บัตร ค่าธรรมเนียม',
+            steps: [
+              'ประวัติชำระ「เลขอนุมัติ」= คีย์ที่ส่งไป PG (PAYSO คือ Reference 12 หลัก) 「เลขรายการ(เรา)」= PS… 「เลขคำสั่ง」= ของร้าน',
+              'เปิดรายการรวม PAYSO ตามช่วงวัน จะเติมค่าธรรมเนียม และบันทึกบัตรมาสก์ลงประวัติชำระ',
+              'แจ้งร้าน/ผู้ซื้อไม่ใส่ PG Order No หรือเลขบัตรเต็ม'
+            ]
+          }
+        ]
+      }
+    },
+    {
+      version: '6.86',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          'PAYSO: 가맹 주문번호를 승인키로 쓰는 오성공(미결제·성공 표시) 차단. 오성공 건은 forceCorrect로 실패(99) 정정·실패 통보 가능'
+        ],
+        EN: [
+          'PAYSO: block false success when merchant orderNo is used as approval key; forceCorrect can set false-paid to failed(99) and send fail notify'
+        ],
+        JP: [
+          'PAYSO: 加盟店注文番号を承認キーにする誤成功を拒否。誤成功はforceCorrectで失敗(99)訂正・失敗通知可能'
+        ],
+        CH: [
+          'PAYSO：禁止用商户订单号当审批键造成假成功；可用 forceCorrect 将假成功改为失败(99)并发送失败通知'
+        ],
+        TH: [
+          'PAYSO: บล็อกสำเร็จปลอมเมื่อใช้ orderNo ร้านเป็นคีย์อนุมัติ — forceCorrect แก้เป็นล้มเหลว(99) และแจ้งล้มเหลวได้'
+        ]
+      }
+    },
+    {
+      version: '6.85',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          '가맹 통보: NOTI 구매자 Result URL(/noti/result/…)·404 등 영구 오류는 재시도하지 않음 — 통보 폭주로 관리자 페이지가 안 열리던 장애 방지',
+          '가맹 통보는 전용 스레드 풀·짧은 타임아웃으로 처리해 결제 API 요청 스레드를 막지 않음'
+        ],
+        EN: [
+          'Merchant notify: skip NOTI buyer Result URLs (/noti/result/…) and do not retry permanent 4xx — prevents notify storms that freeze the admin UI',
+          'Merchant notify runs on a dedicated pool with short timeouts so payment API threads stay free'
+        ],
+        JP: [
+          '加盟通知: NOTI購入者Result URL(/noti/result/…)と404等の恒久エラーは再試行しない — 通知嵐で管理画面が止まる障害を防止',
+          '加盟通知は専用プール・短いタイムアウトで処理し、決済APIスレッドを塞がない'
+        ],
+        CH: [
+          '商户通知：跳过 NOTI 买家 Result URL（/noti/result/…），4xx 永久错误不重试 — 防止通知风暴导致管理页打不开',
+          '商户通知在专用线程池与短超时下执行，不阻塞支付 API 线程'
+        ],
+        TH: [
+          'แจ้งร้าน: ข้าม URL Result ของผู้ซื้อ NOTI (/noti/result/…) และไม่รีทราย 4xx ถาวร — กันพายุแจ้งจนหน้าแอดมินค้าง',
+          'แจ้งร้านรันบนพูลแยกพร้อม timeout สั้น ไม่บล็อกเธรด API ชำระ'
+        ]
+      }
+    },
     {
       version: '6.84',
       kind: 'minor',

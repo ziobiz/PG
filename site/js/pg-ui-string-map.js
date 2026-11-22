@@ -4474,6 +4474,7 @@
   M['성명(리다이렉트용)']={EN:'Name (redirect)',JP:'氏名(リダイレクト用)',CH:'姓名（跳转用）',TH:'ชื่อ (redirect)'};
   M['성명(URL결제)']={EN:'Name (URL pay)',JP:'氏名(URL決済)',CH:'姓名（URL支付）',TH:'ชื่อ (ชำระ URL)'};
   M['성명(API결제)']={EN:'Name (API pay)',JP:'氏名(API決済)',CH:'姓名（API支付）',TH:'ชื่อ (ชำระ API)'};
+  M['주문번호']={EN:'Order no.',JP:'注文番号',CH:'订单号',TH:'เลขคำสั่งซื้อ'};
   M['전화 국가번호']={EN:'Phone dial code',JP:'電話国番号',CH:'电话国家区号',TH:'รหัสประเทศโทร'};
   M['샌드박스 시크릿 발급']={EN:'Issue sandbox secret',JP:'サンドボックス秘密鍵発行',CH:'签发沙箱密钥',TH:'ออกคีย์ sandbox'};
 

@@ -176,7 +176,7 @@
       TH: 'ชื่อร้าน รหัส ชื่อผู้ถือบัตร เลขบัตร (ตัวเลข 3 หลักขึ้นไป)'
     },
     searchKeywordShort: { KO: '검색어', EN: 'Keyword', JP: '検索語', CH: '关键词', TH: 'คำค้น' },
-    searchChillTxnId: { KO: '승인번호(TransactionId)', EN: 'Approval no. (TransactionId)', JP: '承認番号(TransactionId)', CH: '授权号(TransactionId)', TH: 'เลขอนุมัติ (TransactionId)' },
+    searchChillTxnId: { KO: '승인번호(PG참조)', EN: 'Approval no. (PG ref)', JP: '承認番号(PG参照)', CH: '授权号(PG关联)', TH: 'เลขอนุมัติ (อ้างอิง PG)' },
     searchMerchantCode: { KO: 'MerchantCode', EN: 'MerchantCode', JP: 'MerchantCode', CH: 'MerchantCode', TH: 'MerchantCode' },
     searchChillStatus: { KO: 'Paid, WaitAuthorize…', EN: 'Paid, WaitAuthorize…', JP: 'Paid, WaitAuthorize…', CH: 'Paid, WaitAuthorize…', TH: 'Paid, WaitAuthorize…' },
     searchPaymentChannel: { KO: 'Appendix B', EN: 'Appendix B', JP: 'Appendix B', CH: 'Appendix B', TH: 'Appendix B' },
@@ -516,7 +516,8 @@
       packN('취소 건에 대한 정산 수수료 및 부가세는 정산 주기에 따라 반영됩니다.', 'Settlement fees and VAT for cancelled items follow the settlement cycle.', '取消取引の精算手数料・消費税は精算サイクルに従って反映されます。', '取消交易的结算手续费与增值税按结算周期反映。', 'ค่าธรรมเนียมและ VAT ของรายการยกเลิกสะท้อนตามรอบชำระบัญชี'),
       packN('정산 주기 및 정산 수수료는 가맹점별로 상이할 수 있습니다.', 'Settlement cycle and fees may differ per merchant.', '精算サイクル・手数料は加盟店ごとに異なる場合があります。', '结算周期与手续费可能因商户而异。', 'รอบและค่าธรรมเนียมอาจต่างกันในแต่ละร้าน'),
       packN('상단 한 줄: 건수(0이어도 항상 표시)·통화별 총거래·승인·환불·실패·수수료·담보·부가세·추정결산. 금액이 0인 항목·통화는 표시하지 않습니다(건수 제외). 「환불」은 상태 30·42만, 「실패」는 99·F0만. 아래: 상태 pill. 본사·총본사는 통화별 병기.', 'Top row: count (always shown, even 0) and per-currency metrics. Items/currencies with zero amount are hidden (except count). Refund=30·42 only; fail=99·F0. Below: status pills. HQ shows multiple currencies.', '上段: 件数(0でも常時表示)・通貨別各指標。金額0の項目・通貨は非表示(件数除く)。返金=30・42、失敗=99・F0。下段: pill。', '首行：件数(0 也显示)及各币种指标；金额为 0 的项/币种不显示(件数除外)。退款=30·42，失败=99·F0。下方 pill。', 'แถวบน: จำนวน(แสดงแม้ 0) และยอดตามสกุล — ซ่อนรายการ/สกุลที่ยอด 0 (ยกเว้นจำนวน) คืนเงิน=30·42 ล้มเหลว=99·F0'),
-      packN('VIEW SETTING에서 「단말기」(PC·iPhone·Android 등)·「위치」(예: KR | Seoul, 영어 고정) 열을 켤 수 있습니다. 결제개요와 동일 항목입니다.', 'In VIEW SETTING you can enable Device (PC/iPhone/Android) and Location (e.g. KR | Seoul, English only)—same as Payment overview.', 'VIEW SETTING で「端末」(PC・iPhone・Android 等)・「位置」(例 KR | Seoul、英語固定)列を表示できます。決済概要と同じ項目です。', '可在 VIEW SETTING 中开启「终端」(PC/iPhone/Android) 与「位置」(如 KR | Seoul，固定英文)，与支付概览相同。', 'เปิดคอลัมน์「อุปกรณ์」และ「ตำแหน่ง」(เช่น KR | Seoul ภาษาอังกฤษ) ใน VIEW SETTING — เหมือนภาพรวมการชำระ')
+      packN('VIEW SETTING에서 「단말기」(PC·iPhone·Android 등)·「위치」(예: KR | Seoul, 영어 고정) 열을 켤 수 있습니다. 결제개요와 동일 항목입니다.', 'In VIEW SETTING you can enable Device (PC/iPhone/Android) and Location (e.g. KR | Seoul, English only)—same as Payment overview.', 'VIEW SETTING で「端末」(PC・iPhone・Android 等)・「位置」(例 KR | Seoul、英語固定)列を表示できます。決済概要と同じ項目です。', '可在 VIEW SETTING 中开启「终端」(PC/iPhone/Android) 与「位置」(如 KR | Seoul，固定英文)，与支付概览相同。', 'เปิดคอลัมน์「อุปกรณ์」และ「ตำแหน่ง」(เช่น KR | Seoul ภาษาอังกฤษ) ใน VIEW SETTING — เหมือนภาพรวมการชำระ'),
+      packN('총본사(ADMIN 포함): VIEW SETTING·헬로에 「주문번호(PG)」(PG 발번 Order/Txn, 기본 OFF)·「카드번호」가 있습니다. PAYSO 등은 승인 후 마스킹 카드가 결제내역에 적재됩니다.', 'Root HQ (incl. ADMIN): VIEW SETTING/Hello includes Order no. (PG) (PG-issued Order/Txn, default OFF) and Card no. PAYSO etc. store masked card on the payment history after approval.', '総本部(ADMIN含む): VIEW SETTING・Helloに「注文番号(PG)」(PG発番Order/Txn、既定OFF)・「カード番号」があります。PAYSO等は承認後マスクカードを決済履歴に格納します。', '总总部(含 ADMIN)：VIEW SETTING/Hello 含「订单号(PG)」(PG 签发 Order/Txn，默认关)与「卡号」。PAYSO 等在批准后将掩码卡号写入支付明细。', 'HQ ราก (รวม ADMIN): VIEW SETTING/Hello มี「เลขคำสั่ง(PG)」(Order/Txn จาก PG, ปิดเป็นค่าเริ่ม) และ「เลขบัตร」— PAYSO ฯลฯ เก็บบัตรหลังอนุมัติ')
     ],
     '/calc/payOverview': [
       packN('결제개요: 통합 결제내역과 동일 검색·VIEW SETTING·금액요약을 사용합니다. 열면 결제대행사는 ElementPay입니다. 전체를 고르면 다른 대행사도 함께 봅니다.', 'Payment overview uses the same search, VIEW SETTING, and amount summary as integrated payment history. It opens on ElementPay. Choose All to include other acquirers.', '決済概要は統合決済履歴と同じ検索・VIEW SETTING・金額サマリーです。開くと ElementPay です。全体で他の代行も見ます。', '支付概览与综合支付历史使用相同搜索、VIEW SETTING 与金额汇总。打开时为 ElementPay。选全部可看其他机构。', 'ภาพรวมการชำระใช้การค้นหา VIEW SETTING และสรุปยอดเดียวกับประวัติรวม เปิดที่ ElementPay เลือกทั้งหมดเพื่อดูผู้ให้บริการอื่น'),
@@ -1440,7 +1441,7 @@
     trnDate: { EN: 'Txn date', JP: '取引日', CH: '交易日期', TH: 'วันที่ทำรายการ' },
     trnTime: { EN: 'Txn time', JP: '取引時刻', CH: '交易时间', TH: 'เวลาทำรายการ' },
     routeNo: { EN: 'Route', JP: 'ルート', CH: '路由', TH: 'Route' },
-    chillTransactionId: { EN: 'Auth / Txn ID', JP: '承認／取引ID', CH: '授权/交易ID', TH: 'รหัสอนุมัติ/ธุรกรรม' },
+    chillTransactionId: { EN: 'Approval (PG ref)', JP: '承認(PG参照)', CH: '批准号(PG关联)', TH: 'เลขอนุมัติ (อ้างอิง PG)' },
     trnId: { EN: 'Our txn no.', JP: '自社取引番号', CH: '内部交易号', TH: 'เลขธุรกรรมภายใน' },
     chillCustomer: { EN: 'Customer', JP: '顧客', CH: '客户', TH: 'ลูกค้า' },
     orderNo: { EN: 'Order no.', JP: '注文番号', CH: '订单号', TH: 'เลขคำสั่งซื้อ' },
@@ -1478,6 +1479,13 @@
     payCard: { EN: 'Card', JP: '決済カード', CH: '支付卡', TH: 'บัตร' },
     cardAprvNo: { EN: 'Card auth no.', JP: 'カード承認番号', CH: '卡授权号', TH: 'เลขอนุมัติบัตร' },
     payCardNo: { EN: 'Card no.', JP: 'カード番号', CH: '卡号', TH: 'เลขบัตร' },
+    pgOrderNo: {
+      KO: '주문번호(PG)',
+      EN: 'Order no. (PG)',
+      JP: '注文番号(PG)',
+      CH: '订单号(PG)',
+      TH: 'เลขคำสั่ง(PG)'
+    },
     instalMonth: { EN: 'Installment', JP: '分割回数', CH: '分期月数', TH: 'งวดผ่อน' },
     payMethod: { EN: 'Pay method', JP: '決済手段', CH: '支付方式', TH: 'วิธีชำระ' },
     corpNm: { EN: 'Corporate name', JP: '法人名', CH: '法人名称', TH: 'ชื่อนิติบุคคล' },

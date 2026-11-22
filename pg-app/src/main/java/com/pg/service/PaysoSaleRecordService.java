@@ -96,19 +96,16 @@ public class PaysoSaleRecordService {
             if (paysoTxnId != null && !paysoTxnId.isBlank()) {
                 String id = paysoTxnId.trim();
                 /*
-                 * Payso postback refno = 우리가 보낸 referenceNo(≤12 숫자).
-                 * transactionId(긴 hex)와 분리 저장해야 웹훅 역추적이 된다.
+                 * pay_no = ICOPAY Reference 만 (숫자 12자리, 전 가맹 동일 형식).
+                 * hex transactionId·가맹 order 는 pay_no 에 넣지 않음.
                  */
-                if (id.matches("^[0-9]{1,12}$")) {
+                if (isPaysoReferenceNo(id)) {
                     t.setPayNo(id);
                     if (t.getApprovalNo() == null || t.getApprovalNo().isBlank()) {
                         t.setApprovalNo(id);
                     }
                 } else {
-                    t.setChillTransactionId(id);
-                    if (t.getPayNo() == null || t.getPayNo().isBlank()) {
-                        t.setPayNo(id);
-                    }
+                    t.setChillTransactionId(id.length() > 64 ? id.substring(0, 64) : id);
                 }
             }
             if (txnOrigin != null && !txnOrigin.isBlank()) {
@@ -241,18 +238,47 @@ public class PaysoSaleRecordService {
             txn.get().setVan(PgVendor.PAYSO);
         }
         PgTrnsctn t = txn.get();
+        /* 가맹 orderNo 를 PG 승인키로 쓰면 미결제인데 성공으로 찍힘 — 거부 */
+        if (isMerchantOrderUsedAsPaysoKey(orderNo.trim(), paysoTxnId, paymentRef)) {
+            log.warn("PAYSO applyPaid 거부 — PG키=가맹주문번호 mid={} order={} txnId={} ref={}",
+                    compId, orderNo, paysoTxnId, paymentRef);
+            return Optional.empty();
+        }
         t.setStatus("10");
         if (t.getPaidAt() == null) {
             t.setPaidAt(LocalDateTime.now());
         }
-        if (paysoTxnId != null && !paysoTxnId.isBlank()) {
-            t.setChillTransactionId(paysoTxnId.trim());
-            t.setPayNo(paysoTxnId.trim());
+        /*
+         * pay_no = ICOPAY→PAYSO Reference(숫자 12자리·전 가맹 동일).
+         * chill = PAYSO transactionId/Order No. hex·가맹 order 는 pay_no 금지.
+         */
+        String ref = paymentRef != null ? paymentRef.trim() : "";
+        String pgTxn = paysoTxnId != null ? paysoTxnId.trim() : "";
+        String payNow = t.getPayNo() != null ? t.getPayNo().trim() : "";
+        if (!isPaysoReferenceNo(payNow) || payNow.equalsIgnoreCase(orderNo.trim())) {
+            if (isPaysoReferenceNo(ref) && !ref.equalsIgnoreCase(orderNo.trim())) {
+                t.setPayNo(ref);
+            } else if (isPaysoReferenceNo(pgTxn) && !pgTxn.equalsIgnoreCase(orderNo.trim())) {
+                t.setPayNo(pgTxn);
+            }
+        } else if (isPaysoReferenceNo(ref) && !ref.equals(payNow) && !ref.equalsIgnoreCase(orderNo.trim())) {
+            /* 웹훅 ref 가 정본 — hex 로 덮인 pay_no 복구 */
+            if (!isPaysoReferenceNo(payNow)) {
+                t.setPayNo(ref);
+            }
         }
-        /* approval_no = varchar(20). Beam charge id(ch_…) exceeds 20 — prefer OMS SO code. */
-        String approval = firstFitApproval(paysoTxnId, paymentRef);
-        if (approval != null && !approval.isBlank()) {
-            t.setApprovalNo(approval);
+        if (!pgTxn.isBlank() && !pgTxn.equalsIgnoreCase(orderNo.trim()) && !isPaysoReferenceNo(pgTxn)) {
+            t.setChillTransactionId(pgTxn.length() > 64 ? pgTxn.substring(0, 64) : pgTxn);
+        } else if (!pgTxn.isBlank() && isPaysoReferenceNo(pgTxn)
+                && (t.getChillTransactionId() == null || t.getChillTransactionId().isBlank())) {
+            /* ref 만 있고 PG txn 이 아직 없으면 chill 비워 둠 */
+        }
+        String join = firstPaysoReference(t.getPayNo(), ref, t.getApprovalNo(), pgTxn);
+        if (!join.isBlank()) {
+            if (!isPaysoReferenceNo(t.getPayNo() != null ? t.getPayNo().trim() : "")) {
+                t.setPayNo(join);
+            }
+            t.setApprovalNo(join.length() > 20 ? join.substring(0, 20) : join);
         }
         /* Beam payer_name 은 카드결제에서 null 인 경우가 많음 — 비어 있을 때만 보강 */
         if ((t.getCustomerNm() == null || t.getCustomerNm().isBlank()) && payerName != null) {
@@ -287,6 +313,16 @@ public class PaysoSaleRecordService {
     @Transactional
     public Optional<PgTrnsctn> applyFailedOutcome(String orderNo, String compId, String paysoTxnId,
                                                   String reasonCode, String reasonText) {
+        return applyFailedOutcome(orderNo, compId, paysoTxnId, reasonCode, reasonText, false);
+    }
+
+    /**
+     * @param forceCorrectFalsePaid true 이면 「승인키=가맹주문번호」인 오성공(10)을 실패(99)로 정정 허용
+     */
+    @Transactional
+    public Optional<PgTrnsctn> applyFailedOutcome(String orderNo, String compId, String paysoTxnId,
+                                                  String reasonCode, String reasonText,
+                                                  boolean forceCorrectFalsePaid) {
         if (orderNo == null || orderNo.isBlank() || compId == null || compId.isBlank()) {
             return Optional.empty();
         }
@@ -303,17 +339,29 @@ public class PaysoSaleRecordService {
         if (!PgVendor.isPaysoFamily(t.getVan())) {
             t.setVan(PgVendor.PAYSO);
         }
-        if (!"08".equals(t.getStatus() != null ? t.getStatus().trim() : "")) {
-            /* 이미 성공·실패면 덮지 않음 — 실패 건은 영수증 미발송분 보완 */
-            if ("10".equals(t.getStatus() != null ? t.getStatus().trim() : "")
-                    || "99".equals(t.getStatus() != null ? t.getStatus().trim() : "")) {
+        String st = t.getStatus() != null ? t.getStatus().trim() : "";
+        if (!"08".equals(st)) {
+            if ("99".equals(st)) {
                 hookReceiptEmail(t);
                 return Optional.of(t);
+            }
+            if ("10".equals(st)) {
+                if (!forceCorrectFalsePaid || !looksLikeFalsePaidRecord(t)) {
+                    hookReceiptEmail(t);
+                    return Optional.of(t);
+                }
+                log.warn("PAYSO 오성공 정정 10→99 mid={} order={} trnId={} chill={}",
+                        compId, orderNo, t.getTrnId(), t.getChillTransactionId());
+            } else {
+                return Optional.empty();
             }
         }
         String prev = t.getStatus();
         t.setStatus("99");
-        if (paysoTxnId != null && !paysoTxnId.isBlank()) {
+        t.setPaidAt(null);
+        t.setMwOutboundLastSentStatus(null);
+        if (paysoTxnId != null && !paysoTxnId.isBlank()
+                && !paysoTxnId.trim().equalsIgnoreCase(orderNo.trim())) {
             t.setChillTransactionId(paysoTxnId.trim());
         }
         com.pg.util.TxnOutcomeReasonApplier.apply(t, prev, "99",
@@ -325,6 +373,42 @@ public class PaysoSaleRecordService {
         pgTrnsctnRepository.save(t);
         hookReceiptEmail(t);
         return Optional.of(t);
+    }
+
+    /** chill/pay_no/approval 이 가맹 orderNo 와 같으면 PAYSO 미결제 오성공으로 본다. */
+    static boolean looksLikeFalsePaidRecord(PgTrnsctn t) {
+        if (t == null || t.getOrderNo() == null || t.getOrderNo().isBlank()) {
+            return false;
+        }
+        String on = t.getOrderNo().trim();
+        return eqIgnore(on, t.getChillTransactionId())
+                || eqIgnore(on, t.getPayNo())
+                || (t.getApprovalNo() != null && !t.getApprovalNo().isBlank()
+                && on.startsWith(t.getApprovalNo().trim()));
+    }
+
+    /** 웹훅/복귀 키가 가맹 주문번호만이면 승인으로 쓰지 않음. */
+    static boolean isMerchantOrderUsedAsPaysoKey(String orderNo, String paysoTxnId, String paymentRef) {
+        if (orderNo == null || orderNo.isBlank()) {
+            return false;
+        }
+        String on = orderNo.trim();
+        String a = paysoTxnId != null ? paysoTxnId.trim() : "";
+        String b = paymentRef != null ? paymentRef.trim() : "";
+        boolean aIsOrder = !a.isBlank() && a.equalsIgnoreCase(on);
+        boolean bIsOrder = !b.isBlank() && b.equalsIgnoreCase(on);
+        if (aIsOrder && (b.isBlank() || bIsOrder)) {
+            return true;
+        }
+        if (bIsOrder && a.isBlank()) {
+            return true;
+        }
+        /* 둘 다 주문번호이거나, 유일한 키가 주문번호 */
+        return aIsOrder && bIsOrder;
+    }
+
+    private static boolean eqIgnore(String a, String b) {
+        return a != null && b != null && a.equalsIgnoreCase(b.trim());
     }
 
     private void hookReceiptEmail(PgTrnsctn t) {
@@ -389,21 +473,106 @@ public class PaysoSaleRecordService {
         return out;
     }
 
-    /** {@code pg_trnsctn.approval_no} 길이 20에 맞는 승인 참조. */
+    /** PAYSO ICOPAY Reference — 전 가맹 동일: 숫자 정확히 12자리. */
+    public static boolean isPaysoReferenceNo(String value) {
+        return value != null && value.trim().matches("^[0-9]{12}$");
+    }
+
+    static String firstPaysoReference(String... cands) {
+        if (cands == null) {
+            return "";
+        }
+        for (String c : cands) {
+            if (isPaysoReferenceNo(c)) {
+                return c.trim();
+            }
+        }
+        return "";
+    }
+
+    /** {@code pg_trnsctn.approval_no} — Reference(12자리)만. */
+    static String firstFitApproval(String payNo, String paymentRef, String paysoTxnId) {
+        return firstPaysoReference(payNo, paymentRef, paysoTxnId);
+    }
+
+    /** 레거시 시그니처 — Reference 우선. */
     static String firstFitApproval(String paysoTxnId, String paymentRef) {
-        String so = paysoTxnId != null ? paysoTxnId.trim() : "";
-        String ref = paymentRef != null ? paymentRef.trim() : "";
-        if (!so.isBlank() && so.length() <= 20) {
-            return so;
+        return firstFitApproval(null, paymentRef, paysoTxnId);
+    }
+
+    /**
+     * 통합내역(Inquiry) 대사 — 마스킹 카드·PAYSO 수수료·Reference({@code pay_no}) 보강.
+     */
+    @Transactional
+    public void applyInquiryEnrichment(PgTrnsctn txn, String referenceNo, String paysoOrderNo,
+                                       String paysoTxnId, String cardPanDisplay, BigDecimal feeAmt) {
+        if (txn == null) {
+            return;
         }
-        if (!ref.isBlank() && ref.length() <= 20) {
-            return ref;
+        boolean dirty = false;
+        String order = txn.getOrderNo() != null ? txn.getOrderNo().trim() : "";
+        String ref = referenceNo != null ? referenceNo.trim() : "";
+        String join = firstPaysoReference(ref, txn.getPayNo(), txn.getApprovalNo(), paysoTxnId);
+        if (!join.isBlank() && !join.equalsIgnoreCase(order)) {
+            String pay = txn.getPayNo() != null ? txn.getPayNo().trim() : "";
+            if (!isPaysoReferenceNo(pay) || pay.equalsIgnoreCase(order) || !pay.equals(join)) {
+                txn.setPayNo(join);
+                dirty = true;
+            }
+            String appr = txn.getApprovalNo() != null ? txn.getApprovalNo().trim() : "";
+            if (!join.equals(appr)) {
+                txn.setApprovalNo(join.length() > 20 ? join.substring(0, 20) : join);
+                dirty = true;
+            }
         }
-        if (!so.isBlank()) {
-            return so.length() > 20 ? so.substring(0, 20) : so;
+        String pgOrd = paysoOrderNo != null ? paysoOrderNo.trim() : "";
+        String txnId = paysoTxnId != null ? paysoTxnId.trim() : "";
+        String chillCand = !pgOrd.isBlank() ? pgOrd : txnId;
+        if (!chillCand.isBlank() && !chillCand.equalsIgnoreCase(order)) {
+            String pay = txn.getPayNo() != null ? txn.getPayNo().trim() : "";
+            if (!chillCand.equals(pay)
+                    && (txn.getChillTransactionId() == null || txn.getChillTransactionId().isBlank()
+                    || txn.getChillTransactionId().trim().equals(pay)
+                    || txn.getChillTransactionId().trim().equalsIgnoreCase(order))) {
+                txn.setChillTransactionId(chillCand.length() > 64 ? chillCand.substring(0, 64) : chillCand);
+                dirty = true;
+            }
         }
-        if (!ref.isBlank()) {
-            return ref.substring(0, Math.min(20, ref.length()));
+        if (cardPanDisplay != null && !cardPanDisplay.isBlank()) {
+            String mask = normalizePaysoCardMask(cardPanDisplay);
+            if (!mask.isBlank() && (txn.getCardPanDisplay() == null || txn.getCardPanDisplay().isBlank())) {
+                txn.setCardPanDisplay(mask.length() > 32 ? mask.substring(0, 32) : mask);
+                dirty = true;
+            }
+        }
+        if (feeAmt != null && feeAmt.compareTo(BigDecimal.ZERO) >= 0 && txn.getChillFeeAmt() == null) {
+            txn.setChillFeeAmt(feeAmt);
+            dirty = true;
+        }
+        if (dirty) {
+            pgTrnsctnRepository.save(txn);
+        }
+    }
+
+    /** PAYSO 포털형 {@code 414520-####-8306} → {@code 414520***8306}. */
+    public static String normalizePaysoCardMask(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "";
+        }
+        String s = raw.trim();
+        String digitsAndStar = s.replaceAll("[^0-9*#xX]", "");
+        digitsAndStar = digitsAndStar.replace('#', '*').replace('x', '*').replace('X', '*');
+        if (digitsAndStar.matches("^[0-9]{6}\\*+[0-9]{4}$")) {
+            String bin = digitsAndStar.substring(0, 6);
+            String last4 = digitsAndStar.substring(digitsAndStar.length() - 4);
+            return bin + "***" + last4;
+        }
+        String digits = digitsAndStar.replace("*", "");
+        if (digits.length() >= 10) {
+            return com.pg.util.PayCardPanHashUtil.maskForDisplay(digits);
+        }
+        if (digitsAndStar.length() >= 8) {
+            return digitsAndStar.length() > 32 ? digitsAndStar.substring(0, 32) : digitsAndStar;
         }
         return "";
     }

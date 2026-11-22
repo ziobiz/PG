@@ -2753,6 +2753,104 @@
       CH: '电话国家区号',
       TH: 'รหัสประเทศโทร'
     },
+    '주문번호': {
+      KO: '주문번호',
+      EN: 'Order no.',
+      JP: '注文番号',
+      CH: '订单号',
+      TH: 'เลขคำสั่งซื้อ'
+    },
+    '주문번호 노출': {
+      KO: '주문번호 노출',
+      EN: 'Show order no.',
+      JP: '注文番号表示',
+      CH: '显示订单号',
+      TH: 'แสดงเลขคำสั่งซื้อ'
+    },
+    'API URL REDIRECT 중계 결제': {
+      KO: 'API URL REDIRECT 중계 결제',
+      EN: 'API URL REDIRECT checkout',
+      JP: 'API URL REDIRECT中継決済',
+      CH: 'API URL REDIRECT 中继支付',
+      TH: 'API URL REDIRECT ชำระกลาง'
+    },
+    '상단 안내': {
+      KO: '상단 안내',
+      EN: 'Top message',
+      JP: '上部案内',
+      CH: '顶部提示',
+      TH: 'ข้อความด้านบน'
+    },
+    '상단 안내 문구': {
+      KO: '상단 안내 문구',
+      EN: 'Top message text',
+      JP: '上部案内文',
+      CH: '顶部提示文案',
+      TH: 'ข้อความด้านบน'
+    },
+    '하단 안내': {
+      KO: '하단 안내',
+      EN: 'Bottom message',
+      JP: '下部案内',
+      CH: '底部提示',
+      TH: 'ข้อความด้านล่าง'
+    },
+    '하단 안내 문구': {
+      KO: '하단 안내 문구',
+      EN: 'Bottom message text',
+      JP: '下部案内文',
+      CH: '底部提示文案',
+      TH: 'ข้อความด้านล่าง'
+    },
+    'REDIRECT 결제 안내': {
+      KO: 'REDIRECT 결제 안내',
+      EN: 'REDIRECT checkout messages',
+      JP: 'REDIRECT決済案内',
+      CH: 'REDIRECT 支付提示',
+      TH: 'ข้อความชำระ REDIRECT'
+    },
+    'REDIRECT(RE) 결제 확인창에만 적용됩니다. 「활성」=시스템 기본 문구, 「직접입력」=옆 문구(저장 시 5개국어 1회 번역), 「비활성」=숨김. 가맹이 본사설정 따름이 아니면 가맹이 우선합니다.': {
+      KO: 'REDIRECT(RE) 결제 확인창에만 적용됩니다. 「활성」=시스템 기본 문구, 「직접입력」=옆 문구(저장 시 5개국어 1회 번역), 「비활성」=숨김. 가맹이 본사설정 따름이 아니면 가맹이 우선합니다.',
+      EN: 'Applies only to REDIRECT (RE) confirm pages. Active=built-in copy, Custom=side text (5-lang once on save), Off=hidden. Merchant overrides HQ unless Follow HQ.',
+      JP: 'REDIRECT(RE)確認画面のみ。活性=既定文、直接入力=横の文言(保存時5言語1回)、非活性=非表示。加盟が本社設定以外なら加盟優先。',
+      CH: '仅用于 REDIRECT(RE) 确认页。启用=系统默认文案，手动输入=旁侧文案(保存时五语一次)，停用=隐藏。商户非「跟随总部」时优先。',
+      TH: 'ใช้เฉพาะหน้ายืนยัน REDIRECT(RE) เปิด=ข้อความระบบ กรอกเอง=ข้อความข้าง (แปล 5 ภาษาครั้งเดียวตอนบันทึก) ปิด=ซ่อน ถ้าร้านไม่ตาม HQ จะใช้ค่าของร้าน'
+    },
+    'API 리다이렉트(prepare redirect)·운영 PG가 RE 확인창(PAYSO·OMSPAY·KSNET 등)인 URL 결제에만 상·하단 안내가 적용됩니다. 인라인 카드창에는 적용되지 않습니다. 기본은 본사설정 따름이며, 가맹에서 바꾸면 본사보다 우선합니다.': {
+      KO: 'API 리다이렉트(prepare redirect)·운영 PG가 RE 확인창(PAYSO·OMSPAY·KSNET 등)인 URL 결제에만 상·하단 안내가 적용됩니다. 인라인 카드창에는 적용되지 않습니다. 기본은 본사설정 따름이며, 가맹에서 바꾸면 본사보다 우선합니다.',
+      EN: 'Top/bottom messages apply only to API redirect and URL pay using RE confirm pages (PAYSO·OMSPAY·KSNET…). Not for inline card. Default Follow HQ; merchant overrides HQ when changed.',
+      JP: 'APIリダイレクトおよびRE確認画面のURL決済のみ上下案内を適用。インラインカードには適用しません。既定は本社設定、加盟変更時は加盟優先。',
+      CH: '仅用于 API 跳转及使用 RE 确认页的 URL 支付。不适用于内联卡页。默认跟随总部，商户修改后优先。',
+      TH: 'ใช้ข้อความบน/ล่างเฉพาะ API redirect และ URL ที่เป็นหน้า RE ไม่ใช้กับอินไลน์การ์ด ค่าเริ่มตาม HQ ถ้าร้านแก้จะใช้ค่าของร้าน'
+    },
+    'REDIRECT 결제 안내: RE 확인창(PAYSO·OMSPAY·KSNET 등) 상단·하단 문구 본사 기본값입니다. 가맹「API URL REDIRECT 중계 결제」가 본사설정 따름이면 이 값이 적용됩니다.': {
+      KO: 'REDIRECT 결제 안내: RE 확인창(PAYSO·OMSPAY·KSNET 등) 상단·하단 문구 본사 기본값입니다. 가맹「API URL REDIRECT 중계 결제」가 본사설정 따름이면 이 값이 적용됩니다.',
+      EN: 'REDIRECT messages: HQ defaults for RE confirm top/bottom. Used when merchant Follow HQ on API URL REDIRECT card.',
+      JP: 'REDIRECT案内: RE確認の上下文の本社既定。加盟が本社設定ならこの値。',
+      CH: 'REDIRECT 提示：总部对 RE 确认页上下文案的默认。商户跟随总部时使用。',
+      TH: 'ข้อความ REDIRECT: ค่าเริ่ม HQ สำหรับบน/ล่างหน้า RE ใช้เมื่อร้านตาม HQ'
+    },
+    '주문·구매자 정보를 확인한 뒤 결제 페이지로 이동합니다.': {
+      KO: '주문·구매자 정보를 확인한 뒤 결제 페이지로 이동합니다.',
+      EN: 'Confirm order and shopper details, then continue to payment.',
+      JP: '注文・購入者情報を確認してからお支払い画面へ進みます。',
+      CH: '请确认订单与购买人信息后进入支付页。',
+      TH: 'ตรวจคำสั่งซื้อและข้อมูลผู้ซื้อ แล้วไปหน้าชำระเงิน'
+    },
+    '다음 화면에서 카드정보를 입력 후 결제 완료 합니다.': {
+      KO: '다음 화면에서 카드정보를 입력 후 결제 완료 합니다.',
+      EN: 'Enter your card details on the next screen to complete payment.',
+      JP: '次の画面でカード情報を入力して決済を完了してください。',
+      CH: '请在下一屏输入卡信息并完成支付。',
+      TH: 'ในหน้าถัดไปกรอกข้อมูลบัตรแล้วชำระเงินให้เสร็จ'
+    },
+    '구매자입력 프리셋: 기본형·1형·2형…을 고르면 이메일·국가·전화·배송은 프리셋을 따릅니다(개별 항목 잠금). 「비활성」으로 둔 뒤에만 네 항목을 개별 활성/비활성으로 설정합니다. 성명(URL결제)·성명(API결제)은 프리셋과 별도이며 기본값은 활성입니다. URL 공개 결제·리다이렉트(RE·KSNET 등)는 「성명(URL결제)」, 가맹 API(entry=merchant_api)는 「성명(API결제)」로 이름/성 표시를 각각 제어합니다(비활성 시 성명 미표시). 「전화 국가번호」는 결제창 전화번호 옆 +82 등 국가번호 드롭다운 노출입니다. 「주문번호 노출」은 결제 입력창에 주문번호 행을 보일지 여부이며 기본은 비활성입니다(서버·세션 orderNo는 그대로 유지). 프리셋이 켜진 채 개별 항목을 바꾸려 하면 「구매자입력 프리셋을 비활성화하세요.」안내가 표시됩니다.': {
+      KO: '구매자입력 프리셋: 기본형·1형·2형…을 고르면 이메일·국가·전화·배송은 프리셋을 따릅니다(개별 항목 잠금). 「비활성」으로 둔 뒤에만 네 항목을 개별 활성/비활성으로 설정합니다. 성명(URL결제)·성명(API결제)은 프리셋과 별도이며 기본값은 활성입니다. URL 공개 결제·리다이렉트(RE·KSNET 등)는 「성명(URL결제)」, 가맹 API(entry=merchant_api)는 「성명(API결제)」로 이름/성 표시를 각각 제어합니다(비활성 시 성명 미표시). 「전화 국가번호」는 결제창 전화번호 옆 +82 등 국가번호 드롭다운 노출입니다. 「주문번호 노출」은 결제 입력창에 주문번호 행을 보일지 여부이며 기본은 비활성입니다(서버·세션 orderNo는 그대로 유지). 프리셋이 켜진 채 개별 항목을 바꾸려 하면 「구매자입력 프리셋을 비활성화하세요.」안내가 표시됩니다.',
+      EN: 'Buyer-input preset: choosing Default/Type1/Type2… applies email·country·phone·shipping (fields locked). Set preset to Off to toggle those four individually. Name (URL pay) and Name (API pay) are separate (default On). Public URL/redirect (RE·KSNET etc.) uses Name (URL pay); merchant API (entry=merchant_api) uses Name (API pay). Phone dial code shows +82 etc. next to phone. Show order no. controls the order-number row on the checkout form (default Off; server/session orderNo kept). If you change individual fields while a preset is on, you are asked to disable the preset first.',
+      JP: '購入者入力プリセット: 基本型・1型・2型…を選ぶとメール・国・電話・配送はプリセットに従います(個別ロック)。「非活性」後のみ4項目を個別設定できます。氏名(URL決済)・氏名(API決済)はプリセットとは別で既定は活性です。URL公開・リダイレクト(RE・KSNET等)は「氏名(URL決済)」、加盟API(entry=merchant_api)は「氏名(API決済)」で表示を制御します。「電話国番号」は電話横の+82等です。「注文番号表示」は決済入力画面の注文番号行の表示可否で既定は非活性です(サーバ・セッションorderNoは維持)。プリセットONのまま個別を変えると「購入者入力プリセットを無効にしてください」と案内されます。',
+      CH: '购买人输入预设：选择基本型/1型/2型…后，邮箱·国家·电话·配送按预设(单项锁定)。设为「停用」后才能单独开关四项。姓名(URL支付)·姓名(API支付)独立，默认启用。公开URL/跳转(RE·KSNET等)用「姓名(URL支付)」，商户API(entry=merchant_api)用「姓名(API支付)」。「电话国家区号」为电话旁+82等。「显示订单号」控制支付输入页订单号行，默认关闭(服务端/会话orderNo仍保留)。预设开启时改单项会提示先关闭预设。',
+      TH: 'พรีเซ็ตข้อมูลผู้ซื้อ: เลือกค่าเริ่ม/แบบ1/แบบ2… จะใช้ตามอีเมล·ประเทศ·โทร·ที่อยู่จัดส่ง (ล็อกรายการ) ตั้ง「ปิด」ก่อนจึงปรับ 4 รายการแยกได้ ชื่อ (URL)·ชื่อ (API) แยกจากพรีเซ็ต (เปิดเป็นค่าเริ่ม) URL สาธารณะ/redirect (RE·KSNET ฯลฯ) ใช้ชื่อ (URL); API ร้าน (entry=merchant_api) ใช้ชื่อ (API) 「รหัสประเทศโทร」คือ +82 ฯลฯ ข้างโทร 「แสดงเลขคำสั่ง」ควบคุมแถวเลขคำสั่งบนฟอร์ม (ปิดเป็นค่าเริ่ม; เก็บ orderNo ฝั่งเซิร์ฟเวอร์) ถ้าเปลี่ยนรายการขณะพรีเซ็ตเปิด จะขอให้ปิดพรีเซ็ตก่อน'
+    },
     '샌드박스 시크릿 발급': { EN: 'Issue sandbox secret', JP: 'サンドボックス秘密鍵発行', CH: '签发沙箱密钥', TH: 'ออกคีย์ sandbox' },
     '샌드박스 시크릿': { EN: 'Sandbox secret', JP: 'サンドボックスシークレット', CH: '沙箱密钥', TH: 'คีย์ sandbox' },
     '샌드박스 발행일자': { EN: 'Sandbox issued date', JP: 'サンドボックス発行日', CH: '沙箱发行日', TH: 'วันออก sandbox' },

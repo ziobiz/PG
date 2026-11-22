@@ -690,8 +690,12 @@
         { v: 'FOLLOW_HQ', t: '본사설정 따름' },
         { v: 'Y', t: '활성' },
         { v: 'N', t: '비활성' }
+      ], col: 2 },
+       { label: '주문번호 노출', type: 'select', name: 'urlPayOrderNoShowYn', options: [
+        { v: 'N', t: '비활성' },
+        { v: 'Y', t: '활성' }
       ], col: 2 }],
-      [{ label: '', type: 'note', col: 12, text: '구매자입력 프리셋: 기본형·1형·2형…을 고르면 이메일·국가·전화·배송은 프리셋을 따릅니다(개별 항목 잠금). 「비활성」으로 둔 뒤에만 네 항목을 개별 활성/비활성으로 설정합니다. 성명(URL결제)·성명(API결제)은 프리셋과 별도이며 기본값은 활성입니다. URL 공개 결제·리다이렉트(RE·KSNET 등)는 「성명(URL결제)」, 가맹 API(entry=merchant_api)는 「성명(API결제)」로 이름/성 표시를 각각 제어합니다(비활성 시 성명 미표시). 「전화 국가번호」는 결제창 전화번호 옆 +82 등 국가번호 드롭다운 노출입니다. 프리셋이 켜진 채 개별 항목을 바꾸려 하면 「구매자입력 프리셋을 비활성화하세요.」안내가 표시됩니다.' }],
+      [{ label: '', type: 'note', col: 12, text: '구매자입력 프리셋: 기본형·1형·2형…을 고르면 이메일·국가·전화·배송은 프리셋을 따릅니다(개별 항목 잠금). 「비활성」으로 둔 뒤에만 네 항목을 개별 활성/비활성으로 설정합니다. 성명(URL결제)·성명(API결제)은 프리셋과 별도이며 기본값은 활성입니다. URL 공개 결제·리다이렉트(RE·KSNET 등)는 「성명(URL결제)」, 가맹 API(entry=merchant_api)는 「성명(API결제)」로 이름/성 표시를 각각 제어합니다(비활성 시 성명 미표시). 「전화 국가번호」는 결제창 전화번호 옆 +82 등 국가번호 드롭다운 노출입니다. 「주문번호 노출」은 결제 입력창에 주문번호 행을 보일지 여부이며 기본은 비활성입니다(서버·세션 orderNo는 그대로 유지). 프리셋이 켜진 채 개별 항목을 바꾸려 하면 「구매자입력 프리셋을 비활성화하세요.」안내가 표시됩니다.' }],
       [{ type: 'customHtml', col: 12, html: webPaymentHeaderSubtitleFieldBlock }],
       merchantWebPaymentDefaultProductRow(),
       [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml(urlPh); } },
@@ -1218,6 +1222,35 @@
     };
   }
 
+  function redirectCheckoutCopyFieldsBlock(isHq) {
+    var leadMode = isHq ? 'redirectCheckoutLeadModeDefault' : 'redirectCheckoutLeadMode';
+    var leadText = isHq ? 'redirectCheckoutLeadTextDefault' : 'redirectCheckoutLeadText';
+    var hintMode = isHq ? 'redirectCheckoutHintModeDefault' : 'redirectCheckoutHintMode';
+    var hintText = isHq ? 'redirectCheckoutHintTextDefault' : 'redirectCheckoutHintText';
+    var leadBlock = isHq ? 'redirectCheckoutLeadTextDefaultBlock' : 'redirectCheckoutLeadTextBlock';
+    var hintBlock = isHq ? 'redirectCheckoutHintTextDefaultBlock' : 'redirectCheckoutHintTextBlock';
+    var phL = '주문·구매자 정보를 확인한 뒤 결제 페이지로 이동합니다.';
+    var phH = '다음 화면에서 카드정보를 입력 후 결제 완료 합니다.';
+    var hintNote = 'REDIRECT(RE) 결제 확인창에만 적용됩니다. 「활성」=시스템 기본 문구, 「직접입력」=옆 문구(저장 시 5개국어 1회 번역), 「비활성」=숨김. 가맹이 본사설정 따름이 아니면 가맹이 우선합니다.';
+    var modeOpts = isHq
+      ? '<option value="ACTIVE" data-pg-ui-t="활성">활성</option><option value="CUSTOM" data-pg-ui-t="직접입력">직접입력</option><option value="DISABLED" data-pg-ui-t="비활성">비활성</option>'
+      : '<option value="FOLLOW_HQ" data-pg-ui-t="본사설정 따름">본사설정 따름</option><option value="ACTIVE" data-pg-ui-t="활성">활성</option><option value="CUSTOM" data-pg-ui-t="직접입력">직접입력</option><option value="DISABLED" data-pg-ui-t="비활성">비활성</option>';
+    return '<div class="redirect-checkout-copy-fields w-100">' +
+      '<div class="row g-2 align-items-end mb-2">' +
+      '<div class="col-sm-3"><div class="form-field-block"><label class="form-label" data-pg-ui-t="상단 안내">' + escUi(L('상단 안내')) + '</label>' +
+      '<select class="form-select form-select-sm" name="' + leadMode + '" id="' + leadMode + '">' + modeOpts + '</select></div></div>' +
+      '<div class="col-sm-9"><div class="form-field-block" id="' + leadBlock + '"><label class="form-label" data-pg-ui-t="상단 안내 문구">' + escUi(L('상단 안내 문구')) + '</label>' +
+      '<input type="text" class="form-control form-control-sm" name="' + leadText + '" id="' + leadText + '" maxlength="500" placeholder="' + escUi(L(phL)) + '" data-pg-ui-placeholder="' + escUi(phL) + '">' +
+      '</div></div></div>' +
+      '<div class="row g-2 align-items-end mb-1">' +
+      '<div class="col-sm-3"><div class="form-field-block"><label class="form-label" data-pg-ui-t="하단 안내">' + escUi(L('하단 안내')) + '</label>' +
+      '<select class="form-select form-select-sm" name="' + hintMode + '" id="' + hintMode + '">' + modeOpts + '</select></div></div>' +
+      '<div class="col-sm-9"><div class="form-field-block" id="' + hintBlock + '"><label class="form-label" data-pg-ui-t="하단 안내 문구">' + escUi(L('하단 안내 문구')) + '</label>' +
+      '<input type="text" class="form-control form-control-sm" name="' + hintText + '" id="' + hintText + '" maxlength="500" placeholder="' + escUi(L(phH)) + '" data-pg-ui-placeholder="' + escUi(phH) + '">' +
+      '</div></div></div>' +
+      '<div class="form-text text-muted small" data-pg-ui-t="' + escUi(hintNote) + '">' + escUi(L(hintNote)) + '</div></div>';
+  }
+
   /** 가맹 등록·정보 — API URL 인라인 중계 결제 방식(공개 URL·챗봇과 별도) */
   function merchantApiUrlPayCheckoutCardSection() {
     return {
@@ -1232,6 +1265,19 @@
           { v: 'SPLIT_PAY', t: '분할 결제' }
         ], col: 3 }],
         [{ label: '', type: 'note', col: 12, text: '필수: 가맹 「API 인라인 연동」·「웹결제」사용, 운영 URL PG 바인딩, 본사 결제로직 URL INLINE 제공(Y). 일반 결제 → ICOPAY 중립 checkout(/checkout/{업체코드}). 재구매 결제 → 일부 PG만 지원(pay-repay, PG별 상이). JPAY API 인라인은 재구매 미지원. 분할 결제 → 1회 prepare 불가, API 분할 계약(POST /api/pay/split/contracts) 이용. 공개 URL 분할결제는 「URL 분할결제」사용 ON으로 별도 운영합니다.' }]
+      ]
+    };
+  }
+
+  /** 가맹 — API URL REDIRECT 중계 결제 안내 문구(RE 확인창 전용) */
+  function merchantApiRedirectCheckoutCardSection() {
+    return {
+      title: 'API URL REDIRECT 중계 결제',
+      id: 'apiRedirectCheckoutCopyCard',
+      merchantOnly: true,
+      notice: 'API 리다이렉트(prepare redirect)·운영 PG가 RE 확인창(PAYSO·OMSPAY·KSNET 등)인 URL 결제에만 상·하단 안내가 적용됩니다. 인라인 카드창에는 적용되지 않습니다. 기본은 본사설정 따름이며, 가맹에서 바꾸면 본사보다 우선합니다.',
+      rows: [
+        [{ type: 'customHtml', col: 12, html: function () { return redirectCheckoutCopyFieldsBlock(false); } }]
       ]
     };
   }
@@ -4809,6 +4855,11 @@
             [{ label: '결제창이동문구', type: 'textarea', name: 'urlPayCheckoutMoveMessageDefault', col: 12, rows: 6,
               placeholder: '고객님, 안녕하세요. 기존 결제 링크가 변경되었습니다…' }],
             [{ label: '', type: 'note', col: 12, text: '결제창이동은 가맹 업체등록에서만 설정하며 기본은 비활성입니다. 공개 URL 결제에만 적용되고 가맹 API(인라인·리다이렉트·WooCommerce)에는 적용되지 않습니다. 위 문구는 가맹이 직접입력 안내를 비웠을 때 사용합니다.' }],
+            [{ type: 'customHtml', col: 12, html: function () {
+              return '<div class="border rounded p-2 mb-1"><div class="fw-semibold small mb-2" data-pg-ui-t="REDIRECT 결제 안내">REDIRECT 결제 안내</div>' +
+                redirectCheckoutCopyFieldsBlock(true) + '</div>';
+            } }],
+            [{ label: '', type: 'note', col: 12, text: 'REDIRECT 결제 안내: RE 확인창(PAYSO·OMSPAY·KSNET 등) 상단·하단 문구 본사 기본값입니다. 가맹「API URL REDIRECT 중계 결제」가 본사설정 따름이면 이 값이 적용됩니다.' }],
             [{ label: '이메일', type: 'select', name: 'urlPayBuyerEmailUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
              { label: '국가코드', type: 'select', name: 'urlPayBuyerCountryUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
              { label: '전화번호', type: 'select', name: 'urlPayBuyerPhoneUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
@@ -5408,6 +5459,7 @@
         },
         merchantCheckoutCompositionCardSection(),
         merchantApiUrlPayCheckoutCardSection(),
+        merchantApiRedirectCheckoutCardSection(),
         merchantApiIntegrationChannelsCardSection(),
         merchantJpayApiSubscriptionCardSection(),
         merchantSplitPayCardSection(),
@@ -5951,6 +6003,7 @@
         },
         merchantCheckoutCompositionCardSection(),
         merchantApiUrlPayCheckoutCardSection(),
+        merchantApiRedirectCheckoutCardSection(),
         merchantApiIntegrationChannelsCardSection(),
         merchantJpayApiSubscriptionCardSection(),
         merchantSplitPayCardSection(),
@@ -6418,6 +6471,7 @@
         },
         merchantCheckoutCompositionCardSection(),
         merchantApiUrlPayCheckoutCardSection(),
+        merchantApiRedirectCheckoutCardSection(),
         merchantApiIntegrationChannelsCardSection(),
         merchantJpayApiSubscriptionCardSection(),
         merchantSplitPayCardSection(),
@@ -6794,7 +6848,8 @@
         '취소 건에 대한 정산 수수료 및 부가세는 정산 주기에 따라 반영됩니다.',
         '정산 주기 및 정산 수수료는 가맹점별로 상이할 수 있습니다.',
         '상단 한 줄: 건수(0이어도 항상 표시)·통화별 총거래·승인·환불·실패·수수료·담보·부가세·추정결산. 금액 0인 항목·통화는 숨깁니다(건수 제외). 아래 상태별 금액 pill. 본사·총본사는 통화별 병기, 총판·하위는 기준 통화 한 줄.',
-        'VIEW SETTING에서 「단말기」(PC·iPhone·Android 등)·「위치」(예: KR | Seoul, 영어 고정) 열을 켤 수 있습니다. 결제개요와 동일 항목입니다.'
+        'VIEW SETTING에서 「단말기」(PC·iPhone·Android 등)·「위치」(예: KR | Seoul, 영어 고정) 열을 켤 수 있습니다. 결제개요와 동일 항목입니다.',
+        '총본사(ADMIN 포함): VIEW SETTING·헬로에 「주문번호(PG)」(PG 발번 Order/Txn, 기본 OFF)·「카드번호」가 있습니다. PAYSO 등은 승인 후 마스킹 카드가 결제내역에 적재됩니다.'
       ],
       summary: ['건수'],
       buttons: [

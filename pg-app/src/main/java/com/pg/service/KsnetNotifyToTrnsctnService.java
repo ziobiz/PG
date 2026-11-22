@@ -106,15 +106,29 @@ public class KsnetNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         }
         notifyIdempotencyLock.lock("KSNET", "ORD:" + comp + "|" + t.getOrderNo());
         String authyn = first(f, "authyn");
-        boolean approved = "O".equalsIgnoreCase(authyn);
+        boolean approved = "O".equalsIgnoreCase(authyn)
+                || "Y".equalsIgnoreCase(authyn)
+                || "1".equals(authyn);
         String status = t.getStatus() != null ? t.getStatus().trim() : "";
+        String maskedCard = first(f, "cardno", "card_no", "cardnumber", "cardmasked",
+                "card_mask", "maskedcard", "pan", "cardPanDisplay");
+        /* 이미 승인(10)이어도 카드번호가 비어 있으면 노티 값으로 보강 */
+        if ("10".equals(status)) {
+            if (!maskedCard.isBlank() || !tid.isBlank()) {
+                ksnetSaleRecordService.applyApproveOutcome(
+                        comp, t.getOrderNo(), true, tid,
+                        first(f, "authno", "approvalno"),
+                        first(f, "msg2", "msg1", "message"), maskedCard, null);
+            }
+            return true;
+        }
         if (!approved || !"08".equals(status)) {
-            /* 서버 승인(approve)이 정본 — 이미 확정/실패이거나 승인 표식 없으면 무시 */
+            /* 서버 승인(approve)이 정본 — 실패·미승인 표식은 대기 건만 건드리지 않음 */
             return true;
         }
         Optional<PgTrnsctn> saved = ksnetSaleRecordService.applyApproveOutcome(
                 comp, t.getOrderNo(), true, tid, first(f, "authno", "approvalno"),
-                first(f, "msg2", "msg1", "message"), null, null);
+                first(f, "msg2", "msg1", "message"), maskedCard, null);
         saved.ifPresent(x -> afterApproved(x, notifyChannel != null ? notifyChannel : "KSNET_NOTI"));
         return true;
     }

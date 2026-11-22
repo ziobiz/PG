@@ -10,17 +10,20 @@ import com.pg.middleware.notify.PgNotifyIngressPaths;
 import com.pg.repository.MerchantNotifyUrlRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
 import javax.crypto.Mac;
@@ -30,6 +33,11 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * PG 노티 또는 DirectCredit 승인 적재 후(커밋 이후) 가맹점 {@code tb_merchant_notify_url} 로 JSON POST.
@@ -39,6 +47,8 @@ import java.util.Optional;
  *   <li>{@link #URL_TYPE_MIDDLEWARE} · {@link #URL_TYPE_BACKGROUND}/{@link #URL_TYPE_RESULT}
  *       — 「결제통보」. URL결제 예외·기존 등록 시 병행.</li>
  * </ul>
+ * <p>통보 POST는 전용 스레드 풀에서 실행하고, 4xx·NOTI Result URL은 재시도하지 않아
+ * Tomcat 요청 스레드 고갈을 막습니다.</p>
  */
 @Service
 public class MerchantOutboundNotifyService {
@@ -50,12 +60,15 @@ public class MerchantOutboundNotifyService {
     private static final ObjectMapper OM = new ObjectMapper();
     private static final int MAX_ATTEMPTS = 3;
     private static final long[] BACKOFF_MS = { 0L, 250L, 900L };
+    private static final int CONNECT_TIMEOUT_MS = 3_000;
+    private static final int READ_TIMEOUT_MS = 8_000;
 
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final OrgUnitRepository orgUnitRepository;
     private final MerchantNotifyUrlRepository merchantNotifyUrlRepository;
     private final MerchantNotifyOutboundLogService merchantNotifyOutboundLogService;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
+    private final ExecutorService outboundExecutor;
 
     public MerchantOutboundNotifyService(PgTrnsctnRepository pgTrnsctnRepository,
                                          OrgUnitRepository orgUnitRepository,
@@ -65,10 +78,40 @@ public class MerchantOutboundNotifyService {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantNotifyUrlRepository = merchantNotifyUrlRepository;
         this.merchantNotifyOutboundLogService = merchantNotifyOutboundLogService;
+        this.restTemplate = buildRestTemplate();
+        this.outboundExecutor = buildOutboundExecutor();
+    }
+
+    private static RestTemplate buildRestTemplate() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(CONNECT_TIMEOUT_MS);
+        factory.setReadTimeout(READ_TIMEOUT_MS);
+        return new RestTemplate(factory);
+    }
+
+    private static ExecutorService buildOutboundExecutor() {
+        AtomicInteger n = new AtomicInteger();
+        return new ThreadPoolExecutor(
+                2,
+                8,
+                60L,
+                TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(256),
+                r -> {
+                    Thread t = new Thread(r, "merchant-outbound-" + n.incrementAndGet());
+                    t.setDaemon(true);
+                    return t;
+                },
+                new ThreadPoolExecutor.DiscardOldestPolicy());
+    }
+
+    @PreDestroy
+    void shutdownOutboundExecutor() {
+        outboundExecutor.shutdownNow();
     }
 
     /**
-     * 트랜잭션 커밋 뒤 비동기와 동일하게 한 번 실행 — 실패는 로그만 (PG 수신은 이미 완료).
+     * 트랜잭션 커밋 뒤 전용 풀에서 한 번 실행 — HTTP 요청 스레드를 막지 않음. 실패는 로그만.
      */
     public void scheduleAfterTxnCommit(PgTrnsctn savedTxn, PgNotifyInbound inbound, String notifyChannel) {
         if (savedTxn == null || savedTxn.getTrnId() == null || savedTxn.getTrnId().isBlank()) {
@@ -87,16 +130,29 @@ public class MerchantOutboundNotifyService {
             return;
         }
         final String trnId = savedTxn.getTrnId().trim();
-        Runnable job = () -> deliverIfConfigured(trnId, inbound, notifyChannel);
+        Runnable job = () -> {
+            try {
+                deliverIfConfigured(trnId, inbound, notifyChannel);
+            } catch (Exception e) {
+                log.warn("가맹 통보 job 실패 trnId={}: {}", trnId, e.getMessage());
+            }
+        };
+        Runnable enqueue = () -> {
+            try {
+                outboundExecutor.execute(job);
+            } catch (Exception e) {
+                log.warn("가맹 통보 enqueue 실패 trnId={}: {}", trnId, e.getMessage());
+            }
+        };
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    job.run();
+                    enqueue.run();
                 }
             });
         } else {
-            job.run();
+            enqueue.run();
         }
     }
 
@@ -138,36 +194,51 @@ public class MerchantOutboundNotifyService {
         Map<String, Object> basePayload = buildPayload(t, inbound, notifyChannel);
 
         boolean anySuccess = false;
+        boolean anySoftFail = false;
+        boolean anyTarget = false;
         boolean anyRecvConfigured = false;
 
-        /* 1) 수신통보 우선 (Notify / Callback) */
         Optional<MerchantNotifyUrl> recvN = usable(recvNotifyOpt);
         if (recvN.isPresent()) {
             anyRecvConfigured = true;
-            anySuccess |= postOne(merchantCodeTrim, orgUnitId, t, notifyCh,
+            anyTarget = true;
+            PostOutcome out = postOne(merchantCodeTrim, orgUnitId, t, notifyCh,
                     MerchantNotifyUrl.URL_TYPE_JPAY_NOTIFY, recvN.get(), basePayload, true);
+            anySuccess |= out.success;
+            anySoftFail |= out.softFail;
         }
         Optional<MerchantNotifyUrl> recvC = usable(recvCallbackOpt);
         if (recvC.isPresent()) {
             anyRecvConfigured = true;
-            anySuccess |= postOne(merchantCodeTrim, orgUnitId, t, notifyCh,
+            anyTarget = true;
+            PostOutcome out = postOne(merchantCodeTrim, orgUnitId, t, notifyCh,
                     MerchantNotifyUrl.URL_TYPE_JPAY_CALLBACK, recvC.get(), basePayload, true);
+            anySuccess |= out.success;
+            anySoftFail |= out.softFail;
         }
 
-        /* 2) 결제통보 — 등록된 경우만 병행 (URL결제 예외·레거시) */
         Optional<MerchantNotifyUrl> mw = usable(mwOpt);
         if (mw.isPresent()) {
-            anySuccess |= postOne(merchantCodeTrim, orgUnitId, t, notifyCh, URL_TYPE_MIDDLEWARE, mw.get(), basePayload, false);
+            anyTarget = true;
+            PostOutcome out = postOne(merchantCodeTrim, orgUnitId, t, notifyCh, URL_TYPE_MIDDLEWARE, mw.get(), basePayload, false);
+            anySuccess |= out.success;
+            anySoftFail |= out.softFail;
         }
         Optional<MerchantNotifyUrl> bg = usable(bgOpt);
         if (bg.isPresent()) {
-            anySuccess |= postOne(merchantCodeTrim, orgUnitId, t, notifyCh, URL_TYPE_BACKGROUND, bg.get(),
+            anyTarget = true;
+            PostOutcome out = postOne(merchantCodeTrim, orgUnitId, t, notifyCh, URL_TYPE_BACKGROUND, bg.get(),
                     withMerchantNotifyTarget(basePayload, URL_TYPE_BACKGROUND), true);
+            anySuccess |= out.success;
+            anySoftFail |= out.softFail;
         }
         Optional<MerchantNotifyUrl> rs = usable(rsOpt);
         if (rs.isPresent()) {
-            anySuccess |= postOne(merchantCodeTrim, orgUnitId, t, notifyCh, URL_TYPE_RESULT, rs.get(),
+            anyTarget = true;
+            PostOutcome out = postOne(merchantCodeTrim, orgUnitId, t, notifyCh, URL_TYPE_RESULT, rs.get(),
                     withMerchantNotifyTarget(basePayload, URL_TYPE_RESULT), true);
+            anySuccess |= out.success;
+            anySoftFail |= out.softFail;
         }
 
         if (!anyRecvConfigured && mw.isEmpty() && bg.isEmpty() && rs.isEmpty()) {
@@ -175,7 +246,8 @@ public class MerchantOutboundNotifyService {
                     merchantCodeTrim, trnId, t.getOrderNo(), notifyCh);
             return;
         }
-        if (anySuccess) {
+        /* 성공 또는 영구 실패/스킵만 → 동일 상태 재폭주 방지. 5xx·타임아웃은 다음에 재시도 허용 */
+        if (anySuccess || (anyTarget && !anySoftFail)) {
             markMwOutboundSent(trnId, st);
         }
     }
@@ -184,21 +256,32 @@ public class MerchantOutboundNotifyService {
         return opt.filter(r -> yn(r.getUseYn()) && r.getNotiUrl() != null && !r.getNotiUrl().isBlank());
     }
 
-    private boolean postOne(String merchantCodeTrim, Long orgUnitId, PgTrnsctn t, String notifyCh,
-                            String urlType, MerchantNotifyUrl row, Map<String, Object> payload, boolean plainOrSigned) {
+    private PostOutcome postOne(String merchantCodeTrim, Long orgUnitId, PgTrnsctn t, String notifyCh,
+                                String urlType, MerchantNotifyUrl row, Map<String, Object> payload, boolean plainOrSigned) {
+        String url = row.getNotiUrl() != null ? row.getNotiUrl().trim() : "";
         try {
+            if (PgNotifyIngressPaths.isForbiddenMerchantOutboundUrl(url)) {
+                String reason = PgNotifyIngressPaths.isNotiBrowserResultUrl(url)
+                        ? "NOTI_BROWSER_RESULT_SKIPPED"
+                        : "ICOPAY_INGRESS_LOOPBACK_SKIPPED";
+                log.warn("{} 가맹 통보 스킵({}): {}", urlType, reason, url);
+                PostOutcome skipped = PostOutcome.skipped(reason);
+                recordOutboundLog(merchantCodeTrim, orgUnitId, t, notifyCh, urlType, url, "", skipped);
+                return skipped;
+            }
             String body = OM.writeValueAsString(payload);
             PostOutcome out = plainOrSigned
                     ? postPlainPayNotify(row, body)
-                    : postWithRetries(row.getNotiUrl().trim(), body, row.getSignSecret());
-            recordOutboundLog(merchantCodeTrim, orgUnitId, t, notifyCh, urlType, row.getNotiUrl().trim(), body, out);
-            if (!out.success) {
-                log.warn("{} 가맹 통보 전송 실패 (재시도 소진): {}", urlType, row.getNotiUrl());
+                    : postWithRetries(url, body, row.getSignSecret());
+            recordOutboundLog(merchantCodeTrim, orgUnitId, t, notifyCh, urlType, url, body, out);
+            if (!out.success && !out.skipped) {
+                log.warn("{} 가맹 통보 전송 실패{}: {}", urlType,
+                        out.permanent ? " (영구·재시도 안 함)" : " (재시도 소진)", url);
             }
-            return out.success;
+            return out;
         } catch (Exception e) {
             log.warn("{} 가맹 통보 직렬화 실패 trnId={}: {}", urlType, t.getTrnId(), e.getMessage());
-            return false;
+            return PostOutcome.softFail(0, null, e.getMessage());
         }
     }
 
@@ -244,15 +327,38 @@ public class MerchantOutboundNotifyService {
 
     private static final class PostOutcome {
         private final boolean success;
+        private final boolean skipped;
+        private final boolean permanent;
+        private final boolean softFail;
         private final int attempts;
         private final Integer httpStatus;
         private final String errorMessage;
 
-        private PostOutcome(boolean success, int attempts, Integer httpStatus, String errorMessage) {
+        private PostOutcome(boolean success, boolean skipped, boolean permanent, boolean softFail,
+                            int attempts, Integer httpStatus, String errorMessage) {
             this.success = success;
+            this.skipped = skipped;
+            this.permanent = permanent;
+            this.softFail = softFail;
             this.attempts = attempts;
             this.httpStatus = httpStatus;
             this.errorMessage = errorMessage;
+        }
+
+        static PostOutcome ok(int attempts, Integer httpStatus) {
+            return new PostOutcome(true, false, false, false, attempts, httpStatus, null);
+        }
+
+        static PostOutcome skipped(String reason) {
+            return new PostOutcome(true, true, true, false, 0, 200, reason);
+        }
+
+        static PostOutcome permanentFail(int attempts, Integer httpStatus, String err) {
+            return new PostOutcome(false, false, true, false, attempts, httpStatus, err);
+        }
+
+        static PostOutcome softFail(int attempts, Integer httpStatus, String err) {
+            return new PostOutcome(false, false, false, true, attempts, httpStatus, err);
         }
     }
 
@@ -297,9 +403,12 @@ public class MerchantOutboundNotifyService {
     }
 
     private PostOutcome postWithRetries(String url, String bodyJson, String secret) {
-        if (PgNotifyIngressPaths.isIcopayNotifyIngressUrl(url)) {
-            log.warn("결제통보 URL이 ICOPAY 노티 ingress — 루프 방지 스킵 url={}", url);
-            return new PostOutcome(true, 0, 200, "ICOPAY_INGRESS_LOOPBACK_SKIPPED");
+        if (PgNotifyIngressPaths.isForbiddenMerchantOutboundUrl(url)) {
+            String reason = PgNotifyIngressPaths.isNotiBrowserResultUrl(url)
+                    ? "NOTI_BROWSER_RESULT_SKIPPED"
+                    : "ICOPAY_INGRESS_LOOPBACK_SKIPPED";
+            log.warn("결제통보 URL 스킵({}) url={}", reason, url);
+            return PostOutcome.skipped(reason);
         }
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -320,23 +429,43 @@ public class MerchantOutboundNotifyService {
                     Thread.sleep(BACKOFF_MS[attempt]);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
-                    return new PostOutcome(false, attempts, lastHttp, "interrupted");
+                    return PostOutcome.softFail(attempts, lastHttp, "interrupted");
                 }
             }
             try {
                 ResponseEntity<String> resp = restTemplate.postForEntity(url, entity, String.class);
                 lastHttp = resp.getStatusCode().value();
                 if (resp.getStatusCode().is2xxSuccessful()) {
-                    return new PostOutcome(true, attempts, lastHttp, null);
+                    return PostOutcome.ok(attempts, lastHttp);
                 }
                 lastErr = "HTTP " + lastHttp;
-                log.warn("미들웨어 아웃바운드 비성공 HTTP {} (시도 {}/{})", resp.getStatusCode(), attempt + 1, MAX_ATTEMPTS);
+                if (isPermanentHttp(lastHttp)) {
+                    log.warn("미들웨어 아웃바운드 영구 실패 HTTP {} — 재시도 안 함 url={}", lastHttp, url);
+                    return PostOutcome.permanentFail(attempts, lastHttp, lastErr);
+                }
+                log.warn("미들웨어 아웃바운드 비성공 HTTP {} (시도 {}/{})", lastHttp, attempt + 1, MAX_ATTEMPTS);
+            } catch (HttpStatusCodeException e) {
+                lastHttp = e.getStatusCode().value();
+                lastErr = e.getMessage();
+                if (isPermanentHttp(lastHttp)) {
+                    log.warn("미들웨어 아웃바운드 영구 실패 HTTP {} — 재시도 안 함 url={}", lastHttp, url);
+                    return PostOutcome.permanentFail(attempts, lastHttp, lastErr);
+                }
+                log.warn("미들웨어 아웃바운드 실패 (시도 {}/{}): {}", attempt + 1, MAX_ATTEMPTS, e.getMessage());
             } catch (Exception e) {
                 lastErr = e.getMessage();
                 log.warn("미들웨어 아웃바운드 실패 (시도 {}/{}): {}", attempt + 1, MAX_ATTEMPTS, e.getMessage());
             }
         }
-        return new PostOutcome(false, attempts, lastHttp, lastErr);
+        return PostOutcome.softFail(attempts, lastHttp, lastErr);
+    }
+
+    private static boolean isPermanentHttp(Integer http) {
+        if (http == null) {
+            return false;
+        }
+        return http == 400 || http == 401 || http == 403 || http == 404 || http == 405
+                || http == 410 || http == 422;
     }
 
     private static String hmacSha256Hex(String secret, String payload) {

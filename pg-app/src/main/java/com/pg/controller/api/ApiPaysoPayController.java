@@ -162,10 +162,16 @@ public class ApiPaysoPayController {
      */
     @PostMapping(value = "/mark-failed", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<Map<String, Object>>> markFailed(@RequestBody Map<String, Object> body) {
+        boolean force = body != null && (
+                Boolean.TRUE.equals(body.get("forceCorrectFalsePaid"))
+                        || "Y".equalsIgnoreCase(str(body.get("forceCorrectFalsePaid")))
+                        || "true".equalsIgnoreCase(str(body.get("forceCorrectFalsePaid")))
+                        || "Y".equalsIgnoreCase(str(body.get("force"))));
         Map<String, Object> result = PaysoPaymentService.markBuyerFailed(
                 str(body != null ? body.get("compId") : null),
                 str(body != null ? body.get("orderNo") : null),
-                str(body != null ? body.get("reason") : null));
+                str(body != null ? body.get("reason") : null),
+                force);
         boolean ok = Boolean.TRUE.equals(result.get("success"));
         if (ok) {
             @SuppressWarnings("unchecked")

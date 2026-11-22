@@ -20,6 +20,7 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -174,6 +175,98 @@ public class PaysoApiClient {
     }
 
     /**
+     * Order Detail — 마스킹 카드 등 Inquiry에 없는 필드 보강.
+     * {@code POST /order/orderdetailpost}
+     */
+    public Map<String, Object> orderDetail(PaysoCredentials creds, String referenceNo, String orderNo) {
+        if (creds == null || !creds.isInquiryUsable()) {
+            return err("PAYSO_CREDENTIALS", "Payso Order Detail API 키가 없습니다.");
+        }
+        String mid = creds.merchantId();
+        String mid5 = mid.length() > 5 ? mid.substring(mid.length() - 5) : mid;
+        ObjectNode body = objectMapper.createObjectNode();
+        body.put("merchantId", mid5);
+        body.put("orderNo", orderNo != null && !orderNo.isBlank() ? orderNo.trim() : "x");
+        body.put("refNo", referenceNo != null && !referenceNo.isBlank() ? referenceNo.trim() : "x");
+        body.put("productDetail", "");
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        headers.set("apikey", creds.apiKey());
+        headers.set("apiKey", creds.apiKey());
+        headers.set("merchantId", mid5);
+        headers.set("merchantSecretKey", creds.secretKey());
+        Map<String, Object> raw = exchangeWithHeaders(creds.apiBase(), HttpMethod.POST, "/order/orderdetailpost", body, headers);
+        if (!Boolean.TRUE.equals(raw.get("ok"))) {
+            return raw;
+        }
+        JsonNode json = raw.get("json") instanceof JsonNode jn ? jn : null;
+        JsonNode row = null;
+        if (json != null && json.isArray() && json.size() > 0) {
+            row = json.get(0);
+        } else if (json != null && json.isObject()) {
+            if (json.has("data") && json.get("data").isArray() && json.get("data").size() > 0) {
+                row = json.get("data").get(0);
+            } else {
+                row = json;
+            }
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("ok", true);
+        if (row != null) {
+            out.putAll(parseInquiryRow(row));
+            /* Order Detail 응답 키 변형 */
+            if (strMap(out, "cardNo").isEmpty()) {
+                String c = text(row, "CardNo", "card_no", "CardNumber", "MaskedCardNo", "maskedCardNo",
+                        "cardMask", "CardMask", "MaskedPan", "maskedPan", "CardPan", "panMask",
+                        "DisplayCardNo", "displayCardNo");
+                if (!c.isBlank()) {
+                    out.put("cardNo", c);
+                }
+            }
+            if (strMap(out, "feePercent").isEmpty()) {
+                String fp = decimalOrText(row, "FeeRate", "feeRate", "fee_rate", "FeePercent");
+                if (!fp.isBlank()) {
+                    out.put("feePercent", fp);
+                }
+            }
+            if (strMap(out, "fee").isEmpty()) {
+                String f = decimalOrText(row, "Fee", "fee", "TotalFee", "ServiceFee");
+                if (!f.isBlank()) {
+                    out.put("fee", f);
+                }
+            }
+            if (strMap(out, "cardIssuer").isEmpty()) {
+                String iss = text(row, "CardIssuer", "cardIssuer");
+                if (!iss.isBlank()) {
+                    out.put("cardIssuer", iss);
+                }
+            }
+            if (strMap(out, "referenceNo").isEmpty()) {
+                String r = text(row, "ReferenceNo", "referenceNo", "refNo", "refno");
+                if (!r.isBlank()) {
+                    out.put("referenceNo", r);
+                }
+            }
+            if (strMap(out, "orderNo").isEmpty()) {
+                String o = text(row, "OrderNo", "orderNo");
+                if (!o.isBlank()) {
+                    out.put("orderNo", o);
+                }
+            }
+        }
+        return out;
+    }
+
+    private static String strMap(Map<String, Object> m, String key) {
+        if (m == null || key == null) {
+            return "";
+        }
+        Object v = m.get(key);
+        return v != null ? String.valueOf(v).trim() : "";
+    }
+
+    /**
      * Inquiry API — 기간·상태·페이징 거래 목록 (통합내역·통합체크).
      *
      * @param status          예: {@code ALL}
@@ -202,20 +295,35 @@ public class PaysoApiClient {
         body.put("recordsPerPage", size);
 
         Map<String, Object> raw = exchangeInquiry(creds, "/payment/gateway/v2/inquiry/transaction", body);
-        if (!Boolean.TRUE.equals(raw.get("ok"))) {
-            return raw;
-        }
         JsonNode json = raw.get("json") instanceof JsonNode jn ? jn : null;
         String code = "";
-        if (json != null && json.has("status") && json.get("status").has("statusCode")) {
-            code = json.get("status").get("statusCode").asText("");
+        String statusMsg = "";
+        if (json != null && json.has("status")) {
+            if (json.get("status").has("statusCode")) {
+                code = json.get("status").get("statusCode").asText("");
+            }
+            if (json.get("status").has("message")) {
+                statusMsg = json.get("status").get("message").asText("");
+            }
+        }
+        /* 기간 내 거래 없음(4A008 / HTTP 404) → 빈 목록(오류 아님). 날짜 잘못·무거래 시 흔함 */
+        if (isInquiryEmptyNotFound(code, statusMsg, raw.get("httpStatus"))) {
+            Map<String, Object> empty = new LinkedHashMap<>();
+            empty.put("ok", true);
+            empty.put("empty", true);
+            empty.put("currentPage", page);
+            empty.put("recordsPerPage", size);
+            empty.put("totalRecords", 0L);
+            empty.put("data", List.of());
+            return empty;
+        }
+        if (!Boolean.TRUE.equals(raw.get("ok"))) {
+            return raw;
         }
         if (!SUCCESS_CODE.equals(code) && json != null) {
             /* 일부 환경은 2A002 외 성공 코드 — data 배열이 있으면 성공으로 간주 */
             if (!json.has("data") || !json.get("data").isArray()) {
-                String msg = json.has("status") && json.get("status").has("message")
-                        ? json.get("status").get("message").asText("Payso Inquiry 실패")
-                        : "Payso Inquiry 실패";
+                String msg = !statusMsg.isBlank() ? statusMsg : "Payso Inquiry 실패";
                 return err("PAYSO_INQUIRY", msg);
             }
         }
@@ -250,10 +358,44 @@ public class PaysoApiClient {
         m.put("currencyCode", text(n, "currencyCode", "currency_code", "currency"));
         m.put("channelCode", text(n, "channelCode", "channel_code"));
         m.put("cardType", text(n, "cardType", "card_type"));
+        m.put("cardNo", text(n, "cardNo", "card_no", "cardNumber", "card_number", "CardNo",
+                "maskedCard", "masked_card", "cardMask", "card_mask", "panMask", "pan", "CardNumber"));
+        m.put("cardIssuer", text(n, "cardIssuer", "CardIssuer", "card_issuer", "issuer"));
+        String fee = decimalOrText(n, "fee", "Fee", "feeAmount", "fee_amount", "serviceFee",
+                "service_fee", "merchantFee", "merchant_fee", "mdr", "MDR");
+        m.put("fee", fee);
+        String feePct = decimalOrText(n, "feePercent", "fee_percent", "feeRate", "FeeRate",
+                "fee_rate", "mdrRate", "FeeRate");
+        m.put("feePercent", feePct);
         m.put("statusCode", text(n, "statusCode", "status_code"));
         m.put("statusDesc", text(n, "statusDesc", "status_desc", "status"));
         m.put("orderDateTime", text(n, "orderDateTime", "order_date_time", "orderDate"));
         return m;
+    }
+
+    private static String decimalOrText(JsonNode n, String... keys) {
+        if (n == null || keys == null) {
+            return "";
+        }
+        for (String k : keys) {
+            if (k == null) {
+                continue;
+            }
+            JsonNode v = n.get(k);
+            if (v == null || v.isNull()) {
+                continue;
+            }
+            if (v.isNumber()) {
+                return v.decimalValue().stripTrailingZeros().toPlainString();
+            }
+            if (v.isValueNode()) {
+                String s = v.asText("");
+                if (s != null && !s.isBlank() && !"-".equals(s.trim())) {
+                    return s.trim();
+                }
+            }
+        }
+        return "";
     }
 
     private static String text(JsonNode n, String... keys) {
@@ -331,6 +473,19 @@ public class PaysoApiClient {
             log.warn("Payso call failed {}: {}", url, e.toString());
             return err("PAYSO_ERROR", e.getMessage() != null ? e.getMessage() : "Payso 호출 실패");
         }
+    }
+
+    /** Inquiry 기간 무거래 — HTTP 404 + 4A008 / transaction not found. */
+    private static boolean isInquiryEmptyNotFound(String statusCode, String message, Object httpStatus) {
+        String code = statusCode != null ? statusCode.trim() : "";
+        if ("4A008".equalsIgnoreCase(code) || "4A007".equalsIgnoreCase(code)) {
+            return true;
+        }
+        String msg = message != null ? message.toLowerCase(Locale.ROOT) : "";
+        if (msg.contains("transaction not found") || msg.contains("no transaction")) {
+            return true;
+        }
+        return httpStatus instanceof Number n && n.intValue() == 404;
     }
 
     private static String join(String base, String path) {

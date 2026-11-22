@@ -1818,7 +1818,16 @@ public class PayListService {
         switch (ft) {
             case "CUSTOMER_ID" -> addLike(parts, root, cb, "customerId", v);
             case "CUSTOMER_NAME" -> addLike(parts, root, cb, "customerNm", v);
-            case "APPROVAL_NO" -> addLike(parts, root, cb, "chillTransactionId", v);
+            case "APPROVAL_NO" -> {
+                /* 승인번호 = pay_no(ICOPAY→PG ref) 우선, chill·approval 도 검색 */
+                List<Predicate> aprOrs = new ArrayList<>();
+                orFieldLike(aprOrs, root, cb, "payNo", v);
+                orFieldLike(aprOrs, root, cb, "chillTransactionId", v);
+                orFieldLike(aprOrs, root, cb, "approvalNo", v);
+                if (!aprOrs.isEmpty()) {
+                    parts.add(cb.or(aprOrs.toArray(new Predicate[0])));
+                }
+            }
             case "ORDER_NO" -> addLike(parts, root, cb, "orderNo", v);
             case "ROUTE" -> addLike(parts, root, cb, "routeNo", v);
             case "CURRENCY" -> addLike(parts, root, cb, "curType", v);

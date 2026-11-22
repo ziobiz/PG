@@ -422,6 +422,10 @@ public class MerchantProfile {
     @Column(name = "api_buyer_name_use_yn", nullable = false, length = 16)
     private String apiBuyerNameUseYn = "FOLLOW_HQ";
 
+    /** 결제창 주문번호 행 노출 — Y|N (기본 N). 백단 orderNo 생성·저장은 유지. */
+    @Column(name = "url_pay_order_no_show_yn", nullable = false, length = 1)
+    private String urlPayOrderNoShowYn = "N";
+
     /**
      * 결제창 구매자 입력 필드 프리셋 FK.
      * NULL = 프리셋 비활성(가맹이 이메일·국가·전화·배송을 개별 활성/비활성).
@@ -459,6 +463,26 @@ public class MerchantProfile {
     /** 가맹 API 리다이렉트 연동 — 본사 apiBrokerRedirectEnabledYn·urlPayRedirectEnabledYn 과 함께 */
     @Column(name = "api_broker_redirect_use_yn", nullable = false, length = 1)
     private String apiBrokerRedirectUseYn = "Y";
+
+    /** RE 결제창 상단 안내 — {@link com.pg.urlpay.RedirectCheckoutCopyModeUtil} */
+    @Column(name = "redirect_checkout_lead_mode", nullable = false, length = 16)
+    private String redirectCheckoutLeadMode = "FOLLOW_HQ";
+
+    @Column(name = "redirect_checkout_lead_text", length = 500)
+    private String redirectCheckoutLeadText;
+
+    @Column(name = "redirect_checkout_lead_text_i18n", columnDefinition = "TEXT")
+    private String redirectCheckoutLeadTextI18n;
+
+    /** RE 결제창 하단 안내 — {@link com.pg.urlpay.RedirectCheckoutCopyModeUtil} */
+    @Column(name = "redirect_checkout_hint_mode", nullable = false, length = 16)
+    private String redirectCheckoutHintMode = "FOLLOW_HQ";
+
+    @Column(name = "redirect_checkout_hint_text", length = 500)
+    private String redirectCheckoutHintText;
+
+    @Column(name = "redirect_checkout_hint_text_i18n", columnDefinition = "TEXT")
+    private String redirectCheckoutHintTextI18n;
 
     /** WordPress/WooCommerce 플러그인 연동 — 본사 apiWordpressPluginEnabledYn 과 함께 */
     @Column(name = "api_wordpress_use_yn", nullable = false, length = 1)
@@ -1235,6 +1259,15 @@ public class MerchantProfile {
         this.apiBuyerNameUseYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(v);
     }
 
+    public String getUrlPayOrderNoShowYn() { return urlPayOrderNoShowYn; }
+    public void setUrlPayOrderNoShowYn(String v) {
+        if (v == null || v.isBlank()) {
+            this.urlPayOrderNoShowYn = "N";
+            return;
+        }
+        this.urlPayOrderNoShowYn = "Y".equalsIgnoreCase(v.trim()) ? "Y" : "N";
+    }
+
     public Long getUrlPayCheckoutFieldPresetId() { return urlPayCheckoutFieldPresetId; }
     public void setUrlPayCheckoutFieldPresetId(Long urlPayCheckoutFieldPresetId) {
         this.urlPayCheckoutFieldPresetId = urlPayCheckoutFieldPresetId;
@@ -1271,6 +1304,31 @@ public class MerchantProfile {
     public String getApiBrokerRedirectUseYn() { return apiBrokerRedirectUseYn; }
     public void setApiBrokerRedirectUseYn(String apiBrokerRedirectUseYn) {
         this.apiBrokerRedirectUseYn = apiBrokerRedirectUseYn != null && "Y".equalsIgnoreCase(apiBrokerRedirectUseYn.trim()) ? "Y" : "N";
+    }
+
+    public String getRedirectCheckoutLeadMode() { return redirectCheckoutLeadMode; }
+    public void setRedirectCheckoutLeadMode(String redirectCheckoutLeadMode) {
+        this.redirectCheckoutLeadMode = com.pg.urlpay.RedirectCheckoutCopyModeUtil.normalizeMerchantStored(redirectCheckoutLeadMode);
+    }
+    public String getRedirectCheckoutLeadText() { return redirectCheckoutLeadText; }
+    public void setRedirectCheckoutLeadText(String redirectCheckoutLeadText) {
+        this.redirectCheckoutLeadText = redirectCheckoutLeadText;
+    }
+    public String getRedirectCheckoutLeadTextI18n() { return redirectCheckoutLeadTextI18n; }
+    public void setRedirectCheckoutLeadTextI18n(String redirectCheckoutLeadTextI18n) {
+        this.redirectCheckoutLeadTextI18n = redirectCheckoutLeadTextI18n;
+    }
+    public String getRedirectCheckoutHintMode() { return redirectCheckoutHintMode; }
+    public void setRedirectCheckoutHintMode(String redirectCheckoutHintMode) {
+        this.redirectCheckoutHintMode = com.pg.urlpay.RedirectCheckoutCopyModeUtil.normalizeMerchantStored(redirectCheckoutHintMode);
+    }
+    public String getRedirectCheckoutHintText() { return redirectCheckoutHintText; }
+    public void setRedirectCheckoutHintText(String redirectCheckoutHintText) {
+        this.redirectCheckoutHintText = redirectCheckoutHintText;
+    }
+    public String getRedirectCheckoutHintTextI18n() { return redirectCheckoutHintTextI18n; }
+    public void setRedirectCheckoutHintTextI18n(String redirectCheckoutHintTextI18n) {
+        this.redirectCheckoutHintTextI18n = redirectCheckoutHintTextI18n;
     }
 
     public String getApiWordpressUseYn() { return apiWordpressUseYn; }

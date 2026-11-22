@@ -315,6 +315,14 @@ public class PaysoPaymentService {
      * 이미 승인·실패면 덮지 않음. 수신통보 우선 outbound.
      */
     public Map<String, Object> markBuyerFailed(String compIdHint, String orderNo, String reason) {
+        return markBuyerFailed(compIdHint, orderNo, reason, false);
+    }
+
+    /**
+     * @param forceCorrectFalsePaid 오성공(승인키=주문번호) 10→99 정정. 실패 수신통보 재발송.
+     */
+    public Map<String, Object> markBuyerFailed(String compIdHint, String orderNo, String reason,
+                                               boolean forceCorrectFalsePaid) {
         Map<String, Object> out = new LinkedHashMap<>();
         String on = orderNo != null ? orderNo.trim() : "";
         if (on.isBlank()) {
@@ -324,18 +332,23 @@ public class PaysoPaymentService {
         if (comp.isBlank()) {
             return fail(out, "NOT_FOUND", "compId가 필요합니다.");
         }
+        String reasonCode = forceCorrectFalsePaid ? "PAYSO_FALSE_PAID_CORRECTED" : "PAYSO_BUYER_RETURN_FAIL";
         String reasonText = reason != null && !reason.isBlank()
                 ? reason.trim()
-                : "Buyer return: payment failed or abandoned";
+                : (forceCorrectFalsePaid
+                ? "PAYSO portal has no matching paid order — corrected false success to failed"
+                : "Buyer return: payment failed or abandoned");
+        Optional<com.pg.entity.PgTrnsctn> before = paysoSaleRecordService.findByMerchantAndOrder(comp, on);
+        String prevStatus = before.map(x -> x.getStatus() != null ? x.getStatus().trim() : "").orElse("");
         Optional<com.pg.entity.PgTrnsctn> updated = paysoSaleRecordService.applyFailedOutcome(
-                on, comp, null, "PAYSO_BUYER_RETURN_FAIL", reasonText);
+                on, comp, null, reasonCode, reasonText, forceCorrectFalsePaid);
         if (updated.isEmpty()) {
             return fail(out, "NOT_FOUND", "주문을 찾을 수 없습니다.");
         }
         com.pg.entity.PgTrnsctn t = updated.get();
         try {
             if ("99".equals(t.getStatus() != null ? t.getStatus().trim() : "")) {
-                merchantOutboundNotifyService.scheduleAfterTxnCommit(t, null, "PAYSO_BUYER_RETURN_FAIL");
+                merchantOutboundNotifyService.scheduleAfterTxnCommit(t, null, reasonCode);
             }
         } catch (Exception e) {
             log.warn("PAYSO buyer mark-failed notify: {}", e.getMessage());
@@ -343,7 +356,9 @@ public class PaysoPaymentService {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("orderNo", on);
         data.put("compId", comp);
+        data.put("prevStatus", prevStatus);
         data.put("paymentStatus", "99".equals(t.getStatus() != null ? t.getStatus().trim() : "") ? "FAIL" : t.getStatus());
+        data.put("correctedFalsePaid", forceCorrectFalsePaid && "10".equals(prevStatus));
         data.put("pgVendor", "ICOPAY");
         out.put("success", true);
         out.put("data", data);

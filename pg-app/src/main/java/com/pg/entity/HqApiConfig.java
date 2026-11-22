@@ -243,6 +243,26 @@ public class HqApiConfig {
     @Column(name = "unified_payment_extra_footer_text_default_i18n", columnDefinition = "TEXT")
     private String unifiedPaymentExtraFooterTextDefaultI18n;
 
+    /** RE 결제창 상단 안내 본사 기본 — ACTIVE|CUSTOM|DISABLED */
+    @Column(name = "redirect_checkout_lead_mode_default", nullable = false, length = 16)
+    private String redirectCheckoutLeadModeDefault = "ACTIVE";
+
+    @Column(name = "redirect_checkout_lead_text_default", length = 500)
+    private String redirectCheckoutLeadTextDefault = com.pg.urlpay.RedirectCheckoutCopyModeUtil.DEFAULT_LEAD_KO;
+
+    @Column(name = "redirect_checkout_lead_text_default_i18n", columnDefinition = "TEXT")
+    private String redirectCheckoutLeadTextDefaultI18n;
+
+    /** RE 결제창 하단 안내 본사 기본 — ACTIVE|CUSTOM|DISABLED */
+    @Column(name = "redirect_checkout_hint_mode_default", nullable = false, length = 16)
+    private String redirectCheckoutHintModeDefault = "ACTIVE";
+
+    @Column(name = "redirect_checkout_hint_text_default", length = 500)
+    private String redirectCheckoutHintTextDefault = com.pg.urlpay.RedirectCheckoutCopyModeUtil.DEFAULT_HINT_KO;
+
+    @Column(name = "redirect_checkout_hint_text_default_i18n", columnDefinition = "TEXT")
+    private String redirectCheckoutHintTextDefaultI18n;
+
     /** 결제창이동 본사 기본 안내 문구용(가맹 직접입력 비움 시). 모드는 가맹이 설정(기본 비활성). */
     @Column(name = "url_pay_checkout_move_mode_default", nullable = false, length = 16)
     private String urlPayCheckoutMoveModeDefault = "DISABLED";
@@ -722,6 +742,22 @@ public class HqApiConfig {
     public void setUnifiedPaymentExtraFooterTextDefault(String v) { this.unifiedPaymentExtraFooterTextDefault = v; }
     public String getUnifiedPaymentExtraFooterTextDefaultI18n() { return unifiedPaymentExtraFooterTextDefaultI18n; }
     public void setUnifiedPaymentExtraFooterTextDefaultI18n(String v) { this.unifiedPaymentExtraFooterTextDefaultI18n = v; }
+    public String getRedirectCheckoutLeadModeDefault() { return redirectCheckoutLeadModeDefault; }
+    public void setRedirectCheckoutLeadModeDefault(String v) {
+        this.redirectCheckoutLeadModeDefault = com.pg.urlpay.RedirectCheckoutCopyModeUtil.normalizeHq(v);
+    }
+    public String getRedirectCheckoutLeadTextDefault() { return redirectCheckoutLeadTextDefault; }
+    public void setRedirectCheckoutLeadTextDefault(String v) { this.redirectCheckoutLeadTextDefault = v; }
+    public String getRedirectCheckoutLeadTextDefaultI18n() { return redirectCheckoutLeadTextDefaultI18n; }
+    public void setRedirectCheckoutLeadTextDefaultI18n(String v) { this.redirectCheckoutLeadTextDefaultI18n = v; }
+    public String getRedirectCheckoutHintModeDefault() { return redirectCheckoutHintModeDefault; }
+    public void setRedirectCheckoutHintModeDefault(String v) {
+        this.redirectCheckoutHintModeDefault = com.pg.urlpay.RedirectCheckoutCopyModeUtil.normalizeHq(v);
+    }
+    public String getRedirectCheckoutHintTextDefault() { return redirectCheckoutHintTextDefault; }
+    public void setRedirectCheckoutHintTextDefault(String v) { this.redirectCheckoutHintTextDefault = v; }
+    public String getRedirectCheckoutHintTextDefaultI18n() { return redirectCheckoutHintTextDefaultI18n; }
+    public void setRedirectCheckoutHintTextDefaultI18n(String v) { this.redirectCheckoutHintTextDefaultI18n = v; }
     public String getUrlPayCheckoutMoveModeDefault() { return urlPayCheckoutMoveModeDefault; }
     public void setUrlPayCheckoutMoveModeDefault(String v) {
         this.urlPayCheckoutMoveModeDefault = com.pg.urlpay.UrlPayCheckoutMoveModeUtil.normalizeHq(v);

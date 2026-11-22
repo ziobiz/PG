@@ -42,4 +42,21 @@ public final class PgNotifyIngressPaths {
         String lower = url.trim().toLowerCase(Locale.ROOT);
         return lower.contains(OPEN_PREFIX) || lower.contains(MIDDLEWARE_PREFIX);
     }
+
+    /**
+     * NOTI 구매자 Result 페이지({@code /noti/result/...}) — 브라우저 복귀용.
+     * 가맹 서버 통보(JSON POST) 대상으로 쓰면 404·재시도 폭주가 납니다.
+     */
+    public static boolean isNotiBrowserResultUrl(String url) {
+        if (url == null || url.isBlank()) {
+            return false;
+        }
+        String lower = url.trim().toLowerCase(Locale.ROOT);
+        return lower.contains("/noti/result/");
+    }
+
+    /** 아웃바운드 가맹 통보로 보내면 안 되는 URL(루프·브라우저 Result). */
+    public static boolean isForbiddenMerchantOutboundUrl(String url) {
+        return isIcopayNotifyIngressUrl(url) || isNotiBrowserResultUrl(url);
+    }
 }

@@ -29,9 +29,13 @@
     ],
     /** 헬로 활성화 시 VIEW SETTING·그리드 토글 열 우선 순서(거래시간 등 고정열은 그 앞에 항상 표시) */
     viewSettingHelloPriorityKeys: [
-      'chillTransactionId', 'trnId', 'orderNo', 'calcCycle', 'chillCustomer',
+      'chillTransactionId', 'trnId', 'orderNo', 'pgOrderNo', 'calcCycle', 'chillCustomer',
       'currency', 'chillAmount', 'payCardNo', 'chillPaymentStatus', 'payActions'
     ],
+    /** 총본사(ADMIN 포함) VIEW SETTING·헬로에만 노출 — 기본 OFF */
+    columnGuideDefaultOffKeys: ['pgOrderNo'],
+    /** hqOnly 열 키 — 총본사·ADMIN 세션만 가이드·그리드에 포함 */
+    hqOnlyColumnKeys: ['pgOrderNo'],
     /**
      * 조직항목설정: 조직 유형별 허용 열 체크의 기본안(REGIONAL 은 런타임에서 전체 토글열로 확장).
      * 본사(REGIONAL)=전체, 총판(MASTER_DIST), 지사·대리점·영업점(BRANCH_GROUP), 가맹점(MERCHANT) 순으로 좁아집니다.
@@ -94,6 +98,7 @@
       { key: 'trnId', label: '거래번호(우리)' },
       { key: 'chillCustomer', label: '고객' },
       { key: 'orderNo', label: '주문번호' },
+      { key: 'pgOrderNo', label: '주문번호(PG)', columnGuideLabel: '주문번호(PG)', hqOnly: true },
       { key: 'paymentChannel', label: 'Payment Channel' },
       { key: 'payerDeviceLabel', label: '단말기' },
       { key: 'payerRegion', label: '위치' },
