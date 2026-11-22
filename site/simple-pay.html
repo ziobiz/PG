@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="referrer" content="no-referrer" />
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+  <title>ICOPAY</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="/css/pay-inline.css?v=40" rel="stylesheet" />
+</head>
+<body class="pay-inline-body">
+  <div class="pay-shell">
+    <div class="pay-card">
+      <div class="pay-brand" id="brandBlock">
+        <img id="brandLogoImg" class="pay-brand-logo-img d-none" alt="ICOPAY" width="160" height="48" decoding="async" />
+        <div class="pay-brand-logo" id="brandLogo">ICOPAY</div>
+        <div class="pay-brand-sub" id="brandSub">간편결제</div>
+      </div>
+      <div class="pay-lang" role="group" aria-label="Language" id="langGroup">
+        <button type="button" data-lang="JPN">JPN</button>
+        <button type="button" data-lang="KOR">KOR</button>
+        <button type="button" data-lang="ENG">ENG</button>
+        <button type="button" data-lang="CHN">CHN</button>
+        <button type="button" data-lang="THA">THA</button>
+      </div>
+      <div id="configError" class="alert alert-warning pay-alert-config" style="display:none;"></div>
+      <div id="deviceWarn" class="alert alert-info small" style="display:none;" role="alertdialog">
+        <p class="mb-2" id="deviceWarnText"></p>
+        <button type="button" class="btn btn-sm btn-primary" id="deviceWarnOk"></button>
+      </div>
+      <div id="mainPanel">
+        <p class="small text-muted mb-3 text-center" id="lead"></p>
+        <div class="pay-form-grid mb-3">
+          <div class="pay-row pay-row-static" id="rowAmount">
+            <div class="pay-row-label"><span id="lblAmount"></span></div>
+            <div class="pay-row-value">
+              <span id="amountDisplay" class="fw-semibold">—</span>
+              <span class="text-muted small" id="currencyDisplay"></span>
+            </div>
+          </div>
+          <div class="pay-row pay-row-static d-none" id="rowCharge">
+            <div class="pay-row-label"><span id="lblChargeAmount"></span></div>
+            <div class="pay-row-value">
+              <span id="chargeAmountDisplay" class="fw-semibold">—</span>
+              <span class="text-muted small" id="chargeCurrencyDisplay"></span>
+            </div>
+          </div>
+          <div class="pay-row pay-row-static" id="rowOrder">
+            <div class="pay-row-label"><span id="lblOrder"></span></div>
+            <div class="pay-row-value"><span id="orderDisplay">—</span></div>
+          </div>
+          <div class="pay-row pay-row-static" id="rowItem">
+            <div class="pay-row-label"><span id="lblItem"></span></div>
+            <div class="pay-row-value"><span id="itemDisplay">—</span></div>
+          </div>
+          <div class="pay-row pay-row-static" id="rowName">
+            <div class="pay-row-label"><span id="lblName"></span></div>
+            <div class="pay-row-value"><span id="nameDisplay">—</span></div>
+          </div>
+          <div class="pay-row pay-row-static" id="rowEmail">
+            <div class="pay-row-label"><span id="lblEmail"></span></div>
+            <div class="pay-row-value"><span id="emailDisplay">—</span></div>
+          </div>
+          <div class="pay-row pay-row-static" id="rowPhone">
+            <div class="pay-row-label"><span id="lblPhone"></span></div>
+            <div class="pay-row-value"><span id="phoneDisplay">—</span></div>
+          </div>
+        </div>
+        <p class="small text-muted mb-2 text-center" id="hint"></p>
+        <p class="small text-muted mb-3 text-center d-none" id="hintAuto"></p>
+        <button type="button" class="btn btn-primary btn-pay w-100 mb-2 d-none" id="payBtn"></button>
+        <button type="button" class="btn btn-outline-secondary w-100 mb-2 d-none" id="qrBtn"></button>
+        <div id="qrBox" class="text-center d-none mb-2">
+          <canvas id="qrCanvas" width="220" height="220" class="border rounded bg-white p-2"></canvas>
+          <p class="small text-muted mt-2 mb-0" id="qrHint"></p>
+          <p class="small text-muted" id="pollStatus"></p>
+          <button type="button" class="btn btn-primary btn-pay w-100 mt-2" id="checkBtn"></button>
+        </div>
+        <div id="paidBox" class="alert alert-success text-center d-none">
+          <strong id="paidTitle"></strong>
+          <p class="mb-0 small" id="paidDetail"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+<script src="/js/icopay-qr-modal.js?v=3"></script>
+<script>
+(function () {
+  var T = {
+    KOR: {
+      lead: '주문·구매자 정보를 확인한 뒤 결제하세요. 카드는 다음 결제창에서 입력합니다.',
+      hintPc: '휴대폰 카메라로 스캔 후 결제 진행을 합니다.',
+      hintAuto: '결제후 자동 완료 처리 됩니다.',
+      hintMobile: '확인 후 아래 버튼으로 결제를 진행하세요. 카드는 다음 결제창에서 입력합니다.',
+      pay: '이 기기에서 결제', qr: 'QR 코드로 결제', qrHint: '휴대폰 카메라로 스캔 후 결제 진행을 합니다.',
+      check: '결제 완료 확인', polling: '결제 완료를 확인하는 중…', paid: '결제가 완료되었습니다.', paidTitle: '결제 완료',
+      amount: '금액', order: '주문번호', item: '상품', name: '성명', email: '이메일', phone: '전화번호',
+      chargeAmt: '예상 청구',
+      err: '세션을 불러오지 못했습니다.', needSession: '결제 세션이 없습니다.',
+      deviceWarn: '이전에 사용한 단말기와 다를 수 있습니다. 본인이 맞습니까?', deviceOk: '예, 계속',
+      brandSub: '간편결제'
+    },
+    ENG: {
+      lead: 'Confirm order and shopper details, then pay. Enter the card on the next payment screen.',
+      hintPc: 'Scan with your phone camera to continue payment.',
+      hintAuto: 'Payment will complete automatically after pay.',
+      hintMobile: 'Confirm details, then pay below. Enter the card on the next screen.',
+      pay: 'Pay on this device', qr: 'Pay with QR code', qrHint: 'Scan with your phone camera to continue payment.',
+      check: 'Check payment status', polling: 'Waiting for payment…', paid: 'Payment completed.', paidTitle: 'Paid',
+      amount: 'Amount', order: 'Order no.', item: 'Item', name: 'Name', email: 'Email', phone: 'Phone',
+      chargeAmt: 'Est. charge',
+      err: 'Could not load session.', needSession: 'Payment session missing.',
+      deviceWarn: 'This may not be the device used before. Is this you?', deviceOk: 'Yes, continue',
+      brandSub: 'Simple pay'
+    },
+    JPN: {
+      lead: '注文・購入者情報を確認してからお支払いください。カードは次の画面で入力します。',
+      hintPc: 'スマートフォンのカメラでスキャンして決済を進めてください。',
+      hintAuto: '支払い後、自動で完了処理されます。',
+      hintMobile: '内容を確認のうえ下のボタンでお支払いください。カードは次の画面で入力します。',
+      pay: 'この端末で支払う', qr: 'QRコードで支払う', qrHint: 'スマートフォンのカメラでスキャンして決済を進めてください。',
+      check: '支払い完了を確認', polling: '支払い完了を確認中…', paid: 'お支払いが完了しました。', paidTitle: '決済完了',
+      amount: '金額', order: '注文番号', item: '商品', name: '氏名', email: 'メール', phone: '電話',
+      chargeAmt: '予想請求',
+      err: 'セッションを読み込めませんでした。', needSession: '決済セッションがありません。',
+      deviceWarn: '以前使った端末と異なる可能性があります。ご本人ですか？', deviceOk: 'はい、続ける',
+      brandSub: 'かんたん決済'
+    },
+    CHN: {
+      lead: '请确认订单与购买人信息后支付。卡信息在下一支付页输入。',
+      hintPc: '请用手机相机扫描后继续支付。',
+      hintAuto: '支付后将自动完成处理。',
+      hintMobile: '确认信息后点下方按钮支付。卡信息在下一页输入。',
+      pay: '在本机支付', qr: '用二维码支付', qrHint: '请用手机相机扫描后继续支付。',
+      check: '确认是否已支付', polling: '正在等待支付完成…', paid: '支付已完成。', paidTitle: '支付完成',
+      amount: '金额', order: '订单号', item: '商品', name: '姓名', email: '邮箱', phone: '电话',
+      chargeAmt: '预计扣款',
+      err: '无法加载会话。', needSession: '缺少支付会话。',
+      deviceWarn: '可能不是此前使用的设备。确认是本人吗？', deviceOk: '是，继续',
+      brandSub: '简易支付'
+    },
+    THA: {
+      lead: 'ยืนยันคำสั่งและข้อมูลผู้ซื้อแล้วชำระ กรอกบัตรในหน้าชำระถัดไป',
+      hintPc: 'สแกนด้วยกล้องมือถือแล้วดำเนินการชำระ',
+      hintAuto: 'หลังชำระระบบจะปิดงานอัตโนมัติ',
+      hintMobile: 'ยืนยันแล้วกดปุ่มด้านล่างเพื่อชำระ กรอกบัตรในหน้าถัดไป',
+      pay: 'ชำระบนอุปกรณ์นี้', qr: 'ชำระด้วย QR', qrHint: 'สแกนด้วยกล้องมือถือแล้วดำเนินการชำระ',
+      check: 'ตรวจสอบการชำระ', polling: 'รอการชำระเสร็จ…', paid: 'ชำระเงินสำเร็จ', paidTitle: 'ชำระสำเร็จ',
+      amount: 'ยอด', order: 'เลขคำสั่ง', item: 'สินค้า', name: 'ชื่อ', email: 'อีเมล', phone: 'โทร',
+      chargeAmt: 'ยอดเรียกเก็บโดยประมาณ',
+      err: 'โหลดเซสชันไม่ได้', needSession: 'ไม่มีเซสชันชำระ',
+      deviceWarn: 'อาจไม่ใช่อุปกรณ์ที่ใช้ก่อน ใช่ตัวท่านหรือไม่?', deviceOk: 'ใช่ ดำเนินการต่อ',
+      brandSub: 'ชำระง่าย'
+    }
+  };
+
+  var lang = 'KOR';
+  var sessionToken = '';
+  var compId = '';
+  var orderNo = '';
+  var chargePayUrl = '';
+  var pollTimer = null;
+  var ctx = null;
+  var pcClient = isPcClient();
+
+  function isPcClient() {
+    var ua = navigator.userAgent || '';
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua)) {
+      return false;
+    }
+    /* iPadOS 13+ often reports as Mac */
+    if (navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1) {
+      return false;
+    }
+    return true;
+  }
+
+  function qs(name) {
+    try { return new URLSearchParams(location.search).get(name) || ''; } catch (e) { return ''; }
+  }
+  function t() { return T[lang] || T.ENG; }
+
+  function pickI18n(map, fallback) {
+    if (!map || typeof map !== 'object') return fallback || '';
+    var v = map[lang]
+      || (lang === 'JPN' ? (map.JP || map.JA) : null)
+      || (lang === 'CHN' ? (map.ZH || map.CN) : null)
+      || (lang === 'THA' ? map.TH : null)
+      || (lang === 'ENG' ? (map.EN || map.ENGLISH) : null)
+      || (lang === 'KOR' ? (map.KO || map.KR) : null)
+      || map.KOR || map.ENG || map.KO || map.EN;
+    if (v != null && String(v).trim()) return String(v).trim();
+    return fallback || '';
+  }
+
+  function applyBrand(data) {
+    var x = t();
+    var block = document.getElementById('brandBlock');
+    var logoText = document.getElementById('brandLogo');
+    var logoImg = document.getElementById('brandLogoImg');
+    var subEl = document.getElementById('brandSub');
+    if (!block || !logoText || !logoImg || !subEl) return;
+    var mode = data && data.checkoutHeaderLogoMode
+      ? String(data.checkoutHeaderLogoMode).trim().toUpperCase()
+      : 'HTML';
+    var title = (data && data.checkoutHeaderHtmlTitle && String(data.checkoutHeaderHtmlTitle).trim())
+      || 'ICOPAY';
+    var logoUrl = data && data.checkoutHeaderLogoUrl ? String(data.checkoutHeaderLogoUrl).trim() : '';
+    if (mode === 'DISABLED') {
+      logoImg.classList.add('d-none');
+      logoImg.removeAttribute('src');
+      logoText.classList.add('d-none');
+      logoText.textContent = '';
+    } else if ((mode === 'ACTIVE' || mode === 'DEFAULT') && logoUrl) {
+      logoText.classList.add('d-none');
+      logoImg.classList.remove('d-none');
+      logoImg.src = logoUrl;
+      logoImg.alt = title;
+    } else {
+      logoImg.classList.add('d-none');
+      logoImg.removeAttribute('src');
+      logoText.classList.remove('d-none');
+      logoText.textContent = title;
+    }
+    var subShow = !data || data.simplePayBrandSubShow !== false;
+    if (!subShow) {
+      subEl.classList.add('d-none');
+      subEl.textContent = '';
+      return;
+    }
+    subEl.classList.remove('d-none');
+    if (data && data.simplePayBrandSubI18n) {
+      subEl.textContent = pickI18n(data.simplePayBrandSubI18n, x.brandSub);
+    } else {
+      subEl.textContent = x.brandSub;
+    }
+  }
+
+  function applyCopyTexts() {
+    var x = t();
+    var leadEl = document.getElementById('lead');
+    var hintEl = document.getElementById('hint');
+    var hintAutoEl = document.getElementById('hintAuto');
+    var leadShow = !ctx || ctx.simplePayCheckoutLeadShow !== false;
+    var hintShow = !ctx || ctx.simplePayCheckoutHintShow !== false;
+    var autoShow = !ctx || ctx.simplePayCheckoutAutoShow !== false;
+    if (ctx && ctx.simplePayCheckoutLeadI18n) {
+      leadEl.textContent = pickI18n(ctx.simplePayCheckoutLeadI18n, x.lead);
+    } else {
+      leadEl.textContent = x.lead;
+    }
+    leadEl.classList.toggle('d-none', !leadShow);
+    if (pcClient) {
+      if (ctx && ctx.simplePayCheckoutHintI18n && hintShow) {
+        hintEl.textContent = pickI18n(ctx.simplePayCheckoutHintI18n, x.hintPc);
+      } else {
+        hintEl.textContent = x.hintPc;
+      }
+      hintEl.classList.toggle('d-none', !hintShow);
+      if (ctx && ctx.simplePayCheckoutAutoI18n && autoShow) {
+        hintAutoEl.textContent = pickI18n(ctx.simplePayCheckoutAutoI18n, x.hintAuto);
+      } else {
+        hintAutoEl.textContent = x.hintAuto;
+      }
+      hintAutoEl.classList.toggle('d-none', !autoShow);
+    } else {
+      hintEl.textContent = x.hintMobile;
+      hintEl.classList.toggle('d-none', !hintShow);
+      hintAutoEl.classList.add('d-none');
+    }
+  }
+
+  function applyLang() {
+    var x = t();
+    applyCopyTexts();
+    document.getElementById('payBtn').textContent = x.pay;
+    document.getElementById('qrBtn').textContent = x.qr;
+    document.getElementById('qrHint').textContent = pcClient ? '' : x.qrHint;
+    document.getElementById('qrHint').classList.toggle('d-none', pcClient);
+    document.getElementById('checkBtn').textContent = x.check;
+    document.getElementById('lblAmount').textContent = x.amount;
+    document.getElementById('lblChargeAmount').textContent = x.chargeAmt;
+    document.getElementById('lblOrder').textContent = x.order;
+    document.getElementById('lblItem').textContent = x.item;
+    document.getElementById('lblName').textContent = x.name;
+    document.getElementById('lblEmail').textContent = x.email;
+    document.getElementById('lblPhone').textContent = x.phone;
+    applyBrand(ctx);
+    document.getElementById('deviceWarnText').textContent = x.deviceWarn;
+    document.getElementById('deviceWarnOk').textContent = x.deviceOk;
+    document.getElementById('paidTitle').textContent = x.paidTitle;
+    document.getElementById('paidDetail').textContent = x.paid;
+    var pollEl = document.getElementById('pollStatus');
+    if (pollEl && pollEl.textContent) {
+      pollEl.textContent = x.polling;
+    }
+    document.querySelectorAll('#langGroup button').forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-lang') === lang);
+    });
+    if (ctx) {
+      applyAmountDisplay(ctx);
+    }
+  }
+
+  function applyDeviceLayout() {
+    var payBtn = document.getElementById('payBtn');
+    var qrBtn = document.getElementById('qrBtn');
+    if (pcClient) {
+      payBtn.classList.add('d-none');
+      qrBtn.classList.add('d-none');
+    } else {
+      payBtn.classList.remove('d-none');
+      qrBtn.classList.add('d-none');
+    }
+  }
+
+  function parseBuyer(raw) {
+    if (!raw) return {};
+    if (typeof raw === 'object') return raw;
+    try { return JSON.parse(String(raw)); } catch (e) { return {}; }
+  }
+
+  function deviceKey(buyer) {
+    var id = (buyer.phone || buyer.email || orderNo || 'x').toString().trim().toLowerCase();
+    return 'pg_simple_dev_' + compId + '_' + id;
+  }
+
+  function maybeDeviceWarn(buyer) {
+    /* PC는 결제 불가(QR만) — 기기 경고 불필요. 모바일에서만 표시 */
+    if (pcClient) return;
+    try {
+      var key = deviceKey(buyer);
+      var prev = localStorage.getItem(key) || '';
+      var cur = (navigator.userAgent || '').slice(0, 120);
+      if (prev && prev !== cur) {
+        document.getElementById('deviceWarn').style.display = 'block';
+        document.getElementById('mainPanel').style.display = 'none';
+        document.getElementById('deviceWarnOk').onclick = function () {
+          localStorage.setItem(key, cur);
+          document.getElementById('deviceWarn').style.display = 'none';
+          document.getElementById('mainPanel').style.display = '';
+        };
+        return;
+      }
+      if (!prev) localStorage.setItem(key, cur);
+    } catch (e) { /* ignore */ }
+  }
+
+  function buildChargeUrl(data) {
+    if (data.chargePayUrl) return data.chargePayUrl;
+    var base = location.origin;
+    var c = data.compId || compId;
+    var s = data.sessionToken || sessionToken;
+    var l = lang;
+    return base + '/checkout/' + encodeURIComponent(c)
+      + '?entry=merchant_api&session=' + encodeURIComponent(s)
+      + '&m=' + encodeURIComponent(c) + '&lang=' + encodeURIComponent(l);
+  }
+
+  function isYes(v) {
+    return String(v == null ? 'Y' : v).trim().toUpperCase() === 'Y';
+  }
+
+  function toggleRow(id, show) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle('d-none', !show);
+  }
+
+  function applyAmountDisplay(data) {
+    var dispAmt = data.amount != null ? String(data.amount) : '';
+    var dispCur = (data.displayCurrency || data.currency || '').toString().trim().toUpperCase();
+    var mode = String(data.urlPayPricingMode || '').trim().toUpperCase();
+    var isDp = mode === 'DISPLAY_FX_THB' || mode.indexOf('DISPLAY') === 0 || mode === 'BLIND';
+    var settleAmt = data.settlementAmount != null ? String(data.settlementAmount) : '';
+    var settleCur = (data.settlementCurrency || data.settlementCurrencyHint || '').toString().trim().toUpperCase();
+    var chargeRow = document.getElementById('rowCharge');
+    if (!dispAmt) {
+      document.getElementById('amountDisplay').textContent = '—';
+      document.getElementById('currencyDisplay').textContent = '';
+      document.getElementById('chargeAmountDisplay').textContent = '—';
+      document.getElementById('chargeCurrencyDisplay').textContent = '';
+      chargeRow.classList.add('d-none');
+      return;
+    }
+    document.getElementById('amountDisplay').textContent = dispAmt;
+    document.getElementById('currencyDisplay').textContent = dispCur;
+    if (isDp && settleCur && settleCur !== dispCur) {
+      document.getElementById('chargeAmountDisplay').textContent = settleAmt || '—';
+      document.getElementById('chargeCurrencyDisplay').textContent = settleCur;
+      chargeRow.classList.remove('d-none');
+      return;
+    }
+    document.getElementById('chargeAmountDisplay').textContent = '—';
+    document.getElementById('chargeCurrencyDisplay').textContent = '';
+    chargeRow.classList.add('d-none');
+  }
+
+  function fill(data) {
+    ctx = data;
+    compId = data.compId || compId;
+    sessionToken = data.sessionToken || sessionToken;
+    orderNo = data.orderNo || '';
+    chargePayUrl = buildChargeUrl(data);
+    var buyer = parseBuyer(data.buyerPrefill || data.buyer || data.buyerPrefillJson);
+    applyAmountDisplay(data);
+    applyCopyTexts();
+    applyBrand(data);
+    document.getElementById('orderDisplay').textContent = orderNo || '—';
+    document.getElementById('itemDisplay').textContent = data.productName || data.item || '—';
+    var nm = buyer.name || ((buyer.firstName || '') + ' ' + (buyer.lastName || '')).trim();
+    document.getElementById('nameDisplay').textContent = nm || '—';
+    document.getElementById('emailDisplay').textContent = buyer.email || '—';
+    document.getElementById('phoneDisplay').textContent = buyer.phone || '—';
+    toggleRow('rowOrder', isYes(data.simpleQrShowOrderNoYn));
+    toggleRow('rowItem', isYes(data.simpleQrShowProductYn));
+    toggleRow('rowName', isYes(data.simpleQrShowNameYn));
+    toggleRow('rowEmail', isYes(data.simpleQrShowEmailYn));
+    toggleRow('rowPhone', isYes(data.simpleQrShowPhoneYn));
+    maybeDeviceWarn(buyer);
+    if (pcClient) {
+      showQr();
+    }
+  }
+
+  function loadSession() {
+    sessionToken = qs('session') || '';
+    compId = qs('m') || qs('compId') || '';
+    var ql = (qs('lang') || qs('langCode') || '').toUpperCase();
+    if (T[ql]) lang = ql;
+    applyLang();
+    if (!sessionToken) {
+      showErr(t().needSession);
+      return;
+    }
+    fetch('/api/middleware/v1/merchant/checkout/simple/session?token=' + encodeURIComponent(sessionToken), {
+      credentials: 'omit'
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j || j.success === false) {
+        showErr((j && (j.message || (j.error && j.error.message))) || t().err);
+        return;
+      }
+      var payload = j.data || {};
+      if (!payload.sessionToken) payload.sessionToken = sessionToken;
+      if (!payload.compId && compId) payload.compId = compId;
+      fill(payload);
+    }).catch(function () { showErr(t().err); });
+  }
+
+  function showErr(msg) {
+    var el = document.getElementById('configError');
+    el.style.display = 'block';
+    el.textContent = msg || t().err;
+  }
+
+  function goPay() {
+    if (!chargePayUrl) return;
+    location.href = chargePayUrl;
+  }
+
+  function showQr() {
+    var box = document.getElementById('qrBox');
+    box.classList.remove('d-none');
+    var url = location.href.split('#')[0];
+    var draw = function (QR) {
+      var canvas = document.getElementById('qrCanvas');
+      QR.toCanvas(canvas, url, { width: 220, margin: 1 }, function () {});
+    };
+    if (window.ICOPAY_QR_MODAL && typeof window.ICOPAY_QR_MODAL.ensureQrLib === 'function') {
+      window.ICOPAY_QR_MODAL.ensureQrLib().then(draw).catch(function () {});
+    } else if (window.QRCode) {
+      draw(window.QRCode);
+    } else {
+      var s = document.createElement('script');
+      s.src = '/js/qrcode.min.js';
+      s.onload = function () { if (window.QRCode) draw(window.QRCode); };
+      document.head.appendChild(s);
+    }
+    startPoll();
+  }
+
+  function startPoll() {
+    document.getElementById('pollStatus').textContent = t().polling;
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(checkStatus, 2000);
+  }
+
+  function checkStatus() {
+    if (!orderNo || !compId) return;
+    /* public session path cannot auth status; use order lookup if available */
+    fetch('/api/middleware/v1/merchant/checkout/simple/public-status?token=' + encodeURIComponent(sessionToken), {
+      credentials: 'omit'
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      var d = (j && j.data) ? j.data : {};
+      if (d && (d.paid === true || String(d.status || '').toUpperCase() === 'PAID')) {
+        if (pollTimer) clearInterval(pollTimer);
+        document.getElementById('qrBox').classList.add('d-none');
+        document.getElementById('paidBox').classList.remove('d-none');
+        document.getElementById('payBtn').disabled = true;
+        document.getElementById('qrBtn').disabled = true;
+        document.getElementById('checkBtn').disabled = true;
+      }
+    }).catch(function () { /* keep polling */ });
+  }
+
+  document.getElementById('langGroup').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-lang]');
+    if (!b) return;
+    lang = b.getAttribute('data-lang');
+    applyLang();
+  });
+  document.getElementById('payBtn').addEventListener('click', goPay);
+  document.getElementById('qrBtn').addEventListener('click', showQr);
+  document.getElementById('checkBtn').addEventListener('click', checkStatus);
+
+  applyDeviceLayout();
+  loadSession();
+})();
+</script>
+</body>
+</html>

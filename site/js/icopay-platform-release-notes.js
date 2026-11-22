@@ -6,13 +6,478 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '6.94';
+  var CURRENT_LIVE = '8.4';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '8.4',
+      kind: 'minor',
+      date: '2026-11-23',
+      items: {
+        KO: [
+          '가맹 비식별 보강: 결제사(PG)에는 ICOPAY·NOTI만 전달 — 가맹 상호·홈페이지·도메인·IP·가맹 도메인 이메일 차단',
+          'PAYSO/OMSPAY return·postback URL 화이트리스트·customerEmail 중립화·description=Payment 강제'
+        ],
+        EN: [
+          'Merchant privacy harden: PG sees only ICOPAY/NOTI — block merchant trade name, homepage, domain, IP, merchant-domain email',
+          'PAYSO/OMSPAY: whitelist return/postback; neutral customerEmail; force description=Payment'
+        ],
+        JP: [
+          '加盟非識別強化: PGにはICOPAY・NOTIのみ — 加盟商号・HP・ドメイン・IP・加盟ドメインメール遮断',
+          'PAYSO/OMSPAY: return/postback許可・customerEmail中立・description=Payment強制'
+        ],
+        CH: [
+          '商户脱敏加强：PG仅知 ICOPAY/NOTI — 拦截商户字号、官网、域名、IP、商户域名邮箱',
+          'PAYSO/OMSPAY：return/postback 白名单、中立邮箱、强制 description=Payment'
+        ],
+        TH: [
+          'เสริมความเป็นส่วนตัวร้าน: PG รู้แค่ ICOPAY/NOTI — บล็อกชื่อร้าน โฮมเพจ โดเมน IP อีเมลโดเมนร้าน',
+          'PAYSO/OMSPAY: whitelist return/postback · อีเมลกลาง · description=Payment'
+        ]
+      }
+    },
+    {
+      version: '8.3',
+      kind: 'minor',
+      date: '2026-11-23',
+      items: {
+        KO: [
+          'PAYSO: PG 웹훅이 없어도 ICOPAY가 실패(만료·복귀타임아웃 등)로 확정하면 가맹 수신통보(실패) 필수 송신',
+          '실패 통보 본문에 outcomeReasonCode·사유 포함·미송신 실패건 주기적 catch-up'
+        ],
+        EN: [
+          'PAYSO: on ICOPAY-confirmed fail (expire/return timeout) always send merchant fail notify even without PG webhook',
+          'Fail payload includes outcomeReasonCode; catch-up for fails missing outbound'
+        ],
+        JP: [
+          'PAYSO: PGウェブフック無しでもICOPAY失敗確定時は加盟へ失敗通知を必須送信',
+          '失敗通知にoutcomeReasonCode・未送信失敗のcatch-up'
+        ],
+        CH: [
+          'PAYSO：即使无 PG Webhook，ICOPAY 确认失败时也必须向商户发送失败通知',
+          '失败通知含 outcomeReasonCode；补发未外发失败单'
+        ],
+        TH: [
+          'PAYSO: แม้ไม่มี webhook จาก PG เมื่อ ICOPAY ยืนยันล้มเหลวต้องแจ้งร้าน (fail)',
+          'payload มี outcomeReasonCode และ catch-up รายการที่ยังไม่ส่ง'
+        ]
+      }
+    },
+    {
+      version: '8.2',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          '간편결제 미사용(redirect): 가맹 API payUrl 진입 시 ICOPAY 확인창에 정지·「결제하기」클릭 후에만 PG 카드창 이동(자동 건너뛰기 제거)'
+        ],
+        EN: [
+          'Simple QR OFF (redirect): stop on ICOPAY confirm form for merchant API payUrl; go to PG card only after Pay click (no auto-skip)'
+        ],
+        JP: [
+          'かんたんOFF(redirect): 加盟API payUrlはICOPAY確認画面で停止・「支払う」後のみPGカードへ(自動スキップ廃止)'
+        ],
+        CH: [
+          '简易支付关(redirect)：商户 API payUrl 停在 ICOPAY 确认页，点「支付」后才进 PG 卡窗（取消自动跳过）'
+        ],
+        TH: [
+          'ปิดชำระง่าย(redirect): หยุดที่หน้ายืนยัน ICOPAY สำหรับ payUrl API · กดชำระก่อนไปหน้าบัตร PG (เลิกข้ามอัตโนมัติ)'
+        ]
+      }
+    },
+    {
+      version: '8.1',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          'PAYSO 오성공 방지: 웹훅 키 없/주문번호만이면 Order Detail 실승인 확인 후에만 성공·이미 실패(99)는 미검증 웹훅으로 덮지 않음',
+          '복귀 타임아웃 직전 Order Detail 재확인·오성공(폴링실패 사유 남은 10) 정정 가능·이력 정정(6000000057)',
+          '간편결제 미사용 redirect: payUrl=/checkout(PC·모바일 동일). 간편결제 ON만 /pay-simple'
+        ],
+        EN: [
+          'PAYSO false-paid guard: without usable webhook keys require Order Detail paid; never overwrite fail(99) without verify',
+          'Order Detail check before return-timeout fail; correct inconsistent paid rows (6000000057)',
+          'Simple QR OFF → payUrl=/checkout (PC+mobile). Simple ON → /pay-simple only'
+        ],
+        JP: [
+          'PAYSO誤成功防止: ウェブフックキー不良時はOrder Detail確認後のみ成功・失敗(99)は未検証で上書きしない',
+          'タイムアウト前にOrder Detail再確認・誤成功履歴訂正(6000000057)',
+          'かんたんOFF→payUrl=/checkout。ONのみ/pay-simple'
+        ],
+        CH: [
+          'PAYSO 防误成功：Webhook 无有效键时须 Order Detail 确认后才成功；未验证不覆盖失败(99)',
+          '超时前 Order Detail 复核·误成功记录订正(6000000057)',
+          '简易支付关→payUrl=/checkout；开→仅 /pay-simple'
+        ],
+        TH: [
+          'กัน PAYSO สำเร็จเท็จ: ไม่มีคีย์ webhook ที่ใช้ได้ต้องยืนยัน Order Detail ก่อน · ไม่ทับ 99 โดยไม่ตรวจ',
+          'ตรวจ Order Detail ก่อน timeout · แก้ประวัติสำเร็จผิด (6000000057)',
+          'ปิดชำระง่าย→payUrl=/checkout · เปิด→/pay-simple'
+        ]
+      }
+    },
+    {
+      version: '8.0',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          'PAYSO 리다이렉트: 웹훅이 주문번호를 PG키로 보내도 저장 ref로 승인 확정 + 복귀 폴링 시 Order Detail 재조회(확인중 타임아웃 실패 방지)'
+        ],
+        EN: [
+          'PAYSO redirect: confirm paid using stored ref when webhook sends orderNo as PG key + Order Detail probe on return poll (avoid awaiting timeout fail)'
+        ],
+        JP: [
+          'PAYSOリダイレクト: ウェブフックが注文番号をPGキーにしても保存refで承認確定 + 復帰ポーリングでOrder Detail再照会'
+        ],
+        CH: [
+          'PAYSO 跳转：Webhook 用订单号当 PG 键时改用已存 ref 确认成功 + 返回轮询 Order Detail 复核'
+        ],
+        TH: [
+          'PAYSO redirect: ยืนยันด้วย ref ที่เก็บไว้เมื่อ webhook ส่งเลขคำสั่งเป็นคีย์ PG + ตรวจ Order Detail ตอน poll กลับ'
+        ]
+      }
+    },
+    {
+      version: '7.9',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          '결제창 구매자입력 기본·API 금액고정을 간편결제 QR URL 블록에서 분리 →「결제창 표시 기본값」으로 이동(간편결제 노출 설정과 혼동 방지)'
+        ],
+        EN: [
+          'Move checkout buyer-input defaults & API amount lock out of Simple-pay QR URL block → Checkout display defaults (avoid confusion)'
+        ],
+        JP: [
+          '購入者入力既定・API金額固定をかんたんQR URLブロックから分離→決済画面表示既定へ(混同防止)'
+        ],
+        CH: [
+          '将购买人输入默认与 API 金额锁定移出简易支付 QR URL 区块→支付窗显示默认（防混淆）'
+        ],
+        TH: [
+          'ย้ายค่าเริ่มผู้ซื้อ/ล็อกยอด API ออกจากบล็อกชำระง่าย QR URL → ค่าเริ่มแสดงหน้าชำระ (กันสับสน)'
+        ]
+      }
+    },
+    {
+      version: '7.8',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          '웹결제 구매자입력(배송·이메일·국가·전화·성명·주문번호): 가맹「본사설정 따름」+ 본사「결제창 구매자입력 기본」(간편결제 안내와 분리)'
+        ],
+        EN: [
+          'Web-pay buyer fields (ship/email/country/phone/name/order no.): merchant Follow-HQ + HQ buyer-input defaults (separate from Simple pay copy)'
+        ],
+        JP: [
+          'ウェブ決済の購入者入力(配送・メール・国・電話・氏名・注文番号): 加盟「本社設定に従う」+ 本社「決済画面購入者入力既定」(かんたん案内と分離)'
+        ],
+        CH: [
+          '网页支付购买人字段(配送/邮箱/国家/电话/姓名/订单号)：商户「跟随总部」+ 总部「支付窗购买人输入默认」(与简易支付提示分离)'
+        ],
+        TH: [
+          'ฟิลด์ผู้ซื้อชำระเว็บ (ที่อยู่/อีเมล/ประเทศ/โทร/ชื่อ/เลขคำสั่ง): ตาม HQ + ค่าเริ่ม HQ (แยกจากข้อความชำระง่าย)'
+        ]
+      }
+    },
+    {
+      version: '7.7',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          '「간편결제 QR URL 결제 안내」를 REDIRECT 결제 안내와 분리(간편결제 ON 업체 /pay-simple 전용)',
+          '본사「카드+크립토 수단선택창 문구」카드 제목 표시 복구'
+        ],
+        EN: [
+          'Separate 「Simple pay QR URL messages」 from REDIRECT copy (only when Simple QR ON /pay-simple)',
+          'Restore HQ card title for Card+Crypto means-selection copy'
+        ],
+        JP: [
+          '「かんたんQR URL案内」をREDIRECT案内から分離(かんたんON加盟/pay-simpleのみ)',
+          '本社「カード+暗号 手段選択文言」カードタイトル表示を復旧'
+        ],
+        CH: [
+          '将「简易支付 QR URL 提示」与 REDIRECT 提示分离（仅简易支付 ON 的 /pay-simple）',
+          '恢复总部「卡+加密手段选择文案」卡片标题'
+        ],
+        TH: [
+          'แยก「ข้อความชำระง่าย QR URL」จาก REDIRECT (เฉพาะร้านที่เปิด /pay-simple)',
+          'คืนหัวการ์ดข้อความเลือกช่องทางบัตร+คริปโตของ HQ'
+        ]
+      }
+    },
+    {
+      version: '7.6',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          '본사 결제 라우팅: 「카드+크립토 수단선택창 문구」카드 제목 누락 수정'
+        ],
+        EN: [
+          'HQ Payment routing: restore missing card title for Card+Crypto means-selection copy'
+        ],
+        JP: [
+          '本社決済ルーティング: 「カード+暗号 手段選択文言」カードタイトル欠落を修正'
+        ],
+        CH: [
+          '总部支付路由：修复「卡+加密手段选择文案」卡片标题缺失'
+        ],
+        TH: [
+          'เส้นทางชำระ HQ: แก้หัวการ์ดข้อความเลือกช่องทางบัตร+คริปโตที่หายไป'
+        ]
+      }
+    },
+    {
+      version: '7.5',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          '간편결제 로고·부제: 가맹이 「본사설정 따름」이 아니면 가맹이 본사보다 우선(안내 문구 명시)'
+        ],
+        EN: [
+          'Simple pay logo/subtitle: when merchant is not Follow-HQ, merchant settings override HQ (stated in UI notes)'
+        ],
+        JP: [
+          'かんたんロゴ・副題: 加盟が「本社設定に従う」でない場合は加盟が本社より優先(案内に明記)'
+        ],
+        CH: [
+          '简易支付 Logo/副标题：商户非「跟随总部」时商户优先于总部（界面说明已写明）'
+        ],
+        TH: [
+          'โลโก้/คำบรรยายชำระง่าย: ถ้าร้านไม่ใช่ตาม HQ ร้านมีลำดับเหนือ HQ (ระบุในคำอธิบาย)'
+        ]
+      }
+    },
+    {
+      version: '7.4',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          '간편결제(/pay-simple) 로고·부제: 본사·가맹에서 웹결제 따름·API 따름·직접설정·미활성. 웹용 QR은 URL /checkout 전용(간편결제 아님) 문구 명확화'
+        ],
+        EN: [
+          'Simple pay (/pay-simple) logo/subtitle: HQ/merchant FOLLOW_WEB·FOLLOW_API·direct·off. Web QR labeled as URL /checkout only (not Simple pay)'
+        ],
+        JP: [
+          'かんたん(/pay-simple)ロゴ・副題: 本社・加盟でウェブ従う・API従う・直接・非活性。ウェブ用QRはURL /checkout専用と明記'
+        ],
+        CH: [
+          '简易支付(/pay-simple) Logo/副标题：总部/商户可跟随网页·API·直接设置·关闭。网页用QR标明仅为 URL /checkout'
+        ],
+        TH: [
+          'ชำระง่าย(/pay-simple) โลโก้/คำบรรยาย: HQ/ร้าน ตามเว็บ·ตาม API·ตั้งเอง·ปิด ระบุ QR เว็บเป็น /checkout เท่านั้น'
+        ]
+      }
+    },
+    {
+      version: '7.3',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          '가맹 등록·정보 「웹결제 사용 / 대표 기본상품정보」카드를 빨강 파스텔로 구분(중요 URL 결제 설정)'
+        ],
+        EN: [
+          'Merchant register/detail: Web pay / default product card uses red pastel to mark important URL-pay settings'
+        ],
+        JP: [
+          '加盟登録・情報「ウェブ決済/代表基本商品」カードを赤パステルで区分(重要URL決済)'
+        ],
+        CH: [
+          '商户注册/详情「网页支付/代表默认商品」卡片用红色粉彩区分（重要 URL 支付设置）'
+        ],
+        TH: [
+          'หน้าร้าน「เว็บชำระ/สินค้าเริ่มต้น」ใช้พาสเทลแดงแยก (ตั้งค่า URL สำคัญ)'
+        ]
+      }
+    },
+    {
+      version: '7.2',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          '간편결제(/pay-simple): 언어 전환 시 「결제 완료를 확인하는 중…」폴링 문구도 5개국어로 갱신'
+        ],
+        EN: [
+          'Simple pay (/pay-simple): polling status text updates in all 5 languages when switching language'
+        ],
+        JP: [
+          'かんたん(/pay-simple): 言語切替時に「支払い完了を確認中…」も5言語で更新'
+        ],
+        CH: [
+          '简易支付(/pay-simple)：切换语言时轮询「确认支付中…」文案同步五语更新'
+        ],
+        TH: [
+          'ชำระง่าย(/pay-simple): สลับภาษาแล้วข้อความรอตรวจชำระอัปเดต 5 ภาษา'
+        ]
+      }
+    },
+    {
+      version: '7.1',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          '간편결제(/pay-simple) DP 금액: 「금액」행·「예상 청구」행으로 분리(표시 통화 행 없음). STANDARD는 금액만'
+        ],
+        EN: [
+          'Simple pay (/pay-simple) DP: separate Amount and Est. charge rows (no Display-currency row). STANDARD shows amount only'
+        ],
+        JP: [
+          'かんたん(/pay-simple) DP: 「金額」行と「予想請求」行に分離(表示通貨行なし)。一般は金額のみ'
+        ],
+        CH: [
+          '简易支付(/pay-simple) DP：金额行与预计扣款行分开（无显示货币行）。普通仅显示金额'
+        ],
+        TH: [
+          'ชำระง่าย(/pay-simple) DP: แยกแถวยอดกับยอดเรียกเก็บโดยประมาณ (ไม่มีแถวสกุลแสดง) STANDARD แสดงยอดอย่างเดียว'
+        ]
+      }
+    },
+    {
+      version: '7.0',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          '【필수】간편결제 PC/모바일 규칙 명시: 가맹은 redirect/prepare만 유지·ON 시 payUrl 자동 /pay-simple(연동 수정 없음). PC=QR만·모바일=확인 후 「결제하기」→ 기존 /checkout. API는 UA로 payUrl 미분기. 본사·가맹 UI·API 힌트에 동일 명시'
+        ],
+        EN: [
+          '[Required] Simple pay PC/Mobile rules documented: merchant keeps redirect/prepare; ON auto-rewrites payUrl to /pay-simple (no code change). PC=QR only·Mobile=confirm then Pay → existing /checkout. API does not split payUrl by UA. Same text on HQ/merchant UI and API hint'
+        ],
+        JP: [
+          '【必須】かんたん決済PC/モバイル規則を明示: 加盟はredirect/prepareのまま、ON時payUrl自動/pay-simple。PC=QRのみ・モバイル=確認後「支払う」→既存/checkout。APIはUAでpayUrlを分けない。本社・加盟UI・APIヒントに同文'
+        ],
+        CH: [
+          '【必需】明示简易支付 PC/手机规则：商户仍只调 redirect/prepare；开启后 payUrl 自动 /pay-simple。PC=仅二维码·手机=确认后「支付」→现有 /checkout。API 不按 UA 分 payUrl。总部/商户 UI 与 API 提示同文'
+        ],
+        TH: [
+          '[จำเป็น] ระบุกฎชำระง่าย PC/มือถือ: ร้านใช้ redirect/prepare อย่างเดิม เมื่อเปิด payUrl เป็น /pay-simple อัตโนมัติ PC=QR อย่างเดียว·มือถือ=ยืนยันแล้วกดชำระ→/checkout เดิม API ไม่แยก payUrl ตาม UA ข้อความเดียวกันที่ HQ/ร้านและ API hint'
+        ]
+      }
+    },
+    {
+      version: '6.99',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          '간편결제: DP 금액 2줄(표시·청구금액). RE 상·하단 안내를 /pay-simple 과 공유. 「결제 완료 확인」파란 바 버튼. 가맹 간편결제 ON 시 redirect/prepare 가 자동 /pay-simple (가맹 수정 없음)'
+        ],
+        EN: [
+          'Simple pay: DP amount on 2 lines; RE lead/hint shared with /pay-simple; Check-status is a blue bar button; when Simple QR ON, redirect/prepare returns /pay-simple (no merchant code change)'
+        ],
+        JP: [
+          'かんたん決済: DP金額2行、RE上下案内を/pay-simpleと共有、「支払い完了確認」青バー、加盟ON時redirect/prepareが自動/pay-simple'
+        ],
+        CH: [
+          '简易支付：DP 金额两行；RE 上下文案与 /pay-simple 共用；「确认支付」蓝条按钮；商户开启后 redirect/prepare 自动返回 /pay-simple'
+        ],
+        TH: [
+          'ชำระง่าย: ยอด DP 2 บรรทัด ข้อความบน/ล่าง RE ใช้ร่วม /pay-simple ปุ่มยืนยันแถบน้ำเงิน เมื่อเปิดแล้ว redirect/prepare ได้ /pay-simple อัตโนมัติ'
+        ]
+      }
+    },
+    {
+      version: '6.98',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          '간편결제 QR: DP면 「금액 100 JPY / 청구통화 100 THB」표시·청구통화 결제. STANDARD는 금액만. 가맹 API 연동 채널에서 주문번호·상품·성명·이메일·전화 노출 활성/비활성'
+        ],
+        EN: [
+          'Simple QR: DP shows 「100 JPY / Charge currency 100 THB」 and charges settlement currency; STANDARD shows amount only. Per-field show toggles on Merchant API channels'
+        ],
+        JP: [
+          'かんたんQR: DPは「100 JPY / 請求通貨 100 THB」表示・請求通貨決済。一般は金額のみ。加盟APIチャネルで注文番号・商品・氏名・メール・電話の表示ON/OFF'
+        ],
+        CH: [
+          '简易QR：DP 显示「100 JPY / 扣款货币 100 THB」并以扣款货币结算；普通仅显示金额。商户 API 渠道可开关订单号·商品·姓名·邮箱·电话显示'
+        ],
+        TH: [
+          'QR ง่าย: DP แสดง 「100 JPY / สกุลเรียกเก็บ 100 THB」และเรียกเก็บด้วยสกุลนั้น STANDARD แสดงยอดอย่างเดียว สวิตช์แสดงเลขคำสั่ง·สินค้า·ชื่อ·อีเมล·โทร ที่ช่อง Merchant API'
+        ]
+      }
+    },
+    {
+      version: '6.97',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          '간편결제(/pay-simple): PC는「이 기기에서 결제」·「QR 코드로 결제」버튼 없이 QR만 자동 표시·문구「휴대폰 카메라로 스캔 후 결제 진행」「결제후 자동 완료」. 모바일만 이 기기 결제'
+        ],
+        EN: [
+          'Simple pay (/pay-simple): On PC, no Pay-here/QR buttons—QR auto-shown with scan & auto-complete copy. Pay-on-device only on mobile'
+        ],
+        JP: [
+          'かんたん決済(/pay-simple): PCは「この端末で支払う」・QRボタンなし、QR自動表示とスキャン/自動完了文言。端末払いはモバイルのみ'
+        ],
+        CH: [
+          '简易支付(/pay-simple)：PC 无「本机支付」/二维码按钮，仅自动显示二维码及扫码/自动完成文案；仅手机可本机支付'
+        ],
+        TH: [
+          'ชำระง่าย(/pay-simple): บน PC ไม่มีปุ่มชำระที่นี่/QR — แสดง QR อัตโนมัติและข้อความสแกน/ปิดงานอัตโนมัติ ชำระบนเครื่องได้เฉพาะมือถือ'
+        ]
+      }
+    },
+    {
+      version: '6.96',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          '가맹「가맹 API 연동 채널」카드 보라색 파스텔(헤더·본문)로 구분 표시'
+        ],
+        EN: [
+          'Merchant「API integration channels」card uses purple pastel header and body'
+        ],
+        JP: [
+          '加盟「加盟店 API 連携チャネル」カードを紫パステル(ヘッダ・本文)で区別'
+        ],
+        CH: [
+          '商户「商户 API 对接渠道」卡片改为紫色粉彩（标题与正文）'
+        ],
+        TH: [
+          'การ์ด「ช่อง Merchant API」ของร้านเป็นพาสเทลม่วง (หัว+เนื้อ)'
+        ]
+      }
+    },
+    {
+      version: '6.95',
+      kind: 'minor',
+      date: '2026-11-22',
+      items: {
+        KO: [
+          '간편결제(QR URL): REDIRECT 확장. 가맹·본사 ON 시 simple/prepare → /pay-simple 확인·QR·이 기기 결제 → 기존 checkout·NOTI. 기본 미사용(기존 연동 무영향). 다른 기기 경고·브라우저 Autofill 유지'
+        ],
+        EN: [
+          'Simple pay (QR URL): REDIRECT extension. When HQ+merchant ON: simple/prepare → /pay-simple confirm·QR·pay here → existing checkout·NOTI. Default OFF (no impact). Soft device warn; browser Autofill unchanged'
+        ],
+        JP: [
+          'かんたん決済(QR URL): REDIRECT拡張。本社・加盟ON時 simple/prepare→/pay-simple確認・QR・この端末払い→既存checkout・NOTI。既定OFF。端末警告・ブラウザAutofill'
+        ],
+        CH: [
+          '简易支付(QR URL)：REDIRECT 扩展。总部+商户开启后 simple/prepare→/pay-simple 确认·QR·本机支付→现有 checkout·NOTI。默认关。异设备提示；浏览器自动填充不变'
+        ],
+        TH: [
+          'ชำระง่าย(QR URL): ส่วนขยาย REDIRECT เมื่อ HQ+ร้านเปิด simple/prepare→/pay-simple ยืนยัน·QR·ชำระที่เครื่อง→checkout·NOTI เดิม ค่าเริ่มปิด คำเตือนเครื่องอื่น; Autofill เบราว์เซอร์'
+        ]
+      }
+    },
     {
       version: '6.94',
       kind: 'minor',

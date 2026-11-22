@@ -391,10 +391,27 @@ public class ApiCompController {
             @RequestParam(required = false) String apiJpaySubscriptionUseYn,
             @RequestParam(required = false) String apiBrokerInlineUseYn,
             @RequestParam(required = false) String apiBrokerRedirectUseYn,
+            @RequestParam(required = false) String simpleQrCheckoutUseYn,
+            @RequestParam(required = false) String simpleQrShowOrderNoYn,
+            @RequestParam(required = false) String simpleQrShowProductYn,
+            @RequestParam(required = false) String simpleQrShowNameYn,
+            @RequestParam(required = false) String simpleQrShowEmailYn,
+            @RequestParam(required = false) String simpleQrShowPhoneYn,
+            @RequestParam(required = false) String simplePayLogoMode,
+            @RequestParam(required = false) String simplePayLogoUrl,
+            @RequestParam(required = false) String simplePayHtmlTitle,
+            @RequestParam(required = false) String simplePayBrandSubMode,
+            @RequestParam(required = false) String simplePayBrandSubText,
             @RequestParam(required = false) String redirectCheckoutLeadMode,
             @RequestParam(required = false) String redirectCheckoutLeadText,
             @RequestParam(required = false) String redirectCheckoutHintMode,
             @RequestParam(required = false) String redirectCheckoutHintText,
+            @RequestParam(required = false) String simplePayCheckoutLeadMode,
+            @RequestParam(required = false) String simplePayCheckoutLeadText,
+            @RequestParam(required = false) String simplePayCheckoutHintMode,
+            @RequestParam(required = false) String simplePayCheckoutHintText,
+            @RequestParam(required = false) String simplePayCheckoutAutoMode,
+            @RequestParam(required = false) String simplePayCheckoutAutoText,
             @RequestParam(required = false) String apiWordpressUseYn,
             @RequestParam(required = false) String mobileCheckoutMode,
             @RequestParam(required = false) String jpayCheckoutFieldMode,
@@ -521,6 +538,15 @@ public class ApiCompController {
                 cardRiskPresaleVelIpWinMin,
                 cardRiskPresaleVelIpMax);
         compService.patchMerchantMobileCheckoutMode(saved.getCode(), mobileCheckoutMode);
+        if (saved.getId() != null) {
+            compService.applySimpleQrCheckoutUseYn(saved.getId(), simpleQrCheckoutUseYn);
+            compService.applySimpleQrConfirmFieldShow(saved.getId(),
+                    simpleQrShowOrderNoYn, simpleQrShowProductYn, simpleQrShowNameYn,
+                    simpleQrShowEmailYn, simpleQrShowPhoneYn);
+            compService.applySimplePayBrand(saved.getId(),
+                    simplePayLogoMode, simplePayLogoUrl, simplePayHtmlTitle,
+                    simplePayBrandSubMode, simplePayBrandSubText);
+        }
         compService.patchMerchantWebPaymentQrMode(saved.getCode(), webPaymentQrMode);
         compService.patchMerchantWebPayQrBrandLabels(saved.getCode(),
                 webPayQrTitleMode, webPayQrTitleText, webPayQrFooterMode, webPayQrFooterText);
@@ -545,6 +571,10 @@ public class ApiCompController {
         compService.applyMerchantRedirectCheckoutCopy(saved.getCode(),
                 redirectCheckoutLeadMode, redirectCheckoutLeadText,
                 redirectCheckoutHintMode, redirectCheckoutHintText);
+        compService.applyMerchantSimplePayCheckoutCopy(saved.getCode(),
+                simplePayCheckoutLeadMode, simplePayCheckoutLeadText,
+                simplePayCheckoutHintMode, simplePayCheckoutHintText,
+                simplePayCheckoutAutoMode, simplePayCheckoutAutoText);
         compService.applyMerchantOperationRecord(saved.getCode(), operationRecord);
         compService.saveTradeNmForOrg(saved.getId(), tradeNm, compDiv);
         merchantPayLimitService.saveFromRequest(saved.getId(), compDiv, request);
@@ -764,10 +794,27 @@ public class ApiCompController {
             @RequestParam(required = false) String apiJpaySubscriptionUseYn,
             @RequestParam(required = false) String apiBrokerInlineUseYn,
             @RequestParam(required = false) String apiBrokerRedirectUseYn,
+            @RequestParam(required = false) String simpleQrCheckoutUseYn,
+            @RequestParam(required = false) String simpleQrShowOrderNoYn,
+            @RequestParam(required = false) String simpleQrShowProductYn,
+            @RequestParam(required = false) String simpleQrShowNameYn,
+            @RequestParam(required = false) String simpleQrShowEmailYn,
+            @RequestParam(required = false) String simpleQrShowPhoneYn,
+            @RequestParam(required = false) String simplePayLogoMode,
+            @RequestParam(required = false) String simplePayLogoUrl,
+            @RequestParam(required = false) String simplePayHtmlTitle,
+            @RequestParam(required = false) String simplePayBrandSubMode,
+            @RequestParam(required = false) String simplePayBrandSubText,
             @RequestParam(required = false) String redirectCheckoutLeadMode,
             @RequestParam(required = false) String redirectCheckoutLeadText,
             @RequestParam(required = false) String redirectCheckoutHintMode,
             @RequestParam(required = false) String redirectCheckoutHintText,
+            @RequestParam(required = false) String simplePayCheckoutLeadMode,
+            @RequestParam(required = false) String simplePayCheckoutLeadText,
+            @RequestParam(required = false) String simplePayCheckoutHintMode,
+            @RequestParam(required = false) String simplePayCheckoutHintText,
+            @RequestParam(required = false) String simplePayCheckoutAutoMode,
+            @RequestParam(required = false) String simplePayCheckoutAutoText,
             @RequestParam(required = false) String apiWordpressUseYn,
             @RequestParam(required = false) String mobileCheckoutMode,
             @RequestParam(required = false) String jpayCheckoutFieldMode,
@@ -918,6 +965,15 @@ public class ApiCompController {
                     cardRiskPresaleVelIpMax);
             if (ok) {
                 compService.patchMerchantMobileCheckoutMode(compId, mobileCheckoutMode);
+                orgUnitRepository.findByCode(compId != null ? compId.trim() : "").ifPresent(ou -> {
+                        compService.applySimpleQrCheckoutUseYn(ou.getId(), simpleQrCheckoutUseYn);
+                        compService.applySimpleQrConfirmFieldShow(ou.getId(),
+                                simpleQrShowOrderNoYn, simpleQrShowProductYn, simpleQrShowNameYn,
+                                simpleQrShowEmailYn, simpleQrShowPhoneYn);
+                        compService.applySimplePayBrand(ou.getId(),
+                                simplePayLogoMode, simplePayLogoUrl, simplePayHtmlTitle,
+                                simplePayBrandSubMode, simplePayBrandSubText);
+                });
                 compService.patchMerchantWebPaymentQrMode(compId, webPaymentQrMode);
                 compService.patchMerchantWebPayQrBrandLabels(compId,
                         webPayQrTitleMode, webPayQrTitleText, webPayQrFooterMode, webPayQrFooterText);
@@ -942,6 +998,10 @@ public class ApiCompController {
                 compService.applyMerchantRedirectCheckoutCopy(compId,
                         redirectCheckoutLeadMode, redirectCheckoutLeadText,
                         redirectCheckoutHintMode, redirectCheckoutHintText);
+                compService.applyMerchantSimplePayCheckoutCopy(compId,
+                        simplePayCheckoutLeadMode, simplePayCheckoutLeadText,
+                        simplePayCheckoutHintMode, simplePayCheckoutHintText,
+                        simplePayCheckoutAutoMode, simplePayCheckoutAutoText);
                 compService.applyMerchantOperationRecord(compId, operationRecord);
                 compService.saveTradeNmByCompCode(compId, tradeNm, compDiv);
                 merchantPayLimitService.saveFromRequestByCode(compId, compDiv, request);

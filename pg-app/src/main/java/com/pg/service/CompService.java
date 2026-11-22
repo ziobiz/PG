@@ -136,6 +136,8 @@ public class CompService {
     private final com.pg.urlpay.UrlPayCheckoutMoveService urlPayCheckoutMoveService;
     private final com.pg.urlpay.CheckoutHeaderSubtitleCopyService checkoutHeaderSubtitleCopyService;
     private final com.pg.urlpay.RedirectCheckoutCopyService redirectCheckoutCopyService;
+    private final com.pg.urlpay.SimplePayCheckoutCopyService simplePayCheckoutCopyService;
+    private final com.pg.urlpay.SimplePayBrandResolver simplePayBrandResolver;
     private final com.pg.urlpay.QrPaymentMeansService qrPaymentMeansService;
     private final MerchantRecvNotiIngressService merchantRecvNotiIngressService;
 
@@ -470,6 +472,8 @@ public class CompService {
                        com.pg.urlpay.UrlPayCheckoutMoveService urlPayCheckoutMoveService,
                        com.pg.urlpay.CheckoutHeaderSubtitleCopyService checkoutHeaderSubtitleCopyService,
                        com.pg.urlpay.RedirectCheckoutCopyService redirectCheckoutCopyService,
+                       com.pg.urlpay.SimplePayCheckoutCopyService simplePayCheckoutCopyService,
+                       com.pg.urlpay.SimplePayBrandResolver simplePayBrandResolver,
                        com.pg.urlpay.QrPaymentMeansService qrPaymentMeansService,
                        MerchantRecvNotiIngressService merchantRecvNotiIngressService) {
         this.orgUnitRepository = orgUnitRepository;
@@ -510,6 +514,8 @@ public class CompService {
         this.urlPayCheckoutMoveService = urlPayCheckoutMoveService;
         this.checkoutHeaderSubtitleCopyService = checkoutHeaderSubtitleCopyService;
         this.redirectCheckoutCopyService = redirectCheckoutCopyService;
+        this.simplePayCheckoutCopyService = simplePayCheckoutCopyService;
+        this.simplePayBrandResolver = simplePayBrandResolver;
         this.qrPaymentMeansService = qrPaymentMeansService;
         this.merchantRecvNotiIngressService = merchantRecvNotiIngressService;
     }
@@ -565,8 +571,70 @@ public class CompService {
                 }
             }
             redirectCheckoutCopyService.applyToMerchantProfile(mp);
+            simplePayBrandResolver.applyTranslationOnSave(mp);
             merchantProfileRepository.save(mp);
         });
+    }
+
+    /** 간편결제 QR URL(/pay-simple) 안내. null 인자는 미변경. RE 확인창과 무관. */
+    @Transactional
+    public void applyMerchantSimplePayCheckoutCopy(String compId,
+                                                   String simplePayCheckoutLeadMode,
+                                                   String simplePayCheckoutLeadText,
+                                                   String simplePayCheckoutHintMode,
+                                                   String simplePayCheckoutHintText,
+                                                   String simplePayCheckoutAutoMode,
+                                                   String simplePayCheckoutAutoText) {
+        if (compId == null || compId.isBlank()) {
+            return;
+        }
+        if (simplePayCheckoutLeadMode == null && simplePayCheckoutLeadText == null
+                && simplePayCheckoutHintMode == null && simplePayCheckoutHintText == null
+                && simplePayCheckoutAutoMode == null && simplePayCheckoutAutoText == null) {
+            return;
+        }
+        orgUnitRepository.findByCode(compId.trim()).flatMap(ou -> {
+            if (ou.getOrgLevel() != OrgLevel.MERCHANT) {
+                return Optional.empty();
+            }
+            return merchantProfileRepository.findByOrgUnitId(ou.getId());
+        }).ifPresent(mp -> {
+            applySimplePayCopySlot(mp::setSimplePayCheckoutLeadMode, mp::getSimplePayCheckoutLeadMode,
+                    mp::setSimplePayCheckoutLeadText, mp::setSimplePayCheckoutLeadTextI18n,
+                    simplePayCheckoutLeadMode, simplePayCheckoutLeadText, "간편결제 상단 안내");
+            applySimplePayCopySlot(mp::setSimplePayCheckoutHintMode, mp::getSimplePayCheckoutHintMode,
+                    mp::setSimplePayCheckoutHintText, mp::setSimplePayCheckoutHintTextI18n,
+                    simplePayCheckoutHintMode, simplePayCheckoutHintText, "간편결제 하단 안내");
+            applySimplePayCopySlot(mp::setSimplePayCheckoutAutoMode, mp::getSimplePayCheckoutAutoMode,
+                    mp::setSimplePayCheckoutAutoText, mp::setSimplePayCheckoutAutoTextI18n,
+                    simplePayCheckoutAutoMode, simplePayCheckoutAutoText, "간편결제 자동완료 안내");
+            simplePayCheckoutCopyService.applyToMerchantProfile(mp);
+            merchantProfileRepository.save(mp);
+        });
+    }
+
+    @FunctionalInterface
+    private interface StrSetter { void set(String v); }
+    @FunctionalInterface
+    private interface StrGetter { String get(); }
+
+    private void applySimplePayCopySlot(StrSetter modeSetter, StrGetter modeGetter,
+                                        StrSetter textSetter, StrSetter i18nSetter,
+                                        String mode, String text, String label) {
+        if (mode != null && !mode.isBlank()) {
+            modeSetter.set(mode.trim());
+        }
+        if (text != null && com.pg.urlpay.SimplePayCheckoutCopyModeUtil.isCustom(modeGetter.get())) {
+            String t = text.trim();
+            if (t.isEmpty()) {
+                textSetter.set(null);
+                i18nSetter.set(null);
+            } else if (t.length() > 500) {
+                throw new IllegalArgumentException(label + "는 500자 이하여야 합니다.");
+            } else {
+                textSetter.set(t);
+            }
+        }
     }
 
     private String resolveHqQrPaymentUseDefaultYn() {
@@ -2093,15 +2161,13 @@ public class CompService {
                             m.put("urlPayLangMenuUseYn", mp.getUrlPayLangMenuUseYn() != null ? mp.getUrlPayLangMenuUseYn() : "Y");
                             m.put("checkoutContactRememberMode",
                                     mp.getCheckoutContactRememberMode() != null ? mp.getCheckoutContactRememberMode() : "FOLLOW_HQ");
-                            m.put("urlPayShippingAddressUseYn", mp.getUrlPayShippingAddressUseYn() != null ? mp.getUrlPayShippingAddressUseYn() : "N");
+                            m.put("urlPayShippingAddressUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayShippingAddressUseYn()));
                             m.put("urlPayBuyerEmailUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerEmailUseYn()));
                             m.put("urlPayBuyerCountryUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerCountryUseYn()));
                             m.put("urlPayBuyerPhoneUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerPhoneUseYn()));
                             m.put("urlPayBuyerNameUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerNameUseYn()));
                             m.put("apiBuyerNameUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getApiBuyerNameUseYn()));
-                            m.put("urlPayOrderNoShowYn",
-                                    mp.getUrlPayOrderNoShowYn() != null && "Y".equalsIgnoreCase(mp.getUrlPayOrderNoShowYn().trim())
-                                            ? "Y" : "N");
+                            m.put("urlPayOrderNoShowYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayOrderNoShowYn()));
                             m.put("urlPayCheckoutFieldPresetId", mp.getUrlPayCheckoutFieldPresetId() != null ? mp.getUrlPayCheckoutFieldPresetId() : "");
                             m.put("urlPayInputMode", com.pg.urlpay.UrlPayInputModeUtil.formatMerchantUiValue(mp.getUrlPayInputMode()));
                             m.put("urlPayCardExpiryMode", com.pg.urlpay.UrlPayCardExpiryModeUtil.formatMerchantUiValue(mp.getUrlPayCardExpiryMode()));
@@ -2113,6 +2179,32 @@ public class CompService {
                             m.put("apiJpaySubscriptionUseYn", mp.getApiJpaySubscriptionUseYn() != null ? mp.getApiJpaySubscriptionUseYn() : "N");
                             m.put("apiBrokerInlineUseYn", mp.getApiBrokerInlineUseYn() != null ? mp.getApiBrokerInlineUseYn() : "Y");
                             m.put("apiBrokerRedirectUseYn", mp.getApiBrokerRedirectUseYn() != null ? mp.getApiBrokerRedirectUseYn() : "Y");
+                            m.put("simpleQrCheckoutUseYn", mp.getSimpleQrCheckoutUseYn() != null ? mp.getSimpleQrCheckoutUseYn() : "N");
+                            m.put("simpleQrShowOrderNoYn", mp.getSimpleQrShowOrderNoYn() != null ? mp.getSimpleQrShowOrderNoYn() : "Y");
+                            m.put("simpleQrShowProductYn", mp.getSimpleQrShowProductYn() != null ? mp.getSimpleQrShowProductYn() : "Y");
+                            m.put("simpleQrShowNameYn", mp.getSimpleQrShowNameYn() != null ? mp.getSimpleQrShowNameYn() : "Y");
+                            m.put("simpleQrShowEmailYn", mp.getSimpleQrShowEmailYn() != null ? mp.getSimpleQrShowEmailYn() : "Y");
+                            m.put("simpleQrShowPhoneYn", mp.getSimpleQrShowPhoneYn() != null ? mp.getSimpleQrShowPhoneYn() : "Y");
+                            m.put("simplePayLogoMode", mp.getSimplePayLogoMode() != null ? mp.getSimplePayLogoMode() : "FOLLOW_HQ");
+                            m.put("simplePayLogoUrl", mp.getSimplePayLogoUrl() != null ? mp.getSimplePayLogoUrl() : "");
+                            m.put("simplePayHtmlTitle", mp.getSimplePayHtmlTitle() != null ? mp.getSimplePayHtmlTitle() : "");
+                            m.put("simplePayBrandSubMode", mp.getSimplePayBrandSubMode() != null ? mp.getSimplePayBrandSubMode() : "FOLLOW_HQ");
+                            m.put("simplePayBrandSubText", mp.getSimplePayBrandSubText() != null ? mp.getSimplePayBrandSubText() : "");
+                            m.put("simplePayCheckoutLeadMode",
+                                    mp.getSimplePayCheckoutLeadMode() != null && !mp.getSimplePayCheckoutLeadMode().isBlank()
+                                            ? mp.getSimplePayCheckoutLeadMode() : "FOLLOW_HQ");
+                            m.put("simplePayCheckoutLeadText",
+                                    mp.getSimplePayCheckoutLeadText() != null ? mp.getSimplePayCheckoutLeadText() : "");
+                            m.put("simplePayCheckoutHintMode",
+                                    mp.getSimplePayCheckoutHintMode() != null && !mp.getSimplePayCheckoutHintMode().isBlank()
+                                            ? mp.getSimplePayCheckoutHintMode() : "FOLLOW_HQ");
+                            m.put("simplePayCheckoutHintText",
+                                    mp.getSimplePayCheckoutHintText() != null ? mp.getSimplePayCheckoutHintText() : "");
+                            m.put("simplePayCheckoutAutoMode",
+                                    mp.getSimplePayCheckoutAutoMode() != null && !mp.getSimplePayCheckoutAutoMode().isBlank()
+                                            ? mp.getSimplePayCheckoutAutoMode() : "FOLLOW_HQ");
+                            m.put("simplePayCheckoutAutoText",
+                                    mp.getSimplePayCheckoutAutoText() != null ? mp.getSimplePayCheckoutAutoText() : "");
                             m.put("redirectCheckoutLeadMode",
                                     mp.getRedirectCheckoutLeadMode() != null && !mp.getRedirectCheckoutLeadMode().isBlank()
                                             ? mp.getRedirectCheckoutLeadMode() : "FOLLOW_HQ");
@@ -2223,15 +2315,13 @@ public class CompService {
                                 m.put("urlPayLangMenuUseYn", mp.getUrlPayLangMenuUseYn() != null ? mp.getUrlPayLangMenuUseYn() : "Y");
                             m.put("checkoutContactRememberMode",
                                     mp.getCheckoutContactRememberMode() != null ? mp.getCheckoutContactRememberMode() : "FOLLOW_HQ");
-                            m.put("urlPayShippingAddressUseYn", mp.getUrlPayShippingAddressUseYn() != null ? mp.getUrlPayShippingAddressUseYn() : "N");
+                            m.put("urlPayShippingAddressUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayShippingAddressUseYn()));
                             m.put("urlPayBuyerEmailUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerEmailUseYn()));
                             m.put("urlPayBuyerCountryUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerCountryUseYn()));
                             m.put("urlPayBuyerPhoneUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerPhoneUseYn()));
                             m.put("urlPayBuyerNameUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayBuyerNameUseYn()));
                             m.put("apiBuyerNameUseYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getApiBuyerNameUseYn()));
-                            m.put("urlPayOrderNoShowYn",
-                                    mp.getUrlPayOrderNoShowYn() != null && "Y".equalsIgnoreCase(mp.getUrlPayOrderNoShowYn().trim())
-                                            ? "Y" : "N");
+                            m.put("urlPayOrderNoShowYn", com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getUrlPayOrderNoShowYn()));
                             m.put("urlPayCheckoutFieldPresetId", mp.getUrlPayCheckoutFieldPresetId() != null ? mp.getUrlPayCheckoutFieldPresetId() : "");
                             m.put("urlPayInputMode", com.pg.urlpay.UrlPayInputModeUtil.formatMerchantUiValue(mp.getUrlPayInputMode()));
                             m.put("urlPayCardExpiryMode", com.pg.urlpay.UrlPayCardExpiryModeUtil.formatMerchantUiValue(mp.getUrlPayCardExpiryMode()));
@@ -2243,6 +2333,32 @@ public class CompService {
                             m.put("apiJpaySubscriptionUseYn", mp.getApiJpaySubscriptionUseYn() != null ? mp.getApiJpaySubscriptionUseYn() : "N");
                             m.put("apiBrokerInlineUseYn", mp.getApiBrokerInlineUseYn() != null ? mp.getApiBrokerInlineUseYn() : "Y");
                             m.put("apiBrokerRedirectUseYn", mp.getApiBrokerRedirectUseYn() != null ? mp.getApiBrokerRedirectUseYn() : "Y");
+                            m.put("simpleQrCheckoutUseYn", mp.getSimpleQrCheckoutUseYn() != null ? mp.getSimpleQrCheckoutUseYn() : "N");
+                            m.put("simpleQrShowOrderNoYn", mp.getSimpleQrShowOrderNoYn() != null ? mp.getSimpleQrShowOrderNoYn() : "Y");
+                            m.put("simpleQrShowProductYn", mp.getSimpleQrShowProductYn() != null ? mp.getSimpleQrShowProductYn() : "Y");
+                            m.put("simpleQrShowNameYn", mp.getSimpleQrShowNameYn() != null ? mp.getSimpleQrShowNameYn() : "Y");
+                            m.put("simpleQrShowEmailYn", mp.getSimpleQrShowEmailYn() != null ? mp.getSimpleQrShowEmailYn() : "Y");
+                            m.put("simpleQrShowPhoneYn", mp.getSimpleQrShowPhoneYn() != null ? mp.getSimpleQrShowPhoneYn() : "Y");
+                            m.put("simplePayLogoMode", mp.getSimplePayLogoMode() != null ? mp.getSimplePayLogoMode() : "FOLLOW_HQ");
+                            m.put("simplePayLogoUrl", mp.getSimplePayLogoUrl() != null ? mp.getSimplePayLogoUrl() : "");
+                            m.put("simplePayHtmlTitle", mp.getSimplePayHtmlTitle() != null ? mp.getSimplePayHtmlTitle() : "");
+                            m.put("simplePayBrandSubMode", mp.getSimplePayBrandSubMode() != null ? mp.getSimplePayBrandSubMode() : "FOLLOW_HQ");
+                            m.put("simplePayBrandSubText", mp.getSimplePayBrandSubText() != null ? mp.getSimplePayBrandSubText() : "");
+                            m.put("simplePayCheckoutLeadMode",
+                                    mp.getSimplePayCheckoutLeadMode() != null && !mp.getSimplePayCheckoutLeadMode().isBlank()
+                                            ? mp.getSimplePayCheckoutLeadMode() : "FOLLOW_HQ");
+                            m.put("simplePayCheckoutLeadText",
+                                    mp.getSimplePayCheckoutLeadText() != null ? mp.getSimplePayCheckoutLeadText() : "");
+                            m.put("simplePayCheckoutHintMode",
+                                    mp.getSimplePayCheckoutHintMode() != null && !mp.getSimplePayCheckoutHintMode().isBlank()
+                                            ? mp.getSimplePayCheckoutHintMode() : "FOLLOW_HQ");
+                            m.put("simplePayCheckoutHintText",
+                                    mp.getSimplePayCheckoutHintText() != null ? mp.getSimplePayCheckoutHintText() : "");
+                            m.put("simplePayCheckoutAutoMode",
+                                    mp.getSimplePayCheckoutAutoMode() != null && !mp.getSimplePayCheckoutAutoMode().isBlank()
+                                            ? mp.getSimplePayCheckoutAutoMode() : "FOLLOW_HQ");
+                            m.put("simplePayCheckoutAutoText",
+                                    mp.getSimplePayCheckoutAutoText() != null ? mp.getSimplePayCheckoutAutoText() : "");
                             m.put("redirectCheckoutLeadMode",
                                     mp.getRedirectCheckoutLeadMode() != null && !mp.getRedirectCheckoutLeadMode().isBlank()
                                             ? mp.getRedirectCheckoutLeadMode() : "FOLLOW_HQ");
@@ -3598,6 +3714,92 @@ public class CompService {
         }
         com.pg.merchantdeploy.MerchantApiIntegrationChannelService.validateMerchantChannelCombination(
                 mp.getApiBrokerInlineUseYn(), mp.getApiBrokerRedirectUseYn(), mp.getApiWordpressUseYn());
+    }
+
+    /** 간편결제(QR URL) 플래그만 갱신 — 기존 register/update 시그니처를 건드리지 않음. */
+    public void applySimpleQrCheckoutUseYn(Long orgUnitId, String simpleQrYn) {
+        if (orgUnitId == null || simpleQrYn == null || simpleQrYn.isBlank()) {
+            return;
+        }
+        merchantProfileRepository.findByOrgUnitId(orgUnitId).ifPresent(mp -> {
+            mp.setSimpleQrCheckoutUseYn(simpleQrYn.trim());
+            merchantProfileRepository.save(mp);
+        });
+    }
+
+    /**
+     * 간편결제 확인·QR 페이지 필드 노출(주문번호·상품·성명·이메일·전화).
+     * null/blank 인 항목은 유지.
+     */
+    public void applySimpleQrConfirmFieldShow(Long orgUnitId,
+                                              String orderNoYn, String productYn,
+                                              String nameYn, String emailYn, String phoneYn) {
+        if (orgUnitId == null) {
+            return;
+        }
+        boolean any = (orderNoYn != null && !orderNoYn.isBlank())
+                || (productYn != null && !productYn.isBlank())
+                || (nameYn != null && !nameYn.isBlank())
+                || (emailYn != null && !emailYn.isBlank())
+                || (phoneYn != null && !phoneYn.isBlank());
+        if (!any) {
+            return;
+        }
+        merchantProfileRepository.findByOrgUnitId(orgUnitId).ifPresent(mp -> {
+            if (orderNoYn != null && !orderNoYn.isBlank()) {
+                mp.setSimpleQrShowOrderNoYn(orderNoYn.trim());
+            }
+            if (productYn != null && !productYn.isBlank()) {
+                mp.setSimpleQrShowProductYn(productYn.trim());
+            }
+            if (nameYn != null && !nameYn.isBlank()) {
+                mp.setSimpleQrShowNameYn(nameYn.trim());
+            }
+            if (emailYn != null && !emailYn.isBlank()) {
+                mp.setSimpleQrShowEmailYn(emailYn.trim());
+            }
+            if (phoneYn != null && !phoneYn.isBlank()) {
+                mp.setSimpleQrShowPhoneYn(phoneYn.trim());
+            }
+            merchantProfileRepository.save(mp);
+        });
+    }
+
+    /** 간편결제(/pay-simple) 로고·부제. null 인자는 미변경. */
+    @Transactional
+    public void applySimplePayBrand(Long orgUnitId,
+                                    String logoMode, String logoUrl, String htmlTitle,
+                                    String brandSubMode, String brandSubText) {
+        if (orgUnitId == null) {
+            return;
+        }
+        boolean any = (logoMode != null && !logoMode.isBlank())
+                || logoUrl != null
+                || htmlTitle != null
+                || (brandSubMode != null && !brandSubMode.isBlank())
+                || brandSubText != null;
+        if (!any) {
+            return;
+        }
+        merchantProfileRepository.findByOrgUnitId(orgUnitId).ifPresent(mp -> {
+            if (logoMode != null && !logoMode.isBlank()) {
+                mp.setSimplePayLogoMode(logoMode.trim());
+            }
+            if (logoUrl != null) {
+                mp.setSimplePayLogoUrl(logoUrl.trim().isEmpty() ? null : logoUrl.trim());
+            }
+            if (htmlTitle != null) {
+                mp.setSimplePayHtmlTitle(htmlTitle.trim().isEmpty() ? null : htmlTitle.trim());
+            }
+            if (brandSubMode != null && !brandSubMode.isBlank()) {
+                mp.setSimplePayBrandSubMode(brandSubMode.trim());
+            }
+            if (brandSubText != null) {
+                mp.setSimplePayBrandSubText(brandSubText.trim().isEmpty() ? null : brandSubText.trim());
+            }
+            simplePayBrandResolver.applyTranslationOnSave(mp);
+            merchantProfileRepository.save(mp);
+        });
     }
 
     private static void putMerchantWebPaymentQrFields(Map<String, Object> m, MerchantProfile mp) {

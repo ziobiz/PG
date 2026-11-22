@@ -86,6 +86,20 @@ public final class PgOutboundUrlPolicy {
         return isOwnHost(candHost, allowedHosts) ? candidate.trim() : safeDefault;
     }
 
+    /**
+     * postbackUrl 전용: {@code "-"}(PG 패널 기본 URL) 또는 ICOPAY/NOTI 호스트만 허용.
+     * 가맹 쇼핑몰·외부 도메인이면 {@code "-"} 로 강제.
+     */
+    public static String enforceOwnDomainOrDash(String candidate, String... allowedBaseUrls) {
+        if (candidate == null || candidate.isBlank() || "-".equals(candidate.trim())) {
+            return "-";
+        }
+        if (isOwnDomain(candidate, allowedBaseUrls)) {
+            return candidate.trim();
+        }
+        return "-";
+    }
+
     /** {@code candidate} 호스트가 허용 도메인이면 true. (같은 호스트 또는 그 하위 서브도메인) */
     public static boolean isOwnDomain(String candidate, String... allowedBaseUrls) {
         String candHost = hostOf(candidate);

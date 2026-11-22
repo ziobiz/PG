@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.pg.util.IcopayPublicIdentity;
+import com.pg.util.PgOutboundUrlPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
@@ -92,7 +94,12 @@ public class OmspayApiClient {
         }
         ObjectNode body = objectMapper.createObjectNode();
         if (returnUrl != null && !returnUrl.isBlank()) {
-            String ru = returnUrl.trim();
+            String[] allowed = PgOutboundUrlPolicy.allowedIcopayAndNotiBases(
+                    IcopayPublicIdentity.API_BASE_URL,
+                    PgOutboundUrlPolicy.DEFAULT_NOTI_BASE,
+                    PgOutboundUrlPolicy.DEFAULT_SITE_BASE);
+            String ru = PgOutboundUrlPolicy.enforceOwnDomain(
+                    returnUrl.trim(), IcopayPublicIdentity.API_BASE_URL + "/omspay-pay.html", allowed);
             if (ru.length() > 500) {
                 ru = ru.substring(0, 500);
             }

@@ -2809,6 +2809,158 @@
       CH: 'REDIRECT 支付提示',
       TH: 'ข้อความชำระ REDIRECT'
     },
+    '간편결제 QR URL 결제 안내': {
+      KO: '간편결제 QR URL 결제 안내',
+      EN: 'Simple pay QR URL messages',
+      JP: 'かんたん決済QR URL案内',
+      CH: '简易支付 QR URL 提示',
+      TH: 'ข้อความชำระง่าย QR URL'
+    },
+    '결제창 구매자입력 기본': {
+      KO: '결제창 구매자입력 기본',
+      EN: 'Checkout buyer-input defaults',
+      JP: '決済画面購入者入力既定',
+      CH: '支付窗购买人输入默认',
+      TH: 'ค่าเริ่มช่องกรอกผู้ซื้อ'
+    },
+    'hqBuyerInputDefaultsNote': {
+      KO: '【간편결제 노출 설정 아님】웹결제·API·리다이렉트 결제창에 배송주소·이메일·국가코드·전화번호·성명·주문번호를 보일지 본사 기본입니다. 가맹「본사설정 따름」→여기 값 / 가맹이 활성·비활성 선택→가맹 우선.',
+      EN: '[Not Simple-pay visibility] HQ defaults for showing ship/email/country/phone/name/order no. on web/API/redirect checkout. Follow-HQ→these values; merchant Y/N→merchant wins.',
+      JP: '【かんたん露出設定ではない】ウェブ・API・リダイレクト決済画面の配送・メール・国・電話・氏名・注文番号表示の本社既定。本社設定に従う→この値 / 加盟が活性・非活性→加盟優先。',
+      CH: '【非简易支付露出】网页/API/跳转支付窗是否显示配送/邮箱/国家/电话/姓名/订单号的总部默认。跟随总部→此处；商户启用/禁用→商户优先。',
+      TH: '[ไม่ใช่การโชว์ชำระง่าย] ค่าเริ่ม HQ ว่าจะแสดงที่อยู่/อีเมล/ประเทศ/โทร/ชื่อ/เลขคำสั่งบนหน้าชำระเว็บ/API/redirect ตาม HQ→ค่านี้ ร้านเปิด/ปิด→ร้านมาก่อน'
+    },
+    '【간편결제(/pay-simple) 아님】웹결제·API·리다이렉트 등 전 PG 결제창의 표시 기본값입니다. 가맹이 「본사설정 따름」이면 여기 값, 가맹이 활성/비활성으로 바꾸면 가맹 우선. 간편결제 로고·안내 문구는 위「결제 실행방식·경로」에서 설정합니다.': {
+      KO: '【간편결제(/pay-simple) 아님】웹결제·API·리다이렉트 등 전 PG 결제창의 표시 기본값입니다. 가맹이 「본사설정 따름」이면 여기 값, 가맹이 활성/비활성으로 바꾸면 가맹 우선. 간편결제 로고·안내 문구는 위「결제 실행방식·경로」에서 설정합니다.',
+      EN: '[Not Simple pay (/pay-simple)] Display defaults for web/API/redirect checkout. Follow-HQ→these; merchant Y/N→merchant. Simple-pay logo/copy are under Payment flow above.',
+      JP: '【かんたん(/pay-simple)ではない】ウェブ・API・リダイレクト等の表示既定。本社設定に従う→この値、加盟変更→加盟優先。かんたんロゴ・案内は上の決済実行方式。',
+      CH: '【非简易支付(/pay-simple)】网页/API/跳转等支付窗显示默认。跟随总部→此处；商户改选→商户优先。简易支付 Logo/文案在上方支付执行方式。',
+      TH: '[ไม่ใช่ชำระง่าย (/pay-simple)] ค่าเริ่มแสดงหน้าชำระเว็บ/API/redirect ตาม HQ→ค่านี้ ร้านเลือกเอง→ร้าน โลโก้/ข้อความชำระง่ายอยู่ที่เส้นทางชำระด้านบน'
+    },
+    '성명(URL)=공개 URL·리다이렉트, 성명(API)=가맹 API. 전화 국가번호=+82 등 드롭다운(기본 비활성). 주문번호 노출 기본=비활성(서버 orderNo 유지). 이메일·국가·전화·배송은 아래 구매자입력 프리셋 기본형과 동기화됩니다.': {
+      KO: '성명(URL)=공개 URL·리다이렉트, 성명(API)=가맹 API. 전화 국가번호=+82 등 드롭다운(기본 비활성). 주문번호 노출 기본=비활성(서버 orderNo 유지). 이메일·국가·전화·배송은 아래 구매자입력 프리셋 기본형과 동기화됩니다.',
+      EN: 'Name(URL)=public URL/redirect, Name(API)=merchant API. Dial=+82 dropdown (default off). Order-no default=off (server orderNo kept). Email/country/phone/ship sync with buyer preset below.',
+      JP: '氏名(URL)=公開URL・リダイレクト、氏名(API)=加盟API。国番号=+82等(既定OFF)。注文番号既定=OFF。メール等は下の購入者プリセット基本形と同期。',
+      CH: '姓名(URL)=公开URL/跳转，姓名(API)=商户API。国家号默认关。订单号默认关。邮箱等与下方购买人预设同步。',
+      TH: 'ชื่อ(URL)=URL/redirect ชื่อ(API)=API ร้าน รหัสประเทศปิดเป็นค่าเริ่ม เลขคำสั่งปิด อีเมลฯ ซิงก์กับพรีเซ็ตด้านล่าง'
+    },
+    '【간편결제 아님】가맹 API(entry=merchant_api·인라인·리다이렉트) 결제창에서 prepare 세션 금액을 고정할지입니다. 사용(기본)=회색 잠금·수정 불가, 미사용=구매자가 금액 변경 가능. 일반 URL결제·간편결제(/pay-simple)에는 적용되지 않습니다. 전 PG 공통.': {
+      KO: '【간편결제 아님】가맹 API(entry=merchant_api·인라인·리다이렉트) 결제창에서 prepare 세션 금액을 고정할지입니다. 사용(기본)=회색 잠금·수정 불가, 미사용=구매자가 금액 변경 가능. 일반 URL결제·간편결제(/pay-simple)에는 적용되지 않습니다. 전 PG 공통.',
+      EN: '[Not Simple pay] Lock prepare session amount on merchant API checkout. On=locked; Off=buyer can edit. Not for public URL pay or /pay-simple.',
+      JP: '【かんたんではない】加盟API決済でprepare金額を固定。使用=ロック、未使用=変更可。一般URL・かんたんには非適用。',
+      CH: '【非简易支付】商户 API 支付窗是否锁定 prepare 金额。使用=锁定；未使用=可改。不用于公开 URL/简易支付。',
+      TH: '[ไม่ใช่ชำระง่าย] ล็อกยอด prepare ในหน้า API ร้าน ใช้=ล็อก ไม่ใช้=แก้ได้ ไม่ใช้กับ URL สาธารณะ/ชำระง่าย'
+    },
+    '【간편결제 노출 아님】「본사설정 따름」이면 본사정책 → 결제·URL →「결제창 표시 기본값」→「결제창 구매자입력 기본」값을 씁니다. 가맹이 활성/비활성으로 바꾸면 가맹이 본사보다 우선합니다. 구매자입력 프리셋: 기본형·1형·2형…을 고르면 이메일·국가·전화·배송은 프리셋을 따릅니다(개별 항목 잠금). 「비활성」으로 둔 뒤에만 네 항목을 개별 설정합니다. 성명(URL/API)·전화 국가번호·주문번호는 프리셋과 별도입니다. URL·리다이렉트는 「성명(URL결제)」, 가맹 API는 「성명(API결제)」. 「주문번호 노출」비활성 시 행만 숨기고 서버 orderNo는 유지. 프리셋이 켜진 채 개별 항목을 바꾸려 하면 「구매자입력 프리셋을 비활성화하세요.」안내가 표시됩니다.': {
+      KO: '【간편결제 노출 아님】「본사설정 따름」이면 본사정책 → 결제·URL →「결제창 표시 기본값」→「결제창 구매자입력 기본」값을 씁니다. 가맹이 활성/비활성으로 바꾸면 가맹이 본사보다 우선합니다. 구매자입력 프리셋: 기본형·1형·2형…을 고르면 이메일·국가·전화·배송은 프리셋을 따릅니다(개별 항목 잠금). 「비활성」으로 둔 뒤에만 네 항목을 개별 설정합니다. 성명(URL/API)·전화 국가번호·주문번호는 프리셋과 별도입니다. URL·리다이렉트는 「성명(URL결제)」, 가맹 API는 「성명(API결제)」. 「주문번호 노출」비활성 시 행만 숨기고 서버 orderNo는 유지. 프리셋이 켜진 채 개별 항목을 바꾸려 하면 「구매자입력 프리셋을 비활성화하세요.」안내가 표시됩니다.',
+      EN: '[Not Simple-pay visibility] Follow-HQ uses HQ Checkout display → buyer-input defaults. Merchant Y/N overrides. Preset locks email/country/phone/ship. Name/dial/order-no outside preset.',
+      JP: '【かんたん露出ではない】本社設定に従う→本社「決済画面表示既定」→購入者入力既定。加盟活性/非活性が優先。プリセットはメール等4項目。',
+      CH: '【非简易支付露出】跟随总部→总部「支付窗显示默认」→购买人输入默认。商户启用/禁用优先。预设锁定邮箱等四项。',
+      TH: '[ไม่ใช่การโชว์ชำระง่าย] ตาม HQ → ค่าเริ่มแสดงหน้าชำระ→ค่าเริ่มผู้ซื้อ ร้านเปิด/ปิดมาก่อน พรีเซ็ตล็อกอีเมลฯ'
+    },
+    '간편결제 QR URL 결제 안내: 가맹「간편결제(QR URL)」사용 시에만 /pay-simple에 적용됩니다. REDIRECT의 모든 결제 방식이 아니라, 간편결제 ON 업체 전용입니다. 가맹이 본사설정 따름이면 이 값이 적용됩니다. 배송·이메일·성명 등 구매자입력·API 금액고정은 간편결제와 무관하며 아래「결제창 표시 기본값」에서 설정합니다.': {
+      KO: '간편결제 QR URL 결제 안내: 가맹「간편결제(QR URL)」사용 시에만 /pay-simple에 적용됩니다. REDIRECT의 모든 결제 방식이 아니라, 간편결제 ON 업체 전용입니다. 가맹이 본사설정 따름이면 이 값이 적용됩니다. 배송·이메일·성명 등 구매자입력·API 금액고정은 간편결제와 무관하며 아래「결제창 표시 기본값」에서 설정합니다.',
+      EN: 'Simple pay QR URL copy: only when Simple QR ON (/pay-simple). Not all REDIRECT. Buyer fields and API amount lock are unrelated—set under Checkout display defaults below.',
+      JP: 'かんたんQR URL案内: かんたんON時のみ/pay-simple。購入者入力・API金額固定は無関係→下の決済画面表示既定。',
+      CH: '简易支付 QR URL 提示：仅简易支付 ON 的 /pay-simple。购买人输入/API 金额锁定无关→下方支付窗显示默认。',
+      TH: 'ข้อความชำระง่าย QR URL: เฉพาะเมื่อเปิด /pay-simple ฟิลด์ผู้ซื้อ/ล็อกยอด API ไม่เกี่ยว → ค่าเริ่มแสดงหน้าชำระด้านล่าง'
+    },
+    '하단 안내(QR)': {
+      KO: '하단 안내(QR)',
+      EN: 'Bottom hint (QR)',
+      JP: '下部案内(QR)',
+      CH: '底部提示(QR)',
+      TH: 'ข้อความล่าง (QR)'
+    },
+    '자동완료 안내': {
+      KO: '자동완료 안내',
+      EN: 'Auto-complete message',
+      JP: '自動完了案内',
+      CH: '自动完成提示',
+      TH: 'ข้อความปิดงานอัตโนมัติ'
+    },
+    '자동완료 안내 문구': {
+      KO: '자동완료 안내 문구',
+      EN: 'Auto-complete message text',
+      JP: '自動完了案内文',
+      CH: '自动完成提示文案',
+      TH: 'ข้อความปิดงานอัตโนมัติ'
+    },
+    'REDIRECT(RE) 확인창(PAYSO·OMSPAY·KSNET 등) 전용입니다. 간편결제(/pay-simple)에는 적용되지 않습니다. 「활성」=시스템 기본, 「직접입력」=옆 문구(저장 시 5개국어), 「비활성」=숨김. 가맹이 본사설정 따름이 아니면 가맹 우선.': {
+      KO: 'REDIRECT(RE) 확인창(PAYSO·OMSPAY·KSNET 등) 전용입니다. 간편결제(/pay-simple)에는 적용되지 않습니다. 「활성」=시스템 기본, 「직접입력」=옆 문구(저장 시 5개국어), 「비활성」=숨김. 가맹이 본사설정 따름이 아니면 가맹 우선.',
+      EN: 'RE confirm pages only (PAYSO·OMSPAY·KSNET…). Not for Simple pay (/pay-simple). Active=system default, Custom=side text (5 locales on save), Disabled=hidden. Merchant overrides HQ unless Follow HQ.',
+      JP: 'RE確認画面のみ。かんたん(/pay-simple)には適用しません。「活性」=既定、「直接入力」=横文言(保存時5言語)、「非活性」=非表示。加盟が本社設定以外なら加盟優先。',
+      CH: '仅用于 RE 确认页，不用于简易支付(/pay-simple)。启用=系统默认，自定义=旁文案(保存时五语)，禁用=隐藏。商户非「遵循总部」时商户优先。',
+      TH: 'เฉพาะหน้ายืนยัน RE ไม่ใช้กับชำระง่าย(/pay-simple) เปิด=ค่าเริ่มต้น กำหนดเอง=ข้อความข้าง (5 ภาษาตอนบันทึก) ปิด=ซ่อน ถ้าร้านไม่ตาม HQ ร้านมาก่อน'
+    },
+    '【간편결제 QR URL 전용】가맹「간편결제(QR URL)」사용 시에만 /pay-simple에 표시됩니다. REDIRECT(RE) 확인창·일반 리다이렉트에는 적용되지 않습니다. 상단=공통, 하단(QR)=PC QR 안내, 자동완료=PC 두 번째 줄. 「활성」=시스템 기본, 「직접입력」=옆 문구(저장 시 5개국어), 「비활성」=숨김.': {
+      KO: '【간편결제 QR URL 전용】가맹「간편결제(QR URL)」사용 시에만 /pay-simple에 표시됩니다. REDIRECT(RE) 확인창·일반 리다이렉트에는 적용되지 않습니다. 상단=공통, 하단(QR)=PC QR 안내, 자동완료=PC 두 번째 줄. 「활성」=시스템 기본, 「직접입력」=옆 문구(저장 시 5개국어), 「비활성」=숨김.',
+      EN: '[Simple pay QR URL only] Shown on /pay-simple when Simple QR is ON. Not for RE confirm or plain redirect. Lead=common, Hint(QR)=PC QR line, Auto=PC second line. Active=default, Custom=side text (5 locales), Disabled=hidden.',
+      JP: '【かんたんQR URL専用】加盟がかんたんONのときのみ/pay-simple表示。RE確認・通常リダイレクトには適用しません。上=共通、下(QR)=PC QR、自動完了=PC2行目。活性=既定、直接入力=横文言(5言語)、非活性=非表示。',
+      CH: '【仅简易支付 QR URL】仅在商户开启简易支付时显示于 /pay-simple。不用于 RE 确认/普通跳转。上=共用，下(QR)=PC QR，自动完成=PC 第二行。启用=默认，自定义=旁文案(五语)，禁用=隐藏。',
+      TH: '[เฉพาะชำระง่าย QR URL] แสดงบน /pay-simple เมื่อร้านเปิดเท่านั้น ไม่ใช้กับ RE/redirect ทั่วไป บน=ร่วม ล่าง(QR)=บรรทัด QR PC อัตโนมัติ=บรรทัด 2 ของ PC เปิด=ค่าเริ่ม กำหนดเอง=ข้อความข้าง (5 ภาษา) ปิด=ซ่อน'
+    },
+    '간편결제 QR URL 결제 안내: 가맹「간편결제(QR URL)」사용 시에만 /pay-simple에 적용됩니다. REDIRECT의 모든 결제 방식이 아니라, 간편결제 ON 업체 전용입니다. 가맹이 본사설정 따름이면 이 값이 적용됩니다.': {
+      KO: '간편결제 QR URL 결제 안내: 가맹「간편결제(QR URL)」사용 시에만 /pay-simple에 적용됩니다. REDIRECT의 모든 결제 방식이 아니라, 간편결제 ON 업체 전용입니다. 가맹이 본사설정 따름이면 이 값이 적용됩니다.',
+      EN: 'Simple pay QR URL messages: apply only when Simple QR is ON (/pay-simple). Not all REDIRECT methods—Simple-QR merchants only. Used when merchant Follow HQ.',
+      JP: 'かんたんQR URL案内: 加盟がかんたんONのときのみ/pay-simple。REDIRECT全方式ではなくかんたんON加盟のみ。本社設定ならこの値。',
+      CH: '简易支付 QR URL 提示：仅在开启简易支付时用于 /pay-simple。不是全部 REDIRECT，仅简易支付 ON 商户。商户跟随总部时使用。',
+      TH: 'ข้อความชำระง่าย QR URL: ใช้เมื่อร้านเปิดเท่านั้น (/pay-simple) ไม่ใช่ทุก REDIRECT — เฉพาะร้านที่เปิด ถ้าตาม HQ ใช้ค่านี้'
+    },
+    'REDIRECT 결제 안내: RE 확인창(PAYSO·OMSPAY·KSNET 등) 전용입니다. 간편결제(/pay-simple) 문구는 위「간편결제 QR URL 결제 안내」에서 설정합니다. 가맹「API URL REDIRECT 중계 결제」가 본사설정 따름이면 이 값이 적용됩니다.': {
+      KO: 'REDIRECT 결제 안내: RE 확인창(PAYSO·OMSPAY·KSNET 등) 전용입니다. 간편결제(/pay-simple) 문구는 위「간편결제 QR URL 결제 안내」에서 설정합니다. 가맹「API URL REDIRECT 중계 결제」가 본사설정 따름이면 이 값이 적용됩니다.',
+      EN: 'REDIRECT messages: RE confirm only. Simple pay copy is under 「Simple pay QR URL messages」 above. Used when merchant Follow HQ on API URL REDIRECT card.',
+      JP: 'REDIRECT案内: RE確認のみ。かんたん文言は上の「かんたんQR URL案内」。加盟が本社設定ならこの値。',
+      CH: 'REDIRECT 提示：仅 RE 确认页。简易支付文案在上方「简易支付 QR URL 提示」。商户跟随总部时使用。',
+      TH: 'ข้อความ REDIRECT: เฉพาะหน้า RE ข้อความชำระง่ายอยู่ที่「ชำระง่าย QR URL」ด้านบน ใช้เมื่อร้านตาม HQ'
+    },
+    'API 리다이렉트·RE 확인창·간편결제(/pay-simple)의 상·하단 안내입니다. 인라인 카드창에는 적용되지 않습니다. 본사정책 → 결제·URL → 결제 라우팅 기본을 따르며, 가맹에서 바꾸면 가맹이 우선합니다. 간편결제(QR URL)는 「가맹 API 연동 채널」에서 켭니다.': {
+      EN: '(legacy) see RE-only and Simple-pay QR URL sections',
+      JP: '(旧)',
+      CH: '(旧)',
+      TH: '(เดิม)'
+    },
+    'API 리다이렉트 RE 확인창(PAYSO·OMSPAY·KSNET 등) 상·하단 안내입니다. 간편결제(/pay-simple) 문구는 「가맹 API 연동 채널」→「간편결제 QR URL 결제 안내」에서 따로 설정합니다. 인라인 카드창에는 적용되지 않습니다.': {
+      KO: 'API 리다이렉트 RE 확인창(PAYSO·OMSPAY·KSNET 등) 상·하단 안내입니다. 간편결제(/pay-simple) 문구는 「가맹 API 연동 채널」→「간편결제 QR URL 결제 안내」에서 따로 설정합니다. 인라인 카드창에는 적용되지 않습니다.',
+      EN: 'Top/bottom for API redirect RE confirm pages. Simple pay (/pay-simple) copy is under Merchant API channels → Simple pay QR URL messages. Not for inline card.',
+      JP: 'APIリダイレクトRE確認の上下案内。かんたん文言は「加盟API連携」→「かんたんQR URL案内」。インラインカードには適用しません。',
+      CH: 'API 跳转 RE 确认页上下文案。简易支付文案在「商户 API 渠道」→「简易支付 QR URL 提示」。不用于内联卡页。',
+      TH: 'ข้อความบน/ล่างหน้า RE ของ API redirect ข้อความชำระง่ายอยู่ที่ช่องทาง API → ชำระง่าย QR URL ไม่ใช้กับอินไลน์การ์ด'
+    },
+    '본사정책 → 결제·URL → 결제 라우팅의 REDIRECT 결제 안내 기본을 따르며, 가맹에서 바꾸면 가맹이 우선합니다.': {
+      KO: '본사정책 → 결제·URL → 결제 라우팅의 REDIRECT 결제 안내 기본을 따르며, 가맹에서 바꾸면 가맹이 우선합니다.',
+      EN: 'Follows HQ Payment routing REDIRECT message defaults; merchant overrides when changed.',
+      JP: '本社 決済ルーティングのREDIRECT案内既定に従い、加盟変更時は加盟優先。',
+      CH: '跟随总部支付路由 REDIRECT 提示默认；商户修改后优先。',
+      TH: 'ตามค่าเริ่มข้อความ REDIRECT ของ HQ ถ้าร้านแก้จะใช้ค่าของร้าน'
+    },
+    '휴대폰 카메라로 스캔 후 결제 진행을 합니다.': {
+      KO: '휴대폰 카메라로 스캔 후 결제 진행을 합니다.',
+      EN: 'Scan with your phone camera to continue payment.',
+      JP: 'スマートフォンのカメラでスキャンして決済を進めてください。',
+      CH: '请用手机相机扫描后继续支付。',
+      TH: 'สแกนด้วยกล้องมือถือแล้วชำระต่อ'
+    },
+    '결제후 자동 완료 처리 됩니다.': {
+      KO: '결제후 자동 완료 처리 됩니다.',
+      EN: 'Payment will complete automatically after pay.',
+      JP: '支払い後、自動で完了処理されます。',
+      CH: '支付后将自动完成处理。',
+      TH: 'หลังชำระระบบจะปิดงานอัตโนมัติ'
+    },
+    '주문·구매자 정보를 확인한 뒤 결제하세요. 카드는 다음 결제창에서 입력합니다.': {
+      KO: '주문·구매자 정보를 확인한 뒤 결제하세요. 카드는 다음 결제창에서 입력합니다.',
+      EN: 'Confirm order and shopper details, then pay. Enter the card on the next payment screen.',
+      JP: '注文・購入者情報を確認してからお支払いください。カードは次の画面で入力します。',
+      CH: '请确认订单与购买人信息后支付。卡信息在下一支付页输入。',
+      TH: 'ตรวจคำสั่งซื้อและข้อมูลผู้ซื้อแล้วชำระ ใส่บัตรในหน้าถัดไป'
+    },
+    'REDIRECT(RE) 확인창·간편결제(/pay-simple) 상·하단 안내에 동일 적용됩니다. 「활성」=시스템 기본, 「직접입력」=옆 문구(저장 시 5개국어), 「비활성」=숨김. 가맹이 본사설정 따름이 아니면 가맹 우선.': {
+      EN: 'Applies to REDIRECT confirm and Simple pay (/pay-simple) lead/hint. Active=system default, Custom=side text (5 locales on save), Disabled=hidden. Merchant overrides HQ unless Follow HQ.',
+      JP: 'REDIRECT確認・かんたん(/pay-simple)上下案内に同一適用。「活性」=既定、「直接入力」=横文言(保存時5言語)、「非活性」=非表示。加盟が本社設定以外なら加盟優先。',
+      CH: '同时用于 REDIRECT 确认页与简易支付(/pay-simple)上下文案。启用=系统默认，自定义=旁文案(保存时五语)，禁用=隐藏。商户非「遵循总部」时商户优先。',
+      TH: 'ใช้กับหน้ายืนยัน REDIRECT และชำระง่าย(/pay-simple) เปิด=ค่าเริ่มต้น กำหนดเอง=ข้อความข้าง (5 ภาษาตอนบันทึก) ปิด=ซ่อน ถ้าร้านไม่ตาม HQ ร้านมาก่อน'
+    },
     'REDIRECT(RE) 결제 확인창에만 적용됩니다. 「활성」=시스템 기본 문구, 「직접입력」=옆 문구(저장 시 5개국어 1회 번역), 「비활성」=숨김. 가맹이 본사설정 따름이 아니면 가맹이 우선합니다.': {
       KO: 'REDIRECT(RE) 결제 확인창에만 적용됩니다. 「활성」=시스템 기본 문구, 「직접입력」=옆 문구(저장 시 5개국어 1회 번역), 「비활성」=숨김. 가맹이 본사설정 따름이 아니면 가맹이 우선합니다.',
       EN: 'Applies only to REDIRECT (RE) confirm pages. Active=built-in copy, Custom=side text (5-lang once on save), Off=hidden. Merchant overrides HQ unless Follow HQ.',
@@ -2829,6 +2981,13 @@
       JP: 'REDIRECT案内: RE確認の上下文の本社既定。加盟が本社設定ならこの値。',
       CH: 'REDIRECT 提示：总部对 RE 确认页上下文案的默认。商户跟随总部时使用。',
       TH: 'ข้อความ REDIRECT: ค่าเริ่ม HQ สำหรับบน/ล่างหน้า RE ใช้เมื่อร้านตาม HQ'
+    },
+    '카드+크립토 수단선택창(/checkout-all) 문구입니다. 「활성」이면 옆 입력창 문구가 노출되고, 「비활성」이면 숨깁니다. 가맹이 「본사설정 따름」이면 이 값이 적용됩니다.': {
+      KO: '카드+크립토 수단선택창(/checkout-all) 문구입니다. 「활성」이면 옆 입력창 문구가 노출되고, 「비활성」이면 숨깁니다. 가맹이 「본사설정 따름」이면 이 값이 적용됩니다.',
+      EN: 'Copy for card+crypto means selection (/checkout-all). Active shows the side text; Inactive hides it. Used when merchant Follow HQ.',
+      JP: 'カード+暗号手段選択(/checkout-all)文言。活性=横文言表示、非活性=非表示。加盟が本社設定ならこの値。',
+      CH: '卡+加密手段选择(/checkout-all)文案。启用显示旁侧文案，禁用隐藏。商户跟随总部时使用。',
+      TH: 'ข้อความเลือกช่องทางบัตร+คริปโต (/checkout-all) เปิด=แสดงข้อความข้าง ปิด=ซ่อน ใช้เมื่อร้านตาม HQ'
     },
     '주문·구매자 정보를 확인한 뒤 결제 페이지로 이동합니다.': {
       KO: '주문·구매자 정보를 확인한 뒤 결제 페이지로 이동합니다.',
@@ -11456,6 +11615,115 @@
       CH: '是否在商户 API（entry=merchant_api、内联/跳转）支付窗锁定 prepare 会话金额。启用(默认)=灰底锁定不可改；关闭=购买人可改。不作用于普通 URL 支付。全 PG 相同。',
       TH: 'จะล็อกยอดจากเซสชัน prepare ในหน้าชำระ Merchant API (entry=merchant_api อินไลน์/รีไดเรกต์) หรือไม่ ใช้(ค่าเริ่มต้น)=ล็อกสีเทาแก้ไม่ได้ ไม่ใช้=ผู้ซื้อแก้ได้ ไม่ใช้กับ URL จ่ายทั่วไป ใช้ร่วมทุก PG'
     },
+    '간편결제(QR URL)': {
+      EN: 'Simple pay (QR URL)',
+      JP: 'かんたん決済(QR URL)',
+      CH: '简易支付(QR URL)',
+      TH: 'ชำระง่าย (QR URL)'
+    },
+    'QR 주문번호 노출': {
+      EN: 'QR show order no.',
+      JP: 'QR 注文番号表示',
+      CH: 'QR 显示订单号',
+      TH: 'QR แสดงเลขคำสั่ง'
+    },
+    'QR 상품명 노출': {
+      EN: 'QR show product',
+      JP: 'QR 商品名表示',
+      CH: 'QR 显示商品名',
+      TH: 'QR แสดงสินค้า'
+    },
+    'QR 성명 노출': {
+      EN: 'QR show name',
+      JP: 'QR 氏名表示',
+      CH: 'QR 显示姓名',
+      TH: 'QR แสดงชื่อ'
+    },
+    'QR 이메일 노출': {
+      EN: 'QR show email',
+      JP: 'QR メール表示',
+      CH: 'QR 显示邮箱',
+      TH: 'QR แสดงอีเมล'
+    },
+    'QR 전화번호 노출': {
+      EN: 'QR show phone',
+      JP: 'QR 電話表示',
+      CH: 'QR 显示电话',
+      TH: 'QR แสดงโทร'
+    },
+    '위 노출 항목은 /pay-simple 확인·QR 페이지에만 적용됩니다. 비활성 시 해당 행을 숨깁니다(서버·세션 값은 유지). 금액은 STANDARD면 「금액」행만, DP면 「금액」행과 「예상 청구」행을 따로 표시합니다(표시 통화 행 없음). 결제는 청구 통화로 진행됩니다.': {
+      EN: 'These visibility toggles apply only to /pay-simple. Off hides the row (session values kept). Amount: STANDARD = Amount row only; DP = separate Amount and Est. charge rows (no Display-currency row). Settlement currency is charged.',
+      JP: '表示ON/OFFは/pay-simpleのみ。OFFで行非表示(セッション値は保持)。金額は一般「金額」行のみ、DPは「金額」行と「予想請求」行を分離(表示通貨行なし)。請求通貨で決済。',
+      CH: '以上显示开关仅用于 /pay-simple。关闭则隐藏该行（会话值保留）。金额：普通仅「金额」行；DP 为「金额」与「预计扣款」两行（无显示货币行）。以扣款货币结算。',
+      TH: 'สวิตช์แสดงผลใช้กับ /pay-simple เท่านั้น ปิดแล้วซ่อนแถว (ค่าเซสชันคงไว้) ยอด STANDARD แถวยอดอย่างเดียว / DP แยกแถวยอดกับยอดเรียกเก็บโดยประมาณ (ไม่มีแถวสกุลแสดง) เรียกเก็บด้วยสกุลเรียกเก็บ'
+    },
+    '위 노출 항목은 /pay-simple 확인·QR 페이지에만 적용됩니다. 비활성 시 해당 행을 숨깁니다(서버·세션 값은 유지). 금액은 STANDARD면 「금액」1줄, DP면 1줄 표시금액·2줄 「청구 금액(청구통화)」로 나누어 보여 주며 결제는 청구 통화로 진행됩니다.': {
+      EN: 'These visibility toggles apply only to /pay-simple. Off hides the row (session values kept). Amount: STANDARD = one line; DP = line1 display amount, line2 「Charge amount (billing currency)」; settlement currency is charged.',
+      JP: '表示ON/OFFは/pay-simpleのみ。OFFで行非表示(セッション値は保持)。金額は一般1行、DPは1行表示金額・2行「請求金額(請求通貨)」。請求通貨で決済。',
+      CH: '以上显示开关仅用于 /pay-simple。关闭则隐藏该行（会话值保留）。金额：普通一行；DP 第一行显示金额、第二行「扣款金额(扣款货币)」；以扣款货币结算。',
+      TH: 'สวิตช์แสดงผลใช้กับ /pay-simple เท่านั้น ปิดแล้วซ่อนแถว (ค่าเซสชันคงไว้) ยอด STANDARD 1 บรรทัด / DP บรรทัด1 ยอดแสดง บรรทัด2 「ยอดเรียกเก็บ (สกุลเรียกเก็บ)」 และเรียกเก็บด้วยสกุลนั้น'
+    },
+    '위 노출 항목은 /pay-simple 확인·QR 페이지에만 적용됩니다. 비활성 시 해당 행을 숨깁니다(서버·세션 값은 유지). 금액은 STANDARD면 「금액 100 THB」, DP면 「금액 100 JPY / 청구통화 100 THB」처럼 표시·청구 통화를 함께 보여 주며 결제는 청구 통화로 진행됩니다.': {
+      EN: 'These visibility toggles apply only to /pay-simple. Off hides the row (session values kept). Amount: STANDARD shows e.g. 「100 THB」; DP shows 「100 JPY / Charge currency 100 THB」 and charges in settlement currency.',
+      JP: '表示ON/OFFは/pay-simpleのみ。OFFで行非表示(セッション値は保持)。金額は一般「100 THB」、DPは「100 JPY / 請求通貨 100 THB」で請求通貨決済。',
+      CH: '以上显示开关仅用于 /pay-simple。关闭则隐藏该行（会话值保留）。金额：一般显示如「100 THB」；DP 显示「100 JPY / 扣款货币 100 THB」，并以扣款货币结算。',
+      TH: 'สวิตช์แสดงผลใช้กับ /pay-simple เท่านั้น ปิดแล้วซ่อนแถว (ค่าเซสชันคงไว้) ยอด STANDARD เช่น 「100 THB」 / DP เช่น 「100 JPY / สกุลเรียกเก็บ 100 THB」 และเรียกเก็บด้วยสกุลเรียกเก็บ'
+    },
+
+    '간편결제(QR URL) 제공': {
+      EN: 'Simple pay (QR URL) availability',
+      JP: 'かんたん決済(QR URL)提供',
+      CH: '提供简易支付(QR URL)',
+      TH: 'เปิดชำระง่าย (QR URL)'
+    },
+    '【필수】간편결제 ON: redirect/prepare 응답 payUrl=/pay-simple(가맹 코드 수정 없음). OFF: 기존 리다이렉트 URL. PC=QR만 자동 표시(이 기기 카드결제 불가)·모바일=확인 후 「결제하기」→ 기존 /checkout·NOTI. prepare는 기기와 무관하게 동일 payUrl만 반환합니다. simple/prepare도 동일 /pay-simple. 기본 미사용.': {
+      EN: '[Required] Simple pay ON: redirect/prepare payUrl=/pay-simple (no merchant code change). OFF: normal redirect URL. PC=QR only (no card pay on PC)·Mobile=confirm then Pay → existing /checkout·NOTI. prepare always returns the same payUrl (no UA split). simple/prepare also /pay-simple. Default OFF.',
+      JP: '【必須】かんたんON: redirect/prepare の payUrl=/pay-simple(加盟修正不要)。OFF:通常リダイレクト。PC=QRのみ(PCカード不可)・モバイル=確認後「支払う」→既存/checkout・NOTI。prepareは端末によらず同一payUrl。simple/prepareも/pay-simple。既定OFF。',
+      CH: '【必需】简易支付开：redirect/prepare 的 payUrl=/pay-simple（商户无需改代码）。关：普通跳转 URL。PC=仅二维码（本机不可刷卡）·手机=确认后「支付」→现有 /checkout·NOTI。prepare 不按 UA 分 URL。simple/prepare 同为 /pay-simple。默认关。',
+      TH: '[จำเป็น] เปิดชำระง่าย: payUrl จาก redirect/prepare=/pay-simple (ร้านไม่แก้โค้ด) ปิด: URL redirect เดิม PC=QR อย่างเดียว (ไม่จ่ายบัตรบน PC)·มือถือ=ยืนยันแล้วกดชำระ→/checkout·NOTI เดิม prepare คืน payUrl เดียวกันทุกเครื่อง simple/prepare ก็ /pay-simple ค่าเริ่มปิด'
+    },
+    '【필수】간편결제 ON: redirect/prepare payUrl → /pay-simple(가맹 연동 수정 없음). PC=QR만 / 모바일=확인 후 「결제하기」→ 기존 /checkout·NOTI. OFF=일반 리다이렉트 URL. 상·하단 안내는 위 설정과 동일(/pay-simple 공유).': {
+      EN: '[Required] Simple pay ON: redirect/prepare payUrl → /pay-simple (no merchant code change). PC=QR only / Mobile=confirm then Pay → existing /checkout·NOTI. OFF=normal redirect. Lead/hint same as above (shared with /pay-simple).',
+      JP: '【必須】かんたんON: redirect/prepare payUrl→/pay-simple(加盟修正不要)。PC=QRのみ/モバイル=確認後「支払う」→既存/checkout・NOTI。OFF=通常リダイレクト。上下案内は上記と同一(/pay-simple共有)。',
+      CH: '【必需】简易支付开：redirect/prepare payUrl→/pay-simple（商户无需改代码）。PC=仅二维码 / 手机=确认后「支付」→现有 /checkout·NOTI。关=普通跳转。上下文案同上（与 /pay-simple 共用）。',
+      TH: '[จำเป็น] เปิดชำระง่าย: payUrl→/pay-simple (ร้านไม่แก้โค้ด) PC=QR อย่างเดียว / มือถือ=ยืนยันแล้วกดชำระ→/checkout·NOTI เดิม ปิด=redirect ปกติ ข้อความบน/ล่างตามด้านบน (ใช้ร่วม /pay-simple)'
+    },
+    '【필수·간편결제】본사 「간편결제(QR URL) 제공」× 가맹 「간편결제 사용」× 「리다이렉트 사용」이 모두 ON일 때만 유효. 가맹은 redirect/prepare만 유지하고 payUrl이 /pay-simple로 자동 전환됩니다(연동 수정 없음). PC=/pay-simple에서 QR만·모바일=확인 후 「결제하기」로 기존 /checkout. API는 User-Agent로 payUrl을 나누지 않습니다. OFF면 일반 리다이렉트.': {
+      EN: '[Required·Simple pay] Effective only when HQ Simple-pay offer × merchant Simple-pay use × Redirect use are all ON. Merchant keeps redirect/prepare; payUrl auto-switches to /pay-simple (no code change). PC=QR only on /pay-simple·Mobile=confirm then Pay → existing /checkout. API does not split payUrl by User-Agent. OFF=normal redirect.',
+      JP: '【必須・かんたん】本社提供×加盟使用×リダイレクト使用がすべてONのときのみ有効。加盟はredirect/prepareのままpayUrlが/pay-simpleへ自動切替(修正不要)。PC=/pay-simpleでQRのみ・モバイル=確認後「支払う」→既存/checkout。APIはUAでpayUrlを分けない。OFF=通常リダイレクト。',
+      CH: '【必需·简易支付】仅当总部提供×商户使用×跳转使用均开时有效。商户仍只调 redirect/prepare，payUrl 自动变为 /pay-simple（无需改代码）。PC=/pay-simple 仅二维码·手机=确认后「支付」→现有 /checkout。API 不按 UA 分 payUrl。关=普通跳转。',
+      TH: '[จำเป็น·ชำระง่าย] มีผลเมื่อ HQ เปิดให้×ร้านใช้×redirect ใช้ครบทั้งสาม ร้านเรียก redirect/prepare อย่างเดิม payUrl สลับเป็น /pay-simple อัตโนมัติ (ไม่แก้โค้ด) PC=/pay-simple มีแค่ QR·มือถือ=ยืนยันแล้วกดชำระ→/checkout เดิม API ไม่แยก payUrl ตาม UA ปิด=redirect ปกติ'
+    },
+    '간편결제(QR URL): POST /api/middleware/v1/merchant/checkout/simple/prepare → payUrl(/pay-simple) 확인·QR → 기존 checkout·NOTI. 기본 미사용(기존 연동 영향 없음).': {
+      EN: 'Simple pay (QR URL): POST …/checkout/simple/prepare → payUrl (/pay-simple) confirm·QR → existing checkout·NOTI. Default OFF (no impact on current integrations).',
+      JP: 'かんたん決済(QR URL): POST …/checkout/simple/prepare → payUrl(/pay-simple)確認・QR → 既存checkout・NOTI。既定OFF（既存連携に影響なし）。',
+      CH: '简易支付(QR URL)：POST …/checkout/simple/prepare → payUrl(/pay-simple)确认·QR → 现有 checkout·NOTI。默认关闭（不影响现有对接）。',
+      TH: 'ชำระง่าย (QR URL): POST …/checkout/simple/prepare → payUrl (/pay-simple) ยืนยัน·QR → checkout·NOTI เดิม ค่าเริ่มปิด (ไม่กระทบการเชื่อมต่อเดิม)'
+    },
+    '간편결제 ON 시: 기존 redirect/prepare 응답 payUrl 이 /pay-simple 로 바뀝니다(가맹 연동 수정 없음). 확인·QR → /checkout · 기존 NOTI. 상·하단 안내는 위 설정과 동일.': {
+      EN: 'When Simple pay is ON: redirect/prepare payUrl becomes /pay-simple (no merchant code change). Confirm·QR → /checkout · existing NOTI. Lead/hint use the settings above.',
+      JP: 'かんたんON時: redirect/prepare の payUrl が /pay-simple に(加盟修正不要)。確認・QR→/checkout・既存NOTI。上下案内は上記設定と同一。',
+      CH: '开启简易支付后：redirect/prepare 的 payUrl 变为 /pay-simple（商户无需改代码）。确认·QR→/checkout·现有 NOTI。上下文案同上。',
+      TH: 'เมื่อเปิดชำระง่าย: payUrl จาก redirect/prepare เป็น /pay-simple (ร้านไม่ต้องแก้โค้ด) ยืนยัน·QR→/checkout·NOTI เดิม ข้อความบน/ล่างตามด้านบน'
+    },
+    '간편결제 ON 시: simple/prepare → /pay-simple 확인·QR → /checkout 결제 → 기존 NOTI. 카드 저장·불러오기는 HPP(리다이렉트) 창에서 ICOPAY가 제어하지 않습니다(브라우저 Autofill).': {
+      EN: 'When Simple pay is ON: simple/prepare → /pay-simple confirm·QR → /checkout → existing NOTI. Card save/load on HPP is not controlled by ICOPAY (browser Autofill).',
+      JP: 'かんたん決済ON時: simple/prepare → /pay-simple確認・QR → /checkout → 既存NOTI。HPPのカード保存はICOPAY非制御（ブラウザAutofill）。',
+      CH: '开启简易支付时：simple/prepare → /pay-simple 确认·QR → /checkout → 现有 NOTI。HPP 卡保存非 ICOPAY 控制（浏览器自动填充）。',
+      TH: 'เมื่อเปิดชำระง่าย: simple/prepare → /pay-simple ยืนยัน·QR → /checkout → NOTI เดิม การจำบัตรบน HPP ไม่ได้ควบคุมโดย ICOPAY (Autofill เบราว์เซอร์)'
+    },
+    '가맹별 prepare 경로(인라인·리다이렉트) 허용 여부입니다. 인라인·리다이렉트 중 하나 이상 켜면 prepare가 허용됩니다. 간편결제(QR URL)는 리다이렉트 확장이며 리다이렉트 사용 + 간편결제 사용 + 본사 제공이 모두 켜져야 합니다. 【중요】간편결제 ON이면 가맹은 계속 redirect/prepare만 호출하고 ICOPAY가 payUrl을 /pay-simple로 바꿉니다(가맹 연동 수정 없음). OFF면 기존 리다이렉트 URL. PC=/pay-simple에서 QR만(카드 결제 버튼 없음)·모바일=주문 확인 후 「결제하기」로 기존 /checkout 카드창. API는 User-Agent로 payUrl을 나누지 않습니다. 본사 전역 상한은 본사정책 → 결제·URL → 결제 라우팅입니다. WordPress 사용 시 인라인 또는 리다이렉트 중 하나 이상을 켜야 합니다. 신규 가맹 기본값은 인라인·리다이렉트 사용·간편결제 미사용입니다.': {
+      EN: 'Per-merchant prepare channels (inline·redirect). Enable at least one. Simple pay extends redirect (redirect ON + simple ON + HQ offer). [Critical] When Simple pay ON, merchant keeps calling redirect/prepare; ICOPAY rewrites payUrl to /pay-simple (no merchant code change). OFF=normal redirect. PC=QR only on /pay-simple (no card button)·Mobile=confirm then Pay → existing /checkout. API does not split payUrl by UA. HQ caps: HQ Policy → Payment·URL → Routing. WP needs inline or redirect. New merchants: inline·redirect ON, simple OFF.',
+      JP: '加盟店別prepare(インライン・リダイレクト)。いずれかONで可。かんたんはREDIRECT拡張(リダイレクトON+かんたんON+本社提供)。【重要】ON時はredirect/prepareのままICOPAYがpayUrlを/pay-simpleへ(加盟修正不要)。OFF=通常リダイレクト。PC=/pay-simpleでQRのみ・モバイル=確認後「支払う」→既存/checkout。APIはUAでpayUrlを分けない。本社上限=本社ポリシー→決済・URL→ルーティング。WPはインラインまたはリダイレクト。新規はインライン・リダイレクトON・かんたんOFF。',
+      CH: '按商户 prepare 渠道（内联·跳转）。至少开启其一。简易支付为跳转扩展（跳转+简易+总部提供）。【重要】开启后商户仍只调 redirect/prepare，ICOPAY 将 payUrl 改为 /pay-simple（无需改代码）。关=普通跳转。PC=/pay-simple 仅二维码·手机=确认后「支付」→现有 /checkout。API 不按 UA 分 payUrl。总部上限：本社政策→支付·URL→路由。WP 需内联或跳转。新商户默认内联·跳转开、简易关。',
+      TH: 'ช่อง prepare รายร้าน (อินไลน์·redirect) เปิดอย่างน้อยหนึ่ง ชำระง่ายขยาย redirect (redirect+ชำระง่าย+HQ) [สำคัญ] เมื่อเปิด ร้านยังเรียก redirect/prepare ICOPAY เปลี่ยน payUrl เป็น /pay-simple (ไม่แก้โค้ด) ปิด=redirect เดิม PC=/pay-simple มีแค่ QR·มือถือ=ยืนยันแล้วกดชำระ→/checkout เดิม API ไม่แยก payUrl ตาม UA เพดาน HQ: นโยบาย→ชำระ·URL→เส้นทาง WP ต้องมีอินไลน์หรือ redirect ร้านใหม่: อินไลน์·redirect เปิด ชำระง่ายปิด'
+    },
+    '가맹별 prepare 경로(인라인·리다이렉트) 허용 여부입니다. 인라인·리다이렉트 중 하나 이상 켜면 prepare가 허용됩니다. 간편결제(QR URL)는 리다이렉트 확장이며 리다이렉트 사용 + 간편결제 사용 + 본사 제공이 모두 켜져야 합니다. 본사 전역 상한은 연동·배포 → 결제로직설정입니다. WordPress 사용 시 인라인 또는 리다이렉트 중 하나 이상을 켜야 합니다. 신규 가맹 기본값은 인라인·리다이렉트 사용·간편결제 미사용입니다.': {
+      EN: 'Per-merchant prepare channels (inline·redirect). Enable at least one of inline/redirect. Simple pay (QR URL) extends redirect and needs redirect ON + simple pay ON + HQ availability. HQ caps: Integration·Deploy → Payment orchestration. WordPress needs inline or redirect. New merchants: inline·redirect ON, simple pay OFF.',
+      JP: '加盟店別prepare(インライン・リダイレクト)。いずれかONでprepare可。かんたん決済(QR URL)はREDIRECT拡張で、リダイレクトON+かんたんON+本社提供が必要。本社上限は連携・デプロイ→決済ロジック。WPはインラインまたはリダイレクト必須。新規はインライン・リダイレクトON・かんたんOFF。',
+      CH: '按商户 prepare 渠道（内联·跳转）。至少开启其一。简易支付(QR URL)为跳转扩展，需跳转+简易支付+总部提供均开启。总部上限：对接·部署→支付逻辑。WP 需内联或跳转。新商户默认内联·跳转开、简易支付关。',
+      TH: 'ช่อง prepare รายร้าน (อินไลน์·redirect) เปิดอย่างน้อยหนึ่งช่อง ชำระง่าย(QR URL) เป็นส่วนขยาย redirect ต้องเปิด redirect+ชำระง่าย+HQ WordPress ต้องมีอินไลน์หรือ redirect ร้านใหม่: อินไลน์·redirect เปิด ชำระง่ายปิด'
+    },
     'API 중계형 REDIRECT 제공': {
       EN: 'Offer API broker REDIRECT',
       JP: 'API中継型 REDIRECT の提供',
@@ -18035,6 +18303,126 @@
       JP: 'ウェブ用 QR',
       CH: '网页支付 QR',
       TH: 'QR ชำระเว็บ'
+    },
+    '웹용 QR (URL /checkout)': {
+      EN: 'Web QR (URL /checkout)',
+      JP: 'ウェブ用QR (URL /checkout)',
+      CH: '网页 QR（URL /checkout）',
+      TH: 'QR เว็บ (URL /checkout)'
+    },
+    '웹용 QR 상단이름': {
+      EN: 'Web QR top title',
+      JP: 'ウェブ用QR 上タイトル',
+      CH: '网页 QR 上方标题',
+      TH: 'ชื่อบน QR เว็บ'
+    },
+    '웹용 QR 하단문구': {
+      EN: 'Web QR footer',
+      JP: 'ウェブ用QR 下文言',
+      CH: '网页 QR 底部文案',
+      TH: 'ข้อความล่าง QR เว็บ'
+    },
+    '웹용 QR 표시 기본값 (URL /checkout · 간편결제 아님)': {
+      EN: 'Web QR display defaults (URL /checkout · not Simple pay)',
+      JP: 'ウェブ用QR表示既定 (URL /checkout・かんたん決済ではない)',
+      CH: '网页 QR 显示默认（URL /checkout · 非简易支付）',
+      TH: 'ค่าเริ่มแสดง QR เว็บ (URL /checkout · ไม่ใช่ชำระง่าย)'
+    },
+    '【우선】가맹이 「본사설정 따름」이 아니면 가맹 로고·부제가 본사보다 우선합니다. 「본사설정 따름」일 때만 본사정책 → 결제 라우팅 기본을 씁니다. 웹결제 따름=URL 웹결제 로고/경고메세지, API 따름=API 로고(부제는 Secure Payment). 웹용 QR(웹결제 카드)과 무관합니다.': {
+      EN: '[Priority] If merchant is not Follow-HQ, merchant logo/subtitle override HQ. Follow-HQ uses HQ Policy → Payment routing defaults. Follow-web=URL web logo/warning; Follow-API=API logo (subtitle Secure Payment). Unrelated to Web QR on the web-pay card.',
+      JP: '【優先】加盟が「本社設定に従う」でない場合、加盟のロゴ・副題が本社より優先。「本社設定に従う」のときのみ本社ポリシー→決済ルーティング既定。ウェブ従う=URLウェブロゴ/警告、API従う=APIロゴ(副題はSecure Payment)。ウェブ用QRとは無関係。',
+      CH: '【优先】商户非「跟随总部」时，商户 Logo/副标题优先于总部。仅跟随总部时用本社政策→支付路由默认。跟随网页=URL 网页 Logo/警告；跟随 API=API Logo（副标题 Secure Payment）。与网页支付卡上的网页 QR 无关。',
+      TH: '[ลำดับ] ถ้าร้านไม่ใช่ตาม HQ โลโก้/คำบรรยายร้านเหนือ HQ ตาม HQ เท่านั้นที่ใช้ค่าเริ่มนโยบาย→เส้นทางชำระ ตามเว็บ=โลโก้/คำเตือนเว็บ ตาม API=โลโก้ API (คำบรรยาย Secure Payment) ไม่เกี่ยวกับ QR เว็บบนการ์ดชำระเว็บ'
+    },
+    '간편결제(/pay-simple) 로고·부제 본사 기본입니다. 【우선】가맹이 「본사설정 따름」이면 여기 값이 적용되고, 가맹에서 웹결제 따름·API 따름·직접·미활성 등으로 바꾸면 가맹이 본사보다 우선합니다. 웹용 QR 표시 기본값과는 무관합니다.': {
+      EN: 'HQ defaults for Simple pay (/pay-simple) logo/subtitle. [Priority] Follow-HQ uses these values; if merchant picks Follow-web/API/direct/off, merchant overrides HQ. Unrelated to Web QR display defaults.',
+      JP: 'かんたん(/pay-simple)ロゴ・副題の本社既定。【優先】「本社設定に従う」ならこの値。加盟がウェブ/API/直接/非活性に変えると加盟が本社より優先。ウェブ用QR表示既定とは無関係。',
+      CH: '简易支付(/pay-simple) Logo/副标题总部默认。【优先】跟随总部用此处；商户改为跟随网页/API/直接/关闭则商户优先于总部。与网页 QR 显示默认无关。',
+      TH: 'ค่าเริ่ม HQ ของโลโก้/คำบรรยายชำระง่าย (/pay-simple) [ลำดับ] ตาม HQ ใช้ค่านี้ ถ้าร้านเลือกตามเว็บ/API/ตั้งเอง/ปิด ร้านเหนือ HQ ไม่เกี่ยวกับค่าเริ่มแสดง QR เว็บ'
+    },
+    '카드+크립토 수단선택창 문구': {
+      EN: 'Card+crypto means-selection copy',
+      JP: 'カード+暗号 手段選択文言',
+      CH: '卡+加密手段选择文案',
+      TH: 'ข้อความเลือกช่องทางบัตร+คริปโต'
+    },
+    '간편결제 로고': {
+      EN: 'Simple pay logo',
+      JP: 'かんたん決済ロゴ',
+      CH: '简易支付 Logo',
+      TH: 'โลโก้ชำระง่าย'
+    },
+    '간편결제 로고 기본': {
+      EN: 'Simple pay logo default',
+      JP: 'かんたん決済ロゴ既定',
+      CH: '简易支付 Logo 默认',
+      TH: 'โลโก้ชำระง่ายค่าเริ่ม'
+    },
+    '간편결제 로고 URL': {
+      EN: 'Simple pay logo URL',
+      JP: 'かんたん決済ロゴURL',
+      CH: '简易支付 Logo URL',
+      TH: 'URL โลโก้ชำระง่าย'
+    },
+    '간편결제 HTML 표시명': {
+      EN: 'Simple pay HTML title',
+      JP: 'かんたん決済HTML表示名',
+      CH: '简易支付 HTML 显示名',
+      TH: 'ชื่อ HTML ชำระง่าย'
+    },
+    '간편결제 부제': {
+      EN: 'Simple pay subtitle',
+      JP: 'かんたん決済サブタイトル',
+      CH: '简易支付副标题',
+      TH: 'คำบรรยายชำระง่าย'
+    },
+    '간편결제 부제 기본': {
+      EN: 'Simple pay subtitle default',
+      JP: 'かんたん決済サブタイトル既定',
+      CH: '简易支付副标题默认',
+      TH: 'คำบรรยายชำระง่ายค่าเริ่ม'
+    },
+    '부제 문구': {
+      EN: 'Subtitle text',
+      JP: 'サブタイトル文言',
+      CH: '副标题文案',
+      TH: 'ข้อความคำบรรยาย'
+    },
+    '웹결제 따름': {
+      EN: 'Follow web pay',
+      JP: 'ウェブ決済に従う',
+      CH: '跟随网页支付',
+      TH: 'ตามชำระเว็บ'
+    },
+    'API 로고 따름': {
+      EN: 'Follow API logo',
+      JP: 'APIロゴに従う',
+      CH: '跟随 API Logo',
+      TH: 'ตามโลโก้ API'
+    },
+    'API 따름': {
+      EN: 'Follow API',
+      JP: 'APIに従う',
+      CH: '跟随 API',
+      TH: 'ตาม API'
+    },
+    '활성(기본 간편결제)': {
+      EN: 'On (default Simple pay)',
+      JP: '活性(既定かんたん決済)',
+      CH: '启用(默认简易支付)',
+      TH: 'เปิด (ชำระง่ายค่าเริ่ม)'
+    },
+    '활성(본사 로고 URL)': {
+      EN: 'On (HQ logo URL)',
+      JP: '活性(本社ロゴURL)',
+      CH: '启用(总部 Logo URL)',
+      TH: 'เปิด (URL โลโก้ HQ)'
+    },
+    '활성(가맹 로고)': {
+      EN: 'On (merchant logo)',
+      JP: '活性(加盟ロゴ)',
+      CH: '启用(商户 Logo)',
+      TH: 'เปิด (โลโก้ร้าน)'
     },
     'QR 결제 QR': {
       EN: 'QR payment QR',

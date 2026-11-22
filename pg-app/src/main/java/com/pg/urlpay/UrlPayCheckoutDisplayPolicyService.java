@@ -16,7 +16,7 @@ import java.util.Optional;
  * 결제창 표시 항목 — 본사 기본 × 가맹 FOLLOW_HQ/개별 설정(가맹 우선).
  * 구매자 이메일·국가·전화·배송:
  * - 가맹에 프리셋 FK가 있으면 해당 프리셋(기본형·N형) 값 적용
- * - FK NULL(프리셋 비활성)이면 가맹 개별 Y/N 우선(레거시 FOLLOW_HQ 는 기본형 폴백)
+ * - FK NULL(프리셋 비활성)이면 가맹 Y/N 우선, FOLLOW_HQ 이면 본사 기본값
  */
 @Service
 public class UrlPayCheckoutDisplayPolicyService {
@@ -223,13 +223,12 @@ public class UrlPayCheckoutDisplayPolicyService {
         redirectCheckoutCopyService.putIntoCheckoutMap(data, orgUnitId);
     }
 
-    /** 결제창 주문번호 행 — 가맹 Y/N만(기본 N). 백단 orderNo 는 유지. */
+    /** 결제창 주문번호 행 — 가맹 FOLLOW_HQ|Y|N → 본사 기본(기본 N). 백단 orderNo 는 유지. */
     public String effectiveOrderNoShowYn(Long orgUnitId) {
-        String raw = merchantField(orgUnitId, MerchantProfile::getUrlPayOrderNoShowYn);
-        if (raw != null && "Y".equalsIgnoreCase(raw.trim())) {
-            return "Y";
-        }
-        return "N";
+        return UrlPayFollowHqYnUtil.resolveEffective(
+                merchantField(orgUnitId, MerchantProfile::getUrlPayOrderNoShowYn),
+                hqOrEmpty().getUrlPayOrderNoShowDefaultYn(),
+                "N");
     }
 
     private String resolveBuyerContactYn(Long orgUnitId,
@@ -251,18 +250,10 @@ public class UrlPayCheckoutDisplayPolicyService {
                 /* fall through */
             }
         }
-        /* 프리셋 비활성(NULL) — 가맹 개별 설정 우선 */
+        /* 프리셋 비활성(NULL) — 가맹 Y/N 우선, FOLLOW_HQ 이면 본사 기본 */
         String stored = UrlPayFollowHqYnUtil.normalizeStored(mpOpt.map(merchantGetter).orElse(null));
         if (!UrlPayFollowHqYnUtil.FOLLOW_HQ.equals(stored)) {
             return stored;
-        }
-        try {
-            UrlPayCheckoutFieldPreset def = checkoutFieldPresetService.getDefault();
-            if (def != null) {
-                return UrlPayFollowHqYnUtil.normalizeHqDefault(presetGetter.apply(def), fallbackYn);
-            }
-        } catch (Exception ignored) {
-            /* 프리셋 미준비 시 HQ 설정 폴백 */
         }
         return UrlPayFollowHqYnUtil.normalizeHqDefault(hqDefaultYn, fallbackYn);
     }

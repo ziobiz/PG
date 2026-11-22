@@ -31,17 +31,20 @@ public class PaysoCallbackService {
 
     private final HqNotifyEnvService hqNotifyEnvService;
     private final PaysoSaleRecordService paysoSaleRecordService;
+    private final PaysoPaymentService paysoPaymentService;
     private final MerchantOutboundNotifyService merchantOutboundNotifyService;
     private final PaysoCardEnrichService paysoCardEnrichService;
     private final ObjectMapper objectMapper;
 
     public PaysoCallbackService(HqNotifyEnvService hqNotifyEnvService,
                                 PaysoSaleRecordService paysoSaleRecordService,
+                                PaysoPaymentService paysoPaymentService,
                                 MerchantOutboundNotifyService merchantOutboundNotifyService,
                                 PaysoCardEnrichService paysoCardEnrichService,
                                 ObjectMapper objectMapper) {
         this.hqNotifyEnvService = hqNotifyEnvService;
         this.paysoSaleRecordService = paysoSaleRecordService;
+        this.paysoPaymentService = paysoPaymentService;
         this.merchantOutboundNotifyService = merchantOutboundNotifyService;
         this.paysoCardEnrichService = paysoCardEnrichService;
         this.objectMapper = objectMapper;
@@ -73,10 +76,12 @@ public class PaysoCallbackService {
 
     @Transactional
     protected NotifyReceiveOutcome handleEvent(JsonNode root, String clientIp) {
-        String refno = text(root, "refno", "refNo", "referenceNo", "orderNo", "order");
-        String txnId = text(root, "transactionId", "transactionid", "transaction_id");
+        /* PG Reference — orderNo/order 를 ref 로 쓰지 않음(가맹 주문번호로 가짜 승인 방지) */
+        String refno = text(root, "refno", "refNo", "referenceNo", "ReferenceNo");
+        String txnId = text(root, "transactionId", "transactionid", "transaction_id", "TransactionId");
+        String merchantOrderHint = text(root, "orderNo", "OrderNo", "order", "note", "Note");
         String paysoKey = !txnId.isBlank() ? txnId : refno;
-        ResolvedIds ids = resolveIds(paysoKey, refno);
+        ResolvedIds ids = resolveIds(paysoKey, refno, merchantOrderHint);
         boolean failed = looksLikePaysoFailure(root);
 
         Optional<PgTrnsctn> updated = Optional.empty();
@@ -91,22 +96,33 @@ public class PaysoCallbackService {
                 log.info("PAYSO webhook FAIL mid={} order={} ref={} txn={} ip={}",
                         ids.compId, ids.orderNo, refno, txnId, clientIp);
             } else {
-                updated = paysoSaleRecordService.applyPaidOutcome(
-                        ids.orderNo, ids.compId, paysoKey, refno,
-                        text(root, "customeremail", "customerEmail", "payer_name"));
+                boolean usableKey = PaysoSaleRecordService.isUsablePaysoPgKey(ids.orderNo, paysoKey)
+                        || PaysoSaleRecordService.isUsablePaysoPgKey(ids.orderNo, refno);
+                if (usableKey) {
+                    updated = paysoSaleRecordService.applyPaidOutcome(
+                            ids.orderNo, ids.compId, paysoKey, refno,
+                            text(root, "customeremail", "customerEmail", "payer_name"), false);
+                } else {
+                    /* 키가 주문번호/비어 있음 → Order Detail 실승인 확인 후에만 성공 반영(오성공 방지) */
+                    log.info("PAYSO webhook keys unusable → Order Detail confirm mid={} order={} ref={} txn={}",
+                            ids.compId, ids.orderNo, refno, txnId);
+                    updated = paysoPaymentService.confirmPaidViaOrderDetail(ids.compId, ids.orderNo);
+                }
                 if (updated.isPresent()) {
                     String cardRaw = text(root, "cardNo", "card_no", "CardNo", "maskedCard",
                             "cardMask", "CardMask", "panMask", "CardNumber");
                     String pgOrd = text(root, "orderNo", "OrderNo", "pgOrderNo");
                     if (!cardRaw.isBlank() || !pgOrd.isBlank()) {
+                        String enrichRef = !refno.isBlank() ? refno
+                                : (updated.get().getPayNo() != null ? updated.get().getPayNo() : "");
                         paysoSaleRecordService.applyInquiryEnrichment(
-                                updated.get(), refno, pgOrd, txnId, cardRaw, null);
+                                updated.get(), enrichRef, pgOrd, txnId, cardRaw, null);
                     }
                 }
             }
         } else {
-            log.warn("PAYSO webhook Comp-Id unresolved refno={} txn={} fail={} ip={}",
-                    refno, txnId, failed, clientIp);
+            log.warn("PAYSO webhook Comp-Id unresolved refno={} txn={} orderHint={} fail={} ip={}",
+                    refno, txnId, merchantOrderHint, failed, clientIp);
         }
         updated.ifPresent(t -> {
             try {
@@ -149,9 +165,14 @@ public class PaysoCallbackService {
                 || desc.contains("reject") || desc.contains("cancel");
     }
 
-    private ResolvedIds resolveIds(String paysoKey, String refno) {
+    private ResolvedIds resolveIds(String paysoKey, String pgRef, String merchantOrderHint) {
         Optional<PgTrnsctn> matched = paysoSaleRecordService.resolveTxnForWebhook(
-                paysoKey, refno, refno, paysoKey);
+                paysoKey, merchantOrderHint, merchantOrderHint, pgRef);
+        if (matched.isEmpty() && merchantOrderHint != null && !merchantOrderHint.isBlank()
+                && (paysoKey == null || paysoKey.isBlank())) {
+            matched = paysoSaleRecordService.resolveTxnForWebhook(
+                    "", merchantOrderHint, merchantOrderHint, "");
+        }
         String orderNo = "";
         String compId = "";
         if (matched.isPresent()) {

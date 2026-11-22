@@ -56,6 +56,17 @@ public class NeutralCheckoutRouteController {
         this.qrPaymentMeansService = qrPaymentMeansService;
     }
 
+    /**
+     * 간편결제(QR URL) 확인·QR 페이지 — 기존 /checkout 카드 결제와 분리.
+     * 쿼리(session·lang 등) 유지 후 simple-pay.html 로 forward.
+     */
+    @GetMapping("/pay-simple/{compId}")
+    public String paySimple(@PathVariable("compId") String compId, HttpServletRequest request) {
+        String mid = compId != null ? compId.trim() : "";
+        String q = buildQuery(mid, request);
+        return "forward:/simple-pay.html" + q;
+    }
+
     /** 카드(URL) 결제 — 수단 선택 없음. */
     @GetMapping("/checkout/{compId}")
     public String checkout(@PathVariable("compId") String compId, HttpServletRequest request) {

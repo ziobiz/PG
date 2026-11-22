@@ -1,0 +1,36 @@
+# 간편결제(QR URL) — PC / 모바일 · redirect 자동 전환 (필수 · 변경 불가)
+
+## 가맹 연동 (제로 수정)
+
+- 가맹은 **계속** `POST /api/middleware/v1/merchant/checkout/redirect/prepare` 만 호출한다.
+- **간편결제 유효**(본사 `apiBrokerSimpleQrEnabledYn` ∧ 가맹 `simpleQrCheckoutUseYn` ∧ 리다이렉트 사용)이면
+  ICOPAY가 응답 `payUrl` / `checkoutUrl` / `qrPayloadUrl` 을 **`/pay-simple`** 로 바꾼다.
+- **미사용**이면 기존 일반 리다이렉트 `/checkout` URL.
+- `chargePayUrl` 에는 항상 기존 `/checkout` 을 둔다(모바일 「결제하기」·카드창).
+- **API는 User-Agent로 payUrl을 나누지 않는다.** 기기 분기는 `/pay-simple` 페이지(브라우저)에서만.
+
+## 구매자 UX (의도된 이중 경로 · 혼동 방지용 필수 명시)
+
+| 기기 | `/pay-simple` 동작 |
+|---|---|
+| **PC** | QR만 자동 표시. 「결제하기」·이 기기 카드결제 **없음**. 휴대폰으로 스캔 → 모바일 경로. |
+| **모바일** | 주문·구매자 확인 후 「결제하기」→ `chargePayUrl`(**기존 `/checkout` 카드창**) · NOTI 동일. |
+
+이 PC≠모바일 UX는 버그가 아니라 **제품 규칙**이다. 본사·가맹 UI notice·API `redirectUsageHint`에
+반드시 「가맹 연동 수정 없음 + PC=QR / 모바일=기존 checkout」을 함께 적는다.
+
+## 로고·부제 (C구조)
+
+- `/pay-simple` 로고·부제는 **간편결제 전용 설정**(본사 기본 + 가맹 `FOLLOW_HQ`).
+- 모드: `FOLLOW_WEB` | `FOLLOW_API` | `DEFAULT` | `HTML` | `ACTIVE` | `DISABLED` (+ 가맹 `FOLLOW_HQ`).
+- 부제: `FOLLOW_WEB` | `FOLLOW_API` | `ACTIVE`(기본「간편결제」) | `CUSTOM` | `DISABLED` (+ 가맹 `FOLLOW_HQ`).
+- **우선순위:** 가맹이 `FOLLOW_HQ`가 아니면 **가맹 설정이 본사보다 우선**. `FOLLOW_HQ`일 때만 본사 기본 적용.
+- **웹용 QR**(웹결제 카드) = 공개 URL `/checkout` 관리용 QR. **간편결제 PC QR과 무관** — API 연동 채널로 옮기지 않음.
+
+## 금지
+
+- prepare 단계에서 UA로 다른 payUrl을 내려 링크·QR이 깨지게 하는 것
+- 간편결제 ON인데 redirect/prepare 가 일반 `/checkout` 만 주는 것(자동 전환 누락)
+- PC에서 카드 입력 버튼 재노출(간편결제 PC = QR 전용)
+- 가맹에 simple/prepare 강제 전환을 요구하는 문서(redirect/prepare 자동 전환이 정본)
+- 웹용 QR을 간편결제 설정으로 혼동·이전하는 것

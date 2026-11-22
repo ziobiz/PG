@@ -142,7 +142,7 @@ public class MerchantUnifiedRedirectCheckoutService {
             return fail("지원하지 않는 결제 구성입니다.", "PG_NOT_SUPPORTED");
         }
 
-        patchUnifiedPrepareResponse(result, request, opPg);
+        patchUnifiedPrepareResponse(result, request, orgUnitId);
         return result;
     }
 
@@ -196,7 +196,7 @@ public class MerchantUnifiedRedirectCheckoutService {
     }
 
     @SuppressWarnings("unchecked")
-    private void patchUnifiedPrepareResponse(Map<String, Object> result, HttpServletRequest request, String opPg) {
+    private void patchUnifiedPrepareResponse(Map<String, Object> result, HttpServletRequest request, Long orgUnitId) {
         Object ok = result.get("success");
         if (!(ok instanceof Boolean) || !(Boolean) ok) {
             return;
@@ -207,20 +207,39 @@ public class MerchantUnifiedRedirectCheckoutService {
         }
         String base = trimSlash(productService.resolvePublicCustomerSiteBase(request));
         String compId = str(data.get("compId"));
-        // 가맹점·구매자에게 PG(ChillPay/JPAY/Eximbay)를 노출하지 않는 중립 결제창 경로로 통일
-        if (!compId.isBlank()) {
-            data.put("payUrl", NeutralCheckoutRoute.buildPayUrl(base, compId,
-                    str(data.get("sessionToken")), str(data.get("langCode")), false));
+        String sessionToken = str(data.get("sessionToken"));
+        String lang = str(data.get("langCode"));
+        if (lang.isBlank()) {
+            lang = str(data.get("lang"));
+        }
+        /* 가맹 간편결제(QR URL) ON 이면 redirect/prepare 도 /pay-simple 로 — 가맹 코드 수정 불필요 */
+        boolean simpleQr = orgUnitId != null && integrationChannelService.isSimpleQrEffective(orgUnitId);
+        if (!compId.isBlank() && !sessionToken.isBlank()) {
+            String chargeUrl = NeutralCheckoutRoute.buildPayUrl(base, compId, sessionToken, lang, false);
+            if (simpleQr) {
+                String simpleUrl = NeutralCheckoutRoute.buildSimplePayUrl(base, compId, sessionToken, lang);
+                data.put("payUrl", simpleUrl);
+                data.put("checkoutUrl", simpleUrl);
+                data.put("qrPayloadUrl", simpleUrl);
+                data.put("chargePayUrl", chargeUrl);
+                data.put("integrationMode", "SIMPLE_QR");
+                data.put("redirectUsageHint",
+                        "ICOPAY 간편결제(QR URL): 가맹 간편결제 ON + 리다이렉트 ON + 본사 제공 시 "
+                                + "redirect/prepare 의 payUrl=/pay-simple (가맹 연동 수정 없음). "
+                                + "PC=/pay-simple QR만 · 모바일=/pay-simple 확인 후 「결제하기」→ chargePayUrl(/checkout). "
+                                + "간편결제 미사용이면 payUrl 은 일반 /checkout(PC·모바일 동일·QR 아님).");
+            } else {
+                data.put("payUrl", chargeUrl);
+                data.put("integrationMode", "REDIRECT_UNIFIED");
+                data.put("redirectUsageHint",
+                        "ICOPAY 통합 REDIRECT(간편결제 미사용): payUrl=/checkout — PC·모바일 모두 ICOPAY 확인창에 정지 후 "
+                                + "「결제하기」클릭 시에만 PG 카드창(자동 건너뛰기 없음·QR/pay-simple 아님). "
+                                + "buyer(email·phone·countryIso2·name) 필수. returnUrl/cancelUrl body 금지 — NOTI Result 복귀.");
+            }
         }
         data.put("redirectCheckoutPrepareUrl",
                 base + "/api/middleware/v1/merchant/checkout/redirect/prepare");
-        // 실제 PG 는 응답에 노출하지 않는다 — 항상 ICOPAY (operationalPgCd 미노출)
         data.put("pgVendor", MerchantApiResponseMapper.MERCHANT_FACING_BRAND);
-        data.put("integrationMode", "REDIRECT_UNIFIED");
-        data.put("redirectUsageHint",
-                "ICOPAY 통합 REDIRECT prepare: buyer(email·phone·countryIso2·name) 필수. "
-                        + "returnUrl/cancelUrl은 body에 넣지 않음 — 브라우저 복귀는 NOTI Result 경유. "
-                        + "결제망은 ICOPAY가 자동 선택·처리합니다.");
     }
 
     private static Map<String, Object> fail(String message, String code) {

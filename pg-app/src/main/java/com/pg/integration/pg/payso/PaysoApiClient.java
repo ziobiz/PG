@@ -3,6 +3,9 @@ package com.pg.integration.pg.payso;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.pg.util.IcopayPublicIdentity;
+import com.pg.util.PgOutboundMerchantPrivacy;
+import com.pg.util.PgOutboundUrlPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
@@ -27,6 +30,9 @@ import java.util.Map;
  * Payso Web API v2 — hosted ui-payments (RE) · Inquiry(기간 목록).
  * {@code POST /payment/gateway/v2/ui-payments}
  * {@code POST /payment/gateway/v2/inquiry/transaction}
+ *
+ * <p>가맹 상호·홈페이지·도메인·IP·가맹 orderNo 는 Payso 로 보내지 않는다.
+ * return/postback 은 ICOPAY·NOTI(또는 {@code "-"}) 만. customerEmail 은 중립 ICOPAY 메일.
  */
 @Component
 public class PaysoApiClient {
@@ -93,12 +99,13 @@ public class PaysoApiClient {
         }
         ObjectNode body = objectMapper.createObjectNode();
         body.put("merchantId", creds.merchantId());
-        body.put("customerEmail", customerEmail != null && !customerEmail.isBlank()
-                ? customerEmail.trim() : "noreply@icopay.co.kr");
+        /* 구매자·가맹 이메일 도메인 유출 금지 — 항상 ICOPAY 중립 메일 */
+        body.put("customerEmail", PgOutboundMerchantPrivacy.safePgCustomerEmail(customerEmail));
         /*
          * Payso HPP: customerName 에 하이픈·숫자·기호가 있으면
          * 「Invalid data, please check the customerName」로 거절(500 UI).
          * 영문 알파벳·공백만 전달. 비우면 필드 생략(카드 명의는 HPP에서 입력).
+         * 구매자(카드 명의) 이름만 — 가맹 상호명 자리로 쓰지 말 것.
          */
         String fn = sanitizePaysoPersonName(firstName, 40);
         String ln = sanitizePaysoPersonName(lastName, 40);
@@ -106,7 +113,7 @@ public class PaysoApiClient {
         if (fullName.isBlank() && (!fn.isBlank() || !ln.isBlank())) {
             fullName = clamp((fn + " " + ln).trim(), 80);
         }
-        if (!fullName.isBlank()) {
+        if (!fullName.isBlank() && !PgOutboundMerchantPrivacy.containsUrlDomainOrIp(fullName)) {
             body.put("customerName", fullName);
             body.put("cardHolder", fullName);
             body.put("cardholder", fullName);
@@ -114,20 +121,19 @@ public class PaysoApiClient {
             body.put("payerName", fullName);
             body.put("name", fullName);
         }
-        if (!fn.isBlank()) {
+        if (!fn.isBlank() && !PgOutboundMerchantPrivacy.containsUrlDomainOrIp(fn)) {
             body.put("firstName", fn);
         }
-        if (!ln.isBlank()) {
+        if (!ln.isBlank() && !PgOutboundMerchantPrivacy.containsUrlDomainOrIp(ln)) {
             body.put("lastName", ln);
         }
         body.put("referenceNo", ref);
         /*
-         * description 에 가맹 상품명·주문번호를 넣지 않음(가맹 식별·패턴 노출 방지).
-         * 호출부에서 중립 문구를 넘기며, 비어 있으면 Payment.
+         * description: 가맹 상품명·주문·URL·도메인·IP 금지 → 항상 중립 Payment.
          */
-        String desc = description != null ? description.trim() : "";
-        if (desc.isBlank() || looksLikeMerchantOrderLeak(desc)) {
-            desc = "Payment";
+        String desc = PgOutboundMerchantPrivacy.safePgDescription(description);
+        if (looksLikeMerchantOrderLeak(desc)) {
+            desc = PgOutboundMerchantPrivacy.SAFE_PG_DESCRIPTION;
         }
         body.put("description", clamp(sanitizePaysoDescription(desc), 100));
         String cur = currencyCode != null && !currencyCode.isBlank() ? currencyCode.trim() : "00";
@@ -141,8 +147,23 @@ public class PaysoApiClient {
         body.put("currencyCode", cur);
         body.put("lang", "JA".equalsIgnoreCase(lang) || "JP".equalsIgnoreCase(lang) || "JPN".equalsIgnoreCase(lang)
                 ? "EN" : ("TH".equalsIgnoreCase(lang) || "THA".equalsIgnoreCase(lang) ? "TH" : "EN"));
-        body.put("returnUrl", returnUrl != null && !returnUrl.isBlank() ? returnUrl.trim() : "-");
-        body.put("postbackUrl", postbackUrl != null && !postbackUrl.isBlank() ? postbackUrl.trim() : "-");
+        String[] allowedUrlBases = PgOutboundUrlPolicy.allowedIcopayAndNotiBases(
+                IcopayPublicIdentity.API_BASE_URL,
+                PgOutboundUrlPolicy.DEFAULT_NOTI_BASE,
+                PgOutboundUrlPolicy.DEFAULT_SITE_BASE,
+                PgOutboundUrlPolicy.DEFAULT_NOTI_TEST_BASE);
+        String safeReturn = returnUrl != null && !returnUrl.isBlank() ? returnUrl.trim() : "-";
+        if (!"-".equals(safeReturn)) {
+            safeReturn = PgOutboundUrlPolicy.enforceOwnDomain(
+                    safeReturn, IcopayPublicIdentity.API_BASE_URL + "/payso-pay.html", allowedUrlBases);
+            if (!PgOutboundUrlPolicy.isOwnDomain(safeReturn, allowedUrlBases)) {
+                log.warn("PAYSO returnUrl blocked (non-ICOPAY/NOTI host) — forced ICOPAY fallback");
+                safeReturn = IcopayPublicIdentity.API_BASE_URL + "/payso-pay.html";
+            }
+        }
+        String safePostback = PgOutboundUrlPolicy.enforceOwnDomainOrDash(postbackUrl, allowedUrlBases);
+        body.put("returnUrl", safeReturn);
+        body.put("postbackUrl", safePostback);
         body.put("terminalId", creds.terminalId());
         body.put("keyVersion", creds.keyVersion());
 

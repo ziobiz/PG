@@ -6223,6 +6223,36 @@ html.pg-admin--tablet .pg-tablet-launch-tile {
 #contentsMain .pg-merchant-qr-pastel-card > .card-body {
   background-color: #fbf6e6 !important;
 }
+/* 가맹 API 연동 채널 — 보라 파스텔 헤더+본문 */
+#contentsMain .pg-merchant-api-channel-pastel-card > .card-header,
+.tab-pane.tabConDiv .pg-merchant-api-channel-pastel-card > .card-header {
+  background-color: #e9d5ff !important;
+  background-image: none !important;
+  border-bottom-color: #d8b4fe !important;
+  color: #5b21b6 !important;
+}
+#contentsMain .pg-merchant-api-channel-pastel-card {
+  background-color: #f5f0ff !important;
+  border-color: #d8b4fe !important;
+}
+#contentsMain .pg-merchant-api-channel-pastel-card > .card-body {
+  background-color: #f5f0ff !important;
+}
+/* 가맹 웹결제/URL 대표상품 — 빨강 파스텔 헤더+본문 (중요 구분) */
+#contentsMain .pg-merchant-webpay-pastel-card > .card-header,
+.tab-pane.tabConDiv .pg-merchant-webpay-pastel-card > .card-header {
+  background-color: #fde2e2 !important;
+  background-image: none !important;
+  border-bottom-color: #f5c2c2 !important;
+  color: #9b2c2c !important;
+}
+#contentsMain .pg-merchant-webpay-pastel-card {
+  background-color: #fff5f5 !important;
+  border-color: #f5c2c2 !important;
+}
+#contentsMain .pg-merchant-webpay-pastel-card > .card-body {
+  background-color: #fff5f5 !important;
+}
 /* 수수료관리 목록: CRYPTO 채널일 때 그리드 카드 헤더도 하늘색 */
 #contentsMain .pg-crypto-channel-active .pg-fee-channel-content-card > .card-header,
 .tab-pane.tabConDiv.pg-crypto-channel-active .pg-fee-channel-content-card > .card-header {

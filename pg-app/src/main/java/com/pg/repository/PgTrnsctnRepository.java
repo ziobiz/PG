@@ -209,6 +209,18 @@ public interface PgTrnsctnRepository extends JpaRepository<PgTrnsctn, String>, J
                                               Pageable pageable);
 
     /**
+     * PAYSO 실패(99)인데 가맹 수신통보 미송신 — PG 웹훅 없이 ICOPAY가 확정한 실패 통보 보강.
+     */
+    @Query("SELECT t FROM PgTrnsctn t WHERE t.status = '99' " +
+           "AND (UPPER(t.van) = 'PAYSO' OR UPPER(t.van) LIKE 'PAYSO_%') " +
+           "AND (t.mwOutboundLastSentStatus IS NULL OR TRIM(t.mwOutboundLastSentStatus) = '') " +
+           "AND t.orderNo IS NOT NULL AND TRIM(t.orderNo) <> '' " +
+           "AND t.createdAt >= :notOlderThan " +
+           "ORDER BY t.createdAt ASC")
+    List<PgTrnsctn> findPaysoFailedMissingOutbound(@Param("notOlderThan") LocalDateTime notOlderThan,
+                                                   Pageable pageable);
+
+    /**
      * QBANG QR 요청(08) — 브라우저와 별도 서버 PL 폴링(승인 즉시 OKAY).
      * createdAt 이 최근(유효시간 상한 내)인 건만.
      */

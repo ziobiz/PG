@@ -31,13 +31,16 @@ public class PaysoSaleRecordService {
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final OrgUnitRepository orgUnitRepository;
     private final TransactionReceiptEmailService transactionReceiptEmailService;
+    private final MerchantOutboundNotifyService merchantOutboundNotifyService;
 
     public PaysoSaleRecordService(PgTrnsctnRepository pgTrnsctnRepository,
                                    OrgUnitRepository orgUnitRepository,
-                                   @Lazy TransactionReceiptEmailService transactionReceiptEmailService) {
+                                   @Lazy TransactionReceiptEmailService transactionReceiptEmailService,
+                                   @Lazy MerchantOutboundNotifyService merchantOutboundNotifyService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.transactionReceiptEmailService = transactionReceiptEmailService;
+        this.merchantOutboundNotifyService = merchantOutboundNotifyService;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -219,9 +222,20 @@ public class PaysoSaleRecordService {
         return "";
     }
 
+    /**
+     * 승인 확정. {@code verifiedByOrderDetail=true} 일 때만 저장 pay_no 폴백·실패(99)→성공(10) 복구 허용.
+     * 웹훅 키가 주문번호/비어 있는데 Order Detail 없이 저장 ref 로 승인하면 오성공이 되므로 거부한다.
+     */
     @Transactional
     public Optional<PgTrnsctn> applyPaidOutcome(String orderNo, String compId, String paysoTxnId,
                                                 String paymentRef, String payerName) {
+        return applyPaidOutcome(orderNo, compId, paysoTxnId, paymentRef, payerName, false);
+    }
+
+    @Transactional
+    public Optional<PgTrnsctn> applyPaidOutcome(String orderNo, String compId, String paysoTxnId,
+                                                String paymentRef, String payerName,
+                                                boolean verifiedByOrderDetail) {
         if (orderNo == null || orderNo.isBlank() || compId == null || compId.isBlank()) {
             return Optional.empty();
         }
@@ -238,15 +252,59 @@ public class PaysoSaleRecordService {
             txn.get().setVan(PgVendor.PAYSO);
         }
         PgTrnsctn t = txn.get();
-        /* 가맹 orderNo 를 PG 승인키로 쓰면 미결제인데 성공으로 찍힘 — 거부 */
-        if (isMerchantOrderUsedAsPaysoKey(orderNo.trim(), paysoTxnId, paymentRef)) {
-            log.warn("PAYSO applyPaid 거부 — PG키=가맹주문번호 mid={} order={} txnId={} ref={}",
-                    compId, orderNo, paysoTxnId, paymentRef);
+        String stNow = t.getStatus() != null ? t.getStatus().trim() : "";
+        if ("10".equals(stNow) || "00".equals(stNow)) {
+            return Optional.of(t);
+        }
+        /* 이미 실패(99)인데 Order Detail 미확인 웹훅이면 오성공 방지 — 덮어쓰지 않음 */
+        if ("99".equals(stNow) && !verifiedByOrderDetail) {
+            log.warn("PAYSO applyPaid 거부 — 이미 실패(99), Order Detail 미확인 mid={} order={}",
+                    compId, orderNo.trim());
             return Optional.empty();
         }
+        String on = orderNo.trim();
+        String inTxn = paysoTxnId != null ? paysoTxnId.trim() : "";
+        String inRef = paymentRef != null ? paymentRef.trim() : "";
+        /*
+         * 웹훅 키가 주문번호/비어 있음:
+         * - Order Detail 로 검증된 경우에만 저장 pay_no/chill 폴백 허용
+         * - 미검증이면 거부(세션 생성 시 발급된 ref 만으로 승인하면 PAYSO 미결제인데 성공으로 남음)
+         */
+        if (!isUsablePaysoPgKey(on, inTxn) && !isUsablePaysoPgKey(on, inRef)) {
+            if (!verifiedByOrderDetail) {
+                log.warn("PAYSO applyPaid 거부 — PG키=가맹주문번호/비어있음(Order Detail 미검증) mid={} order={} txnId={} ref={}",
+                        compId, on, paysoTxnId, paymentRef);
+                return Optional.empty();
+            }
+            String storedRef = firstPaysoReference(t.getPayNo(), t.getApprovalNo());
+            String storedChill = t.getChillTransactionId() != null ? t.getChillTransactionId().trim() : "";
+            if (isUsablePaysoPgKey(on, storedChill)) {
+                inTxn = storedChill;
+            }
+            if (!storedRef.isBlank()) {
+                inRef = storedRef;
+            }
+            if (!isUsablePaysoPgKey(on, inTxn) && !isUsablePaysoPgKey(on, inRef)) {
+                log.warn("PAYSO applyPaid 거부 — 검증됨이나 저장 PG키 없음 mid={} order={}",
+                        compId, on);
+                return Optional.empty();
+            }
+            log.info("PAYSO applyPaid: Order Detail 확인 후 저장 pay_no/chill 사용 mid={} order={} ref={} chill={}",
+                    compId, on, inRef, inTxn);
+        }
+        paysoTxnId = inTxn;
+        paymentRef = inRef;
+        String prevSt = stNow;
         t.setStatus("10");
         if (t.getPaidAt() == null) {
             t.setPaidAt(LocalDateTime.now());
+        }
+        /* 실패 사유가 남아 있으면 실제 승인 시 비움 */
+        if ("99".equals(prevSt) || (t.getOutcomeReasonCode() != null && !t.getOutcomeReasonCode().isBlank())) {
+            t.setOutcomeReason(null);
+            t.setOutcomeReasonCode(null);
+            t.setOutcomeReasonSource(null);
+            t.setOutcomeReasonAt(null);
         }
         /*
          * pay_no = ICOPAY→PAYSO Reference(숫자 12자리·전 가맹 동일).
@@ -340,9 +398,12 @@ public class PaysoSaleRecordService {
             t.setVan(PgVendor.PAYSO);
         }
         String st = t.getStatus() != null ? t.getStatus().trim() : "";
+        String code = reasonCode != null && !reasonCode.isBlank() ? reasonCode.trim() : "PAYSO_PENDING_EXPIRED";
         if (!"08".equals(st)) {
             if ("99".equals(st)) {
                 hookReceiptEmail(t);
+                /* 이미 실패인데 수신통보 미송신(mw 비어 있음)이면 ICOPAY 단독으로 재송 — PAYSO 웹훅 불필요 */
+                scheduleIcopayOriginFailNotify(t, code);
                 return Optional.of(t);
             }
             if ("10".equals(st)) {
@@ -368,23 +429,60 @@ public class PaysoSaleRecordService {
                 reasonText != null && !reasonText.isBlank()
                         ? reasonText
                         : "Payment expired (no completion webhook)",
-                reasonCode != null && !reasonCode.isBlank() ? reasonCode : "PAYSO_PENDING_EXPIRED",
+                code,
                 com.pg.util.TxnOutcomeReasonApplier.SOURCE_ICOPAY);
         pgTrnsctnRepository.save(t);
         hookReceiptEmail(t);
+        /* 페이소 미통보(카드 미입력·3DS 전 이탈 등)여도 ICOPAY 실패 확정은 가맹 수신통보 필수 */
+        scheduleIcopayOriginFailNotify(t, code);
         return Optional.of(t);
     }
 
-    /** chill/pay_no/approval 이 가맹 orderNo 와 같으면 PAYSO 미결제 오성공으로 본다. */
+    /**
+     * PAYSO PG 웹훅과 무관 — ICOPAY가 실패(99)로 확정한 건은 수신통보로 가맹에 맞춤.
+     * 이미 동일 status로 송신된 경우 {@link MerchantOutboundNotifyService} 가 스킵.
+     */
+    private void scheduleIcopayOriginFailNotify(PgTrnsctn t, String notifyChannel) {
+        if (t == null || t.getTrnId() == null || t.getTrnId().isBlank()) {
+            return;
+        }
+        if (!"99".equals(t.getStatus() != null ? t.getStatus().trim() : "")) {
+            return;
+        }
+        String ch = notifyChannel != null && !notifyChannel.isBlank()
+                ? notifyChannel.trim()
+                : "PAYSO_PENDING_EXPIRED";
+        try {
+            merchantOutboundNotifyService.scheduleAfterTxnCommit(t, null, ch);
+            log.info("PAYSO ICOPAY-origin fail notify scheduled mid={} order={} trnId={} channel={} (no PAYSO webhook required)",
+                    t.getMerchantId(), t.getOrderNo(), t.getTrnId(), ch);
+        } catch (Exception e) {
+            log.warn("PAYSO ICOPAY-origin fail notify schedule failed mid={} order={}: {}",
+                    t.getMerchantId(), t.getOrderNo(), e.getMessage());
+        }
+    }
+
+    /**
+     * PAYSO 미결제 오성공 후보.
+     * - chill/pay_no/approval 이 가맹 orderNo 와 같음
+     * - 또는 복귀 폴링 실패 사유가 남은 채 status=10 (웹훅 오승인 경합)
+     */
     static boolean looksLikeFalsePaidRecord(PgTrnsctn t) {
         if (t == null || t.getOrderNo() == null || t.getOrderNo().isBlank()) {
             return false;
         }
         String on = t.getOrderNo().trim();
-        return eqIgnore(on, t.getChillTransactionId())
+        if (eqIgnore(on, t.getChillTransactionId())
                 || eqIgnore(on, t.getPayNo())
                 || (t.getApprovalNo() != null && !t.getApprovalNo().isBlank()
-                && on.startsWith(t.getApprovalNo().trim()));
+                && on.startsWith(t.getApprovalNo().trim()))) {
+            return true;
+        }
+        String code = t.getOutcomeReasonCode() != null ? t.getOutcomeReasonCode().trim() : "";
+        String mw = t.getMwOutboundLastSentStatus() != null ? t.getMwOutboundLastSentStatus().trim() : "";
+        return "PAYSO_BUYER_RETURN_FAIL".equalsIgnoreCase(code)
+                || "PAYSO_PENDING_EXPIRED".equalsIgnoreCase(code)
+                || "99".equals(mw);
     }
 
     /** 웹훅/복귀 키가 가맹 주문번호만이면 승인으로 쓰지 않음. */
@@ -405,6 +503,18 @@ public class PaysoSaleRecordService {
         }
         /* 둘 다 주문번호이거나, 유일한 키가 주문번호 */
         return aIsOrder && bIsOrder;
+    }
+
+    /** PAYSO 승인 키로 쓸 수 있는지 — 비어 있거나 가맹 주문번호와 같으면 불가. */
+    static boolean isUsablePaysoPgKey(String orderNo, String key) {
+        if (key == null || key.isBlank()) {
+            return false;
+        }
+        String k = key.trim();
+        if (orderNo != null && !orderNo.isBlank() && k.equalsIgnoreCase(orderNo.trim())) {
+            return false;
+        }
+        return true;
     }
 
     private static boolean eqIgnore(String a, String b) {

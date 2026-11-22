@@ -14,6 +14,9 @@ alwaysApply: true
 | **일반** (카드·FIAT 전용·기타) | 그레이 파스텔 (현행 유지) | `#contentsMain .card > .card-header` → `rgba(0,0,0,.03)` |
 | **크립토 전용** | 하늘색 파스텔 | `.pg-crypto-pastel-card` (헤더) 또는 `.pg-merchant-crypto-pastel-card` (가맹: 헤더+본문) |
 | **공통** (FIAT·CRYPTO 공용) | 노란색 파스텔 | `.pg-shared-pastel-card` (헤더) |
+| **가맹 웹결제/URL** (중요) | 빨강 파스텔 | `.pg-merchant-webpay-pastel-card` (헤더+본문) |
+| **가맹 API 연동 채널** | 보라 파스텔 | `.pg-merchant-api-channel-pastel-card` |
+| **가맹 QR결제설정** | 노란 파스텔 | `.pg-merchant-qr-pastel-card` |
 
 ## 구현
 

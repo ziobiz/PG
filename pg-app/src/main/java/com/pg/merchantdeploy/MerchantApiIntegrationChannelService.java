@@ -32,6 +32,8 @@ public class MerchantApiIntegrationChannelService {
     public enum Channel {
         API_BROKER_INLINE,
         API_BROKER_REDIRECT,
+        /** 간편결제(QR URL) — REDIRECT 확장 */
+        API_BROKER_SIMPLE_QR,
         API_WORDPRESS
     }
 
@@ -70,6 +72,18 @@ public class MerchantApiIntegrationChannelService {
     }
 
     /**
+     * 간편결제(QR URL) — 본사 제공 × 가맹 ON × 리다이렉트 채널 유효.
+     * 기존 INLINE/REDIRECT prepare 동작은 변경하지 않는다.
+     */
+    public boolean isSimpleQrEffective(Long orgUnitId) {
+        HqApiConfig hq = resolveHqConfig();
+        MerchantProfile mp = resolveProfile(orgUnitId).orElse(null);
+        return isYes(hq != null ? hq.getApiBrokerSimpleQrEnabledYn() : "Y")
+                && isYes(mp != null ? mp.getSimpleQrCheckoutUseYn() : "N")
+                && isRedirectEffective(orgUnitId);
+    }
+
+    /**
      * 가맹 API prepare(세션·payUrl 발급) 허용 — 인라인·리다이렉트 중 하나라도 사용이면 true.
      * <p>운영 PG를 바꿔도 기존 RE(또는 사실상 payUrl 오픈) 가맹이 재연동 없이 같은 prepare 를
      * 쓰도록, 채널을 인라인만으로 가두지 않습니다. IN↔RE UX 전환(iframe↔창이동)은 별개입니다.
@@ -97,6 +111,9 @@ public class MerchantApiIntegrationChannelService {
         }
         if (isRedirectEffective(orgUnitId)) {
             parts.add("RE");
+        }
+        if (isSimpleQrEffective(orgUnitId)) {
+            parts.add("SQ");
         }
         if (isWordpressEffective(orgUnitId)) {
             parts.add("WO");
@@ -132,6 +149,19 @@ public class MerchantApiIntegrationChannelService {
                 }
                 yield Optional.empty();
             }
+            case API_BROKER_SIMPLE_QR -> {
+                if (hq != null && !isYes(hq.getApiBrokerSimpleQrEnabledYn())) {
+                    yield Optional.of("본사 설정에서 간편결제(QR URL) 제공이 꺼져 있습니다.");
+                }
+                Optional<String> redirectDeny = denyMessage(orgUnitId, Channel.API_BROKER_REDIRECT);
+                if (redirectDeny.isPresent()) {
+                    yield redirectDeny;
+                }
+                if (mp != null && !isYes(mp.getSimpleQrCheckoutUseYn())) {
+                    yield Optional.of("이 가맹점은 간편결제(QR URL)가 미사용으로 설정되어 있습니다.");
+                }
+                yield Optional.empty();
+            }
             case API_WORDPRESS -> {
                 if (hq != null && !isYes(hq.getApiWordpressPluginEnabledYn())) {
                     yield Optional.of("본사 설정에서 WordPress 플러그인 연동이 꺼져 있습니다.");
@@ -150,14 +180,17 @@ public class MerchantApiIntegrationChannelService {
         Map<String, Object> block = new LinkedHashMap<>();
         block.put("apiBrokerInlineUseYn", yn(mp != null ? mp.getApiBrokerInlineUseYn() : "Y"));
         block.put("apiBrokerRedirectUseYn", yn(mp != null ? mp.getApiBrokerRedirectUseYn() : "Y"));
+        block.put("simpleQrCheckoutUseYn", yn(mp != null ? mp.getSimpleQrCheckoutUseYn() : "N"));
         block.put("apiWordpressUseYn", yn(mp != null ? mp.getApiWordpressUseYn() : "N"));
         block.put("hqApiBrokerInlineEnabledYn", yn(hq != null ? hq.getApiBrokerInlineEnabledYn() : "Y"));
         block.put("hqApiBrokerRedirectEnabledYn", yn(hq != null ? hq.getApiBrokerRedirectEnabledYn() : "Y"));
+        block.put("hqApiBrokerSimpleQrEnabledYn", yn(hq != null ? hq.getApiBrokerSimpleQrEnabledYn() : "Y"));
         block.put("hqUrlPayInlineEnabledYn", yn(hq != null ? hq.getUrlPayInlineEnabledYn() : "Y"));
         block.put("hqUrlPayRedirectEnabledYn", yn(hq != null ? hq.getUrlPayRedirectEnabledYn() : "Y"));
         block.put("hqWordpressPluginEnabledYn", yn(hq != null ? hq.getApiWordpressPluginEnabledYn() : "Y"));
         block.put("effectiveInline", isInlineEffective(orgUnitId));
         block.put("effectiveRedirect", isRedirectEffective(orgUnitId));
+        block.put("effectiveSimpleQr", isSimpleQrEffective(orgUnitId));
         block.put("effectiveWordpress", isWordpressEffective(orgUnitId));
         MerchantDeployL10n.putDescription(block, new MerchantDeployL10n.Bundle(
                 "가맹 API 연동 채널 — 본사 결제로직설정 × 업체관리 가맹 프로필",

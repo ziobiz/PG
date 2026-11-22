@@ -662,22 +662,27 @@
         { v: '', t: '비활성' }
       ], col: 3 }],
       [{ label: '배송주소', type: 'select', name: 'urlPayShippingAddressUseYn', options: [
+        { v: 'FOLLOW_HQ', t: '본사설정 따름' },
         { v: 'Y', t: '활성' },
         { v: 'N', t: '비활성' }
       ], col: 2 },
        { label: '이메일', type: 'select', name: 'urlPayBuyerEmailUseYn', options: [
+        { v: 'FOLLOW_HQ', t: '본사설정 따름' },
         { v: 'Y', t: '활성' },
         { v: 'N', t: '비활성' }
       ], col: 2 },
        { label: '국가코드', type: 'select', name: 'urlPayBuyerCountryUseYn', options: [
+        { v: 'FOLLOW_HQ', t: '본사설정 따름' },
         { v: 'Y', t: '활성' },
         { v: 'N', t: '비활성' }
       ], col: 2 },
        { label: '전화번호', type: 'select', name: 'urlPayBuyerPhoneUseYn', options: [
+        { v: 'FOLLOW_HQ', t: '본사설정 따름' },
         { v: 'Y', t: '활성' },
         { v: 'N', t: '비활성' }
       ], col: 2 }],
       [{ label: '성명(URL결제)', type: 'select', name: 'urlPayBuyerNameUseYn', options: [
+        { v: 'FOLLOW_HQ', t: '본사설정 따름' },
         { v: 'Y', t: '활성' },
         { v: 'N', t: '비활성' }
       ], col: 2 },
@@ -692,36 +697,49 @@
         { v: 'N', t: '비활성' }
       ], col: 2 },
        { label: '주문번호 노출', type: 'select', name: 'urlPayOrderNoShowYn', options: [
+        { v: 'FOLLOW_HQ', t: '본사설정 따름' },
         { v: 'N', t: '비활성' },
         { v: 'Y', t: '활성' }
       ], col: 2 }],
-      [{ label: '', type: 'note', col: 12, text: '구매자입력 프리셋: 기본형·1형·2형…을 고르면 이메일·국가·전화·배송은 프리셋을 따릅니다(개별 항목 잠금). 「비활성」으로 둔 뒤에만 네 항목을 개별 활성/비활성으로 설정합니다. 성명(URL결제)·성명(API결제)은 프리셋과 별도이며 기본값은 활성입니다. URL 공개 결제·리다이렉트(RE·KSNET 등)는 「성명(URL결제)」, 가맹 API(entry=merchant_api)는 「성명(API결제)」로 이름/성 표시를 각각 제어합니다(비활성 시 성명 미표시). 「전화 국가번호」는 결제창 전화번호 옆 +82 등 국가번호 드롭다운 노출입니다. 「주문번호 노출」은 결제 입력창에 주문번호 행을 보일지 여부이며 기본은 비활성입니다(서버·세션 orderNo는 그대로 유지). 프리셋이 켜진 채 개별 항목을 바꾸려 하면 「구매자입력 프리셋을 비활성화하세요.」안내가 표시됩니다.' }],
+      [{ label: '', type: 'note', col: 12, text: '【간편결제 노출 아님】「본사설정 따름」이면 본사정책 → 결제·URL →「결제창 표시 기본값」→「결제창 구매자입력 기본」값을 씁니다. 가맹이 활성/비활성으로 바꾸면 가맹이 본사보다 우선합니다. 구매자입력 프리셋: 기본형·1형·2형…을 고르면 이메일·국가·전화·배송은 프리셋을 따릅니다(개별 항목 잠금). 「비활성」으로 둔 뒤에만 네 항목을 개별 설정합니다. 성명(URL/API)·전화 국가번호·주문번호는 프리셋과 별도입니다. URL·리다이렉트는 「성명(URL결제)」, 가맹 API는 「성명(API결제)」. 「주문번호 노출」비활성 시 행만 숨기고 서버 orderNo는 유지. 프리셋이 켜진 채 개별 항목을 바꾸려 하면 「구매자입력 프리셋을 비활성화하세요.」안내가 표시됩니다.' }],
       [{ type: 'customHtml', col: 12, html: webPaymentHeaderSubtitleFieldBlock }],
       merchantWebPaymentDefaultProductRow(),
       [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml(urlPh); } },
        { type: 'customHtml', col: 12, html: function () { return merchantPaymentRepayUrlRowHtml(urlPh); } }],
-      [{ label: '웹용 QR', type: 'select', name: 'webPaymentQrMode', options: [
+      [{ label: '웹용 QR (URL /checkout)', type: 'select', name: 'webPaymentQrMode', options: [
         { v: 'AUTO', t: '자동' },
         { v: 'ACTIVE', t: '활성' },
         { v: 'DISABLED', t: '비활성' }
       ], col: 3 },
-       { label: '', type: 'note', col: 9, text: '웹용 QR: 카메라 스캔 시 /checkout 결제 URL. 「자동」(기본)=웹결제 사용이고 API 인라인·리다이렉트·WordPress가 모두 미사용(URL 전용)일 때만 표시. 「활성」=API 인라인·리다이렉트·WordPress 사용 여부와 관계없이, 웹결제 사용이면 어느 조건에서든 표시(강제 ON). 「비활성」=숨김. 모드 변경은 총본사만 가능하며, 가맹점은 실효 ON일 때 PNG 다운로드만 가능합니다.' }],
-      [{ label: 'QR 상단이름', type: 'select', name: 'webPayQrTitleMode', options: [
+       { label: '', type: 'note', col: 9, text: '【웹결제 URL 전용】관리자「QR 열기」는 공개 /checkout URL용입니다. 간편결제(/pay-simple) PC QR과 무관합니다. 「자동」(기본)=웹결제 사용이고 API 인라인·리다이렉트·WordPress가 모두 미사용(URL 전용)일 때만 표시. 「활성」=웹결제 사용이면 강제 ON. 「비활성」=숨김. 모드 변경은 총본사만, 가맹점은 실효 ON일 때 PNG 다운로드만.' }],
+      [{ label: '웹용 QR 상단이름', type: 'select', name: 'webPayQrTitleMode', options: [
         { v: 'FOLLOW_HQ', t: '본사설정 따름' },
         { v: 'ACTIVE', t: '직접입력' },
         { v: 'DISABLED', t: '미활성' }
       ], col: 3 },
        { label: '상단 문구', type: 'text', name: 'webPayQrTitleText', col: 5, maxlength: 120, placeholder: '비우면 가맹점명', blockExtraClass: 'web-pay-qr-title-text-field' },
-       { label: '', type: 'note', col: 4, text: 'QR 열기 화면 위. 직접입력·비우면 가맹점명.' }],
-      [{ label: 'QR 하단문구', type: 'select', name: 'webPayQrFooterMode', options: [
+       { label: '', type: 'note', col: 4, text: 'URL 웹용 QR 열기 화면 위(간편결제 아님). 직접입력·비우면 가맹점명.' }],
+      [{ label: '웹용 QR 하단문구', type: 'select', name: 'webPayQrFooterMode', options: [
         { v: 'FOLLOW_HQ', t: '본사설정 따름' },
         { v: 'ACTIVE', t: '직접입력' },
         { v: 'DISABLED', t: '미활성' }
       ], col: 3 },
        { label: '하단 문구', type: 'text', name: 'webPayQrFooterText', col: 5, maxlength: 120, placeholder: 'Provided by ICOPAY', blockExtraClass: 'web-pay-qr-footer-text-field' },
-       { label: '', type: 'note', col: 4, text: 'QR 열기 화면 아래. 직접입력·비우면 Provided by ICOPAY.' }],
+       { label: '', type: 'note', col: 4, text: 'URL 웹용 QR 열기 화면 아래(간편결제 아님). 직접입력·비우면 Provided by ICOPAY.' }],
       [{ type: 'customHtml', col: 12, html: function () { return merchantWebPayQrRowHtml(); } }]
     ];
+  }
+
+  /** 가맹 등록·정보 — 웹결제/URL 대표상품 (빨강 파스텔 · 중요 구분) */
+  function merchantWebPaymentCardSection(urlPlaceholderKo) {
+    return {
+      title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',
+      id: 'webPaymentCard',
+      cardExtraClass: 'pg-merchant-webpay-pastel-card',
+      merchantOnly: true,
+      notice: merchantWebPaymentCardNoticeKo(),
+      rows: merchantWebPaymentCardRows(urlPlaceholderKo || '가맹점 저장 후 조회')
+    };
   }
 
   /** 크립토설정 바로 위 — QR 전용(노란색 파스텔). /checkout-qr 표시. */
@@ -848,12 +866,46 @@
     return {
       title: '가맹 API 연동 채널',
       id: 'merchantApiIntegrationChannelsCard',
+      cardExtraClass: 'pg-merchant-api-channel-pastel-card',
       merchantOnly: true,
-      notice: '가맹별 prepare 경로(인라인·리다이렉트) 허용 여부입니다. 인라인·리다이렉트 중 하나 이상 켜면 prepare가 허용됩니다. 본사 전역 상한은 연동·배포 → 결제로직설정입니다. WordPress 사용 시 인라인 또는 리다이렉트 중 하나 이상을 켜야 합니다. 신규 가맹 기본값은 인라인·리다이렉트 모두 사용입니다.',
+      notice: '가맹별 prepare 경로(인라인·리다이렉트) 허용 여부입니다. 인라인·리다이렉트 중 하나 이상 켜면 prepare가 허용됩니다. 간편결제(QR URL)는 리다이렉트 확장이며 리다이렉트 사용 + 간편결제 사용 + 본사 제공이 모두 켜져야 합니다. 【중요】간편결제 ON이면 가맹은 계속 redirect/prepare만 호출하고 ICOPAY가 payUrl을 /pay-simple로 바꿉니다(가맹 연동 수정 없음). OFF면 기존 리다이렉트 URL. PC=/pay-simple에서 QR만(카드 결제 버튼 없음)·모바일=주문 확인 후 「결제하기」로 기존 /checkout 카드창. API는 User-Agent로 payUrl을 나누지 않습니다. 본사 전역 상한은 본사정책 → 결제·URL → 결제 라우팅입니다. WordPress 사용 시 인라인 또는 리다이렉트 중 하나 이상을 켜야 합니다. 신규 가맹 기본값은 인라인·리다이렉트 사용·간편결제 미사용입니다.',
       rows: [
         [{ label: 'API 인라인 prepare 허용', type: 'select', name: 'apiBrokerInlineUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 3 },
          { label: 'API 리다이렉트 prepare 허용', type: 'select', name: 'apiBrokerRedirectUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 3 },
+         { label: '간편결제(QR URL)', type: 'select', name: 'simpleQrCheckoutUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 3 },
          { label: 'WordPress/WooCommerce', type: 'select', name: 'apiWordpressUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 3 }],
+        [{ label: '', type: 'note', col: 12, text: '【필수】간편결제 ON: redirect/prepare 응답 payUrl=/pay-simple(가맹 코드 수정 없음). OFF: 기존 리다이렉트 URL. PC=QR만 자동 표시(이 기기 카드결제 불가)·모바일=확인 후 「결제하기」→ 기존 /checkout·NOTI. prepare는 기기와 무관하게 동일 payUrl만 반환합니다. simple/prepare도 동일 /pay-simple. 기본 미사용.' }],
+        [{ label: 'QR 주문번호 노출', type: 'select', name: 'simpleQrShowOrderNoYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
+         { label: 'QR 상품명 노출', type: 'select', name: 'simpleQrShowProductYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
+         { label: 'QR 성명 노출', type: 'select', name: 'simpleQrShowNameYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
+         { label: 'QR 이메일 노출', type: 'select', name: 'simpleQrShowEmailYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
+         { label: 'QR 전화번호 노출', type: 'select', name: 'simpleQrShowPhoneYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 }],
+        [{ label: '', type: 'note', col: 12, text: '위 노출 항목은 /pay-simple 확인·QR 페이지에만 적용됩니다. 비활성 시 해당 행을 숨깁니다(서버·세션 값은 유지). 금액은 STANDARD면 「금액」행만, DP면 「금액」행과 「예상 청구」행을 따로 표시합니다(표시 통화 행 없음). 결제는 청구 통화로 진행됩니다.' }],
+        [{ label: '간편결제 로고', type: 'select', name: 'simplePayLogoMode', options: [
+          { v: 'FOLLOW_HQ', t: '본사설정 따름' },
+          { v: 'FOLLOW_WEB', t: '웹결제 따름' },
+          { v: 'FOLLOW_API', t: 'API 로고 따름' },
+          { v: 'DEFAULT', t: '기본(총판 로고)' },
+          { v: 'HTML', t: '기본(HTML)' },
+          { v: 'ACTIVE', t: '활성(가맹 로고)' },
+          { v: 'DISABLED', t: '미활성' }
+        ], col: 3 },
+         { label: '간편결제 로고 URL', type: 'text', name: 'simplePayLogoUrl', col: 5, maxlength: 500, placeholder: 'ACTIVE 시 HTTPS 이미지 URL' },
+         { label: '간편결제 HTML 표시명', type: 'text', name: 'simplePayHtmlTitle', col: 4, maxlength: 80, placeholder: 'ICOPAY' }],
+        [{ label: '간편결제 부제', type: 'select', name: 'simplePayBrandSubMode', options: [
+          { v: 'FOLLOW_HQ', t: '본사설정 따름' },
+          { v: 'FOLLOW_WEB', t: '웹결제 따름' },
+          { v: 'FOLLOW_API', t: 'API 따름' },
+          { v: 'ACTIVE', t: '활성(기본 간편결제)' },
+          { v: 'CUSTOM', t: '직접입력' },
+          { v: 'DISABLED', t: '미활성' }
+        ], col: 3 },
+         { label: '부제 문구', type: 'text', name: 'simplePayBrandSubText', col: 9, maxlength: 200, placeholder: '직접입력 시 한국어(저장 시 5개국어)' }],
+        [{ label: '', type: 'note', col: 12, text: '【우선】가맹이 「본사설정 따름」이 아니면 가맹 로고·부제가 본사보다 우선합니다. 「본사설정 따름」일 때만 본사정책 → 결제 라우팅 기본을 씁니다. 웹결제 따름=URL 웹결제 로고/경고메세지, API 따름=API 로고(부제는 Secure Payment). 웹용 QR(웹결제 카드)과 무관합니다.' }],
+        [{ type: 'customHtml', col: 12, html: function () {
+          return '<div class="border rounded p-2 mb-1"><div class="fw-semibold small mb-2" data-pg-ui-t="간편결제 QR URL 결제 안내">간편결제 QR URL 결제 안내</div>' +
+            simplePayCheckoutCopyFieldsBlock(false) + '</div>';
+        } }],
         [{ label: '모바일 결제창', type: 'select', name: 'mobileCheckoutMode', options: [
           { v: '', t: '본사 기본' },
           { v: 'EMBED', t: 'iframe (3DS 상위 이동)' },
@@ -1231,7 +1283,7 @@
     var hintBlock = isHq ? 'redirectCheckoutHintTextDefaultBlock' : 'redirectCheckoutHintTextBlock';
     var phL = '주문·구매자 정보를 확인한 뒤 결제 페이지로 이동합니다.';
     var phH = '다음 화면에서 카드정보를 입력 후 결제 완료 합니다.';
-    var hintNote = 'REDIRECT(RE) 결제 확인창에만 적용됩니다. 「활성」=시스템 기본 문구, 「직접입력」=옆 문구(저장 시 5개국어 1회 번역), 「비활성」=숨김. 가맹이 본사설정 따름이 아니면 가맹이 우선합니다.';
+    var hintNote = 'REDIRECT(RE) 확인창(PAYSO·OMSPAY·KSNET 등) 전용입니다. 간편결제(/pay-simple)에는 적용되지 않습니다. 「활성」=시스템 기본, 「직접입력」=옆 문구(저장 시 5개국어), 「비활성」=숨김. 가맹이 본사설정 따름이 아니면 가맹 우선.';
     var modeOpts = isHq
       ? '<option value="ACTIVE" data-pg-ui-t="활성">활성</option><option value="CUSTOM" data-pg-ui-t="직접입력">직접입력</option><option value="DISABLED" data-pg-ui-t="비활성">비활성</option>'
       : '<option value="FOLLOW_HQ" data-pg-ui-t="본사설정 따름">본사설정 따름</option><option value="ACTIVE" data-pg-ui-t="활성">활성</option><option value="CUSTOM" data-pg-ui-t="직접입력">직접입력</option><option value="DISABLED" data-pg-ui-t="비활성">비활성</option>';
@@ -1247,6 +1299,46 @@
       '<select class="form-select form-select-sm" name="' + hintMode + '" id="' + hintMode + '">' + modeOpts + '</select></div></div>' +
       '<div class="col-sm-9"><div class="form-field-block" id="' + hintBlock + '"><label class="form-label" data-pg-ui-t="하단 안내 문구">' + escUi(L('하단 안내 문구')) + '</label>' +
       '<input type="text" class="form-control form-control-sm" name="' + hintText + '" id="' + hintText + '" maxlength="500" placeholder="' + escUi(L(phH)) + '" data-pg-ui-placeholder="' + escUi(phH) + '">' +
+      '</div></div></div>' +
+      '<div class="form-text text-muted small" data-pg-ui-t="' + escUi(hintNote) + '">' + escUi(L(hintNote)) + '</div></div>';
+  }
+
+  /** 간편결제 QR URL(/pay-simple) 안내 — REDIRECT(RE)와 분리. 간편결제 ON 업체만 노출. */
+  function simplePayCheckoutCopyFieldsBlock(isHq) {
+    var leadMode = isHq ? 'simplePayCheckoutLeadModeDefault' : 'simplePayCheckoutLeadMode';
+    var leadText = isHq ? 'simplePayCheckoutLeadTextDefault' : 'simplePayCheckoutLeadText';
+    var hintMode = isHq ? 'simplePayCheckoutHintModeDefault' : 'simplePayCheckoutHintMode';
+    var hintText = isHq ? 'simplePayCheckoutHintTextDefault' : 'simplePayCheckoutHintText';
+    var autoMode = isHq ? 'simplePayCheckoutAutoModeDefault' : 'simplePayCheckoutAutoMode';
+    var autoText = isHq ? 'simplePayCheckoutAutoTextDefault' : 'simplePayCheckoutAutoText';
+    var leadBlock = isHq ? 'simplePayCheckoutLeadTextDefaultBlock' : 'simplePayCheckoutLeadTextBlock';
+    var hintBlock = isHq ? 'simplePayCheckoutHintTextDefaultBlock' : 'simplePayCheckoutHintTextBlock';
+    var autoBlock = isHq ? 'simplePayCheckoutAutoTextDefaultBlock' : 'simplePayCheckoutAutoTextBlock';
+    var phL = '주문·구매자 정보를 확인한 뒤 결제하세요. 카드는 다음 결제창에서 입력합니다.';
+    var phH = '휴대폰 카메라로 스캔 후 결제 진행을 합니다.';
+    var phA = '결제후 자동 완료 처리 됩니다.';
+    var hintNote = '【간편결제 QR URL 전용】가맹「간편결제(QR URL)」사용 시에만 /pay-simple에 표시됩니다. REDIRECT(RE) 확인창·일반 리다이렉트에는 적용되지 않습니다. 상단=공통, 하단(QR)=PC QR 안내, 자동완료=PC 두 번째 줄. 「활성」=시스템 기본, 「직접입력」=옆 문구(저장 시 5개국어), 「비활성」=숨김.';
+    var modeOpts = isHq
+      ? '<option value="ACTIVE" data-pg-ui-t="활성">활성</option><option value="CUSTOM" data-pg-ui-t="직접입력">직접입력</option><option value="DISABLED" data-pg-ui-t="비활성">비활성</option>'
+      : '<option value="FOLLOW_HQ" data-pg-ui-t="본사설정 따름">본사설정 따름</option><option value="ACTIVE" data-pg-ui-t="활성">활성</option><option value="CUSTOM" data-pg-ui-t="직접입력">직접입력</option><option value="DISABLED" data-pg-ui-t="비활성">비활성</option>';
+    return '<div class="simple-pay-checkout-copy-fields w-100">' +
+      '<div class="row g-2 align-items-end mb-2">' +
+      '<div class="col-sm-3"><div class="form-field-block"><label class="form-label" data-pg-ui-t="상단 안내">' + escUi(L('상단 안내')) + '</label>' +
+      '<select class="form-select form-select-sm" name="' + leadMode + '" id="' + leadMode + '">' + modeOpts + '</select></div></div>' +
+      '<div class="col-sm-9"><div class="form-field-block" id="' + leadBlock + '"><label class="form-label" data-pg-ui-t="상단 안내 문구">' + escUi(L('상단 안내 문구')) + '</label>' +
+      '<input type="text" class="form-control form-control-sm" name="' + leadText + '" id="' + leadText + '" maxlength="500" placeholder="' + escUi(L(phL)) + '" data-pg-ui-placeholder="' + escUi(phL) + '">' +
+      '</div></div></div>' +
+      '<div class="row g-2 align-items-end mb-2">' +
+      '<div class="col-sm-3"><div class="form-field-block"><label class="form-label" data-pg-ui-t="하단 안내(QR)">' + escUi(L('하단 안내(QR)')) + '</label>' +
+      '<select class="form-select form-select-sm" name="' + hintMode + '" id="' + hintMode + '">' + modeOpts + '</select></div></div>' +
+      '<div class="col-sm-9"><div class="form-field-block" id="' + hintBlock + '"><label class="form-label" data-pg-ui-t="하단 안내 문구">' + escUi(L('하단 안내 문구')) + '</label>' +
+      '<input type="text" class="form-control form-control-sm" name="' + hintText + '" id="' + hintText + '" maxlength="500" placeholder="' + escUi(L(phH)) + '" data-pg-ui-placeholder="' + escUi(phH) + '">' +
+      '</div></div></div>' +
+      '<div class="row g-2 align-items-end mb-1">' +
+      '<div class="col-sm-3"><div class="form-field-block"><label class="form-label" data-pg-ui-t="자동완료 안내">' + escUi(L('자동완료 안내')) + '</label>' +
+      '<select class="form-select form-select-sm" name="' + autoMode + '" id="' + autoMode + '">' + modeOpts + '</select></div></div>' +
+      '<div class="col-sm-9"><div class="form-field-block" id="' + autoBlock + '"><label class="form-label" data-pg-ui-t="자동완료 안내 문구">' + escUi(L('자동완료 안내 문구')) + '</label>' +
+      '<input type="text" class="form-control form-control-sm" name="' + autoText + '" id="' + autoText + '" maxlength="500" placeholder="' + escUi(L(phA)) + '" data-pg-ui-placeholder="' + escUi(phA) + '">' +
       '</div></div></div>' +
       '<div class="form-text text-muted small" data-pg-ui-t="' + escUi(hintNote) + '">' + escUi(L(hintNote)) + '</div></div>';
   }
@@ -1269,15 +1361,16 @@
     };
   }
 
-  /** 가맹 — API URL REDIRECT 중계 결제 안내 문구(RE 확인창 전용) */
+  /** 가맹 — API URL REDIRECT 중계 결제 안내(RE 확인창 전용). 간편결제는 「가맹 API 연동 채널」. */
   function merchantApiRedirectCheckoutCardSection() {
     return {
       title: 'API URL REDIRECT 중계 결제',
       id: 'apiRedirectCheckoutCopyCard',
       merchantOnly: true,
-      notice: 'API 리다이렉트(prepare redirect)·운영 PG가 RE 확인창(PAYSO·OMSPAY·KSNET 등)인 URL 결제에만 상·하단 안내가 적용됩니다. 인라인 카드창에는 적용되지 않습니다. 기본은 본사설정 따름이며, 가맹에서 바꾸면 본사보다 우선합니다.',
+      notice: 'API 리다이렉트 RE 확인창(PAYSO·OMSPAY·KSNET 등) 상·하단 안내입니다. 간편결제(/pay-simple) 문구는 「가맹 API 연동 채널」→「간편결제 QR URL 결제 안내」에서 따로 설정합니다. 인라인 카드창에는 적용되지 않습니다.',
       rows: [
-        [{ type: 'customHtml', col: 12, html: function () { return redirectCheckoutCopyFieldsBlock(false); } }]
+        [{ type: 'customHtml', col: 12, html: function () { return redirectCheckoutCopyFieldsBlock(false); } }],
+        [{ label: '', type: 'note', col: 12, text: '본사정책 → 결제·URL → 결제 라우팅의 REDIRECT 결제 안내 기본을 따르며, 가맹에서 바꾸면 가맹이 우선합니다.' }]
       ]
     };
   }
@@ -4696,8 +4789,8 @@
           ]
         },
         {
-          title: '웹용 QR 표시 기본값',
-          notice: '가맹이 「본사설정 따름」일 때 QR 열기(/url-pay-qr) 상단·하단에 적용됩니다. 직접입력·비우면 상단=가맹점명, 하단=Provided by ICOPAY. 미활성이면 숨깁니다.',
+          title: '웹용 QR 표시 기본값 (URL /checkout · 간편결제 아님)',
+          notice: '공개 URL 웹결제 QR 열기(/url-pay-qr) 전용입니다. 간편결제(/pay-simple)와 무관합니다. 가맹이 「본사설정 따름」일 때 상단·하단에 적용. 직접입력·비우면 상단=가맹점명, 하단=Provided by ICOPAY. 미활성이면 숨김.',
           rows: [
             [{ label: '웹용 QR 상단이름', type: 'select', name: 'webPayQrTitleModeDefault', options: [
               { v: 'ACTIVE', t: '직접입력' },
@@ -4788,10 +4881,36 @@
              { label: 'URL 결제 경로 템플릿', type: 'text', name: 'urlPayPathTemplate', col: 4, placeholder: '/pay/{compCode}' }],
             [{ label: 'API 중계형 INLINE 제공', type: 'select', name: 'apiBrokerInlineEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'API 중계형 REDIRECT 제공', type: 'select', name: 'apiBrokerRedirectEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
+             { label: '간편결제(QR URL) 제공', type: 'select', name: 'apiBrokerSimpleQrEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'URL 결제형 INLINE 제공', type: 'select', name: 'urlPayInlineEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'URL 결제형 REDIRECT 제공', type: 'select', name: 'urlPayRedirectEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
+            [{ label: '', type: 'note', col: 12, text: '【필수·간편결제】본사 「간편결제(QR URL) 제공」× 가맹 「간편결제 사용」× 「리다이렉트 사용」이 모두 ON일 때만 유효. 가맹은 redirect/prepare만 유지하고 payUrl이 /pay-simple로 자동 전환됩니다(연동 수정 없음). PC=/pay-simple에서 QR만·모바일=확인 후 「결제하기」로 기존 /checkout. API는 User-Agent로 payUrl을 나누지 않습니다. OFF면 일반 리다이렉트.' }],
+            [{ label: '간편결제 로고 기본', type: 'select', name: 'simplePayLogoModeDefault', options: [
+              { v: 'FOLLOW_WEB', t: '웹결제 따름' },
+              { v: 'FOLLOW_API', t: 'API 로고 따름' },
+              { v: 'DEFAULT', t: '기본(총판 로고)' },
+              { v: 'HTML', t: '기본(HTML)' },
+              { v: 'ACTIVE', t: '활성(본사 로고 URL)' },
+              { v: 'DISABLED', t: '미활성' }
+            ], col: 3 },
+             { label: '로고 URL', type: 'text', name: 'simplePayLogoUrlDefault', col: 5, maxlength: 500, placeholder: 'ACTIVE 시 HTTPS 이미지 URL' },
+             { label: 'HTML 표시명', type: 'text', name: 'simplePayHtmlTitleDefault', col: 4, maxlength: 80, placeholder: 'ICOPAY' }],
+            [{ label: '간편결제 부제 기본', type: 'select', name: 'simplePayBrandSubModeDefault', options: [
+              { v: 'FOLLOW_WEB', t: '웹결제 따름' },
+              { v: 'FOLLOW_API', t: 'API 따름' },
+              { v: 'ACTIVE', t: '활성(기본 간편결제)' },
+              { v: 'CUSTOM', t: '직접입력' },
+              { v: 'DISABLED', t: '미활성' }
+            ], col: 3 },
+             { label: '부제 문구', type: 'text', name: 'simplePayBrandSubTextDefault', col: 9, maxlength: 200, placeholder: '직접입력 시 한국어(저장 시 5개국어)' }],
+            [{ label: '', type: 'note', col: 12, text: '간편결제(/pay-simple) 로고·부제 본사 기본입니다. 【우선】가맹이 「본사설정 따름」이면 여기 값이 적용되고, 가맹에서 웹결제 따름·API 따름·직접·미활성 등으로 바꾸면 가맹이 본사보다 우선합니다. 웹용 QR 표시 기본값과는 무관합니다.' }],
+            [{ type: 'customHtml', col: 12, html: function () {
+              return '<div class="border rounded p-2 mb-1"><div class="fw-semibold small mb-2" data-pg-ui-t="간편결제 QR URL 결제 안내">간편결제 QR URL 결제 안내</div>' +
+                simplePayCheckoutCopyFieldsBlock(true) + '</div>';
+            } }],
+            [{ label: '', type: 'note', col: 12, text: '간편결제 QR URL 결제 안내: 가맹「간편결제(QR URL)」사용 시에만 /pay-simple에 적용됩니다. REDIRECT의 모든 결제 방식이 아니라, 간편결제 ON 업체 전용입니다. 가맹이 본사설정 따름이면 이 값이 적용됩니다. 배송·이메일·성명 등 구매자입력·API 금액고정은 간편결제와 무관하며 아래「결제창 표시 기본값」에서 설정합니다.' }],
             [{ label: 'API 결제 금액 고정', type: 'select', name: 'apiPaymentAmountLockYn', options: [{ v: 'Y', t: '사용(수정 불가)' }, { v: 'N', t: '미사용(수정 가능)' }], col: 3 },
-             { label: '', type: 'note', col: 9, text: '가맹 API(entry=merchant_api·인라인·리다이렉트) 결제창에서 prepare 세션 금액을 고정할지입니다. 사용(기본)=회색 잠금·수정 불가, 미사용=구매자가 금액 변경 가능. 일반 URL결제에는 적용되지 않습니다. 전 PG 공통.' }]
+             { label: '', type: 'note', col: 9, text: '【간편결제 아님】가맹 API(entry=merchant_api·인라인·리다이렉트) 결제창에서 prepare 세션 금액을 고정할지입니다. 사용(기본)=회색 잠금·수정 불가, 미사용=구매자가 금액 변경 가능. 일반 URL결제·간편결제(/pay-simple)에는 적용되지 않습니다. 전 PG 공통.' }]
           ]
         },
         {
@@ -4831,7 +4950,7 @@
         },
         {
           title: '결제창 표시 기본값',
-          notice: '가맹점명·다국어·자동기억·로고·경고메세지·배송주소·이메일·국가코드·전화번호·상품명사용의 본사 기본값입니다. 가맹이 「본사설정 따름」이면 여기 값이 적용되고, 가맹에서 직접 고르면 본사보다 우선합니다. 전 PG 공통입니다.',
+          notice: '【간편결제(/pay-simple) 아님】웹결제·API·리다이렉트 등 전 PG 결제창의 표시 기본값입니다. 가맹이 「본사설정 따름」이면 여기 값, 가맹이 활성/비활성으로 바꾸면 가맹 우선. 간편결제 로고·안내 문구는 위「결제 실행방식·경로」에서 설정합니다.',
           rows: [
             [{ label: '가맹점명', type: 'select', name: 'urlPayCompanyNameShowDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
              { label: '다국어 메뉴', type: 'select', name: 'urlPayLangMenuUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
@@ -4850,8 +4969,7 @@
               { v: 'ACTIVE', t: '활성(가맹점 로고)' },
               { v: 'DISABLED', t: '미활성' }
             ], col: 3 },
-             { label: '경고메세지', type: 'select', name: 'webPaymentHeaderSubtitleModeDefault', options: checkoutHeaderSubtitleModeOptions(false), col: 3 },
-             { label: '배송주소', type: 'select', name: 'urlPayShippingAddressUseDefaultYn', options: [{ v: 'N', t: '비활성' }, { v: 'Y', t: '활성' }], col: 3 }],
+             { label: '경고메세지', type: 'select', name: 'webPaymentHeaderSubtitleModeDefault', options: checkoutHeaderSubtitleModeOptions(false), col: 3 }],
             [{ label: '결제창이동문구', type: 'textarea', name: 'urlPayCheckoutMoveMessageDefault', col: 12, rows: 6,
               placeholder: '고객님, 안녕하세요. 기존 결제 링크가 변경되었습니다…' }],
             [{ label: '', type: 'note', col: 12, text: '결제창이동은 가맹 업체등록에서만 설정하며 기본은 비활성입니다. 공개 URL 결제에만 적용되고 가맹 API(인라인·리다이렉트·WooCommerce)에는 적용되지 않습니다. 위 문구는 가맹이 직접입력 안내를 비웠을 때 사용합니다.' }],
@@ -4859,14 +4977,23 @@
               return '<div class="border rounded p-2 mb-1"><div class="fw-semibold small mb-2" data-pg-ui-t="REDIRECT 결제 안내">REDIRECT 결제 안내</div>' +
                 redirectCheckoutCopyFieldsBlock(true) + '</div>';
             } }],
-            [{ label: '', type: 'note', col: 12, text: 'REDIRECT 결제 안내: RE 확인창(PAYSO·OMSPAY·KSNET 등) 상단·하단 문구 본사 기본값입니다. 가맹「API URL REDIRECT 중계 결제」가 본사설정 따름이면 이 값이 적용됩니다.' }],
-            [{ label: '이메일', type: 'select', name: 'urlPayBuyerEmailUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
+            [{ label: '', type: 'note', col: 12, text: 'REDIRECT 결제 안내: RE 확인창(PAYSO·OMSPAY·KSNET 등) 전용입니다. 간편결제(/pay-simple) 문구는 「결제 실행방식·경로」→「간편결제 QR URL 결제 안내」에서 설정합니다.' }],
+            [{ type: 'customHtml', col: 12, html: function () {
+              return '<div class="border rounded p-2 mb-1">'
+                + '<div class="fw-semibold small mb-2" data-pg-ui-t="결제창 구매자입력 기본">결제창 구매자입력 기본</div>'
+                + '<p class="small text-muted mb-2" data-pg-ui-t="hqBuyerInputDefaultsNote">【간편결제 노출 설정 아님】웹결제·API·리다이렉트 결제창에 배송주소·이메일·국가코드·전화번호·성명·주문번호를 보일지 본사 기본입니다. 가맹「본사설정 따름」→여기 값 / 가맹이 활성·비활성 선택→가맹 우선.</p>'
+                + '</div>';
+            } }],
+            [{ label: '배송주소', type: 'select', name: 'urlPayShippingAddressUseDefaultYn', options: [{ v: 'N', t: '비활성' }, { v: 'Y', t: '활성' }], col: 2 },
+             { label: '이메일', type: 'select', name: 'urlPayBuyerEmailUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
              { label: '국가코드', type: 'select', name: 'urlPayBuyerCountryUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
              { label: '전화번호', type: 'select', name: 'urlPayBuyerPhoneUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
              { label: '성명(URL결제)', type: 'select', name: 'urlPayBuyerNameUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
-             { label: '성명(API결제)', type: 'select', name: 'apiBuyerNameUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 },
-             { label: '전화 국가번호', type: 'select', name: 'jpayPhoneDialCodeYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 }],
-            [{ label: '', type: 'note', col: 12, text: '이메일·국가코드·전화번호·배송주소는 JPAY·ElementPay·KSNET 등 전 PG 결제창에 동일 적용됩니다. 성명(URL결제)=공개 URL·리다이렉트(RE), 성명(API결제)=가맹 API 결제창 — 각각 본사 기본 활성. 비활성 시 화면 숨김 — 가맹 prepare buyerPrefill 등으로 전달 필요. 「전화 국가번호」는 전화번호 옆 +82 등 드롭다운(기본 비활성). 이메일·국가·전화·배송은 아래 프리셋 「기본형」과 동기화됩니다(성명·국가번호는 프리셋 제외).' }],
+             { label: '성명(API결제)', type: 'select', name: 'apiBuyerNameUseDefaultYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 2 }],
+            [{ label: '전화 국가번호', type: 'select', name: 'jpayPhoneDialCodeYn', options: [{ v: 'N', t: '비활성' }, { v: 'Y', t: '활성' }], col: 2 },
+             { label: '주문번호 노출', type: 'select', name: 'urlPayOrderNoShowDefaultYn', options: [{ v: 'N', t: '비활성' }, { v: 'Y', t: '활성' }], col: 2 },
+             { label: '', type: 'note', col: 8, text: '성명(URL)=공개 URL·리다이렉트, 성명(API)=가맹 API. 전화 국가번호=+82 등 드롭다운(기본 비활성). 주문번호 노출 기본=비활성(서버 orderNo 유지). 이메일·국가·전화·배송은 아래 구매자입력 프리셋 기본형과 동기화됩니다.' }],
+            [{ label: '', type: 'note', col: 12, text: '아래 구매자입력 프리셋은 위 이메일·국가·전화·배송 기본과 기본형이 동기화됩니다. 성명·전화 국가번호·주문번호는 프리셋 제외.' }],
             [{ type: 'customHtml',
               col: 12,
               html: '<div class="border rounded p-2 mb-2" id="hqCheckoutFieldPresetWrap">'
@@ -4918,6 +5045,8 @@
           ]
         },
         {
+          title: '카드+크립토 수단선택창 문구',
+          id: 'unifiedPaymentCopyCard',
           sharedCard: true,
           notice: '카드+크립토 수단선택창(/checkout-all) 문구입니다. 「활성」이면 옆 입력창 문구가 노출되고, 「비활성」이면 숨깁니다. 가맹이 「본사설정 따름」이면 이 값이 적용됩니다.',
           rows: [
@@ -5450,13 +5579,7 @@
           omitExtSettleColumns: true,
           notice: '배포설정 > API연동설정에서 사용(Y)으로 등록된 결제대행사가 목록에 표시됩니다. PG를 고르면 API연동설정의 MID·Route 등이 기본값으로 채워지며, 가맹점 전용 값은 수정·저장하면 됩니다. 예정모드·N·D시각은 위 「통합정산설정」에서 일괄 지정합니다. URL·챗봇·API 결제는 운영(체크)를 여러 행에 켤 수 있습니다. 체크된 행은 붉은 배경(파스텔)으로 표시됩니다. 노티 전용 PG는 카드브랜드가 ALL로 고정됩니다. 엑심베이 신용카드는 이 카드(운영 바인딩) 등록이 필요하며, 노출 수단은 본사 결제 라우팅(본사설정 따름)입니다. 하단 [저장] 시 한꺼번에 반영됩니다.'
         },
-        {
-          title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',
-          id: 'webPaymentCard',
-          merchantOnly: true,
-          notice: merchantWebPaymentCardNoticeKo(),
-          rows: merchantWebPaymentCardRows('가맹점 저장 후 조회')
-        },
+        merchantWebPaymentCardSection('가맹점 저장 후 조회'),
         merchantCheckoutCompositionCardSection(),
         merchantApiUrlPayCheckoutCardSection(),
         merchantApiRedirectCheckoutCardSection(),
@@ -5994,13 +6117,7 @@
           omitExtSettleColumns: true,
           notice: '배포설정 > API연동설정에서 사용(Y)으로 등록된 결제대행사가 목록에 표시됩니다. PG를 고르면 API연동설정의 MID·Route 등이 기본값으로 채워지며, 가맹점 전용 값은 수정·저장하면 됩니다. URL·챗봇·API 결제는 운영(체크)를 여러 행에 켤 수 있습니다. 체크된 행은 붉은 배경(파스텔)로 표시됩니다. 노티 전용 PG는 카드브랜드가 ALL로 고정됩니다. 등록 화면은 하단 [저장] 시 한꺼번에 반영됩니다.'
         },
-        {
-          title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',
-          id: 'webPaymentCard',
-          merchantOnly: true,
-          notice: merchantWebPaymentCardNoticeKo(),
-          rows: merchantWebPaymentCardRows('가맹점 저장 후 조회')
-        },
+        merchantWebPaymentCardSection('가맹점 저장 후 조회'),
         merchantCheckoutCompositionCardSection(),
         merchantApiUrlPayCheckoutCardSection(),
         merchantApiRedirectCheckoutCardSection(),
@@ -6462,13 +6579,7 @@
           omitExtSettleColumns: true,
           notice: '배포설정 > API연동설정(사용 Y) 전체가 목록에 나오며, PG 선택 시 본사에 등록한 MID·Route가 기본 입력됩니다. 예정모드·N·D시각은 위 「통합정산설정」에서 일괄 지정합니다. API KEY·IV는 비우면 본사 연동 자격을 따를 수 있습니다(ChillPay 등). URL·챗봇·API 결제는 운영(체크)를 여러 행에 켤 수 있습니다. 체크된 행은 붉은 배경(파스텔)로 표시됩니다. 노티 전용 PG는 카드브랜드가 ALL로 고정됩니다. [추가]로 행을 열고, 업체정보(가맹점)에서는 [저장][삭제][수정]마다 확인창이 두 번 뜹니다.'
         },
-        {
-          title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',
-          id: 'webPaymentCard',
-          merchantOnly: true,
-          notice: merchantWebPaymentCardNoticeKo(),
-          rows: merchantWebPaymentCardRows('가맹점 선택 후 조회')
-        },
+        merchantWebPaymentCardSection('가맹점 선택 후 조회'),
         merchantCheckoutCompositionCardSection(),
         merchantApiUrlPayCheckoutCardSection(),
         merchantApiRedirectCheckoutCardSection(),

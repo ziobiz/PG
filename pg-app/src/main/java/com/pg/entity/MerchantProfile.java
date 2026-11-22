@@ -414,17 +414,17 @@ public class MerchantProfile {
     @Column(name = "url_pay_buyer_phone_use_yn", nullable = false, length = 16)
     private String urlPayBuyerPhoneUseYn = "FOLLOW_HQ";
 
-    /** 결제창 성명(리다이렉트·URL) — FOLLOW_HQ | Y | N (프리셋 잠금 제외·개별 제어). 기본 활성(Y). */
+    /** 결제창 성명(리다이렉트·URL) — FOLLOW_HQ | Y | N (프리셋 잠금 제외·개별 제어). */
     @Column(name = "url_pay_buyer_name_use_yn", nullable = false, length = 16)
-    private String urlPayBuyerNameUseYn = "Y";
+    private String urlPayBuyerNameUseYn = "FOLLOW_HQ";
 
     /** 가맹 API 결제창 성명 — FOLLOW_HQ | Y | N (URL 성명과 분리). */
     @Column(name = "api_buyer_name_use_yn", nullable = false, length = 16)
     private String apiBuyerNameUseYn = "FOLLOW_HQ";
 
-    /** 결제창 주문번호 행 노출 — Y|N (기본 N). 백단 orderNo 생성·저장은 유지. */
-    @Column(name = "url_pay_order_no_show_yn", nullable = false, length = 1)
-    private String urlPayOrderNoShowYn = "N";
+    /** 결제창 주문번호 행 노출 — FOLLOW_HQ | Y | N. 백단 orderNo 생성·저장은 유지. */
+    @Column(name = "url_pay_order_no_show_yn", nullable = false, length = 16)
+    private String urlPayOrderNoShowYn = "FOLLOW_HQ";
 
     /**
      * 결제창 구매자 입력 필드 프리셋 FK.
@@ -463,6 +463,81 @@ public class MerchantProfile {
     /** 가맹 API 리다이렉트 연동 — 본사 apiBrokerRedirectEnabledYn·urlPayRedirectEnabledYn 과 함께 */
     @Column(name = "api_broker_redirect_use_yn", nullable = false, length = 1)
     private String apiBrokerRedirectUseYn = "Y";
+
+    /**
+     * 간편결제(QR URL) — REDIRECT 확장. prepare → 확인·QR 페이지.
+     * 본사 {@code apiBrokerSimpleQrEnabledYn} × 리다이렉트 채널과 교집합.
+     */
+    @Column(name = "simple_qr_checkout_use_yn", nullable = false, length = 1)
+    private String simpleQrCheckoutUseYn = "N";
+
+    /** 간편결제 확인·QR 페이지 — 주문번호 노출 */
+    @Column(name = "simple_qr_show_order_no_yn", nullable = false, length = 1)
+    private String simpleQrShowOrderNoYn = "Y";
+
+    /** 간편결제 확인·QR 페이지 — 상품명 노출 */
+    @Column(name = "simple_qr_show_product_yn", nullable = false, length = 1)
+    private String simpleQrShowProductYn = "Y";
+
+    /** 간편결제 확인·QR 페이지 — 성명 노출 */
+    @Column(name = "simple_qr_show_name_yn", nullable = false, length = 1)
+    private String simpleQrShowNameYn = "Y";
+
+    /** 간편결제 확인·QR 페이지 — 이메일 노출 */
+    @Column(name = "simple_qr_show_email_yn", nullable = false, length = 1)
+    private String simpleQrShowEmailYn = "Y";
+
+    /** 간편결제 확인·QR 페이지 — 전화번호 노출 */
+    @Column(name = "simple_qr_show_phone_yn", nullable = false, length = 1)
+    private String simpleQrShowPhoneYn = "Y";
+
+    /** 간편결제(/pay-simple) 로고 — {@link com.pg.urlpay.SimplePayBrandModeUtil} */
+    @Column(name = "simple_pay_logo_mode", nullable = false, length = 20)
+    private String simplePayLogoMode = "FOLLOW_HQ";
+
+    @Column(name = "simple_pay_logo_url", length = 500)
+    private String simplePayLogoUrl;
+
+    @Column(name = "simple_pay_html_title", length = 80)
+    private String simplePayHtmlTitle;
+
+    /** 간편결제 부제(간편결제 문구) */
+    @Column(name = "simple_pay_brand_sub_mode", nullable = false, length = 20)
+    private String simplePayBrandSubMode = "FOLLOW_HQ";
+
+    @Column(name = "simple_pay_brand_sub_text", length = 200)
+    private String simplePayBrandSubText;
+
+    @Column(name = "simple_pay_brand_sub_text_i18n", columnDefinition = "TEXT")
+    private String simplePayBrandSubTextI18n;
+
+    /** 간편결제 QR URL(/pay-simple) 상단 안내 — RE 확인창과 분리 */
+    @Column(name = "simple_pay_checkout_lead_mode", nullable = false, length = 16)
+    private String simplePayCheckoutLeadMode = "FOLLOW_HQ";
+
+    @Column(name = "simple_pay_checkout_lead_text", length = 500)
+    private String simplePayCheckoutLeadText;
+
+    @Column(name = "simple_pay_checkout_lead_text_i18n", columnDefinition = "TEXT")
+    private String simplePayCheckoutLeadTextI18n;
+
+    @Column(name = "simple_pay_checkout_hint_mode", nullable = false, length = 16)
+    private String simplePayCheckoutHintMode = "FOLLOW_HQ";
+
+    @Column(name = "simple_pay_checkout_hint_text", length = 500)
+    private String simplePayCheckoutHintText;
+
+    @Column(name = "simple_pay_checkout_hint_text_i18n", columnDefinition = "TEXT")
+    private String simplePayCheckoutHintTextI18n;
+
+    @Column(name = "simple_pay_checkout_auto_mode", nullable = false, length = 16)
+    private String simplePayCheckoutAutoMode = "FOLLOW_HQ";
+
+    @Column(name = "simple_pay_checkout_auto_text", length = 500)
+    private String simplePayCheckoutAutoText;
+
+    @Column(name = "simple_pay_checkout_auto_text_i18n", columnDefinition = "TEXT")
+    private String simplePayCheckoutAutoTextI18n;
 
     /** RE 결제창 상단 안내 — {@link com.pg.urlpay.RedirectCheckoutCopyModeUtil} */
     @Column(name = "redirect_checkout_lead_mode", nullable = false, length = 16)
@@ -1261,11 +1336,7 @@ public class MerchantProfile {
 
     public String getUrlPayOrderNoShowYn() { return urlPayOrderNoShowYn; }
     public void setUrlPayOrderNoShowYn(String v) {
-        if (v == null || v.isBlank()) {
-            this.urlPayOrderNoShowYn = "N";
-            return;
-        }
-        this.urlPayOrderNoShowYn = "Y".equalsIgnoreCase(v.trim()) ? "Y" : "N";
+        this.urlPayOrderNoShowYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(v);
     }
 
     public Long getUrlPayCheckoutFieldPresetId() { return urlPayCheckoutFieldPresetId; }
@@ -1305,6 +1376,74 @@ public class MerchantProfile {
     public void setApiBrokerRedirectUseYn(String apiBrokerRedirectUseYn) {
         this.apiBrokerRedirectUseYn = apiBrokerRedirectUseYn != null && "Y".equalsIgnoreCase(apiBrokerRedirectUseYn.trim()) ? "Y" : "N";
     }
+
+    public String getSimpleQrCheckoutUseYn() { return simpleQrCheckoutUseYn; }
+    public void setSimpleQrCheckoutUseYn(String simpleQrCheckoutUseYn) {
+        this.simpleQrCheckoutUseYn = simpleQrCheckoutUseYn != null && "Y".equalsIgnoreCase(simpleQrCheckoutUseYn.trim()) ? "Y" : "N";
+    }
+
+    public String getSimpleQrShowOrderNoYn() { return simpleQrShowOrderNoYn; }
+    public void setSimpleQrShowOrderNoYn(String v) {
+        this.simpleQrShowOrderNoYn = v != null && "Y".equalsIgnoreCase(v.trim()) ? "Y" : "N";
+    }
+    public String getSimpleQrShowProductYn() { return simpleQrShowProductYn; }
+    public void setSimpleQrShowProductYn(String v) {
+        this.simpleQrShowProductYn = v != null && "Y".equalsIgnoreCase(v.trim()) ? "Y" : "N";
+    }
+    public String getSimpleQrShowNameYn() { return simpleQrShowNameYn; }
+    public void setSimpleQrShowNameYn(String v) {
+        this.simpleQrShowNameYn = v != null && "Y".equalsIgnoreCase(v.trim()) ? "Y" : "N";
+    }
+    public String getSimpleQrShowEmailYn() { return simpleQrShowEmailYn; }
+    public void setSimpleQrShowEmailYn(String v) {
+        this.simpleQrShowEmailYn = v != null && "Y".equalsIgnoreCase(v.trim()) ? "Y" : "N";
+    }
+    public String getSimpleQrShowPhoneYn() { return simpleQrShowPhoneYn; }
+    public void setSimpleQrShowPhoneYn(String v) {
+        this.simpleQrShowPhoneYn = v != null && "Y".equalsIgnoreCase(v.trim()) ? "Y" : "N";
+    }
+
+    public String getSimplePayLogoMode() { return simplePayLogoMode; }
+    public void setSimplePayLogoMode(String v) {
+        this.simplePayLogoMode = com.pg.urlpay.SimplePayBrandModeUtil.normalizeLogoMerchantStored(v);
+    }
+    public String getSimplePayLogoUrl() { return simplePayLogoUrl; }
+    public void setSimplePayLogoUrl(String v) { this.simplePayLogoUrl = v; }
+    public String getSimplePayHtmlTitle() { return simplePayHtmlTitle; }
+    public void setSimplePayHtmlTitle(String v) { this.simplePayHtmlTitle = v; }
+    public String getSimplePayBrandSubMode() { return simplePayBrandSubMode; }
+    public void setSimplePayBrandSubMode(String v) {
+        this.simplePayBrandSubMode = com.pg.urlpay.SimplePayBrandModeUtil.normalizeSubMerchantStored(v);
+    }
+    public String getSimplePayBrandSubText() { return simplePayBrandSubText; }
+    public void setSimplePayBrandSubText(String v) { this.simplePayBrandSubText = v; }
+    public String getSimplePayBrandSubTextI18n() { return simplePayBrandSubTextI18n; }
+    public void setSimplePayBrandSubTextI18n(String v) { this.simplePayBrandSubTextI18n = v; }
+
+    public String getSimplePayCheckoutLeadMode() { return simplePayCheckoutLeadMode; }
+    public void setSimplePayCheckoutLeadMode(String v) {
+        this.simplePayCheckoutLeadMode = com.pg.urlpay.SimplePayCheckoutCopyModeUtil.normalizeMerchantStored(v);
+    }
+    public String getSimplePayCheckoutLeadText() { return simplePayCheckoutLeadText; }
+    public void setSimplePayCheckoutLeadText(String v) { this.simplePayCheckoutLeadText = v; }
+    public String getSimplePayCheckoutLeadTextI18n() { return simplePayCheckoutLeadTextI18n; }
+    public void setSimplePayCheckoutLeadTextI18n(String v) { this.simplePayCheckoutLeadTextI18n = v; }
+    public String getSimplePayCheckoutHintMode() { return simplePayCheckoutHintMode; }
+    public void setSimplePayCheckoutHintMode(String v) {
+        this.simplePayCheckoutHintMode = com.pg.urlpay.SimplePayCheckoutCopyModeUtil.normalizeMerchantStored(v);
+    }
+    public String getSimplePayCheckoutHintText() { return simplePayCheckoutHintText; }
+    public void setSimplePayCheckoutHintText(String v) { this.simplePayCheckoutHintText = v; }
+    public String getSimplePayCheckoutHintTextI18n() { return simplePayCheckoutHintTextI18n; }
+    public void setSimplePayCheckoutHintTextI18n(String v) { this.simplePayCheckoutHintTextI18n = v; }
+    public String getSimplePayCheckoutAutoMode() { return simplePayCheckoutAutoMode; }
+    public void setSimplePayCheckoutAutoMode(String v) {
+        this.simplePayCheckoutAutoMode = com.pg.urlpay.SimplePayCheckoutCopyModeUtil.normalizeMerchantStored(v);
+    }
+    public String getSimplePayCheckoutAutoText() { return simplePayCheckoutAutoText; }
+    public void setSimplePayCheckoutAutoText(String v) { this.simplePayCheckoutAutoText = v; }
+    public String getSimplePayCheckoutAutoTextI18n() { return simplePayCheckoutAutoTextI18n; }
+    public void setSimplePayCheckoutAutoTextI18n(String v) { this.simplePayCheckoutAutoTextI18n = v; }
 
     public String getRedirectCheckoutLeadMode() { return redirectCheckoutLeadMode; }
     public void setRedirectCheckoutLeadMode(String redirectCheckoutLeadMode) {

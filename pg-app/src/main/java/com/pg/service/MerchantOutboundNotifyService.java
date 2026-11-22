@@ -385,6 +385,17 @@ public class MerchantOutboundNotifyService {
         m.put("amount", t.getAmtKrw() != null ? t.getAmtKrw().stripTrailingZeros().toPlainString() : null);
         m.put("currency", t.getCurType());
         m.put("paidAt", t.getPaidAt() != null ? t.getPaidAt().toString() : null);
+        /* ICOPAY 단독 실패(만료·복귀타임아웃 등) — 가맹 전산 맞춤용 */
+        if (t.getOutcomeReasonCode() != null && !t.getOutcomeReasonCode().isBlank()) {
+            m.put("outcomeReasonCode", t.getOutcomeReasonCode().trim());
+        }
+        if (t.getOutcomeReason() != null && !t.getOutcomeReason().isBlank()) {
+            String or = t.getOutcomeReason().trim();
+            m.put("outcomeReason", or.length() > 500 ? or.substring(0, 500) : or);
+        }
+        if (notifyChannel != null && !notifyChannel.isBlank()) {
+            m.put("notifyChannel", notifyChannel.trim());
+        }
         m.put("ts", System.currentTimeMillis());
         return m;
     }

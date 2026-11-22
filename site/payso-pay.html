@@ -902,45 +902,11 @@
   }
 
   /**
-   * 가맹 API(RE·payUrl) 진입: 확인 화면에 멈추지 않고 OMS 카드 HPP로 바로 이동.
-   * PG 교체 후에도 샵은 prepare→payUrl 오픈만 유지하면 됨.
+   * 일반 redirect(간편결제 미사용): ICOPAY 확인·입력창에 멈춘 뒤 「결제하기」클릭 시에만 PG HPP 이동.
+   * (과거 merchant_api 자동 제출은 PC에서도 카드창으로 바로 넘어가 제거함. 간편결제는 /pay-simple 별도 UX.)
    */
-  var autoStartAttempted = false;
   function tryAutoStartToOms() {
-    if (autoStartAttempted || isReturnMode || !session) return false;
-    var entryApi = String(q.get('entry') || '').toLowerCase() === 'merchant_api'
-      || !!(q.get('session') || '').trim();
-    if (!entryApi) return false;
-    var amtEl = document.getElementById('amount');
-    var amt = amtEl ? String(amtEl.value || '').replace(/,/g, '').trim() : '';
-    if (!amt || !(Number(amt) > 0)) return false;
-    var buyerName = composedBuyerName();
-    if (!buyerName) {
-      var b = pickBuyer(sessionData || {});
-      buyerName = (b && b.name) ? String(b.name).trim() : '';
-      if (b && b.firstName) document.getElementById('payFirstname').value = b.firstName;
-      if (b && b.lastName) document.getElementById('payLastname').value = b.lastName;
-      buyerName = composedBuyerName() || buyerName;
-    }
-    if (!buyerName) {
-      showConfigError(t('needNameApi'));
-      return false;
-    }
-    var buyerBlock = document.getElementById('buyerBlock');
-    if (buyerBlock) buyerBlock.classList.add('d-none');
-    var lead = document.getElementById('omsLead');
-    if (lead) lead.textContent = t('wait');
-    var grid = document.querySelector('#omsForm .pay-form-grid');
-    if (grid) grid.classList.add('d-none');
-    if (buyerBlock) buyerBlock.classList.add('d-none');
-    autoStartAttempted = true;
-    setTimeout(function () {
-      var form = document.getElementById('omsForm');
-      var btn = document.getElementById('submitBtn');
-      if (form && form.requestSubmit) form.requestSubmit();
-      else if (btn) btn.click();
-    }, 200);
-    return true;
+    return false;
   }
 
   loadContext().then(function () {

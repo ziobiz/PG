@@ -100,6 +100,9 @@ public class SecurityConfig {
                 AntPathRequestMatcher.antMatcher("/checkout-move.html"),
                 AntPathRequestMatcher.antMatcher("/checkout-subscribe"),
                 AntPathRequestMatcher.antMatcher("/checkout-subscribe/**"),
+                AntPathRequestMatcher.antMatcher("/pay-simple"),
+                AntPathRequestMatcher.antMatcher("/pay-simple/**"),
+                AntPathRequestMatcher.antMatcher("/simple-pay.html"),
                 AntPathRequestMatcher.antMatcher("/pay-result.html"),
                 /* 가맹점 API 연동 문서 — 관리 화면(icopay.co.kr) iframe 미리보기 */
                 AntPathRequestMatcher.antMatcher("/merchant-api-samples/**")));

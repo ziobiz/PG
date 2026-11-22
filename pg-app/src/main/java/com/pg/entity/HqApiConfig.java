@@ -72,6 +72,57 @@ public class HqApiConfig {
     @Column(name = "api_broker_redirect_enabled_yn", length = 1)
     private String apiBrokerRedirectEnabledYn = "Y";
 
+    /** 간편결제(QR URL) API 제공 — REDIRECT 확장. 가맹 simpleQrCheckoutUseYn 과 교집합 */
+    @Column(name = "api_broker_simple_qr_enabled_yn", length = 1)
+    private String apiBrokerSimpleQrEnabledYn = "Y";
+
+    /** 간편결제(/pay-simple) 로고 본사 기본 — {@link com.pg.urlpay.SimplePayBrandModeUtil} */
+    @Column(name = "simple_pay_logo_mode_default", nullable = false, length = 20)
+    private String simplePayLogoModeDefault = "HTML";
+
+    @Column(name = "simple_pay_logo_url_default", length = 500)
+    private String simplePayLogoUrlDefault;
+
+    @Column(name = "simple_pay_html_title_default", length = 80)
+    private String simplePayHtmlTitleDefault;
+
+    @Column(name = "simple_pay_brand_sub_mode_default", nullable = false, length = 20)
+    private String simplePayBrandSubModeDefault = "ACTIVE";
+
+    @Column(name = "simple_pay_brand_sub_text_default", length = 200)
+    private String simplePayBrandSubTextDefault;
+
+    @Column(name = "simple_pay_brand_sub_text_default_i18n", columnDefinition = "TEXT")
+    private String simplePayBrandSubTextDefaultI18n;
+
+    /** 간편결제 QR URL(/pay-simple) 안내 본사 기본 — RE 확인창과 분리 */
+    @Column(name = "simple_pay_checkout_lead_mode_default", nullable = false, length = 16)
+    private String simplePayCheckoutLeadModeDefault = "ACTIVE";
+
+    @Column(name = "simple_pay_checkout_lead_text_default", length = 500)
+    private String simplePayCheckoutLeadTextDefault = com.pg.urlpay.SimplePayCheckoutCopyModeUtil.DEFAULT_LEAD_KO;
+
+    @Column(name = "simple_pay_checkout_lead_text_default_i18n", columnDefinition = "TEXT")
+    private String simplePayCheckoutLeadTextDefaultI18n;
+
+    @Column(name = "simple_pay_checkout_hint_mode_default", nullable = false, length = 16)
+    private String simplePayCheckoutHintModeDefault = "ACTIVE";
+
+    @Column(name = "simple_pay_checkout_hint_text_default", length = 500)
+    private String simplePayCheckoutHintTextDefault = com.pg.urlpay.SimplePayCheckoutCopyModeUtil.DEFAULT_HINT_KO;
+
+    @Column(name = "simple_pay_checkout_hint_text_default_i18n", columnDefinition = "TEXT")
+    private String simplePayCheckoutHintTextDefaultI18n;
+
+    @Column(name = "simple_pay_checkout_auto_mode_default", nullable = false, length = 16)
+    private String simplePayCheckoutAutoModeDefault = "ACTIVE";
+
+    @Column(name = "simple_pay_checkout_auto_text_default", length = 500)
+    private String simplePayCheckoutAutoTextDefault = com.pg.urlpay.SimplePayCheckoutCopyModeUtil.DEFAULT_AUTO_KO;
+
+    @Column(name = "simple_pay_checkout_auto_text_default_i18n", columnDefinition = "TEXT")
+    private String simplePayCheckoutAutoTextDefaultI18n;
+
     @Column(name = "url_pay_inline_enabled_yn", length = 1)
     private String urlPayInlineEnabledYn = "Y";
 
@@ -296,6 +347,10 @@ public class HqApiConfig {
     /** 가맹 API 결제창 성명 노출 본사 기본 — Y/N */
     @Column(name = "api_buyer_name_use_default_yn", nullable = false, length = 1)
     private String apiBuyerNameUseDefaultYn = "Y";
+
+    /** 결제창 주문번호 행 노출 본사 기본 — Y/N (가맹 FOLLOW_HQ 시) */
+    @Column(name = "url_pay_order_no_show_default_yn", nullable = false, length = 1)
+    private String urlPayOrderNoShowDefaultYn = "N";
 
     /** 결제창 상품명 사용 본사 기본 — Y/N */
     @Column(name = "url_pay_product_name_use_default_yn", nullable = false, length = 1)
@@ -566,6 +621,53 @@ public class HqApiConfig {
     public void setApiBrokerInlineEnabledYn(String apiBrokerInlineEnabledYn) { this.apiBrokerInlineEnabledYn = apiBrokerInlineEnabledYn; }
     public String getApiBrokerRedirectEnabledYn() { return apiBrokerRedirectEnabledYn; }
     public void setApiBrokerRedirectEnabledYn(String apiBrokerRedirectEnabledYn) { this.apiBrokerRedirectEnabledYn = apiBrokerRedirectEnabledYn; }
+
+    public String getApiBrokerSimpleQrEnabledYn() { return apiBrokerSimpleQrEnabledYn; }
+    public void setApiBrokerSimpleQrEnabledYn(String apiBrokerSimpleQrEnabledYn) {
+        this.apiBrokerSimpleQrEnabledYn = apiBrokerSimpleQrEnabledYn != null
+                && "N".equalsIgnoreCase(apiBrokerSimpleQrEnabledYn.trim()) ? "N" : "Y";
+    }
+
+    public String getSimplePayLogoModeDefault() { return simplePayLogoModeDefault; }
+    public void setSimplePayLogoModeDefault(String v) {
+        this.simplePayLogoModeDefault = com.pg.urlpay.SimplePayBrandModeUtil.normalizeLogoHqDefault(v);
+    }
+    public String getSimplePayLogoUrlDefault() { return simplePayLogoUrlDefault; }
+    public void setSimplePayLogoUrlDefault(String v) { this.simplePayLogoUrlDefault = v; }
+    public String getSimplePayHtmlTitleDefault() { return simplePayHtmlTitleDefault; }
+    public void setSimplePayHtmlTitleDefault(String v) { this.simplePayHtmlTitleDefault = v; }
+    public String getSimplePayBrandSubModeDefault() { return simplePayBrandSubModeDefault; }
+    public void setSimplePayBrandSubModeDefault(String v) {
+        this.simplePayBrandSubModeDefault = com.pg.urlpay.SimplePayBrandModeUtil.normalizeSubHqDefault(v);
+    }
+    public String getSimplePayBrandSubTextDefault() { return simplePayBrandSubTextDefault; }
+    public void setSimplePayBrandSubTextDefault(String v) { this.simplePayBrandSubTextDefault = v; }
+    public String getSimplePayBrandSubTextDefaultI18n() { return simplePayBrandSubTextDefaultI18n; }
+    public void setSimplePayBrandSubTextDefaultI18n(String v) { this.simplePayBrandSubTextDefaultI18n = v; }
+    public String getSimplePayCheckoutLeadModeDefault() { return simplePayCheckoutLeadModeDefault; }
+    public void setSimplePayCheckoutLeadModeDefault(String v) {
+        this.simplePayCheckoutLeadModeDefault = com.pg.urlpay.SimplePayCheckoutCopyModeUtil.normalizeHq(v);
+    }
+    public String getSimplePayCheckoutLeadTextDefault() { return simplePayCheckoutLeadTextDefault; }
+    public void setSimplePayCheckoutLeadTextDefault(String v) { this.simplePayCheckoutLeadTextDefault = v; }
+    public String getSimplePayCheckoutLeadTextDefaultI18n() { return simplePayCheckoutLeadTextDefaultI18n; }
+    public void setSimplePayCheckoutLeadTextDefaultI18n(String v) { this.simplePayCheckoutLeadTextDefaultI18n = v; }
+    public String getSimplePayCheckoutHintModeDefault() { return simplePayCheckoutHintModeDefault; }
+    public void setSimplePayCheckoutHintModeDefault(String v) {
+        this.simplePayCheckoutHintModeDefault = com.pg.urlpay.SimplePayCheckoutCopyModeUtil.normalizeHq(v);
+    }
+    public String getSimplePayCheckoutHintTextDefault() { return simplePayCheckoutHintTextDefault; }
+    public void setSimplePayCheckoutHintTextDefault(String v) { this.simplePayCheckoutHintTextDefault = v; }
+    public String getSimplePayCheckoutHintTextDefaultI18n() { return simplePayCheckoutHintTextDefaultI18n; }
+    public void setSimplePayCheckoutHintTextDefaultI18n(String v) { this.simplePayCheckoutHintTextDefaultI18n = v; }
+    public String getSimplePayCheckoutAutoModeDefault() { return simplePayCheckoutAutoModeDefault; }
+    public void setSimplePayCheckoutAutoModeDefault(String v) {
+        this.simplePayCheckoutAutoModeDefault = com.pg.urlpay.SimplePayCheckoutCopyModeUtil.normalizeHq(v);
+    }
+    public String getSimplePayCheckoutAutoTextDefault() { return simplePayCheckoutAutoTextDefault; }
+    public void setSimplePayCheckoutAutoTextDefault(String v) { this.simplePayCheckoutAutoTextDefault = v; }
+    public String getSimplePayCheckoutAutoTextDefaultI18n() { return simplePayCheckoutAutoTextDefaultI18n; }
+    public void setSimplePayCheckoutAutoTextDefaultI18n(String v) { this.simplePayCheckoutAutoTextDefaultI18n = v; }
     public String getUrlPayInlineEnabledYn() { return urlPayInlineEnabledYn; }
     public void setUrlPayInlineEnabledYn(String urlPayInlineEnabledYn) { this.urlPayInlineEnabledYn = urlPayInlineEnabledYn; }
     public String getUrlPayRedirectEnabledYn() { return urlPayRedirectEnabledYn; }
@@ -793,6 +895,10 @@ public class HqApiConfig {
     public String getApiBuyerNameUseDefaultYn() { return apiBuyerNameUseDefaultYn; }
     public void setApiBuyerNameUseDefaultYn(String v) {
         this.apiBuyerNameUseDefaultYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(v, "Y");
+    }
+    public String getUrlPayOrderNoShowDefaultYn() { return urlPayOrderNoShowDefaultYn; }
+    public void setUrlPayOrderNoShowDefaultYn(String v) {
+        this.urlPayOrderNoShowDefaultYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(v, "N");
     }
     public String getUrlPayProductNameUseDefaultYn() { return urlPayProductNameUseDefaultYn; }
     public void setUrlPayProductNameUseDefaultYn(String v) {

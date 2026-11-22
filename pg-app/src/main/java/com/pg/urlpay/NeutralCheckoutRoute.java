@@ -22,6 +22,9 @@ public final class NeutralCheckoutRoute {
     /** 중립 구독(정기결제) 결제창 경로 프리픽스. */
     public static final String PATH_SUBSCRIPTION = "/checkout-subscribe/";
 
+    /** 간편결제(QR URL) 확인·QR 페이지 경로 프리픽스. */
+    public static final String PATH_SIMPLE = "/pay-simple/";
+
     /** 통합 인라인 embed 스크립트 경로 프리픽스 (뒤에 compId). */
     public static final String EMBED_SCRIPT_PATH = "/v1/embed-checkout/";
 
@@ -77,6 +80,11 @@ public final class NeutralCheckoutRoute {
     /** 중립 구독(정기결제) 결제창 URL — {@link #PATH_SUBSCRIPTION}. */
     public static String buildSubscribeUrl(String base, String compId, String sessionToken, String langCode, boolean embed) {
         return buildNeutralUrl(PATH_SUBSCRIPTION, base, compId, sessionToken, langCode, embed);
+    }
+
+    /** 간편결제 확인·QR URL — {@link #PATH_SIMPLE}. */
+    public static String buildSimplePayUrl(String base, String compId, String sessionToken, String langCode) {
+        return buildNeutralUrl(PATH_SIMPLE, base, compId, sessionToken, langCode, false);
     }
 
     private static String buildNeutralUrl(String pathPrefix, String base, String compId,

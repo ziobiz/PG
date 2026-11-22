@@ -88,17 +88,44 @@ public class PendingTxnExpireService {
                         t.getTrnId(), t.getVan(), t.getOrderNo(), e.getMessage());
             }
         }
+        int catchUp = catchUpPaysoFailedMissingOutbound(notOlderThan, limit);
         out.put("queried", batch.size());
         out.put("paid", paid);
         out.put("failed", failed);
         out.put("skipped", skipped);
         out.put("errors", errors);
+        out.put("paysoFailNotifyCatchUp", catchUp);
         out.put("staleMinutes", minutes);
-        if (!batch.isEmpty()) {
-            log.info("Pending expire (all PG): queried={} paid={} failed={} skipped={} errors={} staleMin={}",
-                    batch.size(), paid, failed, skipped, errors, minutes);
+        if (!batch.isEmpty() || catchUp > 0) {
+            log.info("Pending expire (all PG): queried={} paid={} failed={} skipped={} errors={} paysoFailNotifyCatchUp={} staleMin={}",
+                    batch.size(), paid, failed, skipped, errors, catchUp, minutes);
         }
         return out;
+    }
+
+    /**
+     * 이미 실패(99)인데 {@code mw_outbound_last_sent_status} 가 비어 있으면 수신통보 재시도.
+     * PAYSO가 웹훅을 안 보낸 미완료→ICOPAY 만료 실패 등.
+     */
+    private int catchUpPaysoFailedMissingOutbound(LocalDateTime notOlderThan, int limit) {
+        List<PgTrnsctn> missing = pgTrnsctnRepository.findPaysoFailedMissingOutbound(
+                notOlderThan, PageRequest.of(0, limit));
+        int n = 0;
+        for (PgTrnsctn t : missing) {
+            try {
+                String tag = trim(t.getOutcomeReasonCode());
+                if (tag.isBlank()) {
+                    tag = "PAYSO_PENDING_EXPIRED";
+                }
+                merchantOutboundNotifyService.scheduleAfterTxnCommit(t, null, tag);
+                n++;
+                log.info("PAYSO fail-notify catch-up mid={} order={} trnId={} tag={}",
+                        t.getMerchantId(), t.getOrderNo(), t.getTrnId(), tag);
+            } catch (Exception e) {
+                log.warn("PAYSO fail-notify catch-up skip order={}: {}", t.getOrderNo(), e.getMessage());
+            }
+        }
+        return n;
     }
 
     private String processOne(PgTrnsctn t, int minutes) {
@@ -153,8 +180,11 @@ public class PendingTxnExpireService {
         if (!"99".equals(trim(txn.getStatus()))) {
             return "SKIP";
         }
+        /* PAYSO applyFailedOutcome 에서 이미 ICOPAY-origin 통보 스케줄 — 여기서는 누락분·타 PG 보강 */
         try {
             merchantOutboundNotifyService.scheduleAfterTxnCommit(txn, null, notifyTag);
+            log.info("Pending expire fail notify mid={} order={} van={} tag={} (ICOPAY-origin, PG webhook optional)",
+                    txn.getMerchantId(), txn.getOrderNo(), txn.getVan(), notifyTag);
         } catch (Exception e) {
             log.warn("Pending expire notify {}: {}", notifyTag, e.getMessage());
         }

@@ -83,6 +83,8 @@ public class ApiHqController {
     private final com.pg.urlpay.UrlPayCheckoutMoveService urlPayCheckoutMoveService;
     private final com.pg.urlpay.CheckoutHeaderSubtitleCopyService checkoutHeaderSubtitleCopyService;
     private final com.pg.urlpay.RedirectCheckoutCopyService redirectCheckoutCopyService;
+    private final com.pg.urlpay.SimplePayCheckoutCopyService simplePayCheckoutCopyService;
+    private final com.pg.urlpay.SimplePayBrandResolver simplePayBrandResolver;
 
     public ApiHqController(CommissionPolicyRepository commissionPolicyRepository,
                            ChargebackFeePolicyRepository chargebackFeePolicyRepository,
@@ -103,7 +105,9 @@ public class ApiHqController {
                            UrlPayDisplayFxService urlPayDisplayFxService,
                            com.pg.urlpay.UrlPayCheckoutMoveService urlPayCheckoutMoveService,
                            com.pg.urlpay.CheckoutHeaderSubtitleCopyService checkoutHeaderSubtitleCopyService,
-                           com.pg.urlpay.RedirectCheckoutCopyService redirectCheckoutCopyService) {
+                           com.pg.urlpay.RedirectCheckoutCopyService redirectCheckoutCopyService,
+                           com.pg.urlpay.SimplePayCheckoutCopyService simplePayCheckoutCopyService,
+                           com.pg.urlpay.SimplePayBrandResolver simplePayBrandResolver) {
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.chargebackFeePolicyRepository = chargebackFeePolicyRepository;
         this.hqApiConfigRepository = hqApiConfigRepository;
@@ -124,6 +128,8 @@ public class ApiHqController {
         this.urlPayCheckoutMoveService = urlPayCheckoutMoveService;
         this.checkoutHeaderSubtitleCopyService = checkoutHeaderSubtitleCopyService;
         this.redirectCheckoutCopyService = redirectCheckoutCopyService;
+        this.simplePayCheckoutCopyService = simplePayCheckoutCopyService;
+        this.simplePayBrandResolver = simplePayBrandResolver;
     }
 
     private static PageResult<Map<String, Object>> emptyPage(int page, int size) {
@@ -1978,12 +1984,19 @@ public class ApiHqController {
         data.put("redirectCheckoutLeadTextDefault", com.pg.urlpay.RedirectCheckoutCopyModeUtil.DEFAULT_LEAD_KO);
         data.put("redirectCheckoutHintModeDefault", "ACTIVE");
         data.put("redirectCheckoutHintTextDefault", com.pg.urlpay.RedirectCheckoutCopyModeUtil.DEFAULT_HINT_KO);
+        data.put("simplePayCheckoutLeadModeDefault", "ACTIVE");
+        data.put("simplePayCheckoutLeadTextDefault", com.pg.urlpay.SimplePayCheckoutCopyModeUtil.DEFAULT_LEAD_KO);
+        data.put("simplePayCheckoutHintModeDefault", "ACTIVE");
+        data.put("simplePayCheckoutHintTextDefault", com.pg.urlpay.SimplePayCheckoutCopyModeUtil.DEFAULT_HINT_KO);
+        data.put("simplePayCheckoutAutoModeDefault", "ACTIVE");
+        data.put("simplePayCheckoutAutoTextDefault", com.pg.urlpay.SimplePayCheckoutCopyModeUtil.DEFAULT_AUTO_KO);
         data.put("urlPayShippingAddressUseDefaultYn", "N");
         data.put("urlPayBuyerEmailUseDefaultYn", "Y");
         data.put("urlPayBuyerCountryUseDefaultYn", "Y");
         data.put("urlPayBuyerPhoneUseDefaultYn", "Y");
         data.put("urlPayBuyerNameUseDefaultYn", "Y");
         data.put("apiBuyerNameUseDefaultYn", "Y");
+        data.put("urlPayOrderNoShowDefaultYn", "N");
         data.put("urlPayProductNameUseDefaultYn", "Y");
         data.put("urlPayDefaultProductName", "");
         data.put("urlPayDefaultProductCode", "");
@@ -2033,6 +2046,18 @@ public class ApiHqController {
             if (c.getUrlPayPathTemplate() != null) data.put("urlPayPathTemplate", c.getUrlPayPathTemplate());
             if (c.getApiBrokerInlineEnabledYn() != null) data.put("apiBrokerInlineEnabledYn", c.getApiBrokerInlineEnabledYn());
             if (c.getApiBrokerRedirectEnabledYn() != null) data.put("apiBrokerRedirectEnabledYn", c.getApiBrokerRedirectEnabledYn());
+            data.put("apiBrokerSimpleQrEnabledYn",
+                    c.getApiBrokerSimpleQrEnabledYn() != null ? c.getApiBrokerSimpleQrEnabledYn() : "Y");
+            data.put("simplePayLogoModeDefault",
+                    c.getSimplePayLogoModeDefault() != null ? c.getSimplePayLogoModeDefault() : "HTML");
+            data.put("simplePayLogoUrlDefault",
+                    c.getSimplePayLogoUrlDefault() != null ? c.getSimplePayLogoUrlDefault() : "");
+            data.put("simplePayHtmlTitleDefault",
+                    c.getSimplePayHtmlTitleDefault() != null ? c.getSimplePayHtmlTitleDefault() : "");
+            data.put("simplePayBrandSubModeDefault",
+                    c.getSimplePayBrandSubModeDefault() != null ? c.getSimplePayBrandSubModeDefault() : "ACTIVE");
+            data.put("simplePayBrandSubTextDefault",
+                    c.getSimplePayBrandSubTextDefault() != null ? c.getSimplePayBrandSubTextDefault() : "");
             if (c.getApiWordpressPluginEnabledYn() != null) data.put("apiWordpressPluginEnabledYn", c.getApiWordpressPluginEnabledYn());
             if (c.getUrlPayInlineEnabledYn() != null) data.put("urlPayInlineEnabledYn", c.getUrlPayInlineEnabledYn());
             if (c.getUrlPayRedirectEnabledYn() != null) data.put("urlPayRedirectEnabledYn", c.getUrlPayRedirectEnabledYn());
@@ -2166,6 +2191,30 @@ public class ApiHqController {
                             && !c.getRedirectCheckoutHintTextDefault().isBlank()
                             ? c.getRedirectCheckoutHintTextDefault()
                             : com.pg.urlpay.RedirectCheckoutCopyModeUtil.DEFAULT_HINT_KO);
+            data.put("simplePayCheckoutLeadModeDefault",
+                    c.getSimplePayCheckoutLeadModeDefault() != null
+                            ? c.getSimplePayCheckoutLeadModeDefault() : "ACTIVE");
+            data.put("simplePayCheckoutLeadTextDefault",
+                    c.getSimplePayCheckoutLeadTextDefault() != null
+                            && !c.getSimplePayCheckoutLeadTextDefault().isBlank()
+                            ? c.getSimplePayCheckoutLeadTextDefault()
+                            : com.pg.urlpay.SimplePayCheckoutCopyModeUtil.DEFAULT_LEAD_KO);
+            data.put("simplePayCheckoutHintModeDefault",
+                    c.getSimplePayCheckoutHintModeDefault() != null
+                            ? c.getSimplePayCheckoutHintModeDefault() : "ACTIVE");
+            data.put("simplePayCheckoutHintTextDefault",
+                    c.getSimplePayCheckoutHintTextDefault() != null
+                            && !c.getSimplePayCheckoutHintTextDefault().isBlank()
+                            ? c.getSimplePayCheckoutHintTextDefault()
+                            : com.pg.urlpay.SimplePayCheckoutCopyModeUtil.DEFAULT_HINT_KO);
+            data.put("simplePayCheckoutAutoModeDefault",
+                    c.getSimplePayCheckoutAutoModeDefault() != null
+                            ? c.getSimplePayCheckoutAutoModeDefault() : "ACTIVE");
+            data.put("simplePayCheckoutAutoTextDefault",
+                    c.getSimplePayCheckoutAutoTextDefault() != null
+                            && !c.getSimplePayCheckoutAutoTextDefault().isBlank()
+                            ? c.getSimplePayCheckoutAutoTextDefault()
+                            : com.pg.urlpay.SimplePayCheckoutCopyModeUtil.DEFAULT_AUTO_KO);
             if (c.getUrlPayCheckoutMoveModeDefault() != null) {
                 data.put("urlPayCheckoutMoveModeDefault",
                         com.pg.urlpay.UrlPayCheckoutMoveModeUtil.normalizeHq(c.getUrlPayCheckoutMoveModeDefault()));
@@ -2198,6 +2247,8 @@ public class ApiHqController {
                 data.put("apiBuyerNameUseDefaultYn",
                         com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(c.getApiBuyerNameUseDefaultYn(), "Y"));
             }
+            data.put("urlPayOrderNoShowDefaultYn",
+                    com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(c.getUrlPayOrderNoShowDefaultYn(), "N"));
             try {
                 var defPreset = urlPayCheckoutFieldPresetService.getDefault();
                 if (defPreset != null) {
@@ -2332,6 +2383,15 @@ public class ApiHqController {
         c.setUrlPayPathTemplate(pathTpl.isEmpty() ? "/pay/{compCode}" : pathTpl);
         c.setApiBrokerInlineEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("apiBrokerInlineEnabledYn", "Y"))) ? "N" : "Y");
         c.setApiBrokerRedirectEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("apiBrokerRedirectEnabledYn", "Y"))) ? "N" : "Y");
+        c.setApiBrokerSimpleQrEnabledYn(String.valueOf(body.getOrDefault("apiBrokerSimpleQrEnabledYn", "Y")));
+        c.setSimplePayLogoModeDefault(String.valueOf(body.getOrDefault("simplePayLogoModeDefault", "HTML")));
+        Object splu = body.get("simplePayLogoUrlDefault");
+        c.setSimplePayLogoUrlDefault(splu != null && !splu.toString().isBlank() ? splu.toString().trim() : null);
+        Object spht = body.get("simplePayHtmlTitleDefault");
+        c.setSimplePayHtmlTitleDefault(spht != null && !spht.toString().isBlank() ? spht.toString().trim() : null);
+        c.setSimplePayBrandSubModeDefault(String.valueOf(body.getOrDefault("simplePayBrandSubModeDefault", "ACTIVE")));
+        Object spbst = body.get("simplePayBrandSubTextDefault");
+        c.setSimplePayBrandSubTextDefault(spbst != null && !spbst.toString().isBlank() ? spbst.toString().trim() : null);
         c.setApiWordpressPluginEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("apiWordpressPluginEnabledYn", "Y"))) ? "N" : "Y");
         c.setUrlPayInlineEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("urlPayInlineEnabledYn", "Y"))) ? "N" : "Y");
         c.setUrlPayRedirectEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("urlPayRedirectEnabledYn", "Y"))) ? "N" : "Y");
@@ -2401,6 +2461,21 @@ public class ApiHqController {
         String rchStr = rch != null ? rch.toString().trim() : "";
         c.setRedirectCheckoutHintTextDefault(rchStr.isEmpty()
                 ? com.pg.urlpay.RedirectCheckoutCopyModeUtil.DEFAULT_HINT_KO : rchStr);
+        c.setSimplePayCheckoutLeadModeDefault(String.valueOf(body.getOrDefault("simplePayCheckoutLeadModeDefault", "ACTIVE")));
+        Object spl = body.get("simplePayCheckoutLeadTextDefault");
+        String splStr = spl != null ? spl.toString().trim() : "";
+        c.setSimplePayCheckoutLeadTextDefault(splStr.isEmpty()
+                ? com.pg.urlpay.SimplePayCheckoutCopyModeUtil.DEFAULT_LEAD_KO : splStr);
+        c.setSimplePayCheckoutHintModeDefault(String.valueOf(body.getOrDefault("simplePayCheckoutHintModeDefault", "ACTIVE")));
+        Object sph = body.get("simplePayCheckoutHintTextDefault");
+        String sphStr = sph != null ? sph.toString().trim() : "";
+        c.setSimplePayCheckoutHintTextDefault(sphStr.isEmpty()
+                ? com.pg.urlpay.SimplePayCheckoutCopyModeUtil.DEFAULT_HINT_KO : sphStr);
+        c.setSimplePayCheckoutAutoModeDefault(String.valueOf(body.getOrDefault("simplePayCheckoutAutoModeDefault", "ACTIVE")));
+        Object spa = body.get("simplePayCheckoutAutoTextDefault");
+        String spaStr = spa != null ? spa.toString().trim() : "";
+        c.setSimplePayCheckoutAutoTextDefault(spaStr.isEmpty()
+                ? com.pg.urlpay.SimplePayCheckoutCopyModeUtil.DEFAULT_AUTO_KO : spaStr);
         urlPayCheckoutMoveService.applyHqMessage(c,
                 String.valueOf(body.getOrDefault("urlPayCheckoutMoveModeDefault", "DISABLED")),
                 body.get("urlPayCheckoutMoveMessageDefault") != null
@@ -2411,6 +2486,7 @@ public class ApiHqController {
         c.setUrlPayBuyerPhoneUseDefaultYn(String.valueOf(body.getOrDefault("urlPayBuyerPhoneUseDefaultYn", "Y")));
         c.setUrlPayBuyerNameUseDefaultYn(String.valueOf(body.getOrDefault("urlPayBuyerNameUseDefaultYn", "Y")));
         c.setApiBuyerNameUseDefaultYn(String.valueOf(body.getOrDefault("apiBuyerNameUseDefaultYn", "Y")));
+        c.setUrlPayOrderNoShowDefaultYn(String.valueOf(body.getOrDefault("urlPayOrderNoShowDefaultYn", "N")));
         urlPayCheckoutFieldPresetService.syncDefaultFromHqYn(
                 c.getUrlPayBuyerEmailUseDefaultYn(),
                 c.getUrlPayBuyerCountryUseDefaultYn(),
@@ -2532,6 +2608,8 @@ public class ApiHqController {
         checkoutHeaderSubtitleCopyService.applyCryptoDefaultsToHq(c);
         checkoutHeaderSubtitleCopyService.applyQrDefaultsToHq(c);
         redirectCheckoutCopyService.applyToHqConfig(c);
+        simplePayCheckoutCopyService.applyToHqConfig(c);
+        simplePayBrandResolver.applyTranslationOnSave(c);
         hqApiConfigRepository.save(c);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다.")));
     }

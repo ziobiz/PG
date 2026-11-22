@@ -2,6 +2,8 @@ package com.pg.service;
 
 import com.pg.entity.HqApiConfig;
 import com.pg.repository.HqApiConfigRepository;
+import com.pg.util.IcopayPublicIdentity;
+import com.pg.util.PgOutboundUrlPolicy;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.Cipher;
@@ -108,7 +110,17 @@ public class HostedPayReturnTokenService {
     public String buildOpaqueReturnUrl(String publicBaseUrl, String pathHtml, String vendor,
                                        String compId, String orderNo, boolean merchantApi,
                                        String returnFlagQuery) {
-        String base = publicBaseUrl != null ? publicBaseUrl.trim().replaceAll("/+$", "") : "https://api.icopay.co.kr";
+        String rawBase = publicBaseUrl != null ? publicBaseUrl.trim().replaceAll("/+$", "")
+                : IcopayPublicIdentity.API_BASE_URL;
+        /* 가맹 도메인·IP 가 base 로 들어오면 ICOPAY API 로 강제 */
+        String[] allowed = PgOutboundUrlPolicy.allowedIcopayAndNotiBases(
+                IcopayPublicIdentity.API_BASE_URL,
+                PgOutboundUrlPolicy.DEFAULT_NOTI_BASE,
+                PgOutboundUrlPolicy.DEFAULT_SITE_BASE,
+                rawBase);
+        String base = PgOutboundUrlPolicy.enforceOwnDomain(
+                rawBase, IcopayPublicIdentity.API_BASE_URL, allowed);
+        base = base.replaceAll("/+$", "");
         String path = pathHtml != null && !pathHtml.isBlank() ? pathHtml.trim() : "/omspay-pay.html";
         if (!path.startsWith("/")) {
             path = "/" + path;

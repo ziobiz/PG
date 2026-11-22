@@ -218,9 +218,9 @@ public class PaysoPaymentService {
         String firstName = str(body, "payFirstname", "firstName", "firstname");
         String lastName = str(body, "payLastname", "lastName", "lastname");
         /*
-         * Payso 로는 가맹 상품명·가맹 orderNo 를 보내지 않음.
-         * description = 중립 "Payment", referenceNo = ICOPAY 12자리 숫자 해시만.
-         * 가맹 orderNo·상품명은 DB(pending)에만 보관 → 통보·조회 시 가맹 쪽 키로 사용.
+         * Payso 로는 가맹 상호·홈페이지·도메인·IP·상품명·가맹 orderNo·가맹 도메인 이메일을 보내지 않음.
+         * description = "Payment", customerEmail = ICOPAY 중립(클라이언트에서 강제),
+         * referenceNo = ICOPAY 12자리 숫자 해시만. 가맹 식별은 DB·가맹 통보에만.
          */
         Map<String, Object> pay = apiClient.createUiPayment(
                 creds,
@@ -281,7 +281,8 @@ public class PaysoPaymentService {
         if (ouOpt.isEmpty()) {
             return fail(out, "NOT_FOUND", "가맹점을 찾을 수 없습니다.");
         }
-        var txn = paysoSaleRecordService.findByMerchantAndOrder(ouOpt.get().getCode(), orderNo.trim());
+        String mid = ouOpt.get().getCode();
+        var txn = paysoSaleRecordService.findByMerchantAndOrder(mid, orderNo.trim());
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("orderNo", orderNo.trim());
         data.put("pgVendor", "ICOPAY");
@@ -290,24 +291,167 @@ public class PaysoPaymentService {
             data.put("found", false);
         } else {
             var t = txn.get();
+            String st = t.getStatus() != null ? t.getStatus().trim() : "";
+            boolean paid = "10".equals(st) || "00".equals(st);
+            boolean failSt = "99".equals(st) || "F0".equals(st);
+            /* 웹훅 지연·잘못된 orderNo 키 — 저장 pay_no 로 Order Detail 조회 후 승인 확정 */
+            if (!paid && !failSt) {
+                try {
+                    Optional<PaysoCredentials> credOpt = resolveCredentials(orgUnitId);
+                    String storedRef = PaysoSaleRecordService.firstPaysoReference(
+                            t.getPayNo(), t.getApprovalNo());
+                    String storedChill = t.getChillTransactionId() != null
+                            ? t.getChillTransactionId().trim() : "";
+                    if (credOpt.isPresent() && credOpt.get().isInquiryUsable()
+                            && (!storedRef.isBlank() || PaysoSaleRecordService.isUsablePaysoPgKey(
+                            orderNo.trim(), storedChill))) {
+                        Map<String, Object> detail = apiClient.orderDetail(
+                                credOpt.get(),
+                                !storedRef.isBlank() ? storedRef : "x",
+                                orderNo.trim());
+                        if (Boolean.TRUE.equals(detail.get("ok"))) {
+                            String sc = detail.get("statusCode") != null
+                                    ? String.valueOf(detail.get("statusCode")) : "";
+                            String sd = detail.get("statusDesc") != null
+                                    ? String.valueOf(detail.get("statusDesc")) : "";
+                            String mapped = PaysoIntegratedListService.mapPaysoStatus(sc, sd);
+                            if ("10".equals(mapped)) {
+                                String ref = PaysoSaleRecordService.firstPaysoReference(
+                                        str(detail.get("referenceNo")), storedRef);
+                                String pgTxn = firstNonBlank(str(detail.get("transactionId")), storedChill);
+                                Optional<com.pg.entity.PgTrnsctn> paidTxn =
+                                        paysoSaleRecordService.applyPaidOutcome(
+                                                orderNo.trim(), mid, pgTxn, ref, null, true);
+                                if (paidTxn.isPresent()) {
+                                    t = paidTxn.get();
+                                    st = t.getStatus() != null ? t.getStatus().trim() : "10";
+                                    paid = true;
+                                    failSt = false;
+                                    log.info("PAYSO result-status reconciled paid mid={} order={} ref={}",
+                                            mid, orderNo.trim(), ref);
+                                    try {
+                                        merchantOutboundNotifyService.scheduleAfterTxnCommit(
+                                                t, null, "PAYSO_RESULT_STATUS");
+                                    } catch (Exception ne) {
+                                        log.warn("PAYSO result-status notify: {}", ne.getMessage());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("PAYSO result-status Order Detail probe failed mid={} order={}: {}",
+                            mid, orderNo.trim(), e.getMessage());
+                }
+            }
             data.put("found", true);
             data.put("trnId", t.getTrnId());
             data.put("pgTxnId", t.getChillTransactionId());
-            String st = t.getStatus() != null ? t.getStatus().trim() : "";
-            String paymentStatus = switch (st) {
-                case "10", "00" -> "PAID";
-                case "08" -> "PENDING";
-                case "99", "F0" -> "FAIL";
-                default -> st;
-            };
+            String paymentStatus = paid ? "PAID" : (failSt ? "FAIL" : ("08".equals(st) ? "PENDING" : st));
             data.put("paymentStatus", paymentStatus);
-            data.put("paid", "PAID".equals(paymentStatus));
+            data.put("paid", paid);
             data.put("amount", t.getAmtKrw());
             data.put("currency", t.getCurType());
+            String origin = t.getOrigin() != null ? t.getOrigin().trim() : "";
+            boolean merchantApi = "MERCHANT_API".equalsIgnoreCase(origin);
+            data.put("txnOrigin", origin.isBlank() ? "URL" : origin);
+            data.put("merchantApi", merchantApi);
+            if (merchantApi) {
+                String notiBase = NotiProvisionClient.defaultBaseUrlIfBlank(
+                        hqNotifyEnvService.getOrCreate().getNotiProvisionBaseUrl());
+                data.put("siteBackUrl", notiBase + NOTI_RESULT_PATH
+                        + "?order=" + urlEnc(orderNo.trim())
+                        + "&orderNo=" + urlEnc(orderNo.trim())
+                        + "&compId=" + urlEnc(mid)
+                        + "&merchantId=" + urlEnc(mid));
+            }
         }
         out.put("success", true);
         out.put("data", data);
         return out;
+    }
+
+    private static String firstNonBlank(String a, String b) {
+        if (a != null && !a.isBlank()) {
+            return a.trim();
+        }
+        if (b != null && !b.isBlank()) {
+            return b.trim();
+        }
+        return "";
+    }
+
+    private static String str(Object o) {
+        return o == null ? "" : String.valueOf(o).trim();
+    }
+
+    private static String urlEnc(String s) {
+        return URLEncoder.encode(s != null ? s : "", StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Order Detail 로 PAYSO 실승인 여부 확인 후 승인 확정.
+     * 웹훅 키가 없거나 주문번호만 올 때·이미 실패(99)인 건의 복구에 사용.
+     */
+    public Optional<com.pg.entity.PgTrnsctn> confirmPaidViaOrderDetail(String compId, String orderNo) {
+        String mid = compId != null ? compId.trim() : "";
+        String on = orderNo != null ? orderNo.trim() : "";
+        if (mid.isBlank() || on.isBlank()) {
+            return Optional.empty();
+        }
+        Optional<OrgUnit> ou = orgUnitRepository.findByCode(mid);
+        if (ou.isEmpty()) {
+            ou = orgUnitRepository.findByCodeIgnoreCase(mid);
+        }
+        if (ou.isEmpty()) {
+            return Optional.empty();
+        }
+        Optional<com.pg.entity.PgTrnsctn> txn = paysoSaleRecordService.findByMerchantAndOrder(mid, on);
+        if (txn.isEmpty()) {
+            return Optional.empty();
+        }
+        com.pg.entity.PgTrnsctn t = txn.get();
+        String st = t.getStatus() != null ? t.getStatus().trim() : "";
+        if ("10".equals(st) || "00".equals(st)) {
+            return Optional.of(t);
+        }
+        Optional<PaysoCredentials> credOpt = resolveCredentials(ou.get().getId());
+        if (credOpt.isEmpty() || !credOpt.get().isInquiryUsable()) {
+            return Optional.empty();
+        }
+        String storedRef = PaysoSaleRecordService.firstPaysoReference(t.getPayNo(), t.getApprovalNo());
+        String storedChill = t.getChillTransactionId() != null ? t.getChillTransactionId().trim() : "";
+        if (storedRef.isBlank() && !PaysoSaleRecordService.isUsablePaysoPgKey(on, storedChill)) {
+            return Optional.empty();
+        }
+        try {
+            Map<String, Object> detail = apiClient.orderDetail(
+                    credOpt.get(),
+                    !storedRef.isBlank() ? storedRef : "x",
+                    on);
+            if (!Boolean.TRUE.equals(detail.get("ok"))) {
+                log.info("PAYSO Order Detail 미확인 mid={} order={} ref={}", mid, on, storedRef);
+                return Optional.empty();
+            }
+            String sc = detail.get("statusCode") != null ? String.valueOf(detail.get("statusCode")) : "";
+            String sd = detail.get("statusDesc") != null ? String.valueOf(detail.get("statusDesc")) : "";
+            String mapped = PaysoIntegratedListService.mapPaysoStatus(sc, sd);
+            if (!"10".equals(mapped)) {
+                log.info("PAYSO Order Detail 미승인 mid={} order={} status={} desc={}", mid, on, sc, sd);
+                return Optional.empty();
+            }
+            String ref = PaysoSaleRecordService.firstPaysoReference(str(detail.get("referenceNo")), storedRef);
+            String pgTxn = firstNonBlank(str(detail.get("transactionId")), storedChill);
+            Optional<com.pg.entity.PgTrnsctn> paid = paysoSaleRecordService.applyPaidOutcome(
+                    on, mid, pgTxn, ref, null, true);
+            if (paid.isPresent()) {
+                log.info("PAYSO Order Detail 승인확정 mid={} order={} ref={}", mid, on, ref);
+            }
+            return paid;
+        } catch (Exception e) {
+            log.warn("PAYSO Order Detail confirm failed mid={} order={}: {}", mid, on, e.getMessage());
+            return Optional.empty();
+        }
     }
 
     /**
@@ -332,14 +476,38 @@ public class PaysoPaymentService {
         if (comp.isBlank()) {
             return fail(out, "NOT_FOUND", "compId가 필요합니다.");
         }
+        Optional<com.pg.entity.PgTrnsctn> before = paysoSaleRecordService.findByMerchantAndOrder(comp, on);
+        String prevStatus = before.map(x -> x.getStatus() != null ? x.getStatus().trim() : "").orElse("");
+        /* 타임아웃 실패 직전 Order Detail 재확인 — 실승인이면 실패로 쓰지 않음 */
+        if (!forceCorrectFalsePaid && ("08".equals(prevStatus) || prevStatus.isBlank())) {
+            Optional<com.pg.entity.PgTrnsctn> recovered = confirmPaidViaOrderDetail(comp, on);
+            if (recovered.isPresent()
+                    && ("10".equals(recovered.get().getStatus() != null ? recovered.get().getStatus().trim() : "")
+                    || "00".equals(recovered.get().getStatus() != null ? recovered.get().getStatus().trim() : ""))) {
+                com.pg.entity.PgTrnsctn t = recovered.get();
+                try {
+                    merchantOutboundNotifyService.scheduleAfterTxnCommit(t, null, "PAYSO_ORDER_DETAIL_BEFORE_FAIL");
+                } catch (Exception e) {
+                    log.warn("PAYSO mark-failed recover notify: {}", e.getMessage());
+                }
+                Map<String, Object> data = new LinkedHashMap<>();
+                data.put("orderNo", on);
+                data.put("compId", comp);
+                data.put("prevStatus", prevStatus);
+                data.put("paymentStatus", "PAID");
+                data.put("recoveredPaid", true);
+                data.put("pgVendor", "ICOPAY");
+                out.put("success", true);
+                out.put("data", data);
+                return out;
+            }
+        }
         String reasonCode = forceCorrectFalsePaid ? "PAYSO_FALSE_PAID_CORRECTED" : "PAYSO_BUYER_RETURN_FAIL";
         String reasonText = reason != null && !reason.isBlank()
                 ? reason.trim()
                 : (forceCorrectFalsePaid
                 ? "PAYSO portal has no matching paid order — corrected false success to failed"
                 : "Buyer return: payment failed or abandoned");
-        Optional<com.pg.entity.PgTrnsctn> before = paysoSaleRecordService.findByMerchantAndOrder(comp, on);
-        String prevStatus = before.map(x -> x.getStatus() != null ? x.getStatus().trim() : "").orElse("");
         Optional<com.pg.entity.PgTrnsctn> updated = paysoSaleRecordService.applyFailedOutcome(
                 on, comp, null, reasonCode, reasonText, forceCorrectFalsePaid);
         if (updated.isEmpty()) {
