@@ -166,6 +166,7 @@ public class MerchantRecvNotiIngressService {
             case "omspay" -> new String[]{b + "/noti/omspay", b + "/noti/result/omspay"};
             case "payso" -> new String[]{b + "/noti/payso", b + "/noti/result/payso"};
             case "ksnet" -> new String[]{b + "/noti/ksnet", b + "/noti/result/ksnet"};
+            case "tazapay" -> new String[]{b + "/noti/tazapay", b + "/noti/result/tazapay"};
             case "qbang" -> new String[]{b + "/noti/qbang", b + "/noti/result/qbang"};
             case "crypto" -> {
                 Map<String, String> u = CryptoNotiMiddlewareMirrorService.fixedNotiUrls(b);
@@ -193,6 +194,9 @@ public class MerchantRecvNotiIngressService {
         }
         if (PgVendor.isKsnetFamily(pgCd)) {
             return "ksnet";
+        }
+        if (PgVendor.isTazapayFamily(pgCd)) {
+            return "tazapay";
         }
         if (PgVendor.isQxipayFamily(pgCd)) {
             return "qxipay";
@@ -225,6 +229,7 @@ public class MerchantRecvNotiIngressService {
             case "omspay" -> "OMSPAY";
             case "payso" -> "PAYSO";
             case "ksnet" -> "KSNET";
+            case "tazapay" -> "TAZAPAY";
             case "qbang" -> "QBANG";
             case "crypto" -> "CRYPTO";
             case "jpay" -> "JPAY";

@@ -6296,7 +6296,8 @@
               : ((pgKindRaw === 'qxipay' || pgKindRaw === 'qxpay') ? 'qxipay'
                 : ((pgKindRaw === 'omspay' || pgKindRaw === 'oms' || pgKindRaw === 'waylar') ? 'omspay'
                   : ((pgKindRaw === 'payso' || pgKindRaw === 'paysolutions') ? 'payso'
-                    : ((pgKindRaw === 'ksnet' || pgKindRaw === 'kspay') ? 'ksnet' : 'jpay'))))));
+                    : ((pgKindRaw === 'ksnet' || pgKindRaw === 'kspay') ? 'ksnet'
+                      : ((pgKindRaw === 'tazapay') ? 'tazapay' : 'jpay')))))));
         var body = {
           id: id,
           pgKind: pgKind,
@@ -6437,6 +6438,7 @@
             if (k === 'omspay' || k === 'oms' || k === 'waylar') return 'OMSPAY';
             if (k === 'payso' || k === 'paysolutions') return 'PAYSO';
             if (k === 'ksnet' || k === 'kspay') return 'KSNET';
+            if (k === 'tazapay') return 'Tazapay';
             if (k === 'qbang' || k === 'qbank' || k === 'qrbank') return 'QBANG';
             return 'JPAY';
           })(), 'text-nowrap small');
@@ -6449,9 +6451,9 @@
           var kindLow = String(r.pgKind || '').toLowerCase();
           var routeLow = String(r.routeNo || '').toLowerCase();
           var isFixedIngress = kindLow === 'elementpay' || kindLow === 'ox' || kindLow === 'ilk'
-            || kindLow === 'qxipay' || kindLow === 'omspay' || kindLow === 'payso' || kindLow === 'ksnet'
+            || kindLow === 'qxipay' || kindLow === 'omspay' || kindLow === 'payso' || kindLow === 'ksnet' || kindLow === 'tazapay'
             || routeLow === 'elementpay' || routeLow === 'ox' || routeLow === 'ilk'
-            || routeLow === 'qxipay' || routeLow === 'omspay' || routeLow === 'payso' || routeLow === 'ksnet';
+            || routeLow === 'qxipay' || routeLow === 'omspay' || routeLow === 'payso' || routeLow === 'ksnet' || routeLow === 'tazapay';
           var slotDisp = isFixedIngress ? '—' : (r.routeNo || (r.slotNo != null ? String(r.slotNo) : ''));
           tdText(slotDisp, 'text-nowrap small');
           tdUrlOnly(r.jpayNotifyUrl);
@@ -6579,6 +6581,7 @@
       if (pg === 'omspay' || pg === 'oms' || pg === 'waylar') return 'NOTI에 OMSPAY 전산 대상이 없습니다. 노티 추가등록에서 PG=OMSPAY로 등록하세요.';
       if (pg === 'payso' || pg === 'paysolutions' || pg === 'paysolution') return 'NOTI에 PAYSO 전산 대상이 없습니다. 노티 추가등록에서 PG=PAYSO로 등록하세요.';
       if (pg === 'ksnet' || pg === 'kspay') return 'NOTI에 KSNET 전산 대상이 없습니다. 노티 추가등록에서 PG=KSNET로 등록하세요.';
+      if (pg === 'tazapay') return 'NOTI에 TAZAPAY 전산 대상이 없습니다. 노티 추가등록에서 PG=TAZAPAY로 등록하세요.';
       if (pg === 'qbang' || pg === 'qbank' || pg === 'qrbank') return 'NOTI에 QBANG 전산 대상이 없습니다. 노티 추가등록에서 PG=QBANG로 등록하세요.';
       return '본사설정에서 JPY/USD/THB 전산 대상을 지정하세요.';
     }
@@ -6589,8 +6592,9 @@
           : (pgKind === 'qxipay' || pgKind === 'qxpay' ? 'qxipay'
             : (pgKind === 'omspay' || pgKind === 'oms' || pgKind === 'waylar' ? 'omspay'
               : (pgKind === 'payso' || pgKind === 'paysolutions' || pgKind === 'paysolution' ? 'payso'
-                : (pgKind === 'ksnet' || pgKind === 'kspay' ? 'ksnet'
-                  : (pgKind === 'qbang' || pgKind === 'qbank' || pgKind === 'qrbank' ? 'qbang' : 'jpay')))))));
+                : (pgKind === 'tazapay' ? 'tazapay'
+                  : (pgKind === 'ksnet' || pgKind === 'kspay' ? 'ksnet'
+                    : (pgKind === 'qbang' || pgKind === 'qbank' || pgKind === 'qrbank' ? 'qbang' : 'jpay'))))))));
       var src = Array.isArray(list) ? list : [];
       var out = [];
       src.forEach(function (it) {
@@ -6628,12 +6632,17 @@
           if (p === 'ksnet' || p === 'kspay') out.push(it);
           return;
         }
+        if (pg === 'tazapay') {
+          if (p === 'tazapay') out.push(it);
+          return;
+        }
         if (pg === 'qbang') {
           if (p === 'qbang' || p === 'qbank' || p === 'qrbank') out.push(it);
           return;
         }
-        // JPAY 노티생성: JPAY·ChillPay·미지정 대상 (ElementPay·ox·ILK·QXIPAY·OMSPAY·PAYSO·QBANG·KSNET 전용 제외)
+        // JPAY 노티생성: JPAY·ChillPay·미지정 대상 (ElementPay·ox·ILK·QXIPAY·OMSPAY·PAYSO·TAZAPAY·QBANG·KSNET 전용 제외)
         if (p === 'ksnet' || p === 'kspay') return;
+        if (p === 'tazapay') return;
         if (p === 'elementpay' || p === 'ep' || p === 'ox' || p === 'oxpay'
             || p === 'ilk' || p === 'ilkkorea' || p === 'ilkpay'
             || p === 'qxipay' || p === 'qxpay'
@@ -7316,7 +7325,7 @@
           return;
         }
         var pgKind = opsNpSelectedPgKind();
-        var fixed = pgKind === 'elementpay' || pgKind === 'ox' || pgKind === 'ilk' || pgKind === 'qxipay' || pgKind === 'omspay' || pgKind === 'payso' || pgKind === 'ksnet' || pgKind === 'qbang';
+        var fixed = pgKind === 'elementpay' || pgKind === 'ox' || pgKind === 'ilk' || pgKind === 'qxipay' || pgKind === 'omspay' || pgKind === 'payso' || pgKind === 'ksnet' || pgKind === 'tazapay' || pgKind === 'qbang';
         var slotVal = (pane.querySelector('#opsNpPgSlotNo') || {}).value || '';
         if (!fixed && String(slotVal).trim() && !opsNpSlotAutoMode && !opsNpSlotReviewed) {
           alert(pgAdminUiT('수동 슬롯 번호는 [슬롯검토]를 실행하거나 [자동]을 사용하세요.'));
@@ -7409,9 +7418,10 @@
         setTxt('#opsNpLogEditDate', data.provisionedDate || '');
         var kindLow = String(data.pgKind || '').toLowerCase();
         var routeLow = String(data.routeNo || '').toLowerCase();
-        if (kindLow !== 'elementpay' && kindLow !== 'ox' && kindLow !== 'ilk' && kindLow !== 'qxipay' && kindLow !== 'omspay' && kindLow !== 'payso' && kindLow !== 'ksnet' && kindLow !== 'qbang' && kindLow !== 'jpay') {
+        if (kindLow !== 'elementpay' && kindLow !== 'ox' && kindLow !== 'ilk' && kindLow !== 'qxipay' && kindLow !== 'omspay' && kindLow !== 'payso' && kindLow !== 'ksnet' && kindLow !== 'tazapay' && kindLow !== 'qbang' && kindLow !== 'jpay') {
           if (routeLow === 'qbang' || routeLow === 'qbank') kindLow = 'qbang';
           else if (routeLow === 'ksnet' || routeLow === 'kspay') kindLow = 'ksnet';
+          else if (routeLow === 'tazapay') kindLow = 'tazapay';
           else if (routeLow === 'payso' || routeLow === 'paysolutions') kindLow = 'payso';
           else if (routeLow === 'omspay') kindLow = 'omspay';
           else if (routeLow === 'qxipay') kindLow = 'qxipay';

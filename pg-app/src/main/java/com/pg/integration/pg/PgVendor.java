@@ -43,6 +43,9 @@ public final class PgVendor {
     /** KSNET(KSPAY 해외 USD 결제창). {@code KSNET} 또는 {@code KSNET_…} 접두. 가맹 노출은 ICOPAY 중립. */
     public static final String KSNET = "KSNET";
 
+    /** Tazapay 카드 인라인(embed). {@code TAZAPAY} 또는 {@code TAZAPAY_…} 접두. 가맹 노출은 ICOPAY 중립. */
+    public static final String TAZAPAY = "TAZAPAY";
+
     /** 크립토(USDT/USDC/EURC 수탁 결제). {@code CRYPTO} 또는 {@code CRYPTO_…} 접두. 가맹 노출은 ICOPAY 중립. */
     public static final String CRYPTO = "CRYPTO";
 
@@ -247,6 +250,23 @@ public final class PgVendor {
         }
         String u = vendorCode.trim().toUpperCase(Locale.ROOT);
         return KSNET.equals(u) || u.startsWith(KSNET + "_") || u.startsWith("KSPAY");
+    }
+
+    /** {@code pg_cd}·노티 벤더 코드가 Tazapay 계열인지 — {@code TAZAPAY} 또는 {@code TAZAPAY_…}. */
+    public static boolean isTazapayFamily(String pgCd) {
+        if (pgCd == null) {
+            return false;
+        }
+        String u = normalizePgCdKey(pgCd);
+        return TAZAPAY.equals(u) || u.startsWith(TAZAPAY + "_");
+    }
+
+    public static boolean isTazapayVendorCode(String vendorCode) {
+        if (vendorCode == null || vendorCode.isBlank()) {
+            return false;
+        }
+        String u = vendorCode.trim().toUpperCase(Locale.ROOT);
+        return TAZAPAY.equals(u) || u.startsWith(TAZAPAY + "_");
     }
 
     /** {@code pg_cd}·노티 벤더 코드가 CRYPTO 계열인지 — {@code CRYPTO} 또는 {@code CRYPTO_…} 접두. */

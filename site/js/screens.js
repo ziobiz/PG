@@ -3021,6 +3021,7 @@
     '<option value="omspay">OMSPAY</option>' +
     '<option value="payso">PAYSO</option>' +
     '<option value="ksnet">KSNET</option>' +
+    '<option value="tazapay">Tazapay</option>' +
     '<option value="qbang">QBANG</option></select></div>' +
     '<div class="col-12 col-md-3"><label class="form-label mb-1" for="opsNpCompId" data-pg-ui-t="가맹 업체코드">가맹 업체코드</label>' +
     '<input type="text" class="form-control form-control-sm" id="opsNpCompId" autocomplete="off"></div>' +
@@ -3150,6 +3151,7 @@
     '<option value="omspay">OMSPAY</option>' +
     '<option value="payso">PAYSO</option>' +
     '<option value="ksnet">KSNET</option>' +
+    '<option value="tazapay">Tazapay</option>' +
     '<option value="qbang">QBANG</option></select></div></div>' +
     '<div class="mb-2"><span class="text-muted" data-pg-ui-t="NOTI 슬롯">NOTI 슬롯</span><div id="opsNpLogEditSlot" class="fw-semibold">—</div>' +
     '<div class="small text-muted mt-1" data-pg-ui-t="수정 시 PG를 바꾸면 NOTI 가맹·고정 Callback/Result 입구가 해당 PG로 다시 맞춰집니다. JPAY로 바꾸려면 기존 슬롯이 있어야 합니다.">수정 시 PG를 바꾸면 NOTI 가맹·고정 Callback/Result 입구가 해당 PG로 다시 맞춰집니다. JPAY로 바꾸려면 기존 슬롯이 있어야 합니다.</div></div>' +

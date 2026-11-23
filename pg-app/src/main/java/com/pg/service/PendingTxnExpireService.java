@@ -33,6 +33,7 @@ public class PendingTxnExpireService {
     private final OmspayPendingExpireService omspayPendingExpireService;
     private final PaysoSaleRecordService paysoSaleRecordService;
     private final KsnetSaleRecordService ksnetSaleRecordService;
+    private final TazapaySaleRecordService tazapaySaleRecordService;
     private final MerchantOutboundNotifyService merchantOutboundNotifyService;
 
     /** 기본 30분 — OMSPAY 기존 정책과 동일. */
@@ -49,11 +50,13 @@ public class PendingTxnExpireService {
                                    OmspayPendingExpireService omspayPendingExpireService,
                                    PaysoSaleRecordService paysoSaleRecordService,
                                    KsnetSaleRecordService ksnetSaleRecordService,
+                                   TazapaySaleRecordService tazapaySaleRecordService,
                                    MerchantOutboundNotifyService merchantOutboundNotifyService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.omspayPendingExpireService = omspayPendingExpireService;
         this.paysoSaleRecordService = paysoSaleRecordService;
         this.ksnetSaleRecordService = ksnetSaleRecordService;
+        this.tazapaySaleRecordService = tazapaySaleRecordService;
         this.merchantOutboundNotifyService = merchantOutboundNotifyService;
     }
 
@@ -150,6 +153,10 @@ public class PendingTxnExpireService {
         if (PgVendor.isKsnetFamily(van)) {
             Optional<PgTrnsctn> failed = ksnetSaleRecordService.applyPendingExpired(mid, orderNo, minutes);
             return notifyIfFailed(failed, "KSNET_PENDING_EXPIRED");
+        }
+        if (PgVendor.isTazapayFamily(van)) {
+            Optional<PgTrnsctn> failed = tazapaySaleRecordService.applyPendingExpired(mid, orderNo, minutes);
+            return notifyIfFailed(failed, "TAZAPAY_PENDING_EXPIRED");
         }
         return expireGeneric(t, minutes);
     }

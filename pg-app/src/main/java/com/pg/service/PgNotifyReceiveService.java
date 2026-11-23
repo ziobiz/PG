@@ -110,6 +110,7 @@ public class PgNotifyReceiveService {
     private final QxipayCallbackService qxipayCallbackService;
     private final OmspayCallbackService omspayCallbackService;
     private final PaysoCallbackService paysoCallbackService;
+    private final TazapayCallbackService tazapayCallbackService;
 
     public PgNotifyReceiveService(HqNotifyEnvService hqNotifyEnvService,
                                 PgNotifyInboundRepository inboundRepository,
@@ -129,7 +130,8 @@ public class PgNotifyReceiveService {
                                 IlkCallbackService ilkCallbackService,
                                 QxipayCallbackService qxipayCallbackService,
                                 OmspayCallbackService omspayCallbackService,
-                                PaysoCallbackService paysoCallbackService) {
+                                PaysoCallbackService paysoCallbackService,
+                                TazapayCallbackService tazapayCallbackService) {
         this.hqNotifyEnvService = hqNotifyEnvService;
         this.inboundRepository = inboundRepository;
         this.bindingRepository = bindingRepository;
@@ -149,6 +151,7 @@ public class PgNotifyReceiveService {
         this.qxipayCallbackService = qxipayCallbackService;
         this.omspayCallbackService = omspayCallbackService;
         this.paysoCallbackService = paysoCallbackService;
+        this.tazapayCallbackService = tazapayCallbackService;
     }
 
     /**
@@ -180,6 +183,11 @@ public class PgNotifyReceiveService {
                 pathToken, notifyTargetCode, rawBody, clientIp, request);
         if (payso.isPresent()) {
             return payso.get();
+        }
+        Optional<NotifyReceiveOutcome> tazapay = tazapayCallbackService.tryHandleSyncCallback(
+                pathToken, notifyTargetCode, rawBody, clientIp, request);
+        if (tazapay.isPresent()) {
+            return tazapay.get();
         }
         return receiveAndRespondCore(pathToken, notifyTargetCode, rawBody, contentType, clientIp, request);
     }

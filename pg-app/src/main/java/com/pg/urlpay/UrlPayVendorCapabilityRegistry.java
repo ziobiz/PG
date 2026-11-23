@@ -56,6 +56,9 @@ public class UrlPayVendorCapabilityRegistry {
         if (PgVendor.isKsnetFamily(pg)) {
             return ksnetCapability(pg, urlPay, urlRepayAgency);
         }
+        if (PgVendor.isTazapayFamily(pg)) {
+            return tazapayCapability(pg, urlPay, urlRepayAgency);
+        }
         if (PgVendor.isQbangFamily(pg)) {
             return qbangCapability(pg, urlPay, urlRepayAgency);
         }
@@ -97,6 +100,9 @@ public class UrlPayVendorCapabilityRegistry {
         }
         if (PgVendor.isKsnetFamily(pg)) {
             return UrlPayInlineWidgetKind.KSNET_SDK;
+        }
+        if (PgVendor.isTazapayFamily(pg)) {
+            return UrlPayInlineWidgetKind.TAZAPAY_EMBED;
         }
         if (PgVendor.isQbangFamily(pg)) {
             return UrlPayInlineWidgetKind.QBANG_QR;
@@ -232,6 +238,20 @@ public class UrlPayVendorCapabilityRegistry {
                 "/checkout/",
                 NeutralCheckoutRoute.EMBED_SCRIPT_PATH,
                 UrlPaySaleChannel.KSNET_SDK_SALE,
+                urlPay,
+                urlRepayAgency,
+                false);
+    }
+
+    /** Tazapay — Create Payin + JS embed. 재결제 URL 미지원. */
+    private UrlPayVendorCapability tazapayCapability(String pg, boolean urlPay, boolean urlRepayAgency) {
+        return new UrlPayVendorCapability(
+                PgVendor.TAZAPAY,
+                pg,
+                UrlPayInlineWidgetKind.TAZAPAY_EMBED,
+                "/checkout/",
+                NeutralCheckoutRoute.EMBED_SCRIPT_PATH,
+                UrlPaySaleChannel.TAZAPAY_EMBED_SALE,
                 urlPay,
                 urlRepayAgency,
                 false);

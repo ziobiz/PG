@@ -33,6 +33,7 @@ public class MerchantUnifiedRedirectCheckoutService {
     private final MerchantOmspayInlineCheckoutService omspayInlineCheckoutService;
     private final MerchantPaysoInlineCheckoutService paysoInlineCheckoutService;
     private final MerchantKsnetInlineCheckoutService ksnetInlineCheckoutService;
+    private final MerchantTazapayInlineCheckoutService tazapayInlineCheckoutService;
     private final MerchantInlineCheckoutTokenService tokenService;
     private final MerchantChatbotProductService productService;
     private final MerchantApiIntegrationChannelService integrationChannelService;
@@ -50,6 +51,7 @@ public class MerchantUnifiedRedirectCheckoutService {
                                                   MerchantOmspayInlineCheckoutService omspayInlineCheckoutService,
                                                   MerchantPaysoInlineCheckoutService paysoInlineCheckoutService,
                                                   MerchantKsnetInlineCheckoutService ksnetInlineCheckoutService,
+                                                  MerchantTazapayInlineCheckoutService tazapayInlineCheckoutService,
                                                   MerchantInlineCheckoutTokenService tokenService,
                                                   MerchantChatbotProductService productService,
                                                   MerchantApiIntegrationChannelService integrationChannelService,
@@ -66,6 +68,7 @@ public class MerchantUnifiedRedirectCheckoutService {
         this.omspayInlineCheckoutService = omspayInlineCheckoutService;
         this.paysoInlineCheckoutService = paysoInlineCheckoutService;
         this.ksnetInlineCheckoutService = ksnetInlineCheckoutService;
+        this.tazapayInlineCheckoutService = tazapayInlineCheckoutService;
         this.tokenService = tokenService;
         this.productService = productService;
         this.integrationChannelService = integrationChannelService;
@@ -136,6 +139,8 @@ public class MerchantUnifiedRedirectCheckoutService {
             result = paysoInlineCheckoutService.prepare(orgUnitId, enriched, request);
         } else if (PgVendor.isKsnetFamily(opPg)) {
             result = ksnetInlineCheckoutService.prepare(orgUnitId, enriched, request);
+        } else if (PgVendor.isTazapayFamily(opPg)) {
+            result = tazapayInlineCheckoutService.prepare(orgUnitId, enriched, request);
         } else if (PgVendor.isChillPayFamily(opPg)) {
             result = chillpayRedirectCheckoutService.prepare(orgUnitId, enriched, request);
         } else {
@@ -188,6 +193,9 @@ public class MerchantUnifiedRedirectCheckoutService {
         }
         if (PgVendor.isKsnetFamily(opPg)) {
             return ksnetInlineCheckoutService.orderStatus(orgUnitId, orderNo);
+        }
+        if (PgVendor.isTazapayFamily(opPg)) {
+            return tazapayInlineCheckoutService.orderStatus(orgUnitId, orderNo);
         }
         if (PgVendor.isChillPayFamily(opPg)) {
             return chillpayRedirectCheckoutService.orderStatus(orgUnitId, orderNo);

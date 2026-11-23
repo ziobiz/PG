@@ -6,13 +6,40 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '8.5';
+  var CURRENT_LIVE = '8.6';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '8.6',
+      kind: 'minor',
+      date: '2026-11-23',
+      items: {
+        KO: [
+          'Tazapay 카드 인라인 연동 — Create Payin·client_token·embed 결제창, ICOPAY/NOTI 웹훅만 노출',
+          '가맹 비식별: reference_id 불투명 ref·description=Payment·statement_descriptor=ICOPAY'
+        ],
+        EN: [
+          'Tazapay inline card — Create Payin, client_token embed checkout, ICOPAY/NOTI webhooks only',
+          'Merchant privacy: opaque reference_id, description=Payment, statement_descriptor=ICOPAY'
+        ],
+        JP: [
+          'Tazapayカードインライン連携 — Payin作成・client_token・embed、ICOPAY/NOTI Webhookのみ',
+          '加盟非識別: 不透明reference_id・description=Payment・statement_descriptor=ICOPAY'
+        ],
+        CH: [
+          'Tazapay 卡内嵌 — Create Payin·client_token·embed，仅 ICOPAY/NOTI  webhook',
+          '商户脱敏：不透明 reference_id、description=Payment、statement_descriptor=ICOPAY'
+        ],
+        TH: [
+          'Tazapay การ์ด inline — Create Payin·client_token·embed, webhook เฉพาะ ICOPAY/NOTI',
+          'ความเป็นส่วนตัวร้าน: reference_id ไม่ระบุตัวตน · description=Payment · descriptor=ICOPAY'
+        ]
+      }
+    },
     {
       version: '8.5',
       kind: 'minor',

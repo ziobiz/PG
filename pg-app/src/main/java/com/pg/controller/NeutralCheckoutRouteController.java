@@ -207,6 +207,9 @@ public class NeutralCheckoutRouteController {
             if (PgVendor.isKsnetFamily(opPg)) {
                 return "/ksnet-pay.html" + q;
             }
+            if (PgVendor.isTazapayFamily(opPg)) {
+                return "/tazapay-pay.html" + q;
+            }
             if (PgVendor.isQbangFamily(opPg)) {
                 return "/qbang-pay.html" + withParam(q, "payMeans", "QR");
             }
