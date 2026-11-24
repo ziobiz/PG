@@ -6,13 +6,82 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '8.6';
+  var CURRENT_LIVE = '8.7';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '8.7',
+      kind: 'minor',
+      date: '2026-11-24',
+      items: {
+        KO: [
+          '이메일증명: 본사(기본 활성)·가맹(본사설정 따름) — 활성 시 PG에 실제 구매자 이메일, 비활성 시 noreply@icopay.co.kr 치환(PAYSO·TAZAPAY)'
+        ],
+        EN: [
+          'Buyer email to PG: HQ default Active, merchant Follow HQ — Active sends real buyer email; Inactive uses noreply@icopay.co.kr (PAYSO·TAZAPAY)'
+        ],
+        JP: [
+          'メール証明: 本社(既定・有効)・加盟(本社設定に従う) — 有効時は実購入者メールをPGへ、無効時はnoreply@icopay.co.kr(PAYSO・TAZAPAY)'
+        ],
+        CH: [
+          '邮箱证明：总部默认启用、商户跟随总部 — 启用向 PG 发真实买家邮箱，停用则 noreply@icopay.co.kr（PAYSO·TAZAPAY）'
+        ],
+        TH: [
+          'ยืนยันอีเมล: HQ เปิดเป็นค่าเริ่ม · ร้านตาม HQ — เปิดส่งอีเมลผู้ซื้อจริง / ปิดใช้ noreply@icopay.co.kr (PAYSO·TAZAPAY)'
+        ]
+      },
+      howTo: {
+        KO: [
+          {
+            title: '설정 위치',
+            steps: [
+              '본사정책 → 결제·URL → 결제 라우팅 → 「이메일증명」(기본 활성)',
+              '업체관리 → 가맹 상세 → 「이메일증명」카드(기본 본사설정 따름). 가맹이 활성/비활성으로 바꾸면 가맹 우선'
+            ]
+          }
+        ],
+        EN: [
+          {
+            title: 'Where to set',
+            steps: [
+              'HQ Policy → Payment·URL → Payment routing → Buyer email to PG (default Active)',
+              'Merchant detail → Buyer email to PG card (default Follow HQ). Merchant Active/Inactive overrides HQ'
+            ]
+          }
+        ],
+        JP: [
+          {
+            title: '設定場所',
+            steps: [
+              '本社ポリシー→決済・URL→決済ルーティング→メール証明(既定・有効)',
+              '加盟詳細→メール証明カード(既定・本社設定に従う)。加盟の有効/無効が本社より優先'
+            ]
+          }
+        ],
+        CH: [
+          {
+            title: '设置位置',
+            steps: [
+              '总部政策→支付·URL→支付路由→邮箱证明（默认启用）',
+              '商户详情→邮箱证明卡（默认跟随总部）。商户启用/停用优先于总部'
+            ]
+          }
+        ],
+        TH: [
+          {
+            title: 'ที่ตั้งค่า',
+            steps: [
+              'นโยบาย HQ → ชำระ·URL → เส้นทางชำระ → ยืนยันอีเมล (ค่าเริ่มเปิด)',
+              'รายละเอียดร้าน → การ์ดยืนยันอีเมล (ค่าเริ่มตาม HQ) ถ้าร้านเลือกเปิด/ปิดจะมาก่อน HQ'
+            ]
+          }
+        ]
+      }
+    },
     {
       version: '8.6',
       kind: 'minor',

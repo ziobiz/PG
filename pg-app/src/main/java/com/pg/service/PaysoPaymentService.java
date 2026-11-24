@@ -43,6 +43,7 @@ public class PaysoPaymentService {
     private final HqNotifyEnvService hqNotifyEnvService;
     private final HostedPayReturnTokenService hostedPayReturnTokenService;
     private final MerchantOutboundNotifyService merchantOutboundNotifyService;
+    private final PgBuyerEmailAttestService pgBuyerEmailAttestService;
 
     @Value("${pg.public-base-url:https://api.icopay.co.kr}")
     private String publicBaseUrl;
@@ -55,7 +56,8 @@ public class PaysoPaymentService {
                                PaysoSaleRecordService paysoSaleRecordService,
                                HqNotifyEnvService hqNotifyEnvService,
                                HostedPayReturnTokenService hostedPayReturnTokenService,
-                               MerchantOutboundNotifyService merchantOutboundNotifyService) {
+                               MerchantOutboundNotifyService merchantOutboundNotifyService,
+                               PgBuyerEmailAttestService pgBuyerEmailAttestService) {
         this.orgUnitRepository = orgUnitRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.chillPayService = chillPayService;
@@ -65,6 +67,7 @@ public class PaysoPaymentService {
         this.hqNotifyEnvService = hqNotifyEnvService;
         this.hostedPayReturnTokenService = hostedPayReturnTokenService;
         this.merchantOutboundNotifyService = merchantOutboundNotifyService;
+        this.pgBuyerEmailAttestService = pgBuyerEmailAttestService;
     }
 
     public Map<String, String> publicNotiIngressUrls() {
@@ -236,7 +239,8 @@ public class PaysoPaymentService {
                 "CreditCard",
                 buyerName,
                 firstName,
-                lastName);
+                lastName,
+                pgBuyerEmailAttestService.shouldSendRealBuyerEmail(orgUnitId));
         if (!Boolean.TRUE.equals(pay.get("ok"))) {
             return fail(out, str(pay.get("errorCode"), "PAYSO_CREATE"),
                     str(pay.get("message"), "Payso 결제 페이지 생성에 실패했습니다."));

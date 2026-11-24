@@ -59,6 +59,21 @@ public class TazapayApiClient {
                                            String successUrl,
                                            String cancelUrl,
                                            String webhookUrl) {
+        return createPayin(creds, referenceId, amount, currency, customerEmail, customerName,
+                customerCountry, successUrl, cancelUrl, webhookUrl, false);
+    }
+
+    public Map<String, Object> createPayin(TazapayCredentials creds,
+                                           String referenceId,
+                                           BigDecimal amount,
+                                           String currency,
+                                           String customerEmail,
+                                           String customerName,
+                                           String customerCountry,
+                                           String successUrl,
+                                           String cancelUrl,
+                                           String webhookUrl,
+                                           boolean sendRealBuyerEmail) {
         if (creds == null || !creds.isApiUsable()) {
             return err("TAZAPAY_CREDENTIALS", "Tazapay API 키가 없습니다.");
         }
@@ -77,7 +92,8 @@ public class TazapayApiClient {
         body.put("statement_descriptor", STATEMENT_DESCRIPTOR);
 
         ObjectNode customer = objectMapper.createObjectNode();
-        customer.put("email", PgOutboundMerchantPrivacy.safePgCustomerEmail(customerEmail));
+        customer.put("email",
+                PgOutboundMerchantPrivacy.safePgCustomerEmail(customerEmail, sendRealBuyerEmail));
         String safeName = sanitizePersonName(customerName);
         if (safeName.isBlank() || PgOutboundMerchantPrivacy.containsUrlDomainOrIp(safeName)) {
             safeName = "Customer";
@@ -120,6 +136,19 @@ public class TazapayApiClient {
                                               String successUrl,
                                               String cancelUrl,
                                               String webhookUrl) {
+        return createCheckout(creds, referenceId, amount, currency, customerEmail,
+                successUrl, cancelUrl, webhookUrl, false);
+    }
+
+    public Map<String, Object> createCheckout(TazapayCredentials creds,
+                                              String referenceId,
+                                              BigDecimal amount,
+                                              String currency,
+                                              String customerEmail,
+                                              String successUrl,
+                                              String cancelUrl,
+                                              String webhookUrl,
+                                              boolean sendRealBuyerEmail) {
         if (creds == null || !creds.isApiUsable()) {
             return err("TAZAPAY_CREDENTIALS", "Tazapay API 키가 없습니다.");
         }
@@ -138,7 +167,8 @@ public class TazapayApiClient {
         body.put("statement_descriptor", STATEMENT_DESCRIPTOR);
 
         ObjectNode customer = objectMapper.createObjectNode();
-        customer.put("email", PgOutboundMerchantPrivacy.safePgCustomerEmail(customerEmail));
+        customer.put("email",
+                PgOutboundMerchantPrivacy.safePgCustomerEmail(customerEmail, sendRealBuyerEmail));
         customer.put("name", "Customer");
         customer.put("country", "US");
         body.set("customer_details", customer);

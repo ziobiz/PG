@@ -352,6 +352,10 @@ public class HqApiConfig {
     @Column(name = "url_pay_order_no_show_default_yn", nullable = false, length = 1)
     private String urlPayOrderNoShowDefaultYn = "N";
 
+    /** 이메일증명 본사 기본 — Y=실제 구매자 이메일을 PG 전송 / N=noreply 치환 */
+    @Column(name = "pg_buyer_email_attest_yn", nullable = false, length = 1)
+    private String pgBuyerEmailAttestYn = "Y";
+
     /** 결제창 상품명 사용 본사 기본 — Y/N */
     @Column(name = "url_pay_product_name_use_default_yn", nullable = false, length = 1)
     private String urlPayProductNameUseDefaultYn = "Y";
@@ -899,6 +903,10 @@ public class HqApiConfig {
     public String getUrlPayOrderNoShowDefaultYn() { return urlPayOrderNoShowDefaultYn; }
     public void setUrlPayOrderNoShowDefaultYn(String v) {
         this.urlPayOrderNoShowDefaultYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(v, "N");
+    }
+    public String getPgBuyerEmailAttestYn() { return pgBuyerEmailAttestYn; }
+    public void setPgBuyerEmailAttestYn(String v) {
+        this.pgBuyerEmailAttestYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(v, "Y");
     }
     public String getUrlPayProductNameUseDefaultYn() { return urlPayProductNameUseDefaultYn; }
     public void setUrlPayProductNameUseDefaultYn(String v) {

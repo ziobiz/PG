@@ -861,6 +861,24 @@
     );
   }
 
+  /** 가맹 — PG 이메일증명 (본사설정 따름 / 활성 / 비활성) */
+  function merchantPgBuyerEmailAttestCardSection() {
+    return {
+      title: '이메일증명',
+      id: 'merchantPgBuyerEmailAttestCard',
+      merchantOnly: true,
+      notice: '활성 시 PG로 실제 구매자 이메일을 보냅니다. 비활성 시 noreply@icopay.co.kr 로 치환합니다. 「본사설정 따름」이면 본사정책 → 결제 라우팅 → 이메일증명을 따릅니다. 가맹에서 활성/비활성으로 바꾸면 가맹이 본사보다 우선합니다. 신규 가맹 기본값은 본사설정 따름입니다.',
+      rows: [
+        [{ label: '이메일증명', type: 'select', name: 'pgBuyerEmailAttestYn', options: [
+          { v: 'FOLLOW_HQ', t: '본사설정 따름' },
+          { v: 'Y', t: '활성' },
+          { v: 'N', t: '비활성' }
+        ], col: 3 },
+         { label: '', type: 'note', col: 9, text: 'ICOPAY 결제내역 고객 이메일은 이 설정과 무관하게 실제 구매자 값이 유지됩니다.' }]
+      ]
+    };
+  }
+
   /** 가맹 등록·정보 — 가맹 API 연동 채널(인라인·리다이렉트·WordPress) */
   function merchantApiIntegrationChannelsCardSection() {
     return {
@@ -4929,6 +4947,14 @@
           ]
         },
         {
+          title: '이메일증명',
+          notice: 'PG(PAYSO·TAZAPAY 등)로 보내는 구매자 이메일입니다. 활성=실제 구매자 이메일을 전송합니다. 비활성=noreply@icopay.co.kr 로 강제 치환합니다. 가맹이 「본사설정 따름」이면 이 본사 값이 적용되고, 가맹에서 활성/비활성으로 바꾸면 가맹이 우선합니다. 기본값은 활성입니다.',
+          rows: [
+            [{ label: '이메일증명', type: 'select', name: 'pgBuyerEmailAttestYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 3 },
+             { label: '', type: 'note', col: 9, text: 'ICOPAY 결제내역에는 항상 실제 구매자 이메일이 저장됩니다. 이 설정은 PG 전산(Order Listing 등)에 보이는 customerEmail 만 제어합니다.' }]
+          ]
+        },
+        {
           title: '멀티 결제대행사 라우팅',
           notice: '여러 결제대행사를 브랜드·통화 기준으로 나눠 쓸지 설정합니다. 가맹 「결제대행사 설정」행과 함께 동작합니다.',
           rows: [
@@ -5598,6 +5624,7 @@
         merchantCheckoutCompositionCardSection(),
         merchantApiUrlPayCheckoutCardSection(),
         merchantApiRedirectCheckoutCardSection(),
+        merchantPgBuyerEmailAttestCardSection(),
         merchantApiIntegrationChannelsCardSection(),
         merchantJpayApiSubscriptionCardSection(),
         merchantSplitPayCardSection(),
@@ -6136,6 +6163,7 @@
         merchantCheckoutCompositionCardSection(),
         merchantApiUrlPayCheckoutCardSection(),
         merchantApiRedirectCheckoutCardSection(),
+        merchantPgBuyerEmailAttestCardSection(),
         merchantApiIntegrationChannelsCardSection(),
         merchantJpayApiSubscriptionCardSection(),
         merchantSplitPayCardSection(),
@@ -6598,6 +6626,7 @@
         merchantCheckoutCompositionCardSection(),
         merchantApiUrlPayCheckoutCardSection(),
         merchantApiRedirectCheckoutCardSection(),
+        merchantPgBuyerEmailAttestCardSection(),
         merchantApiIntegrationChannelsCardSection(),
         merchantJpayApiSubscriptionCardSection(),
         merchantSplitPayCardSection(),

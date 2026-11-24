@@ -46,6 +46,7 @@ public class TazapayPaymentService {
     private final HostedPayReturnTokenService hostedPayReturnTokenService;
     private final PayPresaleRiskFilterService payPresaleRiskFilterService;
     private final UrlPayPublicCheckoutService urlPayPublicCheckoutService;
+    private final PgBuyerEmailAttestService pgBuyerEmailAttestService;
 
     @Value("${pg.public-base-url:https://api.icopay.co.kr}")
     private String publicBaseUrl;
@@ -59,7 +60,8 @@ public class TazapayPaymentService {
                                  HqNotifyEnvService hqNotifyEnvService,
                                  HostedPayReturnTokenService hostedPayReturnTokenService,
                                  PayPresaleRiskFilterService payPresaleRiskFilterService,
-                                 @Lazy UrlPayPublicCheckoutService urlPayPublicCheckoutService) {
+                                 @Lazy UrlPayPublicCheckoutService urlPayPublicCheckoutService,
+                                 PgBuyerEmailAttestService pgBuyerEmailAttestService) {
         this.orgUnitRepository = orgUnitRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.chillPayService = chillPayService;
@@ -70,6 +72,7 @@ public class TazapayPaymentService {
         this.hostedPayReturnTokenService = hostedPayReturnTokenService;
         this.payPresaleRiskFilterService = payPresaleRiskFilterService;
         this.urlPayPublicCheckoutService = urlPayPublicCheckoutService;
+        this.pgBuyerEmailAttestService = pgBuyerEmailAttestService;
     }
 
     public Map<String, String> publicNotiIngressUrls() {
@@ -188,16 +191,17 @@ public class TazapayPaymentService {
         String webhookUrl = NotiProvisionClient.defaultBaseUrlIfBlank(
                 hqNotifyEnvService.getOrCreate().getNotiProvisionBaseUrl()) + NOTI_WEBHOOK_PATH;
 
+        boolean sendRealEmail = pgBuyerEmailAttestService.shouldSendRealBuyerEmail(orgUnitId);
         Map<String, Object> api;
         if (hosted) {
             api = apiClient.createCheckout(creds, pgOrderRef, charge.pgAmount(), charge.settlementCurrency(),
-                    buyerEmail, returnUrl, cancelUrl, webhookUrl);
+                    buyerEmail, returnUrl, cancelUrl, webhookUrl, sendRealEmail);
         } else {
             String buyerCountry = firstNonBlank(
                     str(body.get("payCountry")), str(body.get("country")),
                     str(body.get("countryCode")), str(body.get("billingCountry")));
             api = apiClient.createPayin(creds, pgOrderRef, charge.pgAmount(), charge.settlementCurrency(),
-                    buyerEmail, buyerName, buyerCountry, returnUrl, cancelUrl, webhookUrl);
+                    buyerEmail, buyerName, buyerCountry, returnUrl, cancelUrl, webhookUrl, sendRealEmail);
         }
         if (!Boolean.TRUE.equals(api.get("ok"))) {
             String msg = str(api.get("message"));

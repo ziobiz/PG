@@ -102,12 +102,29 @@ public final class PgOutboundMerchantPrivacy {
     }
 
     /**
-     * PG 로 보내는 customerEmail — 가맹 도메인(@shop.com 등) 유출 방지.
-     * ICOPAY 도메인 메일이거나 비어 있으면 {@link #SAFE_PG_CUSTOMER_EMAIL}.
-     * 구매자 이메일은 ICOPAY DB·가맹 통보에만 두고, PG API 에는 중립 메일만 보낸다.
+     * PG 로 보내는 customerEmail.
+     * {@code sendRealBuyerEmail=false} 이면 항상 {@link #SAFE_PG_CUSTOMER_EMAIL}.
+     * {@code true} 이면 실제 구매자 이메일을 보내고, 비어 있거나 '@' 없으면 중립 메일로 폴백.
      */
-    public static String safePgCustomerEmail(String ignoredBuyerOrMerchantEmail) {
-        return SAFE_PG_CUSTOMER_EMAIL;
+    public static String safePgCustomerEmail(String buyerEmail) {
+        return safePgCustomerEmail(buyerEmail, false);
+    }
+
+    public static String safePgCustomerEmail(String buyerEmail, boolean sendRealBuyerEmail) {
+        if (!sendRealBuyerEmail) {
+            return SAFE_PG_CUSTOMER_EMAIL;
+        }
+        if (buyerEmail == null || buyerEmail.isBlank()) {
+            return SAFE_PG_CUSTOMER_EMAIL;
+        }
+        String e = buyerEmail.trim();
+        if (e.length() > 200 || e.indexOf('@') < 1 || e.indexOf('@') == e.length() - 1) {
+            return SAFE_PG_CUSTOMER_EMAIL;
+        }
+        if (containsUrlDomainOrIp(e) && !e.toLowerCase(Locale.ROOT).contains("@")) {
+            return SAFE_PG_CUSTOMER_EMAIL;
+        }
+        return e.length() > 100 ? e.substring(0, 100) : e;
     }
 
     /** PG description — URL·도메인·IP·주문패턴이면 {@link #SAFE_PG_DESCRIPTION}. */

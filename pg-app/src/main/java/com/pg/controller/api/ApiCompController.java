@@ -392,6 +392,7 @@ public class ApiCompController {
             @RequestParam(required = false) String apiBrokerInlineUseYn,
             @RequestParam(required = false) String apiBrokerRedirectUseYn,
             @RequestParam(required = false) String simpleQrCheckoutUseYn,
+            @RequestParam(required = false) String pgBuyerEmailAttestYn,
             @RequestParam(required = false) String simpleQrShowOrderNoYn,
             @RequestParam(required = false) String simpleQrShowProductYn,
             @RequestParam(required = false) String simpleQrShowNameYn,
@@ -540,6 +541,7 @@ public class ApiCompController {
         compService.patchMerchantMobileCheckoutMode(saved.getCode(), mobileCheckoutMode);
         if (saved.getId() != null) {
             compService.applySimpleQrCheckoutUseYn(saved.getId(), simpleQrCheckoutUseYn);
+            compService.applyPgBuyerEmailAttestYn(saved.getId(), pgBuyerEmailAttestYn);
             compService.applySimpleQrConfirmFieldShow(saved.getId(),
                     simpleQrShowOrderNoYn, simpleQrShowProductYn, simpleQrShowNameYn,
                     simpleQrShowEmailYn, simpleQrShowPhoneYn);
@@ -795,6 +797,7 @@ public class ApiCompController {
             @RequestParam(required = false) String apiBrokerInlineUseYn,
             @RequestParam(required = false) String apiBrokerRedirectUseYn,
             @RequestParam(required = false) String simpleQrCheckoutUseYn,
+            @RequestParam(required = false) String pgBuyerEmailAttestYn,
             @RequestParam(required = false) String simpleQrShowOrderNoYn,
             @RequestParam(required = false) String simpleQrShowProductYn,
             @RequestParam(required = false) String simpleQrShowNameYn,
@@ -967,6 +970,7 @@ public class ApiCompController {
                 compService.patchMerchantMobileCheckoutMode(compId, mobileCheckoutMode);
                 orgUnitRepository.findByCode(compId != null ? compId.trim() : "").ifPresent(ou -> {
                         compService.applySimpleQrCheckoutUseYn(ou.getId(), simpleQrCheckoutUseYn);
+                        compService.applyPgBuyerEmailAttestYn(ou.getId(), pgBuyerEmailAttestYn);
                         compService.applySimpleQrConfirmFieldShow(ou.getId(),
                                 simpleQrShowOrderNoYn, simpleQrShowProductYn, simpleQrShowNameYn,
                                 simpleQrShowEmailYn, simpleQrShowPhoneYn);

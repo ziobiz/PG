@@ -2180,6 +2180,8 @@ public class CompService {
                             m.put("apiBrokerInlineUseYn", mp.getApiBrokerInlineUseYn() != null ? mp.getApiBrokerInlineUseYn() : "Y");
                             m.put("apiBrokerRedirectUseYn", mp.getApiBrokerRedirectUseYn() != null ? mp.getApiBrokerRedirectUseYn() : "Y");
                             m.put("simpleQrCheckoutUseYn", mp.getSimpleQrCheckoutUseYn() != null ? mp.getSimpleQrCheckoutUseYn() : "N");
+                            m.put("pgBuyerEmailAttestYn",
+                                    com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getPgBuyerEmailAttestYn()));
                             m.put("simpleQrShowOrderNoYn", mp.getSimpleQrShowOrderNoYn() != null ? mp.getSimpleQrShowOrderNoYn() : "Y");
                             m.put("simpleQrShowProductYn", mp.getSimpleQrShowProductYn() != null ? mp.getSimpleQrShowProductYn() : "Y");
                             m.put("simpleQrShowNameYn", mp.getSimpleQrShowNameYn() != null ? mp.getSimpleQrShowNameYn() : "Y");
@@ -2334,6 +2336,8 @@ public class CompService {
                             m.put("apiBrokerInlineUseYn", mp.getApiBrokerInlineUseYn() != null ? mp.getApiBrokerInlineUseYn() : "Y");
                             m.put("apiBrokerRedirectUseYn", mp.getApiBrokerRedirectUseYn() != null ? mp.getApiBrokerRedirectUseYn() : "Y");
                             m.put("simpleQrCheckoutUseYn", mp.getSimpleQrCheckoutUseYn() != null ? mp.getSimpleQrCheckoutUseYn() : "N");
+                            m.put("pgBuyerEmailAttestYn",
+                                    com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getPgBuyerEmailAttestYn()));
                             m.put("simpleQrShowOrderNoYn", mp.getSimpleQrShowOrderNoYn() != null ? mp.getSimpleQrShowOrderNoYn() : "Y");
                             m.put("simpleQrShowProductYn", mp.getSimpleQrShowProductYn() != null ? mp.getSimpleQrShowProductYn() : "Y");
                             m.put("simpleQrShowNameYn", mp.getSimpleQrShowNameYn() != null ? mp.getSimpleQrShowNameYn() : "Y");
@@ -3723,6 +3727,17 @@ public class CompService {
         }
         merchantProfileRepository.findByOrgUnitId(orgUnitId).ifPresent(mp -> {
             mp.setSimpleQrCheckoutUseYn(simpleQrYn.trim());
+            merchantProfileRepository.save(mp);
+        });
+    }
+
+    /** PG 이메일증명 FOLLOW_HQ|Y|N */
+    public void applyPgBuyerEmailAttestYn(Long orgUnitId, String attestYn) {
+        if (orgUnitId == null || attestYn == null || attestYn.isBlank()) {
+            return;
+        }
+        merchantProfileRepository.findByOrgUnitId(orgUnitId).ifPresent(mp -> {
+            mp.setPgBuyerEmailAttestYn(attestYn.trim());
             merchantProfileRepository.save(mp);
         });
     }

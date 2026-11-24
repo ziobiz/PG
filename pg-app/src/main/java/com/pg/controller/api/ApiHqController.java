@@ -2048,6 +2048,8 @@ public class ApiHqController {
             if (c.getApiBrokerRedirectEnabledYn() != null) data.put("apiBrokerRedirectEnabledYn", c.getApiBrokerRedirectEnabledYn());
             data.put("apiBrokerSimpleQrEnabledYn",
                     c.getApiBrokerSimpleQrEnabledYn() != null ? c.getApiBrokerSimpleQrEnabledYn() : "Y");
+            data.put("pgBuyerEmailAttestYn",
+                    c.getPgBuyerEmailAttestYn() != null ? c.getPgBuyerEmailAttestYn() : "Y");
             data.put("simplePayLogoModeDefault",
                     c.getSimplePayLogoModeDefault() != null ? c.getSimplePayLogoModeDefault() : "HTML");
             data.put("simplePayLogoUrlDefault",
@@ -2384,6 +2386,7 @@ public class ApiHqController {
         c.setApiBrokerInlineEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("apiBrokerInlineEnabledYn", "Y"))) ? "N" : "Y");
         c.setApiBrokerRedirectEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("apiBrokerRedirectEnabledYn", "Y"))) ? "N" : "Y");
         c.setApiBrokerSimpleQrEnabledYn(String.valueOf(body.getOrDefault("apiBrokerSimpleQrEnabledYn", "Y")));
+        c.setPgBuyerEmailAttestYn(String.valueOf(body.getOrDefault("pgBuyerEmailAttestYn", "Y")));
         c.setSimplePayLogoModeDefault(String.valueOf(body.getOrDefault("simplePayLogoModeDefault", "HTML")));
         Object splu = body.get("simplePayLogoUrlDefault");
         c.setSimplePayLogoUrlDefault(splu != null && !splu.toString().isBlank() ? splu.toString().trim() : null);

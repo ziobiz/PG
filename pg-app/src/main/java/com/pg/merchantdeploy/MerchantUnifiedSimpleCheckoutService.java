@@ -250,14 +250,27 @@ public class MerchantUnifiedSimpleCheckoutService {
         if (dispCur.isBlank()) {
             dispCur = str(data.get("currency"));
         }
-        BigDecimal dispAmt = parseAmount(data.get("amount"));
-        if (dispCur.isBlank() || dispAmt == null || dispAmt.compareTo(BigDecimal.ZERO) <= 0) {
-            data.put("urlPayPricingMode", UrlPayDisplayFxService.MODE_DISPLAY_FX_THB);
-            return;
-        }
         String opPg = chillPayService.resolveUrlPayDisplayFxQuotePgCd(orgUnitId);
         if (opPg == null || opPg.isBlank()) {
             opPg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
+        }
+        BigDecimal dispAmt = parseAmount(data.get("amount"));
+        /* 금액 0·미확정(UI 미리보기 등)에도 DP 이면 금액·청구금액 2행 구성을 유지 */
+        if (dispCur.isBlank() || dispAmt == null || dispAmt.compareTo(BigDecimal.ZERO) <= 0) {
+            data.put("urlPayPricingMode", UrlPayDisplayFxService.MODE_DISPLAY_FX_THB);
+            if (!dispCur.isBlank()) {
+                data.put("displayCurrency", dispCur.toUpperCase(Locale.ROOT));
+                data.put("currency", dispCur.toUpperCase(Locale.ROOT));
+            }
+            String settleHint = urlPayDisplayFxService.settlementCurrencyForPg(opPg);
+            if (settleHint != null && !settleHint.isBlank()) {
+                data.put("settlementCurrency", settleHint);
+                data.put("settlementCurrencyHint", settleHint);
+                if (data.get("settlementAmount") == null) {
+                    data.put("settlementAmount", "0");
+                }
+            }
+            return;
         }
         try {
             Optional<UrlPayDisplayFxService.QuoteResult> q =

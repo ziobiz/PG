@@ -426,6 +426,10 @@ public class MerchantProfile {
     @Column(name = "url_pay_order_no_show_yn", nullable = false, length = 16)
     private String urlPayOrderNoShowYn = "FOLLOW_HQ";
 
+    /** PG 이메일증명 — FOLLOW_HQ|Y|N (Y=실제 구매자 이메일 전송, N=noreply 치환) */
+    @Column(name = "pg_buyer_email_attest_yn", nullable = false, length = 16)
+    private String pgBuyerEmailAttestYn = "FOLLOW_HQ";
+
     /**
      * 결제창 구매자 입력 필드 프리셋 FK.
      * NULL = 프리셋 비활성(가맹이 이메일·국가·전화·배송을 개별 활성/비활성).
@@ -1337,6 +1341,11 @@ public class MerchantProfile {
     public String getUrlPayOrderNoShowYn() { return urlPayOrderNoShowYn; }
     public void setUrlPayOrderNoShowYn(String v) {
         this.urlPayOrderNoShowYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(v);
+    }
+
+    public String getPgBuyerEmailAttestYn() { return pgBuyerEmailAttestYn; }
+    public void setPgBuyerEmailAttestYn(String v) {
+        this.pgBuyerEmailAttestYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(v);
     }
 
     public Long getUrlPayCheckoutFieldPresetId() { return urlPayCheckoutFieldPresetId; }

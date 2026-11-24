@@ -66,7 +66,7 @@ public class PaysoApiClient {
                                                String postbackUrl,
                                                String paymentChannel) {
         return createUiPayment(creds, referenceNo, customerEmail, description, amount, currencyCode,
-                lang, returnUrl, postbackUrl, paymentChannel, null, null, null);
+                lang, returnUrl, postbackUrl, paymentChannel, null, null, null, false);
     }
 
     /**
@@ -87,6 +87,24 @@ public class PaysoApiClient {
                                                String customerName,
                                                String firstName,
                                                String lastName) {
+        return createUiPayment(creds, referenceNo, customerEmail, description, amount, currencyCode,
+                lang, returnUrl, postbackUrl, paymentChannel, customerName, firstName, lastName, false);
+    }
+
+    public Map<String, Object> createUiPayment(PaysoCredentials creds,
+                                               String referenceNo,
+                                               String customerEmail,
+                                               String description,
+                                               BigDecimal amount,
+                                               String currencyCode,
+                                               String lang,
+                                               String returnUrl,
+                                               String postbackUrl,
+                                               String paymentChannel,
+                                               String customerName,
+                                               String firstName,
+                                               String lastName,
+                                               boolean sendRealBuyerEmail) {
         if (creds == null || !creds.isUsable()) {
             return err("PAYSO_CREDENTIALS", "Payso API 키가 없습니다.");
         }
@@ -99,8 +117,9 @@ public class PaysoApiClient {
         }
         ObjectNode body = objectMapper.createObjectNode();
         body.put("merchantId", creds.merchantId());
-        /* 구매자·가맹 이메일 도메인 유출 금지 — 항상 ICOPAY 중립 메일 */
-        body.put("customerEmail", PgOutboundMerchantPrivacy.safePgCustomerEmail(customerEmail));
+        /* 이메일증명 활성 시 실제 구매자 이메일, 비활성 시 noreply@icopay.co.kr */
+        body.put("customerEmail",
+                PgOutboundMerchantPrivacy.safePgCustomerEmail(customerEmail, sendRealBuyerEmail));
         /*
          * Payso HPP: customerName 에 하이픈·숫자·기호가 있으면
          * 「Invalid data, please check the customerName」로 거절(500 UI).
