@@ -126,18 +126,15 @@
       function resolveInitialUrlPayLang() {
         try {
           var p = new URLSearchParams(window.location.search);
-          var raw = (p.get('lang') || p.get('LANG') || '').trim().toUpperCase();
+          var raw = (p.get('lang') || p.get('langCode') || p.get('LANG') || '').trim().toUpperCase();
           if (raw === 'KO' || raw === 'KR') raw = 'KOR';
           if (raw === 'JA' || raw === 'JP') raw = 'JPN';
-          if (raw === 'ZH' || raw === 'CN') raw = 'CHN';
+          if (raw === 'ZH' || raw === 'CN' || raw === 'CH') raw = 'CHN';
           if (raw === 'TH') raw = 'THA';
           if (raw === 'EN') raw = 'ENG';
           if (raw === 'KOR' || raw === 'ENG' || raw === 'CHN' || raw === 'JPN' || raw === 'THA') return raw;
         } catch (eQ) { /* ignore */ }
-        var list = [];
-        try { if (navigator.languages && navigator.languages.length) { for (var li = 0; li < navigator.languages.length; li++) list.push(navigator.languages[li]); } } catch (e1) {}
-        try { if (navigator.language) list.push(navigator.language); } catch (e2) {}
-        for (var i = 0; i < list.length; i++) { var hit = mapBrowserLocaleToUrlPayLang(list[i]); if (hit) return hit; }
+        /* 해외 USD: URL lang 없으면 ENG 고정 — 브라우저 한글이어도 KSPAY language=ENG(영문 상점명)로 맞춤 */
         return 'ENG';
       }
       function detectBrowserUrlPayLang() { return resolveInitialUrlPayLang(); }

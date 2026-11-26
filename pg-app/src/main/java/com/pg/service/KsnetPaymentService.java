@@ -186,14 +186,16 @@ public class KsnetPaymentService {
         String callbackUrl = PgOutboundUrlPolicy.enforceOwnDomain(
                 publicBase + "/ksnet-pay.html?ksnetReturn=1&orderNo=" + enc(orderNo), publicBase, publicBase);
 
-        /* KSNET orderNumb = ICOPAY 불투명 ref(ALNUM_50). DB order_no = 가맹 orderNo, pay_no = ref, tid = chill_transaction_id */
+        /* KSNET orderNumb = ICOPAY 불투명 ref(숫자 12자리, PAYSO와 동일). DB order_no = 가맹 orderNo, pay_no·approval_no = ref, tid = chill_transaction_id */
         final String pgOrderRef = com.pg.util.IcopayPgOrderRef.ksnetOrderNumb();
         com.pg.util.IcopayPgOrderRef.putInSaleBody(body, pgOrderRef);
         ksnetSaleRecordService.recordOrTouchPending(orgUnitId, orderNo, amountUsd, CURRENCY_USD, routeNo,
                 productName, txnOrigin, shopAmt, shopCur, buyerName, buyerEmail, buyerTel, body);
 
+        String ksnetLang = mapIcopayLangToKsnetLanguage(
+                firstNonBlank(str(body.get("lang")), str(body.get("langCode")), str(body.get("language"))));
         Map<String, Object> params = buildRequestPayParams(creds, pgOrderRef, productName, amountUsd,
-                buyerName, buyerEmail, buyerTel, mobile, callbackUrl);
+                buyerName, buyerEmail, buyerTel, mobile, callbackUrl, ksnetLang);
 
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("success", true);
@@ -214,10 +216,19 @@ public class KsnetPaymentService {
      * KSPAY.requestPay 파라미터(WebFEP 결제창형 문서 필드명).
      * 해외 전용: currency=USD, payMethod=card, showCard=C(25), payAmount=USD×1000.
      * PC=POPUP, 모바일=MOBILE+callbackUrl. system=TEST|REAL.
+     * {@code language}=ENG|KOR… — 결제창 상점 영문명(ONTHELINE CO., LTD. 등)은 ENG 시 적용(KSNET 안내).
      */
     public Map<String, Object> buildRequestPayParams(KsnetCredentials creds, String orderNo, String productName,
                                                      BigDecimal amountUsd, String buyerName, String buyerEmail,
                                                      String buyerTel, boolean mobile, String callbackUrl) {
+        return buildRequestPayParams(creds, orderNo, productName, amountUsd, buyerName, buyerEmail, buyerTel,
+                mobile, callbackUrl, "ENG");
+    }
+
+    public Map<String, Object> buildRequestPayParams(KsnetCredentials creds, String orderNo, String productName,
+                                                     BigDecimal amountUsd, String buyerName, String buyerEmail,
+                                                     String buyerTel, boolean mobile, String callbackUrl,
+                                                     String language) {
         Map<String, Object> p = new LinkedHashMap<>();
         p.put("system", creds.sandbox() ? "TEST" : "REAL");
         p.put("winType", mobile ? "MOBILE" : "POPUP");
@@ -241,10 +252,36 @@ public class KsnetPaymentService {
         p.put("installMonth", "00");
         p.put("interestType", "NONE");
         p.put("goodType", "1");
+        /* KSNET: language=ENG → 결제창 상점 영문명. 미지정·미지원은 ENG(해외 USD 기본). */
+        p.put("language", mapIcopayLangToKsnetLanguage(language));
         if (mobile && callbackUrl != null && !callbackUrl.isBlank()) {
             p.put("callbackUrl", callbackUrl);
         }
         return p;
+    }
+
+    /**
+     * ICOPAY 결제창 언어 → KSPAY {@code language}.
+     * 해외 USD 기본 ENG(영문 상점명). KOR 만 한국어, 그 외 ENG.
+     */
+    static String mapIcopayLangToKsnetLanguage(String icopayLang) {
+        String u = icopayLang != null ? icopayLang.trim().toUpperCase(Locale.ROOT) : "";
+        if (u.equals("KO") || u.equals("KR") || u.equals("KOR")) {
+            return "KOR";
+        }
+        if (u.equals("EN") || u.equals("ENG") || u.equals("US") || u.equals("EN-US") || u.equals("EN_US")) {
+            return "ENG";
+        }
+        if (u.equals("JA") || u.equals("JP") || u.equals("JPN")) {
+            return "ENG";
+        }
+        if (u.equals("ZH") || u.equals("CN") || u.equals("CHN") || u.equals("CH")) {
+            return "ENG";
+        }
+        if (u.equals("TH") || u.equals("THA")) {
+            return "ENG";
+        }
+        return "ENG";
     }
 
     /* ================= 승인 ================= */
@@ -329,9 +366,12 @@ public class KsnetPaymentService {
         String authNo = str(res.get("authNo"));
         String msg = str(res.get("message"));
         String card = str(res.get("cardMasked"));
-        if (approved && amountMismatch(str(res.get("amount")), amountKsnet)) {
+        java.time.LocalDateTime tradeAt = com.pg.integration.pg.ksnet.KsnetApiClient.parseTradeDateTime(
+                str(res.get("tradeDate")), str(res.get("tradeTime")), str(res.get("tradeDateTime")));
+        if (approved && amountMismatch(str(res.get("amountRaw")).isBlank()
+                ? str(res.get("amount")) : str(res.get("amountRaw")), amountKsnet)) {
             log.warn("KSNET 승인 금액 불일치 comp={} order={} sent={} got={} → 승인 취소 시도",
-                    comp, orderNo, amountKsnet, res.get("amount"));
+                    comp, orderNo, amountKsnet, res.get("amountRaw") != null ? res.get("amountRaw") : res.get("amount"));
             try {
                 apiClient.cancel(credOpt.get(), tid, com.pg.util.PgTrnsctnOrderLookup.pgOrderKey(txn),
                         amountKsnet, "amount mismatch");
@@ -339,11 +379,11 @@ public class KsnetPaymentService {
                 log.warn("KSNET 금액불일치 취소 실패 order={}: {}", orderNo, e.getMessage());
             }
             ksnetSaleRecordService.applyApproveOutcome(comp, orderNo, false, tid, authNo,
-                    "Amount mismatch", card, "KSNET_AMOUNT_MISMATCH");
+                    "Amount mismatch", card, "KSNET_AMOUNT_MISMATCH", tradeAt);
             return fail("승인 금액이 일치하지 않아 결제가 취소되었습니다.", "KSNET_AMOUNT_MISMATCH");
         }
         Optional<PgTrnsctn> saved = ksnetSaleRecordService.applyApproveOutcome(
-                comp, orderNo, approved, tid, authNo, msg, card, str(res.get("code")));
+                comp, orderNo, approved, tid, authNo, msg, card, str(res.get("code")), tradeAt);
         if (saved.isEmpty()) {
             return fail("거래 반영에 실패했습니다.", "KSNET_RECORD_FAILED");
         }

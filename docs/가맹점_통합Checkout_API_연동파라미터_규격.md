@@ -135,6 +135,8 @@ ICOPAY는 **email · phone · countryIso2** 를 모든 가맹 prepare(인라인�
 
 가맹 Checkout에는 **취소·환불 요청 엔드포인트가 없습니다.** 환불은 ICOPAY 결제내역(자동환불·강제환불) 또는 결제망 캐비닛 처리 후 **Webhook + Status API**로 확인합니다.
 
+**서버 웹훅 HMAC:** 본사 기본 OFF · 가맹 FOLLOW_HQ|Y|N(가맹 우선). 활성 시 헤더 `X-Icopay-Signature: v1=` + HMAC-SHA256(raw body). 상세는 [가맹점_PG_API_연동가이드.md](./가맹점_PG_API_연동가이드.md) §7 · 샘플 `merchant-api-samples/php/notify_webhook.php`.
+
 ---
 
 ## 7. 주요 errorCode

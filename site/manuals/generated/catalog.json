@@ -1,5 +1,5 @@
 {
-  "version": "2.81",
+  "version": "2.82",
   "date": "2026-09-17",
   "format": "pdf",
   "note": "List V badges use each item.docVersion matching PDF. Risk-intro has distinct KO/EN/JA/ZH/TH PDFs.",
@@ -118,7 +118,21 @@
         "th": "คู่มือปฏิบัติการร้านค้า"
       },
       "pdfDir": "manuals/pdf/merchant-ops",
-      "docVersion": "2.74"
+      "docVersion": "2.82"
+    },
+    {
+      "id": "merchant-webhook-hmac",
+      "audience": "merchant",
+      "format": "pdf",
+      "titles": {
+        "ko": "서버 웹훅(HMAC) API 연동 메뉴얼",
+        "en": "Server Webhook (HMAC) API Manual",
+        "ja": "サーバーWebhook(HMAC) API連携マニュアル",
+        "zh": "服务器 Webhook(HMAC) API 对接手册",
+        "th": "คู่มือเชื่อมต่อ Server Webhook (HMAC) API"
+      },
+      "pdfDir": "manuals/pdf/merchant-webhook-hmac",
+      "docVersion": "1.00"
     },
     {
       "id": "merchant-chatbot",

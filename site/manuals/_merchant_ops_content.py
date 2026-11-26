@@ -2,7 +2,10 @@
 """가맹점 운영 메뉴얼 content — chatbot merchant-manual design pattern."""
 from __future__ import annotations
 
-from _merchant_user_manual_theme import DATE_EN, DATE_KO, VERSION
+from _merchant_user_manual_theme import DATE_EN, DATE_KO
+
+# merchant-ops PDF 문서 버전 (CJK Chrome PDF + 웹훅 절). 테마 공용 VERSION과 독립.
+VERSION = "2.82"
 
 
 def _meta(lang: str) -> str:
@@ -48,8 +51,9 @@ def ops_doc(lang: str) -> dict:
                 ("s5", "STEP 3 — 결제내역 조회"),
                 ("s6", "STEP 4 — 수수료·정산"),
                 ("s7", "가맹점 API·챗봇·크립토(해당 시)"),
-                ("s8", "일상 체크리스트"),
-                ("s9", "FAQ"),
+                ("s8", "서버 웹훅 보안(HMAC)·통보"),
+                ("s9", "일상 체크리스트"),
+                ("s10", "FAQ"),
             ],
             "body": f"""
     <h2 class="section-title" id="s1">1. 이 매뉴얼의 범위</h2>
@@ -135,7 +139,22 @@ def ops_doc(lang: str) -> dict:
     </ul>
     <hr class="section-rule">
 
-    <h2 class="section-title" id="s8">8. 일상 체크리스트</h2>
+    <h2 class="section-title" id="s8">8. 서버 웹훅 보안(HMAC)·통보</h2>
+    <div class="menu-path">업체관리 &gt; 가맹 상세 &gt; 웹훅 서명 · 가맹점API</div>
+    <p>결제 확정 <strong>서버 통보</strong>는 주로 <strong>NOTI → 가맹 callbackUrl</strong> 로 POST 됩니다. (브라우저 Result URL과 별개)</p>
+    <table>
+      <tr><th>항목</th><th>내용</th></tr>
+      <tr><td>설정</td><td>가맹 상세 → <strong>웹훅 서명</strong>: 본사설정 따름 / 활성 / 비활성. 활성 후 <strong>시크릿 재발급</strong>(평문 1회) → 가맹 서버에만 보관</td></tr>
+      <tr><td>헤더</td><td><code>X-Icopay-Signature: v1=&#123;hex&#125;</code></td></tr>
+      <tr><td>검증</td><td>HMAC-SHA256(<strong>raw body</strong>, secret). 실패 시 HTTP <strong>401</strong> 권장 · 성공 <strong>200</strong></td></tr>
+      <tr><td>문서·샘플</td><td>가맹점API 「서버 웹훅 보안(HMAC) — NOTI」 · <code>merchant-api-samples/docs/webhook-hmac-noti.*.md</code> · PHP <code>notify_webhook.php</code></td></tr>
+    </table>
+    <div class="info-box">본사 기본이 OFF여도 <strong>가맹만 활성</strong>하면 서명됩니다. 저장·재발급 시 ICOPAY가 NOTI에 설정을 동기합니다.</div>
+    <div class="warn-box">시크릿은 재발급 직후 1회만 평문으로 보입니다. 채팅·로그에 남기지 마십시오. IP allowlist만으로 검증하지 말고 <strong>HMAC을 주 검증</strong>으로 쓰십시오.</div>
+    <div class="check-box">상세 연동(규격·샘플·IP·체크리스트): 같은 「운영 메뉴얼」목록의 <strong>서버 웹훅(HMAC) API 연동 메뉴얼</strong>을 참고하십시오.</div>
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s9">9. 일상 체크리스트</h2>
     <div class="check-box">
       <ol>
         <li>공지사항 확인</li>
@@ -144,18 +163,20 @@ def ops_doc(lang: str) -> dict:
         <li>실패 급증 시 주문번호와 상위 공유</li>
         <li>수수료·정산 이상 여부</li>
         <li>챗봇 주문·상품(해당 시)</li>
+        <li>웹훅 서명 사용 시: callbackUrl에서 <code>X-Icopay-Signature</code> 검증·시크릿 보관 확인</li>
       </ol>
     </div>
     <hr class="section-rule">
 
-    <h2 class="section-title" id="s9">9. FAQ</h2>
+    <h2 class="section-title" id="s10">10. FAQ</h2>
     <div class="faq-item"><div class="faq-q">메뉴가 사이드바에 없습니다.</div><div class="faq-a">본사정책 → 접근·권한에서 닫혀 있습니다. 상위 본사·총판에 해당 메뉴 URL과 함께 권한 개방을 요청하세요.</div></div>
     <div class="faq-item"><div class="faq-q">결제 URL이 없거나 안내만 나옵니다.</div><div class="faq-a">웹결제 미사용·중지가 원인인 경우가 많습니다. 공지와 상위 담당자에게 확인하세요.</div></div>
     <div class="faq-item"><div class="faq-q">수수료·정산 금액이 예상과 다릅니다.</div><div class="faq-a">결제내역 승인액·상태와 대조한 뒤 정산일·금액을 상위에 전달하세요.</div></div>
     <div class="faq-item"><div class="faq-q">업체정보를 직접 수정하고 싶습니다.</div><div class="faq-a">내 업체정보는 조회 전용입니다. 상호·주소 변경은 본사·총판에 요청하세요.</div></div>
-    <div class="faq-item"><div class="faq-q">문서 버전이 예전(V2.53 등)으로 보입니다.</div><div class="faq-a">운영 메뉴얼 PDF는 플랫폼 라이브 버전(V{VERSION})과 함께 배포됩니다. 새로고침 후에도 이전이면 캐시를 비우거나 상위에 배포 반영을 확인하세요.</div></div>
+    <div class="faq-item"><div class="faq-q">문서 한글이 ??? 로 깨지거나 버전이 예전입니다.</div><div class="faq-a">가맹점 운영 메뉴얼 PDF는 Chrome 인쇄(UTF-8)로 재배포됩니다(문서 V{VERSION}). 새로고침·캐시 비우기 후에도 이전이면 상위에 배포 반영을 확인하세요.</div></div>
     <div class="faq-item"><div class="faq-q">크립토 결제 URL·통합결제 URL이 없습니다.</div><div class="faq-a">상위가 크립토 사용=Y와 허용자산을 켜고, 웹결제(카드)도 ON이어야 통합결제 URL이 생깁니다. 본사·총판에 요청하세요.</div></div>
     <div class="faq-item"><div class="faq-q">크립토 API Callback을 새로 등록해야 하나요?</div><div class="faq-a">아니요. 카드용 NOTI Callback을 Comp-Id로 재사용합니다. 연동 문서는 가맹점API·merchant-api-samples 크립토 가이드를 참고하세요.</div></div>
+    <div class="faq-item"><div class="faq-q">웹훅 서명은 어디서 켜나요?</div><div class="faq-a">업체관리 → 가맹 상세 → 웹훅 서명에서 활성 후 시크릿 재발급. 본사 기본 OFF여도 가맹만 ON 가능. 검증은 가맹점API HMAC 안내·샘플을 따르세요.</div></div>
 """,
         }
     if lang == "en":
@@ -180,8 +201,9 @@ def ops_doc(lang: str) -> dict:
                 ("s5", "STEP 3 — Payment list"),
                 ("s6", "STEP 4 — Fees & settlement"),
                 ("s7", "Merchant API · Chatbot · Crypto"),
-                ("s8", "Daily checklist"),
-                ("s9", "FAQ"),
+                ("s8", "Server webhook security (HMAC)"),
+                ("s9", "Daily checklist"),
+                ("s10", "FAQ"),
             ],
             "body": f"""
     <h2 class="section-title" id="s1">1. Scope</h2>
@@ -212,15 +234,30 @@ def ops_doc(lang: str) -> dict:
     <h2 class="section-title" id="s7">7. Merchant API · Chatbot · Crypto</h2>
     <p>Merchant API (if permitted) uses ICOPAY unified checkout for web pay, API inline, API redirect, chatbot, split pay, WooCommerce, and crypto (<code>payMeans=CRYPTO</code>). Crypto Callback reuses the card NOTI URL (Comp-Id). Chatbot merchants: see Chatbot Merchant Manual. Crypto API docs (5 languages): merchant-api-samples crypto-checkout-api.</p>
     <hr class="section-rule">
-    <h2 class="section-title" id="s8">8. Daily checklist</h2>
-    <div class="check-box"><ol><li>Notices</li><li>Payment / Unified / Crypto URL test</li><li>Today/yesterday approvals &amp; failures</li><li>Escalate spikes</li><li>Fee/settlement anomalies</li><li>Chatbot / crypto deposits if used</li></ol></div>
+    <h2 class="section-title" id="s8">8. Server webhook security (HMAC)</h2>
+    <div class="menu-path">Company &gt; Merchant detail &gt; Webhook signing · Merchant API</div>
+    <p>Confirmed payment <strong>server notify</strong> is mainly <strong>NOTI → merchant callbackUrl</strong> (separate from browser Result).</p>
+    <table>
+      <tr><th>Item</th><th>Detail</th></tr>
+      <tr><td>Settings</td><td>Webhook signing: Follow HQ / Active / Inactive. After Active, <strong>Rotate secret</strong> (plaintext once) — store only on the merchant server</td></tr>
+      <tr><td>Header</td><td><code>X-Icopay-Signature: v1=&#123;hex&#125;</code></td></tr>
+      <tr><td>Verify</td><td>HMAC-SHA256(<strong>raw body</strong>, secret). Prefer HTTP <strong>401</strong> on fail · <strong>200</strong> on OK</td></tr>
+      <tr><td>Docs</td><td>Merchant API “Server webhook security (HMAC) — NOTI” · <code>webhook-hmac-noti.*.md</code> · PHP <code>notify_webhook.php</code></td></tr>
+    </table>
+    <div class="info-box">HQ default may be OFF; merchant-only Active still signs. ICOPAY syncs settings to NOTI on save/rotate.</div>
+    <div class="warn-box">Secret is shown in plaintext only once after rotate. Prefer <strong>HMAC as primary verification</strong>, not IP allowlist alone.</div>
+    <div class="check-box">Full integration guide: see <strong>Server Webhook (HMAC) API Manual</strong> in the same Ops manuals list.</div>
     <hr class="section-rule">
-    <h2 class="section-title" id="s9">9. FAQ</h2>
+    <h2 class="section-title" id="s9">9. Daily checklist</h2>
+    <div class="check-box"><ol><li>Notices</li><li>Payment / Unified / Crypto URL test</li><li>Today/yesterday approvals &amp; failures</li><li>Escalate spikes</li><li>Fee/settlement anomalies</li><li>Chatbot / crypto deposits if used</li><li>If webhook signing: verify <code>X-Icopay-Signature</code> on callbackUrl and secret storage</li></ol></div>
+    <hr class="section-rule">
+    <h2 class="section-title" id="s10">10. FAQ</h2>
     <div class="faq-item"><div class="faq-q">Menu missing.</div><div class="faq-a">Ask HQ to open Access permissions for that URL.</div></div>
     <div class="faq-item"><div class="faq-q">Payment URL missing / notice only.</div><div class="faq-a">Usually web-pay off or suspended — check notices and HQ.</div></div>
     <div class="faq-item"><div class="faq-q">No crypto / unified URL.</div><div class="faq-a">Ask HQ to enable crypto use + assets (and web-pay for unified URL).</div></div>
     <div class="faq-item"><div class="faq-q">Need a new crypto Callback URL?</div><div class="faq-a">No — reuse the card NOTI Callback by Comp-Id. See crypto API guide in Merchant API samples.</div></div>
-    <div class="faq-item"><div class="faq-q">Document still shows V2.53.</div><div class="faq-a">Ops manuals ship with platform live V{VERSION}. Hard-refresh or confirm deployment.</div></div>
+    <div class="faq-item"><div class="faq-q">Korean text shows as ??? or old version.</div><div class="faq-a">Merchant Ops PDF is rebuilt with Chrome print (UTF-8), document V{VERSION}. Hard-refresh or confirm deployment.</div></div>
+    <div class="faq-item"><div class="faq-q">Where do I enable webhook signing?</div><div class="faq-a">Company → merchant detail → Webhook signing → Active + rotate secret. Merchant ON works even if HQ default is OFF. Follow Merchant API HMAC guide.</div></div>
 """,
         }
     return _ops_loc(lang)
@@ -235,9 +272,9 @@ def _ops_loc(lang: str) -> dict:
     }
     page, title, sub = titles[lang]
     toc = {
-        "ja": [("s1", "対象範囲"), ("s2", "開始前確認"), ("s3", "STEP 1 — ログイン・告知"), ("s4", "STEP 2 — 決済URL"), ("s5", "STEP 3 — 決済一覧"), ("s6", "STEP 4 — 手数料・精算"), ("s7", "API・チャットボット"), ("s8", "チェックリスト"), ("s9", "FAQ")],
-        "zh": [("s1", "适用范围"), ("s2", "开始前确认"), ("s3", "STEP 1 — 登录与公告"), ("s4", "STEP 2 — 支付 URL"), ("s5", "STEP 3 — 支付明细"), ("s6", "STEP 4 — 手续费与结算"), ("s7", "API与聊天机器人"), ("s8", "日常清单"), ("s9", "FAQ")],
-        "th": [("s1", "ขอบเขต"), ("s2", "ก่อนเริ่มใช้"), ("s3", "STEP 1 — เข้าสู่ระบบ/ประกาศ"), ("s4", "STEP 2 — Payment URL"), ("s5", "STEP 3 — รายการชำระ"), ("s6", "STEP 4 — ค่าธรรมเนียม/เคลียร์"), ("s7", "API/แชทบอท"), ("s8", "เช็คลิสต์"), ("s9", "FAQ")],
+        "ja": [("s1", "対象範囲"), ("s2", "開始前確認"), ("s3", "STEP 1 — ログイン・告知"), ("s4", "STEP 2 — 決済URL"), ("s5", "STEP 3 — 決済一覧"), ("s6", "STEP 4 — 手数料・精算"), ("s7", "API・チャットボット"), ("s8", "サーバーWebhook署名(HMAC)"), ("s9", "チェックリスト"), ("s10", "FAQ")],
+        "zh": [("s1", "适用范围"), ("s2", "开始前确认"), ("s3", "STEP 1 — 登录与公告"), ("s4", "STEP 2 — 支付 URL"), ("s5", "STEP 3 — 支付明细"), ("s6", "STEP 4 — 手续费与结算"), ("s7", "API与聊天机器人"), ("s8", "服务器 Webhook 签名(HMAC)"), ("s9", "日常清单"), ("s10", "FAQ")],
+        "th": [("s1", "ขอบเขต"), ("s2", "ก่อนเริ่มใช้"), ("s3", "STEP 1 — เข้าสู่ระบบ/ประกาศ"), ("s4", "STEP 2 — Payment URL"), ("s5", "STEP 3 — รายการชำระ"), ("s6", "STEP 4 — ค่าธรรมเนียม/เคลียร์"), ("s7", "API/แชทบอท"), ("s8", "ความปลอดภัย Webhook (HMAC)"), ("s9", "เช็คลิสต์"), ("s10", "FAQ")],
     }
     perm = {
         "ja": [
@@ -269,11 +306,63 @@ def _ops_loc(lang: str) -> dict:
     }
     en_s7 = (
         "Merchant API (if permitted) uses ICOPAY unified checkout for web pay, API inline, "
-        "API redirect, chatbot, split pay, WooCommerce, and crypto (payMeans=CRYPTO). "
+        "API redirect, chatbot, split pay, WooCommerce, and crypto (<code>payMeans=CRYPTO</code>). "
         "Crypto Callback reuses the card NOTI URL (Comp-Id). Chatbot merchants: see Chatbot Merchant Manual. "
         "Crypto API docs (5 languages): merchant-api-samples crypto-checkout-api."
     )
+    s8_title = {
+        "ja": "8. サーバーWebhook署名(HMAC)",
+        "zh": "8. 服务器 Webhook 签名(HMAC)",
+        "th": "8. ความปลอดภัย Webhook (HMAC)",
+    }
+    s8_body = {
+        "ja": """<div class="menu-path">業者管理 &gt; 加盟詳細 &gt; Webhook署名 · 加盟店API</div>
+    <p>確定通知は主に <strong>NOTI → 加盟 callbackUrl</strong> です（ブラウザ Result とは別）。</p>
+    <table>
+      <tr><th>項目</th><th>内容</th></tr>
+      <tr><td>設定</td><td>Webhook署名: 本社に従う / 有効 / 無効。有効後に<strong>シークレット再発行</strong>（平文1回）→ 加盟サーバーのみ保管</td></tr>
+      <tr><td>ヘッダ</td><td><code>X-Icopay-Signature: v1=&#123;hex&#125;</code></td></tr>
+      <tr><td>検証</td><td>HMAC-SHA256(<strong>raw body</strong>, secret)。失敗は HTTP <strong>401</strong> 推奨 · 成功 <strong>200</strong></td></tr>
+      <tr><td>文書</td><td>加盟店API「サーバーWebhookセキュリティ(HMAC) — NOTI」· <code>webhook-hmac-noti.*.md</code></td></tr>
+    </table>
+    <div class="info-box">本社既定がOFFでも加盟のみ有効で署名されます。保存/再発行でICOPAYがNOTIへ同期します。</div>
+    <div class="warn-box">シークレットは再発行直後のみ平文表示。IP許可だけに頼らず<strong>HMACを主検証</strong>にしてください。</div>""",
+        "zh": """<div class="menu-path">企业管理 &gt; 商户详情 &gt; Webhook 签名 · 商户 API</div>
+    <p>确认通知主要由 <strong>NOTI → 商户 callbackUrl</strong> 送达（与浏览器 Result 分开）。</p>
+    <table>
+      <tr><th>项目</th><th>说明</th></tr>
+      <tr><td>设置</td><td>Webhook 签名：跟随总部 / 启用 / 停用。启用后<strong>重新签发密钥</strong>（明文一次）→ 仅保存在商户服务器</td></tr>
+      <tr><td>请求头</td><td><code>X-Icopay-Signature: v1=&#123;hex&#125;</code></td></tr>
+      <tr><td>校验</td><td>HMAC-SHA256(<strong>raw body</strong>, secret)。失败建议 HTTP <strong>401</strong> · 成功 <strong>200</strong></td></tr>
+      <tr><td>文档</td><td>商户 API「服务器 Webhook 安全(HMAC) — NOTI」· <code>webhook-hmac-noti.*.md</code></td></tr>
+    </table>
+    <div class="info-box">即使总部默认为 OFF，仅商户启用也会签名。保存/轮换时 ICOPAY 会同步到 NOTI。</div>
+    <div class="warn-box">密钥仅在轮换后显示一次明文。请以 <strong>HMAC 为主校验</strong>，勿仅依赖 IP 白名单。</div>""",
+        "th": """<div class="menu-path">จัดการร้าน &gt; รายละเอียดร้าน &gt; ลายเซ็น Webhook · Merchant API</div>
+    <p>การแจ้งยืนยันหลักคือ <strong>NOTI → callbackUrl ของร้าน</strong> (แยกจาก Result ในเบราว์เซอร์)</p>
+    <table>
+      <tr><th>รายการ</th><th>รายละเอียด</th></tr>
+      <tr><td>ตั้งค่า</td><td>ลายเซ็น Webhook: ตาม HQ / เปิด / ปิด หลังเปิดให้<strong>ออก secret ใหม่</strong> (ข้อความชัด 1 ครั้ง) — เก็บเฉพาะเซิร์ฟเวอร์ร้าน</td></tr>
+      <tr><td>Header</td><td><code>X-Icopay-Signature: v1=&#123;hex&#125;</code></td></tr>
+      <tr><td>ตรวจ</td><td>HMAC-SHA256(<strong>raw body</strong>, secret) ล้มเหลวใช้ HTTP <strong>401</strong> · สำเร็จ <strong>200</strong></td></tr>
+      <tr><td>เอกสาร</td><td>Merchant API 「ความปลอดภัย Webhook (HMAC) — NOTI」 · <code>webhook-hmac-noti.*.md</code></td></tr>
+    </table>
+    <div class="info-box">แม้ HQ ปิดเป็นค่าเริ่มต้น ร้านเปิดอย่างเดียวก็ลงลายเซ็นได้ ICOPAY ซิงก์ไป NOTI เมื่อบันทึก/ออกใหม่</div>
+    <div class="warn-box">secret แสดงชัดครั้งเดียวหลังออกใหม่ ใช้ <strong>HMAC เป็นการตรวจหลัก</strong> อย่าพึ่ง IP allowlist อย่างเดียว</div>""",
+    }
+    en_s8_marker = '<h2 class="section-title" id="s8">8. Server webhook security (HMAC)</h2>'
+    en_s8_end = '<hr class="section-rule">\n    <h2 class="section-title" id="s9">9. Daily checklist</h2>'
     body = en["body"].replace(en_s7, s7[lang])
+    i0 = body.find(en_s8_marker)
+    i1 = body.find(en_s8_end)
+    if i0 >= 0 and i1 > i0:
+        body = (
+            body[:i0]
+            + f'<h2 class="section-title" id="s8">{s8_title[lang]}</h2>\n    '
+            + s8_body[lang]
+            + "\n    "
+            + body[i1:]
+        )
     return {
         "page_title": f"{page} V{VERSION}",
         "title_html": title,

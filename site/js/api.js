@@ -1210,6 +1210,22 @@
     compChangeHistory: function (params) {
       return get('/api/comp/changeHistory', params).then(function (r) { return r.data; });
     },
+    compRotateOutboundWebhookSign: function (compId) {
+      var base = (typeof API_BASE !== 'undefined' ? API_BASE : '') || '';
+      var headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+      try {
+        var tok = (window.PG_AUTH && PG_AUTH.getToken) ? PG_AUTH.getToken() : (localStorage.getItem('pg_token') || '');
+        if (tok) headers['Authorization'] = 'Bearer ' + tok;
+      } catch (e0) {}
+      return fetch(base + '/api/comp/outboundWebhookSign/rotate', {
+        method: 'POST',
+        headers: headers,
+        body: new URLSearchParams({ compId: compId || '' })
+      }).then(function (res) { return res.json(); }).then(function (r) {
+        if (r && r.success === false) throw r;
+        return r && r.data ? r.data : r;
+      });
+    },
     compResetPassword: function (compId) {
       var base = getBaseUrl();
       var token = getToken();

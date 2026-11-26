@@ -55,6 +55,7 @@ public class ApiHqPlatformManualsController {
             Map.entry("user-access-ops", "hqdist"),
             Map.entry("merchant-chatbot", "merchant"),
             Map.entry("merchant-ops", "merchant"),
+            Map.entry("merchant-webhook-hmac", "merchant"),
             Map.entry("merchant-url-user", "merchant"),
             Map.entry("merchant-split-user", "merchant"),
             Map.entry("merchant-subscribe-user", "merchant"),

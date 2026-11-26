@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-"""Build merchant-ops PDFs with proper CJK fonts (TextWriter)."""
+"""DEPRECATED — do NOT run. Produces ??? for CJK (MuPDF TextWriter).
+Use: python site/manuals/_build_merchant_ops_v3.py (Chrome print-to-PDF).
+"""
 from __future__ import annotations
 
 import sys

@@ -14,8 +14,8 @@ ROOT = Path(__file__).resolve().parent
 REPO = ROOT.parents[1]
 sys.path.insert(0, str(ROOT))
 
-from _merchant_ops_content import ops_doc  # noqa: E402
-from _merchant_user_manual_theme import VERSION, render_doc  # noqa: E402
+from _merchant_ops_content import VERSION, ops_doc  # noqa: E402
+from _merchant_user_manual_theme import render_doc  # noqa: E402
 
 LANGS = ["ko", "en", "ja", "zh", "th"]
 GEN = ROOT / "generated"
@@ -121,15 +121,24 @@ def main() -> None:
         tmp.unlink(missing_ok=True)
         print(f"OK merchant-ops/{lang}.pdf ({pdf_path.stat().st_size // 1024} KB)")
 
-    # catalog version sync
+    # catalog version + merchant-ops.docVersion sync
     cat = GEN / "catalog.json"
     if cat.exists():
-        text = cat.read_text(encoding="utf-8")
+        import json
         import re
 
+        text = cat.read_text(encoding="utf-8")
         text2 = re.sub(r'"version"\s*:\s*"[^"]+"', f'"version": "{VERSION}"', text, count=1)
+        try:
+            data = json.loads(text2)
+            for it in data.get("items") or []:
+                if it.get("id") == "merchant-ops":
+                    it["docVersion"] = VERSION
+            text2 = json.dumps(data, ensure_ascii=False, indent=2) + "\n"
+        except Exception as e:
+            print("catalog.json item sync skipped:", e)
         cat.write_text(text2, encoding="utf-8")
-        print("catalog.json version →", VERSION)
+        print("catalog.json version/docVersion →", VERSION)
     print("DONE merchant-ops V" + VERSION)
 
 

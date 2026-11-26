@@ -209,6 +209,15 @@ public interface PgTrnsctnRepository extends JpaRepository<PgTrnsctn, String>, J
                                               Pageable pageable);
 
     /**
+     * 가맹 수신통보 UI — 결제내역에 남은 결제대행사(van) 목록(중복 제거).
+     * 운영 OFF·노티이력 없어도 실제 사용 PG 입구를 보여 주기 위함.
+     */
+    @Query("SELECT DISTINCT UPPER(TRIM(t.van)) FROM PgTrnsctn t "
+            + "WHERE t.merchantId = :merchantId "
+            + "AND t.van IS NOT NULL AND TRIM(t.van) <> ''")
+    List<String> findDistinctVansByMerchantId(@Param("merchantId") String merchantId);
+
+    /**
      * PAYSO 실패(99)인데 가맹 수신통보 미송신 — PG 웹훅 없이 ICOPAY가 확정한 실패 통보 보강.
      */
     @Query("SELECT t FROM PgTrnsctn t WHERE t.status = '99' " +

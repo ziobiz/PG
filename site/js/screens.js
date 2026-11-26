@@ -879,6 +879,43 @@
     };
   }
 
+  /** 가맹 — 서버통보(웹훅) HMAC 서명 (관리자만 발급·재발급 · 가맹점 계정은 그레이 비활성) */
+  function merchantOutboundWebhookSignCardSection() {
+    return {
+      title: '웹훅 서명',
+      id: 'merchantOutboundWebhookSignCard',
+      sharedCard: true,
+      merchantOnly: true,
+      notice: '일반 통보는 NOTI→가맹 callbackUrl POST입니다. 서명 활성 시 NOTI 릴레이·ICOPAY 직통(결제통보·수신통보) 모두 X-Icopay-Signature를 붙이며, 설정은 ICOPAY→NOTI로 동기됩니다. 「본사설정 따름」이면 본사정책 → 결제 라우팅 → 웹훅 서명. 가맹 활성/비활성이 우선. 서명 시크릿은 관리자만 발급·재발급(평문 1회). 이후에는 앞 5자리 마스킹만 보이며 복사는 불가합니다. 분실 시 재발급. 가맹점 계정에서는 이 카드가 비활성(그레이)입니다. 브라우저 Result와 별개.',
+      rows: [
+        [{ label: '웹훅 서명', type: 'select', name: 'outboundWebhookSignYn', options: [
+          { v: 'FOLLOW_HQ', t: '본사설정 따름' },
+          { v: 'Y', t: '활성' },
+          { v: 'N', t: '비활성' }
+        ], col: 3 },
+         { label: '실효', type: 'text', name: 'outboundWebhookSignEffectiveYn', readonly: true, col: 2 },
+         { label: '서명 시크릿(마스킹)', type: 'text', name: 'outboundWebhookSignSecretMasked', readonly: true, col: 4 },
+         { label: '', type: 'customHtml', col: 3, html: function () {
+           return '<div class="form-field-block mb-0">' +
+             '<label class="form-label"><span class="invisible" aria-hidden="true" data-pg-ui-t="서명 시크릿 발급">서명 시크릿 발급</span></label>' +
+             '<button type="button" class="btn btn-sm btn-outline-primary" id="btnRotateOutboundWebhookSign" data-pg-ui-t="서명 시크릿 발급" data-pg-has-secret="N">서명 시크릿 발급</button>' +
+             '</div>';
+         } }],
+        [{ label: '', type: 'customHtml', col: 12, html: function () {
+           return '<div id="outboundWebhookSignPlainOnceWrap" class="d-none border rounded p-2 mb-2 bg-warning bg-opacity-10">' +
+             '<div class="small fw-semibold mb-1" data-pg-ui-t="서명 시크릿(이번만 표시)">서명 시크릿(이번만 표시)</div>' +
+             '<div class="d-flex flex-wrap gap-2 align-items-center">' +
+             '<code id="outboundWebhookSignPlainOnce" class="user-select-all small flex-grow-1" style="word-break:break-all;"></code>' +
+             '<button type="button" class="btn btn-sm btn-outline-primary" id="btnCopyOutboundWebhookSignPlain" data-pg-ui-t="복사">복사</button>' +
+             '</div>' +
+             '<div class="small text-muted mt-1" data-pg-ui-t="화면을 벗어나거나 다시 조회하면 전체 값은 사라지고 앞 5자리 마스킹만 남습니다. 분실 시 서명 시크릿 재발급을 하세요.">화면을 벗어나거나 다시 조회하면 전체 값은 사라지고 앞 5자리 마스킹만 남습니다. 분실 시 서명 시크릿 재발급을 하세요.</div>' +
+             '</div>';
+         } }],
+        [{ label: '', type: 'note', col: 12, text: '관리자만 서명 시크릿 발급·재발급. 평문은 발급 직후 한 번만 표시·복사 가능. 이후 앞 5자리 마스킹만(복사 없음). 검증: HMAC-SHA256(raw body, secret) → 헤더 v1=hex.' }]
+      ]
+    };
+  }
+
   /** 가맹 등록·정보 — 가맹 API 연동 채널(인라인·리다이렉트·WordPress) */
   function merchantApiIntegrationChannelsCardSection() {
     return {
@@ -4955,6 +4992,15 @@
           ]
         },
         {
+          title: '웹훅 서명',
+          sharedCard: true,
+          notice: '웹훅 HMAC 본사 기본(기본 비활성). 활성 시 NOTI→가맹 릴레이와 ICOPAY 직통 통보에 X-Icopay-Signature를 부여하고 ICOPAY→NOTI로 동기합니다. 가맹이 「본사설정 따름」이면 이 값, 가맹 활성/비활성이 우선. 브라우저 Result와 무관합니다.',
+          rows: [
+            [{ label: '웹훅 서명(본사 기본)', type: 'select', name: 'merchantOutboundWebhookSignYn', options: [{ v: 'N', t: '비활성' }, { v: 'Y', t: '활성' }], col: 3 },
+             { label: '', type: 'note', col: 9, text: '발신 IP(참고): ICOPAY 1.234.65.25 · NOTI 경유 시 172.235.192.86. 권장은 HMAC 서명입니다.' }]
+          ]
+        },
+        {
           title: '멀티 결제대행사 라우팅',
           notice: '여러 결제대행사를 브랜드·통화 기준으로 나눠 쓸지 설정합니다. 가맹 「결제대행사 설정」행과 함께 동작합니다.',
           rows: [
@@ -5625,6 +5671,7 @@
         merchantApiUrlPayCheckoutCardSection(),
         merchantApiRedirectCheckoutCardSection(),
         merchantPgBuyerEmailAttestCardSection(),
+        merchantOutboundWebhookSignCardSection(),
         merchantApiIntegrationChannelsCardSection(),
         merchantJpayApiSubscriptionCardSection(),
         merchantSplitPayCardSection(),
@@ -5765,7 +5812,7 @@
           title: '수신통보 URL',
           id: 'jpayNotifyUrlCard',
           merchantOnly: true,
-          notice: '운영 결제대행사·크립토·QR별로 NOTI 수신 입구(PG→NOTI)를 표시합니다. 가맹 쇼핑몰 URL이 아닙니다. 고정형(ElementPay·OMSPAY·PAYSO·ILK·QBANG·CRYPTO 등)은 PG별 주소가 다르며, 노티생성이력·바인딩 기준으로 여러 행이 나옵니다. JPAY 슬롯형은 아래 입력칸도 유지됩니다.',
+          notice: '운영 결제대행사·크립토·QR·노티생성이력·결제내역(van) 기준으로 NOTI 수신 입구(PG→NOTI)를 표시합니다. 가맹 쇼핑몰 URL이 아닙니다. 운영이 꺼져도 결제내역·노티이력이 있으면 행이 남습니다. 고정형(ElementPay·OMSPAY·PAYSO·ILK·QBANG·CRYPTO 등)은 PG별 주소가 다르며 JPAY 슬롯형은 아래 입력칸도 유지됩니다.',
           rows: [
             [{
               type: 'customHtml',
@@ -5782,7 +5829,7 @@
                   '</tr></thead><tbody id="merchantRecvNotiByPgTbody">' +
                   '<tr><td colspan="4" class="text-muted small text-center" data-pg-ui-t="가맹점 저장·조회 후 표시됩니다.">가맹점 저장·조회 후 표시됩니다.</td></tr>' +
                   '</tbody></table></div>' +
-                  '<p class="form-text small text-muted mb-2" data-pg-ui-t="CRYPTO·QR(QBANG/PayPay·ILK)도 운영·사용 중이면 이 표에 포함됩니다. 상태「노티등록 필요」이면 노티관리에서 해당 PG로 추가등록하세요.">CRYPTO·QR(QBANG/PayPay·ILK)도 운영·사용 중이면 이 표에 포함됩니다. 상태「노티등록 필요」이면 노티관리에서 해당 PG로 추가등록하세요.</p>' +
+                  '<p class="form-text small text-muted mb-2" data-pg-ui-t="CRYPTO·QR(QBANG/PayPay·ILK)도 운영·사용 중이면 이 표에 포함됩니다. 결제내역이 있는 PG(예: OMSPAY)는 운영 OFF여도 표시됩니다. 상태「노티등록 필요」이면 노티관리에서 해당 PG로 추가등록하세요.">CRYPTO·QR(QBANG/PayPay·ILK)도 운영·사용 중이면 이 표에 포함됩니다. 결제내역이 있는 PG(예: OMSPAY)는 운영 OFF여도 표시됩니다. 상태「노티등록 필요」이면 노티관리에서 해당 PG로 추가등록하세요.</p>' +
                   '</div>' +
                   '<div class="row g-2 pg-jpay-slot-notify-fields">' +
                   '<div class="col-md-6"><label class="form-label small" data-pg-ui-t="JPAY Notify (슬롯)">JPAY Notify (슬롯)</label>' +
@@ -6164,6 +6211,7 @@
         merchantApiUrlPayCheckoutCardSection(),
         merchantApiRedirectCheckoutCardSection(),
         merchantPgBuyerEmailAttestCardSection(),
+        merchantOutboundWebhookSignCardSection(),
         merchantApiIntegrationChannelsCardSection(),
         merchantJpayApiSubscriptionCardSection(),
         merchantSplitPayCardSection(),
@@ -6292,7 +6340,7 @@
           title: '수신통보 URL',
           id: 'jpayNotifyUrlCard',
           merchantOnly: true,
-          notice: '운영 결제대행사·크립토·QR별로 NOTI 수신 입구(PG→NOTI)를 표시합니다. 가맹 쇼핑몰 URL이 아닙니다. 고정형(ElementPay·OMSPAY·PAYSO·ILK·QBANG·CRYPTO 등)은 PG별 주소가 다르며, 노티생성이력·바인딩 기준으로 여러 행이 나옵니다. JPAY 슬롯형은 아래 입력칸도 유지됩니다.',
+          notice: '운영 결제대행사·크립토·QR·노티생성이력·결제내역(van) 기준으로 NOTI 수신 입구(PG→NOTI)를 표시합니다. 가맹 쇼핑몰 URL이 아닙니다. 운영이 꺼져도 결제내역·노티이력이 있으면 행이 남습니다. 고정형(ElementPay·OMSPAY·PAYSO·ILK·QBANG·CRYPTO 등)은 PG별 주소가 다르며 JPAY 슬롯형은 아래 입력칸도 유지됩니다.',
           rows: [
             [{
               type: 'customHtml',
@@ -6309,7 +6357,7 @@
                   '</tr></thead><tbody id="merchantRecvNotiByPgTbody">' +
                   '<tr><td colspan="4" class="text-muted small text-center" data-pg-ui-t="가맹점 저장·조회 후 표시됩니다.">가맹점 저장·조회 후 표시됩니다.</td></tr>' +
                   '</tbody></table></div>' +
-                  '<p class="form-text small text-muted mb-2" data-pg-ui-t="CRYPTO·QR(QBANG/PayPay·ILK)도 운영·사용 중이면 이 표에 포함됩니다. 상태「노티등록 필요」이면 노티관리에서 해당 PG로 추가등록하세요.">CRYPTO·QR(QBANG/PayPay·ILK)도 운영·사용 중이면 이 표에 포함됩니다. 상태「노티등록 필요」이면 노티관리에서 해당 PG로 추가등록하세요.</p>' +
+                  '<p class="form-text small text-muted mb-2" data-pg-ui-t="CRYPTO·QR(QBANG/PayPay·ILK)도 운영·사용 중이면 이 표에 포함됩니다. 결제내역이 있는 PG(예: OMSPAY)는 운영 OFF여도 표시됩니다. 상태「노티등록 필요」이면 노티관리에서 해당 PG로 추가등록하세요.">CRYPTO·QR(QBANG/PayPay·ILK)도 운영·사용 중이면 이 표에 포함됩니다. 결제내역이 있는 PG(예: OMSPAY)는 운영 OFF여도 표시됩니다. 상태「노티등록 필요」이면 노티관리에서 해당 PG로 추가등록하세요.</p>' +
                   '</div>' +
                   '<div class="row g-2 pg-jpay-slot-notify-fields">' +
                   '<div class="col-md-6"><label class="form-label small" data-pg-ui-t="JPAY Notify (슬롯)">JPAY Notify (슬롯)</label>' +
@@ -6627,6 +6675,7 @@
         merchantApiUrlPayCheckoutCardSection(),
         merchantApiRedirectCheckoutCardSection(),
         merchantPgBuyerEmailAttestCardSection(),
+        merchantOutboundWebhookSignCardSection(),
         merchantApiIntegrationChannelsCardSection(),
         merchantJpayApiSubscriptionCardSection(),
         merchantSplitPayCardSection(),
@@ -6754,7 +6803,7 @@
           title: '수신통보 URL',
           id: 'jpayNotifyUrlCard',
           merchantOnly: true,
-          notice: '운영 결제대행사·크립토·QR별로 NOTI 수신 입구(PG→NOTI)를 표시합니다. 가맹 쇼핑몰 URL이 아닙니다. 고정형(ElementPay·OMSPAY·PAYSO·ILK·QBANG·CRYPTO 등)은 PG별 주소가 다르며, 노티생성이력·바인딩 기준으로 여러 행이 나옵니다. JPAY 슬롯형은 아래 입력칸도 유지됩니다.',
+          notice: '운영 결제대행사·크립토·QR·노티생성이력·결제내역(van) 기준으로 NOTI 수신 입구(PG→NOTI)를 표시합니다. 가맹 쇼핑몰 URL이 아닙니다. 운영이 꺼져도 결제내역·노티이력이 있으면 행이 남습니다. 고정형(ElementPay·OMSPAY·PAYSO·ILK·QBANG·CRYPTO 등)은 PG별 주소가 다르며 JPAY 슬롯형은 아래 입력칸도 유지됩니다.',
           rows: [
             [{
               type: 'customHtml',
@@ -6771,7 +6820,7 @@
                   '</tr></thead><tbody id="merchantRecvNotiByPgTbody">' +
                   '<tr><td colspan="4" class="text-muted small text-center" data-pg-ui-t="가맹점 저장·조회 후 표시됩니다.">가맹점 저장·조회 후 표시됩니다.</td></tr>' +
                   '</tbody></table></div>' +
-                  '<p class="form-text small text-muted mb-2" data-pg-ui-t="CRYPTO·QR(QBANG/PayPay·ILK)도 운영·사용 중이면 이 표에 포함됩니다. 상태「노티등록 필요」이면 노티관리에서 해당 PG로 추가등록하세요.">CRYPTO·QR(QBANG/PayPay·ILK)도 운영·사용 중이면 이 표에 포함됩니다. 상태「노티등록 필요」이면 노티관리에서 해당 PG로 추가등록하세요.</p>' +
+                  '<p class="form-text small text-muted mb-2" data-pg-ui-t="CRYPTO·QR(QBANG/PayPay·ILK)도 운영·사용 중이면 이 표에 포함됩니다. 결제내역이 있는 PG(예: OMSPAY)는 운영 OFF여도 표시됩니다. 상태「노티등록 필요」이면 노티관리에서 해당 PG로 추가등록하세요.">CRYPTO·QR(QBANG/PayPay·ILK)도 운영·사용 중이면 이 표에 포함됩니다. 결제내역이 있는 PG(예: OMSPAY)는 운영 OFF여도 표시됩니다. 상태「노티등록 필요」이면 노티관리에서 해당 PG로 추가등록하세요.</p>' +
                   '</div>' +
                   '<div class="row g-2 pg-jpay-slot-notify-fields">' +
                   '<div class="col-md-6"><label class="form-label small" data-pg-ui-t="JPAY Notify (슬롯)">JPAY Notify (슬롯)</label>' +
@@ -7054,6 +7103,7 @@
             { v: 'ELEMENTPAY', t: 'ElementPay' },
             { v: 'CHILLPAY', t: 'ChillPay' },
             { v: 'PAYSO', t: 'PAYSO' },
+            { v: 'KSNET', t: 'KSNET' },
             { v: 'OX', t: 'ox' }
           ], size: 14 }
         ],
@@ -7088,6 +7138,7 @@
         '순서(내림차순·오름차순)는 [새로고침] 왼쪽 메뉴에서 고르며, 누르는 즉시 다시 조회됩니다(기본 내림차순). TransactionDate 범위는 검색 기간(날짜)을 ChillPay 형식(dd/MM/yyyy HH:mm:ss)으로 변환합니다. 문서: ChillPay-API-Transaction-Services-Document-EN_v1.0.6.',
         '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·승인번호·업체명·업체코드·거래일·거래시간(운영·표준 두 줄)은 그리드에 항상 표시되며 VIEW SETTING 목록에는 나오지 않습니다. 루트(Route)는 VIEW SETTING에서 켜고 끌 수 있습니다. 거래일은 YYYY-MM-DD(예: 2026-05-09) 형식으로 표시됩니다. 본사설정 → 조직항목설정에서 화면「통합내역」 허용 열을 제한할 수 있습니다.',
         'PAYSO를 고르면 Inquiry API로 기간 거래 목록을 가져오며, 주문번호·referenceNo로 ICOPAY 매칭(icopay Y/N)합니다. 자격은 결제대행사 설정의 PAYSO(·PAYSO JPDP) apiKey·secretKey·merchantId입니다.',
+        'KSNET을 고르면 ICOPAY에 적재된 KSNET 거래를 기간 조회하고, pgapi(거래조회/대사)로 카드·수수료·결제시각을 보강합니다. 입력통화는 결제내역(ICOPAY) 값입니다. 자격은 결제대행사 설정의 KSNET storeid·apiKey·대사 비밀번호(md5_secret_key/reconPassword)입니다.',
         'ox를 고르면 결제 목록을 가져오지 않습니다. ox 결제 조회 API와 별도 샌드박스 API는 아직 없고, 저장된 ox 거래는 결제개요에서 봅니다.'
       ],
       summary: ['건수'],
@@ -7158,6 +7209,7 @@
             { v: 'ELEMENTPAY', t: 'ElementPay' },
             { v: 'JPAY', t: 'JPAY' },
             { v: 'PAYSO', t: 'PAYSO' },
+            { v: 'KSNET', t: 'KSNET' },
             { v: 'OX', t: 'ox' }
           ], size: 12 },
           { label: '상태구분', type: 'select', name: 'searchPayDivCd', options: [
@@ -7174,9 +7226,9 @@
       noticeList: [
         '결제대행사를 고르면 그 대행사 일별 집계와 ICOPAY에 적재된 같은 대행사 거래를 일자별로 비교합니다. 값이 같으면 Ok, 다르면 불일치 셀만 강조·Check로 표시됩니다. 금액은 실결제 승인금액입니다.',
         '대행사 행 또는 ICOPAY 행을 더블클릭하면 아래 「선택 일자 상세」에 해당 일 거래 목록이 표시됩니다.',
-        'ElementPay·PAYSO는 검색할 때 결제대행사에서 바로 가져옵니다. JPAY는 저장된 조회 캐시이며, JPAY를 고른 뒤에만 동기화 버튼이 나옵니다. 조회 기간은 최대 93일입니다.',
+        'ElementPay·PAYSO·KSNET는 검색할 때 결제대행사/대사 경로로 가져옵니다. JPAY는 저장된 조회 캐시이며, JPAY를 고른 뒤에만 동기화 버튼이 나옵니다. 조회 기간은 최대 93일입니다.',
         'ElementPay·PAYSO 건수가 아주 많으면 최근 5,000건까지 대조합니다. JPAY를 고르면 상단 최근동기화 시각이 통합개요와 같습니다.',
-        '새로고침 왼쪽 시간 3개: 비교정렬은 ElementPay·PAYSO·ICOPAY 일자와 거래시간 1줄의 기준입니다. 1줄추가는 대행사(ElementPay·PAYSO·JPAY) 상세의 추가 시간, 2줄추가는 ICOPAY 상세의 추가 시간입니다. 본사설정이면 비교정렬은 전산 표준, 추가 시간은 전산 운영 시간대입니다.',
+        '새로고침 왼쪽 시간 3개: 비교정렬은 ElementPay·PAYSO·KSNET·ICOPAY 일자와 거래시간 1줄의 기준입니다. 1줄추가는 대행사 상세의 추가 시간, 2줄추가는 ICOPAY 상세의 추가 시간입니다. 본사설정이면 비교정렬은 전산 표준, 추가 시간은 전산 운영 시간대입니다.',
         'ox를 고르면 대행사 칸은 연결 대기입니다. ox 결제 조회 API와 별도 샌드박스 API는 아직 없고, 아래 ICOPAY 줄만 저장된 ox 거래입니다.'
       ],
       summary: ['건수'],

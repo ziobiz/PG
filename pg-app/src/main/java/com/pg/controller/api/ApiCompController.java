@@ -12,6 +12,8 @@ import com.pg.repository.MerchantReceivableRepository;
 import com.pg.service.AuthService;
 import com.pg.service.CompDataIntegrityMessages;
 import com.pg.service.CompService;
+import com.pg.service.MerchantOutboundWebhookSignService;
+import com.pg.service.NotiWebhookSignSyncService;
 import com.pg.service.MerchantPayLimitService;
 import com.pg.service.ExcelStyledExportService;
 import com.pg.util.ChatbotProductPricingUtil;
@@ -60,12 +62,16 @@ public class ApiCompController {
     private final ChatbotHeaderLogoUploadService chatbotHeaderLogoUploadService;
     private final MerchantReceivableRepository merchantReceivableRepository;
     private final MerchantPayLimitService merchantPayLimitService;
+    private final MerchantOutboundWebhookSignService merchantOutboundWebhookSignService;
+    private final NotiWebhookSignSyncService notiWebhookSignSyncService;
 
     public ApiCompController(CompService compService, OrgUnitRepository orgUnitRepository, AuthService authService,
                              ExcelStyledExportService excelStyledExportService,
                              ChatbotHeaderLogoUploadService chatbotHeaderLogoUploadService,
                              MerchantReceivableRepository merchantReceivableRepository,
-                             MerchantPayLimitService merchantPayLimitService) {
+                             MerchantPayLimitService merchantPayLimitService,
+                             MerchantOutboundWebhookSignService merchantOutboundWebhookSignService,
+                             NotiWebhookSignSyncService notiWebhookSignSyncService) {
         this.compService = compService;
         this.orgUnitRepository = orgUnitRepository;
         this.authService = authService;
@@ -73,6 +79,8 @@ public class ApiCompController {
         this.chatbotHeaderLogoUploadService = chatbotHeaderLogoUploadService;
         this.merchantReceivableRepository = merchantReceivableRepository;
         this.merchantPayLimitService = merchantPayLimitService;
+        this.merchantOutboundWebhookSignService = merchantOutboundWebhookSignService;
+        this.notiWebhookSignSyncService = notiWebhookSignSyncService;
     }
 
     @GetMapping("/changeHistory")
@@ -393,6 +401,7 @@ public class ApiCompController {
             @RequestParam(required = false) String apiBrokerRedirectUseYn,
             @RequestParam(required = false) String simpleQrCheckoutUseYn,
             @RequestParam(required = false) String pgBuyerEmailAttestYn,
+            @RequestParam(required = false) String outboundWebhookSignYn,
             @RequestParam(required = false) String simpleQrShowOrderNoYn,
             @RequestParam(required = false) String simpleQrShowProductYn,
             @RequestParam(required = false) String simpleQrShowNameYn,
@@ -542,6 +551,7 @@ public class ApiCompController {
         if (saved.getId() != null) {
             compService.applySimpleQrCheckoutUseYn(saved.getId(), simpleQrCheckoutUseYn);
             compService.applyPgBuyerEmailAttestYn(saved.getId(), pgBuyerEmailAttestYn);
+            compService.applyOutboundWebhookSignYn(saved.getId(), outboundWebhookSignYn);
             compService.applySimpleQrConfirmFieldShow(saved.getId(),
                     simpleQrShowOrderNoYn, simpleQrShowProductYn, simpleQrShowNameYn,
                     simpleQrShowEmailYn, simpleQrShowPhoneYn);
@@ -798,6 +808,7 @@ public class ApiCompController {
             @RequestParam(required = false) String apiBrokerRedirectUseYn,
             @RequestParam(required = false) String simpleQrCheckoutUseYn,
             @RequestParam(required = false) String pgBuyerEmailAttestYn,
+            @RequestParam(required = false) String outboundWebhookSignYn,
             @RequestParam(required = false) String simpleQrShowOrderNoYn,
             @RequestParam(required = false) String simpleQrShowProductYn,
             @RequestParam(required = false) String simpleQrShowNameYn,
@@ -971,6 +982,7 @@ public class ApiCompController {
                 orgUnitRepository.findByCode(compId != null ? compId.trim() : "").ifPresent(ou -> {
                         compService.applySimpleQrCheckoutUseYn(ou.getId(), simpleQrCheckoutUseYn);
                         compService.applyPgBuyerEmailAttestYn(ou.getId(), pgBuyerEmailAttestYn);
+                        compService.applyOutboundWebhookSignYn(ou.getId(), outboundWebhookSignYn);
                         compService.applySimpleQrConfirmFieldShow(ou.getId(),
                                 simpleQrShowOrderNoYn, simpleQrShowProductYn, simpleQrShowNameYn,
                                 simpleQrShowEmailYn, simpleQrShowPhoneYn);
@@ -1074,6 +1086,46 @@ public class ApiCompController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         }
+    }
+
+    /** 가맹 서버통보(웹훅) HMAC 서명 시크릿 발급·재발급 — 평문은 이번 응답에만. 가맹점 계정 불가(관리자만). */
+    @PostMapping("/outboundWebhookSign/rotate")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> rotateOutboundWebhookSign(
+            @RequestParam String compId) {
+        String code = compId != null ? compId.trim() : "";
+        if (code.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.fail("compId가 필요합니다.", "INVALID_COMP_ID"));
+        }
+        Authentication auth0 = SecurityContextHolder.getContext().getAuthentication();
+        if (auth0 != null && auth0.getPrincipal() instanceof AppUser u0) {
+            if (isMerchantOrgViewer(u0)) {
+                return ResponseEntity.ok(ApiResponse.fail("가맹점 계정에서는 서명 시크릿을 발급·재발급할 수 없습니다. 본사·관리자에게 요청하세요.", "FORBIDDEN"));
+            }
+            if (!canAccessCompAsViewer(u0, code)) {
+                return ResponseEntity.ok(ApiResponse.fail("소속 업체 및 하위 업체에 대해서만 서명 시크릿을 발급·재발급할 수 있습니다.", "FORBIDDEN"));
+            }
+        }
+        Optional<OrgUnit> ou = orgUnitRepository.findByCode(code);
+        if (ou.isEmpty()) {
+            ou = orgUnitRepository.findByCodeIgnoreCase(code);
+        }
+        if (ou.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.fail("가맹을 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        Map<String, Object> data = merchantOutboundWebhookSignService.rotateSecret(ou.get().getId());
+        if (!Boolean.TRUE.equals(data.get("success"))) {
+            return ResponseEntity.ok(ApiResponse.fail("재발급에 실패했습니다.",
+                    String.valueOf(data.getOrDefault("errorCode", "ROTATE_FAILED"))));
+        }
+        try {
+            if (notiWebhookSignSyncService != null) {
+                Map<String, Object> sync = notiWebhookSignSyncService.syncOrgUnit(ou.get().getId());
+                data.put("notiSync", sync);
+            }
+        } catch (Exception e) {
+            data.put("notiSync", Map.of("success", false, "errorCode", "NOTI_SYNC_ERROR"));
+        }
+        return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
     /** 업체 대표 계정 비밀번호 초기화 — 임시 비밀번호 로그인ID+1! */
@@ -1784,5 +1836,25 @@ public class ApiCompController {
         Map<String, Object> org = authService.getOrgInfo(u.getUsername());
         String mine = org != null && org.get("compId") != null ? org.get("compId").toString().trim() : "";
         return !mine.isEmpty() && compService.isTargetUnderViewerOrg(mine, targetCompId.trim());
+    }
+
+    /** 가맹점(MERCHANT) 로그인 여부 — 서명 시크릿 등 관리자 전용 조작 차단 */
+    private boolean isMerchantOrgViewer(AppUser u) {
+        if (u == null) {
+            return false;
+        }
+        if ("ADMIN".equalsIgnoreCase(u.getRole())) {
+            return false;
+        }
+        Map<String, Object> org = authService.getOrgInfo(u.getUsername());
+        String olStr = org != null && org.get("orgLevel") != null ? org.get("orgLevel").toString().trim() : "";
+        if (olStr.isEmpty()) {
+            return false;
+        }
+        try {
+            return OrgLevel.valueOf(olStr.toUpperCase(Locale.ROOT)) == OrgLevel.MERCHANT;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 }

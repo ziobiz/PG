@@ -22,6 +22,7 @@ import com.pg.service.OutcomeReasonTranslateService;
 import com.pg.service.PayListActionService;
 import com.pg.service.PayListService;
 import com.pg.service.PaysoIntegratedListService;
+import com.pg.service.KsnetIntegratedListService;
 import com.pg.util.PayDisplayCurrency;
 import com.pg.util.PayListStatusBarBuckets;
 import com.pg.util.TrnTimeDualZoneDisplay;
@@ -64,6 +65,7 @@ public class ApiCalcController {
     private final OutcomeReasonTranslateService outcomeReasonTranslateService;
     private final ElementPayClientApiService elementPayClientApiService;
     private final PaysoIntegratedListService paysoIntegratedListService;
+    private final KsnetIntegratedListService ksnetIntegratedListService;
 
     public ApiCalcController(PayListService payListService, PayListActionService payListActionService,
                              ChillPayService chillPayService, HqNotifyMappingService hqNotifyMappingService,
@@ -75,7 +77,8 @@ public class ApiCalcController {
                              JpayTradeApiService jpayTradeApiService,
                              OutcomeReasonTranslateService outcomeReasonTranslateService,
                              ElementPayClientApiService elementPayClientApiService,
-                             PaysoIntegratedListService paysoIntegratedListService) {
+                             PaysoIntegratedListService paysoIntegratedListService,
+                             KsnetIntegratedListService ksnetIntegratedListService) {
         this.payListService = payListService;
         this.payListActionService = payListActionService;
         this.chillPayService = chillPayService;
@@ -90,6 +93,7 @@ public class ApiCalcController {
         this.outcomeReasonTranslateService = outcomeReasonTranslateService;
         this.elementPayClientApiService = elementPayClientApiService;
         this.paysoIntegratedListService = paysoIntegratedListService;
+        this.ksnetIntegratedListService = ksnetIntegratedListService;
     }
 
     private static PageResult<Map<String, Object>> emptyChillPayPage(int page, int size) {
@@ -263,6 +267,18 @@ public class ApiCalcController {
                     return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
                 } catch (IllegalStateException e) {
                     return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "PAYSO"));
+                }
+            }
+            if (searchAcquirer != null && "KSNET".equalsIgnoreCase(searchAcquirer.trim())) {
+                try {
+                    PageResult<Map<String, Object>> ksnet = ksnetIntegratedListService.searchPayments(
+                            page, size, searchOrderDir, searchFieldType, searchKeyword, searchPayDivCd,
+                            searchFromDate, searchToDate, authentication);
+                    return ResponseEntity.ok(ApiResponse.ok(ksnet));
+                } catch (IllegalArgumentException e) {
+                    return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+                } catch (IllegalStateException e) {
+                    return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "KSNET"));
                 }
             }
             AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
@@ -609,7 +625,9 @@ public class ApiCalcController {
                     ? "PAYSO"
                     : (acquirer != null && "ELEMENTPAY".equalsIgnoreCase(acquirer.trim())
                     ? "ELEMENTPAY"
-                    : (acquirer != null && isOxAcquirer(acquirer) ? "OX" : "JPAY"));
+                    : (acquirer != null && "KSNET".equalsIgnoreCase(acquirer.trim())
+                    ? "KSNET"
+                    : (acquirer != null && isOxAcquirer(acquirer) ? "OX" : "JPAY")));
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), code));
         }
     }

@@ -74,6 +74,23 @@ public class NotiProvisionClient {
         return exchange(HttpMethod.PUT, url, apiKey, req, UUID.randomUUID().toString(), acceptLanguage);
     }
 
+    /**
+     * 가맹 웹훅 HMAC 설정 동기 (NOTI 릴레이용).
+     * POST /api/v1/icopay/merchants/{merchantId}/webhook-sign
+     */
+    public Map<String, Object> syncWebhookSign(String baseUrl, String apiKey, String merchantId,
+                                               Map<String, Object> body, String acceptLanguage)
+            throws NotiProvisionException {
+        String base = normalizeBase(baseUrl);
+        String mid = merchantId != null ? merchantId.trim() : "";
+        if (mid.isEmpty()) {
+            throw new NotiProvisionException("merchantId가 필요합니다.", "VALIDATION");
+        }
+        String url = base + "/api/v1/icopay/merchants/" + encodePathSegment(mid) + "/webhook-sign";
+        Map<String, Object> req = body != null ? new LinkedHashMap<>(body) : new LinkedHashMap<>();
+        return exchange(HttpMethod.POST, url, apiKey, req, UUID.randomUUID().toString(), acceptLanguage);
+    }
+
     /** 가맹 삭제 (NOTI 2차 API). */
     public Map<String, Object> deleteMerchant(String baseUrl, String apiKey, String merchantId,
                                               boolean force, String acceptLanguage)

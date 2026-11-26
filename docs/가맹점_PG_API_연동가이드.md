@@ -300,14 +300,55 @@
 
 ## 7. 가맹점 서버 통보(웹훅)
 
-플랫폼은 거래 상태 변경 시 키트의 **`merchantNotifyUrls`** 에 등록된 URL로 HTTP를 호출할 수 있습니다.
+**일반 경로:** 결제망 → **NOTI** → (ICOPAY 반영) → **NOTI가 가맹 callbackUrl로 POST**.  
+**보조 경로:** ICOPAY가 업체관리 **결제통보·수신통보 URL**로 직접 POST.  
+웹훅 서명(HMAC)이 활성이면 **두 경로 모두** 동일 헤더·시크릿을 사용합니다(ICOPAY가 NOTI에 설정 동기).  
+브라우저 **Result URL** 리다이렉트와는 **별개**입니다.
+
+가맹점용 요약(5개국어): `site/merchant-api-samples/docs/webhook-hmac-noti*.md` · 가맹점API 「활성화된 기능 안내」WEBHOOK_HMAC_NOTI.
 
 가맹점은 다음을 준수합니다.
 
 - **HTTPS** 엔드포인트 제공  
-- **타임아웃 내 200** 응답(본사가 별도 규격을 주면 그에 따름)  
+- **타임아웃 내 HTTP 200** 응답  
 - **동일 주문에 대한 중복 통지** 가능성을 고려한 **멱등 처리**  
-- 요청 **서명·IP 제한**이 있는 경우 본사 **보안 가이드** 문서 준수  
+- **웹훅 서명(HMAC)** 이 활성인 경우 아래 검증 필수  
+
+### 7.1 웹훅 서명(HMAC) — ON/OFF
+
+| 구분 | 설정 위치 | 값 |
+|------|-----------|-----|
+| 본사 기본 | **본사정책 → 결제 라우팅 → 웹훅 서명(본사 기본)** | `N`(비활성, **기본**) / `Y`(활성) |
+| 가맹 | **업체관리 → 가맹 상세 → 웹훅 서명** | `FOLLOW_HQ`(본사설정 따름, 기본) / `Y` / `N` |
+
+- **가맹 명시값(Y/N)이 본사보다 우선**합니다. `FOLLOW_HQ`이면 본사 기본을 따릅니다.  
+- 활성(실효 Y)이면 ICOPAY가 요청 헤더에 서명을 붙입니다. 시크릿은 가맹 카드에서 **시크릿 재발급**으로 받습니다(평문은 **한 번만** 표시).  
+- 비활성(실효 N)이면 서명 헤더 없이 기존과 동일하게 POST합니다.
+
+### 7.2 서명 규격
+
+| 항목 | 내용 |
+|------|------|
+| 헤더 | `X-Icopay-Signature: v1={hex}` |
+| 알고리즘 | HMAC-SHA256 |
+| 메시지 | **raw HTTP body** (수신한 바이트 그대로, 파싱·재직렬화 금지) |
+| 키 | 가맹 웹훅 서명 시크릿 |
+| hex | 소문자/대문자 모두 허용(검증 시 대소문자 무시 권장) |
+
+검증 예(개념):
+
+```
+expected = HMAC_SHA256_HEX(raw_body, webhook_secret)
+header   = "v1=" + expected
+```
+
+PHP 샘플: `site/merchant-api-samples/php/notify_webhook.php`  
+환경변수 `ICOPAY_WEBHOOK_SIGN_SECRET` 에 시크릿을 넣고, 서명 불일치 시 **401** 을 반환하세요.
+
+### 7.3 페이로드(요약)
+
+공통 JSON 필드 예: `event`, `compId`, `trnId`, `orderNo`, `status`, `paymentStatus`, `amount`, `currency`, `paidAt`, `notifyChannel`, `ts` 등.  
+PG명·operationalPgCd 는 포함되지 않습니다(ICOPAY 중립).
 
 ---
 

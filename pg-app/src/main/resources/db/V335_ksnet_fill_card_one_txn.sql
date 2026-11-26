@@ -1,0 +1,11 @@
+﻿-- One-off: KSNET 2026-11-26 테스트 건 마스킹 카드 보강 (포털: 44260100XXXX625X)
+UPDATE pg_trnsctn
+SET card_pan_display = '44260100XXXX625X'
+WHERE (
+    chill_transaction_id = 'I4Q8H3JEGHZUGK5YD4AQDEKEUJVEHCZBHMPMAAD3KGEZTAA56M'
+    OR pay_no = 'I4Q8H3JEGHZUGK5YD4AQDEKEUJVEHCZBHMPMAAD3KGEZTAA56M'
+    OR order_no = 'I4Q8H3JEGHZUGK5YD4AQDEKEUJVEHCZBHMPMAAD3KGEZTAA56M'
+    OR order_no LIKE 'I4Q8H3JEGHZUGK5YD4A%'
+    OR chill_transaction_id = '198290252990'
+  )
+  AND (card_pan_display IS NULL OR BTRIM(card_pan_display) = '' OR BTRIM(card_pan_display) = '-');

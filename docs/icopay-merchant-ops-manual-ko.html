@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ICOPAY 가맹점 운영 메뉴얼 V2.74</title>
+<title>ICOPAY 가맹점 운영 메뉴얼 V2.82</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Segoe UI', sans-serif; font-size: 11pt; line-height: 1.7; color: #1a1a1a; background: #f5f6fa; }
@@ -84,7 +84,7 @@
       <div class="logo-line">ICOPAY · Payment Gateway</div>
       <h1>가맹점<br>운영 메뉴얼</h1>
       <div class="subtitle">가맹점 기준 — 결제·수수료·결제 URL·정산·일상 운영까지, 권한이 열린 화면에서 직접 하는 모든 것</div>
-      <div class="meta">작성 기준: ICOPAY 가맹점 권한 기준 &nbsp;|&nbsp; 대상: 가맹점(MERCHANT) 운영 담당 &nbsp;|&nbsp; 발행: 2026년 7월 &nbsp;|&nbsp; V2.74</div>
+      <div class="meta">작성 기준: ICOPAY 가맹점 권한 기준 &nbsp;|&nbsp; 대상: 가맹점(MERCHANT) 운영 담당 &nbsp;|&nbsp; 발행: 2026년 10월 &nbsp;|&nbsp; V2.82</div>
     </div>
     <div class="cover-logo">
       <img src="./logo-ontheline.png" alt="Brand">
@@ -95,12 +95,12 @@
       <strong>📋 가맹점 메뉴 권한 요약</strong><br><br>
       <table style="margin:8px 0 0;">
         <tr><th>메뉴</th><th class="center">권한</th><th>설명</th></tr>
-        <tr><td>업체관리 &gt; 내 업체정보</td><td class="center"><span class="perm-view">조회만</span></td><td>결제·재결제·챗봇·분할 URL 확인·복사 / 설정 변경 불가</td></tr><tr><td>업체관리 &gt; 공지사항</td><td class="center"><span class="perm-view">조회만</span></td><td>본사·총판 운영 공지 확인</td></tr><tr><td>결제관리 &gt; 결제내역 등</td><td class="center"><span class="perm-view">조회만</span></td><td>승인·실패·취소·환불 조회 (권한에 따라 채널별 목록)</td></tr><tr><td>정산관리 &gt; 수수료·정산내역</td><td class="center"><span class="perm-view">조회만</span></td><td>수수료·정산 결과 조회</td></tr><tr><td>업체등록·접근권한 등</td><td class="center"><span class="perm-none">접근불가</span></td><td>본사·총판 전용</td></tr>
+        <tr><td>업체관리 &gt; 내 업체정보</td><td class="center"><span class="perm-view">조회만</span></td><td>결제·재결제·챗봇·분할 URL 확인·복사 / 설정 변경 불가</td></tr><tr><td>업체관리 &gt; 공지사항</td><td class="center"><span class="perm-view">조회만</span></td><td>본사·총판 운영 공지 확인</td></tr><tr><td>결제관리 &gt; 결제내역·크립토내역</td><td class="center"><span class="perm-view">조회만</span></td><td>카드·크립토 입금 조회 (권한에 따라)</td></tr><tr><td>정산관리 &gt; 수수료·정산·크립토정산</td><td class="center"><span class="perm-view">조회만</span></td><td>수수료·정산·크립토 출금 결과 조회</td></tr><tr><td>업체등록·접근권한·크립토설정 변경</td><td class="center"><span class="perm-none">접근불가</span></td><td>본사·총판 전용 (가맹은 크립토 조회·QR만)</td></tr>
       </table>
     </div>
     <div class="toc">
       <h2>목 차</h2>
-      <ol><li><a href="#s1">이 매뉴얼의 범위</a></li><li><a href="#s2">시작 전 확인 (권한·웹결제)</a></li><li><a href="#s3">STEP 1 — 로그인·공지</a></li><li><a href="#s4">STEP 2 — 결제 URL 확인·공유</a></li><li><a href="#s5">STEP 3 — 결제내역 조회</a></li><li><a href="#s6">STEP 4 — 수수료·정산</a></li><li><a href="#s7">가맹점 API·챗봇(해당 시)</a></li><li><a href="#s8">일상 체크리스트</a></li><li><a href="#s9">FAQ</a></li></ol>
+      <ol><li><a href="#s1">이 매뉴얼의 범위</a></li><li><a href="#s2">시작 전 확인 (권한·웹결제)</a></li><li><a href="#s3">STEP 1 — 로그인·공지</a></li><li><a href="#s4">STEP 2 — 결제 URL 확인·공유</a></li><li><a href="#s5">STEP 3 — 결제내역 조회</a></li><li><a href="#s6">STEP 4 — 수수료·정산</a></li><li><a href="#s7">가맹점 API·챗봇·크립토(해당 시)</a></li><li><a href="#s8">서버 웹훅 보안(HMAC)·통보</a></li><li><a href="#s9">일상 체크리스트</a></li><li><a href="#s10">FAQ</a></li></ol>
     </div>
     
     <h2 class="section-title" id="s1">1. 이 매뉴얼의 범위</h2>
@@ -144,44 +144,64 @@
     <pre>https://api.icopay.co.kr/checkout/{업체코드}</pre>
     <table>
       <tr><th>항목</th><th>설명</th></tr>
-      <tr><td>결제 URL</td><td>공개 일회 결제 주소. [복사] 후 고객에게 전달</td></tr>
+      <tr><td>결제 URL</td><td>카드(URL) 일회 결제. [복사] 후 고객에게 전달</td></tr>
+      <tr><td>통합결제 URL</td><td>웹결제+크립토 사용이 모두 ON일 때 (<code>/checkout-all/업체코드</code>) — 카드·크립토 선택</td></tr>
+      <tr><td>크립토 결제 URL</td><td>크립토 전용(크립토 사용 ON·상위 설정 시 표시)</td></tr>
       <tr><td>URL 재결제 URL</td><td>저장 카드 재결제(기능 ON일 때만)</td></tr>
       <tr><td>챗봇결제 URL</td><td>챗봇 사용 가맹만</td></tr>
       <tr><td>분할결제 URL</td><td>분할결제 사용 ON일 때만 (상위가 가맹 업체정보 → URL 분할결제에서 사용으로 저장)</td></tr>
     </table>
     <div class="check-box">절차: 업체정보 열기 → 결제 URL 확인 → [복사] → SMS·메신저·쇼핑몰에 붙여넣기 → 본인 브라우저에서 테스트 오픈</div>
-    <div class="warn-box">웹결제 미사용·상위 중지면 URL이 없거나 안내만 표시될 수 있습니다.</div>
+    <div class="warn-box">웹결제 미사용·상위 중지면 URL이 없거나 안내만 표시될 수 있습니다. 크립토 URL은 상위가 크립토 사용·허용자산을 켠 뒤에만 표시됩니다.</div>
     <hr class="section-rule">
 
     <h2 class="section-title" id="s5">5. <span class="step-badge">STEP 3</span> 결제내역 조회 <small style="font-size:10pt;font-weight:400;color:#888;">(조회 전용)</small></h2>
-    <div class="menu-path">메뉴: 결제관리 &gt; 결제내역</div>
+    <div class="menu-path">메뉴: 결제관리 &gt; 결제내역 · 크립토내역</div>
     <ul>
       <li>기간·상태·키워드(주문번호)로 검색합니다.</li>
       <li>승인·실패·취소·환불을 구분합니다.</li>
       <li>권한이 있으면 URL/챗봇/구독/분할 결제내역·상태별 목록도 사용합니다.</li>
-      <li>고객 문의 시 <strong>주문번호·결제시각·금액</strong>을 함께 전달합니다.</li>
+      <li><strong>크립토내역</strong>: 입금 대기·확정(Tx) 조회. 가맹은 조회 중심이며 확정·출금은 상위 운영.</li>
+      <li>고객 문의 시 <strong>주문번호·결제시각·금액</strong>(크립토면 자산·네트워크)을 함께 전달합니다.</li>
     </ul>
     <hr class="section-rule">
 
     <h2 class="section-title" id="s6">6. <span class="step-badge">STEP 4</span> 수수료·정산</h2>
-    <div class="menu-path">메뉴: 정산관리 &gt; 수수료내역 / 일별수수료 / 가맹점정산내역</div>
+    <div class="menu-path">메뉴: 정산관리 &gt; 수수료내역 / 일별수수료 / 가맹점정산내역 / 크립토정산</div>
     <ul>
-      <li><strong>수수료내역·일별수수료</strong>: 거래·일자 단위 수수료를 확인합니다.</li>
+      <li><strong>수수료내역·일별수수료</strong>: 거래·일자 단위 수수료를 확인합니다. 채널(FIAT|CRYPTO)이 있으면 행을 구분합니다.</li>
       <li><strong>가맹점정산내역</strong>: 정산 실행 후 반영된 결과(정산일·지급·보류)를 확인합니다.</li>
+      <li><strong>크립토정산</strong>(권한 시): 크립토 출금 큐·상태 조회. 가맹 수취 지갑 변경은 상위만 가능합니다.</li>
       <li>수수료율·정산주기는 상위 정책과 가맹 설정을 따릅니다.</li>
     </ul>
     <div class="info-box">금액이 예상과 다르면 결제내역 승인액·상태와 대조한 뒤, 정산일·금액을 상위에 전달하십시오.</div>
     <hr class="section-rule">
 
-    <h2 class="section-title" id="s7">7. 가맹점 API·챗봇(해당 시)</h2>
-    <div class="menu-path">메뉴: 업체관리 &gt; 가맹점API · 챗봇관리</div>
+    <h2 class="section-title" id="s7">7. 가맹점 API·챗봇·크립토(해당 시)</h2>
+    <div class="menu-path">메뉴: 업체관리 &gt; 가맹점API · 챗봇관리 · 크립토설정(조회)</div>
     <ul>
-      <li><strong>가맹점API</strong>: 연동 키·문서(권한 시). ICOPAY 통합 checkout을 사용합니다.</li>
+      <li><strong>가맹점API</strong>: 연동 키·문서(권한 시). 카드·크립토 모두 ICOPAY 통합 checkout(<code>prepare</code>, 크립토는 <code>payMeans=CRYPTO</code>)을 사용합니다. 크립토 Callback은 카드용 NOTI URL을 재사용합니다.</li>
       <li><strong>챗봇관리</strong>: 상품·주문 관리 후 챗봇결제 URL을 공유합니다. 상세는 「챗봇결제 가맹점 사용 메뉴얼」을 참고하십시오.</li>
+      <li><strong>크립토</strong>: 가맹 로그인은 수취 주소 조회·QR만. 사용·자산·주소 변경은 본사·총판. API 상세는 상위 「가맹 API 출시」·merchant-api-samples 크립토 문서(5개국어).</li>
     </ul>
     <hr class="section-rule">
 
-    <h2 class="section-title" id="s8">8. 일상 체크리스트</h2>
+    <h2 class="section-title" id="s8">8. 서버 웹훅 보안(HMAC)·통보</h2>
+    <div class="menu-path">메뉴: 업체관리 &gt; 가맹 상세 &gt; 웹훅 서명 · 가맹점API</div>
+    <p>결제 확정 <strong>서버 통보</strong>는 주로 <strong>NOTI → 가맹 callbackUrl</strong> 로 POST 됩니다. (브라우저 Result URL과 별개)</p>
+    <table>
+      <tr><th>항목</th><th>내용</th></tr>
+      <tr><td>설정</td><td>가맹 상세 → <strong>웹훅 서명</strong>: 본사설정 따름 / 활성 / 비활성. 활성 후 <strong>시크릿 재발급</strong>(평문 1회) → 가맹 서버에만 보관</td></tr>
+      <tr><td>헤더</td><td><code>X-Icopay-Signature: v1=&#123;hex&#125;</code></td></tr>
+      <tr><td>검증</td><td>HMAC-SHA256(<strong>raw body</strong>, secret). 실패 시 HTTP <strong>401</strong> 권장 · 성공 <strong>200</strong></td></tr>
+      <tr><td>문서·샘플</td><td>가맹점API 「서버 웹훅 보안(HMAC) — NOTI」 · <code>merchant-api-samples/docs/webhook-hmac-noti.*.md</code> · PHP <code>notify_webhook.php</code></td></tr>
+    </table>
+    <div class="info-box">본사 기본이 OFF여도 <strong>가맹만 활성</strong>하면 서명됩니다. 저장·재발급 시 ICOPAY가 NOTI에 설정을 동기합니다.</div>
+    <div class="warn-box">시크릿은 재발급 직후 1회만 평문으로 보입니다. 채팅·로그에 남기지 마십시오. IP allowlist만으로 검증하지 말고 <strong>HMAC을 주 검증</strong>으로 쓰십시오.</div>
+    <div class="check-box">상세 연동(규격·샘플·IP·체크리스트): 같은 「운영 메뉴얼」목록의 <strong>서버 웹훅(HMAC) API 연동 메뉴얼</strong>을 참고하십시오.</div>
+    <hr class="section-rule">
+
+    <h2 class="section-title" id="s9">9. 일상 체크리스트</h2>
     <div class="check-box">
       <ol>
         <li>공지사항 확인</li>
@@ -190,19 +210,23 @@
         <li>실패 급증 시 주문번호와 상위 공유</li>
         <li>수수료·정산 이상 여부</li>
         <li>챗봇 주문·상품(해당 시)</li>
+        <li>웹훅 서명 사용 시: callbackUrl에서 <code>X-Icopay-Signature</code> 검증·시크릿 보관 확인</li>
       </ol>
     </div>
     <hr class="section-rule">
 
-    <h2 class="section-title" id="s9">9. FAQ</h2>
+    <h2 class="section-title" id="s10">10. FAQ</h2>
     <div class="faq-item"><div class="faq-q">메뉴가 사이드바에 없습니다.</div><div class="faq-a">본사정책 → 접근·권한에서 닫혀 있습니다. 상위 본사·총판에 해당 메뉴 URL과 함께 권한 개방을 요청하세요.</div></div>
     <div class="faq-item"><div class="faq-q">결제 URL이 없거나 안내만 나옵니다.</div><div class="faq-a">웹결제 미사용·중지가 원인인 경우가 많습니다. 공지와 상위 담당자에게 확인하세요.</div></div>
     <div class="faq-item"><div class="faq-q">수수료·정산 금액이 예상과 다릅니다.</div><div class="faq-a">결제내역 승인액·상태와 대조한 뒤 정산일·금액을 상위에 전달하세요.</div></div>
     <div class="faq-item"><div class="faq-q">업체정보를 직접 수정하고 싶습니다.</div><div class="faq-a">내 업체정보는 조회 전용입니다. 상호·주소 변경은 본사·총판에 요청하세요.</div></div>
-    <div class="faq-item"><div class="faq-q">문서 버전이 예전(V2.53 등)으로 보입니다.</div><div class="faq-a">운영 메뉴얼 PDF는 플랫폼 라이브 버전(V2.74)과 함께 배포됩니다. 새로고침 후에도 이전이면 캐시를 비우거나 상위에 배포 반영을 확인하세요.</div></div>
+    <div class="faq-item"><div class="faq-q">문서 한글이 ??? 로 깨지거나 버전이 예전입니다.</div><div class="faq-a">가맹점 운영 메뉴얼 PDF는 Chrome 인쇄(UTF-8)로 재배포됩니다(문서 V2.82). 새로고침·캐시 비우기 후에도 이전이면 상위에 배포 반영을 확인하세요.</div></div>
+    <div class="faq-item"><div class="faq-q">크립토 결제 URL·통합결제 URL이 없습니다.</div><div class="faq-a">상위가 크립토 사용=Y와 허용자산을 켜고, 웹결제(카드)도 ON이어야 통합결제 URL이 생깁니다. 본사·총판에 요청하세요.</div></div>
+    <div class="faq-item"><div class="faq-q">크립토 API Callback을 새로 등록해야 하나요?</div><div class="faq-a">아니요. 카드용 NOTI Callback을 Comp-Id로 재사용합니다. 연동 문서는 가맹점API·merchant-api-samples 크립토 가이드를 참고하세요.</div></div>
+    <div class="faq-item"><div class="faq-q">웹훅 서명은 어디서 켜나요?</div><div class="faq-a">업체관리 → 가맹 상세 → 웹훅 서명에서 활성 후 시크릿 재발급. 본사 기본 OFF여도 가맹만 ON 가능. 검증은 가맹점API HMAC 안내·샘플을 따르세요.</div></div>
 
   </div>
-  <div class="footer">ICOPAY 가맹점 운영 메뉴얼 · V2.74<br>ICOPAY &nbsp;|&nbsp; icopay.co.kr &nbsp;|&nbsp; 문의: ICOPAY 본사·총판 담당자</div>
+  <div class="footer">ICOPAY 가맹점 운영 메뉴얼 · V2.82<br>ICOPAY &nbsp;|&nbsp; icopay.co.kr &nbsp;|&nbsp; 문의: ICOPAY 본사·총판 담당자</div>
 </div>
 </body>
 </html>

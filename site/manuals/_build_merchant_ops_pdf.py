@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-"""Build merchant-ops PDFs (KO/EN/JP/CH/TH) — all manuals stay PDF-unified."""
+"""DEPRECATED — do NOT run. CJK becomes ??? under MuPDF.
+Use: python site/manuals/_build_merchant_ops_v3.py
+"""
 from __future__ import annotations
 
 import sys

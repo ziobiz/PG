@@ -356,6 +356,13 @@ public class HqApiConfig {
     @Column(name = "pg_buyer_email_attest_yn", nullable = false, length = 1)
     private String pgBuyerEmailAttestYn = "Y";
 
+    /**
+     * 가맹 서버통보(웹훅) HMAC 서명 본사 기본 — Y=서명 헤더 부여 / N=미부여.
+     * 가맹 FOLLOW_HQ 시 사용. 기본 N.
+     */
+    @Column(name = "merchant_outbound_webhook_sign_yn", nullable = false, length = 1)
+    private String merchantOutboundWebhookSignYn = "N";
+
     /** 결제창 상품명 사용 본사 기본 — Y/N */
     @Column(name = "url_pay_product_name_use_default_yn", nullable = false, length = 1)
     private String urlPayProductNameUseDefaultYn = "Y";
@@ -907,6 +914,11 @@ public class HqApiConfig {
     public String getPgBuyerEmailAttestYn() { return pgBuyerEmailAttestYn; }
     public void setPgBuyerEmailAttestYn(String v) {
         this.pgBuyerEmailAttestYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(v, "Y");
+    }
+
+    public String getMerchantOutboundWebhookSignYn() { return merchantOutboundWebhookSignYn; }
+    public void setMerchantOutboundWebhookSignYn(String v) {
+        this.merchantOutboundWebhookSignYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeHqDefault(v, "N");
     }
     public String getUrlPayProductNameUseDefaultYn() { return urlPayProductNameUseDefaultYn; }
     public void setUrlPayProductNameUseDefaultYn(String v) {

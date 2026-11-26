@@ -559,6 +559,24 @@ public class PayListItemDto {
      * 카드사 승인번호가 없으면 칠페이 TransactionId·PG 승인(대체) 번호를 표시합니다.
      */
     private static String resolveApprovalNoForDisplay(PgTrnsctn t) {
+        /* KSNET: 승인번호 = ICOPAY→PG ref(숫자 12). KSNET tid(chill) 장문은 표시하지 않음 */
+        if (t != null && com.pg.integration.pg.PgVendor.isKsnetFamily(t.getVan())) {
+            String pay = t.getPayNo() != null ? t.getPayNo().trim() : "";
+            String apr = t.getApprovalNo() != null ? t.getApprovalNo().trim() : "";
+            if (com.pg.util.IcopayPgOrderRef.looksLikeIcopayRef(pay, com.pg.util.IcopayPgOrderRef.Profile.DIGITS_12)) {
+                return pay;
+            }
+            if (com.pg.util.IcopayPgOrderRef.looksLikeIcopayRef(apr, com.pg.util.IcopayPgOrderRef.Profile.DIGITS_12)) {
+                return apr;
+            }
+            if (!pay.isEmpty()) {
+                return pay;
+            }
+            if (!apr.isEmpty()) {
+                return apr;
+            }
+            return "-";
+        }
         if (t.getApprovalNo() != null && !t.getApprovalNo().isBlank()) {
             return t.getApprovalNo().trim();
         }

@@ -86,6 +86,9 @@ public class ApiHqController {
     private final com.pg.urlpay.SimplePayCheckoutCopyService simplePayCheckoutCopyService;
     private final com.pg.urlpay.SimplePayBrandResolver simplePayBrandResolver;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.pg.service.NotiWebhookSignSyncService notiWebhookSignSyncService;
+
     public ApiHqController(CommissionPolicyRepository commissionPolicyRepository,
                            ChargebackFeePolicyRepository chargebackFeePolicyRepository,
                            HqApiConfigRepository hqApiConfigRepository,
@@ -2050,6 +2053,8 @@ public class ApiHqController {
                     c.getApiBrokerSimpleQrEnabledYn() != null ? c.getApiBrokerSimpleQrEnabledYn() : "Y");
             data.put("pgBuyerEmailAttestYn",
                     c.getPgBuyerEmailAttestYn() != null ? c.getPgBuyerEmailAttestYn() : "Y");
+            data.put("merchantOutboundWebhookSignYn",
+                    c.getMerchantOutboundWebhookSignYn() != null ? c.getMerchantOutboundWebhookSignYn() : "N");
             data.put("simplePayLogoModeDefault",
                     c.getSimplePayLogoModeDefault() != null ? c.getSimplePayLogoModeDefault() : "HTML");
             data.put("simplePayLogoUrlDefault",
@@ -2387,6 +2392,7 @@ public class ApiHqController {
         c.setApiBrokerRedirectEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("apiBrokerRedirectEnabledYn", "Y"))) ? "N" : "Y");
         c.setApiBrokerSimpleQrEnabledYn(String.valueOf(body.getOrDefault("apiBrokerSimpleQrEnabledYn", "Y")));
         c.setPgBuyerEmailAttestYn(String.valueOf(body.getOrDefault("pgBuyerEmailAttestYn", "Y")));
+        c.setMerchantOutboundWebhookSignYn(String.valueOf(body.getOrDefault("merchantOutboundWebhookSignYn", "N")));
         c.setSimplePayLogoModeDefault(String.valueOf(body.getOrDefault("simplePayLogoModeDefault", "HTML")));
         Object splu = body.get("simplePayLogoUrlDefault");
         c.setSimplePayLogoUrlDefault(splu != null && !splu.toString().isBlank() ? splu.toString().trim() : null);
@@ -2614,6 +2620,13 @@ public class ApiHqController {
         simplePayCheckoutCopyService.applyToHqConfig(c);
         simplePayBrandResolver.applyTranslationOnSave(c);
         hqApiConfigRepository.save(c);
+        try {
+            if (notiWebhookSignSyncService != null) {
+                notiWebhookSignSyncService.syncAllFollowHqMerchantsBestEffort();
+            }
+        } catch (Exception ignored) {
+            /* NOTI 동기 실패는 본사 저장을 막지 않음 */
+        }
         return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다.")));
     }
 

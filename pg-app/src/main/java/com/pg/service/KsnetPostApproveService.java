@@ -19,15 +19,18 @@ public class KsnetPostApproveService {
     private final SplitPayPaymentHookService splitPayPaymentHookService;
     private final MerchantOutboundNotifyService merchantOutboundNotifyService;
     private final KsnetNotiMirrorService ksnetNotiMirrorService;
+    private final KsnetCardEnrichService ksnetCardEnrichService;
 
     public KsnetPostApproveService(SettlementCalcService settlementCalcService,
                                    SplitPayPaymentHookService splitPayPaymentHookService,
                                    MerchantOutboundNotifyService merchantOutboundNotifyService,
-                                   KsnetNotiMirrorService ksnetNotiMirrorService) {
+                                   KsnetNotiMirrorService ksnetNotiMirrorService,
+                                   KsnetCardEnrichService ksnetCardEnrichService) {
         this.settlementCalcService = settlementCalcService;
         this.splitPayPaymentHookService = splitPayPaymentHookService;
         this.merchantOutboundNotifyService = merchantOutboundNotifyService;
         this.ksnetNotiMirrorService = ksnetNotiMirrorService;
+        this.ksnetCardEnrichService = ksnetCardEnrichService;
     }
 
     public void afterApproved(PgTrnsctn t, String channel) {
@@ -61,6 +64,13 @@ public class KsnetPostApproveService {
             ksnetNotiMirrorService.scheduleAfterCommit(t, paid);
         } catch (Exception e) {
             log.warn("KSNET NOTI 미러 예약 실패 orderNo={}: {}", t.getOrderNo(), e.getMessage());
+        }
+        if (paid) {
+            try {
+                ksnetCardEnrichService.scheduleAfterCommit(t);
+            } catch (Exception e) {
+                log.warn("KSNET 카드 보강 예약 실패 orderNo={}: {}", t.getOrderNo(), e.getMessage());
+            }
         }
     }
 }

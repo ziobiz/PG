@@ -6,13 +6,362 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '8.7';
+  var CURRENT_LIVE = '8.18';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '8.18',
+      kind: 'minor',
+      date: '2026-11-26',
+      items: {
+        KO: [
+          'KSNET 통합내역 보강: 거래조회(대사)로 카드·수수료·결제시각 채움 · 거래일/거래시간/결제시각·입력통화(결제내역) 표시 수정 · 승인 시 trddt/trdtm 반영'
+        ],
+        EN: [
+          'KSNET integrated list enrich: card/fee/paid-at from trade inquire · fix trnDate/trnTime/payCompletedAt + input currency from pay history · approve uses trddt/trdtm'
+        ],
+        JP: [
+          'KSNET統合取引補完: 取引照会でカード・手数料・決済時刻 · 取引日/時間/決済時刻・入力通貨(決済履歴)表示修正 · 承認時trddt/trdtm反映'
+        ],
+        CH: [
+          'KSNET 整合交易补全：交易查询写入卡号/手续费/支付时间 · 修正交易日/时间/完成时间与输入币种(支付明细) · 批准使用 trddt/trdtm'
+        ],
+        TH: [
+          'เสริมรายการรวม KSNET: เติมบัตร/ค่าธรรมเนียม/เวลาชำระจาก trade · แก้ trnDate/trnTime/payCompletedAt และสกุลที่ป้อนจากประวัติ · อนุมัติใช้ trddt/trdtm'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['결제관리→통합내역→KSNET 기간 검색', '거래일·거래시간·결제시각·입력통화·수수료·카드번호 표시 확인'] }],
+        EN: [{ title: 'Check', steps: ['Integrated list → KSNET', 'Confirm date/time/paid-at/input currency/fee/card'] }],
+        JP: [{ title: '確認', steps: ['統合取引→KSNET', '日付・時刻・入力通貨・手数料・カード確認'] }],
+        CH: [{ title: '确认', steps: ['整合交易→KSNET', '确认日期时间/输入币种/手续费/卡号'] }],
+        TH: [{ title: 'ตรวจ', steps: ['รายการรวม→KSNET', 'ตรวจวันเวลา/สกุลที่ป้อน/ค่าธรรมเนียม/บัตร'] }]
+      }
+    },
+    {
+      version: '8.17',
+      kind: 'minor',
+      date: '2026-11-26',
+      items: {
+        KO: [
+          'KSNET 카드번호: 승인 응답·WebFEP 거래조회(대사)로 마스킹 카드 적재 · 통합내역/통합체크에 KSNET 추가'
+        ],
+        EN: [
+          'KSNET card no.: persist masked PAN from approve/WebFEP trade inquire · add KSNET to integrated list/check'
+        ],
+        JP: [
+          'KSNETカード番号: 承認応答・WebFEP取引照会でマスクカード格納 · 統合取引/統合チェックにKSNET追加'
+        ],
+        CH: [
+          'KSNET 卡号：从批准响应/WebFEP 交易查询写入掩码卡号 · 整合交易/整合核对增加 KSNET'
+        ],
+        TH: [
+          'เลขบัตร KSNET: เก็บเลขมาสก์จากอนุมัติ/WebFEP trade · เพิ่ม KSNET ในรายการรวม/ตรวจรวม'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['결제관리→통합내역에서 KSNET 선택·기간 검색', '결제내역 카드번호 확인', '신규 KSNET 결제 후 카드번호 표시'] }],
+        EN: [{ title: 'Check', steps: ['Integrated list → KSNET', 'Confirm masked card on pay list', 'New KSNET payment shows card'] }],
+        JP: [{ title: '確認', steps: ['統合取引でKSNET選択', 'カード番号確認', '新規KSNET決済で表示'] }],
+        CH: [{ title: '确认', steps: ['整合交易选 KSNET', '确认卡号', '新 KSNET 支付显示卡号'] }],
+        TH: [{ title: 'ตรวจ', steps: ['เลือกรายการรวม KSNET', 'ตรวจเลขบัตร', 'ชำระ KSNET ใหม่'] }]
+      }
+    },
+    {
+      version: '8.16',
+      kind: 'minor',
+      date: '2026-11-26',
+      items: {
+        KO: [
+          'KSNET 승인번호: ICOPAY 생성 ref를 PAYSO와 동일 숫자 12자리로 통일 · 결제내역에 KSNET tid 장문 대신 12자리 표시'
+        ],
+        EN: [
+          'KSNET approval no.: ICOPAY ref unified to 12 digits like PAYSO · pay list shows 12-digit ref instead of long KSNET tid'
+        ],
+        JP: [
+          'KSNET承認番号: ICOPAY生成refをPAYSOと同じ数字12桁に統一 · 決済履歴は長いKSNET tidではなく12桁を表示'
+        ],
+        CH: [
+          'KSNET 批准号：ICOPAY 生成 ref 与 PAYSO 同为 12 位数字 · 支付明细显示 12 位而非长 KSNET tid'
+        ],
+        TH: [
+          'เลขออนุมัติ KSNET: ref ของ ICOPAY เป็นตัวเลข 12 หลักเหมือน PAYSO · ประวัติชำระแสดง 12 หลักแทน tid ยาวของ KSNET'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['KSNET 신규 테스트 결제', '결제내역 승인번호·PG승인번호가 숫자 12자리인지 확인'] }],
+        EN: [{ title: 'Check', steps: ['New KSNET test payment', 'Pay list approval / PG approve = 12 digits'] }],
+        JP: [{ title: '確認', steps: ['KSNET新規テスト決済', '承認番号・PG承認が数字12桁'] }],
+        CH: [{ title: '确认', steps: ['KSNET 新测试支付', '批准号/PG批准为12位数字'] }],
+        TH: [{ title: 'ตรวจ', steps: ['ทดสอบชำระ KSNET ใหม่', 'เลขออนุมัติเป็นตัวเลข 12 หลัก'] }]
+      }
+    },
+    {
+      version: '8.15',
+      kind: 'minor',
+      date: '2026-11-26',
+      items: {
+        KO: [
+          '웹훅 「서명 시크릿」: 발급/재발급 분리 · 직후 평문 1회+복사 · 이후 앞5자리 마스킹(복사 없음) · 가맹점 계정 카드 그레이 비활성(관리자만 조작)'
+        ],
+        EN: [
+          'Webhook “Signing secret”: Issue vs Rotate · plaintext+copy once after issue · then first-5 masked (no copy) · merchant login card grayed (admin-only)'
+        ],
+        JP: [
+          'Webhook「署名シークレット」: 発行/再発行 · 直後平文1回+コピー · 以降先頭5桁マスク(コピーなし) · 加盟ログインはグレー無効(管理者のみ)'
+        ],
+        CH: [
+          'Webhook「签名密钥」：签发/重新签发 · 签发后明文一次+复制 · 之后前5位掩码(无复制) · 商户登录卡片灰色禁用(仅管理员)'
+        ],
+        TH: [
+          'Webhook 「Signing secret」: ออก/ออกใหม่ · ข้อความชัด+คัดลอกครั้งเดียว · ภายหลัง 5 ตัวแรกปกปิด (ไม่มีคัดลอก) · บัญชีร้านการ์ดเทาปิด (แอดมินเท่านั้น)'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['업체관리→가맹 상세→웹훅 서명', '관리자: 서명 시크릿 발급→노란 상자 복사→재조회 시 마스킹만', '가맹점 로그인: 카드 회색·조작 불가'] }],
+        EN: [{ title: 'Check', steps: ['Company→merchant→Webhook signing', 'Admin: Issue → copy yellow box → reload shows mask only', 'Merchant login: gray card, no edit'] }],
+        JP: [{ title: '確認', steps: ['事業者→加盟→Webhook署名', '管理者: 発行→黄枠コピー→再表示はマスクのみ', '加盟ログイン: グレー・操作不可'] }],
+        CH: [{ title: '确认', steps: ['公司→商户→Webhook 签名', '管理员：签发→黄框复制→再开仅掩码', '商户登录：灰卡不可操作'] }],
+        TH: [{ title: 'ตรวจ', steps: ['บริษัท→ร้าน→ลายเซ็น Webhook', 'แอดมิน: ออก→คัดลอกกล่องเหลือง→โหลดใหม่เหลือมาสก์', 'ร้าน: การ์ดเทา แก้ไม่ได้'] }]
+      }
+    },
+    {
+      version: '8.14',
+      kind: 'minor',
+      date: '2026-11-26',
+      items: {
+        KO: [
+          '운영 메뉴얼: 「서버 웹훅(HMAC) API 연동 메뉴얼」PDF 신설(V1.00·5개국어) — 총본사·가맹점 목록에 표시 · 가맹점 운영 메뉴얼 요약 절은 유지'
+        ],
+        EN: [
+          'Ops manuals: new “Server Webhook (HMAC) API Manual” PDF (V1.00, 5 langs) — listed for Super HQ & merchants · keep summary section in Merchant Ops manual'
+        ],
+        JP: [
+          '運営マニュアル:「サーバーWebhook(HMAC) API連携マニュアル」PDF新設(V1.00・5言語) — 総本部・加盟一覧に表示 · 加盟運営マニュアル要約は維持'
+        ],
+        CH: [
+          '运营手册：新增「服务器 Webhook(HMAC) API 对接手册」PDF（V1.00·五语）— 总本部与商户列表可见 · 商户运营手册摘要保留'
+        ],
+        TH: [
+          'คู่มือปฏิบัติการ: เพิ่ม PDF 「Server Webhook (HMAC) API」(V1.00·5 ภาษา) — แสดงใน HQ สูงสุดและร้าน · คงสรุปในคู่มือปฏิบัติการร้าน'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['운영관리 → 운영 메뉴얼 → 가맹점용 「서버 웹훅(HMAC) API 연동 메뉴얼」', '가맹점 로그인에서도 동일 목록', 'PDF 한글·HMAC 규격·샘플 링크'] }],
+        EN: [{ title: 'Check', steps: ['Ops → Ops manuals → merchant “Server Webhook (HMAC) API Manual”', 'Same list as merchant login', 'PDF Korean + HMAC spec + samples'] }],
+        JP: [{ title: '確認', steps: ['運営→運営マニュアル→加盟向けHMACマニュアル', '加盟ログインでも同じ一覧', 'PDF・署名仕様・サンプル'] }],
+        CH: [{ title: '确认', steps: ['运营→运营手册→商户 Webhook HMAC 手册', '商户登录同列表', 'PDF 与签名规范'] }],
+        TH: [{ title: 'ตรวจ', steps: ['Ops → คู่มือ → คู่มือ HMAC ของร้าน', 'ล็อกอินร้านเห็นรายการเดียวกัน', 'PDF + สเปค HMAC'] }]
+      }
+    },
+    {
+      version: '8.13',
+      kind: 'minor',
+      date: '2026-11-26',
+      items: {
+        KO: [
+          '가맹점 운영 메뉴얼 PDF: 한글 ??? 깨짐 수정(Chrome UTF-8 재생성 V2.82) · 서버 웹훅 HMAC·NOTI 절·체크리스트 반영'
+        ],
+        EN: [
+          'Merchant Ops manual PDF: fix Korean ??? garbled text (Chrome UTF-8 rebuild V2.82) · add server webhook HMAC·NOTI section & checklist'
+        ],
+        JP: [
+          '加盟店運営マニュアルPDF: 韓国語???文字化け修正(Chrome UTF-8再生成 V2.82) · サーバーWebhook HMAC·NOTI節を追加'
+        ],
+        CH: [
+          '商户运营手册 PDF：修复韩文 ??? 乱码（Chrome UTF-8 重生 V2.82）· 补充服务器 Webhook HMAC·NOTI 章节'
+        ],
+        TH: [
+          'คู่มือปฏิบัติการร้าน PDF: แก้ข้อความเกาหลี ??? (สร้างใหม่ Chrome UTF-8 V2.82) · เพิ่มตอน Webhook HMAC·NOTI'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['운영관리 → 운영 메뉴얼 → 가맹점 운영 메뉴얼', '표지·목차 한글 정상 · V2.82 · 웹훅 HMAC 절'] }],
+        EN: [{ title: 'Check', steps: ['Ops → Ops manuals → Merchant Operations Manual', 'Korean text OK · V2.82 · HMAC section'] }],
+        JP: [{ title: '確認', steps: ['運営管理→運営マニュアル→加盟店運営', 'ハングル正常 · V2.82 · HMAC節'] }],
+        CH: [{ title: '确认', steps: ['运营→运营手册→商户运营手册', '韩文正常 · V2.82 · HMAC 节'] }],
+        TH: [{ title: 'ตรวจ', steps: ['Ops → คู่มือ → คู่มือปฏิบัติการร้าน', 'ข้อความปกติ · V2.82 · ตอน HMAC'] }]
+      }
+    },
+    {
+      version: '8.12',
+      kind: 'minor',
+      date: '2026-11-26',
+      items: {
+        KO: [
+          '웹훅 서명 UI: 시크릿 재발급 버튼을 시크릿(마스킹)과 동일 라인 정렬 · 가맹점 운영매뉴얼(목차)·체크리스트에 HMAC·NOTI 연동 절 보강'
+        ],
+        EN: [
+          'Webhook signing UI: align Rotate secret with Secret (masked) · expand merchant ops manual TOC and checklist for HMAC·NOTI'
+        ],
+        JP: [
+          'Webhook署名UI: シークレット再発行をマスク欄と同じラインに整列 · 加盟運用マニュアル・チェックリストにHMAC·NOTIを補強'
+        ],
+        CH: [
+          'Webhook 签名 UI：重新签发按钮与掩码密钥同行对齐 · 商户运营手册目录与检查清单补充 HMAC·NOTI'
+        ],
+        TH: [
+          'UI ลายเซ็น Webhook: ปุ่มออก secret ใหม่ให้อยู่บรรทัดเดียวกับช่องปกปิด · เสริมคู่มือ/เช็คลิสต์ HMAC·NOTI'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['업체관리→가맹 상세→웹훅 서명에서 재발급 버튼 높이', '가맹점API 체크리스트·활성화된 기능 안내·webhook-hmac-noti.ko.md'] }],
+        EN: [{ title: 'Check', steps: ['Company→merchant→Webhook signing button alignment', 'Merchant API checklist / feature docs / webhook-hmac-noti.md'] }],
+        JP: [{ title: '確認', steps: ['事業者→加盟→Webhook署名の再発行ボタン位置', '加盟APIチェックリスト・webhook-hmac-noti.ja.md'] }],
+        CH: [{ title: '确认', steps: ['公司→商户→Webhook 签名按钮对齐', '商户 API 检查清单与 webhook-hmac-noti.ch.md'] }],
+        TH: [{ title: 'ตรวจ', steps: ['บริษัท→ร้าน→ปุ่มลายเซ็น Webhook', 'เช็คลิสต์ Merchant API และ webhook-hmac-noti.th.md'] }]
+      }
+    },
+    {
+      version: '8.11',
+      kind: 'minor',
+      date: '2026-11-26',
+      items: {
+        KO: [
+          '웹훅 HMAC: NOTI→가맹 릴레이에도 X-Icopay-Signature 적용 · ICOPAY→NOTI 시크릿 동기 · 가맹점API·webhook-hmac-noti 5개국어 메뉴얼(본사 OFF·가맹 ON 유지)'
+        ],
+        EN: [
+          'Webhook HMAC: also sign NOTI→merchant relay · ICOPAY→NOTI secret sync · merchant portal & webhook-hmac-noti manuals in 5 languages (HQ OFF / merchant ON unchanged)'
+        ],
+        JP: [
+          'Webhook HMAC: NOTI→加盟リレーにもX-Icopay-Signature · ICOPAY→NOTIシークレット同期 · 加盟API・webhook-hmac-noti 5言語(本社OFF・加盟ON維持)'
+        ],
+        CH: [
+          'Webhook HMAC：NOTI→商户转发也签 X-Icopay-Signature · ICOPAY→NOTI 密钥同步 · 商户 API 与 webhook-hmac-noti 五语手册（总部 OFF、商户 ON 不变）'
+        ],
+        TH: [
+          'Webhook HMAC: ลงลายเซ็น NOTI→ร้าน ด้วย · ซิงก์ secret ICOPAY→NOTI · คู่มือพอร์ทัลร้านและ webhook-hmac-noti 5 ภาษา (HQ ปิด/ร้านเปิดเหมือนเดิม)'
+        ]
+      },
+      howTo: {
+        KO: [
+          { title: '가맹', steps: ['업체관리→웹훅 서명 활성·시크릿 재발급', '가맹점API「서버 웹훅 보안(HMAC) — NOTI」확인', 'callbackUrl에서 X-Icopay-Signature 검증'] },
+          { title: '본사', steps: ['웹훅 서명 본사 기본=OFF 유지', 'NOTI Provision 설정되어 있으면 저장/재발급 시 NOTI 자동 동기'] }
+        ],
+        EN: [
+          { title: 'Merchant', steps: ['Company→Webhook signing Active + rotate', 'See Merchant API feature “HMAC — NOTI”', 'Verify X-Icopay-Signature on callbackUrl'] },
+          { title: 'HQ', steps: ['Keep HQ webhook signing default OFF', 'With NOTI Provision configured, save/rotate syncs to NOTI'] }
+        ],
+        JP: [
+          { title: '加盟', steps: ['Webhook署名を有効・再発行', '加盟API「HMAC — NOTI」を確認', 'callbackUrlで署名検証'] },
+          { title: '本社', steps: ['本社既定OFFを維持', 'NOTI Provision設定時は保存/再発行で同期'] }
+        ],
+        CH: [
+          { title: '商户', steps: ['启用 Webhook 签名并轮换密钥', '查看商户 API「HMAC — NOTI」', '在 callbackUrl 校验签名'] },
+          { title: '总部', steps: ['保持总部默认 OFF', '已配置 NOTI Provision 时保存/轮换会同步'] }
+        ],
+        TH: [
+          { title: 'ร้าน', steps: ['เปิดลายเซ็น Webhook + ออก secret', 'ดูฟีเจอร์ HMAC — NOTI ในพอร์ทัล', 'ตรวจหัวที่ callbackUrl'] },
+          { title: 'HQ', steps: ['คงค่าเริ่ม HQ เป็นปิด', 'ถ้าตั้ง Provision แล้ว บันทึก/ออกใหม่จะซิงก์ไป NOTI'] }
+        ]
+      }
+    },
+    {
+      version: '8.10',
+      kind: 'minor',
+      date: '2026-11-26',
+      items: {
+        KO: [
+          '가맹 서버통보(웹훅) HMAC 서명: 본사 기본 OFF · 가맹 FOLLOW_HQ|Y|N(가맹 우선) · 헤더 X-Icopay-Signature v1= · 시크릿 재발급 · 메뉴얼·PHP/JSP 샘플(5개국어)'
+        ],
+        EN: [
+          'Merchant server webhook HMAC: HQ default OFF · merchant FOLLOW_HQ|Y|N (merchant overrides) · header X-Icopay-Signature v1= · rotate secret · manuals & PHP/JSP samples (5 languages)'
+        ],
+        JP: [
+          '加盟サーバWebhook HMAC署名: 本社既定OFF · 加盟FOLLOW_HQ|Y|N(加盟優先) · ヘッダX-Icopay-Signature v1= · シークレット再発行 · マニュアル・PHP/JSPサンプル(5言語)'
+        ],
+        CH: [
+          '商户服务器 Webhook HMAC 签名：总部默认 OFF · 商户 FOLLOW_HQ|Y|N（商户优先）· 头 X-Icopay-Signature v1= · 密钥轮换 · 手册与 PHP/JSP 样例（5 语）'
+        ],
+        TH: [
+          'ลายเซ็น HMAC Webhook เซิร์ฟเวอร์ร้าน: ค่าเริ่ม HQ ปิด · ร้าน FOLLOW_HQ|Y|N (ร้านมาก่อน) · หัว X-Icopay-Signature v1= · ออก secret ใหม่ · คู่มือและตัวอย่าง PHP/JSP (5 ภาษา)'
+        ]
+      },
+      howTo: {
+        KO: [
+          { title: '본사', steps: ['본사정책 → 결제 라우팅 → 웹훅 서명(본사 기본)=비활성(기본)', '필요 시만 활성'] },
+          { title: '가맹', steps: ['업체관리 → 가맹 상세 → 웹훅 서명', '활성 후 「시크릿 재발급」→ 가맹 서버에 ICOPAY_WEBHOOK_SIGN_SECRET 설정', 'notify_webhook.php 로 HMAC 검증'] }
+        ],
+        EN: [
+          { title: 'HQ', steps: ['HQ Policy → Payment routing → Webhook signing (HQ default)=Inactive (default)', 'Enable only when needed'] },
+          { title: 'Merchant', steps: ['Company → merchant detail → Webhook signing', 'Set Active → Rotate secret → set ICOPAY_WEBHOOK_SIGN_SECRET on merchant server', 'Verify with notify_webhook.php'] }
+        ],
+        JP: [
+          { title: '本社', steps: ['本社ポリシー→決済ルーティング→Webhook署名(本社既定)=非活性(既定)', '必要な場合のみ有効'] },
+          { title: '加盟', steps: ['事業者管理→加盟詳細→Webhook署名', '有効→シークレット再発行→加盟サーバにICOPAY_WEBHOOK_SIGN_SECRET', 'notify_webhook.phpで検証'] }
+        ],
+        CH: [
+          { title: '总部', steps: ['总部政策→支付路由→Webhook 签名(总部默认)=停用(默认)', '仅在需要时启用'] },
+          { title: '商户', steps: ['公司管理→商户详情→Webhook 签名', '启用→重新签发密钥→在商户服务器设置 ICOPAY_WEBHOOK_SIGN_SECRET', '用 notify_webhook.php 校验'] }
+        ],
+        TH: [
+          { title: 'HQ', steps: ['นโยบาย HQ → เส้นทางชำระ → ลายเซ็น Webhook (ค่าเริ่ม HQ)=ปิด (ค่าเริ่ม)', 'เปิดเฉพาะเมื่อจำเป็น'] },
+          { title: 'ร้าน', steps: ['จัดการบริษัท → รายละเอียดร้าน → ลายเซ็น Webhook', 'เปิด → ออก secret ใหม่ → ตั้ง ICOPAY_WEBHOOK_SIGN_SECRET ที่เซิร์ฟเวอร์ร้าน', 'ตรวจด้วย notify_webhook.php'] }
+        ]
+      }
+    },
+    {
+      version: '8.9',
+      kind: 'minor',
+      date: '2026-11-26',
+      items: {
+        KO: [
+          '해외(KSNET) 결제창: KSPAY language=ENG 전달·기본 영문 — 상점 영문명(ONTHELINE CO., LTD.) 표시. USD 매입 MID 세팅'
+        ],
+        EN: [
+          'Overseas (KSNET) checkout: pass KSPAY language=ENG by default — English store name (ONTHELINE CO., LTD.). USD merchant MID configured'
+        ],
+        JP: [
+          '海外(KSNET)決済画面: KSPAY language=ENGを既定で送信 — 店舗英名(ONTHELINE CO., LTD.)表示。USD加盟MID設定'
+        ],
+        CH: [
+          '海外(KSNET)支付窗：默认传 KSPAY language=ENG — 显示店铺英文名(ONTHELINE CO., LTD.)。已配置 USD 商户 MID'
+        ],
+        TH: [
+          'หน้าต่างชำระต่างประเทศ (KSNET): ส่ง language=ENG เป็นค่าเริ่ม — ชื่อร้านอังกฤษ (ONTHELINE CO., LTD.) ตั้งค่า MID USD แล้ว'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['해외 결제창 열기(lang 생략 시 ENG)', 'KSPAY 팝업 상점명이 ONTHELINE CO., LTD. 영문인지 확인'] }],
+        EN: [{ title: 'Check', steps: ['Open overseas checkout (defaults to ENG)', 'Confirm KSPAY popup shows ONTHELINE CO., LTD.'] }],
+        JP: [{ title: '確認', steps: ['海外決済画面を開く(lang省略時ENG)', 'KSPAYの店舗名がONTHELINE CO., LTD.か確認'] }],
+        CH: [{ title: '确认', steps: ['打开海外支付窗（省略 lang 时为 ENG）', '确认 KSPAY 弹窗店名为 ONTHELINE CO., LTD.'] }],
+        TH: [{ title: 'ตรวจ', steps: ['เปิดหน้าต่างชำระต่างประเทศ (ไม่ใส่ lang = ENG)', 'ตรวจชื่อร้านใน KSPAY เป็น ONTHELINE CO., LTD.'] }]
+      }
+    },
+    {
+      version: '8.8',
+      kind: 'minor',
+      date: '2026-11-26',
+      items: {
+        KO: [
+          '가맹 수신통보 URL: 운영 PG·노티이력에 더해 결제내역(van) PG도 표시 — 운영 OFF여도 OMSPAY 등 사용 이력이 있으면 입구 유지(기존 로직 additive)'
+        ],
+        EN: [
+          'Merchant inbound notify URLs: also include PGs from payment history (van) — e.g. OMSPAY stays visible when operational is OFF if history exists (additive to existing logic)'
+        ],
+        JP: [
+          '加盟受信通知URL: 運用PG・ノティ履歴に加え決済履歴(van)のPGも表示 — 運用OFFでもOMSPAY等の利用履歴があれば入口を維持(既存ロジックにadditive)'
+        ],
+        CH: [
+          '商户接收通知 URL：在运营 PG、通知履历之外，也显示交易记录(van)中的 PG — 即使关闭运营，若有 OMSPAY 等使用记录仍保留入口（在既有逻辑上叠加）'
+        ],
+        TH: [
+          'URL รับแจ้งร้าน: นอกจาก PG ที่เปิดใช้และประวัติ NOTI ยังแสดง PG จากประวัติชำระ (van) — แม้ปิดใช้งาน ถ้าเคยใช้ OMSPAY ฯลฯ ทางเข้ายังอยู่ (เพิ่มบนตรรกะเดิม)'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['업체관리 → 가맹 상세 → 수신통보 URL', '운영 OFF인 PG라도 결제내역 van 이 있으면 표에 표시'] }],
+        EN: [{ title: 'Check', steps: ['Merchants → detail → Inbound notify URLs', 'PGs with payment history appear even when operational is OFF'] }],
+        JP: [{ title: '確認', steps: ['加盟詳細→受信通知URL', '運用OFFでも決済履歴vanがあれば表に表示'] }],
+        CH: [{ title: '确认', steps: ['商户详情→接收通知 URL', '即使运营关闭，有交易 van 仍显示'] }],
+        TH: [{ title: 'ตรวจ', steps: ['รายละเอียดร้าน → URL รับแจ้ง', 'แม้ปิดใช้งาน ถ้ามีประวัติ van จะโชว์'] }]
+      }
+    },
     {
       version: '8.7',
       kind: 'minor',

@@ -538,6 +538,31 @@ public class MerchantApiDeploymentService {
         kit.put("merchantFeatureFlags", flags);
 
         List<Map<String, Object>> featureDocs = new ArrayList<>();
+        /* 가맹점용 — NOTI 웹훅 HMAC 보안 연동 (항상 노출) */
+        featureDocs.add(featureDocBlock(
+                "WEBHOOK_HMAC_NOTI",
+                new Bundle(
+                        "서버 웹훅 보안(HMAC) — NOTI",
+                        "Server webhook security (HMAC) — NOTI",
+                        "サーバWebhookセキュリティ(HMAC) — NOTI",
+                        "服务器 Webhook 安全(HMAC) — NOTI",
+                        "ความปลอดภัย Webhook เซิร์ฟเวอร์ (HMAC) — NOTI"
+                ),
+                new Bundle(
+                        "결제 확정 통보는 주로 NOTI가 가맹 callbackUrl로 POST합니다. 웹훅 서명이 활성이면 헤더 X-Icopay-Signature: v1={HMAC-SHA256 hex of raw body} 가 붙습니다. 시크릿은 업체관리→웹훅 서명→재발급(평문 1회). IP만 믿지 말고 HMAC을 검증하세요. 샘플: merchant-api-samples/php/notify_webhook.php · 문서 webhook-hmac-noti.*.md",
+                        "Payment notify is usually POSTed by NOTI to your callbackUrl. When webhook signing is Active, header X-Icopay-Signature: v1={HMAC-SHA256 hex of raw body} is set. Get the secret once via Company → Webhook signing → Rotate. Prefer HMAC over IP allowlists. Sample: merchant-api-samples/php/notify_webhook.php · docs webhook-hmac-noti.*.md",
+                        "決済確定通知は主にNOTIが加盟callbackUrlへPOST。Webhook署名が有効ならヘッダ X-Icopay-Signature: v1={raw bodyのHMAC-SHA256 hex}。シークレットは事業者管理→Webhook署名→再発行(平文1回)。IPだけでなくHMAC検証。サンプル notify_webhook.php · webhook-hmac-noti.*.md",
+                        "支付确认通知通常由 NOTI POST 到商户 callbackUrl。启用 Webhook 签名时带请求头 X-Icopay-Signature: v1={raw body 的 HMAC-SHA256 hex}。密钥在公司管理→Webhook 签名→重新签发（明文一次）。请校验 HMAC，勿只依赖 IP。样例 notify_webhook.php · webhook-hmac-noti.*.md",
+                        "การแจ้งชำระมักเป็น NOTI POST ไป callbackUrl ของร้าน เมื่อเปิดลายเซ็น Webhook จะมีหัว X-Icopay-Signature: v1={HMAC-SHA256 hex ของ raw body} รับ secret ที่จัดการบริษัท→ลายเซ็น Webhook→ออกใหม่ (เปิดเผยครั้งเดียว) ตรวจ HMAC อย่าพึ่งแค่ IP ตัวอย่าง notify_webhook.php · webhook-hmac-noti.*.md"
+                ),
+                new Bundle(
+                        "설정: 업체관리→웹훅 서명(본사 OFF·가맹 ON). 검증: raw body + 시크릿. 발신 IP 참고: NOTI 172.235.192.86 / IPv6 2400:8905::2000:6dff:fe4b:8079 · ICOPAY 직통 1.234.65.25",
+                        "Config: Company → Webhook signing (HQ OFF, merchant ON). Verify: raw body + secret. Egress IP: NOTI 172.235.192.86 / IPv6 2400:8905::2000:6dff:fe4b:8079 · ICOPAY direct 1.234.65.25",
+                        "設定: 事業者→Webhook署名(本社OFF・加盟ON)。検証: raw body+シークレット。送信IP: NOTI 172.235.192.86 / IPv6 2400:8905::2000:6dff:fe4b:8079 · ICOPAY直送 1.234.65.25",
+                        "设置: 公司管理→Webhook 签名(总部 OFF、商户 ON)。校验: raw body+密钥。出站 IP: NOTI 172.235.192.86 / IPv6 2400:8905::2000:6dff:fe4b:8079 · ICOPAY 直连 1.234.65.25",
+                        "ตั้งค่า: บริษัท→ลายเซ็น Webhook (HQ ปิด ร้านเปิด) ตรวจ raw body+secret IP: NOTI 172.235.192.86 / IPv6 2400:8905::2000:6dff:fe4b:8079 · ICOPAY ตรง 1.234.65.25"
+                )
+        ));
         if (subscription) {
             featureDocs.add(featureDocBlock(
                     "SUBSCRIPTION",

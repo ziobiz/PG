@@ -3729,23 +3729,23 @@
       CH: '商户保存并查询后显示。',
       TH: 'แสดงหลังบันทึกและโหลดร้าน'
     },
-    'CRYPTO·QR(QBANG/PayPay·ILK)도 운영·사용 중이면 이 표에 포함됩니다. 상태「노티등록 필요」이면 노티관리에서 해당 PG로 추가등록하세요.': {
-      EN: 'CRYPTO and QR (QBANG/PayPay·ILK) appear when in use. If status is NOTI registration needed, add that PG under Notification management.',
-      JP: 'CRYPTO・QR(QBANG/PayPay・ILK)も運用中なら表に含まれます。「ノティ登録が必要」ならノティ管理で該当PGを追加登録してください。',
-      CH: '若已启用，CRYPTO 与 QR(QBANG/PayPay·ILK)也会列入。状态为需注册通知时，请在通知管理中按该 PG 追加注册。',
-      TH: 'CRYPTO และ QR (QBANG/PayPay·ILK) จะโชว์เมื่อใช้งาน หากสถานะต้องลงทะเบียน NOTI ให้เพิ่ม PG นั้นในจัดการแจ้งเตือน'
+    'CRYPTO·QR(QBANG/PayPay·ILK)도 운영·사용 중이면 이 표에 포함됩니다. 결제내역이 있는 PG(예: OMSPAY)는 운영 OFF여도 표시됩니다. 상태「노티등록 필요」이면 노티관리에서 해당 PG로 추가등록하세요.': {
+      EN: 'CRYPTO and QR (QBANG/PayPay·ILK) appear when in use. PGs with payment history (e.g. OMSPAY) still show when operational is OFF. If status is NOTI registration needed, add that PG under Notification management.',
+      JP: 'CRYPTO・QR(QBANG/PayPay・ILK)も運用中なら表に含まれます。決済履歴があるPG(例:OMSPAY)は運用OFFでも表示。「ノティ登録が必要」ならノティ管理で該当PGを追加登録してください。',
+      CH: '若已启用，CRYPTO 与 QR(QBANG/PayPay·ILK)也会列入。有交易记录的 PG（如 OMSPAY）即使运营关闭仍显示。状态为需注册通知时，请在通知管理中按该 PG 追加注册。',
+      TH: 'CRYPTO และ QR (QBANG/PayPay·ILK) จะโชว์เมื่อใช้งาน PG ที่มีประวัติชำระ (เช่น OMSPAY) ยังโชว์แม้ปิดใช้งาน หากสถานะต้องลงทะเบียน NOTI ให้เพิ่ม PG นั้นในจัดการแจ้งเตือน'
     },
-    '운영 결제대행사·크립토·QR이 있으면 여기에 PG별 수신 입구가 표시됩니다.': {
-      EN: 'When operational PGs, crypto, or QR exist, per-PG inbound URLs appear here.',
-      JP: '運用決済代行・クリプト・QRがあると、ここにPG別受信入口が表示されます。',
-      CH: '若有运营收单方、加密或 QR，将在此显示各 PG 接收入口。',
-      TH: 'เมื่อมี PG ปฏิบัติการ คริปโต หรือ QR จะแสดง URL รับเข้าแยก PG ที่นี่'
+    '운영 결제대행사·크립토·QR·노티이력·결제내역이 있으면 여기에 PG별 수신 입구가 표시됩니다.': {
+      EN: 'When operational PGs, crypto, QR, NOTI history, or payment history exist, per-PG inbound URLs appear here.',
+      JP: '運用決済代行・クリプト・QR・ノティ履歴・決済履歴があると、ここにPG別受信入口が表示されます。',
+      CH: '若有运营收单方、加密、QR、通知履历或交易记录，将在此显示各 PG 接收入口。',
+      TH: 'เมื่อมี PG ปฏิบัติการ คริปโต QR ประวัติ NOTI หรือประวัติชำระ จะแสดง URL รับเข้าแยก PG ที่นี่'
     },
-    '운영 결제대행사·크립토·QR별로 NOTI 수신 입구(PG→NOTI)를 표시합니다. 가맹 쇼핑몰 URL이 아닙니다. 고정형(ElementPay·OMSPAY·ILK·QBANG·CRYPTO 등)은 PG별 주소가 다르며, 노티생성이력·바인딩 기준으로 여러 행이 나옵니다. JPAY 슬롯형은 아래 입력칸도 유지됩니다.': {
-      EN: 'Shows NOTI inbound URLs (PG→NOTI) per operational PG, crypto, and QR—not the merchant shop URL. Fixed-ingress PGs (ElementPay, OMSPAY, ILK, QBANG, CRYPTO, …) have distinct addresses; multiple rows come from provision history and bindings. JPAY slot fields remain below.',
-      JP: '運用決済代行・クリプト・QR別にNOTI受信入口(PG→NOTI)を表示します。加盟店ECのURLではありません。固定型はPG別に異なり、履歴・バインドで複数行。JPAYスロット入力は下に残します。',
-      CH: '按运营收单方、加密、QR 显示 NOTI 接收入口(PG→NOTI)，非商户商城 URL。固定入口各 PG 地址不同；多行来自创建履历与绑定。JPAY 槽位输入仍保留在下方。',
-      TH: 'แสดง URL รับ NOTI (PG→NOTI) แยกตาม PG คริปโต QR ไม่ใช่ URL ร้านค้า แบบคงที่มีที่อยู่ต่างกันหลายแถวจากประวัติ/การผูก ช่อง JPAY สล็อตยังอยู่ด้านล่าง'
+    '운영 결제대행사·크립토·QR·노티생성이력·결제내역(van) 기준으로 NOTI 수신 입구(PG→NOTI)를 표시합니다. 가맹 쇼핑몰 URL이 아닙니다. 운영이 꺼져도 결제내역·노티이력이 있으면 행이 남습니다. 고정형(ElementPay·OMSPAY·PAYSO·ILK·QBANG·CRYPTO 등)은 PG별 주소가 다르며 JPAY 슬롯형은 아래 입력칸도 유지됩니다.': {
+      EN: 'Shows NOTI inbound URLs (PG→NOTI) from operational PGs, crypto, QR, NOTI provision history, and payment history (van)—not the merchant shop URL. Rows remain if history exists even when operational is OFF. Fixed ingress differs by PG; JPAY slot fields stay below.',
+      JP: '運用・クリプト・QR・ノティ履歴・決済履歴(van)基準でNOTI受信入口(PG→NOTI)を表示します。加盟店ECのURLではありません。運用OFFでも履歴があれば行が残ります。固定型はPG別。JPAYスロット入力は下に残します。',
+      CH: '按运营收单方、加密、QR、通知履历与交易记录(van)显示 NOTI 接收入口(PG→NOTI)，非商户商城 URL。即使关闭运营，有履历/交易仍保留行。固定入口按 PG；JPAY 槽位输入仍保留在下方。',
+      TH: 'แสดง URL รับ NOTI (PG→NOTI) จาก PG คริปโต QR ประวัติ NOTI และประวัติชำระ (van) ไม่ใช่ URL ร้าน แม้ปิดใช้งาน ถ้ามีประวัติแถวยังอยู่ ทางเข้าคงที่แยกตาม PG ช่อง JPAY สล็อตยังอยู่ด้านล่าง'
     },
     'QR 사용': {
       EN: 'QR use',

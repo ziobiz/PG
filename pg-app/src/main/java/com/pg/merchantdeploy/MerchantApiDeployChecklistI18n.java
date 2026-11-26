@@ -131,6 +131,21 @@ public final class MerchantApiDeployChecklistI18n {
         )));
 
         list.add(textMap(new Bundle(
+                "서버 웹훅(HMAC·NOTI): 서명 활성 시 헤더 X-Icopay-Signature: v1= 검증(raw body HMAC-SHA256). "
+                        + "문서 " + base + "/merchant-api-samples/docs/webhook-hmac-noti.ko.md · 샘플 "
+                        + base + "/merchant-api-samples/php/notify_webhook.php · 가맹점API「서버 웹훅 보안(HMAC) — NOTI」",
+                "Server webhook (HMAC·NOTI): when signing Active, verify X-Icopay-Signature: v1= (HMAC-SHA256 of raw body). "
+                        + "Docs " + base + "/merchant-api-samples/docs/webhook-hmac-noti.md · sample "
+                        + base + "/merchant-api-samples/php/notify_webhook.php · Merchant API feature “HMAC — NOTI”",
+                "サーバWebhook(HMAC·NOTI): 署名有効時 X-Icopay-Signature: v1= を検証(raw body HMAC-SHA256)。"
+                        + "文書 " + base + "/merchant-api-samples/docs/webhook-hmac-noti.ja.md · サンプル notify_webhook.php",
+                "服务器 Webhook(HMAC·NOTI)：启用签名时校验 X-Icopay-Signature: v1=（raw body HMAC-SHA256）。"
+                        + "文档 " + base + "/merchant-api-samples/docs/webhook-hmac-noti.ch.md · 样例 notify_webhook.php",
+                "Webhook เซิร์ฟเวอร์ (HMAC·NOTI): เมื่อเปิดลายเซ็น ตรวจ X-Icopay-Signature: v1= (HMAC-SHA256 ของ raw body) "
+                        + "เอกสาร " + base + "/merchant-api-samples/docs/webhook-hmac-noti.th.md · ตัวอย่าง notify_webhook.php"
+        )));
+
+        list.add(textMap(new Bundle(
                 "ICOPAY 통합 구독(정기결제): POST " + base + "/api/middleware/v1/merchant/checkout/subscription/prepare "
                         + "→ sessionToken → /v1/embed-checkout-subscribe/" + cid,
                 "ICOPAY unified subscription: POST " + base + "/api/middleware/v1/merchant/checkout/subscription/prepare "

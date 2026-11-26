@@ -98,6 +98,24 @@ X-Icopay-Merchant-Broker-Secret: {브로커시크릿}
 
 ---
 
+## 3. 서버 웹훅(선택 · HMAC)
+
+ICOPAY는 **결제통보·수신통보 URL**로 JSON POST합니다(브라우저 Result와 별개).
+
+가맹 **웹훅 서명**이 활성이면:
+
+| 항목 | 내용 |
+|------|------|
+| 헤더 | `X-Icopay-Signature: v1={hex}` |
+| 알고리즘 | raw body에 대한 HMAC-SHA256 |
+| 시크릿 | 관리자 **업체관리 → 웹훅 서명 → 시크릿 재발급**(평문 1회) |
+
+본사 기본은 **비활성(OFF)**. 가맹은 본사설정 따름 / 활성 / 비활성(가맹 우선).
+
+샘플: `merchant-api-samples/php/notify_webhook.php` (`ICOPAY_WEBHOOK_SIGN_SECRET`)
+
+---
+
 ## PHP 샘플 (권장)
 
 | 파일 | 용도 |
@@ -105,6 +123,7 @@ X-Icopay-Merchant-Broker-Secret: {브로커시크릿}
 | `merchant-api-samples/php/icopay_config.example.php` | `compId`·브로커 시크릿·Base URL |
 | `merchant-api-samples/php/IcopayMerchantApi.php` | 클라이언트 |
 | `merchant-api-samples/php/checkout_unified.php` | prepare → embed 예제 |
+| `merchant-api-samples/php/notify_webhook.php` | 웹훅 수신 + HMAC 검증 |
 
 ---
 

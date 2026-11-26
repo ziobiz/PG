@@ -16,7 +16,8 @@
    - 연동 빠른 시작(3단계)  
    - Checkout 엔드포인트·**파라미터 규격 표**  
    - 샘플·체크리스트·WordPress(해당 시)  
-   - **활성화된 기능 안내**(해당 가맹에 켜진 부가 기능만)
+   - **활성화된 기능 안내**(해당 가맹에 켜진 부가 기능만)  
+   - **서버 웹훅 보안(HMAC·NOTI)** 안내·체크리스트
 
 본사 **API배포문서**(`/hq/merchantApiDeployDocs`)는 위와 **동일 키트**의 미리보기입니다.  
 가맹점에 ZIP/MD를 따로 보낼 필요가 없습니다.
@@ -24,6 +25,48 @@
 가맹점API 화면 체크리스트·파라미터 표에 **샌드박스 분기(prepare → complete)** 가 포함됩니다.  
 상세 운영: [`가맹_ICOPAY_샌드박스_사용안내.md`](./가맹_ICOPAY_샌드박스_사용안내.md)
 
+---
+
+## 서버 웹훅(HMAC) API 연동 — 가맹점용 (운영 매뉴얼)
+
+**운영관리 → 운영 메뉴얼 → 가맹점용 「서버 웹훅(HMAC) API 연동 메뉴얼」** (PDF V1.00·5개국어)  
+총본사·본사·총판·가맹점 로그인에서 동일 목록에 표시됩니다. 「가맹점 운영 메뉴얼」8절에도 요약이 있습니다.
+
+가맹 **서버 통보** 연동·보안 검증은 아래를 따릅니다. (브라우저 Result와 별개)
+
+### 수신 상대
+
+| 경로 | 발신 | 설명 |
+|------|------|------|
+| **일반** | **NOTI** → 가맹 `callbackUrl` | 결제 확정 서버 POST (권장 기준) |
+| 보조 | ICOPAY → 결제통보·수신통보 URL | 직통 POST (서명 ON이면 동일 헤더) |
+
+### 본사·가맹 설정 (관리자)
+
+| 구분 | 메뉴 |
+|------|------|
+| 본사 기본(기본 OFF) | **본사정책 → 결제·URL → 결제 라우팅 → 웹훅 서명** |
+| 가맹 ON/OFF·시크릿 | **업체관리 → 가맹 상세 → 웹훅 서명** (`본사설정 따름` / `활성` / `비활성`) |
+
+활성 후 **시크릿 재발급**(평문 1회) → 가맹 서버에만 보관. ICOPAY가 NOTI에 설정을 동기합니다.
+
+### 가맹 서버 검증
+
+| 항목 | 내용 |
+|------|------|
+| 헤더 | `X-Icopay-Signature: v1={hex}` |
+| 알고리즘 | HMAC-SHA256(**raw body**, secret) |
+| 실패 | HTTP **401** 권장 · 성공 **200** |
+
+샘플·5개국어 문서:
+
+- `{publicApiBaseUrl}/merchant-api-samples/docs/webhook-hmac-noti.ko.md` (`.md` EN · `.ja` · `.ch` · `.th`)
+- `{publicApiBaseUrl}/merchant-api-samples/php/notify_webhook.php`
+- 가맹점API 화면 **활성화된 기능 안내** → 「서버 웹훅 보안(HMAC) — NOTI」
+
+발신 IP(참고): NOTI `172.235.192.86` / IPv6 `2400:8905::2000:6dff:fe4b:8079` · ICOPAY 직통 `1.234.65.25` — **HMAC을 주 검증**으로 사용.
+
+---
 
 ## ICOPAY 샌드박스 (통신 테스트)
 
@@ -51,6 +94,7 @@
 | 기능 | 가맹 플래그(요지) | 문서에 포함되는 경우 |
 |------|-------------------|---------------------|
 | 기본 Checkout·Webhook | API 배포 완료 | 항상(채널 ON인 인라인/리다이렉트/WP만) |
+| 서버 웹훅 보안(HMAC·NOTI) | API 배포 완료 | 항상 — 가맹점API 「활성화된 기능 안내」+ `merchant-api-samples/docs/webhook-hmac-noti*.md` |
 | 정기결제(구독) | `apiJpaySubscriptionUseYn=Y` (+ 본사 구독 ON) | 구독 Checkout 엔드포인트·체크리스트·기능 안내 |
 | 챗봇결제 | `chatbotPaymentUseYn=Y` | 「활성화된 기능 안내」챗봇 안내만 (구독·분할 매뉴얼 미포함) |
 | 분할결제 | `splitPayEnabledYn=Y` | 「활성화된 기능 안내」분할 안내만 |
@@ -66,6 +110,7 @@
 |------|------|
 | 빠른 시작(영문 정적) | `site/merchant-api-samples/docs/icopay-merchant-quickstart.md` |
 | 빠른 시작(국문 정적) | `site/merchant-api-samples/docs/icopay-merchant-quickstart.ko.md` |
+| **웹훅 HMAC(가맹점용·5개국어)** | `site/merchant-api-samples/docs/webhook-hmac-noti*.md` |
 | 저장소 원본 | `docs/가맹점_ICOPAY_간단연동_빠른시작.md` |
 | 파라미터 규격 | `docs/가맹점_통합Checkout_API_연동파라미터_규격.md` |
 | 연동 흐름 | `docs/가맹점_통합Checkout_API_연동흐름.md` |
@@ -91,6 +136,7 @@
 
 | 버전 | 일자 | 요약 |
 |------|------|------|
+| 2.3 | 2026-11-26 | 가맹점용 서버 웹훅(HMAC·NOTI) 연동 절·문서 링크 추가 |
 | 2.2 | 2026-07-16 | 가맹별 활성 기능(구독·챗봇·분할)만 배포 문서 노출 |
 | 2.1 | 2026-07-15 | 공식 전달 = 가맹 로그인 후 가맹점API. 본사 API배포문서는 미리보기 |
 | 2.0 | 2026-07-15 | 가맹 배포 = ICOPAY 통합만. PG별 매뉴얼은 내부 전용으로 격하 |

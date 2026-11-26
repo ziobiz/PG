@@ -30,17 +30,20 @@ public class IntegratedCheckService {
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
     private final ElementPayClientApiService elementPayClientApiService;
     private final PaysoIntegratedListService paysoIntegratedListService;
+    private final KsnetIntegratedListService ksnetIntegratedListService;
 
     public IntegratedCheckService(JpayIntegratedListService jpayIntegratedListService,
                                   PayListService payListService,
                                   HqLedgerSysSettingsService hqLedgerSysSettingsService,
                                   ElementPayClientApiService elementPayClientApiService,
-                                  PaysoIntegratedListService paysoIntegratedListService) {
+                                  PaysoIntegratedListService paysoIntegratedListService,
+                                  KsnetIntegratedListService ksnetIntegratedListService) {
         this.jpayIntegratedListService = jpayIntegratedListService;
         this.payListService = payListService;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
         this.elementPayClientApiService = elementPayClientApiService;
         this.paysoIntegratedListService = paysoIntegratedListService;
+        this.ksnetIntegratedListService = ksnetIntegratedListService;
     }
 
     @Transactional(readOnly = true)
@@ -82,6 +85,16 @@ public class IntegratedCheckService {
                     ? (List<Map<String, Object>>) el : List.of();
             acquirerDays = psDays;
             acquirerCapped = Boolean.TRUE.equals(ps.get("capped"));
+        } else if ("KSNET".equals(acquirer)) {
+            String ksKeyword = searchOrderNo != null && !searchOrderNo.isBlank() ? searchOrderNo : searchKeyword;
+            String ksField = searchOrderNo != null && !searchOrderNo.isBlank() ? "ORDER_NO" : "ALL";
+            Map<String, Object> ks = ksnetIntegratedListService.buildDailyCheckRows(
+                    tFrom, effectiveTo, ksField, ksKeyword, searchPayDivCd, compareZone);
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> ksDays = ks.get("list") instanceof List<?> el
+                    ? (List<Map<String, Object>>) el : List.of();
+            acquirerDays = ksDays;
+            acquirerCapped = Boolean.TRUE.equals(ks.get("capped"));
         } else if ("OX".equals(acquirer)) {
             acquirerDays = List.of();
         } else {
@@ -169,6 +182,10 @@ public class IntegratedCheckService {
             if (acquirerCapped) {
                 meta.put("note", "PAYSO 조회 건수가 많아 최근 5,000건까지만 대조했습니다.");
             }
+        } else if ("KSNET".equals(acquirer)) {
+            meta.put("integratedCheckNote",
+                    "KSNET 적재 거래·WebFEP 거래조회(대사)와 ICOPAY KSNET 거래를 일자별로 대조합니다. "
+                            + "금액은 실결제 USD 승인금액입니다.");
         } else if ("OX".equals(acquirer)) {
             meta.put("acquirerQueryReady", false);
             meta.put("integratedCheckNote",
@@ -233,6 +250,9 @@ public class IntegratedCheckService {
         if ("PAYSO".equals(v) || v.startsWith("PAYSO_") || "PAYSOLUTIONS".equals(v)) {
             return "PAYSO";
         }
+        if ("KSNET".equals(v) || v.startsWith("KSNET")) {
+            return "KSNET";
+        }
         if ("OX".equals(v) || "OXPAY".equals(v)) {
             return "OX";
         }
@@ -245,6 +265,9 @@ public class IntegratedCheckService {
         }
         if ("PAYSO".equals(acquirer)) {
             return "PAYSO";
+        }
+        if ("KSNET".equals(acquirer)) {
+            return "KSNET";
         }
         if ("OX".equals(acquirer)) {
             return "ox";

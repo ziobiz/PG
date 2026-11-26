@@ -91,8 +91,9 @@ public final class IcopayPgOrderRef {
         return newRef(Profile.ALNUM_32);
     }
 
+    /** KSNET orderNumb / 결제내역 승인번호 — PAYSO와 동일 숫자 12자리. */
     public static String ksnetOrderNumb() {
-        return newRef(Profile.ALNUM_50);
+        return newRef(Profile.DIGITS_12);
     }
 
     /** JPAY·ElementPay·Eximbay·QXIPAY·OMSPAY 표준 (50자, DB pay_no 한도). */

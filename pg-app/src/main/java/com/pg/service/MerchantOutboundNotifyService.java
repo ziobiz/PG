@@ -67,17 +67,20 @@ public class MerchantOutboundNotifyService {
     private final OrgUnitRepository orgUnitRepository;
     private final MerchantNotifyUrlRepository merchantNotifyUrlRepository;
     private final MerchantNotifyOutboundLogService merchantNotifyOutboundLogService;
+    private final MerchantOutboundWebhookSignService merchantOutboundWebhookSignService;
     private final RestTemplate restTemplate;
     private final ExecutorService outboundExecutor;
 
     public MerchantOutboundNotifyService(PgTrnsctnRepository pgTrnsctnRepository,
                                          OrgUnitRepository orgUnitRepository,
                                          MerchantNotifyUrlRepository merchantNotifyUrlRepository,
-                                         MerchantNotifyOutboundLogService merchantNotifyOutboundLogService) {
+                                         MerchantNotifyOutboundLogService merchantNotifyOutboundLogService,
+                                         MerchantOutboundWebhookSignService merchantOutboundWebhookSignService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantNotifyUrlRepository = merchantNotifyUrlRepository;
         this.merchantNotifyOutboundLogService = merchantNotifyOutboundLogService;
+        this.merchantOutboundWebhookSignService = merchantOutboundWebhookSignService;
         this.restTemplate = buildRestTemplate();
         this.outboundExecutor = buildOutboundExecutor();
     }
@@ -203,7 +206,7 @@ public class MerchantOutboundNotifyService {
             anyRecvConfigured = true;
             anyTarget = true;
             PostOutcome out = postOne(merchantCodeTrim, orgUnitId, t, notifyCh,
-                    MerchantNotifyUrl.URL_TYPE_JPAY_NOTIFY, recvN.get(), basePayload, true);
+                    MerchantNotifyUrl.URL_TYPE_JPAY_NOTIFY, recvN.get(), basePayload);
             anySuccess |= out.success;
             anySoftFail |= out.softFail;
         }
@@ -212,7 +215,7 @@ public class MerchantOutboundNotifyService {
             anyRecvConfigured = true;
             anyTarget = true;
             PostOutcome out = postOne(merchantCodeTrim, orgUnitId, t, notifyCh,
-                    MerchantNotifyUrl.URL_TYPE_JPAY_CALLBACK, recvC.get(), basePayload, true);
+                    MerchantNotifyUrl.URL_TYPE_JPAY_CALLBACK, recvC.get(), basePayload);
             anySuccess |= out.success;
             anySoftFail |= out.softFail;
         }
@@ -220,7 +223,7 @@ public class MerchantOutboundNotifyService {
         Optional<MerchantNotifyUrl> mw = usable(mwOpt);
         if (mw.isPresent()) {
             anyTarget = true;
-            PostOutcome out = postOne(merchantCodeTrim, orgUnitId, t, notifyCh, URL_TYPE_MIDDLEWARE, mw.get(), basePayload, false);
+            PostOutcome out = postOne(merchantCodeTrim, orgUnitId, t, notifyCh, URL_TYPE_MIDDLEWARE, mw.get(), basePayload);
             anySuccess |= out.success;
             anySoftFail |= out.softFail;
         }
@@ -228,7 +231,7 @@ public class MerchantOutboundNotifyService {
         if (bg.isPresent()) {
             anyTarget = true;
             PostOutcome out = postOne(merchantCodeTrim, orgUnitId, t, notifyCh, URL_TYPE_BACKGROUND, bg.get(),
-                    withMerchantNotifyTarget(basePayload, URL_TYPE_BACKGROUND), true);
+                    withMerchantNotifyTarget(basePayload, URL_TYPE_BACKGROUND));
             anySuccess |= out.success;
             anySoftFail |= out.softFail;
         }
@@ -236,7 +239,7 @@ public class MerchantOutboundNotifyService {
         if (rs.isPresent()) {
             anyTarget = true;
             PostOutcome out = postOne(merchantCodeTrim, orgUnitId, t, notifyCh, URL_TYPE_RESULT, rs.get(),
-                    withMerchantNotifyTarget(basePayload, URL_TYPE_RESULT), true);
+                    withMerchantNotifyTarget(basePayload, URL_TYPE_RESULT));
             anySuccess |= out.success;
             anySoftFail |= out.softFail;
         }
@@ -257,7 +260,7 @@ public class MerchantOutboundNotifyService {
     }
 
     private PostOutcome postOne(String merchantCodeTrim, Long orgUnitId, PgTrnsctn t, String notifyCh,
-                                String urlType, MerchantNotifyUrl row, Map<String, Object> payload, boolean plainOrSigned) {
+                                String urlType, MerchantNotifyUrl row, Map<String, Object> payload) {
         String url = row.getNotiUrl() != null ? row.getNotiUrl().trim() : "";
         try {
             if (PgNotifyIngressPaths.isForbiddenMerchantOutboundUrl(url)) {
@@ -270,9 +273,8 @@ public class MerchantOutboundNotifyService {
                 return skipped;
             }
             String body = OM.writeValueAsString(payload);
-            PostOutcome out = plainOrSigned
-                    ? postPlainPayNotify(row, body)
-                    : postWithRetries(url, body, row.getSignSecret());
+            String signSecret = resolveOutboundSignSecret(orgUnitId, row);
+            PostOutcome out = postWithRetries(url, body, signSecret);
             recordOutboundLog(merchantCodeTrim, orgUnitId, t, notifyCh, urlType, url, body, out);
             if (!out.success && !out.skipped) {
                 log.warn("{} 가맹 통보 전송 실패{}: {}", urlType,
@@ -294,11 +296,19 @@ public class MerchantOutboundNotifyService {
     }
 
     /**
-     * 업체등록 「URL Background · URL Result」。DB에 단일 행이라도 {@link MerchantNotifyUrl#getSignSecret()} 이 있으면 MIDDLEWARE와 동일 헤더로 서명.
+     * 본사·가맹 웹훅서명 정책이 활성이면 가맹 프로필 시크릿 사용.
+     * 비활성이면 서명 없음(레거시 URL sign_secret 단독 사용 안 함 — 정책 스위치와 일치).
      */
-    private PostOutcome postPlainPayNotify(MerchantNotifyUrl row, String bodyJson) {
-        String sig = row.getSignSecret();
-        return postWithRetries(row.getNotiUrl().trim(), bodyJson, sig);
+    private String resolveOutboundSignSecret(Long orgUnitId, MerchantNotifyUrl row) {
+        if (orgUnitId == null) {
+            return null;
+        }
+        try {
+            return merchantOutboundWebhookSignService.resolveSigningSecret(orgUnitId).orElse(null);
+        } catch (Exception e) {
+            log.warn("웹훅 서명 시크릿 해석 실패 orgUnitId={}: {}", orgUnitId, e.getMessage());
+            return null;
+        }
     }
 
     private void recordOutboundLog(String compId, Long orgUnitId, PgTrnsctn t, String notifyChannel,

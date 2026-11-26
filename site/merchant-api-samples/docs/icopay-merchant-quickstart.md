@@ -101,6 +101,24 @@ Final confirmation must be **Status API or Webhook** on the server.
 
 ---
 
+## 3. Server webhook (optional · HMAC)
+
+ICOPAY POSTs JSON to your **Background / inbound notify** URLs (not the browser Result page).
+
+When **Webhook signing** is Active for your merchant:
+
+| Item | Value |
+|------|--------|
+| Header | `X-Icopay-Signature: v1={hex}` |
+| Algorithm | HMAC-SHA256 over **raw body** bytes |
+| Secret | Issued once via admin **Company → Webhook signing → Rotate secret** |
+
+HQ default is **OFF**. Merchant may set Follow HQ / Active / Inactive (merchant overrides HQ).
+
+Sample: `merchant-api-samples/php/notify_webhook.php` (`ICOPAY_WEBHOOK_SIGN_SECRET`).
+
+---
+
 ## PHP samples
 
 | File | Use |
@@ -108,6 +126,7 @@ Final confirmation must be **Status API or Webhook** on the server.
 | `merchant-api-samples/php/icopay_config.example.php` | compId, broker secret, Base URL |
 | `merchant-api-samples/php/IcopayMerchantApi.php` | Client |
 | `merchant-api-samples/php/checkout_unified.php` | prepare → embed example |
+| `merchant-api-samples/php/notify_webhook.php` | Webhook receiver + HMAC verify |
 
 ---
 

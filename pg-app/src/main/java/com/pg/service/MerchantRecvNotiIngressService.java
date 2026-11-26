@@ -4,11 +4,14 @@ import com.pg.crypto.CryptoNotiMiddlewareMirrorService;
 import com.pg.entity.HqNotifyEnvConfig;
 import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.NotiProvisionLog;
+import com.pg.entity.OrgUnit;
 import com.pg.integration.pg.PgVendor;
 import com.pg.noti.NotiProvisionClient;
 import com.pg.repository.MerchantCryptoConfigRepository;
 import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.NotiProvisionLogRepository;
+import com.pg.repository.OrgUnitRepository;
+import com.pg.repository.PgTrnsctnRepository;
 import com.pg.util.QrWalletScopeUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,8 +25,9 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * 가맹 상세 「수신통보」— 운영 바인딩·크립토·QR·노티생성이력 기준 PG별 NOTI 입구 목록.
+ * 가맹 상세 「수신통보」— 운영 바인딩·크립토·QR·노티생성이력·결제내역(van) 기준 PG별 NOTI 입구 목록.
  * 구매자 노출용이 아니라 본사/운영 UI용(PG명 표시 허용).
+ * <p>기존 운영·노티이력 로직은 유지하고, 결제내역 van 만 additive 로 합친다.
  */
 @Service
 public class MerchantRecvNotiIngressService {
@@ -32,15 +36,21 @@ public class MerchantRecvNotiIngressService {
     private final MerchantCryptoConfigRepository merchantCryptoConfigRepository;
     private final NotiProvisionLogRepository notiProvisionLogRepository;
     private final HqNotifyEnvService hqNotifyEnvService;
+    private final OrgUnitRepository orgUnitRepository;
+    private final PgTrnsctnRepository pgTrnsctnRepository;
 
     public MerchantRecvNotiIngressService(MerchantPgBindingRepository merchantPgBindingRepository,
                                          MerchantCryptoConfigRepository merchantCryptoConfigRepository,
                                          NotiProvisionLogRepository notiProvisionLogRepository,
-                                         HqNotifyEnvService hqNotifyEnvService) {
+                                         HqNotifyEnvService hqNotifyEnvService,
+                                         OrgUnitRepository orgUnitRepository,
+                                         PgTrnsctnRepository pgTrnsctnRepository) {
         this.merchantPgBindingRepository = merchantPgBindingRepository;
         this.merchantCryptoConfigRepository = merchantCryptoConfigRepository;
         this.notiProvisionLogRepository = notiProvisionLogRepository;
         this.hqNotifyEnvService = hqNotifyEnvService;
+        this.orgUnitRepository = orgUnitRepository;
+        this.pgTrnsctnRepository = pgTrnsctnRepository;
     }
 
     @Transactional(readOnly = true)
@@ -100,6 +110,9 @@ public class MerchantRecvNotiIngressService {
             kinds.add(k);
         }
 
+        /* additive: 결제내역 van — 운영 OFF·노티이력 없어도 실제 사용 PG 입구 유지(기존 로직 비파괴) */
+        addKindsFromPaymentHistory(orgUnitId, kinds, kindHints);
+
         List<Map<String, Object>> rows = new ArrayList<>();
         for (String kind : kinds) {
             rows.add(buildRow(kind, kindHints.get(kind), notiBase, latestByKind.get(kind),
@@ -107,6 +120,37 @@ public class MerchantRecvNotiIngressService {
         }
         rows.sort((a, b) -> String.valueOf(a.get("label")).compareToIgnoreCase(String.valueOf(b.get("label"))));
         return rows;
+    }
+
+    private void addKindsFromPaymentHistory(Long orgUnitId, Set<String> kinds, Map<String, String> kindHints) {
+        try {
+            String mid = orgUnitRepository.findById(orgUnitId).map(OrgUnit::getCode).orElse("").trim();
+            if (mid.isEmpty()) {
+                return;
+            }
+            List<String> vans = pgTrnsctnRepository.findDistinctVansByMerchantId(mid);
+            if (vans == null || vans.isEmpty()) {
+                return;
+            }
+            for (String van : vans) {
+                String kind = kindFromPgCd(van);
+                if (kind.isEmpty()) {
+                    continue;
+                }
+                boolean added = kinds.add(kind);
+                String label = shortPgLabel(van);
+                if (label.isEmpty()) {
+                    continue;
+                }
+                if (added) {
+                    kindHints.putIfAbsent(kind, label);
+                } else {
+                    kindHints.merge(kind, label, (a, c) -> a.contains(c) ? a : a + ", " + c);
+                }
+            }
+        } catch (RuntimeException ignored) {
+            /* 수신통보 조회는 결제내역 보강 실패해도 기존 목록 유지 */
+        }
     }
 
     private Map<String, Object> buildRow(String kind, String hint, String notiBase,
@@ -213,7 +257,7 @@ public class MerchantRecvNotiIngressService {
         if (PgVendor.isJpayFamily(pgCd)) {
             return "jpay";
         }
-        String u = pgCd.trim().toUpperCase(Locale.ROOT);
+        String u = PgVendor.normalizePgCdKey(pgCd);
         if (u.startsWith("CHILL") || "CHILLPAY".equals(u)) {
             return "jpay";
         }
@@ -238,7 +282,7 @@ public class MerchantRecvNotiIngressService {
     }
 
     private static String shortPgLabel(String pgCd) {
-        return pgCd != null ? pgCd.trim().toUpperCase(Locale.ROOT) : "";
+        return pgCd != null ? PgVendor.normalizePgCdKey(pgCd) : "";
     }
 
     private String resolveNotiBase() {

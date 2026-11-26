@@ -55,6 +55,7 @@ import com.pg.util.ChatbotProductPricingUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -97,6 +98,14 @@ import java.util.stream.Collectors;
 
 @Service
 public class CompService {
+
+    @Autowired
+    @Lazy
+    private MerchantOutboundWebhookSignService merchantOutboundWebhookSignService;
+
+    @Autowired
+    @Lazy
+    private NotiWebhookSignSyncService notiWebhookSignSyncService;
 
     private final OrgUnitRepository orgUnitRepository;
     private final MerchantProfileRepository merchantProfileRepository;
@@ -2182,6 +2191,13 @@ public class CompService {
                             m.put("simpleQrCheckoutUseYn", mp.getSimpleQrCheckoutUseYn() != null ? mp.getSimpleQrCheckoutUseYn() : "N");
                             m.put("pgBuyerEmailAttestYn",
                                     com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getPgBuyerEmailAttestYn()));
+                            m.put("outboundWebhookSignYn",
+                                    com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getOutboundWebhookSignYn()));
+                            try {
+                                if (merchantOutboundWebhookSignService != null) {
+                                    merchantOutboundWebhookSignService.putStatusFields(ou.getId(), m);
+                                }
+                            } catch (Exception ignored) { /* optional enrich */ }
                             m.put("simpleQrShowOrderNoYn", mp.getSimpleQrShowOrderNoYn() != null ? mp.getSimpleQrShowOrderNoYn() : "Y");
                             m.put("simpleQrShowProductYn", mp.getSimpleQrShowProductYn() != null ? mp.getSimpleQrShowProductYn() : "Y");
                             m.put("simpleQrShowNameYn", mp.getSimpleQrShowNameYn() != null ? mp.getSimpleQrShowNameYn() : "Y");
@@ -2338,6 +2354,13 @@ public class CompService {
                             m.put("simpleQrCheckoutUseYn", mp.getSimpleQrCheckoutUseYn() != null ? mp.getSimpleQrCheckoutUseYn() : "N");
                             m.put("pgBuyerEmailAttestYn",
                                     com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getPgBuyerEmailAttestYn()));
+                            m.put("outboundWebhookSignYn",
+                                    com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(mp.getOutboundWebhookSignYn()));
+                            try {
+                                if (merchantOutboundWebhookSignService != null) {
+                                    merchantOutboundWebhookSignService.putStatusFields(ou.getId(), m);
+                                }
+                            } catch (Exception ignored) { /* optional enrich */ }
                             m.put("simpleQrShowOrderNoYn", mp.getSimpleQrShowOrderNoYn() != null ? mp.getSimpleQrShowOrderNoYn() : "Y");
                             m.put("simpleQrShowProductYn", mp.getSimpleQrShowProductYn() != null ? mp.getSimpleQrShowProductYn() : "Y");
                             m.put("simpleQrShowNameYn", mp.getSimpleQrShowNameYn() != null ? mp.getSimpleQrShowNameYn() : "Y");
@@ -3740,6 +3763,29 @@ public class CompService {
             mp.setPgBuyerEmailAttestYn(attestYn.trim());
             merchantProfileRepository.save(mp);
         });
+    }
+
+    /** 서버통보(웹훅) HMAC 서명 FOLLOW_HQ|Y|N */
+    public void applyOutboundWebhookSignYn(Long orgUnitId, String signYn) {
+        if (orgUnitId == null || signYn == null || signYn.isBlank()) {
+            return;
+        }
+        merchantProfileRepository.findByOrgUnitId(orgUnitId).ifPresent(mp -> {
+            mp.setOutboundWebhookSignYn(signYn.trim());
+            merchantProfileRepository.save(mp);
+        });
+        /* 가맹 명시 활성(Y) 또는 본사 활성+FOLLOW_HQ 실효 시 시크릿 보장 */
+        if (merchantOutboundWebhookSignService != null
+                && merchantOutboundWebhookSignService.isSigningEnabled(orgUnitId)) {
+            merchantOutboundWebhookSignService.ensureSecret(orgUnitId);
+        }
+        try {
+            if (notiWebhookSignSyncService != null) {
+                notiWebhookSignSyncService.syncOrgUnit(orgUnitId);
+            }
+        } catch (Exception e) {
+            /* NOTI 미등록·Provision 미설정은 ICOPAY 저장을 막지 않음 */
+        }
     }
 
     /**

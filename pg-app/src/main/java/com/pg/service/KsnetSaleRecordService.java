@@ -90,8 +90,17 @@ public class KsnetSaleRecordService {
             t.setStatus(ST_PENDING);
             t.setOrderNo(on);
             if (t.getPayNo() == null || t.getPayNo().isBlank()
-                    || !com.pg.util.IcopayPgOrderRef.looksLikeIcopayRef(t.getPayNo(), com.pg.util.IcopayPgOrderRef.Profile.ALNUM_50)) {
-                t.setPayNo(on.length() > 50 ? on.substring(0, 50) : on);
+                    || !com.pg.util.IcopayPgOrderRef.looksLikeIcopayRef(t.getPayNo(), com.pg.util.IcopayPgOrderRef.Profile.DIGITS_12)) {
+                /* saleBody.icopayPgOrderRef(숫자 12)가 있으면 UrlPaySaleTxnFieldApplier 가 pay_no·approval_no 세팅 */
+                String fromBody = saleBody != null ? com.pg.util.IcopayPgOrderRef.fromSaleBody(saleBody) : "";
+                if (com.pg.util.IcopayPgOrderRef.looksLikeIcopayRef(fromBody, com.pg.util.IcopayPgOrderRef.Profile.DIGITS_12)) {
+                    t.setPayNo(fromBody);
+                    if (t.getApprovalNo() == null || t.getApprovalNo().isBlank()) {
+                        t.setApprovalNo(fromBody);
+                    }
+                } else {
+                    t.setPayNo(on.length() > 50 ? on.substring(0, 50) : on);
+                }
             }
             if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
                 t.setAmtKrw(amount);
@@ -181,6 +190,12 @@ public class KsnetSaleRecordService {
     public Optional<PgTrnsctn> applyApproveOutcome(String merchantId, String orderNo, boolean paid,
                                                    String tid, String authNo, String msg, String maskedCard,
                                                    String reasonCode) {
+        return applyApproveOutcome(merchantId, orderNo, paid, tid, authNo, msg, maskedCard, reasonCode, null);
+    }
+
+    public Optional<PgTrnsctn> applyApproveOutcome(String merchantId, String orderNo, boolean paid,
+                                                   String tid, String authNo, String msg, String maskedCard,
+                                                   String reasonCode, LocalDateTime tradeAt) {
         if (merchantId == null || merchantId.isBlank() || orderNo == null || orderNo.isBlank()) {
             return Optional.empty();
         }
@@ -192,14 +207,25 @@ public class KsnetSaleRecordService {
             PgTrnsctn t = ex.get();
             String prev = trim(t.getStatus());
             if (ST_PAID.equals(prev)) {
-                /* 이미 승인이어도 마스킹 카드가 비어 있으면 노티·재승인 값으로 보강 */
-                boolean cardFilled = fillMaskedCardIfEmpty(t, maskedCard);
+                /* 이미 승인이어도 마스킹 카드·tid·승인번호(12자리 ref)·결제시각 보강 */
+                boolean changed = fillMaskedCardIfEmpty(t, maskedCard);
                 if (tid != null && !tid.isBlank()
                         && (t.getChillTransactionId() == null || t.getChillTransactionId().isBlank())) {
                     t.setChillTransactionId(truncate(tid.trim(), 64));
-                    cardFilled = true;
+                    changed = true;
                 }
-                if (cardFilled) {
+                if (tradeAt != null && t.getPaidAt() == null) {
+                    t.setPaidAt(tradeAt);
+                    changed = true;
+                }
+                String payRefPaid = t.getPayNo() != null ? t.getPayNo().trim() : "";
+                if (com.pg.util.IcopayPgOrderRef.looksLikeIcopayRef(payRefPaid, com.pg.util.IcopayPgOrderRef.Profile.DIGITS_12)
+                        && (t.getApprovalNo() == null || t.getApprovalNo().isBlank()
+                        || !com.pg.util.IcopayPgOrderRef.looksLikeIcopayRef(t.getApprovalNo(), com.pg.util.IcopayPgOrderRef.Profile.DIGITS_12))) {
+                    t.setApprovalNo(payRefPaid);
+                    changed = true;
+                }
+                if (changed) {
                     pgTrnsctnRepository.save(t);
                 }
                 return Optional.of(t);
@@ -207,16 +233,18 @@ public class KsnetSaleRecordService {
             if (tid != null && !tid.isBlank()) {
                 t.setChillTransactionId(truncate(tid.trim(), 64));
             }
-            String approval = authNo != null && !authNo.isBlank() ? authNo.trim()
-                    : (tid != null ? tid.trim() : "");
-            if (!approval.isBlank()) {
-                t.setApprovalNo(truncate(approval, 20));
+            /* 결제내역 승인번호 = ICOPAY→KSNET orderNumb(숫자 12). KSNET tid/authNo 로 덮지 않음(tid는 chill_transaction_id). */
+            String payRef = t.getPayNo() != null ? t.getPayNo().trim() : "";
+            if (com.pg.util.IcopayPgOrderRef.looksLikeIcopayRef(payRef, com.pg.util.IcopayPgOrderRef.Profile.DIGITS_12)) {
+                t.setApprovalNo(payRef);
+            } else if (authNo != null && !authNo.isBlank()) {
+                t.setApprovalNo(truncate(authNo.trim(), 20));
             }
             fillMaskedCardIfEmpty(t, maskedCard);
             if (paid) {
                 t.setStatus(ST_PAID);
                 ZoneId wall = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
-                t.setPaidAt(LocalDateTime.now(wall));
+                t.setPaidAt(tradeAt != null ? tradeAt : LocalDateTime.now(wall));
                 t.setChillPaymentStatus(truncate(msg != null && !msg.isBlank() ? msg.trim() : "Success", 50));
             } else {
                 t.setStatus(ST_FAIL);
@@ -339,7 +367,7 @@ public class KsnetSaleRecordService {
         return out;
     }
 
-    /** 마스킹 카드가 비어 있을 때만 채움. true = 값이 반영됨. */
+    /** 마스킹 카드가 비어 있을 때만 채움. true = 값이 반영됨. KSNET 포털형 XXXX 유지. */
     private static boolean fillMaskedCardIfEmpty(PgTrnsctn t, String maskedCard) {
         if (t == null || maskedCard == null || maskedCard.isBlank()) {
             return false;
@@ -347,18 +375,73 @@ public class KsnetSaleRecordService {
         if (t.getCardPanDisplay() != null && !t.getCardPanDisplay().isBlank()) {
             return false;
         }
-        String raw = maskedCard.trim().replaceAll("\\s+", "");
-        if (raw.length() < 4) {
+        String display = normalizeCardPanDisplay(maskedCard);
+        if (display.isBlank()) {
             return false;
-        }
-        String display = raw;
-        if (!raw.contains("*") && raw.replaceAll("[^0-9]", "").length() >= 8) {
-            String d = raw.replaceAll("[^0-9]", "");
-            display = d.substring(0, Math.min(6, d.length())) + "***"
-                    + d.substring(Math.max(0, d.length() - 4));
         }
         t.setCardPanDisplay(truncate(display, 32));
         return true;
+    }
+
+    /** 공개: 통합내역·거래조회 보강에서도 동일 규칙으로 카드표시. */
+    public static String normalizeCardPanDisplay(String maskedCard) {
+        if (maskedCard == null || maskedCard.isBlank()) {
+            return "";
+        }
+        String raw = maskedCard.trim().replaceAll("\\s+", "");
+        if (raw.length() < 4) {
+            return "";
+        }
+        if (raw.contains("*") || raw.toUpperCase(java.util.Locale.ROOT).contains("X")) {
+            return raw.length() > 32 ? raw.substring(0, 32) : raw;
+        }
+        String d = raw.replaceAll("[^0-9]", "");
+        if (d.length() < 8) {
+            return "";
+        }
+        return d.substring(0, Math.min(6, d.length())) + "***"
+                + d.substring(Math.max(0, d.length() - 4));
+    }
+
+    /** 거래조회(대사)로 카드·tid 보강. */
+    @Transactional
+    public Optional<PgTrnsctn> applyTradeEnrichment(PgTrnsctn t, String tid, String maskedCard) {
+        return applyTradeEnrichment(t, tid, maskedCard, null, null, null);
+    }
+
+    /**
+     * 거래조회(대사) 보강 — 카드·tid·수수료·결제시각(없으면).
+     * 입력통화(display*)는 ICOPAY 결젯내역 값을 유지한다.
+     */
+    @Transactional
+    public Optional<PgTrnsctn> applyTradeEnrichment(PgTrnsctn t, String tid, String maskedCard,
+                                                    BigDecimal feeAmt, LocalDateTime tradeAt, String currency) {
+        if (t == null) {
+            return Optional.empty();
+        }
+        boolean changed = fillMaskedCardIfEmpty(t, maskedCard);
+        if (tid != null && !tid.isBlank()
+                && (t.getChillTransactionId() == null || t.getChillTransactionId().isBlank())) {
+            t.setChillTransactionId(truncate(tid.trim(), 64));
+            changed = true;
+        }
+        if (feeAmt != null && feeAmt.compareTo(BigDecimal.ZERO) >= 0 && t.getChillFeeAmt() == null) {
+            t.setChillFeeAmt(feeAmt);
+            changed = true;
+        }
+        if (tradeAt != null && t.getPaidAt() == null && "10".equals(trim(t.getStatus()))) {
+            t.setPaidAt(tradeAt);
+            changed = true;
+        }
+        if (currency != null && !currency.isBlank()
+                && (t.getCurType() == null || t.getCurType().isBlank())) {
+            t.setCurType(truncate(currency.trim().toUpperCase(Locale.ROOT), 8));
+            changed = true;
+        }
+        if (changed) {
+            pgTrnsctnRepository.save(t);
+        }
+        return Optional.of(t);
     }
 
     private void hookReceiptEmail(PgTrnsctn t) {

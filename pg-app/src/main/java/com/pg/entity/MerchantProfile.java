@@ -430,6 +430,14 @@ public class MerchantProfile {
     @Column(name = "pg_buyer_email_attest_yn", nullable = false, length = 16)
     private String pgBuyerEmailAttestYn = "FOLLOW_HQ";
 
+    /** 서버통보(웹훅) HMAC 서명 — FOLLOW_HQ|Y|N (가맹 명시값이 본사보다 우선) */
+    @Column(name = "outbound_webhook_sign_yn", nullable = false, length = 16)
+    private String outboundWebhookSignYn = "FOLLOW_HQ";
+
+    /** 서버통보 HMAC 공유 시크릿 — {@code X-Icopay-Signature} */
+    @Column(name = "outbound_webhook_sign_secret", length = 128)
+    private String outboundWebhookSignSecret;
+
     /**
      * 결제창 구매자 입력 필드 프리셋 FK.
      * NULL = 프리셋 비활성(가맹이 이메일·국가·전화·배송을 개별 활성/비활성).
@@ -1346,6 +1354,16 @@ public class MerchantProfile {
     public String getPgBuyerEmailAttestYn() { return pgBuyerEmailAttestYn; }
     public void setPgBuyerEmailAttestYn(String v) {
         this.pgBuyerEmailAttestYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(v);
+    }
+
+    public String getOutboundWebhookSignYn() { return outboundWebhookSignYn; }
+    public void setOutboundWebhookSignYn(String v) {
+        this.outboundWebhookSignYn = com.pg.urlpay.UrlPayFollowHqYnUtil.normalizeStored(v);
+    }
+
+    public String getOutboundWebhookSignSecret() { return outboundWebhookSignSecret; }
+    public void setOutboundWebhookSignSecret(String outboundWebhookSignSecret) {
+        this.outboundWebhookSignSecret = outboundWebhookSignSecret;
     }
 
     public Long getUrlPayCheckoutFieldPresetId() { return urlPayCheckoutFieldPresetId; }
