@@ -6,13 +6,242 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '8.18';
+  var CURRENT_LIVE = '8.24';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '8.24',
+      kind: 'minor',
+      date: '2026-11-27',
+      items: {
+        KO: [
+          '웹훅 서명 시크릿 발급: 인증 토큰·API Base 수정 · 빈 응답 JSON 파싱 오류 해소 · NOTI 동기 타임아웃·활성 저장 후 동기'
+        ],
+        EN: [
+          'Webhook signing secret issue: fix auth token/API base · empty JSON parse error · NOTI sync timeout; sync after Active save'
+        ],
+        JP: [
+          'Webhook署名シークレット発行: 認証トークン・API Base修正 · 空応答JSONエラー解消 · NOTI同期タイムアウト・有効保存後同期'
+        ],
+        CH: [
+          'Webhook 签名密钥签发：修复认证令牌/API Base · 空响应 JSON 解析错误 · NOTI 同步超时；启用保存后再同步'
+        ],
+        TH: [
+          'ออก secret ลายเซ็น Webhook: แก้ token/API base · แก้ parse JSON ว่าง · timeout ซิงก์ NOTI · ซิงก์หลังบันทึกเปิดใช้'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['업체관리 → 가맹 상세 → 웹훅 서명 = 활성 → 저장(실효=Y)', '서명 시크릿 발급 → 노란 상자 평문 복사(마스킹 칸 아님)', '가맹에 안전하게 전달'] }],
+        EN: [{ title: 'Check', steps: ['Merchant → Webhook signing = Active → Save (Effective=Y)', 'Issue secret → copy yellow-box plaintext (not masked field)', 'Share securely with merchant'] }],
+        JP: [{ title: '確認', steps: ['加盟詳細→Webhook署名=有効→保存(実効=Y)', 'シークレット発行→黄色枠の平文をコピー', '加盟へ安全に共有'] }],
+        CH: [{ title: '确认', steps: ['商户详情→Webhook签名=启用→保存(实效=Y)', '签发密钥→复制黄框明文（非掩码栏）', '安全交给商户'] }],
+        TH: [{ title: 'ตรวจ', steps: ['ร้าน → ลายเซ็น Webhook = เปิด → บันทึก (ผลจริง=Y)', 'ออก secret → คัดลอกข้อความในกล่องเหลือง', 'ส่งให้ร้านอย่างปลอดภัย'] }]
+      }
+    },
+    {
+      version: '8.23',
+      kind: 'minor',
+      date: '2026-11-27',
+      items: {
+        KO: [
+          '환불처리: 무효 마감(이메일무효 사용 시 이메일 마감) 다음 분부터 N×24시간(예: ~21:59·N=1 → 당일 22:00~익일 21:59) — 「시간 선택 국가」시계',
+          '강제환불: 환불 창 종료 후 M×24시간',
+          'PG 추가 시 계열별 가능 후속조치 항목 자동 체크·빨강 강조'
+        ],
+        EN: [
+          'Refund: from the minute after void end (email-void end if On) for N×24h (e.g. ~21:59·N=1 → 22:00–next day 21:59) — selected-country clock',
+          'Force refund: M×24h after the refund window ends',
+          'On PG add: auto-check family-capable follow-up actions with red highlight'
+        ],
+        JP: [
+          '返金: 無効締切(メール無効ON時はメール締切)の次の分からN×24時間（例:~21:59·N=1→22:00〜翌日21:59）—時間選択国時計',
+          '強制返金: 返金窓終了後からM×24時間',
+          'PG追加時: 系列で可能な後続項目を自動チェック・赤強調'
+        ],
+        CH: [
+          '退款：自作废截止（邮件作废开启时为邮件截止）后下一分钟起 N×24 小时（例：~21:59·N=1 → 22:00–次日21:59）—所选国家时钟',
+          '强制退款：退款窗口结束后起 M×24 小时',
+          '新增 PG 时：按系列自动勾选可用后续项并红色强调'
+        ],
+        TH: [
+          'คืนเงิน: จากนาทีถัดจากจบโมฆะ (หรือจบอีเมลเมื่อเปิด) N×24ชม. (เช่น ~21:59·N=1 → 22:00–วันถัดไป 21:59) — นาฬิกาประเทศที่เลือก',
+          'บังคับคืน: M×24ชม. หลังจบหน้าต่างคืน',
+          'เมื่อเพิ่ม PG: ติ๊กอัตโนมัติรายการที่ตระกูลรองรับและเน้นสีแดง'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['본사정책 → 플랫폼 → 전산·동기화 → 결제 후속조치', '무효 마감 21:59 · 환불 일수 N=1 저장 후 결제내역에서 22:00부터 환불 버튼 확인', '연동·배포 → 결제대행사 설정 → PG 추가 시 가능 항목 빨강 체크 확인'] }],
+        EN: [{ title: 'Check', steps: ['HQ Policy → Platform → Ledger & sync → Pay follow-up', 'Set void end 21:59 · refund N=1, confirm refund from 22:00 on pay list', 'Integration → Agency settings → on PG add, confirm red-checked capable actions'] }],
+        JP: [{ title: '確認', steps: ['本社政策→プラットフォーム→全算・同期→決済後続', '無効締切21:59・返金N=1保存後、決済一覧で22:00から返金ボタン確認', '連携・配布→決済代行設定→PG追加時の赤チェック確認'] }],
+        CH: [{ title: '确认', steps: ['总部政策→平台→账务·同步→支付后续', '无效截止21:59·退款N=1保存后，在支付列表确认22:00起退款按钮', '对接·部署→支付机构设置→新增PG时确认红色勾选'] }],
+        TH: [{ title: 'ตรวจ', steps: ['นโยบาย HQ → แพลตฟอร์ม → บัญชี·ซิงก์ → มาตรการหลังชำระ', 'ตั้งจบโมฆะ 21:59 · คืน N=1 แล้วตรวจปุ่มคืนตั้งแต่ 22:00 ในรายการชำระ', 'เชื่อมต่อ·배포 → ตั้งค่าเอเย่นต์ → เมื่อเพิ่ม PG ตรวจติ๊กแดง'] }]
+      }
+    },
+    {
+      version: '8.22',
+      kind: 'minor',
+      date: '2026-11-27',
+      items: {
+        KO: [
+          '결제 후속조치 시간 선택: 분 단위 1분 간격(21:59 등) 선택 가능 — 기존 10분 단위 제한 해제(후속조치 시각)'
+        ],
+        EN: [
+          'Pay follow-up time pickers: 1-minute steps (e.g. 21:59) — no longer limited to 10-minute grid for follow-up times'
+        ],
+        JP: [
+          '決済後続の時刻選択: 1分単位(21:59等)を選択可能 — 後続時刻の10分刻み制限を解除'
+        ],
+        CH: [
+          '支付后续时间选择：支持 1 分钟步进（如 21:59）— 后续时间不再限 10 分钟刻度'
+        ],
+        TH: [
+          'ตัวเลือกเวลามาตรการหลังชำระ: เลือกนาทีทีละ 1 (เช่น 21:59) — ไม่จำกัดขั้น 10 นาทีสำหรับเวลามาตรการ'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['본사정책 → 플랫폼 → 전산·동기화 → 결제 후속조치', '무효 마감에서 21:59 선택·저장'] }],
+        EN: [{ title: 'Check', steps: ['HQ Policy → Platform → Ledger & sync → Pay follow-up', 'Select void end 21:59 and save'] }],
+        JP: [{ title: '確認', steps: ['本社政策→プラットフォーム→全算・同期→決済後続', '無効締切で21:59を選択・保存'] }],
+        CH: [{ title: '确认', steps: ['总部政策→平台→账务·同步→支付后续', '无效截止选 21:59 并保存'] }],
+        TH: [{ title: 'ตรวจ', steps: ['นโยบาย HQ → แพลตฟอร์ม → บัญชี·ซิงก์ → มาตรการหลังชำระ', 'เลือกจบโมฆะ 21:59 แล้วบันทึก'] }]
+      }
+    },
+    {
+      version: '8.21',
+      kind: 'minor',
+      date: '2026-11-27',
+      items: {
+        KO: [
+          '후속조치 시간: 본사정책→플랫폼→전산·동기화에 통합 · 기본값 표 비고「기본값」·시간 표시 보강',
+          '대행사별 「본사설정 따름」/개별설정 · 결제대행사 설정 화면의 시간 경계 표 제거',
+          '이메일무효는 ChillPay 예외로 기본값 표에만 유지'
+        ],
+        EN: [
+          'Follow-up times unified under HQ Policy → Platform → Ledger & sync · default table remark “Default” + clearer time labels',
+          'Per-agency “Follow HQ settings” / custom · removed time matrix from Agency settings',
+          'Email void remains ChillPay-only on the default table'
+        ],
+        JP: [
+          '後続時間を本社政策→プラットフォーム→全算・同期に統合 · 基本値表の備考「基本値」・時間表示強化',
+          '代行別「本社設定に従う」/個別 · 決済代行設定の時間表を削除',
+          'メール無効はChillPay例外として基本値表のみ'
+        ],
+        CH: [
+          '后续时间并入总部政策→平台→账务·同步 · 默认表备注「默认值」·时间显示加强',
+          '按机构「跟随总部设置」/单独 · 移除支付机构设置中的时间表',
+          '邮件作废仅 ChillPay，保留在默认表'
+        ],
+        TH: [
+          'รวมเวลามาตรการที่นโยบาย HQ → แพลตฟอร์ม → บัญชี·ซิงก์ · หมายเหตุ「ค่าเริ่มต้น」+ป้ายเวลาชัดขึ้น',
+          'ต่อเอเย่นต์「ตามตั้งค่า HQ」/เฉพาะ · ลบตารางเวลาจากตั้งค่าเอเย่นต์',
+          'อีเมลโมฆะเฉพาะ ChillPay ที่ตารางค่าเริ่มต้น'
+        ]
+      },
+      howTo: {
+        KO: [
+          { title: '확인', steps: ['본사정책 → 플랫폼 → 전산·동기화 → 결제 후속조치', '기본값 표 비고「기본값」·당일/정산 전/정산 후 표시 확인', '아래 대행사별 표에서 「본사설정 따름」 또는 개별 시간 저장'] }
+        ],
+        EN: [
+          { title: 'Check', steps: ['HQ Policy → Platform → Ledger & sync → Pay follow-up', 'Confirm Default remark and time badges', 'Agency rows: Follow HQ or custom save'] }
+        ],
+        JP: [
+          { title: '確認', steps: ['本社政策→プラットフォーム→全算・同期→決済後続', '備考「基本値」確認', '代行表で本社従う/個別保存'] }
+        ],
+        CH: [
+          { title: '确认', steps: ['总部政策→平台→账务·同步→支付后续', '确认备注默认值', '机构行跟随/单独保存'] }
+        ],
+        TH: [
+          { title: 'ตรวจ', steps: ['นโยบาย HQ → แพลตฟอร์ม → บัญชี·ซิงก์ → มาตรการหลังชำระ', 'ตรวจหมายเหตุค่าเริ่มต้น', 'แถวเอเย่นต์ ตาม HQ หรือบันทึกเฉพาะ'] }
+        ]
+      }
+    },
+    {
+      version: '8.20',
+      kind: 'minor',
+      date: '2026-11-27',
+      items: {
+        KO: [
+          'PAYSO 복귀 폴링 120초·성급 실패(99) 완화 · 동일 orderNo 이중 HPP 방지',
+          '대행사별 후속조치 시간창 · PAYSO/KSNET 당일무효·정산전환불·정산후강제',
+          'PAYSO 강제환불=수동 반영(빨간 pill·확인) · JPAY 수동무효/환불도 동일 빨간 확인 UI'
+        ],
+        EN: [
+          'PAYSO return poll 120s · no premature fail(99) · same orderNo double-HPP guard',
+          'Per-agency follow-up time windows · PAYSO/KSNET same-day void / pre-settle refund / post-settle force',
+          'PAYSO force refund = manual reflect (red pill + confirm) · JPAY manual void/refund same red confirm'
+        ],
+        JP: [
+          'PAYSO復帰ポーリング120秒·性急失敗(99)緩和 · 同一orderNo二重HPP防止',
+          '代行別後続時間 · PAYSO/KSNET当日無効・精算前返金・精算後強制',
+          'PAYSO強制返金=手動反映(赤pill・確認) · JPAY手動無効/返金も同UI'
+        ],
+        CH: [
+          'PAYSO 返回轮询 120 秒·缓和过早失败(99) · 同 orderNo 防双重 HPP',
+          '按机构后续时间 · PAYSO/KSNET 当日无效/结算前退款/结算后强制',
+          'PAYSO 强制退款=手动反映（红 pill+确认）· JPAY 手动无效/退款同 UI'
+        ],
+        TH: [
+          'PAYSO โพลกลับ 120วิ · ลดความล้มเหลวก่อนกำหนด(99) · กัน HPP ซ้ำ orderNo เดิม',
+          'ช่วงเวลาต่อเอเย่นต์ · PAYSO/KSNET โมฆะวันเดียวกัน/คืนก่อนเคลียร์/บังคับหลังเคลียร์',
+          'PAYSO บังคับคืน=สะท้อนก่อนมือ (pill แดง+ยืนยัน) · JPAY โมฆะ/คืนมือเหมือนกัน'
+        ]
+      },
+      howTo: {
+        KO: [
+          { title: '후속조치 시간창', steps: ['본사정책→플랫폼→전산·동기화→결제 후속조치에서 기본값·대행사별 확인', '결제내역에서 PAYSO/KSNET 당일=무효·정산전=환불·정산후=강제 버튼 확인'] },
+          { title: '수동 반영·폴링', steps: ['PAYSO 강제환불·JPAY 수동은 빨간 pill → 확인 후 반영', 'PAYSO 결제 복귀 후 최대 120초 확인 중 유지(조기 99 없음)'] }
+        ],
+        EN: [
+          { title: 'Follow-up windows', steps: ['HQ Policy → Platform → Ledger & sync → Pay follow-up', 'Pay list: PAYSO/KSNET void/refund/force by window'] },
+          { title: 'Manual + poll', steps: ['Red pill confirm for PAYSO force / JPAY manual', 'PAYSO return waits up to 120s without early 99'] }
+        ],
+        JP: [
+          { title: '後続時間', steps: ['本社政策→プラットフォーム→全算・同期→決済後続', '決済履歴でPAYSO/KSNETボタン確認'] },
+          { title: '手動・ポーリング', steps: ['赤pill確認', 'PAYSO復帰は最大120秒待機'] }
+        ],
+        CH: [
+          { title: '后续时间窗', steps: ['总部政策→平台→账务·同步→支付后续', '支付明细确认按钮'] },
+          { title: '手动与轮询', steps: ['红 pill 确认', 'PAYSO 返回最长等 120 秒'] }
+        ],
+        TH: [
+          { title: 'ช่วงเวลา', steps: ['นโยบาย HQ → แพลตฟอร์ม → บัญชี·ซิงก์ → มาตรการหลังชำระ', 'ตรวจปุ่มในประวัติ'] },
+          { title: 'มือ+โพล', steps: ['ยืนยัน pill แดง', 'รอกลับ PAYSO สูงสุด 120วิ'] }
+        ]
+      }
+    },
+    {
+      version: '8.19',
+      kind: 'minor',
+      date: '2026-11-27',
+      items: {
+        KO: [
+          'PAYSO 후속조치: Void API(정산 전 취소) 연동 · 결제내역 자동무효·자동환불·강제환불 사용 가능 · 정산 후는 포털 환불'
+        ],
+        EN: [
+          'PAYSO follow-up: Void API (pre-settlement cancel) · pay list auto-void/auto-refund/force-refund · after settlement use PG portal'
+        ],
+        JP: [
+          'PAYSO後続処理: Void API(精算前取消)連携 · 決済履歴の自動無効・自動返金・強制返金 · 精算後はポータル返金'
+        ],
+        CH: [
+          'PAYSO 后续处理：对接 Void API（结算前取消）· 支付明细支持自动无效/自动退款/强制退款 · 结算后请在门户退款'
+        ],
+        TH: [
+          'PAYSO มาตรการต่อเนื่อง: เชื่อม Void API (ยกเลิกก่อนเคลียร์) · ใช้ยกเลิกอัตโนมัติ/คืนเงินอัตโนมัติ/บังคับคืนในประวัติ · หลังเคลียร์ใช้พอร์ทัล'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['연동·배포→결제대행사 설정에서 PAYSO 후속조치(자동무효·환불·강제환불) ON 확인', '결제관리→결제내역에서 PAYSO 승인 건 후속조치 실행(정산 전)'] }],
+        EN: [{ title: 'Check', steps: ['Agency settings: PAYSO follow-up flags ON', 'Pay list: run void/refund on unpaid-settled PAYSO txn'] }],
+        JP: [{ title: '確認', steps: ['決済代行設定でPAYSO後続ON', '決済履歴で精算前PAYSO件を取消/返金'] }],
+        CH: [{ title: '确认', steps: ['支付机构设置中开启 PAYSO 后续', '支付明细对未结算 PAYSO 执行取消/退款'] }],
+        TH: [{ title: 'ตรวจ', steps: ['ตั้งค่าเอเย่นต์ PAYSO เปิดมาตรการต่อเนื่อง', 'ในประวัติชำระ ยกเลิก/คืนเงินรายการ PAYSO ก่อนเคลียร์'] }]
+      }
+    },
     {
       version: '8.18',
       kind: 'minor',

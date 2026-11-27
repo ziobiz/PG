@@ -319,6 +319,10 @@ public class PayListService {
             boolean payFollowJpay = PayFollowPolicyService.isJpayManualFollowTransaction(t);
             row.put("payFollowJpay", payFollowJpay);
             row.put("payFollowRefundApiOnly", PayFollowPolicyService.isRefundApiFollowTransaction(t));
+            /* PAYSO 강제환불·JPAY 수동 = 빨간 pill + 수동 반영 확인 */
+            row.put("payFollowManualReflectForce",
+                    com.pg.util.PgAgencyPayFollowCapability.isManualReflectAction(
+                            t.getVan(), com.pg.service.PayListActionService.PayFollowAction.FORCE_REFUND));
             row.put("payFollowHidden", false);
             row.put("payFollowRow", payFollowPolicyService.payFollowRowEnabled(payListViewer, t));
             String followPg = t.getVan() != null ? t.getVan().trim() : "";

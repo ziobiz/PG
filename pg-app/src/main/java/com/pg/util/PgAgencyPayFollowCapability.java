@@ -40,20 +40,47 @@ public final class PgAgencyPayFollowCapability {
         if (action == null) {
             return false;
         }
-        /* OMSPAY·Payso — 환불·무효 REST 없음 */
-        if (PgVendor.isOmspayFamily(pgCd) || PgVendor.isPaysoFamily(pgCd)) {
+        /* OMSPAY — 환불·무효 REST 없음 */
+        if (PgVendor.isOmspayFamily(pgCd)) {
             return false;
+        }
+        /* Payso — 정산 전 Void(무효·환불). 강제환불=수동 반영(API 없음). */
+        if (PgVendor.isPaysoFamily(pgCd)) {
+            return switch (action) {
+                case AUTO_VOID, AUTO_REFUND, FORCE_REFUND -> true;
+                default -> false;
+            };
+        }
+        /* KSNET — cancel API 하나로 당일 무효·정산전 환불·정산후 강제환불(수수료 구분). */
+        if (PgVendor.isKsnetFamily(pgCd)) {
+            return switch (action) {
+                case AUTO_VOID, AUTO_REFUND, FORCE_REFUND -> true;
+                default -> false;
+            };
         }
         boolean jpay = PgVendor.isJpayFamily(pgCd);
         boolean chill = PgVendor.isChillPayFamily(pgCd);
         boolean refundApiOnly = PgVendor.isElementPayFamily(pgCd) || PgVendor.isEximbayFamily(pgCd)
-                || PgVendor.isQxipayFamily(pgCd) || PgVendor.isKsnetFamily(pgCd);
+                || PgVendor.isQxipayFamily(pgCd);
         return switch (action) {
             case AUTO_VOID -> chill && !jpay && !refundApiOnly;
             case EMAIL_VOID -> chill && !jpay;
             case MANUAL_VOID, MANUAL_REFUND -> jpay;
             case AUTO_REFUND, FORCE_REFUND -> true;
         };
+    }
+
+    /** PAYSO 강제환불·JPAY 수동무효/환불 — PG API 없이 ICOPAY 상태·수수료만 반영. */
+    public static boolean isManualReflectAction(String pgCd, PayListActionService.PayFollowAction action) {
+        if (action == null) {
+            return false;
+        }
+        if (action == PayListActionService.PayFollowAction.MANUAL_VOID
+                || action == PayListActionService.PayFollowAction.MANUAL_REFUND) {
+            return true;
+        }
+        return action == PayListActionService.PayFollowAction.FORCE_REFUND
+                && PgVendor.isPaysoFamily(pgCd);
     }
 
     public static boolean familyAllowsSameDayRefund(String pgCd) {
@@ -86,7 +113,17 @@ public final class PgAgencyPayFollowCapability {
             a.setPayFollowSameDayRefundYn("N");
             return;
         }
-        if (PgVendor.isElementPayFamily(cd) || PgVendor.isQxipayFamily(cd) || PgVendor.isKsnetFamily(cd)) {
+        if (PgVendor.isKsnetFamily(cd)) {
+            a.setPayFollowAutoVoidYn("Y");
+            a.setPayFollowEmailVoidYn("N");
+            a.setPayFollowManualVoidYn("N");
+            a.setPayFollowAutoRefundYn("Y");
+            a.setPayFollowManualRefundYn("N");
+            a.setPayFollowForceRefundYn("Y");
+            a.setPayFollowSameDayRefundYn("N");
+            return;
+        }
+        if (PgVendor.isElementPayFamily(cd) || PgVendor.isQxipayFamily(cd)) {
             a.setPayFollowAutoVoidYn("N");
             a.setPayFollowEmailVoidYn("N");
             a.setPayFollowManualVoidYn("N");
@@ -96,7 +133,17 @@ public final class PgAgencyPayFollowCapability {
             a.setPayFollowSameDayRefundYn(PgVendor.isElementPayFamily(cd) ? "Y" : "N");
             return;
         }
-        if (PgVendor.isOmspayFamily(cd) || PgVendor.isPaysoFamily(cd)) {
+        if (PgVendor.isPaysoFamily(cd)) {
+            a.setPayFollowAutoVoidYn("Y");
+            a.setPayFollowEmailVoidYn("N");
+            a.setPayFollowManualVoidYn("N");
+            a.setPayFollowAutoRefundYn("Y");
+            a.setPayFollowManualRefundYn("N");
+            a.setPayFollowForceRefundYn("Y");
+            a.setPayFollowSameDayRefundYn("N");
+            return;
+        }
+        if (PgVendor.isOmspayFamily(cd)) {
             a.setPayFollowAutoVoidYn("N");
             a.setPayFollowEmailVoidYn("N");
             a.setPayFollowManualVoidYn("N");
@@ -150,5 +197,14 @@ public final class PgAgencyPayFollowCapability {
         m.put("payFollowManualRefundYn", ynOrN(p.getPayFollowManualRefundYn()));
         m.put("payFollowForceRefundYn", ynOrN(p.getPayFollowForceRefundYn()));
         m.put("payFollowSameDayRefundYn", ynOrN(p.getPayFollowSameDayRefundYn()));
+        m.put("pfVoidStartMin", p.getPfVoidStartMin());
+        m.put("pfVoidEndMin", p.getPfVoidEndMin());
+        m.put("pfRefundAfterDays", p.getPfRefundAfterDays());
+        m.put("pfForceAfterDays", p.getPfForceAfterDays());
+        m.put("pfRefundWindowStartMin", p.getPfRefundWindowStartMin());
+        boolean followGlobal = p.getPfVoidStartMin() == null && p.getPfVoidEndMin() == null
+                && p.getPfRefundAfterDays() == null && p.getPfForceAfterDays() == null
+                && p.getPfRefundWindowStartMin() == null;
+        m.put("pfFollowGlobal", followGlobal);
     }
 }

@@ -27,12 +27,14 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Payso Web API v2 — hosted ui-payments (RE) · Inquiry(기간 목록).
+ * Payso Web API v2 — hosted ui-payments (RE) · Inquiry(기간 목록) · Void(정산 전 취소).
  * {@code POST /payment/gateway/v2/ui-payments}
  * {@code POST /payment/gateway/v2/inquiry/transaction}
+ * {@code POST /payment/gateway/v2/payment/voidpayment}
  *
  * <p>가맹 상호·홈페이지·도메인·IP·가맹 orderNo 는 Payso 로 보내지 않는다.
  * return/postback 은 ICOPAY·NOTI(또는 {@code "-"}) 만. customerEmail 은 중립 ICOPAY 메일.
+ * 공개 문서에 정산 후 환불 REST 는 없고 Void(정산 전)만 제공된다.
  */
 @Component
 public class PaysoApiClient {
@@ -304,6 +306,75 @@ public class PaysoApiClient {
         }
         Object v = m.get(key);
         return v != null ? String.valueOf(v).trim() : "";
+    }
+
+    /**
+     * Void API — 정산 전 승인 취소({@code /payment/gateway/v2/payment/voidpayment}).
+     * 헤더는 Inquiry 와 동일({@code apiKey}/{@code X-Secret-Key}/{@code X-Merchant-Id}).
+     *
+     * @param transactionId Payso transactionId(hex 등). ICOPAY 12자리 reference 가 아닐 수 있음.
+     * @param amount        원승인 금액
+     */
+    public Map<String, Object> voidPayment(PaysoCredentials creds, String transactionId, BigDecimal amount) {
+        if (creds == null || !creds.isInquiryUsable()) {
+            return err("PAYSO_CREDENTIALS", "Payso Void API 키가 없습니다.");
+        }
+        String tid = transactionId != null ? transactionId.trim() : "";
+        if (tid.isBlank()) {
+            return err("INVALID_TRANSACTION_ID", "transactionId가 필요합니다.");
+        }
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            return err("INVALID_AMOUNT", "취소 금액이 필요합니다.");
+        }
+        ObjectNode body = objectMapper.createObjectNode();
+        body.put("transactionId", tid);
+        body.put("amount", amount.setScale(2, RoundingMode.HALF_UP));
+        Map<String, Object> raw = exchangeInquiry(creds, "/payment/gateway/v2/payment/voidpayment", body);
+        JsonNode json = raw.get("json") instanceof JsonNode jn ? jn : null;
+        String code = "";
+        String statusMsg = "";
+        if (json != null && json.has("status")) {
+            if (json.get("status").has("statusCode")) {
+                code = json.get("status").get("statusCode").asText("");
+            }
+            if (json.get("status").has("message")) {
+                statusMsg = json.get("status").get("message").asText("");
+            }
+        }
+        if (!Boolean.TRUE.equals(raw.get("ok"))) {
+            if (!statusMsg.isBlank()) {
+                raw.put("message", statusMsg);
+            }
+            if (!code.isBlank()) {
+                raw.put("statusCode", code);
+            }
+            return raw;
+        }
+        if (!SUCCESS_CODE.equals(code)) {
+            String msg = !statusMsg.isBlank() ? statusMsg : "Payso Void 실패";
+            Map<String, Object> err = err("PAYSO_VOID", msg);
+            err.put("statusCode", code);
+            if (json != null) {
+                err.put("json", json);
+            }
+            return err;
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("ok", true);
+        out.put("json", json);
+        out.put("statusCode", code);
+        if (json != null) {
+            out.put("voidedAt", text(json, "voidedAt", "voided_at"));
+            out.put("voidedStatus", text(json, "voidedStatus", "voided_status"));
+            JsonNode txn = json.path("transaction");
+            if (!txn.isMissingNode() && !txn.isNull()) {
+                out.put("referenceNo", text(txn, "referenceNo", "reference_no"));
+                if (txn.path("amount").isNumber()) {
+                    out.put("amount", txn.path("amount").decimalValue().toPlainString());
+                }
+            }
+        }
+        return out;
     }
 
     /**

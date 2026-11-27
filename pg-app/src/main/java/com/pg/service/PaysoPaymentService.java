@@ -1,6 +1,7 @@
 package com.pg.service;
 
 import com.pg.entity.OrgUnit;
+import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.PgVendor;
 import com.pg.integration.pg.payso.PaysoApiClient;
 import com.pg.integration.pg.payso.PaysoCredentials;
@@ -117,6 +118,106 @@ public class PaysoPaymentService {
         return pgAgencyRepository.findByPgCd(opPg).map(PaysoCredentials::fromAgency);
     }
 
+    /** 거래 van(PAYSO / PAYSO JPDP 등) 기준 자격증명 — 후속조치 Void 용. */
+    public Optional<PaysoCredentials> resolveCredentialsForTxn(PgTrnsctn t) {
+        if (t == null || !PgVendor.isPaysoFamily(t.getVan())) {
+            return Optional.empty();
+        }
+        String van = t.getVan().trim();
+        Optional<PaysoCredentials> byVan = pgAgencyRepository.findByPgCd(van).map(PaysoCredentials::fromAgency);
+        if (byVan.isPresent() && byVan.get().isInquiryUsable()) {
+            return byVan;
+        }
+        String norm = PgVendor.normalizePgCdKey(van);
+        if (!norm.equalsIgnoreCase(van)) {
+            Optional<PaysoCredentials> alt = pgAgencyRepository.findByPgCd(norm).map(PaysoCredentials::fromAgency);
+            if (alt.isPresent() && alt.get().isInquiryUsable()) {
+                return alt;
+            }
+        }
+        String mid = t.getMerchantId() != null ? t.getMerchantId().trim() : "";
+        if (!mid.isBlank()) {
+            Optional<OrgUnit> ou = orgUnitRepository.findByCodeIgnoreCase(mid);
+            if (ou.isPresent()) {
+                return resolveCredentials(ou.get().getId());
+            }
+        }
+        return byVan;
+    }
+
+    /**
+     * 결제내역 후속조치 — Payso Void API({@code /payment/gateway/v2/payment/voidpayment}).
+     * 공개 가이드에 정산 후 환불 REST 는 없으며, 정산 전 취소(Void)만 지원한다.
+     * 자동무효·자동환불·강제환불이 동일 API 를 호출한다.
+     */
+    public String requestVoid(PgTrnsctn t, String reason) {
+        if (t == null || !PgVendor.isPaysoFamily(t.getVan())) {
+            throw new IllegalStateException("해당 거래는 취소 API를 호출할 수 없습니다.");
+        }
+        String txnId = resolveVoidTransactionId(t);
+        if (txnId.isBlank()) {
+            throw new IllegalStateException("결제대행사 거래번호가 없어 취소할 수 없습니다.");
+        }
+        if (t.getAmtKrw() == null || t.getAmtKrw().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException("취소할 거래 금액이 없습니다.");
+        }
+        Optional<PaysoCredentials> credOpt = resolveCredentialsForTxn(t);
+        if (credOpt.isEmpty() || !credOpt.get().isInquiryUsable()) {
+            throw new IllegalStateException("결제대행사 API 키가 설정되지 않았습니다.");
+        }
+        Map<String, Object> res = apiClient.voidPayment(credOpt.get(), txnId, t.getAmtKrw());
+        if (!Boolean.TRUE.equals(res.get("ok"))) {
+            String msg = str(res.get("message"));
+            String code = str(res.get("statusCode"));
+            if (msg.isBlank()) {
+                msg = "Payso Void 실패";
+            }
+            if ("4A010".equalsIgnoreCase(code) || msg.toLowerCase(Locale.ROOT).contains("cannot be voided")) {
+                throw new IllegalStateException(
+                        "정산이 완료되어 취소(Void)할 수 없습니다. 결제대행사 포털에서 환불을 처리하세요"
+                                + (msg.isBlank() ? "" : ": " + msg));
+            }
+            throw new IllegalStateException("결제 취소 요청에 실패했습니다"
+                    + (msg.isBlank() ? "" : ": " + msg));
+        }
+        String detail = "PAYSO void ok";
+        if (reason != null && !reason.isBlank()) {
+            detail = detail + " (" + reason.trim() + ")";
+        }
+        String voidedAt = str(res.get("voidedAt"));
+        if (!voidedAt.isBlank()) {
+            detail = detail + " @" + voidedAt;
+        }
+        return detail.length() > 120 ? detail.substring(0, 120) : detail;
+    }
+
+    /**
+     * Void 의 transactionId — chill_transaction_id(hex) 우선, 없으면 pay_no.
+     * 12자리 ICOPAY reference 만 있으면 그대로 시도(일부 환경 호환).
+     */
+    static String resolveVoidTransactionId(PgTrnsctn t) {
+        if (t == null) {
+            return "";
+        }
+        String chill = t.getChillTransactionId() != null ? t.getChillTransactionId().trim() : "";
+        if (!chill.isBlank() && !looksLikeMerchantOrderOnly(chill)) {
+            return chill;
+        }
+        String payNo = t.getPayNo() != null ? t.getPayNo().trim() : "";
+        if (!payNo.isBlank()) {
+            return payNo;
+        }
+        return chill;
+    }
+
+    private static boolean looksLikeMerchantOrderOnly(String s) {
+        if (s == null || s.isBlank()) {
+            return false;
+        }
+        String t = s.trim();
+        return t.matches("(?i)^FS\\d+.*") || t.length() > 40;
+    }
+
     public Map<String, Object> startRedirect(Long orgUnitId, Map<String, Object> body,
                                              HttpServletRequest request, String clientIp) {
         Map<String, Object> out = new LinkedHashMap<>();
@@ -170,8 +271,6 @@ public class PaysoPaymentService {
         if (orderNo.isBlank()) {
             return fail(out, "INVALID_ORDER_NO", "orderNo가 필요합니다.");
         }
-        /* 가맹 orderNo ≠ Payso referenceNo — 거래마다 고유 12자리 숫자 */
-        String referenceNo = toPaysoReferenceNo(orderNo);
 
         if (body != null) {
             com.pg.urlpay.PayerContextCapture.enrichSaleBody(body, request, clientIp);
@@ -189,6 +288,61 @@ public class PaysoPaymentService {
         if (origin.isBlank()) {
             origin = "URL";
         }
+        String mid = ouOpt.get().getCode();
+        /*
+         * 동일 orderNo 이중 HPP 방지(OMSPAY 패턴).
+         * 이미 승인 → PAID 반환. 08 대기 + 기존 ref → Order Detail 확정 또는 PENDING_IN_PROGRESS(신규 createUiPayment 금지).
+         */
+        Optional<PgTrnsctn> existingOpt = paysoSaleRecordService.findByMerchantAndOrder(mid, orderNo);
+        if (existingOpt.isPresent()) {
+            PgTrnsctn existing = existingOpt.get();
+            String st = existing.getStatus() != null ? existing.getStatus().trim() : "";
+            String existingRef = firstNonBlank(existing.getPayNo(), existing.getApprovalNo());
+            String existingTxn = firstNonBlank(existing.getChillTransactionId(), "");
+            if ("10".equals(st) || "00".equals(st) || "01".equals(st)) {
+                out.put("success", true);
+                Map<String, Object> data = new LinkedHashMap<>();
+                data.put("orderNo", orderNo);
+                data.put("pgTxnId", !existingTxn.isBlank() ? existingTxn : existingRef);
+                data.put("paymentStatus", "PAID");
+                data.put("paid", true);
+                data.put("reusedPending", false);
+                data.put("amount", charge.pgAmount());
+                data.put("currency", charge.settlementCurrency());
+                data.put("pgVendor", "ICOPAY");
+                out.put("data", data);
+                log.info("PAYSO start already paid mid={} order={} ip={}", mid, orderNo, clientIp);
+                return out;
+            }
+            if ("08".equals(st) && (!existingRef.isBlank() || !existingTxn.isBlank())) {
+                try {
+                    Optional<PgTrnsctn> reconciled = confirmPaidViaOrderDetail(mid, orderNo);
+                    if (reconciled.isPresent()) {
+                        out.put("success", true);
+                        Map<String, Object> data = new LinkedHashMap<>();
+                        data.put("orderNo", orderNo);
+                        data.put("pgTxnId", firstNonBlank(reconciled.get().getChillTransactionId(),
+                                reconciled.get().getPayNo()));
+                        data.put("paymentStatus", "PAID");
+                        data.put("paid", true);
+                        data.put("reusedPending", true);
+                        data.put("amount", charge.pgAmount());
+                        data.put("currency", charge.settlementCurrency());
+                        data.put("pgVendor", "ICOPAY");
+                        out.put("data", data);
+                        log.info("PAYSO start reconciled paid mid={} order={} ip={}", mid, orderNo, clientIp);
+                        return out;
+                    }
+                } catch (Exception e) {
+                    log.debug("PAYSO start Order Detail check: {}", e.getMessage());
+                }
+                return fail(out, "PAYSO_PENDING_IN_PROGRESS",
+                        "이미 진행 중인 결제가 있습니다. 이전 결제 창에서 완료하거나 잠시 후 다시 시도해 주세요.");
+            }
+        }
+
+        /* 가맹 orderNo ≠ Payso referenceNo — 신규 시도에만 고유 12자리 숫자 */
+        String referenceNo = toPaysoReferenceNo(orderNo);
         /*
          * Return URL — OMSPAY 와 동일하게 rt 암호화 토큰만 (가맹코드·주문번호 평문 금지).
          * Payso에 m=/orderNo= 를 넘기면 PG가 ICOPAY 가맹을 식별할 수 있어 수익권 침해 위험.
@@ -200,7 +354,7 @@ public class PaysoPaymentService {
                 publicBaseUrl,
                 "/payso-pay.html",
                 PgVendor.PAYSO,
-                ouOpt.get().getCode(),
+                mid,
                 orderNo,
                 merchantApiReturn,
                 "payso=1&paysoReturn=1&done=1");

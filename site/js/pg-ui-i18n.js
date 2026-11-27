@@ -24939,6 +24939,18 @@
       CH: '不在自动退款允许期间。请核对泰国次日窗口，或 URL 支付的当日退款是否已开启。',
       TH: 'ไม่อยู่ช่วงคืนเงินอัตโนมัติ ตรวจช่วงวันถัดไปตามไทย หรือคืนเงินวันเดียวกันของชำระ URL'
     },
+    '환불처리 가능 기간이 아닙니다. (무효·이메일무효 마감 다음 분부터 N×24시간, 또는 URL 당일환불)': {
+      EN: 'Refund is outside the allowed window (N×24h from the minute after void/email-void end, or URL same-day refund).',
+      JP: '返金可能期間外です（無効・メール無効締切の次の分からN×24時間、またはURL当日返金）。',
+      CH: '不在退款允许时段（自作废/邮件作废截止后下一分钟起 N×24 小时，或 URL 当日退款）。',
+      TH: 'นอกช่วงคืนเงินที่อนุญาต (N×24ชม. จากนาทีถัดจากจบโมฆะ/อีเมล หรือคืนวันเดียวกัน URL)'
+    },
+    '강제환불 처리 가능 기간이 아닙니다. (일반 환불 창이 끝난 뒤부터 M×24시간)': {
+      EN: 'Forced refund is outside the allowed window (M×24h after the normal refund window ends).',
+      JP: '強制返金可能期間外です（通常返金窓終了後からM×24時間）。',
+      CH: '不在强制退款允许时段（普通退款窗口结束后起 M×24 小时）。',
+      TH: 'นอกช่วงบังคับคืน (M×24ชม. หลังจบหน้าต่างคืนปกติ)'
+    },
     '재결제 URL 방식을 사용하려면 운영(Y)·연동용도 URL재결제 결제대행사 바인딩이 필요합니다.': {
       EN: '재결제 URL 방식을 사용하려면 운영(Y)·연동용도 URL재결제 payment gateway 바인딩이 필요합니다.',
       JP: '재결제 URL 방식을 사용하려면 운영(Y)·연동용도 URL재결제 決済代行 바인딩이 필요합니다.',
@@ -26496,7 +26508,8 @@
   }
 
   /**
-   * 시간 입력 위젯(HTML): 네이티브 type=time 대신 시(24h)·분(10분 단위) 드롭다운 2개.
+   * 시간 입력 위젯(HTML): 네이티브 type=time 대신 시(24h)·분 드롭다운 2개.
+   * - 기본 분 간격 10분. opts.minuteStep(1~30)으로 변경(후속조치 21:59 등).
    * - 숨김 input[name]이 "HH:MM" 값을 보관(폼 채우기/직렬화 호환).
    * - 오전/오후(브라우저 로케일) 노출 없음.
    */
@@ -26515,6 +26528,9 @@
     if (opts.titleKey) {
       titleAttr = ' data-pg-ui-title="' + esc(opts.titleKey) + '" title="' + esc(t(opts.titleKey)) + '"';
     }
+    var step = parseInt(opts.minuteStep, 10);
+    if (isNaN(step) || step < 1) step = 10;
+    if (step > 30) step = 30;
     var hhOpts = '<option value="">Hour</option>';
     var h;
     for (h = 0; h < 24; h++) {
@@ -26523,9 +26539,19 @@
     }
     var mmOpts = '<option value="">Min</option>';
     var m;
-    for (m = 0; m < 60; m += 10) {
+    for (m = 0; m < 60; m += step) {
       var mv = ('0' + m).slice(-2);
       mmOpts += '<option value="' + mv + '">' + mv + '</option>';
+    }
+    if (step > 1) {
+      /* 저장된 :59 등 step 밖 값이 선택·표시되도록 주요 분 보강 */
+      ['59'].forEach(function (extra) {
+        var has = false;
+        for (var ei = 0; ei < 60; ei += step) {
+          if (('0' + ei).slice(-2) === extra) { has = true; break; }
+        }
+        if (!has) mmOpts += '<option value="' + extra + '">' + extra + '</option>';
+      });
     }
     return '<div class="' + cls + '" data-pg-time-widget="1"' + titleAttr + '>' +
       '<input type="hidden"' + nameAttr + idAttr + dfAttr + ' class="pg-time-hidden">' +

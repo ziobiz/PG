@@ -9281,6 +9281,9 @@
         var plain = d && d.outboundWebhookSignSecretPlain ? String(d.outboundWebhookSignSecretPlain) : '';
         var masked = d && d.outboundWebhookSignSecretMasked ? String(d.outboundWebhookSignSecretMasked) : '';
         if (form) {
+          if (d && d.outboundWebhookSignEffectiveYn != null) {
+            pgSetCompFormFieldValues(form, 'outboundWebhookSignEffectiveYn', d.outboundWebhookSignEffectiveYn);
+          }
           if (masked) pgSetCompFormFieldValues(form, 'outboundWebhookSignSecretMasked', masked);
           form.setAttribute('data-pg-webhook-sign-has-secret', 'Y');
           pgUpdateOutboundWebhookSignRotateBtn(form, true);
@@ -9288,10 +9291,16 @@
           else pgHideOutboundWebhookSignPlainOnce(form);
           pgApplyOutboundWebhookSignEditability(form);
         }
+        var sync = d && d.notiSync ? d.notiSync : null;
+        var syncSkipped = sync && (sync.skipped === true || sync.errorCode === 'SIGNING_NOT_ENABLED_YET');
         if (plain) {
-          alert(pgAdminUiT(hasAlready
+          var msg = pgAdminUiT(hasAlready
             ? '서명 시크릿이 재발급되었습니다. 아래 노란색 상자에 이번 한 번만 평문이 표시됩니다. 지금 복사해 두세요.'
-            : '서명 시크릿이 발급되었습니다. 아래 노란색 상자에 이번 한 번만 평문이 표시됩니다. 지금 복사해 두세요.'));
+            : '서명 시크릿이 발급되었습니다. 아래 노란색 상자에 이번 한 번만 평문이 표시됩니다. 지금 복사해 두세요.');
+          if (syncSkipped) {
+            msg += '\n\n' + pgAdminUiT('웹훅 서명을 「활성」으로 저장해야 실효=Y가 되고 NOTI에 동기됩니다. 마스킹 칸이 아니라 노란 상자 평문을 복사하세요.');
+          }
+          alert(msg);
         } else {
           alert(pgAdminUiT(hasAlready ? '서명 시크릿이 재발급되었습니다.' : '서명 시크릿이 발급되었습니다.'));
         }
@@ -11336,50 +11345,67 @@
       if (map.AUTO_VOID) map.AUTO_VOID.checked = ynY(preset.payFollowAutoVoidYn);
       if (map.EMAIL_VOID) map.EMAIL_VOID.checked = ynY(preset.payFollowEmailVoidYn);
       if (map.MANUAL_VOID) map.MANUAL_VOID.checked = ynY(preset.payFollowManualVoidYn);
-      if (map.AUTO_REFUND) map.AUTO_REFUND.checked = ynY(preset.payFollowAutoRefundYn) || pgNewBlank;
+      if (map.AUTO_REFUND) map.AUTO_REFUND.checked = ynY(preset.payFollowAutoRefundYn);
       if (map.MANUAL_REFUND) map.MANUAL_REFUND.checked = ynY(preset.payFollowManualRefundYn);
-      if (map.FORCE_REFUND) map.FORCE_REFUND.checked = ynY(preset.payFollowForceRefundYn) || pgNewBlank;
+      if (map.FORCE_REFUND) map.FORCE_REFUND.checked = ynY(preset.payFollowForceRefundYn);
       if (map.SAME_DAY) map.SAME_DAY.checked = ynY(preset.payFollowSameDayRefundYn);
-      function familyMask(pgCd) {
-        var chill = typeof pgIsChillPayFamilyPgCd === 'function' && pgIsChillPayFamilyPgCd(pgCd);
-        var jpay = typeof pgIsJpayFamilyPgCd === 'function' && pgIsJpayFamilyPgCd(pgCd);
-        var ep = typeof pgIsElementPayFamilyPgCd === 'function' && pgIsElementPayFamilyPgCd(pgCd);
-        if (!jpay && String(pgCd || '').toUpperCase().indexOf('JPAY') === 0) jpay = true;
-        if (!ep && String(pgCd || '').toUpperCase().indexOf('ELEMENTPAY') === 0) ep = true;
-        var allow = {
-          AUTO_VOID: !!chill && !jpay && !ep,
-          EMAIL_VOID: !!chill && !jpay,
-          MANUAL_VOID: !!jpay,
-          AUTO_REFUND: true,
-          MANUAL_REFUND: !!jpay,
-          FORCE_REFUND: true,
-          SAME_DAY: !!ep
-        };
+      function familyAllow(pgCd) {
+        var u = String(pgCd || '').toUpperCase().replace(/\s+/g, '_');
+        var chill = (typeof pgIsChillPayFamilyPgCd === 'function' && pgIsChillPayFamilyPgCd(pgCd))
+          || u.indexOf('CHILL') === 0;
+        var jpay = (typeof pgIsJpayFamilyPgCd === 'function' && pgIsJpayFamilyPgCd(pgCd))
+          || u.indexOf('JPAY') === 0;
+        var ep = (typeof pgIsElementPayFamilyPgCd === 'function' && pgIsElementPayFamilyPgCd(pgCd))
+          || u.indexOf('ELEMENTPAY') === 0;
+        var exim = u.indexOf('EXIMBAY') === 0;
+        var payso = u.indexOf('PAYSO') === 0 || u.indexOf('PAYSOLUTIONS') === 0;
+        var ksnet = u.indexOf('KSNET') === 0 || u.indexOf('KSPAY') === 0;
+        var omspay = u.indexOf('OMSPAY') === 0 || u.indexOf('OMS_') === 0;
+        var qxipay = u.indexOf('QXIPAY') === 0 || u.indexOf('QXI') === 0;
+        if (omspay) {
+          return { AUTO_VOID: false, EMAIL_VOID: false, MANUAL_VOID: false, AUTO_REFUND: false, MANUAL_REFUND: false, FORCE_REFUND: false, SAME_DAY: false };
+        }
+        if (payso || ksnet) {
+          return { AUTO_VOID: true, EMAIL_VOID: false, MANUAL_VOID: false, AUTO_REFUND: true, MANUAL_REFUND: false, FORCE_REFUND: true, SAME_DAY: false };
+        }
+        if (jpay) {
+          return { AUTO_VOID: false, EMAIL_VOID: false, MANUAL_VOID: true, AUTO_REFUND: true, MANUAL_REFUND: true, FORCE_REFUND: true, SAME_DAY: false };
+        }
+        if (ep || qxipay || exim) {
+          return { AUTO_VOID: false, EMAIL_VOID: false, MANUAL_VOID: false, AUTO_REFUND: true, MANUAL_REFUND: false, FORCE_REFUND: true, SAME_DAY: !!ep };
+        }
+        if (chill) {
+          return { AUTO_VOID: true, EMAIL_VOID: true, MANUAL_VOID: false, AUTO_REFUND: true, MANUAL_REFUND: false, FORCE_REFUND: true, SAME_DAY: false };
+        }
+        return { AUTO_VOID: false, EMAIL_VOID: false, MANUAL_VOID: false, AUTO_REFUND: true, MANUAL_REFUND: false, FORCE_REFUND: true, SAME_DAY: false };
+      }
+      function familyMask(pgCd, applyDefaults) {
+        var allow = familyAllow(pgCd);
         Object.keys(map).forEach(function (k) {
           var el = map[k];
           if (!el) return;
-          var ok = allow[k] !== false;
+          var ok = !!allow[k];
           el.disabled = !ok;
           if (!ok) el.checked = false;
+          if (applyDefaults && ok) el.checked = true;
           var wrap = el.closest('.form-check');
-          if (wrap) wrap.classList.toggle('opacity-50', !ok);
+          if (wrap) {
+            wrap.classList.toggle('opacity-50', !ok);
+            wrap.classList.toggle('pg-pay-follow-family-default', ok && el.checked);
+          }
         });
-        if (pgNewBlank) {
-          if (map.AUTO_VOID && allow.AUTO_VOID) map.AUTO_VOID.checked = true;
-          if (map.EMAIL_VOID && allow.EMAIL_VOID) map.EMAIL_VOID.checked = true;
-          if (map.MANUAL_VOID && allow.MANUAL_VOID) map.MANUAL_VOID.checked = true;
-          if (map.AUTO_REFUND && allow.AUTO_REFUND) map.AUTO_REFUND.checked = true;
-          if (map.MANUAL_REFUND && allow.MANUAL_REFUND) map.MANUAL_REFUND.checked = true;
-          if (map.FORCE_REFUND && allow.FORCE_REFUND) map.FORCE_REFUND.checked = true;
-          if (map.SAME_DAY && allow.SAME_DAY) map.SAME_DAY.checked = true;
-        }
       }
       var cdNow = (cdEl && cdEl.value) ? String(cdEl.value) : (preset.pgCd || '');
-      familyMask(cdNow);
+      familyMask(cdNow, !!pgNewBlank);
       if (cdEl && !cdEl._pgFollowCdBound) {
         cdEl._pgFollowCdBound = true;
         cdEl.addEventListener('input', function () {
-          familyMask(cdEl.value || '');
+          var blank = !preset.id;
+          familyMask(cdEl.value || '', blank);
+        });
+        cdEl.addEventListener('change', function () {
+          var blank = !preset.id;
+          familyMask(cdEl.value || '', blank);
         });
       }
     })();
@@ -20407,11 +20433,13 @@
                     if (rowOk === undefined || rowOk === null) rowOk = true;
                     var ok = metaOk && rowOk === true;
                     var dis = ok ? '' : ' disabled';
-                    var pill = ok ? 'pay-follow-pill--active' : 'pay-follow-pill--disabled pay-follow--off';
+                    var manual = (act === 'MANUAL_VOID' || act === 'MANUAL_REFUND');
+                    var pill = !ok ? 'pay-follow-pill--disabled pay-follow--off'
+                      : (manual ? 'pay-follow-pill--manual' : 'pay-follow-pill--active');
                     var cls = 'pay-follow pay-follow-pill ' + pill;
                     var lab = (window.PG_PAY_LIST_I18N && typeof window.PG_PAY_LIST_I18N.payFollowLabel === 'function')
                       ? window.PG_PAY_LIST_I18N.payFollowLabel(act) : labelKo;
-                    return '<button type="button" class="' + cls + '"' + dis + ' data-act="' + act + '" data-pg-pay-follow="' + act + '" data-trn="' + esJ + '">' + lab + '</button>';
+                    return '<button type="button" class="' + cls + '"' + dis + ' data-act="' + act + '" data-pg-pay-follow="' + act + '" data-trn="' + esJ + '"' + (manual ? ' data-pg-manual-reflect="1"' : '') + '>' + lab + '</button>';
                   }
                   html += '<td class="small pay-actions-cell" title="' + String(followTip).replace(/"/g, '&quot;') + '">' +
                     '<div class="pay-follow-pill-row d-inline-flex flex-wrap align-items-center gap-1">' +
@@ -20460,11 +20488,13 @@
                     if (rowOk === undefined || rowOk === null) rowOk = true;
                     var ok = metaOk && rowOk === true;
                     var dis = ok ? '' : ' disabled';
-                    var pill = ok ? 'pay-follow-pill--active' : 'pay-follow-pill--disabled pay-follow--off';
+                    var manual = (act === 'FORCE_REFUND' && row.payFollowManualReflectForce === true);
+                    var pill = !ok ? 'pay-follow-pill--disabled pay-follow--off'
+                      : (manual ? 'pay-follow-pill--manual' : 'pay-follow-pill--active');
                     var cls = 'pay-follow pay-follow-pill ' + pill;
                     var lab = (window.PG_PAY_LIST_I18N && typeof window.PG_PAY_LIST_I18N.payFollowLabel === 'function')
                       ? window.PG_PAY_LIST_I18N.payFollowLabel(act) : labelKo;
-                    return '<button type="button" class="' + cls + '"' + dis + ' data-act="' + act + '" data-pg-pay-follow="' + act + '" data-trn="' + es + '">' + lab + '</button>';
+                    return '<button type="button" class="' + cls + '"' + dis + ' data-act="' + act + '" data-pg-pay-follow="' + act + '" data-trn="' + es + '"' + (manual ? ' data-pg-manual-reflect="1"' : '') + '>' + lab + '</button>';
                   }
                   html += '<td class="small pay-actions-cell" title="' + String(followTip).replace(/"/g, '&quot;') + '">' +
                     '<div class="pay-follow-pill-row d-inline-flex flex-wrap align-items-center gap-1">' +
@@ -36742,7 +36772,7 @@
         }
         rowDis('autoVoidYn', ['autoVoidStartTime', 'autoVoidEndTime'], 'autoVoidReflectSettlementYn');
         rowDis('emailVoidYn', ['emailVoidStartTime', 'emailVoidEndTime'], 'emailVoidReflectSettlementYn');
-        rowDis('autoRefundYn', ['autoRefundAfterDays', 'autoRefundWindowStartTime'], 'autoRefundReflectSettlementYn');
+        rowDis('autoRefundYn', ['autoRefundAfterDays'], 'autoRefundReflectSettlementYn');
         rowDis('forceRefundYn', ['forceRefundAfterDays'], 'forceRefundReflectSettlementYn');
         (function syncEmailVoidStartOverride() {
           var autoOn = ynOn('autoVoidYn');
@@ -36843,6 +36873,154 @@
           dpSel.removeAttribute('title');
           rmSel.removeAttribute('title');
         });
+      }
+      function loadHqPayFollowAgencyMatrix(envSnap) {
+        var host = pane.querySelector('#hqLedgerPayFollowAgencyMatrix');
+        var tbody = pane.querySelector('#hqLedgerPayFollowAgencyTbody');
+        if (!host || !tbody || !window.PG_API || !window.PG_API.hqPgApiMng) return;
+        function esc(s) {
+          return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        }
+        function minToHm(m) {
+          if (m == null || m === '' || isNaN(Number(m))) return '';
+          var n = Math.max(0, Math.min(1439, parseInt(m, 10)));
+          var h = Math.floor(n / 60);
+          var mm = n % 60;
+          return (h < 10 ? '0' : '') + h + ':' + (mm < 10 ? '0' : '') + mm;
+        }
+        function hmToMin(hm) {
+          var t = String(hm || '').trim();
+          if (!t) return '';
+          var p = t.split(':');
+          if (p.length < 2) return '';
+          var h = parseInt(p[0], 10);
+          var m = parseInt(p[1], 10);
+          if (isNaN(h) || isNaN(m)) return '';
+          return String(h * 60 + m);
+        }
+        function readGlobalFromPane() {
+          var env = envSnap || pane._hqLedgerLastData || {};
+          function timeNameToMin(name, fb) {
+            var el = pane.querySelector('[name="' + name + '"]');
+            var v = el && el.value ? hmToMin(el.value) : '';
+            if (v !== '') return parseInt(v, 10);
+            if (env[name.replace('Time', 'Min')] != null) return Number(env[name.replace('Time', 'Min')]);
+            return fb;
+          }
+          var gVoidS = timeNameToMin('autoVoidStartTime', env.autoVoidStartMin != null ? Number(env.autoVoidStartMin) : 0);
+          var gVoidE = timeNameToMin('autoVoidEndTime', env.autoVoidEndMin != null ? Number(env.autoVoidEndMin) : (21 * 60));
+          var gRefDEl = pane.querySelector('[name="autoRefundAfterDays"]');
+          var gForceEl = pane.querySelector('[name="forceRefundAfterDays"]');
+          var gRefD = gRefDEl && gRefDEl.value !== '' ? parseInt(gRefDEl.value, 10)
+            : (env.autoRefundAfterDays != null ? Number(env.autoRefundAfterDays) : 7);
+          var gForceD = gForceEl && gForceEl.value !== '' ? parseInt(gForceEl.value, 10)
+            : (env.forceRefundAfterDays != null ? Number(env.forceRefundAfterDays) : 0);
+          return { gVoidS: gVoidS, gVoidE: gVoidE, gRefD: gRefD, gForceD: gForceD };
+        }
+        function syncRowFollowUi(tr) {
+          var follow = !!(tr.querySelector('.pf-mx-follow') || {}).checked;
+          var note = tr.querySelector('.pf-mx-note');
+          if (note) {
+            note.textContent = follow ? pgAdminUiT('기본값') : pgAdminUiT('개별설정');
+            note.className = 'small text-center pf-mx-note ' + (follow ? 'text-secondary' : 'text-primary fw-semibold');
+          }
+          ['pf-mx-void-s', 'pf-mx-void-e', 'pf-mx-ref-d', 'pf-mx-force-d'].forEach(function (cls) {
+            var inp = tr.querySelector('.' + cls);
+            if (!inp) return;
+            inp.disabled = follow;
+            inp.classList.toggle('pf-mx-time-disabled', follow);
+            if (follow) {
+              var g = readGlobalFromPane();
+              if (cls === 'pf-mx-void-s') inp.value = minToHm(g.gVoidS);
+              if (cls === 'pf-mx-void-e') inp.value = minToHm(g.gVoidE);
+              if (cls === 'pf-mx-ref-d') inp.value = String(g.gRefD);
+              if (cls === 'pf-mx-force-d') inp.value = String(g.gForceD);
+            }
+          });
+        }
+        window.PG_API.hqPgApiMng({ page: 1, size: 500 }).then(function (res) {
+          var rows = (res && res.list) ? res.list : (res && res.data && res.data.list) ? res.data.list : [];
+          var g = readGlobalFromPane();
+          if (!rows.length) {
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-2" data-pg-ui-t="목록이 없습니다.">' +
+              esc(pgAdminUiT('목록이 없습니다.')) + '</td></tr>';
+            return;
+          }
+          tbody.innerHTML = rows.map(function (r) {
+            var id = r.id != null ? r.id : '';
+            var follow = r.pfFollowGlobal === true || r.pfFollowGlobal === 'true'
+              || (r.pfVoidStartMin == null && r.pfVoidEndMin == null
+                && r.pfRefundAfterDays == null && r.pfForceAfterDays == null);
+            var voidS = follow ? g.gVoidS : (r.pfVoidStartMin != null ? r.pfVoidStartMin : g.gVoidS);
+            var voidE = follow ? g.gVoidE : (r.pfVoidEndMin != null ? r.pfVoidEndMin : g.gVoidE);
+            var refD = follow ? g.gRefD : (r.pfRefundAfterDays != null ? r.pfRefundAfterDays : g.gRefD);
+            var forceD = follow ? g.gForceD : (r.pfForceAfterDays != null ? r.pfForceAfterDays : g.gForceD);
+            return '<tr data-pg-id="' + esc(id) + '" data-pg-cd="' + esc(r.pgCd || '') + '" data-pg-nm="' + esc(r.pgNm || '') + '" data-use-yn="' + esc(r.useYn === 'N' ? 'N' : 'Y') + '">'
+              + '<td class="small text-nowrap">' + esc(r.pgNm || r.pgCd || '') + '</td>'
+              + '<td class="small"><code>' + esc(r.pgCd || '') + '</code></td>'
+              + '<td class="text-center"><input type="checkbox" class="form-check-input pf-mx-follow"' + (follow ? ' checked' : '') + ' title="' + esc(pgAdminUiT('본사설정 따름')) + '"></td>'
+              + '<td><input type="time" class="form-control form-control-sm pf-mx-void-s" value="' + esc(minToHm(voidS)) + '"' + (follow ? ' disabled' : '') + '></td>'
+              + '<td><input type="time" class="form-control form-control-sm pf-mx-void-e" value="' + esc(minToHm(voidE)) + '"' + (follow ? ' disabled' : '') + '></td>'
+              + '<td><input type="number" min="0" max="90" class="form-control form-control-sm pf-mx-ref-d" value="' + esc(String(refD)) + '"' + (follow ? ' disabled' : '') + '></td>'
+              + '<td><input type="number" min="0" max="90" class="form-control form-control-sm pf-mx-force-d" value="' + esc(String(forceD)) + '"' + (follow ? ' disabled' : '') + '></td>'
+              + '<td class="small text-center pf-mx-note ' + (follow ? 'text-secondary' : 'text-primary fw-semibold') + '">' + esc(follow ? pgAdminUiT('기본값') : pgAdminUiT('개별설정')) + '</td>'
+              + '<td><button type="button" class="btn btn-sm btn-outline-primary pf-mx-save" data-pg-ui-t="저장">' + esc(pgAdminUiT('저장')) + '</button></td></tr>';
+          }).join('');
+          tbody.querySelectorAll('tr[data-pg-id]').forEach(function (tr) {
+            syncRowFollowUi(tr);
+            var chk = tr.querySelector('.pf-mx-follow');
+            if (chk) {
+              chk.addEventListener('change', function () { syncRowFollowUi(tr); });
+            }
+          });
+          if (window.PG_UI_I18N && window.PG_UI_I18N.applyDom) {
+            try { window.PG_UI_I18N.applyDom(host); } catch (eI) {}
+          }
+          if (window.PG_TABLE_COL_RESIZE && typeof window.PG_TABLE_COL_RESIZE.refreshIn === 'function') {
+            try { window.PG_TABLE_COL_RESIZE.refreshIn(pane); } catch (eR) {}
+          }
+        }).catch(function () {
+          tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-2">' + esc(pgAdminUiT('불러오기 실패')) + '</td></tr>';
+        });
+        if (!host._pfMxSaveBound) {
+          host._pfMxSaveBound = true;
+          host.addEventListener('click', function (ev) {
+            var btn = ev.target && ev.target.closest ? ev.target.closest('.pf-mx-save') : null;
+            if (!btn || !host.contains(btn)) return;
+            var tr = btn.closest('tr');
+            if (!tr) return;
+            var id = tr.getAttribute('data-pg-id');
+            if (!id) { alert(pgAdminUiT('저장할 대행사 ID가 없습니다.')); return; }
+            var follow = !!(tr.querySelector('.pf-mx-follow') || {}).checked;
+            var voidS = follow ? null : hmToMin((tr.querySelector('.pf-mx-void-s') || {}).value);
+            var voidE = follow ? null : hmToMin((tr.querySelector('.pf-mx-void-e') || {}).value);
+            var refD = follow ? null : String((tr.querySelector('.pf-mx-ref-d') || {}).value || '').trim();
+            var forceD = follow ? null : String((tr.querySelector('.pf-mx-force-d') || {}).value || '').trim();
+            if (!follow && (voidS === '' || voidE === '' || refD === '' || forceD === '')) {
+              alert(pgAdminUiT('개별설정 시 무효 시작·마감·환불 일수·강제 일수를 모두 입력하세요. 또는 「본사설정 따름」을 선택하세요.'));
+              return;
+            }
+            var bodySave = {
+              id: id,
+              pgCd: tr.getAttribute('data-pg-cd') || '',
+              pgNm: tr.getAttribute('data-pg-nm') || tr.getAttribute('data-pg-cd') || '',
+              useYn: tr.getAttribute('data-use-yn') || 'Y',
+              pfVoidStartMin: follow ? null : voidS,
+              pfVoidEndMin: follow ? null : voidE,
+              pfRefundAfterDays: follow ? null : refD,
+              pfForceAfterDays: follow ? null : forceD,
+              pfRefundWindowStartMin: null
+            };
+            var dimm = document.getElementById('dimm');
+            if (dimm) dimm.style.display = 'flex';
+            window.PG_API.hqPgApiMngSave(bodySave).then(function () {
+              alert(pgAdminUiT('처리되었습니다.'));
+              loadHqPayFollowAgencyMatrix(pane._hqLedgerLastData);
+            }).catch(function (err) {
+              alert(pgErrMsg(err, '저장 실패'));
+            }).finally(function () { if (dimm) dimm.style.display = 'none'; });
+          });
+        }
       }
       function fillLedgerSys(d) {
         if (!d) return;
@@ -36947,6 +37125,7 @@
         fillPayFollowLevelCaps(d.payFollowLevelCaps);
         syncPayFollowLevelCapsAuthUi();
         renderHqPayCardPolicyTables(d);
+        loadHqPayFollowAgencyMatrix(d);
         if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
           try { window.PG_UI_I18N.applyDom(pane); } catch (eLdDom) {}
         }
@@ -37776,7 +37955,7 @@
           var t = target;
           if (!t || !t.name || !pane.contains(t)) return;
           var payFollowSyncNames = ['autoVoidYn', 'emailVoidYn', 'manualVoidYn', 'manualRefundYn', 'autoRefundYn', 'forceRefundYn', 'epSameDayRefundYn', 'payFollowRefZone', 'displayTimezone',
-            'autoVoidStartTime', 'autoVoidEndTime', 'emailVoidEndTime', 'autoRefundWindowStartTime'];
+            'autoVoidStartTime', 'autoVoidEndTime', 'emailVoidEndTime', 'emailVoidStartTime'];
           if (payFollowSyncNames.indexOf(t.name) !== -1) syncPayFollowLedgerUi(pane);
         }
         pane.addEventListener('change', function (e) {
@@ -38482,11 +38661,18 @@
         var trn = btn.getAttribute('data-trn') || '';
         var act = btn.getAttribute('data-act') || '';
         if (!trn || !act) return;
-        var followConfirm = pgAdminUiTFmtN('거래 {0}에 대해 [{1}] 를 실행할까요?', [trn,
-          (window.PG_PAY_LIST_I18N && typeof window.PG_PAY_LIST_I18N.payFollowLabel === 'function')
-            ? window.PG_PAY_LIST_I18N.payFollowLabel(act) : act]);
-        if ((act === 'AUTO_REFUND' || act === 'FORCE_REFUND') && btn.getAttribute('data-pg-url-refund') === '1') {
-          followConfirm += '\n\n' + pgAdminUiT('URL 결제는 결제망 가용잔액이 있어야 환불됩니다. 승인 직후 금액이 홀드이면 거절될 수 있습니다.');
+        var followConfirm;
+        if (btn.getAttribute('data-pg-manual-reflect') === '1'
+            || act === 'MANUAL_VOID' || act === 'MANUAL_REFUND'
+            || (act === 'FORCE_REFUND' && btn.classList.contains('pay-follow-pill--manual'))) {
+          followConfirm = pgAdminUiT('수동 반영입니다. 해당결제사에서 직접 처리후 반영합니다. 반영하시겠습니까?');
+        } else {
+          followConfirm = pgAdminUiTFmtN('거래 {0}에 대해 [{1}] 를 실행할까요?', [trn,
+            (window.PG_PAY_LIST_I18N && typeof window.PG_PAY_LIST_I18N.payFollowLabel === 'function')
+              ? window.PG_PAY_LIST_I18N.payFollowLabel(act) : act]);
+          if ((act === 'AUTO_REFUND' || act === 'FORCE_REFUND') && btn.getAttribute('data-pg-url-refund') === '1') {
+            followConfirm += '\n\n' + pgAdminUiT('URL 결제는 결제망 가용잔액이 있어야 환불됩니다. 승인 직후 금액이 홀드이면 거절될 수 있습니다.');
+          }
         }
         if (!window.confirm(followConfirm)) return;
         var adminReason = '';

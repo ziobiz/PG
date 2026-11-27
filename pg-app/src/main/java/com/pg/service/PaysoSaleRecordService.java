@@ -74,6 +74,12 @@ public class PaysoSaleRecordService {
                 t.setOrderNo(orderNo.trim());
                 t.setCreatedAt(LocalDateTime.now());
             }
+            String prevSt = t.getStatus() != null ? t.getStatus().trim() : "";
+            /* 이미 승인(10/00)된 건은 pending 으로 되돌리지 않음 — 이중 HPP·상태 덮어쓰기 방지 */
+            if ("10".equals(prevSt) || "00".equals(prevSt) || "01".equals(prevSt)) {
+                log.info("PAYSO pending skip — already paid mid={} order={} st={}", mid, orderNo.trim(), prevSt);
+                return;
+            }
             t.setVan(PgVendor.PAYSO);
             t.setStatus("08");
             if (amount != null) {

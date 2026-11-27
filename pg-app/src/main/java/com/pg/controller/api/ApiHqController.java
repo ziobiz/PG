@@ -742,20 +742,54 @@ public class ApiHqController {
                 || body.containsKey("payFollowAutoRefundYn")
                 || body.containsKey("payFollowManualRefundYn")
                 || body.containsKey("payFollowForceRefundYn")
-                || body.containsKey("payFollowSameDayRefundYn");
+                || body.containsKey("payFollowSameDayRefundYn")
+                || body.containsKey("pfVoidStartMin")
+                || body.containsKey("pfVoidEndMin")
+                || body.containsKey("pfRefundAfterDays")
+                || body.containsKey("pfForceAfterDays")
+                || body.containsKey("pfRefundWindowStartMin");
         if (!anyFlag) {
             if (!isUpdate) {
                 PgAgencyPayFollowCapability.applyFamilyDefaults(entity);
             }
             return;
         }
-        entity.setPayFollowAutoVoidYn(pgFollowYnFromBody(body, "payFollowAutoVoidYn"));
-        entity.setPayFollowEmailVoidYn(pgFollowYnFromBody(body, "payFollowEmailVoidYn"));
-        entity.setPayFollowManualVoidYn(pgFollowYnFromBody(body, "payFollowManualVoidYn"));
-        entity.setPayFollowAutoRefundYn(pgFollowYnFromBody(body, "payFollowAutoRefundYn"));
-        entity.setPayFollowManualRefundYn(pgFollowYnFromBody(body, "payFollowManualRefundYn"));
-        entity.setPayFollowForceRefundYn(pgFollowYnFromBody(body, "payFollowForceRefundYn"));
-        entity.setPayFollowSameDayRefundYn(pgFollowYnFromBody(body, "payFollowSameDayRefundYn"));
+        if (body.containsKey("payFollowAutoVoidYn")) {
+            entity.setPayFollowAutoVoidYn(pgFollowYnFromBody(body, "payFollowAutoVoidYn"));
+        }
+        if (body.containsKey("payFollowEmailVoidYn")) {
+            entity.setPayFollowEmailVoidYn(pgFollowYnFromBody(body, "payFollowEmailVoidYn"));
+        }
+        if (body.containsKey("payFollowManualVoidYn")) {
+            entity.setPayFollowManualVoidYn(pgFollowYnFromBody(body, "payFollowManualVoidYn"));
+        }
+        if (body.containsKey("payFollowAutoRefundYn")) {
+            entity.setPayFollowAutoRefundYn(pgFollowYnFromBody(body, "payFollowAutoRefundYn"));
+        }
+        if (body.containsKey("payFollowManualRefundYn")) {
+            entity.setPayFollowManualRefundYn(pgFollowYnFromBody(body, "payFollowManualRefundYn"));
+        }
+        if (body.containsKey("payFollowForceRefundYn")) {
+            entity.setPayFollowForceRefundYn(pgFollowYnFromBody(body, "payFollowForceRefundYn"));
+        }
+        if (body.containsKey("payFollowSameDayRefundYn")) {
+            entity.setPayFollowSameDayRefundYn(pgFollowYnFromBody(body, "payFollowSameDayRefundYn"));
+        }
+        if (body.containsKey("pfVoidStartMin")) {
+            entity.setPfVoidStartMin(hqParseNullableInt(body.get("pfVoidStartMin")));
+        }
+        if (body.containsKey("pfVoidEndMin")) {
+            entity.setPfVoidEndMin(hqParseNullableInt(body.get("pfVoidEndMin")));
+        }
+        if (body.containsKey("pfRefundAfterDays")) {
+            entity.setPfRefundAfterDays(hqParseNullableInt(body.get("pfRefundAfterDays")));
+        }
+        if (body.containsKey("pfForceAfterDays")) {
+            entity.setPfForceAfterDays(hqParseNullableInt(body.get("pfForceAfterDays")));
+        }
+        if (body.containsKey("pfRefundWindowStartMin")) {
+            entity.setPfRefundWindowStartMin(hqParseNullableInt(body.get("pfRefundWindowStartMin")));
+        }
         String cd = entity.getPgCd();
         if (!PgAgencyPayFollowCapability.familyApiAllows(cd, com.pg.service.PayListActionService.PayFollowAction.AUTO_VOID)) {
             entity.setPayFollowAutoVoidYn("N");
@@ -771,6 +805,21 @@ public class ApiHqController {
         }
         if (!PgAgencyPayFollowCapability.familyAllowsSameDayRefund(cd)) {
             entity.setPayFollowSameDayRefundYn("N");
+        }
+    }
+
+    private static Integer hqParseNullableInt(Object v) {
+        if (v == null) {
+            return null;
+        }
+        String s = String.valueOf(v).trim();
+        if (s.isEmpty() || "-".equals(s) || "null".equalsIgnoreCase(s)) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 

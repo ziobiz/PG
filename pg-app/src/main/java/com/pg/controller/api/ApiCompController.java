@@ -1112,15 +1112,28 @@ public class ApiCompController {
         if (ou.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.fail("가맹을 찾을 수 없습니다.", "NOT_FOUND"));
         }
-        Map<String, Object> data = merchantOutboundWebhookSignService.rotateSecret(ou.get().getId());
+        Long orgUnitId = ou.get().getId();
+        Map<String, Object> data = merchantOutboundWebhookSignService.rotateSecret(orgUnitId);
         if (!Boolean.TRUE.equals(data.get("success"))) {
             return ResponseEntity.ok(ApiResponse.fail("재발급에 실패했습니다.",
                     String.valueOf(data.getOrDefault("errorCode", "ROTATE_FAILED"))));
         }
+        /* 상태 필드 보강 — 프론트가 마스킹·실효를 즉시 갱신 */
         try {
-            if (notiWebhookSignSyncService != null) {
-                Map<String, Object> sync = notiWebhookSignSyncService.syncOrgUnit(ou.get().getId());
+            merchantOutboundWebhookSignService.putStatusFields(orgUnitId, data);
+        } catch (Exception ignore) { /* best-effort */ }
+        /* NOTI 동기 실패·지연이 발급 응답을 깨뜨리지 않도록 격리(타임아웃은 NotiProvisionClient) */
+        try {
+            if (notiWebhookSignSyncService != null
+                    && merchantOutboundWebhookSignService.isSigningEnabled(orgUnitId)) {
+                Map<String, Object> sync = notiWebhookSignSyncService.syncOrgUnit(orgUnitId);
                 data.put("notiSync", sync);
+            } else {
+                data.put("notiSync", Map.of(
+                        "success", false,
+                        "skipped", true,
+                        "errorCode", "SIGNING_NOT_ENABLED_YET",
+                        "message", "웹훅 서명을 활성으로 저장한 뒤 NOTI에 동기됩니다."));
             }
         } catch (Exception e) {
             data.put("notiSync", Map.of("success", false, "errorCode", "NOTI_SYNC_ERROR"));

@@ -215,7 +215,7 @@ public class UrlPayVendorCapabilityRegistry {
                 false);
     }
 
-    /** Payso — HPP 리다이렉트(ui-payments). 재결제·환불 API 미지원. */
+    /** Payso — HPP 리다이렉트(ui-payments). URL 재결제 미지원. 후속조치 Void(정산 전)는 PayListAction. */
     private UrlPayVendorCapability paysoCapability(String pg, boolean urlPay, boolean urlRepayAgency) {
         return new UrlPayVendorCapability(
                 PgVendor.PAYSO,

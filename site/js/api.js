@@ -1211,19 +1211,36 @@
       return get('/api/comp/changeHistory', params).then(function (r) { return r.data; });
     },
     compRotateOutboundWebhookSign: function (compId) {
-      var base = (typeof API_BASE !== 'undefined' ? API_BASE : '') || '';
+      var base = getBaseUrl();
+      var token = getToken();
       var headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
-      try {
-        var tok = (window.PG_AUTH && PG_AUTH.getToken) ? PG_AUTH.getToken() : (localStorage.getItem('pg_token') || '');
-        if (tok) headers['Authorization'] = 'Bearer ' + tok;
-      } catch (e0) {}
+      if (token) headers['Authorization'] = 'Bearer ' + token;
       return fetch(base + '/api/comp/outboundWebhookSign/rotate', {
         method: 'POST',
         headers: headers,
         body: new URLSearchParams({ compId: compId || '' })
-      }).then(function (res) { return res.json(); }).then(function (r) {
-        if (r && r.success === false) throw r;
-        return r && r.data ? r.data : r;
+      }).then(function (res) {
+        if (res.status === 401) {
+          clearAuth();
+          if (window.location) window.location.replace((window.location.origin || '') + '/login.html');
+          return Promise.reject(new Error(apiT('인증이 만료되었습니다.', 'Your session has expired.')));
+        }
+        return res.text().then(function (text) {
+          var r;
+          try {
+            r = text ? JSON.parse(text) : {};
+          } catch (eParse) {
+            if (res.ok) return {};
+            return Promise.reject(new Error(apiT(
+              '서버 응답 오류 (HTTP ' + res.status + '). 잠시 후 다시 시도하거나 저장 후 발급하세요.',
+              'Server response error (HTTP ' + res.status + '). Retry after save.'
+            )));
+          }
+          if (r && r.success === false) {
+            throw new Error(serverMsgT(r.message, '서명 시크릿 발급·재발급에 실패했습니다.'));
+          }
+          return r && r.data ? r.data : r;
+        });
       });
     },
     compResetPassword: function (compId) {

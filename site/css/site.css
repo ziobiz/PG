@@ -4063,19 +4063,26 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   table-layout: fixed;
 }
 .hq-pay-follow-table .hq-pay-follow-col-kind {
-  width: 17%;
+  width: 14%;
 }
 .hq-pay-follow-table .hq-pay-follow-col-basis {
-  width: 20%;
+  width: 18%;
 }
 .hq-pay-follow-table .hq-pay-follow-col-use {
-  width: 11%;
+  width: 10%;
 }
 .hq-pay-follow-table .hq-pay-follow-col-val {
-  width: 32%;
+  width: 30%;
 }
 .hq-pay-follow-table .hq-pay-follow-col-ref {
   width: 12%;
+}
+.hq-pay-follow-table .hq-pay-follow-col-note {
+  width: 8%;
+}
+.hq-pay-follow-agency-wrap .pf-mx-time-disabled {
+  background-color: var(--bs-secondary-bg, #f8f9fa);
+  opacity: 0.85;
 }
 .hq-pay-follow-table th,
 .hq-pay-follow-table td {
@@ -4130,6 +4137,35 @@ button.pay-follow-pill--active {
 button.pay-follow-pill--active:hover:not(:disabled) {
   background: #1d4ed8;
   color: #fff !important;
+}
+/* 수동 반영(포털 처리 후 ICOPAY만) — 수동무효·수동환불·PAYSO 강제환불 */
+/* PG 추가 시 계열 가능 후속조치 기본 체크 강조 */
+.form-check.pg-pay-follow-family-default {
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  border-radius: 0.35rem;
+  padding: 0.2rem 0.45rem 0.2rem 1.75rem;
+}
+.form-check.pg-pay-follow-family-default .form-check-input:checked {
+  background-color: #dc2626;
+  border-color: #b91c1c;
+}
+.form-check.pg-pay-follow-family-default .form-check-label {
+  color: #b91c1c;
+  font-weight: 600;
+}
+button.pay-follow-pill--manual {
+  background: #dc2626;
+  color: #fff !important;
+  cursor: pointer;
+}
+button.pay-follow-pill--manual:hover:not(:disabled) {
+  background: #b91c1c;
+  color: #fff !important;
+}
+button.pay-follow-pill--manual:focus-visible {
+  outline: 2px solid rgba(220, 38, 38, 0.45);
+  outline-offset: 1px;
 }
 button.pay-follow-pill--disabled,
 button.pay-follow-pill--disabled:disabled {

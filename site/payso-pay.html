@@ -114,11 +114,11 @@
 <script>
 (function () {
   var T = {
-    KOR: { lead: '주문·구매자 정보를 확인한 뒤 결제 페이지로 이동합니다.', pay: '결제하기', wait: '이동 중…', merchant: '가맹점', item: '상품', amount: '금액', order: '주문번호', name: '성명', email: '이메일', phone: '전화번호', firstName: '이름', lastName: '성', country: '국가코드', shipping: '배송주소', hint: '다음 화면에서 카드정보를 입력 후 결제 완료 합니다.', brandSub: 'Secure Payment', fxCur: '표시 통화', fxEst: '예상 청구', err: '결제를 시작하지 못했습니다.', needAmt: '금액을 입력하세요.', needName: '성명을 입력하세요.', needNameApi: '가맹 prepare buyer.name(또는 firstName+lastName)이 필요합니다. 쇼핑몰 회원명을 전달하세요.', needMerchant: '가맹점을 찾을 수 없습니다.', needFxQuote: '환율 견적을 불러오지 못했습니다. 페이지를 새로고침한 뒤 다시 시도하세요.', errNameEn: '성명은 영문만 입력하세요.', errEmailFormat: '올바른 이메일 형식을 입력하세요.', errPhoneFormat: '전화번호는 +와 숫자만 입력하세요(- 불가).', warnEnglishOnly: '영어 알파벳만 입력 가능합니다.', warnAmountOnly: '숫자만 입력 가능합니다.', warnEmailChars: '이메일에 사용할 수 있는 문자만 입력 가능합니다.', warnPhonePlusDigits: '전화번호는 +와 숫자만 입력 가능합니다.', done: '결제 결과를 확인 중입니다.', payComplete: '결제 완료', payFailed: '결제 실패', paid: '결제가 완료되었습니다.', payAwaiting: '결제 확인 중', payAwaitingDetail: '승인을 확인하고 있습니다. 잠시만 기다려 주세요.', payTimeout: '확인 시간 초과', payTimeoutDetail: '승인 결과를 제때 받지 못했습니다. 「다시 결제」로 처음부터 진행하거나 「닫기」로 나가 주세요.', resultClose: '닫기', resultRetry: '다시 결제', webOff: '이 가맹점은 결제 서비스가 중지로 설정되어 있습니다.', configErr: '결제 설정을 불러오지 못했습니다.' },
-    ENG: { lead: 'Confirm order and shopper details, then continue to payment.', pay: 'Pay', wait: 'Redirecting…', merchant: 'Merchant', item: 'Item', amount: 'Amount', order: 'Order no.', name: 'Name', email: 'Email', phone: 'Phone', firstName: 'First name', lastName: 'Last name', country: 'Country code', shipping: 'Shipping address', hint: 'Enter your card details on the next screen to complete payment.', brandSub: 'Secure Payment', fxCur: 'Display currency', fxEst: 'Estimated charge', err: 'Could not start payment.', needAmt: 'Enter an amount.', needName: 'Enter the name.', needNameApi: 'Merchant prepare requires buyer.name (or firstName+lastName). Pass the shop member name.', needMerchant: 'Merchant not found.', needFxQuote: 'FX quote is missing or expired. Refresh the page and try again.', errNameEn: 'Enter the name in English letters only.', errEmailFormat: 'Enter a valid email address.', errPhoneFormat: 'Phone allows + and digits only (no hyphens).', warnEnglishOnly: 'Only English letters are allowed.', warnAmountOnly: 'Only numbers are allowed.', warnEmailChars: 'Only characters valid for email are allowed.', warnPhonePlusDigits: 'Phone allows + and digits only.', done: 'Checking payment result…', payComplete: 'Payment complete', payFailed: 'Payment failed', paid: 'Payment completed.', payAwaiting: 'Confirming payment', payAwaitingDetail: 'We are confirming the approval. Please wait.', payTimeout: 'Confirmation timed out', payTimeoutDetail: 'We could not confirm approval in time. Use Pay again to restart, or Close to leave.', resultClose: 'Close', resultRetry: 'Pay again', webOff: "This merchant's payment service is set to suspended.", configErr: 'Could not load payment settings.' },
-    JPN: { lead: '注文・購入者情報を確認してからお支払い画面へ進みます。', pay: '支払う', wait: '移動中…', merchant: '加盟店', item: '商品', amount: '金額', order: '注文番号', name: '氏名', email: 'メール', phone: '電話番号', firstName: '名', lastName: '姓', country: '国コード', shipping: '配送住所', hint: '次の画面でカード情報を入力して決済を完了してください。', brandSub: 'Secure Payment', fxCur: '表示通貨', fxEst: '請求見込み', err: 'お支払いを開始できませんでした。', needAmt: '金額を入力してください。', needName: '氏名を入力してください。', needNameApi: '加盟店 prepare の buyer.name（または firstName+lastName）が必要です。ショップ会員名を渡してください。', needMerchant: '加盟店が見つかりません。', needFxQuote: '為替見積がありません。ページを再読み込みしてから再度お試しください。', errNameEn: '氏名は英字のみ入力してください。', errEmailFormat: '正しいメール形式で入力してください。', errPhoneFormat: '電話番号は+と数字のみ（ハイフン不可）。', warnEnglishOnly: '英字のみ入力できます。', warnAmountOnly: '数字のみ入力できます。', warnEmailChars: 'メールに使用できる文字のみ入力できます。', warnPhonePlusDigits: '電話番号は+と数字のみ入力できます。', done: 'お支払い結果を確認しています。', payComplete: '決済完了', payFailed: '決済失敗', paid: 'お支払いが完了しました。', payAwaiting: '決済確認中', payAwaitingDetail: '承認を確認しています。しばらくお待ちください。', payTimeout: '確認タイムアウト', payTimeoutDetail: '承認結果を確認できませんでした。「もう一度支払う」でやり直すか「閉じる」で終了してください。', resultClose: '閉じる', resultRetry: 'もう一度支払う', webOff: 'この加盟店の決済サービスは停止に設定されています。', configErr: '決済設定を読み込めませんでした。' },
-    CHN: { lead: '请确认订单与购买人信息后进入支付页。', pay: '付款', wait: '跳转中…', merchant: '商户', item: '商品', amount: '金额', order: '订单号', name: '姓名', email: '邮箱', phone: '电话', firstName: '名', lastName: '姓', country: '国家代码', shipping: '配送地址', hint: '请在下一屏输入卡信息并完成支付。', brandSub: 'Secure Payment', fxCur: '显示货币', fxEst: '预计扣款', err: '无法开始付款。', needAmt: '请输入金额。', needName: '请输入姓名。', needNameApi: '商户 prepare 需要 buyer.name（或 firstName+lastName）。请传递商城会员姓名。', needMerchant: '找不到商户。', needFxQuote: '汇率报价无效或已过期。请刷新页面后重试。', errNameEn: '姓名请仅用英文字母。', errEmailFormat: '请输入有效的邮箱地址。', errPhoneFormat: '电话仅允许 + 与数字（不可用连字符）。', warnEnglishOnly: '只能输入英文字母。', warnAmountOnly: '只能输入数字。', warnEmailChars: '只能输入邮箱允许的字符。', warnPhonePlusDigits: '电话仅允许 + 与数字。', done: '正在确认付款结果。', payComplete: '支付完成', payFailed: '支付失败', paid: '支付已完成。', payAwaiting: '正在确认支付', payAwaitingDetail: '正在确认授权，请稍候。', payTimeout: '确认超时', payTimeoutDetail: '未能及时确认授权。请点「重新支付」重试，或点「关闭」离开。', resultClose: '关闭', resultRetry: '重新支付', webOff: '该商户的支付服务已设置为停止。', configErr: '无法加载支付设置。' },
-    THA: { lead: 'ตรวจคำสั่งซื้อและข้อมูลผู้ซื้อ แล้วไปหน้าชำระเงิน', pay: 'ชำระเงิน', wait: 'กำลังไป…', merchant: 'ร้านค้า', item: 'สินค้า', amount: 'จำนวนเงิน', order: 'เลขคำสั่งซื้อ', name: 'ชื่อ', email: 'อีเมล', phone: 'โทรศัพท์', firstName: 'ชื่อ', lastName: 'นามสกุล', country: 'รหัสประเทศ', shipping: 'ที่อยู่จัดส่ง', hint: 'ในหน้าถัดไปกรอกข้อมูลบัตรแล้วชำระเงินให้เสร็จ', brandSub: 'Secure Payment', fxCur: 'สกุลเงินแสดง', fxEst: 'ยอดโดยประมาณ', err: 'เริ่มชำระเงินไม่สำเร็จ', needAmt: 'กรอกจำนวนเงิน', needName: 'กรอกชื่อ', needNameApi: 'prepare ของร้านต้องมี buyer.name (หรือ firstName+lastName) ส่งชื่อสมาชิกร้าน', needMerchant: 'ไม่พบร้านค้า', needFxQuote: 'ใบเสนออัตราแลกเปลี่ยนหมดอายุหรือไม่มี กรุณารีเฟรชหน้าแล้วลองใหม่', errNameEn: 'กรอกชื่อเป็นตัวอักษรภาษาอังกฤษเท่านั้น', errEmailFormat: 'กรอกอีเมลให้ถูกต้อง', errPhoneFormat: 'โทรศัพท์ใช้ได้เฉพาะ + และตัวเลข (ห้าม -)', warnEnglishOnly: 'ใช้ได้เฉพาะตัวอักษรอังกฤษ', warnAmountOnly: 'ใช้ได้เฉพาะตัวเลข', warnEmailChars: 'ใช้ได้เฉพาะอักขระที่ใช้อีเมลได้', warnPhonePlusDigits: 'โทรศัพท์ใช้ได้เฉพาะ + และตัวเลข', done: 'กำลังตรวจผลชำระเงิน', payComplete: 'ชำระเงินสำเร็จ', payFailed: 'ชำระเงินล้มเหลว', paid: 'ชำระเงินเสร็จแล้ว', payAwaiting: 'กำลังยืนยันการชำระ', payAwaitingDetail: 'กำลังยืนยันการอนุมัติ กรุณารอสักครู่', payTimeout: 'หมดเวลายืนยัน', payTimeoutDetail: 'ไม่ได้รับการยืนยันทันเวลา กด「ชำระอีกครั้ง」เพื่อเริ่มใหม่ หรือ「ปิด」เพื่อออก', resultClose: 'ปิด', resultRetry: 'ชำระอีกครั้ง', webOff: 'บริการชำระเงินของร้านค้านี้ถูกตั้งค่าเป็นระงับ', configErr: 'โหลดการตั้งค่าชำระเงินไม่สำเร็จ' }
+    KOR: { lead: '주문·구매자 정보를 확인한 뒤 결제 페이지로 이동합니다.', pay: '결제하기', wait: '이동 중…', merchant: '가맹점', item: '상품', amount: '금액', order: '주문번호', name: '성명', email: '이메일', phone: '전화번호', firstName: '이름', lastName: '성', country: '국가코드', shipping: '배송주소', hint: '다음 화면에서 카드정보를 입력 후 결제 완료 합니다.', brandSub: 'Secure Payment', fxCur: '표시 통화', fxEst: '예상 청구', err: '결제를 시작하지 못했습니다.', needAmt: '금액을 입력하세요.', needName: '성명을 입력하세요.', needNameApi: '가맹 prepare buyer.name(또는 firstName+lastName)이 필요합니다. 쇼핑몰 회원명을 전달하세요.', needMerchant: '가맹점을 찾을 수 없습니다.', needFxQuote: '환율 견적을 불러오지 못했습니다. 페이지를 새로고침한 뒤 다시 시도하세요.', errNameEn: '성명은 영문만 입력하세요.', errEmailFormat: '올바른 이메일 형식을 입력하세요.', errPhoneFormat: '전화번호는 +와 숫자만 입력하세요(- 불가).', warnEnglishOnly: '영어 알파벳만 입력 가능합니다.', warnAmountOnly: '숫자만 입력 가능합니다.', warnEmailChars: '이메일에 사용할 수 있는 문자만 입력 가능합니다.', warnPhonePlusDigits: '전화번호는 +와 숫자만 입력 가능합니다.', done: '결제 결과를 확인 중입니다.', payComplete: '결제 완료', payFailed: '결제 실패', paid: '결제가 완료되었습니다.', payAwaiting: '결제 확인 중', payAwaitingDetail: '승인을 확인하고 있습니다. 잠시만 기다려 주세요.', payTimeout: '확인 중(통보 대기)', payTimeoutDetail: '아직 승인 통보를 받지 못했습니다. 실패로 처리하지 않으며, 통보가 오면 자동으로 결과가 반영됩니다. 이 화면을 유지해 주세요.', resultClose: '닫기', resultRetry: '다시 결제', webOff: '이 가맹점은 결제 서비스가 중지로 설정되어 있습니다.', configErr: '결제 설정을 불러오지 못했습니다.', pendingInProgress: '이미 진행 중인 결제가 있습니다. 이전 결제 창에서 완료하거나 잠시 후 다시 시도해 주세요.' },
+    ENG: { lead: 'Confirm order and shopper details, then continue to payment.', pay: 'Pay', wait: 'Redirecting…', merchant: 'Merchant', item: 'Item', amount: 'Amount', order: 'Order no.', name: 'Name', email: 'Email', phone: 'Phone', firstName: 'First name', lastName: 'Last name', country: 'Country code', shipping: 'Shipping address', hint: 'Enter your card details on the next screen to complete payment.', brandSub: 'Secure Payment', fxCur: 'Display currency', fxEst: 'Estimated charge', err: 'Could not start payment.', needAmt: 'Enter an amount.', needName: 'Enter the name.', needNameApi: 'Merchant prepare requires buyer.name (or firstName+lastName). Pass the shop member name.', needMerchant: 'Merchant not found.', needFxQuote: 'FX quote is missing or expired. Refresh the page and try again.', errNameEn: 'Enter the name in English letters only.', errEmailFormat: 'Enter a valid email address.', errPhoneFormat: 'Phone allows + and digits only (no hyphens).', warnEnglishOnly: 'Only English letters are allowed.', warnAmountOnly: 'Only numbers are allowed.', warnEmailChars: 'Only characters valid for email are allowed.', warnPhonePlusDigits: 'Phone allows + and digits only.', done: 'Checking payment result…', payComplete: 'Payment complete', payFailed: 'Payment failed', paid: 'Payment completed.', payAwaiting: 'Confirming payment', payAwaitingDetail: 'We are confirming the approval. Please wait.', payTimeout: 'Still confirming (awaiting notify)', payTimeoutDetail: 'Approval notify has not arrived yet. This is not marked as failed; the result will update when notify arrives. Please keep this page open.', resultClose: 'Close', resultRetry: 'Pay again', webOff: "This merchant's payment service is set to suspended.", configErr: 'Could not load payment settings.', pendingInProgress: 'A payment is already in progress. Finish it in the previous window or try again shortly.' },
+    JPN: { lead: '注文・購入者情報を確認してからお支払い画面へ進みます。', pay: '支払う', wait: '移動中…', merchant: '加盟店', item: '商品', amount: '金額', order: '注文番号', name: '氏名', email: 'メール', phone: '電話番号', firstName: '名', lastName: '姓', country: '国コード', shipping: '配送住所', hint: '次の画面でカード情報を入力して決済を完了してください。', brandSub: 'Secure Payment', fxCur: '表示通貨', fxEst: '請求見込み', err: 'お支払いを開始できませんでした。', needAmt: '金額を入力してください。', needName: '氏名を入力してください。', needNameApi: '加盟店 prepare の buyer.name（または firstName+lastName）が必要です。ショップ会員名を渡してください。', needMerchant: '加盟店が見つかりません。', needFxQuote: '為替見積がありません。ページを再読み込みしてから再度お試しください。', errNameEn: '氏名は英字のみ入力してください。', errEmailFormat: '正しいメール形式で入力してください。', errPhoneFormat: '電話番号は+と数字のみ（ハイフン不可）。', warnEnglishOnly: '英字のみ入力できます。', warnAmountOnly: '数字のみ入力できます。', warnEmailChars: 'メールに使用できる文字のみ入力できます。', warnPhonePlusDigits: '電話番号は+と数字のみ入力できます。', done: 'お支払い結果を確認しています。', payComplete: '決済完了', payFailed: '決済失敗', paid: 'お支払いが完了しました。', payAwaiting: '決済確認中', payAwaitingDetail: '承認を確認しています。しばらくお待ちください。', payTimeout: '確認中（通知待ち）', payTimeoutDetail: 'まだ承認通知を受信していません。失敗扱いにはせず、通知が届き次第結果が反映されます。この画面を開いたままお待ちください。', resultClose: '閉じる', resultRetry: 'もう一度支払う', webOff: 'この加盟店の決済サービスは停止に設定されています。', configErr: '決済設定を読み込めませんでした。', pendingInProgress: 'すでに進行中の決済があります。前の決済画面で完了するか、しばらくしてから再試行してください。' },
+    CHN: { lead: '请确认订单与购买人信息后进入支付页。', pay: '付款', wait: '跳转中…', merchant: '商户', item: '商品', amount: '金额', order: '订单号', name: '姓名', email: '邮箱', phone: '电话', firstName: '名', lastName: '姓', country: '国家代码', shipping: '配送地址', hint: '请在下一屏输入卡信息并完成支付。', brandSub: 'Secure Payment', fxCur: '显示货币', fxEst: '预计扣款', err: '无法开始付款。', needAmt: '请输入金额。', needName: '请输入姓名。', needNameApi: '商户 prepare 需要 buyer.name（或 firstName+lastName）。请传递商城会员姓名。', needMerchant: '找不到商户。', needFxQuote: '汇率报价无效或已过期。请刷新页面后重试。', errNameEn: '姓名请仅用英文字母。', errEmailFormat: '请输入有效的邮箱地址。', errPhoneFormat: '电话仅允许 + 与数字（不可用连字符）。', warnEnglishOnly: '只能输入英文字母。', warnAmountOnly: '只能输入数字。', warnEmailChars: '只能输入邮箱允许的字符。', warnPhonePlusDigits: '电话仅允许 + 与数字。', done: '正在确认付款结果。', payComplete: '支付完成', payFailed: '支付失败', paid: '支付已完成。', payAwaiting: '正在确认支付', payAwaitingDetail: '正在确认授权，请稍候。', payTimeout: '确认中（等待通知）', payTimeoutDetail: '尚未收到授权通知。不会标记为失败；收到通知后结果会自动更新。请保持本页打开。', resultClose: '关闭', resultRetry: '重新支付', webOff: '该商户的支付服务已设置为停止。', configErr: '无法加载支付设置。', pendingInProgress: '已有进行中的支付。请在先前支付窗完成，或稍后再试。' },
+    THA: { lead: 'ตรวจคำสั่งซื้อและข้อมูลผู้ซื้อ แล้วไปหน้าชำระเงิน', pay: 'ชำระเงิน', wait: 'กำลังไป…', merchant: 'ร้านค้า', item: 'สินค้า', amount: 'จำนวนเงิน', order: 'เลขคำสั่งซื้อ', name: 'ชื่อ', email: 'อีเมล', phone: 'โทรศัพท์', firstName: 'ชื่อ', lastName: 'นามสกุล', country: 'รหัสประเทศ', shipping: 'ที่อยู่จัดส่ง', hint: 'ในหน้าถัดไปกรอกข้อมูลบัตรแล้วชำระเงินให้เสร็จ', brandSub: 'Secure Payment', fxCur: 'สกุลเงินแสดง', fxEst: 'ยอดโดยประมาณ', err: 'เริ่มชำระเงินไม่สำเร็จ', needAmt: 'กรอกจำนวนเงิน', needName: 'กรอกชื่อ', needNameApi: 'prepare ของร้านต้องมี buyer.name (หรือ firstName+lastName) ส่งชื่อสมาชิกร้าน', needMerchant: 'ไม่พบร้านค้า', needFxQuote: 'ใบเสนออัตราแลกเปลี่ยนหมดอายุหรือไม่มี กรุณารีเฟรชหน้าแล้วลองใหม่', errNameEn: 'กรอกชื่อเป็นตัวอักษรภาษาอังกฤษเท่านั้น', errEmailFormat: 'กรอกอีเมลให้ถูกต้อง', errPhoneFormat: 'โทรศัพท์ใช้ได้เฉพาะ + และตัวเลข (ห้าม -)', warnEnglishOnly: 'ใช้ได้เฉพาะตัวอักษรอังกฤษ', warnAmountOnly: 'ใช้ได้เฉพาะตัวเลข', warnEmailChars: 'ใช้ได้เฉพาะอักขระที่ใช้อีเมลได้', warnPhonePlusDigits: 'โทรศัพท์ใช้ได้เฉพาะ + และตัวเลข', done: 'กำลังตรวจผลชำระเงิน', payComplete: 'ชำระเงินสำเร็จ', payFailed: 'ชำระเงินล้มเหลว', paid: 'ชำระเงินเสร็จแล้ว', payAwaiting: 'กำลังยืนยันการชำระ', payAwaitingDetail: 'กำลังยืนยันการอนุมัติ กรุณารอสักครู่', payTimeout: 'กำลังยืนยัน (รอการแจ้ง)', payTimeoutDetail: 'ยังไม่ได้รับการแจ้งอนุมัติ จะไม่ถือว่าล้มเหลว เมื่อมีการแจ้ง ผลจะอัปเดตอัตโนมัติ กรุณาเปิดหน้านี้ไว้', resultClose: 'ปิด', resultRetry: 'ชำระอีกครั้ง', webOff: 'บริการชำระเงินของร้านค้านี้ถูกตั้งค่าเป็นระงับ', configErr: 'โหลดการตั้งค่าชำระเงินไม่สำเร็จ', pendingInProgress: 'มีการชำระที่กำลังดำเนินการอยู่ กรุณาทำให้เสร็จในหน้าต่างก่อนหน้า หรือลองใหม่ภายหลัง' }
   };
 
   var q = new URLSearchParams(location.search);
@@ -668,23 +668,37 @@
     var awaiting = !!state.awaiting;
     var timedOut = !!state.timedOut;
     var merchantApi = !!state.merchantApi || isMerchantApiReturn();
-    el.className = awaiting ? 'wait pay-result-final' : (ok ? 'ok pay-result-final' : 'err pay-result-final');
-    var title = awaiting ? t('payAwaiting') : (timedOut ? t('payTimeout') : (ok ? t('payComplete') : t('payFailed')));
-    var body = awaiting ? t('payAwaitingDetail') : (timedOut ? t('payTimeoutDetail') : (ok ? t('paid') : t('err')));
+    var stillWait = awaiting || (!!timedOut && !ok);
+    el.className = stillWait ? 'wait pay-result-final' : (ok ? 'ok pay-result-final' : 'err pay-result-final');
+    var title = stillWait
+      ? (timedOut ? t('payTimeout') : t('payAwaiting'))
+      : (ok ? t('payComplete') : t('payFailed'));
+    var body = stillWait
+      ? (timedOut ? t('payTimeoutDetail') : t('payAwaitingDetail'))
+      : (ok ? t('paid') : t('err'));
     var orderLine = state.orderNo
       ? ('<p class="small text-muted mb-2">' + t('order') + ': <strong>' + String(state.orderNo).replace(/</g, '') + '</strong></p>')
       : '';
     var actions = '';
-    if (!merchantApi) {
+    /* 통보 대기(타임아웃 포함) 중에는 「다시 결제」를 숨겨 이중승인 유발 방지 */
+    if (!merchantApi && !stillWait) {
       actions = '<div class="pay-result-btn-row mt-3">'
         + '<button type="button" class="btn btn-primary btn-pay pay-result-confirm-btn" id="omsResultRetryBtn">' + t('resultRetry') + '</button>'
         + '<button type="button" class="btn btn-outline-secondary btn-pay pay-result-confirm-btn" id="omsResultCloseBtn">' + t('resultClose') + '</button>'
         + '</div>';
-    } else if (!awaiting && state.siteBackUrl) {
+    } else if (!merchantApi && stillWait && timedOut) {
+      actions = '<div class="pay-result-btn-row mt-3">'
+        + '<button type="button" class="btn btn-outline-secondary btn-pay pay-result-confirm-btn" id="omsResultCloseBtn">' + t('resultClose') + '</button>'
+        + '</div>';
+    } else if (!awaiting && !timedOut && state.siteBackUrl) {
       body = t('wait');
     }
     el.innerHTML = '<div class="pay-result-title">' + title + '</div>' + orderLine + '<p>' + body + '</p>' + actions;
-    if (merchantApi && !awaiting && !timedOut && state.siteBackUrl) {
+    if (merchantApi && !awaiting && !timedOut && !ok && state.siteBackUrl) {
+      goSiteBack(state.siteBackUrl);
+      return;
+    }
+    if (merchantApi && ok && state.siteBackUrl) {
       goSiteBack(state.siteBackUrl);
       return;
     }
@@ -728,20 +742,34 @@
     }
     renderOmsResult({ ok: false, awaiting: true, orderNo: on });
     var tries = 0;
-    var maxTries = 24;
+    /* 2.5s × 48 ≈ 120초. 이후에도 mark-failed/99 siteback 없이 백그라운드 폴링 유지 */
+    var maxTries = 48;
+    var softPoll = false;
     var failHintPosted = false;
 
-    function finishFail(api, siteBack, timedOut) {
+    function finishFail(api, siteBack) {
       clearPaysoPendingMarker();
       if (api && siteBack && goSiteBack(siteBack)) return;
       renderOmsResult({
         ok: false,
         awaiting: false,
-        timedOut: !!timedOut,
+        timedOut: false,
         orderNo: on,
         merchantApi: api,
         siteBackUrl: siteBack
       });
+    }
+
+    function continueWait(api) {
+      renderOmsResult({
+        ok: false,
+        awaiting: true,
+        timedOut: true,
+        orderNo: on,
+        merchantApi: api
+      });
+      softPoll = true;
+      setTimeout(tick, 5000);
     }
 
     function tick() {
@@ -771,7 +799,7 @@
             return;
           }
           if (body && body.success && d && (d.paymentStatus === 'FAIL' || d.paymentStatus === 'FAILED' || d.paymentStatus === '99')) {
-            finishFail(api, siteBack, false);
+            finishFail(api, siteBack);
             return;
           }
           /* 복귀 쿼리에 실패 힌트가 있으면 웹훅 없이도 즉시 99 반영 */
@@ -779,47 +807,21 @@
             failHintPosted = true;
             markPaysoFailed(cid, on, 'Return fail hint: ' + omsStatusHint).then(function () {
               if (omsPollAborted) return;
-              finishFail(api, siteBack, false);
+              finishFail(api, siteBack);
             });
             return;
           }
           if (tries < maxTries) {
             setTimeout(tick, 2500);
           } else {
-            markPaysoFailed(cid, on, 'Buyer return poll timeout (no webhook)').then(function () {
-              if (omsPollAborted) return;
-              if (api && siteBack && goSiteBack(siteBack)) return;
-              if (api) {
-                var cid2 = (document.getElementById('compIdHidden').value || getCompId() || '').trim();
-                var fallback = 'https://noti.icopay.net/noti/result/payso'
-                  + '?order=' + encodeURIComponent(on)
-                  + '&orderNo=' + encodeURIComponent(on)
-                  + '&compId=' + encodeURIComponent(cid2)
-                  + '&merchantId=' + encodeURIComponent(cid2);
-                if (goSiteBack(fallback)) return;
-              }
-              finishFail(api, siteBack, true);
-            });
+            /* 성급 실패(99)·siteback 금지 — 통보 대기로 유지하며 soft poll */
+            continueWait(api);
           }
         })
         .catch(function () {
           if (omsPollAborted) return;
           if (tries < maxTries) setTimeout(tick, 2500);
-          else {
-            markPaysoFailed(cid, on, 'Buyer return poll error timeout').then(function () {
-              if (omsPollAborted) return;
-              if (isMerchantApiReturn()) {
-                var cid3 = (document.getElementById('compIdHidden').value || getCompId() || '').trim();
-                var fb = 'https://noti.icopay.net/noti/result/payso'
-                  + '?order=' + encodeURIComponent(on)
-                  + '&orderNo=' + encodeURIComponent(on)
-                  + '&compId=' + encodeURIComponent(cid3)
-                  + '&merchantId=' + encodeURIComponent(cid3);
-                if (goSiteBack(fb)) return;
-              }
-              finishFail(isMerchantApiReturn(), '', true);
-            });
-          }
+          else continueWait(isMerchantApiReturn());
         });
     }
     tick();
@@ -920,6 +922,23 @@
   });
 
   var startInFlight = false;
+  function paysoOrderLockKey(cid, on) {
+    return 'pg_payso_start_lock:' + String(cid || '').trim() + ':' + String(on || '').trim();
+  }
+  function isPaysoOrderLocked(cid, on) {
+    try {
+      var raw = sessionStorage.getItem(paysoOrderLockKey(cid, on));
+      if (!raw) return false;
+      var o = JSON.parse(raw);
+      if (!o || o.ts == null) return false;
+      return (Date.now() - Number(o.ts)) < (30 * 60 * 1000);
+    } catch (eLk) { return false; }
+  }
+  function setPaysoOrderLock(cid, on) {
+    try {
+      sessionStorage.setItem(paysoOrderLockKey(cid, on), JSON.stringify({ ts: Date.now() }));
+    } catch (eSet) { /* ignore */ }
+  }
   document.getElementById('omsForm').addEventListener('submit', function (ev) {
     ev.preventDefault();
     if (isReturnMode || flag1('done')) return;
@@ -927,6 +946,11 @@
     var cid = (document.getElementById('compIdHidden').value || getCompId() || '').trim();
     if (!cid) { showConfigError(t('needMerchant')); return; }
     ensureOrderNo();
+    var lockOrder = (document.getElementById('orderNo').value || '').trim();
+    if (lockOrder && isPaysoOrderLocked(cid, lockOrder)) {
+      alert(t('pendingInProgress'));
+      return;
+    }
     var amount = document.getElementById('amount').value;
     var pfg = window.PG_PAY_FORM_INPUT_GUARD;
     if (pfg && pfg.validateAmount) {
@@ -1058,6 +1082,11 @@
         unlockStart();
         return;
       }
+      if (body && (body.errorCode === 'PAYSO_PENDING_IN_PROGRESS' || body.errorCode === 'PAYSO_ALREADY_PAID')) {
+        alert(body.message || t('pendingInProgress'));
+        unlockStart();
+        return;
+      }
       var data = body && (body.data || body);
       if (body && body.success && data && (data.paymentStatus === 'PAID' || data.paid === true)) {
         try {
@@ -1085,6 +1114,7 @@
             txnOrigin: fromMerchantApi ? 'MERCHANT_API' : 'URL',
             ts: Date.now()
           }));
+          setPaysoOrderLock(cid, document.getElementById('orderNo').value.trim());
         } catch (eSs) { /* ignore */ }
         /* Beam HPP는 iframe 내 표시 거부 — embed면 top으로 이탈 */
         var hop = data.redirectUrl || data.paymentUrl;

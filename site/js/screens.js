@@ -2311,21 +2311,27 @@
     return a;
   })();
 
-  /** 전산설정관리 — 결제 후속조치 표 (NOTI 환경설정 대응) */
+  /** 본사정책 → 플랫폼 → 전산·동기화 — 결제 후속조치 기본값 표 */
   function hqLedgerPayFollowNotiTableHtml() {
     function escA(s) {
       return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    }
+    function remarkDefault() {
+      return '<td class="text-center"><span class="badge text-bg-secondary" data-pg-ui-t="기본값">' + escA(L('기본값')) + '</span></td>';
     }
     var ynUse = pgUiOptHtml([{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }]);
     var ynRef = pgUiOptHtml([{ v: 'N', t: '미반영' }, { v: 'Y', t: '반영' }]);
     var zones = pgUiOptHtml([{ v: '', t: '(전산 표준시와 동일)' }].concat(HQ_PAY_FOLLOW_REF_ZONE_OPTIONS));
     var days = pgUiOptHtml(HQ_PAY_FOLLOW_ELAPSED_DAY_OPTIONS);
     var forceDays = pgUiOptHtml(HQ_PAY_FOLLOW_FORCE_DAY_OPTIONS);
-    var timeInputCls = 'form-control form-control-sm hq-pay-follow-time';
     var emailVoidHintKey = '이메일무효는 ChillPay 결제만 적용됩니다. URL·JPAY 건에는 버튼이 나오지 않습니다. 무효처리·이메일 무효를 함께 켜면 시작만 비활성화되고, 실제 시작은 무효처리 마감 다음 분부터입니다. 마감은 항상 지정 가능합니다(비우면 23:59). 이메일 무효만 켜면 시작·마감 모두 설정합니다.';
-    var pfFooterTailKey = '테이블에 동기화됩니다. 무효·수동무효는 승인일(「시간 선택 국가」Zone) 당일입니다. 환불은 태국 기준 결제일 익일의 설정 시각부터 일수이며, 강제환불은 그 일반 환불이 끝난 다음날 같은 시각부터입니다. 당일환불은 URL 결제만, 태국 결제일 당일이며 전역·단계별 허용이 별도입니다. TH·JP 시계는 참고용입니다.';
+    var pfFooterTailKey = '이 표는 본사 기본값입니다. 「본사설정 따름」이면 이 시간을 씁니다. 무효·이메일무효=승인일(시간 선택 국가) 당일. 환불=무효 마감(이메일무효 사용 시 이메일 마감) 다음 분부터 N×24시간. 강제=환불 종료 후 M×24시간. 이메일무효는 ChillPay 예외이며 대행사별 시간 표에는 없습니다.';
     var pfEpFundKey = 'URL 환불은 결제망 캐비닛 가용잔액에서 지급됩니다. 승인 직후 홀드 중이면 거절될 수 있습니다.';
-    return '<div class="border rounded hq-pay-follow-wrap">' +
+    return '<div class="border rounded hq-pay-follow-wrap mb-3">' +
+      '<div class="px-2 pt-2 pb-1 small text-muted">' +
+      '<span class="badge text-bg-secondary me-1" data-pg-ui-t="기본값">' + escA(L('기본값')) + '</span>' +
+      '<span data-pg-ui-t="본사 전역 후속조치 시간·사용 여부. 대행사별 예외는 아래 표에서 「본사설정 따름」을 해제하고 수정합니다.">' +
+      escA(L('본사 전역 후속조치 시간·사용 여부. 대행사별 예외는 아래 표에서 「본사설정 따름」을 해제하고 수정합니다.')) + '</span></div>' +
       '<table class="table table-sm table-bordered align-middle mb-0 hq-pay-follow-table">' +
       '<thead class="table-light"><tr>' +
       pgUiThT('구분', 'hq-pay-follow-col-kind') +
@@ -2333,6 +2339,7 @@
       pgUiThT('설정(사용)', 'hq-pay-follow-col-use text-center') +
       pgUiThT('시간·일자 설정', 'hq-pay-follow-col-val') +
       pgUiThT('정산 반영', 'hq-pay-follow-col-ref text-center') +
+      pgUiThT('비고', 'hq-pay-follow-col-note text-center') +
       '</tr></thead><tbody>' +
       '<tr class="hq-pay-follow-row-zone">' +
       '<td class="fw-semibold" data-pg-ui-t="시간 선택 국가">' + escA(L('시간 선택 국가')) + '</td>' +
@@ -2344,50 +2351,59 @@
       '<span class="d-block"><strong>JP</strong> <span class="hq-pay-follow-clock-jp">—</span></span>' +
       '<span class="d-block mt-1 text-wrap"><strong data-pg-ui-t="선택 기준">' + escA(L('선택 기준')) + '</strong> <span class="hq-pay-follow-clock-sel">—</span></span>' +
       '</div></td>' +
-      '<td class="text-center text-muted small">—</td></tr>' +
+      '<td class="text-center text-muted small">—</td>' + remarkDefault() + '</tr>' +
       '<tr>' +
       '<td class="fw-semibold" data-pg-ui-t="무효처리">' + escA(L('무효처리')) + '</td>' +
-      '<td class="small" data-pg-ui-t="승인일(기준 Zone) 당일 구간">' + escA(L('승인일(기준 Zone) 당일 구간')) + '</td>' +
+      '<td class="small"><span class="badge bg-primary-subtle text-primary-emphasis me-1" data-pg-ui-t="당일">' + escA(L('당일')) + '</span>' +
+      '<span data-pg-ui-t="승인일(기준 Zone) 시작~마감">' + escA(L('승인일(기준 Zone) 시작~마감')) + '</span></td>' +
       '<td class="text-center"><select name="autoVoidYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
       '<td class="hq-pay-follow-void-times"><div class="d-flex flex-wrap align-items-center gap-1 gap-md-2">' +
-      pgUiSpanT('시작', 'text-nowrap small') +
-      window.PG_UI_I18N.buildTimeSelectHtml('autoVoidStartTime', { inline: true, titleKey: '비우면 0:00 (당일 자정)' }) +
-      pgUiSpanT('~ 마감', 'text-nowrap small') +
-      window.PG_UI_I18N.buildTimeSelectHtml('autoVoidEndTime', { inline: true, titleKey: '비우면 21:00 — 태국·기준 Zone 당일 (JP 동일 시각 +2h → 23:00)' }) +
+      '<span class="small text-nowrap fw-semibold" data-pg-ui-t="당일 시작">' + escA(L('당일 시작')) + '</span>' +
+      window.PG_UI_I18N.buildTimeSelectHtml('autoVoidStartTime', { inline: true, minuteStep: 1, titleKey: '비우면 0:00 (당일 자정)' }) +
+      '<span class="small text-nowrap fw-semibold" data-pg-ui-t="~ 당일 마감">' + escA(L('~ 당일 마감')) + '</span>' +
+      window.PG_UI_I18N.buildTimeSelectHtml('autoVoidEndTime', { inline: true, minuteStep: 1, titleKey: '비우면 21:00 — 일본 23:59 맞출 때 태국 21:59' }) +
       '</div></td>' +
-      '<td class="text-center"><select name="autoVoidReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td></tr>' +
+      '<td class="text-center"><select name="autoVoidReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td>' +
+      remarkDefault() + '</tr>' +
       '<tr>' +
       '<td class="fw-semibold" data-pg-ui-t="이메일 무효">' + escA(L('이메일 무효')) + '</td>' +
-      '<td class="small" data-pg-ui-t="ChillPay만. 승인일(기준 Zone) 당일 시작~마감(무효처리와 동일 형식)">' + escA(L('ChillPay만. 승인일(기준 Zone) 당일 시작~마감(무효처리와 동일 형식)')) + '</td>' +
+      '<td class="small"><span class="badge bg-warning-subtle text-warning-emphasis me-1" data-pg-ui-t="ChillPay 예외">' + escA(L('ChillPay 예외')) + '</span>' +
+      '<span data-pg-ui-t="승인일(기준 Zone) 당일 시작~마감">' + escA(L('승인일(기준 Zone) 당일 시작~마감')) + '</span></td>' +
       '<td class="text-center"><select name="emailVoidYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
       '<td class="hq-pay-follow-void-times"><div class="d-flex flex-wrap align-items-center gap-1 gap-md-2">' +
-      pgUiSpanT('시작', 'text-nowrap small') +
-      window.PG_UI_I18N.buildTimeSelectHtml('emailVoidStartTime', { inline: true }) +
-      pgUiSpanT('~ 마감', 'text-nowrap small') +
-      window.PG_UI_I18N.buildTimeSelectHtml('emailVoidEndTime', { inline: true, titleKey: '비우면 23:59' }) +
+      '<span class="small text-nowrap fw-semibold" data-pg-ui-t="당일 시작">' + escA(L('당일 시작')) + '</span>' +
+      window.PG_UI_I18N.buildTimeSelectHtml('emailVoidStartTime', { inline: true, minuteStep: 1 }) +
+      '<span class="small text-nowrap fw-semibold" data-pg-ui-t="~ 당일 마감">' + escA(L('~ 당일 마감')) + '</span>' +
+      window.PG_UI_I18N.buildTimeSelectHtml('emailVoidEndTime', { inline: true, minuteStep: 1, titleKey: '비우면 23:59' }) +
       '</div><div class="small text-muted mt-1" data-pg-ui-html="' + escUi(emailVoidHintKey) + '">' + L(emailVoidHintKey) + '</div></td>' +
-      '<td class="text-center"><select name="emailVoidReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td></tr>' +
+      '<td class="text-center"><select name="emailVoidReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td>' +
+      remarkDefault() + '</tr>' +
       '<tr>' +
       '<td class="fw-semibold" data-pg-ui-t="수동무효">' + escA(L('수동무효')) + '</td>' +
       '<td class="small" data-pg-ui-t="JPAY만. JPAY 포털 처리 후 ICOPAY 상태만 반영">' + escA(L('JPAY만. JPAY 포털 처리 후 ICOPAY 상태만 반영')) + '</td>' +
       '<td class="text-center"><select name="manualVoidYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
       '<td class="small text-muted">—</td>' +
-      '<td class="text-center text-muted small">—</td></tr>' +
+      '<td class="text-center text-muted small">—</td>' + remarkDefault() + '</tr>' +
       '<tr>' +
       '<td class="fw-semibold" data-pg-ui-t="환불처리">' + escA(L('환불처리')) + '</td>' +
-      '<td class="small" data-pg-ui-t="태국(Asia/Bangkok) 기준 결제일 익일 지정 시각부터 N일(기본 7)">' + escA(L('태국(Asia/Bangkok) 기준 결제일 익일 지정 시각부터 N일(기본 7)')) + '</td>' +
+      '<td class="small"><span class="badge bg-success-subtle text-success-emphasis me-1" data-pg-ui-t="정산 전">' + escA(L('정산 전')) + '</span>' +
+      '<span data-pg-ui-t="무효(또는 이메일무효) 마감 다음 분부터 N×24시간">' + escA(L('무효(또는 이메일무효) 마감 다음 분부터 N×24시간')) + '</span></td>' +
       '<td class="text-center"><select name="autoRefundYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
       '<td><div class="d-flex flex-wrap align-items-center gap-2">' +
-      pgUiSpanT('익일 시작', 'text-nowrap small') +
-      window.PG_UI_I18N.buildTimeSelectHtml('autoRefundWindowStartTime', { inline: true, titleKey: '비우면 0:00' }) +
-      '<select name="autoRefundAfterDays" class="form-select form-select-sm hq-pay-follow-sel-days">' + days + '</select></div></td>' +
-      '<td class="text-center"><select name="autoRefundReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td></tr>' +
+      '<span class="small text-muted" data-pg-ui-t="시작=마감+1분(자동)">' + escA(L('시작=마감+1분(자동)')) + '</span>' +
+      '<input type="hidden" name="autoRefundWindowStartTime" value="">' +
+      '<span class="small text-nowrap fw-semibold" data-pg-ui-t="일수(N)">' + escA(L('일수(N)')) + '</span>' +
+      '<select name="autoRefundAfterDays" class="form-select form-select-sm hq-pay-follow-sel-days">' + days + '</select>' +
+      '<span class="small text-muted" data-pg-ui-t="예: 무효~21:59 · N=1 → 당일 22:00~익일 21:59">' +
+      escA(L('예: 무효~21:59 · N=1 → 당일 22:00~익일 21:59')) + '</span></div></td>' +
+      '<td class="text-center"><select name="autoRefundReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td>' +
+      remarkDefault() + '</tr>' +
       '<tr>' +
       '<td class="fw-semibold" data-pg-ui-t="수동환불">' + escA(L('수동환불')) + '</td>' +
       '<td class="small" data-pg-ui-t="JPAY만. JPAY 포털 처리 후 ICOPAY 상태만 반영">' + escA(L('JPAY만. JPAY 포털 처리 후 ICOPAY 상태만 반영')) + '</td>' +
       '<td class="text-center"><select name="manualRefundYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
       '<td class="small text-muted">—</td>' +
-      '<td class="text-center text-muted small">—</td></tr>' +
+      '<td class="text-center text-muted small">—</td>' + remarkDefault() + '</tr>' +
       '<tr>' +
       '<td class="fw-semibold">' + pgUiSpanT('환불') + ' <span class="badge bg-info text-dark" data-pg-ui-t="당일환불">' + escA(L('당일환불')) + '</span></td>' +
       '<td class="small" data-pg-ui-t="URL 결제만. 태국 결제일 당일. 환불처리와 동일 API. 전역·단계별 허용 필요. 결제망 가용잔액(홀드 해제)이 있어야 환불됨">' +
@@ -2395,20 +2411,50 @@
       '<td class="text-center"><select name="epSameDayRefundYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
       '<td class="small text-muted" data-pg-ui-t="당일(태국). 익일 자동환불 기간과는 별도">' +
       escA(L('당일(태국). 익일 자동환불 기간과는 별도')) + '</td>' +
-      '<td class="text-center small text-muted" data-pg-ui-t="환불과 동일">' + escA(L('환불과 동일')) + '</td></tr>' +
+      '<td class="text-center small text-muted" data-pg-ui-t="환불과 동일">' + escA(L('환불과 동일')) + '</td>' +
+      remarkDefault() + '</tr>' +
       '<tr>' +
       '<td class="fw-semibold" data-pg-ui-t="강제환불">' + escA(L('강제환불')) + '</td>' +
-      '<td class="small" data-pg-ui-t="태국 기준 일반 환불이 끝난 다음날 동일 시각부터 M일(M=0이면 메뉴 비노출)">' + escA(L('태국 기준 일반 환불이 끝난 다음날 동일 시각부터 M일(M=0이면 메뉴 비노출)')) + '</td>' +
+      '<td class="small"><span class="badge bg-danger-subtle text-danger-emphasis me-1" data-pg-ui-t="정산 후">' + escA(L('정산 후')) + '</span>' +
+      '<span data-pg-ui-t="환불 창이 끝난 뒤부터 M×24시간(M=0이면 비노출)">' + escA(L('환불 창이 끝난 뒤부터 M×24시간(M=0이면 비노출)')) + '</span></td>' +
       '<td class="text-center"><select name="forceRefundYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
-      '<td><select name="forceRefundAfterDays" class="form-select form-select-sm hq-pay-follow-sel-days">' + forceDays + '</select></td>' +
-      '<td class="text-center"><select name="forceRefundReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td></tr>' +
+      '<td><div class="d-flex flex-wrap align-items-center gap-2">' +
+      '<span class="small text-nowrap fw-semibold" data-pg-ui-t="일수(M)">' + escA(L('일수(M)')) + '</span>' +
+      '<select name="forceRefundAfterDays" class="form-select form-select-sm hq-pay-follow-sel-days">' + forceDays + '</select></div></td>' +
+      '<td class="text-center"><select name="forceRefundReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td>' +
+      remarkDefault() + '</tr>' +
       '</tbody></table>' +
       '<p class="small text-muted px-2 py-2 mb-0">' +
       '<span data-pg-ui-t="저장은 화면 하단 [저장]으로 합니다.">' + escA(L('저장은 화면 하단 [저장]으로 합니다.')) + '</span> ' +
-      '<code>tb_hq_notify_env_config</code> ' +
       '<span data-pg-ui-html="' + escUi(pfFooterTailKey) + '">' + L(pfFooterTailKey) + '</span> ' +
       '<span data-pg-ui-t="' + escA(pfEpFundKey) + '">' + escA(L(pfEpFundKey)) + '</span></p>' +
       '</div>';
+  }
+
+  /** 대행사별 시간 경계 — 본사설정 따름 / 개별 예외 (컨테이너만; 목록은 app.js에서 채움) */
+  function hqLedgerPayFollowAgencyMatrixHtml() {
+    function escA(s) {
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    }
+    return '<div class="border rounded hq-pay-follow-agency-wrap mb-3" id="hqLedgerPayFollowAgencyMatrix">' +
+      '<div class="px-2 pt-2 pb-1">' +
+      '<div class="fw-semibold" data-pg-ui-t="후속조치 시간 경계(대행사별)">' + escA(L('후속조치 시간 경계(대행사별)')) + '</div>' +
+      '<div class="small text-muted mt-1" data-pg-ui-t="「본사설정 따름」이면 위 기본값(무효 구간·환불 N×24h·강제 M×24h)을 적용합니다. 해제한 뒤 바꾸면 해당 대행사만 예외. 환불 시작은 무효 마감(+이메일무효 사용 시 이메일 마감) 다음 분입니다.">' +
+      escA(L('「본사설정 따름」이면 위 기본값(무효 구간·환불 N×24h·강제 M×24h)을 적용합니다. 해제한 뒤 바꾸면 해당 대행사만 예외. 환불 시작은 무효 마감(+이메일무효 사용 시 이메일 마감) 다음 분입니다.')) +
+      '</div></div>' +
+      '<div class="table-responsive px-2 pb-2">' +
+      '<table class="table table-sm table-bordered align-middle mb-0" id="grid_hqLedgerPayFollowAgency">' +
+      '<thead class="table-light"><tr>' +
+      '<th data-pg-ui-t="결제대행사">' + escA(L('결제대행사')) + '</th><th>PG</th>' +
+      '<th class="text-center text-nowrap" data-pg-ui-t="본사설정 따름">' + escA(L('본사설정 따름')) + '</th>' +
+      '<th data-pg-ui-t="무효 시작">' + escA(L('무효 시작')) + '</th>' +
+      '<th data-pg-ui-t="무효 마감">' + escA(L('무효 마감')) + '</th>' +
+      '<th data-pg-ui-t="환불 일수(N)">' + escA(L('환불 일수(N)')) + '</th>' +
+      '<th data-pg-ui-t="강제 일수(M)">' + escA(L('강제 일수(M)')) + '</th>' +
+      '<th class="text-center" data-pg-ui-t="비고">' + escA(L('비고')) + '</th>' +
+      '<th></th></tr></thead>' +
+      '<tbody id="hqLedgerPayFollowAgencyTbody"><tr><td colspan="9" class="text-center text-muted py-2" data-pg-ui-t="불러오는 중…">' +
+      escA(L('불러오는 중…')) + '</td></tr></tbody></table></div></div>';
   }
 
   /** 전산설정 — 조직 단계별 결제 후속조치 허용 상한 */
@@ -3646,7 +3692,7 @@
         '연동 용도(노티·URL·챗봇·API)를 한 행에서 복수 선택해 저장할 수 있습니다. URL 용도 행은 「URL금액」에서 일반(일반형) / DP(DISPLAY) / BLIND를 지정할 수 있으며, 본사 URL결제설정(FX JSON)의 해당 PG 금액 모드와 동일합니다. 노티=미들웨어 수신 매칭, URL=공개 URL 결제 플로우, 챗봇/API=결제대행 API 직연동(동일 연동 URL). 목록 「연동용도」는 파스텔 색으로 구분됩니다. API Key·MD5는 목록 미노출. [삭제]는 등록일 오른쪽, 신규는 [결제대행사 설정 추가]입니다.',
         '통합정산 「예정(ICOPAY)」열: 결제대행사 설정 편집에서 T+N(주말 제외 영업일·결제와 동일 시각) 또는 D+N(달력+N일·일괄 시각)을 저장합니다. OFF면 예정일을 채우지 않습니다. D는 일괄 시각(HH:mm) 필수.',
         'ChillPay는 결제코드 CHILLPAY, API·URL 엔드포인트는 ChillPayService가 병합 반영합니다. 운영 DB는 db/V35_pg_agency_integration_scope.sql 적용 후 배포하세요.',
-        'ICOPAY 후속조치(무효처리·이메일 무효·수동무효·환불처리·수동환불·강제환불·당일환불)는 결제대행사마다 허용을 고릅니다. 노티 미들웨어는 거래 적재만 담당하며, 결제내역 버튼은 대행사 허용 AND 전산설정(NOTI) AND 조직 단계 AND 가맹 스위치 AND 계열 API가 모두 맞을 때만 활성화됩니다.'
+        'ICOPAY 후속조치(무효처리·이메일 무효·수동무효·환불처리·수동환불·강제환불·당일환불)는 결제대행사마다 허용(Y/N)을 고릅니다. 시간 경계(당일·정산 전·정산 후)는 본사정책 → 플랫폼 → 전산·동기화 → 결제 후속조치에서 본사 기본값·대행사별 「본사설정 따름」으로 관리합니다.'
       ],
       tableColumnGuide: true,
       summary: ['건수'],
@@ -4437,9 +4483,13 @@
         },
         {
           title: '결제 후속조치 (NOTI 환경설정 대응)',
-          notice: '시간 선택 국가(기준 Zone)는 무효·이메일무효에 적용됩니다(전산 표준시). 이메일무효는 ChillPay만. 무효 기본은 당일 <strong>0:00~21:00</strong>. 환불은 <strong>태국</strong> 기준 결제일 <strong>익일</strong>부터 일수입니다. <strong>멀티 PG</strong> 가맹은 결제내역 <strong>행마다 실제 결제된 대행사</strong>의 후속조치만 표시·활성됩니다(ChillPay 건≠JPAY 건). 「설정(사용)」이 사용일 때만 편집할 수 있습니다.',
+          notice: '위 표는 <strong>본사 기본값</strong>입니다. <strong>시간 선택 국가</strong> 시계 기준. 무효=당일 시작~마감. <strong>환불</strong>=무효 마감(이메일무효 사용 시 이메일 마감) <strong>다음 분부터 N×24시간</strong>(예: ~21:59·N=1 → 당일 22:00~익일 21:59). <strong>강제</strong>=환불 창 종료 후 M×24시간. 이메일무효는 ChillPay 예외. 대행사별 표는 「본사설정 따름」/개별. 「설정(사용)」이 사용일 때만 편집할 수 있습니다.',
           rows: [
-            [{ type: 'customHtml', col: 12, html: function () { return hqLedgerPayFollowNotiTableHtml() + hqLedgerPayFollowLevelCapsTableHtml(); } }]
+            [{ type: 'customHtml', col: 12, html: function () {
+              return hqLedgerPayFollowNotiTableHtml()
+                + hqLedgerPayFollowAgencyMatrixHtml()
+                + hqLedgerPayFollowLevelCapsTableHtml();
+            } }]
           ]
         },
         {

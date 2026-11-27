@@ -26,6 +26,7 @@ import java.util.Optional;
  * ElementPay: 자동환불·강제환불은 {@code /merchant/initRefund}. 캐비닛 환불은 payment.refunded·refund.paid 웹훅으로 반영.
  * 자동무효(voidPayment)·이메일무효는 미지원 — UI에서 숨김.
  * Eximbay: 자동환불·강제환불은 {@code /v1/payments/{transaction_id}/cancel}. 자동무효는 미지원.
+ * Payso: 자동무효·자동환불·강제환불은 {@code /payment/gateway/v2/payment/voidpayment}(정산 전 Void). 정산 후 환불 REST 없음.
  */
 @Service
 public class PayListActionService {
@@ -53,6 +54,7 @@ public class PayListActionService {
     private final EximbayPaymentService eximbayPaymentService;
     private final QxipayPaymentService qxipayPaymentService;
     private final KsnetPaymentService ksnetPaymentService;
+    private final PaysoPaymentService paysoPaymentService;
     private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
     private final MerchantOutboundNotifyService merchantOutboundNotifyService;
     private final TransactionReceiptEmailService transactionReceiptEmailService;
@@ -69,6 +71,7 @@ public class PayListActionService {
                                 EximbayPaymentService eximbayPaymentService,
                                 QxipayPaymentService qxipayPaymentService,
                                 KsnetPaymentService ksnetPaymentService,
+                                PaysoPaymentService paysoPaymentService,
                                 OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator,
                                 MerchantOutboundNotifyService merchantOutboundNotifyService,
                                 TransactionReceiptEmailService transactionReceiptEmailService) {
@@ -84,6 +87,7 @@ public class PayListActionService {
         this.eximbayPaymentService = eximbayPaymentService;
         this.qxipayPaymentService = qxipayPaymentService;
         this.ksnetPaymentService = ksnetPaymentService;
+        this.paysoPaymentService = paysoPaymentService;
         this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
         this.merchantOutboundNotifyService = merchantOutboundNotifyService;
         this.transactionReceiptEmailService = transactionReceiptEmailService;
@@ -118,6 +122,7 @@ public class PayListActionService {
         boolean eximbay = PgVendor.isEximbayFamily(t.getVan());
         boolean qxipay = PgVendor.isQxipayFamily(t.getVan());
         boolean ksnet = PgVendor.isKsnetFamily(t.getVan());
+        boolean payso = PgVendor.isPaysoFamily(t.getVan());
         if (action == PayFollowAction.EMAIL_VOID && !PayFollowPolicyService.isEmailVoidFollowTransaction(t)) {
             throw new IllegalStateException("이메일무효는 ChillPay 거래만 사용할 수 있습니다.");
         }
@@ -130,10 +135,6 @@ public class PayListActionService {
                     "이 거래는 승인 후 무효(void) API가 없습니다. 결제내역의 자동환불·강제환불로 처리하세요.");
         }
         if (qxipay && action == PayFollowAction.AUTO_VOID) {
-            throw new IllegalStateException(
-                    "이 거래는 승인 후 무효(void) API가 없습니다. 결제내역의 자동환불·강제환불로 처리하세요.");
-        }
-        if (ksnet && action == PayFollowAction.AUTO_VOID) {
             throw new IllegalStateException(
                     "이 거래는 승인 후 무효(void) API가 없습니다. 결제내역의 자동환불·강제환불로 처리하세요.");
         }
@@ -154,16 +155,29 @@ public class PayListActionService {
         switch (action) {
             case EMAIL_VOID -> payFollowEmailVoidService.sendVoidRequestMail(t, actor);
             case AUTO_VOID -> {
-                long ouId = resolveMerchantOrgUnitId(t);
-                long chillTxn = parseChillPayTransactionId(t);
-                requireChillPayVan(t);
-                apiDetail = chillPayService.requestChillPayVoid(ouId, chillTxn);
+                if (payso) {
+                    String voidReason = adminReason != null && !adminReason.isBlank()
+                            ? adminReason.trim() : "icopay void";
+                    apiDetail = paysoPaymentService.requestVoid(t, voidReason);
+                } else if (ksnet) {
+                    String voidReason = adminReason != null && !adminReason.isBlank()
+                            ? adminReason.trim() : "icopay void";
+                    apiDetail = ksnetPaymentService.requestCancel(t, voidReason);
+                } else {
+                    long ouId = resolveMerchantOrgUnitId(t);
+                    long chillTxn = parseChillPayTransactionId(t);
+                    requireChillPayVan(t);
+                    apiDetail = chillPayService.requestChillPayVoid(ouId, chillTxn);
+                }
             }
             case AUTO_REFUND, FORCE_REFUND -> {
                 String refundReason = adminReason != null && !adminReason.isBlank()
                         ? adminReason.trim()
                         : (action == PayFollowAction.FORCE_REFUND ? "icopay force refund" : "icopay refund");
-                if (jpay) {
+                /* PAYSO 강제환불 = 수동 반영(Void API 없음·포털 처리 후 ICOPAY만) */
+                if (payso && action == PayFollowAction.FORCE_REFUND) {
+                    apiDetail = "PAYSO manual force refund (portal)";
+                } else if (jpay) {
                     apiDetail = jpayTradeApiService.requestRefund(t, null, refundReason);
                 } else if (elementPay) {
                     ElementPayPaymentService.RefundCallResult rr =
@@ -174,6 +188,8 @@ public class PayListActionService {
                     apiDetail = eximbayPaymentService.requestCancel(t, refundReason);
                 } else if (ksnet) {
                     apiDetail = ksnetPaymentService.requestCancel(t, refundReason);
+                } else if (payso) {
+                    apiDetail = paysoPaymentService.requestVoid(t, refundReason);
                 } else if (qxipay) {
                     long ouId = resolveMerchantOrgUnitId(t);
                     String chargeId = t.getChillTransactionId() != null && !t.getChillTransactionId().isBlank()
@@ -223,7 +239,9 @@ public class PayListActionService {
             };
             t.setChillPaymentStatus(JpayNotifyStatusResolver.chillPaymentStatusLabel(nextStatus, rc));
             t.setPaidAt(null);
-        } else if ((elementPay || eximbay || ksnet) && (action == PayFollowAction.AUTO_REFUND || action == PayFollowAction.FORCE_REFUND)) {
+        } else if ((elementPay || eximbay || ksnet || payso)
+                && (action == PayFollowAction.AUTO_REFUND || action == PayFollowAction.FORCE_REFUND
+                || ((payso || ksnet) && action == PayFollowAction.AUTO_VOID))) {
             t.setPaidAt(null);
             if (apiDetail != null && !apiDetail.isBlank()) {
                 String label = apiDetail.length() > 50 ? apiDetail.substring(0, 50) : apiDetail;
@@ -244,7 +262,7 @@ public class PayListActionService {
         if (action == PayFollowAction.MANUAL_VOID || action == PayFollowAction.MANUAL_REFUND) {
             jpayManualFollowUpNotifyService.sendAfterManualFollowUp(t, action, actor);
         }
-        if (elementPay && (action == PayFollowAction.AUTO_REFUND || action == PayFollowAction.FORCE_REFUND
+        if ((elementPay || payso) && (action == PayFollowAction.AUTO_REFUND || action == PayFollowAction.FORCE_REFUND
                 || action == PayFollowAction.AUTO_VOID)) {
             try {
                 merchantOutboundNotifyService.scheduleAfterTxnCommit(t, null, "PAY_FOLLOW");

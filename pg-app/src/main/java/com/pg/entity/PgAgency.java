@@ -97,6 +97,24 @@ public class PgAgency {
     @Column(name = "pay_follow_same_day_refund_yn", nullable = false, length = 1)
     private String payFollowSameDayRefundYn = "N";
 
+    /** 후속 무효 당일 시작(분). NULL=전산설정 전역 */
+    @Column(name = "pf_void_start_min")
+    private Integer pfVoidStartMin;
+
+    @Column(name = "pf_void_end_min")
+    private Integer pfVoidEndMin;
+
+    /** 후속 환불(정산 전) 일수. NULL=전역 */
+    @Column(name = "pf_refund_after_days")
+    private Integer pfRefundAfterDays;
+
+    /** 후속 강제환불(정산 후) 일수. NULL=전역 */
+    @Column(name = "pf_force_after_days")
+    private Integer pfForceAfterDays;
+
+    @Column(name = "pf_refund_window_start_min")
+    private Integer pfRefundWindowStartMin;
+
     /** PG별 MID / Merchant Code */
     @Column(name = "merchant_mid", length = 100)
     private String merchantMid;
@@ -241,6 +259,16 @@ public class PgAgency {
     public void setPayFollowForceRefundYn(String payFollowForceRefundYn) { this.payFollowForceRefundYn = payFollowForceRefundYn; }
     public String getPayFollowSameDayRefundYn() { return payFollowSameDayRefundYn; }
     public void setPayFollowSameDayRefundYn(String payFollowSameDayRefundYn) { this.payFollowSameDayRefundYn = payFollowSameDayRefundYn; }
+    public Integer getPfVoidStartMin() { return pfVoidStartMin; }
+    public void setPfVoidStartMin(Integer pfVoidStartMin) { this.pfVoidStartMin = pfVoidStartMin; }
+    public Integer getPfVoidEndMin() { return pfVoidEndMin; }
+    public void setPfVoidEndMin(Integer pfVoidEndMin) { this.pfVoidEndMin = pfVoidEndMin; }
+    public Integer getPfRefundAfterDays() { return pfRefundAfterDays; }
+    public void setPfRefundAfterDays(Integer pfRefundAfterDays) { this.pfRefundAfterDays = pfRefundAfterDays; }
+    public Integer getPfForceAfterDays() { return pfForceAfterDays; }
+    public void setPfForceAfterDays(Integer pfForceAfterDays) { this.pfForceAfterDays = pfForceAfterDays; }
+    public Integer getPfRefundWindowStartMin() { return pfRefundWindowStartMin; }
+    public void setPfRefundWindowStartMin(Integer pfRefundWindowStartMin) { this.pfRefundWindowStartMin = pfRefundWindowStartMin; }
     public String getMerchantMid() { return merchantMid; }
     public void setMerchantMid(String merchantMid) { this.merchantMid = merchantMid; }
     public String getApiKey() { return apiKey; }
