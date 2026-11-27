@@ -255,7 +255,11 @@ public class PayFollowPolicyService {
         return t != null && (PgVendor.isElementPayFamily(t.getVan()) || PgVendor.isEximbayFamily(t.getVan()));
     }
 
-    /** PAYSO·KSNET — 당일 무효 / 정산전 환불 / 정산후 강제(시간·수수료 구분). */
+    /**
+     * PAYSO·KSNET — 당일 무효 / 무효마감 후 환불 / 강제(시간·수수료 구분).
+     * PAYSO Void 는 API상 정산 전이며, 운영 정책상 태국(Asia/Bangkok) 달력 당일만 성공하는 것으로 문서화.
+     * 창 계산 Zone 은 본사 「시간 선택 국가」(보통 Asia/Bangkok).
+     */
     public static boolean isVoidRefundWindowFollowTransaction(PgTrnsctn t) {
         return t != null && (PgVendor.isPaysoFamily(t.getVan()) || PgVendor.isKsnetFamily(t.getVan()));
     }

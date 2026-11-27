@@ -147,8 +147,11 @@ public class PaysoPaymentService {
 
     /**
      * 결제내역 후속조치 — Payso Void API({@code /payment/gateway/v2/payment/voidpayment}).
-     * 공개 가이드에 정산 후 환불 REST 는 없으며, 정산 전 취소(Void)만 지원한다.
-     * 자동무효·자동환불·강제환불이 동일 API 를 호출한다.
+     * 공개 가이드: 정산 후 환불 REST 없음 · 정산 전 Void 만.
+     * 운영 정책(문서화): Void 는 <strong>태국(Asia/Bangkok) 달력 당일</strong> 승인 건에 한함
+     * (API에 HH:mm 마감 문구는 없으나 당일만 성공하는 것으로 확인). ICOPAY 무효 창은
+     * 후속조치 「시간 선택 국가」Zone 당일 시작~마감으로 노출·제한한다.
+     * 자동무효·자동환불·강제환불이 동일 Void API 를 호출한다(강제=수동 반영인 경우 제외).
      */
     public String requestVoid(PgTrnsctn t, String reason) {
         if (t == null || !PgVendor.isPaysoFamily(t.getVan())) {
@@ -174,7 +177,8 @@ public class PaysoPaymentService {
             }
             if ("4A010".equalsIgnoreCase(code) || msg.toLowerCase(Locale.ROOT).contains("cannot be voided")) {
                 throw new IllegalStateException(
-                        "정산이 완료되어 취소(Void)할 수 없습니다. 결제대행사 포털에서 환불을 처리하세요"
+                        "PAYSO 취소(Void) 불가입니다. 태국(Asia/Bangkok) 당일·정산 전만 Void 가능합니다. "
+                                + "정산·당일 창이 지났으면 결제대행사 포털에서 환불을 처리하세요"
                                 + (msg.isBlank() ? "" : ": " + msg));
             }
             throw new IllegalStateException("결제 취소 요청에 실패했습니다"

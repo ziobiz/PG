@@ -1132,7 +1132,10 @@
         'webPaymentUseYn', 'chatbotPaymentUseYn', 'apiJpaySubscriptionUseYn',
         /* 결제창 구매자입력 — pgBindings 잘림 시 활성→비활성으로 되돌아가는 버그 방지 */
         'urlPayCheckoutFieldPresetId',
-        'urlPayBuyerEmailUseYn', 'urlPayBuyerCountryUseYn', 'urlPayBuyerPhoneUseYn', 'urlPayShippingAddressUseYn'
+        'urlPayBuyerEmailUseYn', 'urlPayBuyerCountryUseYn', 'urlPayBuyerPhoneUseYn', 'urlPayShippingAddressUseYn',
+        /* 웹훅 HMAC — 후순위 잘림 시 활성→FOLLOW_HQ로 되돌아가는 사고 방지 */
+        'outboundWebhookSignYn', 'pgBuyerEmailAttestYn', 'simpleQrCheckoutUseYn',
+        'apiBrokerInlineUseYn', 'apiBrokerRedirectUseYn', 'apiWordpressUseYn'
       ];
       var seen = {};
       priority.forEach(function (k) {
@@ -1210,15 +1213,19 @@
     compChangeHistory: function (params) {
       return get('/api/comp/changeHistory', params).then(function (r) { return r.data; });
     },
-    compRotateOutboundWebhookSign: function (compId) {
+    compRotateOutboundWebhookSign: function (compId, outboundWebhookSignYn) {
       var base = getBaseUrl();
       var token = getToken();
       var headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
       if (token) headers['Authorization'] = 'Bearer ' + token;
+      var body = { compId: compId || '' };
+      if (outboundWebhookSignYn != null && String(outboundWebhookSignYn).trim() !== '') {
+        body.outboundWebhookSignYn = String(outboundWebhookSignYn).trim();
+      }
       return fetch(base + '/api/comp/outboundWebhookSign/rotate', {
         method: 'POST',
         headers: headers,
-        body: new URLSearchParams({ compId: compId || '' })
+        body: new URLSearchParams(body)
       }).then(function (res) {
         if (res.status === 401) {
           clearAuth();

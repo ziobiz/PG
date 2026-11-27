@@ -35,6 +35,10 @@ import java.util.Map;
  * <p>가맹 상호·홈페이지·도메인·IP·가맹 orderNo 는 Payso 로 보내지 않는다.
  * return/postback 은 ICOPAY·NOTI(또는 {@code "-"}) 만. customerEmail 은 중립 ICOPAY 메일.
  * 공개 문서에 정산 후 환불 REST 는 없고 Void(정산 전)만 제공된다.
+ * Void 가능 시각의 시계 마감은 API 스펙에 없으나, 운영 확인상
+ * <strong>태국(Asia/Bangkok) 달력 당일</strong> 거래만 Void 되는 것으로 본다
+ * ({@code 4A010} cannot be voided = 정산·당일 창 종료 후). ICOPAY 후속조치는
+ * 본사 「시간 선택 국가」Zone의 당일 무효 창으로 맞춘다.
  */
 @Component
 public class PaysoApiClient {

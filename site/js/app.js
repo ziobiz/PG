@@ -9277,10 +9277,15 @@
       if (!confirm(confMsg)) return;
       var dimm = document.getElementById('dimm');
       if (dimm) dimm.style.display = 'flex';
-      window.PG_API.compRotateOutboundWebhookSign(compId).then(function (d) {
+      var ynEl = form && form.querySelector('[name="outboundWebhookSignYn"]');
+      var ynNow = ynEl && ynEl.value ? String(ynEl.value).trim() : '';
+      window.PG_API.compRotateOutboundWebhookSign(compId, ynNow).then(function (d) {
         var plain = d && d.outboundWebhookSignSecretPlain ? String(d.outboundWebhookSignSecretPlain) : '';
         var masked = d && d.outboundWebhookSignSecretMasked ? String(d.outboundWebhookSignSecretMasked) : '';
         if (form) {
+          if (d && d.outboundWebhookSignYn != null) {
+            pgSetCompFormFieldValues(form, 'outboundWebhookSignYn', d.outboundWebhookSignYn);
+          }
           if (d && d.outboundWebhookSignEffectiveYn != null) {
             pgSetCompFormFieldValues(form, 'outboundWebhookSignEffectiveYn', d.outboundWebhookSignEffectiveYn);
           }

@@ -6,13 +6,100 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '8.24';
+  var CURRENT_LIVE = '8.27';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '8.27',
+      kind: 'minor',
+      date: '2026-11-27',
+      items: {
+        KO: [
+          'PAYSO Void 정책 문서화: API는 정산 전 취소만 · 운영상 태국(Asia/Bangkok) 달력 당일만 Void 성공 · ICOPAY 무효 창=시간 선택 국가 당일 · 4A010 안내 문구 보강'
+        ],
+        EN: [
+          'PAYSO Void policy documented: API = pre-settlement cancel only · operationally same calendar day Asia/Bangkok · ICOPAY void window = selected-country same day · clearer 4A010 message'
+        ],
+        JP: [
+          'PAYSO Void方針を文書化: APIは精算前取消のみ · 運用上タイ(Asia/Bangkok)当日のみ成功 · ICOPAY無効窓=時間選択国の当日 · 4A010案内を補強'
+        ],
+        CH: [
+          'PAYSO Void 政策成文：API 仅结算前取消 · 运营上泰国(Asia/Bangkok)日历当日可 Void · ICOPAY 作废窗=选时区国家当日 · 强化 4A010 提示'
+        ],
+        TH: [
+          'บันทึกนโยบาย Void ของ PAYSO: API ยกเลิกก่อนเคลียร์เท่านั้น · ปฏิบัติการสำเร็จเฉพาะวันปฏิทินไทย (Asia/Bangkok) · หน้าต่างโมฆะ ICOPAY=วันเดียวกันตามโซนที่เลือก · ปรับข้อความ 4A010'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['본사정책→플랫폼→전산·동기화→결제 후속조치: 시간 선택 국가·무효 당일 창', 'PAYSO 승인 당일(태국)만 무효/Void · 익일·정산 후는 포털 환불'] }],
+        EN: [{ title: 'Check', steps: ['HQ → Platform → Ledger & sync → Pay follow-up: Zone + same-day void', 'PAYSO void only approval day (TH) · next day/settled → portal refund'] }],
+        JP: [{ title: '確認', steps: ['本社→プラットフォーム→全算・同期→決済後続: Zone・当日無効', 'PAYSOはタイ当日のみVoid · 翌日・精算後はポータル返金'] }],
+        CH: [{ title: '确认', steps: ['总部→平台→账务·同步→支付后续：时区与当日作废', 'PAYSO 仅泰国当日 Void · 次日/已结算→门户退款'] }],
+        TH: [{ title: 'ตรวจ', steps: ['HQ → แพลตฟอร์ม → บัญชี·ซิงก์ → มาตรการ: โซน+โมฆะวันเดียวกัน', 'PAYSO void ได้เฉพาะวันอนุมัติ (ไทย) · วันถัดไป/เคลียร์แล้ว→คืนที่พอร์ทัล'] }]
+      }
+    },
+    {
+      version: '8.26',
+      kind: 'minor',
+      date: '2026-11-27',
+      items: {
+        KO: [
+          '업체 저장: 웹훅 서명(outboundWebhookSignYn)을 요청 본문 앞쪽(priority)으로 이동 — pgBindings 등 대용량 저장 시 잘려 「활성」이 FOLLOW_HQ로 되돌아가던 문제 수정'
+        ],
+        EN: [
+          'Merchant save: move webhook signing (outboundWebhookSignYn) to request priority fields — fixes Active reverting to FOLLOW_HQ when large pgBindings truncates the body'
+        ],
+        JP: [
+          '加盟保存: Webhook署名(outboundWebhookSignYn)をリクエスト先頭(priority)へ — 大容量pgBindingsで切れて「有効」がFOLLOW_HQに戻る問題を修正'
+        ],
+        CH: [
+          '商户保存：将 Webhook 签名(outboundWebhookSignYn)提前到请求优先字段 — 修复大体积 pgBindings 截断导致「启用」回退 FOLLOW_HQ'
+        ],
+        TH: [
+          'บันทึกร้าน: ย้าย outboundWebhookSignYn ไปหัวคำขอ (priority) — แก้ถูกตัดเมื่อ pgBindings ใหญ่แล้ว「เปิด」กลับเป็น FOLLOW_HQ'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['업체관리 → 가맹 → 웹훅 서명=활성 → 하단 저장', '다시 조회 시 실효=Y 유지 확인'] }],
+        EN: [{ title: 'Check', steps: ['Merchant → Webhook signing=Active → Save', 'Reload and confirm Effective=Y stays'] }],
+        JP: [{ title: '確認', steps: ['加盟→Webhook署名=有効→保存', '再表示で実効=Y維持を確認'] }],
+        CH: [{ title: '确认', steps: ['商户→Webhook签名=启用→保存', '再打开确认实效=Y 保持'] }],
+        TH: [{ title: 'ตรวจ', steps: ['ร้าน → ลายเซ็น=เปิด → บันทึก', 'เปิดใหม่แล้วผลจริง=Y คงอยู่'] }]
+      }
+    },
+    {
+      version: '8.25',
+      kind: 'minor',
+      date: '2026-11-27',
+      items: {
+        KO: [
+          '웹훅 서명: 시크릿 발급 시 화면의 「활성」선택을 함께 저장·NOTI 동기 — FOLLOW_HQ(실효 N)로 남아 X-Icopay-Signature 미부착되던 문제 방지'
+        ],
+        EN: [
+          'Webhook signing: issuing secret also persists UI Active and syncs NOTI — prevents FOLLOW_HQ (Effective N) missing X-Icopay-Signature'
+        ],
+        JP: [
+          'Webhook署名: シークレット発行時に画面の「有効」も保存・NOTI同期 — FOLLOW_HQ(実効N)でX-Icopay-Signatureが付かない問題を防止'
+        ],
+        CH: [
+          'Webhook 签名：签发密钥时同步保存界面「启用」并同步 NOTI — 避免仍为 FOLLOW_HQ（实效 N）导致缺少 X-Icopay-Signature'
+        ],
+        TH: [
+          'ลายเซ็น Webhook: เมื่อออก secret จะบันทึก「เปิด」บนจอและซิงก์ NOTI — กันค้าง FOLLOW_HQ (ผลจริง N) จนไม่มี X-Icopay-Signature'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['업체관리 → 가맹 → 웹훅 서명=활성', '서명 시크릿 발급(저장 없이도 활성 반영·NOTI 동기)', '실효=Y · 테스트 결제 후 가맹에서 헤더 확인'] }],
+        EN: [{ title: 'Check', steps: ['Merchant → Webhook signing=Active', 'Issue secret (persists Active + NOTI sync)', 'Effective=Y · test pay and verify header'] }],
+        JP: [{ title: '確認', steps: ['加盟→Webhook署名=有効', 'シークレット発行(有効保存・NOTI同期)', '実効=Y・テスト決済でヘッダ確認'] }],
+        CH: [{ title: '确认', steps: ['商户→Webhook签名=启用', '签发密钥（保存启用并同步 NOTI）', '实效=Y · 测试支付并核对请求头'] }],
+        TH: [{ title: 'ตรวจ', steps: ['ร้าน → ลายเซ็น=เปิด', 'ออก secret (บันทึกเปิด+ซิงก์ NOTI)', 'ผลจริง=Y · ทดสอบชำระแล้วตรวจหัว'] }]
+      }
+    },
     {
       version: '8.24',
       kind: 'minor',

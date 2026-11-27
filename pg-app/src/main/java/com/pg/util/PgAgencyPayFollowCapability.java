@@ -44,7 +44,7 @@ public final class PgAgencyPayFollowCapability {
         if (PgVendor.isOmspayFamily(pgCd)) {
             return false;
         }
-        /* Payso — 정산 전 Void(무효·환불). 강제환불=수동 반영(API 없음). */
+        /* Payso — Void API만(정산 전). 운영상 태국 달력 당일 취소. 강제환불=수동 반영. */
         if (PgVendor.isPaysoFamily(pgCd)) {
             return switch (action) {
                 case AUTO_VOID, AUTO_REFUND, FORCE_REFUND -> true;

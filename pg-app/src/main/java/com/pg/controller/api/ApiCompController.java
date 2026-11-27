@@ -1091,7 +1091,8 @@ public class ApiCompController {
     /** 가맹 서버통보(웹훅) HMAC 서명 시크릿 발급·재발급 — 평문은 이번 응답에만. 가맹점 계정 불가(관리자만). */
     @PostMapping("/outboundWebhookSign/rotate")
     public ResponseEntity<ApiResponse<Map<String, Object>>> rotateOutboundWebhookSign(
-            @RequestParam String compId) {
+            @RequestParam String compId,
+            @RequestParam(required = false) String outboundWebhookSignYn) {
         String code = compId != null ? compId.trim() : "";
         if (code.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.fail("compId가 필요합니다.", "INVALID_COMP_ID"));
@@ -1113,6 +1114,12 @@ public class ApiCompController {
             return ResponseEntity.ok(ApiResponse.fail("가맹을 찾을 수 없습니다.", "NOT_FOUND"));
         }
         Long orgUnitId = ou.get().getId();
+        /* 화면에서 「활성」선택 후 발급만 누른 경우 — 미저장 FOLLOW_HQ로 남아 NOTI에 서명 안 붙는 사고 방지 */
+        if (outboundWebhookSignYn != null && !outboundWebhookSignYn.isBlank()) {
+            try {
+                compService.applyOutboundWebhookSignYn(orgUnitId, outboundWebhookSignYn.trim());
+            } catch (Exception ignore) { /* best-effort; secret rotate continues */ }
+        }
         Map<String, Object> data = merchantOutboundWebhookSignService.rotateSecret(orgUnitId);
         if (!Boolean.TRUE.equals(data.get("success"))) {
             return ResponseEntity.ok(ApiResponse.fail("재발급에 실패했습니다.",
