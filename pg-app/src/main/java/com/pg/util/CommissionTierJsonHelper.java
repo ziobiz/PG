@@ -28,8 +28,8 @@ public final class CommissionTierJsonHelper {
 
     /** 격자 행 키(프론트·API와 동일) */
     public static final List<String> ROW_KEYS = List.of(
-            "payRate", "perTxFee", "failFee", "cancelRate", "voidFeePerTx", "manualVoidFeePerTx",
-            "refundRate", "feeSettlementPerTx", "remittanceTransferFee", "usdtTransferFeeUsd",
+            "payRate", "perTxFee", "failFee", "cancelRate", "voidFeePerTx", "handVoidFeePerTx", "manualVoidFeePerTx",
+            "refundRate", "handRefundFeePerTx", "feeSettlementPerTx", "remittanceTransferFee", "usdtTransferFeeUsd",
             "fee3dsRate", "feeUsdt", "feeFx", "usageRate", "chargebackFeePerTx",
             "splitPayFeePct", "splitPayFixedFeePerInst");
 
@@ -123,8 +123,10 @@ public final class CommissionTierJsonHelper {
             case "failFee" -> p.getFailFee() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFailFee()) : "";
             case "cancelRate" -> p.getCancelRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getCancelRate()) : "";
             case "voidFeePerTx" -> p.getVoidFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getVoidFeePerTx()) : "";
+            case "handVoidFeePerTx" -> p.getHandVoidFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getHandVoidFeePerTx()) : "";
             case "manualVoidFeePerTx" -> p.getManualVoidFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getManualVoidFeePerTx()) : "";
             case "refundRate" -> p.getRefundRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getRefundRate()) : "";
+            case "handRefundFeePerTx" -> p.getHandRefundFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getHandRefundFeePerTx()) : "";
             case "feeSettlementPerTx" -> p.getFeeSettlementPerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFeeSettlementPerTx()) : "";
             case "remittanceTransferFee" -> p.getRemittanceTransferFee() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getRemittanceTransferFee()) : "";
             case "usdtTransferFeeUsd" -> p.getUsdtTransferFeeUsd() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getUsdtTransferFeeUsd()) : "";
@@ -152,8 +154,10 @@ public final class CommissionTierJsonHelper {
             p.setFailFee(sumLevels(rows, "failFee", false));
             p.setCancelRate(sumLevels(rows, "cancelRate", false));
             p.setVoidFeePerTx(sumLevels(rows, "voidFeePerTx", false));
+            p.setHandVoidFeePerTx(sumLevels(rows, "handVoidFeePerTx", false));
             p.setManualVoidFeePerTx(sumLevels(rows, "manualVoidFeePerTx", false));
             p.setRefundRate(sumLevels(rows, "refundRate", false));
+            p.setHandRefundFeePerTx(sumLevels(rows, "handRefundFeePerTx", false));
             p.setFeeSettlementPerTx(sumLevels(rows, "feeSettlementPerTx", false));
             p.setRemittanceTransferFee(sumLevels(rows, "remittanceTransferFee", false));
             p.setUsdtTransferFeeUsd(sumLevels(rows, "usdtTransferFeeUsd", false));

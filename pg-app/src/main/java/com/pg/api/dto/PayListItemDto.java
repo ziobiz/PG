@@ -89,8 +89,10 @@ public class PayListItemDto {
                     : TrnTimeDualZoneDisplay.formatDualLineDateTime(txnClock, interpret))
                     : "";
             if (txnClock != null) {
-                LocalDate displayDate = ViewDisplayTimezoneResolver.trnDateInZone(txnClock, interpret, viewOverride);
-                row.put("trnDate", ViewDisplayTimezoneResolver.formatIsoDate(displayDate));
+                /* 거래일 컬럼 = 운영 달력(당일·전일과 동일). 시각 2줄은 기존 dual(1=운영·2=표준) */
+                Instant clockInstant = txnClock.atZone(standard).toInstant();
+                ZoneId dateZone = viewOverride.orElse(operational);
+                row.put("trnDate", clockInstant.atZone(dateZone).toLocalDate().toString());
                 row.put("trnTime", dual != null
                         ? TrnTimeDualZoneDisplay.formatWithSpecTimeOnly(txnClock, dual)
                         : TrnTimeDualZoneDisplay.formatDualLineTimeOnly(txnClock, interpret));

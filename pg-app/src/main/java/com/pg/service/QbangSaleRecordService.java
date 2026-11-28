@@ -42,6 +42,16 @@ public class QbangSaleRecordService {
                                      String productName, String qbangTxnNo, String txnOrigin,
                                      BigDecimal shopperDisplayAmount, String shopperDisplayCurrency,
                                      String buyerName, String buyerEmail, String buyerTel) {
+        recordOrTouchPending(orgUnitId, orderNo, amount, currency, productName, qbangTxnNo, txnOrigin,
+                shopperDisplayAmount, shopperDisplayCurrency, buyerName, buyerEmail, buyerTel, null);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void recordOrTouchPending(Long orgUnitId, String orderNo, BigDecimal amount, String currency,
+                                     String productName, String qbangTxnNo, String txnOrigin,
+                                     BigDecimal shopperDisplayAmount, String shopperDisplayCurrency,
+                                     String buyerName, String buyerEmail, String buyerTel,
+                                     java.util.Map<String, Object> saleBody) {
         try {
             Optional<OrgUnit> ouOpt = orgUnitRepository.findById(orgUnitId);
             if (ouOpt.isEmpty() || orderNo == null || orderNo.isBlank()) {
@@ -95,6 +105,10 @@ public class QbangSaleRecordService {
             }
             if (shopperDisplayCurrency != null && !shopperDisplayCurrency.isBlank()) {
                 t.setDisplayCurType(shopperDisplayCurrency.trim().toUpperCase());
+            }
+            if (saleBody != null && !saleBody.isEmpty()) {
+                com.pg.util.UrlPaySaleTxnFieldApplier.apply(t, saleBody);
+                com.pg.util.UrlPaySaleTxnFieldApplier.ensureUrlWebDevice(t, txnOrigin);
             }
             pgTrnsctnRepository.save(t);
         } catch (Exception e) {

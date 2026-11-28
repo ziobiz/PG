@@ -53,13 +53,21 @@ public class CommissionPolicy {
     @Column(name = "refund_rate", precision = 12, scale = 0)
     private BigDecimal refundRate = BigDecimal.ZERO;
 
-    /** 무효(거래 status 21): 승인 후 규정 시간 내 자동 무효 건당 수수료({@link #currencyCode} 단위). */
+    /** 무효처리(거래 status 40) 건당 무효수수료({@link #currencyCode} 단위). */
     @Column(name = "void_fee_per_tx", precision = 12, scale = 0)
     private BigDecimal voidFeePerTx = BigDecimal.ZERO;
 
-    /** 수동무효(거래 status 22): 무효 구간 이후 이메일 등 수동 무효 건당 수수료({@link #currencyCode} 단위). */
+    /** 수동무효(거래 status 21) 건당 수무효수수료({@link #currencyCode} 단위). */
+    @Column(name = "hand_void_fee_per_tx", precision = 12, scale = 1)
+    private BigDecimal handVoidFeePerTx = BigDecimal.ZERO;
+
+    /** 이메일무효(거래 status 22·41) 건당 이무효수수료({@link #currencyCode} 단위). 컬럼명 호환 유지. */
     @Column(name = "manual_void_fee_per_tx", precision = 12, scale = 0)
     private BigDecimal manualVoidFeePerTx = BigDecimal.ZERO;
+
+    /** 수동환불(거래 status 30) 건당 수환불수수료({@link #currencyCode} 단위). */
+    @Column(name = "hand_refund_fee_per_tx", precision = 12, scale = 1)
+    private BigDecimal handRefundFeePerTx = BigDecimal.ZERO;
 
     /**
      * 정산 수수료 금액({@link #currencyCode} 단위). DB 컬럼명은 호환을 위해 fee_settlement_per_tx 유지.
@@ -225,8 +233,12 @@ public class CommissionPolicy {
     public void setRefundRate(BigDecimal refundRate) { this.refundRate = refundRate; }
     public BigDecimal getVoidFeePerTx() { return voidFeePerTx; }
     public void setVoidFeePerTx(BigDecimal voidFeePerTx) { this.voidFeePerTx = voidFeePerTx != null ? voidFeePerTx : BigDecimal.ZERO; }
+    public BigDecimal getHandVoidFeePerTx() { return handVoidFeePerTx; }
+    public void setHandVoidFeePerTx(BigDecimal handVoidFeePerTx) { this.handVoidFeePerTx = handVoidFeePerTx != null ? handVoidFeePerTx : BigDecimal.ZERO; }
     public BigDecimal getManualVoidFeePerTx() { return manualVoidFeePerTx; }
     public void setManualVoidFeePerTx(BigDecimal manualVoidFeePerTx) { this.manualVoidFeePerTx = manualVoidFeePerTx != null ? manualVoidFeePerTx : BigDecimal.ZERO; }
+    public BigDecimal getHandRefundFeePerTx() { return handRefundFeePerTx; }
+    public void setHandRefundFeePerTx(BigDecimal handRefundFeePerTx) { this.handRefundFeePerTx = handRefundFeePerTx != null ? handRefundFeePerTx : BigDecimal.ZERO; }
     public BigDecimal getFeeSettlementPerTx() { return feeSettlementPerTx; }
     public void setFeeSettlementPerTx(BigDecimal feeSettlementPerTx) { this.feeSettlementPerTx = feeSettlementPerTx; }
     public BigDecimal getRemittanceTransferFee() { return remittanceTransferFee; }

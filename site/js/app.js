@@ -2902,7 +2902,7 @@
   /** 업체 상세 등: 수수료·보류 관련 숫자 필드만 동일 표기 규칙 적용. 해당 없으면 null. */
   function pgFmtCompDetailNumericField(fieldName, v) {
     var pctFields = { payRate: 1, feeUsdt: 1, feeFx: 1, rollingPct: 1, holdRate: 1 };
-    var amtFields = { failFee: 1, usageRate: 1, cancelRate: 1, voidFeePerTx: 1, manualVoidFeePerTx: 1, refundRate: 1, feeSettlementPerTx: 1, remittanceTransferFee: 1, usdtTransferFeeUsd: 1, chargebackFeePerTx: 1, perTxFee: 1 };
+    var amtFields = { failFee: 1, usageRate: 1, cancelRate: 1, voidFeePerTx: 1, handVoidFeePerTx: 1, manualVoidFeePerTx: 1, refundRate: 1, handRefundFeePerTx: 1, feeSettlementPerTx: 1, remittanceTransferFee: 1, usdtTransferFeeUsd: 1, chargebackFeePerTx: 1, perTxFee: 1 };
     var dayFields = { rollingDays: 1, holdDays: 1 };
     if (pctFields[fieldName]) return pgFmtPctOneDecimalInput(v);
     if (amtFields[fieldName]) return pgFmtOneDecimalStripWhole(v);
@@ -5105,11 +5105,11 @@
 
   // 메뉴별 URL → 라벨, parent (브레드크럼/탭 제목용) - FXHJ + 본사설정 + 리스크 통합
   var MENU_INFO = {
+    '/hq/pgAgencyCostPolicy': { label: '결제대행사 등록', parent: '연동·배포' },
     '/hq/pgApiMng': { label: '결제대행사 설정', parent: '연동·배포' },
     '/hq/defaultCommission': { label: '수수료', parent: '본사정책' },
     '/hq/chargebackPolicy': { label: '차지백', parent: '본사정책' },
     '/hq/riskCardPolicy': { label: '리스크', parent: '본사정책' },
-    '/hq/pgAgencyCostPolicy': { label: '대행수수료', parent: '본사정책' },
     '/hq/businessDaySetting': { label: '영업일', parent: '본사정책' },
     '/hq/apiConfig': { label: '공통설정', parent: '연동·배포' },
     '/hq/apiMerchantDeployReg': { label: '가맹 등록', parent: '연동·배포' },
@@ -5158,6 +5158,7 @@
     '/calc/integratedCheck': { label: '통합체크', parent: '검수관리' },
     '/calc/jpayTrList': { label: '통합개요', parent: '검수관리' },
     '/calc/payOverview': { label: '결제개요', parent: '검수관리' },
+    '/ops/costAudit': { label: '원가검수', parent: '검수관리' },
     '/calc/splitPayList': { label: '계약관리', parent: '분할관리' },
     '/pay/splitPay': { label: '분할결제내역', parent: '결제관리' },
     '/calc/chillPaySettlementList': { label: '통합정산', parent: '정산관리' },
@@ -11300,6 +11301,35 @@
     idEl.value = preset.id != null ? String(preset.id) : '';
     cdEl.value = preset.pgCd || '';
     nmEl.value = preset.pgNm || '';
+    (function fillCostPolicySelect() {
+      var sel = document.getElementById('pgAgencyEditCostPolicyId');
+      if (!sel || !window.PG_API || !window.PG_API.hqPgAgencyCostPolicy) return;
+      var want = preset.costPolicyId != null ? String(preset.costPolicyId) : '';
+      window.PG_API.hqPgAgencyCostPolicy().then(function (data) {
+        var opts = (data && data.costOptions) ? data.costOptions.slice() : [];
+        /* 신규 선택은 운영유무=사용(costOptions)만. 이미 묶인 미사용 원가는 예외로 유지 */
+        if (want && !opts.some(function (o) { return String(o.id) === want; })) {
+          var policies = (data && data.policies) ? data.policies : [];
+          var found = policies.find(function (p) { return String(p.id) === want; });
+          if (found) {
+            opts.push({
+              id: found.id,
+              costNm: found.costNm,
+              pgCd: found.pgCd,
+              label: String(found.costNm || found.pgCd || want) + ' · ' + (typeof pgAdminUiT === 'function' ? pgAdminUiT('미사용') : '미사용')
+            });
+          } else {
+            opts.push({ id: want, label: want + ' · ' + (typeof pgAdminUiT === 'function' ? pgAdminUiT('미사용') : '미사용') });
+          }
+        }
+        var h = '<option value="">' + (typeof pgAdminUiT === 'function' ? pgAdminUiT('대행사명 선택') : '대행사명 선택') + '</option>';
+        opts.forEach(function (o) {
+          h += '<option value="' + String(o.id) + '">' + String(o.label || o.costNm || o.pgCd || '') + '</option>';
+        });
+        sel.innerHTML = h;
+        if (want) sel.value = want;
+      }).catch(function () { /* ignore */ });
+    })();
     if (epEl) epEl.value = preset.apiEndpoint || '';
     var pgNewBlank = (preset.id == null || String(preset.id).trim() === '') && (!preset.pgCd || !String(preset.pgCd).trim());
     var resolvedKinds = pgNewBlank ? [] : resolvePresetIntegKinds(preset);
@@ -14885,8 +14915,8 @@
     var sel = pane.querySelector('[name="searchAcquirer"]');
     var code = acquirer != null && String(acquirer).trim() !== ''
       ? String(acquirer).toUpperCase()
-      : (sel && sel.value ? String(sel.value).toUpperCase() : 'ELEMENTPAY');
-    var jpayOn = code === 'JPAY';
+      : (sel && sel.value ? String(sel.value).toUpperCase() : 'ALL');
+    var jpayOn = code === 'JPAY' || code === 'ALL' || code === '';
     ['jpayTrSyncBtn', 'jpayTrFullResyncBtn'].forEach(function (id) {
       var b = pane.querySelector('#' + id);
       if (b) b.style.display = jpayOn ? '' : 'none';
@@ -14986,7 +15016,9 @@
       '/calc/payRefundList', '/calc/payForceRefundList', '/calc/payCancelList', '/calc/payVoidList', '/calc/payEmailVoidList',
       '/calc/offsetCancList', '/pay/easyPay', '/pay/chatbotPay', '/pay/splitPay'
     ];
-    var PG_JPAY_TODAY_DEFAULT_URLS = ['/calc/jpayTrList', '/calc/queryIntegrated', '/calc/integratedCheck'];
+    var PG_JPAY_TODAY_DEFAULT_URLS = ['/calc/jpayTrList', '/calc/queryIntegrated', '/calc/integratedCheck', '/ops/costAudit'];
+    /** 검수관리 결제개요·대행수수료: 최초 진입 시 당일~당일 + 전체(PG) */
+    var PG_INSPECT_TODAY_DEFAULT_URLS = ['/calc/payOverview', '/ops/agencyTxnList'];
     function defaultListPageSizeForUrl(url) {
       if (PG_JPAY_TODAY_DEFAULT_URLS.indexOf(url) !== -1) return 500;
       if (PG_PAY_LIST_SEARCH_URLS.indexOf(url) !== -1) return 50;
@@ -14997,18 +15029,85 @@
     function fmtYmd(d) {
       return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     }
-    /** 기간 입력이 둘 다 비어 있을 때 전일~당일(로컬 일자). 목록·결제내역 공통. */
+    /**
+     * 결제내역 당일·전일·당월 등 = 전산설정 운영 시간대 달력 (PC 로컬 금지).
+     * 캐시: hqLedgerSysSettings.operationalTimezone (기본 Asia/Tokyo).
+     */
+    var _pgOperationalTzCache = { tz: 'Asia/Tokyo', loaded: false, loading: null };
+    function pgOperationalTimezoneSync() {
+      return _pgOperationalTzCache.tz || 'Asia/Tokyo';
+    }
+    function pgEnsureOperationalTimezone() {
+      if (_pgOperationalTzCache.loaded) {
+        return Promise.resolve(_pgOperationalTzCache.tz);
+      }
+      if (_pgOperationalTzCache.loading) {
+        return _pgOperationalTzCache.loading;
+      }
+      var api = window.PG_API;
+      if (!api || typeof api.hqLedgerSysSettings !== 'function') {
+        _pgOperationalTzCache.loaded = true;
+        return Promise.resolve(_pgOperationalTzCache.tz);
+      }
+      _pgOperationalTzCache.loading = api.hqLedgerSysSettings().then(function (d) {
+        var tz = d && d.operationalTimezone ? String(d.operationalTimezone).trim() : '';
+        if (tz) _pgOperationalTzCache.tz = tz;
+        _pgOperationalTzCache.loaded = true;
+        _pgOperationalTzCache.loading = null;
+        return _pgOperationalTzCache.tz;
+      }).catch(function () {
+        _pgOperationalTzCache.loaded = true;
+        _pgOperationalTzCache.loading = null;
+        return _pgOperationalTzCache.tz;
+      });
+      return _pgOperationalTzCache.loading;
+    }
+    function pgYmdInTimezone(timeZone, offsetDays) {
+      var tz = timeZone || 'Asia/Tokyo';
+      var fmt = new Intl.DateTimeFormat('en-CA', {
+        timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit'
+      });
+      var base = fmt.format(new Date());
+      var n = offsetDays == null ? 0 : Number(offsetDays);
+      if (!n) return base;
+      var p = base.split('-');
+      var dt = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2]));
+      dt.setUTCDate(dt.getUTCDate() + n);
+      return dt.toISOString().slice(0, 10);
+    }
+    function pgMonthRangeYmdInTimezone(timeZone, monthOffset) {
+      var tz = timeZone || 'Asia/Tokyo';
+      var today = pgYmdInTimezone(tz, 0);
+      var p = today.split('-');
+      var y = +p[0];
+      var m = +p[1] - 1 + (monthOffset == null ? 0 : Number(monthOffset));
+      var start = new Date(Date.UTC(y, m, 1));
+      var end = new Date(Date.UTC(y, m + 1, 0));
+      function u(d) {
+        return d.toISOString().slice(0, 10);
+      }
+      return { from: u(start), to: u(end) };
+    }
+    try { pgEnsureOperationalTimezone(); } catch (eOpPrefetch) {}
+    /** 기간 입력이 둘 다 비어 있을 때 전일~당일(운영 시간대 달력). 목록·결제내역 공통. */
     function ensureNamedDateRangeYesterdayToToday(pane, fromSel, toSel) {
       if (!pane || !fromSel || !toSel) return;
       var fromEl = pane.querySelector(fromSel);
       var toEl = pane.querySelector(toSel);
       if (!fromEl || !toEl) return;
       if (String(fromEl.value || '').trim() || String(toEl.value || '').trim()) return;
-      var toD = new Date();
-      var fromD = new Date();
-      fromD.setDate(fromD.getDate() - 1);
-      fromEl.value = fmtYmd(fromD);
-      toEl.value = fmtYmd(toD);
+      function fill(tz) {
+        toEl.value = pgYmdInTimezone(tz, 0);
+        fromEl.value = pgYmdInTimezone(tz, -1);
+      }
+      fill(pgOperationalTimezoneSync());
+      pgEnsureOperationalTimezone().then(function (tz) {
+        if (!String(fromEl.value || '').trim() || !String(toEl.value || '').trim()) fill(tz);
+        else if (fromEl.value === pgYmdInTimezone('Asia/Tokyo', -1)
+            || fromEl.value === pgYmdInTimezone(pgOperationalTimezoneSync(), -1)) {
+          fill(tz);
+        }
+      });
     }
     function ensureStandardSearchDaterangeYesterdayToToday(pane) {
       ensureNamedDateRangeYesterdayToToday(pane, '#searchFromDate', '#searchToDate');
@@ -15195,12 +15294,13 @@
       var fromV = String(fromEl.value || '').trim();
       var toV = String(toEl.value || '').trim();
       if (pane._payListDefaultDatesApplied && (fromV || toV)) return;
-      var toD = new Date();
-      var fromD = new Date();
-      fromD.setDate(fromD.getDate() - 1);
-      fromEl.value = fmtYmd(fromD);
-      toEl.value = fmtYmd(toD);
-      pane._payListDefaultDatesApplied = true;
+      function fill(tz) {
+        toEl.value = pgYmdInTimezone(tz, 0);
+        fromEl.value = pgYmdInTimezone(tz, -1);
+        pane._payListDefaultDatesApplied = true;
+      }
+      fill(pgOperationalTimezoneSync());
+      pgEnsureOperationalTimezone().then(function (tz) { fill(tz); });
     }
     /** RECENT: 최근 1년(당일까지). PERIOD: 기간이 비어 있을 때만 전일~당일. */
     function applySettlementExecuteListModeDates(pane, mode) {
@@ -15341,46 +15441,65 @@
         applyMonths(3);
       });
     }
-    if (PG_PAY_LIST_SEARCH_URLS.indexOf(initFormUrl) !== -1) {
+    if (PG_PAY_LIST_SEARCH_URLS.indexOf(initFormUrl) !== -1 || initFormUrl === '/ops/agencyTxnList') {
       var pgCdSel = pane.querySelector('select[name="searchPgCd"]');
       if (pgCdSel && window.PG_API && typeof window.PG_API.pgAgencyList === 'function') {
         window.PG_API.pgAgencyList().then(function (list) {
           var keepPg = pgCdSel.value;
           function escPgList(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
-          var allPg = (window.PG_PAY_LIST_I18N && typeof window.PG_PAY_LIST_I18N.optionAllText === 'function')
-            ? window.PG_PAY_LIST_I18N.optionAllText() : '전체';
-          var optH = '<option value="" data-pg-i18n-opt="searchPgCd|">' + escPgList(allPg) + '</option>';
+          function tPg(k, fb) {
+            if (typeof pgAdminUiT === 'function') {
+              try { return pgAdminUiT(k) || fb || k; } catch (e) { /* ignore */ }
+            }
+            return fb || k;
+          }
+          var overviewLike = (initFormUrl === '/calc/payOverview' || initFormUrl === '/ops/agencyTxnList');
+          var optH = '';
+          if (overviewLike) {
+            optH += '<option value="" data-pg-i18n-opt="searchPgCd|">' + escPgList(tPg('전체', '전체')) + '</option>';
+          } else {
+            var allPg = (window.PG_PAY_LIST_I18N && typeof window.PG_PAY_LIST_I18N.optionAllText === 'function')
+              ? window.PG_PAY_LIST_I18N.optionAllText() : '전체';
+            optH += '<option value="" data-pg-i18n-opt="searchPgCd|">' + escPgList(allPg) + '</option>';
+          }
+          var used = [];
+          var unused = [];
           var seenPg = {};
           (list || []).forEach(function (ag) {
             var cd = String(ag.pgCd || '').trim();
             if (!cd) return;
             seenPg[cd.toUpperCase()] = true;
             var nm = String(ag.pgNm || cd).trim();
-            optH += '<option value="' + escPgList(cd) + '">' + escPgList(nm + ' (' + cd + ')') + '</option>';
+            var item = { cd: cd, label: nm + ' (' + cd + ')', useY: String(ag.useYn || 'Y').toUpperCase() !== 'N' };
+            if (item.useY) used.push(item); else unused.push(item);
           });
-          /* 크립토는 결제대행사 마스터에 없을 수 있음 — 결제내역 필터용 옵션 보강 */
           if (!seenPg.CRYPTO) {
-            optH += '<option value="CRYPTO">' + escPgList('CRYPTO (CRYPTO)') + '</option>';
+            unused.push({ cd: 'CRYPTO', label: 'CRYPTO (CRYPTO)', useY: false });
+          }
+          used.forEach(function (it) {
+            optH += '<option value="' + escPgList(it.cd) + '">' + escPgList(it.label) + '</option>';
+          });
+          if (unused.length) {
+            optH += '<option value="" disabled>------------</option>';
+            unused.forEach(function (it) {
+              optH += '<option value="' + escPgList(it.cd) + '">' + escPgList(it.label) + '</option>';
+            });
           }
           pgCdSel.innerHTML = optH;
           var keepOk = false;
           for (var pi = 0; pi < pgCdSel.options.length; pi++) {
-            if (pgCdSel.options[pi].value === keepPg) { keepOk = true; break; }
+            if (pgCdSel.options[pi].value === keepPg && !pgCdSel.options[pi].disabled) { keepOk = true; break; }
           }
           if (keepOk) pgCdSel.value = keepPg;
-          if (initFormUrl === '/calc/payOverview') {
+          if (overviewLike) {
             if (!pgCdSel._payOverviewPgBound) {
               pgCdSel._payOverviewPgBound = true;
-              pgCdSel.addEventListener('change', function () { pane._payOverviewPgTouched = true; });
+              pgCdSel.addEventListener('change', function () {
+                pane._payOverviewPgTouched = true;
+              });
             }
             if (!keepPg && pane._payOverviewPgTouched !== true) {
-              for (var pe = 0; pe < pgCdSel.options.length; pe++) {
-                var pev = String(pgCdSel.options[pe].value || '').toUpperCase();
-                if (pev === 'ELEMENTPAY' || pev.indexOf('ELEMENTPAY') === 0) {
-                  pgCdSel.value = pgCdSel.options[pe].value;
-                  break;
-                }
-              }
+              pgCdSel.value = '';
             }
           }
         }).catch(function () {});
@@ -15924,67 +16043,77 @@
     }
     if (!pane._pgQuickDateDelegated) {
       pane._pgQuickDateDelegated = true;
-      function qdFmt(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+      function qdApplyOperationalRange(btn, range, tz) {
+        var fromYmd = pgYmdInTimezone(tz, 0);
+        var toYmd = fromYmd;
+        if (range === 'day') {
+          fromYmd = pgYmdInTimezone(tz, 0);
+          toYmd = fromYmd;
+        } else if (range === 'prevDay') {
+          fromYmd = pgYmdInTimezone(tz, -1);
+          toYmd = fromYmd;
+        } else if (range === 'week') {
+          fromYmd = pgYmdInTimezone(tz, -6);
+          toYmd = pgYmdInTimezone(tz, 0);
+        } else if (range === 'week2') {
+          fromYmd = pgYmdInTimezone(tz, -13);
+          toYmd = pgYmdInTimezone(tz, 0);
+        } else if (range === 'month') {
+          var mr = pgMonthRangeYmdInTimezone(tz, 0);
+          fromYmd = mr.from;
+          toYmd = mr.to;
+        } else if (range === 'prevMonth') {
+          var mr1 = pgMonthRangeYmdInTimezone(tz, -1);
+          fromYmd = mr1.from;
+          toYmd = mr1.to;
+        } else if (range === 'prevMonth2') {
+          var mr2 = pgMonthRangeYmdInTimezone(tz, -2);
+          fromYmd = mr2.from;
+          toYmd = mr2.to;
+        } else if (range === 'weekCal' || range === 'prevWeekCal') {
+          /* 운영 Zone 오늘의 요일 → 월~일 (UTC 달력 산술, JP/TH 무DST) */
+          var todayY = pgYmdInTimezone(tz, 0);
+          var tp = todayY.split('-');
+          var utcToday = new Date(Date.UTC(+tp[0], +tp[1] - 1, +tp[2]));
+          var wd = utcToday.getUTCDay();
+          var toMon = wd === 0 ? -6 : 1 - wd;
+          if (range === 'prevWeekCal') toMon -= 7;
+          var fromU = new Date(utcToday);
+          fromU.setUTCDate(fromU.getUTCDate() + toMon);
+          var toU = new Date(fromU);
+          toU.setUTCDate(toU.getUTCDate() + 6);
+          fromYmd = fromU.toISOString().slice(0, 10);
+          toYmd = toU.toISOString().slice(0, 10);
+        }
+        var fromEl = pane.querySelector('#searchFromDate');
+        var toEl = pane.querySelector('#searchToDate');
+        if (fromEl) fromEl.value = fromYmd;
+        if (toEl) toEl.value = toYmd;
+        pgSelectQuickDateButton(btn);
+      }
       pane.addEventListener('click', function (e) {
         var btn = e.target && e.target.closest ? e.target.closest('.quick-date') : null;
         if (!btn || !pane.contains(btn)) return;
         e.preventDefault();
         var range = btn.getAttribute('data-range');
-        var today = new Date();
-        var from = new Date(today);
-        var to = new Date(today);
-        if (range === 'day' || range === 'month') { from.setHours(0, 0, 0, 0); to.setHours(23, 59, 59, 999); }
-        if (range === 'prevDay') { from.setDate(from.getDate() - 1); to.setTime(from.getTime()); from.setHours(0, 0, 0, 0); to.setHours(23, 59, 59, 999); }
-        if (range === 'prevMonth') { from.setMonth(from.getMonth() - 1); from.setDate(1); to = new Date(from.getFullYear(), from.getMonth() + 1, 0); }
-        if (range === 'prevMonth2') { from.setMonth(from.getMonth() - 2); from.setDate(1); to = new Date(from.getFullYear(), from.getMonth() + 1, 0); }
-        if (range === 'month') { from.setDate(1); to = new Date(from.getFullYear(), from.getMonth() + 1, 0); }
-        if (range === 'week') {
-          from.setDate(from.getDate() - 6);
-          from.setHours(0, 0, 0, 0);
-          to.setHours(23, 59, 59, 999);
+        function triggerQdSearch() {
+          try {
+            if (typeof pane._pgTriggerListSearch === 'function') {
+              pane._pgTriggerListSearch(pane, 1);
+            } else if (typeof doSearch === 'function') {
+              var tidQd = pane.id || tabId || '';
+              var pageElQd = pane.querySelector('#pageCnt');
+              if (pageElQd) pageElQd.value = '1';
+              doSearch(pane, tidQd, 1);
+            }
+          } catch (eQdSearch) { /* ignore */ }
         }
-        if (range === 'week2') {
-          from.setDate(from.getDate() - 13);
-          from.setHours(0, 0, 0, 0);
-          to.setHours(23, 59, 59, 999);
-        }
-        /** 금주: 이번 주 월~일, 전주: 직전 주 월~일 */
-        if (range === 'weekCal') {
-          var wd = today.getDay();
-          var toMon = wd === 0 ? -6 : 1 - wd;
-          from = new Date(today);
-          from.setDate(from.getDate() + toMon);
-          from.setHours(0, 0, 0, 0);
-          to = new Date(from);
-          to.setDate(to.getDate() + 6);
-          to.setHours(23, 59, 59, 999);
-        }
-        if (range === 'prevWeekCal') {
-          var wd2 = today.getDay();
-          var toMon2 = wd2 === 0 ? -6 : 1 - wd2;
-          from = new Date(today);
-          from.setDate(from.getDate() + toMon2 - 7);
-          from.setHours(0, 0, 0, 0);
-          to = new Date(from);
-          to.setDate(to.getDate() + 6);
-          to.setHours(23, 59, 59, 999);
-        }
-        var fromEl = pane.querySelector('#searchFromDate');
-        var toEl = pane.querySelector('#searchToDate');
-        if (fromEl) fromEl.value = qdFmt(from);
-        if (toEl) toEl.value = qdFmt(to);
-        pgSelectQuickDateButton(btn);
-        /* 빠른기간(당월·당일 등)은 날짜만 바꾸고 끝내면 빈 목록이 유지됨 → 즉시 재조회 */
-        try {
-          if (typeof pane._pgTriggerListSearch === 'function') {
-            pane._pgTriggerListSearch(pane, 1);
-          } else if (typeof doSearch === 'function') {
-            var tidQd = pane.id || tabId || '';
-            var pageElQd = pane.querySelector('#pageCnt');
-            if (pageElQd) pageElQd.value = '1';
-            doSearch(pane, tidQd, 1);
-          }
-        } catch (eQdSearch) { /* ignore */ }
+        /* 운영 Zone 확정 후 날짜·조회 (PC 로컬 금지) */
+        qdApplyOperationalRange(btn, range, pgOperationalTimezoneSync());
+        pgEnsureOperationalTimezone().then(function (tz) {
+          qdApplyOperationalRange(btn, range, tz);
+          triggerQdSearch();
+        });
       });
       pane.addEventListener('change', function (e) {
         var t = e.target;
@@ -16010,7 +16139,8 @@
     }
     function collectSearchParams(p) {
       var formUrlCollect = p.getAttribute('formurl') || '';
-      if (PG_JPAY_TODAY_DEFAULT_URLS.indexOf(formUrlCollect) !== -1) {
+      if (PG_JPAY_TODAY_DEFAULT_URLS.indexOf(formUrlCollect) !== -1
+          || PG_INSPECT_TODAY_DEFAULT_URLS.indexOf(formUrlCollect) !== -1) {
         ensureJpayTrListDefaultSearchDates(p);
       } else if (PG_PAY_LIST_SEARCH_URLS.indexOf(formUrlCollect) !== -1) {
         var fe0 = p.querySelector('#searchFromDate');
@@ -18009,9 +18139,28 @@
       if (!p || !day) return;
       var opKind = String(operator || '').toUpperCase();
       var kind = opKind === 'JPAY' ? 'jpay'
-        : ((opKind === 'ELEMENTPAY' || opKind === 'PAYSO') ? 'acquirer' : 'pay');
+        : ((opKind === 'ELEMENTPAY' || opKind === 'PAYSO' || opKind === 'KSNET') ? 'acquirer' : 'pay');
       var apiRef = window.PG_API;
       if (!apiRef) return;
+      function pgShiftYmd(ymd, deltaDays) {
+        try {
+          var p = String(ymd || '').split('-');
+          if (p.length < 3) return String(ymd || '');
+          var dt = new Date(Date.UTC(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10)));
+          dt.setUTCDate(dt.getUTCDate() + (deltaDays || 0));
+          return dt.getUTCFullYear() + '-' + String(dt.getUTCMonth() + 1).padStart(2, '0') + '-' + String(dt.getUTCDate()).padStart(2, '0');
+        } catch (eShift) {
+          return String(ymd || '');
+        }
+      }
+      function pgRowMatchesDetailDay(r, dayStr) {
+        if (!r || !dayStr) return true;
+        var td = r.trnDate != null ? String(r.trnDate).trim() : '';
+        if (td.length >= 10) return td.substring(0, 10) === dayStr;
+        var tx = r.transactionDate != null ? String(r.transactionDate).trim() : '';
+        if (tx.length >= 10) return tx.substring(0, 10) === dayStr;
+        return true;
+      }
       function dailyDetailRowNo(r, idx, dparams) {
         if (r && r.rowNo != null && String(r.rowNo).trim() !== '') return String(r.rowNo);
         var pg = dparams && dparams.page != null ? parseInt(dparams.page, 10) : 1;
@@ -18126,14 +18275,20 @@
         detBody.innerHTML = '<tr><td colspan="' + detLoadColspan + '" class="text-center text-muted py-2">' + esc(uiT('불러오는 중…')) + '</td></tr>';
       }
       if (kind === 'jpay' || kind === 'acquirer') {
+        /* 일별 집계와 동일하게 경계일 ±1일 조회 후 선택 일자만 남김(시간대 어긋남 보정) */
+        if (kind === 'acquirer') {
+          dparams.searchFromDate = pgShiftYmd(day, -1);
+          dparams.searchToDate = pgShiftYmd(day, 1);
+        }
         var detailFetch = kind === 'acquirer'
           ? function (qp) {
-            qp.searchAcquirer = opKind === 'PAYSO' ? 'PAYSO' : 'ELEMENTPAY';
+            qp.searchAcquirer = opKind === 'PAYSO' ? 'PAYSO'
+              : (opKind === 'KSNET' ? 'KSNET' : 'ELEMENTPAY');
             return apiRef.chillPayTrSearch(qp);
           }
           : function (qp) { return apiRef.jpayTrSearch(qp); };
         var detailPageSize = kind === 'acquirer'
-          ? (DAILY_DETAIL_FETCH_PAGE_SIZE.pay || 50)
+          ? (DAILY_DETAIL_FETCH_PAGE_SIZE.chill || 100)
           : DAILY_DETAIL_FETCH_PAGE_SIZE.jpay;
         fetchPagedListAll(detailFetch, dparams, detailPageSize).then(function (res) {
           if (loadSeq != null && p._dailyDetailLoadSeq !== loadSeq) return;
@@ -18141,6 +18296,10 @@
             pgUpdateDailyDetailFinancialSummary(p, paneTid, res.meta.payListFinancialSummary, false);
           }
           var rows = res.list || [];
+          if (kind === 'acquirer' && day) {
+            rows = rows.filter(function (r) { return pgRowMatchesDetailDay(r, day); });
+            res = Object.assign({}, res, { list: rows, totalElements: rows.length });
+          }
           applyDailyDetailListCount(res, rows);
           dparams.page = 1;
           dparams.size = rows.length || 1;
@@ -18178,7 +18337,9 @@
               '<td class="text-center text-nowrap">' + esc(r.icopay || '—') + '</td></tr>';
           }).join('');
           renderDailyDetailTruncNote(bdy, 9, res.truncated, rows.length, res.totalElements);
-          persistDailyDetailForListExcel(p, rows, kind === 'acquirer' ? (opKind === 'PAYSO' ? 'payso' : 'elementpay') : 'jpay', dparams);
+          persistDailyDetailForListExcel(p, rows, kind === 'acquirer'
+            ? (opKind === 'PAYSO' ? 'payso' : (opKind === 'KSNET' ? 'ksnet' : 'elementpay'))
+            : 'jpay', dparams);
           try {
             if (typeof injectTableRowResizeHandles === 'function') injectTableRowResizeHandles(bdy, 9);
           } catch (eJpayDet) { /* ignore */ }
@@ -18188,8 +18349,18 @@
         });
       } else {
         var icopayPg = String((srcParams && srcParams.searchAcquirer) || '').toUpperCase();
-        if (icopayPg === 'ELEMENTPAY' || icopayPg === 'JPAY' || icopayPg === 'PAYSO' || icopayPg === 'OX' || icopayPg === 'OXPAY' || icopayPg === 'QXIPAY' || icopayPg === 'QXPAY' || opKind === 'OX' || opKind === 'QXIPAY' || opKind === 'PAYSO') {
-          dparams.searchPgCd = (icopayPg === 'OXPAY' || opKind === 'OX') ? 'OX' : ((icopayPg === 'QXPAY') ? 'QXIPAY' : (icopayPg === 'PAYSO' || opKind === 'PAYSO' ? 'PAYSO' : icopayPg));
+        var pairAcq = '';
+        if (p && p._integratedCheckPairAcquirer) {
+          pairAcq = String(p._integratedCheckPairAcquirer).toUpperCase();
+        }
+        if (icopayPg === 'ALL' || icopayPg === '' || icopayPg === '전체') {
+          icopayPg = pairAcq || icopayPg;
+        }
+        if (icopayPg === 'ELEMENTPAY' || icopayPg === 'JPAY' || icopayPg === 'PAYSO' || icopayPg === 'KSNET' || icopayPg === 'OX' || icopayPg === 'OXPAY' || icopayPg === 'QXIPAY' || icopayPg === 'QXPAY' || opKind === 'OX' || opKind === 'QXIPAY' || opKind === 'PAYSO' || opKind === 'KSNET') {
+          dparams.searchPgCd = (icopayPg === 'OXPAY' || opKind === 'OX') ? 'OX'
+            : ((icopayPg === 'QXPAY') ? 'QXIPAY'
+              : (icopayPg === 'PAYSO' || opKind === 'PAYSO' ? 'PAYSO'
+                : (icopayPg === 'KSNET' || opKind === 'KSNET' ? 'KSNET' : icopayPg)));
         }
         dparams.payListVariant = (cfg && cfg.detailPayListVariant) ? cfg.detailPayListVariant : 'INTEGRATED';
         fetchPagedListAll(function (qp) { return apiRef.payList(qp); }, dparams, DAILY_DETAIL_FETCH_PAGE_SIZE.pay).then(function (res) {
@@ -18349,7 +18520,7 @@
         var statusTd = '<td rowspan="2" class="text-center text-nowrap ' +
           (pending ? 'text-muted' : (match ? ('integrated-check-status--ok ' + toneStatusCls) : 'integrated-check-status--check')) + '">' +
           esc(uiT(statusWord)) + '</td>';
-        rowsHtml += '<tr class="integrated-check-row integrated-check-operator-row daily-master-row' + toneCls + pairCls + '" data-day="' + escAttr(day) + '" data-operator="' + escAttr(acquirerCode) + '" style="cursor:pointer">';
+        rowsHtml += '<tr class="integrated-check-row integrated-check-operator-row daily-master-row' + toneCls + pairCls + '" data-day="' + escAttr(day) + '" data-operator="' + escAttr(acquirerCode) + '" data-pair-acquirer="' + escAttr(acquirerCode) + '" style="cursor:pointer">';
         cols.forEach(function (col) {
           if (col.key === 'checkStatus') {
             rowsHtml += cellForCol(col, jpay, day, rowNo, acquirerLabel, mismatchKeys, true, match, statusTd);
@@ -18361,7 +18532,7 @@
             rowsHtml += cellForCol(col, jpay, day, rowNo, acquirerLabel, mismatchKeys, true, match, null);
           }
         });
-        rowsHtml += '</tr><tr class="integrated-check-row integrated-check-operator-row daily-master-row' + toneCls + pairCls + '" data-day="' + escAttr(day) + '" data-operator="ICOPAY" style="cursor:pointer">';
+        rowsHtml += '</tr><tr class="integrated-check-row integrated-check-operator-row daily-master-row' + toneCls + pairCls + '" data-day="' + escAttr(day) + '" data-operator="ICOPAY" data-pair-acquirer="' + escAttr(acquirerCode) + '" style="cursor:pointer">';
         cols.forEach(function (col) {
           if (col.key === 'rowNo' || col.key === 'day' || col.key === 'checkStatus') return;
           rowsHtml += cellForCol(col, icopay, day, rowNo, 'ICOPAY', mismatchKeys, false, match, null);
@@ -18395,10 +18566,20 @@
         p._jpaySyncInfoLastAt = String(data.meta.lastSyncAt).trim();
       }
 
-      function findIntegratedCheckRow(dayStr) {
+      function findIntegratedCheckRow(dayStr, acquirerCode) {
         var src = p._integratedCheckFullList || [];
+        var wantAcq = acquirerCode != null ? String(acquirerCode).toUpperCase() : '';
+        if (wantAcq === 'ICOPAY') wantAcq = '';
         for (var di = 0; di < src.length; di++) {
-          if (src[di] && String(src[di].day) === dayStr) return src[di];
+          if (!src[di] || String(src[di].day) !== dayStr) continue;
+          if (!wantAcq) return src[di];
+          var rowAcq = src[di].acquirerCode != null ? String(src[di].acquirerCode).toUpperCase() : '';
+          if (rowAcq === wantAcq) return src[di];
+        }
+        if (wantAcq) {
+          for (var dj = 0; dj < src.length; dj++) {
+            if (src[dj] && String(src[dj].day) === dayStr) return src[dj];
+          }
         }
         return null;
       }
@@ -18432,8 +18613,10 @@
         if (!day || !operator) return;
         pgHighlightDailyMasterRow(p, tr, day);
         pgUpdateIntegratedCheckDetailTitle(day, operator);
-        var item = findIntegratedCheckRow(day);
+        var pairFromTr = tr && tr.getAttribute ? String(tr.getAttribute('data-pair-acquirer') || '').trim() : '';
         var opU = String(operator).toUpperCase();
+        p._integratedCheckPairAcquirer = pairFromTr || (opU !== 'ICOPAY' ? opU : '');
+        var item = findIntegratedCheckRow(day, p._integratedCheckPairAcquirer || opU);
         var snap = item
           ? (opU === 'ICOPAY' ? item.icopay : (item.acquirer || item.jpay))
           : null;
@@ -19267,22 +19450,17 @@
         }
       }
       if (cfg && cfg.payListVariant) params.payListVariant = cfg.payListVariant;
-      if (url === '/calc/payOverview' && p && p._payOverviewPgTouched !== true) {
-        var ovPg = params.searchPgCd != null ? String(params.searchPgCd).trim() : '';
-        if (!ovPg) {
-          var ovEl = p.querySelector ? p.querySelector('select[name="searchPgCd"]') : null;
-          var ovPick = 'ELEMENTPAY';
-          if (ovEl && ovEl.options) {
-            for (var ovi = 0; ovi < ovEl.options.length; ovi++) {
-              var ovv = String(ovEl.options[ovi].value || '').toUpperCase();
-              if (ovv === 'ELEMENTPAY' || ovv.indexOf('ELEMENTPAY') === 0) {
-                ovPick = ovEl.options[ovi].value;
-                break;
-              }
-            }
-            ovEl.value = ovPick;
-          }
-          params.searchPgCd = ovPick;
+      if ((url === '/calc/payOverview' || url === '/ops/agencyTxnList') && p) {
+        var ovEl2 = p.querySelector ? p.querySelector('select[name="searchPgCd"]') : null;
+        var ovPg2 = params.searchPgCd != null ? String(params.searchPgCd).trim()
+          : (ovEl2 ? String(ovEl2.value || '').trim() : '');
+        if (ovPg2 === '__TODAY_INTEGRATED__') {
+          /* 레거시 북마크 호환: 당일 통합 → 전체(전 PG) */
+          params.searchPgCd = '';
+          if (ovEl2) ovEl2.value = '';
+        } else if (url === '/calc/payOverview' && p._payOverviewPgTouched !== true && !ovPg2) {
+          params.searchPgCd = '';
+          if (ovEl2) ovEl2.value = '';
         }
       }
     }
@@ -19360,6 +19538,19 @@
       if (url === '/ops/remittance') return api.opsRemittanceList(params);
       if (url === '/ops/inactiveCard') return api.opsInactiveCardList(params);
       if (url === '/ops/taxReport') return api.opsTaxReportList(params);
+      if (url === '/ops/costAudit') {
+        return api.opsCostAudit(params).then(function (data) {
+          var list = (data && data.list) ? data.list : [];
+          return {
+            list: list,
+            totalElements: data && data.totalElements != null ? data.totalElements : list.length,
+            page: data && data.page != null ? data.page : 1,
+            size: data && data.size != null ? data.size : list.length,
+            totalPages: data && data.totalPages != null ? data.totalPages : 1,
+            meta: data && data.meta ? data.meta : {}
+          };
+        });
+      }
       if (url === '/ops/agencyTxnList') return api.opsAgencyTxnList(params);
       if (url === '/ops/distributionTxnList') return api.opsDistributionTxnList(params);
       if (url === '/ops/distributionSettlement') return api.opsDistributionSettlement(params);
@@ -19982,7 +20173,7 @@
           params.searchToDate = params.searchToDate || (p.querySelector('#searchToDate') || {}).value;
         }
       }
-      if (PG_JPAY_TODAY_DEFAULT_URLS.indexOf(url) !== -1) {
+      if (PG_JPAY_TODAY_DEFAULT_URLS.indexOf(url) !== -1 || PG_INSPECT_TODAY_DEFAULT_URLS.indexOf(url) !== -1) {
         if (!params.searchFromDate || !params.searchToDate) {
           ensureJpayTrListDefaultSearchDates(p);
           params.searchFromDate = params.searchFromDate || (p.querySelector('#searchFromDate') || {}).value;
@@ -20227,7 +20418,7 @@
         var guideListEl = p.querySelector('#tableColumnGuide .column-guide-list');
         var hasColumnGuide = !!(guideListEl && guideListEl.querySelector('.column-guide-check'));
         var cols;
-        if (hasColumnGuide && (url === '/ops/agencyTxnList' || url === '/ops/distributionTxnList' || url === '/ops/distributionSettlement')) {
+        if (hasColumnGuide && (url === '/ops/costAudit' || url === '/ops/agencyTxnList' || url === '/ops/distributionTxnList' || url === '/ops/distributionSettlement')) {
           cols = resolveSummaryGridCols(p, cfg, url);
         } else if (hasColumnGuide) {
           cols = buildGridColumnsInViewSettingOrder(p, allCols, fixedKeys, url, restrictCols, allowKeys, selCols);
@@ -20945,7 +21136,7 @@
                   if (upCls.length) cellClass = ' class="' + upCls.join(' ') + '"';
                 } else if (url === '/calc/feeList' || url === '/settlement/feeList') {
                   var feeCls = [];
-                  if (['amount', 'txnFixedFeesSum', 'pctFeesSum', 'usdtFee', 'fxFee', 'fee3dsFee', 'failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'chargebackFee', 'rollingPctPlain', 'rollingDays', 'rollingHoldEst', 'totalFee', 'feeVat', 'expectedPayout', 'settlementAmt'].indexOf(c.key) >= 0) feeCls.push('text-end');
+                  if (['amount', 'txnFixedFeesSum', 'pctFeesSum', 'usdtFee', 'fxFee', 'fee3dsFee', 'failFee', 'cancelFee', 'voidFee', 'handVoidFee', 'manualVoidFee', 'refundFee', 'handRefundFee', 'chargebackFee', 'rollingPctPlain', 'rollingDays', 'rollingHoldEst', 'totalFee', 'feeVat', 'expectedPayout', 'settlementAmt'].indexOf(c.key) >= 0) feeCls.push('text-end');
                   if (['payCur', 'policyCur', 'curType', 'vatAppliedYn'].indexOf(c.key) >= 0) feeCls.push('text-center');
                   if (c.key === 'statusNm') feeCls.push('text-center');
                   if (c.key === 'trnTime') feeCls.push('pay-grid-time-dual');
@@ -20954,7 +21145,7 @@
                   if (feeCls.length) cellClass = ' class="' + feeCls.join(' ') + '"';
                 } else if (url === '/ops/agencyTxnList') {
                   var agCls = [];
-                  if (['amount', 'txnFixedFeesSum', 'pctFeesSum', 'usdtFee', 'fxFee', 'fee3dsFee', 'failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'chargebackFee', 'rollingHoldEst', 'totalAgencyFee'].indexOf(c.key) >= 0) agCls.push('text-end');
+                  if (['amount', 'txnFixedFeesSum', 'pctFeesSum', 'usdtFee', 'fxFee', 'fee3dsFee', 'failFee', 'cancelFee', 'voidFee', 'handVoidFee', 'manualVoidFee', 'refundFee', 'handRefundFee', 'chargebackFee', 'rollingHoldEst', 'totalAgencyFee', 'feeVat', 'feeWithVat'].indexOf(c.key) >= 0) agCls.push('text-end');
                   if (['policyCur', 'curType', 'statusNm', 'agencySettleYn'].indexOf(c.key) >= 0) agCls.push('text-center');
                   if (c.key === 'trnTime') agCls.push('pay-grid-time-dual');
                   else agCls.push('text-nowrap');
@@ -21227,7 +21418,7 @@
                   if (c.key === 'usdtFee' || c.key === 'fxFee' || c.key === 'fee3dsFee') {
                     var feeSpecNum = asNum(row[c.key]);
                     feeShow = feeSpecNum !== 0 ? fmtLedgerAmount(row[c.key], feeCurCode, feeFmtByCur) : '—';
-                  } else if (['amount', 'txnFixedFeesSum', 'pctFeesSum', 'failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'chargebackFee', 'rollingHoldEst', 'totalFee', 'feeVat', 'expectedPayout', 'settlementAmt'].indexOf(c.key) >= 0) {
+                  } else if (['amount', 'txnFixedFeesSum', 'pctFeesSum', 'failFee', 'cancelFee', 'voidFee', 'handVoidFee', 'manualVoidFee', 'refundFee', 'handRefundFee', 'chargebackFee', 'rollingHoldEst', 'totalFee', 'feeVat', 'expectedPayout', 'settlementAmt'].indexOf(c.key) >= 0) {
                     feeShow = fmtLedgerAmount(row[c.key], feeCurCode, feeFmtByCur);
                   } else if (['rollingPctPlain'].indexOf(c.key) >= 0) {
                     feeShow = (val != null && val !== '') ? String(val) : '0';
@@ -21268,7 +21459,7 @@
                   } else if (c.key === 'usdtFee' || c.key === 'fxFee' || c.key === 'fee3dsFee') {
                     var agSpecNum = asNum(row[c.key]);
                     agShow = agSpecNum !== 0 ? fmtLedgerAmount(row[c.key], agCurCode, feeFmtByCur) : '—';
-                  } else if (['amount', 'txnFixedFeesSum', 'pctFeesSum', 'failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'chargebackFee', 'rollingHoldEst', 'totalAgencyFee'].indexOf(c.key) >= 0) {
+                  } else if (['amount', 'txnFixedFeesSum', 'pctFeesSum', 'failFee', 'cancelFee', 'voidFee', 'handVoidFee', 'manualVoidFee', 'refundFee', 'handRefundFee', 'chargebackFee', 'rollingHoldEst', 'totalAgencyFee', 'feeVat', 'feeWithVat'].indexOf(c.key) >= 0) {
                     agShow = fmtLedgerAmount(row[c.key], agCurCode, feeFmtByCur);
                   } else if (c.key === 'policyCur' && (val == null || String(val).trim() === '' || val === '—')) {
                     agShow = '—';
@@ -23024,7 +23215,7 @@
       '/user/userMng', '/set/gridSetMng',
       '/calc/calcList', '/calc/calcGmList', '/calc/paySettlementHoldList', '/settlement/paySettlementHoldList', '/settlement/franchiseList', '/calc/feeList', '/settlement/feeList', '/calc/compPointMngList', '/settlement/recallMng', '/calc/balanceList', '/calc/unpaidMng', '/calc/exCalcList', '/settlement/execute', '/settlement/settlementResultDistribute', '/settlement/settlementResultHold', '/calc/collateralList', '/settlement/collateralList',
       '/noti/notiUrlMng', '/noti/notiSendMngList', '/noti/sandboxNotifyList', '/calc/sandboxPayList', '/calc/cryptoPayList', '/settlement/cryptoPayoutQueue', '/noti/notiCashReceiptUrlMng', '/noti/notiCashReceiptSendMngList',
-      '/hq/pgApiMng', '/hq/permissionMng', '/hq/opsModeMng', '/hq/accountMng', '/risk/list', '/ops/integratedReport', '/ops/verifyReport', '/ops/inactiveCard', '/ops/agencyTxnList', '/ops/distributionTxnList', '/ops/distributionSettlement',
+      '/hq/pgApiMng', '/hq/permissionMng', '/hq/opsModeMng', '/hq/accountMng', '/risk/list', '/ops/integratedReport', '/ops/verifyReport', '/ops/inactiveCard', '/ops/costAudit', '/ops/agencyTxnList', '/ops/distributionTxnList', '/ops/distributionSettlement',
       '/calc/dailyIntegrated', '/calc/queryIntegrated', '/calc/integratedCheck', '/calc/dailyPay', '/calc/dailyFee', '/ops/remittance'];
     function applySettlementReportAccessThenSearch() {
       function runSearch() {
@@ -23076,7 +23267,17 @@
             doSearch(pane, tabId, 1);
           });
         }
-        if (PG_PAY_LIST_SEARCH_URLS.indexOf(url) !== -1) {
+        if (PG_INSPECT_TODAY_DEFAULT_URLS.indexOf(url) !== -1) {
+          ensureJpayTrListDefaultSearchDates(pane);
+          if (url === '/calc/payOverview' && PAY_LIST_NOTIFY_LAYOUT_URLS.indexOf(url) !== -1) {
+            loadPayListNotifyLayout(pane, tabId, url, function () {
+              ensureJpayTrListDefaultSearchDates(pane);
+              runPayListInitialSearch();
+            });
+          } else {
+            runPayListInitialSearch();
+          }
+        } else if (PG_PAY_LIST_SEARCH_URLS.indexOf(url) !== -1) {
           if (url === '/calc/chillPayTrList') {
             ensureChillPayTrListDefaultSearchDates(pane, runPayListInitialSearch);
           } else if (PAY_LIST_NOTIFY_LAYOUT_URLS.indexOf(url) !== -1) {
@@ -23557,7 +23758,7 @@
         var fd = {};
         if (!detail || typeof detail !== 'object') return fd;
         var keys = [
-          'perTxFee', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'usageRate', 'failFee', 'payRate', 'refundRate', 'rollingPct', 'rollingDays',
+          'perTxFee', 'cancelRate', 'voidFeePerTx', 'handVoidFeePerTx', 'manualVoidFeePerTx', 'handRefundFeePerTx', 'usageRate', 'failFee', 'payRate', 'refundRate', 'rollingPct', 'rollingDays',
           'feeAccountActivation', 'feeAnnual', 'feeTechService', 'feeSettlementPerTx', 'feeRefund',
           'fee3dsRate', 'chargebackFeePerTx', 'chargebackPolicyId', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx',
           'hqRate', 'regionalRate', 'masterRate', 'branchRate', 'agencyRate', 'salesOfficeRate',
@@ -23801,7 +24002,9 @@
             setAmt('commissionPerTxFee', data.perTxFee);
             setAmt('commissionCancelRate', data.cancelRate);
             setAmt('commissionVoidFeePerTx', data.voidFeePerTx);
+            setAmt('commissionHandVoidFeePerTx', data.handVoidFeePerTx);
             setAmt('commissionManualVoidFeePerTx', data.manualVoidFeePerTx);
+            setAmt('commissionHandRefundFeePerTx', data.handRefundFeePerTx);
             setAmt('commissionFailFee', data.failFee);
             setPct('commissionPayRate', data.payRate);
             setAmt('commissionRefundRate', data.refundRate);
@@ -25970,7 +26173,7 @@
         form.querySelectorAll('input, select, textarea').forEach(function (el) { el.disabled = false; });
         var updBtnReset = pane.querySelector('#compInfoUpdateBtn');
         if (updBtnReset) updBtnReset.style.display = '';
-        var allFieldsInfo = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'tradeNm', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'webPaymentQrMode', 'webPayQrTitleMode', 'webPayQrTitleText', 'webPayQrFooterMode', 'webPayQrFooterText', 'webPaymentHeaderLogoMode', 'webPaymentHeaderLogoUrl', 'webPaymentHeaderHtmlTitle', 'cryptoPaymentHeaderLogoMode', 'cryptoPaymentHeaderLogoUrl', 'cryptoPaymentHeaderHtmlTitle', 'apiPaymentHeaderLogoMode', 'apiPaymentHeaderLogoUrl', 'apiPaymentHeaderHtmlTitle', 'webPaymentHeaderSubtitleMode', 'webPaymentHeaderSubtitleText', 'unifiedPaymentHeaderSubtitleMode', 'unifiedPaymentHeaderSubtitleText', 'unifiedPaymentNoticeMode', 'unifiedPaymentNoticeText', 'unifiedPaymentExtraFooterMode', 'unifiedPaymentExtraFooterText', 'cryptoPaymentHeaderSubtitleMode', 'cryptoPaymentHeaderSubtitleText', 'qrPaymentUseYn', 'qrPaymentHeaderLogoMode', 'qrPaymentHeaderLogoUrl', 'qrPaymentHeaderHtmlTitle', 'qrPaymentBrandTitleMode', 'qrPaymentBrandTitleText', 'qrPaymentHeaderSubtitleMode', 'qrPaymentHeaderSubtitleText', 'qrPaymentFooterMode', 'qrPaymentFooterText', 'hqQrPaymentUseDefaultYn', 'urlPayCardInputMode', 'urlPayCardInputDisabledText', 'urlPayCheckoutMoveMode', 'urlPayCheckoutMoveTargetType', 'urlPayCheckoutMoveTarget', 'urlPayCheckoutMoveMessage', 'urlPayCheckoutMode', 'urlPayInputMode', 'urlPayCardExpiryMode', 'urlPayProductNameUseYn', 'urlPayCompanyNameShowYn', 'urlPayLangMenuUseYn', 'checkoutContactRememberMode', 'urlPayShippingAddressUseYn', 'urlPayBuyerEmailUseYn', 'urlPayBuyerCountryUseYn', 'urlPayBuyerPhoneUseYn', 'urlPayBuyerNameUseYn', 'apiBuyerNameUseYn', 'jpayPhoneDialCodeYn', 'urlPayOrderNoShowYn', 'redirectCheckoutLeadMode', 'redirectCheckoutLeadText', 'redirectCheckoutHintMode', 'redirectCheckoutHintText', 'simplePayCheckoutLeadMode', 'simplePayCheckoutLeadText', 'simplePayCheckoutHintMode', 'simplePayCheckoutHintText', 'simplePayCheckoutAutoMode', 'simplePayCheckoutAutoText', 'urlPayCheckoutFieldPresetId', 'apiUrlPayCheckoutMode', 'splitPayEnabledYn', 'splitPayIntervalMonthYn', 'splitPayIntervalDayYn', 'splitPayIntervalMultiYn', 'splitPayDayIntervalDays', 'splitPayMonthIntervalMonths', 'splitPayMultiMaxMonths', 'splitPayFirstPayMode', 'splitPayHeaderLogoMode', 'splitPayHeaderLogoUrl', 'splitPayHeaderHtmlTitle', 'splitPayHeaderSubtitleMode', 'splitPayHeaderSubtitleText', 'splitPayLangMenuUseYn', 'chatbotUrlPayCheckoutMode', 'jpayCheckoutFieldMode', 'apiJpaySubscriptionUseYn', 'apiBrokerInlineUseYn', 'apiBrokerRedirectUseYn', 'apiWordpressUseYn', 'simpleQrCheckoutUseYn', 'pgBuyerEmailAttestYn', 'outboundWebhookSignYn', 'simpleQrShowOrderNoYn', 'simpleQrShowProductYn', 'simpleQrShowNameYn', 'simpleQrShowEmailYn', 'simpleQrShowPhoneYn', 'mobileCheckoutMode', 'chatbotPaymentUseYn', 'chatbotProductSlotLimit', 'chatbotHeaderLogoUrl', 'chatbotAdminUsername', 'chatbotCatalogListingGrant', 'chatbotMaxProductImagesGrant', 'chatbotCatalogListingEnabled', 'baseCurrency', 'remark', 'operationRecord', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'payLmtCurrency', 'payLmtTxMax', 'payLmtTxMaxMode', 'payLmtTxMin', 'payLmtTxMinMode', 'payLmtDay', 'payLmtDayMode', 'payLmtMonth', 'payLmtMonthMode', 'payLmtYearCorp', 'payLmtYearCorpMode', 'payLmtYearInd', 'payLmtYearIndMode', 'payLmtUiMode', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'commissionCryptoFollowHq', 'hqCryptoPolicyScope', 'fiatCommissionSlotYn', 'commissionQrFollowHq', 'hqQrPolicyScope', 'qrCurrencyCode', 'commissionQrHoldFollowHq', 'qrHoldRate', 'qrHoldDays', 'qrPayRate', 'qrFailFee', 'qrCancelRate', 'qrVoidFeePerTx', 'qrManualVoidFeePerTx', 'qrRefundRate', 'qrUsageRate', 'qrFeeSettlementPerTx', 'qrFee3dsRate', 'qrCommissionMemo', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'voidSettlementMode', 'manualVoidSettlementMode', 'refundSettlementMode', 'forceRefundSettlementMode', 'commissionMemo', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'chargebackPolicyId', 'cryptoChargebackFeePerTx', 'cryptoChargebackPolicyId', 'qrChargebackFeePerTx', 'qrChargebackPolicyId', 'payFollowMerchantUseYn', 'payFollowAutoVoidYn', 'payFollowEmailVoidYn', 'payFollowManualVoidYn', 'payFollowAutoRefundYn', 'payFollowManualRefundYn', 'payFollowForceRefundYn', 'urlPayAlertEmailYn', 'receiptEmailFollowHqYn', 'receiptEmailUseYn', 'receiptEmailEnabledYn', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'feeVatApplyYn', 'feeVatRatePct', 'calcCycleTransitionMode', 'calcCycleChangeRemark', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'jpayNotifyUrl', 'jpayCallbackUrl', 'assistantLoginId', 'assistantPwd', 'assistantRoleType', 'brandingEditAllowedYn', 'cardRiskPolicyMode', 'cardRiskTier1Hours', 'cardRiskTier1Min', 'cardRiskTier2Hours', 'cardRiskTier2Min', 'cardRiskTier3Hours', 'cardRiskTier3Min', 'cardRiskTier4Hours', 'cardRiskTier4Min', 'cardRiskAutoBlacklistTier', 'cardRiskTrackPeriodPolicy', 'cardRiskTrackPeriodMode', 'cardRiskTrackPeriodValue', 'cardRiskPresaleMode', 'cardRiskPresaleBuyerMismatchYn', 'cardRiskPresaleHolderNameYn', 'cardRiskPresalePhoneInvalidYn', 'cardRiskPresaleEmailInvalidYn', 'cardRiskPresaleVelocityCardYn', 'cardRiskPresaleVelocityEmailYn', 'cardRiskPresaleVelocityIpYn', 'cardRiskPresaleVelCardWinMin', 'cardRiskPresaleVelCardMax', 'cardRiskPresaleVelEmailWinMin', 'cardRiskPresaleVelEmailMax', 'cardRiskPresaleVelIpWinMin', 'cardRiskPresaleVelIpMax', 'copyright'];
+        var allFieldsInfo = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'tradeNm', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'webPaymentQrMode', 'webPayQrTitleMode', 'webPayQrTitleText', 'webPayQrFooterMode', 'webPayQrFooterText', 'webPaymentHeaderLogoMode', 'webPaymentHeaderLogoUrl', 'webPaymentHeaderHtmlTitle', 'cryptoPaymentHeaderLogoMode', 'cryptoPaymentHeaderLogoUrl', 'cryptoPaymentHeaderHtmlTitle', 'apiPaymentHeaderLogoMode', 'apiPaymentHeaderLogoUrl', 'apiPaymentHeaderHtmlTitle', 'webPaymentHeaderSubtitleMode', 'webPaymentHeaderSubtitleText', 'unifiedPaymentHeaderSubtitleMode', 'unifiedPaymentHeaderSubtitleText', 'unifiedPaymentNoticeMode', 'unifiedPaymentNoticeText', 'unifiedPaymentExtraFooterMode', 'unifiedPaymentExtraFooterText', 'cryptoPaymentHeaderSubtitleMode', 'cryptoPaymentHeaderSubtitleText', 'qrPaymentUseYn', 'qrPaymentHeaderLogoMode', 'qrPaymentHeaderLogoUrl', 'qrPaymentHeaderHtmlTitle', 'qrPaymentBrandTitleMode', 'qrPaymentBrandTitleText', 'qrPaymentHeaderSubtitleMode', 'qrPaymentHeaderSubtitleText', 'qrPaymentFooterMode', 'qrPaymentFooterText', 'hqQrPaymentUseDefaultYn', 'urlPayCardInputMode', 'urlPayCardInputDisabledText', 'urlPayCheckoutMoveMode', 'urlPayCheckoutMoveTargetType', 'urlPayCheckoutMoveTarget', 'urlPayCheckoutMoveMessage', 'urlPayCheckoutMode', 'urlPayInputMode', 'urlPayCardExpiryMode', 'urlPayProductNameUseYn', 'urlPayCompanyNameShowYn', 'urlPayLangMenuUseYn', 'checkoutContactRememberMode', 'urlPayShippingAddressUseYn', 'urlPayBuyerEmailUseYn', 'urlPayBuyerCountryUseYn', 'urlPayBuyerPhoneUseYn', 'urlPayBuyerNameUseYn', 'apiBuyerNameUseYn', 'jpayPhoneDialCodeYn', 'urlPayOrderNoShowYn', 'redirectCheckoutLeadMode', 'redirectCheckoutLeadText', 'redirectCheckoutHintMode', 'redirectCheckoutHintText', 'simplePayCheckoutLeadMode', 'simplePayCheckoutLeadText', 'simplePayCheckoutHintMode', 'simplePayCheckoutHintText', 'simplePayCheckoutAutoMode', 'simplePayCheckoutAutoText', 'urlPayCheckoutFieldPresetId', 'apiUrlPayCheckoutMode', 'splitPayEnabledYn', 'splitPayIntervalMonthYn', 'splitPayIntervalDayYn', 'splitPayIntervalMultiYn', 'splitPayDayIntervalDays', 'splitPayMonthIntervalMonths', 'splitPayMultiMaxMonths', 'splitPayFirstPayMode', 'splitPayHeaderLogoMode', 'splitPayHeaderLogoUrl', 'splitPayHeaderHtmlTitle', 'splitPayHeaderSubtitleMode', 'splitPayHeaderSubtitleText', 'splitPayLangMenuUseYn', 'chatbotUrlPayCheckoutMode', 'jpayCheckoutFieldMode', 'apiJpaySubscriptionUseYn', 'apiBrokerInlineUseYn', 'apiBrokerRedirectUseYn', 'apiWordpressUseYn', 'simpleQrCheckoutUseYn', 'pgBuyerEmailAttestYn', 'outboundWebhookSignYn', 'simpleQrShowOrderNoYn', 'simpleQrShowProductYn', 'simpleQrShowNameYn', 'simpleQrShowEmailYn', 'simpleQrShowPhoneYn', 'mobileCheckoutMode', 'chatbotPaymentUseYn', 'chatbotProductSlotLimit', 'chatbotHeaderLogoUrl', 'chatbotAdminUsername', 'chatbotCatalogListingGrant', 'chatbotMaxProductImagesGrant', 'chatbotCatalogListingEnabled', 'baseCurrency', 'remark', 'operationRecord', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'payLmtCurrency', 'payLmtTxMax', 'payLmtTxMaxMode', 'payLmtTxMin', 'payLmtTxMinMode', 'payLmtDay', 'payLmtDayMode', 'payLmtMonth', 'payLmtMonthMode', 'payLmtYearCorp', 'payLmtYearCorpMode', 'payLmtYearInd', 'payLmtYearIndMode', 'payLmtUiMode', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'commissionCryptoFollowHq', 'hqCryptoPolicyScope', 'fiatCommissionSlotYn', 'commissionQrFollowHq', 'hqQrPolicyScope', 'qrCurrencyCode', 'commissionQrHoldFollowHq', 'qrHoldRate', 'qrHoldDays', 'qrPayRate', 'qrFailFee', 'qrCancelRate', 'qrVoidFeePerTx', 'qrHandVoidFeePerTx', 'qrManualVoidFeePerTx', 'qrHandRefundFeePerTx', 'qrRefundRate', 'qrUsageRate', 'qrFeeSettlementPerTx', 'qrFee3dsRate', 'qrCommissionMemo', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'handVoidFeePerTx', 'manualVoidFeePerTx', 'handRefundFeePerTx', 'refundRate', 'voidSettlementMode', 'manualVoidSettlementMode', 'refundSettlementMode', 'forceRefundSettlementMode', 'commissionMemo', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'chargebackPolicyId', 'cryptoChargebackFeePerTx', 'cryptoChargebackPolicyId', 'qrChargebackFeePerTx', 'qrChargebackPolicyId', 'payFollowMerchantUseYn', 'payFollowAutoVoidYn', 'payFollowEmailVoidYn', 'payFollowManualVoidYn', 'payFollowAutoRefundYn', 'payFollowManualRefundYn', 'payFollowForceRefundYn', 'urlPayAlertEmailYn', 'receiptEmailFollowHqYn', 'receiptEmailUseYn', 'receiptEmailEnabledYn', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'feeVatApplyYn', 'feeVatRatePct', 'calcCycleTransitionMode', 'calcCycleChangeRemark', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'jpayNotifyUrl', 'jpayCallbackUrl', 'assistantLoginId', 'assistantPwd', 'assistantRoleType', 'brandingEditAllowedYn', 'cardRiskPolicyMode', 'cardRiskTier1Hours', 'cardRiskTier1Min', 'cardRiskTier2Hours', 'cardRiskTier2Min', 'cardRiskTier3Hours', 'cardRiskTier3Min', 'cardRiskTier4Hours', 'cardRiskTier4Min', 'cardRiskAutoBlacklistTier', 'cardRiskTrackPeriodPolicy', 'cardRiskTrackPeriodMode', 'cardRiskTrackPeriodValue', 'cardRiskPresaleMode', 'cardRiskPresaleBuyerMismatchYn', 'cardRiskPresaleHolderNameYn', 'cardRiskPresalePhoneInvalidYn', 'cardRiskPresaleEmailInvalidYn', 'cardRiskPresaleVelocityCardYn', 'cardRiskPresaleVelocityEmailYn', 'cardRiskPresaleVelocityIpYn', 'cardRiskPresaleVelCardWinMin', 'cardRiskPresaleVelCardMax', 'cardRiskPresaleVelEmailWinMin', 'cardRiskPresaleVelEmailMax', 'cardRiskPresaleVelIpWinMin', 'cardRiskPresaleVelIpMax', 'copyright'];
         allFieldsInfo.forEach(function (k) {
           if (data[k] != null) pgSetCompFormFieldValues(form, k, data[k]);
         });
@@ -27948,7 +28151,7 @@
         var form = pane.querySelector('#compDetailForm');
         if (!form) return;
         initAttachmentSection(pane);
-        var allFields = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'tradeNm', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'webPaymentQrMode', 'webPayQrTitleMode', 'webPayQrTitleText', 'webPayQrFooterMode', 'webPayQrFooterText', 'webPaymentHeaderLogoMode', 'webPaymentHeaderLogoUrl', 'webPaymentHeaderHtmlTitle', 'cryptoPaymentHeaderLogoMode', 'cryptoPaymentHeaderLogoUrl', 'cryptoPaymentHeaderHtmlTitle', 'apiPaymentHeaderLogoMode', 'apiPaymentHeaderLogoUrl', 'apiPaymentHeaderHtmlTitle', 'webPaymentHeaderSubtitleMode', 'webPaymentHeaderSubtitleText', 'unifiedPaymentHeaderSubtitleMode', 'unifiedPaymentHeaderSubtitleText', 'unifiedPaymentNoticeMode', 'unifiedPaymentNoticeText', 'unifiedPaymentExtraFooterMode', 'unifiedPaymentExtraFooterText', 'cryptoPaymentHeaderSubtitleMode', 'cryptoPaymentHeaderSubtitleText', 'qrPaymentUseYn', 'qrPaymentHeaderLogoMode', 'qrPaymentHeaderLogoUrl', 'qrPaymentHeaderHtmlTitle', 'qrPaymentBrandTitleMode', 'qrPaymentBrandTitleText', 'qrPaymentHeaderSubtitleMode', 'qrPaymentHeaderSubtitleText', 'qrPaymentFooterMode', 'qrPaymentFooterText', 'hqQrPaymentUseDefaultYn', 'urlPayCardInputMode', 'urlPayCardInputDisabledText', 'urlPayCheckoutMoveMode', 'urlPayCheckoutMoveTargetType', 'urlPayCheckoutMoveTarget', 'urlPayCheckoutMoveMessage', 'urlPayCheckoutMode', 'urlPayInputMode', 'urlPayCardExpiryMode', 'urlPayProductNameUseYn', 'urlPayCompanyNameShowYn', 'urlPayLangMenuUseYn', 'checkoutContactRememberMode', 'urlPayShippingAddressUseYn', 'urlPayBuyerEmailUseYn', 'urlPayBuyerCountryUseYn', 'urlPayBuyerPhoneUseYn', 'urlPayBuyerNameUseYn', 'apiBuyerNameUseYn', 'jpayPhoneDialCodeYn', 'urlPayOrderNoShowYn', 'redirectCheckoutLeadMode', 'redirectCheckoutLeadText', 'redirectCheckoutHintMode', 'redirectCheckoutHintText', 'simplePayCheckoutLeadMode', 'simplePayCheckoutLeadText', 'simplePayCheckoutHintMode', 'simplePayCheckoutHintText', 'simplePayCheckoutAutoMode', 'simplePayCheckoutAutoText', 'urlPayCheckoutFieldPresetId', 'apiUrlPayCheckoutMode', 'splitPayEnabledYn', 'splitPayIntervalMonthYn', 'splitPayIntervalDayYn', 'splitPayIntervalMultiYn', 'splitPayDayIntervalDays', 'splitPayMonthIntervalMonths', 'splitPayMultiMaxMonths', 'splitPayFirstPayMode', 'splitPayHeaderLogoMode', 'splitPayHeaderLogoUrl', 'splitPayHeaderHtmlTitle', 'splitPayHeaderSubtitleMode', 'splitPayHeaderSubtitleText', 'splitPayLangMenuUseYn', 'chatbotUrlPayCheckoutMode', 'jpayCheckoutFieldMode', 'apiJpaySubscriptionUseYn', 'apiBrokerInlineUseYn', 'apiBrokerRedirectUseYn', 'apiWordpressUseYn', 'simpleQrCheckoutUseYn', 'pgBuyerEmailAttestYn', 'outboundWebhookSignYn', 'simpleQrShowOrderNoYn', 'simpleQrShowProductYn', 'simpleQrShowNameYn', 'simpleQrShowEmailYn', 'simpleQrShowPhoneYn', 'mobileCheckoutMode', 'chatbotPaymentUseYn', 'chatbotProductSlotLimit', 'chatbotHeaderLogoUrl', 'chatbotAdminUsername', 'chatbotCatalogListingGrant', 'chatbotMaxProductImagesGrant', 'chatbotCatalogListingEnabled', 'baseCurrency', 'remark', 'operationRecord', 'settleType', 'commissionRate', 'limitAmt', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'payLmtCurrency', 'payLmtTxMax', 'payLmtTxMaxMode', 'payLmtTxMin', 'payLmtTxMinMode', 'payLmtDay', 'payLmtDayMode', 'payLmtMonth', 'payLmtMonthMode', 'payLmtYearCorp', 'payLmtYearCorpMode', 'payLmtYearInd', 'payLmtYearIndMode', 'payLmtUiMode', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'commissionCryptoFollowHq', 'hqCryptoPolicyScope', 'fiatCommissionSlotYn', 'commissionQrFollowHq', 'hqQrPolicyScope', 'qrCurrencyCode', 'commissionQrHoldFollowHq', 'qrHoldRate', 'qrHoldDays', 'qrPayRate', 'qrFailFee', 'qrCancelRate', 'qrVoidFeePerTx', 'qrManualVoidFeePerTx', 'qrRefundRate', 'qrUsageRate', 'qrFeeSettlementPerTx', 'qrFee3dsRate', 'qrCommissionMemo', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'voidSettlementMode', 'manualVoidSettlementMode', 'refundSettlementMode', 'forceRefundSettlementMode', 'commissionMemo', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'chargebackPolicyId', 'cryptoChargebackFeePerTx', 'cryptoChargebackPolicyId', 'qrChargebackFeePerTx', 'qrChargebackPolicyId', 'payFollowMerchantUseYn', 'payFollowAutoVoidYn', 'payFollowEmailVoidYn', 'payFollowManualVoidYn', 'payFollowAutoRefundYn', 'payFollowManualRefundYn', 'payFollowForceRefundYn', 'urlPayAlertEmailYn', 'receiptEmailFollowHqYn', 'receiptEmailUseYn', 'receiptEmailEnabledYn', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'feeVatApplyYn', 'feeVatRatePct', 'calcCycleTransitionMode', 'calcCycleChangeRemark', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'jpayNotifyUrl', 'jpayCallbackUrl', 'notifyUrl1', 'notifyUrl2', 'notifyUrl3', 'notifyUrl4', 'remitterName', 'balanceNotifyAmt', 'suspiciousNotifyAmt', 'overseasLoginNotifyAmt', 'tempPwdNotifyAmt', 'nonTranCriterionMonth', 'sameCardLimitWebDay', 'sameCardLimitWebTimes', 'sameCardLimitWebAmt', 'sameCardLimitTerminalDay', 'sameCardLimitTerminalTimes', 'sameCardLimitTerminalAmt', 'dailyUsageFee', 'depositNameLookup', 'transferAuthNo', 'autoConvertNewMemberLimit', 'newMemberDailyLimit', 'convertRefDate', 'convertDailyLimit', 'applyStartDate', 'pgFeeGeneral', 'settleDiffMonthCnt', 'settleReportBankCd', 'pgFeeSamsung', 'smsFee', 'taxInvoiceEmail', 'settleAccountNo', 'directFee', 'solutionFee', 'settleAccountHolder', 'withdrawRestrictType', 'withdrawRestrictStartTime', 'withdrawRestrictEndTime', 'terminalPayRestrict', 'webPayRestrict', 'defaultFeeHq', 'defaultFeeDist', 'defaultFeeBranch', 'defaultFeeAgency', 'defaultFeeSalesOffice', 'defaultPayLimitPerTx', 'defaultPayLimitDay', 'defaultPayLimitMonth', 'defaultPayLimitYearCorp', 'defaultPayLimitYearInd', 'cardRiskPolicyMode', 'cardRiskTier1Hours', 'cardRiskTier1Min', 'cardRiskTier2Hours', 'cardRiskTier2Min', 'cardRiskTier3Hours', 'cardRiskTier3Min', 'cardRiskTier4Hours', 'cardRiskTier4Min', 'cardRiskAutoBlacklistTier', 'cardRiskTrackPeriodPolicy', 'cardRiskTrackPeriodMode', 'cardRiskTrackPeriodValue', 'cardRiskPresaleMode', 'cardRiskPresaleBuyerMismatchYn', 'cardRiskPresaleHolderNameYn', 'cardRiskPresalePhoneInvalidYn', 'cardRiskPresaleEmailInvalidYn', 'cardRiskPresaleVelocityCardYn', 'cardRiskPresaleVelocityEmailYn', 'cardRiskPresaleVelocityIpYn', 'cardRiskPresaleVelCardWinMin', 'cardRiskPresaleVelCardMax', 'cardRiskPresaleVelEmailWinMin', 'cardRiskPresaleVelEmailMax', 'cardRiskPresaleVelIpWinMin', 'cardRiskPresaleVelIpMax', 'copyright', 'holidayProfileName', 'holidayProfileCountry', 'holidayCountryCode', 'holidayCountryCodes', 'businessHolidayRangesJson', 'businessHolidayExtraDates'];
+        var allFields = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'tradeNm', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'webPaymentQrMode', 'webPayQrTitleMode', 'webPayQrTitleText', 'webPayQrFooterMode', 'webPayQrFooterText', 'webPaymentHeaderLogoMode', 'webPaymentHeaderLogoUrl', 'webPaymentHeaderHtmlTitle', 'cryptoPaymentHeaderLogoMode', 'cryptoPaymentHeaderLogoUrl', 'cryptoPaymentHeaderHtmlTitle', 'apiPaymentHeaderLogoMode', 'apiPaymentHeaderLogoUrl', 'apiPaymentHeaderHtmlTitle', 'webPaymentHeaderSubtitleMode', 'webPaymentHeaderSubtitleText', 'unifiedPaymentHeaderSubtitleMode', 'unifiedPaymentHeaderSubtitleText', 'unifiedPaymentNoticeMode', 'unifiedPaymentNoticeText', 'unifiedPaymentExtraFooterMode', 'unifiedPaymentExtraFooterText', 'cryptoPaymentHeaderSubtitleMode', 'cryptoPaymentHeaderSubtitleText', 'qrPaymentUseYn', 'qrPaymentHeaderLogoMode', 'qrPaymentHeaderLogoUrl', 'qrPaymentHeaderHtmlTitle', 'qrPaymentBrandTitleMode', 'qrPaymentBrandTitleText', 'qrPaymentHeaderSubtitleMode', 'qrPaymentHeaderSubtitleText', 'qrPaymentFooterMode', 'qrPaymentFooterText', 'hqQrPaymentUseDefaultYn', 'urlPayCardInputMode', 'urlPayCardInputDisabledText', 'urlPayCheckoutMoveMode', 'urlPayCheckoutMoveTargetType', 'urlPayCheckoutMoveTarget', 'urlPayCheckoutMoveMessage', 'urlPayCheckoutMode', 'urlPayInputMode', 'urlPayCardExpiryMode', 'urlPayProductNameUseYn', 'urlPayCompanyNameShowYn', 'urlPayLangMenuUseYn', 'checkoutContactRememberMode', 'urlPayShippingAddressUseYn', 'urlPayBuyerEmailUseYn', 'urlPayBuyerCountryUseYn', 'urlPayBuyerPhoneUseYn', 'urlPayBuyerNameUseYn', 'apiBuyerNameUseYn', 'jpayPhoneDialCodeYn', 'urlPayOrderNoShowYn', 'redirectCheckoutLeadMode', 'redirectCheckoutLeadText', 'redirectCheckoutHintMode', 'redirectCheckoutHintText', 'simplePayCheckoutLeadMode', 'simplePayCheckoutLeadText', 'simplePayCheckoutHintMode', 'simplePayCheckoutHintText', 'simplePayCheckoutAutoMode', 'simplePayCheckoutAutoText', 'urlPayCheckoutFieldPresetId', 'apiUrlPayCheckoutMode', 'splitPayEnabledYn', 'splitPayIntervalMonthYn', 'splitPayIntervalDayYn', 'splitPayIntervalMultiYn', 'splitPayDayIntervalDays', 'splitPayMonthIntervalMonths', 'splitPayMultiMaxMonths', 'splitPayFirstPayMode', 'splitPayHeaderLogoMode', 'splitPayHeaderLogoUrl', 'splitPayHeaderHtmlTitle', 'splitPayHeaderSubtitleMode', 'splitPayHeaderSubtitleText', 'splitPayLangMenuUseYn', 'chatbotUrlPayCheckoutMode', 'jpayCheckoutFieldMode', 'apiJpaySubscriptionUseYn', 'apiBrokerInlineUseYn', 'apiBrokerRedirectUseYn', 'apiWordpressUseYn', 'simpleQrCheckoutUseYn', 'pgBuyerEmailAttestYn', 'outboundWebhookSignYn', 'simpleQrShowOrderNoYn', 'simpleQrShowProductYn', 'simpleQrShowNameYn', 'simpleQrShowEmailYn', 'simpleQrShowPhoneYn', 'mobileCheckoutMode', 'chatbotPaymentUseYn', 'chatbotProductSlotLimit', 'chatbotHeaderLogoUrl', 'chatbotAdminUsername', 'chatbotCatalogListingGrant', 'chatbotMaxProductImagesGrant', 'chatbotCatalogListingEnabled', 'baseCurrency', 'remark', 'operationRecord', 'settleType', 'commissionRate', 'limitAmt', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'payLmtCurrency', 'payLmtTxMax', 'payLmtTxMaxMode', 'payLmtTxMin', 'payLmtTxMinMode', 'payLmtDay', 'payLmtDayMode', 'payLmtMonth', 'payLmtMonthMode', 'payLmtYearCorp', 'payLmtYearCorpMode', 'payLmtYearInd', 'payLmtYearIndMode', 'payLmtUiMode', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'commissionCryptoFollowHq', 'hqCryptoPolicyScope', 'fiatCommissionSlotYn', 'commissionQrFollowHq', 'hqQrPolicyScope', 'qrCurrencyCode', 'commissionQrHoldFollowHq', 'qrHoldRate', 'qrHoldDays', 'qrPayRate', 'qrFailFee', 'qrCancelRate', 'qrVoidFeePerTx', 'qrHandVoidFeePerTx', 'qrManualVoidFeePerTx', 'qrHandRefundFeePerTx', 'qrRefundRate', 'qrUsageRate', 'qrFeeSettlementPerTx', 'qrFee3dsRate', 'qrCommissionMemo', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'handVoidFeePerTx', 'manualVoidFeePerTx', 'handRefundFeePerTx', 'refundRate', 'voidSettlementMode', 'manualVoidSettlementMode', 'refundSettlementMode', 'forceRefundSettlementMode', 'commissionMemo', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'chargebackPolicyId', 'cryptoChargebackFeePerTx', 'cryptoChargebackPolicyId', 'qrChargebackFeePerTx', 'qrChargebackPolicyId', 'payFollowMerchantUseYn', 'payFollowAutoVoidYn', 'payFollowEmailVoidYn', 'payFollowManualVoidYn', 'payFollowAutoRefundYn', 'payFollowManualRefundYn', 'payFollowForceRefundYn', 'urlPayAlertEmailYn', 'receiptEmailFollowHqYn', 'receiptEmailUseYn', 'receiptEmailEnabledYn', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'feeVatApplyYn', 'feeVatRatePct', 'calcCycleTransitionMode', 'calcCycleChangeRemark', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'jpayNotifyUrl', 'jpayCallbackUrl', 'notifyUrl1', 'notifyUrl2', 'notifyUrl3', 'notifyUrl4', 'remitterName', 'balanceNotifyAmt', 'suspiciousNotifyAmt', 'overseasLoginNotifyAmt', 'tempPwdNotifyAmt', 'nonTranCriterionMonth', 'sameCardLimitWebDay', 'sameCardLimitWebTimes', 'sameCardLimitWebAmt', 'sameCardLimitTerminalDay', 'sameCardLimitTerminalTimes', 'sameCardLimitTerminalAmt', 'dailyUsageFee', 'depositNameLookup', 'transferAuthNo', 'autoConvertNewMemberLimit', 'newMemberDailyLimit', 'convertRefDate', 'convertDailyLimit', 'applyStartDate', 'pgFeeGeneral', 'settleDiffMonthCnt', 'settleReportBankCd', 'pgFeeSamsung', 'smsFee', 'taxInvoiceEmail', 'settleAccountNo', 'directFee', 'solutionFee', 'settleAccountHolder', 'withdrawRestrictType', 'withdrawRestrictStartTime', 'withdrawRestrictEndTime', 'terminalPayRestrict', 'webPayRestrict', 'defaultFeeHq', 'defaultFeeDist', 'defaultFeeBranch', 'defaultFeeAgency', 'defaultFeeSalesOffice', 'defaultPayLimitPerTx', 'defaultPayLimitDay', 'defaultPayLimitMonth', 'defaultPayLimitYearCorp', 'defaultPayLimitYearInd', 'cardRiskPolicyMode', 'cardRiskTier1Hours', 'cardRiskTier1Min', 'cardRiskTier2Hours', 'cardRiskTier2Min', 'cardRiskTier3Hours', 'cardRiskTier3Min', 'cardRiskTier4Hours', 'cardRiskTier4Min', 'cardRiskAutoBlacklistTier', 'cardRiskTrackPeriodPolicy', 'cardRiskTrackPeriodMode', 'cardRiskTrackPeriodValue', 'cardRiskPresaleMode', 'cardRiskPresaleBuyerMismatchYn', 'cardRiskPresaleHolderNameYn', 'cardRiskPresalePhoneInvalidYn', 'cardRiskPresaleEmailInvalidYn', 'cardRiskPresaleVelocityCardYn', 'cardRiskPresaleVelocityEmailYn', 'cardRiskPresaleVelocityIpYn', 'cardRiskPresaleVelCardWinMin', 'cardRiskPresaleVelCardMax', 'cardRiskPresaleVelEmailWinMin', 'cardRiskPresaleVelEmailMax', 'cardRiskPresaleVelIpWinMin', 'cardRiskPresaleVelIpMax', 'copyright', 'holidayProfileName', 'holidayProfileCountry', 'holidayCountryCode', 'holidayCountryCodes', 'businessHolidayRangesJson', 'businessHolidayExtraDates'];
         allFields.forEach(function (k) {
           if (data[k] != null) pgSetCompFormFieldValues(form, k, data[k]);
         });
@@ -28762,7 +28965,7 @@
         });
         pane.querySelectorAll('.hq-tier-cell').forEach(function (inp) { inp.value = ''; });
         var mdef = {
-          payRate: '2.5', perTxFee: '0', failFee: '0', cancelRate: '0', voidFeePerTx: '0', manualVoidFeePerTx: '0', refundRate: '0',
+          payRate: '2.5', perTxFee: '0', failFee: '0', cancelRate: '0', voidFeePerTx: '0', handVoidFeePerTx: '0', manualVoidFeePerTx: '0', refundRate: '0', handRefundFeePerTx: '0',
           feeSettlementPerTx: '0', feeUsdt: '0', feeFx: '0', usageRate: '0', fee3dsRate: '0', chargebackFeePerTx: '0',
           acquisitionOpsFeePct: '0', escrowOpsFeePct: '0', authFeePerTx: '0'
         };
@@ -28907,8 +29110,10 @@
           h += cbTd;
           h += tdAmt(nzStr(t, 'cancelRate', ''));
           h += tdAmt(nzStr(t, 'voidFeePerTx', ''));
+          h += tdAmt(nzStr(t, 'handVoidFeePerTx', ''));
           h += tdAmt(nzStr(t, 'manualVoidFeePerTx', ''));
           h += tdAmt(nzStr(t, 'refundRate', ''));
+          h += tdAmt(nzStr(t, 'handRefundFeePerTx', ''));
           h += tdAmt(nzStr(t, 'fee3dsRate', ''));
           h += tdAmt(nzStr(t, 'splitPayFixedFeePerInst', ''));
           h += tdPctRow(nzStr(t, 'payRate', ''), 'border-start');
@@ -28919,9 +29124,6 @@
           h += tdDays(nzStr(t, 'rollingDays', ''));
           h += tdAmt(nzStr(t, 'usageRate', ''), 'border-start');
           h += formatExtraSlot(t, 1, ccForFmt);
-          h += formatExtraSlot(t, 2, ccForFmt);
-          h += formatExtraSlot(t, 3, ccForFmt);
-          h += formatExtraSlot(t, 4, ccForFmt);
           h += '<td class="text-nowrap small hq-def-comm-policy-td-upd" title="' + escAttr(ua) + '">' + escH(ua) + '</td></tr>';
         });
         tb.innerHTML = h;
@@ -28990,7 +29192,7 @@
       var hqTierSumLevels = ['hq', 'regional', 'master', 'branch', 'agency', 'salesOffice'];
       var hqPctFeeKeys = { payRate: 1, feeUsdt: 1, feeFx: 1, splitPayFeePct: 1, acquisitionOpsFeePct: 1, escrowOpsFeePct: 1 };
       var hqDefCommTierFeeKeys = [
-        'payRate', 'perTxFee', 'failFee', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate',
+        'payRate', 'perTxFee', 'failFee', 'cancelRate', 'voidFeePerTx', 'handVoidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'handRefundFeePerTx',
         'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'fee3dsRate', 'feeUsdt', 'feeFx',
         'usageRate', 'chargebackFeePerTx', 'splitPayFeePct', 'splitPayFixedFeePerInst',
         'acquisitionOpsFeePct', 'escrowOpsFeePct', 'authFeePerTx'
@@ -30419,180 +30621,9 @@
       }
     }
     if (url === '/hq/pgAgencyCostPolicy') {
-      var dimmPgCost = document.getElementById('dimm');
-      function hqPgCostFlash(variant, msg) {
-        if (window.PG_UI && window.PG_UI.showBanner) {
-          window.PG_UI.showBanner(pane, 'hqPgAgencyCostFlash', variant, msg, 6500);
-        }
+      if (window.PG_AGENCY_COST_REGISTER && typeof window.PG_AGENCY_COST_REGISTER.bind === 'function') {
+        window.PG_AGENCY_COST_REGISTER.bind(pane);
       }
-      function hqPgCostEsc(s) {
-        return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-      }
-      function hqPgCostSyncBatchTimeVisibility() {
-        var typ = pane.querySelector('#hqPgCostSettleType');
-        var wrap = pane.querySelector('#hqPgCostSettleBatchWrap');
-        if (!typ || !wrap) return;
-        wrap.style.display = typ.value === 'D' ? '' : 'none';
-      }
-      function hqPgCostFillChargebackSelect(opts) {
-        var sel = pane.querySelector('#hqPgCostChargebackPolicyId');
-        if (!sel) return;
-        var prev = sel.value || '';
-        var h = '<option value="" data-pg-ui-t="(미사용) 건당 차지백만">' + hqPgCostEsc(pgAdminUiT('(미사용) 건당 차지백만')) + '</option>';
-        (opts || []).forEach(function (o) {
-          h += '<option value="' + hqPgCostEsc(String(o.id)) + '">' + hqPgCostEsc(o.name || '') + '</option>';
-        });
-        sel.innerHTML = h;
-        if (prev) sel.value = prev;
-      }
-      function hqPgCostFillPgSelect(pgOptions, selectedCd) {
-        var sel = pane.querySelector('#hqPgCostPgCd');
-        if (!sel) return;
-        var h = '<option value="">' + hqPgCostEsc(pgAdminUiT('PG 선택')) + '</option>';
-        (pgOptions || []).forEach(function (o) {
-          var cd = o.pgCd || '';
-          var nm = o.pgNm || cd;
-          h += '<option value="' + hqPgCostEsc(cd) + '">' + hqPgCostEsc(cd + ' — ' + nm) + '</option>';
-        });
-        sel.innerHTML = h;
-        if (selectedCd) sel.value = selectedCd;
-      }
-      function hqPgCostApplyToForm(d) {
-        if (!d) d = {};
-        var fields = ['perTxFee', 'usageRate', 'failFee', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate',
-          'payRate', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx',
-          'rollingPct', 'rollingDays', 'policyRemark', 'fee3dsRate', 'chargebackFeePerTx', 'settleLagN'];
-        fields.forEach(function (k) {
-          var el = pane.querySelector('[name="' + k + '"]');
-          if (el && d[k] != null) el.value = String(d[k]);
-        });
-        var pgSel = pane.querySelector('#hqPgCostPgCd');
-        if (pgSel && d.pgCd != null) pgSel.value = String(d.pgCd);
-        var cur = pane.querySelector('#hqPgCostCurrencyCode');
-        if (cur && d.currencyCode) cur.value = String(d.currencyCode).toUpperCase();
-        var use = pane.querySelector('#hqPgCostUseYn');
-        if (use) use.value = (d.useYn === 'N') ? 'N' : 'Y';
-        var cb = pane.querySelector('#hqPgCostChargebackPolicyId');
-        if (cb) cb.value = d.chargebackPolicyId != null && d.chargebackPolicyId !== '' ? String(d.chargebackPolicyId) : '';
-        var st = pane.querySelector('#hqPgCostSettleType');
-        if (st && d.settleScheduleType) st.value = String(d.settleScheduleType);
-        var bt = pane.querySelector('#hqPgCostSettleBatchTime');
-        if (bt) bt.value = d.settleBatchTime != null ? String(d.settleBatchTime) : '';
-        var ei;
-        for (ei = 1; ei <= 4; ei++) {
-          var nm = pane.querySelector('[name="extraFee' + ei + 'Name"]');
-          var md = pane.querySelector('[name="extraFee' + ei + 'Mode"]');
-          var vl = pane.querySelector('[name="extraFee' + ei + 'Value"]');
-          if (nm) nm.value = d['extraFee' + ei + 'Name'] || '';
-          if (md) md.value = d['extraFee' + ei + 'Mode'] || '';
-          if (vl) vl.value = d['extraFee' + ei + 'Value'] != null ? String(d['extraFee' + ei + 'Value']) : '';
-        }
-        hqPgCostSyncBatchTimeVisibility();
-      }
-      function hqPgCostCollectBody() {
-        var body = {};
-        var names = ['pgCd', 'perTxFee', 'usageRate', 'failFee', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate',
-          'payRate', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx',
-          'rollingPct', 'rollingDays', 'currencyCode', 'policyRemark', 'fee3dsRate', 'chargebackFeePerTx', 'chargebackPolicyId',
-          'settleBasis', 'settleScheduleType', 'settleLagN', 'settleBatchTime', 'useYn'];
-        names.forEach(function (k) {
-          var el = pane.querySelector('[name="' + k + '"]') || pane.querySelector('#hqPgCost' + k.charAt(0).toUpperCase() + k.slice(1));
-          if (k === 'pgCd') el = pane.querySelector('#hqPgCostPgCd');
-          if (k === 'currencyCode') el = pane.querySelector('#hqPgCostCurrencyCode');
-          if (k === 'useYn') el = pane.querySelector('#hqPgCostUseYn');
-          if (k === 'chargebackPolicyId') el = pane.querySelector('#hqPgCostChargebackPolicyId');
-          if (k === 'settleScheduleType') el = pane.querySelector('#hqPgCostSettleType');
-          if (k === 'settleLagN') el = pane.querySelector('#hqPgCostSettleLagN');
-          if (k === 'settleBatchTime') el = pane.querySelector('#hqPgCostSettleBatchTime');
-          if (k === 'policyRemark') el = pane.querySelector('#hqPgCostPolicyRemark');
-          if (el) body[k] = el.value;
-        });
-        var ei;
-        for (ei = 1; ei <= 4; ei++) {
-          ['Name', 'Mode', 'Value'].forEach(function (suf) {
-            var el2 = pane.querySelector('[name="extraFee' + ei + suf + '"]');
-            if (el2) body['extraFee' + ei + suf] = el2.value;
-          });
-        }
-        return body;
-      }
-      function hqPgCostRenderList(rows) {
-        var tb = pane.querySelector('#hqPgAgencyCostListTbody');
-        if (!tb) return;
-        if (!rows || !rows.length) {
-          tb.innerHTML = '<tr><td colspan="5" class="text-muted text-center small">' + hqPgCostEsc(pgAdminUiT('등록된 원가 정책이 없습니다.')) + '</td></tr>';
-          return;
-        }
-        var h = '';
-        rows.forEach(function (r) {
-          h += '<tr class="hq-pg-cost-list-row" data-pg-cd="' + hqPgCostEsc(r.pgCd || '') + '" style="cursor:pointer">' +
-            '<td class="text-nowrap">' + hqPgCostEsc(r.pgCd) + '</td>' +
-            '<td>' + hqPgCostEsc(r.pgNm) + '</td>' +
-            '<td class="text-end text-nowrap">' + hqPgCostEsc(r.payRate) + '</td>' +
-            '<td class="text-nowrap">' + hqPgCostEsc(r.settleScheduleLabel) + '</td>' +
-            '<td class="text-nowrap">' + hqPgCostEsc(r.currencyCode) + '</td></tr>';
-        });
-        tb.innerHTML = h;
-        tb.querySelectorAll('.hq-pg-cost-list-row').forEach(function (tr) {
-          tr.addEventListener('click', function () {
-            var cd = tr.getAttribute('data-pg-cd') || '';
-            if (!cd) return;
-            if (dimmPgCost) dimmPgCost.style.display = 'flex';
-            window.PG_API.hqPgAgencyCostPolicyDetail(cd).then(function (d) {
-              hqPgCostApplyToForm(d);
-            }).catch(function (e) {
-              hqPgCostFlash('danger', pgErrMsg(e, '불러오기 실패'));
-            }).finally(function () { if (dimmPgCost) dimmPgCost.style.display = 'none'; });
-          });
-        });
-      }
-      function hqPgCostReload() {
-        if (dimmPgCost) dimmPgCost.style.display = 'flex';
-        return window.PG_API.hqPgAgencyCostPolicy().then(function (data) {
-          pane._hqPgCostBootstrap = data;
-          hqPgCostFillPgSelect(data.pgOptions, '');
-          hqPgCostFillChargebackSelect(data.chargebackOptions);
-          hqPgCostRenderList(data.policies);
-        }).catch(function (e) {
-          hqPgCostFlash('danger', pgErrMsg(e, '불러오기 실패'));
-        }).finally(function () { if (dimmPgCost) dimmPgCost.style.display = 'none'; });
-      }
-      function hqPgCostRebind(el, evt, key, fn) {
-        if (!el) return;
-        var k = key + '_' + (pane.getAttribute('data-tab-id') || '0');
-        if (el._pgBindKey === k) return;
-        el._pgBindKey = k;
-        el.addEventListener(evt, fn);
-      }
-      hqPgCostRebind(pane.querySelector('#hqPgCostSettleType'), 'change', '_hqPgCostSttl', hqPgCostSyncBatchTimeVisibility);
-      hqPgCostRebind(pane.querySelector('#hqPgAgencyCostNewBtn'), 'click', '_hqPgCostNew', function () {
-        var defs = pane._hqPgCostBootstrap && pane._hqPgCostBootstrap.defaults ? pane._hqPgCostBootstrap.defaults : {};
-        hqPgCostApplyToForm(defs);
-        var pgSel = pane.querySelector('#hqPgCostPgCd');
-        if (pgSel) pgSel.value = '';
-        hqPgCostFlash('info', pgAdminUiT('신규 PG 원가를 입력한 뒤 저장하세요.'));
-      });
-      hqPgCostRebind(pane.querySelector('#hqPgAgencyCostSaveBtn'), 'click', '_hqPgCostSave', function () {
-        var body = hqPgCostCollectBody();
-        if (!body.pgCd || !String(body.pgCd).trim()) {
-          hqPgCostFlash('warning', pgAdminUiT('PG대행사를 선택하세요.'));
-          return;
-        }
-        if (dimmPgCost) dimmPgCost.style.display = 'flex';
-        window.PG_API.hqPgAgencyCostPolicySave(body).then(function (res) {
-          hqPgCostFlash('success', (res && res.message) ? pgAdminUiT(res.message) : pgAdminUiT('저장되었습니다.'));
-          return hqPgCostReload().then(function () {
-            if (res && res.policy) hqPgCostApplyToForm(res.policy);
-          });
-        }).catch(function (e) {
-          hqPgCostFlash('danger', (e && e.message) ? pgAdminUiT(e.message) : pgAdminUiT('저장 실패'));
-        }).finally(function () { if (dimmPgCost) dimmPgCost.style.display = 'none'; });
-      });
-      hqPgCostRebind(pane.querySelector('#hqPgAgencyCostReloadBtn'), 'click', '_hqPgCostRel', function () { hqPgCostReload(); });
-      hqPgCostReload().then(function () {
-        var defs = pane._hqPgCostBootstrap && pane._hqPgCostBootstrap.defaults ? pane._hqPgCostBootstrap.defaults : {};
-        hqPgCostApplyToForm(defs);
-      });
     }
     if (url === '/hq/notifyEnv') {
       var dimmN = document.getElementById('dimm');
@@ -42386,6 +42417,7 @@
           id: row.id,
           pgCd: row.pgCd,
           pgNm: row.pgNm,
+          costPolicyId: row.costPolicyId,
           integKind: row.integKind,
           primaryEndpoint: row.primaryEndpoint,
           apiEndpoint: row.apiEndpoint || '',
@@ -44250,7 +44282,7 @@
   ];
   /** JPAY 포털 Export 수동·전체 재동기화 버튼 — 검수관리 공통 */
   var PG_JPAY_SYNC_URLS = [
-    '/calc/jpayTrList', '/calc/integratedCheck', '/calc/queryIntegrated', '/ops/agencyTxnList', '/ops/distributionTxnList', '/ops/distributionSettlement'
+    '/calc/jpayTrList', '/calc/integratedCheck', '/calc/queryIntegrated', '/ops/costAudit', '/ops/agencyTxnList', '/ops/distributionTxnList', '/ops/distributionSettlement'
   ];
   /** 결제·정산 목록: 한 번에 최대 표시하는 페이지 번호 개수(1~N, 다음 구간은 &gt;) */
   var PG_PAY_SETTLE_PAGE_NUM_BLOCK = 20;
@@ -47246,9 +47278,17 @@
           var el = document.getElementById(id);
           return el && el.value ? String(el.value).trim() : '';
         }
+        var costPolEl = document.getElementById('pgAgencyEditCostPolicyId');
+        var costPolicyId = costPolEl && costPolEl.value ? String(costPolEl.value).trim() : '';
+        if (!costPolicyId) {
+          if (window.PG_UI && window.PG_UI.showToast) window.PG_UI.showToast('warning', pgAdminUiT('대행사명은 필수입니다.'));
+          else alert(pgAdminUiT('대행사명은 필수입니다.'));
+          return;
+        }
         var body = {
           pgCd: document.getElementById('pgAgencyEditPgCd').value.trim(),
           pgNm: document.getElementById('pgAgencyEditPgNm').value.trim(),
+          costPolicyId: costPolicyId,
           apiEndpoint: (document.getElementById('pgAgencyEditEndpoint') && document.getElementById('pgAgencyEditEndpoint').value) ? document.getElementById('pgAgencyEditEndpoint').value.trim() : '',
           integKinds: integKinds,
           endpointNoti: epField('pgAgencyEditEndpointNoti'),

@@ -637,7 +637,20 @@
       buyerCountryIso2: countryIso2,
       payCountryIsoCode2: countryIso2,
       payMeans: 'QR',
-      qrWallet: 'QBANG'
+      qrWallet: 'QBANG',
+      langCode: lang,
+      lang: lang,
+      deviceLang: (function () {
+        try {
+          var nav = String(navigator.language || (navigator.languages && navigator.languages[0]) || '').toLowerCase();
+          if (nav.indexOf('ko') === 0) return 'KOR';
+          if (nav.indexOf('ja') === 0) return 'JPN';
+          if (nav.indexOf('zh') === 0) return 'CHN';
+          if (nav.indexOf('th') === 0) return 'THA';
+          if (nav.indexOf('en') === 0) return 'ENG';
+        } catch (eDl) {}
+        return '';
+      })()
     };
     if (ctx && ctx.sessionToken) body.sessionToken = ctx.sessionToken;
     /* DP: 표시금액(JPY 등) + 견적 토큰 → 서버가 실결제 KRW 확정 */

@@ -40,11 +40,12 @@ public class ApiOpsAgencyTxnListController {
             @RequestParam(required = false) String searchFieldType,
             @RequestParam(required = false) String searchKeyword,
             @RequestParam(required = false) String searchStatusGroup,
+            @RequestParam(required = false) String searchPgCd,
             @RequestParam(required = false) String searchOrderDir,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "50") int size) {
         return ResponseEntity.ok(ApiResponse.ok(opsAgencyTxnListService.list(
                 authentication, searchFromDate, searchToDate, searchCompId, searchCompNm,
-                searchFieldType, searchKeyword, searchStatusGroup, searchOrderDir, page, size)));
+                searchFieldType, searchKeyword, searchStatusGroup, searchPgCd, searchOrderDir, page, size)));
     }
 }

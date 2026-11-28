@@ -483,7 +483,8 @@ public class PaysoPaymentService {
                                 String pgTxn = firstNonBlank(str(detail.get("transactionId")), storedChill);
                                 Optional<com.pg.entity.PgTrnsctn> paidTxn =
                                         paysoSaleRecordService.applyPaidOutcome(
-                                                orderNo.trim(), mid, pgTxn, ref, null, true);
+                                                orderNo.trim(), mid, pgTxn, ref, null, true,
+                                                str(detail.get("orderDateTime")));
                                 if (paidTxn.isPresent()) {
                                     t = paidTxn.get();
                                     st = t.getStatus() != null ? t.getStatus().trim() : "10";
@@ -605,9 +606,21 @@ public class PaysoPaymentService {
             String ref = PaysoSaleRecordService.firstPaysoReference(str(detail.get("referenceNo")), storedRef);
             String pgTxn = firstNonBlank(str(detail.get("transactionId")), storedChill);
             Optional<com.pg.entity.PgTrnsctn> paid = paysoSaleRecordService.applyPaidOutcome(
-                    on, mid, pgTxn, ref, null, true);
+                    on, mid, pgTxn, ref, null, true, str(detail.get("orderDateTime")));
             if (paid.isPresent()) {
                 log.info("PAYSO Order Detail 승인확정 mid={} order={} ref={}", mid, on, ref);
+                try {
+                    paysoSaleRecordService.applyInquiryEnrichment(
+                            paid.get(),
+                            ref,
+                            str(detail.get("orderNo")),
+                            pgTxn,
+                            str(detail.get("cardNo")),
+                            null,
+                            str(detail.get("orderDateTime")));
+                } catch (Exception ignored) {
+                    /* 승인 확정이 우선 */
+                }
             }
             return paid;
         } catch (Exception e) {

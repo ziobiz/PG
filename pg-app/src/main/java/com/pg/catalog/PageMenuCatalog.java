@@ -17,7 +17,6 @@ public final class PageMenuCatalog {
         List<PageMenuItem> list = new ArrayList<>();
         /* 본사정책 — V2 사이드바 허브·탭 왼쪽→오른쪽 순서와 동일 */
         add(list, "/hq/defaultCommission", "M0102", "수수료", "본사정책");
-        add(list, "/hq/pgAgencyCostPolicy", "M0128", "대행수수료", "본사정책");
         add(list, "/hq/chargebackPolicy", "M0117", "차지백", "본사정책");
         add(list, "/hq/riskCardPolicy", "M0129", "리스크", "본사정책");
         add(list, "/hq/paymentOrchestration", "M0118", "결제 라우팅", "본사정책");
@@ -42,12 +41,13 @@ public final class PageMenuCatalog {
         add(list, "/hq/domainConfig", "M0115", "도메인·SSL", "본사정책");
         add(list, "/hq/serverManage", "M0116", "서버", "본사정책");
         add(list, "/hq/platformReleaseNotes", "M0156", "업데이트 내용", "본사정책");
-        /* 검수관리 */
+        /* 검수관리 — 통합체크 → 결제개요 → 원가검수 → 대행수수료 */
         add(list, "/calc/integratedCheck", "M0332", "통합체크", "검수관리");
         add(list, "/calc/jpayTrList", "M0328", "통합개요", "검수관리");
         add(list, "/calc/payOverview", "M0333", "결제개요", "검수관리");
-        add(list, "/calc/queryIntegrated", "M0331", "일별조회", "검수관리");
+        add(list, "/ops/costAudit", "M0616", "원가검수", "검수관리");
         add(list, "/ops/agencyTxnList", "M0607", "대행수수료", "검수관리");
+        add(list, "/calc/queryIntegrated", "M0331", "일별조회", "검수관리");
         /* 업체관리 */
         add(list, "/system/noticeList", "M0201", "공지사항", "업체관리");
         add(list, "/comp/myCompMng", "M0202", "업체정보조회", "업체관리");
@@ -120,7 +120,8 @@ public final class PageMenuCatalog {
         add(list, "/ops/opsManuals", "M0614", "운영 메뉴얼", "운영관리");
         add(list, "/ops/verifyReport", "M0605", "검증리포트", "운영관리");
         add(list, "/ops/taxReport", "M0603", "TAX리포트", "운영관리");
-        /* 연동·배포 — 사이드바 허브·탭 순서 */
+        /* 연동·배포 — 사이드바 허브·탭 순서 (등록 → 설정) */
+        add(list, "/hq/pgAgencyCostPolicy", "M0128", "결제대행사 등록", "연동·배포");
         add(list, "/hq/pgApiMng", "M0101", "결제대행사 설정", "연동·배포");
         add(list, "/hq/apiConfig", "M0103", "공통설정", "연동·배포");
         add(list, "/hq/apiMerchantDeployReg", "M0906", "가맹 등록", "연동·배포");

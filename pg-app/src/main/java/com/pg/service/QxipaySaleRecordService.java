@@ -42,7 +42,7 @@ public class QxipaySaleRecordService {
                                      String productName, String chargeId, String txnOrigin,
                                      BigDecimal shopperDisplayAmount, String shopperDisplayCurrency) {
         recordOrTouchPending(orgUnitId, orderNo, amount, currency, productName, chargeId, txnOrigin,
-                shopperDisplayAmount, shopperDisplayCurrency, null);
+                shopperDisplayAmount, shopperDisplayCurrency, null, null);
     }
 
     /**
@@ -53,6 +53,15 @@ public class QxipaySaleRecordService {
                                      String productName, String chargeId, String txnOrigin,
                                      BigDecimal shopperDisplayAmount, String shopperDisplayCurrency,
                                      String pgOrderRef) {
+        recordOrTouchPending(orgUnitId, orderNo, amount, currency, productName, chargeId, txnOrigin,
+                shopperDisplayAmount, shopperDisplayCurrency, pgOrderRef, null);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void recordOrTouchPending(Long orgUnitId, String orderNo, BigDecimal amount, String currency,
+                                     String productName, String chargeId, String txnOrigin,
+                                     BigDecimal shopperDisplayAmount, String shopperDisplayCurrency,
+                                     String pgOrderRef, java.util.Map<String, Object> saleBody) {
         try {
             Optional<OrgUnit> ouOpt = orgUnitRepository.findById(orgUnitId);
             if (ouOpt.isEmpty() || orderNo == null || orderNo.isBlank()) {
@@ -101,6 +110,10 @@ public class QxipaySaleRecordService {
                 t.setDisplayCurType(shopperDisplayCurrency.trim().toUpperCase());
             }
             t.setPaymentChannel("CARD");
+            if (saleBody != null && !saleBody.isEmpty()) {
+                com.pg.util.UrlPaySaleTxnFieldApplier.apply(t, saleBody);
+                com.pg.util.UrlPaySaleTxnFieldApplier.ensureUrlWebDevice(t, txnOrigin);
+            }
             pgTrnsctnRepository.save(t);
         } catch (Exception e) {
             log.warn("QXIPAY pending txn 실패: {}", e.getMessage());

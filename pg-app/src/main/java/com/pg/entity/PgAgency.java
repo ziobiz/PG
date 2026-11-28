@@ -25,6 +25,10 @@ public class PgAgency {
     @Column(name = "pg_nm", nullable = false, length = 100)
     private String pgNm;
 
+    /** 결제대행사 등록(근원원가) FK — 필수(신규·저장 시 검증) */
+    @Column(name = "cost_policy_id")
+    private Long costPolicyId;
+
     /** 구버전 통합 URL (신규는 용도별 엔드포인트 우선) */
     @Column(name = "api_endpoint", length = 255)
     private String apiEndpoint;
@@ -217,6 +221,8 @@ public class PgAgency {
     public void setPgCd(String pgCd) { this.pgCd = pgCd; }
     public String getPgNm() { return pgNm; }
     public void setPgNm(String pgNm) { this.pgNm = pgNm; }
+    public Long getCostPolicyId() { return costPolicyId; }
+    public void setCostPolicyId(Long costPolicyId) { this.costPolicyId = costPolicyId; }
     public String getApiEndpoint() { return apiEndpoint; }
     public void setApiEndpoint(String apiEndpoint) { this.apiEndpoint = apiEndpoint; }
     public String getEndpointNoti() { return endpointNoti; }

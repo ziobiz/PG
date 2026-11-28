@@ -2550,8 +2550,10 @@
       { k: 'failFee', t: '실패수수료', u: '(건)' },
       { k: 'cancelRate', t: '취소수수료', u: '(건)' },
       { k: 'voidFeePerTx', t: '무효수수료', u: '(건)' },
-      { k: 'manualVoidFeePerTx', t: '수무효수수료', u: '(건)' },
+      { k: 'handVoidFeePerTx', t: '수무효수수료', u: '(건)' },
+      { k: 'manualVoidFeePerTx', t: '이무효수수료', u: '(건)' },
       { k: 'refundRate', t: '환불수수료', u: '(건)' },
+      { k: 'handRefundFeePerTx', t: '수환불수수료', u: '(건)' },
       { k: 'feeSettlementPerTx', t: '정산수수료', u: '(건)' },
       { k: 'remittanceTransferFee', t: '송금수수료', u: '(건)' },
       { k: 'usdtTransferFeeUsd', t: 'USDT 송금수수료', u: '(건)', fiatOnly: true },
@@ -2637,58 +2639,144 @@
       extraRow(1) + extraRow(2) + extraRow(3) + extraRow(4) + '</tbody></table></div></div>';
   }
 
-  /** 대행수수료설정 — 본문(목록+편집) */
+  /** 결제대행사 등록 — 기본정보·수수료·APM·기타 카드 + 목록 */
   function hqPgAgencyCostPolicyPageHtml() {
-    return '<div id="hqPgAgencyCostFlash" class="alert alert-dismissible d-none mb-3" role="alert"><span data-pg-banner-text></span>' +
-      '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="' + escUi(L('닫기')) + '"></button></div>' +
-      '<p class="small text-muted mb-3" data-pg-ui-html="노티·거래는 동일 저장소를 사용합니다. 여기서는 <strong>ICOPAY↔PG대행사 계약</strong> 관점의 수수료·담보·정산 주기(T+N 등)만 설정합니다. PG는 <strong>API연동설정</strong>에 등록된 결제코드별로 1건씩 저장합니다.">' + L('노티·거래는 동일 저장소를 사용합니다. 여기서는 <strong>ICOPAY↔PG대행사 계약</strong> 관점의 수수료·담보·정산 주기(T+N 등)만 설정합니다. PG는 <strong>API연동설정</strong>에 등록된 결제코드별로 1건씩 저장합니다.') + '</p>' +
-      '<div class="row g-3"><div class="col-12 col-lg-5"><div class="card h-100"><div class="card-header py-2 small fw-semibold" data-pg-ui-t="저장된 원가 정책">' + escUi(L('저장된 원가 정책')) + '</div><div class="card-body p-2">' +
-      '<div class="table-responsive border rounded" style="max-height:520px;overflow-y:auto"><table class="table table-sm table-hover align-middle mb-0 hq-pg-cost-policy-list-table">' +
-      '<thead class="table-light"><tr><th class="text-nowrap" data-pg-ui-t="결제코드">' + escUi(L('결제코드')) + '</th><th data-pg-ui-t="PG대행사">' + escUi(L('PG대행사')) + '</th><th class="text-nowrap" data-pg-ui-t="결제%">' + escUi(L('결제%')) + '</th><th class="text-nowrap" data-pg-ui-t="정산주기">' + escUi(L('정산주기')) + '</th><th class="text-nowrap" data-pg-ui-t="통화">' + escUi(L('통화')) + '</th></tr></thead>' +
-      '<tbody id="hqPgAgencyCostListTbody"><tr><td colspan="5" class="text-muted text-center small">' + escUi(L('불러오는 중…')) + '</td></tr></tbody></table></div>' +
-      '<button type="button" class="btn btn-success btn-sm mt-2 w-100" id="hqPgAgencyCostNewBtn" data-pg-ui-t="신규 PG">' + escUi(L('신규 PG')) + '</button></div></div></div>' +
-      '<div class="col-12 col-lg-7"><div class="card h-100"><div class="card-header py-2 small fw-semibold" data-pg-ui-t="편집">' + escUi(L('편집')) + '</div><div class="card-body p-2">' +
-      '<div class="row g-2 mb-2"><div class="col-md-6"><label class="form-label small mb-0" for="hqPgCostPgCd" data-pg-ui-t="PG대행사">' + escUi(L('PG대행사')) + '</label>' +
-      '<select class="form-select form-select-sm" id="hqPgCostPgCd" name="pgCd"></select></div>' +
-      '<div class="col-md-3"><label class="form-label small mb-0" for="hqPgCostCurrencyCode" data-pg-ui-t="기준통화">' + escUi(L('기준통화')) + '</label>' +
-      '<select class="form-select form-select-sm" id="hqPgCostCurrencyCode" name="currencyCode">' +
-      '<option value="KRW">KRW</option><option value="USD">USD</option><option value="JPY">JPY</option><option value="EUR">EUR</option>' +
+    var curOpts = '<option value="KRW">KRW</option><option value="USD">USD</option><option value="JPY">JPY</option><option value="EUR">EUR</option>' +
       '<option value="CNY">CNY</option><option value="THB">THB</option><option value="VND">VND</option><option value="GBP">GBP</option>' +
-      '<option value="TWD">TWD</option><option value="HKD">HKD</option><option value="USDT">USDT</option></select></div>' +
-      '<div class="col-md-3"><label class="form-label small mb-0" for="hqPgCostUseYn" data-pg-ui-t="사용">' + escUi(L('사용')) + '</label>' +
-      '<select class="form-select form-select-sm" id="hqPgCostUseYn" name="useYn"><option value="Y" data-pg-ui-t="사용">' + escUi(L('사용')) + '</option><option value="N" data-pg-ui-t="미사용">' + escUi(L('미사용')) + '</option></select></div></div>' +
-      '<div class="border rounded p-2 mb-2"><div class="small fw-semibold mb-2" data-pg-ui-t="수수료(건당·%)">' + escUi(L('수수료(건당·%)')) + '</div>' +
-      '<div class="row g-2 small">' +
-      feeInp('payRate', L('결제수수료(%)'), 2) + feeInp('perTxFee', L('건당수수료'), 2) + feeInp('failFee', L('실패수수료'), 2) +
-      feeInp('cancelRate', L('취소수수료'), 2) + feeInp('voidFeePerTx', L('무효(건)'), 2) + feeInp('manualVoidFeePerTx', L('수동무효(건)'), 2) +
-      feeInp('refundRate', L('환불(건)'), 2) + feeInp('feeSettlementPerTx', L('정산수수료'), 2) + feeInp('usageRate', L('월이용료'), 2) +
-      feeInp('fee3dsRate', L('3DS(건)'), 2) + feeInp('chargebackFeePerTx', L('차지백(건)'), 2) +
-      feeInp('remittanceTransferFee', L('송금이체'), 2) + feeInp('usdtTransferFeeUsd', L('USDT송금(USD)'), 2) +
-      feeInp('feeUsdt', L('USDT(%)'), 2) + feeInp('feeFx', L('FX(%)'), 2) +
-      '</div><div class="mt-2"><label class="form-label small mb-0" for="hqPgCostChargebackPolicyId" data-pg-ui-t="차지백 구간정책">' + escUi(L('차지백 구간정책')) + '</label>' +
-      '<select class="form-select form-select-sm" id="hqPgCostChargebackPolicyId" name="chargebackPolicyId"><option value="" data-pg-ui-t="(미사용) 건당 차지백만">' + escUi(L('(미사용) 건당 차지백만')) + '</option></select></div></div>' +
-      hqPgAgencyCostExtraFeesHtml() +
-      '<div class="border rounded p-2 mb-2"><div class="small fw-semibold mb-2" data-pg-ui-t="담보(롤링)">' + escUi(L('담보(롤링)')) + '</div>' +
-      '<div class="row g-2">' + feeInp('rollingPct', L('롤링(%)'), 3) + feeInp('rollingDays', L('보류일수'), 3) + '</div></div>' +
-      '<div class="border rounded p-2 mb-2"><div class="small fw-semibold mb-2" data-pg-ui-t="PG 정산 주기 (거래 시각 기준)">' + escUi(L('PG 정산 주기 (거래 시각 기준)')) + '</div>' +
-      '<p class="small text-muted mb-2" data-pg-ui-t="기준은 항상 TRANSACTION(결제 시각)입니다. T=영업일 N일 후 동일 시각, H=24×N시간, D=달력 N일·일괄 시각.">' + escUi(L('기준은 항상 TRANSACTION(결제 시각)입니다. T=영업일 N일 후 동일 시각, H=24×N시간, D=달력 N일·일괄 시각.')) + '</p>' +
-      '<div class="row g-2"><div class="col-md-3"><label class="form-label small mb-0" data-pg-ui-t="기준">' + escUi(L('기준')) + '</label><input type="text" class="form-control form-control-sm" name="settleBasis" value="TRANSACTION" readonly /></div>' +
-      '<div class="col-md-3"><label class="form-label small mb-0" for="hqPgCostSettleType" data-pg-ui-t="유형">' + escUi(L('유형')) + '</label>' +
-      '<select class="form-select form-select-sm" id="hqPgCostSettleType" name="settleScheduleType">' +
-      '<option value="T" data-pg-ui-t="PG정산유형 T">T</option><option value="H" data-pg-ui-t="PG정산유형 H">H</option><option value="D" data-pg-ui-t="PG정산유형 D">D</option></select></div>' +
-      '<div class="col-md-3"><label class="form-label small mb-0" for="hqPgCostSettleLagN" data-pg-ui-t="N">N</label>' +
-      '<input type="number" class="form-control form-control-sm" id="hqPgCostSettleLagN" name="settleLagN" min="1" max="30" value="1" /></div>' +
-      '<div class="col-md-3" id="hqPgCostSettleBatchWrap"><label class="form-label small mb-0" for="hqPgCostSettleBatchTime" data-pg-ui-t="D 일괄시각">' + escUi(L('D 일괄시각')) + '</label>' +
-      '<input type="text" class="form-control form-control-sm" id="hqPgCostSettleBatchTime" name="settleBatchTime" placeholder="09:00" data-pg-ui-placeholder="09:00" /></div></div></div>' +
-      '<div class="mb-2"><label class="form-label small mb-0" for="hqPgCostPolicyRemark" data-pg-ui-t="정책비고">' + escUi(L('정책비고')) + '</label>' +
-      '<textarea class="form-control form-control-sm" id="hqPgCostPolicyRemark" name="policyRemark" rows="2"></textarea></div>' +
-      '<div class="d-flex flex-wrap gap-2"><button type="button" class="btn btn-primary btn-sm" id="hqPgAgencyCostSaveBtn" data-pg-ui-t="저장">' + escUi(L('저장')) + '</button></div>' +
-      '</div></div></div></div>';
+      '<option value="TWD">TWD</option><option value="HKD">HKD</option><option value="USDT">USDT</option>';
     function feeInp(name, labelKo, col) {
       var lk = String(labelKo);
-      return '<div class="col-6 col-md-' + col + '"><label class="form-label small mb-0" for="hqPgCost_' + name + '" data-pg-ui-t="' + escUi(lk) + '">' + escUi(L(lk)) + '</label>' +
-        '<input type="text" class="form-control form-control-sm" id="hqPgCost_' + name + '" name="' + name + '" autocomplete="off" /></div>';
+      return '<div class="col-6 col-md-' + col + '"><div class="form-field-block mb-0">' +
+        '<label class="form-label" for="hqPgCost_' + name + '"><span data-pg-ui-t="' + escUi(lk) + '">' + escUi(L(lk)) + '</span></label>' +
+        '<input type="text" class="form-control form-control-sm" id="hqPgCost_' + name + '" name="' + name + '" autocomplete="off" /></div></div>';
     }
+    function fieldBlock(colCls, inner) {
+      return '<div class="' + colCls + '"><div class="form-field-block mb-0">' + inner + '</div></div>';
+    }
+    function lab(forId, labelKo, required) {
+      var forAttr = forId ? (' for="' + forId + '"') : '';
+      return '<label class="form-label"' + forAttr + '><span data-pg-ui-t="' + escUi(labelKo) + '">' + escUi(L(labelKo)) + '</span>' +
+        (required ? ' <span class="text-danger">*</span>' : '') + '</label>';
+    }
+    return '<div id="hqPgAgencyCostFlash" class="alert alert-dismissible d-none mb-3" role="alert"><span data-pg-banner-text></span>' +
+      '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="' + escUi(L('닫기')) + '"></button></div>' +
+      '<p class="small text-muted mb-3" data-pg-ui-html="ICOPAY↔결제대행사 <strong>근원원가</strong>를 등록합니다. <strong>멀티유무</strong>면 결제사 DP처럼 표시≠청구, 아니면 청구통화만입니다. 필수(*) 없으면 저장되지 않습니다.">' +
+      L('ICOPAY↔결제대행사 <strong>근원원가</strong>를 등록합니다. <strong>멀티유무</strong>면 결제사 DP처럼 표시≠청구, 아니면 청구통화만입니다. 필수(*) 없으면 저장되지 않습니다.') + '</p>' +
+      '<input type="hidden" id="hqPgCostId" value="" />' +
+      '<div class="card mb-3 hq-pg-cost-basic-card"><div class="card-header py-2 small fw-semibold" data-pg-ui-t="기본정보">' + escUi(L('기본정보')) + '</div><div class="card-body px-3 py-3">' +
+      '<div class="row g-3 mb-3">' +
+      fieldBlock('col-6 col-md-2',
+        lab('hqPgCostUseYn', '운영유무', true) +
+        '<select class="form-select form-select-sm" id="hqPgCostUseYn" name="useYn" required>' +
+        '<option value="Y" data-pg-ui-t="사용">' + escUi(L('사용')) + '</option>' +
+        '<option value="N" data-pg-ui-t="미사용">' + escUi(L('미사용')) + '</option></select>' +
+        '<div class="form-text small text-muted mb-0" data-pg-ui-t="이 근원원가 행을 결제대행사 설정에서 선택할 수 있는지(활성)입니다. 멀티유무(표시≠청구)와 별개입니다.">' +
+        escUi(L('이 근원원가 행을 결제대행사 설정에서 선택할 수 있는지(활성)입니다. 멀티유무(표시≠청구)와 별개입니다.')) + '</div>') +
+      fieldBlock('col-6 col-md-3',
+        lab('hqPgCostCostNm', '대행사명', false) +
+        '<input type="text" class="form-control form-control-sm" id="hqPgCostCostNm" name="costNm" maxlength="100" data-pg-ui-placeholder="예: PAYSO JPY" placeholder="' + escUi(L('예: PAYSO JPY')) + '" />') +
+      fieldBlock('col-6 col-md-3',
+        lab('hqPgCostVendorNm', '계약대행사', true) +
+        '<input type="text" class="form-control form-control-sm" id="hqPgCostVendorNm" name="vendorNm" maxlength="100" data-pg-ui-placeholder="예: PAYSO" placeholder="' + escUi(L('예: PAYSO')) + '" />') +
+      fieldBlock('col-6 col-md-2',
+        lab('hqPgCostPgCd', '결제코드', true) +
+        '<input type="text" class="form-control form-control-sm" id="hqPgCostPgCd" name="pgCd" maxlength="20" data-pg-ui-placeholder="예: PAYSO_JPY" placeholder="' + escUi(L('예: PAYSO_JPY')) + '" />') +
+      fieldBlock('col-6 col-md-2',
+        lab('hqPgCostVatRatePct', '부가세율(%)', true) +
+        '<input type="text" class="form-control form-control-sm" id="hqPgCostVatRatePct" name="vatRatePct" />') +
+      '</div>' +
+      '<div class="row g-3 mb-3">' +
+      fieldBlock('col-6 col-md-2',
+        lab('hqPgCostMultiYn', '멀티유무', true) +
+        '<select class="form-select form-select-sm" id="hqPgCostMultiYn" name="multiYn">' +
+        '<option value="N" data-pg-ui-t="아니오(청구만)">' + escUi(L('아니오(청구만)')) + '</option>' +
+        '<option value="Y" data-pg-ui-t="예(표시≠청구)">' + escUi(L('예(표시≠청구)')) + '</option></select>') +
+      fieldBlock('col-6 col-md-2',
+        '<div id="hqPgCostDisplayCurrencyWrap">' +
+        lab('hqPgCostDisplayCurrency', '표시통화', true) +
+        '<select class="form-select form-select-sm" id="hqPgCostDisplayCurrency" name="displayCurrency">' + curOpts + '</select></div>') +
+      fieldBlock('col-6 col-md-2',
+        lab('hqPgCostCurrencyCode', '청구통화', true) +
+        '<select class="form-select form-select-sm" id="hqPgCostCurrencyCode" name="currencyCode">' + curOpts + '</select>') +
+      fieldBlock('col-6 col-md-2',
+        lab('hqPgCost_rollingPct', '롤링(%)', true) +
+        '<input type="text" class="form-control form-control-sm" id="hqPgCost_rollingPct" name="rollingPct" autocomplete="off" />') +
+      fieldBlock('col-6 col-md-2',
+        lab('hqPgCost_rollingDays', '보류일수', true) +
+        '<input type="text" class="form-control form-control-sm" id="hqPgCost_rollingDays" name="rollingDays" autocomplete="off" />') +
+      '</div>' +
+      '<div class="border rounded px-3 py-3 mb-3"><div class="small fw-semibold mb-3">' +
+      '<span data-pg-ui-t="정산주기">' + escUi(L('정산주기')) + '</span> <span class="text-danger">*</span></div>' +
+      '<div class="row g-3">' +
+      fieldBlock('col-md-3',
+        lab(null, '기준', false) +
+        '<input type="text" class="form-control form-control-sm" name="settleBasis" value="TRANSACTION" readonly />') +
+      fieldBlock('col-md-3',
+        lab('hqPgCostSettleType', '유형', true) +
+        '<select class="form-select form-select-sm" id="hqPgCostSettleType" name="settleScheduleType">' +
+        '<option value="T">T</option><option value="H">H</option><option value="D">D</option></select>') +
+      fieldBlock('col-md-3',
+        lab('hqPgCostSettleLagN', 'N', true) +
+        '<input type="number" class="form-control form-control-sm" id="hqPgCostSettleLagN" name="settleLagN" min="1" max="30" value="1" />') +
+      fieldBlock('col-md-3',
+        '<div id="hqPgCostSettleBatchWrap">' +
+        lab('hqPgCostSettleBatchTime', 'D 일괄시각', false) +
+        '<input type="text" class="form-control form-control-sm" id="hqPgCostSettleBatchTime" name="settleBatchTime" placeholder="09:00" /></div>') +
+      '</div></div>' +
+      '<div class="form-field-block mb-0">' +
+      lab('hqPgCostPolicyRemark', '정책비고', false) +
+      '<textarea class="form-control form-control-sm" id="hqPgCostPolicyRemark" name="policyRemark" rows="2"></textarea></div></div></div>' +
+      '<div class="card mb-3"><div class="card-header py-2 small fw-semibold" data-pg-ui-t="수수료(건당·%)">' + escUi(L('수수료(건당·%)')) + '</div><div class="card-body px-3 py-3">' +
+      '<div class="row g-3">' +
+      feeInp('perTxFee', '건당수수료', 2) + feeInp('failFee', '실패수수료', 2) +
+      feeInp('cancelRate', '취소수수료', 2) + feeInp('voidFeePerTx', '무효수수료', 2) + feeInp('handVoidFeePerTx', '수무효수수료', 2) +
+      feeInp('manualVoidFeePerTx', '이무효수수료', 2) + feeInp('refundRate', '환불수수료', 2) + feeInp('handRefundFeePerTx', '수환불수수료', 2) +
+      feeInp('feeSettlementPerTx', '정산수수료', 2) + feeInp('usageRate', '월이용료', 2) +
+      feeInp('fee3dsRate', '3DS(건)', 2) + feeInp('chargebackFeePerTx', '차지백(건)', 2) +
+      feeInp('remittanceTransferFee', '송금이체', 2) + feeInp('usdtTransferFeeUsd', 'USDT송금(USD)', 2) +
+      feeInp('feeUsdt', 'USDT(%)', 2) + feeInp('feeFx', 'FX(%)', 2) +
+      '</div><div class="mt-3 form-field-block mb-0">' + lab('hqPgCostChargebackPolicyId', '차지백 구간정책', false) +
+      '<select class="form-select form-select-sm" id="hqPgCostChargebackPolicyId" name="chargebackPolicyId"><option value="">' + escUi(L('(미사용) 건당 차지백만')) + '</option></select></div></div></div>' +
+      '<div class="card mb-3"><div class="card-header py-2 small fw-semibold" data-pg-ui-t="카드수수료 %">' + escUi(L('카드수수료 %')) + '</div><div class="card-body px-3 py-3">' +
+      '<p class="small text-muted mb-3" data-pg-ui-t="통합=전 브랜드 동일 %. 개별=브랜드별 % · 0이면 해당 브랜드 미사용(예: V+M만 쓰려면 JCB·AMEX 등을 0).">' +
+      escUi(L('통합=전 브랜드 동일 %. 개별=브랜드별 % · 0이면 해당 브랜드 미사용(예: V+M만 쓰려면 JCB·AMEX 등을 0).')) + '</p>' +
+      '<div class="row g-3 mb-3"><div class="col-md-3"><div class="form-field-block mb-0">' + lab('hqPgCostCardFeeMode', '카드수수료 방식', false) +
+      '<select class="form-select form-select-sm" id="hqPgCostCardFeeMode" name="cardFeeMode">' +
+      '<option value="UNIFIED" data-pg-ui-t="통합">' + escUi(L('통합')) + '</option>' +
+      '<option value="PER_BRAND" data-pg-ui-t="개별(브랜드별)">' + escUi(L('개별(브랜드별)')) + '</option></select></div></div></div>' +
+      '<div class="row g-3" id="hqPgCostCardFeeUnifiedWrap">' + feeInp('payRate', '카드수수료(%)', 3) + '</div>' +
+      '<div class="row g-3 d-none" id="hqPgCostCardFeeBrandWrap">' +
+      feeInp('feeCardVisa', 'VISA(%)', 2) + feeInp('feeCardMaster', 'MASTER(%)', 2) +
+      feeInp('feeCardJcb', 'JCB(%)', 2) + feeInp('feeCardAmex', 'AMEX(%)', 2) +
+      feeInp('feeCardUnion', 'UNION(%)', 2) + feeInp('feeCardDiners', 'DINERS(%)', 2) +
+      '</div></div></div>' +
+      '<div class="card mb-3"><div class="card-header py-2 small fw-semibold" data-pg-ui-t="APM 카드 수수료(%)">' + escUi(L('APM 카드 수수료(%)')) + '</div><div class="card-body px-3 py-3">' +
+      '<p class="small text-muted mb-3" data-pg-ui-t="크립토·PayPay·라쿠텐페이·PromptPay·LINE·카카오·위챗 등 대체결제(APM) 계약 수수료율(%)입니다.">' +
+      escUi(L('크립토·PayPay·라쿠텐페이·PromptPay·LINE·카카오·위챗 등 대체결제(APM) 계약 수수료율(%)입니다.')) + '</p>' +
+      '<div class="row g-3">' +
+      feeInp('feeApmCrypto', '크립토수수료(%)', 3) + feeInp('feeApmPaypay', 'PayPay 수수료(%)', 3) +
+      feeInp('feeApmRakuten', '라쿠텐페이 수수료(%)', 3) + feeInp('feeApmPromptpay', 'PromptPay 수수료(%)', 3) +
+      feeInp('feeApmLine', 'LINE 수수료(%)', 3) + feeInp('feeApmKakao', '카카오 수수료(%)', 3) +
+      feeInp('feeApmWechat', '위챗 수수료(%)', 3) +
+      '</div></div></div>' +
+      hqPgAgencyCostExtraFeesHtml() +
+      '<div class="d-flex flex-wrap gap-2 mb-3">' +
+      '<button type="button" class="btn btn-success btn-sm" id="hqPgAgencyCostNewBtn" data-pg-ui-t="신규">' + escUi(L('신규')) + '</button>' +
+      '<button type="button" class="btn btn-primary btn-sm" id="hqPgAgencyCostSaveBtn" data-pg-ui-t="저장">' + escUi(L('저장')) + '</button></div>' +
+      '<div class="card mb-3"><div class="card-header py-2 small fw-semibold d-flex align-items-center justify-content-between flex-wrap gap-2">' +
+      '<span data-pg-ui-t="등록된 결제대행사 원가">' + escUi(L('등록된 결제대행사 원가')) + '</span>' +
+      '<button type="button" class="btn btn-outline-secondary btn-sm" id="hqPgCostHelloBtn" data-pg-ui-t="VIEW SETTING">' + escUi(L('VIEW SETTING')) + '</button></div>' +
+      '<div class="card-body p-2">' +
+      '<div id="hqPgCostHelloPanel" class="border rounded p-2 mb-2 d-none bg-light"></div>' +
+      '<div class="table-responsive" style="max-height:480px;overflow:auto"><table class="table table-sm table-bordered table-hover align-middle mb-0 hq-pg-cost-policy-list-table" id="grid_hqPgAgencyCostPolicy">' +
+      '<thead class="table-light" id="hqPgAgencyCostListThead"></thead>' +
+      '<tbody id="hqPgAgencyCostListTbody"><tr><td class="text-muted text-center small">' + escUi(L('불러오는 중…')) + '</td></tr></tbody></table></div></div></div>' +
+      '<div class="card"><div class="card-header py-2 small fw-semibold" data-pg-ui-t="원가 변경 히스토리">' + escUi(L('원가 변경 히스토리')) + '</div>' +
+      '<div class="card-body p-2"><div class="table-responsive" style="max-height:240px;overflow:auto">' +
+      '<table class="table table-sm table-bordered align-middle mb-0"><thead class="table-light"><tr>' +
+      '<th>No.</th><th data-pg-ui-t="변경일시">' + escUi(L('변경일시')) + '</th><th data-pg-ui-t="대행사명">' + escUi(L('대행사명')) + '</th>' +
+      '<th data-pg-ui-t="결제코드">' + escUi(L('결제코드')) + '</th><th data-pg-ui-t="변경자">' + escUi(L('변경자')) + '</th></tr></thead>' +
+      '<tbody id="hqPgCostHistTbody"><tr><td colspan="5" class="text-muted text-center small">' + escUi(L('목록에서 행을 선택하세요.')) + '</td></tr></tbody></table></div></div></div>';
   }
 
   /** 정산주기: v·t 모두 코드 명(본사 API 로드 시 동일). 설명은 API의 d·option title */
@@ -3702,7 +3790,7 @@
         { id: 'hqPgApiAddBtn', label: '결제대행사 설정 추가', cls: 'btn-success' }
       ],
       columnGuideFixedKeys: ['rowNo', '_pgRowAct'],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'pgNm', label: '결제대행사', thClass: 'text-nowrap' }, { key: 'pgCd', label: '결제코드', thClass: 'text-nowrap' }, { key: 'integrationScopeLabel', label: '연동용도', thClass: 'pg-api-mng-scope-th text-nowrap' }, { key: 'urlPayAmountModeLabel', label: 'URL금액', thClass: 'text-nowrap', title: 'URL결제: 일반형 / DP(DISPLAY) / BLIND' }, { key: 'endpointsSummary', label: '엔드포인트', thClass: 'pg-api-mng-endpoints-th' }, { key: 'merchantMid', label: 'MID', thClass: 'text-nowrap' }, { key: 'hasApiKey', label: 'API', thClass: 'text-nowrap' }, { key: 'hasMd5Key', label: 'MD5', thClass: 'text-nowrap' }, { key: 'routeNo', label: 'RT', thClass: 'text-nowrap', title: 'Route 번호' }, { key: 'sandboxYn', label: '환경', thClass: 'text-nowrap', title: 'Sandbox / Production' }, { key: 'extSettleMode', label: '예정', thClass: 'text-nowrap', title: '통합정산 ICOPAY 예정: OFF/T/D' }, { key: 'extSettleLag', label: 'N', thClass: 'text-nowrap' }, { key: 'extSettleBatchTime', label: 'D시각', thClass: 'text-nowrap' }, { key: 'operationalYn', label: '운영', thClass: 'text-nowrap' }, { key: 'useYn', label: '사용', thClass: 'text-nowrap' }, { key: 'regDt', label: '등록일', thClass: 'text-nowrap' }, { key: '_pgRowAct', type: 'pgApiMngRowActions', label: '관리', thClass: 'text-nowrap' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'pgNm', label: '결제대행사', thClass: 'text-nowrap' }, { key: 'costNm', label: '대행사명', thClass: 'pg-api-mng-costnm-th text-nowrap', title: '결제대행사 등록(근원원가)의 대행사명' }, { key: 'pgCd', label: '결제코드', thClass: 'text-nowrap' }, { key: 'integrationScopeLabel', label: '연동용도', thClass: 'pg-api-mng-scope-th text-nowrap' }, { key: 'urlPayAmountModeLabel', label: 'URL금액', thClass: 'text-nowrap', title: 'URL결제: 일반형 / DP(DISPLAY) / BLIND' }, { key: 'endpointsSummary', label: '엔드포인트', thClass: 'pg-api-mng-endpoints-th' }, { key: 'merchantMid', label: 'MID', thClass: 'text-nowrap' }, { key: 'hasApiKey', label: 'API', thClass: 'text-nowrap' }, { key: 'hasMd5Key', label: 'MD5', thClass: 'text-nowrap' }, { key: 'routeNo', label: 'RT', thClass: 'text-nowrap', title: 'Route 번호' }, { key: 'sandboxYn', label: '환경', thClass: 'text-nowrap', title: 'Sandbox / Production' }, { key: 'extSettleMode', label: '예정', thClass: 'text-nowrap', title: '통합정산 ICOPAY 예정: OFF/T/D' }, { key: 'extSettleLag', label: 'N', thClass: 'text-nowrap' }, { key: 'extSettleBatchTime', label: 'D시각', thClass: 'text-nowrap' }, { key: 'operationalYn', label: '운영', thClass: 'text-nowrap' }, { key: 'useYn', label: '사용', thClass: 'text-nowrap' }, { key: 'regDt', label: '등록일', thClass: 'text-nowrap' }, { key: '_pgRowAct', type: 'pgApiMngRowActions', label: '관리', thClass: 'text-nowrap' }]
     },
     '/hq/defaultCommission': {
       isForm: true,
@@ -3798,18 +3886,18 @@
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-cb-zone small"><span data-pg-ui-t="차지백">' + escUi(L('차지백')) + '</span><br><span data-pg-ui-t="구간정책">' + escUi(L('구간정책')) + '</span></th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-deploy" data-pg-ui-t="적용">' + escUi(L('적용')) + '</th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-cur" data-pg-ui-t="통화">' + escUi(L('통화')) + '</th>' +
-              '<th colspan="12" class="text-center align-middle small hq-def-comm-th-group border-start" data-pg-ui-t="수수료 고정">' + escUi(L('수수료 고정')) + '</th>' +
+              '<th colspan="14" class="text-center align-middle small hq-def-comm-th-group border-start" data-pg-ui-t="수수료 고정">' + escUi(L('수수료 고정')) + '</th>' +
               '<th colspan="4" class="text-center align-middle small hq-def-comm-th-group border-start" data-pg-ui-t="수수료 %">' + escUi(L('수수료 %')) + '</th>' +
               '<th colspan="2" class="text-center align-middle small hq-def-comm-th-group border-start" data-pg-ui-t="담보율">' + escUi(L('담보율')) + '</th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-mon border-start" data-pg-ui-t="월간">' + escUi(L('월간')) + '</th>' +
-              '<th colspan="4" class="text-center align-middle small hq-def-comm-th-group border-start" data-pg-ui-t="기타">' + escUi(L('기타')) + '</th>' +
+              '<th colspan="1" class="text-center align-middle small hq-def-comm-th-group border-start" data-pg-ui-t="기타">' + escUi(L('기타')) + '</th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-upd text-nowrap border-start" data-pg-ui-t="일시">' + escUi(L('일시')) + '</th>' +
               '</tr>' +
               '<tr>' +
-              '<th class="hq-def-comm-th-sub text-center border-start" data-pg-ui-t="건당">' + escUi(L('건당')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="실패">' + escUi(L('실패')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="정산">' + escUi(L('정산')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="송금">' + escUi(L('송금')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="U송금">' + escUi(L('U송금')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="차지백">' + escUi(L('차지백')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="취소">' + escUi(L('취소')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="무효">' + escUi(L('무효')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="수무효">' + escUi(L('수무효')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="환불">' + escUi(L('환불')) + '</th><th class="hq-def-comm-th-sub text-center">3DS</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="분할건">' + escUi(L('분할건')) + '</th>' +
+              '<th class="hq-def-comm-th-sub text-center border-start" data-pg-ui-t="건당">' + escUi(L('건당')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="실패">' + escUi(L('실패')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="정산">' + escUi(L('정산')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="송금">' + escUi(L('송금')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="U송금">' + escUi(L('U송금')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="차지백">' + escUi(L('차지백')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="취소">' + escUi(L('취소')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="무효">' + escUi(L('무효')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="수무효">' + escUi(L('수무효')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="이무효">' + escUi(L('이무효')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="환불">' + escUi(L('환불')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="수환불">' + escUi(L('수환불')) + '</th><th class="hq-def-comm-th-sub text-center">3DS</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="분할건">' + escUi(L('분할건')) + '</th>' +
               '<th class="hq-def-comm-th-sub text-center border-start" data-pg-ui-t="결제">' + escUi(L('결제')) + '</th><th class="hq-def-comm-th-sub text-center">USDT</th><th class="hq-def-comm-th-sub text-center">FX</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="분할">' + escUi(L('분할')) + '</th>' +
               '<th class="hq-def-comm-th-sub text-center border-start" data-pg-ui-t="비율">' + escUi(L('비율')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="일">' + escUi(L('일')) + '</th>' +
-              '<th id="hqDefCommExtraHead1" class="hq-def-comm-th-sub text-center border-start" data-pg-ui-t="기타1">' + escUi(L('기타1')) + '</th><th id="hqDefCommExtraHead2" class="hq-def-comm-th-sub text-center" data-pg-ui-t="기타2">' + escUi(L('기타2')) + '</th><th id="hqDefCommExtraHead3" class="hq-def-comm-th-sub text-center" data-pg-ui-t="기타3">' + escUi(L('기타3')) + '</th><th id="hqDefCommExtraHead4" class="hq-def-comm-th-sub text-center" data-pg-ui-t="기타4">' + escUi(L('기타4')) + '</th>' +
+              '<th id="hqDefCommExtraHead1" class="hq-def-comm-th-sub text-center border-start" data-pg-ui-t="기타1">' + escUi(L('기타1')) + '</th>' +
               '</tr>' +
               '</thead>' +
               '<tbody id="hqDefaultCommissionPolicyList"></tbody></table>' +
@@ -3939,8 +4027,8 @@
     '/hq/pgAgencyCostPolicy': {
       isForm: true,
       formSections: [{
-        title: '대행수수료설정',
-        notice: '가맹 수수료(수수료설정)와 별도로, 결제대행사와의 계약 원가·정산 주기를 결제코드(MID) 단위로 관리합니다. 운영 PG결제·PG정산 화면(예정)에서 이 정책을 참조합니다.',
+        title: '결제대행사 등록',
+        notice: '근원원가를 등록합니다(벤더·통화·멀티·APM 수수료). 결제대행사 설정 추가 시 「대행사명」으로 이 목록을 필수 선택합니다. VIEW SETTING·더블클릭·히스토리는 수수료관리와 동일 패턴입니다.',
         rows: [[{ type: 'customHtml', col: 12, html: hqPgAgencyCostPolicyPageHtml }]]
       }],
       buttons: [{ id: 'hqPgAgencyCostReloadBtn', label: '목록 새로고침', cls: 'btn-outline-secondary' }]
@@ -4283,7 +4371,7 @@
       formSections: [
         {
           title: '시간 및 동기화 설정',
-          notice: 'ziobiz/NOTI 노티미들웨어의 시스템·환경설정(시간·NTP·동기화)과 동일 목적입니다. 실제 OS 시각 동기화는 VPS에서 chrony/systemd-timesyncd 등으로 수행합니다. 표준 시간대(IANA)는 ICOPAY 거래시간 2줄(표준)·노티 적재·배치·후속조치 경과 판단의 벽시계 기준입니다. 운영 시간대는 결제·정산 그리드 거래시간 1줄(운영) 표시입니다. 거래일(그리드·검색)은 결제완료 시각(paid_at) 우선·없으면 적재 시각이며, 표준 시간대 변경으로 거래일자는 바뀌지 않습니다. 거래시간 1줄=운영 태그, 2줄=표준 태그(TH·JP·CH·SG·VT 등). 신규·미설정 시 표준=Asia/Bangkok(TH), 운영=Asia/Tokyo(JP) 입니다.',
+          notice: 'ziobiz/NOTI 노티미들웨어의 시스템·환경설정(시간·NTP·동기화)과 동일 목적입니다. 실제 OS 시각 동기화는 VPS에서 chrony/systemd-timesyncd 등으로 수행합니다. 표준 시간대(IANA)는 ICOPAY 거래시간 2줄·paid_at 벽시계·노티 적재·배치·후속조치 경과 판단 기준입니다. 운영 시간대는 결제내역 당일·전일·당월 등 검색일·거래일 컬럼·거래시간 1줄 기준입니다(PC 로컬 금지). 거래시간 1줄=운영, 2줄=표준(TH·JP·CH·SG·VT 등). 신규·미설정 시 표준=Asia/Bangkok(TH), 운영=Asia/Tokyo(JP) 입니다.',
           rows: [
             [{ label: '표준 시간대 (IANA)', type: 'select', name: 'displayTimezone', col: 5, options: HQ_LEDGER_DISPLAY_TZ_OPTIONS }],
             [{ label: '운영 시간대', type: 'select', name: 'operationalTimezone', col: 5, options: HQ_LEDGER_DISPLAY_TZ_OPTIONS }],
@@ -5627,7 +5715,7 @@
           rows: [
             [{ label: '본사정책 따름', type: 'select', name: 'commissionFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 정책선택', type: 'select', name: 'hqPolicyScope', options: [{ v: '', t: '본사 기본 템플릿 (DEFAULT)' }], col: 2, hqPolicyOnly: true }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2, customOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2, customOnly: true }],
-            [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '수무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }],
+            [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 40' }, { label: '수무효수수료(건)', type: 'text', name: 'handVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '이무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22·41' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true, placeholder: '거래 42' }, { label: '수환불수수료(건)', type: 'text', name: 'handRefundFeePerTx', col: 2, customOnly: true, placeholder: '거래 30' }],
             [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
             [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: '송금수수료', type: 'text', name: 'remittanceTransferFee', col: 2, customOnly: true }, { label: 'USDT 송금수수료(건)', type: 'text', name: 'usdtTransferFeeUsd', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }]
           ]
@@ -5642,7 +5730,7 @@
           rows: [
             [{ label: '본사정책 따름(QR)', type: 'select', name: 'commissionQrFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: 'QR 정책', type: 'select', name: 'hqQrPolicyScope', options: [{ v: '', t: '카드 수수료와 동일' }, { v: 'DEFAULT_QR', t: 'QR 기본 (DEFAULT_QR)' }], col: 3 }, { label: 'QR 수수료 통화', type: 'select', name: 'qrCurrencyCode', options: [{ v: 'KRW', t: 'KRW' }, { v: 'JPY', t: 'JPY' }, { v: 'THB', t: 'THB' }, { v: 'USD', t: 'USD' }, { v: 'CNY', t: 'CNY' }, { v: 'SGD', t: 'SGD' }], col: 2 }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'qrPayRate', col: 2, qrCustomOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'qrFailFee', col: 2, qrCustomOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'qrCancelRate', col: 2, qrCustomOnly: true }],
-            [{ label: '무효수수료(건)', type: 'text', name: 'qrVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '수무효수수료(건)', type: 'text', name: 'qrManualVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '환불수수료(건)', type: 'text', name: 'qrRefundRate', col: 2, qrCustomOnly: true }],
+            [{ label: '무효수수료(건)', type: 'text', name: 'qrVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '수무효수수료(건)', type: 'text', name: 'qrHandVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '이무효수수료(건)', type: 'text', name: 'qrManualVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '환불수수료(건)', type: 'text', name: 'qrRefundRate', col: 2, qrCustomOnly: true }, { label: '수환불수수료(건)', type: 'text', name: 'qrHandRefundFeePerTx', col: 2, qrCustomOnly: true }],
             [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'qrUsageRate', col: 2, qrCustomOnly: true }, { label: '정산수수료(건)', type: 'text', name: 'qrFeeSettlementPerTx', col: 2, qrCustomOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'qrFee3dsRate', col: 2, qrCustomOnly: true }, { label: '비고', type: 'text', name: 'qrCommissionMemo', col: 2, qrCustomOnly: true }],
             [{ label: '보류율 본사정책 따름', type: 'select', name: 'commissionQrHoldFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '보류율(%)', type: 'text', name: 'qrHoldRate', col: 2, placeholder: '10', qrHoldCustomOnly: true }, { label: '보류기간(일)', type: 'text', name: 'qrHoldDays', col: 2, placeholder: '180', qrHoldCustomOnly: true }],
             [{ label: '차지백수수료(건)', type: 'text', name: 'qrChargebackFeePerTx', col: 2 }, { label: 'QR 차지백 정책', type: 'select', name: 'qrChargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
@@ -6167,7 +6255,7 @@
           rows: [
             [{ label: '본사정책 따름', type: 'select', name: 'commissionFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 정책선택', type: 'select', name: 'hqPolicyScope', options: [{ v: '', t: '본사 기본 템플릿 (DEFAULT)' }], col: 2, hqPolicyOnly: true }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2, customOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2, customOnly: true }],
-            [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '수무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }],
+            [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 40' }, { label: '수무효수수료(건)', type: 'text', name: 'handVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '이무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22·41' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true, placeholder: '거래 42' }, { label: '수환불수수료(건)', type: 'text', name: 'handRefundFeePerTx', col: 2, customOnly: true, placeholder: '거래 30' }],
             [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
             [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: '송금수수료', type: 'text', name: 'remittanceTransferFee', col: 2, customOnly: true }, { label: 'USDT 송금수수료(건)', type: 'text', name: 'usdtTransferFeeUsd', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }]
           ]
@@ -6182,7 +6270,7 @@
           rows: [
             [{ label: '본사정책 따름(QR)', type: 'select', name: 'commissionQrFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: 'QR 정책', type: 'select', name: 'hqQrPolicyScope', options: [{ v: '', t: '카드 수수료와 동일' }, { v: 'DEFAULT_QR', t: 'QR 기본 (DEFAULT_QR)' }], col: 3 }, { label: 'QR 수수료 통화', type: 'select', name: 'qrCurrencyCode', options: [{ v: 'KRW', t: 'KRW' }, { v: 'JPY', t: 'JPY' }, { v: 'THB', t: 'THB' }, { v: 'USD', t: 'USD' }, { v: 'CNY', t: 'CNY' }, { v: 'SGD', t: 'SGD' }], col: 2 }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'qrPayRate', col: 2, qrCustomOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'qrFailFee', col: 2, qrCustomOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'qrCancelRate', col: 2, qrCustomOnly: true }],
-            [{ label: '무효수수료(건)', type: 'text', name: 'qrVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '수무효수수료(건)', type: 'text', name: 'qrManualVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '환불수수료(건)', type: 'text', name: 'qrRefundRate', col: 2, qrCustomOnly: true }],
+            [{ label: '무효수수료(건)', type: 'text', name: 'qrVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '수무효수수료(건)', type: 'text', name: 'qrHandVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '이무효수수료(건)', type: 'text', name: 'qrManualVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '환불수수료(건)', type: 'text', name: 'qrRefundRate', col: 2, qrCustomOnly: true }, { label: '수환불수수료(건)', type: 'text', name: 'qrHandRefundFeePerTx', col: 2, qrCustomOnly: true }],
             [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'qrUsageRate', col: 2, qrCustomOnly: true }, { label: '정산수수료(건)', type: 'text', name: 'qrFeeSettlementPerTx', col: 2, qrCustomOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'qrFee3dsRate', col: 2, qrCustomOnly: true }, { label: '비고', type: 'text', name: 'qrCommissionMemo', col: 2, qrCustomOnly: true }],
             [{ label: '보류율 본사정책 따름', type: 'select', name: 'commissionQrHoldFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '보류율(%)', type: 'text', name: 'qrHoldRate', col: 2, placeholder: '10', qrHoldCustomOnly: true }, { label: '보류기간(일)', type: 'text', name: 'qrHoldDays', col: 2, placeholder: '180', qrHoldCustomOnly: true }],
             [{ label: '차지백수수료(건)', type: 'text', name: 'qrChargebackFeePerTx', col: 2 }, { label: 'QR 차지백 정책', type: 'select', name: 'qrChargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
@@ -6631,7 +6719,7 @@
           rows: [
             [{ label: '본사정책 따름', type: 'select', name: 'commissionFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 정책선택', type: 'select', name: 'hqPolicyScope', options: [{ v: '', t: '본사 기본 템플릿 (DEFAULT)' }], col: 2, hqPolicyOnly: true }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2, customOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2, customOnly: true }],
-            [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '수무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }],
+            [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 40' }, { label: '수무효수수료(건)', type: 'text', name: 'handVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '이무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22·41' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true, placeholder: '거래 42' }, { label: '수환불수수료(건)', type: 'text', name: 'handRefundFeePerTx', col: 2, customOnly: true, placeholder: '거래 30' }],
             [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
             [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: '송금수수료', type: 'text', name: 'remittanceTransferFee', col: 2, customOnly: true }, { label: 'USDT 송금수수료(건)', type: 'text', name: 'usdtTransferFeeUsd', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }]
           ]
@@ -6646,7 +6734,7 @@
           rows: [
             [{ label: '본사정책 따름(QR)', type: 'select', name: 'commissionQrFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: 'QR 정책', type: 'select', name: 'hqQrPolicyScope', options: [{ v: '', t: '카드 수수료와 동일' }, { v: 'DEFAULT_QR', t: 'QR 기본 (DEFAULT_QR)' }], col: 3 }, { label: 'QR 수수료 통화', type: 'select', name: 'qrCurrencyCode', options: [{ v: 'KRW', t: 'KRW' }, { v: 'JPY', t: 'JPY' }, { v: 'THB', t: 'THB' }, { v: 'USD', t: 'USD' }, { v: 'CNY', t: 'CNY' }, { v: 'SGD', t: 'SGD' }], col: 2 }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'qrPayRate', col: 2, qrCustomOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'qrFailFee', col: 2, qrCustomOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'qrCancelRate', col: 2, qrCustomOnly: true }],
-            [{ label: '무효수수료(건)', type: 'text', name: 'qrVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '수무효수수료(건)', type: 'text', name: 'qrManualVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '환불수수료(건)', type: 'text', name: 'qrRefundRate', col: 2, qrCustomOnly: true }],
+            [{ label: '무효수수료(건)', type: 'text', name: 'qrVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '수무효수수료(건)', type: 'text', name: 'qrHandVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '이무효수수료(건)', type: 'text', name: 'qrManualVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '환불수수료(건)', type: 'text', name: 'qrRefundRate', col: 2, qrCustomOnly: true }, { label: '수환불수수료(건)', type: 'text', name: 'qrHandRefundFeePerTx', col: 2, qrCustomOnly: true }],
             [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'qrUsageRate', col: 2, qrCustomOnly: true }, { label: '정산수수료(건)', type: 'text', name: 'qrFeeSettlementPerTx', col: 2, qrCustomOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'qrFee3dsRate', col: 2, qrCustomOnly: true }, { label: '비고', type: 'text', name: 'qrCommissionMemo', col: 2, qrCustomOnly: true }],
             [{ label: '보류율 본사정책 따름', type: 'select', name: 'commissionQrHoldFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '보류율(%)', type: 'text', name: 'qrHoldRate', col: 2, placeholder: '10', qrHoldCustomOnly: true }, { label: '보류기간(일)', type: 'text', name: 'qrHoldDays', col: 2, placeholder: '180', qrHoldCustomOnly: true }],
             [{ label: '차지백수수료(건)', type: 'text', name: 'qrChargebackFeePerTx', col: 2 }, { label: 'QR 차지백 정책', type: 'select', name: 'qrChargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
@@ -7256,11 +7344,16 @@
           ], size: 11 },
           { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 22 },
           { label: '결제대행사', type: 'select', name: 'searchAcquirer', options: [
+            { v: 'ALL', t: '전체' },
             { v: 'ELEMENTPAY', t: 'ElementPay' },
             { v: 'JPAY', t: 'JPAY' },
             { v: 'PAYSO', t: 'PAYSO' },
             { v: 'KSNET', t: 'KSNET' },
             { v: 'OX', t: 'ox' }
+          ], size: 12 },
+          { label: '무건수노출', type: 'select', name: 'searchIncludeZeroCount', options: [
+            { v: 'N', t: '미사용' },
+            { v: 'Y', t: '사용' }
           ], size: 12 },
           { label: '상태구분', type: 'select', name: 'searchPayDivCd', options: [
             { v: '', t: '전체' },
@@ -7274,9 +7367,11 @@
         ]
       ],
       noticeList: [
+        '기본은 「전체」(당일)이며, 대행사·ICOPAY 건수가 모두 0인 행은 숨깁니다. 「무건수노출」을 사용으로 두면 빈 행까지 모두 표시합니다.',
+        '전체는 ElementPay·JPAY·PAYSO·KSNET·ox를 일자·대행사 행으로 나열합니다. 특정 대행사를 고르면 그 대행사만 대조합니다.',
         '결제대행사를 고르면 그 대행사 일별 집계와 ICOPAY에 적재된 같은 대행사 거래를 일자별로 비교합니다. 값이 같으면 Ok, 다르면 불일치 셀만 강조·Check로 표시됩니다. 금액은 실결제 승인금액입니다.',
         '대행사 행 또는 ICOPAY 행을 더블클릭하면 아래 「선택 일자 상세」에 해당 일 거래 목록이 표시됩니다.',
-        'ElementPay·PAYSO·KSNET는 검색할 때 결제대행사/대사 경로로 가져옵니다. JPAY는 저장된 조회 캐시이며, JPAY를 고른 뒤에만 동기화 버튼이 나옵니다. 조회 기간은 최대 93일입니다.',
+        'ElementPay·PAYSO·KSNET는 검색할 때 결제대행사/대사 경로로 가져옵니다. JPAY는 저장된 조회 캐시이며, JPAY·전체일 때 동기화 버튼이 나옵니다. 조회 기간은 최대 93일입니다.',
         'ElementPay·PAYSO 건수가 아주 많으면 최근 5,000건까지 대조합니다. JPAY를 고르면 상단 최근동기화 시각이 통합개요와 같습니다.',
         '새로고침 왼쪽 시간 3개: 비교정렬은 ElementPay·PAYSO·KSNET·ICOPAY 일자와 거래시간 1줄의 기준입니다. 1줄추가는 대행사 상세의 추가 시간, 2줄추가는 ICOPAY 상세의 추가 시간입니다. 본사설정이면 비교정렬은 전산 표준, 추가 시간은 전산 운영 시간대입니다.',
         'ox를 고르면 대행사 칸은 연결 대기입니다. ox 결제 조회 API와 별도 샌드박스 API는 아직 없고, 아래 ICOPAY 줄만 저장된 ox 거래입니다.'
@@ -8045,7 +8140,7 @@
       columnGuideFixedKeys: ['rowNo', 'day'],
       viewSettingDefaultSelectedKeys: [
         'txnCount', 'feeChannel', 'txnFixedFeesSum', 'pctFeesSum', 'usdtFee', 'fxFee', 'fee3dsFee', 'rollingHoldEst',
-        'failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'chargebackFee',
+        'failFee', 'cancelFee', 'voidFee', 'handVoidFee', 'manualVoidFee', 'refundFee', 'handRefundFee', 'chargebackFee',
         'totalFee', 'feeVat', 'expectedPayout', 'settlementAmt', 'settlementStateLabel'
       ],
       listSortDirAnchor: 'refresh',
@@ -8114,8 +8209,10 @@
         { key: 'failFee', label: '실패' },
         { key: 'cancelFee', label: '취소' },
         { key: 'voidFee', label: '무효' },
-        { key: 'manualVoidFee', label: '수무효' },
+        { key: 'handVoidFee', label: '수무효' },
+        { key: 'manualVoidFee', label: '이무효' },
         { key: 'refundFee', label: '환불' },
+        { key: 'handRefundFee', label: '수환불' },
         { key: 'chargebackFee', label: '차지백' },
         { key: 'totalFee', label: '총수수료' },
         { key: 'feeVat', label: '부가세' },
@@ -8138,7 +8235,7 @@
         'trnTime', 'routeNo', 'chillTransactionId', 'trnId', 'statusNm', 'feeChannel', 'amount', 'payCur', 'curType', 'policyCur', 'calcCycle', 'expectedSettleDate',
         'txnFixedFeesSum', 'pctFeesSum', 'usdtFee', 'fxFee', 'fee3dsFee', 'splitPayPctFee', 'splitPayFixedFee',
         'rollingPctPlain', 'rollingDays', 'rollingHoldEst',
-        'failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'chargebackFee',
+        'failFee', 'cancelFee', 'voidFee', 'handVoidFee', 'manualVoidFee', 'refundFee', 'handRefundFee', 'chargebackFee',
         'totalFee', 'feeVat', 'expectedPayout', 'settlementAmt', 'vatAppliedYn'
       ],
       noticeList: [
@@ -8192,7 +8289,7 @@
         { label: '승인 / 결제수수료(%)', keys: ['txnFixedFeesSum', 'pctFeesSum'] },
         { label: '기타수수료', keys: ['usdtFee', 'fxFee', 'fee3dsFee', 'splitPayPctFee', 'splitPayFixedFee'] },
         { label: '담보(롤링)', keys: ['rollingPctPlain', 'rollingDays', 'rollingHoldEst'] },
-        { label: '실패·취소·무효·환불·차지백', keys: ['failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'chargebackFee'] },
+        { label: '실패·취소·무효·환불·차지백', keys: ['failFee', 'cancelFee', 'voidFee', 'handVoidFee', 'manualVoidFee', 'refundFee', 'handRefundFee', 'chargebackFee'] },
         { label: '차감·지급', keys: ['totalFee', 'feeVat', 'expectedPayout', 'settlementAmt'] }
       ],
       columns: [
@@ -8228,8 +8325,10 @@
         { key: 'failFee', label: '실패' },
         { key: 'cancelFee', label: '취소' },
         { key: 'voidFee', label: '무효' },
-        { key: 'manualVoidFee', label: '수무효' },
+        { key: 'handVoidFee', label: '수무효' },
+        { key: 'manualVoidFee', label: '이무효' },
         { key: 'refundFee', label: '환불' },
+        { key: 'handRefundFee', label: '수환불' },
         { key: 'chargebackFee', label: '차지백' },
         { key: 'totalFee', label: '총수수료' },
         { key: 'feeVat', label: '부가세' },
@@ -9174,7 +9273,7 @@
           rows: [
             [{ label: '본사정책 따름', type: 'select', name: 'commissionFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 정책선택', type: 'select', name: 'hqPolicyScope', options: [{ v: '', t: '본사 기본 템플릿 (DEFAULT)' }], col: 2, hqPolicyOnly: true }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2, customOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2, customOnly: true }],
-            [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '수무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }],
+            [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 40' }, { label: '수무효수수료(건)', type: 'text', name: 'handVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '이무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22·41' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true, placeholder: '거래 42' }, { label: '수환불수수료(건)', type: 'text', name: 'handRefundFeePerTx', col: 2, customOnly: true, placeholder: '거래 30' }],
             [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
             [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: '송금수수료', type: 'text', name: 'remittanceTransferFee', col: 2, customOnly: true }, { label: 'USDT 송금수수료(건)', type: 'text', name: 'usdtTransferFeeUsd', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }]
           ]
@@ -9189,7 +9288,7 @@
           rows: [
             [{ label: '본사정책 따름(QR)', type: 'select', name: 'commissionQrFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: 'QR 정책', type: 'select', name: 'hqQrPolicyScope', options: [{ v: '', t: '카드 수수료와 동일' }, { v: 'DEFAULT_QR', t: 'QR 기본 (DEFAULT_QR)' }], col: 3 }, { label: 'QR 수수료 통화', type: 'select', name: 'qrCurrencyCode', options: [{ v: 'KRW', t: 'KRW' }, { v: 'JPY', t: 'JPY' }, { v: 'THB', t: 'THB' }, { v: 'USD', t: 'USD' }, { v: 'CNY', t: 'CNY' }, { v: 'SGD', t: 'SGD' }], col: 2 }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'qrPayRate', col: 2, qrCustomOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'qrFailFee', col: 2, qrCustomOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'qrCancelRate', col: 2, qrCustomOnly: true }],
-            [{ label: '무효수수료(건)', type: 'text', name: 'qrVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '수무효수수료(건)', type: 'text', name: 'qrManualVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '환불수수료(건)', type: 'text', name: 'qrRefundRate', col: 2, qrCustomOnly: true }],
+            [{ label: '무효수수료(건)', type: 'text', name: 'qrVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '수무효수수료(건)', type: 'text', name: 'qrHandVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '이무효수수료(건)', type: 'text', name: 'qrManualVoidFeePerTx', col: 2, qrCustomOnly: true }, { label: '환불수수료(건)', type: 'text', name: 'qrRefundRate', col: 2, qrCustomOnly: true }, { label: '수환불수수료(건)', type: 'text', name: 'qrHandRefundFeePerTx', col: 2, qrCustomOnly: true }],
             [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'qrUsageRate', col: 2, qrCustomOnly: true }, { label: '정산수수료(건)', type: 'text', name: 'qrFeeSettlementPerTx', col: 2, qrCustomOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'qrFee3dsRate', col: 2, qrCustomOnly: true }, { label: '비고', type: 'text', name: 'qrCommissionMemo', col: 2, qrCustomOnly: true }],
             [{ label: '보류율 본사정책 따름', type: 'select', name: 'commissionQrHoldFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '보류율(%)', type: 'text', name: 'qrHoldRate', col: 2, placeholder: '10', qrHoldCustomOnly: true }, { label: '보류기간(일)', type: 'text', name: 'qrHoldDays', col: 2, placeholder: '180', qrHoldCustomOnly: true }],
             [{ label: '차지백수수료(건)', type: 'text', name: 'qrChargebackFeePerTx', col: 2 }, { label: 'QR 차지백 정책', type: 'select', name: 'qrChargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
@@ -9608,6 +9707,77 @@
         { key: 'reportNote', label: '비고' }
       ]
     },
+    '/ops/costAudit': {
+      listSortDirAnchor: 'refresh',
+      paginationSizeOptions: [50, 100, 300, 500],
+      paginationDefaultSize: 100,
+      searchFormClass: 'pay-mng-search-form',
+      payMngDenseGrid: true,
+      tableScrollable: true,
+      tableColumnGuide: true,
+      columnGuideFixedKeys: ['rowNo', 'day', 'acquirerLabel', 'dataSourceLabel'],
+      viewSettingDefaultSelectedKeys: [
+        'reconCount', 'icopayCount', 'baseCount', 'baseAmount', 'payRate', 'perTxFee',
+        'pctFeesSum', 'txnFixedFeesSum', 'totalAgencyFee', 'feeVat', 'feeWithVat', 'costNm', 'match'
+      ],
+      noticeList: [
+        '<strong>원가검수</strong>는 <strong>대사(대행사 일별 집계)</strong>로만 원가를 산출·검토합니다. ICOPAY건수는 <strong>참고용</strong>이며, 대사가 없어도 적용건수·원가에 넣지 않습니다. 대행수수료(결제내역 건별)와 별도입니다.',
+        '기본은 「전체」(당일)이며, 건수 0인 행은 숨깁니다. 「무건수노출」을 사용으로 두면 빈 행까지 모두 표시합니다.',
+        '전체는 전 대행사를 일자·대행사 행으로 나열하고, 행마다 근원원가를 붙입니다.',
+        '통합체크와 같은 대사 경로(ElementPay·JPAY·PAYSO·KSNET·ox)를 쓰며, 연동·배포 「결제대행사 등록」 근원원가로 추정 원가·부가세를 붙입니다.',
+        '데이터출처 「대사」=대행사 집계로 적용건수·원가 산출, 「대사없음(참고만)」=ICOPAY만 참고·원가 미적용.',
+        '통합체크 화면은 대조 전용으로 유지됩니다. 본 화면은 원가 수식 검수용입니다.'
+      ],
+      searchRows: [
+        [
+          { label: '거래일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+          { type: 'quickdate', quickdateLabels: ['당일', '당월', '전일', '1주', '2주', '전월'], quickdateRanges: ['day', 'month', 'prevDay', 'week', 'week2', 'prevMonth'] }
+        ],
+        [
+          { label: '결제대행사', type: 'select', name: 'searchAcquirer', options: [
+            { v: 'ALL', t: '전체' },
+            { v: 'ELEMENTPAY', t: 'ElementPay' },
+            { v: 'JPAY', t: 'JPAY' },
+            { v: 'PAYSO', t: 'PAYSO' },
+            { v: 'KSNET', t: 'KSNET' },
+            { v: 'OX', t: 'ox' }
+          ], size: 13 },
+          { label: '무건수노출', type: 'select', name: 'searchIncludeZeroCount', options: [
+            { v: 'N', t: '미사용' },
+            { v: 'Y', t: '사용' }
+          ], size: 13 },
+          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 22 },
+          { type: 'searchBtn', label: '검색' }
+        ]
+      ],
+      summary: ['건수'],
+      showJpaySyncInfo: true,
+      buttons: [
+        { id: 'jpayTrSyncBtn', label: 'JPAY 동기화', cls: 'btn-primary' },
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
+        { id: 'searchBtn', label: '검색', cls: 'btn-primary' }
+      ],
+      columns: [
+        { key: 'rowNo', label: '번호' },
+        { key: 'day', label: '일자' },
+        { key: 'acquirerLabel', label: '결제대행' },
+        { key: 'dataSourceLabel', label: '데이터출처' },
+        { key: 'reconCount', label: '대사건수' },
+        { key: 'icopayCount', label: 'ICOPAY건수' },
+        { key: 'baseCount', label: '적용건수' },
+        { key: 'baseAmount', label: '적용금액' },
+        { key: 'costNm', label: '대행사명' },
+        { key: 'payRate', label: '카드수수료%' },
+        { key: 'perTxFee', label: '건당수수료' },
+        { key: 'pctFeesSum', label: '원가(%)' },
+        { key: 'txnFixedFeesSum', label: '원가(건당)' },
+        { key: 'totalAgencyFee', label: '원가합(세전)' },
+        { key: 'feeVat', label: '부가세' },
+        { key: 'feeWithVat', label: '원가합(세후)' },
+        { key: 'match', label: '대사일치' }
+      ],
+      emptyMessage: '조회된 데이터가 없습니다.'
+    },
     '/ops/agencyTxnList': {
       listSortDirAnchor: 'refresh',
       paginationSizeOptions: [50, 100, 300, 400, 500],
@@ -9623,26 +9793,30 @@
         'pgNm', 'pgCd',
         'trnTime', 'routeNo', 'chillTransactionId', 'trnId', 'statusNm', 'amount', 'curType', 'policyCur',
         'txnFixedFeesSum', 'pctFeesSum', 'usdtFee', 'fxFee', 'fee3dsFee', 'rollingHoldEst',
-        'failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'chargebackFee', 'totalAgencyFee'
+        'failFee', 'cancelFee', 'voidFee', 'handVoidFee', 'manualVoidFee', 'refundFee', 'handRefundFee', 'chargebackFee',
+        'totalAgencyFee', 'feeVat', 'feeWithVat'
       ],
       viewSettingHelloPriorityKeys: [
         'pgNm', 'pgCd',
         'trnTime', 'routeNo', 'chillTransactionId', 'trnId', 'statusNm', 'amount', 'curType', 'policyCur',
         'txnFixedFeesSum', 'pctFeesSum', 'usdtFee', 'fxFee', 'fee3dsFee', 'rollingHoldEst',
-        'failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'chargebackFee', 'totalAgencyFee'
+        'failFee', 'cancelFee', 'voidFee', 'handVoidFee', 'manualVoidFee', 'refundFee', 'handRefundFee', 'chargebackFee',
+        'totalAgencyFee', 'feeVat', 'feeWithVat'
       ],
       noticeList: [
         '총본사·본사(REGIONAL)·총판(MASTER_DIST) 또는 ADMIN만 이용합니다. 조회 범위는 로그인 조직 하위 가맹 거래입니다.',
-        '결제대행사(PG) 계약 수수료를 건별로 표시합니다. 본사설정 「대행수수료설정」과 가맹 결제대행사 설정 결제코드·거래 통화로 정책을 찾아, <strong>과거 거래도 현재 설정 기준으로 재계산</strong>합니다. 정산관리 수수료내역과 유사한 구조이며 가맹 수수료·가맹 정산(settled_yn)과 별개입니다.',
-        '과거 거래도 현재 「대행수수료설정」 기준으로 건별 수수료를 재계산해 표시합니다. 정책이 없거나 결제코드·통화가 일치하지 않으면 수수료 열은 0 또는 빈 칸입니다.',
-        'JPAY 포털 Export 캐시(tb_jpay_portal_export_cache)는 통합개요·일별조회와 동일합니다. JPAY 건 검수·대조 전 본 화면 [JPAY 동기화]·[전체 재동기화]로 캐시를 갱신할 수 있습니다. 전산설정 JPAY 통합개요 스케줄로 자동 동기화됩니다.',
-        '상단 「최근동기화」 시각·당일 횟수는 통합개요와 동일합니다. 스케줄 또는 [JPAY 동기화] 완료 후 이 화면이 열려 있으면 자동으로 다시 조회됩니다.',
-        'ox 거래도 본사설정 대행수수료설정의 ox 결제코드·통화 정책으로 같은 방식으로 계산합니다. ox 전용 조회 API는 쓰지 않습니다.'
+        '처음 들어오면 「전체」+당일 거래가 기본입니다. 결제대행사를 고르면 해당 PG만 필터합니다.',
+        '<strong>대행수수료</strong>는 <strong>결제내역(ICOPAY 거래)</strong> 기준입니다. 원가검수(대사 기준)와 별도 화면입니다.',
+        '결제대행사 계약 <strong>원가</strong>를 건별로 표시합니다. 연동·배포 「결제대행사 등록」과 가맹 설정 FK로 정책을 찾아 <strong>과거 거래도 현재 설정 기준으로 재계산</strong>합니다. 가맹 수수료·가맹 정산(settled_yn)과 별개입니다.',
+        '카드수수료 개별 모드: 브랜드 %가 0이면 해당 카드 미사용(원가 0). 부가세는 가맹 정산설정의 수수료 VAT 여·율로 산출합니다.',
+        '정책이 없거나 결제코드·통화가 일치하지 않으면 수수료 열은 0 또는 빈 칸입니다.',
+        'JPAY 포털 Export 캐시는 통합개요와 동일합니다. 필요 시 [JPAY 동기화]로 갱신할 수 있습니다.'
       ],
       searchRows: [
         [
           { label: '거래일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
-          { type: 'quickdate' }
+          { type: 'quickdate', quickdateLabels: ['당일', '당월', '전일', '1주', '2주', '전월'], quickdateRanges: ['day', 'month', 'prevDay', 'week', 'week2', 'prevMonth'] },
+          { label: '결제대행사', type: 'select', name: 'searchPgCd', options: [{ v: '', t: '전체' }], size: 13 }
         ],
         [
           { label: '검색구분', type: 'select', name: 'searchFieldType', options: [
@@ -9683,10 +9857,10 @@
         { id: 'searchBtn', label: '검색', cls: 'btn-primary' }
       ],
       headerGroups: [
-        { label: '승인 / 대행수수료(%)', keys: ['txnFixedFeesSum', 'pctFeesSum'] },
+        { label: '승인 / 원가(%)', keys: ['txnFixedFeesSum', 'pctFeesSum'] },
         { label: '기타수수료', keys: ['usdtFee', 'fxFee', 'fee3dsFee'] },
-        { label: '실패·취소·무효·환불·차지백', keys: ['failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'chargebackFee'] },
-        { label: '합계·정산', keys: ['rollingHoldEst', 'totalAgencyFee'] }
+        { label: '실패·취소·무효·환불·차지백', keys: ['failFee', 'cancelFee', 'voidFee', 'handVoidFee', 'manualVoidFee', 'refundFee', 'handRefundFee', 'chargebackFee'] },
+        { label: '합계·부가세·정산', keys: ['rollingHoldEst', 'totalAgencyFee', 'feeVat', 'feeWithVat'] }
       ],
       columns: [
         { key: 'rowNo', label: '번호' },
@@ -9712,11 +9886,15 @@
         { key: 'failFee', label: '실패' },
         { key: 'cancelFee', label: '취소' },
         { key: 'voidFee', label: '무효' },
-        { key: 'manualVoidFee', label: '수무효' },
+        { key: 'handVoidFee', label: '수무효' },
+        { key: 'manualVoidFee', label: '이무효' },
         { key: 'refundFee', label: '환불' },
+        { key: 'handRefundFee', label: '수환불' },
         { key: 'chargebackFee', label: '차지백' },
-        { key: 'totalAgencyFee', label: '대행수수료합' },
-        { key: 'agencySettleYn', label: 'PG정산유무', thClass: 'text-center text-nowrap', columnGuideLabel: '대행수수료설정 T/H/D 기준 도래 Y/N' }
+        { key: 'totalAgencyFee', label: '원가합(세전)' },
+        { key: 'feeVat', label: '부가세' },
+        { key: 'feeWithVat', label: '원가합(세후)' },
+        { key: 'agencySettleYn', label: 'PG정산유무', thClass: 'text-center text-nowrap', columnGuideLabel: '결제대행사등록 T/H/D 기준 도래 Y/N' }
       ],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
@@ -10201,7 +10379,7 @@
       'URL결제내역·챗봇결제내역과 동일 API(/api/calc/payList)·그리드를 사용하며 payListVariant=SPLIT_PAY 로 구분합니다.'
     ]);
     MENU_SCREENS['/calc/payOverview'] = cloneWith('PAY_OVERVIEW', [
-      '결제개요: 통합 결제내역과 동일 검색·VIEW SETTING·금액요약을 사용합니다. 열면 결제대행사는 ElementPay입니다. 전체를 고르면 다른 대행사도 함께 봅니다.',
+      '결제개요: 통합 결제내역과 동일 검색·VIEW SETTING·금액요약을 사용합니다. 처음 들어오면 「전체」+당일 거래가 기본입니다. 결제대행사 목록은 사용(Y)↑ · ------------ · 미사용↓ 입니다.',
       '결제내역보다 단말기(PC·iPhone·Android 등)·위치(국가 ISO2·도시, 예: KR | Seoul, 영어 고정)·IP·원인(실패·거절·결제창 오류)이 더 나옵니다. ElementPay·JPAY 모두 같은 열입니다.',
       'ElementPay·JPAY 신규 결제부터 단말기·위치·IP·실패 원인이 적재됩니다. 과거 건은 값이 없을 수 있습니다.',
       'ox는 결제대행사 설정에 등록되면 이 목록에 나옵니다. 열과 금액 요약은 ElementPay·JPAY와 같습니다. ox 결제 조회 API와 별도 샌드박스 API는 아직 없습니다.'

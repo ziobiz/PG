@@ -76,6 +76,7 @@ public final class MerchantCheckoutLangUtil {
             return;
         }
         applyToTxn(txn, fromBody(body));
+        applyDeviceLangToTxn(txn, body);
     }
 
     public static void applyToTxn(com.pg.entity.PgTrnsctn txn, String lang) {
@@ -85,6 +86,23 @@ public final class MerchantCheckoutLangUtil {
         String n = normalize(lang);
         if (!n.isEmpty()) {
             txn.setCheckoutLang(n);
+        }
+    }
+
+    /** 단말/브라우저 언어 — body.deviceLang · browserLanguage · acceptLanguage */
+    public static void applyDeviceLangToTxn(com.pg.entity.PgTrnsctn txn, Map<String, Object> body) {
+        if (txn == null || body == null) {
+            return;
+        }
+        String s = normalize(str(body.get("deviceLang")));
+        if (s.isEmpty()) {
+            s = normalize(str(body.get("browserLanguage")));
+        }
+        if (s.isEmpty()) {
+            s = normalize(str(body.get("acceptLanguage")));
+        }
+        if (!s.isEmpty()) {
+            txn.setDeviceLang(s);
         }
     }
 }

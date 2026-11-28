@@ -109,8 +109,8 @@ public class FeeListTxnAmountService {
 
     /**
      * 통합 리포트 상태별(성공·취소·실패 …) 금액 = 건수 × 정책 건당(고정) 수수료.
-     * 성공=건당(perTx), 실패=failFee, 취소=cancelRate, 무효=voidFeePerTx, 이메일무효=manualVoidFeePerTx,
-     * 환불=refundRate, 강제환불=chargebackFeePerTx.
+     * 성공=건당(perTx), 실패=failFee, 취소=cancelRate, 무효(버킷)=voidFeePerTx, 이메일무효=manualVoidFeePerTx(이무효),
+     * 환불(버킷)=refundRate, 강제환불=chargebackFeePerTx. 수무효·수환불은 건별 산식(hand*)에서 적용.
      */
     public static BigDecimal policyFixedFeeForStatusBucket(String bucket, CommissionPolicy pol) {
         if (pol == null || bucket == null || bucket.isBlank()) {

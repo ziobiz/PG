@@ -1782,7 +1782,7 @@ public class ApiSettlementController {
             "txnFixedFeesSum", "pctFeesSum", "usdtFee", "fxFee", "fee3dsFee",
             "splitPayPctFee", "splitPayFixedFee",
             "rollingHoldEst",
-            "failFee", "cancelFee", "voidFee", "manualVoidFee", "refundFee", "chargebackFee",
+            "failFee", "cancelFee", "voidFee", "handVoidFee", "manualVoidFee", "refundFee", "handRefundFee", "chargebackFee",
             "totalFee", "feeVat", "expectedPayout", "settlementAmt"
     };
 
@@ -2912,8 +2912,10 @@ public class ApiSettlementController {
         m.put("failFee", feeListMoney(br.failFee(), feeListRp).doubleValue());
         m.put("cancelFee", feeListMoney(br.cancelFee(), feeListRp).doubleValue());
         m.put("voidFee", feeListMoney(br.voidFee(), feeListRp).doubleValue());
+        m.put("handVoidFee", feeListMoney(br.handVoidFee(), feeListRp).doubleValue());
         m.put("manualVoidFee", feeListMoney(br.manualVoidFee(), feeListRp).doubleValue());
         m.put("refundFee", feeListMoney(br.refundFee(), feeListRp).doubleValue());
+        m.put("handRefundFee", feeListMoney(br.handRefundFee(), feeListRp).doubleValue());
         m.put("remittanceTransferFee", feeListMoney(br.remittanceTransferFee(), feeListRp).doubleValue());
         m.put("usdtTransferFeeUsd", feeListMoney(br.usdtTransferFeeUsd(), feeListRp).doubleValue());
         m.put("payFeeRate", PercentDecimalHelper.toPlainOneDecimal(payRateBd));
@@ -4094,7 +4096,7 @@ public class ApiSettlementController {
                     + br.usageFee() + br.failFee() + br.chargebackFee();
             aggPaySide = aggPaySide.add(FeeListRoundingPolicy.round(BigDecimal.valueOf(paySideD), feeListRp));
             aggCancel = aggCancel.add(FeeListRoundingPolicy.round(BigDecimal.valueOf(br.cancelFee()), feeListRp));
-            double refundVoidD = br.voidFee() + br.manualVoidFee() + br.refundFee();
+            double refundVoidD = br.voidFee() + br.handVoidFee() + br.manualVoidFee() + br.refundFee() + br.handRefundFee();
             aggRefundVoid = aggRefundVoid.add(FeeListRoundingPolicy.round(BigDecimal.valueOf(refundVoidD), feeListRp));
         }
         row.put("feeCnt", feeCnt);

@@ -99,7 +99,6 @@
             <a href="javascript:void(0)" class="side-nav-link" aria-expanded="false"><i class="bi bi-gear-wide-connected"></i><span data-pg-ui-t="본사설정"> 본사설정 </span><span class="menu-arrow"></span></a>
             <ul class="side-nav-second-level">
               <li class="child-li" data-url="/hq/defaultCommission"><a href="#" data-menu_id="M0102" data-pg-ui-t="수수료설정">수수료설정</a></li>
-              <li class="child-li" data-url="/hq/pgAgencyCostPolicy"><a href="#" data-menu_id="M0128" data-pg-ui-t="대행수수료설정">대행수수료설정</a></li>
               <li class="child-li" data-url="/hq/chargebackPolicy"><a href="#" data-menu_id="M0117" data-pg-ui-t="차지백설정">차지백설정</a></li>
               <li class="child-li" data-url="/hq/riskCardPolicy"><a href="#" data-menu_id="M0129" data-pg-ui-t="리스크설정">리스크설정</a></li>
               <li class="child-li" data-url="/hq/businessDaySetting"><a href="#" data-menu_id="M0109" data-pg-ui-t="영업일설정">영업일설정</a></li>
@@ -128,10 +127,11 @@
             <a href="javascript:void(0)" class="side-nav-link" aria-expanded="false"><i class="bi bi-clipboard2-check"></i><span data-pg-ui-t="검수관리"> 검수관리 </span><span class="menu-arrow"></span></a>
             <ul class="side-nav-second-level">
               <li class="child-li" data-url="/calc/integratedCheck"><a href="#" data-menu_id="M0332" data-pg-ui-t="통합체크">통합체크</a></li>
-              <li class="child-li" data-url="/calc/jpayTrList"><a href="#" data-menu_id="M0328" data-pg-ui-t="통합개요">통합개요</a></li>
               <li class="child-li" data-url="/calc/payOverview"><a href="#" data-menu_id="M0333" data-pg-ui-t="결제개요">결제개요</a></li>
-              <li class="child-li" data-url="/calc/queryIntegrated"><a href="#" data-menu_id="M0331" data-pg-ui-t="일별조회">일별조회</a></li>
+              <li class="child-li" data-url="/ops/costAudit"><a href="#" data-menu_id="M0616" data-pg-ui-t="원가검수">원가검수</a></li>
               <li class="child-li" data-url="/ops/agencyTxnList"><a href="#" data-menu_id="M0607" data-pg-ui-t="대행수수료">대행수수료</a></li>
+              <li class="child-li" data-url="/calc/jpayTrList"><a href="#" data-menu_id="M0328" data-pg-ui-t="통합개요">통합개요</a></li>
+              <li class="child-li" data-url="/calc/queryIntegrated"><a href="#" data-menu_id="M0331" data-pg-ui-t="일별조회">일별조회</a></li>
             </ul>
           </li>
           <!-- 업체관리 (FXHJ 동일) -->
@@ -249,7 +249,8 @@
           <li class="side-nav-item">
             <a href="javascript:void(0)" class="side-nav-link" aria-expanded="false"><i class="bi bi-cloud-arrow-up"></i><span data-pg-ui-t="배포설정"> 배포설정 </span><span class="menu-arrow"></span></a>
             <ul class="side-nav-second-level">
-              <li class="child-li" data-url="/hq/pgApiMng"><a href="#" data-menu_id="M0101" data-pg-ui-t="API연동설정">API연동설정</a></li>
+              <li class="child-li" data-url="/hq/pgAgencyCostPolicy"><a href="#" data-menu_id="M0128" data-pg-ui-t="결제대행사 등록">결제대행사 등록</a></li>
+              <li class="child-li" data-url="/hq/pgApiMng"><a href="#" data-menu_id="M0101" data-pg-ui-t="결제대행사 설정">결제대행사 설정</a></li>
               <li class="child-li" data-url="/hq/apiMerchantDeployReg"><a href="#" data-menu_id="M0906" data-pg-ui-t="API 가맹점 등록">API 가맹점 등록</a></li>
               <li class="child-li" data-url="/hq/merchantApiGenerate"><a href="#" data-menu_id="M0905" data-pg-ui-t="가맹점 API 생성">가맹점 API 생성</a></li>
               <li class="child-li" data-url="/hq/merchantApiDeployDocs"><a href="#" data-menu_id="M0907" data-pg-ui-t="API배포문서">API배포문서</a></li>
@@ -478,6 +479,13 @@
             <div class="mb-2">
               <label class="form-label"><span data-pg-ui-t="결제대행사">결제대행사</span> <span class="text-danger">*</span></label>
               <input type="text" class="form-control form-control-sm" id="pgAgencyEditPgNm" maxlength="100" data-pg-ui-placeholder="표시 이름 (예 ElementPay · THB)" placeholder="표시 이름 (예 ElementPay · THB)">
+            </div>
+            <div class="mb-2">
+              <label class="form-label"><span data-pg-ui-t="대행사명">대행사명</span> <span class="text-danger">*</span></label>
+              <select class="form-select form-select-sm" id="pgAgencyEditCostPolicyId">
+                <option value="">—</option>
+              </select>
+              <div class="form-text"><span data-pg-ui-t="연동·배포 「결제대행사 등록」에서 만든 근원원가(대행사명)를 선택합니다. 필수.">연동·배포 「결제대행사 등록」에서 만든 근원원가(대행사명)를 선택합니다. 필수.</span></div>
             </div>
             <div class="mb-2">
               <label class="form-label"><span data-pg-ui-t="연동 용도">연동 용도</span> <span class="text-danger">*</span></label>
@@ -887,23 +895,23 @@
 <script src="js/pay-list-overview-catalog.js?v=4"></script>
 <script src="js/pay-list-jpay-overview-catalog.js?v=2"></script>
 <script src="js/table-column-resize.js?v=5"></script>
-  <script src="js/pg-ui-string-map.js?v=63"></script>
+  <script src="js/pg-ui-string-map.js?v=65"></script>
   <script src="js/pg-ui-i18n.js?v=115"></script>
   <script src="js/url-pay-copy-phrase-i18n.js?v=1"></script>
   <script src="js/checkout-header-subtitle-presets.js?v=2"></script>
   <script src="js/url-pay-input-mode.js?v=4"></script>
   <script src="js/pg-view-display-tz.js?v=4"></script>
-  <script src="js/pg-menu-layout-b.js?v=8"></script>
+  <script src="js/pg-menu-layout-b.js?v=9"></script>
   <script src="js/pg-hub-shell.js?v=7"></script>
-  <script src="js/icopay-platform-release-notes.js?v=5.53"></script>
+  <script src="js/icopay-platform-release-notes.js?v=5.55"></script>
   <script src="js/icopay-platform-manuals.js?v=2.81"></script>
   <script src="js/icopay-crypto-wallets.js?v=6"></script>
   <script src="js/icopay-qr-modal.js?v=4"></script>
-  <script src="js/screens.js?v=310"></script>
-  <script src="js/pg-pay-list-i18n.js?v=54"></script>
+  <script src="js/screens.js?v=312"></script>
+  <script src="js/pg-agency-cost-register.js?v=4"></script>
   <script src="js/pg-home-dashboard.js?v=31"></script>
   <script src="js/ops-inactive-card-brand.js?v=2"></script>
-  <script src="js/app.js?v=383"></script>
+  <script src="js/app.js?v=384"></script>
   <script src="js/pg-login-tablet-shell.js?v=6"></script>
   <script src="js/pg-topbar-contrast.js?v=2"></script>
   <script src="js/pg-admin-tablet-shell.js?v=10"></script>

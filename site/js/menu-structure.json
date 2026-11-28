@@ -7,7 +7,6 @@
       "icon": "bi-gear-wide-connected",
       "children": [
         { "label": "수수료설정", "url": "/hq/defaultCommission", "menuId": "M0102" },
-        { "label": "대행수수료설정", "url": "/hq/pgAgencyCostPolicy", "menuId": "M0128" },
         { "label": "차지백설정", "url": "/hq/chargebackPolicy", "menuId": "M0117" },
         { "label": "리스크설정", "url": "/hq/riskCardPolicy", "menuId": "M0129" },
         { "label": "영업일설정", "url": "/hq/businessDaySetting", "menuId": "M0109" },
@@ -17,6 +16,7 @@
         { "label": "업체접근설정", "url": "/hq/accountMng", "menuId": "M0106" },
         { "label": "조직항목설정", "url": "/hq/orgViewColumnAllowance", "menuId": "M0108" },
         { "label": "API연동설정", "url": "/hq/pgApiMng", "menuId": "M0101" },
+        { "label": "결제대행사 등록", "url": "/hq/pgAgencyCostPolicy", "menuId": "M0128" },
         { "label": "API배포설정", "url": "/hq/apiConfig", "menuId": "M0103" },
         { "label": "결제로직설정", "url": "/hq/paymentOrchestration", "menuId": "M0118" },
         { "label": "URL결제설정", "url": "/hq/urlPayDeploy", "menuId": "M0122" },
@@ -40,7 +40,7 @@
         { "label": "통합개요", "url": "/calc/jpayTrList", "menuId": "M0328" },
         { "label": "결제개요", "url": "/calc/payOverview", "menuId": "M0333" },
         { "label": "일별조회", "url": "/calc/queryIntegrated", "menuId": "M0331" },
-        { "label": "대행수수료", "url": "/ops/agencyTxnList", "menuId": "M0607" }
+        { "label": "원가검수", "url": "/ops/agencyTxnList", "menuId": "M0607" }
       ]
     },
     {

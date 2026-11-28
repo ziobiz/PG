@@ -85,12 +85,28 @@ public class PaysoIntegratedListService {
             tFrom = tTo;
             tTo = swap;
         }
+        /* 통합체크 일별 집계와 동일: 비교정렬 Zone 기준 일자 + 경계 보정(±1일) 후 일자 필터 */
+        ZoneId ledgerZone = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+        ZoneId dayZone = ViewDisplayTimezoneResolver.currentCompareAlign().orElse(ledgerZone);
+        boolean shift = !dayZone.equals(ledgerZone) || ViewDisplayTimezoneResolver.integratedCheckTimes();
+        LocalDate fetchFrom = shift ? tFrom.minusDays(1) : tFrom;
+        LocalDate fetchTo = shift ? tTo.plusDays(1) : tTo;
         PaysoCredentials creds = resolveInquiryCredentials();
-        FetchResult fetched = fetchInquiryRows(creds, tFrom, tTo, MAX_SEARCH_ROWS);
+        FetchResult fetched = fetchInquiryRows(creds, fetchFrom, fetchTo, MAX_SEARCH_ROWS);
         List<Map<String, Object>> all = new ArrayList<>();
         List<PgTrnsctn> matched = new ArrayList<>();
         int[] cardDetailBudget = {30};
         for (Map<String, Object> raw : fetched.rows) {
+            Instant at = parseInstant(str(raw.get("orderDateTime")));
+            if (at != null) {
+                LocalDate day = at.atZone(dayZone).toLocalDate();
+                if (day.isBefore(tFrom) || day.isAfter(tTo)) {
+                    continue;
+                }
+            } else if (shift) {
+                /* 일시 파싱 실패분은 확장 구간에만 있던 건일 수 있어 제외 */
+                continue;
+            }
             Map<String, Object> row = toPaymentRow(raw, all.size() + 1, creds, cardDetailBudget);
             if (!matchesKeyword(row, fieldType, keyword)) {
                 continue;
@@ -449,7 +465,8 @@ public class PaysoIntegratedListService {
                     str(raw.get("orderNo")),
                     str(raw.get("transactionId")),
                     str(raw.get("cardNo")),
-                    feeBd);
+                    feeBd,
+                    str(raw.get("orderDateTime")));
         } catch (Exception ignored) {
             /* 목록 조회는 유지 */
         }
@@ -743,30 +760,12 @@ public class PaysoIntegratedListService {
     }
 
     private static Instant parseInstant(String raw) {
-        if (raw == null || raw.isBlank()) {
+        /* Payso Date/orderDateTime 은 방콕 벽시계 — Z·오프셋이 있어도 UTC Instant 로 읽지 않음(+7h 방지) */
+        LocalDateTime wall = PaysoSaleRecordService.parsePaysoOrderDateTimeWall(raw);
+        if (wall == null) {
             return null;
         }
-        String s = raw.trim();
-        try {
-            if (s.endsWith("Z") || s.contains("+") || s.matches(".*[+-]\\d{2}:\\d{2}$")) {
-                return Instant.parse(s);
-            }
-        } catch (Exception ignored) {
-            /* fall through */
-        }
-        try {
-            LocalDateTime ldt = LocalDateTime.parse(s, PAYSO_DT);
-            return ldt.atZone(ZoneId.of("Asia/Bangkok")).toInstant();
-        } catch (Exception ignored) {
-            /* fall through */
-        }
-        try {
-            LocalDateTime ldt = LocalDateTime.parse(s.replace('T', ' ').substring(0, Math.min(19, s.length())),
-                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-            return ldt.atZone(ZoneId.of("Asia/Bangkok")).toInstant();
-        } catch (Exception ignored) {
-            return null;
-        }
+        return wall.atZone(ZoneId.of("Asia/Bangkok")).toInstant();
     }
 
     private static String formatWall(String raw, ZoneId zone) {

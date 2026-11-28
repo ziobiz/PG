@@ -26,9 +26,22 @@ class TransactionReceiptEmailI18nTest {
 
     @Test
     void paymentProviderLabelIsNeutralWithoutMasterDistSuffix() {
-        assertEquals("결제대행사", TransactionReceiptEmailI18n.fieldLabels("KOR").get("paymentProvider"));
+        assertEquals("Payment Providerㅣ결제대행사",
+                TransactionReceiptEmailI18n.fieldLabels("KOR").get("paymentProvider"));
         assertEquals("Payment Provider", TransactionReceiptEmailI18n.fieldLabels("ENG").get("paymentProvider"));
         assertTrue(!TransactionReceiptEmailI18n.fieldLabels("KOR").get("paymentProvider").contains("총판"));
+    }
+
+    @Test
+    void bilingualLabelsUseEnglishThenSelectedLocale() {
+        assertEquals("Payment failedㅣชำระไม่สำเร็จ",
+                TransactionReceiptEmailI18n.outcomeBadge("THA", TransactionReceiptOutcome.FAILED));
+        assertEquals("Payment failedㅣ決済失敗",
+                TransactionReceiptEmailI18n.outcomeBadge("JPN", TransactionReceiptOutcome.FAILED));
+        assertEquals("Payment failed",
+                TransactionReceiptEmailI18n.outcomeBadge("ENG", TransactionReceiptOutcome.FAILED));
+        assertTrue(TransactionReceiptEmailI18n.subject("THA", TransactionReceiptOutcome.FAILED)
+                .contains("Payment failedㅣชำระไม่สำเร็จ"));
     }
 
     @Test

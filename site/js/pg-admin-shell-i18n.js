@@ -168,7 +168,7 @@
   var URL_TR = {
     '/hq/pgApiMng': T('PG integration', 'PG連携', '支付机构联动', 'เชื่อมต่อ PG'),
     '/hq/defaultCommission': T('Commission', '手数料', '手续费', 'ค่าธรรมเนียม'),
-    '/hq/pgAgencyCostPolicy': T('Agency fee', '代行手数料', '代理手续费', 'ค่าธรรมเนียมตัวแทน'),
+    '/hq/pgAgencyCostPolicy': T('PG cost register', '決済代行 登録', '收单方成本登记', 'ลงทะเบียนต้นทุน PG'),
     '/hq/chargebackPolicy': T('Chargeback', 'チャージバック', '拒付/退单', 'Chargeback'),
     '/hq/riskCardPolicy': T('Risk', 'リスク', '风险', 'ความเสี่ยง'),
     '/hq/businessDaySetting': T('Business days', '営業日', '营业日', 'วันทำการ'),
@@ -268,7 +268,8 @@
     '/ops/mailLog': T('Mail management', 'メール管理', '邮件管理', 'จัดการเมล'),
     '/ops/remittance': T('Remittance', '送金管理', '汇款管理', 'จัดการโอนเงิน'),
     '/ops/taxReport': T('TAX report', 'TAXレポート', 'TAX报表', 'รายงาน TAX'),
-    '/ops/agencyTxnList': T('Agency fees', '代行手数료', '代理手续费', 'ค่าธรรมเนียมตัวแทน'),
+    '/ops/costAudit': T('Cost audit', '原価検収', '成本检收', 'ตรวจต้นทุน'),
+    '/ops/agencyTxnList': T('Agency fees', '代行手数料', '代行手续费', 'ค่าธรรมเนียมตัวแทน'),
     '/ops/distributionTxnList': T('Channel fee details', '流通網内訳', '渠道费用明细', 'รายละเอียดค่าธรรมเนียมช่องทาง'),
     '/ops/distributionSettlement': T('Channel settlement (ops)', '流通網精算(運営)', '渠道结算(运营)', 'ชำระช่องทาง(ปฏิบัติการ)'),
     '/calc/integratedCheck': T('Integrated check', '統合チェック', '整合检查', 'ตรวจสอบรวม'),

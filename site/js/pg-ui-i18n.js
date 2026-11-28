@@ -8641,6 +8641,19 @@
       CH: 'U汇款',
       TH: 'โอน U'
     },
+    '연결된 결제대행사 설정이 있어 삭제할 수 없습니다. (미사용·비활성 포함)': {
+      EN: 'Cannot delete: linked PG settings exist (including unused/inactive).',
+      JP: '連携中の決済代行設定があるため削除できません（未使用・非活性含む）。',
+      CH: '存在已关联的收单设置，无法删除（含未用/停用）。',
+      TH: 'ลบไม่ได้: มีการตั้งค่า PG ที่เชื่อมอยู่ (รวมปิดใช้/ไม่ใช้งาน)'
+    },
+    '이무효': { EN: 'E.Void', JP: 'メ無', CH: '邮无', TH: 'อีเมลยกเลิก' },
+    '수환불': { EN: 'M.Refund', JP: '手返', CH: '手退', TH: 'คืนมือ' },
+    '이무효수수료': { EN: 'Email void fee', JP: 'メール無効手数料', CH: '邮件无效手续费', TH: 'ค่าธรรมเนียมยกเลิกอีเมล' },
+    '수환불수수료': { EN: 'Manual refund fee', JP: '手動返金手数料', CH: '手动退款手续费', TH: 'ค่าธรรมเนียมคืนเงินมือ' },
+    '이무효수수료(건)': { EN: 'Email void fee', JP: 'メール無効手数料', CH: '邮件无效手续费', TH: 'ค่าธรรมเนียมยกเลิกอีเมล' },
+    '수환불수수료(건)': { EN: 'Manual refund fee', JP: '手動返金手数料', CH: '手动退款手续费', TH: 'ค่าธรรมเนียมคืนเงินมือ' },
+    '수무효수수료(건)': { EN: 'Manual void fee', JP: '手動無効手数料', CH: '手动无效手续费', TH: 'ค่าธรรม네ียมยกเลิกมือ' },
     '수무효': {
       EN: 'Man. void',
       JP: '手無効',
@@ -8971,6 +8984,252 @@
       JP: '上限なし',
       CH: '无上限',
       TH: 'ไม่จำกัด'
+    },
+
+    '결제대행사 등록': { EN: 'PG cost register', JP: '決済代行 登録', CH: '收单方成本登记', TH: 'ลงทะเบียนต้นทุน PG' },
+    '대행사원가': { EN: 'Agency cost', JP: '代行原価', CH: '机构成本', TH: 'ต้นทุนตัวแทน' },
+    '통합': { EN: 'Integrated', JP: '統合', CH: '整合', TH: 'รวม' },
+    '당일 통합': { EN: 'Today integrated', JP: '当日統合', CH: '当日整合', TH: 'รวมวันนี้' },
+    '카드수수료 %': { EN: 'Card fee %', JP: 'カード手数料 %', CH: '卡手续费 %', TH: 'ค่าธรรมเนียมบัตร %' },
+    '카드수수료(%)': { EN: 'Card fee (%)', JP: 'カード手数料(%)', CH: '卡手续费(%)', TH: 'ค่าธรรมเนียมบัตร (%)' },
+    '카드수수료 방식': { EN: 'Card fee mode', JP: 'カード手数料方式', CH: '卡手续费方式', TH: 'โหมดค่าธรรมเนียมบัตร' },
+    '개별(브랜드별)': { EN: 'Per brand', JP: '個別(ブランド別)', CH: '按品牌', TH: 'รายแบรนด์' },
+    'VISA(%)': { EN: 'VISA (%)', JP: 'VISA(%)', CH: 'VISA(%)', TH: 'VISA (%)' },
+    'MASTER(%)': { EN: 'MASTER (%)', JP: 'MASTER(%)', CH: 'MASTER(%)', TH: 'MASTER (%)' },
+    'JCB(%)': { EN: 'JCB (%)', JP: 'JCB(%)', CH: 'JCB(%)', TH: 'JCB (%)' },
+    'AMEX(%)': { EN: 'AMEX (%)', JP: 'AMEX(%)', CH: 'AMEX(%)', TH: 'AMEX (%)' },
+    'UNION(%)': { EN: 'UNION (%)', JP: 'UNION(%)', CH: 'UNION(%)', TH: 'UNION (%)' },
+    'DINERS(%)': { EN: 'DINERS (%)', JP: 'DINERS(%)', CH: 'DINERS(%)', TH: 'DINERS (%)' },
+    '카드수수료방식': { EN: 'Card fee mode', JP: 'カード手数料方式', CH: '卡手续费方式', TH: 'โหมดค่าธรรมเนียมบัตร' },
+    '카드브랜드': { EN: 'Card brands', JP: 'カードブランド', CH: '卡品牌', TH: 'แบรนด์บัตร' },
+    '운영유무': {
+      EN: 'Operational status',
+      JP: '運用有無',
+      CH: '运营状态',
+      TH: 'สถานะใช้งาน'
+    },
+    '운영유무를 선택하세요.': {
+      EN: 'Select operational status.',
+      JP: '運用有無を選択してください。',
+      CH: '请选择运营状态。',
+      TH: 'เลือกสถานะใช้งาน'
+    },
+    '멀티유무': {
+      EN: 'Multi status',
+      JP: 'マルチ有無',
+      CH: '多币种有无',
+      TH: 'สถานะมัลติ'
+    },
+    '멀티유무를 선택하세요.': {
+      EN: 'Select Multi status.',
+      JP: 'マルチ有無を選択してください。',
+      CH: '请选择多币种有无。',
+      TH: 'เลือกสถานะมัลติ'
+    },
+    '이 근원원가 행을 결제대행사 설정에서 선택할 수 있는지(활성)입니다. 멀티유무(표시≠청구)와 별개입니다.': {
+      EN: 'Whether this root-cost row can be selected in agency settings (active). Separate from Multi status (display ≠ charge).',
+      JP: 'この根原価行を決済代行設定で選べるか(有効)。マルチ有無(表示≠請求)とは別です。',
+      CH: '该根成本行是否可在机构设置中选择(启用)。与多币种有无(显示≠扣款)无关。',
+      TH: 'แถวต้นทุนรากนี้เลือกได้ในตั้งค่า PG หรือไม่ (เปิดใช้) แยกจากสถานะมัลติ (แสดง≠เรียกเก็บ)'
+    },
+    '이 근원원가 행을 결제대행사 설정에서 선택할 수 있는지(활성)입니다. 멀티(표시≠청구)와 별개입니다.': {
+      EN: 'Whether this root-cost row can be selected in agency settings (active). Separate from Multi (display ≠ charge).',
+      JP: 'この根原価行を決済代行設定で選べるか(有効)。マルチ(表示≠請求)とは別です。',
+      CH: '该根成本行是否可在机构设置中选择(启用)。与多币种(显示≠扣款)无关。',
+      TH: 'แถวต้นทุนรากนี้เลือกได้ในตั้งค่า PG หรือไม่ (เปิดใช้) แยกจากมัลติ (แสดง≠เรียกเก็บ)'
+    },
+    '예: PAYSO JPY': { EN: 'e.g. PAYSO JPY', JP: '例: PAYSO JPY', CH: '例: PAYSO JPY', TH: 'เช่น PAYSO JPY' },
+    '예: PAYSO': { EN: 'e.g. PAYSO', JP: '例: PAYSO', CH: '例: PAYSO', TH: 'เช่น PAYSO' },
+    '예: PAYSO_JPY': { EN: 'e.g. PAYSO_JPY', JP: '例: PAYSO_JPY', CH: '例: PAYSO_JPY', TH: 'เช่น PAYSO_JPY' },
+    '통합=전 브랜드 동일 %. 개별=브랜드별 % · 0이면 해당 브랜드 미사용(예: V+M만 쓰려면 JCB·AMEX 등을 0).': {
+      EN: 'Unified = one % for all brands. Per brand = each %; 0 means brand unused (e.g. V+M only → set JCB/AMEX to 0).',
+      JP: '統合=全ブランド同一%。個別=ブランド別%・0は未使用(例: V+Mのみなら JCB・AMEX を0)。',
+      CH: '整合=全品牌同一%。按品牌=各%·0表示该品牌未用(例仅 V+M 则 JCB/AMEX 填 0)。',
+      TH: 'รวม=% เดียวทุกแบรนด์ รายแบรนด์=% ต่อแบรนด์ · 0 = ไม่ใช้ (เช่น V+M อย่างเดียว ใส่ JCB/AMEX เป็น 0)'
+    },
+    '롤링(%)을 입력하세요.': { EN: 'Enter rolling (%).', JP: 'ローリング(%)を入力してください。', CH: '请输入滚动(%)。', TH: 'กรอกโรลลิ่ง (%)' },
+    '보류일수를 입력하세요.': { EN: 'Enter hold days.', JP: '保留日数を入力してください。', CH: '请输入保留天数。', TH: 'กรอกวันพัก' },
+    '정산주기 유형을 선택하세요.': { EN: 'Select settlement cycle type.', JP: '精算周期タイプを選択してください。', CH: '请选择结算周期类型。', TH: 'เลือกประเภทวงจรชำระ' },
+    '정산주기 N을 입력하세요.': { EN: 'Enter settlement N.', JP: '精算 N を入力してください。', CH: '请输入结算 N。', TH: 'กรอก N ของวงจรชำระ' },
+    'D 일괄시각을 입력하세요.': { EN: 'Enter D batch time.', JP: 'D一括時刻を入力してください。', CH: '请输入 D 批量时间。', TH: 'กรอกเวลารวม D' },
+    '멀티를 선택하세요.': { EN: 'Select Multi.', JP: 'マルチを選択してください。', CH: '请选择多币种。', TH: 'เลือกมัลติ' },
+    '이 원가 정책을 저장할까요?\n취소하면 저장되지 않습니다.': { EN: 'Save this cost policy?\nCancel to abort.', JP: 'この原価ポリシーを保存しますか？\nキャンセルで中止。', CH: '要保存此成本政策吗？\n取消则不保存。', TH: 'บันทึกนโยบายต้นทุนนี้?\nยกเลิกเพื่อหยุด' },
+    '서버에 반영합니다. 정말 진행할까요?': { EN: 'Apply to server. Continue?', JP: 'サーバーに反映します。続行しますか？', CH: '将写入服务器。确定继续？', TH: 'จะบันทึกลงเซิร์ฟเวอร์ ดำเนินการต่อ?' },
+    '이 원가 정책을 삭제할까요?\n취소하면 삭제되지 않습니다.': { EN: 'Delete this cost policy?\nCancel to abort.', JP: 'この原価ポリシーを削除しますか？\nキャンセルで中止。', CH: '要删除此成本政策吗？\n取消则不删除。', TH: 'ลบนโยบายต้นทุนนี้?\nยกเลิกเพื่อหยุด' },
+    '삭제는 되돌릴 수 없습니다. 정말 삭제할까요?': { EN: 'Deletion cannot be undone. Delete anyway?', JP: '削除は元に戻せません。本当に削除しますか？', CH: '删除不可撤销。确定删除？', TH: 'ลบแล้วกู้คืนไม่ได้ ยืนยันลบ?' },
+    '이 칸을 수정할까요?\n취소하면 수정하지 않습니다.': { EN: 'Edit this cell?\nCancel to abort.', JP: 'この欄を修正しますか？\nキャンセルで中止。', CH: '要修改此格吗？\n取消则不改。', TH: 'แก้ไขช่องนี้?\nยกเลิกเพื่อหยุด' },
+    '수정을 진행합니다. 정말 계속할까요?': { EN: 'Proceed with edit?', JP: '修正を進めます。続行しますか？', CH: '开始修改。确定继续？', TH: 'จะแก้ไขต่อ ดำเนินการ?' },
+    '삭제 API가 없습니다.': { EN: 'Delete API missing.', JP: '削除APIがありません。', CH: '无删除接口。', TH: 'ไม่มี API ลบ' },
+    '기본은 「전체」(당일)입니다. 전체는 ElementPay·JPAY·PAYSO·KSNET·ox를 일자·대행사 행으로 나열합니다. 특정 대행사를 고르면 그 대행사만 대조합니다.': { EN: 'Default is All (today). All lists ElementPay·JPAY·PAYSO·KSNET·ox as day×acquirer rows. Pick one acquirer to compare only that PG.', JP: '既定は全体(当日)。全体は各代行を日×代行行で列挙。特定代行のみも選択可。', CH: '默认全部(当日)。全部按日×收单行列出各机构。也可只选一家对照。', TH: 'ค่าเริ่มต้น=ทั้งหมด(วันนี้) แสดงแถววัน×ผู้รับชำระทุกเจ้า เลือกเจ้าเดียวได้' },
+    '기본은 「전체」(당일)이며, 대행사·ICOPAY 건수가 모두 0인 행은 숨깁니다. 「건수 0 포함」을 체크하면 빈 행까지 모두 표시합니다.': { EN: 'Default is All (today); rows with zero acquirer and ICOPAY counts are hidden. Check Include zero counts to show empty rows too.', JP: '既定は全体(当日)。代行・ICOPAY件数とも0の行は非表示。「件数0も表示」で空行も出します。', CH: '默认全部(当日)；收单与ICOPAY笔数均为0的行隐藏。勾选「含0笔」可显示空行。', TH: 'ค่าเริ่มต้น=ทั้งหมด(วันนี้) ซ่อนแถวที่จำนวนผู้รับชำระและ ICOPAY เป็น 0 ทั้งคู่ ติ๊ก「รวมจำนวน 0」เพื่อแสดงแถวว่าง' },
+    '기본은 「전체」(당일)이며, 대행사·ICOPAY 건수가 모두 0인 행은 숨깁니다. 「무건수노출」을 사용으로 두면 빈 행까지 모두 표시합니다.': { EN: 'Default is All (today); rows with zero acquirer and ICOPAY counts are hidden. Set Show zero counts to On to show empty rows too.', JP: '既定は全体(当日)。代行・ICOPAY件数とも0の行は非表示。「件数0表示」を使用にすると空行も出します。', CH: '默认全部(当日)；收单与ICOPAY笔数均为0的行隐藏。「显示0笔」设为使用可显示空行。', TH: 'ค่าเริ่มต้น=ทั้งหมด(วันนี้) ซ่อนแถวที่จำนวนผู้รับชำระและ ICOPAY เป็น 0 ทั้งคู่ ตั้ง「แสดงจำนวน 0」=ใช้ เพื่อแสดงแถวว่าง' },
+    '전체는 ElementPay·JPAY·PAYSO·KSNET·ox를 일자·대행사 행으로 나열합니다. 특정 대행사를 고르면 그 대행사만 대조합니다.': { EN: 'All lists ElementPay·JPAY·PAYSO·KSNET·ox as day×acquirer rows. Pick one acquirer to compare only that PG.', JP: '全体は各代行を日×代行行で列挙。特定代行のみも選択可。', CH: '全部按日×收单行列出各机构。也可只选一家对照。', TH: 'ทั้งหมดแสดงแถววัน×ผู้รับชำระทุกเจ้า เลือกเจ้าเดียวได้' },
+    '기본은 「전체」(당일)입니다. 전체는 전 대행사를 일자·대행사 행으로 나열하고, 행마다 근원원가를 붙입니다.': { EN: 'Default is All (today). All lists every acquirer as day rows with cost applied per row.', JP: '既定は全体(当日)。全代行を日×代行行で列挙し行ごとに原価を付与。', CH: '默认全部(当日)。全部按日×收单行并逐行套用成本。', TH: 'ค่าเริ่มต้น=ทั้งหมด(วันนี้) แสดงทุกเจ้าเป็นแถววัน พร้อมต้นทุนรายแถว' },
+    '기본은 「전체」(당일)이며, 건수 0인 행은 숨깁니다. 「건수 0 포함」을 체크하면 빈 행까지 모두 표시합니다.': { EN: 'Default is All (today); zero-count rows are hidden. Check Include zero counts to show empty rows too.', JP: '既定は全体(当日)。件数0行は非表示。「件数0も表示」で空行も出します。', CH: '默认全部(当日)；0笔行隐藏。勾选「含0笔」可显示空行。', TH: 'ค่าเริ่มต้น=ทั้งหมด(วันนี้) ซ่อนแถวจำนวน 0 ติ๊ก「รวมจำนวน 0」เพื่อแสดงแถวว่าง' },
+    '기본은 「전체」(당일)이며, 건수 0인 행은 숨깁니다. 「무건수노출」을 사용으로 두면 빈 행까지 모두 표시합니다.': { EN: 'Default is All (today); zero-count rows are hidden. Set Show zero counts to On to show empty rows too.', JP: '既定は全体(当日)。件数0行は非表示。「件数0表示」を使用にすると空行も出します。', CH: '默认全部(当日)；0笔行隐藏。「显示0笔」设为使用可显示空行。', TH: 'ค่าเริ่มต้น=ทั้งหมด(วันนี้) ซ่อนแถวจำนวน 0 ตั้ง「แสดงจำนวน 0」=ใช้ เพื่อแสดงแถวว่าง' },
+    '전체는 전 대행사를 일자·대행사 행으로 나열하고, 행마다 근원원가를 붙입니다.': { EN: 'All lists every acquirer as day rows with cost applied per row.', JP: '全体は全代行を日×代行行で列挙し行ごとに原価を付与。', CH: '全部按日×收单行并逐行套用成本。', TH: 'ทั้งหมดแสดงทุกเจ้าเป็นแถววัน พร้อมต้นทุนรายแถว' },
+    '건수 0 포함': { EN: 'Include zero counts', JP: '件数0も表示', CH: '含0笔', TH: 'รวมจำนวน 0' },
+    '무건수노출': { EN: 'Show zero counts', JP: '件数0表示', CH: '显示0笔', TH: 'แสดงจำนวน 0' },
+    '데이터출처 「대사」=대행사 집계 우선, 「결제내역보강」=대사 없음·ICOPAY 금액·건수 사용.': { EN: 'Source Recon=acquirer totals first; Pay fallback=ICOPAY when recon missing.', JP: '出典「照合」=代行集計優先、「決済補完」=照合なし時ICOPAY。', CH: '来源「对账」=收单汇总优先；「交易补强」=无对账时用ICOPAY。', TH: 'แหล่ง「กระทบ」=ยอดผู้รับชำระก่อน 「เสริมจากชำระ」=ใช้ ICOPAY เมื่อไม่มีกระทบ' },
+    '데이터출처 「대사」=대행사 집계 우선, 「결제내역보강」=대사 없음·ICOPAY 금액·건수 사용(보조).': { EN: 'Source Recon=acquirer totals first; Pay fallback=ICOPAY only as backup when recon missing.', JP: '出典「照合」=代行集計優先、「決済補完」=照合なし時の補助としてICOPAY。', CH: '来源「对账」=收单汇总优先；「交易补强」=无对账时仅作ICOPAY辅助。', TH: 'แหล่ง「กระทบ」=ยอดผู้รับชำระก่อน 「เสริมจากชำระ」=ใช้ ICOPAY เป็นสำรองเมื่อไม่มีกระทบ' },
+    '대행사명': { EN: 'Agency name', JP: '代行名', CH: '机构名称', TH: 'ชื่อตัวแทน' },
+    '대행사명 선택': { EN: 'Select agency name', JP: '代行名を選択', CH: '选择机构名称', TH: 'เลือกชื่อตัวแทน' },
+    '대행사명은 필수입니다.': { EN: 'Agency name is required.', JP: '代行名は必須です。', CH: '机构名称为必填。', TH: 'ต้องเลือกชื่อตัวแทน' },
+    '대행사원가 선택': { EN: 'Select agency cost', JP: '代行原価を選択', CH: '选择机构成本', TH: 'เลือกต้นทุนตัวแทน' },
+    '대행사원가는 필수입니다.': { EN: 'Agency cost is required.', JP: '代行原価は必須です。', CH: '机构成本为必填。', TH: 'ต้องเลือกต้นทุนตัวแทน' },
+    '계약대행사': { EN: 'Contracted acquirer', JP: '契約代行', CH: '签约收单方', TH: 'ตัวแทนตามสัญญา' },
+    '계약대행사를 입력하세요.': { EN: 'Enter contracted acquirer.', JP: '契約代行を入力してください。', CH: '请输入签约收单方。', TH: 'กรอกตัวแทนตามสัญญา' },
+    '청구통화를 선택하세요.': { EN: 'Select charge currency.', JP: '請求通貨を選択してください。', CH: '请选择扣款币种。', TH: 'เลือกสกุลเรียกเก็บ' },
+    '표시통화를 선택하세요.': { EN: 'Select display currency.', JP: '表示通貨を選択してください。', CH: '请选择显示币种。', TH: 'เลือกสกุลแสดง' },
+    '부가세율을 입력하세요.': { EN: 'Enter VAT rate.', JP: '付加税率を入力してください。', CH: '请输入增值税率。', TH: 'กรอกอัตรา VAT' },
+    '멀티': { EN: 'Multi', JP: 'マルチ', CH: '多币种', TH: 'มัลติ' },
+    '아니오(청구만)': { EN: 'No (charge only)', JP: 'いいえ(請求のみ)', CH: '否(仅扣款)', TH: 'ไม่ (เรียกเก็บอย่างเดียว)' },
+    '예(표시≠청구)': { EN: 'Yes (display ≠ charge)', JP: 'はい(表示≠請求)', CH: '是(显示≠扣款)', TH: 'ใช่ (แสดง≠เรียกเก็บ)' },
+    '기본정보': { EN: 'Basic info', JP: '基本情報', CH: '基本信息', TH: 'ข้อมูลพื้นฐาน' },
+    '정산주기': { EN: 'Settlement cycle', JP: '精算周期', CH: '结算周期', TH: 'รอบชำระ' },
+    'APM 카드 수수료(%)': { EN: 'APM card fees (%)', JP: 'APMカード手数料(%)', CH: 'APM 卡手续费(%)', TH: 'ค่าธรรมเนียม APM (%)' },
+    '크립토·PayPay·라쿠텐페이·PromptPay·LINE·카카오·위챗 등 대체결제(APM) 계약 수수료율(%)입니다.': {
+      EN: 'Contract fee rates (%) for alternative payments (APM): crypto, PayPay, Rakuten Pay, PromptPay, LINE, Kakao, WeChat, etc.',
+      JP: '暗号資産・PayPay・楽天ペイ・PromptPay・LINE・カカオ・WeChatなど代替決済(APM)の契約手数料率(%)です。',
+      CH: '加密、PayPay、乐天Pay、PromptPay、LINE、Kakao、微信等替代支付(APM)合同手续费率(%)。',
+      TH: 'อัตราค่าธรรมเนียมสัญญา (%) ของการชำระทางเลือก (APM): คริปโต, PayPay, Rakuten, PromptPay, LINE, Kakao, WeChat'
+    },
+    '크립토수수료(%)': { EN: 'Crypto fee (%)', JP: 'クリプト手数料(%)', CH: '加密手续费(%)', TH: 'ค่าธรรมเนียมคริปโต (%)' },
+    'PayPay 수수료(%)': { EN: 'PayPay fee (%)', JP: 'PayPay手数料(%)', CH: 'PayPay 手续费(%)', TH: 'ค่าธรรมเนียม PayPay (%)' },
+    '라쿠텐페이 수수료(%)': { EN: 'Rakuten Pay fee (%)', JP: '楽天ペイ手数料(%)', CH: '乐天Pay手续费(%)', TH: 'ค่าธรรมเนียม Rakuten Pay (%)' },
+    'PromptPay 수수료(%)': { EN: 'PromptPay fee (%)', JP: 'PromptPay手数料(%)', CH: 'PromptPay 手续费(%)', TH: 'ค่าธรรมเนียม PromptPay (%)' },
+    'LINE 수수료(%)': { EN: 'LINE fee (%)', JP: 'LINE手数料(%)', CH: 'LINE 手续费(%)', TH: 'ค่าธรรมเนียม LINE (%)' },
+    '카카오 수수료(%)': { EN: 'Kakao fee (%)', JP: 'カカオ手数料(%)', CH: 'Kakao 手续费(%)', TH: 'ค่าธรรมเนียม Kakao (%)' },
+    '위챗 수수료(%)': { EN: 'WeChat fee (%)', JP: 'WeChat手数料(%)', CH: '微信手续费(%)', TH: 'ค่าธรรมเนียม WeChat (%)' },
+    'ICOPAY↔결제대행사 <strong>근원원가</strong>를 등록합니다. <strong>멀티유무</strong>면 결제사 DP처럼 표시≠청구, 아니면 청구통화만입니다. 필수(*) 없으면 저장되지 않습니다.': {
+      EN: 'Register ICOPAY↔acquirer <strong>root cost</strong>. With <strong>Multi status</strong>, display ≠ charge (like DP); otherwise charge currency only. Required (*) fields must be filled to save.',
+      JP: 'ICOPAY↔決済代行の<strong>根原価</strong>を登録。<strong>マルチ有無</strong>なら表示≠請求(DP同様)、否则は請求通貨のみ。必須(*)未入力では保存不可。',
+      CH: '登记 ICOPAY↔收单<strong>根成本</strong>。<strong>多币种有无</strong>时显示≠扣款(同 DP)，否则仅扣款币种。未填必填(*)不可保存。',
+      TH: 'ลงทะเบียน<strong>ต้นทุนราก</strong> ICOPAY↔PG ถ้า<strong>สถานะมัลติ</strong> แสดง≠เรียกเก็บ (แบบ DP) ไม่เช่นนั้นใช้สกุลเรียกเก็บอย่างเดียว ต้องกรอก (*) จึงบันทึกได้'
+    },
+    'ICOPAY↔결제대행사 <strong>근원원가</strong>를 등록합니다. <strong>멀티</strong>면 결제사 DP처럼 표시≠청구, 아니면 청구통화만입니다. 필수(*) 없으면 저장되지 않습니다.': {
+      EN: 'Register ICOPAY↔acquirer <strong>root cost</strong>. With <strong>Multi</strong>, display ≠ charge (like DP); otherwise charge currency only. Required (*) fields must be filled to save.',
+      JP: 'ICOPAY↔決済代行の<strong>根原価</strong>を登録。<strong>マルチ</strong>なら表示≠請求(DP同様)、否则は請求通貨のみ。必須(*)未入力では保存不可。',
+      CH: '登记 ICOPAY↔收单<strong>根成本</strong>。<strong>多币种</strong>时显示≠扣款(同 DP)，否则仅扣款币种。未填必填(*)不可保存。',
+      TH: 'ลงทะเบียน<strong>ต้นทุนราก</strong> ICOPAY↔PG ถ้า<strong>มัลติ</strong> แสดง≠เรียกเก็บ (แบบ DP) ไม่เช่นนั้นใช้สกุลเรียกเก็บอย่างเดียว ต้องกรอก (*) จึงบันทึกได้'
+    },
+    '연동·배포 「결제대행사 등록」에서 만든 근원원가(대행사명)를 선택합니다. 필수.': {
+      EN: 'Select a root cost (agency name) from Deploy → PG cost register. Required.',
+      JP: '連携・配信「決済代行 登録」の根原価(代行名)を選択。必須。',
+      CH: '从对接·发布「收单登记」选择根成本(机构名称)。必填。',
+      TH: 'เลือกต้นทุนราก (ชื่อตัวแทน) จาก เผยแพร่→ลงทะเบียนต้นทุน PG จำเป็น'
+    },
+    '근원원가를 등록합니다(벤더·통화·멀티·APM 수수료). 결제대행사 설정 추가 시 「대행사명」으로 이 목록을 필수 선택합니다. VIEW SETTING·더블클릭·히스토리는 수수료관리와 동일 패턴입니다.': {
+      EN: 'Register root costs (vendor, currency, multi, APM fees). When adding agency settings, pick 「Agency name」 from this list (required). VIEW SETTING / dbl-click / history match commission management.',
+      JP: '根原価(ベンダー・通貨・マルチ・APM手数料)を登録。設定追加時はこの一覧の「代行名」を必須選択。VIEW SETTING・ダブルクリック・履歴は手数料管理と同じ。',
+      CH: '登记根成本(收单方、币种、多币种、APM 手续费)。添加机构设置时必须从此列表选择「机构名称」。VIEW SETTING/双击/历史与手续费管理相同。',
+      TH: 'ลงทะเบียนต้นทุนราก (ตัวแทน·สกุล·มัลติ·APM) เมื่อเพิ่มตั้งค่า PG ต้องเลือก「ชื่อตัวแทน」จากรายการนี้ VIEW SETTING/ดับเบิลคลิก/ประวัติเหมือนจัดการค่าธรรมเนียม'
+    },
+    '부가세율(%)': { EN: 'VAT rate (%)', JP: '付加税率(%)', CH: '增值税率(%)', TH: 'อัตรา VAT (%)' },
+    'VAT제외': { EN: 'VAT excluded', JP: 'VAT除外', CH: '未含税', TH: 'ไม่รวม VAT' },
+    'VAT포함': { EN: 'VAT included', JP: 'VAT込', CH: '含税', TH: 'รวม VAT' },
+    '표시통화': { EN: 'Display currency', JP: '表示通貨', CH: '显示币种', TH: 'สกุลแสดง' },
+    '청구통화': { EN: 'Charge currency', JP: '請求通貨', CH: '扣款币种', TH: 'สกุลเรียกเก็บ' },
+    '원가 변경 히스토리': { EN: 'Cost change history', JP: '原価変更履歴', CH: '成本变更历史', TH: 'ประวัติแก้ต้นทุน' },
+    '신규 근원원가를 입력한 뒤 저장하세요.': { EN: 'Enter a new root cost then save.', JP: '新規の根原価を入力して保存してください。', CH: '输入新根成本后保存。', TH: 'กรอกต้นทุนรากใหม่แล้วบันทึก' },
+    '목록에서 행을 선택하세요.': { EN: 'Select a row in the list.', JP: '一覧で行を選択してください。', CH: '请在列表中选择一行。', TH: 'เลือกแถวในรายการ' },
+    '변경 이력이 없습니다.': { EN: 'No change history.', JP: '変更履歴がありません。', CH: '无变更历史。', TH: 'ไม่มีประวัติ' },
+    '더블클릭하여 수정': { EN: 'Double-click to edit', JP: 'ダブルクリックで編集', CH: '双击编辑', TH: 'ดับเบิลคลิกเพื่อแก้ไข' },
+
+    /* /hq/pgAgencyCostPolicy — 결제대행사등록 · /ops/agencyTxnList — 원가검수 */
+    '결제대행사등록': {
+      EN: 'PG cost register',
+      JP: '決済代行登録',
+      CH: '收单方成本登记',
+      TH: 'ลงทะเบียนต้นทุน PG'
+    },
+    '원가검수': {
+      EN: 'Cost audit',
+      JP: '原価検収',
+      CH: '成本检收',
+      TH: 'ตรวจต้นทุน'
+    },
+    '대행수수료': {
+      EN: 'Agency fees',
+      JP: '代行手数料',
+      CH: '代行手续费',
+      TH: 'ค่าธรรมเนียมตัวแทน'
+    },
+    '데이터출처': { EN: 'Data source', JP: 'データ出典', CH: '数据来源', TH: 'แหล่งข้อมูล' },
+    '대사건수': { EN: 'Recon count', JP: '突合件数', CH: '对账笔数', TH: 'จำนวนกระทบยอด' },
+    'ICOPAY건수': { EN: 'ICOPAY count', JP: 'ICOPAY件数', CH: 'ICOPAY 笔数', TH: 'จำนวน ICOPAY' },
+    '적용건수': { EN: 'Applied count', JP: '適用件数', CH: '适用笔数', TH: 'จำนวนที่ใช้' },
+    '적용금액': { EN: 'Applied amount', JP: '適用金額', CH: '适用金额', TH: 'ยอดที่ใช้' },
+    '원가(%)': { EN: 'Cost (%)', JP: '原価(%)', CH: '成本(%)', TH: 'ต้นทุน (%)' },
+    '원가(건당)': { EN: 'Cost (per tx)', JP: '原価(件)', CH: '成本(笔)', TH: 'ต้นทุน (ต่อรายการ)' },
+    '대사일치': { EN: 'Recon match', JP: '突合一致', CH: '对账一致', TH: 'กระทบยอดตรง' },
+    '대사': { EN: 'Reconciliation', JP: '突合', CH: '对账', TH: 'กระทบยอด' },
+    '결제내역보강': { EN: 'Pay-history fill', JP: '決済履歴補完', CH: '支付明细补全', TH: 'เสริมจากประวัติชำระ' },
+    '<strong>원가검수</strong>는 <strong>대사(대행사 일별 집계)</strong>를 기본으로 합니다. 대사가 없으면 ICOPAY <strong>결제내역으로 보강</strong>합니다. 대행수수료(결제내역 건별)와 별도입니다.': {
+      EN: '<strong>Cost audit</strong> uses <strong>reconciliation (acquirer daily)</strong> first. If missing, it fills from ICOPAY <strong>payment history</strong>. Separate from Agency fees (per-txn pay history).',
+      JP: '<strong>原価検収</strong>は<strong>突合(代行日次)</strong>を基本。なければICOPAY<strong>決済履歴で補完</strong>。代行手数料(決済履歴件別)とは別です。',
+      CH: '<strong>成本检收</strong>以<strong>对账(收单日汇总)</strong>为准；没有则用 ICOPAY<strong>支付明细补全</strong>。与代行手续费(支付明细按笔)分开。',
+      TH: '<strong>ตรวจต้นทุน</strong>ใช้<strong>กระทบยอด (รายวันของผู้ให้บริการ)</strong> เป็นหลัก ไม่มีแล้วเสริมจาก<strong>ประวัติชำระ</strong> ICOPAY แยกจากค่าธรรมเนียมตัวแทน'
+    },
+    '<strong>대행수수료</strong>는 <strong>결제내역(ICOPAY 거래)</strong> 기준입니다. 원가검수(대사 기준)와 별도 화면입니다.': {
+      EN: '<strong>Agency fees</strong> is based on <strong>payment history (ICOPAY txns)</strong>. Separate from Cost audit (reconciliation-based).',
+      JP: '<strong>代行手数料</strong>は<strong>決済履歴(ICOPAY取引)</strong>基準。原価検収(突合基準)とは別画面です。',
+      CH: '<strong>代行手续费</strong>以<strong>支付明细(ICOPAY 交易)</strong>为准。与成本检收(对账)分开。',
+      TH: '<strong>ค่าธรรมเนียมตัวแทน</strong>อิง<strong>ประวัติชำระ (ธุรกรรม ICOPAY)</strong> แยกจากตรวจต้นทุน (กระทบยอด)'
+    },
+    '신규입력·편집': {
+      EN: 'New / edit',
+      JP: '新規入力・編集',
+      CH: '新建·编辑',
+      TH: 'ใหม่ / แก้ไข'
+    },
+    '등록된 결제대행사 원가': {
+      EN: 'Registered PG costs',
+      JP: '登録済み決済代行原価',
+      CH: '已登记收单成本',
+      TH: 'ต้นทุน PG ที่ลงทะเบียน'
+    },
+    '원가합(세전)': {
+      EN: 'Cost (ex VAT)',
+      JP: '原価合計(税前)',
+      CH: '成本合计(未税)',
+      TH: 'ต้นทุนรวม (ก่อน VAT)'
+    },
+    '원가합(세후)': {
+      EN: 'Cost (inc VAT)',
+      JP: '原価合計(税込)',
+      CH: '成本合计(含税)',
+      TH: 'ต้นทุนรวม (รวม VAT)'
+    },
+    '승인 / 원가(%)': {
+      EN: 'Approval / cost (%)',
+      JP: '承認／原価(%)',
+      CH: '授权/成本(%)',
+      TH: 'อนุมัติ / ต้นทุน (%)'
+    },
+    '합계·부가세·정산': {
+      EN: 'Total · VAT · settlement',
+      JP: '合計・付加税・精算',
+      CH: '合计·增值税·结算',
+      TH: 'รวม·VAT·ชำระ'
+    },
+    '결제대행사등록 T/H/D 기준 도래 Y/N': {
+      EN: 'PG cost register T/H/D due (Y/N)',
+      JP: '決済代行登録 T/H/D 到来 Y/N',
+      CH: '收单登记 T/H/D 到期 Y/N',
+      TH: 'ครบกำหนด T/H/D ลงทะเบียนต้นทุน PG Y/N'
+    },
+    'ICOPAY↔결제대행사 <strong>계약 원가</strong>·담보·정산 주기를 등록합니다. PG는 <strong>결제대행사 설정</strong>에 등록된 결제코드별로 저장합니다. 위 카드에서 입력·저장하고, 아래 목록에서 조회합니다.': {
+      EN: 'Register ICOPAY↔acquirer <strong>contract cost</strong>, collateral, and settlement timing. One row per PG code from <strong>PG integration</strong>. Enter/save in the top card; review in the list below.',
+      JP: 'ICOPAY↔決済代行の<strong>契約原価</strong>・担保・精算周期を登録します。PGは<strong>決済代行設定</strong>のコードごとに保存。上カードで入力・保存、下一覧で照会します。',
+      CH: '登记 ICOPAY↔收单方<strong>合同成本</strong>、保证金与结算周期。每个<strong>支付机构联动</strong>中的 PG 代码一条。上方录入保存，下方列表查看。',
+      TH: 'ลงทะเบียน<strong>ต้นทุนสัญญา</strong>·หลักประกัน·รอบชำระ ICOPAY↔PG หนึ่งรายการต่อรหัสจาก<strong>ตั้งค่า PG</strong> กรอก/บันทึกการ์ดบน ดูรายการด้านล่าง'
+    },
+    '가맹 수수료(수수료설정)와 별도로, 결제대행사와의 계약 원가·정산 주기를 결제코드 단위로 관리합니다. 위 카드에서 입력·저장하고 아래 목록에서 조회합니다. 검수관리 「원가검수」에서 이 정책을 기준으로 건별 원가·부가세를 재계산합니다.': {
+      EN: 'Separate from merchant commission: manage acquirer contract cost and settlement per PG code. Enter/save above, list below. Inspection → Cost audit recalculates per-txn cost and VAT from this policy.',
+      JP: '加盟店手数料とは別に、決済代行の契約原価・精算をPGコード単位で管理。上で入力・保存、下で一覧。検収管理「原価検収」がこの政策で取引ごとの原価・付加税を再計算します。',
+      CH: '与商户手续费分开：按 PG 代码管理收单合同成本与结算。上方录入、下方列表。检收管理「成本检收」据此重算每笔成本与增值税。',
+      TH: 'แยกจากค่าธรรมเนียมร้าน: จัดการต้นทุนสัญญา PG และรอบชำระต่อรหัส กรอกด้านบน รายการด้านล่าง ตรวจรับ「ตรวจต้นทุน」คำนวณต้นทุน·VAT รายรายการจากนโยบายนี้'
     },
     /* /hq/pgAgencyCostPolicy — 대행수수료설정 (ICOPAY↔PG contract) */
     '대행수수료설정': {

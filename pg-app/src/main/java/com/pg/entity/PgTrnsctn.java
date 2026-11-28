@@ -168,6 +168,10 @@ public class PgTrnsctn {
     @Column(name = "checkout_lang", length = 8)
     private String checkoutLang;
 
+    /** 구매자 단말/브라우저 언어 KOR/ENG/JPN/CHN/THA (영수증 폴백) */
+    @Column(name = "device_lang", length = 8)
+    private String deviceLang;
+
     /** 고객 거래명세서 이메일 발송 시각 */
     @Column(name = "receipt_mail_sent_at")
     private LocalDateTime receiptMailSentAt;
@@ -267,6 +271,8 @@ public class PgTrnsctn {
     public void setPayerLocationLabel(String payerLocationLabel) { this.payerLocationLabel = payerLocationLabel; }
     public String getCheckoutLang() { return checkoutLang; }
     public void setCheckoutLang(String checkoutLang) { this.checkoutLang = checkoutLang; }
+    public String getDeviceLang() { return deviceLang; }
+    public void setDeviceLang(String deviceLang) { this.deviceLang = deviceLang; }
     public LocalDateTime getReceiptMailSentAt() { return receiptMailSentAt; }
     public void setReceiptMailSentAt(LocalDateTime receiptMailSentAt) { this.receiptMailSentAt = receiptMailSentAt; }
     public LocalDateTime getReceiptFollowupMailSentAt() { return receiptFollowupMailSentAt; }

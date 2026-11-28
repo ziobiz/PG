@@ -1044,7 +1044,21 @@
       sessionToken: document.getElementById('sessionTokenHidden').value || session || '',
       txnOrigin: fromMerchantApi ? 'MERCHANT_API' : 'URL',
       /* return_url 은 서버가 암호화 rt 로만 생성(가맹코드·주문번호 평문 금지) */
-      merchantApiEntry: fromMerchantApi ? '1' : '0'
+      merchantApiEntry: fromMerchantApi ? '1' : '0',
+      /* 영수증 언어: 결제창 선택 → 단말 → DP표시통화 → 청구통화 */
+      langCode: LANG,
+      lang: LANG,
+      deviceLang: (function () {
+        try {
+          var nav = String(navigator.language || (navigator.languages && navigator.languages[0]) || '').toLowerCase();
+          if (nav.indexOf('ko') === 0) return 'KOR';
+          if (nav.indexOf('ja') === 0) return 'JPN';
+          if (nav.indexOf('zh') === 0) return 'CHN';
+          if (nav.indexOf('th') === 0) return 'THA';
+          if (nav.indexOf('en') === 0) return 'ENG';
+        } catch (e) {}
+        return '';
+      })()
     };
     /* DP: 표시금액 + 견적 토큰 필수(미전송 시 INVALID_FX_QUOTE) */
     if (urlPayDisplayFxActive && urlPayPricingMode === 'DISPLAY_FX_THB') {

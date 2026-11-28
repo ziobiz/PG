@@ -581,13 +581,30 @@ public class TransactionReceiptEmailService {
         return dial + " " + t;
     }
 
+    /**
+     * 영수증 언어: 결제창 선택 → 단말 → DP 표시통화 → 청구통화.
+     */
     private String resolveLang(PgTrnsctn t) {
-        String fromTxn = MerchantCheckoutLangUtil.normalize(t.getCheckoutLang());
-        if (!fromTxn.isEmpty()) {
-            return SplitPayMailLocaleUtil.normalize(fromTxn);
+        if (t == null) {
+            return SplitPayMailLocaleUtil.ENG;
         }
-        String cur = t.getCurType() != null ? t.getCurType() : t.getDisplayCurType();
-        return TransactionReceiptEmailI18n.resolveLangFromCurrency(cur);
+        String fromCheckout = MerchantCheckoutLangUtil.normalize(t.getCheckoutLang());
+        if (!fromCheckout.isEmpty()) {
+            return SplitPayMailLocaleUtil.normalize(fromCheckout);
+        }
+        String fromDevice = MerchantCheckoutLangUtil.normalize(t.getDeviceLang());
+        if (!fromDevice.isEmpty()) {
+            return SplitPayMailLocaleUtil.normalize(fromDevice);
+        }
+        String displayCur = t.getDisplayCurType() != null ? t.getDisplayCurType().trim() : "";
+        String chargeCur = t.getCurType() != null ? t.getCurType().trim() : "";
+        if (!displayCur.isEmpty()) {
+            return TransactionReceiptEmailI18n.resolveLangFromCurrency(displayCur);
+        }
+        if (!chargeCur.isEmpty()) {
+            return TransactionReceiptEmailI18n.resolveLangFromCurrency(chargeCur);
+        }
+        return SplitPayMailLocaleUtil.ENG;
     }
 
     /**

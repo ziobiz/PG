@@ -69,8 +69,10 @@ public class FeeListTxnBreakdownCalculator {
             double failFee,
             double cancelFee,
             double voidFee,
+            double handVoidFee,
             double manualVoidFee,
             double refundFee,
+            double handRefundFee,
             double payFee,
             double usdtFee,
             double fxFee,
@@ -164,7 +166,7 @@ public class FeeListTxnBreakdownCalculator {
             double total = FeeListRoundingPolicy.round(cryptoFee, rp).doubleValue();
             BigDecimal feeVatBd = FeeListRoundingPolicy.round(
                     MerchantFeeVatUtil.vatOnFeeAmount(BigDecimal.valueOf(total), merchantFeeVatSetting, Math.max(0, feeScale)), rp);
-            return new FeeListTxnBreakdown(0d, 0d, nz(pol.getPerTxFee()).doubleValue(), 0d, 0d, 0d, 0d, 0d, 0d,
+            return new FeeListTxnBreakdown(0d, 0d, nz(pol.getPerTxFee()).doubleValue(), 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d,
                     amountBd.signum() > 0
                             ? amountBd.multiply(nz(pol.getPayRate())).divide(BigDecimal.valueOf(100), feeScale, feeRm).doubleValue()
                             : 0d,
@@ -184,8 +186,10 @@ public class FeeListTxnBreakdownCalculator {
         double failFee = 0d;
         double cancelFee = 0d;
         double voidFee = 0d;
+        double handVoidFee = 0d;
         double manualVoidFee = 0d;
         double refundFee = 0d;
+        double handRefundFee = 0d;
         double chargebackFee = 0d;
         double payFee = 0d;
         double usdtFee = 0d;
@@ -221,13 +225,17 @@ public class FeeListTxnBreakdownCalculator {
             splitPayFixedFee = splitPay.fixedFee();
             splitPayPctRatePlain = splitPay.pctRatePlain();
             splitPayFixedPerInstPlain = splitPay.fixedPerInstPlain();
-            if ("21".equals(st) || "40".equals(st)) {
+            if ("40".equals(st)) {
                 voidFee = nz(pol.getVoidFeePerTx()).doubleValue();
+            } else if ("21".equals(st)) {
+                handVoidFee = nz(pol.getHandVoidFeePerTx()).doubleValue();
             } else if ("22".equals(st) || "41".equals(st)) {
                 manualVoidFee = nz(pol.getManualVoidFeePerTx()).doubleValue();
             }
-            if ("30".equals(st) || "42".equals(st)) {
+            if ("42".equals(st)) {
                 refundFee = nz(pol.getRefundRate()).doubleValue();
+            } else if ("30".equals(st)) {
+                handRefundFee = nz(pol.getHandRefundFeePerTx()).doubleValue();
             } else if ("31".equals(st)) {
                 chargebackFee = resolveChargebackFee(t, compId, pol, st, monthCbCountCache, tiersByPolicyId);
             }
@@ -268,7 +276,7 @@ public class FeeListTxnBreakdownCalculator {
         /* 승인(10): 건당+결제% 등. 실패/취소: 해당 고정만. 무효·환불: 모드에 따라 결제측 부가(perTx·% 등) 포함 여부 */
         double totalFee;
         if ("10".equals(st)) {
-            totalFee = Math.max(0d, perTxFee + usageFee + failFee + cancelFee + voidFee + manualVoidFee + refundFee
+            totalFee = Math.max(0d, perTxFee + usageFee + failFee + cancelFee + voidFee + handVoidFee + manualVoidFee + refundFee + handRefundFee
                     + payFee + usdtFee + fxFee + fee3dsFee + chargebackFee
                     + extraFee1 + extraFee2 + extraFee3 + extraFee4
                     + splitPayPctFee + splitPayFixedFee);
@@ -276,15 +284,21 @@ public class FeeListTxnBreakdownCalculator {
             totalFee = Math.max(0d, failFee);
         } else if ("20".equals(st)) {
             totalFee = Math.max(0d, cancelFee);
-        } else if ("21".equals(st) || "40".equals(st)) {
+        } else if ("40".equals(st)) {
             boolean addPaySide = VoidRefundSettlementModeUtil.addSuccessSideFeesOnVoid(voidMode);
             totalFee = Math.max(0d, voidFee + (addPaySide ? successFeesSeparate : 0d));
+        } else if ("21".equals(st)) {
+            boolean addPaySide = VoidRefundSettlementModeUtil.addSuccessSideFeesOnVoid(voidMode);
+            totalFee = Math.max(0d, handVoidFee + (addPaySide ? successFeesSeparate : 0d));
         } else if ("22".equals(st) || "41".equals(st)) {
             boolean addPaySide = VoidRefundSettlementModeUtil.addSuccessSideFeesOnManualVoid(manualVoidMode);
             totalFee = Math.max(0d, manualVoidFee + (addPaySide ? successFeesSeparate : 0d));
-        } else if ("30".equals(st) || "42".equals(st)) {
+        } else if ("42".equals(st)) {
             boolean addPaySide = VoidRefundSettlementModeUtil.addSuccessSideFeesOnRefund(refundMode);
             totalFee = Math.max(0d, refundFee + (addPaySide ? successFeesSeparate : 0d));
+        } else if ("30".equals(st)) {
+            boolean addPaySide = VoidRefundSettlementModeUtil.addSuccessSideFeesOnRefund(refundMode);
+            totalFee = Math.max(0d, handRefundFee + (addPaySide ? successFeesSeparate : 0d));
         } else if ("31".equals(st)) {
             boolean addPaySide = VoidRefundSettlementModeUtil.addSuccessSideFeesOnForceRefund(forceRefundMode);
             totalFee = Math.max(0d, chargebackFee + (addPaySide ? successFeesSeparate : 0d));
@@ -297,7 +311,7 @@ public class FeeListTxnBreakdownCalculator {
         int vatScale = Math.max(0, feeScale);
         BigDecimal feeVatBd = FeeListRoundingPolicy.round(
                 MerchantFeeVatUtil.vatOnFeeAmount(totalFeeBd, merchantFeeVatSetting, vatScale), rp);
-        return new FeeListTxnBreakdown(0d, usdtRemitUsd, perTxFee, usageFee, failFee, cancelFee, voidFee, manualVoidFee, refundFee,
+        return new FeeListTxnBreakdown(0d, usdtRemitUsd, perTxFee, usageFee, failFee, cancelFee, voidFee, handVoidFee, manualVoidFee, refundFee, handRefundFee,
                 payFee, usdtFee, fxFee, fee3dsFee, settlementPerTxFee, chargebackFee,
                 extraFee1, extraFee2, extraFee3, extraFee4,
                 splitPayPctFee, splitPayFixedFee, splitPayPctRatePlain, splitPayFixedPerInstPlain,

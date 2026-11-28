@@ -23,6 +23,7 @@ import com.pg.service.OrgAccessService;
 import com.pg.service.settlement.PgAgencyCostTxnBreakdownCalculator;
 import com.pg.util.FeeCurrencyRoundResolver;
 import com.pg.util.FeeListRoundingPolicy;
+import com.pg.util.MerchantFeeVatUtil;
 import com.pg.util.PayDisplayCurrency;
 import com.pg.util.PayListStatusBarBuckets;
 import com.pg.util.PgAgencyCostSettleScheduleUtil;
@@ -112,6 +113,7 @@ public class OpsAgencyTxnListService {
                                                 String searchFieldType,
                                                 String searchKeyword,
                                                 String searchStatusGroup,
+                                                String searchPgCd,
                                                 String searchOrderDir,
                                                 int page,
                                                 int size) {
@@ -172,8 +174,13 @@ public class OpsAgencyTxnListService {
             merchantNameFilter = null;
         }
 
+        String pgCdFilter = searchPgCd != null ? searchPgCd.trim() : "";
+        if ("__TODAY_INTEGRATED__".equalsIgnoreCase(pgCdFilter) || "ALL".equalsIgnoreCase(pgCdFilter)) {
+            pgCdFilter = "";
+        }
+        final String pgCdFinal = pgCdFilter;
         Specification<PgTrnsctn> spec = buildSpec(fromDt, toDt, allowedMerchants, merchantNameFilter,
-                effFtFinal, effKwFinal, statusGroup);
+                effFtFinal, effKwFinal, statusGroup, pgCdFinal);
 
         int pageSize = Math.min(500, Math.max(1, size));
         int pageOneBased = Math.max(1, page);
@@ -301,7 +308,19 @@ public class OpsAgencyTxnListService {
                 .filter(cd -> cd != null && !cd.isBlank())
                 .map(String::trim)
                 .orElse("");
-        PgAgencyCostPolicy pol = policyResolver.resolve(bindingPgCd, vanKey, payCurKey, pgNmByCd);
+        PgAgencyCostPolicy pol = null;
+        if (!bindingPgCd.isEmpty()) {
+            Optional<PgAgency> agencyOpt = pgAgencyRepository.findByPgCd(bindingPgCd.trim().toUpperCase(Locale.ROOT));
+            if (agencyOpt.isEmpty()) {
+                agencyOpt = pgAgencyRepository.findByPgCd(bindingPgCd.trim());
+            }
+            if (agencyOpt.isPresent() && agencyOpt.get().getCostPolicyId() != null) {
+                pol = pgAgencyCostPolicyRepository.findById(agencyOpt.get().getCostPolicyId()).orElse(null);
+            }
+        }
+        if (pol == null) {
+            pol = policyResolver.resolve(bindingPgCd, vanKey, payCurKey, pgNmByCd);
+        }
         String policyPgCd = pol != null && pol.getPgCd() != null ? pol.getPgCd().trim().toUpperCase(Locale.ROOT) : vanKey;
         FeeListRoundingPolicy feeListRp = feeResolver.forCurrency(
                 pol != null && pol.getCurrencyCode() != null && !pol.getCurrencyCode().isBlank()
@@ -343,11 +362,15 @@ public class OpsAgencyTxnListService {
             m.put("failFee", roundMoney(br.failFee(), feeListRp));
             m.put("cancelFee", roundMoney(br.cancelFee(), feeListRp));
             m.put("voidFee", roundMoney(br.voidFee(), feeListRp));
+            m.put("handVoidFee", roundMoney(br.handVoidFee(), feeListRp));
             m.put("manualVoidFee", roundMoney(br.manualVoidFee(), feeListRp));
             m.put("refundFee", roundMoney(br.refundFee(), feeListRp));
+            m.put("handRefundFee", roundMoney(br.handRefundFee(), feeListRp));
             m.put("chargebackFee", roundMoney(br.chargebackFee(), feeListRp));
             m.put("rollingHoldEst", roundMoney(br.rollingHoldEst(), feeListRp));
-            m.put("totalAgencyFee", roundMoney(br.totalAgencyFee(), feeListRp));
+            double totalFee = roundMoney(br.totalAgencyFee(), feeListRp);
+            m.put("totalAgencyFee", totalFee);
+            putAgencyFeeVat(m, totalFee, payCtx, feeListRp);
             LocalDateTime txnAt = t.getCreatedAt();
             m.put("agencySettleYn", PgAgencyCostSettleScheduleUtil.agencySettleYn(pol, txnAt, now));
         } else {
@@ -355,6 +378,18 @@ public class OpsAgencyTxnListService {
             m.put("agencySettleYn", "");
         }
         return m;
+    }
+
+    /** 가맹 정산설정 수수료 VAT 율로 원가합(세전)에 대한 부가세·세후 합 */
+    private static void putAgencyFeeVat(Map<String, Object> m, double totalFee,
+                                        PayListRowContext payCtx, FeeListRoundingPolicy feeListRp) {
+        int scale = feeListRp != null ? Math.max(0, feeListRp.decimalPlaces()) : 2;
+        BigDecimal pre = BigDecimal.valueOf(Math.max(0d, totalFee));
+        BigDecimal vat = MerchantFeeVatUtil.vatOnFeeAmount(
+                pre, payCtx != null ? payCtx.getSettlement() : null, scale);
+        double vatD = roundMoney(vat.doubleValue(), feeListRp);
+        m.put("feeVat", vatD);
+        m.put("feeWithVat", roundMoney(pre.add(vat).doubleValue(), feeListRp));
     }
 
     /**
@@ -549,8 +584,8 @@ public class OpsAgencyTxnListService {
 
     private static void putZeroFeeColumns(Map<String, Object> m) {
         for (String k : List.of("txnFixedFeesSum", "pctFeesSum", "usdtFee", "fxFee", "fee3dsFee",
-                "failFee", "cancelFee", "voidFee", "manualVoidFee", "refundFee", "chargebackFee",
-                "rollingHoldEst", "totalAgencyFee")) {
+                "failFee", "cancelFee", "voidFee", "handVoidFee", "manualVoidFee", "refundFee", "handRefundFee", "chargebackFee",
+                "rollingHoldEst", "totalAgencyFee", "feeVat", "feeWithVat")) {
             m.put(k, 0d);
         }
     }
@@ -565,7 +600,8 @@ public class OpsAgencyTxnListService {
                                                Set<String> merchantNameFilter,
                                                String effFtFinal,
                                                String effKwFinal,
-                                               String statusGroup) {
+                                               String statusGroup,
+                                               String searchPgCd) {
         return (root, query, cb) -> {
             List<Predicate> parts = new ArrayList<>();
             parts.add(cb.between(cb.coalesce(root.get("paidAt"), root.get("createdAt")), fromDt, toDt));
@@ -578,6 +614,7 @@ public class OpsAgencyTxnListService {
                 parts.add(root.get("merchantId").in(merchantNameFilter));
             }
             addStatusGroupPredicate(parts, cb, root, statusGroup);
+            addPgAgencyPredicate(parts, root, cb, searchPgCd);
             if (!"COMP_NM".equals(effFtFinal)) {
                 Predicate fieldPred = buildFieldSearchPredicate(root, query, cb, effFtFinal, effKwFinal);
                 if (fieldPred != null) {
@@ -591,6 +628,31 @@ public class OpsAgencyTxnListService {
             parts.add(cb.exists(ouExists));
             return cb.and(parts.toArray(new Predicate[0]));
         };
+    }
+
+    private void addPgAgencyPredicate(List<Predicate> parts, Root<PgTrnsctn> root, CriteriaBuilder cb, String pgCdRaw) {
+        if (pgCdRaw == null || pgCdRaw.isBlank()) {
+            return;
+        }
+        String pgCd = pgCdRaw.trim();
+        List<String> byBinding = merchantPgBindingRepository.findMerchantCodesByPgCd(pgCd);
+        List<Predicate> ors = new ArrayList<>();
+        ors.add(cb.equal(root.get("van"), pgCd));
+        if (PgVendor.OX.equals(PgVendor.normalizePgCdKey(pgCd))) {
+            ors.add(cb.like(cb.upper(root.get("van")), "OX%"));
+        }
+        if (PgVendor.isPaysoFamily(pgCd) || "PAYSO".equalsIgnoreCase(pgCd)) {
+            ors.add(cb.like(cb.upper(cb.trim(cb.coalesce(root.get("van"), cb.literal("")))), "PAYSO%"));
+            ors.add(cb.like(cb.upper(cb.trim(cb.coalesce(root.get("van"), cb.literal("")))), "PAYSOLUTIONS%"));
+        }
+        if (PgVendor.isCryptoFamily(pgCd) || "CRYPTO".equalsIgnoreCase(pgCd)) {
+            ors.add(cb.like(cb.upper(cb.trim(cb.coalesce(root.get("van"), cb.literal("")))), "CRYPTO%"));
+            ors.add(cb.equal(cb.upper(cb.trim(cb.coalesce(root.get("origin"), cb.literal("")))), "CRYPTO"));
+        }
+        if (!byBinding.isEmpty()) {
+            ors.add(root.get("merchantId").in(byBinding));
+        }
+        parts.add(cb.or(ors.toArray(Predicate[]::new)));
     }
 
     private static void addStatusGroupPredicate(List<Predicate> parts,

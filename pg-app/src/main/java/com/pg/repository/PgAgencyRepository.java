@@ -11,4 +11,6 @@ public interface PgAgencyRepository extends JpaRepository<PgAgency, Long> {
     List<PgAgency> findByMerchantMidOrderByIdAsc(String merchantMid);
     List<PgAgency> findByUseYnOrderByPgCdAsc(String useYn);
     List<PgAgency> findAllByOrderByPgCdAsc();
+
+    long countByCostPolicyId(Long costPolicyId);
 }

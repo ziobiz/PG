@@ -14,6 +14,7 @@ import com.pg.repository.CommissionPolicyRepository;
 import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.MerchantPgBindingRepository;
+import com.pg.repository.PgAgencyCostPolicyRepository;
 import com.pg.repository.PgAgencyRepository;
 import com.pg.entity.AppUser;
 import com.pg.service.AuthService;
@@ -67,6 +68,7 @@ public class ApiHqController {
     private final ChargebackFeePolicyRepository chargebackFeePolicyRepository;
     private final HqApiConfigRepository hqApiConfigRepository;
     private final PgAgencyRepository pgAgencyRepository;
+    private final PgAgencyCostPolicyRepository pgAgencyCostPolicyRepository;
     private final MerchantPgBindingRepository merchantPgBindingRepository;
     private final HolidayPresetService holidayPresetService;
     private final OrgPagePermissionService orgPagePermissionService;
@@ -93,6 +95,7 @@ public class ApiHqController {
                            ChargebackFeePolicyRepository chargebackFeePolicyRepository,
                            HqApiConfigRepository hqApiConfigRepository,
                            PgAgencyRepository pgAgencyRepository,
+                           PgAgencyCostPolicyRepository pgAgencyCostPolicyRepository,
                            MerchantPgBindingRepository merchantPgBindingRepository,
                            HolidayPresetService holidayPresetService,
                            OrgPagePermissionService orgPagePermissionService,
@@ -115,6 +118,7 @@ public class ApiHqController {
         this.chargebackFeePolicyRepository = chargebackFeePolicyRepository;
         this.hqApiConfigRepository = hqApiConfigRepository;
         this.pgAgencyRepository = pgAgencyRepository;
+        this.pgAgencyCostPolicyRepository = pgAgencyCostPolicyRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
         this.holidayPresetService = holidayPresetService;
         this.orgPagePermissionService = orgPagePermissionService;
@@ -440,12 +444,24 @@ public class ApiHqController {
         int start = (page - 1) * size;
         int end = Math.min(start + size, filtered.size());
         Map<String, String> urlPayAmByPg = urlPayAmountModeMapFromHqFxJson();
+        Map<Long, String> costNmById = new HashMap<>();
+        pgAgencyCostPolicyRepository.findAll().forEach(cp -> {
+            if (cp.getId() == null) return;
+            String nm = (cp.getCostNm() != null && !cp.getCostNm().isBlank())
+                    ? cp.getCostNm().trim()
+                    : (cp.getPgCd() != null ? cp.getPgCd() : "");
+            costNmById.put(cp.getId(), nm);
+        });
         List<Map<String, Object>> list = filtered.subList(start, Math.max(start, end)).stream()
                 .map(p -> {
                     Map<String, Object> m = new HashMap<>();
                     m.put("id", p.getId());
                     m.put("pgCd", p.getPgCd());
                     m.put("pgNm", p.getPgNm());
+                    m.put("costPolicyId", p.getCostPolicyId() != null ? p.getCostPolicyId() : "");
+                    m.put("costNm", p.getCostPolicyId() != null
+                            ? costNmById.getOrDefault(p.getCostPolicyId(), "")
+                            : "");
                     m.put("apiEndpoint", p.getApiEndpoint());
                     m.put("endpointNoti", p.getEndpointNoti() != null ? p.getEndpointNoti() : "");
                     m.put("endpointUrlPay", p.getEndpointUrlPay() != null ? p.getEndpointUrlPay() : "");
@@ -657,6 +673,22 @@ public class ApiHqController {
             }
             applyPgAgencyExtSettlementFields(entity, body, !isNew);
             applyPgAgencyPayFollowFields(entity, body, !isNew);
+            Long costPolicyId = null;
+            Object cpObj = body.get("costPolicyId");
+            if (cpObj != null && !cpObj.toString().isBlank()) {
+                try {
+                    costPolicyId = Long.parseLong(cpObj.toString().trim());
+                } catch (NumberFormatException nfe) {
+                    return ResponseEntity.ok(ApiResponse.fail("대행사원가 ID가 올바르지 않습니다.", "VALIDATION"));
+                }
+            }
+            if (costPolicyId == null || costPolicyId <= 0) {
+                return ResponseEntity.ok(ApiResponse.fail("대행사원가는 필수입니다. 결제대행사 등록에서 근원원가를 먼저 만드세요.", "VALIDATION"));
+            }
+            if (pgAgencyCostPolicyRepository.findById(costPolicyId).isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.fail("선택한 대행사원가가 없습니다.", "VALIDATION"));
+            }
+            entity.setCostPolicyId(costPolicyId);
             if ("Y".equalsIgnoreCase(entity.getUseYn())) {
                 if (!ynPg(entity.getIntegNotiYn()) && !ynPg(entity.getIntegUrlPayYn())
                         && !ynPg(entity.getIntegUrlPayRepayYn())
@@ -674,6 +706,7 @@ public class ApiHqController {
             data.put("message", "저장되었습니다.");
             data.put("id", entity.getId());
             data.put("pgCd", entity.getPgCd());
+            data.put("costPolicyId", entity.getCostPolicyId() != null ? entity.getCostPolicyId() : "");
             data.put("acquirerUseYn", entity.getAcquirerUseYn() != null ? entity.getAcquirerUseYn() : "N");
             data.put("acquirerNm", entity.getAcquirerNm() != null ? entity.getAcquirerNm() : "");
             data.put("acquirerTel", entity.getAcquirerTel() != null ? entity.getAcquirerTel() : "");
@@ -1150,7 +1183,7 @@ public class ApiHqController {
         });
         if (!data.containsKey("payRate")) {
             data.put("perTxFee", "0.0"); data.put("usageRate", "0.0"); data.put("failFee", "0.0");
-            data.put("cancelRate", "0.0"); data.put("voidFeePerTx", "0.0"); data.put("manualVoidFeePerTx", "0.0");
+            data.put("cancelRate", "0.0"); data.put("voidFeePerTx", "0.0"); data.put("handVoidFeePerTx", "0.0"); data.put("manualVoidFeePerTx", "0.0"); data.put("handRefundFeePerTx", "0.0");
             data.put("refundRate", "0.0"); data.put("payRate", CommissionFeeChannel.isCrypto(ch) ? "0" : "2.5");
             data.put("feeSettlementPerTx", "0.0"); data.put("remittanceTransferFee", "0.0"); data.put("usdtTransferFeeUsd", "0.0"); data.put("feeUsdt", "0"); data.put("feeFx", "0");
             if (CommissionFeeChannel.isCrypto(ch)) {
@@ -1266,7 +1299,9 @@ public class ApiHqController {
             p.setFailFee(PercentDecimalHelper.parseAmountOneDecimal(body.get("failFee")));
             p.setCancelRate(PercentDecimalHelper.parseAmountOneDecimal(body.get("cancelRate")));
             p.setVoidFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("voidFeePerTx")));
+            p.setHandVoidFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("handVoidFeePerTx")));
             p.setManualVoidFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("manualVoidFeePerTx")));
+            p.setHandRefundFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("handRefundFeePerTx")));
             p.setRefundRate(PercentDecimalHelper.parseAmountOneDecimal(body.get("refundRate")));
             p.setPayRate(PercentDecimalHelper.parsePercentOneDecimal(body.get("payRate")));
             p.setFeeSettlementPerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("feeSettlementPerTx")));
@@ -1452,7 +1487,9 @@ public class ApiHqController {
         data.put("failFee", p.getFailFee() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFailFee()) : "0.0");
         data.put("cancelRate", p.getCancelRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getCancelRate()) : "0.0");
         data.put("voidFeePerTx", p.getVoidFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getVoidFeePerTx()) : "0.0");
+        data.put("handVoidFeePerTx", p.getHandVoidFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getHandVoidFeePerTx()) : "0.0");
         data.put("manualVoidFeePerTx", p.getManualVoidFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getManualVoidFeePerTx()) : "0.0");
+        data.put("handRefundFeePerTx", p.getHandRefundFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getHandRefundFeePerTx()) : "0.0");
         data.put("refundRate", p.getRefundRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getRefundRate()) : "0.0");
         data.put("payRate", p.getPayRate() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getPayRate()) : "0");
         data.put("feeSettlementPerTx", p.getFeeSettlementPerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFeeSettlementPerTx()) : "0.0");

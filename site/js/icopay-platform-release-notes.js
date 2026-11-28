@@ -6,13 +6,635 @@
 (function (global) {
   'use strict';
 
-  var CURRENT_LIVE = '8.27';
+  var CURRENT_LIVE = '8.45';
 
   /**
    * howTo: { KO|EN|JP|CH|TH: Array<{ title:string, steps:string[] }> }
    * @type {Array<{version:string,kind:string,date:string,items:object,howTo?:object}>}
    */
   var RELEASES = [
+    {
+      version: '8.45',
+      kind: 'minor',
+      date: '2026-11-28',
+      items: {
+        KO: [
+          '원가검수: 적용건수·원가는 대사(대행사)만 — ICOPAY는 참고, 대사 없을 때 보강 적용 금지',
+          '데이터출처 「대사없음(참고만)」표시 · 안내 문구 정리'
+        ],
+        EN: [
+          'Cost audit: applied count/cost from acquirer recon only — ICOPAY reference, no fallback apply',
+          'Data source label “no recon (ref only)” · notice copy updated'
+        ],
+        JP: [
+          '原価検収: 適用件数・原価は代行突合のみ — ICOPAYは参考、突合なしで適用しない',
+          'データ出典「突合なし(参考のみ)」・案内文整理'
+        ],
+        CH: [
+          '成本检核：适用笔数/成本仅用收单对账 — ICOPAY 仅参考，无对账不套用',
+          '数据来源「无对账(仅参考)」· 说明文案更新'
+        ],
+        TH: [
+          'ตรวจต้นทุน: จำนวน/ต้นทุนใช้เฉพาะยอดกระทบยอด — ICOPAY อ้างอิงเท่านั้น ไม่นำมาใช้เมื่อไม่มีกระทบยอด',
+          'แหล่งข้อมูล「ไม่มีกระทบยอด (อ้างอิง)」 · ปรับข้อความแนะนำ'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['대사 없는 행의 적용건수·원가가 0인지', 'ICOPAY건수는 참고로만 보이는지'] }],
+        EN: [{ title: 'Check', steps: ['Rows without recon show applied count/cost 0', 'ICOPAY count is reference only'] }],
+        JP: [{ title: '確認', steps: ['突合なし行の適用件数・原価が0', 'ICOPAY件数は参考のみ'] }],
+        CH: [{ title: '确认', steps: ['无对账行适用笔数/成本为 0', 'ICOPAY 笔数仅作参考'] }],
+        TH: [{ title: 'ตรวจ', steps: ['แถวไม่มีกระทบยอด จำนวน/ต้นทุนเป็น 0', 'จำนวน ICOPAY เป็นแค่ข้อมูลอ้างอิง'] }]
+      }
+    },
+    {
+      version: '8.44',
+      kind: 'minor',
+      date: '2026-11-28',
+      items: {
+        KO: [
+          '결제내역 당일·전일·당월·1주·2주·전월 = 전산설정 운영 시간대(기본 JP) — PC 로컬 금지',
+          '검색·거래일 컬럼은 운영일, 거래시간 1줄=운영·2줄·paid_at=표준(TH)'
+        ],
+        EN: [
+          'Pay list Today/Prev/Month/weeks use HQ operational TZ (default JP) — not PC local',
+          'Search & date column = operational day; time line1=op, line2 & paid_at=standard (TH)'
+        ],
+        JP: [
+          '決済履歴の当日・前日・当月・1/2週・前月=電算の運用TZ(既定JP) — PCローカル禁止',
+          '検索・取引日列=運用日、時刻1行=運用・2行とpaid_at=標準(TH)'
+        ],
+        CH: [
+          '支付明细今日/昨日/本月/1·2周/上月=账务运营时区(默认JP)—禁止PC本地',
+          '搜索与日期列=运营日；时间第1行=运营，第2行与 paid_at=标准(TH)'
+        ],
+        TH: [
+          'รายการชำระ วันนี้/เมื่อวาน/เดือนนี้/1·2 สัปดาห์/เดือนก่อน = โซนปฏิบัติการ HQ (ค่าเริ่ม JP) — ห้ามเวลาเครื่อง',
+          'ค้นหาและคอลัมน์วัน = วันปฏิบัติการ เวลาบรรทัด1=ปฏิบัติการ บรรทัด2 และ paid_at=มาตรฐาน (TH)'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['전산·동기화 운영=JP 일 때 결제내역 당일이 JP 달력인지', '태국 PC에서도 당일이 JP와 같은지'] }],
+        EN: [{ title: 'Check', steps: ['With operational=JP, pay-list Today follows JP calendar', 'Same on a Thailand PC'] }],
+        JP: [{ title: '確認', steps: ['運用=JPなら決済履歴の当日がJP暦', 'タイPCでも同じ'] }],
+        CH: [{ title: '确认', steps: ['运营=JP 时支付明细“今日”为日本日历', '泰国电脑上也应相同'] }],
+        TH: [{ title: 'ตรวจ', steps: ['เมื่อปฏิบัติการ=JP ปุ่มวันนี้ตามปฏิทิน JP', 'ใช้ PC ไทยก็ต้องเหมือนกัน'] }]
+      }
+    },
+    {
+      version: '8.43',
+      kind: 'minor',
+      date: '2026-11-28',
+      items: {
+        KO: [
+          'PAYSO 승인시각 +7시간 오류 수정 — orderDateTime 의 Z를 UTC로 읽던 문제(포털·CSV와 불일치)',
+          '기존 PAYSO 승인 건 paid_at DB 일괄 보정(+7h/+2h) · 포털 Date와 동일 태국 벽시계 저장'
+        ],
+        EN: [
+          'Fix PAYSO paid_at +7h — do not treat orderDateTime Z as UTC (match portal/CSV)',
+          'One-shot DB correct existing PAYSO paid_at (+7h/+2h) to Thailand wall clock'
+        ],
+        JP: [
+          'PAYSO承認時刻+7時間修正 — orderDateTimeのZをUTC扱いしない(ポータル/CSV一致)',
+          '既存PAYSO承認のpaid_atをDB一括補正(+7h/+2h)・タイ壁時計で保存'
+        ],
+        CH: [
+          '修复 PAYSO 批准时间 +7 小时 — orderDateTime 的 Z 不按 UTC 解读（与门户/CSV 一致）',
+          '一次性校正已有 PAYSO paid_at（+7h/+2h）为泰国墙钟'
+        ],
+        TH: [
+          'แก้เวลาอนุมัติ PAYSO +7 ชม. — ไม่ตีความ Z ของ orderDateTime เป็น UTC (ตรงพอร์ทัล/CSV)',
+          'แก้ paid_at เดิมใน DB ครั้งเดียว (+7/+2 ชม.) เป็นนาฬิกาไทย'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['결제내역 PAYSO 시각이 Payso 포털 Date/Payment Date 와 초 단위로 같은지(태국 표시)'] }],
+        EN: [{ title: 'Check', steps: ['PAYSO pay list time matches Payso portal Date/Payment Date (TH display)'] }],
+        JP: [{ title: '確認', steps: ['決済履歴のPAYSO時刻がポータルDateと一致(タイ表示)'] }],
+        CH: [{ title: '确认', steps: ['支付明细 PAYSO 时间与门户 Date 一致（泰国显示）'] }],
+        TH: [{ title: 'ตรวจ', steps: ['เวลา PAYSO ในรายการชำระตรง Date บนพอร์ทัล (แสดง TH)'] }]
+      }
+    },
+    {
+      version: '8.42',
+      kind: 'minor',
+      date: '2026-11-28',
+      items: {
+        KO: [
+          'PAYSO 승인시각(paid_at) +2시간 오류 수정 — JVM 시각 대신 원장 표준(TH) 벽시계·orderDateTime 저장',
+          'Inquiry/카드보강 시 orderDateTime 으로 기존 오저장 건 자동 정정'
+        ],
+        EN: [
+          'Fix PAYSO paid_at +2h bug — store ledger standard (TH) wall clock / orderDateTime, not JVM now',
+          'Inquiry/card enrich auto-corrects existing wrong paid_at from orderDateTime'
+        ],
+        JP: [
+          'PAYSO承認時刻(+2時間)不具合修正 — JVMではなく台帳標準(TH)壁時計・orderDateTimeを保存',
+          'Inquiry/カード補完で既存の誤ったpaid_atをorderDateTimeで自動補正'
+        ],
+        CH: [
+          '修复 PAYSO 批准时间 +2 小时错误 — 存台账标准(TH)墙钟/orderDateTime，不用 JVM now',
+          'Inquiry/卡补全时用 orderDateTime 自动纠正已错存记录'
+        ],
+        TH: [
+          'แก้เวลาอนุมัติ PAYSO +2 ชม. — บันทึกนาฬิกาผนังมาตรฐาน (TH)/orderDateTime ไม่ใช่ JVM',
+          'Inquiry/เติมการ์ด แก้ paid_at ที่ผิดด้วย orderDateTime อัตโนมัติ'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['신규 PAYSO 승인 건의 거래시간이 Payso 포털·Inquiry 와 동일한지', '통합내역 조회 후 기존 +2시간 건이 정정되는지'] }],
+        EN: [{ title: 'Check', steps: ['New PAYSO paid time matches Payso portal/Inquiry', 'After Inquiry, old +2h rows are corrected'] }],
+        JP: [{ title: '確認', steps: ['新規PAYSO承認時刻がポータル/Inquiryと一致', 'Inquiry後に+2時間ずれが補正される'] }],
+        CH: [{ title: '确认', steps: ['新 PAYSO 批准时间与门户/Inquiry 一致', 'Inquiry 后旧 +2 小时记录被纠正'] }],
+        TH: [{ title: 'ตรวจ', steps: ['เวลาอนุมัติ PAYSO ใหม่ตรงพอร์ทัล/Inquiry', 'หลัง Inquiry แถว +2 ชม. เดิมถูกแก้'] }]
+      }
+    },
+    {
+      version: '8.41',
+      kind: 'minor',
+      date: '2026-11-28',
+      items: {
+        KO: [
+          '통합체크: PAYSO(대행사) 더블클릭 상세가 비던 문제 수정 · 일별 집계와 동일 일자·시간대 기준',
+          '전체 모드 ICOPAY 상세는 짝 대행사(PG)로 필터'
+        ],
+        EN: [
+          'Integrated check: fix empty PAYSO detail on double-click · same day/timezone as summary',
+          'All mode: ICOPAY detail filters by paired acquirer'
+        ],
+        JP: [
+          '統合チェック: PAYSO行ダブルクリック詳細が空になる不具合修正 · 日次集計と同じ日付基準',
+          '全体モードのICOPAY詳細は対の代行でフィルタ'
+        ],
+        CH: [
+          '整合检查：修复PAYSO双击详情为空 · 与日汇总同一日期/时区',
+          '全部模式下ICOPAY详情按配对收单过滤'
+        ],
+        TH: [
+          'เช็ครวม: แก้รายละเอียด PAYSO ดับเบิลคลิกว่าง · ใช้วัน/โซนเดียวกับสรุป',
+          'โหมดทั้งหมด: รายละเอียด ICOPAY กรองตามผู้รับชำระคู่'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['통합체크에서 PAYSO 행 더블클릭 시 요약 건수와 맞게 상세가 나오는지', 'ICOPAY 행은 실패 등 적재 건만 나오는지'] }],
+        EN: [{ title: 'Check', steps: ['PAYSO double-click detail matches summary count', 'ICOPAY shows stored txns only'] }],
+        JP: [{ title: '確認', steps: ['PAYSO詳細が集計件数と一致', 'ICOPAYは登録取引のみ'] }],
+        CH: [{ title: '确认', steps: ['PAYSO详情与汇总笔数一致', 'ICOPAY仅已落库交易'] }],
+        TH: [{ title: 'ตรวจ', steps: ['รายละเอียด PAYSO ตรงจำนวนสรุป', 'ICOPAY เห็นเฉพาะที่บันทึก'] }]
+      }
+    },
+    {
+      version: '8.40',
+      kind: 'minor',
+      date: '2026-11-28',
+      items: {
+        KO: [
+          '통합체크·원가검수: 「무건수노출」드롭다운(미사용/사용) · 결제대행사와 동일 크기'
+        ],
+        EN: [
+          'Integrated check & Cost audit: Show-zero-counts dropdown (Off/On) · same size as acquirer'
+        ],
+        JP: [
+          '統合チェック・原価検収: 「件数0表示」ドロップダウン(未使用/使用) · 代行と同じ幅'
+        ],
+        CH: [
+          '整合检查·成本检核：「显示0笔」下拉(未使用/使用) · 与收单同宽'
+        ],
+        TH: [
+          'เช็ครวม·ตรวจต้นทุน: ดรอปดาวน์「แสดงจำนวน 0」(ไม่ใช้/ใช้) · ขนาดเท่าผู้รับชำระ'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['무건수노출 기본=미사용(0건 숨김)', '사용 선택 후 검색 시 빈 행 표시'] }],
+        EN: [{ title: 'Check', steps: ['Show zero counts default Off', 'On + search shows empty rows'] }],
+        JP: [{ title: '確認', steps: ['件数0表示は既定未使用', '使用+検索で空行'] }],
+        CH: [{ title: '确认', steps: ['显示0笔默认未使用', '使用后搜索见空行'] }],
+        TH: [{ title: 'ตรวจ', steps: ['แสดงจำนวน 0 ค่าเริ่มต้น=ไม่ใช้', 'ใช้แล้วค้นหาเห็นแถวว่าง'] }]
+      }
+    },
+    {
+      version: '8.39',
+      kind: 'minor',
+      date: '2026-11-28',
+      items: {
+        KO: [
+          '통합체크·원가검수: 기본은 건수 0 행 숨김 · 「건수 0 포함」체크 시 모두 표시'
+        ],
+        EN: [
+          'Integrated check & Cost audit: hide zero-count rows by default · Include zero counts shows all'
+        ],
+        JP: [
+          '統合チェック・原価検収: 既定で件数0行を非表示 · 「件数0も表示」で全表示'
+        ],
+        CH: [
+          '整合检查·成本检核：默认隐藏0笔行 · 勾选「含0笔」显示全部'
+        ],
+        TH: [
+          'เช็ครวม·ตรวจต้นทุน: ค่าเริ่มต้นซ่อนแถวจำนวน 0 · ติ๊ก「รวมจำนวน 0」แสดงทั้งหมด'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['통합체크·원가검수 기본 조회 시 0건 행이 안 보이는지', '「건수 0 포함」체크 후 검색하면 빈 행도 나오는지'] }],
+        EN: [{ title: 'Check', steps: ['Default search hides zero rows', 'With Include zero counts, empty rows appear'] }],
+        JP: [{ title: '確認', steps: ['既定検索で0行が消えるか', '件数0も表示ONで空行が出るか'] }],
+        CH: [{ title: '确认', steps: ['默认查询不显示0笔行', '勾选含0笔后空行出现'] }],
+        TH: [{ title: 'ตรวจ', steps: ['ค้นหาเริ่มต้นไม่โชว์แถว 0', 'ติ๊กแล้วเห็นแถวว่าง'] }]
+      }
+    },
+    {
+      version: '8.38',
+      kind: 'minor',
+      date: '2026-11-28',
+      items: {
+        KO: [
+          '검수관리: 「통합」→「전체」, 「당일 통합」제거 · 결제개요·대행수수료 기본=당일+전체',
+          '통합체크·원가검수: 「전체」=전 대행사 일자 행 나열'
+        ],
+        EN: [
+          'Inspect: Integrated→All, remove Today-integrated · Overview/Agency fee default=today+all',
+          'Integrated check & Cost audit: All lists every acquirer day-row'
+        ],
+        JP: [
+          '検収: 統合→全体、当日統合削除 · 概要/代行手数料は当日+全体が既定',
+          '統合チェック・原価検収: 全体=全代行を行で列挙'
+        ],
+        CH: [
+          '检核：整合→全部，移除当日整合 · 概览/代行费默认=当日+全部',
+          '整合检查·成本检核：全部=各收单按日行列出'
+        ],
+        TH: [
+          'ตรวจ: รวม→ทั้งหมด ลบรวมวัน · ภาพรวม/ค่าธรรมเนียมตัวแทน ค่าเริ่มต้น=วันนี้+ทั้งหมด',
+          'เช็ครวม·ตรวจต้นทุน: ทั้งหมด=แถวรายวันทุกผู้รับชำระ'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['검수관리 결제개요·대행수수료 진입 시 당일·전체', '통합체크·원가검수에서 전체 선택'] }],
+        EN: [{ title: 'Check', steps: ['Overview/agency fee open as today+all', 'Pick All on check/cost audit'] }],
+        JP: [{ title: '確認', steps: ['概要/代行は当日+全体', 'チェック/原価で全体'] }],
+        CH: [{ title: '确认', steps: ['概览/代行默认当日全部', '检查/成本选全部'] }],
+        TH: [{ title: 'ตรวจ', steps: ['เปิดภาพรวม=วันนี้ทั้งหมด', 'เลือกทั้งหมดที่เช็ค/ต้นทุน'] }]
+      }
+    },
+    {
+      version: '8.37',
+      kind: 'minor',
+      date: '2026-11-28',
+      items: {
+        KO: [
+          '결제대행사 등록(원가): 목록 「비고」열·삭제·수정/저장/삭제 2단 확인 · 연결 설정 있으면 삭제 거부',
+          '결제대행사 설정 목록에 대행사명 표시 · 엔드포인트 열 폭 축소',
+          '업체 결제대행사 추가: 사용만 선택 · 이미 묶인 미사용은 예외 유지'
+        ],
+        EN: [
+          'PG cost register: Remarks column, delete, double-confirm · refuse delete if linked',
+          'PG settings list shows cost name · narrower endpoints column',
+          'Merchant PG add: use=Y only · keep unused already bound'
+        ],
+        JP: [
+          '決済代行登録: 備考列・削除・二重確認 · 連携あれば削除拒否',
+          '決済代行設定に代行名 · エンドポイント列を縮小',
+          '加盟店追加: 使用のみ · 既存未使用は例外維持'
+        ],
+        CH: [
+          '收单成本登记：备注列·删除·双重确认 · 有关联则拒删',
+          '收单设置列表显示代行名 · 收窄端点列',
+          '商户新增：仅使用 · 已绑未用保留'
+        ],
+        TH: [
+          'ลงทะเบียนต้นทุน PG: คอลัมน์หมายเหตุ·ลบ·ยืนยัน 2 ครั้ง · ปฏิเสธถ้ามีการเชื่อม',
+          'รายการตั้งค่า PG แสดงชื่อต้นทุน · แคบคอลัมน์ endpoint',
+          'เพิ่ม PG ร้าน: เฉพาะใช้ · คงที่ผูกไว้แล้วแม้ไม่ใช้'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['연동·배포→결제대행사 등록에서 삭제·2단확인', '결제대행사 설정에 대행사명', '업체관리 결제대행사 추가 콤보=사용만'] }],
+        EN: [{ title: 'Check', steps: ['Deploy→PG cost register delete/confirm', 'PG settings cost name column', 'Merchant add combo=use only'] }],
+        JP: [{ title: '確認', steps: ['登録画面の削除・確認', '設定一覧の代行名', '加盟店コンボ=使用のみ'] }],
+        CH: [{ title: '确认', steps: ['成本登记删除/确认', '设置列表代行名', '商户下拉仅使用'] }],
+        TH: [{ title: 'ตรวจ', steps: ['หน้าต้นทุน ลบ/ยืนยัน', 'คอลัมน์ชื่อต้นทุน', 'คอมโบร้าน=ใช้เท่านั้น'] }]
+      }
+    },
+    {
+      version: '8.36',
+      kind: 'minor',
+      date: '2026-11-28',
+      items: {
+        KO: [
+          '후속조치 수수료 분리: 무효처리=무효수수료 · 수동무효=수무효수수료(신규) · 이메일무효=이무효수수료 · 환불처리=환불수수료 · 수동환불=수환불수수료(신규) · 강제환불=차지백',
+          '본사 기본수수료·가맹 수수료·결제대행사 등록 수수료 카드에 수무효·이무효·수환불 반영 · 정책목록 기타열 1개'
+        ],
+        EN: [
+          'Follow-up fees split: Auto void / Manual void (new) / Email void / Auto refund / Manual refund (new) / Force=chargeback',
+          'HQ default + merchant + PG cost register cards updated · policy list Extra cols reduced to 1'
+        ],
+        JP: [
+          '後続手数料分離: 自動無効/手動無効(新規)/メール無効/自動返金/手動返金(新規)/強制=チャージバック',
+          '本社基本・加盟・決済代行登録に反映 · 一覧のその他列を1つに'
+        ],
+        CH: [
+          '后续手续费分离：自动无效/手动无效(新)/邮件无效/自动退款/手动退款(新)/强制=拒付',
+          '总部默认·商户·收单登记已更新 · 列表其他列减为1'
+        ],
+        TH: [
+          'แยกค่าธรรมเนียมหลังชำระ: ยกเลิกอัตโนมัติ/มือ(ใหม่)/อีเมล/คืนอัตโนมัติ/มือ(ใหม่)/บังคับ=chargeback',
+          'อัปเดตค่าธรรมเนียม HQ·ร้าน·ลงทะเบียน PG · คอลัมน์อื่นๆ เหลือ 1'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['본사정책→수수료설정에 수무효·이무효·수환불', '연동·배포→결제대행사 등록 수수료 카드', '후속조치 발생 시 해당 수수료 차감'] }],
+        EN: [{ title: 'Check', steps: ['HQ fee settings new rows', 'PG cost register fee card', 'Follow-up deducts matching fee'] }],
+        JP: [{ title: '確認', steps: ['本社手数料に手無・メ無・手返', '決済代行登録', '後続で該当手数料'] }],
+        CH: [{ title: '确认', steps: ['总部手续费新行', '收单登记', '后续扣对应费'] }],
+        TH: [{ title: 'ตรวจ', steps: ['ค่าธรรมเนียม HQ', 'ลงทะเบียน PG', 'หักตามเหตุการณ์'] }]
+      }
+    },
+    {
+      version: '8.35',
+      kind: 'minor',
+      date: '2026-11-28',
+      items: {
+        KO: [
+          '연동·배포 사이드바(Layout B): 결제대행사 등록 → 결제대행사 설정 순서로 수정(등록이 먼저)'
+        ],
+        EN: [
+          'Deploy sidebar (Layout B): PG cost register before PG agency settings'
+        ],
+        JP: [
+          '連携・配信サイドバー(Layout B): 決済代行登録→設定の順(登録が先)'
+        ],
+        CH: [
+          '对接·发布侧栏(Layout B)：收单登记在收单设置之前'
+        ],
+        TH: [
+          'แถบด้านข้าง เผยแพร่ (Layout B): ลงทะเบียนต้นทุน PG ก่อนตั้งค่า PG'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['연동·배포 메뉴에서 「결제대행사 등록」이 「결제대행사 설정」보다 위에 있는지'] }],
+        EN: [{ title: 'Check', steps: ['Under Deploy, PG cost register appears above PG agency settings'] }],
+        JP: [{ title: '確認', steps: ['連携・配信で登録が設定より上'] }],
+        CH: [{ title: '确认', steps: ['对接·发布中登记在设置上方'] }],
+        TH: [{ title: 'ตรวจ', steps: ['ในเมนูเผยแพร่ ลงทะเบียนอยู่เหนือตั้งค่า'] }]
+      }
+    },
+    {
+      version: '8.34',
+      kind: 'minor',
+      date: '2026-11-28',
+      items: {
+        KO: [
+          '결제대행사 등록 기본정보: 라벨·입력 여백을 본사정책 폼과 동일하게 정리',
+          '「사용」→「운영유무」(필수)로 변경·맨 앞 배치 · 「멀티」→「멀티유무」',
+          '필드 순서: 운영유무·대행사명·계약대행사·결제코드·부가세율 / 멀티유무·표시통화·청구통화·롤링·보류일수 / 정산주기 / 정책비고'
+        ],
+        EN: [
+          'PG cost register Basic info: label–input spacing matches HQ policy forms',
+          'Renamed Use → Operational status (required, first) · Multi → Multi status',
+          'Field order: operational · agency · contract · pay code · VAT / multi · display · charge · rolling · hold / settle / remark'
+        ],
+        JP: [
+          '決済代行登録 基本情報: ラベル・入力余白を本社ポリシーフォームと統一',
+          '「使用」→「運用有無」(必須・先頭) · 「マルチ」→「マルチ有無」',
+          '並び: 運用・代行名・契約・決済コード・付加税 / マルチ・表示・請求・ローリング・保留 / 精算 / 備考'
+        ],
+        CH: [
+          '收单登记基本信息：标签与输入间距与总部政策表单一致',
+          '「使用」→「运营状态」(必填、置顶) · 「多币种」→「多币种有无」',
+          '顺序：运营·机构名·签约·支付码·增值税 / 多币种·显示·扣款·滚动·保留 / 结算 / 备注'
+        ],
+        TH: [
+          'ลงทะเบียนต้นทุน PG ข้อมูลพื้นฐาน: ช่องว่างป้าย–ช่องกรอกเท่าฟอร์ม HQ',
+          'เปลี่ยน ใช้งาน → สถานะใช้งาน (จำเป็น อยู่หน้า) · มัลติ → สถานะมัลติ',
+          'ลำดับ: สถานะ·ชื่อ·สัญญา·รหัส·VAT / มัลติ·แสดง·เรียกเก็บ·โรลลิ่ง·พัก / ชำระ / หมายเหตุ'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['연동·배포 → 결제대행사 등록 → 기본정보', '운영유무가 맨 앞·필수(*)인지', '라벨과 입력창 사이 여백이 본사정책과 비슷한지'] }],
+        EN: [{ title: 'Check', steps: ['Deploy → PG cost register → Basic info', 'Operational status first + required', 'Label–input spacing like HQ forms'] }],
+        JP: [{ title: '確認', steps: ['連携・配信→決済代行登録→基本情報', '運用有無が先頭・必須', 'ラベル余白'] }],
+        CH: [{ title: '确认', steps: ['对接·发布→收单登记→基本信息', '运营状态置顶且必填', '标签间距'] }],
+        TH: [{ title: 'ตรวจ', steps: ['เผยแพร่→ลงทะเบียนต้นทุน PG→ข้อมูลพื้นฐาน', 'สถานะใช้งานอยู่หน้าและจำเป็น', 'ช่องว่างป้าย'] }]
+      }
+    },
+    {
+      version: '8.33',
+      kind: 'minor',
+      date: '2026-11-28',
+      items: {
+        KO: [
+          '검수관리 메뉴: 통합체크 → 결제개요 → 원가검수 → 대행수수료',
+          '대행수수료 복원: 결제내역(ICOPAY) 건별 원가 계산 유지',
+          '원가검수 신규: 대사(대행사 일별) 우선 · 없으면 결제내역 보강 · 근원원가 수식'
+        ],
+        EN: [
+          'Inspection menu: Integrated check → Payment overview → Cost audit → Agency fees',
+          'Agency fees restored: per-txn cost from ICOPAY payment history',
+          'New Cost audit: reconciliation daily first · pay-history fill if missing · root-cost formula'
+        ],
+        JP: [
+          '検収メニュー: 統合チェック→決済概要→原価検収→代行手数料',
+          '代行手数料復元: ICOPAY決済履歴の件別原価',
+          '原価検収新規: 突合(日次)優先・なければ決済履歴補完・根原価算式'
+        ],
+        CH: [
+          '检收菜单：整合检查→支付概览→成本检收→代行手续费',
+          '代行手续费恢复：按 ICOPAY 支付明细计成本',
+          '新成本检收：对账日汇总优先·无则支付明细补全·根成本公式'
+        ],
+        TH: [
+          'เมนูตรวจรับ: ตรวจสอบรวม → ภาพรวมการชำระ → ตรวจต้นทุน → ค่าธรรมเนียมตัวแทน',
+          'คืนค่าธรรมเนียมตัวแทน: คำนวณต้นทุนรายรายการจากประวัติ ICOPAY',
+          'ตรวจต้นทุนใหม่: กระทบยอดรายวันก่อน · ไม่มีแล้วเสริมประวัติชำระ · สูตรต้นทุนราก'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['검수관리에 원가검수·대행수수료가 순서대로 보이는지', '원가검수: 대사/결제내역보강 출처·원가 열', '대행수수료: 결제내역 건별 목록'] }],
+        EN: [{ title: 'Check', steps: ['Cost audit then Agency fees in Inspection', 'Cost audit: recon/fill source + cost cols', 'Agency fees: per-txn pay history'] }],
+        JP: [{ title: '確認', steps: ['検収に原価検収→代行手数料', '原価検収の出典・原価列', '代行手数料の件別一覧'] }],
+        CH: [{ title: '确认', steps: ['检收看成本检收→代行手续费', '成本检收来源与成本列', '代行手续费按笔列表'] }],
+        TH: [{ title: 'ตรวจ', steps: ['เมนูตรวจต้นทุน→ค่าธรรมเนียมตัวแทน', 'แหล่งข้อมูล/คอลัมน์ต้นทุน', 'รายการรายรายการของค่าธรรมเนียมตัวแทน'] }]
+      }
+    },
+    {
+      version: '8.32',
+      kind: 'minor',
+      date: '2026-11-28',
+      items: {
+        KO: [
+          '결제대행사 등록: 필수(멀티·롤링·보류일수·정산주기) · 「사용」=원가 활성(설정 선택 가능) · 카드수수료%(통합/개별·0=브랜드 미사용)를 수수료와 APM 사이 배치',
+          '결제개요: 기본「통합」·「당일 통합」 · 결제대행사 목록 사용(Y)↑ / ------------ / 미사용↓',
+          '원가검수: 결제개요형 결제대행사 필터 · 카드·APM 원가 수식 · 통합체크와 분리 유지'
+        ],
+        EN: [
+          'PG cost register: required Multi/rolling/hold days/settle cycle · Use=active cost · Card fee % (unified/per-brand; 0=unused) between fees and APM',
+          'Payment overview: default Integrated · Today integrated · PG list used↑ / ---- / unused↓',
+          'Cost audit: overview-style PG filter · card/APM cost formula · Integrated check unchanged'
+        ],
+        JP: [
+          '決済代行登録: 必須(マルチ・ローリング・保留日数・精算) · 使用=原価有効 · カード手数料%(統合/個別・0=未使用)を手数料とAPMの間に',
+          '決済概要: 既定「統合」・「当日統合」 · 代行一覧 使用↑/----/未使用↓',
+          '原価検収: 決済概要型PGフィルタ · カード・APM原価 · 統合チェックは維持'
+        ],
+        CH: [
+          '收单登记：必填多币种/滚动/保留天数/结算 · 使用=成本启用 · 卡手续费%(整合/按品牌·0=未用)置于手续费与 APM 之间',
+          '支付概览：默认「整合」·「当日整合」 · 机构列表 使用↑/----/未用↓',
+          '成本检收：概览式机构筛选 · 卡/APM 成本公式 · 整合检查不变'
+        ],
+        TH: [
+          'ลงทะเบียนต้นทุน: บังคับมัลติ/โรลลิ่ง/วันพัก/รอบชำระ · ใช้=เปิดใช้ต้นทุน · ค่าธรรมเนียมบัตร% (รวม/รายแบรนด์·0=ไม่ใช้) ระหว่างค่าธรรมเนียมกับ APM',
+          'ภาพรวมการชำระ: ค่าเริ่ม「รวม」·「รวมวันนี้」 · รายการ PG ใช้↑/----/ไม่ใช้↓',
+          'ตรวจต้นทุน: ตัวกรอง PG แบบภาพรวม · สูตรต้นทุนบัตร/APM · ตรวจสอบรวมคงเดิม'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['연동·배포→결제대행사 등록: 카드수수료 개별·0 브랜드 저장', '검수관리→결제개요: 통합·당일 통합·사용 대행사 상단', '검수관리→원가검수: 결제대행사 필터·원가 열'] }],
+        EN: [{ title: 'Check', steps: ['Deploy→PG cost register: per-brand card fee / 0 unused', 'Inspection→Payment overview: Integrated / Today / used on top', 'Inspection→Cost audit: PG filter · cost columns'] }],
+        JP: [{ title: '確認', steps: ['連携→決済代行登録でカード個別・0未使用', '検収→決済概要で統合・当日・使用上段', '検収→原価検収でPG・原価列'] }],
+        CH: [{ title: '确认', steps: ['对接→收单登记按品牌卡费/0未用', '检收→支付概览整合/当日/使用在上', '检收→成本检收机构筛选·成本列'] }],
+        TH: [{ title: 'ตรวจ', steps: ['เผยแพร่→ลงทะเบียนต้นทุน ค่าธรรมเนียมรายแบรนด์/0', 'ตรวจรับ→ภาพรวม รวม/วันนี้/ใช้ด้านบน', 'ตรวจรับ→ตรวจต้นทุน กรอง PG · คอลัมน์ต้นทุน'] }]
+      }
+    },
+    {
+      version: '8.31',
+      kind: 'minor',
+      date: '2026-11-28',
+      items: {
+        KO: [
+          '결제대행사 등록: 「대행사원가」→「대행사명」, 「계약대행사」·멀티(표시≠청구)·필수(*) 검증',
+          'APM 카드 수수료(%) 추가: 크립토·PayPay·라쿠텐페이·PromptPay·LINE·카카오·위챗',
+          '연동·배포 메뉴 순서: 결제대행사 등록 → 결제대행사 설정'
+        ],
+        EN: [
+          'PG cost register: 「Agency cost」→「Agency name」, contracted acquirer · Multi (display≠charge) · required (*)',
+          'APM card fees (%): crypto, PayPay, Rakuten Pay, PromptPay, LINE, Kakao, WeChat',
+          'Deploy menu order: PG cost register → Agency settings'
+        ],
+        JP: [
+          '決済代行 登録: 「代行原価」→「代行名」、契約代行・マルチ(表示≠請求)・必須(*)',
+          'APMカード手数料(%): クリプト・PayPay・楽天ペイ・PromptPay・LINE・カカオ・WeChat',
+          '連携メニュー順: 決済代行 登録 → 決済代行 設定'
+        ],
+        CH: [
+          '收单登记：「机构成本」→「机构名称」、签约收单方·多币种(显示≠扣款)·必填(*)',
+          'APM 卡手续费(%): 加密、PayPay、乐天Pay、PromptPay、LINE、Kakao、微信',
+          '对接菜单顺序：收单登记 → 机构设置'
+        ],
+        TH: [
+          'ลงทะเบียนต้นทุน: 「ต้นทุนตัวแทน」→「ชื่อตัวแทน」、ตัวแทนตามสัญญา · มัลติ (แสดง≠เรียกเก็บ) · บังคับ (*)',
+          'ค่าธรรมเนียม APM (%): คริปโต, PayPay, Rakuten, PromptPay, LINE, Kakao, WeChat',
+          'ลำดับเมนูเผยแพร่: ลงทะเบียนต้นทุน → ตั้งค่า PG'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['연동·배포→결제대행사 등록에서 대행사명·계약대행사·멀티·APM 수수료 저장', '결제대행사 설정에서 대행사명 선택(필수)', '메뉴가 등록→설정 순인지 확인'] }],
+        EN: [{ title: 'Check', steps: ['Deploy→PG cost register: save agency name, contracted acquirer, Multi, APM fees', 'Agency settings: pick agency name (required)', 'Confirm menu order register→settings'] }],
+        JP: [{ title: '確認', steps: ['連携→決済代行 登録で代行名・契約・マルチ・APM保存', '設定で代行名必須選択', 'メニュー順 登録→設定'] }],
+        CH: [{ title: '确认', steps: ['对接→收单登记保存机构名称/签约/多币种/APM', '机构设置必选机构名称', '确认菜单顺序 登记→设置'] }],
+        TH: [{ title: 'ตรวจ', steps: ['เผยแพร่→ลงทะเบียนต้นทุน บันทึกชื่อ/สัญญา/มัลติ/APM', 'ตั้งค่า PG เลือกชื่อตัวแทน (จำเป็น)', 'ตรวจลำดับเมนู ลงทะเบียน→ตั้งค่า'] }]
+      }
+    },
+    {
+      version: '8.30',
+      kind: 'minor',
+      date: '2026-11-28',
+      items: {
+        KO: [
+          '결제대행사 등록=근원원가: 설정과 분리·통화별 복수 원가 · VIEW SETTING/칸구분·더블클릭 수정·히스토리',
+          '결제대행사 설정에 「대행사원가」필수 드롭다운(결제대행사→대행사원가→연동용도) · 원가검수는 설정 FK로 해석'
+        ],
+        EN: [
+          'PG cost register = root cost (separate from agency settings; multi by currency) · VIEW SETTING / borders / dbl-click edit / history',
+          'Agency settings: required Cost profile dropdown · Cost audit resolves via settings FK'
+        ],
+        JP: [
+          '決済代行 登録=根原価: 設定と分離・通貨別複数 · VIEW SETTING/罫線・ダブルクリック編集・履歴',
+          '決済代行設定に「代行原価」必須ドロップダウン · 原価検収は設定FKで解決'
+        ],
+        CH: [
+          '收单成本登记=根成本：与机构设置分离、按币种可多条 · VIEW SETTING/格线/双击编辑/历史',
+          '支付机构设置必选「机构成本」· 成本检收按设置 FK 解析'
+        ],
+        TH: [
+          'ลงทะเบียนต้นทุน PG=ต้นทุนราก แยกจากตั้งค่า · หลายสกุล · VIEW SETTING/เส้นตาราง/ดับเบิลคลิก/ประวัติ',
+          'ตั้งค่า PG ต้องเลือก「ต้นทุนตัวแทน」· ตรวจต้นทุนใช้ FK จากตั้งค่า'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['연동·배포→결제대행사 등록에서 PAYSO JPY 원가 저장', '결제대행사 설정 추가 시 대행사원가 선택(필수)', '목록 VIEW SETTING·셀 더블클릭 저장·하단 히스토리'] }],
+        EN: [{ title: 'Check', steps: ['Deploy→PG cost register save PAYSO JPY cost', 'Add agency settings → pick cost profile (required)', 'VIEW SETTING · dbl-click save · history'] }],
+        JP: [{ title: '確認', steps: ['連携→決済代行 登録でPAYSO JPY原価', '設定追加で代行原価必須選択', 'VIEW SETTING・ダブルクリック保存・履歴'] }],
+        CH: [{ title: '确认', steps: ['对接→收单登记保存 PAYSO JPY 成本', '添加机构设置必选机构成本', 'VIEW SETTING·双击保存·历史'] }],
+        TH: [{ title: 'ตรวจ', steps: ['เผยแพร่→ลงทะเบียนต้นทุน PAYSO JPY', 'เพิ่มตั้งค่า PG ต้องเลือกต้นทุน', 'VIEW SETTING · ดับเบิลคลิก · ประวัติ'] }]
+      }
+    },
+    {
+      version: '8.29',
+      kind: 'minor',
+      date: '2026-11-28',
+      items: {
+        KO: [
+          '검수관리 「대행수수료」→「원가검수」: 계약 원가·부가세(세전/세후) 열 추가 · 통합체크 유지',
+          '연동·배포 「결제대행사등록」: 대행수수료설정 이전 · 위(신규·편집)/아래(목록) 레이아웃'
+        ],
+        EN: [
+          'Inspection 「Agency fees」→「Cost audit」: contract cost + VAT (ex/inc) columns · Integrated check kept',
+          'Deploy 「PG cost register」: moved from HQ agency-fee settings · top edit / bottom list layout'
+        ],
+        JP: [
+          '検収管理「代行手数料」→「原価検収」: 契約原価・付加税(税前/税込)列 · 統合チェック維持',
+          '連携・配信「決済代行登録」: 代行手数料設定を移動 · 上(入力・編集)/下(一覧)'
+        ],
+        CH: [
+          '检收管理「代行手续费」→「成本检收」: 合同成本与增值税(未税/含税)列 · 保留整合核对',
+          '对接·发布「收单方成本登记」: 由总部代行手续费设置迁入 · 上编辑/下列表'
+        ],
+        TH: [
+          'ตรวจรับ「ค่าธรรมเนียมตัวแทน」→「ตรวจต้นทุน」: คอลัมน์ต้นทุนสัญญา·VAT (ก่อน/รวม) · คง Integrated check',
+          'เชื่อมต่อ·เผยแพร่「ลงทะเบียนต้นทุน PG」: ย้ายจากตั้งค่าตัวแทน · บนแก้ไข / ล่างรายการ'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['연동·배포 → 결제대행사등록에서 원가 저장', '검수관리 → 원가검수에서 세전·부가세·세후 열 확인', '본사정책 수수료·리스크 허브에 대행수수료 탭 없음'] }],
+        EN: [{ title: 'Check', steps: ['Deploy → PG cost register → save cost', 'Inspection → Cost audit → ex-VAT / VAT / inc-VAT columns', 'No Agency-fee tab under HQ policy-fees hub'] }],
+        JP: [{ title: '確認', steps: ['連携・配信→決済代行登録で原価保存', '検収管理→原価検収で税前・付加税・税込', '本社ポリシー手数料ハブに代行タブなし'] }],
+        CH: [{ title: '确认', steps: ['对接·发布→收单登记保存成本', '检收→成本检收查看未税/增值税/含税', '总部手续费枢纽无代行页签'] }],
+        TH: [{ title: 'ตรวจ', steps: ['เชื่อมต่อ·เผยแพร่→ลงทะเบียนต้นทุน PG', 'ตรวจรับ→ตรวจต้นทุน ดูก่อน VAT / VAT / รวม', 'ไม่มีแท็บตัวแทนในฮับค่าธรรมเนียม HQ'] }]
+      }
+    },
+    {
+      version: '8.28',
+      kind: 'minor',
+      date: '2026-11-28',
+      items: {
+        KO: [
+          '거래명세서 메일 언어(전 PG 공통): 결제창 선택 → 단말 → DP 표시통화 → 청구통화 순',
+          '명세서 라벨·제목·결과배지: 영어ㅣ선택언어(ENG만 영어 단독) · 전 결제대행사 checkout/device lang 적재'
+        ],
+        EN: [
+          'Receipt email language (all PGs): pay-window → device → DP display currency → charge currency',
+          'Receipt labels/subject/badge: Englishㅣselected locale (ENG alone) · persist checkout/device lang for every acquirer'
+        ],
+        JP: [
+          '取引明細書メール言語(全PG共通): 決済画面選択 → 端末 → DP表示通貨 → 請求通貨',
+          '明細ラベル・件名・バッジ: 英語ㅣ選択言語(ENGのみ英語) · 全決済代行で checkout/device lang保存'
+        ],
+        CH: [
+          '交易明细邮件语言（全PG共用）：支付窗 → 终端 → DP显示币种 → 扣款币种',
+          '明细标签/主题/徽章：英语ㅣ所选语言（仅ENG）· 各收单方均保存 checkout/device lang'
+        ],
+        TH: [
+          'ภาษาอีเมลใบเสร็จ (ทุก PG): หน้าชำระ → อุปกรณ์ → สกุลแสดง DP → สกุลเรียกเก็บ',
+          'ป้าย/หัวข้อ/แบดจ์: อังกฤษㅣภาษาที่เลือก (ENG อย่างเดียว) · บันทึก checkout/device lang ทุกผู้ให้บริการ'
+        ]
+      },
+      howTo: {
+        KO: [{ title: '확인', steps: ['결제창에서 일본어 선택 후 결제·실패 메일 → Payment failedㅣ決済失敗 형태', 'lang 미저장 구거래는 표시통화→청구통화 폴백'] }],
+        EN: [{ title: 'Check', steps: ['Select JPN on pay window → receipt shows Payment failedㅣ決済失敗', 'Legacy txns without lang fall back display→charge currency'] }],
+        JP: [{ title: '確認', steps: ['決済画面で日本語選択→メールが Payment failedㅣ決済失敗', 'lang未保存の旧取引は表示通貨→請求通貨'] }],
+        CH: [{ title: '确认', steps: ['支付窗选日语→邮件为 Payment failedㅣ決済失敗', '无lang旧单按显示币→扣款币回退'] }],
+        TH: [{ title: 'ตรวจ', steps: ['เลือกญี่ปุ่นในหน้าชำระ→เมลเป็น Payment failedㅣ決済失敗', 'รายการเก่าไม่มี lang ใช้สกุลแสดง→เรียกเก็บ'] }]
+      }
+    },
     {
       version: '8.27',
       kind: 'minor',

@@ -614,8 +614,10 @@ public class ApiCalcController {
             }
             PayListSearchRequest payReq = PayListSearchRequest.fromParams(params);
             String searchAcquirer = params.get("searchAcquirer");
+            boolean includeZero = isTruthyParam(params.get("searchIncludeZeroCount"));
             Map<String, Object> payload = integratedCheckService.buildIntegratedCheckSummary(
-                    tFrom, tTo, sk, son, searchPayDivCd, searchOrderDir, searchAcquirer, payReq, authentication);
+                    tFrom, tTo, sk, son, searchPayDivCd, searchOrderDir, searchAcquirer, payReq,
+                    authentication, includeZero);
             return ResponseEntity.ok(ApiResponse.ok(payload));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
@@ -630,6 +632,14 @@ public class ApiCalcController {
                     : (acquirer != null && isOxAcquirer(acquirer) ? "OX" : "JPAY")));
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), code));
         }
+    }
+
+    private static boolean isTruthyParam(String raw) {
+        if (raw == null) {
+            return false;
+        }
+        String v = raw.trim();
+        return "true".equalsIgnoreCase(v) || "1".equals(v) || "Y".equalsIgnoreCase(v);
     }
 
     private static boolean isOxAcquirer(String raw) {

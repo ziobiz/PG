@@ -1,17 +1,22 @@
 package com.pg.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pg.entity.ChargebackFeePolicy;
-import com.pg.entity.PgAgency;
 import com.pg.entity.PgAgencyCostPolicy;
+import com.pg.entity.PgAgencyCostPolicyHist;
 import com.pg.repository.ChargebackFeePolicyRepository;
+import com.pg.repository.PgAgencyCostPolicyHistRepository;
 import com.pg.repository.PgAgencyCostPolicyRepository;
 import com.pg.repository.PgAgencyRepository;
 import com.pg.util.PercentDecimalHelper;
 import com.pg.util.VoidRefundSettlementModeUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -21,15 +26,19 @@ import java.util.stream.Collectors;
 public class PgAgencyCostPolicyService {
 
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
+    private static final ObjectMapper OM = new ObjectMapper();
 
     private final PgAgencyCostPolicyRepository policyRepository;
+    private final PgAgencyCostPolicyHistRepository histRepository;
     private final PgAgencyRepository pgAgencyRepository;
     private final ChargebackFeePolicyRepository chargebackFeePolicyRepository;
 
     public PgAgencyCostPolicyService(PgAgencyCostPolicyRepository policyRepository,
+                                     PgAgencyCostPolicyHistRepository histRepository,
                                      PgAgencyRepository pgAgencyRepository,
                                      ChargebackFeePolicyRepository chargebackFeePolicyRepository) {
         this.policyRepository = policyRepository;
+        this.histRepository = histRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.chargebackFeePolicyRepository = chargebackFeePolicyRepository;
     }
@@ -37,20 +46,22 @@ public class PgAgencyCostPolicyService {
     public Map<String, Object> bootstrap() {
         Map<Long, String> chargebackNames = chargebackFeePolicyRepository.findAllByOrderByNameAsc().stream()
                 .collect(Collectors.toMap(ChargebackFeePolicy::getId, ChargebackFeePolicy::getName, (a, b) -> a));
-        Map<String, String> pgNmByCd = pgAgencyRepository.findAllByOrderByPgCdAsc().stream()
-                .collect(Collectors.toMap(PgAgency::getPgCd, PgAgency::getPgNm, (a, b) -> a));
-        List<Map<String, Object>> pgOptions = pgAgencyRepository.findAllByOrderByPgCdAsc().stream()
-                .map(a -> {
+        List<Map<String, Object>> policies = policyRepository.findAllByOrderByPgCdAsc().stream()
+                .map(p -> toSummaryMap(p, chargebackNames))
+                .toList();
+        List<Map<String, Object>> costOptions = policyRepository.findAllByOrderByPgCdAsc().stream()
+                .filter(p -> p.getUseYn() == null || !"N".equalsIgnoreCase(p.getUseYn().trim()))
+                .map(p -> {
                     Map<String, Object> o = new LinkedHashMap<>();
-                    o.put("pgCd", a.getPgCd());
-                    o.put("pgNm", a.getPgNm());
-                    o.put("merchantMid", a.getMerchantMid() != null ? a.getMerchantMid() : "");
-                    o.put("useYn", a.getUseYn() != null ? a.getUseYn() : "Y");
+                    o.put("id", p.getId());
+                    o.put("costNm", displayCostNm(p));
+                    o.put("vendorNm", nz(p.getVendorNm()));
+                    o.put("pgCd", p.getPgCd());
+                    o.put("currencyCode", nz(p.getCurrencyCode()));
+                    o.put("displayCurrency", displayCur(p));
+                    o.put("label", costOptionLabel(p));
                     return o;
                 })
-                .toList();
-        List<Map<String, Object>> policies = policyRepository.findAllByOrderByPgCdAsc().stream()
-                .map(p -> toSummaryMap(p, pgNmByCd, chargebackNames))
                 .toList();
         List<Map<String, Object>> chargebackOptions = chargebackFeePolicyRepository.findAllByOrderByNameAsc().stream()
                 .map(cb -> {
@@ -61,8 +72,8 @@ public class PgAgencyCostPolicyService {
                 })
                 .toList();
         Map<String, Object> out = new LinkedHashMap<>();
-        out.put("pgOptions", pgOptions);
         out.put("policies", policies);
+        out.put("costOptions", costOptions);
         out.put("chargebackOptions", chargebackOptions);
         out.put("defaults", emptyDefaults());
         return out;
@@ -78,26 +89,114 @@ public class PgAgencyCostPolicyService {
                 .orElseGet(() -> {
                     Map<String, Object> d = emptyDefaults();
                     d.put("pgCd", cd);
-                    pgAgencyRepository.findByPgCd(cd).ifPresent(a -> d.put("pgNm", a.getPgNm()));
                     return d;
                 });
     }
 
+    public Map<String, Object> getById(Long id) {
+        if (id == null || id <= 0) {
+            return emptyDefaults();
+        }
+        return policyRepository.findById(id).map(this::toDetailMap).orElseGet(this::emptyDefaults);
+    }
+
+    public List<Map<String, Object>> history(Long policyId) {
+        if (policyId == null || policyId <= 0) {
+            return List.of();
+        }
+        return histRepository.findByPolicyIdOrderByCreatedAtDesc(policyId).stream()
+                .map(h -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("id", h.getId());
+                    m.put("policyId", h.getPolicyId());
+                    m.put("costNm", h.getCostNm());
+                    m.put("vendorNm", h.getVendorNm());
+                    m.put("pgCd", h.getPgCd());
+                    m.put("changedBy", h.getChangedBy() != null ? h.getChangedBy() : "");
+                    m.put("createdAt", h.getCreatedAt() != null ? h.getCreatedAt().toString() : "");
+                    m.put("snapshotJson", h.getSnapshotJson());
+                    return m;
+                })
+                .toList();
+    }
+
     @Transactional
     public Map<String, Object> save(Map<String, Object> body) {
+        String costNm = str(body, "costNm");
+        String vendorNm = str(body, "vendorNm");
         String pgCdRaw = str(body, "pgCd");
+        if (vendorNm == null || vendorNm.isBlank()) {
+            throw new IllegalArgumentException("계약대행사가 없습니다.");
+        }
         if (pgCdRaw == null || pgCdRaw.isBlank()) {
-            throw new IllegalArgumentException("결제코드를 선택하세요.");
+            throw new IllegalArgumentException("결제코드가 없습니다.");
+        }
+        String chargeCur = str(body, "currencyCode");
+        if (chargeCur == null || chargeCur.isBlank()) {
+            chargeCur = str(body, "chargeCurrency");
+        }
+        if (chargeCur == null || chargeCur.isBlank()) {
+            throw new IllegalArgumentException("청구통화가 없습니다.");
+        }
+        String multiYn = "Y".equalsIgnoreCase(str(body, "multiYn")) ? "Y" : "N";
+        String displayCur = str(body, "displayCurrency");
+        if ("N".equals(multiYn)) {
+            displayCur = chargeCur;
+        }
+        if (displayCur == null || displayCur.isBlank()) {
+            throw new IllegalArgumentException("표시통화가 없습니다.");
+        }
+        Object vatRaw = body.get("vatRatePct");
+        if (vatRaw == null || vatRaw.toString().isBlank()) {
+            throw new IllegalArgumentException("부가세율이 없습니다.");
+        }
+        Object rollingPctRaw = body.get("rollingPct");
+        if (rollingPctRaw == null || rollingPctRaw.toString().isBlank()) {
+            throw new IllegalArgumentException("롤링(%)이 없습니다.");
+        }
+        Object rollingDaysRaw = body.get("rollingDays");
+        if (rollingDaysRaw == null || rollingDaysRaw.toString().isBlank()) {
+            throw new IllegalArgumentException("보류일수가 없습니다.");
+        }
+        String schedReq = str(body, "settleScheduleType");
+        if (schedReq == null || schedReq.isBlank()) {
+            throw new IllegalArgumentException("정산주기 유형이 없습니다.");
+        }
+        Object lagReq = body.get("settleLagN");
+        if (lagReq == null || lagReq.toString().isBlank()) {
+            throw new IllegalArgumentException("정산주기 N이 없습니다.");
+        }
+        if (str(body, "multiYn") == null || str(body, "multiYn").isBlank()) {
+            throw new IllegalArgumentException("멀티 여부가 없습니다.");
+        }
+        if (costNm == null || costNm.isBlank()) {
+            costNm = vendorNm.trim();
         }
         String pgCd = pgCdRaw.trim().toUpperCase(Locale.ROOT);
-        if (pgAgencyRepository.findByPgCd(pgCd).isEmpty()) {
-            throw new IllegalArgumentException("등록된 PG대행사가 없습니다. API연동설정에서 먼저 등록하세요.");
+        Long id = parseOptionalLong(body.get("id"));
+        PgAgencyCostPolicy p;
+        if (id != null) {
+            p = policyRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("원가 정책을 찾을 수 없습니다."));
+            if (!pgCd.equalsIgnoreCase(p.getPgCd())) {
+                Optional<PgAgencyCostPolicy> other = policyRepository.findByPgCd(pgCd);
+                if (other.isPresent() && !other.get().getId().equals(p.getId())) {
+                    throw new IllegalArgumentException("이미 등록된 결제코드입니다.");
+                }
+                p.setPgCd(pgCd);
+            }
+        } else {
+            if (policyRepository.findByPgCd(pgCd).isPresent()) {
+                throw new IllegalArgumentException("이미 등록된 결제코드입니다.");
+            }
+            p = new PgAgencyCostPolicy();
+            p.setPgCd(pgCd);
         }
-        PgAgencyCostPolicy p = policyRepository.findByPgCd(pgCd).orElseGet(() -> {
-            PgAgencyCostPolicy n = new PgAgencyCostPolicy();
-            n.setPgCd(pgCd);
-            return n;
-        });
+        p.setCostNm(costNm.trim());
+        p.setVendorNm(vendorNm.trim());
+        body.put("multiYn", multiYn);
+        body.put("currencyCode", chargeCur.trim().toUpperCase(Locale.ROOT));
+        body.put("displayCurrency", displayCur.trim().toUpperCase(Locale.ROOT));
         applyScalarsFromBody(p, body);
         p.setSettleBasis("TRANSACTION");
         String sched = str(body, "settleScheduleType");
@@ -126,6 +225,7 @@ public class PgAgencyCostPolicyService {
         String useYn = str(body, "useYn");
         p.setUseYn("N".equalsIgnoreCase(useYn) ? "N" : "Y");
         policyRepository.save(p);
+        appendHistory(p);
         Map<String, Object> res = new LinkedHashMap<>();
         res.put("success", true);
         res.put("message", "저장되었습니다.");
@@ -133,16 +233,62 @@ public class PgAgencyCostPolicyService {
         return res;
     }
 
+    private void appendHistory(PgAgencyCostPolicy p) {
+        try {
+            PgAgencyCostPolicyHist h = new PgAgencyCostPolicyHist();
+            h.setPolicyId(p.getId());
+            h.setCostNm(p.getCostNm());
+            h.setVendorNm(p.getVendorNm());
+            h.setPgCd(p.getPgCd());
+            h.setSnapshotJson(OM.writeValueAsString(toDetailMap(p)));
+            h.setChangedBy(currentUser());
+            histRepository.save(h);
+        } catch (Exception ignored) {
+            /* history best-effort */
+        }
+    }
+
+    private static String currentUser() {
+        try {
+            Authentication a = SecurityContextHolder.getContext().getAuthentication();
+            if (a != null && a.getName() != null && !a.getName().isBlank()) {
+                return a.getName();
+            }
+        } catch (Exception ignored) {
+        }
+        return "";
+    }
+
     private Map<String, Object> emptyDefaults() {
         Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", "");
+        m.put("costNm", "");
+        m.put("vendorNm", "");
         m.put("pgCd", "");
+        m.put("multiYn", "N");
+        m.put("cardFeeMode", "UNIFIED");
+        m.put("feeCardVisa", "0");
+        m.put("feeCardMaster", "0");
+        m.put("feeCardJcb", "0");
+        m.put("feeCardAmex", "0");
+        m.put("feeCardUnion", "0");
+        m.put("feeCardDiners", "0");
+        m.put("feeApmCrypto", "0");
+        m.put("feeApmPaypay", "0");
+        m.put("feeApmRakuten", "0");
+        m.put("feeApmPromptpay", "0");
+        m.put("feeApmLine", "0");
+        m.put("feeApmKakao", "0");
+        m.put("feeApmWechat", "0");
         m.put("perTxFee", "0.0");
         m.put("usageRate", "0.0");
         m.put("failFee", "0.0");
         m.put("cancelRate", "0.0");
         m.put("voidFeePerTx", "0");
+        m.put("handVoidFeePerTx", "0");
         m.put("manualVoidFeePerTx", "0");
         m.put("refundRate", "0");
+        m.put("handRefundFeePerTx", "0");
         m.put("payRate", "0");
         m.put("feeSettlementPerTx", "0");
         m.put("remittanceTransferFee", "0.0");
@@ -152,6 +298,10 @@ public class PgAgencyCostPolicyService {
         m.put("rollingPct", "0");
         m.put("rollingDays", "0");
         m.put("currencyCode", "KRW");
+        m.put("displayCurrency", "KRW");
+        m.put("vatRatePct", "0");
+        m.put("vatExcluded", "0");
+        m.put("vatIncluded", "0");
         m.put("policyRemark", "");
         m.put("fee3dsRate", "0.0");
         m.put("chargebackFeePerTx", "0.0");
@@ -175,9 +325,18 @@ public class PgAgencyCostPolicyService {
         p.setFailFee(PercentDecimalHelper.parseAmountOneDecimal(body.get("failFee")));
         p.setCancelRate(PercentDecimalHelper.parseAmountOneDecimal(body.get("cancelRate")));
         p.setVoidFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("voidFeePerTx")));
+        p.setHandVoidFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("handVoidFeePerTx")));
         p.setManualVoidFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("manualVoidFeePerTx")));
         p.setRefundRate(PercentDecimalHelper.parseAmountOneDecimal(body.get("refundRate")));
+        p.setHandRefundFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("handRefundFeePerTx")));
         p.setPayRate(PercentDecimalHelper.parsePercentOneDecimal(body.get("payRate")));
+        p.setCardFeeMode(com.pg.util.PgAgencyCostCardFeeUtil.normalizeMode(str(body, "cardFeeMode")));
+        p.setFeeCardVisa(PercentDecimalHelper.parsePercentOneDecimal(body.get("feeCardVisa")));
+        p.setFeeCardMaster(PercentDecimalHelper.parsePercentOneDecimal(body.get("feeCardMaster")));
+        p.setFeeCardJcb(PercentDecimalHelper.parsePercentOneDecimal(body.get("feeCardJcb")));
+        p.setFeeCardAmex(PercentDecimalHelper.parsePercentOneDecimal(body.get("feeCardAmex")));
+        p.setFeeCardUnion(PercentDecimalHelper.parsePercentOneDecimal(body.get("feeCardUnion")));
+        p.setFeeCardDiners(PercentDecimalHelper.parsePercentOneDecimal(body.get("feeCardDiners")));
         p.setFeeSettlementPerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("feeSettlementPerTx")));
         p.setRemittanceTransferFee(PercentDecimalHelper.parseAmountOneDecimal(body.get("remittanceTransferFee")));
         p.setUsdtTransferFeeUsd(PercentDecimalHelper.parseAmountOneDecimal(body.get("usdtTransferFeeUsd")));
@@ -190,7 +349,26 @@ public class PgAgencyCostPolicyService {
         Object rd = body.get("rollingDays");
         p.setRollingDays(rd != null && !rd.toString().isEmpty() ? Integer.parseInt(rd.toString()) : 0);
         String cc = str(body, "currencyCode");
+        if (cc == null || cc.isBlank()) {
+            cc = str(body, "chargeCurrency");
+        }
         p.setCurrencyCode(cc != null && !cc.isBlank() ? cc.trim().toUpperCase(Locale.ROOT) : "KRW");
+        String multi = "Y".equalsIgnoreCase(str(body, "multiYn")) ? "Y" : "N";
+        p.setMultiYn(multi);
+        String dc = str(body, "displayCurrency");
+        if ("N".equals(multi)) {
+            p.setDisplayCurrency(p.getCurrencyCode());
+        } else {
+            p.setDisplayCurrency(dc != null && !dc.isBlank() ? dc.trim().toUpperCase(Locale.ROOT) : p.getCurrencyCode());
+        }
+        p.setVatRatePct(PercentDecimalHelper.parsePercentOneDecimal(body.get("vatRatePct")));
+        p.setFeeApmCrypto(PercentDecimalHelper.parsePercentOneDecimal(body.get("feeApmCrypto")));
+        p.setFeeApmPaypay(PercentDecimalHelper.parsePercentOneDecimal(body.get("feeApmPaypay")));
+        p.setFeeApmRakuten(PercentDecimalHelper.parsePercentOneDecimal(body.get("feeApmRakuten")));
+        p.setFeeApmPromptpay(PercentDecimalHelper.parsePercentOneDecimal(body.get("feeApmPromptpay")));
+        p.setFeeApmLine(PercentDecimalHelper.parsePercentOneDecimal(body.get("feeApmLine")));
+        p.setFeeApmKakao(PercentDecimalHelper.parsePercentOneDecimal(body.get("feeApmKakao")));
+        p.setFeeApmWechat(PercentDecimalHelper.parsePercentOneDecimal(body.get("feeApmWechat")));
         p.setPolicyRemark(str(body, "policyRemark"));
         p.setChargebackPolicyId(parseOptionalLong(body.get("chargebackPolicyId")));
         if (body.containsKey("voidSettlementMode")) {
@@ -216,16 +394,28 @@ public class PgAgencyCostPolicyService {
     private Map<String, Object> toDetailMap(PgAgencyCostPolicy p, Map<Long, String> chargebackNames) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id", p.getId());
+        m.put("costNm", displayCostNm(p));
+        m.put("vendorNm", nz(p.getVendorNm()));
         m.put("pgCd", p.getPgCd());
-        pgAgencyRepository.findByPgCd(p.getPgCd()).ifPresent(a -> m.put("pgNm", a.getPgNm()));
+        m.put("pgNm", nz(p.getVendorNm()));
         m.put("perTxFee", plainAmt(p.getPerTxFee()));
         m.put("usageRate", plainAmt(p.getUsageRate()));
         m.put("failFee", plainAmt(p.getFailFee()));
         m.put("cancelRate", plainAmt(p.getCancelRate()));
         m.put("voidFeePerTx", plainAmt(p.getVoidFeePerTx()));
+        m.put("handVoidFeePerTx", plainAmt(p.getHandVoidFeePerTx()));
         m.put("manualVoidFeePerTx", plainAmt(p.getManualVoidFeePerTx()));
         m.put("refundRate", plainAmt(p.getRefundRate()));
+        m.put("handRefundFeePerTx", plainAmt(p.getHandRefundFeePerTx()));
         m.put("payRate", p.getPayRate() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getPayRate()) : "0");
+        m.put("cardFeeMode", com.pg.util.PgAgencyCostCardFeeUtil.normalizeMode(p.getCardFeeMode()));
+        m.put("feeCardVisa", pctPlain(p.getFeeCardVisa()));
+        m.put("feeCardMaster", pctPlain(p.getFeeCardMaster()));
+        m.put("feeCardJcb", pctPlain(p.getFeeCardJcb()));
+        m.put("feeCardAmex", pctPlain(p.getFeeCardAmex()));
+        m.put("feeCardUnion", pctPlain(p.getFeeCardUnion()));
+        m.put("feeCardDiners", pctPlain(p.getFeeCardDiners()));
+        m.put("cardBrandScopeHint", com.pg.util.PgAgencyCostCardFeeUtil.brandScopeHint(p));
         m.put("feeSettlementPerTx", plainAmt(p.getFeeSettlementPerTx()));
         m.put("remittanceTransferFee", plainAmt(p.getRemittanceTransferFee()));
         m.put("usdtTransferFeeUsd", plainAmt(p.getUsdtTransferFeeUsd()));
@@ -234,6 +424,18 @@ public class PgAgencyCostPolicyService {
         m.put("rollingPct", p.getRollingPct() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getRollingPct()) : "0");
         m.put("rollingDays", p.getRollingDays() != null ? p.getRollingDays() : 0);
         m.put("currencyCode", p.getCurrencyCode() != null && !p.getCurrencyCode().isBlank() ? p.getCurrencyCode() : "KRW");
+        m.put("chargeCurrency", m.get("currencyCode"));
+        m.put("multiYn", p.getMultiYn() != null && "Y".equalsIgnoreCase(p.getMultiYn().trim()) ? "Y" : "N");
+        m.put("displayCurrency", displayCur(p));
+        m.put("vatRatePct", p.getVatRatePct() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getVatRatePct()) : "0");
+        m.put("feeApmCrypto", pctPlain(p.getFeeApmCrypto()));
+        m.put("feeApmPaypay", pctPlain(p.getFeeApmPaypay()));
+        m.put("feeApmRakuten", pctPlain(p.getFeeApmRakuten()));
+        m.put("feeApmPromptpay", pctPlain(p.getFeeApmPromptpay()));
+        m.put("feeApmLine", pctPlain(p.getFeeApmLine()));
+        m.put("feeApmKakao", pctPlain(p.getFeeApmKakao()));
+        m.put("feeApmWechat", pctPlain(p.getFeeApmWechat()));
+        putVatAmountCols(m, p);
         m.put("policyRemark", p.getPolicyRemark() != null ? p.getPolicyRemark() : "");
         m.put("fee3dsRate", plainAmt(p.getFee3dsRate()));
         m.put("chargebackFeePerTx", plainAmt(p.getChargebackFeePerTx()));
@@ -252,26 +454,72 @@ public class PgAgencyCostPolicyService {
         m.put("settleScheduleType", p.getSettleScheduleType() != null ? p.getSettleScheduleType() : "T");
         m.put("settleLagN", p.getSettleLagN() != null ? p.getSettleLagN() : 1);
         m.put("settleBatchTime", p.getSettleBatchTime() != null ? p.getSettleBatchTime().format(TIME_FMT) : "");
+        m.put("settleScheduleLabel", settleScheduleLabel(p));
         m.put("useYn", p.getUseYn() != null ? p.getUseYn() : "Y");
         m.put("updatedAt", p.getUpdatedAt() != null ? p.getUpdatedAt().toString() : "");
         return m;
     }
 
-    private Map<String, Object> toSummaryMap(PgAgencyCostPolicy p, Map<String, String> pgNmByCd, Map<Long, String> chargebackNames) {
-        Map<String, Object> m = new LinkedHashMap<>();
-        m.put("pgCd", p.getPgCd());
-        m.put("pgNm", pgNmByCd.getOrDefault(p.getPgCd(), p.getPgCd()));
-        m.put("currencyCode", p.getCurrencyCode());
-        m.put("payRate", p.getPayRate() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getPayRate()) : "0");
-        m.put("rollingPct", p.getRollingPct() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getRollingPct()) : "0");
-        m.put("rollingDays", p.getRollingDays() != null ? p.getRollingDays() : 0);
-        m.put("settleScheduleLabel", settleScheduleLabel(p));
-        m.put("useYn", p.getUseYn());
-        m.put("updatedAt", p.getUpdatedAt() != null ? p.getUpdatedAt().toString() : "");
-        if (p.getChargebackPolicyId() != null && chargebackNames.containsKey(p.getChargebackPolicyId())) {
-            m.put("chargebackPolicyName", chargebackNames.get(p.getChargebackPolicyId()));
-        }
+    private Map<String, Object> toSummaryMap(PgAgencyCostPolicy p, Map<Long, String> chargebackNames) {
+        Map<String, Object> m = toDetailMap(p, chargebackNames);
+        long linked = p.getId() != null ? pgAgencyRepository.countByCostPolicyId(p.getId()) : 0L;
+        m.put("linkedAgencyCnt", linked);
         return m;
+    }
+
+    /**
+     * 근원원가 삭제. 결제대행사 설정에 1건이라도 연결돼 있으면(사용·미사용·운영유무 무관) 거부.
+     */
+    @Transactional
+    public Map<String, Object> delete(Long id) {
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException("삭제할 원가 정책이 없습니다.");
+        }
+        PgAgencyCostPolicy p = policyRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("원가 정책을 찾을 수 없습니다."));
+        long linked = pgAgencyRepository.countByCostPolicyId(id);
+        if (linked > 0) {
+            throw new IllegalArgumentException(
+                    "연결된 결제대행사 설정이 " + linked + "건 있어 삭제할 수 없습니다. (미사용·비활성 포함)");
+        }
+        histRepository.deleteByPolicyId(id);
+        policyRepository.delete(p);
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("deletedId", id);
+        out.put("message", "삭제되었습니다.");
+        return out;
+    }
+
+    /** VAT제외=건당수수료(저장값), VAT포함=건당×(1+부가세율/100) */
+    private static void putVatAmountCols(Map<String, Object> m, PgAgencyCostPolicy p) {
+        BigDecimal ex = p.getPerTxFee() != null ? p.getPerTxFee() : BigDecimal.ZERO;
+        BigDecimal rate = p.getVatRatePct() != null ? p.getVatRatePct() : BigDecimal.ZERO;
+        BigDecimal inc = ex;
+        if (rate.signum() > 0 && ex.signum() > 0) {
+            inc = ex.multiply(BigDecimal.ONE.add(rate.divide(BigDecimal.valueOf(100), 8, RoundingMode.HALF_UP)))
+                    .setScale(Math.max(1, ex.scale()), RoundingMode.HALF_UP);
+        }
+        m.put("vatExcluded", plainAmt(ex));
+        m.put("vatIncluded", plainAmt(inc));
+    }
+
+    private static String displayCostNm(PgAgencyCostPolicy p) {
+        if (p.getCostNm() != null && !p.getCostNm().isBlank()) {
+            return p.getCostNm().trim();
+        }
+        return p.getPgCd() != null ? p.getPgCd() : "";
+    }
+
+    private static String displayCur(PgAgencyCostPolicy p) {
+        if (p.getDisplayCurrency() != null && !p.getDisplayCurrency().isBlank()) {
+            return p.getDisplayCurrency().trim().toUpperCase(Locale.ROOT);
+        }
+        return p.getCurrencyCode() != null && !p.getCurrencyCode().isBlank() ? p.getCurrencyCode() : "KRW";
+    }
+
+    private static String costOptionLabel(PgAgencyCostPolicy p) {
+        return displayCostNm(p) + " · " + nz(p.getVendorNm()) + " · " + p.getPgCd()
+                + " · " + displayCur(p) + "/" + (p.getCurrencyCode() != null ? p.getCurrencyCode() : "");
     }
 
     private static String settleScheduleLabel(PgAgencyCostPolicy p) {
@@ -289,6 +537,10 @@ public class PgAgencyCostPolicyService {
 
     private static String plainAmt(BigDecimal b) {
         return b != null ? PercentDecimalHelper.toPlainAmountOneDecimal(b) : "0.0";
+    }
+
+    private static String pctPlain(BigDecimal b) {
+        return b != null ? PercentDecimalHelper.toPlainOneDecimal(b) : "0";
     }
 
     private static String settlementModeForApi(String v) {
@@ -330,6 +582,10 @@ public class PgAgencyCostPolicyService {
         return v != null ? v.toString() : null;
     }
 
+    private static String nz(String s) {
+        return s != null ? s : "";
+    }
+
     private static void putExtraFeeScalarsOnMap(Map<String, Object> data, PgAgencyCostPolicy p) {
         for (int i = 1; i <= 4; i++) {
             String name = "";
@@ -365,10 +621,6 @@ public class PgAgencyCostPolicyService {
             data.put("extraFee" + i + "Mode", mode);
             data.put("extraFee" + i + "Value", val);
         }
-    }
-
-    private static String nz(String s) {
-        return s != null ? s : "";
     }
 
     private static String extraValStr(BigDecimal b, String mode) {

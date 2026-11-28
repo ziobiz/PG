@@ -46,6 +46,9 @@ public class IntegratedCheckService {
         this.ksnetIntegratedListService = ksnetIntegratedListService;
     }
 
+    private static final List<String> ALL_ACQUIRER_CODES = List.of(
+            "ELEMENTPAY", "JPAY", "PAYSO", "KSNET", "OX");
+
     @Transactional(readOnly = true)
     public Map<String, Object> buildIntegratedCheckSummary(LocalDate tFrom,
                                                            LocalDate tTo,
@@ -56,7 +59,134 @@ public class IntegratedCheckService {
                                                            String searchAcquirer,
                                                            PayListSearchRequest payTemplate,
                                                            Authentication authentication) {
-        String acquirer = normalizeAcquirer(searchAcquirer);
+        return buildIntegratedCheckSummary(tFrom, tTo, searchKeyword, searchOrderNo, searchPayDivCd,
+                searchOrderDir, searchAcquirer, payTemplate, authentication, false);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> buildIntegratedCheckSummary(LocalDate tFrom,
+                                                           LocalDate tTo,
+                                                           String searchKeyword,
+                                                           String searchOrderNo,
+                                                           String searchPayDivCd,
+                                                           String searchOrderDir,
+                                                           String searchAcquirer,
+                                                           PayListSearchRequest payTemplate,
+                                                           Authentication authentication,
+                                                           boolean includeZeroCount) {
+        Map<String, Object> payload;
+        if (isAllAcquirers(searchAcquirer)) {
+            payload = buildAllAcquirersSummary(tFrom, tTo, searchKeyword, searchOrderNo, searchPayDivCd,
+                    searchOrderDir, payTemplate, authentication);
+        } else {
+            payload = buildOneAcquirerSummary(tFrom, tTo, searchKeyword, searchOrderNo, searchPayDivCd,
+                    searchOrderDir, normalizeAcquirer(searchAcquirer), payTemplate, authentication);
+        }
+        if (!includeZeroCount) {
+            filterZeroCountRows(payload);
+        }
+        if (payload.get("meta") instanceof Map<?, ?>) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> meta = (Map<String, Object>) payload.get("meta");
+            meta.put("includeZeroCount", includeZeroCount);
+        }
+        return payload;
+    }
+
+    /** 대행사·ICOPAY 건수가 모두 0인 일자 행 제거 후 번호 재부여. */
+    @SuppressWarnings("unchecked")
+    private static void filterZeroCountRows(Map<String, Object> payload) {
+        if (!(payload.get("list") instanceof List<?> raw)) {
+            return;
+        }
+        List<Map<String, Object>> list = (List<Map<String, Object>>) raw;
+        List<Map<String, Object>> kept = new ArrayList<>();
+        for (Map<String, Object> row : list) {
+            if (row == null) {
+                continue;
+            }
+            Map<String, Object> acq = row.get("acquirer") instanceof Map<?, ?> a
+                    ? (Map<String, Object>) a : (row.get("jpay") instanceof Map<?, ?> j ? (Map<String, Object>) j : Map.of());
+            Map<String, Object> ico = row.get("icopay") instanceof Map<?, ?> i
+                    ? (Map<String, Object>) i : Map.of();
+            long acqCnt = longVal(acq.get("totalCount"));
+            long icoCnt = longVal(ico.get("totalCount"));
+            if (acqCnt == 0L && icoCnt == 0L) {
+                continue;
+            }
+            kept.add(row);
+        }
+        int rowNo = 1;
+        for (Map<String, Object> row : kept) {
+            row.put("rowNo", rowNo++);
+        }
+        payload.put("list", kept);
+    }
+
+    private Map<String, Object> buildAllAcquirersSummary(LocalDate tFrom,
+                                                         LocalDate tTo,
+                                                         String searchKeyword,
+                                                         String searchOrderNo,
+                                                         String searchPayDivCd,
+                                                         String searchOrderDir,
+                                                         PayListSearchRequest payTemplate,
+                                                         Authentication authentication) {
+        List<Map<String, Object>> merged = new ArrayList<>();
+        Map<String, Object> jpaySyncMeta = Map.of();
+        for (String acq : ALL_ACQUIRER_CODES) {
+            Map<String, Object> one = buildOneAcquirerSummary(tFrom, tTo, searchKeyword, searchOrderNo,
+                    searchPayDivCd, searchOrderDir, acq, payTemplate, authentication);
+            if ("JPAY".equals(acq) && one.get("meta") instanceof Map<?, ?> mm) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> m = (Map<String, Object>) mm;
+                jpaySyncMeta = m;
+            }
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> days = one.get("list") instanceof List<?> l
+                    ? (List<Map<String, Object>>) l : List.of();
+            merged.addAll(days);
+        }
+        boolean asc = searchOrderDir != null && "ASC".equalsIgnoreCase(searchOrderDir.trim());
+        merged.sort((a, b) -> {
+            String da = String.valueOf(a.getOrDefault("day", ""));
+            String db = String.valueOf(b.getOrDefault("day", ""));
+            int c = asc ? da.compareTo(db) : db.compareTo(da);
+            if (c != 0) {
+                return c;
+            }
+            int ia = ALL_ACQUIRER_CODES.indexOf(String.valueOf(a.getOrDefault("acquirerCode", "")));
+            int ib = ALL_ACQUIRER_CODES.indexOf(String.valueOf(b.getOrDefault("acquirerCode", "")));
+            return Integer.compare(ia < 0 ? 99 : ia, ib < 0 ? 99 : ib);
+        });
+        int rowNo = 1;
+        for (Map<String, Object> row : merged) {
+            row.put("rowNo", rowNo++);
+        }
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("list", merged);
+        Map<String, Object> meta = new LinkedHashMap<>();
+        meta.put("integratedCheck", true);
+        meta.put("acquirer", "ALL");
+        meta.put("acquirerLabel", "전체");
+        meta.putAll(jpaySyncMeta);
+        meta.put("jpayIntegrated", true);
+        meta.put("integratedCheckNote",
+                "전체: ElementPay·JPAY·PAYSO·KSNET·ox 대행사를 일자·대행사 행으로 나열합니다. "
+                        + "각 행은 해당 대행사 대사와 ICOPAY를 대조한 결과입니다. "
+                        + "기본은 건수 0 행을 숨기고, 「무건수노출」사용 시 모두 표시합니다.");
+        payload.put("meta", meta);
+        return payload;
+    }
+
+    private Map<String, Object> buildOneAcquirerSummary(LocalDate tFrom,
+                                                         LocalDate tTo,
+                                                         String searchKeyword,
+                                                         String searchOrderNo,
+                                                         String searchPayDivCd,
+                                                         String searchOrderDir,
+                                                         String acquirer,
+                                                         PayListSearchRequest payTemplate,
+                                                         Authentication authentication) {
         ZoneId ledgerTz = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
         ZoneId compareZone = ViewDisplayTimezoneResolver.currentCompareAlign().orElse(ledgerTz);
         LocalDate today = LocalDate.now(compareZone);
@@ -242,7 +372,18 @@ public class IntegratedCheckService {
         return m;
     }
 
+    private static boolean isAllAcquirers(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return true;
+        }
+        String v = raw.trim().toUpperCase(java.util.Locale.ROOT);
+        return "ALL".equals(v) || "전체".equals(raw.trim()) || "__ALL__".equals(v);
+    }
+
     private static String normalizeAcquirer(String raw) {
+        if (isAllAcquirers(raw)) {
+            return "ALL";
+        }
         String v = raw != null ? raw.trim().toUpperCase(java.util.Locale.ROOT) : "";
         if ("ELEMENTPAY".equals(v)) {
             return "ELEMENTPAY";
@@ -260,6 +401,9 @@ public class IntegratedCheckService {
     }
 
     private static String acquirerLabel(String acquirer) {
+        if ("ALL".equals(acquirer)) {
+            return "전체";
+        }
         if ("ELEMENTPAY".equals(acquirer)) {
             return "ElementPay";
         }

@@ -1975,8 +1975,17 @@
     hqPgAgencyCostPolicyDetail: function (pgCd) {
       return get('/api/hq/pgAgencyCostPolicy/' + encodeURIComponent(pgCd || '')).then(function (r) { return r.data; });
     },
+    hqPgAgencyCostPolicyDetailById: function (id) {
+      return get('/api/hq/pgAgencyCostPolicy/id/' + encodeURIComponent(id || '')).then(function (r) { return r.data; });
+    },
+    hqPgAgencyCostPolicyHistory: function (policyId) {
+      return get('/api/hq/pgAgencyCostPolicy/history/' + encodeURIComponent(policyId || '')).then(function (r) { return r.data; });
+    },
     hqPgAgencyCostPolicySave: function (body) {
       return post('/api/hq/pgAgencyCostPolicy/save', body || {}).then(function (r) { return r.data; });
+    },
+    hqPgAgencyCostPolicyDelete: function (id) {
+      return post('/api/hq/pgAgencyCostPolicy/delete', { id: id }).then(function (r) { return r.data; });
     },
     hqApiConfig: function () {
       return get('/api/hq/apiConfig').then(function (r) { return r.data; });
@@ -2675,6 +2684,18 @@
         return payload;
       });
     },
+    opsCostAuditAccess: function () {
+      return get('/api/ops/costAudit/access').then(function (r) { return r.data; });
+    },
+    opsCostAudit: function (params) {
+      var p = params || {};
+      var q = {};
+      ['searchFromDate', 'searchToDate', 'searchKeyword', 'searchOrderNo', 'searchPayDivCd',
+        'searchOrderDir', 'searchAcquirer', 'searchFieldType'].forEach(function (k) {
+        if (p[k] != null && String(p[k]).trim() !== '') q[k] = p[k];
+      });
+      return get('/api/ops/costAudit', q).then(function (r) { return r.data; });
+    },
     opsAgencyTxnListAccess: function () {
       return get('/api/ops/agencyTxnList/access').then(function (r) { return r.data; });
     },
@@ -2682,7 +2703,7 @@
       var p = params || {};
       var q = { page: p.page || 1, size: p.size || 50 };
       ['searchFromDate', 'searchToDate', 'searchCompId', 'searchCompNm', 'searchFieldType',
-        'searchKeyword', 'searchStatusGroup', 'searchOrderDir'].forEach(function (k) {
+        'searchKeyword', 'searchStatusGroup', 'searchPgCd', 'searchOrderDir'].forEach(function (k) {
         if (p[k] != null && String(p[k]).trim() !== '') q[k] = p[k];
       });
       return get('/api/ops/agencyTxnList', q).then(function (r) { return r.data; });

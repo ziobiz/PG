@@ -9,6 +9,7 @@ import com.pg.repository.PgTrnsctnRepository;
 import com.pg.util.ChargebackTierResolver;
 import com.pg.util.FeeListRoundingPolicy;
 import com.pg.util.PercentDecimalHelper;
+import com.pg.util.PgAgencyCostCardFeeUtil;
 import com.pg.util.PgAgencyCostExtraFeeUtil;
 import com.pg.util.VoidRefundSettlementModeUtil;
 import org.springframework.stereotype.Component;
@@ -44,8 +45,10 @@ public class PgAgencyCostTxnBreakdownCalculator {
             double failFee,
             double cancelFee,
             double voidFee,
+            double handVoidFee,
             double manualVoidFee,
             double refundFee,
+            double handRefundFee,
             double payFee,
             double usdtFee,
             double fxFee,
@@ -81,8 +84,10 @@ public class PgAgencyCostTxnBreakdownCalculator {
         double failFee = 0d;
         double cancelFee = 0d;
         double voidFee = 0d;
+        double handVoidFee = 0d;
         double manualVoidFee = 0d;
         double refundFee = 0d;
+        double handRefundFee = 0d;
         double chargebackFee = 0d;
         double payFee = 0d;
         double usdtFee = 0d;
@@ -103,18 +108,22 @@ public class PgAgencyCostTxnBreakdownCalculator {
             cancelFee = nz(pol.getCancelRate()).doubleValue();
         } else if ("21".equals(st) || "22".equals(st) || "30".equals(st) || "31".equals(st)
                 || "40".equals(st) || "41".equals(st) || "42".equals(st)) {
-            if ("21".equals(st) || "40".equals(st)) {
+            if ("40".equals(st)) {
                 voidFee = nz(pol.getVoidFeePerTx()).doubleValue();
+            } else if ("21".equals(st)) {
+                handVoidFee = nz(pol.getHandVoidFeePerTx()).doubleValue();
             } else if ("22".equals(st) || "41".equals(st)) {
                 manualVoidFee = nz(pol.getManualVoidFeePerTx()).doubleValue();
             }
-            if ("30".equals(st) || "42".equals(st)) {
+            if ("42".equals(st)) {
                 refundFee = nz(pol.getRefundRate()).doubleValue();
+            } else if ("30".equals(st)) {
+                handRefundFee = nz(pol.getHandRefundFeePerTx()).doubleValue();
             } else if ("31".equals(st)) {
                 chargebackFee = resolveChargebackFee(t, compId, pol, monthCbCountCache, tiersByPolicyId);
             }
             if (amountBd.signum() > 0) {
-                payFee = pctOf(amountBd, pol.getPayRate(), feeScale, feeRm);
+                payFee = pctOf(amountBd, PgAgencyCostCardFeeUtil.resolvePayRate(pol, t.getCardPanDisplay()), feeScale, feeRm);
                 usdtFee = pctOf(amountBd, pol.getFeeUsdt(), feeScale, feeRm);
                 fxFee = pctOf(amountBd, pol.getFeeFx(), feeScale, feeRm);
                 fee3dsFee = FeeListRoundingPolicy.round(nz(pol.getFee3dsRate()), rp).doubleValue();
@@ -129,7 +138,7 @@ public class PgAgencyCostTxnBreakdownCalculator {
             rollingHoldEst = amountBd.signum() > 0
                     ? pctOf(amountBd, pol.getRollingPct(), feeScale, feeRm) : 0d;
             if (amountBd.signum() > 0) {
-                payFee = pctOf(amountBd, pol.getPayRate(), feeScale, feeRm);
+                payFee = pctOf(amountBd, PgAgencyCostCardFeeUtil.resolvePayRate(pol, t.getCardPanDisplay()), feeScale, feeRm);
                 usdtFee = pctOf(amountBd, pol.getFeeUsdt(), feeScale, feeRm);
                 fxFee = pctOf(amountBd, pol.getFeeFx(), feeScale, feeRm);
                 fee3dsFee = FeeListRoundingPolicy.round(nz(pol.getFee3dsRate()), rp).doubleValue();
@@ -142,22 +151,28 @@ public class PgAgencyCostTxnBreakdownCalculator {
 
         double totalFee;
         if ("10".equals(st)) {
-            totalFee = Math.max(0d, perTxFee + failFee + cancelFee + voidFee + manualVoidFee + refundFee
+            totalFee = Math.max(0d, perTxFee + failFee + cancelFee + voidFee + handVoidFee + manualVoidFee + refundFee + handRefundFee
                     + payFee + usdtFee + fxFee + fee3dsFee + chargebackFee
                     + extraFee1 + extraFee2 + extraFee3 + extraFee4);
         } else if ("F0".equals(st) || "99".equals(st)) {
             totalFee = Math.max(0d, failFee);
         } else if ("20".equals(st)) {
             totalFee = Math.max(0d, cancelFee);
-        } else if ("21".equals(st) || "40".equals(st)) {
+        } else if ("40".equals(st)) {
             boolean addPaySide = VoidRefundSettlementModeUtil.subtractVoidAmountFromNet(voidMode);
             totalFee = Math.max(0d, voidFee + (addPaySide ? successFeesSeparate : 0d));
+        } else if ("21".equals(st)) {
+            boolean addPaySide = VoidRefundSettlementModeUtil.subtractVoidAmountFromNet(voidMode);
+            totalFee = Math.max(0d, handVoidFee + (addPaySide ? successFeesSeparate : 0d));
         } else if ("22".equals(st) || "41".equals(st)) {
             boolean addPaySide = VoidRefundSettlementModeUtil.subtractManualVoidAmountFromNet(manualVoidMode);
             totalFee = Math.max(0d, manualVoidFee + (addPaySide ? successFeesSeparate : 0d));
-        } else if ("30".equals(st) || "42".equals(st)) {
+        } else if ("42".equals(st)) {
             boolean addPaySide = VoidRefundSettlementModeUtil.subtractRefundAmountFromNet(refundMode);
             totalFee = Math.max(0d, refundFee + (addPaySide ? successFeesSeparate : 0d));
+        } else if ("30".equals(st)) {
+            boolean addPaySide = VoidRefundSettlementModeUtil.subtractRefundAmountFromNet(refundMode);
+            totalFee = Math.max(0d, handRefundFee + (addPaySide ? successFeesSeparate : 0d));
         } else if ("31".equals(st)) {
             boolean addPaySide = VoidRefundSettlementModeUtil.subtractForceRefundAmountFromNet(forceRefundMode);
             totalFee = Math.max(0d, chargebackFee + (addPaySide ? successFeesSeparate : 0d));
@@ -166,7 +181,7 @@ public class PgAgencyCostTxnBreakdownCalculator {
         }
 
         BigDecimal totalFeeBd = FeeListRoundingPolicy.round(BigDecimal.valueOf(totalFee), rp);
-        return new AgencyCostTxnBreakdown(perTxFee, failFee, cancelFee, voidFee, manualVoidFee, refundFee,
+        return new AgencyCostTxnBreakdown(perTxFee, failFee, cancelFee, voidFee, handVoidFee, manualVoidFee, refundFee, handRefundFee,
                 payFee, usdtFee, fxFee, fee3dsFee, chargebackFee,
                 extraFee1, extraFee2, extraFee3, extraFee4, rollingHoldEst, rollingPctPlain, rollingDays,
                 successFeesSeparate, totalFeeBd.doubleValue());

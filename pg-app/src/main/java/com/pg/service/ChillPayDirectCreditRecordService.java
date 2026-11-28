@@ -242,7 +242,7 @@ public class ChillPayDirectCreditRecordService {
                                                 String checkoutLang) {
         recordAfterDirectCreditResponse(merchantOrgUnitId, res, requestAmount, requestOrderNo, requestCustomerId,
                 routeNo, urlPayIntegrationMode, payerDisplayName, checkoutCurrencyAlpha,
-                shopperDisplayAmount, shopperDisplayCurrency, txnOrigin, checkoutLang, null);
+                shopperDisplayAmount, shopperDisplayCurrency, txnOrigin, checkoutLang, null, null);
     }
 
     /**
@@ -263,10 +263,31 @@ public class ChillPayDirectCreditRecordService {
                                                 String txnOrigin,
                                                 String checkoutLang,
                                                 String pgOrderRef) {
+        recordAfterDirectCreditResponse(merchantOrgUnitId, res, requestAmount, requestOrderNo, requestCustomerId,
+                routeNo, urlPayIntegrationMode, payerDisplayName, checkoutCurrencyAlpha,
+                shopperDisplayAmount, shopperDisplayCurrency, txnOrigin, checkoutLang, pgOrderRef, null);
+    }
+
+    @Transactional
+    public void recordAfterDirectCreditResponse(Long merchantOrgUnitId,
+                                                ChillPayDirectCreditResponse res,
+                                                long requestAmount,
+                                                String requestOrderNo,
+                                                String requestCustomerId,
+                                                int routeNo,
+                                                String urlPayIntegrationMode,
+                                                String payerDisplayName,
+                                                String checkoutCurrencyAlpha,
+                                                BigDecimal shopperDisplayAmount,
+                                                String shopperDisplayCurrency,
+                                                String txnOrigin,
+                                                String checkoutLang,
+                                                String pgOrderRef,
+                                                String deviceLang) {
         try {
             doRecord(merchantOrgUnitId, res, requestAmount, requestOrderNo, requestCustomerId, routeNo,
                     urlPayIntegrationMode, payerDisplayName, checkoutCurrencyAlpha,
-                    shopperDisplayAmount, shopperDisplayCurrency, txnOrigin, checkoutLang, pgOrderRef);
+                    shopperDisplayAmount, shopperDisplayCurrency, txnOrigin, checkoutLang, pgOrderRef, deviceLang);
         } catch (Exception e) {
             log.warn("DirectCredit 거래 적재 실패 (결제 API 응답은 유지): {}", e.getMessage());
         }
@@ -285,7 +306,8 @@ public class ChillPayDirectCreditRecordService {
                           String shopperDisplayCurrency,
                           String txnOrigin,
                           String checkoutLang,
-                          String pgOrderRef) {
+                          String pgOrderRef,
+                          String deviceLang) {
         if (res == null || res.getStatus() != 200 || res.getData() == null) {
             return;
         }
@@ -385,7 +407,15 @@ public class ChillPayDirectCreditRecordService {
             t.setPaidAt(LocalDateTime.now(hqLedgerSysSettingsService.resolveLedgerDisplayZoneId()));
         }
         t.setSettledYn("N");
-        MerchantCheckoutLangUtil.applyToTxn(t, checkoutLang);
+        java.util.Map<String, Object> langBody = new java.util.LinkedHashMap<>();
+        if (checkoutLang != null && !checkoutLang.isBlank()) {
+            langBody.put("lang", checkoutLang.trim());
+            langBody.put("langCode", checkoutLang.trim());
+        }
+        if (deviceLang != null && !deviceLang.isBlank()) {
+            langBody.put("deviceLang", deviceLang.trim());
+        }
+        MerchantCheckoutLangUtil.applyToTxn(t, langBody);
         pgTrnsctnRepository.save(t);
         try {
             merchantChatbotOrderService.tryConfirmOrderAfterPaidTxn(t);

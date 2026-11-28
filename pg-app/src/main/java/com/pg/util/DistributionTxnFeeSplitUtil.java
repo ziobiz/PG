@@ -86,7 +86,7 @@ public final class DistributionTxnFeeSplitUtil {
                     BigDecimal::add);
         }
 
-        double proportional = br.failFee() + br.cancelFee() + br.voidFee() + br.manualVoidFee()
+        double proportional = br.failFee() + br.cancelFee() + br.voidFee() + br.handVoidFee() + br.manualVoidFee() + br.handRefundFee()
                 + br.refundFee() + br.splitPayFixedFee();
         if (proportional > 0) {
             distributeProportional(map, BigDecimal.valueOf(proportional), perTx, payRate, baseAmt, rp);

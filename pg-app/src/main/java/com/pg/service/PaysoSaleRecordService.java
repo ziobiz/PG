@@ -16,7 +16,10 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -27,20 +30,26 @@ import java.util.UUID;
 public class PaysoSaleRecordService {
 
     private static final Logger log = LoggerFactory.getLogger(PaysoSaleRecordService.class);
+    /** PAYSO Inquiry/Order Detail {@code orderDateTime} (오프셋 없으면 Asia/Bangkok 벽시계). */
+    private static final DateTimeFormatter PAYSO_ORDER_DT = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+    private static final ZoneId PAYSO_WALL = ZoneId.of("Asia/Bangkok");
 
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final OrgUnitRepository orgUnitRepository;
     private final TransactionReceiptEmailService transactionReceiptEmailService;
     private final MerchantOutboundNotifyService merchantOutboundNotifyService;
+    private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
 
     public PaysoSaleRecordService(PgTrnsctnRepository pgTrnsctnRepository,
                                    OrgUnitRepository orgUnitRepository,
                                    @Lazy TransactionReceiptEmailService transactionReceiptEmailService,
-                                   @Lazy MerchantOutboundNotifyService merchantOutboundNotifyService) {
+                                   @Lazy MerchantOutboundNotifyService merchantOutboundNotifyService,
+                                   HqLedgerSysSettingsService hqLedgerSysSettingsService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.transactionReceiptEmailService = transactionReceiptEmailService;
         this.merchantOutboundNotifyService = merchantOutboundNotifyService;
+        this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -72,7 +81,7 @@ public class PaysoSaleRecordService {
                 t.setTrnId("PS" + UUID.randomUUID().toString().replace("-", "").substring(0, 18));
                 t.setMerchantId(mid);
                 t.setOrderNo(orderNo.trim());
-                t.setCreatedAt(LocalDateTime.now());
+                t.setCreatedAt(LocalDateTime.now(ledgerWallZone()));
             }
             String prevSt = t.getStatus() != null ? t.getStatus().trim() : "";
             /* 이미 승인(10/00)된 건은 pending 으로 되돌리지 않음 — 이중 HPP·상태 덮어쓰기 방지 */
@@ -242,6 +251,14 @@ public class PaysoSaleRecordService {
     public Optional<PgTrnsctn> applyPaidOutcome(String orderNo, String compId, String paysoTxnId,
                                                 String paymentRef, String payerName,
                                                 boolean verifiedByOrderDetail) {
+        return applyPaidOutcome(orderNo, compId, paysoTxnId, paymentRef, payerName,
+                verifiedByOrderDetail, null);
+    }
+
+    @Transactional
+    public Optional<PgTrnsctn> applyPaidOutcome(String orderNo, String compId, String paysoTxnId,
+                                                String paymentRef, String payerName,
+                                                boolean verifiedByOrderDetail, String orderDateTimeRaw) {
         if (orderNo == null || orderNo.isBlank() || compId == null || compId.isBlank()) {
             return Optional.empty();
         }
@@ -260,6 +277,12 @@ public class PaysoSaleRecordService {
         PgTrnsctn t = txn.get();
         String stNow = t.getStatus() != null ? t.getStatus().trim() : "";
         if ("10".equals(stNow) || "00".equals(stNow)) {
+            /* 이미 승인이어도 orderDateTime 이 있으면 paid_at(JVM +2h 오저장) 정정 */
+            LocalDateTime fromPg = resolvePaidAtWallFromPaysoOrderDateTime(orderDateTimeRaw);
+            if (fromPg != null && (t.getPaidAt() == null || !fromPg.equals(t.getPaidAt()))) {
+                t.setPaidAt(fromPg);
+                pgTrnsctnRepository.save(t);
+            }
             return Optional.of(t);
         }
         /* 이미 실패(99)인데 Order Detail 미확인 웹훅이면 오성공 방지 — 덮어쓰지 않음 */
@@ -302,8 +325,16 @@ public class PaysoSaleRecordService {
         paymentRef = inRef;
         String prevSt = stNow;
         t.setStatus("10");
-        if (t.getPaidAt() == null) {
-            t.setPaidAt(LocalDateTime.now());
+        /*
+         * paid_at 은 원장「표준」벽시계 naive. JVM now()(KST 등)로 넣으면 TH 해석 시 +2h 오차가 난다.
+         * PAYSO orderDateTime(방콕) → 표준 Zone 벽시계, 없으면 표준 Zone now.
+         * (대기 created_at 의 JVM 오저장을 승인 시각으로 승계하지 않음)
+         */
+        LocalDateTime fromPg = resolvePaidAtWallFromPaysoOrderDateTime(orderDateTimeRaw);
+        if (fromPg != null) {
+            t.setPaidAt(fromPg);
+        } else if (t.getPaidAt() == null) {
+            t.setPaidAt(LocalDateTime.now(ledgerWallZone()));
         }
         /* 실패 사유가 남아 있으면 실제 승인 시 비움 */
         if ("99".equals(prevSt) || (t.getOutcomeReasonCode() != null && !t.getOutcomeReasonCode().isBlank())) {
@@ -622,6 +653,13 @@ public class PaysoSaleRecordService {
     @Transactional
     public void applyInquiryEnrichment(PgTrnsctn txn, String referenceNo, String paysoOrderNo,
                                        String paysoTxnId, String cardPanDisplay, BigDecimal feeAmt) {
+        applyInquiryEnrichment(txn, referenceNo, paysoOrderNo, paysoTxnId, cardPanDisplay, feeAmt, null);
+    }
+
+    @Transactional
+    public void applyInquiryEnrichment(PgTrnsctn txn, String referenceNo, String paysoOrderNo,
+                                       String paysoTxnId, String cardPanDisplay, BigDecimal feeAmt,
+                                       String orderDateTimeRaw) {
         if (txn == null) {
             return;
         }
@@ -665,9 +703,89 @@ public class PaysoSaleRecordService {
             txn.setChillFeeAmt(feeAmt);
             dirty = true;
         }
+        /* Inquiry orderDateTime 으로 paid_at 정정(JVM now 오저장 +2h 등) */
+        LocalDateTime fromPg = resolvePaidAtWallFromPaysoOrderDateTime(orderDateTimeRaw);
+        if (fromPg != null) {
+            LocalDateTime cur = txn.getPaidAt();
+            if (cur == null || !cur.equals(fromPg)) {
+                txn.setPaidAt(fromPg);
+                dirty = true;
+            }
+        }
         if (dirty) {
             pgTrnsctnRepository.save(txn);
         }
+    }
+
+    /** 원장 표준 시간대 벽시계 — {@code paid_at}/{@code created_at} naive 저장 기준. */
+    private ZoneId ledgerWallZone() {
+        try {
+            return hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+        } catch (Exception e) {
+            return PAYSO_WALL;
+        }
+    }
+
+    /**
+     * PAYSO {@code orderDateTime}/{@code Date} → 원장 표준 Zone naive.
+     * <p>Payso 포털·CSV 시각은 <strong>태국(Asia/Bangkok) 벽시계</strong>이다.
+     * API 가 {@code Z}·오프셋을 붙여도 UTC 가 아니라 방콕 벽시계 숫자이므로,
+     * 존 접미는 버리고 숫자만 방콕으로 해석한다(Z→UTC 로 읽으면 +7h 오차).
+     */
+    LocalDateTime resolvePaidAtWallFromPaysoOrderDateTime(String raw) {
+        LocalDateTime paysoWall = parsePaysoOrderDateTimeWall(raw);
+        if (paysoWall == null) {
+            return null;
+        }
+        ZoneId ledger = ledgerWallZone();
+        if (ledger.equals(PAYSO_WALL)) {
+            return paysoWall;
+        }
+        return paysoWall.atZone(PAYSO_WALL).withZoneSameInstant(ledger).toLocalDateTime();
+    }
+
+    /** Payso 일시 문자열 → Asia/Bangkok 벽시계(오프셋·Z 무시). */
+    static LocalDateTime parsePaysoOrderDateTimeWall(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String s = raw.trim();
+        /* Z / +07:00 / +09:00 등 — 벽시계 숫자만 사용(UTC Instant 금지) */
+        if (s.endsWith("Z") || s.endsWith("z")) {
+            s = s.substring(0, s.length() - 1).trim();
+        } else if (s.matches(".*[+-]\\d{2}:\\d{2}$")) {
+            s = s.substring(0, s.length() - 6).trim();
+        } else if (s.matches(".*[+-]\\d{4}$")) {
+            s = s.substring(0, s.length() - 5).trim();
+        }
+        try {
+            if (s.contains("T")) {
+                if (s.length() >= 19) {
+                    s = s.substring(0, 19);
+                }
+                return LocalDateTime.parse(s, PAYSO_ORDER_DT);
+            }
+        } catch (Exception ignored) {
+            /* fall through */
+        }
+        try {
+            String norm = s.replace('T', ' ');
+            if (norm.length() >= 19) {
+                norm = norm.substring(0, 19);
+            }
+            return LocalDateTime.parse(norm, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    /** @deprecated 표시·저장 모두 {@link #parsePaysoOrderDateTimeWall} 사용. */
+    static Instant parsePaysoOrderDateTimeInstant(String raw) {
+        LocalDateTime wall = parsePaysoOrderDateTimeWall(raw);
+        if (wall == null) {
+            return null;
+        }
+        return wall.atZone(PAYSO_WALL).toInstant();
     }
 
     /** PAYSO 포털형 {@code 414520-####-8306} → {@code 414520***8306}. */

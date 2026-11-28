@@ -147,6 +147,11 @@ public class EximbaySaleRecordService {
             t.setPayNo(on.length() > 50 ? on.substring(0, 50) : on);
         }
         com.pg.util.IcopayPgOrderRef.applyPayNoToTxn(t, saleBody);
+        /* 영수증 언어: 결제창·단말 lang (전 PG 공통) */
+        if (saleBody != null && !saleBody.isEmpty()) {
+            com.pg.util.UrlPaySaleTxnFieldApplier.apply(t, saleBody);
+            com.pg.util.UrlPaySaleTxnFieldApplier.ensureUrlWebDevice(t, origin);
+        }
         if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
             t.setAmtKrw(amount);
         }

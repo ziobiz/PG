@@ -154,6 +154,10 @@
     compTreeSearchUseStatus: { KO: '업체사용상태', EN: 'Company status', JP: '加盟店使用状態', CH: '商户使用状态', TH: 'สถานะการใช้งานร้าน' },
     searchPayHoldYn: { KO: '지급보류', EN: 'Payout hold', JP: '支払保留', CH: '支付暂缓', TH: 'ระงับการจ่าย' },
     'cb:searchIncludeSub': { KO: '하위업체포함', EN: 'Include sub-orgs', JP: '下位組織を含む', CH: '含下级组织', TH: 'รวมองค์กรย่อย' },
+    'cb:searchIncludeZeroCount': { KO: '무건수노출', EN: 'Show zero counts', JP: '件数0表示', CH: '显示0笔', TH: 'แสดงจำนวน 0' },
+    searchIncludeZeroCount: { KO: '무건수노출', EN: 'Show zero counts', JP: '件数0表示', CH: '显示0笔', TH: 'แสดงจำนวน 0' },
+    'searchIncludeZeroCount|N': { KO: '미사용', EN: 'Off', JP: '未使用', CH: '未使用', TH: 'ไม่ใช้' },
+    'searchIncludeZeroCount|Y': { KO: '사용', EN: 'On', JP: '使用', CH: '使用', TH: 'ใช้' },
     'searchCeoNm:label': { KO: '대표자명', EN: 'CEO name', JP: '代表者名', CH: '负责人姓名', TH: 'ชื่อผู้แทน' },
     'searchTerminalId:label': { KO: '터미널ID', EN: 'Terminal ID', JP: '端末ID', CH: '终端ID', TH: 'รหัสเทอร์มินัล' },
     'searchCeoMobile:label': { KO: '휴대폰', EN: 'Mobile', JP: '携帯', CH: '手机', TH: 'มือถือ' },
@@ -1194,25 +1198,32 @@
         'เฉพาะ HQ สูงสุด/ภูมิภาค/ตัวแทนหลักหรือ ADMIN ขอบเขตคือร้านใต้องค์กรที่ล็อกอิน'
       ),
       packN(
-        '결제대행사(PG) 계약 수수료를 건별로 표시합니다. 본사설정 「대행수수료설정」과 가맹 결제대행사 설정 결제코드·거래 통화로 정책을 찾아, 과거 거래도 현재 설정 기준으로 재계산합니다. 정산관리 수수료내역과 유사한 구조이며 가맹 수수료·가맹 정산(settled_yn)과 별개입니다.',
-        'Per-txn PG contract fees: resolves policy from Agency fee settings + merchant PG binding code and txn currency; past txns are recalculated with current policy. Similar to settlement fee list; separate from merchant fees and settled_yn.',
-        '決済代行(PG)契約手数料を取引ごとに表示。代行手数料設定と加盟店PGコード・取引通貨で政策を解決し、過去取引も現行設定で再計算します。精算手数料明細と同型で加盟店手数料・settled_ynとは別です。',
-        '按笔显示 PG 合同手续费：按代行手续费设置与商户 PG 绑定代码、交易币种匹配政策，历史交易亦按当前设置重算。结构与结算手续费明细类似，与商户手续费及 settled_yn 无关。',
-        'แสดงค่าธรรมเนียมสัญญา PG รายรายการ: จับคู่นโยบายจากตั้งค่าตัวแทน+รหัส PG ร้าน·สกุลเงินธุรกรรม ธุรกรรมเก่าคำนวณใหม่ตามนโยบายปัจจุบัน คล้ายรายการค่าธรรมเนียมชำระ แยกจากค่าธรรมเนียมร้านและ settled_yn'
+        '결제대행사 계약 원가를 건별로 표시합니다. 연동·배포 「결제대행사등록」과 가맹 결제대행사 설정 결제코드·거래 통화로 정책을 찾아, 과거 거래도 현재 설정 기준으로 재계산합니다. 가맹 수수료·가맹 정산(settled_yn)과 별개입니다.',
+        'Per-txn PG contract cost: resolves policy from Deploy → PG cost register + merchant PG binding code/currency; past txns recalculated with current policy. Separate from merchant fees and settled_yn.',
+        '決済代行契約の原価を取引ごとに表示。連携・配信「決済代行登録」と加盟店PGコード・取引通貨で政策を解決し、過去取引も現行設定で再計算。加盟店手数料・settled_ynとは別です。',
+        '按笔显示收单合同成本：按 对接·发布「收单方成本登记」与商户 PG 绑定代码/币种匹配政策，历史交易亦按当前设置重算。与商户手续费及 settled_yn 无关。',
+        'แสดงต้นทุนสัญญา PG รายรายการ: จับคู่นโยบายจาก เชื่อมต่อ·เผยแพร่「ลงทะเบียนต้นทุน PG」+รหัส PG ร้าน·สกุลเงิน ธุรกรรมเก่าคำนวณใหม่ตามนโยบายปัจจุบัน แยกจากค่าธรรมเนียมร้านและ settled_yn'
       ),
       packN(
-        '과거 거래도 현재 「대행수수료설정」 기준으로 건별 수수료를 재계산해 표시합니다. 정책이 없거나 결제코드·통화가 일치하지 않으면 수수료 열은 0 또는 빈 칸입니다.',
-        'Past transactions are recalculated per current Agency fee settings. Fee columns show 0 or blank when no policy matches PG code/currency.',
-        '過去取引も現行「代行手数料設定」で再計算して表示します。政策なし・PGコード・通貨不一致の場合は手数료列は0または空欄です。',
-        '历史交易亦按当前「代行手续费设置」重算；无匹配政策或 PG 代码/币种不一致时手续费列为 0 或空。',
-        'ธุรกรรมเก่าคำนวณใหม่ตาม「ตั้งค่าค่าธรรมเนียมตัวแทน」ปัจจุบัน หากไม่มีนโยบายหรือรหัส PG/สกุลเงินไม่ตรง คอลัมน์ค่าธรรมเนียมเป็น 0 หรือว่าง'
+        '부가세(VAT)는 가맹 정산설정의 수수료 부가세 적용 여·율로 원가 합에 대해 산출합니다. 미적용이면 0입니다.',
+        'VAT is computed on total cost using the merchant settlement fee-VAT flag/rate. Zero when VAT is off.',
+        '付加税(VAT)は加盟店精算設定の手数料付加税適用・率で原価合計に対して算出。未適用なら0です。',
+        '增值税按商户结算设置的手续费 VAT 开关/税率对成本合计计算；未启用则为 0。',
+        'VAT คำนวณจากยอดต้นทุนตามธง/อัตรา VAT ค่าธรรมเนียมในการตั้งค่าชำระของร้าน หากปิดจะเป็น 0'
       ),
       packN(
-        '「결제(%)」열은 본사설정 대행수수료설정의 결제수수료(%) 과금액만 표시합니다. USDT·FX·3DS는 「기타수수료」열에 각각 별도 표시되며, 대행수수료합에는 모두 포함됩니다.',
-        'Pay(%) shows payment-fee (%) charges from Agency fee settings only. USDT·FX·3DS are separate columns under Other fees; all are included in Total agency fee.',
-        '「決済(%)」列は代行手数料設定の決済手数料(%)のみ。USDT·FX·3DSは「その他手数料」列に個別表示し、代行手数料合計にはすべて含みます。',
-        '「支付(%)」列仅显示代行手续费设置中的支付手续费(%)，USDT·FX·3DS 在「其他费用」列分列显示，均计入代行手续费合计。',
-        '「ชำระ(%)」แสดงเฉพาะค่าธรรมเนียมชำระ(%) จากตั้งค่าตัวแทน USDT·FX·3DS แยกคอลัมน์ใน「ค่าธรรมเนียมอื่น」รวมในยอดรวมตัวแทน'
+        '정책이 없거나 결제코드·통화가 일치하지 않으면 수수료 열은 0 또는 빈 칸입니다.',
+        'Fee columns show 0 or blank when no policy matches PG code/currency.',
+        '政策なし・PGコード・通貨不一致の場合は手数料列は0または空欄です。',
+        '无匹配政策或 PG 代码/币种不一致时手续费列为 0 或空。',
+        'หากไม่มีนโยบายหรือรหัส PG/สกุลเงินไม่ตรง คอลัมน์ค่าธรรมเนียมเป็น 0 หรือว่าง'
+      ),
+      packN(
+        '「결제(%)」열은 결제대행사등록의 결제수수료(%) 과금액만 표시합니다. USDT·FX·3DS는 「기타수수료」열에 각각 별도 표시되며, 원가합(세전)에 모두 포함됩니다.',
+        'Pay(%) shows payment-fee (%) from PG cost register only. USDT·FX·3DS are separate Other-fee columns; all are included in pre-VAT cost total.',
+        '「決済(%)」列は決済代行登録の決済手数料(%)のみ。USDT·FX·3DSは「その他手数料」に個別表示し、税前原価合計に含みます。',
+        '「支付(%)」仅显示收单登记中的支付手续费(%)；USDT·FX·3DS 分列于其他费用，均计入税前成本合计。',
+        '「ชำระ(%)」แสดงเฉพาะค่าธรรมเนียมชำระ(%) จากลงทะเบียนต้นทุน PG · USDT·FX·3DS แยกคอลัมน์ รวมในยอดต้นทุนก่อน VAT'
       ),
       packN(
         'JPAY 포털 Export 캐시(tb_jpay_portal_export_cache)는 통합개요·일별조회와 동일합니다. JPAY 건 검수·대조 전 본 화면 [JPAY 동기화]·[전체 재동기화]로 캐시를 갱신할 수 있습니다. 전산설정 JPAY 통합개요 스케줄로 자동 동기화됩니다.',
@@ -1224,16 +1235,16 @@
       packN(
         '상단 「최근동기화」 시각·당일 횟수는 통합개요와 동일합니다. 스케줄 또는 [JPAY 동기화] 완료 후 이 화면이 열려 있으면 자동으로 다시 조회됩니다.',
         '“Last sync” time and today’s count match Integrated overview. When this screen is open, completing a scheduled or manual [JPAY sync] triggers an automatic refresh.',
-        '上段の「最終同期」時刻・当日回数は統合概要と同じです。スケジュールまたは[JPAY同期]完了後、この画面を開いたままなら自動再照회します。',
+        '上段の「最終同期」時刻・当日回数は統合概要と同じです。スケジュールまたは[JPAY同期]完了後、この画面を開いたままなら自動再照会します。',
         '上方「最近同步」时间与整合概览相同。本页打开时，计划或 [JPAY 同步] 完成后会自动重新查询。',
         '「ซิงค์ล่าสุด」และจำนวนวันนี้ตรงกับภาพรวมรวม เมื่อเปิดหน้านี้อยู่ หลังซิงค์ตามตารางหรือ [JPAY sync] เสร็จจะรีเฟรชอัตโนมัติ'
       ),
       packN(
-        'ox 거래도 본사설정 대행수수료설정의 ox 결제코드·통화 정책으로 같은 방식으로 계산합니다. ox 전용 조회 API는 쓰지 않습니다.',
-        'ox transactions use the same calculation from the ox payment-code and currency policy in Agency fee settings. No ox-only query API is used.',
-        'ox取引も本社設定の代行手数料設定にあるox決済コード・通貨ポリシーで同じ方法で計算します。ox専用の照会APIは使いません。',
-        'ox 交易也按总部代行手续费设置中的 ox 支付代码与币种政策，以同样方式计算。不使用 ox 专用查询 API。',
-        'ธุรกรรม ox คำนวณแบบเดียวกันจากนโยบายรหัสชำระและสกุลเงินของ ox ในการตั้งค่าค่าธรรมเนียมตัวแทน ไม่ใช้ API ค้นหาเฉพาะ ox'
+        'ox 거래도 연동·배포 결제대행사등록의 ox 결제코드·통화 정책으로 같은 방식으로 계산합니다. ox 전용 조회 API는 쓰지 않습니다.',
+        'ox transactions use the same calculation from the ox payment-code and currency policy in PG cost register. No ox-only query API is used.',
+        'ox取引も連携・配信の決済代行登録にあるox決済コード・通貨ポリシーで同じ方法で計算します。ox専用の照会APIは使いません。',
+        'ox 交易也按对接·发布收单登记中的 ox 支付代码与币种政策，以同样方式计算。不使用 ox 专用查询 API。',
+        'ธุรกรรม ox คำนวณแบบเดียวกันจากนโยบายรหัสชำระและสกุลเงินของ ox ในลงทะเบียนต้นทุน PG ไม่ใช้ API ค้นหาเฉพาะ ox'
       )
     ],
     '/ops/inactiveCard': [
@@ -1422,9 +1433,10 @@
 
   /** 대행수수료 — 수수료 그룹 헤더만 2단( PG·거래·통화 열은 업체명·거래일과 동일 rowspan ) */
   var AGENCY_HG = {
-    'txnFixedFeesSum,pctFeesSum': { KO: '승인 / 대행수수료(%)', EN: 'Approval / agency fee (%)', JP: '承認／代行手数料(%)', CH: '授权/代行手续费(%)', TH: 'อนุมัติ / ค่าธรรมเนียมตัวแทน (%)' },
+    'txnFixedFeesSum,pctFeesSum': { KO: '승인 / 원가(%)', EN: 'Approval / cost (%)', JP: '承認／原価(%)', CH: '授权/成本(%)', TH: 'อนุมัติ / ต้นทุน (%)' },
     'usdtFee,fxFee,fee3dsFee,splitPayPctFee,splitPayFixedFee': { KO: '기타수수료', EN: 'Other fees', JP: 'その他手数料', CH: '其他手续费', TH: 'ค่าธรรมเนียมอื่น' },
     'failFee,cancelFee,voidFee,manualVoidFee,refundFee,chargebackFee': { KO: '실패·취소·무효·환불·차지백', EN: 'Fail·cancel·void·refund·CB', JP: '失敗・取消・無効・返金・CB', CH: '失败·取消·作废·退款·拒付', TH: 'ล้มเหลว·ยกเลิก·โมฆะ·คืน·CB' },
+    'rollingHoldEst,totalAgencyFee,feeVat,feeWithVat': { KO: '합계·부가세·정산', EN: 'Total · VAT · settlement', JP: '合計・付加税・精算', CH: '合计·增值税·结算', TH: 'รวม·VAT·ชำระ' },
     'rollingHoldEst,totalAgencyFee': { KO: '합계·정산', EN: 'Total · settlement', JP: '合計・精算', CH: '合计·结算', TH: 'รวม·ชำระ' }
   };
 
@@ -1562,6 +1574,7 @@
     chargebackFee: { EN: 'Chargeback', JP: 'チャージバック', CH: '拒付', TH: 'ชาร์จแบ็ก' },
     totalFee: { EN: 'Total fee', JP: '手数料合計', CH: '手续费合计', TH: 'ค่าธรรมเนียมรวม' },
     feeVat: { EN: 'VAT', JP: '消費税', CH: '增值税', TH: 'VAT' },
+    feeWithVat: { EN: 'Cost (inc VAT)', JP: '原価合計(税込)', CH: '成本合计(含税)', TH: 'ต้นทุนรวม (รวม VAT)' },
     expectedPayout: { EN: 'Expected payout', JP: '支払予定額', CH: '预计拨付', TH: 'ยอดจ่ายโดยประมาณ' },
     settlementAmt: { EN: 'Settlement amt.', JP: '精算額', CH: '结算额', TH: 'ยอดชำระ' },
     settlementStateLabel: { EN: 'Settlement status', JP: '精算有無', CH: '结算状态', TH: 'สถานะการชำระ' },
@@ -1602,7 +1615,9 @@
     pgNm: { EN: 'Payment agency', JP: '決済代行', CH: '支付代理', TH: 'ตัวแทนรับชำระ' },
     pgCd: { EN: 'Payment code', JP: '決済コード', CH: '支付代码', TH: 'รหัสชำระ' },
     curType: { EN: 'Currency', JP: '通貨', CH: '币种', TH: 'สกุลเงิน' },
-    totalAgencyFee: { EN: 'Agency fee total', JP: '代行手数료合計', CH: '代行手续费合计', TH: 'รวมค่าธรรมเนียมตัวแทน' },
+    totalAgencyFee: { EN: 'Cost (ex VAT)', JP: '原価合計(税前)', CH: '成本合计(未税)', TH: 'ต้นทุนรวม (ก่อน VAT)' },
+    feeVat: { EN: 'VAT', JP: '消費税', CH: '增值税', TH: 'VAT' },
+    feeWithVat: { EN: 'Cost (inc VAT)', JP: '原価合計(税込)', CH: '成本合计(含税)', TH: 'ต้นทุนรวม (รวม VAT)' },
     agencySettleYn: { EN: 'PG settlement due', JP: 'PG精算可否', CH: 'PG 是否应结算', TH: 'ครบกำหนด PG' }
   });
 

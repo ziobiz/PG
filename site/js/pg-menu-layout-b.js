@@ -33,7 +33,6 @@
       icon: 'bi-percent',
       tabs: [
         { tab: 'commission', url: '/hq/defaultCommission', menuId: 'M0102', label: '수수료' },
-        { tab: 'agency-cost', url: '/hq/pgAgencyCostPolicy', menuId: 'M0128', label: '대행수수료' },
         { tab: 'chargeback', url: '/hq/chargebackPolicy', menuId: 'M0117', label: '차지백' },
         { tab: 'risk', url: '/hq/riskCardPolicy', menuId: 'M0129', label: '리스크' }
       ]
@@ -127,7 +126,9 @@
     { url: '/hq/chatbotAiSettings', menuId: 'M0126', label: 'AI·챗봇', parent: '본사정책' }
   ];
 
+  /** 등록(근원원가) → 설정(연동) 순서 고정 — 등록이 먼저 */
   var DEPLOY_STANDALONE = [
+    { url: '/hq/pgAgencyCostPolicy', menuId: 'M0128', label: '결제대행사 등록', parent: '연동·배포' },
     { url: '/hq/pgApiMng', menuId: 'M0101', label: '결제대행사 설정', parent: '연동·배포' }
   ];
 
@@ -464,9 +465,11 @@
     var path = String(url || '').split('?')[0];
     var h = hubForUrl(path) || hubByUrl[path];
     if (h && h.parent) return h.parent;
+    var standalone = null;
     STANDALONE_HQ.concat(DEPLOY_STANDALONE).forEach(function (s) {
-      if (s.url === path) return h = s;
+      if (s.url === path) standalone = s;
     });
+    if (standalone && standalone.parent) return standalone.parent;
     if (path === MERCHANT_API_HUB.hubUrl) return MERCHANT_API_HUB.parent;
     var leaf = leafToHub[path];
     if (leaf && leaf.hub && leaf.hub.parent) return leaf.hub.parent;

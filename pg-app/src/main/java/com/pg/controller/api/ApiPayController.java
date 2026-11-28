@@ -1150,11 +1150,12 @@ public class ApiPayController {
             }
             long recordAmt = chillPayWireAmountLong(pgAmount, checkoutCurrencyCode);
             String txnOrigin = normalizeTxnOrigin(str(body, "txnOrigin"));
+            String deviceLang = firstNonBlankStr(body, "deviceLang", "browserLanguage", "acceptLanguage");
             chillPayDirectCreditRecordService.recordAfterDirectCreditResponse(
                     merchantOrgUnitId, res, recordAmt, orderNo, customerId, payResult.routeUsed(),
                     urlPayMode, payerName.isEmpty() ? null : payerName, checkoutCurrencyCode,
                     shopperDisplayAmountOut, shopperDisplayCurrencyOut, txnOrigin, langCode,
-                    payResult.pgOrderRef());
+                    payResult.pgOrderRef(), deviceLang);
             return ResponseEntity.ok(ApiResponse.ok(res));
         } catch (IllegalStateException e) {
             String msg = e.getMessage() != null ? e.getMessage() : "결제 요청 처리 중 오류가 발생했습니다.";

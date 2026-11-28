@@ -98,10 +98,13 @@ public class PaysoCallbackService {
             } else {
                 boolean usableKey = PaysoSaleRecordService.isUsablePaysoPgKey(ids.orderNo, paysoKey)
                         || PaysoSaleRecordService.isUsablePaysoPgKey(ids.orderNo, refno);
+                String orderDt = text(root, "orderDateTime", "order_date_time", "orderDate",
+                        "OrderDateTime", "paymentDate", "PaymentDate");
                 if (usableKey) {
                     updated = paysoSaleRecordService.applyPaidOutcome(
                             ids.orderNo, ids.compId, paysoKey, refno,
-                            text(root, "customeremail", "customerEmail", "payer_name"), false);
+                            text(root, "customeremail", "customerEmail", "payer_name"),
+                            false, orderDt);
                 } else {
                     /* 키가 주문번호/비어 있음 → Order Detail 실승인 확인 후에만 성공 반영(오성공 방지) */
                     log.info("PAYSO webhook keys unusable → Order Detail confirm mid={} order={} ref={} txn={}",
@@ -112,11 +115,11 @@ public class PaysoCallbackService {
                     String cardRaw = text(root, "cardNo", "card_no", "CardNo", "maskedCard",
                             "cardMask", "CardMask", "panMask", "CardNumber");
                     String pgOrd = text(root, "orderNo", "OrderNo", "pgOrderNo");
-                    if (!cardRaw.isBlank() || !pgOrd.isBlank()) {
+                    if (!cardRaw.isBlank() || !pgOrd.isBlank() || !orderDt.isBlank()) {
                         String enrichRef = !refno.isBlank() ? refno
                                 : (updated.get().getPayNo() != null ? updated.get().getPayNo() : "");
                         paysoSaleRecordService.applyInquiryEnrichment(
-                                updated.get(), enrichRef, pgOrd, txnId, cardRaw, null);
+                                updated.get(), enrichRef, pgOrd, txnId, cardRaw, null, orderDt);
                     }
                 }
             }

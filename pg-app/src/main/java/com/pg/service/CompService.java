@@ -2617,7 +2617,7 @@ public class CompService {
                           String notifyUrl1, String notifyUrl2, String notifyUrl3, String notifyUrl4,
                           String middlewareNotifyUrl, String middlewareNotifySecret,
                           String commissionFollowHq, String hqPolicyScope, String perTxFee, String cancelRate,
-                          String voidFeePerTx, String manualVoidFeePerTx, String usageRate,
+                          String voidFeePerTx, String handVoidFeePerTx, String manualVoidFeePerTx, String handRefundFeePerTx, String usageRate,
                           String failFee, String payRate, String refundRate, String rollingPct, String rollingDays,
                           String feeSettlementPerTx, String remittanceTransferFee, String usdtTransferFeeUsd, String feeUsdt, String feeFx,
                           String fee3dsRate, String chargebackFeePerTx, String chargebackPolicyId,
@@ -3034,7 +3034,7 @@ public class CompService {
                                 userRepository.save(primary);
                             }
                             if (usesCommissionPolicyForCompDiv(effDivForCommission)
-                                    && !allCommissionParamsAbsent(commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate,
+                                    && !allCommissionParamsAbsent(commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, voidFeePerTx, handVoidFeePerTx, manualVoidFeePerTx, handRefundFeePerTx, usageRate,
                                     failFee, payRate, refundRate, rollingPct, rollingDays, feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx,
                                     fee3dsRate, chargebackFeePerTx, chargebackPolicyId, voidSettlementMode, manualVoidSettlementMode, refundSettlementMode, forceRefundSettlementMode)) {
                                 mergeCommissionUiIntoRegionalSettings(mp, commissionFollowHq, hqPolicyScope);
@@ -3185,7 +3185,7 @@ public class CompService {
                                 validateMerchantPolicyCurrencyCompatibility(chosenCur, effectiveFollow, effectiveHqScope, effectiveChargebackPolicyId);
                             }
                             if (usesCommissionPolicyForCompDiv(effDivForCommission)
-                                    && !allCommissionParamsAbsent(commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate,
+                                    && !allCommissionParamsAbsent(commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, voidFeePerTx, handVoidFeePerTx, manualVoidFeePerTx, handRefundFeePerTx, usageRate,
                                     failFee, payRate, refundRate, rollingPct, rollingDays, feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx,
                                     fee3dsRate, chargebackFeePerTx, chargebackPolicyId, voidSettlementMode, manualVoidSettlementMode, refundSettlementMode, forceRefundSettlementMode)) {
                                 boolean followY = !"N".equalsIgnoreCase(effectiveFollow != null ? effectiveFollow.trim() : "");
@@ -3195,7 +3195,7 @@ public class CompService {
                                 String effScopeTrim = effectiveHqScope != null ? effectiveHqScope.trim() : "";
                                 boolean scopeChanged = !prevHqPolicyScope.equals(effScopeTrim);
                                 boolean feeScalarsPresent = !allCommissionFeeScalarParamsAbsent(
-                                        perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate,
+                                        perTxFee, cancelRate, voidFeePerTx, handVoidFeePerTx, manualVoidFeePerTx, handRefundFeePerTx, usageRate,
                                         failFee, payRate, refundRate, rollingPct, rollingDays, feeSettlementPerTx,
                                         remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx,
                                         fee3dsRate, chargebackFeePerTx, chargebackPolicyId,
@@ -3210,7 +3210,7 @@ public class CompService {
                                         : (followChanged || feeScalarsPresent);
                                 if (shouldApplyCommission) {
                                     applyCommissionPolicyForOrgCode(ou.getCode(), effDivForCommission, effectiveFollow, effectiveHqScope,
-                                            perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
+                                            perTxFee, cancelRate, voidFeePerTx, handVoidFeePerTx, manualVoidFeePerTx, handRefundFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
                                             feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId,
                                             voidSettlementMode, manualVoidSettlementMode, refundSettlementMode, forceRefundSettlementMode,
                                             followChanged || scopeChanged);
@@ -4844,27 +4844,164 @@ public class CompService {
                             String regNo, String email, String pwd,
                             String bankCd, String transferFee, String accountNo, String accountHolder,
                             String remark) {
-        return registerWithExtra(code, name, compDiv, parentId, compTel, zipCode, addr, addrDetail, null, null,
-                ceoNm, ceoMobile, useYn, loginId, regNo,
-                null, null, null, null, null, null, null, null, null, null, null,
-                email, pwd,
-                bankCd, transferFee, null, accountNo, accountHolder,
-                null, null, null, null, null, null, null, null, null,
-                remark,
-                null, null, null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null,
-                null, null, null, null,
-                null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                null, null,
-                null, null, null,
-                null, null,
+        return registerWithExtra(code,
+                name,
+                compDiv,
+                parentId,
+                compTel,
+                zipCode,
+                addr,
+                addrDetail,
                 null,
-                null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+                null,
+                ceoNm,
+                ceoMobile,
+                useYn,
+                loginId,
+                regNo,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                email,
+                pwd,
+                bankCd,
+                transferFee,
+                null,
+                accountNo,
+                accountHolder,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                remark,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
     }
 
     @Transactional
@@ -4893,7 +5030,7 @@ public class CompService {
                                      String notifyUrl1, String notifyUrl2, String notifyUrl3, String notifyUrl4,
                                      String middlewareNotifyUrl, String middlewareNotifySecret,
                                      String commissionFollowHq, String hqPolicyScope, String perTxFee, String cancelRate,
-                                     String voidFeePerTx, String manualVoidFeePerTx, String usageRate,
+                                     String voidFeePerTx, String handVoidFeePerTx, String manualVoidFeePerTx, String handRefundFeePerTx, String usageRate,
                                      String failFee, String payRate, String refundRate, String rollingPct, String rollingDays,
                                      String feeSettlementPerTx, String remittanceTransferFee, String usdtTransferFeeUsd, String feeUsdt, String feeFx,
                                      String urlPayAlertEmailYn, String urlPayLineNotifyToken,
@@ -4969,7 +5106,7 @@ public class CompService {
                 notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4,
                 middlewareNotifyUrl, middlewareNotifySecret,
                 commissionFollowHq, hqPolicyScope, perTxFee, cancelRate,
-                voidFeePerTx, manualVoidFeePerTx, usageRate,
+                voidFeePerTx, handVoidFeePerTx, manualVoidFeePerTx, handRefundFeePerTx, usageRate,
                 failFee, payRate, refundRate, rollingPct, rollingDays,
                 feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx,
                 null, null, null,
@@ -5052,7 +5189,7 @@ public class CompService {
                                      String notifyUrl1, String notifyUrl2, String notifyUrl3, String notifyUrl4,
                                      String middlewareNotifyUrl, String middlewareNotifySecret,
                                      String commissionFollowHq, String hqPolicyScope, String perTxFee, String cancelRate,
-                                     String voidFeePerTx, String manualVoidFeePerTx, String usageRate,
+                                     String voidFeePerTx, String handVoidFeePerTx, String manualVoidFeePerTx, String handRefundFeePerTx, String usageRate,
                                      String failFee, String payRate, String refundRate, String rollingPct, String rollingDays,
                                      String feeSettlementPerTx, String remittanceTransferFee, String usdtTransferFeeUsd, String feeUsdt, String feeFx,
                                      String fee3dsRate, String chargebackFeePerTx, String chargebackPolicyId,
@@ -5416,7 +5553,7 @@ public class CompService {
 
         if (usesCommissionPolicyForCompDiv(compDivVal)) {
             applyCommissionPolicyForOrgCode(saved.getCode(), compDivVal, commissionFollowHq, hqPolicyScope,
-                    perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
+                    perTxFee, cancelRate, voidFeePerTx, handVoidFeePerTx, manualVoidFeePerTx, handRefundFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
                     feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId,
                     voidSettlementMode, manualVoidSettlementMode, refundSettlementMode, forceRefundSettlementMode,
                     true);
@@ -5963,7 +6100,7 @@ public class CompService {
     }
 
     private static boolean allCommissionParamsAbsent(String commissionFollowHq, String hqPolicyScope,
-                                                     String perTxFee, String cancelRate, String voidFeePerTx, String manualVoidFeePerTx,
+                                                     String perTxFee, String cancelRate, String voidFeePerTx, String handVoidFeePerTx, String manualVoidFeePerTx, String handRefundFeePerTx,
                                                      String usageRate,
                                                      String failFee, String payRate, String refundRate,
                                                      String rollingPct, String rollingDays,
@@ -5971,7 +6108,7 @@ public class CompService {
                                                      String fee3dsRate, String chargebackFeePerTx, String chargebackPolicyId,
                                                      String voidSettlementMode, String manualVoidSettlementMode, String refundSettlementMode, String forceRefundSettlementMode) {
         return commissionFollowHq == null && hqPolicyScope == null && perTxFee == null && cancelRate == null
-                && voidFeePerTx == null && manualVoidFeePerTx == null
+                && voidFeePerTx == null && handVoidFeePerTx == null && manualVoidFeePerTx == null && handRefundFeePerTx == null
                 && usageRate == null && failFee == null && payRate == null && refundRate == null
                 && rollingPct == null && rollingDays == null && feeSettlementPerTx == null
                 && remittanceTransferFee == null && usdtTransferFeeUsd == null
@@ -5982,7 +6119,7 @@ public class CompService {
     }
 
     private static boolean allCommissionFeeScalarParamsAbsent(
-            String perTxFee, String cancelRate, String voidFeePerTx, String manualVoidFeePerTx,
+            String perTxFee, String cancelRate, String voidFeePerTx, String handVoidFeePerTx, String manualVoidFeePerTx, String handRefundFeePerTx,
             String usageRate,
             String failFee, String payRate, String refundRate,
             String rollingPct, String rollingDays,
@@ -5990,7 +6127,7 @@ public class CompService {
             String fee3dsRate, String chargebackFeePerTx, String chargebackPolicyId,
             String voidSettlementMode, String manualVoidSettlementMode, String refundSettlementMode, String forceRefundSettlementMode) {
         return perTxFee == null && cancelRate == null
-                && voidFeePerTx == null && manualVoidFeePerTx == null
+                && voidFeePerTx == null && handVoidFeePerTx == null && manualVoidFeePerTx == null && handRefundFeePerTx == null
                 && usageRate == null && failFee == null && payRate == null && refundRate == null
                 && rollingPct == null && rollingDays == null && feeSettlementPerTx == null
                 && remittanceTransferFee == null && usdtTransferFeeUsd == null
@@ -6134,7 +6271,7 @@ public class CompService {
 
     private void applyCommissionPolicyForOrgCode(String compCode, String compDiv,
                                                  String commissionFollowHq, String hqPolicyScope,
-                                                 String perTxFee, String cancelRate, String voidFeePerTx, String manualVoidFeePerTx,
+                                                 String perTxFee, String cancelRate, String voidFeePerTx, String handVoidFeePerTx, String manualVoidFeePerTx, String handRefundFeePerTx,
                                                  String usageRate,
                                                  String failFee, String payRate, String refundRate,
                                                  String rollingPct, String rollingDays,
@@ -6158,8 +6295,14 @@ public class CompService {
             if (voidFeePerTx != null && !voidFeePerTx.trim().isEmpty()) {
                 policy.setVoidFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(voidFeePerTx.trim()));
             }
+            if (handVoidFeePerTx != null && !handVoidFeePerTx.trim().isEmpty()) {
+                policy.setHandVoidFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(handVoidFeePerTx.trim()));
+            }
             if (manualVoidFeePerTx != null && !manualVoidFeePerTx.trim().isEmpty()) {
                 policy.setManualVoidFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(manualVoidFeePerTx.trim()));
+            }
+            if (handRefundFeePerTx != null && !handRefundFeePerTx.trim().isEmpty()) {
+                policy.setHandRefundFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(handRefundFeePerTx.trim()));
             }
             if (usageRate != null && !usageRate.trim().isEmpty()) {
                 policy.setUsageRate(PercentDecimalHelper.parseAmountOneDecimal(usageRate.trim()));
@@ -6239,7 +6382,9 @@ public class CompService {
                 policy.setFailFee(src.getFailFee());
                 policy.setCancelRate(src.getCancelRate());
                 policy.setVoidFeePerTx(src.getVoidFeePerTx());
+                policy.setHandVoidFeePerTx(src.getHandVoidFeePerTx());
                 policy.setManualVoidFeePerTx(src.getManualVoidFeePerTx());
+                policy.setHandRefundFeePerTx(src.getHandRefundFeePerTx());
                 policy.setRefundRate(src.getRefundRate());
                 policy.setPayRate(src.getPayRate());
                 policy.setFeeSettlementPerTx(src.getFeeSettlementPerTx());
@@ -6493,7 +6638,9 @@ public class CompService {
         m.put("qrFailFee", p.getFailFee() != null ? p.getFailFee().toPlainString() : "");
         m.put("qrCancelRate", p.getCancelRate() != null ? p.getCancelRate().toPlainString() : "");
         m.put("qrVoidFeePerTx", p.getVoidFeePerTx() != null ? p.getVoidFeePerTx().toPlainString() : "");
+        m.put("qrHandVoidFeePerTx", p.getHandVoidFeePerTx() != null ? p.getHandVoidFeePerTx().toPlainString() : "");
         m.put("qrManualVoidFeePerTx", p.getManualVoidFeePerTx() != null ? p.getManualVoidFeePerTx().toPlainString() : "");
+        m.put("qrHandRefundFeePerTx", p.getHandRefundFeePerTx() != null ? p.getHandRefundFeePerTx().toPlainString() : "");
         m.put("qrRefundRate", p.getRefundRate() != null ? p.getRefundRate().toPlainString() : "");
         m.put("qrUsageRate", p.getUsageRate() != null ? p.getUsageRate().toPlainString() : "");
         m.put("qrCommissionMemo", p.getPolicyRemark() != null ? p.getPolicyRemark() : "");
@@ -6597,7 +6744,9 @@ public class CompService {
                 policy.setFailFee(src.getFailFee());
                 policy.setCancelRate(src.getCancelRate());
                 policy.setVoidFeePerTx(src.getVoidFeePerTx());
+                policy.setHandVoidFeePerTx(src.getHandVoidFeePerTx());
                 policy.setManualVoidFeePerTx(src.getManualVoidFeePerTx());
+                policy.setHandRefundFeePerTx(src.getHandRefundFeePerTx());
                 policy.setRefundRate(src.getRefundRate());
                 policy.setUsageRate(src.getUsageRate());
                 policy.setPolicyRemark(src.getPolicyRemark());
@@ -6624,7 +6773,9 @@ public class CompService {
                 setQrAmount(req.getParameter("qrFailFee"), policy::setFailFee, false);
                 setQrAmount(req.getParameter("qrCancelRate"), policy::setCancelRate, false);
                 setQrAmount(req.getParameter("qrVoidFeePerTx"), policy::setVoidFeePerTx, false);
+                setQrAmount(req.getParameter("qrHandVoidFeePerTx"), policy::setHandVoidFeePerTx, false);
                 setQrAmount(req.getParameter("qrManualVoidFeePerTx"), policy::setManualVoidFeePerTx, false);
+                setQrAmount(req.getParameter("qrHandRefundFeePerTx"), policy::setHandRefundFeePerTx, false);
                 setQrAmount(req.getParameter("qrRefundRate"), policy::setRefundRate, false);
                 setQrAmount(req.getParameter("qrUsageRate"), policy::setUsageRate, false);
                 setQrAmount(req.getParameter("qrFeeSettlementPerTx"), policy::setFeeSettlementPerTx, false);
@@ -6756,7 +6907,9 @@ public class CompService {
         m.put("payRate", p.getPayRate() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getPayRate()) : "");
         m.put("cancelRate", p.getCancelRate() != null ? p.getCancelRate().toPlainString() : "");
         m.put("voidFeePerTx", p.getVoidFeePerTx() != null ? p.getVoidFeePerTx().toPlainString() : "");
+        m.put("handVoidFeePerTx", p.getHandVoidFeePerTx() != null ? p.getHandVoidFeePerTx().toPlainString() : "");
         m.put("manualVoidFeePerTx", p.getManualVoidFeePerTx() != null ? p.getManualVoidFeePerTx().toPlainString() : "");
+        m.put("handRefundFeePerTx", p.getHandRefundFeePerTx() != null ? p.getHandRefundFeePerTx().toPlainString() : "");
         m.put("refundRate", p.getRefundRate() != null ? p.getRefundRate().toPlainString() : "");
         m.put("rollingPct", p.getRollingPct() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getRollingPct()) : "");
         m.put("rollingDays", p.getRollingDays() != null ? String.valueOf(p.getRollingDays()) : "");
@@ -7499,32 +7652,178 @@ public class CompService {
                     loginIdVal = "excel" + System.currentTimeMillis() + "_" + i;
                 }
                 try {
-                    OrgUnit saved = registerWithExtra(
-                            row.get("compId"),
-                            compNm,
-                            compDiv,
-                            parentId,
-                            row.get("compTel"), row.get("zipCode"), row.get("addr"), row.get("addrDetail"), null, null,
-                            row.get("ceoNm"), row.get("ceoMobile"), row.getOrDefault("useYn", "Y"), loginIdVal, row.get("regNo"),
-                            null, null, null, null, null, null, null, null, null, null, null,
-                            row.get("email"), pwd,
-                            row.get("bankCd"), row.get("transferFee"), null, row.get("accountNo"), row.get("accountHolder"),
-                            null, null, null, null, null, null, null, null, null,
-                            row.get("remark"),
-                            null, null, null, null, null, null, null, null, null, null, row.get("calcCycle"), null,
-                            row.get("transferType"), null, null, null, null, null, null, null, null, null,
-                            null, null, null, null,
-                            null, null, null, null,
-                            null, null, null, null, null, null, null, null, null, null,
-                            null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                            null, null,
-                            null, null, null,
-                            null, null,
-                            null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                            null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                            null, null, null, null, null, null, null, null,
-                            null, null, null, null, null, null, null, null,
-                            null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+                    OrgUnit saved = registerWithExtra(row.get("compId"),
+                compNm,
+                compDiv,
+                parentId,
+                row.get("compTel"),
+                row.get("zipCode"),
+                row.get("addr"),
+                row.get("addrDetail"),
+                null,
+                null,
+                row.get("ceoNm"),
+                row.get("ceoMobile"),
+                row.getOrDefault("useYn", "Y"),
+                loginIdVal,
+                row.get("regNo"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                row.get("email"),
+                pwd,
+                row.get("bankCd"),
+                row.get("transferFee"),
+                null,
+                row.get("accountNo"),
+                row.get("accountHolder"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                row.get("remark"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                row.get("calcCycle"),
+                null,
+                row.get("transferType"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
                     if (loginIdVal != null && !loginIdVal.isEmpty() && userRepository.findByUsername(loginIdVal).isEmpty()) {
                         AppUser appUser = new AppUser();
                         appUser.setUsername(loginIdVal);

@@ -34,6 +34,7 @@ import com.pg.util.FeeListRoundingPolicy;
 import com.pg.util.MerchantDisplayCurrencyResolver;
 import com.pg.util.PayerCountryIso2Util;
 import com.pg.util.PayDisplayCurrency;
+import com.pg.util.PayListOperationalDayBounds;
 import com.pg.util.PayListStatusBarBuckets;
 import com.pg.util.PgTrnsctnTxnClock;
 import jakarta.persistence.EntityManager;
@@ -260,8 +261,9 @@ public class PayListService {
             req = new PayListSearchRequest();
         }
         applyDefaultPayListSearchDates(req);
-        LocalDateTime from = req.getSearchFromDate() != null ? req.getSearchFromDate().atStartOfDay() : null;
-        LocalDateTime to = req.getSearchToDate() != null ? req.getSearchToDate().atTime(LocalTime.MAX) : null;
+        PayListOperationalDayBounds.Bounds dayBounds = resolvePayListSearchBounds(req);
+        LocalDateTime from = dayBounds.fromStdInclusive();
+        LocalDateTime to = dayBounds.toStdInclusive();
         int page = Math.max(1, req.getPage());
         int maxSize = req.isListExport() ? 15_000 : 1_000;
         int size = Math.min(maxSize, Math.max(1, req.getSize()));
@@ -472,14 +474,29 @@ public class PayListService {
         return new SettlementWindowPayRows(list, truncated);
     }
 
-    /** 결제관리 payList: 기간 미입력 시 전일~당일(서버 일자)로 조회·집계 */
-    private static void applyDefaultPayListSearchDates(PayListSearchRequest req) {
+    /**
+     * 결제관리 payList: 기간 미입력 시 전일~당일.
+     * 달력 기준 = 전산설정 <strong>운영 시간대</strong> (PC·JVM 로컬 금지).
+     */
+    private void applyDefaultPayListSearchDates(PayListSearchRequest req) {
         if (req.getSearchFromDate() != null || req.getSearchToDate() != null) {
             return;
         }
-        LocalDate today = LocalDate.now();
+        LocalDate today = PayListOperationalDayBounds.todayOperational(
+                hqLedgerSysSettingsService.resolveOperationalDisplayZoneId());
         req.setSearchFromDate(today.minusDays(1));
         req.setSearchToDate(today);
+    }
+
+    /**
+     * 검색일(YYYY-MM-DD) = 운영 달력 → {@code paid_at}(표준 naive) 조회 구간.
+     */
+    private PayListOperationalDayBounds.Bounds resolvePayListSearchBounds(PayListSearchRequest req) {
+        return PayListOperationalDayBounds.toStandardWallInclusive(
+                req != null ? req.getSearchFromDate() : null,
+                req != null ? req.getSearchToDate() : null,
+                hqLedgerSysSettingsService.resolveOperationalDisplayZoneId(),
+                hqLedgerSysSettingsService.resolveLedgerDisplayZoneId());
     }
 
     /** 결제·수수료 목록 등에서 가맹점 코드 집합에 대해 컨텍스트를 한 번에 구성한다. */
@@ -676,9 +693,9 @@ public class PayListService {
         if (!usesFeeListAlignedPayListFinancialSummary(variant)) {
             return null;
         }
-        LocalDateTime from = req.getSearchFromDate() != null ? req.getSearchFromDate().atStartOfDay() : null;
-        LocalDateTime to = req.getSearchToDate() != null ? req.getSearchToDate().atTime(LocalTime.MAX) : null;
-        Specification<PgTrnsctn> spec = buildSpecification(req, from, to, authentication);
+        PayListOperationalDayBounds.Bounds dayBounds = resolvePayListSearchBounds(req);
+        Specification<PgTrnsctn> spec = buildSpecification(req,
+                dayBounds.fromStdInclusive(), dayBounds.toStdInclusive(), authentication);
         return computeFinancialSummaryCore(spec, authentication, req.getSearchOrderDir(), null);
     }
 
@@ -1574,9 +1591,9 @@ public class PayListService {
      * 통화는 그리드·금액요약과 동일하게 {@link PayListItemDto#payCurKeyForFeeCompute} 로 보강한다.
      */
     private Map<String, Object> computePgTxnStatusBar(PayListSearchRequest req, Authentication authentication) {
-        LocalDateTime from = req.getSearchFromDate() != null ? req.getSearchFromDate().atStartOfDay() : null;
-        LocalDateTime to = req.getSearchToDate() != null ? req.getSearchToDate().atTime(LocalTime.MAX) : null;
-        Specification<PgTrnsctn> spec = buildSpecification(req, from, to, authentication);
+        PayListOperationalDayBounds.Bounds dayBounds = resolvePayListSearchBounds(req);
+        Specification<PgTrnsctn> spec = buildSpecification(req,
+                dayBounds.fromStdInclusive(), dayBounds.toStdInclusive(), authentication);
         boolean capped = false;
         List<PgTrnsctn> scanRows = fetchPayListFinancialSummaryRows(spec, req, PAY_LIST_FIN_SUMMARY_MAX_ROWS + 1);
         if (scanRows.size() > PAY_LIST_FIN_SUMMARY_MAX_ROWS) {
@@ -2195,7 +2212,8 @@ public class PayListService {
                                                       Authentication authentication) {
         PayListSearchRequest reqIn = PayListSearchRequest.shallowCopy(template != null ? template : new PayListSearchRequest());
         ZoneId ledgerTz = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
-        LocalDate today = LocalDate.now(ledgerTz);
+        ZoneId opTz = hqLedgerSysSettingsService.resolveOperationalDisplayZoneId();
+        LocalDate today = PayListOperationalDayBounds.todayOperational(opTz);
         LocalDate rangeFrom = reqIn.getSearchFromDate();
         LocalDate rangeTo = reqIn.getSearchToDate();
         if (rangeTo == null) {
@@ -2222,9 +2240,10 @@ public class PayListService {
         base.setPayListVariant("INTEGRATED");
         base.setSearchFromDate(effectiveFrom);
         base.setSearchToDate(effectiveTo);
-        LocalDateTime fullFrom = effectiveFrom.atStartOfDay();
-        LocalDateTime fullTo = effectiveTo.atTime(LocalTime.MAX);
-        Specification<PgTrnsctn> specFull = buildSpecification(base, fullFrom, fullTo, authentication);
+        PayListOperationalDayBounds.Bounds dayBounds = PayListOperationalDayBounds.toStandardWallInclusive(
+                effectiveFrom, effectiveTo, opTz, ledgerTz);
+        Specification<PgTrnsctn> specFull = buildSpecification(base,
+                dayBounds.fromStdInclusive(), dayBounds.toStdInclusive(), authentication);
 
         AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
         OrgLevel level = PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository);
@@ -2273,7 +2292,8 @@ public class PayListService {
                 if (clock == null) {
                     continue;
                 }
-                LocalDate day = clock.toLocalDate();
+                /* paid_at=표준 naive → 운영 달력 일자 */
+                LocalDate day = clock.atZone(ledgerTz).toInstant().atZone(opTz).toLocalDate();
                 OpsIntegratedDayAgg dayAgg = byDay.get(day);
                 if (dayAgg == null) {
                     continue;
@@ -2615,7 +2635,9 @@ public class PayListService {
             throw new IllegalArgumentException("조회 기간은 " + DAILY_PAY_SUMMARY_MAX_DAYS + "일 이내로 지정해 주세요.");
         }
         ZoneId ledgerTz = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
-        ZoneId bucketZone = com.pg.util.ViewDisplayTimezoneResolver.currentCompareAlign().orElse(ledgerTz);
+        ZoneId opTz = hqLedgerSysSettingsService.resolveOperationalDisplayZoneId();
+        /* 일자 버킷 기본 = 운영 시간대(당일·전일과 동일). 비교정렬 오버라이드 시 그 Zone */
+        ZoneId bucketZone = com.pg.util.ViewDisplayTimezoneResolver.currentCompareAlign().orElse(opTz);
         boolean shiftBucket = !bucketZone.equals(ledgerTz);
         LocalDate today = LocalDate.now(bucketZone);
         LocalDate effectiveTo = rangeTo.isAfter(today) ? today : rangeTo;
@@ -2624,13 +2646,18 @@ public class PayListService {
         }
         PayListSearchRequest base = PayListSearchRequest.shallowCopy(template);
         base.setPayListVariant("INTEGRATED");
-        LocalDate queryFrom = shiftBucket ? rangeFrom.minusDays(1) : rangeFrom;
-        LocalDate queryTo = shiftBucket ? effectiveTo.plusDays(1) : effectiveTo;
-        base.setSearchFromDate(queryFrom);
-        base.setSearchToDate(queryTo);
-        LocalDateTime fullFrom = queryFrom.atStartOfDay();
-        LocalDateTime fullTo = queryTo.atTime(LocalTime.MAX);
-        Specification<PgTrnsctn> specFull = buildSpecification(base, fullFrom, fullTo, authentication);
+        /* 운영(또는 비교) 달력 구간 → 표준 paid_at 벽시계 */
+        PayListOperationalDayBounds.Bounds dayBounds = PayListOperationalDayBounds.toStandardWallInclusive(
+                rangeFrom, effectiveTo, bucketZone, ledgerTz);
+        if (shiftBucket) {
+            /* 경계 누락 방지 ±1 운영일 */
+            dayBounds = PayListOperationalDayBounds.toStandardWallInclusive(
+                    rangeFrom.minusDays(1), effectiveTo.plusDays(1), bucketZone, ledgerTz);
+        }
+        base.setSearchFromDate(rangeFrom);
+        base.setSearchToDate(effectiveTo);
+        Specification<PgTrnsctn> specFull = buildSpecification(base,
+                dayBounds.fromStdInclusive(), dayBounds.toStdInclusive(), authentication);
 
         AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
         OrgLevel level = PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository);

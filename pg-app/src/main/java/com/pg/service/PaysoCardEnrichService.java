@@ -92,7 +92,8 @@ public class PaysoCardEnrichService {
                     str(detail.get("orderNo")),
                     firstNonBlank(str(detail.get("transactionId")), chill),
                     str(detail.get("cardNo")),
-                    null));
+                    null,
+                    str(detail.get("orderDateTime"))));
         } catch (Exception e) {
             log.debug("PAYSO card enrich skip: {}", e.getMessage());
         }

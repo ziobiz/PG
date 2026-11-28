@@ -285,7 +285,9 @@ public class CommissionService {
             m.put("perTxFee", policy.getPerTxFee());
             m.put("cancelRate", policy.getCancelRate());
             m.put("voidFeePerTx", policy.getVoidFeePerTx());
+            m.put("handVoidFeePerTx", policy.getHandVoidFeePerTx());
             m.put("manualVoidFeePerTx", policy.getManualVoidFeePerTx());
+            m.put("handRefundFeePerTx", policy.getHandRefundFeePerTx());
             m.put("payRate", policy.getPayRate());
             m.put("refundRate", policy.getRefundRate());
             m.put("feeSettlementPerTx", policy.getFeeSettlementPerTx());
@@ -920,7 +922,9 @@ public class CommissionService {
         c.setFailFee(base.getFailFee());
         c.setCancelRate(base.getCancelRate());
         c.setVoidFeePerTx(base.getVoidFeePerTx());
+        c.setHandVoidFeePerTx(base.getHandVoidFeePerTx());
         c.setManualVoidFeePerTx(base.getManualVoidFeePerTx());
+        c.setHandRefundFeePerTx(base.getHandRefundFeePerTx());
         c.setRefundRate(base.getRefundRate());
         c.setPayRate(base.getPayRate());
         c.setFeeSettlementPerTx(base.getFeeSettlementPerTx());
@@ -1345,7 +1349,9 @@ public class CommissionService {
                 m.put("perTxFee", policy.getPerTxFee());
                 m.put("cancelRate", policy.getCancelRate());
                 m.put("voidFeePerTx", policy.getVoidFeePerTx());
-                m.put("manualVoidFeePerTx", policy.getManualVoidFeePerTx());
+                m.put("handVoidFeePerTx", policy.getHandVoidFeePerTx());
+            m.put("manualVoidFeePerTx", policy.getManualVoidFeePerTx());
+            m.put("handRefundFeePerTx", policy.getHandRefundFeePerTx());
                 m.put("usageRate", policy.getUsageRate());
                 m.put("failFee", policy.getFailFee());
                 m.put("payRate", policy.getPayRate());
@@ -1445,7 +1451,9 @@ public class CommissionService {
             setAmtOne(policy::setPerTxFee, body.get("perTxFee"));
             setAmtOne(policy::setCancelRate, body.get("cancelRate"));
             setAmtOne(policy::setVoidFeePerTx, body.get("voidFeePerTx"));
+            setAmtOne(policy::setHandVoidFeePerTx, body.get("handVoidFeePerTx"));
             setAmtOne(policy::setManualVoidFeePerTx, body.get("manualVoidFeePerTx"));
+            setAmtOne(policy::setHandRefundFeePerTx, body.get("handRefundFeePerTx"));
             setAmtOne(policy::setUsageRate, body.get("usageRate"));
             setAmtOne(policy::setFailFee, body.get("failFee"));
             setPct(policy::setPayRate, body.get("payRate"));

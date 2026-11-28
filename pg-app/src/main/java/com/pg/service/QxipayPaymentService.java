@@ -166,7 +166,7 @@ public class QxipayPaymentService {
         qxipaySaleRecordService.recordOrTouchPending(
                 orgUnitId, orderNo, charge.pgAmount(), charge.settlementCurrency(),
                 str(body, "productName", "item"), null, str(body, "txnOrigin", "origin"),
-                charge.shopperDisplayAmount(), charge.shopperDisplayCurrency(), pgOrderRef);
+                charge.shopperDisplayAmount(), charge.shopperDisplayCurrency(), pgOrderRef, body);
 
         Map<String, Object> chg = apiClient.createCharge(creds, chargeReq, idem,
                 sandboxOutcome.isBlank() ? null : sandboxOutcome);
@@ -189,7 +189,7 @@ public class QxipayPaymentService {
         qxipaySaleRecordService.recordOrTouchPending(
                 orgUnitId, orderNo, charge.pgAmount(), charge.settlementCurrency(),
                 str(body, "productName", "item"), chargeId, str(body, "txnOrigin", "origin"),
-                charge.shopperDisplayAmount(), charge.shopperDisplayCurrency(), pgOrderRef);
+                charge.shopperDisplayAmount(), charge.shopperDisplayCurrency(), pgOrderRef, body);
 
         if ("succeeded".equalsIgnoreCase(status)) {
             qxipaySaleRecordService.applyChargeOutcome(orderNo, ouOpt.get().getCode(), chargeId, "succeeded", chargeId);

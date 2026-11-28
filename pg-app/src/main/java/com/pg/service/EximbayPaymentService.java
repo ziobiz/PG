@@ -250,6 +250,9 @@ public class EximbayPaymentService {
         /* Eximbay order_id = ICOPAY 불투명 ref. DB order_no = 가맹 orderNo, pay_no = ref */
         final String pgOrderRef = com.pg.util.IcopayPgOrderRef.standard();
         Map<String, Object> refHolder = new LinkedHashMap<>();
+        if (body != null) {
+            refHolder.putAll(body);
+        }
         com.pg.util.IcopayPgOrderRef.putInSaleBody(refHolder, pgOrderRef);
         payment.put("order_id", pgOrderRef);
         payment.put("currency", currency);

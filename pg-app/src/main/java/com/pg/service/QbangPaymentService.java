@@ -313,7 +313,7 @@ public class QbangPaymentService {
                 orgUnitId, orderNo, pgAmt, settleCur,
                 productName, txnNo, str(body, "txnOrigin", "origin"),
                 shopperAmt, shopperCur,
-                buyerName, buyerEmail, buyerTel);
+                buyerName, buyerEmail, buyerTel, body);
 
         out.put("success", true);
         Map<String, Object> data = new LinkedHashMap<>();

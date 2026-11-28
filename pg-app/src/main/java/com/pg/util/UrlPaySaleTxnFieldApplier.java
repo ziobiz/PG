@@ -1,6 +1,7 @@
 package com.pg.util;
 
 import com.pg.entity.PgTrnsctn;
+import com.pg.merchantdeploy.MerchantCheckoutLangUtil;
 
 import java.util.Locale;
 import java.util.Map;
@@ -21,6 +22,8 @@ public final class UrlPaySaleTxnFieldApplier {
         JpayBuyerContactApplier.applyFromSaleBody(t, saleBody);
         applyCardPanHash(t, saleBody);
         applyPayerContext(t, saleBody);
+        /* 결제창 언어·단말 언어 → 거래명세서 언어 우선순위용 */
+        MerchantCheckoutLangUtil.applyToTxn(t, saleBody);
         /* pay_no = ICOPAY→PG 불투명 ref (saleBody.icopayPgOrderRef). order_no 는 가맹 주문번호 유지 */
         IcopayPgOrderRef.applyPayNoToTxn(t, saleBody);
     }

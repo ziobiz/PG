@@ -2675,6 +2675,15 @@ option.pg-agency-opt--unused {
   color: #9e9e9e;
   background-color: #eceff1;
 }
+/* 결제대행사 등록: 라벨↔입력 여백 (본사정책 폼과 동일) */
+#contentsMain .hq-pg-cost-basic-card .form-field-block .form-label,
+#contentsMain .hq-pg-cost-basic-card .form-label,
+#contentsMain #hqPgAgencyCostFlash ~ .card .form-field-block .form-label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #333;
+}
 td.empty-state-cell {
   width: 100%;
   text-align: center !important;
@@ -4700,6 +4709,12 @@ button.pay-follow-pill:focus-visible {
 .hq-pg-api-mng-table thead th[data-key="rowNo"] {
   width: 2.85rem;
 }
+.hq-pg-api-mng-table thead th[data-key="costNm"],
+.pg-api-mng-costnm-th {
+  width: 7.5rem;
+  max-width: 9rem;
+  min-width: 5.5rem;
+}
 .hq-pg-api-mng-table thead th[data-key="pgNm"] {
   width: 10.5rem;
   min-width: 8rem;
@@ -4805,15 +4820,15 @@ button.pay-follow-pill:focus-visible {
 /* URL ì´: ìì  28% ëì  ê³ ì  í­ + ë§ì¤ì(ì ì²´ ëë¹ë ëë¨¸ì§ ì´Â·ì¬ë°±ì¼ë¡ ê· í) */
 .hq-pg-api-mng-table thead th[data-key="endpointsSummary"],
 .pg-api-mng-endpoints-th {
-  width: 19rem;
-  max-width: 19rem;
-  min-width: 11rem;
+  width: 12rem;
+  max-width: 12rem;
+  min-width: 8rem;
 }
 .pg-api-mng-ep-cell {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 19rem;
+  max-width: 12rem;
 }
 .pg-api-mng-ep-cell .pg-api-mng-ep-ellipsis {
   display: block;
@@ -4824,7 +4839,7 @@ button.pay-follow-pill:focus-visible {
   line-height: 1.25;
 }
 .hq-pg-api-mng-table tbody td.pg-api-mng-ep-cell {
-  max-width: 19rem;
+  max-width: 12rem;
 }
 
 /* ë³¸ì¬ì¤ì  > ë¸í°ìë ¹ì ë³´: í ì ê°ì´ë° ì ë ¬(table-form-ui), ì¤ë¥ì´ì í­ ì íÂ·ë§ì¤ì */
